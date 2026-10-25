@@ -1,0 +1,574 @@
+doc_id,read,verdict,diseases,evidence,hex,note
+21,full,drop,E1,auto-generated header at offset 101,,18F/data-federation-ingest examples/p02_budgets/budget_data_ingest/migrations/0001_initial.py
+190,full,drop,E1,auto-generated header at offset 36,,bornhack/bornhack-website src/economy/migrations/0027_zettlebalance_zettlereceipt.py
+239,full,drop,E1,auto-generated header at offset 0,,jarnoln/exposures tables/migrations/0004_auto_20200901_2004.py
+263,full,drop,E1,auto-generated header at offset 15,,Visualway/Vitary apps/core/migrations/0001_initial.py
+378,full,drop,E1,auto-generated header at offset 0,,gabrielkarras/SOEN341 amazon/model_api/migrations/0005_remove_order_datetimecreated_alter_order__id_and_more.py
+379,full,drop,E1,auto-generated header at offset 24,,tony-joseph/livre items/migrations/0001_initial.py
+427,full,drop,E1,auto-generated header at offset 0,,leonhead/chess-insight insight/migrations/0001_initial.py
+508,full,drop,E1,auto-generated header at offset 70,,pmaxit/dlnotebooks mllib/nlp/seq2seq.py
+553,full,drop,E1,auto-generated header at offset 15,,bunya017/brokenChains brokenChains/migrations/0003_auto_20181106_1819.py
+555,full,drop,E1,auto-generated header at offset 0,,nickmoreton/nhsx-website app/modules/ai_lab/migrations/0003_ailabcasestudy.py
+574,full,drop,E1,auto-generated header at offset 0,,deucaleon18/debsoc-nitdgp-website sitewebapp/migrations/0011_auto_20210130_0150.py
+583,full,drop,E1,auto-generated header at offset 100,,easyopsapis/easyops-api-python influxdb_service_sdk/model/container/resource_requirements_pb2.py
+632,full,drop,E1,auto-generated header at offset 39,,RSaab/rss-scraper app/rss_feeder_api/migrations/0003_auto_20200813_1623.py
+635,full,drop,E3,private key at offset 41541,,BearerPipelineTest/synapse-1 tests/rest/client/test_login.py
+642,full,drop,E1,auto-generated header at offset 0,,NREL/REopt_API reo/migrations/0121_merge_20211001_1841.py
+787,full,drop,E1,auto-generated header at offset 55,,maryam-afzp/django-yekpay yekpay/migrations/0014_auto_20181120_1453.py
+835,full,drop,E1,auto-generated header at offset 87,,yopiti/authserver authserver/mailauth/migrations/0011_mnserviceuser.py
+871,full,drop,E1,auto-generated header at offset 42,,vvuri/flask_pipeline app/django_first/news/migrations/0002_movies_year.py
+934,full,drop,E1,auto-generated header at offset 0,,ShahriarDhruvo/WebTech_Assignment2 server/api/migrations/0002_auto_20201011_1053.py
+1022,full,drop,E1,auto-generated header at offset 24,,terrameijar/bluebottle bluebottle/tasks/migrations/0012_merge.py
+1024,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,SUSE/azure-sdk-for-python azure-mgmt/tests/test_mgmt_network.py
+1058,full,drop,E1,auto-generated header at offset 53,,atadams/mlb mlb/game/migrations/0009_game_game_type.py
+1073,full,drop,E1,auto-generated header at offset 45,,GregTMJ/django-files NewsPaperD7(final)/NewsPaper/News/migrations/0001_initial.py
+1075,full,drop,E1,auto-generated header at offset 0,,MelanieFJNR/Blitz-API blitz_api/migrations/0020_auto_20190529_1200.py
+1126,full,drop,E1,auto-generated header at offset 0,,ck-tm/biserici-inlemnite biserici_inlemnite/app/migrations/0096_bisericapage_datare_an.py
+1140,full,drop,E1,auto-generated header at offset 0,,wjh112233/yxtx yxtx/myApp/migrations/0017_chat.py
+1270,full,drop,E1,auto-generated header at offset 82,,xingjianpan/news_reader_backend economist/migrations/0003_auto_20170406_1402.py
+1352,full,drop,E1,auto-generated header at offset 0,,QizaiMing/ergo-project-manager issues/migrations/0001_initial.py
+1479,full,drop,E1,auto-generated header at offset 12,,kgarchie/ReSTful-Django-API API/migrations/0005_alter_news_date_time_alter_news_headline.py
+1598,full,drop,E1,auto-generated header at offset 67,,jnegrete2005/JuradoFMS vote/migrations/0005_auto_20210204_1900.py
+1767,full,drop,E1,auto-generated header at offset 54,,IceArrow256/game-list games/migrations/0002_auto_20201026_1221.py
+1813,full,drop,E1,auto-generated header at offset 16,,fairhopeweb/saleor saleor/order/migrations/0081_auto_20200406_0456.py
+1935,full,fix,A2,⟦U+0008⟧ BACKSPACE at offset 3891,3891 U+0008 BACKSPACE,karta1782310/python-docx-automated-report-generation 20200416_Socialmail/mailserverUi.py
+1957,full,drop,E1,auto-generated header at offset 90,,uktrade/pir-api investment_report/migrations/0020_auto_20180911_1005.py
+1974,full,drop,E1,auto-generated header at offset 92,,hamole/physio2go physio2go/exercises/migrations/0003_auto_20161128_1753.py
+2154,full,drop,E1,auto-generated header at offset 36,,vsalat/djangocms-redirect djangocms_redirect/migrations/0003_auto_20190810_1009.py
+2169,full,drop,E1,auto-generated header at offset 24,,Hawk94/coin_tracker main/rates/migrations/0002_auto_20170625_1510.py
+2271,full,drop,E1,auto-generated header at offset 57,,akshay-kapase/shopping grocery/migrations/0003_alter_item_comments.py
+2418,full,fix,C2;E2,line repeated 32 times consecutively at offset 1323 | hex/number array of 6906 chars at offset 1275,,whpenner/upm examples/python/oled_ssd1327.py
+2502,full,drop,E1,auto-generated header at offset 0,,jimforit/lagou apps/delivery/migrations/0001_initial.py
+2512,full,drop,E1,auto-generated header at offset 77,,manson800819/test shop/migrations/0009_auto_20200310_1430.py
+2544,full,drop,E1,auto-generated header at offset 0,,schoolio-co/schoolio_site schoolio/migrations/0005_auto_20190927_1423.py
+2827,full,drop,E1,auto-generated header at offset 74,,AyanSamanta23/moni-moni services/server/server/apps/checkout/migrations/0001_initial.py
+2926,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,motakine/ILAS_slackbot plugins/number.py
+2940,full,drop,E1,auto-generated header at offset 24,,2martens/rpo-website src/rpocore/migrations/0007_auto_20160927_1517.py
+2982,full,drop,E1,auto-generated header at offset 69,,mattiolato98/reservation-ninja reservation_management/migrations/0021_delete_greenpass.py
+3149,full,drop,E1,auto-generated header at offset 24,,aroiginfraplan/giscube-admin layerserver/migrations/0001_initial.py
+3152,full,drop,E1,auto-generated header at offset 24,,StepicOrg/stepik-apps apps/extensions/migrations/0012_imports_path_urlfield_to_charfield.py
+3157,full,drop,E1,auto-generated header at offset 63,,CHESyrian/Estebyan Authentication/migrations/0004_auto_20201115_1105.py
+3189,full,drop,E1,auto-generated header at offset 27,,karstenv/nmp-arm app/backend/arm/migrations/0002_auto_20190924_1712.py
+3209,full,drop,E1,auto-generated header at offset 17,,code-review-doctor/amy amy/workshops/migrations/0191_auto_20190809_0936.py
+3263,full,drop,E1,auto-generated header at offset 0,,czhu1217/cmimc-online website/migrations/0084_auto_20210215_1401.py
+3279,full,drop,E1,auto-generated header at offset 0,,jak0203/nps-dash nps/migrations/0013_auto_20180314_1805.py
+3336,full,drop,E1,auto-generated header at offset 0,,njmhendrix/grand-challenge.org app/grandchallenge/challenges/migrations/0023_auto_20200123_1102.py
+3346,full,drop,E1,auto-generated header at offset 39,,kkrampa/commcare-hq corehq/apps/accounting/migrations/0026_auto_20180508_1956.py
+3367,full,drop,E1,auto-generated header at offset 90,,ChameleonCloud/portal appliance_catalog/migrations/0015_appliance_icon_py3.py
+3385,full,drop,E1,auto-generated header at offset 24,,Ecotrust/ucsrb ucsrb/migrations/0013_auto_20180710_2040.py
+3409,full,drop,E1,auto-generated header at offset 61,,CodeBrew-LTD/django-hordak hordak/migrations/0011_auto_20170225_2222.py
+3738,full,drop,E1,auto-generated header at offset 36,,ccsreenidhin/Music-Web-Django musa/migrations/0001_initial.py
+3760,full,drop,E1,auto-generated header at offset 0,,timgates42/django-mfa django_mfa/migrations/0001_initial.py
+3909,full,drop,E1,auto-generated header at offset 65,,prezi/mayan-edms mayan/apps/metadata/migrations/0011_auto_20180917_0645.py
+3935,full,drop,E1,auto-generated header at offset 0,,mahmoud-batman/quizz-app backend/accounts/migrations/0003_auto_20201115_1537.py
+4046,full,drop,E1,auto-generated header at offset 0,,snoop2head/exercise_curation_django categories/migrations/0001_initial.py
+4061,full,drop,E1,auto-generated header at offset 42,,mertyildiran/echo core/migrations/0002_auto_20180702_1913.py
+4126,full,drop,E1,auto-generated header at offset 54,,relaxxpls/Music-Control backend/listings/migrations/0001_initial.py
+4263,full,fix,B3,ghost marker <|endoftext|> at offset 3647,,salesforce/CodeGen jaxformer/hf/sample.py
+4928,full,fix,B1,HTML entity &amp; at offset 6689,,acitv/plugin.video.aci main.py
+5537,full,fix,A1,⟦ZWSP⟧ U+200B at offset 28456,28456 U+200B ZERO WIDTH SPACE,dspoka/mnm tokenization_numerical.py
+5890,full,fix,A1,⟦BOM⟧ U+FEFF at offset 23,23 U+FEFF ZERO WIDTH NO-BREAK SPACE,wheatdog/CDM objectModel/Python/cdm/persistence/cdmfolder/types/purpose_reference.py
+6103,full,fix,A1,⟦BOM⟧ U+FEFF at offset 12,12 U+FEFF ZERO WIDTH NO-BREAK SPACE,aspose-slides/Aspose.Slides-for-Python-via-.NET examples/src/Charts/MultiCategoryChart.py
+6189,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,korkeatw/pythainlp pythainlp/util/thai.py
+6672,full,fix,A2,⟦U+0010⟧ DATA LINK ESCAPE at offset 29013,29013 U+0010 DATA LINK ESCAPE,Exi666/MetPy src/metpy/calc/basic.py
+6917,full,fix,A2,⟦U+008A⟧ CONTROL U+008A at offset 1238,1238 U+008A CONTROL U+008A,csadsl/poc_exp Bugscan_exploits-master/exp_list/exp－1788.py
+7352,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,chm-dev/amazfitGTSwatchfaceBundle src/utils/pythonSrc/watchFaceParser/models/elements/battery/batteryGaugeElement.py
+8178,full,drop,E3,github token at offset 257,,CakeCrusher/voon-video_processing services/apiRequests.py
+8802,full,drop,E3,private key at offset 5478,,sumesh-aot/namex api/config.py
+9934,full,fix,A1,⟦BOM⟧ U+FEFF at offset 67,67 U+FEFF ZERO WIDTH NO-BREAK SPACE,imafidon2020/azure-devops-python-api azure-devops/azure/devops/released/build/build_client.py
+10143,full,fix,B3,ghost marker <|endoftext|> at offset 5864,,Zyh716/WSDM2022-C2CRS crslab/system/C2CRS_System.py
+10401,full,fix,A3,mojibake 'Ã¡' at offset 7377 (3x),7377 U+00C3 + U+00A1 (3x),Ocete/Inteligenica-de-Negocio P2/Caso2/clustering.py
+10770,full,fix,B1,HTML entity &amp; at offset 847,,utcompling/GeoAnnotate python/fix-page-breaks.py
+10803,full,fix,A1,⟦BOM⟧ U+FEFF at offset 19,19 U+FEFF ZERO WIDTH NO-BREAK SPACE,1143048123/cddh native_prophet.py
+10855,full,fix,A1,⟦BOM⟧ U+FEFF at offset 12,12 U+FEFF ZERO WIDTH NO-BREAK SPACE,NazBen/dep-impact depimpact/tests/test_functions.py
+11485,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,v-Ajnava/azure-sdk-for-python azure-mgmt/tests/test_mgmt_documentdb.py
+11887,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,dpjrodrigues/home-assistant-custom-components estradaspt_legacy/__init__.py
+12051,full,fix,B1,HTML entity &quot; at offset 21672,,RyanHelgoth/CMPUT404-Lab5 venv/lib/python3.6/site-packages/pelican/readers.py
+12858,full,fix,A1,⟦BOM⟧ U+FEFF at offset 103,103 U+FEFF ZERO WIDTH NO-BREAK SPACE,Ammar12/simplebanking env/Lib/site-packages/azure/mgmt/storage/storagemanagement.py
+13108,full,drop,E3,private key at offset 736,,oba11/salt tests/unit/test_crypt.py
+13204,full,fix,E2,hex/number array of 1710 chars at offset 1027,,axelzedigh/DLSCA scripts/first_trace_success_test.py
+13312,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,skarl-api/qqbot qqbot/qqbotcls.py
+13867,full,drop,A4,⟦U+FFFD⟧ at offset 221,221 U+FFFD REPLACEMENT CHARACTER,luyao777/speech-robot compose.py
+14112,full,fix,A1,⟦ZWSP⟧ U+200B at offset 788 (4x),788 U+200B ZERO WIDTH SPACE (4x),Skyblueballykid/linalg Ch_5/linear_alg5.py
+14169,full,fix,B1,HTML entity &nbsp; at offset 15678,,peckhams/balto_gui balto_gui.py
+14278,full,fix,A3,mojibake 'Ã¼' at offset 16999 (4x),16999 U+00C3 + U+00BC (4x),mrtyasar/PythonLearn islecler.py
+14575,full,fix,A1,⟦BOM⟧ U+FEFF at offset 55,55 U+FEFF ZERO WIDTH NO-BREAK SPACE,gellowmellow/python-messenger-bot messenger/helper/http/post.py
+15415,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,Brinks0211/cognitive_paradigms_patients 4_Nback/Nback_practice_lastrun.py
+15660,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,neonkingfr/VizBench bin/genparams.py
+15743,full,fix,A1,⟦BOM⟧ U+FEFF at offset 31,31 U+FEFF ZERO WIDTH NO-BREAK SPACE,MSXC/CNTK bindings/python/cntk/utils/__init__.py
+18285,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,xthecoolboy/MizaBOT cogs/management.py
+19182,full,fix,B3,ghost marker <|endoftext|> at offset 2887,,AlexDuvalinho/AITextGenerator src/flexible_models/flexible_GPT2.py
+19500,full,drop,A4,⟦U+FFFD⟧ at offset 11816,11816 U+FFFD REPLACEMENT CHARACTER,saattrupdan/danish-asr-models src/data.py
+19752,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,Sizurka/zyc zyc/zyc.py
+19959,full,fix,A1,⟦ZWSP⟧ U+200B at offset 4552,4552 U+200B ZERO WIDTH SPACE,byemc/discord-rhythmbox-plugin discord-status.py
+20636,full,fix,C2,line repeated 12 times consecutively at offset 3296,,emanuelelaface/Canon-M10 Canon-M10.py
+20650,full,drop,A4,⟦U+FFFD⟧ at offset 2888 (12x),2888 U+FFFD REPLACEMENT CHARACTER (12x),starc52/GDE-Project Game/story.py
+20718,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,stealthz67/spoter-mods-1 mod_modPackInformer/source/mod_modPackInformer.py
+21334,full,fix,A2,⟦U+008B⟧ CONTROL U+008B at offset 3426,3426 U+008B CONTROL U+008B,hwRG/FastSpeech2-Pytorch-old-man_city data_preprocessing.py
+21617,full,fix,A1,⟦ZWSP⟧ U+200B at offset 668 (2x),668 U+200B ZERO WIDTH SPACE (2x),rshane7/Sqlalchemy-Challenge app.py
+21766,full,fix,C2,line repeated 30 times consecutively at offset 2921,,MasterBurnt/ToolBurnt modules/password.py
+22100,full,fix,B3,ghost marker <|endoftext|> at offset 3442,,50417/gpt-2 src/interactive_conditional_samples.py
+22379,full,fix,A1,⟦ZWSP⟧ U+200B at offset 256 (11x),256 U+200B ZERO WIDTH SPACE (11x),luk036/ellalgo src/ellalgo/ell_stable.py
+22651,full,fix,C2,line repeated 19 times consecutively at offset 4570,,EnjoyLifeFund/macHighSierra-py36-pkgs pydsm/audio_weightings.py
+22812,full,fix,A1,⟦BOM⟧ U+FEFF at offset 24,24 U+FEFF ZERO WIDTH NO-BREAK SPACE,EMinsight/MPh tools/test.py
+23522,full,fix,A2,⟦U+001F⟧ INFORMATION SEPARATOR ONE at offset 4116,4116 U+001F INFORMATION SEPARATOR ONE,HiroshiOhta/GetCorporationInfo scripts/corpinfo.py
+24833,full,fix,A1,⟦ZWSP⟧ U+200B at offset 984 (2x),984 U+200B ZERO WIDTH SPACE (2x),peczony/chgksuite typotools.py
+25218,full,fix,A1,⟦BOM⟧ U+FEFF at offset 25,25 U+FEFF ZERO WIDTH NO-BREAK SPACE,sug4rok/Servus Servus/home/urls.py
+25393,full,fix,B1,HTML entity &lt; at offset 11226,,rodrigonz/rodrigodeoliveiracosta-ffdown fanficdownloader/story.py
+25451,full,fix,A1,⟦RLE⟧ U+202B at offset 1450,1450 U+202B RIGHT-TO-LEFT EMBEDDING,fatemetkl/TextClassification-NLP-Forml_and_Informal TextGen/src/TextGen-2.py
+25772,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,dalekirkman1/SecureCRT-tools nexthop_summary.py
+25967,full,fix,A1,⟦BOM⟧ U+FEFF at offset 31,31 U+FEFF ZERO WIDTH NO-BREAK SPACE,KMikeeU/temp-mail tmp_mail/__init__.py
+26303,full,fix,E2,hex/number array of 2875 chars at offset 414,,SCSZCC/PythonWithHardware CyberPi/Python with CyberPi 064（面向对象 精灵游戏）.py
+26910,full,fix,A3,mojibake 'Ã¥' at offset 2675,2675 U+00C3 + U+00A5,pfassina/BattleFortune battlefortune/batchrunner.py
+27393,full,fix,C2,line repeated 96 times consecutively at offset 1218,,stijndehaes/aws-data-wrangler testing/test_awswrangler/test_athena.py
+29062,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,mrstealth/kodi-isengard plugin.video.mrstealth.serialu.net/uppod.py
+30263,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,xthecoolboy/MizaBOT cogs/general.py
+30338,full,fix,B1,HTML entity &nbsp; at offset 8347,,aychen99/Excavating-Occaneechi-Town src/extract_old_site/modules/standard_text_chapter.py
+30685,full,fix,A1,⟦BOM⟧ U+FEFF at offset 35,35 U+FEFF ZERO WIDTH NO-BREAK SPACE,Joe606/scrape_sportshoes get_color_wordcloud.py
+32266,full,fix,A1,⟦SHY⟧ U+00AD at offset 967,967 U+00AD SOFT HYPHEN,kiwi0fruit/open-fonts sourcing_code_pro.py
+32650,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,CharlesW1970/Handright StationeryBG.py
+32922,full,drop,A4,⟦U+FFFD⟧ at offset 704 (2x),704 U+FFFD REPLACEMENT CHARACTER (2x),ricardyn/ironpython-stubs stubs.min/System/Windows/Interop_parts/WindowInteropHelper.py
+33068,full,fix,A1,⟦BOM⟧ U+FEFF at offset 47,47 U+FEFF ZERO WIDTH NO-BREAK SPACE,j123123/llilc utils/make_package.py
+33079,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,ni-ldp/nixnet-python nixnet/_session/__init__.py
+33084,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,Fabien034/TimeLaps TransfertFichier.py
+33131,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,iamnavya-agg/Emotion-Categorization-experiemnt Assignment2_lastrun.py
+33215,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,CB1204/LapSimulation src/GG_ESB.py
+33230,full,drop,A4,⟦U+FFFD⟧ at offset 101 (47x),101 U+FFFD REPLACEMENT CHARACTER (47x),Har6ard/HackTheBox Base64_Cleanup.py
+33496,full,fix,A1,⟦BOM⟧ U+FEFF at offset 12,12 U+FEFF ZERO WIDTH NO-BREAK SPACE,chipsi007/spoter-mods mod_spotted_extended_light/mod_spotted_extended_light308.py
+33918,full,fix,B1,HTML entity &amp; at offset 648,,JohanWinther/cat-state-encoding Archive/Presentation/Cat Code Presentation.py
+34072,full,drop,A4,⟦U+FFFD⟧ at offset 45 (6x),45 U+FFFD REPLACEMENT CHARACTER (6x),joakimzhang/qa_study daily_practice/tools/GetMem.py
+34236,full,fix,B1,HTML entity &amp; at offset 14001,,sjoplin/Ace-Analytics createSampledata.py
+34563,full,fix,B1,HTML entity &copy; at offset 16130,,databricks-academy/ml-in-production Machine-Learning-in-Production/02-Model-Management/02-Model-Registry.py
+34645,full,fix,B1,HTML entity &copy; at offset 60,,TerraWilly/foxbms-2 tools/waf-tools/f_cppcheck.py
+34827,full,fix,B1,HTML entity &#129; at offset 130179,,shizhao/pywikibot-core pywikibot/page.py
+34961,full,fix,A2,⟦U+0008⟧ BACKSPACE at offset 33754,33754 U+0008 BACKSPACE,yumei86/iRamen_linebot app.py
+35485,full,fix,A1,⟦BOM⟧ U+FEFF at offset 58,58 U+FEFF ZERO WIDTH NO-BREAK SPACE,cnzht/grit python.io/study-20180412.py
+36438,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,lcremer/Maya_Rigging Joints/Pelvis.py
+36577,full,fix,A1,⟦ZWSP⟧ U+200B at offset 321,321 U+200B ZERO WIDTH SPACE,klapen/chat src/chat/tasks.py
+37226,full,fix,F1,email at offset 648,,825477418/XX Tools/_create_model.py
+37410,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,rzoller/tex2ebook tex2ebook.py
+38301,full,fix,A1,⟦ZWSP⟧ U+200B at offset 135,135 U+200B ZERO WIDTH SPACE,TheMasterGhost/CorpBot Cogs/Nullify.py
+39683,full,fix,A1,⟦BOM⟧ U+FEFF at offset 49,49 U+FEFF ZERO WIDTH NO-BREAK SPACE,Bahrd/AppliedPythonology exifGPSimplant.py
+39869,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,rt112000/CDM objectModel/Python/tests/storage/test_github.py
+40162,full,fix,A1,⟦BOM⟧ U+FEFF at offset 48,48 U+FEFF ZERO WIDTH NO-BREAK SPACE,carlos-freitas-gitHub/Python_Analise_De_Dados _estudoPython_solid/scriptTeste-03.py
+42403,full,fix,A2,⟦U+0006⟧ ACKNOWLEDGE at offset 1854,1854 U+0006 ACKNOWLEDGE,amirhosein-vedadi/GrippingForcePrediction DataRecording/EMG&force_data recording.py
+42636,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,cvzi/foodemoji setup.py
+42682,full,fix,A3,mojibake 'â€™' at offset 6,6 U+00E2 + U+20AC + U+2122,vivekparasharr/Challenges-and-Competitions 30DayMapChallenge/23112020-Boundaries.py
+43752,full,fix,A1,⟦BOM⟧ U+FEFF at offset 15,15 U+FEFF ZERO WIDTH NO-BREAK SPACE,BSalita/endplay setup.py
+44195,full,fix,A2,⟦U+007F⟧ DELETE at offset 351,351 U+007F DELETE,rybkine/panda-server pandaserver/test/testSimulReco14.py
+44303,full,fix,A1,⟦BOM⟧ U+FEFF at offset 12,12 U+FEFF ZERO WIDTH NO-BREAK SPACE,AlekseyA/django-robokassa django_robokassa/app.py
+45094,full,fix,A1,⟦BOM⟧ U+FEFF at offset 15,15 U+FEFF ZERO WIDTH NO-BREAK SPACE,TomasJohansson/sweden_crs_transformations_4python sweden_crs_transformations/transformation/_transform_strategy_from_sweref99_or_rt90_to_wgs84_and_then_to_real_target.py
+45546,full,fix,B1,HTML entity &nbsp; at offset 3409,,zixinzeng-jennifer/public-culture-activity crawler/chengdulib.py
+45718,full,drop,A4,⟦U+FFFD⟧ at offset 309,309 U+FFFD REPLACEMENT CHARACTER,YKato521/ironpython-stubs release/stubs.min/System/Windows/Controls/__init___parts/ItemContainerGenerator.py
+45787,full,drop,A4,⟦U+FFFD⟧ at offset 950 (3x),950 U+FFFD REPLACEMENT CHARACTER (3x),ricardyn/ironpython-stubs stubs.min/System/__init___parts/Object.py
+46064,full,fix,A1,⟦BOM⟧ U+FEFF at offset 35,35 U+FEFF ZERO WIDTH NO-BREAK SPACE,tomasfriz/Curso-de-Cisco Curso de Cisco/Actividades/Operaciones con cadenas - min().py
+46081,full,drop,A4,⟦U+FFFD⟧ at offset 7312,7312 U+FFFD REPLACEMENT CHARACTER,AllanWegan/larpWikiAnomalyScanner larpWikiAnomalyScanner.py
+46237,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,Template-Latex/Export-Subtemplate main.py
+46333,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,mcoatanhay/meeuscalc test_meeus.py
+46903,full,fix,A1;A2;A3,⟦SHY⟧ U+00AD at offset 11747 (2x) | ⟦U+008D⟧ CONTROL U+008D at offset 11854 (2x) | mojibake 'Ã¡' at offset 11710 (2x),11747 U+00AD SOFT HYPHEN (2x) | 11854 U+008D CONTROL U+008D (2x) | 11710 U+00C3 + U+00A1 (2x),SIMBitGt-Company/RepoRepo applications/cpfecys/controllers/default.py
+46999,full,fix,A1,⟦BOM⟧ U+FEFF at offset 76,76 U+FEFF ZERO WIDTH NO-BREAK SPACE,dmytrov/gaussianprocess code/ml/gptheano/vecgpdm/test.py
+47333,full,fix,F1,email at offset 4021,,m42e/weechat_scripts clone_scanner.py
+47480,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,muhammad-masood-ur-rehman/Skillrack Python Programs/perfect-number.py
+47631,full,fix,A1,⟦BOM⟧ U+FEFF at offset 34,34 U+FEFF ZERO WIDTH NO-BREAK SPACE,kpagacz/NMDownloader test/test_mod_import.py
+47859,full,fix,B3,ghost marker <|endoftext|> at offset 2690,,AgentMaker/Paddle-CLIP clip/__init__.py
+48361,full,fix,A2,⟦U+001A⟧ SUBSTITUTE at offset 39,39 U+001A SUBSTITUTE,BobcatSMS/Bobcat gsm/truc.py
+48380,full,fix,A2,⟦U+0008⟧ BACKSPACE at offset 6533,6533 U+0008 BACKSPACE,QianMuluo/PaddleOCR ppstructure/vqa/infer_ser.py
+48524,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,gpenello/ControleDeUso BancoDeDados_Local.py
+49173,full,fix,A1,⟦BOM⟧ U+FEFF at offset 36,36 U+FEFF ZERO WIDTH NO-BREAK SPACE,frost917/customer-manager backend/src/msg/jsonMsg.py
+49175,full,fix,A1,⟦SHY⟧ U+00AD at offset 573,573 U+00AD SOFT HYPHEN,LeonardoJimenezUbaque/Algoritmos_y_Programacion_C4_G2 Taller_Estructuras_de_Control_Selectivas/Ejercicio_15.py
+49297,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,orzbhbdsb/gitlab3 MBook/app/models.py
+50073,full,fix,E2,hex/number array of 3184 chars at offset 57,,bandoche/PyPinkSign pypinksign/pypinkseed.py
+51249,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,viable-hartman/sim-module test_sms_for_pi.py
+51284,full,fix,C2,line repeated 14 times consecutively at offset 52839,,Algomorph/LevelSetFusion-Python tests/test_data/hierarchical_optimizer_test_data.py
+51793,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,vadyur/script.module.vd-common lib/vdlib/torrent/torrentplayer.py
+51876,full,fix,A1,⟦BOM⟧ U+FEFF at offset 15,15 U+FEFF ZERO WIDTH NO-BREAK SPACE,exponential-decay/oais-du-jour ReadXMLClass.py
+51891,full,fix,B1,HTML entity &copy; at offset 114,,drakenclimber/hookster checks/CheckCopyright.py
+52405,full,fix,C2,line repeated 17 times consecutively at offset 0,,Meet2512/Project-Game-Spacewar main.py
+52535,full,fix,F1,email at offset 238,,rjullien/edt_to_gcal_sync_grenoble_inp phelma_calendar/phelma_calendar.py
+52616,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,huvermann/MyPiHomeAutomation ThingsConnectorTests/ThingsConnectorBaseTests.py
+52861,full,fix,A1,⟦BOM⟧ U+FEFF at offset 15,15 U+FEFF ZERO WIDTH NO-BREAK SPACE,vincent-lg/cocomud src/safe.py
+53095,full,fix,A1,⟦BOM⟧ U+FEFF at offset 78,78 U+FEFF ZERO WIDTH NO-BREAK SPACE,brianherrera/lumberyard dev/Gems/CloudGemPlayerAccount/AWS/resource-manager-code/command.py
+53137,full,fix,A1,⟦ZWSP⟧ U+200B at offset 310 (14x),310 U+200B ZERO WIDTH SPACE (14x),ojhaanshu87/LeetCode 1711_count_good_meal_power_of_two.py
+53977,full,fix,A2,⟦U+0000⟧ NULL at offset 62 (609x),62 U+0000 NULL (609x),Dan-Patterson/Tools_for_ArcGIS_Pro field_calculator/strip_concatenate.py
+54023,full,fix,A1,⟦BOM⟧ U+FEFF at offset 31,31 U+FEFF ZERO WIDTH NO-BREAK SPACE,HBOMAT/AglaUndZufall zufall/lib/funktionen/funktionen.py
+54743,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,CADDE-sip/connector src/consumer/data-exchange/swagger_server/services/service.py
+56473,full,fix,C2,line repeated 13 times consecutively at offset 10522,,anandogc/tui TarangGUI.py
+56999,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,chrjxj/ibclient ibclient/utils/payload.py
+57077,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,muhammad-masood-ur-rehman/Skillrack Python Programs/wildcard-pattern-matching.py
+57171,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,poppeman/Pictus source/Pictus/lang_convert.py
+57549,full,fix,B1,HTML entity &#13; at offset 7341,,ntiufalara/openerp7 openerp/tools/mail.py
+57847,full,fix,C2,line repeated 18 times consecutively at offset 500,,gu-sentiment-2021/sent summer21/owen_experiments/csds_to_hf.py
+58084,full,fix,C2,line repeated 17 times consecutively at offset 231263,,alexnaoki/hidroweb-downloader-plugin resources.py
+58334,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,tomasfriz/Curso-de-Cisco Curso de Cisco/Actividades/Act 7 - Modulo 3.py
+59440,full,fix,A1,⟦LRO⟧ U+202D at offset 1767,1767 U+202D LEFT-TO-RIGHT OVERRIDE,xyhuangjinfu/pytools hprof/hprof_m.py
+59856,full,fix,A1,⟦BOM⟧ U+FEFF at offset 62,62 U+FEFF ZERO WIDTH NO-BREAK SPACE,himichael/LeetCode src/1_100/0043_multiply-strings/multiply-strings.py
+59870,full,fix,A1,⟦BOM⟧ U+FEFF at offset 17,17 U+FEFF ZERO WIDTH NO-BREAK SPACE,tmillross/IE_data_commons mySQL_Python_Examples/IEF_Database_Insert_population.py
+60449,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,vinhui/Domo Domo/Domo.Packaging/Packages/ModuleTest/0.1/SpotifyController.py
+61549,full,fix,C2,line repeated 13 times consecutively at offset 4711,,mwhit74/mlob test/test_mlob.py
+61678,full,fix,A2,⟦U+0080⟧ CONTROL U+0080 at offset 3087 (5x),3087 U+0080 CONTROL U+0080 (5x),delin/mqtt-zabbix mqtt-zabbix/mqtt-zabbix.py
+62787,full,fix,C2,line repeated 127 times consecutively at offset 48631,,osim-microgrid-tool/osim_islanded_microgrids_sizing icons_rc.py
+63025,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,muhammad-masood-ur-rehman/Skillrack Python Programs/xth-rank-students.py
+63408,full,fix,A1,⟦BOM⟧ U+FEFF at offset 27,27 U+FEFF ZERO WIDTH NO-BREAK SPACE,laygounas/cnprog forum/templatetags/extra_filters.py
+65207,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,Grey-Peters/IanPeters prototype/api/FlaskApp/FlaskApp/azure_components/azure/storage/_common_conversion.py
+65959,full,fix,C2,line repeated 33 times consecutively at offset 5379,,Cornode/cornode.lib.py test/commands/extended/get_bundles_test.py
+66082,full,drop,A2;A4,⟦U+0015⟧ NEGATIVE ACKNOWLEDGE at offset 67675 (3x) | ⟦U+FFFD⟧ at offset 67673 (3x),67675 U+0015 NEGATIVE ACKNOWLEDGE (3x) | 67673 U+FFFD REPLACEMENT CHARACTER (3x),navidsh/sql-query-clients Python/ibmcloudsql/SQLQuery.py
+66170,full,fix,A1,⟦SHY⟧ U+00AD at offset 184,184 U+00AD SOFT HYPHEN,siljaxane/Beetroot Homework/HW08.py
+66273,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,digital-preservation/droid-convert droidConvert.py
+66567,full,drop,A4,⟦U+FFFD⟧ at offset 1382 (6x),1382 U+FFFD REPLACEMENT CHARACTER (6x),PEM-Humboldt/caracterizacion_paisajes_sonoros_ppii aguas_altas/soundscape_composition/soundscape_composition.py
+66685,full,fix,B3,ghost marker <|endoftext|> at offset 878,,prasys/gpt-2-simple gpt_2_simple/src/load_dataset.py
+66906,full,fix,A1,⟦ZWSP⟧ U+200B at offset 753,753 U+200B ZERO WIDTH SPACE,dockstore/lambda fedramp-integrated-inventory-workbook/tests/test_rds_mapper.py
+67100,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,robgolding/msrest-for-python tests/test_serialization.py
+67683,full,fix,E2,hex/number array of 367 chars at offset 27,,ch686/ssd1306py-micropython ssd1306py/myfont24.py
+67719,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,tmptknn/mukina weather.py
+68175,full,fix,F1,email at offset 6840,,M0r13n/price_picker price_picker/views/main/views.py
+68259,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,USB-am/driver-geolocation Server/Server.py
+68377,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,Esri/raster2gpkg Desktop10.4/raster2gpkg.py
+69039,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,davidbrownell/Common_Environment Libraries/Python/CommonEnvironment/v1.0/CommonEnvironment/EnlistAll/__init__.py
+69063,full,drop,E3,private key at offset 1383,,IOTASHome/ec2-deployment-scripts scripts/ssh-key-injector.py
+69137,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,Haehnchen/enigma2-plugins seriesplugin/src/Logger.py
+70309,full,fix,B3,ghost marker <|endoftext|> at offset 1443,,jhlau/acceptability-prediction-in-context code/compute_model_score.py
+70709,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,FelisCatusKR/Baekjoon_Python3 2475.py
+70975,full,fix,A1,⟦BOM⟧ U+FEFF at offset 56,56 U+FEFF ZERO WIDTH NO-BREAK SPACE,yathit/waitzar shan_convert_web/ShanConvert.py
+71462,full,fix,A1,⟦BOM⟧ U+FEFF at offset 19,19 U+FEFF ZERO WIDTH NO-BREAK SPACE,akharche/hpat setup.py
+72190,full,fix,B3,ghost marker <|endoftext|> at offset 5185,,RussianNLP/WikiOmnia filtering_rus/data/run_filtration.py
+72335,full,fix,A1,⟦ZWSP⟧ U+200B at offset 1232,1232 U+200B ZERO WIDTH SPACE,AndyShenAS/thoughtworks_hw maze.py
+72372,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,aaron-emde/CDM objectModel/Python/cdm/persistence/modeljson/types/reference_entity.py
+72742,full,fix,A1,⟦BOM⟧ U+FEFF at offset 25,25 U+FEFF ZERO WIDTH NO-BREAK SPACE,cugdeeplearn/Visual-analytics noise_clean.py
+73820,full,drop,A4,⟦U+FFFD⟧ at offset 57,57 U+FFFD REPLACEMENT CHARACTER,heavyrage/scanserver src/scanlib/constants.py
+74169,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,MathewsDuarte/AnnoyingBot-Whatsapp-Web script/AnnoyinBot.py
+74392,full,fix,E2,hex/number array of 3068 chars at offset 19479,,hirnimeshrampuresoftware/python-tcod tcod/tileset.py
+74665,full,fix,A1,⟦ZWSP⟧ U+200B at offset 22273 (2x),22273 U+200B ZERO WIDTH SPACE (2x),Topkinsme/secret-hitler-board-game-bot bot.py
+74684,full,fix,A1,⟦BOM⟧ U+FEFF at offset 52,52 U+FEFF ZERO WIDTH NO-BREAK SPACE,davidruegamer/SDDR_code benchmarks/deep_calibration/forestfire.py
+74769,full,fix,F1,email at offset 6710,,krusingon/krusbot bot.py
+75838,full,fix,A2,⟦U+0004⟧ END OF TRANSMISSION at offset 4739,4739 U+0004 END OF TRANSMISSION,tinyos-io/tinyos-3.x-contrib marionette/support/sdk/python/tinyos/marionette/apps/Listen.py
+75885,full,fix,B1,HTML entity &amp; at offset 7993,,yamasite/methanol extract_proto_and_sync_to_dita_react_native.py
+76082,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,icon-lab/FedGIMP dnnlib/__init__.py
+77232,full,fix,A1,⟦BOM⟧ U+FEFF at offset 29,29 U+FEFF ZERO WIDTH NO-BREAK SPACE,edupro2000/Microdust_Kakao_Chatbot chatbot/chatbot.py
+77785,full,fix,A1,⟦ZWSP⟧ U+200B at offset 558 (6x),558 U+200B ZERO WIDTH SPACE (6x),threefoldtech/jumpscaleX_libs_extra JumpscaleLibsExtra/servers/odoo/tests/test_odoo_server.py
+78630,full,fix,A1,⟦BOM⟧ U+FEFF at offset 79,79 U+FEFF ZERO WIDTH NO-BREAK SPACE,blediboss/Instagram-API-python InstagramAPI/InstagramAPI.py
+78845,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,ksantoprotein/thallid-hive thivebase/proxy.py
+79593,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,uzbeki/OmronHVC-2Py3.9.4 registration.py
+82168,full,fix,A1,⟦BOM⟧ U+FEFF at offset 53,53 U+FEFF ZERO WIDTH NO-BREAK SPACE,DomenicD/dom_ml_playground python/src/neural_networks/feed_forward.py
+82366,full,fix,B1,HTML entity &amp; at offset 1375,,dmulholland/syntext syntext/inline.py
+82985,full,fix,E2,hex/number array of 695 chars at offset 98,,rakib2806/WinboxPoC WinboxExploit.py
+84493,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,Yoni-Mantzur/azure-activedirectory-library-for-python tests/test_self_signed_jwt.py
+84688,full,fix,A1,⟦BOM⟧ U+FEFF at offset 42,42 U+FEFF ZERO WIDTH NO-BREAK SPACE,Sylhare/simple-lda examples/gensim/lda_training.py
+84921,full,fix,E2,hex/number array of 2798 chars at offset 467,,lihaiyong827/python-openimu src/aceinna/core/gnss.py
+85244,full,fix,A1,⟦BOM⟧ U+FEFF at offset 15,15 U+FEFF ZERO WIDTH NO-BREAK SPACE,wizath/pyqt-propertyeditor PropertyEditor/CustomProperties.py
+85887,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,amoreauCoveo/samples coveo-for-sitecore/solutions/CreateSecuredItemPreview/CreateSecuredItemPreview/CreateSecuredItemPreviewExtension.py
+86146,full,fix,C2,line repeated 14 times consecutively at offset 2982,,jaeilepp/eggie ui/ui_PowerSpectrumWidget.py
+86181,full,fix,A1,⟦BOM⟧ U+FEFF at offset 23,23 U+FEFF ZERO WIDTH NO-BREAK SPACE,zz00zws/magic_learning GAN/train.py
+86285,full,fix,A1;A3,⟦SHY⟧ U+00AD at offset 20372 | mojibake 'Ã¡' at offset 20367,20372 U+00AD SOFT HYPHEN | 20367 U+00C3 + U+00A1,nandoflorestan/bag bag/more_codecs.py
+86297,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,dmccloskey/SBaaS_quantification SBaaS_quantification/stage01_quantification_averages_postgresql_models.py
+86541,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,lefevre-fraser/openmeta-mms bin/massCalc.py
+86668,full,fix,A1,⟦ZWSP⟧ U+200B at offset 3323,3323 U+200B ZERO WIDTH SPACE,NickStrick/Code-Challenges CodeSignal/sumOfTwo.py
+87422,full,fix,A1,⟦BOM⟧ U+FEFF at offset 12,12 U+FEFF ZERO WIDTH NO-BREAK SPACE,Vincentyao1995/Globalink2017-UBC Vincent/before meeting DT/pattern_minerals_REE/Experiment5.py
+88237,full,fix,A1,⟦ZWSP⟧ U+200B at offset 61 (4x),61 U+200B ZERO WIDTH SPACE (4x),jostrm/azure-enterprise-scale-ml esml/common/baselayer_python.py
+88503,full,fix,A1,⟦ZWSP⟧ U+200B at offset 1261,1261 U+200B ZERO WIDTH SPACE,sxinger/grouse etl_i2b2/pcornet_ont.py
+88681,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,yugangw-msft/AutoRest src/generator/AutoRest.Python.Azure.Tests/AcceptanceTests/xms_request_clientid_tests.py
+88875,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,rubennj/lectura_equipos lectura_equipos/lectura.py
+89100,full,fix,A2,⟦U+0003⟧ END OF TEXT at offset 2714,2714 U+0003 END OF TEXT,mhucka/zupper zowie/keyring_utils.py
+89265,full,fix,A2,⟦U+007F⟧ DELETE at offset 4816,4816 U+007F DELETE,saketkc/methylomer compare_hg19_to_grch37.py
+90065,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,hamtamtots/website matt_site/matt_site/urls.py
+90591,full,fix,C2,line repeated 12 times consecutively at offset 778,,20after4/mpp-solar mppsolar/protocols/jk02.py
+91462,full,fix,E2,hex/number array of 1596 chars at offset 234,,AISyLab/side-channel-attacks sca/util/aes.py
+91857,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,himichael/LeetCode src/1201_1300/1300_sum-of-mutated-array-closest-to-target/sum-of-mutated-array-closest-to-target.py
+92365,full,fix,A3,mojibake 'â€™' at offset 1688,1688 U+00E2 + U+20AC + U+2122,Zugidor/Forced-Labour-Detection-IBM Web Scraper/scrapy_eg/scrapy_eg/spiders/locanto.py
+92526,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,keddyboys/keddy-repo plugin.video.moviereleases/resources/libs/basic.py
+92874,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,tomasfriz/Curso-de-Cisco Curso de Cisco/Actividades/Usando una variable contador para salir de un ciclo.py
+93249,full,fix,A1,⟦BOM⟧ U+FEFF at offset 28,28 U+FEFF ZERO WIDTH NO-BREAK SPACE,CB1204/LapSimulation src/simpleAero.py
+93632,full,fix,B1,HTML entity &gt; at offset 989,,alexxxnf/VirusMutationsAI backend2/src/core/article_parser.py
+94093,full,fix,B1,HTML entity &amp; at offset 6994,,schnorea/giffy_2_drawioxml gliffyToDrawIO.py
+94171,full,fix,E2,base64 data blob of 438 chars at offset 150,,mchestr/pycbc pycbc/handlers/check.py
+94224,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,YannThorimbert/PyMap2D thorpy/elements/togglable.py
+94796,full,fix,B1,HTML entity &#39; at offset 1274,,bd4/monster-hunter-scripts bin/parse-wikia-skills.py
+95431,full,fix,C2,line repeated 19 times consecutively at offset 20016,,cortwave/camera-model-identification mephistopheies/kaggle_camera_model_id_lib/kaggle_camera_model_id_lib/models/models.py
+96436,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,mhasoba/TPCFitting Python/Code/Thermal_Models/models/__init__.py
+96633,full,fix,A1,⟦BOM⟧ U+FEFF at offset 106,106 U+FEFF ZERO WIDTH NO-BREAK SPACE,chm-dev/amazfitGTSwatchfaceBundle src/utils/pythonSrc/watchFaceParser/models/elements/goalProgress/circularGoalProgressElement.py
+96652,full,fix,A1,⟦BOM⟧ U+FEFF at offset 39,39 U+FEFF ZERO WIDTH NO-BREAK SPACE,Hackinator-2003/Space-Gamers main.py
+97174,full,fix,A1,⟦ZWSP⟧ U+200B at offset 788,788 U+200B ZERO WIDTH SPACE,Alpacked/fedramp-integrated-inventory-workbook tests/test_ec2_mapper.py
+97577,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,konsan1101/pycv4nict _handsfree_weather_search.py
+97768,full,fix,E2,hex/number array of 1596 chars at offset 59,,TheDigitalPhoenixX/Encryption-Techniques encryption/techniques/aes.py
+99181,full,fix,B1,HTML entity &copy; at offset 6129,,databricks-academy/scalable-machine-learning-with-apache-spark Scalable-Machine-Learning-with-Apache-Spark/ML Electives/MLE 05 - Databricks Best Practices.py
+99656,full,fix,C2,line repeated 24 times consecutively at offset 3460,,jerocobo/LegalStream epg.py
+99969,full,fix,A1,⟦BOM⟧ U+FEFF at offset 40,40 U+FEFF ZERO WIDTH NO-BREAK SPACE,vincent-lg/pygasus pygasus/engine/sqlalchemy/engine.py
+100372,full,fix,A3,mojibake 'Ã£' at offset 123,123 U+00C3 + U+00A3,luislauriano/Sistema-de-Cadastro-Dory app.py
+101903,full,drop,A4,⟦U+FFFD⟧ at offset 289 (2x),289 U+FFFD REPLACEMENT CHARACTER (2x),m3hrdadfi/wav2vec-toolkit src/wav2vec_toolkit/text_preprocessing/lang/fa.py
+102026,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,defihat/yadacoin yadacoin/app.py
+103716,full,fix,E2,base64 data blob of 238 chars at offset 11933,,goubertbrent/oca-backend src/solutions/common/bizz/group_purchase.py
+103810,full,fix,B1,HTML entity &amp; at offset 858,,pgalatic/zeitgeist purify.py
+104220,full,fix,A1,⟦ZWSP⟧ U+200B at offset 317,317 U+200B ZERO WIDTH SPACE,andersonmanhaes/ml_mestrado T1/code/linearRegCostFunction.py
+105002,full,fix,A1,⟦BOM⟧ U+FEFF at offset 68,68 U+FEFF ZERO WIDTH NO-BREAK SPACE,Ed-Fi-Exchange-OSS/Suite-3-Performance-Testing edfi_performance/tasks/volume/class_period.py
+106586,full,fix,A1,⟦BOM⟧ U+FEFF at offset 31,31 U+FEFF ZERO WIDTH NO-BREAK SPACE,keddyboys/keddy-repo plugin.video.moviereleases/resources/libs/localdb.py
+106758,full,fix,A2,⟦U+0004⟧ END OF TRANSMISSION at offset 28955 (2x),28955 U+0004 END OF TRANSMISSION (2x),aduckworth1969/smc web2py/applications/smc/modules/ednet/ad.py
+106783,full,fix,E2,hex/number array of 1642 chars at offset 591,,a-l-r1/cryptography zuc_optimized.py
+107022,full,fix,A1,⟦BOM⟧ U+FEFF at offset 29,29 U+FEFF ZERO WIDTH NO-BREAK SPACE,wy1157497582/arcpy datetime.py
+107046,full,fix,F1,email at offset 11252,,ngruver/decon-hnn src/systems/rigid_body.py
+108319,full,fix,A1,⟦LRE⟧ U+202A at offset 48 (105x),48 U+202A LEFT-TO-RIGHT EMBEDDING (105x),yuhao1998/PythonStudy Unit4/HomeWorks/p3.py
+109192,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,dittophantassy/accessicalc mainappengine.py
+109584,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,roctubre/compmath serie10/ex10_2.py
+109804,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,Sp-X/PCAP override.py
+109987,full,fix,C2,line repeated 15 times consecutively at offset 107215,,NSLS-II/aphla aphla/gui/gui_icons.py
+110295,full,fix,A1,⟦BOM⟧ U+FEFF at offset 29,29 U+FEFF ZERO WIDTH NO-BREAK SPACE,himichael/LeetCode src/901_1000/0922_sort-array-by-parity-ii/sort-array-by-parity-ii.py
+110421,full,drop,E3,aws key at offset 39,,enmathe/gg_test setup.py
+110992,full,fix,A2,⟦U+0099⟧ CONTROL U+0099 at offset 2506,2506 U+0099 CONTROL U+0099,andreafoschi00/ProgettoReti src/webServer.py
+112170,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,LeoColomb/kholloscope config.py
+112927,full,fix,A1,⟦BOM⟧ U+FEFF at offset 46,46 U+FEFF ZERO WIDTH NO-BREAK SPACE,muhammad-masood-ur-rehman/Skillrack Python Programs/check-for-rectangle-or-square.py
+113253,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,synth2014/SimMyIdea kivy/model/InPort.py
+113603,full,fix,A1,⟦BOM⟧ U+FEFF at offset 47,47 U+FEFF ZERO WIDTH NO-BREAK SPACE,dhilmathy/azure-devops-cli-extension azure-devops/azext_devops/devops_sdk/v6_0/pipelines_checks/__init__.py
+113604,full,fix,A1,⟦BOM⟧ U+FEFF at offset 41,41 U+FEFF ZERO WIDTH NO-BREAK SPACE,jczic/MicroNN test.py
+114703,full,fix,B1,HTML entity &amp; at offset 599,,sjeblee/chrononet chrononet/data_tools/data_util.py
+114718,full,fix,A2,⟦U+0008⟧ BACKSPACE at offset 678,678 U+0008 BACKSPACE,power80203/Kaggle_Practice sampleProject/src/config.py
+116138,full,fix,A3,mojibake 'Ã³' at offset 6967,6967 U+00C3 + U+00B3,ncfrey/matminer matminer/featurizers/site/external.py
+118034,full,fix,A2,⟦U+001F⟧ INFORMATION SEPARATOR ONE at offset 52,52 U+001F INFORMATION SEPARATOR ONE,jskim0406/Study 1.Study/2. with computer/4.Programming/2.Python/8. Python_intermediate/p_chapter04_02.py
+118405,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,delahee/admin_docs hbc/Auteurs/Generation_notes_d_auteur.py
+118526,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,EduardoAzoia/Integrador UnitTests/UnitTestMissionPlanner/bin/Debug/Scripts/rc.py
+118884,full,drop,A4,⟦U+FFFD⟧ at offset 3280 (2x),3280 U+FFFD REPLACEMENT CHARACTER (2x),sephiartlist/dynaconf dynaconf/vendor/ruamel/yaml/reader.py
+119631,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,YukkaSarasti/pythonintask ISTp/2014/korsakov_a_a/task_2_34.py
+119815,full,fix,A1,⟦BOM⟧ U+FEFF at offset 60,60 U+FEFF ZERO WIDTH NO-BREAK SPACE,DixiGroup/energy_debt debt_monthly_el.py
+119829,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,TwoUnderscorez/dlr Samples/Hosting/Scenarios/register_user_commands.py
+120095,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,heilongjiangjs/GeetChinese_crack Chinese_OCR_new.py
+120354,full,fix,A1,⟦BOM⟧ U+FEFF at offset 34,34 U+FEFF ZERO WIDTH NO-BREAK SPACE,Korgie/NimbusStoreFinal src/index.py
+121084,full,fix,C2,line repeated 13 times consecutively at offset 734,,geigerf/utils visualize_sensor_data.py
+121642,full,fix,B3,ghost marker <|endoftext|> at offset 766,,dalraf/gpt-2-cloud-run examples/hacker_news_app.py
+121739,full,fix,A1,⟦BOM⟧ U+FEFF at offset 15,15 U+FEFF ZERO WIDTH NO-BREAK SPACE,IsaacVsRodrigues/estratificar_fractal estratificar_fractal/estratificar.py
+122268,full,fix,F1,email at offset 841,,erstens/gerrit-changes-clip clone_all.py
+122303,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,himichael/LeetCode src/101_200/0151_reverse-words-in-a-string/reverse-words-in-a-string.py
+123007,full,fix,E2,hex/number array of 1242 chars at offset 96,,tikurahul/Inkplate-6-micropython images.py
+123094,full,fix,B1,HTML entity &gt; at offset 45140,,santiagonasar/PDR src/pgr_corpus.py
+123162,full,fix,A1,⟦BOM⟧ U+FEFF at offset 70,70 U+FEFF ZERO WIDTH NO-BREAK SPACE,cfculhane/autorest.python test/vanilla/version-tolerant/AcceptanceTests/test_array.py
+123206,full,fix,E2,hex/number array of 762 chars at offset 979,,owenhong0331/Cuser samples/sample_music.py
+123276,full,fix,A1,⟦BOM⟧ U+FEFF at offset 87,87 U+FEFF ZERO WIDTH NO-BREAK SPACE,himichael/LeetCode src/901_1000/0917_reverse-only-letters/reverse-only-letters.py
+123942,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,STomoya/animeface thirdparty/stylegan2_ops/__init__.py
+124160,full,fix,B1,HTML entity &nbsp; at offset 68,,CCPBioSim/biosimspace-workshop nodes/molecular_setup.py
+124172,full,fix,A1,⟦BOM⟧ U+FEFF at offset 36,36 U+FEFF ZERO WIDTH NO-BREAK SPACE,YukkaSarasti/pythonintask INBa/2015/Ermashov_A_V/task_10_5.py
+124307,full,fix,A2,⟦U+0019⟧ END OF MEDIUM at offset 4452 (2x),4452 U+0019 END OF MEDIUM (2x),clayne/syringe-1 test/process/test-processmanipulation.py
+124431,full,fix,A2,⟦U+0002⟧ START OF TEXT at offset 142 (10x),142 U+0002 START OF TEXT (10x),dogancelik/nyaa-bot-plugins nyaa/topicmanager/topicmanager.py
+124578,full,fix,A1,⟦ZWSP⟧ U+200B at offset 141 (3x),141 U+200B ZERO WIDTH SPACE (3x),charles545587/python_snippets python_snippets/using_ast_to_extract_docstrings.py
+124902,full,fix,A1,⟦BOM⟧ U+FEFF at offset 31,31 U+FEFF ZERO WIDTH NO-BREAK SPACE,kpagacz/NMDownloader utils/mod_download.py
+125109,full,drop,A4,⟦U+FFFD⟧ at offset 268 (3x),268 U+FFFD REPLACEMENT CHARACTER (3x),HubertRonald/ModeloMarkowitz modeloMarkowitz.py
+125736,full,fix,A2,⟦U+0006⟧ ACKNOWLEDGE at offset 1004,1004 U+0006 ACKNOWLEDGE,satopirka/Lasso lars_lasso.py
+126229,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,Bktero/DummyCodes Python/GUI/browser.py
+126461,full,drop,A4,⟦U+FFFD⟧ at offset 599 (75x),599 U+FFFD REPLACEMENT CHARACTER (75x),hdm-dt-fb/ironpython-stubs stubs.min/System/Windows/__init___parts/ContentElement.py
+126562,full,fix,A1,⟦BOM⟧ U+FEFF at offset 15,15 U+FEFF ZERO WIDTH NO-BREAK SPACE,GPCRmd/GPCRmd alignment/urls.py
+127470,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,r3tard/BartusBot main.py
+127500,full,fix,B3,ghost marker <|endoftext|> at offset 19642,,teniscape/pytorch-pretrained-BERT examples/run_gpt2.py
+127616,full,fix,A1,⟦ZWSP⟧ U+200B at offset 203 (6x),203 U+200B ZERO WIDTH SPACE (6x),melisariver/marvel css/index.py
+128005,full,fix,A1,⟦BOM⟧ U+FEFF at offset 12,12 U+FEFF ZERO WIDTH NO-BREAK SPACE,AyushCodez/school-project-grade12 main.py
+128990,full,fix,C2,line repeated 19 times consecutively at offset 354,,adzierzanowski/thonny misc/mp_repl_experiment.py
+129407,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,ArpitSisodia/CNTK bindings/python/cntk/layers/higher_order_layers.py
+129583,full,fix,A1,⟦BOM⟧ U+FEFF at offset 37,37 U+FEFF ZERO WIDTH NO-BREAK SPACE,HBOMAT/AglaUndZufall zufall/lib/objekte/urne.py
+130150,full,fix,B1,HTML entity &lt; at offset 5652,,acarrmo/Azure 09. Neural Networks Advanced - Python.py
+130490,full,fix,E2,hex/number array of 3450 chars at offset 422,,pyllyukko/plaso tests/parsers/asl.py
+130980,full,fix,A1,⟦BOM⟧ U+FEFF at offset 83,83 U+FEFF ZERO WIDTH NO-BREAK SPACE,shaktidhara/azure-linux-extensions2 VMEncryption/main/handle.py
+131964,full,fix,A1,⟦BOM⟧ U+FEFF at offset 58,58 U+FEFF ZERO WIDTH NO-BREAK SPACE,bertilnilsson/TypeScript-Sublime-Plugin typescript/libs/service_proxy.py
+132418,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,zhuangdx/timer_deleter handle.py
+133473,full,fix,F1,email at offset 102,,worr/sysops-api scripts/extract_network_health.py
+134584,full,fix,A2,⟦U+001D⟧ INFORMATION SEPARATOR THREE at offset 1377 (4x),1377 U+001D INFORMATION SEPARATOR THREE (4x),gerulata/pySBD tests/lang/test_slovak.py
+134598,full,fix,A1,⟦BOM⟧ U+FEFF at offset 59,59 U+FEFF ZERO WIDTH NO-BREAK SPACE,dmccloskey/SBaaS_LIMS SBaaS_LIMS/lims_experimentor_query.py
+134668,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,hansenhahn/playton-2 Splash/rhImages/bmp.py
+134914,full,drop,E3,private key at offset 255,,HelixEducation/lexicon lexicon/tests/providers/test_transip.py
+135456,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,grbd/GBD.Embedded.CMake4Mbed src/HelloWorld-LPC/cmake/build.py
+136375,full,drop,A4,⟦U+FFFD⟧ at offset 3294 (334x),3294 U+FFFD REPLACEMENT CHARACTER (334x),zacker150/text torchtext/experimental/vectors.py
+136509,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,A-H-Vu/sAdaptAlpha2 sAdaptAlpha2_lastrun.py
+138316,full,fix,A1,⟦ZWSP⟧ U+200B at offset 675,675 U+200B ZERO WIDTH SPACE,STEFANIHUNT/workforce-scripts scripts/report_incomplete_assignments_with_work_orders.py
+138643,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,maistrovas/My-Courses-Solutions MITx-6.00.2x/ProblemSet5/ps5.py
+138964,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,moddabiri/basic_ml machine_learning/regression/LinearRegression.py
+139331,full,fix,C2,line repeated 14 times consecutively at offset 49870,,sadielbartholomew/cfdm cfdm/examplefield.py
+140374,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,qdeconinck/maci maci_backend/AppData/WorkerScript/worker.py
+140888,full,fix,A1,⟦ZWSP⟧ U+200B at offset 34 (12x),34 U+200B ZERO WIDTH SPACE (12x),andrewn488/OMSBA-5061 Week 10/tw14_world series.py
+141227,full,fix,A1,⟦BOM⟧ U+FEFF at offset 47,47 U+FEFF ZERO WIDTH NO-BREAK SPACE,JoonyoungYi/project-seesae parser/db_kamis_parser.py
+141683,full,fix,A1,⟦ZWSP⟧ U+200B at offset 4001 (4x),4001 U+200B ZERO WIDTH SPACE (4x),jamaalhay/Final_Proj dataset/doc_text.py
+141881,full,fix,A1,⟦ZWSP⟧ U+200B at offset 2313,2313 U+200B ZERO WIDTH SPACE,bijij/discord-ext-boardgames discord/ext/boardgames/boardgames.py
+141932,full,fix,C2,line repeated 12 times consecutively at offset 3371,,DeNederlandscheBank/solvency2-rfr tests/test_alt_extrapolation.py
+142048,full,fix,A1,⟦BOM⟧ U+FEFF at offset 46,46 U+FEFF ZERO WIDTH NO-BREAK SPACE,rsumner33/pythonista-drafts-recipes link_shortener_isgd/link_shortener_isgd.py
+142126,full,fix,A1,⟦BOM⟧ U+FEFF at offset 49,49 U+FEFF ZERO WIDTH NO-BREAK SPACE,ksantoprotein/thallid-steem tsteembase/storage.py
+142615,full,fix,B3,ghost marker <|endoftext|> at offset 667,,drunkcoding/efficient-nlp ecosys/utils/data_preprocessor.py
+142722,full,fix,B1,HTML entity &amp; at offset 8437,,TomNorrie/ePubify Examples/FanFicFare-master/fanficfare/adapters/adapter_efpfanficnet.py
+142802,full,fix,B1,HTML entity &lt; at offset 2010,,sunmughan/rat hatsploit/utils/string.py
+143358,full,drop,E3,aws key at offset 156,,rahuljain1311/AWS-S3 sendSms.py
+143365,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,zcatt/MyDemos2018 MyPythonDemos2018/SimpleDemos/a05_classmethod.py
+143544,full,fix,A1,⟦BOM⟧ U+FEFF at offset 266,266 U+FEFF ZERO WIDTH NO-BREAK SPACE,Rubueno/opsgenie-integration saltstack/_modules/opsgenie.py
+144269,full,drop,E3,private key at offset 1213,,Plastix/CSC-483 project4/key.py
+145070,full,fix,A1,⟦BOM⟧ U+FEFF at offset 78,78 U+FEFF ZERO WIDTH NO-BREAK SPACE,brianherrera/lumberyard dev/Gems/CloudGemDynamicContent/AWS/resource-manager-code/update.py
+145131,full,drop,E3,private key at offset 839,,Dipeshtwis/gg-shield tests/snapshots/snap_test_message.py
+145317,full,fix,C2,line repeated 15 times consecutively at offset 9616,,luisarose/OpenMOC sample-input/benchmarks/c5g7/c5g7.py
+145365,full,fix,B1,HTML entity &lt; at offset 1954,,mintzer/pupillometry-rf-back venv/Lib/site-packages/metapensiero/pj/transformations/comprehensions.py
+145765,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,abaiskiy/darvis app.py
+145871,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,j123123/llilc test/make_sln.py
+146554,full,fix,E2,hex/number array of 1596 chars at offset 445,,damianzim/kkvhash python/kkvhash.py
+147426,full,fix,E2,hex/number array of 11172 chars at offset 928,,juhhov/pyOCD pyocd/target/builtin/target_musca_b1.py
+147741,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,doub1emint/MPh tests/test_standalone.py
+147826,full,fix,A1,⟦ZWSP⟧ U+200B at offset 107 (4x),107 U+200B ZERO WIDTH SPACE (4x),KazukiYamamoto/decode aml_service/50-deployOnAci.py
+148263,full,fix,E2,hex/number array of 723 chars at offset 1624,,nycto-hackerone/OWASP-Nettacker lib/vuln/heartbleed/engine.py
+148575,full,fix,A1,⟦BOM⟧ U+FEFF at offset 23,23 U+FEFF ZERO WIDTH NO-BREAK SPACE,oplatek/CNTK bindings/python/examples/Distributed/CifarResNet_Distributed.py
+149667,full,fix,B1,HTML entity &nbsp; at offset 3561,,ehomeshasha/easydata code/syntaxhighlighter.py
+150130,full,fix,A1,⟦BOM⟧ U+FEFF at offset 2753 (2x),2753 U+FEFF ZERO WIDTH NO-BREAK SPACE (2x),algteam/spacy_zh_model spacy/lang/zh/stop_words.py
+150729,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,FelisCatusKR/Baekjoon_Python3 9461.py
+150931,full,fix,B3,ghost marker <|endoftext|> at offset 556,,nicholaskross/lm-evaluation-harness lm_eval/models/gpt2.py
+150937,full,fix,A1,⟦ZWSP⟧ U+200B at offset 695,695 U+200B ZERO WIDTH SPACE,GuilhermeBraz/unb-workflow TEP/lista1/E.py
+151740,full,fix,A1,⟦BOM⟧ U+FEFF at offset 50,50 U+FEFF ZERO WIDTH NO-BREAK SPACE,B1d1zyaKa/mff_auto lib/gui/widgets/queue_items/__init__.py
+152125,full,fix,A1,⟦SHY⟧ U+00AD at offset 984,984 U+00AD SOFT HYPHEN,EtzionR/create-Wikipedia-pages-network-using-BFS-crawler wiki_crawler.py
+152193,full,fix,A2,⟦U+0081⟧ CONTROL U+0081 at offset 165 (2x),165 U+0081 CONTROL U+0081 (2x),mariana1412/FEUP-PRI delivery/cleaning_desc.py
+152873,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,grbd/GBD.Build.BlackJack blackjack/cmake/cmd/cmake_minimum_required.py
+153019,full,fix,A1,⟦BOM⟧ U+FEFF at offset 39,39 U+FEFF ZERO WIDTH NO-BREAK SPACE,davidvlaminck/OTLClassPython src/OTLMOW/OTLModel/BaseClasses/OTLAttribuut.py
+153276,full,fix,A1,⟦BOM⟧ U+FEFF at offset 53,53 U+FEFF ZERO WIDTH NO-BREAK SPACE,davidvlaminck/OTLClassPython src/OTLMOW/Facility/AssetFactory.py
+153431,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,nameofSEOKWONHONG/jiu-asp.net-web-solutions src/2.Server/WebApiApplication/ScriptFiles/py/sample.py
+154037,full,fix,A1,⟦BOM⟧ U+FEFF at offset 46,46 U+FEFF ZERO WIDTH NO-BREAK SPACE,muhammad-masood-ur-rehman/Skillrack Python Programs/reverse-string-rank-among-substrings.py
+154092,full,fix,A2,⟦U+001A⟧ SUBSTITUTE at offset 5699 (35x),5699 U+001A SUBSTITUTE (35x),jarvisbotsavage/groupmanaging haruka/__main__.py
+154094,full,fix,A1,⟦BOM⟧ U+FEFF at offset 114,114 U+FEFF ZERO WIDTH NO-BREAK SPACE,muhammad-masood-ur-rehman/Skillrack Python Programs/search-string-s2-in-s1-character-matrix.py
+155562,full,fix,A1,⟦BOM⟧ U+FEFF at offset 48,48 U+FEFF ZERO WIDTH NO-BREAK SPACE,muhammad-masood-ur-rehman/Skillrack Python Programs/swap-two-numbers-2.py
+156409,full,fix,E2,hex/number array of 1530 chars at offset 3701,,Daeinar/dfa-aes simulator/aes.py
+156557,full,fix,A1,⟦BOM⟧ U+FEFF at offset 12,12 U+FEFF ZERO WIDTH NO-BREAK SPACE,zaqwes8811/coordinator-tasks matlab_ext/measurement/mc-assistant/projects/py_conv_apps/test_Usm.py
+157613,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,cambridge-cares/TheWorldAvatar Agents/STDCThermoAgent/stdc/utils/nasafitter.py
+157920,full,fix,A1,⟦ZWSP⟧ U+200B at offset 61863 (2x),61863 U+200B ZERO WIDTH SPACE (2x),NMZ0429/NaMAZU build/lib/NaMAZU/lightning_wingman/ani_label.py
+159222,full,fix,B1,HTML entity &amp; at offset 7617,,Munyola/incubator-heron heron/instance/src/python/utils/system_constants.py
+159258,full,fix,A1,⟦SHY⟧ U+00AD at offset 1210,1210 U+00AD SOFT HYPHEN,Littleote/Analisis_de_contrasenyes src/clean_data.py
+160023,full,fix,A1,⟦BOM⟧ U+FEFF at offset 49,49 U+FEFF ZERO WIDTH NO-BREAK SPACE,TwilioDevEd/account-verification-flask account_verification_flask/utilities/view_helpers.py
+160392,full,fix,A1,⟦BOM⟧ U+FEFF at offset 12,12 U+FEFF ZERO WIDTH NO-BREAK SPACE,mattvperry/ktane-py ktane/modules/__init__.py
+160454,full,fix,A1,⟦LRE⟧ U+202A at offset 5455,5455 U+202A LEFT-TO-RIGHT EMBEDDING,jordanemedlock/psychtruths temboo/core/Library/Wordnik/Words/ReverseDictionary.py
+160664,full,fix,A1,⟦ZWSP⟧ U+200B at offset 145,145 U+200B ZERO WIDTH SPACE,Ekram49/Ekram-lambdata-13 assignment_1_1/function_1_1.py
+161126,full,fix,A1,⟦SHY⟧ U+00AD at offset 84,84 U+00AD SOFT HYPHEN,islayy/Books-solutions Python-For-Everyone-Horstmann/Chapter3-Decisions/P3.19.py
+161183,full,fix,A1,⟦BOM⟧ U+FEFF at offset 12,12 U+FEFF ZERO WIDTH NO-BREAK SPACE,YukkaSarasti/pythonintask PMIa/2015/ANDROS_D_A/task_5_2.py
+161205,full,fix,A1,⟦BOM⟧ U+FEFF at offset 25,25 U+FEFF ZERO WIDTH NO-BREAK SPACE,Sarrus1/Tensor backend/internal_stats/management/commands/getinternalstats.py
+161423,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,gellowmellow/python-messenger-bot messenger/helper/messaging/postback.py
+162078,full,drop,A2;A4,⟦U+0016⟧ SYNCHRONOUS IDLE at offset 99 (2x) | ⟦U+FFFD⟧ at offset 101 (143x),99 U+0016 SYNCHRONOUS IDLE (2x) | 101 U+FFFD REPLACEMENT CHARACTER (143x),kali-linux-sh/4METHOD modulo/cach.py
+163072,full,fix,A2,⟦U+0091⟧ CONTROL U+0091 at offset 68,68 U+0091 CONTROL U+0091,naumoff0/Archive Random-Programs/dev/games/terminal/ratX.py
+163560,full,fix,A2,⟦U+001C⟧ INFORMATION SEPARATOR FOUR at offset 3444,3444 U+001C INFORMATION SEPARATOR FOUR,fotavio16/PycharmProjects pythonjogos/cap5_exercs.py
+163717,full,fix,B1,HTML entity &#228; at offset 6596,,ndparker/wtf wtf/app/request.py
+163947,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,buckylee2019/sqlg-airflow etl_base/dags/sqlg_jobs_HRM.py
+164111,full,drop,E3,private key at offset 16106,,ompcloud/cgcloud lib/src/cgcloud/lib/util.py
+164493,full,fix,A1,⟦BOM⟧ U+FEFF at offset 34,34 U+FEFF ZERO WIDTH NO-BREAK SPACE,xiaoshangpeng/l_sdk_doc demo/demo/py/t_cv_nspp.py
+164714,full,fix,A1,⟦BOM⟧ U+FEFF at offset 12,12 U+FEFF ZERO WIDTH NO-BREAK SPACE,spin13/slack env.py
+165303,full,fix,B1,HTML entity &quot; at offset 9804,,lufton/locationsharinglib locationsharinglib/locationsharinglib.py
+166556,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,DevrisOfStar/SW hello.py
+167590,full,fix,A2,⟦U+001C⟧ INFORMATION SEPARATOR FOUR at offset 1008,1008 U+001C INFORMATION SEPARATOR FOUR,ivanbgd/Heap-Data-Structure Heaps.py
+167633,full,fix,A1,⟦BOM⟧ U+FEFF at offset 73,73 U+FEFF ZERO WIDTH NO-BREAK SPACE,Pirouz-Nourian/earthy_18 Medical_Center/A3_Structuring/Vault Roof/PlaceBricksOnVault.py
+168674,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,RNAEDITINGPLUS/main node/miRNAOntology.py
+168892,full,fix,B1,HTML entity &copy; at offset 4272,,sjuratov/apache-spark-programming-with-databricks Apache-Spark-Programming-with-Databricks/Solutions/ASP 2 - Spark Core/Labs/ASP 2.3L - Purchase Revenues Lab.py
+168914,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,aspose-slides/Aspose.Slides-for-Python-via-.NET examples/src/Shapes/SubstitutePictureTitleOfOLEObjectFrame.py
+169778,full,fix,E2,hex/number array of 1660 chars at offset 6973,,kworm1/pylocker pylocker.py
+170057,full,fix,A1,⟦ZWSP⟧ U+200B at offset 185 (8x),185 U+200B ZERO WIDTH SPACE (8x),GuilhermeBraz/unb-workflow TEP/contest3/C.py
+170345,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,thomasbazeille/public_protocols spatial_navigation/protocol/py/myFog.py
+171091,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,TheWardoctor/wardoctors-repo script.module.python.koding.aio/lib/koding/guitools.py
+172086,full,fix,A1,⟦BOM⟧ U+FEFF at offset 33,33 U+FEFF ZERO WIDTH NO-BREAK SPACE,wenjuno/riptable riptable/rt_dataset.py
+173317,full,drop,E3,aws key at offset 786,,paloth/aws-accesskey-manager tests/conftest.py
+173861,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,onderogluserdar/boardInstrumentFramework Oscar/Helpers/MinionDataHandler.py
+174217,full,fix,A1,⟦BOM⟧ U+FEFF at offset 37,37 U+FEFF ZERO WIDTH NO-BREAK SPACE,IPA-CyberLab/IPA_DN_PyNeko v1/PyNeko/_new_file.py
+174375,full,fix,C2,line repeated 112 times consecutively at offset 2892,,albertoccelli/vortex libs/gui/gui_imgs.py
+174415,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,MALORGIS/l100toolsForArcGIS tools/SpiderDiagrams.py
+175113,full,fix,A1,⟦SHY⟧ U+00AD at offset 21105 (11x),21105 U+00AD SOFT HYPHEN (11x),uskovboris/coursera_bioinformatics dna_lib_tests.py
+175482,full,fix,F1,email at offset 3087,,Technik-Tueftler/TeTueTwitchBot ircbot.py
+175574,full,fix,E2,hex/number array of 747 chars at offset 442,,ryan293/MikrotikExploit loop.py
+175656,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,aspose-slides/Aspose.Slides-for-Python-via-.NET examples/src/Shapes/GetLightRigEffectiveData.py
+176528,full,fix,A1,⟦ZWSP⟧ U+200B at offset 60 (8x),60 U+200B ZERO WIDTH SPACE (8x),hackathonismb/Molecular-Sentry parse_sifts.py
+176644,full,fix,A1,⟦SHY⟧ U+00AD at offset 1585 (4x),1585 U+00AD SOFT HYPHEN (4x),Hanna998/functional_tests learning-python-master/learning-python-master/python_gyakorlas3.py
+177213,full,fix,E2,hex/number array of 874 chars at offset 932,,SparkDustJoe/PyNORX PyNORXTESTCASES.py
+177337,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,OrsayDev/swift_lumiere nionswift_plugin/IVG/scan/orsayscan.py
+177628,full,fix,A1,⟦BOM⟧ U+FEFF at offset 76,76 U+FEFF ZERO WIDTH NO-BREAK SPACE,marionumza/vocal_v12 addons/partner_category_hierarchy/models/res_partner_hcategory.py
+177729,full,fix,A1,⟦BOM⟧ U+FEFF at offset 44,44 U+FEFF ZERO WIDTH NO-BREAK SPACE,S0S-90/geocachingTooly tests/test_user_io.py
+177918,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,Afafabdb/Instagram-API-python InstagramAPI/__init__.py
+179160,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,YukkaSarasti/pythonintask PMIa/2015/KOLOV_A_A/task_6_14.py
+179167,full,fix,A1,⟦ZWSP⟧ U+200B at offset 1230 (2x),1230 U+200B ZERO WIDTH SPACE (2x),onaio/airbyte airbyte-integrations/connectors/source-sentry/source_sentry/streams.py
+179968,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,NazBen/dep-impact depimpact/tests/test_dependence.py
+180216,full,fix,A1,⟦BOM⟧ U+FEFF at offset 40,40 U+FEFF ZERO WIDTH NO-BREAK SPACE,postpdm/ich_bau project/views.py
+180402,full,fix,A1,⟦ZWSP⟧ U+200B at offset 40 (5x),40 U+200B ZERO WIDTH SPACE (5x),bmoretz/Python-Playground src/Classes/MSDS400/Module 8/flights.py
+181097,full,fix,F1,email at offset 916,,only-romano/junkyard way/python/first_steps/basics/pip.py
+181193,full,fix,B1,HTML entity &copy; at offset 56,,kitcorey/solidfire-cli element/cli/commands/cmd_logging.py
+182267,full,fix,B3,ghost marker <|endoftext|> at offset 621,,bminixhofer/gerpt2 prepare/train_tokenizer.py
+182274,full,fix,A1,⟦ZWSP⟧ U+200B at offset 1529 (7x),1529 U+200B ZERO WIDTH SPACE (7x),Fokko/airflow-training-skeleton dags/fourth_exercise.py
+182410,full,fix,A1,⟦BOM⟧ U+FEFF at offset 32,32 U+FEFF ZERO WIDTH NO-BREAK SPACE,OlegKuch/GuessNumber GuessNumberConsole.py
+182864,full,fix,A1,⟦BOM⟧ U+FEFF at offset 15,15 U+FEFF ZERO WIDTH NO-BREAK SPACE,zz00zws/magic_learning MTCNN/trainer.py
+182957,full,fix,A1,⟦BOM⟧ U+FEFF at offset 778,778 U+FEFF ZERO WIDTH NO-BREAK SPACE,markus-antero/Stock data/geographic/arcgis.py
+183805,full,fix,A1,⟦BOM⟧ U+FEFF at offset 12,12 U+FEFF ZERO WIDTH NO-BREAK SPACE,MohammedAljahdali/shrinkbench src/models/segmentation.py
+184073,full,fix,A2,⟦U+0019⟧ END OF MEDIUM at offset 13021,13021 U+0019 END OF MEDIUM,eyalk5/vim-netranger pythonx/netranger/netranger.py
+184607,full,fix,A1,⟦BOM⟧ U+FEFF at offset 40,40 U+FEFF ZERO WIDTH NO-BREAK SPACE,Tonhoko/clnch clnch_misc.py
+184621,full,fix,C2,line repeated 13 times consecutively at offset 6639,,mwtoews/moflow tests/mf/test_base.py
+184727,full,fix,C2,line repeated 13 times consecutively at offset 4077,,stegosaurus12/NFT-Rexx make_dinos.py
+185699,full,fix,A1,⟦BOM⟧ U+FEFF at offset 107,107 U+FEFF ZERO WIDTH NO-BREAK SPACE,muhammad-masood-ur-rehman/Skillrack Python Programs/count-overlapping-string-pattern.py
+186200,full,fix,A1,⟦BOM⟧ U+FEFF at offset 46,46 U+FEFF ZERO WIDTH NO-BREAK SPACE,Pirouz-Nourian/Topological_Voxeliziation_and_Polyhedralization TopologicalPolyhedralization_1.0.py
+186659,full,drop,E3,aws key at offset 290,,23andMe/super-linter .automation/test/gitleaks/gitleaks_bad_1.py
+187392,full,fix,A2,⟦U+0097⟧ CONTROL U+0097 at offset 26558,26558 U+0097 CONTROL U+0097,Deepandx/twx twx/twx.py
+187580,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,FastmoreCrak/Fantasmas plugins/_inline.py
+187893,full,fix,C2,line repeated 14 times consecutively at offset 19379,,C-CINA/zorro automator/Ui_Automator.py
+187974,full,fix,A1,⟦BOM⟧ U+FEFF at offset 12,12 U+FEFF ZERO WIDTH NO-BREAK SPACE,aspose-slides/Aspose.Slides-for-Python-via-.NET examples/src/Shapes/CreateBoundsShapeThumbnail.py
+188123,full,fix,A1,⟦BOM⟧ U+FEFF at offset 28,28 U+FEFF ZERO WIDTH NO-BREAK SPACE,tohsato-lab/T-MCD core/adapt.py
+188773,full,fix,A2,⟦U+009F⟧ CONTROL U+009F at offset 126,126 U+009F CONTROL U+009F,yigitcanustek/blm2010 vize/180401057.py
+189322,full,fix,A1,⟦BOM⟧ U+FEFF at offset 60,60 U+FEFF ZERO WIDTH NO-BREAK SPACE,himichael/LeetCode src/401_500/0454_4sum-ii/4sum-ii.py
+189917,full,fix,A1,⟦BOM⟧ U+FEFF at offset 78,78 U+FEFF ZERO WIDTH NO-BREAK SPACE,hlpl-ahmida/english-words-synonym-antonym hlpl_english_words_synonym_antonym/english_words_synonym_antonym.py
+190040,full,fix,F1,email at offset 1825,,ericmharris/gc3-query gc3_query/lib/open_api/swagger_formats/sec_lists_formats.py
+190571,full,fix,C2,line repeated 13 times consecutively at offset 5468,,GermanMoFo/Void-Web Enviorment/Void_Web.py
+191141,full,fix,A1,⟦BOM⟧ U+FEFF at offset 63,63 U+FEFF ZERO WIDTH NO-BREAK SPACE,TwilioDevEd/account-verification-flask account_verification_flask/services/twilio_services.py
+191260,full,fix,A1,⟦BOM⟧ U+FEFF at offset 12,12 U+FEFF ZERO WIDTH NO-BREAK SPACE,dpocheng/Python-Search-Engine-Web-Crawler spacetime/store_server.py
+191606,full,fix,B1,HTML entity &amp; at offset 3046,,civicboom/civicboom lib/cbutils/text.py
+191693,full,fix,E2,base64 data blob of 562 chars at offset 1319,,splashelec/atlas-python atlastk/__main__.py
+191871,full,fix,A1,⟦BOM⟧ U+FEFF at offset 95,95 U+FEFF ZERO WIDTH NO-BREAK SPACE,frost917/customer-manager backend/src/jobs/flaskGetJobHistory.py
+192418,full,fix,A1,⟦BOM⟧ U+FEFF at offset 49,49 U+FEFF ZERO WIDTH NO-BREAK SPACE,zaqwes8811/coordinator-tasks buffer/in-vicinity-python/uno/uinit.py
+192459,full,fix,A3,mojibake 'Ã§' at offset 584 (3x),584 U+00C3 + U+00A7 (3x),patrickporto/soldajustica soldajustica/project/migrations/0003_auto_20150616_1926.py
+193125,full,fix,A1,⟦ZWSP⟧ U+200B at offset 59192 (2x),59192 U+200B ZERO WIDTH SPACE (2x),isamokhin/dateparser tests/test_languages.py
+193489,full,fix,C2;E2,line repeated 16 times consecutively at offset 57693 | hex/number array of 58500 chars at offset 993,,LONGZR007/pyOCD pyocd/target/builtin/target_MIMXRT1021xxxxx.py
+193547,full,fix,A1,⟦BOM⟧ U+FEFF at offset 17,17 U+FEFF ZERO WIDTH NO-BREAK SPACE,ntsiopliakis/CortexLib Tools/RegistersGenerator/parser.py
+193626,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,Nahouhak/pythoncvc.net RevitPyCVC/Outils/copier_gabarits_vues.py
+194990,full,fix,A1,⟦ZWSP⟧ U+200B at offset 10907 (2x),10907 U+200B ZERO WIDTH SPACE (2x),SamEdwardes/sqlcli sqlcli/main.py
+195276,full,fix,B3,ghost marker <|endoftext|> at offset 2641,,prasys/detecting-fake-text backend/api.py
+195516,full,fix,A1,⟦BOM⟧ U+FEFF at offset 60,60 U+FEFF ZERO WIDTH NO-BREAK SPACE,kenkenjlab/burger_war_dev burger_war_dev/scripts/agents/agent.py
+196075,full,fix,E2,hex/number array of 3095 chars at offset 1862,,tonghs/RaspberryPi ws2812b/paoma.py
+196171,full,fix,C2,line repeated 23 times consecutively at offset 8854,,joaopfonseca/social_media_crawler smc_no_gui/src/twitter_tweets.py
+196199,full,fix,A1,⟦SHY⟧ U+00AD at offset 866,866 U+00AD SOFT HYPHEN,nta-byte/vietnamese-namedb edit_name_db.py
+196283,full,fix,B1,HTML entity &nbsp; at offset 33708,,Sanechoic/JoyStory venv/lib/python3.7/site-packages/pywikibot/fixes.py
+196958,full,fix,A1;B1,⟦SHY⟧ U+00AD at offset 92469 | HTML entity &quot; at offset 67154,92469 U+00AD SOFT HYPHEN,Mzazi25/Gallery virtual/lib/python3.9/site-packages/bs4/dammit.py
+197755,full,drop,A1;A4,⟦BOM⟧ U+FEFF at offset 41 | ⟦U+FFFD⟧ at offset 3478 (3x),41 U+FEFF ZERO WIDTH NO-BREAK SPACE | 3478 U+FFFD REPLACEMENT CHARACTER (3x),v22arvind/Plot-Pings-in-Python pingtrack.py
+198349,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,eduardomourar/msrest-for-python msrest/universal_http/__init__.py
+199665,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,YukkaSarasti/pythonintask PINp/2014/Chernov_M_S/task_9_27.py
+1600781,full,fix,E2,hex/number array of 526 chars at offset 214,,pimoroni/skywriter-hat firmware/fw.py
+1601133,full,fix,A2,⟦U+0008⟧ BACKSPACE at offset 404 (2x),404 U+0008 BACKSPACE (2x),hamukazu/python_quiz quiz06.py
+1602091,full,fix,A1,⟦SHY⟧ U+00AD at offset 4062,4062 U+00AD SOFT HYPHEN,Grim-bot/CROCUS-UKF myModules/extended_kalman_filter.py
+1602460,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,aqaqaqz/getLeopardTorrent addTitle.py
+1603115,full,fix,A1,⟦ZWSP⟧ U+200B at offset 1099 (2x),1099 U+200B ZERO WIDTH SPACE (2x),flancast90/boombox-news project/main.py
+1603131,full,fix,A1,⟦BOM⟧ U+FEFF at offset 49,49 U+FEFF ZERO WIDTH NO-BREAK SPACE,Spauldo/fwctl client/fwgui.py
+1603389,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,koxbt/cn_stock_north CN_Stock_SHHKconnect_Northbound.py
+1603664,full,fix,E2,hex/number array of 522 chars at offset 1782,,dabeaz/py65 src/py65/utils/conversions.py
+1604086,full,fix,A1,⟦BOM⟧ U+FEFF at offset 30,30 U+FEFF ZERO WIDTH NO-BREAK SPACE,Ishayahu/MJCC-tasks user_settings/forms_rus.py
+1604328,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,cfculhane/autorest.python test/vanilla/version-tolerant/AcceptanceTests/asynctests/test_integer.py
+1604620,full,fix,B3,ghost marker <|endoftext|> at offset 4258,,randywreed/gpt-2 src/generate_samples.py
+1604954,full,fix,A1,⟦BOM⟧ U+FEFF at offset 12,12 U+FEFF ZERO WIDTH NO-BREAK SPACE,racinmat/google-speech-to-text json_to_text.py
+1605342,full,fix,A1,⟦BOM⟧ U+FEFF at offset 12,12 U+FEFF ZERO WIDTH NO-BREAK SPACE,HirakuTOIDA/LogViewer calibration.py
+1605527,full,fix,A3,mojibake 'Ã¼' at offset 535 (2x),535 U+00C3 + U+00BC (2x),msaidzengin/KontroleDegerMi py-work/crawl/gununyalanlaricom.py
+1605741,full,fix,A2,⟦U+0002⟧ START OF TEXT at offset 178,178 U+0002 START OF TEXT,COLA-Laboratory/kpi code/algorithms/EMUr.py
+1605901,full,fix,A2,⟦U+008D⟧ CONTROL U+008D at offset 7959,7959 U+008D CONTROL U+008D,antoniovh/covid-forecasting src/process.py
+1606166,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,Nahouhak/pythoncvc.net RevitPyCVC/Outils/renommer_vues.py
+1607319,full,fix,A1,⟦BOM⟧ U+FEFF at offset 46,46 U+FEFF ZERO WIDTH NO-BREAK SPACE,borisblizzard/hltypes msvc/vs2015-uwp/tests-util/htest.py
+1608491,full,fix,A1,⟦BOM⟧ U+FEFF at offset 17,17 U+FEFF ZERO WIDTH NO-BREAK SPACE,Chris-Johnston/WifiLedClass src/WifiBulb.py
+1608543,full,fix,A1,⟦SHY⟧ U+00AD at offset 210 (2x),210 U+00AD SOFT HYPHEN (2x),hyperrixel/ultrasonic_sensor_test hcsr04_test.py
+1608554,full,fix,B1,HTML entity &amp; at offset 2583,,stevanm/android-string-resource-file-generator SMMobileAppMissingTranslationDetector/main.py
+1608572,full,drop,A4,⟦U+FFFD⟧ at offset 2075 (3x),2075 U+FFFD REPLACEMENT CHARACTER (3x),htlcnn/ironpython-stubs release/stubs.min/System/__init___parts/String.py
+1608652,full,fix,A1,⟦SHY⟧ U+00AD at offset 389 (7x),389 U+00AD SOFT HYPHEN (7x),bazingarj/dateparser dateparser/data/numeral_translation_data/se.py
+1609142,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,muhammad-masood-ur-rehman/Skillrack Python Programs/sort-rows-by-prime-even-and-odd-count.py
+1609769,full,fix,A1,⟦BOM⟧ U+FEFF at offset 55,55 U+FEFF ZERO WIDTH NO-BREAK SPACE,jocubeit/CDM objectModel/Python/tests/adls_test_helper.py
+1609890,full,fix,B1,HTML entity &#9652; at offset 355,,ChetanKhanna/NE-GeoCloud Hi.py
+1610762,full,fix,A1,⟦ZWSP⟧ U+200B at offset 89711 (45x),89711 U+200B ZERO WIDTH SPACE (45x),guoyi118/sparqling-queries qdmr2sparql/test_qdmr2sparql.py
+1610907,full,fix,A1,⟦BOM⟧ U+FEFF at offset 15,15 U+FEFF ZERO WIDTH NO-BREAK SPACE,youdiaozi/cinema4d_py_sdk_extended scripts/03_application_development/files_media/import_step_r20.py
+1610923,full,fix,C2,line repeated 14 times consecutively at offset 19170,,Tawishi/porcupine porcupine/settings.py
+1611143,full,fix,A1,⟦BOM⟧ U+FEFF at offset 61,61 U+FEFF ZERO WIDTH NO-BREAK SPACE,smiletechnologyunited/seminar_sample library/python/stu/maya/__init__.py
+1611254,full,fix,A1,⟦BOM⟧ U+FEFF at offset 34,34 U+FEFF ZERO WIDTH NO-BREAK SPACE,zed-ee/grader-simulator Screens/Screens.py
+1611317,full,fix,A2,⟦U+0012⟧ DEVICE CONTROL TWO at offset 726,726 U+0012 DEVICE CONTROL TWO,maxwerhahn/Multi-pass-GAN GAN/multipassGAN-out.py
+1611617,full,drop,A4,⟦U+FFFD⟧ at offset 3277 (2x),3277 U+FFFD REPLACEMENT CHARACTER (2x),ankitdobhal/maestral src/maestral/utils/__init__.py
+1611802,full,fix,C2,line repeated 72 times consecutively at offset 3338,,evilcomputer12/WindowsAutoJoinAndRecordZoomSession main.py
+1612004,full,fix,A2,⟦U+0001⟧ START OF HEADING at offset 511 (4x),511 U+0001 START OF HEADING (4x),J0shu4B0y/Practice Python/diving_in_python/week01_01.py
+1612029,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,aspose-slides/Aspose.Slides-for-Python-via-.NET examples/src/Tables/AddImageinsideTableCell.py
+1612355,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,nerdifant/ghostNotification notification.py
+1612519,full,fix,A1,⟦BOM⟧ U+FEFF at offset 64,64 U+FEFF ZERO WIDTH NO-BREAK SPACE,x1sa1/PyElectrica pyelectrica/pyelectrica.py
+1612798,full,fix,C2,line repeated 36 times consecutively at offset 9666,,SimonKrughoff/ginga ginga/cmap.py
+1613361,full,fix,A1,⟦BOM⟧ U+FEFF at offset 29,29 U+FEFF ZERO WIDTH NO-BREAK SPACE,shuaibiguang/qqbot qqbot/qqbotcls.py
+1613960,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,rt112000/CDM objectModel/Python/tests/storage/test_syms.py
+1614204,full,fix,A1,⟦BOM⟧ U+FEFF at offset 0,0 U+FEFF ZERO WIDTH NO-BREAK SPACE,norserage/scoring ScoringEngine/ScoringEngine/core/db/__init__.py
+1614284,full,fix,B1,HTML entity &amp; at offset 4517,,iiiusky/Sasila sasila-example/car_processor.py
+1615030,full,fix,A1,⟦BOM⟧ U+FEFF at offset 68,68 U+FEFF ZERO WIDTH NO-BREAK SPACE,tsukushibito/python_alpha_zero alpha_zero/run.py
+1615412,full,fix,A1,⟦BOM⟧ U+FEFF at offset 17,17 U+FEFF ZERO WIDTH NO-BREAK SPACE,lili2012/idlcpp bin/tutorial6.py
+1615709,full,fix,C2,line repeated 13 times consecutively at offset 1874,,Spotrix/spotrix tests/unit_tests/charts/test_post_processing.py
+1615820,full,fix,A1,⟦BOM⟧ U+FEFF at offset 22,22 U+FEFF ZERO WIDTH NO-BREAK SPACE,vinhui/Domo Domo/Domo.Packaging/Packages/ModuleTest/0.1/SpotifySensor.py
+1616040,full,fix,A1,⟦BOM⟧ U+FEFF at offset 33,33 U+FEFF ZERO WIDTH NO-BREAK SPACE,Twenkid/Python-Various Toshko2-Web-Server-WMCOPYDATA/t81.py
+1616485,full,fix,A1,⟦BOM⟧ U+FEFF at offset 34,34 U+FEFF ZERO WIDTH NO-BREAK SPACE,xiaoshangpeng/l_sdk_doc demo/demo/py/t_discover.py
+1616928,full,fix,A1,⟦BOM⟧ U+FEFF at offset 15,15 U+FEFF ZERO WIDTH NO-BREAK SPACE,himichael/LeetCode src/201_300/0287_find-the-duplicate-number/find-the-duplicate-number.py
+1617600,full,fix,A1,⟦BOM⟧ U+FEFF at offset 15,15 U+FEFF ZERO WIDTH NO-BREAK SPACE,ramonne69/Lean Algorithm.Python/AltData/CachedAlternativeDataAlgorithm.py
+1617741,full,fix,B1,HTML entity &amp; at offset 172652,,Wramberg/SublimeTextTerminalView GateOne/terminal.py
