@@ -1,0 +1,162 @@
+doc_id,read,verdict,diseases,evidence,hex,note
+942c1fdddfb8931c,full,clean,,,,
+7af3666c01d0e13c,full,drop,C1,"C1 :' Post author:admin Post published:September 16, 2020 Post category:BSY's Photos Post comments:0 Comments You Might Also Like' at offset 156. | C1 at offset 443.",,low quality - A kannada sentence followed by english boilerplate of posts. Suggestive medicine - Remove English boilerplate related to posts.
+9a055722975852fb,full,clean,H3,H3: English version offset at 1297,,This document has both kannada and english version.
+49d4a1847da4514b,full,fix,H2,H2 :  ಜಾಗೃತಿ repeated twice at offset 257,,Naxal operation at madkeri by police
+fb49b8c109fa0344,full,fix,A3;C1,A3 : 'ಧಾರಾ~ರಾಮಾಯಣದ'  TILDE at offset 146 C1 : 'ಪ್ರವಚನವನ್ನು ಇಲ್ಲಿ ಕೇಳಿರಿ: ಪ್ರವಚನವನ್ನು ನೋಡಲು:',A3,"TILDE at offset 146, ending the doc image credits."
+7fd06bf25bcaa6d1,full,fix,A7;A8,A7 : 19ಮಾರಕ at offset 77 | A7 : 2ವರ್ಷದಿಂದ at offset 296 | A7 : 25ವರ್ಷ at offset 222 | A8 : ಕೋಣೆ⟦SPACE⟧ಗಳ,,19ಮಾರಕ - add space between numbers and words but should have space in cases 19ನೇ or 31ರೊಳಗೆ | ಕೋಣೆ⟦SPACE⟧ಗಳ - must not have space
+3ed53ea9d8c600a0,full,clean,D3,,,Supreme court order
+5eaafa2efe204fb3,full,fix,C1,C1 : - 'Tag results for' at offset 0,,Boiler plate at startof doc
+54be2713642d1bc6,full,fix,C1,C1 : 'ಚಿತ್ರ ಕೃಪೆ: ವಿಕಿಪಿಡಿಯ' offset at 4215,,At end Image credits : wikipedia .
+67249541e320149c,full,clean,,,,bjp meet
+8ed9aecf6c9c0b52,full,clean,,,,small note on politicians
+a7746a3981e58f31,full,fix,A7;C1,"A7 : 70ಲಕ್ಷದ at offset 618 | C1 : Last Updated Mar 27, 2019, 3:47 PM IST",,ends with biolerplate timestamps
+12d7d5e672b21506,full,clean,D3,D3 : English at offset 1052,,last sentence is in english and its a translated version of previous kannada sentence
+bfe4d0c9f43dc03b,full,fix,C1,C1 : ‘ವಾರ್ತಾ ಭಾರತಿ’ ನಿಮಗೆ ಆಪ್ತವೇ ? ಇದರ ಸುದ್ದಿಗಳು ಮತ್ತು ವಿಚಾರಗಳು ಎಲ್ಲರಿಗೆ ಉಚಿತವಾಗಿ ತಲುಪುತ್ತಿರಬೇಕೇ?  ಬೆಂಬಲಿಸಲು ಇಲ್ಲಿ ಕ್ಲಿಕ್ ಮಾಡಿ at offset 1947,,website data - 'click here to support'
+f8ebdf3dd24db84a,full,fix,C1,ಮತ್ತು ವಿಚಾರಗಳು ಎಲ್ಲರಿಗೆ ಉಚಿತವಾಗಿ ತಲುಪುತ್ತಿರಬೇಕೇ?  ಬೆಂಬಲಿಸಲು ಇಲ್ಲಿ ಕ್ಲಿಕ್ ಮಾಡಿ at offset 4541,,website data - 'click here to support'
+bfffaddc459978e6,full,clean,,,,
+adb72bac01d7c42b,full,fix,C1;D3,"C1 : 'August 3, 2020, 5:19 AM' timestamp offset at 77| D3 : 'reporterkarnataka new' offset at  109",,timestamp as Biolerplate
+208f97d5dd50472a,full,clean,,,,
+95fcd3a60a26a368,full,fix,C1;D3,"C1: ""Just In Don't Miss!"" at offset 0 | C1: ""- News ಕರ್ನಾಟಕದಲ್ಲಿ 573 ಕೊರೊನಾ ಸೋಂಕಿತರು ಪತ್ತೆ"" at offset 20 | C1: ""- Finance ಬಜೆಟ್ 2021: ಐ.ಟಿ. ಫೈಲಿಂಗ್ ನಲ್ಲಿ PAN ಕಾರ್ಡ್ ಗೆ ಏಕಿಷ್ಟು ಮಹತ್ವ, ಏನಿದರ ವಿಶೇಷ?"" at offset 66 | C1: ""- Sports ಐಪಿಎಲ್ 2021: ರಾಜಸ್ಥಾನ್ ರಾಯಲ್ಸ್ ತಂಡಕ್ಕೆ ಸಂಗಕ್ಕರ ಬಲ"" at offset 150 | C1: ""- Automobiles ಕರೋಕ್ ಎಸ್ಯುವಿಯನ್ನು ಸ್ಥಳೀಯವಾಗಿ ಅಭಿವೃದ್ಧಿಪಡಿಸಲಿದೆ ಸ್ಕೋಡಾ"" at offset 209 | C1: ""- Lifestyle ವಾರ ಭವಿಷ್ಯ: 12 ರಾಶಿಗಳ ರಾಶಿ ಫಲ ಹೇಗಿದೆ ನೋಡಿ"" at offset 278 | C1: ""- Education NIT Recruitment 2021: ರಿಸರ್ಚ್ ಅಸಿಸ್ಟೆಂಟ್ ಹುದ್ದೆಗೆ ಅರ್ಜಿ ಆಹ್ವಾನ"" at offset 332 | C1: ""- Technology ಒನ್ಪ್ಲಸ್ ನಾರ್ಡ್ ಜುಲೈ 15 ರಿಂದ ಅಮೆಜಾನ್ ತಾಣದಲ್ಲಿ ಪ್ರಿ-ಆರ್ಡರ್ಗೆ ಲಭ್ಯವಿದೆ; ಖರೀದಿಸುವಲ್ಲಿ ಮೊದಲಿಗರಾಗಿರಿ!"" at offset 407 | C1: ""- Travel ಭಾರತದಲ್ಲಿ ಜೂನ್ 1 ರಿಂದ ಚಲಿಸಲಿರುವ ರೈಲುಗಳ ಸಂಪೂರ್ಣ ಪಟ್ಟಿ"" at offset 517",,boilerplate C1 - topics
+10c1bbd17380fb15,full,fix,C1;D3,"C1: ""Just In Don't Miss!"" at offset 0 | C1: ""- News ನೇಪಾಳ ಕಮ್ಯೂನಿಸ್ಟ್ ಪಕ್ಷದಿಂದ ಕೆಪಿ ಶರ್ಮಾ ಓಲಿ ಉಚ್ಚಾಟನೆ"" at offset 20 | C1: ""- Finance ಬಜೆಟ್ 2021: ಐ.ಟಿ. ಫೈಲಿಂಗ್ ನಲ್ಲಿ PAN ಕಾರ್ಡ್ ಗೆ ಏಕಿಷ್ಟು ಮಹತ್ವ, ಏನಿದರ ವಿಶೇಷ?"" at offset 78 | C1: ""- Sports ಐಪಿಎಲ್ 2021: ರಾಜಸ್ಥಾನ್ ರಾಯಲ್ಸ್ ತಂಡಕ್ಕೆ ಸಂಗಕ್ಕರ ಬಲ"" at offset 162 | C1: ""- Automobiles ಕರೋಕ್ ಎಸ್ಯುವಿಯನ್ನು ಸ್ಥಳೀಯವಾಗಿ ಅಭಿವೃದ್ಧಿಪಡಿಸಲಿದೆ ಸ್ಕೋಡಾ"" at offset 221 | C1: ""- Lifestyle ವಾರ ಭವಿಷ್ಯ: 12 ರಾಶಿಗಳ ರಾಶಿ ಫಲ ಹೇಗಿದೆ ನೋಡಿ"" at offset 290 | C1: ""- Education NIT Recruitment 2021: ರಿಸರ್ಚ್ ಅಸಿಸ್ಟೆಂಟ್ ಹುದ್ದೆಗೆ ಅರ್ಜಿ ಆಹ್ವಾನ"" at offset 344 | C1: ""- Travel ಭಾರತದಲ್ಲಿ ಜೂನ್ 1 ರಿಂದ ಚಲಿಸಲಿರುವ ರೈಲುಗಳ ಸಂಪೂರ್ಣ ಪಟ್ಟಿ"" at offset 419",,boilerplate C1
+352f61da6247acd6,full,fix,C1;D3,"C1 : 'Just In Don't Miss!' at offset 0 | | C1: ""Just In Don't Miss!"" at offset 0 | C1: ""- News ಕರ್ನಾಟಕದಲ್ಲಿ 573 ಕೊರೊನಾ ಸೋಂಕಿತರು ಪತ್ತೆ"" at offset 20 | C1: ""- Finance ಬಜೆಟ್ 2021: ಐ.ಟಿ. ಫೈಲಿಂಗ್ ನಲ್ಲಿ PAN ಕಾರ್ಡ್ ಗೆ ಏಕಿಷ್ಟು ಮಹತ್ವ, ಏನಿದರ ವಿಶೇಷ?"" at offset 66 | C1: ""- Sports ಐಪಿಎಲ್ 2021: ರಾಜಸ್ಥಾನ್ ರಾಯಲ್ಸ್ ತಂಡಕ್ಕೆ ಸಂಗಕ್ಕರ ಬಲ"" at offset 150 | C1: ""- Automobiles ಕರೋಕ್ ಎಸ್ಯುವಿಯನ್ನು ಸ್ಥಳೀಯವಾಗಿ ಅಭಿವೃದ್ಧಿಪಡಿಸಲಿದೆ ಸ್ಕೋಡಾ"" at offset 209 | C1: ""- Lifestyle ವಾರ ಭವಿಷ್ಯ: 12 ರಾಶಿಗಳ ರಾಶಿ ಫಲ ಹೇಗಿದೆ ನೋಡಿ"" at offset 278 | C1: ""- Education NIT Recruitment 2021: ರಿಸರ್ಚ್ ಅಸಿಸ್ಟೆಂಟ್ ಹುದ್ದೆಗೆ ಅರ್ಜಿ ಆಹ್ವಾನ"" at offset 332 | C1: ""- Travel ಭಾರತದಲ್ಲಿ ಜೂನ್ 1 ರಿಂದ ಚಲಿಸಲಿರುವ ರೈಲುಗಳ ಸಂಪೂರ್ಣ ಪಟ್ಟಿ"" at offset 407",,boilerplate C1
+10e60ad0965db2c1,full,fix,C1;F1,"C1 : Team Udayavani, Dec 3, 2020, 9:45 PM IST at offset  76 | C1 : Ad at offset 678 | F1 ; phone number at 1013",,timestamp boilerplate
+ce3ee03d7473826a,full,clean,,,,
+5dafb10b4e0e7503,full,clean,D3,D3 : 'cleaning' at  offset 585,,
+9e6f962f2be34876,full,fix,C1,"C1: ""Just In Don't Miss!"" at offset 0 | C1: ""- News ಗಡಿಯಲ್ಲಿ ಮತ್ತೆ ಶಿವಸೇನೆ ಪುಂಡಾಟ; ಕರ್ನಾಟಕ ಪ್ರವೇಶ ಯತ್ನ ವಿಫಲ"" at offset 20 | C1: ""- Automobiles ಐಷಾರಾಮಿ ಕಾರು ಚಾಲಕನ ನಿರ್ಲಕ್ಷ್ಯಕ್ಕೆ ಪ್ರಾಣ ತೆತ್ತ ಪೊಲೀಸ್ ಕಾನ್ಸ್ಟೆಬಲ್ಗಳು"" at offset 83 | C1: ""- Sports ಆಸ್ಟ್ರೇಲಿಯಾ ತಂಡದ ಬದ್ಧತೆ ಹಾಗೂ ಪೈನ್ ನಾಯಕತ್ವವನ್ನು ಪ್ರಶ್ನಿಸಿದ ಮಾಜಿ ಆಸಿಸ್ ಕ್ರಿಕೆಟಿಗ"" at offset 165 | C1: ""- Lifestyle ಈ 3 ವಸ್ತುಗಳನ್ನು ಹಾಕಿ ಮಾಡಿದ ಜ್ಯೂಸ್ ಕುಡಿದರೆ ಬೊಜ್ಜು ಕರುಗುತ್ತೆ, ಸೌಂದರ್ಯ ಹೆಚ್ಚುತ್ತೆ"" at offset 253 | C1: ""- Finance 1986ರಿಂದ 2021 ಸೆನ್ಸೆಕ್ಸ್ ಪ್ರಮುಖ ಮೈಲುಗಲ್ಲುಗಳು: 50,000 ಪಾಯಿಂಟ್ ದಾಖಲೆ ಹಾದಿ"" at offset 344 | C1: ""- Education BMRCL Recruitment 2021: ಸೀನಿಯರ್ ಅರ್ಬನ್ ಮತ್ತು ಟ್ರಾನ್ಸ್ ಪೋರ್ಟ್ ಪ್ಲಾನರ್ ಹುದ್ದೆಗಳಿಗೆ ಅರ್ಜಿ ಆಹ್ವಾನ"" at offset 426 | C1: ""- Technology ಒನ್ಪ್ಲಸ್ ನಾರ್ಡ್ ಜುಲೈ 15 ರಿಂದ ಅಮೆಜಾನ್ ತಾಣದಲ್ಲಿ ಪ್ರಿ-ಆರ್ಡರ್ಗೆ ಲಭ್ಯವಿದೆ; ಖರೀದಿಸುವಲ್ಲಿ ಮೊದಲಿಗರಾಗಿರಿ!"" at offset 532 | C1: ""- Travel ಭಾರತದಲ್ಲಿ ಜೂನ್ 1 ರಿಂದ ಚಲಿಸಲಿರುವ ರೈಲುಗಳ ಸಂಪೂರ್ಣ ಪಟ್ಟಿ"" at offset 642",,boilerplate - topics
+2468cd4bd272e3ed,full,clean,,,,
+9113b7d79e9b40ee,full,clean,,,,
+96c2582ac07d1e04,full,fix,C1,"C1 : 'ಬುಧವಾರ, 22 ಜನವರಿ 2020 (10:49 IST)' at offset 54",,timestamp boilerplate
+2c5d96312da9c426,full,clean,,,,
+db82df7f70efba79,full,clean,,,,WTO related doc
+634f9d4743893171,full,fix,C1;D3;F1;G1,C1: '- ರಾಜಕೀಯ7 days ago' offset at 32017 | C1: website title label at offset 29540 | C1: trending widget heading at offset 31906 | C1: widget separator at offset 31915 | C1: topic or relative-age metadata at offset 31917 | C1: topic or relative-age metadata at offset 32017 | C1: topic or relative-age metadata at offset 32121 | C1: topic or relative-age metadata at offset 32235 | C1: topic or relative-age metadata at offset 32305 | C1: topic or relative-age metadata at offset 32388 | C1: topic or relative-age metadata at offset 32458 | C1: topic or relative-age metadata at offset 32541 | C2: exact nonblank line occurs 3 times at offset 20380 | C2: exact nonblank line occurs 3 times at offset 22803 | C2: exact nonblank line occurs 3 times at offset 29506 | C2: exact nonblank line occurs 8 times at offset 31915 | C2: exact nonblank line occurs 8 times at offset 32015 | C2: exact nonblank line occurs 8 times at offset 32119 | C2: exact nonblank line occurs 8 times at offset 32233 | C2: exact nonblank line occurs 8 times at offset 32303 | C2: exact nonblank line occurs 8 times at offset 32386 | C2: exact nonblank line occurs 8 times at offset 32456 | C2: exact nonblank line occurs 8 times at offset 32539 | F1: Indian-mobile-number-like token at offset 20403 | F1: Indian-mobile-number-like token at offset 22826 | F1: Indian-mobile-number-like token at offset 29529 | G1: U+0CCD KANNADA SIGN VIRAMA at offset 13965,,Website footer has topics - C1. Document has repeated lines but not marked as C2 becuase they help in telling model the topic ended. But unnecssary hypens can be removed Needs discussion
+bade3820b74478ba,full,clean,,,,
+c472a3db00395ba6,full,fix,C1;F1,C1: website title label at offset 14213 | C1: trending widget heading at offset 16800 | C1: widget separator at offset 16809 | C1: topic or relative-age metadata at offset 16811 | C1: topic or relative-age metadata at offset 16887 | C1: topic or relative-age metadata at offset 16978 | C1: topic or relative-age metadata at offset 17031 | C1: topic or relative-age metadata at offset 17158 | C1: topic or relative-age metadata at offset 17244 | C1: topic or relative-age metadata at offset 17308 | C1: topic or relative-age metadata at offset 17359 | C2: exact nonblank line occurs 3 times at offset 4138 | C2: exact nonblank line occurs 3 times at offset 9087 | C2: exact nonblank line occurs 3 times at offset 14179 | C2: exact nonblank line occurs 8 times at offset 16809 | C2: exact nonblank line occurs 8 times at offset 16885 | C2: exact nonblank line occurs 8 times at offset 16976 | C2: exact nonblank line occurs 8 times at offset 17029 | C2: exact nonblank line occurs 8 times at offset 17156 | C2: exact nonblank line occurs 8 times at offset 17242 | C2: exact nonblank line occurs 8 times at offset 17306 | C2: exact nonblank line occurs 8 times at offset 17357 | F1: Indian-mobile-number-like token at offset 3081 | F1: Indian-mobile-number-like token at offset 4161 | F1: Indian-mobile-number-like token at offset 9110 | F1: Indian-mobile-number-like token at offset 14202,,There are multiple documents - but all of them separated by this text  'ಸುದ್ದಿದಿನ.ಕಾಂ|ವಾಟ್ಸಾಪ್|9986715401'  hence not marked as C4 and not marked as C2 as well becuase it tells model topic has ended.
+ecefe60eae2c0f7c,full,clean,,,,
+f0b634572a92b22e,full,clean,,,,Spelling mistake at offset 945
+0a77c8c1b79335da,full,clean,,,,
+dbbd14b33cfb0729,full,clean,D3,,,
+7d63a9742f9a7089,full,fix,C1,"C1: ""Team Udayavani, Feb 11, 2021, 3:27 PM IST"" at offset 39",,boilerplate IST
+1ab8688ecd7fb112,full,clean,,,,
+2c8cbb93230afa7d,full,fix,C1,"C1: ""Last Modified ಶನಿವಾರ, 5 ಸೆಪ್ಟಂಬರ್ 2020 (10:08 IST)"" at offset 21",,boilerplate Timestamp
+8e37eef2ed5281b6,full,clean,D3,,,Typing mistake -     69  U+000A     LINE FEED     70  U+002E     FULL STOP     71  U+0020     SPACE     72  U+002E     FULL STO
+cc170cf886ead148,full,fix,C1,C1 : 'ಮುಖಪುಟ' at offset 0,,ಮುಖಪುಟ --> Front page C1 boiler plate
+4d5a421569403d41,full,clean,,,,
+945ed506b47bbafc,full,fix,C1,"C1: ""First Published Jan 20, 2021, 2:58 PM IST"" at offset 57",,"At offset 351 ,   1180  U+000A     LINE FEED must not be added. Grammatical mistake"
+1db7c578463eb78c,full,clean,,,,
+537c659abc80e1a6,full,fix,C1,"C1: ""Last Modified ಶನಿವಾರ, 26 ಡಿಸೆಂಬರ್ 2020 (09:56 IST)"" at offset 25 | C1: ""ಬೆಂಗಳೂರು|"" at offset 0 | C1: ""Krishnaveni K|"" at offset 10",,Should city names be added under C1 ಬೆಂಗಳೂರು| ??
+a4153fd935d239d9,full,fix,C1,"C1: ""Last Modified ಭಾನುವಾರ, 9 ಫೆಬ್ರವರಿ 2020 (08:20 IST)"" at offset 19 | C1: ""ನವದೆಹಲಿ|"" at offset 0 | C1: ""pavithra|"" at offset 9",,"Should name followed by  ""pavithra|"" be added as C1 ?"
+e427affbdf302a39,full,clean,,,,
+cd952fa6c7f1582f,full,clean,,,,
+9fa0ba393422e3bb,full,fix,C1,"C1: ""Team Udayavani, Jan 22, 2021, 7:42 PM IST"" at offset 33",,"Should we add ""ಜೀವ ರಕ್ಷಣೆಗಾಗಿ ಸಂಚಾರ ನಿಯಮ ಪಾಲಿಸಿ"" as C1 ?"
+76fdbcb28c49fc27,full,fix,C1;F1,C1: trending widget heading at offset 9013 | C1: widget separator at offset 9022 | C1: topic or relative-age metadata at offset 9024 | C1: topic or relative-age metadata at offset 9128 | C1: topic or relative-age metadata at offset 9198 | C1: topic or relative-age metadata at offset 9281 | C1: topic or relative-age metadata at offset 9351 | C1: topic or relative-age metadata at offset 9434 | C1: topic or relative-age metadata at offset 9558 | C1: topic or relative-age metadata at offset 9701 | C2: exact nonblank line occurs 4 times at offset 4830 | C2: exact nonblank line occurs 4 times at offset 7746 | C2: exact nonblank line occurs 4 times at offset 8335 | C2: exact nonblank line occurs 4 times at offset 8979 | C2: exact nonblank line occurs 8 times at offset 9022 | C2: exact nonblank line occurs 8 times at offset 9126 | C2: exact nonblank line occurs 8 times at offset 9196 | C2: exact nonblank line occurs 8 times at offset 9279 | C2: exact nonblank line occurs 8 times at offset 9349 | C2: exact nonblank line occurs 8 times at offset 9432 | C2: exact nonblank line occurs 8 times at offset 9556 | C2: exact nonblank line occurs 8 times at offset 9699 | F1: Indian-mobile-number-like token at offset 4853 | F1: Indian-mobile-number-like token at offset 7769 | F1: Indian-mobile-number-like token at offset 8358 | F1: Indian-mobile-number-like token at offset 9002,,"has mutliple topics but differntiated by ""▸ಸುದ್ದಿದಿನ.ಕಾಂ|ವಾಟ್ಸಾಪ್|▸▸9980346243⟦LF⟧"""
+30992a38a9e5f12f,full,clean,,,,
+6b7feb7d40104a01,full,clean,,,,
+b6c1c411be0519af,full,clean,,,,Bulletin points are not rendered with LF.
+f86bebb970ddf50e,full,clean,,,,"conversation , story"
+450d74fdc31034db,full,clean,,,,Mining related policies
+296088b418958306,full,clean,,,,
+bf21eb9f2a9511b6,full,fix,C1;C2;F1,C2: exact nonblank line occurs 3 times at offset 8923 | C2: exact nonblank line occurs 3 times at offset 11346 | C2: exact nonblank line occurs 3 times at offset 18049 | C2: exact nonblank line occurs 8 times at offset 20359 | C2: exact nonblank line occurs 8 times at offset 20402 | C2: exact nonblank line occurs 8 times at offset 20572 | C2: exact nonblank line occurs 8 times at offset 20672 | C2: exact nonblank line occurs 8 times at offset 20745 | C2: exact nonblank line occurs 8 times at offset 20795 | C2: exact nonblank line occurs 8 times at offset 20899 | C2: exact nonblank line occurs 8 times at offset 20971 | F1: Indian-mobile-number-like token at offset 7251 | F1: Indian-mobile-number-like token at offset 7263 | F1: Indian-mobile-number-like token at offset 8946 | F1: Indian-mobile-number-like token at offset 11369 | F1: Indian-mobile-number-like token at offset 18072 | C1: website title label at offset 18083 | C1: trending widget heading at offset 20350 | C1: widget separator at offset 20359 | C1: topic or relative-age metadata at offset 20361 | C1: topic or relative-age metadata at offset 20404 | C1: topic or relative-age metadata at offset 20574 | C1: topic or relative-age metadata at offset 20674 | C1: topic or relative-age metadata at offset 20747 | C1: topic or relative-age metadata at offset 20797 | C1: topic or relative-age metadata at offset 20901 | C1: topic or relative-age metadata at offset 20973,,
+ea791e834980a7e0,full,clean,,,,Akashvani music
+c28f76ca5cc38e3d,full,clean,,,,
+8ae75d1d00922fb0,full,clean,,,,"There are multiple unrelated topics , but each of them starts as a new paragrpahstarts"
+7ac7b308228f3ad7,full,fix,C1,"C1: ""Last Updated Feb 20, 2021, 12:30 PM IST"" at offset 1722",,
+91eea0530670d2f8,full,fix,C1,"C1: ""Last Updated Feb 20, 2021, 8:14 AM IST"" at offset 1854",,
+85ead6c636874163,full,clean,,,,
+64a5eb099d02bc3d,full,clean,,,,
+6652e0ea74804194,full,fix,C1,"C1: ""Team Udayavani, Jan 23, 2021, 7:10 PM IST"" at offset 39 | C1: ""MUST WATCH"" at offset 2507",,C1 boilerplate exists. This document ends with multiple news lines.
+1548138be5151389,full,fix,C1,"C1: ""Last Uspdated Feb 11, 2021, 5:02 PM IST"" at offset 1957",,
+3f2bb8ae6f78b502,full,fix,C1,"C1: ""Last Updated Feb 5, 2021, 7:16 AM IST"" at offset 1149",,
+470753e8398c7239,full,fix,C1,"C1: ""Team Udayavani, Sep 16, 2018, 11:17 AM IST"" at offset 33",,
+63893896fc91d708,full,clean,,,,
+acde7942bff27996,full,clean,,,,
+aab8b846e0517cbc,full,clean,,,,
+92305d5a724c194a,full,clean,,,,Starts from third point [ review required ]
+19cd9c71be209a65,full,fix,C1,"C1: ""Team Udayavani, Feb 20, 2021, 5:35 PM IST"" at offset 106",,
+1505ef995f3305a3,full,fix,G1,G1: U+0CC6 KANNADA VOWEL SIGN E at offset 1150,U+0CC6,
+00936588665bcf9e,full,clean,,,,
+562f3ec832cdbd3f,full,fix,C1,"C1: ""November 13, 2020, 7:01 AM"" at offset 78 | C1: ""ಬೆಂಗಳೂರು Reporter Karnataka Newsq"" at offset 105s",,
+886e4c0257e9a2a7,full,clean,,,,bjp politics
+8af6f5815204fb61,full,clean,,,,superstitious traditions in belagavi
+3275401e8709ae7f,full,clean,,,,"Author name at start , should we remove it ?"
+28eaa194193832fd,full,clean,,,,
+e429846aafe7b46e,full,clean,,,,
+0a31ddb9305d7f72,full,clean,,,,
+4fb058fb5d1a0ceb,full,clean,,,,
+eae17ba8906dc924,full,clean,,,,
+8b34229f3356bb21,full,clean,,,,
+9fe548ccc0b8dff0,full,clean,,,,
+1f894bc338825731,full,clean,,,,
+88943bd530ff66f7,full,clean,,,,cooking recipe in kannada
+feb54bf1fc697c7e,full,fix,C1,"C1: ""Last Updated Feb 3, 2021, 9:48 AM IST"" at offset 1190",,
+865835c1a8307ca3,full,clean,,,,crime
+8d746d05859cb477,full,clean,,,,
+f92084137e300d65,full,clean,,,,
+7ffba04714028f5c,full,clean,,,,
+9a3f0e4418e121b4,full,clean,,,,
+c3346285a8b42a19,full,clean,,,,
+315cf69ffc1ff1e3,full,clean,,,,
+603543b36ae3c16d,full,clean,,,,
+fb990b1643429b1b,full,fix,C1,"C1 : ""ನ್ಯೂಸ್ 13 ಸಮಾಜದ ಧನಾತ್ಮಕ ಸುದ್ದಿಗಳನ್ನು ಹಾಗೂ ರಾಷ್ಟ್ರೀಯ ವಿಚಾರಗಳನ್ನು ನಿಮಗೆ ತಲುಪಿಸುವ ಪ್ರಯತ್ನ ಮಾಡುತ್ತದೆ. ಈ ರೀತಿ ಇನ್ನಷ್ಟು ಉತ್ತಮ ಸುದ್ದಿಗಳನ್ನು ತಲುಪಿಸಲು ನಿಮ್ಮ ಸಹಕಾರವನ್ನು ಅಪೇಕ್ಷಿಸುತ್ತಿದ್ದೇವೆ. ಈ ಕಾರ್ಯದಲ್ಲಿ ನೀವೂ ನಮ್ಮೊಂದಿಗೆ ಜೊತೆಯಾಗಿ. News13 strives to publish and promote positive news/happenings and nationalistic thoughts. Join hands with us in this constructive cause. We hope and expect your co-operation in this objective of broadcasting news that shall keep up with quality journalism."" at offset 1705",,
+436fd1e4f828cb2a,full,clean,,,,
+2d238fb14677027c,full,clean,,,,
+23f08557f3f4e259,full,clean,,,,
+e174842d0c52e424,full,clean,,,,
+bd46d5c5dc5793f8,full,clean,,,,
+7fce78d260148ed4,full,fix,C1,"C1: ""ನ್ಯೂಸ್ 13 ಸಮಾಜದ ಧನಾತ್ಮಕ ಸುದ್ದಿಗಳನ್ನು ಹಾಗೂ ರಾಷ್ಟ್ರೀಯ ವಿಚಾರಗಳನ್ನು ನಿಮಗೆ ತಲುಪಿಸುವ ಪ್ರಯತ್ನ ಮಾಡುತ್ತದೆ. ಈ ರೀತಿ ಇನ್ನಷ್ಟು ಉತ್ತಮ ಸುದ್ದಿಗಳನ್ನು ತಲುಪಿಸಲು ನಿಮ್ಮ ಸಹಕಾರವನ್ನು ಅಪೇಕ್ಷಿಸುತ್ತಿದ್ದೇವೆ. ಈ ಕಾರ್ಯದಲ್ಲಿ ನೀವೂ ನಮ್ಮೊಂದಿಗೆ ಜೊತೆಯಾಗಿ. News13 strives to publish and promote positive news/happenings and nationalistic thoughts. Join hands with us in this constructive cause. We hope and expect your co-operation in this objective of broadcasting news that shall keep up with quality journalism."" at offset 897",,
+5d38d99145f312bd,full,fix,C1,"C1: ""Team Udayavani, Feb 28, 2021, 1:45 PM IST"" at offset 59",,
+abdbe4e0077a2087,full,clean,,,,
+07b94b086abbb4f3,full,fix,C1,"C1 : ""#sachin tendulkar #DiamondofWorldCricket #teamindia #saakshatv #saakshatvsports #cricket #bcci #icc"" at offset 1383",,cricket related hashtags
+1a8dced4fea77b22,full,clean,,,,
+bf349476acc512c9,full,clean,,,,
+17e5d6b10dc06231,full,clean,,,,
+c38abea7a3377c5b,full,clean,,,,
+63cd06843d6f135a,full,clean,,,,sexual harassment case
+7305e6f80fd21c32,full,fix,C1,"C1 : ""ಪೋಸ್ಟ್ ಸಮಯ: ಮಾರ್ಚ್ -09-2018"" at offset 1631",,
+3eefc99bdc576a0a,full,fix,G1,G1: U+0CCB KANNADA VOWEL SIGN OO at offset 5053,U+0CCB,
+4b1c1aba2c430bbf,full,clean,,,,
+cfc9f77e953b4aad,full,clean,,,,
+854bdbbaea2f0a7e,full,clean,,,,
+4a2026dbc4f536de,full,clean,,,,
+611b4499989be3a0,full,clean,,,,
+6cd1554086a6bb3b,full,clean,,,,
+dfb1d533d35f20ae,full,clean,,,,
+69b544408fa44122,full,clean,,,,
+bb29b9ff22c66a27,full,clean,,,,
+2b796e33ffd19d28,full,fix,C1,"C1 : ""ಪಬ್ಲಿಕ್ ಟಿವಿಯನ್ನು ಇನ್ ಸ್ಟಾಗ್ರಾಮ್ ನಲ್ಲಿ ಫಾಲೋ ಮಾಡಿ www.instagram.com/publictv"" at offset 1130",,
+3576168c62157973,full,fix,C1;C3;D3,"C1: ""Last Updated Apr 1, 2021, 10:14 AM IST"" at offset 1048 | C3 : """,,Last sentence got cut truncated
+58e197b1f0493cfc,full,clean,,,,
+4577fabe9bb4461c,full,clean,,,,
+7fe221d009366c1e,full,clean,,,,
+45e2a6539ee4f226,full,fix,C1,"C1: ""Last Updated Feb 27, 2021, 10:57 AM IST"" at offset 1274",,
+5324bc601e15d2a1,full,fix,C1;C3,"C1: ""ಬೆಳಗಾವಿ|"" at offset 0 | C1: ""Vinod|"" at offset 9 | C1: ""Last Modified ಮಂಗಳವಾರ, 24 ಜನವರಿ 2017 (11:31 IST)"" at offset 16 | C1: ""ತಾಜಾ ಸುದ್ದಿಗಳನ್ನು ಓದಲು ವೆಬ್ದುನಿಯಾ ಮೊಬೈಲ್ ಆ್ಯಪ್ ಇದರಲ್ಲಿ ಇನ್ನಷ್ಟು ಓದಿ :"" at offset 1081 | C3 : truncated at after colon",,
+536e8f5c7a8fa03e,full,clean,,,,
+d4089d499ee76453,full,drop,C3,Except one Kannada sentence starting at offset 16. everything else is C1 candidate.,,One sentence with no context
+5d54c6ace1fb8688,full,clean,,,,
+4db593bb83269e56,full,fix,C1,"C1: ""- Tag results for ಢಾಕಾ"" at offset 0",,
+7573bfff1589bbd6,full,clean,,,,
+00e62ad6b97c2685,full,clean,,,,black pepper benefitscs
+339ac534d1a9c6e7,full,clean,,,,politics mysore
+93a055e6ab9d9c4b,full,clean,,,,police dog siri
+1accc6c7db3d78f4,full,clean,,,,
+903f40f262239bdd,full,fix,G1,G1: U+0CBE KANNADA VOWEL SIGN AA at offset 531 | G1: U+0CC2 KANNADA VOWEL SIGN UU at offset 1203 | G1: U+0CC2 KANNADA VOWEL SIGN UU at offset 2794 | G1: U+0CBE KANNADA VOWEL SIGN AA at offset 2880 | G1: U+0CBE KANNADA VOWEL SIGN AA at offset 3283 | G1: U+0CC2 KANNADA VOWEL SIGN UU at offset 4912 | G1: U+0CC2 KANNADA VOWEL SIGN UU at offset 5514,U+0CBE U+0CC2,zoom in kannada is written wrong. Technical blog so looks like a machine translation but not bad quality
+587dc5f42dba5dce,full,clean,,,,Hampi utsava
+57ce1ecc0fbd2893,full,clean,,,,"law, crime"
+51e9a734efdfb853,full,clean,,,,story
+d1ef35984ff7cd14,full,clean,,,,
+c640c89d2ca2413a,full,fix,D1,"C1 : "" ‘ವಾರ್ತಾ ಭಾರತಿ’ ನಿಮಗೆ ಆಪ್ತವೇ ? ಇದರ ಸುದ್ದಿಗಳು ಮತ್ತು ವಿಚಾರಗಳು ಎಲ್ಲರಿಗೆ ಉಚಿತವಾಗಿ ತಲುಪುತ್ತಿರಬೇಕೇ? ಬೆಂಬಲಿಸಲು ಇಲ್ಲಿ ಕ್ಲಿಕ್ ಮಾಡಿ"" at offset  1588",,"for all vartha bharthi doc ids, find this boiler plate and remove"
+cf9a5118a4f85007,full,clean,,,,
+7cb2c02d7011302f,full,clean,,,,
+cbd35793c4f51942,full,clean,,,,
+03c55a28ac95ebbb,full,clean,,,,
+16c7425de17fd18b,full,clean,,,,
+010985901c622a7f,full,clean,D3,,,"Heading is English , content is kannada. im marking it as D3.should i treat common topic as Boilerplate as well ?"
+a1e9130010a74267,full,clean,,,,
+73055b8f6994406f,full,clean,,,,
+716740ee15407b8a,full,clean,,,,
+fca1484108f92d4d,full,clean,D3,,,Website Link in english
+0de20b851b0be1b0,full,clean,,,,
+61fdf00125b1280e,full,clean,,,,
+8b019de10c98f2f5,full,fix,C1,"C1: ""Team Udayavani, Mar 11, 2021, 3:03 PM IST"" at offset 35",,
+316edbe5fbc2fa0c,full,fix,C1,"C1: ""February 14, 2021, 6:22 PM IST"" at offset 24 | C1 : ""news18-kannada Updated:"" at offset 0 | C1: ""India"" at offset 55",,
+dd9112736c5e2d9a,full,fix,C1,"C1: ""First Published Jun 3, 2020, 6:28 PM IST"" at offset 64",,
