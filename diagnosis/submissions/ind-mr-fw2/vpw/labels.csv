@@ -1,0 +1,36 @@
+doc_id,read,verdict,diseases,evidence,hex,note
+a04bc6869aca8184,full,clean,,,,
+29f9f308afd0859e,full,clean,,,,
+00eed90bde196e9c,full,fix,D3,"'How To Find Sweet Watermelon:' offset 0,563",,
+870fb0ffd8d7a041,full,clean,,,,
+45099f1718f10018,full,clean,D3,'Lioness And leopard Fight Viral Video' offset 0,,This is just the title and technically not a code mix (within a sentence)
+924d41c82dfe4138,full,clean,D3,'Viral Video' offset 0,,English title.
+117918b8e9db997e,full,fix,D3,'The port' at offset 1683 | 'appeared first on' at offset 1753,,
+626fc9159542b61c,full,fix,C5;D3,'Tags: Diabetes' offset 2770 | 'View this post on Instagram' offset 2402,,Many english words written in Marathi script
+06b7a9d549057fa5,full,fix,D3,'बिना ड्राइवर के' offset1145,,This is a hindi tweet references in this Marathi article
+5c05e18231a55839,full,fix,C5,'Maharashtra News' offset 1715,,"Names, tags about the news source in the article"
+c8ad1802a6fbb058,full,fix,D3,'Maharashtra news' offset 1698,,"Names, tags about the news source in the articl"
+d4026c405ed1a1a7,full,clean,D3,'Health Tips:' offset 0,,Title in English
+654e623661c0b8c6,full,fix,C4,'Raj Thackeray Rally' offset 617 onwards,,REst of the document from here are some unrelated news blurbs
+bc2933ac4de734d9,full,clean,,,,
+857af36e6c2121c5,full,clean,,,,
+26dda2c33506f1ff,full,fix,D3;F1,'Fact Check' offset 0 + '- By Vishwas News' offset 127 + 'Know the truth' offset 2168 | '92052' offset 2435,,
+9c9cb2366bc14d88,full,fix,C1,'This News has been' offset 2008,,
+b254602c4b779579,full,clean,,,,
+41e0cdfe755b14a1,full,clean,,,,
+f87818242ed54e26,full,clean,,,,
+1afac20e086d5472,full,fix,D3;G1,'Download Our' offset 0 | 698 U+0905 + U+0945 + U+092A,,
+36198f74122a5919,full,fix,C5,'This News' offset 1437,,
+47df80cd39779c69,full,clean,,,,
+8207d3c24ce05878,full,fix,C4;G1,'महत्वाच्या बातम्या' offset  829 | अॅलोवेरा offset 255 (2x) + 'अॅसिड' offset 536,255 U+0905 + U+0945 + U+0932 | 309 U+0905 + U+0945 + U+0932 | 536 U+0905 + U+0945 + U+0938,
+0cd78c6d499c4cb5,full,fix,C4,'महत्वाच्या बातम्या' offset 1025,,
+e942a698aab509da,full,clean,,,,
+2250aa0eb13684a2,full,clean,,,,
+8be5674f271d5ed9,full,fix,G1,'अॅप' offset 71 (6x),71 U+0905 U+0945 U+092A (6x),
+878959ae05c2463e,full,clean,,,,
+a9c0097cced5f9c3,full,clean,,,,Emojis in this doc - TBC
+dac55ea8bc131eb1,full,fix,F1;G1,phone number at offset 10 | 'अॅमबुलनसने' at offset 616,616 U+0905 U+0945 U+092E,
+052f2791183c599c,full,drop,C2,"C2: line 'आधी रोटी खाएंगे, इंदिरा को जिताएंगे !' repeated 5 times",,"Too long, many different kinds of content, many issues, difficult to highlight and fix all, hence dropping"
+ab077875d8ddc109,full,clean,,,,
+7a0d083844bbcacb,full,clean,,,,
+d900a0ecc88002fe,full,clean,,,,
