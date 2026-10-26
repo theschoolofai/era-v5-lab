@@ -1,0 +1,151 @@
+doc_id,read,verdict,diseases,evidence,hex,note
+fac8900a570b630b,full,clean,,,,
+f63eec264ed25737,full,clean,,,,
+299c56aecd605139,full,clean,,,,
+469e0a5a812c28f3,full,fix,C1,'SEE ALSO' at offset 8737,,breadcrumb links after the article
+2067313a5e000336,full,fix,C3,'He writes in the Guardian on Tuesday:' at offset 2551,,the quoted piece stops at the colon
+6ef68bf763ef446c,full,clean,,,,
+b83102bbd734fbfe,full,clean,,,,
+ffa5766a9a53cd2c,full,clean,,,,
+9fef13f8548950de,full,clean,,,,
+0b0d513a390b5fe2,full,clean,,,,
+3054e5cb9e7109dc,full,fix,C3,'also available on:' at offset 1013,,the product line stops at the colon
+aa6dabe77b77999c,full,clean,,,,
+74ea30694d60f739,full,fix,C1,'Bible History Online' at offset 9061,,site footer after the article
+2be6fd0360082a67,full,clean,,,,
+88dcf988df1065ff,full,clean,,,,
+57e8a90835567c14,full,clean,,,,
+8df5a8c705d18935,full,clean,,,,
+6245d1c6dfa146f9,full,clean,,,,
+5e04ef5d10f2bd9f,full,clean,,,,
+ef4cf09c586b3cbb,full,clean,,,,
+5506faa5dfa46aed,full,clean,,,,
+f6393483c601faf0,full,fix,C1,'View all Kids Bikes' at offset 3833,,shop navigation after the article
+50560a0d30384be4,full,fix,C1,'View Larger Map' at offset 3493,,map widget link after the article
+8620d74ba9ae6cdc,full,fix,C3,"'about the collection, visit' at offset 3346",,the sentence stops on visit
+7787f99cff06a5a5,full,clean,,,,
+5d83a600900ceb99,full,clean,,,,
+78d8b43d4048ede0,full,clean,,,,
+2aad35e970592c35,full,clean,,,,
+b92217b50cbd3259,full,clean,,,,
+8c4e05adb054ff9e,full,clean,,,,
+83a74d895270be43,full,clean,,,,
+f6ffaf98472d4993,full,clean,,,,
+a14b25405c278a3b,full,fix,C5,'Recreation and Sports' at offset 2574,,category list at the end
+da7b26e33a187835,full,fix,C3,'Continued on next question' at offset 522,,the page says the text continues elsewhere
+95fb8e3e046c12c8,full,clean,,,,
+c6445e00ac9c7e0e,full,clean,,,,
+a0578cb418b31c4e,full,clean,,,,
+5608694099c08c03,full,clean,,,,
+5a819ae3c65d0f6f,full,clean,,,,
+e816cc7c71cacd44,full,clean,,,,
+3092ad2616653075,full,fix,C3,'Continue reading' at offset 1025,,the article cuts at a continue link
+d9cf118c7cae38e0,full,clean,,,,
+3e44df6a7ddb0098,full,clean,,,,
+c0219da20d54f72b,full,clean,,,,
+1e5e295e77f6c38e,full,clean,,,,
+3c642ba9d39503cb,full,clean,,,,
+de7a558b2451074d,full,clean,,,,
+055cb84b1989d425,full,clean,,,,
+22342dec1dc4a8e6,full,clean,,,,
+1ddeb05a496eb781,full,clean,,,,
+cb4178abecf9d16f,full,clean,,,,
+e0af946d8b19d2ea,full,clean,,,,
+ec2b61417f2900c8,full,clean,,,,
+26bc2de34e7eb5f8,full,clean,,,,
+b648794f1bb567ab,full,clean,,,,
+d538272c1901c946,full,clean,,,,
+35f4e61f5e3aa309,full,clean,,,,
+327587395df2d664,full,clean,,,,
+3dd602deababda92,full,clean,,,,
+b63bdf2807c3426c,full,clean,,,,
+d2baba0ab6f1d42b,full,clean,,,,
+34472f8d024bb3f3,full,clean,,,,
+057bbddb5f6c092a,full,clean,,,,
+89cc18b9fb5161d9,full,clean,,,,
+2397d0634f220995,full,clean,,,,
+bef4d6ce8fb810b1,full,clean,,,,
+e2e30458a5b43acf,full,fix,C1,'Amazing Statues' at offset 2459,,related-link title after the article
+a23337411d43e7c1,full,clean,,,,
+a984946ad306c693,full,clean,,,,
+3995ee85a7b52490,full,fix,C1,'Explore further' at offset 3727,,related-link line at the end
+4f71a74567f4d4aa,full,fix,C5,'Part Eleven' at offset 14101,,contents list at the end
+316f8c9401d961fa,full,clean,,,,
+fd4709066403bd0e,full,clean,,,,
+244834eedcd65cea,full,fix,C1,'Search this site with Google' at offset 4017,,search box after the article
+9dc429836f855f2d,full,clean,,,,
+a500ba93e323a10c,full,clean,,,,
+c3232deb3a159cb4,full,clean,,,,
+9073b10038f6c85c,full,clean,,,,
+500983fd20d093fe,full,clean,,,,
+f591739a28aa58e5,full,clean,,,,
+b6c1b992344ef3fb,full,clean,,,,
+a52716789e8075d7,full,clean,,,,
+52a5ad1c4e1f6300,full,clean,,,,
+e90e681a1b318200,full,fix,C2,'Standards||Standards' at offset 1960,,the same nav token repeats at the end
+d3653f4aedab9cf8,full,clean,,,,
+d4865e0f799b5f6b,full,clean,,,,
+03310354e99f2641,full,clean,,,,
+1326363e0640f8ec,full,clean,,,,
+7fd9f4216d497430,full,clean,,,,
+46ec46e8053e7162,full,clean,,,,
+a4747e3bfaa07216,full,clean,,,,
+aab4908bfe7a7768,full,clean,,,,
+3eb7d6235cc59a4c,full,clean,,,,
+baa5fe4efdc10714,full,clean,,,,
+6051989bdb0f0243,full,fix,C1,'Click here to' at offset 4012,,promo link at the end
+de38595b6c873c47,full,clean,,,,
+5b0cc2194b9ff941,full,clean,,,,
+7105413375448daa,full,fix,C5,'Multicore myopathy' at offset 5476,,related-name list at the end
+d1c9dee1017f00c2,full,clean,,,,
+0115aff70fa5c29f,full,clean,,,,
+917fd2edc3c6d934,full,clean,,,,
+0a6f6e52371ec838,full,fix,C3,'you lose the' at offset 2843,,the sentence stops in an ellipsis
+bf0feded61535893,full,clean,,,,
+82a3cb89e9228a1b,full,clean,,,,
+f221d9446d5d0b9f,full,clean,,,,
+1d5ed55651a0aa9a,full,fix,C1,'podcast episode' at offset 3722,,related-link line at the end
+5735bb4e59e3c0f7,full,clean,,,,
+0e311ef4a1be30d1,full,fix,C1,'Let My People Vote' at offset 1346,,website line at the end
+aa6b2dd01ba65c60,full,clean,,,,
+052da7877f0fb2e0,full,clean,,,,
+1ea20e1f0bc3c4ad,full,fix,C1,'citation style' at offset 2324,,citation-widget line at the end
+eb4dd294df9ffd70,full,clean,,,,
+a6dae59236a2c566,full,clean,,,,
+26113752d0fc3d55,full,clean,,,,
+4bc865f017fd4de4,full,clean,,,,
+f93a0d1a140e60bf,full,fix,C1,'Call now' at offset 1182,,sales line at the end
+8ffd0709894a49d8,full,fix,C1,'EzineArticles.com' at offset 2259,,site footer at the end
+68cd30ce2e99a0c3,full,clean,,,,
+c610972e0fd87189,full,clean,,,,
+35a68418976cb72d,full,clean,,,,
+adb413462a073339,full,clean,,,,
+a60295a993ceb6d3,full,clean,,,,
+eaa312e480572635,full,clean,,,,
+8e14d0dab591ce9a,full,fix,D4,'beautifullighting' at offset 34,,broken English through the article
+bac3d122932d3aeb,full,clean,,,,
+9f0180c6d34831fa,full,fix,C1,'Show Summary Details' at offset 663,,page widget after the text
+f2a529a08fa13984,full,clean,,,,
+727910b65f57fd65,full,clean,,,,
+2a2d04c1116bac91,full,clean,,,,
+f657d84936b25b65,full,fix,C1,'Gut bacteria control allergic diseases' at offset 3536,,related title at the end
+c2c340c159d045e5,full,clean,,,,
+6871fe56e1b56c88,full,clean,,,,
+9e3dc3a927d22077,full,clean,,,,
+551d8d0dbc890bd1,full,clean,,,,
+841da1d7e68b3ab8,full,fix,F1,phone at offset 1597; phone at offset 1800; phone at offset 3376,,"organization line, not a private person"
+402ad1b3b8ae7777,full,clean,,,,
+e80b96293c852a8d,full,clean,,,,
+5e224eade2a833db,full,fix,F1,phone at offset 2050,,"organization line, not a private person"
+051405acca3380a0,full,clean,,,,
+8f9d78894e224f2e,full,clean,,,,
+0ffa4d3a9d1a4e66,full,fix,C1,'Learn more about Conditions' at offset 805,,related-link line at the end
+fdf3821c887532e3,full,clean,,,,
+32deaaf4c71fc537,full,fix,C1,'Click here to' at offset 5203,,promo link at the end
+b8d894678f7ba130,full,clean,,,,
+17f454a49a5f4746,full,clean,,,,
+94eceb6eed4229ec,full,clean,,,,
+e887c52b7834a44d,full,clean,,,,
+67f5d3be333678ad,full,clean,,,,
+16c01d83afaa52b8,full,clean,,,,
+aa45dbc889becf3a,full,clean,,,,
