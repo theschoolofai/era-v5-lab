@@ -34,3 +34,92 @@ dac55ea8bc131eb1,full,fix,F1;G1,phone number at offset 10 | 'अॅमबुल�
 ab077875d8ddc109,full,clean,,,,
 7a0d083844bbcacb,full,clean,,,,
 d900a0ecc88002fe,full,clean,,,,
+d6ac7b4f104ac3c6,full,clean,,,,
+ea74237e4114182f,full,fix,C5,'Read the latest Marathi news' at offset 1242,,Rest of the doc from offset if advt spam
+a84ec9a0a34a3f12,C3,drop,C1;C3,C1: chunk 'आपल्या शहरातील ताज्या बातम्या आणि ई-पेपर'... at offset|  0 'Copyright' at offset 924,,Copyrighted content truncated after few lines
+d40a6e0c632b3dd0,full,fix,C1,C1: 'आपल्या शहरातील ताज्या बातम्या आणि ई-पेपर मिळवा मोफतडाउनलोड करा' at offset 0 'Copyright' at offset 1686,,
+634febec33cccdb9,full,clean,,,,
+aae28d64e5a7a4c2,full,clean,,,,
+85abff30cb7aa9cd,full,clean,,,,
+48fa412a505a1e68,full,drop,H3,,,Looks like a translated product page
+6a1148d21a1bdb8a,full,fix,C1,'आम्ही दिलेल्या' from offset 7404,,REst of the document is boilerplate
+b511159269dc64a0,full,fix,G1,' िजल्हयातील' at offset 597,598 U+093F U+091C,
+2815f742fa358d99,full,fix,C1,'This Post' at offset 9345,,Has many english topic names e.g. Mutual Fund etc. but the descriptions for those are correct and the names fit in the document well
+28d9d12b99013cf5,full,clean,,,,
+f538068dc5d94562,full,clean,,,,
+a729bd3f77150f07,full,clean,,,,Title in English
+506a604b057244e5,full,clean,,,,
+ab7b8730dcfc685c,full,clean,,,,"Found a small grammer mistake 'डीम' (deem, instead of dream) at offset 58"
+b0cf975e873b0abe,full,clean,,,,
+8799d7c0d8d9feb7,full,fix,A1,' ः ' at offset 79,,Visarga is used instead of a space and colon - also seen in some other docs.
+745bc8d768c61ac9,full,clean,,,,
+ea06c5a71185f889,full,fix,A6,' ः ' at offset 68,68 U+0020 U+0903,Devnagari Visarga used instead of colon
+11510602ccca7ed5,full,clean,,,,
+b9b5c5030d193afa,full,clean,,,,
+ca7a4a4beac6c0f0,full,clean,,,,
+08dbb49c409f6de0,full,clean,,,,
+d108e5db4a6b9cb1,full,clean,,,,Small advert line in between
+1870bd9485daced5,full,clean,,,,
+8933f70d630848de,full,fix,C1,'हेही वाचा' offset 505 +(2x),,Line has to be deleted at the offsets
+1686935b1034083d,full,drop,,,,Many indepedent paras about share price of different companies - did not find it as a good source (also has many disease entries) hence dropping
+029206ce3dee294b,full,clean,,,,
+0394fb9307ff52b3,full,clean,,,,
+db98ccd3357dd806,full,clean,,,,
+d712fbf7e6fc5cbf,full,fix,A4;C1,A4: U+FFFD replacement char at offset 6633 (x2 total) | C1: '1 thought' at offset 6518,6633 U+FFFD (2x),
+b07709b7ea20272a,full,fix,C1,'महत्त्वाच्या बातम्या' from offset 926,,Unrelated news links and comments - to be removed
+f2c7bce34d00c7fe,full,fix,C1,'Live Updates' at offset 871 + 'MHADA 	Lottery' at offset 928 + 'Tags' at offset 3470,,
+ad782b41a7f176e1,full,clean,,,,English title
+711b2cd6ed84d737,full,clean,,,,
+a9cabc0f10b5a600,full,fix,C1,'हेही वाचा' at offset 1496,,
+cf729f19705f3870,full,clean,,,,
+6bba28af129d5af6,full,clean,,,,
+238a427ec0b96c30,full,clean,,,,
+b70eafb3c3632311,full,clean,,,,
+d444122e90922982,full,drop,,,,No space between words in 'मराठीविज्ञानपरिषदपुणेवपिपरीचिंचवडसायन्सपार्कआयोजित' at offset 483 - no way to automate space generation between words
+02e13933a0b4b214,full,fix,G1,'अॅड' at offset 1584,1584 U+0905 U+0945 U+0921,
+d38482760a703dc8,full,fix,C1,'Subscribe to:' at offset 12618,,Drop from offset
+98cde70aac792386,full,clean,,,,
+7cbdfaf7efca1892,full,clean,,,,
+fc3b4acf243b91ef,full,fix,G1,'अॅनालॉग' at offset 607,607 U+0905 U+0945 U+0928,
+cedda2a2f29ef819,full,fix,C1,C1: chunk 'आपल्या शहरातील ताज्या बातम्या आणि ई-पेपर'... at offset 0 shared with 7 other doc(s),,
+17779e3e1cc7368b,full,fix,C1,'Leave a Reply' at offset 640,,
+89a763f7e28a818a,full,fix,C1,'नक्की वाच:\nResume Format in Marathi\nSection 364 in Marathi\nSection 377 in Marathi\nSection 363 in Marathi\nFAQ' at offse 6002,,
+d2c46431cba7b1a8,full,clean,,,,
+51b91de49faf6839,full,clean,,,,
+05b7b743f394e916,full,drop,,,,"These are short, incomplete clips of various news items, hence dropping"
+a494d8524fd5ab1f,full,clean,,,,
+0cb5008eaad984f6,full,clean,,,,
+bf0651cd1e50c67e,full,fix,G1,'अॅटर्नी ' at offset 458,458 U+0905 U+0945 U+091F,
+05665424dad157af,full,clean,,,,
+70386fb4070fc50f,full,fix,C1,'Previous Article' from offset 582,,
+191216cbbb6a160c,full,fix,C1,'Leacve a Reply' from offset 1907,,
+678e525481bd9723,full,fix,C1,'खान्देश लाईव्हचे अपडेट्स' from offset 605,,
+3f85da49bbc24a5d,full,clean,,,,
+5df8923f64020418,full,clean,,,,
+71156cc8fc55ecf4,full,clean,,,,
+8512a0825d5bd3c2,full,clean,,,,
+c39f8e3a3bd77000,full,fix,C1,'Marathi News' at offset 727,,
+063df505951fad06,full,clean,,,,
+f899da392317ff11,full,clean,,,,
+8520764191a4c336,full,clean,,,,Incorrect word: 'से क्स' - should be no space in between.
+82f0bd04a6819213,full,fix,C1,'Leave a Reply' at 1277,,
+05afe284c0ca10e3,full,clean,,,,
+26669cbf3978deb0,full,clean,,,,
+0a290aa47ef50b79,full,clean,,,,
+1f07e6acdcca7e3f,full,clean,,,,
+9971000ff54bff62,full,fix,C1,'Also Read:' at offset 1255 + 'ब्रेकिंग न्यूज आणि लाइव्ह अपडेट्ससाठी ' at offset 3169,,
+635dd58764672993,full,clean,,,,
+489da5c3b5d9ffe2,full,fix,C1,'[ad_1]' at offset 115 + '[ad_2]' at offset 3492,,
+8445992d98332735,full,fix,C1,'हे ही वाच भिडू:' from offset 3657,,
+3621f9c755f06081,full,clean,,,,
+0e8893761b8a7317,full,fix,C2,'पिंपरी एच३एन२' offset 0,,Repeated twice one after other
+23d8d35ab252e3c4,partial,drop,,,,Incomplete para (picked from wikipedia) and has an Old Marathi quote
+875818dd2944faba,full,fix,G1,'अॅक्शन' at offset 75,75 U+0905 U+0945 U+0915,
+730af6bef1cad8f8,full,clean,,,,
+da1e5d4acc917e99,full,clean,,,,
+36996cb14a78aae6,full,clean,,,,
+353f4c3c7379b107,full,clean,,,,
+657cb79b1fac5309,full,clean,,,,
+db4e23d6415a7ac0,full,clean,,,,
+97333df118ec5df2,full,fix,C1;G1,'स्वास्थ्य सल्ला मिळवा फक्त' fromffset 11686 | 'अॅस्ट्रोसेज' at offset 347,,
+e1dc211abdf5bf39,full,clean,,,,
