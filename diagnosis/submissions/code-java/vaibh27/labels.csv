@@ -1,0 +1,151 @@
+doc_id,read,verdict,diseases,evidence,hex,note
+13a397d8bedc6210,full,fix,B4,<NAME> at offset 159 + <EMAIL> at offset 167,,PII placeholder
+d0947d80d45f7ce3,full,fix,B3,<filename> at offset 0,,
+e0ebe203093970dc,full,fix,A2;C1,"U+000D (CRLF) at offsets 17, 19, 45 | 3-line IntelliJ template comment at offset 108",17 U+000D CARRIAGE RETURN (38x),CRLF line endings; A2 x38 in total
+c9eb2d8e4f9cacde,full,fix,B3;C1,<reponame> at offset 0 | 3-line IntelliJ template comment at offset 437,,
+5655154f71365c63,full,fix,E4,18-line licence header at offset 0,,same header in 6 other doc(s)
+8c9a9aa845f91a2c,full,fix,B4,<EMAIL> at offset 284 + <PASSWORD> at offset 321,,PII placeholder
+a8a876672781cd58,full,fix,B3,<reponame> at offset 0,,
+4b761af28be90423,full,fix,B3;B4,"<filename> at offset 0 + <gh_stars> at offset 35 | <NAME> at offsets 218, 226",,PII placeholder
+50e06974390e57ea,full,fix,C1,5-line NetBeans template comment at offset 0 + empty Javadoc with only @author at offset 332,,
+646355dabf881472,full,fix,B3,<gh_stars> at offset 0,,
+7251a2b72d1d2a08,full,fix,B3;C1,<reponame> at offset 0 | TODO Auto-generated method stub at offset 293,,
+d160cf36623c2ad3,full,clean,,,,
+17067540a78a2a8e,full,fix,B3,<gh_stars> at offset 0,,
+7fc99d2b6e1e3d08,full,fix,A2;E4,"U+000D (CRLF) at offsets 2, 38, 63 | 4-line licence header at offset 0",2 U+000D CARRIAGE RETURN (330x),CRLF line endings; A2 x330 in total
+fad70faf21e9e64b,full,fix,B3,<reponame> at offset 0,,
+7590b32d671f36c9,full,fix,B3;C1,<reponame> at offset 0 + <gh_stars> at offset 27 | empty Javadoc with only @author at offset 137,,
+beae2c42d8a34ccc,full,fix,A1;B3;C1,'⟦BOM⟧' at offset 63 | <reponame> at offset 0 | TODO Auto-generated method stub at offset 294,63 U+FEFF ZERO WIDTH NO-BREAK SPACE,
+1f8ae8e1da9fd607,full,clean,,,,
+86534a30f79557fb,full,fix,E4,13-line licence header at offset 0,,same header in 35 other doc(s)
+c70422358a640e42,full,fix,B3;E4,<gh_stars> at offset 0 | 18-line licence header at offset 12,,same header as 5655154f71365c63
+717476d926186499,full,fix,B3,<reponame> at offset 0 + <gh_stars> at offset 29,,
+13a24fb2876ffe28,full,clean,,,,
+b2edd40a17c432a5,full,fix,E4,15-line licence header at offset 0,,same header as 86534a30f79557fb
+1a1a1d7ab0bf9188,full,fix,A2;B4;E4;F1,"U+000D (CRLF) at offsets 2, 56, 60 | <EMAIL> at offsets 31, 1490, 1527 | 16-line licence header at offset 0 | phone number at offsets 40, 1499",2 U+000D CARRIAGE RETURN (177x),CRLF line endings; PII placeholder; A2 x177 in total; B4 x4 in total
+48064f881943d3b2,full,fix,E4,15-line licence header at offset 0,,same header as 86534a30f79557fb
+38116be224caf0f9,full,fix,B3,<reponame> at offset 0,,
+4a330e693a161f3d,full,clean,,,,
+073b348caf645018,full,fix,B3;B4,<reponame> at offset 0 + <filename> at offset 28 + <gh_stars> at offset 113 | <NAME> at offset 629,,PII placeholder
+b584f0fe9264ce70,full,fix,A2,"U+000D (CRLF) at offsets 47, 49, 99",47 U+000D CARRIAGE RETURN (24x),CRLF line endings; A2 x24 in total
+7c285e48c2dbd37d,full,fix,B3,<filename> at offset 0,,
+83b35522c4175c9b,full,fix,B3,<reponame> at offset 0,,
+4972809e33c54c11,full,fix,B3,<reponame> at offset 0,,
+87ce7a36ea282952,full,fix,B3;E4,<gh_stars> at offset 0 | 18-line licence header at offset 12,,same header as 5655154f71365c63
+1fc7a1c46c5707a1,full,fix,E4,15-line licence header at offset 0,,same header as 86534a30f79557fb
+b1286b4e61218ec3,full,fix,B3;E4,<reponame> at offset 0 + <filename> at offset 31 | 15-line licence header at offset 110,,same header as 86534a30f79557fb
+805cbae389d20cce,full,fix,B3;C1,<reponame> at offset 0 | 3-line IntelliJ template comment at offset 424,,
+0b893004aea9459b,full,fix,C1,IDE header User: <user> / Date: <date> at offset 401,,
+277797b23fa59913,full,clean,,,,
+0837027e3438f8a5,full,clean,,,,
+161718013f935d28,full,fix,A2,"U+000D (CRLF) at offsets 20, 22, 52",20 U+000D CARRIAGE RETURN (64x),CRLF line endings; A2 x64 in total
+72c416d0d767ef34,full,fix,C1,3-line IntelliJ template comment at offset 244,,
+98ce12bcb94b8388,full,fix,A2;B4;C1,"U+000D (CRLF) at offsets 41, 43, 75 | <EMAIL> at offset 213 | IDE header template with empty Description at offset 125",41 U+000D CARRIAGE RETURN (31x),CRLF line endings; PII placeholder; A2 x31 in total
+2fced3c822d9d43c,full,fix,A2;B3,"U+000D (CRLF) at offsets 67, 70, 114 | <filename> at offset 0",67 U+000D CARRIAGE RETURN (23x),CRLF line endings; A2 x23 in total
+4fce1af748c757ed,full,fix,B4;E4,"<NAME> at offsets 109, 1539 + <EMAIL> at offset 117 | 23-line licence header at offset 0",,PII placeholder; B4 x22 in total
+db15722ab01fb0c4,full,fix,C1,3-line IntelliJ template comment at offset 100,,
+8c19afa129995a6b,full,fix,B3,<reponame> at offset 0 + <gh_stars> at offset 26,,
+52b64b7dfd0415f4,full,fix,B3,<filename> at offset 0,,
+63309a172990ce7e,full,fix,B3;E4,<gh_stars> at offset 0 | 15-line licence header at offset 12,,same header as 86534a30f79557fb
+229c60f201ec17b0,full,clean,,,,
+a33c9da73dbed786,full,fix,B3;B4,<gh_stars> at offset 0 | <NAME> at offset 83,,PII placeholder
+159906b373045e7b,full,fix,B3,<reponame> at offset 0,,
+db3caeb9bfa43af7,full,fix,B3,<filename> at offset 0,,
+ecfdcd6cc96eb2ce,full,clean,,,,
+8e1a4d379dd64269,full,fix,B4,"<EMAIL> at offsets 2146, 2200",,PII placeholder
+b13f3c266c8a7bb7,full,fix,B3,<filename> at offset 0 + <gh_stars> at offset 98,,
+9973ffd74725960c,full,fix,C1,3-line IntelliJ template comment at offset 72,,
+bf1ff228a983d73a,full,clean,,,,
+d89af7bffc526c80,full,fix,A2;B3,"U+000D (CRLF) at offsets 77, 79, 104 | <reponame> at offset 0",77 U+000D CARRIAGE RETURN (858x),CRLF line endings; A2 x858 in total
+32ec86af13bfee91,full,clean,,,,
+b17f299ebccedf6f,full,clean,,,,
+9d97adaabfad376a,full,fix,B3,<gh_stars> at offset 0,,
+dea3b6499e83411d,full,clean,,,,
+86ff7b00e27f5fed,full,clean,,,,
+a628ac2273413c2d,full,fix,B3;B4,<filename> at offset 0 | <NAME> at offset 1108,,PII placeholder
+8f800fd3aa5c2b3c,full,clean,,,,
+d94ca01683f0490e,full,fix,B3,<gh_stars> at offset 0,,
+a65c82454b3b59ab,full,clean,,,,
+1dcb6c56589d62f3,full,fix,C1,3-line IntelliJ template comment at offset 251,,
+cbf1f8d4eb23b282,full,clean,,,,
+c77d8910b7bdf25e,full,clean,,,,
+2b64b0726c469c39,full,fix,B3;E4,<reponame> at offset 0 | 3-line licence header at offset 31,,same header in 1 other doc(s)
+1657d96f48787824,full,fix,A2,"U+000D (CRLF) at offsets 22, 24, 46",22 U+000D CARRIAGE RETURN (87x),CRLF line endings; A2 x87 in total
+b06c2cc0743de5c7,full,fix,A2;B3,"U+000D (CRLF) at offsets 330, 332, 354 | <reponame> at offset 0 + <filename> at offset 58",330 U+000D CARRIAGE RETURN (37x),CRLF line endings; A2 x37 in total
+4eac585496f1188f,full,clean,,,,
+70394a01a3d1a760,full,fix,B3,<gh_stars> at offset 0,,
+61ca0719bf3fa099,full,fix,B3;B4;E4,"<reponame> at offset 0 | <NAME> at offsets 65, 132 | 11-line licence header at offset 46",,PII placeholder
+f8d11746cccf1c17,full,fix,B3;E4,<gh_stars> at offset 0 | 13-line licence header at offset 12,,same header as 86534a30f79557fb
+c6016e9ce2c607c5,full,fix,B3;B4;E1;E4,<gh_stars> at offset 0 | <NAME> at offset 43 | This class was generated by CStructToJavaClass. at offset 1095 | 16-line licence header at offset 17,,PII placeholder
+a7e8be93b1bf324b,full,fix,B3;B4,"<reponame> at offset 0 + <filename> at offset 35 | <NAME> at offsets 126, 170, 211",,PII placeholder
+3d020be7819d94ef,full,clean,,,,
+bec133eb9644a60a,full,fix,B3;E4,<gh_stars> at offset 0 | 15-line licence header at offset 19,,same header as 86534a30f79557fb
+ab124d5d37777215,full,fix,C1,3-line IntelliJ template comment at offset 607,,
+87d84e7ecbb4ff86,full,fix,B3,<filename> at offset 0,,
+73e175e90e6e37da,full,drop,E1;E4,Code generated by Microsoft (R) AutoRest Code Generator. at offset 99 | 2-line licence header at offset 0,,
+0234ea16255196db,full,fix,B3;B4;C1,<reponame> at offset 0 | <NAME> at offset 94,,PII placeholder
+dde803931d76f398,full,fix,B3,<reponame> at offset 0 + <filename> at offset 23,,
+569083bd0296b9fe,full,fix,B3,<reponame> at offset 0 + <filename> at offset 23,,
+8c2320b6efabb1af,full,fix,B4,<PASSWORD> at offset 2035 + <EMAIL> at offset 2055 + <NAME> at offset 6315,,PII placeholder; B4 x34 in total
+b4a6e908c9699dc1,full,fix,B4,<NAME> at offset 508,,PII placeholder
+3287a3da1ec21230,full,fix,A2;B3,"U+000D (CRLF) at offsets 76, 78, 107 | <filename> at offset 0",76 U+000D CARRIAGE RETURN (54x),CRLF line endings; A2 x54 in total
+09abfd4444d48342,full,clean,,,,
+d173550cb52daf54,full,fix,B4,<NAME> at offset 260,,PII placeholder
+405268a6c8a9413f,full,fix,B3;C1,<gh_stars> at offset 0 | IDE header template with empty Description at offset 179,,
+1301e8ee17809be2,full,clean,,,,
+3eb10b30d0707182,full,fix,B3,<reponame> at offset 0,,
+e72ee5bb4a922a05,full,fix,B3;B4;E4,<reponame> at offset 0 | <NAME> at offset 676 | 18-line licence header at offset 27,,PII placeholder
+8091aec217334157,full,fix,B3,<gh_stars> at offset 0,,
+b7741e4914caefba,full,fix,B3;C1,<reponame> at offset 0 | IDE header template with empty Description at offset 38,,
+be5d020b72a90599,full,fix,A2;B3;B4;C1,"U+000D (CRLF) at offsets 81, 83, 128 | <filename> at offset 0 | <NAME> at offset 283 | empty Javadoc with only @author at offset 257",81 U+000D CARRIAGE RETURN (28x),CRLF line endings; PII placeholder; A2 x28 in total
+d9bebcb6990278c6,full,fix,B3,<reponame> at offset 0,,
+de3a2d6b32cfe1ae,full,fix,B3,<gh_stars> at offset 0,,
+6905c521eada8b34,full,clean,,,,
+05cafaa5a1159d7f,full,fix,B3,<gh_stars> at offset 0,,
+a1dbfa0e9b580300,full,fix,B3;C1,<reponame> at offset 0 + <gh_stars> at offset 28 | IDE header template with empty Description at offset 192,,
+e93965eda69b58e9,full,fix,A2,"U+000D (CRLF) at offsets 43, 45, 91",43 U+000D CARRIAGE RETURN (343x),CRLF line endings; A2 x343 in total
+be873285676264e5,full,clean,,,,
+ae16ec969a1bfe3c,full,clean,,,,
+fea61dd1f1c92f61,full,fix,A2;B3;B4;C1;E4,"U+000D (CRLF) at offsets 81, 141, 166 | <filename> at offset 0 + <gh_stars> at offset 63 | <NAME> at offset 2317 + <EMAIL> at offset 2325 | empty Javadoc with only @author at offset 2300 | 24-line licence header at offset 78",81 U+000D CARRIAGE RETURN (175x),CRLF line endings; PII placeholder; A2 x175 in total
+41bdf1758bf393cb,full,clean,,,,
+2b76fa2256534928,full,fix,B3;C1,<gh_stars> at offset 0 | 3-line IntelliJ template comment at offset 334,,
+baec0e5a1f16b05d,full,fix,B3,<gh_stars> at offset 0,,
+e2881ca1f415e5e4,full,fix,A2,"U+000D (CRLF) at offsets 0, 45, 47",0 U+000D CARRIAGE RETURN (191x),CRLF line endings; A2 x191 in total
+a036cb19c22c9a85,full,fix,B3,<filename> at offset 0,,
+dfcdbce0c5ff4832,full,fix,B3,<gh_stars> at offset 0,,
+9e6c9f574560232a,full,fix,B3,<reponame> at offset 0,,
+6e3090899a74fa03,full,fix,B3;C1,<reponame> at offset 0 | 5-line NetBeans template comment at offset 29 + empty Javadoc with only @author at offset 258,,
+b239934f75a1aeba,full,fix,E4,15-line licence header at offset 0,,same header as 86534a30f79557fb
+3cf9436baba984da,full,clean,,,,
+a7360dc988d5b500,full,clean,,,,
+c9a77d5bb144ce81,full,clean,,,,
+2e3b678b8629a536,full,clean,,,,
+8a777b5b6aeaf928,full,fix,B3;B4;C1,<reponame> at offset 0 + <filename> at offset 45 | <NAME> at offset 590 | empty Javadoc with only @author at offset 571,,PII placeholder
+0b38068cc1e1d9ac,full,fix,B4;E4,"<NAME> at offsets 419, 466 | 11-line licence header at offset 0",,PII placeholder
+3597267372f85b2b,full,fix,B3;E4,<reponame> at offset 0 | 15-line licence header at offset 28,,same header as 86534a30f79557fb
+af7f0f2f0579d071,full,fix,B3,<filename> at offset 0,,
+35868728cd068d57,full,clean,,,,
+fded8944a2b6ee93,full,fix,A2;C1,"U+000D (CRLF) at offsets 41, 43, 98 | empty Javadoc with only @author at offset 324",41 U+000D CARRIAGE RETURN (30x),CRLF line endings; A2 x30 in total
+a175a9857472971d,full,fix,B3;C1,<gh_stars> at offset 0 | empty Javadoc with only @author at offset 317,,
+896c9a4f9693205f,full,drop,E1,Automatically generated - do not modify. at offset 226,,
+f8979c1553273be0,full,fix,A2,"U+000D (CRLF) at offsets 34, 36, 75",34 U+000D CARRIAGE RETURN (36x),CRLF line endings; A2 x36 in total
+0cfdbc18fd6ebd16,full,clean,,,,
+5af8c5ead5d68b84,full,fix,A2;B3;B4,"U+000D (CRLF) at offsets 112, 114, 139 | <reponame> at offset 0 + <filename> at offset 32 + <gh_stars> at offset 74 | <NAME> at offset 213",112 U+000D CARRIAGE RETURN (41x),CRLF line endings; PII placeholder; A2 x41 in total
+eac4b77560d360da,full,clean,,,,
+88643a855c718d60,full,fix,B3,<reponame> at offset 0 + <filename> at offset 25,,
+46fcad3e4b37a8e7,full,drop,,,,possible benchmark leak: LeetCode problems are used by code benchmarks
+d1e50dcbfa47a388,full,fix,B3;E4,<reponame> at offset 0 | 2-line licence header at offset 46,,
+a5259f4a3c4ab7ee,full,fix,B4;C1,${bruce} at offset 192 | IDE header template with @project/@package fields at offset 176,,unexpanded IDE template variable in @author
+9c13f836b7a69293,full,clean,,,,
+2ad7c4b36bf814c6,full,fix,A2;B3,"U+000D (CRLF) at offsets 131, 133, 176 | <filename> at offset 0 + <gh_stars> at offset 87",131 U+000D CARRIAGE RETURN (257x),CRLF line endings; A2 x257 in total
+e080237bc7c59751,full,fix,B3,<gh_stars> at offset 0,,
+3354db2da98124cc,full,clean,,,,
+286cffc850821ebf,full,clean,,,,
+75191d846eb332de,full,clean,,,,
+609ed5ea714d24a2,full,clean,,,,
+8017d2391620ec3e,full,fix,B3;C1,<gh_stars> at offset 0 | empty Javadoc with only @author at offset 150,,
+03954e054cd75a8f,full,fix,A2,"U+000D (CRLF) at offsets 43, 45, 73",43 U+000D CARRIAGE RETURN (32x),CRLF line endings; A2 x32 in total
+06d085e55bf0890d,full,clean,,,,
+40d160a0cc531eba,full,fix,A2,"U+000D (CRLF) at offsets 42, 44, 49",42 U+000D CARRIAGE RETURN (78x),CRLF line endings; A2 x78 in total
+2113115285196028,full,fix,B3,<reponame> at offset 0 + <gh_stars> at offset 62,,
+897d2de3efb0cfa9,full,clean,,,,
