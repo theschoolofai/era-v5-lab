@@ -1,0 +1,5 @@
+Seed 1234, two launches, losses.txt identical.
+Each step used a new batch. 4 heads, top-2 experts, second head for loss_mtp.
+First step loss_ntp 4.31079626, loss_mtp 4.35256243.
+Last step loss_ntp 0.44367132, loss_mtp 0.43751130.
+No NaN. CPU, so gpu_alloc_gb is 0.
