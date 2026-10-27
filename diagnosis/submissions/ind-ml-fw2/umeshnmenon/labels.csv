@@ -1,0 +1,117 @@
+doc_id,read,verdict,diseases,evidence,hex,note
+e95ed7fc1706020c,full,fix,C1,Starts offset@774. `Story high light: onion price, 110 per kg`,,english footer note
+5e107c411d6d9924,full,clean,,,, 
+9162d14fb96c2741,full,fix,C1,Starts offset@1417. `Credits : Amma Secret Recipes`,,english footer note
+5d7ae514ca30adc9,full,fix,C1,Starts offset@2660. `english summary; covid Rapid Test at the Airport`,,english footer note
+780e9cb21e997cd8,full,fix,C4;D3, offset@296|offset@463,,unrelated content|english word in parentheses
+105083f8144dd629,full,clean,,,,
+b61e9a6fc72f518e,full,fix,D3;C4,offset@1 to ,
+67cfcddf399de1f3,full,fix,D3;D3;D3,offset@0 aparna shaji||offset@14 Last Modified|offset@59 IST,,article metadata
+7a0d9ce65e64d866,full,fix,G1,offset@927 `ത്ിത` in `സംവിധാനത്ിതൽ`,0D24 0D4D 0D3F 0D24,vowel sign cuts the conjunct
+3a02de5b36f36ddb,full,clean,,,,keep the number for date and time
+6688deacc2b01b04,full,fix,C1,offset@1273 `4/ 5Oleh evisionnews`,,pagination and english footer note - site credit
+a153c6be6203d747,full,fix,D3;D3,offset@7499-offset@7832|offset@8707-offset@10309,,
+e577af61cceff70a,full,clean,,,,
+fd1cd9d10e98ae52,full,fix,D3,offset@0 Actor,,
+b147be63255f76c5,full,clean,,,,
+1a65e009722ba007,full,clean,,,,
+df67cfe9ab14b27c,full,clean,,,,
+fbf1c77cbeebf553,full,clean,,,,
+385533067bf3388b,full,fix,C1;D3,offset@0 Don't Miss! to offset@697,,link list before article
+29f221cd370d7c5b,full,fix,C1;D3offset@86 Updated: Tuesday, October 27, 2020, 13:49 [IST] to offset@132,,article metadata
+53237f1da71ca4d2,full,clean,,,,
+35932eebdbf783f3,full,drop,C4;C4;C3,offset@307|offset@553|offset@770,,,
+e04df62a2ad4a89e,full,fix,C1,offset@1607,,english footer notes
+85e4684d31112bbb,full,drop,F3,offset@295-offset@336 കാരണം അവരുടെ രക്തത്തില് തന്നെ ഭീകരത ഉണ്ട്,,
+7ec0318d547c3826,full,fix,C1,offset@4480 Minu Alias,,english foot notes - author name
+c50aa39d07afc960,full,clean,,,,
+09085d970c1e0a9c,full,clean,,,,
+a627224d0ce02faf,full,fix,C1,offset@7170 English Summary: Masai Mara Travel experience by Nithin and family,,english foot notes - english summary
+70dcfe4aacb617b2,full,fix,C1,offset@77 Updated: Friday, September 4, 2020, 11:11 [IST],,article metadata 
+7659b6860e0fe121,full,clean,,,,
+b650d4183f0a8cfd,full,clean,,,has spelling mistakes
+1ae5d19f2a58ddfc,full,fix,D3;D3;D3,offset@927 BSE: 524804, NSE : AUROPHARMA|offset@1812 BSE: 532720, NSE : M&MFIN|offset@2514 BSE: 500470, NSE : TATASTEEL,,supplementary info
+67607d7441ded598,full,clean,,,,
+fe0cf7a9364ce72c,full,clean,,,,
+c4b1fab2a563fb55,full,clean,,,,
+d3cbc88cf6a4dc6a,full,clean,,,,
+9d8c4b646281db51,full,clean,,,,
+2904aa9f48141bdd,full,fix,C1,offset@0 Screengrab : YouTube Video,,,article metadata
+e384fee9e3f9140a,full,fix,C1,offset@1116,,,article stats 
+8f7b245c1e29a039,full,clean,,,,
+35fa060f0ff55db4,full,clean,,,,
+e46826953697d1bc,full,clean,,,,
+b8081a8d955393e7,full,clean,,,,
+8c7f1f4f9a7885ac,full,clean,,,,
+295ee36b3e358a1f,full,fix,D3;C4;C1,offset@9 to offset@18 Malappuram|offset@891|offset@1960 Topic: Malappuram News, Tanur Auto driver, Death while driving,,unrelated contents but text match
+6cdde3a305e12754,full,fix,D3, offset@691 to offset@1013 I was 20 years old quiz directing #koteeswaran when the mallu host #mukeshkumar called my room multiple times and then changed my room to beside his on the next sch. My then boss @derekobrienmp spoke to me for an hour & got me out on the next flight. 19 yrs on thank you Derek.
+— Tess Joseph (@Tesselmania) October 9, 2018,,
+49cad3baeaab7127,full,fix,C1,offset@2751 English Summary: Steps yet to be taken to rectify ‘black spots’ in Kerala Roads,, english footer notes 
+a7cc1623f333db13,full,fix,C4,offset@7298 കൂടുതൽ വാർത്തകൾക്കും തത്സമയ വീഡിയോകൾക്കും ഞങ്ങളുടെ വാട്സാപ് ഗ്രൂപ്പിൽ അംഗമാകുക..
+വീഡിയോകൾക്ക് സന്ദർശിക്കുക മീഡിയമംഗളം യൂട്യൂബ്,,malayalam footer notes 
+be3335385b195976,full,clean,,,,
+0ca55e6eb6ec012b,full,fix,D3;D3;D3,offset@21-offset@63 Story Name : Thiruvattoor Kovilakam Part 7|offset@64-offset@71 Author :|offset@92-offset111 Read from beginning,,
+af93aa3f8f700766,full,fix,D3,offset@462-offset@876 English Summary:- There’s no one who hasn’t seen the Tom and Jerry cartoons at least once. It is something that is loved by children to adults alike. Every time you look at any episode, you’re going to see Jerry sinking into tom’s job at the end of the day.
+But if the two of them clash in real life, who will win? That’s the answer. Footage of a cat and a mouse fighting. The video is making waves on social media.,,english summary 
+d055d4b981d0534f,full,fix,C4,offset@1209-offset@1265 നിരവധി മാർഗ്ഗങ്ങൾ ആണ് ഉള്ളത് കൂടുതൽ അറിയാൻ വീഡിയോ കാണുക ,,standard cta labels
+764508e37990daf8,full,clean,,,,
+5deb7eee87a81416,full,fix,C4;C1,offset@1009-offset@1050 അവിശ്വസനീയ ഓഫറുകളുമായി ഗോദ്രെജ് ഇൻ്റീരിയോ|offset@1051-offset@1099 © 2019 IBC Live. Developed By Web Designer London,,standard cta labels/ads and footer notes
+f38f3ead604a0f8e,full,drop,F3,offset@1251-offset@1291 ഇവളെയൊക്കെ വെടിവെച്ചു കൊല്ലാന് ആരുമില്ലേ,,
+2c642f38fac595c3,full,fix,D3,offset@1030-offset1340 |Lorem ipsum dolor sit amet
+
+
+consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+|We respect your privacy. Your information is safe and will never be shared.|,,placeholder content
+919c4b5ddf95b9cd,full,fix,C1;D3,offset@0-offset@25 Screengrab: Twitter Videos|offset@1131-offset@1140 Also Read,,
+d42bed01a40de5e0,full,clean,,,,names present
+224fdf1b8e794b9a,full,fix,F1,family member names at offset 1634,,family info
+552cbad46edb7d4d,full,fix,G1;G1,offset 1463 U+0020 SPACE before U+0D47 MALAYALAM VOWEL SIGN EE|offset 1633 U+0020 SPACE before U+0D47 MALAYALAM VOWEL SIGN EE,U+0D47,Possible G1: a space or break sits before a vowel sign or virama.
+6bb33a264d4e4027,full,clean,,,marginal-political opinion
+2c2242dd27f8d1b3,full,clean,,,marginal-religious/superstitious
+435fdd72e5a6455b,full,D3;C4,offset@925-offset@981 Read Also:- ആരോഗ്യകരമായ ഭക്ഷണരീതിയിലൂടെ വണ്ണം കുറയ്ക്കാം!,,standard cta texts
+7804d5ca574727ea,full,D3;D3,offset@223-offset225 Wow|offset@760-offset@763 P.M|offset@835 K|offset@1130-offset@1132 Do,,
+6be4180dcfc3d165,full,D3,offset@0-offset@4 India|offset@94-offset@130 Last updated on Sep 02, 2021, 2:26 am,,
+a918bb8f4988f468,full,D3,offset@3634-offset@3710 English Summary: Hidden 'Hunger Stones' Reveal Drought Warnings From The Past,,
+05a31dce6c9e4db6,full,D3;D3,offset@0-offset@30 This post is part of the series|offset@41-offset@67 Other posts in this series,,
+5f7000acdfb5698f,full,clean,,,,
+6be973c96a44d68f,full,clean,,,,
+a31735225c20eeb7,full,clean,,,,
+4fe0b9c62e42d26c,full,fix,D3,offset@1385-offset@1695 |Lorem ipsum dolor sit amet
+
+
+consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+|We respect your privacy. Your information is safe and will never be shared.|
+,,
+f0dbdc42a1ae460b,full,clean,,,,
+f0629518a5338cde,full,fix,D3,offset@862-offset@883 www.harghartiranga.com,,correct usage - website url
+f07684d4c85091af,full,fix,D3,offset@48-offset@75 Photo: twitter.com/BJP4India,,
+62e94166b65a499a,full,fix,D3;D3,offset@78-offset@79 By|offset@103-offset@141 | Published: 26th April 2019 08:19 AM |,,
+90c2e79506052530,full,fix,D3;D3,offset@51-offset@52 By|offset@76-offset@114 | Published: 27th April 2019 06:50 AM |,,
+9cd2c33ba949d66c,full,fix,D3;C1,offset@946-offset@963 You may also like:|offset@1733-offset@1897 ഏറ്റവും വിശ്വാസ്യതയുള്ള വാർത്തകള്, തത്സമയ വിവരങ്ങൾ, ലോകം, ദേശീയം, ബോളിവുഡ്, സ്പോർട്സ്, ബിസിനസ്, ആരോഗ്യം, ലൈഫ് സ്റ്റൈൽ വാർത്തകൾ ന്യൂസ് 18 മലയാളം വെബ്സൈറ്റിൽ വായിക്കൂ.,,malayalam footer notes, cta, marginal C4 
+8f3b17ef84b7d02c,full,clean,,,,
+33362295862c22e6,full,fix,D3;D3,offset@2191-offset@2229 :
+https://dcbookstore.com/books/higutta|offset@276-offset@2790 :
+https://bit.ly/etjune21,,
+d3706728a6ac2b98,full,clean,,,,
+a2fd8a02582a4372,full,D3;D3;D3;D3,offset@871-offset@882 PC:wikimedia|offset@1340-offset@1351 PC:Amit Jain|offset@1832-offset@1842 PC:Raj Rana|offset@2504-offset@2514 PC:Sid Arya,,
+9527bebabf3febe6,full,clean,,,,
+57b1b9909b00aee0,full,clean,,,,
+1c8e817f52cb4841,full,clean,,,,
+63efad523b183a84,full,fix,C4,offset@5332-offset@5509 ദേശാഭിമാനി വാർത്തകൾ ഇപ്പോള് വാട്സാപ്പിലും ടെലഗ്രാമിലും ലഭ്യമാണ്.
+വാട്സാപ്പ് ചാനൽ സബ്സ്ക്രൈബ് ചെയ്യുന്നതിന് ക്ലിക് ചെയ്യു..
+ടെലഗ്രാം ചാനൽ സബ്സ്ക്രൈബ് ചെയ്യുന്നതിന് ക്ലിക് ചെയ്യു..,,malayalam footer notes for cta
+8a2dfc6d228cb4d2,full,clean,,,,
+2307d0c6733e5ce6,full,fix,H1;C4,offset@401-offset@750 ഈ പാട്ടിന്റെ പത്തിലൊന്നു വെറുപ്പ് ഗൾഫ് നാട്ടിലെ അറബികൾ മലയാളികളോട് കാണിച്ചാൽ അടപടലം തേഞ്ഞൊട്ടി ഞാനുൾപ്പെടെയുള്ള ലക്ഷക്കണക്കിനുപേർക്ക് നാട്ടിൽ വന്നിരിക്കാം. ആ കൊച്ചു പാടുന്ന പോലെ, അപ്പോഴാണ് ജീവിതം ശരിക്കും കോഞ്ഞാട്ടയാവുന്നത് കേരളത്തിൽ ഇന്ത്യയിലെ ഏറ്റവും മെച്ചപ്പെട്ട അവസ്ഥയാണ് എന്ന് പറയുമ്പോഴും അവരുടെ തൊഴിൽ സാഹചര്യങ്ങൾ ഇന്നും അത്രയ്ക്ക് ഭേദമൊന്നുമല്ല|offset@2757-offset@2934 ദേശാഭിമാനി വാർത്തകൾ ഇപ്പോള് വാട്സാപ്പിലും ടെലഗ്രാമിലും ലഭ്യമാണ്.
+വാട്സാപ്പ് ചാനൽ സബ്സ്ക്രൈബ് ചെയ്യുന്നതിന് ക്ലിക് ചെയ്യു..
+ടെലഗ്രാം ചാനൽ സബ്സ്ക്രൈബ് ചെയ്യുന്നതിന് ക്ലിക് ചെയ്യു..,,topic-content duplicate and malayalam footer notes for cta
+dbbbfeb70728aba2,full,fix,D3,offset@3202-offset@3244 #BreakTheChain #ANCares #IndiaFightsCorona.,,hashtags
+e3ae686176bcafa1,full,clean,,,,
+178e9c3780358350,full,fix,D3,offset@820-offset@825 Iritty
+c628ceef49c50fd6,full,clean,,,,
+8089366159cf6715,full,drop,F3,,,marginal-political otherwise clean 
+2ac2d886d589e1eem,full,fix,D3;D3,offset@89-offset@129 |Viral Love Story by Khadheeja And Farhan|offset@1691-offset1748 Story Highlights: Viral Love Story by Khadheeja And Farhan,,
+c95043f0ee4abaf7,full,clean,,,,
+4683198eae29c165,full,clean,,,,
+
+
+
