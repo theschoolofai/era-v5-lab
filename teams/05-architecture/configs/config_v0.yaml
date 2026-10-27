@@ -1,0 +1,269 @@
+# Production sizes remain OPEN. Zero-flag check reports pending sizes; tiny override is executable.
+meta:  # source: G5 master schema grouping of the sourced settings below
+  schema_version: 1  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+  profile: "production_open"  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+  target: "general_purpose"  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+tokenizer:  # source: G5 master schema grouping of the sourced settings below
+  identifier: "theschoolofai/BrahmicTokenizer-131K"  # source: BrahmicTokenizer-131K pinned local artifact audit; instructor G6 tokenizer clarification
+  sha256: "01d968a7970b029c071b29f060abf6104b66168dedf2ff3b1a0290a545739fff"  # source: BrahmicTokenizer-131K pinned local artifact audit; instructor G6 tokenizer clarification
+  vocab_size: 131072  # source: BrahmicTokenizer-131K pinned local artifact audit; instructor G6 tokenizer clarification
+  pad_multiple: 128  # source: BrahmicTokenizer-131K pinned local artifact audit; instructor G6 tokenizer clarification
+  padded_vocab_size: 131072  # source: BrahmicTokenizer-131K pinned local artifact audit; instructor G6 tokenizer clarification
+  bos_id: 130725  # source: BrahmicTokenizer-131K pinned local artifact audit; instructor G6 tokenizer clarification
+  eos_id: 36  # source: BrahmicTokenizer-131K pinned local artifact audit; instructor G6 tokenizer clarification
+  pad_id: 130726  # source: BrahmicTokenizer-131K pinned local artifact audit; instructor G6 tokenizer clarification
+embedding:  # source: G5 master schema grouping of the sourced settings below
+  type: "kronecker"  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+  ke2_variance_norm: true  # source: User variance guard; per-token output second-moment normalization, not a claimed G4 factor formula
+  ke2_embed_scale: 1.0  # source: G5 explicit scale after lookup normalization
+  ke2_projection_adapter: "linear_if_needed"  # source: User G4 interface fallback; actual KE2 module pending
+  output_scale: 1.0  # source: G5 explicit Kronecker output scaling control; compare 1 vs sqrt(hidden_size) independently
+  implementation: "reference_v1"  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+  codec_mode: "dynamic"  # source: Vendored KroneckerEmbedding reference_v1 constructor; explicit existing behavior
+  char_dim: 256  # source: Kronecker byte-alphabet contract; fixed byte alphabet, not a tunable vocabulary
+  length_normalize: true  # source: Vendored KroneckerEmbedding reference_v1 constructor; explicit existing behavior
+  z_normalize: true  # source: Vendored KroneckerEmbedding reference_v1 constructor; explicit existing behavior
+  projection_init: "normal"  # source: Vendored KroneckerEmbedding reference_v1 constructor; normal std=1/sqrt(codec width)
+  pos_dim: 32  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+  output_dim: null  # source: TSAI size injection 31 Oct; null is deliberately reported until resolved
+  ke2:  # source: G5 master schema grouping of the sourced settings below
+    status: "pending_g4"  # source: G4-KE2-spec due 27 Oct; pending, not inferred
+    layout: "batch_sequence_hidden"  # source: G4-KE2-spec due 27 Oct; pending, not inferred
+    output_dim: null  # source: G4-KE2-spec due 27 Oct; pending, not inferred
+    adapter: "none"  # source: G4-KE2-spec due 27 Oct; pending, not inferred
+model:  # source: G5 master schema grouping of the sourced settings below
+  init_std: 0.02  # source: G5-Week1-reference-baseline; existing normal initialization exposed for controlled ablation
+  d_ff: null  # source: TSAI dense FFN width pending 31 Oct; separate from routed expert width
+  ffn_multiple_of: 32  # source: G5 explicit FFN alignment control
+  residual_init_scale_mode: "none"  # source: G5 control; depth_scaled applies 1/sqrt(2*num_layers) to residual output matrices
+  hidden_size: null  # source: TSAI size injection 31 Oct; null is deliberately reported until resolved
+  num_layers: null  # source: TSAI size injection 31 Oct; null is deliberately reported until resolved
+  norm_eps: 1.0e-06  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+  norm_type: "rmsnorm"  # source: G5 normalization variant; instructor accepted pre-norm placement, not a mandated norm type
+  norm_placement: "pre_norm"  # source: Instructor G6 accepted pre-norm architecture clarification
+  norm_gain: true  # source: Instructor G6 clarification: Muon internal matrices; AdamW embedding/head/norm/bias; retain gains
+  residual: "standard"  # source: G5 executable residual baseline; reversible target/settings are in reversibility, pending G6 equations
+reversibility:  # source: Instructor accepted G6 midpoint direction; G5 explicit pending implementation contract
+  enabled: false  # source: G5 safe executable default; no approved midpoint equations or inverse/backward implementation delivered
+  method: "midpoint"  # source: Instructor G6 architecture clarification accepted midpoint; target, not an implemented runtime
+  contract_status: "pending_equations"  # source: G5/G6 midpoint equations and state-reconstruction contract not yet supplied
+  equations_ref: "pending_g6_midpoint_contract"  # source: G5 explicit placeholder; do not infer midpoint equations from another reversible method
+  segment_layers: 1  # source: G5 provisional segment boundary unit for future memory/recompute experiments, not a TSAI size decision
+  preserve_rng_state: true  # source: G5 same-seed reconstruction/recompute requirement; G6 to validate replay contract
+  count_router_updates_once: true  # source: G5 MoE controller invariant; backward recomputation must not duplicate routing counts or bias updates
+  reconstruction_dtype: "float32"  # source: G5 FP32 reference contract; lower precision needs separate reconstruction/error measurements
+  reconstruction_rtol: 1.0e-5  # source: G5 provisional reconstruction acceptance bar inspired by G6 FP32 correctness tolerance
+  reconstruction_atol: 1.0e-6  # source: G5 provisional near-zero reconstruction tolerance, requires G6 approval
+  gradient_rtol: 1.0e-5  # source: G5 provisional explicit-backward versus ordinary-autograd comparison bar
+  gradient_atol: 1.0e-6  # source: G5 provisional near-zero gradient comparison tolerance, requires G6 approval
+attention:  # source: G5 master schema grouping of the sourced settings below
+  diff_lambda_init_base: 0.8  # source: G5 differential-attention reference depth schedule, exposed from existing implementation
+  diff_lambda_decay_scale: 0.6  # source: G5 differential-attention reference depth schedule
+  diff_lambda_decay_rate: 0.3  # source: G5 differential-attention reference depth schedule
+  diff_lambda_param_std: 0.1  # source: G5 differential-attention reference initialization
+  v_head_dim: null  # source: TSAI independent value-channel geometry pending 31 Oct
+  kv_lora_rank: null  # source: G5 MLA rank sizing pending; DeepSeek-V2 https://arxiv.org/abs/2405.04434
+  q_lora_rank: null  # source: G5 MLA query bottleneck sizing pending
+  qk_nope_head_dim: null  # source: G5 MLA nonrotary QK channels pending
+  qk_rope_head_dim: null  # source: G5 MLA shared rotary-key channels pending
+  sliding_window_size: null  # source: TSAI/G5 context budget pending; Gemma-3 hybrid inspiration
+  global_attn_every_n_layers: 2  # source: G5 tiny local/global interleave control, not copied production ratio
+  num_sink_tokens: 0  # source: G5 disabled learned null-KV slots by default; optional trainable per-head sink vectors
+  kv_sharing_group_size: 1  # source: G5 no cross-layer KV reuse in control; >1 reuses owner KV within layer groups
+  partial_rotary_factor: 1.0  # source: G5 full-RoPE reference; MLA uses its explicit rotary dimension
+  rope_scaling:  # source: G5 master schema grouping of the sourced settings below
+    type: "none"  # source: G5 supported reference variants none/linear; other methods rejected
+    factor: 1.0  # source: G5 linear position interpolation control
+    original_max_position_embeddings: null  # source: TSAI context sizing pending
+  mechanism: "gqa"  # source: Instructor G6 accepted architecture clarification
+  query_heads: null  # source: TSAI size injection 31 Oct; null is deliberately reported until resolved
+  kv_heads: null  # source: TSAI size injection 31 Oct; null is deliberately reported until resolved
+  qk_head_dim: null  # source: TSAI size injection 31 Oct; null is deliberately reported until resolved
+  rope_theta: 1000000.0  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+  use_qk_norm: true  # source: User RMSNorm Q/K before RoPE requirement; alias must match qk_norm
+  attn_logit_softcapping: 0.0  # source: G5 disabled control; positive C applies C*tanh(logits/C)
+  qk_norm: true  # source: Session 15 V5 decisions; current user specification
+  dropout: 0.0  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+  bias: false  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+moe:  # source: G5 master schema grouping of the sourced settings below
+  dispatch_impl: "dense_reference"  # source: Udit fixed-order baseline; optional slot_reference adapted from Deepjyoti Saha model.py at 9367082
+  aux_loss_scope: "batch"  # source: G5 control; sequence alternative adapted from Deepjyoti Saha and Revant Gupta
+  moe_layer_freq: 1  # source: G5 uniform MoE control; routed once per this many layers after dense prefix
+  n_group: 1  # source: G5 expert grouping control; selection-only group filtering
+  topk_group: 1  # source: G5 all groups available in default single-group topology
+  activation: "swiglu"  # source: Current user architecture requirement; G5 reference expert implementation
+  scoring_func: "softmax"  # source: G5 explicit router reference hypothesis, not production selection
+  type: "standard"  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+  num_shared_experts: null  # source: TSAI production sizes; alias of shared_experts
+  first_k_dense_replace: 0  # source: User dense-prefix ablation; zero preserves uniform MoE control
+  router_balance_mode: "switch_aux_loss"  # source: User routing alternatives; default preserves reference
+  bias_update_rate: 0.001  # source: DeepSeek-V3 inspired selection-only controller hypothesis https://arxiv.org/abs/2412.19437
+  train_capacity_factor: 1.25  # source: G5 optional finite capacity; inactive while dropless_moe is true
+  eval_capacity_factor: 2.0  # source: G5 optional evaluation capacity; inactive while dropless_moe is true
+  dropless_moe: true  # source: User dropless reference requirement; alias must match dropless
+  num_experts: null  # source: TSAI full-scale size injection 31 Oct; G6 benchmark topology is provided only in tiny override
+  num_experts_per_tok: null  # source: TSAI full-scale size injection 31 Oct; G6 benchmark topology is provided only in tiny override
+  shared_experts: null  # source: TSAI full-scale size injection 31 Oct; G6 benchmark topology is provided only in tiny override
+  moe_intermediate_size: null  # source: TSAI size injection 31 Oct; null is deliberately reported until resolved
+  shared_intermediate_size: null  # source: TSAI size injection 31 Oct; null is deliberately reported until resolved
+  latent_size: null  # source: TSAI size injection 31 Oct; null is deliberately reported until resolved
+  norm_topk_prob: true  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+  routed_scaling_factor: 1.0  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+  aux_coefficient: 0.01  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+  router_z_coefficient: 0.001  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+  dropless: true  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+output:  # source: G5 master schema grouping of the sourced settings below
+  factorized_chunk_vocab: 2048  # source: G5 bounded byte-codec projection construction chunk
+  final_logit_softcapping: 0.0  # source: G5 disabled control; positive cap is experimental
+  loss_chunk_tokens: 16  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+  logit_z_coefficient: 0.0001  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+optimizer:  # source: G5 master schema grouping of the sourced settings below
+  router_lr_mult: 1.0  # source: User separate FP32 no-decay router parameter role
+  ke2_lr_mult: 1.0  # source: User separate Kronecker parameter role
+  ke2_wd: 0.0  # source: User independent Kronecker decay experiment
+  mup_enabled: false  # source: User requested transfer hooks; disabled until coordinate/width tests justify use
+  mup_base_width: 96  # source: G5 tiny width anchor; not universal production muP base shapes
+  mup_attention_scaling: "inverse_head_dim"  # source: muP-inspired attention control https://github.com/microsoft/mup
+  mup_output_mult: 1.0  # source: G5 explicit readout multiplier
+  optimizer_type: "muon_adamw_hybrid"  # source: Instructor G6 clarification: Muon internal matrices; AdamW embedding/head/norm/bias; retain gains
+  adamw:  # source: G5 master schema grouping of the sourced settings below
+    learning_rate: 0.0003  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+    beta1: 0.9  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+    beta2: 0.999  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+    eps: 1.0e-08  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+    weight_decay: 0.01  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+  muon:  # source: G5 master schema grouping of the sourced settings below
+    learning_rate: 0.002  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+    momentum: 0.95  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+    nesterov: true  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+    ns_steps: 5  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+    eps: 1.0e-07  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+    weight_decay: 0.0  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+  embedding_weight_decay: 0.0  # source: Session 15 V5 decisions; current user specification
+training:  # source: G5 master schema grouping of the sourced settings below
+  seed: 1234  # source: Instructor 31 Oct empty-diff gate, seed 1234
+  steps: 30  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+  sequence_length: null  # source: TSAI size injection 31 Oct; null is deliberately reported until resolved
+  batch_size: 2  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+  gradient_clip: 1.0  # source: Session 15 V5 decisions; current user specification
+  warmup_steps: 3  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+  flush_every: 10  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+data:  # source: G5 master schema grouping of the sourced settings below
+  dataset_path: "fixture"  # source: G5 portable default; --data-path overrides without hardcoded domains
+  validation_dataset_path: "auto_split"  # source: G5 document-hash split unless explicit held-out path provided
+  slice_documents: 64  # source: G5 bounded deterministic quick-verification slice; full mode uses every document
+  mode: "deterministic_slice"  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+  bpb_denominator: "exact_scored_token_bytes"  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+  document_attention: "isolated"  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+  loss_normalization: "valid_tokens"  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
+
+
+
+distributed:  # source: G5 master schema grouping of the sourced settings below
+  dp_size: null  # source: G7 production data-parallel topology pending
+  ep_size: null  # source: G7 production expert-parallel topology pending
+  tp_size: null  # source: G7 production tensor-parallel topology pending
+  cp_size: null  # source: G7 production context-parallel topology pending
+  activation_checkpointing: false  # source: G5 selective expert-FFN rematerialization control; no controller side effects
+  zero_stage: 0  # source: G5-Week1-single-process-baseline; categorical policy, not an open size; stage 3 requires G6/G7 integration
+  moe_sharding_strategy: "expert_data_parallel"  # source: Current user requested distributed architecture contract
+  zero3_shard_dense_params: true  # source: Current user ZeRO-3 dense parameter contract
+  keep_router_in_fp32_under_zero: true  # source: Current user stability requirement; router scores remain FP32
+  stage3_param_persistence_threshold: null  # source: G5/G7 production size and memory tuning pending
+  reduce_bucket_size_elements: null  # source: G5/G7 production size and memory tuning pending; unit elements
+  stage3_prefetch_bucket_size_elements: null  # source: G5/G7 production size and memory tuning pending; unit elements
+  overlap_comm: false  # source: G5 deterministic reference default; measure overlap separately
+data_curriculum:  # source: G5 master schema grouping of the sourced settings below
+  packing_mode: "document_isolated"  # source: G5 implemented byte-accounted document-isolated windows
+  fim_rate: 0.0  # source: G5 disabled FIM until tokenizer marker/data contract is supplied; positive rates explicitly rejected
+  stage_rng_seed_stride: 1000  # source: G5 private sampler seed offset per curriculum stage
+  global_tokens_per_step: null  # source: TSAI/G5 token budget pending; counts VALID target tokens, not padded slots
+  enforce_token_batch_invariance: true  # source: User constant valid tokens per optimizer update
+  transition_ramp_steps: 2  # source: G5 short reference interpolation; production duration requires measurement
+  transition_curve: "cosine"  # source: User smooth cosine/linear transition requirement
+  reset_position_ids_on_eos: true  # source: User boundary hygiene; document-isolated batching is stronger than packed leakage control
+  intra_document_causal_mask: true  # source: User no cross-document attention requirement
+  weighting_mode: "static"  # source: User static vs online_excess_loss hook; not a full DoReMi reproduction
+  min_domain_weight: 0.05  # source: G5 floor prevents configured slice starvation
+  online_weight_lr: 0.1  # source: G5 exponentiated excess-loss update hypothesis
+  domain_labels: ["slice_0"]  # source: G5 arbitrary replaceable slice IDs; no semantic domains required
+  reference_losses: [0.0]  # source: G5 explicit per-slice reference; online mode requires meaningful calibrated baselines
+  enabled: true  # source: Current user requested domain-agnostic three-stage curriculum
+  stage_1_warmup:  # source: G5 master schema grouping of the sourced settings below
+    mixture_weights: [1.0]  # source: G5 one-slice control; order matches data_curriculum.domain_labels
+    router_temperature: 1.0  # source: G5 unbiased softmax temperature control
+    step_fraction: 0.1  # source: G5 provisional schedule, not TSAI-approved recipe
+    seq_len: null  # source: TSAI production sizes due 31 Oct
+    rope_theta: 10000.0  # source: G5 schedule hypothesis; must be validated on fixed evaluation contexts
+    moe_aux_loss_coeff: 0.03  # source: G5 initial routing-balancing hypothesis
+  stage_2_main:  # source: G5 master schema grouping of the sourced settings below
+    mixture_weights: [1.0]  # source: G5 one-slice control; order matches data_curriculum.domain_labels
+    router_temperature: 1.0  # source: G5 unbiased softmax temperature control
+    step_fraction: 0.7  # source: G5 provisional schedule
+    seq_len: null  # source: TSAI production sizes due 31 Oct
+    rope_theta: 100000.0  # source: G5 schedule hypothesis
+    moe_aux_loss_coeff: 0.01  # source: G5 main-stage balancing hypothesis
+  stage_3_anneal:  # source: G5 master schema grouping of the sourced settings below
+    mixture_weights: [1.0]  # source: G5 one-slice control; order matches data_curriculum.domain_labels
+    router_temperature: 1.0  # source: G5 unbiased softmax temperature control
+    step_fraction: 0.2  # source: G5 provisional schedule
+    seq_len: null  # source: TSAI production sizes due 31 Oct
+    rope_theta: 1000000.0  # source: G5 schedule hypothesis; high theta is not proof of long-context capability
+    moe_aux_loss_coeff: 0.001  # source: G5 annealed balancing hypothesis
+explainability:  # source: G5 master schema grouping of the sourced settings below
+  enabled: true  # source: Current user native XAI contract
+  track_perplexity_and_bpb: true  # source: Current user first-class exact CE-derived metrics requirement
+  track_residual_cosine_sim: true  # source: Current user residual input-output diagnostic
+  track_attention_entropy: true  # source: Current user per-head Shannon entropy diagnostic
+  track_moe_router_metrics: true  # source: Current user expert utilization and router stability diagnostics
+  enable_logit_lens: true  # source: Current user intermediate final-norm/head readout requirement
+  sae_tap_points: ["resid_mid", "mlp_out", "moe_router_logits"]  # source: Current user native detached activation interface
+  logit_lens_every_steps: 10  # source: G5 independent lens overhead cadence
+  tap_every_steps: 10  # source: G5 overhead-limited native hook cadence
+  sae_probe:  # source: G5 master schema grouping of the sourced settings below
+    enabled: false  # source: G5 no invented trained SAE; probe must be deliberately enabled
+    kind: "random_topk_reference"  # source: G5 optional untrained diagnostic baseline, not learned interpretable features
+    weights_path: "none"  # source: G5 optional trained Top-K SAE checkpoint; none means no external artifact
+    seed: 1729  # source: G5 isolated Top-K reference probe RNG; effective seed adds tap width
+    feature_count: 64  # source: G5 low-cost reference probe width
+    top_k: 8  # source: G5 optional sparse reconstruction diagnostic
+    dead_feature_window: 100  # source: G5 provisional per-tap observation window, not training-step count
+    dead_feature_fraction_threshold: 0.95  # source: G5 provisional alarm bar requiring calibration
+
+embeddings_ke2:  # source: G5 master schema grouping of the sourced settings below
+  lm_head_mode: "untied_dense"  # source: G5 supported untied dense, dynamically tied KE lookup and chunked factorized KE head; correctness paths
+  mtp_num_heads: 0  # source: G5 optional direct future-token auxiliary transforms with shared final vocabulary readout
+  mtp_loss_weight: 0.1  # source: G5 experimental auxiliary coefficient; inactive at zero heads
+scheduler:  # source: G5 master schema grouping of the sourced settings below
+  type: "wsd"  # source: User WSD requirement, coupled to curriculum stage fractions
+  min_lr_ratio: 0.1  # source: G5 floor hypothesis
+  decay_style: "cosine"  # source: G5 supported cosine/sqrt_1_minus_t annealing
+precision:  # source: G5 master schema grouping of the sourced settings below
+  param_dtype: "float32"  # source: G5 deterministic reference only; lower precision requires separate implementation/verification
+  compute_dtype: "float32"  # source: G5 deterministic reference
+  grad_reduce_dtype: "float32"  # source: G5 distributed precision contract, no distributed runtime claimed
+  router_dtype: "float32"  # source: Instructor/user router stability contract
+  loss_dtype: "float32"  # source: User FP32 logits/loss requirement
+  allow_tf32: false  # source: G5 exact same-environment reference
+checkpointing:  # source: G5 master schema grouping of the sourced settings below
+  save_every_steps: 0  # source: G5 periodic saves disabled by default; stop-after still saves
+  keep_last_n: 1  # source: G5 checkpoint retention default
+  save_optimizer_state: true  # source: User exact resume contract
+  save_rng_and_dataloader_state: true  # source: User exact resume contract
+evaluation:  # source: G5 master schema grouping of the sourced settings below
+  eval_every_steps: 5  # source: G5 held-out cadence; tiny overrides to every update
+  eval_batches: 32  # source: G5 fixed capped held-out/probe sample
+  exclude_aux_loss_from_val: true  # source: User CE-only PPL/BPB validation contract
+  compute_token_ppl: true  # source: User required first-class token perplexity
+  compute_bpb: true  # source: User exact text-byte accounting contract
+
+monitoring:  # source: G5 master schema grouping of the sourced settings below
+  enabled: true  # source: Revant Gupta train.py monitoring concept at 9aa4fcf; deterministic master implementation
+  history_window: 100  # source: G5 tiny-reference monitoring window, provisional and not a calibrated production threshold
+  warmup_steps: 10  # source: Revant Gupta EMA_WARMUP prevents early zero-variance z-score artifacts
+  spike_sigma: 7.0  # source: Revant Gupta safety.spike_sigma; warning threshold requires G8 calibration
+  ema_alpha: 0.97  # source: Revant Gupta safety.ema_alpha reference hypothesis
+  ema_z_threshold: 2.5  # source: Revant Gupta reference threshold, reported as warning after warmup only
+  max_attn_logit: 100.0  # source: Revant Gupta plan stability diagnostic, provisional magnitude bar
+  max_load_violation: 1.0  # source: Revant Gupta MaxVio diagnostic; evaluated with patience rather than single-step failure
+  imbalance_patience: 100  # source: G5 short-run sustained-imbalance warning window; G8 to calibrate
