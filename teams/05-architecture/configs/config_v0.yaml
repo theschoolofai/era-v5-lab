@@ -86,8 +86,8 @@ attention:  # source: G5 master schema grouping of the sourced settings below
   dropout: 0.0  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
   bias: false  # source: G5-Week1-reference-baseline (26 Oct); provisional local control, not a TSAI-approved production choice
 moe:  # source: G5 master schema grouping of the sourced settings below
-  dispatch_impl: "dense_reference"  # source: Udit fixed-order baseline; optional slot_reference adapted from Deepjyoti Saha model.py at 9367082
-  aux_loss_scope: "batch"  # source: G5 control; sequence alternative adapted from Deepjyoti Saha and Revant Gupta
+  dispatch_impl: "dense_reference"  # source: G5 deterministic routing reference; fixed-order dense execution or unique-slot dispatch without accumulating atomics
+  aux_loss_scope: "batch"  # source: G5 load-balancing ablation contract; batch-level or per-sequence auxiliary objective
   moe_layer_freq: 1  # source: G5 uniform MoE control; routed once per this many layers after dense prefix
   n_group: 1  # source: G5 expert grouping control; selection-only group filtering
   topk_group: 1  # source: G5 all groups available in default single-group topology
@@ -258,12 +258,12 @@ evaluation:  # source: G5 master schema grouping of the sourced settings below
   compute_bpb: true  # source: User exact text-byte accounting contract
 
 monitoring:  # source: G5 master schema grouping of the sourced settings below
-  enabled: true  # source: Revant Gupta train.py monitoring concept at 9aa4fcf; deterministic master implementation
+  enabled: true  # source: G5 native monitoring reference; deterministic diagnostics for the G8 handover
   history_window: 100  # source: G5 tiny-reference monitoring window, provisional and not a calibrated production threshold
-  warmup_steps: 10  # source: Revant Gupta EMA_WARMUP prevents early zero-variance z-score artifacts
-  spike_sigma: 7.0  # source: Revant Gupta safety.spike_sigma; warning threshold requires G8 calibration
-  ema_alpha: 0.97  # source: Revant Gupta safety.ema_alpha reference hypothesis
-  ema_z_threshold: 2.5  # source: Revant Gupta reference threshold, reported as warning after warmup only
-  max_attn_logit: 100.0  # source: Revant Gupta plan stability diagnostic, provisional magnitude bar
-  max_load_violation: 1.0  # source: Revant Gupta MaxVio diagnostic; evaluated with patience rather than single-step failure
+  warmup_steps: 10  # source: G5 monitoring baseline; warmup avoids early zero-variance z-score artifacts
+  spike_sigma: 7.0  # source: G5 provisional loss-spike threshold; requires G8 calibration
+  ema_alpha: 0.97  # source: G5 provisional EMA smoothing baseline; requires G8 calibration
+  ema_z_threshold: 2.5  # source: G5 provisional EMA deviation threshold; warning after warmup only
+  max_attn_logit: 100.0  # source: G5 provisional attention-logit magnitude threshold; requires G8 calibration
+  max_load_violation: 1.0  # source: G5 provisional expert-load threshold; evaluated with sustained-imbalance patience
   imbalance_patience: 100  # source: G5 short-run sustained-imbalance warning window; G8 to calibrate
