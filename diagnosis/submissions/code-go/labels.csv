@@ -117,7 +117,7 @@ bfc4b0f90f8274ce,full,fix,E4,"E4: ""Licensed under the Apache License, Version 2
 bedf0f2e0c18b420,full,fix,E4,"E4: ""Licensed under the Apache License, Version 2.0 (the ""License"");"" at offset 52",,Licence declaration
 ea198a074d239a6e,full,fix,B3,"B3: ""<gh_stars>"" at offset 0",,StarCoder <gh_stars> metadata marker before package clause
 1398b525d923d644,full,fix,B4,B4: PII placeholder at offset 158; B4: PII placeholder (Email) at offset 401,,PII placeholder
-1dbf03039c9ea15c,full,fix,B3; A4,"B3: ""<filename>"" at offset 0; A4: ""U+FFFD"" at offset 2406",,StarCoder <filename> metadata marker before package clause; U+FFFD at offset 2406 seems not an issue of A4/E5.
+1dbf03039c9ea15c,full,fix,B3,"B3: ""<filename>"" at offset 0; A4: ""U+FFFD"" at offset 2406",,StarCoder <filename> metadata marker before package clause; U+FFFD at offset 2406 seems not an issue of A4/E5.
 cf6feb2f4d6ea662,full,fix,E4,"E4: ""Licensed under the Apache License, Version 2.0 (the ""License"");"" at offset 34",,Licence declaration
 83d8307ca8489972,full,clean,,,,
 4d0584091b2b9d1d,full,fix,B3,"B3: ""<reponame>"" at offset 0",,StarCoder <reponame> metadata marker before package clause
