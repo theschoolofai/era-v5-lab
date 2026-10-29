@@ -1,0 +1,1063 @@
+✓ Initialized. View run at 
+https://modal.com/apps/chennuruvarshit/main/ap-QYn3xPp8FIqb97LIpm8v6z
+✓ Created objects.
+├── 🔨 Created mount E:\ERA Project\modal_bench.py
+├── 🔨 Created function run_single_gpu_tasks.
+└── 🔨 Created function run_multi_gpu_tasks.
+
+$ git clone --depth 1 --branch g6/dev https://github.com/vaibh27/era-v5-lab.git /workspace/era-v5-lab
+Cloning into '/workspace/era-v5-lab'...
+[exit code: 0]
+
+$ git rev-parse HEAD
+a60ff70cf846999fd679f2fc8f35f3e7598dd2f6
+[exit code: 0]
+
+$ git status --short
+[exit code: 0]
+
+$ nvidia-smi
+Wed Oct 28 22:08:59 2026       
++-----------------------------------------------------------------------------------------+
+| NVIDIA-SMI 610.57.04              KMD Version: 610.57.04     CUDA UMD Version: 13.3     |
++-----------------------------------------+------------------------+----------------------+
+| GPU  Name                 Persistence-M | Bus-Id          Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp   Perf          Pwr:Usage/Cap |           Memory-Usage | GPU-Util  Compute M. |
+|                                         |                        |               MIG M. |
+|=========================================+========================+======================|
+|   0  NVIDIA H200                    On  |   00000000:C2:00.0 Off |                    0 |
+| N/A   35C    P0             78W /  700W |     126MiB / 143771MiB |      0%      Default |
+|                                         |                        |             Disabled |
++-----------------------------------------+------------------------+----------------------+
+
++-----------------------------------------------------------------------------------------+
+| Processes:                                                                              |
+|  GPU   GI   CI              PID   Type   Process name                        GPU Memory |
+|        ID   ID                                                               Usage      |
+|=========================================================================================|
+|  No running processes found                                                             |
++-----------------------------------------------------------------------------------------+
+[exit code: 0]
+
+=== Preparing FineWeb sample-10BT shards with BrahmicTokenizer-131K ===
+
+$ python -m dataio.prepare_fineweb
+/usr/local/lib/python3.11/site-packages/torch/cuda/__init__.py:61: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+/root/.cache/era-perf/fineweb-brahmic131k/fineweb_val_000000.bin
+/root/.cache/era-perf/fineweb-brahmic131k/fineweb_train_000001.bin
+[exit code: 0]
+
+================================================================================
+TASK 2: CUDA Timer Tests (correctness/test_timer.py)
+================================================================================
+
+$ python -m pytest correctness/test_timer.py -v -rs
+============================= test session starts ==============================
+platform linux -- Python 3.11.10, pytest-9.2.0, pluggy-1.7.0 -- /usr/local/bin/python
+cachedir: .pytest_cache
+rootdir: /workspace/era-v5-lab/teams/06-performance
+plugins: anyio-4.15.1
+collecting ... collected 22 items
+
+correctness/test_timer.py::test_region_is_one_shared_noop_when_no_recorder PASSED [  4%]
+correctness/test_timer.py::test_mark_returns_its_input_and_adds_no_autograd_node PASSED [  9%]
+correctness/test_timer.py::test_phase_and_point_do_nothing_without_a_recorder PASSED [ 13%]
+correctness/test_timer.py::test_a_spy_recorder_is_never_called_after_it_is_removed PASSED [ 18%]
+correctness/test_timer.py::test_levels_above_max_level_are_not_recorded PASSED [ 22%]
+correctness/test_timer.py::test_off_switch_costs_microseconds_not_milliseconds PASSED [ 27%]
+correctness/test_timer.py::test_a_known_sleep_is_recorded_as_about_that_many_ms PASSED [ 31%]
+correctness/test_timer.py::test_nested_regions_nest_and_phase_prefixes_the_name PASSED [ 36%]
+correctness/test_timer.py::test_recorder_ignores_levels_above_its_max_level PASSED [ 40%]
+correctness/test_timer.py::test_points_keep_the_order_they_happened_in PASSED [ 45%]
+correctness/test_timer.py::test_collect_twice_gives_the_same_answer PASSED [ 50%]
+correctness/test_timer.py::test_step_timer_measures_each_step_and_guards_misuse PASSED [ 54%]
+correctness/test_timer.py::test_stats_of_a_known_list PASSED             [ 59%]
+correctness/test_timer.py::test_stats_has_mean_and_std PASSED            [ 63%]
+correctness/test_timer.py::test_stats_of_an_empty_list_has_every_key PASSED [ 68%]
+correctness/test_timer.py::test_recording_regions_does_not_sync_the_host PASSED [ 72%]
+correctness/test_timer.py::test_cuda_step_timer_agrees_with_a_synchronized_wall_clock PASSED [ 77%]
+correctness/test_timer.py::test_step_timer_expected_steps_validates_input PASSED [ 81%]
+correctness/test_timer.py::test_cuda_event_preallocation_and_exhaustion PASSED [ 86%]
+correctness/test_timer.py::test_step_timer_reset_rejects_open_step_on_cpu PASSED [ 90%]
+correctness/test_timer.py::test_cuda_reset_synchronizes_before_event_reuse PASSED [ 95%]
+correctness/test_timer.py::test_cuda_counter_remains_cumulative_across_reset PASSED [100%]
+
+=============================== warnings summary ===============================
+../../../../usr/local/lib/python3.11/site-packages/torch/cuda/__init__.py:61
+  /usr/local/lib/python3.11/site-packages/torch/cuda/__init__.py:61: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+    import pynvml  # type: ignore[import]
+
+correctness/test_timer.py::test_recording_regions_does_not_sync_the_host
+  /usr/local/lib/python3.11/site-packages/torch/cuda/__init__.py:1270: UserWarning: Synchronization debug mode is a prototype feature and does not yet detect all synchronizing operations (Triggered internally at /pytorch/torch/csrc/cuda/Module.cpp:1003.)
+    torch._C._cuda_set_sync_debug_mode(debug_mode)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================== 22 passed, 2 warnings in 0.90s ========================
+[exit code: 0]
+
+================================================================================
+TASK 1 (unit): Report & Schema Tests (correctness/test_report.py, test_bench.py, test_parts.py)
+================================================================================
+
+$ python -m pytest correctness/test_report.py correctness/test_bench.py correctness/test_parts.py -v -rs
+============================= test session starts ==============================
+platform linux -- Python 3.11.10, pytest-9.2.0, pluggy-1.7.0 -- /usr/local/bin/python
+cachedir: .pytest_cache
+rootdir: /workspace/era-v5-lab/teams/06-performance
+plugins: anyio-4.15.1
+collecting ... collected 94 items
+
+correctness/test_report.py::test_same_clean_commit_passes PASSED         [  1%]
+correctness/test_report.py::test_same_commit_muon_implementation_variants_can_be_compared PASSED [  2%]
+correctness/test_report.py::test_same_commit_moe_dispatch_variants_can_be_compared PASSED [  3%]
+correctness/test_report.py::test_same_implementation_is_not_labelled_ab PASSED [  4%]
+correctness/test_report.py::test_moe_setting_other_than_dispatch_is_still_refused PASSED [  5%]
+correctness/test_report.py::test_different_commit_is_refused PASSED      [  6%]
+correctness/test_report.py::test_dirty_or_unknown_tree_is_refused PASSED [  7%]
+correctness/test_report.py::test_render_shows_per_stage_cuda_allocation_diagnostics PASSED [  8%]
+correctness/test_report.py::test_render_preserves_exact_warning_text_and_no_false_ke_claim PASSED [  9%]
+correctness/test_report.py::test_render_flags_inner_pool_allocation_when_timer_count_is_zero PASSED [ 10%]
+correctness/test_bench.py::test_build_passes_tokenizer_path_to_loader PASSED [ 11%]
+correctness/test_bench.py::test_build_notes_a_schedule_it_ignores PASSED [ 12%]
+correctness/test_bench.py::test_choose_dtype_fallbacks PASSED            [ 13%]
+correctness/test_bench.py::test_batch_size_auto_follows_the_gpu PASSED   [ 14%]
+correctness/test_bench.py::test_build_writes_the_resolved_batch_back PASSED [ 15%]
+correctness/test_bench.py::test_default_modes_measure_checkpoint_and_comm PASSED [ 17%]
+correctness/test_bench.py::test_pick_device_cpu_and_missing_cuda PASSED  [ 18%]
+correctness/test_bench.py::test_run_metadata_records_the_tokenizer PASSED [ 19%]
+correctness/test_bench.py::test_rule_checks_clean_run_has_no_warnings PASSED [ 20%]
+correctness/test_bench.py::test_rule_checks_flag_each_rule PASSED        [ 21%]
+correctness/test_bench.py::test_rule_checks_comm_only_for_moe_models PASSED [ 22%]
+correctness/test_bench.py::test_throttle_warning_ignores_an_idle_gpu PASSED [ 23%]
+correctness/test_bench.py::test_throttle_warning_names_the_slowdown PASSED [ 24%]
+correctness/test_bench.py::test_throttle_warning_falls_back_to_the_clock_without_reasons PASSED [ 25%]
+correctness/test_bench.py::test_rule_checks_noisy_gated_part_is_named PASSED [ 26%]
+correctness/test_bench.py::test_quick_compare_identical_runs_pass PASSED [ 27%]
+correctness/test_bench.py::test_quick_compare_allows_muon_implementation_variant PASSED [ 28%]
+correctness/test_bench.py::test_quick_compare_allows_moe_dispatch_variant PASSED [ 29%]
+correctness/test_bench.py::test_quick_compare_only_gates_levels_up_to_gate_level PASSED [ 30%]
+correctness/test_bench.py::test_quick_compare_fails_a_part_that_moved_more_than_tol PASSED [ 31%]
+correctness/test_bench.py::test_quick_compare_5_percent_boundary PASSED  [ 32%]
+correctness/test_bench.py::test_quick_compare_refuses_different_gpu_and_vocab PASSED [ 34%]
+correctness/test_bench.py::test_quick_compare_missing_part_is_a_failure PASSED [ 35%]
+correctness/test_bench.py::test_quick_compare_part_only_in_the_earlier_run_is_missing PASSED [ 36%]
+correctness/test_bench.py::test_quick_compare_zero_ms_parts PASSED       [ 37%]
+correctness/test_bench.py::test_quick_compare_refuses_runs_that_do_different_work[optim-name-adamw] PASSED [ 38%]
+correctness/test_bench.py::test_quick_compare_refuses_runs_that_do_different_work[run-compile-True] PASSED [ 39%]
+correctness/test_bench.py::test_quick_compare_refuses_runs_that_do_different_work[run-grad_clip-0.5] PASSED [ 40%]
+correctness/test_bench.py::test_quick_compare_refuses_runs_that_do_different_work[data-source-fineweb] PASSED [ 41%]
+correctness/test_bench.py::test_quick_compare_refuses_runs_that_do_different_work[model-n_layer-3] PASSED [ 42%]
+correctness/test_bench.py::test_quick_compare_includes_checkpoint_and_all_to_all_when_both_have_them PASSED [ 43%]
+correctness/test_bench.py::test_checkpoint_copies_a_tied_weight_once PASSED [ 44%]
+correctness/test_bench.py::test_trace_counts_kernels_not_annotations PASSED [ 45%]
+correctness/test_bench.py::test_write_run_never_overwrites PASSED        [ 46%]
+correctness/test_bench.py::test_run_json_stays_valid_json_with_nan_and_inf PASSED [ 47%]
+correctness/test_bench.py::test_slug PASSED                              [ 48%]
+correctness/test_bench.py::test_parse_turns_flags_into_overrides PASSED  [ 50%]
+correctness/test_bench.py::test_parse_accepts_overrides_on_both_sides_of_the_flags PASSED [ 51%]
+correctness/test_bench.py::test_main_writes_a_complete_valid_run[reversible] PASSED [ 52%]
+correctness/test_bench.py::test_main_times_whole_blocks_and_the_step_parts[reversible] PASSED [ 53%]
+correctness/test_bench.py::test_main_backward_parts_add_up[reversible] PASSED [ 54%]
+correctness/test_bench.py::test_main_measures_checkpoint_save[reversible] PASSED [ 55%]
+correctness/test_bench.py::test_main_flags_a_run_with_the_wrong_vocabulary[reversible] PASSED [ 56%]
+correctness/test_bench.py::test_main_against_exit_codes[reversible] PASSED [ 57%]
+correctness/test_bench.py::test_no_system_section_off_cuda[reversible] PASSED [ 58%]
+correctness/test_bench.py::test_layer_timer_event_allocation_is_reported_in_json[reversible] PASSED [ 59%]
+correctness/test_bench.py::test_main_writes_a_complete_valid_run[plain] PASSED [ 60%]
+correctness/test_bench.py::test_main_times_whole_blocks_and_the_step_parts[plain] PASSED [ 61%]
+correctness/test_bench.py::test_main_backward_parts_add_up[plain] PASSED [ 62%]
+correctness/test_bench.py::test_main_measures_checkpoint_save[plain] PASSED [ 63%]
+correctness/test_bench.py::test_main_flags_a_run_with_the_wrong_vocabulary[plain] PASSED [ 64%]
+correctness/test_bench.py::test_main_against_exit_codes[plain] PASSED    [ 65%]
+correctness/test_bench.py::test_no_system_section_off_cuda[plain] PASSED [ 67%]
+correctness/test_bench.py::test_layer_timer_event_allocation_is_reported_in_json[plain] PASSED [ 68%]
+correctness/test_bench.py::test_main_rejects_an_unknown_mode PASSED      [ 69%]
+correctness/test_bench.py::test_parse_repeat_defaults_to_one_run PASSED  [ 70%]
+correctness/test_bench.py::test_repeat_cmd_is_one_run_with_a_new_tag_against_the_first PASSED [ 71%]
+correctness/test_bench.py::test_repeat_runs_every_run_in_a_child_and_the_first_without_against PASSED [ 72%]
+correctness/test_bench.py::test_repeat_fails_when_a_later_run_is_killed PASSED [ 73%]
+correctness/test_bench.py::test_repeat_writes_one_json_per_run_and_passes_when_they_agree PASSED [ 74%]
+correctness/test_bench.py::test_repeat_fails_with_exit_code_2_when_the_second_run_is_slower PASSED [ 75%]
+correctness/test_bench.py::test_without_repeat_one_json_is_written PASSED [ 76%]
+correctness/test_bench.py::test_run_json_has_mean_and_std_for_the_step PASSED [ 77%]
+correctness/test_bench.py::test_trace_with_layer_writes_one_small_trace_per_slowest_part PASSED [ 78%]
+correctness/test_bench.py::test_trace_without_layer_says_why_there_are_no_parts PASSED [ 79%]
+correctness/test_bench.py::test_rule_checks_flag_an_unknown_dirty_state PASSED [ 80%]
+correctness/test_bench.py::test_clean_json_reports_event_allocation_count PASSED [ 81%]
+correctness/test_bench.py::test_clean_warns_if_timer_allocated_events_during_steps PASSED [ 82%]
+correctness/test_bench.py::test_comm_preallocates_timing_events_and_exports_counter PASSED [ 84%]
+correctness/test_bench.py::test_layer_event_allocation_warns_for_both_passes PASSED [ 85%]
+correctness/test_bench.py::test_communication_warning_is_emitted_only_for_nonzero_counter PASSED [ 86%]
+correctness/test_bench.py::test_inner_pool_warning_and_json PASSED       [ 87%]
+correctness/test_bench.py::test_run_layer_copies_inner_pool_count PASSED [ 88%]
+correctness/test_parts.py::test_slowest_parts_sums_layers_and_skips_containers PASSED [ 89%]
+correctness/test_parts.py::test_slowest_parts_never_lists_phases_parents_or_experts PASSED [ 90%]
+correctness/test_parts.py::test_instance_is_the_middle_layer PASSED      [ 91%]
+correctness/test_parts.py::test_cut_keeps_the_region_and_the_kernels_it_launched PASSED [ 92%]
+correctness/test_parts.py::test_cut_backward_segments_between_points PASSED [ 93%]
+correctness/test_parts.py::test_cut_returns_none_for_a_region_not_in_the_trace PASSED [ 94%]
+correctness/test_parts.py::test_size_cap_samples_calls_across_the_step PASSED [ 95%]
+correctness/test_parts.py::test_write_part_traces PASSED                 [ 96%]
+correctness/test_parts.py::test_sampler_does_nothing_off_cuda PASSED     [ 97%]
+correctness/test_parts.py::test_sampler_parses_lines_and_summarises PASSED [ 98%]
+correctness/test_parts.py::test_sampler_end_to_end_with_a_fake_nvidia_smi PASSED [100%]
+
+=============================== warnings summary ===============================
+../../../../usr/local/lib/python3.11/site-packages/torch/cuda/__init__.py:61
+  /usr/local/lib/python3.11/site-packages/torch/cuda/__init__.py:61: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+    import pynvml  # type: ignore[import]
+
+correctness/test_bench.py::test_trace_with_layer_writes_one_small_trace_per_slowest_part
+  /usr/local/lib/python3.11/site-packages/torch/profiler/profiler.py:224: UserWarning: Warning: Profiler clears events at the end of each cycle.Only events from the current cycle will be reported.To keep events across cycles, set acc_events=True.
+    _warn_once(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+======================= 94 passed, 2 warnings in 23.01s ========================
+[exit code: 0]
+
+================================================================================
+TASK 3: Full GPU Correctness Suite (Reversible, MoE, Attention, KE, CE, Optimizer, Model)
+================================================================================
+
+$ python -m pytest correctness -v -rs
+============================= test session starts ==============================
+platform linux -- Python 3.11.10, pytest-9.2.0, pluggy-1.7.0 -- /usr/local/bin/python
+cachedir: .pytest_cache
+rootdir: /workspace/era-v5-lab/teams/06-performance
+plugins: anyio-4.15.1
+collecting ... collected 275 items
+
+correctness/test_attention.py::test_pair[attention.causal] PASSED        [  0%]
+correctness/test_attention.py::test_pair[attention.causal.mha] PASSED    [  0%]
+correctness/test_attention.py::test_pair[attention.causal.mqa] PASSED    [  1%]
+correctness/test_attention.py::test_pair[attention.causal.lab] PASSED    [  1%]
+correctness/test_attention.py::test_pair[attention.causal.fallback] PASSED [  1%]
+correctness/test_attention.py::test_pair[attention.causal.mqa_fallback] PASSED [  2%]
+correctness/test_attention.py::test_pair[attention.causal.lab_fallback] PASSED [  2%]
+correctness/test_attention.py::test_pair[attention.causal.bf16] PASSED   [  2%]
+correctness/test_attention.py::test_causal[8-sdpa_gqa] PASSED            [  3%]
+correctness/test_attention.py::test_causal[8-repeat_interleave] PASSED   [  3%]
+correctness/test_attention.py::test_causal[4-sdpa_gqa] PASSED            [  4%]
+correctness/test_attention.py::test_causal[4-repeat_interleave] PASSED   [  4%]
+correctness/test_attention.py::test_causal[2-sdpa_gqa] PASSED            [  4%]
+correctness/test_attention.py::test_causal[2-repeat_interleave] PASSED   [  5%]
+correctness/test_attention.py::test_causal[1-sdpa_gqa] PASSED            [  5%]
+correctness/test_attention.py::test_causal[1-repeat_interleave] PASSED   [  5%]
+correctness/test_attention.py::test_gqa_paths_agree[4] PASSED            [  6%]
+correctness/test_attention.py::test_gqa_paths_agree[2] PASSED            [  6%]
+correctness/test_attention.py::test_gqa_paths_agree[1] PASSED            [  6%]
+correctness/test_bench.py::test_build_passes_tokenizer_path_to_loader PASSED [  7%]
+correctness/test_bench.py::test_build_notes_a_schedule_it_ignores PASSED [  7%]
+correctness/test_bench.py::test_choose_dtype_fallbacks PASSED            [  8%]
+correctness/test_bench.py::test_batch_size_auto_follows_the_gpu PASSED   [  8%]
+correctness/test_bench.py::test_build_writes_the_resolved_batch_back PASSED [  8%]
+correctness/test_bench.py::test_default_modes_measure_checkpoint_and_comm PASSED [  9%]
+correctness/test_bench.py::test_pick_device_cpu_and_missing_cuda PASSED  [  9%]
+correctness/test_bench.py::test_run_metadata_records_the_tokenizer PASSED [  9%]
+correctness/test_bench.py::test_rule_checks_clean_run_has_no_warnings PASSED [ 10%]
+correctness/test_bench.py::test_rule_checks_flag_each_rule PASSED        [ 10%]
+correctness/test_bench.py::test_rule_checks_comm_only_for_moe_models PASSED [ 10%]
+correctness/test_bench.py::test_throttle_warning_ignores_an_idle_gpu PASSED [ 11%]
+correctness/test_bench.py::test_throttle_warning_names_the_slowdown PASSED [ 11%]
+correctness/test_bench.py::test_throttle_warning_falls_back_to_the_clock_without_reasons PASSED [ 12%]
+correctness/test_bench.py::test_rule_checks_noisy_gated_part_is_named PASSED [ 12%]
+correctness/test_bench.py::test_quick_compare_identical_runs_pass PASSED [ 12%]
+correctness/test_bench.py::test_quick_compare_allows_muon_implementation_variant PASSED [ 13%]
+correctness/test_bench.py::test_quick_compare_allows_moe_dispatch_variant PASSED [ 13%]
+correctness/test_bench.py::test_quick_compare_only_gates_levels_up_to_gate_level PASSED [ 13%]
+correctness/test_bench.py::test_quick_compare_fails_a_part_that_moved_more_than_tol PASSED [ 14%]
+correctness/test_bench.py::test_quick_compare_5_percent_boundary PASSED  [ 14%]
+correctness/test_bench.py::test_quick_compare_refuses_different_gpu_and_vocab PASSED [ 14%]
+correctness/test_bench.py::test_quick_compare_missing_part_is_a_failure PASSED [ 15%]
+correctness/test_bench.py::test_quick_compare_part_only_in_the_earlier_run_is_missing PASSED [ 15%]
+correctness/test_bench.py::test_quick_compare_zero_ms_parts PASSED       [ 16%]
+correctness/test_bench.py::test_quick_compare_refuses_runs_that_do_different_work[optim-name-adamw] PASSED [ 16%]
+correctness/test_bench.py::test_quick_compare_refuses_runs_that_do_different_work[run-compile-True] PASSED [ 16%]
+correctness/test_bench.py::test_quick_compare_refuses_runs_that_do_different_work[run-grad_clip-0.5] PASSED [ 17%]
+correctness/test_bench.py::test_quick_compare_refuses_runs_that_do_different_work[data-source-fineweb] PASSED [ 17%]
+correctness/test_bench.py::test_quick_compare_refuses_runs_that_do_different_work[model-n_layer-3] PASSED [ 17%]
+correctness/test_bench.py::test_quick_compare_includes_checkpoint_and_all_to_all_when_both_have_them PASSED [ 18%]
+correctness/test_bench.py::test_checkpoint_copies_a_tied_weight_once PASSED [ 18%]
+correctness/test_bench.py::test_trace_counts_kernels_not_annotations PASSED [ 18%]
+correctness/test_bench.py::test_write_run_never_overwrites PASSED        [ 19%]
+correctness/test_bench.py::test_run_json_stays_valid_json_with_nan_and_inf PASSED [ 19%]
+correctness/test_bench.py::test_slug PASSED                              [ 20%]
+correctness/test_bench.py::test_parse_turns_flags_into_overrides PASSED  [ 20%]
+correctness/test_bench.py::test_parse_accepts_overrides_on_both_sides_of_the_flags PASSED [ 20%]
+correctness/test_bench.py::test_main_writes_a_complete_valid_run[reversible] PASSED [ 21%]
+correctness/test_bench.py::test_main_times_whole_blocks_and_the_step_parts[reversible] PASSED [ 21%]
+correctness/test_bench.py::test_main_backward_parts_add_up[reversible] PASSED [ 21%]
+correctness/test_bench.py::test_main_measures_checkpoint_save[reversible] PASSED [ 22%]
+correctness/test_bench.py::test_main_flags_a_run_with_the_wrong_vocabulary[reversible] PASSED [ 22%]
+correctness/test_bench.py::test_main_against_exit_codes[reversible] PASSED [ 22%]
+correctness/test_bench.py::test_no_system_section_off_cuda[reversible] PASSED [ 23%]
+correctness/test_bench.py::test_layer_timer_event_allocation_is_reported_in_json[reversible] PASSED [ 23%]
+correctness/test_bench.py::test_main_writes_a_complete_valid_run[plain] PASSED [ 24%]
+correctness/test_bench.py::test_main_times_whole_blocks_and_the_step_parts[plain] PASSED [ 24%]
+correctness/test_bench.py::test_main_backward_parts_add_up[plain] PASSED [ 24%]
+correctness/test_bench.py::test_main_measures_checkpoint_save[plain] PASSED [ 25%]
+correctness/test_bench.py::test_main_flags_a_run_with_the_wrong_vocabulary[plain] PASSED [ 25%]
+correctness/test_bench.py::test_main_against_exit_codes[plain] PASSED    [ 25%]
+correctness/test_bench.py::test_no_system_section_off_cuda[plain] PASSED [ 26%]
+correctness/test_bench.py::test_layer_timer_event_allocation_is_reported_in_json[plain] PASSED [ 26%]
+correctness/test_bench.py::test_main_rejects_an_unknown_mode PASSED      [ 26%]
+correctness/test_bench.py::test_parse_repeat_defaults_to_one_run PASSED  [ 27%]
+correctness/test_bench.py::test_repeat_cmd_is_one_run_with_a_new_tag_against_the_first PASSED [ 27%]
+correctness/test_bench.py::test_repeat_runs_every_run_in_a_child_and_the_first_without_against PASSED [ 28%]
+correctness/test_bench.py::test_repeat_fails_when_a_later_run_is_killed PASSED [ 28%]
+correctness/test_bench.py::test_repeat_writes_one_json_per_run_and_passes_when_they_agree PASSED [ 28%]
+correctness/test_bench.py::test_repeat_fails_with_exit_code_2_when_the_second_run_is_slower PASSED [ 29%]
+correctness/test_bench.py::test_without_repeat_one_json_is_written PASSED [ 29%]
+correctness/test_bench.py::test_run_json_has_mean_and_std_for_the_step PASSED [ 29%]
+correctness/test_bench.py::test_trace_with_layer_writes_one_small_trace_per_slowest_part PASSED [ 30%]
+correctness/test_bench.py::test_trace_without_layer_says_why_there_are_no_parts PASSED [ 30%]
+correctness/test_bench.py::test_rule_checks_flag_an_unknown_dirty_state PASSED [ 30%]
+correctness/test_bench.py::test_clean_json_reports_event_allocation_count PASSED [ 31%]
+correctness/test_bench.py::test_clean_warns_if_timer_allocated_events_during_steps PASSED [ 31%]
+correctness/test_bench.py::test_comm_preallocates_timing_events_and_exports_counter PASSED [ 32%]
+correctness/test_bench.py::test_layer_event_allocation_warns_for_both_passes PASSED [ 32%]
+correctness/test_bench.py::test_communication_warning_is_emitted_only_for_nonzero_counter PASSED [ 32%]
+correctness/test_bench.py::test_inner_pool_warning_and_json PASSED       [ 33%]
+correctness/test_bench.py::test_run_layer_copies_inner_pool_count PASSED [ 33%]
+correctness/test_ce.py::test_chunked_matches_plain_and_definition[none] PASSED [ 33%]
+correctness/test_ce.py::test_chunked_matches_plain_and_definition[scattered] PASSED [ 34%]
+correctness/test_ce.py::test_chunked_matches_plain_and_definition[half] PASSED [ 34%]
+correctness/test_ce.py::test_chunked_matches_plain_and_definition[one_row] PASSED [ 34%]
+correctness/test_ce.py::test_chunked_matches_plain_and_definition[one_left] PASSED [ 35%]
+correctness/test_ce.py::test_chunked_when_chunks_do_not_divide_the_token_count[3-7-4] PASSED [ 35%]
+correctness/test_ce.py::test_chunked_when_chunks_do_not_divide_the_token_count[1-5-8] PASSED [ 36%]
+correctness/test_ce.py::test_chunked_when_chunks_do_not_divide_the_token_count[2-16-3] PASSED [ 36%]
+correctness/test_ce.py::test_chunked_when_chunks_do_not_divide_the_token_count[2-16-32] PASSED [ 36%]
+correctness/test_ce.py::test_chunked_loss_is_zero_when_every_target_is_ignored PASSED [ 37%]
+correctness/test_framework.py::test_rel_err_one_percent PASSED           [ 37%]
+correctness/test_framework.py::test_rel_err_shape_mismatch PASSED        [ 37%]
+correctness/test_framework.py::test_rel_err_nan PASSED                   [ 38%]
+correctness/test_framework.py::test_toy_correct_passes PASSED            [ 38%]
+correctness/test_framework.py::test_toy_scaled_fails PASSED              [ 38%]
+correctness/test_framework.py::test_wrong_gradient_fails PASSED          [ 39%]
+correctness/test_framework.py::test_nan_output_fails PASSED              [ 39%]
+correctness/test_framework.py::test_wrong_shape_fails PASSED             [ 40%]
+correctness/test_framework.py::test_every_registered_pair_scaled_fails[_framework.toy] PASSED [ 40%]
+correctness/test_framework.py::test_every_registered_pair_scaled_fails[attention.causal] PASSED [ 40%]
+correctness/test_framework.py::test_every_registered_pair_scaled_fails[attention.causal.fallback] PASSED [ 41%]
+correctness/test_framework.py::test_every_registered_pair_scaled_fails[attention.causal.lab] PASSED [ 41%]
+correctness/test_framework.py::test_every_registered_pair_scaled_fails[attention.causal.lab_fallback] PASSED [ 41%]
+correctness/test_framework.py::test_every_registered_pair_scaled_fails[attention.causal.mha] PASSED [ 42%]
+correctness/test_framework.py::test_every_registered_pair_scaled_fails[attention.causal.mqa] PASSED [ 42%]
+correctness/test_framework.py::test_every_registered_pair_scaled_fails[attention.causal.mqa_fallback] PASSED [ 42%]
+correctness/test_framework.py::test_every_registered_pair_scaled_fails[ke1.cached] PASSED [ 43%]
+correctness/test_framework.py::test_every_registered_pair_scaled_fails[ke1.cached.edge] PASSED [ 43%]
+correctness/test_framework.py::test_every_registered_pair_scaled_fails[ke1.dynamic] PASSED [ 44%]
+correctness/test_framework.py::test_every_registered_pair_scaled_fails[ke1.dynamic.edge] PASSED [ 44%]
+correctness/test_framework.py::test_every_registered_pair_scaled_fails[model.base] PASSED [ 44%]
+correctness/test_framework.py::test_every_registered_pair_scaled_fails[model.lab_small] PASSED [ 45%]
+correctness/test_framework.py::test_every_registered_pair_scaled_fails[model.lab_small.chunked] PASSED [ 45%]
+correctness/test_framework.py::test_every_registered_pair_scaled_fails[moe.loop] PASSED [ 45%]
+correctness/test_framework.py::test_every_registered_pair_scaled_fails[moe.loop.idle] PASSED [ 46%]
+correctness/test_framework.py::test_every_registered_pair_scaled_fails[moe.loop.top3] PASSED [ 46%]
+correctness/test_framework.py::test_every_registered_pair_scaled_fails[moe.sorted] PASSED [ 46%]
+correctness/test_framework.py::test_every_registered_pair_scaled_fails[moe.sorted.idle] PASSED [ 47%]
+correctness/test_framework.py::test_every_registered_pair_scaled_fails[moe.sorted.top3] PASSED [ 47%]
+correctness/test_framework.py::test_every_registered_pair_scaled_fails[reversible.mlp] PASSED [ 48%]
+correctness/test_framework.py::test_every_registered_pair_scaled_fails[reversible.moe] PASSED [ 48%]
+correctness/test_framework.py::test_two_outputs_one_backward PASSED      [ 48%]
+correctness/test_framework.py::test_unused_param_has_no_grad_on_both_sides PASSED [ 49%]
+correctness/test_framework.py::test_detached_fast_output_fails PASSED    [ 49%]
+correctness/test_framework.py::test_tolerances_per_dtype PASSED          [ 49%]
+correctness/test_framework.py::test_output_structure_matching_metadata_passes PASSED [ 50%]
+correctness/test_framework.py::test_output_structure_tensor_vs_none_fails PASSED [ 50%]
+correctness/test_framework.py::test_output_structure_tuple_length_mismatch_fails PASSED [ 50%]
+correctness/test_framework.py::test_output_structure_metadata_value_mismatch_fails PASSED [ 51%]
+correctness/test_framework.py::test_output_structure_list_vs_tuple_fails PASSED [ 51%]
+correctness/test_framework.py::test_output_structure_python_float_precision_difference_passes PASSED [ 52%]
+correctness/test_framework.py::test_output_structure_python_float_large_difference_fails PASSED [ 52%]
+correctness/test_framework.py::test_output_structure_nonfinite_float_fails[nan-nan] PASSED [ 52%]
+correctness/test_framework.py::test_output_structure_nonfinite_float_fails[inf-inf] PASSED [ 53%]
+correctness/test_framework.py::test_output_structure_python_float_near_zero_passes PASSED [ 53%]
+correctness/test_framework.py::test_output_structure_nested_tensor_wrong_value_fails PASSED [ 53%]
+correctness/test_framework.py::test_output_structure_nested_tensors_correct_pass PASSED [ 54%]
+correctness/test_framework.py::test_output_structure_nested_metadata_still_fails PASSED [ 54%]
+correctness/test_framework.py::test_output_structure_nested_container_type_mismatch_fails PASSED [ 54%]
+correctness/test_ke.py::test_pair[ke1.dynamic] PASSED                    [ 55%]
+correctness/test_ke.py::test_pair[ke1.dynamic.edge] PASSED               [ 55%]
+correctness/test_ke.py::test_pair[ke1.dynamic.bf16] PASSED               [ 56%]
+correctness/test_ke.py::test_pair[ke1.cached] PASSED                     [ 56%]
+correctness/test_ke.py::test_pair[ke1.cached.edge] PASSED                [ 56%]
+correctness/test_ke.py::test_pair[ke1.cached.bf16] PASSED                [ 57%]
+correctness/test_ke.py::test_one_pair_per_mode_and_table PASSED          [ 57%]
+correctness/test_ke.py::test_dynamic_and_cached_agree PASSED             [ 57%]
+correctness/test_ke.py::test_codec_rows_are_z_normalised[dynamic] PASSED [ 58%]
+correctness/test_ke.py::test_codec_rows_are_z_normalised[cached] PASSED  [ 58%]
+correctness/test_ke.py::test_bytes_past_lens_are_ignored[dynamic] PASSED [ 58%]
+correctness/test_ke.py::test_bytes_past_lens_are_ignored[cached] PASSED  [ 59%]
+correctness/test_ke.py::test_the_same_id_gives_the_same_vector[dynamic] PASSED [ 59%]
+correctness/test_ke.py::test_the_same_id_gives_the_same_vector[cached] PASSED [ 60%]
+correctness/test_ke.py::test_real_brahmic_tokenizer_byte_table_codec PASSED [ 60%]
+correctness/test_ke.py::test_leading_dimensions_are_kept[dynamic] PASSED [ 60%]
+correctness/test_ke.py::test_leading_dimensions_are_kept[cached] PASSED  [ 61%]
+correctness/test_ke.py::test_projection_has_no_bias_and_the_documented_init PASSED [ 61%]
+correctness/test_ke.py::test_constructor_guards PASSED                   [ 61%]
+correctness/test_ke.py::test_a_token_longer_than_P_is_normalised_with_L_truncated_to_P XFAIL [ 62%]
+correctness/test_model.py::test_pair[model.lab_small] PASSED             [ 62%]
+correctness/test_model.py::test_pair[model.base] PASSED                  [ 62%]
+correctness/test_model.py::test_pair[model.lab_small.chunked] PASSED     [ 63%]
+correctness/test_model.py::test_pair[model.lab_small.bf16] PASSED        [ 63%]
+correctness/test_moe.py::test_pair[moe.loop] PASSED                      [ 64%]
+correctness/test_moe.py::test_pair[moe.loop.idle] PASSED                 [ 64%]
+correctness/test_moe.py::test_pair[moe.loop.top3] PASSED                 [ 64%]
+correctness/test_moe.py::test_pair[moe.loop.bf16] PASSED                 [ 65%]
+correctness/test_moe.py::test_pair[moe.sorted] PASSED                    [ 65%]
+correctness/test_moe.py::test_pair[moe.sorted.idle] PASSED               [ 65%]
+correctness/test_moe.py::test_pair[moe.sorted.top3] PASSED               [ 66%]
+correctness/test_moe.py::test_pair[moe.sorted.bf16] PASSED               [ 66%]
+correctness/test_moe.py::test_one_set_of_pairs_per_dispatch PASSED       [ 66%]
+correctness/test_moe.py::test_idle_expert_gets_no_tokens PASSED          [ 67%]
+correctness/test_moe.py::test_replay_reproduces_forward[loop] PASSED     [ 67%]
+correctness/test_moe.py::test_replay_reproduces_forward[sorted] PASSED   [ 68%]
+correctness/test_moe.py::test_replay_holds_a_near_tie[loop] PASSED       [ 68%]
+correctness/test_moe.py::test_replay_holds_a_near_tie[sorted] PASSED     [ 68%]
+correctness/test_moe.py::test_replay_overrides_a_clear_switch[loop] PASSED [ 69%]
+correctness/test_moe.py::test_replay_overrides_a_clear_switch[sorted] PASSED [ 69%]
+correctness/test_moe.py::test_router_bias_steers_selection_not_gates PASSED [ 69%]
+correctness/test_moe.py::test_router_runs_in_fp32_under_autocast PASSED  [ 70%]
+correctness/test_moe.py::test_update_bias_moves_toward_balance[loop] PASSED [ 70%]
+correctness/test_moe.py::test_update_bias_moves_toward_balance[sorted] PASSED [ 70%]
+correctness/test_moe.py::test_no_counts_in_eval PASSED                   [ 71%]
+correctness/test_moe.py::test_shared_expert_runs_on_every_token PASSED   [ 71%]
+correctness/test_moe.py::test_lab_init_matches_dense_scale PASSED        [ 72%]
+correctness/test_optimizer.py::test_optimizer_ownership_and_norm_gains[loop-table] PASSED [ 72%]
+correctness/test_optimizer.py::test_optimizer_ownership_and_norm_gains[loop-ke1] PASSED [ 72%]
+correctness/test_optimizer.py::test_optimizer_ownership_and_norm_gains[batched-table] PASSED [ 73%]
+correctness/test_optimizer.py::test_optimizer_ownership_and_norm_gains[batched-ke1] PASSED [ 73%]
+correctness/test_optimizer.py::test_pure_adamw_owns_every_parameter_and_uses_expected_settings PASSED [ 73%]
+correctness/test_optimizer.py::test_muon_update_and_missing_gradient_skip PASSED [ 74%]
+correctness/test_optimizer.py::test_muon_five_step_update_matches_independent_reference[shape0] PASSED [ 74%]
+correctness/test_optimizer.py::test_muon_five_step_update_matches_independent_reference[shape1] PASSED [ 74%]
+correctness/test_optimizer.py::test_batched_newton_schulz_matches_per_matrix_reference[shape0] PASSED [ 75%]
+correctness/test_optimizer.py::test_batched_newton_schulz_matches_per_matrix_reference[shape1] PASSED [ 75%]
+correctness/test_optimizer.py::test_batched_newton_schulz_matches_per_matrix_reference[shape2] PASSED [ 76%]
+correctness/test_optimizer.py::test_batched_muon_matches_loop_with_momentum_decay_and_missing_grad[shape0] PASSED [ 76%]
+correctness/test_optimizer.py::test_batched_muon_matches_loop_with_momentum_decay_and_missing_grad[shape1] PASSED [ 76%]
+correctness/test_optimizer.py::test_build_optimizer_selects_batched_muon_from_config PASSED [ 77%]
+correctness/test_optimizer.py::test_pure_adamw_two_steps_match_independent_reference PASSED [ 77%]
+correctness/test_optimizer.py::test_polar_muon_adamw_is_one_optimizer_and_matches_reference PASSED [ 77%]
+correctness/test_optimizer.py::test_polar_muon_rectangular_scaling_matches_reference[shape0] PASSED [ 78%]
+correctness/test_optimizer.py::test_polar_muon_rectangular_scaling_matches_reference[shape1] PASSED [ 78%]
+correctness/test_optimizer.py::test_hybrid_optimizer_state_dict_resumes_identically PASSED [ 78%]
+correctness/test_optimizer.py::test_grad_scaler_skips_both_hybrid_optimizers_on_overflow PASSED [ 79%]
+correctness/test_optimizer.py::test_cosine_learning_rate_schedule PASSED [ 79%]
+correctness/test_parts.py::test_slowest_parts_sums_layers_and_skips_containers PASSED [ 80%]
+correctness/test_parts.py::test_slowest_parts_never_lists_phases_parents_or_experts PASSED [ 80%]
+correctness/test_parts.py::test_instance_is_the_middle_layer PASSED      [ 80%]
+correctness/test_parts.py::test_cut_keeps_the_region_and_the_kernels_it_launched PASSED [ 81%]
+correctness/test_parts.py::test_cut_backward_segments_between_points PASSED [ 81%]
+correctness/test_parts.py::test_cut_returns_none_for_a_region_not_in_the_trace PASSED [ 81%]
+correctness/test_parts.py::test_size_cap_samples_calls_across_the_step PASSED [ 82%]
+correctness/test_parts.py::test_write_part_traces PASSED                 [ 82%]
+correctness/test_parts.py::test_sampler_does_nothing_off_cuda PASSED     [ 82%]
+correctness/test_parts.py::test_sampler_parses_lines_and_summarises PASSED [ 83%]
+correctness/test_parts.py::test_sampler_end_to_end_with_a_fake_nvidia_smi PASSED [ 83%]
+correctness/test_report.py::test_same_clean_commit_passes PASSED         [ 84%]
+correctness/test_report.py::test_same_commit_muon_implementation_variants_can_be_compared PASSED [ 84%]
+correctness/test_report.py::test_same_commit_moe_dispatch_variants_can_be_compared PASSED [ 84%]
+correctness/test_report.py::test_same_implementation_is_not_labelled_ab PASSED [ 85%]
+correctness/test_report.py::test_moe_setting_other_than_dispatch_is_still_refused PASSED [ 85%]
+correctness/test_report.py::test_different_commit_is_refused PASSED      [ 85%]
+correctness/test_report.py::test_dirty_or_unknown_tree_is_refused PASSED [ 86%]
+correctness/test_report.py::test_render_shows_per_stage_cuda_allocation_diagnostics PASSED [ 86%]
+correctness/test_report.py::test_render_preserves_exact_warning_text_and_no_false_ke_claim PASSED [ 86%]
+correctness/test_report.py::test_render_flags_inner_pool_allocation_when_timer_count_is_zero PASSED [ 87%]
+correctness/test_reversible.py::test_pair[reversible.mlp] PASSED         [ 87%]
+correctness/test_reversible.py::test_pair[reversible.moe] PASSED         [ 88%]
+correctness/test_reversible.py::test_inversion[mlp] PASSED               [ 88%]
+correctness/test_reversible.py::test_inversion[moe] PASSED               [ 88%]
+correctness/test_reversible.py::test_bf16_reconstruction_moe[9] PASSED   [ 89%]
+correctness/test_reversible.py::test_bf16_reconstruction_moe[24] PASSED  [ 89%]
+correctness/test_reversible.py::test_bf16_grad_agrees_with_plain PASSED  [ 89%]
+correctness/test_reversible.py::test_step_size_h_scales_update_and_inversion[0.5] PASSED [ 90%]
+correctness/test_reversible.py::test_step_size_h_scales_update_and_inversion[1.0] PASSED [ 90%]
+correctness/test_timer.py::test_region_is_one_shared_noop_when_no_recorder PASSED [ 90%]
+correctness/test_timer.py::test_mark_returns_its_input_and_adds_no_autograd_node PASSED [ 91%]
+correctness/test_timer.py::test_phase_and_point_do_nothing_without_a_recorder PASSED [ 91%]
+correctness/test_timer.py::test_a_spy_recorder_is_never_called_after_it_is_removed PASSED [ 92%]
+correctness/test_timer.py::test_levels_above_max_level_are_not_recorded PASSED [ 92%]
+correctness/test_timer.py::test_off_switch_costs_microseconds_not_milliseconds PASSED [ 92%]
+correctness/test_timer.py::test_a_known_sleep_is_recorded_as_about_that_many_ms PASSED [ 93%]
+correctness/test_timer.py::test_nested_regions_nest_and_phase_prefixes_the_name PASSED [ 93%]
+correctness/test_timer.py::test_recorder_ignores_levels_above_its_max_level PASSED [ 93%]
+correctness/test_timer.py::test_points_keep_the_order_they_happened_in PASSED [ 94%]
+correctness/test_timer.py::test_collect_twice_gives_the_same_answer PASSED [ 94%]
+correctness/test_timer.py::test_step_timer_measures_each_step_and_guards_misuse PASSED [ 94%]
+correctness/test_timer.py::test_stats_of_a_known_list PASSED             [ 95%]
+correctness/test_timer.py::test_stats_has_mean_and_std PASSED            [ 95%]
+correctness/test_timer.py::test_stats_of_an_empty_list_has_every_key PASSED [ 96%]
+correctness/test_timer.py::test_recording_regions_does_not_sync_the_host PASSED [ 96%]
+correctness/test_timer.py::test_cuda_step_timer_agrees_with_a_synchronized_wall_clock PASSED [ 96%]
+correctness/test_timer.py::test_step_timer_expected_steps_validates_input PASSED [ 97%]
+correctness/test_timer.py::test_cuda_event_preallocation_and_exhaustion PASSED [ 97%]
+correctness/test_timer.py::test_step_timer_reset_rejects_open_step_on_cpu PASSED [ 97%]
+correctness/test_timer.py::test_cuda_reset_synchronizes_before_event_reuse PASSED [ 98%]
+correctness/test_timer.py::test_cuda_counter_remains_cumulative_across_reset PASSED [ 98%]
+correctness/test_tokenizer.py::test_source_vocabulary_and_byte_table PASSED [ 98%]
+correctness/test_tokenizer.py::test_untrusted_artifact_rejected PASSED   [ 99%]
+correctness/test_tokenizer.py::test_uint32_and_synthetic_use_real_vocabulary PASSED [ 99%]
+correctness/test_tokenizer_optimizer.py::test_real_tokenizer_ke_model_takes_optimizer_step PASSED [100%]
+
+=============================== warnings summary ===============================
+../../../../usr/local/lib/python3.11/site-packages/torch/cuda/__init__.py:61
+  /usr/local/lib/python3.11/site-packages/torch/cuda/__init__.py:61: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+    import pynvml  # type: ignore[import]
+
+correctness/test_bench.py::test_trace_with_layer_writes_one_small_trace_per_slowest_part
+  /usr/local/lib/python3.11/site-packages/torch/profiler/profiler.py:224: UserWarning: Warning: Profiler clears events at the end of each cycle.Only events from the current cycle will be reported.To keep events across cycles, set acc_events=True.
+    _warn_once(
+
+correctness/test_timer.py::test_recording_regions_does_not_sync_the_host
+  /usr/local/lib/python3.11/site-packages/torch/cuda/__init__.py:1270: UserWarning: Synchronization debug mode is a prototype feature and does not yet detect all synchronizing operations (Triggered internally at /pytorch/torch/csrc/cuda/Module.cpp:1003.)
+    torch._C._cuda_set_sync_debug_mode(debug_mode)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+==== correctness: every pair, fast vs fp64 reference (worst relative error) ====
+used = error / tolerance. repeat = two runs of the fast code are bit-identical.
+pair                             dtype        output  used    gradient  used   repeat     result
+------------------------------------------------------------------------------------------------
+_framework.output_structure      float32    0.00e+00   <1%           -         same       PASS
+_framework.toy                   float32    0.00e+00   <1%    2.21e-08   <1%   same       PASS
+_framework.two_outputs           float32    0.00e+00   <1%    4.35e-08   <1%   same       PASS
+_framework.unused_param          float32    1.14e-08   <1%    1.19e-08   <1%   same       PASS
+
+attention.causal                 float32    2.03e-07    2%    3.16e-07   <1%   same       PASS
+attention.causal.bf16            bfloat16   5.57e-03   56%    7.42e-03   25%   same       PASS
+attention.causal.fallback        float32    3.01e-07    3%    5.87e-07   <1%   same       PASS
+attention.causal.lab             float32    2.12e-07    2%    3.26e-07   <1%   same       PASS
+attention.causal.lab_fallback    float32    3.01e-07    3%    6.16e-07   <1%   same       PASS
+attention.causal.mha             float32    3.02e-07    3%    5.61e-07   <1%   same       PASS
+attention.causal.mqa             float32    1.87e-07    2%    3.42e-07   <1%   same       PASS
+attention.causal.mqa_fallback    float32    2.43e-07    2%    5.60e-07   <1%   same       PASS
+
+ke1.cached                       float32    2.77e-07    3%    1.57e-07   <1%   same       PASS
+ke1.cached.bf16                  bfloat16   2.58e-03   26%    2.51e-03    8%   same       PASS
+ke1.cached.edge                  float32    2.92e-07    3%    9.20e-08   <1%   same       PASS
+ke1.dynamic                      float32    2.72e-07    3%    1.63e-07   <1%   same       PASS
+ke1.dynamic.bf16                 bfloat16   2.53e-03   25%    2.51e-03    8%   same       PASS
+ke1.dynamic.edge                 float32    3.01e-07    3%    1.12e-07   <1%   same       PASS
+
+model.base                       float32    3.40e-07    3%    8.41e-07    2%   same       PASS
+model.lab_small                  float32    4.19e-07    4%    1.58e-06    3%   same       PASS
+model.lab_small.bf16             bfloat16   3.75e-03   37%    1.14e-02   38%   same       PASS
+model.lab_small.chunked          float32    6.73e-08   <1%    1.48e-06    1%   same       PASS
+
+moe.loop                         float32    1.61e-07    2%    3.22e-07   <1%   same       PASS
+moe.loop.bf16                    bfloat16   4.86e-03   49%    5.81e-03   19%   same       PASS
+moe.loop.idle                    float32    1.60e-07    2%    3.36e-07   <1%   same       PASS
+moe.loop.top3                    float32    1.71e-07    2%    2.89e-07   <1%   same       PASS
+moe.sorted                       float32    2.18e-07    2%    3.74e-07   <1%   same       PASS
+moe.sorted.bf16                  bfloat16   4.39e-03   44%    5.81e-03   19%   same       PASS
+moe.sorted.idle                  float32    2.19e-07    2%    5.76e-07    1%   same       PASS
+moe.sorted.top3                  float32    2.66e-07    3%    5.46e-07    1%   same       PASS
+
+reversible.mlp                   float32    3.65e-08   <1%    4.15e-07   <1%   same       PASS
+reversible.moe                   float32    3.62e-08   <1%    3.26e-07   <1%   same       PASS
+------------------------------------------------------------------------------------------------
+32 pairs: 32 PASS, 0 FAIL.   tolerance (output / gradient): float32 1e-05 / 5e-05, bfloat16 0.01 / 0.03
+================= 274 passed, 1 xfailed, 3 warnings in 53.99s ==================
+[exit code: 0]
+
+================================================================================
+SMOKE TEST: configs/lab_small.yaml on GPU
+================================================================================
+
+$ python -m perfkit.smoke --config configs/lab_small.yaml
+/usr/local/lib/python3.11/site-packages/torch/cuda/__init__.py:61: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+GPU: NVIDIA H200 | torch 2.11.0+cu128 | dtype torch.bfloat16 | B 32 | T 512 | config lab_small.yaml
+tokenizer: BrahmicTokenizer-131K | vocab 131072 | artifact /root/.cache/era-perf/BrahmicTokenizer-131K/tokenizer.json
+params total 79.9M, active 51.3M
+reversible reconstruction error: 2.4e-04  (OK)
+step   0  loss 11.841  2559 ms
+step  10  loss 9.906  686 ms
+step  20  loss 8.599  643 ms
+step  30  loss 7.786  609 ms
+
+loss 11.841 -> 7.394  (start should be ~ln(131072) = 11.78)
+step median 631.4 ms  p10 602.0  p90 669.9  -> 25,948 tokens/s
+peak memory 25.2 GB
+all weights finite: True
+[exit code: 0]
+
+================================================================================
+TASKS 1, 4, 5: Full Level-3 Benchmark with 2-Run Repeatability Gate (--level 3 --repeat 2)
+================================================================================
+
+$ python -m perfkit.bench --config configs/lab_small.yaml --level 3 --repeat 2 --tag h200_v1
+/usr/local/lib/python3.11/site-packages/torch/cuda/__init__.py:61: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+
+[bench] repeat: h200_v1 in a new process
+/usr/local/lib/python3.11/site-packages/torch/cuda/__init__.py:61: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+[bench] NVIDIA H200 | bf16 | B=32 T=512 V=131072 | modes clean,layer,trace,checkpoint,comm | level 3 | 150 steps after 10 warmup
+[bench] note: run.batch_size=auto: B=32 on this device
+[bench] clean ...
+[bench] layer (level 3) ...
+[bench] trace ...
+/usr/local/lib/python3.11/site-packages/torch/profiler/profiler.py:224: UserWarning: Warning: Profiler clears events at the end of each cycle.Only events from the current cycle will be reported.To keep events across cycles, set acc_events=True.
+  _warn_once(
+[bench] checkpoint ...
+
+NVIDIA H200 | bf16 | B=32 T=512 V=131072 | commit a60ff70cf8 | tag h200_v1
+step  median 449.42 ms  p10 322.03  p90 622.28  spread 66.8%   data 0.430 ms
+      36,456 tokens/s   MFU 1.2%   HFU 1.5%   peak mem 25.15 GB
+
+parts under the 5% rule (level <= 2), recorder overhead 0.62%
+  part                                median ms           p10..p90  % step  spread% lvl calls
+  data                                    0.460         0.44..0.50     0.2     13.9   1     1
+  fwd                                    67.600       61.27..76.58    22.5     22.7   1     1
+    fwd:embed                             1.948         1.94..1.96     0.6      1.3   2     1
+    fwd:stack                            49.302       42.98..58.27    16.4     31.0   1     1
+      fwd:block0                          4.611         3.21..6.86     1.5     79.1   2     1
+      fwd:block1                          6.122         3.71..8.66     2.0     80.9   2     1
+      fwd:block2                          5.183         3.65..8.51     1.7     93.9   2     1
+      fwd:block3                          5.749         3.73..7.79     1.9     70.5   2     1
+      fwd:block4                          5.547         3.91..7.55     1.8     65.6   2     1
+      fwd:block5                          5.284         3.84..7.28     1.8     65.2   2     1
+      fwd:block6                          4.757         3.73..7.33     1.6     75.5   2     1
+      fwd:block7                          5.268         3.69..8.48     1.8     90.7   2     1
+      fwd:block8                          4.487         3.64..8.21     1.5    101.9   2     1
+    fwd:head+loss                        16.241       16.15..16.31     5.4      1.0   2     1
+  bwd                                   154.888     141.82..172.17    51.6     19.6   1     1
+    bwd:head+loss                        16.202       16.19..16.22     5.4      0.2   2     1
+    bwd:stack                           138.457     125.40..155.73    46.2     21.9   1     1
+      bwd:block8                         13.573       11.66..19.77     4.5     59.7   2     1
+      bwd:block7                         14.795       12.19..21.54     4.9     63.2   2     1
+      bwd:block6                         14.440       12.12..19.25     4.8     49.4   2     1
+      bwd:block5                         14.806       12.41..20.34     4.9     53.6   2     1
+      bwd:block4                         15.065       12.53..20.62     5.0     53.7   2     1
+      bwd:block3                         14.970       12.16..18.45     5.0     42.0   2     1
+      bwd:block2                         15.251       11.97..22.10     5.1     66.4   2     1
+      bwd:block1                         15.113       12.22..18.86     5.0     43.9   2     1
+      bwd:block0                         14.382       11.32..18.72     4.8     51.4   2     1
+    bwd:embed                             0.214         0.21..0.23     0.1     10.0   2     1
+  opt                                    75.145       74.30..84.16    25.1     13.1   1     1
+    opt:opt.clip                          2.314         2.22..2.45     0.8      9.9   2     1
+    opt:opt.muon                         71.136       70.41..80.07    23.7     13.6   2     1
+    opt:opt.adamw                         0.710         0.69..0.75     0.2      7.9   2     1
+
+inside the blocks (information only, not gated; summed over layers), top 15:
+  bwd:block*.grad                                 73.996 ms   24.7%
+  opt:opt.muon.ns                                 68.500 ms   22.8%
+  fwd:block*.moe.dispatch                         37.492 ms   12.5%
+  fwd:block*.moe.dispatch.expert*                 35.379 ms   11.8%
+  bwd.recompute:block*                            28.083 ms    9.4%
+  bwd.invert:block*                               26.341 ms    8.8%
+  bwd.recompute:block*.moe.dispatch               20.533 ms    6.8%
+  bwd.invert:block*.moe.dispatch                  19.529 ms    6.5%
+  bwd.recompute:block*.moe.dispatch.expert*       19.110 ms    6.4%
+  bwd.invert:block*.moe.dispatch.expert*          18.113 ms    6.0%
+  fwd:embed.ke                                     1.913 ms    0.6%
+  fwd:block*.moe.router                            1.405 ms    0.5%
+  fwd:block*.moe.shared                            1.217 ms    0.4%
+  bwd.recompute:block*.moe.shared                  1.215 ms    0.4%
+  bwd.invert:block*.moe.shared                     1.188 ms    0.4%
+
+checkpoint save 1445.8 ms (to CPU 22.0, write 1423.1), 746.6 MB, 525 MB/s
+MoE all-to-all not measured (one GPU; run: torchrun --nproc_per_node 2 -m perfkit.bench ... --modes comm); 32.0 MB/call, 72 calls/step
+
+slowest parts (summed over layers):
+  1. bwd:block*.grad                              74.00 ms   16.5%  trace results/runs/h200_v1_parts/1_bwd_block4.grad.json
+  2. opt:opt.muon.ns                              68.50 ms   15.2%  trace results/runs/h200_v1_parts/2_opt_opt.muon.ns.json
+  3. fwd:block*.moe.dispatch                      37.49 ms    8.3%  trace results/runs/h200_v1_parts/3_fwd_block4.moe.dispatch.json
+  4. bwd.recompute:block*.moe.dispatch            20.53 ms    4.6%  trace results/runs/h200_v1_parts/4_bwd.recompute_block4.moe.dispatch.json
+  5. bwd.invert:block*.moe.dispatch               19.53 ms    4.3%  trace results/runs/h200_v1_parts/5_bwd.invert_block4.moe.dispatch.json
+GPU during clean (70 samples): util 29%  mem 31067 MiB  SM 1980 MHz  185 W  38 C
+trace: GPU busy 22.1%, 18354 kernels/step, 433 host syncs/step  ->  /root/.cache/era-perf/traces/h200_v1.json
+
+[bench] run JSON -> results/runs/h200_v1.json
+[bench] report   -> results/runs/h200_v1.md
+[warn] 26 gated part(s) have p10..p90 spread > 10%, so may miss the 5% check: data, fwd, fwd:stack, fwd:block0, fwd:block1, fwd:block2 (+20 more)
+
+[bench] repeat: h200_v1-run2 in a new process
+/usr/local/lib/python3.11/site-packages/torch/cuda/__init__.py:61: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+[bench] NVIDIA H200 | bf16 | B=32 T=512 V=131072 | modes clean,layer,trace,checkpoint,comm | level 3 | 150 steps after 10 warmup
+[bench] note: run.batch_size=auto: B=32 on this device
+[bench] clean ...
+[bench] layer (level 3) ...
+[bench] trace ...
+/usr/local/lib/python3.11/site-packages/torch/profiler/profiler.py:224: UserWarning: Warning: Profiler clears events at the end of each cycle.Only events from the current cycle will be reported.To keep events across cycles, set acc_events=True.
+  _warn_once(
+[bench] checkpoint ...
+
+NVIDIA H200 | bf16 | B=32 T=512 V=131072 | commit a60ff70cf8 | tag h200_v1-run2
+step  median 457.83 ms  p10 338.18  p90 641.63  spread 66.3%   data 0.460 ms
+      35,786 tokens/s   MFU 1.2%   HFU 1.5%   peak mem 25.15 GB
+
+parts under the 5% rule (level <= 2), recorder overhead 0.08%
+  part                                median ms           p10..p90  % step  spread% lvl calls
+  data                                    0.543         0.47..0.75     0.2     51.1   1     1
+  fwd                                    70.048       62.99..77.66    21.8     20.9   1     1
+    fwd:embed                             1.975         1.96..2.03     0.6      3.6   2     1
+    fwd:stack                            51.665       44.62..59.27    16.1     28.4   1     1
+      fwd:block0                          4.430         3.59..7.06     1.4     78.2   2     1
+      fwd:block1                          6.007         3.85..7.70     1.9     64.1   2     1
+      fwd:block2                          6.320         4.22..9.11     2.0     77.4   2     1
+      fwd:block3                          4.576         3.73..7.34     1.4     79.0   2     1
+      fwd:block4                          4.926         3.97..8.07     1.5     83.2   2     1
+      fwd:block5                          5.993         4.07..8.25     1.9     69.8   2     1
+      fwd:block6                          5.143         4.06..7.37     1.6     64.3   2     1
+      fwd:block7                          5.199         3.80..7.94     1.6     79.5   2     1
+      fwd:block8                          5.394         3.91..8.21     1.7     79.8   2     1
+    fwd:head+loss                        16.246       16.18..16.31     5.1      0.8   2     1
+  bwd                                   163.039     147.12..181.38    50.8     21.0   1     1
+    bwd:head+loss                        16.208       16.19..16.22     5.1      0.2   2     1
+    bwd:stack                           146.603     130.63..164.90    45.7     23.4   1     1
+      bwd:block8                         15.466       12.58..22.71     4.8     65.5   2     1
+      bwd:block7                         15.567       12.75..20.47     4.9     49.6   2     1
+      bwd:block6                         15.574       13.17..21.17     4.9     51.3   2     1
+      bwd:block5                         16.359       13.24..22.30     5.1     55.4   2     1
+      bwd:block4                         15.231       13.06..21.20     4.7     53.5   2     1
+      bwd:block3                         14.347       12.55..20.08     4.5     52.5   2     1
+      bwd:block2                         16.451       13.35..22.54     5.1     55.8   2     1
+      bwd:block1                         15.857       12.72..19.79     4.9     44.6   2     1
+      bwd:block0                         14.455       12.62..20.19     4.5     52.4   2     1
+    bwd:embed                             0.235         0.22..0.29     0.1     28.7   2     1
+  opt                                    84.745       79.72..88.96    26.4     10.9   1     1
+    opt:opt.clip                          2.526         2.38..2.86     0.8     19.2   2     1
+    opt:opt.muon                         80.177       75.16..84.37    25.0     11.5   2     1
+    opt:opt.adamw                         0.782         0.72..0.95     0.2     28.8   2     1
+
+inside the blocks (information only, not gated; summed over layers), top 15:
+  opt:opt.muon.ns                                 76.626 ms   23.9%
+  bwd:block*.grad                                 75.499 ms   23.5%
+  fwd:block*.moe.dispatch                         38.778 ms   12.1%
+  fwd:block*.moe.dispatch.expert*                 36.530 ms   11.4%
+  bwd.recompute:block*                            31.750 ms    9.9%
+  bwd.invert:block*                               29.646 ms    9.2%
+  bwd.recompute:block*.moe.dispatch               23.324 ms    7.3%
+  bwd.invert:block*.moe.dispatch                  22.056 ms    6.9%
+  bwd.recompute:block*.moe.dispatch.expert*       21.530 ms    6.7%
+  bwd.invert:block*.moe.dispatch.expert*          20.358 ms    6.3%
+  fwd:embed.ke                                     1.935 ms    0.6%
+  fwd:block*.moe.router                            1.571 ms    0.5%
+  bwd.recompute:block*.moe.router                  1.319 ms    0.4%
+  bwd.recompute:block*.moe.shared                  1.265 ms    0.4%
+  fwd:block*.moe.shared                            1.264 ms    0.4%
+
+checkpoint save 1614.3 ms (to CPU 23.0, write 1585.4), 746.6 MB, 471 MB/s
+MoE all-to-all not measured (one GPU; run: torchrun --nproc_per_node 2 -m perfkit.bench ... --modes comm); 32.0 MB/call, 72 calls/step
+
+slowest parts (summed over layers):
+  1. opt:opt.muon.ns                              76.63 ms   16.7%  trace results/runs/h200_v1-run2_parts/1_opt_opt.muon.ns.json
+  2. bwd:block*.grad                              75.50 ms   16.5%  trace results/runs/h200_v1-run2_parts/2_bwd_block4.grad.json
+  3. fwd:block*.moe.dispatch                      38.78 ms    8.5%  trace results/runs/h200_v1-run2_parts/3_fwd_block4.moe.dispatch.json
+  4. bwd.recompute:block*.moe.dispatch            23.32 ms    5.1%  trace results/runs/h200_v1-run2_parts/4_bwd.recompute_block4.moe.dispatch.json
+  5. bwd.invert:block*.moe.dispatch               22.06 ms    4.8%  trace results/runs/h200_v1-run2_parts/5_bwd.invert_block4.moe.dispatch.json
+GPU during clean (71 samples): util 26%  mem 31069 MiB  SM 1980 MHz  184 W  38 C
+trace: GPU busy 20.3%, 18364 kernels/step, 433 host syncs/step  ->  /root/.cache/era-perf/traces/h200_v1-run2.json
+
+[bench] run JSON -> results/runs/h200_v1-run2.json
+[bench] report   -> results/runs/h200_v1-run2.md
+[warn] 28 gated part(s) have p10..p90 spread > 10%, so may miss the 5% check: data, fwd, fwd:stack, fwd:block0, fwd:block1, fwd:block2 (+22 more)
+
+against results/runs/h200_v1.json (ms)
+5% check: step, step parts and whole blocks (level <= 2), tol 5%
+  part                                  this run     against  change          result
+  step (clean)                           457.827     449.416  1.9% slower     ok
+  data                                     0.543       0.460  18.1% slower    OUTSIDE
+  fwd                                     70.048      67.600  3.6% slower     ok
+  fwd:embed                                1.975       1.948  1.4% slower     ok
+  fwd:stack                               51.665      49.302  4.8% slower     ok
+  fwd:block0                               4.430       4.611  3.9% faster     ok
+  fwd:block1                               6.007       6.122  1.9% faster     ok
+  fwd:block2                               6.320       5.183  21.9% slower    OUTSIDE
+  fwd:block3                               4.576       5.749  20.4% faster    OUTSIDE
+  fwd:block4                               4.926       5.547  11.2% faster    OUTSIDE
+  fwd:block5                               5.993       5.284  13.4% slower    OUTSIDE
+  fwd:block6                               5.143       4.757  8.1% slower     OUTSIDE
+  fwd:block7                               5.199       5.268  1.3% faster     ok
+  fwd:block8                               5.394       4.487  20.2% slower    OUTSIDE
+  fwd:head+loss                           16.246      16.241  same            ok
+  bwd                                    163.039     154.888  5.3% slower     OUTSIDE
+  bwd:head+loss                           16.208      16.202  same            ok
+  bwd:stack                              146.603     138.457  5.9% slower     OUTSIDE
+  bwd:block8                              15.466      13.573  13.9% slower    OUTSIDE
+  bwd:block7                              15.567      14.795  5.2% slower     OUTSIDE
+  bwd:block6                              15.574      14.440  7.8% slower     OUTSIDE
+  bwd:block5                              16.359      14.806  10.5% slower    OUTSIDE
+  bwd:block4                              15.231      15.065  1.1% slower     ok
+  bwd:block3                              14.347      14.970  4.2% faster     ok
+  bwd:block2                              16.451      15.251  7.9% slower     OUTSIDE
+  bwd:block1                              15.857      15.113  4.9% slower     ok
+  bwd:block0                              14.455      14.382  0.5% slower     ok
+  bwd:embed                                0.235       0.214  9.9% slower     OUTSIDE
+  opt                                     84.745      75.145  12.8% slower    OUTSIDE
+  opt:opt.clip                             2.526       2.314  9.2% slower     OUTSIDE
+  opt:opt.muon                            80.177      71.136  12.7% slower    OUTSIDE
+  opt:opt.adamw                            0.782       0.710  10.2% slower    OUTSIDE
+  checkpoint save                       1614.264    1445.813  11.7% slower    OUTSIDE
+  FAIL: 20 of 33 gated parts outside 5% or missing
+
+[bench] repeat: 2 runs against h200_v1.json: FAIL
+[exit code: 2]
+
+$ python -m perfkit.report results/runs/h200_v1.json --against results/runs/h200_v1-run2.json --out results/runs/h200_v1_comparison.md
+usage: report.py [-h] [--compare COMPARE] [--baseline BASELINE]
+                 [--slowest SLOWEST] [--tol-pct TOL_PCT]
+                 [--gate-level GATE_LEVEL]
+                 run
+report.py: error: unrecognized arguments: --against results/runs/h200_v1-run2.json --out results/runs/h200_v1_comparison.md
+[exit code: 2]
+
+================================================================================
+TASK 5 (A/B): MoE Dispatch (loop vs sorted) & Muon (loop vs batched)
+================================================================================
+
+$ python -m perfkit.bench --config configs/lab_small.yaml --modes clean,layer --level 3 --tag h200_v1_moe_loop model.moe.dispatch=loop
+/usr/local/lib/python3.11/site-packages/torch/cuda/__init__.py:61: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+[bench] NVIDIA H200 | bf16 | B=32 T=512 V=131072 | modes clean,layer | level 3 | 150 steps after 10 warmup
+[bench] note: run.batch_size=auto: B=32 on this device
+[bench] clean ...
+[bench] layer (level 3) ...
+
+NVIDIA H200 | bf16 | B=32 T=512 V=131072 | commit a60ff70cf8 | tag h200_v1_moe_loop
+step  median 448.99 ms  p10 332.18  p90 624.96  spread 65.2%   data 0.471 ms
+      36,491 tokens/s   MFU 1.2%   HFU 1.5%   peak mem 25.15 GB
+
+parts under the 5% rule (level <= 2), recorder overhead 0.91%
+  part                                median ms           p10..p90  % step  spread% lvl calls
+  data                                    0.491         0.43..0.58     0.2     29.7   1     1
+  fwd                                    67.015       60.72..74.88    22.2     21.1   1     1
+    fwd:embed                             1.960         1.95..1.98     0.6      1.9   2     1
+    fwd:stack                            48.719       42.45..56.64    16.1     29.1   1     1
+      fwd:block0                          4.034         3.22..6.44     1.3     79.6   2     1
+      fwd:block1                          5.399         3.76..7.93     1.8     77.2   2     1
+      fwd:block2                          5.899         3.90..8.58     2.0     79.2   2     1
+      fwd:block3                          5.415         3.67..6.82     1.8     58.3   2     1
+      fwd:block4                          4.635         3.64..7.66     1.5     86.8   2     1
+      fwd:block5                          4.339         3.60..8.21     1.4    106.1   2     1
+      fwd:block6                          5.700         4.01..7.98     1.9     69.7   2     1
+      fwd:block7                          5.861         3.89..8.09     1.9     71.6   2     1
+      fwd:block8                          5.063         3.69..8.44     1.7     93.8   2     1
+    fwd:head+loss                        16.248       16.17..16.31     5.4      0.9   2     1
+  bwd                                   153.860     141.76..172.10    50.9     19.7   1     1
+    bwd:head+loss                        16.203       16.19..16.21     5.4      0.1   2     1
+    bwd:stack                           137.430     125.30..155.69    45.5     22.1   1     1
+      bwd:block8                         14.341       11.93..21.16     4.7     64.3   2     1
+      bwd:block7                         15.878       12.68..20.39     5.3     48.6   2     1
+      bwd:block6                         15.596       12.57..21.18     5.2     55.2   2     1
+      bwd:block5                         13.840       11.77..20.94     4.6     66.3   2     1
+      bwd:block4                         14.266       11.81..19.91     4.7     56.8   2     1
+      bwd:block3                         14.601       11.79..18.84     4.8     48.3   2     1
+      bwd:block2                         15.595       12.27..20.09     5.2     50.1   2     1
+      bwd:block1                         14.620       12.28..19.55     4.8     49.7   2     1
+      bwd:block0                         13.429       11.63..16.95     4.4     39.6   2     1
+    bwd:embed                             0.219         0.21..0.28     0.1     31.9   2     1
+  opt                                    79.393       74.46..83.40    26.3     11.3   1     1
+    opt:opt.clip                          2.465         2.30..2.67     0.8     15.2   2     1
+    opt:opt.muon                         75.118       70.46..79.04    24.8     11.4   2     1
+    opt:opt.adamw                         0.741         0.69..0.85     0.2     22.5   2     1
+
+inside the blocks (information only, not gated; summed over layers), top 15:
+  opt:opt.muon.ns                                 60.081 ms   19.9%
+  bwd:block*.grad                                 58.477 ms   19.3%
+  fwd:block*.moe.dispatch                         29.927 ms    9.9%
+  fwd:block*.moe.dispatch.expert*                 27.034 ms    8.9%
+  bwd.recompute:block*                            24.522 ms    8.1%
+  bwd.invert:block*                               23.005 ms    7.6%
+  bwd.recompute:block*.moe.dispatch               18.065 ms    6.0%
+  bwd.invert:block*.moe.dispatch                  17.217 ms    5.7%
+  bwd.recompute:block*.moe.dispatch.expert*       16.571 ms    5.5%
+  bwd.invert:block*.moe.dispatch.expert*          15.791 ms    5.2%
+  fwd:embed.ke                                     1.889 ms    0.6%
+  fwd:block*.moe.router                            1.191 ms    0.4%
+  bwd.recompute:block*.moe.shared                  1.155 ms    0.4%
+  fwd:block*.moe.shared                            1.152 ms    0.4%
+  bwd.invert:block*.moe.shared                     1.132 ms    0.4%
+GPU during clean (71 samples): util 26%  mem 31069 MiB  SM 1980 MHz  186 W  38 C
+
+[bench] run JSON -> results/runs/h200_v1_moe_loop.json
+[bench] report   -> results/runs/h200_v1_moe_loop.md
+[warn] rule 3b: checkpoint and comm not measured; add checkpoint,comm to --modes
+[warn] 28 gated part(s) have p10..p90 spread > 10%, so may miss the 5% check: data, fwd, fwd:stack, fwd:block0, fwd:block1, fwd:block2 (+22 more)
+[exit code: 0]
+
+$ python -m perfkit.bench --config configs/lab_small.yaml --modes clean,layer --level 3 --tag h200_v1_moe_sorted --against results/runs/h200_v1_moe_loop.json model.moe.dispatch=sorted
+/usr/local/lib/python3.11/site-packages/torch/cuda/__init__.py:61: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+[bench] NVIDIA H200 | bf16 | B=32 T=512 V=131072 | modes clean,layer | level 3 | 150 steps after 10 warmup
+[bench] note: run.batch_size=auto: B=32 on this device
+[bench] clean ...
+[bench] layer (level 3) ...
+
+NVIDIA H200 | bf16 | B=32 T=512 V=131072 | commit a60ff70cf8 | tag h200_v1_moe_sorted
+step  median 146.44 ms  p10 143.97  p90 149.24  spread 3.6%   data 0.322 ms
+      111,879 tokens/s   MFU 3.6%   HFU 4.6%   peak mem 25.15 GB
+
+parts under the 5% rule (level <= 2), recorder overhead 0.20%
+  part                                median ms           p10..p90  % step  spread% lvl calls
+  data                                    0.349         0.33..0.38     0.2     15.1   1     1
+  fwd                                    29.837       29.33..30.83    20.6      5.0   1     1
+    fwd:embed                             1.913         1.91..1.92     1.3      0.9   2     1
+    fwd:stack                            11.635       11.13..12.59     8.0     12.6   1     1
+      fwd:block0                          1.159         1.12..1.47     0.8     29.9   2     1
+      fwd:block1                          1.308         1.18..1.55     0.9     28.5   2     1
+      fwd:block2                          1.338         1.24..1.52     0.9     20.9   2     1
+      fwd:block3                          1.226         1.16..1.45     0.8     23.1   2     1
+      fwd:block4                          1.292         1.17..1.52     0.9     27.3   2     1
+      fwd:block5                          1.239         1.15..1.45     0.9     24.5   2     1
+      fwd:block6                          1.266         1.15..1.49     0.9     26.6   2     1
+      fwd:block7                          1.260         1.14..1.50     0.9     29.2   2     1
+      fwd:block8                          1.303         1.17..1.54     0.9     28.3   2     1
+    fwd:head+loss                        16.214       16.12..16.28    11.2      0.9   2     1
+  bwd                                    57.078       54.63..60.14    39.4      9.7   1     1
+    bwd:head+loss                        16.207       16.20..16.22    11.2      0.1   2     1
+    bwd:stack                            40.733       38.26..43.77    28.1     13.5   1     1
+      bwd:block8                          4.640         3.86..5.08     3.2     26.1   2     1
+      bwd:block7                          4.619         3.81..4.99     3.2     25.5   2     1
+      bwd:block6                          4.685         3.79..5.08     3.2     27.5   2     1
+      bwd:block5                          4.642         3.85..5.07     3.2     26.2   2     1
+      bwd:block4                          4.729         3.89..5.11     3.3     25.7   2     1
+      bwd:block3                          4.761         3.89..5.18     3.3     27.1   2     1
+      bwd:block2                          4.815         4.11..5.24     3.3     23.4   2     1
+      bwd:block1                          4.106         3.87..5.16     2.8     31.5   2     1
+      bwd:block0                          4.597         3.76..5.09     3.2     28.8   2     1
+    bwd:embed                             0.136         0.13..0.15     0.1     11.0   2     1
+  opt                                    57.535       56.82..57.84    39.7      1.8   1     1
+    opt:opt.clip                          1.760         1.39..1.80     1.2     23.0   2     1
+    opt:opt.muon                         54.586       54.11..54.81    37.7      1.3   2     1
+    opt:opt.adamw                         0.560         0.54..0.58     0.4      6.7   2     1
+
+inside the blocks (information only, not gated; summed over layers), top 15:
+  opt:opt.muon.ns                                 52.240 ms   36.0%
+  bwd:block*.grad                                 15.221 ms   10.5%
+  bwd.invert:block*                               12.322 ms    8.5%
+  bwd.recompute:block*                            11.137 ms    7.7%
+  bwd.invert:block*.moe.dispatch                   7.927 ms    5.5%
+  fwd:block*.moe.dispatch                          7.923 ms    5.5%
+  bwd.recompute:block*.moe.dispatch                7.733 ms    5.3%
+  fwd:block*.moe.dispatch.grouped                  3.809 ms    2.6%
+  bwd.recompute:block*.moe.dispatch.grouped        3.767 ms    2.6%
+  bwd.invert:block*.moe.dispatch.grouped           3.705 ms    2.6%
+  fwd:embed.ke                                     1.879 ms    1.3%
+  fwd:block*.moe.router                            1.059 ms    0.7%
+  fwd:block*.moe.shared                            0.934 ms    0.6%
+  bwd.invert:block*.moe.shared                     0.932 ms    0.6%
+  bwd.recompute:block*.moe.shared                  0.931 ms    0.6%
+GPU during clean (23 samples): util 76%  mem 31189 MiB  SM 1980 MHz  357 W  44 C
+
+[bench] run JSON -> results/runs/h200_v1_moe_sorted.json
+[bench] report   -> results/runs/h200_v1_moe_sorted.md
+[warn] rule 3b: checkpoint and comm not measured; add checkpoint,comm to --modes
+[warn] 23 gated part(s) have p10..p90 spread > 10%, so may miss the 5% check: data, fwd:stack, fwd:block0, fwd:block1, fwd:block2, fwd:block3 (+17 more)
+
+against results/runs/h200_v1_moe_loop.json (ms)
+5% check: step, step parts and whole blocks (level <= 2), tol 5%
+  A/B of model.moe.dispatch: sorted vs loop: a gap above tol_pct is the change being measured, not a failed repeat
+  part                                  this run     against  change          result
+  step (clean)                           146.444     448.993  67.4% faster    OUTSIDE
+  data                                     0.349       0.491  28.8% faster    OUTSIDE
+  fwd                                     29.837      67.015  55.5% faster    OUTSIDE
+  fwd:embed                                1.913       1.960  2.4% faster     ok
+  fwd:stack                               11.635      48.719  76.1% faster    OUTSIDE
+  fwd:block0                               1.159       4.034  71.3% faster    OUTSIDE
+  fwd:block1                               1.308       5.399  75.8% faster    OUTSIDE
+  fwd:block2                               1.338       5.899  77.3% faster    OUTSIDE
+  fwd:block3                               1.226       5.415  77.4% faster    OUTSIDE
+  fwd:block4                               1.292       4.635  72.1% faster    OUTSIDE
+  fwd:block5                               1.239       4.339  71.4% faster    OUTSIDE
+  fwd:block6                               1.266       5.700  77.8% faster    OUTSIDE
+  fwd:block7                               1.260       5.861  78.5% faster    OUTSIDE
+  fwd:block8                               1.303       5.063  74.3% faster    OUTSIDE
+  fwd:head+loss                           16.214      16.248  0.2% faster     ok
+  bwd                                     57.078     153.860  62.9% faster    OUTSIDE
+  bwd:head+loss                           16.207      16.203  same            ok
+  bwd:stack                               40.733     137.430  70.4% faster    OUTSIDE
+  bwd:block8                               4.640      14.341  67.6% faster    OUTSIDE
+  bwd:block7                               4.619      15.878  70.9% faster    OUTSIDE
+  bwd:block6                               4.685      15.596  70.0% faster    OUTSIDE
+  bwd:block5                               4.642      13.840  66.5% faster    OUTSIDE
+  bwd:block4                               4.729      14.266  66.9% faster    OUTSIDE
+  bwd:block3                               4.761      14.601  67.4% faster    OUTSIDE
+  bwd:block2                               4.815      15.595  69.1% faster    OUTSIDE
+  bwd:block1                               4.106      14.620  71.9% faster    OUTSIDE
+  bwd:block0                               4.597      13.429  65.8% faster    OUTSIDE
+  bwd:embed                                0.136       0.219  38.0% faster    OUTSIDE
+  opt                                     57.535      79.393  27.5% faster    OUTSIDE
+  opt:opt.clip                             1.760       2.465  28.6% faster    OUTSIDE
+  opt:opt.muon                            54.586      75.118  27.3% faster    OUTSIDE
+  opt:opt.adamw                            0.560       0.741  24.4% faster    OUTSIDE
+  A/B: 29 part(s) faster, 0 slower, 3 within 5%
+[exit code: 2]
+
+$ python -m perfkit.bench --config configs/lab_small.yaml --modes clean,layer --level 3 --tag h200_v1_muon_loop optim.muon_impl=loop
+/usr/local/lib/python3.11/site-packages/torch/cuda/__init__.py:61: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+[bench] NVIDIA H200 | bf16 | B=32 T=512 V=131072 | modes clean,layer | level 3 | 150 steps after 10 warmup
+[bench] note: run.batch_size=auto: B=32 on this device
+[bench] clean ...
+[bench] layer (level 3) ...
+[modal-client] 2026-10-28T15:32:21-0700 Loop attempt for _run_app.<locals>.heartbeat failed
+Traceback (most recent call last):
+  File "C:\Users\chenn\AppData\Local\Programs\Python\Python311\Lib\site-packages\modal\_utils\grpc_utils.py", line 232, in retry_transient_errors
+    return await fn(*args, metadata=metadata, timeout=timeout)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chenn\AppData\Local\Programs\Python\Python311\Lib\site-packages\modal\client.py", line 396, in __call__
+    return await self.client._call_unary(self.wrapped_method, req, timeout=timeout, metadata=metadata)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chenn\AppData\Local\Programs\Python\Python311\Lib\site-packages\modal\client.py", line 325, in _call_unary
+    return await self._call_safely(coro, grpclib_method.name)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chenn\AppData\Local\Programs\Python\Python311\Lib\site-packages\modal\client.py", line 286, in _call_safely
+    return await request_task
+           ^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chenn\AppData\Local\Programs\Python\Python311\Lib\site-packages\grpclib\client.py", line 903, in __call__
+    await stream.send_message(message, end=True)
+  File "C:\Users\chenn\AppData\Local\Programs\Python\Python311\Lib\site-packages\grpclib\client.py", line 241, in send_message
+    await self.send_request()
+  File "C:\Users\chenn\AppData\Local\Programs\Python\Python311\Lib\site-packages\grpclib\client.py", line 173, in send_request
+    protocol = await self._channel.__connect__()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chenn\AppData\Local\Programs\Python\Python311\Lib\site-packages\grpclib\client.py", line 748, in __connect__
+    self._protocol = await self._create_connection()
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chenn\AppData\Local\Programs\Python\Python311\Lib\site-packages\grpclib\client.py", line 725, in _create_connection
+    _, protocol = await self._loop.create_connection(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chenn\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 1045, in create_connection
+    infos = await self._ensure_resolved(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chenn\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 1419, in _ensure_resolved
+    return await loop.getaddrinfo(host, port, family=family, type=type,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chenn\AppData\Local\Programs\Python\Python311\Lib\asyncio\base_events.py", line 867, in getaddrinfo
+    return await self.run_in_executor(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chenn\AppData\Local\Programs\Python\Python311\Lib\concurrent\futures\thread.py", line 58, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\chenn\AppData\Local\Programs\Python\Python311\Lib\socket.py", line 962, in getaddrinfo
+    for res in _socket.getaddrinfo(host, port, family, type, proto, flags):
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+socket.gaierror: [Errno 11001] getaddrinfo failed
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\chenn\AppData\Local\Programs\Python\Python311\Lib\site-packages\modal\_utils\async_utils.py", line 200, in loop_coro
+    await asyncio.wait_for(async_f(), timeout=timeout)
+  File "C:\Users\chenn\AppData\Local\Programs\Python\Python311\Lib\asyncio\tasks.py", line 479, in wait_for
+    return fut.result()
+           ^^^^^^^^^^^^
+  File "C:\Users\chenn\AppData\Local\Programs\Python\Python311\Lib\site-packages\modal\runner.py", line 58, in _heartbeat
+    await retry_transient_errors(client.stub.AppHeartbeat, request, attempt_timeout=HEARTBEAT_TIMEOUT)
+  File "C:\Users\chenn\AppData\Local\Programs\Python\Python311\Lib\site-packages\modal\_utils\grpc_utils.py", line 253, in retry_transient_errors
+    raise ConnectionError(str(exc))
+modal.exception.ConnectionError: [Errno 11001] getaddrinfo failed
+┌─ Error ─────────────────────────────────────────────────────────────────────┐
+│ [Errno 11001] getaddrinfo failed                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+[exited with code 1]
