@@ -1,7 +1,7 @@
 # Medicine sheet: code-java (vaibh27)
 
 Pack: `code-java`, 500 documents from `bigcode/starcoderdata:java`. All 500 are labelled in `labels.csv`
-(120 clean, 372 fix, 8 drop). Seven diseases are found more than five times: M1 to M7. Two rarer ones also get a
+(120 clean, 370 fix, 10 drop). Seven diseases are found more than five times: M1 to M7. Two rarer ones also get a
 short medicine because they are easy to cure safely: A4 (M8) and C4 (M9).
 
 The medicines use only the Python standard library (`re`, Python 3.9 or newer); nothing needs to be installed.
@@ -22,10 +22,10 @@ Until then, the stand-in test is my own sheet. I ran the whole pipeline on all 5
 | M1 | B3 | 250 | 250 | 0 | 0 | 0 |
 | M2 | B4 | 83 | 15 | 0 | 0 (*) | 0 |
 | M3 | A2 | 44 | 44 | 0 | 0 | 0 |
-| M4 | E4 | 104 | 101 | 0 | 0 (*) | 0 |
+| M4 | E4 | 103 | 101 | 0 | 0 (*) | 0 |
 | M5 | F1 | 93 | 73 | 0 | 0 (*) | 0 |
 | M6 | C1 | 67 | 77 | 0 | 0 (*) | 0 |
-| M7 | E1 | 9 | 0 | 9 | 0 | 0 |
+| M7 | E1 | 8 | 0 | 8 | 0 | 0 |
 | M8 | A4 | 2 | 2 | 0 | 0 | 0 |
 | M9 | C4 | 1 | 0 | 1 | 0 | 0 |
 | Last check | nothing left | - | 0 | 1 | - | 0 |
@@ -33,17 +33,17 @@ Until then, the stand-in test is my own sheet. I ran the whole pipeline on all 5
 (*) The other labelled rows are already cured by an earlier medicine: the `<NAME>`, the author name or the template
 sat inside a licence header (M4) or an IDE template (M6) that is removed as a whole. After the full pipeline, I ran
 my detectors again on the cured text: **no labelled B3, B4, A2, E4, F1, C1, A4 or C4 is left**. What is left on
-purpose: the E2 number tables in `9cbc723f9cfc6c7c` (lookup tables that the code reads; removing them breaks it) and
-the A1/E2/E3 hints that I did not label.
+purpose: the E2 number tables in `9cbc723f9cfc6c7c` (lookup tables that the code reads; removing them breaks it). E2 is
+found once, so it needs no medicine (DISEASES.md section 4).
 
-The whole pipeline changes 369 of 500 documents and drops 11, and it **changes 0 of my 120 `clean` documents and
+The whole pipeline changes 370 of 500 documents and drops 10, and it **changes 0 of my 120 `clean` documents and
 drops 0**. B3, E4 and A2 are part of the raw format of this source (50%, 21% and 9% of the pack), so a gold set that
 counts them as clean would fail the 1% rule here although the code does not change. The gold-set owners need to
 decide whether A2 (CRLF) and E4 (licence headers) count as diseases in code.
 
 **Benchmark leaks (F2).** I ran G9's `teams/09-evaluation/decontam/decontam_check.py` with the full fingerprint set
 (`set_sha256 11e290a44d1467875fdf8bebc55eab21f0a6367f411aab98a4a027a546fd372e`) on all 500 documents:
-**0 flagged**. Five documents are LeetCode practice solutions; LeetCode is not on the lab's benchmark list, so they
+**0 flagged**. Some documents hold LeetCode practice solutions; LeetCode is not on the lab's benchmark list, so they
 are not F2 (DISEASES.md: "a question or a solution from a benchmark test set") and stay in the pack.
 
 ---
@@ -135,7 +135,7 @@ are not F2 (DISEASES.md: "a question or a solution from a benchmark test set") a
 ## Medicine 4: Licence headers (E4)
 
 1. **Disease:** E4, the same licence text at the top of many files (Apache-2.0 ASF and short form, MIT, BSD, GPL,
-   one-line proprietary notices). Count: **104 of 500**; the most common header is in 37 documents.
+   one-line proprietary notices). Count: **103 of 500**; the most common header is in 37 documents.
    - `5655154f71365c63`: 18-line ASF Apache-2.0 header, offsets 0 to 825
    - `4fce1af748c757ed`: 23-line MIT header, offsets 0 to 1205
    - `1d8e6800c299d06e`: 19-line Apache-2.0 header after the `package` line, at offset 29
@@ -170,7 +170,7 @@ are not F2 (DISEASES.md: "a question or a solution from a benchmark test set") a
 3. **Action:** fix.
 4. **Harm test:** gold set pending. Stand-in: changes 101 documents. 100 of them are labelled E4; the other one
    (`b7741e4914caefba`) is an IDE file header with a copyright line that I labelled C1, so the change is right but
-   the code differs. The 4 other labelled E4 rows are dropped first by M7. 0 of 120 clean.
+   the code differs. The 3 other labelled E4 rows are dropped first by M7. 0 of 120 clean.
 5. **Side effects:**
    - `865d813577b270f2` has its copyright inside an Eclipse class template after the imports (`<p>Title:` /
      `<p>Copyright` lines). M4 keeps a class Javadoc on purpose; M6 removes this template instead.
@@ -286,10 +286,9 @@ are not F2 (DISEASES.md: "a question or a solution from a benchmark test set") a
        return BLOCK.sub(lambda m: _clean_ide_block(m.group()), t)
    ```
 3. **Action:** fix.
-4. **Harm test:** gold set pending. Stand-in: changes 77 documents: 65 labelled C1, 11 empty `@author <NAME>` Javadocs that
-   are labelled B4 only (ruling of 29 Oct), and the Eclipse template in `865d813577b270f2` (labelled E4). The other 2
-   labelled C1 rows are
-   IDE headers with a copyright line that M4 removes as a whole. 0 of 120 clean.
+4. **Harm test:** gold set pending. Stand-in: changes 77 documents: 65 labelled C1, 11 empty `@author <NAME>`
+   Javadocs that are labelled B4 only (ruling of 29 Oct), and the Eclipse template in `865d813577b270f2` (labelled
+   E4). The other 2 labelled C1 rows are IDE headers with a copyright line that M4 removes as a whole. 0 of 120 clean.
 5. **Side effects:**
    - The first draft deleted whole comments, and that lost real descriptions, such as a Chinese summary line above
      `Created with IntelliJ IDEA.` (`e66b08d295a7ac80`). This version deletes only the template lines.
@@ -303,7 +302,7 @@ are not F2 (DISEASES.md: "a question or a solution from a benchmark test set") a
 
 1. **Disease:** E1, code written by a tool: generator banners (`AUTO-GENERATED FILE. DO NOT MODIFY.`, `Code
    generated by ...`, `This class was automatically generated by ...`) and decompiler output (`Decompiled by Jad`,
-   `Decompiled by Procyon`). Count: **9 of 500**.
+   `Decompiled by Procyon`). Count: **8 of 500**.
    - `905fe4685c78e088`: `AUTO-GENERATED FILE.  DO NOT MODIFY.` at offset 33 (an Android `R.java`)
    - `73e175e90e6e37da`: `Code generated by Microsoft (R) AutoRest Code Generator.` at offset 99
    - `ae36c21dcad92f1a`: `Decompiled by Procyon v0.5.36` at offset 109
@@ -315,7 +314,7 @@ are not F2 (DISEASES.md: "a question or a solution from a benchmark test set") a
    # M7 (E1): generated or decompiled code, dropped
    GENERATED = re.compile(r"(?im)^[ \t]*(?://|/?\*)[^\n]*(?:auto-generated file|do not (?:edit|modify)\b|decompiled (?:by|with)|"
                           r"code generated by|(?:file|class|code) (?:was|is|has been) (?:auto(?:matically)?[- ]?)?generated|"
-                          r"based on code auto[- ]?generated|generated by a tool)")
+                          r"generated by a tool)")  # "based on code auto generated by ..." is code a person adapted: kept
 
 
    def m7_drop_generated(t: str):
@@ -324,22 +323,24 @@ are not F2 (DISEASES.md: "a question or a solution from a benchmark test set") a
        return t
    ```
 3. **Action:** drop.
-4. **Harm test:** gold set pending. Stand-in: drops exactly the 9 labelled E1 documents; 0 of 120 clean.
+4. **Harm test:** gold set pending. Stand-in: drops exactly the 8 labelled E1 documents; 0 of 120 clean.
 5. **Side effects:**
    - Generated code is valid Java, and some of it (AutoRest clients, swagger models) is close to what people write.
      Dropping loses it; the gain is that the model does not learn generator banners and decompiler names
      (`var1`, `this.field = field;` patterns, no comments).
    - "Do not edit" in a hand-written comment ("do not edit this list by hand") would also drop the file. The rule only
      looks at comment lines, and I found no such case.
-   - Three of my nine E1 rows still say `fix` (`c6016e9ce2c607c5`, `73e175e90e6e37da`, `896c9a4f9693205f`), while the
-     medicine drops them. I will set them to `drop` or narrow the medicine before 31 Oct.
+   - Code that a person adapted from generated code is kept: `3cba9087383097dd` says "This class is based on code
+     auto generated by the swagger code generator", but it is a hand-written generic base class (`<W, E>`, method
+     references, design notes). "Based on" is a credit, not a generator banner, so it does not match.
+   - A decompiler banner also brings a copyright line (Jad's own); it is not the file's licence, so it is not E4.
 
 ## Medicine 8: Replacement characters in comments (A4)
 
 1. **Disease:** A4, U+FFFD replacement characters: bytes lost before release, most likely GBK text read as UTF-8.
    Count: **2 of 500**; in both documents they are only in comments.
    - `912c53fa71c7d9ad`: `'⟦U+FFFD⟧'` at offsets 2841, 2846, 2854 (an apostrophe lost in an English comment)
-   - `9b95cf192922d106`: `'⟦U+FFFD⟧⟦U+FFFD⟧'` at offsets 144, 147 (年, 月, 日 and 下午 lost in a date)
+   - `9b95cf192922d106`: `'⟦U+FFFD⟧⟦U+FFFD⟧'` at offsets 144, 147 (most likely 年, 月, 日 and 下午 lost in a date)
 2. **Medicine:** in comment lines only, a run of U+FFFD between two other characters becomes one space, and any other
    run is deleted. Strings and code are not touched.
    ```python
@@ -378,14 +379,6 @@ are not F2 (DISEASES.md: "a question or a solution from a benchmark test set") a
 
    def m9_drop_joined(t: str):
        return None if JOINED.search(t) else t
-
-
-   # Last step: a file that was only a licence and an IDE template has nothing left but its package line. Drop it.
-   PACKAGE_OR_IMPORT = re.compile(r"(?m)^[ \t]*(?:package|import)\b[^;\n]*;[ \t]*$")
-
-
-   def drop_if_nothing_left(t: str):
-       return None if not PACKAGE_OR_IMPORT.sub("", t).strip() else t
    ```
 3. **Action:** drop (my verdict for this row).
 4. **Harm test:** gold set pending. Stand-in: drops exactly the 1 labelled C4 document; 0 of 120 clean.
@@ -396,10 +389,21 @@ are not F2 (DISEASES.md: "a question or a solution from a benchmark test set") a
 ## The pipeline
 
 The last check drops a document that has nothing left but its `package` and `import` lines. In this pack that
-is one file (`9fb5d47488af3c6e`): a licence header, an IntelliJ template and the `package` line, which I labelled
-`drop`. A `package-info.java` keeps its package Javadoc, so it is not dropped.
+is one file, `9fb5d47488af3c6e`: a `package-info.java` that held only a licence header, an IntelliJ template and the
+`package` line, which I labelled `drop`. The other `package-info.java` (`f15940c465a4696a`) has a real package
+description, so it keeps its Javadoc and is not dropped.
 
 ```python
+import re
+
+# Last step: a file that was only a licence and an IDE template has nothing left but its package line. Drop it.
+PACKAGE_OR_IMPORT = re.compile(r"(?m)^[ \t]*(?:package|import)\b[^;\n]*;[ \t]*$")
+
+
+def drop_if_nothing_left(t: str):
+    return None if not PACKAGE_OR_IMPORT.sub("", t).strip() else t
+
+
 # M1 and M3 first: the others expect clean first lines and LF. M7 and M9 drop before anything is rewritten.
 PIPELINE = [m1_strip_meta_header, m3_normalise_newlines, m7_drop_generated, m9_drop_joined, m4_strip_licence_header,
             m6_strip_ide_templates, m5_surrogate_author, m2_surrogate_placeholders, m8_clean_replacement_chars,
