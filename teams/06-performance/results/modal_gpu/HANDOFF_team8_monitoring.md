@@ -56,17 +56,17 @@ modal run modal_bench.py --stage fetch      # re-download all artifacts from the
 
 ## 5. Artifact inventory in this folder
 
-| File | What it is |
-|---|---|
-| `h200_v1.json` / `-run2.json` | Baseline run JSONs (schema in §1) — the two repeatability runs |
-| `h200_v1.md` / `-run2.md` | Human-readable reports: full per-part timing tables, slowest-5, warnings |
-| `h200_v1_comparison.md` | Run-1 vs run-2 gate comparison (the 24/33 FAIL detail) |
-| `h200_v1_slowest.md` | Five slowest parts with week-2 ideas |
-| `h200_v1_moe_{loop,sorted}.json/.md` | MoE dispatch A/B |
-| `h200_v1_muon_{loop,batched}.json/.md` | Muon implementation A/B |
-| `h200_v1_2gpu_comm.json/.md` | 2×H200 torchrun comm benchmark (MoE all-to-all 5.9 ms/step) |
-| `h200_v1_parts/*.json` | Per-part kernel traces of the 5 slowest parts |
-| `h200_v1_full_console.log` | Complete console output of the successful run |
+| File | What it is | Gist |
+|---|---|---|
+| `h200_v1.json` / `-run2.json` | Baseline run JSONs (schema in §1) — the two repeatability runs | — |
+| `h200_v1.md` / `-run2.md` | Human-readable reports: full per-part timing tables, slowest-5, warnings | [gist](https://gist.github.com/varshith2000/e394873e87f79d224815b6996a7e3fe1) |
+| `h200_v1_comparison.md` | Run-1 vs run-2 gate comparison (the 24/33 FAIL detail) | [gist](https://gist.github.com/varshith2000/5eeebb4cb0ec3e7810782a4cf905d01d) (incl. slowest-5) |
+| `h200_v1_slowest.md` | Five slowest parts with week-2 ideas | [gist](https://gist.github.com/varshith2000/5eeebb4cb0ec3e7810782a4cf905d01d) (same gist) |
+| `h200_v1_moe_{loop,sorted}.json/.md` | MoE dispatch A/B | [gist](https://gist.github.com/varshith2000/3a491b0af2c21978a35399c0e2dd0717) (incl. Muon A/B) |
+| `h200_v1_muon_{loop,batched}.json/.md` | Muon implementation A/B | [gist](https://gist.github.com/varshith2000/3a491b0af2c21978a35399c0e2dd0717) (same gist) |
+| `h200_v1_2gpu_comm.json/.md` | 2×H200 torchrun comm benchmark (MoE all-to-all 5.9 ms/step) | [gist](https://gist.github.com/varshith2000/866f394f855ca00dce1a933c7d45d55d) |
+| `h200_v1_parts/*.json` | Per-part kernel traces of the 5 slowest parts | — |
+| `h200_v1_full_console.log` | Complete console output of the successful run | [gist](https://gist.github.com/varshith2000/63ac8f7d5dae8049597432c94c203a0a) |
 
 ## 6. Open items Team 8 should track
 
@@ -74,3 +74,11 @@ modal run modal_bench.py --stage fetch      # re-download all artifacts from the
 - `perfkit/roofline.py` not yet run — will add roofline context to metrics
 - Team 5's final architecture config will trigger a re-baseline of everything above
 - If Team 8 wants extra telemetry fields in `system`/`trace`, the interface is `perfkit/bench.py` (sampling) + `perfkit/schema.py` (JSON contract) — coordinate changes with Team 06
+
+## Shared gist links (unlisted — anyone with the link can view)
+
+- **Baseline reports (run 1 + run 2):** https://gist.github.com/varshith2000/e394873e87f79d224815b6996a7e3fe1
+- **Repeatability gate comparison + slowest-5:** https://gist.github.com/varshith2000/5eeebb4cb0ec3e7810782a4cf905d01d
+- **A/B reports (MoE loop vs sorted, Muon loop vs batched):** https://gist.github.com/varshith2000/3a491b0af2c21978a35399c0e2dd0717
+- **2×H200 comm benchmark:** https://gist.github.com/varshith2000/866f394f855ca00dce1a933c7d45d55d
+- **Full console log:** https://gist.github.com/varshith2000/63ac8f7d5dae8049597432c94c203a0a
