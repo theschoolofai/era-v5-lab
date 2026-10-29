@@ -1,301 +1,314 @@
 doc_id,read,verdict,diseases,evidence,hex,note
-0,full,fix,B3,dataset marker <reponame> at offset 0,,MTES-MCT/sparte public_data/serializers.py
-3,full,fix,B3,dataset marker <gh_stars> at offset 0,,Jahidul007/Python-Bootcamp coding_intereview/1475. Final Prices With a Special Discount in a Shop.py
-4,full,fix,B3;F1,dataset marker <gh_stars> at offset 0 | redaction marker <NAME> at offset 120 | redaction marker <EMAIL> at offset 128,,timgates42/denite.nvim rplugin/python3/denite/ui/default.py
-5,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <NAME> at offset 456,,yuanz271/PyDSTool PyDSTool/core/context_managers.py
-6,full,fix,F1,redaction marker <EMAIL> at offset 283,,Muzzy73/pos_kiosk pos_kiosk/hooks.py
-7,full,fix,B3,dataset marker <gh_stars> at offset 0,,gcouti/pypagAI pypagai/models/model_lstm.py
-8,full,fix,B3,dataset marker <filename> at offset 0,,joelouismarino/variational_rl lib/variables/latent_variables/__init__.py
-11,full,fix,B3,dataset marker <reponame> at offset 0,,vahini01/electoral_rolls tools/utils.py
-12,full,fix,B3,dataset marker <gh_stars> at offset 0,,ellencwade/coronavirus-2020 exp/viz_raw_manhattan.py
-13,full,fix,B3,dataset marker <reponame> at offset 0,,steven-lang/rational_activations rational/mxnet/rationals.py
-14,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 39,,Neklaustares-tPtwP/torchflare torchflare/criterion/utils.py
-16,full,fix,B3,dataset marker <reponame> at offset 0,,geudrik/hautomation app/views/web/homestack.py
-19,full,fix,B3,dataset marker <reponame> at offset 0,,Vail-qin/Keras-TextClassification keras_textclassification/data_preprocess/generator_preprocess.py
-21,full,drop,B3;E1,auto-generated header at offset 101 | dataset marker <filename> at offset 0,,18F/data-federation-ingest examples/p02_budgets/budget_data_ingest/migrations/0001_initial.py
-22,full,fix,F1,redaction marker <EMAIL> at offset 190,,Kaslanarian/PythonSVM setup.py
-23,full,fix,B3;F1,dataset marker <gh_stars> at offset 0 | redaction marker <NAME> at offset 105,,hiperus0988/pyao Object_detection_image.py
-28,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <NAME> at offset 378,,imanolarrieta/RL rlpy/Domains/Pacman.py
-30,full,fix,B3,dataset marker <filename> at offset 0,,c-yan/atcoder abc/abc165/abc165e.py
-31,full,fix,B3;F1,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 42 | redaction marker <NAME> at offset 1274 | redaction marker <EMAIL> at offset 1301,,giggslam/python-messengerbot-sdk setup.py
-32,full,fix,B3;F1,dataset marker <gh_stars> at offset 0 | redaction marker <NAME> at offset 3409,,MaximovaIrina/transformers src/transformers/models/mmbt/modeling_mmbt.py
-33,full,fix,B3,dataset marker <filename> at offset 0,,mhchia/trinity eth2/beacon/chains/base.py
-34,full,fix,F1,redaction marker <PASSWORD> at offset 413,,allupramodreddy/cisco_py using_paramiko.py
-36,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 32,,muggat0n/graphdb graphdb/transformer.py
-37,full,fix,B3,dataset marker <filename> at offset 0,,lixuemin13/yz-core yzcore/templates/project_template/src/const/_job.py
-38,full,fix,B3;F1,dataset marker <gh_stars> at offset 0 | redaction marker <NAME> at offset 165,,RenanPalmeira/pyboleto pyboleto/html.py
-41,full,fix,B3;F1,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 29 | redaction marker <NAME> at offset 62,,raubvogel/nova nova/conf/hyperv.py
-44,full,fix,B3,dataset marker <reponame> at offset 0,,kithsirij/NLP-based-Syllabus-Coverage-Exam-paper-checker-Tool Qt_interface/add_subject.py
-45,full,fix,B3,dataset marker <gh_stars> at offset 0,,mdj2/django tests/syncdb_signals/tests.py
-47,full,fix,B3,dataset marker <filename> at offset 0,,ginkage/trackball-python examples/mouse.py
-48,full,fix,B3,dataset marker <filename> at offset 0,,artberryx/LSD garaged/src/garage/tf/regressors/gaussian_mlp_regressor_model.py
-49,full,fix,B3,dataset marker <filename> at offset 0,,kim-sunghoon/DiracDeltaNet test.py
-50,full,fix,B3,dataset marker <filename> at offset 0,,PaccMann/paccmann_chemistry paccmann_chemistry/utils/hyperparams.py
-52,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 33,,actingweb/box-actingweb aw-actor-trust.py
-54,full,fix,B3,dataset marker <gh_stars> at offset 0,,dlegor/ClassyVision classy_vision/heads/fully_connected_head.py
-56,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <NAME> at offset 225,,danijoo/biotite src/biotite/copyable.py
-58,full,fix,B3,dataset marker <filename> at offset 0,,GEOS-ESM/AeroApps src/Components/missions/GEMS/mcd43c.py
-59,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 45,,kalyc/keras-apache-mxnet tests/keras/layers/wrappers_test.py
-60,full,fix,B3,dataset marker <gh_stars> at offset 0,,code-annotator/tornado-annotated src/tornado-3.2.2/tornado/platform/common.py
-61,full,fix,F1,redaction marker <NAME> at offset 1546,,poster515/BlinkyTape_Python bathymetry_blink/bathymetry_blink.py
-62,full,fix,B3,dataset marker <filename> at offset 0,,SFDigitalServices/pts-dispatcher-microservice-py service/transforms/export_submissions.py
-63,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 22,,mgelbart/ray python/ray/ml/tests/test_torch_trainer.py
-64,full,fix,B3,dataset marker <filename> at offset 0,,OpenIxia/ixnetwork_restpy uhd_restpy/testplatform/sessions/ixnetwork/quicktest/learnframes_58e01d83db5d99bcabff902f5cf6ec51.py
-66,full,fix,B3,dataset marker <filename> at offset 0,,bernardocuteri/wasp tests/wasp1/AllAnswerSets/aggregates_count_boundvariables_1.test.py
-67,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <EMAIL> at offset 371,,Pzzzzz5142/animal-forest-QQ-group-bot Pzzzzz/plugins/wm.py
-68,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <NAME> at offset 84,,ParksProjets/Mips-Applications home/scripts/memory/lpsolve.py
-69,full,fix,B3,dataset marker <gh_stars> at offset 0,,mauroseb/octavia octavia/tests/unit/controller/worker/v2/tasks/test_database_tasks.py
-70,full,fix,B3,dataset marker <gh_stars> at offset 0,,Jay4C/Web-Scraping Yellow_Pages_Lithuania/unit_tests.py
-74,full,fix,B3,dataset marker <reponame> at offset 0,,behnoud-bazrafshan/ThesisPortfolio Robustness Check/Calculating Risk Factors/calculate_momentum_factor.py
-75,full,fix,B3;F1,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 55 | redaction marker <NAME> at offset 372,,aws-samples/siem-on-amazon-opensearch-service source/lambda/geoip_downloader/index.py
-76,full,fix,B3;F1,dataset marker <gh_stars> at offset 0 | redaction marker <NAME> at offset 1349,,earthobservatory/isce2 components/mroipac/baseline/Baseline.py
-77,full,fix,B3,dataset marker <filename> at offset 0,,Bot-Box/FiveCardStud src/modules/deuces/deck.py
-78,full,fix,F1,redaction marker <NAME> at offset 85 | redaction marker <EMAIL> at offset 93,,puiterwijk/python-openidc-client openidc_client/__init__.py
-79,full,fix,B3;F1,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 42 | redaction marker <NAME> at offset 281 | redaction marker <EMAIL> at offset 289,,constantinius/eoxserver_combined eoxserver/services/ows/wps/v10/encoders/parameters.py
-85,full,fix,B3,dataset marker <gh_stars> at offset 0,,wgifford/ray python/ray/experimental/workflow/execution.py
-86,full,fix,B3,dataset marker <reponame> at offset 0,,bertonha/python-zeep src/zeep/wsse/__init__.py
-87,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 32,,peteboi/Python-Scripts Complab assignment.py
-88,full,fix,B3,dataset marker <reponame> at offset 0,,gamabounty/django-factory-generator factory_generator/management/commands/generate_factories.py
-89,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 28,,qiangli/cellranger mro/stages/analyzer/run_differential_expression/__init__.py
-90,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 26,,ethankward/sympy sympy/combinatorics/testutil.py
-93,full,fix,B3,dataset marker <gh_stars> at offset 0,,Ouranosinc/malleefowl malleefowl/tests/test_wps_caps.py
-94,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <NAME> at offset 63 | redaction marker <EMAIL> at offset 674,,CallumJHays/pyngrok setup.py
-96,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 36,,aleasoluciones/infrabbitmq bin/ticker.py
-98,full,fix,F1,redaction marker <EMAIL> at offset 401,,rafaelols/airflow dags/treinos_igti/treino03.py
-99,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <NAME> at offset 180,,DannyPol/flatcam tclCommands/TclCommandListSys.py
-100,full,fix,B3,dataset marker <gh_stars> at offset 0,,MuellerSeb/ogs5py ogs5py/fileclasses/mcp/core.py
-101,full,fix,F1,redaction marker <PASSWORD> at offset 18267,,crowdy/keystone keystone/tests/unit/test_v3_assignment.py
-102,full,fix,B3;F1,dataset marker <gh_stars> at offset 0 | redaction marker <NAME> at offset 221 | redaction marker <EMAIL> at offset 248,,zhanghang1989/notedown setup.py
-106,full,fix,B3,dataset marker <filename> at offset 0,,daidaotong/SingleView src/topicModel.py
-107,full,fix,B3,dataset marker <reponame> at offset 0,,drewbitt/lightnovel-crawler src/bots/test/test_inputs.py
-108,full,fix,B3,dataset marker <reponame> at offset 0,,ostropunk/wikisourcesort wikisourcesort.py
-109,full,fix,B3,dataset marker <gh_stars> at offset 0,,me-anton/radar-app backend/radar/engine/body_objects.py
-110,full,fix,B3,dataset marker <filename> at offset 0,,benzkji/djangocms-baseplugins djangocms_baseplugins/spacer/cms_plugins.py
-111,full,fix,B3;F1,dataset marker <reponame> at offset 0 | redaction marker <NAME> at offset 78 | redaction marker <EMAIL> at offset 93,,sdaxen/python_utilities python_utilities/plotting/util.py
-112,full,fix,B3,dataset marker <filename> at offset 0,,confluentinc/utils-core tests/test_process.py
-113,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 30,,areaweb/bokeh bokeh/client/util.py
-114,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <NAME> at offset 937,,PPTMiao/mtl-ssl slim/nets/inception_resnet_v2.py
-115,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 53,,LedgerHQ/ledger-app-neo3 tests/boilerplate_client/boilerplate_cmd.py
-116,full,fix,B3,dataset marker <filename> at offset 0,,fixstars/clpy clpy/sparse/util.py
-118,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <NAME> at offset 135,,neal-hub/nvda-test source/browseMode.py
-120,full,fix,F1,redaction marker <NAME> at offset 62,,guotong1988/Rule-SQL sqlova/model/nl2sql/wikisql_models.py
-121,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <NAME> at offset 83,,leeeGreat/xlw_study_python www/app.py
-122,full,fix,B3,dataset marker <reponame> at offset 0,,ritchie46/flopy examples/Testing/flopy3_plotdata.py
-123,full,fix,B3,dataset marker <reponame> at offset 0,,cabrust/chia chia/components/sample_transformers/__init__.py
-124,full,fix,B3,dataset marker <reponame> at offset 0,,singi2016cn/python-scaffold 3/3.6/add_guest.py
-125,full,fix,B3,dataset marker <filename> at offset 0,,cartwheelweb/packaginator apps/pypi/tests/test_slurper.py
-126,full,drop,E1,auto-generated header at offset 253,,azuresdkci1x/azure-sdk-for-python-1722 azure-mgmt-logic/azure/mgmt/logic/models/recurrence_schedule_occurrence.py
-128,full,fix,B3,dataset marker <reponame> at offset 0,,YinAoXiong/ZCls tests/test_model/test_recognizer/test_shufflenetv1.py
-129,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <NAME> at offset 213 | redaction marker <PASSWORD> at offset 134853,,jpapadakis/gdal autotest/gcore/vsis3.py
-131,full,fix,B3,dataset marker <filename> at offset 0,,gustavomazevedo/tbackup-client functional_tests.py
-132,full,fix,B3,dataset marker <filename> at offset 0,,clarkfitzg/sta141c examples/first_char_last_column.py
-134,full,fix,B3,dataset marker <reponame> at offset 0,,iyedb/boost_asio_zeromq zmq_srv.py
-135,full,fix,B3,dataset marker <gh_stars> at offset 0,,mmaryada27/mypy mypy/server/aststrip.py
-139,full,fix,B3,dataset marker <gh_stars> at offset 0,,Yash-s-Code-Camp/Python-Day-4 main.py
-140,full,fix,F1,redaction marker <NAME> at offset 63,,MarcoRosso/paperstream paperstream/create_diary.py
-141,full,fix,B3,dataset marker <filename> at offset 0,,codeforamerica/w-drive-extractor wextractor/extractors/csv_extractor.py
-142,full,fix,B3,dataset marker <reponame> at offset 0,,r-peng/pyscf pyscf/geomopt/berny_solver.py
-143,full,fix,F1,redaction marker <NAME> at offset 39,,WesleyPeng/uiXautomation src/main/python/taf/foundation/api/ui/aut.py
-144,full,fix,B3,dataset marker <filename> at offset 0,,dkushche/Crypto algo/vigenere.py
-146,full,fix,B3,dataset marker <reponame> at offset 0,,yavook/kiwi-scp kiwi_scp/commands/cmd_cmd.py
-147,full,fix,B3,dataset marker <filename> at offset 0,,rvprasad/software-testing-course homework/Testing with Examples (Network)/impl_fail-add_relation-does_not_fail_when_person1_is_non_existent.py
-150,full,fix,B3,dataset marker <filename> at offset 0,,pupuwudi/nlp_xiaojiang conf/feature_config.py
-153,full,fix,B3,dataset marker <reponame> at offset 0,,ikecoglu/DL-SR src/train_DFCAN.py
-154,full,fix,B3,dataset marker <filename> at offset 0,,erlendve/catalyst catalyst/exchange/live_graph_clock.py
-155,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <EMAIL> at offset 400 | redaction marker <PASSWORD> at offset 568,,LeoLeiva/todo-challenge invera/api/tests.py
-159,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 32 | dataset marker <gh_stars> at offset 76,,Phaeton-lang/baselines superneurons/tools/img_val/main.py
-160,full,fix,F1,redaction marker <NAME> at offset 150 | redaction marker <EMAIL> at offset 217,,exenGT/pymatgen pymatgen/analysis/tests/test_piezo.py
-161,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <NAME> at offset 47 | redaction marker <PASSWORD> at offset 9478,,larsbutler/nova nova/virt/driver.py
-164,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 71,,zmanji/incubator-aurora src/test/python/apache/aurora/executor/test_status_manager.py
-165,full,fix,F1,redaction marker <NAME> at offset 208 | redaction marker <EMAIL> at offset 269,,wangqf1997/Human-injury-based-safety-decision-of-automated-vehicles Supplemental/A5. Collision estimation module/Con_est.py
-166,full,fix,B3,dataset marker <filename> at offset 0,,TontonTremblay/pixel-nerf train/train.py
-167,full,fix,B3,dataset marker <filename> at offset 0,,kne42/napari napari/_qt/dialogs/qt_plugin_dialog.py
-170,full,fix,B3,dataset marker <filename> at offset 0,,luizgui05/autolatex. autolatex-master/exemplos_codigo/certificados/certificados.py
-171,full,fix,B3,dataset marker <reponame> at offset 0,,snajder-r/nanoepiseg nanoepiseg/main_list_chunks.py
-172,full,fix,B3,dataset marker <reponame> at offset 0,,tmilliman/sir_to_netcdf qscatv2/make_seasonal_images.py
-174,full,fix,B3,dataset marker <reponame> at offset 0,,Brokdar/ArxmlDataExtractor arxml_data_extractor/handler/object_handler.py
-177,full,fix,B3,dataset marker <gh_stars> at offset 0,,crest-cassia/caravan caravan_search_engine/test/test_task.py
-178,full,fix,B3,dataset marker <reponame> at offset 0,,tashidexiaoL/splashnew splash/render_options.py
-179,full,fix,B3,dataset marker <filename> at offset 0,,sangumee/Opentutorials-Webn-Python syntax/func.py
-184,full,fix,B3;F1,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 50 | redaction marker <NAME> at offset 448,,z1digitalstudio/met met/metadataparser/models/entity_type.py
-186,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 23,,HPLegion/glue glue/__init__.py
-190,full,drop,B3;E1,auto-generated header at offset 36 | dataset marker <reponame> at offset 0,,bornhack/bornhack-website src/economy/migrations/0027_zettlebalance_zettlereceipt.py
-191,full,fix,B3,dataset marker <gh_stars> at offset 0,,vkumarma/Complete-Interpreter main.py
-192,full,fix,B3,dataset marker <filename> at offset 0,,Ghostofapacket/NewsGrabber-Deduplicate deduplicate.py
-193,full,fix,B3,dataset marker <reponame> at offset 0,,johnjdailey/FinMesh build/lib/FinMesh/usgov/__init__.py
-194,full,drop,E3,webhook token at offset 406,,Cradac/mattermost-octane-integration settings.py
-198,full,fix,B3,dataset marker <reponame> at offset 0,,cvicens/lab-knative .infra/setup/playbooks/roles/ansible.kubernetes-modules/library/openshift_v1_build_config_list.py
-199,full,fix,B3,dataset marker <reponame> at offset 0,,groorj/cloud-regions aws-regions.py
-202,full,fix,F1,redaction marker <NAME> at offset 344,,Tatsh/upkeep source/conf.py
-203,full,fix,B3,dataset marker <filename> at offset 0,,sweptlaser/pclpy generators/generate_pybind11_bindings.py
-204,full,fix,B3,dataset marker <gh_stars> at offset 0,,bcvsolutions/winrm-ad-connector scripts_python3/exchange/deleteExchange.py
-209,full,fix,B3;F1,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 21 | redaction marker <PASSWORD> at offset 41257,,29rj/Fusion FusionIIIT/applications/academic_information/views.py
-211,full,fix,B3;F1,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 35 | redaction marker <EMAIL> at offset 378,,OmoMicheal/marketanalysis test/countries/test_united_states.py
-212,full,fix,B3,dataset marker <reponame> at offset 0,,jungleni/ros_code_reading src/ros_comm/rosmsg/setup.py
-213,full,fix,B3,dataset marker <filename> at offset 0,,AlgoArt/algoart unsorted/linked_list.py
-216,full,fix,B3,dataset marker <reponame> at offset 0,,FuriKuri/faas-playground gcp-python-fn/main.py
-217,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 35,,move-ton/ton-client-py tonclient/test/helpers.py
-219,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 29,,jstzwjr/mmdetection mmdet/models/roi_heads/mask_heads/fcn_mask_head.py
-221,full,fix,B3,dataset marker <filename> at offset 0,,LArbys/ublarcvserver networks/larflow/models/larflow_uresnet.py
-224,full,fix,F1,redaction marker <KEY> at offset 4643,,chanced/tink testing/cross_language/util/supported_key_types.py
-225,full,fix,F1,redaction marker <NAME> at offset 95 | redaction marker <EMAIL> at offset 103 | redaction marker <KEY> at offset 728,,chapeltech/remote-signer signer.py
-227,full,fix,B3,dataset marker <filename> at offset 0,,jmorlana/pixloc pixloc/visualization/viz_3d.py
-228,full,fix,B3,dataset marker <filename> at offset 0,,Net-Mist/advent_of_code2021 day04/c.py
-229,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 72,,hugovk/altair altair/vegalite/v2/examples/us_population_pyramid_over_time.py
-230,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 35,,ministryofjustice/mtp-api mtp_api/apps/core/migrations/0004_token.py
-234,full,fix,F1,redaction marker <NAME> at offset 196,,farzanaaswin0708/CNN-for-Visual-recognition Chest X-Ray Multilabel Image classification using CNN - Pytorch/Arch2.py
-236,full,fix,B3;F1,dataset marker <gh_stars> at offset 0 | redaction marker <PASSWORD> at offset 6983,,owen-t/sagemaker-experiments-1 tests/unit/test_trial_component.py
-239,full,drop,E1,auto-generated header at offset 0,,jarnoln/exposures tables/migrations/0004_auto_20200901_2004.py
-241,full,fix,F1,redaction marker <PASSWORD> at offset 15020,,AndrewLane/azure-cli src/command_modules/azure-cli-vm/azure/cli/command_modules/vm/_validators.py
-242,full,fix,B3,dataset marker <reponame> at offset 0,,ednihs-yahska/unibrowser scraping/faqscraper.py
-243,full,fix,B3,dataset marker <gh_stars> at offset 0,,ckousoulis/macos-messages messages/term_utils.py
-245,full,fix,B3,dataset marker <filename> at offset 0,,magetron/secure-flow-prototype gen-cfg.py
-246,full,fix,B3,dataset marker <filename> at offset 0,,dimitrov-dimitar/competitive-programming CodeForces/A2OJ Ladder/softuni_problem.py
-249,full,fix,B3,dataset marker <gh_stars> at offset 0,,CarlosWillian/python exercicios/ex 061 a 070/ex061.py
-250,full,fix,B3;F1,dataset marker <reponame> at offset 0 | redaction marker <PASSWORD> at offset 1002,,zmedico/pyrqlite src/pyrqlite/connections.py
-251,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 65,,achoraev/SoftUni PythonBasics/ConditionalStatements/Exercise/toy_shop.py
-252,full,fix,F1,redaction marker <PASSWORD> at offset 732,,citrix-openstack-build/ironic ironic/tests/api/utils.py
-253,full,fix,B3;F1,dataset marker <reponame> at offset 0 | redaction marker <PASSWORD> at offset 2136,,thewordisbird/bookshelf bookshelf/main/forms.py
-257,full,fix,F1,redaction marker <NAME> at offset 635,,madhukarkm/NeMo nemo/collections/asr/parts/numba/rnnt_loss/rnnt_numpy.py
-258,full,fix,B3,dataset marker <reponame> at offset 0,,joeloskarsson/CGAN-regression dataset_specifications/swirls.py
-259,full,fix,B3,dataset marker <gh_stars> at offset 0,,AndreasKaratzas/stonne pytorch-frontend/tools/code_coverage/oss_coverage.py
-263,full,drop,B3;E1,auto-generated header at offset 15 | dataset marker <gh_stars> at offset 0,,Visualway/Vitary apps/core/migrations/0001_initial.py
-266,full,fix,B3,dataset marker <gh_stars> at offset 0,,vmturbo/ceilometer ceilometer/data_processing/notifications.py
-267,full,fix,B3,dataset marker <gh_stars> at offset 0,,JalajaTR/cQube tests/src/Diksha_Reports/usage_by_textbook/download_all_collection_records.py
-268,full,fix,F1,redaction marker <PASSWORD> at offset 15579,,Naysabots/yt-dlp yt_dlp/cookies.py
-269,full,fix,B3;F1,dataset marker <reponame> at offset 0 | redaction marker <EMAIL> at offset 833,,jaraco/hgtools hgtools/tests/conftest.py
-270,full,fix,B3;F1,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 38 | redaction marker <EMAIL> at offset 18477,,handsome3163/H2Dgame-Firefly gfirefly/dbentrust/dbutils.py
-271,full,fix,F1,redaction marker <KEY> at offset 1271,,tysonclugg/dddppp dddppp/settings.py
-272,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <NAME> at offset 478 | redaction marker <EMAIL> at offset 513,,dantas/wifi setup.py
-273,full,fix,B3,dataset marker <gh_stars> at offset 0,,severinbeauvais/sbc-auth auth-api/src/auth_api/resources/org_products.py
-278,full,fix,B3;F1,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 30 | redaction marker <NAME> at offset 267 | redaction marker <EMAIL> at offset 313,,skojaku/fastnode2vec setup.py
-280,full,fix,B3,dataset marker <reponame> at offset 0,,djouani/Learning-Ansible-2.X-Third-Edition Chapter07/library/check_user_py3.py
-282,full,fix,B3,dataset marker <reponame> at offset 0,,djaodjin/djaodjin-survey survey/api/matrix.py
-288,full,fix,B3;F1,dataset marker <gh_stars> at offset 0 | redaction marker <NAME> at offset 117,,duliodenis/python_master_degree unit_13/26-Data_Structures/4_Merge_Sort_and_Linked_Lists/3_linked_list_merge_sort.py
-289,full,fix,F1,redaction marker <NAME> at offset 46,,samyoo78/NearPy nearpy/examples/example2.py
-291,full,fix,B3;F1,dataset marker <gh_stars> at offset 0 | redaction marker <NAME> at offset 167,,ealopez/pycroscopy examples/plot_spectral_unmixing.py
-292,full,fix,F1,redaction marker <PASSWORD> at offset 2332,,foliant-docs/foliantcontrib.downloadfile test/test_downloadfile.py
-293,full,fix,B3,dataset marker <gh_stars> at offset 0,,Lilium765/momoko question.py
-295,full,fix,B3,dataset marker <filename> at offset 0,,microvm/pypy-mu rpython/annotator/annrpython.py
-296,full,drop,E1,auto-generated header at offset 345,,vijayraavi/azure-devops-cli-extension azure-devops/azext_devops/vstsCompressed/work_item_tracking_process/v4_0/models/models.py
-297,full,fix,B3,dataset marker <reponame> at offset 0,,ziggyzacks/pyrecs responder.py
-298,full,fix,B3,dataset marker <gh_stars> at offset 0,,robfig/rules_proto python/library.bzl
-299,full,fix,F1,redaction marker <NAME> at offset 26,,qianlong4526888/haha src/mem/slicc/ast/TypeDeclAST.py
-300,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 26,,vpv11110000/pyss tests/test_preempt_return.py
-302,full,fix,B3,dataset marker <reponame> at offset 0,,harryherold/sysmap python/sysmap/graph.py
-307,full,fix,F1,redaction marker <NAME> at offset 723 | redaction marker <EMAIL> at offset 1379,,hsm207/sage src/sage/modular/dirichlet.py
-308,full,fix,B3;F1,dataset marker <reponame> at offset 0 | redaction marker <NAME> at offset 217,,danijoo/biotite src/biotite/file.py
-311,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 38,,imvu/bluesteel app/logic/httpcommon/Page.py
-314,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 33,,jkennedyvz/DeepFaceLive xlib/api/win32/oleaut32/oleaut32.py
-315,full,drop,E1,auto-generated header at offset 345,,vijayraavi/azure-devops-cli-extension azure-devops/azext_devops/vstsCompressed/service_hooks/v4_0/models/__init__.py
-316,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 32,,DeathAdder1999/Pizdyuk pizdyuk/pzd_logging.py
-319,full,fix,B3,dataset marker <filename> at offset 0,,emdeechege/Questionaire-API app/api/v1/views/auth_views.py
-321,full,fix,F1,redaction marker <NAME> at offset 85 | redaction marker <KEY> at offset 2051,,Jesusown/electrum electrum/dnssec.py
-322,full,fix,F1,redaction marker <NAME> at offset 94,,ds-hwang/apitrace specs/d3d11.py
-323,full,fix,B3,dataset marker <filename> at offset 0,,Pil0u/adventofcode2020 day08.py
-325,full,fix,F1,redaction marker <NAME> at offset 633 | redaction marker <EMAIL> at offset 660,,xbabka01/filetype.py setup.py
-326,full,fix,F1,redaction marker <PASSWORD> at offset 347,,ryanaa08/NPA demos/netmiko_textfsm.py
-327,full,fix,B3,dataset marker <gh_stars> at offset 0,,spitfire55/python-docs-samples iap/validate_jwt.py
-328,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 26,,manatlan/htag examples/calc.py
-329,full,fix,B3,dataset marker <filename> at offset 0,,tghira16/Giraphics res/example1.py
-331,full,fix,B3,dataset marker <reponame> at offset 0,,civodlu/trw src/trw/reporting/__init__.py
-332,full,fix,F1,redaction marker <NAME> at offset 125,,julescarbon/vframe vframe_cli/commands/templates/image-mp.py
-333,full,fix,B3,dataset marker <filename> at offset 0,,MarkMacDon/learndash-python src/learndash/api_resources/user.py
-334,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 67,,sneumann/galaxy lib/galaxy/tool_util/deps/container_resolvers/__init__.py
-335,full,fix,B3,dataset marker <reponame> at offset 0,,nirdslab/streaminghub projects/eyetracking/gen_adhd_sin.py
-337,full,fix,B3,dataset marker <filename> at offset 0,,Jackthebighead/recruiment-2022 algo_probs/newcoder/classic/nc52.py
-341,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 24,,runapp/xortool xortool/__init__.py
-342,full,fix,B3,dataset marker <gh_stars> at offset 0,,ChreSyr/baopig baopig/ressources/ressources.py
-344,full,fix,B3,dataset marker <gh_stars> at offset 0,,MidtownFellowship/libsaas libsaas/services/twilio/applications.py
-347,full,fix,B3,dataset marker <filename> at offset 0,,tkm2261/dnn-voice-changer prepare_features_vc.py
-348,full,fix,B3,dataset marker <filename> at offset 0,,zgtz/streamlit lib/tests/streamlit/pydeck_test.py
-349,full,fix,B3,dataset marker <filename> at offset 0,,Doctusoft/beam sdks/python/apache_beam/io/gcp/bigquery_tools.py
-354,full,fix,B3,dataset marker <reponame> at offset 0,,jaberg/scikits-image skimage/segmentation/tests/test_felzenszwalb.py
-355,full,fix,B3,dataset marker <filename> at offset 0,,w3x10e8/core tests/middleware/test_csrf_middleware.py
-356,full,fix,B3,dataset marker <reponame> at offset 0,,ltxom/phoible phoible/views.py
-358,full,fix,B3,dataset marker <gh_stars> at offset 0,,yletallec/processmonitor processmonitor.py
-359,full,fix,B3,dataset marker <gh_stars> at offset 0,,Tim232/Python-Things Projects/DeepLearningTechniques/MobileNet_v2/tiny_imagenet/data_loader.py
-360,full,fix,B3,dataset marker <filename> at offset 0,,dedukun/MarkReport MarkReport/MarkReport.py
-362,full,fix,B3;F1,dataset marker <reponame> at offset 0 | redaction marker <NAME> at offset 522 | redaction marker <EMAIL> at offset 549,,bigchaindb/privacy-protocols experiments/bst/setup.py
-363,full,fix,B3,dataset marker <gh_stars> at offset 0,,elyase/polyaxon polyaxon/db/admin/job_resources.py
-364,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 34,,tommy-waltmann/voting-ml voting_ml/main.py
-365,full,fix,B3;F1,dataset marker <reponame> at offset 0 | redaction marker <EMAIL> at offset 1271,,al-arz/the-tale src/the_tale/the_tale/game/heroes/tests/test_logic.py
-366,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 44,,brad/django-tinylinks tinylinks/tests/test_app/models.py
-367,full,fix,F1,redaction marker <NAME> at offset 39,,timofeymukha/postcipes postcipes/hydraulic_jump.py
-369,full,fix,B3,dataset marker <filename> at offset 0,,anirudhacharya/aesara aesara/gpuarray/optdb.py
-370,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 30,,imsardine/jenkinsapi jenkinsapi/node.py
-371,full,fix,F1,redaction marker <NAME> at offset 455,,srcarter3/awips2 edexOsgi/com.raytheon.edex.plugin.gfe/utility/common_static/base/gfe/textproducts/templates/product/GenericHazards.py
-372,full,fix,B3,dataset marker <filename> at offset 0,,rodrigofaccioli/drugdesign virtualscreening/vina/spark/buried_areas.py
-373,full,fix,B3;F1,dataset marker <gh_stars> at offset 0 | redaction marker <PASSWORD> at offset 2381,,Masa-Yasuno/oase oase-root/web_app/views/system/mail/action_mail.py
-378,full,drop,E1,auto-generated header at offset 0,,gabrielkarras/SOEN341 amazon/model_api/migrations/0005_remove_order_datetimecreated_alter_order__id_and_more.py
-379,full,drop,E1,auto-generated header at offset 24,,tony-joseph/livre items/migrations/0001_initial.py
-380,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 62,,alextsaihi/rnaget-compliance-suite compliance_suite/exceptions/user_config_exception.py
-381,full,fix,B3;F1,dataset marker <reponame> at offset 0 | redaction marker <NAME> at offset 128,,bbornstein/aoc 2021/day15/aoc-2021-d15.py
-383,full,drop,E1,auto-generated header at offset 253,,limingu/azure-cli-extensions src/cosmosdb-preview/azext_cosmosdb_preview/vendored_sdks/azure_mgmt_cosmosdb/models/database_account_list_keys_result_py3.py
-384,full,fix,F1,redaction marker <NAME> at offset 76,,dimitryzub/blog-posts-archive Google/google_books/scrape_google_books.py
-385,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 41,,AustinTSchaffer/DailyProgrammer Python/Higher-Or-Lower/hol/__init__.py
-391,full,fix,B3,dataset marker <gh_stars> at offset 0,,dominik-handler/TELR src/telr/TELR_assembly.py
-393,full,fix,B3,dataset marker <reponame> at offset 0,,questioneer-ltd/scrut stubs/_pytest/_code.py
-397,full,fix,F1,redaction marker <NAME> at offset 347,,hover2pi/jwql jwql/utils/logging_functions.py
-399,full,fix,B3;F1,dataset marker <gh_stars> at offset 0 | redaction marker <EMAIL> at offset 48,,jiaxiaolei/my_snap_demo bcloud-snap/bcloud-3.9.1/bcloud/hasher.py
-400,full,fix,B3,dataset marker <filename> at offset 0,,ariesdevil/beansdbadmin beansdbadmin/core/client.py
-402,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 21,,p4l1ly/gino gino/loader.py
-403,full,fix,B3,dataset marker <gh_stars> at offset 0,,Andrew-Tan/e-mission-server emission/clients/choice/choice.py
-404,full,fix,B3;F1,dataset marker <gh_stars> at offset 0 | redaction marker <NAME> at offset 84 | redaction marker <EMAIL> at offset 92,,ylafon/redbot lib/formatter/text.py
-405,full,fix,F1,redaction marker <NAME> at offset 74,,ifurusato/ros lib/ioe_pot.py
-407,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <EMAIL> at offset 132,,seckcoder/lang-learn python/re_user.py
-408,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 28,,LukHad/AccountBook TransactionBook/gui_kivy/generic/MultiSelectPopUp.py
-409,full,fix,B3,dataset marker <reponame> at offset 0,,MormonJesus69420/Knowledge-Based-Systems-Project Assignment1/Part2/Bridge2.py
-410,full,fix,B3,dataset marker <reponame> at offset 0,,jefflundberg/locast2plex lib/tuner_interface.py
-412,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 38,,jeongyoonlee/audiomentations audiomentations/core/utils.py
-413,full,fix,B3,dataset marker <reponame> at offset 0,,HoneyS2/meaningful algorithm/python/LeetCode/isValid.py
-415,full,fix,F1,redaction marker <PASSWORD> at offset 24346,,NickeZ/lightning tests/test_wallet.py
-416,full,fix,B3,dataset marker <filename> at offset 0,,ScienceStacks/MicrobEPy microbepy/plot/mutation_plot.py
-417,full,fix,B3,dataset marker <filename> at offset 0,,shikisawamura/nnabla-examples semantic-segmentation/deeplabv3plus/dataset_utils.py
-419,full,fix,B3,dataset marker <gh_stars> at offset 0,,jeffmoffitt/storm-control storm_control/sc_library/log_timing.py
-422,full,fix,F1,redaction marker <NAME> at offset 133 | redaction marker <EMAIL> at offset 141,,FGDBTKD/nltk nltk/tag/brill.py
-426,full,fix,B3,dataset marker <filename> at offset 0,,Vipul97/SLR-Parser tests/test_grammar.py
-427,full,drop,E1,auto-generated header at offset 0,,leonhead/chess-insight insight/migrations/0001_initial.py
-428,full,fix,B3,dataset marker <filename> at offset 0,,jmerizia/parallel-pytorch tests/test_merge.py
-429,full,fix,B3,dataset marker <filename> at offset 0,,tebriel/aoc2021 day07/main.py
-430,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 34,,pritchardlabatpsu/cga src/ceres_infer/utils.py
-431,full,fix,B3,dataset marker <filename> at offset 0,,aragubas/fogoso MAIN/Screens/Settings/category_2/__init__.py
-436,full,fix,F1,redaction marker <NAME> at offset 43,,Artis-Physis/utopia-cms portal/apps/core/management/commands/sync_articleviewedby.py
-439,full,fix,B3,dataset marker <filename> at offset 0,,oglok/CPU-Manager-for-Kubernetes tests/integration/test_cmk_describe.py
-440,full,fix,F1,redaction marker <NAME> at offset 628 | redaction marker <EMAIL> at offset 655,,richardARPANET/persistent-celery-beat-scheduler setup.py
-443,full,fix,F1,redaction marker <NAME> at offset 50 | redaction marker <EMAIL> at offset 58,,EkremBayar/bayar venv/Lib/site-packages/patsy/test_regressions.py
-447,full,fix,B3,dataset marker <filename> at offset 0,,ciskoinch8/vimrc vimfiles/bundle/vim-python/submodules/pylint/tests/functional/s/super/super_with_arguments.py
-448,full,fix,B3,dataset marker <gh_stars> at offset 0,,yukti07/Dell_Hire_hack machine.py
-450,full,fix,B3,dataset marker <reponame> at offset 0,,ahara/-blog elm_mnist/elm_mnist.py
-452,full,fix,B3,dataset marker <filename> at offset 0,,zqma/IIC proj/scripts/cluster/baselines/triplets_greyscale.py
-454,full,drop,B3;E3,dataset marker <reponame> at offset 0 | token at offset 1827,,tsukaeru/RDM-osf.io addons/twofactor/tests/test_models.py
-455,full,fix,B3,dataset marker <filename> at offset 0,,BinItAI/BetterLoader betterloader/standard_transforms.py
-459,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 25,,95616ARG/SyReNN pip_info/setup.py
-460,full,fix,B3,dataset marker <filename> at offset 0,,jiji-online/neptune-cli neptune/generated/swagger_client/path_constants.py
-462,full,fix,B3,dataset marker <gh_stars> at offset 0,,Risto97/pygears pygears/svgen/modules/sieve.py
-463,full,fix,B3,dataset marker <gh_stars> at offset 0,,gzpyy/qlib examples/my_model_test.py
-465,full,fix,B3,dataset marker <filename> at offset 0,,junhoher/GraphZoom graphzoom/embed_methods/dgi/execute.py
-466,full,fix,B3,dataset marker <gh_stars> at offset 0,,rodb70/RDMnet tools/ci/deploy_to_github_release.py
-468,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 46,,baobabsoluciones/cornflow-client cornflow_client/schema/dictSchema.py
-471,full,fix,B3,dataset marker <gh_stars> at offset 0,,sww1235/heatsink-calc heatsink.py
-472,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 46,,amin-henteti/airflow-dags scripts/get_file_name_as_variable.py
-473,full,fix,B3,dataset marker <reponame> at offset 0,,sovrin-foundation/old-sovrin sovrin/test/did/helper.py
-474,full,fix,B3,dataset marker <gh_stars> at offset 0,,jancami/edibles tests/test_EdiblesSpectrum.py
-475,full,fix,B3,dataset marker <reponame> at offset 0,,citrix-openstack-build/swift swift/common/ondisk.py
-477,full,fix,B3,dataset marker <gh_stars> at offset 0,,harkiratbehl/PyGM src/parser.py
-478,full,fix,B3,dataset marker <gh_stars> at offset 0,,frostburn/branch-cut-mandelbrot render_video.py
-479,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <NAME> at offset 60,,smurfix/hbmqtt tests/mqtt/test_subscribe.py
-480,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 51,,fangd123/TextBrewer examples/cmrc2018_example/main.trainer.py
-481,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 37,,youngwoon/DnC-RL-Tensorflow gym/gym/benchmarks/__init__.py
-482,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <NAME> at offset 101 | redaction marker <EMAIL> at offset 754,,pennfranc/hypnettorch hypnettorch/data/timeseries/preprocess_audioset.py
-483,full,fix,F1,redaction marker <PASSWORD> at offset 13706,,CMPUT404-Fa21-Organization/CMPUT404-Project-Social-Distribution Posts/viewsAPI.py
-484,full,fix,B3,dataset marker <reponame> at offset 0,,Open-EO/openeo-sentinelhub-python-driver workers/tests/test_array_element.py
-485,full,fix,B3,dataset marker <reponame> at offset 0,,despairblue/esy-skia gn/gn_to_bp.py
-488,full,fix,B3,dataset marker <filename> at offset 0,,ChenShuwei1001/mmediting tests/test_models/test_components/test_discriminators/test_light_cnn.py
-489,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <PASSWORD> at offset 2092,,ssichynskyi/web_metrics_posting src/consumer.py
-491,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 22,,yuan-xy/medi medi/inference/utils.py
-493,full,fix,B3,dataset marker <gh_stars> at offset 0,,tingshao/catapult third_party/google-endpoints/dogpile/cache/region.py
-494,full,fix,B3,dataset marker <gh_stars> at offset 0,,fury106/ProjectParallelProgrammeren projectparallelprogrammeren/codesimulatie.py
-495,full,fix,B3,dataset marker <gh_stars> at offset 0,,haruhi-dl/haruhi-dl test/test_aes.py
-497,full,fix,B3,dataset marker <gh_stars> at offset 0,,ismailkocdemir/mmdetection configs/HDR/hdr/retinanet_r50_fpn_1x_coco_hdr_minmax_glob_gamma_2.py
-499,full,fix,B3,dataset marker <reponame> at offset 0,,vandana-11/cognito tests/test_command.py
+0d1e11b4c0740741,full,fix,B3,dataset marker <gh_stars> at offset 0,,RedChen/stackstorm-tutorial/etc/nasa_apod.py
+5e467bb5ce89997f,full,fix,B3,dataset marker <reponame> at offset 0,,themenucha/grpc/tools/run_tests/run_performance_tests.py
+680d4363d4d1bd8e,full,fix,B3,dataset marker <gh_stars> at offset 0,,0x20Man/Watcher3/core/snatcher.py
+cc46017245578753,full,fix,B3,dataset marker <gh_stars> at offset 0,,marrowne/cloudify-aws-plugin/cloudify_aws/common/tests/test_decorators.py
+09f1a3e1e47c6376,full,fix,B3,dataset marker <gh_stars> at offset 0,,jie311/yolox_keypoint_segment/yolox/models/darknet.py
+b77c702904986d05,full,fix,B3,dataset marker <filename> at offset 0,,nyzsirt/django-nyt/django_nyt/migrations/0003_subscription.py
+f1cb22dcdb1c6515,full,fix,B3,dataset marker <filename> at offset 0,,eskang/alloy-maxsat-benchmark/scripts/checkmate/benchmark.py
+a4d94c8acbe837d1,full,fix,B3;F1,dataset marker <reponame> at offset 0 | redaction marker <PASSWORD> at offset 159,,flycam/pwnedapi/pwnedapi/tests/scanner_test.py
+fcab84d53c43cbf9,full,drop,E1,auto-generated header at offset 0,,LL06-Reports-Analysis-Dowell/100043-exhibitorlist/form/event/migrations/0002_auto_20210930_0502.py
+1be54e45fc96c6cb,full,fix,B3,dataset marker <gh_stars> at offset 0,,danabaxia/stockAnalysis/stockAnalysis/main.py
+b137ee2cb50d8c3b,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 35 | dataset marker <gh_stars> at offset 104,,mehrdad-shokri/mne-python/tutorials/source-modeling/plot_background_freesurfer_mne.py
+6359488cb66a0aa6,full,fix,B3,dataset marker <filename> at offset 0,,legitbee/pulumi-ovh/sdk/python/pulumi_ovh/iploadbalancing_http_farm_server.py
+f9df26b206182539,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 67,,jo2y/google-cloud-python/datastore/tests/unit/gapic/v1/test_datastore_client_v1.py
+1acb3a91dc187f34,full,fix,B3,dataset marker <gh_stars> at offset 0,,lfchener/dgl/tests/compute/test_subgraph.py
+0a81c79f6906f830,full,fix,B3,dataset marker <filename> at offset 0,,yourmoonlight/maro/examples/proxy/send.py
+02c10ae89a7a48ef,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 34,,MSR-LIT/MultilingualBias/extrinsic/bios_codes/config.py
+727e991f49fd183a,full,fix,B3,dataset marker <filename> at offset 0,,joehendrix/pyre-check/documentation/pysa_tutorial/exercise2/views.py
+771a99ae8f540fc1,full,fix,B3,dataset marker <filename> at offset 0,,hassanamin994/jumpcutter/jumpcutter.py
+6a0b23e505a31093,full,fix,B3;F1,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 44 | redaction marker <NAME> at offset 177,,MesoscienceLab/mesohops/mesohops/dynamics/eom_functions.py
+f3abd9691b48873d,full,fix,F1,redaction marker <NAME> at offset 62 | redaction marker <EMAIL> at offset 70,,sepler/qRT-PCR-Calculator/qRT-PCR Fold Change & log2fc Calculator by Joshua Shaffer .py
+b118f1cedc876aa4,full,fix,B3,dataset marker <filename> at offset 0,,htemiz/DeepSR/DeepSR/samples/div2k/EDSR_YCbCr.py
+568056cd9ba8460e,full,fix,B3,dataset marker <gh_stars> at offset 0,,coolomar513/p2pflix-peer/peer.py
+ced5f40905194bc1,full,fix,F1,redaction marker <NAME> at offset 418 | redaction marker <EMAIL> at offset 445,,lamarmeigs/django_clean_fields/setup.py
+70856a91786c723e,full,fix,B3,dataset marker <filename> at offset 0,,jmcrumb/open-virtual-assistant/nova-core/plugins/command_not_found_plugin.py
+f0c7fdcd92647834,full,fix,B3,dataset marker <reponame> at offset 0,,WaqasAhmedLatif/cloud-native-edition/pygluu/kubernetes/gui/forms/upgrade.py
+14d125952a14057c,full,fix,B3,dataset marker <filename> at offset 0,,Tangent007/Games-in-Python/WormY/SnapE.py
+482d33373cdb5a6c,full,drop,E1,auto-generated header at offset 0,,techlib/celus/apps/sushi/migrations/0012_sushifetchattempt_contains_data.py
+4f3ede838a20ba0f,full,fix,B3,dataset marker <filename> at offset 0,,sunminghui81/python-design-pattern/tests/test_prototype.py
+259de0812da3d5a2,full,fix,B3;F1,dataset marker <reponame> at offset 0 | redaction marker <NAME> at offset 1534,,harunlakodla/Python-Opencv-Turkce-Kaynak/12-Video_Kaydı-Döndürme/3-Videodaki_Ekranı_Aynalanmıs_Hali.py
+4d8e3b8aec03b95d,full,fix,B3;F1,dataset marker <reponame> at offset 0 | redaction marker <EMAIL> at offset 88,,lycheng/leetcode/linked_list/delete_node.py
+91314aca842d0017,full,fix,F1,redaction marker <EMAIL> at offset 63,,ai03-2725/keyplus/host-software/keyplus/constants/error.py
+9e00aaaeab42bd57,full,fix,F1,redaction marker <PASSWORD> at offset 10729,,deom119/ydk-py-samples/samples/basic/netconf/models/openconfig/openconfig-terminal-device/nc-edit-config-oc-terminal-device-32-ydk.py
+0e6cc3c4a765996a,full,fix,F1,redaction marker <NAME> at offset 55,,retresco/supercell/test/test_middleware.py
+8cfa9fd53a8894ad,full,fix,B3,dataset marker <filename> at offset 0,,heholek/flask-unchained-react-spa/backend/models/contact_submission.py
+f162808e29ae7260,full,fix,B3,dataset marker <filename> at offset 0,,RS1999ent/miniNExT/examples/simple-chain/topo.py
+0e52645f0b119c18,full,fix,B3,dataset marker <gh_stars> at offset 0,,EasyCommanderZ/nonebot-bison/src/plugins/nonebot_bison/scheduler.py
+16a7f4ae2ebe39e4,full,fix,B3;F1,dataset marker <gh_stars> at offset 0 | redaction marker <NAME> at offset 9821 | redaction marker <EMAIL> at offset 8198 | redaction marker <KEY> at offset 13506 | redaction marker <PASSWORD> at offset 8282,,samuelcolvin/nosht/py/shared/db.py
+6c69ce34e20f1bb7,full,fix,B3,dataset marker <filename> at offset 0,,vgutta/AMPL/atomsci/ddm/utils/llnl_utils.py
+a91630dd9e213a08,full,fix,B3,dataset marker <gh_stars> at offset 0,,mcshih/doctr/doctr/io/html.py
+9ba22b161be84129,full,fix,B3,dataset marker <gh_stars> at offset 0,,ndevenish/envdiff/test_envdiff.py
+481963fe300c03b4,full,fix,F1,redaction marker <PASSWORD> at offset 8919,,dillanchang/qsvr-orbitpred/src/orbit_prediction/spacetrack_etl.py
+df6d0bc38d5ac3bf,full,fix,B3,dataset marker <reponame> at offset 0,,developerjohn76/helloworld-python/helloworld/main.py
+0769358c35fe223c,full,fix,B3,dataset marker <reponame> at offset 0,,luk-f-a/numba/numba/tests/test_conversion.py
+717461624ebd2d57,full,fix,B3;F1,dataset marker <reponame> at offset 0 | redaction marker <EMAIL> at offset 530 | redaction marker <PASSWORD> at offset 557,,Noob-can-Compile/PySyft/tests/integration/network/connect_nodes_test.py
+db29b0adf0b2bf7d,full,fix,B3,dataset marker <filename> at offset 0,,dvishal485/battlesnake/brain.py
+c2b72fe7aebcc15f,full,fix,B3,dataset marker <reponame> at offset 0,,mukobi/Pozyx-Gabe/house_code/tutorials_altered/multimaybe.py.py
+a51f372a02575af4,full,fix,B3,dataset marker <gh_stars> at offset 0,,corgiclub/ErGoThin/bot/src/plugins/monitor/controller/overview.py
+13914fa9aabfbdd3,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 29,,SimiaCryptus/models/research/vid2depth/ops/icp_grad_test.py
+b503269e161cf0ee,full,fix,F1,redaction marker <PASSWORD> at offset 662,,junjieyjj/Syncimage/ferryman.py
+01909fccfcd2a0ce,full,fix,B3,dataset marker <reponame> at offset 0,,winosli/Secure-Your-Password/main.py
+0bf28ef477a7d577,full,fix,B3;F1,dataset marker <gh_stars> at offset 0 | redaction marker <EMAIL> at offset 102,,astar-club/scikit-snowland/snowland/gis_tool/haversine.py
+ac44ddaebfdfe2ea,full,fix,B3,dataset marker <reponame> at offset 0,,Chris-Schnaufer/pipelineutils/test/fetch_box_archives.py
+011861495cab5443,full,fix,B3,dataset marker <reponame> at offset 0,,Mannan2812/azure-cli-extensions/src/application-insights/azext_applicationinsights/tests/latest/recording_processors.py
+9942b8de5559f733,full,fix,B3,dataset marker <gh_stars> at offset 0,,kagemeka/atcoder-submissions/jp.atcoder/abc149/abc149_e/9232732.py
+5f58d67dcbb68f7b,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 27,,Rogdham/pyTenable/tenable/sc/analysis.py
+ece47cf3569c6b5a,full,fix,B3,dataset marker <reponame> at offset 0,,sureshdsk/rasa/tests/shared/core/test_events.py
+fd304996ce85ff08,full,fix,B3,dataset marker <gh_stars> at offset 0,,Vladislav-Zolotaryov/L2J_Levelless_Custom/L2J_DataPack/data/scripts/quests/216_TrialOfGuildsman/__init__.py
+6793bd6531d3ddf4,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <NAME> at offset 81 | redaction marker <EMAIL> at offset 89,,banalas/ansible-cli/tower_cli/resources/workflow.py
+392fe5a7407c560f,full,fix,B3,dataset marker <reponame> at offset 0,,tmannen/fast-depth/dataloaders/sun3d.py
+793ce05ed0f4c267,full,fix,B3,dataset marker <gh_stars> at offset 0,,catzoo/hata/hata/discord/interaction/components.py
+51b264bff6232fa4,full,fix,B3,dataset marker <reponame> at offset 0,,xqdan/akg/python/akg/ops/fused_gpu/fused_pad.py
+82758170fc742b52,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 37,,sthagen/miyuchina-mistletoe/mistletoe/__init__.py
+8deff7afa7f04615,full,fix,F1,redaction marker <NAME> at offset 315 | redaction marker <EMAIL> at offset 465,,takehuge/PYQUM/.debris/2019-02-19 19.18.50.00/logger.py
+890651e4733e8944,full,fix,F1,redaction marker <NAME> at offset 32 | redaction marker <EMAIL> at offset 40,,kiv-box/redis/ansible/lib/ansible/modules/extras/clustering/consul_kv.py
+7fd4164413588150,full,fix,B3,dataset marker <filename> at offset 0,,CristianoPizzamiglio/scikit-spatial/tests/unit/objects/test_triangle.py
+951c0ffae8ed4db6,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 40,,mayronceccon/work-at-olist-library/utils/test/test_import_data.py
+f578c4c8f5b9ac28,full,fix,F1,redaction marker <PASSWORD> at offset 3387,,Manish0925/OSINT_Project/src/num-info.py
+ca3630b84be3762a,full,fix,B3,dataset marker <filename> at offset 0,,shenki/op-test-framework/testcases/fspresetReload.py
+655ab7bf9308d4ba,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 38,,linhuiwzqu/clxcommunications/tests/deserialize_test.py
+03f2f4fd5c3376c3,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 24,,crsmi/audl-elo/2014/get_elo_2014.py
+8cedc32c255de7df,full,fix,B3,dataset marker <reponame> at offset 0,,martinhoefling/smbprotocol/smbprotocol/query_info.py
+d95313e18bf96ee5,full,fix,B3,dataset marker <reponame> at offset 0,,pgajdos/lml/examples/robotchef_allinone/robotchef_allinone/plugin.py
+1dae056c1c195110,full,fix,B3;F1,dataset marker <gh_stars> at offset 0 | redaction marker <NAME> at offset 127 | redaction marker <EMAIL> at offset 135,,vladpopovici/QPath/qpath/annot/__init__.py
+1e15724a110a4b1c,full,fix,F1,redaction marker <KEY> at offset 442 | redaction marker <PASSWORD> at offset 431,,ccc1073/meituan/readme.py
+746d83a6faea350f,full,fix,F1,redaction marker <NAME> at offset 250 | redaction marker <EMAIL> at offset 277,,hamptons/alerta-contrib/plugins/telegram/setup.py
+d4c56f38226c4db5,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 25,,Haider-BA/geode/geode/array/__init__.py
+8f92de0e125970be,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <NAME> at offset 29583 | redaction marker <EMAIL> at offset 29591 | redaction marker <PASSWORD> at offset 2188,,noraj/JohnTheRipper/run/pcap2john.py
+097d25006e89b803,full,fix,B3;F1,dataset marker <gh_stars> at offset 0 | redaction marker <NAME> at offset 37,,electric-cash/electrumx/tests/test_transactions.py
+837a8522e5390408,full,fix,B3,dataset marker <filename> at offset 0,,adorobis/PyViCare/tests/test_Vitodens200W.py
+3999319da3d5ce96,full,fix,B3;F1,dataset marker <gh_stars> at offset 0 | redaction marker <NAME> at offset 112 | redaction marker <EMAIL> at offset 120,,paulovelho/voyagerimb/voyagerimb.py
+5fdd34f0c96b46f0,full,fix,B3,dataset marker <reponame> at offset 0,,PolSl-PBL-7/DragonEye/utils/range_types.py
+f66959dd65acf2cc,full,fix,B3,dataset marker <filename> at offset 0,,amalchuk/scienco/scienco/indexes/constants.py
+bfa09f68a7109bd9,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <NAME> at offset 306,,astroML/astroML_figures/book_figures/chapter1/fig_S82_hess.py
+f7caf0b05f02cfc6,full,fix,B3;F1,dataset marker <reponame> at offset 0 | redaction marker <NAME> at offset 55 | redaction marker <EMAIL> at offset 72,,padbr/gcbias/metagenome_depth_bias.py
+23680b32f59b9360,full,fix,F1,redaction marker <PASSWORD> at offset 3140,,mandeeps13k/django-DefectDojo/dojo/settings/settings.dist.py
+98bebd72d0f0ef4e,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 28,,OpenGeoscience/VTK/ThirdParty/Twisted/twisted/test/test_memcache.py
+30e3c63bf2e6b229,full,fix,B3,dataset marker <gh_stars> at offset 0,,kcao22/KCM-Data/test_data/organize_files.py
+8f01abd9f5be0c84,full,fix,B3,dataset marker <reponame> at offset 0,,kshramt/httpx/httpx/backends/trio.py
+96267eb88776722a,full,fix,B3,dataset marker <gh_stars> at offset 0,,dudaji/dcc/02_DSA/homework/zuhern/week2/sort/quiz_quick_11931.py
+56ab44cc9fe55a93,full,fix,B3,dataset marker <gh_stars> at offset 0,,GuessWhatGame/referit/src/referit/data_provider/referit_dataset.py
+b16c08e4bc8f0024,full,fix,B3,dataset marker <reponame> at offset 0,,vsevdrob/nft-brownie-ipfs-pinata-hashlips/scripts/collectible/config.py
+ba946359672db3b2,full,fix,B3,dataset marker <filename> at offset 0,,medismailben/llvm-project/llvm/test/CodeGen/NVPTX/ld-st-addrrspace.py
+5a7256a4b6a4b64e,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 25,,srp33/CodeBuddy/middle_layer/main.py
+bd1943eb5c619976,full,fix,F1,redaction marker <PASSWORD> at offset 2602,,alitayebi/havashi/havashi/settings.py
+e33f55666870ee23,full,fix,B3,dataset marker <reponame> at offset 0,,mkmkryu/scanpy2/scanpy/preprocessing/__init__.py
+2ccbb879bb0a2bc2,full,fix,B3,dataset marker <gh_stars> at offset 0,,nipunagarwala/ee364b_final_project/experiment.py
+cdceb52d30aa2d8e,full,fix,B3,dataset marker <reponame> at offset 0,,Qiaochu-Song/FLAML/test/automl/test_xgboost2d.py
+a6440a22fb98f0a5,full,fix,B3;F1,dataset marker <reponame> at offset 0 | redaction marker <PASSWORD> at offset 2397,,DefensePoint-Snyk-Test/js-teachers-portal/portal/views.py
+1e8a2d308596a10b,full,fix,B3,dataset marker <gh_stars> at offset 0,,Pandinosaurus/ensae_teaching_cs/_unittests/ut_special/test_image.py
+da1e1a24ce2d8184,full,fix,B3,dataset marker <reponame> at offset 0,,hrgadeha/bf_report/reports/reports/report/stock_ledger___simplified/stock_ledger___simplified.py
+4fa465e36757fe74,full,fix,F1,redaction marker <NAME> at offset 33 | redaction marker <EMAIL> at offset 615,,tibkiss/pyalgotrade/pyalgotrade/barfeed/csvfeed.py
+0fbb2ea976c69739,full,fix,B3,dataset marker <filename> at offset 0,,abishekvashok/pytorch/torch/testing/_internal/common_fx2trt.py
+d167eb6b2ec67bd9,full,fix,B3;E2,hex/number array of 3228 chars at offset 122 | dataset marker <reponame> at offset 0,,hugmyndakassi/hvmi/cami/scripts/crc32.py
+d9ce6c60f06817bc,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 34,,jamesw96/flight-searcher/FlightSearcher.py
+fd2d937892dfc742,full,fix,B3,dataset marker <filename> at offset 0,,Oltier/ML-Music-genre-labeling/Log_Reg.py
+a5eae26f8726ac77,full,fix,B3,dataset marker <reponame> at offset 0,,kkrampa/commcare-hq/custom/abt/reports/views.py
+5fcf8d58d8f75cf3,full,fix,B3,dataset marker <gh_stars> at offset 0,,ilapi/intralinks-sdk-python/intralinks/functions/entities.py
+8af630486a5da67a,full,fix,B3,dataset marker <filename> at offset 0,,ministryofjustice/money-to-prisoners-emails/mtp_emails/apps/callbacks/tasks.py
+da4e4edae31329bf,full,fix,B3,dataset marker <filename> at offset 0,,mail2nsrajesh/manila-ui/manila_ui/tests/dashboards/admin/shares/tests.py
+34746ee7764fc249,full,fix,B3,dataset marker <gh_stars> at offset 0,,yukie-nobuharu/TTMediaBot/downloader.py
+d8764aba85c78af1,full,fix,B3,dataset marker <filename> at offset 0,,b3nj1/pirowflo/src/testing/Screen/globalParameters.py
+4280e8634129c11b,full,drop,B3;E1,auto-generated header at offset 269 | dataset marker <gh_stars> at offset 0,,rsdoherty/azure-sdk-for-python/sdk/cognitiveservices/azure-cognitiveservices-language-spellcheck/azure/cognitiveservices/language/spellcheck/models/_models.py
+bea639298ad3c5ef,full,fix,B3,dataset marker <reponame> at offset 0,,stefanfoulis/django-filer-test/filer/settings.py
+48d174d4c9b2d139,full,fix,B3,dataset marker <gh_stars> at offset 0,,ConsulTent/firo/qa/rpc-tests/sigma_listunspentmints_sigma_validation.py
+4143e69382b91c8f,full,fix,B3,dataset marker <gh_stars> at offset 0,,ktaed/MTSv/mtsv/scripts/MTSv_random_kmers.py
+515c90eee4ab8c16,full,fix,B3,dataset marker <filename> at offset 0,,DylanBaker/looker-fonz/spectacles/validators/content.py
+89da0209aa5df467,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 48,,AnderCruz/Portfolio-Managment-Projects/edhec_risk_kit_118.py
+576c47229fd15fb8,full,fix,B3,dataset marker <reponame> at offset 0,,ppiyakk2/django-markdownx/markdownx/urls.py
+478db0ce649ba827,full,fix,F1,redaction marker <EMAIL> at offset 385,,yuvalherziger/fh-immuta-utils/setup.py
+bb16a1620ae42f14,full,fix,B3,dataset marker <gh_stars> at offset 0,,MeterianHQ/meterian-autofix-interpreter/src/vcs/github/GithubPullRequest.py
+2223bb3706f3a3d3,full,fix,B3,dataset marker <gh_stars> at offset 0,,timgates42/ray/python/ray/tests/test_basic.py
+1ba7834883790ea6,full,fix,B3,dataset marker <filename> at offset 0,,Hirni-Meshram2/mysql-connector-python/tests/cext/test_cext_cursor.py
+8f5912d173d42f40,full,fix,B3,dataset marker <reponame> at offset 0,,waveshare/WAVEGO/RPi/serialTest.py
+fda2f1d7ddbd03a1,full,fix,B3,dataset marker <reponame> at offset 0,,wshanks/qiskit-terra/test/python/pulse/test_parameters.py
+9b444b9e35de9efc,full,fix,F1,redaction marker <NAME> at offset 1,,josetorrs/thee-flying-chicken/ml_scraping/src/spiders/SeekingAlphaSpider.py
+4c5fc5660f257bd3,full,fix,F1,redaction marker <EMAIL> at offset 1373,,cploutarchou/covid-19-tracker/core/settings.py
+d347e563ffeccbea,full,fix,B3,dataset marker <gh_stars> at offset 0,,ManthanKeim/code-attempt1/code1/main.py
+5414797892e02fd8,full,fix,B3;F1,dataset marker <gh_stars> at offset 0 | redaction marker <PASSWORD> at offset 203,,jsjang93/joony/7day/web/Web00.py
+c4263c10a636156b,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <EMAIL> at offset 372,,RedTachyon/sumo-rl/setup.py
+b4acfca86197517d,full,fix,B3,dataset marker <gh_stars> at offset 0,,christosbampis/vmaf/python/src/vmaf/tools/decorator.py
+e3b326d5fdeb1b25,full,fix,B3,dataset marker <filename> at offset 0,,jbmarcos/Python-Curso-em-video-Mundo-1-2-3-/ex033 # reconhecer valores. maior e menor -=-.py
+aa4812f89a7ce665,full,fix,B3,dataset marker <reponame> at offset 0,,GDiaz16/signbank/signbank/video/migrations/0001_initial.py
+c09f37dbbb9bdbf8,full,fix,B3,dataset marker <gh_stars> at offset 0,,ScripterSevla/Testes/Gui/LoginWindow.py
+1c6f4a98ce69ea0d,full,fix,B3,dataset marker <reponame> at offset 0,,hubert-pietron/airflow/airflow/providers/google/cloud/operators/datastore.py
+c760c1ee978abacb,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 61,,johndewees/iitmigration/aalh_iit_transportation_003/cleanup-title-column.py
+00c04f843e997377,full,fix,F1,redaction marker <NAME> at offset 51,,BryanRiel/pyre/tests/pyre/calc/expression_escaped.py
+2d1c721566a67e60,full,drop,B3;E1,auto-generated header at offset 64 | dataset marker <reponame> at offset 0,,Malaria-Detection-Platform/malaria_detection_platform/FinalProject/Final_Project/migrations/0002_rename_credentials_credential_and_more.py
+8a59cf1495fa45e5,full,fix,F1,redaction marker <NAME> at offset 167 | redaction marker <EMAIL> at offset 196,,nancypareta/nancy/setup.py
+3924209292f02f71,full,fix,B3;F1,dataset marker <reponame> at offset 0 | redaction marker <NAME> at offset 833 | redaction marker <EMAIL> at offset 861,,frivas/alexa-mixed-polly/lambda/py/lambda_upload/ask_sdk_model/__version__.py
+5e7cc11865207198,full,fix,B3,dataset marker <filename> at offset 0,,albertwohletz/gmorganizer/api/models.py
+50ee67ec48d56326,full,fix,B3,dataset marker <gh_stars> at offset 0,,berndca/xmodels/xmodels/iso8601/timezones.py
+7623f85e7ed3094f,full,fix,F1,redaction marker <PASSWORD> at offset 1374,,mastier/maastemplater/maastemplater.py
+317d0f9362907468,full,fix,F1,redaction marker <NAME> at offset 488 | redaction marker <EMAIL> at offset 498,,architgupta93/RL.Hippocampus/pacman/valueIterationAgents.py
+d2511bb210e0c80c,full,fix,B3,dataset marker <filename> at offset 0,,LordPatate/blue_square/blue_square/const.py
+12fcdb33d711b027,full,fix,B3,dataset marker <filename> at offset 0,,bowangbj/audio/examples/source_separation/conv_tasnet/train.py
+093a5b854721640f,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 47,,jovyan123-playground/tbump-playground/tbump/test/test_file_bumper.py
+b3ef13b21d2cc82f,full,fix,B3;F1,dataset marker <gh_stars> at offset 0 | redaction marker <NAME> at offset 42,,Khroki/mcedit-old/editortools/select.py
+a8d19ee0e7ffc815,full,fix,B3,dataset marker <filename> at offset 0,,issagaliyeva/machine_learning/udacity_ml/software_engineering/unit_tests/introduction/nearest_test.py
+deeb020e84b93cc4,full,drop,E1,auto-generated header at offset 24,,NYU-CI/dfadmin/data_facility_admin/migrations/0027_auto_20190222_1835.py
+22378cbd7d042094,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 37,,awichmann-mintel/lpipe/tests/unit/test_pipeline.py
+9018b6bdd7d97980,full,fix,B3,dataset marker <filename> at offset 0,,priyankism/crystals/crystals/biological.py
+81b233afa5db2931,full,fix,B3,dataset marker <gh_stars> at offset 0,,jorgecarleitao/materialize/test/testdrive/mzworkflows.py
+50358f0aea8e8b7b,full,fix,F1,redaction marker <NAME> at offset 839,,texodus/crowdsource/examples/local/sample_questions.py
+a54941259aa783c9,full,fix,B3,dataset marker <reponame> at offset 0,,sgvdan/OCTransformer/preprocess/hadassah/standardize_dataset.py
+b0ee42fdbe63fc2e,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <NAME> at offset 383,,truthbyron/khoros/khoros/objects/__init__.py
+541d0fcca23f8c35,full,fix,B3,dataset marker <filename> at offset 0,,Deamoner/cord19q/src/python/cord19q/etl/sample.py
+09016a8ff0423eac,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <NAME> at offset 89 | redaction marker <EMAIL> at offset 169,,slorquet/elffile2/objdump.py
+76166cc236fcbb59,full,fix,B3,dataset marker <filename> at offset 0,,ntuliuteam/EDLAB/scripts/tx2/detection/inception_ssd_v2/convert_TF_RT.py
+b55f7e3987d98053,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 33,,ao7777/CS158-DS_Project/BTree/data/three/runTest.py
+badd30c95a3ad7a6,full,fix,B3,dataset marker <gh_stars> at offset 0,,gmijenes/autogoal/autogoal/kb/_semantics.py
+a2d5b67c580bbdc5,full,fix,B3,dataset marker <filename> at offset 0,,anthonyharrison/Puzzles/MattParker/Puzzle 19/primes_primed.py
+62018a9b33995e63,full,fix,F1,redaction marker <EMAIL> at offset 65,,yaoqi-zd/SGAN/lib/network/backbone/vgg16.py
+94f3675f353ef5b2,full,fix,B3,dataset marker <filename> at offset 0,,varnav/dte-usage-plotter/dtefeed.py
+d1b874775f9f2909,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 36,,khoppa/cryptotrade/trade/utils/cryptosizer.py
+590b4207b3c885ef,full,fix,B3,dataset marker <gh_stars> at offset 0,,dforsyth/rules_rust/rust/repositories.bzl
+1e8f576edf4497cb,full,fix,F1,redaction marker <NAME> at offset 832 | redaction marker <EMAIL> at offset 859,,KrishnaswamyLab/DiffusionEMD/setup.py
+dee0b1ad0b66c4b2,full,fix,B3,dataset marker <filename> at offset 0,,rickyhan/h/h/cli/commands/devserver.py
+664280963ab849c1,full,fix,B3;F1,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 26 | redaction marker <NAME> at offset 266,,0u812/roadrunner/wrappers/c_api_python/Testing/rrTester.py
+856d9320195e84eb,full,fix,B3,dataset marker <filename> at offset 0,,YiqunPeng/leetcode_pro/solutions/686_repeated_string_match.py
+2e11ede0de59efc3,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <NAME> at offset 42,,n-keist/sliding_up_panel/screenshots/mp4toGIF.py
+f90c7e235162a012,full,fix,B3,dataset marker <filename> at offset 0,,jiyeonkim127/im3d/models/ldif/testing.py
+739dfd1a43f4ea3f,full,fix,B3,dataset marker <gh_stars> at offset 0,,camponogaraviera/qutip/qutip/tests/test_krylovsolve.py
+4c25fb0c0bb88fc8,full,fix,B3;F1,dataset marker <gh_stars> at offset 0 | redaction marker <NAME> at offset 148 | redaction marker <EMAIL> at offset 156,,TRex22/picamerax/picamerax/encoders.py
+3456c28f875505e4,full,drop,E1,auto-generated header at offset 24,,chris-huynh/via1-registration-website/registration/migrations/0013_auto_20171203_2339.py
+0925e5b77adf7af9,full,fix,B3,dataset marker <reponame> at offset 0,,jjhenkel/dockerizeme/hard-gists/1288025/snippet.py
+9711822d4b55b877,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 27,,didimelli/aiosnmp/examples/snmp.py
+d3227682234f16ee,full,fix,B3,dataset marker <gh_stars> at offset 0,,facebookincubator/fs_image/antlir/bzl/image_layer_runtime.bzl
+f258e29ca4b29a29,full,fix,B3,dataset marker <filename> at offset 0,,fuadahwal/optimum/pydfs_lineup_optimizer/utils.py
+39668b8c65cb26b8,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 39,,abstractvector/python-victron/victron/__init__.py
+081251663f866093,full,fix,B3,dataset marker <gh_stars> at offset 0,,dalian-ai/jina/jina/orchestrate/deployments/config/k8slib/kubernetes_deployment.py
+8c299440f3a970b4,full,fix,B3;F1,dataset marker <reponame> at offset 0 | redaction marker <PASSWORD> at offset 894,,victorcouste/great_expectations/tests/cli/test_datasource_new_helpers.py
+db866ac156c5a498,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 26,,thegreyd/elliott/elliottlib/imagecfg.py
+ee98e7739825170e,full,fix,B3,dataset marker <reponame> at offset 0,,dendisuhubdy/pydiogment/pydiogment/auga.py
+43754cb3400fb756,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 33,,syfxlin/tilt-extensions/nginx_template/__init__.py
+3f51830ac36871e5,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 21,,listuser/jc/jc/tracebackplus.py
+6dc04d9ca43c1410,full,fix,F1,redaction marker <NAME> at offset 6092 | redaction marker <EMAIL> at offset 6100,,DedeKite/wxPlotLab/mplotlab/graphics/MainWin.py
+92398b8d40ed9592,full,fix,B3;F1,dataset marker <gh_stars> at offset 0 | redaction marker <EMAIL> at offset 3377,,hazenai/cvat/datumaro/datumaro/components/project.py
+83cfe56dae611246,full,fix,B3,dataset marker <filename> at offset 0,,rszemplinski/datamodel-code-generator/tests/model/pydantic/test_data_class.py
+440f0651a7eb57a0,full,fix,F1,redaction marker <NAME> at offset 117 | redaction marker <EMAIL> at offset 362,,shengcailiao/QAConv/reid/loss/class_memory_loss.py
+dbf6359dcb03bd30,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 38,,TobiasSchmidtDE/GraphGallery/graphgallery/nn/layers/dgl/ala_gnn.py
+c38b03c49d37e2c5,full,fix,B3,dataset marker <filename> at offset 0,,xju2/xaodtools/scripts/h4l_reducible_bkg.py
+c6dbcb147bc7d5ef,full,fix,B3,dataset marker <gh_stars> at offset 0,,stu-l/Chaste/python/hostconfig/machines/kylie.py
+13b7d156c7e10d9d,full,fix,B3,dataset marker <gh_stars> at offset 0,,MrDelik/core/homeassistant/components/zwave_js/sensor.py
+5625c48a5bf84759,full,fix,B3,dataset marker <filename> at offset 0,,AlexTalker/integrated-manager-for-lustre/chroma_cli/handlers.py
+21319624b8ce4403,full,fix,B3,dataset marker <reponame> at offset 0,,ericmiguel/pepomaps/pepomap/ons.py
+0f044ee517526307,full,fix,B3,dataset marker <reponame> at offset 0,,MoAnsir/dot_file_2017/sublimeText3/Packages/SublimeCodeIntel/libs/codeintel2/accessor.py
+4d0eee1129b53639,full,fix,B3,dataset marker <gh_stars> at offset 0,,jcuic5/CUDA-PointPillars/tool/pcdet/models/detectors/pointpillar.py
+67139d073199b77e,full,fix,B3,dataset marker <filename> at offset 0,,tefra/xsdata-w3c-tests/output/models/nist_data/list_pkg/name/schema_instance/nistschema_sv_iv_list_name_length_5_xsd/__init__.py
+ac20c84b0ebfe93e,full,fix,B3,dataset marker <reponame> at offset 0,,zebraed/psychoid/__init__.py
+4133ea3a8c24cf05,full,fix,B3,dataset marker <filename> at offset 0,,kingzbauer/ChiefOnboarding/back/notes/serializers.py
+4b1a70645dd6fcf8,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 28,,gdl-888/openNAMU/route/view_xref.py
+7f88f810ddb55691,full,fix,B3,dataset marker <filename> at offset 0,,PiotrMachowski/core/tests/components/sonarr/test_sensor.py
+f0253332e39e1679,full,fix,B3;F1,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 38 | redaction marker <NAME> at offset 457 | redaction marker <EMAIL> at offset 468,,m1griffin/arrayfunc/benchmarks/bencharraysize.py
+57080d3c6db7c652,full,fix,B3,dataset marker <filename> at offset 0,,lmottasin/Simulation_Lab/Self Assignment 1 - Bufffon's needle simulation and area of Pi/problem1.py
+c297c8e04431d245,full,fix,B3,dataset marker <filename> at offset 0,,PieterjanMontens/pgware/pgware/helpers.py
+5a32ff781bdf5560,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <NAME> at offset 76,,AugustinJose1221/quantuminspire/src/quantuminspire/api.py
+559635428e9fe4c6,full,fix,B3;F1,dataset marker <reponame> at offset 0 | redaction marker <PASSWORD> at offset 827,,janakagithub/kb_rxn_gene_finder/lib/installed_clients/FeatureSetUtilsClient.py
+bcb288906f19d84d,full,fix,B3,dataset marker <filename> at offset 0,,Accelerator74/ambuild/ambuild2/frontend/v2_0/vs/gen.py
+07009db005d08513,full,fix,B3,dataset marker <reponame> at offset 0,,sandeel31/o3de/AutomatedTesting/Gem/PythonTests/AWS/conftest.py
+fe926b84131fd40c,full,fix,B3,dataset marker <reponame> at offset 0,,fx-bricks/pfx-brick-py/pfxbrick/scripts/pfxrename.py
+2e1371ed8d53b53e,full,fix,B3,dataset marker <reponame> at offset 0,,vrushank-agrawal/opencv-x64-cmake/opencv/sources/samples/dnn/dnn_model_runner/dnn_conversion/common/abstract_model.py
+00c0ab25ac2fb26f,full,fix,F1,redaction marker <EMAIL> at offset 430,,threathive/urlhaus/setup.py
+c08b4d2fbc3cbcdd,full,fix,B3,dataset marker <filename> at offset 0,,tkonolige/timemory/timemory/api/gperftools/utils.py
+1955fce18ca15253,full,fix,B3;F1,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 25 | redaction marker <NAME> at offset 2436,,dedsec-9/AutoGL/autogl/module/model/dgl/base.py
+7009f067ecee6430,full,fix,B3;F1,dataset marker <reponame> at offset 0 | redaction marker <NAME> at offset 182,,DarkElement75/lira/lira/src/old_codebase/subsection_handler.py
+3f1a9195990ca7b2,full,fix,B3,dataset marker <filename> at offset 0,,MattFanto/django-sendgrid-tracking/django_sendgrid_tracking/models.py
+6b0e2c832aa5b8f7,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <NAME> at offset 434,,xm4dn355x/tg_yanao_ru_rss/bot_engine.py
+add2415cf4160c1d,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 34,,y-gupta/rfid-auth-system/GUI/printer/Pillow-2.7.0/Tests/test_imagedraw.py
+250e32a8949ca401,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 34,,dioptra-io/diamond-miner/diamond_miner/insert.py
+1d31a359a375d95b,full,fix,B3,dataset marker <filename> at offset 0,,diogobenica/zoom-zt2/zoomzt2-gui.py
+ab8490e310df2db0,full,fix,B3,dataset marker <reponame> at offset 0,,hellomokey/gp/gpMgmt/bin/gppylib/programs/clsRecoverSegment.py
+8171adbc6f69d704,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 24 | dataset marker <gh_stars> at offset 78,,silky/echomesh/code/python/echomesh/util/thread/Runnable.py
+b14c30918c677230,full,fix,B3;F1,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 56 | redaction marker <EMAIL> at offset 622,,MaxSchambach/colour/colour/plotting/tests/test_characterisation.py
+66399673e0eec992,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 33,,jads-master-team-1/de-1/services/storage/src/storage/app.py
+95bc3d39ee2cdeb5,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 46,,ktncktnc/SpaceNet_Off_Nadir_Solutions/MaksimovKA_solution/utils/metrics.py
+6aad60232d6d9823,full,fix,B3;F1,dataset marker <gh_stars> at offset 0 | redaction marker <EMAIL> at offset 314,,sandfishfactory/ckan-wrapper/setup.py
+9830df836b1a89d5,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 42,,wangshauitj/Mutatt/tools/extract_mrcn_head_feats.py
+45a3e1bfceabd143,full,fix,F1,redaction marker <NAME> at offset 44 | redaction marker <EMAIL> at offset 52,,kiistala/raspi-mtp-autocopy/connect2backup.py
+c2fcc7cc6c6e1b04,full,fix,B3;F1,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 24 | redaction marker <NAME> at offset 762,,timlehr/gaffer/python/GafferDispatchTest/SystemCommandTest.py
+de04a57c0f97846b,full,fix,B3,dataset marker <reponame> at offset 0,,svenruf/trackintel/trackintel/visualization/staypoints.py
+f045c86ddefb7bf4,full,fix,F1,redaction marker <NAME> at offset 27 | redaction marker <EMAIL> at offset 35,,mprince/awacs/awacs/account.py
+f745634d356cbfe6,full,fix,F1,redaction marker <NAME> at offset 50,,HansKristian-Work/DXIL2SPIRV/roundtrip_shaders.py
+b722cf3b05cb227a,full,fix,B3;F1,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 42 | redaction marker <NAME> at offset 866 | redaction marker <EMAIL> at offset 899,,nschaetti/PAN17-author-profiling/deep_learning/ConvNext.py
+cdf0535a448e3c5d,full,fix,B3,dataset marker <filename> at offset 0,,telmuunwj/frankmocap1/handmocap/hand_modules/h3dw_networks.py
+e787d26583ac24ec,full,fix,B3;F1,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 30 | redaction marker <EMAIL> at offset 156,,hashnfv/hashnfv-qtip/tests/unit/cli/options_test.py
+832122360e33066e,full,fix,B3,dataset marker <reponame> at offset 0,,ruoyu0088/holoviews/holoviews/core/data/interface.py
+4cf9369d47bb2449,full,fix,B3,dataset marker <gh_stars> at offset 0,,jtrip/simple_update_example/update.py
+bb0e1256dda22842,full,fix,B3,dataset marker <filename> at offset 0,,AaronFriel/pulumi-google-native/sdk/python/pulumi_google_native/datacatalog/v1/get_entry_group.py
+d5d9f4d05fbbe399,full,fix,B3,dataset marker <filename> at offset 0,,onhernandes/auto-cat-namer/setup.py
+5818e4d6192d3113,full,fix,B3,dataset marker <filename> at offset 0,,silentz/Free-Form-Image-Inpainting-With-Gated-Convolution/src/layers.py
+40e82d33dc91e708,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 28,,Rafi993/pyramda/ramda/juxt_test.py
+5cbd5b02221ba133,full,fix,B3;F1,dataset marker <filename> at offset 0 | redaction marker <NAME> at offset 2938,,rodrigoc-silva/Python-course/Lab05_dictionary_and_class/exercise-36.py
+59fb7507b9f2ab97,full,fix,B3,dataset marker <gh_stars> at offset 0,,nikitaverbis/PyExcelerate/pyexcelerate/tests/benchmark.py
+3d16039cc5801e00,full,fix,F1,redaction marker <NAME> at offset 71 | redaction marker <EMAIL> at offset 88 | redaction marker <KEY> at offset 188,,youngershen/django-easy-validator/tests/settings.py
+7bfb03fa52bd20b2,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 34,,CarterFendley/2015-robot/robot/autonomous/driveForward.py
+f9b9d7808a2ff30b,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 35 | dataset marker <gh_stars> at offset 79,,123456789-dnipro/hackaton/service_api/domain/sms_notifier.py
+4ac21fff953553ca,full,fix,F1,redaction marker <NAME> at offset 573,,infinitewarp/quips/quips/api/tests/test_views.py
+6fbbb7afb4c34553,full,fix,B3;F1,dataset marker <gh_stars> at offset 0 | redaction marker <NAME> at offset 57,,UQ-RCC/uq-globus-tools/qriscloud/_vendor/ldap3/protocol/microsoft.py
+99c0be9d9c0d0cf4,full,fix,B3,dataset marker <gh_stars> at offset 0,,rsj217/leetcode-in-python3/src/solution/662_maximum_width_of_binary_tree.py
+8dddceca29a94467,full,fix,B3;F1,dataset marker <reponame> at offset 0 | redaction marker <NAME> at offset 112,,sachin0x18/ICS-Watchdog/analytics/dataSimulator.py
+d47e3105633db73f,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 28,,gigaquads/neurotic/neurotic/examples/time_series_prediction.py
+93ff5e73cbc4a0d5,full,fix,B3,dataset marker <filename> at offset 0,,mraitmaier/pyrus/utils/enum.py
+aad2e5afea83e1af,full,fix,B3;F1,dataset marker <reponame> at offset 0 | redaction marker <NAME> at offset 74,,vlegoff/tsunami/src/secondaires/navigation/types/boussole.py
+895404603f333dc9,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 58,,openstack/vitrage/vitrage/datasources/cinder/volume/transformer.py
+e68c91586ee6b2b6,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 44,,daitomanabe/one-pixel-attack-keras/networks/network_in_network.py
+a9edaa0e4ba8f981,full,fix,B3,dataset marker <reponame> at offset 0,,aimanahmedmoin1997/DataCamp/Data Science With Python/12-introduction-to-databases-in-python/01-basics-of-relational-databases/06-selecting-data-from-a-table-with-sqlalchemy.py
+e2c3db81526c288d,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 35,,builder08/enigma2-plugins/partnerbox/src/Services.py
+6b885e082d958f4a,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 34,,igormba/python-exercises/ex007.py
+bcf68e7b71d67b61,full,fix,B3;F1,dataset marker <reponame> at offset 0 | redaction marker <NAME> at offset 101,,eda-ricercatore/estate-2017-stage/kpcb-fellows/scripts/decompress_files.py
+2bc11469d8b39831,full,fix,B3,dataset marker <gh_stars> at offset 0,,seanmchu/algo-research/matching/plot13.py
+bfbb97ae28773e37,full,drop,B3;E1,auto-generated header at offset 98 | dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 86,,aakashbajaj/Youngun-Campaign-Tracking/backend/youngun/youngun/apps/campaigns/migrations/0005_auto_20200703_1702.py
+a1904b5880457684,full,fix,B3,dataset marker <reponame> at offset 0,,CospanDesign/python/pyqt/getting_started/center_window.py
+a019a246ff22e52d,full,fix,B3,dataset marker <filename> at offset 0,,harumaki4649/nekobot/modules/games.py
+39df917b1b49298e,full,fix,B3,dataset marker <reponame> at offset 0,,njdbickhart/Themis-ASM/scripts/summary_table.py
+ef287db1c295e9e8,full,fix,B3;F1,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 37 | redaction marker <NAME> at offset 70,,hariprakash-123/aws-pricing/pyutu/client.py
+1146bc78d5ac31c4,full,fix,B3,dataset marker <gh_stars> at offset 0,,jkabalar/pixloc/pixloc/utils/io.py
+18490eeabfe557be,full,fix,B3,dataset marker <gh_stars> at offset 0,,vasp-dev/py4vasp/tests/_util/test_reader.py
+8fc260f5b7f033cc,full,fix,B3,dataset marker <gh_stars> at offset 0,,YevgeniyaK/python_training/test/test_del_group.py
+adf0594a64c79d5a,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 28,,akondrahman/IacSec/extension_work/cliffsDelta.py
+3af4408684a0c4ec,full,fix,B3,dataset marker <filename> at offset 0,,kikaitech/classification_metric_learning/metric_learning/extract_features.py
+bc70351dc643f6f9,full,fix,B3,dataset marker <gh_stars> at offset 0,,Donnyvdm/dojo19/team_9/cocos/test/test_rotate_reverse.py
+64fd3353e5c9c7db,full,fix,B3,dataset marker <reponame> at offset 0,,bismog/leetcode/python/thread/thread_lock_ex1.py
+4776a1e3af9f0777,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 27 | dataset marker <gh_stars> at offset 57,,NNDEV1/BlogDjango/mysite/blog/admin.py
+6b1b2f3c8966e4f4,full,fix,B3,dataset marker <filename> at offset 0,,michel4j/auto-process/autoprocess/utils/mdns.py
+b9bc0715d8bb01cb,full,fix,B3,dataset marker <reponame> at offset 0,,Daiver/np_draw_tools/np_draw_tools/grid_tools.py
+ec0dd5f53ae7ee51,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 42,,AlwxSin/wemake-python-styleguide/wemake_python_styleguide/visitors/tokenize/primitives.py
+fbce0f0902ca3b74,full,fix,B3,dataset marker <filename> at offset 0,,whitfin/spack/var/spack/repos/builtin/packages/r-ranger/package.py
+d9c9a75f8a451a0a,full,fix,B3,dataset marker <reponame> at offset 0,,mileserickson/root_directory/wiki_text_parser.py
+4ce9733d1fd4964a,full,fix,F1,redaction marker <NAME> at offset 66,,jarodhanko/Amazing-Semantic-Segmentation/amazing_semantic_segmentation/models/bisegnet.py
+33206012c4c7e85e,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 27,,mikan-megane/core/homeassistant/components/broadlink/switch.py
+0eaeba49180d76d9,full,fix,B3,dataset marker <gh_stars> at offset 0,,mattvonrocketstein/elixir-python/lib/potion/__init__.py
+a65c0bfc7150a6fe,full,fix,B3;F1,dataset marker <reponame> at offset 0 | redaction marker <NAME> at offset 102,,quidditymaster/thimbles/thimbles/radtran/tests/test_moog_funcs.py
+564406dd76d1c20f,full,fix,B3;F1,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 66 | redaction marker <EMAIL> at offset 3168,,PegasisForever/mkdocs-git-revision-date-localized-plugin/tests/test_builds.py
+f6da8096de3bde27,full,fix,B3,dataset marker <filename> at offset 0,,AokoMercyline/News-API/config.py
+d68ff29dd9cc9f35,full,fix,B3,dataset marker <gh_stars> at offset 0,,enthought/supplement/tests/test_fixer.py
+5ff9bfe43bebba09,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 47,,anshsrtv/fyle-bank-feed-parser-sdk-py/card_data_parsers/models/amex_transaction.py
+976c938814ff2e53,full,fix,B3,dataset marker <filename> at offset 0,,makar21/omaha-server/omaha_server/sparkle/migrations/0008_auto_20151209_1040.py
+7185c40c2390f663,full,fix,B3,dataset marker <reponame> at offset 0,,blag/pyaoscx/pyaoscx/bgp.py
+e94a64270a4b7631,full,fix,B3,dataset marker <gh_stars> at offset 0,,ScorpioDoctor/antares02/build/_downloads/8858e859c76d8cdafbcc55d23574d3d6/neural_networks_tutorial.py
+aabc0f94be05b120,full,fix,F1,redaction marker <NAME> at offset 15,,JustinCappos/checkapi/repy_checkapi/Repy_Env/emulfile.py
+13d80a0915725b92,full,fix,B3,dataset marker <reponame> at offset 0,,Sukhrobjon/leetcode/easy/110_balanced_binary_tree.py
+b3c29a043d62a45c,full,fix,B3,dataset marker <gh_stars> at offset 0,,wolegechu/triton-inference-server/src/clients/python/experimental_api_v2/examples/simple_grpc_v2_cudashm_client.py
+0bcf1380bb59d703,full,fix,B3,dataset marker <gh_stars> at offset 0,,Ksaivinay0708/Hacking_tools/urlfinder.py
+580e4af1cf4c66c5,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 45 | dataset marker <gh_stars> at offset 98,,amberyic/huaweicloud-sdk-python-frs/frsclient/service/v2/live_detect_service.py
+3dc529864c5587f8,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 32,,timeflux/timeflux_eego/eego/sdk.py
+1432b88e7c1aa183,full,fix,B3;F1,dataset marker <reponame> at offset 0 | dataset marker <filename> at offset 37 | redaction marker <NAME> at offset 77 | redaction marker <EMAIL> at offset 94,,lilingge/ERF_net_tensorlfow/erf_net/data_load.py
+4a05572a40576ef8,full,fix,B3,dataset marker <gh_stars> at offset 0,,f--f/sqsub.py/tests.py
+3787e661c8b53bff,full,fix,B3,dataset marker <reponame> at offset 0,,caicongyang/python-study/code/com/caicongyang/python/study/base/pandas_study.py
+b762d1429c04a000,full,drop,E1,auto-generated header at offset 0,,morynicz/ippon_back/ippon/migrations/0031_auto_20190102_2256.py
+0f011b9d973d6ba2,full,fix,B3,dataset marker <gh_stars> at offset 0,,jackzhu727/deep-probability-estimation/calibration_tools/evaluate.py
+a5c7f6b389dee86f,full,fix,B3,dataset marker <filename> at offset 0,,Asdafers/deepracer-simapp/bundle/deepracer_simulation_environment/lib/python2.7/dist-packages/mp4_saving/top_view_graphics.py
+b466af19249d8c43,full,fix,B3,dataset marker <filename> at offset 0 | dataset marker <gh_stars> at offset 51,,emi-hi/cthub/django/tfrs/models/mixins/DisplayOrder.py
+f33289a3fbeaaf74,full,fix,B3,dataset marker <reponame> at offset 0,,goubertbrent/oca-backend/src/solutions/common/models/budget.py
+34a472306012121b,full,fix,B3,dataset marker <reponame> at offset 0,,jun-ma-0/incubator-iceberg/python/iceberg/core/schema_parser.py
+e39a3eac8a3fc887,full,fix,B3,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 29,,SimiaCryptus/models/research/delf/delf/python/detect_to_retrieve/cluster_delf_features.py
+f749d83200f0fa85,full,fix,B3;F1,dataset marker <reponame> at offset 0 | dataset marker <gh_stars> at offset 33 | redaction marker <NAME> at offset 149 | redaction marker <EMAIL> at offset 157,,VighneshHarihar/Newsify/venv/lib/python3.7/site-packages/nltk/corpus/reader/verbnet.py
+62545dc39a18f39e,full,fix,B3,dataset marker <reponame> at offset 0,,bartels/satchless/examples/dummy/admin.py
+0b51e442514c5d02,full,fix,B3,dataset marker <reponame> at offset 0,,sadmicrowave/despoina/modules/player_actions/Journal.py
+e5c644a4f70a9a08,full,fix,F1,redaction marker <EMAIL> at offset 3423,,gomezportillo/apolo/apolo/server.py
+4f97d49cc147d104,full,fix,B3,dataset marker <filename> at offset 0,,thunderhoser/ai2es_xai_course/ai2es_xai_course/utils/image_thresholding.py
+ea3ee685c0293fb4,full,fix,B3,dataset marker <filename> at offset 0,,pgiardiniere/notes-PythonDataScienceHandbook/2.3-npUFuncs.py
+ef86c4d188ffda79,full,fix,B3,dataset marker <gh_stars> at offset 0,,NeolithEra/appscale-tools/appscale/tools/admin_api/client.py
+70d4cd05da1d3bbe,full,fix,B3,dataset marker <reponame> at offset 0,,UniversitaDellaCalabria/Django-MDQ/django_mdq/settings.py
