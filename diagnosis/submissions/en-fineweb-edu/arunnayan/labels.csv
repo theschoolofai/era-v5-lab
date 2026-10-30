@@ -1,12 +1,12 @@
 doc_id,read,verdict,diseases,evidence,hex,note
 fac8900a570b630b,full,fix,C1,DOWNLOAD: Somerset IDB Biodiversity Action Plan 2010 (download link),,
-f63eec264ed25737,full,,C1,top junk: �Updated 5 yearss ago� + �Executive Editor [Photo: Dan Gaye]�,,
-299c56aecd605139,full,fix,C1,� Science Museum / Science & Society Picture Library,,"C3 false alarm, real = C1"
+f63eec264ed25737,full,fix,C1,top junk: “Updated 5 yearss ago” + “Executive Editor [Photo: Dan Gaye]”,,
+299c56aecd605139,full,fix,C1,© Science Museum / Science & Society Picture Library,,"C3 false alarm, real = C1"
 469e0a5a812c28f3,full,fix ,C1,"First published 9 December 2003
 
 |MORE ABOUT KOCH||SEE ALSO||PLAY A GAME|
 
-|Robert Koch's Other Contributions to Science �||Tuberculosis - Experiments and Discoveries �|",,"C3 false alarm, real = C1"
+|Robert Koch's Other Contributions to Science »||Tuberculosis - Experiments and Discoveries »|",,"C3 false alarm, real = C1"
 2067313a5e000336,full,fix ,C3;C4,"14 July 2009
 Monbiot Discovers Math, Puts it to Good Use
 George Monbiot has discovered something important. The simple math of proposed emissions reductions policies does not work. He writes in the Guardian on Tuesday: (abrupt ending)",,"Two articles appear joined; second article ends after an introductory colon, indicating truncation."
@@ -17,7 +17,7 @@ ffa5766a9a53cd2c,full,clean,,,,
 0b0d513a390b5fe2,full,clean,,,,
 3054e5cb9e7109dc,full,fix ,C1;C3,Paperback: 85 pages (listing metadata); Indian Edition also available on: (incomplete ending),,Product listing metadata and an incomplete promotional line at the end.
 aa6dabe77b77999c,full,clean,,,,
-74ea30694d60f739,full,fix,C1,If you notice a broken link or any error PLEASE report it by clicking HERE; � 1995-2017 Bible History Online,,Website feedback request and copyright footer appended to otherwise complete article.
+74ea30694d60f739,full,fix,C1,If you notice a broken link or any error PLEASE report it by clicking HERE; © 1995-2017 Bible History Online,,Website feedback request and copyright footer appended to otherwise complete article.
 2be6fd0360082a67,full,clean,,,,
 88dcf988df1065ff,full,clean,,,,
 57e8a90835567c14,full,clean,,,,
@@ -39,7 +39,7 @@ b92217b50cbd3259,full,fix,C1;C3,Read more; forum status messages; article cuts o
 8c4e05adb054ff9e,full,clean,,,,
 83a74d895270be43,full,fix,C1,Questions? Comments? Email Michael - contact footer,,
 f6ffaf98472d4993,full,clean,,,,
-a14b25405c278a3b,full,fix,C1;A3,Website navigation; patient�s encoding corruption,,
+a14b25405c278a3b,full,fix,C1;A3,Website navigation; patientís encoding corruption,,
 da7b26e33a187835,full,fix,C1,Continued from previous question; Other Interview Questions,,
 95fb8e3e046c12c8,full,clean,,Complete article on BRCA1 research.,,
 c6445e00ac9c7e0e,full,clean,,Coherent C++ programming article.,,
@@ -49,13 +49,13 @@ a0578cb418b31c4e,full,fix,C1,This section contains 818 words (approx. 3 pages at
 e816cc7c71cacd44,full,clean,,Complete medical research article.,,
 3092ad2616653075,full,fix,C1;C4,Continue reading _ - multiple separate article excerpts joined with navigation prompts.,,
 d9cf118c7cae38e0,full,fix,C3,"week we celebrate; ""made them fight""; ""order to understand"" - multiple passages begin mid-sentence.",,
-3e44df6a7ddb0098,full,fix,B4;C1,"page.data.shortTitle || page.data.title - template code; ""Add your story�"" - website interface.",,
+3e44df6a7ddb0098,full,fix,B4;C1,"page.data.shortTitle || page.data.title - template code; ""Add your story…"" - website interface.",,
 c0219da20d54f72b,full,fix,C1,For five days only... my ebook Chemtrails Exposed will be available for free - promotional content.,,
 1e5e295e77f6c38e,full,fix,C3,"keep cage relocation, loud noises and diurnal disturbances to - incomplete sentence.",,
 3c642ba9d39503cb,full,clean,,Programming question and partial code are presented coherently.,,
 de7a558b2451074d,full,clean,,Complete informational article about soy.,,
 055cb84b1989d425,full,clean,,Complete historical article about the Taj Mahal.,,
-22342dec1dc4a8e6,full,fix,A3,"� VI.1; ""2�""; ""inner eye n"" - suspicious encoding or text corruption.",,
+22342dec1dc4a8e6,full,fix,A3,"Û VI.1; ""2Á""; ""inner eye n"" - suspicious encoding or text corruption.",,
 1ddeb05a496eb781,full,clean,,Complete article about Levaquin.,,
 cb4178abecf9d16f,full,clean,,Coherent article with illustrative dialogue.,,
 e0af946d8b19d2ea,full,fix,C5,Old Newspaper/Magazine Clippings Archive - list of linked article titles and summaries.,,
@@ -80,7 +80,7 @@ a984946ad306c693,full,clean,,Complete news article about incontinence.,,
 4f71a74567f4d4aa,full,clean,,Coherent historical article with planned future sections.,,AUTO: C3?(ends-mid)
 316f8c9401d961fa,full,clean,,Complete educational article on STEM and mathematics.,,
 fd4709066403bd0e,full,clean,,Complete article about brain stimulation research.,,
-244834eedcd65cea,full,fix,C1,"Index: 1�9 A B C D E F G H I J K L M N O P Q R S T U V W X Y Z; ""Search this site with Google"" - navigation.",,AUTO: C3?(ends-mid)
+244834eedcd65cea,full,fix,C1,"Index: 1–9 A B C D E F G H I J K L M N O P Q R S T U V W X Y Z; ""Search this site with Google"" - navigation.",,AUTO: C3?(ends-mid)
 9dc429836f855f2d,full,clean,,Complete historical article about Soviet spacecraft Buran.,,
 a500ba93e323a10c,full,clean,,Complete cybersecurity article about malicious USB devices.,,
 c3232deb3a159cb4,full,clean,,Valid artwork catalog description and bibliography.,,AUTO: C3?(ends-mid)
@@ -98,7 +98,7 @@ d4865e0f799b5f6b,full,clean,,Complete information about charter schools.,,
 7fd9f4216d497430,full,clean,,Complete copyright information article.,,
 46ec46e8053e7162,full,clean,,Complete Civil War film review.,,
 a4747e3bfaa07216,full,clean,,Complete museum description of historical punishments.,,
-aab4908bfe7a7768,full,fix,C4,"Even though enterprise bargaining agreements; ""Cabinet papers reveal""; ""Labor�s project"" - multiple independent article summaries concatenated.",,
+aab4908bfe7a7768,full,fix,C4,"Even though enterprise bargaining agreements; ""Cabinet papers reveal""; ""Labor’s project"" - multiple independent article summaries concatenated.",,
 3eb7d6235cc59a4c,full,fix,C1,Thank you for your interest in my quiz. I have many more! - promotional footer.,,AUTO: F1(phone at offset 551)
 baa5fe4efdc10714,full,fix,C1;C5,"The Little Robber Girl; ""The Boy Who Cried Wolf""; ""AMERICAN INDIAN STORIES"" - extensive navigation catalog preceding the actual story.",,
 6051989bdb0f0243,full,fix,C1,Click here to find out more about Schools for Asia. - promotional website link.,,AUTO: C3?(ends-mid)
@@ -154,7 +154,7 @@ b8d894678f7ba130,full,clean,,Complete medical news article about therapeutic coo
 17f454a49a5f4746,full,clean,,Complete climate commentary.,,AUTO: C3?(ends-mid)
 94eceb6eed4229ec,full,clean,,Complete article explaining Bollywood.,,
 e887c52b7834a44d,full,clean,,Complete introduction to PHP development.,,
-67f5d3be333678ad,full,fix,C1,"Religion and Philosophy�; ""Christianity, the Bible & Jesus"" - website category navigation.",,
+67f5d3be333678ad,full,fix,C1,"Religion and Philosophy»; ""Christianity, the Bible & Jesus"" - website category navigation.",,
 16c01d83afaa52b8,full,clean,,Complete article about responding to student assessment data.,,
 aa45dbc889becf3a,full,fix,C4,"rete ridge; ""Rete subpapillare""; ""Rete testis"" - separate dictionary entries concatenated.",,
 44c4428f82d8dd9c,full,fix,C1,"Latest posts; ""Categories""; ""Notes and Papers"" - website resource navigation.",,
@@ -281,7 +281,7 @@ ebccb3ba72dce801,full,clean,,Complete educational paragraph about sea turtles.,,
 20a15f88713cc473,full,fix,C1,"We've answered 323,936 questions. We can answer yours, too.Ask a question - promotional website footer.",,AUTO: C3?(ends-mid)
 0d1747b8fd54a58f,full,clean,,Coherent historical chapter about hydroplanes.,,
 0f48d57d5cd2326c,full,fix,C1,"For editors and proofreaders; ""Comments that don't adhere to our Community Guidelines"" - dictionary website interface.",,
-ba11e4f9c9a6f08c,full,clean,,Complete historical article about the Carmelites of Compi�gne.,,
+ba11e4f9c9a6f08c,full,clean,,Complete historical article about the Carmelites of Compiègne.,,
 c47c411b77d035b6,full,clean,,Complete news article about the Rochester tornado and Mayo Clinic.,,
 af5fa20a434908e9,full,fix,C1,"PubMedView Article; ""PubMedPubMed CentralView Article"" - website link controls embedded in scientific references.",,
 8262087c39b0c8c5,full,fix,C3,"Tesla's description of the re-seeding of planet Earth... sounds very much like genetic; ""Tesla's specialized"" - numerous incomplete passages.",,AUTO: C3?(ends-mid)
@@ -381,7 +381,7 @@ c83124eccd2ae244,full,fix,C1,Tell Us What You Think - website feedback section.,
 7159ca624a502d7b,full,clean,,Complete student loan information article.,,
 1d7bb686fc38edda,full,clean,,Complete historical photograph description and attribution.,,
 9a55cb7e04e71a13,full,clean,,Complete research abstract and publication metadata.,,AUTO: C3?(ends-mid)
-759f0ff501a81d56,full,fix,C3,"Ends ""controlling our�"" - visibly truncated article excerpt.",,AUTO: C3?(ends-mid)
+759f0ff501a81d56,full,fix,C3,"Ends ""controlling our…"" - visibly truncated article excerpt.",,AUTO: C3?(ends-mid)
 be6f164c8d478274,full,fix,C1,"Back to top; ""Rent The Ancient Romans 1st edition today"" - shopping promotion.",,
 1bfa818a4be36741,full,fix,C1,"Read an Excerpt; ""What People are saying about this"" - book-store interface and reviews.",,AUTO: C3?(ends-mid)
 a6824dc31be60c05,full,fix,C1,"Leave a comment below; ""Sign up for regular Resilience bulletins"" - website footer.",,
@@ -406,7 +406,7 @@ ab82f04fede24384,full,clean,,Complete article about Neolithic Chinese art.,,
 ce2fbf1d49241f8a,full,drop,C4,Multiple distinct Togo encyclopedia articles from different publishers concatenated into one document.,,
 a1122b2e254c15cd,full,fix,C3;C1,PostLab: writing your; numerous missing sentence beginnings; repeated HELP navigation links.,,AUTO: C3?(ends-mid)
 6bf0a5adc29dd647,full,fix,B5;C1,If and are refractive indices; multiple equations missing; related-article links at end.,,
-30c3f1081e4a28ff,full,fix,C4,Independent descriptions of Veracruz and the Jarabe Tapat�o dance concatenated.,,AUTO: C3?(ends-mid)
+30c3f1081e4a28ff,full,fix,C4,Independent descriptions of Veracruz and the Jarabe Tapatío dance concatenated.,,AUTO: C3?(ends-mid)
 6327ef51bd551109,full,clean,,Complete article about trees and climate adaptation.,,
 810257a7e40dd17d,full,fix,C1,"Return to: List of Papers on the Web; ""Return to text: note (1)"" - website navigation.",,
 87e532332c8eed3d,full,clean,,Complete article about winter solstice and Yule traditions.,,
@@ -415,7 +415,7 @@ a1122b2e254c15cd,full,fix,C3;C1,PostLab: writing your; numerous missing sentence
 f23cd9cd1a4e2e3e,full,clean,,Complete article about chimney construction and maintenance.,,
 1f19a0bfcdf0d138,full,clean,,Complete research abstract about infant mortality in Chile.,,AUTO: F1(phone at offset 270)
 9114e814ed1018ef,full,clean,,Complete book description and contents on Hemingway.,,AUTO: C3?(ends-mid)
-53dadf5fc6ee123a,full,fix,A3,"directly���; ""Manitoba�۪s""; ""��_statistically"" - mojibake throughout.",,AUTO: A3(@380) C3?(ends-mid)
+53dadf5fc6ee123a,full,fix,A3,"directlyâ€”; ""Manitobaâ€™s""; ""â€_statistically"" - mojibake throughout.",,AUTO: A3(@380) C3?(ends-mid)
 20f78601b80c9a2d,full,fix,C1,Have a question about this product? Ask us here - shopping interface.,,
 1bf39e9580aa9c3c,full,clean,,Complete historical nautical chart description.,,
 539012fb4f4d8c34,full,clean,,Complete historical article about William Cooper.,,
@@ -457,7 +457,7 @@ b675c95276d2effa,full,clean,,,,
 c956c6dc70e5bba6,full,fix,C1,Medical Dictionary Definitions A - Z; Search Medical Dictionary,,
 fde037bd93896688,full,fix,C1,Please update your bookmarks (site-move notice),,
 e202cef6da70c403,full,fix,F1,Phone number at end of document,,AUTO: C3?(ends-mid) F1(phone at offset 3943)
-65d1af0607ec0a41,full,fix,C1,� back to gallery,,AUTO: C3?(ends-mid)
+65d1af0607ec0a41,full,fix,C1,« back to gallery,,AUTO: C3?(ends-mid)
 c4573ce978eb48a9,full,fix,C1,Read more: Subscribe now for access.,,
 d9a289cb987f08f5,full,fix,C1,Click here to see how to order your own copy,,
 a4ce8bf7d9649414,full,fix,C1,Most Helpful Customer Reviews; See all customer reviews,,AUTO: C3?(ends-mid)
@@ -504,6 +504,6 @@ c023615d1f39d61c,full,fix,C1,Please browse the following key topics and suggeste
 a5e3307b3441f2c5,full,clean,,,,
 4604f40da35906cc,full,fix,C1;C5,Keywords: paiute \| washoe \| reno-sparks \| nevada \| native american \|; Links: FOTW homepage \| search \| disclaimer and copyright \| write us \| mirrors,,
 07bacd5c664e837c,full,fix,C1,Explore further: Explainer: What is cute aggression? (related-link),,
-3427f62a511f3bd7,full,fix,C1,The House of Hapsburg during Napoleon�s time (orphaned image caption),,Detached image caption interrupts the historical narrative.
-0e43f033d87e8859,full,,C1,Access CBEST registration fees and other test-specific information. (final navigation link),,Minor website navigation link at the end; substantive educational content is intact.
+3427f62a511f3bd7,full,fix,C1,The House of Hapsburg during Napoleon’s time (orphaned image caption),,Detached image caption interrupts the historical narrative.
+0e43f033d87e8859,full,fix,C1,Access CBEST registration fees and other test-specific information. (final navigation link),,Minor website navigation link at the end; substantive educational content is intact.
 3b5f7715ae344f8a,full,fix,C1,A B C D E F G H I J K L M N O P Q R S T U V W X Y Z (alphabetical navigation); (c) Copyright 2005 Multi-Link (footer),,Alphabetical navigation links and copyright footer appended to telecom definition.
