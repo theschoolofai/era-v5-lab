@@ -1,0 +1,51 @@
+{
+  "tokenizer": "theschoolofai/BrahmicTokenizer-131K",
+  "tokenizer_sha256": "01d968a7970b029c071b29f060abf6104b66168dedf2ff3b1a0290a545739fff",
+  "vocab_size": 131072,
+  "definition": "collision = identical table row (bytes after truncation to P)",
+  "truncation": {
+    "raw": "bytes[:P]",
+    "decode": "utf8_safe_truncate (upstream)"
+  },
+  "versions": {
+    "tokenizers": "0.22.2",
+    "numpy": "1.26.4",
+    "kronecker_embeddings": "0.1.1"
+  },
+  "totals": {
+    "decode_P32": {
+      "n_groups": 10,
+      "n_tokens_in_groups": 1151,
+      "n_excess_tokens": 1141,
+      "largest_group": 658,
+      "causes": {
+        "decode_collapse": 10
+      }
+    },
+    "decode_P64": {
+      "n_groups": 10,
+      "n_tokens_in_groups": 1151,
+      "n_excess_tokens": 1141,
+      "largest_group": 658,
+      "causes": {
+        "decode_collapse": 10
+      }
+    },
+    "raw_P32": {
+      "n_groups": 0,
+      "n_tokens_in_groups": 0,
+      "n_excess_tokens": 0,
+      "largest_group": 0,
+      "causes": {}
+    },
+    "raw_P64": {
+      "n_groups": 0,
+      "n_tokens_in_groups": 0,
+      "n_excess_tokens": 0,
+      "largest_group": 0,
+      "causes": {}
+    }
+  },
+  "n_other_groups": 0,
+  "gate_zero_other": true
+}

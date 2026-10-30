@@ -1,0 +1,22 @@
+{
+  "_comment": "Fixed id layout for train_bpe.py. ids [0, base) = o200k_base prefix; then one contiguous block per Brahmic script in the order below; the top `special_slots` ids are special tokens. base = vocab_size - sum(scripts) - special_slots.",
+  "vocab_size": 131072,
+  "special_slots": 256,
+  "named_specials": [
+    "<|begin_of_text|>", "<|end_of_text|>", "<|pad|>", "<|unk|>",
+    "<|im_start|>", "<|im_end|>", "<|system|>", "<|user|>", "<|assistant|>",
+    "<|tool_call|>", "<|tool_result|>", "<|think|>", "<|/think|>",
+    "<|fim_prefix|>", "<|fim_middle|>", "<|fim_suffix|>"
+  ],
+  "scripts": {
+    "Devanagari": {"slots": 3072, "langs": ["Hi", "Mr"]},
+    "Bengali":    {"slots": 2048, "langs": ["Bn", "As"]},
+    "Tamil":      {"slots": 1536, "langs": ["Ta"]},
+    "Telugu":     {"slots": 1792, "langs": ["Te"]},
+    "Kannada":    {"slots": 1792, "langs": ["Kn"]},
+    "Malayalam":  {"slots": 2048, "langs": ["Ml"]},
+    "Gujarati":   {"slots": 1536, "langs": ["Gu"]},
+    "Gurmukhi":   {"slots": 1280, "langs": ["Pa"]},
+    "Oriya":      {"slots": 1280, "langs": ["Or"]}
+  }
+}

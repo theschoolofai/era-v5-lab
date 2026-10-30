@@ -1,0 +1,7 @@
+# Laptop smoke test. Proves the code runs; the numbers mean nothing.
+inherit: lab_small.yaml
+run: {device: cpu, dtype: fp32, batch_size: 2}
+data: {source: synthetic}
+model: {block_size: 64, n_layer: 2, n_head: 4, n_kv_head: 2, n_embd: 64,
+        moe: {num_experts: 4, top_k: 2, num_shared: 1, bias_gamma: 0.01, dispatch: loop}}
+bench: {warmup: 2, steps: 4, trace_steps: 1, out_dir: ~/.cache/era-perf/runs-smoke}
