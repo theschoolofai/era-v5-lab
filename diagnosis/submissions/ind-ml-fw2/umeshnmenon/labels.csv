@@ -149,3 +149,36 @@ aab98f7f7703e251,full,clean,,,presence of loadwords,
 a135916b92693920,full,fix,C1,offset 1200-1225 കൂടുതൽ,,footer notes cta
 5fe543344687a4d0,full,fix,D3;D3;C1,offset 9-13 (PKS)|offset 40-47 (Kannur)|offset 977-1179 കൈരളി,,footer notes cta
 33362295862c22e6,full,fix,D3;D3,offset 2191-2229 https://dcbookstore.com/books/higutta|offset 276-2790 https://bit.ly/etjune21,,
+3d9dd8bf02020bd6,full,fix,C1,offset 1565-1591 Report : മാത്യുക്കുട്ടി ഈശോ,,
+38504826d9b1fec6,full,drop,F3,,,adult content
+51de78f603054d89,full,clean,,,,
+eeac9c3bea47b9e5,full,fix,C1,offset 825-845 കടപ്പാട് : Manchu Mon,,footer notes 
+233b562e58d02a99,full,fix,C1;C1,offset 0-25 13 November 2022|offset 1118-1170,,
+bca856fd3a892ea0,full,fix,C1,offset 1049-1527 English Summary,,
+67d97b968426ece4,full,fix,D3,offset 927-1243 Law and order,,
+9603dbb6db7511a1,full,clean,,,,
+ad192dbe7dca6827,full,C1,offset 1351-1515 ഏറ്റവും,,
+54c2582953645e4e,full,clean,,,,
+eeaae5a1d65ee7d0,full,clean,,,political-authenticity unsure
+df0a1e3b096e352d,full,clean,,,crime
+610366a8d55fe76c,full,clean,,,,
+f0b12235d267c0bb,full,fix,C1,offset 0-753,,
+04182679c0ab4bb1,full,drop,F3,,,adult content
+40a858d9a4f9eb50,full,clean,,,,
+53b0c6a1cbef16f9,full,C1,offset 3191-3224, footer notes 
+22fba26cb45e7c91,full,clean,,,,
+22afc446a051fb1b,full,clean,,,,
+eb55fb64c32c318d,full,clean,,,,contains numbers and loanwords 
+adafa607528e10d6,full,fix,C1;D3;D3;C1,offset 0-14|offset 35-56|offset 1331-1341|offset 2585-2749,,
+e3b678c9663ff8a4,full,fix,C1,offset 1040-1112, footer notes cta
+477334d044159472,full,clean,,,,
+61dc46534cf2c629,full,D3;D3,offset 0-18|offset 994-1050,,
+d7b69f082e6510f4,full,fix,C1,offset 1327-1529,,
+b53ee77c0b80d8b2,full,clean,,,,
+32598246b2330819,full,drop,H2,,,repeated contents with no stuff
+1aafe75ea730ec68,full,clean,,,,
+5729394ce1a31a93,full,fix,D3;D3,offset 2157-2187|offset 2204-2227,,
+89c9118d44a01c67,full,fix,D3,offset 0-60,,
+0785497d1d5fddf1,full,fix,D3;C1,offset 2536-2572|offset 2817-2841,,
+66e0d6becd9ef17b,full,clean,,,,contains dateline
+49b920c81f740223,full,fix,C1,offset 2891-3395,,
