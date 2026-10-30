@@ -101,7 +101,7 @@ ec4f41ce730ae309,full,clean,,,,
 f141561111865524,full,fix,E4,licence text 'Copyright 2013' at offset 2,,licence header lines 1-13
 81d1fcebf85a7da8,full,clean,,,,
 7ac59b4aeda2e530,full,clean,,,,
-b24f0a4a266fd6ae,full,clean,,,,
+b24f0a4a266fd6ae,full,drop,F2,"'def canConstruct(self, s: str, k: int) -> bool:' at offset 20; file path JWang169/LintCodeJava/Python/1400.py",,LeetCode problem 1400 'Construct K Palindrome Strings' solution (LintCode mirror); possible benchmark contamination
 82758170fc742b52,full,fix,B3,StarCoder metadata header '<reponame>sthagen/miyuchina-mistletoe<gh…' at offset 0,,StarCoder metadata line at top
 75b9ddf6b9a0f1f7,full,fix,E4,licence text 'Copyright (c)' at offset 116,,licence header lines 8-14
 3bd678e57c0a9d04,full,clean,,,,Python 2 file (valid)
@@ -142,10 +142,360 @@ bfa09f68a7109bd9,full,fix,B3,"StarCoder metadata header '<filename>book_figures/
 8ac10cf83ccc58e3,full,fix,E4,licence text 'Apache License' at offset 267,,licence header lines 2-17
 f8d324ec6237a397,full,clean,,,,
 f7caf0b05f02cfc6,full,fix,B3;E4,"StarCoder metadata header '<reponame>padbr/gcbias' at offset 0; PII redaction placeholders <NAME>×1, <EMAIL>×1, first at offset 55; licence text 'Licensed under the' at offset 82",,StarCoder metadata line at top; dataset redaction placeholders left in code; licence header lines 4-7
-23680b32f59b9360,full,clean,,,,
+23680b32f59b9360,full,fix,B3,"PII redaction placeholders <PASSWORD>×1, first at offset 3140",,dataset redaction placeholder left in settings
 98bebd72d0f0ef4e,full,fix,B3;E4,StarCoder metadata header '<reponame>OpenGeoscience/VTK<filename>Th…' at offset 0; licence text 'Copyright (c)' at offset 89,,StarCoder metadata line at top; licence header lines 2-3
 30e3c63bf2e6b229,full,fix,B3,StarCoder metadata header '<gh_stars>1-10' at offset 0,,StarCoder metadata line at top
 8f01abd9f5be0c84,full,fix,B3,StarCoder metadata header '<reponame>kshramt/httpx' at offset 0,,StarCoder metadata line at top
 96267eb88776722a,full,drop,B3;F2,StarCoder metadata header '<gh_stars>0' at offset 0; benchmark/contest mention 'https://www.acmicpc.net/problem/11931' at offset 14,,non-English comments/strings (not a disease); StarCoder metadata line at top; contest/benchmark problem solution; possible benchmark contamination
 56ab44cc9fe55a93,full,fix,B3,StarCoder metadata header '<gh_stars>1-10' at offset 0,,StarCoder metadata line at top
 37e8cbe35b98ab30,full,clean,,,,
+b16c08e4bc8f0024,full,fix,B3,StarCoder metadata header '<reponame>vsevdrob/nft-brownie-ipfs-pina…' at offset 0,,StarCoder metadata line at top
+ba946359672db3b2,full,fix,B3,StarCoder metadata header '<filename>llvm/test/CodeGen/NVPTX/ld-st-…' at offset 0,,StarCoder metadata line at top
+5a7256a4b6a4b64e,full,fix,B3,StarCoder metadata header '<reponame>srp33/CodeBuddy<filename>middl…' at offset 0,,StarCoder metadata line at top
+8ca19963ae7c2957,full,fix,E4,licence text 'Copyright 2017' at offset 2,,licence header lines 1-15
+3a63e2d819ee9dbb,full,clean,,,,
+eb7e82e3c600238a,full,clean,,,,
+bd1943eb5c619976,full,fix,B3;E3,"PII redaction placeholders <PASSWORD>×1, first at offset 2602; Django secret key at offset 735",,"dataset redaction placeholders left in code; secret value not copied here; customised startproject template, not E1"
+e33f55666870ee23,full,fix,B3,StarCoder metadata header '<reponame>mkmkryu/scanpy2' at offset 0,,StarCoder metadata line at top
+2bd4a594e9913746,full,fix,E4,licence text 'Copyright (c)' at offset 41,,licence header lines 2-6
+570df94fc9475e88,full,clean,,,,
+636dc3d78df9afbf,full,clean,,,,
+17fa03a46ac0b989,full,fix,E4,licence text 'Copyright (c)' at offset 25,,licence header lines 2-5
+2ccbb879bb0a2bc2,full,fix,B3,StarCoder metadata header '<gh_stars>0' at offset 0,,StarCoder metadata line at top
+cdceb52d30aa2d8e,full,fix,B3,StarCoder metadata header '<reponame>Qiaochu-Song/FLAML' at offset 0,,StarCoder metadata line at top
+f2ba9c3301387857,full,clean,,,,
+b03ae43f0f5a315d,full,clean,,,,
+6b9f298fa34d3a56,full,fix,E4,licence text 'Copyright 2020' at offset 2,,licence header lines 1-14
+a6440a22fb98f0a5,full,fix,B3,"StarCoder metadata header '<reponame>DefensePoint-Snyk-Test/js-teac…' at offset 0; PII redaction placeholders <PASSWORD>×1, first at offset 2397",,StarCoder metadata line at top; dataset redaction placeholders left in code
+05854634a441a62a,full,clean,,,,
+1668d8b133fd7886,full,clean,,,,
+57f8258d7e78ba22,full,fix,E4,licence text 'Apache License' at offset 260,,licence header lines 1-18
+08cb21a063bac866,full,fix,E4,licence text 'Copyright (c)' at offset 50,,licence header lines 2-21
+fc69a11803502e6c,full,fix,E4,licence text 'Copyright 2018' at offset 17,,licence header lines 1-16
+1e8a2d308596a10b,full,fix,B3,StarCoder metadata header '<gh_stars>1-10' at offset 0,,StarCoder metadata line at top
+01bf6c194a6b6292,full,fix,E4,licence text 'Copyright 2021' at offset 3,,licence header lines 1-10
+da1e1a24ce2d8184,full,fix,B3;E4,StarCoder metadata header '<reponame>hrgadeha/bf_report' at offset 0; licence text 'Copyright (c)' at offset 31,,StarCoder metadata line at top; licence header lines 2-3
+4fa465e36757fe74,full,fix,B3;E4,"PII redaction placeholders <NAME>×2, <EMAIL>×1, first at offset 33; licence text 'Copyright 2011' at offset 18",,dataset redaction placeholders left in code; licence header lines 1-15
+8d615b49808defd6,full,clean,,,,
+0fbb2ea976c69739,full,fix,B3,StarCoder metadata header '<filename>torch/testing/_internal/common…' at offset 0,,StarCoder metadata line at top
+d51cd00941ff29a7,full,clean,,,,
+644145d4aa1f77a3,full,clean,,,,
+d167eb6b2ec67bd9,full,drop,B3;E2;E4,StarCoder metadata header '<reponame>hugmyndakassi/hvmi' at offset 0; 38% of characters are digits; licence text 'Copyright (c)' at offset 33,,"StarCoder metadata line at top; mostly data, little code; licence header lines 2-5"
+8f94ca2b82b4cfde,full,clean,,,,
+d9ce6c60f06817bc,full,fix,B3,StarCoder metadata header '<reponame>jamesw96/flight-searcher<gh_st…' at offset 0,,StarCoder metadata line at top
+1ce15618174bb567,full,clean,,,,
+fd2d937892dfc742,full,fix,B3,StarCoder metadata header '<filename>Log_Reg.py' at offset 0,,StarCoder metadata line at top
+a5eae26f8726ac77,full,fix,B3,StarCoder metadata header '<reponame>kkrampa/commcare-hq' at offset 0,,StarCoder metadata line at top
+5b0faf5a86f0c9f2,full,clean,,,,
+5fcf8d58d8f75cf3,full,fix,B3,StarCoder metadata header '<gh_stars>1-10' at offset 0,,StarCoder metadata line at top
+8af630486a5da67a,full,fix,B3,StarCoder metadata header '<filename>mtp_emails/apps/callbacks/task…' at offset 0,,StarCoder metadata line at top
+5a58176166d53436,full,clean,,,,
+796dd7a9cc89ce9e,full,fix,E4,licence text 'Copyright (c)' at offset 4,,licence header lines 1-7
+3d3d8ce3a755a897,full,clean,,,,
+07d8310d7e5cc5a2,full,clean,,,,
+4b5280cfe9fe0d87,full,clean,,,,
+da4e4edae31329bf,full,fix,B3;E4,StarCoder metadata header '<filename>manila_ui/tests/dashboards/adm…' at offset 0; licence text 'Copyright (c)' at offset 61,,StarCoder metadata line at top; licence header lines 2-15
+764beae84fc21046,full,fix,E4,licence text 'Copyright (c)' at offset 102,,licence header lines 1-10
+34746ee7764fc249,full,fix,B3,StarCoder metadata header '<gh_stars>0' at offset 0,,StarCoder metadata line at top
+d8764aba85c78af1,full,fix,B3,StarCoder metadata header '<filename>src/testing/Screen/globalParam…' at offset 0,,StarCoder metadata line at top
+4280e8634129c11b,full,drop,B3;E1;E4,StarCoder metadata header '<gh_stars>1000+' at offset 0; generated-code marker 'Code generated by Microsoft (R) AutoRest' at offset 269; licence text 'Copyright (c)' at offset 110,,StarCoder metadata line at top; generated/minified code; licence header lines 2-11
+bea639298ad3c5ef,full,fix,B3,StarCoder metadata header '<reponame>stefanfoulis/django-filer-test' at offset 0,,StarCoder metadata line at top
+fbd312fcd848d344,full,clean,,,,
+d83e84cbfec7f558,full,fix,E4,licence text 'Apache License' at offset 262,,licence header lines 1-17
+48d174d4c9b2d139,full,fix,B3,StarCoder metadata header '<gh_stars>100-1000' at offset 0,,StarCoder metadata line at top
+9bb642775b2b85af,full,clean,,,,
+4143e69382b91c8f,full,fix,B3,StarCoder metadata header '<gh_stars>0' at offset 0,,StarCoder metadata line at top
+515c90eee4ab8c16,full,fix,B3,StarCoder metadata header '<filename>spectacles/validators/content.…' at offset 0,,StarCoder metadata line at top
+89da0209aa5df467,full,fix,B3,StarCoder metadata header '<reponame>AnderCruz/Portfolio-Managment-…' at offset 0,,StarCoder metadata line at top
+576c47229fd15fb8,full,fix,B3,StarCoder metadata header '<reponame>ppiyakk2/django-markdownx' at offset 0,,StarCoder metadata line at top
+6a8cecd2411c6cbe,full,fix,E4,licence text 'Copyright (c)' at offset 18,,licence header lines 1-3
+91cbf85d744deac1,full,fix,E4,licence text 'Copyright 2016' at offset 2,,licence header lines 1-13
+478db0ce649ba827,full,fix,B3,"PII redaction placeholders <EMAIL>×1, first at offset 385",,dataset redaction placeholders left in code
+bb16a1620ae42f14,full,fix,B3,StarCoder metadata header '<gh_stars>0' at offset 0,,StarCoder metadata line at top
+2223bb3706f3a3d3,full,fix,B3,StarCoder metadata header '<gh_stars>1-10' at offset 0,,StarCoder metadata line at top
+1ba7834883790ea6,full,fix,B3;E4,StarCoder metadata header '<filename>tests/cext/test_cext_cursor.py' at offset 0; licence text 'Copyright (c)' at offset 68,,StarCoder metadata line at top; licence header lines 4-30
+8f5912d173d42f40,full,fix,B3,StarCoder metadata header '<reponame>waveshare/WAVEGO' at offset 0,,StarCoder metadata line at top
+4aa4262eaefed96c,full,clean,,,,
+fda2f1d7ddbd03a1,full,fix,B3;E4,StarCoder metadata header '<reponame>wshanks/qiskit-terra' at offset 0; licence text 'licensed under the' at offset 113,,StarCoder metadata line at top; licence header lines 2-12
+9b444b9e35de9efc,full,fix,B3,"PII redaction placeholders <NAME>×1, first at offset 1",,dataset redaction placeholders left in code
+4c5fc5660f257bd3,full,fix,E3;B3,"PII redaction placeholders <EMAIL>×1, first at offset 1373; hardcoded secret in env-lookup fallback at offset 350",,dataset redaction placeholders left in code; secret value not copied here
+d347e563ffeccbea,full,fix,B3,StarCoder metadata header '<gh_stars>0' at offset 0,,StarCoder metadata line at top
+5414797892e02fd8,full,fix,B3,"StarCoder metadata header '<gh_stars>0' at offset 0; PII redaction placeholders <PASSWORD>×1, first at offset 203",,StarCoder metadata line at top; dataset redaction placeholders left in code
+c4263c10a636156b,full,fix,B3,"StarCoder metadata header '<filename>setup.py' at offset 0; PII redaction placeholders <EMAIL>×1, first at offset 372",,StarCoder metadata line at top; dataset redaction placeholders left in code
+c94c9878a37b8d07,full,clean,,,,
+b4acfca86197517d,full,fix,B3,StarCoder metadata header '<gh_stars>0' at offset 0,,StarCoder metadata line at top
+e3b326d5fdeb1b25,full,fix,B3,StarCoder metadata header '<filename>ex033 # reconhecer valores. ma…' at offset 0,,StarCoder metadata line at top
+6f964d6f637ec9cd,full,clean,,,,
+1957f133a41a21e7,full,fix,E4,licence text 'Copyright 2018' at offset 2,,licence header lines 1-18
+aa4812f89a7ce665,full,fix,A2;B3,"31× U+000D carriage return (CRLF line endings), first at offset 50; StarCoder metadata header '<reponame>GDiaz16/signbank' at offset 0",U+000D,Windows CRLF line endings; StarCoder metadata line at top
+c09f37dbbb9bdbf8,full,fix,B3,StarCoder metadata header '<gh_stars>0' at offset 0,,StarCoder metadata line at top
+1c6f4a98ce69ea0d,full,fix,B3;E4,StarCoder metadata header '<reponame>hubert-pietron/airflow' at offset 0; licence text 'Apache License' at offset 295,,StarCoder metadata line at top; licence header lines 2-20
+c760c1ee978abacb,full,fix,A2;B3,"31× U+000D carriage return (CRLF line endings), first at offset 107; StarCoder metadata header '<filename>aalh_iit_transportation_003/cl…' at offset 0",U+000D,Windows CRLF line endings; StarCoder metadata line at top
+00c04f843e997377,full,fix,B3;E4,"PII redaction placeholders <NAME>×1, first at offset 51; licence text 'all rights reserved' at offset 87",,dataset redaction placeholders left in code; licence header lines 2-7
+2d1c721566a67e60,full,drop,B3;E1,StarCoder metadata header '<reponame>Malaria-Detection-Platform/mal…' at offset 0; generated-code marker 'Generated by Django' at offset 66,,StarCoder metadata line at top; generated/minified code
+9c4b3e29fa09a5d4,full,clean,,,,non-English comments/strings (not a disease)
+8a59cf1495fa45e5,full,fix,B3,"PII redaction placeholders <NAME>×1, <EMAIL>×1, first at offset 167",,dataset redaction placeholders left in code
+3924209292f02f71,full,fix,B3;E4,"StarCoder metadata header '<reponame>frivas/alexa-mixed-polly' at offset 0; PII redaction placeholders <NAME>×1, <EMAIL>×1, first at offset 833; licence text 'Copyright 2019' at offset 39",,StarCoder metadata line at top; dataset redaction placeholders left in code; licence header lines 2-13
+6f011c9982fa3598,full,clean,,,,Python 2 file (valid)
+5e7cc11865207198,full,fix,B3,StarCoder metadata header '<filename>api/models.py' at offset 0,,StarCoder metadata line at top
+e8e19fbe856df89e,full,clean,,,,
+50ee67ec48d56326,full,fix,B3,StarCoder metadata header '<gh_stars>1-10' at offset 0,,StarCoder metadata line at top
+2603bf201601decc,full,clean,,,,non-English comments/strings (not a disease)
+7623f85e7ed3094f,full,fix,B3,"PII redaction placeholders <PASSWORD>×1, first at offset 1374",,dataset redaction placeholders left in code
+d6b14b40f251f0de,full,clean,,,,
+317d0f9362907468,full,fix,B3,"PII redaction placeholders <NAME>×10, <EMAIL>×6, first at offset 488",,Python 2 file (valid); dataset redaction placeholders left in code
+d2511bb210e0c80c,full,fix,B3,StarCoder metadata header '<filename>blue_square/const.py' at offset 0,,StarCoder metadata line at top
+e1dfbda95400ece9,full,fix,E4,licence text 'Copyright 2021' at offset 26,,licence header lines 1-16
+12fcdb33d711b027,full,fix,B3,StarCoder metadata header '<filename>examples/source_separation/con…' at offset 0,,StarCoder metadata line at top
+093a5b854721640f,full,fix,B3,StarCoder metadata header '<reponame>jovyan123-playground/tbump-pla…' at offset 0,,StarCoder metadata line at top
+b3ef13b21d2cc82f,full,fix,B3;E4,"StarCoder metadata header '<gh_stars>1-10' at offset 0; PII redaction placeholders <NAME>×1, first at offset 42; licence text 'Copyright (c)' at offset 18",,Python 2 file (valid); StarCoder metadata line at top; dataset redaction placeholders left in code; licence header line 2
+a8d19ee0e7ffc815,full,fix,B3,StarCoder metadata header '<filename>udacity_ml/software_engineerin…' at offset 0,,StarCoder metadata line at top
+deeb020e84b93cc4,full,drop,E1,generated-code marker 'Generated by Django' at offset 26,,generated/minified code
+22378cbd7d042094,full,fix,B3,StarCoder metadata header '<filename>tests/unit/test_pipeline.py<gh…' at offset 0,,StarCoder metadata line at top
+9018b6bdd7d97980,full,fix,B3,StarCoder metadata header '<filename>crystals/biological.py' at offset 0,,StarCoder metadata line at top
+81b233afa5db2931,full,fix,B3;E4,StarCoder metadata header '<gh_stars>0' at offset 0; licence text 'All rights reserved' at offset 60,,StarCoder metadata line at top; licence header lines 2-9
+7ef4de9c30be5d4d,full,clean,,,,
+c0245fadc83ef355,full,clean,,,,
+50358f0aea8e8b7b,full,fix,B3,"PII redaction placeholders <NAME>×1, first at offset 839",,dataset redaction placeholders left in code
+a54941259aa783c9,full,fix,B3,StarCoder metadata header '<reponame>sgvdan/OCTransformer' at offset 0,,StarCoder metadata line at top
+ed63807b0cdad88b,full,clean,,,,
+b0ee42fdbe63fc2e,full,fix,B3,"StarCoder metadata header '<filename>khoros/objects/__init__.py' at offset 0; PII redaction placeholders <NAME>×2, first at offset 383",,StarCoder metadata line at top; dataset redaction placeholders left in code
+541d0fcca23f8c35,full,fix,B3,StarCoder metadata header '<filename>src/python/cord19q/etl/sample.…' at offset 0,,StarCoder metadata line at top
+09016a8ff0423eac,full,fix,B3;E4,"StarCoder metadata header '<filename>objdump.py' at offset 0; PII redaction placeholders <NAME>×1, <EMAIL>×1, first at offset 89; licence text 'Copyright 2010' at offset 74",,StarCoder metadata line at top; dataset redaction placeholders left in code; licence header lines 3-8
+76166cc236fcbb59,full,fix,A2;B3;E4,"110× U+000D carriage return (CRLF line endings), first at offset 66; StarCoder metadata header '<filename>scripts/tx2/detection/inceptio…' at offset 0; licence text 'Copyright (c)' at offset 70",U+000D,Windows CRLF line endings; StarCoder metadata line at top; licence header lines 3-6
+3d3ae1dce48ee687,full,clean,,,,
+b55f7e3987d98053,full,fix,B3,StarCoder metadata header '<reponame>ao7777/CS158-DS_Project<filena…' at offset 0,,StarCoder metadata line at top
+b64208555a00fe53,full,clean,,,,
+badd30c95a3ad7a6,full,fix,A2;B3,"521× U+000D carriage return (CRLF line endings), first at offset 100; StarCoder metadata header '<gh_stars>0' at offset 0",U+000D,Windows CRLF line endings; StarCoder metadata line at top
+584d13bd44598de6,full,fix,E4,licence text 'Copyright 2017' at offset 2,,licence header lines 1-14
+a2d5b67c580bbdc5,full,fix,B3,StarCoder metadata header '<filename>MattParker/Puzzle 19/primes_pr…' at offset 0,,StarCoder metadata line at top
+62018a9b33995e63,full,fix,B3;E4,"PII redaction placeholders <EMAIL>×2, first at offset 65; licence text 'Copyright (c)' at offset 170",,dataset redaction placeholders left in code; licence header lines 2-11
+94f3675f353ef5b2,full,fix,B3,StarCoder metadata header '<filename>dtefeed.py' at offset 0,,StarCoder metadata line at top
+d1b874775f9f2909,full,fix,B3,StarCoder metadata header '<filename>trade/utils/cryptosizer.py<gh_…' at offset 0,,StarCoder metadata line at top
+590b4207b3c885ef,full,fix,B3,StarCoder metadata header '<gh_stars>0' at offset 0,,StarCoder metadata line at top
+1e8f576edf4497cb,full,fix,B3,"PII redaction placeholders <NAME>×1, <EMAIL>×1, first at offset 832",,dataset redaction placeholders left in code
+dee0b1ad0b66c4b2,full,fix,B3,StarCoder metadata header '<filename>h/cli/commands/devserver.py' at offset 0,,StarCoder metadata line at top
+664280963ab849c1,full,fix,A2;B3,"1002× U+000D carriage return (CRLF line endings), first at offset 66; StarCoder metadata header '<reponame>0u812/roadrunner<gh_stars>0' at offset 0; PII redaction placeholders <NAME>×1, first at offset 266",U+000D,Python 2 file (valid); Windows CRLF line endings; StarCoder metadata line at top; dataset redaction placeholders left in code
+856d9320195e84eb,full,drop,B3;F2,StarCoder metadata header '<filename>solutions/686_repeated_string_…' at offset 0; file path YiqunPeng/leetcode_pro/solutions/686_repeated_string_match.py,,StarCoder metadata line at top; LeetCode problem 686 'Repeated String Match' solution; possible benchmark contamination
+96185aef2a48d6da,full,fix,A2,"69× U+000D carriage return (CRLF line endings), first at offset 31",U+000D,Windows CRLF line endings
+2e11ede0de59efc3,full,fix,B3;E4,"StarCoder metadata header '<filename>screenshots/mp4toGIF.py' at offset 0; PII redaction placeholders <NAME>×2, first at offset 42; licence text 'Copyright: ©' at offset 103",,StarCoder metadata line at top; dataset redaction placeholders left in code; licence header lines 2-5
+f90c7e235162a012,full,fix,B3,StarCoder metadata header '<filename>models/ldif/testing.py' at offset 0,,StarCoder metadata line at top
+739dfd1a43f4ea3f,full,fix,B3,StarCoder metadata header '<gh_stars>0' at offset 0,,StarCoder metadata line at top
+4c25fb0c0bb88fc8,full,fix,B3;E4,"StarCoder metadata header '<gh_stars>10-100' at offset 0; PII redaction placeholders <NAME>×1, <EMAIL>×1, first at offset 148; licence text 'Copyright (c)' at offset 124",,StarCoder metadata line at top; dataset redaction placeholders left in code; licence header lines 2-29
+08e5a86580883750,full,fix,E4,licence text 'Apache License' at offset 645,,licence header line 21
+3456c28f875505e4,full,drop,E1,generated-code marker 'Generated by Django' at offset 26,,generated/minified code
+3b126893c206d77a,full,clean,,,,
+0925e5b77adf7af9,full,fix,B3,StarCoder metadata header '<reponame>jjhenkel/dockerizeme' at offset 0,,StarCoder metadata line at top
+9711822d4b55b877,full,fix,B3,StarCoder metadata header '<reponame>didimelli/aiosnmp<filename>exa…' at offset 0,,StarCoder metadata line at top
+d3227682234f16ee,full,fix,B3;E4,StarCoder metadata header '<gh_stars>1-10' at offset 0; licence text 'Copyright (c)' at offset 17,,StarCoder metadata line at top; licence header lines 2-5
+f258e29ca4b29a29,full,fix,B3,StarCoder metadata header '<filename>pydfs_lineup_optimizer/utils.p…' at offset 0,,StarCoder metadata line at top
+bbd89723f957eb35,full,clean,,,,
+39668b8c65cb26b8,full,fix,B3,StarCoder metadata header '<reponame>abstractvector/python-victron<…' at offset 0,,StarCoder metadata line at top
+3213e68dbbb93e96,full,clean,,,,
+9e9bbb5ccb65a4d2,full,clean,,,,
+2fc516ca01c2de8e,full,clean,,,,
+c38d717d2bb3a8de,full,clean,,,,
+f2dcc7d83d2f617a,full,fix,A2,"139× U+000D carriage return (CRLF line endings), first at offset 31",U+000D,Windows CRLF line endings
+081251663f866093,full,fix,B3,StarCoder metadata header '<gh_stars>0' at offset 0,,StarCoder metadata line at top
+8c299440f3a970b4,full,fix,B3,"StarCoder metadata header '<reponame>victorcouste/great_expectation…' at offset 0; PII redaction placeholders <PASSWORD>×8, first at offset 894",,StarCoder metadata line at top; dataset redaction placeholders left in code
+db866ac156c5a498,full,fix,B3,StarCoder metadata header '<reponame>thegreyd/elliott<gh_stars>0' at offset 0,,StarCoder metadata line at top
+ee98e7739825170e,full,fix,B3,StarCoder metadata header '<reponame>dendisuhubdy/pydiogment' at offset 0,,StarCoder metadata line at top
+43754cb3400fb756,full,fix,B3,StarCoder metadata header '<reponame>syfxlin/tilt-extensions<filena…' at offset 0,,StarCoder metadata line at top
+3f51830ac36871e5,full,fix,B3;E4,StarCoder metadata header '<reponame>listuser/jc<filename>jc/traceb…' at offset 0; licence text 'Copyright (c)' at offset 938,,StarCoder metadata line at top; licence header line 20
+6dc04d9ca43c1410,full,fix,A2;B3,"197× U+000D carriage return (CRLF line endings), first at offset 20; PII redaction placeholders <NAME>×1, <EMAIL>×1, first at offset 6092",U+000D,Windows CRLF line endings; dataset redaction placeholders left in code
+fbedbba6eb3810ca,full,clean,,,,
+92398b8d40ed9592,full,fix,B3;E4,"StarCoder metadata header '<gh_stars>1-10' at offset 0; PII redaction placeholders <EMAIL>×1, first at offset 3377; licence text 'Copyright (C)' at offset 18",,StarCoder metadata line at top; dataset redaction placeholders left in code; licence header lines 3-5
+83cfe56dae611246,full,fix,B3,StarCoder metadata header '<filename>tests/model/pydantic/test_data…' at offset 0,,StarCoder metadata line at top
+440f0651a7eb57a0,full,fix,B3,"PII redaction placeholders <NAME>×3, <EMAIL>×1, first at offset 117",,dataset redaction placeholders left in code
+dbf6359dcb03bd30,full,fix,B3,StarCoder metadata header '<reponame>TobiasSchmidtDE/GraphGallery<f…' at offset 0,,StarCoder metadata line at top
+f8c5fd585fd030a6,full,clean,,,,non-English comments/strings (not a disease)
+2c2d7f0558bfe137,full,clean,,,,
+c38b03c49d37e2c5,full,fix,B3,StarCoder metadata header '<filename>scripts/h4l_reducible_bkg.py' at offset 0,,Python 2 file (valid); StarCoder metadata line at top
+c6dbcb147bc7d5ef,full,fix,B3;E4,StarCoder metadata header '<gh_stars>0' at offset 0; licence text 'Copyright (c)' at offset 32,,StarCoder metadata line at top; licence header line 4
+c3df4d59c9f21cf1,full,clean,,,,
+13b7d156c7e10d9d,full,fix,B3,StarCoder metadata header '<gh_stars>1-10' at offset 0,,StarCoder metadata line at top
+9a3dc17ecb38f4bc,full,clean,,,,
+a118dc97e185bc37,full,clean,,,,
+d7152a1f4fb7ba24,full,clean,,,,
+5625c48a5bf84759,full,fix,B3;E4,StarCoder metadata header '<filename>chroma_cli/handlers.py' at offset 0; licence text 'Copyright (c)' at offset 35,,StarCoder metadata line at top; licence header lines 2-4
+21319624b8ce4403,full,drop,B3;E2,StarCoder metadata header '<reponame>ericmiguel/pepomaps' at offset 0; 57% of characters are digits,,"StarCoder metadata line at top; mostly data, little code"
+0f044ee517526307,full,fix,B3;E4,StarCoder metadata header '<reponame>MoAnsir/dot_file_2017' at offset 0; licence text 'Mozilla Public License' at offset 160,,StarCoder metadata line at top; licence header lines 3-37
+4d0eee1129b53639,full,fix,B3;E4,StarCoder metadata header '<gh_stars>1-10' at offset 0; licence text 'Copyright (c)' at offset 41,,StarCoder metadata line at top; licence header lines 2-15
+67139d073199b77e,full,fix,B3,StarCoder metadata header '<filename>output/models/nist_data/list_p…' at offset 0,,StarCoder metadata line at top
+ac20c84b0ebfe93e,full,fix,B3;E4,StarCoder metadata header '<reponame>zebraed/psychoid' at offset 0; licence text 'Copyright (c)' at offset 115,,StarCoder metadata line at top; licence header lines 3-8
+4133ea3a8c24cf05,full,fix,B3,StarCoder metadata header '<filename>back/notes/serializers.py' at offset 0,,StarCoder metadata line at top
+4b1a70645dd6fcf8,full,fix,B3,StarCoder metadata header '<filename>route/view_xref.py<gh_stars>1-…' at offset 0,,StarCoder metadata line at top
+7f88f810ddb55691,full,fix,B3,StarCoder metadata header '<filename>tests/components/sonarr/test_s…' at offset 0,,StarCoder metadata line at top
+f0253332e39e1679,full,fix,B3;E4,"StarCoder metadata header '<filename>benchmarks/bencharraysize.py<g…' at offset 0; PII redaction placeholders <NAME>×1, <EMAIL>×1, first at offset 457; licence text 'Copyright 2014' at offset 432",,StarCoder metadata line at top; dataset redaction placeholders left in code; licence header lines 3-27
+57080d3c6db7c652,full,fix,A2;B3,"41× U+000D carriage return (CRLF line endings), first at offset 103; StarCoder metadata header '<filename>Self Assignment 1 - Bufffon\'s …' at offset 0",U+000D,Windows CRLF line endings; StarCoder metadata line at top
+855e15bf58e9063e,full,clean,,,,
+c297c8e04431d245,full,fix,B3,StarCoder metadata header '<filename>pgware/helpers.py' at offset 0,,StarCoder metadata line at top
+65ca3407a4ff8f1c,full,clean,,,,
+5a32ff781bdf5560,full,fix,B3;E4,"StarCoder metadata header '<filename>src/quantuminspire/api.py' at offset 0; PII redaction placeholders <NAME>×1, first at offset 76; licence text 'Copyright 2018' at offset 61",,StarCoder metadata line at top; dataset redaction placeholders left in code; licence header line 4
+559635428e9fe4c6,full,drop,B3;E1,"StarCoder metadata header '<reponame>janakagithub/kb_rxn_gene_finde…' at offset 0; PII redaction placeholders <PASSWORD>×2, first at offset 827; generated-code marker 'Autogenerated' at offset 131",,StarCoder metadata line at top; dataset redaction placeholders left in code; generated/minified code
+bcb288906f19d84d,full,fix,B3;E4,StarCoder metadata header '<filename>ambuild2/frontend/v2_0/vs/gen.…' at offset 0; licence text 'GNU General Public License' at offset 210,,StarCoder metadata line at top; licence header lines 2-17
+07009db005d08513,full,fix,B3;E4,StarCoder metadata header '<reponame>sandeel31/o3de' at offset 0; licence text 'Copyright (c)' at offset 29,,StarCoder metadata line at top; licence header lines 2-3
+fe926b84131fd40c,full,fix,B3,StarCoder metadata header '<reponame>fx-bricks/pfx-brick-py' at offset 0,,StarCoder metadata line at top
+083f20886bd55f48,full,fix,E4,licence text 'Copyright 2013' at offset 2,,licence header lines 1-4
+2e1371ed8d53b53e,full,fix,A2;B3,"23× U+000D carriage return (CRLF line endings), first at offset 88; StarCoder metadata header '<reponame>vrushank-agrawal/opencv-x64-cm…' at offset 0",U+000D,Windows CRLF line endings; StarCoder metadata line at top
+10a6c4cdbf87f0d0,full,clean,,,,
+1876b305c1bb7b5c,full,clean,,,,
+3f506939296acb97,full,fix,E4,licence text 'Copyright (c)' at offset 4,,licence header lines 1-2
+00c0ab25ac2fb26f,full,fix,B3,"PII redaction placeholders <EMAIL>×1, first at offset 430",,dataset redaction placeholders left in code
+c08b4d2fbc3cbcdd,full,fix,B3;E4,StarCoder metadata header '<filename>timemory/api/gperftools/utils.…' at offset 0; licence text 'MIT License' at offset 67,,StarCoder metadata line at top; licence header lines 3-25
+1955fce18ca15253,full,fix,B3,"StarCoder metadata header '<reponame>dedsec-9/AutoGL<gh_stars>0' at offset 0; PII redaction placeholders <NAME>×2, first at offset 2436",,StarCoder metadata line at top; dataset redaction placeholders left in code
+7009f067ecee6430,full,fix,B3,"StarCoder metadata header '<reponame>DarkElement75/lira' at offset 0; PII redaction placeholders <NAME>×1, first at offset 182",,StarCoder metadata line at top; dataset redaction placeholders left in code
+1e0fe9bee4956745,full,fix,E4,licence text 'Copyright 2019' at offset 2,,licence header lines 1-12
+3f1a9195990ca7b2,full,fix,B3,StarCoder metadata header '<filename>django_sendgrid_tracking/model…' at offset 0,,StarCoder metadata line at top
+6b0e2c832aa5b8f7,full,fix,B3;E4,"StarCoder metadata header '<filename>bot_engine.py' at offset 0; PII redaction placeholders <NAME>×1, first at offset 434; licence text 'MIT License' at offset 342",,StarCoder metadata line at top; dataset redaction placeholders left in code; licence header lines 2-10
+add2415cf4160c1d,full,fix,B3,StarCoder metadata header '<reponame>y-gupta/rfid-auth-system<gh_st…' at offset 0,,StarCoder metadata line at top
+ec5bf2483d6a1517,full,clean,,,,
+250e32a8949ca401,full,fix,B3,StarCoder metadata header '<reponame>dioptra-io/diamond-miner<filen…' at offset 0,,StarCoder metadata line at top
+1d31a359a375d95b,full,fix,B3,StarCoder metadata header '<filename>zoomzt2-gui.py' at offset 0,,StarCoder metadata line at top
+ab8490e310df2db0,full,fix,B3;E4,StarCoder metadata header '<reponame>hellomokey/gp' at offset 0; licence text 'Copyright (c)' at offset 152,,StarCoder metadata line at top; licence header lines 3-20
+8171adbc6f69d704,full,fix,B3,StarCoder metadata header '<reponame>silky/echomesh<filename>code/p…' at offset 0,,StarCoder metadata line at top
+b14c30918c677230,full,fix,B3,"StarCoder metadata header '<filename>colour/plotting/tests/test_cha…' at offset 0; PII redaction placeholders <EMAIL>×1, first at offset 622",,StarCoder metadata line at top; dataset redaction placeholders left in code
+66399673e0eec992,full,fix,B3,StarCoder metadata header '<reponame>jads-master-team-1/de-1<gh_sta…' at offset 0,,StarCoder metadata line at top
+95bc3d39ee2cdeb5,full,fix,B3,StarCoder metadata header '<filename>MaksimovKA_solution/utils/metr…' at offset 0,,StarCoder metadata line at top
+6aad60232d6d9823,full,fix,B3,"StarCoder metadata header '<gh_stars>0' at offset 0; PII redaction placeholders <EMAIL>×1, first at offset 314",,non-English comments/strings (not a disease); StarCoder metadata line at top; dataset redaction placeholders left in code
+9830df836b1a89d5,full,fix,B3,StarCoder metadata header '<filename>tools/extract_mrcn_head_feats.…' at offset 0,,StarCoder metadata line at top
+45a3e1bfceabd143,full,fix,B3;E4,"PII redaction placeholders <NAME>×2, <EMAIL>×2, first at offset 44; licence text 'Copyright 2015' at offset 29",,Python 2 file (valid); dataset redaction placeholders left in code; licence header lines 3-15
+0e90ca404fd7885f,full,fix,E4,licence text 'Copyright 2021' at offset 4,,licence header lines 1-4
+c2fcc7cc6c6e1b04,full,fix,B3;E4,"StarCoder metadata header '<reponame>timlehr/gaffer<gh_stars>0' at offset 0; PII redaction placeholders <NAME>×1, first at offset 762; licence text 'Copyright (c)' at offset 116",,StarCoder metadata line at top; dataset redaction placeholders left in code; licence header lines 2-36
+80970eeb7a63f016,full,clean,,,,
+e764c37050fbe225,full,fix,E4,licence text 'Copyright 2007' at offset 82,,licence header line 7
+de04a57c0f97846b,full,fix,B3,StarCoder metadata header '<reponame>svenruf/trackintel' at offset 0,,StarCoder metadata line at top
+0bf5c935431c190c,full,clean,,,,
+f045c86ddefb7bf4,full,fix,B3;E4,"PII redaction placeholders <NAME>×1, <EMAIL>×1, first at offset 27; licence text 'Copyright (c)' at offset 2",,dataset redaction placeholders left in code; licence header lines 1-4
+f745634d356cbfe6,full,fix,B3;E4,"PII redaction placeholders <NAME>×1, first at offset 50; licence text 'Copyright (c)' at offset 26",,dataset redaction placeholders left in code; licence header lines 3-24
+7ddf44ccacfaba2f,full,clean,,,,non-English comments/strings (not a disease)
+b722cf3b05cb227a,full,fix,B3;E4,"StarCoder metadata header '<reponame>nschaetti/PAN17-author-profili…' at offset 0; PII redaction placeholders <NAME>×1, <EMAIL>×1, first at offset 866; licence text 'GNU General Public License' at offset 593",,StarCoder metadata line at top; dataset redaction placeholders left in code; licence header lines 2-21
+30e9b493eea5a397,full,clean,,,,
+cdf0535a448e3c5d,full,fix,B3;E4,StarCoder metadata header '<filename>handmocap/hand_modules/h3dw_ne…' at offset 0; licence text 'Copyright (c)' at offset 52,,StarCoder metadata line at top; licence header line 2
+e787d26583ac24ec,full,fix,B3;E4,"StarCoder metadata header '<reponame>hashnfv/hashnfv-qtip<filename>…' at offset 0; PII redaction placeholders <EMAIL>×1, first at offset 156; licence text 'Copyright (c)' at offset 137",,StarCoder metadata line at top; dataset redaction placeholders left in code; licence header lines 2-9
+832122360e33066e,full,fix,B3,StarCoder metadata header '<reponame>ruoyu0088/holoviews' at offset 0,,StarCoder metadata line at top
+4cf9369d47bb2449,full,fix,B3,StarCoder metadata header '<gh_stars>0' at offset 0,,StarCoder metadata line at top
+bb0e1256dda22842,full,drop,B3;E1,StarCoder metadata header '<filename>sdk/python/pulumi_google_nativ…' at offset 0; generated-code marker 'this file was generated by the Pulumi' at offset 106,,StarCoder metadata line at top; generated/minified code
+d5d9f4d05fbbe399,full,fix,B3,StarCoder metadata header '<filename>setup.py' at offset 0,,StarCoder metadata line at top
+d65427a8557eb58f,full,fix,E4,licence text 'Copyright (C)' at offset 2,,licence header lines 1-14
+5818e4d6192d3113,full,fix,B3,StarCoder metadata header '<filename>src/layers.py' at offset 0,,StarCoder metadata line at top
+40e82d33dc91e708,full,fix,B3,StarCoder metadata header '<filename>ramda/juxt_test.py<gh_stars>10…' at offset 0,,StarCoder metadata line at top
+5cbd5b02221ba133,full,fix,B3,"StarCoder metadata header '<filename>Lab05_dictionary_and_class/exe…' at offset 0; PII redaction placeholders <NAME>×8, first at offset 2938",,StarCoder metadata line at top; dataset redaction placeholders left in code
+59fb7507b9f2ab97,full,fix,B3,StarCoder metadata header '<gh_stars>0' at offset 0,,StarCoder metadata line at top
+f692de4ca10e15cd,full,clean,,,,
+e9a8d025612ee06a,full,clean,,,,
+993a2bf2e74c783d,full,clean,,,,
+3fd8eb77ee61e83f,full,clean,,,,
+62ad7acaa8e2745f,full,clean,,,,
+3d16039cc5801e00,full,fix,B3,"PII redaction placeholders <NAME>×1, <EMAIL>×1, <KEY>×1, first at offset 71",,non-English comments/strings (not a disease); dataset redaction placeholders left in code
+7bfb03fa52bd20b2,full,fix,B3,StarCoder metadata header '<reponame>CarterFendley/2015-robot<gh_st…' at offset 0,,StarCoder metadata line at top
+f9b9d7808a2ff30b,full,fix,B3,StarCoder metadata header '<reponame>123456789-dnipro/hackaton<file…' at offset 0,,StarCoder metadata line at top
+4ac21fff953553ca,full,fix,B3,"PII redaction placeholders <NAME>×3, first at offset 573",,dataset redaction placeholders left in code
+6fbbb7afb4c34553,full,fix,B3;E4,"StarCoder metadata header '<gh_stars>0' at offset 0; PII redaction placeholders <NAME>×2, first at offset 57; licence text 'Copyright 2015' at offset 68",,StarCoder metadata line at top; dataset redaction placeholders left in code; licence header lines 5-25
+99c0be9d9c0d0cf4,full,drop,B3;F2,StarCoder metadata header '<gh_stars>1-10' at offset 0; file path rsj217/leetcode-in-python3/src/solution/662_maximum_width_of_binary_tree.py,,StarCoder metadata line at top; contest/benchmark problem solution; possible benchmark contamination
+fa075b324aa00756,full,clean,,,,
+8dddceca29a94467,full,fix,A2;B3,"34× U+000D carriage return (CRLF line endings), first at offset 57; StarCoder metadata header '<reponame>sachin0x18/ICS-Watchdog' at offset 0; PII redaction placeholders <NAME>×1, first at offset 112",U+000D,Windows CRLF line endings; StarCoder metadata line at top; dataset redaction placeholders left in code
+d47e3105633db73f,full,fix,B3,StarCoder metadata header '<reponame>gigaquads/neurotic<gh_stars>0' at offset 0,,StarCoder metadata line at top
+dd54e08c959455d9,full,clean,,,,
+89488e1b47b1bc2c,full,clean,,,,
+e9cbdf8a200581d9,full,clean,,,,
+93ff5e73cbc4a0d5,full,fix,A2;B3,"54× U+000D carriage return (CRLF line endings), first at offset 27; StarCoder metadata header '<filename>utils/enum.py' at offset 0",U+000D,Windows CRLF line endings; StarCoder metadata line at top
+aad2e5afea83e1af,full,fix,B3;E4,"StarCoder metadata header '<reponame>vlegoff/tsunami' at offset 0; PII redaction placeholders <NAME>×1, first at offset 74; licence text 'Copyright (c)' at offset 50",,StarCoder metadata line at top; dataset redaction placeholders left in code; licence header lines 4-29
+19b03ceae641e65a,full,clean,,,,
+895404603f333dc9,full,fix,B3;E4,StarCoder metadata header '<filename>vitrage/datasources/cinder/vol…' at offset 0; licence text 'Copyright 2016' at offset 77,,StarCoder metadata line at top; licence header lines 2-14
+e68c91586ee6b2b6,full,fix,A2;B3,"171× U+000D carriage return (CRLF line endings), first at offset 71; StarCoder metadata header '<reponame>daitomanabe/one-pixel-attack-k…' at offset 0",U+000D,Windows CRLF line endings; StarCoder metadata line at top
+a9edaa0e4ba8f981,full,fix,B3,StarCoder metadata header '<reponame>aimanahmedmoin1997/DataCamp' at offset 0,,StarCoder metadata line at top
+8f98fad9836d7a29,full,clean,,,,
+728ebbd143919a81,full,clean,,,,
+66e74c9fb349bb5e,full,clean,,,,
+d6e128b19cc8b8d4,full,clean,,,,
+e2c3db81526c288d,full,fix,B3;E4,StarCoder metadata header '<reponame>builder08/enigma2-plugins<file…' at offset 0; licence text 'GNU General Public License' at offset 271,,StarCoder metadata line at top; licence header lines 2-19
+6b885e082d958f4a,full,fix,B3,StarCoder metadata header '<reponame>igormba/python-exercises<gh_st…' at offset 0,,StarCoder metadata line at top
+ccf9674ab96c9a03,full,clean,,,,
+bcf68e7b71d67b61,full,fix,B3;E4,"StarCoder metadata header '<reponame>eda-ricercatore/estate-2017-st…' at offset 0; PII redaction placeholders <NAME>×2, first at offset 101; licence text 'MIT License' at offset 2534",,Python 2 file (valid); StarCoder metadata line at top; dataset redaction placeholders left in code; licence header line 82
+bc3a0deff6ed649d,full,clean,,,,non-English comments/strings (not a disease)
+2bc11469d8b39831,full,fix,B3,StarCoder metadata header '<gh_stars>0' at offset 0,,StarCoder metadata line at top
+88531fcf3b457767,full,clean,,,,
+bfbb97ae28773e37,full,drop,B3;E1,StarCoder metadata header '<filename>backend/youngun/youngun/apps/c…' at offset 0; generated-code marker 'Generated by Django' at offset 100,,StarCoder metadata line at top; generated/minified code
+3a08c173336fb751,full,clean,,,,
+a1904b5880457684,full,fix,B3,StarCoder metadata header '<reponame>CospanDesign/python' at offset 0,,StarCoder metadata line at top
+c00dd524a60eac05,full,clean,,,,
+a019a246ff22e52d,full,fix,B3,StarCoder metadata header '<filename>modules/games.py' at offset 0,,StarCoder metadata line at top
+39df917b1b49298e,full,fix,B3,StarCoder metadata header '<reponame>njdbickhart/Themis-ASM' at offset 0,,StarCoder metadata line at top
+ef287db1c295e9e8,full,fix,B3;E4,"StarCoder metadata header '<reponame>hariprakash-123/aws-pricing<gh…' at offset 0; PII redaction placeholders <NAME>×1, first at offset 70; licence text 'Copyright (c)' at offset 51",,StarCoder metadata line at top; dataset redaction placeholders left in code; licence header lines 2-3
+1146bc78d5ac31c4,full,fix,B3,StarCoder metadata header '<gh_stars>0' at offset 0,,StarCoder metadata line at top
+18490eeabfe557be,full,fix,B3;E4,StarCoder metadata header '<gh_stars>10-100' at offset 0; licence text 'Copyright ©' at offset 19,,StarCoder metadata line at top; licence header lines 2-3
+8fc260f5b7f033cc,full,fix,B3,StarCoder metadata header '<gh_stars>0' at offset 0,,StarCoder metadata line at top
+adf0594a64c79d5a,full,fix,B3,StarCoder metadata header '<reponame>akondrahman/IacSec<filename>ex…' at offset 0,,Python 2 file (valid); StarCoder metadata line at top
+3af4408684a0c4ec,full,fix,B3,StarCoder metadata header '<filename>metric_learning/extract_featur…' at offset 0,,StarCoder metadata line at top
+9286a20a123afec2,full,clean,,,,
+bc70351dc643f6f9,full,fix,B3,StarCoder metadata header '<gh_stars>1-10' at offset 0,,StarCoder metadata line at top
+73991ea63a15af5d,full,clean,,,,
+64fd3353e5c9c7db,full,fix,B3,StarCoder metadata header '<reponame>bismog/leetcode' at offset 0,,"StarCoder metadata line at top; threading tutorial example (bogotobogo), not a LeetCode problem despite repo name"
+4776a1e3af9f0777,full,fix,A2;B3,"6× U+000D carriage return (CRLF line endings), first at offset 104; StarCoder metadata header '<reponame>NNDEV1/BlogDjango<filename>mys…' at offset 0",U+000D,Windows CRLF line endings; StarCoder metadata line at top
+6b1b2f3c8966e4f4,full,fix,B3,StarCoder metadata header '<filename>autoprocess/utils/mdns.py' at offset 0,,StarCoder metadata line at top
+8ec65cecfec6afea,full,clean,,,,Python 2 file (valid)
+b9bc0715d8bb01cb,full,fix,B3,StarCoder metadata header '<reponame>Daiver/np_draw_tools' at offset 0,,StarCoder metadata line at top
+5bb3b2e27c383b4d,full,fix,E4,licence text 'Copyright (c)' at offset 2,,licence header lines 1-3
+ec0dd5f53ae7ee51,full,fix,B3,StarCoder metadata header '<reponame>AlwxSin/wemake-python-stylegui…' at offset 0,,StarCoder metadata line at top
+fbce0f0902ca3b74,full,fix,B3;E4,StarCoder metadata header '<filename>var/spack/repos/builtin/packag…' at offset 0; licence text 'Copyright 2013' at offset 65,,StarCoder metadata line at top; licence header lines 2-5
+24646e3713079c02,full,fix,E4,licence text 'Copyright (c)' at offset 25,,licence header lines 2-5
+d9c9a75f8a451a0a,full,fix,B3,StarCoder metadata header '<reponame>mileserickson/root_directory' at offset 0,,StarCoder metadata line at top
+6772d54e60229121,full,clean,,,,
+4ce9733d1fd4964a,full,fix,B3,"PII redaction placeholders <NAME>×1, first at offset 66",,dataset redaction placeholders left in code
+33206012c4c7e85e,full,fix,B3,StarCoder metadata header '<reponame>mikan-megane/core<filename>hom…' at offset 0,,StarCoder metadata line at top
+0eaeba49180d76d9,full,fix,B3,StarCoder metadata header '<gh_stars>1-10' at offset 0,,StarCoder metadata line at top
+a65c0bfc7150a6fe,full,fix,B3,"StarCoder metadata header '<reponame>quidditymaster/thimbles' at offset 0; PII redaction placeholders <NAME>×1, first at offset 102",,StarCoder metadata line at top; dataset redaction placeholders left in code
+564406dd76d1c20f,full,fix,B3,"StarCoder metadata header '<reponame>PegasisForever/mkdocs-git-revi…' at offset 0; PII redaction placeholders <EMAIL>×2, first at offset 3168",,StarCoder metadata line at top; dataset redaction placeholders left in code
+f6da8096de3bde27,full,fix,B3,StarCoder metadata header '<filename>config.py' at offset 0,,StarCoder metadata line at top
+d68ff29dd9cc9f35,full,fix,B3,StarCoder metadata header '<gh_stars>1-10' at offset 0,,StarCoder metadata line at top
+5ff9bfe43bebba09,full,fix,B3,StarCoder metadata header '<reponame>anshsrtv/fyle-bank-feed-parser…' at offset 0,,StarCoder metadata line at top
+3107ad53b5715249,full,clean,,,,
+976c938814ff2e53,full,fix,B3,StarCoder metadata header '<filename>omaha_server/sparkle/migration…' at offset 0,,StarCoder metadata line at top
+a3f471c261e60f08,full,clean,,,,
+7185c40c2390f663,full,fix,B3;E4,StarCoder metadata header '<reponame>blag/pyaoscx' at offset 0; licence text 'Copyright 2019' at offset 29,,StarCoder metadata line at top; licence header lines 2-3
+22eadd1582d083d9,full,clean,,,,
+0aa59912c32731dd,full,clean,,,,
+e94a64270a4b7631,full,fix,B3,StarCoder metadata header '<gh_stars>0' at offset 0,,non-English comments/strings (not a disease); StarCoder metadata line at top
+aabc0f94be05b120,full,fix,B3,"PII redaction placeholders <NAME>×2, first at offset 15",,dataset redaction placeholders left in code
+8d02eaeed0996587,full,clean,,,,
+13d80a0915725b92,full,drop,B3;F2,StarCoder metadata header '<reponame>Sukhrobjon/leetcode' at offset 0; file path Sukhrobjon/leetcode/easy/110_balanced_binary_tree.py,,StarCoder metadata line at top; contest/benchmark problem solution; possible benchmark contamination
+b3c29a043d62a45c,full,fix,B3;E4,StarCoder metadata header '<gh_stars>0' at offset 0; licence text 'Copyright (c)' at offset 36,,StarCoder metadata line at top; licence header lines 3-27
+0bcf1380bb59d703,full,fix,A2;B3,"65× U+000D carriage return (CRLF line endings), first at offset 29; StarCoder metadata header '<gh_stars>0' at offset 0",U+000D,Python 2 file (valid); Windows CRLF line endings; StarCoder metadata line at top
+8d5b38906df069af,full,clean,,,,
+580e4af1cf4c66c5,full,fix,B3,StarCoder metadata header '<reponame>amberyic/huaweicloud-sdk-pytho…' at offset 0,,StarCoder metadata line at top
+54943c086f6b6874,full,fix,E4,licence text 'Copyright 2016' at offset 2,,licence header lines 1-13
+3dc529864c5587f8,full,fix,B3,StarCoder metadata header '<reponame>timeflux/timeflux_eego<filenam…' at offset 0,,StarCoder metadata line at top
+f667deaa8348c38d,full,clean,,,,
+6a2128d9383c3ccb,full,fix,E3,possible hardcoded secret at offset 3030,,non-English comments/strings (not a disease); secret value not copied here
+87b6b4ee1bbc95d3,full,clean,,,,non-English comments/strings (not a disease)
+bc2dbddc700bc83d,full,clean,,,,
+1432b88e7c1aa183,full,fix,B3,"StarCoder metadata header '<reponame>lilingge/ERF_net_tensorlfow<fi…' at offset 0; PII redaction placeholders <NAME>×1, <EMAIL>×1, first at offset 77",,StarCoder metadata line at top; dataset redaction placeholders left in code
+b6f00627bfb0456c,full,clean,,,,
+4a05572a40576ef8,full,fix,B3,StarCoder metadata header '<gh_stars>0' at offset 0,,StarCoder metadata line at top
+3a5c7bc7a75c2b80,full,clean,,,,
+3787e661c8b53bff,full,fix,B3,StarCoder metadata header '<reponame>caicongyang/python-study' at offset 0,,non-English comments/strings (not a disease); StarCoder metadata line at top
+817411d29f97c0a2,full,clean,,,,
+b762d1429c04a000,full,drop,E1,generated-code marker 'Generated by Django' at offset 2,,generated/minified code
+0f011b9d973d6ba2,full,fix,B3,StarCoder metadata header '<gh_stars>0' at offset 0,,StarCoder metadata line at top
+a5c7f6b389dee86f,full,fix,B3,StarCoder metadata header '<filename>bundle/deepracer_simulation_en…' at offset 0,,StarCoder metadata line at top
+b466af19249d8c43,full,fix,B3,StarCoder metadata header '<filename>django/tfrs/models/mixins/Disp…' at offset 0,,StarCoder metadata line at top
+d129923fcf8cdbc9,full,clean,,,,
+a5b2192598d34a63,full,clean,,,,
+f33289a3fbeaaf74,full,fix,B3;E4,StarCoder metadata header '<reponame>goubertbrent/oca-backend' at offset 0; licence text 'Copyright 2020' at offset 61,,StarCoder metadata line at top; licence header lines 2-17
+34a472306012121b,full,fix,B3;E4,StarCoder metadata header '<reponame>jun-ma-0/incubator-iceberg' at offset 0; licence text 'Apache License' at offset 297,,StarCoder metadata line at top; licence header lines 2-17
+8fef4624b13feb82,full,fix,E4,licence text 'Copyright (c)' at offset 3,,licence header lines 1-4
+e39a3eac8a3fc887,full,fix,B3;E4,StarCoder metadata header '<reponame>SimiaCryptus/models<gh_stars>0' at offset 0; licence text 'Copyright 2019' at offset 43,,StarCoder metadata line at top; licence header lines 2-16
+f749d83200f0fa85,full,fix,B3;E4,"StarCoder metadata header '<reponame>VighneshHarihar/Newsify<gh_sta…' at offset 0; PII redaction placeholders <NAME>×1, <EMAIL>×1, <MEMBER>×1, first at offset 149; licence text 'Copyright (C)' at offset 102",,StarCoder metadata line at top; dataset redaction placeholders left in code; licence header lines 2-7
+62545dc39a18f39e,full,fix,B3,StarCoder metadata header '<reponame>bartels/satchless' at offset 0,,StarCoder metadata line at top
+0b51e442514c5d02,full,fix,B3,StarCoder metadata header '<reponame>sadmicrowave/despoina' at offset 0,,StarCoder metadata line at top
+ae1583ddf789edfe,full,clean,,,,
+8d304ffeb310f112,full,clean,,,,Python 2 file (valid)
+e5c644a4f70a9a08,full,fix,B3,"PII redaction placeholders <EMAIL>×1, first at offset 3423",,dataset redaction placeholders left in code
+4f97d49cc147d104,full,fix,B3,StarCoder metadata header '<filename>ai2es_xai_course/utils/image_t…' at offset 0,,StarCoder metadata line at top
+12a7371bfc0a1da0,full,drop,F2,benchmark/contest mention 'Leetcode' at offset 57,,contest/benchmark problem solution; possible benchmark contamination
+ea3ee685c0293fb4,full,fix,B3,StarCoder metadata header '<filename>2.3-npUFuncs.py' at offset 0,,StarCoder metadata line at top
+3eee4a5dc30cc0d5,full,clean,,,,
+ef86c4d188ffda79,full,fix,B3,StarCoder metadata header '<gh_stars>10-100' at offset 0,,StarCoder metadata line at top
+ca3963d7143568e1,full,clean,,,,
+70d4cd05da1d3bbe,full,fix,B3,StarCoder metadata header '<reponame>UniversitaDellaCalabria/Django…' at offset 0,,StarCoder metadata line at top
