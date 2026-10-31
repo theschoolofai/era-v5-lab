@@ -11,7 +11,7 @@ Write one section for each disease that you found more than five times.
    clean = regex.sub(r'([\p{Devanagari}])(?=\p{Latin})', r'\1 ', clean)
    ```
 3. **Action:** fix the text.
-4. **Harm test:** PENDING (Gold set not available or pending human baseline).
+4. **Harm test:** not testable: no Marathi gold set
 5. **Side effects:** Rare edge cases where unusual character patterns carry intended semantic meaning.
 
 ## Medicine 2: C2 (Repeated lines)
@@ -23,7 +23,7 @@ Write one section for each disease that you found more than five times.
    clean = '\n'.join(line for line in text.splitlines() if not (line.strip() and line.strip() in seen or seen.add(line.strip())))
    ```
 3. **Action:** fix the text.
-4. **Harm test:** PENDING (Gold set not available or pending human baseline).
+4. **Harm test:** not testable: no Marathi gold set
 5. **Side effects:** Poetry, choruses in songs, or intentional legal refrains may be deduplicated.
 
 ## Medicine 3: C3 (Truncated document)
@@ -35,7 +35,7 @@ Write one section for each disease that you found more than five times.
    clean = trim_to_last_sentence(text)
    ```
 3. **Action:** drop the text.
-4. **Harm test:** PENDING (Gold set not available or pending human baseline).
+4. **Harm test:** not testable: no Marathi gold set
 5. **Side effects:** Rare edge cases where unusual character patterns carry intended semantic meaning.
 
 ## Medicine 4: C4 (Two documents joined)
@@ -47,7 +47,7 @@ Write one section for each disease that you found more than five times.
    clean = split_joined_documents(text)
    ```
 3. **Action:** drop the text.
-4. **Harm test:** PENDING (Gold set not available or pending human baseline).
+4. **Harm test:** not testable: no Marathi gold set
 5. **Side effects:** Rare edge cases where unusual character patterns carry intended semantic meaning.
 
 ## Medicine 5: C5 (Lists of keywords or links)
@@ -58,7 +58,7 @@ Write one section for each disease that you found more than five times.
    clean = regex.sub(r'\n\s*(?:Tags|Keywords|टॅग्ज)\s*:.*$', '', text, flags=regex.I)
    ```
 3. **Action:** drop the text.
-4. **Harm test:** PENDING (Gold set not available or pending human baseline).
+4. **Harm test:** not testable: no Marathi gold set
 5. **Side effects:** Rare edge cases where unusual character patterns carry intended semantic meaning.
 
 ## Medicine 6: D3 (Mixed language (code-mixing))
@@ -70,7 +70,7 @@ Write one section for each disease that you found more than five times.
    clean = strip_scraping_trailers(text)
    ```
 3. **Action:** fix the text.
-4. **Harm test:** PENDING (Gold set not available or pending human baseline).
+4. **Harm test:** not testable: no Marathi gold set
 5. **Side effects:** Rare edge cases where unusual character patterns carry intended semantic meaning.
 
 ## Medicine 7: F1 (Personal data)
@@ -82,7 +82,7 @@ Write one section for each disease that you found more than five times.
    clean = redact_pii(text, mask='<PII>')
    ```
 3. **Action:** fix the text.
-4. **Harm test:** PENDING (Gold set not available or pending human baseline).
+4. **Harm test:** not testable: no Marathi gold set
 5. **Side effects:** Rare edge cases where unusual character patterns carry intended semantic meaning.
 
 ## Medicine 8: G1 (Cut at vowel sign)
@@ -93,7 +93,7 @@ Write one section for each disease that you found more than five times.
    clean = regex.sub(r'([\p{Devanagari}\p{Bengali}...])\s+([\u0901-\u094f...])', r'\1\2', text)
    ```
 3. **Action:** fix the text.
-4. **Harm test:** PENDING (Gold set not available or pending human baseline).
+4. **Harm test:** not testable: no Marathi gold set
 5. **Side effects:** Isolated diacritics intentionally displayed in typography dictionaries may be merged.
 
 ## Medicine 9: G4 (Over-normalised)
@@ -105,6 +105,6 @@ Write one section for each disease that you found more than five times.
    clean = regex.sub(r'(?<=[\p{Devanagari}\p{M}])\s*\|\|\s*', ' ॥ ', clean)
    ```
 3. **Action:** fix the text.
-4. **Harm test:** PENDING (Gold set not available or pending human baseline).
+4. **Harm test:** not testable: no Marathi gold set
 5. **Side effects:** Rare edge cases where unusual character patterns carry intended semantic meaning.
 
