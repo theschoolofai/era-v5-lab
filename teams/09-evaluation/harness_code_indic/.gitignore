@@ -1,4 +1,0 @@
-# Run outputs, request caches, per-sample logs and built item files: never commit (size, and benchmark items).
-runs/
-__pycache__/
-*.pyc

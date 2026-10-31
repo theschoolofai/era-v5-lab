@@ -39,7 +39,7 @@ ASSIGNED: dict[int, str] = {idx: name for idx, (name, _) in ASSIGNED_SURFACES.it
 ROLES = ("system", "user", "assistant", "tool")
 EFFORT_PREFIX = "Reasoning effort: "
 
-# Plain-text XML tags that must NEVER be used in place of atomic special tokens.
+# Plain-text XML tags and Unicode look-alikes that must NEVER be used in place of atomic special tokens.
 _PLAIN_TEXT_LOOKALIKES = (
     "<think>",
     "</think>",
@@ -47,6 +47,18 @@ _PLAIN_TEXT_LOOKALIKES = (
     "</tool_call>",
     "<tool_result>",
     "</tool_result>",
+    "<｜think｜>",
+    "<｜/think｜>",
+    "<｜tool_call｜>",
+    "<｜/tool_call｜>",
+    "<｜tool_result｜>",
+    "<｜/tool_result｜>",
+    "＜think＞",
+    "＜/think＞",
+    "＜tool_call＞",
+    "＜/tool_call＞",
+    "＜tool_result＞",
+    "＜/tool_result＞",
 )
 
 
@@ -130,9 +142,12 @@ def _call_json(call: object) -> str:
         raise RenderError("tool call name must be a non-empty string")
     if not isinstance(arguments, dict):
         raise RenderError("tool call arguments must be an object")
+    call_dict = {"arguments": arguments, "name": name}
+    if "id" in call and isinstance(call["id"], str):
+        call_dict["id"] = call["id"]
     try:
         payload = json.dumps(
-            {"name": name, "arguments": arguments},
+            call_dict,
             sort_keys=True,
             ensure_ascii=False,
             separators=(",", ":"),

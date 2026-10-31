@@ -19,7 +19,7 @@ jobs:
           script: |
             const TEAMS = ["01-data-a","02-data-b","03-tokenizer","04-ke2","05-architecture","06-performance",
               "07-infrastructure","08-monitoring","09-evaluation","10-post-training","11-release","12-quantization"];
-            const PACKS = ["cadj-commits","chandassu","cadj-notebooks","cadj-stackexchange","code-cpp","code-go","code-java",
+            const PACKS = ["cadj-commits","cadj-notebooks","cadj-stackexchange","code-cpp","code-go","code-java",
               "code-js-ts","code-python","code-rust","en-dclm","en-fineweb-edu","en-nemotroncc","en-nemotroncc-synth",
               "ind-bn-fw2","ind-bn-sangraha-v","ind-gu-fw2","ind-hi-fw2","ind-hi-hplt","ind-hi-indiccorp",
               "ind-hi-sangraha-s","ind-hi-sangraha-v","ind-kn-fw2","ind-kn-sangraha-s","ind-kn-sangraha-v","ind-ml-fw2",
@@ -49,8 +49,8 @@ jobs:
               }
               if (p[0] === "teams") {
                 if (!TEAMS.includes(p[1])) return `\`${path}\`: \`teams/${p[1]}\` is not a team folder. Use one of the 12 existing folders.`;
-                if (p.length === 3 && p[2].toLowerCase().endsWith(".md")) return null;
-                if (p.length < 4) return `\`${path}\`: put code and data files in a topic folder, for example teams/${p[1]}/<topic>/<file>. Only .md documents may sit directly in the team folder.`;
+                if (p.length === 3 && p[2] === "README.md") return null;
+                if (p.length < 4) return `\`${path}\`: put files in a topic folder, for example teams/${p[1]}/<topic>/<file>.`;
                 return null;
               }
               if (staff.includes(author)) return null;
@@ -61,7 +61,7 @@ jobs:
               [/AKIA[0-9A-Z]{16}/, "an AWS key"], [/-----BEGIN [A-Z ]*PRIVATE KEY-----/, "a private key"],
               [/gh[pousr]_[A-Za-z0-9]{30,}/, "a GitHub token"], [/\bsk-[A-Za-z0-9_-]{20,}/, "an API key"],
               [/xox[baprs]-[A-Za-z0-9-]{10,}/, "a Slack token"],
-              [/(?<![A-Za-z0-9._%+-])[A-Za-z0-9][A-Za-z0-9._%+-]*@(?!users\.noreply\.github\.com\b|example\.(?:com|org)\b)(?:[A-Za-z0-9-]+\.)+(?:com|org|net|edu|gov|mil|int|in|io|ai|co|uk|us|me|dev|app|info|biz|ac|ca|au|de|fr|jp|sg|ae)\b/i, "an email address"]];
+              [/[A-Za-z0-9._%+-]+@(?!users\.noreply\.github\.com|example\.(com|org))[A-Za-z0-9.-]+\.[A-Za-z]{2,}/, "an email address"]];
 
             for (const f of files) {
               for (const path of [f.filename, f.previous_filename].filter(Boolean)) {
@@ -76,7 +76,7 @@ jobs:
                   if (data.size > MAX_BYTES) problems.push(`\`${f.filename}\`: the file is larger than 5 MB.`);
                 } catch (e) { /* size check skipped */ }
               }
-              const added = (f.patch || "").split("\n").filter(l => l.startsWith("+")).map(l => l.slice(1)).join("\n");
+              const added = (f.patch || "").split("\n").filter(l => l.startsWith("+")).join("\n");
               for (const [re, what] of SECRET)
                 if (re.test(added)) problems.push(`\`${f.filename}\`: it seems to contain ${what}. Never copy personal data or secrets. Give only the type and the offset.`);
             }

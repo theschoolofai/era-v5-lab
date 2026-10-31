@@ -1,15 +1,3 @@
-# Each team folder belongs to its lead. TSAI owns everything else.
-*                         @theschoolofai
-/diagnosis/submissions/   @theschoolofai
-/teams/01-data-a/         @patilvijay23 @theschoolofai
-/teams/02-data-b/         @shankarpandala @theschoolofai
-/teams/03-tokenizer/      @rjvim @theschoolofai
-/teams/04-ke2/            @swatibansal @theschoolofai
-/teams/05-architecture/   @shivman @theschoolofai
-/teams/06-performance/    @vaibh27 @theschoolofai
-/teams/07-infrastructure/ @sureshmantha @theschoolofai
-/teams/08-monitoring/     @sandeepkunkunuru @theschoolofai
-/teams/09-evaluation/     @rahulni @theschoolofai
-/teams/10-post-training/  @saitej123 @theschoolofai
-/teams/11-release/        @pyru @theschoolofai
-/teams/12-quantization/   @SreekanthZipsy @theschoolofai
+# Each team folder belongs to its lead. Leads are added after they accept their invitation.
+*                       @theschoolofai
+/diagnosis/submissions/ @theschoolofai

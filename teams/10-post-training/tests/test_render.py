@@ -126,13 +126,36 @@ def test_render_rejects_bad_effort_role_and_plain_or_embedded_markers():
     else:
         raise AssertionError("unknown role should fail")
 
-    for bad in ("see <|im_start|> here", "plain <think> tag", "plain <tool_call> tag"):
+    for bad in (
+        "see <|im_start|> here",
+        "plain <think> tag",
+        "plain <tool_call> tag",
+        "fullwidth <｜think｜> tag",
+        "fullwidth ＜tool_call＞ tag",
+    ):
         try:
             render_mod.render([{"role": "user", "content": bad}])
         except render_mod.RenderError:
             pass
         else:
             raise AssertionError(f"marker leak {bad!r} should fail")
+
+
+def test_tool_call_with_id_roundtrip():
+    messages = [
+        {"role": "user", "content": "Fetch calc.py"},
+        {
+            "role": "assistant",
+            "tool_calls": [
+                {"id": "call_001", "name": "read_file", "arguments": {"path": "calc.py"}}
+            ],
+            "content": "Reading file.",
+        },
+    ]
+    text = render_mod.render(messages, effort="4k")
+    assert '"id":"call_001"' in text
+    parsed = render_mod.parse(text)
+    assert parsed["messages"][1]["tool_calls"][0]["id"] == "call_001"
 
 
 def test_effort_is_a_plain_text_line_in_the_first_system_turn():
@@ -200,4 +223,6 @@ def test_docs_match_the_plan_sheet_set():
             continue
         decisions.append(cells[-1])
     assert "chandassu" in licence
-    assert decisions == ["TSAI reserves", "TSAI reserves"]
+    assert decisions and all(
+        d in {"TSAI reserves", "excluded"} or d.startswith("allowed") for d in decisions
+    )

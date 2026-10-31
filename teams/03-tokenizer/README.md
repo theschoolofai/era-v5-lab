@@ -1,58 +1,5 @@
 # Team 03-tokenizer
 
 Put your work in a **topic folder**: `teams/03-tokenizer/<topic>/<file>`, for example `teams/03-tokenizer/harness/run.py`.
-Team documents named in the week plan (for example `benchmarks_v1.md`) may sit directly in the team folder. The team lead decides the topic names. Do not make personal folders. Do not make new folders under `teams/`.
+The team lead decides the topic names. Do not make personal folders. Do not make new folders under `teams/`.
 Open a pull request; the lead reviews and merges it. The pr-guard check must pass.
-
-## Status (updated 28 Oct 2026)
-
-Each task is a GitHub issue titled `[G3] ...`. The issue is the source of truth; this table is the index.
-[All G3 issues](https://github.com/theschoolofai/era-v5-lab/issues?q=is%3Aissue+%5BG3%5D+in%3Atitle)
-
-### Open tasks
-
-| Issue | Task | Owner | State |
-|---|---|---|---|
-| #127 | Rebase #126 (`train_bpe.py --special-layout v0`) on main | @sohamniyogi | waiting on rebase |
-| #128 | v1 idea 3: rebalance Dravidian merges in the retrain | @sohamniyogi | in progress |
-| #129 | v1 idea 2: NFC + Malayalam chillu normalizer | **open, claim it on the issue** | unclaimed |
-| #131 | COMPARE.md: v0 results table (TSAI follow-up to #107) | @HariniJasti | open |
-
-### Done
-
-| PR | What | By |
-|---|---|---|
-| #72 | Baseline reproduced: BrahmicTokenizer-131K, FLORES mean fertility 2.8355 (exact match) | @HariniJasti |
-| #107 | v0: reserved special slots named (G10, lang, ctrl blocks) | @rjvim |
-| #108 | Harness, `train_bpe.py` with fixed script slots, c0 build, COMPARE.md | @sohamniyogi |
-| #147 | Sarvam-m vs Tekken structural identity: same BPE table, 6 renamed specials, ids 10-19 shifted (closes #130) | @riyaagrahari |
-| #166 | v2: o200k pruning by usage (13,850 never-used base tokens swapped for English/code o200k tokens; specials and all script ids unchanged), slot split chosen on held-out FineWeb-2: held-out English +1.74% → −0.10% vs baseline, no Indic language worse than v1-c1 (closes #163) | @sohamniyogi |
-| this PR | v0.1: G10 ChatML v0 markers, `g10_slot_00..04` renamed in place to `<|endoftext|>`, `<|think|>`, `<|/think|>`, `<|/tool_call|>`, `<|/tool_result|>`; ids and `special: true` unchanged, sha256 `a33c9907…e578` (closes #132) | @sohamniyogi |
-
-### Areas
-
-| Area | Folder | Owner |
-|---|---|---|
-| Baseline and COMPARE.md | `baseline/`, `COMPARE.md` | @HariniJasti |
-| Harness | `harness/` | @riyaagrahari |
-| Training (`train_bpe.py`, c0, v1 retrain) | `train/` | @sohamniyogi |
-| v0 special slots | `v0/` | @rjvim |
-
-### Decisions (do not change without a team note)
-
-- Vocab size stays **131,072**, so G4 can size the embedding now.
-- Ids **130822-131071** are reserved specials: `g10_slot` 130822-130885, `lang_slot` 130886-130917, `ctrl_slot` 130918-130949, `reserved_128..249` 130950-131071. See `v0/special_slots.md`.
-- v1 and later keep every special id. Fill a slot by renaming its string only and keep `special: true`. Never reuse an id a model was trained with.
-- Eval text (FLORES-200, IN22, HumanEval, MBPP, GSM8K) is never used for training.
-- Pass bar (COMPARE.md): beat BrahmicTokenizer-131K on mean Indic fertility, at most 2% worse on English, HumanEval and MBPP.
-
-### Dates (IST)
-
-- **Sat 31 Oct:** G10 special-token list received; v0.1 built (#132).
-- **Sat 31 Oct, 23:59:** diagnosis due for everyone (all rows + medicine sheet).
-
-### Keeping this current
-
-- Starting a task: comment on its issue. New task: open a `[G3] ...` issue and add a row here in your next PR.
-- Your PR says `Closes #NNN`. In the same PR, move the row from Open to Done.
-- Blocked: say so on the issue and change State here.

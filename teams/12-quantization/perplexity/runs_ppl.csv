@@ -1,8 +1,0 @@
-date,model,format,bits_per_weight,size_gb,metric,score,score_err,time_s,machine,tool
-2026-10-25,allenai/OLMoE-1B-7B-0924,bf16,16.00,13.84,ppl_wikitext2_test,7.9927,0.05243,468,Kaggle 2xT4,llama.cpp v0.7.0
-2026-10-25,allenai/OLMoE-1B-7B-0924,Q8_0,8.51,7.36,ppl_wikitext2_test,7.9944,0.05245,141,Kaggle 2xT4,llama.cpp v0.7.0
-2026-10-25,allenai/OLMoE-1B-7B-0924,Q6_K,6.60,5.71,ppl_wikitext2_test,8.0116,0.05261,139,Kaggle 2xT4,llama.cpp v0.7.0
-2026-10-25,allenai/OLMoE-1B-7B-0924,Q5_K_M,5.72,4.95,ppl_wikitext2_test,8.0391,0.05276,132,Kaggle 2xT4,llama.cpp v0.7.0
-2026-10-25,allenai/OLMoE-1B-7B-0924,Q4_K_M,4.90,4.24,ppl_wikitext2_test,8.1785,0.05387,125,Kaggle 2xT4,llama.cpp v0.7.0
-2026-10-25,allenai/OLMoE-1B-7B-0924,Q3_K_M,3.89,3.37,ppl_wikitext2_test,8.5159,0.05617,130,Kaggle 2xT4,llama.cpp v0.7.0
-2026-10-25,allenai/OLMoE-1B-7B-0924,Q2_K,2.99,2.59,ppl_wikitext2_test,10.5002,0.07076,130,Kaggle 2xT4,llama.cpp v0.7.0
