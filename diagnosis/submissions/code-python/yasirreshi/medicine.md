@@ -17,8 +17,8 @@ because the other fix rules expect the file to start with code. The two drop rul
 
 ## How the harm test was run
 
-**Gold set:** Data A's `code-python_gold.csv` (branch `g1-harm-test`, build of 29 Oct), the 46 documents of this pack that
-two other readers marked `clean`. The limit is max(1, floor(1 % of 46)) = 1 document changed or dropped for each rule.
+**Gold set:** Data A's `code-python_gold.csv` (branch `g1-harm-test`, commit `880258f` of 31 Oct), the 142 documents of this
+pack that two other readers marked `clean`. The limit is max(1, floor(1 % of 142)) = 1 document changed or dropped for each rule.
 
 This sheet follows the format of Data A's `harm_test.py`: one `**Disease:**` section for each code, one public function
 in each section, and every python block with its own imports. M4 and M6 take `doc`, because they read the file path in
@@ -32,7 +32,7 @@ python -I teams/01-data-a/tools/harm_test.py --pack code-python.parquet \
 
 I did not run `harm_test.py` itself. I ran the rules with my own runner, which reads this sheet and counts the same way:
 the function of each section, `True` means drop, a different string means changed, and then all rules in file order,
-where a drop ends the document. Every rule changed 0 and dropped 0 of the 46 gold documents.
+where a drop ends the document. Every rule changed 0 and dropped 0 of the 142 gold documents (and 0 of the 46 in the build of 29 Oct).
 
 **Proxy gold sets** (made before the gold set existed, kept as a wider check):
 
@@ -66,7 +66,7 @@ I also ran each medicine on the whole pack and compared it with my labels. For e
        return text
    ```
 3. **Action:** fix (strip the line). Keep the repo name, path and stars in metadata, not in the text.
-4. **Harm test:** gold set: 0 / 46 changed. PASS. Proxies: 0 / 158 clean pack documents, 0 / 2,052 standard library files.
+4. **Harm test:** gold set: 0 / 142 changed. PASS. Proxies: 0 / 158 clean pack documents, 0 / 2,052 standard library files.
    On the pack: TP 272, FP 0, FN 0.
 5. **Side effects:** a real file whose first line starts with one of these three exact tokens would lose that line. I found none.
    The rule does not remove the tokens in the middle of a file. If they occur there, that is a different disease (C4, two files joined).
@@ -128,7 +128,7 @@ I also ran each medicine on the whole pack and compared it with my labels. For e
        return PLACEHOLDER.sub(repl, text)
    ```
 3. **Action:** fix. Before: `password=<PASSWORD>,`. After: `password='dummy-password-164621cf',`.
-4. **Harm test:** gold set: 0 / 46 changed. PASS. Proxies: 0 / 158, 0 / 2,052. On the pack: TP 83, FP 0, FN 0.
+4. **Harm test:** gold set: 0 / 142 changed. PASS. Proxies: 0 / 158, 0 / 2,052. On the pack: TP 83, FP 0, FN 0.
    It repairs all 7 files that the placeholders broke.
 5. **Side effects:**
    - A placeholder inside an identifier gets a guessed name. `os.<PASSWORD>.get` becomes `os.password.get`, and `<PASSWORD>_p...`
@@ -205,7 +205,7 @@ I also ran each medicine on the whole pack and compared it with my labels. For e
        return text
    ```
 3. **Action:** fix (remove the licence paragraph from the header, keep the code). The licence of each file stays in the metadata.
-4. **Harm test:** gold set: 0 / 46 changed. PASS. Proxies: 0 / 158, 0 / 200. Over all 2,052 standard library files: 3 changed
+4. **Harm test:** gold set: 0 / 142 changed. PASS. Proxies: 0 / 158, 0 / 200. Over all 2,052 standard library files: 3 changed
    (0.15 %), `profile.py`, `pstats.py` and `test/test_epoll.py`, which really have a full licence text. On the pack: TP 61, FP 0, FN 2.
 5. **Side effects:**
    - Licences without a standard text are not caught. That is the 2 FN: the Qiskit header (`fda2f1d7ddbd03a1`) and the Berkeley Pacman
@@ -234,7 +234,7 @@ I also ran each medicine on the whole pack and compared it with my labels. For e
        return bool(GENERATED.search(head)) or bool(re.search(r"/migrations/\d{4}_\w+\.py$", doc["url"]))
    ```
 3. **Action:** drop.
-4. **Harm test:** gold set: 0 / 46 dropped. PASS. Proxies: 0 / 158; 1 / 200 dropped (0.50 %), `stringprep.py` (`DO NOT EDIT`).
+4. **Harm test:** gold set: 0 / 142 dropped. PASS. Proxies: 0 / 158; 1 / 200 dropped (0.50 %), `stringprep.py` (`DO NOT EDIT`).
    Over all 2,052 standard library files: 6 dropped (0.29 %). All six are generated (`token.py`, `_opcode_metadata.py`,
    `pydoc_data/topics.py` ...), but they count as harm on a gold set. PASS. On the pack: TP 16, FP 0, FN 2.
 5. **Side effects:**
@@ -265,7 +265,7 @@ I also ran each medicine on the whole pack and compared it with my labels. For e
        return CONTROL.sub("", text.replace("\r\n", "\n").replace("\r", "\n"))
    ```
 3. **Action:** fix.
-4. **Harm test:** gold set: 0 / 46 changed. PASS. Proxies: 0 / 158, 0 / 2,052. On the pack: TP 17, FP 0, FN 0.
+4. **Harm test:** gold set: 0 / 142 changed. PASS. Proxies: 0 / 158, 0 / 2,052. On the pack: TP 17, FP 0, FN 0.
 5. **Side effects:**
    - A raw control character inside a string literal that the program needs (a raw ESC byte) would be deleted. Escaped forms such as
      `"\033"` are plain text and are not touched.
@@ -294,7 +294,7 @@ I also ran each medicine on the whole pack and compared it with my labels. For e
        return bool(re.search(r"https?://(?:www\.)?(?:leetcode\.com/problems|atcoder\.jp/contests|codeforces\.com/problemset)/", text))
    ```
 3. **Action:** drop.
-4. **Harm test:** gold set: 0 / 46 dropped. PASS. Proxies: 0 / 158, 0 / 2,052. On the pack: TP 8, FP 0, FN 0.
+4. **Harm test:** gold set: 0 / 142 dropped. PASS. Proxies: 0 / 158, 0 / 2,052. On the pack: TP 8, FP 0, FN 0.
 5. **Side effects:**
    - This rule finds possible leaks by source, not by content. It drops solutions to problems that are in no test set. It also misses
      benchmark problems copied without a path or link.
