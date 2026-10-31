@@ -1,0 +1,11 @@
+# Runtime and test dependencies for teams/04-ke2 (versions the P=32/P=64 run used).
+# pip install -r teams/04-ke2/src/requirements.txt
+numpy==2.2.6
+torch==2.14.1
+tokenizers==0.23.3
+huggingface_hub>=0.30
+pytest==9.1.1
+ruff==0.14.2
+# Upstream codec, pinned to the commit the team reviewed (ke2.config.UPSTREAM_CODEC_COMMIT).
+kronecker-embeddings @ git+https://github.com/theschoolofai/kronecker-embeddings@d07cb543f03d7a72a7c35bc68cfb795bcb02e1ec
+# Optional: transformers, for test_tables.py's comparison with upstream build_byte_buffer.

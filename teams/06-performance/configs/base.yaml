@@ -1,0 +1,57 @@
+# Every setting, with defaults. Other configs inherit this and change a few keys.
+# On its own this is the plain NanoGPT comparison model: table embedding (tied head), dense MLP,
+# plain residual stack, AdamW.
+# Adding a key changes a shared interface (bench, report and G8 may read it).
+run:
+  device: auto          # auto | cuda | cpu | mps
+  dtype: bf16           # bf16 | fp16 (T4 / P100 / V100) | fp32
+  batch_size: auto      # auto: 32 with native bf16 (A100 / L4 / H100), else 8 (T4 / P100 / V100, CPU); or a number
+  seed: 0
+  compile: false
+  grad_clip: 1.0
+
+data:
+  source: fineweb10b    # fineweb10b (raw FineWeb retokenized with BrahmicTokenizer-131K) | synthetic
+  dir: ~/.cache/era-perf/fineweb-brahmic131k
+  tokenizer_path: null # null: pinned GitHub download; or source checkout/tokenizer.json
+
+model:                  # fields of models.config.ModelConfig, nothing else
+  vocab_size: 131072
+  block_size: 512
+  n_layer: 9
+  n_head: 8
+  n_kv_head: null       # GQA key/value heads; null = n_head (plain multi-head)
+  n_embd: 256
+  mlp_ratio: 4
+  embedding: table      # table | ke1
+  ke_max_pos: 32
+  ke_mode: dynamic      # dynamic | cached
+  ffn: mlp              # mlp | moe
+  moe: {num_experts: 8, top_k: 2, num_shared: 0, bias_gamma: 0.01, dispatch: loop}
+  reversible: false
+  rev_h: 1.0
+  ce_impl: torch        # torch (full fp32 logits, the baseline) | chunked (ce_chunks pieces, checkpointed)
+  ce_chunks: 8
+
+optim:
+  name: adamw           # adamw | muon | polar_muon_adamw (single-process combined Polar Express Muon + AdamW)
+  lr: 0.0006
+  muon_lr: 0.02
+  weight_decay: 0.0
+  schedule: constant    # constant for timing | cosine for training-quality runs
+  warmup_steps: 0
+  min_lr_ratio: 0.1
+
+bench:
+  modes: [clean, layer, trace, checkpoint, comm]   # rule 3b: checkpoint save and MoE all-to-all are measured parts
+  warmup: 10
+  steps: 150            # 50 left too little room: two A100 runs drifted ~2.5% on every part
+  level: 2              # 1 phases, 2 layers, 3 inside layers
+  trace_steps: 3
+  ckpt_repeats: 10      # checkpoint saves timed (after one warm save that is not counted)
+  max_overhead_pct: 2.0
+  out_dir: results/runs
+
+report:
+  gate_level: 2         # parts at this level or coarser must agree within tol_pct
+  tol_pct: 5.0
