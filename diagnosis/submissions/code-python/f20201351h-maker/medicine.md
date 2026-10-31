@@ -2,7 +2,9 @@
 
 One section for each disease found more than five times. Code for every rule: `work/medicines.py`. Harm-test runner: `python -I work/medicines.py code-python.parquet work/labels.csv`.
 
-**Harm-test gold set:** Official code-python gold set has not been published yet by Team 01 (not testable on official gold set). Provisional harm-test run on 157 code-python documents that two independent readers both marked `clean`. The second reader read blind, without the first labels, on 247 docs: raw agreement 96.8% on verdicts (239/247) and 94.3% on exact codes. After both sides get the same deterministic B3/E4 rules it is 98.0% and 97.6%. All remaining differences are documented judgement calls. The ids are in `work/review2/gold_two_readers.csv` (`doc_id,reader_1,reader_2`). Both readers were AI-assisted, so a human second reader should confirm before the gold set is final. Re-run: `python -I work/medicines.py code-python.parquet work/labels.csv --gold work/review2/gold_two_readers.txt`.
+**Harm-test gold set (official):** Team 01's code-python gold set, `teams/01-data-a/gold/code-python_gold.csv` on branch `g1-harm-test` of `patilvijay23/era-v5-lab` (PR #140), 46 documents. All 46 doc IDs are in this pack, and all 46 are labelled `clean` in this `labels.csv`. All 5 medicines change 0 of 46 and drop 0 of 46 (0.00%): PASS. Re-run: `python -I work/medicines.py code-python.parquet work/labels.csv --gold code-python_gold_ids.txt` (the 46 doc IDs from that file).
+
+**Additional provisional gold set:** harm test also run on 157 code-python documents that two independent readers both marked `clean`. The second reader read blind, without the first labels, on 247 docs: raw agreement 96.8% on verdicts (239/247) and 94.3% on exact codes. After both sides get the same deterministic B3/E4 rules it is 98.0% and 97.6%. All remaining differences are documented judgement calls. The ids are in `work/review2/gold_two_readers.csv` (`doc_id,reader_1,reader_2`). Both readers were AI-assisted, so a human second reader should confirm before the gold set is final. Re-run: `python -I work/medicines.py code-python.parquet work/labels.csv --gold work/review2/gold_two_readers.txt`.
 
 Diseases at five cases or fewer, so no medicine: E3 (4), F1 (3), D1 (2), E2 (2), C2 (1), E6 (1).
 
@@ -15,7 +17,7 @@ Diseases at five cases or fewer, so no medicine: E3 (4), F1 (3), D1 (2), E2 (2),
    text = META_PREFIX.sub("", text, count=1)
    ```
 3. **Action:** fix.
-4. **Harm test:** changes 0 of 157 gold documents (0.00%) and drops 0 (0.00%). PASS.
+4. **Harm test:** official gold set: changes 0 of 46 and drops 0 of 46 (0.00%). PASS. Provisional gold set: changes 0 of 157 and drops 0 (0.00%). PASS.
 5. **Side effects:** none seen. The rule is anchored at `^` with `count=1`, so code that mentions `<reponame>` later in the file stays untouched. If a repo name contains `<`, part of the value stays behind. No such case is in the pack.
 
 ## Medicine 2: StarCoder PII placeholders (B3, proposed)
@@ -31,7 +33,7 @@ Diseases at five cases or fewer, so no medicine: E3 (4), F1 (3), D1 (2), E2 (2),
        return PLACEHOLDER.sub(lambda m: NEUTRAL[m.group(1)], text)
    ```
 3. **Action:** fix (76 docs) or drop (7 docs).
-4. **Harm test:** changes 0 of 157 gold documents (0.00%) and drops 0 (0.00%). PASS.
+4. **Harm test:** official gold set: changes 0 of 46 and drops 0 of 46 (0.00%). PASS. Provisional gold set: changes 0 of 157 and drops 0 (0.00%). PASS.
 5. **Side effects:**
    - Code that really uses `<NAME>` or `<KEY>` as a literal, such as an XML or template string, would be rewritten. No such case was seen in this pack.
    - The neutral values cannot restore what the code meant: a test that compared a password now compares `PASSWORD`.
@@ -58,7 +60,7 @@ Diseases at five cases or fewer, so no medicine: E3 (4), F1 (3), D1 (2), E2 (2),
 ".join(keep + lines[i:])
    ```
 3. **Action:** fix.
-4. **Harm test:** changes 0 of 157 gold documents (0.00%) and drops 0 (0.00%). PASS. It changes 69 of the 75 labelled docs.
+4. **Harm test:** official gold set: changes 0 of 46 and drops 0 of 46 (0.00%). PASS. Provisional gold set: changes 0 of 157 and drops 0 (0.00%). PASS. It changes 69 of the 75 labelled docs.
 5. **Side effects:**
    - 6 labelled docs carry their licence in a module docstring, or below an empty docstring, and the rule leaves those alone.
    - The rule also removes other comments that sit inside the same leading block (author notes, module description).
@@ -70,7 +72,7 @@ Diseases at five cases or fewer, so no medicine: E3 (4), F1 (3), D1 (2), E2 (2),
 1. **Disease:** A2, 17 of 500 docs. U+000D before every newline (Windows line endings). Examples: `9942b8de5559f733` (`25 U+000D CARRIAGE RETURN (64x)`), `951c0ffae8ed4db6` (`84 U+000D CARRIAGE RETURN (37x)`), `aa4812f89a7ce665` (`50 U+000D CARRIAGE RETURN (31x)`).
 2. **Medicine:** `text.replace("\r\n", "\n").replace("\r", "\n")`
 3. **Action:** fix.
-4. **Harm test:** changes 0 of 157 gold documents (0.00%) and drops 0 (0.00%). PASS.
+4. **Harm test:** official gold set: changes 0 of 46 and drops 0 of 46 (0.00%). PASS. Provisional gold set: changes 0 of 157 and drops 0 (0.00%). PASS.
 5. **Side effects:** a `\r` inside a string literal (raw bytes, a terminal progress bar) changes meaning. The rule only sees real CR characters, not the two-character `\r` escape in source, so ordinary code keeps working.
 
 ## Medicine 5: generated code (E1)
@@ -78,7 +80,7 @@ Diseases at five cases or fewer, so no medicine: E3 (4), F1 (3), D1 (2), E2 (2),
 1. **Disease:** E1, 12 of 500 docs. Django migrations ("Generated by Django"), Pulumi or tfgen SDKs ("Do not edit by hand"), AutoRest and KBase compiler output. Examples: `fcab84d53c43cbf9` (`Generated by Django 3.1.2` at offset 2), `6359488cb66a0aa6` (`Do not edit by hand` at offset 177), `ba0e6a6503f190e9` (`fuzza autogenerated.` at offset 31).
 2. **Medicine:** drop when the first 1,000 characters match `auto-?generated | do not edit | do not modify | code generated by | generated by (protoc | protocol buffer compiler | django | autorest | swagger | openapi)`.
 3. **Action:** drop.
-4. **Harm test:** changes 0 of 157 gold documents (0.00%) and drops 0 (0.00%). PASS. It catches all 12 labelled docs.
+4. **Harm test:** official gold set: changes 0 of 46 and drops 0 of 46 (0.00%). PASS. Provisional gold set: changes 0 of 157 and drops 0 (0.00%). PASS. It catches all 12 labelled docs.
 5. **Side effects:**
    - By design, E1 needs a marker: migrations with no "Generated by" line (`976c938814ff2e53`, `aa4812f89a7ce665`) stay as fix, not drop.
    - A hand-written file that says "do not edit this section" near the top would be dropped by mistake.
