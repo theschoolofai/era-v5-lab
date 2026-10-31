@@ -11,11 +11,14 @@ the metadata line (M1) and the CR characters (M3) to be gone, and M7 and M9 drop
 
 ## Harm test status
 
-The gold set for code-java is not in the repository yet, so **no gold-set harm test has been run**. Data A / Data B
-run it when the gold set is published; every medicine below is the code that they run.
+**Gold-set harm test: PASS**, on Data A's gold set `teams/01-data-a/gold/code-java_gold.csv` (PR #140):
+**116 documents** that two reviewers each read in full and labelled `clean` with no disease (84 short of the 200
+target). Data A's `medicine_extract.py` takes all 9 rules (`DA-B3-001` to `DA-C4-001`) from this file, and
+`harm_test.py --rule all` gives **0 changed and 0 dropped (0.00%)** for every rule alone and for all of them in
+order, within the limit of max(1 document, 1%). The whole pipeline below, last check included, also changes and
+drops 0 of the 116.
 
-Until then, the stand-in test is my own sheet. I ran the whole pipeline on all 500 documents and compared it with
-`labels.csv`:
+I also compared the whole pipeline with my own `labels.csv` on all 500 documents:
 
 | Medicine | Disease | Rows labelled | Documents changed | Dropped | Labelled rows it misses | Changes on my 120 `clean` rows |
 |---|---|---:|---:|---:|---:|---:|
@@ -37,9 +40,7 @@ purpose: the E2 number tables in `9cbc723f9cfc6c7c` (lookup tables that the code
 found once, so it needs no medicine (DISEASES.md section 4).
 
 The whole pipeline changes 370 of 500 documents and drops 10, and it **changes 0 of my 120 `clean` documents and
-drops 0**. B3, E4 and A2 are part of the raw format of this source (50%, 21% and 9% of the pack), so a gold set that
-counts them as clean would fail the 1% rule here although the code does not change. The gold-set owners need to
-decide whether A2 (CRLF) and E4 (licence headers) count as diseases in code.
+drops 0**.
 
 **Benchmark leaks (F2).** I ran G9's `teams/09-evaluation/decontam/decontam_check.py` with the full fingerprint set
 (`set_sha256 11e290a44d1467875fdf8bebc55eab21f0a6367f411aab98a4a027a546fd372e`) on all 500 documents:
@@ -69,7 +70,7 @@ are not F2 (DISEASES.md: "a question or a solution from a benchmark test set") a
        return t[1:] if t.startswith("\ufeff") else t  # a BOM under the metadata line is now at the start (A1)
    ```
 3. **Action:** fix.
-4. **Harm test:** gold set pending. Stand-in: changes the 250 labelled B3 documents and nothing else; 0 of 120 clean.
+4. **Harm test:** gold set (116): 0 changed, 0 dropped, PASS. Own sheet: changes the 250 labelled B3 documents and nothing else; 0 of 120 clean.
 5. **Side effects:** the repo name and file path are lost. If we want them as metadata, copy them into a separate
    column before stripping. The rule is anchored at offset 0, so a `<filename>` string inside real code cannot match.
    One document (`beae2c42d8a34ccc`) has a BOM (A1, found once) right under the metadata line; M1 also removes a
@@ -99,7 +100,7 @@ are not F2 (DISEASES.md: "a question or a solution from a benchmark test set") a
        return REDACT.sub(lambda m: SURROGATE[m.group()], t)
    ```
 3. **Action:** fix.
-4. **Harm test:** gold set pending. Stand-in: changes 15 documents, all labelled B4. Most `<NAME>` and
+4. **Harm test:** gold set (116): 0 changed, 0 dropped, PASS. Own sheet: changes 15 documents, all labelled B4. Most `<NAME>` and
    `<EMAIL>` sit on author lines, which M5 rewrites first (31 rows); the others go with the licence header or IDE
    template that held them (M4, M6), and 2 are dropped by M7. 0 of 120 clean.
 5. **Side effects:**
@@ -127,7 +128,7 @@ are not F2 (DISEASES.md: "a question or a solution from a benchmark test set") a
        return t.replace("\r\n", "\n").replace("\r", "\n")
    ```
 3. **Action:** fix.
-4. **Harm test:** gold set pending. Stand-in: changes exactly the 44 labelled A2 documents; 0 of 120 clean.
+4. **Harm test:** gold set (116): 0 changed, 0 dropped, PASS. Own sheet: changes exactly the 44 labelled A2 documents; 0 of 120 clean.
 5. **Side effects:** Java treats CR and LF the same, so the program does not change. The escaped text `"\r\n"`
    inside a string is two ASCII characters, not U+000D, so it is not touched. A raw CR inside a Java text block
    (`"""`) would change the string value. I found none in the pack.
@@ -168,7 +169,7 @@ are not F2 (DISEASES.md: "a question or a solution from a benchmark test set") a
            t = t[:start] + t[m.end():].lstrip("\n")
    ```
 3. **Action:** fix.
-4. **Harm test:** gold set pending. Stand-in: changes 101 documents. 100 of them are labelled E4; the other one
+4. **Harm test:** gold set (116): 0 changed, 0 dropped, PASS. Own sheet: changes 101 documents. 100 of them are labelled E4; the other one
    (`b7741e4914caefba`) is an IDE file header with a copyright line that I labelled C1, so the change is right but
    the code differs. The 3 other labelled E4 rows are dropped first by M7. 0 of 120 clean.
 5. **Side effects:**
@@ -216,7 +217,7 @@ are not F2 (DISEASES.md: "a question or a solution from a benchmark test set") a
        return AUTHOR_LINE.sub(repl, t)
    ```
 3. **Action:** fix.
-4. **Harm test:** gold set pending. Stand-in: changes 73 documents: 42 labelled F1, and 31 author lines that hold a
+4. **Harm test:** gold set (116): 0 changed, 0 dropped, PASS. Own sheet: changes 73 documents: 42 labelled F1, and 31 author lines that hold a
    `<NAME>`/`<EMAIL>` placeholder (labelled B4), which it cleans as well. The other 51 labelled F1 rows
    lose the name with the IDE template or licence header that held it (M6, M4). After the pipeline, no real author
    name is left in a labelled row. 0 of 120 clean.
@@ -286,7 +287,7 @@ are not F2 (DISEASES.md: "a question or a solution from a benchmark test set") a
        return BLOCK.sub(lambda m: _clean_ide_block(m.group()), t)
    ```
 3. **Action:** fix.
-4. **Harm test:** gold set pending. Stand-in: changes 77 documents: 65 labelled C1, 11 empty `@author <NAME>`
+4. **Harm test:** gold set (116): 0 changed, 0 dropped, PASS. Own sheet: changes 77 documents: 65 labelled C1, 11 empty `@author <NAME>`
    Javadocs that are labelled B4 only (ruling of 29 Oct), and the Eclipse template in `865d813577b270f2` (labelled
    E4). The other 2 labelled C1 rows are IDE headers with a copyright line that M4 removes as a whole. 0 of 120 clean.
 5. **Side effects:**
@@ -323,7 +324,7 @@ are not F2 (DISEASES.md: "a question or a solution from a benchmark test set") a
        return t
    ```
 3. **Action:** drop.
-4. **Harm test:** gold set pending. Stand-in: drops exactly the 8 labelled E1 documents; 0 of 120 clean.
+4. **Harm test:** gold set (116): 0 changed, 0 dropped, PASS. Own sheet: drops exactly the 8 labelled E1 documents; 0 of 120 clean.
 5. **Side effects:**
    - Generated code is valid Java, and some of it (AutoRest clients, swagger models) is close to what people write.
      Dropping loses it; the gain is that the model does not learn generator banners and decompiler names
@@ -357,7 +358,7 @@ are not F2 (DISEASES.md: "a question or a solution from a benchmark test set") a
        return COMMENT_LINE.sub(lambda m: fix(m) if "\ufffd" in m.group() else m.group(), t)
    ```
 3. **Action:** fix.
-4. **Harm test:** gold set pending. Stand-in: changes exactly the 2 labelled A4 documents; 0 of 120 clean.
+4. **Harm test:** gold set (116): 0 changed, 0 dropped, PASS. Own sheet: changes exactly the 2 labelled A4 documents; 0 of 120 clean.
 5. **Side effects:** the lost characters cannot come back; the comment only stops showing the replacement mark.
    `2017��3��13��` becomes `2017 3 13`, and `don�t` becomes `don t`. A U+FFFD inside a string literal stays,
    because deleting it would change the program.
@@ -381,12 +382,12 @@ are not F2 (DISEASES.md: "a question or a solution from a benchmark test set") a
        return None if JOINED.search(t) else t
    ```
 3. **Action:** drop (my verdict for this row).
-4. **Harm test:** gold set pending. Stand-in: drops exactly the 1 labelled C4 document; 0 of 120 clean.
+4. **Harm test:** gold set (116): 0 changed, 0 dropped, PASS. Own sheet: drops exactly the 1 labelled C4 document; 0 of 120 clean.
 5. **Side effects:** a separator inside a block comment that has no `*` at the start of the line would also match.
    I found none in the pack. Splitting the file at the separators would keep the two answers, but each answer alone
    is still a scraped contest solution, so I drop it.
 
-## The pipeline
+## Appendix: the pipeline
 
 The last check drops a document that has nothing left but its `package` and `import` lines. In this pack that
 is one file, `9fb5d47488af3c6e`: a `package-info.java` that held only a licence header, an IntelliJ template and the
