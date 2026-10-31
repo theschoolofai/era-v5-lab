@@ -1,0 +1,32 @@
+# drill kill_during_restore (2026-10-30 21:43:49 IST)
+
+## results
+PASS {"drill": "kill_during_restore", "pass": true, "restore_interrupted_at": 3355, "restored_step": 3355, "restore_failures": 0}
+
+## commands (polling commands not listed)
+$ [slurmctld] scontrol show hostnames c[1-2]
+  exit 0
+  c1
+  c2
+$ [slurmctld] mkdir -p /s3/drills/v5main && echo 6 > /s3/drills/v5main/restore_delay_s
+  exit 0
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('drill.injected', **json.loads(sys.argv[1]))['time'])" '{"drill": "kill_during_restore", "cause_class": "software"}'
+  exit 0
+  2026-10-30T16:10:58.162Z
+$ [c1] pkill -9 -f '[t]rain.py --run-id v5main' ; true
+  exit 0
+$ [c2] pkill -9 -f '[t]rain.py --run-id v5main' ; true
+  exit 0
+$ [slurmctld] scontrol show hostnames c[1-2]
+  exit 0
+  c1
+  c2
+$ [c1] pkill -9 -f '[t]rain.py --run-id v5main' ; true
+  exit 0
+$ [c2] pkill -9 -f '[t]rain.py --run-id v5main' ; true
+  exit 0
+$ [slurmctld] rm -f /s3/drills/v5main/restore_delay_s
+  exit 0
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('drill.note', **json.loads(sys.argv[1]))['time'])" '{"note": "killed during restore"}'
+  exit 0
+  2026-10-30T16:12:20.819Z

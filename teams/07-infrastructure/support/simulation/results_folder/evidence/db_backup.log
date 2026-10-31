@@ -1,0 +1,13 @@
+# drill db_backup (2026-10-30 21:55:11 IST)
+
+## results
+PASS {"drill": "db_backup_restore", "pass": true, "file": "slurm_acct_db-20261030T162511Z.sql.gz", "bytes": 18059, "tables": 31, "tables_restored": 31, "job_rows_restored": 51}
+
+## commands (polling commands not listed)
+$ [slurmdbd] DB_ROOT_PASSWORD=simonly bash /opt/v5/slurm/backup_db.sh /s3/backups && DB_ROOT_PASSWORD=simonly bash /opt/v5/slurm/backup_db.sh --verify-latest /s3/backups
+  exit 0
+  wrote /s3/backups/slurm_acct_db-20261030T162511Z.sql.gz
+  {"ok": true, "file": "slurm_acct_db-20261030T162511Z.sql.gz", "bytes": 18059, "tables": 31, "tables_restored": 31, "job_rows_restored": 51}
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('db.backup', **json.loads(sys.argv[1]))['time'])" '{"ok": true, "file": "slurm_acct_db-20261030T162511Z.sql.gz", "bytes": 18059, "tables": 31, "tables_restored": 31, "job_rows_restored": 51}'
+  exit 0
+  2026-10-30T16:25:11.894Z

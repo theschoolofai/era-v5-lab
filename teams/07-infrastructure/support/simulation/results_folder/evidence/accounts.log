@@ -1,0 +1,21 @@
+# drill accounts (2026-10-30 21:24:11 IST)
+
+## results
+PASS {"drill": "accounts", "pass": true, "accepted_job": "1", "state": "COMPLETED", "mainrun_preempts": "debug,normal", "rejected_no_account": "sbatch: error: Batch job submission failed: Invalid account or account/partition combination specified"}
+
+## commands (polling commands not listed)
+$ [slurmctld] cd /tmp && runuser -u svc -- sbatch --parsable --export=ALL --account=arch -p debug --wrap hostname
+  exit 0
+  1
+$ [slurmctld] cd /tmp && runuser -u noacct -- sbatch --parsable --export=ALL -p debug --wrap hostname
+  exit 1
+  sbatch: error: Batch job submission failed: Invalid account or account/partition combination specified
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('job.rejected', **json.loads(sys.argv[1]))['time'])" '{"user": "noacct"}'
+  exit 0
+  2026-10-30T15:54:11.142Z
+$ [slurmctld] sacct -X -n -P -j 1 -o state
+  exit 0
+  COMPLETED
+$ [slurmctld] sacctmgr -n -P show qos mainrun format=preempt
+  exit 0
+  debug,normal

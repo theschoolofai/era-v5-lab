@@ -1,0 +1,67 @@
+# Docker Slurm test cluster (ADR 0002 §Validation).
+#   mariadb + slurmdbd  : accounting, fair-share, budgets
+#   slurmctld, slurmctld2 : primary and backup controller (shared state volume)
+#   s3emu               : S3 emulator (moto) holding the checkpoint bucket s3://v5-ckpt
+#   c1..c3              : "GPU" nodes (partition gpu); the main run uses 2, the third is the hot spare
+#   c4                  : eval + cpu partition (never used for training)
+# Volumes:
+#   s3     : shared folder for events, logs, drill switches and DB backups (checkpoints go to s3emu)
+#   nvmeN  : each node's own local disk, lost when the node is lost
+x-node: &node
+  image: v5-slurm-sim:1
+  command: ["slurmd"]
+  privileged: true          # slurmd needs to manage processes; test cluster only
+  volumes:
+    - ../../../:/opt/v5:ro
+    - munge:/etc/munge
+    - s3:/s3
+  depends_on: [slurmctld]
+  environment: &env
+    V5_EVENTS_DIR: /s3/events
+
+services:
+  mariadb:
+    image: mariadb:11.4
+    environment:
+      MARIADB_ROOT_PASSWORD: simonly
+      MARIADB_DATABASE: slurm_acct_db
+      MARIADB_USER: slurm
+      MARIADB_PASSWORD: simonly
+    volumes: [db:/var/lib/mysql]
+
+  slurmdbd:
+    image: v5-slurm-sim:1
+    build: .
+    hostname: slurmdbd
+    command: ["slurmdbd"]
+    volumes: ["../../../:/opt/v5:ro", "munge:/etc/munge", "s3:/s3"]
+    depends_on: [mariadb]
+
+  slurmctld:
+    image: v5-slurm-sim:1
+    hostname: slurmctld
+    command: ["slurmctld"]
+    volumes: ["../../../:/opt/v5:ro", "munge:/etc/munge", "s3:/s3", "ctld:/var/spool/slurmctld"]
+    environment: *env
+    depends_on: [slurmdbd]
+
+  slurmctld2:
+    image: v5-slurm-sim:1
+    hostname: slurmctld2
+    command: ["slurmctld"]
+    volumes: ["../../../:/opt/v5:ro", "munge:/etc/munge", "s3:/s3", "ctld:/var/spool/slurmctld"]
+    environment: *env
+    depends_on: [slurmctld]
+
+  s3emu:
+    image: v5-slurm-sim:1
+    hostname: s3emu
+    command: ["s3emu"]
+    volumes: ["../../../:/opt/v5:ro"]
+
+  c1: {<<: *node, hostname: c1, volumes: ["../../../:/opt/v5:ro", "munge:/etc/munge", "s3:/s3", "nvme1:/nvme"]}
+  c2: {<<: *node, hostname: c2, volumes: ["../../../:/opt/v5:ro", "munge:/etc/munge", "s3:/s3", "nvme2:/nvme"]}
+  c3: {<<: *node, hostname: c3, volumes: ["../../../:/opt/v5:ro", "munge:/etc/munge", "s3:/s3", "nvme3:/nvme"]}
+  c4: {<<: *node, hostname: c4, volumes: ["../../../:/opt/v5:ro", "munge:/etc/munge", "s3:/s3", "nvme4:/nvme"]}
+
+volumes: {db: {}, munge: {}, s3: {}, ctld: {}, nvme1: {}, nvme2: {}, nvme3: {}, nvme4: {}}

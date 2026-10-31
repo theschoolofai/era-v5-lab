@@ -1,0 +1,7 @@
+# drill live_alerts (2026-10-30 21:22:34 IST)
+
+## results
+PASS {"drill": "live_alerts", "pass": true, "high_alerts_fired": ["C-02", "C-03", "C-04", "CK-07", "H-01", "H-14", "H-21", "H-24", "Q-02", "Q-05", "Q-19"], "total_fired": 23}
+
+## commands (polling commands not listed)
+

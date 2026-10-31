@@ -1,0 +1,15 @@
+# drill kill_2 (2026-10-30 20:58:47 IST)
+
+## results
+PASS {"drill": "kill_process_2", "pass": true, "node": "c1", "restored_step": 2877, "lost_steps": 33}
+
+## commands (polling commands not listed)
+$ [slurmctld] scontrol show hostnames c[1,3]
+  exit 0
+  c1
+  c3
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('drill.injected', **json.loads(sys.argv[1]))['time'])" '{"drill": "kill", "target": "c1", "cause_class": "software", "repeat": 2}'
+  exit 0
+  2026-10-30T15:27:26.610Z
+$ [c1] pkill -9 -f '[t]rain.py --run-id v5main' ; true
+  exit 0

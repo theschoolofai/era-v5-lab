@@ -1,0 +1,26 @@
+# drill spot (2026-10-30 21:45:19 IST)
+
+## results
+PASS {"drill": "spot_notice", "pass": true, "node": "c2", "drained": true, "new_nodes": ["c1", "c3"], "lost_steps": 0}
+
+## commands (polling commands not listed)
+$ [slurmctld] scontrol show hostnames c[1-2]
+  exit 0
+  c1
+  c2
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('drill.injected', **json.loads(sys.argv[1]))['time'])" '{"drill": "spot_notice", "target": "c2", "cause_class": "host"}'
+  exit 0
+  2026-10-30T16:13:49.557Z
+$ [c2] echo 'terminate at +120s (drill)' > /var/lib/v5-health/spot_notice
+  exit 0
+$ [slurmctld] scontrol show hostnames c[1,3]
+  exit 0
+  c1
+  c3
+$ [c2] rm -f /var/lib/v5-health/spot_notice
+  exit 0
+$ [slurmctld] scontrol update nodename=c2 state=resume
+  exit 0
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('node.resumed', **json.loads(sys.argv[1]))['time'])" '{"node": "c2", "by": "drill"}'
+  exit 0
+  2026-10-30T16:15:19.194Z

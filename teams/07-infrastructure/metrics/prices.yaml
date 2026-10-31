@@ -1,0 +1,37 @@
+# Prices and hardware assumptions for the cost model (ADR 0004).
+# EVERY PRICE HERE IS AN ASSUMPTION until checked on cloud provider's price list for our region and date.
+# Replace the values (and the `checked` date) before using any number in a decision.
+checked: null                     # e.g. "2026-11-02, <region>, provider price list"
+
+instances:
+  gpu-node-8:                     # a generic 8-GPU node, the proposed main-run node (ADR 0002 §1)
+    gpus: 8
+    on_demand_usd_h: 113.93       # assumption
+    spot_discount: 0.40           # assumption: spot = 60% of on-demand; spot prices change hourly
+    reserved_usd_h: null          # reserved capacity booked for the run: price set per booking
+  gpu-node-8-prev:                # a generic 8-GPU node of the previous generation, fallback
+    gpus: 8
+    on_demand_usd_h: 55.04        # assumption
+    spot_discount: 0.40
+  gpu-node-4-eval:                # a generic 4-GPU node, eval partition
+    gpus: 4
+    on_demand_usd_h: 10.49        # assumption
+    spot_discount: 0.50
+main_instance: gpu-node-8
+
+s3:                               # object storage, USD per GB-month (assumption, typical list prices)
+  standard: 0.023
+  archive: 0.0036                 # archive tier, for protected checkpoints
+  deep_archive: 0.00099           # coldest tier
+  put_per_1000: 0.005
+
+hardware:                         # per node, assumptions until measured on the week-2 node (ADR 0001 M9)
+  gpu_to_host_gbytes_s: 50        # staging the checkpoint shard into pinned host RAM
+  upload_gbytes_s: 10             # NVMe -> S3
+  download_gbytes_s: 10           # S3 -> NVMe on restore
+  instance_launch_s: 900          # no spare: start a new instance and join Slurm (ResumeTimeout)
+
+checkpoint:
+  bytes_per_param: 12             # fp32 master weights 4 + AdamW m 4 + v 4 (bf16 weights are rebuilt)
+  keep_remote: 3
+  protected_per_month: 30         # every N-th checkpoint kept for eval (Team 09 sets N)

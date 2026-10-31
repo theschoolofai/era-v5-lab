@@ -1,0 +1,520 @@
+{
+ "CK-01": {
+  "name": "Time since last committed checkpoint",
+  "value": 1.1874,
+  "unit": "x interval",
+  "severity": null,
+  "computed": true
+ },
+ "CK-02": {
+  "name": "Compute dollars at risk (since last commit)",
+  "value": 0.6012,
+  "unit": "USD",
+  "severity": null,
+  "computed": true
+ },
+ "CK-03": {
+  "name": "Consecutive failed saves",
+  "value": 1,
+  "unit": "count",
+  "severity": "medium",
+  "computed": true
+ },
+ "CK-04": {
+  "name": "Checksum mismatches (commit or restore)",
+  "value": 0,
+  "unit": "count",
+  "severity": null,
+  "computed": true
+ },
+ "CK-05": {
+  "name": "Restore check failures (digest, probe, next batch, frozen)",
+  "value": 0,
+  "unit": "count",
+  "severity": null,
+  "computed": true
+ },
+ "CK-06": {
+  "name": "Strict-load or environment refusals",
+  "value": 0,
+  "unit": "count",
+  "severity": null,
+  "computed": true
+ },
+ "CK-07": {
+  "name": "NaN guard trips",
+  "value": 1,
+  "unit": "count",
+  "severity": "high",
+  "computed": true
+ },
+ "CK-08": {
+  "name": "Save stall as share of interval",
+  "value": 0.2872,
+  "unit": "%",
+  "severity": null,
+  "computed": true
+ },
+ "CK-09": {
+  "name": "Commit latency (stall end to committed)",
+  "value": 0.0635,
+  "unit": "s",
+  "severity": null,
+  "computed": true
+ },
+ "CK-10": {
+  "name": "Save backpressure (previous save still running)",
+  "value": 0,
+  "unit": "count/day",
+  "severity": null,
+  "computed": true
+ },
+ "CK-11": {
+  "name": "Upload throughput vs baseline",
+  "value": null,
+  "unit": "ratio",
+  "severity": null,
+  "computed": false
+ },
+ "CK-12": {
+  "name": "NVMe headroom (free / per-node checkpoint share)",
+  "value": null,
+  "unit": "ratio",
+  "severity": null,
+  "computed": false
+ },
+ "CK-13": {
+  "name": "Restore time (job start to first productive step)",
+  "value": 92.6,
+  "unit": "s",
+  "severity": null,
+  "computed": true
+ },
+ "CK-14": {
+  "name": "Work lost per incident",
+  "value": 0.9337,
+  "unit": "x interval",
+  "severity": "low",
+  "computed": true
+ },
+ "CK-15": {
+  "name": "Protected checkpoint missing or deleted",
+  "value": 0,
+  "unit": "count",
+  "severity": null,
+  "computed": true
+ },
+ "CK-16": {
+  "name": "Orphan uncommitted objects in S3",
+  "value": 0.0,
+  "unit": "GB",
+  "severity": null,
+  "computed": true
+ },
+ "CK-17": {
+  "name": "Checkpoint storage cost per day vs plan",
+  "value": null,
+  "unit": "ratio",
+  "severity": null,
+  "computed": false
+ },
+ "CK-18": {
+  "name": "Export parity failures (safetensors)",
+  "value": 0,
+  "unit": "count",
+  "severity": null,
+  "computed": true
+ },
+ "CK-19": {
+  "name": "Resharded resumes",
+  "value": 2,
+  "unit": "count",
+  "severity": "low",
+  "computed": true
+ },
+ "CK-20": {
+  "name": "Probe value missing for this device class",
+  "value": 0,
+  "unit": "count",
+  "severity": null,
+  "computed": true
+ },
+ "Q-01": {
+  "name": "Main run not running (pending time)",
+  "value": 90.18,
+  "unit": "s",
+  "severity": null,
+  "computed": true
+ },
+ "Q-02": {
+  "name": "Main run held (exit 78 / crash loop)",
+  "value": 3,
+  "unit": "count",
+  "severity": "high",
+  "computed": true
+ },
+ "Q-03": {
+  "name": "Reschedule latency (job end to running again)",
+  "value": 90.18,
+  "unit": "s",
+  "severity": null,
+  "computed": true
+ },
+ "Q-04": {
+  "name": "Crash-loop holds",
+  "value": 1,
+  "unit": "count",
+  "severity": "medium",
+  "computed": true
+ },
+ "Q-05": {
+  "name": "Main-run interruptions per day",
+  "value": 927.1357,
+  "unit": "count/day",
+  "severity": "high",
+  "computed": true
+ },
+ "Q-06": {
+  "name": "Idle GPU node-hours (up, no job)",
+  "value": null,
+  "unit": "node-h/day",
+  "severity": null,
+  "computed": false
+ },
+ "Q-07": {
+  "name": "Allocated but not stepping",
+  "value": 92.599,
+  "unit": "s",
+  "severity": null,
+  "computed": true
+ },
+ "Q-08": {
+  "name": "Healthy idle spare nodes",
+  "value": null,
+  "unit": "count",
+  "severity": null,
+  "computed": false
+ },
+ "Q-09": {
+  "name": "Drained nodes",
+  "value": 2,
+  "unit": "count",
+  "severity": "medium",
+  "computed": true
+ },
+ "Q-10": {
+  "name": "Node replacement time (drain to spare running the job)",
+  "value": 422.224,
+  "unit": "s",
+  "severity": "medium",
+  "computed": true
+ },
+ "Q-11": {
+  "name": "slurmctld not responding",
+  "value": null,
+  "unit": "s",
+  "severity": null,
+  "computed": false
+ },
+ "Q-12": {
+  "name": "slurmdbd not responding",
+  "value": null,
+  "unit": "s",
+  "severity": null,
+  "computed": false
+ },
+ "Q-13": {
+  "name": "Team queue wait p95",
+  "value": null,
+  "unit": "h",
+  "severity": null,
+  "computed": false
+ },
+ "Q-14": {
+  "name": "Team GPU-hours lost to preemption",
+  "value": 0.0922,
+  "unit": "node-h/week",
+  "severity": null,
+  "computed": true
+ },
+ "Q-15": {
+  "name": "Account budget used (GrpTRESMins)",
+  "value": null,
+  "unit": "%",
+  "severity": null,
+  "computed": false
+ },
+ "Q-16": {
+  "name": "Jobs rejected for no valid account",
+  "value": 1,
+  "unit": "count",
+  "severity": "low",
+  "computed": true
+ },
+ "Q-17": {
+  "name": "Clock offset between nodes",
+  "value": null,
+  "unit": "ms",
+  "severity": null,
+  "computed": false
+ },
+ "Q-18": {
+  "name": "Container image pull time",
+  "value": null,
+  "unit": "s",
+  "severity": null,
+  "computed": false
+ },
+ "Q-19": {
+  "name": "Goodput of the main run",
+  "value": 11.3053,
+  "unit": "%",
+  "severity": "high",
+  "computed": true
+ },
+ "Q-20": {
+  "name": "MTTR (fault to first productive step)",
+  "value": 81.6506,
+  "unit": "s",
+  "severity": null,
+  "computed": true
+ },
+ "Q-21": {
+  "name": "Human interventions",
+  "value": 4,
+  "unit": "count/week",
+  "severity": "medium",
+  "computed": true
+ },
+ "H-01": {
+  "name": "Fatal Xid on a node",
+  "value": 1,
+  "unit": "count",
+  "severity": "high",
+  "computed": true
+ },
+ "H-02": {
+  "name": "Warn/unknown Xid",
+  "value": null,
+  "unit": "count/day",
+  "severity": null,
+  "computed": false
+ },
+ "H-03": {
+  "name": "ECC uncorrectable errors",
+  "value": null,
+  "unit": "count",
+  "severity": null,
+  "computed": false
+ },
+ "H-04": {
+  "name": "Correctable ECC 24 h vs fleet median",
+  "value": null,
+  "unit": "ratio",
+  "severity": null,
+  "computed": false
+ },
+ "H-05": {
+  "name": "Row remap pending",
+  "value": null,
+  "unit": "count",
+  "severity": null,
+  "computed": false
+ },
+ "H-06": {
+  "name": "Row remap failure",
+  "value": null,
+  "unit": "count",
+  "severity": null,
+  "computed": false
+ },
+ "H-07": {
+  "name": "GPU count lower than expected",
+  "value": null,
+  "unit": "count",
+  "severity": null,
+  "computed": false
+ },
+ "H-08": {
+  "name": "GPU temperature vs slowdown limit",
+  "value": null,
+  "unit": "C below limit",
+  "severity": null,
+  "computed": false
+ },
+ "H-09": {
+  "name": "Hardware slowdown / power brake active",
+  "value": null,
+  "unit": "count",
+  "severity": null,
+  "computed": false
+ },
+ "H-10": {
+  "name": "PCIe link narrower than max",
+  "value": null,
+  "unit": "count",
+  "severity": null,
+  "computed": false
+ },
+ "H-11": {
+  "name": "NVLink / fast network link down",
+  "value": null,
+  "unit": "count",
+  "severity": null,
+  "computed": false
+ },
+ "H-12": {
+  "name": "All-reduce busbw vs baseline",
+  "value": null,
+  "unit": "ratio",
+  "severity": null,
+  "computed": false
+ },
+ "H-13": {
+  "name": "All-reduce wrong result",
+  "value": null,
+  "unit": "count",
+  "severity": null,
+  "computed": false
+ },
+ "H-14": {
+  "name": "Step watchdog fired (hang)",
+  "value": 1.8396,
+  "unit": "count/h",
+  "severity": "medium",
+  "computed": true
+ },
+ "H-15": {
+  "name": "Straggler ratio (rank step time / median)",
+  "value": 1.1546,
+  "unit": "ratio",
+  "severity": "medium",
+  "computed": true
+ },
+ "H-16": {
+  "name": "NCCL timeouts",
+  "value": null,
+  "unit": "count/h",
+  "severity": null,
+  "computed": false
+ },
+ "H-17": {
+  "name": "Health check runtime (prolog)",
+  "value": 0.048,
+  "unit": "s",
+  "severity": null,
+  "computed": true
+ },
+ "H-18": {
+  "name": "Required check skipped",
+  "value": 0,
+  "unit": "count",
+  "severity": null,
+  "computed": true
+ },
+ "H-19": {
+  "name": "False drains (passes --full after drain)",
+  "value": null,
+  "unit": "count/week",
+  "severity": null,
+  "computed": false
+ },
+ "H-20": {
+  "name": "Missed incidents (no prior warn/fail)",
+  "value": null,
+  "unit": "count/dry run",
+  "severity": null,
+  "computed": false
+ },
+ "H-21": {
+  "name": "Spot interruption notice",
+  "value": 1,
+  "unit": "count",
+  "severity": "high",
+  "computed": true
+ },
+ "H-22": {
+  "name": "DCGM diag failure",
+  "value": null,
+  "unit": "count",
+  "severity": null,
+  "computed": false
+ },
+ "H-24": {
+  "name": "Loss-spike guard trips",
+  "value": 1,
+  "unit": "count",
+  "severity": "high",
+  "computed": true
+ },
+ "H-23": {
+  "name": "Host memory available for staging",
+  "value": null,
+  "unit": "ratio of need",
+  "severity": null,
+  "computed": false
+ },
+ "C-01": {
+  "name": "Burn rate vs plan",
+  "value": null,
+  "unit": "ratio",
+  "severity": null,
+  "computed": false
+ },
+ "C-02": {
+  "name": "Cost per productive GPU-hour vs list price",
+  "value": 8.8454,
+  "unit": "ratio",
+  "severity": "high",
+  "computed": true
+ },
+ "C-03": {
+  "name": "Wasted share of main-run spend",
+  "value": 88.6947,
+  "unit": "%",
+  "severity": "high",
+  "computed": true
+ },
+ "C-04": {
+  "name": "Cost of one incident",
+  "value": 21.4587,
+  "unit": "x interval cost",
+  "severity": "high",
+  "computed": true
+ },
+ "C-05": {
+  "name": "Instances running that Slurm does not know",
+  "value": null,
+  "unit": "count",
+  "severity": null,
+  "computed": false
+ },
+ "C-06": {
+  "name": "Budget days left vs training days left",
+  "value": null,
+  "unit": "ratio",
+  "severity": null,
+  "computed": false
+ },
+ "C-07": {
+  "name": "Cross-zone / internet egress",
+  "value": null,
+  "unit": "USD/day",
+  "severity": null,
+  "computed": false
+ },
+ "C-08": {
+  "name": "Unattached block volumes / old snapshots",
+  "value": null,
+  "unit": "USD/month",
+  "severity": null,
+  "computed": false
+ },
+ "C-09": {
+  "name": "Spare node cost share",
+  "value": null,
+  "unit": "%",
+  "severity": null,
+  "computed": false
+ }
+}

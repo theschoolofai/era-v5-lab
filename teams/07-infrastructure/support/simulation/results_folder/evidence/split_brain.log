@@ -1,0 +1,37 @@
+# drill split_brain (2026-10-30 21:55:20 IST)
+
+## results
+PASS {"drill": "split_brain_fenced", "pass": true, "epoch": 16, "pointer_step": 6594, "refused_step": 6727, "commits_after_claim": [], "cause": "FencedError"}
+PASS {"drill": "resume_after_fence", "pass": true, "restored_step": 6594, "epoch": 17}
+
+## commands (polling commands not listed)
+$ [slurmctld] scontrol show hostnames c[1-2]
+  exit 0
+  c1
+  c2
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('drill.injected', **json.loads(sys.argv[1]))['time'])" '{"drill": "split_brain", "cause_class": "software"}'
+  exit 0
+  2026-10-30T16:25:12.569Z
+$ [slurmctld] . /etc/v5/node.env; RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys; sys.path.insert(0,'/opt/v5'); from ckpt.ckpt import Checkpointer; print(Checkpointer('v5main', '/tmp/claim', '/shared/ckpt').claim())"
+  exit 0
+  16
+$ [slurmctld] . /etc/v5/node.env; /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from ckpt.store import open_store; print(json.dumps(open_store('/shared/ckpt/v5main').get_json('latest.json')))"
+  exit 0
+  {"branch": "main", "claimed_at": 1793377513.8012302, "epoch": 16, "host": "slurmctld", "job": null, "path": "main/step_00006594-e15", "step": 6594}
+$ [slurmctld] . /etc/v5/node.env; /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from ckpt.store import open_store; print(json.dumps(open_store('/shared/ckpt/v5main').get_json('latest.json')))"
+  exit 0
+  {"branch": "main", "claimed_at": 1793377513.8012302, "epoch": 16, "host": "slurmctld", "job": null, "path": "main/step_00006594-e15", "step": 6594}
+$ [slurmctld] scancel 11
+  exit 0
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('drill.injected', **json.loads(sys.argv[1]))['time'])" '{"drill": "resume_after_fence", "cause_class": "operator"}'
+  exit 0
+  2026-10-30T16:25:15.123Z
+$ [slurmctld] cd /tmp && runuser -u svc -- sbatch --parsable --export=ALL,RUN_ID=v5main,STEPS=100000,INTERVAL_S=8,STEP_SLEEP=0.05,WATCHDOG_S=20,CRASHLOOP_WINDOW_S=10 --ntasks-per-node=2 --gpus-per-node=2 /opt/v5/slurm/mainrun.sbatch
+  exit 0
+  15
+$ [slurmctld] . /etc/v5/node.env; /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from ckpt.store import open_store; print(json.dumps(open_store('/shared/ckpt/v5main').get_json('latest.json')))"
+  exit 0
+  {"branch": "main", "claimed_at": 1793377519.2315023, "epoch": 17, "host": "c1", "job": "15", "path": "main/step_00006594-e15", "step": 6594}
+$ [slurmctld] . /etc/v5/node.env; /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from ckpt.store import open_store; print(json.dumps(open_store('/shared/ckpt/v5main').get_json('latest.json')))"
+  exit 0
+  {"branch": "main", "claimed_at": 1793377519.2315023, "epoch": 17, "host": "c1", "job": "15", "path": "main/step_00006594-e15", "step": 6594}

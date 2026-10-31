@@ -1,0 +1,222 @@
+[
+ {
+  "id": "CK-07",
+  "severity": "high",
+  "name": "NaN guard trips",
+  "value": 1,
+  "unit": "count",
+  "action": "Rollback: --from-step <last good> --skip N --branch <new>.",
+  "expected_in_sim": true,
+  "fault_rate_driven": false
+ },
+ {
+  "id": "Q-02",
+  "severity": "high",
+  "name": "Main run held (exit 78 / crash loop)",
+  "value": 3,
+  "unit": "count",
+  "action": "Read the job.held cause; rollback or fix, then release.",
+  "expected_in_sim": true,
+  "fault_rate_driven": false
+ },
+ {
+  "id": "Q-05",
+  "severity": "high",
+  "name": "Main-run interruptions per day",
+  "value": 919.2649,
+  "unit": "count/day",
+  "action": "Group incidents by node and cause_class; drain repeat offenders.",
+  "expected_in_sim": true,
+  "fault_rate_driven": true
+ },
+ {
+  "id": "Q-19",
+  "severity": "high",
+  "name": "Goodput of the main run",
+  "value": 11.4316,
+  "unit": "%",
+  "action": "See the largest non-productive bucket in the report.",
+  "expected_in_sim": false,
+  "fault_rate_driven": true
+ },
+ {
+  "id": "H-01",
+  "severity": "high",
+  "name": "Fatal Xid on a node",
+  "value": 1,
+  "unit": "count",
+  "action": "Automatic drain + save; open a hardware ticket; replace the instance.",
+  "expected_in_sim": false,
+  "fault_rate_driven": false
+ },
+ {
+  "id": "H-21",
+  "severity": "high",
+  "name": "Spot interruption notice",
+  "value": 1,
+  "unit": "count",
+  "action": "Automatic: drain + save + requeue. Page only if no commit within 90 s.",
+  "expected_in_sim": true,
+  "fault_rate_driven": false
+ },
+ {
+  "id": "H-24",
+  "severity": "high",
+  "name": "Loss-spike guard trips",
+  "value": 1,
+  "unit": "count",
+  "action": "Look at the batches before the spike; rollback: --from-step <last good> --skip N --branch <new>.",
+  "expected_in_sim": true,
+  "fault_rate_driven": false
+ },
+ {
+  "id": "C-02",
+  "severity": "high",
+  "name": "Cost per productive GPU-hour vs list price",
+  "value": 8.7476,
+  "unit": "ratio",
+  "action": "Fix the largest waste bucket (C-03).",
+  "expected_in_sim": false,
+  "fault_rate_driven": true
+ },
+ {
+  "id": "C-03",
+  "severity": "high",
+  "name": "Wasted share of main-run spend",
+  "value": 88.5684,
+  "unit": "%",
+  "action": "The report lists each bucket in USD.",
+  "expected_in_sim": false,
+  "fault_rate_driven": true
+ },
+ {
+  "id": "C-04",
+  "severity": "high",
+  "name": "Cost of one incident",
+  "value": 21.4012,
+  "unit": "x interval cost",
+  "action": "Large values: missing emergency save, slow restore, or no spare.",
+  "expected_in_sim": true,
+  "fault_rate_driven": false
+ },
+ {
+  "id": "CK-03",
+  "severity": "medium",
+  "name": "Consecutive failed saves",
+  "value": 1,
+  "unit": "count",
+  "action": "Read the failure cause (nvme_full, IntegrityError, upload timeout) and fix it now.",
+  "expected_in_sim": false,
+  "fault_rate_driven": false
+ },
+ {
+  "id": "Q-04",
+  "severity": "medium",
+  "name": "Crash-loop holds",
+  "value": 1,
+  "unit": "count",
+  "action": "Read the logs of the 3 crashes; for the main run this is also Q-02 (high).",
+  "expected_in_sim": true,
+  "fault_rate_driven": false
+ },
+ {
+  "id": "Q-09",
+  "severity": "medium",
+  "name": "Drained nodes",
+  "value": 2,
+  "unit": "count",
+  "action": "Re-test with --full; repair, replace or stop the instance.",
+  "expected_in_sim": true,
+  "fault_rate_driven": false
+ },
+ {
+  "id": "Q-10",
+  "severity": "medium",
+  "name": "Node replacement time (drain to spare running the job)",
+  "value": 422.303,
+  "unit": "s",
+  "action": "Keep the hot spare up; check preemption grace time on the spare's team job.",
+  "expected_in_sim": true,
+  "fault_rate_driven": false
+ },
+ {
+  "id": "Q-21",
+  "severity": "medium",
+  "name": "Human interventions",
+  "value": 4,
+  "unit": "count/week",
+  "action": "Automate the step that needed a person.",
+  "expected_in_sim": true,
+  "fault_rate_driven": false
+ },
+ {
+  "id": "H-14",
+  "severity": "medium",
+  "name": "Step watchdog fired (hang)",
+  "value": 1.8239,
+  "unit": "count/h",
+  "action": "Read the stack dump in the job log and the NCCL flight-recorder trace; drain the rank that stopped.",
+  "expected_in_sim": true,
+  "fault_rate_driven": true
+ },
+ {
+  "id": "CK-01",
+  "severity": "low",
+  "name": "Time since last committed checkpoint",
+  "value": 1.3576,
+  "unit": "x interval",
+  "action": "Check checkpoint.failed events; if saves fail, fix storage before the next failure costs a full interval.",
+  "expected_in_sim": false,
+  "fault_rate_driven": false
+ },
+ {
+  "id": "CK-02",
+  "severity": "low",
+  "name": "Compute dollars at risk (since last commit)",
+  "value": 0.6874,
+  "unit": "USD",
+  "action": "Same as CK-01. Thresholds are multiples of the cost of one interval.",
+  "expected_in_sim": false,
+  "fault_rate_driven": false
+ },
+ {
+  "id": "CK-14",
+  "severity": "low",
+  "name": "Work lost per incident",
+  "value": 0.9738,
+  "unit": "x interval",
+  "action": "Check that SIGUSR1/SIGTERM reached the trainer and the emergency save committed.",
+  "expected_in_sim": false,
+  "fault_rate_driven": false
+ },
+ {
+  "id": "CK-19",
+  "severity": "low",
+  "name": "Resharded resumes",
+  "value": 1,
+  "unit": "count",
+  "action": "Note it in the run log and the paper's failure table.",
+  "expected_in_sim": true,
+  "fault_rate_driven": false
+ },
+ {
+  "id": "Q-16",
+  "severity": "low",
+  "name": "Jobs rejected for no valid account",
+  "value": 1,
+  "unit": "count",
+  "action": "Check the submit system's account mapping.",
+  "expected_in_sim": true,
+  "fault_rate_driven": false
+ },
+ {
+  "id": "H-15",
+  "severity": "low",
+  "name": "Straggler ratio (rank step time / median)",
+  "value": 1.0895,
+  "unit": "ratio",
+  "action": "Medium for 3 windows: drain at the next checkpoint.",
+  "expected_in_sim": false,
+  "fault_rate_driven": false
+ }
+]

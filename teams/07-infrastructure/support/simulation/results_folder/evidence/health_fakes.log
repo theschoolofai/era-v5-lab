@@ -1,0 +1,480 @@
+# drill health_fakes (2026-10-30 21:24:48 IST)
+
+## results
+PASS {"drill": "health_gpu_checks_run", "pass": true, "nodes": {"c1": ["pass", "pass", "pass", "pass"], "c2": ["pass", "pass", "pass", "pass"], "c3": ["pass", "pass", "pass", "pass"]}}
+PASS {"drill": "health_planted_faults", "pass": true, "faults": [{"fault": "gpus: 1 temperature.gpu=92", "check": "gpu_temperature", "status": "fail", "verdict": "fail"}, {"fault": "gpus: 0 ecc.errors.uncorrected.volatile.total=", "check": "ecc_uncorrectable", "status": "fail", "verdict": "fail"}, {"fault": "remap: 0 failure", "check": "remapped_rows", "status": "fail", "verdict": "fail"}, {"fault": "nvlink: GPU 0: Fake\n\t Link 0: <inactive>\n\t Link ", "check": "nvlink", "status": "fail", "verdict": "fail"}, {"fault": "dmesg: NVRM: Xid (PCI:0000:3b:00): 79, pid=1, G", "check": "xid", "status": "fail", "verdict": "fail"}, {"fault": "dmesg: NVRM: Xid (PCI:0000:3b:00): 94, pid=1, C", "check": "xid", "status": "warn", "verdict": "warn"}]}
+PASS {"drill": "health_nvlink_drains_node", "pass": true, "reason": "v5:nvlink", "drained_reason": "nvlink"}
+
+## commands (polling commands not listed)
+$ [c1] . /etc/v5/node.env; V5_HEALTH_STATE=/tmp/hc-drill /opt/venv/bin/python /opt/v5/health/health_check.py --mode periodic --report-only
+  exit 0
+  {
+   "schema": "v5-health/1",
+   "time": "2026-10-30T15:54:25.233Z",
+   "host": "c1",
+   "mode": "periodic",
+   "checks": [
+    {
+     "name": "gpu_count",
+     "status": "pass",
+     "required": true,
+     "detail": "2 GPUs, expected 2",
+     "metrics": {
+      "count": 2
+     },
+     "gpu": null,
+     "seconds": 0.012
+    },
+    {
+     "name": "gpu_temperature",
+     "status": "pass",
+     "required": true,
+     "detail": "40.0 C",
+     "metrics": {
+      "temp_c": 40.0
+     },
+     "gpu": 0,
+     "seconds": 0.012
+    },
+    {
+     "name": "ecc_uncorrectable",
+     "status": "pass",
+     "required": true,
+     "detail": "0 uncorrectable",
+     "metrics": {
+      "uncorrectable": 0,
+      "correctable": 0.0
+     },
+     "gpu": 0,
+     "seconds": 0.012
+    },
+    {
+     "name": "pcie_link",
+     "status": "pass",
+     "required": false,
+     "detail": "x16 of x16",
+     "metric
+$ [c2] . /etc/v5/node.env; V5_HEALTH_STATE=/tmp/hc-drill /opt/venv/bin/python /opt/v5/health/health_check.py --mode periodic --report-only
+  exit 0
+  {
+   "schema": "v5-health/1",
+   "time": "2026-10-30T15:54:25.444Z",
+   "host": "c2",
+   "mode": "periodic",
+   "checks": [
+    {
+     "name": "gpu_count",
+     "status": "pass",
+     "required": true,
+     "detail": "2 GPUs, expected 2",
+     "metrics": {
+      "count": 2
+     },
+     "gpu": null,
+     "seconds": 0.014
+    },
+    {
+     "name": "gpu_temperature",
+     "status": "pass",
+     "required": true,
+     "detail": "40.0 C",
+     "metrics": {
+      "temp_c": 40.0
+     },
+     "gpu": 0,
+     "seconds": 0.014
+    },
+    {
+     "name": "ecc_uncorrectable",
+     "status": "pass",
+     "required": true,
+     "detail": "0 uncorrectable",
+     "metrics": {
+      "uncorrectable": 0,
+      "correctable": 0.0
+     },
+     "gpu": 0,
+     "seconds": 0.014
+    },
+    {
+     "name": "pcie_link",
+     "status": "pass",
+     "required": false,
+     "detail": "x16 of x16",
+     "metric
+$ [c3] . /etc/v5/node.env; V5_HEALTH_STATE=/tmp/hc-drill /opt/venv/bin/python /opt/v5/health/health_check.py --mode periodic --report-only
+  exit 0
+  {
+   "schema": "v5-health/1",
+   "time": "2026-10-30T15:54:25.682Z",
+   "host": "c3",
+   "mode": "periodic",
+   "checks": [
+    {
+     "name": "gpu_count",
+     "status": "pass",
+     "required": true,
+     "detail": "2 GPUs, expected 2",
+     "metrics": {
+      "count": 2
+     },
+     "gpu": null,
+     "seconds": 0.013
+    },
+    {
+     "name": "gpu_temperature",
+     "status": "pass",
+     "required": true,
+     "detail": "40.0 C",
+     "metrics": {
+      "temp_c": 40.0
+     },
+     "gpu": 0,
+     "seconds": 0.013
+    },
+    {
+     "name": "ecc_uncorrectable",
+     "status": "pass",
+     "required": true,
+     "detail": "0 uncorrectable",
+     "metrics": {
+      "uncorrectable": 0,
+      "correctable": 0.0
+     },
+     "gpu": 0,
+     "seconds": 0.013
+    },
+    {
+     "name": "pcie_link",
+     "status": "pass",
+     "required": false,
+     "detail": "x16 of x16",
+     "metric
+$ [c3] rm -rf /tmp/hc-drill; printf '%b\n' '1 temperature.gpu=92' > /run/fake/gpus
+  exit 0
+$ [c3] . /etc/v5/node.env; V5_HEALTH_STATE=/tmp/hc-drill /opt/venv/bin/python /opt/v5/health/health_check.py --mode periodic --report-only
+  exit 4
+  {
+   "schema": "v5-health/1",
+   "time": "2026-10-30T15:54:26.031Z",
+   "host": "c3",
+   "mode": "periodic",
+   "checks": [
+    {
+     "name": "gpu_count",
+     "status": "pass",
+     "required": true,
+     "detail": "2 GPUs, expected 2",
+     "metrics": {
+      "count": 2
+     },
+     "gpu": null,
+     "seconds": 0.013
+    },
+    {
+     "name": "gpu_temperature",
+     "status": "pass",
+     "required": true,
+     "detail": "40.0 C",
+     "metrics": {
+      "temp_c": 40.0
+     },
+     "gpu": 0,
+     "seconds": 0.013
+    },
+    {
+     "name": "ecc_uncorrectable",
+     "status": "pass",
+     "required": true,
+     "detail": "0 uncorrectable",
+     "metrics": {
+      "uncorrectable": 0,
+      "correctable": 0.0
+     },
+     "gpu": 0,
+     "seconds": 0.013
+    },
+    {
+     "name": "pcie_link",
+     "status": "pass",
+     "required": false,
+     "detail": "x16 of x16",
+     "metric
+$ [c3] rm -f /run/fake/*
+  exit 0
+$ [c3] rm -rf /tmp/hc-drill; printf '%b\n' '0 ecc.errors.uncorrected.volatile.total=3' > /run/fake/gpus
+  exit 0
+$ [c3] . /etc/v5/node.env; V5_HEALTH_STATE=/tmp/hc-drill /opt/venv/bin/python /opt/v5/health/health_check.py --mode periodic --report-only
+  exit 4
+  {
+   "schema": "v5-health/1",
+   "time": "2026-10-30T15:54:26.459Z",
+   "host": "c3",
+   "mode": "periodic",
+   "checks": [
+    {
+     "name": "gpu_count",
+     "status": "pass",
+     "required": true,
+     "detail": "2 GPUs, expected 2",
+     "metrics": {
+      "count": 2
+     },
+     "gpu": null,
+     "seconds": 0.013
+    },
+    {
+     "name": "gpu_temperature",
+     "status": "pass",
+     "required": true,
+     "detail": "40.0 C",
+     "metrics": {
+      "temp_c": 40.0
+     },
+     "gpu": 0,
+     "seconds": 0.013
+    },
+    {
+     "name": "ecc_uncorrectable",
+     "status": "fail",
+     "required": true,
+     "detail": "3 uncorrectable",
+     "metrics": {
+      "uncorrectable": 3.0,
+      "correctable": 0.0
+     },
+     "gpu": 0,
+     "seconds": 0.013
+    },
+    {
+     "name": "pcie_link",
+     "status": "pass",
+     "required": false,
+     "detail": "x16 of x16",
+     "metr
+$ [c3] rm -f /run/fake/*
+  exit 0
+$ [c3] rm -rf /tmp/hc-drill; printf '%b\n' '0 failure' > /run/fake/remap
+  exit 0
+$ [c3] . /etc/v5/node.env; V5_HEALTH_STATE=/tmp/hc-drill /opt/venv/bin/python /opt/v5/health/health_check.py --mode periodic --report-only
+  exit 4
+  {
+   "schema": "v5-health/1",
+   "time": "2026-10-30T15:54:26.900Z",
+   "host": "c3",
+   "mode": "periodic",
+   "checks": [
+    {
+     "name": "gpu_count",
+     "status": "pass",
+     "required": true,
+     "detail": "2 GPUs, expected 2",
+     "metrics": {
+      "count": 2
+     },
+     "gpu": null,
+     "seconds": 0.013
+    },
+    {
+     "name": "gpu_temperature",
+     "status": "pass",
+     "required": true,
+     "detail": "40.0 C",
+     "metrics": {
+      "temp_c": 40.0
+     },
+     "gpu": 0,
+     "seconds": 0.013
+    },
+    {
+     "name": "ecc_uncorrectable",
+     "status": "pass",
+     "required": true,
+     "detail": "0 uncorrectable",
+     "metrics": {
+      "uncorrectable": 0,
+      "correctable": 0.0
+     },
+     "gpu": 0,
+     "seconds": 0.013
+    },
+    {
+     "name": "pcie_link",
+     "status": "pass",
+     "required": false,
+     "detail": "x16 of x16",
+     "metric
+$ [c3] rm -f /run/fake/*
+  exit 0
+$ [c3] rm -rf /tmp/hc-drill; printf '%b\n' 'GPU 0: Fake
+	 Link 0: <inactive>
+	 Link 1: 26.562 GB/s' > /run/fake/nvlink
+  exit 0
+$ [c3] . /etc/v5/node.env; V5_HEALTH_STATE=/tmp/hc-drill /opt/venv/bin/python /opt/v5/health/health_check.py --mode periodic --report-only
+  exit 4
+  {
+   "schema": "v5-health/1",
+   "time": "2026-10-30T15:54:27.335Z",
+   "host": "c3",
+   "mode": "periodic",
+   "checks": [
+    {
+     "name": "gpu_count",
+     "status": "pass",
+     "required": true,
+     "detail": "2 GPUs, expected 2",
+     "metrics": {
+      "count": 2
+     },
+     "gpu": null,
+     "seconds": 0.013
+    },
+    {
+     "name": "gpu_temperature",
+     "status": "pass",
+     "required": true,
+     "detail": "40.0 C",
+     "metrics": {
+      "temp_c": 40.0
+     },
+     "gpu": 0,
+     "seconds": 0.013
+    },
+    {
+     "name": "ecc_uncorrectable",
+     "status": "pass",
+     "required": true,
+     "detail": "0 uncorrectable",
+     "metrics": {
+      "uncorrectable": 0,
+      "correctable": 0.0
+     },
+     "gpu": 0,
+     "seconds": 0.013
+    },
+    {
+     "name": "pcie_link",
+     "status": "pass",
+     "required": false,
+     "detail": "x16 of x16",
+     "metric
+$ [c3] rm -f /run/fake/*
+  exit 0
+$ [c3] rm -rf /tmp/hc-drill; printf '%b\n' 'NVRM: Xid (PCI:0000:3b:00): 79, pid=1, GPU has fallen off the bus.' > /run/fake/dmesg
+  exit 0
+$ [c3] . /etc/v5/node.env; V5_HEALTH_STATE=/tmp/hc-drill /opt/venv/bin/python /opt/v5/health/health_check.py --mode periodic --report-only
+  exit 4
+  {
+   "schema": "v5-health/1",
+   "time": "2026-10-30T15:54:27.739Z",
+   "host": "c3",
+   "mode": "periodic",
+   "checks": [
+    {
+     "name": "gpu_count",
+     "status": "pass",
+     "required": true,
+     "detail": "2 GPUs, expected 2",
+     "metrics": {
+      "count": 2
+     },
+     "gpu": null,
+     "seconds": 0.012
+    },
+    {
+     "name": "gpu_temperature",
+     "status": "pass",
+     "required": true,
+     "detail": "40.0 C",
+     "metrics": {
+      "temp_c": 40.0
+     },
+     "gpu": 0,
+     "seconds": 0.012
+    },
+    {
+     "name": "ecc_uncorrectable",
+     "status": "pass",
+     "required": true,
+     "detail": "0 uncorrectable",
+     "metrics": {
+      "uncorrectable": 0,
+      "correctable": 0.0
+     },
+     "gpu": 0,
+     "seconds": 0.012
+    },
+    {
+     "name": "pcie_link",
+     "status": "pass",
+     "required": false,
+     "detail": "x16 of x16",
+     "metric
+$ [c3] rm -f /run/fake/*
+  exit 0
+$ [c3] rm -rf /tmp/hc-drill; printf '%b\n' 'NVRM: Xid (PCI:0000:3b:00): 94, pid=1, Contained ECC error.' > /run/fake/dmesg
+  exit 0
+$ [c3] . /etc/v5/node.env; V5_HEALTH_STATE=/tmp/hc-drill /opt/venv/bin/python /opt/v5/health/health_check.py --mode periodic --report-only
+  exit 3
+  {
+   "schema": "v5-health/1",
+   "time": "2026-10-30T15:54:28.191Z",
+   "host": "c3",
+   "mode": "periodic",
+   "checks": [
+    {
+     "name": "gpu_count",
+     "status": "pass",
+     "required": true,
+     "detail": "2 GPUs, expected 2",
+     "metrics": {
+      "count": 2
+     },
+     "gpu": null,
+     "seconds": 0.015
+    },
+    {
+     "name": "gpu_temperature",
+     "status": "pass",
+     "required": true,
+     "detail": "40.0 C",
+     "metrics": {
+      "temp_c": 40.0
+     },
+     "gpu": 0,
+     "seconds": 0.015
+    },
+    {
+     "name": "ecc_uncorrectable",
+     "status": "pass",
+     "required": true,
+     "detail": "0 uncorrectable",
+     "metrics": {
+      "uncorrectable": 0,
+      "correctable": 0.0
+     },
+     "gpu": 0,
+     "seconds": 0.015
+    },
+    {
+     "name": "pcie_link",
+     "status": "pass",
+     "required": false,
+     "detail": "x16 of x16",
+     "metric
+$ [c3] rm -f /run/fake/*
+  exit 0
+$ [slurmctld] scontrol update nodename=c3 state=resume 2>/dev/null; true
+  exit 0
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('drill.injected', **json.loads(sys.argv[1]))['time'])" '{"drill": "nvlink_down", "target": "c3", "cause_class": "gpu"}'
+  exit 0
+  2026-10-30T15:54:28.555Z
+$ [c3] printf 'GPU 0: Fake\n\t Link 0: <inactive>\n' > /run/fake/nvlink
+  exit 0
+$ [c3] rm -f /run/fake/*
+  exit 0
+$ [slurmctld] scontrol update nodename=c3 state=resume
+  exit 0
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('node.resumed', **json.loads(sys.argv[1]))['time'])" '{"node": "c3", "by": "drill"}'
+  exit 0
+  2026-10-30T15:54:48.762Z

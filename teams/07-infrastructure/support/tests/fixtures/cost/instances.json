@@ -1,0 +1,7 @@
+[
+ {"id": "i-0aaa", "type": "gpu-node-8", "tags": {"Name": "gpu-1", "v5:cluster": "v5", "v5:role": "gpu", "v5:team": "mainrun", "v5:run": "v5main"}},
+ {"id": "i-0bbb", "type": "gpu-node-8", "tags": {"Name": "gpu-2", "v5:cluster": "v5", "v5:role": "gpu", "v5:team": "mainrun", "v5:run": "v5main"}},
+ {"id": "i-0ccc", "type": "gpu-node-8-prev", "tags": {"Name": "bench-test-old"}},
+ {"id": "i-0ddd", "type": "gpu-node-8", "tags": {"Name": "gpu-5", "v5:cluster": "v5", "v5:role": "gpu", "v5:team": "shared", "v5:run": "none"}},
+ {"id": "i-0eee", "type": "cpu-head", "tags": {"Name": "head-1", "v5:cluster": "v5", "v5:role": "head", "v5:team": "shared", "v5:run": "none"}}
+]

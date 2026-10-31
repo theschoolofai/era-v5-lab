@@ -1,0 +1,54 @@
+# drill budget (2026-10-30 21:56:42 IST)
+
+## results
+PASS {"drill": "budget_limit", "pass": true, "too_big_refused": "sbatch: error: AssocGrpCPUMinutesLimit\nsbatch: error: Batch job submission failed: Job vio", "next_job": "pending: AssocGrpCPUMinutesLimit"}
+PASS {"drill": "fair_share", "pass": true, "arch": ["arch", "", "3023", "0.343534"], "posttrain": ["posttrain", "", "0", "inf"]}
+PASS {"drill": "gpu_hours_accounting", "pass": true, "gpu_minutes_by_account": {"arch": 25.5, "perf": 21.6, "eval": 49.6, "mainrun": 36.7}}
+
+## commands (polling commands not listed)
+$ [slurmctld] sacctmgr -i modify account quant set GrpTRESMins=cpu=2
+  exit 0
+  Modified account associations...
+    C = v5sim      A = quant of teams
+$ [slurmctld] cd /tmp && runuser -u svc -- sbatch --parsable --export=ALL --account=quant -p cpu -c 4 --time=01:00:00 --wrap 'sleep 45'
+  exit 1
+  sbatch: error: AssocGrpCPUMinutesLimit
+  sbatch: error: Batch job submission failed: Job violates accounting/QOS policy (job submit limit, user's size and/or time limits)
+$ [slurmctld] cd /tmp && runuser -u svc -- sbatch --parsable --export=ALL --account=quant -p cpu -c 2 --time=00:01:00 --wrap 'sleep 45'
+  exit 0
+  18
+$ [slurmctld] cd /tmp && runuser -u svc -- sbatch --parsable --export=ALL --account=quant -p cpu -c 2 --time=00:01:00 --wrap 'hostname'
+  exit 0
+  19
+$ [slurmctld] scancel 19
+  exit 0
+$ [slurmctld] sshare -n -P -A arch,posttrain -o account,user,rawusage,levelfs
+  exit 0
+  arch||3023|0.343534
+  posttrain||0|inf
+$ [slurmctld] sacct -a -X -D -n -P -S now-1days -o account,elapsedraw,alloctres
+  exit 0
+  arch|0|billing=1,cpu=1,node=1
+  arch|4|billing=4,cpu=4,gres/gpu=2,node=1
+  arch|4|billing=4,cpu=4,gres/gpu=2,node=1
+  arch|0|
+  arch|5|billing=1,cpu=1,gres/gpu=1,node=1
+  arch|0|
+  arch|56|billing=4,cpu=4,gres/gpu=2,node=1
+  arch|2|billing=4,cpu=4,gres/gpu=2,node=1
+  arch|4|billing=4,cpu=4,gres/gpu=2,node=1
+  perf|3|billing=4,cpu=4,gres/gpu=2,node=1
+  eval|1077|billing=4,cpu=4,gres/gpu=2,node=1
+  mainrun|177|billing=8,cpu=8,gres/gpu=4,node=2
+  arch|81|billing=4,cpu=4,gres/gpu=2,node=1
+  perf|81|billing=4,cpu=4,gres/gpu=2,node=1
+  arch|0|
+  arch|1|billing=1,cpu=1,node=1
+  arch|2|billing=1,cpu=1,node=1
+  arch|1|billing=1,cpu=1,node=1
+  arch|0|
+  mainrun|12|billing=8,cpu=8,gres/gpu=4,node=2
+  arch|75|billing=4,cpu=4,gres/gpu=2,node=1
+  perf|75|billing=4,cpu=4,gres/gpu=2,node=1
+  mainrun|11|billing=8,cpu=8,gres/gpu=4,node=2
+  mainrun|4|bi

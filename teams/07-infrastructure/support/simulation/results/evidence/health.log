@@ -1,0 +1,26 @@
+# drill health (2026-10-30 21:12:20 IST)
+
+## results
+PASS {"drill": "health_fail_drain_and_replace", "pass": true, "node": "c1", "reason": "drill_force_fail", "new_nodes": ["c2", "c3"], "lost_steps": 0}
+
+## commands (polling commands not listed)
+$ [slurmctld] scontrol show hostnames c[1-2]
+  exit 0
+  c1
+  c2
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('drill.injected', **json.loads(sys.argv[1]))['time'])" '{"drill": "health_fail", "target": "c1", "cause_class": "gpu"}'
+  exit 0
+  2026-10-30T15:40:50.278Z
+$ [c1] echo 'drill: GPU 3 Xid 79 (fallen off the bus)' > /var/lib/v5-health/force_fail
+  exit 0
+$ [slurmctld] scontrol show hostnames c[2-3]
+  exit 0
+  c2
+  c3
+$ [c1] rm -f /var/lib/v5-health/force_fail
+  exit 0
+$ [slurmctld] scontrol update nodename=c1 state=resume
+  exit 0
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('node.resumed', **json.loads(sys.argv[1]))['time'])" '{"node": "c1", "by": "drill"}'
+  exit 0
+  2026-10-30T15:42:19.900Z

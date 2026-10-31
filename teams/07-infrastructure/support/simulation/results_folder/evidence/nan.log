@@ -1,0 +1,51 @@
+# drill nan (2026-10-30 21:55:47 IST)
+
+## results
+PASS {"drill": "nan_guard_hold", "pass": true, "nan_at_step": 6635, "latest_committed": 6594, "job_state": "SPECIAL_EXIT", "reason": "JobHeldUser"}
+PASS {"drill": "held_job_explains_itself", "pass": true, "comment": "V5 HELD (78): NaN: held at step 6635. Explain: python metrics/explain.py nonfinite. Do: roll back: sbatch --export=ALL,TRAIN_EXTRA='--from-step <last good step> --skip <N> --branch <new name>' slurm/mainrun.sbatch (last good step: python ckpt/ckpt.py "}
+PASS {"drill": "rollback_skip_branch", "pass": true, "restored_step": 6594, "branch": "b1"}
+PASS {"drill": "restore_smaller_world", "pass": true, "saved_world": 4, "world": 2}
+PASS {"drill": "loss_spike_hold", "pass": true, "spike_at_step": 6720, "latest_committed": 6594}
+PASS {"drill": "main_run_completes", "pass": true, "final_step": 6654, "job": "17"}
+
+## commands (polling commands not listed)
+$ [slurmctld] scontrol show hostnames c[1,3]
+  exit 0
+  c1
+  c3
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('drill.injected', **json.loads(sys.argv[1]))['time'])" '{"drill": "nan", "nan_at_step": 6635, "cause_class": "software"}'
+  exit 0
+  2026-10-30T16:25:20.594Z
+$ [slurmctld] mkdir -p /s3/drills/v5main && echo 6635 > /s3/drills/v5main/nan_at_step
+  exit 0
+$ [slurmctld] . /etc/v5/node.env; /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from ckpt.store import open_store; print(json.dumps(open_store('/shared/ckpt/v5main').get_json('latest.json')))"
+  exit 0
+  {"branch": "main", "claimed_at": 1793377519.2315023, "epoch": 17, "host": "c1", "job": "15", "path": "main/step_00006594-e15", "step": 6594}
+$ [slurmctld] rm -f /s3/drills/v5main/nan_at_step
+  exit 0
+$ [slurmctld] scancel 15
+  exit 0
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('drill.injected', **json.loads(sys.argv[1]))['time'])" '{"drill": "rollback", "from_step": 6594, "cause_class": "operator"}'
+  exit 0
+  2026-10-30T16:25:23.586Z
+$ [slurmctld] cd /tmp && runuser -u svc -- sbatch --parsable --export='ALL,RUN_ID=v5main,STEPS=6894,INTERVAL_S=8,STEP_SLEEP=0.05,WATCHDOG_S=20,CRASHLOOP_WINDOW_S=10,TRAIN_EXTRA=--from-step 6594 --skip 5 --branch b1' --ntasks-per-node=2 --gpus-per-node=2 --nodes=1 /opt/v5/slurm/mainrun.sbatch
+  exit 0
+  16
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('drill.injected', **json.loads(sys.argv[1]))['time'])" '{"drill": "loss_spike", "spike_at_step": 6720, "cause_class": "software"}'
+  exit 0
+  2026-10-30T16:25:28.569Z
+$ [slurmctld] mkdir -p /s3/drills/v5main && echo 6720 > /s3/drills/v5main/spike_at_step
+  exit 0
+$ [slurmctld] . /etc/v5/node.env; /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from ckpt.store import open_store; print(json.dumps(open_store('/shared/ckpt/v5main').get_json('latest.json')))"
+  exit 0
+  {"branch": "main", "claimed_at": 1793377527.4045815, "epoch": 18, "host": "c1", "job": "16", "path": "main/step_00006594-e15", "step": 6594}
+$ [slurmctld] rm -f /s3/drills/v5main/spike_at_step
+  exit 0
+$ [slurmctld] scancel 16
+  exit 0
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('drill.injected', **json.loads(sys.argv[1]))['time'])" '{"drill": "rollback", "from_step": 6594, "cause_class": "operator"}'
+  exit 0
+  2026-10-30T16:25:38.087Z
+$ [slurmctld] cd /tmp && runuser -u svc -- sbatch --parsable --export='ALL,RUN_ID=v5main,STEPS=6654,INTERVAL_S=8,STEP_SLEEP=0.05,WATCHDOG_S=20,CRASHLOOP_WINDOW_S=10,TRAIN_EXTRA=--from-step 6594 --skip 5 --branch b2' --ntasks-per-node=2 --gpus-per-node=2 --nodes=1 /opt/v5/slurm/mainrun.sbatch
+  exit 0
+  17

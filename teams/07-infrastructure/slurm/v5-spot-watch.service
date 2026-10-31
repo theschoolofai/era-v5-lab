@@ -1,0 +1,15 @@
+# Spot-notice watcher on every GPU node (ADR 0002 §5): on the cloud's 2-minute warning it asks the node's jobs to
+# save and stop (exit 75, requeue elsewhere) and drains the node. Started by launch.sh (step services).
+[Unit]
+Description=V5 spot interruption watcher
+After=slurmd.service
+
+[Service]
+EnvironmentFile=-/etc/v5/node.env
+Environment=V5_EVENTS_DIR=/var/log/v5/events
+ExecStart=/opt/venv/bin/python /opt/v5/queue/job_queue.py spot-watch
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

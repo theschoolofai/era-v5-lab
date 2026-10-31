@@ -1,0 +1,51 @@
+# drill ctld_failover (2026-10-30 21:55:11 IST)
+
+## results
+PASS {"drill": "controller_failover", "pass": true, "takeover_s": 81.9, "job_via_backup": "14", "main_run_state_after": "RUNNING"}
+
+## commands (polling commands not listed)
+$ [slurmctld] scontrol show hostnames c[1-2]
+  exit 0
+  c1
+  c2
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('drill.injected', **json.loads(sys.argv[1]))['time'])" '{"drill": "ctld_failover", "cause_class": "host"}'
+  exit 0
+  2026-10-30T16:22:53.893Z
+$ [slurmctld2] scontrol ping
+  exit 0
+  Slurmctld(primary) at slurmctld is DOWN
+  Slurmctld(backup) at slurmctld2 is UP
+  *****************************************
+  ** RESTORE SLURMCTLD DAEMON TO SERVICE **
+  *****************************************
+  scontrol: error: xgetaddrinfo: getaddrinfo() failed: Name or service not known: No error, attempt number -4
+  scontrol: error: xgetaddrinfo: getaddrinfo() failed: Name or service not known: No error, attempt number -3
+  scontrol: error: xgetaddrinfo: getaddrinfo() failed: Name or service not known: No error, attempt number -2
+  scontrol: error: xgetaddrinfo: getaddrinfo() failed: Name or service not known: No error, attempt number -1
+  scontrol: error: xgetaddrinfo: getaddrinfo() failed: Name or service not known: No error, attempt number 0
+  scontrol: error: xgetaddrinfo: getaddrinfo() failed: Name
+$ [slurmctld2] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('ctld.backup_in_control', **json.loads(sys.argv[1]))['time'])" '{"ctld": "slurmctld2"}'
+  exit 0
+  2026-10-30T16:24:15.796Z
+$ [slurmctld2] cd /tmp && runuser -u svc -- sbatch --parsable --export=ALL --account=arch -p debug --wrap hostname
+  exit 0
+  14
+  sbatch: error: xgetaddrinfo: getaddrinfo() failed: Name or service not known: No error, attempt number -4
+  sbatch: error: xgetaddrinfo: getaddrinfo() failed: Name or service not known: No error, attempt number -3
+  sbatch: error: xgetaddrinfo: getaddrinfo() failed: Name or service not known: No error, attempt number -2
+  sbatch: error: xgetaddrinfo: getaddrinfo() failed: Name or service not known: No error, attempt number -1
+  sbatch: error: xgetaddrinfo: getaddrinfo() failed: Name or service not known: No error, attempt number 0
+  sbatch: error: xgetaddrinfo: getaddrinfo() failed: Name or service not known: No error, attempt number 1
+  sbatch: error: xgetaddrinfo: getaddrinfo() failed: Name or service not known: No error, attempt number 2
+  sbatch: error: xgetaddrinfo: getaddrinfo() failed: Name or
+$ [slurmctld] scontrol ping
+  exit 0
+  Slurmctld(primary) at slurmctld is DOWN
+  Slurmctld(backup) at slurmctld2 is UP
+  *****************************************
+  ** RESTORE SLURMCTLD DAEMON TO SERVICE **
+  *****************************************
+$ [slurmctld] scontrol ping
+  exit 0
+  Slurmctld(primary) at slurmctld is UP
+  Slurmctld(backup) at slurmctld2 is UP

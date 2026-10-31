@@ -1,0 +1,56 @@
+# drill limits (2026-10-30 20:49:53 IST)
+
+## results
+PASS {"drill": "limit_wrong_account_refused", "pass": true, "message": "sbatch: error: Batch job submission failed: Invalid account or account/partition combination specified"}
+PASS {"drill": "limit_no_account_refused", "pass": true, "message": "sbatch: error: Batch job submission failed: Invalid account or account/partition combination specified"}
+PASS {"drill": "limit_gpu_share_waits", "pass": true, "third_job": ["PENDING", "AssocGrpGRES"], "idle_gpu_nodes": "1"}
+PASS {"drill": "limit_cross_user_cancel_refused", "pass": true, "bob_scancel": "scancel: error: Kill job error on job id 2: Access/permission denied", "state_after": "RUNNING"}
+PASS {"drill": "limit_gpus_per_job_refused", "pass": true, "gpus": 6, "message": "sbatch: error: QOSMaxGRESPerJob\nsbatch: error: Batch job submission failed: Job violates accounting/QOS policy (job submit limit, user's size and/or time limits"}
+PASS {"drill": "limit_maxwall_refused", "pass": true, "time": "25:00:00", "message": "sbatch: error: QOSMaxWallDurationPerJobLimit\nsbatch: error: Batch job submission failed: Job violates accounting/QOS policy (job submit limit, user's size and/o"}
+PASS {"drill": "limit_debug_qos", "pass": true, "second": ["PENDING", "QOSMaxJobsPerUserLimit"], "third_refused": "sbatch: error: QOSMaxSubmitJobPerUserLimit\nsbatch: error: Batch job submission failed: Job violates ", "two_gpus_refused": "sbatch: error: QOSMaxGRESPerJob\nsbatch: error: Batch job submission failed: Job violates accounting/"}
+
+## commands (polling commands not listed)
+$ [slurmctld] cd /tmp && runuser -u alice -- sbatch --parsable -o /dev/null --account=perf -p gpu --time=00:05:00 --nodes=1 --gpus-per-node=2 --wrap 'sleep 120'
+  exit 1
+  sbatch: error: Batch job submission failed: Invalid account or account/partition combination specified
+$ [slurmctld] cd /tmp && runuser -u carol -- sbatch --parsable -o /dev/null -p gpu --time=00:05:00 --nodes=1 --gpus-per-node=2 --wrap 'sleep 120'
+  exit 1
+  sbatch: error: Batch job submission failed: Invalid account or account/partition combination specified
+$ [slurmctld] cd /tmp && runuser -u alice -- sbatch --parsable -o /dev/null --account=arch -p gpu --time=00:05:00 --nodes=1 --gpus-per-node=2 --wrap 'sleep 120'
+  exit 0
+  2
+$ [slurmctld] cd /tmp && runuser -u alice -- sbatch --parsable -o /dev/null --account=arch -p gpu --time=00:05:00 --nodes=1 --gpus-per-node=2 --wrap 'sleep 120'
+  exit 0
+  3
+$ [slurmctld] cd /tmp && runuser -u alice -- sbatch --parsable -o /dev/null --account=arch -p gpu --time=00:05:00 --nodes=1 --gpus-per-node=2 --wrap 'sleep 120'
+  exit 0
+  4
+$ [slurmctld] runuser -u bob -- scancel 2
+  exit 210
+  scancel: error: Kill job error on job id 2: Access/permission denied
+$ [slurmctld] runuser -u alice -- scancel 2 3 4
+  exit 0
+$ [slurmctld] cd /tmp && runuser -u alice -- sbatch --parsable -o /dev/null --account=arch -p gpu --time=00:05:00 --nodes=3 --gpus-per-node=2 --wrap 'sleep 120'
+  exit 1
+  sbatch: error: QOSMaxGRESPerJob
+  sbatch: error: Batch job submission failed: Job violates accounting/QOS policy (job submit limit, user's size and/or time limits)
+$ [slurmctld] cd /tmp && runuser -u alice -- sbatch --parsable -o /dev/null --account=arch -p gpu --time=25:00:00 --nodes=1 --gpus-per-node=2 --wrap 'sleep 120'
+  exit 1
+  sbatch: error: QOSMaxWallDurationPerJobLimit
+  sbatch: error: Batch job submission failed: Job violates accounting/QOS policy (job submit limit, user's size and/or time limits)
+$ [slurmctld] cd /tmp && runuser -u alice -- sbatch --parsable -o /dev/null --account=arch --qos=debug -p debug --time=00:05:00 --gpus-per-node=1 --wrap 'sleep 120'
+  exit 0
+  5
+$ [slurmctld] cd /tmp && runuser -u alice -- sbatch --parsable -o /dev/null --account=arch --qos=debug -p debug --time=00:05:00 --gpus-per-node=1 --wrap 'sleep 120'
+  exit 0
+  6
+$ [slurmctld] cd /tmp && runuser -u alice -- sbatch --parsable -o /dev/null --account=arch --qos=debug -p debug --time=00:05:00 --gpus-per-node=1 --wrap 'sleep 120'
+  exit 1
+  sbatch: error: QOSMaxSubmitJobPerUserLimit
+  sbatch: error: Batch job submission failed: Job violates accounting/QOS policy (job submit limit, user's size and/or time limits)
+$ [slurmctld] cd /tmp && runuser -u alice -- sbatch --parsable -o /dev/null --account=arch --qos=debug -p debug --time=00:05:00 --gpus-per-node=2 --wrap 'sleep 120'
+  exit 1
+  sbatch: error: QOSMaxGRESPerJob
+  sbatch: error: Batch job submission failed: Job violates accounting/QOS policy (job submit limit, user's size and/or time limits)
+$ [slurmctld] runuser -u alice -- scancel 5 6; true
+  exit 0

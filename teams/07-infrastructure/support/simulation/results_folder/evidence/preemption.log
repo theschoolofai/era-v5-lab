@@ -1,0 +1,21 @@
+# drill preemption (2026-10-30 21:27:26 IST)
+
+## results
+PASS {"drill": "preemption", "pass": true, "main_job": "11", "preempted_team_runs": ["ladder-arch", "ladder-perf"], "team_saved_before_exit": true, "seconds_submit_to_running": 2.4}
+
+## commands (polling commands not listed)
+$ [slurmctld] cd /tmp && runuser -u svc -- sbatch --parsable --export=ALL,STEPS=100000,INTERVAL_S=5,STEP_SLEEP=0.05,RUN_ID=ladder-arch --account=arch --ntasks-per-node=1 --gpus-per-node=2 /opt/v5/slurm/team_job.sbatch
+  exit 0
+  8
+$ [slurmctld] cd /tmp && runuser -u svc -- sbatch --parsable --export=ALL,STEPS=100000,INTERVAL_S=5,STEP_SLEEP=0.05,RUN_ID=ladder-perf --account=perf --ntasks-per-node=1 --gpus-per-node=2 /opt/v5/slurm/team_job.sbatch
+  exit 0
+  9
+$ [slurmctld] cd /tmp && runuser -u svc -- sbatch --parsable --export=ALL,STEPS=100000,INTERVAL_S=5,STEP_SLEEP=0.05,RUN_ID=ladder-eval --account=eval --ntasks-per-node=1 --gpus-per-node=2 /opt/v5/slurm/team_job.sbatch
+  exit 0
+  10
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('drill.injected', **json.loads(sys.argv[1]))['time'])" '{"drill": "preemption", "team_jobs": ["8", "9", "10"]}'
+  exit 0
+  2026-10-30T15:57:21.665Z
+$ [slurmctld] cd /tmp && runuser -u svc -- sbatch --parsable --export=ALL,RUN_ID=v5main,STEPS=100000,INTERVAL_S=8,STEP_SLEEP=0.05,WATCHDOG_S=20,CRASHLOOP_WINDOW_S=10 --ntasks-per-node=2 --gpus-per-node=2 /opt/v5/slurm/mainrun.sbatch
+  exit 0
+  11

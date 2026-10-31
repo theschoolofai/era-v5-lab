@@ -1,0 +1,5 @@
+#!/bin/sh
+# Stands in for dmesg on the Docker test's nodes (Docker test only): prints /run/fake/dmesg, or nothing.
+# The container cannot read the host kernel log; xid_scan.py reads this instead. Idea from millermuttu (team 07).
+cat /run/fake/dmesg 2>/dev/null
+exit 0
