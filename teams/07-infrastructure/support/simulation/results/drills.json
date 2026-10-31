@@ -1,0 +1,407 @@
+{
+ "duration_s": 1971,
+ "passed": 44,
+ "total": 44,
+ "drills": [
+  {
+   "drill": "accounts",
+   "pass": true,
+   "accepted_job": "1",
+   "state": "COMPLETED",
+   "mainrun_preempts": "debug,normal",
+   "rejected_no_account": "sbatch: error: Batch job submission failed: Invalid account or account/partition combination specified"
+  },
+  {
+   "drill": "limit_wrong_account_refused",
+   "pass": true,
+   "message": "sbatch: error: Batch job submission failed: Invalid account or account/partition combination specified"
+  },
+  {
+   "drill": "limit_no_account_refused",
+   "pass": true,
+   "message": "sbatch: error: Batch job submission failed: Invalid account or account/partition combination specified"
+  },
+  {
+   "drill": "limit_gpu_share_waits",
+   "pass": true,
+   "third_job": [
+    "PENDING",
+    "AssocGrpGRES"
+   ],
+   "idle_gpu_nodes": "1"
+  },
+  {
+   "drill": "limit_cross_user_cancel_refused",
+   "pass": true,
+   "bob_scancel": "scancel: error: Kill job error on job id 2: Access/permission denied",
+   "state_after": "RUNNING"
+  },
+  {
+   "drill": "limit_gpus_per_job_refused",
+   "pass": true,
+   "gpus": 6,
+   "message": "sbatch: error: QOSMaxGRESPerJob\nsbatch: error: Batch job submission failed: Job violates accounting/QOS policy (job submit limit, user's size and/or time limits"
+  },
+  {
+   "drill": "limit_maxwall_refused",
+   "pass": true,
+   "time": "25:00:00",
+   "message": "sbatch: error: QOSMaxWallDurationPerJobLimit\nsbatch: error: Batch job submission failed: Job violates accounting/QOS policy (job submit limit, user's size and/o"
+  },
+  {
+   "drill": "limit_debug_qos",
+   "pass": true,
+   "second": [
+    "PENDING",
+    "QOSMaxJobsPerUserLimit"
+   ],
+   "third_refused": "sbatch: error: QOSMaxSubmitJobPerUserLimit\nsbatch: error: Batch job submission failed: Job violates ",
+   "two_gpus_refused": "sbatch: error: QOSMaxGRESPerJob\nsbatch: error: Batch job submission failed: Job violates accounting/"
+  },
+  {
+   "drill": "health_gpu_checks_run",
+   "pass": true,
+   "nodes": {
+    "c1": [
+     "pass",
+     "pass",
+     "pass",
+     "pass"
+    ],
+    "c2": [
+     "pass",
+     "pass",
+     "pass",
+     "pass"
+    ],
+    "c3": [
+     "pass",
+     "pass",
+     "pass",
+     "pass"
+    ]
+   }
+  },
+  {
+   "drill": "health_planted_faults",
+   "pass": true,
+   "faults": [
+    {
+     "fault": "gpus: 1 temperature.gpu=92",
+     "check": "gpu_temperature",
+     "status": "fail",
+     "verdict": "fail"
+    },
+    {
+     "fault": "gpus: 0 ecc.errors.uncorrected.volatile.total=",
+     "check": "ecc_uncorrectable",
+     "status": "fail",
+     "verdict": "fail"
+    },
+    {
+     "fault": "remap: 0 failure",
+     "check": "remapped_rows",
+     "status": "fail",
+     "verdict": "fail"
+    },
+    {
+     "fault": "nvlink: GPU 0: Fake\n\t Link 0: <inactive>\n\t Link ",
+     "check": "nvlink",
+     "status": "fail",
+     "verdict": "fail"
+    },
+    {
+     "fault": "dmesg: NVRM: Xid (PCI:0000:3b:00): 79, pid=1, G",
+     "check": "xid",
+     "status": "fail",
+     "verdict": "fail"
+    },
+    {
+     "fault": "dmesg: NVRM: Xid (PCI:0000:3b:00): 94, pid=1, C",
+     "check": "xid",
+     "status": "warn",
+     "verdict": "warn"
+    }
+   ]
+  },
+  {
+   "drill": "health_nvlink_drains_node",
+   "pass": true,
+   "reason": "v5:nvlink",
+   "drained_reason": "nvlink"
+  },
+  {
+   "drill": "time_limit_self_requeue",
+   "pass": true,
+   "job": "7",
+   "signal": "SIGUSR1",
+   "saved_step": 798,
+   "restored_step": 798,
+   "restarts": "1",
+   "lost_steps": 0
+  },
+  {
+   "drill": "preemption",
+   "pass": true,
+   "main_job": "11",
+   "preempted_team_runs": [
+    "ladder-arch",
+    "ladder-perf"
+   ],
+   "team_saved_before_exit": true,
+   "seconds_submit_to_running": 2.4
+  },
+  {
+   "drill": "gpu_allocation",
+   "pass": true,
+   "main_run_alloc": "cpu=8,node=2,billing=8,gres/gpu=4",
+   "over_ask_rejected": "sbatch: error: Batch job submission failed: Requested node configuration is not available"
+  },
+  {
+   "drill": "crash_loop_hold",
+   "pass": true,
+   "job": "13",
+   "cause": "crash_loop",
+   "restarts": 2
+  },
+  {
+   "drill": "kill_process_1",
+   "pass": true,
+   "node": "c1",
+   "restored_step": 2757,
+   "lost_steps": 83
+  },
+  {
+   "drill": "kill_process_2",
+   "pass": true,
+   "node": "c1",
+   "restored_step": 2889,
+   "lost_steps": 1
+  },
+  {
+   "drill": "kill_process_3",
+   "pass": true,
+   "node": "c1",
+   "restored_step": 3021,
+   "lost_steps": 9
+  },
+  {
+   "drill": "sigusr1_save_and_requeue_1",
+   "pass": true,
+   "saved_step": 3041,
+   "restored_step": 3041,
+   "lost_steps": 0
+  },
+  {
+   "drill": "sigusr1_save_and_requeue_2",
+   "pass": true,
+   "saved_step": 3052,
+   "restored_step": 3052,
+   "lost_steps": 0
+  },
+  {
+   "drill": "sigusr1_save_and_requeue_3",
+   "pass": true,
+   "saved_step": 3083,
+   "restored_step": 3083,
+   "lost_steps": 0
+  },
+  {
+   "drill": "kill_during_save",
+   "pass": true,
+   "inflight_step": 3346,
+   "restored_step": 3214,
+   "previous_latest": 3214
+  },
+  {
+   "drill": "kill_during_restore",
+   "pass": true,
+   "restore_interrupted_at": 3344,
+   "restored_step": 3344,
+   "restore_failures": 0
+  },
+  {
+   "drill": "spot_notice",
+   "pass": true,
+   "node": "c3",
+   "drained": true,
+   "new_nodes": [
+    "c1",
+    "c2"
+   ],
+   "lost_steps": 0
+  },
+  {
+   "drill": "health_fail_drain_and_replace",
+   "pass": true,
+   "node": "c1",
+   "reason": "drill_force_fail",
+   "new_nodes": [
+    "c2",
+    "c3"
+   ],
+   "lost_steps": 0
+  },
+  {
+   "drill": "two_nodes_down_waits_then_recovers",
+   "pass": true,
+   "drained": [
+    "c2",
+    "c3"
+   ],
+   "pending_reason": "BeginTime",
+   "waited_s": 55,
+   "restored_step": 4273
+  },
+  {
+   "drill": "hang_watchdog",
+   "pass": true,
+   "node": "c3",
+   "watchdog_idle_s": 20.02,
+   "restored_step": 4273,
+   "lost_steps": 27
+  },
+  {
+   "drill": "node_loss",
+   "pass": true,
+   "node": "c3",
+   "new_nodes": [
+    "c1",
+    "c2"
+   ],
+   "lost_steps": 47
+  },
+  {
+   "drill": "controller_failover",
+   "pass": true,
+   "takeover_s": 82.0,
+   "job_via_backup": "14",
+   "main_run_state_after": "RUNNING"
+  },
+  {
+   "drill": "db_backup_restore",
+   "pass": true,
+   "file": "slurm_acct_db-20261030T091902Z.sql.gz",
+   "bytes": 17933,
+   "tables": 31,
+   "tables_restored": 31,
+   "job_rows_restored": 52
+  },
+  {
+   "drill": "split_brain_fenced",
+   "pass": true,
+   "epoch": 16,
+   "pointer_step": 6526,
+   "refused_step": 6658,
+   "commits_after_claim": [],
+   "cause": "FencedError"
+  },
+  {
+   "drill": "resume_after_fence",
+   "pass": true,
+   "restored_step": 6526,
+   "epoch": 17
+  },
+  {
+   "drill": "nan_guard_hold",
+   "pass": true,
+   "nan_at_step": 6595,
+   "latest_committed": 6526,
+   "job_state": "SPECIAL_EXIT",
+   "reason": "JobHeldUser"
+  },
+  {
+   "drill": "held_job_explains_itself",
+   "pass": true,
+   "comment": "V5 HELD (78): NaN: held at step 6595. Explain: python metrics/explain.py nonfinite. Do: roll back: sbatch --export=ALL,TRAIN_EXTRA='--from-step <last good step> --skip <N> --branch <new name>' slurm/mainrun.sbatch (last good step: python ckpt/ckpt.py "
+  },
+  {
+   "drill": "rollback_skip_branch",
+   "pass": true,
+   "restored_step": 6526,
+   "branch": "b1"
+  },
+  {
+   "drill": "restore_smaller_world",
+   "pass": true,
+   "saved_world": 4,
+   "world": 2
+  },
+  {
+   "drill": "loss_spike_hold",
+   "pass": true,
+   "spike_at_step": 6660,
+   "latest_committed": 6655
+  },
+  {
+   "drill": "main_run_completes",
+   "pass": true,
+   "final_step": 6715,
+   "job": "17"
+  },
+  {
+   "drill": "budget_limit",
+   "pass": true,
+   "too_big_refused": "sbatch: error: AssocGrpCPUMinutesLimit\nsbatch: error: Batch job submission failed: Job vio",
+   "next_job": "pending: AssocGrpCPUMinutesLimit"
+  },
+  {
+   "drill": "fair_share",
+   "pass": true,
+   "arch": [
+    "arch",
+    "",
+    "2906",
+    "0.349132"
+   ],
+   "posttrain": [
+    "posttrain",
+    "",
+    "0",
+    "inf"
+   ]
+  },
+  {
+   "drill": "gpu_hours_accounting",
+   "pass": true,
+   "gpu_minutes_by_account": {
+    "arch": 24.6,
+    "perf": 20.6,
+    "eval": 49.7,
+    "mainrun": 36.7
+   }
+  },
+  {
+   "drill": "retention",
+   "pass": true,
+   "deleted": 44,
+   "protected": 12,
+   "freed_bytes": 52375220,
+   "store": "s3"
+  },
+  {
+   "drill": "export_safetensors",
+   "pass": true,
+   "step": 6715
+  },
+  {
+   "drill": "live_alerts",
+   "pass": true,
+   "high_alerts_fired": [
+    "C-02",
+    "C-03",
+    "C-04",
+    "CK-07",
+    "H-01",
+    "H-14",
+    "H-15",
+    "H-21",
+    "H-24",
+    "Q-02",
+    "Q-05",
+    "Q-19"
+   ],
+   "total_fired": 24
+  }
+ ]
+}

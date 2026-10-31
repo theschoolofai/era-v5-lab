@@ -1,0 +1,14 @@
+# drill time_limit (2026-10-30 14:21:40 IST)
+
+## results
+PASS {"drill": "time_limit_self_requeue", "pass": true, "job": "7", "signal": "SIGUSR1", "saved_step": 798, "restored_step": 798, "restarts": "1", "lost_steps": 0}
+
+## commands (polling commands not listed)
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('drill.injected', **json.loads(sys.argv[1]))['time'])" '{"drill": "time_limit", "cause_class": "planned"}'
+  exit 0
+  2026-10-30T08:49:10.732Z
+$ [slurmctld] cd /tmp && runuser -u svc -- sbatch --parsable --export=ALL,STEPS=100000,INTERVAL_S=5,STEP_SLEEP=0.05,RUN_ID=timelimit --account=arch --ntasks-per-node=1 --gpus-per-node=2 --time=00:02:00 --signal=B:USR1@60 /opt/v5/slurm/team_job.sbatch
+  exit 0
+  7
+$ [slurmctld] scancel 7
+  exit 0

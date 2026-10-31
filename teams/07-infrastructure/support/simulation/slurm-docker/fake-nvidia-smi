@@ -1,0 +1,53 @@
+#!/usr/bin/env python3
+"""Stands in for nvidia-smi on the Docker test's GPU nodes (Docker test only), so health_check.py runs its real
+GPU, row-remap and NVLink checks. Idea from Mallik's docker/fake-nvidia-smi (team 07).
+
+Healthy unless a fault file in /run/fake/ says otherwise (the drills plant and remove them):
+  /run/fake/gpus    one line per change: "<gpu index> <field>=<value> ...", e.g. "1 temperature.gpu=92"
+  /run/fake/remap   one line per change: "<gpu index> pending|failure"
+  /run/fake/nvlink  replaces the whole `nvidia-smi nvlink -s` output
+One GPU per /dev/v5gpu<N> file (the same files gres.conf points at).
+"""
+import glob
+import os
+import sys
+
+n = len(glob.glob("/dev/v5gpu[0-9]*"))
+healthy = {"index": None, "temperature.gpu": "40", "power.draw": "100.00",
+           "ecc.errors.uncorrected.volatile.total": "0", "ecc.errors.uncorrected.aggregate.total": "0",
+           "ecc.errors.corrected.volatile.total": "0", "clocks_throttle_reasons.hw_slowdown": "Not Active",
+           "clocks_event_reasons.hw_slowdown": "Not Active", "pcie.link.width.current": "16",
+           "pcie.link.width.max": "16"}
+
+
+def faults(name):
+    p = os.path.join("/run/fake", name)
+    return [l.split() for l in open(p).read().splitlines() if l.strip()] if os.path.exists(p) else []
+
+
+args = sys.argv[1:]
+if args[:1] == ["nvlink"]:
+    p = "/run/fake/nvlink"
+    if os.path.exists(p):
+        sys.stdout.write(open(p).read())
+    else:
+        for i in range(n):
+            print(f"GPU {i}: Fake GPU (UUID: GPU-fake-{i})\n\t Link 0: 26.562 GB/s\n\t Link 1: 26.562 GB/s")
+    sys.exit(0)
+q = next((a.split("=", 1)[1] for a in args if a.startswith("--query-gpu=")), None)
+if q:
+    over = {}
+    for row in faults("gpus"):
+        over.setdefault(int(row[0]), {}).update(kv.split("=", 1) for kv in row[1:])
+    for i in range(n):
+        vals = dict(healthy, index=str(i), **over.get(i, {}))
+        print(", ".join(vals.get(f, "[N/A]") for f in q.split(",")))
+    sys.exit(0)
+if any(a.startswith("--query-remapped-rows=") for a in args):
+    bad = {int(r[0]): r[1] for r in faults("remap")}
+    for i in range(n):
+        print(f"00000000:{i:02x}:00.0, {'Yes' if bad.get(i) == 'pending' else 'No'}, "
+              f"{'Yes' if bad.get(i) == 'failure' else 'No'}")
+    sys.exit(0)
+print("fake nvidia-smi (Docker test): unsupported arguments", args, file=sys.stderr)
+sys.exit(2)

@@ -1,0 +1,259 @@
+{
+ "duration_s": 1779,
+ "passed": 31,
+ "total": 31,
+ "drills": [
+  {
+   "drill": "accounts",
+   "pass": true,
+   "accepted_job": "1",
+   "rejected_no_account": "sbatch: error: Batch job submission failed: Invalid account or account/partition combination specified"
+  },
+  {
+   "drill": "preemption",
+   "pass": true,
+   "main_job": "5",
+   "preempted_team_runs": [
+    "ladder-arch",
+    "ladder-perf"
+   ],
+   "team_saved_before_exit": true,
+   "seconds_submit_to_running": 2.4
+  },
+  {
+   "drill": "gpu_allocation",
+   "pass": true,
+   "main_run_alloc": "cpu=8,node=2,billing=8,gres/gpu=4",
+   "over_ask_rejected": "sbatch: error: Batch job submission failed: Requested node configuration is not available"
+  },
+  {
+   "drill": "crash_loop_hold",
+   "pass": true,
+   "job": "7",
+   "cause": "crash_loop",
+   "restarts": 2
+  },
+  {
+   "drill": "kill_process_1",
+   "pass": true,
+   "node": "c2",
+   "restored_step": 2905,
+   "lost_steps": 65
+  },
+  {
+   "drill": "kill_process_2",
+   "pass": true,
+   "node": "c2",
+   "restored_step": 3037,
+   "lost_steps": 3
+  },
+  {
+   "drill": "kill_process_3",
+   "pass": true,
+   "node": "c2",
+   "restored_step": 3169,
+   "lost_steps": 1
+  },
+  {
+   "drill": "sigusr1_save_and_requeue_1",
+   "pass": true,
+   "saved_step": 3190,
+   "restored_step": 3190,
+   "lost_steps": 0
+  },
+  {
+   "drill": "sigusr1_save_and_requeue_2",
+   "pass": true,
+   "saved_step": 3224,
+   "restored_step": 3224,
+   "lost_steps": 0
+  },
+  {
+   "drill": "sigusr1_save_and_requeue_3",
+   "pass": true,
+   "saved_step": 3253,
+   "restored_step": 3253,
+   "lost_steps": 0
+  },
+  {
+   "drill": "kill_during_save",
+   "pass": true,
+   "inflight_step": 3519,
+   "restored_step": 3386,
+   "previous_latest": 3386
+  },
+  {
+   "drill": "kill_during_restore",
+   "pass": true,
+   "restore_interrupted_at": 3518,
+   "restored_step": 3518,
+   "restore_failures": 0
+  },
+  {
+   "drill": "spot_notice",
+   "pass": true,
+   "node": "c3",
+   "drained": true,
+   "new_nodes": [
+    "c1",
+    "c2"
+   ],
+   "lost_steps": 0
+  },
+  {
+   "drill": "health_fail_drain_and_replace",
+   "pass": true,
+   "node": "c1",
+   "reason": "drill_force_fail",
+   "new_nodes": [
+    "c2",
+    "c3"
+   ],
+   "lost_steps": 0
+  },
+  {
+   "drill": "two_nodes_down_waits_then_recovers",
+   "pass": true,
+   "drained": [
+    "c2",
+    "c3"
+   ],
+   "pending_reason": "BeginTime",
+   "waited_s": 52,
+   "restored_step": 4384
+  },
+  {
+   "drill": "hang_watchdog",
+   "pass": true,
+   "node": "c3",
+   "watchdog_idle_s": 20.01,
+   "restored_step": 4384,
+   "lost_steps": 6
+  },
+  {
+   "drill": "node_loss",
+   "pass": true,
+   "node": "c3",
+   "new_nodes": [
+    "c1",
+    "c2"
+   ],
+   "lost_steps": 36
+  },
+  {
+   "drill": "controller_failover",
+   "pass": true,
+   "takeover_s": 81.9,
+   "job_via_backup": "8",
+   "main_run_state_after": "RUNNING"
+  },
+  {
+   "drill": "db_backup_restore",
+   "pass": true,
+   "file": "slurm_acct_db-20261029T150441Z.sql.gz",
+   "bytes": 16971,
+   "tables": 31,
+   "tables_restored": 31,
+   "job_rows_restored": 44
+  },
+  {
+   "drill": "nan_guard_hold",
+   "pass": true,
+   "nan_at_step": 6725,
+   "latest_committed": 6623,
+   "job_state": "SPECIAL_EXIT",
+   "reason": "JobHeldUser"
+  },
+  {
+   "drill": "held_job_explains_itself",
+   "pass": true,
+   "comment": "V5 HELD (78): NaN: held at step 6725. Explain: python metrics/explain.py nonfinite. Do: roll back: sbatch --export=ALL,TRAIN_EXTRA='--from-step <last good step> --skip <N> --branch <new name>' slurm/mainrun.sbatch (last good step: python ckpt/ckpt.py "
+  },
+  {
+   "drill": "restore_smaller_world",
+   "pass": true,
+   "cause": "ReshardError",
+   "detail": "step 6623 was saved by DeepSpeed at world size 4; resume at 2 needs ds_to_universal.py first (an operator job)"
+  },
+  {
+   "drill": "rollback_skip_branch",
+   "pass": true,
+   "restored_step": 6623,
+   "branch": "b1"
+  },
+  {
+   "drill": "loss_spike_hold",
+   "pass": true,
+   "spike_at_step": 6770,
+   "latest_committed": 6755
+  },
+  {
+   "drill": "main_run_completes",
+   "pass": true,
+   "final_step": 6815,
+   "job": "11"
+  },
+  {
+   "drill": "budget_limit",
+   "pass": true,
+   "reason": "AssocGrpCPUMinutesLimit"
+  },
+  {
+   "drill": "fair_share",
+   "pass": true,
+   "arch": [
+    "arch",
+    "",
+    "2364",
+    "0.424292"
+   ],
+   "posttrain": [
+    "posttrain",
+    "",
+    "0",
+    "inf"
+   ]
+  },
+  {
+   "drill": "gpu_hours_accounting",
+   "pass": true,
+   "gpu_minutes_by_account": {
+    "arch": 19.6,
+    "perf": 23.0,
+    "eval": 49.6,
+    "mainrun": 37.6
+   }
+  },
+  {
+   "drill": "retention",
+   "pass": true,
+   "deleted": 43,
+   "protected": 12,
+   "freed_bytes": 63248083,
+   "store": "s3"
+  },
+  {
+   "drill": "export_safetensors",
+   "pass": true,
+   "step": 6815
+  },
+  {
+   "drill": "live_alerts",
+   "pass": true,
+   "high_alerts_fired": [
+    "C-02",
+    "C-03",
+    "C-04",
+    "CK-06",
+    "CK-07",
+    "H-14",
+    "H-21",
+    "H-24",
+    "Q-02",
+    "Q-05",
+    "Q-19"
+   ],
+   "total_fired": 22
+  }
+ ]
+}

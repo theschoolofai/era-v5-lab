@@ -1,0 +1,24 @@
+# drill kill_during_save (2026-10-30 14:35:11 IST)
+
+## results
+PASS {"drill": "kill_during_save", "pass": true, "inflight_step": 3346, "restored_step": 3214, "previous_latest": 3214}
+
+## commands (polling commands not listed)
+$ [slurmctld] scontrol show hostnames c[1,3]
+  exit 0
+  c1
+  c3
+$ [slurmctld] . /etc/v5/node.env; /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from ckpt.store import open_store; print(json.dumps(open_store('s3://v5-ckpt/ckpt/v5main').get_json('latest.json')))"
+  exit 0
+  {"branch": "main", "epoch": 7, "host": "c1", "job": "11", "path": "main/step_00003214-e7", "step": 3214}
+$ [slurmctld] mkdir -p /s3/drills/v5main && echo 2 > /s3/drills/v5main/upload_delay_s
+  exit 0
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('drill.injected', **json.loads(sys.argv[1]))['time'])" '{"drill": "kill_during_save", "cause_class": "software"}'
+  exit 0
+  2026-10-30T09:03:50.854Z
+$ [c1] pkill -9 -f '[t]rain.py --run-id v5main' ; true
+  exit 0
+$ [c3] pkill -9 -f '[t]rain.py --run-id v5main' ; true
+  exit 0
+$ [slurmctld] rm -f /s3/drills/v5main/upload_delay_s
+  exit 0

@@ -1,0 +1,34 @@
+# drill two_nodes_down (2026-10-30 14:43:11 IST)
+
+## results
+PASS {"drill": "two_nodes_down_waits_then_recovers", "pass": true, "drained": ["c2", "c3"], "pending_reason": "BeginTime", "waited_s": 55, "restored_step": 4273}
+
+## commands (polling commands not listed)
+$ [slurmctld] scontrol show hostnames c[2-3]
+  exit 0
+  c2
+  c3
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('drill.injected', **json.loads(sys.argv[1]))['time'])" '{"drill": "two_nodes_down", "targets": ["c2", "c3"], "cause_class": "gpu"}'
+  exit 0
+  2026-10-30T09:11:16.978Z
+$ [c2] echo 'drill: two nodes down' > /var/lib/v5-health/force_fail
+  exit 0
+$ [c3] echo 'drill: two nodes down' > /var/lib/v5-health/force_fail
+  exit 0
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('drill.note', **json.loads(sys.argv[1]))['time'])" '{"note": "nodes repaired"}'
+  exit 0
+  2026-10-30T09:12:11.862Z
+$ [c2] rm -f /var/lib/v5-health/force_fail
+  exit 0
+$ [slurmctld] scontrol update nodename=c2 state=resume
+  exit 0
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('node.resumed', **json.loads(sys.argv[1]))['time'])" '{"node": "c2", "by": "drill"}'
+  exit 0
+  2026-10-30T09:12:12.204Z
+$ [c3] rm -f /var/lib/v5-health/force_fail
+  exit 0
+$ [slurmctld] scontrol update nodename=c3 state=resume
+  exit 0
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('node.resumed', **json.loads(sys.argv[1]))['time'])" '{"node": "c3", "by": "drill"}'
+  exit 0
+  2026-10-30T09:12:12.543Z

@@ -1,0 +1,15 @@
+# drill hang (2026-10-30 14:44:43 IST)
+
+## results
+PASS {"drill": "hang_watchdog", "pass": true, "node": "c3", "watchdog_idle_s": 20.02, "restored_step": 4273, "lost_steps": 27}
+
+## commands (polling commands not listed)
+$ [slurmctld] scontrol show hostnames c[2-3]
+  exit 0
+  c2
+  c3
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('drill.injected', **json.loads(sys.argv[1]))['time'])" '{"drill": "hang", "target": "c3", "cause_class": "software"}'
+  exit 0
+  2026-10-30T09:13:11.910Z
+$ [c3] pkill -STOP -f '[t]rain.py --run-id v5main' ; true
+  exit 0

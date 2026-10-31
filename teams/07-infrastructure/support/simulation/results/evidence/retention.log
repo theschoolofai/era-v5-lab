@@ -1,0 +1,19 @@
+# drill retention (2026-10-30 14:50:47 IST)
+
+## results
+PASS {"drill": "retention", "pass": true, "deleted": 44, "protected": 12, "freed_bytes": 52375220, "store": "s3"}
+PASS {"drill": "export_safetensors", "pass": true, "step": 6715}
+
+## commands (polling commands not listed)
+$ [slurmctld] cd /tmp && runuser -u root -- sbatch --parsable --export=ALL --account=infra -p cpu --wrap '. /etc/v5/node.env; /opt/venv/bin/python /opt/v5/ckpt/ckpt.py retention --run s3://v5-ckpt/ckpt/v5main --keep 3 --protect-every 5'
+  exit 0
+  20
+$ [slurmctld] mkdir -p /s3/exports && chmod 1777 /s3/exports
+  exit 0
+$ [slurmctld] cat > /s3/exports/export_job.py <<'EOF'
+import sys; sys.path[:0] = ['/opt/v5', '/opt/v5/support/simulation']; from ckpt.ckpt import export_safetensors; from trainer.tiny import TinyLM, make_probe_fn; print(export_safetensors('s3://v5-ckpt/ckpt/v5main', lambda: TinyLM(1234), make_probe_fn(1234), '/s3/exports/v5main.safetensors'))
+EOF
+  exit 0
+$ [slurmctld] cd /tmp && runuser -u svc -- sbatch --parsable --export=ALL --account=eval -p eval --wrap '. /etc/v5/node.env; OMP_NUM_THREADS=1 RUN_ID=v5main /opt/venv/bin/python /s3/exports/export_job.py'
+  exit 0
+  21

@@ -1,0 +1,320 @@
+# V5 infrastructure metrics catalog (ADR 0004). The single source: docs/metrics_catalog.md is generated
+# from this file (python metrics/evaluate.py --render-md), and evaluate.py checks these thresholds.
+#
+# Each metric has up to three thresholds. The highest one crossed sets the severity:
+#   high   : act NOW. Page the on-call person, 24x7, acknowledge within 15 min. Paid GPU time is being
+#            wasted right now, or a checkpoint (money already spent) is at risk.
+#   medium : act TODAY, within 4 working hours. Things still run, but cost grows if nobody acts.
+#   low    : look at it in the weekly ops review. A trend or a small inefficiency.
+# direction: "above" alerts when value >= threshold, "below" when value <= threshold.
+# sim: true when evaluate.py computes it in the Docker test; false needs real GPUs or AWS.
+
+severity:
+  high:   {response: "page now, 24x7, ack <= 15 min", who: "Team 07 on-call (Team 08 delivers the page)"}
+  medium: {response: "fix the same working day (<= 4 h)", who: "Team 07"}
+  low:    {response: "weekly ops review", who: "Team 07 + lead"}
+
+metrics:
+# ------------------------------------------------------------------ checkpoint: protect money already spent
+- {id: CK-01, area: checkpoint, name: Time since last committed checkpoint, unit: x interval, direction: above,
+   low: 1.2, medium: 1.5, high: 2.0, sim: true, owner: "07",
+   why: "Everything trained since the last commit is lost if a node dies now.",
+   action: "Check checkpoint.failed events; if saves fail, fix storage before the next failure costs a full interval."}
+- {id: CK-02, area: checkpoint, name: Compute dollars at risk (since last commit), unit: USD, direction: above,
+   low: 1.2, medium: 1.5, high: 2.0, scale: interval_cost, sim: true, owner: "07",
+   why: "The same risk in money: cluster price x time since the last commit.",
+   action: "Same as CK-01. Thresholds are multiples of the cost of one interval."}
+- {id: CK-03, area: checkpoint, name: Consecutive failed saves, unit: count, direction: above,
+   low: null, medium: 1, high: 2, sim: true, owner: "07",
+   why: "One failed save doubles the work at risk; two in a row triples it.",
+   action: "Read the failure cause (nvme_full, IntegrityError, upload timeout) and fix it now."}
+- {id: CK-04, area: checkpoint, name: Checksum mismatches (commit or restore), unit: count, direction: above,
+   low: null, medium: null, high: 1, sim: true, owner: "07",
+   why: "A damaged checkpoint file. The restore skips it, but the cause (disk, network, S3) can damage the next one.",
+   action: "Find the hop that corrupts data (NVMe, network, S3). Pin the last good checkpoint."}
+- {id: CK-05, area: checkpoint, name: "Restore check failures (digest, probe, next batch, frozen)", unit: count,
+   direction: above, low: null, medium: null, high: 1, sim: true, owner: "07",
+   why: "The loaded state is not the saved state: a silent misload like V4's (loss 2.95 vs 2.55).",
+   action: "Stop the run; compare the printed saved/restored values; do not continue on that checkpoint."}
+- {id: CK-06, area: checkpoint, name: Strict-load or environment refusals, unit: count, direction: above,
+   low: null, medium: null, high: 1, sim: true, owner: "07",
+   why: "The code or software changed under the run; every restart fails the same way.",
+   action: "Fix the key mismatch, or restart with --allow-env-change after a person approves the change."}
+- {id: CK-07, area: checkpoint, name: NaN guard trips, unit: count, direction: above,
+   low: null, medium: null, high: 1, sim: true, owner: "07 + 05",
+   why: "Training produced NaN. The run is held, nothing bad was saved, but GPUs are idle until a rollback.",
+   action: "Rollback: --from-step <last good> --skip N --branch <new>."}
+- {id: CK-08, area: checkpoint, name: Save stall as share of interval, unit: "%", direction: above,
+   low: 1.0, medium: 2.0, high: 5.0, sim: true, owner: "06 measures, 07 budget",
+   why: "While a save stalls training, all GPUs wait. 2% stall = 2% of the GPU bill wasted.",
+   action: "Raise the interval or speed up GPU-to-host staging (Team 06)."}
+- {id: CK-09, area: checkpoint, name: Commit latency (stall end to committed), unit: s, direction: above,
+   low: 300, medium: 600, high: 1200, sim: true, owner: "07",
+   why: "Until the commit, the new checkpoint does not protect anything; eval also waits for it.",
+   action: "Check upload throughput (CK-11) and S3 errors."}
+- {id: CK-10, area: checkpoint, name: Save backpressure (previous save still running), unit: count/day,
+   direction: above, low: 1, medium: 3, high: null, sim: true, owner: "07",
+   why: "The interval is shorter than the upload time: saves queue up and the wait becomes stall.",
+   action: "Increase the interval or upload bandwidth."}
+- {id: CK-11, area: checkpoint, name: Upload throughput vs baseline, unit: ratio, direction: below,
+   low: 0.8, medium: 0.5, high: null, sim: false, owner: "07",
+   why: "Slow uploads stretch commit latency and the work at risk.",
+   action: "Check NIC, S3 prefix throttling (503 SlowDown), multipart size."}
+- {id: CK-12, area: checkpoint, name: NVMe headroom (free / per-node checkpoint share), unit: ratio, direction: below,
+   low: 3.0, medium: 2.0, high: 1.2, sim: false, owner: "07",
+   why: "Below 1.2x the next save is skipped (nvme_full).",
+   action: "Clean the node's NVMe, lower keep_local, or replace the node."}
+- {id: CK-13, area: checkpoint, name: Restore time (job start to first productive step), unit: s, direction: above,
+   low: 600, medium: 900, high: 1800, sim: true, owner: "07",
+   why: "Every restore minute is a full-cluster minute paid for with no training.",
+   action: "Use the node-local copy when valid; prefetch from S3 in parallel; check S3 throughput."}
+- {id: CK-14, area: checkpoint, name: Work lost per incident, unit: x interval, direction: above,
+   low: 0.6, medium: 1.0, high: 2.0, sim: true, owner: "07",
+   why: "Expected loss is half an interval; more means saves failed or the emergency save did not happen.",
+   action: "Check that SIGUSR1/SIGTERM reached the trainer and the emergency save committed."}
+- {id: CK-15, area: checkpoint, name: Protected checkpoint missing or deleted, unit: count, direction: above,
+   low: null, medium: null, high: 1, sim: true, owner: "07",
+   why: "Protected checkpoints (every N-th, final, pinned) are the money we can never re-buy.",
+   action: "Restore from S3 versioning; check the retention job's IAM role."}
+- {id: CK-16, area: checkpoint, name: Orphan uncommitted objects in S3, unit: GB, direction: above,
+   low: 1, medium: 100, high: null, sim: true, owner: "07",
+   why: "Half-uploaded checkpoints are never used but are billed every month.",
+   action: "Run the retention job; add an S3 lifecycle rule to abort incomplete multipart uploads after 1 day."}
+- {id: CK-17, area: checkpoint, name: Checkpoint storage cost per day vs plan, unit: ratio, direction: above,
+   low: 1.0, medium: 1.5, high: null, sim: false, owner: "07",
+   why: "S3 cost grows with every kept checkpoint.",
+   action: "Move protected checkpoints older than X days to Glacier; check keep counts."}
+- {id: CK-18, area: checkpoint, name: Export parity failures (safetensors), unit: count, direction: above,
+   low: null, medium: 1, high: null, sim: true, owner: "07",
+   why: "Teams 09/11/12 would evaluate or ship weights that are not the trained ones.",
+   action: "Block the export; compare keys and probe bits."}
+- {id: CK-19, area: checkpoint, name: Resharded resumes, unit: count, direction: above,
+   low: 1, medium: null, high: null, sim: true, owner: "07",
+   why: "Resume on a different world size is safe but not bit-equal: the branch is marked.",
+   action: "Note it in the run log and the paper's failure table."}
+- {id: CK-20, area: checkpoint, name: Probe value missing for this device class, unit: count, direction: above,
+   low: 1, medium: null, high: null, sim: true, owner: "07",
+   why: "First restore on new hardware cannot compare probe bits yet.",
+   action: "Record the probe on the new class at the next save."}
+
+# ------------------------------------------------------------------ queue / scheduler: no idle paid GPUs
+- {id: Q-01, area: queue, name: Main run not running (pending time), unit: s, direction: above,
+   low: null, medium: 120, high: 600, sim: true, owner: "07",
+   why: "The main run's nodes are paid for whether it runs or not.",
+   action: "squeue reason: no nodes (drained > spares?), held, or controller issue."}
+- {id: Q-02, area: queue, name: Main run held (exit 78 / crash loop), unit: count, direction: above,
+   low: null, medium: null, high: 1, sim: true, owner: "07",
+   why: "Held means a person must act; until then the cluster burns money with no training.",
+   action: "Read the job.held cause; rollback or fix, then release."}
+- {id: Q-03, area: queue, name: Reschedule latency (job end to running again), unit: s, direction: above,
+   low: 120, medium: 300, high: 600, sim: true, owner: "07",
+   why: "Time between the crash and the restart is pure loss. Floor: cred_expire=60 + 1 s, so a normal restart is 85-95 s; LOW starts at 2x that floor.",
+   action: "Check the spare is up and idle (Q-08), and slurmctld load."}
+- {id: Q-04, area: queue, name: Crash-loop holds, unit: count, direction: above,
+   low: null, medium: 1, high: null, sim: true, owner: "07",
+   why: "A job crashed 3 times in 30 min and was stopped so it does not burn GPU hours in a loop.",
+   action: "Read the logs of the 3 crashes; for the main run this is also Q-02 (high)."}
+- {id: Q-05, area: queue, name: Main-run interruptions per day, unit: count/day, direction: above,
+   low: 2, medium: 5, high: 10, sim: true, owner: "07",
+   why: "A rising rate means a bad node or bad code; each one costs ~interval/2 + MTTR.",
+   action: "Group incidents by node and cause_class; drain repeat offenders."}
+- {id: Q-06, area: queue, name: "Idle GPU node-hours (up, no job)", unit: node-h/day, direction: above,
+   low: 0.5, medium: 2, high: 4, sim: false, owner: "07",
+   why: "An idle running GPU node costs the full hourly price for nothing.",
+   action: "Check SuspendTime / power saving; stop forgotten instances."}
+- {id: Q-07, area: queue, name: Allocated but not stepping, unit: s, direction: above,
+   low: null, medium: 300, high: 900, sim: true, owner: "07",
+   why: "Slurm says the job runs, but no training step completes: a hang or a slow restore.",
+   action: "Check the watchdog fired; dump stacks; if not, cancel with USR1."}
+- {id: Q-08, area: queue, name: Healthy idle spare nodes, unit: count, direction: below,
+   low: null, medium: 0, high: null, sim: false, owner: "07",
+   why: "Without a spare, the next node failure waits for a new instance (minutes to hours).",
+   action: "Undrain a repaired node or start a new one."}
+- {id: Q-09, area: queue, name: Drained nodes, unit: count, direction: above,
+   low: 1, medium: 2, high: 3, sim: true, owner: "07",
+   why: "Drained nodes are paid for (unless stopped) and reduce spares.",
+   action: "Re-test with --full; repair, replace or stop the instance."}
+- {id: Q-10, area: queue, name: Node replacement time (drain to spare running the job), unit: s,
+   direction: above, low: 120, medium: 300, high: 900, sim: true, owner: "07",
+   why: "How long the main run is down when a node is taken out.",
+   action: "Keep the hot spare up; check preemption grace time on the spare's team job."}
+- {id: Q-11, area: queue, name: slurmctld not responding, unit: s, direction: above,
+   low: null, medium: null, high: 60, sim: false, owner: "07",
+   why: "No scheduling, no requeue, no restarts.",
+   action: "Fail over to the backup controller; check the head node."}
+- {id: Q-12, area: queue, name: slurmdbd not responding, unit: s, direction: above,
+   low: null, medium: 300, high: null, sim: false, owner: "07",
+   why: "Accounting and budgets stop updating; limits are enforced on stale data.",
+   action: "Restart slurmdbd; check MariaDB disk."}
+- {id: Q-13, area: queue, name: Team queue wait p95, unit: h, direction: above,
+   low: 1, medium: 4, high: null, sim: false, owner: "07",
+   why: "Teams blocked waiting cannot use the capacity calendar they were given.",
+   action: "Check fair-share and caps; move work to off-peak."}
+- {id: Q-14, area: queue, name: Team GPU-hours lost to preemption, unit: node-h/week, direction: above,
+   low: 1, medium: 5, high: null, sim: true, owner: "07",
+   why: "Preempted team jobs lose work since their last save.",
+   action: "Ask the team to checkpoint more often, or schedule them away from main-run restarts."}
+- {id: Q-15, area: queue, name: Account budget used (GrpTRESMins), unit: "%", direction: above,
+   low: 50, medium: 75, high: 90, sim: false, owner: "07 + lead",
+   why: "At 100% the account's jobs stop.",
+   action: "Warn the team at 50/75; at 90 the lead decides to top up or stop."}
+- {id: Q-16, area: queue, name: Jobs rejected for no valid account, unit: count, direction: above,
+   low: 1, medium: null, high: null, sim: true, owner: "07",
+   why: "Someone tried to submit outside the accounting rules.",
+   action: "Check the submit system's account mapping."}
+- {id: Q-17, area: queue, name: Clock offset between nodes, unit: ms, direction: above,
+   low: 50, medium: 100, high: 500, sim: false, owner: "07",
+   why: "Wrong clocks break event ordering, MTTR numbers and incident timelines.",
+   action: "Restart chrony; check the Amazon Time Sync endpoint."}
+- {id: Q-18, area: queue, name: Container image pull time, unit: s, direction: above,
+   low: 300, medium: 900, high: null, sim: false, owner: "07",
+   why: "A slow first pull adds to every restart on a new node.",
+   action: "Pre-pull the image into the Enroot cache on NVMe at boot."}
+- {id: Q-19, area: queue, name: Goodput of the main run, unit: "%", direction: below,
+   low: 92, medium: 90, high: 80, sim: true, owner: "07",
+   why: "The share of paid wall-clock time that trained the model. Frontier runs: 89-90%.",
+   action: "See the largest non-productive bucket in the report."}
+- {id: Q-20, area: queue, name: MTTR (fault to first productive step), unit: s, direction: above,
+   low: 900, medium: 1800, high: 3600, sim: true, owner: "07",
+   why: "Mean time the whole cluster is down per incident.",
+   action: "Break it down: detection, reschedule, restore (report shows each)."}
+- {id: Q-21, area: queue, name: Human interventions, unit: count/week, direction: above,
+   low: 1, medium: 3, high: null, sim: true, owner: "07",
+   why: "Every manual step is a delay at 4 a.m. and a chance of mistakes. Llama 3: 3 of 466.",
+   action: "Automate the step that needed a person."}
+
+# ------------------------------------------------------------------ health: remove bad nodes before they cost
+- {id: H-01, area: health, name: Fatal Xid on a node, unit: count, direction: above,
+   low: null, medium: null, high: 1, sim: true, owner: "07",
+   why: "The GPU is broken (79 fallen off bus, 94/95 ECC, 48 DBE...). The job will crash or produce garbage.",
+   action: "Automatic drain + save; open a hardware ticket; replace the instance."}
+- {id: H-02, area: health, name: Warn/unknown Xid, unit: count/day, direction: above,
+   low: 1, medium: 3, high: null, sim: false, owner: "07",
+   why: "Often software (13, 31, 43) but repeats point to hardware.",
+   action: "Correlate with job crashes; drain at the next checkpoint if repeating."}
+- {id: H-03, area: health, name: ECC uncorrectable errors, unit: count, direction: above,
+   low: null, medium: null, high: 1, sim: false, owner: "07",
+   why: "Memory returned wrong data: the step result cannot be trusted.",
+   action: "Drain now; roll back to the checkpoint before the first error if loss looks wrong."}
+- {id: H-04, area: health, name: Correctable ECC 24 h vs fleet median, unit: ratio, direction: above,
+   low: 2, medium: 3, high: null, sim: false, owner: "07",
+   why: "A rising correctable count often comes before an uncorrectable one.",
+   action: "Schedule the node for --full re-test at the next checkpoint."}
+- {id: H-05, area: health, name: Row remap pending, unit: count, direction: above,
+   low: null, medium: 1, high: null, sim: false, owner: "07",
+   why: "The GPU needs a reset to finish repairing its memory.",
+   action: "Drain at the next checkpoint and reset the GPU."}
+- {id: H-06, area: health, name: Row remap failure, unit: count, direction: above,
+   low: null, medium: null, high: 1, sim: false, owner: "07",
+   why: "The GPU ran out of spare memory rows: it must be replaced.",
+   action: "Drain now; replace the instance."}
+- {id: H-07, area: health, name: GPU count lower than expected, unit: count, direction: above,
+   low: null, medium: null, high: 1, sim: false, owner: "07",
+   why: "A GPU disappeared: jobs fail to start or run slower.",
+   action: "Drain; reboot or replace."}
+- {id: H-08, area: health, name: GPU temperature vs slowdown limit, unit: C below limit, direction: below,
+   low: 10, medium: 5, high: 0, sim: false, owner: "07",
+   why: "A hot GPU slows down and then the whole job runs at its speed.",
+   action: "Check the instance; AWS ticket for cooling."}
+- {id: H-09, area: health, name: Hardware slowdown / power brake active, unit: count, direction: above,
+   low: null, medium: 1, high: null, sim: false, owner: "07",
+   why: "One throttled GPU slows every GPU in the job.",
+   action: "Drain at the next checkpoint."}
+- {id: H-10, area: health, name: PCIe link narrower than max, unit: count, direction: above,
+   low: null, medium: 1, high: null, sim: false, owner: "07",
+   why: "Slow host-GPU copies: slower checkpoints and data loading.",
+   action: "Reboot; replace if it persists."}
+- {id: H-11, area: health, name: NVLink / EFA link down, unit: count, direction: above,
+   low: null, medium: null, high: 1, sim: false, owner: "07",
+   why: "Collectives fall back to slow paths or fail.",
+   action: "Drain now."}
+- {id: H-12, area: health, name: All-reduce busbw vs baseline, unit: ratio, direction: below,
+   low: 0.95, medium: 0.9, high: 0.7, sim: false, owner: "07",
+   why: "A slow link slows every step of the main run.",
+   action: "Below 0.9 the node fails --full; find the slow NIC or GPU."}
+- {id: H-13, area: health, name: All-reduce wrong result, unit: count, direction: above,
+   low: null, medium: null, high: 1, sim: false, owner: "07",
+   why: "Wrong sums mean wrong gradients: silent damage to the model.",
+   action: "Drain now; check for silent data corruption on that node."}
+- {id: H-14, area: health, name: Step watchdog fired (hang), unit: count/h, direction: above,
+   low: null, medium: 1, high: 2, sim: true, owner: "07",
+   why: "A hang was turned into a restart; repeated hangs point to a bad node or a deadlock.",
+   action: "Read the stack dump in the job log and the NCCL flight-recorder trace; drain the rank that stopped."}
+- {id: H-15, area: health, name: Straggler ratio (rank step time / median), unit: ratio, direction: above,
+   low: 1.05, medium: 1.1, high: 1.25, sim: true, owner: "05 logs, 08 alerts, 07 acts",
+   why: "The slowest rank sets the speed of all ranks: a 10% straggler wastes 10% of the bill.",
+   action: "Medium for 3 windows: drain at the next checkpoint."}
+- {id: H-16, area: health, name: NCCL timeouts, unit: count/h, direction: above,
+   low: null, medium: 1, high: 2, sim: false, owner: "07",
+   why: "Network or a stuck rank; each costs a restart.",
+   action: "Flight-recorder dump shows which rank; drain that node."}
+- {id: H-17, area: health, name: Health check runtime (prolog), unit: s, direction: above,
+   low: 30, medium: 60, high: null, sim: true, owner: "07",
+   why: "Every prolog second delays every job start.",
+   action: "Move slow checks to --full."}
+- {id: H-18, area: health, name: Required check skipped, unit: count, direction: above,
+   low: null, medium: 1, high: null, sim: true, owner: "07",
+   why: "We are blind on that node: a GPU check could not run.",
+   action: "Install the missing tool (nvidia-smi, dcgmi) or fix permissions."}
+- {id: H-19, area: health, name: False drains (passes --full after drain), unit: count/week, direction: above,
+   low: 1, medium: 3, high: null, sim: false, owner: "07",
+   why: "Each false drain costs a restart and a spare for nothing.",
+   action: "Loosen the threshold that caused it."}
+- {id: H-20, area: health, name: Missed incidents (no prior warn/fail), unit: count/dry run, direction: above,
+   low: 1, medium: null, high: null, sim: false, owner: "07",
+   why: "A failure our checks did not see coming.",
+   action: "Add a check or tighten a threshold; update the coverage map."}
+- {id: H-21, area: health, name: Spot interruption notice, unit: count, direction: above,
+   low: null, medium: null, high: 1, sim: true, owner: "07",
+   why: "2 minutes until the node is gone. The automatic save must finish in time.",
+   action: "Automatic: drain + save + requeue. Page only if no commit within 90 s."}
+- {id: H-22, area: health, name: DCGM diag failure, unit: count, direction: above,
+   low: null, medium: null, high: 1, sim: false, owner: "07",
+   why: "NVIDIA's own test says the GPU is faulty.",
+   action: "Drain; replace the instance."}
+- {id: H-24, area: health, name: Loss-spike guard trips, unit: count, direction: above,
+   low: null, medium: null, high: 1, sim: true, owner: "07 + 05",
+   why: "The loss jumped far above its recent median for several steps without a NaN: the model is diverging. The run is held, nothing bad was saved.",
+   action: "Look at the batches before the spike; rollback: --from-step <last good> --skip N --branch <new>."}
+- {id: H-23, area: health, name: Host memory available for staging, unit: ratio of need, direction: below,
+   low: 2.0, medium: 1.2, high: 1.0, sim: false, owner: "07",
+   why: "Async staging needs pinned host RAM; without it saves fail or the node swaps.",
+   action: "Find the memory leak (data loader workers); restart at next checkpoint."}
+
+# ------------------------------------------------------------------ cost: every dollar accounted for
+- {id: C-01, area: cost, name: Burn rate vs plan, unit: ratio, direction: above,
+   low: 1.05, medium: 1.1, high: 1.25, sim: false, owner: "07 + lead",
+   why: "Spending faster than the plan ends the budget before training ends.",
+   action: "Find what is running outside the capacity calendar; stop it."}
+- {id: C-02, area: cost, name: Cost per productive GPU-hour vs list price, unit: ratio, direction: above,
+   low: 1.08, medium: 1.11, high: 1.25, sim: true, owner: "07",
+   why: "price / goodput: what one useful GPU-hour really costs. 1.11 = goodput 90%.",
+   action: "Fix the largest waste bucket (C-03)."}
+- {id: C-03, area: cost, name: Wasted share of main-run spend, unit: "%", direction: above,
+   low: 8, medium: 10, high: 20, sim: true, owner: "07",
+   why: "Stall + lost work + detection + reschedule + restore, in money.",
+   action: "The report lists each bucket in USD."}
+- {id: C-04, area: cost, name: Cost of one incident, unit: x interval cost, direction: above,
+   low: 0.75, medium: 1.5, high: 3.0, sim: true, owner: "07",
+   why: "(lost work + detect + reschedule + restore) x cluster price.",
+   action: "Large values: missing emergency save, slow restore, or no spare."}
+- {id: C-05, area: cost, name: Instances running that Slurm does not know, unit: count, direction: above,
+   low: null, medium: null, high: 1, sim: false, owner: "07",
+   why: "A forgotten GPU instance can cost thousands of dollars a day (V4: a cluster idle for 3 days).",
+   action: "Stop it now; find who started it."}
+- {id: C-06, area: cost, name: Budget days left vs training days left, unit: ratio, direction: below,
+   low: 1.2, medium: 1.0, high: 0.8, sim: false, owner: "lead",
+   why: "Below 1.0 the money runs out before training finishes.",
+   action: "Cut team allocations or the run length; decide early."}
+- {id: C-07, area: cost, name: Cross-AZ / internet egress, unit: USD/day, direction: above,
+   low: 1, medium: 20, high: null, sim: false, owner: "07",
+   why: "Data transfer out of the region or across AZs is billed per GB; it should be near 0.",
+   action: "Keep nodes, bucket and eval in one region and AZ; use S3 gateway endpoints."}
+- {id: C-08, area: cost, name: Unattached EBS volumes / old snapshots, unit: USD/month, direction: above,
+   low: 10, medium: 100, high: null, sim: false, owner: "07",
+   why: "Storage left behind keeps billing.",
+   action: "Delete or snapshot-and-delete."}
+- {id: C-09, area: cost, name: Spare node cost share, unit: "%", direction: above,
+   low: 15, medium: 25, high: null, sim: false, owner: "07 + lead",
+   why: "One hot spare on a 2-node run is 33% extra; on 8 nodes 11%. Worth it only if it saves more restart time.",
+   action: "Let the spare run preemptible team work; revisit spare count vs MTBF."}
