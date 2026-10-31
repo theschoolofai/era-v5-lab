@@ -1,40 +1,51 @@
 # medicine.md — ind-mr-fw2 (handle: vpw)
 
-Prescriptions for every disease found **> 5×** across the 500-doc pack. Counts are
-from `labels.csv` (500 rows: **230 clean, 240 fix, 30 drop**).
+Prescriptions for every disease found **≥ 5×** across the 500-doc pack. Counts are
+from `labels.csv` (500 rows: **269 clean, 200 fix, 31 drop**).
 
 ## Harm-test protocol
 
 No official Data-A/B gold set ships locally, so harm is measured against a
-**single-reader proxy gold set**: my own **230 clean docs** (verdict=`clean`,
+**single-reader proxy gold set**: my own **269 clean docs** (verdict=`clean`,
 read end-to-end). This is weaker than a two-reader official gold set — it shares
 my blind spots — so treat each PASS as "does not disturb text one careful reader
-judged clean," not as a guarantee.
+judged clean," not as a guarantee. The clean set includes **43 `clean+D3`** docs:
+D3 is a non-destructive label (English title/sentence kept, not fixed), so those
+docs are still clean subjects for a harm test.
 
 A medicine **FAILS** if it changes or drops **> 1%** of the proxy gold set
-= **> 2.3 docs** (i.e. **3 or more**). Each rule below reports docs touched / 230,
+= **> 2.7 docs** (i.e. **3 or more**). Each rule below reports docs touched / 269,
 re-measured against the final clean set.
 
 All figures below are reproduced by a harm-test harness (`harm_test.py`, kept with
 the capstone tooling alongside the pack — not in this submission repo) that reads
 this `labels.csv` + the pack, runs every naive and narrow rule, and builds the real
-cross-document shingle index.
+cross-document shingle index. Re-run: `.venv/bin/python scripts/harm_test.py`.
 
-Rules are the exact regex/predicate the fixer would run. For F1/E3, evidence is
+Rules are the exact regex/predicate the fixer would run. For F1, evidence is
 type + offset only — the value is never copied, hex left empty.
 
 ---
 
-## C1 — boilerplate / chrome contamination — **161**
+## C1 — boilerplate / chrome contamination — **165**
 
 Site furniture welded onto article text: inline teasers (`हेही वाचा`, `हे ही वाचा`,
-`आणखी वाचा`, `नक्की वाचा`), share CTAs (`Whatsapp स्टेटस, Facebook, Instagram`),
-CMS leaks (`Web Title`, `This News has been`), footers (`Copyright`,
+`देखील वाचा`, `आणखी वाचा`, `नक्की वाचा`), share CTAs (`Whatsapp स्टेटस, Facebook,
+Instagram`), CMS leaks (`Web Title`, `This News has been`), footers (`Copyright`,
 `आपल्या शहरातील ताज्या बातम्या … डाउनलोड करा`, `Read the latest Marathi news …
 Saam TV`, `Read Goa news in Marathi`), `View this post on Instagram`.
 
 Examples: `9c9cb2366bc14d88` ('This News has been'), `d40a6e0c632b3dd0` (e-paper
 footer @0 + Copyright), `a84ec9a0a34a3f12` (city-news chunk + Copyright tail).
+
+**Scope refinement (this pass):** C1 is site *chrome*, not every non-prose line.
+An author/editor **byline** (`Edited by - <name>`, an individual journalist's
+`@handle`) and an in-body informational pointer (`<official-site> आहे, येथे क्लिक
+करून …` = "here is the official source, click to reach it") are legitimate article
+metadata — **not C1**. A *publication's* own promo handle (`@maharashtracity`), a
+"join our channel/Telegram" CTA, a "buy on Amazon" CTA, a share CTA, and a site
+footer **are C1**. Line drawn: a *person's* name/handle as attribution is kept; a
+*publication's* chrome is stripped.
 
 **Medicine (two-stage, action = fix / strip):**
 1. **Cross-document shingle index** (primary, high precision): drop any text chunk
@@ -44,43 +55,50 @@ footer @0 + Copyright), `a84ec9a0a34a3f12` (city-news chunk + Copyright tail).
    fixed teaser/CTA/footer marker set above, **only when the line is a document
    head/tail** (first/last ~3 lines).
 
-**Harm test:** the line-anchored marker strip applied doc-wide touches **6/230
-(2.6%) → FAILS**. The 6 are real clean articles whose *body* contains a phrase like
-`महत्वाच्या बातम्या` as a sub-heading, not as chrome — the marker can't tell a
+**Harm test:** the line-anchored marker strip applied doc-wide touches **10/269
+(3.7%) → FAILS**. The hits are real clean articles whose *body* carries a phrase
+like `महत्वाच्या बातम्या` as a sub-heading, not as chrome — the marker can't tell a
 heading from a footer. The stage-1 shingle index (measured, not asserted) touches
-**1/230 (0.4%) → PASS**: the single hit, `51b91de49faf6839`, carries a
+**1/269 (0.4%) → PASS**: the single hit, `51b91de49faf6839`, carries a
 `View this post on Instagram` line that recurs across ≥4 docs — genuine boilerplate,
-so stripping it is arguably correct, and it is well under the bar. Unique article
-prose does not recur ≥4×, so it is untouched.
+so stripping it is arguably correct, and it is well under the bar. The pack-wide
+shingle set is **10 lines** (≥20 chars, ≥4 docs).
 
 **Prescription:** ship **stage 1** as the automatic fix; apply stage-2 markers only
 when the line is also a head/tail line or confirmed by a second reader. The
 doc-wide marker strip is too aggressive — documented side-effect, do not run it
 unscoped.
 
-**Side effects:** stage-2 unscoped removes legitimate in-body sub-headings (6 docs).
+**Side effects:** stage-2 unscoped removes legitimate in-body sub-headings.
 
 ---
 
-## D3 — foreign-language content (label, don't judge) — **107**
+## D3 — foreign-language content (label, don't judge) — **123**
 
 English/Hindi titles and full sentences sitting in a Marathi doc. Per the field
 guide this is **natural** — labelled, never dropped or "fixed." Conservative
 tagging: English **title prefix** or a **full** English/Hindi sentence only; bare
 loanwords and parenthetical glosses skipped.
 
-Examples: `00eed90bde196e9c` ('How To Find Sweet Watermelon:'),
-`45099f1718f10018` ('Lioness And leopard Fight Viral Video'), `924d41c82dfe4138`
+This pass settled the policy explicitly: D3 is **"label it, do not judge it."** A
+doc whose *only* finding is D3 is therefore `clean+D3` (verdict `clean`, disease
+`D3`), not `fix` — 34 such rows were flipped from `fix` to `clean` this pass, and
+D3-only docs found later were labelled `clean+D3` directly (43 `clean+D3` total).
+
+Examples: `00eed90bde196e9c` ('How To Find Sweet Watermelon:', now `clean+D3`),
+`45099f1718f10018` ('Lioness And Leopard Fight Viral Video'), `924d41c82dfe4138`
 ('Viral Video').
 
 **Medicine:** action = **none (label only)**. Detector = script-run test: a
 contiguous run of ≥ 4 Latin tokens forming a title or sentence → tag D3. No text
 is altered.
 
-**Harm test:** rule writes **0** bytes → **0/230 → PASS** trivially. (A D3 tag on
+**Harm test:** rule writes **0** bytes → **0/269 → PASS** trivially. (A D3 tag on
 a clean doc is metadata, not harm.)
 
-**Side effects:** none — non-destructive.
+**Side effects:** none — non-destructive. One second-order effect worth noting:
+keeping English glosses/sentences inside clean docs is what interacts with the C5
+SEO-slug clause (see C5) — the slug clause is gated so it does not touch them.
 
 ---
 
@@ -95,7 +113,7 @@ Examples: `052f2791183c599c` (`आधी रोटी खाएंगे…` ×5
 repeats **≥ 5×** *and* is **≥ 20 chars** (guards poem refrains, quiz-answer
 labels, section headers — all deliberately declined during labelling).
 
-**Harm test:** **0/230 → PASS**. The ≥5×/≥20-char gate skips benign structural
+**Harm test:** **0/269 → PASS**. The ≥5×/≥20-char gate skips benign structural
 repeats (quiz `उत्तर:`, verse refrains) a naive "any repeated line" rule flattens.
 
 **Side effects:** a genuine 5× rhetorical refrain ≥20 chars would be clipped —
@@ -122,30 +140,11 @@ colon). The conjunct-gibberish variant (fully garbled `डअध छज …`) is
 → `drop` or flag, not auto-fix.
 
 **Harm test:** legacy patterns (`ऱय`, stray `य़`, standalone visarga-colon) occur in
-**0/230** clean docs → PASS. The visarga-colon rule is gated to a space-bounded lone
+**0/269** clean docs → PASS. The visarga-colon rule is gated to a space-bounded lone
 U+0903 so it never touches a legitimate word-final visarga (`स्वतःच`, `यशः`).
 
 **Side effects:** `ऊ→रू` is context-gated to legacy docs to avoid corrupting the
 legitimate vowel ऊ; outside that gate, leave alone.
-
----
-
-## A5 — अॅ dual-encoding — **13**
-
-Same vowel sign encoded two ways: `अ + ॅ` (U+0905 U+0945) vs `ऍ` (U+090D). NFC does
-**not** unify them. Examples: `1afac20e086d5472` (U+0905+U+0945+प),
-`8207d3c24ce05878` (अॅलोवेरा, अॅसिड), `8be5674f271d5ed9` (अॅप ×6).
-
-**Medicine (action = fix / normalize):** normalize to a single form **only in docs
-where both encodings co-occur** (the coexist gate). Do **not** normalize everywhere.
-
-**Harm test:** the naive "normalize every अॅ" rule touches **8/230 (3.5%) → FAILS**
-— because अॅप / अॅक्शन / अॅलोवेरा are *normal* Marathi loanword spellings. The
-**coexist-only** rule touches **0/230 → PASS**: a clean doc uses one consistent
-encoding, never both.
-
-**Side effects:** none under the coexist gate; unscoped normalization mangles
-everyday loanwords (documented — do not ship unscoped).
 
 ---
 
@@ -159,7 +158,7 @@ destroyed. Examples: `48fa412a505a1e68` (Spanish grooming site, `hombresconestil
 MT marker (`/mr/`, `/mt/`, translate param) **and** a Marathi grammaticality score
 below threshold → drop. **Both gates are required.**
 
-**Harm test:** the URL marker **alone** touches **3/230 (1.3%) → FAILS**:
+**Harm test:** the URL marker **alone** touches **3/269 (1.1%) → FAILS**:
 `526f8907` (inheritanceneeds.com/mr/), `38326254` (happiesthealth.com/mr/),
 `089a742f` (thefreemedia.in/mr/) are all `/mr/` localized URLs whose Marathi is
 **fluent** and was read clean. So the grammaticality gate is doing real work — it
@@ -172,24 +171,60 @@ confirms the word-salad before drop), not fully automatic.
 
 ---
 
-## C3 — truncation — **9** · (fix/drop)
+## C3 — truncation — **10** · (fix/drop)
 
 Doc cut mid-sentence or carrying an explicit truncation marker. Examples:
-`c5c7f7feea32245d` (ends `[…]` @445), `a84ec9a0a34a3f12` (copyright cut-off),
-`23d8d35ab252e3c4` (incomplete Wikipedia para).
+`c5c7f7feea32245d` (ends `[…]` @445), `340ec57eef39bb14` (archive listing of
+teasers, many cut mid-sentence → drop), `23d8d35ab252e3c4` (incomplete Wikipedia
+para).
 
 **Medicine (action = drop if body lost, else fix/trim):** flag only on **explicit
 truncation markers** — `[…]`, `Continue Reading`, `Read More`, trailing `...` at
 EOF — not on "no terminal punctuation."
 
-**Harm test:** the naive "ends without sentence punctuation" rule touches **19/230
-(8.3%) → FAILS** (clean docs legitimately end on a heading, list item, or quote).
-The explicit-marker rule touches **1/230 (0.4%) → PASS** — the single hit,
+**Harm test:** the naive "ends without sentence punctuation" rule touches **31/269
+(11.5%) → FAILS** (clean docs legitimately end on a heading, list item, or quote).
+The explicit-marker rule touches **1/269 (0.4%) → PASS** — the single hit,
 `c85acdaeebe64599`, ends `…स्लाईड्सवर क्लिक करा...` (a "click next slide" CTA whose
 trailing `...` is rhetorical, not truncation). Under the bar, documented.
 
 **Side effects:** rare clean docs ending in a rhetorical `...` CTA (1 above) would
 be mis-flagged; the explicit-`[…]`/`Continue Reading` subset avoids even that.
+
+---
+
+## C5 — keyword / link lists, SEO spam — **10** · (fix)
+
+Tag clouds, SEO keyword-slugs, product keyword lists, and leaked page URL-slugs
+dumped into article text. Examples: `626fc9159542b61c` (`Tags: Diabetes`),
+`4ab66b3a5d21bfe7` (SEO slug `(odi world cup 2023 hardik pandya fitness upadte …)`),
+`bc8ad309586730d2` (`बांबू पलंग / बांबू खुर्ची / बांबू टेबल …` repeated-head product
+list), `d371d07939ac6d17` (the page's own URL-slug `keto diet good for weight loss`
+leaked inline as a standalone line, verbatim from `ujobs.in/keto-diet-good-for-weight-loss/`).
+
+**Medicine (action = fix / strip the list block):** strip a line/segment matching
+any of (a) an explicit tag label `^(Tags?|टॅग|कीवर्ड)\s*:`; (b) an English SEO slug
+— ≥ 5 consecutive all-lowercase-ascii/digit tokens, **gated to a line-dominant run
+outside parentheses**; (c) a `/`- or `|`-separated run of ≥ 4 items sharing a
+repeated head word (Devanagari keyword list).
+
+**Harm test:** the naive "any line with ≥6 comma/pipe tokens" rule touches **30/269
+(11.2%) → FAILS** (normal Marathi comma lists). The SEO-slug clause (b) interacts
+with the D3 "label, don't judge" policy: English glosses/sentences kept inside
+clean docs (`a729bd3f` `(… memorial by social activists jalgaon news)`,
+`fa3ce28286fd823b` `(uddhav thackeray and sanjay raut meet …)`) read like lowercase
+slugs — **ungated**, clause (b) touches **2/269 (0.7%)**, under the bar but for the
+wrong reason. **Gating clause (b) to a line-dominant, non-parenthetical run** drops
+both (they are parenthetical) → **0/269 → PASS**, while still firing on genuine
+standalone slugs: the URL-slug leak in `d371d07` and the shopping slug in
+`97333df118ec5df2`. It declines `4ab66b3a`'s *parenthetical* slug automatically —
+correct, since auto-stripping a parenthetical English run blind is the same
+over-reach that would hit the two D3 glosses; that doc is a `fix` doc already
+settled by reading.
+
+**Side effects:** none on the clean set under the gate (0/269). Ungated, two D3
+parenthetical glosses would be touched — benign (a kept D3 gloss is not damaged by
+a flag), and the gate removes even that.
 
 ---
 
@@ -206,30 +241,12 @@ stray markup glyphs (orphaned superscript `⁵`). Examples: `f21b3178cb113107`
 (filter-evasion signature), re-joining the splinters; (c) delete a lone orphaned
 superscript/markup glyph on its own line.
 
-**Harm test:** the naive "remove any `:-`" rule touches **11/230 (4.8%) → FAILS** —
+**Harm test:** the naive "remove any `:-`" rule touches **11/269 (4.1%) → FAILS** —
 `:-` is a normal dateline/time separator (`मुंबई :-`, `10:-30`). The **tokens +
-intra-word-`:-` ≥ 3** rule touches **0/230 → PASS**: no clean doc splinters 3+ words.
+intra-word-`:-` ≥ 3** rule touches **0/269 → PASS**: no clean doc splinters 3+ words.
 
 **Side effects:** none under the ≥3 gate; the blunt `:-` strip mangles datelines
 (documented — do not ship).
-
----
-
-## C4 — two/more documents joined — **8** · (fix/drop)
-
-Unrelated texts concatenated with no boundary, or a shared boilerplate block welded
-across docs. Examples: `654e623661c0b8c6`, `0cd78c6d499c4cb5`, `1686935b1034083d`
-(unrelated company share-price paragraphs joined → drop).
-
-**Medicine:** two paths. (a) Shared-block removal: the same **cross-document shingle
-index as C1 stage-1** (chunk recurs across ≥ 4 docs → strip). (b) True two-doc
-splices (topic A then unrelated topic B) have no automatic cut point → **drop**.
-
-**Harm test:** the shingle index touches **1/230 (0.4%) → PASS** (the same single
-Instagram-caption doc as C1 stage-1; it shares one implementation). The splice-drop
-path is review-flagged (no safe automatic boundary detector).
-
-**Side effects:** none beyond C1 stage-1's; the splice case is human-confirmed.
 
 ---
 
@@ -255,14 +272,14 @@ foreign-domain corroboration requirement.
 
 Phone numbers (Latin or Devanagari digits), emails leaked into body. **Never copy
 the value** — evidence is type + offset only, hex empty. Examples:
-`26dda2c33506f1ff` (phone @2435), `dac55ea8bc131eb1` (phone @10), `6169b09fe7801904`
+`26dda2c33506f1ff` (phone @2435), `dac55ea8bc131eb1` (phone @108), `6169b09fe7801904`
 (email @1171).
 
 **Medicine (action = fix / redact):** redact matches of a phone regex
 (`(?<!\d)[6-9]\d{9}(?!\d)` + Devanagari-digit and delimited variants) and an email
 regex, replacing with a `[redacted]` token. Offsets logged, values never stored.
 
-**Harm test:** **0/230 → PASS** — the phone/email regexes match nothing in the
+**Harm test:** **0/269 → PASS** — the phone/email regexes match nothing in the
 clean set. (Placeholder `example.org` emails are the B4 cases, which are `fix`
 docs, not clean.)
 
@@ -271,54 +288,93 @@ rate; the `[6-9]` leading-digit gate limits it to plausible Indian mobiles.
 
 ---
 
-## C5 — keyword / link lists, SEO spam — **6** · (fix)
+## C4 — two/more documents joined — **5** · (drop, mostly)
 
-Tag clouds, SEO keyword-slugs, and product keyword lists dumped into article text.
-Examples: `626fc9159542b61c` (`Tags: Diabetes`), `4ab66b3a5d21bfe7` (SEO slug
-`(odi world cup 2023 hardik pandya fitness update)`), `bc8ad309586730d2`
-(`बांबू पलंग / बांबू खुर्ची / बांबू टेबल …` repeated-head product list).
+Genuinely unrelated texts concatenated with no boundary. Examples:
+`1686935b1034083d` (unrelated company share-price paragraphs joined → drop),
+`5e5dfd4352f5175a` (BenQ monitor review + Dutch Zelda-wiki content → drop),
+`6584bcd16dc3fdbf` (op-ed index: 5 unrelated teaser blocks), `05b7b743f394e916`
+(incomplete clips of unrelated news joined), `99aa07a986e2d813` (disjoint
+travel-post excerpts).
 
-**Medicine (action = fix / strip the list block):** strip a line/segment matching
-any of (a) an explicit tag label `^(Tags?|टॅग|कीवर्ड)\s*:`; (b) an English SEO slug
-— ≥ 5 consecutive all-lowercase-ascii/digit tokens; (c) a `/`- or `|`-separated run
-of ≥ 4 items sharing a repeated head word (Devanagari keyword list).
+**Scope refinement (this pass):** C4 was over-applied. An article followed by a
+site's *related-headline widget* (`महत्वाच्या बातम्या`, "You may like") is **not**
+two documents — that is a boilerplate link block → **C1 (+C5)**. Three docs were
+recoded C4 → C1;C5 (`654e623661c0b8c6`, `8207d3c24ce05878`, `0cd78c6d499c4cb5`),
+leaving only genuine two-unrelated-text splices. C4 fell **8 → 5**.
 
-**Harm test:** the naive "any line with ≥6 comma/pipe tokens" rule touches **28/230
-(12.2%) → FAILS** (normal Marathi comma lists). The tight rule (a)+(b)+(c) touches
-**1/230 (0.4%) → PASS**. (The three C5 docs it does not catch —
-`5c05e18231a55839`, `ea74237e4114182f` — are news-site chrome labels that overlap
-C1 and are handled by the C1 shingle index.)
+**Medicine:** two paths. (a) Shared-block removal: the same **cross-document shingle
+index as C1 stage-1** (chunk recurs across ≥ 4 docs → strip). (b) True two-doc
+splices (topic A then unrelated topic B) have no automatic cut point → **drop**.
 
-**Side effects:** rare clean doc carrying a genuine lowercase English slug (1 above)
-— under the bar; the tag-label clause alone is near-zero risk.
+**Harm test:** the shingle index touches **1/269 (0.4%) → PASS** (the same single
+Instagram-caption doc as C1 stage-1; it shares one implementation). The splice-drop
+path is review-flagged (no safe automatic boundary detector).
+
+**Side effects:** none beyond C1 stage-1's; the splice case is human-confirmed.
+
+---
+
+## A5 — अॅ dual-encoding — **3** · (fix) · *below the 5× bar, retained for the record*
+
+Same vowel sign encoded two ways: `अ + ॅ` (U+0905 U+0945) vs `ऍ` (U+090D). NFC does
+**not** unify them, so one word gets two token IDs.
+
+**Correction this pass (important):** A5 was **over-counted at 13**. Ten of those
+docs contained **only** `अॅ` (`अ`+`ॅ`) — which is the *normal* Marathi spelling of
+the æ loanword sound (अॅप, अॅक्शन, अॅलोवेरा) and renders correctly — with **no
+co-occurring `ऍ`**. A single consistent encoding is not dual-encoding, so those ten
+were removed from A5. Only docs where **both forms co-occur** remain: **3** —
+`d9abc0a9e976cd2f` (drop/D5), `ae7305a6399c73a4` (drop/D4), `3a87c3949bbefd3e`
+(fix/C1;D3). At 3 this is **below the ≥5× medicine bar**; kept here because the
+NFC-invisible dual-encoding finding and its coexist gate are instructive, and the
+harm result still holds.
+
+**Medicine (action = fix / normalize):** normalize to a single form **only in docs
+where both encodings co-occur** (the coexist gate). Do **not** normalize everywhere.
+
+**Harm test:** the naive "normalize every अॅ" rule touches **14/269 (5.2%) → FAILS**
+— because अॅप / अॅक्शन / अॅलोवेरा are *normal* Marathi loanword spellings. The
+**coexist-only** rule touches **0/269 → PASS**: a clean doc uses one consistent
+encoding, never both.
+
+**Side effects:** none under the coexist gate; unscoped normalization mangles
+everyday loanwords (documented — do not ship unscoped).
 
 ---
 
 ## Summary table
 
-| Disease | Count | Action | Naive rule (harm/230) | Shipped rule (harm/230) |
+| Disease | Count | Action | Naive rule (harm/269) | Shipped rule (harm/269) |
 |---|---|---|---|---|
-| C1 | 161 | fix/strip | markers 6 (2.6%) FAIL | shingle ≥4 docs → 1 (0.4%) PASS (stage-2 scoped) |
-| D3 | 107 | label only | — | 0 PASS (non-destructive) |
+| C1 | 165 | fix/strip | markers 10 (3.7%) FAIL | shingle ≥4 docs → 1 (0.4%) PASS (stage-2 scoped) |
+| D3 | 123 | label only | — | 0 PASS (non-destructive) |
 | C2 | 18 | fix/dedupe | — | ≥5× & ≥20ch → 0 PASS |
 | G2 | 15 | fix/recompose | — | legacy patterns → 0 PASS |
-| A5 | 13 | fix/normalize | all-अॅ 8 (3.5%) FAIL | coexist-only → 0 PASS |
-| D4 | 12 | drop | URL-marker 3 (1.3%) FAIL | URL + gram gate → review-assisted |
-| C3 | 9 | fix/drop | no-punct 19 (8.3%) FAIL | explicit markers → 1 (0.4%) PASS |
-| B4 | 8 | fix | any `:-` 11 (4.8%) FAIL | tokens + `:-`≥3 → 0 PASS |
-| C4 | 8 | fix/drop | — | shingle ≥4 docs → 1 (0.4%) PASS (splice=drop) |
+| D4 | 12 | drop | URL-marker 3 (1.1%) FAIL | URL + gram gate → review-assisted |
+| C3 | 10 | fix/drop | no-punct 31 (11.5%) FAIL | explicit markers → 1 (0.4%) PASS |
+| C5 | 10 | fix/strip | token-list 30 (11.2%) FAIL | tag + gated-slug + head-list → 0 PASS |
+| B4 | 8 | fix | any `:-` 11 (4.1%) FAIL | tokens + `:-`≥3 → 0 PASS |
 | D5 | 8 | drop | — | review-only (no auto rule) |
 | F1 | 8 | fix/redact | — | phone+email regex → 0 PASS |
-| C5 | 6 | fix/strip | token-list 28 (12.2%) FAIL | tag+slug+head-list → 1 (0.4%) PASS |
+| C4 | 5 | drop/fix | — | shingle ≥4 docs → 1 (0.4%) PASS (splice=drop) |
+| A5 | 3 | fix/normalize | all-अॅ 14 (5.2%) FAIL | coexist-only → 0 PASS (sub-threshold) |
 
 **Headline finding:** every naive first-pass medicine that looked obvious (strip all
 boilerplate markers, normalize all अॅ, drop any unpunctuated tail, remove any `:-`,
 strip any comma-list) **FAILS** the 1% harm bar — each over-reaches into normal
 Marathi. The shipped rules are the *narrowed* versions (co-occurrence gate,
 cross-document recurrence, explicit markers, count thresholds, tag/slug shapes),
-all **≤ 1/230 → PASS**. Two diseases cannot be fully automated to the bar and ship
+all **≤ 1/269 → PASS**. Two diseases cannot be fully automated to the bar and ship
 **review-assisted**: **D4** (URL marker alone wrongly drops 3 fluent localized docs
 — needs a grammaticality gate) and **D5** (no reliable automatic detector).
+
+**Interaction worth flagging:** the D3 "label, don't judge" policy (keep English
+titles/sentences inside clean docs) and the C5 SEO-slug fixer **conflict** — an
+ungated lowercase-run detector reads a kept English gloss as a keyword slug. The
+slug clause is therefore gated to line-dominant, non-parenthetical runs (0/269).
+Any future language-aware fixer must respect the same line: D3 content is kept, so
+a destructive rule must never key on "looks like English."
 
 **Caveat:** the proxy gold set is one reader (me). A real two-reader gold set would
 likely expose further C1/D3/C5 edge cases; the PASS results are necessary, not
