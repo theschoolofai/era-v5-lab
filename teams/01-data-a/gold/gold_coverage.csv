@@ -1,0 +1,14 @@
+pack_id,label_files,reviewers,skipped_label_files,unique_docs_labeled,docs_with_full_read,docs_with_2_full_reads,docs_with_2_clean_votes,disputed_gold_candidates,gold_docs,target,shortfall,status
+code-cpp,3,3,0,502,502,500,139,17,122,200,78,BELOW_TARGET
+code-go,3,3,0,500,500,500,192,29,163,200,37,BELOW_TARGET
+code-java,3,3,0,500,500,500,138,22,116,200,84,BELOW_TARGET
+code-js-ts,3,3,0,500,500,500,214,10,204,200,0,TARGET_MET
+code-python,4,4,0,500,500,500,162,21,141,200,59,BELOW_TARGET
+code-rust,3,3,0,500,500,494,240,6,234,200,0,TARGET_MET
+en-dclm,3,3,0,500,500,500,170,108,62,200,138,BELOW_TARGET
+en-fineweb-edu,3,3,0,500,500,500,295,137,158,200,42,BELOW_TARGET
+en-nemotroncc,2,2,0,500,500,100,34,0,34,200,166,BELOW_TARGET
+en-nemotroncc-synth,2,2,0,500,500,500,326,0,326,200,0,TARGET_MET
+math-finemath,2,2,0,500,500,500,86,0,86,200,114,BELOW_TARGET
+math-megamath,5,5,0,500,500,500,48,22,26,200,174,BELOW_TARGET
+sci-finepdfs,5,5,0,500,499,455,202,0,202,200,0,TARGET_MET
