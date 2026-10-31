@@ -24,9 +24,14 @@ def open_shard(path: Path) -> np.memmap:
 
 
 class Loader:
+    """next_batch() -> (x, y) on the device. With prefetch=True, prefetch() samples, checks and pins the next
+    batch ahead of time (call it while the GPU is busy, e.g. right after backward is queued); next_batch() then
+    only issues the non-blocking copy. The batches are the same with and without prefetch (same RNG order)."""
+
     def __init__(self, source, batch_size, block_size, device, data_dir=None, vocab_size=VOCAB_SIZE, seed=0,
-                 split="train", tokenizer_path=None):
+                 split="train", tokenizer_path=None, prefetch=False):
         self.B, self.T = batch_size, block_size
+        self.prefetch_enabled, self._next = prefetch, None
         self.source, self.device, self.vocab_size = source, torch.device(device), vocab_size
         self.pin = self.device.type == "cuda"
         self.rng = np.random.default_rng(seed)
@@ -52,7 +57,18 @@ class Loader:
         elif source != "synthetic":
             raise ValueError(f"data.source={source!r}: fineweb10b | synthetic")
 
+    def prefetch(self):
+        """Prepare the next host batch now (no-op when prefetch is off or one is already waiting)."""
+        if self.prefetch_enabled and self._next is None:
+            self._next = self._host_batch()
+
     def next_batch(self):
+        buf, self._next = (self._next if self._next is not None else self._host_batch()), None
+        buf = buf.to(self.device, non_blocking=True)
+        return buf[:, :-1].contiguous(), buf[:, 1:].contiguous()
+
+    def _host_batch(self):
+        """[B, T + 1] int64 on the host: sampled, range-checked, pinned when the device is CUDA."""
         B, T = self.B, self.T
         if self.source == "synthetic":
             buf = torch.from_numpy(self.rng.integers(0, self.vocab_size, (B, T + 1), dtype=np.int64))
@@ -64,8 +80,7 @@ class Loader:
             raise ValueError("Batch contains IDs outside the Brahmic vocabulary")
         if self.pin:
             buf = buf.pin_memory()
-        buf = buf.to(self.device, non_blocking=True)
-        return buf[:, :-1].contiguous(), buf[:, 1:].contiguous()
+        return buf
 
     def token_bytes(self, max_pos: int):
         return self.tokenizer.token_bytes(max_pos)

@@ -15,16 +15,22 @@ STATS = ("median", "p10", "p90", "iqr", "n")
 # always required; "layer" and "trace" only when that mode ran, "system" only on CUDA. A key with no value
 # (cuda and driver on a CPU run) is present with value None.
 REQUIRED = {
-    "meta": ["gpu", "gpu_spec", "torch", "cuda", "driver", "device", "commit", "dirty", "config_file", "overrides", "tag", "time"],
+    "meta": ["gpu", "gpu_spec", "torch", "cuda", "driver", "device", "commit", "dirty", "config_file", "overrides", "tag", "time",
+             "run_id", "node_id", "events_jsonl"],
     "config": ["run", "data", "model", "optim", "bench"],
     "clean": [*(f"step_ms.{s}" for s in STATS), *(f"data_ms.{s}" for s in STATS)],
     "layer": ["level", "overhead_pct", "step_ms.median", "step_ms_recorder_off.median", "regions"],
     "trace": ["trace_file", "top_ops", "gpu_busy_pct", "kernels_per_step"],
     "system": ["source", "samples", "metrics"],           # CUDA only: perfkit.metrics.GpuSampler, for G8
-    "metrics": ["tokens_per_step", "tokens_per_s", "mfu", "params_total", "params_active",
+    "metrics": ["tokens_per_step", "tokens_per_s", "mfu", "hfu", "mfu_unavailable_reason",
+                "hfu_unavailable_reason", "params_total", "params_active",
                 "model_flops_per_token", "peak_tflops"],
 }
 REGION_KEYS = ("median", "p10", "p90", "iqr", "n", "level", "calls_per_step")
+METRIC_UNAVAILABLE_REASONS = {
+    "unknown_gpu", "unsupported_dtype", "peak_tflops_unavailable", "invalid_peak_tflops",
+    "hw_flops_unavailable",
+}
 
 
 def _get(d, dotted):
@@ -53,6 +59,29 @@ def validate_run(run: dict) -> list:
                 problems.append(f"region {name!r} missing {k!r}")
         if ":" not in name and name not in ("data", "fwd", "bwd", "opt"):
             problems.append(f"region {name!r} has no phase prefix (expected e.g. 'fwd:{name}')")
+    metrics = run.get("metrics", {})
+    for metric in ("mfu", "hfu"):
+        reason_key = f"{metric}_unavailable_reason"
+        value, reason = metrics.get(metric), metrics.get(reason_key)
+        if reason is not None and reason not in METRIC_UNAVAILABLE_REASONS:
+            problems.append(f"metrics.{reason_key} has unsupported value {reason!r}")
+        if value is None and reason is None:
+            problems.append(f"metrics.{reason_key} is required when metrics.{metric} is null")
+        if value is not None and reason is not None:
+            problems.append(f"metrics.{reason_key} must be null when metrics.{metric} is available")
+    memory = run.get("memory")
+    if memory is not None:
+        if not isinstance(memory, dict):
+            problems.append("memory must be an object")
+        else:
+            for key in ("peak_allocated_gb", "peak_reserved_gb", "unit", "gpu.name", "gpu.index",
+                        "gpu.uuid", "gpu.pci_bus_id"):
+                try:
+                    _get(memory, key)
+                except KeyError:
+                    problems.append(f"memory missing {key}")
+            if memory.get("unit") != "GiB":
+                problems.append("memory.unit must be 'GiB'")
     return problems
 
 
@@ -80,14 +109,20 @@ def example_run() -> dict:
     return {
         "meta": {"gpu": "EXAMPLE-GPU", "gpu_spec": "A100-80GB", "torch": "2.x", "cuda": "12.x", "driver": "5xx.xx",
                  "device": "cuda",
-                 "commit": "0" * 40, "dirty": False, "config_file": "configs/lab_small.yaml",
-                 "overrides": [], "tag": "example", "time": "2026-10-25 12:00:00 IST"},
+                 "commit": "0" * 40, "dirty": False, "config_file": "configs/base.yaml",
+                 "overrides": [], "tag": "example", "time": "2026-10-25 12:00:00 IST",
+                 "run_id": "example-run-id", "node_id": "example-node", "events_jsonl": "results/runs/example.jsonl"},
         "config": {"run": {"batch_size": 32, "dtype": "bf16"}, "data": {}, "model": {"n_layer": 2, "block_size": 512},
-                   "optim": {"name": "muon"}, "bench": {"modes": ["clean", "layer"]}},
+                   "optim": {"name": "muon"}, "bench": {"modes": ["clean", "layer"]},
+                   "report": {"gate_level": 2, "tol_pct": 5.0, "abs_tol_ms": 0.05, "min_compare_steps": 100}},
         "clean": {"step_ms": _s(36.5), "data_ms": _s(0.4)},
+        "memory": {"peak_allocated_gb": 12.4, "peak_reserved_gb": 15.8, "unit": "GiB",
+                    "gpu": {"name": "EXAMPLE-GPU", "index": 0, "uuid": "GPU-example",
+                            "pci_bus_id": "00000000:01:00.0"}},
         "layer": {"level": 3, "overhead_pct": 0.8, "step_ms": _s(36.8), "step_ms_recorder_off": _s(36.5),
                   "regions": regions},
         "metrics": {"tokens_per_step": 16384, "tokens_per_s": 448876, "mfu": 0.031, "hfu": 0.052,
+                    "mfu_unavailable_reason": None, "hfu_unavailable_reason": None,
                     "params_total": 53_200_000, "params_active": 24_900_000,
                     "model_flops_per_token": 1.6e8, "hw_flops_per_token": 2.7e8, "peak_tflops": 312},
     }

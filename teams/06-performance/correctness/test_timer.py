@@ -15,6 +15,9 @@ reviewed and merged since). It had no test of its own. This file adds the two pr
      stats() must return the right numbers for a known list.
   3. (CUDA only, skipped without a GPU) Deferred sync: no host sync happens while regions are recorded; the
      events are read once, afterwards.
+  4. StepTimer and EventPool bookkeeping: expected_steps validation, CUDA events made before the steps (and
+     an error when they run out), reset() refuses an open step and syncs before reusing events on CUDA, and the
+     created-events counter stays cumulative across resets.
 
 Everything except the CUDA test runs on the CPU, where perf_counter is exact.
 """
@@ -30,7 +33,6 @@ from perfkit import regions
 from perfkit.timer import EventPool, EventRecorder, StepTimer, stats
 
 CPU = torch.device("cpu")
-needs_cuda = pytest.mark.skipif(not torch.cuda.is_available(), reason="needs a CUDA GPU")
 
 
 class SpyRecorder:
@@ -204,7 +206,7 @@ def test_stats_of_an_empty_list_has_every_key():
 
 # ------------------------------------------------------------------------------ 3. deferred sync (CUDA)
 
-@needs_cuda
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="needs a CUDA GPU")
 def test_recording_regions_does_not_sync_the_host():
     dev = torch.device("cuda")
     a = torch.randn(512, 512, device=dev)
@@ -228,7 +230,7 @@ def test_recording_regions_does_not_sync_the_host():
     assert b.shape == (512, 512)
 
 
-@needs_cuda
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="needs a CUDA GPU")
 def test_cuda_step_timer_agrees_with_a_synchronized_wall_clock():
     dev = torch.device("cuda")
     a = torch.randn(2048, 2048, device=dev)
@@ -296,3 +298,73 @@ def test_cuda_event_preallocation_and_exhaustion(monkeypatch):
     t.start()
     t.stop()
     assert FakeEvent.created == 6
+
+
+# ------------------------------------------------------------------------------ reset follow-up regressions
+
+def test_step_timer_reset_rejects_open_step_on_cpu():
+    t = StepTimer(CPU, expected_steps=1)
+    t.start()
+    with pytest.raises(RuntimeError, match="open step"):
+        t.reset()
+    t.stop()
+    t.reset()
+    assert len(t) == 0
+
+
+def test_cuda_reset_synchronizes_before_event_reuse(monkeypatch):
+    # Fake CUDA events exercise synchronization and reuse on a CPU-only Mac.
+    made = []
+
+    class FakeEvent:
+        def __init__(self, enable_timing=False):
+            assert enable_timing
+            made.append(self)
+            self.synced = False
+
+        def record(self):
+            pass
+
+        def synchronize(self):
+            self.synced = True
+
+        def query(self):
+            return self.synced
+
+        def elapsed_time(self, other):
+            assert other.synced, "event timing must be synchronized before reuse"
+            return 1.0
+
+    monkeypatch.setattr(torch.cuda, "Event", FakeEvent)
+    t = StepTimer(torch.device("cuda"), expected_steps=1)
+    assert len(made) == 2
+    t.start()
+    t.stop()
+    t.reset()
+    assert len(t) == 0 and any(ev.synced for ev in made)
+    t.start()
+    t.stop()
+    assert len(made) == 2
+    assert t.events_created_during_steps == 0
+
+
+# Sunil PR24 review regression: cumulative fallback allocation count
+def test_cuda_counter_remains_cumulative_across_reset(monkeypatch):
+    class FakeEvent:
+        def __init__(self, enable_timing=False):
+            assert enable_timing
+        def record(self): pass
+        def synchronize(self): pass
+        def query(self): return True
+        def elapsed_time(self, other): return 1.0
+    monkeypatch.setattr(torch.cuda, "Event", FakeEvent)
+    timer = StepTimer(torch.device("cuda"), expected_steps=1)
+    for _ in range(2):
+        timer.start()
+        timer.stop()
+    assert timer.events_created_during_steps == 2
+    timer.reset()
+    assert timer.events_created_during_steps == 2
+    timer.start()
+    timer.stop()
+    assert timer.events_created_during_steps == 2

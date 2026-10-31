@@ -1,9 +1,9 @@
 """Top-k sparse Mixture of Experts.  [implemented: MVP]
 
-Lab setting: 1 shared expert (always on) + top-2 routed of 8 (configs/lab_small.yaml).
+Lab setting (model.ffn=moe in configs/base.yaml): 1 shared expert (always on) + top-2 routed of 8.
 
   * SparseMoE(dim, num_experts=8, top_k=2, expert_hidden=None, num_shared=0, bias_gamma=0.01,
-              dispatch="loop", name="moe")
+              dispatch="loop", name="moe", router_init_std=0.02, proj_std=0.02)
   * Attributes the fp64 test reference reads (keep these names):
       router       nn.Linear(dim, num_experts), run in fp32 (cast x to router.weight.dtype, autocast off)
       router_bias  buffer [num_experts]: steers *selection* only, never the gate weights
@@ -26,13 +26,18 @@ Lab setting: 1 shared expert (always on) + top-2 routed of 8 (configs/lab_small.
     Without it a reconstructed input that differs by 1e-5 can flip a near-tie token to other experts,
     and the reversible backward rebuilds the wrong state (bf16: gradient errors up to 23%).
     Gates are always recomputed from the router scores, so the router still gets its gradient.
-  * DISPATCH = {"loop": dispatch_loop}: per-expert gather -> expert -> index_add_.
-    Keeps its host syncs (tok.any(), nonzero): it is the baseline we measure, not something to hide.
-    The token counts come from one compare-and-sum over topk_idx (no sync).
-  * Regions (level 3): f"{name}.router", f"{name}.dispatch", f"{name}.dispatch.expert{e}", f"{name}.shared".
+  * DISPATCH = {"loop": dispatch_loop, "sorted": dispatch_sorted}. The loop path gathers per expert and is
+    the reference. The sorted path sorts token/expert assignments, packs them into a padded
+    [experts, cap, dim] buffer and runs each expert MLP as one batched matmul. Every scatter and gather uses
+    unique indices, so two runs give identical gradients on CUDA. It reads only the largest per-expert route
+    count back to the host (one sync per call; the loop syncs twice per expert).
+    Both paths compute token counts with a device-side compare-and-sum over topk_idx. Since sorted packs all
+    expert parameters together, idle experts receive zero gradients rather than None; the loop remains default
+    until the optimizer-state effect of that difference is resolved and server timings are collected.
+  * Regions (level 3): f"{name}.router", f"{name}.dispatch", f"{name}.shared"; inside dispatch, the loop path
+    has f"{name}.dispatch.expert{e}" and the sorted path f"{name}.dispatch.grouped".
 
 Extra: "dense" dispatch (every expert on every token, exact, slow), capacity factor, aux / z loss.
-New fast dispatches (sort by expert + grouped GEMM, ...) are new DISPATCH entries.
 Done when: correctness/test_moe.py passes for every entry in DISPATCH.
 """
 from __future__ import annotations
@@ -77,7 +82,49 @@ def dispatch_loop(moe, x, topk_idx, gates):
     return out, counts
 
 
-DISPATCH = {"loop": dispatch_loop}
+def dispatch_sorted(moe, x, topk_idx, gates):
+    """Sort the (token, expert) routes, pack them into a padded [experts, cap, dim] buffer, and run each expert
+    MLP as one batched matmul over its own tokens.
+
+    Every expert weight is read once per call (not once per route), and every scatter or gather below uses
+    unique indices (a permutation or distinct slots), so the backward has no colliding atomics and two runs
+    give identical gradients. The fan-out of a token to its k experts is an expand, whose backward is a sum.
+    `cap` is the busiest expert's route count, read back once per call (one host sync, against two per expert
+    in the loop path); nothing is dropped, so the result matches the loop path.
+    """
+    n_tokens, dim = x.shape
+    E, k = moe.num_experts, moe.top_k
+    flat = topk_idx.reshape(-1)                                              # [N*k] expert of each route
+    counts_i = (flat.reshape(-1, 1) == torch.arange(E, device=x.device)).sum(0)
+    counts = counts_i.float()
+    if flat.numel() == 0:
+        return torch.zeros_like(x), counts
+    order = torch.argsort(flat, stable=True)                                 # routes grouped by expert
+    sorted_e = flat[order]
+    start = counts_i.cumsum(0) - counts_i                                    # first sorted position of each expert
+    pos = torch.arange(flat.numel(), device=x.device) - start[sorted_e]      # position inside its expert
+    cap = int(counts_i.max())                                                # the one host sync
+    slot = sorted_e * cap + pos                                              # unique buffer row per route
+
+    routes_in = x.unsqueeze(1).expand(n_tokens, k, dim).reshape(-1, dim)     # backward: sum over k
+    buf = x.new_zeros(E * cap, dim).index_copy(0, slot, routes_in[order])    # unique indices
+
+    w1 = torch.stack([e.c_fc.weight for e in moe.experts]).to(buf.dtype)     # [E, hidden, dim]
+    b1 = torch.stack([e.c_fc.bias for e in moe.experts]).to(buf.dtype)
+    w2 = torch.stack([e.c_proj.weight for e in moe.experts]).to(buf.dtype)   # [E, dim, hidden]
+    b2 = torch.stack([e.c_proj.bias for e in moe.experts]).to(buf.dtype)
+    with region(f"{moe.name}.dispatch.grouped", 3):
+        h = torch.baddbmm(b1.unsqueeze(1), buf.view(E, cap, dim), w1.transpose(1, 2))
+        y = torch.baddbmm(b2.unsqueeze(1), F.gelu(h), w2.transpose(1, 2))    # [E, cap, dim]
+
+    where = torch.empty_like(order)
+    where[order] = slot                                                      # buffer row of route r, original order
+    routes_out = y.reshape(E * cap, dim)[where].reshape(n_tokens, k, dim)
+    out = (routes_out.to(x.dtype) * gates.unsqueeze(-1).to(x.dtype)).sum(dim=1)
+    return out, counts
+
+
+DISPATCH = {"loop": dispatch_loop, "sorted": dispatch_sorted}
 
 
 @contextmanager

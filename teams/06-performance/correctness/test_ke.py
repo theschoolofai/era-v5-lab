@@ -33,16 +33,6 @@ import torch
 from correctness.framework import PAIRS, Case, check, pair, pairs_in, rel_err
 from models.ke1 import MODES, N_BYTES, KroneckerEmbedding, kronecker_codec, token_bytes_random
 
-# pr-guard (the PR check) scans each added line, with its leading plus sign, for text shaped like an email
-# address: some characters, an at sign, then a dotted name. A pytest decorator written at the start of a line
-# (the at sign followed by pytest dot mark dot something) has that shape, so the PR was blocked. Giving the
-# two decorators a plain name once, here, keeps the tests identical and the guard quiet.
-parametrize = pytest.mark.parametrize
-contract_gap = pytest.mark.xfail(strict=True, raises=AssertionError, reason=(
-    "models/ke1.py says L is 'the number of bytes (truncated to P)', but kronecker_codec uses the raw lens in "
-    "1/sqrt(L) when lens > P (it differs by about 2e-4 for L = 40, P = 32). The tokenizer refuses tokens longer "
-    "than ke_max_pos, so real runs never reach this; fix the code or the docstring, then remove this xfail."))
-
 P = 32                    # byte positions per token (ke_max_pos); the codec has D = 256 * P = 8192 columns
 D_MODEL = 64
 VOCAB = 512
@@ -147,7 +137,7 @@ for _mode in MODES:
     pair(f"ke1.{_mode}.bf16", dtype=torch.bfloat16)(make_bf16_case(_mode))
 
 
-@parametrize("name", pairs_in(__name__))
+@pytest.mark.parametrize("name", pairs_in(__name__))
 def test_pair(name, device):
     errors = check(PAIRS[name], device)
     assert "out[0]" in errors and "grad_param[0]" in errors, "the output and the projection gradient must be compared"
@@ -175,7 +165,7 @@ def test_dynamic_and_cached_agree(device):
     assert rel_err(dyn(ids), cached(ids)) < 1e-6
 
 
-@parametrize("mode", MODES)
+@pytest.mark.parametrize("mode", MODES)
 def test_codec_rows_are_z_normalised(mode, device):
     ke = _module(mode, device)
     kappa = ke.codec(random_ids().to(device))                    # [B, T, D]
@@ -186,7 +176,7 @@ def test_codec_rows_are_z_normalised(mode, device):
     assert (std - 1).abs().max() < 2e-4
 
 
-@parametrize("mode", MODES)
+@pytest.mark.parametrize("mode", MODES)
 def test_bytes_past_lens_are_ignored(mode, device):
     tb, lens = random_table()
     tb2 = tb.clone()
@@ -199,7 +189,7 @@ def test_bytes_past_lens_are_ignored(mode, device):
     assert torch.equal(a(ids), b(ids))                          # the contract in ke1.py: bytes past lens ignored
 
 
-@parametrize("mode", MODES)
+@pytest.mark.parametrize("mode", MODES)
 def test_the_same_id_gives_the_same_vector(mode, device):
     ke = _module(mode, device)
     idx = torch.tensor([[5, 9, 5]], device=device)
@@ -222,7 +212,7 @@ def test_real_brahmic_tokenizer_byte_table_codec(device):
     assert rel_err(dyn.codec(ids).reshape(-1, N_BYTES * P), ref) < 1e-6
 
 
-@parametrize("mode", MODES)
+@pytest.mark.parametrize("mode", MODES)
 def test_leading_dimensions_are_kept(mode, device):
     ke = _module(mode, device)
     for shape in ((7,), (2, 3), (2, 3, 4)):
@@ -247,7 +237,10 @@ def test_constructor_guards():
 
 # ------------------------------------------------------------------------------ a contract gap, recorded
 
-@contract_gap
+@pytest.mark.xfail(strict=True, raises=AssertionError, reason=(
+    "models/ke1.py says L is 'the number of bytes (truncated to P)', but kronecker_codec uses the raw lens in "
+    "1/sqrt(L) when lens > P (it differs by about 2e-4 for L = 40, P = 32). The tokenizer refuses tokens longer "
+    "than ke_max_pos, so real runs never reach this; fix the code or the docstring, then remove this xfail."))
 def test_a_token_longer_than_P_is_normalised_with_L_truncated_to_P():
     tb = torch.randint(0, 256, (1, P), dtype=torch.uint8)
     lens = torch.tensor([40])

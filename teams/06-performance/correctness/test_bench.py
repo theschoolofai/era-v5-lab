@@ -14,6 +14,12 @@ constructor and attributes as dataio.loader.Loader.
   * write_run / _finite: unique file names, NaN and inf become null.
   * main, for the reversible and the plain stack: clean + layer + checkpoint run, validate_run returns [],
     the parts are there and add up, exit codes 0 and 2.
+  * quick_compare also accepts an A/B of optim.muon_impl or model.moe.dispatch, and gates checkpoint save and
+    the all-to-all when both runs have them.
+  * throttle warnings: an idle GPU is not flagged; slowdown reasons are named; the SM clock is the fallback.
+  * --repeat: every run in a child process, one JSON per run, PASS / exit 2, a killed run stops the repeat.
+  * trace: kernels counted (not annotations); with layer mode, one small trace per slowest part.
+  * CUDA timing-event counters (clean, layer and its inner pass, comm) in the JSON, and their warnings.
 """
 from __future__ import annotations
 
@@ -24,13 +30,11 @@ from pathlib import Path
 import pytest
 import torch
 
-from models.config import load_config
+from models.config import load_config, model_config
 from models.ke1 import token_bytes_random
 from perfkit import bench
+from perfkit.report import compare_lines
 from perfkit.schema import example_run, validate_run
-
-fixture = pytest.fixture
-parametrize = pytest.mark.parametrize
 
 ROOT = Path(__file__).resolve().parents[1]
 TINY = ROOT / "configs" / "tiny_cpu.yaml"
@@ -42,12 +46,16 @@ class FakeLoader:
     """Same constructor and attributes as dataio.loader.Loader, random token ids, no tokenizer download."""
 
     def __init__(self, source, batch_size, block_size, device, data_dir=None, vocab_size=VOCAB, seed=0,
-                 split="train", tokenizer_path=None):
+                 split="train", tokenizer_path=None, prefetch=False):
         SEEN["tokenizer_path"] = tokenizer_path
         SEEN["source"] = source
         self.B, self.T, self.source, self.vocab_size = batch_size, block_size, source, vocab_size
         self.device = torch.device(device)
         self.g = torch.Generator().manual_seed(seed)
+        self.prefetch_enabled = prefetch
+
+    def prefetch(self):
+        pass
 
     def next_batch(self):
         buf = torch.randint(0, self.vocab_size, (self.B, self.T + 1), generator=self.g)
@@ -57,15 +65,21 @@ class FakeLoader:
         return token_bytes_random(self.vocab_size, max_pos)
 
 
-@fixture(autouse=True)
+@pytest.fixture(autouse=True)
 def fake_loader(monkeypatch, tmp_path):
     SEEN.clear()
     monkeypatch.setattr(bench, "Loader", FakeLoader)
     monkeypatch.setattr(bench, "CACHE", tmp_path / "cache")
 
 
+# The harness tests time a small model on random tokens, whatever base.yaml selects: KE1 (random byte table, so no
+# dependence on G4's 131072-row KE2 table) and MoE (its regions and the rule 3b comm check are what they test).
+# The model itself is tested in test_model.py on base.yaml.
+HARNESS = ["data.source=synthetic", f"model.vocab_size={VOCAB}", "model.embedding=ke1", "model.ffn=moe"]
+
+
 def tiny_cfg(*overrides):
-    return load_config(TINY, ["data.source=synthetic", f"model.vocab_size={VOCAB}", *overrides])
+    return load_config(TINY, [*HARNESS, *overrides])
 
 
 # ------------------------------------------------------------------------------ build
@@ -99,26 +113,46 @@ def test_choose_dtype_fallbacks(monkeypatch):
         bench.choose_dtype("fp8", torch.device("cpu"), [])
 
 
-def test_batch_size_auto_follows_the_gpu(monkeypatch):
-    notes = []
-    monkeypatch.setattr(bench, "native_bf16", lambda: True)                        # A100 / L4 / H100
-    assert bench.resolve_batch("auto", torch.device("cuda"), notes) == 32 and "B=32" in notes[0]
-    monkeypatch.setattr(bench, "native_bf16", lambda: False)                       # T4: B=32 does not fit
-    assert bench.resolve_batch("auto", torch.device("cuda")) == 8
-    assert bench.resolve_batch("auto", torch.device("cpu")) == 8
-    assert bench.resolve_batch(16, torch.device("cuda")) == 16                     # a number is kept
-    assert load_config(ROOT / "configs" / "base.yaml")["run"]["batch_size"] == "auto"
+def test_batch_size_comes_from_the_config_only(monkeypatch):
+    for native in (True, False):                                                   # A100 or T4: same B
+        monkeypatch.setattr(bench, "native_bf16", lambda: native)
+        assert bench.resolve_batch(16) == 16
+    for bad in ("auto", 0, -1, 2.5, True, None):
+        with pytest.raises(SystemExit, match="run.batch_size"):
+            bench.resolve_batch(bad)
 
 
-def test_build_writes_the_resolved_batch_back():
-    s = bench.build(tiny_cfg("run.batch_size=auto"), torch.device("cpu"))
-    assert s.cfg["run"]["batch_size"] == 8 == s.loader.B
-    assert any("run.batch_size=auto" in n for n in s.notes)
+def test_build_uses_the_config_batch():
+    s = bench.build(tiny_cfg("run.batch_size=3"), torch.device("cpu"))
+    assert s.cfg["run"]["batch_size"] == 3 == s.loader.B
 
 
-def test_default_modes_measure_checkpoint_and_comm():
+def test_bench_constants_are_config_keys():
     b = load_config(ROOT / "configs" / "base.yaml")["bench"]
-    assert {"clean", "layer", "checkpoint", "comm"} <= set(b["modes"]) and b["steps"] >= 150
+    assert {"layer_warmup", "comm_reps", "peak_tflops", "ckpt_repeats", "trace_steps"} <= set(b)
+    a, ov = bench.parse(["--config", "x.yaml", "--peak-tflops", "100"])
+    assert "bench.peak_tflops=100.0" in ov
+
+
+def test_default_config_is_base_yaml():
+    a, _ = bench.parse([])
+    assert Path(a.config) == ROOT / "configs" / "base.yaml"
+
+
+def test_config_is_strict(tmp_path):
+    """The YAML is the only source: a duplicate key, an override of a key that does not exist, or a model
+    field missing from the YAML is an error, never a silent default."""
+    dup = tmp_path / "dup.yaml"
+    dup.write_text("inherit: " + str(ROOT / "configs" / "base.yaml") + "\nrun: {batch_size: 8, batch_size: 16}\n")
+    with pytest.raises(ValueError, match="duplicate key 'batch_size'"):
+        load_config(dup)
+    for typo in ("run.batchsize=16", "runn.batch_size=16"):
+        with pytest.raises(KeyError, match="has no"):
+            load_config(ROOT / "configs" / "base.yaml", [typo])
+    cfg = load_config(ROOT / "configs" / "base.yaml")
+    del cfg["model"]["block_size"]
+    with pytest.raises(KeyError, match="block_size"):
+        model_config(cfg)
 
 
 def test_pick_device_cpu_and_missing_cuda(monkeypatch):
@@ -138,6 +172,36 @@ def test_run_metadata_records_the_tokenizer():
     assert meta["tokenizer"]["sha256"] == bench.TOKENIZER_SHA256
     assert meta["vocab_size"] == VOCAB and meta["lr_schedule"] == "constant"
     assert meta["batch_size"] == s.loader.B and meta["seq_len"] == s.loader.T
+    assert meta["run_id"] and meta["node_id"]
+    auto_ids = {meta["run_id"], bench.run_metadata(s, "configs/tiny_cpu.yaml", [], "t")["run_id"]}
+    assert len(auto_ids) == 2 and all(len(run_id) == 32 for run_id in auto_ids)
+
+
+def test_run_id_and_node_id_can_be_set_for_g8_handover():
+    s = bench.build(tiny_cfg(), torch.device("cpu"))
+    meta = bench.run_metadata(s, "configs/tiny_cpu.yaml", [], "t", run_id="shared-exp", node_id="node-a")
+    assert meta["run_id"] == "shared-exp"
+    assert meta["node_id"] == "node-a"
+    peer = bench.run_metadata(s, "configs/tiny_cpu.yaml", [], "peer", run_id="shared-exp", node_id="node-b")
+    assert peer["run_id"] == meta["run_id"] and peer["node_id"] != meta["node_id"]
+
+
+def test_memory_summary_names_the_gpu_and_unit():
+    record = bench.memory_with_identity(
+        {"peak_allocated_gb": 12.5, "peak_reserved_gb": 16.0},
+        {"gpu": "Example GPU", "gpu_index": 1, "gpu_uuid": "GPU-example",
+         "gpu_pci_bus_id": "00000000:02:00.0"},
+    )
+    assert record == {
+        "peak_allocated_gb": 12.5, "peak_reserved_gb": 16.0, "unit": "GiB",
+        "gpu": {"name": "Example GPU", "index": 1, "uuid": "GPU-example",
+                "pci_bus_id": "00000000:02:00.0"},
+    }
+    assert bench.memory_with_identity(None, {}) is None
+    identified = example_run()
+    assert validate_run(identified) == []
+    identified["memory"]["unit"] = "GB"
+    assert "memory.unit must be 'GiB'" in validate_run(identified)
 
 
 def _checked_run(**meta):
@@ -149,7 +213,8 @@ def _checked_run(**meta):
 
 
 def _cfg(level=3, ffn="moe"):
-    return {"bench": {"level": level}, "run": {}, "model": {"ffn": ffn}, "report": {"gate_level": 2}}
+    return {"bench": {"level": level}, "run": {"compile": False}, "model": {"ffn": ffn}, "report": {"gate_level": 2, "tol_pct": 5.0, "abs_tol_ms": 0.05,
+                                                                                  "min_compare_steps": 100}}
 
 
 def test_rule_checks_clean_run_has_no_warnings():
@@ -219,11 +284,29 @@ def _two_runs():
 
 def test_quick_compare_identical_runs_pass():
     a, b = _two_runs()
-    rows, ok, problems = bench.quick_compare(a, b, 5.0, 2)
+    rows, ok, problems = bench.quick_compare(a, b, 5.0, 2, 0.0)
     assert ok and not problems
     names = [r[0] for r in rows]
     assert "step (clean)" in names and "fwd:block0" in names
     assert all(r[4] == "ok" for r in rows)
+
+
+def test_quick_compare_allows_muon_implementation_variant():
+    a, b = _two_runs()
+    a["config"]["optim"]["muon_impl"] = "loop"
+    b["config"]["optim"]["muon_impl"] = "batched"
+    rows, ok, problems = bench.quick_compare(a, b, 5.0, 2, 0.0)
+    assert ok and not problems
+    assert "step (clean)" in [row[0] for row in rows]
+
+
+def test_quick_compare_allows_moe_dispatch_variant():
+    a, b = _two_runs()
+    a["config"]["model"]["moe"] = {"dispatch": "loop", "num_experts": 8}
+    b["config"]["model"]["moe"] = {"dispatch": "sorted", "num_experts": 8}
+    rows, ok, problems = bench.quick_compare(a, b, 5.0, 2, 0.0)
+    assert ok and not problems
+    assert "step (clean)" in [row[0] for row in rows]
 
 
 def test_quick_compare_only_gates_levels_up_to_gate_level():
@@ -231,66 +314,81 @@ def test_quick_compare_only_gates_levels_up_to_gate_level():
     level3 = [n for n, r in a["layer"]["regions"].items() if r["level"] == 3]
     assert level3, "the example run must have a level-3 part"
     b["layer"]["regions"][level3[0]]["median"] *= 3          # inside a block: reported, not gated
-    rows, ok, _ = bench.quick_compare(a, b, 5.0, 2)
+    rows, ok, _ = bench.quick_compare(a, b, 5.0, 2, 0.0)
     assert ok and level3[0] not in [r[0] for r in rows]
 
 
 def test_quick_compare_fails_a_part_that_moved_more_than_tol():
     a, b = _two_runs()
     b["layer"]["regions"]["fwd:block1"]["median"] *= 1.10    # a whole block 10% slower
-    rows, ok, _ = bench.quick_compare(a, b, 5.0, 2)
+    rows, ok, _ = bench.quick_compare(a, b, 5.0, 2, 0.0)
     verdict = {r[0]: r[4] for r in rows}
     assert not ok and verdict["fwd:block1"] == "FAIL" and verdict["fwd:block0"] == "ok"
-    assert bench.quick_compare(a, b, 12.0, 2)[1]             # a looser tolerance lets it through
+    assert bench.quick_compare(a, b, 12.0, 2, 0.0)[1]             # a looser tolerance lets it through
 
 
 def test_quick_compare_5_percent_boundary():
     a, b = _two_runs()
     b["clean"]["step_ms"]["median"] = a["clean"]["step_ms"]["median"] * 1.049
-    assert bench.quick_compare(a, b, 5.0, 2)[1]
+    assert bench.quick_compare(a, b, 5.0, 2, 0.0)[1]
     b["clean"]["step_ms"]["median"] = a["clean"]["step_ms"]["median"] * 1.06
-    assert not bench.quick_compare(a, b, 5.0, 2)[1]
+    assert not bench.quick_compare(a, b, 5.0, 2, 0.0)[1]
+
+
+def test_quick_compare_small_part_passes_under_abs_tol_ms():
+    """TSAI 30 Oct: a part passes within tol_pct OR less than abs_tol_ms apart; both run times are kept."""
+    a, b = _two_runs()
+    a["layer"]["regions"]["data"] = dict(b["layer"]["regions"]["fwd:embed"], median=0.031, level=1)
+    b["layer"]["regions"]["data"] = dict(b["layer"]["regions"]["fwd:embed"], median=0.035, level=1)
+    rows, ok, _ = bench.quick_compare(a, b, 5.0, 2, 0.05)                    # 12.9% apart, but 0.004 ms
+    row = next(r for r in rows if r[0] == "data")
+    assert ok and row[4] == "ok_abs" and (row[1], row[2]) == (0.031, 0.035) and row[3] > 5.0
+    assert not bench.quick_compare(a, b, 5.0, 2, 0.0)[1]                    # no floor: the 5% rule alone fails
+    b["layer"]["regions"]["data"]["median"] = 0.6                           # 0.569 ms apart: outside both
+    assert not bench.quick_compare(a, b, 5.0, 2, 0.05)[1]
+    lines = "\n".join(compare_lines(rows, ok, [], None, 5.0, 2, 0.05))
+    assert "ok (< 0.05 ms)" in lines and "0.031" in lines and "0.035" in lines and "0.004" in lines
 
 
 def test_quick_compare_refuses_different_gpu_and_vocab():
     a, b = _two_runs()
     b["meta"]["gpu"] = "OTHER-GPU"
     b["meta"]["vocab_size"] = 50304
-    rows, ok, problems = bench.quick_compare(a, b, 5.0, 2)
+    rows, ok, problems = bench.quick_compare(a, b, 5.0, 2, 0.0)
     assert not ok and any("gpu" in p for p in problems) and any("vocab_size" in p for p in problems)
 
 
 def test_quick_compare_missing_part_is_a_failure():
     a, b = _two_runs()
     del b["layer"]["regions"]["fwd:block0"]
-    rows, ok, _ = bench.quick_compare(a, b, 5.0, 2)
+    rows, ok, _ = bench.quick_compare(a, b, 5.0, 2, 0.0)
     assert not ok and {r[0]: r[4] for r in rows}["fwd:block0"] == "MISSING"
 
 
 def test_quick_compare_part_only_in_the_earlier_run_is_missing():
     a, b = _two_runs()
     del a["layer"]["regions"]["bwd:embed"]
-    rows, ok, _ = bench.quick_compare(a, b, 5.0, 2)
+    rows, ok, _ = bench.quick_compare(a, b, 5.0, 2, 0.0)
     assert not ok and {r[0]: r[4] for r in rows}["bwd:embed"] == "MISSING"
 
 
 def test_quick_compare_zero_ms_parts():
     a, b = _two_runs()
     a["layer"]["regions"]["opt:opt.adamw"]["median"] = b["layer"]["regions"]["opt:opt.adamw"]["median"] = 0.0
-    rows, ok, _ = bench.quick_compare(a, b, 5.0, 2)
+    rows, ok, _ = bench.quick_compare(a, b, 5.0, 2, 0.0)
     assert ok and {r[0]: r[4] for r in rows}["opt:opt.adamw"] == "ok"        # both 0 ms: they agree
     b["layer"]["regions"]["opt:opt.adamw"]["median"] = 0.3
-    rows, ok, _ = bench.quick_compare(a, b, 5.0, 2)
+    rows, ok, _ = bench.quick_compare(a, b, 5.0, 2, 0.0)
     assert not ok and {r[0]: r[4] for r in rows}["opt:opt.adamw"] == "FAIL"
 
 
-@parametrize("section, key, value", [("optim", "name", "adamw"), ("run", "compile", True),
+@pytest.mark.parametrize("section, key, value", [("optim", "name", "adamw"), ("run", "compile", True),
                                                  ("run", "grad_clip", 0.5), ("data", "source", "fineweb"),
                                                  ("model", "n_layer", 3)])
 def test_quick_compare_refuses_runs_that_do_different_work(section, key, value):
     a, b = _two_runs()
     b["config"].setdefault(section, {})[key] = value
-    _, ok, problems = bench.quick_compare(a, b, 5.0, 2)
+    _, ok, problems = bench.quick_compare(a, b, 5.0, 2, 0.0)
     assert not ok and any(section in p for p in problems)
 
 
@@ -299,7 +397,7 @@ def test_quick_compare_includes_checkpoint_and_all_to_all_when_both_have_them():
     for r, ms in ((a, 100.0), (b, 130.0)):
         r["checkpoint"] = {"save_ms": {"median": ms}}
         r["comm"] = {"moe_a2a": {"measured": True, "per_step_ms": ms / 10}}
-    rows, ok, _ = bench.quick_compare(a, b, 5.0, 2)
+    rows, ok, _ = bench.quick_compare(a, b, 5.0, 2, 0.0)
     verdict = {r[0]: r[4] for r in rows}
     assert verdict["checkpoint save"] == "FAIL" and verdict["moe all-to-all"] == "FAIL" and not ok
 
@@ -366,6 +464,12 @@ def test_parse_turns_flags_into_overrides():
     assert ov == ["run.batch_size=4", "bench.modes=[clean,layer]", "bench.level=3", "bench.steps=7", "bench.warmup=2"]
 
 
+def test_parse_accepts_g8_run_and_node_ids():
+    args, _ = bench.parse(["--config", "c.yaml", "--run-id", "shared-run", "--node-id", "worker-1"])
+    assert args.run_id == "shared-run"
+    assert args.node_id == "worker-1"
+
+
 def test_parse_accepts_overrides_on_both_sides_of_the_flags():
     _, ov = bench.parse(["--config", "c.yaml", "run.batch_size=4", "--steps", "7", "report.tol_pct=9"])
     assert ov == ["run.batch_size=4", "report.tol_pct=9", "bench.steps=7"]
@@ -375,11 +479,11 @@ def test_parse_accepts_overrides_on_both_sides_of_the_flags():
 
 def _run_main(out_dir, tag, *extra):
     argv = ["--config", str(TINY), "--tag", tag, "--steps", "4", "--warmup", "2",
-            "data.source=synthetic", f"model.vocab_size={VOCAB}", f"bench.out_dir={out_dir}", *extra]
+            *HARNESS, f"bench.out_dir={out_dir}", *extra]
     return bench.main(argv)
 
 
-@fixture(scope="module", params=["reversible", "plain"])
+@pytest.fixture(scope="module", params=["reversible", "plain"])
 def first_run(request, tmp_path_factory):
     """One bench run per stack, shared by the tests below (the function-scoped fake_loader cannot be used here)."""
     tmp = tmp_path_factory.mktemp(request.param)
@@ -396,6 +500,14 @@ def test_main_writes_a_complete_valid_run(first_run):
     run = first_run["run"]
     assert first_run["code"] == 0, "exit code 0 means validate_run found nothing missing"
     assert validate_run(run) == []
+    event_path = Path(run["meta"]["events_jsonl"])
+    assert event_path.exists()
+    events = [json.loads(line) for line in event_path.read_text().splitlines()]
+    steps = [event for event in events if event["event"] == "step_timing"]
+    assert [event["step"] for event in steps] == [1, 2, 3, 4]
+    assert all(event["node_id"] == run["meta"]["node_id"] and event["rank"] == 0 for event in steps)
+    assert all(event["data_ms"] >= 0 and event["raw_step_ms"] > 0 for event in steps)
+    assert [event["raw_step_ms"] for event in steps] == run["clean"]["raw_step_ms"]
     assert run["meta"]["vocab_size"] == VOCAB and run["meta"]["tokenizer"]["revision"] == bench.TOKENIZER_REVISION
     assert run["clean"]["step_ms"]["n"] == 4 and run["clean"]["step_ms"]["median"] > 0
     assert run["metrics"]["tokens_per_s"] > 0 and run["metrics"]["params_total"] >= run["metrics"]["params_active"]
@@ -486,6 +598,11 @@ def test_repeat_cmd_is_one_run_with_a_new_tag_against_the_first():
     assert "--against" not in bench.repeat_cmd(["--config", "c.yaml"], "x", None)       # the first run
 
 
+def test_repeat_rejects_a_shared_run_id():
+    with pytest.raises(SystemExit, match="--run-id is for one benchmark invocation"):
+        bench.main(["--config", str(TINY), "--run-id", "shared-exp", "--repeat", "2"])
+
+
 def test_repeat_runs_every_run_in_a_child_and_the_first_without_against(tmp_path, monkeypatch):
     calls = _in_process_repeats(monkeypatch)
     _run_main(tmp_path / "runs", "kids", "--modes", "clean", "--repeat", "2", "report.tol_pct=1000")
@@ -509,6 +626,9 @@ def test_repeat_writes_one_json_per_run_and_passes_when_they_agree(tmp_path, cap
     assert code == 0
     # <tag>.json is run 1; <tag>-run2.json is run 2, checked against run 1.
     assert sorted(p.name for p in (tmp_path / "runs").glob("*.json")) == ["rep-run2.json", "rep.json"]
+    first_run = json.loads((tmp_path / "runs" / "rep.json").read_text())
+    second_run = json.loads((tmp_path / "runs" / "rep-run2.json").read_text())
+    assert first_run["meta"]["run_id"] != second_run["meta"]["run_id"]
     out = capsys.readouterr().out
     assert "repeat: 2 runs against rep.json: PASS" in out
     assert validate_run(json.loads((tmp_path / "runs" / "rep-run2.json").read_text())) == []
@@ -577,3 +697,128 @@ def test_rule_checks_flag_an_unknown_dirty_state():
         r["spread_pct"] = 1.0
     out = "\n".join(bench.rule_checks(run, ["clean", "layer", "checkpoint", "comm"], _cfg()))
     assert "could not tell whether the code is committed" in out
+
+
+# ------------------------------------------------------------------------------ timer follow-up regressions
+
+def test_clean_json_reports_event_allocation_count(tmp_path):
+    # CPU path has no CUDA events, but must still export an explicit zero.
+    _run_main(tmp_path / "runs", "counter", "--modes", "clean")
+    run = json.loads((tmp_path / "runs" / "counter.json").read_text())
+    assert run["clean"]["events_created_during_steps"] == 0
+    assert validate_run(run) == []
+
+
+def test_clean_warns_if_timer_allocated_events_during_steps(tmp_path, monkeypatch):
+    # Simulate a CUDA event-pool exhaustion without requiring CUDA hardware.
+    real = bench.run_clean
+
+    def exhausted(s, n):
+        clean, loss, mem = real(s, n)
+        clean["events_created_during_steps"] = 2
+        return clean, loss, mem
+
+    monkeypatch.setattr(bench, "run_clean", exhausted)
+    _run_main(tmp_path / "runs", "exhausted", "--modes", "clean")
+    run = json.loads((tmp_path / "runs" / "exhausted.json").read_text())
+    assert run["clean"]["events_created_during_steps"] == 2
+    assert any("2 CUDA timing events" in w and "clean" in w for w in run["warnings"])
+
+
+def test_comm_preallocates_timing_events_and_exports_counter(monkeypatch):
+    import torch.distributed as dist
+
+    seen = {}
+
+    class FakeTimer:
+        def __init__(self, device, expected_steps=0):
+            seen["expected_steps"] = expected_steps
+            self.events_created_during_steps = 0
+            self.n = 0
+
+        def start(self):
+            pass
+
+        def stop(self):
+            self.n += 1
+
+        def times_ms(self):
+            return [2.0] * self.n
+
+    monkeypatch.setattr(bench.T, "StepTimer", FakeTimer)
+    monkeypatch.setattr(bench.T, "sync", lambda device: None)
+    monkeypatch.setattr(dist, "get_world_size", lambda: 2)
+    monkeypatch.setattr(dist, "get_backend", lambda: "gloo")
+    monkeypatch.setattr(dist, "barrier", lambda: None)
+    monkeypatch.setattr(dist, "all_to_all_single", lambda out, inp: out.copy_(inp))
+    monkeypatch.setattr(dist, "all_reduce", lambda tensor, op=None: None)
+
+    plan = {"payload_dtype": "fp32", "bytes_per_call": 32, "calls_per_step": 2}
+    result = bench.run_comm(plan, torch.device("cpu"), reps=4)
+    assert seen["expected_steps"] == 4
+    assert result["events_created_during_steps"] == 0
+    assert result["measured"] is True and result["per_call_ms"]["n"] == 4
+    assert result["per_step_ms"] == pytest.approx(4.0)
+
+
+# ------------------------------------------------------------------------------ G6 timer follow-up: layer and warning regressions
+
+def test_layer_timer_event_allocation_is_reported_in_json(first_run):
+    layer = first_run["run"]["layer"]
+    assert layer["events_created_during_steps"] == 0
+    assert layer["inner_pass"]["events_created_during_steps"] == 0
+
+
+def test_layer_event_allocation_warns_for_both_passes(tmp_path, monkeypatch):
+    real = bench.run_layer
+
+    def injected(s, n, level, warm):
+        result = real(s, n, level, warm)
+        result["events_created_during_steps"] = 2
+        result.setdefault("inner_pass", {})["events_created_during_steps"] = 4
+        return result
+
+    monkeypatch.setattr(bench, "run_layer", injected)
+    _run_main(tmp_path / "runs", "layer-events", "--modes", "clean,layer", "--level", "3")
+    run = json.loads((tmp_path / "runs" / "layer-events.json").read_text())
+    assert run["layer"]["events_created_during_steps"] == 2
+    assert run["layer"]["inner_pass"]["events_created_during_steps"] == 4
+    assert any("6 CUDA timing events" in w and "layer" in w for w in run["warnings"])
+
+
+def test_communication_warning_is_emitted_only_for_nonzero_counter():
+    warns = []
+    bench.warn_timing_allocations(warns, 0, "communication")
+    assert warns == []
+    bench.warn_timing_allocations(warns, 3, "communication")
+    assert len(warns) == 1
+    assert "3 CUDA timing events" in warns[0] and "communication" in warns[0]
+
+
+# Sunil PR24 review regression: inner recorder-pool reporting
+def test_inner_pool_warning_and_json(tmp_path, monkeypatch):
+    real = bench.run_layer
+    def injected(s, n, level, warm):
+        result = real(s, n, level, warm)
+        result["inner_pass"]["events_created_while_measuring"] = 57
+        return result
+    monkeypatch.setattr(bench, "run_layer", injected)
+    _run_main(tmp_path / "runs", "inner-pool", "--modes", "clean,layer", "--level", "3")
+    run = json.loads((tmp_path / "runs" / "inner-pool.json").read_text())
+    assert run["layer"]["inner_pass"]["events_created_while_measuring"] == 57
+    assert any("57 recorder-pool CUDA events" in w and "layer.inner_pass" in w for w in run["warnings"])
+
+
+def test_run_layer_copies_inner_pool_count(monkeypatch):
+    real = bench.layer_pass
+    calls = {"n": 0}
+    def injected(s, n, level, warm):
+        result = real(s, n, level, warm)
+        calls["n"] += 1
+        if calls["n"] == 2:
+            result["events_created_while_measuring"] = 57
+        return result
+    monkeypatch.setattr(bench, "layer_pass", injected)
+    s = bench.build(tiny_cfg(), torch.device("cpu"))
+    result = bench.run_layer(s, 1, 3, 2)
+    assert result["inner_pass"]["events_created_while_measuring"] == 57

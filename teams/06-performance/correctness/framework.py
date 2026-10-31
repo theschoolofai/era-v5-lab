@@ -337,5 +337,6 @@ def check(p: Pair, device, fast_override=None) -> dict:
         outs = [v for k, v in errors.items() if k.startswith("out")]
         grads = [v for k, v in errors.items() if k.startswith("grad")]
         RESULTS[p.name] = {"dtype": str(p.dtype).replace("torch.", ""), "tol": p.tol, "grad_tol": p.gtol,
-                           "out": max(outs), "grad": max(grads) if grads else None, "n": len(errors)}
+                           "out": max(outs), "grad": max(grads) if grads else None, "n": len(errors),
+                           "repeat": "same" if p.deterministic else "opted out"}
     return errors

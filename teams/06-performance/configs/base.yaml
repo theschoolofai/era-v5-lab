@@ -1,12 +1,11 @@
 # Every setting, with defaults. Other configs inherit this and change a few keys.
-# On its own this is the plain NanoGPT comparison model: table embedding (tied head), dense MLP,
-# plain residual stack, AdamW.
+# This is the default config of bench, smoke and the whole-model correctness tests.
 # Adding a key changes a shared interface (bench, report and G8 may read it).
 run:
   device: auto          # auto | cuda | cpu | mps
   dtype: bf16           # bf16 | fp16 (T4 / P100 / V100) | fp32
-  batch_size: auto      # auto: 32 with native bf16 (A100 / L4 / H100), else 8 (T4 / P100 / V100, CPU); or a number
-  seed: 0
+  batch_size: 16        # B, always from here. 32 fits A100 / L4 / H100; use 8 on T4 / P100 / V100 (fp32 logits are 8 GB at 32)
+  seed: 42
   compile: false
   grad_clip: 1.0
 
@@ -14,27 +13,33 @@ data:
   source: fineweb10b    # fineweb10b (raw FineWeb retokenized with BrahmicTokenizer-131K) | synthetic
   dir: ~/.cache/era-perf/fineweb-brahmic131k
   tokenizer_path: null # null: pinned GitHub download; or source checkout/tokenizer.json
+  prefetch: true        # true: the next batch is sampled, checked and pinned after backward is queued (off the
+                        # step start); next_batch() then only issues the copy to the GPU. Same batches either way.
 
 model:                  # fields of models.config.ModelConfig, nothing else
   vocab_size: 131072
-  block_size: 512
-  n_layer: 9
+  block_size: 256
+  n_layer: 6
   n_head: 8
   n_kv_head: null       # GQA key/value heads; null = n_head (plain multi-head)
   n_embd: 256
+  attn_impl: eager      # sdpa | eager (explicit softmax, G5 config_v0: two seeds match)
   mlp_ratio: 4
-  embedding: table      # table | ke1
+  embedding: ke2        # table | ke1 | ke2 (G4 raw table, teams/04-ke2)
   ke_max_pos: 32
   ke_mode: dynamic      # dynamic | cached
   ffn: mlp              # mlp | moe
-  moe: {num_experts: 8, top_k: 2, num_shared: 0, bias_gamma: 0.01, dispatch: loop}
-  reversible: false
+  moe: {num_experts: 8, top_k: 2, num_shared: 1, bias_gamma: 0.01, dispatch: loop}
+  reversible: true
   rev_h: 1.0
   ce_impl: torch        # torch (full fp32 logits, the baseline) | chunked (ce_chunks pieces, checkpointed)
   ce_chunks: 8
+  mtp: false            # true: second untied head on token t+2 (G5 config_v0); trained loss = ntp + mtp
 
 optim:
-  name: adamw           # adamw | muon | polar_muon_adamw (single-process combined Polar Express Muon + AdamW)
+  name: polar_muon_adamw  # adamw | muon | polar_muon_adamw (single-process combined Polar Express Muon + AdamW)
+  muon_impl: batched    # loop (reference) | batched (same-shaped matrices at once; muon and polar_muon_adamw)
+  adamw_impl: foreach   # polar_muon_adamw only: loop (reference) | foreach (torch._foreach ops)
   lr: 0.0006
   muon_lr: 0.02
   weight_decay: 0.0
@@ -45,13 +50,26 @@ optim:
 bench:
   modes: [clean, layer, trace, checkpoint, comm]   # rule 3b: checkpoint save and MoE all-to-all are measured parts
   warmup: 10
-  steps: 150            # 50 left too little room: two A100 runs drifted ~2.5% on every part
-  level: 2              # 1 phases, 2 layers, 3 inside layers
+  steps: 100            # >= report.min_compare_steps: each part is the median of 100 calls (50 was too noisy)
+  level: 3              # 1 phases, 2 layers, 3 inside layers
   trace_steps: 3
   ckpt_repeats: 10      # checkpoint saves timed (after one warm save that is not counted)
   max_overhead_pct: 2.0
+  layer_warmup: 2       # recorded steps before the layer pass is measured (touch every region once)
+  comm_reps: 30         # all_to_all calls timed per rank in comm mode (torchrun)
+  peak_tflops: null     # null: from the GPU peak table (perfkit.metrics); a number for a GPU not in it
   out_dir: results/runs
+
+smoke:
+  warmup: 10            # steps before timing (each one is a real training step)
+  steps: 30             # timed steps
 
 report:
   gate_level: 2         # parts at this level or coarser must agree within tol_pct
   tol_pct: 5.0
+  abs_tol_ms: 0.05      # TSAI 30 Oct: a part also passes when the two runs differ by less than this (timer noise)
+  # Needed because each part's time is the median over bench.steps measured steps: a part well under 1 ms
+  # (data, one forward block) moves 10%+ between runs on GPU-timer and host-launch jitter when that median
+  # comes from few calls. TSAI 30 Oct: time very small parts over many repeats (e.g. the median of 100 calls)
+  # before comparing. bench --against / --repeat warns when bench.steps is below this.
+  min_compare_steps: 100

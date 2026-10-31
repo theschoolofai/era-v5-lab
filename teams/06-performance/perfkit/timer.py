@@ -9,7 +9,7 @@ after the step. Nothing in this file synchronizes inside a timed step.
   StepTimer(device)                  one event pair per step: start() / stop(); times_ms() syncs once
   stats(xs)                          median, p10, p90, iqr, min, max, n, spread_pct (the numbers we gate on),
                                      plus mean and std for information (Task 2 of G6_Team_Task_Plan.md).
-  Buckets(device)                    wall-clock seconds per named bucket (startup, compile, checkpoint)
+  Buckets(device)                    wall-clock seconds per named bucket (bench: startup, first_step, warmup)
   EventPool()                        reusable CUDA events, so a timed step allocates none
   EventRecorder(device, max_level)   layer mode: the recorder protocol of perfkit/regions.py
   ProfilerRecorder(max_level)        trace mode: record_function + NVTX ranges with the same names
@@ -111,6 +111,7 @@ class StepTimer:
         self._open = None
         # Preallocate both timestamps for every step, outside the measured loop.
         # Dynamic creation remains a safe fallback if a caller records more steps.
+        # CUDA runtime handles may be initialized lazily on first record().
         self._unused = ([torch.cuda.Event(enable_timing=True)
                          for _ in range(2 * expected_steps)]
                         if self.kind == "event" else [])
@@ -137,8 +138,10 @@ class StepTimer:
     def stop(self):
         if self._open is None:
             raise RuntimeError("StepTimer.stop() without start()")
-        self._pairs.append((self._open, self._mark()))
+        pair = (self._open, self._mark())
+        self._pairs.append(pair)
         self._open = None
+        return pair
 
     @contextmanager
     def step(self):
@@ -162,6 +165,14 @@ class StepTimer:
         return out
 
     def reset(self):
+        """Clear recorded steps and recycle completed CUDA events.
+
+        Raises RuntimeError if a step is open. On CUDA, times_ms()
+        synchronizes completed measurements before events are reused.
+        events_created_during_steps counts Python CUDA Event objects allocated
+        by the fallback path and stays cumulative across reset() calls.
+        It does not track underlying CUDA runtime event-handle creation.
+        """
         if self._open is not None:
             raise RuntimeError("StepTimer.reset() during an open step")
         if self.kind == "event" and self._pairs:
@@ -175,7 +186,8 @@ class StepTimer:
 
 
 class Buckets:
-    """Wall-clock seconds per named bucket, for goodput / badput: startup, compile, eval, checkpoint.
+    """Wall-clock seconds per named bucket, for goodput / badput. bench uses startup, first_step and warmup
+    (run["goodput"]["badput_s"]); eval and checkpoint buckets are planned.
 
         b = Buckets(device)
         with b("startup"):  build()

@@ -23,7 +23,6 @@ import torch
 from perfkit import metrics as M
 from perfkit import parts as P
 
-skipif = pytest.mark.skipif     # see test_ke.py: a decorator at the start of a line trips pr-guard
 
 
 # ------------------------------------------------------------------------------ slowest_parts
@@ -168,9 +167,11 @@ def test_sampler_parses_lines_and_summarises():
     s = M.GpuSampler(torch.device("cpu"))
     s.reason, s.started = "clocks_event_reasons.active", True
     s.rows = [s.parse_line(line) for line in (
-        "90, 40, 30000, 1410, 1215, 300.0, 60, 0x0000000000000000",
-        "100, 50, 30100, 1200, 1215, 400.0, 70, 0x0000000000000004",      # SwPowerCap
-        "[N/A], 50, 30100, 1300, 1215, 350.0, 65, 0x0000000000000001")]   # GpuIdle is not a slowdown
+        "0, Test GPU, GPU-0, 00000000:01:00.0, 90, 40, 30000, 1410, 1215, 300.0, 60, 0x0000000000000000",
+        "0, Test GPU, GPU-0, 00000000:01:00.0, 100, 50, 30100, 1200, 1215, 400.0, 70, 0x0000000000000004", # SwPowerCap
+        "0, Test GPU, GPU-0, 00000000:01:00.0, [N/A], 50, 30100, 1300, 1215, 350.0, 65, 0x0000000000000001")] # GpuIdle
+    s.target_index = 0
+    s.target_pci_bus_id = "00000000:01:00.0"
     assert s.parse_line("1, 2") is None
     out = s.summary()
     assert out["samples"] == 3 and out["metrics"]["gpu_util_pct"] == {"min": 90.0, "median": 95.0, "max": 100.0,
@@ -185,20 +186,44 @@ if not any(a.startswith("--loop-ms") for a in sys.argv):
     print("0x0000000000000000")
     sys.exit(0)
 while True:
-    print("97, 40, 30000, 1410, 1215, 300.5, 60, 0x0000000000000000", flush=True)
+    print("0, Test GPU, GPU-0, 00000000:01:00.0, 97, 40, 30000, 1410, 1215, 300.5, 60, 0x0000000000000000", flush=True)
+    print("1, Other GPU, GPU-1, 00000000:02:00.0, 10, 20, 1000, 600, 800, 50.0, 40, 0x0000000000000000", flush=True)
     time.sleep(0.02)
 """
 
 
-@skipif(os.name == "nt", reason="a shebang script stands in for nvidia-smi")
+@pytest.mark.skipif(os.name == "nt", reason="a shebang script stands in for nvidia-smi")
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="the end-to-end sampler uses a CUDA device")
 def test_sampler_end_to_end_with_a_fake_nvidia_smi(tmp_path, monkeypatch):
     smi = tmp_path / "nvidia-smi"
     smi.write_text(FAKE_SMI.format(python=sys.executable))
     smi.chmod(0o755)
     monkeypatch.setenv("PATH", f"{tmp_path}{os.pathsep}{os.environ['PATH']}")
-    with M.GpuSampler(torch.device("cuda"), interval_ms=20) as s:
+    records = []
+    sampler = M.GpuSampler(torch.device("cuda"), interval_ms=20,
+                           on_sample=lambda row, step: records.append((row, step)))
+    # Target the fake GPU 0, not the host's real PCI address (a host GPU at 02:00.0 matched the fake GPU 1).
+    sampler.target_index = 0
+    sampler.target_pci_bus_id = "00000000:01:00.0"
+    with sampler as s:
+        s.set_step(7)
         time.sleep(0.5)
     out = s.summary()
     assert out["samples"] >= 3 and out["metrics"]["power_w"]["median"] == 300.5
     assert out["slowdown_samples"] == 0
+    assert len(records) >= 6 and records[0][1] == 7
+    assert {row["uuid"] for row, _ in records} == {"GPU-0", "GPU-1"}
     assert s._proc is None                                                  # the child was stopped
+
+
+def test_sampler_summary_filters_to_benchmarked_gpu_but_streams_every_gpu():
+    s = M.GpuSampler(torch.device("cpu"), on_sample=lambda *_: None)
+    s.reason, s.started = "clocks_event_reasons.active", True
+    s.target_index, s.target_pci_bus_id = 0, "00000000:01:00.0"
+    s.rows = [s.parse_line(line) for line in (
+        "0, Test GPU, GPU-0, 00000000:01:00.0, 90, 40, 30000, 1410, 1215, 300.0, 60, 0x0000000000000000",
+        "1, Other GPU, GPU-1, 00000000:02:00.0, 10, 20, 1000, 600, 800, 50.0, 40, 0x0000000000000000")]
+    out = s.summary()
+    assert out["samples"] == 1
+    assert out["metrics"]["gpu_util_pct"]["median"] == 90
+    assert out["gpu"] == {"index": 0, "pci_bus_id": "00000000:01:00.0"}

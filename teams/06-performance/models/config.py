@@ -1,13 +1,17 @@
 """Model config and YAML loading.  [CONTRACT]
 
-Changing a field name or meaning changes a shared interface: bench, roofline, report and tests read these.
+Changing a field name or meaning changes a shared interface: bench, report and tests read these.
 
 Rule: no number about the model is hard-coded anywhere else. Everything reads ModelConfig.
 G5's configs become new configs/g5_*.yaml files. If they need a field we do not have,
 add it here with a default, so every old config still loads.
 
-    cfg = load_config("configs/lab_small.yaml", ["model.n_layer=4", "run.batch_size=8"])
-    mcfg = model_config(cfg)          # ModelConfig; unknown keys are an error, not ignored
+    cfg = load_config("configs/base.yaml", ["model.n_layer=4", "run.batch_size=8"])
+    mcfg = model_config(cfg)          # ModelConfig; unknown or missing keys are an error, not ignored
+
+The YAML is the only source of values: a key written twice in one file, an override of a key the config
+does not have (a typo such as run.batchsize=16 would otherwise be ignored), and a model field missing from
+the YAML are all errors. The dataclass defaults below only serve tests that build one part directly.
 """
 from __future__ import annotations
 
@@ -19,6 +23,7 @@ import yaml
 
 MOE_KEYS = {"num_experts", "top_k", "num_shared", "bias_gamma", "dispatch"}   # SparseMoE keyword arguments
 CE_IMPLS = ("torch", "chunked")
+ATTN_IMPLS = ("sdpa", "eager")
 
 
 @dataclass
@@ -29,8 +34,9 @@ class ModelConfig:
     n_head: int = 8                  # query heads
     n_kv_head: int | None = None     # GQA: key/value heads, divides n_head; None = n_head (plain multi-head)
     n_embd: int = 256                # d_model
+    attn_impl: str = "sdpa"          # sdpa (F.scaled_dot_product_attention) | eager (explicit softmax; G5 config_v0)
     mlp_ratio: int = 4               # MLP / expert hidden = mlp_ratio * n_embd
-    embedding: str = "table"         # table (tied head) | ke1 (Kronecker v1, untied head)
+    embedding: str = "table"         # table (tied head) | ke1 (Kronecker v1, untied head) | ke2 (Kronecker v2, G4 raw table, untied head)
     ke_max_pos: int = 32             # KE v1 byte positions: codec dim = 256 * ke_max_pos
     ke_mode: str = "dynamic"         # KE v1: dynamic (codec every step) | cached (V x D table)
     ffn: str = "mlp"                 # mlp | moe
@@ -40,11 +46,13 @@ class ModelConfig:
     rev_h: float = 1.0               # midpoint step size
     ce_impl: str = "torch"           # torch: full fp32 logits (baseline) | chunked: ce_chunks pieces, checkpointed
     ce_chunks: int = 8
+    mtp: bool = False                # True: second untied head predicts token t+2 (G5 config_v0); loss = ntp + mtp
 
     def __post_init__(self):
-        assert self.embedding in ("table", "ke1"), f"embedding={self.embedding!r}"
+        assert self.embedding in ("table", "ke1", "ke2"), f"embedding={self.embedding!r}"
         assert self.ffn in ("mlp", "moe"), f"ffn={self.ffn!r}"
         assert self.n_embd % self.n_head == 0, "n_embd must be divisible by n_head"
+        assert self.attn_impl in ATTN_IMPLS, f"attn_impl={self.attn_impl!r} not in {ATTN_IMPLS}"
         assert self.ce_impl in CE_IMPLS, f"ce_impl={self.ce_impl!r} not in {CE_IMPLS}"
         unknown = sorted(set(self.moe) - MOE_KEYS)
         assert not unknown, f"unknown moe keys {unknown}; known: {sorted(MOE_KEYS)}"
@@ -63,10 +71,26 @@ def _merge(base, over):
     return out
 
 
+class _UniqueKeyLoader(yaml.SafeLoader):
+    """SafeLoader that refuses a key written twice in one mapping (plain YAML keeps the last one silently)."""
+
+    def construct_mapping(self, node, deep=False):
+        seen = set()
+        for key_node, _ in node.value:
+            key = self.construct_object(key_node, deep=deep)
+            if key in seen:
+                raise ValueError(f"duplicate key {key!r} at line {key_node.start_mark.line + 1}: "
+                                 f"{key_node.start_mark.name}")
+            seen.add(key)
+        return super().construct_mapping(node, deep)
+
+
 def load_config(path, overrides=()):
-    """YAML with `inherit: <parent>.yaml`, then `a.b.c=value` overrides (values parsed as YAML)."""
+    """YAML with `inherit: <parent>.yaml`, then `a.b.c=value` overrides (values parsed as YAML).
+    An override must name a key the config already has."""
     path = Path(path)
-    cfg = yaml.safe_load(path.read_text()) or {}
+    with open(path) as f:
+        cfg = yaml.load(f, Loader=_UniqueKeyLoader) or {}
     parent = cfg.pop("inherit", None)
     if parent:
         cfg = _merge(load_config(path.parent / parent), cfg)
@@ -77,7 +101,11 @@ def load_config(path, overrides=()):
         node = cfg
         *head, last = key.split(".")
         for h in head:
-            node = node.setdefault(h, {})
+            if not isinstance(node.get(h), dict):
+                raise KeyError(f"override {o!r}: the config has no section {h!r} (see configs/base.yaml)")
+            node = node[h]
+        if last not in node:
+            raise KeyError(f"override {o!r}: the config has no key {key!r} (see configs/base.yaml)")
         node[last] = yaml.safe_load(val)
     return cfg
 
@@ -88,4 +116,7 @@ def model_config(cfg: dict) -> ModelConfig:
     unknown = sorted(set(m) - known)
     if unknown:
         raise KeyError(f"unknown model keys {unknown}: add them to ModelConfig (with a default) first")
+    missing = sorted(known - set(m))
+    if missing:
+        raise KeyError(f"model keys {missing} are not in the config: set them in configs/base.yaml")
     return ModelConfig(**m)
