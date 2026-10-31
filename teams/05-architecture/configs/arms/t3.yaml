@@ -1,0 +1,32 @@
+# T3 confirm shape.
+# mlp_ratio is null on purpose. 896 is not an integer ratio of 640.
+# Inheriting base.yaml would otherwise keep mlp_ratio 4 and time a width of 2560.
+inherit: ../../../../teams/06-performance/configs/base.yaml
+intended:
+  arm: T3
+  official_step_time: false
+  instructor_expert_ffn: 896
+  loaded_expert_ffn: null
+  mlp_ratio: null
+model:
+  vocab_size: 131072
+  block_size: 2048
+  n_layer: 10
+  n_head: 10
+  n_kv_head: 2
+  n_embd: 640
+  mlp_ratio: null
+  embedding: ke1
+  ke_max_pos: 32
+  ke_mode: dynamic
+  ffn: moe
+  moe: {num_experts: 16, top_k: 2, num_shared: 1}
+optim:
+  name: adamw
+  lr: null
+  weight_decay: 0.0
+run:
+  seed: 1234
+  batch_size: 8
+  grad_clip: 1.0
+  dtype: bf16

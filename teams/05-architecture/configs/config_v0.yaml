@@ -19,9 +19,8 @@ settings:
     value: BrahmicTokenizer-131K
     source: "G3 week-1 note. BrahmicTokenizer-131K is tokenizer v0. The file arrives 28 Oct."
   - key: tokenizer.vocab_size
-    value: null
-    open: true
-    source: "G3 special-slot file is due 28 Oct. The vocab size stays empty until that file."
+    value: 131072
+    source: "G3 teams/03-tokenizer/v0/special_slots.md. Vocab 131,072, special ids frozen. Rajiv Seelam, CAP, 1 Nov 2026."
   - key: embedding.type
     value: kronecker
     source: "https://github.com/theschoolofai/kronecker-embeddings and arXiv 2605.29459."

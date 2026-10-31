@@ -1,0 +1,9 @@
+# EXP-2 AdamW arm. Learning rate is filled with the EXP-1 winner before the job is sent.
+# Until then optim.lr is absent here and must not be read from an inherited timing default.
+inherit: t2.yaml
+intended:
+  arm: exp2-adamw
+  official_step_time: false
+optim:
+  name: adamw
+  lr: null

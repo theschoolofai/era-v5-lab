@@ -1,0 +1,13 @@
+# EXP-1 arm. The only change from t1.yaml is optim.lr.
+inherit: ../t1.yaml
+intended:
+  arm: exp1-lr-1e-4
+  owner: Avnish Midha
+  test_size: T1
+  seeds: [1234, 1235, 1236]
+  max_time_min: 30
+  metric: bits_per_byte
+optim:
+  lr: 0.0001
+run:
+  seed: 1234

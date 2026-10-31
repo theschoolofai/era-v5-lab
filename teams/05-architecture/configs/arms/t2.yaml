@@ -1,0 +1,35 @@
+# T2 depth, width, context and expert count.
+# mlp_ratio is null on purpose. 768 is not an integer ratio of 512.
+# Inheriting base.yaml would otherwise keep mlp_ratio 4 and time a width of 2048.
+inherit: ../../../../teams/06-performance/configs/base.yaml
+intended:
+  arm: T2
+  official_step_time: false
+  instructor_expert_ffn: 768
+  loaded_expert_ffn: null
+  mlp_ratio: null
+  activation_intended: SwiGLU
+  position_intended: RoPE
+  tied_embeddings_intended: true
+model:
+  vocab_size: 131072
+  block_size: 2048
+  n_layer: 8
+  n_head: 8
+  n_kv_head: 2
+  n_embd: 512
+  mlp_ratio: null
+  embedding: ke1
+  ke_max_pos: 32
+  ke_mode: dynamic
+  ffn: moe
+  moe: {num_experts: 16, top_k: 2, num_shared: 1}
+optim:
+  name: adamw
+  lr: null
+  weight_decay: 0.0
+run:
+  seed: 1234
+  batch_size: 8
+  grad_clip: 1.0
+  dtype: bf16
