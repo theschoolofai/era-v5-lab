@@ -1,0 +1,49 @@
+{
+  "hash_format": "ke2-decode-cpu-v1",
+  "serialization": "ASCII format name plus LF; then ascending IDs as uint32 big-endian, UTF-8 byte lengths as uint32 big-endian, then bytes",
+  "decoder": "tokenizers.Tokenizer.decode([id], skip_special_tokens=False)",
+  "special_token_policy": "decode every ID; require specials to equal literal content, matching the reviewed table builder",
+  "process_policy": "three fresh sequential CPU processes; TOKENIZERS_PARALLELISM=false",
+  "all_match": true,
+  "runs": [
+    {
+      "device": "cpu",
+      "first_id": 0,
+      "last_id": 131071,
+      "machine": "arm64",
+      "python_version": "3.10.12",
+      "sha256": "3bbeb19318f233b76c3a5d725a7034327681837ef60d9aa2367518db1ef08e57",
+      "special_token_count": 356,
+      "system": "Darwin",
+      "token_count": 131072,
+      "tokenizer_sha256": "01d968a7970b029c071b29f060abf6104b66168dedf2ff3b1a0290a545739fff",
+      "tokenizers_version": "0.23.3"
+    },
+    {
+      "device": "cpu",
+      "first_id": 0,
+      "last_id": 131071,
+      "machine": "arm64",
+      "python_version": "3.10.12",
+      "sha256": "3bbeb19318f233b76c3a5d725a7034327681837ef60d9aa2367518db1ef08e57",
+      "special_token_count": 356,
+      "system": "Darwin",
+      "token_count": 131072,
+      "tokenizer_sha256": "01d968a7970b029c071b29f060abf6104b66168dedf2ff3b1a0290a545739fff",
+      "tokenizers_version": "0.23.3"
+    },
+    {
+      "device": "cpu",
+      "first_id": 0,
+      "last_id": 131071,
+      "machine": "arm64",
+      "python_version": "3.10.12",
+      "sha256": "3bbeb19318f233b76c3a5d725a7034327681837ef60d9aa2367518db1ef08e57",
+      "special_token_count": 356,
+      "system": "Darwin",
+      "token_count": 131072,
+      "tokenizer_sha256": "01d968a7970b029c071b29f060abf6104b66168dedf2ff3b1a0290a545739fff",
+      "tokenizers_version": "0.23.3"
+    }
+  ]
+}

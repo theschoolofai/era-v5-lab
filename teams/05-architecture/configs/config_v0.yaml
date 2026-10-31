@@ -1,0 +1,72 @@
+# Week-1 config. Sizes stay empty until TSAI fills them on 31 Oct.
+# The KE2 output shape stays empty until G4 delivers teams/04-ke2/output_shape.md.
+# Tiny-run numbers live in configs/small/tiny_moe.yaml. They are not this file.
+settings:
+  - key: run.seed
+    value: 1234
+    source: "G5 week-1 gate, 24 Oct 2026. Two runs with this seed must match."
+  - key: run.grad_clip
+    value: 1.0
+    source: "The harness sets the clip. DeepSpeed clips at 1.0 by default and plain DDP does not."
+  - key: optim.name
+    value: adamw
+    source: "Week-1 harness optimiser. The betas and the learning rate are not taken from a V4 run."
+  - key: optim.lr
+    value: null
+    open: true
+    source: "No production learning rate yet. The tiny file holds a smoke-test step size only."
+  - key: tokenizer.name
+    value: BrahmicTokenizer-131K
+    source: "G3 week-1 note. BrahmicTokenizer-131K is tokenizer v0. The file arrives 28 Oct."
+  - key: tokenizer.vocab_size
+    value: null
+    open: true
+    source: "G3 special-slot file is due 28 Oct. The vocab size stays empty until that file."
+  - key: embedding.type
+    value: kronecker
+    source: "https://github.com/theschoolofai/kronecker-embeddings and arXiv 2605.29459."
+  - key: embedding.pos_dim
+    value: 32
+    source: "kronecker-embeddings library default pos_dim. Paper 2605.29459 section 6.9 also reports pos_dim 16."
+  - key: embedding.ke2_output_dim
+    value: null
+    open: true
+    source: "G4 delivers teams/04-ke2/output_shape.md on 27 Oct."
+  - key: model.n_layer
+    value: null
+    open: true
+    source: "TSAI fills model sizes on 31 Oct."
+  - key: model.d_model
+    value: null
+    open: true
+    source: "TSAI fills model sizes on 31 Oct."
+  - key: model.n_head
+    value: null
+    open: true
+    source: "TSAI fills model sizes on 31 Oct."
+  - key: model.d_ff
+    value: null
+    open: true
+    source: "TSAI fills model sizes on 31 Oct."
+  - key: attention.impl
+    value: eager
+    source: "Fast attention backward does not repeat. The harness uses eager attention so two seeds can match."
+  - key: moe.n_expert
+    value: null
+    open: true
+    source: "TSAI fills model sizes on 31 Oct."
+  - key: moe.top_k
+    value: null
+    open: true
+    source: "TSAI fills model sizes on 31 Oct."
+  - key: loss.train_on
+    value: ntp
+    source: "The logged training loss is next-token loss. A second head is trained on t+2 and logged as loss_mtp."
+  - key: data.seq_len
+    value: null
+    open: true
+    source: "TSAI fills model sizes on 31 Oct."
+  - key: precision
+    value: null
+    open: true
+    source: "Production precision is not chosen. The tiny run uses fp32 on CPU."

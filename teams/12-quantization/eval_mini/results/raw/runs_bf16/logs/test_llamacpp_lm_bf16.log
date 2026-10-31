@@ -1,0 +1,2 @@
+OLMoE-1B-7B-0924-bf16.gguf: log p(' Paris') = -0.478, generation -0.478, off-by-one value -8.557; cache max diff 0.0000
+PASS

@@ -1,0 +1,3 @@
+# Keep the fingerprint files byte for byte. Their sha256 is checked, and a CRLF checkout
+# (Git on Windows with core.autocrlf=true) would change every file.
+* -text
