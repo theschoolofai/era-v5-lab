@@ -2,16 +2,16 @@
 
 Pack ind-sa-fw2 (Sanskrit web text), 500 rows, all labelled in labels.csv: fix 298, clean 184, drop 18. Labels and medicines as of 27 Oct 2026.
 Thirteen codes occur more than five times and get one medicine each (sections below, ordered by the reader's row count).
-Harm test: the G1 gold set (PR #140, `teams/01-data-a/gold/`) covers the 13 Data A packs (code, English, math, science) and has no `ind-sa-fw2_gold.csv`, so a gold result is not possible for this pack yet; the official tool reports NOT TESTABLE on an empty gold set.
-The proxy used here is this pack's 184 rows labelled clean, run through the PR's own `harm_test.py` (`--rule all`, limit max(1, 1 %) = 1 document): every rule and the all-in-order run change 0 and drop 0.
-DISEASES.md fails a medicine that changes or drops more than 1 % of the gold set; the tool's limit for a set under 200 rows is 1 document, so on the proxy two or more of 184 fails.
-Every proxy number is labelled as such; none is a gold result. Counts come from the official harm_test.py and my medicine_report.py, unrounded.
+Harm test: run on the Sanskrit gold set of PR #161 (`teams/02-data-b/gold/ind-sa-fw2_gold.csv`, PR head commit 74b28869, an interim set): 68 documents that two readers marked clean. Tool: `teams/02-data-b/tools/harm_test_indic.py` from the same PR (`--rule all`, pack ind-sa-fw2.parquet), run on this file with the gold results written in (sha256 8435caae686d; only prose changed after that, so the tool's own hash of the committed file differs but the code and results are identical).
+Result: every rule and the all-in-order run change 0 and drop 0 of the 68 gold documents (0.00 %); the ZWJ/ZWNJ audit and the normal-form audit (NFC, compatibility characters) find nothing. Overall result: PASS.
+DISEASES.md fails a medicine that changes or drops more than 1 % of the gold set; the tool's limit for a set under 200 rows is 1 document, so on 68 documents two or more fails.
+Earlier proxy, kept as a secondary check: this pack's 184 rows labelled clean, run through Data A's `harm_test.py` (limit 1 document): also 0 changed and 0 dropped for every rule. The gold set is a subset of these 184 rows, so the two agree by construction. Pack and recall counts come from my medicine_report.py, unrounded.
 Action `none` means there is no safe per-document fix; the section still gives the detection rule in code and the scale-time action.
 Pipeline order for the fixes: C1, then C2, then C5, then C3 (C3 last, because a chrome tail is what usually leaves a document open).
 The C4 detector runs on the original text before C1, which removes the date headers it relies on.
 A6, G1 and G4 are order-independent on this pack; F1 can run anywhere. The pipeline changes 183 of the 500 documents and drops none.
 Each section's python block is self-contained and is the code that produced the numbers (checked identical to diag-tools on all 500 rows): fix rules are `medicine_<code>` or the section's one public function; for action `none` the entry point `medicine_<code>` returns the text unchanged and the named detector is the rule that reports.
-The Hindi-dominance drop detector `d1_wrong_language` (med_language.py in diag-tools, not in this file) is kept for the gold run.
+The Hindi-dominance drop detector `d1_wrong_language` (med_language.py in diag-tools, not in this file) fires on 0 of the 68 gold documents (1 of 500 in the pack).
 Example texts are at most 60 characters; `⏎` stands for a line break. F1 examples give type and offset only.
 
 ## Medicine 1 — C1 Boilerplate
@@ -102,7 +102,7 @@ Example texts are at most 60 characters; `⏎` stands for a line break. F1 examp
        return out.strip("\n")
    ```
 3. **Action:** fix. The matched lines and blocks are removed; nothing else changes.
-4. **Harm test:** No `ind-sa-fw2` gold file in PR #140. Proxy (184 clean rows, official `harm_test.py`): changes 0, drops 0 (0.0 %): pass. Recall: touches 98 of the 149 rows labelled C1; 109 rows touched in the pack overall.
+4. **Harm test:** Gold (PR #161, 68 documents, `harm_test_indic.py`): changes 0, drops 0 (0.00 %); ZWJ/ZWNJ and normal-form audits clean: pass. Proxy (184 clean rows): changes 0, drops 0. Recall: touches 98 of the 149 rows labelled C1; 109 rows touched in the pack overall.
 5. **Side effects:** a Sanskrit article about Blogger whose prose puts exactly these phrases on their own lines loses them, and the newssanskrit slogans would be lost if they were ever quoted on their own line in a news item. Chrome that is kept: Latin title lines (templesinindiainfo, advocatetanmoy, thesimplehelp section headings), Devanagari single-cell |…| infobox rows (same shape as the wikisource prev/next navigation row on seven clean rows), "Available at" and "Source:" reference lines, and author contact lines such as "E-mail id:", which are personal data (F1) and are left to the F1 medicine. Out of C1's scope, so still in the text: the learnsanskrit trilingual exercise rows (272; cutting the Hindi and English parts is an intra-line edit, not a line rule), the sanskritvarta embedded tweet bodies (37, 38, 114; only the attribution line is chrome), and the dr.du.ac.in alternating Sanskrit and English paragraphs (101; D3, label only). Nothing fuzzier than a full-line match is used, which is why 51 of the C1 rows are not touched; the 11 touched rows without a C1 label are mostly hosts whose chrome the reader filed under other codes.
 
 ## Medicine 2 — D3 Mixed language
@@ -162,7 +162,7 @@ Example texts are at most 60 characters; `⏎` stands for a line break. F1 examp
        return text    # action none: the detector `d3_mixed_language` reports; the text is kept
    ```
 3. **Action:** none. DISEASES.md says to label mixed language and not judge it. The scale-time action is keep-and-record: the detector's flag goes into the row's metadata, and the only text edit that is safe, removing Latin-only chrome lines, is already done by C1.
-4. **Harm test:** no automated action; detector fires on 1/184 clean rows (information only; pack row 457, sanskritvarta.in, the English words "Land for Job" in a news sentence). Recall: fires on 22 of the 91 rows labelled D3; 31 rows detected in the pack overall.
+4. **Harm test:** Gold (PR #161, 68 documents, `harm_test_indic.py`): changes 0, drops 0 (0.00 %): pass; the detector fires on 0 of 68 gold documents. No automated action. Proxy: detector fires on 1/184 clean rows (information only; pack row 457, sanskritvarta.in, the English words "Land for Job" in a news sentence). Recall: fires on 22 of the 91 rows labelled D3; 31 rows detected in the pack overall.
 5. **Side effects:** none on the text. Two natural cases in this pack must stay as they are. sanskrit.today verse pages print the verse, its sandhi split, a word-by-word gloss (धीमताम् = of the wise) and an English meaning. sa.wikisource talk pages carry English wiki notices and user names between Sanskrit paragraphs. Both are legitimate bilingual data. The detector also fires on Sanskrit news that names people, places or hashtags in Latin script and on glossaries. That is why the result is reported, not acted on. A text rewrite (stripping the Latin words) would destroy glosses and names. The 91 include 17 rows with a Hindi introduction, gloss or commentary beside a dominant Sanskrit text; they carry little Latin, so the detector fires on 4 of them. The exported Hindi-dominance detector `d1_wrong_language` drops only the one Hindi-language menu page in this pack (row 66, sa.wikipedia.org, labelled drop) and none of the 184 clean rows; it is kept for the gold run.
 
 ## Medicine 3 — C3 Truncated document
@@ -192,7 +192,7 @@ Example texts are at most 60 characters; `⏎` stands for a line break. F1 examp
        return "\n".join(lines[:k] + lines[k + 1:])
    ```
 3. **Action:** fix. One dangling last line is removed; mid-sentence truncation is not repaired.
-4. **Harm test:** No `ind-sa-fw2` gold file in PR #140. Proxy (184 clean rows, official `harm_test.py`): changes 0, drops 0 (0.0 %): pass. Recall: touches 31 of the 81 rows labelled C3; 38 rows touched in the pack overall.
+4. **Harm test:** Gold (PR #161, 68 documents, `harm_test_indic.py`): changes 0, drops 0 (0.00 %); ZWJ/ZWNJ and normal-form audits clean: pass. Proxy (184 clean rows): changes 0, drops 0. Recall: touches 31 of the 81 rows labelled C3; 38 rows touched in the pack overall.
 5. **Side effects:** a document whose last line is a title or an unpunctuated verse-number line loses it. Real mid-sentence truncation (most wikisource rows) is not repaired, so most C3 rows keep their damage. The lone sarit invocation श्रीः after the closing ॥ is cut: by the reader's policy all 16 sarit rows that end that way are C3 (24, 25, 50, 72, 73, 92, 131, 135, 402, 422, 427, 435, 439, 478, 493, 496), and they are 16 of the 31 rows repaired. A श्रीः closed by its own danda is terminal and stays. Of the 7 touched rows without a C3 label, six are C1 rows whose open last line is a chrome tail (C1 removes most of them first in the pipeline), and one is row 109 (sarkariexpress, D3), whose Hindi "click here" tail C1 also removes first. Interaction: on advocatetanmoy rows 305 and 323, C1 removes a "Categories:" line and C3 then drops the Latin title line above it.
 
 ## Medicine 4 — G4 Over-normalised
@@ -237,7 +237,7 @@ Example texts are at most 60 characters; `⏎` stands for a line break. F1 examp
        return fix_g4_all_ascii(text)
    ```
 3. **Action:** fix. Every document with three or more convertible runs is rewritten, whether or not it already mixes the two digit systems.
-4. **Harm test:** No `ind-sa-fw2` gold file in PR #140. Proxy (184 clean rows, official `harm_test.py`): changes 0, drops 0 (0.0 %): pass. Recall: touches 55 of the 70 rows labelled G4; 56 rows touched in the pack overall (the 55 and row 235, sa.m.wikisource, labelled D3;H3). The exported mixed-only variant touches 9 of 70 G4 rows and 0 clean rows.
+4. **Harm test:** Gold (PR #161, 68 documents, `harm_test_indic.py`): changes 0, drops 0 (0.00 %); ZWJ/ZWNJ and normal-form audits clean: pass. Proxy (184 clean rows): changes 0, drops 0. Recall: touches 55 of the 70 rows labelled G4; 56 rows touched in the pack overall (the 55 and row 235, sa.m.wikisource, labelled D3;H3). The exported mixed-only variant touches 9 of 70 G4 rows and 0 clean rows.
 5. **Side effects:** digits next to a month name, a currency word, a percent sign or दिनाङ्क stay ASCII. That keeps the medicine off clean row 8 (`5448b7f64d6a2e8f`, newssanskrit.blogspot.com: three ASCII dates and an amount in Devanagari prose). It also leaves the two year runs on one essay unconverted: on G4 row 334 (`cc0e23e9c96354ae`, thesimplehelp.com) the date `4 जुलाई 1902` is guarded, so only `1863 तमे` and `1893 तमे` remain convertible, below the three-run gate. A date run inside an otherwise converted document (`30 दिनांके` in row 429) stays ASCII. Alternatives measured and not applied: skipping four-digit years 1800-2099 not next to ॥ touches clean row 8 (53/70); requiring ॥ । or a line boundary within 3 characters reaches 0 clean rows but only 47/70. The 15 G4 rows the medicine misses (11 sarit, 2 sa.m.wikisource, row 334, and row 471 `36f68c1b4189e521` with two dotted references) have fewer than three convertible runs: their numbers are hyphenated references (9-66-66), sit next to Latin letters, are guarded, or are too few. Hyphenated verse references stay ASCII, so a converted document can still mix systems. A document with only one or two stray ASCII numbers (।। 57 ।। in a 200-digit Devanagari text) is left alone because the same rule without the three-run gate touches 17 of the 184 clean rows (one or two converted runs each). Footnote numbers glued inside words (पूर्वोत्त772र) are converted like any other run, which neither repairs nor worsens them.
 
 ## Medicine 5 — G2 Lost ZWJ or ZWNJ
@@ -259,7 +259,7 @@ Example texts are at most 60 characters; `⏎` stands for a line break. F1 examp
    # evidence = the source words that carried the joiner, located in the pack text by offset.
    ```
 3. **Action:** none. Scale-time action: re-crawl these hosts with a fetcher that keeps format characters. Never insert joiners heuristically: the glyph a ZWJ/ZWNJ selects depends on the font and the conjunct, and a wrong guess changes how the word renders.
-4. **Harm test:** no automated action; detector fires on 0/184 clean rows (information only, by construction). Recall: touches 0 of the 51 rows labelled G2; 0 rows detected in the pack overall. The real detection count is source_compare.py's 50 confirmed rows.
+4. **Harm test:** Gold (PR #161, 68 documents, `harm_test_indic.py`): changes 0, drops 0 (0.00 %): pass; the detector fires on 0 of 68 gold documents. No automated action. Proxy: detector fires on 0/184 clean rows (information only, by construction). Recall: touches 0 of the 51 rows labelled G2; 0 rows detected in the pack overall. The real detection count is source_compare.py's 50 confirmed rows.
 5. **Side effects:** none at text level. Nothing is changed, so the pack count here is 0 by construction. A re-crawl can only restore joiners that the live page still has; the reader accepted all 50 candidates as G2 by policy (ZWJ after virama changes glyph shape only, but it is the source's spelling).
 
 ## Medicine 6 — A6 Wrong or mixed script
@@ -283,7 +283,7 @@ Example texts are at most 60 characters; `⏎` stands for a line break. F1 examp
        return RE_A6_AVAGRAHA.sub("ऽ", text)
    ```
 3. **Action:** fix. Each replacement needs Devanagari on the left and a boundary or Devanagari letter on the right; no neighbouring character is consumed.
-4. **Harm test:** No `ind-sa-fw2` gold file in PR #140. Proxy (184 clean rows, official `harm_test.py`): changes 0, drops 0 (0.0 %): pass. Recall: touches 18 of the 34 rows labelled A6; 18 rows touched in the pack overall.
+4. **Harm test:** Gold (PR #161, 68 documents, `harm_test_indic.py`): changes 0, drops 0 (0.00 %); ZWJ/ZWNJ and normal-form audits clean: pass. Proxy (184 clean rows): changes 0, drops 0. Recall: touches 18 of the 34 rows labelled A6; 18 rows touched in the pack overall.
 5. **Side effects:** two rules the plan suggested are measured and not applied. ASCII ':' standing for visarga (colon right after a Devanagari letter, before a boundary, in a document that also has ः) occurs in 21 clean rows; the reader does not call it A6. ASCII '|' or '||' standing for a danda after a Devanagari word occurs in 7 clean rows. Left as they are: Latin o as a variant-reading mark (sarit झo पाठः), OCR letters inside words (मूfत), whole Latin words glued to Devanagari (Navashaktiनामिकाम्), and quotations in other Indic scripts, which are D3 not A6. A Sanskrit text that uses a Latin l as a list marker directly after a Devanagari word would gain a danda.
 
 ## Medicine 7 — H3 The same content in another source or language
@@ -309,7 +309,7 @@ Example texts are at most 60 characters; `⏎` stands for a line break. F1 examp
        return text    # action none: the detector `detect_h3` reports; dedupe is a corpus-time action
    ```
 3. **Action:** none. Scale-time action: corpus-level dedupe that keeps one copy per text, preferring the copy with the fewest other diseases; for translated canon (Bible, Gītā, Brahmasūtra), keep the Sanskrit side and record that parallel versions exist. A per-document drop would remove good Sanskrit.
-4. **Harm test:** no automated action; detector fires on 0/184 clean rows (information only). Recall: fires on 9 of the 34 rows labelled H3; 9 rows detected in the pack overall, all from ebible.org (6) or gitasupersite.iitk.ac.in (3), and all 9 carry the H3 label.
+4. **Harm test:** Gold (PR #161, 68 documents, `harm_test_indic.py`): changes 0, drops 0 (0.00 %): pass; the detector fires on 0 of 68 gold documents. No automated action. Proxy: detector fires on 0/184 clean rows (information only). Recall: fires on 9 of the 34 rows labelled H3; 9 rows detected in the pack overall, all from ebible.org (6) or gitasupersite.iitk.ac.in (3), and all 9 carry the H3 label.
 5. **Side effects:** misses every cross-site copy and every translation that does not use these two layouts, so the 24 copies and the 2 Wikipedia translations among the 34 H3 rows are invisible per document. Fires on any Bible or Gītā-site page whatever its text quality. Any Sanskrit text that numbers verses with Roman numerals or wraps references in ।।…।। would be flagged as well. The detector sees the layout, not the host, so a copy of an ebible page on another site is flagged too.
 
 ## Medicine 8 — C5 Lists of keywords or links
@@ -342,7 +342,7 @@ Example texts are at most 60 characters; `⏎` stands for a line break. F1 examp
        return "\n".join(l for l, h in zip(lines, hit) if not h)
    ```
 3. **Action:** fix for pages with a few list lines; a page that is mostly lists is left unchanged for the reader to drop.
-4. **Harm test:** No `ind-sa-fw2` gold file in PR #140. Proxy (184 clean rows, official `harm_test.py`): changes 0, drops 0 (0.0 %): pass. Recall: touches 12 of the 21 rows labelled C5; 17 rows touched in the pack overall.
+4. **Harm test:** Gold (PR #161, 68 documents, `harm_test_indic.py`): changes 0, drops 0 (0.00 %); ZWJ/ZWNJ and normal-form audits clean: pass. Proxy (184 clean rows): changes 0, drops 0. Recall: touches 12 of the 21 rows labelled C5; 17 rows touched in the pack overall.
 5. **Side effects:** a C5-heavy page (tag cloud, link list, menu dump) is not fixed and must be dropped by the reader; that drop is not automated. A list of names or epithets written without dandas is removed although it may be content. A reference line that is only a URL is lost together with the spam URLs.
 
 ## Medicine 9 — G1 Cut at the vowel sign
@@ -366,7 +366,7 @@ Example texts are at most 60 characters; `⏎` stands for a line break. F1 examp
        return RE_G1_DOUBLE_VIRAMA.sub("्", text)
    ```
 3. **Action:** fix. The gap is closed; both characters are kept.
-4. **Harm test:** No `ind-sa-fw2` gold file in PR #140. Proxy (184 clean rows, official `harm_test.py`): changes 0, drops 0 (0.0 %): pass. Recall: touches 6 of the 19 rows labelled G1; 6 rows touched in the pack overall.
+4. **Harm test:** Gold (PR #161, 68 documents, `harm_test_indic.py`): changes 0, drops 0 (0.00 %); ZWJ/ZWNJ and normal-form audits clean: pass. Proxy (184 clean rows): changes 0, drops 0. Recall: touches 6 of the 19 rows labelled G1; 6 rows touched in the pack overall.
 5. **Side effects:** a dependent sign with no bare consonant immediately before the gap is left alone (।⏎्रणयी, क् िशुनि, धे ु, [या]ः, --ाखा): that damage cannot be repaired from the text, so 13 of the 19 G1 rows stay as they are. Of the 6 repaired, 4 are repaired by the double-virama collapse alone. A word-final virama followed by a space and a consonant (ब्रह्मन् कथ) is normal Sanskrit and is never joined. Vedic accent marks after a dash are not touched. A deliberate space before a visarga in a grammar text that discusses the sign itself would be closed.
 
 ## Medicine 10 — C4 Two documents joined
@@ -400,7 +400,7 @@ Example texts are at most 60 characters; `⏎` stands for a line break. F1 examp
        return text    # action none: the detector `detect_joined` reports; splitting is a corpus-time action
    ```
 3. **Action:** none. Splitting is a corpus-time action: segment at the datelines or date headers and re-emit the pieces as separate documents. No text is changed per document.
-4. **Harm test:** no automated action; detector fires on 0/184 clean rows (information only). Recall: fires on 7 of the 16 rows labelled C4; 9 rows detected in the pack overall (8 newssanskrit, 1 simplesanskrit archive page). After C1 runs the detector finds 0 rows, which is why it must run first.
+4. **Harm test:** Gold (PR #161, 68 documents, `harm_test_indic.py`): changes 0, drops 0 (0.00 %): pass; the detector fires on 0 of 68 gold documents. No automated action. Proxy: detector fires on 0/184 clean rows (information only). Recall: fires on 7 of the 16 rows labelled C4; 9 rows detected in the pack overall (8 newssanskrit, 1 simplesanskrit archive page). After C1 runs the detector finds 0 rows, which is why it must run first.
 5. **Side effects:** a news digest that is meant to be one page is flagged. Wiki pages whose sections are glued by `[सम्पादयतु]` headings (rows 162, 171) are not detected: a heading-plus-paragraph rule fires on nine clean rows (28, 29, 59, 255, 297, 368, 450, 457, 466) and is not used. The sanskritdocuments.org multi-text files and other joined pages without datelines are missed.
 
 ## Medicine 11 — F2 Benchmark leak
@@ -481,7 +481,7 @@ Example texts are at most 60 characters; `⏎` stands for a line break. F1 examp
        return text    # action none: the detector `detect_f2` reports (keep and record); `drop_f2_flores` is the drop variant
    ```
 3. **Action:** none for Itihāsa hits (keep and record): the benchmark quotes the public Mahābhārata and Rāmāyaṇa canon, and dropping would remove the canon itself. A FLORES-200 or IN22 hit would be drop, via `drop_f2_flores`; it fires on 0 rows of this pack, so it is not in the medicine list.
-4. **Harm test:** no automated action; detector fires on 0/184 clean rows (information only). Recall: fires on 12 of the 12 rows labelled F2; 12 rows detected in the pack overall. The drop variant fires on 0 of 500 rows.
+4. **Harm test:** Gold (PR #161, 68 documents, `harm_test_indic.py`): changes 0, drops 0 (0.00 %): pass; the detector fires on 0 of 68 gold documents. No automated action. Proxy: detector fires on 0/184 clean rows (information only). Recall: fires on 12 of the 12 rows labelled F2; 12 rows detected in the pack overall. The drop variant fires on 0 of 500 rows.
 5. **Side effects:** needs the benchmark sentence files under ../bench; without them nothing is detected. Any page quoting a canon verse that Itihāsa happens to test on is flagged, which is why the action is keep. A benchmark sentence shorter than 51 normalised characters can never be detected. All 12 Itihāsa hits carry the F2 label; the sarit Mahābhārata rows are good data and must stay in the corpus.
 
 ## Medicine 12 — C2 Repeated lines
@@ -513,7 +513,7 @@ Example texts are at most 60 characters; `⏎` stands for a line break. F1 examp
        return text if new == src else new
    ```
 3. **Action:** fix. Duplicate lines are removed; the first copy stays.
-4. **Harm test:** No `ind-sa-fw2` gold file in PR #140. Proxy (184 clean rows, official `harm_test.py`): changes 0, drops 0 (0.0 %): pass. Recall: touches 1 of the 10 rows labelled C2; 6 rows touched in the pack overall.
+4. **Harm test:** Gold (PR #161, 68 documents, `harm_test_indic.py`): changes 0, drops 0 (0.00 %); ZWJ/ZWNJ and normal-form audits clean: pass. Proxy (184 clean rows): changes 0, drops 0. Recall: touches 1 of the 10 rows labelled C2; 6 rows touched in the pack overall.
 5. **Side effects:** a legitimately repeated short heading or list marker without a danda is removed. Repeated tweet attributions over 40 characters are left to C1, and a chrome line repeated fewer than five times ("Read Also" three times) stays; that is why 9 of the 10 C2 rows are not touched. Reader policy encoded as-is: recurring speaker tags and lemma markers (सूत उवाच, वैशम्पायन उवाच ॥, यथावा--, कात्यायनः--) on rows 208, 297, 412 and 474 are not C2, and the medicine leaves all four rows unchanged. The danda exemption also protects clean rows 386 (lone । lines) and 418 (a headline ending in । repeated twice).
 
 ## Medicine 13 — F1 Personal data
@@ -533,7 +533,7 @@ Example texts are at most 60 characters; `⏎` stands for a line break. F1 examp
        return RE_PHONE.sub("<phone>", RE_EMAIL.sub("<email>", text))
    ```
 3. **Action:** fix. The value is replaced by a type token; the surrounding line stays.
-4. **Harm test:** No `ind-sa-fw2` gold file in PR #140. Proxy (184 clean rows, official `harm_test.py`): changes 0, drops 0 (0.0 %): pass. Recall: touches 9 of the 9 rows labelled F1; 9 rows touched in the pack overall.
+4. **Harm test:** Gold (PR #161, 68 documents, `harm_test_indic.py`): changes 0, drops 0 (0.00 %); ZWJ/ZWNJ and normal-form audits clean: pass. Proxy (184 clean rows): changes 0, drops 0. Recall: touches 9 of the 9 rows labelled F1; 9 rows touched in the pack overall.
 5. **Side effects:** the nine pack rows are site-contact lines in footers and credits (sanskritdocuments.org proofreader credits, hitaya.org and the-spiritualtalks.com contact lines), which DISEASES.md does not count as F1 for private people. They are redacted anyway because the cost is one footer token and a missed private address costs a person. Misses: Devanagari-digit numbers, landlines, phone groupings other than contiguous, 5+5 and 3+3+4, postal addresses and ID numbers (prescreen flags Aadhaar and PAN patterns; no pack row has one). A ten-digit catalogue number starting 6-9 would be redacted. Addresses quoted inside a story are redacted too.
 
 ## Policy decisions recorded in labels.csv
