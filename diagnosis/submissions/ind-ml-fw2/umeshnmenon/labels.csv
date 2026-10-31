@@ -182,3 +182,14 @@ b53ee77c0b80d8b2,full,clean,,,,
 0785497d1d5fddf1,full,fix,D3;C1,offset 2536-2572|offset 2817-2841,,
 66e0d6becd9ef17b,full,clean,,,,contains dateline
 49b920c81f740223,full,fix,C1,offset 2891-3395,,
+e31330b750bd5185,full,clean,,,,crime news and contains numbers
+d574345ae5405090,full,clean,,,,contains numbers 
+17aaa2058b93cb29,full,fix,C1,offset 1550-2036,,link lists cta 
+9a66b3c053b8a5a8,full,clean,,,,
+2ff412bb56fdaa7a,full,clean,,,,
+fdf7b31be7ef860f,full,drop,,,,contains only link lists cta
+a21da6f939e04c09,full,clean,,,,contains heavy use of names
+98ddd33b0b1e27a5,full,fix,C1,offset 1381-1404 റിപ്പോർട്ട് ജീമോൻ റാന്നി,,heavy use of names and loanwords
+5e76ec168a95e2e3,full,fix,D3,offset 10884-10888,,
+0e1510cb144c0814,full,clean,,,,
+f4256214a87f824d,full,fix,C1,offset 5989-6103,,
