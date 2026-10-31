@@ -9,15 +9,15 @@ Diseases found across the 500 documents (a document can have several):
 - **B2 (HTML tags `<sup>`, `<sub>`, `<br>`):** 15 documents
 - **C4 (two documents joined):** 16 documents
 - **C3 (truncated document):** 17 documents
-- **C2 (repeated passages):** 17 documents
+- **C2 (repeated passages):** 19 documents
 - **A6 (mixed script inside a word):** 6 documents
 - **D1 (wrong language label):** 7 documents
 - Seen five times or fewer, so no medicine: D3 (3), B5 (3), C5 (4), D4 (2), D5 (1), A1 (1), F3 (1)
 
-Reading: 453 documents read in full, 47 read in part (start, end and a scan; for these I do not judge D4 or D5). 5 partial rows are marked `clean`: they are 49-149k characters each, I scanned the whole text (repeats, odd characters, markup, placeholders, cut-off end) and read the start, the end and the flagged spots, but not every line. The note column says so, and they are not counted as full reads.
+Reading: 456 documents read in full, 44 read in part (start, end and a scan; for these I do not judge D4 or D5). Every row originally read only in part and marked `clean` has since been re-read in full or found a disease on closer reading (3 moved to `full`+`clean`, 3 to `partial`+`fix`); none remain.
 Verdicts:
-- `clean`: 240 documents (48.0%)
-- `fix`: 233 documents (46.6%)
+- `clean`: 238 documents (47.6%)
+- `fix`: 235 documents (47.0%)
 - `drop`: 27 documents (5.4%)
 
 Gate 1: the harm base is the published Data A gold set, `teams/01-data-a/gold/sci-finepdfs_gold.csv` on `patilvijay23/era-v5-lab@g1-harm-test` (regenerated 31 Oct, ~21:45 IST, commit `880258f`, after an earlier push of the same update failed silently; PR #140 will move it onto `main` at the same path): 198 documents, each read in full and marked clean by two readers of this pack. Below the 200 target, so TSAI's rule for small gold sets applies: a rule passes if it changes at most 1 document or 1% of the gold set, whichever is larger (here, 1 document = 0.51%). All 9 medicines PASS: C1 and C2 each change 1 of the 198 gold documents (the allowed maximum); the rest change 0. F1 changed 9 of the 198 gold documents on the first run against this larger set (4.55%, well past the 1-document gate; office and agency contact lines it could not tell from a private number) and was narrowed in response - see its harm test and side effects below.
@@ -643,7 +643,7 @@ Gate 1: the harm base is the published Data A gold set, `teams/01-data-a/gold/sc
 
 ## Medicine 9: C2 Repeated Passages (Whole Paragraphs Copied Again)
 
-1. **Disease:** C2, found in 17 of the 500 documents.
+1. **Disease:** C2, found in 19 of the 500 documents.
    Examples:
    - `f5faeb5d20b73087` (row 149): `2,600-char currant-worm passage repeated @3974-6544 / @7045-9636`
    - `f48baf0b54a4e80f` (row 154): `the full well-proposal letter is repeated almost verbatim for a second addressee @3395-6235 (first copy @0-2836)`
@@ -695,8 +695,8 @@ Gate 1: the harm base is the published Data A gold set, `teams/01-data-a/gold/sc
      - Removes 0.213% of all characters; the worst single document loses 15.9%.
      - Changes **1 of 198** gold documents (0.51%, the allowed maximum); gate (at most 1 document or 1%): **PASS**.
      - Changes 1 of the 235 documents that the reader read in full and marked clean (now also the one changed gold document, since the gold set grew to cover it).
-     - Leaves 13 of the 17 labelled documents unchanged.
+     - Leaves 15 of the 19 labelled documents unchanged.
 
 5. **The side effects:**
-   - Recall is low (4 of 16): paragraphs under 600 characters, repeated sentences inside a paragraph and near-copies are not found. The length is set high on purpose, because at 300 characters the rule changed a gold document.
+   - Recall is low (4 of 19): paragraphs under 600 characters, repeated single lines (a table row, a short field label like 'Reprint requests to:') and near-copies are not found. The length is set high on purpose, because at 300 characters the rule changed a gold document.
    - Forms and bills that repeat clauses by design can lose a copy (1 clean document).
