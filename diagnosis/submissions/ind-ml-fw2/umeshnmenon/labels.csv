@@ -193,4 +193,9 @@ a21da6f939e04c09,full,clean,,,,contains heavy use of names
 5e76ec168a95e2e3,full,fix,D3,offset 10884-10888,,
 0e1510cb144c0814,full,clean,,,,
 f4256214a87f824d,full,fix,C1,offset 5989-6103,,
-feca4ab9aea9126f,full,fix,D3;D3;D3;D3;D3,offset 891-907 social indicators|offset 1407-1422 foreign exchange|offset 1927-1965 Liberation Tigers|offset 2192-2204 Army Commander|offset 2225,,
+feca4ab9aea9126f,full,fix,D3;D3;D3;D3;D3;D3;D3;D3;D3;C1,offset 891-907 social indicators|offset 1407-1422 foreign exchange|offset 1927-1965 Liberation Tigers|offset 2192-2204 Army Commander|offset 2225-2241 Defense Secretary|offset 2341-2344 LTTE|offset 2628-2631 LTTE|offset 3225-3241 Defense Secretary|offset 3430-3438 executive|offset 5372-5393 infrastructure project|offset 7994-8026 International|offset 9722-9778 കവർ ഡിസൈൻ,,
+89df703d25b4811d,full,clean,,,,contains names
+2eb208706ff6c725,full,clean,,,,contains names and years
+999df6a9b2c763ab,full,clean,,,,contains names
+e0df5c21ded93012,full,clean,,,,contains names 
+838eafc8dcc3a037,full,fix,D3;D3;D3;D3;C1,offset 340-350 Ice Cream|offset 367-377 (Milkshake)|offset 429-436 (Refund)|offset 636-645 (Just Eat)|offset 2469-2633 ഏറ്റവും,,
