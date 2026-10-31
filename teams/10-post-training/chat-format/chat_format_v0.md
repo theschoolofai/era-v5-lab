@@ -74,3 +74,60 @@ def add(a, b):
 Removed the extra increment.<|im_end|>
 <|endoftext|>
 ```
+
+## Hindi application — `ind-hi-hplt`
+
+The format and `render.py` apply to Hindi (Devanagari) unchanged, with no language-specific tokens. The examples are newly authored, not extracted from HPLT documents.
+
+- Hindi text, the danda `।` and `॥`, nukta letters, ZWJ/ZWNJ and Hindi-English mixing (`Python में bug ठीक करें`) are plain content. They go in message content and tool JSON string values. `render.py` keeps Devanagari readable in tool JSON (no `\u` escapes).
+- `render.py` itself does not normalize. The pre-tokenization step must not change Hindi either:
+  - **Keep ZWJ (`U+200D`) and ZWNJ (`U+200C`).** They choose between a half form and a conjunct (`क्‍ष` vs `क्ष`). Removing them changes the written word.
+  - **Do not apply NFKC to content.** It splits precomposed nukta letters (`ज़` `U+095B` becomes `ज` + `़`) and folds compatibility characters in mixed text (`10²` becomes `102`).
+  - **Remove only `U+200B` and `U+FEFF`.** `render.py` alone does not reject a marker with a zero-width space inside (`<|th` + `U+200B` + `ink|>`), so this removal must run before rendering. After it, the hidden marker is rejected.
+- The `ind-hi-hplt` pack has no precomposed nukta letters and no ZWJ/ZWNJ (0 of 500 documents), so it is not affected. Other Hindi sources will have them.
+- `special_tokens_v1.md` (on the team branch `saitej123:g10-week1-post-training`, not yet in this repository) asks for NFKC and removal of `U+200B..U+200D` (Pre-tokenization line). For Indic text this conflicts with the same file's per-pack note that ZWJ/ZWNJ are kept. The Hindi SWE task below tests the narrower rule.
+
+Example input to the shared Python module (effort `16k`, with a think span):
+
+```python
+messages = [
+    {"role": "system", "content": "हिंदी में उत्तर दें।"},
+    {"role": "user", "content": "फ़ाइल में \"क्\u200dष\" सहेजें।"},
+    {"role": "assistant", "think": "ZWJ को नहीं हटाना है।", "tool_calls": [
+        {"name": "write_text", "arguments": {"path": "शब्द.txt", "text": "क्\u200dष"}}]},
+    {"role": "tool", "content": "UTF-8 में लिखा गया: 4 code points।"},
+    {"role": "assistant", "content": "सहेज दिया।"},
+]
+text = render(messages, effort="16k")
+assert parse(text) == {"effort": "16k", "messages": messages}
+```
+
+Rendered (ZWJ shown as `\u200d`; the actual string holds the character):
+
+```text
+<|im_start|>system
+Reasoning effort: 16k
+
+हिंदी में उत्तर दें।<|im_end|>
+<|im_start|>user
+फ़ाइल में "क्\u200dष" सहेजें।<|im_end|>
+<|im_start|>assistant
+<|think|>
+ZWJ को नहीं हटाना है।
+<|/think|>
+<|tool_call|>
+{"arguments":{"path":"शब्द.txt","text":"क्\u200dष"},"name":"write_text"}
+<|/tool_call|>
+<|im_end|>
+<|im_start|>tool
+<|tool_result|>
+UTF-8 में लिखा गया: 4 code points।
+<|/tool_result|><|im_end|>
+<|im_start|>assistant
+सहेज दिया।<|im_end|>
+<|endoftext|>
+```
+
+### Executed Hindi SWE task (Docker)
+
+See `results/hindi_swe_e2e.md`, `swe-task/run_hindi_e2e.py` and `swe-task/Dockerfile.hindi`. A `prepare_text()` written to the v1 pre-tokenization rule fails 4 of 6 Hindi tests. The repair keeps ZWJ/ZWNJ, drops NFKC and still removes `U+200B`, so all 6 pass. The trajectory has think spans and round-trips exactly at all four effort levels. It ran in Docker with no network. This is an authored smoke task, not a SWE-bench score or a model-generated trajectory.

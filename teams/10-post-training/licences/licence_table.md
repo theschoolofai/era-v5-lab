@@ -88,7 +88,7 @@ Shared G10 licence file (`teams/10-post-training/licences/licence_table.md`).
 - **Licence:** *(TBD via PR)*
 - **Decision:** `TSAI reserves`
 
-### 8. Rammohan Madhusudan — Indic web (`ind-hi-hplt` · HPLT 3.0 `hin_Deva`)
+### 8. gmrammohan15 — Indic web (`ind-hi-hplt` · HPLT 3.0 `hin_Deva`)
 
 - **Set:** `ind-hi-hplt`
 - **Language:** `Hindi` (`hin_Deva`)

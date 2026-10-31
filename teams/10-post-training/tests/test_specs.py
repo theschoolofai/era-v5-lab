@@ -27,7 +27,7 @@ EXPECTED_MEMBERS = (
     "Ashish Kamble",
     "Hema Varshini Palpandian",
     "Lokesh Arundathi",
-    "Rammohan Madhusudan",
+    "gmrammohan15",
     "Ranjani Chandrasekaran",
     "Ravi Naik",
     "Syed Abdul",

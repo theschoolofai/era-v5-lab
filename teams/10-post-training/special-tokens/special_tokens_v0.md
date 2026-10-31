@@ -122,7 +122,7 @@ The budget covers the think span and the tool trace. It does not cover the visib
 - **Pack / Language / Source:** *(to be added by Lokesh Arundathi via PR)*
 - **Dataset markers:** *(to be added by Lokesh Arundathi via PR; deduplicated into consolidated list on merge)*
 
-### 8. Rammohan Madhusudan — Indic web (`ind-hi-hplt` · HPLT 3.0 `hin_Deva`)
+### 8. gmrammohan15 — Indic web (`ind-hi-hplt` · HPLT 3.0 `hin_Deva`)
 
 - **Pack / Language / Source:** `ind-hi-hplt` / `Hindi` / HPLT 3.0 (`data.hplt-project.org/three/sorted/hin_Deva`)
 - **Chat & ghost markers found in dataset (`B3`):** none in all 500 documents. Checked by known patterns and by open-ended catalogues, all 0 hits:
