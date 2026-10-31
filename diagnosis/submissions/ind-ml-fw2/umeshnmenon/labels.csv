@@ -84,7 +84,7 @@ a2fd8a02582a4372,full,fix,D3;D3;D3;D3,offset 871-882 PC:wikimedia|offset 1340-13
 1c8e817f52cb4841,full,clean,,,,
 63efad523b183a84,full,fix,C4,offset 5332-5509 ദേശാഭിമാനി വാർത്തകൾ ഇപ്പോള്,,malayalam footer notes cta
 8a2dfc6d228cb4d2,full,clean,,,,
-2307d0c6733e5ce6,full,fix,H1;C4,"offset 401-750 ഈ പാട്ടിന്റെ പത്തിലൊന്നു വെറുപ്പ് ഗൾഫ് നാട്ടിലെ അറബികൾ മലയാളികളോട് കാണിച്ചാൽ അടപടലം തേഞ്ഞൊട്ടി ഞാനുൾപ്പെടെയുള്ള ലക്ഷക്കണക്കിനുപേർക്ക് നാട്ടിൽ വന്നിരിക്കാം. ആ കൊച്ചു പാടുന്ന പോലെ, അപ്പോഴാണ് ജീവിതം ശരിക്കും കോഞ്ഞാട്ടയാവുന്നത് കേരളത്തിൽ ഇന്ത്യയിലെ ഏറ്റവും മെച്ചപ്പെട്ട അവസ്ഥയാണ് എന്ന് പറയുമ്പോഴും അവരുടെ തൊഴിൽ സാഹചര്യങ്ങൾ ഇന്നും അത്രയ്ക്ക് ഭേദമൊന്നുമല്ല|offset 2757-2934 ദേശാഭിമാനി വാർത്തകൾ ഇപ്പോള്",,topic-content duplicate and malayalam footer notes cta
+2307d0c6733e5ce6,full,fix,H1;C4,"offset 401-750 ഈ പാട്ടിന്റെ പത്തിലൊന്നു വെറുപ്പ് ഗൾഫ്|offset 2757-2934 ദേശാഭിമാനി വാർത്തകൾ ഇപ്പോള്",,topic-content duplicate and malayalam footer notes cta
 dbbbfeb70728aba2,full,fix,D3,offset 3202-3244 #BreakTheChain #ANCares #IndiaFightsCorona,,hashtags
 e3ae686176bcafa1,full,clean,,,,
 178e9c3780358350,full,fix,D3,offset 820-825 Iritty,,
@@ -193,3 +193,4 @@ a21da6f939e04c09,full,clean,,,,contains heavy use of names
 5e76ec168a95e2e3,full,fix,D3,offset 10884-10888,,
 0e1510cb144c0814,full,clean,,,,
 f4256214a87f824d,full,fix,C1,offset 5989-6103,,
+feca4ab9aea9126f,full,fix,D3;D3;D3;D3;D3,offset 891-907 social indicators|offset 1407-1422 foreign exchange|offset 1927-1965 Liberation Tigers|offset 2192-2204 Army Commander|offset 2225,,
