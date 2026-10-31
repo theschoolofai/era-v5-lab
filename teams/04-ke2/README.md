@@ -1,5 +1,87 @@
 # Team 04-ke2
 
 Put your work in a **topic folder**: `teams/04-ke2/<topic>/<file>`, for example `teams/04-ke2/harness/run.py`.
-The team lead decides the topic names. Do not make personal folders. Do not make new folders under `teams/`.
+Team documents named in the week plan (for example `benchmarks_v1.md`) may sit directly in the team folder. The team lead decides the topic names. Do not make personal folders. Do not make new folders under `teams/`.
 Open a pull request; the lead reviews and merges it. The pr-guard check must pass.
+
+## Kronecker embedding (KE2), week 1
+
+This folder stitches together the byte tables (#7), the forward-encode proof (#75) and the
+determinism checks (#54), and adds the reference decoder for G6.
+
+| Document | What it covers |
+|---|---|
+| [experiment.md](experiment.md) | P = 32 vs P = 64 results (generated) |
+| [proof.md](proof.md) | Lemma 1, Lemma 2, Theorem 1 and their numerical checks |
+| [determinism.md](determinism.md) | CPU decoding repeatability and the optional MPS codec experiment |
+| [decode_ref.md](decode_ref.md) | KE1 reference contract, measurement provenance and CPU decoder comparison |
+
+### Layout
+
+```
+src/
+  ke2/                    shared package: config, hashing, tokenizer, truncation, tables, script_class, codec
+  build_tables.py         decode and raw byte tables -> results/tables/
+  decode_ref.py           reference decoder: KE vectors -> token ID, raw bytes, margin
+  benchmark_ke1_decode_ref.py  structured cosine vs dense Euclidean CPU experiment
+  run_experiment.py       every step for P = 32 and 64 -> results/, experiment.md
+  proofs/                 forward.py (proof helpers), proof_checks.py (real tokenizer)
+  determinism/            tokenizer_decode_cpu.py, codec_v1_cpu_mps.py
+  requirements.txt, ruff.toml
+tests/                    pytest suite (conftest.py finds the tokenizer and builds the table fixtures)
+results/                  committed outputs: tables/, proof_checks.json, decode_ref/, experiment/, tokenizer_decode_cpu_*, codec_v1_cpu_mps_*
+```
+
+### Setup and run
+
+```bash
+python -m venv .venv && .venv/bin/pip install -r teams/04-ke2/src/requirements.txt
+export KE2_TOKENIZER=/path/to/BrahmicTokenizer-131K   # folder with tokenizer.json and special_tokens_map.json
+.venv/bin/python -m pytest teams/04-ke2/tests -q        # about 3 minutes; tokenizer tests skip without it
+.venv/bin/python teams/04-ke2/src/run_experiment.py     # about 10 minutes; rewrites results/ and experiment.md
+```
+
+The tokenizer is never committed and never downloaded implicitly. Without `KE2_TOKENIZER` it is
+looked up in the Hugging Face cache at the pinned revision (`src/ke2/config.py`), and every
+table is bound to its `tokenizer.json` SHA-256 (`01d968a7…739fff`). `build_tables.py --allow-download`
+fetches it when it is missing. The MPS step runs only where MPS is available.
+`KE2_RUN_V1_MPS_TESTS=1` enables the MPS integration test.
+
+### `decode_ref.py`: the reference decoder for G6
+
+```python
+from ke2.tables import ByteTable
+from decode_ref import CodeTable, decode
+
+table = ByteTable.load("teams/04-ke2/results/tables/raw_table_P32.npz", tokenizer_sha256=SHA)
+result = decode(vectors, CodeTable.from_byte_table(table))   # vectors: (N, 256 * P), numpy or torch
+result.token_ids, result.token_bytes, result.margins, result.sha256()
+```
+
+- **Input:** unprojected KE1 forward-codec vectors and a matching code table, which is a
+  byte table plus the codec settings (the upstream defaults).
+- **Output:** for each vector, the token ID, its raw bytes, the best cosine similarity, and the
+  decode margin: the best minus the second-best cosine over the whole vocabulary.
+- **Guarantees:** runs on CPU in float64 and is exhaustive (every token is scored). It is
+  deterministic in the tested environment: matching outputs/hashes across tested query chunk sizes
+  and a fresh process (format `ke2-decode-ref-v1`). Cross-platform bitwise equality is not asserted.
+  Ties (margin 0) go to the lowest ID; zero query vectors are rejected.
+- **CLI:** `python src/decode_ref.py --table <npz> --vectors <npy> [--out decoded.jsonl]` prints the hash.
+
+It is meant to be slow and obviously correct. Each score uses the two-valued structure of the
+codes (Lemma 1), so it gathers L values per token instead of doing a dense V × D product. The test
+checks this against dense float64 codes. The existing correctness run uses 4,096 query IDs
+against all 131,072 candidates at P=32 and P=64; its margins cover the full vocabulary.
+Raw tables return original token bytes. Decode-text tables return stored text bytes, which may
+already have lost partial UTF-8 information. The approximate chunk budget covers scoring
+temporaries, not total process memory. See [decode_ref.md](decode_ref.md) for the reproducible
+CPU comparison and why the structured cosine implementation is retained.
+
+### Notes
+
+- **Truncation rules.** The decode table cuts long tokens by stepping back over continuation
+  bytes, and the raw table cuts plain bytes. The proofs use upstream's `utf8_safe_truncate`
+  (`src/ke2/truncation.py` names all of them). No BrahmicTokenizer-131K token is longer than 32 bytes,
+  so none of the rules ever cuts at P = 32 or 64. Revisit this when the tokenizer changes.
+- **Tables** are saved as compressed `.npz`. Their content hash covers the arrays, not the file,
+  so it matches #7's manifest.

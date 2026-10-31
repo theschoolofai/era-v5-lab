@@ -1,0 +1,41 @@
+# Overrides for the week-1 CPU smoke test. These numbers are not config_v0.
+overrides:
+  - key: optim.lr
+    value: 0.003
+    source: "Smoke-test step size so the loss moves in 40 CPU steps. Not a V5 learning-rate recommendation."
+  - key: embedding.pos_dim
+    value: 8
+    source: "Shorter byte positions so the tiny CPU run stays small. config_v0 keeps pos_dim 32."
+  - key: model.n_layer
+    value: 2
+    source: "Tiny harness depth. Not the capstone depth."
+  - key: model.d_model
+    value: 32
+    source: "Tiny harness width. Not the capstone width."
+  - key: model.n_head
+    value: 4
+    source: "Four eager heads so the smoke test actually splits model.d_model. Not the capstone head count."
+  - key: model.d_ff
+    value: 64
+    source: "Tiny expert width. Not the capstone width."
+  - key: moe.n_expert
+    value: 4
+    source: "Tiny MoE, four experts. Not the capstone expert count."
+  - key: moe.top_k
+    value: 2
+    source: "Top-2 of 4 experts so the smoke test reads moe.top_k. Not the capstone routing width."
+  - key: data.seq_len
+    value: 16
+    source: "Tiny sequence length."
+  - key: precision
+    value: fp32
+    source: "CPU smoke test. Production precision is still empty in config_v0."
+  - key: tiny.vocab
+    value: 64
+    source: "Byte vocabulary built in the harness. Not BrahmicTokenizer-131K."
+  - key: tiny.batch
+    value: 8
+    source: "Smoke-test batch."
+  - key: tiny.steps
+    value: 40
+    source: "Enough CPU steps to see the loss fall."

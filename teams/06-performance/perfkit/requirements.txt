@@ -1,0 +1,7 @@
+torch>=2.3
+numpy
+pyyaml
+pytest
+tokenizers>=0.15
+datasets        # raw FineWeb text only; tokenizer comes exclusively from GitHub
+pynvml          # optional: GPU telemetry
