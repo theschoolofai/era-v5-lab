@@ -79,8 +79,8 @@ matches by accident is about 1 in 2 billion. With 6 bytes it would be 1 in 36,00
 | LongBench v2 (question and choices only) | english, long_context | 503 | 74,162 |
 | **Total: 17 benchmarks** | | **127,696** | **8,406,653** |
 
-The benchmark list is `../benchmarks/benchmarks_v1.md` (licences, item counts, and the Admin decisions of 25 Oct).
-GSM8K, FLORES-200 and IN22 are not on that list. We added them (team decision, 25 Oct). Their licences
+The benchmark list is `../benchmarks_v1.md` (licences, item counts, and the Admin decisions of 25 Oct).
+GSM8K, FLORES-200 and IN22 are on that list as "Decontamination only" (team decision, 25 Oct). Their licences
 (MIT, CC-BY-SA-4.0, CC-BY-4.0) are on the accepted list. AIME, LiveCodeBench and Codeforces are "Internal only"
 in `benchmarks_v1.md`, like GAIA: the repo has their hashes and item IDs only, never their text. Benchmarks that are not built yet are in
 `benchmarks.toml` as `planned` or `skip`, each with the reason. `python build_fingerprints.py --list` prints them.

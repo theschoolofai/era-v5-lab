@@ -1,7 +1,7 @@
 # G9 benchmark registry: which benchmark items go into the fingerprints.
 #
-# Rows follow teams/09-evaluation/benchmarks/benchmarks_v1.md, plus GSM8K,
-# FLORES-200 and IN22 (team decision, 25 Oct). Licences are as in benchmarks_v1.md.
+# Rows follow teams/09-evaluation/benchmarks_v1.md. GSM8K, FLORES-200 and IN22 are its
+# "Decontamination only" rows (team decision, 25 Oct). Licences are as in benchmarks_v1.md.
 # status = "active"  : built into the fingerprint set.
 #          "planned" : not built yet. 'reason' says what is missing.
 #          "skip"    : nothing to fingerprint. 'reason' says why.
