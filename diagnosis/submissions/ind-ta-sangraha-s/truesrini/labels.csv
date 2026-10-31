@@ -7,13 +7,13 @@ f16db9e6a9ceca9a,full,fix,G3,"""(, apsg)"" at 65",65 U+0028 + U+002C + U+0020 (n
 898b0e3da1871392,full,fix,D4,"""நிபந்தனைகளால்"" at 293",,நிலை is the correct word
 e0fa12bd0c1dec3f,full,fix,D4,"""ஃ"" at 343",,Tamil letters don't end with ஃ
 c6f68ff514cc8ac5,full,fix,D5,"""புதிய இங்கிலாந்து தேசபக்தர்கள்"" at 4553; ""ஊக்குவிக்கவும் ஊக்குவிக்கவும்"" at 412",,It says Arabian lifetime reproduction award definitely wrong
-d0bcbdbaf1f5c285,full,clean,,,,
+d0bcbdbaf1f5c285,full,fix,D4,"""இ. வடிவமைத்தார். டக்கர் கார்ல்டன்"" at 401",,
 03979be7415f6413,full,fix,G4,"aytham U+0B83 used as a colon, 1x, first at 52",52 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),"relabelled 31 Oct: missed on first read, found by the harm test"
-51f7f7b3bd9800f4,full,clean,,,,
-4fdbbf49e6b3e567,full,clean,,,,
+51f7f7b3bd9800f4,full,fix,D4;G3,"""குற்றச்சாட்டு டி 'விவகாரங்கள்"" at 1300|""அவர் ஒரு ஜப்பானிய இராஜதந்திரி"" at 16",16 U+0020 SPACE (content missing here),
+4fdbbf49e6b3e567,full,fix,B4;C3;D4;G3,"'ஐ. டி. 2' at 2260 (+1 more); 'ஐ. டி. 1' at 2285|""(ஆண்டுகள் 1-8)"" at 3139|""பயங்கரமான சண்டைக்குரிய குடியேற்றத்தை"" at 873|""ஒரு சதுர கிலோமீட்டருக்கு மக்கள் அடர்த்தியுடன்"" at 1153",1153 U+0B92 TAMIL LETTER O (content missing here),
 97a796045b923ef7,full,fix,C3;D4;G4,"""இயக்குகிறதுஃ"" at 2721|""பிரதான காற்று"" at 1|aytham U+0B83 used as a colon, 1x, first at 2732",2732 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),
 f68d01570351d7d8,full,fix,G3,opening subject missing at 11,11 U+0020 SPACE (content missing here),Looks like something has been dropped
-6d7ab061ec3a680e,full,clean,,,,
+6d7ab061ec3a680e,full,fix,D4;G3,"""நட்பான விசாரணையில்"" at 389|""சர்வதேச இலக்குகள்."" at 1510",1527 U+002E FULL STOP (content missing here),
 6786672fabd09b37,full,drop,D5;G3;G4,"|empty brackets '(;' at 36|aytham U+0B83 used as a colon, 1x, first at 88",36 U+0028 + U+003B + U+0020 (native-script name removed)|88 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),I read few times this document is very difficult to follow and doesn't read like tamil
 a8b60460cc0f2991,full,clean,,,,
 fd8bbd654c9a6da6,full,fix,G4,"aytham U+0B83 used as a colon, 1x, first at 254",254 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),
@@ -25,10 +25,10 @@ ae1582f27fc4aeb8,full,fix,A6,"""க ored ரவிக்கப்பட்டா
 a639c3f1a73a58b9,full,fix,D4,"""ஒரு முழு பின்புறமாக இருந்தது"" at 235",,possibly full back translated to one full back side
 501b212c58cf6b8c,full,fix,A6;G4,"""Константин латимирооч βashuk"" at 74|aytham U+0B83 used as a colon, 2x, first at 72",74 U+041A + U+043E + U+043D + U+0441 + U+0442 + U+0430 CYRILLIC CAPITAL LETTER KA|72 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON) (2x),
 2807a96dde8c7ab5,full,fix,G4,"aytham U+0B83 used as a colon, 5x, first at 2253",2253 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON) (5x),
-64c752f042190ebd,full,clean,,,,
+64c752f042190ebd,full,fix,D4,"""செஞ்சிலுவைச் சிலுவையில்"" at 2461",,
 fbb2a14c319bec7e,full,fix,G3;G4,"empty brackets '()' at 33|aytham U+0B83 used as a colon, 1x, first at 1072",33 U+0028 + U+0029 + U+0020 (native-script name removed)|1072 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),"relabelled 31 Oct: missed on first read, found by the harm test"
 a9e1500e0e579c04,full,fix,D4,"""கிரீடம் இளவரசர்"" at 368",,crown prince literally translated
-4f1deb677f9cb38d,full,clean,,,,
+4f1deb677f9cb38d,full,fix,D4,"""33டிடி அழிக்கும்"" at 1",,
 48c9c5090a86f641,full,fix,G4,"aytham U+0B83 used as a colon, 3x, first at 1687",1687 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON) (3x),
 569abf9c8cf0e5c4,full,fix,B3;G3,"""<unk>"" at 298|empty brackets '()' at 944 (+4 more)",944 U+0028 + U+0029 + U+0020 (native-script name removed),
 546eb1cbbbcc7efb,full,clean,,,,
@@ -38,12 +38,12 @@ f1547c851d1156dd,full,fix,A6;B2,"""Кучороо"" at 25|""<பிஆர்>"" 
 44f3deaa0953cea3,full,fix,A6,"""e.ஜி."" at 813",813 U+0065 LATIN SMALL LETTER E,
 599344e21dd7e2c2,full,fix,D4,"""பந்து வீச்சு பச்சை"" at 804",,Green bowling?
 75382db5ed62c0b9,full,fix,G4,"aytham U+0B83 used as a colon, 1x, first at 866",866 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),
-555c3814b6e6ea8a,full,clean,,,,
+555c3814b6e6ea8a,full,fix,D4;G3,"""மொரிஸ்கோக்கள், பிலிப்பைன்ஸ்"" at 1352|opening subject missing at 14",14 U+0020 SPACE (content missing here),
 7010848fa88c9a00,full,fix,D4;G4,"""நடுத்தர பாலினத்திற்கு எதிராக"" at 2220|aytham U+0B83 used as a colon, 2x, first at 40",40 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON) (2x),
 445abf59598bed4b,full,fix,G3,empty brackets '()' at 27,27 U+0028 + U+0029 + U+0020 (native-script name removed),"relabelled 31 Oct: missed on first read, found by the harm test"
 3fa68b2c0ef958ff,full,fix,B2;C5,"'<பிஆர்>' at 1237|""ஸ்லோசியோ, ஸ்லோசியோ, ஸ்லோசியோ, ஸ்லோசியோ, ஸ்லோசியோ, ஸ்லோசிய…"" at 763",,
 d0a517cd1fdf9762,full,clean,,,,
-7dce5cda920b639c,full,clean,,,,
+7dce5cda920b639c,full,fix,D4;G3,"""இயந்திரத் தலை நிகழ்த்திய"" at 840|""எழுதியவை"" at 1074",1081 U+0BC8 TAMIL VOWEL SIGN AI (content missing here),
 587f956ea2928ca1,full,fix,D4;G4,"""தொழில் வாழ்க்கை விளையாடுங்கள்."" at 187|aytham U+0B83 used as a colon, 1x, first at 50",50 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),
 4aa3feb18911374d,full,clean,,,,
 7eac2d8f5845722e,full,fix,D3,"""(δf 'h' ′ (g) = + 150.2 kj/mol, 3.66 kj/g)"" at 1300",,Measurement units
@@ -55,12 +55,12 @@ c3c344007455388e,full,clean,,,,
 57f4778db463492c,full,fix,D4,"""அணியின் அதிக மதிப்பெண்"" at 1380",,Score doesn't equate to marks
 3026778b347cedcf,full,clean,,,,
 0eb3e17b78a07769,full,fix,D4,"""பின்வருமாறு.எஸ். டெக்சாஸின்"" at 157",,"relabelled 31 Oct: missed on first read, found by the harm test"
-352038798e2438b8,full,clean,,,,
+352038798e2438b8,full,fix,D4,"""ஜான் ஜார்ஜ் கல்லறைகள்"" at 305",,
 20c9b2effd26fd92,full,fix,D4;G4,"""ஆர்த்தோடாண்டிஸ்டுகளின் கோண சமூகம்."" at 259|U+0B83 at offset 1735 (2x)",1735 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON) (2x),
 15a86ba20d450136,full,fix,D4,"""தனியார் கவுன்சில்"" at 364",,
 3609fb8f8d35d01a,full,fix,D4,"""அழிவுகரமான திரைப்படங்களில்"" at 645",,destructive films should be translated to something else
 d4ef19cdc4922173,full,fix,D4;G4,"""சதி."" at 612|aytham U+0B83 used as a colon, 4x, first at 971",971 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON) (4x),
-4567b8e146b8dce2,full,clean,,,,
+4567b8e146b8dce2,full,fix,D4,"""ராணி மாளிகையில் பிறந்த"" at 229",,
 81e906dfa26d514c,full,fix,D4,"""நீதிமன்ற வாக்காளர்களைப்"" at 3242",,
 72f335279025fa39,full,fix,G3;G4,"empty brackets '()' at 906|aytham U+0B83 used as a colon, 1x, first at 92",906 U+0028 + U+0029 + U+0020 (native-script name removed)|92 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),
 f001a920327196c5,full,fix,D4,"""உறுப்புகளின் கழுவல்களால்"" at 352",,washing organs doesn't make sense should be something else
@@ -73,7 +73,7 @@ fcaa7931c4bb2f49,full,fix,G3;D4,"empty brackets '(;' at 152|""மேல் க�
 bcb80fddfc901bbd,full,fix,G4,"aytham U+0B83 used as a colon, 1x, first at 54",54 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),"relabelled 31 Oct: missed on first read, found by the harm test"
 8b15fcdd8ee28916,full,fix,C3;D4;G3;G4,"text ends mid-list or mid-sentence: ...திரி விளையாட்டுகள் வளர்ச்சியில் இருந்தனஃ|""தோட்டா அடிப்படையிலான"" at 150|""விலை நிர்ணயிக்கப்பட்டது, அல்லது."" at 337|aytham U+0B83 used as a colon, 8x, first at 1348",337 U+0BB5 TAMIL LETTER VA (content missing here)|1348 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON) (8x),
 3c3925fd17184332,full,clean,,,,
-f73fadc4d16643a5,full,clean,,,,
+f73fadc4d16643a5,full,fix,D4,"""ஜான் ஜி இயக்கிய"" at 42",,
 e92ed08f33f96d35,full,fix,D4,"""இரும்பு மேன் பந்தயத்தை"" at 356",,It should be Irumbu manithar
 b02966a0bd540226,full,fix,G4,"aytham U+0B83 used as a colon, 7x, first at 935",935 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON) (7x),
 d46cd7e81d574633,full,fix,C3,"""வெளி இணைப்புகள்."" at 660",,
@@ -88,11 +88,11 @@ bb70d9e9219542c3,full,clean,,,,
 f6634b1d76766f84,full,clean,,,,
 86566c94ad9bd36b,full,fix,D4,"""நிறுவனர் மூலிகை சேமிப்பாளர்"" at 1501",,
 77645cbc00c60fc8,full,clean,,,,
-8cf4f33b958cb8e6,full,clean,,,,
+8cf4f33b958cb8e6,full,fix,D5,"""கார்ட்டர் தனது வாலில் மூன்று ரஷ்ய முகவர்களால்"" at 2035",,
 d98a13d768f2f557,full,fix,D4;G4,"""கிட்டார் வளையல்களைக்"" at 794|aytham U+0B83 used as a colon, 1x, first at 4129",4129 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),
 02a3588ecc8650c2,full,fix,A6;D4;G3;G4,"""Келсссе чичатило"" at 98|""கப்பிலோவ்"" at 449|empty brackets '(;' at 52|aytham U+0B83 used as a colon, 1x, first at 62",98 U+041A + U+0435 + U+043B + U+0441 + U+0441 + U+0441 CYRILLIC CAPITAL LETTER KA|52 U+0028 + U+003B + U+0020 (native-script name removed)|62 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),
 15d7042cee52e699,full,fix,G4,"aytham U+0B83 used as a colon, 1x, first at 1857",1857 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),
-337d5e6e3b1dbc0a,full,clean,,,,
+337d5e6e3b1dbc0a,full,fix,D4,"""ரோமானிய கிளப்புகளால்"" at 639",,
 573af60788b07bda,full,clean,,,,
 927b751c8672e7a8,full,fix,D4,"""பெண் தலைமுறை குடும்பங்கள்"" at 2229",,
 a3a28f47ed5b503b,full,fix,D4,"""தோட்டக்கார நரி நாயகன் கோத்தருடன்"" at 1912",,
@@ -101,11 +101,12 @@ eb5ffd447eccfdf2,full,fix,A6;D4;G3;G4,"""க oring ரவித்தனஃ"" at
 bcfd2370fcc606c8,full,fix,G4,"aytham U+0B83 used as a colon, 1x, first at 42",42 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),
 0e7478356734d4f5,full,fix,D4,"""கெவின் அறுவடை"" at 1092",,Kevin Harvest in this harvest got translated
 9de82d51fd63525f,full,fix,G4,"aytham U+0B83 used as a colon, 19x, first at 2783",2783 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON) (19x),
-39a747583968bd51,full,clean,,,,
-a1fd2182347baceb,full,clean,,,,
-ad6075e05f8fdc8b,full,clean,,,,
-5640f04ae7870b74,full,clean,,,,
-0791f9496a396399,full,clean,,,,
+39a747583968bd51,full,fix,D4,"""நாணல் மொழிபெயர்க்கப்பட்டது"" at 367",,
+a1fd2182347baceb,full,fix,D4,"""ஜூக் மூட்டு"" at 1627",,
+ad6075e05f8fdc8b,full,fix,D4,"""மிக முக்கியமான படங்களால்"" at 343",,
+5640f04ae7870b74,full,fix,D4,"""கண்காணிப்பு மின்கலன்"" at 707",,
+0791f9496a396399,full,fix,C3;D4,"text ends mid-list or mid-sentence: ...ையாட்டு வடிவமைப்பு / விளையாட்டு நிரலாக்கம்; ends at offset 1834: ...ையாட்டு வடிவமைப்பு
+விளையாட்டு நிரலாக்கம்|""கேன்பெரா சட்டத்தின்"" at 704",,
 47548b14a0cacfd3,full,fix,D4,"""விரக்தியடைந்தார்.எஸ்."" at 286 (+4 more)",,"relabelled 31 Oct: missed on first read, found by the harm test"
 ce7408f3a4aac0f0,full,fix,G4,"aytham U+0B83 used as a colon, 1x, first at 34",34 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),
 be6c1a181533212a,full,fix,G4,"aytham U+0B83 used as a colon, 1x, first at 34",34 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),"relabelled 31 Oct: missed on first read, found by the harm test"
@@ -123,21 +124,21 @@ f911c84c90fedb00,full,clean,,,,
 6d69bc919e251860,full,fix,G4,"aytham U+0B83 used as a colon, 1x, first at 4512",4512 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),
 65161403293ed5cb,full,fix,D4,"""ஒழுக்க சகோதரர்கள்"" at 2544",,
 0543bb50876dc894,full,fix,G4,"aytham U+0B83 used as a colon, 1x, first at 81",81 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),
-457d37b621c5c927,full,clean,,,,
+457d37b621c5c927,full,fix,C1;D4,"""[ஒமிம் வழங்கிய]"" at 456|""சென் 2"" at 1",,
 9f2e9a06a56475e3,full,clean,,,,Nobody tears a tower like a paper
 aa0481f2ba8e5832,full,fix,G4,"aytham U+0B83 used as a colon, 1x, first at 44",44 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),
 e01abfafc44e917a,full,clean,,,,
 2db5a88239358774,full,fix,D4;D5;A6;G4,"""(""நீ"" ஏலக்காரர்)"" at 766|""நன்கு விரும்பப்பட்ட, நன்கு கட்டப்பட்ட கிளாசிக்"" at 2089|""க oring ரவத்தில்"" at 4913|aytham U+0B83 used as a colon, 2x, first at 4582; U+0B83 at offset 4850",4915 U+006F + U+0072 + U+0069 + U+006E + U+0067 LATIN SMALL LETTER O|4582 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON) (2x) | 4850 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),
 1fd87b599ee2d79f,full,clean,,,,
 73bc59c995c68c6a,full,fix,G4,"aytham U+0B83 used as a colon, 2x, first at 1316",1316 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON) (2x),
-7af9172952af575d,full,clean,,,,
+7af9172952af575d,full,fix,C2,"""ஆஸ்திரேலிய மனிதாபிமான விருதைப் பெற்றார்"" at 3483",,
 c2f75049abfb98e3,full,fix,G4;D4,"aytham U+0B83 used as a colon, 1x, first at 72|""லோட்டே சுத்தி"" at 5178",72 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),
 090b10a3d78f0437,full,fix,D4;D5,"""""n"" ஐ ஒத்திருக்கிறது. புல்செல்லா"" at 447|",,
-9dfdde0ed29ebd93,full,clean,,,,
+9dfdde0ed29ebd93,full,fix,G3,"""1993 ஆம் ஆண்டில் ""முன்னணி"" at 278",331 U+002E FULL STOP (content missing here),
 fef28817a5015816,full,fix,D4;G4,"""எகிப்தின் கோட்டையின் தலைநகருக்கு"" at 1734|aytham U+0B83 used as a colon, 1x, first at 2569",2569 U+0B83 TAMIL SIGN VISARGA (content missing here) | 2569 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),
 157aea76eb2ebd6a,full,clean,,,,
 14111645643928b1,full,drop,D4,"""அனைத்து குறைந்த முன்கூட்டிய எலிகளும் இல்லை"" at 366; ""மற்றும் புரோபாலின் மென்மைக்கான சான்றுகளைக் காட்டுகிறது"" at 409",,unable to understand
-cde1eb168d639d59,full,clean,,,,
+cde1eb168d639d59,full,fix,G3,opening subject missing at 23,,
 01d04458f50128e4,full,fix,G4;C3,"aytham U+0B83 used as a colon, 1x, first at 2029|ends at offset 2030: ...ைகள் சங்கம் பின்வருவனவற்றை உள்ளடக்கியதுஃ",2029 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),riverside is called out as river bank
 622672ddce45d632,full,fix,G4,"aytham U+0B83 used as a colon, 1x, first at 1001",1001 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),
 1af8a9c374c253e4,full,fix,D4,"""புலி காடுகளால் உடைக்கப்படும்"" at 377",,Tiger woods translated as tiger and woods in tamil
@@ -153,12 +154,12 @@ c44e76d913272ece,full,fix,C2;D4;G3;G4,"""தீர்க்க தீர்க�
 d4508ca57cb42a43,full,fix,D4,"""ஆயுதக் களஞ்சியத்தால் கையெழுத்திடப்பட்டார்"" at 431",,
 3cae1982be7a6ff5,full,clean,,,,
 49bb1c49319bf9e6,full,fix,D4,"""தங்க மாநில கொலையாளியைப்"" at 626",,
-9cd0a08caec52ed8,full,clean,,,,
+9cd0a08caec52ed8,full,fix,D4,"""ஜீன் கும்பலால்"" at 127",,
 4f5aa4e6d2552f18,full,fix,G4;D4,"aytham U+0B83 used as a colon, 4x, first at 1634; U+0B83 at offset 1634 (4x)|""இயந்திரம் கோ. இன் வரலாறு. இல்லை. 27."" at 896",1634 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON) (4x),
 256be05ee90f60b9,full,fix,G3,"""(; iPA:;"" at 51",51 U+0028 + U+003B + U+0020 (native-script name removed),
 87fdeb5e50e1d0e0,full,fix,D4;G4,"""வெள்ளை 1985 ஆம் ஆண்டில்"" at 659|aytham U+0B83 used as a colon, 6x, first at 2491; U+0B83 at offset 2491 (6x)",2491 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON) (6x),
 2794560ad1492c81,full,fix,A6;D4;G4,"""க or ரவத்தைப்"" at 4358|""ஆச்சரியமான மார்ட்டின்"" at 7789|aytham U+0B83 used as a colon, 1x, first at 46",4360 U+006F + U+0072 LATIN SMALL LETTER O|46 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),
-c86e58f2e265a241,full,clean,,,,
+c86e58f2e265a241,full,fix,D4,"""அமைதியுடன் அவர் தனது"" at 2013",,
 96cbcd43fc267e52,full,fix,A6,"""усунете о"" at 32; U+0443 at offset 32 (8x)",32 U+0443 + U+0441 + U+0443 + U+043D + U+0435 + U+0442 CYRILLIC SMALL LETTER U | 32 U+0443 CYRILLIC SMALL LETTER U (2x) | 33 U+0441 CYRILLIC SMALL LETTER ES | 35 U+043D CYRILLIC SMALL LETTER EN | 36 U+0435 CYRILLIC SMALL LETTER IE (2x) | 37 U+0442 CYRILLIC SMALL LETTER TE | 40 U+043E CYRILLIC SMALL LETTER O,
 210e44c9f1eaac7c,full,fix,G4,"aytham U+0B83 used as a colon, 1x, first at 55",55 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),
 1d65fe17a8e1c674,full,fix,B4;C3,"""!கொல்ன் = 6 பாணி=/"" at 892|text ends mid-list or mid-sentence: ... பசிபிக் கடற்கரை மாநாட்டு பிளேஆஃப் தொடர்; ends at offset 950: ... பசிபிக் கடற்கரை மாநாட்டு பிளேஆஃப் தொடர்",,
@@ -172,7 +173,7 @@ d98d10fec7ab047b,full,clean,,,,
 068b9ad0310c3eb7,full,fix,A6;D4,"""exxv-TV"" at 1; ""exxv-TV"" at 11; ""WXXV"" at 1740|""இயக்கப்பட்டது.எஸ். 49"" at 284",1 U+0065 + U+0078 + U+0078 + U+0076 + U+002D + U+0054 + U+0056 | 11 U+0065 + U+0078 + U+0078 + U+0076 + U+002D + U+0054 + U+0056 | 1740 U+0057 + U+0058 + U+0058 + U+0056,
 1830296143750b28,full,fix,G3,"""ராம்ஷா கான் (பிறப்பு)"" at 14",14 U+0BB0 TAMIL LETTER RA (content missing here),
 58082cf5ae6b049c,full,fix,G4,U+0B83 at offset 2907 (2x),2907 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON) (2x),
-02c504272716a363,full,clean,,,,
+02c504272716a363,full,fix,D4,"""பங்குச்சந்தையில் தயாரிக்கப்பட்ட"" at 57",,
 1a6aa171bc48afbf,full,fix,D4;G4,"""வான்கோழியில் வசித்து"" at 844|aytham U+0B83 used as a colon, 1x, first at 2185",2185 U+0B83 TAMIL SIGN VISARGA (expected U+003A COLON),Country Turkey is translated as bird Turkey
 bf4dcaebf3d81ef9,full,fix,D4,"""நீர்க்குழாய்கள் மருத்துவ ரீதியாக"" at 934",,cycsts are trnslated as water pipes
 87b4a86858ef6f63,full,fix,D4,"""கிருஷ்ணதசி"" at 1219; ""மனம் கோத்தி பரவாய்"" at 2972",,Spelling mistake
