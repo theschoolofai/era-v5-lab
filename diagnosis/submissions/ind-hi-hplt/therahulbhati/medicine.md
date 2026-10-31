@@ -2,7 +2,7 @@
 
 One section for each disease found more than five times in the 500 labelled documents. Each rule takes the document text and returns the new text (fix), `True` (drop) or `False` (keep), so `teams/02-data-b/tools/harm_test_indic.py` runs it as written.
 
-Harm tests use the Hindi interim gold set for this pack, `teams/02-data-b/gold/ind-hi-hplt_gold.csv` (69 documents). With 69 documents a rule passes when it changes or drops at most 1 document (TSAI rule for small gold sets).
+Harm tests use the Hindi gold set (rebuilt 31 Oct) for this pack, `teams/02-data-b/gold/ind-hi-hplt_gold.csv` (67 documents). With 67 documents a rule passes when it changes or drops at most 1 document (TSAI rule for small gold sets).
 
 ## Medicine 1: C5 keyword lists and spam
 
@@ -23,7 +23,7 @@ def medicine_c5(text):
 ```
 
 3. **Action:** drop.
-4. **Harm test:** gold set `ind-hi-hplt_gold.csv`, 69 documents, run with `harm_test_indic.py`. Changed 0 of 69, dropped 0 of 69 (0.00%): **PASS**. ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**. Pack check (the 500 labelled documents of this pack): cures 12 of 33 C5 documents; 1 other diseased documents touched; 0 of 150 clean documents touched.
+4. **Harm test:** gold set `ind-hi-hplt_gold.csv`, 67 documents, run with `harm_test_indic.py`. Changed 0 of 67, dropped 0 of 67 (0.00%): **PASS**. ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**. Pack check (the 500 labelled documents of this pack): cures 12 of 33 C5 documents; 1 other diseased documents touched; 0 of 150 clean documents touched.
 5. **Side effects:** SEO spam without a rating trailer or hashtags is not caught: 12 of 33. A social-media post with eight hashtags would be dropped.
 
 ## Medicine 2: C4 two documents joined
@@ -45,7 +45,7 @@ def medicine_c4(text):
 ```
 
 3. **Action:** drop.
-4. **Harm test:** gold set `ind-hi-hplt_gold.csv`, 69 documents, run with `harm_test_indic.py`. Changed 0 of 69, dropped 0 of 69 (0.00%): **PASS**. ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**. Pack check (the 500 labelled documents of this pack): cures 7 of 48 C4 documents; 0 other diseased documents touched; 0 of 150 clean documents touched.
+4. **Harm test:** gold set `ind-hi-hplt_gold.csv`, 67 documents, run with `harm_test_indic.py`. Changed 0 of 67, dropped 0 of 67 (0.00%): **PASS**. ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**. Pack check (the 500 labelled documents of this pack): cures 7 of 48 C4 documents; 0 other diseased documents touched; 0 of 150 clean documents touched.
 5. **Side effects:** Joined documents without teaser cuts (a second story after the first with no marker) are not caught: 7 of 48. A real article that quotes two "[…]" cuts would be dropped.
 
 ## Medicine 3: D4 bad machine translation
@@ -68,7 +68,7 @@ def medicine_d4(text):
 ```
 
 3. **Action:** drop.
-4. **Harm test:** gold set `ind-hi-hplt_gold.csv`, 69 documents, run with `harm_test_indic.py`. Changed 0 of 69, dropped 0 of 69 (0.00%): **PASS**. ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**. Pack check (the 500 labelled documents of this pack): cures 19 of 67 D4 documents; 10 other diseased documents touched; 0 of 150 clean documents touched.
+4. **Harm test:** gold set `ind-hi-hplt_gold.csv`, 67 documents, run with `harm_test_indic.py`. Changed 0 of 67, dropped 0 of 67 (0.00%): **PASS**. ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**. Pack check (the 500 labelled documents of this pack): cures 19 of 67 D4 documents; 10 other diseased documents touched; 0 of 150 clean documents touched.
 5. **Side effects:** Hinglish blogs that write English words in lowercase inside Hindi sentences could be dropped. Machine translation without English leftovers is not caught: the rule finds 19 of 67 D4 documents.
 
 ## Medicine 4: C1 boilerplate
@@ -102,7 +102,7 @@ def medicine_c1(text):
 ```
 
 3. **Action:** fix.
-4. **Harm test:** gold set `ind-hi-hplt_gold.csv`, 69 documents, run with `harm_test_indic.py`. Changed 0 of 69, dropped 0 of 69 (0.00%): **PASS**. ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**. Pack check (the 500 labelled documents of this pack): cures 84 of 199 C1 documents; 1 other diseased documents touched; 0 of 150 clean documents touched.
+4. **Harm test:** gold set `ind-hi-hplt_gold.csv`, 67 documents, run with `harm_test_indic.py`. Changed 0 of 67, dropped 0 of 67 (0.00%): **PASS**. ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**. Pack check (the 500 labelled documents of this pack): cures 84 of 199 C1 documents; 1 other diseased documents touched; 0 of 150 clean documents touched.
 5. **Side effects:** A real sentence that is exactly one of the template words on its own line (for example a heading "विज्ञापन" in an article about advertising) would be removed. Templates that the list does not know stay in the text: the rule cures 84 of 199 C1 documents.
 
 ## Medicine 5: C3 truncated document
@@ -127,7 +127,7 @@ def medicine_c3(text):
 ```
 
 3. **Action:** fix.
-4. **Harm test:** gold set `ind-hi-hplt_gold.csv`, 69 documents, run with `harm_test_indic.py`. Changed 0 of 69, dropped 0 of 69 (0.00%): **PASS**. ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**. Pack check (the 500 labelled documents of this pack): cures 8 of 20 C3 documents; 3 other diseased documents touched; 0 of 150 clean documents touched.
+4. **Harm test:** gold set `ind-hi-hplt_gold.csv`, 67 documents, run with `harm_test_indic.py`. Changed 0 of 67, dropped 0 of 67 (0.00%): **PASS**. ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**. Pack check (the 500 labelled documents of this pack): cures 8 of 20 C3 documents; 3 other diseased documents touched; 0 of 150 clean documents touched.
 5. **Side effects:** Documents cut in the middle of a sentence without "…" or "[…]" are not caught: 8 of 20.
 
 ## Medicine 6: C2 repeated lines
@@ -155,7 +155,7 @@ def medicine_c2(text):
 ```
 
 3. **Action:** fix.
-4. **Harm test:** gold set `ind-hi-hplt_gold.csv`, 69 documents, run with `harm_test_indic.py`. Changed 0 of 69, dropped 0 of 69 (0.00%): **PASS**. ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**. Pack check (the 500 labelled documents of this pack): cures 6 of 40 C2 documents; 6 other diseased documents touched; 0 of 150 clean documents touched.
+4. **Harm test:** gold set `ind-hi-hplt_gold.csv`, 67 documents, run with `harm_test_indic.py`. Changed 0 of 67, dropped 0 of 67 (0.00%): **PASS**. ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**. Pack check (the 500 labelled documents of this pack): cures 6 of 40 C2 documents; 6 other diseased documents touched; 0 of 150 clean documents touched.
 5. **Side effects:** A long sentence that a writer repeats on purpose (a quoted statement, a refrain in a poem) loses its second copy. Repeats with small differences are not caught: 6 of 40.
 
 ## Medicine 7: A6 wrong or mixed script (ASCII | or Latin I typed for the danda)
@@ -180,7 +180,7 @@ def medicine_a6(text):
 ```
 
 3. **Action:** fix.
-4. **Harm test:** gold set `ind-hi-hplt_gold.csv`, 69 documents, run with `harm_test_indic.py`. Changed 0 of 69, dropped 0 of 69 (0.00%): **PASS**. ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**. Pack check (the 500 labelled documents of this pack): cures 26 of 46 A6 documents; 15 other diseased documents touched; 0 of 150 clean documents touched.
+4. **Harm test:** gold set `ind-hi-hplt_gold.csv`, 67 documents, run with `harm_test_indic.py`. Changed 0 of 67, dropped 0 of 67 (0.00%): **PASS**. ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**. Pack check (the 500 labelled documents of this pack): cures 26 of 46 A6 documents; 15 other diseased documents touched; 0 of 150 clean documents touched.
 5. **Side effects:** A "|" after a verb that separates a title from a site name ("... है | Site") would become a danda. Fake dandas after other words are not fixed: 26 of 46.
 
 ## Medicine 8: F1 personal data
@@ -210,7 +210,7 @@ def medicine_f1(text):
 ```
 
 3. **Action:** fix.
-4. **Harm test:** gold set `ind-hi-hplt_gold.csv`, 69 documents, run with `harm_test_indic.py`. Changed 0 of 69, dropped 0 of 69 (0.00%): **PASS**. ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**. Pack check (the 500 labelled documents of this pack): cures 10 of 16 F1 documents; 0 other diseased documents touched; 0 of 150 clean documents touched.
+4. **Harm test:** gold set `ind-hi-hplt_gold.csv`, 67 documents, run with `harm_test_indic.py`. Changed 0 of 67, dropped 0 of 67 (0.00%): **PASS**. ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**. Pack check (the 500 labelled documents of this pack): cures 10 of 16 F1 documents; 0 other diseased documents touched; 0 of 150 clean documents touched.
 5. **Side effects:** A private number written next to a word such as "कार्यालय" is kept; an official mobile number with no such word is removed. Names and addresses are not caught: 10 of 16.
 
 ## Medicine 9: D3 mixed language
@@ -230,7 +230,7 @@ def medicine_d3(text):
 ```
 
 3. **Action:** keep.
-4. **Harm test:** gold set `ind-hi-hplt_gold.csv`, 69 documents, run with `harm_test_indic.py`. Changed 0 of 69, dropped 0 of 69 (0.00%): **PASS**. ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**. Pack check (the 500 labelled documents of this pack): cures 0 of 13 D3 documents; 0 other diseased documents touched; 0 of 150 clean documents touched.
+4. **Harm test:** gold set `ind-hi-hplt_gold.csv`, 67 documents, run with `harm_test_indic.py`. Changed 0 of 67, dropped 0 of 67 (0.00%): **PASS**. ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**. Pack check (the 500 labelled documents of this pack): cures 0 of 13 D3 documents; 0 other diseased documents touched; 0 of 150 clean documents touched.
 5. **Side effects:** None: the rule changes nothing.
 
 ## Run order
@@ -239,4 +239,4 @@ Run the drop rules first, so that no fix is spent on a document that is dropped 
 
 ## All rules in order
 
-Running all nine rules one after the other on the gold set: changed 0 of 69, dropped 0 of 69: **PASS**.
+Running all nine rules one after the other on the gold set: changed 0 of 67, dropped 0 of 67: **PASS**.
