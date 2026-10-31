@@ -103,4 +103,27 @@ def test_special_tokens_v1_if_present():
         assert "subagent_call" in doc
         assert "021 eval_fp_0" not in doc
         assert "unused" in doc.lower()
+        for tok_id in (
+            "129994",
+            "130816",
+            "130773",
+            "130774",
+            "130801",
+            "130802",
+            "130803",
+            "130804",
+            "130817",
+            "130818",
+            "130822",
+            "130823",
+            "130824",
+            "130825",
+            "130826",
+            "130827",
+            "130828",
+        ):
+            assert tok_id in doc
+        assert "U+200D" in doc and "U+200C" in doc
+        assert "do not apply nfkc" in doc.lower()
+        assert "000 endoftext" not in doc
 
