@@ -84,7 +84,7 @@ a2fd8a02582a4372,full,fix,D3;D3;D3;D3,offset 871-882 PC:wikimedia|offset 1340-13
 1c8e817f52cb4841,full,clean,,,,
 63efad523b183a84,full,fix,C4,offset 5332-5509 ദേശാഭിമാനി വാർത്തകൾ ഇപ്പോള്,,malayalam footer notes cta
 8a2dfc6d228cb4d2,full,clean,,,,
-2307d0c6733e5ce6,full,fix,H1;C4,"offset 401-750 ഈ പാട്ടിന്റെ പത്തിലൊന്നു വെറുപ്പ് ഗൾഫ്|offset 2757-2934 ദേശാഭിമാനി വാർത്തകൾ ഇപ്പോള്",,topic-content duplicate and malayalam footer notes cta
+2307d0c6733e5ce6,full,fix,C4;C4,"offset 401-750 ഈ പാട്ടിന്റെ പത്തിലൊന്നു വെറുപ്പ് ഗൾഫ്|offset 2757-2934 ദേശാഭിമാനി വാർത്തകൾ ഇപ്പോള്",,topic-content duplicate and malayalam footer notes cta
 dbbbfeb70728aba2,full,fix,D3,offset 3202-3244 #BreakTheChain #ANCares #IndiaFightsCorona,,hashtags
 e3ae686176bcafa1,full,clean,,,,
 178e9c3780358350,full,fix,D3,offset 820-825 Iritty,,
@@ -113,7 +113,7 @@ a10f2c9af5214499,full,clean,,,,
 b93ff54fe2a1869f,full,clean,,,,
 a75edb28f851c9b1,full,fix,C1;C1,offset 87-154 By സമകാലിക മലയാളം ഡെസ്ക്|offset 574-693 ഈ വാര്ത്ത കൂടി വായിക്കൂ,,article metadata and footer notes cta
 80e493acba41d508,full,fix,C1;C1,offset 89-155 By സമകാലിക മലയാളം ഡെസ്ക്|offset 1415-1604 ഈ വാര്ത്ത കൂടി വായിക്കൂ പുതിയ കോവിഡ് മരണങ്ങളില്,,article metadata and footer notes cta
-ce32f63b27e51a58,full,drop,H2,,,stuff-less content with near duplicates and irrelevant sentences
+ce32f63b27e51a58,full,drop,C2,,,stuff-less content with near duplicates and irrelevant sentences
 72bc5cd33f43d43c,full,fix,D3,offset 55-75 Oral Ulcer Symptoms,,english supplementary title
 5f3331d890a591b1,full,fix,C5,offset 0-680 Don't Miss,,boilerplate - link list cta
 55b6c4ac477e465a,full,fix,D3,offset 1370-1419 Lal jose about kavya madhavan's role in classmates,,
@@ -175,7 +175,7 @@ e3b678c9663ff8a4,full,fix,C1,offset 1040-1112, footer notes cta
 61dc46534cf2c629,full,D3;D3,offset 0-18|offset 994-1050,,
 d7b69f082e6510f4,full,fix,C1,offset 1327-1529,,
 b53ee77c0b80d8b2,full,clean,,,,
-32598246b2330819,full,drop,H2,,,repeated contents with no stuff
+32598246b2330819,full,drop,C2,,,repeated contents with no stuff
 1aafe75ea730ec68,full,clean,,,,
 5729394ce1a31a93,full,fix,D3;D3,offset 2157-2187|offset 2204-2227,,
 89c9118d44a01c67,full,fix,D3,offset 0-60,,
@@ -298,3 +298,4 @@ d08e53bb0c348d9e,full,fix,C1,offset 2372-2443 Story High,,
 25fb5433053f9f8a,full,fix,D3;D3;D3;D3;D3,offset 531-541 vs SA Delh|offset 555-566 vs NZ Indo|offset 580-592 vs Aus Moh|offset 606-622 vs WI Nort|offset 633-646 vs Eng Che,,
 c4889847938d4adf,full,fix,D3,offset 1397-1400 IMEI,,
 dfe9a6334f501566,full,fix,C1,offset 4083-4154 ബംഗാളിൽ ഇട,,
+7d1a29d68bedb2a1,full,clean,,,,

@@ -10,11 +10,11 @@ Pack: Malayalam FineWeb (`mal_Mlym`), 500 documents. Labels so far: 150 rows (75
 | F3 | Harmful content | 5 | 5 | none (not more than five) |
 | G1 | Cut at the vowel sign | 2 | 3 | none |
 | C3 | Truncated document | 2 | 2 | none |
-| H1 | Exact duplicate | 1 | 1 | none; method under Duplicates |
-| H2 | Near duplicate | 1 | 1 | none; method under Duplicates |
+| H1 | Exact duplicate in the pack | 1 | 1 | none; method under Duplicates across the pack |
+| H2 | Near duplicate in the pack | 1 | 1 | none; method under Duplicates across the pack |
 | F1 | Personal data | 1 | 1 | none |
 | C5 | Keyword or link list | 1 | 1 | none |
-| C2 | Repeated lines | 1 | 1 | none |
+| C2 | Repeated text inside one document | 1 | 1 | none; method under Repeats inside one document |
 
 A finding is one occurrence. A document with `D3;D3;D3` counts once under Documents and three times under Findings.
 
@@ -171,39 +171,17 @@ def medicine_d3(text: str, threshold: float = 0.9) -> str:
 1. **Disease:** C4, 11 documents, 12 findings.
    - `b61e9a6fc72f518e` — `Just In` headline rail joined in front of the pilot article
    - `435fdd72e5a6455b` — `Read Also:- …` promotion joined after the article
-   - `2307d0c6733e5ce6` — a long passage repeated, then a Deshabhimani read-more tail
+   - `396ca17551d6e885` — three separate news items run together
+
+   C4 is two unrelated texts in one document. It is not a duplicate: text repeated inside one document is C2, and copies across documents are H1 and H2 (see the two sections after this one).
 
 2. **Medicine:**
 
    **Layer 1, regex.** Run `medicine_c1`. Most joins in this pack were a rail or a promotion glued to the article, and the C1 patterns cut them.
 
-   **Layer 1, paragraph hashes.** Normalise each paragraph into a key: NFC, whitespace collapsed, URLs replaced by `<url>`, Latin case folded. Hash the key. Drop a paragraph of at least 80 characters whose hash was already seen in the same document. The key is used only for comparison; the kept text is the original. Use NFC only: NFKC would itself cause G4.
-
    **Layer 2, Laya.** For a document that still has three or more paragraphs, ask Laya whether each later paragraph continues the opening. Cut from the first paragraph it confidently calls a different article. If less than about 200 characters remain, drop the document instead of keeping a stub.
 
 ```python
-import hashlib
-import unicodedata
-
-URL = re.compile(r"https?://\S+|www\.\S+")
-
-def norm_key(paragraph: str) -> str:
-    key = unicodedata.normalize("NFC", paragraph)
-    key = URL.sub("<url>", key)
-    return re.sub(r"\s+", " ", key).strip().casefold()
-
-def drop_repeated_paragraphs(text: str, min_chars: int = 80) -> str:
-    seen, kept = set(), []
-    for para in text.split("\n"):
-        key = norm_key(para)
-        if len(key) >= min_chars:
-            digest = hashlib.sha1(key.encode("utf-8")).hexdigest()
-            if digest in seen:
-                continue
-            seen.add(digest)
-        kept.append(para)
-    return "\n".join(kept)
-
 SAME_STORY = {"story": {
     "type": "choice",
     "instructions": "Does this paragraph continue the same article as the opening?",
@@ -214,7 +192,7 @@ SAME_STORY = {"story": {
 }}
 
 def medicine_c4(text: str, threshold: float = 0.9) -> str | None:
-    paras = [p for p in drop_repeated_paragraphs(medicine_c1(text)).split("\n") if p.strip()]
+    paras = [p for p in medicine_c1(text).split("\n") if p.strip()]
     if len(paras) >= 3:
         opening = "\n".join(paras[:2])[:1000]
         for i in range(2, len(paras)):
@@ -234,23 +212,73 @@ def medicine_c4(text: str, threshold: float = 0.9) -> str | None:
    | Layer | Clean documents changed (of 68) | Dropped |
    |---|---:|---:|
    | Layer 1, regex (through `medicine_c1`) | 0 | 0 |
-   | Layer 1, paragraph hashes | not run yet | not run yet |
    | Layer 2, Laya | not run yet | not run yet |
 
-5. **Side effects:** A song or a poem that repeats a long refrain loses the repeats to the paragraph hash. A long feature that moves to a new subtopic can look like a second article to Laya; a high threshold limits this. Laya reads about 768 tokens of state by default, so the opening is cut to 1,000 characters.
+5. **Side effects:** A long feature that moves to a new subtopic can look like a second article to Laya; a high threshold limits this. Laya reads about 768 tokens of state by default, so the opening is cut to 1,000 characters.
 
 ---
 
-## Duplicates across documents (H1, H2)
+## Repeats inside one document (C2)
 
-H1 and H2 were found once each, so neither gets a medicine section. The method for running them at corpus scale:
+C2 is text repeated inside one document. It was found in fewer than five documents, so it does not need a medicine; this is the method and what it measured.
 
-1. **Normalise** each document with the same `norm_key` as Medicine 3: NFC, whitespace, URLs, Latin case.
-2. **Exact duplicates (H1):** hash the normalised document, and the normalised paragraphs. Keep the first `doc_id` for each hash and drop the later ones.
-3. **Near duplicates (H2):** character 5-gram shingles, MinHash with 128 permutations, and LSH at a Jaccard threshold of about 0.8. Character n-grams fit Malayalam better than word n-grams, because one Malayalam word carries suffixes that a word tokenizer splits poorly.
+- `2307d0c6733e5ce6` — a 350-character passage at offset 401 appears again, unchanged, at offset 1809. Nothing like it exists in another document (the closest document shares 8% of its character 5-grams), so it is C2, not H1.
+- `0f33ec6172258c08` — two passages of about 210 and 260 characters repeated.
+- `f70a3757c962344d` — the news header repeated in the body.
+
+The copies do not start and end at line or sentence breaks, so hashing lines or sentences misses them. Exact sentence hashing also changed 5 of the 130 `clean` documents. The method below finds any exact passage of at least `min_chars` characters that appears twice and deletes the later copy.
 
 ```python
+def drop_repeated_passages(text: str, min_chars: int = 300) -> str:
+    while True:
+        first, hit = {}, None
+        for i in range(len(text) - min_chars + 1):
+            j = first.setdefault(text[i:i + min_chars], i)
+            if j + min_chars <= i:
+                hit = (j, i)
+                break
+        if hit is None:
+            return text
+        j, i = hit
+        n = min_chars
+        while i + n < len(text) and j + n < i and text[j + n] == text[i + n]:
+            n += 1
+        text = text[:i] + text[i + n:]
+```
+
+| `min_chars` | Clean documents changed (of 130) | `2307d0c6733e5ce6` | `0f33ec6172258c08` | `f70a3757c962344d` |
+|---:|---:|---|---|---|
+| 100 | 6 | caught | caught | missed |
+| 200 | 2 | caught | caught | missed |
+| 300 | 0 | caught | missed | missed |
+
+At 300 it passes the harm rule but only catches long repeats. The clean set here is the 130 `clean` rows of the current 300-row sheet, not the 68 used above.
+
+---
+
+## Duplicates across the pack (H1, H2, H3)
+
+The H codes compare one document with the other documents of the pack: an exact copy (H1), a copy with small changes (H2), or the same content in another language (H3). A repeat inside one document is C2, above. H1 and H2 were found once each, so neither gets a medicine section. The method for running them at corpus scale:
+
+1. **Normalise** each document into a comparison key: NFC, whitespace collapsed, URLs replaced by `<url>`, Latin case folded. The key is used only for comparing; the kept text is the original. Use NFC only, because NFKC would itself cause G4.
+2. **Exact duplicates (H1):** hash the key of each document. Keep the first `doc_id` for each hash and drop the later ones.
+3. **Near duplicates (H2):** character 5-gram shingles, MinHash with 128 permutations, and LSH at a Jaccard threshold of about 0.8. Character n-grams fit Malayalam better than word n-grams, because one Malayalam word carries suffixes that a word tokenizer splits poorly.
+4. **Another language (H3):** a translation shares almost no character n-grams with its source, so MinHash cannot find it. That needs a multilingual sentence encoder trained to match translations, such as LaBSE. H3 was not found in this pack.
+
+```python
+import hashlib
+import unicodedata
 from datasketch import MinHash, MinHashLSH
+
+URL = re.compile(r"https?://\S+|www\.\S+")
+
+def norm_key(text: str) -> str:
+    key = unicodedata.normalize("NFC", text)
+    key = URL.sub("<url>", key)
+    return re.sub(r"\s+", " ", key).strip().casefold()
+
+def exact_key(text: str) -> str:
+    return hashlib.sha1(norm_key(text).encode("utf-8")).hexdigest()
 
 def minhash(text: str, k: int = 5, num_perm: int = 128) -> MinHash:
     key = norm_key(text)
@@ -279,7 +307,7 @@ Side effect: two short news briefs that share a wire-agency template can pass 0.
 
 | Option | Why it was not chosen |
 |---|---|
-| Delete by the `offset` ranges in `labels.csv` | Works for these 150 rows only. The course runs the medicine on documents nobody labelled. The offsets are used instead as Laya training data. |
+| Delete by the `offset` ranges in `labels.csv` | Works for these 150 rows only. The course runs the medicine on documents nobody labelled. The offsets are used instead as Laya training data. NOTE: Just to clean this pack up, we can use the offset range from the annotation to remove the texts.|
 | A generative LLM that returns the span to delete | The span can change between runs and can be invented, so the 1% harm test is not repeatable. |
 | Split paragraphs into sentences, translate to English, then classify | Translation is a generative step with the same risk. It also erases the signal: English inside a Malayalam page is often the very sign of furniture. Malayalam sentence splitting is unreliable, and furniture sits on whole lines, not inside sentences. Laya reads Malayalam directly. |
 | Strip every Latin letter from Malayalam documents | Deletes names, original spellings, and the Class B mix that must stay. |
@@ -290,3 +318,4 @@ Side effect: two short news briefs that share a wire-agency template can pass 0.
 2. Build Laya training lines from the `offset` ranges and the `clean` documents, fine-tune `laya-multilingual`, fit the temperature, and fill in the Laya rows above.
 3. Confirm that `laya-multilingual` reads Malayalam well. The model card lists 45 of 51 tested languages as usable but does not say whether Malayalam is one of them.
 4. Run all three medicines on the official Malayalam gold set and fill in the changed and dropped counts.
+5. Re-check the five `clean` documents that repeat a whole sentence (`764508e37990daf8`, `8a2dfc6d228cb4d2`, `6b5a5422907ce088`, `cedfc5d0810b3b19`, `0b189250cabc1253`). If the repeat is a page summary shown twice, they are C2, not `clean`.
