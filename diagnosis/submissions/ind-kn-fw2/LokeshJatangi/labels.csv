@@ -4,13 +4,13 @@ doc_id,read,verdict,diseases,evidence,hex,note
 9a055722975852fb,full,clean,H3,H3: English version offset at 1297,,This document has both kannada and english version.
 49d4a1847da4514b,full,fix,H2,H2 :  ಜಾಗೃತಿ repeated twice at offset 257,,Naxal operation at madkeri by police
 fb49b8c109fa0344,full,fix,A3;C1,A3 : 'ಧಾರಾ~ರಾಮಾಯಣದ'  TILDE at offset 146 C1 : 'ಪ್ರವಚನವನ್ನು ಇಲ್ಲಿ ಕೇಳಿರಿ: ಪ್ರವಚನವನ್ನು ನೋಡಲು:',A3,"TILDE at offset 146, ending the doc image credits."
-7fd06bf25bcaa6d1,full,fix,A7;A8,A7 : 19ಮಾರಕ at offset 77 | A7 : 2ವರ್ಷದಿಂದ at offset 296 | A7 : 25ವರ್ಷ at offset 222 | A8 : ಕೋಣೆ⟦SPACE⟧ಗಳ,,19ಮಾರಕ - add space between numbers and words but should have space in cases 19ನೇ or 31ರೊಳಗೆ | ಕೋಣೆ⟦SPACE⟧ಗಳ - must not have space
+7fd06bf25bcaa6d1,full,fix,G1,G1: 19ಮಾರಕ at offset 77 | G1: 2ವರ್ಷದಿಂದ at offset 296 | G1: 25ವರ್ಷ at offset 222 | G1: ಕೋಣೆ ಗಳ at offset 137,,19ಮಾರಕ - add space between numbers and words but should have space in cases 19ನೇ or 31ರೊಳಗೆ | ಕೋಣೆ⟦SPACE⟧ಗಳ - must not have space
 3ed53ea9d8c600a0,full,clean,D3,,,Supreme court order
 5eaafa2efe204fb3,full,fix,C1,C1 : - 'Tag results for' at offset 0,,Boiler plate at startof doc
 54be2713642d1bc6,full,fix,C1,C1 : 'ಚಿತ್ರ ಕೃಪೆ: ವಿಕಿಪಿಡಿಯ' offset at 4215,,At end Image credits : wikipedia .
 67249541e320149c,full,clean,,,,bjp meet
 8ed9aecf6c9c0b52,full,clean,,,,small note on politicians
-a7746a3981e58f31,full,fix,A7;C1,"A7 : 70ಲಕ್ಷದ at offset 618 | C1 : Last Updated Mar 27, 2019, 3:47 PM IST",,ends with biolerplate timestamps
+a7746a3981e58f31,full,fix,G1;C1,"G1: 70ಲಕ್ಷದ at offset 618 | C1 : Last Updated Mar 27, 2019, 3:47 PM IST",,ends with biolerplate timestamps
 12d7d5e672b21506,full,clean,D3,D3 : English at offset 1052,,last sentence is in english and its a translated version of previous kannada sentence
 bfe4d0c9f43dc03b,full,fix,C1,C1 : ‘ವಾರ್ತಾ ಭಾರತಿ’ ನಿಮಗೆ ಆಪ್ತವೇ ? ಇದರ ಸುದ್ದಿಗಳು ಮತ್ತು ವಿಚಾರಗಳು ಎಲ್ಲರಿಗೆ ಉಚಿತವಾಗಿ ತಲುಪುತ್ತಿರಬೇಕೇ?  ಬೆಂಬಲಿಸಲು ಇಲ್ಲಿ ಕ್ಲಿಕ್ ಮಾಡಿ at offset 1947,,website data - 'click here to support'
 f8ebdf3dd24db84a,full,fix,C1,ಮತ್ತು ವಿಚಾರಗಳು ಎಲ್ಲರಿಗೆ ಉಚಿತವಾಗಿ ತಲುಪುತ್ತಿರಬೇಕೇ?  ಬೆಂಬಲಿಸಲು ಇಲ್ಲಿ ಕ್ಲಿಕ್ ಮಾಡಿ at offset 4541,,website data - 'click here to support'
@@ -144,7 +144,7 @@ d4089d499ee76453,full,drop,C3,Except one Kannada sentence starting at offset 16.
 57ce1ecc0fbd2893,full,clean,,,,"law, crime"
 51e9a734efdfb853,full,clean,,,,story
 d1ef35984ff7cd14,full,clean,,,,
-c640c89d2ca2413a,full,fix,D1,"C1 : "" ‘ವಾರ್ತಾ ಭಾರತಿ’ ನಿಮಗೆ ಆಪ್ತವೇ ? ಇದರ ಸುದ್ದಿಗಳು ಮತ್ತು ವಿಚಾರಗಳು ಎಲ್ಲರಿಗೆ ಉಚಿತವಾಗಿ ತಲುಪುತ್ತಿರಬೇಕೇ? ಬೆಂಬಲಿಸಲು ಇಲ್ಲಿ ಕ್ಲಿಕ್ ಮಾಡಿ"" at offset  1588",,"for all vartha bharthi doc ids, find this boiler plate and remove"
+c640c89d2ca2413a,full,fix,C1,"C1 : "" ‘ವಾರ್ತಾ ಭಾರತಿ’ ನಿಮಗೆ ಆಪ್ತವೇ ? ಇದರ ಸುದ್ದಿಗಳು ಮತ್ತು ವಿಚಾರಗಳು ಎಲ್ಲರಿಗೆ ಉಚಿತವಾಗಿ ತಲುಪುತ್ತಿರಬೇಕೇ? ಬೆಂಬಲಿಸಲು ಇಲ್ಲಿ ಕ್ಲಿಕ್ ಮಾಡಿ"" at offset  1588",,"for all vartha bharthi doc ids, find this boiler plate and remove"
 cf9a5118a4f85007,full,clean,,,,
 7cb2c02d7011302f,full,clean,,,,
 cbd35793c4f51942,full,clean,,,,
@@ -159,4 +159,53 @@ fca1484108f92d4d,full,clean,D3,,,Website Link in english
 61fdf00125b1280e,full,clean,,,,
 8b019de10c98f2f5,full,fix,C1,"C1: ""Team Udayavani, Mar 11, 2021, 3:03 PM IST"" at offset 35",,
 316edbe5fbc2fa0c,full,fix,C1,"C1: ""February 14, 2021, 6:22 PM IST"" at offset 24 | C1 : ""news18-kannada Updated:"" at offset 0 | C1: ""India"" at offset 55",,
+78e169e4a89f1c94,full,clean,,,,
+740400a2326815d0,full,fix,D4,ಎಕ್ಷಾಮ್ನಲ್ಲಿ at offset 1826 | ಸಬ್ಜೆಕ್ಟ್ನಲ್ಲಿ at offset3405,,English words left untranslated
+3b9dd0b7034a10be,full,fix,D3,Breaking : at offset 0,,
+5dc663e26ff8f0c6,full,fix,C1,"C1: ""Team Udayavani, Mar 29, 2021, 11:48 AM IST"" at offset 40",,
+fef7c1450fb4b473,full,drop,D4,"Machine translation at offset 771 ಭೇಟಿ ಮಾಡಬಹುದು ಒಂದು ಮನುಷ್ಯ ಮೂವತ್ತು ವರ್ಷಗಳ. ದಂಪತಿಗಳು, ನೀವು ಭೇಟಿ ಮಾಡಬಹುದು ಒಂದು ಮನುಷ್ಯ ನಂತರ ನಲವತ್ತು ಮತ್ತು ನಂತರ ಅರವತ್ತು",,
+da5e3fd306d82f8a,full,drop,D4,"ಚಾರ್ಜ್ ಸಂಪೂರ್ಣವಾಗಿ ಉಚಿತನೀವು , Machine translation",,
+51fa1af6aa0279aa,full,fix,C1;D4;G2,"C1: ""Just In Don't Miss!"" at offset 0 | C1: ""- News ಮಸ್ಕಿಯಲ್ಲಿ ಬಿಜೆಪಿ ಪರ ಮತಬೇಟೆಗೆ ಬರಲಿದ್ದಾರೆ ಮಂಗ್ಲಿ!"" at offset 20 | C1: ""- Sports ಮೊದಲ ಪಂದ್ಯದಲ್ಲಿ ಕೇನ್ ವಿಲಿಯಮ್ಸನ್ ಕಣಕ್ಕಿಳಿಯದ ಬಗ್ಗೆ ಕಾರಣ ಹೇಳಿದ ಕೋಚ್"" at offset 76 | C1: ""- Automobiles ಪ್ರಮುಖ ಕಾರು ಮಾದರಿಗಳಿಗೆ ಹೊಸ ಮಾದರಿಯ ಟೈರ್ ಮತ್ತು ಬ್ಯಾಟರಿ ಬಿಡುಗಡೆ ಮಾಡಿದ ಮಾರುತಿ ಸುಜುಕಿ"" at offset 150 | C1: ""- Finance ಏಪ್ರಿಲ್ 12ರ ಬಿಟ್ಕಾಯಿನ್ ರೇಟ್ ಎಷ್ಟಿದೆ?"" at offset 245 | C1: ""- Lifestyle ಇಂದು ಸೋಮಾವತಿ ಅಮಾವಾಸ್ಯೆ: ಇದರ ಮಹತ್ವ ಹಾಗೂ ಪ್ರಯೋಜನಗಳು"" at offset 292 | C1: ""- Education Bank Of Baroda Recruitment 2021: 512 ವಿವಿಧ ಹುದ್ದೆಗಳಿಗೆ ಅರ್ಜಿ ಆಹ್ವಾನ"" at offset 354 | C1: ""- Technology ಒನ್ಪ್ಲಸ್ ನಾರ್ಡ್ ಜುಲೈ 15 ರಿಂದ ಅಮೆಜಾನ್ ತಾಣದಲ್ಲಿ ಪ್ರಿ-ಆರ್ಡರ್ಗೆ ಲಭ್ಯವಿದೆ; ಖರೀದಿಸುವಲ್ಲಿ ಮೊದಲಿಗರಾಗಿರಿ!"" at offset 434 | C1: ""- Travel ಭಾರತದಲ್ಲಿ ಜೂನ್ 1 ರಿಂದ ಚಲಿಸಲಿರುವ ರೈಲುಗಳ ಸಂಪೂರ್ಣ ಪಟ್ಟಿ"" at offset 544 | G2: ಒನ್ಪ್ಲಸ್ at offset 447 | D4: ಅನೌನ್ಸ್  at offset 1108",,
+5e952686662b6ac3,full,fix,C1,"C1: ""Apr 7, 2021, 11:25 PM IST"" at offset 52",,
+cc93c2dfddb5ec05,full,fix,C1,"C1 : ಬುಧವಾರ, 7 ಏಪ್ರಿಲ್ 2021 (11:15 IST) at offset 65",,
+88007426f7aea253,full,fix,C1,C1 : Please follow and like us: at offset 896,,
+41932ab38a6fafb6,full,clean,D3,,,
+df621739cca195ea,full,clean,,,,
+c4c12c0187607b65,full,drop,C3;C4,C3 :  ಈತನೇನೂ ದೊಡ್ಡ ಹಿಡುವಳಿ ರೈತನಲ್ಲ at offet 446,,
+e7b8bf9fcc02f67e,full,fix,C1;G2,"C1: ""Just In Don't Miss!"" at offset 0 | C1: ""- Lifestyle ಭಾನುವಾರದ ದಿನ ಭವಿಷ್ಯ: ಈ ದಿನ ನಿಮ್ಮ ರಾಶಿಫಲ ಹೇಗಿದೆ ನೋಡಿ"" at offset 20 | C1: ""- Sports ಐಪಿಎಲ್ನಲ್ಲಿ ಕೆಟ್ಟ ದಾಖಲೆ ಬರೆದ ಕೂಲ್ ಕ್ಯಾಪ್ಟನ್ ಎಂಎಸ್ ಧೋನಿ"" at offset 84 | C1: ""- Finance ಶಾಲೆಯನ್ನ ಅರ್ಧಕ್ಕೆ ತೊರೆದು, 8,000 ರೂ. ವೇತನ ಪಡೆಯುತ್ತಿದ್ದ ನಿಖಿಲ್ ಕಾಮತ್ ಶತಕೋಟ್ಯಧಿಪತಿ ಆಗಿದ್ದೇಗೆ?"" at offset 148 | C1: ""- News ನೈಟ್ ಕರ್ಫ್ಯೂ ಹಿನ್ನೆಲೆಯಲ್ಲಿ ಬೆಂಗಳೂರಿನಲ್ಲಿ ಪೊಲೀಸರ ಬಿಗಿ ರೂಲ್ಸ್"" at offset 249 | C1: ""- Education Bank Of Baroda Recruitment 2021: 512 ವಿವಿಧ ಹುದ್ದೆಗಳಿಗೆ ಅರ್ಜಿ ಆಹ್ವಾನ"" at offset 316 | C1: ""- Movies ಅಜಯ್ ದೇವಗನ್-ಅಮಿತಾಭ್ ಸಿನಿಮಾದ ಚಿತ್ರೀಕರಣಕ್ಕೆ ಕೊರೊನಾ ಅಡ್ಡಿ"" at offset 396 | C1: ""- Technology ಒನ್ಪ್ಲಸ್ ನಾರ್ಡ್ ಜುಲೈ 15 ರಿಂದ ಅಮೆಜಾನ್ ತಾಣದಲ್ಲಿ ಪ್ರಿ-ಆರ್ಡರ್ಗೆ ಲಭ್ಯವಿದೆ; ಖರೀದಿಸುವಲ್ಲಿ ಮೊದಲಿಗರಾಗಿರಿ!"" at offset 460 | C1: ""- Travel ಭಾರತದಲ್ಲಿ ಜೂನ್ 1 ರಿಂದ ಚಲಿಸಲಿರುವ ರೈಲುಗಳ ಸಂಪೂರ್ಣ ಪಟ್ಟಿ"" at offset 570 | G2: ಏರ್ಬ್ಯಾಗ್ at offset 2651",,"ಏರ್‌ಬ್ಯಾಗ್ , lost ZWNJ"
+d88743015224ad8c,full,fix,C3,C2 : ಬೆಳಗಾವಿ ): at offset 0,,
+d78b35287b746574,full,fix,C1;C5,"C5: ""- News ಸರ್ಕಾರದಿಂದ 84 ಸಾವಿರ ರೆಮಿಡಿಸ್ವಿರ್ ಖರೀದಿ: ಸುಧಾಕರ್"" at offset 12 | C5: ""- Sports ಐಪಿಎಲ್ 2021: ಪಂಜಾಬ್ vs ಚೆನ್ನೈ, ಪ್ಲೇಯಿಂಗ್ XI, ಅಪ್ಡೇಟ್ಸ್"" at offset 67 | C5: ""- Automobiles ಇ ಕಾಮರ್ಸ್ ಸೇವಾ ಕಂಪನಿಗೆ ಎಲೆಕ್ಟ್ರಿಕ್ ಸ್ಕೂಟರ್ ಒದಗಿಸಲಿದೆ ಒಕಿನಾವ"" at offset 131 | C5: ""- Finance Alert: ವಾಹನಗಳ ಖರೀದಿ ಮತ್ತಷ್ಟು ದುಬಾರಿ, 2ನೇ ತ್ರೈಮಾಸಿಕದಲ್ಲಿ ಬೆಲೆ ಹೆಚ್ಚಳ ಸಾಧ್ಯತೆ"" at offset 205 | C5: ""- Education Bangalore University Exams 2021: ಸ್ನಾತಕ, ಸ್ನಾತಕೋತ್ತರ ಮತ್ತು ಇಂಜಿನಿಯರಿಂಗ್ ಪದವಿ ಪರೀಕ್ಷೆಗಳು ಮುಂದೂಡಿಕೆ"" at offset 291 | C5: ""- Lifestyle ರಾಮನವಮಿ 2021: ರಾಮನ ಕುರಿತಾದ ಅಚ್ಚರಿಯ ಸಂಗತಿಗಳು"" at offset 401 | C5: ""- Technology ಒನ್ಪ್ಲಸ್ ನಾರ್ಡ್ ಜುಲೈ 15 ರಿಂದ ಅಮೆಜಾನ್ ತಾಣದಲ್ಲಿ ಪ್ರಿ-ಆರ್ಡರ್ಗೆ ಲಭ್ಯವಿದೆ; ಖರೀದಿಸುವಲ್ಲಿ ಮೊದಲಿಗರಾಗಿರಿ!"" at offset 457 | C5: ""- Travel ಭಾರತದಲ್ಲಿ ಜೂನ್ 1 ರಿಂದ ಚಲಿಸಲಿರುವ ರೈಲುಗಳ ಸಂಪೂರ್ಣ ಪಟ್ಟಿ"" at offset 567 | C1: ""Don't Miss!"" at offset 0",,
+2749edfd33a4cb37,full,fix,C1,"C1: ""Please follow and like us:"" at offset 508",,
+16581c3a13551701,full,drop,A6;D4,A6: ts at offset 530 | A6: Home ತುವಿನಲ್ಲಿ at offset 627,,
+6de6e36caaf540b9,full,fix,C1;G1,"C1: ""Please follow and like us:"" at offset 859 | G1: ಬೀಬಿಜಾನ್ ರ್ಯಾವಣಕಿ at offset 687",,
+2f7b63acbfef5eb2,full,clean,,,,
+58571499d2fa8bea,full,fix,G2,G2: ದಿಕ್ಷೂಚಿಯಾಗಲಿದೆ at offset 1376,,ದಿಕ್ಸೂಚಿ - sa not ksha. lost ZWJ or ZWNJ
+e4d28c991c321711,full,clean,,,,
+1792def06370f03e,full,fix,F1,D4: 00223.. phone number at offset 114,,
+2d36de3f0b5e9aa5,full,fix,G2,G2: ಮಿನ್ನೆಪೊಲಿಸ್ನ at offset 322,,
+6c0145dfc416e801,full,clean,,,,
+a5adff1caa0b6418,full,fix,G2,G2: ಲಕ್ನೋನ at offset 97,,Lucknow is supposed word
+732acaa91430885f,full,fix,C3;G2,"C3: ಅತಿಥಿಗಳು ಬಂದಿದ್ದರು. at offset 0 | G2: ಮಾಡತೇನಂದ್ಯಲ್ಲ, at offset 5165",,
+a766b518e5ce731a,full,clean,,,,
+b3d6b74fb6f9d899,full,fix,A6;D4,A6: ಯಾದವು at offset 516 | D4: ಅವರ ಕುರ್ಚಿಯನ್ನು ತೊಳೆದು ಒಮ್ಮೆ ಹೇಳಿದರು. at offset 557,,name us yadav
+fdf85185b4e7f5db,full,clean,,,,
+7cb7be9c51596cc7,full,clean,,,,
+32f3489d3bca7c8f,full,clean,,,,
+50a2138f664e0f6f,full,clean,,,,
+c48f64267f363e3a,full,fix,G2,G2: ಬಜೆಟ್ದಿನ at offset 61 | G2: ಸಿಎಲ್ಪಿ at offset 635,,"CLP - ಸಿಎಲ್‌ಪಿ , lost ZWNJ"
+d0a0a33b2b7ed888,full,clean,,,,
+f1691b2e2d6b8c40,full,fix,A6;G1,A6: ブ at offset 500 | A6: hentic ೀಕರಣ at offset 670 | A6: ated ೀಕರಿಸಲಾಗುತ್ತದೆ at offset 728 | G1: ೀಕರಣ at offset 677 | G1: ೀಕರಿಸಲಾಗುತ್ತದೆ at offset 733,,
+9f9aeafac3256b18,full,clean,,,,
+8e638d65e799c8d0,full,fix,D3,"C1 : — Narendra Modi (@narendramodi) April 21, 2021 at offset 767",,
+f2bf6f2db1f31c46,full,fix,A6;G1,A6: ಗ್ರಾಪಂ ಸದಸ್ಯ at offset 668 | G1: ಗ್ರಾಪಂ ಸದಸ್ಯ at offset 668,,ಗ್ರಾಮ ಪಂಚಾಯತ್ ಸದಸ್ಯ
+488d5debed6ae335,full,clean,,,,
+b1216cd94bf3ff43,full,clean,,,,
+bb02a4e3d05d8e31,full,clean,,,,
+a94b940f10441a9b,full,fix,C1,"C1: ""Last Updated Jan 26, 2020, 9:25 AM IST"" at offset 1790",,
+7115c33a94e178cf,full,clean,,,,
+38f2da5edb8c8bc4,full,clean,D3,D3: Standard at offset 3926 | D3: Diglossia situatio at offset 7624,,
+bf6296f4d24940b2,full,fix,A6;C1,"C1: ""Team Udayavani, May 5, 2021, 8:17 AM IST"" at offset 57 | A6: ಒಳಗಾಗಬೇಕಿದೆ.ವಬಿಸಿಸಿಐ at offset 910",,
+102787969b150ca3,full,clean,,,,
+d453d1f8e478af91,full,fix,C5,C5: ಸತ್ಯ ಮತ್ತು ನೈಜ ಸುದ್ದಿಗಳ ಕೈಗನ್ನಡಿ -ತುಂಗಾವಾ at offset 1813,,
+6f8df6a1e26de654,full,fix,B3;C2,C2: ಕಲಬುರಗಿ ಮೇ 4: at offset 0 | B3: . at offset 1513,,Ghost fulls stop b3
 dd9112736c5e2d9a,full,fix,C1,"C1: ""First Published Jun 3, 2020, 6:28 PM IST"" at offset 64",,
