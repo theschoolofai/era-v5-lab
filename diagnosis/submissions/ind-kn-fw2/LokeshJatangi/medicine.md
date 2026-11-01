@@ -4,7 +4,7 @@
 
 Pack: **500 documents**, all labelled `full`: **239 clean, 231 fix, 30 drop**.
 Counts below are documents carrying each saved label; codes overlap. They are **not measured repair coverage**.
-Snapshot: `labels.csv` SHA-256 `c140555efe680a4de73185e0f6e15095310f4953975d29eaa0f640b2e16351e7`.
+Snapshot: `labels.csv`
 
 **Gold validation: PENDING for every medicine and their combination.** No independent two-reader Kannada
 gold set was supplied. Our 239 single-reader clean labels are not substituted for gold. No passing harm
