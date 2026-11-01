@@ -7,11 +7,19 @@ Diseases found more than five times: B2 (43), C3 (30), A6 (30), C1 (24), D3 (16)
 C2, C4, B4, A3 are at or below five, so they get no medicine.
 
 All the code is in this file: the `python` blocks, read from top to bottom, make one script. The blocks are the
-imports below, the six medicines, and the harm test at the end. To run the self-check and the harm test:
+imports below, the six medicines, and the harm test at the end. The official harm test is Data B's tool; it runs this
+file as it is:
+
+```
+python3 teams/02-data-b/tools/harm_test_indic.py --medicine medicine.md --pack ind-kn-sangraha-s.parquet \
+    --gold-dir teams/02-data-b/gold
+```
+
+My own script also runs the self-check and the wider checks in the table (my clean rows, labelled docs fixed):
 
 ```
 awk '/^ *```python/{f=1;next} /^ *```/{f=0;next} f{sub(/^   /,"");print}' medicine.md > medicine_run.py
-python3 medicine_run.py ind-kn-sangraha-s.parquet teams/02-data-b/gold/kannada_gold.csv labels.csv
+python3 medicine_run.py ind-kn-sangraha-s.parquet teams/02-data-b/gold/ind-kn-sangraha-s_gold.csv labels.csv
 ```
 
 ```python
@@ -24,22 +32,38 @@ import pyarrow.parquet as pq
 
 ## The harm test, in one table
 
-Gold set: `kannada_gold.csv` from the Data B interim gold sets (PR #149), 86 documents. 11 of them are in this
-pack (two clean votes: millermuttu and subramanyanaik). The other 75 are in ind-kn-fw2 and ind-kn-sangraha-v, and I
-do not have those packs, so I could test only the 11. With 11 documents, the 1% limit means that a medicine must
-not touch any gold document.
+Gold set: the gold set of this pack, `teams/02-data-b/gold/ind-kn-sangraha-s_gold.csv` (Data B gold sets rebuilt
+31 Oct, PR #161): 27 documents, each marked clean by two readers. All 27 are in this pack. A rule fails if it changes
+or drops more than 1% of the gold set or more than 1 document, whichever is more (DISEASES.md section 4 and the
+TSAI rule for small gold sets): here at most 1 of 27.
+
+Data B's tool (`harm_test_indic.py`) on this file:
+
+```
+gold set: 27 documents in 1 pack(s) (ind-kn-sangraha-s 27)
+a rule may change or drop at most 1 of 27 documents (1% or 1, whichever is more)
+rule           changed dropped  percent  joiners  form   result
+B2                   0       0    0.00%  ok      ok     PASS
+B3                   0       0    0.00%  ok      ok     PASS
+A6                   0       0    0.00%  ok      ok     PASS
+C1                   0       0    0.00%  ok      ok     PASS
+C3                   0       0    0.00%  ok      ok     PASS
+D3                   0       0    0.00%  ok      ok     PASS
+ALL IN ORDER         0       0    0.00%  ok      ok     PASS
+result: PASS
+```
 
 As a second, wider check, I also ran each medicine on my own 359 clean rows. That set has one reader only, so it is a
 proxy and not gold.
 
 | Medicine | Disease | Gold changed | Gold dropped | Result | My clean rows changed | Labelled docs it fixes | Pack docs it touches |
 |---|---|---|---|---|---|---|---|
-| M1 | B2 | 0 / 11 | 0 | PASS | 0 / 359 | 43 / 43 | 46 |
-| M2 | B3 | 0 / 11 | 0 | PASS | 0 / 359 | 3 / 7 | 3 |
-| M3 | A6 | 0 / 11 | 0 | PASS | 0 / 359 | 9 / 30 | 9 |
-| M4 | C1 | 0 / 11 | 0 | PASS | 5 / 359 | 7 / 24 | 22 |
-| M5 | C3 | 0 / 11 | 0 | PASS | 3 / 359 | 18 / 30 | 26 |
-| M6 | D3 | 0 / 11 | 0 | PASS (no text change) | 0 / 359 | n/a | 0 |
+| M1 | B2 | 0 / 27 | 0 | PASS | 0 / 359 | 43 / 43 | 46 |
+| M2 | B3 | 0 / 27 | 0 | PASS | 0 / 359 | 3 / 7 | 3 |
+| M3 | A6 | 0 / 27 | 0 | PASS | 0 / 359 | 9 / 30 | 9 |
+| M4 | C1 | 0 / 27 | 0 | PASS | 5 / 359 | 7 / 24 | 22 |
+| M5 | C3 | 0 / 27 | 0 | PASS | 3 / 359 | 18 / 30 | 26 |
+| M6 | D3 | 0 / 27 | 0 | PASS (no text change) | 0 / 359 | n/a | 0 |
 
 I read each of the 8 changes in my clean rows (see the side effects of M4 and M5). Each one removes text that I should
 have labelled C1 or C3. They are misses in my label sheet, not harm.
@@ -63,7 +87,7 @@ have labelled C1 or C3. They are misses in my label sheet, not harm.
        return TAG_ANY.sub("", TAG_ID.sub("", s))
    ```
 3. **Action:** fix the text.
-4. **Harm test:** gold 0 changed, 0 dropped of 11. PASS. My clean rows: 0 of 359.
+4. **Harm test:** gold 0 changed, 0 dropped of 27. PASS. My clean rows: 0 of 359.
 5. **Side effects:** `<ಐ. ಡಿ. 1>` stood for a name or a number that the source hid. Deleting it can leave a sentence
    with a gap ("... was born in ."). The medicine also deletes `<unk>` (that is M2's job too, so no harm). A real
    Kannada text that writes `ಐ. ಡಿ. 2` for "ID 2" (an ID card number) would lose it; I saw no such case.
@@ -85,7 +109,7 @@ have labelled C1 or C3. They are misses in my label sheet, not harm.
    ```
 3. **Action:** fix the text. `<unk>` replaced a character that the tokenizer of the translation model did not know,
    so the word around it stays damaged.
-4. **Harm test:** gold 0 changed, 0 dropped of 11. PASS. My clean rows: 0 of 359.
+4. **Harm test:** gold 0 changed, 0 dropped of 27. PASS. My clean rows: 0 of 359.
 5. **Side effects:** a text about HTML or about language models that quotes `<s>` or `<|endoftext|>` loses the quote.
 
 ## Medicine 3: "i.e." and "e.g." half translated (A6)
@@ -105,7 +129,7 @@ have labelled C1 or C3. They are misses in my label sheet, not harm.
        return HALF_EG.sub("ಉದಾ.", HALF_IE.sub("ಅಂದರೆ", s))
    ```
 3. **Action:** fix the text.
-4. **Harm test:** gold 0 changed, 0 dropped of 11. PASS. My clean rows: 0 of 359. It fixes 9 of the 30 A6 documents.
+4. **Harm test:** gold 0 changed, 0 dropped of 27. PASS. My clean rows: 0 of 359. It fixes 9 of the 30 A6 documents.
 5. **Side effects:** a list item `i.` followed by a sentence that begins with `ಇ.` would change; I saw none. Other
    half-translated initials (`f.ಸಿ.` for "F.C." in `b497ade9ed6f64c3`) are not fixed, because the right Kannada form
    depends on the name.
@@ -129,7 +153,7 @@ have labelled C1 or C3. They are misses in my label sheet, not harm.
        return AD_LINE.sub("", s)
    ```
 3. **Action:** fix the text.
-4. **Harm test:** gold 0 changed, 0 dropped of 11. PASS. My clean rows: 5 of 359 changed. I read all 5. Two
+4. **Harm test:** gold 0 changed, 0 dropped of 27. PASS. My clean rows: 5 of 359 changed. I read all 5. Two
    (`7316a3d779366b1a`, `8772f7c961f3c48f`) end in an empty `ಉಲ್ಲೇಖಗಳು.` heading, `ed7cfe412cf5a9bb` ends in
    "translated from the German Wikipedia", `7696c91439e39dd0` and `ea7e1afd07060b11` end in a link or reference list.
    All 5 are footers that I missed when labelling.
@@ -152,10 +176,10 @@ have labelled C1 or C3. They are misses in my label sheet, not harm.
        if not body.endswith(("ಃ", ":")):
            return s
        cut = max(body.rfind("\n"), body.rfind(". ") + 1)
-       return body[:cut].rstrip() + "\n" if cut > 0 else None
+       return body[:cut].rstrip() + "\n" if cut > 0 else True
    ```
 3. **Action:** fix the text (drop only a document that is one dangling sentence).
-4. **Harm test:** gold 0 changed, 0 dropped of 11. PASS. My clean rows: 3 of 359 changed (`523fee1068dc3fa9`,
+4. **Harm test:** gold 0 changed, 0 dropped of 27. PASS. My clean rows: 3 of 359 changed (`523fee1068dc3fa9`,
    `5182f57e468c0d70`, `db80897e2760a8ad`). All 3 end with a list intro and no list: C3 that I missed.
 5. **Side effects:** it fixes 18 of the 30 C3 documents. The other 12 stop in the middle of a word or a list item
    (`2ffa1db3ff911b53`, `6a8a83b833862e25`); no safe rule finds the end of the text there. The visarga `ಃ` is also a
@@ -177,10 +201,12 @@ have labelled C1 or C3. They are misses in my label sheet, not harm.
    def m6_foreign_ratio(s):
        n = len(LETTER.findall(s))
        return len(NOT_KN_LATIN.findall(s)) / n if n else 0.0
+   def medicine_d3(s):
+       return s  # keep the text; m6_foreign_ratio is the measure
    ```
    In the 16 D3 documents the share is at most 0.054 (5.4%). No document is mostly foreign.
 3. **Action:** keep the text. Record the ratio.
-4. **Harm test:** gold 0 changed, 0 dropped. PASS by construction.
+4. **Harm test:** gold 0 changed, 0 dropped of 27. PASS (the rule keeps every text).
 5. **Side effects:** none on the text. The ratio does not see Latin words (English, German) because Latin is normal in
    this pack (names, units, acronyms).
 
@@ -190,13 +216,9 @@ have labelled C1 or C3. They are misses in my label sheet, not harm.
 many of the labelled documents each medicine touches. `selftest` is the smallest check that each rule still works.
 
 ```python
-MEDICINES = [("M1", "B2", m1_tags), ("M2", "B3", m2_ghost), ("M3", "A6", m3_half_translated),
-             ("M4", "C1", m4_footer), ("M5", "C3", m5_dangling_intro)]
-
-
 def effect(fn, text):
     out = fn(text)
-    return "drop" if out is None else ("change" if out != text else "same")
+    return "drop" if out is True else ("change" if out != text else "same")
 
 
 def main(pack, gold_csv, labels_csv):
@@ -207,13 +229,16 @@ def main(pack, gold_csv, labels_csv):
     clean = [r["doc_id"] for r in labels if r["verdict"] == "clean"]
     print(f"pack {len(docs)} docs, gold in pack {len(gold)}, my clean rows {len(clean)}")
     print("med disease | gold changed dropped | my-clean changed dropped | labelled docs touched | pack touched")
-    for name, code, fn in MEDICINES:
+    medicines = [("M1", "B2", m1_tags), ("M2", "B3", m2_ghost), ("M3", "A6", m3_half_translated),
+                 ("M4", "C1", m4_footer), ("M5", "C3", m5_dangling_intro)]
+    limit = max(1, 0.01 * len(gold))  # 1% of the gold set or 1 document, whichever is more
+    for name, code, fn in medicines:
         g = [effect(fn, docs[i]) for i in gold]
         c = [effect(fn, docs[i]) for i in clean]
         sick = [r["doc_id"] for r in labels if code in r["diseases"].split(";")]
         hit = sum(effect(fn, docs[i]) != "same" for i in sick)
         allp = sum(effect(fn, t) != "same" for t in docs.values())
-        verdict = "PASS" if (g.count("change") + g.count("drop")) <= 0.01 * len(gold) else "FAIL"
+        verdict = "PASS" if (g.count("change") + g.count("drop")) <= limit else "FAIL"
         print(f"{name}  {code}  | {g.count('change'):3d} {g.count('drop'):3d} {verdict} | "
               f"{c.count('change'):3d} {c.count('drop'):3d} | {hit}/{len(sick)} | {allp}")
     sick = [r["doc_id"] for r in labels if "D3" in r["diseases"].split(";")]
@@ -231,7 +256,7 @@ def selftest():
     assert m4_footer("ಪಠ್ಯ " * 20 + "\nಉಲ್ಲೇಖಗಳು.\nಮೂಲಗಳು") == ("ಪಠ್ಯ " * 20).rstrip()
     assert m5_dangling_intro("ಒಂದು.\nಅವು ಹೀಗಿವೆಃ") == "ಒಂದು.\n"
     assert m5_dangling_intro("ಒಂದು. ಅವು ಹೀಗಿವೆಃ") == "ಒಂದು.\n"
-    assert m5_dangling_intro("ಅವು ಹೀಗಿವೆಃ") is None
+    assert m5_dangling_intro("ಅವು ಹೀಗಿವೆಃ") is True
     assert m5_dangling_intro("ಒಂದು.") == "ಒಂದು."
 
 
