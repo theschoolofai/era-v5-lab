@@ -102,9 +102,9 @@ Each fix is verified, and all are written up in `compare_v0_code_indic.md`.
 
 | Status | Count | What |
 |---|---|---|
-| PASS | 14 | MMLU-Pro ×3 (Open LLM Leaderboard), MILU-English, 10 of 12 code rows (Qwen report, EvalPlus leaderboard) |
+| PASS | 19 | MMLU-Pro ×3 (Open LLM Leaderboard), MILU en/hi/te for both models, 10 of 12 code rows |
 | FAIL | 2 | Qwen HumanEval+ −2.41, phi-2 MBPP+ −2.88; no timeouts recorded |
-| DEFERRED | 7 | Indic MILU rows (week-1 focus is code) |
+| DEFERRED | 2 | MILU-avg ×2, aggregation decided below |
 | NOT RUN | 3 | BBH (optional) |
 
 See `../results/compare_v0_code_indic.md` for every row, its source and the limitations.

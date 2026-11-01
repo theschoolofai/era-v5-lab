@@ -47,11 +47,11 @@ PATTERNS = {
 
 def llama_version(bindir):
     """'version: 0.7.0 (build 11669, commit 620d2225c)' (Homebrew 0.7+) or 'version: 10050 (b15ca938a)' (older)."""
-    out = subprocess.run([bin_path('llama-cli', bindir), '--version'], capture_output=True, text=True)
+    out = subprocess.run([bin_path('llama-perplexity', bindir), '--version'], capture_output=True, text=True)
     text = out.stdout + out.stderr
     m = re.search(r'build (\d+), commit (\w+)', text) or re.search(r'version: (\d+) \((\w+)\)', text)
     if not m: sys.exit(f'cannot read the llama.cpp version from: {text[:200]!r}')
-    return f'llama.cpp b{m.group(1)} ({m.group(2)})'
+    return f'llama.cpp {quantize_eval.llama_tag(int(m.group(1)), m.group(2))} ({m.group(2)})'
 
 
 def bin_path(name, bindir):

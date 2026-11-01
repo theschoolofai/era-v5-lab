@@ -1,7 +1,7 @@
 # OLMoE: KL divergence of each quantized format from bf16
 
-A third measurement next to the stand-in eval (`runs/runs.csv`) and WikiText-2 perplexity (`perplexity/`).
-Run on 26 Oct 2026 by Shubham Saxena. Results: [`kl.csv`](kl.csv).
+A third measurement next to the benchmark scores (`runs/runs.csv`, `eval_mini/`) and WikiText-2 perplexity (`perplexity/`).
+Run on 26 Oct 2026 by s9k96. Results: [`kl.csv`](kl.csv).
 
 ## Why
 

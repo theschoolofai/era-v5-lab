@@ -52,6 +52,18 @@ def llama_build(cli):
     return int(m.group(1)), m.group(2)
 
 
+def llama_tag(build, commit):
+    """llama.cpp tag of the binaries' commit. Release builds are tagged b<build>; a source build from a
+    shallow clone reports build 1, so the tag is found by commit (v0.7.0 and b11669 are the same commit)."""
+    out = subprocess.run(['git', 'ls-remote', '--tags', 'https://github.com/ggml-org/llama.cpp'],
+                         capture_output=True, text=True, check=True).stdout
+    tags = {ref.removeprefix('refs/tags/').removesuffix('^{}') for sha, ref in (l.split('\t') for l in out.splitlines())
+            if sha.startswith(commit)}
+    if f'b{build}' in tags: return f'b{build}'
+    if tags: return sorted(tags)[0]
+    sys.exit(f'no llama.cpp tag for commit {commit}: build llama.cpp from a tagged release')
+
+
 def machine_string():
     if platform.system() == 'Darwin':
         sc = lambda k: subprocess.run(['sysctl', '-n', k], capture_output=True, text=True).stdout.strip()
@@ -273,15 +285,16 @@ def main():
     work = Path(args.work).expanduser(); work.mkdir(parents=True, exist_ok=True); args.work = str(work)
     if args.prompt_mode == 'auto':
         args.prompt_mode = 'chat' if re.search(r'instruct|chat', args.model, re.I) else 'completion'
-    qbin, sbin, cbin = (find_bin(b, args.llama_bin) for b in ('llama-quantize', 'llama-server', 'llama-cli'))
-    build, commit = llama_build(cbin)
-    runtime = f'llama.cpp b{build} ({commit})'
+    qbin, sbin = (find_bin(b, args.llama_bin) for b in ('llama-quantize', 'llama-server'))
+    build, commit = llama_build(sbin)  # llama-quantize does not print its version
+    tag = llama_tag(build, commit)
+    runtime = f'llama.cpp {tag} ({commit})'
     machine = machine_string()
     log(f'{runtime} | {machine}')
 
     name = args.model.split('/')[-1]
     hf_dir, bf16 = work / 'hf' / name, work / f'{name}-bf16.gguf'
-    src, py = convert_env(work, f'b{build}')
+    src, py = convert_env(work, tag)
     if not bf16.exists():
         hf_download(args.model, args.revision, hf_dir)
         run([py, src / 'convert_hf_to_gguf.py', hf_dir, '--outtype', 'bf16', '--outfile', bf16])

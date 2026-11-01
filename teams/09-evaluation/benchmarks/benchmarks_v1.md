@@ -79,6 +79,16 @@ Approved by the lead: RULER, HELMET, LongBench v2 and ONERULER. ONERULER is kept
 | LongBench v2 | `zai-org/LongBench-v2` | 503 | Apache-2.0 (dataset card); code MIT | ✅ | Evaluation |
 | ONERULER | `mungg/OneRuler` | 7 tasks × 26 languages (kept for Indic coverage: hi, ta) | MIT | ✅ | Evaluation |
 
+## Decisions (lead, 25 Oct 2026)
+
+1. **Long context:** use RULER, HELMET, LongBench v2 and ONERULER. Keep ONERULER for the Indic coverage.
+2. **HLE:** use the text-only part.
+3. **Unclear licences** (Aider Polyglot, Codeforces, LiveCodeBench, HELMET, AIME): internal evaluation only. Never publish their items, and never copy their items into the repo. The licence status stays recorded in this doc.
+   Why each one: Aider Polyglot has no licence file; LiveCodeBench's code and dataset card disagree; HELMET's data keeps each source's licence. Codeforces and AIME show accepted licences (CC-BY-4.0 / ODC-By-4.0, MIT), but those cover the dataset packaging; the problems themselves come from Codeforces and the MAA.
+4. **Accepted licences for evaluation:** MIT, Apache-2.0, CC-BY-4.0, CC-BY-SA-4.0, CC-BY-NC-SA-4.0 and ODC-By-4.0.
+5. **GAIA** is internal only (its gated terms are not on the accepted list).
+6. **FLORES-200, IN22 and GSM8K** are decontamination only.
+
 ## Verification
 
 Where and when each ✅ row was checked. Hugging Face revisions are the ones PR #31 builds its fingerprints from.
