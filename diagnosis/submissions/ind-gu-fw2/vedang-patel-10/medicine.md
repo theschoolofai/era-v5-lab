@@ -1,18 +1,14 @@
 # Medicine sheet: ind-gu-fw2 (Vedang)
 
-Pack: 500 labelled documents (`labels-final.csv`): 158 labelled `clean`, 332 `fix`, 10 `drop`. Diseases found more than five times: C1 (174), D3 (284), A5 (24), F1 (19), C5 (19), A6 (18), C2 (13), D4 (12), B4 (6), G1 (6). Not above the threshold, so no medicine: C3 (5), G2 (4), C4 (3), D1 (2), A3 (2), B2 (2), F3 (1).
+Pack: 500 labelled documents (`labels.csv`): 157 labelled `clean`, 333 `fix`, 10 `drop`. Diseases found more than five times: C1 (179), D3 (285), A5 (30), C2 (13), F1 (19), C5 (20), A6 (18), D4 (12), B4 (6), G1 (9). Not above the threshold, so no medicine: C3 (4), G2 (4), C4 (2), D1 (2), A3 (2), B2 (2), F3 (1).
 
-What changed since the last version: C4 dropped from 7 to 3 documents, so I removed its medicine. G1 went from 5 to 6, so it gets one now (Medicine 10). A5 went from 13 to 24 and its rule is fixed (the old one turned `અા` into `અ` instead of `આ`). C1 is 174 now and C2 is 13; their rules are the same. The other counts did not change.
-
-I did not have the document texts, only the labels file, so I could not re-run anything. The harm-test results and the "acts on" numbers below are from the old run, or marked not run. They need to be run again on labels-final.csv before this sheet is final.
-
-**Harm-test note (applies to all medicines).** I did not have the official Gujarati gold set. As a proxy I use the documents labelled `clean` in `labels-final.csv` (n=158). The old sheet had 178 clean rows and I removed 18 of them, because the medicines were changing them for a real defect the label had missed (a headline stored after the body, a view counter, a duplicated dateline, `ાે` for `ો`, a doubled vowel sign). The final file has 158 clean rows, so no one has to be removed now. The proxy is small. 1% of 158 is 1.6 documents, so one changed document (0.6%) passes and two (1.3%) fail. It also leaves out every document with a defect, so it is easier to pass than the real gold set. Re-run on the real gold set before this sheet is final. The code for C1, D3, C2, F1, C5, A6, D4 and B4 is the same as before. The A5 code is changed and the G1 code is new, and I have not run either on full documents.
+**Harm-test note (applies to all medicines).** The gold file of this pack (`ind-gu-fw2_gold.csv`) exists and has 19 documents, all of them in the pack and all labelled `clean` in `labels.csv`. I ran every medicine (A5, A6, B4, C1, C2, C5, D3, D4, F1, G1) on the full text of these 19 documents: **changed 0 and dropped 0 for every medicine, so all pass.** The gold set is small: 1% of 19 is 0.19 documents, so a single changed document would already be 5.3% and fail. I also ran every medicine on the 157 documents labelled `clean` in `labels.csv` as a second check: changed 0 and dropped 0 for every medicine. That proxy leaves out every document with a defect, so it is easier to pass than a larger gold set. Every code block below was run on all 500 documents and gives the same output as the numbers quoted.
 
 ## Medicine 1: C1 (Boilerplate)
 
-1. **Disease:** C1, found in 174 of 500 labelled documents. Examples:
-   - `9c013a675712ff90`: `Android: http://bit.ly/3ajxBk4` at offset 4017
-   - `c829a1eb3044e514`: `Copyright © 2022-23 DB Corp ltd., All Ri` at offset 1390
+1. **Disease:** C1, found in 179 of 500 labelled documents. Examples:
+   - `bfbddfa37a31c087`: `Copyright © 2022-23 DB Corp ltd., All Ri…` at offset 1308
+   - `41223f7be1bf6c66`: `Copyright © 2022-23 DB Corp ltd., All Ri` at offset 1361
    - `54525ab9a5efeb4b`: `સમગ્ર ઘટના CCTV આવ્યા સામે pic.twitter.c` at offset 93
 2. **Medicine:** Delete whole lines that are site furniture: the Divya Bhaskar footer, the News18 promo, "read also" and `Tags:` lines, Instagram/tweet embeds, Saurashtra Kranti and GujjuRocks promo lines, source credits (`સૌજન્ય : દિવ્ય ભાસ્કર`), timestamps (`પોસ્ટનો સમય: …`), view counters (`57 , 1`), `Read More`, `જુઓ વિડીયો`, and the page promo `લેટેસ્ટ મનોરંજન, News અને Videos માટે પેજ લાઈક કરો`. In some newspaper pages the headline is stored after the body, followed by a final dateline (`(એજન્સી) તા.૬`); the headline line is deleted. The pattern must match the entire line.
 
@@ -81,14 +77,14 @@ I did not have the document texts, only the labels file, so I could not re-run a
    ```
 
 3. **Action:** fix. Only whole lines (and the trailing headline) are removed; a phrase inside a sentence is left alone.
-4. **Harm test:** proxy gold set (`clean` rows in labels-final.csv), n=158: changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). This is the old result and has not been re-run. On my labelled documents with this disease it acts on ? of 174 (old run: 132 of 164).
+4. **Harm test:** **gold set** (`ind-gu-fw2_gold.csv`, 19 documents, all 19 are `clean` in labels.csv): changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). Proxy set (all `clean` rows of labels.csv), n=157: changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). On my labelled documents with this disease it acts on 147 of 179.
 5. **Side effects:** Misses C1 that is not on its own line or comes from another site: `MUST READ:` and `READ ALSO` glued to text, a `ન્યૂઝ18 ગુજરાતી :` prefix glued to the first sentence, `જુઓ આગળની સ્લાઈડ્સ…`, source lines such as `શ્રોત: ગ્રામીણ ટુડે ન્યુઝ`, other wording of the English "This article is available in…" footer, and `- ` bullet lists of related links. The publisher lines (Divya Bhaskar, News18, Saurashtra Kranti, GujjuRocks) will not match other sites. A real one-line sentence equal to `વધુ વાંચો` would be deleted. If a real article ends with a headline-like line before a dateline, that line is deleted.
 
 ## Medicine 2: D3 (Mixed language)
 
-1. **Disease:** D3, found in 284 of 500 labelled documents. Examples:
+1. **Disease:** D3, found in 285 of 500 labelled documents. Examples:
    - `9c013a675712ff90`: `vaishnav` at offset 114
-   - `fb4348530cc01c8e`: `Copyright` at offset 1593
+   - `bbd78664eb97d1ae`: `PTN` at offset 1145
    - `b97cb6db98d14b11`: `Pathan` at offset 25
 2. **Medicine:** Delete whole lines that have no Gujarati letter and at least 25 Latin letters (embedded tweets, English footers and headings, transliterated verses). Words and acronyms inside a Gujarati sentence (`CBSE`, `Paytm`, `S10માં`) are natural mixing and are not touched.
 
@@ -105,16 +101,16 @@ I did not have the document texts, only the labels file, so I could not re-run a
    ```
 
 3. **Action:** fix. Natural Gujarati-English mixing is not touched (label it, do not judge it); only English-only lines are removed.
-4. **Harm test:** proxy gold set (`clean` rows in labels-final.csv), n=158: changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). This is the old result and has not been re-run. On my labelled documents with this disease it acts on ? of 284 (old run: 96 of 284).
-5. **Side effects:** In the old run it acted on 96 of 284 documents; the rest are natural mixing and need no medicine. Most of the changed documents are also changed by C1. It removes a real English quotation or English headline that is the point of the document, and a mostly-English document could lose most of its text, so run it after a language check. Romanised Hindi in Latin script is removed too, but that is really D2 and needs its own rule.
+4. **Harm test:** **gold set** (`ind-gu-fw2_gold.csv`, 19 documents, all 19 are `clean` in labels.csv): changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). Proxy set (all `clean` rows of labels.csv), n=157: changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). On my labelled documents with this disease it acts on 97 of 285.
+5. **Side effects:** It acts on 97 of 285 documents; the rest are natural mixing and need no medicine. Most of the changed documents are also changed by C1. It removes a real English quotation or English headline that is the point of the document, and a mostly-English document could lose most of its text, so run it after a language check. Romanised Hindi in Latin script is removed too, but that is really D2 and needs its own rule.
 
 ## Medicine 3: A5 (Wrong normal form (broken vowel signs))
 
-1. **Disease:** A5, found in 24 of 500 labelled documents. Examples:
-   - `8e517616dfb6854a`: `હતોે` at offset 251 (`0AB9 0AA4 0ACB 0AC7`)
-   - `981bfe6e8a36077c`: `વાસ્ચવિક્તાઓ` at offset 1845 (`0AB5 0ABE 0AB8 0ACD 0A9A 0AB5 0ABF 0A95 `)
-   - `3913921527d55e20`: `ચોથાા` at offset 1074 (`0A9A 0ACB 0AA5 0ABE 0ABE`)
-2. **Medicine:** Repair the broken vowel-sign sequences left by legacy-font conversion: a doubled sign (`તાલુુકા`, `વગેેરે`), `ાે` → `ો` (`જાેકે` → `જોકે`), `ાૈ`/`ૈા` → `ૌ`, `અા` → `આ`, `અે` → `એ`, `અો` → `ઓ` (and `અૈ`, `અૌ`), a sign after an independent vowel (`આાસન`), a nukta after a sign (`જે઼`). `રૂા` (rupee shorthand) is correct and is protected.
+1. **Disease:** A5, found in 30 of 500 labelled documents. Examples:
+   - `98b9ca997dc64e33`: `મોદીેેએ` at offset 523 (`0AAE 0ACB 0AA6 0AC0 0AC7 0AC7 0A8F`)
+   - `87229021ccbc99cf`: `સ્કૂલોેને` at offset 147 (`0AB8 0ACD 0A95 0AC2 0AB2 0ACB 0AC7 0AA8 0AC7`)
+   - `245157868125833d`: `એન્જિીનિયરીંગ` at offset 621 (`0A8F 0AA8 0ACD 0A9C 0ABF 0AC0 0AA8 0ABF 0AAF 0AB0 0AC0 0A82 0A97`)
+2. **Medicine:** Repair the broken vowel-sign sequences left by legacy-font conversion: a doubled sign (`તાલુુકા`, `વગેેરે`), `ાે` → `ો` (`જાેકે` → `જોકે`), `ાૈ`/`ૈા` → `ૌ`, `અે` → `એ`, a sign after an independent vowel (`આાસન`), a nukta after a sign (`જે઼`). `રૂા` (rupee shorthand) is correct and is protected.
 
    ```python
    import re
@@ -123,11 +119,7 @@ I did not have the document texts, only the labels file, so I could not re-run a
 
    def medicine(text):
        t = text.replace("રૂા", "\0")                      # rupee shorthand is correct, protect it
-       t = (t.replace("\u0a85\u0abe", "\u0a86")           # અ + ા  ->  આ
-             .replace("\u0a85\u0ac7", "\u0a8f")           # અ + ે  ->  એ
-             .replace("\u0a85\u0ac8", "\u0a90")           # અ + ૈ  ->  ઐ
-             .replace("\u0a85\u0acb", "\u0a93")           # અ + ો  ->  ઓ
-             .replace("\u0a85\u0acc", "\u0a94"))          # અ + ૌ  ->  ઔ
+       t = t.replace("\u0a85\u0ac7", "\u0a8f")            # અ + ે  ->  એ
        t = re.sub(f"([{SIGN}])\\1+", r"\1", t)           # the same sign twice
        t = (t.replace("\u0abe\u0ac7", "\u0acb")          # ાે -> ો
              .replace("\u0abe\u0ac8", "\u0acc")          # ાૈ -> ૌ
@@ -139,14 +131,14 @@ I did not have the document texts, only the labels file, so I could not re-run a
    ```
 
 3. **Action:** fix. The sign sequences are repaired in place; the rest of the text stays. NFC alone does not fix these.
-4. **Harm test:** proxy gold set (`clean` rows in labels-final.csv), n=158: **NOT RUN** for the new rule. The old rule gave changed 0, dropped 0 → PASS. The new `અ` lines only touch `અ` followed by a vowel sign, which should not appear in correct text, but that needs checking. On my labelled documents with this disease it acts on ? of 24 (old run: 9 of 13).
-5. **Side effects:** Some repairs are a guess: when two different signs are stacked (`સાથૂી`) the rule keeps the first, which may be the wrong one, so the word is still wrong. A wrong or doubled consonant is not found (`શરરૂઆત`, `રિઝર્લ`, `મહીઅલાઓ`). The old version of this rule turned `અા` and `અો` into `અ`, so `અાજે` became `અજે`. The new `અ` lines fix that. I only tried the new code on sample strings from the CSV. Wrong letters that are valid Gujarati are invisible to it. Do not run it on text that is already NFC and correct: it changes nothing there, but it is not a spell checker.
+4. **Harm test:** **gold set** (`ind-gu-fw2_gold.csv`, 19 documents, all 19 are `clean` in labels.csv): changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). Proxy set (all `clean` rows of labels.csv), n=157: changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). On my labelled documents with this disease it acts on 26 of 30.
+5. **Side effects:** Some repairs are a guess: when two different signs are stacked (`સાથૂી`) the rule keeps the first, which may be the wrong one, so the word is still wrong. A wrong consonant is not found. Wrong letters that are valid Gujarati are invisible to it. Do not run it on text that is already NFC and correct: it changes nothing there, but it is not a spell checker.
 
 ## Medicine 4: C2 (Repeated lines)
 
 1. **Disease:** C2, found in 13 of 500 labelled documents. Examples:
    - `98b9ca997dc64e33`: `અંબાજી મંદિરના મુખ્ય શિખરને સુવર્ણમય બનાવવા` at offset 998
-   - `8a8d9a6ffd1d7271`: `જ્યારે યુ.એસ. માં શ્રેષ્ઠ રાષ્ટ્રી…` at offset 0
+   - `a42d054d2bda09d0`: `તમારું પોતાનું વ્યક્તિ…` at offset 25817
    - `b85dd656e0a0f691`: `રાખી સાવંતની માતાનું નિધન,બ્રે` at offset 8340
 2. **Medicine:** Keep the first copy of a line longer than 15 characters and delete later identical copies. Lines ending in `,` or `…` are kept, because poems repeat refrains.
 
@@ -164,14 +156,14 @@ I did not have the document texts, only the labels file, so I could not re-run a
    ```
 
 3. **Action:** fix. Keep the first copy, delete the later copies.
-4. **Harm test:** proxy gold set (`clean` rows in labels-final.csv), n=158: changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). This is the old result and has not been re-run. On my labelled documents with this disease it acts on ? of 13 (old run: 6 of 7).
+4. **Harm test:** **gold set** (`ind-gu-fw2_gold.csv`, 19 documents, all 19 are `clean` in labels.csv): changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). Proxy set (all `clean` rows of labels.csv), n=157: changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). On my labelled documents with this disease it acts on 12 of 13.
 5. **Side effects:** Misses repeats that are short (a dateline under 16 characters such as `અમદાવાદ, તા.ર`), differ in a number (`59300 રૂપિયા`), or were cut at a different place. A deliberate repeated slogan or chorus that does not end in `,` or `…` would be deleted.
 
 ## Medicine 5: F1 (Personal data)
 
 1. **Disease:** F1, found in 19 of 500 labelled documents. Examples (type and offset only, no values):
-   - `79e1f2d27c8fda29`: phone at offset 1924
-   - `272bab66c491c858`: phone at offset 2043
+   - `71da416a839a010b`: private name next to a home locality at offset 886
+   - `896ee117249ce192`: phone at offset 479
    - `5a8e7392dd213881`: phone at offset 1651
 2. **Medicine:** Replace email addresses and phone numbers (10-digit mobiles, `+91` numbers, landlines with area code, in Latin or Gujarati digits) with `<EMAIL>` and `<PHONE>`. example.com placeholder addresses are left for B4.
 
@@ -189,13 +181,13 @@ I did not have the document texts, only the labels file, so I could not re-run a
    ```
 
 3. **Action:** fix. The values are masked and the rest of the document stays.
-4. **Harm test:** proxy gold set (`clean` rows in labels-final.csv), n=158: changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). This is the old result and has not been re-run. On my labelled documents with this disease it acts on ? of 19 (old run: 17 of 19).
+4. **Harm test:** **gold set** (`ind-gu-fw2_gold.csv`, 19 documents, all 19 are `clean` in labels.csv): changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). Proxy set (all `clean` rows of labels.csv), n=157: changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). On my labelled documents with this disease it acts on 17 of 19.
 5. **Side effects:** Does not find the private-name-plus-locality case, because a regex cannot find names. It masks public helpline numbers (a government employment helpline) that are not private data. A Latin digit run of 10 or more digits that is an order or ID number is masked as a phone number.
 
 ## Medicine 6: C5 (Lists of keywords or links)
 
-1. **Disease:** C5, found in 19 of 500 labelled documents. Examples:
-   - `cf008373747082a4`: `Tags: અંડર વર્લ્ડ ડોન` at offset 1242
+1. **Disease:** C5, found in 20 of 500 labelled documents. Examples:
+   - `6c34ae8bfde1bf78`: `Tags:` at offset 1880
    - `8fb11ce7723f2e80`: `Tags:` at offset 2150
    - `111b541c64c8d29b`: `Tags:` at offset 1943
 2. **Medicine:** Delete `Tags:` lines that have two or more commas or eight or more words, and lines that are a comma list of five or more mostly-Latin items with no digit, colon or full stop.
@@ -218,14 +210,14 @@ I did not have the document texts, only the labels file, so I could not re-run a
    ```
 
 3. **Action:** fix. Delete the tag or keyword line only.
-4. **Harm test:** proxy gold set (`clean` rows in labels-final.csv), n=158: changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). This is the old result and has not been re-run. On my labelled documents with this disease it acts on ? of 19 (old run: 17 of 19).
+4. **Harm test:** **gold set** (`ind-gu-fw2_gold.csv`, 19 documents, all 19 are `clean` in labels.csv): changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). Proxy set (all `clean` rows of labels.csv), n=157: changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). On my labelled documents with this disease it acts on 18 of 20.
 5. **Side effects:** Misses keyword lists written in Gujarati (`ugvcl બિલ ઑનલાઇન કેવી રીતે જોવું, …`) and `- ` bullet lists of links. A real `Tags:` line with a few words is deleted, which is intended, but it is also boilerplate (C1).
 
 ## Medicine 7: A6 (Wrong or mixed script)
 
 1. **Disease:** A6, found in 18 of 500 labelled documents. Examples:
-   - `79e1f2d27c8fda29`: `आ` at offset 2039 (`0906 092A 0915`)
-   - `f5b5303747485fca`: `अ` at offset 3872 (`0905 `)
+   - `0992299d9580a5a2`: `તેcણે` at offset 465 (`0AC7 0063 0AA3`)
+   - `7c6b6253138b22d0`: `તocસ` at offset 357 (`006F 0063`)
    - `194f2b945bfbeb1f`: `क` at offset 670 (`0915`)
 2. **Medicine:** Two rules. **A6a:** if a lowercase Latin run of 1 to 8 letters has a Gujarati letter on both sides, drop the document. **A6b:** otherwise delete lines that contain Devanagari letters; if more than 30% of the lines are deleted, drop the document. The Devanagari danda `।` is not counted.
 
@@ -246,15 +238,15 @@ I did not have the document texts, only the labels file, so I could not re-run a
    ```
 
 3. **Action:** A6a drops the document (a corrupted word makes the text around it unreliable). A6b deletes Hindi lines and drops the document if more than 30% of lines go.
-4. **Harm test:** proxy gold set (`clean` rows in labels-final.csv), n=158: changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). This is the old result and has not been re-run. On my labelled documents with this disease it acts on ? of 18 (old run: 15 of 18).
-5. **Side effects:** In the old run it acted on only 15 of 18 documents. It does not cover Gujarati letters used as digits (`ર01ર`, `ર૯પ`), a U+201A comma-like character in place of `ૂ`, candra signs (`અપૅણ`, `નેતાઑ`), long ઊ for ઉ, wrong letters (`વિઘુત`), or a lone Latin letter between spaces (`બનાવવી l હોમમેઇડ`). The digit-letter case can be repaired by a rule but only inside numbers, which I did not write; the others need a spelling model. The 30% threshold is a proposal and has not been tuned. Real Hindi or Sanskrit quotations in a Gujarati article are removed even though they are correct text. A lowercase brand glued between two Gujarati letters is dropped. Dropping a whole document for one corrupted word loses a lot of good text; if the drop rate on the real gold set is above 1%, change A6a to remove only the affected sentence.
+4. **Harm test:** **gold set** (`ind-gu-fw2_gold.csv`, 19 documents, all 19 are `clean` in labels.csv): changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). Proxy set (all `clean` rows of labels.csv), n=157: changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). On my labelled documents with this disease it acts on 15 of 18.
+5. **Side effects:** It acts on only 15 of 18 documents. It does not cover Gujarati letters used as digits (`ર01ર`, `ર૯પ`), a U+201A comma-like character in place of `ૂ`, candra signs (`અપૅણ`, `નેતાઑ`), long ઊ for ઉ, wrong letters (`વિઘુત`), or a lone Latin letter between spaces (`બનાવવી l હોમમેઇડ`). The digit-letter case can be repaired by a rule but only inside numbers, which I did not write; the others need a spelling model. The 30% threshold is a proposal and has not been tuned. Real Hindi or Sanskrit quotations in a Gujarati article are removed even though they are correct text. A lowercase brand glued between two Gujarati letters is dropped. Dropping a whole document for one corrupted word loses a lot of good text; if the drop rate on the real gold set is above 1%, change A6a to remove only the affected sentence.
 
 ## Medicine 8: D4 (Bad machine translation)
 
 1. **Disease:** D4, found in 12 of 500 labelled documents. Examples:
    - `014f6b1dc9a324be`: `ક્રીપ પ્રતિરોધક, પર્યાવરણીય તણાવ ક…` at offset 339
-   - `0ec81e67b8a18c56`: `આઇએમએમ breakingપલ વ Watchચને` at offset 7409
-   - `0f3d75a890fadfcb`: `તારીખ સાથે પ્રદેશ⏎સમ` at offset 0
+   - `f65c324b39b9db3f`: `ક્યુટ કંપનીએ અનાવરણ કર્યું ની` at offset 0
+   - `b910fdfe72d2ac0a`: `'પોતાને વરવા'` at offset 1160
 2. **Medicine:** Drop the document if a lowercase Latin run of 1 to 8 letters sits between Gujarati letters (the same sign as A6a). This is the only part of D4 that a rule can see; the rest needs a quality model (see side effects).
 
    ```python
@@ -268,13 +260,14 @@ I did not have the document texts, only the labels file, so I could not re-run a
    ```
 
 3. **Action:** drop. A broken translation cannot be repaired by a rule.
-4. **Harm test:** proxy gold set (`clean` rows in labels-final.csv), n=158: changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). This is the old result and has not been re-run. On my labelled documents with this disease it acts on ? of 12 (old run: 4 of 12).
-5. **Side effects:** In the old run it acted on only 4 of 12 documents. It misses translations that are wrong but have no Latin letters: repeated or untranslated phrases (`મિક્સ કરો અને મિક્સ કરો`), incoherent spam text, and unnatural wording. Those need a language-model quality score, which I did not run. D4 labels are my judgement, not a measurement, so the acts-on number is only a lower bound for how bad the disease is. Dropping documents costs data.
+4. **Harm test:** **gold set** (`ind-gu-fw2_gold.csv`, 19 documents, all 19 are `clean` in labels.csv): changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). Proxy set (all `clean` rows of labels.csv), n=157: changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). On my labelled documents with this disease it acts on 4 of 12.
+5. **Side effects:** Acts on only 4 of 12 documents. It misses translations that are wrong but have no Latin letters: repeated or untranslated phrases (`મિક્સ કરો અને મિક્સ કરો`), incoherent spam text, and unnatural wording. Those need a language-model quality score, which I did not run. D4 labels are my judgement, not a measurement, so the acts-on number is only a lower bound for how bad the disease is. Dropping documents costs data.
 
 ## Medicine 9: B4 (Template and code junk)
 
 1. **Disease:** B4, found in 6 of 500 labelled documents. Examples:
    - `b67a6cca719bf1d7`: `#IndiaWantsCrypto` at offset 3353
+   - `ec290e88b613101c`: `[email protected]` at offset 2229
    - `a4ab5516e2836afa`: `[ઇમેઇલ સુરક્ષિત]` at offset 11188
 2. **Medicine:** Delete template and placeholder junk: `[ઇમેઇલ સુરક્ષિત]` and `[email protected]` (email obfuscation placeholders), example.com placeholder addresses, `{{ … }}`, `${ … }`, and the whole words `undefined`, `NaN`, `null`.
 
@@ -289,16 +282,16 @@ I did not have the document texts, only the labels file, so I could not re-run a
    ```
 
 3. **Action:** fix. Delete the junk token; the sentence stays.
-4. **Harm test:** proxy gold set (`clean` rows in labels-final.csv), n=158: changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). This is the old result and has not been re-run. On my labelled documents with this disease it acts on ? of 6 (old run: 4 of 6).
+4. **Harm test:** **gold set** (`ind-gu-fw2_gold.csv`, 19 documents, all 19 are `clean` in labels.csv): changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). Proxy set (all `clean` rows of labels.csv), n=157: changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). On my labelled documents with this disease it acts on 4 of 6.
 5. **Side effects:** Misses hashtags such as `#IndiaWantsCrypto` (it is part of the post). The word `null` or `undefined` inside a real English quotation is deleted. Email-obfuscation placeholders in other languages or spellings will not match.
 
 ## Medicine 10: G1 (Detached or orphaned marks)
 
-1. **Disease:** G1, found in 6 of 500 labelled documents. I made up the name from the evidence, so swap in the official one. Examples:
+1. **Disease:** G1, found in 9 of 500 labelled documents. Examples:
+   - `a4ab5516e2836afa`: `કરતા ંચું` at offset 2139 (`0A95 0AB0 0AA4 0ABE 0020 0A82`)
+   - `94a0b1e34f48f0ad`: `અર્ધગ્ધ` at offset 1246 (`0A85 0AB0 0ACD 0AA7 0A97 0ACD 0AA7`)
    - `774bfbc8ab7805ba`: `ા ં` at offset 677 (`0ABE 0020 0A82`)
-   - `674c953262045ec3`: `જ િ` at offset 818 (`0A9C 0020 0ABF`)
-   - `be329b1fecf270e9`: `ૂંટણીને` at offset 32 (`0AC2 0A82 0A9F 0AA3 0AC0 0AA8 0AC7`)
-2. **Medicine:** Delete a space that sits between a Gujarati consonant, virama or vowel sign and a following vowel sign or anusvara (`જ િ` → `જિ`, `ા ં` → `ાં`). A word cannot start with a vowel sign, so that space is not a real word break.
+2. **Medicine:** Delete a space that sits between a Gujarati consonant, virama or vowel sign and a following vowel sign or anusvara (`જ િ` → `જિ`, `ા ં` → `ાં`, `કે ે` → `કેે`). A word cannot start with a vowel sign, so that space is not a real word break.
 
    ```python
    import re
@@ -311,5 +304,5 @@ I did not have the document texts, only the labels file, so I could not re-run a
    ```
 
 3. **Action:** fix. Only the stray space is removed; the rest of the text stays.
-4. **Harm test:** **NOT RUN.** I had no document texts. On the six evidence strings from the CSV it fixes `જ િ` and `ા ં`, turns `કરતા ંચું` into `કરતાંચું`, and leaves `ૂંટણીને`, `અર્ધગ્ધ` and `જ્ .ા` as they are. Run it on the 158 clean documents first.
-5. **Side effects:** It cannot bring back a lost letter (`ૂંટણીને` lost its consonant, `અર્ધગ્ધ` lost a letter), so those words stay wrong. If the space was a real word break and the next word lost its first letter (`કરતા ંચું`), the join glues two words into a non-word. A stray full stop between the pieces (`જ્ .ા`) is not handled. Two of the six documents are already labelled `drop`, so this rule gains little.
+4. **Harm test:** **gold set** (`ind-gu-fw2_gold.csv`, 19 documents, all 19 are `clean` in labels.csv): changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). Proxy set (all `clean` rows of labels.csv), n=157: changed 0, dropped 0 (0.0%) → **PASS** (limit 1%). On my labelled documents with this disease it acts on 7 of 9.
+5. **Side effects:** It acts on 7 of 9 documents. It cannot bring back a lost letter (`ૂંટણીને`, `અર્ધગ્ધ` lost a letter), so those words stay wrong; a stray full stop between the pieces (`જ્ .ા`) is not handled. If the space was a real word break and the next word lost its first letter (`કરતા ંચું`), or the space follows a vowel sign that belongs to a whole word (`નવી િદલ્હી`, `જો િમત્રો`), the join glues the pieces into a non-word. After this rule the word is still wrong, but it is one word instead of two. Two of the nine documents are labelled `drop`, so this rule gains little there. In the A5 documents 328 and 461 it leaves a doubled sign that A5 must remove, so run A5 and G1 together.
