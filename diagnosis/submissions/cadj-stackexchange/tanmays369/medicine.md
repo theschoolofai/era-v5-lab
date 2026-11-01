@@ -20,17 +20,27 @@ def fix_b3(text):
 4. **Harm test:** gold set empty, not testable.
 5. **Side effects:** a post that really talks about these tokens loses them. Question and answers run together after the strip, so a rule that splits them first is better.
 
-## Medicine 2: B2 stripped markup remnants (147 documents)
+## Medicine 2: B2 stripped markup remnants (136 documents)
 
-1. **Disease:** B2. The converter removed `<...>` content and left remnants: empty code fences, a lone `php` line where `<?php` was, an empty `#include`, `xml version=...?`, a loop header cut at `<`, text left in a code block where the HTML was, and a stripped tag name leaving a double space in prose ("I use a  tag", 3 documents). Examples: `d78b5eeab23e7a55` (lone `php` at offset 675), `71acfee0eb411a72` (lone `php` at 1046), `3e38237c513072d4` (text-only block at 545).
+1. **Disease:** B2. The converter removed `<...>` content and left remnants: empty code fences, a lone `php` line where `<?php` was, an empty `#include`, `xml version=...?`, a loop header cut at `<`, text left in a code block where the HTML was, and a stripped tag name leaving a double space in prose ("I use a  tag", 3 documents). Back-to-back fences (a closing fence followed by a new opening fence, e.g. ` ``` ` then ` ```css `) are block boundaries, not empty blocks, and do not count. Examples: `d78b5eeab23e7a55` (lone `php` at offset 675), `71acfee0eb411a72` (lone `php` at 1046), `3e38237c513072d4` (text-only block at 545).
 2. **Medicine:**
 ```python
 import re
-EMPTY_FENCE = re.compile(r"```[A-Za-z0-9_+-]*[ \t]*\n[ \t\n]*```")
+FENCE = re.compile(r"```")
 REMNANT = re.compile(r"(?m)^\s*php\s*$|^\s*#include\s*$|^\s*#import\s*$|^\s*xml version=.*$|!\[\]\(\)")
 LOOP_CUT = re.compile(r"(?m)^[ \t]*(?:for|while|if)\s*\([^()\n]*[A-Za-z0-9_\]\.]\s*\n(?=[ \t]*(?:```|\n|$))")
+def empty_fences(text):
+    # pair fences sequentially: an opener whose block holds only whitespace is empty.
+    # a naive ```...``` search also fires on close->open boundaries; pairing avoids that.
+    fences = [m.start() for m in FENCE.finditer(text)]
+    out = []
+    for j in range(0, len(fences) - 1, 2):
+        eol = text.find("\n", fences[j] + 3)
+        if eol != -1 and text[eol + 1:fences[j + 1]].strip() == "":
+            out.append(fences[j])
+    return out
 def has_b2(text):
-    return bool(EMPTY_FENCE.search(text) or REMNANT.search(text) or LOOP_CUT.search(text))
+    return bool(empty_fences(text) or REMNANT.search(text) or LOOP_CUT.search(text))
 ```
 3. **Action:** drop the document when the code is the point of the question; remove an empty fence when it is only decoration.
 4. **Harm test:** gold set empty, not testable.
