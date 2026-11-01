@@ -1,0 +1,264 @@
+{
+  "tokenizer": "tokenizer.json",
+  "sha256": "7d2cff92053170fdb17b301448964f1770d88df247b2e794256254227f86af44",
+  "vocab_size": 131072,
+  "merges": 130460,
+  "layout": {
+    "base": [
+      0,
+      114333,
+      {
+        "special_ids_inside": [
+          36
+        ]
+      }
+    ],
+    "Devanagari": [
+      114333,
+      117405
+    ],
+    "Bengali": [
+      117405,
+      119453
+    ],
+    "Tamil": [
+      119453,
+      121245
+    ],
+    "Telugu": [
+      121245,
+      123165
+    ],
+    "Kannada": [
+      123165,
+      125085
+    ],
+    "Malayalam": [
+      125085,
+      127133
+    ],
+    "Gujarati": [
+      127133,
+      128157
+    ],
+    "Gurmukhi": [
+      128157,
+      129183,
+      {
+        "special_ids_inside": [
+          128512,
+          128601
+        ]
+      }
+    ],
+    "Oriya": [
+      129183,
+      130725,
+      {
+        "special_ids_inside": [
+          129279,
+          129411,
+          129994,
+          130173,
+          130174,
+          130226
+        ]
+      }
+    ],
+    "specials": {
+      "from": "tokenizer v0",
+      "count": 356,
+      "ids_outside_top_block": [
+        36,
+        128512,
+        128601,
+        129279,
+        129411,
+        129994,
+        130173,
+        130174,
+        130226
+      ]
+    }
+  },
+  "slots": {
+    "Devanagari": 3072,
+    "Bengali": 2048,
+    "Tamil": 1792,
+    "Telugu": 1920,
+    "Kannada": 1920,
+    "Malayalam": 2048,
+    "Gujarati": 1024,
+    "Gurmukhi": 1024,
+    "Oriya": 1536
+  },
+  "special_layout": "v0",
+  "v0_tokenizer_sha256": "2de039f20d17afd17615095c406c43087359673b767ed0fe2c480b995f2af8e5",
+  "special_tokens": 356,
+  "base": {
+    "source": "tiktoken o200k_base",
+    "kept": 114332,
+    "dropped": {
+      "over_32_bytes": 130,
+      "cross_script": 22
+    }
+  },
+  "corpus": {
+    "Hi": {
+      "config": "hin_Deva",
+      "file": "Hi.txt",
+      "docs": 3005,
+      "bytes": 20009692,
+      "sha256": "f9a7d43e3b7c48822bfb7a3db914c4d40d07070476f9614e559884b1caa9d2b5"
+    },
+    "Mr": {
+      "config": "mar_Deva",
+      "file": "Mr.txt",
+      "docs": 2365,
+      "bytes": 20008325,
+      "sha256": "a88050d1f29f60ab38b13476c0c68d66181ee931a4863c68ba559ee4eddd6a63"
+    },
+    "Bn": {
+      "config": "ben_Beng",
+      "file": "Bn.txt",
+      "docs": 2559,
+      "bytes": 20005912,
+      "sha256": "e0b4300e27dc38c3adccaea323d79ab6fb8684d4a93da6334cfa546775535512"
+    },
+    "As": {
+      "config": "asm_Beng",
+      "file": "As.txt",
+      "docs": 1957,
+      "bytes": 20014599,
+      "sha256": "e70f690035803f74eef34a635b2af81b97bf1cbb667524a64e3b8a7684fe5ad3"
+    },
+    "Ta": {
+      "config": "tam_Taml",
+      "file": "Ta.txt",
+      "docs": 6004,
+      "bytes": 60009562,
+      "sha256": "7a6833efc3a544d16f90970a3af833c735e1332ab359248ab2da18ee55896221"
+    },
+    "Te": {
+      "config": "tel_Telu",
+      "file": "Te.txt",
+      "docs": 6325,
+      "bytes": 60006628,
+      "sha256": "ad33037ec2ffae002b160f9da71e3c0611a3430d9ef58cee8b4cca44f17c8d7f"
+    },
+    "Kn": {
+      "config": "kan_Knda",
+      "file": "Kn.txt",
+      "docs": 8165,
+      "bytes": 60000221,
+      "sha256": "8d7d649451a755d582f1f1bdb76406e2c31287e502ff020b8226efa980734f13"
+    },
+    "Ml": {
+      "config": "mal_Mlym",
+      "file": "Ml.txt",
+      "docs": 6561,
+      "bytes": 60010343,
+      "sha256": "b5f8785268ef1431b456f172a4fe957ace886f3a16803ff71484e1cc4c9ab1e5"
+    },
+    "Gu": {
+      "config": "guj_Gujr",
+      "file": "Gu.txt",
+      "docs": 2529,
+      "bytes": 20000911,
+      "sha256": "943f95aa574095336246f027e8fdf48a285cae030eae6a17afcc24aaaa1eb254"
+    },
+    "Pa": {
+      "config": "pan_Guru",
+      "file": "Pa.txt",
+      "docs": 2390,
+      "bytes": 20060925,
+      "sha256": "2e3afa28202e7fad167cb3ec48ce82ba85f2363bb56ec353f03c18c39e85c7ac"
+    },
+    "Or": {
+      "config": "ory_Orya",
+      "file": "Or.txt",
+      "docs": 4380,
+      "bytes": 20001012,
+      "sha256": "0135111913bfddf8d720790a2c7f49740f32552099ee7824d69890e57cddfbdf"
+    }
+  },
+  "normalizer": "v1",
+  "slots_json_sha256": "da0e1df79d64bc62d6fb9d81203dbc19e0915150d0da283fcbff52978949a606",
+  "slot_saturation": {
+    "Devanagari": {
+      "last_merge_count": 168,
+      "words": 2678689
+    },
+    "Bengali": {
+      "last_merge_count": 351,
+      "words": 2371595
+    },
+    "Tamil": {
+      "last_merge_count": 552,
+      "words": 2377356
+    },
+    "Telugu": {
+      "last_merge_count": 632,
+      "words": 2780704
+    },
+    "Kannada": {
+      "last_merge_count": 607,
+      "words": 2671959
+    },
+    "Malayalam": {
+      "last_merge_count": 480,
+      "words": 2128226
+    },
+    "Gujarati": {
+      "last_merge_count": 295,
+      "words": 1308807
+    },
+    "Gurmukhi": {
+      "last_merge_count": 491,
+      "words": 1526620
+    },
+    "Oriya": {
+      "last_merge_count": 432,
+      "words": 1121777
+    }
+  },
+  "build_seconds": 130,
+  "verify": {
+    "verify_no_cross_script_merges.py": {
+      "exit": 0,
+      "pass": true,
+      "summary": [
+        "PASS: no cross-script entries in the merge list."
+      ]
+    },
+    "verify_max_byte_length.py": {
+      "exit": 0,
+      "pass": true,
+      "summary": [
+        "PASS: all 130,716 normal tokens are within 32 bytes."
+      ]
+    },
+    "verify_kronecker_constraints_unified.py": {
+      "exit": 0,
+      "pass": true,
+      "summary": [
+        "max byte ≤ 32:        PASS",
+        "0 cross-script:       PASS",
+        "RESULT: PASS — tokenizer satisfies both Kronecker constraints at POS_DIM=32."
+      ]
+    },
+    "verify_sarvam_m_structural_identity.py": {
+      "exit": 0,
+      "pass": true,
+      "summary": [
+        "identical:        96,172",
+        "identical:        356",
+        "vocab identical:   False",
+        "merges identical:  False (rank order: False)",
+        "added identical:   True",
+        "RESULT: BPE TABLES DIFFER — 35,153 merges only in A, 206,091 only in B, rank-order match = False."
+      ]
+    }
+  },
+  "structural_diff_against": "/private/tmp/claude-501/-Users-sohamniyogi-Development-personal/d772d489-112c-4b67-af21-31d8dcad206f/scratchpad/v0_tokenizer.json"
+}

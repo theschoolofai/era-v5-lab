@@ -1,0 +1,13 @@
+# Pinned to the versions used for eval_mini_v0 (24 Oct 2026). Install with:
+#   uv venv .venv && uv pip install --python .venv/bin/python -r teams/09-evaluation/harness/requirements.txt
+# On Apple Silicon use the Homebrew python (uv's managed CPython is an x86 build on some Macs):
+#   uv venv --python /opt/homebrew/opt/python@3.13/libexec/bin/python3 .venv
+lm_eval==0.4.13
+torch==2.14.1
+transformers==5.20.2
+accelerate==1.15.0
+datasets==5.1.0
+evaluate==0.4.6
+huggingface-hub==2.3.0
+sentencepiece==0.2.2
+numpy==2.5.4

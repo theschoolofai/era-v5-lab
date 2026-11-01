@@ -1,0 +1,919 @@
+{
+ "version": "v0",
+ "created": "2026-10-25",
+ "units": "points (0-100)",
+ "gate_rule": "PASS if |ours - published| <= 2.0 on the full test set, same protocol",
+ "models": {
+  "qwen2.5-1.5b": {
+   "hf_id": "Qwen/Qwen2.5-1.5B",
+   "revision": "e5dfabbcffd9b0c7b31d89b82c5a6b72e663f32c",
+   "revision_note": "the commit the Open LLM Leaderboard evaluated; same weights as main (8faed761, used by PR #21)",
+   "max_length": 4096
+  },
+  "gemma-2-2b": {
+   "hf_id": "google/gemma-2-2b",
+   "revision": "4d05c88d00441bf62bf87dcfd29e204c05089f36",
+   "max_length": 8192
+  },
+  "llama-3.2-3b": {
+   "hf_id": "meta-llama/Llama-3.2-3B",
+   "revision": "95c102307f55fbd6d18ddf28bfbcb537ffdc2806",
+   "max_length": 4096
+  },
+  "deepseek-coder-1.3b": {
+   "hf_id": "deepseek-ai/deepseek-coder-1.3b-base",
+   "revision": "c919139c3a9b4070729c8b2cca4847ab29ca8d94",
+   "max_length": 16384,
+   "role": "code_reference"
+  },
+  "phi-2": {
+   "hf_id": "microsoft/phi-2",
+   "revision": "810d367871c1d460086d9f82db8696f2e0a0fcd0",
+   "max_length": 2048,
+   "role": "code_reference"
+  }
+ },
+ "anchors": [
+  {
+   "model": "qwen2.5-1.5b",
+   "benchmark": "MMLU-Pro",
+   "task": "leaderboard_mmlu_pro",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "n_items": 12032,
+   "published": 28.55,
+   "published_stderr": 0.41,
+   "protocol": {
+    "harness": "lm-evaluation-harness (leaderboard fork)",
+    "harness_commit": "d4631ea6",
+    "dtype": "bfloat16",
+    "attn_implementation": null,
+    "chat_template": false,
+    "fewshot_as_multiturn": false
+   },
+   "source": {
+    "name": "Open LLM Leaderboard v2, per-run results file",
+    "url": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/main/Qwen/Qwen2.5-1.5B/results_2024-10-24T00-00-00.000000.json"
+   },
+   "use_for_gate": true
+  },
+  {
+   "model": "qwen2.5-1.5b",
+   "benchmark": "BBH",
+   "task": "leaderboard_bbh",
+   "metric": "acc_norm",
+   "num_fewshot": 3,
+   "published": 40.46,
+   "published_stderr": 0.6,
+   "protocol": {
+    "harness": "lm-evaluation-harness (leaderboard fork)",
+    "harness_commit": "d4631ea6",
+    "dtype": "bfloat16",
+    "attn_implementation": null,
+    "chat_template": false,
+    "fewshot_as_multiturn": false
+   },
+   "source": {
+    "name": "Open LLM Leaderboard v2, per-run results file",
+    "url": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/main/Qwen/Qwen2.5-1.5B/results_2024-10-24T00-00-00.000000.json"
+   },
+   "use_for_gate": true
+  },
+  {
+   "model": "gemma-2-2b",
+   "benchmark": "MMLU-Pro",
+   "task": "leaderboard_mmlu_pro",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "n_items": 12032,
+   "published": 21.8,
+   "published_stderr": 0.38,
+   "protocol": {
+    "harness": "lm-evaluation-harness (leaderboard fork)",
+    "harness_commit": "121ee91",
+    "dtype": "bfloat16",
+    "attn_implementation": "eager",
+    "chat_template": false,
+    "fewshot_as_multiturn": false
+   },
+   "source": {
+    "name": "Open LLM Leaderboard v2, per-run results file",
+    "url": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/main/google/gemma-2-2b/results_2024-07-29T16-38-17.664954.json"
+   },
+   "use_for_gate": true
+  },
+  {
+   "model": "gemma-2-2b",
+   "benchmark": "BBH",
+   "task": "leaderboard_bbh",
+   "metric": "acc_norm",
+   "num_fewshot": 3,
+   "published": 36.21,
+   "published_stderr": 0.59,
+   "protocol": {
+    "harness": "lm-evaluation-harness (leaderboard fork)",
+    "harness_commit": "121ee91",
+    "dtype": "bfloat16",
+    "attn_implementation": "eager",
+    "chat_template": false,
+    "fewshot_as_multiturn": false
+   },
+   "source": {
+    "name": "Open LLM Leaderboard v2, per-run results file",
+    "url": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/main/google/gemma-2-2b/results_2024-07-29T16-38-17.664954.json"
+   },
+   "use_for_gate": true
+  },
+  {
+   "model": "llama-3.2-3b",
+   "benchmark": "MMLU-Pro",
+   "task": "leaderboard_mmlu_pro",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "n_items": 12032,
+   "published": 24.92,
+   "published_stderr": 0.39,
+   "protocol": {
+    "harness": "lm-evaluation-harness (leaderboard fork)",
+    "harness_commit": "d4631ea6",
+    "dtype": "bfloat16",
+    "attn_implementation": null,
+    "chat_template": false,
+    "fewshot_as_multiturn": false
+   },
+   "source": {
+    "name": "Open LLM Leaderboard v2, per-run results file",
+    "url": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/main/meta-llama/Llama-3.2-3B/results_2024-09-23T09-55-05.332092.json"
+   },
+   "use_for_gate": true
+  },
+  {
+   "model": "llama-3.2-3b",
+   "benchmark": "BBH",
+   "task": "leaderboard_bbh",
+   "metric": "acc_norm",
+   "num_fewshot": 3,
+   "published": 39.25,
+   "published_stderr": 0.61,
+   "protocol": {
+    "harness": "lm-evaluation-harness (leaderboard fork)",
+    "harness_commit": "d4631ea6",
+    "dtype": "bfloat16",
+    "attn_implementation": null,
+    "chat_template": false,
+    "fewshot_as_multiturn": false
+   },
+   "source": {
+    "name": "Open LLM Leaderboard v2, per-run results file",
+    "url": "https://huggingface.co/datasets/open-llm-leaderboard/results/blob/main/meta-llama/Llama-3.2-3B/results_2024-09-23T09-55-05.332092.json"
+   },
+   "use_for_gate": true
+  },
+  {
+   "model": "gemma-2-2b",
+   "benchmark": "MILU-bn",
+   "task": "milu_Bengali",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "published": 29.72,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "lm-evaluation-harness (AI4Bharat MILU fork, v0.4.4)",
+    "scoring": "log-likelihood",
+    "chat_template": false
+   },
+   "source": {
+    "name": "MILU paper, Table 3",
+    "url": "https://arxiv.org/abs/2411.02538"
+   },
+   "use_for_gate": false,
+   "note": null
+  },
+  {
+   "model": "gemma-2-2b",
+   "benchmark": "MILU-en",
+   "task": "milu_English",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "published": 50.86,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "lm-evaluation-harness (AI4Bharat MILU fork, v0.4.4)",
+    "scoring": "log-likelihood",
+    "chat_template": false
+   },
+   "source": {
+    "name": "MILU paper, Table 3",
+    "url": "https://arxiv.org/abs/2411.02538"
+   },
+   "use_for_gate": true,
+   "note": null
+  },
+  {
+   "model": "gemma-2-2b",
+   "benchmark": "MILU-gu",
+   "task": "milu_Gujarati",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "published": 28.82,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "lm-evaluation-harness (AI4Bharat MILU fork, v0.4.4)",
+    "scoring": "log-likelihood",
+    "chat_template": false
+   },
+   "source": {
+    "name": "MILU paper, Table 3",
+    "url": "https://arxiv.org/abs/2411.02538"
+   },
+   "use_for_gate": false,
+   "note": null
+  },
+  {
+   "model": "gemma-2-2b",
+   "benchmark": "MILU-hi",
+   "task": "milu_Hindi",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "published": 32.32,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "lm-evaluation-harness (AI4Bharat MILU fork, v0.4.4)",
+    "scoring": "log-likelihood",
+    "chat_template": false
+   },
+   "source": {
+    "name": "MILU paper, Table 3",
+    "url": "https://arxiv.org/abs/2411.02538"
+   },
+   "use_for_gate": true,
+   "note": null
+  },
+  {
+   "model": "gemma-2-2b",
+   "benchmark": "MILU-kn",
+   "task": "milu_Kannada",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "published": 29.77,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "lm-evaluation-harness (AI4Bharat MILU fork, v0.4.4)",
+    "scoring": "log-likelihood",
+    "chat_template": false
+   },
+   "source": {
+    "name": "MILU paper, Table 3",
+    "url": "https://arxiv.org/abs/2411.02538"
+   },
+   "use_for_gate": false,
+   "note": null
+  },
+  {
+   "model": "gemma-2-2b",
+   "benchmark": "MILU-ml",
+   "task": "milu_Malayalam",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "published": 28.72,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "lm-evaluation-harness (AI4Bharat MILU fork, v0.4.4)",
+    "scoring": "log-likelihood",
+    "chat_template": false
+   },
+   "source": {
+    "name": "MILU paper, Table 3",
+    "url": "https://arxiv.org/abs/2411.02538"
+   },
+   "use_for_gate": false,
+   "note": null
+  },
+  {
+   "model": "gemma-2-2b",
+   "benchmark": "MILU-mr",
+   "task": "milu_Marathi",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "published": 30.99,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "lm-evaluation-harness (AI4Bharat MILU fork, v0.4.4)",
+    "scoring": "log-likelihood",
+    "chat_template": false
+   },
+   "source": {
+    "name": "MILU paper, Table 3",
+    "url": "https://arxiv.org/abs/2411.02538"
+   },
+   "use_for_gate": false,
+   "note": null
+  },
+  {
+   "model": "gemma-2-2b",
+   "benchmark": "MILU-or",
+   "task": "milu_Odia",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "published": 25.28,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "lm-evaluation-harness (AI4Bharat MILU fork, v0.4.4)",
+    "scoring": "log-likelihood",
+    "chat_template": false
+   },
+   "source": {
+    "name": "MILU paper, Table 3",
+    "url": "https://arxiv.org/abs/2411.02538"
+   },
+   "use_for_gate": false,
+   "note": null
+  },
+  {
+   "model": "gemma-2-2b",
+   "benchmark": "MILU-pa",
+   "task": "milu_Punjabi",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "published": 30.64,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "lm-evaluation-harness (AI4Bharat MILU fork, v0.4.4)",
+    "scoring": "log-likelihood",
+    "chat_template": false
+   },
+   "source": {
+    "name": "MILU paper, Table 3",
+    "url": "https://arxiv.org/abs/2411.02538"
+   },
+   "use_for_gate": false,
+   "note": null
+  },
+  {
+   "model": "gemma-2-2b",
+   "benchmark": "MILU-ta",
+   "task": "milu_Tamil",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "published": 30.1,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "lm-evaluation-harness (AI4Bharat MILU fork, v0.4.4)",
+    "scoring": "log-likelihood",
+    "chat_template": false
+   },
+   "source": {
+    "name": "MILU paper, Table 3",
+    "url": "https://arxiv.org/abs/2411.02538"
+   },
+   "use_for_gate": false,
+   "note": null
+  },
+  {
+   "model": "gemma-2-2b",
+   "benchmark": "MILU-te",
+   "task": "milu_Telugu",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "published": 28.46,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "lm-evaluation-harness (AI4Bharat MILU fork, v0.4.4)",
+    "scoring": "log-likelihood",
+    "chat_template": false
+   },
+   "source": {
+    "name": "MILU paper, Table 3",
+    "url": "https://arxiv.org/abs/2411.02538"
+   },
+   "use_for_gate": true,
+   "note": null
+  },
+  {
+   "model": "gemma-2-2b",
+   "benchmark": "MILU-avg",
+   "task": "milu",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "published": 31.43,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "lm-evaluation-harness (AI4Bharat MILU fork, v0.4.4)",
+    "scoring": "log-likelihood",
+    "chat_template": false
+   },
+   "source": {
+    "name": "MILU paper, Table 3",
+    "url": "https://arxiv.org/abs/2411.02538"
+   },
+   "use_for_gate": true,
+   "note": "the avg column's aggregation is not stated in the paper; compare per language first"
+  },
+  {
+   "model": "llama-3.2-3b",
+   "benchmark": "MILU-bn",
+   "task": "milu_Bengali",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "published": 32.75,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "lm-evaluation-harness (AI4Bharat MILU fork, v0.4.4)",
+    "scoring": "log-likelihood",
+    "chat_template": false
+   },
+   "source": {
+    "name": "MILU paper, Table 3",
+    "url": "https://arxiv.org/abs/2411.02538"
+   },
+   "use_for_gate": false,
+   "note": null
+  },
+  {
+   "model": "llama-3.2-3b",
+   "benchmark": "MILU-en",
+   "task": "milu_English",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "published": 50.25,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "lm-evaluation-harness (AI4Bharat MILU fork, v0.4.4)",
+    "scoring": "log-likelihood",
+    "chat_template": false
+   },
+   "source": {
+    "name": "MILU paper, Table 3",
+    "url": "https://arxiv.org/abs/2411.02538"
+   },
+   "use_for_gate": true,
+   "note": null
+  },
+  {
+   "model": "llama-3.2-3b",
+   "benchmark": "MILU-gu",
+   "task": "milu_Gujarati",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "published": 31.32,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "lm-evaluation-harness (AI4Bharat MILU fork, v0.4.4)",
+    "scoring": "log-likelihood",
+    "chat_template": false
+   },
+   "source": {
+    "name": "MILU paper, Table 3",
+    "url": "https://arxiv.org/abs/2411.02538"
+   },
+   "use_for_gate": false,
+   "note": null
+  },
+  {
+   "model": "llama-3.2-3b",
+   "benchmark": "MILU-hi",
+   "task": "milu_Hindi",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "published": 34.63,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "lm-evaluation-harness (AI4Bharat MILU fork, v0.4.4)",
+    "scoring": "log-likelihood",
+    "chat_template": false
+   },
+   "source": {
+    "name": "MILU paper, Table 3",
+    "url": "https://arxiv.org/abs/2411.02538"
+   },
+   "use_for_gate": true,
+   "note": null
+  },
+  {
+   "model": "llama-3.2-3b",
+   "benchmark": "MILU-kn",
+   "task": "milu_Kannada",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "published": 31.75,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "lm-evaluation-harness (AI4Bharat MILU fork, v0.4.4)",
+    "scoring": "log-likelihood",
+    "chat_template": false
+   },
+   "source": {
+    "name": "MILU paper, Table 3",
+    "url": "https://arxiv.org/abs/2411.02538"
+   },
+   "use_for_gate": false,
+   "note": null
+  },
+  {
+   "model": "llama-3.2-3b",
+   "benchmark": "MILU-ml",
+   "task": "milu_Malayalam",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "published": 29.07,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "lm-evaluation-harness (AI4Bharat MILU fork, v0.4.4)",
+    "scoring": "log-likelihood",
+    "chat_template": false
+   },
+   "source": {
+    "name": "MILU paper, Table 3",
+    "url": "https://arxiv.org/abs/2411.02538"
+   },
+   "use_for_gate": false,
+   "note": null
+  },
+  {
+   "model": "llama-3.2-3b",
+   "benchmark": "MILU-mr",
+   "task": "milu_Marathi",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "published": 32.41,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "lm-evaluation-harness (AI4Bharat MILU fork, v0.4.4)",
+    "scoring": "log-likelihood",
+    "chat_template": false
+   },
+   "source": {
+    "name": "MILU paper, Table 3",
+    "url": "https://arxiv.org/abs/2411.02538"
+   },
+   "use_for_gate": false,
+   "note": null
+  },
+  {
+   "model": "llama-3.2-3b",
+   "benchmark": "MILU-or",
+   "task": "milu_Odia",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "published": 28.07,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "lm-evaluation-harness (AI4Bharat MILU fork, v0.4.4)",
+    "scoring": "log-likelihood",
+    "chat_template": false
+   },
+   "source": {
+    "name": "MILU paper, Table 3",
+    "url": "https://arxiv.org/abs/2411.02538"
+   },
+   "use_for_gate": false,
+   "note": null
+  },
+  {
+   "model": "llama-3.2-3b",
+   "benchmark": "MILU-pa",
+   "task": "milu_Punjabi",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "published": 30.42,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "lm-evaluation-harness (AI4Bharat MILU fork, v0.4.4)",
+    "scoring": "log-likelihood",
+    "chat_template": false
+   },
+   "source": {
+    "name": "MILU paper, Table 3",
+    "url": "https://arxiv.org/abs/2411.02538"
+   },
+   "use_for_gate": false,
+   "note": null
+  },
+  {
+   "model": "llama-3.2-3b",
+   "benchmark": "MILU-ta",
+   "task": "milu_Tamil",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "published": 30.93,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "lm-evaluation-harness (AI4Bharat MILU fork, v0.4.4)",
+    "scoring": "log-likelihood",
+    "chat_template": false
+   },
+   "source": {
+    "name": "MILU paper, Table 3",
+    "url": "https://arxiv.org/abs/2411.02538"
+   },
+   "use_for_gate": false,
+   "note": null
+  },
+  {
+   "model": "llama-3.2-3b",
+   "benchmark": "MILU-te",
+   "task": "milu_Telugu",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "published": 29.75,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "lm-evaluation-harness (AI4Bharat MILU fork, v0.4.4)",
+    "scoring": "log-likelihood",
+    "chat_template": false
+   },
+   "source": {
+    "name": "MILU paper, Table 3",
+    "url": "https://arxiv.org/abs/2411.02538"
+   },
+   "use_for_gate": true,
+   "note": null
+  },
+  {
+   "model": "llama-3.2-3b",
+   "benchmark": "MILU-avg",
+   "task": "milu",
+   "metric": "acc",
+   "num_fewshot": 5,
+   "published": 32.85,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "lm-evaluation-harness (AI4Bharat MILU fork, v0.4.4)",
+    "scoring": "log-likelihood",
+    "chat_template": false
+   },
+   "source": {
+    "name": "MILU paper, Table 3",
+    "url": "https://arxiv.org/abs/2411.02538"
+   },
+   "use_for_gate": true,
+   "note": "the avg column's aggregation is not stated in the paper; compare per language first"
+  },
+  {
+   "model": "qwen2.5-1.5b",
+   "benchmark": "HumanEval",
+   "task": "evalplus:humaneval",
+   "metric": "pass@1 (greedy)",
+   "num_fewshot": 0,
+   "published": 37.2,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "not named by the source; evalplus base completion mode assumed",
+    "chat_template": false
+   },
+   "source": {
+    "name": "Qwen2.5 blog, base-model table",
+    "url": "https://qwenlm.github.io/blog/qwen2.5-llm/"
+   },
+   "use_for_gate": true,
+   "note": "harness unnamed by source: a mismatch here may be protocol, not a bug"
+  },
+  {
+   "model": "qwen2.5-1.5b",
+   "benchmark": "HumanEval+",
+   "task": "evalplus:humaneval",
+   "metric": "pass@1 (greedy)",
+   "num_fewshot": 0,
+   "published": 32.9,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "not named by the source; evalplus base completion mode assumed",
+    "chat_template": false
+   },
+   "source": {
+    "name": "Qwen2.5 blog, base-model table",
+    "url": "https://qwenlm.github.io/blog/qwen2.5-llm/"
+   },
+   "use_for_gate": true,
+   "note": "harness unnamed by source: a mismatch here may be protocol, not a bug"
+  },
+  {
+   "model": "qwen2.5-1.5b",
+   "benchmark": "MBPP",
+   "task": "evalplus:mbpp",
+   "metric": "pass@1 (greedy)",
+   "num_fewshot": 0,
+   "published": 60.2,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "not named by the source; evalplus base completion mode assumed",
+    "chat_template": false
+   },
+   "source": {
+    "name": "Qwen2.5 blog, base-model table",
+    "url": "https://qwenlm.github.io/blog/qwen2.5-llm/"
+   },
+   "use_for_gate": true,
+   "note": "harness unnamed by source: a mismatch here may be protocol, not a bug"
+  },
+  {
+   "model": "qwen2.5-1.5b",
+   "benchmark": "MBPP+",
+   "task": "evalplus:mbpp",
+   "metric": "pass@1 (greedy)",
+   "num_fewshot": 0,
+   "published": 49.6,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "not named by the source; evalplus base completion mode assumed",
+    "chat_template": false
+   },
+   "source": {
+    "name": "Qwen2.5 blog, base-model table",
+    "url": "https://qwenlm.github.io/blog/qwen2.5-llm/"
+   },
+   "use_for_gate": true,
+   "note": "harness unnamed by source: a mismatch here may be protocol, not a bug"
+  },
+  {
+   "model": "deepseek-coder-1.3b",
+   "benchmark": "HumanEval",
+   "task": "evalplus:humaneval",
+   "metric": "pass@1 (greedy)",
+   "num_fewshot": 0,
+   "published": 28.7,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "evalplus",
+    "humaneval_plus_version": "v0.1.10",
+    "mbpp_plus_version": "v0.2.0",
+    "decoding": "greedy",
+    "prompt": "direct code completion (base model, not chat)"
+   },
+   "source": {
+    "name": "EvalPlus leaderboard (DeepSeek-Coder-1.3B-base)",
+    "url": "https://evalplus.github.io/leaderboard.html",
+    "data": "https://evalplus.github.io/results.json"
+   },
+   "use_for_gate": true,
+   "registered": "2026-10-25, after the Qwen code FAILs: a code reference with a documented protocol. Models chosen by fixed criteria (base, ungated, fits 8 GB, all four scores published) before any run of them."
+  },
+  {
+   "model": "deepseek-coder-1.3b",
+   "benchmark": "HumanEval+",
+   "task": "evalplus:humaneval",
+   "metric": "pass@1 (greedy)",
+   "num_fewshot": 0,
+   "published": 25.6,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "evalplus",
+    "humaneval_plus_version": "v0.1.10",
+    "mbpp_plus_version": "v0.2.0",
+    "decoding": "greedy",
+    "prompt": "direct code completion (base model, not chat)"
+   },
+   "source": {
+    "name": "EvalPlus leaderboard (DeepSeek-Coder-1.3B-base)",
+    "url": "https://evalplus.github.io/leaderboard.html",
+    "data": "https://evalplus.github.io/results.json"
+   },
+   "use_for_gate": true,
+   "registered": "2026-10-25, after the Qwen code FAILs: a code reference with a documented protocol. Models chosen by fixed criteria (base, ungated, fits 8 GB, all four scores published) before any run of them."
+  },
+  {
+   "model": "deepseek-coder-1.3b",
+   "benchmark": "MBPP",
+   "task": "evalplus:mbpp",
+   "metric": "pass@1 (greedy)",
+   "num_fewshot": 0,
+   "published": 56.9,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "evalplus",
+    "humaneval_plus_version": "v0.1.10",
+    "mbpp_plus_version": "v0.2.0",
+    "decoding": "greedy",
+    "prompt": "direct code completion (base model, not chat)"
+   },
+   "source": {
+    "name": "EvalPlus leaderboard (DeepSeek-Coder-1.3B-base)",
+    "url": "https://evalplus.github.io/leaderboard.html",
+    "data": "https://evalplus.github.io/results.json"
+   },
+   "use_for_gate": true,
+   "registered": "2026-10-25, after the Qwen code FAILs: a code reference with a documented protocol. Models chosen by fixed criteria (base, ungated, fits 8 GB, all four scores published) before any run of them."
+  },
+  {
+   "model": "deepseek-coder-1.3b",
+   "benchmark": "MBPP+",
+   "task": "evalplus:mbpp",
+   "metric": "pass@1 (greedy)",
+   "num_fewshot": 0,
+   "published": 47.9,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "evalplus",
+    "humaneval_plus_version": "v0.1.10",
+    "mbpp_plus_version": "v0.2.0",
+    "decoding": "greedy",
+    "prompt": "direct code completion (base model, not chat)"
+   },
+   "source": {
+    "name": "EvalPlus leaderboard (DeepSeek-Coder-1.3B-base)",
+    "url": "https://evalplus.github.io/leaderboard.html",
+    "data": "https://evalplus.github.io/results.json"
+   },
+   "use_for_gate": true,
+   "registered": "2026-10-25, after the Qwen code FAILs: a code reference with a documented protocol. Models chosen by fixed criteria (base, ungated, fits 8 GB, all four scores published) before any run of them."
+  },
+  {
+   "model": "phi-2",
+   "benchmark": "HumanEval",
+   "task": "evalplus:humaneval",
+   "metric": "pass@1 (greedy)",
+   "num_fewshot": 0,
+   "published": 49.4,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "evalplus",
+    "humaneval_plus_version": "v0.1.10",
+    "mbpp_plus_version": "v0.2.0",
+    "decoding": "greedy",
+    "prompt": "direct code completion (base model, not chat)"
+   },
+   "source": {
+    "name": "EvalPlus leaderboard (phi-2-2.7B)",
+    "url": "https://evalplus.github.io/leaderboard.html",
+    "data": "https://evalplus.github.io/results.json"
+   },
+   "use_for_gate": true,
+   "registered": "2026-10-25, after the Qwen code FAILs: a code reference with a documented protocol. Models chosen by fixed criteria (base, ungated, fits 8 GB, all four scores published) before any run of them."
+  },
+  {
+   "model": "phi-2",
+   "benchmark": "HumanEval+",
+   "task": "evalplus:humaneval",
+   "metric": "pass@1 (greedy)",
+   "num_fewshot": 0,
+   "published": 45.1,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "evalplus",
+    "humaneval_plus_version": "v0.1.10",
+    "mbpp_plus_version": "v0.2.0",
+    "decoding": "greedy",
+    "prompt": "direct code completion (base model, not chat)"
+   },
+   "source": {
+    "name": "EvalPlus leaderboard (phi-2-2.7B)",
+    "url": "https://evalplus.github.io/leaderboard.html",
+    "data": "https://evalplus.github.io/results.json"
+   },
+   "use_for_gate": true,
+   "registered": "2026-10-25, after the Qwen code FAILs: a code reference with a documented protocol. Models chosen by fixed criteria (base, ungated, fits 8 GB, all four scores published) before any run of them."
+  },
+  {
+   "model": "phi-2",
+   "benchmark": "MBPP",
+   "task": "evalplus:mbpp",
+   "metric": "pass@1 (greedy)",
+   "num_fewshot": 0,
+   "published": 64.0,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "evalplus",
+    "humaneval_plus_version": "v0.1.10",
+    "mbpp_plus_version": "v0.2.0",
+    "decoding": "greedy",
+    "prompt": "direct code completion (base model, not chat)"
+   },
+   "source": {
+    "name": "EvalPlus leaderboard (phi-2-2.7B)",
+    "url": "https://evalplus.github.io/leaderboard.html",
+    "data": "https://evalplus.github.io/results.json"
+   },
+   "use_for_gate": true,
+   "registered": "2026-10-25, after the Qwen code FAILs: a code reference with a documented protocol. Models chosen by fixed criteria (base, ungated, fits 8 GB, all four scores published) before any run of them."
+  },
+  {
+   "model": "phi-2",
+   "benchmark": "MBPP+",
+   "task": "evalplus:mbpp",
+   "metric": "pass@1 (greedy)",
+   "num_fewshot": 0,
+   "published": 54.2,
+   "published_stderr": null,
+   "protocol": {
+    "harness": "evalplus",
+    "humaneval_plus_version": "v0.1.10",
+    "mbpp_plus_version": "v0.2.0",
+    "decoding": "greedy",
+    "prompt": "direct code completion (base model, not chat)"
+   },
+   "source": {
+    "name": "EvalPlus leaderboard (phi-2-2.7B)",
+    "url": "https://evalplus.github.io/leaderboard.html",
+    "data": "https://evalplus.github.io/results.json"
+   },
+   "use_for_gate": true,
+   "registered": "2026-10-25, after the Qwen code FAILs: a code reference with a documented protocol. Models chosen by fixed criteria (base, ungated, fits 8 GB, all four scores published) before any run of them."
+  }
+ ],
+ "excluded": [
+  "GPQA (small models near chance, ~25-28)",
+  "Llama-3.2-1B MILU (26.4, near chance)",
+  "Meta model-card acc_char numbers (internal harness)",
+  "Qwen GSM8K 4-shot (prompt not published)"
+ ]
+}
