@@ -1,117 +1,50 @@
 # Medicine sheet: ind-kn-fw2 (LokeshJatangi)
 
-**Gold set used for the harm test: TBD**
+I labelled **500 documents**, all `full`: **239 clean, 231 fix and 30 drop**.
+Disease counts below are document counts; a document can have more than one label.
+I propose **three reusable coded medicines** for unattended use: C5, C1 and C2.
+A6 and G1 can be identified with generic detectors, but no reliable generic repair is proposed.
+They remain under rejected generic repair proposals.
+Their rules use text structure and metadata syntax, without document IDs, stored offsets,
+word-replacement tables or publisher-specific exceptions. The examples below are evidence,
+not lookup keys. F1 is listed last as a rejected proposal.
 
-Pack: **500 documents**, all labelled `full`: **239 clean, 231 fix, 30 drop**.
-Counts below are documents carrying each saved label; codes overlap. They are **not measured repair coverage**.
-Snapshot: `labels.csv`
+For the harm test, I used the **45-document Kannada gold set**
+[ind-kn-fw2_gold.csv](https://github.com/theschoolofai/era-v5-lab/blob/fdb5eae12bafb32b0bcfa45f2ac0e6e059f22baf/teams/02-data-b/gold/ind-kn-fw2_gold.csv),
+and the [Indic harm-test reference](https://github.com/theschoolofai/era-v5-lab/blob/692efe961a8073f414346a6dcd789c19647a6c93/teams/02-data-b/tools/harm_test_indic.py).
 
-**Gold validation: PENDING for every medicine and their combination.** No independent two-reader Kannada
-gold set was supplied. Our 239 single-reader clean labels are not substituted for gold. No passing harm
-result or claim of corpus-scale safety is made. Functional tests also require the recorded terminal output.
+The unchanged C5 and C2 rules each changed **0/45** and dropped **0/45** gold documents
+in the recorded tests.
+C1 has been revised to remove publisher-specific rules. Its previous result does not validate
+the revised snippet; the revised C1 and three-rule combination need a new run.
+Clean-gold harm results do not measure repair coverage on damaged documents.
 
-The six repair snippets below are intentionally narrower than the viewer's candidate checks. They cover
-specific structures, not every document bearing a code. No rule changes the source pack, invents missing
-text, drops a document, performs NFC/NFKC normalization, or converts Kannada digits. Empty results remain
-empty strings for manual review. Structural deletions containing ZWJ/ZWNJ or compatibility characters are
-skipped. F1 deliberately redacts only explicitly confirmed private-data spans, including their contents.
+The reference allows one changed/dropped document on this small gold set; the template's
+**at most 1%** limit allows zero out of 45.
 
-## Shared helpers
+The medicines return repaired text without dropping documents, normalizing Unicode or converting
+Kannada digits. Structural deletions preserve joiners and compatibility characters.
+The unattended pipeline contains no privacy redaction or automatic document-drop rule.
 
-Run the Python snippets in document order in one namespace; they need only Python's standard library.
-`remove_spans` preserves every character outside selected source ranges, including whitespace.
+## Combined medicines
 
-```python
-import re
-import unicodedata
-from urllib.parse import urlsplit
-
-def protected(text):
-    return any(c in "\u200c\u200d" or unicodedata.decomposition(c).startswith("<") for c in text)
-
-def remove_spans(text, spans):
-    merged = []
-    for a, b in sorted(set(spans)):
-        if protected(text[a:b]):
-            continue
-        if merged and a <= merged[-1][1]:
-            merged[-1] = (merged[-1][0], max(b, merged[-1][1]))
-        else:
-            merged.append((a, b))
-    out, cursor = [], 0
-    for a, b in merged:
-        out.append(text[cursor:a])
-        cursor = b
-    return "".join(out) + text[cursor:]
-
-def source_parts(url):
-    try:
-        p = urlsplit(url or "")
-        return ((p.hostname or "").lower(), p.path) if p.scheme in {"http", "https"} else ("", "")
-    except (ValueError, TypeError, AttributeError):
-        return "", ""
-```
-
-## Medicine 1 — C1: boilerplate (180 documents)
-
-**Examples:**
-
-| doc_id | Exact evidence excerpt / position |
-|---|---|
-| `a7746a3981e58f31` | `Last Updated Mar 27, 2019, 3:47 PM IST` at 1257 |
-| `bfe4d0c9f43dc03b` | `‘ವಾರ್ತಾ ಭಾರತಿ’ ನಿಮಗೆ ಆಪ್ತವೇ ?` at 1947; the complete two-line donation footer is required |
-| `d78b35287b746574` | `Don't Miss!` at 0 |
-
-**Rule / action: fix text.** Remove complete publication/update metadata lines, the exact social-follow
-prompt, and the recognized navigation headers. Remove the exact terminal Vartha Bharati appeal only on
-that host/subdomains. On News18 news URLs, remove the publisher/update label and its immediately following
-supported timestamp. A Team Udayavani byline requires that publisher's host. Keep inline date mentions,
-arbitrary bylines, standalone `India`, city names, `Title`, `Trending`, image credits and slogans outside
-these precise rules; the broader viewer can suggest them for manual C1 review.
+Load all Python snippets in document order to use the combined function. The text-only reference
+uses the same three-rule order. No rule needs URL provenance or approved spans.
+A6, G1 and F1 are excluded from automatic repair.
 
 ```python
-MONTH = r"(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Sept(?:ember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)"
-DAY = r"(?:0?[1-9]|[12][0-9]|3[01])"
-TIME = r"(?:(?:0?[1-9]|1[0-2]):[0-5][0-9](?::[0-5][0-9])?\s+(?:AM|PM)|(?:[01]?[0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9])?)"
-ZONE = r"(?:IST|UTC|GMT|[+-](?:[01][0-9]|2[0-3]):?[0-5][0-9])"
-WEEKDAY = r"(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)"
-DATE = rf"(?:{WEEKDAY},\s*)?{MONTH}\.?\s+{DAY},\s*[0-9]{{4}},\s*{TIME}\s+(?:{ZONE}|\[{ZONE}\])"
-MARKER = r"(?:First\s+Published|Last\s+(?:Modified|Updated)|Published|Updated)"
-LOCAL_DATE = rf"(?:[\u0c80-\u0cff]+,\s*)?\d{{1,2}}\s+[\u0c80-\u0cff]+\s+\d{{4}}\s*\({TIME}\s+{ZONE}\)"
-STAMP = re.compile(rf"{MARKER}(?:\s*:\s*|\s+)(?:{DATE}|{LOCAL_DATE})", re.I)
-KANNADA_STAMP = re.compile(rf"(?:ಭಾನುವಾರ|ಸೋಮವಾರ|ಮಂಗಳವಾರ|ಬುಧವಾರ|ಗುರುವಾರ|ಶುಕ್ರವಾರ|ಶನಿವಾರ),\s*\d{{1,2}}\s+[\u0c80-\u0cff]+\s+\d{{4}}\s*\({TIME}\s+IST\)", re.I)
-BARE_DATE = re.compile(DATE, re.I)
-FOLLOW = re.compile(r"Please\s+follow\s+and\s+like\s+us\s*:?", re.I)
-APPEAL = re.compile(r"(?m)^‘ವಾರ್ತಾ ಭಾರತಿ’ ನಿಮಗೆ ಆಪ್ತವೇ \? ಇದರ ಸುದ್ದಿಗಳು ಮತ್ತು ವಿಚಾರಗಳು ಎಲ್ಲರಿಗೆ ಉಚಿತವಾಗಿ ತಲುಪುತ್ತಿರಬೇಕೇ\?\r?\nಬೆಂಬಲಿಸಲು ಇಲ್ಲಿ ಕ್ಲಿಕ್ ಮಾಡಿ(?=[ \t\r\n]*\Z)")
+def _rules():
+    return {"C5": medicine_c5, "C1": medicine_c1, "C2": medicine_c2}
 
-def medicine_c1(text, url=""):
-    host, path = source_parts(url)
-    news18 = host == "kannada.news18.com" and (path == "/news" or path.startswith("/news/"))
-    udayavani = host == "udayavani.com" or host.endswith(".udayavani.com")
-    rows, spans, offset, previous_header = text.splitlines(keepends=True), [], 0, False
-    for i, line in enumerate(rows):
-        body, label = line.strip(), line.strip().casefold()
-        header = news18 and label == "news18-kannada updated:"
-        pair = label == "just in" and i + 1 < len(rows) and rows[i + 1].strip().casefold() in {"don't miss!", "don’t miss!"}
-        byline = udayavani and body.startswith("Team Udayavani,") and BARE_DATE.fullmatch(body[len("Team Udayavani,"):].strip())
-        if (STAMP.fullmatch(body) or KANNADA_STAMP.fullmatch(body) or FOLLOW.fullmatch(body)
-                or label in {"don't miss!", "don’t miss!"} or pair or byline or header
-                or (previous_header and BARE_DATE.fullmatch(body))):
-            spans.append((offset, offset + len(line)))
-        previous_header, offset = header, offset + len(line)
-    if host == "varthabharati.in" or host.endswith(".varthabharati.in"):
-        spans.extend((m.start(), m.end()) for m in APPEAL.finditer(text))
-    return remove_spans(text, spans)
+def repair_all(text, url=""):
+    for function in (medicine_c5, medicine_c1, medicine_c2):
+        text = function(text, url)
+    return text
 ```
 
-**Harm test:** pending; changed/dropped counts and percentage are not measured.
-**Side effects:** a quoted metadata line or an article genuinely titled `Don't Miss!` can match. Date syntax
-does not prove calendar validity or boilerplate intent. Altered/wrapped site footers and unfamiliar metadata
-are missed. Missing URL provenance disables the site-specific branches rather than guessing a publisher.
+## Medicine 1
 
-## Medicine 2 — C5: keyword/link lists (47 documents)
-
-**Examples:**
+1. **Disease:** C5 — keyword/link lists; **47 labelled documents**. Three recorded examples:
 
 | doc_id | Exact evidence excerpt / position |
 |---|---|
@@ -119,12 +52,25 @@ are missed. Missing URL provenance disables the site-specific branches rather th
 | `4f6fb355e6e5e1bd` | `- News ನಾಲ್ಕು ರಾಜ್ಯಗಳ ಮುಖ್ಯಮಂತ್ರಿಗಳ ಜತೆ ಪ್ರಧಾನಿ ಮೋದಿ ಮಾತುಕತೆ` at 12 |
 | `ad31bf1d2b690c09` | `#BJP4Belagavi #BJP4Maski #BJP4Basavakalyana` at 1451 |
 
-**Rule / action: fix text.** Remove at least two consecutive English-led teaser bullets immediately under
+2. **Medicine:** Remove at least two consecutive English-led teaser bullets immediately under
 `Don't Miss!`, optionally preceded by `Just In`. C1 removes the remaining header. Remove a whole line only
 when it consists entirely of two or more hashtag tokens. Accept spaces after `#` and adjacent hashtags.
 Preserve inline tags in article sentences, isolated hashtags, ordinary Markdown headings and unheaded lists.
 
 ```python
+import re
+import unicodedata
+
+def protected(text):
+    return any(c in "\u200c\u200d" or unicodedata.decomposition(c).startswith("<") for c in text)
+
+def remove_spans(text, spans):
+    out = list(text)
+    for a, b in spans:
+        if not protected(text[a:b]):
+            out[a:b] = [""] * (b - a)  # Keep source indices stable, even for overlaps.
+    return "".join(out)
+
 NAV = re.compile(r"(?mi)^[ \t]*(?:Just In[ \t]*\r?\n)?[ \t]*Don['’]t Miss![ \t]*\r?\n(?P<links>(?:[ \t]*-[ \t]+[A-Za-z][^\r\n]*(?:\r?\n|$)){2,})")
 TAG = r"#[ \t]*[^\W\d_][\w\u0c80-\u0cff\u200c\u200d]*"
 TAG_CLOUD = re.compile(rf"[ \t]*(?:{TAG}[ \t]*){{2,}}")
@@ -139,14 +85,86 @@ def medicine_c5(text, url=""):
     return remove_spans(text, spans)
 ```
 
-**Harm test:** pending; no measured pass.
-**Side effects:** a legitimate standalone social-tag list can be removed. A multiword tag such as
+3. **Action:** Fix text by removing only matched teaser links and hashtag-only lines. No automatic document drop.
+
+4. **Harm test:** pinned **45-document** `ind-kn-fw2_gold.csv`, using the referenced Indic harness.
+   - Reference CLI: **changed 0/45; dropped 0/45; harm 0.00%; PASS**.
+   - Full-context run: **changed 0/45; dropped 0/45; harm 0.00%; PASS** under both reference and strict-template limits.
+   - Scope: the same text transformation was assessed individually in both runs.
+
+5. **Side effects:** a legitimate standalone social-tag list can be removed. A multiword tag such as
 `#sachin tendulkar`, comma-separated tags, blank lines inside teaser lists, or a single teaser is outside
 this narrow rule. No document is dropped just because much of it is a list.
 
-## Medicine 3 — C2: repetition (17 documents)
+## Medicine 2
 
-**Examples:** exact excerpts; the repeated source spans may be longer.
+1. **Disease:** C1 — boilerplate; **180 labelled documents**. Three recorded examples:
+
+| doc_id | Exact evidence excerpt / position |
+|---|---|
+| `a7746a3981e58f31` | `Last Updated Mar 27, 2019, 3:47 PM IST` at 1257 |
+| `bfe4d0c9f43dc03b` | `‘ವಾರ್ತಾ ಭಾರತಿ’ ನಿಮಗೆ ಆಪ್ತವೇ ?` at 1947; outside this generic rule |
+| `d78b35287b746574` | `Don't Miss!` at 0 |
+
+2. **Medicine:** Remove standalone publication/update metadata lines matching a date/time
+format, the standalone social-follow prompt, and recognized navigation headers. The formats
+accept variable dates, times and time zones; they contain no observed article text, publisher
+names or host allowlist. Preserve inline date mentions, arbitrary bylines, publisher appeals,
+image credits and unrecognized footer text. This is a narrow boilerplate repair, not a rule
+for deleting every English line or every date.
+
+```python
+import re
+import unicodedata
+
+def protected(text):
+    return any(c in "\u200c\u200d" or unicodedata.decomposition(c).startswith("<") for c in text)
+
+def remove_spans(text, spans):
+    out = list(text)
+    for a, b in spans:
+        if not protected(text[a:b]):
+            out[a:b] = [""] * (b - a)  # Keep source indices stable, even for overlaps.
+    return "".join(out)
+
+MONTH = r"(?:Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Sept(?:ember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)"
+DAY = r"(?:0?[1-9]|[12][0-9]|3[01])"
+TIME = r"(?:(?:0?[1-9]|1[0-2]):[0-5][0-9](?::[0-5][0-9])?\s+(?:AM|PM)|(?:[01]?[0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9])?)"
+ZONE = r"(?:IST|UTC|GMT|[+-](?:[01][0-9]|2[0-3]):?[0-5][0-9])"
+WEEKDAY = r"(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)"
+DATE = rf"(?:{WEEKDAY},\s*)?{MONTH}\.?\s+{DAY},\s*[0-9]{{4}},\s*{TIME}\s+(?:{ZONE}|\[{ZONE}\])"
+MARKER = r"(?:First\s+Published|Last\s+(?:Modified|Updated)|Published|Updated)"
+LOCAL_DATE = rf"(?:[\u0c80-\u0cff]+,\s*)?\d{{1,2}}\s+[\u0c80-\u0cff]+\s+\d{{4}}\s*\({TIME}\s+{ZONE}\)"
+STAMP = re.compile(rf"{MARKER}(?:\s*:\s*|\s+)(?:{DATE}|{LOCAL_DATE})", re.I)
+KANNADA_STAMP = re.compile(rf"(?:ಭಾನುವಾರ|ಸೋಮವಾರ|ಮಂಗಳವಾರ|ಬುಧವಾರ|ಗುರುವಾರ|ಶುಕ್ರವಾರ|ಶನಿವಾರ),\s*\d{{1,2}}\s+[\u0c80-\u0cff]+\s+\d{{4}}\s*\({TIME}\s+IST\)", re.I)
+FOLLOW = re.compile(r"Please\s+follow\s+and\s+like\s+us\s*:?", re.I)
+
+def medicine_c1(text, url=""):
+    rows, spans, offset = text.splitlines(keepends=True), [], 0
+    for i, line in enumerate(rows):
+        body, label = line.strip(), line.strip().casefold()
+        pair = (label == "just in" and i + 1 < len(rows)
+                and rows[i + 1].strip().casefold() in {"don't miss!", "don’t miss!"})
+        if (STAMP.fullmatch(body) or KANNADA_STAMP.fullmatch(body) or FOLLOW.fullmatch(body)
+                or label in {"don't miss!", "don’t miss!"} or pair):
+            spans.append((offset, offset + len(line)))
+        offset += len(line)
+    return remove_spans(text, spans)
+```
+
+3. **Action:** Fix text by removing only the recognized standalone metadata and headers. No automatic document drop.
+
+4. **Harm test:** The revised generic rule has not yet been run on the **45-document**
+   `ind-kn-fw2_gold.csv`. Changed and dropped counts are pending. The earlier publisher-aware
+   rule changed/dropped 0/45; that result is not assigned to this revised snippet.
+
+5. **Side effects:** a quoted metadata line or an article genuinely titled `Don't Miss!` can match.
+Date syntax does not prove calendar validity or boilerplate intent. Altered or wrapped metadata,
+publisher-specific bylines and donation footers remain unchanged. The rule does not repair all C1 cases.
+
+## Medicine 3
+
+1. **Disease:** C2 — repetition; **17 labelled documents**. Three recorded examples:
 
 | doc_id | Evidence |
 |---|---|
@@ -154,13 +172,25 @@ this narrow rule. No document is dropped just because much of it is a list.
 | `0f52e8c63e977510` | `ಎಲ್ಲ ಶೋಷಣೆಗಳೂ ಸುಳ್ಳುಗಳೂ ಅಗತ್ಯಸೇವೆಯೇ ಆಗುತ್ತಿರುವಾಗ,` begins a 249-character repeat at 23 and 7915 |
 | `39d902703f233992` | `ಬೆಂಗಳೂರು: ಬೋಯಿಂಗ್ ಇಂಡಿಯಾ ಹಾಗೂ ಸೆಲ್ಕೊ ಅನುದಾನದಲ್ಲಿ ಬೆಂಗಳೂರಲ್ಲಿ` begins the repeated lead at 0 |
 
-**Rule / action: fix text.** Keep the first exact long prose sentence/line and remove later non-overlapping
+2. **Medicine:** Keep the first exact long prose sentence/line and remove later non-overlapping
 copies, including copies inside paragraphs. Require at least 80 code points, eight words and terminal
 `.`, `!` or `?`. Skip fenced-code documents, verse-like layouts, quotation-led units and protected characters.
-Do not treat different dated author attributions as identical: the Parveen Kaswan example remains a review
-candidate, not a deletion rule. Short repeated titles/credits and paraphrases also stay manual.
+Do not treat author attributions with different dates as identical. Short repeated titles/credits and paraphrases also stay manual.
 
 ```python
+import re
+import unicodedata
+
+def protected(text):
+    return any(c in "\u200c\u200d" or unicodedata.decomposition(c).startswith("<") for c in text)
+
+def remove_spans(text, spans):
+    out = list(text)
+    for a, b in spans:
+        if not protected(text[a:b]):
+            out[a:b] = [""] * (b - a)  # Keep source indices stable, even for overlaps.
+    return "".join(out)
+
 def medicine_c2(text, url=""):
     if "```" in text or "~~~" in text:
         return text
@@ -183,75 +213,21 @@ def medicine_c2(text, url=""):
     return remove_spans(text, spans)
 ```
 
-**Harm test:** pending; no measured pass.
-**Side effects:** intentionally restated long prose can still lose a later copy. Verse/layout detection is
+3. **Action:** Fix text by retaining the first exact long prose passage and removing later copies. No automatic document drop.
+
+4. **Harm test:** pinned **45-document** `ind-kn-fw2_gold.csv`, using the referenced Indic harness.
+   - Reference CLI: **changed 0/45; dropped 0/45; harm 0.00%; PASS**.
+   - Full-context run: **changed 0/45; dropped 0/45; harm 0.00%; PASS** under both reference and strict-template limits.
+   - Scope: the same text transformation was assessed individually in both runs.
+
+5. **Side effects:** intentionally restated long prose can still lose a later copy. Verse/layout detection is
 a protective heuristic, not a genre classifier. Different internal whitespace, line wrapping, joiners,
 capitalization or punctuation can prevent a match. Deleting a sentence can leave surrounding blank space;
 that whitespace is deliberately not rewritten.
 
-## Medicine 4 — G1: spacing / broken words (18 documents)
+## Medicine 4 — F1 (rejected for unattended use)
 
-**Examples:**
-
-| doc_id | Evidence |
-|---|---|
-| `7fd06bf25bcaa6d1` | `ಕೋಣೆ ಗಳ` at 137; also number–word spacing observations |
-| `e5e0486d846b09a7` | `ಶೀಘ್ರ ದಲ್ಲೇ` at 107 |
-| `2914f93d5aa778b8` | `ವಸಡಿನ ೊಂದನ್ನು` at 566; retained for manual linguistic repair |
-
-**Rule / action: fix only the two explicit full-word spacing pairs below.** Local G1 labels include the
-former spacing codes. A dangling virama/vowel sign does not establish which letters were lost; a generic
-space-deletion regex cannot reliably reconstruct the word. Do not join all Kannada tokens or insert spaces
-at every number–letter boundary. Preserve ordinals such as `10ನೇ`, valid loanword boundaries and joiners.
-
-```python
-G1_FIXES = {"ಕೋಣೆ ಗಳ": "ಕೋಣೆಗಳ", "ಶೀಘ್ರ ದಲ್ಲೇ": "ಶೀಘ್ರದಲ್ಲೇ"}
-EDGE = r"[\w\u0c80-\u0cff\u200c\u200d]"
-G1_PATTERN = re.compile(rf"(?<!{EDGE})(?:{'|'.join(map(re.escape, G1_FIXES))})(?!{EDGE})")
-
-def medicine_g1(text, url=""):
-    if "```" in text or "~~~" in text:
-        return text
-    return G1_PATTERN.sub(lambda m: G1_FIXES[m.group()], text)
-```
-
-**Harm test:** pending; no measured pass. Coverage is deliberately a subset of the 18 labelled documents.
-**Side effects:** a lesson quoting either misspelling can be changed. Inflections and different whitespace
-are not inferred. These mappings repair spacing, not other misspellings in the same document.
-
-## Medicine 5 — A6: specific script/font corruption (21 documents)
-
-**Examples:**
-
-| doc_id | Exact evidence / position |
-|---|---|
-| `47424ea4989c5934` | `ಪೆÇಲೀಸರು` at 79 |
-| `442de0ddbdf11639` | `ಪೆÇಲೀಸ್` at 69 |
-| `244c2e3dd2f0c566` | `ಬ್ಯಾ0ಕ್` at 243; `ಸಿ0ಡಿಕೇಟ್` at 264 |
-
-**Rule / action: fix only the listed complete words.** These are proposed exact corrections for recurring
-legacy-font/character substitutions. Never replace every `Ç`, zero or avagraha globally, delete all Latin
-letters, expand abbreviations, or reconstruct missing translated words. Other A6 cases remain manual.
-
-```python
-A6_FIXES = {"ಪೆÇಲೀಸ್": "ಪೊಲೀಸ್", "ಪೆÇಲೀಸರು": "ಪೊಲೀಸರು", "ಬ್ಯಾ0ಕ್": "ಬ್ಯಾಂಕ್",
-            "ಸಿ0ಡಿಕೇಟ್": "ಸಿಂಡಿಕೇಟ್", "ಅಽಕಾರಿ": "ಅಧಿಕಾರಿ"}
-A6_PATTERN = re.compile(rf"(?<!{EDGE})(?:{'|'.join(map(re.escape, sorted(A6_FIXES, key=len, reverse=True)))})(?!{EDGE})")
-
-def medicine_a6(text, url=""):
-    if "```" in text or "~~~" in text:
-        return text
-    return A6_PATTERN.sub(lambda m: A6_FIXES[m.group()], text)
-```
-
-**Harm test:** pending; this dictionary does not establish a general font map or cover all 21 documents.
-**Side effects:** a lesson deliberately quoting an erroneous spelling can be changed. Inflections outside
-the list are left untouched. Valid `CETಗೆ`, Sanskrit avagraha, personal-name spellings and incomplete
-fragments such as `Home ತುವಿನಲ್ಲಿ` are not guessed or automatically removed.
-
-## Medicine 6 — F1: confirmed private-data redaction (11 documents)
-
-**Examples (values intentionally omitted):**
+1. **Disease:** F1 — private-data candidates; **11 labelled documents**. Three recorded examples:
 
 | doc_id | Type and original offset |
 |---|---|
@@ -259,131 +235,54 @@ fragments such as `Home ತುವಿನಲ್ಲಿ` are not guessed or automati
 | `c472a3db00395ba6` | phone-number-like token at 3081 |
 | `76fdbcb28c49fc27` | phone-number-like token at 4853 |
 
-**Rule / action: fix by redacting reader-confirmed private spans.** Phone/email regexes only propose
-candidates; they do not establish private ownership. Supply approved `[start, end)` code-point ranges in
-`confirmed_spans`, measured on the unchanged source. The function merges overlaps, checks bounds and
-replaces only those spans with ordinary text `[REDACTED]`. It returns no source values or evidence log.
-No approved spans means no redaction. Do not pass every detected ten-digit number automatically.
+2. **Medicine:** Rejected. The previous function only redacted externally approved spans.
+Without human supervision it leaves every candidate unchanged. A phone/email pattern alone cannot
+establish private ownership; no validated automatic replacement is proposed. The previous code is
+retained in the rough notes and excluded from the executable snippets and combined pipeline.
 
-```python
-def medicine_f1(text, url="", *, confirmed_spans=()):
-    merged = []
-    for a, b in sorted(confirmed_spans):
-        if type(a) is not int or type(b) is not int or not 0 <= a < b <= len(text):
-            raise ValueError("F1 needs valid original code-point spans")
-        if merged and a <= merged[-1][1]:
-            merged[-1] = (merged[-1][0], max(b, merged[-1][1]))
-        else:
-            merged.append((a, b))
-    out, cursor = [], 0
-    for a, b in merged:
-        out.extend((text[cursor:a], "[REDACTED]"))
-        cursor = b
-    return "".join(out) + text[cursor:]
-```
+3. **Action:** No automatic F1 fix or drop is submitted.
 
-**Harm test:** pending. Gold rows must explicitly carry `confirmed_private_spans` (an empty list if none),
-so missing annotations cannot silently masquerade as a tested redaction pipeline. This evaluates span
-replacement, not the accuracy of phone/email detection or private-ownership judgments.
-**Side effects:** an incorrectly approved span can erase valid text. Offsets from a modified text can redact
-the wrong characters, so F1 runs first and original ranges must never be reused after other transformations.
-Public contacts and ordinary numeric values remain unless explicitly approved. Evidence stays type and
-offset only; hex stays empty. Documents requiring a drop rather than redaction remain a reader decision.
+4. **Harm test:** The previous function changed **0/45** and dropped **0/45** gold documents
+because no spans were supplied. That result does not validate unattended F1 repair. There is no
+accepted F1 medicine to test in this submission.
 
-## Recurring labels without a solid automatic medicine
+5. **Side effects:** Automatic redaction of all numeric or email-like candidates can remove public
+contacts and valid article content. The previous default leaves private data unredacted. Neither
+behavior establishes a reliable unattended medicine.
 
-Each of these exceeds five labelled documents. Three recorded examples are retained for traceability;
-they do not establish a safe automatic replacement. **Action:** manual fix/drop after review, except D3
-mixing itself is preserved. There is no executable repair or measured gold result for these codes.
+## Harm-test results
 
-### D3 — Mixed language: 74 documents
+The recorded results apply only to unchanged snippets:
 
-- `12d7d5e672b21506`: `News13 strives to publish and promote positive news` at 1052.
-- `adb72bac01d7c42b`: `reporterkarnataka news` at 109.
-- `95fcd3a60a26a368`: `Education NIT Recruitment 2021:` at 334.
+| Rule / run | Gold docs | Changed | Dropped | Harm | Result |
+|---|---:|---:|---:|---:|---|
+| C5 | 45 | 0 | 0 | 0.00% | PASS |
+| C1, revised generic rule | 45 | — | — | — | Not yet run |
+| C2 | 45 | 0 | 0 | 0.00% | PASS |
 
-**Decision:** keep natural mixing. Boilerplate can be removed by C1/C5 structure, not because it is English.
-Seventeen D3-labelled documents are clean. A language-based deletion rule would discard valid content.
+The revised three-rule combination has not yet been run. Earlier combined results included
+rules that are no longer submitted and are retained only in the rough notes.
 
-### D4 — Bad machine translation: 23 documents
+## Rejected medicine proposals
 
-- `740400a2326815d0`: `ಎಕ್ಷಾಮ್ನಲ್ಲಿ` at 1826.
-- `fef7c1450fb4b473`: `ಭೇಟಿ ಮಾಡಬಹುದು ಒಂದು ಮನುಷ್ಯ ಮೂವತ್ತು ವರ್ಷಗಳ.` in the recorded evidence near 771.
-- `da5e3fd306d82f8a`: `ಚಾರ್ಜ್ ಸಂಪೂರ್ಣವಾಗಿ ಉಚಿತನೀವು`.
+I excluded the following repair proposals from generic unattended execution. A6 mixed-script
+issues and G1 dangling vowel signs or viramas can be identified generically, but detection alone
+does not establish the intended characters or word boundaries. No reliable generic repair is
+submitted for either. The disease labels remain valid observations.
 
-**Decision:** fluent/source review, then rewrite or drop. English loanwords alone do not prove bad
-translation. No keyword-based translation repair is justified; the same phrase can be valid in context.
+| Code | Disease / proposed repair | Labelled documents | Reason for rejection |
+|---|---|---:|---|
+| A6 | Script/font corruption — exact-word substitutions | 21 | The replacement table contains observed words from this pack. Mixed-script issues can be identified generically, but the intended replacement spelling cannot be reliably inferred. |
+| G1 | Spacing / broken words — exact-word joins | 18 | The replacement table contains observed word pairs. Dangling vowel signs, halants and viramas can be identified generically, but removing spaces or reconstructing missing letters is not reliably correct in every context. |
+| D3 | Mixed language — language-based deletion | 74 | Natural language mixing can be valid content. Language alone does not establish which text to remove; structural boilerplate is handled by C1/C5. |
+| D4 | Bad machine translation — automatic rewriting | 23 | A reliable correction requires meaning and source context. No generic coded rewrite or drop rule is established. |
+| G2 | Suspected lost ZWJ/ZWNJ — automatic joiner insertion | 21 | Missing joiners cannot be inferred from every conjunct or loanword. A blanket insertion rule can change valid Kannada text. |
+| C3 | Truncation — reconstruction or automatic drop | 10 | An ellipsis, colon or missing final punctuation does not establish missing content or justify dropping a document. |
+| F1 | Private-data candidates — approved-span redaction | 11 | The previous function requires human-approved spans. Without supervision it does no redaction; blanket numeric/email redaction can remove public contacts and valid content. |
 
-### G2 — Suspected lost joiners: 21 documents
+Publisher-specific C1 bylines and donation-footer matches were also removed from the retained C1
+medicine. They depend on named hosts and exact publisher text rather than a reusable metadata rule.
+All rejected code, earlier results and removed working material are retained in the rough notes.
 
-- `51fa1af6aa0279aa`: `ಒನ್ಪ್ಲಸ್` at 447.
-- `e7b8bf9fcc02f67e`: `ಏರ್ಬ್ಯಾಗ್` at 2651.
-- `0de20b851b0be1b0`: `ಲವ್ಸ್ಟೋರಿ` at 342.
-
-**Decision:** compare the source or obtain a fluent orthographic correction. The pack has no ZWJ/ZWNJ,
-but absence does not prove a joiner belongs in every conjunct. Preserve supplied joiners and their order;
-ZWJ before Kannada RA's virama and the legacy virama-before-ZWJ order can look alike but differ as text.
-Never strip `\u200b..\u200d` or insert joiners using a blanket loanword rule. No automatic restoration.
-
-### C3 — Truncation: 10 documents
-
-- `5324bc601e15d2a1`: `ಇದರಲ್ಲಿ ಇನ್ನಷ್ಟು ಓದಿ :` at the ending, recorded as cut after a colon.
-- `0133d46ad029bd26`: `ಸಿಗಲು […]` at 786 in the recorded evidence.
-- `9bbd16758b6866b9`: `ಇದು ಗೊತ್ತಾದ ವಿದ್ಯಾರ್ಥಿಗಳು ತಮ್ಮ ನೆಚ್ಚಿನ ಶಿಕ್ಷಕರ` at 0.
-
-**Decision:** recover the original or make a manual keep/drop decision. A colon, ellipsis or missing final
-full stop is insufficient to reconstruct missing text or justify dropping a document automatically.
-
-## Combination and gold harm test
-
-Run F1 first using original offsets. Run C5 before C1 because teaser removal needs the navigation header;
-run A6/G1 before C2 so corrected text is considered during deduplication. Each medicine and the pipeline need a separate gold
-measurement. These functions fix text only: they never return a drop decision.
-
-```python
-RULES = {"C1": medicine_c1, "C5": medicine_c5, "C2": medicine_c2, "G1": medicine_g1,
-         "A6": medicine_a6, "F1": medicine_f1}
-
-def repair_all(text, url="", *, confirmed_spans=()):
-    text = medicine_f1(text, confirmed_spans=confirmed_spans)
-    for function in (medicine_c5, medicine_c1, medicine_a6, medicine_g1, medicine_c2):
-        text = function(text, url)
-    return text
-
-def harm_report(rows):
-    rows = list(rows)
-    if not rows or any(not isinstance(r.get("text"), str) for r in rows):
-        raise ValueError("Nonempty clean gold with string text is required")
-    if any(not source_parts(r.get("url"))[0] for r in rows):
-        raise ValueError("URL provenance is required for the site-specific C1 branch")
-    if any(not isinstance(r.get("confirmed_private_spans"), list) for r in rows):
-        raise ValueError("Explicit confirmed_private_spans lists are required; use [] for none")
-    report = {}
-    for code, function in {**RULES, "combined": repair_all}.items():
-        outputs = [function(r["text"], r["url"], confirmed_spans=r["confirmed_private_spans"])
-                   if code in {"F1", "combined"} else function(r["text"], r["url"]) for r in rows]
-        changed = sum(output != r["text"] for output, r in zip(outputs, rows))
-        report[code] = {"gold_documents": len(rows), "changed_documents": changed,
-                        "dropped_documents": 0, "harm_percent": 100 * changed / len(rows),
-                        "passes_harm_test": changed * 100 <= len(rows)}
-        if code == "F1":
-            report[code]["scope"] = "confirmed-span replacement only; detector not evaluated"
-    return report
-```
-
-The caller must supply genuinely independent two-reader clean gold; this function cannot verify reader
-agreement. Count **every changed gold document as harm**, including an empty-text result. Exactly 1% passes;
-more than 1% fails. Missing/invalid gold or missing URL provenance raises an error instead of manufacturing
-a zero-harm pass. Call `harm_report(gold_rows)` after loading these snippets; record the gold identity and
-its SHA-256 with the resulting counts. **Actual results remain PENDING.**
-
-| Rule | Gold documents | Changed | Dropped | Harm | Result |
-|---|---|---|---|---|---|
-| C1 | Pending | Pending | Pending | Pending | Not run |
-| C5 | Pending | Pending | Pending | Pending | Not run |
-| C2 | Pending | Pending | Pending | Pending | Not run |
-| G1 | Pending | Pending | Pending | Pending | Not run |
-| A6 | Pending | Pending | Pending | Pending | Not run |
-| F1 | Pending | Pending | Pending | Pending | Not run |
-| Combined | Pending | Pending | Pending | Pending | Not run |
-
+Labels below the more-than-five threshold: C4 (3), B3 (2), F3 (2), D5 (2), A3 (1), H2 (1), H3 (1).
+I have not proposed general repair rules for these few cases.
