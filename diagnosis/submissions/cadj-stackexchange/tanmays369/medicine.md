@@ -27,7 +27,7 @@ def fix_b3(text):
 ```python
 import re
 EMPTY_FENCE = re.compile(r"```[A-Za-z0-9_+-]*[ \t]*\n[ \t\n]*```")
-REMNANT = re.compile(r"(?m)^\s*php\s*$|^\s*#include\s*$|^\s*xml version=.*$|!\[\]\(\)")
+REMNANT = re.compile(r"(?m)^\s*php\s*$|^\s*#include\s*$|^\s*#import\s*$|^\s*xml version=.*$|!\[\]\(\)")
 LOOP_CUT = re.compile(r"(?m)^[ \t]*(?:for|while|if)\s*\([^()\n]*[A-Za-z0-9_\]\.]\s*\n(?=[ \t]*(?:```|\n|$))")
 def has_b2(text):
     return bool(EMPTY_FENCE.search(text) or REMNANT.search(text) or LOOP_CUT.search(text))
