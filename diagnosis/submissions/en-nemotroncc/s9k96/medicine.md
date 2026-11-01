@@ -1,8 +1,8 @@
 # Medicine sheet: en-nemotroncc (s9k96)
 
-Pack `en-nemotroncc`, 500 documents. Counts below come from all 500 documents, each read in full (`diagnosis/submissions/en-nemotroncc/s9k96/labels.csv`). Six diseases have a medicine below: C1 (151 documents), C3 (78), C4 (70), C5 (60), A1 (14) and D3 (6). Others are in the last table. Every rule is a short Python function. The same code is in `medicine.py` (a function returns the fixed text, or `None` to drop the document).
+Pack `en-nemotroncc`, 500 documents. Counts below come from all 500 documents, each read in full (`diagnosis/submissions/en-nemotroncc/s9k96/labels.csv`). Eight diseases have a medicine below: C1 (151 documents), C3 (78), C4 (70), C5 (60), D4 (14), A1 (14), B4 (11) and D3 (6). Others are in the last table. Every rule is a short Python function. The same code is in `medicine.py` (a function returns the fixed text, or `None` to drop the document).
 
-**Harm test.** Gold set: the 34 gold documents of this pack, run with Data A's `harm_test.py` (PR #140, build of 30 Oct). Small-gold rule (TSAI): a medicine passes if it changes or drops at most max(1 document, 1%). All six medicines pass: 0 of 34 documents changed or dropped. Each section also gives a proxy test: the rule run on my 218 documents labelled `clean` (all 500 documents are reviewed), where at most 2 may change or be dropped. The proxy also says how many reviewed documents of that disease the rule touches.
+**Harm test.** Gold set: the 34 gold documents of this pack, run with Data A's `harm_test.py` (PR #140, build of 30 Oct). Small-gold rule (TSAI): a medicine passes if it changes or drops at most max(1 document, 1%). All eight medicines pass: 0 of 34 documents changed or dropped. Each section also gives a proxy test: the rule run on my 218 documents labelled `clean` (all 500 documents are reviewed), where at most 2 may change or be dropped. The proxy also says how many reviewed documents of that disease the rule touches.
 
 ## Medicine 1: C1 boilerplate
 
@@ -20,6 +20,8 @@ def c1(t):
 ```
 3. **Action:** fix the text (delete the label line); the document is kept.
 4. **Harm test:**
+
+   Harm result (gold set, 34 documents, Data A harm_test.py): changed 0 of 34, dropped 0 of 34, PASS
 
    | Test set | Documents changed | Documents dropped |
    |---|---|---|
@@ -47,6 +49,8 @@ def c4(t):
 3. **Action:** drop the document. Splitting it would need the seam position and a quality decision on each half.
 4. **Harm test:**
 
+   Harm result (gold set, 34 documents, Data A harm_test.py): changed 0 of 34, dropped 0 of 34, PASS
+
    | Test set | Documents changed | Documents dropped |
    |---|---|---|
    | Gold set (34 documents, Data A harm test) | 0 of 34 | 0 of 34 |
@@ -73,6 +77,8 @@ def c3(t):
 3. **Action:** drop the document.
 4. **Harm test:**
 
+   Harm result (gold set, 34 documents, Data A harm_test.py): changed 0 of 34, dropped 0 of 34, PASS
+
    | Test set | Documents changed | Documents dropped |
    |---|---|---|
    | Gold set (34 documents, Data A harm test) | 0 of 34 | 0 of 34 |
@@ -98,6 +104,8 @@ def c5(t):
 ```
 3. **Action:** drop the document. Deleting the spam lines would leave almost nothing.
 4. **Harm test:**
+
+   Harm result (gold set, 34 documents, Data A harm_test.py): changed 0 of 34, dropped 0 of 34, PASS
 
    | Test set | Documents changed | Documents dropped |
    |---|---|---|
@@ -128,6 +136,8 @@ def d3(t):
 3. **Action:** fix the text (delete the foreign lines); the document is kept.
 4. **Harm test:**
 
+   Harm result (gold set, 34 documents, Data A harm_test.py): changed 0 of 34, dropped 0 of 34, PASS
+
    | Test set | Documents changed | Documents dropped |
    |---|---|---|
    | Gold set (34 documents, Data A harm test) | 0 of 34 | 0 of 34 |
@@ -153,6 +163,8 @@ def a1(t):
 3. **Action:** fix the text (delete the characters); the document is kept.
 4. **Harm test:**
 
+   Harm result (gold set, 34 documents, Data A harm_test.py): changed 0 of 34, dropped 0 of 34, PASS
+
    | Test set | Documents changed | Documents dropped |
    |---|---|---|
    | Gold set (34 documents, Data A harm test) | 0 of 34 | 0 of 34 |
@@ -163,13 +175,62 @@ def a1(t):
    The rule changes all 14 reviewed A1 documents.
 5. **Side effects:** none seen. No-break spaces (U+00A0) are not touched; they are normal in English pages.
 
+## Medicine 7: B4 template slots left in the text
+
+1. **Disease:** B4, 11 documents. Examples:
+   - `17f4af14c04c9fde`: `[email protected]` (offset 803), a mail address that the site hid with a script and that was never filled in
+   - `ecc31924d4b6c2ea`: `{dialog-heading}` (offset 832), an empty template tag in a quiz page
+   - `9b4fac814cddd37c`: `[/font][/color]` (offset 2896), forum markup tags that were not rendered
+2. **Medicine:** delete the slot itself and keep the text around it. The rule removes `[email protected]`, `{{x}}`, `{% x %}`, `${x}`, `[object Object]`, single-brace slots with a hyphen or underscore (`{dialog-heading}`), BBCode tags (`[/font]`, `[color=red]`), and the backslash in `children\'s` or `\"sharing\"` when a letter is next to it. `[[i]]` footnote marks and a backslash next to a space (`"\" key` in code) are left alone.
+```python
+def b4(t):
+    """Delete unrendered template slots and BBCode tags; unescape \\' and \\" next to a letter."""
+    t = re.sub(r"\[email(?:&#160;|\s)protected\]|\{\{.{0,80}?\}\}|\{%.{0,80}?%\}|\$\{[^}\n]{0,80}\}|\[object Object\]|\{[a-z]+(?:[-_][a-z]+)+\}|(?<!\[)\[/?(?:font|color|size|b|i|u|url|quote|img)(?:=[^\]\n]{0,40})?\](?!\])", "", t)
+    return re.sub(r"(?<=\w)\\(['\"])|\\(['\"])(?=\w)", lambda m: m.group(1) or m.group(2), t)
+```
+3. **Action:** fix the text (delete the slot); the document is kept.
+4. **Harm test:**
+
+   Harm result (gold set, 34 documents, Data A harm_test.py): changed 0 of 34, dropped 0 of 34, PASS
+
+   | Test set | Documents changed | Documents dropped |
+   |---|---|---|
+   | Gold set (34 documents) | 0 of 34 | 0 of 34 |
+   | Proxy: 218 reviewed `clean` documents | 0 | 0 |
+
+   The rule changes 7 of the 11 reviewed B4 documents, and no other document of the 500.
+5. **Side effects:** it misses 4 of 11: an empty question in a generated FAQ, a name glued to a time stamp (`Timothy2024-05-02T11:40:52`), a doubled field (`Uses::`) and a `[[wmcoe]]` slot. Deleting `[[...]]` would also delete footnote marks (`[[i]]`) in a clean document, so that pattern is not in the rule. A text that talks about `[color]` tags would lose them.
+
+## Medicine 8: D4 spun or machine-paraphrased text
+
+1. **Disease:** D4, 14 documents, all dropped by me. Examples:
+   - `3da0a9bbeeac1a6a`: `The social and economic desigualdades` (offset 0), Spanish words left in English text
+   - `cbd26e20383c72b3`: `500g drains;` (offset 108), a recipe translated from Russian (`drains` for plums)
+   - `9830fa89e63f1496`: `Lone wolf, Master, PhD` (offset 902), a paraphraser's output for `Bachelor, Master, PhD`
+2. **Medicine:** there is no safe general rule. A paraphraser swaps single words (`financial obligation`, `dad and mom`, `understudies`) and every document has different swaps. Words that are common in these documents (`as well as`, `on the internet`, `certainly`) also occur in good ones: 20 of my 218 `clean` documents contain `as well as`. The rule below is a narrow list of six outputs that no natural English text I saw contains. It is a lookup, not a detector, and it is built from the 14 documents.
+```python
+def d4(t):
+    """Drop a document that contains one of six paraphraser outputs seen in this pack."""
+    return None if re.search(r"(?i)\b(?:dad and mom|understudies|screen centers|extra motionless|mutnates|legal rights unions)\b", t) else t
+```
+3. **Action:** drop the document. Deleting the bad words would leave a text that is still wrong.
+4. **Harm test:**
+
+   Harm result (gold set, 34 documents, Data A harm_test.py): changed 0 of 34, dropped 0 of 34, PASS
+
+   | Test set | Documents changed | Documents dropped |
+   |---|---|---|
+   | Gold set (34 documents) | 0 of 34 | 0 of 34 |
+   | Proxy: 218 reviewed `clean` documents | 0 | 0 |
+
+   The rule drops 5 of the 14 reviewed D4 documents, and no other document of the 500.
+5. **Side effects:** it misses 9 of 14 and will not generalise to new pack data. `understudies` is a normal word in theatre texts. D4 needs a language-model score, not a pattern; I do not claim this rule fixes D4.
+
 ## Other diseases (no medicine section)
 
 | Code | Documents | Note |
 |---|---|---|
 | C2 | 22 | `c2` in `medicine.py` keeps the first copy of a line that occurs three or more times, but it changes 3 of the 218 `clean` documents (natural repeats), so it fails the 1% limit and is not proposed |
-| D4 | 14 | spun or machine-paraphrased text; no automatic fix |
-| B4 | 11 | `b4` in `medicine.py` removes template slots; it touches 4 of 11 and no `clean` document, but its pattern list is not final, so no section |
 | F1 | 9 | only private persons count (28 Oct). `f1` in `medicine.py` changes 5 of 218 `clean` documents (business phone numbers), so it fails; a person-versus-business decision needs a human |
 | A3 | 3 | can be re-decoded with `a3` in `medicine.py` |
 | B1 | 3 | `b1` in `medicine.py` unescapes HTML entities |
