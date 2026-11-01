@@ -266,7 +266,7 @@ c176a2ae96a8c51c,full,fix,B3,<issue_start> at offset 0; <issue_comment> x4 first
 6ba08c31897ef5f5,full,fix,B3,<issue_start> at offset 0; <issue_comment> x3 first at offset 126,,format markers as plain text
 59e63089a007939d,full,fix,B3,<issue_start> at offset 0; <issue_comment> x3 first at offset 1275,,format markers as plain text
 6c167e68c0e62b33,full,fix,B3,<issue_start> at offset 0; <issue_comment> x3 first at offset 2395,,format markers as plain text
-8629149c6e331a98,full,fix,B3;B5,<issue_start> at offset 0; <issue_comment> x2 first at offset 597 | bold-converted dunder (__x__) at offset 231,,format markers as plain text; markdown emphasis damage in code
+8629149c6e331a98,full,fix,B3,<issue_start> at offset 0; <issue_comment> x2 first at offset 597,,format markers as plain text
 43e5d1c0578f8390,full,fix,B3,<issue_start> at offset 0; <issue_comment> x3 first at offset 212,,format markers as plain text
 71d3e7cd42bdf733,full,fix,B2;B3,"empty #include (header name stripped) at offset 98, 1 lines | <issue_start> at offset 0; <issue_comment> x3 first at offset 1143",,format markers as plain text; stripped markup remnant
 a7cddb77d4edc304,full,fix,B3,<issue_start> at offset 0; <issue_comment> x3 first at offset 359,,format markers as plain text
