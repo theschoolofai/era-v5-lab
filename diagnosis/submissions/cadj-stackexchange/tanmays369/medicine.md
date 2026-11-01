@@ -20,9 +20,9 @@ def fix_b3(text):
 4. **Harm test:** gold set empty, not testable.
 5. **Side effects:** a post that really talks about these tokens loses them. Question and answers run together after the strip, so a rule that splits them first is better.
 
-## Medicine 2: B2 stripped markup remnants (223 documents)
+## Medicine 2: B2 stripped markup remnants (145 documents)
 
-1. **Disease:** B2. The converter removed `<...>` content and left remnants: empty code fences, a lone `php` line where `<?php` was, an empty `#include`, `xml version=...?`, a loop header cut at `<`, text left in a code block where the HTML was. Examples: `d78b5eeab23e7a55` (lone `php` at offset 675), `71acfee0eb411a72` (lone `php` at 1046), `3e38237c513072d4` (text-only block at 545).
+1. **Disease:** B2. The converter removed `<...>` content and left remnants: empty code fences, a lone `php` line where `<?php` was, an empty `#include`, `xml version=...?`, a loop header cut at `<`, text left in a code block where the HTML was, and a stripped tag name leaving a double space in prose ("I use a  tag", 3 documents). Examples: `d78b5eeab23e7a55` (lone `php` at offset 675), `71acfee0eb411a72` (lone `php` at 1046), `3e38237c513072d4` (text-only block at 545).
 2. **Medicine:**
 ```python
 import re
