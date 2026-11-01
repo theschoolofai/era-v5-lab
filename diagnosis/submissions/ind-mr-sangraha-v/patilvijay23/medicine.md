@@ -4,16 +4,16 @@
 
 **Status:** Label review complete; **11 executable candidates plus combined run tested locally on 1 November 2026**. Gold safety does not establish general disease detection or full repair coverage.
 
-## Data B Indic gold-set harm test — fresh local results
+## Data B Indic gold-set harm test — latest reported results
 
 **Reproduce** with the Data B harness and inputs available locally (Python requires `pyarrow`; adjust paths for another checkout):
 
 ```bash
 python -I teams/02-data-b/tools/harm_test_indic.py \
   --medicine diagnosis/submissions/ind-mr-sangraha-v/patilvijay23/medicine.md \
-  --pack /path/to//packs/ind-mr-sangraha-v.parquet \
-  --gold-dir teams/01-data-a/gold \
-  --rule all --show 10
+  --pack /path/to/packs/ind-mr-sangraha-v.parquet \
+  --gold-dir teams/02-data-b/gold \
+  --rule all --show 10 \
   --md-out ind_mr_harm_results.md
 ```
 
@@ -21,10 +21,10 @@ python -I teams/02-data-b/tools/harm_test_indic.py \
 
 - Harness: `af3fe73b5b3433d97c4f63065dad970ef02bd4be776fc2e00d2e613825c1163e`.
 - Pack: `ad598b6ac2330c00b423b26f826f6d120d8940f0eb7f5412fca2fcd045b4ef30`.
-- Gold CSV (`ind-mr-sangraha-v_gold.csv`, 88 documents): `7771ac3d97e311c8e7a499c57e0ce906d34f857b65ccd7c77a00a8d660c2ec2e`.
+- Gold CSV (`teams/02-data-b/gold/ind-mr-sangraha-v_gold.csv`, 88 documents): `7771ac3d97e311c8e7a499c57e0ce906d34f857b65ccd7c77a00a8d660c2ec2e`.
 - Reviewed labels (500 documents): `ea80496c7f3520beb9e8c177da798842cf9dac59b6a41693728f9369e5f8edcd`.
 
-The nonempty-gold allowance is **1 affected document** for this 88-document set. The table records fresh execution, superseding the historical seven-rule run. Markdown edits change the harness's full-medicine hash; the rule code is unchanged by recording results.
+The nonempty-gold allowance is **1 affected document** for this 88-document set. The table transcribes the latest user-supplied console output, which reports **`result: PASS`** for all 11 rules and `ALL IN ORDER`. The runner identified the tested medicine with SHA-256 prefix **`4f6b3e84493f`**. This is the tested file's hash prefix, not the hash of this updated Markdown; recording results changes the file hash without changing rule code. No new test execution is claimed for this documentation update.
 
 | Rule | Changed | Dropped | Percent | ZWJ/ZWNJ audit | Normal-form audit | Result |
 | --- | ---: | ---: | ---: | --- | --- | --- |
@@ -579,7 +579,7 @@ python3 -m unittest discover -s teams/02-data-b/medicine-tests
 - **D3 semantics:** The labels contain **28 D3-only `fix` documents** even though the D3 medicine deliberately leaves text unchanged. These reviewed labels are preserved. Do not claim a D3 cleaning change or invent a mutation to make a `fix` label match the no-op.
 - **D4 outcomes:** Apply the reviewed outcome, **20 `drop` and 1 `fix`**, rather than the earlier all-drop assumption. Do not rewrite heavily corrupted content just to retain it.
 - **Rule extraction:** All 11 sections have callable candidates. C3/C4/D4 use reviewed exclusions; F1 uses reviewed quarantine plus bounded Marathi private-field redaction. Below-threshold G1/B5 have no general medicine.
-- **Gold harm tests:** Fresh local execution passed all 11 rules and their combined file-order run on 88 gold records: 0 changed, 0 dropped, both Indic audits PASS. See input digests and command above.
+- **Gold harm tests:** The latest user-supplied run (medicine SHA-256 prefix `4f6b3e84493f`, Data B gold directory) passed all 11 rules and their combined file-order run on 88 gold records: 0 changed, 0 dropped, both Indic audits PASS. See input digests and command above.
 - **Effectiveness and clashes:** The reported individual and combined **gold-harm PASS** does not prove positive-label cleaning coverage, especially because all 11 rules changed zero gold documents. Measure recall and actual changes on reviewed, disease-positive pack documents. Check overlaps (especially C1/C5, A5/A6, B4/C1/C2), verify the actual harness execution order, and separately evaluate any revised combined pipeline.
 - **Long context:** Preserve all 12 flagged long-context candidates. If a candidate also has C3 or other fixable defects, apply the documented cleanup while retaining the coherent long-form span; do not globally truncate.
 - **Privacy:** For F1, publish **type and offset**, never private values in examples, logs, rule code, diffs or reports. Redact or exclude affected source text before release.
