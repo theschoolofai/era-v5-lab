@@ -6,8 +6,8 @@ Write one section for each disease that you found more than five times.
 
 - **Pack:** 500 documents, 1,206,370 characters. Labels are in `labels.csv` (348 fix, 102 clean, 50 drop).
 - **Count:** a disease is counted in evidence items. Ten codes have more than five items, so this sheet has ten sections: nine medicines and one "no medicine" (D3).
-- **Gold set:** `teams/02-data-b/gold/ind-gu-fw2_gold.csv` (the same 19 documents as `gujarati_gold.csv`), from the Data B PR #161 of 31 Oct. TSAI review of that PR is pending. A document is gold when two readers (nisarg189 and vedang-patel-10) marked it `clean` after a full read. The harm tests below run on these 19 documents.
-- **How the harm test was run:** each `medicine_<code>(doc)` below ran on the 19 gold documents. A document counts as changed if the text changes, and as dropped if the action is `drop`. The test also checks that no ZWJ or ZWNJ is removed.
+- **Gold set:** `teams/02-data-b/gold/ind-gu-fw2_gold.csv` (the same 19 documents as `gujarati_gold.csv`), on `main` (Data B PR #161, merged 31 Oct). A document is gold when two readers (nisarg189 and vedang-patel-10) marked it `clean` after a full read. The harm tests below run on these 19 documents.
+- **How the harm test was run:** with the Data B tool on `main`: `python3 teams/02-data-b/tools/harm_test_indic.py --medicine medicine.md --pack ind-gu-fw2.parquet --gold-dir teams/02-data-b/gold --show 5 --md-out harm.md`. Result: all 10 rules and all rules in order PASS (exit code 0). The part-4 text of each medicine below is the `harm.md` output of that run.
 - **Own check (extra information):** each medicine was also run on the 102 documents in this pack that `labels.csv` marks `clean`. One reader marked them, not two. The 19 gold documents are part of these 102.
 - **Limits of these tests:**
   - The gold set is small (19 documents). The own clean set was made by the same reader as the labels. If a disease was missed in a document marked `clean`, the test cannot see it.
@@ -52,7 +52,7 @@ What we lose that we did not want to lose:
 - **Fixes:** 711 of the removed characters are outside a labelled span. When checked one by one, they are boilerplate that the labels did not mark (more "View this post on Instagram" and "આ પણ વાંચો" lines), public phone numbers, and doubled signs. No article sentence is removed.
 - **What we do not catch:** 28 of the 50 `drop` documents stay. These are machine-translated pages on ordinary `.com` domains, adult clickbait and listing pages. They need more drop rules.
 
-Harm test: all nine medicines together change 0 and drop 0 of the 19 gold documents. Own check: they change 0 and drop 0 of the 102 own clean documents.
+Harm test (Data B tool, `ALL IN ORDER`): all medicines together change 0 and drop 0 of the 19 gold documents. PASS. Own check: they change 0 and drop 0 of the 102 own clean documents.
 
 ## Summary
 
@@ -73,7 +73,7 @@ Harm test: all nine medicines together change 0 and drop 0 of the 19 gold docume
 
 Each medicine is a function `(text, url) -> (result, action)`. The action is `keep`, `fix`, `split` or `drop`.
 
-For the Data A harm test (`teams/01-data-a/tools/harm_test.py`), each section also has a function `medicine_<code>(doc)`. It calls the medicine with `doc["text"]` and `doc["url"]` and returns `(action, new_text)`. A split is given to the harm test as a fix: the parts joined by a blank line.
+For the harm tests (Data B `harm_test_indic.py` and Data A `harm_test.py`), each section also has a function `medicine_<code>(text, url=None)`. It returns the new text, or `True` to drop the document. A split is given to the harm test as a fix: the parts joined by a blank line. The harm tools run each section on its own, so each section's code repeats the constants it needs from the code below.
 
 ```python
 import re
@@ -87,13 +87,6 @@ DEVA = "\u0900-\u097F"                        # Devanagari block
 def _fix(old, new):
     return (new, "keep" if new == old else "fix")
 
-
-def _adapt(result):
-    """Turn (result, action) into the Data A format (action, new_text)."""
-    out, action = result
-    if action == "split":
-        return ("fix", "\n\n".join(out))
-    return (action, out)
 ```
 
 ## Medicine 1: C1 boilerplate lines, tags and the start dateline
@@ -105,6 +98,12 @@ def _adapt(result):
 2. **Medicine:** remove the dateline at the start of the document. Remove each line that starts with a known site template. Remove the tag `– Latest Gujarati News`, but not the paragraph that it is joined to.
 
 ```python
+import re
+GU = "\u0A80-\u0AFF"                          # Gujarati block
+GU_DIGIT = "\u0AE6-\u0AEF"                    # Gujarati digits 0-9
+def _fix(old, new):
+    return (new, "keep" if new == old else "fix")
+
 C1_LINE = re.compile(
     r"^[ \t]*(?:Copyright © .*DB Corp|This website follows the DNPA"
     r"|ગુજરાતી સમાચાર નો ખજાનો એટલે News18 ગુજરાતી|View this post on Instagram"
@@ -121,8 +120,9 @@ def m1_c1(text, url=None):
     new = C1_LINE.sub("", new)
     return _fix(text, C1_TAG.sub("", new))
 
-def medicine_c1(doc):
-    return _adapt(m1_c1(doc["text"], doc.get("url") or ""))
+def medicine_c1(text, url=None):
+    """Harm-test entry: return the new text, or True to drop."""
+    return m1_c1(text, url)[0]
 ```
 
    **Example** (`4af2a377c9aa5051`):
@@ -130,7 +130,11 @@ def medicine_c1(doc):
    - After: `… પર સૌની નજર છે.⏎સિક્યોરિટી ડિપોઝિટની …`
 
 3. **Action:** fix. Only the template line or the tag is removed. The article stays.
-4. **Harm test:** 0 of 19 gold documents changed, 0 dropped (0.0%). Pass. Own check on the 102 own clean documents: 0 changed, 0 dropped.
+4. **Harm test:** gold set of 19 documents (ind-gu-fw2 19), medicine.md sha256 3957269425fa; rule: changed or dropped at most 1% or 1 document, whichever is more.
+   - Changed 0 of 19 (0.00%). Dropped 0 of 19 (0.00%). **PASS**
+   - ZWJ/ZWNJ audit: 0 changed documents with a different count. **PASS**
+   - Normal-form audit: 0 changed documents left NFC or lost a compatibility character. **PASS**
+   - Own check on the 102 own clean documents: 0 changed, 0 dropped.
 5. **Side effects:**
    - The tag is removed alone, not with its line. In `4af2a377c9aa5051` the tag is joined to the end of each paragraph, so a line rule would remove about 4,000 characters of the article.
    - The medicine removes only the "read also" header line. The headline list under it stays.
@@ -148,15 +152,22 @@ def medicine_c1(doc):
 2. **Medicine:** none. `DISEASES.md` says that mixed language "can be natural; label it, do not judge it". Most D3 items in this pack are brand names, film titles and English terms inside good Gujarati sentences, and the sentences need them. The document is kept as it is.
 
 ```python
+import re
+
 def m2_d3(text, url=None):
     return (text, "keep")
 
-def medicine_d3(doc):
-    return _adapt(m2_d3(doc["text"], doc.get("url") or ""))
+def medicine_d3(text, url=None):
+    """Harm-test entry: return the new text, or True to drop."""
+    return m2_d3(text, url)[0]
 ```
 
 3. **Action:** keep (no change).
-4. **Harm test:** 0 of 19 gold documents changed, 0 dropped. The medicine changes nothing.
+4. **Harm test:** gold set of 19 documents (ind-gu-fw2 19), medicine.md sha256 3957269425fa; rule: changed or dropped at most 1% or 1 document, whichever is more.
+   - Changed 0 of 19 (0.00%). Dropped 0 of 19 (0.00%). **PASS**
+   - ZWJ/ZWNJ audit: 0 changed documents with a different count. **PASS**
+   - Normal-form audit: 0 changed documents left NFC or lost a compatibility character. **PASS**
+   - The medicine changes nothing (no medicine for D3).
 5. **Side effects:**
    - None from this medicine. A document with D3 and another disease is handled by the medicine for that disease. For example, an English footer line is removed by M1 (C1), and a machine-translated page is dropped by M4 or M7.
 
@@ -169,6 +180,11 @@ def medicine_d3(doc):
 2. **Medicine:** replace each Indian mobile number (Latin or Gujarati digits, with or without +91) with `[PHONE]`. Replace each email address with `[EMAIL]`.
 
 ```python
+import re
+GU_DIGIT = "\u0AE6-\u0AEF"                    # Gujarati digits 0-9
+def _fix(old, new):
+    return (new, "keep" if new == old else "fix")
+
 PHONE = re.compile(rf"(?<![0-9{GU_DIGIT}])(?:\+91[\s-]?)?[6-9૬-૯][0-9{GU_DIGIT}]{{4}}"
                    rf"[\s-]?[0-9{GU_DIGIT}]{{5}}(?![0-9{GU_DIGIT}])")
 EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
@@ -176,8 +192,9 @@ EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 def m3_f1(text, url=None):
     return _fix(text, EMAIL.sub("[EMAIL]", PHONE.sub("[PHONE]", text)))
 
-def medicine_f1(doc):
-    return _adapt(m3_f1(doc["text"], doc.get("url") or ""))
+def medicine_f1(text, url=None):
+    """Harm-test entry: return the new text, or True to drop."""
+    return m3_f1(text, url)[0]
 ```
 
    **Example** (made up, because a real value must not be copied):
@@ -185,7 +202,11 @@ def medicine_f1(doc):
    - After: `વધુ માહિતી માટે મો. [PHONE] પર સંપર્ક કરો`
 
 3. **Action:** fix (mask). The sentence stays. Only the number or the email changes.
-4. **Harm test:** 0 of 19 gold documents changed, 0 dropped (0.0%). Pass. Own check on the 102 own clean documents: 0 changed, 0 dropped.
+4. **Harm test:** gold set of 19 documents (ind-gu-fw2 19), medicine.md sha256 3957269425fa; rule: changed or dropped at most 1% or 1 document, whichever is more.
+   - Changed 0 of 19 (0.00%). Dropped 0 of 19 (0.00%). **PASS**
+   - ZWJ/ZWNJ audit: 0 changed documents with a different count. **PASS**
+   - Normal-form audit: 0 changed documents left NFC or lost a compatibility character. **PASS**
+   - Own check on the 102 own clean documents: 0 changed, 0 dropped.
 5. **Side effects:**
    - The medicine does not find names, and names are most of the F1 items. Recall is 8%. Names of private people need a named-entity model and a list of public people.
    - It also masks public numbers that are not F1: desk numbers, helplines, business numbers and placeholder emails (12 documents in the pack). The model loses only the digits, and privacy is not harmed.
@@ -200,6 +221,9 @@ def medicine_f1(doc):
 2. **Medicine:** drop the document if the host starts with `gu.` (the Gujarati copy of a foreign site), or if its top-level domain is a non-Indian country or a spam domain.
 
 ```python
+import re
+from urllib.parse import urlparse
+
 FOREIGN_TLD = {"de", "ch", "es", "fr", "it", "cn", "ru", "top", "world"}
 
 def m4_d4(text, url=None):
@@ -207,14 +231,20 @@ def m4_d4(text, url=None):
     bad = host.startswith("gu.") or host.rsplit(".", 1)[-1] in FOREIGN_TLD
     return (text, "drop" if bad else "keep")
 
-def medicine_d4(doc):
-    return _adapt(m4_d4(doc["text"], doc.get("url") or ""))
+def medicine_d4(text, url=None):
+    """Harm-test entry: return the new text, or True to drop."""
+    return m4_d4(text, url)[1] == "drop"
 ```
 
    **Example** (`3917a1b840c261f7`, `gu.mikeicemachine.com`): a product page of an ice-machine maker. It is machine-translated from English, for example `માળખું, જગ્યા બચત, સરળ હપ્તો.` The whole document is dropped.
 
 3. **Action:** drop the whole document. A fix cannot help, because every sentence is machine-translated.
-4. **Harm test:** 0 of 19 gold documents changed, 0 dropped (0.0%). Pass. Own check on the 102 own clean documents: 0 changed, 0 dropped.
+4. **Harm test:** gold set of 19 documents (ind-gu-fw2 19), medicine.md sha256 3957269425fa; rule: changed or dropped at most 1% or 1 document, whichever is more.
+   - Changed 0 of 19 (0.00%). Dropped 0 of 19 (0.00%). **PASS**
+   - ZWJ/ZWNJ audit: 0 changed documents with a different count. **PASS**
+   - Normal-form audit: 0 changed documents left NFC or lost a compatibility character. **PASS**
+   - The Data B tool gives the rule only the text, not the URL. This rule reads only the URL, so the tool cannot see it act. With the URL of each gold document from the pack, it drops 0 of 19.
+   - Own check on the 102 own clean documents: 0 changed, 0 dropped.
 5. **Side effects:**
    - Machine-translated pages on ordinary `.com` domains (for example Spanish tech blogs) are not found. Recall is 38%.
    - Lost: 16 documents, 83,052 characters (6.9% of the pack). 14 of them are labelled `drop`. The other 2 are machine-translated pages that are labelled `fix` (3,629 characters).
@@ -230,6 +260,12 @@ def medicine_d4(doc):
 2. **Medicine:** replace the legacy pairs with the Unicode letter. Replace `રૃ` with `રૂ` when no virama comes before it. In a number made of Gujarati digits, replace the letters `ર` and `પ` with `૨` and `૫`.
 
 ```python
+import re
+GU = "\u0A80-\u0AFF"                          # Gujarati block
+GU_DIGIT = "\u0AE6-\u0AEF"                    # Gujarati digits 0-9
+def _fix(old, new):
+    return (new, "keep" if new == old else "fix")
+
 A5_PAIRS = [("ાે", "ો"), ("ાૈ", "ૌ"), ("અા", "આ"), ("અો", "ઓ"), ("અે", "એ"), ("અૈ", "ઐ"),
             ("ૈા", "ૌ"), ("્ર્વ", "્વ")]
 A5_RU = re.compile(r"(?<!્)રૃ")
@@ -243,8 +279,9 @@ def m5_a5(text, url=None):
     new = A5_DIGIT.sub(lambda m: m.group(0).replace("ર", "૨").replace("પ", "૫"), new)
     return _fix(text, new)
 
-def medicine_a5(doc):
-    return _adapt(m5_a5(doc["text"], doc.get("url") or ""))
+def medicine_a5(text, url=None):
+    """Harm-test entry: return the new text, or True to drop."""
+    return m5_a5(text, url)[0]
 ```
 
    **Example** (`41b7c9dcbe119b9b`):
@@ -252,7 +289,11 @@ def medicine_a5(doc):
    - After: `તેને જોતા અમુક` and `જો કે, સરકાર`
 
 3. **Action:** fix (replace letters). No text is lost.
-4. **Harm test:** 0 of 19 gold documents changed, 0 dropped (0.0%). Pass. Own check on the 102 own clean documents: 0 changed, 0 dropped.
+4. **Harm test:** gold set of 19 documents (ind-gu-fw2 19), medicine.md sha256 3957269425fa; rule: changed or dropped at most 1% or 1 document, whichever is more.
+   - Changed 0 of 19 (0.00%). Dropped 0 of 19 (0.00%). **PASS**
+   - ZWJ/ZWNJ audit: 0 changed documents with a different count. **PASS**
+   - Normal-form audit: 0 changed documents left NFC or lost a compatibility character. **PASS**
+   - Own check on the 102 own clean documents: 0 changed, 0 dropped.
 5. **Side effects:**
    - A number that is only `ર` or `પ` with no real digit (for example `તા.પ`) is not fixed.
    - Other legacy spellings (a reph in the wrong place, `ઢ` written as a comma) are not fixed.
@@ -267,14 +308,21 @@ def medicine_a5(doc):
 2. **Medicine:** collapse two or more identical dependent signs into one. Remove a vowel sign or `ં` that comes after a space.
 
 ```python
+import re
+GU_SIGN = "\u0A81-\u0A83\u0ABC-\u0ACD"      # dependent signs, nukta, virama
+GU_VOWEL_SIGN = "\u0ABE-\u0ACC\u0A81-\u0A83"
+def _fix(old, new):
+    return (new, "keep" if new == old else "fix")
+
 G1_DOUBLE = re.compile(rf"([{GU_SIGN}])\1+")
 G1_ORPHAN = re.compile(rf"(?<=\s)[{GU_VOWEL_SIGN}]")
 
 def m6_g1(text, url=None):
     return _fix(text, G1_ORPHAN.sub("", G1_DOUBLE.sub(r"\1", text)))
 
-def medicine_g1(doc):
-    return _adapt(m6_g1(doc["text"], doc.get("url") or ""))
+def medicine_g1(text, url=None):
+    """Harm-test entry: return the new text, or True to drop."""
+    return m6_g1(text, url)[0]
 ```
 
    **Example** (`631da9a005b32c3e`):
@@ -282,7 +330,11 @@ def medicine_g1(doc):
    - After: `જણાવ્યું કે, નાવ`
 
 3. **Action:** fix (remove the extra sign). No text is lost.
-4. **Harm test:** 0 of 19 gold documents changed, 0 dropped (0.0%). Pass. Own check on the 102 own clean documents: 0 changed, 0 dropped.
+4. **Harm test:** gold set of 19 documents (ind-gu-fw2 19), medicine.md sha256 3957269425fa; rule: changed or dropped at most 1% or 1 document, whichever is more.
+   - Changed 0 of 19 (0.00%). Dropped 0 of 19 (0.00%). **PASS**
+   - ZWJ/ZWNJ audit: 0 changed documents with a different count. **PASS**
+   - Normal-form audit: 0 changed documents left NFC or lost a compatibility character. **PASS**
+   - Own check on the 102 own clean documents: 0 changed, 0 dropped.
 5. **Side effects:**
    - Two different signs in the wrong order (for example `ુૃ`, `ો્`) are not fixed.
    - If the sign after a space belongs to the word before it (a broken word), the medicine removes the sign. It cannot join the word again.
@@ -297,6 +349,9 @@ def medicine_g1(doc):
 2. **Medicine:** count the words in which Latin and Gujarati letters are joined. Do not count an English word with a Gujarati case ending (`NCBએ`, `3Dમાં`), because that is normal Gujarati. If three or more words remain, drop the document. These words come from bad machine translation.
 
 ```python
+import re
+GU = "\u0A80-\u0AFF"                          # Gujarati block
+
 A6_WORD = re.compile(rf"[A-Za-z]+[{GU}]+|[{GU}]+[A-Za-z]+")
 A6_ENDING = re.compile(r"[A-Za-z]+(?:ઓ)?(?:એ|ના|ની|નું|નુ|નો|ને|નાં|માં|થી|પર|વાળા|વાળી|ે|ી|ો|ઓ)")
 
@@ -304,14 +359,19 @@ def m7_a6(text, url=None, limit=3):
     n = sum(not A6_ENDING.fullmatch(w) for w in A6_WORD.findall(text))
     return (text, "drop" if n >= limit else "keep")
 
-def medicine_a6(doc):
-    return _adapt(m7_a6(doc["text"], doc.get("url") or ""))
+def medicine_a6(text, url=None):
+    """Harm-test entry: return the new text, or True to drop."""
+    return m7_a6(text, url)[1] == "drop"
 ```
 
    **Example** (`953dc7a7731c47d7`, `soydemac.com`): a Spanish Apple blog, machine-translated to Gujarati. It has `Appleપલના`, `Appleપલ` (five times) and `કer`. The whole document is dropped.
 
 3. **Action:** drop the whole document. Removing the broken words leaves broken sentences, because these words come with bad machine translation of the whole page.
-4. **Harm test:** 0 of 19 gold documents changed, 0 dropped (0.0%). Pass. Own check on the 102 own clean documents: 0 changed, 0 dropped. Without the case-ending rule, it drops 2 own clean documents (2.0%) and fails the own check.
+4. **Harm test:** gold set of 19 documents (ind-gu-fw2 19), medicine.md sha256 3957269425fa; rule: changed or dropped at most 1% or 1 document, whichever is more.
+   - Changed 0 of 19 (0.00%). Dropped 0 of 19 (0.00%). **PASS**
+   - ZWJ/ZWNJ audit: 0 changed documents with a different count. **PASS**
+   - Normal-form audit: 0 changed documents left NFC or lost a compatibility character. **PASS**
+   - Own check on the 102 own clean documents: 0 changed, 0 dropped. An earlier version without the case-ending rule dropped 2 own clean documents. This version adds the case-ending rule and drops none.
 5. **Side effects:**
    - All 9 documents that it drops are labelled `drop`. Lost: 37,019 characters (3.1% of the pack) after M4.
    - An A6 item that is a Latin fragment with spaces around it (for example `er`, `oc`) is not counted.
@@ -326,6 +386,10 @@ def medicine_a6(doc):
 2. **Medicine:** find the start of each joined article and split the document there. A start is a dateline line after the first 300 characters, with at least 200 characters of body after it. A start can also be a "READ ALSO" or "MUST READ" marker with a paragraph of 200 or more characters after it.
 
 ```python
+import re
+GU = "\u0A80-\u0AFF"                          # Gujarati block
+GU_DIGIT = "\u0AE6-\u0AEF"                    # Gujarati digits 0-9
+
 C4_DATELINE = re.compile(
     r"^\s*(?:\((?:એજન્સી|અમારા પ્રતિનિધિ તરફથી|સંવાદદાતા દ્વારા)\)\s*)?"
     rf"[{GU}]+(?: [{GU}]+)?\s*,\s*તા\.\s*[{GU_DIGIT}રપ0-9]{{1,2}}\s*$", re.M)
@@ -344,14 +408,20 @@ def m8_c4(text, url=None, min_part=300, min_body=200):
     parts = [text[a:b].strip() for a, b in zip(bounds, bounds[1:])]
     return ([p for p in parts if p], "split")
 
-def medicine_c4(doc):
-    return _adapt(m8_c4(doc["text"], doc.get("url") or ""))
+def medicine_c4(text, url=None):
+    """Harm-test entry: return the new text, or True to drop."""
+    parts, action = m8_c4(text, url)
+    return "\n\n".join(parts) if action == "split" else text
 ```
 
    **Example** (`5850b7f05b243ec4`): one document with three Rafale articles. Each starts with `(એજન્સી) નવી દિલ્હી, તા.૧૪`. After the split, there are three documents of 1,887, 1,356 and 903 characters.
 
 3. **Action:** split into one document per article. This is a fix: no text is lost.
-4. **Harm test:** 0 of 19 gold documents changed, 0 dropped (0.0%). Pass. Own check on the 102 own clean documents: 0 changed, 0 dropped.
+4. **Harm test:** gold set of 19 documents (ind-gu-fw2 19), medicine.md sha256 3957269425fa; rule: changed or dropped at most 1% or 1 document, whichever is more.
+   - Changed 0 of 19 (0.00%). Dropped 0 of 19 (0.00%). **PASS**
+   - ZWJ/ZWNJ audit: 0 changed documents with a different count. **PASS**
+   - Normal-form audit: 0 changed documents left NFC or lost a compatibility character. **PASS**
+   - Own check on the 102 own clean documents: 0 changed, 0 dropped.
 5. **Side effects:**
    - The medicine splits, and does not cut. A cut would throw away the second and third articles (2,260 characters of good text).
    - Recall is 10%. A joined article with no dateline and no marker is not found. A "whole document" C4 (a home page or a list page) needs a drop rule for each page type.
@@ -367,13 +437,18 @@ def medicine_c4(doc):
 2. **Medicine:** remove each line that starts with `Tags:`, `Android:` or `iOS:`, and each line that is only a URL.
 
 ```python
+import re
+def _fix(old, new):
+    return (new, "keep" if new == old else "fix")
+
 C5_LINE = re.compile(r"^\s*(?:Tags\s*:|Android\s*:|iOS\s*:).*\n?|^\s*https?://\S+\s*\n?", re.M)
 
 def m9_c5(text, url=None):
     return _fix(text, C5_LINE.sub("", text))
 
-def medicine_c5(doc):
-    return _adapt(m9_c5(doc["text"], doc.get("url") or ""))
+def medicine_c5(text, url=None):
+    """Harm-test entry: return the new text, or True to drop."""
+    return m9_c5(text, url)[0]
 ```
 
    **Example** (`98b9ca997dc64e33`):
@@ -381,7 +456,11 @@ def medicine_c5(doc):
    - After: `… ન્યૂઝ18 ગુજરાતી પર⏎`
 
 3. **Action:** fix (remove the line).
-4. **Harm test:** 0 of 19 gold documents changed, 0 dropped (0.0%). Pass. Own check on the 102 own clean documents: 0 changed, 0 dropped.
+4. **Harm test:** gold set of 19 documents (ind-gu-fw2 19), medicine.md sha256 3957269425fa; rule: changed or dropped at most 1% or 1 document, whichever is more.
+   - Changed 0 of 19 (0.00%). Dropped 0 of 19 (0.00%). **PASS**
+   - ZWJ/ZWNJ audit: 0 changed documents with a different count. **PASS**
+   - Normal-form audit: 0 changed documents left NFC or lost a compatibility character. **PASS**
+   - Own check on the 102 own clean documents: 0 changed, 0 dropped.
 5. **Side effects:**
    - 18 documents are changed that have no C5 label. In all of them, it removes a News18 `Tags:` line inside the C1 span at the end of the document. The change is correct, but the labels count it under C1.
    - A tag listing page or a search results page (a "whole document" C5) is not found.
@@ -396,6 +475,11 @@ def medicine_c5(doc):
 2. **Medicine:** replace the known mojibake pairs. Replace U+201A followed by `પ` with `રૂપ`. Replace any other U+201A after a Gujarati letter with `રુ`.
 
 ```python
+import re
+GU = "\u0A80-\u0AFF"                          # Gujarati block
+def _fix(old, new):
+    return (new, "keep" if new == old else "fix")
+
 A3_PAIRS = [("¬©", "©"), ("â€™", "’"), ("â€œ", "“"), ("â€", "”")]
 A3_LOWQ_RUP = re.compile(rf"(?<=[{GU}])\u201Aપ")
 A3_LOWQ = re.compile(rf"(?<=[{GU}])\u201A")
@@ -407,8 +491,9 @@ def m10_a3(text, url=None):
     new = A3_LOWQ_RUP.sub("રૂપ", new)
     return _fix(text, A3_LOWQ.sub("રુ", new))
 
-def medicine_a3(doc):
-    return _adapt(m10_a3(doc["text"], doc.get("url") or ""))
+def medicine_a3(text, url=None):
+    """Harm-test entry: return the new text, or True to drop."""
+    return m10_a3(text, url)[0]
 ```
 
    **Example** (`d071829b830530e1` and `355a8c8963377a73`):
@@ -416,7 +501,11 @@ def medicine_a3(doc):
    - After: `ગુરુદાસ કામત` and `બ્રહ્મા સ્વરૂપ છે`
 
 3. **Action:** fix (replace characters). No text is lost.
-4. **Harm test:** 0 of 19 gold documents changed, 0 dropped (0.0%). Pass. Own check on the 102 own clean documents: 0 changed, 0 dropped.
+4. **Harm test:** gold set of 19 documents (ind-gu-fw2 19), medicine.md sha256 3957269425fa; rule: changed or dropped at most 1% or 1 document, whichever is more.
+   - Changed 0 of 19 (0.00%). Dropped 0 of 19 (0.00%). **PASS**
+   - ZWJ/ZWNJ audit: 0 changed documents with a different count. **PASS**
+   - Normal-form audit: 0 changed documents left NFC or lost a compatibility character. **PASS**
+   - Own check on the 102 own clean documents: 0 changed, 0 dropped.
 5. **Side effects:**
    - In the source font, U+201A can stand for `રુ` or `રૂ`. Only `‚પ` (`રૂપ`, `સ્વરૂપ`) is known to be `રૂ`. Other words get `રુ`, and some of them need `રૂ`.
    - `355a8c8963377a73` has the same mojibake but no A3 label.
