@@ -20,14 +20,14 @@ def fix_b3(text):
 4. **Harm test:** gold set empty, not testable.
 5. **Side effects:** a post that really talks about these tokens loses them. Question and answers run together after the strip, so a rule that splits them first is better.
 
-## Medicine 2: B2 stripped markup remnants (136 documents)
+## Medicine 2: B2 stripped markup remnants (139 documents)
 
-1. **Disease:** B2. The converter removed `<...>` content and left remnants: empty code fences, a lone `php` line where `<?php` was, an empty `#include`, `xml version=...?`, a loop header cut at `<`, text left in a code block where the HTML was, and a stripped tag name leaving a double space in prose ("I use a  tag", 3 documents). Back-to-back fences (a closing fence followed by a new opening fence, e.g. ` ``` ` then ` ```css `) are block boundaries, not empty blocks, and do not count. Examples: `d78b5eeab23e7a55` (lone `php` at offset 675), `71acfee0eb411a72` (lone `php` at 1046), `3e38237c513072d4` (text-only block at 545).
+1. **Disease:** B2. The converter removed `<...>` content and left remnants: empty code fences, a lone `php` line where `<?php` was (also indented, and `php ...` code lines whose `<?` was stripped), an empty `#include`, `xml version=...?`, a loop header cut at `<`, text left in a code block where the HTML was, and a stripped tag name leaving a double space in prose ("I use a  tag", 3 documents). Back-to-back fences (a closing fence followed by a new opening fence, e.g. ` ``` ` then ` ```css `) are block boundaries, not empty blocks, and do not count. Examples: `d78b5eeab23e7a55` (lone `php` at offset 675), `71acfee0eb411a72` (lone `php` at 1046), `3e38237c513072d4` (text-only block at 545).
 2. **Medicine:**
 ```python
 import re
 FENCE = re.compile(r"```")
-REMNANT = re.compile(r"(?m)^\s*php\s*$|^\s*#include\s*$|^\s*#import\s*$|^\s*xml version=.*$|!\[\]\(\)")
+REMNANT = re.compile(r"(?m)^[ \t]*php\s*$|^\s*#include\s*$|^\s*#import\s*$|^\s*xml version=.*$|!\[\]\(\)")
 LOOP_CUT = re.compile(r"(?m)^[ \t]*(?:for|while|if)\s*\([^()\n]*[A-Za-z0-9_\]\.]\s*\n(?=[ \t]*(?:```|\n|$))")
 def empty_fences(text):
     # pair fences sequentially: an opener whose block holds only whitespace is empty.
