@@ -60,9 +60,9 @@ def fix_b4(text):
 4. **Harm test:** gold set empty, not testable.
 5. **Side effects:** the sentence can lose its subject.
 
-## Medicine 4: B5 escaped characters inside code (63 documents)
+## Medicine 4: B5 escaped characters inside code (64 documents)
 
-1. **Disease:** B5, nearest code. Markdown escapes were added inside code: `\_` for `_`, `/\*` for `/*`, `**name**` for `__name__`, and a bare `\*` for `*` in pointer declarations and multiplication (`struct s \*p`, `1 \* new Date()`, 5 documents). Examples: `9a421950f1fe4228` (offset 294), `e41552c03df638c4` (46 times from offset 941), `9211637c2d9105fd` (5 times from 1985).
+1. **Disease:** B5, nearest code. Markdown escapes were added inside code: `\_` for `_`, `/\*` for `/*`, `**name**` for `__name__`, and a bare `\*` for `*` in pointer declarations, multiplication, and one Java regex string (`struct s \*p`, `1 \* new Date()`, `"(.\*?)"` for `"(.*?)"`, 6 documents). Examples: `9a421950f1fe4228` (offset 294), `e41552c03df638c4` (46 times from offset 941), `9211637c2d9105fd` (5 times from 1985), `972def12422daf14` (offset 3143).
 2. **Medicine:**
 ```python
 import re
@@ -73,7 +73,7 @@ def fix_b5(text):
         return s.replace("\\_", "_").replace("/\\*", "/*").replace("\\*/", "*/")
     return CODE.sub(unescape, text)
 ```
-3. **Action:** fix the text. `fix_b5` below handles `\_` and comment markers; the 5 bare-`\*` documents need the backslash removed by hand (only outside regex, where `\*` is a deliberate literal-star).
+3. **Action:** fix the text. `fix_b5` below handles `\_` and comment markers; the 6 bare-`\*` documents need the backslash removed by hand (only outside regex, where `\*` is a deliberate literal-star).
 4. **Harm test:** gold set empty, not testable.
 5. **Side effects:** a regex that really contains `\_` is changed. I only touch `\_` and the comment markers for that reason; a blanket `\*` to `*` rule would corrupt real regexes such as `/a\*b/`.
 
