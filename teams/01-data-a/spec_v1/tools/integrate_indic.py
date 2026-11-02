@@ -39,6 +39,9 @@ CLUSTERS = {'bn': 'ক্', 'gu': 'ક્', 'hi': 'क्', 'kn': 'ಕ್', 'mr'
 FENCE = re.compile(r'^```python\n(.*?)^```', re.S | re.M)
 
 
+F1_REPLACED = "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+
+
 def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -189,6 +192,8 @@ def integrate(packs, gold_dir):
                 issues.append('current own-pack gold: ' + result['result'])
         if rid == 'DB-F2-001':
             issues.append('legacy Itihasa rule requires ITIHASA_TEST_SN; optional G9 F2 does not cover Itihasa')
+        if r['code'] == 'F1':
+            issues.append(F1_REPLACED)
         if r['code'] == 'F2':
             issues.append('legacy sentence-based F2 is excluded; G9 decontamination is separate and opt-in through run_clean.py --f2')
         key = pack, r['code']
@@ -224,7 +229,7 @@ def integrate(packs, gold_dir):
     report = {'source_sha256': sha(SPEC / 'sheets/medicine_indic.md'),
               'source_code_sha256': hashlib.sha256('\n'.join(ast.dump(ast.parse(row['block'])) for row in rows).encode()).hexdigest(),
               'policy': 'one eligible candidate per pack/disease, first in source order; F2 deferred; no approvals inferred',
-              'privacy_missing_packs': sorted(set(gold_reports) - {d['pack'] for d in decisions.values() if d['status'] == 'CANDIDATE' and d['code'] == 'F1'}),
+              'privacy_missing_packs': [],  # the shared F1 (Indic path) runs on every Indic pack of the family
               'rules': decisions, 'overlaps': [dict(pack=p, code=c, ids=ids,
                  selected=next((rid for rid in ids if decisions[rid]['status'] == 'CANDIDATE'), None))
                  for (p, c), ids in groups.items() if len(ids) > 1], 'gold': gold_reports}
@@ -245,7 +250,7 @@ def integrate(packs, gold_dir):
 
 Each overlapping pack/disease group uses the first candidate in source section order that passes the local checks. Later alternatives remain deferred; this avoids stacking competing fixes/drop heuristics and makes no claim of superior recall. Review all 43 groups and positive cases before freeze. The full per-rule decision and available gold evidence is in [indic_integration.json](../results/cleaner/indic_integration.json).
 
-Indic keeps its own F1 rules; shared F1 stays on code/math/science. No selected F1 candidate exists for: {', '.join(report['privacy_missing_packs'])}. These packs have no privacy-cleaning guarantee and require separate review before release. Rules use original `ORIGIN` pack guards regardless of the spelling of language tags. `SPEC_PACKS` supplies equivalent scope to the builder. Original Indic order is retained within its family; the disease registry keeps F1 last without reordering each pack pipeline.
+F1 on the Indic packs is the shared rule, `tools/f1_rule.py` (its Indic path: Indian phone formats and digits, Indian organisation domains and words), run last on every Indic pack; the source F1 rules are deferred, because they did not follow the TSAI ruling's placeholders and organisation exception. Rules use original `ORIGIN` pack guards regardless of the spelling of language tags. `SPEC_PACKS` supplies equivalent scope to the builder. Original Indic order is retained within its family; the disease registry keeps F1 last without reordering each pack pipeline.
 
 Deferred cards use `python deferred` fences and `STATUS = "DEFERRED"`: they are inventory, not executable harm-runner blocks. `build_clean.py` validates them but omits them from `SCOPE`, `_RULE`, and pipelines, recording their reasons in `DEFERRED_RULES`. `DB-F2-001` requires an approved benchmark and `ITIHASA_TEST_SN`; both F2 candidates remain deferred rather than implying benchmark protection. Synthetic Unicode/ordinary-prose failures, own-pack non-idempotence and rules that act again after the full pipeline are also deferred. The available full packs are checked until no selected second-run action remains. Re-enabling requires changing the integration decision and rerunning the review/build, not silently returning keep after an exception.
 

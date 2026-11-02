@@ -207,7 +207,8 @@ def test_the_f1_rules_cover_their_whole_family():
     assert c._PIPELINES["english"][-1] is c._english_f1_005  # and last in the English family
     assert 'RULE_ID = "DA-F1-005"' in (SPEC / "clean.py").read_text(encoding="utf-8")
     assert c.SCOPE["DA-F1-006"] == FAMILIES["sci"]
-    assert c.SCOPE["f1_rule.py"] == FAMILIES["code"] | FAMILIES["math"] | FAMILIES["sci"]  # the shared F1 (TSAI, 1 Nov)
+    assert c.SCOPE["f1_rule.py"] == FAMILIES["code"] | FAMILIES["math"] | FAMILIES["sci"] | FAMILIES["indic"]  # the shared F1
+    assert not [rid for rid in c._RULE if rid.startswith("DB-F1-")]  # Indic's source F1 rules are deferred: the shared F1 replaces them
     assert not c.SCOPE["f1_rule.py"] & FAMILIES["english"]  # English keeps its own F1, DA-F1-005
     assert c.RULES["F1"] is c.f1
 

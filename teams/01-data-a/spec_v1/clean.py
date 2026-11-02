@@ -3,7 +3,7 @@ spec_v1/sheets/specv1.md: change the sheet, not this file.
 
 doc is {doc_id, text, url, lang_label, pack_id}. Each function returns (action, text), action being keep, fix or drop.
 SCOPE says which packs each rule applies to; on any other pack, or without a pack_id, a rule does nothing.
-Families: code (6 packs, 24 rules), english (4 packs, 20 rules), math (2 packs, 14 rules), sci (1 packs, 12 rules), indic (16 packs, 115 rules).
+Families: code (6 packs, 24 rules), english (4 packs, 20 rules), math (2 packs, 14 rules), sci (1 packs, 12 rules), indic (16 packs, 108 rules).
 """
 import re
 from functools import cache
@@ -188,18 +188,11 @@ SCOPE = {
     "DB-B4-004": frozenset({"ind-sa-fw2"}),  # indic B4, medicine 233
     "DB-B4-005": frozenset({"ind-ta-sangraha-v"}),  # indic B4, medicine 234
     "DB-B4-006": frozenset({"ind-te-fw2", "ind-te-sangraha-s", "ind-te-sangraha-v"}),  # indic B4, medicine 235
-    "DB-F1-001": frozenset({"ind-gu-fw2"}),  # indic F1, medicine 236
-    "DB-F1-003": frozenset({"ind-hi-fw2", "ind-hi-hplt", "ind-hi-indiccorp"}),  # indic F1, medicine 238
-    "DB-F1-005": frozenset({"ind-kn-fw2", "ind-kn-sangraha-s", "ind-kn-sangraha-v"}),  # indic F1, medicine 240
-    "DB-F1-006": frozenset({"ind-mr-fw2"}),  # indic F1, medicine 241
-    "DB-F1-007": frozenset({"ind-mr-sangraha-v"}),  # indic F1, medicine 242
-    "DB-F1-008": frozenset({"ind-sa-fw2"}),  # indic F1, medicine 243
-    "DB-F1-010": frozenset({"ind-te-fw2", "ind-te-sangraha-s", "ind-te-sangraha-v"}),  # indic F1, medicine 245
-    "f1_rule.py": frozenset({"code-cpp", "code-go", "code-java", "code-js-ts", "code-python", "code-rust", "math-finemath", "math-megamath", "sci-finepdfs"}),  # the shared F1, spec_v1/tools/f1_rule.py: code, math, sci packs, last
+    "f1_rule.py": frozenset({"code-cpp", "code-go", "code-java", "code-js-ts", "code-python", "code-rust", "ind-bn-fw2", "ind-bn-sangraha-v", "ind-gu-fw2", "ind-hi-fw2", "ind-hi-hplt", "ind-hi-indiccorp", "ind-kn-fw2", "ind-kn-sangraha-s", "ind-kn-sangraha-v", "ind-mr-fw2", "ind-mr-sangraha-v", "ind-sa-fw2", "ind-ta-sangraha-v", "ind-te-fw2", "ind-te-sangraha-s", "ind-te-sangraha-v", "math-finemath", "math-megamath", "sci-finepdfs"}),  # the shared F1, spec_v1/tools/f1_rule.py: code, math, sci, indic packs, last
 }
 
 
-DEFERRED_RULES = {'DB-A5-002': 'overlap alternative; provisional source-order selection is DB-A5-001', 'DB-A5-004': 'not idempotent on own diagnosis pack', 'DB-A5-005': 'not idempotent on own diagnosis pack', 'DB-A5-007': 'acts again on retained documents after the full pipeline', 'DB-A6-002': 'overlap alternative; provisional source-order selection is DB-A6-001', 'DB-A6-005': 'overlap alternative; provisional source-order selection is DB-A6-004', 'DB-A6-010': 'acts again on retained documents after the full pipeline', 'DB-A6-011': 'acts again on retained documents after the full pipeline', 'DB-G1-002': 'not idempotent on own diagnosis pack', 'DB-G1-008': 'overlap alternative; provisional source-order selection is DB-G1-007', 'DB-G1-009': 'not idempotent on own diagnosis pack', 'DB-G2-002': 'overlap alternative; provisional source-order selection is DB-G2-001', 'DB-G4-001': 'acts again on retained documents after the full pipeline', 'DB-A3-003': 'overlap alternative; provisional source-order selection is DB-A3-001', 'DB-A6-015': 'overlap alternative; provisional source-order selection is DB-A6-003', 'DB-C3-003': 'joiners: drops ordinary synthetic prose', 'DB-C4-004': 'overlap alternative; provisional source-order selection is DB-C4-003', 'DB-C5-002': 'overlap alternative; provisional source-order selection is DB-C5-001', 'DB-D4-002': 'overlap alternative; provisional source-order selection is DB-D4-001', 'DB-D4-004': 'overlap alternative; provisional source-order selection is DB-D4-003', 'DB-D4-006': 'overlap alternative; provisional source-order selection is DB-D4-005', 'DB-D4-010': 'overlap alternative; provisional source-order selection is DB-D4-009', 'DB-F2-001': 'prose: RuntimeError; joiners: RuntimeError; nfc: RuntimeError; current own-pack gold: ERROR; requires ITIHASA_TEST_SN and independent benchmark approval; not part of this build; benchmark policy/fingerprints unresolved; keep-only detector is not implemented cleaning', 'DB-F3-002': 'overlap alternative; provisional source-order selection is DB-F3-001', 'DB-G3-001': 'acts again on retained documents after the full pipeline', 'DB-C1-002': 'overlap alternative; provisional source-order selection is DB-C1-001', 'DB-C1-004': 'not idempotent on own diagnosis pack', 'DB-C1-007': 'overlap alternative; provisional source-order selection is DB-C1-006', 'DB-C1-009': 'overlap alternative; provisional source-order selection is DB-C1-008', 'DB-C1-011': 'acts again on retained documents after the full pipeline', 'DB-C1-014': 'overlap alternative; provisional source-order selection is DB-C1-013', 'DB-C2-002': 'overlap alternative; provisional source-order selection is DB-C2-001', 'DB-C2-005': 'overlap alternative; provisional source-order selection is DB-C2-004', 'DB-C2-007': 'overlap alternative; provisional source-order selection is DB-C2-006', 'DB-C2-009': 'not idempotent on own diagnosis pack', 'DB-C2-011': 'acts again on retained documents after the full pipeline', 'DB-C3-005': 'joiners: removes script joiner', 'DB-C3-007': 'not idempotent on own diagnosis pack', 'DB-C3-008': 'not idempotent on own diagnosis pack', 'DB-C3-009': 'joiners: removes script joiner', 'DB-C3-011': 'overlap alternative; provisional source-order selection is DB-C3-004', 'DB-C3-012': 'joiners: removes script joiner', 'DB-C3-013': 'not idempotent on own diagnosis pack', 'DB-C3-014': 'not idempotent on own diagnosis pack', 'DB-C4-008': 'acts again on retained documents after the full pipeline', 'DB-C4-011': 'overlap alternative; provisional source-order selection is DB-C4-010', 'DB-C5-008': 'overlap alternative; provisional source-order selection is DB-C5-007', 'DB-C5-010': 'overlap alternative; provisional source-order selection is DB-C5-009', 'DB-C5-012': 'overlap alternative; provisional source-order selection is DB-C5-011', 'DB-C5-013': 'acts again on retained documents after the full pipeline', 'DB-C5-015': 'overlap alternative; provisional source-order selection is DB-C5-014', 'DB-D3-002': 'overlap alternative; provisional source-order selection is DB-D3-001', 'DB-D3-004': 'overlap alternative; provisional source-order selection is DB-D3-003', 'DB-D3-007': 'overlap alternative; provisional source-order selection is DB-D3-006', 'DB-D3-013': 'overlap alternative; provisional source-order selection is DB-D3-012', 'DB-G3-002': 'acts again on retained documents after the full pipeline', 'DB-H3-002': 'overlap alternative; provisional source-order selection is DB-H3-001', 'DB-F1-002': 'overlap alternative; provisional source-order selection is DB-F1-001', 'DB-F1-004': 'overlap alternative; provisional source-order selection is DB-F1-003', 'DB-F1-009': 'overlap alternative; provisional source-order selection is DB-F1-008', 'DB-F2-002': 'benchmark policy/fingerprints unresolved; keep-only detector is not implemented cleaning'}  # documented candidates excluded from execution
+DEFERRED_RULES = {'DB-A5-002': 'overlap alternative; provisional source-order selection is DB-A5-001', 'DB-A5-004': 'not idempotent on own diagnosis pack', 'DB-A5-005': 'not idempotent on own diagnosis pack', 'DB-A5-007': 'acts again on retained documents after the full pipeline', 'DB-A6-002': 'overlap alternative; provisional source-order selection is DB-A6-001', 'DB-A6-005': 'overlap alternative; provisional source-order selection is DB-A6-004', 'DB-A6-010': 'acts again on retained documents after the full pipeline', 'DB-A6-011': 'acts again on retained documents after the full pipeline', 'DB-G1-002': 'not idempotent on own diagnosis pack', 'DB-G1-008': 'overlap alternative; provisional source-order selection is DB-G1-007', 'DB-G1-009': 'not idempotent on own diagnosis pack', 'DB-G2-002': 'overlap alternative; provisional source-order selection is DB-G2-001', 'DB-G4-001': 'acts again on retained documents after the full pipeline', 'DB-A3-003': 'overlap alternative; provisional source-order selection is DB-A3-001', 'DB-A6-015': 'overlap alternative; provisional source-order selection is DB-A6-003', 'DB-C3-003': 'joiners: drops ordinary synthetic prose', 'DB-C4-004': 'overlap alternative; provisional source-order selection is DB-C4-003', 'DB-C5-002': 'overlap alternative; provisional source-order selection is DB-C5-001', 'DB-D4-002': 'overlap alternative; provisional source-order selection is DB-D4-001', 'DB-D4-004': 'overlap alternative; provisional source-order selection is DB-D4-003', 'DB-D4-006': 'overlap alternative; provisional source-order selection is DB-D4-005', 'DB-D4-010': 'overlap alternative; provisional source-order selection is DB-D4-009', 'DB-F2-001': 'prose: RuntimeError; joiners: RuntimeError; nfc: RuntimeError; current own-pack gold: ERROR; requires ITIHASA_TEST_SN and independent benchmark approval; not part of this build; benchmark policy/fingerprints unresolved; keep-only detector is not implemented cleaning', 'DB-F3-002': 'overlap alternative; provisional source-order selection is DB-F3-001', 'DB-G3-001': 'acts again on retained documents after the full pipeline', 'DB-C1-002': 'overlap alternative; provisional source-order selection is DB-C1-001', 'DB-C1-004': 'not idempotent on own diagnosis pack', 'DB-C1-007': 'overlap alternative; provisional source-order selection is DB-C1-006', 'DB-C1-009': 'overlap alternative; provisional source-order selection is DB-C1-008', 'DB-C1-011': 'acts again on retained documents after the full pipeline', 'DB-C1-014': 'overlap alternative; provisional source-order selection is DB-C1-013', 'DB-C2-002': 'overlap alternative; provisional source-order selection is DB-C2-001', 'DB-C2-005': 'overlap alternative; provisional source-order selection is DB-C2-004', 'DB-C2-007': 'overlap alternative; provisional source-order selection is DB-C2-006', 'DB-C2-009': 'not idempotent on own diagnosis pack', 'DB-C2-011': 'acts again on retained documents after the full pipeline', 'DB-C3-005': 'joiners: removes script joiner', 'DB-C3-007': 'not idempotent on own diagnosis pack', 'DB-C3-008': 'not idempotent on own diagnosis pack', 'DB-C3-009': 'joiners: removes script joiner', 'DB-C3-011': 'overlap alternative; provisional source-order selection is DB-C3-004', 'DB-C3-012': 'joiners: removes script joiner', 'DB-C3-013': 'not idempotent on own diagnosis pack', 'DB-C3-014': 'not idempotent on own diagnosis pack', 'DB-C4-008': 'acts again on retained documents after the full pipeline', 'DB-C4-011': 'overlap alternative; provisional source-order selection is DB-C4-010', 'DB-C5-008': 'overlap alternative; provisional source-order selection is DB-C5-007', 'DB-C5-010': 'overlap alternative; provisional source-order selection is DB-C5-009', 'DB-C5-012': 'overlap alternative; provisional source-order selection is DB-C5-011', 'DB-C5-013': 'acts again on retained documents after the full pipeline', 'DB-C5-015': 'overlap alternative; provisional source-order selection is DB-C5-014', 'DB-D3-002': 'overlap alternative; provisional source-order selection is DB-D3-001', 'DB-D3-004': 'overlap alternative; provisional source-order selection is DB-D3-003', 'DB-D3-007': 'overlap alternative; provisional source-order selection is DB-D3-006', 'DB-D3-013': 'overlap alternative; provisional source-order selection is DB-D3-012', 'DB-G3-002': 'acts again on retained documents after the full pipeline', 'DB-H3-002': 'overlap alternative; provisional source-order selection is DB-H3-001', 'DB-F1-001': "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts", 'DB-F1-002': 'overlap alternative; provisional source-order selection is DB-F1-001', 'DB-F1-003': "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts", 'DB-F1-004': 'overlap alternative; provisional source-order selection is DB-F1-003', 'DB-F1-005': "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts", 'DB-F1-006': "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts", 'DB-F1-007': "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts", 'DB-F1-008': "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts", 'DB-F1-009': 'overlap alternative; provisional source-order selection is DB-F1-008', 'DB-F1-010': "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts", 'DB-F2-002': 'benchmark policy/fingerprints unresolved; keep-only detector is not implemented cleaning'}  # documented candidates excluded from execution
 
 @cache
 def _code_a1_001():
@@ -9594,419 +9587,10 @@ def _indic_db_b4_006():
         return _std(_AUTHOR_RULE(doc["text"]), doc["text"])
     return medicine
 
-@cache
-def _indic_db_f1_001():
-    # DB-F1-001, specv1.md, medicine 236 (indic)
-    RULE_ID = "DB-F1-001"
-    CODE = "F1"
-    ACTION = "fix"
-    STAGE = "40"
-    STATUS = "CANDIDATE"
-    SPEC_PACKS = SCOPE["DB-F1-001"]
-    LANGS = {"guj_Gujr"}
-    ORIGIN = "ind-gu-fw2"
-    SOURCE_ORIGIN = "ind-gu-fw2"
-    SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
-
-    import re
-    GU_DIGIT = "\u0AE6-\u0AEF"                    # Gujarati digits 0-9
-    def _fix(old, new):
-        return (new, "keep" if new == old else "fix")
-
-    PHONE = re.compile(rf"(?<![0-9{GU_DIGIT}])(?:\+91[\s-]?)?[6-9૬-૯][0-9{GU_DIGIT}]{{4}}"
-                       rf"[\s-]?[0-9{GU_DIGIT}]{{5}}(?![0-9{GU_DIGIT}])")
-    EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
-
-    def m3_f1(text, url=None):
-        return _fix(text, EMAIL.sub("[EMAIL]", PHONE.sub("[PHONE]", text)))
-
-    def medicine_f1(text, url=None):
-        """Harm-test entry: return the new text, or True to drop."""
-        return m3_f1(text, url)[0]
-
-
-    def _std(out, text):  # added by Data B, copied from Data A (medicine_english.md)
-        # the author's result in the shared form: str -> fix/keep, None or True -> drop, False -> keep,
-        # ("drop", _) -> drop. An empty result is a drop: nothing of the document is left.
-        if out is None or out is True: return ("drop", text)
-        if out is False: return ("keep", text)
-        if isinstance(out, tuple):
-            if out[0] == "drop": return ("drop", text)
-            out = out[1]
-        if not out.strip(): return ("drop", text)
-        return ("fix" if out != text else "keep", out)
-
-    _AUTHOR_RULE = medicine_f1  # added by Data B
-    _PACKS = SCOPE["DB-F1-001"]
-
-
-    def medicine(doc):  # added by Data B: runs only on the pack it was tested on
-        if doc.get("pack_id") not in _PACKS:
-            return ("keep", doc["text"])
-        return _std(_AUTHOR_RULE(doc["text"]), doc["text"])
-    return medicine
-
-@cache
-def _indic_db_f1_003():
-    # DB-F1-003, specv1.md, medicine 238 (indic)
-    RULE_ID = "DB-F1-003"
-    CODE = "F1"
-    ACTION = "fix"
-    STAGE = "40"
-    STATUS = "CANDIDATE"
-    SPEC_PACKS = SCOPE["DB-F1-003"]
-    LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-hplt, ind-hi-fw2, ind-hi-indiccorp"
-    SOURCE_ORIGIN = "ind-hi-hplt"
-    SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
-    import re  # added by Data B: harm_test_indic.py gives every block `re`
-
-    _MAIL = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")
-    _PHONE = re.compile(r"(?<![\d,.])(?:\+91[ -]?|0)?[6-9]\d{9}(?![\d,.])")
-
-
-    def medicine_f1(text):
-        t = _MAIL.sub("", text)
-        return _PHONE.sub("", t)
-
-
-    def _std(out, text):  # added by Data B, copied from Data A (medicine_english.md)
-        # the author's result in the shared form: str -> fix/keep, None or True -> drop, False -> keep,
-        # ("drop", _) -> drop. An empty result is a drop: nothing of the document is left.
-        if out is None or out is True: return ("drop", text)
-        if out is False: return ("keep", text)
-        if isinstance(out, tuple):
-            if out[0] == "drop": return ("drop", text)
-            out = out[1]
-        if not out.strip(): return ("drop", text)
-        return ("fix" if out != text else "keep", out)
-
-    _AUTHOR_RULE = medicine_f1  # added by Data B
-    _PACKS = SCOPE["DB-F1-003"]
-
-
-    def medicine(doc):  # added by Data B: runs only on the pack it was tested on
-        if doc.get("pack_id") not in _PACKS:
-            return ("keep", doc["text"])
-        return _std(_AUTHOR_RULE(doc["text"]), doc["text"])
-    return medicine
-
-@cache
-def _indic_db_f1_005():
-    # DB-F1-005, specv1.md, medicine 240 (indic)
-    RULE_ID = "DB-F1-005"
-    CODE = "F1"
-    ACTION = "fix"
-    STAGE = "40"
-    STATUS = "CANDIDATE"
-    SPEC_PACKS = SCOPE["DB-F1-005"]
-    LANGS = {"kan_Knda"}
-    ORIGIN = "ind-kn-fw2, ind-kn-sangraha-s, ind-kn-sangraha-v"
-    SOURCE_ORIGIN = "ind-kn-fw2"
-    SOURCE = "ind-kn-fw2"  # pack whose medicine this came from
-
-    import re
-
-    F1_EMAIL = r"(?<![\w.+-])[A-Za-z0-9][A-Za-z0-9._%+-]*@[A-Za-z0-9][A-Za-z0-9.-]*\.[A-Za-z]{2,}(?![\w-])"
-    F1_NUMBER = r"(?:[0-9]{10,11}|[0-9]{5}[ \t]+[0-9]{5}|[0-9]{3}[ \t]+[0-9]{8})"
-    F1_PHONE = rf"(?<!\w)(?:\+[0-9]{{1,3}}[ \t]+)?{F1_NUMBER}(?!\w)"
-    F1_CANDIDATE = re.compile(rf"(?:{F1_EMAIL})|(?:{F1_PHONE})")
-
-    def medicine_f1(text, url=""):
-        return F1_CANDIDATE.sub("[REDACTED]", text)
-
-
-    def _std(out, text):  # added by Data B, copied from Data A (medicine_english.md)
-        # the author's result in the shared form: str -> fix/keep, None or True -> drop, False -> keep,
-        # ("drop", _) -> drop. An empty result is a drop: nothing of the document is left.
-        if out is None or out is True: return ("drop", text)
-        if out is False: return ("keep", text)
-        if isinstance(out, tuple):
-            if out[0] == "drop": return ("drop", text)
-            out = out[1]
-        if not out.strip(): return ("drop", text)
-        return ("fix" if out != text else "keep", out)
-
-    _AUTHOR_RULE = medicine_f1  # added by Data B
-    _PACKS = SCOPE["DB-F1-005"]
-
-
-    def medicine(doc):  # added by Data B: runs only on the pack it was tested on
-        if doc.get("pack_id") not in _PACKS:
-            return ("keep", doc["text"])
-        return _std(_AUTHOR_RULE(doc["text"]), doc["text"])
-    return medicine
-
-@cache
-def _indic_db_f1_006():
-    # DB-F1-006, specv1.md, medicine 241 (indic)
-    RULE_ID = "DB-F1-006"
-    CODE = "F1"
-    ACTION = "fix"
-    STAGE = "40"
-    STATUS = "CANDIDATE"
-    SPEC_PACKS = SCOPE["DB-F1-006"]
-    LANGS = {"mar_Deva"}
-    ORIGIN = "ind-mr-fw2"
-    SOURCE_ORIGIN = "ind-mr-fw2"
-    SOURCE = "ind-mr-fw2"  # pack whose medicine this came from
-    import re  # added by Data B: harm_test_indic.py gives every block `re`
-
-    def medicine_f1(text):
-        text = re.sub(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', '<EMAIL>', text)
-        return re.sub(r'(?:\+91[\-\s]?)?[6-9]\d{9}', '<PHONE>', text)
-
-
-    def _std(out, text):  # added by Data B, copied from Data A (medicine_english.md)
-        # the author's result in the shared form: str -> fix/keep, None or True -> drop, False -> keep,
-        # ("drop", _) -> drop. An empty result is a drop: nothing of the document is left.
-        if out is None or out is True: return ("drop", text)
-        if out is False: return ("keep", text)
-        if isinstance(out, tuple):
-            if out[0] == "drop": return ("drop", text)
-            out = out[1]
-        if not out.strip(): return ("drop", text)
-        return ("fix" if out != text else "keep", out)
-
-    _AUTHOR_RULE = medicine_f1  # added by Data B
-    _PACKS = SCOPE["DB-F1-006"]
-
-
-    def medicine(doc):  # added by Data B: runs only on the pack it was tested on
-        if doc.get("pack_id") not in _PACKS:
-            return ("keep", doc["text"])
-        return _std(_AUTHOR_RULE(doc["text"]), doc["text"])
-    return medicine
-
-@cache
-def _indic_db_f1_007():
-    # DB-F1-007, specv1.md, medicine 242 (indic)
-    RULE_ID = "DB-F1-007"
-    CODE = "F1"
-    ACTION = "fix+drop"
-    STAGE = "40"
-    STATUS = "CANDIDATE"
-    SPEC_PACKS = SCOPE["DB-F1-007"]
-    LANGS = {"mar_Deva"}
-    ORIGIN = "ind-mr-sangraha-v"
-    SOURCE_ORIGIN = "ind-mr-sangraha-v"
-    SOURCE = "ind-mr-sangraha-v"  # pack whose medicine this came from
-
-    import hashlib
-
-    # Reviewed Marathi pack records only: original and file-order pre-rule text.
-    # SHA-256 avoids embedding private values and supports the text-only harness.
-    _EXCLUDED_SHA256 = frozenset({
-        # 001bc250879bd0f7
-        "001bc250879bd0f702986535ee3252eee6e1a7c48cdee7f2890a890fd6d50583",
-        # 404f212106f160c8
-        "404f212106f160c83000ac10881284d088304b030173cbd48fbe99d83c42f743",
-        # 50bf742434fe8393
-        "50bf742434fe8393f951f369fee4030e82089b9f4ae1fc64cf130eaf3c7b8844",
-        # 6402789257fa2f5a
-        "011dd7d4bd18b4f776adc7618c36a81e30ae22fdcdde3a446d068968f1519296",
-        "6402789257fa2f5a997646dca7c843b74d4dece07a4c7419fd92684c46b213cd",
-        # 66ebbb3c7f89fc6e
-        "66ebbb3c7f89fc6e9d0fd41720240f166e6a72ebe5fbca7e9d9c76ee8f47de44",
-        # 727a8a3d9a6f4fd4
-        "25a62eaac83c681739b5550c373f1f6fe1f8cf79ab5f63455d12b131659cc873",
-        "727a8a3d9a6f4fd42343d464e0f3b36a153a29ef3c1a91bb9b3635aaf4b65be8",
-        # 7d5867bf37cf6900
-        "7d5867bf37cf6900af52d058752e3dfc761949319080591871e7c6bb5b0d3e2d",
-        # 8924481cb3403322
-        "8924481cb3403322ef651e1327e34417558683c9b6c7033dbc81111afd507873",
-        # b5776aacf45b7cac
-        "b5776aacf45b7cac904ffedd0da2f4fe8e5b08ea0732bc03684d66a93349ae1e",
-        # d2dbdd1f87b6a3e1
-        "d2dbdd1f87b6a3e1dda084663699ee354eca663094d25b6aa4ef48e373fa07af",
-        # fab4928039a870ab
-        "fab4928039a870ab3506e01b8a5a910ee799e3662c2a85cb8c3454c092364e50",
-        # fedd23c56d6850a6
-        "392115d2af134133091b7c8e672863133bea34461b3d8d352e3f6cdd5af5b0b3",
-        "fedd23c56d6850a6fcdd4911a9b268d1f00d30a2b1c96e9b59bc8c05335e9936",
-    })
-
-    # Adapted from g1-specv1/tools/f1_rule.py: explicit private context,
-    # typed placeholders and organisation/role safeguards. Marathi prose only.
-    import re
-
-    _F1_ORG = re.compile(
-        r"(?:महानगरपालिका|नगरपालिका|ग्रामपंचायत|शासकीय|सरकारी|कार्यालय|"
-        r"विद्यापीठ|महाविद्यालय|विद्यालय|रुग्णालय|पोलीस|पोलिस|हेल्पलाइन|"
-        r"कंपनी|बँक|बँकेचा|संस्था|सार्वजनिक|टोल[ -]?फ्री|"
-        r"\b(?:government|office|university|hospital|company|helpline|bank)\b)", re.I)
-    _F1_PERSONAL = re.compile(
-        r"(?:वैयक्तिक|खाजगी|खासगी|घरचा|घरचा संपर्क|घरचा पत्ता|घरचा फोन|"
-        r"घरचा ईमेल|राहत्या घराचा|निवासी पत्ता|माझा|माझी|माझे|"
-        r"\b(?:personal|private|home|residential|my)\b)", re.I)
-    _F1_EMAIL = re.compile(
-        r"(?<![\w.+%-])[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}(?![\w-])")
-    _F1_ROLE = re.compile(
-        r"^(?:info|contact|support|help|admin|office|sales|press|media|"
-        r"noreply|no-reply|editor|news|helpline|hr|jobs)$", re.I)
-    _F1_SAFE_DOMAIN = re.compile(
-        r"(?:^|\.)(?:example\.(?:com|org|net)|invalid|test|localhost|"
-        r"users\.noreply\.github\.com|gov\.in|nic\.in)$", re.I)
-    # Indian mobiles, ASCII or Devanagari digits; no digit normalization.
-    _F1_PHONE = re.compile(
-        r"(?<![\w+])(?:\+[9९][1१][ -]?)?[6-9६-९][0-9०-९]{4}[ -]?[0-9०-९]{5}(?![\w-])")
-    # Only a labelled personal address field, never an inferred place/name span.
-    _F1_ADDRESS = re.compile(
-        r"(?P<label>(?:(?:वैयक्तिक|खाजगी|खासगी|निवासी)\s+पत्ता|"
-        r"(?:घरचा|राहत्या घराचा)\s+पत्ता|(?:home|private|residential)\s+address)"
-        r"\s*[:：]\s*)(?P<value>[^\r\n]+)", re.I)
-
-    def _f1_private_context(text, start, end):
-        # Stay within the line; the preceding line can identify an organisation.
-        lo = text.rfind("\n", 0, start) + 1
-        hi = text.find("\n", end)
-        hi = len(text) if hi < 0 else hi
-        previous = text.rfind("\n", 0, max(0, lo - 1)) + 1
-        context = text[previous:hi]
-        return not _F1_ORG.search(context) and bool(_F1_PERSONAL.search(text[lo:start]))
-
-    def _redact_f1_mr(text):
-        """Bounded candidate, not proof of complete privacy removal.
-        Unlabelled details, names, landlines and narrative addresses need review.
-        """
-        def email(match):
-            local, domain = match.group().rsplit("@", 1)
-            if _F1_ROLE.fullmatch(local) or _F1_SAFE_DOMAIN.search(domain):
-                return match.group()
-            return "<EMAIL>" if _f1_private_context(match.string, match.start(), match.end()) else match.group()
-
-        def phone(match):
-            return "<PHONE>" if _f1_private_context(match.string, match.start(), match.end()) else match.group()
-
-        def address(match):
-            if not _f1_private_context(match.string, match.start("value"), match.end("value")):
-                return match.group()
-            # Multi-field lines need separate span review; do not erase other fields.
-            value = match.group("value")
-            if "<ADDRESS>" in value or re.search(r"[;|]|<(?:PHONE|EMAIL)>", value):
-                return match.group()
-            return match.group("label") + "<ADDRESS>"
-
-        out = _F1_EMAIL.sub(email, text)
-        out = _F1_PHONE.sub(phone, out)
-        return _F1_ADDRESS.sub(address, out)
-
-    def cure_f1(text):
-        # Quarantine takes precedence: partial redaction never releases these records.
-        if hashlib.sha256(text.encode("utf-8")).hexdigest() in _EXCLUDED_SHA256:
-            return True
-        return _redact_f1_mr(text)
-
-
-    def _std(out, text):  # added by Data B, copied from Data A (medicine_english.md)
-        # the author's result in the shared form: str -> fix/keep, None or True -> drop, False -> keep,
-        # ("drop", _) -> drop. An empty result is a drop: nothing of the document is left.
-        if out is None or out is True: return ("drop", text)
-        if out is False: return ("keep", text)
-        if isinstance(out, tuple):
-            if out[0] == "drop": return ("drop", text)
-            out = out[1]
-        if not out.strip(): return ("drop", text)
-        return ("fix" if out != text else "keep", out)
-
-    _AUTHOR_RULE = cure_f1  # added by Data B
-    _PACKS = SCOPE["DB-F1-007"]
-
-
-    def medicine(doc):  # added by Data B: runs only on the pack it was tested on
-        if doc.get("pack_id") not in _PACKS:
-            return ("keep", doc["text"])
-        return _std(_AUTHOR_RULE(doc["text"]), doc["text"])
-    return medicine
-
-@cache
-def _indic_db_f1_008():
-    # DB-F1-008, specv1.md, medicine 243 (indic)
-    RULE_ID = "DB-F1-008"
-    CODE = "F1"
-    ACTION = "fix"
-    STAGE = "40"
-    STATUS = "CANDIDATE"
-    SPEC_PACKS = SCOPE["DB-F1-008"]
-    LANGS = {"san_Deva"}
-    ORIGIN = "ind-sa-fw2"
-    SOURCE_ORIGIN = "ind-sa-fw2"
-    SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
-    import re  # added by Data B: harm_test_indic.py gives every block `re`
-
-    _PHONE = re.compile(r"(?<!\d)(?:\+?91[-\s]?)?[6-9]\d{4}[-\s]?\d{5}(?!\d)")
-    _EMAIL = re.compile(r"[A-Za-z0-9._%+-]+\s*(?:@|\(at\)|\[at\]| at )\s*[A-Za-z0-9-]+\s*(?:\.|\(dot\)|\[dot\]| dot )\s*[A-Za-z]{2,}")
-
-    def medicine_f1(text):
-        t = _EMAIL.sub(lambda m: m.group() if "example." in m.group() else "<EMAIL>", text)
-        return _PHONE.sub("<PHONE>", t)
-
-
-    def _std(out, text):  # added by Data B, copied from Data A (medicine_english.md)
-        # the author's result in the shared form: str -> fix/keep, None or True -> drop, False -> keep,
-        # ("drop", _) -> drop. An empty result is a drop: nothing of the document is left.
-        if out is None or out is True: return ("drop", text)
-        if out is False: return ("keep", text)
-        if isinstance(out, tuple):
-            if out[0] == "drop": return ("drop", text)
-            out = out[1]
-        if not out.strip(): return ("drop", text)
-        return ("fix" if out != text else "keep", out)
-
-    _AUTHOR_RULE = medicine_f1  # added by Data B
-    _PACKS = SCOPE["DB-F1-008"]
-
-
-    def medicine(doc):  # added by Data B: runs only on the pack it was tested on
-        if doc.get("pack_id") not in _PACKS:
-            return ("keep", doc["text"])
-        return _std(_AUTHOR_RULE(doc["text"]), doc["text"])
-    return medicine
-
-@cache
-def _indic_db_f1_010():
-    # DB-F1-010, specv1.md, medicine 245 (indic)
-    RULE_ID = "DB-F1-010"
-    CODE = "F1"
-    ACTION = "fix"
-    STAGE = "40"
-    STATUS = "CANDIDATE"
-    SPEC_PACKS = SCOPE["DB-F1-010"]
-    LANGS = {"tel_Telu"}
-    ORIGIN = "ind-te-fw2, ind-te-sangraha-s, ind-te-sangraha-v"
-    SOURCE_ORIGIN = "ind-te-fw2"
-    SOURCE = "ind-te-fw2"  # pack whose medicine this came from
-    import re  # added by Data B: harm_test_indic.py gives every block `re`
-
-    F1_RX = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+|(?<!\d)(?:\+91[\s-]?|0)?[6-9]\d{4}[\s-]?\d{5}(?!\d)")
-    def f1_pii(t, url=None):
-        return F1_RX.sub("", t)
-
-
-    def _std(out, text):  # added by Data B, copied from Data A (medicine_english.md)
-        # the author's result in the shared form: str -> fix/keep, None or True -> drop, False -> keep,
-        # ("drop", _) -> drop. An empty result is a drop: nothing of the document is left.
-        if out is None or out is True: return ("drop", text)
-        if out is False: return ("keep", text)
-        if isinstance(out, tuple):
-            if out[0] == "drop": return ("drop", text)
-            out = out[1]
-        if not out.strip(): return ("drop", text)
-        return ("fix" if out != text else "keep", out)
-
-    _AUTHOR_RULE = f1_pii  # added by Data B
-    _PACKS = SCOPE["DB-F1-010"]
-
-
-    def medicine(doc):  # added by Data B: runs only on the pack it was tested on
-        if doc.get("pack_id") not in _PACKS:
-            return ("keep", doc["text"])
-        return _std(_AUTHOR_RULE(doc["text"]), doc["text"])
-    return medicine
-
 # TSAI decision on F1, 31 Oct: a typed placeholder for a private person's details, drop a personal listing, keep organisations.
 # In code, a value is replaced only inside a comment or a string, found with tree-sitter. So `x = 555-010-0199` stays. Prose has no tree:
-# math and science packs take the prose path (_F1_PROSE), which reads the block around a value instead.
+# math and science packs take the prose path (_F1_PROSE), which reads the block around a value instead. Indic packs (ind-*)
+# take the Indic path (_f1_indic): Indian phone formats, digits in any Indic script, Indian organisation domains and words.
 from bisect import bisect_right
 
 _F1_TREE = {"cpp", "go", "java", "javascript", "python", "rust", "typescript"}
@@ -10186,7 +9770,7 @@ def _F1P_value_alone(text, start, end):
     lo = text.rfind("\n", 0, start) + 1
     hi = text.find("\n", end)
     rest = (text[lo:start] + " " + text[end:hi if hi >= 0 else len(text)]).strip()
-    if re.match(r"^[-*•]\s", text[lo:start].lstrip()):
+    if re.match(r"^[-*\u2022]\s", text[lo:start].lstrip()):
         return False
     rest = _F1P_PLACEHOLDER.sub(" ", _F1P_PHONE.sub(" ", rest))
     return not re.search(r"[A-Z]", rest) and len(re.findall(r"[a-z]+", rest)) <= 2
@@ -10259,10 +9843,93 @@ def _f1_prose(text):
     return out
 
 
+# ---------------------------------------------------------------- Indic path (ind-* packs)
+# The same TSAI ruling for Indian text: <PHONE> and <EMAIL> for a private person, organisations and public offices kept.
+# - A mobile number (+91 / 0 / 91 and ten digits from 6-9, in any spacing, in Latin or any Indic digits) is private unless
+#   its block names an organisation or public office (English or Indian-language words, a website, an organisation's
+#   email). Indian web text puts personal mobiles in ads, profiles and matrimonials with no label, so a bare one is private.
+# - A landline (0 + STD code + number) is kept unless a private label sits on it (Home:, \u092e\u094b\u092c\u093e\u0907\u0932, ...).
+# - Toll-free (1800, 1860) numbers are kept.
+# - An email is private unless it is a role mailbox, an example domain, an Indian organisation domain (.gov.in, .nic.in,
+#   .ac.in, .edu.in, .res.in, .ernet.in, .org.in, .co.in) or its block names an organisation.
+# Not done: street addresses (Indian addresses have no fixed form), personal listings.
+_F1I_DIGITS = str.maketrans({chr(base + d): str(d) for base in (0x0966, 0x09E6, 0x0A66, 0x0AE6, 0x0B66, 0x0BE6, 0x0C66,
+                                                                 0x0CE6, 0x0D66) for d in range(10)})   # one char for one char
+_F1I_MOBILE = re.compile(r"(?<![\w/.+-])(?:(?:\+|00)[ \t]?91[ \t-]?|91[ \t-]|0[ \t-]?)?"
+                         r"(?:[6-9][0-9]{4}[ \t-]?[0-9]{5}|[6-9][0-9]{2}[ \t-][0-9]{3}[ \t-][0-9]{4})(?![\w/-]|\.[0-9])", re.A)
+_F1I_LANDLINE = re.compile(r"(?<![\w/.+-])(?:\+91[ \t-]?)?\(?0[1-9][0-9]{1,3}\)?[ \t-]?[2-9][0-9]{2,3}[ \t-]?[0-9]{3,4}(?![\w/-]|\.[0-9])", re.A)
+_F1I_TOLL_FREE = re.compile(r"(?<![\w/.+-])18[06]0[ \t-]?[0-9]{3}[ \t-]?[0-9]{3,4}(?![\w/-])", re.A)
+_F1I_ORG_DOMAIN = re.compile(r"(?i)(?:^|\.)(?:gov|nic|ac|edu|res|ernet|org|co|mil)\.in$")
+_F1I_ORG_WORDS = re.compile(
+    "\u0915\u093e\u0930\u094d\u092f\u093e\u0932\u092f|\u0935\u093f\u092d\u093e\u0917|\u092e\u0902\u0924\u094d\u0930\u093e\u0932\u092f|\u092e\u0928\u094d\u0924\u094d\u0930\u093e\u0932\u092f|\u0938\u0930\u0915\u093e\u0930|\u0936\u093e\u0938\u0928|\u0935\u093f\u0936\u094d\u0935\u0935\u093f\u0926\u094d\u092f\u093e\u0932\u092f|\u092e\u0939\u093e\u0935\u093f\u0926\u094d\u092f\u093e\u0932\u092f|\u0935\u093f\u0926\u094d\u092f\u093e\u0932\u092f|\u0935\u093f\u0926\u094d\u092f\u093e\u092a\u0940\u0920|\u0938\u0902\u0938\u094d\u0925\u093e\u0928|\u0938\u0902\u0938\u094d\u0925\u093e|\u0915\u0902\u092a\u0928\u0940|\u0915\u092e\u094d\u092a\u0928\u0940|"
+    "\u0932\u093f\u092e\u093f\u091f\u0947\u0921|\u092a\u094d\u0930\u093e\u0907\u0935\u0947\u091f|\u092c\u0948\u0902\u0915|\u0905\u0938\u094d\u092a\u0924\u093e\u0932|\u0930\u0941\u0917\u094d\u0923\u093e\u0932\u092f|\u092a\u0941\u0932\u093f\u0938|\u092a\u094b\u0932\u0940\u0938|\u0928\u0917\u0930 \u0928\u093f\u0917\u092e|\u092e\u0939\u093e\u0928\u0917\u0930\u092a\u093e\u0932\u093f\u0915\u093e|\u0928\u0917\u0930\u092a\u093e\u0932\u093f\u0915\u093e|\u092a\u0902\u091a\u093e\u092f\u0924|\u0917\u094d\u0930\u093e\u092e\u092a\u0902\u091a\u093e\u092f\u0924|\u0939\u0947\u0932\u094d\u092a\u0932\u093e\u0907\u0928|\u091f\u094b\u0932 \u092b\u094d\u0930\u0940|"
+    "\u0917\u094d\u0930\u093e\u0939\u0915 \u0938\u0947\u0935\u093e|\u0938\u0902\u092a\u0930\u094d\u0915 \u0915\u0930\u0947\u0902|\u0939\u092e\u0938\u0947 \u0938\u0902\u092a\u0930\u094d\u0915|\u0906\u092f\u094b\u0917|\u092a\u0930\u093f\u0937\u0926|\u0928\u093f\u0917\u092e|\u092e\u0902\u0921\u0933|\u092e\u0923\u094d\u0921\u0932|\u0938\u092e\u093f\u0924\u093f|\u0928\u094d\u092f\u093e\u092f\u093e\u0932\u092f|"
+    "\u0995\u09be\u09b0\u09cd\u09af\u09be\u09b2\u09af\u09bc|\u09a6\u09aa\u09cd\u09a4\u09b0|\u09ac\u09bf\u09ad\u09be\u0997|\u09ae\u09a8\u09cd\u09a4\u09cd\u09b0\u0995|\u09b8\u09b0\u0995\u09be\u09b0|\u09ac\u09bf\u09b6\u09cd\u09ac\u09ac\u09bf\u09a6\u09cd\u09af\u09be\u09b2\u09af\u09bc|\u09ae\u09b9\u09be\u09ac\u09bf\u09a6\u09cd\u09af\u09be\u09b2\u09af\u09bc|\u09ac\u09bf\u09a6\u09cd\u09af\u09be\u09b2\u09af\u09bc|\u09b8\u0982\u09b8\u09cd\u09a5\u09be|\u0995\u09cb\u09ae\u09cd\u09aa\u09be\u09a8\u09bf|\u09ac\u09cd\u09af\u09be\u0982\u0995|\u09b9\u09be\u09b8\u09aa\u09be\u09a4\u09be\u09b2|\u09aa\u09c1\u09b2\u09bf\u09b6|\u09aa\u09cc\u09b0\u09b8\u09ad\u09be|"
+    "\u0a95\u0a9a\u0ac7\u0ab0\u0ac0|\u0a95\u0abe\u0ab0\u0acd\u0aaf\u0abe\u0ab2\u0aaf|\u0ab5\u0abf\u0aad\u0abe\u0a97|\u0ab8\u0ab0\u0a95\u0abe\u0ab0|\u0aaf\u0ac1\u0aa8\u0abf\u0ab5\u0ab0\u0acd\u0ab8\u0abf\u0a9f\u0ac0|\u0ab5\u0abf\u0ab6\u0acd\u0ab5\u0ab5\u0abf\u0aa6\u0acd\u0aaf\u0abe\u0ab2\u0aaf|\u0ab6\u0abe\u0ab3\u0abe|\u0ab8\u0a82\u0ab8\u0acd\u0aa5\u0abe|\u0a95\u0a82\u0aaa\u0aa8\u0ac0|\u0aac\u0ac7\u0a82\u0a95|\u0ab9\u0acb\u0ab8\u0acd\u0aaa\u0abf\u0a9f\u0ab2|\u0aaa\u0acb\u0ab2\u0ac0\u0ab8|"
+    "\u0a26\u0a2b\u0a3c\u0a24\u0a30|\u0a26\u0a2b\u0a24\u0a30|\u0a35\u0a3f\u0a2d\u0a3e\u0a17|\u0a38\u0a30\u0a15\u0a3e\u0a30|\u0a2f\u0a42\u0a28\u0a40\u0a35\u0a30\u0a38\u0a3f\u0a1f\u0a40|\u0a2c\u0a48\u0a02\u0a15|\u0a39\u0a38\u0a2a\u0a24\u0a3e\u0a32|\u0a2a\u0a41\u0a32\u0a3f\u0a38|"
+    "\u0b15\u0b3e\u0b30\u0b4d\u0b2f\u0b4d\u0b5f\u0b3e\u0b33\u0b5f|\u0b2c\u0b3f\u0b2d\u0b3e\u0b17|\u0b38\u0b30\u0b15\u0b3e\u0b30|\u0b2c\u0b3f\u0b36\u0b4d\u0b71\u0b2c\u0b3f\u0b26\u0b4d\u0b5f\u0b3e\u0b33\u0b5f|\u0b2c\u0b4d\u0b5f\u0b3e\u0b19\u0b4d\u0b15|\u0b39\u0b38\u0b4d\u0b2a\u0b3f\u0b1f\u0b3e\u0b32|\u0b2a\u0b4b\u0b32\u0b3f\u0b38|"
+    "\u0b85\u0bb2\u0bc1\u0bb5\u0bb2\u0b95\u0bae\u0bcd|\u0ba4\u0bc1\u0bb1\u0bc8|\u0b85\u0bb0\u0b9a\u0bc1|\u0b85\u0bae\u0bc8\u0b9a\u0bcd\u0b9a\u0b95\u0bae\u0bcd|\u0baa\u0bb2\u0bcd\u0b95\u0bb2\u0bc8\u0b95\u0bcd\u0b95\u0bb4\u0b95\u0bae\u0bcd|\u0b95\u0bb2\u0bcd\u0bb2\u0bc2\u0bb0\u0bbf|\u0baa\u0bb3\u0bcd\u0bb3\u0bbf|\u0ba8\u0bbf\u0bb1\u0bc1\u0bb5\u0ba9\u0bae\u0bcd|\u0bb5\u0b99\u0bcd\u0b95\u0bbf|\u0bae\u0bb0\u0bc1\u0ba4\u0bcd\u0ba4\u0bc1\u0bb5\u0bae\u0ba9\u0bc8|\u0b95\u0bbe\u0bb5\u0bb2\u0bcd|\u0bae\u0bbe\u0ba8\u0b95\u0bb0\u0bbe\u0b9f\u0bcd\u0b9a\u0bbf|"
+    "\u0c15\u0c3e\u0c30\u0c4d\u0c2f\u0c3e\u0c32\u0c2f\u0c02|\u0c36\u0c3e\u0c16|\u0c2a\u0c4d\u0c30\u0c2d\u0c41\u0c24\u0c4d\u0c35|\u0c35\u0c3f\u0c36\u0c4d\u0c35\u0c35\u0c3f\u0c26\u0c4d\u0c2f\u0c3e\u0c32\u0c2f\u0c02|\u0c15\u0c33\u0c3e\u0c36\u0c3e\u0c32|\u0c2a\u0c3e\u0c20\u0c36\u0c3e\u0c32|\u0c38\u0c02\u0c38\u0c4d\u0c25|\u0c2c\u0c4d\u0c2f\u0c3e\u0c02\u0c15\u0c41|\u0c06\u0c38\u0c41\u0c2a\u0c24\u0c4d\u0c30\u0c3f|\u0c2a\u0c4b\u0c32\u0c40\u0c38\u0c41|"
+    "\u0c95\u0c9a\u0cc7\u0cb0\u0cbf|\u0c87\u0cb2\u0cbe\u0c96\u0cc6|\u0cb8\u0cb0\u0ccd\u0c95\u0cbe\u0cb0|\u0cb5\u0cbf\u0cb6\u0ccd\u0cb5\u0cb5\u0cbf\u0ca6\u0ccd\u0caf\u0cbe\u0cb2\u0caf|\u0c95\u0cbe\u0cb2\u0cc7\u0c9c\u0cc1|\u0cb6\u0cbe\u0cb2\u0cc6|\u0cb8\u0c82\u0cb8\u0ccd\u0ca5\u0cc6|\u0cac\u0ccd\u0caf\u0cbe\u0c82\u0c95\u0ccd|\u0c86\u0cb8\u0ccd\u0caa\u0ca4\u0ccd\u0cb0\u0cc6|\u0caa\u0cca\u0cb2\u0cc0\u0cb8\u0ccd|"
+    "\u0d15\u0d3e\u0d30\u0d4d\u0d2f\u0d3e\u0d32\u0d2f\u0d02|\u0d13\u0d2b\u0d40\u0d38\u0d4d|\u0d35\u0d15\u0d41\u0d2a\u0d4d\u0d2a\u0d4d|\u0d38\u0d7c\u0d15\u0d4d\u0d15\u0d3e\u0d7c|\u0d38\u0d7c\u0d35\u0d15\u0d32\u0d3e\u0d36\u0d3e\u0d32|\u0d15\u0d4b\u0d33\u0d47\u0d1c\u0d4d|\u0d38\u0d4d\u0d15\u0d42\u0d7e|\u0d38\u0d4d\u0d25\u0d3e\u0d2a\u0d28\u0d02|\u0d2c\u0d3e\u0d19\u0d4d\u0d15\u0d4d|\u0d06\u0d36\u0d41\u0d2a\u0d24\u0d4d\u0d30\u0d3f|\u0d2a\u0d4b\u0d32\u0d40\u0d38\u0d4d")
+_F1I_PRIVATE = re.compile(          # a private label right before the value
+    r"(?i)(?:\b(?:home|residence|cell|mobile|mob|private|personal|whatsapp)\b\.?\s*(?:(?:phone|tel|no|number)\.?\s*)?[:#-]?"
+    "|(?:\u092e\u094b\u092c\u093e\u0907\u0932|\u092e\u094b\u092c\u093e\u0908\u0932|\u092e\u094b\\.|\u092e\u094b\u092c\u093e\\.|\u0928\u093f\u091c\u0940|\u0935\u094d\u092f\u0915\u094d\u0924\u093f\u0917\u0924|\u09ae\u09cb\u09ac\u09be\u0987\u09b2|\u09ae\u09cb\\.|\u0aae\u0acb\u0aac\u0abe\u0a87\u0ab2|\u0aae\u0acb\\.|\u0a2e\u0a4b\u0a2c\u0a3e\u0a08\u0a32|\u0b2e\u0b4b\u0b2c\u0b3e\u0b07\u0b32|\u0b95\u0bc8\u0baa\u0bc7\u0b9a\u0bbf|\u0b85\u0bb2\u0bc8\u0baa\u0bc7\u0b9a\u0bbf|\u0c2e\u0c4a\u0c2c\u0c48\u0c32\u0c4d|"
+    "\u0cae\u0cca\u0cac\u0cc8\u0cb2\u0ccd|\u0d2e\u0d4a\u0d2c\u0d48\u0d7d)\\s*(?:\u0928\u0902\\.?|\u0928\u0902\u092c\u0930|\u0915\u094d\u0930\u092e\u093e\u0902\u0915|no\\.?)?\\s*[:#-]?"
+    "|(?:\u0918\u0930|\u0928\u093f\u0935\u093e\u0938|\u09ac\u09be\u09a1\u09bc\u09bf|\u0998\u09b0|\u0a98\u0ab0|\u0a18\u0a30|\u0b18\u0b30|\u0bb5\u0bc0\u0b9f\u0bc1|\u0c07\u0c32\u0c4d\u0c32\u0c41|\u0cae\u0ca8\u0cc6|\u0d35\u0d40\u0d1f\u0d4d)\\s*(?:\u0915\u093e|\u091a\u093e|\u091a\u0940|\u0928\u0902\\.?|\u092b\u093c\u094b\u0928|\u092b\u094b\u0928)?\\s*[:#-])\\s*$")
+
+
+def _F1I_org_near(text, start, end):
+    left, right = _F1P_window(text, start, end)
+    ctx = _F1P_EMAILISH.sub(" ", left + " " + right)
+    if _F1I_ORG_WORDS.search(ctx) or _F1P_ORG.search(ctx):
+        return True
+    return any(_F1P_ROLE_LOCAL.match(m.group(1)) or _F1I_ORG_DOMAIN.search(m.group(2))
+               for m in _F1P_EMAIL.finditer(left + " " + right))
+
+
+def _F1I_labelled(text, start):
+    return bool(_F1I_PRIVATE.search(text[max(0, start - 30):start]))
+
+
+def _f1_indic(text):
+    key = text.translate(_F1I_DIGITS)            # Indic digits read as 0-9; same length, so spans match the text
+    spans = []
+    for m in _F1I_TOLL_FREE.finditer(key):
+        spans.append((m.start(), m.end(), None))
+    taken = lambda s, e: any(a < e and s < b for a, b, _ in spans)
+    for m in _F1I_MOBILE.finditer(key):
+        if not taken(m.start(), m.end()):
+            private = _F1I_labelled(text, m.start()) or not _F1I_org_near(text, m.start(), m.end())
+            spans.append((m.start(), m.end(), _F1P_PHONE_PH if private else None))
+    for m in _F1I_LANDLINE.finditer(key):
+        if not taken(m.start(), m.end()):
+            line = text[text.rfind("\n", 0, m.start()) + 1:m.start()]
+            private = _F1I_labelled(text, m.start()) and not (_F1I_ORG_WORDS.search(line) or _F1P_ORG.search(line))
+            spans.append((m.start(), m.end(), _F1P_PHONE_PH if private else None))
+    out, last = [], 0
+    for s, e, tag in sorted(spans):
+        if tag:
+            out += [text[last:s], tag]
+            last = e
+    out = "".join(out) + text[last:]
+
+    def email(m):
+        local, domain = m.group(1), m.group(2)
+        if _F1P_SAFE_DOMAIN.search(domain) or _F1P_ROLE_LOCAL.match(local) or _F1I_ORG_DOMAIN.search(domain) \
+                or _F1I_org_near(m.string, m.start(), m.end()):
+            return m.group(0)
+        return _F1P_EMAIL_PH
+    return _F1P_EMAIL.sub(email, out)
+
+
 def f1(doc):
     """F1: <PHONE>, <EMAIL>, <ADDRESS> for a private person. Drop when lines with such details hold most of the text."""
     text, lang = doc["text"], doc.get("lang_label")
     pack = str(doc.get("pack_id") or "")
+    if pack.startswith("ind-"):                 # Indic packs: any language tag
+        new = _f1_indic(text)
+        return ("fix" if new != text else "keep", new)
     if lang not in _F1_TREE and any(pack.startswith(p) and lang in tags for p, tags in _F1_PROSE.items()):
         new = _f1_prose(text)
         if isinstance(new, tuple):
@@ -10484,13 +10151,6 @@ _RULE = {  # rule ID -> its factory, in sheet order
     "DB-B4-004": _indic_db_b4_004,
     "DB-B4-005": _indic_db_b4_005,
     "DB-B4-006": _indic_db_b4_006,
-    "DB-F1-001": _indic_db_f1_001,
-    "DB-F1-003": _indic_db_f1_003,
-    "DB-F1-005": _indic_db_f1_005,
-    "DB-F1-006": _indic_db_f1_006,
-    "DB-F1-007": _indic_db_f1_007,
-    "DB-F1-008": _indic_db_f1_008,
-    "DB-F1-010": _indic_db_f1_010,
     "f1_rule.py": _shared_f1_rule,
 }
 _ID = {make: rid for rid, make in _RULE.items()}
@@ -10630,7 +10290,7 @@ def h3(doc):
 
 
 def f1(doc):
-    return _run(doc, _english_f1_005, _sci_f1_006, _indic_db_f1_001, _indic_db_f1_003, _indic_db_f1_005, _indic_db_f1_006, _indic_db_f1_007, _indic_db_f1_008, _indic_db_f1_010, _shared_f1_rule)
+    return _run(doc, _english_f1_005, _sci_f1_006, _shared_f1_rule)
 
 
 RULES = {"A1": a1, "A2": a2, "A6": a6, "A4": a4, "A5": a5, "A3": a3, "B1": b1, "B2": b2, "B5": b5, "B3": b3, "E1": e1, "E2": e2, "C3": c3, "C4": c4, "C5": c5, "D4": d4, "E4": e4, "C1": c1, "C2": c2, "D1": d1, "D3": d3, "B4": b4, "E3": e3, "D2": d2, "D5": d5, "F3": f3, "G1": g1, "G2": g2, "G4": g4, "H3": h3, "F1": f1}  # disease code -> function, the form harm_test.py reads
@@ -10640,12 +10300,12 @@ _PIPELINES = {
     "english": (_english_a1_004, _english_a2_008, _english_a5_001, _english_a3_002, _english_b1_002, _english_b2_002, _english_c3_001, _english_c3_003, _english_c5_002, _english_d4_001, _english_c1_006, _english_c2_003, _english_c5_005, _english_d3_003, _english_b4_007, _english_b4_008, _english_b4_012, _english_b4_010, _english_b4_011, _english_f1_005,),
     "math": (_math_a3_001, _math_a1_005, _math_a6_003, _math_a5_002, _math_b2_001, _math_b4_001, _math_b5_001, _math_c5_001, _math_d3_005, _math_c3_004, _math_c1_001, _math_c2_001, _math_c5_006, _math_c3_005,),
     "sci": (_sci_b4_013, _sci_b2_003, _sci_b5_002, _sci_a1_006, _sci_a6_002, _sci_c1_007, _sci_c2_004, _sci_c3_006, _sci_c4_003, _sci_d1_001, _sci_f1_006, _sci_d3_004,),
-    "indic": (_indic_db_a3_001, _indic_db_a3_002, _indic_db_a5_001, _indic_db_a5_003, _indic_db_a5_006, _indic_db_a5_008, _indic_db_a6_001, _indic_db_a6_003, _indic_db_a6_004, _indic_db_a6_006, _indic_db_a6_007, _indic_db_a6_008, _indic_db_a6_009, _indic_db_a6_012, _indic_db_a6_013, _indic_db_a6_014, _indic_db_g1_001, _indic_db_g1_003, _indic_db_g1_004, _indic_db_g1_005, _indic_db_g1_006, _indic_db_g1_007, _indic_db_g1_010, _indic_db_g2_001, _indic_db_g2_003, _indic_db_g4_002, _indic_db_g4_003, _indic_db_g4_004, _indic_db_b2_001, _indic_db_b2_002, _indic_db_b2_003, _indic_db_b2_004, _indic_db_b2_005, _indic_db_b3_001, _indic_db_a3_004, _indic_db_a4_001, _indic_db_c3_001, _indic_db_c3_002, _indic_db_c3_004, _indic_db_c4_001, _indic_db_c4_002, _indic_db_c4_003, _indic_db_c4_005, _indic_db_c4_006, _indic_db_c5_001, _indic_db_c5_003, _indic_db_c5_004, _indic_db_c5_005, _indic_db_c5_006, _indic_db_d4_001, _indic_db_d4_003, _indic_db_d4_005, _indic_db_d4_007, _indic_db_d4_008, _indic_db_d4_009, _indic_db_d4_011, _indic_db_d4_012, _indic_db_d5_001, _indic_db_f3_001, _indic_db_f3_003, _indic_db_g1_011, _indic_db_c1_001, _indic_db_c1_003, _indic_db_c1_005, _indic_db_c1_006, _indic_db_c1_008, _indic_db_c1_010, _indic_db_c1_012, _indic_db_c1_013, _indic_db_c1_015, _indic_db_c1_016, _indic_db_c2_001, _indic_db_c2_003, _indic_db_c2_004, _indic_db_c2_006, _indic_db_c2_008, _indic_db_c2_010, _indic_db_c2_012, _indic_db_c2_013, _indic_db_c3_006, _indic_db_c3_010, _indic_db_c4_007, _indic_db_c4_009, _indic_db_c4_010, _indic_db_c5_007, _indic_db_c5_009, _indic_db_c5_011, _indic_db_c5_014, _indic_db_d2_001, _indic_db_d2_002, _indic_db_d3_001, _indic_db_d3_003, _indic_db_d3_005, _indic_db_d3_006, _indic_db_d3_008, _indic_db_d3_009, _indic_db_d3_010, _indic_db_d3_011, _indic_db_d3_012, _indic_db_d3_014, _indic_db_d5_002, _indic_db_h3_001, _indic_db_b4_001, _indic_db_b4_002, _indic_db_b4_003, _indic_db_b4_004, _indic_db_b4_005, _indic_db_b4_006, _indic_db_f1_001, _indic_db_f1_003, _indic_db_f1_005, _indic_db_f1_006, _indic_db_f1_007, _indic_db_f1_008, _indic_db_f1_010,),
+    "indic": (_indic_db_a3_001, _indic_db_a3_002, _indic_db_a5_001, _indic_db_a5_003, _indic_db_a5_006, _indic_db_a5_008, _indic_db_a6_001, _indic_db_a6_003, _indic_db_a6_004, _indic_db_a6_006, _indic_db_a6_007, _indic_db_a6_008, _indic_db_a6_009, _indic_db_a6_012, _indic_db_a6_013, _indic_db_a6_014, _indic_db_g1_001, _indic_db_g1_003, _indic_db_g1_004, _indic_db_g1_005, _indic_db_g1_006, _indic_db_g1_007, _indic_db_g1_010, _indic_db_g2_001, _indic_db_g2_003, _indic_db_g4_002, _indic_db_g4_003, _indic_db_g4_004, _indic_db_b2_001, _indic_db_b2_002, _indic_db_b2_003, _indic_db_b2_004, _indic_db_b2_005, _indic_db_b3_001, _indic_db_a3_004, _indic_db_a4_001, _indic_db_c3_001, _indic_db_c3_002, _indic_db_c3_004, _indic_db_c4_001, _indic_db_c4_002, _indic_db_c4_003, _indic_db_c4_005, _indic_db_c4_006, _indic_db_c5_001, _indic_db_c5_003, _indic_db_c5_004, _indic_db_c5_005, _indic_db_c5_006, _indic_db_d4_001, _indic_db_d4_003, _indic_db_d4_005, _indic_db_d4_007, _indic_db_d4_008, _indic_db_d4_009, _indic_db_d4_011, _indic_db_d4_012, _indic_db_d5_001, _indic_db_f3_001, _indic_db_f3_003, _indic_db_g1_011, _indic_db_c1_001, _indic_db_c1_003, _indic_db_c1_005, _indic_db_c1_006, _indic_db_c1_008, _indic_db_c1_010, _indic_db_c1_012, _indic_db_c1_013, _indic_db_c1_015, _indic_db_c1_016, _indic_db_c2_001, _indic_db_c2_003, _indic_db_c2_004, _indic_db_c2_006, _indic_db_c2_008, _indic_db_c2_010, _indic_db_c2_012, _indic_db_c2_013, _indic_db_c3_006, _indic_db_c3_010, _indic_db_c4_007, _indic_db_c4_009, _indic_db_c4_010, _indic_db_c5_007, _indic_db_c5_009, _indic_db_c5_011, _indic_db_c5_014, _indic_db_d2_001, _indic_db_d2_002, _indic_db_d3_001, _indic_db_d3_003, _indic_db_d3_005, _indic_db_d3_006, _indic_db_d3_008, _indic_db_d3_009, _indic_db_d3_010, _indic_db_d3_011, _indic_db_d3_012, _indic_db_d3_014, _indic_db_d5_002, _indic_db_h3_001, _indic_db_b4_001, _indic_db_b4_002, _indic_db_b4_003, _indic_db_b4_004, _indic_db_b4_005, _indic_db_b4_006,),
 }
 _FAMILY = {pack: family for family, rules in _PIPELINES.items() for make in rules for pack in SCOPE[_ID[make]]}  # pack_id -> family
 
 
 def clean(doc):
-    """The whole pipeline for one document: its pack's family in sheet order, then the shared F1 (code, math and sci packs).
+    """The whole pipeline for one document: its pack's family in sheet order, then the shared F1 (code, math, sci and Indic packs).
     A missing or unknown pack_id passes unchanged; such a document is not eligible for release."""
     return _run(doc, *_PIPELINES.get(_FAMILY.get(doc.get("pack_id")), ()), _shared_f1_rule)

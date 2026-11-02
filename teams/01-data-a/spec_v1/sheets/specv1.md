@@ -25,7 +25,7 @@ Run in medicine-section order, route to exactly one family, carry each fixed tex
 | Code E1/E2/C3/C4 drops versus E4 stripping | Drops first, then strips, as the code source requires. Keep overlapping E4 and E3 rules in source order; distinct detectors are not merged by disease code. |
 | C3/C4 repair versus deletion | Preserve each family decision. Science uses reviewed exclusions and bounded repairs; reject longest-article-only extraction. Any split must emit all articles with parent provenance. |
 | D1 versus D3 | Science keeps natural multilingual passages; only reviewed wrong-language IDs are quarantined. English D3 deletion remains English-only and requires review of legitimate quotations before approval. |
-| F1 privacy differs by family | English keeps its final typed-placeholder rule; science quarantines nine reviewed IDs and gates remaining F1 labels. Code/math sheets do not provide complete F1 coverage. Shared `../tools/f1_rule.py` (TSAI, 1 Nov) runs last on the code, math and science packs through `clean.py`'s `SCOPE`, after `DA-F1-006` on science, and never on English; it is not a sheet block. Gold harm 0 on math and science (`results/cleaner/harm_tests_f1_math_sci.md`); its known misses keep full privacy coverage a release gate. |
+| F1 privacy differs by family | English keeps its final typed-placeholder rule; science quarantines nine reviewed IDs and gates remaining F1 labels. Code/math sheets do not provide complete F1 coverage. Shared `../tools/f1_rule.py` (TSAI, 1 Nov) runs last on the code, math, science and Indic packs through `clean.py`'s `SCOPE`, after `DA-F1-006` on science, and never on English; on Indic it replaces the deferred source F1 rules (Indian phone formats, Indian organisation domains and words); it is not a sheet block. Gold harm 0 on math and science (`results/cleaner/harm_tests_f1_math_sci.md`); its known misses keep full privacy coverage a release gate. |
 | Counts, examples and qualification | Do not add overlapping diagnosis counts. Counts of five or fewer are supplementary coverage, not evidence of the template's >5 criterion. Keep them visibly for provenance and safety coverage. Missing exact examples block template completion. |
 | Source medicine versus action prose | Runnable callable determines measured behavior. Some math C3 wrapper paths keep tuple/drop outcomes despite descriptive drop wording; preserve implementation, disclose the discrepancy, and require adjudication before approval. |
 
@@ -48,7 +48,7 @@ Source code remains CANDIDATE even after a measured pass. Semantic side effects,
 
 The pin is `v1`, set SHA-256 `11e290a44d1467875fdf8bebc55eab21f0a6367f411aab98a4a027a546fd372e`. This is G9's supplied word-ngram matcher, not the two legacy Sanskrit character-window medicines. Those `DB-F2-*` cards remain deferred. G9 v1 includes FLORES/IN22 fingerprints but not Itihasa; the optional stage must not be described as complete Itihasa coverage. Changing the set or applying the stage to new packs requires its own validation. See [F2 results](../results/f2/README.md).
 
-The effective runner order is: validated family scopes in sheet order, existing shared F1 on code/math/science, then G9 F2 **only with `--f2`**. Indic keeps its own F1 rules. A rebuild refreshes family scopes and does not turn on F2 automatically.
+The effective runner order is: validated family scopes in sheet order, the shared F1 on code/math/science/Indic, then G9 F2 **only with `--f2`**. Indic's source F1 rules are deferred: the shared F1's Indic path replaces them. A rebuild refreshes family scopes and does not turn on F2 automatically.
 <!-- END MERGED PIPELINE DECISIONS -->
 
 ## Source snapshots
@@ -17131,7 +17131,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 ## Medicine 236 — indic / F1 / `DB-F1-001`
 
-**Integration decision:** CANDIDATE. first eligible candidate in source order; independent approval pending. Source harm statements below are inherited; current local own-pack gold: PASS. The integration status above supersedes the source card status below.
+**Integration decision:** DEFERRED. replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts. Source harm statements below are inherited; current local own-pack gold: PASS. The integration status above supersedes the source card status below.
 
 1. **Disease:** F1 Personal data. Pack `ind-gu-fw2`. Source: section F1 of `diagnosis/submissions/ind-gu-fw2/Nisarg189/medicine.md`, PR #18 at `9184235`.
 <!-- CARD EVIDENCE -->
@@ -17143,13 +17143,14 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 2. **Medicine:** the author's code, unchanged. Main function: `medicine_f1(text)`.
 
-```python
+```python deferred
 RULE_ID = "DB-F1-001"
 CODE = "F1"
 ACTION = "fix"
 STAGE = "40"
-STATUS = "CANDIDATE"
+STATUS = "DEFERRED"
 SPEC_PACKS = {'ind-gu-fw2'}
+DEFER_REASON = "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
 LANGS = {"guj_Gujr"}
 ORIGIN = "ind-gu-fw2"
 SOURCE_ORIGIN = "ind-gu-fw2"
@@ -17259,7 +17260,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 ## Medicine 238 — indic / F1 / `DB-F1-003`
 
-**Integration decision:** CANDIDATE. first eligible candidate in source order; independent approval pending. Source harm statements below are inherited; current local own-pack gold: PASS. The integration status above supersedes the source card status below.
+**Integration decision:** DEFERRED. replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts. Source harm statements below are inherited; current local own-pack gold: PASS. The integration status above supersedes the source card status below.
 
 1. **Disease:** F1 Personal data. Pack `ind-hi-hplt`. Source: section F1 of `diagnosis/submissions/ind-hi-hplt/narasimhatejav/medicine.md`, PR #170 at `4aaf84b`.
 <!-- CARD EVIDENCE -->
@@ -17271,13 +17272,14 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 2. **Medicine:** the author's code, unchanged. Main function: `medicine_f1(text)`.
 
-```python
+```python deferred
 RULE_ID = "DB-F1-003"
 CODE = "F1"
 ACTION = "fix"
 STAGE = "40"
-STATUS = "CANDIDATE"
+STATUS = "DEFERRED"
 SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-hplt', 'ind-hi-indiccorp'}
+DEFER_REASON = "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
 LANGS = {"hin_Deva"}
 ORIGIN = "ind-hi-hplt, ind-hi-fw2, ind-hi-indiccorp"
 SOURCE_ORIGIN = "ind-hi-hplt"
@@ -17385,7 +17387,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 ## Medicine 240 — indic / F1 / `DB-F1-005`
 
-**Integration decision:** CANDIDATE. first eligible candidate in source order; independent approval pending. Source harm statements below are inherited; current local own-pack gold: PASS. The integration status above supersedes the source card status below.
+**Integration decision:** DEFERRED. replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts. Source harm statements below are inherited; current local own-pack gold: PASS. The integration status above supersedes the source card status below.
 
 1. **Disease:** F1 Personal data. Pack `ind-kn-fw2`. Source: section F1 of `diagnosis/submissions/ind-kn-fw2/LokeshJatangi/medicine.md`, PR #63 at `aeb79b8`.
 <!-- CARD EVIDENCE -->
@@ -17397,13 +17399,14 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 2. **Medicine:** the author's code, unchanged. Main function: `medicine_f1(text)`.
 
-```python
+```python deferred
 RULE_ID = "DB-F1-005"
 CODE = "F1"
 ACTION = "fix"
 STAGE = "40"
-STATUS = "CANDIDATE"
+STATUS = "DEFERRED"
 SPEC_PACKS = {'ind-kn-fw2', 'ind-kn-sangraha-s', 'ind-kn-sangraha-v'}
+DEFER_REASON = "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
 LANGS = {"kan_Knda"}
 ORIGIN = "ind-kn-fw2, ind-kn-sangraha-s, ind-kn-sangraha-v"
 SOURCE_ORIGIN = "ind-kn-fw2"
@@ -17449,7 +17452,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 ## Medicine 241 — indic / F1 / `DB-F1-006`
 
-**Integration decision:** CANDIDATE. first eligible candidate in source order; independent approval pending. Source harm statements below are inherited; current local own-pack gold: PASS. The integration status above supersedes the source card status below.
+**Integration decision:** DEFERRED. replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts. Source harm statements below are inherited; current local own-pack gold: PASS. The integration status above supersedes the source card status below.
 
 1. **Disease:** F1 Personal data. Pack `ind-mr-fw2`. Source: section F1 of `diagnosis/submissions/ind-mr-fw2/thinktinkergreen/medicine.md`, PR #50 at `0d85486`.
 <!-- CARD EVIDENCE -->
@@ -17461,13 +17464,14 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 2. **Medicine:** the author's code, unchanged. Main function: `medicine_f1(text)`.
 
-```python
+```python deferred
 RULE_ID = "DB-F1-006"
 CODE = "F1"
 ACTION = "fix"
 STAGE = "40"
-STATUS = "CANDIDATE"
+STATUS = "DEFERRED"
 SPEC_PACKS = {'ind-mr-fw2'}
+DEFER_REASON = "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
 LANGS = {"mar_Deva"}
 ORIGIN = "ind-mr-fw2"
 SOURCE_ORIGIN = "ind-mr-fw2"
@@ -17508,7 +17512,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 ## Medicine 242 — indic / F1 / `DB-F1-007`
 
-**Integration decision:** CANDIDATE. first eligible candidate in source order; independent approval pending. Source harm statements below are inherited; current local own-pack gold: PASS. The integration status above supersedes the source card status below.
+**Integration decision:** DEFERRED. replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts. Source harm statements below are inherited; current local own-pack gold: PASS. The integration status above supersedes the source card status below.
 
 1. **Disease:** F1 Personal data. Pack `ind-mr-sangraha-v`. Source: section F1 of `diagnosis/submissions/ind-mr-sangraha-v/patilvijay23/medicine.md`, PR #19 at `07d884f`.
 <!-- CARD EVIDENCE -->
@@ -17520,13 +17524,14 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 2. **Medicine:** the author's code, unchanged. Main function: `cure_f1(text)`.
 
-```python
+```python deferred
 RULE_ID = "DB-F1-007"
 CODE = "F1"
 ACTION = "fix+drop"
 STAGE = "40"
-STATUS = "CANDIDATE"
+STATUS = "DEFERRED"
 SPEC_PACKS = {'ind-mr-sangraha-v'}
+DEFER_REASON = "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
 LANGS = {"mar_Deva"}
 ORIGIN = "ind-mr-sangraha-v"
 SOURCE_ORIGIN = "ind-mr-sangraha-v"
@@ -17667,7 +17672,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 ## Medicine 243 — indic / F1 / `DB-F1-008`
 
-**Integration decision:** CANDIDATE. first eligible candidate in source order; independent approval pending. Source harm statements below are inherited; current local own-pack gold: PASS. The integration status above supersedes the source card status below.
+**Integration decision:** DEFERRED. replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts. Source harm statements below are inherited; current local own-pack gold: PASS. The integration status above supersedes the source card status below.
 
 1. **Disease:** F1 Personal data. Pack `ind-sa-fw2`. Source: section F1 of `diagnosis/submissions/ind-sa-fw2/dattatreyamanjunath/medicine.md`, PR #45 at `b054835`.
 <!-- CARD EVIDENCE -->
@@ -17679,13 +17684,14 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 2. **Medicine:** the author's code, unchanged. Main function: `medicine_f1(text)`.
 
-```python
+```python deferred
 RULE_ID = "DB-F1-008"
 CODE = "F1"
 ACTION = "fix"
 STAGE = "40"
-STATUS = "CANDIDATE"
+STATUS = "DEFERRED"
 SPEC_PACKS = {'ind-sa-fw2'}
+DEFER_REASON = "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
 LANGS = {"san_Deva"}
 ORIGIN = "ind-sa-fw2"
 SOURCE_ORIGIN = "ind-sa-fw2"
@@ -17785,7 +17791,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 ## Medicine 245 — indic / F1 / `DB-F1-010`
 
-**Integration decision:** CANDIDATE. first eligible candidate in source order; independent approval pending. Source harm statements below are inherited; current local own-pack gold: PASS. The integration status above supersedes the source card status below.
+**Integration decision:** DEFERRED. replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts. Source harm statements below are inherited; current local own-pack gold: PASS. The integration status above supersedes the source card status below.
 
 1. **Disease:** F1 Personal data. Pack `ind-te-fw2`. Source: section F1 of `diagnosis/submissions/ind-te-fw2/sandeepkunkunuru/medicine.md`, PR #3 at `75e8f7b`.
 <!-- CARD EVIDENCE -->
@@ -17797,13 +17803,14 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 2. **Medicine:** the author's code, unchanged. Main function: `f1_pii(text)`.
 
-```python
+```python deferred
 RULE_ID = "DB-F1-010"
 CODE = "F1"
 ACTION = "fix"
 STAGE = "40"
-STATUS = "CANDIDATE"
+STATUS = "DEFERRED"
 SPEC_PACKS = {'ind-te-fw2', 'ind-te-sangraha-s', 'ind-te-sangraha-v'}
+DEFER_REASON = "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
 LANGS = {"tel_Telu"}
 ORIGIN = "ind-te-fw2, ind-te-sangraha-s, ind-te-sangraha-v"
 SOURCE_ORIGIN = "ind-te-fw2"

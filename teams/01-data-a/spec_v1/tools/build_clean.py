@@ -23,7 +23,7 @@ SECTION = re.compile(r"^## Medicine (\d+) — (\w+) / (\w+) / `(D[AB]-[A-H]\d-\d
 BLOCK = re.compile(r"^```python(?: deferred)?\n(.*?)^```", re.S | re.M)  # deferred fences are inventory, not harm-runner inputs
 CODE_ORDER = ["A1", "A2", "A6", "A4", "A5", "A3", "B1", "B2", "B5", "B3", "E1", "E2", "C3", "C4", "C5", "D4", "E4", "C1", "C2", "D1", "D3", "B4", "E3", "F1"]  # RULES order; each family runs in its own sheet order
 SHARED_F1 = "f1_rule.py"  # the shared F1 (TSAI ruling of 31 Oct), in SCOPE under this name: it runs last on the packs of these families
-SHARED_F1_FAMILIES = ("code", "math", "sci")  # code with tree-sitter, math and sci with the prose path (TSAI, 1 Nov). English keeps DA-F1-005
+SHARED_F1_FAMILIES = ("code", "math", "sci", "indic")  # code with tree-sitter, math and sci with the prose path (TSAI, 1 Nov), indic with the Indic path. English keeps DA-F1-005
 MUST_KEEP = {"DA-F1-005": "english"}  # the instructor's F1 rule: on every pack of its family, never left out
 
 
@@ -118,7 +118,7 @@ def _run(doc, *factories):
 CLEAN = """
 
 def clean(doc):
-    \"\"\"The whole pipeline for one document: its pack's family in sheet order, then the shared F1 (code, math and sci packs).
+    \"\"\"The whole pipeline for one document: its pack's family in sheet order, then the shared F1 (code, math, sci and Indic packs).
     A missing or unknown pack_id passes unchanged; such a document is not eligible for release.\"\"\"
     return _run(doc, *_PIPELINES.get(_FAMILY.get(doc.get("pack_id")), ()), _shared_f1_rule)
 """
