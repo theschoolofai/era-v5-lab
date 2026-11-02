@@ -2,11 +2,11 @@
 
 Pack: `ind-kn-fw2` (Kannada, 500 documents). Counts come from `labels.csv` (500 labelled rows).
 
-**Gold set used for the harm test:** TBD
+**Gold set used for the harm test:** `teams/02-data-b/gold/ind-kn-fw2_gold.csv`, the 45 documents of this pack that
+two readers marked clean (built by `teams/02-data-b/tools/gold_indic.py`).
 
-Until the two-reader gold set exists, the harm numbers below come from `teams/02-data-b/tools/harm_test_indic.py`
-run on a stand-in: the 118 documents of this pack that are labelled `clean` in `labels.csv` (one reader).
-1% of 118 is 1.18 documents, so a medicine passes only if it changes or drops at most 1 of them.
+The harm numbers below come from `teams/02-data-b/tools/harm_test_indic.py` run on these 45 documents. A rule may
+change or drop at most 1% of the gold set or 1 document, whichever is more, so at most 1 of the 45.
 
 **How the code is laid out:**
 - Each section's code runs on its own, as the harm tool runs it. Shared helpers are repeated in each section.
@@ -231,27 +231,102 @@ run on a stand-in: the 118 documents of this pack that are labelled `clean` in `
 
 
 
+## C4: no rule needed
+
+**C4 (two documents joined), 15 documents.** Examples: `d0a0a33b2b7ed888` (row 196), two separate news items;
+`a701f2b6d7e7c7bd` (row 396), a legal news roundup with the headings stripped; `bafe29d8add27a01` (row 416), a news
+piece followed by an advert.
+
+- **Why there is no rule:** a disjoint document cannot be found by a rule on the text. A join has no fixed marker.
+  Whether two paragraphs belong to one story depends on what they mean: an article that moves to a related point, a
+  roundup of short items, or an op-ed that quotes other reports looks the same to a regex as two unrelated stories.
+  Telling them apart needs topic segmentation by a model, or a reader.
+- **What is already treated:** in this pack, most joins come from site pages that show several articles separated by
+  a related-headline list, a "Trending" box or the site's contact line. Medicines 1 to 3 remove those blocks in 9 of
+  the 15 C4 documents (for example rows 31, 33, 51, 58, 433). The articles on both sides of a removed block stay in
+  one document.
+- **Harm test:** no rule in code, so nothing to test: 0 of 45 gold documents changed or dropped.
+
 ## Medicines rejected
 
-- **A6 (wrong or mixed script), 31 documents. Fails.**
+Each candidate below was written as a rule and run on its own with `harm_test_indic.py` on the same gold set of 45
+documents (ind-kn-fw2 45), each in its own section of a separate file. The code is shown as text so that the harm
+tool does not run it with the medicines above. Each candidate returns `True` (drop, or flag for review) or `False`.
+
+- **A6 (wrong or mixed script), 31 documents. Kept as a flag, not a medicine.**
   - **Rule:** flag Latin or legacy-font letters joined to a Kannada letter. A single `s` that ends a Kannada word is allowed, because it is valid dialect: `ಒಂದs`, `ತಾನs` in `92305d5a724c194a` (row 73).
-  - **Failure:** it still marks the gold document `41932ab38a6fafb6` (row 172), where `ka.gov.inಗೆ` is a URL with a normal Kannada case suffix.
-  - Scripts cannot be fixed without a font map, so this is at most a flag, not a medicine.
-- **C3 (truncated document), 14 documents. Left out.**
-  - **Rule:** "the last line has no sentence end."
-  - **Failure:** it changed 7 gold documents (5.9%), even after skipping credit lines (`ಚಿತ್ರ ಕೃಪೆ:`, `ವರದಿ:`). The cases:
-    - a closing `,` (row 1);
-    - an author name (row 462);
-    - a narrator credit block (row 373);
-    - a poem (row 9);
-    - complete sentences with no full stop (rows 45, 144, 289).
-  - A regex cannot tell these from a real cut. C3 is labelled by hand only.
-- **G2 (lost ZWJ or ZWNJ), 270 documents. No medicine.**
-  - The pack has no ZWNJ at all, so this is a pack-wide loss from upstream cleaning.
-  - Restoring it needs a word list, so it is reported upstream instead.
-- **D3, D4, D5 (92, 34, 7 documents). No medicine.**
-  - D3 is labelled, not judged.
-  - D4 and D5 need a reader or a model, not a regex.
-- **F3 (harmful content), 9 documents.**
-  - A keyword rule (`dating`, `ಡೇಟಿಂಗ್`, `HGH`, `sex stor…`) touched 0 gold documents, but it caught only 4 of the 9.
-  - It is kept as a flag for review, not as an automatic drop.
+    ```text
+    MIXED = re.compile(r'[\u0C80-\u0CFF][A-Za-zøÆæ¸¹²³]+|[A-Za-zøÆæ¸¹²³][\u0C80-\u0CFF]')
+
+    def medicine_a6(text):
+        return any(not re.fullmatch(r'[\u0C80-\u0CFF]s', m.group()) for m in MIXED.finditer(text))
+    ```
+  - **Harm test:** changed 0 of 45 (0.00%), dropped 0 of 45 (0.00%). **PASS.** ZWJ/ZWNJ audit and normal-form audit: **PASS.**
+  - On the earlier one-reader stand-in (118 documents) it flagged `41932ab38a6fafb6` (row 172), where `ka.gov.inಗೆ` is a URL with a normal Kannada case suffix. That document is not in the two-reader gold set.
+  - **Why not a medicine:** it flags 14 documents, only 7 of them labelled A6 (7 of 31 caught). Scripts cannot be fixed without a font map, so this is at most a flag.
+- **C3 (truncated document), 14 documents. Fails.**
+  - **Rule:** the last line, after credit lines (`ಚಿತ್ರ ಕೃಪೆ:`, `ವರದಿ:` …), has no sentence end.
+    ```text
+    END = re.compile(r'[.?!।॥"”\')]\s*$')
+    CREDIT = re.compile(r'^(ಚಿತ್ರ ಕೃಪೆ|ಕೃಪೆ|ವರದಿ|ಹೇಳಿದವರು|ಲೇಖಕರು|ಲೇಖನ|Photo|Image|Source)\s*[:：]', re.I)
+
+    def medicine_c3(text):
+        ls = [l.strip() for l in text.split('\n') if l.strip()]
+        while ls and CREDIT.search(ls[-1]):
+            ls.pop()
+        return bool(ls) and not END.search(ls[-1])
+    ```
+  - **Harm test:** changed 0 of 45 (0.00%), dropped 3 of 45 (6.67%). **FAIL.** ZWJ/ZWNJ audit and normal-form audit: **PASS.**
+    The 3 gold documents: `942c1fdddfb8931c` (row 1, ends with `,`), `1db7c578463eb78c` (row 45) and
+    `51e9a734efdfb853` (row 144), both complete sentences with no full stop.
+  - It also flags 108 documents in the pack, only 7 of them labelled C3. A regex cannot tell a real cut from a
+    closing comma, an author name, a poem or a sentence without a full stop. C3 is labelled by hand only.
+- **D3 (mixed language), 92 documents. No medicine.**
+  - **Rule:** Latin letters are 15% or more of all letters.
+    ```text
+    def medicine_d3(text, share=0.15):
+        kn = len(re.findall(r'[\u0C80-\u0CFF]', text))
+        la = len(re.findall(r'[A-Za-z]', text))
+        return kn + la > 0 and la / (kn + la) >= share
+    ```
+  - **Harm test:** changed 0 of 45 (0.00%), dropped 0 of 45 (0.00%). **PASS.** ZWJ/ZWNJ audit and normal-form audit: **PASS.**
+  - **Why not a medicine:** mixing Kannada and English can be natural, so D3 is labelled, not judged. The rule also
+    catches only 12 of the 92 D3 documents (15 flagged).
+- **D4 (bad machine translation), 34 documents. No medicine.**
+  - **Rule:** 3 or more English words left untranslated between Kannada words.
+    ```text
+    LEFT_IN_ENGLISH = re.compile(r'[\u0C80-\u0CFF]+ [A-Za-z]{3,} [\u0C80-\u0CFF]+')
+
+    def medicine_d4(text, times=3):
+        return len(LEFT_IN_ENGLISH.findall(text)) >= times
+    ```
+  - **Harm test:** changed 0 of 45 (0.00%), dropped 0 of 45 (0.00%). **PASS.** ZWJ/ZWNJ audit and normal-form audit: **PASS.**
+  - **Why not a medicine:** it catches only 4 of the 34 D4 documents (4 flagged, all labelled D4). Most D4 damage is
+    wrong meaning, broken grammar or wrong gender and case, which needs a reader or a model, not a regex.
+- **D5 (translationese), 7 documents. No medicine.**
+  - **Rule:** none. Text that is grammatical but that no native speaker would write has no surface pattern.
+  - **Harm test:** no rule in code, so nothing to test: 0 of 45 gold documents changed or dropped.
+- **F3 (harmful content), 9 documents. Kept as a flag for review.**
+  - **Rule:** spam keywords in English and Kannada.
+    ```text
+    SPAM = re.compile(r'dating|ಡೇಟಿಂಗ್|\bHGH\b|sex stor|ಸೆಕ್ಸ್|escort|casino|betting|ಬೆಟ್ಟಿಂಗ್|viagra|porn', re.I)
+
+    def medicine_f3(text):
+        return bool(SPAM.search(text))
+    ```
+  - **Harm test:** changed 0 of 45 (0.00%), dropped 0 of 45 (0.00%). **PASS.** ZWJ/ZWNJ audit and normal-form audit: **PASS.**
+  - **Why not an automatic drop:** it catches only 4 of the 9 F3 documents and flags 8 documents without an F3 label,
+    such as news that reports on these topics.
+- **G2 (lost ZWJ or ZWNJ), 270 documents. Fails; no medicine.**
+  - **Rule:** a Kannada conjunct (virama followed by a consonant) in a document that has no ZWJ or ZWNJ anywhere.
+    ```text
+    ZWJ, ZWNJ = chr(0x200D), chr(0x200C)
+    CONJUNCT = re.compile(r'[\u0C80-\u0CFF]\u0CCD[\u0C80-\u0CFF]')
+
+    def medicine_g2(text):
+        return bool(CONJUNCT.search(text)) and ZWJ not in text and ZWNJ not in text
+    ```
+  - **Harm test:** changed 0 of 45 (0.00%), dropped 45 of 45 (100.00%). **FAIL.** ZWJ/ZWNJ audit and normal-form audit: **PASS.**
+  - **Why:** the pack has no ZWNJ or ZWJ at all, so this is a pack-wide loss from upstream cleaning, and any rule that
+    looks for it flags every document. A lost joiner looks the same as a normal conjunct, and restoring it needs a
+    word list. It is reported upstream instead.
