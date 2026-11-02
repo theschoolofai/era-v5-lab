@@ -247,7 +247,11 @@ piece followed by an advert.
   one document.
 - **Harm test:** no rule in code, so nothing to test: 0 of 45 gold documents changed or dropped.
 
-## Medicines rejected
+## Diseases without a medicine
+
+These diseases were found more than five times, but no rule is used on them as a medicine. Each entry gives the
+reason: the rule fails the harm test (C3, G2), it can find the disease but not fix it (A6), the disease is labelled
+rather than judged (D3), the rule catches too little or flags too many documents (D4, F3), or no rule is possible (D5).
 
 Each candidate below was written as a rule and run on its own with `harm_test_indic.py` on the same gold set of 45
 documents (ind-kn-fw2 45), each in its own section of a separate file. The code is shown as text so that the harm
