@@ -1,259 +1,160 @@
 ﻿doc_id,read,verdict,diseases,evidence,hex,note
-73edc87d0fe145a4,full,fix,C2;D3,NASA @65; ISS paragraph repeated,,Repeated paragraph; English terms
+73edc87d0fe145a4,full,fix,C2;D3,NASA @65,,Repeated paragraph; English terms
 b671c23be750f5e0,full,fix,C1;D3,source / IANS / Photo Credit @1,,Agency tag and disclaimer boilerplate
 70212045c3378b0a,partial,fix,,"मेत्युपल 
 मैंग्रेजी ",,OCR errors
-2945dc492be15c69,partial,fix,C2,,,Missing closed brackets )
+2945dc492be15c69,partial,fix,C2, किसी क्षेत्र के सम्मिलित संपत्ति @11166 (repeats @4343),,Missing closed brackets )
 569dff1b80deaeea,full,clean,,,,
 cbf9d075cfdd413c,full,clean,,,,
-6b35ae7096dd14fa,full,clean,D3,Ameesha Patel,,Ameesha Patel in English
+6b35ae7096dd14fa,full,clean,D3,Ameesha Patel @134,,Ameesha Patel in English
 49eac3ccd4431aad,full,clean,,,,
-34600f7268a100aa,full,fix,C1;C3;D3,"उसकी फिल्म...
-Facebook Messenger",,Incomplete sentence  & English Text
+34600f7268a100aa,full,fix,C1;C3;D3,उसकी फिल्म... @98; Facebook Messenger @1118,,Incomplete sentence  & English Text
 8db11a691069d11f,partial,clean,D3,https://www.paisaboltahai.rbi.org.in/ @11880,,RBI circular; URL and acronyms only
-f1831082b45ba021,full,fix,A5,टे्रसिंग,U+091F U+0947 U+094D U+0930,Tracing ट्रेसिंग
+f1831082b45ba021,full,fix,A5,टे्रसिंग @365,U+091F U+0947 U+094D U+0930,Tracing ट्रेसिंग
 15b59b2d837c6512,partial,clean,,,,
 3296f1c5aad003e6,full,fix,A5;A6,क्9फ् @394; मू्ल्यांकन @1841,U+0915 U+094D U+0039 U+092B U+094D; U+092E U+0942 U+094D U+0932,Latin digit inside Devanagari conjunct; old font converter
 33b9b5967f7bcefe,full,clean,,,,3. 6 spacing artifact; Latin digits are not D3
 fd7416b65809c3c9,full,clean,,,,
 f5730c93a946d74d,full,clean,,,,
-c1e2d4c2906e14e5,full,fix,A5, हंै,U+0939 U+0902 U+0948,
-2954ae664d65b725,full,clean,D3,"agenda में फ़िट नहीं है
-45-45 लाख",,
+c1e2d4c2906e14e5,full,fix,A5,हंै @225,U+0939 U+0902 U+0948,
+2954ae664d65b725,full,clean,D3,agenda में फ़िट नहीं है @1267; 45-45 लाख @2150,,
 b885ab61cc07b0f5,full,clean,,,,Latin digits are not D3
 66c9785fbe95c56d,full,fix,A5,अाया @42; हुअा @185,U+0905 U+093E,अ+ा written for आ (U+0906)
-2aaaf93521570ffb,full,fix,C1,This website follows the DNPA Code of Ethics.,,
-42a21cc2c4a088d3,full,fix,C1,5 जून (CRICKETNMORE)।,,
+2aaaf93521570ffb,full,fix,C1,This website follows the DNPA Code of Ethics. @2276,,
+42a21cc2c4a088d3,full,fix,C1,5 जून (CRICKETNMORE)। @13,,
 a9c2bd561acb8ad5,full,fix,,१ देखिये 'साहित्य मदेश मिनम्बर ,,OCR errors
 eac10e0499475483,full,fix,C1,संबंधित खबरेंः @1364,,
 e4c3a21053a8fd49,full,fix,A5,काे @258,U+0915 U+093E U+0947,wrong character order; should be को
 b39d9d7e2c4269a9,full,clean,,,,
-fa11b3c97771aec9,full,fix,C1,Posted On:,,
-f3db6adfc419ed5b,full,fix,C1,अगर आपको हमारा आर्टिकल पसंद आया हो तो इसे दूसरों के साथ शेयर करें।,,
+fa11b3c97771aec9,full,fix,C1,Posted On: @0,,
+f3db6adfc419ed5b,full,fix,C1,अगर आपको हमारा आर्टिकल पसंद आया हो तो इसे दूसरों के साथ शेयर करें। @1274,,
 43e004bf9f8ddf8d,full,fix,A5;C3,तिौर @51,U+0924 U+093F U+094C,wrong character order; text ends mid-sentence
-4ecdf9d6f949f6f5,full,fix,C1;D3," PHOTOS: पहले प्यार से गुलाम संग जबरन शादी तक. . . पाक वाली सीमा की पूरी कुंडली, जिसने सचिन के लिए की सारी हदें पार!
-गत12 सितंबर",,
+4ecdf9d6f949f6f5,full,fix,C1;D3,"PHOTOS: पहले प्यार से गुलाम संग जबरन शादी तक. . . पाक वाली सीमा की पूरी कुंडली, जिसने सचिन के लिए की सारी हदें पार! @1641; गत12 सितंबर @737",,
 41893b298aa1c6ee,full,clean,,,,
 5e56b23a1bcf488d,full,clean,,,,
-db5baf5fbb05a41d,full,fix,D3;C1;C5," B. A. G Convergence Pvt. Ltd. 2022 : All Rights Reserved.
-Jio True 5G
-Oppo Reno 8 Pro 5G",,
-94d461a83dc28ddd,full,fix,D3;D4,"Best Electric Bike
-Ultraviolette F77 कंपन्ह",,
+db5baf5fbb05a41d,full,fix,D3;C1;C5,B. A. G Convergence Pvt. Ltd. 2022 : All Rights Reserved. @321; Jio True 5G @50; Oppo Reno 8 Pro 5G @224,,
+94d461a83dc28ddd,full,fix,D3;D4,Best Electric Bike @0; Ultraviolette F77 कंपन्ह @761,,
 2ff8938c8fd2bd85,partial,clean,,,,
 247ac4a4c932aeae,full,fix,A5,मु़क़ाबले @526,U+092E U+0941 U+093C,nukta after vowel sign
 e946aa5ae926e144,full,fix,,"यावश्यकता
 मै को ",,OCR errors
-2771f2bfb03e4ae0,full,fix,C2;C4;C3;D3,"\n
-I Love You,, बेबी, 
-",,"repeated new lines
+2771f2bfb03e4ae0,full,fix,C2;C4;C3;D3,"\n @33; I Love You,, बेबी, @1035",,"repeated new lines
 english hindi mixed"
 a69fd89293de9d6c,full,clean,,,,
 d13ed1ede842bc9e,full,fix,A5,सेेंट @391,U+0938 U+0947 U+0947,doubled vowel sign
-8d83e0f13cb77da5,full,clean,D3,Gurugram News: ,,
-b01e5bfc1f3e1641,full,fix,D3;C1;C3,"Fssai.gov.in
-(513.49 KB)
-4 की उप-धारा 1 ",,
+8d83e0f13cb77da5,full,clean,D3,Gurugram News: @0,,
+b01e5bfc1f3e1641,full,fix,D3;C1;C3,Fssai.gov.in @1813; (513.49 KB) @1911; 4 की उप-धारा 1 @0,,
 a9222cec6001e84a,full,clean,,,,
 96fbfdfbe5188ed8,full,clean,,,,कंपनी
 87c9864015af32c5,full,clean,,,,आरटीआई और आरटीआई
-5d00471edd7df08e,full,fix,D4,"कौन ""पप्पू"" है, तेजतर्रार, गतिशील और निश्चित रूप से आकर्षक",,Translation error
-b046dbf8b10d334f,full,clean,D3,Jamshedpur : ,,
-beec0b6bbce7f426,full,clean,D3,Dimple Yadav Vs Rajlakshmi Singh:,,
-b39dd2a7439da4b0,full,clean,D3,Jaipur Greater Municipal Corporation,,
+5d00471edd7df08e,full,fix,D4,तिशील और निश्चित रूप से आकर्षक @489,,Translation error
+b046dbf8b10d334f,full,clean,D3,Jamshedpur : @0,,
+beec0b6bbce7f426,full,clean,D3,Dimple Yadav Vs Rajlakshmi Singh: @0,,
+b39dd2a7439da4b0,full,clean,D3,Jaipur Greater Municipal Corporation @30,,
 eed8e0c1f5c0fe7e,full,clean,,,,
-f878e0d844663bac,full,fix,D3;C2,"Assembly Elections 2022: 
-Repeat - पांच राज्यों के चुनाव में सबसे बड़ा दांव भारतीय जनता पार्टी का है। क्योंकि उत्तर प्रदेश,",,
-8846d2442e7fa6ea,full,fix,C1;C2;C4;C5;D3,"hindi.filmibeat.com
-Dhadak: Jhanvi Kapoor & Ishaan Khatter shares 'Pehli Baar' song MEMORIES !
-
-",,
+f878e0d844663bac,full,fix,D3;C2,"Assembly Elections 2022: @339; पांच राज्यों के चुनाव में सबसे बड़ा दांव भारतीय जनता पार्टी का है। क्योंकि उत्तर प्रदेश, @2",,
+8846d2442e7fa6ea,full,fix,C1;C2;C4;C5;D3,hindi.filmibeat.com @479; Dhadak: Jhanvi Kapoor & Ishaan Khatter shares 'Pehli Baar' song MEMORIES ! @746,,
 8d131ecd774e9d84,full,clean,,,,
-7544792bbf5458b9,full,fix,D4;C2;D3,"कांग्रेस की युवा शाखा ने - repeat
-(APYC)
-APUAPA",,Line repeat and abbreviations
-25dd0ddaaeed15b8,full,fix,C1;C5;D3,(active tab),,
-c32ff1bbf3f13fab,partial,clean,D3,JEE Main Result 2023 :,,
-e45f2a8e8d549f21,full,fix,C3;D3,"के निष्कर्ष सिद्धांत है।
-Crossing the Bar
-Sentiments",,OCR errors
-af6c50a82a970dfd,partial,fix,C3," मुस्कराते हुए हमारी बातें सुनता,
-",,OCR errors
+7544792bbf5458b9,full,fix,D4;C2;D3,कांग्रेस की युवा शाख @0; (APYC) @184; APUAPA @290,,Line repeat and abbreviations
+25dd0ddaaeed15b8,full,fix,C1;C5;D3,(active tab) @0,,
+c32ff1bbf3f13fab,partial,clean,D3,JEE Main Result 2023 : @0,,
+e45f2a8e8d549f21,full,fix,C3;D3,के निष्कर्ष सिद्धांत है। @0; Crossing the Bar @352; Sentiments @243,,OCR errors
+af6c50a82a970dfd,partial,fix,C3,"मुस्कराते हुए हमारी बातें सुनता, @2733",,OCR errors
 28b1a8a85603bd66,full,clean,,,,
-5727714a79172dfa,full,fix,D4,"वह सिर्फ #एवरीडेफेमोमिना नहीं है, वह हर साल अमेजिंग है और वह ",,
-ff63850cf6ff8d2b,partial,fix,A5;D3;C1,"(Ram Janambhoomi)
-Ram Mandir Trust
- ये भी पढ़ेंः
-निर्माेही ",U+092E U+093E U+0947,
+5727714a79172dfa,full,fix,D4,"वह सिर्फ #एवरीडेफेमोमिना नहीं है, वह हर साल अमेजिंग है और वह @604",,
+ff63850cf6ff8d2b,partial,fix,A5;D3;C1,(Ram Janambhoomi) @22; Ram Mandir Trust @164; ये भी पढ़ेंः @3085; निर्माेही @888,U+092E U+093E U+0947,
 5db2108aeda0ff42,partial,clean,,,,
-24726107e3227aa8,partial,fix,C2;D4,"repeat -  प्रधानमंत्री मोदी गांधीनगर के महात्मा मंदिर में 
-",,
-881937cc40e5c177,partial,fix,D3;D4,,,
+24726107e3227aa8,partial,fix,C2;D4,प्रधानमंत्री मोदी गांधीनगर के महात्मा मंदिर में @0,,
+881937cc40e5c177,partial,fix,D3;D4,Ouija @5973; हो सकता हैइस धारणा @524,,
 739d607ed9b10834,full,clean,,,,
-0983ea888abe5b95,full,drop,C3,यह 'माँ' को स्व,,OCR errors; hard to read
-04ff15d3f374defb,full,fix,D3;C1,"Amitabh Bachchan:
-SocialLY के साथ पाएं ",,
+0983ea888abe5b95,full,drop,C3,यह 'माँ' को स्व @1317,,OCR errors; hard to read
+04ff15d3f374defb,full,fix,D3;C1,Amitabh Bachchan: @0; SocialLY के साथ पाएं @485,,
 3eac6908939565ed,full,clean,,,,
-3d66ca6d56ff7d0f,full,fix,C3,उनके अनुसार बुद्धिका जीवन,,
-4430f9265010ccfe,full,fix,A5;C1,"यह हिन्दुस्तान अखबार की ऑटेमेटेड न्यूज फीड है, इसे लाइव हिन्दुस्तान की टीम ने संपादित नहीं किया है।
-मंे",U+092E U+0902 U+0947,
-158cf79f7ac5947b,full,fix,C1,हिमाचल दस्तक,,
-b04b8e3b1fe44783,full,fix,D4;C3,"2. पुराने
-जल बिना मानव जीवन की संभावना नहीं हो सकती",,
+3d66ca6d56ff7d0f,full,fix,C3,उनके अनुसार बुद्धिका जीवन @0,,
+4430f9265010ccfe,full,fix,A5;C1,"यह हिन्दुस्तान अखबार की ऑटेमेटेड न्यूज फीड है, इसे लाइव हिन्दुस्तान की टीम ने संपादित नहीं किया है। @563; मंे @449",U+092E U+0902 U+0947,
+158cf79f7ac5947b,full,fix,C1,हिमाचल दस्तक @0,,
+b04b8e3b1fe44783,full,fix,D4;C3,2. पुराने @919; जल बिना मानव जीवन की संभावना नहीं हो सकती @317,,
 057aa8575b692483,full,clean,,,,
 06a398706ac5aefd,full,clean,,,,
-75c221e04369fb86,full,fix,D3;A5,"
-(Covid-19 In India) 
-खलिाफ 
-जााहिर
-","
+75c221e04369fb86,full,fix,D3;A5,(Covid-19 In India) @33; खलिाफ @639; जााहिर @833,"
 U+0916 U+0932 U+093F U+093E U+092B
 U+091C U+093E U+093E U+0939","खलिाफ 
 जाहिर"
-3e2c7d3d14a0ebae,partial,fix,C1;C4;D3,"मिती का स्वप्न -
-Edkin's Chinese Budhism, Page 88
-पुरुप",,OCR errors; hard to read
-1be594d11c64115a,partial,fix,C1,"पाप कि ऊपर पर्यदक
-बङ्गालका भन्तिम नवाब ।
-मकता",,OCR errors; hard to read
+3e2c7d3d14a0ebae,partial,fix,C1;C4;D3,"मिती का स्वप्न - @0; Edkin's Chinese Budhism, Page 88 @2470; पुरुप @2102",,OCR errors; hard to read
+1be594d11c64115a,partial,fix,C1,पाप कि ऊपर पर्यदक @936; बङ्गालका भन्तिम नवाब । @954; मकता @284,,OCR errors; hard to read
 07f50e3209b077aa,full,clean,,,,
 470e71b21524763e,full,clean,,,,
-3246ea4cb0c26263,full,clean,D3,"Rewa District
-Mangawan Police Station",,
-4f44fa77c7c8fb2c,full,clean,D3,Rama Ekadashi 2022,,
-6ed7ce4ea140b9ce,full,fix,A5,प्रोगे्रसिव ,U+0917 U+0947 U+094D U+0930,
+3246ea4cb0c26263,full,clean,D3,Rewa District @11; Mangawan Police Station @42,,
+4f44fa77c7c8fb2c,full,clean,D3,Rama Ekadashi 2022 @0,,
+6ed7ce4ea140b9ce,full,fix,A5,प्रोगे्रसिव @527,U+0917 U+0947 U+094D U+0930,
 aee0bf52bfa7bc4d,partial,fix,A5;C1;D3,लाॅ @9; Get all India News in Hindi related to live update of politics @1788,U+0932 U+093E U+0945,ा+ॅ for ॉ (U+0949); also doubled े
-34a0aa26b4625db4,full,fix,D3;C2;C1,"Bharat Jodo Yatra joined by Aaditya Thackeray:
-यह भी पढ़ेंः
-शुक्रवार को शिवसेना नेता आदित्य ठाकरे ने राहुल",,
-7283717aa92e9130,partial,fix,D3;C1;D4,"Adarsh Vijay Mudgil
-pigmentation
-Science Direct
-source
-dermatitis
-hydrargyri oxydum rubrum
-""smallUrl"":""https:\/\/www
-",,
-0739e4d8077ebbca,full,fix,D3;C2;C1,"Nupur Joshi Became A Victim Of Cyber Fraud
-Times Now Navbharat पर पढ़ें Entertainment News in Hindi, साथ ही ब्रेकिंग न्यूज और लाइव न्यूज अपडेट के लिए हमें गूगल न्यूज़ पर फॉलो करें ।
-",,
+34a0aa26b4625db4,full,fix,D3;C2;C1,Bharat Jodo Yatra joined by Aaditya Thackeray: @269; यह भी पढ़ेंः @2423; शुक्रवार को शिवसेना नेता आदित्य ठाकरे ने राहुल @105,,
+7283717aa92e9130,partial,fix,D3;C1;D4,"Adarsh Vijay Mudgil @39; pigmentation @208; Science Direct @347; source @371; dermatitis @457; hydrargyri oxydum rubrum @629; ""smallUrl"":""https:\/\/www @1690",,
+0739e4d8077ebbca,full,fix,D3;C2;C1,"Nupur Joshi Became A Victim Of Cyber Fraud @0; Times Now Navbharat पर पढ़ें Entertainment News in Hindi, साथ ही ब्रेकिंग न्यूज और लाइव न्यूज अपडेट के लिए हमें गूगल न्यूज़ पर फॉलो करें । @1527",,
 46356779a2a52f75,partial,fix,A5,हैै @2123,U+0939 U+0948 U+0948,"doubled vowel sign; also काॅ @2325, वाॅ @2839"
-4814750ec839ddf2,full,fix,D3;C1,"CCTV
-DVR
- This website follows the DNPA Code of Ethics.",,
-ce50a186434fd11f,full,fix,D4;C1,"दिन2दिनतुम इसमें पा
-सफेद चाय ",,
-f47659291879377a,full,fix,D3;C1,"When Obama Loved osama
-30 साल बाद फिर सिनेमाघरों में लगेगी फिल्म 'क़यामत से क़यामत'",,
-f74aa1d701a0ac48,partial,drop,C3,"घोने चली जाती और वही सफ़द क
-भड़ोस-पडोम के",,OCR errors; hard to read
-55f0e0bc94cf0d00,partial,fix,A5;D4,"बोकारो में एक बुजुर्ग शख्स ने अधिकारियों के पास पहुंचा और बोली
-; गलतियांं @2449",U+092F U+093E U+0902 U+0902,
-4eb5e8a54565d01e,full,clean,D3,"Pawan Singh Last Song
-Ye Arrah Kabhi Hara Nahi Hai
-Akanksha Dubey",,
-2fc30913a6304b30,full,clean,D3,UK,,
-da3c5573f8946303,full,fix,D3;C2,"Lamborghini Aventador
-ये एक प्लग",,
-d2f261c58d6958da,full,clean,D3,"Apple
-Quran apps",,
+4814750ec839ddf2,full,fix,D3;C1,CCTV @934; DVR @956; This website follows the DNPA Code of Ethics. @1672,,
+ce50a186434fd11f,full,fix,D4;C1,दिन2दिनतुम इसमें पा @1135; सफेद चाय @0,,
+f47659291879377a,full,fix,D3;C1,When Obama Loved osama @29; 30 साल बाद फिर सिनेमाघरों में लगेगी फिल्म 'क़यामत से क़यामत' @1108,,
+f74aa1d701a0ac48,partial,drop,C3,घोने चली जाती और वही सफ़द क @0; भड़ोस-पडोम के @899,,OCR errors; hard to read
+55f0e0bc94cf0d00,partial,fix,A5;D4,बोकारो में एक बुजुर्ग शख्स ने अधिकारियों के पास पहुंचा और बोली @0; गलतियांं @2449,U+092F U+093E U+0902 U+0902,
+4eb5e8a54565d01e,full,clean,D3,Pawan Singh Last Song @17; Ye Arrah Kabhi Hara Nahi Hai @534; Akanksha Dubey @0,,
+2fc30913a6304b30,full,clean,D3,UK @545,,
+da3c5573f8946303,full,fix,D3;C2,Lamborghini Aventador @0; ये एक प्लग @75,,
+d2f261c58d6958da,full,clean,D3,Apple @27; Quran apps @148,,
 f77b37a589884078,full,clean,,,,
 f1b95bc7ba4b83f8,full,clean,D3,Weight Loss Tips @0,,
-4e896385dbed02df,full,fix,D4,डेली लाइफ में,,
+4e896385dbed02df,full,fix,D4,डेली लाइफ में @978,,
 40eba62c080dd9d0,full,clean,,,,
-8523610a740837e7,full,fix,D3;C2;C1,"Russian Commonder Sergey Surovikin
-रूस-यूक्रेन के बीच पिछले 7 महीने 
-ये भी देखें :",,
-3014f058a8381eb6,full,clean,D3,BJP,,
-c89ef9209fe848bb,full,fix,D3;C3,"gold price today
-आज सोने-चांदी की कीमत कुछ इस प्रकार हैंः",,
-6c50e2d0b435de59,full,clean,D4,,,
-551df2d268c9dbf7,full,fix,C4;C3,"लंबित हैं।
-",,
-2607d3147167eb48,full,fix,A5;C1,"ब्राह्म्ण
-This website follows the DNPA Code of Ethics.",U+0939 U+094D U+092E U+094D U+0923,
+8523610a740837e7,full,fix,D3;C2;C1,Russian Commonder Sergey Surovikin @270; रूस-यूक्रेन के बीच पिछले 7 महीने @0; ये भी देखें : @2700,,
+3014f058a8381eb6,full,clean,D3,BJP @15,,
+c89ef9209fe848bb,full,fix,D3;C3,gold price today @32; आज सोने-चांदी की कीमत कुछ इस प्रकार हैंः @899,,
+6c50e2d0b435de59,full,clean,D4,लाइबिल्टी पार्टनरसिप @736,,
+551df2d268c9dbf7,full,fix,C4;C3,लंबित हैं। @820,,
+2607d3147167eb48,full,fix,A5;C1,ब्राह्म्ण @861; This website follows the DNPA Code of Ethics. @1572,U+0939 U+094D U+092E U+094D U+0923,
 927612457cac52ec,full,clean,,,,
-e3f6880efee7ed66,full,fix,A6,२०१९,U+0032 U+0966 U+0031 U+0039,
-c1ff801ad2ea23d0,full,fix,C1, This website follows the DNPA Code of Ethics.,,
-6f8e4c926e1c6419,full,fix,C3,,,
-bb13687c4e2cb7dc,full,clean,D3,T20 World Cup 2021,,
-b675f2d990fb8605,full,fix,C2;C1;D3,"प्रशासकों की समिति
-CRICKETNMORE
-धन की कमी के कारण जम्मू ",,
-eef835c1e117e2a0,full,fix,D3;C3,"https://sarathi. parivahan. gov. in/sarathiservice/stateSelection.
-खबर के अनुसार अगर आप ",,
-867de9df1a1a7ad6,partial,drop,A5;C3,"अम॑स्य 
-घटत्व', 'पटत्व' आदि अम॑स्य ",U+092E U+0951 U+0938,OCR errors; hard to read
-8a07c24f5a5b694c,full,clean,D3,Nia Sharma Bikini Looks:,,
-81bb10daef936274,partial,fix,A5,यहाॅ ,U+0939 U+093E U+0945,OCR errors
-268259020b778d2b,full,fix,C3;D4,"कि पुलिस और प्रशासन की
-आनन फानन ने असम पुलिस ने
-",,
-2f02b8b9feec6642,partial,fix,D4;D3;C1,"Achilles tendinitis
-एखिल टेंडन",,
-a83e10aa75c913be,partial,fix,C1;D3;C3,"Cookies Policy, Privacy Policy 
-Terms & Conditions
-Read the latest and breaking Hindi news on amarujala. com. Get live Hindi news about India and the World from politics, sports, bollywood, business, cities, lifestyle, astrology, spirituality, jobs and much more. Register with amarujala. com to get all the latest Hindi news updates as they happen.
-शिक्षामंत्री ने कहा कि",,
-7f83d5cc9a26bf0a,partial,fix,D4,अच्छी तरस से खेले,,
+e3f6880efee7ed66,full,fix,A6,2०19 @344,U+0032 U+0966 U+0031 U+0039,
+c1ff801ad2ea23d0,full,fix,C1,This website follows the DNPA Code of Ethics. @1089,,
+6f8e4c926e1c6419,full,clean,,,,
+bb13687c4e2cb7dc,full,clean,D3,T20 World Cup 2021 @57,,
+b675f2d990fb8605,full,fix,C2;C1;D3,प्रशासकों की समिति @211; CRICKETNMORE @21; धन की कमी के कारण जम्मू @36,,
+eef835c1e117e2a0,full,fix,D3;C3,https://sarathi. parivahan. gov. in/sarathiservice/stateSelection. @719; खबर के अनुसार अगर आप @0,,
+867de9df1a1a7ad6,partial,drop,A5;C3,"अम॑स्य @21; घटत्व', 'पटत्व' आदि अम॑स्य @1",U+092E U+0951 U+0938,OCR errors; hard to read
+8a07c24f5a5b694c,full,clean,D3,Nia Sharma Bikini Looks: @0,,
+81bb10daef936274,partial,fix,A5,यहाॅ @263,U+0939 U+093E U+0945,OCR errors
+268259020b778d2b,full,fix,C3;D4,कि पुलिस और प्रशासन की @2; आनन फानन ने असम पुलिस ने @108,,
+2f02b8b9feec6642,partial,fix,D4;D3;C1,Achilles tendinitis @397; एखिल टेंडन @0,,
+a83e10aa75c913be,partial,fix,C1;D3;C3,"Cookies Policy, Privacy Policy @2500; Terms & Conditions @2534; Read the latest and breaking Hindi news on amarujala. com. Get live Hindi news about India and the World from politics, sports, bollywood, business, cities, lifestyle, astrology, spirituality, jobs and much more. Register with amarujala. com to get all the latest Hindi news updates as they happen. @2619; शिक्षामंत्री ने कहा कि @0",,
+7f83d5cc9a26bf0a,partial,fix,D4,अच्छी तरस से खेले @735,,
 c9f0e81c4b1aaa23,full,clean,,,,
-7356bf5274e3ae11,partial,fix,D3;C1,"मेन्स के लियेः
-Cryptocurrency
-Public Ledger
-Third Party Certification",,
-be4768a49472f81f,full,clean,D3,"Chhatrapati Shahu Maharaj Educational Institute
-Chhatrapati Shahu Engineering College",,
-aaa85957173b5915,full,fix,D4;C3,"
-अधिकारी ने कहा।
-",,
-c3adfb21aae6a1a9,full,fix,A5,डा़,U+0921 U+093E U+093C,
+7356bf5274e3ae11,partial,fix,D3;C1,मेन्स के लियेः @0; Cryptocurrency @2127; Public Ledger @3153; Third Party Certification @4035,,
+be4768a49472f81f,full,clean,D3,Chhatrapati Shahu Maharaj Educational Institute @47; Chhatrapati Shahu Engineering College @153,,
+aaa85957173b5915,full,fix,D4;C3,अधिकारी ने कहा। @1075,,
+c3adfb21aae6a1a9,full,fix,A5,डा़ @1661,U+0921 U+093E U+093C,
 3f1770e9f1fbab09,partial,clean,,,,
-b06bdcfa05c8c759,full,clean,D3,"IIP
-Patents
-Copyrights
-Design Rights
-Trade Secrets
-Commercialization of IP Assets
-Enforcement
-Systemic Efficiency
-Membership and Ratification of International Treaties
-WIPO",,
-e9d916f88e246a48,full,fix,D1,"सभापती, प्रलंबित, आयोजीत",,
-60007666e174e22f,partial,fix,C3;C1,"अमरीकन सैनिक अधिकारी
-अमरीका और इंगलैंड का पाकिस्तानी पोषण :: २११",,
-373e20c6f5372ce3,partial,fix,D4;D3,"NCP
-NDA
-CWC",,
+b06bdcfa05c8c759,full,clean,D3,IIP @60; Patents @1079; Copyrights @1100; Design Rights @1159; Trade Secrets @1198; Commercialization of IP Assets @1248; Enforcement @1292; Systemic Efficiency @1324; Membership and Ratification of International Treaties @1395; WIPO @1845,,
+e9d916f88e246a48,full,fix,D1, आयोजीत @526,,
+60007666e174e22f,partial,fix,C3;C1,अमरीकन सैनिक अधिकारी @0; अमरीका और इंगलैंड का पाकिस्तानी पोषण :: २११ @3296,,
+373e20c6f5372ce3,partial,fix,D4;D3,NCP @1798; NDA @5787; CWC @6380,,
 998952c815adecb8,full,clean,,,,
-6027a49b42c22bb5,full,fix,C2,रेलवे थाना पुलिस मामले की ,,
+6027a49b42c22bb5,full,fix,C2,रेलवे थाना पुलिस मामले की @145,,
 63bc684a6c8daa47,full,clean,,,,
-b82d784c3ba8a12a,full,fix,C4,सौभाग्य प्राप्त किया। उन्होंने बताया कि मन में ,,
-bf75cfe8544e7d23,full,fix,A5,मजिस्टे्रट ,U+091F U+0947 U+094D U+0930,
-99bb1aef0fa64e49,full,clean,D3,GEM,,
-0f0d21e2d6a3206d,full,fix,C1;C4;D3,"इसे भी पढ़ें - HOT PHOTOS:
-यहां बनवाया है टैटू. .",,
+b82d784c3ba8a12a,full,fix,C4,सौभाग्य प्राप्त किया। उन्होंने बताया कि मन में @1513,,
+bf75cfe8544e7d23,full,fix,A5,मजिस्टे्रट @827,U+091F U+0947 U+094D U+0930,
+99bb1aef0fa64e49,full,clean,D3,GEM @124,,
+0f0d21e2d6a3206d,full,fix,C1;C4;D3,इसे भी पढ़ें - HOT PHOTOS: @1671; यहां बनवाया है टैटू. . @1785,,
 12d5afab1fa3aa9b,full,clean,,,,
 b6bf671ff9887fcf,full,clean,,,,
-05851ef3d20cb2c8,full,drop,C3;C4,"वग्गणाहिं च केवडियं खेत्तं फोसिढं
-सुहमणिगांद्वग्गणाणमोरालिय
-द्रव्य वर्गकितने क्षेत्रका स्पर्शन किया है",,OCR errors; Prakrit text mixed with Hindi; hard to read
-a3cc997082536766,full,fix,C1;D3,"Quick links
-कॉंट्रेक्ट ",,
-1a4459202622686c,full,fix,D3;C1,"Google Pixel
-Get all Tech News in Hindi related to live news update of latest gadgets News apps, tablets etc. Stay updated with us for all breaking news from Tech and more Hindi News",,
-e53cc5f6e41514c8,full,fix,C1,"अगर आपको हमारा आर्टिकल पसंद आया, तो प्लीज इसे लाइक करें",,
-c5727742e49ca11f,full,fix,D4,ट्रेन और बस कोलाइड,,
-f48e5accc396ecca,full,clean,D3,"Gunther VI
-Nala
-Olivia Benson
-Jiffpom
-Choupette
-Pontiac",,
-ff0189b53837b131,partial,fix,A5;D3,बडे़ ,U+0921 U+0947 U+093C,
+05851ef3d20cb2c8,full,drop,C3;C4,वग्गणाहिं च केवडियं खेत्तं फोसिढं @0; िगांद्वग्गणाणमोरालिय @894; द्रव्य वर्गकितने क्षेत्रका स्पर्शन किया है @982,,OCR errors; Prakrit text mixed with Hindi; hard to read
+a3cc997082536766,full,fix,C1;D3,Quick links @0; कॉंट्रेक्ट @826,,
+1a4459202622686c,full,fix,D3;C1,"Google  @0; Get all Tech News in Hindi related to live news update of latest gadgets News apps, tablets etc. Stay updated with us for all breaking news from Tech and more Hindi News @330",,
+e53cc5f6e41514c8,full,fix,C1,"अगर आपको हमारा आर्टिकल पसंद आया, तो प्लीज इसे लाइक करें @339",,
+c5727742e49ca11f,full,fix,D4,ट्रेन और बस कोलाइड @14,,
+f48e5accc396ecca,full,clean,D3,Gunther VI @10; Nala @384; Olivia Benson @719; Jiffpom @1250; Choupette @1509; Pontiac @1882,,
+ff0189b53837b131,partial,fix,A5;D3,बडे़ @2650,U+0921 U+0947 U+093C,
 9df3e9edadd6eb14,full,clean,,,,
-367f0e377e1e43a3,full,fix,C1;D3, This website follows the DNPA Code of Ethics.,,
+367f0e377e1e43a3,full,fix,C1;D3,This website follows the DNPA Code of Ethics. @2341,,
 dc5f8499d2f0b88a,full,drop,,पतिनिधि ,U+092A U+0924 U+093F U+0928 U+093F U+0927 U+093F,"OCR/font errors (प्र lost as प, ता as पा); hard to read"
-92b5437259721cf1,full,fix,C1,यह भी पढ़ेः- भिंडी कई पोषक तत्वों से भरपू,,
+92b5437259721cf1,full,fix,C1,यह भी पढ़ेः- भिंडी कई पोषक तत्वों से भरपू @1108,,
 6348f245856f57a0,partial,clean,,,,
 e0cb8b506935ac8c,partial,fix,A5,मेें @189,U+092E U+0947 U+0947,
 5fe5e3bb54a3c6f6,partial,clean,D3,SRH @553,,
@@ -295,7 +196,7 @@ af0539f0235e0ba6,partial,clean,,,,
 8cbb1a43b7476675,partial,clean,D3,COVID-19 @123,,
 887a612fb87ff017,partial,clean,D3,SPG @286,,
 7a6b28ac5a36d7b0,full,clean,,,,
-298fd396795c6a43,full,fix,C1;C3,शॉर्टकटः @~20,,machine-translated wiki comparison stub
+298fd396795c6a43,full,fix,C1;C3,शॉर्टकट @32,,machine-translated wiki comparison stub
 351e3cb0e243a0fd,full,drop,A5;C3,यहाॅ @4837; ends: …द है । यह नित्य सवेग्रमान @10367,U+0939 U+093E U+0945,OCR errors; hard to read
 c8981db5305b7022,partial,fix,C2,आदित्य मित्तल आर्सेलरमित्तल के @2154 (repeats @0),,
 4d7279fdd894c589,full,clean,,,,
@@ -333,7 +234,7 @@ cfaa0c9e64e85ecd,partial,fix,C2,हुसैनी मस्जिद और क
 b175608ed0434587,partial,clean,D3,MP Election 2023 @0,,
 b59a0cbdf2eb68af,partial,fix,C1,ये भी पढ़ेंः - यहां जलती चिताओं के प @335,,
 52aa5b8c3390e3fb,partial,clean,,,,
-9147d9dbad0272e8,full,drop,C1,,,login banner only
+9147d9dbad0272e8,full,drop,C1,बेहतर अनुभव के लिये कृपया लॉग इन करें @16,,login banner only
 086a0ded5e57ab37,full,fix,D1,Sanskrit text @0,,Sanskrit verse with commentary; OCR errors
 092bd87d67c51cc1,partial,fix,C3,ends: …प्रसन्न हुआ और उसने लड़के @1629,,
 5b0bbbfde3f7ff11,full,drop,C1;D3,email protected @305,,image disclaimer only
@@ -501,7 +402,7 @@ a7dade2d789924dd,full,clean,,,,
 c868f21db1fc36ec,partial,fix,C3;D3,ends: …हुए विद्रोह की छाया दिखाई @1852; Ibsen @1083,,
 2b890b6ca28c5f29,partial,clean,,,,
 2e13444103df3690,full,fix,C3,ends: …सदर मुकाम बनाया । यहां एक @4352,,OCR errors
-3e274ee752b0919c,full,drop,C1;C5,,,book metadata page with web widget text; old spelling/OCR errors
+3e274ee752b0919c,full,drop,C1;C5,Click to expand @109; लेखक : @0,,book metadata page with web widget text; old spelling/OCR errors
 9d440e0932aba5b2,partial,clean,D3,Friday February 03 @0,,
 e26d69c5e72a6d0f,partial,fix,A5,हैैं @908,U+0939 U+0948 U+0948,
 ffb5f73d3ac4cfba,partial,fix,C1,क्लिक करें।   @875,,
@@ -581,7 +482,7 @@ df7ac1b1f55ffe35,full,clean,,,,
 419e8b7341f6c3e3,partial,clean,,,,
 989190a947bd5390,partial,fix,C2,मैं सौभाग्यशाली हूं कि बालीवुड @364 (repeats @63),,
 5ea39f7395fe53a2,partial,clean,D3,LADS @137,,
-2825af344075fb70,full,fix,C5,,,dictionary entries
+2825af344075fb70,full,fix,C5,"१. पापी । २. संयमी, परहेजगार @3511",,dictionary entries
 b1b6e3554a5a368a,full,clean,,,,
 b9f691f0adf4b884,full,fix,A5;A6;C3;D3,पहुॅचे @1936; - ५0  @2272; ends: …- सुष्टि- आतंक बीब- पू0 4 @5799; Yhd-wie wir dabeamen oder de @1005,U+0939 U+0941 U+0945,OCR errors
 823414ae83c4d165,partial,fix,A5;C1;D3,शाॅर्टलिस्ट @1191; क्लिक करें. - अब पोस्ट का चयन करें औ @1542; EIL Recruitment 2023 @0,U+0936 U+093E U+0945,
