@@ -13,7 +13,7 @@ import random
 from huggingface_hub import dataset_info
 from lm_eval.tasks import TaskManager, get_task_dict
 
-from run_lm_eval import HERE
+from run_lm_eval import HERE, stamp  # stamp: the lab canary (../CANARY.md)
 
 SEED = 20261028
 TASKS = {  # task: number of items (priority: code and agentic, then Indic, then everything else)
@@ -89,7 +89,7 @@ def main():
         },
     }
     out = HERE / "eval_mini_v0_spec.json"
-    out.write_text(json.dumps(spec, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
+    out.write_text(json.dumps(stamp(spec), indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
     print("wrote", out, f"({out.stat().st_size / 1024:.0f} KiB)")
 
 

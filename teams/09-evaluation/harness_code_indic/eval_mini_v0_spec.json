@@ -1,4 +1,5 @@
 {
+ "canary": "ERA V5 LAB EVALUATION DATA. IT MUST NEVER APPEAR IN TRAINING DATA. canary GUID era-v5-lab:eval:43c1a566-5d44-4c5b-96ae-b53b4188b0ec",
  "name": "eval-mini",
  "version": "v0",
  "created": "2026-10-25",

@@ -59,12 +59,46 @@ def test_lab_canary_is_plain_ascii_text():
     assert json.dumps(LAB_CANARY_LINE, ensure_ascii=True) == '"' + LAB_CANARY_LINE + '"'
 
 
-def test_the_repo_never_holds_the_whole_canary():
-    # If the repo is crawled into training data, it must not carry the canary.
-    files = [p for p in G9.rglob("*") if p.is_file() and p.suffix in {".py", ".md", ".json", ".toml", ".txt", ".ipynb"}
-             and "runs" not in p.parts and "fingerprints" not in p.parts]
-    assert files
-    assert [p for p in files if LAB_CANARY in p.read_text(encoding="utf-8", errors="replace")] == []
+PUBLISHED_JSON = ["results/eval_mini_v0.json", "results/eval_mini_v0_code_indic.json",
+                  "harness_code_indic/eval_mini_v0_spec.json"]
+PUBLISHED_MD = ["results/compare_v0.md", "results/compare_v0_code_indic.md"]
+
+
+def test_the_canary_is_recorded_once_in_canary_md():
+    # TSAI, 2 Nov: one lab-wide canary, recorded once in teams/09-evaluation/. Code reads it, never repeats it.
+    record = (G9 / "CANARY.md").read_text(encoding="utf-8")
+    assert record.count(LAB_CANARY_LINE) == 1
+    code = [p for p in G9.rglob("*.py") if "runs" not in p.parts]
+    assert code and [p for p in code if LAB_CANARY in p.read_text(encoding="utf-8")] == []
+
+
+def test_record_with_no_or_two_canary_lines_is_an_error(tmp_path):
+    import lab_canary
+    f = tmp_path / "CANARY.md"
+    f.write_text("no canary here\n", encoding="utf-8")
+    with pytest.raises(ValueError):
+        lab_canary._read_record(f)
+    f.write_text(LAB_CANARY_LINE + "\n" + LAB_CANARY_LINE.replace(LAB_CANARY[-4:], "0000") + "\n", encoding="utf-8")
+    with pytest.raises(ValueError):
+        lab_canary._read_record(f)
+
+
+def test_every_published_eval_file_carries_the_canary():
+    for rel in PUBLISHED_JSON:
+        data = json.loads((G9 / rel).read_text(encoding="utf-8"))
+        assert list(data)[0] == "canary" and data["canary"] == LAB_CANARY_LINE, rel
+    for rel in PUBLISHED_MD:
+        assert (G9 / rel).read_text(encoding="utf-8").splitlines()[0] == MARKDOWN_LINE, rel
+    # Every published file is listed in CANARY.md.
+    record = (G9 / "CANARY.md").read_text(encoding="utf-8")
+    assert all(f"`{rel}`" in record for rel in PUBLISHED_JSON + PUBLISHED_MD)
+
+
+def test_recorded_spec_sha256_matches_the_spec_file():
+    import hashlib
+    spec = G9 / "harness_code_indic" / "eval_mini_v0_spec.json"
+    results = json.loads((G9 / "results" / "eval_mini_v0_code_indic.json").read_text(encoding="utf-8"))
+    assert results["spec_sha256"] == hashlib.sha256(spec.read_bytes()).hexdigest()
 
 
 def test_stamp_puts_the_canary_first_and_keeps_the_record():

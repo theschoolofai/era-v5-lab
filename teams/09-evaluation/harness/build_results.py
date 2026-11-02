@@ -22,6 +22,9 @@ from dataclasses import asdict  # noqa: E402
 
 from run_eval_mini import PROFILES, SCHEMA_VERSION, TASKS  # noqa: E402
 
+sys.path.append(str(Path(__file__).resolve().parent.parent / "decontam"))
+from lab_canary import MARKDOWN_LINE, stamp  # noqa: E402  the lab canary (../CANARY.md) goes on every published eval file
+
 HARNESS_DIR = Path(__file__).resolve().parent
 RESULTS_DIR = HARNESS_DIR.parent / "results"
 WITHIN_POINTS = 2.0
@@ -454,14 +457,14 @@ def main(argv: list[str] | None = None) -> int:
 
     summaries = load_summaries(args.runs_dir)
     published = load_published(args.published)
-    data = build_json(summaries, published)
+    data = stamp(build_json(summaries, published))
     args.results_dir.mkdir(parents=True, exist_ok=True)
     json_path = args.results_dir / "eval_mini_v0.json"
     md_path = args.results_dir / "compare_v0.md"
     with json_path.open("w") as fh:
         json.dump(data, fh, indent=1)
         fh.write("\n")
-    md_path.write_text(render_markdown(data, published))
+    md_path.write_text(MARKDOWN_LINE + "\n" + render_markdown(data, published))
     print(f"wrote {json_path} ({len(data['records'])} records) and {md_path}")
     return 0
 

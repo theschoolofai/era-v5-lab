@@ -15,6 +15,7 @@ import json
 from datetime import date
 
 from run_lm_eval import HERE, RUNS
+from lab_canary import MARKDOWN_LINE, stamp  # noqa: E402  path set by run_lm_eval; the lab canary (../CANARY.md)
 
 RESULTS = HERE.parent / "results"
 EVAL_MINI_OUT = "eval_mini_v0_code_indic.json"
@@ -155,7 +156,7 @@ def main():
                  "spec_sha256": hashlib.sha256(spec_path.read_bytes()).hexdigest(),
                  "companion": "results/eval_mini_v0.json: general tasks (ARC, HellaSwag, MMLU, GSM8K, TruthfulQA), PR #21",
                  "units": "points (0-100)", "note": spec["scoring_note"], "noise_note": spec.get("noise_note"), "models": models}
-    (RESULTS / EVAL_MINI_OUT).write_text(json.dumps(eval_mini, indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
+    (RESULTS / EVAL_MINI_OUT).write_text(json.dumps(stamp(eval_mini), indent=1, ensure_ascii=False) + "\n", encoding="utf-8", newline="\n")
 
     rows, counts = [], {"PASS": 0, "FAIL": 0, "PENDING": 0, "DEFERRED": 0, "NOT RUN": 0}
     for a in [a for a in pub["anchors"] if a["use_for_gate"]]:
@@ -226,7 +227,7 @@ def main():
           "- The leaderboard used a pinned lm-eval fork (commits `d4631ea6` / `121ee91`) on Linux GPUs; we use release 0.4.13 on Windows (RTX 3070 Laptop; MILU per-language rows on an RTX 4060 Ti 16 GB).",
           "- Small models score close to chance (25%) on MILU's Indic languages, so MILU agreement is a weaker check than MMLU-Pro.",
           "- The MILU paper's `avg` column does not state its aggregation; per-language rows are the primary check.", ""]
-    (RESULTS / COMPARE_OUT).write_text("\n".join(md), encoding="utf-8", newline="\n")
+    (RESULTS / COMPARE_OUT).write_text("\n".join([MARKDOWN_LINE] + md), encoding="utf-8", newline="\n")
     print(f"{EVAL_MINI_OUT}: {sum(v['status'] == 'done' for v in models.values())}/{len(models)} models done | gate: {status} | timeouts {timeouts}")
 
 

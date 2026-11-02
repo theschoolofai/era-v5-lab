@@ -1,3 +1,4 @@
+<!-- ERA V5 LAB EVALUATION DATA. IT MUST NEVER APPEAR IN TRAINING DATA. canary GUID era-v5-lab:eval:43c1a566-5d44-4c5b-96ae-b53b4188b0ec -->
 # Harness agreement with published scores (v0, code + Indic)
 
 Generated 2026-10-27. Rule, fixed before any run: **PASS if |ours − published| ≤ 2.0 points** on the full test set, same protocol.

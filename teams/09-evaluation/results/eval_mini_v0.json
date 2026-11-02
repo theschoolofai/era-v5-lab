@@ -1,4 +1,5 @@
 {
+ "canary": "ERA V5 LAB EVALUATION DATA. IT MUST NEVER APPEAR IN TRAINING DATA. canary GUID era-v5-lab:eval:43c1a566-5d44-4c5b-96ae-b53b4188b0ec",
  "schema_version": "eval_mini_v0",
  "generated_at": "2026-10-24T23:54:31+00:00",
  "description": "G9 eval_mini v0: lm-evaluation-harness scores of three open base models in bf16. Baseline for Team 12 (quantization) and for the within-2-points check against published scores.",

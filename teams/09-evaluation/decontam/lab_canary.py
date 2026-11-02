@@ -1,30 +1,32 @@
-"""The lab canary string (G9). One place for the string, the stamp, the canary files and the search.
+"""The lab canary (G9): the string, the stamp, the benchmark canary files and the search.
 
-Every file that holds eval items (questions, answers, prompts) carries the lab canary line.
-If the canary turns up in a training document, eval data reached the training data.
-canary_scan.py looks for it, and so does decontam_check.py (through fpset.Fingerprints).
+There is one lab-wide canary string, recorded once in ../CANARY.md (TSAI, G9 chat, 2 Nov).
+This module reads it from there. Every eval file that Team 9 publishes carries the canary line,
+so canary_scan.py (and decontam_check.py, through fpset.Fingerprints) can tell when eval data
+reached training data.
 
-The canary is plain ASCII text, not a special token (TSAI, G10 chat, 29 Oct): a special
-token never comes out of normal tokenization, so leaked text would not contain it.
-ASCII also keeps it the same in JSON written with ensure_ascii=True.
-
-The full string is built from parts and never written out whole in this repo (code or docs).
-If the repo itself is crawled into training data, it does not carry the canary, so the
-canary keeps working as a marker and our own scans do not flag the repo.
-
-Do not change the parts. Files stamped with the old string would no longer be found.
+The canary is plain ASCII text, not a special token (TSAI, G10 chat, 29 Oct): a special token
+never comes out of normal tokenization, so leaked text would not contain it.
 """
 
 import json
+import re
 from pathlib import Path
 
-# The ID part was made once with uuid.uuid4().
-_ID_PARTS = ("era-v5-lab", "eval", "43c1a566-5d44-4c5b-96ae-b53b4188b0ec")
-LAB_CANARY = ":".join(_ID_PARTS)  # the searched-for marker
-LAB_CANARY_ID = _ID_PARTS[0]
-# The line written into eval files, in the style of the BIG-bench, GPQA and HLE canaries.
-LAB_CANARY_LINE = " ".join(("ERA V5 LAB EVALUATION DATA.", "IT MUST NEVER APPEAR IN TRAINING DATA.",
-                            "canary GUID", LAB_CANARY))
+CANARY_FILE = Path(__file__).resolve().parent.parent / "CANARY.md"
+_LINE = re.compile(r"^(ERA V5 LAB EVALUATION DATA\. .* canary GUID (era-v5-lab:eval:[0-9a-f-]{36}))$", re.M)
+
+
+def _read_record(path=CANARY_FILE):
+    """(line, GUID) from CANARY.md. Exactly one distinct canary line must be recorded there."""
+    found = set(_LINE.findall(Path(path).read_text(encoding="utf-8")))
+    if len(found) != 1:
+        raise ValueError(f"{path}: expected one recorded canary line, found {len(found)}")
+    return found.pop()
+
+
+LAB_CANARY_LINE, LAB_CANARY = _read_record()  # the line written into eval files; the searched-for GUID
+LAB_CANARY_ID = "era-v5-lab"
 MARKDOWN_LINE = f"<!-- {LAB_CANARY_LINE} -->"
 
 

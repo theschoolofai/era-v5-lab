@@ -1,10 +1,11 @@
 {
+ "canary": "ERA V5 LAB EVALUATION DATA. IT MUST NEVER APPEAR IN TRAINING DATA. canary GUID era-v5-lab:eval:43c1a566-5d44-4c5b-96ae-b53b4188b0ec",
  "name": "eval-mini",
  "version": "v0",
  "part": "code + Indic (+ MMLU-Pro, GSM8K)",
  "generated": "2026-10-27",
  "spec_file": "harness_code_indic/eval_mini_v0_spec.json",
- "spec_sha256": "94de47d2334eff1d5419aad73c355c91abe16d278c9f45c9e2a4acf9ef3d399a",
+ "spec_sha256": "26f7bf74f8a4a7ea982b642faa95a5084db181d9a900e37338b8f673c0408115",
  "companion": "results/eval_mini_v0.json: general tasks (ARC, HellaSwag, MMLU, GSM8K, TruthfulQA), PR #21",
  "units": "points (0-100)",
  "note": "subset scores are for comparing checkpoints and formats; they are NOT comparable to published full-set scores",

@@ -49,30 +49,17 @@ fingerprint files byte for byte. Without it, Git with `core.autocrlf=true` check
 
 ## Canary scan (lab canary)
 
-Every file that holds eval items carries the **lab canary**, a plain-text line (not a special token,
-TSAI ruling of 29 Oct: a special token never comes out of normal tokenization, so leaked text would not contain it):
+The lab uses **one lab-wide canary string**, recorded once in [`../CANARY.md`](../CANARY.md) (TSAI, 2 Nov). Every eval
+file that Team 9 publishes carries it (`results/*.json`, `results/compare_*.md`, `harness_code_indic/eval_mini_v0_spec.json`),
+and so do the local item files and sample logs. `CANARY.md` lists every file and the script that writes it.
+It is a plain-text line, not a special token (TSAI, 29 Oct: a special token never comes out of normal tokenization,
+so leaked text would not contain it). The scanners look for its GUID part, `era-v5-lab:eval:<GUID>`.
 
-```
-ERA V5 LAB EVALUATION DATA. IT MUST NEVER APPEAR IN TRAINING DATA. canary GUID era-v5-lab:eval:<GUID>
-```
-
-`<GUID>` is the last part of `_ID_PARTS` in `lab_canary.py`. The full string is never written out whole in this repo
-(code or docs): if the repo is crawled into training data, it must not carry the canary, and our own scans must not flag it.
-
-The string is defined once, in `lab_canary.py` (`LAB_CANARY`, `LAB_CANARY_LINE`, `stamp()`). Do not change it:
-files stamped with the old string would no longer be found. It is ASCII, so JSON written with
-`ensure_ascii=True` keeps it unchanged.
-
-Where it is written:
-
-| File | Writer | Where |
-|---|---|---|
-| `harness_code_indic/runs/eval_mini_v0_items.json` (gitignored) | `make_eval_mini_items.py` | top-level `"canary"` and in every item, so one copied item is found too |
-| `harness_code_indic/runs/<model>/<tag>/samples_<n>.jsonl` (gitignored, `--log-samples`) | `run_lm_eval.py` | `"canary"` in every sample line |
-
-A new script that writes eval items should call `lab_canary.stamp()` on each record (JSON) or write
-`lab_canary.MARKDOWN_LINE` (Markdown). Score files (`results/*.json`, `compare_*.md`) and `eval_mini_v0_spec.json`
-hold no item text and are not stamped (a change to the spec would also change the `spec_sha256` in the results).
+`lab_canary.py` reads the string from `CANARY.md` (`LAB_CANARY`, `LAB_CANARY_LINE`, `MARKDOWN_LINE`) and has `stamp()`.
+A new script that writes an eval file calls `lab_canary.stamp(record)` (JSON, canary as the first key) or writes
+`lab_canary.MARKDOWN_LINE` as the first line (Markdown); add the file to the table in `CANARY.md` and to
+`PUBLISHED_JSON` / `PUBLISHED_MD` in `tests/test_canary.py`. Never change the string: files stamped with the old string
+would no longer be found.
 
 `canary_scan.py` looks for the lab canary and for every benchmark canary in the fingerprint set
 (benchmarks with canaries in `MANIFEST.json`: GPQA, HLE). It does not load the fingerprints, so it needs little memory
@@ -93,8 +80,9 @@ One output line per occurrence, with only the canary, the document ID and the ch
 ```
 
 The summary goes to stderr (`docs N with_canary N hits N`). Exit code 1 means a canary was found; else 2 means a file
-could not be read (it is named on stderr and skipped, the scan goes on); else 0. A pipeline can stop on any non-zero code. `decontam_check.py` also flags the lab canary (item `era-v5-lab:canary`), so the full
-check covers it too.
+could not be read (it is named on stderr and skipped, the scan goes on); else 0. A pipeline can stop on any non-zero code.
+`decontam_check.py` also flags the lab canary (item `era-v5-lab:canary`), so the full check covers it too.
+A scan of this repo finds the canary in `CANARY.md` and in the published eval files, as expected.
 
 ## The fingerprint set (v1)
 
