@@ -53,7 +53,9 @@ The table also gives a pack check: the same rules on all 500 pack documents, cou
        return _C1_LINE.sub("", text)
    ```
 3. **Action:** fix (remove the lines).
-4. **Harm test:** gold set: 0 of 41 changed, 0 dropped, PASS. Pack check: changes 50 documents, all labelled C1; none of the 153 `clean` documents.
+4. **Harm test:** `harm_test.py --rule C1` on this pack's gold set, `teams/02-data-b/gold/ind-ta-sangraha-v_gold.csv` on
+   main (41 documents, limit 1): 0 documents changed, 0 dropped, 0.00%, result PASS. Pack check: changes 50 documents, all
+   labelled C1; none of the 153 `clean` documents.
 5. **Side effects:**
    - The rule treats only 50 of the 163 C1 documents. The other 113 have site-specific boilerplate (breadcrumbs, related
      headlines mixed into the article, captions, share widgets) that a general rule cannot remove safely. They stay as they are.
