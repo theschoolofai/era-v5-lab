@@ -1,0 +1,17 @@
+# Live alert watcher on the controller (ADR 0004): evaluates metrics/catalog.yaml every 30 s and pages on HIGH.
+# Started by launch.sh (step services). Copy to /etc/systemd/system/.
+[Unit]
+Description=V5 alert watcher
+After=slurmctld.service
+
+[Service]
+User=slurm
+EnvironmentFile=-/etc/v5/node.env
+Environment=V5_EVENTS_DIR=/var/log/v5/events RUN_ID=v5main
+WorkingDirectory=/opt/v5
+ExecStart=/opt/venv/bin/python metrics/watch.py --events /var/log/v5/events --run v5main --nodes 2 --every 30
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -29,7 +29,7 @@ def read_votes(path, warnings):
         names = [(n or "").strip().lower() for n in (reader.fieldnames or [])]
         if not set(NEED) <= set(names):
             raise ValueError(f"the header has no {', '.join(sorted(set(NEED) - set(names)))} column")
-        votes, conflict = {}, set()
+        votes, conflict, every = {}, set(), {}
         for row in reader:
             r = {(k or "").strip().lower(): (v or "").strip() for k, v in row.items() if k is not None}
             doc, read, verdict = r.get("doc_id"), r.get("read", "").lower(), r.get("verdict", "").lower()
@@ -44,10 +44,14 @@ def read_votes(path, warnings):
             if doc in votes and votes[doc] != vote:
                 conflict.add(doc)
             votes[doc] = vote
+            every.setdefault(doc, set()).add(vote)
     if conflict:
-        warnings.append(f"{path.parent.name}/{path.name}: {len(conflict)} documents with two different rows: left out")
+        warnings.append(f"{path.parent.name}/{path.name}: {len(conflict)} documents with two different rows (disputed if one row is fix or drop)")
         for doc in conflict:
-            del votes[doc]
+            if "negative" in every[doc]:
+                votes[doc] = "negative"  # one row says fix or drop: the document is disputed, never gold
+            else:
+                del votes[doc]
     return votes
 
 

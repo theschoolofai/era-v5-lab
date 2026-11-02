@@ -1,7 +1,7 @@
 """Run WikiText-2 perplexity on every GGUF in a folder and append one row per file to runs_ppl.csv.
 
 Usage (GGUFs from scripts/quantize_eval.py or quantize/quantize_olmoe.sh, llama.cpp binaries on PATH):
-    pip install gguf
+    pip install gguf==0.19.0
     python teams/12-quantization/perplexity/run_perplexity.py --models-dir <folder with *.gguf>
 
 The format is taken from the file name after the last "-" (olmoe-Q4_K_M.gguf -> Q4_K_M).
@@ -48,7 +48,7 @@ def n_params(gguf_path: Path) -> int:
     try:
         from gguf import GGUFReader
     except ImportError:
-        sys.exit("the gguf package is missing: pip install gguf")
+        sys.exit("the gguf package is missing: pip install gguf==0.19.0")
     return sum(int(t.n_elements) for t in GGUFReader(gguf_path).tensors)
 
 def perplexity(binary: str, model: Path, text: Path, ngl: int, ctx: int, chunks: int | None):

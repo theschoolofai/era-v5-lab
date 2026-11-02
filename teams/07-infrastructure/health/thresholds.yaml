@@ -1,0 +1,30 @@
+# Every health threshold, with its source (ADR 0003 §4).
+# Until the week-2 baseline (5 x --full on known-good nodes) exists, GPU limits are vendor limits or warn-only.
+expect_gpus: 8                 # gpu-node-8; the Docker test sets V5_EXPECT_GPUS=0
+gpu:
+  temp_warn_c: 85              # vendor slowdown temp - 5 C; replace with `nvidia-smi -q` slowdown value per SKU
+  temp_fail_c: 90              # vendor slowdown temp
+  ecc_uncorrectable_fail: 1    # any uncorrectable error: drain (S15 alert table)
+  ecc_correctable_warn_24h: null   # 3 x fleet median, set after the week-2 baseline
+  remapped_pending_warn: 1     # reboot needed to finish a row remap
+  remapped_failure_fail: 1     # remap failed: the GPU must be replaced
+  pcie_width_min_ratio: 1.0    # current link width must equal max width
+host:
+  nvme_min_free_gb: 100        # ADR 0001 §2: >= 1.2 x per-node share; real value once the model size is known
+  mem_min_available_gb: 2      # pinned host RAM for async staging; real value once the model size is known
+  clock_offset_warn_ms: 50
+  clock_offset_fail_ms: 100    # ADR 0002 §8
+nccl:
+  busbw_floor_ratio: 0.9       # floor = 0.9 x baseline median per message size
+  baseline_busbw_gbps: {}      # filled from the week-2 baseline: {size_bytes: median busbw}
+  timeout_s: 120
+  ops: [all_reduce, reduce_scatter, all_gather, all_to_all]   # millermuttu's four collectives (team 07)
+  nvlink_inactive_fail: 1      # any inactive NVLink link halves all-reduce speed with no error: drain
+xid:                           # NVIDIA Xid catalog; reviewed each dry run. 61/62/92/140 from millermuttu's list (team 07)
+  fatal: [48, 61, 62, 63, 64, 74, 79, 92, 95, 119, 120, 140]
+  restart: [94]                # contained ECC: the job restarts, the GPU stays; drain only if it repeats
+  restart_window_h: 24         # a second restart-class Xid on the same GPU within this window drains the node
+  warn: [13, 31, 43]           # usually the application, not the GPU
+runtime:
+  prolog_budget_s: 30
+  full_budget_s: 900

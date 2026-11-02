@@ -67,12 +67,16 @@ class HarmTestCase(unittest.TestCase):
         docs["d1"] = "ఒక () పాఠం"
         self.assertEqual(self.run_tool(md, {"p1": docs})[0], 1)  # 2 of 100 fails
 
-    def test_one_changed_document_in_a_small_set_fails(self):
+    def test_small_set_rule_allows_one_document_not_two(self):
         md = medicine(("G3", "def medicine_g3(text):\n    return text.replace('()', '')"))
         docs = {f"d{i}": "ఒక పాఠం" for i in range(46)}
         docs["d0"] = "ఒక () పాఠం"
         code, out, _ = self.run_tool(md, {"p1": docs})
-        self.assertEqual(code, 1, out)  # 1 of 46 is 2.2%
+        self.assertEqual(code, 0, out)  # 1 of 46 is 2.2%, but TSAI allows max(1 document, 1%)
+        docs["d1"] = "ఒక () పాఠం"
+        self.assertEqual(self.run_tool(md, {"p1": docs})[0], 1)
+        self.assertEqual(ht.allowed_docs(46, 1), 1)
+        self.assertEqual(ht.allowed_docs(500, 1), 5)
 
     def test_detector_true_drops(self):
         md = medicine(("D4", "def medicine_d4(text):\n    return 'xx' in text"))
@@ -163,6 +167,26 @@ class HarmTestCase(unittest.TestCase):
         self.assertRegex(out, r"B2\s+0\s+0")  # on its own B2 finds no X
         self.assertRegex(out, r"ALL IN ORDER\s+1\s+0")
 
+    def test_all_in_order_compares_the_final_text_with_the_original(self):
+        md = medicine(("G3", "def medicine_g3(text):\n    return text.replace('()', 'X')"),
+                      ("B2", "def medicine_b2(text):\n    return text.replace('X', '()')"))
+        docs = {f"d{i}": "ok" for i in range(100)}
+        docs["d0"] = "a () b"
+        _, out, _ = self.run_tool(md, {"p1": docs})
+        self.assertRegex(out, r"G3\s+1\s+0")
+        self.assertRegex(out, r"ALL IN ORDER\s+0\s+0")  # the second rule restores the text
+
+    def test_pack_row_without_doc_id_exits_2(self):
+        md = medicine(("G3", "def medicine_g3(text):\n    return text"))
+        (self.tmp / "medicine.md").write_text(md, encoding="utf-8")
+        (self.tmp / "p1.jsonl").write_text('{"text": "ok"}\n', encoding="utf-8")
+        (self.tmp / "p1_gold.csv").write_text("doc_id,reader_1,reader_2\nd0,a,b\n", encoding="utf-8")
+        err = io.StringIO()
+        with redirect_stdout(io.StringIO()), redirect_stderr(err):
+            code = ht.main(["--medicine", str(self.tmp / "medicine.md"), "--pack", str(self.tmp / "p1.jsonl"), "--gold-dir", str(self.tmp)])
+        self.assertEqual(code, 2)
+        self.assertIn("row 1 has no doc_id", err.getvalue())
+
     def test_a_section_without_code_is_reported_not_failed(self):
         md = medicine(("G3", "def medicine_g3(text):\n    return text")) + "\n1. **Disease:** D5 (no code)\n2. **Medicine:** none\n"
         code, out, _ = self.run_tool(md, {"p1": {"d0": "ok"}})
@@ -175,8 +199,16 @@ class HarmTestCase(unittest.TestCase):
         broken = medicine(("G3", "def medicine_g3(text):\n    return ("))
         self.assertEqual(self.run_tool(broken, {"p1": {"d0": "ok"}})[0], 2)
         needs_doc = medicine(("G3", "def medicine_g3(doc):\n    return doc['text']"))
-        self.assertEqual(self.run_tool(needs_doc, {"p1": {"d0": "ok"}})[0], 2)
+        code, _, err = self.run_tool(needs_doc, {"p1": {"d0": "ok"}})
+        self.assertEqual(code, 2)
+        self.assertIn("G3: the function medicine_g3() takes 'doc'", err)
         self.assertEqual(self.run_tool("# no sections here", {"p1": {"d0": "ok"}})[0], 2)
+
+    def test_a_doc_rule_does_not_block_the_other_rules_when_one_is_chosen(self):
+        md = medicine(("G3", "def medicine_g3(doc):\n    return doc['text']"),
+                      ("B2", "def medicine_b2(text):\n    return text"))
+        code, out, _ = self.run_tool(md, {"p1": {"d0": "ok"}}, extra=("--rule", "B2"))
+        self.assertEqual(code, 0, out)
 
     def test_helper_functions_with_underscore_are_not_the_rule(self):
         md = medicine(("G3", "def _helper(t):\n    return t.replace('()', '')\ndef cleaner(text):\n    return _helper(text)"))
@@ -241,6 +273,14 @@ class GoldCase(unittest.TestCase):
         self.sheet("p1", "amy", [("d1", "full", "clean", ""), ("d1", "full", "fix", "D4")])
         self.sheet("p1", "bob", [("d1", "full", "clean", "")])
         self.assertEqual(self.build()[1]("p1_gold.csv"), [])
+
+    def test_a_fix_row_of_a_reader_who_also_has_a_clean_row_disputes_the_document(self):
+        self.sheet("p1", "amy", [("d1", "full", "clean", ""), ("d1", "full", "fix", "D4")])
+        self.sheet("p1", "bob", [("d1", "full", "clean", "")])
+        self.sheet("p1", "cat", [("d1", "full", "clean", "")])
+        code, rows, _ = self.build()
+        self.assertEqual(rows("p1_gold.csv"), [])  # bob and cat are clean, amy says fix: disputed, not gold
+        self.assertEqual(rows("gold_coverage.csv")[0][4], "1")  # the disputed column
 
     def test_language_file_joins_the_packs_and_coverage_is_written(self):
         for pack in ("p1", "p2"):

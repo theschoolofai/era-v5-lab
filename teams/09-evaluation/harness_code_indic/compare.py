@@ -191,7 +191,8 @@ def main():
           "- Code scoring agrees with the EvalPlus leaderboard for DeepSeek-Coder-1.3B-base (within 1.2) and phi-2 on 3 of 4.",
           f"- The two FAILs are on the stricter `+` tests, just past the line (−2.41, −2.88). evalplus recorded {timeouts} timeouts "
           "across all executed code, so a slow executor does not explain them. They stand under the pre-registered rule.",
-          "- DEFERRED: the Indic MILU rows, by the lead's decision on 25 Oct (week-1 focus is code); MILU-English for gemma-2-2b passed.",
+          "- DEFERRED: the two MILU-avg rows (all 11 languages, 79,608 items per model).",
+          "- MILU per-language rows: the five deferred on 25 Oct were run on 29-30 Oct on a second machine (RTX 4060 Ti 16 GB, Windows) with this harness at the pinned revisions; all PASS (largest |Δ| 0.88). As a cross-machine check, gemma-2-2b MILU-en scored 51.16 there against 51.05 in the gate row.",
           "- NOT RUN: BBH (optional; MMLU-Pro already covers general ability against the same leaderboard).", "",
           "| Model | Benchmark | Published | Ours | Δ | Verdict | Source |", "|---|---|---|---|---|---|---|", *rows, "",
           "The `deepseek-coder-1.3b` and `phi-2` rows were registered on 25 Oct, after the first code FAILs and before either model was "
@@ -222,7 +223,7 @@ def main():
           *([f"- {c}" for c in PROTOCOL_CHANGES] or ["- none"]), "",
           "## Limitations", "",
           "- Qwen's code anchors come from a table that names no harness; its one code FAIL (HumanEval+ −2.41) may be protocol, not a bug.",
-          "- The leaderboard used a pinned lm-eval fork (commits `d4631ea6` / `121ee91`) on Linux GPUs; we use release 0.4.13 on Windows (RTX 3070 Laptop).",
+          "- The leaderboard used a pinned lm-eval fork (commits `d4631ea6` / `121ee91`) on Linux GPUs; we use release 0.4.13 on Windows (RTX 3070 Laptop; MILU per-language rows on an RTX 4060 Ti 16 GB).",
           "- Small models score close to chance (25%) on MILU's Indic languages, so MILU agreement is a weaker check than MMLU-Pro.",
           "- The MILU paper's `avg` column does not state its aggregation; per-language rows are the primary check.", ""]
     (RESULTS / COMPARE_OUT).write_text("\n".join(md), encoding="utf-8", newline="\n")

@@ -1,0 +1,33 @@
+# T1 shape for Team 6 timing and for EXP-1. Expert FFN 2*256=512 matches the 31 Oct line.
+# GELU, learned positions, and an untied ke1 head are loader limits. They are not instructor choices.
+inherit: ../../../../teams/06-performance/configs/base.yaml
+intended:
+  arm: T1
+  official_step_time: true
+  instructor_expert_ffn: 512
+  loaded_expert_ffn: 512
+  activation_intended: SwiGLU
+  position_intended: RoPE
+  tied_embeddings_intended: true
+model:
+  vocab_size: 131072
+  block_size: 1024
+  n_layer: 6
+  n_head: 4
+  n_kv_head: 2
+  n_embd: 256
+  mlp_ratio: 2
+  embedding: ke1
+  ke_max_pos: 32
+  ke_mode: dynamic
+  ffn: moe
+  moe: {num_experts: 8, top_k: 2, num_shared: 1}
+optim:
+  name: adamw
+  lr: null
+  weight_decay: 0.0
+run:
+  seed: 1234
+  batch_size: 8
+  grad_clip: 1.0
+  dtype: bf16

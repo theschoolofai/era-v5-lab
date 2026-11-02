@@ -7,6 +7,10 @@
 #   ./quantize_olmoe.sh
 #   MODEL_ID=allenai/OLMoE-1B-7B-0924 OUTPUT_DIR="$PWD/artifacts" ./quantize_olmoe.sh
 #
+# This script did NOT produce the team's results. Every measured GGUF has output.weight Q8_0 and goes from Q8_0
+# down to Q2_K: runs/runs.csv and quality/ use scripts/quantize_eval.py, eval_mini/ its notebook, perplexity/
+# llama-quantize --output-tensor-type q8_0. This script keeps output.weight BF16 and stops at Q3_K_M.
+#
 set -Eeuo pipefail
 
 MODEL_ID="${MODEL_ID:-allenai/OLMoE-1B-7B-0924}"
@@ -15,6 +19,7 @@ WORK_DIR="${WORK_DIR:-$PWD/.quantize-work}"
 LLAMA_CPP_DIR="${LLAMA_CPP_DIR:-$WORK_DIR/llama.cpp}"
 HF_DIR="$WORK_DIR/hf/$(basename "$MODEL_ID")"
 VENV_DIR="$WORK_DIR/.venv"
+LLAMA_CPP_TAG="${LLAMA_CPP_TAG:-b11669}"   # = v0.7.0, the build eval_mini and perplexity/ used
 BASE_NAME="$(basename "$MODEL_ID")"
 BF16_GGUF="$OUTPUT_DIR/${BASE_NAME}-BF16.gguf"
 
@@ -103,16 +108,17 @@ mkdir -p "$OUTPUT_DIR" "$WORK_DIR/hf"
 
 if [[ ! -d "$LLAMA_CPP_DIR/.git" ]]; then
   printf 'Cloning llama.cpp into %s\n' "$LLAMA_CPP_DIR"
-  git clone --depth 1 https://github.com/ggml-org/llama.cpp.git "$LLAMA_CPP_DIR"
+  git clone --depth 1 --branch "$LLAMA_CPP_TAG" https://github.com/ggml-org/llama.cpp.git "$LLAMA_CPP_DIR"
 else
-  printf 'Updating llama.cpp in %s\n' "$LLAMA_CPP_DIR"
-  git -C "$LLAMA_CPP_DIR" pull --ff-only
+  printf 'Checking out llama.cpp %s in %s\n' "$LLAMA_CPP_TAG" "$LLAMA_CPP_DIR"
+  git -C "$LLAMA_CPP_DIR" fetch --depth 1 origin tag "$LLAMA_CPP_TAG"
+  git -C "$LLAMA_CPP_DIR" checkout -q "$LLAMA_CPP_TAG"
 fi
 
 python3 -m venv "$VENV_DIR"
 PYTHON="$VENV_DIR/bin/python"
-"$PYTHON" -m pip install --upgrade pip
-"$PYTHON" -m pip install -r "$LLAMA_CPP_DIR/requirements/requirements-convert_hf_to_gguf.txt" huggingface_hub
+"$PYTHON" -m pip install pip==26.2.2
+"$PYTHON" -m pip install -r "$LLAMA_CPP_DIR/requirements/requirements-convert_hf_to_gguf.txt" huggingface_hub==0.36.2
 
 cmake -S "$LLAMA_CPP_DIR" -B "$LLAMA_CPP_DIR/build" -DCMAKE_BUILD_TYPE=Release
 cmake --build "$LLAMA_CPP_DIR/build" --config Release --parallel

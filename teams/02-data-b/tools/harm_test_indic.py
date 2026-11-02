@@ -2,13 +2,15 @@
 """harm_test_indic.py - the harm test for Data B (Indic) medicines.
 
 Runs each rule of one medicine.md on the gold documents and reports how many of them the rule changes and drops.
-More than 1% of the gold set fails (DISEASES.md section 4). The medicine.md format and the rule results are the
+A rule passes when it changes or drops at most 1% of the gold set (DISEASES.md section 4) or at most 1 document,
+whichever is more: the TSAI rule for small gold sets (CAP, 30 Oct). The medicine.md format and the rule results are the
 same as in Data A's harm_test.py (a rule returns the new text, or True to drop the document), so one file works
 with both tools. What this tool adds, because Indic text needs it:
 
   - ZWJ (U+200D) and ZWNJ (U+200C): their counts in a changed document must stay the same.
   - Normal form: a document that is NFC must still be NFC, and a rule must not replace compatibility characters
-    (half-width letters, fractions: what NFKC does).
+    (half-width letters, fractions: what NFKC does). This also flags a lost no-break space (U+00A0) or ellipsis
+    (U+2026), so a whitespace fix can fail this audit even when it is a good fix.
   - Several packs of one language are one gold set (Data A's tool takes one pack at a time).
 
 Usage
@@ -33,6 +35,7 @@ import unicodedata
 from fractions import Fraction
 from pathlib import Path
 
+MIN_DOCS = 1  # TSAI rule for small gold sets: a rule may always change this many documents
 ZWJ, ZWNJ = chr(0x200D), chr(0x200C)  # written as numbers: a raw joiner in code is invisible
 SECTION = re.compile(r"\*\*Disease:?\*\*:?[ \t]*`?([A-H][1-9])\b")
 FENCE = re.compile(r"^([ \t]*)```(?:python|py)[ \t]*\n(.*?)^\1```[ \t]*$", re.S | re.M)
@@ -49,12 +52,13 @@ class Timeout(Exception):
 
 # ---------------------------------------------------------------- reading medicine.md
 def load_rules(path):
-    """[(code, function or None)] in file order: one entry for each '**Disease:**' section."""
+    """([(code, function or None)] in file order, {code: function name} of the rules that take 'doc').
+    There is one entry for each '**Disease:**' section."""
     src = Path(path).read_text(encoding="utf-8")
     marks = list(SECTION.finditer(src))
     if not marks:
         raise Fatal(f"{path}: no '**Disease:** <code>' line found")
-    rules, seen = [], set()
+    rules, uses_doc, seen = [], {}, set()
     for i, m in enumerate(marks):
         code = m.group(1)
         if code in seen:
@@ -76,9 +80,10 @@ def load_rules(path):
                 raise Fatal(f"{code}: several public functions; name the main one medicine_{code.lower()} or start the helper names with _")
             fn = public[0] if public else None
         if fn is not None and next(iter(inspect.signature(fn).parameters), "") == "doc":
-            raise Fatal(f"{code}: a rule that takes 'doc' needs document metadata; test it with Data A's harm_test.py")
+            uses_doc[code] = fn.__name__  # reported by main() when this rule is asked for
+            fn = None
         rules.append((code, fn))
-    return rules
+    return rules, uses_doc
 
 
 # ---------------------------------------------------------------- one rule on one document
@@ -150,6 +155,8 @@ def run_rule(name, steps, docs, timeout):
         except Exception as e:  # a crash is a failure, never a pass
             res["errors"].append((pack, doc_id, f"{type(e).__name__}: {str(e)[:80]}"))
             continue
+        if verdict == "fix" and cur == text:  # a later rule put the original text back: not a change
+            verdict = "keep"
         if verdict == "drop":
             res["dropped"].append((pack, doc_id))
         elif verdict == "fix":
@@ -162,9 +169,14 @@ def run_rule(name, steps, docs, timeout):
     return res
 
 
+def allowed_docs(n, limit):
+    """How many gold documents a rule may change or drop: limit percent of n, but never fewer than MIN_DOCS."""
+    return max(Fraction(MIN_DOCS), Fraction(n) * limit / 100)
+
+
 def verdict_of(res, n, limit):
     ok = (not res["errors"] and not res["joiners"] and not res["form"]
-          and Fraction(len(res["changed"]) + len(res["dropped"]), n) * 100 <= limit)
+          and len(res["changed"]) + len(res["dropped"]) <= allowed_docs(n, limit))
     return "PASS" if ok else "FAIL"
 
 
@@ -188,6 +200,9 @@ def read_docs(pack_path, ids):
     want = set(ids)
     if p.suffix == ".jsonl":
         rows = [json.loads(line) for line in p.read_text(encoding="utf-8").splitlines() if line.strip()]
+        for k, r in enumerate(rows, 1):
+            if not isinstance(r, dict) or "doc_id" not in r or "text" not in r:
+                raise Fatal(f"{p.name}: row {k} has no doc_id or no text (each row needs both)")
     else:
         try:
             import pyarrow.parquet as pq
@@ -217,7 +232,7 @@ def main(argv=None):
     a = ap.parse_args(argv)
     try:
         limit = Fraction(a.limit)
-        rules = load_rules(a.medicine)
+        rules, uses_doc = load_rules(a.medicine)
         docs, per_pack = [], []
         for pack in a.pack:
             ids = read_gold(a.gold_dir / f"{pack.stem}_gold.csv")
@@ -225,6 +240,10 @@ def main(argv=None):
             per_pack.append(f"{pack.stem} {len(ids)}")
         if a.rule.lower() != "all" and a.rule.upper() not in {c for c, _ in rules}:
             raise Fatal(f"no section for {a.rule} in {a.medicine.name}")
+        wanted = [c for c in uses_doc if a.rule.lower() in ("all", c.lower())]
+        if wanted:  # name the rule, and say how to test the others
+            raise Fatal(f"{wanted[0]}: the function {uses_doc[wanted[0]]}() takes 'doc' (document metadata). Test it with "
+                        f"Data A's harm_test.py; to test the other rules here use --rule CODE")
     except (Fatal, OSError, ValueError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 2
@@ -242,6 +261,7 @@ def main(argv=None):
     if not todo:
         print("error: no rule to test", file=sys.stderr)
         return 2
+    print(f"a rule may change or drop at most {float(allowed_docs(n, limit)):g} of {n} documents ({a.limit}% or {MIN_DOCS}, whichever is more)")
     print(f"{'rule':<14}{'changed':>8}{'dropped':>8}{'percent':>9}  joiners  form   result")
     worst, blocks = "PASS", []
     for name, steps, _ in todo:
@@ -264,7 +284,7 @@ def main(argv=None):
         lines = []
         for name, res, v in blocks:
             ch, dr = len(res["changed"]), len(res["dropped"])
-            lines += [f"## {name}", f"4. **Harm test:** gold set of {n} documents ({', '.join(per_pack)}), medicine.md sha256 {sha}; rule: changed or dropped at most {a.limit}%.",
+            lines += [f"## {name}", f"4. **Harm test:** gold set of {n} documents ({', '.join(per_pack)}), medicine.md sha256 {sha}; rule: changed or dropped at most {a.limit}% or {MIN_DOCS} document, whichever is more.",
                       f"   - Changed {ch} of {n} ({100 * ch / n:.2f}%). Dropped {dr} of {n} ({100 * dr / n:.2f}%). **{v}**",
                       f"   - ZWJ/ZWNJ audit: {len(res['joiners'])} changed documents with a different count. **{'FAIL' if res['joiners'] else 'PASS'}**",
                       f"   - Normal-form audit: {len(res['form'])} changed documents left NFC or lost a compatibility character. **{'FAIL' if res['form'] else 'PASS'}**", ""]

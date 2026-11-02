@@ -1,0 +1,6 @@
+inherit: t2.yaml
+intended:
+  arm: exp3-experts-32
+  official_step_time: false
+model:
+  moe: {num_experts: 32}

@@ -1,0 +1,8 @@
+# EXP-2 Muon arm. Learning rate comes from the T1 Muon screen in plan_v1.md.
+inherit: t2.yaml
+intended:
+  arm: exp2-muon
+  official_step_time: false
+optim:
+  name: muon
+  lr: null

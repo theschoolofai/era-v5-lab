@@ -4,7 +4,7 @@ A second measurement next to the stand-in eval in `runs/runs.csv`: WikiText-2 pe
 6 llama.cpp formats. Perplexity is not the eval-mini score, but it is sensitive enough to separate every step of the
 ladder, which 200 stand-in items cannot (their noise is about ±3 points).
 
-Run on 25 Oct 2026 by Rahul Bhati. Results: [`runs_ppl.csv`](runs_ppl.csv). Lower perplexity is better.
+Run on 25 Oct 2026 by therahulbhati. Results: [`runs_ppl.csv`](runs_ppl.csv). Lower perplexity is better.
 
 ## Setup
 
@@ -65,7 +65,7 @@ Quantize time per format on 4 CPUs: Q8_0 78 s, Q6_K 192 s, Q5_K_M 301 s, Q4_K_M 
 - [`run_perplexity.py`](run_perplexity.py): runs perplexity on every GGUF in a folder and appends to `runs_ppl.csv`.
   Works on the GGUFs from `scripts/quantize_eval.py` or `quantize/quantize_olmoe.sh`:
   ```bash
-  pip install gguf
+  pip install gguf==0.19.0
   python teams/12-quantization/perplexity/run_perplexity.py --models-dir <folder with *.gguf> --llama-bin <llama.cpp bin folder>
   ```
   `--chunks N` gives a quick run on part of the text. Tested on a Mac M1 with two small GGUFs

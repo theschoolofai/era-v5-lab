@@ -3,12 +3,13 @@
 Generated 2026-10-27. Rule, fixed before any run: **PASS if |ours − published| ≤ 2.0 points** on the full test set, same protocol.
 Companion report for the general tasks: `compare_v0.md` (PR #21).
 
-**Status: 14 PASS, 2 FAIL, 7 DEFERRED, 3 NOT RUN.**
+**Status: 19 PASS, 2 FAIL, 2 DEFERRED, 3 NOT RUN.**
 
 - MMLU-Pro agrees with the Open LLM Leaderboard's own lm-eval runs for all three models (within 0.31).
 - Code scoring agrees with the EvalPlus leaderboard for DeepSeek-Coder-1.3B-base (within 1.2) and phi-2 on 3 of 4.
 - The two FAILs are on the stricter `+` tests, just past the line (−2.41, −2.88). evalplus recorded 0 timeouts across all executed code, so a slow executor does not explain them. They stand under the pre-registered rule.
-- DEFERRED: the Indic MILU rows, by the lead's decision on 25 Oct (week-1 focus is code); MILU-English for gemma-2-2b passed.
+- DEFERRED: the two MILU-avg rows (all 11 languages, 79,608 items per model).
+- MILU per-language rows: the five deferred on 25 Oct were run on 29-30 Oct on a second machine (RTX 4060 Ti 16 GB, Windows) with this harness at the pinned revisions; all PASS (largest |Δ| 0.88). As a cross-machine check, gemma-2-2b MILU-en scored 51.16 there against 51.05 in the gate row.
 - NOT RUN: BBH (optional; MMLU-Pro already covers general ability against the same leaderboard).
 
 | Model | Benchmark | Published | Ours | Δ | Verdict | Source |
@@ -20,12 +21,12 @@ Companion report for the general tasks: `compare_v0.md` (PR #21).
 | llama-3.2-3b | MMLU-Pro | 24.92 | 24.61 | -0.31 | **PASS** | [Open LLM Leaderboard v2, per-run results file](https://huggingface.co/datasets/open-llm-leaderboard/results/blob/main/meta-llama/Llama-3.2-3B/results_2024-09-23T09-55-05.332092.json) |
 | llama-3.2-3b | BBH | 39.25 |  |  | **NOT RUN** | [Open LLM Leaderboard v2, per-run results file](https://huggingface.co/datasets/open-llm-leaderboard/results/blob/main/meta-llama/Llama-3.2-3B/results_2024-09-23T09-55-05.332092.json) |
 | gemma-2-2b | MILU-en | 50.86 | 51.05 | +0.19 | **PASS** | [MILU paper, Table 3](https://arxiv.org/abs/2411.02538) |
-| gemma-2-2b | MILU-hi | 32.32 |  |  | **DEFERRED** | [MILU paper, Table 3](https://arxiv.org/abs/2411.02538) |
-| gemma-2-2b | MILU-te | 28.46 |  |  | **DEFERRED** | [MILU paper, Table 3](https://arxiv.org/abs/2411.02538) |
+| gemma-2-2b | MILU-hi | 32.32 | 32.72 | +0.40 | **PASS** | [MILU paper, Table 3](https://arxiv.org/abs/2411.02538) |
+| gemma-2-2b | MILU-te | 28.46 | 29.34 | +0.88 | **PASS** | [MILU paper, Table 3](https://arxiv.org/abs/2411.02538) |
 | gemma-2-2b | MILU-avg | 31.43 |  |  | **DEFERRED** | [MILU paper, Table 3](https://arxiv.org/abs/2411.02538) |
-| llama-3.2-3b | MILU-en | 50.25 |  |  | **DEFERRED** | [MILU paper, Table 3](https://arxiv.org/abs/2411.02538) |
-| llama-3.2-3b | MILU-hi | 34.63 |  |  | **DEFERRED** | [MILU paper, Table 3](https://arxiv.org/abs/2411.02538) |
-| llama-3.2-3b | MILU-te | 29.75 |  |  | **DEFERRED** | [MILU paper, Table 3](https://arxiv.org/abs/2411.02538) |
+| llama-3.2-3b | MILU-en | 50.25 | 50.76 | +0.51 | **PASS** | [MILU paper, Table 3](https://arxiv.org/abs/2411.02538) |
+| llama-3.2-3b | MILU-hi | 34.63 | 35.10 | +0.47 | **PASS** | [MILU paper, Table 3](https://arxiv.org/abs/2411.02538) |
+| llama-3.2-3b | MILU-te | 29.75 | 29.45 | -0.30 | **PASS** | [MILU paper, Table 3](https://arxiv.org/abs/2411.02538) |
 | llama-3.2-3b | MILU-avg | 32.85 |  |  | **DEFERRED** | [MILU paper, Table 3](https://arxiv.org/abs/2411.02538) |
 | qwen2.5-1.5b | HumanEval | 37.20 | 35.37 | -1.83 | **PASS** | [Qwen2.5 blog, base-model table](https://qwenlm.github.io/blog/qwen2.5-llm/) |
 | qwen2.5-1.5b | HumanEval+ | 32.90 | 30.49 | -2.41 | **FAIL** | [Qwen2.5 blog, base-model table](https://qwenlm.github.io/blog/qwen2.5-llm/) |
@@ -82,6 +83,6 @@ The Qwen2.5 report ([arXiv 2412.15115](https://arxiv.org/abs/2412.15115), Table 
 ## Limitations
 
 - Qwen's code anchors come from a table that names no harness; its one code FAIL (HumanEval+ −2.41) may be protocol, not a bug.
-- The leaderboard used a pinned lm-eval fork (commits `d4631ea6` / `121ee91`) on Linux GPUs; we use release 0.4.13 on Windows (RTX 3070 Laptop).
+- The leaderboard used a pinned lm-eval fork (commits `d4631ea6` / `121ee91`) on Linux GPUs; we use release 0.4.13 on Windows (RTX 3070 Laptop; MILU per-language rows on an RTX 4060 Ti 16 GB).
 - Small models score close to chance (25%) on MILU's Indic languages, so MILU agreement is a weaker check than MMLU-Pro.
 - The MILU paper's `avg` column does not state its aggregation; per-language rows are the primary check.
