@@ -14,7 +14,13 @@ family of its pack_id and runs that family's rules in sheet order; a missing or 
 Each rule block goes into its own closure, so helpers with the same name in two blocks do not clash. Prints any string
 that indenting a block changed: only a multi-line string can change, and a docstring or a verbose regex does not care.
 """
-import argparse, ast, re, textwrap
+import argparse, ast, re, sys, textwrap
+
+# The build prints rule IDs and string fragments, which can hold Indic letters. A Windows console is cp1252, so print
+# would raise UnicodeEncodeError and stop the build. Write UTF-8, and escape anything the console cannot show.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
