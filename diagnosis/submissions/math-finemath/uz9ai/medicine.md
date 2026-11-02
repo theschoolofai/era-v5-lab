@@ -13,7 +13,7 @@ import csv, re, sys, unicodedata
 ```
 
 
-All six together change 19 of 347 proxy documents (5.5%), and every one of the 19 is an F1 or C1 hit.
+All six together change 15 of 347 proxy documents (4.3%), and every one of the 15 is an F1 or C1 hit. On the gold set (86 documents, limit 1) every medicine and all six together change 0 documents.
 
 Rule of the lab repository: no personal values are copied here. F1 evidence gives the type and the offset only.
 
@@ -21,11 +21,10 @@ Rule of the lab repository: no personal values are copied here. F1 evidence give
 
 ## Medicine 1: F1 personal data
 1. **Disease:** F1, 78 documents (77 fix, 1 drop). Types by document: person name 74, e-mail 4, phone 3, postal address 1 (a document can have several types). Examples (type and offset, no values): `02c235b035b38798` name @72 and e-mail @82; `4dd5d3e3c89b86ae` phone number @20; `216144050512d475` name @107 (answerer's name under a question).
-2. **Medicine:** the names sit in a few layouts, so the rule is a list of anchored patterns, each replacing only the name with `[name removed]`: "Asked by NAME |", "asked by NAME on", "edited by NAME", "Date: ...⏎From: NAME⏎Subject:", "Author: NAME", "NAME says:", "NAME said...", a line `-NAME` (signature), a line `by NAME` with two or three words, a Q&A comment header `– NAME Mon D 'YY at HH:MM`, and `NAME  Mon D, YYYY` (forum post header). E-mail addresses become `[email removed]` unless the local part is a role (`info`, `support`, `contact`, `sales`, `admin`, ...). A phone number after a label (`WhatsApp`, `Toll free no`, `Tel`, `Phone`, `Call`) or in the form `NNN-NNN-NNNN` / `NNNN-NNN-NNNN` becomes `[phone removed]`.
+2. **Medicine:** the names sit in a few layouts, so the rule is a list of anchored patterns, each replacing only the name with `[name removed]`: "Asked by NAME |", "asked by NAME on", "edited by NAME", "Date: ...⏎From: NAME⏎Subject:", "Author: NAME", "NAME says:", "NAME said...", a line `-NAME` (signature), a line `by NAME` with two or three words, and `NAME  Mon D, YYYY` (forum post header). The Q&A comment header `– NAME Mon D 'YY at HH:MM` is no longer a pattern: on the gold set it changed 4 clean documents (see the harm test below). E-mail addresses become `[email removed]` unless the local part is a role (`info`, `support`, `contact`, `sales`, `admin`, ...). A phone number after a label (`WhatsApp`, `Toll free no`, `Tel`, `Phone`, `Call`) or in the form `NNN-NNN-NNNN` / `NNNN-NNN-NNNN` becomes `[phone removed]`.
    ```python
    # Only high-precision patterns: bylines and comment headers, personal e-mails, phone numbers after a label.
    NAME = r"[A-Z][a-z]+(?:\.? [A-Z][a-z]+){0,2}"
-   STAMP = r"(?= [A-Z][a-z]{2} \d{1,2} '\d\d at \d)"            # StackExchange comment time stamp
    GENERIC = r"(?:info|support|contact|discounts?|admin|sales|help|webmaster|feedback|office|team|hello|enquiries)"
    F1_RULES = [
        (re.compile(r'(?m)^(Asked by )' + NAME + r'(?= \|)'), r'\1[name removed]'),
@@ -39,7 +38,6 @@ Rule of the lab repository: no personal values are copied here. F1 evidence give
        (re.compile(r'(?m)^(-)' + NAME + r'$'), r'\1[name removed]'),
        (re.compile(r'(?m)^(by )' + NAME.replace('{0,2}', '{1,2}') + r'$'), r'\1[name removed]'),
        (re.compile(r'(?m)^' + NAME + r'(?=\s\u00a0[A-Z][a-z]{2} \d{1,2}, \d{4}$)'), r'[name removed]'),
-       (re.compile(r"(?:(?<=\u2013\u00a0)|(?<=\u2013 ))[^\n\u2013]{2,40}?" + STAMP), '[name removed]'),
        (re.compile(r'(?<![\w.-])(?!' + GENERIC + r'@)[\w.+-]+@[\w-]+(?:\.[\w-]+)+'), '[email removed]'),
        (re.compile(r'(?i)\b(whatsapp(?: chat)?|toll free no|tel|phone|call)\b(:?\s*)\+?[\d][\d\s-]{8,}\d'), r'\1\2[phone removed]'),
        (re.compile(r'(?<![\d.-])\(?\d{3,4}\)?[ -]\d{3}-\d{4}(?![\d-])'), '[phone removed]'),
@@ -50,8 +48,8 @@ Rule of the lab repository: no personal values are copied here. F1 evidence give
        return t
    ```
 3. **Action:** fix.
-4. **Harm test:** proxy 7 changed / 0 dropped of 347 (2.0%, fails the 1% rule as labelled; all 7 are real personal data in documents I had labelled clean, see the note above). Gold: _pending_.
-5. **Side effects:** recall is only 26 of 78 (names 23 of 74): names in running text ("thanks, Priya"), in lists of users, in a signature block under a title, and postal addresses are not found, because a rule cannot tell a person's name from a topic word. It also masks user names that are handles (`whuber`, `talmid`), and names of public authors in a byline (an author's attribution is lost). A role e-mail not in the short list would be masked too. A business phone number is masked as well (I treat it as F1 in my labels). A real line `-Name` that is a minus sign before a capitalised word would be changed.
+4. **Harm test:** proxy 3 changed / 0 dropped of 347 (0.9%; these 3 are among the 7 documents that I had checked earlier and found to hold real personal data although I had labelled them clean). Gold (86 documents, limit 1): 0 changed / 0 dropped, PASS. A first version with a Q&A comment-header pattern (`– NAME Mon D 'YY at HH:MM`) changed 4 gold documents (4.65%, FAIL); the pattern also matched short user handles, so it was removed.
+5. **Side effects:** recall is only 20 of 78 (it was 26 of 78 with the comment-header pattern, so names in StackExchange comment headers are no longer found): names in running text ("thanks, Priya"), in lists of users, in a signature block under a title, and postal addresses are not found, because a rule cannot tell a person's name from a topic word. It also masks user names that are handles (`whuber`, `talmid`), and names of public authors in a byline (an author's attribution is lost). A role e-mail not in the short list would be masked too. A business phone number is masked as well (I treat it as F1 in my labels). A real line `-Name` that is a minus sign before a capitalised word would be changed.
 
 ## Medicine 2: C1 boilerplate
 1. **Disease:** C1, 38 documents (36 fix, 2 drop). `ff84a3381e5cc70f` Khan Academy "If you're seeing this message, it means we're having trouble loading external resources..." @0; `43fe6906818d0a26` "Powered by phpBB © phpBB Group ... GMAT® test is a registered trademark..." @1745; `3298ace879873aa7` "This preview shows document pages 1 - 2. Sign up to view the full document." @1584.
@@ -97,7 +95,7 @@ Rule of the lab repository: no personal values are copied here. F1 evidence give
        return re.sub(r'\n{3,}', '\n\n', out) if out != t0 else t0
    ```
 3. **Action:** fix. After the fix, a document that keeps fewer than about 200 characters should be dropped (for example `db5a45c39b512a02`, where only the first line is real text); this length check is not in the code.
-4. **Harm test:** proxy 12 changed / 0 dropped of 347 (3.5%). All 12 contain chrome of the same kind as the labelled C1 documents (a cookie or app banner, a course menu, a breadcrumb, a forum footer, the OEIS menu bar, "View Full Document" preview pages), so I believe they are missing C1 labels (list above). Gold: _pending_.
+4. **Harm test:** proxy 12 changed / 0 dropped of 347 (3.5%). All 12 contain chrome of the same kind as the labelled C1 documents (a cookie or app banner, a course menu, a breadcrumb, a forum footer, the OEIS menu bar, "View Full Document" preview pages), so I believe they are missing C1 labels (list above). Gold (86 documents, limit 1): 0 changed / 0 dropped, PASS.
 5. **Side effects:** the phrase list is fitted to the sites in this pack, so menus and footers from other sites are missed. Recall is 36 of 38 here, but that is partly because the phrases were taken from those same documents, so expect a lower number on new data. The rule removes a legitimate line that starts with one of the phrases (a lesson that really is titled "Related Articles", or a line "Home >> ..." inside a tutorial). Removing "View Full Document" and the preview banner leaves a cut-off page body: such pages are better dropped (C3). Missed here: `98e5be6db6c1c81e` (a metadata block `Author:⏎Subject:⏎...`) and `57e62d62ad273696` (a block of forum link lines).
 
 ## Medicine 3: A1 invisible characters
@@ -109,7 +107,7 @@ Rule of the lab repository: no personal values are copied here. F1 evidence give
        return A1_RX.sub('', t)
    ```
 3. **Action:** fix.
-4. **Harm test:** proxy 0 changed / 0 dropped of 347. Gold: _pending_.
+4. **Harm test:** proxy 0 changed / 0 dropped of 347. Gold (86 documents, limit 1): 0 changed / 0 dropped, PASS.
 5. **Side effects:** if a ZWSP is the only separator between two words, they are joined. A soft hyphen that was already followed by a space leaves the split word (`stud ies` in `4d57615e33e7997e`); the rule cannot re-join it. LRM and RLM carry meaning in right-to-left text, so this medicine must not run on Arabic or Hebrew packs. U+2062 is removed from MathML text, where it only marks an invisible multiplication.
 
 ## Medicine 4: A3 mojibake
@@ -174,7 +172,7 @@ Rule of the lab repository: no personal values are copied here. F1 evidence give
        return _GBK.sub(_fix_gbk, t)
    ```
 3. **Action:** fix. The repairs in the 11 documents were checked on screen: `’`, `–`, `…`, `é`, `😀`, `≥`, `Â`+NBSP to NBSP.
-4. **Harm test:** proxy 0 changed / 0 dropped of 347. Gold: _pending_.
+4. **Harm test:** proxy 0 changed / 0 dropped of 347. Gold (86 documents, limit 1): 0 changed / 0 dropped, PASS.
 5. **Side effects:** a real text that happens to contain `Ã` or `â` followed by symbols that decode as valid UTF-8 would be "repaired" (rare in English maths text; the result must be Latin, punctuation or maths, which blocks Hebrew or Arabic false repairs such as `×`+NBSP). Only the code pages seen in this pack are covered (1252, 1250, 866, GBK maths signs). A document with a lone `Â` before a normal character, or a double-encoded string, is not repaired.
 
 ## Medicine 5: A6 symbol-font private-use glyphs and look-alikes
@@ -223,7 +221,7 @@ Rule of the lab repository: no personal values are copied here. F1 evidence give
        return t
    ```
 3. **Action:** fix.
-4. **Harm test:** proxy 0 changed / 0 dropped of 347. Gold: _pending_.
+4. **Harm test:** proxy 0 changed / 0 dropped of 347. Gold (86 documents, limit 1): 0 changed / 0 dropped, PASS.
 5. **Side effects:** Symbol and Wingdings share the code points: a Wingdings arrow at `F0D8` becomes a plain bullet, and a Symbol `F0D8` (`¬`) would also become a bullet. Deleting the bracket pieces turns a matrix into loose numbers. The look-alike rule needs a Latin letter in the same word, so a word fully in Cyrillic is not touched. Missed: `f6c1776061f622c6`, where U+0404 `Є` stands alone for `∈` (`f, g Є R`). Recall 8 of 9.
 
 ## Medicine 6: A5 ligatures and full-width forms
@@ -248,7 +246,7 @@ Rule of the lab repository: no personal values are copied here. F1 evidence give
        return t
    ```
 3. **Action:** fix.
-4. **Harm test:** proxy 0 changed / 0 dropped of 347. Gold: _pending_.
+4. **Harm test:** proxy 0 changed / 0 dropped of 347. Gold (86 documents, limit 1): 0 changed / 0 dropped, PASS.
 5. **Side effects:** a typography page that shows a ligature as an example loses it. In `2c59f0ca117f6bdf` the ligature is inside OCR garbage; the fix is harmless but the text stays garbage. A full-width character inside a short English quote from a Chinese text is converted too, because the 1% rule looks at the whole document.
 
 ---
@@ -256,7 +254,7 @@ Rule of the lab repository: no personal values are copied here. F1 evidence give
 ## Harness (harm test and recall)
 Paste after the code of Medicines 1 to 6. It prints, for each medicine, how many labelled documents it changes, how many `clean` documents
 it changes (the proxy harm test), and, if a gold parquet with a `text` column is given, the gold numbers.
-```python
+```text
 MEDS = {'C1': med_C1, 'A1': med_A1, 'A3': med_A3, 'A5': med_A5, 'A6': med_A6, 'F1': med_F1}
 
 def run(labels, parquet):
