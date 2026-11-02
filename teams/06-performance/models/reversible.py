@@ -19,7 +19,7 @@ This needs a purely additive stream: the LayerNorms sit inside f (pre-LN), never
     reconstruction drifts.
   * plain_forward(x, blocks): the same maths with normal autograd. The reference for tests.
   * reconstruction_error(x, blocks): run forward, invert every block, return ||x' - x|| / ||x||.
-    Grows with depth: check it for every new config (bf16, lab_small: ~1e-4).
+    Grows with depth: check it for every new config (bf16: ~1e-4 at 6 to 9 layers).
   * Forward regions: region(f"block{i}", 2) around each update.
 
 Done when: correctness/test_reversible.py passes (gradients vs plain_forward, and inversion rebuilds x).

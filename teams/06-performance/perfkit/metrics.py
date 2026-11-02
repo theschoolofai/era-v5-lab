@@ -1,4 +1,4 @@
-"""MFU, HFU, memory, GPU telemetry, run metadata.  [implemented; goodput and the NVML sampler are extras]
+"""MFU, HFU, memory, GPU telemetry, run metadata.  [implemented; time and token goodput still to write]
 
 The one place these numbers are computed: perfkit.bench calls it, and G8 gets the same formulas (docs/METRICS.md).
 
@@ -7,13 +7,13 @@ The one place these numbers are computed: perfkit.bench calls it, and G8 gets th
     run_metadata(device)           the device, version and git fields of the run JSON "meta" (perfkit/schema.py)
     flops_per_token(model, T, opt_flops_per_step=0, tokens_per_step=None)
                                    model_flops_per_token, hw_flops_per_token, params_total, params_active
-    mfu(flops, tokens_per_s, peak_tflops)   {"mfu", "hfu", "model_tflops_per_s"}
+    mfu(flops, tokens_per_s, peak_tflops)   MFU/HFU and explicit unavailable-reason fields
     memory(device)                 peak allocated / reserved GB (None off CUDA)
     gpu_telemetry(device)          SM clock, temperature, power, throttle reasons from nvidia-smi (None off CUDA)
     telemetry_during(device, work) the same, sampled while work() keeps the GPU busy
     throttle_flags(tel)            slowdown reasons in a sample (power cap, thermal, ...), None if not reported
-    GpuSampler(device)             GPU utilization, memory, clocks, power, temperature sampled through the clean
-                                   steps (run["system"], for G8)
+    GpuSampler(device, on_sample=...) streams per-GPU node samples during clean steps; run["system"] summarizes
+                                   only the GPU used by the benchmark process
 
 FLOPs per token (T = sequence length, L = layers, d = width, N_active from GPT.param_counts):
     model_flops_per_token = 6 * N_active + 12 * L * d * T      (PaLM; attention scores counted non-causal)
@@ -22,16 +22,18 @@ FLOPs per token (T = sequence length, L = layers, d = width, N_active from GPT.p
                             + optimizer FLOPs per step (Muon Newton-Schulz) / tokens per step
 MFU uses model FLOPs, HFU hardware FLOPs; both against the dense vendor peak for the dtype the run used.
 
-Extra, still to write: goodput (time and tokens, badput buckets), HBM GB/s per GPU for the roofline.
+Extra, still to write: goodput (time and tokens, badput buckets).
 """
 from __future__ import annotations
 
+import math
 import os
 import platform
 import shutil
 import subprocess
-import tempfile
+import threading
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 import torch
@@ -42,6 +44,8 @@ ROOT = Path(__file__).resolve().parents[1]
 # first. An empty table = known GPU, unknown peak: MFU is left empty and the run says so (or pass --peak-tflops).
 PEAKS = [
     ("B200", {"bf16": 2250, "fp16": 2250}),
+    # H200 NVL has lower dense throughput than H200 SXM; keep this specific match before H200.
+    ("H200 NVL", {"bf16": 835.5, "fp16": 835.5, "fp32": 60}),
     ("H200", {"bf16": 989, "fp16": 989, "fp32": 67}),
     ("H100 PCIe", {"bf16": 756, "fp16": 756, "fp32": 51}),
     ("H100 NVL", {}),
@@ -52,6 +56,8 @@ PEAKS = [
     ("L4", {"bf16": 121, "fp16": 121, "fp32": 30.3}),
     ("A10G", {}),
     ("A10", {"bf16": 125, "fp16": 125, "fp32": 31.2}),
+    # RTX 3060: 101 Tensor TFLOPS includes 2:4 sparsity; this table records dense peak.
+    ("RTX 3060", {"bf16": 50.5, "fp16": 50.5, "fp32": 13}),
     ("RTX 4090", {"bf16": 165, "fp16": 165, "fp32": 82.6}),
     ("RTX 3090", {"bf16": 71, "fp16": 71, "fp32": 35.6}),
     ("V100", {"fp16": 125, "fp32": 15.7}),
@@ -73,6 +79,18 @@ def peak_tflops(device_name: str, dtype: str):
     """(peak TFLOPS for this dtype or None, gpu_spec or None)."""
     p = gpu_peak(device_name)
     return p.get(dtype), p.get("spec")
+
+
+def peak_unavailable_reason(device_name: str, dtype: str, peak: float | None = None) -> str | None:
+    """Stable reason code when no positive peak is available for an MFU/HFU denominator."""
+    if peak is not None:
+        return None if math.isfinite(peak) and peak > 0 else "invalid_peak_tflops"
+    p = gpu_peak(device_name)
+    if not p:
+        return "unknown_gpu"
+    if dtype not in p:
+        return "unsupported_dtype"
+    return "peak_tflops_unavailable"
 
 
 def device_name(device) -> str:
@@ -106,7 +124,7 @@ def git_state():
     return commit, bool(status) if status is not None else None
 
 
-_SMI = "name,driver_version,pstate,clocks.sm,clocks.max.sm,clocks.mem,temperature.gpu,power.draw,power.limit"
+_SMI = "name,uuid,pci.bus_id,driver_version,pstate,clocks.sm,clocks.max.sm,clocks.mem,temperature.gpu,power.draw,power.limit"
 
 
 def _smi_select(device) -> str:
@@ -133,7 +151,7 @@ def gpu_telemetry(device) -> dict | None:
     res = {}
     for k, v in zip(_SMI.split(","), vals):
         try:
-            res[k] = v if k in ("name", "driver_version", "pstate") else float(v)
+            res[k] = v if k in ("name", "uuid", "pci.bus_id", "driver_version", "pstate") else float(v)
         except ValueError:
             res[k] = v
     for field in REASON_FIELDS:
@@ -195,31 +213,66 @@ class GpuSampler:
             run_clean(...)
         run["system"] = s.summary()        # None off CUDA or without nvidia-smi
 
-    One nvidia-smi child process in loop mode (--loop-ms) writes one sample per interval to a temp file. Nothing
-    runs in this process, so the timed steps pay only the child's own CPU (one sample a second by default).
-    summary(): min / median / max / mean of every SAMPLE_FIELDS metric, and how many samples had a slowdown
-    reason (SLOWDOWN) active, with their names.
+    One nvidia-smi child process queries all visible GPUs on this node and writes samples to a reader thread.
+    Optional on_sample callbacks can stream each GPU sample to JSONL while training continues; no CUDA
+    synchronization is introduced. summary() returns aggregates for the benchmark's selected device only.
     """
 
-    def __init__(self, device, interval_ms: int = 1000):
+    def __init__(self, device, interval_ms: int = 1000, on_sample=None):
         self.device, self.interval_ms = device, interval_ms
+        self.on_sample = on_sample
+        self.identity_fields = ["index", "name", "uuid", "pci.bus_id"]
         self.fields = list(SAMPLE_FIELDS)
+        self.target_index = None
+        self.target_pci_bus_id = None
+        if device.type == "cuda":
+            self.target_index = device.index if device.index is not None else torch.cuda.current_device()
+            try:
+                p = torch.cuda.get_device_properties(device)
+                dom, bus, dv = (getattr(p, f"pci_{k}_id", None) for k in ("domain", "bus", "device"))
+                if all(isinstance(v, int) for v in (dom, bus, dv)):
+                    self.target_pci_bus_id = f"{dom:08X}:{bus:02X}:{dv:02X}.0"
+            except (AssertionError, RuntimeError):
+                pass
         self.reason = None
         self.started = False
         self.rows = []
-        self._proc = self._file = None
+        self.current_step = None
+        self._proc = self._reader = None
+        self.callback_error = None
+
+    def set_step(self, step: int) -> None:
+        """Publish the current clean-step index to the asynchronous sampler, without device synchronization."""
+        self.current_step = int(step)
+
+    def _read_samples(self):
+        """Consume samples as they arrive; optional JSONL callbacks run off the timed training thread."""
+        if self._proc is None or self._proc.stdout is None:
+            return
+        for line in self._proc.stdout:
+            row = self.parse_line(line)
+            if row is None:
+                continue
+            self.rows.append(row)
+            if self.on_sample is not None:
+                try:
+                    self.on_sample(row, self.current_step)
+                except Exception as exc:  # telemetry output must not abort model timing
+                    self.callback_error = str(exc)
 
     def __enter__(self):
         if self.device.type != "cuda" or shutil.which("nvidia-smi") is None:
             return self
-        sel = _smi_select(self.device)
         self.reason = next((f for f in REASON_FIELDS
-                            if _sh(["nvidia-smi", sel, f"--query-gpu={f}", "--format=csv,noheader"])), None)
-        query = self.fields + ([self.reason] if self.reason else [])
-        self._file = tempfile.TemporaryFile(mode="w+")
-        self._proc = subprocess.Popen(["nvidia-smi", sel, f"--query-gpu={','.join(query)}",
+                            if _sh(["nvidia-smi", f"--query-gpu={f}", "--format=csv,noheader"])), None)
+        query = self.identity_fields + self.fields + ([self.reason] if self.reason else [])
+        # Query all GPUs once per node. A single collector process can then provide distinct device samples
+        # without one nvidia-smi child per GPU or duplicate rows from every distributed rank.
+        self._proc = subprocess.Popen(["nvidia-smi", f"--query-gpu={','.join(query)}",
                                        "--format=csv,noheader,nounits", f"--loop-ms={self.interval_ms}"],
-                                      stdout=self._file, stderr=subprocess.DEVNULL, text=True)
+                                      stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True, bufsize=1)
+        self._reader = threading.Thread(target=self._read_samples, name="perfkit-gpu-sampler", daemon=True)
+        self._reader.start()
         self.started = True
         return self
 
@@ -232,39 +285,54 @@ class GpuSampler:
         except subprocess.TimeoutExpired:
             self._proc.kill()
             self._proc.wait()
-        self._file.seek(0)
-        self.rows = [r for r in map(self.parse_line, self._file.read().splitlines()) if r]
-        self._file.close()
-        self._proc = self._file = None
+        if self._reader is not None:
+            self._reader.join(timeout=5)
+        if self._proc.stdout is not None:
+            self._proc.stdout.close()
+        self._proc = None
+        self._reader = None
         return False
 
     def parse_line(self, line: str) -> dict | None:
-        """One CSV line -> {field: float, reason field: int}; None for a line with the wrong number of values."""
-        query = self.fields + ([self.reason] if self.reason else [])
+        """One GPU CSV row -> identity and numeric fields; None for the wrong number of values."""
+        query = self.identity_fields + self.fields + ([self.reason] if self.reason else [])
         vals = [v.strip() for v in line.split(",")]
         if len(vals) != len(query):
             return None
         row = {}
         for f, v in zip(query, vals):
-            try:
-                row[f] = int(v, 16) if f == self.reason else float(v)
-            except ValueError:                        # [N/A], [Not Supported]
-                row[f] = None
+            if f in ("name", "uuid", "pci.bus_id"):
+                row[f] = None if v in ("[N/A]", "[Not Supported]") else v
+            else:
+                try:
+                    row[f] = int(v, 16) if f == self.reason else float(v)
+                except ValueError:                    # [N/A], [Not Supported]
+                    row[f] = None
         return row
+
+    def _selected_rows(self):
+        """Rows for the benchmark's CUDA device, preserving the original per-run summary scope."""
+        if self.target_pci_bus_id:
+            matched = [r for r in self.rows if r.get("pci.bus_id", "").upper() == self.target_pci_bus_id.upper()]
+            if matched:
+                return matched
+        return [r for r in self.rows if r.get("index") == self.target_index]
 
     def summary(self) -> dict | None:
         if not self.started:
             return None
         from perfkit.timer import stats
+        selected = self._selected_rows()
         out = {"source": f"nvidia-smi --loop-ms={self.interval_ms}", "interval_ms": self.interval_ms,
-               "during": "clean steps", "samples": len(self.rows), "metrics": {}}
+               "during": "clean steps", "samples": len(selected), "metrics": {},
+               "gpu": {"index": self.target_index, "pci_bus_id": self.target_pci_bus_id}}
         for f, key in SAMPLE_FIELDS.items():
-            vals = [r[f] for r in self.rows if r.get(f) is not None]
+            vals = [r[f] for r in selected if r.get(f) is not None]
             if vals:
                 st = stats(vals)
                 out["metrics"][key] = {k: st[k] for k in ("min", "median", "max", "mean")}
         if self.reason:
-            flagged = [f for r in self.rows if r.get(self.reason) is not None
+            flagged = [f for r in selected if r.get(self.reason) is not None
                        and (f := throttle_flags({"throttle_reasons": r[self.reason]}))]
             out["slowdown_samples"] = len(flagged)
             out["slowdown_reasons"] = sorted({n for names in flagged for n in names})
@@ -287,8 +355,16 @@ def run_metadata(device) -> dict:
     }
     if device.type == "cuda":
         p = torch.cuda.get_device_properties(device)
+        gpu_index = device.index if device.index is not None else torch.cuda.current_device()
+        dom, bus, dv = (getattr(p, f"pci_{key}_id", None) for key in ("domain", "bus", "device"))
+        pci_bus_id = (tel or {}).get("pci.bus_id")
+        if pci_bus_id is None and all(isinstance(v, int) for v in (dom, bus, dv)):
+            pci_bus_id = f"{dom:08X}:{bus:02X}:{dv:02X}.0"
+        gpu_uuid = (tel or {}).get("uuid") or getattr(p, "uuid", None)
         meta.update(compute_capability=f"{p.major}.{p.minor}", sm_count=p.multi_processor_count,
                     gpu_mem_gb=round(p.total_memory / 2**30, 1), gpu_count=torch.cuda.device_count(),
+                    gpu_index=gpu_index, gpu_uuid=str(gpu_uuid) if gpu_uuid is not None else None,
+                    gpu_pci_bus_id=pci_bus_id,
                     telemetry_start=tel)
     return meta
 
@@ -301,8 +377,8 @@ def flops_per_token(model, T: int, opt_flops_per_step: float = 0.0, tokens_per_s
     total, active = model.param_counts()
     L, d = m.n_layer, m.n_embd
     model_fpt = 6 * active + 12 * L * d * T
-    head = model.head.weight.numel()
-    ke = model.tok.proj.weight.numel() if m.embedding == "ke1" else 0
+    head = model.head.weight.numel() + (model.mtp_head.weight.numel() if m.mtp else 0)
+    ke = model.tok.proj.weight.numel() if m.embedding in ("ke1", "ke2") else 0
     stack_fwd = 2 * (active - head - ke) + 4 * L * d * T
     hw = model_fpt + (2 * stack_fwd if m.reversible else 0) + (2 * head if m.ce_impl == "chunked" else 0)
     if opt_flops_per_step and tokens_per_step:
@@ -311,13 +387,22 @@ def flops_per_token(model, T: int, opt_flops_per_step: float = 0.0, tokens_per_s
             "params_total": total, "params_active": active}
 
 
-def mfu(flops: dict, tokens_per_s: float, peak_tflops: float | None) -> dict:
-    """flops: from flops_per_token (hw_flops_per_token optional). mfu / hfu are None without a peak."""
-    out = {"model_tflops_per_s": flops["model_flops_per_token"] * tokens_per_s / 1e12, "mfu": None, "hfu": None}
-    if peak_tflops:
-        out["mfu"] = flops["model_flops_per_token"] * tokens_per_s / (peak_tflops * 1e12)
-        if flops.get("hw_flops_per_token") is not None:
-            out["hfu"] = flops["hw_flops_per_token"] * tokens_per_s / (peak_tflops * 1e12)
+def mfu(flops: dict, tokens_per_s: float, peak_tflops: float | None,
+        peak_reason: str | None = None) -> dict:
+    """Return MFU/HFU plus separate null reasons; flops come from flops_per_token()."""
+    out = {"model_tflops_per_s": flops["model_flops_per_token"] * tokens_per_s / 1e12,
+           "mfu": None, "hfu": None,
+           "mfu_unavailable_reason": None, "hfu_unavailable_reason": None}
+    if peak_tflops is None or not math.isfinite(peak_tflops) or peak_tflops <= 0:
+        reason = peak_reason or "peak_tflops_unavailable"
+        out["mfu_unavailable_reason"] = reason
+        out["hfu_unavailable_reason"] = reason
+        return out
+    out["mfu"] = flops["model_flops_per_token"] * tokens_per_s / (peak_tflops * 1e12)
+    if flops.get("hw_flops_per_token") is not None:
+        out["hfu"] = flops["hw_flops_per_token"] * tokens_per_s / (peak_tflops * 1e12)
+    else:
+        out["hfu_unavailable_reason"] = "hw_flops_unavailable"
     return out
 
 

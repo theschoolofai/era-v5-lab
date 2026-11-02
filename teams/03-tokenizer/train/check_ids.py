@@ -6,7 +6,9 @@ check_ids.py
 Gate for v2 (#163): a new tokenizer keeps every id a model may have been trained
 with. Compares <new> with <old> (v1) and fails unless
 
-  - every special token (added_tokens) has the same id, content and flags,
+  - every special token (added_tokens) has the same id, content and flags, except
+    a reserved slot (<|g10_slot_NN|>, <|lang_slot_NN|>, <|ctrl_slot_NN|>,
+    <|reserved_N|>) filled by renaming it, with its id and flags kept (v0.1, #132),
   - every id below --base-end maps to the same token string, except the ids that
     the build swapped (o200k pruning by usage: manifest "o200k_swap.swapped_ids",
     passed with --manifest); those must all hold a new token,
@@ -22,7 +24,10 @@ Usage
 """
 import argparse
 import json
+import re
 import sys
+
+RESERVED = re.compile(r"<\|(g10_slot|lang_slot|ctrl_slot|reserved)_\d+\|>\Z")
 
 
 def main():
@@ -37,8 +42,16 @@ def main():
     problems = []
     if len(old["model"]["vocab"]) + len(old["added_tokens"]) != len(new["model"]["vocab"]) + len(new["added_tokens"]):
         problems.append("vocab size differs")
-    if old["added_tokens"] != new["added_tokens"]:
+    filled = []
+    if len(old["added_tokens"]) != len(new["added_tokens"]):
         problems.append("added_tokens (special ids) differ")
+    for a, b in zip(old["added_tokens"], new["added_tokens"]):
+        if a == b:
+            continue
+        if {**a, "content": b["content"]} == b and RESERVED.match(a["content"]):
+            filled.append(a["id"])                  # a reserved slot filled by renaming it (README rule, #132)
+        else:
+            problems.append(f"special id {a['id']} differs: {a['content']} -> {b['content']}")
 
     o_id = {i: t for t, i in old["model"]["vocab"].items()}
     n_id = {i: t for t, i in new["model"]["vocab"].items()}
@@ -58,9 +71,10 @@ def main():
     if old_base != new["model"]["merges"][:len(old_base)]:
         problems.append(f"the {len(old_base)} kept base merges differ")
 
-    above = [i for i in o_id if i >= args.base_end]
+    above = [i for i in o_id if i >= args.base_end and i not in filled]
     same_above = sum(1 for i in above if n_id.get(i) == o_id[i])
-    print(f"specials: {len(old['added_tokens'])} identical" if old["added_tokens"] == new["added_tokens"] else "specials: DIFFER")
+    print(f"specials: {len(old['added_tokens']) - len(filled)} identical, {len(filled)} reserved slots filled by rename"
+          + (f" (ids {filled[0]}..{filled[-1]})" if filled else ""))
     print(f"base ids 0..{args.base_end - 1}: {len(base_ids) - len(swapped) - len(diff)}/{len(base_ids)} identical, "
           f"{len(swapped)} swapped (unused tokens pruned); kept base merges: {len(old_base)}")
     print(f"ids >= {args.base_end}: {same_above}/{len(above)} keep their v1 token (expected to change)")

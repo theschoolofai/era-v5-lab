@@ -4,4 +4,4 @@ pyyaml
 pytest
 tokenizers>=0.15
 datasets        # raw FineWeb text only; tokenizer comes exclusively from GitHub
-pynvml          # optional: GPU telemetry
+pynvml          # optional, not imported today: GPU telemetry comes from nvidia-smi (perfkit.metrics)
