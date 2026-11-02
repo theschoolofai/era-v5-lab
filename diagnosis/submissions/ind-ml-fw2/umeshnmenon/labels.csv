@@ -424,3 +424,78 @@ e391eab634548691,full,fix,C1,offset 0-684 Don't Miss,,
 880beb1b06d3b6ed,full,fix,C1;D3,offset 0-956 Just In -|offset 3356-3359 K10B,,
 49556c124ce1432f,full,fix,C1,offset 1880-2300 Top Storie,,
 0b5c0d5c22f51385,full,fix,D3;G1;D3;D3,offset 1965-1967 lux|offset 1969 ം|offset 2380-2381 La|offset 4610-4611 is,U+0020 SPACE before U+0D02 MALAYALAM SIGN ANUSVARA,Possible G1: a space or break sits before a vowel sign or virama.
+a2af748a99b8428b,full,fix,C1,offset 1141-1439 കൊവിഡ് മഹാ,,
+bbcc6cfa25231b74,full,clean,,,,
+03a259edd433fd17,full,fix,C1,offset 1267-1565 കൊവിഡ് മഹാ,,
+87dde083073fc92e,full,clean,,,,
+8ba383dd65c2341c,full,fix,C1,offset 374-700 Story High,,
+69f26e1bea3e5403,full,fix,C1,offset 793-1095 കൊവിഡ് പോര,,
+b63d2ee9d9d610ce,full,fix,C1,offset 0-588 Don't Miss,,
+e221ee2f1813cc32,full,fix,C1,offset 1533-1831 കൊവിഡ് മഹാ,,
+488d7b7aa3093e59,full,fix,C1;C1;C1;C1;C4;C1;C1;C1;C1;C1;C1,"offset 0-35 Helicopter|offset 37-67 KeralaMay|offset 363-392 KeralaMay|offset 661-690 KeralaMay|offset 692-995 ഊരിപ്പിടിച|offset 997-1027 KeralaApr|offset 1312-1336 Dec 18, 20|offset 1645-1669 Jun 15, 20|offset 1889-1912 May 9, 201|offset 2345-2368 May 7, 201|offset 2853-2878 Apr 27, 20",,remove the unrelated doc (it could be related though)
+e3abf3bf9cbf2bc8,full,fix,C1;C1,offset 156-183 Screengrab|offset 1673-1744 Content Hi,,crime 
+3e1e7f1bcb335421,full,fix,C1,offset 1163-1516 Story High,,
+a13b79973296b42f,full,fix,D3,offset 414-423 (Thriller),,
+0a0cae2792cdb415,full,fix,C1,offset 883-1426 You may al,,crime news - sexual assualt
+46bf92731d2264cc,full,clean,,,,
+68785f6ee20ec400,full,fix,C1,offset 980-1428 - You may,,
+ea8cd07af66e6299,full,fix,C1,offset 1332-1397 ഇനിയാർക്ക്,,
+a310f18cbbe92cdc,full,fix,D3;C1;C1,offset 54-64 Media Root|offset 466-563 Also Read:|offset 10290-10355 ഇനിയാർക്ക്,,
+f6564108708942d3,full,clean,,,,
+2b5720e2fb9275a1,full,clean,,,,
+ded12a42c0bb1488,full,fix,C1,offset 0-624 Don't Miss,,
+1b1050150583ea5f,full,fix,D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3,offset 0 2|offset 193 8|offset 458 9|offset 584-585 10|offset 714-715 12|offset 924-925 13|offset 1156-1157 15|offset 1459-1460 16|offset 1715-1716 17|offset 1925-1926 18|offset 2218-2219 21|offset 2328-2329 22,,
+c79b320c24ab6516,full,fix,C1,offset 0-599 Don't Miss,,
+6de8e5679254b990,full,fix,C1,offset 1518-1817 കൊവിഡ് മഹാ,,
+ed6189ff2c40c657,full,fix,C1,offset 0-626 Just In Do,,
+f9a81bca3bc3f79b,full,fix,C1,offset 3760-3870 Content Hi,,
+b5d9cc46cd9ac73e,full,fix,C1,offset 0-729 Don't Miss,,
+9775aa50ae95d48b,full,fix,C1,offset 0-625 Don't Miss,,
+4dc1a3a0756b301a,full,fix,C1,offset 1244-1584 Story High,,
+26d3f22bb808f4c7,full,clean,,,,
+a4229f5e9adf57c6,full,fix,C1,offset 1052-1138 Get real t,,
+45e86f11ff96057d,full,fix,C1,offset 1261-1463 കൈരളി ഓണ്ല,,
+49e060ec0104c491,full,fix,C1,offset 1884-2182 കൊവിഡ് മഹാ,,
+b7ffe74f53252f80,full,clean,,,,
+8adf49c6f34f52e5,full,fix,D3;D3;D3,offset 653-658 kidney|offset 935-1446 Then each|offset 1449-1450 NB,,
+bb67e9a73f5a04eb,full,fix,C1,offset 0-607 Don't Miss,,
+1e289d56ae6d4215,full,clean,,,,
+7c7f709f6bb1239c,full,clean,,,,
+64a4f932fb367c1b,full,fix,C1,offset 699-792 ജോലി ഒഴുവു,,
+36e13b88422f9337,full,fix,C1;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3,offset 0-1039 Just In -|offset 1299-1300 VI|offset 2125-2126 VI|offset 2231-2234 rpm-|offset 2244-2246 bhp|offset 2271-2274 rpm-|offset 2281-2282 Nm|offset 2749-2750 mm|offset 3601-3602 VI|offset 3935-3936 VI|offset 3977-3979 SX-,,
+17f3f0554c9b4148,full,fix,C1,offset 2648-2746 Content Su,,
+8b0e837837c7a3ee,full,clean,,,,
+e3573e7af392c2bd,full,fix,D3;D3;D3,offset 787-792 (AFWA)|offset 1116-1122 Archive|offset 1126-1129 AFWA,,
+a66eb79567be6a7c,full,fix,C1,offset 0-685 Don't Miss,,
+02ce83d623216eb4,full,fix,C1,offset 983-1160 ദേശാഭിമാനി,,
+481bb64f8f1f35fa,full,fix,C1;C1;C1;C1;C1;C1;C1;C1;C1;C1;C1;C1;C1;C1;C1;C1,offset 0-40 Karnataka|offset 42-76 What's New|offset 255-285 KeralaJul|offset 483-514 KeralaJul|offset 773-803 KeralaJul|offset 1051-1086 What's New|offset 1315-1345 KeralaJun|offset 1576-1605 IndiaJun 2|offset 1810-1840 IndiaJun 2|offset 2023-2053 IndiaJun 2|offset 2357-2388 KeralaJun|offset 2636-2666 KeralaJun|offset 2910-2939 KeralaJun|offset 3149-3178 IndiaMay 2|offset 3477-3508 KeralaMay|offset 3841-3872 KeralaMay,,
+31982bc7061e1d08,full,fix,C1,offset 39-106 By സമകാലിക,,
+7987395766942c62,full,fix,C1,offset 0-688 Don't Miss,,
+7127d1a8695b41b1,full,fix,C1,offset 914-1232 TRENDING:D,,crime news
+f8ed717f25d4fc43,full,clean,,,,
+f3d5ff7f7d704918,full,fix,D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3,offset 66-68 EMI|offset 122-124 EMI|offset 784-786 RBI|offset 796-798 RBI|offset 915-918 MCLR|offset 1910-1946 EMI= [P x|offset 1960-1962 'P'|offset 1997 N|offset 2046 R|offset 2334-2336 EMI|offset 2497-2499 EMI|offset 2644-2646 EMI|offset 2840-2842 EMI|offset 3005-3007 EMI,,
+2ccfc498e750958a,full,fix,C1,offset 1644-1946 കൊവിഡ് പോര,,
+e33a802512bf6a2a,full,clean,,,,
+a9c06f6d9f89868d,full,clean,,,,
+798104eaa22dc6df,full,fix,D3;C1,offset 432-440 (Techade)|offset 4952-5782 ധീര ഭഗത് സ,,
+43696f57490792ba,full,clean,,,,
+4df85d44cf6c4c6a,full,fix,D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3,"offset 116-153 Zhilun Mec|offset 213-224 ""JIN ZHILU|offset 242-244 OEM|offset 383-389 Taizhou|offset 440-447 Zhejiang|offset 462-468 Taizhou|offset 480-486 Hengjie|offset 535-540 Ningbo|offset 557-561 220KM|offset 3451-3455 15Hz-|offset 3870-3875 0.2Mpa|offset 3889-3899 Zerlion VS|offset 4295-4299 3ppm-|offset 4633-4641 Jinzhilun|offset 4677-4690 300Million",,
+c4f1ee481d884c29,full,fix,D3;D3;C1,offset 265-276 Last Updat|offset 280-290 Share this|offset 1316-1519 Published,,
+5532187469ab46b5,full,fix,C2,offset 72-142 മുഖ്യമന്ത്,,
+94e6d30d96e5dac1,full,drop,C5;C3;C2,,,tag page of truncated headlines, one repeated
+7df68a4f68fbbe3a,full,fix,D3;D3,offset 0-3 News|offset 82-88 Tuesday,,
+39fc9f992cf33338,full,fix,D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;C1,offset 86-91 Batman|offset 122-126 Nolan|offset 171-175 Nolan|offset 181-195 Realistic|offset 214-219 Batman|offset 226-236 Comic Styl|offset 293-299 Batman-|offset 315-328 Comic Accu|offset 382-401 Bruce Wayn|offset 435-446 Frank Mill|offset 453-471 Dark Knigh|offset 641-654 Justice Le|offset 715-720 Gotham|offset 750-760 Bruce Wayn|offset 847-857 Bruce Wayn|offset 992-1002 Mutant Rac|offset 1215-1220 Batman|offset 1290-1294 Robin|offset 1343-1347 Fight|offset 1372-1382 Live actio|offset 1404-1423 കടപ്പാട്:,,
+d3dd95984de53688,full,fix,D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3;D3,"offset 233-239 ulation|offset 554-561 software|offset 789-791 GPL|offset 1084-1086 SIP|offset 1093-1096 have|offset 1125-1128 free|offset 1158-1166 ekiga.net|offset 1432-1441 VoIPBuster|offset 1457-1459 are|offset 2100-2102 and|offset 2449-2452 XMPP|offset 2734-2762 Google Tal|offset 3017-3030 Google / G|offset 3231-3235 Gmail|offset 3271-3277 browser|offset 3663-3667 Gmail|offset 3883-3886 VoIP|offset 4118-4121 VoIP|offset 4247-4253 Android|offset 4311-4330 Mac, iPhon|offset 4402-4405 VoIP|offset 4544-4551 communic|offset 4813-4815 ass|offset 4914-4921 software|offset 4958-4961 Mac-|offset 4975-4977 SIP|offset 5056-5059 VoIP|offset 5294-5304 alternativ|offset 5376-5382 browser|offset 5392-5397 Google|offset 5444-5456 XMPP / Jin|offset 5537-5540 VoIP|offset 5697-5700 prot|offset 5742-5750 SIP VoIP-",,
+d9c2e88749425fa7,full,drop,C2,,,meaningless content 
+87b7a8c1b17e8bf7,full,fix,C4;C4;D3;D3;D3;D3;C4;C4;C4;C4;C4;C4;C4,offset 5354-5942 തിരുവനന്തപ|offset 5944 വ|offset 6030-6034 (TWS)|offset 6197-6201 (ANC)|offset 6254-6256 TWS|offset 6370-6387 (Twitter @|offset 6431 എ|offset 6989-6991 ‘പൊ|offset 7617-7618 പാ|offset 8197 വ|offset 8713-8714 കൊ|offset 9197 2|offset 9697-9698 കൊ,,
+7a7b4f5ebc481bd1,full,fix,C1;C1,offset 0-788 തണലിന്റെ സ|offset 1712-1727 29 Novembe,,
+f1aef54ee2bed426,full,fix,C1;C4;C4;C4;C1;C1,offset 3733-3739 ര്്ക്കാ|offset 5094 ക|offset 5671 ഖ|offset 6428 അ|offset 6598-6611 ആദില് മുഹമ|offset 7366-7983 Trending -,offset 3733 SPACE BEFORE U+0D30 MALAYALAM LETTER RA,Possible G1
+ca1a742dfa7577ee,full,clean,,,,terrorism report 
+9f4de98d50efc58c,full,drop,C4,,,
+cf661286c248457c,full,fix,C1;C1,offset 675-795 Also Read:|offset 1564-1612 'കൊവിഡിലടച,,
+c33b540a3729e733,full,drop,C4,,,many mixed contents
+35091c832eb7a828,full,drop,C5;C3,,,author page of truncated headlines
+09fbad7d329fcb32,full,fix,D3,,,english dates in the section headings
+999757e1aa32940d,full,drop,C3;C1,,,same promise restated, method never given, video prompt
+6ef515eea2d7307f,full,drop,C4;C5,,,several articles and link lists joined
+c33b540a3729e733,full,drop,C5,,,search results list
