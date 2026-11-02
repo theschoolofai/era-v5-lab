@@ -1,6 +1,6 @@
 # Medicine sheet: ind-hi-hplt (narasimhatejav)
 
-Counts are from all 500 rows of the pack (pack rows 0 to 499), as labelled in `labels_v2.csv`: fix 343, clean 77, drop 80. There is one section for each disease found more than five times. Rows are 0-based pack rows. "Cures" means the documents with that code that the rule changes or drops. "Side effects" are measured on the other labelled rows of the 500.
+Counts are from all 500 rows of the pack (pack rows 0 to 499), as labelled in `labels.csv`: fix 343, clean 77, drop 80. There is one section for each disease found more than five times. Rows are 0-based pack rows. "Cures" means the documents with that code that the rule changes or drops. "Side effects" are measured on the other labelled rows of the 500.
 
 Harm test for every section: `python3 teams/02-data-b/tools/harm_test_indic.py --medicine medicine.md --pack ind-hi-hplt.parquet --gold-dir teams/02-data-b/gold`. The gold set is `ind-hi-hplt_gold.csv` (67 documents), so a rule may change or drop at most 1 gold document. All rules together ("ALL IN ORDER") change 0 and drop 0 of 67: **PASS**.
 
