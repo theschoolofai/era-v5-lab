@@ -162,7 +162,7 @@ publisher-specific bylines and donation footers remain unchanged. The rule does 
 
 ## Medicine 3
 
-1. **Disease:** C2 — repetition; **17 labelled documents**. Three recorded examples:
+1. **Disease:** C2 — repetition; **19 labelled documents**. Three recorded examples:
 
 | doc_id | Evidence |
 |---|---|
@@ -304,6 +304,13 @@ contact numbers, so these are not established private-data omissions. Candidate 
 private ownership remain separate questions. No source contact values were printed in the
 coverage report or rewritten in the packs.
 
+## Evidence offset verification
+
+I checked **790 saved offset entries** for the existing C1, C2, C5, A6, F1 and G1 labels
+against the original pack text and implemented checks. **790/790 verified** after the confirmed
+corrections and saved reader edits were applied. G1 offsets can identify the vowel/virama sign
+itself or the recorded word; both forms were checked against their stated evidence.
+
 ## Rejected medicine proposals
 
 I excluded the following repair proposals from generic unattended execution. A6 mixed-script
@@ -313,12 +320,12 @@ submitted for either. The disease labels remain valid observations.
 
 | Code | Disease / proposed repair | Labelled documents | Reason for rejection |
 |---|---|---:|---|
-| A6 | Script/font corruption — exact-word substitutions | 21 | The replacement table contains observed words from this pack. Mixed-script issues can be identified generically, but the intended replacement spelling cannot be reliably inferred. |
+| A6 | Script/font corruption — exact-word substitutions | 22 | The replacement table contains observed words from this pack. Mixed-script issues can be identified generically, but the intended replacement spelling cannot be reliably inferred. |
 | G1 | Spacing / broken words — exact-word joins | 18 | The replacement table contains observed word pairs. Dangling vowel signs, halants and viramas can be identified generically, but removing spaces or reconstructing missing letters is not reliably correct in every context. |
 | D3 | Mixed language — unconditional language-based deletion | 74 | Mixed-language candidates can be identified and detector accuracy can be tested. Repair is not always needed and depends on context; language alone does not establish which text to remove. |
 | D4 | Bad machine translation — automatic rewriting | 23 | A reliable correction requires meaning and source context. No generic coded rewrite or drop rule is established. |
 | G2 | Suspected lost ZWJ/ZWNJ — automatic joiner insertion | 21 | Missing joiners cannot be inferred from every conjunct or loanword. A blanket insertion rule can change valid Kannada text. |
-| C3 | Truncation — reconstruction or automatic drop | 10 | An ellipsis, colon or missing final punctuation does not establish missing content or justify dropping a document. |
+| C3 | Truncation — reconstruction or automatic drop | 9 | An ellipsis, colon or missing final punctuation does not establish missing content or justify dropping a document. |
 | F1 | Previous approved-span-only redaction | 11 | The previous function required human-approved spans and did nothing without them, so that version remains rejected. The current automatic rule is retained as Medicine 4 with a passing gold harm test and 32/32 saved offsets matched; public-contact matches remain a side effect. |
 
 Publisher-specific C1 bylines and donation-footer matches were also removed from the retained C1
