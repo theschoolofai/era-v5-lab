@@ -2,30 +2,30 @@
 
 Pack: 500 Telugu documents from FineWeb-2 (`tel_Telu`). All 500 read in full. Verdicts: 176 clean, 221 fix, 103 drop.
 
-**Harm test set.** Every rule below is tested with `teams/02-data-b/tools/harm_test_indic.py` on the **real Telugu gold set (`teams/02-data-b/gold/telugu_gold.csv`: 46 two-reader clean documents across `ind-te-fw2` 18, `ind-te-sangraha-s` 5, and `ind-te-sangraha-v` 23)**. Under the TSAI rule for small gold sets (`max(1%, 1 document)`), a rule passes when it changes or drops at most 1 of the 46 gold documents and passes both the ZWJ/ZWNJ joiner audit and the NFC/compatibility-character normal-form audit. I also report results on the 176 documents of `ind-te-fw2` that I labelled `clean`.
+**Harm test set.** Every rule below is tested with `teams/02-data-b/tools/harm_test_indic.py` on both the **own-pack real gold set (`ind-te-fw2_gold.csv`: 18 two-reader clean documents)** and the **full Telugu real gold set (`teams/02-data-b/gold/telugu_gold.csv`: 50 two-reader clean documents across `ind-te-fw2` 18, `ind-te-sangraha-s` 5, and `ind-te-sangraha-v` 27; also 46 documents in the 31 Oct interim snapshot)**. Under the TSAI rule for small gold sets (`max(1%, 1 document)`), a rule passes when it changes or drops at most 1 gold document and passes both the ZWJ/ZWNJ joiner audit and the NFC/compatibility-character normal-form audit. I also report results on the 176 documents of `ind-te-fw2` that I labelled `clean`.
 
 Columns used below: *recall* = labelled documents in `ind-te-fw2` that the medicine changes or drops; *fires on unlabelled* = documents in `ind-te-fw2` without that label that the medicine changes or drops.
 
 ## Summary
 
-| Code | Count | Action | Gold changed (46) | Gold dropped (46) | Gold % | Joiner / Form audit | Result | Clean-slice (176) | Recall | Fires on unlabelled |
-|---|---|---|---|---|---|---|---|---|---|---|
-| C1 | 250 | fix | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 122/250 | 1 |
-| D4 | 87 | drop | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 81/87 | 18 (8 are D5) |
-| D3 | 83 | none | – | – | – | – | no medicine | – | – | – |
-| C2 | 41 | fix | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 17/41 | 13 |
-| C5 | 14 | drop | 0 | 0 | 0.00% | – | **rejected** (side effects) | 1/176 (0.6%) | 2/14 | 21 |
-| C3 | 9 | fix | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 1/9 | 1 |
-| B2 | 8 | fix | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 6/8 | 0 |
-| F3 | 8 | drop | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 7/8 | 0 |
-| C4 | 8 | drop | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 1/8 | 1 |
-| D5 | 8 | drop (by the D4 rule) | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 8/8 | – |
-| A6 | 8 | fix | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 3/8 | 3 |
-| F1 | 6 | fix | 0 | 0 | 0.00% | ok / ok | **PASS** | 1/176 (0.6%) | 6/6 | 7 |
-| G1 | 4 | fix | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 4/4 | 0 |
-| **ALL IN ORDER** | – | pipeline | **0** | **0** | **0.00%** | **ok / ok** | **PASS** | 1/176 (0.6%) | – | – |
+| Code | Count | Action | Own-pack gold (18) | Telugu gold changed (50) | Telugu gold dropped (50) | Gold % | Joiner / Form audit | Result | Clean-slice (176) | Recall | Fires on unlabelled |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| C1 | 250 | fix | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 122/250 | 1 |
+| D4 | 87 | drop | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 81/87 | 18 (8 are D5) |
+| D3 | 83 | none (no-op) | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** (no medicine) | 0/176 (0.0%) | 0/83 | 0 |
+| C2 | 41 | fix | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 17/41 | 13 |
+| C5 | 14 | drop | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** (rejected for pipeline: side effects on fix slice) | 1/176 (0.6%) | 2/14 | 21 |
+| C3 | 9 | fix | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** (v1 `..`/`…` failed at 1.20%; v2 `[…]` passes at 0.00%) | 0/176 (0.0%) | 1/9 | 1 |
+| B2 | 8 | fix | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 6/8 | 0 |
+| F3 | 8 | drop | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 7/8 | 0 |
+| C4 | 8 | drop | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 1/8 | 1 |
+| D5 | 8 | drop (by the D4 rule) | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 8/8 | – |
+| A6 | 8 | fix | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 3/8 | 3 |
+| F1 | 6 | fix | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** | 1/176 (0.6%) | 6/6 | 7 |
+| G1 | 4 | fix | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 4/4 | 0 |
+| **ALL IN ORDER** | – | pipeline | **0/18 (0.00%)** | **0** | **0** | **0.00%** | **ok / ok** | **PASS** | 1/176 (0.6%) | – | – |
 
-All medicines together (`ALL IN ORDER` in `harm_test_indic.py`): **0 changed and 0 dropped out of 46 real Telugu gold documents (0.00%, PASS; ZWJ/ZWNJ audit PASS; normal-form audit PASS)**, and 1 changed out of 176 `ind-te-fw2` clean-slice documents (0.6%, the F1 helpline number below). The drop rules remove 82 of the 87 D4 documents, all 8 D5 documents and all 8 F3 documents.
+All medicines together (`ALL IN ORDER` in `harm_test_indic.py`): **0 changed and 0 dropped out of 18 own-pack gold documents (`ind-te-fw2`, 0.00%, PASS) and 0 changed and 0 dropped out of 50 real Telugu gold documents (`telugu_gold.csv`, 0.00%, PASS; ZWJ/ZWNJ audit PASS; normal-form audit PASS)**, and 1 changed out of 176 `ind-te-fw2` clean-slice documents (0.6%, the F1 helpline number below). The drop rules remove 82 of the 87 D4 documents, all 8 D5 documents and all 8 F3 documents.
 
 ## Medicine 1: C1 boilerplate
 
@@ -131,11 +131,37 @@ All medicines together (`ALL IN ORDER` in `harm_test_indic.py`): **0 changed and
    list of unrelated article teasers at offset 0.
 2. **Medicine tested:** after the C1 deletion, drop the document when at least 14 non-empty lines are short (under 60
    characters) and have no end punctuation, and they make up more than 50% of the lines.
+   ```python
+   _C5_C1_LINE = re.compile(r"""^\s*(?:
+       (?:Also\s+[Rr]ead|Read\s+[Mm]ore|Don'?t\s+Miss!?|Just\s+In|News\s+Reels|More\s+Stories|Leave\s+a\s+Reply
+         |View\s+this\s+post\s+on\s+Instagram|Sign\s+in|Follow\s+[Uu]s|Subscribe|Share\s+(?:on|this)
+         |Image\s+Source|Disclaimer|Published\s+On|First\s+Publish\s+Date|Updated\s+Date|Tags?|TAGS)\b.*
+     | (?:ఇది\s+కూడా\s+చదవండి|ఇవి\s+కూడా\s+చదవండి|ఇవీ\s+చదవండి|ఇదీ\s+చదవండి|ఇది\s+చూడండి|తాజా\s+వార్తలు
+         |ట్రెండింగ్\s+వార్తలు|ఉత్పత్తి\s+ట్యాగ్లు|పోస్ట్\s+సమయం|వ్యాఖ్యను\s+పోస్ట్\s+చేయండి
+         |మీ\s+అభిప్రాయాలను\s+కామెంట్|గమనిక:\s*ఈనాడు\.నెట్|\[\[సంబంధిత\s+కథనం\]\]).*
+     | (?:మరిన్ని|ప్రకటన|g-ప్రకటన)(?:\s*-\s*[\w\s]{0,30})?
+     | .*(?:Empowering\s+140\+\s+Indians|India\s+Herald\s+Group\s+of\s+Publishers|pic\.twitter\.com/|t\.co/\w).*
+     | -?\s*\d{1,2}\s+\w{3}\s+\d{4}\s+\d{1,2}:\d{2}\s+[AP]M(?:\s+GMT)?.*
+     | \w[\w\s.]{0,40},\s*News18,\s*\w+.*
+   )\s*$""", re.X)
+   def medicine_c5(t, url=None):
+       cleaned = "\n".join(l for l in t.split("\n") if not _C5_C1_LINE.match(l))
+       lines = [l.strip() for l in cleaned.split("\n") if l.strip()]
+       if not lines:
+           return False
+       short_no_punct = sum(1 for l in lines if len(l) < 60 and not re.search(r"[.!?:;।…\"'”’)\]]$", l))
+       return True if (short_no_punct >= 14 and short_no_punct / len(lines) > 0.5) else False
+   ```
 3. **Action:** drop.
-4. **Harm test:** proxy gold: 0 changed, 1 dropped (0.6%, `2acf40242963f9fd` film crew credits).
+4. **Harm test:** own-pack real gold set (`ind-te-fw2_gold.csv`, 18 documents) and full Telugu real gold set (`telugu_gold.csv`, 50 documents across `ind-te-fw2` 18, `ind-te-sangraha-s` 5, `ind-te-sangraha-v` 27; 46 documents in the 31 Oct snapshot):
+   - Own-pack gold (`ind-te-fw2`, 18 docs): Changed 0 of 18 (0.00%). Dropped 0 of 18 (0.00%). **PASS**
+   - Full Telugu gold (`telugu_gold.csv`, 50 docs): Changed 0 of 50 (0.00%). Dropped 0 of 50 (0.00%). **PASS**
+   - ZWJ/ZWNJ audit: 0 changed documents with a different count. **PASS**
+   - Normal-form audit: 0 changed documents left NFC or lost a compatibility character. **PASS**
+   - Clean slice (`ind-te-fw2`, 176 docs): 0 changed, 1 dropped (0.6%, `2acf40242963f9fd` film crew credits).
 5. **Side effects. Rejected:** it drops 16 documents that readers labelled `fix` (news pages with captions, sub-heads
    and menus that C1 misses) plus 1 clean film-credits press release, and it catches only 2 of the 14 C5 documents. Line shape does not separate list pages from
-   articles in this pack. The medicine is **not** in the pipeline. In the pipeline, D4 (10) and F3 (4) together drop
+   articles in this pack. The medicine is **not** recommended for `spec_v1`. In the pipeline, D4 (10) and F3 (4) together drop
    11 of the 14 C5 documents, because SEO list pages here are almost always machine-translated or adult. A real C5 medicine needs a
    link and teaser signal from the HTML, which this text-only pack does not have.
 
@@ -291,11 +317,23 @@ All medicines together (`ALL IN ORDER` in `harm_test_indic.py`): **0 changed and
    - Clean slice (`ind-te-fw2`, 176 docs): 0 changed, 0 dropped (0.0%).
 5. **Side effects:** recall 3/8. Other stray Latin letters (`చేయవచ్చుn`, `తయారుచేయగలిగేS`) or embedded Devanagari (`।`, Hindi tweet) are not look-alike anusvaras. A Telugu number written right after a word (`క౦` meaning "ka 0") would be changed. I saw none.
 
-## No medicine: D3 mixed language
+## Medicine 12: D3 mixed language (no-op; clean + D3 is clean)
 
-D3, 83 documents (for example `ab4df107c4d439c6` `Fortnite చాప్టర్ 3` at offset 188). Telugu news writes English
-names, brands and terms in Latin script, often with a Telugu suffix (`YouTubeలో`). Following DISEASES.md ("label it, do
-not judge it"), I give no medicine. 12 documents where D3 is the only label have verdict `clean`.
+1. **Disease:** D3, 83 documents (for example `ab4df107c4d439c6` `Fortnite చాప్టర్ 3` at offset 188). Telugu news writes English
+   names, brands and terms in Latin script, often with a Telugu suffix (`YouTubeలో`).
+2. **Medicine:** no-op (`DISEASES.md`: "label it, do not judge it"; `clean + D3` is clean for gold voting).
+   ```python
+   def medicine_d3(t, url=None):
+       return t
+   ```
+3. **Action:** none (keep text unchanged). 12 documents where D3 is the only label have verdict `clean`.
+4. **Harm test:** own-pack real gold set (`ind-te-fw2_gold.csv`, 18 documents) and full Telugu real gold set (`telugu_gold.csv`, 50 documents across `ind-te-fw2` 18, `ind-te-sangraha-s` 5, `ind-te-sangraha-v` 27; 46 documents in the 31 Oct snapshot):
+   - Own-pack gold (`ind-te-fw2`, 18 docs): Changed 0 of 18 (0.00%). Dropped 0 of 18 (0.00%). **PASS**
+   - Full Telugu gold (`telugu_gold.csv`, 50 docs): Changed 0 of 50 (0.00%). Dropped 0 of 50 (0.00%). **PASS**
+   - ZWJ/ZWNJ audit: 0 changed documents with a different count. **PASS**
+   - Normal-form audit: 0 changed documents left NFC or lost a compatibility character. **PASS**
+   - Clean slice (`ind-te-fw2`, 176 docs): 0 changed, 0 dropped (0.0%).
+5. **Side effects:** none.
 
 ## Method
 
