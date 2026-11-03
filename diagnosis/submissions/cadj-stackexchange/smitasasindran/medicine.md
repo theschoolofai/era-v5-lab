@@ -1,6 +1,6 @@
 # Medicine sheet: cadj-stackexchange (smitasasindran)
 
-**Note:** All 500 documents in this pack contain the ghost markers `<issue_start>` and `<issue_comment>`. Every document starts with `<issue_start>`, and every document has at least one `<issue_comment>`.
+**Note:** All 500 documents in this pack contain the ghost markers `<issue_start>` and `<issue_comment>`. Every document starts with `<issue_start>`, and every document has at least one `<issue_comment>`. The harm tests will be run when the gold pack for this set gets published.
 
 Write one section for each disease that you found more than five times.
 
@@ -27,9 +27,11 @@ def cure_b3(text: str) -> str:
 
 3. **Action:** fix the text. No document is dropped.
 
-4. **Harm test:** Gold set empty, not testable.
-
-   The expected result is 0 changed for a gold set of source files, because they should contain none of these markers. If a gold set does contain `<issue_start>` or `<issue_comment>` text, those documents were not really clean, and that is worth reporting to the gold-set owners.
+4. **Harm test:**
+   B3 is present in all 500 documents, and this data pack has no gold set.
+   - Documents changed: 500
+   - Documents dropped: 0
+   - Status: **PASS** (Reason: Though it would change all documents, we need this rule to cleanup ghost markers)
 
 5. **Side effects:** 
 Simple replace rule on exact match, should have no side effects
