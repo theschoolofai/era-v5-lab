@@ -5,22 +5,24 @@ from `labels.csv` (500 rows: **269 clean, 200 fix, 31 drop**).
 
 ## Harm-test protocol
 
-No official Data-A/B gold set ships locally, so harm is measured against a
-**single-reader proxy gold set**: my own **269 clean docs** (verdict=`clean`,
-read end-to-end). This is weaker than a two-reader official gold set — it shares
-my blind spots — so treat each PASS as "does not disturb text one careful reader
-judged clean," not as a guarantee. The clean set includes **43 `clean+D3`** docs:
-D3 is a non-destructive label (English title/sentence kept, not fixed), so those
-docs are still clean subjects for a harm test.
+Updated 3 Nov after TSAI ruled on #211 (a harm result counts only on today's gold
+set of the rule's own pack). The rules for **C2, C3, C5 and B4** are now code in
+this file: each one is a `medicine_<code>(text)` function in a python block under a
+`**Disease:** <code>` line, and returns the new text, `True` (drop) or the same text
+(keep). Run with Data B's tool:
 
-A medicine **FAILS** if it changes or drops **> 1%** of the proxy gold set
-= **> 2.7 docs** (i.e. **3 or more**). Each rule below reports docs touched / 269,
-re-measured against the final clean set.
+`python3 teams/02-data-b/tools/harm_test_indic.py --medicine diagnosis/submissions/ind-mr-fw2/vpw/medicine.md --pack ind-mr-fw2.parquet --gold-dir teams/02-data-b/gold`
 
-All figures below are reproduced by a harm-test harness (`harm_test.py`, kept with
-the capstone tooling alongside the pack — not in this submission repo) that reads
-this `labels.csv` + the pack, runs every naive and narrow rule, and builds the real
-cross-document shingle index. Re-run: `.venv/bin/python scripts/harm_test.py`.
+The gold set is `teams/02-data-b/gold/ind-mr-fw2_gold.csv` (142 docs; a rule may
+change or drop at most 1 of them: 1% or 1 document, whichever is more). The gold
+set is two-reader, so it replaces my single-reader proxy for the result table
+below. The older per-rule figures in each section (/269) are against my own 269
+clean docs and are kept as the second check.
+
+**C1 and C4** need a cross-document index (a chunk that recurs in >= 4 docs), so
+they cannot run as a per-document rule and stay described in words. **F1** is
+covered by Data A's shared F1 rule. **D3** is label-only, **D4** and **D5** are
+review-only, **G2** and **A5** are not submitted as code here.
 
 Rules are the exact regex/predicate the fixer would run. For F1, evidence is
 type + offset only — the value is never copied, hex left empty.
@@ -113,6 +115,31 @@ Examples: `052f2791183c599c` (`आधी रोटी खाएंगे…` ×5
 repeats **≥ 5×** *and* is **≥ 20 chars** (guards poem refrains, quiz-answer
 labels, section headers — all deliberately declined during labelling).
 
+**Disease:** C2
+
+```python
+def medicine_c2(text):
+    """Collapse a line that repeats >= 5 times (and is >= 20 chars) to its first copy."""
+    lines = text.split("\n")
+    count = {}
+    for l in lines:
+        k = l.strip()
+        if len(k) >= 20:
+            count[k] = count.get(k, 0) + 1
+    rep = {k for k, n in count.items() if n >= 5}
+    if not rep:
+        return text
+    seen, out = set(), []
+    for l in lines:
+        k = l.strip()
+        if k in rep:
+            if k in seen:
+                continue
+            seen.add(k)
+        out.append(l)
+    return "\n".join(out)
+```
+
 **Harm test:** **0/269 → PASS**. The ≥5×/≥20-char gate skips benign structural
 repeats (quiz `उत्तर:`, verse refrains) a naive "any repeated line" rule flattens.
 
@@ -182,6 +209,21 @@ para).
 truncation markers** — `[…]`, `Continue Reading`, `Read More`, trailing `...` at
 EOF — not on "no terminal punctuation."
 
+**Disease:** C3
+
+```python
+import re
+
+_C3_MARK = re.compile(r"\[…\]|\[\.\.\.\]|Continue Reading|Read More")
+_C3_TAIL = re.compile(r"(?:\s*(?:\[…\]|\[\.\.\.\]|…\]|Continue Reading|Read More|\.\.\.))+\s*\Z")
+
+def medicine_c3(text):
+    """Drop a teaser listing (>= 3 explicit truncation markers); else trim a truncation marker at the end of the text."""
+    if len(_C3_MARK.findall(text)) >= 3:
+        return True
+    return _C3_TAIL.sub("", text)
+```
+
 **Harm test:** the naive "ends without sentence punctuation" rule touches **31/269
 (11.5%) → FAILS** (clean docs legitimately end on a heading, list item, or quote).
 The explicit-marker rule touches **1/269 (0.4%) → PASS** — the single hit,
@@ -207,6 +249,38 @@ any of (a) an explicit tag label `^(Tags?|टॅग|कीवर्ड)\s*:`; (b
 — ≥ 5 consecutive all-lowercase-ascii/digit tokens, **gated to a line-dominant run
 outside parentheses**; (c) a `/`- or `|`-separated run of ≥ 4 items sharing a
 repeated head word (Devanagari keyword list).
+
+**Disease:** C5
+
+```python
+import re
+
+_TAG = re.compile(r"^\s*(?:tags?|टॅग[स्]?|कीवर्ड[स्]?)\s*[:：]", re.I)
+_SLUG = re.compile(r"(?:\b[a-z0-9]+\b[ \-]){4,}\b[a-z0-9]+\b")
+
+def _c5_line(line):
+    ls = line.strip()
+    if _TAG.match(line):
+        return True                                   # (a) explicit tag label
+    if "(" not in ls and ")" not in ls:               # (b) standalone SEO slug, not a parenthetical gloss
+        for m in _SLUG.finditer(ls):
+            g = m.group()
+            if len(g.split()) >= 5 and len(g) >= 0.7 * len(ls):
+                return True
+    items = [x.strip() for x in re.split(r"[/|]", line) if x.strip()]
+    if len(items) >= 4:                               # (c) repeated-head keyword list
+        heads = [x.split()[0] for x in items]
+        top = max(heads.count(h) for h in set(heads))
+        if top >= max(2, len(items) // 2):
+            return True
+    return False
+
+def medicine_c5(text):
+    """Remove whole lines that are a tag cloud, an SEO slug or a repeated-head keyword list."""
+    lines = text.split("\n")
+    keep = [l for l in lines if not _c5_line(l)]
+    return text if len(keep) == len(lines) else "\n".join(keep)
+```
 
 **Harm test:** the naive "any line with ≥6 comma/pipe tokens" rule touches **30/269
 (11.2%) → FAILS** (normal Marathi comma lists). The SEO-slug clause (b) interacts
@@ -240,6 +314,26 @@ stray markup glyphs (orphaned superscript `⁵`). Examples: `f21b3178cb113107`
 (b) remove intra-word `:-` only when a doc has **≥ 3** intra-word `:-` occurrences
 (filter-evasion signature), re-joining the splinters; (c) delete a lone orphaned
 superscript/markup glyph on its own line.
+
+**Disease:** B4
+
+```python
+import re
+
+_SHORTCODE = re.compile(r"\[/?(?:sc_[a-z0-9_]+|ad_\d+|vc_[a-z0-9_]+|caption|gallery)\b[^\]\n]*\]")
+_SPLINTER = re.compile(r"(?<=[ऀ-ॿ]):-[ ]?(?=[ऀ-ॿ])")
+_ORPHAN = re.compile(r"(?m)^[ \t]*[⁰¹²³⁴⁵⁶⁷⁸⁹]+[ \t]*(?:\n|\Z)")
+_PLACEHOLDER = re.compile(r"(?m)^[ \t]*firstname\.lastname@example\.(?:org|com)[ \t]*(?:\n|\Z)")
+
+def medicine_b4(text):
+    """(a) strip known shortcodes; (b) re-join splinters only in a doc with >= 3 intra-word ':-';
+    (c) delete a lone superscript glyph on its own line; (d) delete a placeholder-email line."""
+    out = _SHORTCODE.sub("", text)
+    if len(_SPLINTER.findall(out)) >= 3:
+        out = _SPLINTER.sub("", out)
+    out = _ORPHAN.sub("", out)
+    return _PLACEHOLDER.sub("", out)
+```
 
 **Harm test:** the naive "remove any `:-`" rule touches **11/269 (4.1%) → FAILS** —
 `:-` is a normal dateline/time separator (`मुंबई :-`, `10:-30`). The **tokens +
@@ -340,6 +434,32 @@ encoding, never both.
 
 **Side effects:** none under the coexist gate; unscoped normalization mangles
 everyday loanwords (documented — do not ship unscoped).
+
+---
+
+## Harm test on the TSAI gold set (3 Nov)
+
+Medicine sha256 is printed by the tool; gold set `ind-mr-fw2_gold.csv`, 142 documents,
+limit 1 changed or dropped. ZWJ/ZWNJ audit and normal-form audit (NFC, compatibility
+characters) pass for every rule.
+
+| Rule | Changed | Dropped | Result | My 269 clean docs | Fires on its labelled docs |
+|---|---|---|---|---|---|
+| C2 | 0/142 | 0/142 | PASS | 0 | 2 of 18 |
+| C3 | 0/142 | 0/142 | PASS | 1 (`c85acdae`, a rhetorical `...` CTA) | 2 of 10 (1 trim, 1 drop) |
+| C5 | 0/142 | 0/142 | PASS | 0 | 4 of 10 |
+| B4 | 0/142 | 0/142 | PASS | 0 | 5 of 8 |
+| all four in order | 0/142 | 0/142 | PASS | | |
+
+A rule that changes nothing also passes, so the last column checks that each rule
+does fire. The recall is partial on purpose: the gates are the narrow versions that
+passed the harm bar. C2 is the weakest: 16 of the 18 labelled docs repeat text
+inside one line or fewer than 5 times, not whole lines 5 or more times. Lowering the
+gate to 3 repeats also touches 0/269 of my clean docs and would catch 3 more, but
+it risks clipping a refrain, so it is not shipped without a second reader. B4
+misses `40835ade`, `d105bc0a` (drop) and `e24303fd` (a Cloudflare `[email protected]` token).
+C5 misses 6 labelled docs: the parenthetical slug in `4ab66b3a` on purpose (see C5),
+the product list `bc8ad309`, two related-link blocks, the drop doc `340ec57e` and `5c05e182`.
 
 ---
 
