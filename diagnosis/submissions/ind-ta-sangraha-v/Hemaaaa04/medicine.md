@@ -4,9 +4,15 @@ Counts below are document counts from the final 500-row `labels.csv`. A medicine
 
 ## Harm-test status and method
 
-The official Tamil gold set had not been published as of 30 October 2026. Therefore the official gold-set result for every medicine is **PENDING**; no official pass/fail result is claimed.
+The official harm test was completed on 3 November 2026 using the rebuilt 141-document Tamil gold set. All 10 medicines pass individually and in sequence: 0 documents changed, 0 dropped, joiners preserved, and normal form preserved.
 
-As a provisional negative-control test, the executable parts below were run on all 281 documents in this pack labelled `read=full` and `verdict=clean`. This local clean subset is not a replacement for the independent gold set. `changed` means the returned text differed from the input; `dropped` means the medicine returned `None`. When the official Tamil gold set is released, the same functions must be rerun and any medicine that changes or drops more than 1% must be rejected or narrowed.
+- Medicine tested: commit `27b1be2`, SHA-256 `3c800eab928e`
+- Gold set: `teams/02-data-b/gold/ind-ta-sangraha-v_gold.csv`, 141 documents, SHA-256 `da9e3ff4db5d`, upstream main `ea7b533`
+- Pack: `ind-ta-sangraha-v.parquet`, SHA-256 `1df8e92c0f6a`
+- Tool: `teams/02-data-b/tools/harm_test_indic.py`
+- Limit: no medicine may change or drop more than 1% of the gold set (1.41 of 141 documents)
+
+Only the harm-test documentation is updated here; the tested medicine functions remain unchanged.
 
 ## Medicine 1 — C1 boilerplate
 
@@ -44,7 +50,7 @@ def medicine_c1(text: str) -> str:
 ```
 
 3. **Action:** Fix by removing the confirmed boundary block. Drop only documents dominated by boilerplate with no recoverable article.
-4. **Harm test:** Official Tamil gold set: **PENDING — not published**. Provisional clean-pack test: 0/281 changed, 0/281 dropped (0.00%; provisional pass).
+4. **Harm test:** Official Tamil gold set: 141 documents; 0/141 changed, 0/141 dropped (0.00%); joiners `ok`; normal form `ok`; **PASS**.
 5. **Side effects:** A quoted newsletter sentence or site name may be legitimate article content. Unlisted or slightly changed boilerplate will not be removed, by design.
 
 ## Medicine 2 — D3 mixed language
@@ -61,7 +67,7 @@ def medicine_d3(text: str) -> str:
 ```
 
 3. **Action:** Retain the text and annotate D3. Apply another disease-specific medicine only when independently justified.
-4. **Harm test:** Official Tamil gold set: **PENDING — not published**. Provisional clean-pack test: 0/281 changed, 0/281 dropped (0.00%; provisional pass).
+4. **Harm test:** Official Tamil gold set: 141 documents; 0/141 changed, 0/141 dropped (0.00%); joiners `ok`; normal form `ok`; **PASS**.
 5. **Side effects:** Automatically deleting Latin or other Indic-script material would damage names, acronyms, quotations, code-switching and technical prose.
 
 ## Medicine 3 — B4 template and code junk in prose
@@ -87,7 +93,7 @@ def medicine_b4(text: str) -> str:
 ```
 
 3. **Action:** Fix the high-confidence literal-newline case. Review other placeholders manually; drop the document if the missing value cannot be recovered and changes the meaning materially.
-4. **Harm test:** Official Tamil gold set: **PENDING — not published**. Provisional clean-pack test: 0/281 changed, 0/281 dropped (0.00%; provisional pass).
+4. **Harm test:** Official Tamil gold set: 141 documents; 0/141 changed, 0/141 dropped (0.00%); joiners `ok`; normal form `ok`; **PASS**.
 5. **Side effects:** Programming tutorials, regex explanations and quoted escape sequences may intentionally contain `\n`. The code guard is conservative but cannot identify every code example.
 
 ## Medicine 4 — C3 truncated document
@@ -114,7 +120,7 @@ def medicine_c3(
 ```
 
 3. **Action:** Fix from the source or trim only a verified incomplete boundary. Drop when truncation destroys the document's usefulness and no source is available.
-4. **Harm test:** Official Tamil gold set: **PENDING — not published**. Default no-source mode on the provisional clean subset: 0/281 changed, 0/281 dropped (0.00%; provisional pass).
+4. **Harm test:** Official Tamil gold set: 141 documents; 0/141 changed, 0/141 dropped (0.00%); joiners `ok`; normal form `ok`; **PASS**.
 5. **Side effects:** Poetry, headlines, lists and deliberate cliff-hanger endings can appear incomplete. An automatic sentence-ending test would create false positives.
 
 ## Medicine 5 — C5 keyword or link lists
@@ -138,7 +144,7 @@ def medicine_c5(text: str) -> str:
 ```
 
 3. **Action:** Drop a confirmed list-only document. If a valid article is followed by a list, fix by removing only the confirmed list boundary.
-4. **Harm test:** Official Tamil gold set: **PENDING — not published**. The mutation function is flag-only; provisional clean-pack test: 0/281 changed, 0/281 dropped (0.00%; provisional pass).
+4. **Harm test:** Official Tamil gold set, `medicine_c5`: 141 documents; 0/141 changed, 0/141 dropped (0.00%); joiners `ok`; normal form `ok`; **PASS**. `flag_c5` is diagnostic only and does not mutate text.
 5. **Side effects:** Recipes, poems, FAQs, sports results and legitimate bullet reports can resemble keyword lists.
 
 ## Medicine 6 — C4 two documents joined
@@ -163,7 +169,7 @@ def medicine_c4(
 ```
 
 3. **Action:** Fix by splitting and retaining each coherent document. Drop only when no reliable boundary or coherent component can be recovered.
-4. **Harm test:** Official Tamil gold set: **PENDING — not published**. With no supplied boundary, the provisional clean-pack test produced 0/281 changed and 0/281 dropped (0.00%; provisional pass).
+4. **Harm test:** Official Tamil gold set: 141 documents; 0/141 changed, 0/141 dropped (0.00%); joiners `ok`; normal form `ok`; **PASS**.
 5. **Side effects:** Topic changes, sidebars, quotations and related reporting inside one article can look like a join. An inferred boundary can split a valid document.
 
 ## Medicine 7 — D4 bad machine translation
@@ -190,7 +196,7 @@ def medicine_d4(
 ```
 
 3. **Action:** Replace with a source-verified translation when available; otherwise drop after fluent/source confirmation.
-4. **Harm test:** Official Tamil gold set: **PENDING — not published**. Default unconfirmed mode on the provisional clean subset: 0/281 changed, 0/281 dropped (0.00%; provisional pass).
+4. **Harm test:** Official Tamil gold set: 141 documents; 0/141 changed, 0/141 dropped (0.00%); joiners `ok`; normal form `ok`; **PASS**.
 5. **Side effects:** Regional Tamil, technical terminology and unusual but grammatical prose may be mistaken for machine translation. Factual errors alone do not prove D4.
 
 ## Medicine 8 — G1 cut at the vowel sign
@@ -224,7 +230,7 @@ def medicine_g1(text: str) -> str:
 ```
 
 3. **Action:** Fix only from a source scan or verified spelling. Drop documents with pervasive unrecoverable OCR corruption.
-4. **Harm test:** Official Tamil gold set: **PENDING — not published**. The mutation function is flag-only; provisional clean-pack test: 0/281 changed, 0/281 dropped (0.00%; provisional pass).
+4. **Harm test:** Official Tamil gold set, `medicine_g1`: 141 documents; 0/141 changed, 0/141 dropped (0.00%); joiners `ok`; normal form `ok`; **PASS**. `flag_g1` is diagnostic only and does not mutate text.
 5. **Side effects:** A detector that flags every Tamil vowel sign would destroy valid Tamil. Punctuation around quotations or OCR layout may also create candidates requiring visual review.
 
 ## Medicine 9 — F3 harmful content
@@ -241,7 +247,7 @@ def medicine_f3(text: str) -> str:
 ```
 
 3. **Action:** Drop documents confirmed as F3 under the course policy. Retain legitimate educational, legal or prevention material when the policy permits it.
-4. **Harm test:** Official Tamil gold set: **PENDING — not published**. The automated component is review-only; provisional clean-pack test: 0/281 changed, 0/281 dropped (0.00%; provisional pass).
+4. **Harm test:** Official Tamil gold set: 141 documents; 0/141 changed, 0/141 dropped (0.00%); joiners `ok`; normal form `ok`; **PASS**.
 5. **Side effects:** Keywords alone confuse harmful endorsement with news, survivor support, education, legal reporting and prevention advice.
 
 ## Medicine 10 — C2 repeated lines
@@ -280,14 +286,14 @@ def medicine_c2(text: str) -> str:
 ```
 
 3. **Action:** Fix by retaining one copy of a confirmed repeated run. Drop only documents dominated by repetition with no recoverable unique content.
-4. **Harm test:** Official Tamil gold set: **PENDING — not published**. Provisional clean-pack test: 0/281 changed, 0/281 dropped (0.00%; provisional pass).
+4. **Harm test:** Official Tamil gold set: 141 documents; 0/141 changed, 0/141 dropped (0.00%); joiners `ok`; normal form `ok`; **PASS**.
 5. **Side effects:** Refrains, chants, tables, legal formulas and deliberate emphasis may repeat lines. The three-copy threshold intentionally leaves some two-copy disease cases for manual review.
 
-## Official rerun checklist
+## Official harm-test command
 
-When the Tamil gold set is published:
+```console
+python3 teams/02-data-b/tools/harm_test_indic.py --medicine medicine.md \
+  --pack ind-ta-sangraha-v.parquet --gold-dir teams/02-data-b/gold
+```
 
-1. Run each function above on every gold document with its safe default arguments.
-2. Count documents whose returned text differs from the input and documents returned as `None`.
-3. Replace each **PENDING** line with the gold-set size, changed count, dropped count, percentages and pass/fail result.
-4. Reject or narrow any medicine that changes or drops more than 1% of the official gold documents.
+The combined run of all 10 medicines in sheet order also produced 0 changed and 0 dropped documents, with joiners and normal form both ok: **PASS**. Any later change to a medicine function requires a fresh official gold-set run.
