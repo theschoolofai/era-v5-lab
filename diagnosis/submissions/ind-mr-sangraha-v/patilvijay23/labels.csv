@@ -3,7 +3,7 @@
 e14f9a0e6e8d1d9b,full,fix,C1;D3,"C1: social-media or publisher promotional boilerplate at offsets 741 and 972 | D3: Marathi-English mixed-language content at offsets 741 and 972, mixing may be legitimate",,Strip publisher promotional/footer text; article body is Marathi.
 2c66d24bfd6db2ef,full,fix,A5;C1,"A5: decomposed Devanagari sequence ऱ at offsets 912 and 1057, NFC changes code points | C1: unrelated site boilerplate at offset 1082",912 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA (2x),Normalize to NFC and remove related-content teaser before training.
 61b2c25e9513730b,full,drop,A5;A6;D4,"A5: decomposed Devanagari sequence ऱ at offsets 254, 924 and 1003, NFC changes code points | A6: ASCII hyphen substitution in Marathi word at offset 17 | D4: unnatural machine-translation or grammar corruption at offset 2793",17 U+002D HYPHEN-MINUS | 254 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA (3x),Severe machine-translation/grammar corruption; safer to drop than attempt automatic repair.
-a3ae0a2e9168261e,full,fix,D3,"D3: Sanskrit and Marathi passages alternate at offsets 0 and 411, mixing may be legitimate",,Natural scholarly Sanskrit–Marathi mixing; retain content and tag as multi-lingual doc.
+a3ae0a2e9168261e,full,clean,D3,"D3: Sanskrit and Marathi passages alternate at offsets 0 and 411, mixing may be legitimate",,Natural scholarly Sanskrit–Marathi mixing; retain content and tag as multi-lingual doc.
 e71787a3124f9007,full,fix,A6;D3,"A6: ASCII hyphen substitution in Marathi word at offsets 509 and 834 | D3: English loanwords written in Devanagari at offset 134, mixing may be legitimate",509 U+002D HYPHEN-MINUS (2x),Contextual Marathi orthography repair needed; do not globally remove valid hyphens. Also contains Marathi script version of english words but it's natural and the correct usage.
 e9320e666a90a129,full,fix,C1;D3,"C1: social-media or publisher promotional boilerplate at offsets 1069 and 1277 | D3: Marathi-English mixed-language content at offsets 63, 1069 and 1277, mixing may be legitimate",,Keep natural article terminology; strip publisher promotional/footer blocks.
 47dc3245aaa0bc22,full,fix,C1,C1: publisher teaser or related-story boilerplate at offsets 2596 and 2677,,Remove appended related-content teaser headlines.
@@ -19,7 +19,7 @@ e5d4a639f0e82397,full,fix,A5;A6,"A5: decomposed Devanagari sequence ऱ at of
 dd507fe1b977a68d,full,fix,A5;C1;D3,"A5: decomposed Devanagari sequence ऱ at offset 505, NFC changes code points | C1: publisher/navigation/related-content boilerplate at offset 1191 | D3: Marathi-English mixed-language content at offset 1025, mixing may be legitimate",505 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA (5x),normalize NFC; strip boilerplate; retain natural code-mixing; do not monolingually filter.
 07d349760ecac3bf,full,drop,C1,C1: publisher teaser or related-story boilerplate at offset 0,,No coherent single training document remains after structural contamination; drop.
 d89a364142de1d38,full,drop,A5;C4;C5,"A5: decomposed Devanagari sequence ऱ at offset 375, NFC changes code points | C4: unrelated second document or passage starts at offset 167 | C5: navigation, keyword, headline, or link list at offset 0",375 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,No coherent single training document remains after structural contamination; drop.
-870f3c12624cc486,full,fix,D3,"D3: Marathi-English mixed-language content at offset 1172, mixing may be legitimate",,retain natural code-mixing; do not monolingually filter.
+870f3c12624cc486,full,clean,D3,"D3: Marathi-English mixed-language content at offset 1172, mixing may be legitimate",,retain natural code-mixing; do not monolingually filter.
 1513e0b1a4136e20,full,clean,,,,Read in full; no listed disease found.
 948113e0495d4af9,full,fix,C2,C2: opening text repeats at offsets 0 and 122,,deduplicate repeated text.
 91797bb3b69402ec,full,fix,A5,"A5: decomposed Devanagari sequence ऱ at offset 848, NFC changes code points",848 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC.
@@ -71,12 +71,12 @@ ce40f7d79336e4d2,full,clean,,,,Read in full; no listed disease found.
 3f343ae2e7001aca,full,clean,,,,Read in full; no listed disease found.
 d9e954e478572fc0,full,fix,A5;C1;D3,"A5: decomposed Devanagari sequence ऱ at offset 1130, NFC changes code points | C1: publisher/navigation/related-content boilerplate at offset 1522 | D3: Marathi-English mixed-language content at offset 1522, mixing may be legitimate",1130 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC; strip boilerplate; retain natural code-mixing; do not monolingually filter.
 28b7c1edc1326934,full,clean,,,,Read in full; no listed disease found.
-cc46be87536d9f14,full,fix,D3,"D3: Marathi-English mixed-language content at offset 4, mixing may be legitimate",,retain code-mixing; do not monolingually filter.
+cc46be87536d9f14,full,clean,D3,"D3: Marathi-English mixed-language content at offset 4, mixing may be legitimate",,retain code-mixing; do not monolingually filter.
 99249ef0b8ec97dc,full,clean,,,,Read in full; no listed disease found.
 92031296bbaa7d1d,full,fix,C4,C4: unrelated second document or passage starts at offset 319,,split/remove joined text.
 0eb7206ab016273c,full,fix,A5;C2,"A5: decomposed Devanagari sequence ऱ at offset 518, NFC changes code points | C2: opening text repeats at offsets 0 and 686",518 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC; deduplicate repeated text.
 438cf1be339080bb,full,fix,C1;D3,"C1: publisher/navigation/related-content boilerplate at offset 0 | D3: Marathi-English mixed-language content at offset 0, mixing may be legitimate",,strip boilerplate; retain natural code-mixing; do not monolingually filter. Long-context candidate — use for long context.
-0ad8a399f7c45dc4,full,fix,D3,"D3: Marathi-English mixed-language content at offset 0, mixing may be legitimate",,retain natural code-mixing; do not monolingually filter.
+0ad8a399f7c45dc4,full,clean,D3,"D3: Marathi-English mixed-language content at offset 0, mixing may be legitimate",,retain natural code-mixing; do not monolingually filter.
 5bbe668b326a1b52,full,fix,A5,"A5: decomposed Devanagari sequence ऱ at offset 231, NFC changes code points",231 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA (3x),normalize NFC.
 b141f969a2a12c6f,full,fix,A5,"A5: decomposed Devanagari sequence ऱ at offset 1803, NFC changes code points",1803 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC.
 9a7e6f3bb8b9a3ea,full,clean,,,,Read in full; no listed disease found.
@@ -101,7 +101,7 @@ c2df7affc6dd05cb,full,clean,,,,Read in full; no listed disease found.
 4dea645e7a66adbb,full,fix,A5;C5,"A5: decomposed Devanagari sequence ऱ at offset 1305, NFC changes code points | C5: navigation, keyword, headline, or link list at offset 2520",1305 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA (2x),normalize NFC; remove keyword/headline list.
 001bc250879bd0f7,full,fix,F1,"F1: private residential address linked to an individual, at offset 2503",,redact private data.
 14b9ee03ca1ae8ef,full,fix,A5,"A5: decomposed Devanagari sequence ऱ at offset 26, NFC changes code points",26 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA (5x),normalize NFC.
-6f6c8c55169b5ce0,full,fix,D3,"D3: Marathi-English mixed-language content at offset 70, mixing may be legitimate",,retain natural code-mixing; do not monolingually filter.
+6f6c8c55169b5ce0,full,clean,D3,"D3: Marathi-English mixed-language content at offset 70, mixing may be legitimate",,retain natural code-mixing; do not monolingually filter.
 71ef1d9a6e3a3fce,full,fix,C2,C2: opening text repeats at offsets 0 and 287,,deduplicate repeated text.
 71bf6684fd65db89,full,fix,A5,"A5: decomposed Devanagari sequence ऱ at offset 376, NFC changes code points",376 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC.
 e16f055a1ea07db7,full,fix,A5;C1;D3,"A5: decomposed Devanagari sequence ऱ at offset 581, NFC changes code points | C1: publisher/navigation/related-content boilerplate at offset 830 | D3: Marathi-English mixed-language content at offset 15, mixing may be legitimate",581 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC; strip boilerplate; retain natural code-mixing; do not monolingually filter.
@@ -111,7 +111,7 @@ f4e02612a5a51794,full,fix,A5,"A5: decomposed Devanagari sequence ऱ at offse
 e531b723ffb70b67,full,fix,A5;C2,"A5: decomposed Devanagari sequence ऱ at offset 302, NFC changes code points | C2: opening text repeats at offsets 0 and 88",302 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA (3x),normalize NFC; deduplicate repeated text.
 5b1f4c77baded6e4,full,fix,C1;D3,"C1: publisher/navigation/related-content boilerplate at offset 1192 | D3: Marathi-English mixed-language content at offset 0, mixing may be legitimate",,strip boilerplate; retain natural code-mixing; do not monolingually filter.
 da7f7fb116352823,full,fix,A5,"A5: decomposed Devanagari sequence ऱ at offset 24, NFC changes code points",24 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC.
-9995d8742afbbd7b,full,fix,D3,"D3: Marathi-English mixed-language content at offset 60, mixing may be legitimate",,retain natural code-mixing; do not monolingually filter.
+9995d8742afbbd7b,full,clean,D3,"D3: Marathi-English mixed-language content at offset 60, mixing may be legitimate",,retain natural code-mixing; do not monolingually filter.
 3d66fc6c5c856726,full,fix,A5;C1,"A5: decomposed Devanagari sequence ऱ at offset 34, NFC changes code points | C1: publisher/navigation/related-content boilerplate at offset 1028",34 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA (3x),normalize NFC; strip boilerplate.
 f1b42f0e05bb586f,full,fix,A5;C1;D3,"A5: decomposed Devanagari sequence ऱ at offset 440, NFC changes code points | C1: publisher/navigation/related-content boilerplate at offset 1122 | D3: Marathi-English mixed-language content at offset 311, mixing may be legitimate",440 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC; strip boilerplate; retain natural code-mixing; do not monolingually filter.
 d6d73cf04f8797df,full,clean,,,,Read in full; no listed disease found.
@@ -122,25 +122,25 @@ bbf97308ccc8ecdf,full,clean,,,,Read in full; no listed disease found.
 dec2f66b37294bf9,full,fix,C2,C2: opening text repeats at offsets 0 and 75,,deduplicate repeated text.
 4c7e732e44b1e26f,full,fix,A5,"A5: decomposed Devanagari sequence ऱ at offset 970, NFC changes code points",970 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA (2x),normalize NFC.
 e3edbb6eeb7a5d3d,full,fix,A5,"A5: decomposed Devanagari sequence ऱ at offset 337, NFC changes code points",337 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC.
-6846582e6d2a3fb6,full,fix,D3,"D3: Marathi-English mixed-language content at offset 8, mixing may be legitimate",,retain natural code-mixing; do not monolingually filter.
+6846582e6d2a3fb6,full,clean,D3,"D3: Marathi-English mixed-language content at offset 8, mixing may be legitimate",,retain natural code-mixing; do not monolingually filter.
 32901f564cb84d42,full,clean,,,,Read in full; no listed disease found.
 b47326d402cdaebc,full,clean,,,,Read in full; no listed disease found.
 0d07959b663592a8,full,fix,A5,"A5: decomposed Devanagari sequence ऱ at offset 43, NFC changes code points",43 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA (2x),normalize NFC.
 50bf742434fe8393,full,fix,F1,"F1: private residential address linked to an individual, at offset 216",,redact private data.
 0a7e229db7c13bd2,full,fix,A5,"A5: decomposed Devanagari sequence ऱ at offset 345, NFC changes code points",345 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC.
 68a6e9b027facc18,full,fix,A5,"A5: decomposed Devanagari sequence ऱ at offset 1845, NFC changes code points",1845 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA (4x),normalize NFC. Long-context candidate — use for long context.
-3733551fdfa28907,full,fix,D3,"D3: Marathi-English mixed-language content at offset 55, mixing may be legitimate",,retain natural code-mixing; do not monolingually filter.
-b6247794d43dd022,full,fix,D3,"D3: Marathi-English mixed-language content at offset 83, mixing may be legitimate",,retain natural code-mixing; do not monolingually filter.
+3733551fdfa28907,full,clean,D3,"D3: Marathi-English mixed-language content at offset 55, mixing may be legitimate",,retain natural code-mixing; do not monolingually filter.
+b6247794d43dd022,full,clean,D3,"D3: Marathi-English mixed-language content at offset 83, mixing may be legitimate",,retain natural code-mixing; do not monolingually filter.
 0bd4e33f6866133a,full,clean,,,,Read in full; no listed disease found.
 1cd33f52abb49019,full,fix,A5;C2,"A5: decomposed Devanagari sequence ऱ at offset 163, NFC changes code points | C2: opening text repeats at offsets 0 and 211",163 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA (4x),normalize NFC; deduplicate repeated text.
-3dd2a803b70d3754,full,fix,D3,"D3: Marathi-English mixed-language content at offset 367, mixing may be legitimate",,retain natural code-mixing; do not monolingually filter.
+3dd2a803b70d3754,full,clean,D3,"D3: Marathi-English mixed-language content at offset 367, mixing may be legitimate",,retain natural code-mixing; do not monolingually filter.
 dde283c595b7ad19,full,clean,,,,Read in full; no listed disease found.
 ade810056c03e57f,full,fix,A5;C2,"A5: decomposed Devanagari sequence ऱ at offset 2083, NFC changes code points | C2: opening text repeats at offsets 0 and 170",2083 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC; deduplicate repeated text.
-0be32b0ab8375d30,full,fix,D3,"D3: Marathi-English mixed-language content at offset 8, mixing may be legitimate",,retain natural code-mixing; do not monolingually filter.
+0be32b0ab8375d30,full,clean,D3,"D3: Marathi-English mixed-language content at offset 8, mixing may be legitimate",,retain natural code-mixing; do not monolingually filter.
 072bd521189df9d7,full,clean,,,,Read in full; no listed disease found.
 ebd9df55e9518211,full,fix,A6;C2,A6: mixed-script numeral or digit artifact at offset 1479 | C2: opening text repeats at offsets 0 and 142,1480 U+0030 DIGIT ZERO (3x),repair mixed-script/OCR artifact; deduplicate repeated text.
 f71f009683aff212,full,fix,A5;D3,"A5: decomposed Devanagari sequence ऱ at offset 25, NFC changes code points | D3: Marathi-English mixed-language content at offset 66, mixing may be legitimate",25 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA (3x),normalize NFC; retain natural code-mixing; do not monolingually filter.
-862eab5a73b170a1,full,fix,D3,"D3: Marathi-English mixed-language content at offset 30, mixing may be legitimate",,retain natural code-mixing; do not monolingually filter.
+862eab5a73b170a1,full,clean,D3,"D3: Marathi-English mixed-language content at offset 30, mixing may be legitimate",,retain natural code-mixing; do not monolingually filter.
 ed6affb52c006a8a,full,fix,A5,"A5: decomposed Devanagari sequence ऱ at offset 658, NFC changes code points",658 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA (2x),normalize NFC.
 727a8a3d9a6f4fd4,full,fix,A5;C2;F1,"A5: decomposed Devanagari sequence ऱ at offset 1520, NFC changes code points | C2: opening text repeats at offsets 0 and 372 | F1: private phone number, at offset 2095",1520 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC; deduplicate repeated text; redact private data.
 24fde343bed1a13c,full,clean,,,,Read in full; no listed disease found.
@@ -177,7 +177,7 @@ f396740441f9a7cf,full,fix,A5;D3,"A5: decomposed Devanagari sequence ऱ at of
 b799128067e71c2b,full,fix,C1;C2;D3,"C1: publisher/navigation/related-content boilerplate at offset 84 | C2: repeated lines at offsets 42 and 140 | D3: Marathi-English mixed-language content at offset 0, mixing may be legitimate",,"strip source navigation, promo, or attribution boilerplate without losing article content; deduplicate repeated lead/title or caption, preserving the main article; retain natural language mixing; do not monolingually filter."
 7a529eb6ea096320,full,fix,C1,C1: publisher read-more boilerplate at offset 384,,"strip source navigation, promo, or attribution boilerplate without losing article content."
 9e836086b1980abc,full,fix,A5;D3,"A5: decomposed Devanagari sequence ऱ at offset 1565, NFC changes code points | D3: Marathi-English mixed-language content at offset 49, mixing may be legitimate",1565 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA (1x),normalize NFC; retain natural language mixing; do not monolingually filter.
-dd61736cc9f9b185,full,fix,D3,"D3: Marathi-English mixed-language content at offset 17, mixing may be legitimate",,retain natural language mixing; do not monolingually filter.
+dd61736cc9f9b185,full,clean,D3,"D3: Marathi-English mixed-language content at offset 17, mixing may be legitimate",,retain natural language mixing; do not monolingually filter.
 d8ecdc20a3f919ac,full,fix,C1;C2,C1: publisher/navigation/related-content boilerplate at offset 73 | C2: repeated text at offsets 0 and 115,,"strip source navigation, promo, or attribution boilerplate without losing article content; deduplicate repeated lead/title or caption, preserving the main article."
 9f1dc749883b0947,full,fix,C2,C2: repeated text at offsets 0 and 62,,"deduplicate repeated lead/title or caption, preserving the main article."
 5995901241776f53,full,fix,A5,"A5: decomposed Devanagari sequence ऱ at offset 1256, NFC changes code points",1256 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA (1x),normalize NFC.
@@ -207,7 +207,7 @@ cb9e6da99c42243b,full,fix,A5;C1;D3,"A5: decomposed Devanagari sequence ऱ at
 7f79826d091b1834,full,drop,D4,D4: unnatural machine-translation or grammar corruption at offset 0,,No coherent training document remains.
 af3647897e180fcb,full,fix,A5,"A5: decomposed Devanagari sequence ऱ at offset 116, NFC changes code points",116 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA (2x),normalize NFC.
 8ba20ede5ab26cab,full,fix,C1;D3,"C1: photo caption or publisher boilerplate at offset 0 | D3: Marathi-English mixed-language content at offset 0, mixing may be legitimate",,remove boilerplate; retain natural language mixing; do not monolingually filter.
-f911685d039c42f5,full,fix,D3,"D3: Marathi-English mixed-language content at offset 0, mixing may be legitimate",,retain natural language mixing; do not monolingually filter.
+f911685d039c42f5,full,clean,D3,"D3: Marathi-English mixed-language content at offset 0, mixing may be legitimate",,retain natural language mixing; do not monolingually filter.
 57ede1035e7499e9,full,fix,A5;D3,"A5: decomposed Devanagari sequence ऱ at offset 593, NFC changes code points | D3: Marathi-English mixed-language content at offset 3053, mixing may be legitimate",593 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA (1x),normalize NFC; retain natural language mixing; do not monolingually filter.
 f19bd64f87d626fe,full,fix,A5;C2,"A5: decomposed Devanagari sequence ऱ at offset 127, NFC changes code points | C2: repeated text at offsets 0 and 133",127 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA (6x),"normalize NFC; deduplicate repeated lead/title or caption, preserving the main article."
 9e41a5d56ac92089,full,drop,D3;D4,"D3: Marathi-English mixed-language content at offset 50, mixing may be legitimate | D4: unnatural machine-translation or grammar corruption at offset 0",,No coherent single training document remains; drop.
@@ -245,7 +245,7 @@ a86208dcb2bb5b4d,full,fix,A6;C2,A6: stray U+00BA in a Marathi word at offset 300
 5d9c437be099626e,full,fix,A5,"A5: decomposed Devanagari sequence ऱ at offset 640, NFC changes code points",640 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA (4x),normalize NFC.
 789de958ee2b7a1a,full,fix,A5;A6,"A5: decomposed Devanagari sequence ऱ at offset 144, NFC changes code points | A6: stray U+00BA in a Marathi word at offset 59",144 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA (2x) | 59 U+00BA MASCULINE ORDINAL INDICATOR (1x),normalize NFC; repair contextual mixed-script/OCR character; avoid broad substitutions.
 9b2356eb730083ef,full,fix,B4;C1,B4: literal backslash-n stored as text at offset 68 (11x) | C1: publisher/navigation/related-content boilerplate at offset 2626,,"strip source navigation, promo, or attribution boilerplate without losing article content | remove \n."
-da4b09fc53bb4456,full,fix,D3,"D3: Marathi-English mixed-language content at offset 0, mixing may be legitimate",,retain natural language mixing; do not monolingually filter.
+da4b09fc53bb4456,full,clean,D3,"D3: Marathi-English mixed-language content at offset 0, mixing may be legitimate",,retain natural language mixing; do not monolingually filter.
 189815bf584b19f2,full,clean,,,,Read in full; no listed disease found.
 0c7dfc2909665bcf,full,fix,A5,"A5: decomposed Devanagari sequence ऱ at offset 193, NFC changes code points",193 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA (1x),normalize NFC.
 f94044ff48697280,full,drop,A5;D3;D4,"A5: decomposed Devanagari sequence ऱ at offset 5648, NFC changes code points | D3: Marathi-English mixed-language content at offset 13, mixing may be legitimate | D4: unnatural machine-translation or grammar corruption at offset 0",5648 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA (3x),No coherent single training document remains; drop.
@@ -297,7 +297,7 @@ cc36761de1d96f0f,full,fix,D4,D4: awkward literal translation in mask-production 
 78af452de86fbae0,full,fix,A5,A5: non-NFC 'ऱ' → 'ऱ' at offset 403,403 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC.
 2ef18d335442c046,full,fix,A5,A5: non-NFC 'ऱ' → 'ऱ' at offset 243,243 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC.
 8522c8ae9cbaa72e,full,fix,A5,A5: non-NFC 'ऱ' → 'ऱ' at offset 117,117 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC.
-c5daf6a984a893dd,full,fix,D3,D3: mixed-language 'Public Provident Fund' at offset 70,,keep legitimate code-mixing.
+c5daf6a984a893dd,full,clean,D3,D3: mixed-language 'Public Provident Fund' at offset 70,,keep legitimate code-mixing.
 86560217fa927497,full,fix,A5;C2,A5: non-NFC 'ऱ' → 'ऱ' at offset 131 | C2: same lead/title text occurs at offsets 0 and 851,131 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC; remove exact duplicate lead.
 dd102d38d9ebe3b0,full,fix,C1;C5;D3,C1: ठळक मुद्दे page marker and related-story footer at offset 105 | C5: unrelated article recommendations after entertainment story at offset 1597 | D3: mixed-language 'Bigg boss marathi' at offset 0,,remove publisher/navigation boilerplate; strip unrelated keywords/recommendation links; keep legitimate code-mixing.
 ee242fb13e2576ad,full,clean,,,,Read full document; no supported G1 disease observed.
@@ -307,7 +307,7 @@ ee242fb13e2576ad,full,clean,,,,Read full document; no supported G1 disease obser
 560ce72684791d98,full,fix,A5;D3,A5: non-NFC 'ऱ' → 'ऱ' at offset 773 | D3: mixed-language 'MBA' at offset 1934,773 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC; keep legitimate code-mixing.
 049ea6ee656cfad4,full,clean,,,,Read full document; no supported G1 disease observed.
 c054b90d305cefe4,full,fix,A5;C1;D3,A5: non-NFC 'ऱ' → 'ऱ' at offset 87 | C1: Get Latest Marathi News promotional footer at offset 1793 | D3: mixed-language 'Gujarat Titans Victory Parade' at offset 0,87 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC; remove publisher/navigation boilerplate; keep legitimate code-mixing.
-c483cac3831717a4,full,fix,D3,D3: mixed-language 'Uddhav Thackeray' at offset 0,,keep legitimate code-mixing.
+c483cac3831717a4,full,clean,D3,D3: mixed-language 'Uddhav Thackeray' at offset 0,,keep legitimate code-mixing.
 9257302b67ddd765,full,fix,A5,A5: non-NFC 'ऱ' → 'ऱ' at offset 10,10 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC.
 d4073b75785fec8b,full,fix,A5;C1;C5,A5: non-NFC 'ऱ' → 'ऱ' at offset 2165 | C1: follow/share site promotion at article end at offset 1486 | C5: stock-pick and unrelated recommended headlines at end at offset 2102,2165 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC; remove publisher/navigation boilerplate; strip unrelated keywords/recommendation links.
 e22018f6c86ed3af,full,fix,A5,A5: non-NFC 'ऱ' → 'ऱ' at offset 80,80 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC.
@@ -317,9 +317,9 @@ ce93cd4469d2ffa7,full,fix,A5;C2,A5: non-NFC 'ऱ' → 'ऱ' at offset 543 | C
 8314dd1a1aeb7b29,full,fix,A5,A5: non-NFC 'ऱ' → 'ऱ' at offset 1016,1016 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC.
 b084920fe7708580,full,fix,C1,C1: विषयः / प्रकारः forum form fields at end at offset 354,,remove publisher/navigation boilerplate.
 e150501209b95e52,full,fix,A5;C1,A5: non-NFC 'ऱ' → 'ऱ' at offset 743 | C1: Read Also footer after article at offset 1621,743 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC; remove publisher/navigation boilerplate.
-434cb1a946595e64,full,fix,D3,D3: mixed-language 'Slow over' at offset 36,,keep legitimate code-mixing.
+434cb1a946595e64,full,clean,D3,D3: mixed-language 'Slow over' at offset 36,,keep legitimate code-mixing.
 6f04927dac533318,full,fix,A5;C1;C5;D3,A5: non-NFC 'ऱ' → 'ऱ' at offset 1486 | C1: हेही वाचा related-story footer at offset 2261 | C5: recommended story/headline list following article at offset 2261 | D3: mixed-language 'Chhello Show' at offset 0,1486 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC; remove publisher/navigation boilerplate; strip unrelated keywords/recommendation links; keep legitimate code-mixing.
-23f18434e84e50cd,full,fix,D3,D3: mixed-language 'Optical illusion' at offset 0,,keep legitimate code-mixing.
+23f18434e84e50cd,full,clean,D3,D3: mixed-language 'Optical illusion' at offset 0,,keep legitimate code-mixing.
 b5e4b120d0771a13,full,fix,A5,A5: non-NFC 'ऱ' → 'ऱ' at offset 669,669 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC.
 bdeb11c321d79464,full,fix,A5;D3,A5: non-NFC 'ऱ' → 'ऱ' at offset 669 | D3: mixed-language 'Kas Plateau' at offset 114,669 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC; keep legitimate code-mixing.
 cc40b7d7d30a60c5,full,fix,C1;C2,C1: unrelated related-story teaser after homicide report at offset 2276 | C2: same lead/title text occurs at offsets 0 and 127,,remove publisher/navigation boilerplate; remove exact duplicate lead.
@@ -361,7 +361,7 @@ e7800936f88595c6,full,fix,A5;C1;D3,A5: non-NFC Devanagari ऱ→ऱ at offset
 eeafc46eddf07928,full,fix,A5;D3,A5: non-NFC Devanagari ऱ→ऱ at offset 95 | D3: natural Marathi-English code-mixing at offset 746,95 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC; keep legitimate Marathi-English mixing.
 93fb5c80c8ca0322,full,clean,,,,Full-text inspection: no supported disease found.
 b5370ed982029c5b,full,fix,B4;C1;C2;D3,B4: literal backslash-n sequence at offset 120 (6x) | C1: publisher/navigation or promotional boilerplate at offset 104 | C2: repeated lead/text at offsets 56 and 177 | D3: natural Marathi-English code-mixing at offset 0,,convert literal \n to real newline; remove publisher/navigation boilerplate; remove exact repeated lead/text; keep legitimate Marathi-English mixing.
-2ef3f25273e4966b,full,fix,D3,D3: natural Marathi-English code-mixing at offset 309,,keep legitimate Marathi-English mixing.
+2ef3f25273e4966b,full,clean,D3,D3: natural Marathi-English code-mixing at offset 309,,keep legitimate Marathi-English mixing.
 898f8e5ab6958b19,full,fix,C2,C2: repeated lead/text at offsets 0 and 113,,remove exact repeated lead/text.
 a48054d2196b93c1,full,fix,C1;D3,C1: publisher/navigation or promotional boilerplate at offset 1088 to 1381 | D3: natural Marathi-English code-mixing at offset 1088,,remove publisher/navigation boilerplate; keep legitimate Marathi-English mixing.
 800b9e0d8542c927,full,fix,A5,A5: non-NFC Devanagari ऱ→ऱ at offset 656,656 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC.
@@ -372,7 +372,7 @@ deaae1e825de42db,full,fix,A5,A5: non-NFC Devanagari ऱ→ऱ at offset 274,2
 a3a467b4dcb9c51b,full,drop,A5;C4;C5;D3,A5: non-NFC Devanagari ऱ→ऱ at offset 264 | C4: unrelated joined document at offset 216 | C5: unrelated headlines/link list at offset 216 | D3: natural Marathi-English code-mixing at offset 271,264 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,Drop: mixed independent stories instead of a single document; do not apply generic rewrites to salvage.
 bc3bea59fb3dae3f,full,fix,A5,A5: non-NFC Devanagari ऱ→ऱ at offset 56,56 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC.
 b540720c907be23b,full,fix,C2,C2: repeated lead/text at offsets 0 and 213,,remove exact repeated lead/text.
-29178e85c06b3468,full,fix,D3,D3: natural Marathi-English code-mixing at offset 50,,keep legitimate Marathi-English mixing.
+29178e85c06b3468,full,clean,D3,D3: natural Marathi-English code-mixing at offset 50,,keep legitimate Marathi-English mixing.
 0f71740b98b0f5d9,full,fix,A5;C2;D3,A5: non-NFC Devanagari ऱ→ऱ at offset 2705 | C2: repeated lead/text at offsets 16 and 400 | D3: natural Marathi-English code-mixing at offset 0,2705 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC; remove exact repeated lead/text; keep legitimate Marathi-English mixing.
 75a43b7474af9adc,full,clean,,,,Full-text inspection: no supported disease found.
 31dcd9c6ce0f3808,full,fix,A5;C3;D3,A5: non-NFC Devanagari ऱ→ऱ at offset 983 | C3: incomplete text at document boundary at offset 31221 | D3: natural Marathi-English code-mixing at offset 4638,983 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC; review and trim incomplete fragment; keep legitimate Marathi-English mixing. Long-context candidate — use for long context.
@@ -427,7 +427,7 @@ ed35a697664a3098,full,fix,A5;C1;C5;D3,A5: non-NFC Devanagari ऱ→ऱ at off
 890da8063e180345,full,fix,A5;A6;C2,A5: non-NFC Devanagari ऱ→ऱ at offset 518 | A6: suspect legacy glyph/script or digit artifact at offset 715 | C2: repeated lead/text at offsets 0 and 150,518 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA | 715 U+00BA MASCULINE ORDINAL INDICATOR,normalize NFC; repair contextual OCR/mixed-script defects; avoid global substitutions; remove exact repeated lead/text.
 035a571441d1ceef,full,clean,,,,Full-text inspection: no supported disease found. Long-context candidate — use for long context.
 0812c3e3902ab24b,full,fix,C2,C2: repeated lead/text at offsets 112 and 340,,remove exact repeated lead/text.
-c9518404a3574a29,full,fix,D3,D3: natural Marathi-English code-mixing at offset 347,,keep legitimate Marathi-English mixing.
+c9518404a3574a29,full,clean,D3,D3: natural Marathi-English code-mixing at offset 347,,keep legitimate Marathi-English mixing.
 686973f1b8b2dd9d,full,fix,A6;C2,A6: suspect legacy glyph/script or digit artifact at offset 2367 | C2: repeated lead/text at offsets 0 and 103,2367 U+002D HYPHEN-MINUS,repair contextual OCR/mixed-script defects; avoid global substitutions; remove exact repeated lead/text.
 bc3ec6538858dd19,full,clean,,,,Full-text inspection: no supported disease found.
 a07ef1c92c0cceb3,full,drop,C2;D3;D4,C2: repeated lead/text at offsets 128 and 512 | D3: natural Marathi-English code-mixing at offset 556 | D4: pervasive machine-translation grammar corruption at offset 0,,Drop: corrupted translation throughout; do not apply generic rewrites to salvage.
@@ -436,7 +436,7 @@ a07ef1c92c0cceb3,full,drop,C2;D3;D4,C2: repeated lead/text at offsets 128 and 51
 d50dd9f0187fba1f,full,clean,,,,Full-text inspection: no supported disease found.
 b11dda04aa5dc315,full,fix,A5;D3,A5: non-NFC Devanagari ऱ→ऱ at offset 1291 | D3: natural Marathi-English code-mixing at offset 2912,1291 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC; keep legitimate Marathi-English mixing.
 ef9857c0a808b5f7,full,fix,A5;D3,A5: non-NFC Devanagari ऱ→ऱ at offset 323 | D3: natural Marathi-English code-mixing at offset 249,323 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC; keep legitimate Marathi-English mixing.
-b26dfc432157243c,full,fix,D3,D3: natural Marathi-English code-mixing at offset 26,,keep legitimate Marathi-English mixing.
+b26dfc432157243c,full,clean,D3,D3: natural Marathi-English code-mixing at offset 26,,keep legitimate Marathi-English mixing.
 c07ec0dca5a1be3e,full,fix,A5,A5: non-NFC Devanagari ऱ→ऱ at offset 303,303 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC.
 4f37b624f36e7c28,full,fix,A5;A6,A5: non-NFC Devanagari ऱ→ऱ at offset 948 | A6: suspect legacy glyph/script or digit artifact at offset 2170,948 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA | 2170 U+00BA MASCULINE ORDINAL INDICATOR,normalize NFC; repair contextual OCR/mixed-script defects; avoid global substitutions.
 e3e535ff904e4eb6,full,fix,A5;D3,A5: non-NFC Devanagari ऱ→ऱ at offset 496 | D3: natural Marathi-English code-mixing at offset 0,496 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC; keep legitimate Marathi-English mixing.
@@ -445,7 +445,7 @@ d6610480f7f80e71,full,clean,,,,Full-text inspection: no supported disease found.
 fce33deecd3c65f6,full,clean,,,,Full-text inspection: no supported disease found.
 6bb337223e552585,full,clean,,,,Full-text inspection: no supported disease found.
 3bf383359a9c8484,full,fix,A5,A5: non-NFC Devanagari ऱ→ऱ at offset 578,578 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC.
-766fe06922b097d8,full,fix,D3,D3: natural Marathi-English code-mixing at offset 371,,keep legitimate Marathi-English mixing.
+766fe06922b097d8,full,clean,D3,D3: natural Marathi-English code-mixing at offset 371,,keep legitimate Marathi-English mixing.
 d51a3ef782428025,full,fix,C2,C2: repeated lead/text at offsets 0 and 268,,remove exact repeated lead/text.
 885017505c9d799b,full,fix,C2,C2: repeated lead/text at offsets 0 and 129,,remove exact repeated lead/text.
 867e05e070380c33,full,clean,,,,Full-text inspection: no supported disease found.
@@ -466,7 +466,7 @@ f866e82233420363,full,clean,,,,Full-text inspection: no supported disease found.
 dca68c13b962162c,full,clean,,,,Full-text inspection: no supported disease found.
 e67c34843883224a,full,fix,C1,C1: publisher/navigation or promotional boilerplate at offset 695,,remove publisher/navigation boilerplate.
 983103a12fa7a78f,full,fix,A5;C1;D3,A5: non-NFC Devanagari ऱ→ऱ at offset 186 | C1: publisher/navigation or promotional boilerplate at offset 1926 | D3: natural Marathi-English code-mixing at offset 0,186 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC; remove publisher/navigation boilerplate; keep legitimate Marathi-English mixing.
-434ae3585bc53f54,full,fix,D3,D3: natural Marathi-English code-mixing at offset 661,,keep legitimate Marathi-English mixing.
+434ae3585bc53f54,full,clean,D3,D3: natural Marathi-English code-mixing at offset 661,,keep legitimate Marathi-English mixing.
 da0b045ec0a3765d,full,fix,C2;D3,C2: repeated lead/text at offsets 0 and 268 | D3: natural Marathi-English code-mixing at offset 224,,remove exact repeated lead/text; keep legitimate Marathi-English mixing.
 9519cb29bc09a4d2,full,fix,C2;D3,C2: repeated lead/text at offsets 0 and 133 | D3: natural Marathi-English code-mixing at offset 23,,remove exact repeated lead/text; keep legitimate Marathi-English mixing.
 405b80ef34c4fcf9,full,fix,C2,C2: repeated lead/text at offsets 0 and 126,,remove exact repeated lead/text.
@@ -479,7 +479,7 @@ ac470c280932c537,full,clean,,,,Full-text inspection: no supported disease found.
 021b5c4ec36b9781,full,fix,C2,C2: repeated lead/text at offsets 136 and 1292,,remove exact repeated lead/text.
 56f8609942e7b2cd,full,fix,A5;D3,A5: non-NFC Devanagari ऱ→ऱ at offset 363 | D3: natural Marathi-English code-mixing at offset 0,363 U+0930 DEVANAGARI LETTER RA + U+093C DEVANAGARI SIGN NUKTA,normalize NFC; keep legitimate Marathi-English mixing.
 7055b8b7b066421d,full,clean,,,,Full-text inspection: no supported disease found.
-ae11161361922da9,full,fix,D3,D3: natural Marathi-English code-mixing at offset 51,,keep legitimate Marathi-English mixing.
+ae11161361922da9,full,clean,D3,D3: natural Marathi-English code-mixing at offset 51,,keep legitimate Marathi-English mixing.
 da43d05cdd0197f9,full,fix,A6;B4;C2,A6: suspect legacy glyph/script or digit artifact at offset 5099 | B4: literal backslash-n sequence at offset 225 (18x) | C2: repeated lead/text at offsets 0 and 7073,5099 U+006F LATIN SMALL LETTER O,repair contextual OCR/mixed-script defects; avoid global substitutions; convert literal \n to real newline; remove exact repeated lead/text. Long-context candidate — use for long context.
 e4bee4b58a9a4daa,full,drop,C1;C5;D3,C1: publisher/navigation or promotional boilerplate at offset 0 | C5: unrelated headlines/link list at offset 0 | D3: natural Marathi-English code-mixing at offset 514,,"Drop: only multi-topic headlines, no single article; do not apply generic rewrites to salvage."
 0c7931b66f6e2ea5,full,fix,B4;C1;C5;D3,B4: literal backslash-n sequence at offset 11 (25x) | C1: publisher/navigation or promotional boilerplate at offset 4702 | C5: unrelated headlines/link list at offset 4702 | D3: natural Marathi-English code-mixing at offset 6,,convert literal \n to real newline; remove publisher/navigation boilerplate; remove unrelated headline/link lists; keep legitimate Marathi-English mixing.
