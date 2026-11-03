@@ -17,7 +17,10 @@ import importlib.metadata
 import json
 import os
 from pathlib import Path, PurePosixPath
-import resource
+try:
+    import resource  # Unix only: peak memory for the job log
+except ImportError:  # Windows: the run works, peak memory is not recorded
+    resource = None
 import time
 
 import pyarrow as pa
@@ -286,7 +289,7 @@ def main(argv=None):
     for shard, source in resolved:
         reports.append(process_part(source, shard, output, config['batch_size']))
     provenance.update(wall_seconds=round(time.monotonic()-started,3),
-                      peak_rss_mib=round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024,3))
+                      peak_rss_mib=round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024,3) if resource else None)
     summary = write_aggregate(output, reports, provenance, len(data['shards']))
     print(json.dumps({'event':'complete', **{key:summary[key] for key in ('completed_parts','input_rows','output_rows','errors','actions','wall_seconds','peak_rss_mib')}}, sort_keys=True), flush=True)
     return 0
