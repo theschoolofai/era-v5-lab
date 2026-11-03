@@ -1,8 +1,8 @@
 # Medicine sheet: ind-mr-sangraha-v (patilvijay23)
 
-**Source:** `labels.csv` (final reviewed Marathi pack, rows 1–500), **500 distinct documents; all 500 marked `full`**. Verdicts: **99 `clean`, 362 `fix`, 39 `drop`**. This supersedes the earlier medicine sheet based on 252 documents. Disease counts are *distinct document counts*, not the number of occurrences; documents can have multiple diseases. A medicine section is included for every disease present in **more than five** reviewed documents.
+**Source:** `labels.csv` (final reviewed Marathi pack, rows 1–500), **500 distinct documents; all 500 marked `full`**. Verdicts: **125 `clean`, 336 `fix`, 39 `drop`**. This supersedes the earlier medicine sheet based on 252 documents. Disease counts are *distinct document counts*, not the number of occurrences; documents can have multiple diseases. A medicine section is included for every disease present in **more than five** reviewed documents.
 
-**Status:** Label review complete; **11 executable candidates plus combined run tested locally on 1 November 2026**. Gold safety does not establish general disease detection or full repair coverage.
+**Status:** Label review complete; **latest supplied harm-test report passes all 11 executable candidates plus the combined run on 99 gold documents**. Gold safety does not establish general disease detection or full repair coverage.
 
 ## Data B Indic gold-set harm test — latest reported results
 
@@ -17,14 +17,14 @@ python -I teams/02-data-b/tools/harm_test_indic.py \
   --md-out ind_mr_harm_results.md
 ```
 
-**Inputs (SHA-256):**
+**Latest result source:** `ind_mr_harm_results.md` reports **99 gold documents** from `ind-mr-sangraha-v`, with tested medicine SHA-256 prefix **`f51c4fc18992`**. All 11 rules and `ALL IN ORDER` report **0 changed, 0 dropped (0.00%), PASS**, with both Indic audits passing. The nonempty-gold allowance is **1 affected document**. The report does not record the run date, input paths or full input digests; the command above is a reproduction template. No new test execution is claimed for this documentation update. Recording these results changes the medicine Markdown hash without changing rule code.
 
-- Harness: `af3fe73b5b3433d97c4f63065dad970ef02bd4be776fc2e00d2e613825c1163e`.
-- Pack: `ad598b6ac2330c00b423b26f826f6d120d8940f0eb7f5412fca2fcd045b4ef30`.
-- Gold CSV (`teams/02-data-b/gold/ind-mr-sangraha-v_gold.csv`, 88 documents): `7771ac3d97e311c8e7a499c57e0ce906d34f857b65ccd7c77a00a8d660c2ec2e`.
-- Reviewed labels (500 documents): `ea80496c7f3520beb9e8c177da798842cf9dac59b6a41693728f9369e5f8edcd`.
+**Input provenance:**
 
-The nonempty-gold allowance is **1 affected document** for this 88-document set. The table transcribes the latest user-supplied console output, which reports **`result: PASS`** for all 11 rules and `ALL IN ORDER`. The runner identified the tested medicine with SHA-256 prefix **`4f6b3e84493f`**. This is the tested file's hash prefix, not the hash of this updated Markdown; recording results changes the file hash without changing rule code. No new test execution is claimed for this documentation update.
+- Previously recorded harness SHA-256: `af3fe73b5b3433d97c4f63065dad970ef02bd4be776fc2e00d2e613825c1163e`.
+- Previously recorded pack SHA-256: `ad598b6ac2330c00b423b26f826f6d120d8940f0eb7f5412fca2fcd045b4ef30`.
+- The previous 88-document gold CSV had SHA-256 `7771ac3d97e311c8e7a499c57e0ce906d34f857b65ccd7c77a00a8d660c2ec2e`; this does not identify the latest 99-document gold input. Its digest must be recorded from the run inputs.
+- Current labels (500 documents, including the 26 D3-only verdict updates): `85c2dafd4ceb532982685017d1b059a0d4956662e6506fb6937f2d5bfcb6574d`. The harm report does not record a labels digest.
 
 | Rule | Changed | Dropped | Percent | ZWJ/ZWNJ audit | Normal-form audit | Result |
 | --- | ---: | ---: | ---: | --- | --- | --- |
@@ -41,7 +41,7 @@ The nonempty-gold allowance is **1 affected document** for this 88-document set.
 | C5 | 0 | 0 | 0.00% | PASS | PASS | **PASS** |
 | ALL IN ORDER | 0 | 0 | 0.00% | PASS | PASS | **PASS** |
 
-**Positive-case validation:** Independently running each new rule over all 500 records excluded exactly the reviewed target IDs: C3 **2**, C4 **4**, D4 **20**, F1 **12**, with **0 text changes, 0 non-target exclusions and 0 errors** for each. Combined file-order execution changed **263** documents and excluded exactly the same **38 unique target records**, with **0 errors**. All **12 long-context candidates** survived. Empty text and synthetic Marathi/code-mixed/joiner-containing non-target text stayed unchanged under each new rule.
+**Previously reported positive-case validation (not rerun in the latest harm report):** Independently running each new rule over all 500 records excluded exactly the reviewed target IDs: C3 **2**, C4 **4**, D4 **20**, F1 **12**, with **0 text changes, 0 non-target exclusions and 0 errors** for each. Combined file-order execution changed **263** documents and excluded exactly the same **38 unique target records**, with **0 errors**. All **12 long-context candidates** survived. Empty text and synthetic Marathi/code-mixed/joiner-containing non-target text stayed unchanged under each new rule.
 
 **Limits:** The remaining **11 C3 fixes, 7 C4 fixes and 1 D4 fix** still require verified contextual intervention. F1 quarantine intentionally withholds all 12 reviewed private records, including 11 labelled `fix`, until complete redaction is verified; labels remain unchanged. Zero gold changes means the Indic audits do not exercise changed outputs. These results establish bounded exclusion behavior and gold safety. F1 redaction is verified only on synthetic supported fields; the helper changed none of the 12 reviewed F1 records. Unseen-record recall, real-data redaction effectiveness and release approval remain unresolved.
 
@@ -50,7 +50,7 @@ The nonempty-gold allowance is **1 affected document** for this 88-document set.
 | Disease | Documents | `fix` | `drop` | Proposed handling |
 | --- | ---: | ---: | ---: | --- |
 | A5 | 221 | 208 | 13 | Executable NFC normalization candidate |
-| D3 | 148 | 129 | 19 | Preserve natural code-mixing; explicit no-op |
+| D3 | 148 | 103 | 19 | Preserve natural code-mixing; explicit no-op |
 | C2 | 100 | 95 | 5 | Conservative exact repeated-prefix removal |
 | C1 | 97 | 84 | 13 | Narrow publisher/related-content boilerplate removal |
 | A6 | 45 | 42 | 3 | Automate mixed-script numeric tokens only; contextual handling for other A6 forms |
@@ -60,6 +60,8 @@ The nonempty-gold allowance is **1 affected document** for this 88-document set.
 | C3 | 13 | 11 | 2 | Executable exclusion of 2 reviewed drops; 11 contextual fixes pending |
 | F1 | 12 | 11 | 1 | Executable quarantine of all 12; verified redaction pending |
 | C4 | 11 | 7 | 4 | Executable exclusion of 4 reviewed drops; 7 verified splits/fixes pending |
+
+D3 also occurs in **26 `clean` documents** retained as natural code-mixing; disease tags are preserved as descriptive annotations.
 
 **Below medicine threshold:** G1 (**4 documents**; detached Indic combining marks, context-specific repair only) and B5 (**1 document**; broken markup marker). These five diagnoses are fully labelled, but no generic executable medicine is justified by their limited evidence.
 
@@ -88,7 +90,7 @@ The nonempty-gold allowance is **1 affected document** for this 88-document set.
 
 3. **Action:** Fix by NFC normalization only; it does not override a document-level `drop` decision for other diseases.
 
-4. **Harm test (Data B Indic `harm_test_indic.py`): PASS** — **0 changed, 0 dropped / 88 gold documents (0.00%)**; gold limit: 1 changed/dropped document. **ZWJ/ZWNJ audit: PASS** (0 affected documents with changed joiner counts). **Normal-form audit: PASS** (0 affected documents left NFC or lost a compatibility character). This demonstrates no measured gold harm; it does not establish NFC-repair effectiveness on A5-positive documents.
+4. **Harm test (Data B Indic `harm_test_indic.py`): PASS** — **0 changed, 0 dropped / 99 gold documents (0.00%)**; gold limit: 1 changed/dropped document. **ZWJ/ZWNJ audit: PASS** (0 affected documents with changed joiner counts). **Normal-form audit: PASS** (0 affected documents left NFC or lost a compatibility character). This demonstrates no measured gold harm; it does not establish NFC-repair effectiveness on A5-positive documents.
 
 5. **Side effects:** NFC changes code-point sequences and may invalidate offsets; NFC does **not** reconnect a detached matra/virama, repair OCR errors, or fix severe structural corruption. Count actual changes in the harm test rather than presuming they are harmless.
 
@@ -107,9 +109,9 @@ The nonempty-gold allowance is **1 affected document** for this 88-document set.
        return text
    ```
 
-3. **Action:** Keep unchanged for D3. Apply separate, independently tested medicines if the same document also has another disease. **28 reviewed D3-only documents** have a `fix` verdict in the source labels. Preserve those verdicts as submitted, but do not treat this no-op as a text correction or report 28 documents changed. Any separate transformation must be justified by another disease or a specifically documented operation.
+3. **Action:** Keep unchanged for D3. Apply separate, independently tested medicines if the same document also has another disease. Of the 28 previously `fix` D3-only documents, **26 are now `clean`** because their notes call for retaining natural mixing. **Two remain `fix`** (`273f333736ce4524` and `8344f9091076fadd`) because their notes say `remove non-indic content`; these require contextual review, and the D3 no-op does not implement that removal. Any separate transformation must be justified by another disease or a specifically documented operation.
 
-4. **Harm test (Data B Indic `harm_test_indic.py`): PASS** — **0 changed, 0 dropped / 88 gold documents (0.00%)**; gold limit: 1 changed/dropped document. **ZWJ/ZWNJ audit: PASS** (0 affected documents with changed joiner counts). **Normal-form audit: PASS** (0 affected documents left NFC or lost a compatibility character). Because this is an intentional no-op, its PASS does not show that any D3-only `fix` records were corrected.
+4. **Harm test (Data B Indic `harm_test_indic.py`): PASS** — **0 changed, 0 dropped / 99 gold documents (0.00%)**; gold limit: 1 changed/dropped document. **ZWJ/ZWNJ audit: PASS** (0 affected documents with changed joiner counts). **Normal-form audit: PASS** (0 affected documents left NFC or lost a compatibility character). Because this is an intentional no-op, its PASS does not show that the two remaining D3-only `fix` records were corrected.
 
 5. **Side effects:** No direct mutation. The risk is *over-cleaning by other medicines*: an English name, English headline, or Sanskrit quotation is not necessarily C1/C5 boilerplate or A6 corruption.
 
@@ -151,7 +153,7 @@ The nonempty-gold allowance is **1 affected document** for this 88-document set.
 
 3. **Action:** Fix only matching boilerplate lines. A `drop` verdict remains if no coherent article survives.
 
-4. **Harm test (Data B Indic `harm_test_indic.py`): PASS** — **0 changed, 0 dropped / 88 gold documents (0.00%)**; gold limit: 1 changed/dropped document. **ZWJ/ZWNJ audit: PASS** (0 affected documents with changed joiner counts). **Normal-form audit: PASS** (0 affected documents left NFC or lost a compatibility character). Verify independently that the narrow matcher removes actual C1 boilerplate without deleting article content.
+4. **Harm test (Data B Indic `harm_test_indic.py`): PASS** — **0 changed, 0 dropped / 99 gold documents (0.00%)**; gold limit: 1 changed/dropped document. **ZWJ/ZWNJ audit: PASS** (0 affected documents with changed joiner counts). **Normal-form audit: PASS** (0 affected documents left NFC or lost a compatibility character). Verify independently that the narrow matcher removes actual C1 boilerplate without deleting article content.
 
 5. **Side effects:** Some genuine article text could begin with one of the listed phrases, and boilerplate embedded mid-paragraph is intentionally not removed. This rule is conservative; context-specific cleanup is needed for more complex cases.
 
@@ -185,7 +187,7 @@ The nonempty-gold allowance is **1 affected document** for this 88-document set.
 
 3. **Action:** Fix only verified exact repeated prefixes, keeping the first occurrence. Review other C2 variants manually.
 
-4. **Harm test (Data B Indic `harm_test_indic.py`): PASS** — **0 changed, 0 dropped / 88 gold documents (0.00%)**; gold limit: 1 changed/dropped document. **ZWJ/ZWNJ audit: PASS** (0 affected documents with changed joiner counts). **Normal-form audit: PASS** (0 affected documents left NFC or lost a compatibility character). Verify on C2-positive documents that intended duplicates are removed with valid joins.
+4. **Harm test (Data B Indic `harm_test_indic.py`): PASS** — **0 changed, 0 dropped / 99 gold documents (0.00%)**; gold limit: 1 changed/dropped document. **ZWJ/ZWNJ audit: PASS** (0 affected documents with changed joiner counts). **Normal-form audit: PASS** (0 affected documents left NFC or lost a compatibility character). Verify on C2-positive documents that intended duplicates are removed with valid joins.
 
 5. **Side effects:** Repeated opening text may be intentional (poetry, quotations, structured articles). The strict rule misses shorter duplicates and OCR-altered copies, which is preferable to deleting uncertain content. Check the resulting join around the removed span.
 
@@ -216,7 +218,7 @@ The nonempty-gold allowance is **1 affected document** for this 88-document set.
 
 3. **Action:** Fix the mixed-digit subtype only; handle remaining A6 occurrences through verified context-specific repairs or separately tested medicines; do not pretend that the mixed-digit rule covers all 45 A6 documents.
 
-4. **Harm test (Data B Indic `harm_test_indic.py`): PASS** — **0 changed, 0 dropped / 88 gold documents (0.00%)**; gold limit: 1 changed/dropped document. **ZWJ/ZWNJ audit: PASS** (0 affected documents with changed joiner counts). **Normal-form audit: PASS** (0 affected documents left NFC or lost a compatibility character). Only mixed-digit conversion is covered; other A6 subtypes require separate source-aware tests.
+4. **Harm test (Data B Indic `harm_test_indic.py`): PASS** — **0 changed, 0 dropped / 99 gold documents (0.00%)**; gold limit: 1 changed/dropped document. **ZWJ/ZWNJ audit: PASS** (0 affected documents with changed joiner counts). **Normal-form audit: PASS** (0 affected documents left NFC or lost a compatibility character). Only mixed-digit conversion is covered; other A6 subtypes require separate source-aware tests.
 
 5. **Side effects:** Even mixed-script digits can occasionally be deliberate; global Latin removal, blanket hyphen replacement, or indiscriminate `U+00BA` substitution would risk damaging legitimate names and D3 code-mixing.
 
@@ -240,7 +242,7 @@ The nonempty-gold allowance is **1 affected document** for this 88-document set.
 
 3. **Action:** Fix escaped newlines when they recur as prose formatting artifacts.
 
-4. **Harm test (Data B Indic `harm_test_indic.py`): PASS** — **0 changed, 0 dropped / 88 gold documents (0.00%)**; gold limit: 1 changed/dropped document. **ZWJ/ZWNJ audit: PASS** (0 affected documents with changed joiner counts). **Normal-form audit: PASS** (0 affected documents left NFC or lost a compatibility character). Check B4-positive prose separately so valid technical escape sequences remain intact.
+4. **Harm test (Data B Indic `harm_test_indic.py`): PASS** — **0 changed, 0 dropped / 99 gold documents (0.00%)**; gold limit: 1 changed/dropped document. **ZWJ/ZWNJ audit: PASS** (0 affected documents with changed joiner counts). **Normal-form audit: PASS** (0 affected documents left NFC or lost a compatibility character). Check B4-positive prose separately so valid technical escape sequences remain intact.
 
 5. **Side effects:** Technical quotations can legitimately include `\n`. The recurrence threshold reduces but does not eliminate that risk. Other escaped control sequences are left untouched.
 
@@ -276,7 +278,7 @@ The nonempty-gold allowance is **1 affected document** for this 88-document set.
 
 3. **Action:** Fix only with verified source/boundary; **drop** when no coherent content remains (as in `0ad004d5deb1e7fe`, labelled `drop`).
 
-4. **Harm test (Data B Indic `harm_test_indic.py`): PASS — 0 changed, 0 dropped / 88 gold documents (0.00%); ZWJ/ZWNJ audit PASS; normal-form audit PASS.** See the fresh results above. Positive-case scope: **2 reviewed records excluded individually**; all other records stay unchanged for this rule. Contextual repairs are not covered.
+4. **Harm test (Data B Indic `harm_test_indic.py`): PASS — 0 changed, 0 dropped / 99 gold documents (0.00%); ZWJ/ZWNJ audit PASS; normal-form audit PASS.** See the fresh results above. Positive-case scope: **2 reviewed records excluded individually**; all other records stay unchanged for this rule. Contextual repairs are not covered.
 
 5. **Side effects:** Trimming near punctuation can remove legitimate text; generating a missing ending would invent content. Some incomplete-looking passages are intentional excerpts.
 
@@ -356,7 +358,7 @@ The nonempty-gold allowance is **1 affected document** for this 88-document set.
 
 3. **Action:** **Drop the 20 documents marked `drop`**, including `9e41a5d56ac92089` and `f94044ff48697280` (both now labelled `full`); retain the single `fix` document for a limited, source-faithful wording repair. All 21 diagnoses are final reviewed labels.
 
-4. **Harm test (Data B Indic `harm_test_indic.py`): PASS — 0 changed, 0 dropped / 88 gold documents (0.00%); ZWJ/ZWNJ audit PASS; normal-form audit PASS.** See the fresh results above. Positive-case scope: **20 reviewed records excluded individually**; all other records stay unchanged for this rule. Contextual repairs are not covered.
+4. **Harm test (Data B Indic `harm_test_indic.py`): PASS — 0 changed, 0 dropped / 99 gold documents (0.00%); ZWJ/ZWNJ audit PASS; normal-form audit PASS.** See the fresh results above. Positive-case scope: **20 reviewed records excluded individually**; all other records stay unchanged for this rule. Contextual repairs are not covered.
 
 5. **Side effects:** Unusual idioms, literary style and natural code-mixing could be mistaken for bad translation. Avoid applying a broad language-quality classifier without validation.
 
@@ -482,7 +484,7 @@ The nonempty-gold allowance is **1 affected document** for this 88-document set.
 
 3. **Action:** Fix by verified, privacy-preserving redaction; otherwise **drop**. Do not release an unredacted F1 record.
 
-4. **Harm test (Data B Indic `harm_test_indic.py`): PASS — 0 changed, 0 dropped / 88 gold documents (0.00%); ZWJ/ZWNJ audit PASS; normal-form audit PASS.** See the fresh results above. Positive-case scope: **12 reviewed records excluded individually**; no other pack records changed. The redaction helper alone changed **0/12** reviewed F1 records, so it has no demonstrated repair coverage on those cases. Synthetic checks cover supported fields; they do not establish real-data recall.
+4. **Harm test (Data B Indic `harm_test_indic.py`): PASS — 0 changed, 0 dropped / 99 gold documents (0.00%); ZWJ/ZWNJ audit PASS; normal-form audit PASS.** See the fresh results above. Positive-case scope: **12 reviewed records excluded individually**; no other pack records changed. The redaction helper alone changed **0/12** reviewed F1 records, so it has no demonstrated repair coverage on those cases. Synthetic checks cover supported fields; they do not establish real-data recall.
 
 5. **Side effects:** A broad name/address detector can erase legitimate public references; a narrow detector can miss sensitive data. The label's `hex` and evidence should never reproduce private values.
 
@@ -490,7 +492,7 @@ The nonempty-gold allowance is **1 affected document** for this 88-document set.
 
 **Supported redactions:** Private-labelled email fields; Indian mobile numbers starting with 6–9, optionally prefixed by +91, using ASCII or Devanagari digits; single-line explicitly labelled residential-address fields. Organisation cues on the current or immediately preceding line suppress redaction. Address lines containing multiple fields require separate review. Names, unlabelled details, narrative locations, landlines, obfuscated contacts and unrecognised organisation cues remain limitations. Redaction can remove meaningful characters, including joiners inside a sensitive span; gold audits with zero changes do not validate such cases. No blanket digit normalization or name/place deletion is performed.
 
-**Validation:** Fresh individual and combined Indic harm tests passed with 0 changed / 0 dropped of 88 gold records and both audits PASS. Full-pack behavior remains 263 changed / 38 excluded combined, including all 12 F1 quarantines; no errors and all 12 long-context candidates survive. Synthetic-only tests verify supported redaction, idempotence, public-contact preservation, number boundaries and unrelated Indic text preservation:
+**Validation:** The latest supplied report shows individual and combined Indic harm tests passed with 0 changed / 0 dropped of 99 gold records and both audits PASS. Previously reported full-pack behavior was 263 changed / 38 excluded combined, including all 12 F1 quarantines; no errors and all 12 long-context candidates survive. Synthetic-only tests verify supported redaction, idempotence, public-contact preservation, number boundaries and unrelated Indic text preservation:
 
 ```bash
 python3 -m unittest discover -s teams/02-data-b/medicine-tests
@@ -534,7 +536,7 @@ python3 -m unittest discover -s teams/02-data-b/medicine-tests
 
 3. **Action:** Fix by a provenance-preserving split/removal when possible; **drop** when the surviving text is not coherent (`d89a364142de1d38` and `9910e11f3461f5d0` are labelled `drop`).
 
-4. **Harm test (Data B Indic `harm_test_indic.py`): PASS — 0 changed, 0 dropped / 88 gold documents (0.00%); ZWJ/ZWNJ audit PASS; normal-form audit PASS.** See the fresh results above. Positive-case scope: **4 reviewed records excluded individually**; all other records stay unchanged for this rule. Contextual repairs are not covered.
+4. **Harm test (Data B Indic `harm_test_indic.py`): PASS — 0 changed, 0 dropped / 99 gold documents (0.00%); ZWJ/ZWNJ audit PASS; normal-form audit PASS.** See the fresh results above. Positive-case scope: **4 reviewed records excluded individually**; all other records stay unchanged for this rule. Contextual repairs are not covered.
 
 5. **Side effects:** Legitimate bilingual quotations, interviews, and multi-section articles may look like joined documents; blind splitting can corrupt source context.
 
@@ -567,7 +569,7 @@ python3 -m unittest discover -s teams/02-data-b/medicine-tests
 
 3. **Action:** Fix standalone matched tag lines; remove other verified contamination with a context-specific operation. **Drop** documents composed almost entirely of navigation/headline lists (e.g., `5c0626f06c750fcf`), consistent with their labels.
 
-4. **Harm test (Data B Indic `harm_test_indic.py`): PASS** — **0 changed, 0 dropped / 88 gold documents (0.00%)**; gold limit: 1 changed/dropped document. **ZWJ/ZWNJ audit: PASS** (0 affected documents with changed joiner counts). **Normal-form audit: PASS** (0 affected documents left NFC or lost a compatibility character). The narrow tag-line rule does not cover every C5 headline-list subtype; test positive-case coverage separately.
+4. **Harm test (Data B Indic `harm_test_indic.py`): PASS** — **0 changed, 0 dropped / 99 gold documents (0.00%)**; gold limit: 1 changed/dropped document. **ZWJ/ZWNJ audit: PASS** (0 affected documents with changed joiner counts). **Normal-form audit: PASS** (0 affected documents left NFC or lost a compatibility character). The narrow tag-line rule does not cover every C5 headline-list subtype; test positive-case coverage separately.
 
 5. **Side effects:** Metadata examples and instructional prose can contain genuine `Tags:` or `Keywords:` lines. Broadly deleting any list or headline would destroy real content. Some C5 overlaps C1, so combined-rule effects must be assessed separately.
 
@@ -575,11 +577,11 @@ python3 -m unittest discover -s teams/02-data-b/medicine-tests
 
 ## Review and release checklist
 
-- **Reviewed label input:** All **500** source records are `full`. Preserve the submitted **99 clean / 362 fix / 39 drop** verdicts, the reviewed evidence/offsets and the 12 long-context tags. No 252-row totals or `partial`-read labels remain.
-- **D3 semantics:** The labels contain **28 D3-only `fix` documents** even though the D3 medicine deliberately leaves text unchanged. These reviewed labels are preserved. Do not claim a D3 cleaning change or invent a mutation to make a `fix` label match the no-op.
+- **Reviewed label input:** All **500** source records are `full`. Current verdicts are **125 clean / 336 fix / 39 drop**, following the 26 D3-only verdict updates. Reviewed evidence/offsets and the 12 long-context tags are unchanged. No 252-row totals or `partial`-read labels remain.
+- **D3 semantics:** **26 D3-only documents are now `clean`** because their notes preserve natural mixing. **Two remain `fix`** because their notes request removal of non-Indic content; contextual review is pending. D3 remains a no-op, so no text-cleaning change is claimed.
 - **D4 outcomes:** Apply the reviewed outcome, **20 `drop` and 1 `fix`**, rather than the earlier all-drop assumption. Do not rewrite heavily corrupted content just to retain it.
 - **Rule extraction:** All 11 sections have callable candidates. C3/C4/D4 use reviewed exclusions; F1 uses reviewed quarantine plus bounded Marathi private-field redaction. Below-threshold G1/B5 have no general medicine.
-- **Gold harm tests:** The latest user-supplied run (medicine SHA-256 prefix `4f6b3e84493f`, Data B gold directory) passed all 11 rules and their combined file-order run on 88 gold records: 0 changed, 0 dropped, both Indic audits PASS. See input digests and command above.
+- **Gold harm tests:** The latest supplied `ind_mr_harm_results.md` (medicine SHA-256 prefix `f51c4fc18992`) passed all 11 rules and their combined file-order run on 99 gold records: 0 changed, 0 dropped, both Indic audits PASS. See the provenance limits and reproduction command above.
 - **Effectiveness and clashes:** The reported individual and combined **gold-harm PASS** does not prove positive-label cleaning coverage, especially because all 11 rules changed zero gold documents. Measure recall and actual changes on reviewed, disease-positive pack documents. Check overlaps (especially C1/C5, A5/A6, B4/C1/C2), verify the actual harness execution order, and separately evaluate any revised combined pipeline.
 - **Long context:** Preserve all 12 flagged long-context candidates. If a candidate also has C3 or other fixable defects, apply the documented cleanup while retaining the coherent long-form span; do not globally truncate.
 - **Privacy:** For F1, publish **type and offset**, never private values in examples, logs, rule code, diffs or reports. Redact or exclude affected source text before release.
