@@ -32,6 +32,9 @@ def test_policy_is_declared_in_source_and_native_ids_are_preserved():
         assert c.SCOPE[rid] == frozenset(packs)
         assert ROWS[rid]['pack'] in packs
     assert {'ind-bn-sangraha-v', 'ind-hi-indiccorp', 'ind-te-sangraha-v'} <= c._FAMILY.keys()
+    indic = {pack for pack, family in c._FAMILY.items() if family == 'indic'}
+    assert REPORT['privacy_missing_packs'] == []
+    assert set(REPORT['shared_f1_packs']) == indic
 
 
 def test_one_selected_rule_per_receiving_pack_and_disease():
@@ -76,3 +79,12 @@ def test_bengali_sibling_receives_the_real_normalization_fix():
     doc = dict(doc_id='synthetic', text='ত্ ', url='', lang_label='bn', pack_id='ind-bn-sangraha-v')
     assert c.a5(doc) == ('fix', 'ৎ ')
     assert 'ind-bn-sangraha-v' in c.SCOPE['f1_rule.py']  # every Indic pack gets the shared F1
+
+
+def test_receiving_pipeline_checks_include_shared_f1_and_keep_pack_guards():
+    pipeline = extension.compose([], set(), {}, review.shared_f1_rule(), 'ind-hi-fw2')
+    doc = dict(doc_id='synthetic', text='संपर्क करें: 9876543210', url='',
+               lang_label='hin_Deva', pack_id='ind-hi-fw2')
+    assert pipeline(doc) == ('fix', 'संपर्क करें: <PHONE>')
+    assert pipeline(dict(doc, pack_id='ind-unknown')) == ('keep', doc['text'])
+    assert pipeline(dict(doc, text='संपर्क करें: <PHONE>')) == ('keep', 'संपर्क करें: <PHONE>')

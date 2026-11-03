@@ -1,12 +1,12 @@
 {
   "actions": {
     "drop": 474,
-    "fix": 10774,
-    "keep": 13509
+    "fix": 10782,
+    "keep": 13501
   },
-  "clean_sha256": "27eaac4479abe0ab82c030302e949ea427c94e401b3d0773d2998a587d68cdf2",
+  "clean_sha256": "97c1a55b89f4a15ef4985928ef124f29f04a37c21038eb0ea4977598767ae58f",
   "completed_parts": 2,
-  "config_sha256": "eb2df6f97bfaeaff5a88a20668e337080d3a6e6e58fd063eb232a75722aca43f",
+  "config_sha256": "56e59b8b739de80e0bc927c7e2aa01eec20d624e10e73648bf361e0d5f0e3a98",
   "errors": 0,
   "expected_parts": 86,
   "input_rows": 24757,
@@ -155,15 +155,15 @@
           "not_reached": 259
         }
       },
-      "seconds": 20.732,
+      "seconds": 22.777,
       "split": "train",
       "status": "cleaned"
     },
     {
       "actions": {
         "drop": 215,
-        "fix": 946,
-        "keep": 9167
+        "fix": 954,
+        "keep": 9159
       },
       "errors": 0,
       "input_rows": 10328,
@@ -172,7 +172,7 @@
         "bn"
       ],
       "output_rows": 10113,
-      "output_sha256": "df5de41a42bd3074b1be524cb48fe2d66280dcdf851b996a79e92a74bdf3cf5c",
+      "output_sha256": "1d1b94ae7a0dcc7f37b83e16ea6e862421ba279e4c2e1867d64bc168d32a4127",
       "pack_id": "ind-bn-sangraha-v",
       "part": "train/ind-bn-sangraha-v/part-00000.parquet",
       "rule_counts": {
@@ -292,14 +292,23 @@
           "invocations": 10328,
           "keep": 9987,
           "not_reached": 0
+        },
+        "f1_rule.py": {
+          "drop": 0,
+          "eligible_by_pack": 10328,
+          "error": 0,
+          "fix": 10,
+          "invocations": 10113,
+          "keep": 10103,
+          "not_reached": 215
         }
       },
-      "seconds": 6.012,
+      "seconds": 10.974,
       "split": "train",
       "status": "cleaned"
     }
   ],
-  "peak_rss_mib": 153.859,
+  "peak_rss_mib": 182.891,
   "python": "3.12.12",
   "rule_count_semantics": "sequential invocations inside actual clean.clean/_run; fixes on later-dropped docs still count; not independent rule hits",
   "rule_scope": {
@@ -970,33 +979,6 @@
       "ind-hi-hplt",
       "ind-hi-indiccorp"
     ],
-    "DB-F1-001": [
-      "ind-gu-fw2"
-    ],
-    "DB-F1-003": [
-      "ind-hi-fw2",
-      "ind-hi-hplt",
-      "ind-hi-indiccorp"
-    ],
-    "DB-F1-005": [
-      "ind-kn-fw2",
-      "ind-kn-sangraha-s",
-      "ind-kn-sangraha-v"
-    ],
-    "DB-F1-006": [
-      "ind-mr-fw2"
-    ],
-    "DB-F1-007": [
-      "ind-mr-sangraha-v"
-    ],
-    "DB-F1-008": [
-      "ind-sa-fw2"
-    ],
-    "DB-F1-010": [
-      "ind-te-fw2",
-      "ind-te-sangraha-s",
-      "ind-te-sangraha-v"
-    ],
     "DB-F3-001": [
       "ind-bn-fw2",
       "ind-bn-sangraha-v"
@@ -1063,6 +1045,22 @@
       "code-js-ts",
       "code-python",
       "code-rust",
+      "ind-bn-fw2",
+      "ind-bn-sangraha-v",
+      "ind-gu-fw2",
+      "ind-hi-fw2",
+      "ind-hi-hplt",
+      "ind-hi-indiccorp",
+      "ind-kn-fw2",
+      "ind-kn-sangraha-s",
+      "ind-kn-sangraha-v",
+      "ind-mr-fw2",
+      "ind-mr-sangraha-v",
+      "ind-sa-fw2",
+      "ind-ta-sangraha-v",
+      "ind-te-fw2",
+      "ind-te-sangraha-s",
+      "ind-te-sangraha-v",
       "math-finemath",
       "math-megamath",
       "sci-finepdfs"
@@ -1072,5 +1070,5 @@
   "sample": "era-v5-lab tokenizer sample v0",
   "scope": "partial smoke test",
   "unsupported_parts": [],
-  "wall_seconds": 26.809
+  "wall_seconds": 33.793
 }

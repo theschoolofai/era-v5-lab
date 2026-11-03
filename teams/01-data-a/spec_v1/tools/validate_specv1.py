@@ -40,6 +40,17 @@ def summarize(result, n):
             'PASS' if ht.harm_percent(len(changed), len(dropped), n, Fraction(1))[1] else 'FAIL'}
 
 
+def replace_validation_summary(src, lines):
+    start = src.index('<!-- VALIDATION -->')
+    end = src.index('\n## Medicine 1 ', start)
+    # Integration metadata shares this pre-card area with the harm table.
+    # Preserve its policy, scope and own-pack evidence when refreshing the table.
+    retained = ''.join(match.group(0) for match in re.finditer(
+        r'<!-- (INDIC INTEGRATION|VALIDATED SIBLING SCOPES) -->.*?<!-- END \1 -->\n*',
+        src[start:end], re.S))
+    return src[:start] + '<!-- VALIDATION -->\n\n' + '\n'.join(lines) + '\n\n' + retained + src[end:]
+
+
 def add_card_evidence(src, report, rules, all_docs):
     """Attach fresh per-card harm and exact original excerpts without exposing private spans."""
     for rid, fn in rules:
@@ -173,9 +184,7 @@ def main():
               '\nThese verdicts concern executable sheet blocks; deferred cards are excluded. Missing inputs are NOT TESTABLE, never PASS. Out-of-pack guards were checked on every available pack. The generated cleaner also has the shared F1, so its separate tests remain required. Results apply to the snapshots recorded in [results/cleaner/specv1_validation.json](../results/cleaner/specv1_validation.json).',
               '\nReproduce from the repository root (install `teams/01-data-a/spec_v1/requirements.txt` first):\n\n```bash\npython3 teams/01-data-a/spec_v1/tools/validate_specv1.py \\\n  --packs <packs folder> \\\n  --gold teams/01-data-a/gold\n```']
     src = sheet.read_text(encoding='utf-8')
-    start = src.index('<!-- VALIDATION -->')
-    end = src.index('\n## Medicine 1 ', start)
-    src = src[:start] + '<!-- VALIDATION -->\n\n' + '\n'.join(lines) + '\n\n' + src[end:]
+    src = replace_validation_summary(src, lines)
     src = add_card_evidence(src, report, rules, all_docs)
     sheet.write_text(src, encoding='utf-8', newline='\n')
     report['spec_sha256'] = digest(sheet)

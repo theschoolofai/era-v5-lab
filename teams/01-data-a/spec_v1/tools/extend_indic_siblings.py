@@ -34,16 +34,22 @@ def target_rule(row, pack):
     return ns['medicine']
 
 
-def compose(rows, chosen, functions):
+def compose(rows, chosen, functions, shared_f1, pack):
     order = [(row['id'], functions[row['id']]) for row in rows if row['id'] in chosen]
 
     def medicine(doc):
+        if doc.get('pack_id') != pack:
+            return ('keep', doc['text'])
         d = dict(doc)
         for _, fn in order:
             action, text = fn(d)
             if action == 'drop':
                 return ('drop', doc['text'])
             d['text'] = text
+        action, text = shared_f1(d)
+        if action == 'drop':
+            return ('drop', doc['text'])
+        d['text'] = text
         return ('fix' if d['text'] != doc['text'] else 'keep', d['text'])
     return medicine
 
@@ -56,10 +62,13 @@ def extend(review, packs, gold_dir, report=None):
                                                     'fill_missing_diseases_only', 'require_receiving_gold')):
         raise ValueError('unsupported sibling scope policy')
     rows = review.read_source()
+    shared_f1 = review.shared_f1_rule()
     primary_path = SPEC / 'results/cleaner/indic_integration.json'
     report = report or json.loads(primary_path.read_text(encoding='utf-8'))
     if report.get('source_code_sha256') != source_code_digest(rows):
         raise ValueError('source algorithms changed: rerun integrate_indic.py before extending scopes')
+    if report.get('f1_rule_sha256') != review.sha(SPEC / 'tools/f1_rule.py'):
+        raise ValueError('shared F1 changed: rerun integrate_indic.py before extending scopes')
     for pack, evidence in report['gold'].items():
         if evidence.get('pack_sha256'):
             if review.sha(packs / (pack + '.parquet')) != evidence['pack_sha256'] or review.sha(gold_dir / (pack + '_gold.csv')) != evidence['gold_sha256']:
@@ -120,7 +129,7 @@ def extend(review, packs, gold_dir, report=None):
                 if check['errors'] or check['nonidempotent_ids']:
                     issues.append('receiving-pack runtime/idempotence failure')
             if not issues:
-                pipeline = compose(rows, chosen | {rid}, functions)
+                pipeline = compose(rows, chosen | {rid}, functions, shared_f1, pack)
                 issues += review.synthetic_check(pipeline, pack, lang)
                 combined = review.ht._result('combined', review.ht.run_rule(pipeline, gold_docs, 5), len(ids), review.Fraction(1))
                 attempt['combined_gold'] = combined
@@ -140,14 +149,18 @@ def extend(review, packs, gold_dir, report=None):
         if not chosen:
             entry['result'] = 'NO ELIGIBLE RULES'
             continue
-        pipeline = compose(rows, chosen, functions)
+        pipeline = compose(rows, chosen, functions, shared_f1, pack)
         entry.update(result='PASS', gold_n=len(ids), pack_sha256=review.sha(path), gold_sha256=review.sha(gold),
                      combined_gold=review.ht._result('combined', review.ht.run_rule(pipeline, gold_docs, 5), len(ids), review.Fraction(1)),
                      final_full=review.full_rule_check(pipeline, docs))
         assert entry['combined_gold']['result'] == 'PASS' and not entry['final_full']['errors'] and not entry['final_full']['nonidempotent_ids']
         print(pack, 'accepted sibling scopes', len(entry['accepted']), 'gold', len(ids), 'PASS', flush=True)
-    privacy_missing = sorted({p for values in scopes.values() for p in values} - {p for row in selected if row['code'] == 'F1' for p in scopes[row['id']]})
-    result = {'privacy_missing_packs': privacy_missing, 'source_sha256': review.sha(SPEC / 'sheets/medicine_indic.md'), 'source_code_sha256': source_code_digest(rows),
+    supported = sorted({p for values in scopes.values() for p in values})
+    privacy_missing = []  # Every registered Indic pack runs shared F1 last.
+    result = {'privacy_missing_packs': privacy_missing, 'shared_f1_packs': supported,
+              'f1_rule_sha256': review.sha(SPEC / 'tools/f1_rule.py'),
+              'combined_execution': 'selected native/sibling medicines followed by shared Indic F1',
+              'source_sha256': review.sha(SPEC / 'sheets/medicine_indic.md'), 'source_code_sha256': source_code_digest(rows),
               'policy': policy, 'targets': targets, 'rule_scopes': {rid: sorted(p) for rid, p in scopes.items()}}
     destination = SPEC / 'results/cleaner/indic_sibling_scopes.json'
     destination.write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')

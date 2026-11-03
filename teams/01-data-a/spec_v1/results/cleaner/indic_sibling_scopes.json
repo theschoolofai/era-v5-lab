@@ -1,6 +1,27 @@
 {
-  "source_sha256": "b8cfa18c0b871b39425a1eb4981c44fafe9e17abfc8516c85c07622bf4a0ea29",
-  "source_code_sha256": "1954d9e32328d841e07152d5adf6c492fa62b60b3086d13c709211d9a9778cab",
+  "privacy_missing_packs": [],
+  "shared_f1_packs": [
+    "ind-bn-fw2",
+    "ind-bn-sangraha-v",
+    "ind-gu-fw2",
+    "ind-hi-fw2",
+    "ind-hi-hplt",
+    "ind-hi-indiccorp",
+    "ind-kn-fw2",
+    "ind-kn-sangraha-s",
+    "ind-kn-sangraha-v",
+    "ind-mr-fw2",
+    "ind-mr-sangraha-v",
+    "ind-sa-fw2",
+    "ind-ta-sangraha-v",
+    "ind-te-fw2",
+    "ind-te-sangraha-s",
+    "ind-te-sangraha-v"
+  ],
+  "f1_rule_sha256": "28250b0688c9cabaf16b13aca0c35beebd9343772196a5cd286cd2e81e773fd4",
+  "combined_execution": "selected native/sibling medicines followed by shared Indic F1",
+  "source_sha256": "c64f03cec960ab680766df9a02bdc902be0e81d28544cfb73b13150939686940",
+  "source_code_sha256": "bc84738e8a7cab5f0a9091f179861751c72346ae1b90e4e3fa6cf40a1184edd2",
   "policy": {
     "enabled": true,
     "same_language_only": true,
@@ -998,53 +1019,6 @@
           },
           "result": "ACCEPTED",
           "reasons": []
-        },
-        {
-          "rule_id": "DB-F1-003",
-          "source_pack": "ind-hi-hplt",
-          "code": "F1",
-          "gold": {
-            "rule": "DB-F1-003",
-            "changed": 0,
-            "dropped": 0,
-            "affected_unique": 0,
-            "errors": 0,
-            "error_types": [],
-            "percent": "0.000000",
-            "result": "PASS",
-            "changed_ids": [],
-            "dropped_ids": [],
-            "affected_ids": []
-          },
-          "full_rule": {
-            "nonidempotent_ids": [],
-            "errors": []
-          },
-          "combined_gold": {
-            "rule": "combined",
-            "changed": 0,
-            "dropped": 1,
-            "affected_unique": 1,
-            "errors": 0,
-            "error_types": [],
-            "percent": "0.427350",
-            "result": "PASS",
-            "changed_ids": [],
-            "dropped_ids": [
-              "0c9208a0c91789d6"
-            ],
-            "affected_ids": [
-              "0c9208a0c91789d6"
-            ]
-          },
-          "combined_full": {
-            "nonidempotent_ids": [],
-            "errors": []
-          },
-          "result": "SOURCE DEFERRED",
-          "reasons": [
-            "source F1 rule deferred: replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
-          ]
         }
       ],
       "result": "PASS",
@@ -1620,49 +1594,6 @@
           },
           "result": "ACCEPTED",
           "reasons": []
-        },
-        {
-          "rule_id": "DB-F1-003",
-          "source_pack": "ind-hi-hplt",
-          "code": "F1",
-          "gold": {
-            "rule": "DB-F1-003",
-            "changed": 0,
-            "dropped": 0,
-            "affected_unique": 0,
-            "errors": 0,
-            "error_types": [],
-            "percent": "0.000000",
-            "result": "PASS",
-            "changed_ids": [],
-            "dropped_ids": [],
-            "affected_ids": []
-          },
-          "full_rule": {
-            "nonidempotent_ids": [],
-            "errors": []
-          },
-          "combined_gold": {
-            "rule": "combined",
-            "changed": 0,
-            "dropped": 0,
-            "affected_unique": 0,
-            "errors": 0,
-            "error_types": [],
-            "percent": "0.000000",
-            "result": "PASS",
-            "changed_ids": [],
-            "dropped_ids": [],
-            "affected_ids": []
-          },
-          "combined_full": {
-            "nonidempotent_ids": [],
-            "errors": []
-          },
-          "result": "SOURCE DEFERRED",
-          "reasons": [
-            "source F1 rule deferred: replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
-          ]
         }
       ],
       "result": "PASS",
@@ -2295,49 +2226,6 @@
           },
           "result": "ACCEPTED",
           "reasons": []
-        },
-        {
-          "rule_id": "DB-F1-005",
-          "source_pack": "ind-kn-fw2",
-          "code": "F1",
-          "gold": {
-            "rule": "DB-F1-005",
-            "changed": 0,
-            "dropped": 0,
-            "affected_unique": 0,
-            "errors": 0,
-            "error_types": [],
-            "percent": "0.000000",
-            "result": "PASS",
-            "changed_ids": [],
-            "dropped_ids": [],
-            "affected_ids": []
-          },
-          "full_rule": {
-            "nonidempotent_ids": [],
-            "errors": []
-          },
-          "combined_gold": {
-            "rule": "combined",
-            "changed": 0,
-            "dropped": 0,
-            "affected_unique": 0,
-            "errors": 0,
-            "error_types": [],
-            "percent": "0.000000",
-            "result": "PASS",
-            "changed_ids": [],
-            "dropped_ids": [],
-            "affected_ids": []
-          },
-          "combined_full": {
-            "nonidempotent_ids": [],
-            "errors": []
-          },
-          "result": "SOURCE DEFERRED",
-          "reasons": [
-            "source F1 rule deferred: replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
-          ]
         }
       ],
       "result": "PASS",
@@ -2546,49 +2434,6 @@
           },
           "result": "ACCEPTED",
           "reasons": []
-        },
-        {
-          "rule_id": "DB-F1-005",
-          "source_pack": "ind-kn-fw2",
-          "code": "F1",
-          "gold": {
-            "rule": "DB-F1-005",
-            "changed": 0,
-            "dropped": 0,
-            "affected_unique": 0,
-            "errors": 0,
-            "error_types": [],
-            "percent": "0.000000",
-            "result": "PASS",
-            "changed_ids": [],
-            "dropped_ids": [],
-            "affected_ids": []
-          },
-          "full_rule": {
-            "nonidempotent_ids": [],
-            "errors": []
-          },
-          "combined_gold": {
-            "rule": "combined",
-            "changed": 0,
-            "dropped": 0,
-            "affected_unique": 0,
-            "errors": 0,
-            "error_types": [],
-            "percent": "0.000000",
-            "result": "PASS",
-            "changed_ids": [],
-            "dropped_ids": [],
-            "affected_ids": []
-          },
-          "combined_full": {
-            "nonidempotent_ids": [],
-            "errors": []
-          },
-          "result": "SOURCE DEFERRED",
-          "reasons": [
-            "source F1 rule deferred: replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
-          ]
         }
       ],
       "result": "PASS",
@@ -3613,49 +3458,6 @@
           },
           "result": "ACCEPTED",
           "reasons": []
-        },
-        {
-          "rule_id": "DB-F1-010",
-          "source_pack": "ind-te-fw2",
-          "code": "F1",
-          "gold": {
-            "rule": "DB-F1-010",
-            "changed": 0,
-            "dropped": 0,
-            "affected_unique": 0,
-            "errors": 0,
-            "error_types": [],
-            "percent": "0.000000",
-            "result": "PASS",
-            "changed_ids": [],
-            "dropped_ids": [],
-            "affected_ids": []
-          },
-          "full_rule": {
-            "nonidempotent_ids": [],
-            "errors": []
-          },
-          "combined_gold": {
-            "rule": "combined",
-            "changed": 0,
-            "dropped": 0,
-            "affected_unique": 0,
-            "errors": 0,
-            "error_types": [],
-            "percent": "0.000000",
-            "result": "PASS",
-            "changed_ids": [],
-            "dropped_ids": [],
-            "affected_ids": []
-          },
-          "combined_full": {
-            "nonidempotent_ids": [],
-            "errors": []
-          },
-          "result": "SOURCE DEFERRED",
-          "reasons": [
-            "source F1 rule deferred: replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
-          ]
         }
       ],
       "result": "PASS",
@@ -4188,49 +3990,6 @@
           },
           "result": "ACCEPTED",
           "reasons": []
-        },
-        {
-          "rule_id": "DB-F1-010",
-          "source_pack": "ind-te-fw2",
-          "code": "F1",
-          "gold": {
-            "rule": "DB-F1-010",
-            "changed": 0,
-            "dropped": 0,
-            "affected_unique": 0,
-            "errors": 0,
-            "error_types": [],
-            "percent": "0.000000",
-            "result": "PASS",
-            "changed_ids": [],
-            "dropped_ids": [],
-            "affected_ids": []
-          },
-          "full_rule": {
-            "nonidempotent_ids": [],
-            "errors": []
-          },
-          "combined_gold": {
-            "rule": "combined",
-            "changed": 0,
-            "dropped": 0,
-            "affected_unique": 0,
-            "errors": 0,
-            "error_types": [],
-            "percent": "0.000000",
-            "result": "PASS",
-            "changed_ids": [],
-            "dropped_ids": [],
-            "affected_ids": []
-          },
-          "combined_full": {
-            "nonidempotent_ids": [],
-            "errors": []
-          },
-          "result": "SOURCE DEFERRED",
-          "reasons": [
-            "source F1 rule deferred: replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
-          ]
         }
       ],
       "result": "PASS",
@@ -4656,6 +4415,5 @@
       "ind-te-sangraha-s",
       "ind-te-sangraha-v"
     ]
-  },
-  "privacy_missing_packs": []
+  }
 }

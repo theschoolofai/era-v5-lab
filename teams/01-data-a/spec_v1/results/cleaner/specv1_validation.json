@@ -1,7 +1,7 @@
 {
-  "rules_code_sha256": "c2b5359b281a8b7279697d2cbe72bf2bf630a2514e6e2c17b4fc15dad0fd41b0",
+  "rules_code_sha256": "feedf3bbd06380b0e22cd55206f61731555b0decb00e120e89449966fd82ada7",
   "sources": {
-    "medicine_indic.md": "b8cfa18c0b871b39425a1eb4981c44fafe9e17abfc8516c85c07622bf4a0ea29",
+    "medicine_indic.md": "c64f03cec960ab680766df9a02bdc902be0e81d28544cfb73b13150939686940",
     "medicine_english.md": "904c63b621515fc07bdd07cfff3553b6cff49504c89f41c2ec1fce2d27b0652c",
     "medicine_sci.md": "5f1e743253062fee2b91d3e04f13b2c302eddae4a9c02b0f54144d2252e1c411",
     "medicine_math.md": "d80f46be988242e92774802497e2d78360295e3c57c7e1a0a1a88f5c914a6224",
@@ -4716,14 +4716,6 @@
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
-        },
-        "DB-F1-001": {
-          "n": 19,
-          "changed": [],
-          "dropped": [],
-          "errors": [],
-          "limit_documents": 1,
-          "result": "PASS"
         }
       },
       "combined_gold": {
@@ -4755,7 +4747,6 @@
           "647a020cf3eb87b1",
           "8fb25749776eab64",
           "71da416a839a010b",
-          "f935fdbda58fc782",
           "2ff14ce44e20dfc3",
           "91fd6fdeec7f2838",
           "ec290e88b613101c",
@@ -4792,15 +4783,11 @@
           "2f8678896eabff28",
           "cf008373747082a4",
           "20e264b90ac5cc2b",
-          "ba50fb1f69975aea",
           "fdae5339cdaacebe",
-          "8d60bba73ac2787b",
           "a42d054d2bda09d0",
           "d282515cf23f3bb8",
           "35d43faff94daf10",
           "7ba999c7f2126448",
-          "1b0fc1e2ea855b1c",
-          "272bab66c491c858",
           "f5b5303747485fca",
           "7e0fbc79929b5b76",
           "cb1fea052c2f40cc",
@@ -4811,7 +4798,6 @@
           "217688e74169c39e",
           "0a479636e307fdf7",
           "cc35e1eb2089593b",
-          "4b35e0fa15c39c6a",
           "ff4cec45d5553508",
           "4ea7eb9e3b080fed",
           "dca2a56289096448",
@@ -4823,7 +4809,6 @@
           "1d3722b965ec32d9",
           "896ee117249ce192",
           "8e392042e158d440",
-          "c1c15b89f6b58455",
           "a87a4494a0c39214",
           "bbffb9b814c9ba13",
           "41223f7be1bf6c66",
@@ -4869,7 +4854,6 @@
           "f885ec23037a0e11",
           "886cd3d994f6014c",
           "5dd8a92b8172b46a",
-          "693bbcd896005cb8",
           "443eb8985464f690",
           "9ca5cbb2986b1798",
           "31bcb63d3e760b23",
@@ -4895,14 +4879,12 @@
           "c0408194ccde6385",
           "61145389017c0456",
           "8702a9437e5bf85e",
-          "91a0e4aba5baf0aa",
           "f43efb32bf5cf370",
           "262f2514811e008c",
           "dd3b796f27cdb192",
           "6c081b013be00cee",
           "3fca02e118ac4b6a",
           "ee0d841a9c040e25",
-          "7a0673785aef65d6",
           "691a233fcd5c1cc5",
           "774bfbc8ab7805ba",
           "7644ad348f20c097",
@@ -4914,8 +4896,7 @@
           "8c31573b3fa95857",
           "5291641754b6fa06",
           "def99f428df25bcc",
-          "b0dc4c9cbcd3e61e",
-          "5a8e7392dd213881"
+          "b0dc4c9cbcd3e61e"
         ],
         "dropped": [
           "3ed1c081935c62ce",
@@ -5029,14 +5010,6 @@
           "errors": [],
           "limit_documents": 2,
           "result": "PASS"
-        },
-        "DB-F1-003": {
-          "n": 234,
-          "changed": [],
-          "dropped": [],
-          "errors": [],
-          "limit_documents": 2,
-          "result": "PASS"
         }
       },
       "combined_gold": {
@@ -5055,10 +5028,8 @@
           "7550aa66f80ae7c0",
           "c3d6c6b67a11a989",
           "b8d161e14742a312",
-          "748f601ae024b27c",
           "3a3f617148815241",
           "f20d2c1d0f21d026",
-          "1e5508d2962ddc6a",
           "7a4d26d7944e45a1",
           "aa8349351a3ec6ad",
           "a39c1d6613339084",
@@ -5070,7 +5041,6 @@
           "9aa74d85206e0e2b",
           "4b8ae0431de8850b",
           "a4980dfb1a672de8",
-          "3f87faf5851872f1",
           "c4f7d073273b4048",
           "10ee275a9dea2acf",
           "2f2fbdf81419e6f5",
@@ -5191,14 +5161,6 @@
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
-        },
-        "DB-F1-003": {
-          "n": 67,
-          "changed": [],
-          "dropped": [],
-          "errors": [],
-          "limit_documents": 1,
-          "result": "PASS"
         }
       },
       "combined_gold": {
@@ -5212,7 +5174,6 @@
       "combined_pack": {
         "n": 500,
         "changed": [
-          "157a92dae8c7615d",
           "7261baa0a3edfb1d",
           "a02caf8e245bbcf3",
           "2a5f73bb1b272717",
@@ -5230,9 +5191,7 @@
           "4b82ad7e92695e55",
           "0f58a7ef798cc635",
           "9fb6446d62cd9b6c",
-          "9621cf17c5736cf0",
           "f5c53cee3cf98112",
-          "274d55294fbe497b",
           "4afe033e58052d68",
           "c41ed049261af1f3",
           "a9453140c7a770a1",
@@ -5266,7 +5225,6 @@
           "dfefa94752636673",
           "c02e0ea3fe225110",
           "738a512de07c9191",
-          "c7a2e4fc27755fcc",
           "36ec064654f3569f",
           "4341269d71f31499",
           "e3794ff0495fb376",
@@ -5294,21 +5252,16 @@
           "a0fda086fb33034b",
           "8dbd286b4981e1cb",
           "b9704157a6671f7c",
-          "9748e7143a5e93c9",
-          "36d8116218d8e18a",
           "616c483d9fcd6c27",
           "868de61beb15afa1",
-          "d7320ae5a58aac10",
           "23f947e89804a196",
           "41b896fd170a34ca",
           "4d0a570286ef0833",
           "b1d3e15982c34a0e",
           "2769482745a359c7",
-          "717813c65d28deec",
           "89b547763f1784f4",
           "afd294fc18465a08",
-          "919b3ec55ee3bfc1",
-          "55525f3dfa7fdfb2"
+          "919b3ec55ee3bfc1"
         ],
         "dropped": [
           "57294dfeff306304",
@@ -5451,14 +5404,6 @@
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
-        },
-        "DB-F1-003": {
-          "n": 130,
-          "changed": [],
-          "dropped": [],
-          "errors": [],
-          "limit_documents": 1,
-          "result": "PASS"
         }
       },
       "combined_gold": {
@@ -5575,14 +5520,6 @@
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
-        },
-        "DB-F1-005": {
-          "n": 45,
-          "changed": [],
-          "dropped": [],
-          "errors": [],
-          "limit_documents": 1,
-          "result": "PASS"
         }
       },
       "combined_gold": {
@@ -5600,15 +5537,12 @@
           "95fcd3a60a26a368",
           "10c1bbd17380fb15",
           "352f61da6247acd6",
-          "10e60ad0965db2c1",
           "9e6f962f2be34876",
           "96c2582ac07d1e04",
-          "c472a3db00395ba6",
           "2c8cbb93230afa7d",
           "945ed506b47bbafc",
           "537c659abc80e1a6",
           "a4153fd935d239d9",
-          "76fdbcb28c49fc27",
           "7ac7b308228f3ad7",
           "91eea0530670d2f8",
           "1548138be5151389",
@@ -5626,7 +5560,6 @@
           "d78b35287b746574",
           "2749edfd33a4cb37",
           "6de6e36caaf540b9",
-          "1792def06370f03e",
           "a94b940f10441a9b",
           "6f8df6a1e26de654",
           "c69e1a6483bd6ac2",
@@ -5636,7 +5569,6 @@
           "502e2621f024d74d",
           "e86caa84ec92a192",
           "9dc01e19af71a83a",
-          "51f68b9da172f3ae",
           "46041fd3e4c244ca",
           "bd00df225e66a17f",
           "b97d07f5fb39741f",
@@ -5655,7 +5587,6 @@
           "157858cf4ee0e60b",
           "4d34a1a3048e4e7d",
           "4bca14f5b27788ec",
-          "99aef15a39ddc21c",
           "4ca6103d6b8e1d9c",
           "01889f08ad435afa",
           "a942f2e7c4f748cc",
@@ -5671,13 +5602,10 @@
           "a2de22174cc7fd60",
           "037dd826b84f6f32",
           "0f52e8c63e977510",
-          "bafe29d8add27a01",
-          "ea24c30c80be30df",
           "39d902703f233992",
           "7c1f12f761dd4395",
           "4a2b2bc6ca58335a",
           "5a22566fc782e7fe",
-          "7ae96e0c9d17cf41",
           "06f5bc84c497ab74",
           "848aef9c84b1f845",
           "1478243b56864e4f",
@@ -5790,14 +5718,6 @@
           "result": "PASS"
         },
         "DB-B4-002": {
-          "n": 27,
-          "changed": [],
-          "dropped": [],
-          "errors": [],
-          "limit_documents": 1,
-          "result": "PASS"
-        },
-        "DB-F1-005": {
           "n": 27,
           "changed": [],
           "dropped": [],
@@ -5991,14 +5911,6 @@
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
-        },
-        "DB-F1-005": {
-          "n": 103,
-          "changed": [],
-          "dropped": [],
-          "errors": [],
-          "limit_documents": 1,
-          "result": "PASS"
         }
       },
       "combined_gold": {
@@ -6016,7 +5928,6 @@
           "1a60d090264d7942",
           "3db23e9e76ca858e",
           "c3ade5a08282ceea",
-          "8316a46dcc84a688",
           "035d7a62badd87a3",
           "0fddd312da4d1f53",
           "84b68b5e64af6321",
@@ -6034,7 +5945,6 @@
           "3353185ca785923e",
           "2bb2e05c4eacf24f",
           "af897fd315bd2a8b",
-          "c713689df252717f",
           "8068dbf413e834f7",
           "f8849202ab1a46be",
           "a31dbea5a0d6b216",
@@ -6047,7 +5957,6 @@
           "537bcf926fe3415f",
           "c2473fe6ac414d6f",
           "d538f5625cac72a8",
-          "0dbd62467ee13319",
           "9c3494808deb97a7",
           "d332ebcfc14a1d12",
           "f8a015e3eca2c954",
@@ -6167,14 +6076,6 @@
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
-        },
-        "DB-F1-006": {
-          "n": 140,
-          "changed": [],
-          "dropped": [],
-          "errors": [],
-          "limit_documents": 1,
-          "result": "PASS"
         }
       },
       "combined_gold": {
@@ -6198,10 +6099,8 @@
           "5c05e18231a55839",
           "c8ad1802a6fbb058",
           "654e623661c0b8c6",
-          "26dda2c33506f1ff",
           "9c9cb2366bc14d88",
           "36198f74122a5919",
-          "dac55ea8bc131eb1",
           "052f2791183c599c",
           "ea74237e4114182f",
           "2815f742fa358d99",
@@ -6219,7 +6118,6 @@
           "70386fb4070fc50f",
           "678e525481bd9723",
           "875818dd2944faba",
-          "6169b09fe7801904",
           "e6b4976ea98d0201",
           "9b72ed35dc9f139d",
           "95c44a1c33389719",
@@ -6250,12 +6148,10 @@
           "e9695776c7f0759f",
           "baf65fb63aad97d8",
           "16802c1b71453845",
-          "a17a859aa9af0546",
           "ae7305a6399c73a4",
           "af6d761021e6cdf8",
           "d105bc0a3cae322a",
           "5e5dfd4352f5175a",
-          "fffbc3de78a629e0",
           "882d0520964c5691",
           "9c89c65a56773845",
           "1b4157e305d9f847",
@@ -6264,7 +6160,6 @@
           "7e79c712d70e4f59",
           "f5173b6ce87f3538",
           "3cd39218930da1e3",
-          "063a5502a992bd85",
           "a38b25d1523e45f9",
           "3a87c3949bbefd3e",
           "e44e79f1da899fb0",
@@ -6381,14 +6276,6 @@
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
-        },
-        "DB-F1-007": {
-          "n": 88,
-          "changed": [],
-          "dropped": [],
-          "errors": [],
-          "limit_documents": 1,
-          "result": "PASS"
         }
       },
       "combined_gold": {
@@ -6420,6 +6307,7 @@
           "a0aeab58462420bc",
           "d7372ee74272ac60",
           "6edb80f189e7a6d9",
+          "fedd23c56d6850a6",
           "25d9b4f3234ded72",
           "3532a8bbeeb1e5fe",
           "09f78635c7686fd8",
@@ -6470,6 +6358,7 @@
           "ebd9df55e9518211",
           "f71f009683aff212",
           "ed6affb52c006a8a",
+          "727a8a3d9a6f4fd4",
           "8d3e4ed78fbd4bfc",
           "47219cd9ac8bdc6c",
           "d9303a5ea7be218e",
@@ -6527,6 +6416,7 @@
           "7715e7470faf4c35",
           "9887087dc04ed50d",
           "038ffeeda8d9dca7",
+          "6402789257fa2f5a",
           "5d9c437be099626e",
           "789de958ee2b7a1a",
           "9b2356eb730083ef",
@@ -6668,27 +6558,17 @@
         ],
         "dropped": [
           "61b2c25e9513730b",
-          "fab4928039a870ab",
           "a274c193c5e5f3ee",
           "10cfc7c874a1bb29",
           "d89a364142de1d38",
           "0ad004d5deb1e7fe",
-          "8924481cb3403322",
-          "fedd23c56d6850a6",
           "d0b76c2968e55e7d",
           "9910e11f3461f5d0",
           "994056d70dd415f8",
-          "001bc250879bd0f7",
-          "50bf742434fe8393",
-          "727a8a3d9a6f4fd4",
-          "d2dbdd1f87b6a3e1",
-          "66ebbb3c7f89fc6e",
           "866b1853d8a9d95a",
           "43785419033933e9",
           "7f79826d091b1834",
           "9e41a5d56ac92089",
-          "404f212106f160c8",
-          "6402789257fa2f5a",
           "f94044ff48697280",
           "9ed1317a6abd1ce0",
           "f0b421e314af77d6",
@@ -6696,14 +6576,12 @@
           "787dd37a24269172",
           "a3a467b4dcb9c51b",
           "816e770dc45f85c5",
-          "7d5867bf37cf6900",
           "4c7b3c1a1061d97f",
           "e977e6e5b6339831",
           "78d17bae5d29f865",
           "c4cbdc3ab951c6b8",
           "a07ef1c92c0cceb3",
           "915caa7e4b7ded75",
-          "b5776aacf45b7cac",
           "802ea4e0038fae55"
         ],
         "errors": [],
@@ -6824,14 +6702,6 @@
           "result": "PASS"
         },
         "DB-B4-004": {
-          "n": 68,
-          "changed": [],
-          "dropped": [],
-          "errors": [],
-          "limit_documents": 1,
-          "result": "PASS"
-        },
-        "DB-F1-008": {
           "n": 68,
           "changed": [],
           "dropped": [],
@@ -7003,7 +6873,6 @@
           "3edf6f8f1366e81f",
           "f15cb59f69817417",
           "4653ddd7fd3fc308",
-          "aafd2d8a6d638218",
           "8dacf1ffaf5ea80f",
           "95f3631d1ffd1f6e",
           "9c5aadd5ed1fd86a",
@@ -7501,14 +7370,6 @@
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
-        },
-        "DB-F1-010": {
-          "n": 18,
-          "changed": [],
-          "dropped": [],
-          "errors": [],
-          "limit_documents": 1,
-          "result": "PASS"
         }
       },
       "combined_gold": {
@@ -7523,7 +7384,6 @@
         "n": 500,
         "changed": [
           "4dff27fbc7052a2c",
-          "c5a74a6de69221b8",
           "c366b77cfbaa1ca4",
           "7bf385a9a1c4fb03",
           "93bbfccf9f8b420f",
@@ -7531,7 +7391,6 @@
           "f13247880d899629",
           "5503cef7a31ecb36",
           "8e40b1ed0575431e",
-          "b6ddb1f2f2e4456f",
           "6cf4ff7e0ca19ddf",
           "92f5760870cdd59d",
           "93e12eda26737171",
@@ -7548,7 +7407,6 @@
           "6eab4dbf2c6122fc",
           "32af6c88af5197f5",
           "13c7b26934e4bb05",
-          "d62267ffb63586c6",
           "6ff09e9d46423aca",
           "f4decbed68c9f633",
           "40b000654e2a0798",
@@ -7569,7 +7427,6 @@
           "fa6cf942c7c88aaf",
           "58251ca1eae9e9ca",
           "8b81d877c44df99c",
-          "ed4dc90ebfde2f56",
           "ee82b5653a41e703",
           "7d1b11163e35e658",
           "c5ccbaf027e082d3",
@@ -7588,7 +7445,6 @@
           "718a78420b711442",
           "f415fb2adcd485e2",
           "e3d31e38cd709220",
-          "85603a67bc5dba93",
           "ac5dbe469948ac5e",
           "14084cdd46c29cf0",
           "78b1d93ba9aa11f9",
@@ -7628,7 +7484,6 @@
           "b3707e7b2e4a3b61",
           "33817e6f4452aec1",
           "937d8a613a18e6fc",
-          "cc7210ddc1a4c6e6",
           "dd64aef74210ffe8",
           "6c593bbe5b8d94e9",
           "f1058ebe8fbacedd",
@@ -7850,14 +7705,6 @@
           "result": "PASS"
         },
         "DB-B4-006": {
-          "n": 5,
-          "changed": [],
-          "dropped": [],
-          "errors": [],
-          "limit_documents": 1,
-          "result": "PASS"
-        },
-        "DB-F1-010": {
           "n": 5,
           "changed": [],
           "dropped": [],
@@ -8122,14 +7969,6 @@
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
-        },
-        "DB-F1-010": {
-          "n": 27,
-          "changed": [],
-          "dropped": [],
-          "errors": [],
-          "limit_documents": 1,
-          "result": "PASS"
         }
       },
       "combined_gold": {
@@ -8150,7 +7989,6 @@
           "0049a605ea022805",
           "b4523e3d75fea2fd",
           "a2fe262d06a6c8d1",
-          "e9c38edc91c1f080",
           "7d0eb95ce450da31",
           "a49dde064901e3c4",
           "78fafac09ce98623",
@@ -8175,7 +8013,6 @@
           "9d67d54ba7ac66e7",
           "a107b9c63ce760b8",
           "598e28c450bf2c6d",
-          "9fefe56cad5d02eb",
           "97ea81fd3b0243ce",
           "5c626d8adbf27718",
           "f4a7b263fde8b2dc"
@@ -8896,5 +8733,5 @@
       "out_of_pack_guard": "PASS"
     }
   },
-  "spec_sha256": "5c2eb5128e29585fefd2aee6ca3725b5209061f69674819522dc39e93f7a4a41"
+  "spec_sha256": "e35944cdcc6ec115bc65728fb8a4433a59d20fa8779bf7a5b5bc90f85265f196"
 }

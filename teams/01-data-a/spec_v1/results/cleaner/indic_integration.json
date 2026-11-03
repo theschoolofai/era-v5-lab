@@ -1,5 +1,13 @@
 {
-  "source_sha256": "b8cfa18c0b871b39425a1eb4981c44fafe9e17abfc8516c85c07622bf4a0ea29",
+  "source_sha256": "c64f03cec960ab680766df9a02bdc902be0e81d28544cfb73b13150939686940",
+  "f1_rule_sha256": "28250b0688c9cabaf16b13aca0c35beebd9343772196a5cd286cd2e81e773fd4",
+  "combined_execution": "selected native medicines followed by shared Indic F1",
+  "placeholder_compatibility_rules": [
+    "DB-B2-001",
+    "DB-B2-003",
+    "DB-B2-004"
+  ],
+  "source_code_sha256": "bc84738e8a7cab5f0a9091f179861751c72346ae1b90e4e3fa6cf40a1184edd2",
   "policy": "one eligible candidate per pack/disease, first in source order; F2 deferred; no approvals inferred",
   "privacy_missing_packs": [],
   "rules": {
@@ -1584,8 +1592,8 @@
         "joiners: RuntimeError",
         "nfc: RuntimeError",
         "current own-pack gold: ERROR",
-        "requires ITIHASA_TEST_SN and independent benchmark approval; not part of this build",
-        "benchmark policy/fingerprints unresolved; keep-only detector is not implemented cleaning"
+        "legacy Itihasa rule requires ITIHASA_TEST_SN; optional G9 F2 does not cover Itihasa",
+        "legacy sentence-based F2 is excluded; G9 decontamination is separate and opt-in through run_clean.py --f2"
       ],
       "gold": {
         "n": 68,
@@ -1871,7 +1879,7 @@
         "result": "NOT TESTABLE"
       },
       "status": "DEFERRED",
-      "reason": "prose: RuntimeError; joiners: RuntimeError; nfc: RuntimeError; current own-pack gold: ERROR; requires ITIHASA_TEST_SN and independent benchmark approval; not part of this build; benchmark policy/fingerprints unresolved; keep-only detector is not implemented cleaning"
+      "reason": "prose: RuntimeError; joiners: RuntimeError; nfc: RuntimeError; current own-pack gold: ERROR; legacy Itihasa rule requires ITIHASA_TEST_SN; optional G9 F2 does not cover Itihasa; legacy sentence-based F2 is excluded; G9 decontamination is separate and opt-in through run_clean.py --f2"
     },
     "DB-F3-001": {
       "pack": "ind-bn-fw2",
@@ -3587,7 +3595,9 @@
       "pack": "ind-gu-fw2",
       "code": "F1",
       "synthetic_issues": [],
-      "review_issues": [],
+      "review_issues": [
+        "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+      ],
       "gold": {
         "n": 19,
         "changed": [],
@@ -3600,7 +3610,7 @@
         "errors": []
       },
       "status": "DEFERRED",
-      "reason": "overlap alternative; provisional source-order selection is DB-F1-001"
+      "reason": "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
     },
     "DB-F1-003": {
       "pack": "ind-hi-hplt",
@@ -3627,7 +3637,9 @@
       "pack": "ind-hi-hplt",
       "code": "F1",
       "synthetic_issues": [],
-      "review_issues": [],
+      "review_issues": [
+        "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+      ],
       "gold": {
         "n": 67,
         "changed": [],
@@ -3640,7 +3652,7 @@
         "errors": []
       },
       "status": "DEFERRED",
-      "reason": "overlap alternative; provisional source-order selection is DB-F1-003"
+      "reason": "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
     },
     "DB-F1-005": {
       "pack": "ind-kn-fw2",
@@ -3730,7 +3742,9 @@
       "pack": "ind-sa-fw2",
       "code": "F1",
       "synthetic_issues": [],
-      "review_issues": [],
+      "review_issues": [
+        "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+      ],
       "gold": {
         "n": 68,
         "changed": [],
@@ -3743,7 +3757,7 @@
         "errors": []
       },
       "status": "DEFERRED",
-      "reason": "overlap alternative; provisional source-order selection is DB-F1-008"
+      "reason": "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
     },
     "DB-F1-010": {
       "pack": "ind-te-fw2",
@@ -3771,7 +3785,7 @@
       "code": "F2",
       "synthetic_issues": [],
       "review_issues": [
-        "benchmark policy/fingerprints unresolved; keep-only detector is not implemented cleaning"
+        "legacy sentence-based F2 is excluded; G9 decontamination is separate and opt-in through run_clean.py --f2"
       ],
       "gold": {
         "n": 68,
@@ -3784,7 +3798,7 @@
         "result": "NOT TESTABLE"
       },
       "status": "DEFERRED",
-      "reason": "benchmark policy/fingerprints unresolved; keep-only detector is not implemented cleaning"
+      "reason": "legacy sentence-based F2 is excluded; G9 decontamination is separate and opt-in through run_clean.py --f2"
     }
   },
   "overlaps": [
@@ -4297,7 +4311,6 @@
       "errors": []
     }
   },
-  "source_code_sha256": "1954d9e32328d841e07152d5adf6c492fa62b60b3086d13c709211d9a9778cab",
   "sibling_scopes_report": "indic_sibling_scopes.json",
   "rule_scopes": {
     "DB-A3-001": [
@@ -4695,33 +4708,6 @@
       "ind-ta-sangraha-v"
     ],
     "DB-B4-006": [
-      "ind-te-fw2",
-      "ind-te-sangraha-s",
-      "ind-te-sangraha-v"
-    ],
-    "DB-F1-001": [
-      "ind-gu-fw2"
-    ],
-    "DB-F1-003": [
-      "ind-hi-fw2",
-      "ind-hi-hplt",
-      "ind-hi-indiccorp"
-    ],
-    "DB-F1-005": [
-      "ind-kn-fw2",
-      "ind-kn-sangraha-s",
-      "ind-kn-sangraha-v"
-    ],
-    "DB-F1-006": [
-      "ind-mr-fw2"
-    ],
-    "DB-F1-007": [
-      "ind-mr-sangraha-v"
-    ],
-    "DB-F1-008": [
-      "ind-sa-fw2"
-    ],
-    "DB-F1-010": [
       "ind-te-fw2",
       "ind-te-sangraha-s",
       "ind-te-sangraha-v"

@@ -7,7 +7,7 @@
     "train": 48,
     "heldout": 38
   },
-  "clean_sha256": "27eaac4479abe0ab82c030302e949ea427c94e401b3d0773d2998a587d68cdf2",
+  "clean_sha256": "97c1a55b89f4a15ef4985928ef124f29f04a37c21038eb0ea4977598767ae58f",
   "input_root": "inputs/tokenizer_sample_v0",
   "output_root": "out/tokenizer_sample_v0_clean",
   "batch_size": 128,

@@ -13,6 +13,15 @@ job = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(job)
 
 
+def test_committed_request_pins_current_cleaner_and_sample_manifest():
+    config = json.loads((SPEC / 'jobs/tokenizer_sample_v0_clean.json').read_text(encoding='utf-8'))
+    assert config['clean_sha256'] == job.digest(SPEC / 'clean.py')
+    assert config['manifest_sha256'] == job.digest(SPEC / 'jobs/tokenizer_sample_v0_manifest.json')
+    assert config['expected_parts'] == {'train': 48, 'heldout': 38}
+    assert config['optional_f2'] is False
+    assert config['unsupported_policy'] == 'passthrough_with_explicit_status'
+
+
 def part(tmp_path, pack='en-dclm', split='train'):
     rows = [dict(doc_id='d1', text='Area of a circle.\n', pack_id=pack, lang_label='en', url=''),
             dict(doc_id='d2', text='Area\u200b of a circle.\n', pack_id=pack, lang_label='en', url=''),

@@ -93,3 +93,84 @@ def test_clean_runs_the_indic_f1_last_on_every_indic_pack():
 def test_the_indic_path_runs_only_on_indic_packs(pack):
     doc = dict(ind("\u092e\u0947\u0930\u093e \u0928\u0902\u092c\u0930 9876543210 \u0939\u0948"), pack_id=pack)
     assert c._shared_f1(doc)[1] == doc["text"]
+
+
+@pytest.mark.parametrize('text', [
+    'Police department mobile: 9876543210',
+    'Police department WhatsApp: 9876543210',
+    'विद्यालय कार्यालय मोबाइल: 9876543210',
+    'University office: संपर्क करें 9876543210',
+])
+def test_a_device_label_does_not_override_organization_ownership(text):
+    assert c.f1(ind(text)) == ('keep', text)
+
+
+@pytest.mark.parametrize('prompt', ['संपर्क करें', 'हमसे संपर्क', 'Contact'])
+def test_a_contact_prompt_is_not_evidence_of_an_organization(prompt):
+    text = f'{prompt}: 9876543210 या ravi{AT}gmail.com'
+    assert c.f1(ind(text)) == ('fix', f'{prompt}: <PHONE> या <EMAIL>')
+
+
+@pytest.mark.parametrize('text,expected', [
+    ('My mobile: 919876543210', 'My mobile: <PHONE>'),
+    ('मोबाइल: ९१९८७६५४३२१०', 'मोबाइल: <PHONE>'),
+    ('Police officer personal mobile: 9876543210', 'Police officer personal mobile: <PHONE>'),
+    ('Police officer home: 011-23456789', 'Police officer home: <PHONE>'),
+    (f'University staff personal email: ravi{AT}gmail.com', 'University staff personal email: <EMAIL>'),
+])
+def test_prefixes_and_explicit_personal_ownership(text, expected):
+    assert c.f1(ind(text)) == ('fix', expected)
+
+
+@pytest.mark.parametrize('rid', ['DB-B2-001', 'DB-B2-003', 'DB-B2-004'])
+def test_markup_still_strips_html_but_preserves_reserved_privacy_tokens(rid):
+    pack = sorted(c.SCOPE[rid])[0]
+    text = 'पहला <b>text</b> <PHONE> <EMAIL> <ADDRESS> \ufdd0 <PHONE>'
+    doc = ind(text, pack)
+    original = dict(doc)
+    expected = text.replace('<b>', '').replace('</b>', '')
+    rule = c._RULE[rid]()
+    assert rule(doc) == ('fix', expected)
+    assert doc == original
+    assert rule(dict(doc, text=expected)) == ('keep', expected)
+
+
+@pytest.mark.parametrize('pack', [
+    'ind-hi-fw2', 'ind-kn-fw2', 'ind-kn-sangraha-v', 'ind-te-fw2', 'ind-te-sangraha-v',
+])
+def test_complete_pipeline_preserves_privacy_tokens_on_a_second_pass(pack):
+    prose = {'hi': 'इस लेख में नदी और खेती के इतिहास के बारे में जानकारी दी गई है।',
+             'kn': 'ಈ ಲೇಖನದಲ್ಲಿ ನದಿ ಮತ್ತು ಕೃಷಿಯ ಇತಿಹಾಸದ ಬಗ್ಗೆ ಮಾಹಿತಿ ನೀಡಲಾಗಿದೆ.',
+             'te': 'ఈ వ్యాసంలో నది మరియు వ్యవసాయ చరిత్ర గురించి సమాచారం ఉంది.'}
+    text = (prose[pack.split('-')[1]] + '\n') * 3 + f'9876543210 ravi{AT}gmail.com\n'
+    doc = ind(text, pack)
+    action, once = c.clean(doc)
+    assert action == 'fix' and '<PHONE>' in once and '<EMAIL>' in once
+    assert c.clean(dict(doc, text=once)) == ('keep', once)
+
+
+@pytest.mark.parametrize('gold_state', ['valid', 'empty'])
+def test_harm_report_does_not_accept_partial_coverage(tmp_path, gold_state):
+    import json
+    import subprocess
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    packs, gold = tmp_path / 'packs', tmp_path / 'gold'
+    packs.mkdir()
+    gold.mkdir()
+    doc = ind('इस लेख में नदी और खेती के इतिहास के बारे में जानकारी दी गई है।\n' * 8)
+    pq.write_table(pa.Table.from_pylist([doc]), packs / 'ind-hi-fw2.parquet')
+    (gold / 'ind-hi-fw2_gold.csv').write_text(
+        'doc_id,reader_1,reader_2\n' + ('x,reader-one,reader-two\n' if gold_state == 'valid' else ''), encoding='utf-8')
+    out = tmp_path / 'harm.json'
+    script = Path(__file__).resolve().parents[1] / 'tools/harm_f1_indic.py'
+    result = subprocess.run([sys.executable, str(script), '--packs', str(packs), '--gold', str(gold), '--out', str(out)],
+                            capture_output=True, text=True, encoding='utf-8')
+    assert result.returncode == 2, result.stderr
+    data = json.loads(out.read_text(encoding='utf-8'))
+    if gold_state == 'valid':
+        assert data['packs']['ind-hi-fw2']['clean']['result'] == 'PASS'
+    else:
+        assert data['packs']['ind-hi-fw2']['why'] == 'Gold set empty, not testable'
+    assert data['packs']['ind-kn-fw2']['result'] == 'NOT RUN'

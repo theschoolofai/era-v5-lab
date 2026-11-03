@@ -1,6 +1,6 @@
 # Indic integration
 
-The generated cleaner now includes the Indic family from `sheets/medicine_indic.md`. The original source sheet and contributor functions remain unchanged. The consolidated `sheets/specv1.md` contains all 176 source cards, with 115 selected candidates and 61 explicitly deferred cards. The final cleaner has 185 sheet rules plus the existing shared F1, across five families and 29 validated packs (16 Indic).
+The generated cleaner includes the Indic family from `sheets/medicine_indic.md`. Copied contributor functions remain unchanged; Data A policy notes are separate from them. The consolidated `sheets/specv1.md` contains all 176 source cards, with 108 selected candidates and 68 explicitly deferred cards. The final cleaner has 178 sheet rules plus shared F1 (179 active rule IDs), across five families and 29 validated packs (16 Indic).
 
 Selections remain CANDIDATE. Loading and compatibility checks do not establish positive-case recall or independent approval.
 
@@ -22,7 +22,11 @@ Indic uses the pack guard, independently of whether a source language tag uses `
 
 The source contributes native candidates from 13 packs. Its sibling policy is declared near the top of `sheets/medicine_indic.md`, separately from the copied contributor code. Integration tests selected donors on same-language receivers and writes accepted `ORIGIN`/`SPEC_PACKS` scopes to `sheets/specv1.md`, with `SOURCE_ORIGIN` retaining the donor. Native disease selections take priority; only missing diseases are filled. `clean.py` is generated from those scopes.
 
-The current review accepts **81 additional rule/pack scopes**, extending coverage to **16 Indic packs**. Newly supported: `ind-bn-sangraha-v`, `ind-hi-indiccorp`, `ind-te-sangraha-v`. Existing packs also gain validated rules for previously uncovered diseases. See `results/cleaner/indic_sibling_scopes.json` for every attempted scope, rejection reason, gold result and combined full-pack check.
+The current review accepts **75 additional rule/pack scopes**, extending coverage to **16 Indic packs**. Newly supported: `ind-bn-sangraha-v`, `ind-hi-indiccorp`, `ind-te-sangraha-v`. Six previously borrowed F1 scopes are replaced by shared F1. Existing packs also gain validated rules for previously uncovered diseases. See `results/cleaner/indic_sibling_scopes.json` for every attempted scope, rejection reason, gold result and combined full-pack check. Its combined checks include shared F1, and `shared_f1_packs` records all 16 covered packs.
+
+Data A adds a labelled compatibility wrapper to the generated `DB-B2-001`, `DB-B2-003` and `DB-B2-004` cards. It preserves reserved `<PHONE>`, `<EMAIL>` and `<ADDRESS>` markers while the original contributor functions remove HTML. The copied functions are unchanged; the sheet harm runner, sibling review and generated cleaner use the same wrapper. Full pipeline interaction checks include shared F1 last. Shared F1 recognizes contiguous `91` prefixes, distinguishes generic mobile labels from explicit personal ownership, and does not treat a generic Hindi contact prompt as organization evidence.
+
+TSAI Issue #211 intake: the 176 source cards are the ready inventory, not a claim that every candidate is executable. Deferred decisions and overlap alternatives remain explicit in the reports. Additional re-runs must use current own-pack gold by 4 November 23:59 IST; medicines with missing/empty gold remain outside executable spec v1. Format rewrites require the author's approval in their PR, and flag-only entries remain notes in Data B's `rules_status.md`. No pending medicine is enabled by this refresh. Later intake follows the deadline and the same validation gates.
 
 Still unsupported: `ind-hi-sangraha-s`, `ind-hi-sangraha-v`, `ind-ta-fw2`, `ind-ta-sangraha-s` (no usable receiving gold), and `ind-ml-fw2`, `ind-or-fw2` (no same-language donor). They are not registered merely because their language is known. `run_clean.py` rejects unsupported packs.
 
@@ -63,11 +67,11 @@ This compares actions and text for the original 13 packs, distinguishes matching
 
 ## Measured verification
 
-- The full unit/contract suite, F2 runner tests and sibling-scope tests pass **884 tests** after rebuilding.
+- The full spec unit/contract suite, F2 runner tests and sibling-scope tests are rerun after rebuilding; the current run is recorded with the job evidence.
 - All 16 supported Indic generated pipelines pass their own gold sets (1,300 documents total). Current gold impact: Hindi FW2 drops 1/234; Marathi FW2 changes 1/140; Sanskrit changes 1/68; the other 13 packs have zero gold impact. Each is within its own minimum-one limit.
 - All 8,000 supported Indic diagnosis documents execute without errors or second-pass changes.
 - Comparing all 6,500 original code/English/math/science documents with the pre-refresh baseline finds zero behavior differences. Three documents raise the same pre-existing exceptions in both cleaners (one Java, two Python); they remain recorded rather than counted as successful cleaning.
-- G9 F2 alone and the default cleaner followed by F2 pass gold on all 16 supported Indic packs. This does not establish Itihasa coverage or positive-case recall.
+- The optional F2 report is historical evidence for the cleaner digest it records. Optional G9 F2 is off for the tokenizer-sample job; this refresh makes no new F2 or Itihasa coverage claim.
 - Synthetic source/factory equivalence, pack isolation, joiners, source-trigger cases and build reproducibility are covered by the tests. These checks do not imply final approval.
 
 ## Evidence
@@ -78,4 +82,4 @@ This compares actions and text for the original 13 packs, distinguishes matching
 - `results/cleaner/specv1_validation.json`: executable sheet rules and combined pipelines, per-pack snapshots, missing inputs and out-of-pack guard checks.
 - `results/cleaner/indic_clean_validation.json`: generated cleaner versus the saved baseline, Indic gold/full-pack outcomes and second-run changes.
 
-Reports contain IDs, counts, digests and error types, not source text. The original four medicine sheets, shared F1 implementation and normalization fingerprints are unchanged by this integration.
+Reports contain IDs, counts, digests and error types, not source text. The original four Data A medicine sheets, copied Indic contributor functions and normalization fingerprints are unchanged. Shared Indic F1 and the labelled B2 compatibility wrappers are the explicit execution changes in this refresh.

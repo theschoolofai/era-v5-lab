@@ -9,6 +9,8 @@ The copied contributor blocks below retain their original `ORIGIN`, algorithms a
 
 Native selections take priority. Borrowed candidates fill missing diseases only and must pass the receiving pack's nonempty gold, ordinary-prose/joiner probes, full-pack runtime/idempotence and combined-pipeline checks. Empty or missing gold remains NOT TESTABLE; a language match is not a gold pass. Malayalam and Odia cannot borrow without a same-language donor. Accepted scopes and rejected attempts are recorded in `results/cleaner/indic_sibling_scopes.json`. These remain CANDIDATE selections, not independent approval or proof of recall.
 
+Data A privacy compatibility: integration adds a labelled wrapper to `DB-B2-001`, `DB-B2-003` and `DB-B2-004` in the consolidated spec to preserve reserved `<PHONE>`, `<EMAIL>` and `<ADDRESS>` tokens during HTML removal. The contributor functions below are unchanged. Native and sibling combined checks include shared Indic F1 last. Additional medicines still require current own-pack gold; unreadable-sheet rewrites require the author's approval, and flag-only entries remain notes in Data B's `rules_status.md`. Missing-gold medicines remain outside executable spec v1 pending their own gold and a later validated intake.
+
 ```json
 {
   "enabled": true,

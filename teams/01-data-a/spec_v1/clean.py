@@ -192,7 +192,7 @@ SCOPE = {
 }
 
 
-DEFERRED_RULES = {'DB-A5-002': 'overlap alternative; provisional source-order selection is DB-A5-001', 'DB-A5-004': 'not idempotent on own diagnosis pack', 'DB-A5-005': 'not idempotent on own diagnosis pack', 'DB-A5-007': 'acts again on retained documents after the full pipeline', 'DB-A6-002': 'overlap alternative; provisional source-order selection is DB-A6-001', 'DB-A6-005': 'overlap alternative; provisional source-order selection is DB-A6-004', 'DB-A6-010': 'acts again on retained documents after the full pipeline', 'DB-A6-011': 'acts again on retained documents after the full pipeline', 'DB-G1-002': 'not idempotent on own diagnosis pack', 'DB-G1-008': 'overlap alternative; provisional source-order selection is DB-G1-007', 'DB-G1-009': 'not idempotent on own diagnosis pack', 'DB-G2-002': 'overlap alternative; provisional source-order selection is DB-G2-001', 'DB-G4-001': 'acts again on retained documents after the full pipeline', 'DB-A3-003': 'overlap alternative; provisional source-order selection is DB-A3-001', 'DB-A6-015': 'overlap alternative; provisional source-order selection is DB-A6-003', 'DB-C3-003': 'joiners: drops ordinary synthetic prose', 'DB-C4-004': 'overlap alternative; provisional source-order selection is DB-C4-003', 'DB-C5-002': 'overlap alternative; provisional source-order selection is DB-C5-001', 'DB-D4-002': 'overlap alternative; provisional source-order selection is DB-D4-001', 'DB-D4-004': 'overlap alternative; provisional source-order selection is DB-D4-003', 'DB-D4-006': 'overlap alternative; provisional source-order selection is DB-D4-005', 'DB-D4-010': 'overlap alternative; provisional source-order selection is DB-D4-009', 'DB-F2-001': 'prose: RuntimeError; joiners: RuntimeError; nfc: RuntimeError; current own-pack gold: ERROR; requires ITIHASA_TEST_SN and independent benchmark approval; not part of this build; benchmark policy/fingerprints unresolved; keep-only detector is not implemented cleaning', 'DB-F3-002': 'overlap alternative; provisional source-order selection is DB-F3-001', 'DB-G3-001': 'acts again on retained documents after the full pipeline', 'DB-C1-002': 'overlap alternative; provisional source-order selection is DB-C1-001', 'DB-C1-004': 'not idempotent on own diagnosis pack', 'DB-C1-007': 'overlap alternative; provisional source-order selection is DB-C1-006', 'DB-C1-009': 'overlap alternative; provisional source-order selection is DB-C1-008', 'DB-C1-011': 'acts again on retained documents after the full pipeline', 'DB-C1-014': 'overlap alternative; provisional source-order selection is DB-C1-013', 'DB-C2-002': 'overlap alternative; provisional source-order selection is DB-C2-001', 'DB-C2-005': 'overlap alternative; provisional source-order selection is DB-C2-004', 'DB-C2-007': 'overlap alternative; provisional source-order selection is DB-C2-006', 'DB-C2-009': 'not idempotent on own diagnosis pack', 'DB-C2-011': 'acts again on retained documents after the full pipeline', 'DB-C3-005': 'joiners: removes script joiner', 'DB-C3-007': 'not idempotent on own diagnosis pack', 'DB-C3-008': 'not idempotent on own diagnosis pack', 'DB-C3-009': 'joiners: removes script joiner', 'DB-C3-011': 'overlap alternative; provisional source-order selection is DB-C3-004', 'DB-C3-012': 'joiners: removes script joiner', 'DB-C3-013': 'not idempotent on own diagnosis pack', 'DB-C3-014': 'not idempotent on own diagnosis pack', 'DB-C4-008': 'acts again on retained documents after the full pipeline', 'DB-C4-011': 'overlap alternative; provisional source-order selection is DB-C4-010', 'DB-C5-008': 'overlap alternative; provisional source-order selection is DB-C5-007', 'DB-C5-010': 'overlap alternative; provisional source-order selection is DB-C5-009', 'DB-C5-012': 'overlap alternative; provisional source-order selection is DB-C5-011', 'DB-C5-013': 'acts again on retained documents after the full pipeline', 'DB-C5-015': 'overlap alternative; provisional source-order selection is DB-C5-014', 'DB-D3-002': 'overlap alternative; provisional source-order selection is DB-D3-001', 'DB-D3-004': 'overlap alternative; provisional source-order selection is DB-D3-003', 'DB-D3-007': 'overlap alternative; provisional source-order selection is DB-D3-006', 'DB-D3-013': 'overlap alternative; provisional source-order selection is DB-D3-012', 'DB-G3-002': 'acts again on retained documents after the full pipeline', 'DB-H3-002': 'overlap alternative; provisional source-order selection is DB-H3-001', 'DB-F1-001': "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts", 'DB-F1-002': 'overlap alternative; provisional source-order selection is DB-F1-001', 'DB-F1-003': "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts", 'DB-F1-004': 'overlap alternative; provisional source-order selection is DB-F1-003', 'DB-F1-005': "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts", 'DB-F1-006': "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts", 'DB-F1-007': "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts", 'DB-F1-008': "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts", 'DB-F1-009': 'overlap alternative; provisional source-order selection is DB-F1-008', 'DB-F1-010': "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts", 'DB-F2-002': 'benchmark policy/fingerprints unresolved; keep-only detector is not implemented cleaning'}  # documented candidates excluded from execution
+DEFERRED_RULES = {'DB-A5-002': 'overlap alternative; provisional source-order selection is DB-A5-001', 'DB-A5-004': 'not idempotent on own diagnosis pack', 'DB-A5-005': 'not idempotent on own diagnosis pack', 'DB-A5-007': 'acts again on retained documents after the full pipeline', 'DB-A6-002': 'overlap alternative; provisional source-order selection is DB-A6-001', 'DB-A6-005': 'overlap alternative; provisional source-order selection is DB-A6-004', 'DB-A6-010': 'acts again on retained documents after the full pipeline', 'DB-A6-011': 'acts again on retained documents after the full pipeline', 'DB-G1-002': 'not idempotent on own diagnosis pack', 'DB-G1-008': 'overlap alternative; provisional source-order selection is DB-G1-007', 'DB-G1-009': 'not idempotent on own diagnosis pack', 'DB-G2-002': 'overlap alternative; provisional source-order selection is DB-G2-001', 'DB-G4-001': 'acts again on retained documents after the full pipeline', 'DB-A3-003': 'overlap alternative; provisional source-order selection is DB-A3-001', 'DB-A6-015': 'overlap alternative; provisional source-order selection is DB-A6-003', 'DB-C3-003': 'joiners: drops ordinary synthetic prose', 'DB-C4-004': 'overlap alternative; provisional source-order selection is DB-C4-003', 'DB-C5-002': 'overlap alternative; provisional source-order selection is DB-C5-001', 'DB-D4-002': 'overlap alternative; provisional source-order selection is DB-D4-001', 'DB-D4-004': 'overlap alternative; provisional source-order selection is DB-D4-003', 'DB-D4-006': 'overlap alternative; provisional source-order selection is DB-D4-005', 'DB-D4-010': 'overlap alternative; provisional source-order selection is DB-D4-009', 'DB-F2-001': 'prose: RuntimeError; joiners: RuntimeError; nfc: RuntimeError; current own-pack gold: ERROR; legacy Itihasa rule requires ITIHASA_TEST_SN; optional G9 F2 does not cover Itihasa; legacy sentence-based F2 is excluded; G9 decontamination is separate and opt-in through run_clean.py --f2', 'DB-F3-002': 'overlap alternative; provisional source-order selection is DB-F3-001', 'DB-G3-001': 'acts again on retained documents after the full pipeline', 'DB-C1-002': 'overlap alternative; provisional source-order selection is DB-C1-001', 'DB-C1-004': 'not idempotent on own diagnosis pack', 'DB-C1-007': 'overlap alternative; provisional source-order selection is DB-C1-006', 'DB-C1-009': 'overlap alternative; provisional source-order selection is DB-C1-008', 'DB-C1-011': 'acts again on retained documents after the full pipeline', 'DB-C1-014': 'overlap alternative; provisional source-order selection is DB-C1-013', 'DB-C2-002': 'overlap alternative; provisional source-order selection is DB-C2-001', 'DB-C2-005': 'overlap alternative; provisional source-order selection is DB-C2-004', 'DB-C2-007': 'overlap alternative; provisional source-order selection is DB-C2-006', 'DB-C2-009': 'not idempotent on own diagnosis pack', 'DB-C2-011': 'acts again on retained documents after the full pipeline', 'DB-C3-005': 'joiners: removes script joiner', 'DB-C3-007': 'not idempotent on own diagnosis pack', 'DB-C3-008': 'not idempotent on own diagnosis pack', 'DB-C3-009': 'joiners: removes script joiner', 'DB-C3-011': 'overlap alternative; provisional source-order selection is DB-C3-004', 'DB-C3-012': 'joiners: removes script joiner', 'DB-C3-013': 'not idempotent on own diagnosis pack', 'DB-C3-014': 'not idempotent on own diagnosis pack', 'DB-C4-008': 'acts again on retained documents after the full pipeline', 'DB-C4-011': 'overlap alternative; provisional source-order selection is DB-C4-010', 'DB-C5-008': 'overlap alternative; provisional source-order selection is DB-C5-007', 'DB-C5-010': 'overlap alternative; provisional source-order selection is DB-C5-009', 'DB-C5-012': 'overlap alternative; provisional source-order selection is DB-C5-011', 'DB-C5-013': 'acts again on retained documents after the full pipeline', 'DB-C5-015': 'overlap alternative; provisional source-order selection is DB-C5-014', 'DB-D3-002': 'overlap alternative; provisional source-order selection is DB-D3-001', 'DB-D3-004': 'overlap alternative; provisional source-order selection is DB-D3-003', 'DB-D3-007': 'overlap alternative; provisional source-order selection is DB-D3-006', 'DB-D3-013': 'overlap alternative; provisional source-order selection is DB-D3-012', 'DB-G3-002': 'acts again on retained documents after the full pipeline', 'DB-H3-002': 'overlap alternative; provisional source-order selection is DB-H3-001', 'DB-F1-001': "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts", 'DB-F1-002': "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts", 'DB-F1-003': "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts", 'DB-F1-004': "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts", 'DB-F1-005': "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts", 'DB-F1-006': "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts", 'DB-F1-007': "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts", 'DB-F1-008': "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts", 'DB-F1-009': "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts", 'DB-F1-010': "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts", 'DB-F2-002': 'legacy sentence-based F2 is excluded; G9 decontamination is separate and opt-in through run_clean.py --f2'}  # documented candidates excluded from execution
 
 @cache
 def _code_a1_001():
@@ -5573,6 +5573,33 @@ def _indic_db_b2_001():
         if doc.get("pack_id") not in _PACKS:
             return ("keep", doc["text"])
         return _std(_AUTHOR_RULE(doc["text"]), doc["text"])
+
+    # Added by Data A: protect TSAI privacy placeholders from HTML stripping.
+    import re as _da_privacy_re
+    _da_privacy_tokens = _da_privacy_re.compile(r"<(?:PHONE|EMAIL|ADDRESS)>")
+
+    def _da_keep_privacy_placeholders(rule):
+        def medicine(doc):
+            original = doc["text"]
+            if not _da_privacy_tokens.search(original):
+                return rule(doc)
+            marker = "\ufdd0"
+            while marker in original:
+                marker += "\ufdd0"
+            tokens = []
+            def shield(match):
+                tokens.append(match.group(0))
+                return marker + str(len(tokens) - 1) + marker
+            protected = _da_privacy_tokens.sub(shield, original)
+            action, text = rule(dict(doc, text=protected))
+            if action == "drop":
+                return ("drop", original)
+            for index, token in enumerate(tokens):
+                text = text.replace(marker + str(index) + marker, token)
+            return ("fix" if text != original else "keep", text)
+        return medicine
+
+    medicine = _da_keep_privacy_placeholders(medicine)
     return medicine
 
 @cache
@@ -5659,6 +5686,33 @@ def _indic_db_b2_003():
         if doc.get("pack_id") not in _PACKS:
             return ("keep", doc["text"])
         return _std(_AUTHOR_RULE(doc["text"]), doc["text"])
+
+    # Added by Data A: protect TSAI privacy placeholders from HTML stripping.
+    import re as _da_privacy_re
+    _da_privacy_tokens = _da_privacy_re.compile(r"<(?:PHONE|EMAIL|ADDRESS)>")
+
+    def _da_keep_privacy_placeholders(rule):
+        def medicine(doc):
+            original = doc["text"]
+            if not _da_privacy_tokens.search(original):
+                return rule(doc)
+            marker = "\ufdd0"
+            while marker in original:
+                marker += "\ufdd0"
+            tokens = []
+            def shield(match):
+                tokens.append(match.group(0))
+                return marker + str(len(tokens) - 1) + marker
+            protected = _da_privacy_tokens.sub(shield, original)
+            action, text = rule(dict(doc, text=protected))
+            if action == "drop":
+                return ("drop", original)
+            for index, token in enumerate(tokens):
+                text = text.replace(marker + str(index) + marker, token)
+            return ("fix" if text != original else "keep", text)
+        return medicine
+
+    medicine = _da_keep_privacy_placeholders(medicine)
     return medicine
 
 @cache
@@ -5700,6 +5754,33 @@ def _indic_db_b2_004():
         if doc.get("pack_id") not in _PACKS:
             return ("keep", doc["text"])
         return _std(_AUTHOR_RULE(doc["text"]), doc["text"])
+
+    # Added by Data A: protect TSAI privacy placeholders from HTML stripping.
+    import re as _da_privacy_re
+    _da_privacy_tokens = _da_privacy_re.compile(r"<(?:PHONE|EMAIL|ADDRESS)>")
+
+    def _da_keep_privacy_placeholders(rule):
+        def medicine(doc):
+            original = doc["text"]
+            if not _da_privacy_tokens.search(original):
+                return rule(doc)
+            marker = "\ufdd0"
+            while marker in original:
+                marker += "\ufdd0"
+            tokens = []
+            def shield(match):
+                tokens.append(match.group(0))
+                return marker + str(len(tokens) - 1) + marker
+            protected = _da_privacy_tokens.sub(shield, original)
+            action, text = rule(dict(doc, text=protected))
+            if action == "drop":
+                return ("drop", original)
+            for index, token in enumerate(tokens):
+                text = text.replace(marker + str(index) + marker, token)
+            return ("fix" if text != original else "keep", text)
+        return medicine
+
+    medicine = _da_keep_privacy_placeholders(medicine)
     return medicine
 
 @cache
@@ -9592,6 +9673,8 @@ def _indic_db_b4_006():
 # math and science packs take the prose path (_F1_PROSE), which reads the block around a value instead. Indic packs (ind-*)
 # take the Indic path (_f1_indic): Indian phone formats, digits in any Indic script, Indian organisation domains and words.
 from bisect import bisect_right
+from functools import cache
+import re
 
 _F1_TREE = {"cpp", "go", "java", "javascript", "python", "rust", "typescript"}
 _F1_LANGS = set(_F1_TREE)  # families with a harm test so far. Prose families go here after theirs; prose has no tree, so regex alone decides
@@ -9855,7 +9938,7 @@ def _f1_prose(text):
 # Not done: street addresses (Indian addresses have no fixed form), personal listings.
 _F1I_DIGITS = str.maketrans({chr(base + d): str(d) for base in (0x0966, 0x09E6, 0x0A66, 0x0AE6, 0x0B66, 0x0BE6, 0x0C66,
                                                                  0x0CE6, 0x0D66) for d in range(10)})   # one char for one char
-_F1I_MOBILE = re.compile(r"(?<![\w/.+-])(?:(?:\+|00)[ \t]?91[ \t-]?|91[ \t-]|0[ \t-]?)?"
+_F1I_MOBILE = re.compile(r"(?<![\w/.+-])(?:(?:\+|00)[ \t]?91[ \t-]?|91[ \t-]?|0[ \t-]?)?"
                          r"(?:[6-9][0-9]{4}[ \t-]?[0-9]{5}|[6-9][0-9]{2}[ \t-][0-9]{3}[ \t-][0-9]{4})(?![\w/-]|\.[0-9])", re.A)
 _F1I_LANDLINE = re.compile(r"(?<![\w/.+-])(?:\+91[ \t-]?)?\(?0[1-9][0-9]{1,3}\)?[ \t-]?[2-9][0-9]{2,3}[ \t-]?[0-9]{3,4}(?![\w/-]|\.[0-9])", re.A)
 _F1I_TOLL_FREE = re.compile(r"(?<![\w/.+-])18[06]0[ \t-]?[0-9]{3}[ \t-]?[0-9]{3,4}(?![\w/-])", re.A)
@@ -9863,7 +9946,7 @@ _F1I_ORG_DOMAIN = re.compile(r"(?i)(?:^|\.)(?:gov|nic|ac|edu|res|ernet|org|co|mi
 _F1I_ORG_WORDS = re.compile(
     "\u0915\u093e\u0930\u094d\u092f\u093e\u0932\u092f|\u0935\u093f\u092d\u093e\u0917|\u092e\u0902\u0924\u094d\u0930\u093e\u0932\u092f|\u092e\u0928\u094d\u0924\u094d\u0930\u093e\u0932\u092f|\u0938\u0930\u0915\u093e\u0930|\u0936\u093e\u0938\u0928|\u0935\u093f\u0936\u094d\u0935\u0935\u093f\u0926\u094d\u092f\u093e\u0932\u092f|\u092e\u0939\u093e\u0935\u093f\u0926\u094d\u092f\u093e\u0932\u092f|\u0935\u093f\u0926\u094d\u092f\u093e\u0932\u092f|\u0935\u093f\u0926\u094d\u092f\u093e\u092a\u0940\u0920|\u0938\u0902\u0938\u094d\u0925\u093e\u0928|\u0938\u0902\u0938\u094d\u0925\u093e|\u0915\u0902\u092a\u0928\u0940|\u0915\u092e\u094d\u092a\u0928\u0940|"
     "\u0932\u093f\u092e\u093f\u091f\u0947\u0921|\u092a\u094d\u0930\u093e\u0907\u0935\u0947\u091f|\u092c\u0948\u0902\u0915|\u0905\u0938\u094d\u092a\u0924\u093e\u0932|\u0930\u0941\u0917\u094d\u0923\u093e\u0932\u092f|\u092a\u0941\u0932\u093f\u0938|\u092a\u094b\u0932\u0940\u0938|\u0928\u0917\u0930 \u0928\u093f\u0917\u092e|\u092e\u0939\u093e\u0928\u0917\u0930\u092a\u093e\u0932\u093f\u0915\u093e|\u0928\u0917\u0930\u092a\u093e\u0932\u093f\u0915\u093e|\u092a\u0902\u091a\u093e\u092f\u0924|\u0917\u094d\u0930\u093e\u092e\u092a\u0902\u091a\u093e\u092f\u0924|\u0939\u0947\u0932\u094d\u092a\u0932\u093e\u0907\u0928|\u091f\u094b\u0932 \u092b\u094d\u0930\u0940|"
-    "\u0917\u094d\u0930\u093e\u0939\u0915 \u0938\u0947\u0935\u093e|\u0938\u0902\u092a\u0930\u094d\u0915 \u0915\u0930\u0947\u0902|\u0939\u092e\u0938\u0947 \u0938\u0902\u092a\u0930\u094d\u0915|\u0906\u092f\u094b\u0917|\u092a\u0930\u093f\u0937\u0926|\u0928\u093f\u0917\u092e|\u092e\u0902\u0921\u0933|\u092e\u0923\u094d\u0921\u0932|\u0938\u092e\u093f\u0924\u093f|\u0928\u094d\u092f\u093e\u092f\u093e\u0932\u092f|"
+    "\u0917\u094d\u0930\u093e\u0939\u0915 \u0938\u0947\u0935\u093e|\u0906\u092f\u094b\u0917|\u092a\u0930\u093f\u0937\u0926|\u0928\u093f\u0917\u092e|\u092e\u0902\u0921\u0933|\u092e\u0923\u094d\u0921\u0932|\u0938\u092e\u093f\u0924\u093f|\u0928\u094d\u092f\u093e\u092f\u093e\u0932\u092f|"
     "\u0995\u09be\u09b0\u09cd\u09af\u09be\u09b2\u09af\u09bc|\u09a6\u09aa\u09cd\u09a4\u09b0|\u09ac\u09bf\u09ad\u09be\u0997|\u09ae\u09a8\u09cd\u09a4\u09cd\u09b0\u0995|\u09b8\u09b0\u0995\u09be\u09b0|\u09ac\u09bf\u09b6\u09cd\u09ac\u09ac\u09bf\u09a6\u09cd\u09af\u09be\u09b2\u09af\u09bc|\u09ae\u09b9\u09be\u09ac\u09bf\u09a6\u09cd\u09af\u09be\u09b2\u09af\u09bc|\u09ac\u09bf\u09a6\u09cd\u09af\u09be\u09b2\u09af\u09bc|\u09b8\u0982\u09b8\u09cd\u09a5\u09be|\u0995\u09cb\u09ae\u09cd\u09aa\u09be\u09a8\u09bf|\u09ac\u09cd\u09af\u09be\u0982\u0995|\u09b9\u09be\u09b8\u09aa\u09be\u09a4\u09be\u09b2|\u09aa\u09c1\u09b2\u09bf\u09b6|\u09aa\u09cc\u09b0\u09b8\u09ad\u09be|"
     "\u0a95\u0a9a\u0ac7\u0ab0\u0ac0|\u0a95\u0abe\u0ab0\u0acd\u0aaf\u0abe\u0ab2\u0aaf|\u0ab5\u0abf\u0aad\u0abe\u0a97|\u0ab8\u0ab0\u0a95\u0abe\u0ab0|\u0aaf\u0ac1\u0aa8\u0abf\u0ab5\u0ab0\u0acd\u0ab8\u0abf\u0a9f\u0ac0|\u0ab5\u0abf\u0ab6\u0acd\u0ab5\u0ab5\u0abf\u0aa6\u0acd\u0aaf\u0abe\u0ab2\u0aaf|\u0ab6\u0abe\u0ab3\u0abe|\u0ab8\u0a82\u0ab8\u0acd\u0aa5\u0abe|\u0a95\u0a82\u0aaa\u0aa8\u0ac0|\u0aac\u0ac7\u0a82\u0a95|\u0ab9\u0acb\u0ab8\u0acd\u0aaa\u0abf\u0a9f\u0ab2|\u0aaa\u0acb\u0ab2\u0ac0\u0ab8|"
     "\u0a26\u0a2b\u0a3c\u0a24\u0a30|\u0a26\u0a2b\u0a24\u0a30|\u0a35\u0a3f\u0a2d\u0a3e\u0a17|\u0a38\u0a30\u0a15\u0a3e\u0a30|\u0a2f\u0a42\u0a28\u0a40\u0a35\u0a30\u0a38\u0a3f\u0a1f\u0a40|\u0a2c\u0a48\u0a02\u0a15|\u0a39\u0a38\u0a2a\u0a24\u0a3e\u0a32|\u0a2a\u0a41\u0a32\u0a3f\u0a38|"
@@ -9877,6 +9960,11 @@ _F1I_PRIVATE = re.compile(          # a private label right before the value
     "|(?:\u092e\u094b\u092c\u093e\u0907\u0932|\u092e\u094b\u092c\u093e\u0908\u0932|\u092e\u094b\\.|\u092e\u094b\u092c\u093e\\.|\u0928\u093f\u091c\u0940|\u0935\u094d\u092f\u0915\u094d\u0924\u093f\u0917\u0924|\u09ae\u09cb\u09ac\u09be\u0987\u09b2|\u09ae\u09cb\\.|\u0aae\u0acb\u0aac\u0abe\u0a87\u0ab2|\u0aae\u0acb\\.|\u0a2e\u0a4b\u0a2c\u0a3e\u0a08\u0a32|\u0b2e\u0b4b\u0b2c\u0b3e\u0b07\u0b32|\u0b95\u0bc8\u0baa\u0bc7\u0b9a\u0bbf|\u0b85\u0bb2\u0bc8\u0baa\u0bc7\u0b9a\u0bbf|\u0c2e\u0c4a\u0c2c\u0c48\u0c32\u0c4d|"
     "\u0cae\u0cca\u0cac\u0cc8\u0cb2\u0ccd|\u0d2e\u0d4a\u0d2c\u0d48\u0d7d)\\s*(?:\u0928\u0902\\.?|\u0928\u0902\u092c\u0930|\u0915\u094d\u0930\u092e\u093e\u0902\u0915|no\\.?)?\\s*[:#-]?"
     "|(?:\u0918\u0930|\u0928\u093f\u0935\u093e\u0938|\u09ac\u09be\u09a1\u09bc\u09bf|\u0998\u09b0|\u0a98\u0ab0|\u0a18\u0a30|\u0b18\u0b30|\u0bb5\u0bc0\u0b9f\u0bc1|\u0c07\u0c32\u0c4d\u0c32\u0c41|\u0cae\u0ca8\u0cc6|\u0d35\u0d40\u0d1f\u0d4d)\\s*(?:\u0915\u093e|\u091a\u093e|\u091a\u0940|\u0928\u0902\\.?|\u092b\u093c\u094b\u0928|\u092b\u094b\u0928)?\\s*[:#-])\\s*$")
+
+
+_F1I_PERSONAL = re.compile(
+    r"(?i)(?:\b(?:personal|private|home|residence)\b\s*(?:(?:mobile|phone|tel|email|e-mail|whatsapp)\b\s*)?"
+    r"(?:(?:no\.?|number)\s*)?|(?:निजी|व्यक्तिगत|घर|निवास)\s*(?:मोबाइल|फोन|फ़ोन|ईमेल|ई-मेल)?\s*)[:#-]?\s*$")
 
 
 def _F1I_org_near(text, start, end):
@@ -9900,12 +9988,13 @@ def _f1_indic(text):
     taken = lambda s, e: any(a < e and s < b for a, b, _ in spans)
     for m in _F1I_MOBILE.finditer(key):
         if not taken(m.start(), m.end()):
-            private = _F1I_labelled(text, m.start()) or not _F1I_org_near(text, m.start(), m.end())
+            private = bool(_F1I_PERSONAL.search(text[max(0, m.start() - 50):m.start()])) or not _F1I_org_near(text, m.start(), m.end())
             spans.append((m.start(), m.end(), _F1P_PHONE_PH if private else None))
     for m in _F1I_LANDLINE.finditer(key):
         if not taken(m.start(), m.end()):
             line = text[text.rfind("\n", 0, m.start()) + 1:m.start()]
-            private = _F1I_labelled(text, m.start()) and not (_F1I_ORG_WORDS.search(line) or _F1P_ORG.search(line))
+            private = bool(_F1I_PERSONAL.search(text[max(0, m.start() - 50):m.start()])) or (
+                _F1I_labelled(text, m.start()) and not (_F1I_ORG_WORDS.search(line) or _F1P_ORG.search(line)))
             spans.append((m.start(), m.end(), _F1P_PHONE_PH if private else None))
     out, last = [], 0
     for s, e, tag in sorted(spans):
@@ -9916,8 +10005,9 @@ def _f1_indic(text):
 
     def email(m):
         local, domain = m.group(1), m.group(2)
-        if _F1P_SAFE_DOMAIN.search(domain) or _F1P_ROLE_LOCAL.match(local) or _F1I_ORG_DOMAIN.search(domain) \
-                or _F1I_org_near(m.string, m.start(), m.end()):
+        if _F1P_SAFE_DOMAIN.search(domain) or _F1P_ROLE_LOCAL.match(local) or _F1I_ORG_DOMAIN.search(domain):
+            return m.group(0)
+        if not _F1I_PERSONAL.search(m.string[max(0, m.start() - 50):m.start()]) and _F1I_org_near(m.string, m.start(), m.end()):
             return m.group(0)
         return _F1P_EMAIL_PH
     return _F1P_EMAIL.sub(email, out)

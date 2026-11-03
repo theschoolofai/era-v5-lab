@@ -147,6 +147,7 @@ def test_integration_requires_nonempty_own_pack_gold(tmp_path, monkeypatch, own_
         '\n\n'.join(row['body'] for row in (control, target)) + '\n', encoding='utf-8')
     (local / 'sheets/specv1.md').write_bytes((SPEC / 'sheets/specv1.md').read_bytes())
     (local / 'tools/extend_indic_siblings.py').write_bytes((SPEC / 'tools/extend_indic_siblings.py').read_bytes())
+    (local / 'tools/f1_rule.py').write_bytes((SPEC / 'tools/f1_rule.py').read_bytes())
     for row in (control, target):
         doc = document(row, review.probes(row['pack'])['prose'])
         pq.write_table(pa.Table.from_pylist([doc]), packs / (row['pack'] + '.parquet'))

@@ -5,7 +5,7 @@
 Run from teams/01-data-a/. Uses the team's harm_test.py (teams/01-data-a/tools/) as it is, and the limit
 max(1, floor(1% of gold)). A pack's documents get pack_id from the file name when the Parquet has no such column.
 Writes spec_v1/results/cleaner/f1_indic_harm.json and prints one line per pack. IDs, counts and digests only.
-Exit 0: every pack it found passes; 1: a pack fails or errors; 2: no pack or gold file was found.
+Exit 0: all supported Indic packs pass; 1: a pack fails or errors; 2: required inputs are missing or gold is empty.
 """
 import argparse, hashlib, json, sys
 from fractions import Fraction
@@ -28,14 +28,19 @@ def sha(p): return hashlib.sha256(p.read_bytes()).hexdigest()
 
 report, bad, ran = {"f1_rule_sha256": sha(SPEC / "tools" / "f1_rule.py"), "clean_sha256": sha(SPEC / "clean.py"),
                      "harm_test_sha256": sha(TEAM / "tools" / "harm_test.py"), "packs": {}}, False, 0
+missing = False
 for pack in sorted(p for p, f in c._FAMILY.items() if f == "indic"):
     path, gold = args.packs / f"{pack}.parquet", args.gold / f"{pack}_gold.csv"
     if not path.exists() or not gold.exists():
         report["packs"][pack] = {"result": "NOT RUN", "why": "pack not found" if not path.exists() else "no gold file"}
+        missing = True
         print(pack, "NOT RUN"); continue
-    ids = ht.read_gold(gold)
-    if not ids:
-        report["packs"][pack] = {"result": "NOT TESTABLE", "why": "gold set empty"}; print(pack, "NOT TESTABLE"); continue
+    try:
+        ids = ht.read_gold(gold)
+    except ht.NotTestable:
+        report["packs"][pack] = {"result": "NOT TESTABLE", "why": "Gold set empty, not testable"}
+        missing = True
+        print(pack, "NOT TESTABLE"); continue
     docs = ht.read_pack_docs(path, ids)
     for d in docs.values():
         d.setdefault("pack_id", pack)
@@ -49,4 +54,4 @@ for pack in sorted(p for p, f in c._FAMILY.items() if f == "indic"):
     print(f"{pack}: gold {len(ids)} (limit {entry['limit']}) | F1 {len(entry['f1']['changed'])}+{len(entry['f1']['dropped'])} "
           f"{entry['f1']['result']} | clean() {len(entry['clean']['changed'])}+{len(entry['clean']['dropped'])} {entry['clean']['result']}")
 args.out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8", newline="\n")
-sys.exit(2 if not ran else 1 if bad else 0)
+sys.exit(1 if bad else 2 if missing or not ran else 0)

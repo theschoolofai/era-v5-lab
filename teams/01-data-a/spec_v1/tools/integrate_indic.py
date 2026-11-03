@@ -41,9 +41,49 @@ FENCE = re.compile(r'^```python\n(.*?)^```', re.S | re.M)
 
 F1_REPLACED = "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
 
+# Added by Data A after PR #28: preserve reserved privacy markers while keeping
+# the original contributor functions unchanged. Embedded in the affected cards,
+# so the sheet harm runner and generated cleaner execute the same adapter.
+PLACEHOLDER_RULES = {'DB-B2-001', 'DB-B2-003', 'DB-B2-004'}
+PLACEHOLDER_COMPAT = r'''
+# Added by Data A: protect TSAI privacy placeholders from HTML stripping.
+import re as _da_privacy_re
+_da_privacy_tokens = _da_privacy_re.compile(r"<(?:PHONE|EMAIL|ADDRESS)>")
+
+def _da_keep_privacy_placeholders(rule):
+    def medicine(doc):
+        original = doc["text"]
+        if not _da_privacy_tokens.search(original):
+            return rule(doc)
+        marker = "\ufdd0"
+        while marker in original:
+            marker += "\ufdd0"
+        tokens = []
+        def shield(match):
+            tokens.append(match.group(0))
+            return marker + str(len(tokens) - 1) + marker
+        protected = _da_privacy_tokens.sub(shield, original)
+        action, text = rule(dict(doc, text=protected))
+        if action == "drop":
+            return ("drop", original)
+        for index, token in enumerate(tokens):
+            text = text.replace(marker + str(index) + marker, token)
+        return ("fix" if text != original else "keep", text)
+    return medicine
+
+medicine = _da_keep_privacy_placeholders(medicine)
+'''
+
 
 def sha(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def shared_f1_rule():
+    spec = importlib.util.spec_from_file_location('indic_shared_f1', SPEC / 'tools/f1_rule.py')
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.f1
 
 
 def probes(pack):
@@ -90,6 +130,9 @@ def read_source():
         block = textwrap.dedent(blocks[0])
         ns = {'__name__': 'indic_source'}
         exec(compile(block, source.name, 'exec'), ns)
+        if ns['RULE_ID'] in PLACEHOLDER_RULES:
+            block = block.rstrip() + '\n' + PLACEHOLDER_COMPAT
+            exec(compile(PLACEHOLDER_COMPAT, 'Data A privacy compatibility', 'exec'), ns)
         packs = ns['ORIGIN'].split(', ')
         assert len(packs) == 1, 'review currently requires one pack per Indic source rule'
         rows.append(dict(id=ns['RULE_ID'], code=ns['CODE'], pack=packs[0], action=ns['ACTION'],
@@ -151,6 +194,7 @@ def interaction_check(active, docs):
 
 def integrate(packs, gold_dir):
     rows = read_source()
+    shared_f1 = shared_f1_rule()
     gold_cache, gold_reports, pack_cache = {}, {}, {}
     for pack in sorted({r['pack'] for r in rows}):
         path, gold = packs / (pack + '.parquet'), gold_dir / (pack + '_gold.csv')
@@ -217,11 +261,13 @@ def integrate(packs, gold_dir):
         conflicts = {}
         for pack, docs in pack_cache.items():
             active = [(r['id'], r['rule']) for r in rows if r['pack'] == pack and decisions[r['id']]['status'] == 'CANDIDATE']
-            conflicts.update(interaction_check(active, docs))
+            conflicts.update(interaction_check(active + [('f1_rule.py', shared_f1)], docs))
         if not conflicts:
             break
         print(f'Interaction review: deferring {len(conflicts)} second-pass rules', flush=True)
         for rid, ids in conflicts.items():
+            if rid == 'f1_rule.py':
+                raise RuntimeError('shared Indic F1 acts again after the complete pipeline; fix F1 before building')
             decisions[rid]['interaction_ids'] = ids
             decisions[rid]['review_issues'].append('acts again on retained documents after the full pipeline')
         choose(rows, decisions)
@@ -229,7 +275,7 @@ def integrate(packs, gold_dir):
         raise RuntimeError('Indic interaction review did not converge')
     for pack, docs in gold_cache.items():
         active = [(r['id'], r['rule']) for r in rows if r['pack'] == pack and decisions[r['id']]['status'] == 'CANDIDATE']
-        changed, dropped, errors = ht.run_sheet(active, docs, 5)
+        changed, dropped, errors = ht.run_sheet(active + [('f1_rule.py', shared_f1)], docs, 5)
         result = 'ERROR' if errors else 'PASS' if ht.harm_percent(len(changed), len(dropped), len(docs), Fraction(1))[1] else 'FAIL'
         gold_reports[pack].update(result=result, changed=changed, dropped=dropped, errors=errors)
         if result != 'PASS':
@@ -237,6 +283,9 @@ def integrate(packs, gold_dir):
             for rid, _ in active:
                 decisions[rid].update(status='DEFERRED', reason='combined own-pack gold: ' + result)
     report = {'source_sha256': sha(SPEC / 'sheets/medicine_indic.md'),
+              'f1_rule_sha256': sha(SPEC / 'tools/f1_rule.py'),
+              'combined_execution': 'selected native medicines followed by shared Indic F1',
+              'placeholder_compatibility_rules': sorted(PLACEHOLDER_RULES),
               'source_code_sha256': hashlib.sha256('\n'.join(ast.dump(ast.parse(row['block'])) for row in rows).encode()).hexdigest(),
               'policy': 'one eligible candidate per pack/disease, first in source order; F2 deferred; no approvals inferred',
               'privacy_missing_packs': [],  # the shared F1 (Indic path) runs on every Indic pack of the family
@@ -262,11 +311,13 @@ Each overlapping pack/disease group uses the first candidate in source section o
 
 F1 on the Indic packs is the shared rule, `tools/f1_rule.py` (its Indic path: Indian phone formats and digits, Indian organisation domains and words), run last on every Indic pack; the source F1 rules are deferred, because they did not follow the TSAI ruling's placeholders and organisation exception. Rules use original `ORIGIN` pack guards regardless of the spelling of language tags. `SPEC_PACKS` supplies equivalent scope to the builder. Original Indic order is retained within its family; the disease registry keeps F1 last without reordering each pack pipeline.
 
+Data A adds a labelled compatibility wrapper to `DB-B2-001`, `DB-B2-003` and `DB-B2-004` to preserve reserved `<PHONE>`, `<EMAIL>` and `<ADDRESS>` tokens while removing HTML. The original contributor functions remain unchanged in the source sheet and in the generated cards. Native and sibling combined validation includes shared F1 last; records contain its SHA-256. Gold checks use only the affected pack's current nonempty gold. Missing or empty own-pack inputs defer the rules; flag-only entries and pending author-approved format rewrites are not made executable by this integration.
+
 Deferred cards use `python deferred` fences and `STATUS = "DEFERRED"`: they are inventory, not executable harm-runner blocks. `build_clean.py` validates them but omits them from `SCOPE`, `_RULE`, and pipelines, recording their reasons in `DEFERRED_RULES`. `DB-F2-001` requires an approved benchmark and `ITIHASA_TEST_SN`; both F2 candidates remain deferred rather than implying benchmark protection. Synthetic Unicode/ordinary-prose failures, own-pack non-idempotence and rules that act again after the full pipeline are also deferred. The available full packs are checked until no selected second-run action remains. Re-enabling requires changing the integration decision and rerunning the review/build, not silently returning keep after an exception.
 
 Only locally available week-1 diagnosis packs are eligible for gold tests. Week-2 train/heldout shards cannot substitute for diagnosis packs: their IDs intentionally differ. Missing inputs are NOT TESTABLE. Existing Data A validation tables below are historical evidence for those four families; see the Indic report for its own snapshots. No combined Indic gold pass is claimed for missing packs.
 
-| Pack | Native-only local gold result |
+| Pack | Native medicines plus shared F1: local own-pack gold result |
 |---|---|
 '''
     for pack, result in gold_reports.items():
@@ -298,7 +349,7 @@ Only locally available week-1 diagnosis packs are eligible for gold tests. Week-
     extension_spec = importlib.util.spec_from_file_location('indic_sibling_extension', SPEC / 'tools/extend_indic_siblings.py')
     extension = importlib.util.module_from_spec(extension_spec)
     extension_spec.loader.exec_module(extension)
-    api = SimpleNamespace(read_source=read_source, sha=sha, ht=ht, probes=probes, synthetic_check=synthetic_check, full_rule_check=full_rule_check, Fraction=Fraction)
+    api = SimpleNamespace(read_source=read_source, sha=sha, ht=ht, probes=probes, synthetic_check=synthetic_check, full_rule_check=full_rule_check, Fraction=Fraction, shared_f1_rule=shared_f1_rule)
     extension.extend(api, packs, gold_dir, report)
     return report
 
