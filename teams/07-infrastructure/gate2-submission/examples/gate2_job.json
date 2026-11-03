@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "job_id": "team7-gate2-cpu",
+  "owner": "team7",
+  "command": ["{python}", "{repo}/tests/gate2_worker.py", "--config", "{config}", "--run-dir", "{run_dir}", "--resume", "{resume}"],
+  "config": "examples/gate2_config.json",
+  "code": ["ckpt.py", "tsai_runner.py", "tests/gate2_worker.py"],
+  "data": {"id":"gate2-synthetic-v1", "manifest":"examples/gate2_data.json"},
+  "resources": {"nodes":1, "tasks":1, "gpus":0, "cpus":1, "memory_mb":2048, "time_minutes":5, "partition":"cpu"},
+  "restart": {"max_restarts":2, "backoff_seconds":0.1, "exit_codes":[-9, 75, 137]}
+}

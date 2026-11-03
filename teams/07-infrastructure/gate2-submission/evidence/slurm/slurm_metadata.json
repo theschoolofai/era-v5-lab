@@ -1,0 +1,11 @@
+{
+  "jobs": [
+    "31",
+    "32"
+  ],
+  "shared_path": "/data/team7-gate2-20261102T083952Z",
+  "controller": "slurmctld",
+  "python": "/data/team7-gate2-py312/bin/python",
+  "slurm_version": "slurm 26.05.5",
+  "scope": "Local Linux ARM64 CPU containers; worker SIGKILL inside a live allocation, not node/allocation recovery."
+}
