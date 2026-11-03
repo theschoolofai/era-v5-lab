@@ -291,7 +291,7 @@ This reads `spec_v1/sheets/specv1.md` and writes `spec_v1/clean.py`. Use `--shee
 python -I spec_v1/tools/build_clean.py --sheet spec_v1/sheets/specv1.md --out /tmp/clean.py
 ```
 
-To refresh Indic selections from `medicine_indic.md`, run `tools/integrate_indic.py` first; the builder does not discover family sheets automatically. See [README_indic.md](README_indic.md).
+To refresh Indic selections from `medicine_indic.md`, run `tools/integrate_indic.py` first (it also validates the sibling policy declared in the source sheet); the builder does not discover family sheets automatically. See [README_indic.md](README_indic.md).
 
 **Rebuild after every change to `specv1.md` or `spec_v1/tools/f1_rule.py`.** The build gives the same file every time, and a unit test checks that `clean.py` matches a fresh build.
 
@@ -491,7 +491,7 @@ It uses `harm_test.py` from `tools/` and the gold sets in `gold/`:
 python -I spec_v1/tools/validate_specv1.py --packs <packs folder> --gold gold
 ```
 
-It needs the diagnosis Parquet files for all 26 supported packs in `<packs folder>`: it stops at the first one missing. Indic gold comes from `teams/02-data-b/gold` by default (`--indic-gold` overrides it). Use `--allow-missing` to write explicit NOT TESTABLE rows for missing packs; that run exits with 2, and failed tests exit with 1. See [README_indic.md](README_indic.md) before regenerating Indic rules. The paths it writes name no local folder: `gold_path` starts at the repository root (`teams/01-data-a/gold/code-python_gold.csv`) and `pack_path` is the file name (`code-python.parquet`). The `gold_sha256` and `pack_sha256` next to them identify the exact files. Run it again whenever a gold set changes: `harm_tests.md` shows "other snapshot" for a pack until then.
+It needs the diagnosis Parquet files for all 29 supported packs in `<packs folder>`: it stops at the first one missing. Indic gold comes from `teams/02-data-b/gold` by default (`--indic-gold` overrides it). Use `--allow-missing` to write explicit NOT TESTABLE rows for missing packs; that run exits with 2, and failed tests exit with 1. See [README_indic.md](README_indic.md) before regenerating Indic rules. The paths it writes name no local folder: `gold_path` starts at the repository root (`teams/01-data-a/gold/code-python_gold.csv`) and `pack_path` is the file name (`code-python.parquet`). The `gold_sha256` and `pack_sha256` next to them identify the exact files. Run it again whenever a gold set changes: `harm_tests.md` shows "other snapshot" for a pack until then.
 
 It changes `specv1.md`, but only the text around the code: `clean.py` does not need a rebuild. Run the unit tests after it.
 

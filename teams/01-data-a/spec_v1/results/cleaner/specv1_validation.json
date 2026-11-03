@@ -1,11 +1,11 @@
 {
-  "rules_code_sha256": "7fd8f3eed550d5e7ffeff9524c56dc43806fa8d80d4e8727b5247da051f01a89",
+  "rules_code_sha256": "c2b5359b281a8b7279697d2cbe72bf2bf630a2514e6e2c17b4fc15dad0fd41b0",
   "sources": {
-    "medicine_indic.md": "a1d9bc1f147ea26b5815c1d6b0e2403b2575e04d404514e8b45ea36484d14254",
+    "medicine_indic.md": "b8cfa18c0b871b39425a1eb4981c44fafe9e17abfc8516c85c07622bf4a0ea29",
     "medicine_english.md": "904c63b621515fc07bdd07cfff3553b6cff49504c89f41c2ec1fce2d27b0652c",
     "medicine_sci.md": "5f1e743253062fee2b91d3e04f13b2c302eddae4a9c02b0f54144d2252e1c411",
     "medicine_math.md": "d80f46be988242e92774802497e2d78360295e3c57c7e1a0a1a88f5c914a6224",
-    "medicine_code.md": "431ebccf4dd4a001549290e5e39e7975f3301e158feb73393428f63bac1562a6"
+    "medicine_code.md": "12b34b3eeb27f9dfd94bb1853ea70a43bf7af1f6f7bc6ad324b59dcdab58efb6"
   },
   "execution": "harm_test.load_rules/run_rule/run_sheet; repository 1% minimum-one comparison; 5s timeout per rule/document",
   "harm_runner_sha256": "4dcc04bf8ac553c9c0b39c8812bd7275aee9c8727b80a7a5a026d0e3f7bbafd2",
@@ -4447,6 +4447,182 @@
       },
       "out_of_pack_guard": "PASS"
     },
+    "ind-bn-sangraha-v": {
+      "pack_sha256": "e64c471dd6391dac861e039c2ad1d3c3732b21b97f29efd4b9bcaf0bf54baf81",
+      "gold_sha256": "4fa861ea267d0db461f3085937f130903b21fae4be4a21da9dd1636e6b528f18",
+      "gold_path": "teams/02-data-b/gold/ind-bn-sangraha-v_gold.csv",
+      "pack_path": "ind-bn-sangraha-v.parquet",
+      "independent_gold_rules": {
+        "DB-A3-001": {
+          "n": 50,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-A5-001": {
+          "n": 50,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-A6-001": {
+          "n": 50,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-G1-001": {
+          "n": 50,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-G2-001": {
+          "n": 50,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C3-001": {
+          "n": 50,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C4-001": {
+          "n": 50,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-D4-001": {
+          "n": 50,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-F3-001": {
+          "n": 50,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C1-001": {
+          "n": 50,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C2-001": {
+          "n": 50,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C5-007": {
+          "n": 50,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-D3-001": {
+          "n": 50,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        }
+      },
+      "combined_gold": {
+        "n": 50,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "limit_documents": 1,
+        "result": "PASS"
+      },
+      "combined_pack": {
+        "n": 500,
+        "changed": [
+          "bf521322a90491aa",
+          "b0c095487dd72b87",
+          "43c51cdac699187d",
+          "b0d8affd2329469d",
+          "1da19ac48860fb47",
+          "95e8cf26b9b8e1d6",
+          "b5d3379fa1dd2757",
+          "248e684b505bba63",
+          "4620e19b5836f03f",
+          "87590e5df7527a67",
+          "58827dcddbbf097e",
+          "4fd6a400467e4b0b",
+          "1670dbc449715e08",
+          "fa5d153e743890ce",
+          "aaef08f714a954f2",
+          "b998ff5bdaeeedb1",
+          "5584556a2ea2dcfd",
+          "40bc92a5caa8e45a",
+          "d085df373c288998",
+          "3efce0f19f5c8712",
+          "93ae15cbd5dcb150",
+          "b7344cb5bd3ae08c",
+          "d9db806d0a1584f7",
+          "9f1ee6844c1f2dea",
+          "ae514bf1e320bdad",
+          "99ce3f273b237b32",
+          "80ff514fd37a3c36",
+          "8280f2f65d31c666",
+          "f6fbab13b4b3b443",
+          "fadb66be94959179",
+          "704157870c38f059",
+          "b32d7bc9b3c9d3b3",
+          "9419f580e774eb4d",
+          "9e332b609469b248",
+          "6ad2871a67a61206",
+          "611e3e5fe427f168",
+          "916b7af32bb57841",
+          "ddd12b8b4efce4e8",
+          "6073f8a55a5582ca"
+        ],
+        "dropped": [
+          "bb139803564a2da9",
+          "e4e559c63731c7fd",
+          "12f9d49fcda388b9",
+          "323e7cd037bc2dda",
+          "8d3b898a86f08629",
+          "7196d31657f5a6f3",
+          "b48dcc6627ca260e"
+        ],
+        "errors": [],
+        "limit_documents": 5
+      },
+      "out_of_pack_guard": "PASS"
+    },
     "ind-gu-fw2": {
       "pack_sha256": "9f58ad695beac877b7f71f9773328c141e5f19385b9f292ebc9c2b21b19daa6a",
       "gold_sha256": "1d9592a7729d51c8da817f8bbd7827ad222646ba0ec9f3461eb157fc0d745a8c",
@@ -4764,6 +4940,22 @@
       "gold_path": "teams/02-data-b/gold/ind-hi-fw2_gold.csv",
       "pack_path": "ind-hi-fw2.parquet",
       "independent_gold_rules": {
+        "DB-A6-004": {
+          "n": 234,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 2,
+          "result": "PASS"
+        },
+        "DB-G1-004": {
+          "n": 234,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 2,
+          "result": "PASS"
+        },
         "DB-B2-001": {
           "n": 234,
           "changed": [],
@@ -4776,6 +4968,24 @@
           "n": 234,
           "changed": [],
           "dropped": [],
+          "errors": [],
+          "limit_documents": 2,
+          "result": "PASS"
+        },
+        "DB-C5-001": {
+          "n": 234,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 2,
+          "result": "PASS"
+        },
+        "DB-D4-005": {
+          "n": 234,
+          "changed": [],
+          "dropped": [
+            "0c9208a0c91789d6"
+          ],
           "errors": [],
           "limit_documents": 2,
           "result": "PASS"
@@ -4796,7 +5006,31 @@
           "limit_documents": 2,
           "result": "PASS"
         },
+        "DB-D2-001": {
+          "n": 234,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 2,
+          "result": "PASS"
+        },
         "DB-D3-005": {
+          "n": 234,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 2,
+          "result": "PASS"
+        },
+        "DB-D5-002": {
+          "n": 234,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 2,
+          "result": "PASS"
+        },
+        "DB-F1-003": {
           "n": 234,
           "changed": [],
           "dropped": [],
@@ -4808,7 +5042,9 @@
       "combined_gold": {
         "n": 234,
         "changed": [],
-        "dropped": [],
+        "dropped": [
+          "0c9208a0c91789d6"
+        ],
         "errors": [],
         "limit_documents": 2,
         "result": "PASS"
@@ -4817,9 +5053,12 @@
         "n": 500,
         "changed": [
           "7550aa66f80ae7c0",
+          "c3d6c6b67a11a989",
           "b8d161e14742a312",
+          "748f601ae024b27c",
           "3a3f617148815241",
           "f20d2c1d0f21d026",
+          "1e5508d2962ddc6a",
           "7a4d26d7944e45a1",
           "aa8349351a3ec6ad",
           "a39c1d6613339084",
@@ -4831,12 +5070,19 @@
           "9aa74d85206e0e2b",
           "4b8ae0431de8850b",
           "a4980dfb1a672de8",
+          "3f87faf5851872f1",
           "c4f7d073273b4048",
+          "10ee275a9dea2acf",
+          "2f2fbdf81419e6f5",
+          "ee19639bfb2e22a0",
           "27629db1e5ca2e8a",
+          "aba71959d76cfb52",
           "44b70490c1eca8b2"
         ],
         "dropped": [
+          "c83fbbec4a82f87a",
           "9992ed6ebadee109",
+          "0c9208a0c91789d6",
           "513aa97763bf5d89"
         ],
         "errors": [],
@@ -5104,13 +5350,185 @@
       },
       "out_of_pack_guard": "PASS"
     },
+    "ind-hi-indiccorp": {
+      "pack_sha256": "c55b80d3d5c820fb34cab3b0bf8ccaabd2e73496cea42267c08d05cc34ecd612",
+      "gold_sha256": "2d5e81819c987c4f0d2d924c3be405125ca1b98d003e76a010cbddad4edc4826",
+      "gold_path": "teams/02-data-b/gold/ind-hi-indiccorp_gold.csv",
+      "pack_path": "ind-hi-indiccorp.parquet",
+      "independent_gold_rules": {
+        "DB-A6-004": {
+          "n": 130,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-G1-004": {
+          "n": 130,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-B2-001": {
+          "n": 130,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C3-002": {
+          "n": 130,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C4-002": {
+          "n": 130,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C5-001": {
+          "n": 130,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-D4-005": {
+          "n": 130,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C1-005": {
+          "n": 130,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C2-004": {
+          "n": 130,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-D2-001": {
+          "n": 130,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-D3-005": {
+          "n": 130,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-D5-002": {
+          "n": 130,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-F1-003": {
+          "n": 130,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        }
+      },
+      "combined_gold": {
+        "n": 130,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "limit_documents": 1,
+        "result": "PASS"
+      },
+      "combined_pack": {
+        "n": 500,
+        "changed": [
+          "45faba24d7143976",
+          "3dff830fcad18cef",
+          "6a628253e38b2aaa"
+        ],
+        "dropped": [],
+        "errors": [],
+        "limit_documents": 5
+      },
+      "out_of_pack_guard": "PASS"
+    },
     "ind-kn-fw2": {
       "pack_sha256": "3859c21e3f715ff7c0fbe978dcd0719b48ead11cff58fe215afa23f1175fd3ee",
       "gold_sha256": "ba40473594b4605a002ffa627d86d820eace8eb9012475ed657ebca91dca4978",
       "gold_path": "teams/02-data-b/gold/ind-kn-fw2_gold.csv",
       "pack_path": "ind-kn-fw2.parquet",
       "independent_gold_rules": {
+        "DB-A6-006": {
+          "n": 45,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
         "DB-G1-005": {
+          "n": 45,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-B2-003": {
+          "n": 45,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-B3-001": {
+          "n": 45,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-A3-004": {
+          "n": 45,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-D4-007": {
           "n": 45,
           "changed": [],
           "dropped": [],
@@ -5135,6 +5553,22 @@
           "result": "PASS"
         },
         "DB-C5-011": {
+          "n": 45,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-D3-008": {
+          "n": 45,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-B4-002": {
           "n": 45,
           "changed": [],
           "dropped": [],
@@ -5169,21 +5603,18 @@
           "10e60ad0965db2c1",
           "9e6f962f2be34876",
           "96c2582ac07d1e04",
-          "634f9d4743893171",
           "c472a3db00395ba6",
           "2c8cbb93230afa7d",
           "945ed506b47bbafc",
           "537c659abc80e1a6",
           "a4153fd935d239d9",
           "76fdbcb28c49fc27",
-          "bf21eb9f2a9511b6",
           "7ac7b308228f3ad7",
           "91eea0530670d2f8",
           "1548138be5151389",
           "3f2bb8ae6f78b502",
           "feb54bf1fc697c7e",
           "436fd1e4f828cb2a",
-          "17e5d6b10dc06231",
           "c38abea7a3377c5b",
           "3576168c62157973",
           "45e2a6539ee4f226",
@@ -5256,7 +5687,17 @@
           "4b6b115448ca1b9b",
           "2e6f4bf8087d77f2"
         ],
-        "dropped": [],
+        "dropped": [
+          "634f9d4743893171",
+          "bf21eb9f2a9511b6",
+          "6652e0ea74804194",
+          "17e5d6b10dc06231",
+          "5af6bd124c4d7388",
+          "47424ea4989c5934",
+          "442de0ddbdf11639",
+          "ac9e11758c1a22ac",
+          "d6ee45607d0f322e"
+        ],
         "errors": [],
         "limit_documents": 5
       },
@@ -5269,6 +5710,14 @@
       "pack_path": "ind-kn-sangraha-s.parquet",
       "independent_gold_rules": {
         "DB-A6-006": {
+          "n": 27,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-G1-005": {
           "n": 27,
           "changed": [],
           "dropped": [],
@@ -5292,6 +5741,30 @@
           "limit_documents": 1,
           "result": "PASS"
         },
+        "DB-A3-004": {
+          "n": 27,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C5-003": {
+          "n": 27,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-D4-007": {
+          "n": 27,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
         "DB-C1-010": {
           "n": 27,
           "changed": [],
@@ -5300,7 +5773,31 @@
           "limit_documents": 1,
           "result": "PASS"
         },
+        "DB-C2-006": {
+          "n": 27,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
         "DB-D3-008": {
+          "n": 27,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-B4-002": {
+          "n": 27,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-F1-005": {
           "n": 27,
           "changed": [],
           "dropped": [],
@@ -5328,12 +5825,15 @@
           "652430783641cf74",
           "ff6d56a4f0b67604",
           "b78645d9990988c3",
+          "7321eaa4be29770f",
           "629a3a0788816ad9",
           "605c195dc5422a06",
           "fd842936cba5d6b7",
           "de997c2e752683e0",
+          "21f3f80ab22e0719",
           "4c6c7ddb7fca4227",
           "8f808a85f9708958",
+          "3da04151703f4541",
           "60bbcaa85c2d6028",
           "bddb7db5986a353f",
           "33435c6f9965fb8d",
@@ -5377,6 +5877,7 @@
           "b93c2a1c84dcd991",
           "5477f4457221c30c",
           "c1e6470f463ee8c7",
+          "e288409d61b677ba",
           "502f0850289dfdba",
           "2ceba289898aba63",
           "8772f7c961f3c48f",
@@ -5389,7 +5890,9 @@
           "d67be9974e2512bf",
           "1428f9e8314543c8"
         ],
-        "dropped": [],
+        "dropped": [
+          "25874ea69e8cd152"
+        ],
         "errors": [],
         "limit_documents": 5
       },
@@ -5402,6 +5905,22 @@
       "pack_path": "ind-kn-sangraha-v.parquet",
       "independent_gold_rules": {
         "DB-A6-007": {
+          "n": 103,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-B2-003": {
+          "n": 103,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-B3-001": {
           "n": 103,
           "changed": [],
           "dropped": [],
@@ -5441,6 +5960,14 @@
           "limit_documents": 1,
           "result": "PASS"
         },
+        "DB-C1-010": {
+          "n": 103,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
         "DB-C2-008": {
           "n": 103,
           "changed": [],
@@ -5464,6 +5991,14 @@
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
+        },
+        "DB-F1-005": {
+          "n": 103,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
         }
       },
       "combined_gold": {
@@ -5481,6 +6016,7 @@
           "1a60d090264d7942",
           "3db23e9e76ca858e",
           "c3ade5a08282ceea",
+          "8316a46dcc84a688",
           "035d7a62badd87a3",
           "0fddd312da4d1f53",
           "84b68b5e64af6321",
@@ -5498,6 +6034,7 @@
           "3353185ca785923e",
           "2bb2e05c4eacf24f",
           "af897fd315bd2a8b",
+          "c713689df252717f",
           "8068dbf413e834f7",
           "f8849202ab1a46be",
           "a31dbea5a0d6b216",
@@ -5510,6 +6047,7 @@
           "537bcf926fe3415f",
           "c2473fe6ac414d6f",
           "d538f5625cac72a8",
+          "0dbd62467ee13319",
           "9c3494808deb97a7",
           "d332ebcfc14a1d12",
           "f8a015e3eca2c954",
@@ -5540,6 +6078,14 @@
       "gold_path": "teams/02-data-b/gold/ind-mr-fw2_gold.csv",
       "pack_path": "ind-mr-fw2.parquet",
       "independent_gold_rules": {
+        "DB-A5-006": {
+          "n": 140,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
         "DB-A6-008": {
           "n": 140,
           "changed": [],
@@ -5580,7 +6126,41 @@
           "limit_documents": 1,
           "result": "PASS"
         },
+        "DB-D4-008": {
+          "n": 140,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C1-012": {
+          "n": 140,
+          "changed": [
+            "870fb0ffd8d7a041"
+          ],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C3-010": {
+          "n": 140,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
         "DB-D3-010": {
+          "n": 140,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-B4-003": {
           "n": 140,
           "changed": [],
           "dropped": [],
@@ -5599,7 +6179,9 @@
       },
       "combined_gold": {
         "n": 140,
-        "changed": [],
+        "changed": [
+          "870fb0ffd8d7a041"
+        ],
         "dropped": [],
         "errors": [],
         "limit_documents": 1,
@@ -5608,6 +6190,10 @@
       "combined_pack": {
         "n": 500,
         "changed": [
+          "00eed90bde196e9c",
+          "870fb0ffd8d7a041",
+          "924d41c82dfe4138",
+          "117918b8e9db997e",
           "626fc9159542b61c",
           "5c05e18231a55839",
           "c8ad1802a6fbb058",
@@ -5617,47 +6203,75 @@
           "36198f74122a5919",
           "dac55ea8bc131eb1",
           "052f2791183c599c",
+          "ea74237e4114182f",
           "2815f742fa358d99",
           "28d9d12b99013cf5",
+          "a729bd3f77150f07",
+          "08dbb49c409f6de0",
+          "d108e5db4a6b9cb1",
           "1870bd9485daced5",
+          "8933f70d630848de",
           "1686935b1034083d",
           "d712fbf7e6fc5cbf",
           "b07709b7ea20272a",
           "f2c7bce34d00c7fe",
+          "a9cabc0f10b5a600",
           "70386fb4070fc50f",
           "678e525481bd9723",
           "875818dd2944faba",
           "6169b09fe7801904",
+          "e6b4976ea98d0201",
           "9b72ed35dc9f139d",
           "95c44a1c33389719",
+          "4d9bf15a8b501e04",
+          "5fc9c4afe4c1afd4",
+          "5c283a7d039a2a51",
           "4816319ebae6cf01",
           "0c41a70258bbc0b4",
+          "818a7989ee6bbb3a",
           "7c1eb17e89c7a9fd",
           "a3103fc0cfd04984",
           "1f2b883d24e8de1a",
           "cb4ad24f3cb1b80b",
+          "e2a39bab4d12c71d",
+          "ed5e9d22283ae0b8",
+          "ca612c764bdb90df",
+          "787ee315f56122c5",
+          "ecee5e412aa34abf",
+          "7df4eacf72a54083",
           "aef47ee08575addb",
           "c5c7f7feea32245d",
+          "d618f2f374d381ad",
           "62b7c3478b8ad2b5",
+          "5cf39e4d221fc993",
           "05045fec2475fdb9",
           "23726a04d8316b4c",
+          "4ab66b3a5d21bfe7",
           "e9695776c7f0759f",
+          "baf65fb63aad97d8",
           "16802c1b71453845",
           "a17a859aa9af0546",
+          "ae7305a6399c73a4",
           "af6d761021e6cdf8",
+          "d105bc0a3cae322a",
           "5e5dfd4352f5175a",
           "fffbc3de78a629e0",
           "882d0520964c5691",
           "9c89c65a56773845",
+          "1b4157e305d9f847",
           "2575adfe593246a8",
           "829ad6bc1b89893f",
+          "7e79c712d70e4f59",
           "f5173b6ce87f3538",
+          "3cd39218930da1e3",
           "063a5502a992bd85",
           "a38b25d1523e45f9",
+          "3a87c3949bbefd3e",
           "e44e79f1da899fb0",
           "340ec57eef39bb14",
           "45e629cd4dbed94b",
-          "921cd61b0b3e5e1e"
+          "921cd61b0b3e5e1e",
+          "b8fe461aa712d377"
         ],
         "dropped": [
           "a84ec9a0a34a3f12",
@@ -5689,6 +6303,22 @@
           "result": "PASS"
         },
         "DB-A6-009": {
+          "n": 88,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-G4-002": {
+          "n": 88,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C5-004": {
           "n": 88,
           "changed": [],
           "dropped": [],
@@ -6824,6 +7454,14 @@
           "limit_documents": 1,
           "result": "PASS"
         },
+        "DB-D5-001": {
+          "n": 18,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
         "DB-F3-003": {
           "n": 18,
           "changed": [],
@@ -6849,6 +7487,14 @@
           "result": "PASS"
         },
         "DB-D3-014": {
+          "n": 18,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-B4-006": {
           "n": 18,
           "changed": [],
           "dropped": [],
@@ -7123,7 +7769,31 @@
           "limit_documents": 1,
           "result": "PASS"
         },
+        "DB-G1-010": {
+          "n": 5,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
         "DB-B2-005": {
+          "n": 5,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C4-006": {
+          "n": 5,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C5-006": {
           "n": 5,
           "changed": [],
           "dropped": [],
@@ -7147,7 +7817,47 @@
           "limit_documents": 1,
           "result": "PASS"
         },
+        "DB-F3-003": {
+          "n": 5,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C1-016": {
+          "n": 5,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C2-013": {
+          "n": 5,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-D3-014": {
+          "n": 5,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
         "DB-B4-006": {
+          "n": 5,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-F1-010": {
           "n": 5,
           "changed": [],
           "dropped": [],
@@ -7215,6 +7925,7 @@
           "c16371299da8e911",
           "a159bb53277b0e87",
           "416a45e735f685a7",
+          "c6f7f5d8fac58f5a",
           "cac8249415d4b54b",
           "f7327893ff4e3b8d",
           "4c66553f2e36df76",
@@ -7242,6 +7953,7 @@
           "d302462cf4a3140a",
           "76ec6882306890c4",
           "d60717af22ab14d4",
+          "1aa28983376de797",
           "5016565f32a35fc0",
           "8287cb49fd1d497f",
           "cd681170cc9fc146",
@@ -7303,6 +8015,202 @@
           "57187a63e91abe08",
           "0bf9fb0db515d011",
           "0474f0f4c0421365"
+        ],
+        "errors": [],
+        "limit_documents": 5
+      },
+      "out_of_pack_guard": "PASS"
+    },
+    "ind-te-sangraha-v": {
+      "pack_sha256": "d3d928606d1fd0a7a81fcbce10db3e3d8f4b7df74486bc51c9a9d30299812817",
+      "gold_sha256": "4455d67be7a8460356555aa45da3b5d96d42a0503b2a5b4b2464444845cf5853",
+      "gold_path": "teams/02-data-b/gold/ind-te-sangraha-v_gold.csv",
+      "pack_path": "ind-te-sangraha-v.parquet",
+      "independent_gold_rules": {
+        "DB-A6-013": {
+          "n": 27,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-G1-010": {
+          "n": 27,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-B2-004": {
+          "n": 27,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C4-006": {
+          "n": 27,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C5-006": {
+          "n": 27,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-D4-011": {
+          "n": 27,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-D5-001": {
+          "n": 27,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-F3-003": {
+          "n": 27,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C1-016": {
+          "n": 27,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C2-013": {
+          "n": 27,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-D3-014": {
+          "n": 27,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-B4-006": {
+          "n": 27,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-F1-010": {
+          "n": 27,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        }
+      },
+      "combined_gold": {
+        "n": 27,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "limit_documents": 1,
+        "result": "PASS"
+      },
+      "combined_pack": {
+        "n": 500,
+        "changed": [
+          "aa570ec040718364",
+          "05fa567dfc849e6b",
+          "4dad3347bd40bbca",
+          "27667afb5f1275fb",
+          "0049a605ea022805",
+          "b4523e3d75fea2fd",
+          "a2fe262d06a6c8d1",
+          "e9c38edc91c1f080",
+          "7d0eb95ce450da31",
+          "a49dde064901e3c4",
+          "78fafac09ce98623",
+          "0d73731f03dbd277",
+          "7f08939004c5c298",
+          "d953b096c2367373",
+          "57558e75ec2ff83c",
+          "aa988ce9e13884da",
+          "e93775bb218455ef",
+          "9e51f015da032472",
+          "b090166be19fbf0a",
+          "123141ba7400bfd5",
+          "48763ca91722e24a",
+          "e164027178639a3e",
+          "9c00599739ab0177",
+          "5fef847936051386",
+          "b1384c6cc6ab6eba",
+          "dbb876c745d6d1d0",
+          "b4e45fdff16b4d6a",
+          "95aae9f19a5f5ba3",
+          "6d7c47d27fd642d8",
+          "9d67d54ba7ac66e7",
+          "a107b9c63ce760b8",
+          "598e28c450bf2c6d",
+          "9fefe56cad5d02eb",
+          "97ea81fd3b0243ce",
+          "5c626d8adbf27718",
+          "f4a7b263fde8b2dc"
+        ],
+        "dropped": [
+          "8acd153461c0a159",
+          "ba8fbf4025410834",
+          "5fcfc2b6e785c4eb",
+          "93d55157e97c7352",
+          "38899aec9d0abbc7",
+          "26c5ea8a2cda7c47",
+          "fc48a4849a6197cc",
+          "baa2c61cf2fb2845",
+          "088d8221c0d32f2f",
+          "dc336e87d9461f6b",
+          "a00eafdfdfb59a55",
+          "bf8b81b3f168236a",
+          "e28ad63b02d08c67",
+          "914d223d96eef13d",
+          "6a7aee85387abc6b",
+          "a35a6bf67baec465",
+          "8404d1ae16f7e16f",
+          "b3a94168e26a91c6",
+          "012697e62432d373",
+          "fecfa73c3f1c3a7b",
+          "df87f71a036d591d",
+          "d1a71ff6161f043e",
+          "515066ab2810e25b",
+          "fde5545d5e022b99",
+          "aec0f3099a4ba58e",
+          "f86581827a0148e3",
+          "b6523b1d250e441c",
+          "4fa31a993a419991",
+          "245dcfe47b3f7c14",
+          "cba19edffd96cc7b"
         ],
         "errors": [],
         "limit_documents": 5
@@ -7988,5 +8896,5 @@
       "out_of_pack_guard": "PASS"
     }
   },
-  "spec_sha256": "bd399fec0f6c632bc594ae371aba92102c7d1a7f16855cfe120f279451b9bdc9"
+  "spec_sha256": "5c2eb5128e29585fefd2aee6ca3725b5209061f69674819522dc39e93f7a4a41"
 }

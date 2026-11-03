@@ -2,6 +2,49 @@
 
 # medicine_indic: compiled Indic medicines (Data B)
 
+<!-- INDIC SIBLING POLICY -->
+## Data A sibling-scope policy
+
+The copied contributor blocks below retain their original `ORIGIN`, algorithms and attribution. The following local policy authorizes reviewing selected candidates for same-language sibling packs. It does not automatically broaden their executable guards. `integrate_indic.py` validates each receiving scope, and writes accepted `ORIGIN`/`SPEC_PACKS` scopes into the consolidated `specv1.md`, retaining the original as `SOURCE_ORIGIN`. The builder then generates `clean.py`; do not edit its scope table manually.
+
+Native selections take priority. Borrowed candidates fill missing diseases only and must pass the receiving pack's nonempty gold, ordinary-prose/joiner probes, full-pack runtime/idempotence and combined-pipeline checks. Empty or missing gold remains NOT TESTABLE; a language match is not a gold pass. Malayalam and Odia cannot borrow without a same-language donor. Accepted scopes and rejected attempts are recorded in `results/cleaner/indic_sibling_scopes.json`. These remain CANDIDATE selections, not independent approval or proof of recall.
+
+```json
+{
+  "enabled": true,
+  "same_language_only": true,
+  "donors": "selected native candidates only",
+  "native_rules_take_priority": true,
+  "fill_missing_diseases_only": true,
+  "require_receiving_gold": true,
+  "target_pack_ids": [
+    "ind-bn-fw2",
+    "ind-bn-sangraha-v",
+    "ind-gu-fw2",
+    "ind-hi-fw2",
+    "ind-hi-hplt",
+    "ind-hi-indiccorp",
+    "ind-hi-sangraha-s",
+    "ind-hi-sangraha-v",
+    "ind-kn-fw2",
+    "ind-kn-sangraha-s",
+    "ind-kn-sangraha-v",
+    "ind-ml-fw2",
+    "ind-mr-fw2",
+    "ind-mr-sangraha-v",
+    "ind-or-fw2",
+    "ind-sa-fw2",
+    "ind-ta-fw2",
+    "ind-ta-sangraha-s",
+    "ind-ta-sangraha-v",
+    "ind-te-fw2",
+    "ind-te-sangraha-s",
+    "ind-te-sangraha-v"
+  ]
+}
+```
+<!-- END INDIC SIBLING POLICY -->
+
 176 rules from 13 packs. Only rules whose author reports a pass on **their own pack's gold set at today's size** (`teams/02-data-b/gold/gold_coverage.csv` on main, 2 Nov) are here. Every other medicine is in `rules_status.md`, with the reason it is not here yet.
 
 Rule form: Data A's (`teams/01-data-a/spec_v1/sheets/medicine_english.md`, PR #194): `RULE_ID`, `CODE`, `ACTION`, `STAGE`, `STATUS`, `LANGS`, `ORIGIN`, `SOURCE`, `AUTHOR`; `medicine(doc) -> (action, text)`, `doc = {doc_id, text, url, lang_label, pack_id}`.

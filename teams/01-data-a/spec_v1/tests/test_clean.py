@@ -32,7 +32,8 @@ FAMILIES = {"code": {"code-cpp", "code-go", "code-java", "code-js-ts", "code-pyt
             "math": {"math-finemath", "math-megamath"}, "sci": {"sci-finepdfs"},
             "indic": {"ind-bn-fw2", "ind-gu-fw2", "ind-hi-fw2", "ind-hi-hplt", "ind-kn-fw2",
                       "ind-kn-sangraha-s", "ind-kn-sangraha-v", "ind-mr-fw2", "ind-mr-sangraha-v",
-                      "ind-sa-fw2", "ind-ta-sangraha-v", "ind-te-fw2", "ind-te-sangraha-s"}}
+                      "ind-sa-fw2", "ind-ta-sangraha-v", "ind-te-fw2", "ind-te-sangraha-s",
+                      "ind-bn-sangraha-v", "ind-hi-indiccorp", "ind-te-sangraha-v"}}
 PACKS = sorted(set().union(*FAMILIES.values()))
 SHEET = (SPEC / "sheets" / "specv1.md").read_text(encoding="utf-8")
 SECTIONS = [(family, rid) for family, rid, body in re.findall(

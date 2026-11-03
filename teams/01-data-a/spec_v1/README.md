@@ -26,7 +26,7 @@ teams/01-data-a/
   tools/                    build, harm test run, F1 rule, checks
 ```
 
-Families: `code`, `english`, `math`, `sci`, and `indic`. Indic covers 13 packs through selected candidates; see [Indic integration](README_indic.md) for deferred rules and validation limits.
+Families: `code`, `english`, `math`, `sci`, and `indic`. Indic covers 16 packs through native candidates and validated same-language sibling scopes; see [Indic integration](README_indic.md) for deferred rules and validation limits.
 
 **One source for each fact.** Rules live only in `medicine_<family>.md`. The registry of the template's §3 is the table at the top of that file, so it cannot drift from the code. Numbers come from `results/`, not from hand-typed tables.
 

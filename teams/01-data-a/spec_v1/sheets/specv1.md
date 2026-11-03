@@ -4,7 +4,7 @@ Status: **DRAFT / CANDIDATE**. Consolidates the five local medicine sheets; no r
 
 ## Scope, dispatch and executable contract
 
-The 26 covered packs are partitioned into code (six), English prose (four), math (two), science (one), and Indic (13). Nine additional Indic sample packs have no candidates in this source sheet and remain unsupported. `pack_id` is required and must come from trusted pack provenance; language alone cannot distinguish English prose, math and scientific PDFs. Missing or unknown pack IDs pass unchanged for inspection and are **not eligible for release**. Preserve original source metadata, text and licensing separately for audit.
+The 29 covered packs are partitioned into code (six), English prose (four), math (two), science (one), and Indic (16). Indic sibling scopes are validated separately below.
 
 Each Python fence is one independent rule module. Load with `teams/01-data-a/tools/harm_test.py`, which isolates sheet blocks. Concatenating fences into one Python namespace or using `medicine_extract.py` on this compiled sheet is unsupported: shared names (`medicine`, `_std`, `LANGS`, helpers) have different meanings. All IDs in this document are unique; renamed IDs are provisional local aliases, require registry reconciliation, and preserve `SOURCE_RULE_ID`. No existing registry is changed.
 
@@ -38,6 +38,18 @@ A gold document is changed only if a surviving output differs from original text
 The five source sheets do not consistently contain three exact `(doc_id, characters)` quotations per medicine. Math cards generally contain no document examples; many code/English cards list IDs only; science uses descriptions and intentionally withholds private values. **Fresh exact-character execution excerpts are added per card below; cards with fewer than three publishable examples remain incomplete.** Do not fabricate snippets, and do not publish private spans to satisfy the template. Supply reviewed non-private exact characters or an access-controlled privacy evidence record before freeze. The historical science sources disagree on labels and the old 40-document gold snapshot (`eee25e81417bc1b7`). The supplied latest science gold has 198 rows and zero measured harm; its digest is recorded below. Inherited science measurements describe the old snapshot; 1/40 (2.50%) passes under the minimum-one exception, while gold eligibility remains a separate review issue. Gold must be adjudicated independently, never edited merely to pass a test.
 
 Source code remains CANDIDATE even after a measured pass. Semantic side effects, reviewer approval, missing examples, F1 coverage and provisional registry IDs remain release gates. Rules for <=5 observations and preservation-only science D3 are supplementary cards.
+
+<!-- MERGED PIPELINE DECISIONS -->
+## Merged PR decisions and optional F2 stage
+
+[PR #25](https://github.com/patilvijay23/era-v5-lab/pull/25) refreshes [decisions_math.md](decisions_math.md), not the 14 math algorithms or their scopes. They remain CANDIDATE and ready for independent review, not approved/frozen. Preserve the B2 sup/sub semantic release gate, the deferred megamath C1 scope, and the shared F1. Counts in that decision document describe its cited snapshots; current execution evidence is regenerated below.
+
+[PR #26](https://github.com/patilvijay23/era-v5-lab/pull/26) supplies G9 F2 through `tools/f2_rule.py` and **opt-in `run_clean.py --f2`**, after `clean.py` on retained text. It is intentionally not an unconditional sheet block or generated `clean.py` function: the full fingerprint set is pinned, takes substantial memory/time to load, and can match shared public passages. No `--f2` means the existing default cleaner behavior. F2 reports benchmark item IDs, offsets in cleaned text and the set digest; it drops flagged retained documents. Its gold budget must be checked together with the default cleaner, counting each affected document once.
+
+The pin is `v1`, set SHA-256 `11e290a44d1467875fdf8bebc55eab21f0a6367f411aab98a4a027a546fd372e`. This is G9's supplied word-ngram matcher, not the two legacy Sanskrit character-window medicines. Those `DB-F2-*` cards remain deferred. G9 v1 includes FLORES/IN22 fingerprints but not Itihasa; the optional stage must not be described as complete Itihasa coverage. Changing the set or applying the stage to new packs requires its own validation. See [F2 results](../results/f2/README.md).
+
+The effective runner order is: validated family scopes in sheet order, existing shared F1 on code/math/science, then G9 F2 **only with `--f2`**. Indic keeps its own F1 rules. A rebuild refreshes family scopes and does not turn on F2 automatically.
+<!-- END MERGED PIPELINE DECISIONS -->
 
 ## Source snapshots
 
@@ -142,18 +154,21 @@ Fresh local execution using the repository loader, mutation checks, timeouts and
 | en-nemotroncc | 129 | 0 / 0 | PASS | 62 / 17 | 0 / 0 |
 | en-nemotroncc-synth | 326 | 0 / 0 | PASS | 32 / 1 | 0 / 0 |
 | ind-bn-fw2 | 238 | 0 / 0 | PASS | 113 / 45 | 0 / 0 |
+| ind-bn-sangraha-v | 50 | 0 / 0 | PASS | 39 / 7 | 0 / 0 |
 | ind-gu-fw2 | 19 | 0 / 0 | PASS | 179 / 10 | 0 / 0 |
-| ind-hi-fw2 | 234 | 0 / 0 | PASS | 18 / 2 | 0 / 0 |
+| ind-hi-fw2 | 234 | 0 / 1 | PASS | 26 / 4 | 0 / 0 |
 | ind-hi-hplt | 67 | 0 / 0 | PASS | 97 / 33 | 0 / 0 |
-| ind-kn-fw2 | 45 | 0 / 0 | PASS | 93 / 0 | 0 / 0 |
-| ind-kn-sangraha-s | 27 | 0 / 0 | PASS | 68 / 0 | 0 / 0 |
-| ind-kn-sangraha-v | 103 | 0 / 0 | PASS | 37 / 12 | 0 / 0 |
-| ind-mr-fw2 | 140 | 0 / 0 | PASS | 50 / 8 | 0 / 0 |
+| ind-hi-indiccorp | 130 | 0 / 0 | PASS | 3 / 0 | 0 / 0 |
+| ind-kn-fw2 | 45 | 0 / 0 | PASS | 90 / 9 | 0 / 0 |
+| ind-kn-sangraha-s | 27 | 0 / 0 | PASS | 72 / 1 | 0 / 0 |
+| ind-kn-sangraha-v | 103 | 0 / 0 | PASS | 40 / 12 | 0 / 0 |
+| ind-mr-fw2 | 140 | 1 / 0 | PASS | 82 / 8 | 0 / 0 |
 | ind-mr-sangraha-v | 88 | 0 / 0 | PASS | 263 / 38 | 0 / 0 |
 | ind-sa-fw2 | 68 | 1 / 0 | PASS | 228 / 21 | 0 / 0 |
 | ind-ta-sangraha-v | 41 | 0 / 0 | PASS | 213 / 3 | 0 / 0 |
 | ind-te-fw2 | 18 | 0 / 0 | PASS | 114 / 111 | 0 / 0 |
-| ind-te-sangraha-s | 5 | 0 / 0 | PASS | 104 / 30 | 0 / 0 |
+| ind-te-sangraha-s | 5 | 0 / 0 | PASS | 106 / 30 | 0 / 0 |
+| ind-te-sangraha-v | 27 | 0 / 0 | PASS | 36 / 30 | 0 / 0 |
 | math-finemath | 86 | 0 / 0 | PASS | 176 / 13 | 0 / 0 |
 | math-megamath | 26 | 0 / 0 | PASS | 37 / 10 | 0 / 0 |
 | sci-finepdfs | 202 | 0 / 0 | PASS | 32 / 12 | 0 / 0 |
@@ -223,7 +238,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'code-cpp', 'code-java', 'code-rust', 'code-go', 'code-python', 'code-js-ts'}
+SPEC_PACKS = {'code-cpp', 'code-go', 'code-java', 'code-js-ts', 'code-python', 'code-rust'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -292,7 +307,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'code-cpp', 'code-java', 'code-rust', 'code-go', 'code-python', 'code-js-ts'}
+SPEC_PACKS = {'code-cpp', 'code-go', 'code-java', 'code-js-ts', 'code-python', 'code-rust'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -363,7 +378,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'code-cpp', 'code-java', 'code-rust', 'code-go', 'code-python', 'code-js-ts'}
+SPEC_PACKS = {'code-cpp', 'code-go', 'code-java', 'code-js-ts', 'code-python', 'code-rust'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -432,7 +447,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'code-cpp', 'code-java', 'code-rust', 'code-go', 'code-python', 'code-js-ts'}
+SPEC_PACKS = {'code-cpp', 'code-go', 'code-java', 'code-js-ts', 'code-python', 'code-rust'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -503,7 +518,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'code-cpp', 'code-java', 'code-rust', 'code-go', 'code-python', 'code-js-ts'}
+SPEC_PACKS = {'code-cpp', 'code-go', 'code-java', 'code-js-ts', 'code-python', 'code-rust'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -574,7 +589,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'code-cpp', 'code-java', 'code-rust', 'code-go', 'code-python', 'code-js-ts'}
+SPEC_PACKS = {'code-cpp', 'code-go', 'code-java', 'code-js-ts', 'code-python', 'code-rust'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -669,7 +684,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'code-cpp', 'code-java', 'code-rust', 'code-go', 'code-python', 'code-js-ts'}
+SPEC_PACKS = {'code-cpp', 'code-go', 'code-java', 'code-js-ts', 'code-python', 'code-rust'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -750,7 +765,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'code-cpp', 'code-java', 'code-rust', 'code-go', 'code-python', 'code-js-ts'}
+SPEC_PACKS = {'code-cpp', 'code-go', 'code-java', 'code-js-ts', 'code-python', 'code-rust'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -852,7 +867,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'code-cpp', 'code-java', 'code-rust', 'code-go', 'code-python', 'code-js-ts'}
+SPEC_PACKS = {'code-cpp', 'code-go', 'code-java', 'code-js-ts', 'code-python', 'code-rust'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -922,7 +937,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'code-cpp', 'code-java', 'code-rust', 'code-go', 'code-python', 'code-js-ts'}
+SPEC_PACKS = {'code-cpp', 'code-go', 'code-java', 'code-js-ts', 'code-python', 'code-rust'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -995,7 +1010,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'code-cpp', 'code-java', 'code-rust', 'code-go', 'code-python', 'code-js-ts'}
+SPEC_PACKS = {'code-cpp', 'code-go', 'code-java', 'code-js-ts', 'code-python', 'code-rust'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -1067,7 +1082,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'code-cpp', 'code-java', 'code-rust', 'code-go', 'code-python', 'code-js-ts'}
+SPEC_PACKS = {'code-cpp', 'code-go', 'code-java', 'code-js-ts', 'code-python', 'code-rust'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -1146,7 +1161,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'code-cpp', 'code-java', 'code-rust', 'code-go', 'code-python', 'code-js-ts'}
+SPEC_PACKS = {'code-cpp', 'code-go', 'code-java', 'code-js-ts', 'code-python', 'code-rust'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -1245,7 +1260,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'code-cpp', 'code-java', 'code-rust', 'code-go', 'code-python', 'code-js-ts'}
+SPEC_PACKS = {'code-cpp', 'code-go', 'code-java', 'code-js-ts', 'code-python', 'code-rust'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -1313,7 +1328,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'code-cpp', 'code-java', 'code-rust', 'code-go', 'code-python', 'code-js-ts'}
+SPEC_PACKS = {'code-cpp', 'code-go', 'code-java', 'code-js-ts', 'code-python', 'code-rust'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -1405,7 +1420,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'code-cpp', 'code-java', 'code-rust', 'code-go', 'code-python', 'code-js-ts'}
+SPEC_PACKS = {'code-cpp', 'code-go', 'code-java', 'code-js-ts', 'code-python', 'code-rust'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -1537,7 +1552,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'code-cpp', 'code-java', 'code-rust', 'code-go', 'code-python', 'code-js-ts'}
+SPEC_PACKS = {'code-cpp', 'code-go', 'code-java', 'code-js-ts', 'code-python', 'code-rust'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -1656,7 +1671,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'code-cpp', 'code-java', 'code-rust', 'code-go', 'code-python', 'code-js-ts'}
+SPEC_PACKS = {'code-cpp', 'code-go', 'code-java', 'code-js-ts', 'code-python', 'code-rust'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -1734,7 +1749,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'code-cpp', 'code-java', 'code-rust', 'code-go', 'code-python', 'code-js-ts'}
+SPEC_PACKS = {'code-cpp', 'code-go', 'code-java', 'code-js-ts', 'code-python', 'code-rust'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -1806,7 +1821,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'code-cpp', 'code-java', 'code-rust', 'code-go', 'code-python', 'code-js-ts'}
+SPEC_PACKS = {'code-cpp', 'code-go', 'code-java', 'code-js-ts', 'code-python', 'code-rust'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -1911,7 +1926,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'code-cpp', 'code-java', 'code-rust', 'code-go', 'code-python', 'code-js-ts'}
+SPEC_PACKS = {'code-cpp', 'code-go', 'code-java', 'code-js-ts', 'code-python', 'code-rust'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -1982,7 +1997,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'code-cpp', 'code-java', 'code-rust', 'code-go', 'code-python', 'code-js-ts'}
+SPEC_PACKS = {'code-cpp', 'code-go', 'code-java', 'code-js-ts', 'code-python', 'code-rust'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -2054,7 +2069,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'code-cpp', 'code-java', 'code-rust', 'code-go', 'code-python', 'code-js-ts'}
+SPEC_PACKS = {'code-cpp', 'code-go', 'code-java', 'code-js-ts', 'code-python', 'code-rust'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -2169,7 +2184,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'code-cpp', 'code-java', 'code-rust', 'code-go', 'code-python', 'code-js-ts'}
+SPEC_PACKS = {'code-cpp', 'code-go', 'code-java', 'code-js-ts', 'code-python', 'code-rust'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -2238,7 +2253,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'en-fineweb-edu', 'en-nemotroncc-synth', 'en-nemotroncc', 'en-dclm'}
+SPEC_PACKS = {'en-dclm', 'en-fineweb-edu', 'en-nemotroncc', 'en-nemotroncc-synth'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -2297,7 +2312,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'en-fineweb-edu', 'en-nemotroncc-synth', 'en-nemotroncc', 'en-dclm'}
+SPEC_PACKS = {'en-dclm', 'en-fineweb-edu', 'en-nemotroncc', 'en-nemotroncc-synth'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -2356,7 +2371,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'en-fineweb-edu', 'en-nemotroncc-synth', 'en-nemotroncc', 'en-dclm'}
+SPEC_PACKS = {'en-dclm', 'en-fineweb-edu', 'en-nemotroncc', 'en-nemotroncc-synth'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -2424,7 +2439,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'en-fineweb-edu', 'en-nemotroncc-synth', 'en-nemotroncc', 'en-dclm'}
+SPEC_PACKS = {'en-dclm', 'en-fineweb-edu', 'en-nemotroncc', 'en-nemotroncc-synth'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -2487,7 +2502,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'en-fineweb-edu', 'en-nemotroncc-synth', 'en-nemotroncc', 'en-dclm'}
+SPEC_PACKS = {'en-dclm', 'en-fineweb-edu', 'en-nemotroncc', 'en-nemotroncc-synth'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -2551,7 +2566,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'en-fineweb-edu', 'en-nemotroncc-synth', 'en-nemotroncc', 'en-dclm'}
+SPEC_PACKS = {'en-dclm', 'en-fineweb-edu', 'en-nemotroncc', 'en-nemotroncc-synth'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -2621,7 +2636,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'en-fineweb-edu', 'en-nemotroncc-synth', 'en-nemotroncc', 'en-dclm'}
+SPEC_PACKS = {'en-dclm', 'en-fineweb-edu', 'en-nemotroncc', 'en-nemotroncc-synth'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -2707,7 +2722,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'en-fineweb-edu', 'en-nemotroncc-synth', 'en-nemotroncc', 'en-dclm'}
+SPEC_PACKS = {'en-dclm', 'en-fineweb-edu', 'en-nemotroncc', 'en-nemotroncc-synth'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -2794,7 +2809,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'en-fineweb-edu', 'en-nemotroncc-synth', 'en-nemotroncc', 'en-dclm'}
+SPEC_PACKS = {'en-dclm', 'en-fineweb-edu', 'en-nemotroncc', 'en-nemotroncc-synth'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -2867,7 +2882,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'en-fineweb-edu', 'en-nemotroncc-synth', 'en-nemotroncc', 'en-dclm'}
+SPEC_PACKS = {'en-dclm', 'en-fineweb-edu', 'en-nemotroncc', 'en-nemotroncc-synth'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -2937,7 +2952,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'en-fineweb-edu', 'en-nemotroncc-synth', 'en-nemotroncc', 'en-dclm'}
+SPEC_PACKS = {'en-dclm', 'en-fineweb-edu', 'en-nemotroncc', 'en-nemotroncc-synth'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -3031,7 +3046,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'en-fineweb-edu', 'en-nemotroncc-synth', 'en-nemotroncc', 'en-dclm'}
+SPEC_PACKS = {'en-dclm', 'en-fineweb-edu', 'en-nemotroncc', 'en-nemotroncc-synth'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -3094,7 +3109,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'en-fineweb-edu', 'en-nemotroncc-synth', 'en-nemotroncc', 'en-dclm'}
+SPEC_PACKS = {'en-dclm', 'en-fineweb-edu', 'en-nemotroncc', 'en-nemotroncc-synth'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -3166,7 +3181,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'en-fineweb-edu', 'en-nemotroncc-synth', 'en-nemotroncc', 'en-dclm'}
+SPEC_PACKS = {'en-dclm', 'en-fineweb-edu', 'en-nemotroncc', 'en-nemotroncc-synth'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -3258,7 +3273,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'en-fineweb-edu', 'en-nemotroncc-synth', 'en-nemotroncc', 'en-dclm'}
+SPEC_PACKS = {'en-dclm', 'en-fineweb-edu', 'en-nemotroncc', 'en-nemotroncc-synth'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -3322,7 +3337,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'en-fineweb-edu', 'en-nemotroncc-synth', 'en-nemotroncc', 'en-dclm'}
+SPEC_PACKS = {'en-dclm', 'en-fineweb-edu', 'en-nemotroncc', 'en-nemotroncc-synth'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -3411,7 +3426,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'en-fineweb-edu', 'en-nemotroncc-synth', 'en-nemotroncc', 'en-dclm'}
+SPEC_PACKS = {'en-dclm', 'en-fineweb-edu', 'en-nemotroncc', 'en-nemotroncc-synth'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -3522,7 +3537,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'en-fineweb-edu', 'en-nemotroncc-synth', 'en-nemotroncc', 'en-dclm'}
+SPEC_PACKS = {'en-dclm', 'en-fineweb-edu', 'en-nemotroncc', 'en-nemotroncc-synth'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -3594,7 +3609,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'en-fineweb-edu', 'en-nemotroncc-synth', 'en-nemotroncc', 'en-dclm'}
+SPEC_PACKS = {'en-dclm', 'en-fineweb-edu', 'en-nemotroncc', 'en-nemotroncc-synth'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -3735,7 +3750,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'en-fineweb-edu', 'en-nemotroncc-synth', 'en-nemotroncc', 'en-dclm'}
+SPEC_PACKS = {'en-dclm', 'en-fineweb-edu', 'en-nemotroncc', 'en-nemotroncc-synth'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -3814,7 +3829,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'math-megamath', 'math-finemath'}
+SPEC_PACKS = {'math-finemath', 'math-megamath'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -3881,7 +3896,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'math-megamath', 'math-finemath'}
+SPEC_PACKS = {'math-finemath', 'math-megamath'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -3953,7 +3968,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'math-megamath', 'math-finemath'}
+SPEC_PACKS = {'math-finemath', 'math-megamath'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -4026,7 +4041,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'math-megamath', 'math-finemath'}
+SPEC_PACKS = {'math-finemath', 'math-megamath'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -4096,7 +4111,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'math-megamath', 'math-finemath'}
+SPEC_PACKS = {'math-finemath', 'math-megamath'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -4164,7 +4179,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'math-megamath', 'math-finemath'}
+SPEC_PACKS = {'math-finemath', 'math-megamath'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -4234,7 +4249,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'math-megamath', 'math-finemath'}
+SPEC_PACKS = {'math-finemath', 'math-megamath'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -4302,7 +4317,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'math-megamath', 'math-finemath'}
+SPEC_PACKS = {'math-finemath', 'math-megamath'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -4380,7 +4395,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'math-megamath', 'math-finemath'}
+SPEC_PACKS = {'math-finemath', 'math-megamath'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -4454,7 +4469,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'math-megamath', 'math-finemath'}
+SPEC_PACKS = {'math-finemath', 'math-megamath'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -4549,7 +4564,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'math-megamath', 'math-finemath'}
+SPEC_PACKS = {'math-finemath', 'math-megamath'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -4647,7 +4662,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'math-megamath', 'math-finemath'}
+SPEC_PACKS = {'math-finemath', 'math-megamath'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -4713,7 +4728,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'math-megamath', 'math-finemath'}
+SPEC_PACKS = {'math-finemath', 'math-megamath'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -4787,7 +4802,7 @@ def medicine(doc):
 
 _spec_source_medicine = medicine
 
-SPEC_PACKS = {'math-megamath', 'math-finemath'}
+SPEC_PACKS = {'math-finemath', 'math-megamath'}
 
 def medicine(doc):
     if doc.get("pack_id") not in SPEC_PACKS:
@@ -5722,7 +5737,7 @@ def medicine(doc):
 
 1. **Disease:** A3 Mojibake. Pack `ind-bn-fw2`. Source: section A3 of `diagnosis/submissions/ind-bn-fw2/sohamniyogi/medicine.md`, PR #138 at `8a50c48`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 50 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -5739,9 +5754,10 @@ CODE = "A3"
 ACTION = "fix"
 STAGE = "10"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-bn-fw2'}
+SPEC_PACKS = {'ind-bn-fw2', 'ind-bn-sangraha-v'}
 LANGS = {"ben_Beng"}
-ORIGIN = "ind-bn-fw2"  # packs it runs on
+ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+SOURCE_ORIGIN = "ind-bn-fw2"
 SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 AUTHOR = "sohamniyogi"  # PR #138 at 8a50c48
 
@@ -5806,7 +5822,8 @@ STAGE = "10"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-gu-fw2'}
 LANGS = {"guj_Gujr"}
-ORIGIN = "ind-gu-fw2"  # packs it runs on
+ORIGIN = "ind-gu-fw2"
+SOURCE_ORIGIN = "ind-gu-fw2"
 SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
 AUTHOR = "Nisarg189"  # PR #18 at 9184235
 
@@ -5863,7 +5880,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A5 Wrong normal form. Pack `ind-bn-fw2`. Source: section A5 of `diagnosis/submissions/ind-bn-fw2/AditeyaAItronics/medicine.md`, PR #64 at `840d13d`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 50 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -5880,9 +5897,10 @@ CODE = "A5"
 ACTION = "fix"
 STAGE = "10"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-bn-fw2'}
+SPEC_PACKS = {'ind-bn-fw2', 'ind-bn-sangraha-v'}
 LANGS = {"ben_Beng"}
-ORIGIN = "ind-bn-fw2"  # packs it runs on
+ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+SOURCE_ORIGIN = "ind-bn-fw2"
 SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 AUTHOR = "AditeyaAItronics"  # PR #64 at 840d13d
 
@@ -6000,7 +6018,8 @@ STAGE = "10"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-gu-fw2'}
 LANGS = {"guj_Gujr"}
-ORIGIN = "ind-gu-fw2"  # packs it runs on
+ORIGIN = "ind-gu-fw2"
+SOURCE_ORIGIN = "ind-gu-fw2"
 SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
 AUTHOR = "Nisarg189"  # PR #18 at 9184235
 
@@ -6199,7 +6218,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A5 Wrong normal form. Pack `ind-mr-sangraha-v`. Source: section A5 of `diagnosis/submissions/ind-mr-sangraha-v/patilvijay23/medicine.md`, PR #19 at `07d884f`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
+**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 140 (PASS); ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -6216,9 +6235,10 @@ CODE = "A5"
 ACTION = "fix"
 STAGE = "10"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-mr-sangraha-v'}
+SPEC_PACKS = {'ind-mr-fw2', 'ind-mr-sangraha-v'}
 LANGS = {"mar_Deva"}
-ORIGIN = "ind-mr-sangraha-v"  # packs it runs on
+ORIGIN = "ind-mr-sangraha-v, ind-mr-fw2"
+SOURCE_ORIGIN = "ind-mr-sangraha-v"
 SOURCE = "ind-mr-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "patilvijay23"  # PR #19 at 07d884f
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -6337,7 +6357,8 @@ STAGE = "10"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-sa-fw2'}
 LANGS = {"san_Deva"}
-ORIGIN = "ind-sa-fw2"  # packs it runs on
+ORIGIN = "ind-sa-fw2"
+SOURCE_ORIGIN = "ind-sa-fw2"
 SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
 AUTHOR = "swatibansal"  # PR #80 at 7af8541
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -6396,7 +6417,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A6 Wrong or mixed script. Pack `ind-bn-fw2`. Source: section A6 of `diagnosis/submissions/ind-bn-fw2/AditeyaAItronics/medicine.md`, PR #64 at `840d13d`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 50 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -6413,9 +6434,10 @@ CODE = "A6"
 ACTION = "fix"
 STAGE = "10"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-bn-fw2'}
+SPEC_PACKS = {'ind-bn-fw2', 'ind-bn-sangraha-v'}
 LANGS = {"ben_Beng"}
-ORIGIN = "ind-bn-fw2"  # packs it runs on
+ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+SOURCE_ORIGIN = "ind-bn-fw2"
 SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 AUTHOR = "AditeyaAItronics"  # PR #64 at 840d13d
 
@@ -6539,7 +6561,8 @@ STAGE = "10"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-gu-fw2'}
 LANGS = {"guj_Gujr"}
-ORIGIN = "ind-gu-fw2"  # packs it runs on
+ORIGIN = "ind-gu-fw2"
+SOURCE_ORIGIN = "ind-gu-fw2"
 SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
 AUTHOR = "vedang-patel-10"  # PR #91 at b6bf183
 
@@ -6590,13 +6613,13 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A6 Wrong or mixed script. Pack `ind-hi-hplt`. Source: section A6 of `diagnosis/submissions/ind-hi-hplt/narasimhatejav/medicine.md`, PR #170 at `4aaf84b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 67 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS); ind-hi-hplt: 0 changed / 0 dropped of 67 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 130 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
-- `1e638ceb8920faf1` (ind-hi-hplt), original offset 8845: `" \u0926\u0947\u0928\u093e \u0939\u0948\u0903 \u092e\u0948\u0902 \u091c\u093f\u0938 \u0935\u093f\u0937\u092f \u0915\u0947 \u092c\u093e\u0930\u0947 \u092e"` (fix).
-- `866d467e1fa36988` (ind-hi-hplt), original offset 129904: `" \u0926\u0942\u0930\u0940 \u0939\u0948\u0903 \u092f\u0926\u094d\u092f\u092a\u093f \u092e\u0928\u0941\u0937\u094d\u092f \u092a\u0930\u092e\u0947\u0936\u094d\u0935\u0930"` (fix).
-- `ac36464759436542` (ind-hi-hplt), original offset 443: `"\u0915\u0930\u0924\u093e \u0925\u093e I \u0935\u0939 \u0932\u094b\u0917\u094b\u0902 \u0915\u094b \u092c\u0939\u0941\u0924 \u092a\u0938\u0902\u0926 "` (fix).
+- `c3d6c6b67a11a989` (ind-hi-fw2), original offset 79: `"\u0928\u0924 \u092e\u093f\u0932\u0940 l\n\u092c\u092e\u094d\u092c\u0908 \u0909\u091a\u094d\u091a \u0928\u094d\u092f\u093e\u092f\u093e\u0932\u092f \u0928\u0947"` (fix).
+- `10ee275a9dea2acf` (ind-hi-fw2), original offset 2632: `"\u0941\u0928\u093e\u0935 \u0915\u0940 l\n\u0915\u094d\u092f\u093e \u0939\u094b\u0917\u093e \u0906\u0928\u0947 \u0935\u093e\u0932\u0947 \u091a\u0941\u0928"` (fix).
+- `ee19639bfb2e22a0` (ind-hi-fw2), original offset 1197: `" \u0939\u094b \u0917\u092f\u0947 I\n\u0935\u093e\u0939\u0928 \u092a\u0941\u0932\u093f\u0938 \u0915\u094b \u0906\u0924\u093e \u0926\u0947\u0916 "` (fix).
 <!-- END CARD EVIDENCE -->
 
 2. **Medicine:** the author's code, unchanged. Main function: `medicine_a6(text)`.
@@ -6607,9 +6630,10 @@ CODE = "A6"
 ACTION = "fix"
 STAGE = "10"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-hplt'}
+SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-hplt', 'ind-hi-indiccorp'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-hplt"  # packs it runs on
+ORIGIN = "ind-hi-hplt, ind-hi-fw2, ind-hi-indiccorp"
+SOURCE_ORIGIN = "ind-hi-hplt"
 SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
 AUTHOR = "narasimhatejav"  # PR #170 at 4aaf84b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -6722,7 +6746,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A6 Wrong or mixed script. Pack `ind-kn-sangraha-s`. Source: section A6 of `diagnosis/submissions/ind-kn-sangraha-s/millermuttu/medicine.md`, PR #104 at `74dd2df`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS).
+**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 45 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -6739,9 +6763,10 @@ CODE = "A6"
 ACTION = "fix"
 STAGE = "10"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-kn-sangraha-s'}
+SPEC_PACKS = {'ind-kn-fw2', 'ind-kn-sangraha-s'}
 LANGS = {"kan_Knda"}
-ORIGIN = "ind-kn-sangraha-s"  # packs it runs on
+ORIGIN = "ind-kn-sangraha-s, ind-kn-fw2"
+SOURCE_ORIGIN = "ind-kn-sangraha-s"
 SOURCE = "ind-kn-sangraha-s"  # pack whose medicine this came from
 AUTHOR = "millermuttu"  # PR #104 at 74dd2df
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -6803,7 +6828,8 @@ STAGE = "10"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-kn-sangraha-v'}
 LANGS = {"kan_Knda"}
-ORIGIN = "ind-kn-sangraha-v"  # packs it runs on
+ORIGIN = "ind-kn-sangraha-v"
+SOURCE_ORIGIN = "ind-kn-sangraha-v"
 SOURCE = "ind-kn-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "pyru"  # PR #25 at 5eaa16e
 
@@ -6879,7 +6905,8 @@ STAGE = "10"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-mr-fw2'}
 LANGS = {"mar_Deva"}
-ORIGIN = "ind-mr-fw2"  # packs it runs on
+ORIGIN = "ind-mr-fw2"
+SOURCE_ORIGIN = "ind-mr-fw2"
 SOURCE = "ind-mr-fw2"  # pack whose medicine this came from
 AUTHOR = "thinktinkergreen"  # PR #50 at 0d85486
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -6940,7 +6967,8 @@ STAGE = "10"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-mr-sangraha-v'}
 LANGS = {"mar_Deva"}
-ORIGIN = "ind-mr-sangraha-v"  # packs it runs on
+ORIGIN = "ind-mr-sangraha-v"
+SOURCE_ORIGIN = "ind-mr-sangraha-v"
 SOURCE = "ind-mr-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "patilvijay23"  # PR #19 at 07d884f
 
@@ -7155,7 +7183,8 @@ STAGE = "10"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-ta-sangraha-v'}
 LANGS = {"tam_Taml"}
-ORIGIN = "ind-ta-sangraha-v"  # packs it runs on
+ORIGIN = "ind-ta-sangraha-v"
+SOURCE_ORIGIN = "ind-ta-sangraha-v"
 SOURCE = "ind-ta-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "abinesh1"  # PR #101 at 3d69463
 
@@ -7197,7 +7226,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A6 Wrong or mixed script. Pack `ind-te-fw2`. Source: section A6 of `diagnosis/submissions/ind-te-fw2/sandeepkunkunuru/medicine.md`, PR #3 at `75e8f7b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 27 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -7214,9 +7243,10 @@ CODE = "A6"
 ACTION = "fix"
 STAGE = "10"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-te-fw2'}
+SPEC_PACKS = {'ind-te-fw2', 'ind-te-sangraha-v'}
 LANGS = {"tel_Telu"}
-ORIGIN = "ind-te-fw2"  # packs it runs on
+ORIGIN = "ind-te-fw2, ind-te-sangraha-v"
+SOURCE_ORIGIN = "ind-te-fw2"
 SOURCE = "ind-te-fw2"  # pack whose medicine this came from
 AUTHOR = "sandeepkunkunuru"  # PR #3 at 75e8f7b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -7277,7 +7307,8 @@ STAGE = "10"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-te-sangraha-s'}
 LANGS = {"tel_Telu"}
-ORIGIN = "ind-te-sangraha-s"  # packs it runs on
+ORIGIN = "ind-te-sangraha-s"
+SOURCE_ORIGIN = "ind-te-sangraha-s"
 SOURCE = "ind-te-sangraha-s"  # pack whose medicine this came from
 AUTHOR = "shankarpandala"  # PR #92 at 2e61b3b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -7323,14 +7354,13 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** G1 Cut at the vowel sign. Pack `ind-bn-fw2`. Source: section G1 of `diagnosis/submissions/ind-bn-fw2/sohamniyogi/medicine.md`, PR #138 at `8a50c48`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 50 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
 - `bb4a327ce2e54290` (ind-bn-fw2), original offset 5968: `"\u09af \u09b8\u0995\u09b2 \u09b8\u09ae \u09cd\u09aa\u09cd\u09b0\u09a6\u09be\u09af\u09bc \u09ac\u09bf\u09b6\u09cd\u09ac\u09be\u09b8 \u0995\u09b0\u09c7\u09a8 \u09af"` (fix).
 - `3c0de9b8acf6b2fd` (ind-bn-fw2), original offset 2262: `"\u09b2 \u09a7\u09b0\u09cd\u09ae\u09c7\u09b0 \u09cd\u09b0 \u09b8\u09be\u09b0\u09cd\u09ac\u099c\u09a8\u09c0\u09a8 \u09ae\u09c2\u09b2\u09cd\u09af\u09c7\u09b0 \u09aa\u09cd"` (fix).
-
-**Example gap:** 2/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
+- `93ae15cbd5dcb150` (ind-bn-sangraha-v), original offset 1903: `"\u09c7\u0964 \u098f\u099f\u09be \u09a4 \u09cd\u09af\u09be\u09b0 \u09a4\u09c8\u09b0\u09c0 \u09b9\u0993\u09af\u09bc\u09be \u0989\u099a\u09bf\u09a4 \u099b\u09bf"` (fix).
 <!-- END CARD EVIDENCE -->
 
 2. **Medicine:** the author's code, unchanged. Main function: `medicine_g1(text)`.
@@ -7341,9 +7371,10 @@ CODE = "G1"
 ACTION = "fix"
 STAGE = "10"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-bn-fw2'}
+SPEC_PACKS = {'ind-bn-fw2', 'ind-bn-sangraha-v'}
 LANGS = {"ben_Beng"}
-ORIGIN = "ind-bn-fw2"  # packs it runs on
+ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+SOURCE_ORIGIN = "ind-bn-fw2"
 SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 AUTHOR = "sohamniyogi"  # PR #138 at 8a50c48
 
@@ -7469,7 +7500,8 @@ STAGE = "10"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-gu-fw2'}
 LANGS = {"guj_Gujr"}
-ORIGIN = "ind-gu-fw2"  # packs it runs on
+ORIGIN = "ind-gu-fw2"
+SOURCE_ORIGIN = "ind-gu-fw2"
 SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
 AUTHOR = "vedang-patel-10"  # PR #91 at b6bf183
 
@@ -7514,13 +7546,13 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** G1 Cut at the vowel sign. Pack `ind-hi-hplt`. Source: section G1 of `diagnosis/submissions/ind-hi-hplt/narasimhatejav/medicine.md`, PR #170 at `4aaf84b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 67 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS); ind-hi-hplt: 0 changed / 0 dropped of 67 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 130 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
+- `aba71959d76cfb52` (ind-hi-fw2), original offset 3889: `"\u0947 \u0918\u0930 \u091a\u0932\u093e \u093e \u0914\u0930 \u0938\u093e\u0925 \u092e\u0947\u0902 \u092c\u0939\u0941 \u0915\u094b \u092d\u0940 "` (fix).
 - `a02caf8e245bbcf3` (ind-hi-hplt), original offset 3740: `"\u093e\u091a\u093e\u0930\u0940 \u092e\u0947 \u0902\u0917\u0941\u091c\u093e\u0930 \u0926\u0947\u0924\u0947 \u0939\u0948\u0902\u0964\u0910\u0902\u0938\u0947 \u0932\u094b"` (fix).
 - `8fed2d4464e4cc06` (ind-hi-hplt), original offset 2783: `" \u0930\u0942 \u092a \u092e\u0947 \u0902 \u090f\u0915 \u0928\u093f \u0936\u094d \u091a\u093f \u0924 \u0905\u0935\u0927\u093f \u092e\u0947"` (fix).
-- `c8d69b4928763080` (ind-hi-hplt), original offset 32558: `" \u0938\u0915\u0924\u0947 \u0939\u0948\u2026 [+] \u0902, \u091b\u093e\u0924\u094d\u0930 \u0938\u0902\u0918 \u0915\u094d\u0932\u092c\u094b"` (fix).
 <!-- END CARD EVIDENCE -->
 
 2. **Medicine:** the author's code, unchanged. Main function: `medicine_g1(text)`.
@@ -7531,9 +7563,10 @@ CODE = "G1"
 ACTION = "fix"
 STAGE = "10"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-hplt'}
+SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-hplt', 'ind-hi-indiccorp'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-hplt"  # packs it runs on
+ORIGIN = "ind-hi-hplt, ind-hi-fw2, ind-hi-indiccorp"
+SOURCE_ORIGIN = "ind-hi-hplt"
 SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
 AUTHOR = "narasimhatejav"  # PR #170 at 4aaf84b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -7578,14 +7611,13 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** G1 Cut at the vowel sign. Pack `ind-kn-fw2`. Source: section G1 of `diagnosis/submissions/ind-kn-fw2/keshavamurali/medicine.md`, PR #47 at `8158532`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 45 (PASS).
+**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 45 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
 - `634f9d4743893171` (ind-kn-fw2), original offset 13956: `"\u0cc1\u0cb0\u0cbf\u0ca4\u0cc1 \u0cb5\u0ca3 \u0ccd\u0cb8\u0cc1\u0cb5\u0cbe\u0c97 \u2018\u0c97\u0cc1\u0cb0\u0cc1\u0cb5\u0cbf\u0ca8 \u0cae\u0ca8\u0cc6\u0caf\u0cbe\u0c97\u0cc6"` (fix).
 - `2914f93d5aa778b8` (ind-kn-fw2), original offset 563: `"\u0ccd\u0ca6 \u0cb5\u0cb8\u0ca1\u0cbf\u0ca8 \u0cca\u0c82\u0ca6\u0ca8\u0ccd\u0ca8\u0cc1 \u0c95\u0c82\u0ca1. \u0ca8\u0cbf\u0c9c \u0c9c\u0cc0\u0cb5\u0ca8\u0ca6\u0cb2"` (fix).
-
-**Example gap:** 2/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
+- `21f3f80ab22e0719` (ind-kn-sangraha-s), original offset 13050: `"\u0c9c\u0cbf\u0caf\u0ca8\u0ccd \u0cb7\u0ccd \u0cbf\u0c82\u0caf\u0cbf\u0c82\u0c97\u0ccd\u0caf\u0cbe\u0c82\u0c97\u0ccd] \u0c85\u0ca4\u0ccd\u0caf\u0c82\u0ca4 \u0c85\u0ca7"` (fix).
 <!-- END CARD EVIDENCE -->
 
 2. **Medicine:** the author's code, unchanged. Main function: `medicine_g1(text)`.
@@ -7596,9 +7628,10 @@ CODE = "G1"
 ACTION = "fix"
 STAGE = "10"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-kn-fw2'}
+SPEC_PACKS = {'ind-kn-fw2', 'ind-kn-sangraha-s'}
 LANGS = {"kan_Knda"}
-ORIGIN = "ind-kn-fw2"  # packs it runs on
+ORIGIN = "ind-kn-fw2, ind-kn-sangraha-s"
+SOURCE_ORIGIN = "ind-kn-fw2"
 SOURCE = "ind-kn-fw2"  # pack whose medicine this came from
 AUTHOR = "keshavamurali"  # PR #47 at 8158532
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -7663,7 +7696,8 @@ STAGE = "10"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-mr-fw2'}
 LANGS = {"mar_Deva"}
-ORIGIN = "ind-mr-fw2"  # packs it runs on
+ORIGIN = "ind-mr-fw2"
+SOURCE_ORIGIN = "ind-mr-fw2"
 SOURCE = "ind-mr-fw2"  # pack whose medicine this came from
 AUTHOR = "thinktinkergreen"  # PR #50 at 0d85486
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -7724,7 +7758,8 @@ STAGE = "10"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-sa-fw2'}
 LANGS = {"san_Deva"}
-ORIGIN = "ind-sa-fw2"  # packs it runs on
+ORIGIN = "ind-sa-fw2"
+SOURCE_ORIGIN = "ind-sa-fw2"
 SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
 AUTHOR = "dattatreyamanjunath"  # PR #45 at b054835
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -7881,7 +7916,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** G1 Cut at the vowel sign. Pack `ind-te-fw2`. Source: section G1 of `diagnosis/submissions/ind-te-fw2/sandeepkunkunuru/medicine.md`, PR #3 at `75e8f7b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 5 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 27 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -7898,9 +7933,10 @@ CODE = "G1"
 ACTION = "fix"
 STAGE = "10"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-te-fw2'}
+SPEC_PACKS = {'ind-te-fw2', 'ind-te-sangraha-s', 'ind-te-sangraha-v'}
 LANGS = {"tel_Telu"}
-ORIGIN = "ind-te-fw2"  # packs it runs on
+ORIGIN = "ind-te-fw2, ind-te-sangraha-s, ind-te-sangraha-v"
+SOURCE_ORIGIN = "ind-te-fw2"
 SOURCE = "ind-te-fw2"  # pack whose medicine this came from
 AUTHOR = "sandeepkunkunuru"  # PR #3 at 75e8f7b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -7942,7 +7978,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** G2 Lost ZWJ or ZWNJ. Pack `ind-bn-fw2`. Source: section G2 of `diagnosis/submissions/ind-bn-fw2/AditeyaAItronics/medicine.md`, PR #64 at `840d13d`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 50 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -7959,9 +7995,10 @@ CODE = "G2"
 ACTION = "fix"
 STAGE = "10"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-bn-fw2'}
+SPEC_PACKS = {'ind-bn-fw2', 'ind-bn-sangraha-v'}
 LANGS = {"ben_Beng"}
-ORIGIN = "ind-bn-fw2"  # packs it runs on
+ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+SOURCE_ORIGIN = "ind-bn-fw2"
 SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 AUTHOR = "AditeyaAItronics"  # PR #64 at 840d13d
 
@@ -8082,7 +8119,8 @@ STAGE = "10"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-sa-fw2'}
 LANGS = {"san_Deva"}
-ORIGIN = "ind-sa-fw2"  # packs it runs on
+ORIGIN = "ind-sa-fw2"
+SOURCE_ORIGIN = "ind-sa-fw2"
 SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
 AUTHOR = "swatibansal"  # PR #80 at 7af8541
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -8281,7 +8319,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** G4 Over-normalised. Pack `ind-mr-fw2`. Source: section G4 of `diagnosis/submissions/ind-mr-fw2/thinktinkergreen/medicine.md`, PR #50 at `0d85486`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 140 (PASS).
+**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 140 (PASS); ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -8298,9 +8336,10 @@ CODE = "G4"
 ACTION = "fix"
 STAGE = "10"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-mr-fw2'}
+SPEC_PACKS = {'ind-mr-fw2', 'ind-mr-sangraha-v'}
 LANGS = {"mar_Deva"}
-ORIGIN = "ind-mr-fw2"  # packs it runs on
+ORIGIN = "ind-mr-fw2, ind-mr-sangraha-v"
+SOURCE_ORIGIN = "ind-mr-fw2"
 SOURCE = "ind-mr-fw2"  # pack whose medicine this came from
 AUTHOR = "thinktinkergreen"  # PR #50 at 0d85486
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -8369,7 +8408,8 @@ STAGE = "10"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-sa-fw2'}
 LANGS = {"san_Deva"}
-ORIGIN = "ind-sa-fw2"  # packs it runs on
+ORIGIN = "ind-sa-fw2"
+SOURCE_ORIGIN = "ind-sa-fw2"
 SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
 AUTHOR = "swatibansal"  # PR #80 at 7af8541
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -8459,7 +8499,8 @@ STAGE = "10"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-ta-sangraha-v'}
 LANGS = {"tam_Taml"}
-ORIGIN = "ind-ta-sangraha-v"  # packs it runs on
+ORIGIN = "ind-ta-sangraha-v"
+SOURCE_ORIGIN = "ind-ta-sangraha-v"
 SOURCE = "ind-ta-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "abinesh1"  # PR #101 at 3d69463
 
@@ -8503,7 +8544,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** B2 HTML or XML tags. Pack `ind-hi-fw2`. Source: section B2 of `diagnosis/submissions/ind-hi-fw2/raj-harit-v2/medicine.md`, PR #8 at `8250130`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 130 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -8517,9 +8558,10 @@ CODE = "B2"
 ACTION = "fix"
 STAGE = "20"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-fw2'}
+SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-indiccorp'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-fw2"  # packs it runs on
+ORIGIN = "ind-hi-fw2, ind-hi-indiccorp"
+SOURCE_ORIGIN = "ind-hi-fw2"
 SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 AUTHOR = "raj-harit-v2"  # PR #8 at 8250130
 
@@ -8588,7 +8630,8 @@ STAGE = "20"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-hi-hplt'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-hplt"  # packs it runs on
+ORIGIN = "ind-hi-hplt"
+SOURCE_ORIGIN = "ind-hi-hplt"
 SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
 AUTHOR = "narasimhatejav"  # PR #170 at 4aaf84b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -8631,7 +8674,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** B2 HTML or XML tags. Pack `ind-kn-sangraha-s`. Source: section B2 of `diagnosis/submissions/ind-kn-sangraha-s/millermuttu/medicine.md`, PR #104 at `74dd2df`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS).
+**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 45 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS); ind-kn-sangraha-v: 0 changed / 0 dropped of 103 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -8648,9 +8691,10 @@ CODE = "B2"
 ACTION = "fix"
 STAGE = "20"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-kn-sangraha-s'}
+SPEC_PACKS = {'ind-kn-fw2', 'ind-kn-sangraha-s', 'ind-kn-sangraha-v'}
 LANGS = {"kan_Knda"}
-ORIGIN = "ind-kn-sangraha-s"  # packs it runs on
+ORIGIN = "ind-kn-sangraha-s, ind-kn-fw2, ind-kn-sangraha-v"
+SOURCE_ORIGIN = "ind-kn-sangraha-s"
 SOURCE = "ind-kn-sangraha-s"  # pack whose medicine this came from
 AUTHOR = "millermuttu"  # PR #104 at 74dd2df
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -8695,7 +8739,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** B2 HTML or XML tags. Pack `ind-te-fw2`. Source: section B2 of `diagnosis/submissions/ind-te-fw2/sandeepkunkunuru/medicine.md`, PR #3 at `75e8f7b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 27 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -8712,9 +8756,10 @@ CODE = "B2"
 ACTION = "fix"
 STAGE = "20"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-te-fw2'}
+SPEC_PACKS = {'ind-te-fw2', 'ind-te-sangraha-v'}
 LANGS = {"tel_Telu"}
-ORIGIN = "ind-te-fw2"  # packs it runs on
+ORIGIN = "ind-te-fw2, ind-te-sangraha-v"
+SOURCE_ORIGIN = "ind-te-fw2"
 SOURCE = "ind-te-fw2"  # pack whose medicine this came from
 AUTHOR = "sandeepkunkunuru"  # PR #3 at 75e8f7b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -8775,7 +8820,8 @@ STAGE = "20"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-te-sangraha-s'}
 LANGS = {"tel_Telu"}
-ORIGIN = "ind-te-sangraha-s"  # packs it runs on
+ORIGIN = "ind-te-sangraha-s"
+SOURCE_ORIGIN = "ind-te-sangraha-s"
 SOURCE = "ind-te-sangraha-s"  # pack whose medicine this came from
 AUTHOR = "shankarpandala"  # PR #92 at 2e61b3b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -8819,7 +8865,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** B3 Ghost chat markers. Pack `ind-kn-sangraha-s`. Source: section B3 of `diagnosis/submissions/ind-kn-sangraha-s/millermuttu/medicine.md`, PR #104 at `74dd2df`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS).
+**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 45 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS); ind-kn-sangraha-v: 0 changed / 0 dropped of 103 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -8836,9 +8882,10 @@ CODE = "B3"
 ACTION = "fix"
 STAGE = "20"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-kn-sangraha-s'}
+SPEC_PACKS = {'ind-kn-fw2', 'ind-kn-sangraha-s', 'ind-kn-sangraha-v'}
 LANGS = {"kan_Knda"}
-ORIGIN = "ind-kn-sangraha-s"  # packs it runs on
+ORIGIN = "ind-kn-sangraha-s, ind-kn-fw2, ind-kn-sangraha-v"
+SOURCE_ORIGIN = "ind-kn-sangraha-s"
 SOURCE = "ind-kn-sangraha-s"  # pack whose medicine this came from
 AUTHOR = "millermuttu"  # PR #104 at 74dd2df
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -8944,13 +8991,13 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A3 Mojibake. Pack `ind-kn-sangraha-v`. Source: section A3 of `diagnosis/submissions/ind-kn-sangraha-v/pyru/medicine.md`, PR #25 at `5eaa16e`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-sangraha-v: 0 changed / 0 dropped of 103 (PASS).
+**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 45 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS); ind-kn-sangraha-v: 0 changed / 0 dropped of 103 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
-- `f1ee75f8842c24c6` (ind-kn-sangraha-v), original offset 0: `"11 \u0ca4\u0cbf\u0c82\u0c97\u0cb3\u0cc1 \u0ca6\u0cbe\u0c96\u0cb2\u0cc6 \u0c85\u0cb5\u0ca7\u0cbf \u0cac\u0cbe\u0cb9\u0ccd\u0caf\u0cbe\u0c95\u0cbe\u0cb6\u0ca6\u0cb2\u0ccd\u0cb2\u0cbf\u0ca6\u0ccd\u0ca6 \u0ca8\u0cbe\u0cb8\u0cbe\u0ca6 \u0cae\u0cb9\u0cbf\u0cb3\u0cbe \u0caf\u0cbe\u0ca4\u0ccd\u0cb0\u0cbf \u0cad\u0cc2\u0cae\u0cbf\u0c97\u0cc6"` (drop).
-- `e8f135076e73e476` (ind-kn-sangraha-v), original offset 0: `"Fact check: \u0cae\u0cb9\u0cbe\u0cad\u0cbe\u0cb0\u0ca4\u0ca6 \u0cb6\u0ccd\u0cb0\u0cc0\u0c95\u0cc3\u0cb7\u0ccd\u0ca3\u0ca8 \u0ca6\u0ccd\u0cb5\u0cbe\u0cb0\u0c95\u0cc6 \u0cb9\u0cc7\u0c97\u0cbf\u0ca6\u0cc6 \u0ca8\u0ccb\u0ca1\u0cbf!\n \u0cae\u0cb9\u0cbe\u0cad\u0cbe\u0cb0\u0ca4\u0ca6\u0cb2\u0ccd"` (drop).
-- `932566d8cf0d4aa1` (ind-kn-sangraha-v), original offset 0: `"\u0c85\u0cad\u0cbf\u0cb5\u0cc3\u0ca6\u0ccd\u0ca7\u0cbf\u0caf\u0cb2\u0ccd\u0cb2\u0cbf \u0ca8\u0c82. 1 \u0cb8\u0c82\u0cb8\u0ca6 \u0cb8\u0ccb\u0ca4\u0ca6\u0ccd\u0ca6\u0cc7\u0c95\u0cc6?\n \u0c9a\u0cbe\u0cae\u0cb0\u0cbe\u0c9c\u0ca8\u0c97\u0cb0\u0c83 \u0ca4\u0ca8\u0ccd\u0ca8 \u0c95\u0ccd\u0cb7\u0cc7\u0ca4\u0ccd\u0cb0\u0ca6\u0cb2\u0ccd"` (drop).
+- `634f9d4743893171` (ind-kn-fw2), original offset 0: `"\u0cad\u0cbe\u0cb0\u0ca4\u0ca6 \u0c9a\u0cb0\u0cbf\u0ca4\u0ccd\u0cb0\u0cc6\u0caf\u0ca8\u0ccd\u0ca8\u0cc1 \u0ca4\u0cbf\u0cb3\u0cbf\u0caf\u0cc1\u0cb5\u0cc1\u0ca6\u0c95\u0ccd\u0c95\u0cc6 \u0cb6\u0cbf\u0cb7\u0ccd\u0c9f \u0cb8\u0cbe\u0cb9\u0cbf\u0ca4\u0ccd\u0caf\u0ca6\u0cb7\u0ccd\u0c9f\u0cc6 \u0cae\u0ccc\u0c96\u0cbf\u0c95 \u0cb8\u0cbe\u0cb9\u0cbf\u0ca4\u0ccd"` (drop).
+- `bf21eb9f2a9511b6` (ind-kn-fw2), original offset 0: `"\u0cb9\u0cca\u0cb8 \u0ca4\u0cb2\u0cc6\u0cae\u0cbe\u0cb0\u0cbf\u0ca8 \u0ca4\u0cb0\u0cc1\u0ca3 \u0cac\u0cb0\u0cb9\u0c97\u0cbe\u0cb0\u0cb0\u0cb2\u0ccd\u0cb2\u0cbf \u0cb6\u0cb0\u0cc0\u0cab\u0ccd \u0cb9\u0cb8\u0cae\u0c95\u0cb2\u0ccd \u0c85\u0cb5\u0cb0\u0cc1 \u0c92\u0cac\u0ccd\u0cac\u0cb0\u0cbe\u0c97\u0cbf\u0ca6\u0ccd\u0ca6\u0cbe\u0cb0\u0cc6. "` (drop).
+- `6652e0ea74804194` (ind-kn-fw2), original offset 0: `"\u201c\u0ca8\u0cbe\u0cb0\u0cbe\u0caf\u0ca3\u0c97\u0cc1\u0cb0\u0cc1\u0c97\u0cb3 \u0c9c\u0cc0\u0cb5\u0ca8 \u0cb6\u0cc8\u0cb2\u0cbf \u0ca8\u0cae\u0c97\u0cc6\u0cb2\u0ccd\u0cb2 \u0cae\u0cbe\u0ca6\u0cb0\u0cbf\u201d\nTeam Udayavani, Jan 23, 2"` (drop).
 <!-- END CARD EVIDENCE -->
 
 2. **Medicine:** the author's code, unchanged. Main function: `medicine_a3(text)`.
@@ -8961,9 +9008,10 @@ CODE = "A3"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-kn-sangraha-v'}
+SPEC_PACKS = {'ind-kn-fw2', 'ind-kn-sangraha-s', 'ind-kn-sangraha-v'}
 LANGS = {"kan_Knda"}
-ORIGIN = "ind-kn-sangraha-v"  # packs it runs on
+ORIGIN = "ind-kn-sangraha-v, ind-kn-fw2, ind-kn-sangraha-s"
+SOURCE_ORIGIN = "ind-kn-sangraha-v"
 SOURCE = "ind-kn-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "pyru"  # PR #25 at 5eaa16e
 
@@ -9059,7 +9107,8 @@ STAGE = "30"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-sa-fw2'}
 LANGS = {"san_Deva"}
-ORIGIN = "ind-sa-fw2"  # packs it runs on
+ORIGIN = "ind-sa-fw2"
+SOURCE_ORIGIN = "ind-sa-fw2"
 SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
 AUTHOR = "dattatreyamanjunath"  # PR #45 at b054835
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -9161,7 +9210,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C3 Truncated document. Pack `ind-bn-fw2`. Source: section C3 of `diagnosis/submissions/ind-bn-fw2/AditeyaAItronics/medicine.md`, PR #64 at `840d13d`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 50 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -9178,9 +9227,10 @@ CODE = "C3"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-bn-fw2'}
+SPEC_PACKS = {'ind-bn-fw2', 'ind-bn-sangraha-v'}
 LANGS = {"ben_Beng"}
-ORIGIN = "ind-bn-fw2"  # packs it runs on
+ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+SOURCE_ORIGIN = "ind-bn-fw2"
 SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 AUTHOR = "AditeyaAItronics"  # PR #64 at 840d13d
 
@@ -9228,7 +9278,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C3 Truncated document. Pack `ind-hi-hplt`. Source: section C3 of `diagnosis/submissions/ind-hi-hplt/narasimhatejav/medicine.md`, PR #170 at `4aaf84b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 67 (PASS).
+**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 67 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 130 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -9245,9 +9295,10 @@ CODE = "C3"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-hplt'}
+SPEC_PACKS = {'ind-hi-hplt', 'ind-hi-indiccorp'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-hplt"  # packs it runs on
+ORIGIN = "ind-hi-hplt, ind-hi-indiccorp"
+SOURCE_ORIGIN = "ind-hi-hplt"
 SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
 AUTHOR = "narasimhatejav"  # PR #170 at 4aaf84b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -9364,7 +9415,8 @@ STAGE = "30"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-sa-fw2'}
 LANGS = {"san_Deva"}
-ORIGIN = "ind-sa-fw2"  # packs it runs on
+ORIGIN = "ind-sa-fw2"
+SOURCE_ORIGIN = "ind-sa-fw2"
 SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
 AUTHOR = "dattatreyamanjunath"  # PR #45 at b054835
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -9416,7 +9468,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C4 Two documents joined. Pack `ind-bn-fw2`. Source: section C4 of `diagnosis/submissions/ind-bn-fw2/AditeyaAItronics/medicine.md`, PR #64 at `840d13d`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 50 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -9433,9 +9485,10 @@ CODE = "C4"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-bn-fw2'}
+SPEC_PACKS = {'ind-bn-fw2', 'ind-bn-sangraha-v'}
 LANGS = {"ben_Beng"}
-ORIGIN = "ind-bn-fw2"  # packs it runs on
+ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+SOURCE_ORIGIN = "ind-bn-fw2"
 SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 AUTHOR = "AditeyaAItronics"  # PR #64 at 840d13d
 
@@ -9480,7 +9533,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C4 Two documents joined. Pack `ind-hi-fw2`. Source: section C4 of `diagnosis/submissions/ind-hi-fw2/raj-harit-v2/medicine.md`, PR #8 at `8250130`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 130 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -9498,9 +9551,10 @@ CODE = "C4"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-fw2'}
+SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-indiccorp'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-fw2"  # packs it runs on
+ORIGIN = "ind-hi-fw2, ind-hi-indiccorp"
+SOURCE_ORIGIN = "ind-hi-fw2"
 SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 AUTHOR = "raj-harit-v2"  # PR #8 at 8250130
 
@@ -9570,7 +9624,8 @@ STAGE = "30"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-hi-hplt'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-hplt"  # packs it runs on
+ORIGIN = "ind-hi-hplt"
+SOURCE_ORIGIN = "ind-hi-hplt"
 SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
 AUTHOR = "narasimhatejav"  # PR #170 at 4aaf84b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -9689,7 +9744,8 @@ STAGE = "30"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-mr-fw2'}
 LANGS = {"mar_Deva"}
-ORIGIN = "ind-mr-fw2"  # packs it runs on
+ORIGIN = "ind-mr-fw2"
+SOURCE_ORIGIN = "ind-mr-fw2"
 SOURCE = "ind-mr-fw2"  # pack whose medicine this came from
 AUTHOR = "thinktinkergreen"  # PR #50 at 0d85486
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -9732,7 +9788,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C4 Two documents joined. Pack `ind-te-fw2`. Source: section C4 of `diagnosis/submissions/ind-te-fw2/sandeepkunkunuru/medicine.md`, PR #3 at `75e8f7b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 5 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 27 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -9750,9 +9806,10 @@ CODE = "C4"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-te-fw2'}
+SPEC_PACKS = {'ind-te-fw2', 'ind-te-sangraha-s', 'ind-te-sangraha-v'}
 LANGS = {"tel_Telu"}
-ORIGIN = "ind-te-fw2"  # packs it runs on
+ORIGIN = "ind-te-fw2, ind-te-sangraha-s, ind-te-sangraha-v"
+SOURCE_ORIGIN = "ind-te-fw2"
 SOURCE = "ind-te-fw2"  # pack whose medicine this came from
 AUTHOR = "sandeepkunkunuru"  # PR #3 at 75e8f7b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -9795,7 +9852,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C5 Lists of keywords or links. Pack `ind-hi-hplt`. Source: section C5 of `diagnosis/submissions/ind-hi-hplt/narasimhatejav/medicine.md`, PR #170 at `4aaf84b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 67 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS); ind-hi-hplt: 0 changed / 0 dropped of 67 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 130 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -9812,9 +9869,10 @@ CODE = "C5"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-hplt'}
+SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-hplt', 'ind-hi-indiccorp'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-hplt"  # packs it runs on
+ORIGIN = "ind-hi-hplt, ind-hi-fw2, ind-hi-indiccorp"
+SOURCE_ORIGIN = "ind-hi-hplt"
 SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
 AUTHOR = "narasimhatejav"  # PR #170 at 4aaf84b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -9910,7 +9968,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C5 Lists of keywords or links. Pack `ind-kn-sangraha-v`. Source: section C5 of `diagnosis/submissions/ind-kn-sangraha-v/pyru/medicine.md`, PR #25 at `5eaa16e`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-sangraha-v: 0 changed / 0 dropped of 103 (PASS).
+**Current gold harm:** ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS); ind-kn-sangraha-v: 0 changed / 0 dropped of 103 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -9927,9 +9985,10 @@ CODE = "C5"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-kn-sangraha-v'}
+SPEC_PACKS = {'ind-kn-sangraha-s', 'ind-kn-sangraha-v'}
 LANGS = {"kan_Knda"}
-ORIGIN = "ind-kn-sangraha-v"  # packs it runs on
+ORIGIN = "ind-kn-sangraha-v, ind-kn-sangraha-s"
+SOURCE_ORIGIN = "ind-kn-sangraha-v"
 SOURCE = "ind-kn-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "pyru"  # PR #25 at 5eaa16e
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -9981,7 +10040,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C5 Lists of keywords or links. Pack `ind-mr-fw2`. Source: section C5 of `diagnosis/submissions/ind-mr-fw2/thinktinkergreen/medicine.md`, PR #50 at `0d85486`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 140 (PASS).
+**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 140 (PASS); ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -9998,9 +10057,10 @@ CODE = "C5"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-mr-fw2'}
+SPEC_PACKS = {'ind-mr-fw2', 'ind-mr-sangraha-v'}
 LANGS = {"mar_Deva"}
-ORIGIN = "ind-mr-fw2"  # packs it runs on
+ORIGIN = "ind-mr-fw2, ind-mr-sangraha-v"
+SOURCE_ORIGIN = "ind-mr-fw2"
 SOURCE = "ind-mr-fw2"  # pack whose medicine this came from
 AUTHOR = "thinktinkergreen"  # PR #50 at 0d85486
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -10060,7 +10120,8 @@ STAGE = "30"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-ta-sangraha-v'}
 LANGS = {"tam_Taml"}
-ORIGIN = "ind-ta-sangraha-v"  # packs it runs on
+ORIGIN = "ind-ta-sangraha-v"
+SOURCE_ORIGIN = "ind-ta-sangraha-v"
 SOURCE = "ind-ta-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "abinesh1"  # PR #101 at 3d69463
 
@@ -10103,7 +10164,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C5 Lists of keywords or links. Pack `ind-te-fw2`. Source: section C5 of `diagnosis/submissions/ind-te-fw2/sandeepkunkunuru/medicine.md`, PR #3 at `75e8f7b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 5 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 27 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -10120,9 +10181,10 @@ CODE = "C5"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-te-fw2'}
+SPEC_PACKS = {'ind-te-fw2', 'ind-te-sangraha-s', 'ind-te-sangraha-v'}
 LANGS = {"tel_Telu"}
-ORIGIN = "ind-te-fw2"  # packs it runs on
+ORIGIN = "ind-te-fw2, ind-te-sangraha-s, ind-te-sangraha-v"
+SOURCE_ORIGIN = "ind-te-fw2"
 SOURCE = "ind-te-fw2"  # pack whose medicine this came from
 AUTHOR = "sandeepkunkunuru"  # PR #3 at 75e8f7b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -10180,7 +10242,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D4 Bad machine translation. Pack `ind-bn-fw2`. Source: section D4 of `diagnosis/submissions/ind-bn-fw2/AditeyaAItronics/medicine.md`, PR #64 at `840d13d`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 50 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -10197,9 +10259,10 @@ CODE = "D4"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-bn-fw2'}
+SPEC_PACKS = {'ind-bn-fw2', 'ind-bn-sangraha-v'}
 LANGS = {"ben_Beng"}
-ORIGIN = "ind-bn-fw2"  # packs it runs on
+ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+SOURCE_ORIGIN = "ind-bn-fw2"
 SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 AUTHOR = "AditeyaAItronics"  # PR #64 at 840d13d
 
@@ -10325,7 +10388,8 @@ STAGE = "30"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-gu-fw2'}
 LANGS = {"guj_Gujr"}
-ORIGIN = "ind-gu-fw2"  # packs it runs on
+ORIGIN = "ind-gu-fw2"
+SOURCE_ORIGIN = "ind-gu-fw2"
 SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
 AUTHOR = "Nisarg189"  # PR #18 at 9184235
 
@@ -10431,13 +10495,13 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D4 Bad machine translation. Pack `ind-hi-hplt`. Source: section D4 of `diagnosis/submissions/ind-hi-hplt/narasimhatejav/medicine.md`, PR #170 at `4aaf84b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 67 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 1 dropped of 234 (PASS); ind-hi-hplt: 0 changed / 0 dropped of 67 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 130 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
+- `c83fbbec4a82f87a` (ind-hi-fw2), original offset 0: `"\u092f\u0939 \u0935\u093f\u0937\u092f \u090f\u0915 \u0914\u0930 \u0905\u0932\u0917 \u0932\u0947\u0916 \u0915\u0947 \u092f\u094b\u0917\u094d\u092f \u0939\u0948\u0964 \u0907\u0938\u0932\u093f\u090f \u0938\u093f\u0930\u094d\u092b \u0938\u0932\u093e\u0939 \u0926\u0947\u0902: \u090f\u0915 \u0932\u093e\u0907\u0938"` (drop).
+- `0c9208a0c91789d6` (ind-hi-fw2), original offset 0: `"\u0936\u0939\u0930\u0940\u0915\u0930\u0923 \u0915\u0947 \u092c\u093e\u0935\u091c\u0942\u0926 \u091c\u093f\u0932\u0947 \u092e\u0947\u0902 \u0935\u0928\u094d\u092f \u091c\u0940\u0935\u094b\u0902 \u0915\u0940 \u0938\u0902\u0916\u094d\u092f\u093e \u092e\u0947\u0902 \u0939\u0941\u090f \u0907\u091c\u093e\u092b\u0947 \u0928\u0947"` (drop).
 - `57294dfeff306304` (ind-hi-hplt), original offset 0: `"\u091c\u0948\u0938\u093e \u0915\u093f \u0915\u093f\u0938\u0940 \u0928\u0947 \u092c\u093e\u0902\u0921 \u0915\u0947 \u0917\u0939\u0930\u093e\u0908 \u0914\u0930 \u092d\u093e\u0935\u0928\u093e\u0924\u094d\u092e\u0915 \u092e\u0939\u0924\u094d\u0935 \u0915\u093e \u0905\u0927\u094d\u092f\u092f\u0928 \u0915\u093f\u092f\u093e "` (drop).
-- `ca38e3770cd4bd18` (ind-hi-hplt), original offset 0: `"\u0906\u092a\u0915\u0940 \u0935\u0947\u092c\u0938\u093e\u0907\u091f \u092a\u0930 \u092a\u0948\u0938\u093e \u092c\u0928\u093e\u0928\u0947 \u0915\u0947 \u0915\u0908 \u0905\u0935\u0938\u0930 \u0939\u0948\u0902\u0964 \u0905\u092a\u0928\u0940 \u0938\u093e\u0907\u091f \u092a\u0930 \u0935\u093f\u091c\u094d\u091e\u093e\u092a\u0928"` (drop).
-- `84b3adb7174dfd68` (ind-hi-hplt), original offset 0: `"\u092e\u0941\u0916\u094d\u092f \u0915\u0947 \u0915\u0902\u0917\u0928 \u0914\u0930 \u091f\u094b\u092a\u0940 \u0915\u0947 \u092a\u0939\u0932\u0947 \u092d\u093e\u0917 \u0938\u0947 \u0917\u0930\u094d\u0926\u0928 \u0915\u0947 \u0930\u0942\u092a \u092e\u0947\u0902 \u092a\u091f\u094d\u091f\u0940\u0964 \u0915\u0941\u091b"` (drop).
 <!-- END CARD EVIDENCE -->
 
 2. **Medicine:** the author's code, unchanged. Main function: `medicine_d4(text)`.
@@ -10448,9 +10512,10 @@ CODE = "D4"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-hplt'}
+SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-hplt', 'ind-hi-indiccorp'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-hplt"  # packs it runs on
+ORIGIN = "ind-hi-hplt, ind-hi-fw2, ind-hi-indiccorp"
+SOURCE_ORIGIN = "ind-hi-hplt"
 SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
 AUTHOR = "narasimhatejav"  # PR #170 at 4aaf84b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -10551,7 +10616,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D4 Bad machine translation. Pack `ind-kn-sangraha-v`. Source: section D4 of `diagnosis/submissions/ind-kn-sangraha-v/pyru/medicine.md`, PR #25 at `5eaa16e`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-sangraha-v: 0 changed / 0 dropped of 103 (PASS).
+**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 45 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS); ind-kn-sangraha-v: 0 changed / 0 dropped of 103 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -10568,9 +10633,10 @@ CODE = "D4"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-kn-sangraha-v'}
+SPEC_PACKS = {'ind-kn-fw2', 'ind-kn-sangraha-s', 'ind-kn-sangraha-v'}
 LANGS = {"kan_Knda"}
-ORIGIN = "ind-kn-sangraha-v"  # packs it runs on
+ORIGIN = "ind-kn-sangraha-v, ind-kn-fw2, ind-kn-sangraha-s"
+SOURCE_ORIGIN = "ind-kn-sangraha-v"
 SOURCE = "ind-kn-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "pyru"  # PR #25 at 5eaa16e
 
@@ -10624,7 +10690,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D4 Bad machine translation. Pack `ind-mr-sangraha-v`. Source: section D4 of `diagnosis/submissions/ind-mr-sangraha-v/patilvijay23/medicine.md`, PR #19 at `07d884f`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
+**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 140 (PASS); ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -10641,9 +10707,10 @@ CODE = "D4"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-mr-sangraha-v'}
+SPEC_PACKS = {'ind-mr-fw2', 'ind-mr-sangraha-v'}
 LANGS = {"mar_Deva"}
-ORIGIN = "ind-mr-sangraha-v"  # packs it runs on
+ORIGIN = "ind-mr-sangraha-v, ind-mr-fw2"
+SOURCE_ORIGIN = "ind-mr-sangraha-v"
 SOURCE = "ind-mr-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "patilvijay23"  # PR #19 at 07d884f
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -10758,7 +10825,8 @@ STAGE = "30"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-sa-fw2'}
 LANGS = {"san_Deva"}
-ORIGIN = "ind-sa-fw2"  # packs it runs on
+ORIGIN = "ind-sa-fw2"
+SOURCE_ORIGIN = "ind-sa-fw2"
 SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
 AUTHOR = "dattatreyamanjunath"  # PR #45 at b054835
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -10867,7 +10935,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D4 Bad machine translation. Pack `ind-te-fw2`. Source: section D4 of `diagnosis/submissions/ind-te-fw2/sandeepkunkunuru/medicine.md`, PR #3 at `75e8f7b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 27 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -10884,9 +10952,10 @@ CODE = "D4"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-te-fw2'}
+SPEC_PACKS = {'ind-te-fw2', 'ind-te-sangraha-v'}
 LANGS = {"tel_Telu"}
-ORIGIN = "ind-te-fw2"  # packs it runs on
+ORIGIN = "ind-te-fw2, ind-te-sangraha-v"
+SOURCE_ORIGIN = "ind-te-fw2"
 SOURCE = "ind-te-fw2"  # pack whose medicine this came from
 AUTHOR = "sandeepkunkunuru"  # PR #3 at 75e8f7b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -10953,7 +11022,8 @@ STAGE = "30"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-te-sangraha-s'}
 LANGS = {"tel_Telu"}
-ORIGIN = "ind-te-sangraha-s"  # packs it runs on
+ORIGIN = "ind-te-sangraha-s"
+SOURCE_ORIGIN = "ind-te-sangraha-s"
 SOURCE = "ind-te-sangraha-s"  # pack whose medicine this came from
 AUTHOR = "shankarpandala"  # PR #92 at 2e61b3b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -11003,13 +11073,13 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D5 Translationese. Pack `ind-te-sangraha-s`. Source: section D5 of `diagnosis/submissions/ind-te-sangraha-s/shankarpandala/medicine.md`, PR #92 at `2e61b3b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-sangraha-s: 0 changed / 0 dropped of 5 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 5 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 27 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
-- `d9d92df25bb9bbed` (ind-te-sangraha-s), original offset 0: `"\n\u0c2c\u0c4c\u0c39\u0c4c\u0c38\u0c4d (\u0c05\u0c15\u0c4d\u0c37\u0c30\u0c02)\n\n\u0c2c\u0c4c\u0c39\u0c4c\u0c38\u0c4d \u0c05\u0c15\u0c4d\u0c37\u0c30\u0c30\u0c42\u0c2a \u0c30\u0c42\u0c2a\u0c15\u0c32\u0c4d\u0c2a\u0c28 \u0c39\u0c46\u0c30\u0c4d\u0c2c\u0c30\u0c4d\u0c1f\u0c4d \u0c2c\u0c47\u0c2f\u0c30\u0c4d \u0c2f\u0c4a\u0c15\u0c4d\u0c15"` (drop).
-- `e61e3982f326eb8b` (ind-te-sangraha-s), original offset 0: `"\n\u0c2b\u0c4d\u0c30\u0c3e\u0c28\u0c4d\u0c38\u0c4d \u0c2f\u0c4a\u0c15\u0c4d\u0c15 \u0c30\u0c3e\u0c2c\u0c30\u0c4d\u0c1f\u0c4d II\n\n\u0c30\u0c3e\u0c2c\u0c30\u0c4d\u0c1f\u0c4d II (c. 972-20 \u0c1c\u0c42\u0c32\u0c48 1031), \u0c2a\u0c35"` (drop).
-- `a46fcbf136a920a7` (ind-te-sangraha-s), original offset 0: `"\n\u0c38\u0c42\u0c1a\u0c3f\u0c02\u0c1a\u0c21\u0c02 \u0c2e\u0c40\u0c26\n\n\"\u0c06\u0c28\u0c4d \u0c21\u0c46\u0c28\u0c4b\u0c1f\u0c3f\u0c02\u0c17\u0c4d\" \u0c05\u0c28\u0c47\u0c26\u0c3f \u0c2c\u0c46\u0c30\u0c4d\u0c1f\u0c4d\u0c30\u0c3e\u0c02\u0c21\u0c4d \u0c30\u0c38\u0c4d\u0c38\u0c46\u0c32\u0c4d \u0c30\u0c3e\u0c38\u0c3f\u0c28 \u0c35"` (drop).
+- `49a71d88fbcc7784` (ind-te-fw2), original offset 0: `"\u0c05\u0c30\u0c3f\u0c2f\u0c3e\u0c28\u0c3e \u0c17\u0c4d\u0c30\u0c3e\u0c02\u0c21\u0c47 \u0c32\u0c3e\u0c38\u0c4d-\u0c0f\u0c02\u0c1c\u0c3f\u0c32\u0c4d\u0c38\u0c4d \u0c30\u0c3f\u0c2f\u0c32\u0c4d \u0c0e\u0c38\u0c4d\u0c1f\u0c47\u0c1f\u0c4d \u0c0f\u0c1c\u0c46\u0c02\u0c1f\u0c4d \u0c21\u0c3e\u0c32\u0c4d\u0c1f\u0c28\u0c4d \u0c17\u0c4b\u0c2e\u0c46\u0c1c"` (drop).
+- `d0692f163114fdb4` (ind-te-fw2), original offset 0: `"\u0c24\u0c3e\u0c1c\u0c3e \u0c2a\u0c30\u0c3f\u0c23\u0c3e\u0c2e\u0c02\u0c32\u0c4b, \u0c06\u0c28\u0c02\u0c26\u0c4d \u0c35\u0c30\u0c4d\u0c27\u0c28\u0c4d \u0c15\u0c4a\u0c24\u0c4d\u0c24 \u0c0e\u0c17\u0c4d\u0c1c\u0c3f\u0c15\u0c4d\u0c2f\u0c42\u0c1f\u0c3f\u0c35\u0c4d \u0c21\u0c48\u0c30\u0c46\u0c15\u0c4d\u0c1f\u0c30\u0c4d\u0c17\u0c3e \u0c28\u0c3f\u0c2f"` (drop).
+- `aa3d8930cac21214` (ind-te-fw2), original offset 0: `"\u0c0e\u0c32\u0c15\u0c4d\u0c1f\u0c4d\u0c30\u0c3f\u0c15\u0c32\u0c4d \u0c2a\u0c30\u0c3f\u0c15\u0c30\u0c3e\u0c32\u0c28\u0c41 \u0c38\u0c30\u0c33 \u0c2e\u0c30\u0c3f\u0c2f\u0c41 \u0c28\u0c3e\u0c28\u0c4d \u0c32\u0c40\u0c28\u0c3f\u0c2f\u0c30\u0c4d \u0c2d\u0c3e\u0c17\u0c3e\u0c32 \u0c38\u0c39\u0c3e\u0c2f\u0c02\u0c24\u0c4b \u0c28\u0c3f\u0c30\u0c4d\u0c2e"` (drop).
 <!-- END CARD EVIDENCE -->
 
 2. **Medicine:** the author's code, unchanged. Main function: `medicine_d5(text)`.
@@ -11020,9 +11090,10 @@ CODE = "D5"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-te-sangraha-s'}
+SPEC_PACKS = {'ind-te-fw2', 'ind-te-sangraha-s', 'ind-te-sangraha-v'}
 LANGS = {"tel_Telu"}
-ORIGIN = "ind-te-sangraha-s"  # packs it runs on
+ORIGIN = "ind-te-sangraha-s, ind-te-fw2, ind-te-sangraha-v"
+SOURCE_ORIGIN = "ind-te-sangraha-s"
 SOURCE = "ind-te-sangraha-s"  # pack whose medicine this came from
 AUTHOR = "shankarpandala"  # PR #92 at 2e61b3b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -11141,7 +11212,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** F3 Harmful content. Pack `ind-bn-fw2`. Source: section F3 of `diagnosis/submissions/ind-bn-fw2/AditeyaAItronics/medicine.md`, PR #64 at `840d13d`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 50 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -11158,9 +11229,10 @@ CODE = "F3"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-bn-fw2'}
+SPEC_PACKS = {'ind-bn-fw2', 'ind-bn-sangraha-v'}
 LANGS = {"ben_Beng"}
-ORIGIN = "ind-bn-fw2"  # packs it runs on
+ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+SOURCE_ORIGIN = "ind-bn-fw2"
 SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 AUTHOR = "AditeyaAItronics"  # PR #64 at 840d13d
 
@@ -11265,7 +11337,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** F3 Harmful content. Pack `ind-te-fw2`. Source: section F3 of `diagnosis/submissions/ind-te-fw2/sandeepkunkunuru/medicine.md`, PR #3 at `75e8f7b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 5 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 27 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -11282,9 +11354,10 @@ CODE = "F3"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-te-fw2'}
+SPEC_PACKS = {'ind-te-fw2', 'ind-te-sangraha-s', 'ind-te-sangraha-v'}
 LANGS = {"tel_Telu"}
-ORIGIN = "ind-te-fw2"  # packs it runs on
+ORIGIN = "ind-te-fw2, ind-te-sangraha-s, ind-te-sangraha-v"
+SOURCE_ORIGIN = "ind-te-fw2"
 SOURCE = "ind-te-fw2"  # pack whose medicine this came from
 AUTHOR = "sandeepkunkunuru"  # PR #3 at 75e8f7b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -11348,7 +11421,8 @@ STAGE = "30"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-kn-sangraha-v'}
 LANGS = {"kan_Knda"}
-ORIGIN = "ind-kn-sangraha-v"  # packs it runs on
+ORIGIN = "ind-kn-sangraha-v"
+SOURCE_ORIGIN = "ind-kn-sangraha-v"
 SOURCE = "ind-kn-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "pyru"  # PR #25 at 5eaa16e
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -11498,7 +11572,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C1 Boilerplate. Pack `ind-bn-fw2`. Source: section C1 of `diagnosis/submissions/ind-bn-fw2/AditeyaAItronics/medicine.md`, PR #64 at `840d13d`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 50 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -11515,9 +11589,10 @@ CODE = "C1"
 ACTION = "fix"
 STAGE = "35"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-bn-fw2'}
+SPEC_PACKS = {'ind-bn-fw2', 'ind-bn-sangraha-v'}
 LANGS = {"ben_Beng"}
-ORIGIN = "ind-bn-fw2"  # packs it runs on
+ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+SOURCE_ORIGIN = "ind-bn-fw2"
 SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 AUTHOR = "AditeyaAItronics"  # PR #64 at 840d13d
 
@@ -11673,7 +11748,8 @@ STAGE = "35"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-gu-fw2'}
 LANGS = {"guj_Gujr"}
-ORIGIN = "ind-gu-fw2"  # packs it runs on
+ORIGIN = "ind-gu-fw2"
+SOURCE_ORIGIN = "ind-gu-fw2"
 SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
 AUTHOR = "Nisarg189"  # PR #18 at 9184235
 
@@ -11845,7 +11921,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C1 Boilerplate. Pack `ind-hi-fw2`. Source: section C1 of `diagnosis/submissions/ind-hi-fw2/raj-harit-v2/medicine.md`, PR #8 at `8250130`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 130 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -11862,9 +11938,10 @@ CODE = "C1"
 ACTION = "fix"
 STAGE = "35"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-fw2'}
+SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-indiccorp'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-fw2"  # packs it runs on
+ORIGIN = "ind-hi-fw2, ind-hi-indiccorp"
+SOURCE_ORIGIN = "ind-hi-fw2"
 SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 AUTHOR = "raj-harit-v2"  # PR #8 at 8250130
 
@@ -11954,7 +12031,8 @@ STAGE = "35"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-hi-hplt'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-hplt"  # packs it runs on
+ORIGIN = "ind-hi-hplt"
+SOURCE_ORIGIN = "ind-hi-hplt"
 SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
 AUTHOR = "narasimhatejav"  # PR #170 at 4aaf84b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -12093,7 +12171,8 @@ STAGE = "35"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-kn-fw2'}
 LANGS = {"kan_Knda"}
-ORIGIN = "ind-kn-fw2"  # packs it runs on
+ORIGIN = "ind-kn-fw2"
+SOURCE_ORIGIN = "ind-kn-fw2"
 SOURCE = "ind-kn-fw2"  # pack whose medicine this came from
 AUTHOR = "LokeshJatangi"  # PR #63 at aeb79b8
 
@@ -12247,7 +12326,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C1 Boilerplate. Pack `ind-kn-sangraha-s`. Source: section C1 of `diagnosis/submissions/ind-kn-sangraha-s/millermuttu/medicine.md`, PR #104 at `74dd2df`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS).
+**Current gold harm:** ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS); ind-kn-sangraha-v: 0 changed / 0 dropped of 103 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -12264,9 +12343,10 @@ CODE = "C1"
 ACTION = "fix"
 STAGE = "35"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-kn-sangraha-s'}
+SPEC_PACKS = {'ind-kn-sangraha-s', 'ind-kn-sangraha-v'}
 LANGS = {"kan_Knda"}
-ORIGIN = "ind-kn-sangraha-s"  # packs it runs on
+ORIGIN = "ind-kn-sangraha-s, ind-kn-sangraha-v"
+SOURCE_ORIGIN = "ind-kn-sangraha-s"
 SOURCE = "ind-kn-sangraha-s"  # pack whose medicine this came from
 AUTHOR = "millermuttu"  # PR #104 at 74dd2df
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -12382,13 +12462,13 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C1 Boilerplate. Pack `ind-mr-sangraha-v`. Source: section C1 of `diagnosis/submissions/ind-mr-sangraha-v/patilvijay23/medicine.md`, PR #19 at `07d884f`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
+**Current gold harm:** ind-mr-fw2: 1 changed / 0 dropped of 140 (PASS); ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
-- `2c66d24bfd6db2ef` (ind-mr-sangraha-v), original offset 1073: `"\u0947 \u0939\u094b\u0924\u0947.\n \u0939\u0947 \u0939\u0940 \u0935\u093e\u091a\u093e\u0903\n\u0938\u093f\u0926\u094d\u0927\u0942 \u092e\u0941\u0938\u0935"` (fix).
-- `f2b95376047a782c` (ind-mr-sangraha-v), original offset 1659: `"\u093e \u0939\u094b\u0924\u0940.\n \u0939\u0947 \u0939\u0940 \u0935\u093e\u091a\u093e\u0903\n\u0909\u0926\u094d\u0927\u0935 \u0920\u093e\u0915\u0930\u0947"` (fix).
-- `d9e954e478572fc0` (ind-mr-sangraha-v), original offset 1513: `"\u0930 \u0906\u0939\u0947\u0924.\n Read Also :\n\u092e\u0939\u093e\u0930\u093e\u0937\u094d\u091f\u094d\u0930 "` (fix).
+- `00eed90bde196e9c` (ind-mr-fw2), original offset 1322: `"\u093e\u0939\u0942\u092f\u093e..\n\u0939\u0947 \u0939\u0940 \u0935\u093e\u091a\u093e << \u0924\u094b\u0902\u0921\u093e\u0935\u0930 \u0928\u093e"` (fix).
+- `870fb0ffd8d7a041` (ind-mr-fw2), original offset 886: `"\u094d\u0939\u0923\u093e\u0932\u0947.\n\u0939\u0947\u0939\u0940 \u0935\u093e\u091a\u093e >>> \u0938\u092e\u0943\u0926\u094d\u0927\u0940 \u092e\u0939"` (fix).
+- `924d41c82dfe4138` (ind-mr-fw2), original offset 1130: `"\u0940 \u092e\u0939\u093e\u0917\u2026\n\u0939\u0947 \u0939\u0940 \u0935\u093e\u091a\u093e<< \u0938\u094d\u092e\u0943\u0924\u0940 \u0907\u0930\u093e\u0923"` (fix).
 <!-- END CARD EVIDENCE -->
 
 2. **Medicine:** the author's code, unchanged. Main function: `cure_c1(text)`.
@@ -12399,9 +12479,10 @@ CODE = "C1"
 ACTION = "fix"
 STAGE = "35"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-mr-sangraha-v'}
+SPEC_PACKS = {'ind-mr-fw2', 'ind-mr-sangraha-v'}
 LANGS = {"mar_Deva"}
-ORIGIN = "ind-mr-sangraha-v"  # packs it runs on
+ORIGIN = "ind-mr-sangraha-v, ind-mr-fw2"
+SOURCE_ORIGIN = "ind-mr-sangraha-v"
 SOURCE = "ind-mr-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "patilvijay23"  # PR #19 at 07d884f
 
@@ -12481,7 +12562,8 @@ STAGE = "35"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-sa-fw2'}
 LANGS = {"san_Deva"}
-ORIGIN = "ind-sa-fw2"  # packs it runs on
+ORIGIN = "ind-sa-fw2"
+SOURCE_ORIGIN = "ind-sa-fw2"
 SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
 AUTHOR = "dattatreyamanjunath"  # PR #45 at b054835
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -12683,7 +12765,8 @@ STAGE = "35"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-ta-sangraha-v'}
 LANGS = {"tam_Taml"}
-ORIGIN = "ind-ta-sangraha-v"  # packs it runs on
+ORIGIN = "ind-ta-sangraha-v"
+SOURCE_ORIGIN = "ind-ta-sangraha-v"
 SOURCE = "ind-ta-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "abinesh1"  # PR #101 at 3d69463
 
@@ -12731,7 +12814,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C1 Boilerplate. Pack `ind-te-fw2`. Source: section C1 of `diagnosis/submissions/ind-te-fw2/sandeepkunkunuru/medicine.md`, PR #3 at `75e8f7b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 5 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 27 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -12748,9 +12831,10 @@ CODE = "C1"
 ACTION = "fix"
 STAGE = "35"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-te-fw2'}
+SPEC_PACKS = {'ind-te-fw2', 'ind-te-sangraha-s', 'ind-te-sangraha-v'}
 LANGS = {"tel_Telu"}
-ORIGIN = "ind-te-fw2"  # packs it runs on
+ORIGIN = "ind-te-fw2, ind-te-sangraha-s, ind-te-sangraha-v"
+SOURCE_ORIGIN = "ind-te-fw2"
 SOURCE = "ind-te-fw2"  # pack whose medicine this came from
 AUTHOR = "sandeepkunkunuru"  # PR #3 at 75e8f7b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -12803,7 +12887,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C2 Repeated lines. Pack `ind-bn-fw2`. Source: section C2 of `diagnosis/submissions/ind-bn-fw2/AditeyaAItronics/medicine.md`, PR #64 at `840d13d`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 50 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -12820,9 +12904,10 @@ CODE = "C2"
 ACTION = "fix"
 STAGE = "35"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-bn-fw2'}
+SPEC_PACKS = {'ind-bn-fw2', 'ind-bn-sangraha-v'}
 LANGS = {"ben_Beng"}
-ORIGIN = "ind-bn-fw2"  # packs it runs on
+ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+SOURCE_ORIGIN = "ind-bn-fw2"
 SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 AUTHOR = "AditeyaAItronics"  # PR #64 at 840d13d
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -12953,7 +13038,8 @@ STAGE = "35"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-gu-fw2'}
 LANGS = {"guj_Gujr"}
-ORIGIN = "ind-gu-fw2"  # packs it runs on
+ORIGIN = "ind-gu-fw2"
+SOURCE_ORIGIN = "ind-gu-fw2"
 SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
 AUTHOR = "vedang-patel-10"  # PR #91 at b6bf183
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -13002,7 +13088,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C2 Repeated lines. Pack `ind-hi-hplt`. Source: section C2 of `diagnosis/submissions/ind-hi-hplt/narasimhatejav/medicine.md`, PR #170 at `4aaf84b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 67 (PASS).
+**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 67 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 130 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -13019,9 +13105,10 @@ CODE = "C2"
 ACTION = "fix"
 STAGE = "35"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-hplt'}
+SPEC_PACKS = {'ind-hi-hplt', 'ind-hi-indiccorp'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-hplt"  # packs it runs on
+ORIGIN = "ind-hi-hplt, ind-hi-indiccorp"
+SOURCE_ORIGIN = "ind-hi-hplt"
 SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
 AUTHOR = "narasimhatejav"  # PR #170 at 4aaf84b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -13128,7 +13215,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C2 Repeated lines. Pack `ind-kn-fw2`. Source: section C2 of `diagnosis/submissions/ind-kn-fw2/LokeshJatangi/medicine.md`, PR #63 at `aeb79b8`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 45 (PASS).
+**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 45 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -13145,9 +13232,10 @@ CODE = "C2"
 ACTION = "fix"
 STAGE = "35"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-kn-fw2'}
+SPEC_PACKS = {'ind-kn-fw2', 'ind-kn-sangraha-s'}
 LANGS = {"kan_Knda"}
-ORIGIN = "ind-kn-fw2"  # packs it runs on
+ORIGIN = "ind-kn-fw2, ind-kn-sangraha-s"
+SOURCE_ORIGIN = "ind-kn-fw2"
 SOURCE = "ind-kn-fw2"  # pack whose medicine this came from
 AUTHOR = "LokeshJatangi"  # PR #63 at aeb79b8
 
@@ -13316,7 +13404,8 @@ STAGE = "35"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-kn-sangraha-v'}
 LANGS = {"kan_Knda"}
-ORIGIN = "ind-kn-sangraha-v"  # packs it runs on
+ORIGIN = "ind-kn-sangraha-v"
+SOURCE_ORIGIN = "ind-kn-sangraha-v"
 SOURCE = "ind-kn-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "pyru"  # PR #25 at 5eaa16e
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -13440,7 +13529,8 @@ STAGE = "35"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-mr-sangraha-v'}
 LANGS = {"mar_Deva"}
-ORIGIN = "ind-mr-sangraha-v"  # packs it runs on
+ORIGIN = "ind-mr-sangraha-v"
+SOURCE_ORIGIN = "ind-mr-sangraha-v"
 SOURCE = "ind-mr-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "patilvijay23"  # PR #19 at 07d884f
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -13581,7 +13671,8 @@ STAGE = "35"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-ta-sangraha-v'}
 LANGS = {"tam_Taml"}
-ORIGIN = "ind-ta-sangraha-v"  # packs it runs on
+ORIGIN = "ind-ta-sangraha-v"
+SOURCE_ORIGIN = "ind-ta-sangraha-v"
 SOURCE = "ind-ta-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "abinesh1"  # PR #101 at 3d69463
 
@@ -13623,7 +13714,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C2 Repeated lines. Pack `ind-te-fw2`. Source: section C2 of `diagnosis/submissions/ind-te-fw2/sandeepkunkunuru/medicine.md`, PR #3 at `75e8f7b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 5 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 27 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -13640,9 +13731,10 @@ CODE = "C2"
 ACTION = "fix"
 STAGE = "35"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-te-fw2'}
+SPEC_PACKS = {'ind-te-fw2', 'ind-te-sangraha-s', 'ind-te-sangraha-v'}
 LANGS = {"tel_Telu"}
-ORIGIN = "ind-te-fw2"  # packs it runs on
+ORIGIN = "ind-te-fw2, ind-te-sangraha-s, ind-te-sangraha-v"
+SOURCE_ORIGIN = "ind-te-fw2"
 SOURCE = "ind-te-fw2"  # pack whose medicine this came from
 AUTHOR = "sandeepkunkunuru"  # PR #3 at 75e8f7b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -13769,7 +13861,8 @@ STAGE = "35"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-hi-fw2'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-fw2"  # packs it runs on
+ORIGIN = "ind-hi-fw2"
+SOURCE_ORIGIN = "ind-hi-fw2"
 SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 AUTHOR = "raj-harit-v2"  # PR #8 at 8250130
 
@@ -14002,7 +14095,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C3 Truncated document. Pack `ind-mr-sangraha-v`. Source: section C3 of `diagnosis/submissions/ind-mr-sangraha-v/patilvijay23/medicine.md`, PR #19 at `07d884f`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
+**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 140 (PASS); ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -14020,9 +14113,10 @@ CODE = "C3"
 ACTION = "fix+drop"
 STAGE = "35"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-mr-sangraha-v'}
+SPEC_PACKS = {'ind-mr-fw2', 'ind-mr-sangraha-v'}
 LANGS = {"mar_Deva"}
-ORIGIN = "ind-mr-sangraha-v"  # packs it runs on
+ORIGIN = "ind-mr-sangraha-v, ind-mr-fw2"
+SOURCE_ORIGIN = "ind-mr-sangraha-v"
 SOURCE = "ind-mr-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "patilvijay23"  # PR #19 at 07d884f
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -14328,7 +14422,8 @@ STAGE = "35"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-gu-fw2'}
 LANGS = {"guj_Gujr"}
-ORIGIN = "ind-gu-fw2"  # packs it runs on
+ORIGIN = "ind-gu-fw2"
+SOURCE_ORIGIN = "ind-gu-fw2"
 SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
 AUTHOR = "Nisarg189"  # PR #18 at 9184235
 
@@ -14482,7 +14577,8 @@ STAGE = "35"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-mr-sangraha-v'}
 LANGS = {"mar_Deva"}
-ORIGIN = "ind-mr-sangraha-v"  # packs it runs on
+ORIGIN = "ind-mr-sangraha-v"
+SOURCE_ORIGIN = "ind-mr-sangraha-v"
 SOURCE = "ind-mr-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "patilvijay23"  # PR #19 at 07d884f
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -14562,7 +14658,8 @@ STAGE = "35"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-sa-fw2'}
 LANGS = {"san_Deva"}
-ORIGIN = "ind-sa-fw2"  # packs it runs on
+ORIGIN = "ind-sa-fw2"
+SOURCE_ORIGIN = "ind-sa-fw2"
 SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
 AUTHOR = "dattatreyamanjunath"  # PR #45 at b054835
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -14676,7 +14773,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C5 Lists of keywords or links. Pack `ind-bn-fw2`. Source: section C5 of `diagnosis/submissions/ind-bn-fw2/AditeyaAItronics/medicine.md`, PR #64 at `840d13d`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 50 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -14693,9 +14790,10 @@ CODE = "C5"
 ACTION = "fix"
 STAGE = "35"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-bn-fw2'}
+SPEC_PACKS = {'ind-bn-fw2', 'ind-bn-sangraha-v'}
 LANGS = {"ben_Beng"}
-ORIGIN = "ind-bn-fw2"  # packs it runs on
+ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+SOURCE_ORIGIN = "ind-bn-fw2"
 SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 AUTHOR = "AditeyaAItronics"  # PR #64 at 840d13d
 
@@ -14837,7 +14935,8 @@ STAGE = "35"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-gu-fw2'}
 LANGS = {"guj_Gujr"}
-ORIGIN = "ind-gu-fw2"  # packs it runs on
+ORIGIN = "ind-gu-fw2"
+SOURCE_ORIGIN = "ind-gu-fw2"
 SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
 AUTHOR = "Nisarg189"  # PR #18 at 9184235
 
@@ -14968,7 +15067,8 @@ STAGE = "35"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-kn-fw2'}
 LANGS = {"kan_Knda"}
-ORIGIN = "ind-kn-fw2"  # packs it runs on
+ORIGIN = "ind-kn-fw2"
+SOURCE_ORIGIN = "ind-kn-fw2"
 SOURCE = "ind-kn-fw2"  # pack whose medicine this came from
 AUTHOR = "LokeshJatangi"  # PR #63 at aeb79b8
 
@@ -15188,7 +15288,8 @@ STAGE = "35"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-sa-fw2'}
 LANGS = {"san_Deva"}
-ORIGIN = "ind-sa-fw2"  # packs it runs on
+ORIGIN = "ind-sa-fw2"
+SOURCE_ORIGIN = "ind-sa-fw2"
 SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
 AUTHOR = "dattatreyamanjunath"  # PR #45 at b054835
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -15300,13 +15401,13 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D2 Romanised Indic. Pack `ind-hi-hplt`. Source: section D2 of `diagnosis/submissions/ind-hi-hplt/narasimhatejav/medicine.md`, PR #170 at `4aaf84b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 67 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS); ind-hi-hplt: 0 changed / 0 dropped of 67 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 130 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
+- `2f2fbdf81419e6f5` (ind-hi-fw2), original offset 287: `"\u093e\u0928\u0947\u0902\u0917\u0947.\nMitti Khane Ka Man Kyon "` (fix).
 - `2d3b04f109d069ec` (ind-hi-hplt), original offset 11551: `"\u0937\u0940 \u0939\u0948 |\nShiksha k Odisha kya hai"` (fix).
 - `c02e0ea3fe225110` (ind-hi-hplt), original offset 1730: `"\u0930\u0939\u0940 \u0939\u0948.\nRead More: How to Enable"` (fix).
-- `e2e8c748d77ed529` (ind-hi-hplt), original offset 2650: `"\u0947 \u0915\u0930\u0947\u0902\u0964\nAmazon se online shoppin"` (fix).
 <!-- END CARD EVIDENCE -->
 
 2. **Medicine:** the author's code, unchanged. Main function: `medicine_d2(text)`.
@@ -15317,9 +15418,10 @@ CODE = "D2"
 ACTION = "fix"
 STAGE = "35"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-hplt'}
+SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-hplt', 'ind-hi-indiccorp'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-hplt"  # packs it runs on
+ORIGIN = "ind-hi-hplt, ind-hi-fw2, ind-hi-indiccorp"
+SOURCE_ORIGIN = "ind-hi-hplt"
 SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
 AUTHOR = "narasimhatejav"  # PR #170 at 4aaf84b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -15390,7 +15492,8 @@ STAGE = "35"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-sa-fw2'}
 LANGS = {"san_Deva"}
-ORIGIN = "ind-sa-fw2"  # packs it runs on
+ORIGIN = "ind-sa-fw2"
+SOURCE_ORIGIN = "ind-sa-fw2"
 SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
 AUTHOR = "dattatreyamanjunath"  # PR #45 at b054835
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -15437,7 +15540,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D3 Mixed language. Pack `ind-bn-fw2`. Source: section D3 of `diagnosis/submissions/ind-bn-fw2/AditeyaAItronics/medicine.md`, PR #64 at `840d13d`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 238 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 50 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -15454,9 +15557,10 @@ CODE = "D3"
 ACTION = "keep"
 STAGE = "35"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-bn-fw2'}
+SPEC_PACKS = {'ind-bn-fw2', 'ind-bn-sangraha-v'}
 LANGS = {"ben_Beng"}
-ORIGIN = "ind-bn-fw2"  # packs it runs on
+ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+SOURCE_ORIGIN = "ind-bn-fw2"
 SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 AUTHOR = "AditeyaAItronics"  # PR #64 at 840d13d
 
@@ -15570,7 +15674,8 @@ STAGE = "35"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-gu-fw2'}
 LANGS = {"guj_Gujr"}
-ORIGIN = "ind-gu-fw2"  # packs it runs on
+ORIGIN = "ind-gu-fw2"
+SOURCE_ORIGIN = "ind-gu-fw2"
 SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
 AUTHOR = "Nisarg189"  # PR #18 at 9184235
 
@@ -15673,7 +15778,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D3 Mixed language. Pack `ind-hi-fw2`. Source: section D3 of `diagnosis/submissions/ind-hi-fw2/raj-harit-v2/medicine.md`, PR #8 at `8250130`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 130 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -15687,9 +15792,10 @@ CODE = "D3"
 ACTION = "fix"
 STAGE = "35"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-fw2'}
+SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-indiccorp'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-fw2"  # packs it runs on
+ORIGIN = "ind-hi-fw2, ind-hi-indiccorp"
+SOURCE_ORIGIN = "ind-hi-fw2"
 SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 AUTHOR = "raj-harit-v2"  # PR #8 at 8250130
 
@@ -15757,7 +15863,8 @@ STAGE = "35"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-hi-hplt'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-hplt"  # packs it runs on
+ORIGIN = "ind-hi-hplt"
+SOURCE_ORIGIN = "ind-hi-hplt"
 SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
 AUTHOR = "narasimhatejav"  # PR #170 at 4aaf84b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -15856,7 +15963,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D3 Mixed language. Pack `ind-kn-sangraha-s`. Source: section D3 of `diagnosis/submissions/ind-kn-sangraha-s/millermuttu/medicine.md`, PR #104 at `74dd2df`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS).
+**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 45 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -15870,9 +15977,10 @@ CODE = "D3"
 ACTION = "keep"
 STAGE = "35"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-kn-sangraha-s'}
+SPEC_PACKS = {'ind-kn-fw2', 'ind-kn-sangraha-s'}
 LANGS = {"kan_Knda"}
-ORIGIN = "ind-kn-sangraha-s"  # packs it runs on
+ORIGIN = "ind-kn-sangraha-s, ind-kn-fw2"
+SOURCE_ORIGIN = "ind-kn-sangraha-s"
 SOURCE = "ind-kn-sangraha-s"  # pack whose medicine this came from
 AUTHOR = "millermuttu"  # PR #104 at 74dd2df
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -15984,7 +16092,8 @@ STAGE = "35"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-kn-sangraha-v'}
 LANGS = {"kan_Knda"}
-ORIGIN = "ind-kn-sangraha-v"  # packs it runs on
+ORIGIN = "ind-kn-sangraha-v"
+SOURCE_ORIGIN = "ind-kn-sangraha-v"
 SOURCE = "ind-kn-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "pyru"  # PR #25 at 5eaa16e
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -16050,7 +16159,8 @@ STAGE = "35"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-mr-fw2'}
 LANGS = {"mar_Deva"}
-ORIGIN = "ind-mr-fw2"  # packs it runs on
+ORIGIN = "ind-mr-fw2"
+SOURCE_ORIGIN = "ind-mr-fw2"
 SOURCE = "ind-mr-fw2"  # pack whose medicine this came from
 AUTHOR = "thinktinkergreen"  # PR #50 at 0d85486
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -16107,7 +16217,8 @@ STAGE = "35"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-mr-sangraha-v'}
 LANGS = {"mar_Deva"}
-ORIGIN = "ind-mr-sangraha-v"  # packs it runs on
+ORIGIN = "ind-mr-sangraha-v"
+SOURCE_ORIGIN = "ind-mr-sangraha-v"
 SOURCE = "ind-mr-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "patilvijay23"  # PR #19 at 07d884f
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -16167,7 +16278,8 @@ STAGE = "35"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-sa-fw2'}
 LANGS = {"san_Deva"}
-ORIGIN = "ind-sa-fw2"  # packs it runs on
+ORIGIN = "ind-sa-fw2"
+SOURCE_ORIGIN = "ind-sa-fw2"
 SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
 AUTHOR = "dattatreyamanjunath"  # PR #45 at b054835
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -16325,7 +16437,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D3 Mixed language. Pack `ind-te-fw2`. Source: section D3 of `diagnosis/submissions/ind-te-fw2/sandeepkunkunuru/medicine.md`, PR #3 at `75e8f7b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 5 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 27 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -16339,9 +16451,10 @@ CODE = "D3"
 ACTION = "keep"
 STAGE = "35"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-te-fw2'}
+SPEC_PACKS = {'ind-te-fw2', 'ind-te-sangraha-s', 'ind-te-sangraha-v'}
 LANGS = {"tel_Telu"}
-ORIGIN = "ind-te-fw2"  # packs it runs on
+ORIGIN = "ind-te-fw2, ind-te-sangraha-s, ind-te-sangraha-v"
+SOURCE_ORIGIN = "ind-te-fw2"
 SOURCE = "ind-te-fw2"  # pack whose medicine this came from
 AUTHOR = "sandeepkunkunuru"  # PR #3 at 75e8f7b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -16382,7 +16495,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D5 Translationese. Pack `ind-hi-hplt`. Source: section D5 of `diagnosis/submissions/ind-hi-hplt/narasimhatejav/medicine.md`, PR #170 at `4aaf84b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 67 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS); ind-hi-hplt: 0 changed / 0 dropped of 67 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 130 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -16396,9 +16509,10 @@ CODE = "D5"
 ACTION = "keep"
 STAGE = "35"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-hplt'}
+SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-hplt', 'ind-hi-indiccorp'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-hplt"  # packs it runs on
+ORIGIN = "ind-hi-hplt, ind-hi-fw2, ind-hi-indiccorp"
+SOURCE_ORIGIN = "ind-hi-hplt"
 SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
 AUTHOR = "narasimhatejav"  # PR #170 at 4aaf84b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -16509,7 +16623,8 @@ STAGE = "35"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-sa-fw2'}
 LANGS = {"san_Deva"}
-ORIGIN = "ind-sa-fw2"  # packs it runs on
+ORIGIN = "ind-sa-fw2"
+SOURCE_ORIGIN = "ind-sa-fw2"
 SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
 AUTHOR = "dattatreyamanjunath"  # PR #45 at b054835
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -16647,7 +16762,8 @@ STAGE = "40"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-gu-fw2'}
 LANGS = {"guj_Gujr"}
-ORIGIN = "ind-gu-fw2"  # packs it runs on
+ORIGIN = "ind-gu-fw2"
+SOURCE_ORIGIN = "ind-gu-fw2"
 SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
 AUTHOR = "vedang-patel-10"  # PR #91 at b6bf183
 
@@ -16692,7 +16808,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** B4 Template and code junk in prose. Pack `ind-kn-sangraha-v`. Source: section B4 of `diagnosis/submissions/ind-kn-sangraha-v/pyru/medicine.md`, PR #25 at `5eaa16e`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-sangraha-v: 0 changed / 0 dropped of 103 (PASS).
+**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 45 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS); ind-kn-sangraha-v: 0 changed / 0 dropped of 103 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -16709,9 +16825,10 @@ CODE = "B4"
 ACTION = "fix"
 STAGE = "40"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-kn-sangraha-v'}
+SPEC_PACKS = {'ind-kn-fw2', 'ind-kn-sangraha-s', 'ind-kn-sangraha-v'}
 LANGS = {"kan_Knda"}
-ORIGIN = "ind-kn-sangraha-v"  # packs it runs on
+ORIGIN = "ind-kn-sangraha-v, ind-kn-fw2, ind-kn-sangraha-s"
+SOURCE_ORIGIN = "ind-kn-sangraha-v"
 SOURCE = "ind-kn-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "pyru"  # PR #25 at 5eaa16e
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -16761,7 +16878,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** B4 Template and code junk in prose. Pack `ind-mr-sangraha-v`. Source: section B4 of `diagnosis/submissions/ind-mr-sangraha-v/patilvijay23/medicine.md`, PR #19 at `07d884f`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
+**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 140 (PASS); ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -16778,9 +16895,10 @@ CODE = "B4"
 ACTION = "fix"
 STAGE = "40"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-mr-sangraha-v'}
+SPEC_PACKS = {'ind-mr-fw2', 'ind-mr-sangraha-v'}
 LANGS = {"mar_Deva"}
-ORIGIN = "ind-mr-sangraha-v"  # packs it runs on
+ORIGIN = "ind-mr-sangraha-v, ind-mr-fw2"
+SOURCE_ORIGIN = "ind-mr-sangraha-v"
 SOURCE = "ind-mr-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "patilvijay23"  # PR #19 at 07d884f
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -16843,7 +16961,8 @@ STAGE = "40"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-sa-fw2'}
 LANGS = {"san_Deva"}
-ORIGIN = "ind-sa-fw2"  # packs it runs on
+ORIGIN = "ind-sa-fw2"
+SOURCE_ORIGIN = "ind-sa-fw2"
 SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
 AUTHOR = "dattatreyamanjunath"  # PR #45 at b054835
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -16909,7 +17028,8 @@ STAGE = "40"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-ta-sangraha-v'}
 LANGS = {"tam_Taml"}
-ORIGIN = "ind-ta-sangraha-v"  # packs it runs on
+ORIGIN = "ind-ta-sangraha-v"
+SOURCE_ORIGIN = "ind-ta-sangraha-v"
 SOURCE = "ind-ta-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "abinesh1"  # PR #101 at 3d69463
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -16950,7 +17070,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** B4 Template and code junk in prose. Pack `ind-te-sangraha-s`. Source: section B4 of `diagnosis/submissions/ind-te-sangraha-s/shankarpandala/medicine.md`, PR #92 at `2e61b3b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-sangraha-s: 0 changed / 0 dropped of 5 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 5 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 27 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -16967,9 +17087,10 @@ CODE = "B4"
 ACTION = "fix"
 STAGE = "40"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-te-sangraha-s'}
+SPEC_PACKS = {'ind-te-fw2', 'ind-te-sangraha-s', 'ind-te-sangraha-v'}
 LANGS = {"tel_Telu"}
-ORIGIN = "ind-te-sangraha-s"  # packs it runs on
+ORIGIN = "ind-te-sangraha-s, ind-te-fw2, ind-te-sangraha-v"
+SOURCE_ORIGIN = "ind-te-sangraha-s"
 SOURCE = "ind-te-sangraha-s"  # pack whose medicine this came from
 AUTHOR = "shankarpandala"  # PR #92 at 2e61b3b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -17030,7 +17151,8 @@ STAGE = "40"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-gu-fw2'}
 LANGS = {"guj_Gujr"}
-ORIGIN = "ind-gu-fw2"  # packs it runs on
+ORIGIN = "ind-gu-fw2"
+SOURCE_ORIGIN = "ind-gu-fw2"
 SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
 AUTHOR = "Nisarg189"  # PR #18 at 9184235
 
@@ -17141,7 +17263,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** F1 Personal data. Pack `ind-hi-hplt`. Source: section F1 of `diagnosis/submissions/ind-hi-hplt/narasimhatejav/medicine.md`, PR #170 at `4aaf84b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 67 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS); ind-hi-hplt: 0 changed / 0 dropped of 67 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 130 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -17155,9 +17277,10 @@ CODE = "F1"
 ACTION = "fix"
 STAGE = "40"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-hplt'}
+SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-hplt', 'ind-hi-indiccorp'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-hplt"  # packs it runs on
+ORIGIN = "ind-hi-hplt, ind-hi-fw2, ind-hi-indiccorp"
+SOURCE_ORIGIN = "ind-hi-hplt"
 SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
 AUTHOR = "narasimhatejav"  # PR #170 at 4aaf84b
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -17266,7 +17389,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** F1 Personal data. Pack `ind-kn-fw2`. Source: section F1 of `diagnosis/submissions/ind-kn-fw2/LokeshJatangi/medicine.md`, PR #63 at `aeb79b8`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 45 (PASS).
+**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 45 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS); ind-kn-sangraha-v: 0 changed / 0 dropped of 103 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -17280,9 +17403,10 @@ CODE = "F1"
 ACTION = "fix"
 STAGE = "40"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-kn-fw2'}
+SPEC_PACKS = {'ind-kn-fw2', 'ind-kn-sangraha-s', 'ind-kn-sangraha-v'}
 LANGS = {"kan_Knda"}
-ORIGIN = "ind-kn-fw2"  # packs it runs on
+ORIGIN = "ind-kn-fw2, ind-kn-sangraha-s, ind-kn-sangraha-v"
+SOURCE_ORIGIN = "ind-kn-fw2"
 SOURCE = "ind-kn-fw2"  # pack whose medicine this came from
 AUTHOR = "LokeshJatangi"  # PR #63 at aeb79b8
 
@@ -17345,7 +17469,8 @@ STAGE = "40"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-mr-fw2'}
 LANGS = {"mar_Deva"}
-ORIGIN = "ind-mr-fw2"  # packs it runs on
+ORIGIN = "ind-mr-fw2"
+SOURCE_ORIGIN = "ind-mr-fw2"
 SOURCE = "ind-mr-fw2"  # pack whose medicine this came from
 AUTHOR = "thinktinkergreen"  # PR #50 at 0d85486
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -17403,7 +17528,8 @@ STAGE = "40"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-mr-sangraha-v'}
 LANGS = {"mar_Deva"}
-ORIGIN = "ind-mr-sangraha-v"  # packs it runs on
+ORIGIN = "ind-mr-sangraha-v"
+SOURCE_ORIGIN = "ind-mr-sangraha-v"
 SOURCE = "ind-mr-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "patilvijay23"  # PR #19 at 07d884f
 
@@ -17561,7 +17687,8 @@ STAGE = "40"
 STATUS = "CANDIDATE"
 SPEC_PACKS = {'ind-sa-fw2'}
 LANGS = {"san_Deva"}
-ORIGIN = "ind-sa-fw2"  # packs it runs on
+ORIGIN = "ind-sa-fw2"
+SOURCE_ORIGIN = "ind-sa-fw2"
 SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
 AUTHOR = "dattatreyamanjunath"  # PR #45 at b054835
 import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -17662,7 +17789,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** F1 Personal data. Pack `ind-te-fw2`. Source: section F1 of `diagnosis/submissions/ind-te-fw2/sandeepkunkunuru/medicine.md`, PR #3 at `75e8f7b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 5 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 27 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -17676,9 +17803,10 @@ CODE = "F1"
 ACTION = "fix"
 STAGE = "40"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-te-fw2'}
+SPEC_PACKS = {'ind-te-fw2', 'ind-te-sangraha-s', 'ind-te-sangraha-v'}
 LANGS = {"tel_Telu"}
-ORIGIN = "ind-te-fw2"  # packs it runs on
+ORIGIN = "ind-te-fw2, ind-te-sangraha-s, ind-te-sangraha-v"
+SOURCE_ORIGIN = "ind-te-fw2"
 SOURCE = "ind-te-fw2"  # pack whose medicine this came from
 AUTHOR = "sandeepkunkunuru"  # PR #3 at 75e8f7b
 import re  # added by Data B: harm_test_indic.py gives every block `re`

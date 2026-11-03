@@ -4,6 +4,9 @@ Run before build_clean.py. --packs points to week-1 diagnosis files, not week-2 
 Missing inputs are NOT TESTABLE. Source-order overlap selection is provisional, not approval.
 """
 import argparse
+import ast
+import importlib.util
+from types import SimpleNamespace
 from collections import defaultdict
 from fractions import Fraction
 import hashlib
@@ -185,9 +188,9 @@ def integrate(packs, gold_dir):
             if result['result'] != 'PASS':
                 issues.append('current own-pack gold: ' + result['result'])
         if rid == 'DB-F2-001':
-            issues.append('requires ITIHASA_TEST_SN and independent benchmark approval; not part of this build')
+            issues.append('legacy Itihasa rule requires ITIHASA_TEST_SN; optional G9 F2 does not cover Itihasa')
         if r['code'] == 'F2':
-            issues.append('benchmark policy/fingerprints unresolved; keep-only detector is not implemented cleaning')
+            issues.append('legacy sentence-based F2 is excluded; G9 decontamination is separate and opt-in through run_clean.py --f2')
         key = pack, r['code']
         groups[key].append(rid)
         decisions[rid] = dict(pack=pack, code=r['code'], synthetic_issues=synthetic_issues,
@@ -219,6 +222,7 @@ def integrate(packs, gold_dir):
             for rid, _ in active:
                 decisions[rid].update(status='DEFERRED', reason='combined own-pack gold: ' + result)
     report = {'source_sha256': sha(SPEC / 'sheets/medicine_indic.md'),
+              'source_code_sha256': hashlib.sha256('\n'.join(ast.dump(ast.parse(row['block'])) for row in rows).encode()).hexdigest(),
               'policy': 'one eligible candidate per pack/disease, first in source order; F2 deferred; no approvals inferred',
               'privacy_missing_packs': sorted(set(gold_reports) - {d['pack'] for d in decisions.values() if d['status'] == 'CANDIDATE' and d['code'] == 'F1'}),
               'rules': decisions, 'overlaps': [dict(pack=p, code=c, ids=ids,
@@ -247,7 +251,7 @@ Deferred cards use `python deferred` fences and `STATUS = "DEFERRED"`: they are 
 
 Only locally available week-1 diagnosis packs are eligible for gold tests. Week-2 train/heldout shards cannot substitute for diagnosis packs: their IDs intentionally differ. Missing inputs are NOT TESTABLE. Existing Data A validation tables below are historical evidence for those four families; see the Indic report for its own snapshots. No combined Indic gold pass is claimed for missing packs.
 
-| Pack | Current local gold result |
+| Pack | Native-only local gold result |
 |---|---|
 '''
     for pack, result in gold_reports.items():
@@ -276,6 +280,11 @@ Only locally available week-1 diagnosis packs are eligible for gold tests. Week-
         appended.append(body)
     sheet.write_text(base.rstrip() + '\n\n' + '\n\n'.join(appended) + '\n', encoding='utf-8')
     print(f'Indic: {active_count} selected, {len(rows)-active_count} deferred; {len(gold_cache)}/13 diagnosis packs testable')
+    extension_spec = importlib.util.spec_from_file_location('indic_sibling_extension', SPEC / 'tools/extend_indic_siblings.py')
+    extension = importlib.util.module_from_spec(extension_spec)
+    extension_spec.loader.exec_module(extension)
+    api = SimpleNamespace(read_source=read_source, sha=sha, ht=ht, probes=probes, synthetic_check=synthetic_check, full_rule_check=full_rule_check, Fraction=Fraction)
+    extension.extend(api, packs, gold_dir, report)
     return report
 
 

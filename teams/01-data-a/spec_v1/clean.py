@@ -3,7 +3,7 @@ spec_v1/sheets/specv1.md: change the sheet, not this file.
 
 doc is {doc_id, text, url, lang_label, pack_id}. Each function returns (action, text), action being keep, fix or drop.
 SCOPE says which packs each rule applies to; on any other pack, or without a pack_id, a rule does nothing.
-Families: code (6 packs, 24 rules), english (4 packs, 20 rules), math (2 packs, 14 rules), sci (1 packs, 12 rules), indic (13 packs, 115 rules).
+Families: code (6 packs, 24 rules), english (4 packs, 20 rules), math (2 packs, 14 rules), sci (1 packs, 12 rules), indic (16 packs, 115 rules).
 """
 import re
 from functools import cache
@@ -80,121 +80,121 @@ SCOPE = {
     "DA-D1-001": frozenset({"sci-finepdfs"}),  # sci D1, medicine 68
     "DA-F1-006": frozenset({"sci-finepdfs"}),  # sci F1, medicine 69
     "DA-D3-004": frozenset({"sci-finepdfs"}),  # sci D3, medicine 70
-    "DB-A3-001": frozenset({"ind-bn-fw2"}),  # indic A3, medicine 71
+    "DB-A3-001": frozenset({"ind-bn-fw2", "ind-bn-sangraha-v"}),  # indic A3, medicine 71
     "DB-A3-002": frozenset({"ind-gu-fw2"}),  # indic A3, medicine 72
-    "DB-A5-001": frozenset({"ind-bn-fw2"}),  # indic A5, medicine 73
+    "DB-A5-001": frozenset({"ind-bn-fw2", "ind-bn-sangraha-v"}),  # indic A5, medicine 73
     "DB-A5-003": frozenset({"ind-gu-fw2"}),  # indic A5, medicine 75
-    "DB-A5-006": frozenset({"ind-mr-sangraha-v"}),  # indic A5, medicine 78
+    "DB-A5-006": frozenset({"ind-mr-fw2", "ind-mr-sangraha-v"}),  # indic A5, medicine 78
     "DB-A5-008": frozenset({"ind-sa-fw2"}),  # indic A5, medicine 80
-    "DB-A6-001": frozenset({"ind-bn-fw2"}),  # indic A6, medicine 81
+    "DB-A6-001": frozenset({"ind-bn-fw2", "ind-bn-sangraha-v"}),  # indic A6, medicine 81
     "DB-A6-003": frozenset({"ind-gu-fw2"}),  # indic A6, medicine 83
-    "DB-A6-004": frozenset({"ind-hi-hplt"}),  # indic A6, medicine 84
-    "DB-A6-006": frozenset({"ind-kn-sangraha-s"}),  # indic A6, medicine 86
+    "DB-A6-004": frozenset({"ind-hi-fw2", "ind-hi-hplt", "ind-hi-indiccorp"}),  # indic A6, medicine 84
+    "DB-A6-006": frozenset({"ind-kn-fw2", "ind-kn-sangraha-s"}),  # indic A6, medicine 86
     "DB-A6-007": frozenset({"ind-kn-sangraha-v"}),  # indic A6, medicine 87
     "DB-A6-008": frozenset({"ind-mr-fw2"}),  # indic A6, medicine 88
     "DB-A6-009": frozenset({"ind-mr-sangraha-v"}),  # indic A6, medicine 89
     "DB-A6-012": frozenset({"ind-ta-sangraha-v"}),  # indic A6, medicine 92
-    "DB-A6-013": frozenset({"ind-te-fw2"}),  # indic A6, medicine 93
+    "DB-A6-013": frozenset({"ind-te-fw2", "ind-te-sangraha-v"}),  # indic A6, medicine 93
     "DB-A6-014": frozenset({"ind-te-sangraha-s"}),  # indic A6, medicine 94
-    "DB-G1-001": frozenset({"ind-bn-fw2"}),  # indic G1, medicine 95
+    "DB-G1-001": frozenset({"ind-bn-fw2", "ind-bn-sangraha-v"}),  # indic G1, medicine 95
     "DB-G1-003": frozenset({"ind-gu-fw2"}),  # indic G1, medicine 97
-    "DB-G1-004": frozenset({"ind-hi-hplt"}),  # indic G1, medicine 98
-    "DB-G1-005": frozenset({"ind-kn-fw2"}),  # indic G1, medicine 99
+    "DB-G1-004": frozenset({"ind-hi-fw2", "ind-hi-hplt", "ind-hi-indiccorp"}),  # indic G1, medicine 98
+    "DB-G1-005": frozenset({"ind-kn-fw2", "ind-kn-sangraha-s"}),  # indic G1, medicine 99
     "DB-G1-006": frozenset({"ind-mr-fw2"}),  # indic G1, medicine 100
     "DB-G1-007": frozenset({"ind-sa-fw2"}),  # indic G1, medicine 101
-    "DB-G1-010": frozenset({"ind-te-fw2"}),  # indic G1, medicine 104
-    "DB-G2-001": frozenset({"ind-bn-fw2"}),  # indic G2, medicine 105
+    "DB-G1-010": frozenset({"ind-te-fw2", "ind-te-sangraha-s", "ind-te-sangraha-v"}),  # indic G1, medicine 104
+    "DB-G2-001": frozenset({"ind-bn-fw2", "ind-bn-sangraha-v"}),  # indic G2, medicine 105
     "DB-G2-003": frozenset({"ind-sa-fw2"}),  # indic G2, medicine 107
-    "DB-G4-002": frozenset({"ind-mr-fw2"}),  # indic G4, medicine 109
+    "DB-G4-002": frozenset({"ind-mr-fw2", "ind-mr-sangraha-v"}),  # indic G4, medicine 109
     "DB-G4-003": frozenset({"ind-sa-fw2"}),  # indic G4, medicine 110
     "DB-G4-004": frozenset({"ind-ta-sangraha-v"}),  # indic G4, medicine 111
-    "DB-B2-001": frozenset({"ind-hi-fw2"}),  # indic B2, medicine 112
+    "DB-B2-001": frozenset({"ind-hi-fw2", "ind-hi-indiccorp"}),  # indic B2, medicine 112
     "DB-B2-002": frozenset({"ind-hi-hplt"}),  # indic B2, medicine 113
-    "DB-B2-003": frozenset({"ind-kn-sangraha-s"}),  # indic B2, medicine 114
-    "DB-B2-004": frozenset({"ind-te-fw2"}),  # indic B2, medicine 115
+    "DB-B2-003": frozenset({"ind-kn-fw2", "ind-kn-sangraha-s", "ind-kn-sangraha-v"}),  # indic B2, medicine 114
+    "DB-B2-004": frozenset({"ind-te-fw2", "ind-te-sangraha-v"}),  # indic B2, medicine 115
     "DB-B2-005": frozenset({"ind-te-sangraha-s"}),  # indic B2, medicine 116
-    "DB-B3-001": frozenset({"ind-kn-sangraha-s"}),  # indic B3, medicine 117
-    "DB-A3-004": frozenset({"ind-kn-sangraha-v"}),  # indic A3, medicine 119
+    "DB-B3-001": frozenset({"ind-kn-fw2", "ind-kn-sangraha-s", "ind-kn-sangraha-v"}),  # indic B3, medicine 117
+    "DB-A3-004": frozenset({"ind-kn-fw2", "ind-kn-sangraha-s", "ind-kn-sangraha-v"}),  # indic A3, medicine 119
     "DB-A4-001": frozenset({"ind-sa-fw2"}),  # indic A4, medicine 120
-    "DB-C3-001": frozenset({"ind-bn-fw2"}),  # indic C3, medicine 122
-    "DB-C3-002": frozenset({"ind-hi-hplt"}),  # indic C3, medicine 123
+    "DB-C3-001": frozenset({"ind-bn-fw2", "ind-bn-sangraha-v"}),  # indic C3, medicine 122
+    "DB-C3-002": frozenset({"ind-hi-hplt", "ind-hi-indiccorp"}),  # indic C3, medicine 123
     "DB-C3-004": frozenset({"ind-sa-fw2"}),  # indic C3, medicine 125
-    "DB-C4-001": frozenset({"ind-bn-fw2"}),  # indic C4, medicine 126
-    "DB-C4-002": frozenset({"ind-hi-fw2"}),  # indic C4, medicine 127
+    "DB-C4-001": frozenset({"ind-bn-fw2", "ind-bn-sangraha-v"}),  # indic C4, medicine 126
+    "DB-C4-002": frozenset({"ind-hi-fw2", "ind-hi-indiccorp"}),  # indic C4, medicine 127
     "DB-C4-003": frozenset({"ind-hi-hplt"}),  # indic C4, medicine 128
     "DB-C4-005": frozenset({"ind-mr-fw2"}),  # indic C4, medicine 130
-    "DB-C4-006": frozenset({"ind-te-fw2"}),  # indic C4, medicine 131
-    "DB-C5-001": frozenset({"ind-hi-hplt"}),  # indic C5, medicine 132
-    "DB-C5-003": frozenset({"ind-kn-sangraha-v"}),  # indic C5, medicine 134
-    "DB-C5-004": frozenset({"ind-mr-fw2"}),  # indic C5, medicine 135
+    "DB-C4-006": frozenset({"ind-te-fw2", "ind-te-sangraha-s", "ind-te-sangraha-v"}),  # indic C4, medicine 131
+    "DB-C5-001": frozenset({"ind-hi-fw2", "ind-hi-hplt", "ind-hi-indiccorp"}),  # indic C5, medicine 132
+    "DB-C5-003": frozenset({"ind-kn-sangraha-s", "ind-kn-sangraha-v"}),  # indic C5, medicine 134
+    "DB-C5-004": frozenset({"ind-mr-fw2", "ind-mr-sangraha-v"}),  # indic C5, medicine 135
     "DB-C5-005": frozenset({"ind-ta-sangraha-v"}),  # indic C5, medicine 136
-    "DB-C5-006": frozenset({"ind-te-fw2"}),  # indic C5, medicine 137
-    "DB-D4-001": frozenset({"ind-bn-fw2"}),  # indic D4, medicine 138
+    "DB-C5-006": frozenset({"ind-te-fw2", "ind-te-sangraha-s", "ind-te-sangraha-v"}),  # indic C5, medicine 137
+    "DB-D4-001": frozenset({"ind-bn-fw2", "ind-bn-sangraha-v"}),  # indic D4, medicine 138
     "DB-D4-003": frozenset({"ind-gu-fw2"}),  # indic D4, medicine 140
-    "DB-D4-005": frozenset({"ind-hi-hplt"}),  # indic D4, medicine 142
-    "DB-D4-007": frozenset({"ind-kn-sangraha-v"}),  # indic D4, medicine 144
-    "DB-D4-008": frozenset({"ind-mr-sangraha-v"}),  # indic D4, medicine 145
+    "DB-D4-005": frozenset({"ind-hi-fw2", "ind-hi-hplt", "ind-hi-indiccorp"}),  # indic D4, medicine 142
+    "DB-D4-007": frozenset({"ind-kn-fw2", "ind-kn-sangraha-s", "ind-kn-sangraha-v"}),  # indic D4, medicine 144
+    "DB-D4-008": frozenset({"ind-mr-fw2", "ind-mr-sangraha-v"}),  # indic D4, medicine 145
     "DB-D4-009": frozenset({"ind-sa-fw2"}),  # indic D4, medicine 146
-    "DB-D4-011": frozenset({"ind-te-fw2"}),  # indic D4, medicine 148
+    "DB-D4-011": frozenset({"ind-te-fw2", "ind-te-sangraha-v"}),  # indic D4, medicine 148
     "DB-D4-012": frozenset({"ind-te-sangraha-s"}),  # indic D4, medicine 149
-    "DB-D5-001": frozenset({"ind-te-sangraha-s"}),  # indic D5, medicine 150
-    "DB-F3-001": frozenset({"ind-bn-fw2"}),  # indic F3, medicine 152
-    "DB-F3-003": frozenset({"ind-te-fw2"}),  # indic F3, medicine 154
+    "DB-D5-001": frozenset({"ind-te-fw2", "ind-te-sangraha-s", "ind-te-sangraha-v"}),  # indic D5, medicine 150
+    "DB-F3-001": frozenset({"ind-bn-fw2", "ind-bn-sangraha-v"}),  # indic F3, medicine 152
+    "DB-F3-003": frozenset({"ind-te-fw2", "ind-te-sangraha-s", "ind-te-sangraha-v"}),  # indic F3, medicine 154
     "DB-G1-011": frozenset({"ind-kn-sangraha-v"}),  # indic G1, medicine 155
-    "DB-C1-001": frozenset({"ind-bn-fw2"}),  # indic C1, medicine 157
+    "DB-C1-001": frozenset({"ind-bn-fw2", "ind-bn-sangraha-v"}),  # indic C1, medicine 157
     "DB-C1-003": frozenset({"ind-gu-fw2"}),  # indic C1, medicine 159
-    "DB-C1-005": frozenset({"ind-hi-fw2"}),  # indic C1, medicine 161
+    "DB-C1-005": frozenset({"ind-hi-fw2", "ind-hi-indiccorp"}),  # indic C1, medicine 161
     "DB-C1-006": frozenset({"ind-hi-hplt"}),  # indic C1, medicine 162
     "DB-C1-008": frozenset({"ind-kn-fw2"}),  # indic C1, medicine 164
-    "DB-C1-010": frozenset({"ind-kn-sangraha-s"}),  # indic C1, medicine 166
-    "DB-C1-012": frozenset({"ind-mr-sangraha-v"}),  # indic C1, medicine 168
+    "DB-C1-010": frozenset({"ind-kn-sangraha-s", "ind-kn-sangraha-v"}),  # indic C1, medicine 166
+    "DB-C1-012": frozenset({"ind-mr-fw2", "ind-mr-sangraha-v"}),  # indic C1, medicine 168
     "DB-C1-013": frozenset({"ind-sa-fw2"}),  # indic C1, medicine 169
     "DB-C1-015": frozenset({"ind-ta-sangraha-v"}),  # indic C1, medicine 171
-    "DB-C1-016": frozenset({"ind-te-fw2"}),  # indic C1, medicine 172
-    "DB-C2-001": frozenset({"ind-bn-fw2"}),  # indic C2, medicine 173
+    "DB-C1-016": frozenset({"ind-te-fw2", "ind-te-sangraha-s", "ind-te-sangraha-v"}),  # indic C1, medicine 172
+    "DB-C2-001": frozenset({"ind-bn-fw2", "ind-bn-sangraha-v"}),  # indic C2, medicine 173
     "DB-C2-003": frozenset({"ind-gu-fw2"}),  # indic C2, medicine 175
-    "DB-C2-004": frozenset({"ind-hi-hplt"}),  # indic C2, medicine 176
-    "DB-C2-006": frozenset({"ind-kn-fw2"}),  # indic C2, medicine 178
+    "DB-C2-004": frozenset({"ind-hi-hplt", "ind-hi-indiccorp"}),  # indic C2, medicine 176
+    "DB-C2-006": frozenset({"ind-kn-fw2", "ind-kn-sangraha-s"}),  # indic C2, medicine 178
     "DB-C2-008": frozenset({"ind-kn-sangraha-v"}),  # indic C2, medicine 180
     "DB-C2-010": frozenset({"ind-mr-sangraha-v"}),  # indic C2, medicine 182
     "DB-C2-012": frozenset({"ind-ta-sangraha-v"}),  # indic C2, medicine 184
-    "DB-C2-013": frozenset({"ind-te-fw2"}),  # indic C2, medicine 185
+    "DB-C2-013": frozenset({"ind-te-fw2", "ind-te-sangraha-s", "ind-te-sangraha-v"}),  # indic C2, medicine 185
     "DB-C3-006": frozenset({"ind-hi-fw2"}),  # indic C3, medicine 187
-    "DB-C3-010": frozenset({"ind-mr-sangraha-v"}),  # indic C3, medicine 191
+    "DB-C3-010": frozenset({"ind-mr-fw2", "ind-mr-sangraha-v"}),  # indic C3, medicine 191
     "DB-C4-007": frozenset({"ind-gu-fw2"}),  # indic C4, medicine 196
     "DB-C4-009": frozenset({"ind-mr-sangraha-v"}),  # indic C4, medicine 198
     "DB-C4-010": frozenset({"ind-sa-fw2"}),  # indic C4, medicine 199
-    "DB-C5-007": frozenset({"ind-bn-fw2"}),  # indic C5, medicine 201
+    "DB-C5-007": frozenset({"ind-bn-fw2", "ind-bn-sangraha-v"}),  # indic C5, medicine 201
     "DB-C5-009": frozenset({"ind-gu-fw2"}),  # indic C5, medicine 203
     "DB-C5-011": frozenset({"ind-kn-fw2"}),  # indic C5, medicine 205
     "DB-C5-014": frozenset({"ind-sa-fw2"}),  # indic C5, medicine 208
-    "DB-D2-001": frozenset({"ind-hi-hplt"}),  # indic D2, medicine 210
+    "DB-D2-001": frozenset({"ind-hi-fw2", "ind-hi-hplt", "ind-hi-indiccorp"}),  # indic D2, medicine 210
     "DB-D2-002": frozenset({"ind-sa-fw2"}),  # indic D2, medicine 211
-    "DB-D3-001": frozenset({"ind-bn-fw2"}),  # indic D3, medicine 212
+    "DB-D3-001": frozenset({"ind-bn-fw2", "ind-bn-sangraha-v"}),  # indic D3, medicine 212
     "DB-D3-003": frozenset({"ind-gu-fw2"}),  # indic D3, medicine 214
-    "DB-D3-005": frozenset({"ind-hi-fw2"}),  # indic D3, medicine 216
+    "DB-D3-005": frozenset({"ind-hi-fw2", "ind-hi-indiccorp"}),  # indic D3, medicine 216
     "DB-D3-006": frozenset({"ind-hi-hplt"}),  # indic D3, medicine 217
-    "DB-D3-008": frozenset({"ind-kn-sangraha-s"}),  # indic D3, medicine 219
+    "DB-D3-008": frozenset({"ind-kn-fw2", "ind-kn-sangraha-s"}),  # indic D3, medicine 219
     "DB-D3-009": frozenset({"ind-kn-sangraha-v"}),  # indic D3, medicine 220
     "DB-D3-010": frozenset({"ind-mr-fw2"}),  # indic D3, medicine 221
     "DB-D3-011": frozenset({"ind-mr-sangraha-v"}),  # indic D3, medicine 222
     "DB-D3-012": frozenset({"ind-sa-fw2"}),  # indic D3, medicine 223
-    "DB-D3-014": frozenset({"ind-te-fw2"}),  # indic D3, medicine 225
-    "DB-D5-002": frozenset({"ind-hi-hplt"}),  # indic D5, medicine 226
+    "DB-D3-014": frozenset({"ind-te-fw2", "ind-te-sangraha-s", "ind-te-sangraha-v"}),  # indic D3, medicine 225
+    "DB-D5-002": frozenset({"ind-hi-fw2", "ind-hi-hplt", "ind-hi-indiccorp"}),  # indic D5, medicine 226
     "DB-H3-001": frozenset({"ind-sa-fw2"}),  # indic H3, medicine 228
     "DB-B4-001": frozenset({"ind-gu-fw2"}),  # indic B4, medicine 230
-    "DB-B4-002": frozenset({"ind-kn-sangraha-v"}),  # indic B4, medicine 231
-    "DB-B4-003": frozenset({"ind-mr-sangraha-v"}),  # indic B4, medicine 232
+    "DB-B4-002": frozenset({"ind-kn-fw2", "ind-kn-sangraha-s", "ind-kn-sangraha-v"}),  # indic B4, medicine 231
+    "DB-B4-003": frozenset({"ind-mr-fw2", "ind-mr-sangraha-v"}),  # indic B4, medicine 232
     "DB-B4-004": frozenset({"ind-sa-fw2"}),  # indic B4, medicine 233
     "DB-B4-005": frozenset({"ind-ta-sangraha-v"}),  # indic B4, medicine 234
-    "DB-B4-006": frozenset({"ind-te-sangraha-s"}),  # indic B4, medicine 235
+    "DB-B4-006": frozenset({"ind-te-fw2", "ind-te-sangraha-s", "ind-te-sangraha-v"}),  # indic B4, medicine 235
     "DB-F1-001": frozenset({"ind-gu-fw2"}),  # indic F1, medicine 236
-    "DB-F1-003": frozenset({"ind-hi-hplt"}),  # indic F1, medicine 238
-    "DB-F1-005": frozenset({"ind-kn-fw2"}),  # indic F1, medicine 240
+    "DB-F1-003": frozenset({"ind-hi-fw2", "ind-hi-hplt", "ind-hi-indiccorp"}),  # indic F1, medicine 238
+    "DB-F1-005": frozenset({"ind-kn-fw2", "ind-kn-sangraha-s", "ind-kn-sangraha-v"}),  # indic F1, medicine 240
     "DB-F1-006": frozenset({"ind-mr-fw2"}),  # indic F1, medicine 241
     "DB-F1-007": frozenset({"ind-mr-sangraha-v"}),  # indic F1, medicine 242
     "DB-F1-008": frozenset({"ind-sa-fw2"}),  # indic F1, medicine 243
-    "DB-F1-010": frozenset({"ind-te-fw2"}),  # indic F1, medicine 245
+    "DB-F1-010": frozenset({"ind-te-fw2", "ind-te-sangraha-s", "ind-te-sangraha-v"}),  # indic F1, medicine 245
     "f1_rule.py": frozenset({"code-cpp", "code-go", "code-java", "code-js-ts", "code-python", "code-rust", "math-finemath", "math-megamath", "sci-finepdfs"}),  # the shared F1, spec_v1/tools/f1_rule.py: code, math, sci packs, last
 }
 
@@ -4213,7 +4213,8 @@ def _indic_db_a3_001():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-A3-001"]
     LANGS = {"ben_Beng"}
-    ORIGIN = "ind-bn-fw2"  # packs it runs on
+    ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+    SOURCE_ORIGIN = "ind-bn-fw2"
     SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 
     import re
@@ -4257,7 +4258,8 @@ def _indic_db_a3_002():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-A3-002"]
     LANGS = {"guj_Gujr"}
-    ORIGIN = "ind-gu-fw2"  # packs it runs on
+    ORIGIN = "ind-gu-fw2"
+    SOURCE_ORIGIN = "ind-gu-fw2"
     SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
 
     import re
@@ -4312,7 +4314,8 @@ def _indic_db_a5_001():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-A5-001"]
     LANGS = {"ben_Beng"}
-    ORIGIN = "ind-bn-fw2"  # packs it runs on
+    ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+    SOURCE_ORIGIN = "ind-bn-fw2"
     SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 
     import re
@@ -4357,7 +4360,8 @@ def _indic_db_a5_003():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-A5-003"]
     LANGS = {"guj_Gujr"}
-    ORIGIN = "ind-gu-fw2"  # packs it runs on
+    ORIGIN = "ind-gu-fw2"
+    SOURCE_ORIGIN = "ind-gu-fw2"
     SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
 
     import re
@@ -4415,7 +4419,8 @@ def _indic_db_a5_006():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-A5-006"]
     LANGS = {"mar_Deva"}
-    ORIGIN = "ind-mr-sangraha-v"  # packs it runs on
+    ORIGIN = "ind-mr-sangraha-v, ind-mr-fw2"
+    SOURCE_ORIGIN = "ind-mr-sangraha-v"
     SOURCE = "ind-mr-sangraha-v"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -4456,7 +4461,8 @@ def _indic_db_a5_008():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-A5-008"]
     LANGS = {"san_Deva"}
-    ORIGIN = "ind-sa-fw2"  # packs it runs on
+    ORIGIN = "ind-sa-fw2"
+    SOURCE_ORIGIN = "ind-sa-fw2"
     SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -4513,7 +4519,8 @@ def _indic_db_a6_001():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-A6-001"]
     LANGS = {"ben_Beng"}
-    ORIGIN = "ind-bn-fw2"  # packs it runs on
+    ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+    SOURCE_ORIGIN = "ind-bn-fw2"
     SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 
     import re
@@ -4562,7 +4569,8 @@ def _indic_db_a6_003():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-A6-003"]
     LANGS = {"guj_Gujr"}
-    ORIGIN = "ind-gu-fw2"  # packs it runs on
+    ORIGIN = "ind-gu-fw2"
+    SOURCE_ORIGIN = "ind-gu-fw2"
     SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
 
     import re
@@ -4611,7 +4619,8 @@ def _indic_db_a6_004():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-A6-004"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-hplt"  # packs it runs on
+    ORIGIN = "ind-hi-hplt, ind-hi-fw2, ind-hi-indiccorp"
+    SOURCE_ORIGIN = "ind-hi-hplt"
     SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -4664,7 +4673,8 @@ def _indic_db_a6_006():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-A6-006"]
     LANGS = {"kan_Knda"}
-    ORIGIN = "ind-kn-sangraha-s"  # packs it runs on
+    ORIGIN = "ind-kn-sangraha-s, ind-kn-fw2"
+    SOURCE_ORIGIN = "ind-kn-sangraha-s"
     SOURCE = "ind-kn-sangraha-s"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -4705,7 +4715,8 @@ def _indic_db_a6_007():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-A6-007"]
     LANGS = {"kan_Knda"}
-    ORIGIN = "ind-kn-sangraha-v"  # packs it runs on
+    ORIGIN = "ind-kn-sangraha-v"
+    SOURCE_ORIGIN = "ind-kn-sangraha-v"
     SOURCE = "ind-kn-sangraha-v"  # pack whose medicine this came from
 
     import re
@@ -4760,7 +4771,8 @@ def _indic_db_a6_008():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-A6-008"]
     LANGS = {"mar_Deva"}
-    ORIGIN = "ind-mr-fw2"  # packs it runs on
+    ORIGIN = "ind-mr-fw2"
+    SOURCE_ORIGIN = "ind-mr-fw2"
     SOURCE = "ind-mr-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -4800,7 +4812,8 @@ def _indic_db_a6_009():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-A6-009"]
     LANGS = {"mar_Deva"}
-    ORIGIN = "ind-mr-sangraha-v"  # packs it runs on
+    ORIGIN = "ind-mr-sangraha-v"
+    SOURCE_ORIGIN = "ind-mr-sangraha-v"
     SOURCE = "ind-mr-sangraha-v"  # pack whose medicine this came from
 
     import re
@@ -4848,7 +4861,8 @@ def _indic_db_a6_012():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-A6-012"]
     LANGS = {"tam_Taml"}
-    ORIGIN = "ind-ta-sangraha-v"  # packs it runs on
+    ORIGIN = "ind-ta-sangraha-v"
+    SOURCE_ORIGIN = "ind-ta-sangraha-v"
     SOURCE = "ind-ta-sangraha-v"  # pack whose medicine this came from
 
     import re
@@ -4888,7 +4902,8 @@ def _indic_db_a6_013():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-A6-013"]
     LANGS = {"tel_Telu"}
-    ORIGIN = "ind-te-fw2"  # packs it runs on
+    ORIGIN = "ind-te-fw2, ind-te-sangraha-v"
+    SOURCE_ORIGIN = "ind-te-fw2"
     SOURCE = "ind-te-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -4928,7 +4943,8 @@ def _indic_db_a6_014():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-A6-014"]
     LANGS = {"tel_Telu"}
-    ORIGIN = "ind-te-sangraha-s"  # packs it runs on
+    ORIGIN = "ind-te-sangraha-s"
+    SOURCE_ORIGIN = "ind-te-sangraha-s"
     SOURCE = "ind-te-sangraha-s"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -4972,7 +4988,8 @@ def _indic_db_g1_001():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-G1-001"]
     LANGS = {"ben_Beng"}
-    ORIGIN = "ind-bn-fw2"  # packs it runs on
+    ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+    SOURCE_ORIGIN = "ind-bn-fw2"
     SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 
     import re
@@ -5014,7 +5031,8 @@ def _indic_db_g1_003():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-G1-003"]
     LANGS = {"guj_Gujr"}
-    ORIGIN = "ind-gu-fw2"  # packs it runs on
+    ORIGIN = "ind-gu-fw2"
+    SOURCE_ORIGIN = "ind-gu-fw2"
     SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
 
     import re
@@ -5057,7 +5075,8 @@ def _indic_db_g1_004():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-G1-004"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-hplt"  # packs it runs on
+    ORIGIN = "ind-hi-hplt, ind-hi-fw2, ind-hi-indiccorp"
+    SOURCE_ORIGIN = "ind-hi-hplt"
     SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -5100,7 +5119,8 @@ def _indic_db_g1_005():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-G1-005"]
     LANGS = {"kan_Knda"}
-    ORIGIN = "ind-kn-fw2"  # packs it runs on
+    ORIGIN = "ind-kn-fw2, ind-kn-sangraha-s"
+    SOURCE_ORIGIN = "ind-kn-fw2"
     SOURCE = "ind-kn-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -5144,7 +5164,8 @@ def _indic_db_g1_006():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-G1-006"]
     LANGS = {"mar_Deva"}
-    ORIGIN = "ind-mr-fw2"  # packs it runs on
+    ORIGIN = "ind-mr-fw2"
+    SOURCE_ORIGIN = "ind-mr-fw2"
     SOURCE = "ind-mr-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -5184,7 +5205,8 @@ def _indic_db_g1_007():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-G1-007"]
     LANGS = {"san_Deva"}
-    ORIGIN = "ind-sa-fw2"  # packs it runs on
+    ORIGIN = "ind-sa-fw2"
+    SOURCE_ORIGIN = "ind-sa-fw2"
     SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -5223,7 +5245,8 @@ def _indic_db_g1_010():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-G1-010"]
     LANGS = {"tel_Telu"}
-    ORIGIN = "ind-te-fw2"  # packs it runs on
+    ORIGIN = "ind-te-fw2, ind-te-sangraha-s, ind-te-sangraha-v"
+    SOURCE_ORIGIN = "ind-te-fw2"
     SOURCE = "ind-te-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -5263,7 +5286,8 @@ def _indic_db_g2_001():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-G2-001"]
     LANGS = {"ben_Beng"}
-    ORIGIN = "ind-bn-fw2"  # packs it runs on
+    ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+    SOURCE_ORIGIN = "ind-bn-fw2"
     SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 
     import re
@@ -5310,7 +5334,8 @@ def _indic_db_g2_003():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-G2-003"]
     LANGS = {"san_Deva"}
-    ORIGIN = "ind-sa-fw2"  # packs it runs on
+    ORIGIN = "ind-sa-fw2"
+    SOURCE_ORIGIN = "ind-sa-fw2"
     SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -5356,7 +5381,8 @@ def _indic_db_g4_002():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-G4-002"]
     LANGS = {"mar_Deva"}
-    ORIGIN = "ind-mr-fw2"  # packs it runs on
+    ORIGIN = "ind-mr-fw2, ind-mr-sangraha-v"
+    SOURCE_ORIGIN = "ind-mr-fw2"
     SOURCE = "ind-mr-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -5404,7 +5430,8 @@ def _indic_db_g4_003():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-G4-003"]
     LANGS = {"san_Deva"}
-    ORIGIN = "ind-sa-fw2"  # packs it runs on
+    ORIGIN = "ind-sa-fw2"
+    SOURCE_ORIGIN = "ind-sa-fw2"
     SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -5473,7 +5500,8 @@ def _indic_db_g4_004():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-G4-004"]
     LANGS = {"tam_Taml"}
-    ORIGIN = "ind-ta-sangraha-v"  # packs it runs on
+    ORIGIN = "ind-ta-sangraha-v"
+    SOURCE_ORIGIN = "ind-ta-sangraha-v"
     SOURCE = "ind-ta-sangraha-v"  # pack whose medicine this came from
 
     import re
@@ -5515,7 +5543,8 @@ def _indic_db_b2_001():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-B2-001"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-fw2"  # packs it runs on
+    ORIGIN = "ind-hi-fw2, ind-hi-indiccorp"
+    SOURCE_ORIGIN = "ind-hi-fw2"
     SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 
     import re
@@ -5563,7 +5592,8 @@ def _indic_db_b2_002():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-B2-002"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-hplt"  # packs it runs on
+    ORIGIN = "ind-hi-hplt"
+    SOURCE_ORIGIN = "ind-hi-hplt"
     SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -5604,7 +5634,8 @@ def _indic_db_b2_003():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-B2-003"]
     LANGS = {"kan_Knda"}
-    ORIGIN = "ind-kn-sangraha-s"  # packs it runs on
+    ORIGIN = "ind-kn-sangraha-s, ind-kn-fw2, ind-kn-sangraha-v"
+    SOURCE_ORIGIN = "ind-kn-sangraha-s"
     SOURCE = "ind-kn-sangraha-s"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -5647,7 +5678,8 @@ def _indic_db_b2_004():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-B2-004"]
     LANGS = {"tel_Telu"}
-    ORIGIN = "ind-te-fw2"  # packs it runs on
+    ORIGIN = "ind-te-fw2, ind-te-sangraha-v"
+    SOURCE_ORIGIN = "ind-te-fw2"
     SOURCE = "ind-te-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -5687,7 +5719,8 @@ def _indic_db_b2_005():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-B2-005"]
     LANGS = {"tel_Telu"}
-    ORIGIN = "ind-te-sangraha-s"  # packs it runs on
+    ORIGIN = "ind-te-sangraha-s"
+    SOURCE_ORIGIN = "ind-te-sangraha-s"
     SOURCE = "ind-te-sangraha-s"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -5729,7 +5762,8 @@ def _indic_db_b3_001():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-B3-001"]
     LANGS = {"kan_Knda"}
-    ORIGIN = "ind-kn-sangraha-s"  # packs it runs on
+    ORIGIN = "ind-kn-sangraha-s, ind-kn-fw2, ind-kn-sangraha-v"
+    SOURCE_ORIGIN = "ind-kn-sangraha-s"
     SOURCE = "ind-kn-sangraha-s"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -5769,7 +5803,8 @@ def _indic_db_a3_004():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-A3-004"]
     LANGS = {"kan_Knda"}
-    ORIGIN = "ind-kn-sangraha-v"  # packs it runs on
+    ORIGIN = "ind-kn-sangraha-v, ind-kn-fw2, ind-kn-sangraha-s"
+    SOURCE_ORIGIN = "ind-kn-sangraha-v"
     SOURCE = "ind-kn-sangraha-v"  # pack whose medicine this came from
 
     import re
@@ -5843,7 +5878,8 @@ def _indic_db_a4_001():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-A4-001"]
     LANGS = {"san_Deva"}
-    ORIGIN = "ind-sa-fw2"  # packs it runs on
+    ORIGIN = "ind-sa-fw2"
+    SOURCE_ORIGIN = "ind-sa-fw2"
     SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -5882,7 +5918,8 @@ def _indic_db_c3_001():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C3-001"]
     LANGS = {"ben_Beng"}
-    ORIGIN = "ind-bn-fw2"  # packs it runs on
+    ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+    SOURCE_ORIGIN = "ind-bn-fw2"
     SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 
     import re
@@ -5928,7 +5965,8 @@ def _indic_db_c3_002():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C3-002"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-hplt"  # packs it runs on
+    ORIGIN = "ind-hi-hplt, ind-hi-indiccorp"
+    SOURCE_ORIGIN = "ind-hi-hplt"
     SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -5970,7 +6008,8 @@ def _indic_db_c3_004():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C3-004"]
     LANGS = {"san_Deva"}
-    ORIGIN = "ind-sa-fw2"  # packs it runs on
+    ORIGIN = "ind-sa-fw2"
+    SOURCE_ORIGIN = "ind-sa-fw2"
     SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -6020,7 +6059,8 @@ def _indic_db_c4_001():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C4-001"]
     LANGS = {"ben_Beng"}
-    ORIGIN = "ind-bn-fw2"  # packs it runs on
+    ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+    SOURCE_ORIGIN = "ind-bn-fw2"
     SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 
     import re
@@ -6063,7 +6103,8 @@ def _indic_db_c4_002():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C4-002"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-fw2"  # packs it runs on
+    ORIGIN = "ind-hi-fw2, ind-hi-indiccorp"
+    SOURCE_ORIGIN = "ind-hi-fw2"
     SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 
     import re
@@ -6112,7 +6153,8 @@ def _indic_db_c4_003():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C4-003"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-hplt"  # packs it runs on
+    ORIGIN = "ind-hi-hplt"
+    SOURCE_ORIGIN = "ind-hi-hplt"
     SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -6155,7 +6197,8 @@ def _indic_db_c4_005():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C4-005"]
     LANGS = {"mar_Deva"}
-    ORIGIN = "ind-mr-fw2"  # packs it runs on
+    ORIGIN = "ind-mr-fw2"
+    SOURCE_ORIGIN = "ind-mr-fw2"
     SOURCE = "ind-mr-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -6196,7 +6239,8 @@ def _indic_db_c4_006():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C4-006"]
     LANGS = {"tel_Telu"}
-    ORIGIN = "ind-te-fw2"  # packs it runs on
+    ORIGIN = "ind-te-fw2, ind-te-sangraha-s, ind-te-sangraha-v"
+    SOURCE_ORIGIN = "ind-te-fw2"
     SOURCE = "ind-te-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -6237,7 +6281,8 @@ def _indic_db_c5_001():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C5-001"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-hplt"  # packs it runs on
+    ORIGIN = "ind-hi-hplt, ind-hi-fw2, ind-hi-indiccorp"
+    SOURCE_ORIGIN = "ind-hi-hplt"
     SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -6276,7 +6321,8 @@ def _indic_db_c5_003():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C5-003"]
     LANGS = {"kan_Knda"}
-    ORIGIN = "ind-kn-sangraha-v"  # packs it runs on
+    ORIGIN = "ind-kn-sangraha-v, ind-kn-sangraha-s"
+    SOURCE_ORIGIN = "ind-kn-sangraha-v"
     SOURCE = "ind-kn-sangraha-v"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -6326,7 +6372,8 @@ def _indic_db_c5_004():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C5-004"]
     LANGS = {"mar_Deva"}
-    ORIGIN = "ind-mr-fw2"  # packs it runs on
+    ORIGIN = "ind-mr-fw2, ind-mr-sangraha-v"
+    SOURCE_ORIGIN = "ind-mr-fw2"
     SOURCE = "ind-mr-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -6365,7 +6412,8 @@ def _indic_db_c5_005():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C5-005"]
     LANGS = {"tam_Taml"}
-    ORIGIN = "ind-ta-sangraha-v"  # packs it runs on
+    ORIGIN = "ind-ta-sangraha-v"
+    SOURCE_ORIGIN = "ind-ta-sangraha-v"
     SOURCE = "ind-ta-sangraha-v"  # pack whose medicine this came from
 
     import re
@@ -6406,7 +6454,8 @@ def _indic_db_c5_006():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C5-006"]
     LANGS = {"tel_Telu"}
-    ORIGIN = "ind-te-fw2"  # packs it runs on
+    ORIGIN = "ind-te-fw2, ind-te-sangraha-s, ind-te-sangraha-v"
+    SOURCE_ORIGIN = "ind-te-fw2"
     SOURCE = "ind-te-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -6462,7 +6511,8 @@ def _indic_db_d4_001():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D4-001"]
     LANGS = {"ben_Beng"}
-    ORIGIN = "ind-bn-fw2"  # packs it runs on
+    ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+    SOURCE_ORIGIN = "ind-bn-fw2"
     SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 
     import re
@@ -6511,7 +6561,8 @@ def _indic_db_d4_003():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D4-003"]
     LANGS = {"guj_Gujr"}
-    ORIGIN = "ind-gu-fw2"  # packs it runs on
+    ORIGIN = "ind-gu-fw2"
+    SOURCE_ORIGIN = "ind-gu-fw2"
     SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
 
     import re
@@ -6560,7 +6611,8 @@ def _indic_db_d4_005():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D4-005"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-hplt"  # packs it runs on
+    ORIGIN = "ind-hi-hplt, ind-hi-fw2, ind-hi-indiccorp"
+    SOURCE_ORIGIN = "ind-hi-hplt"
     SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -6603,7 +6655,8 @@ def _indic_db_d4_007():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D4-007"]
     LANGS = {"kan_Knda"}
-    ORIGIN = "ind-kn-sangraha-v"  # packs it runs on
+    ORIGIN = "ind-kn-sangraha-v, ind-kn-fw2, ind-kn-sangraha-s"
+    SOURCE_ORIGIN = "ind-kn-sangraha-v"
     SOURCE = "ind-kn-sangraha-v"  # pack whose medicine this came from
 
     import re
@@ -6655,7 +6708,8 @@ def _indic_db_d4_008():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D4-008"]
     LANGS = {"mar_Deva"}
-    ORIGIN = "ind-mr-sangraha-v"  # packs it runs on
+    ORIGIN = "ind-mr-sangraha-v, ind-mr-fw2"
+    SOURCE_ORIGIN = "ind-mr-sangraha-v"
     SOURCE = "ind-mr-sangraha-v"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -6749,7 +6803,8 @@ def _indic_db_d4_009():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D4-009"]
     LANGS = {"san_Deva"}
-    ORIGIN = "ind-sa-fw2"  # packs it runs on
+    ORIGIN = "ind-sa-fw2"
+    SOURCE_ORIGIN = "ind-sa-fw2"
     SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -6793,7 +6848,8 @@ def _indic_db_d4_011():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D4-011"]
     LANGS = {"tel_Telu"}
-    ORIGIN = "ind-te-fw2"  # packs it runs on
+    ORIGIN = "ind-te-fw2, ind-te-sangraha-v"
+    SOURCE_ORIGIN = "ind-te-fw2"
     SOURCE = "ind-te-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -6839,7 +6895,8 @@ def _indic_db_d4_012():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D4-012"]
     LANGS = {"tel_Telu"}
-    ORIGIN = "ind-te-sangraha-s"  # packs it runs on
+    ORIGIN = "ind-te-sangraha-s"
+    SOURCE_ORIGIN = "ind-te-sangraha-s"
     SOURCE = "ind-te-sangraha-s"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -6887,7 +6944,8 @@ def _indic_db_d5_001():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D5-001"]
     LANGS = {"tel_Telu"}
-    ORIGIN = "ind-te-sangraha-s"  # packs it runs on
+    ORIGIN = "ind-te-sangraha-s, ind-te-fw2, ind-te-sangraha-v"
+    SOURCE_ORIGIN = "ind-te-sangraha-s"
     SOURCE = "ind-te-sangraha-s"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -6928,7 +6986,8 @@ def _indic_db_f3_001():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-F3-001"]
     LANGS = {"ben_Beng"}
-    ORIGIN = "ind-bn-fw2"  # packs it runs on
+    ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+    SOURCE_ORIGIN = "ind-bn-fw2"
     SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 
     import re
@@ -6974,7 +7033,8 @@ def _indic_db_f3_003():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-F3-003"]
     LANGS = {"tel_Telu"}
-    ORIGIN = "ind-te-fw2"  # packs it runs on
+    ORIGIN = "ind-te-fw2, ind-te-sangraha-s, ind-te-sangraha-v"
+    SOURCE_ORIGIN = "ind-te-fw2"
     SOURCE = "ind-te-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -7017,7 +7077,8 @@ def _indic_db_g1_011():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-G1-011"]
     LANGS = {"kan_Knda"}
-    ORIGIN = "ind-kn-sangraha-v"  # packs it runs on
+    ORIGIN = "ind-kn-sangraha-v"
+    SOURCE_ORIGIN = "ind-kn-sangraha-v"
     SOURCE = "ind-kn-sangraha-v"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -7102,7 +7163,8 @@ def _indic_db_c1_001():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C1-001"]
     LANGS = {"ben_Beng"}
-    ORIGIN = "ind-bn-fw2"  # packs it runs on
+    ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+    SOURCE_ORIGIN = "ind-bn-fw2"
     SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 
     import re
@@ -7170,7 +7232,8 @@ def _indic_db_c1_003():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C1-003"]
     LANGS = {"guj_Gujr"}
-    ORIGIN = "ind-gu-fw2"  # packs it runs on
+    ORIGIN = "ind-gu-fw2"
+    SOURCE_ORIGIN = "ind-gu-fw2"
     SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
 
     import re
@@ -7231,7 +7294,8 @@ def _indic_db_c1_005():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C1-005"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-fw2"  # packs it runs on
+    ORIGIN = "ind-hi-fw2, ind-hi-indiccorp"
+    SOURCE_ORIGIN = "ind-hi-fw2"
     SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 
     import re
@@ -7300,7 +7364,8 @@ def _indic_db_c1_006():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C1-006"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-hplt"  # packs it runs on
+    ORIGIN = "ind-hi-hplt"
+    SOURCE_ORIGIN = "ind-hi-hplt"
     SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -7351,7 +7416,8 @@ def _indic_db_c1_008():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C1-008"]
     LANGS = {"kan_Knda"}
-    ORIGIN = "ind-kn-fw2"  # packs it runs on
+    ORIGIN = "ind-kn-fw2"
+    SOURCE_ORIGIN = "ind-kn-fw2"
     SOURCE = "ind-kn-fw2"  # pack whose medicine this came from
 
     import re
@@ -7423,7 +7489,8 @@ def _indic_db_c1_010():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C1-010"]
     LANGS = {"kan_Knda"}
-    ORIGIN = "ind-kn-sangraha-s"  # packs it runs on
+    ORIGIN = "ind-kn-sangraha-s, ind-kn-sangraha-v"
+    SOURCE_ORIGIN = "ind-kn-sangraha-s"
     SOURCE = "ind-kn-sangraha-s"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -7467,7 +7534,8 @@ def _indic_db_c1_012():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C1-012"]
     LANGS = {"mar_Deva"}
-    ORIGIN = "ind-mr-sangraha-v"  # packs it runs on
+    ORIGIN = "ind-mr-sangraha-v, ind-mr-fw2"
+    SOURCE_ORIGIN = "ind-mr-sangraha-v"
     SOURCE = "ind-mr-sangraha-v"  # pack whose medicine this came from
 
     import re
@@ -7526,7 +7594,8 @@ def _indic_db_c1_013():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C1-013"]
     LANGS = {"san_Deva"}
-    ORIGIN = "ind-sa-fw2"  # packs it runs on
+    ORIGIN = "ind-sa-fw2"
+    SOURCE_ORIGIN = "ind-sa-fw2"
     SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -7580,7 +7649,8 @@ def _indic_db_c1_015():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C1-015"]
     LANGS = {"tam_Taml"}
-    ORIGIN = "ind-ta-sangraha-v"  # packs it runs on
+    ORIGIN = "ind-ta-sangraha-v"
+    SOURCE_ORIGIN = "ind-ta-sangraha-v"
     SOURCE = "ind-ta-sangraha-v"  # pack whose medicine this came from
 
     import re
@@ -7626,7 +7696,8 @@ def _indic_db_c1_016():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C1-016"]
     LANGS = {"tel_Telu"}
-    ORIGIN = "ind-te-fw2"  # packs it runs on
+    ORIGIN = "ind-te-fw2, ind-te-sangraha-s, ind-te-sangraha-v"
+    SOURCE_ORIGIN = "ind-te-fw2"
     SOURCE = "ind-te-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -7677,7 +7748,8 @@ def _indic_db_c2_001():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C2-001"]
     LANGS = {"ben_Beng"}
-    ORIGIN = "ind-bn-fw2"  # packs it runs on
+    ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+    SOURCE_ORIGIN = "ind-bn-fw2"
     SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -7725,7 +7797,8 @@ def _indic_db_c2_003():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C2-003"]
     LANGS = {"guj_Gujr"}
-    ORIGIN = "ind-gu-fw2"  # packs it runs on
+    ORIGIN = "ind-gu-fw2"
+    SOURCE_ORIGIN = "ind-gu-fw2"
     SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -7772,7 +7845,8 @@ def _indic_db_c2_004():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C2-004"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-hplt"  # packs it runs on
+    ORIGIN = "ind-hi-hplt, ind-hi-indiccorp"
+    SOURCE_ORIGIN = "ind-hi-hplt"
     SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -7816,7 +7890,8 @@ def _indic_db_c2_006():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C2-006"]
     LANGS = {"kan_Knda"}
-    ORIGIN = "ind-kn-fw2"  # packs it runs on
+    ORIGIN = "ind-kn-fw2, ind-kn-sangraha-s"
+    SOURCE_ORIGIN = "ind-kn-fw2"
     SOURCE = "ind-kn-fw2"  # pack whose medicine this came from
 
     import re
@@ -7885,7 +7960,8 @@ def _indic_db_c2_008():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C2-008"]
     LANGS = {"kan_Knda"}
-    ORIGIN = "ind-kn-sangraha-v"  # packs it runs on
+    ORIGIN = "ind-kn-sangraha-v"
+    SOURCE_ORIGIN = "ind-kn-sangraha-v"
     SOURCE = "ind-kn-sangraha-v"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -7936,7 +8012,8 @@ def _indic_db_c2_010():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C2-010"]
     LANGS = {"mar_Deva"}
-    ORIGIN = "ind-mr-sangraha-v"  # packs it runs on
+    ORIGIN = "ind-mr-sangraha-v"
+    SOURCE_ORIGIN = "ind-mr-sangraha-v"
     SOURCE = "ind-mr-sangraha-v"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -7988,7 +8065,8 @@ def _indic_db_c2_012():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C2-012"]
     LANGS = {"tam_Taml"}
-    ORIGIN = "ind-ta-sangraha-v"  # packs it runs on
+    ORIGIN = "ind-ta-sangraha-v"
+    SOURCE_ORIGIN = "ind-ta-sangraha-v"
     SOURCE = "ind-ta-sangraha-v"  # pack whose medicine this came from
 
     import re
@@ -8028,7 +8106,8 @@ def _indic_db_c2_013():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C2-013"]
     LANGS = {"tel_Telu"}
-    ORIGIN = "ind-te-fw2"  # packs it runs on
+    ORIGIN = "ind-te-fw2, ind-te-sangraha-s, ind-te-sangraha-v"
+    SOURCE_ORIGIN = "ind-te-fw2"
     SOURCE = "ind-te-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -8076,7 +8155,8 @@ def _indic_db_c3_006():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C3-006"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-fw2"  # packs it runs on
+    ORIGIN = "ind-hi-fw2"
+    SOURCE_ORIGIN = "ind-hi-fw2"
     SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 
     import re
@@ -8126,7 +8206,8 @@ def _indic_db_c3_010():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C3-010"]
     LANGS = {"mar_Deva"}
-    ORIGIN = "ind-mr-sangraha-v"  # packs it runs on
+    ORIGIN = "ind-mr-sangraha-v, ind-mr-fw2"
+    SOURCE_ORIGIN = "ind-mr-sangraha-v"
     SOURCE = "ind-mr-sangraha-v"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -8179,7 +8260,8 @@ def _indic_db_c4_007():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C4-007"]
     LANGS = {"guj_Gujr"}
-    ORIGIN = "ind-gu-fw2"  # packs it runs on
+    ORIGIN = "ind-gu-fw2"
+    SOURCE_ORIGIN = "ind-gu-fw2"
     SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
 
     import re
@@ -8241,7 +8323,8 @@ def _indic_db_c4_009():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C4-009"]
     LANGS = {"mar_Deva"}
-    ORIGIN = "ind-mr-sangraha-v"  # packs it runs on
+    ORIGIN = "ind-mr-sangraha-v"
+    SOURCE_ORIGIN = "ind-mr-sangraha-v"
     SOURCE = "ind-mr-sangraha-v"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -8300,7 +8383,8 @@ def _indic_db_c4_010():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C4-010"]
     LANGS = {"san_Deva"}
-    ORIGIN = "ind-sa-fw2"  # packs it runs on
+    ORIGIN = "ind-sa-fw2"
+    SOURCE_ORIGIN = "ind-sa-fw2"
     SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -8342,7 +8426,8 @@ def _indic_db_c5_007():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C5-007"]
     LANGS = {"ben_Beng"}
-    ORIGIN = "ind-bn-fw2"  # packs it runs on
+    ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+    SOURCE_ORIGIN = "ind-bn-fw2"
     SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 
     import re
@@ -8400,7 +8485,8 @@ def _indic_db_c5_009():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C5-009"]
     LANGS = {"guj_Gujr"}
-    ORIGIN = "ind-gu-fw2"  # packs it runs on
+    ORIGIN = "ind-gu-fw2"
+    SOURCE_ORIGIN = "ind-gu-fw2"
     SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
 
     import re
@@ -8448,7 +8534,8 @@ def _indic_db_c5_011():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C5-011"]
     LANGS = {"kan_Knda"}
-    ORIGIN = "ind-kn-fw2"  # packs it runs on
+    ORIGIN = "ind-kn-fw2"
+    SOURCE_ORIGIN = "ind-kn-fw2"
     SOURCE = "ind-kn-fw2"  # pack whose medicine this came from
 
     import re
@@ -8509,7 +8596,8 @@ def _indic_db_c5_014():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C5-014"]
     LANGS = {"san_Deva"}
-    ORIGIN = "ind-sa-fw2"  # packs it runs on
+    ORIGIN = "ind-sa-fw2"
+    SOURCE_ORIGIN = "ind-sa-fw2"
     SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -8550,7 +8638,8 @@ def _indic_db_d2_001():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D2-001"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-hplt"  # packs it runs on
+    ORIGIN = "ind-hi-hplt, ind-hi-fw2, ind-hi-indiccorp"
+    SOURCE_ORIGIN = "ind-hi-hplt"
     SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -8600,7 +8689,8 @@ def _indic_db_d2_002():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D2-002"]
     LANGS = {"san_Deva"}
-    ORIGIN = "ind-sa-fw2"  # packs it runs on
+    ORIGIN = "ind-sa-fw2"
+    SOURCE_ORIGIN = "ind-sa-fw2"
     SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -8645,7 +8735,8 @@ def _indic_db_d3_001():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D3-001"]
     LANGS = {"ben_Beng"}
-    ORIGIN = "ind-bn-fw2"  # packs it runs on
+    ORIGIN = "ind-bn-fw2, ind-bn-sangraha-v"
+    SOURCE_ORIGIN = "ind-bn-fw2"
     SOURCE = "ind-bn-fw2"  # pack whose medicine this came from
 
     import re
@@ -8689,7 +8780,8 @@ def _indic_db_d3_003():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D3-003"]
     LANGS = {"guj_Gujr"}
-    ORIGIN = "ind-gu-fw2"  # packs it runs on
+    ORIGIN = "ind-gu-fw2"
+    SOURCE_ORIGIN = "ind-gu-fw2"
     SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
 
     import re
@@ -8733,7 +8825,8 @@ def _indic_db_d3_005():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D3-005"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-fw2"  # packs it runs on
+    ORIGIN = "ind-hi-fw2, ind-hi-indiccorp"
+    SOURCE_ORIGIN = "ind-hi-fw2"
     SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 
     import re
@@ -8783,7 +8876,8 @@ def _indic_db_d3_006():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D3-006"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-hplt"  # packs it runs on
+    ORIGIN = "ind-hi-hplt"
+    SOURCE_ORIGIN = "ind-hi-hplt"
     SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -8827,7 +8921,8 @@ def _indic_db_d3_008():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D3-008"]
     LANGS = {"kan_Knda"}
-    ORIGIN = "ind-kn-sangraha-s"  # packs it runs on
+    ORIGIN = "ind-kn-sangraha-s, ind-kn-fw2"
+    SOURCE_ORIGIN = "ind-kn-sangraha-s"
     SOURCE = "ind-kn-sangraha-s"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -8921,7 +9016,8 @@ def _indic_db_d3_009():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D3-009"]
     LANGS = {"kan_Knda"}
-    ORIGIN = "ind-kn-sangraha-v"  # packs it runs on
+    ORIGIN = "ind-kn-sangraha-v"
+    SOURCE_ORIGIN = "ind-kn-sangraha-v"
     SOURCE = "ind-kn-sangraha-v"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -8966,7 +9062,8 @@ def _indic_db_d3_010():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D3-010"]
     LANGS = {"mar_Deva"}
-    ORIGIN = "ind-mr-fw2"  # packs it runs on
+    ORIGIN = "ind-mr-fw2"
+    SOURCE_ORIGIN = "ind-mr-fw2"
     SOURCE = "ind-mr-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -9005,7 +9102,8 @@ def _indic_db_d3_011():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D3-011"]
     LANGS = {"mar_Deva"}
-    ORIGIN = "ind-mr-sangraha-v"  # packs it runs on
+    ORIGIN = "ind-mr-sangraha-v"
+    SOURCE_ORIGIN = "ind-mr-sangraha-v"
     SOURCE = "ind-mr-sangraha-v"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -9044,7 +9142,8 @@ def _indic_db_d3_012():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D3-012"]
     LANGS = {"san_Deva"}
-    ORIGIN = "ind-sa-fw2"  # packs it runs on
+    ORIGIN = "ind-sa-fw2"
+    SOURCE_ORIGIN = "ind-sa-fw2"
     SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -9104,7 +9203,8 @@ def _indic_db_d3_014():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D3-014"]
     LANGS = {"tel_Telu"}
-    ORIGIN = "ind-te-fw2"  # packs it runs on
+    ORIGIN = "ind-te-fw2, ind-te-sangraha-s, ind-te-sangraha-v"
+    SOURCE_ORIGIN = "ind-te-fw2"
     SOURCE = "ind-te-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -9143,7 +9243,8 @@ def _indic_db_d5_002():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D5-002"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-hplt"  # packs it runs on
+    ORIGIN = "ind-hi-hplt, ind-hi-fw2, ind-hi-indiccorp"
+    SOURCE_ORIGIN = "ind-hi-hplt"
     SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -9182,7 +9283,8 @@ def _indic_db_h3_001():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-H3-001"]
     LANGS = {"san_Deva"}
-    ORIGIN = "ind-sa-fw2"  # packs it runs on
+    ORIGIN = "ind-sa-fw2"
+    SOURCE_ORIGIN = "ind-sa-fw2"
     SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -9236,7 +9338,8 @@ def _indic_db_b4_001():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-B4-001"]
     LANGS = {"guj_Gujr"}
-    ORIGIN = "ind-gu-fw2"  # packs it runs on
+    ORIGIN = "ind-gu-fw2"
+    SOURCE_ORIGIN = "ind-gu-fw2"
     SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
 
     import re
@@ -9279,7 +9382,8 @@ def _indic_db_b4_002():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-B4-002"]
     LANGS = {"kan_Knda"}
-    ORIGIN = "ind-kn-sangraha-v"  # packs it runs on
+    ORIGIN = "ind-kn-sangraha-v, ind-kn-fw2, ind-kn-sangraha-s"
+    SOURCE_ORIGIN = "ind-kn-sangraha-v"
     SOURCE = "ind-kn-sangraha-v"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -9327,7 +9431,8 @@ def _indic_db_b4_003():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-B4-003"]
     LANGS = {"mar_Deva"}
-    ORIGIN = "ind-mr-sangraha-v"  # packs it runs on
+    ORIGIN = "ind-mr-sangraha-v, ind-mr-fw2"
+    SOURCE_ORIGIN = "ind-mr-sangraha-v"
     SOURCE = "ind-mr-sangraha-v"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -9369,7 +9474,8 @@ def _indic_db_b4_004():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-B4-004"]
     LANGS = {"san_Deva"}
-    ORIGIN = "ind-sa-fw2"  # packs it runs on
+    ORIGIN = "ind-sa-fw2"
+    SOURCE_ORIGIN = "ind-sa-fw2"
     SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -9414,7 +9520,8 @@ def _indic_db_b4_005():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-B4-005"]
     LANGS = {"tam_Taml"}
-    ORIGIN = "ind-ta-sangraha-v"  # packs it runs on
+    ORIGIN = "ind-ta-sangraha-v"
+    SOURCE_ORIGIN = "ind-ta-sangraha-v"
     SOURCE = "ind-ta-sangraha-v"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -9453,7 +9560,8 @@ def _indic_db_b4_006():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-B4-006"]
     LANGS = {"tel_Telu"}
-    ORIGIN = "ind-te-sangraha-s"  # packs it runs on
+    ORIGIN = "ind-te-sangraha-s, ind-te-fw2, ind-te-sangraha-v"
+    SOURCE_ORIGIN = "ind-te-sangraha-s"
     SOURCE = "ind-te-sangraha-s"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -9496,7 +9604,8 @@ def _indic_db_f1_001():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-F1-001"]
     LANGS = {"guj_Gujr"}
-    ORIGIN = "ind-gu-fw2"  # packs it runs on
+    ORIGIN = "ind-gu-fw2"
+    SOURCE_ORIGIN = "ind-gu-fw2"
     SOURCE = "ind-gu-fw2"  # pack whose medicine this came from
 
     import re
@@ -9547,7 +9656,8 @@ def _indic_db_f1_003():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-F1-003"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-hplt"  # packs it runs on
+    ORIGIN = "ind-hi-hplt, ind-hi-fw2, ind-hi-indiccorp"
+    SOURCE_ORIGIN = "ind-hi-hplt"
     SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -9591,7 +9701,8 @@ def _indic_db_f1_005():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-F1-005"]
     LANGS = {"kan_Knda"}
-    ORIGIN = "ind-kn-fw2"  # packs it runs on
+    ORIGIN = "ind-kn-fw2, ind-kn-sangraha-s, ind-kn-sangraha-v"
+    SOURCE_ORIGIN = "ind-kn-fw2"
     SOURCE = "ind-kn-fw2"  # pack whose medicine this came from
 
     import re
@@ -9636,7 +9747,8 @@ def _indic_db_f1_006():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-F1-006"]
     LANGS = {"mar_Deva"}
-    ORIGIN = "ind-mr-fw2"  # packs it runs on
+    ORIGIN = "ind-mr-fw2"
+    SOURCE_ORIGIN = "ind-mr-fw2"
     SOURCE = "ind-mr-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -9676,7 +9788,8 @@ def _indic_db_f1_007():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-F1-007"]
     LANGS = {"mar_Deva"}
-    ORIGIN = "ind-mr-sangraha-v"  # packs it runs on
+    ORIGIN = "ind-mr-sangraha-v"
+    SOURCE_ORIGIN = "ind-mr-sangraha-v"
     SOURCE = "ind-mr-sangraha-v"  # pack whose medicine this came from
 
     import hashlib
@@ -9816,7 +9929,8 @@ def _indic_db_f1_008():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-F1-008"]
     LANGS = {"san_Deva"}
-    ORIGIN = "ind-sa-fw2"  # packs it runs on
+    ORIGIN = "ind-sa-fw2"
+    SOURCE_ORIGIN = "ind-sa-fw2"
     SOURCE = "ind-sa-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
@@ -9859,7 +9973,8 @@ def _indic_db_f1_010():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-F1-010"]
     LANGS = {"tel_Telu"}
-    ORIGIN = "ind-te-fw2"  # packs it runs on
+    ORIGIN = "ind-te-fw2, ind-te-sangraha-s, ind-te-sangraha-v"
+    SOURCE_ORIGIN = "ind-te-fw2"
     SOURCE = "ind-te-fw2"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
 
