@@ -16,7 +16,7 @@ review = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(review)
 SOURCE = review.read_source()
 SELECTED = [row for row in SOURCE if row['id'] in c._RULE]
-DECISIONS = json.loads((SPEC / 'results/cleaner/indic_integration.json').read_text())
+DECISIONS = json.loads((SPEC / 'results/cleaner/indic_integration.json').read_text(encoding='utf-8'))
 
 
 def document(row, text):
@@ -89,10 +89,10 @@ def test_unsupported_indic_pack_passes_through_but_is_not_registered():
 
 
 def test_builder_does_not_silently_skip_a_bad_heading(tmp_path):
-    source = (SPEC / 'sheets/specv1.md').read_text()
+    source = (SPEC / 'sheets/specv1.md').read_text(encoding='utf-8')
     source = source.replace('— indic / A3 / `DB-A3-001`', '— indic / A3 / `XX-A3-001`', 1)
     sheet = tmp_path / 'specv1.md'
-    sheet.write_text(source)
+    sheet.write_text(source, encoding='utf-8', newline='\n')
     dest = tmp_path / 'clean.py'
     result = subprocess.run([sys.executable, '-I', str(SPEC / 'tools/build_clean.py'), '--sheet', str(sheet), '--out', str(dest)], capture_output=True)
     assert result.returncode != 0 and b'unsupported medicine heading' in result.stderr
