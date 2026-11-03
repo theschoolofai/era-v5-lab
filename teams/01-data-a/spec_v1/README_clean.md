@@ -718,3 +718,9 @@ The scope is checked twice, and both checks read `SCOPE`:
 - Do not commit a `harm_tests.md` made without all 13 packs.
 - Do not commit packs or `_clean.parquet` outputs.
 - Do not take a rule off a pack to make a harm test pass. A failing rule stays in, and blocks release until it is reviewed, as `specv1.md` says.
+
+## TSAI job: Week-2 tokenizer sample v0 only
+
+TSAI clarified that the sample run is eligible for a job request; the restriction on cleaning the full corpus still applies. The prepared request is [2026-11-02-tokenizer-sample-v0-clean.md](../jobs/2026-11-02-tokenizer-sample-v0-clean.md), with a [two-part local execution log](../jobs/logs/2026-11-02-tokenizer-sample-v0-local.txt).
+
+`tools/run_tokenizer_sample.py` runs the pinned `clean.py` on the manifest's 48 train and 38 heldout parts. Its config, manifest pin and local-run command are in [jobs/README.md](jobs/README.md). It streams batches, preserves splits, writes only under `out/`, and reports counts from actual sequential rule invocations. Unsupported packs are explicitly preserved unchanged rather than presented as cleaned. The request records the large-Parquet return requirement separately from the small metadata reports. Optional F2 is off for this `clean.py` request.
