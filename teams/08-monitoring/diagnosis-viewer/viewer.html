@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diagnosis Pack Viewer</title>
+<style>
+:root{--bg:#fafaf8;--fg:#1d1d1b;--mut:#6b6b66;--line:#deded8;--card:#fff;--hi:#fff1a8;--hid:#c2410c;--clean:#15803d;--fix:#b45309;--drop:#b91c1c;--acc:#2563eb}
+@media (prefers-color-scheme:dark){:root{--bg:#171716;--fg:#e8e8e3;--mut:#9a9a93;--line:#34342f;--card:#1f1f1d;--hi:#5b4d0a;--hid:#fb923c;--clean:#4ade80;--fix:#fbbf24;--drop:#f87171;--acc:#60a5fa}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,sans-serif;height:100vh;display:grid;grid-template-rows:auto 1fr}
+header{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:8px 12px;border-bottom:1px solid var(--line)}
+header b{font-size:15px}select,input,button,textarea{font:inherit;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:4px 8px}
+button{cursor:pointer}button.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
+main{display:grid;grid-template-columns:230px 1fr 360px;min-height:0}
+#list{overflow:auto;border-right:1px solid var(--line)}#list div{padding:4px 8px;border-bottom:1px solid var(--line);cursor:pointer;font-size:12px;display:flex;gap:6px}
+#list div.cur{background:var(--hi)}#list .ok{color:var(--clean);font-weight:700;width:12px}
+.v-clean{color:var(--clean)}.v-fix{color:var(--fix)}.v-drop{color:var(--drop)}
+#doc{overflow:auto;padding:12px 16px}#meta{color:var(--mut);font-size:12px;margin-bottom:8px;word-break:break-all}
+#text{font:16px/1.7 "Noto Sans Telugu","Noto Sans",system-ui,sans-serif;white-space:pre-wrap;word-break:break-word}
+.ln{color:var(--mut);font:11px monospace;user-select:none;margin-right:6px}
+.hid{color:var(--hid);background:color-mix(in srgb,var(--hid) 15%,transparent);font:11px monospace;border-radius:3px;padding:0 2px}
+mark{background:var(--hi);color:inherit}.off{color:var(--acc);font-weight:700}
+#side{overflow:auto;border-left:1px solid var(--line);padding:10px 12px}#side h3{margin:12px 0 4px;font-size:13px}
+.ai{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:8px;font-size:12px;word-break:break-word}
+.codes{display:grid;grid-template-columns:repeat(5,1fr);gap:2px 4px;font-size:12px}.codes label{white-space:nowrap}
+textarea{width:100%;min-height:70px}input.w{width:100%}.warn{font-size:11px;color:var(--drop)}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}.kbd{font:11px monospace;color:var(--mut)}
+#scan{font:11px monospace;color:var(--mut);white-space:pre-wrap}
+@media (max-width:900px){main{grid-template-columns:1fr}#list{max-height:160px}#side{border-left:0}}
+</style></head><body>
+<header><b id="pk">diagnosis viewer</b><span id="prog"></span>
+<select id="flt"><option value="all">all docs</option><option value="todo">not reviewed</option><option value="done">reviewed</option><option value="chg">changed vs AI</option><option value="v:clean">start: clean</option><option value="v:fix">start: fix</option><option value="v:drop">start: drop</option><option value="nolab">no label yet</option></select>
+<input id="dz" placeholder="disease, e.g. D4" size="9"><input id="q" placeholder="search text" size="14">
+<button id="prev">◀ k</button><button id="next">j ▶</button><span class="kbd">c = confirm · s = save · h = hex</span><a href="export.csv" download="labels.csv"><button>Export labels.csv</button></a></header>
+<main><div id="list"></div>
+<div id="doc"><div id="meta"></div><div id="text"></div><h3>Unusual code points (h to show)</h3><div id="scan"></div></div>
+<div id="side">
+<h3>Starting label (from --labels)</h3><div class="ai" id="ai"></div>
+<div class="row"><button class="pri" id="confirm">Confirm this label (c)</button></div>
+<h3>Your label</h3>
+<div class="row"><label><input type="radio" name="rd" value="full"> full</label><label><input type="radio" name="rd" value="partial"> partial</label></div>
+<div class="row"><label class="v-clean"><input type="radio" name="vd" value="clean"> clean</label><label class="v-fix"><input type="radio" name="vd" value="fix"> fix</label><label class="v-drop"><input type="radio" name="vd" value="drop"> drop</label></div>
+<div class="codes" id="codes"></div>
+<h3>Evidence</h3><textarea id="ev"></textarea>
+<div class="warn">F1/E3: type and offset only. Never the value.</div>
+<h3>Hex (A/G only)</h3><input class="w" id="hx"><h3>Note</h3><input class="w" id="nt">
+<div class="row"><button class="pri" id="save">Save my label (s)</button><span id="st" class="kbd"></span></div>
+</div></main>
+<script>
+let D=[],C={},R={},view=[],cur=0,showHex=false;
+const $=id=>document.getElementById(id);
+const VIS={"\u200b":"ZWSP","\u200c":"ZWNJ","\u200d":"ZWJ","\ufeff":"BOM","\u00ad":"SHY","\ufffd":"FFFD","\t":"TAB","\u202a":"LRE","\u202b":"RLE","\u202c":"PDF","\u202d":"LRO","\u202e":"RLO","\u2066":"LRI","\u2067":"RLI","\u2068":"FSI","\u2069":"PDI","\u200e":"LRM","\u200f":"RLM","\u00a0":"NBSP"};
+const esc=s=>s.replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const EMPTY={read:"full",verdict:"",diseases:"",evidence:"",hex:"",note:""};
+const lab=d=>R[d.doc_id]||d.label||EMPTY;
+async function init(){
+  const [P,RV]=await Promise.all(["data.json","reviews"].map(u=>fetch(u).then(r=>r.json())));D=P.docs;C=P.codes;R=RV;$("pk").textContent=P.pack;
+  $("codes").innerHTML=Object.keys(C).map(k=>`<label title="${esc(C[k])}"><input type="checkbox" value="${k}"> ${k}</label>`).join("");
+  ["flt","dz","q"].forEach(id=>$(id).oninput=()=>{filter();});
+  $("prev").onclick=()=>go(-1);$("next").onclick=()=>go(1);$("confirm").onclick=confirmAI;$("save").onclick=saveMine;
+  document.onkeydown=e=>{if(/INPUT|TEXTAREA|SELECT/.test(e.target.tagName))return;
+    if(e.key=="j")go(1);else if(e.key=="k")go(-1);else if(e.key=="c")confirmAI();else if(e.key=="s")saveMine();else if(e.key=="h"){showHex=!showHex;render();}};
+  try{cur=+localStorage.getItem("cur:"+P.pack)||0}catch(e){}
+  filter(true);
+}
+function filter(keep){
+  const f=$("flt").value,dz=$("dz").value.trim().toUpperCase(),q=$("q").value.trim();
+  view=D.filter(d=>{const r=R[d.doc_id];
+    if(f=="todo"&&r)return false;if(f=="done"&&!r)return false;
+    if(f=="chg"&&!(r&&!r.agree_with_ai))return false;
+    if(f.startsWith("v:")&&(d.label||EMPTY).verdict!=f.slice(2))return false;if(f=="nolab"&&(d.label||r))return false;
+    if(dz&&!lab(d).diseases.split(";").includes(dz))return false;
+    if(q&&!d.text.includes(q))return false;return true;}).map(d=>d.i);
+  if(!keep||!view.includes(cur))cur=view[0]??0;list();render();
+}
+function list(){
+  $("list").innerHTML=view.map(i=>{const d=D[i],l=lab(d),r=R[d.doc_id];
+    return `<div data-i="${i}" class="${i==cur?"cur":""}"><span class="ok">${r?"✓":""}</span><span>${i}</span><span class="v-${l.verdict}">${l.verdict}</span><span>${l.diseases}</span></div>`}).join("");
+  $("list").onclick=e=>{const t=e.target.closest("[data-i]");if(t){cur=+t.dataset.i;render();list();}};
+  const n=Object.keys(R).length;$("prog").textContent=`${n}/500 reviewed · ${view.length} shown`;
+}
+function go(s){const k=view.indexOf(cur);const n=view[Math.min(view.length-1,Math.max(0,k+s))];if(n!=null){cur=n;render();list();
+  const el=$("list").querySelector(".cur");el&&el.scrollIntoView({block:"nearest"});}}
+function render(){
+  const d=D[cur];if(!d)return;try{localStorage.setItem("cur:"+$("pk").textContent,cur)}catch(e){}
+  const l=lab(d),ai=d.label||EMPTY,t=d.text;
+  $("meta").innerHTML=`<b>[${d.i}] ${d.doc_id}</b> · ${t.length} chars`+(d.url?` · <a href="${esc(d.url)}" target="_blank" rel="noreferrer">${esc(d.url)}</a>`:"");
+  // highlight quoted evidence and mark offsets
+  const marks=new Array(t.length+1).fill(0),offs=new Set();
+  const ev=ai.evidence+" "+(R[d.doc_id]?.evidence||"");
+  for(const m of ev.matchAll(/['‘"“]([^'’"”]{4,80})['’"”]/g)){let p=t.indexOf(m[1]);while(p>=0){for(let k=p;k<p+m[1].length;k++)marks[k]=1;p=t.indexOf(m[1],p+1);}}
+  for(const m of ev.matchAll(/offsets?\s+(\d+)/g))offs.add(+m[1]);
+  let h=`<span class="ln">@0</span>`,inM=false;
+  for(let k=0;k<t.length;k++){const c=t[k];
+    if(offs.has(k))h+=`<span class="off" title="offset ${k}">▸</span>`;
+    if(marks[k]&&!inM){h+="<mark>";inM=true}if(!marks[k]&&inM){h+="</mark>";inM=false}
+    if(c=="\n"){if(inM){h+="</mark>";inM=false}h+=`\n<span class="ln">@${k+1}</span>`;continue}
+    const cp=c.codePointAt(0);
+    if(VIS[c])h+=`<span class="hid">${VIS[c]}</span>`;
+    else if(cp<32||(cp>=127&&cp<160))h+=`<span class="hid">U+${cp.toString(16).toUpperCase().padStart(4,"0")}</span>`;
+    else if(/\p{M}/u.test(c)&&!VIS[c]&&(k==0||/\s/.test(t[k-1])))h+=`<span class="hid" title="vowel sign or mark with no letter before it (G1?)">◌${esc(c)}</span>`;
+    else h+=esc(c);}
+  if(inM)h+="</mark>";$("text").innerHTML=h;
+  let sc="";
+  if(showHex){const rows=[];for(let k=0;k<t.length&&rows.length<300;k++){const c=t[k],cp=c.codePointAt(0);
+    if(VIS[c]||cp<32&&c!="\n"||cp>=127&&cp<160||(cp>=0x900&&cp<0xc00)||(cp>=0xc80&&cp<0xe00)||cp==0xfffd)rows.push(`${String(k).padStart(6)}  U+${cp.toString(16).toUpperCase().padStart(4,"0")}`);}
+    sc="offset  code point\n"+(rows.join("\n")||"none");}else sc="press h to list invisible characters, controls, U+FFFD and other-script letters with their offsets";
+  $("scan").textContent=sc;
+  $("ai").innerHTML=!d.label?"none":`<b class="v-${ai.verdict}">${ai.verdict}</b> · ${ai.read} · <b>${ai.diseases||"no disease"}</b><br>${esc(ai.evidence)}<br><i>${esc(ai.note)}</i>${ai.hex?"<br>hex: "+esc(ai.hex):""}`;
+  document.querySelectorAll("[name=rd]").forEach(x=>x.checked=x.value==l.read);
+  document.querySelectorAll("[name=vd]").forEach(x=>x.checked=x.value==l.verdict);
+  const ds=l.diseases.split(";");document.querySelectorAll("#codes input").forEach(x=>x.checked=ds.includes(x.value));
+  $("ev").value=l.evidence;$("hx").value=l.hex||"";$("nt").value=l.note||"";
+  $("st").textContent=R[d.doc_id]?(R[d.doc_id].agree_with_ai?"✓ confirmed starting label":"✓ your label saved"):"not reviewed";
+  $("doc").scrollTop=0;
+}
+async function post(r){const res=await fetch("save",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(r)}).then(x=>x.json());
+  R[r.doc_id]=r;$("st").textContent=`saved (${res.reviewed}/500)`;list();}
+function confirmAI(){const d=D[cur];if(!d.label)return alertMsg("no starting label: fill the form and press s");post({...d.label,agree_with_ai:true,reviewed_at:new Date().toISOString()}).then(()=>go(1));}
+function saveMine(){const d=D[cur],v=document.querySelector("[name=vd]:checked")?.value,rd=document.querySelector("[name=rd]:checked")?.value||"full";
+  const ds=[...document.querySelectorAll("#codes input:checked")].map(x=>x.value).join(";");
+  if(!v)return alertMsg("pick a verdict");if(v=="clean"&&ds&&ds!="D3")return alertMsg("clean cannot carry a disease (D3 alone is allowed)");
+  if(v!="clean"&&!ds)return alertMsg("fix/drop needs at least one disease");
+  const r={doc_id:d.doc_id,read:rd,verdict:v,diseases:ds,evidence:$("ev").value.trim(),hex:$("hx").value.trim(),note:$("nt").value.trim(),reviewed_at:new Date().toISOString()};
+  const a=d.label||EMPTY;r.agree_with_ai=!!d.label&&r.verdict==a.verdict&&r.diseases==a.diseases&&r.evidence==a.evidence&&r.note==a.note&&r.read==a.read;post(r).then(()=>go(1));}
+function alertMsg(m){$("st").textContent="⚠ "+m}
+init();
+</script></body></html>

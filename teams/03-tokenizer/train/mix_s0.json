@@ -1,0 +1,35 @@
+{
+ "_comment": "mix_search.py: {'Bengali': 'committed', 'Devanagari': 'uni_eq', 'Gujarati': 's0raw', 'Gurmukhi': 'committed', 'Kannada': 'committed', 'Malayalam': 'committed', 'Oriya': 's0raw', 'Tamil': 'committed', 'Telugu': 'committed'}",
+ "Hi": [
+  [
+   "corpus60/Hi.txt",
+   20.813919974380415
+  ],
+  [
+   "corpus_s0/Hi.txt",
+   1.0
+  ]
+ ],
+ "Mr": [
+  [
+   "corpus60/Mr.txt",
+   20.81534201388672
+  ],
+  [
+   "corpus_s0/Mr.txt",
+   3.0281580733219307
+  ]
+ ],
+ "Gu": [
+  [
+   "corpus_s0/Gu.txt",
+   1.0
+  ]
+ ],
+ "Or": [
+  [
+   "corpus_s0/Or.txt",
+   1.0
+  ]
+ ]
+}

@@ -1,0 +1,165 @@
+{
+  "_comment": "Published base-model scores used by build_results.py for compare_v0.md. Values are percentages as printed by the publisher. 'shots' and 'metric' are what the publisher states; null means not stated. 'third_party' entries are measurements of the model by another publisher (used only where the model's own authors publish nothing in that setting).",
+  "sources": {
+    "qwen2.5_blog": {
+      "title": "Qwen2.5-LLM: Extending the boundary of LLMs (blog, table 'Qwen2.5-0.5B/1.5B/3B Performance')",
+      "url": "https://qwenlm.github.io/blog/qwen2.5-llm/",
+      "date": "2024-09-19"
+    },
+    "qwen2.5_report": {
+      "title": "Qwen2.5 Technical Report, section 5.1 Base Models (shot counts)",
+      "url": "https://arxiv.org/abs/2412.15115",
+      "version": "v2, 2025-01-03",
+      "framework": "not stated"
+    },
+    "smollm2_card": {
+      "title": "HuggingFaceTB/SmolLM2-1.7B model card, table 'Base Pre-Trained Model'",
+      "url": "https://huggingface.co/HuggingFaceTB/SmolLM2-1.7B",
+      "framework": "lighteval; 'All evaluations are zero-shot unless stated otherwise'"
+    }
+  },
+  "models": {
+    "Qwen/Qwen2.5-0.5B": {
+      "source": [
+        "qwen2.5_blog",
+        "qwen2.5_report"
+      ],
+      "scores": {
+        "mmlu": {
+          "value": 47.5,
+          "shots": 5,
+          "metric": null
+        },
+        "arc_challenge": {
+          "value": 35.6,
+          "shots": 25,
+          "metric": null
+        },
+        "truthfulqa_mc2": {
+          "value": 40.2,
+          "shots": 0,
+          "metric": null,
+          "note": "published as 'TruthfulQA'; metric variant not stated, mc2 assumed"
+        },
+        "hellaswag": {
+          "value": 52.1,
+          "shots": 10,
+          "metric": null
+        },
+        "gsm8k": {
+          "value": 41.6,
+          "shots": 4,
+          "metric": null
+        },
+        "winogrande": {
+          "value": 56.3,
+          "shots": 5,
+          "metric": null
+        }
+      }
+    },
+    "Qwen/Qwen2.5-1.5B": {
+      "source": [
+        "qwen2.5_blog",
+        "qwen2.5_report"
+      ],
+      "scores": {
+        "mmlu": {
+          "value": 60.9,
+          "shots": 5,
+          "metric": null
+        },
+        "arc_challenge": {
+          "value": 54.7,
+          "shots": 25,
+          "metric": null
+        },
+        "truthfulqa_mc2": {
+          "value": 46.6,
+          "shots": 0,
+          "metric": null,
+          "note": "published as 'TruthfulQA'; metric variant not stated, mc2 assumed"
+        },
+        "hellaswag": {
+          "value": 67.9,
+          "shots": 10,
+          "metric": null
+        },
+        "gsm8k": {
+          "value": 68.5,
+          "shots": 4,
+          "metric": null
+        },
+        "winogrande": {
+          "value": 65.0,
+          "shots": 5,
+          "metric": null
+        }
+      },
+      "third_party": {
+        "_comment": "SmolLM2-1.7B model card, column Qwen2.5-1.5B: lighteval, 0-shot except GSM8K 5-shot.",
+        "source": "smollm2_card",
+        "scores": {
+          "hellaswag": {
+            "value": 66.4,
+            "shots": 0,
+            "metric": null
+          },
+          "arc_average": {
+            "value": 58.5,
+            "shots": 0,
+            "metric": null
+          },
+          "gsm8k": {
+            "value": 61.3,
+            "shots": 5,
+            "metric": null
+          },
+          "winogrande": {
+            "value": 59.3,
+            "shots": 0,
+            "metric": null
+          }
+        }
+      }
+    },
+    "HuggingFaceTB/SmolLM2-1.7B": {
+      "source": [
+        "smollm2_card"
+      ],
+      "scores": {
+        "hellaswag": {
+          "value": 68.7,
+          "shots": 0,
+          "metric": null
+        },
+        "arc_average": {
+          "value": 60.5,
+          "shots": 0,
+          "metric": null,
+          "note": "'ARC (Average)'; the card does not split Easy and Challenge"
+        },
+        "gsm8k": {
+          "value": 31.0,
+          "shots": 5,
+          "metric": null
+        },
+        "winogrande": {
+          "value": 59.4,
+          "shots": 0,
+          "metric": null
+        },
+        "mmlu_pro": {
+          "value": 19.4,
+          "shots": 0,
+          "metric": "MCF"
+        }
+      },
+      "not_published": [
+        "mmlu",
+        "arc_challenge",
+        "truthfulqa_mc2"
+      ]
+    }
+  }
+}

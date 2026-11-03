@@ -1,0 +1,164 @@
+{
+  "tokenizer_sha256": "01d968a7970b029c071b29f060abf6104b66168dedf2ff3b1a0290a545739fff",
+  "vocab_size": 131072,
+  "max_raw_byte_length": 32,
+  "cpu_decode_determinism": {
+    "all_match": true,
+    "sha256": "3bbeb19318f233b76c3a5d725a7034327681837ef60d9aa2367518db1ef08e57",
+    "runs": 3
+  },
+  "per_pos_dim": {
+    "32": {
+      "D": 8192,
+      "decode": {
+        "table_sha256": "2fa2ff676680a03d6099b4356415cf3738174fe83e0f4dec28cf915a1856a712",
+        "unique_rows": 129931,
+        "colliding_tokens": 1141,
+        "fffd_rows": 1326,
+        "truncated": 0,
+        "theorem1_partitions_equal": true,
+        "distinct_codes_fp32": 129931,
+        "collision_groups": 10,
+        "pair_causes": {
+          "bad_bytes_in": 297693
+        },
+        "decode_ref": {
+          "kind": "decode",
+          "pos_dim": 32,
+          "table_sha256": "2fa2ff676680a03d6099b4356415cf3738174fe83e0f4dec28cf915a1856a712",
+          "vectors": 4096,
+          "candidate_count": 131072,
+          "byte_comparison": "stored table-row bytes; original payloads only for raw tables",
+          "ids_recovered": 4057,
+          "bytes_recovered": 4096,
+          "ties": 40,
+          "min_margin": 0.0,
+          "median_margin": 0.134027475190044,
+          "min_score": 0.9999999999999993,
+          "sha256": "0cb1b8600baadf19203eab5c47075571677146606ac33c31d42168220f77b02f",
+          "fresh_process_sha256_equal": true,
+          "seconds": 37.1
+        }
+      },
+      "raw": {
+        "table_sha256": "b3f5476ec6ae8a6bc3a8ca18e6662d2407645c2ed6f3b3ca4561a9bafd8d04db",
+        "unique_rows": 131072,
+        "colliding_tokens": 0,
+        "fffd_rows": 20,
+        "truncated": 0,
+        "theorem1_partitions_equal": true,
+        "distinct_codes_fp32": 131072,
+        "collision_groups": 0,
+        "pair_causes": {},
+        "decode_ref": {
+          "kind": "raw",
+          "pos_dim": 32,
+          "table_sha256": "b3f5476ec6ae8a6bc3a8ca18e6662d2407645c2ed6f3b3ca4561a9bafd8d04db",
+          "vectors": 4096,
+          "candidate_count": 131072,
+          "byte_comparison": "stored table-row bytes; original payloads only for raw tables",
+          "ids_recovered": 4096,
+          "bytes_recovered": 4096,
+          "ties": 0,
+          "min_margin": 0.0318133707027064,
+          "median_margin": 0.134027475190044,
+          "min_score": 0.9999999999999993,
+          "sha256": "5808c83709a71f866ac3703318cf3b45cf5afcf67fc60283786a32942edcbb7c",
+          "fresh_process_sha256_equal": true,
+          "seconds": 37.8
+        }
+      },
+      "bf16_min_gap": 16.0,
+      "mps": {
+        "rows_per_run": 131072,
+        "full_vocabulary": true,
+        "mps_three_hashes_match": true,
+        "cpu_three_hashes_match": true,
+        "cpu_mps_bitwise_equal": false,
+        "cpu_mps_all_close": true,
+        "max_absolute_difference": 7.62939453125e-06,
+        "strict_probe_statuses": [
+          "rejected_no_deterministic_implementation",
+          "rejected_no_deterministic_implementation",
+          "rejected_no_deterministic_implementation"
+        ]
+      }
+    },
+    "64": {
+      "D": 16384,
+      "decode": {
+        "table_sha256": "cd4a8acf4904643d42d630ed159a7199d5322ee115a36f257f5cb7b89de38807",
+        "unique_rows": 129931,
+        "colliding_tokens": 1141,
+        "fffd_rows": 1326,
+        "truncated": 0,
+        "theorem1_partitions_equal": true,
+        "distinct_codes_fp32": 129931,
+        "collision_groups": 10,
+        "pair_causes": {
+          "bad_bytes_in": 297693
+        },
+        "decode_ref": {
+          "kind": "decode",
+          "pos_dim": 64,
+          "table_sha256": "cd4a8acf4904643d42d630ed159a7199d5322ee115a36f257f5cb7b89de38807",
+          "vectors": 4096,
+          "candidate_count": 131072,
+          "byte_comparison": "stored table-row bytes; original payloads only for raw tables",
+          "ids_recovered": 4057,
+          "bytes_recovered": 4096,
+          "ties": 40,
+          "min_margin": 0.0,
+          "median_margin": 0.13400103045709444,
+          "min_score": 0.9999999999999994,
+          "sha256": "64400f5148e32206d1c37bab5522366c433cae7546a71df4ecec2d1d1d653fae",
+          "fresh_process_sha256_equal": true,
+          "seconds": 35.0
+        }
+      },
+      "raw": {
+        "table_sha256": "3c7b3eedb78a34f88212906838565e4c920fdbb1eb04f5cf0b28d0f583ea6f5a",
+        "unique_rows": 131072,
+        "colliding_tokens": 0,
+        "fffd_rows": 20,
+        "truncated": 0,
+        "theorem1_partitions_equal": true,
+        "distinct_codes_fp32": 131072,
+        "collision_groups": 0,
+        "pair_causes": {},
+        "decode_ref": {
+          "kind": "raw",
+          "pos_dim": 64,
+          "table_sha256": "3c7b3eedb78a34f88212906838565e4c920fdbb1eb04f5cf0b28d0f583ea6f5a",
+          "vectors": 4096,
+          "candidate_count": 131072,
+          "byte_comparison": "stored table-row bytes; original payloads only for raw tables",
+          "ids_recovered": 4096,
+          "bytes_recovered": 4096,
+          "ties": 0,
+          "min_margin": 0.03178373949508817,
+          "median_margin": 0.13400103045709444,
+          "min_score": 0.9999999999999994,
+          "sha256": "abdab99ba52d7f6b13692b493ddb9d26cc15b19c50fe1b242a2db0efa9495539",
+          "fresh_process_sha256_equal": true,
+          "seconds": 31.2
+        }
+      },
+      "bf16_min_gap": 16.0,
+      "mps": {
+        "rows_per_run": 131072,
+        "full_vocabulary": true,
+        "mps_three_hashes_match": true,
+        "cpu_three_hashes_match": true,
+        "cpu_mps_bitwise_equal": false,
+        "cpu_mps_all_close": true,
+        "max_absolute_difference": 1.52587890625e-05,
+        "strict_probe_statuses": [
+          "rejected_no_deterministic_implementation",
+          "rejected_no_deterministic_implementation",
+          "rejected_no_deterministic_implementation"
+        ]
+      }
+    }
+  }
+}

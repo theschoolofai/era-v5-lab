@@ -1,0 +1,9 @@
+# EXP-2 AdamW arm. 0.001 stands in until EXP-1 names a winner. This comparison is not final.
+inherit: t2.yaml
+intended:
+  arm: exp2-adamw
+  official_step_time: false
+  comparison_final: false
+optim:
+  name: adamw
+  lr: 0.001
