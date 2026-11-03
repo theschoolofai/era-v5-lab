@@ -660,8 +660,7 @@
         "DB-C4-007",
         "DB-C5-009",
         "DB-D3-003",
-        "DB-B4-001",
-        "DB-F1-001"
+        "DB-B4-001"
       ],
       "accepted": [],
       "attempts": [],
@@ -701,8 +700,7 @@
         "DB-C5-001",
         "DB-D4-005",
         "DB-D2-001",
-        "DB-D5-002",
-        "DB-F1-003"
+        "DB-D5-002"
       ],
       "attempts": [
         {
@@ -1043,8 +1041,10 @@
             "nonidempotent_ids": [],
             "errors": []
           },
-          "result": "ACCEPTED",
-          "reasons": []
+          "result": "SOURCE DEFERRED",
+          "reasons": [
+            "source F1 rule deferred: replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+          ]
         }
       ],
       "result": "PASS",
@@ -1086,8 +1086,7 @@
         "DB-C2-004",
         "DB-D2-001",
         "DB-D3-006",
-        "DB-D5-002",
-        "DB-F1-003"
+        "DB-D5-002"
       ],
       "accepted": [],
       "attempts": [],
@@ -1127,8 +1126,7 @@
         "DB-C2-004",
         "DB-D2-001",
         "DB-D3-005",
-        "DB-D5-002",
-        "DB-F1-003"
+        "DB-D5-002"
       ],
       "attempts": [
         {
@@ -1661,8 +1659,10 @@
             "nonidempotent_ids": [],
             "errors": []
           },
-          "result": "ACCEPTED",
-          "reasons": []
+          "result": "SOURCE DEFERRED",
+          "reasons": [
+            "source F1 rule deferred: replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+          ]
         }
       ],
       "result": "PASS",
@@ -1711,8 +1711,7 @@
         "DB-G1-005",
         "DB-C1-008",
         "DB-C2-006",
-        "DB-C5-011",
-        "DB-F1-005"
+        "DB-C5-011"
       ],
       "accepted": [
         "DB-A6-006",
@@ -2048,8 +2047,7 @@
         "DB-C5-003",
         "DB-D4-007",
         "DB-C2-006",
-        "DB-B4-002",
-        "DB-F1-005"
+        "DB-B4-002"
       ],
       "attempts": [
         {
@@ -2336,8 +2334,10 @@
             "nonidempotent_ids": [],
             "errors": []
           },
-          "result": "ACCEPTED",
-          "reasons": []
+          "result": "SOURCE DEFERRED",
+          "reasons": [
+            "source F1 rule deferred: replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+          ]
         }
       ],
       "result": "PASS",
@@ -2376,8 +2376,7 @@
       "accepted": [
         "DB-B2-003",
         "DB-B3-001",
-        "DB-C1-010",
-        "DB-F1-005"
+        "DB-C1-010"
       ],
       "attempts": [
         {
@@ -2586,8 +2585,10 @@
             "nonidempotent_ids": [],
             "errors": []
           },
-          "result": "ACCEPTED",
-          "reasons": []
+          "result": "SOURCE DEFERRED",
+          "reasons": [
+            "source F1 rule deferred: replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+          ]
         }
       ],
       "result": "PASS",
@@ -2625,8 +2626,7 @@
         "DB-G4-002",
         "DB-C4-005",
         "DB-C5-004",
-        "DB-D3-010",
-        "DB-F1-006"
+        "DB-D3-010"
       ],
       "accepted": [
         "DB-A5-006",
@@ -2943,8 +2943,7 @@
         "DB-C3-010",
         "DB-C4-009",
         "DB-D3-011",
-        "DB-B4-003",
-        "DB-F1-007"
+        "DB-B4-003"
       ],
       "accepted": [
         "DB-G4-002",
@@ -3105,8 +3104,7 @@
         "DB-D2-002",
         "DB-D3-012",
         "DB-H3-001",
-        "DB-B4-004",
-        "DB-F1-008"
+        "DB-B4-004"
       ],
       "accepted": [],
       "attempts": [],
@@ -3199,8 +3197,7 @@
         "DB-F3-003",
         "DB-C1-016",
         "DB-C2-013",
-        "DB-D3-014",
-        "DB-F1-010"
+        "DB-D3-014"
       ],
       "accepted": [
         "DB-D5-001",
@@ -3327,8 +3324,7 @@
         "DB-F3-003",
         "DB-C1-016",
         "DB-C2-013",
-        "DB-D3-014",
-        "DB-F1-010"
+        "DB-D3-014"
       ],
       "attempts": [
         {
@@ -3656,8 +3652,10 @@
             "nonidempotent_ids": [],
             "errors": []
           },
-          "result": "ACCEPTED",
-          "reasons": []
+          "result": "SOURCE DEFERRED",
+          "reasons": [
+            "source F1 rule deferred: replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+          ]
         }
       ],
       "result": "PASS",
@@ -3696,8 +3694,7 @@
         "DB-C1-016",
         "DB-C2-013",
         "DB-D3-014",
-        "DB-B4-006",
-        "DB-F1-010"
+        "DB-B4-006"
       ],
       "attempts": [
         {
@@ -4230,8 +4227,10 @@
             "nonidempotent_ids": [],
             "errors": []
           },
-          "result": "ACCEPTED",
-          "reasons": []
+          "result": "SOURCE DEFERRED",
+          "reasons": [
+            "source F1 rule deferred: replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+          ]
         }
       ],
       "result": "PASS",
@@ -4656,38 +4655,7 @@
       "ind-te-fw2",
       "ind-te-sangraha-s",
       "ind-te-sangraha-v"
-    ],
-    "DB-F1-001": [
-      "ind-gu-fw2"
-    ],
-    "DB-F1-003": [
-      "ind-hi-fw2",
-      "ind-hi-hplt",
-      "ind-hi-indiccorp"
-    ],
-    "DB-F1-005": [
-      "ind-kn-fw2",
-      "ind-kn-sangraha-s",
-      "ind-kn-sangraha-v"
-    ],
-    "DB-F1-006": [
-      "ind-mr-fw2"
-    ],
-    "DB-F1-007": [
-      "ind-mr-sangraha-v"
-    ],
-    "DB-F1-008": [
-      "ind-sa-fw2"
-    ],
-    "DB-F1-010": [
-      "ind-te-fw2",
-      "ind-te-sangraha-s",
-      "ind-te-sangraha-v"
     ]
   },
-  "privacy_missing_packs": [
-    "ind-bn-fw2",
-    "ind-bn-sangraha-v",
-    "ind-ta-sangraha-v"
-  ]
+  "privacy_missing_packs": []
 }

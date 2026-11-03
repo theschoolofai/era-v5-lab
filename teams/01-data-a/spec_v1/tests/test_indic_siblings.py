@@ -21,7 +21,7 @@ def module(name, path):
 extension = module('sibling_extension_test', SPEC / 'tools/extend_indic_siblings.py')
 review = module('sibling_source_test', SPEC / 'tools/integrate_indic.py')
 ROWS = {row['id']: row for row in review.read_source()}
-REPORT = json.loads((SPEC / 'results/cleaner/indic_sibling_scopes.json').read_text())
+REPORT = json.loads((SPEC / 'results/cleaner/indic_sibling_scopes.json').read_text(encoding='utf-8'))
 BORROWED = [(pack, rid) for pack, result in REPORT['targets'].items() for rid in result['accepted']]
 
 
@@ -75,4 +75,4 @@ def test_sibling_rule_factory_refuses_a_cross_language_target():
 def test_bengali_sibling_receives_the_real_normalization_fix():
     doc = dict(doc_id='synthetic', text='ত্ ', url='', lang_label='bn', pack_id='ind-bn-sangraha-v')
     assert c.a5(doc) == ('fix', 'ৎ ')
-    assert 'ind-bn-sangraha-v' not in c.SCOPE['f1_rule.py']
+    assert 'ind-bn-sangraha-v' in c.SCOPE['f1_rule.py']  # every Indic pack gets the shared F1

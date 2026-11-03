@@ -57,7 +57,7 @@ def extend(review, packs, gold_dir, report=None):
         raise ValueError('unsupported sibling scope policy')
     rows = review.read_source()
     primary_path = SPEC / 'results/cleaner/indic_integration.json'
-    report = report or json.loads(primary_path.read_text())
+    report = report or json.loads(primary_path.read_text(encoding='utf-8'))
     if report.get('source_code_sha256') != source_code_digest(rows):
         raise ValueError('source algorithms changed: rerun integrate_indic.py before extending scopes')
     for pack, evidence in report['gold'].items():
@@ -151,7 +151,7 @@ def extend(review, packs, gold_dir, report=None):
               'policy': policy, 'targets': targets, 'rule_scopes': {rid: sorted(p) for rid, p in scopes.items()}}
     destination = SPEC / 'results/cleaner/indic_sibling_scopes.json'
     destination.write_text(json.dumps(result, indent=2) + '\n', encoding='utf-8')
-    source = (SPEC / 'sheets/specv1.md').read_text()
+    source = (SPEC / 'sheets/specv1.md').read_text(encoding='utf-8')
     # Refresh scope metadata only, preserving algorithms, native decisions, card numbering and IDs.
     heads = list(re.finditer(r'^## Medicine \d+ — indic / \w+ / `(DB-[^`]+)`\n', source, re.M))
     for i in reversed(range(len(heads))):

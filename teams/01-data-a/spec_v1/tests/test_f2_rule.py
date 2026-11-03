@@ -83,7 +83,7 @@ def test_run_clean_f2_drops_the_flagged_doc_and_records_the_set(tmp_path):
     pack = tmp_path / "en-dclm.parquet"
     pq.write_table(pa.Table.from_pylist(rows), pack)
     r = subprocess.run([sys.executable, str(SPEC / "run_clean.py"), "--pack", str(pack), "--out", str(tmp_path / "out"), "--f2"],
-                       capture_output=True, text=True)
+                       capture_output=True, encoding="utf-8", errors="replace")
     assert r.returncode == 0, r.stderr
     s = json.loads((tmp_path / "out" / "en-dclm_summary.json").read_text(encoding="utf-8"))
     assert s["f2"]["set_sha256"] == set_sha256()

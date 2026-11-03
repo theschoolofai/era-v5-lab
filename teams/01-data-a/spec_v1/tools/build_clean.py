@@ -14,7 +14,13 @@ family of its pack_id and runs that family's rules in sheet order; a missing or 
 Each rule block goes into its own closure, so helpers with the same name in two blocks do not clash. Prints any string
 that indenting a block changed: only a multi-line string can change, and a docstring or a verbose regex does not care.
 """
-import argparse, ast, re, textwrap
+import argparse, ast, re, sys, textwrap
+
+# The build prints rule IDs and string fragments, which can hold Indic letters. A Windows console is cp1252, so print
+# would raise UnicodeEncodeError and stop the build. Write UTF-8, and escape anything the console cannot show.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -23,7 +29,7 @@ SECTION = re.compile(r"^## Medicine (\d+) — (\w+) / (\w+) / `(D[AB]-[A-H]\d-\d
 BLOCK = re.compile(r"^```python(?: deferred)?\n(.*?)^```", re.S | re.M)  # deferred fences are inventory, not harm-runner inputs
 CODE_ORDER = ["A1", "A2", "A6", "A4", "A5", "A3", "B1", "B2", "B5", "B3", "E1", "E2", "C3", "C4", "C5", "D4", "E4", "C1", "C2", "D1", "D3", "B4", "E3", "F1"]  # RULES order; each family runs in its own sheet order
 SHARED_F1 = "f1_rule.py"  # the shared F1 (TSAI ruling of 31 Oct), in SCOPE under this name: it runs last on the packs of these families
-SHARED_F1_FAMILIES = ("code", "math", "sci")  # code with tree-sitter, math and sci with the prose path (TSAI, 1 Nov). English keeps DA-F1-005
+SHARED_F1_FAMILIES = ("code", "math", "sci", "indic")  # code with tree-sitter, math and sci with the prose path (TSAI, 1 Nov), indic with the Indic path. English keeps DA-F1-005
 MUST_KEEP = {"DA-F1-005": "english"}  # the instructor's F1 rule: on every pack of its family, never left out
 
 
@@ -118,7 +124,7 @@ def _run(doc, *factories):
 CLEAN = """
 
 def clean(doc):
-    \"\"\"The whole pipeline for one document: its pack's family in sheet order, then the shared F1 (code, math and sci packs).
+    \"\"\"The whole pipeline for one document: its pack's family in sheet order, then the shared F1 (code, math, sci and Indic packs).
     A missing or unknown pack_id passes unchanged; such a document is not eligible for release.\"\"\"
     return _run(doc, *_PIPELINES.get(_FAMILY.get(doc.get("pack_id")), ()), _shared_f1_rule)
 """

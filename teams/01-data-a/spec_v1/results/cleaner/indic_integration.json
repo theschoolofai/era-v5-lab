@@ -1,11 +1,7 @@
 {
   "source_sha256": "b8cfa18c0b871b39425a1eb4981c44fafe9e17abfc8516c85c07622bf4a0ea29",
   "policy": "one eligible candidate per pack/disease, first in source order; F2 deferred; no approvals inferred",
-  "privacy_missing_packs": [
-    "ind-bn-fw2",
-    "ind-bn-sangraha-v",
-    "ind-ta-sangraha-v"
-  ],
+  "privacy_missing_packs": [],
   "rules": {
     "DB-A3-001": {
       "pack": "ind-bn-fw2",
@@ -3570,7 +3566,9 @@
       "pack": "ind-gu-fw2",
       "code": "F1",
       "synthetic_issues": [],
-      "review_issues": [],
+      "review_issues": [
+        "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+      ],
       "gold": {
         "n": 19,
         "changed": [],
@@ -3582,8 +3580,8 @@
         "nonidempotent_ids": [],
         "errors": []
       },
-      "status": "CANDIDATE",
-      "reason": "first eligible candidate in source order; independent approval pending"
+      "status": "DEFERRED",
+      "reason": "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
     },
     "DB-F1-002": {
       "pack": "ind-gu-fw2",
@@ -3608,7 +3606,9 @@
       "pack": "ind-hi-hplt",
       "code": "F1",
       "synthetic_issues": [],
-      "review_issues": [],
+      "review_issues": [
+        "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+      ],
       "gold": {
         "n": 67,
         "changed": [],
@@ -3620,8 +3620,8 @@
         "nonidempotent_ids": [],
         "errors": []
       },
-      "status": "CANDIDATE",
-      "reason": "first eligible candidate in source order; independent approval pending"
+      "status": "DEFERRED",
+      "reason": "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
     },
     "DB-F1-004": {
       "pack": "ind-hi-hplt",
@@ -3646,7 +3646,9 @@
       "pack": "ind-kn-fw2",
       "code": "F1",
       "synthetic_issues": [],
-      "review_issues": [],
+      "review_issues": [
+        "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+      ],
       "gold": {
         "n": 45,
         "changed": [],
@@ -3658,14 +3660,16 @@
         "nonidempotent_ids": [],
         "errors": []
       },
-      "status": "CANDIDATE",
-      "reason": "first eligible candidate in source order; independent approval pending"
+      "status": "DEFERRED",
+      "reason": "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
     },
     "DB-F1-006": {
       "pack": "ind-mr-fw2",
       "code": "F1",
       "synthetic_issues": [],
-      "review_issues": [],
+      "review_issues": [
+        "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+      ],
       "gold": {
         "n": 140,
         "changed": [],
@@ -3677,14 +3681,16 @@
         "nonidempotent_ids": [],
         "errors": []
       },
-      "status": "CANDIDATE",
-      "reason": "first eligible candidate in source order; independent approval pending"
+      "status": "DEFERRED",
+      "reason": "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
     },
     "DB-F1-007": {
       "pack": "ind-mr-sangraha-v",
       "code": "F1",
       "synthetic_issues": [],
-      "review_issues": [],
+      "review_issues": [
+        "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+      ],
       "gold": {
         "n": 88,
         "changed": [],
@@ -3696,14 +3702,16 @@
         "nonidempotent_ids": [],
         "errors": []
       },
-      "status": "CANDIDATE",
-      "reason": "first eligible candidate in source order; independent approval pending"
+      "status": "DEFERRED",
+      "reason": "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
     },
     "DB-F1-008": {
       "pack": "ind-sa-fw2",
       "code": "F1",
       "synthetic_issues": [],
-      "review_issues": [],
+      "review_issues": [
+        "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+      ],
       "gold": {
         "n": 68,
         "changed": [],
@@ -3715,8 +3723,8 @@
         "nonidempotent_ids": [],
         "errors": []
       },
-      "status": "CANDIDATE",
-      "reason": "first eligible candidate in source order; independent approval pending"
+      "status": "DEFERRED",
+      "reason": "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
     },
     "DB-F1-009": {
       "pack": "ind-sa-fw2",
@@ -3741,7 +3749,9 @@
       "pack": "ind-te-fw2",
       "code": "F1",
       "synthetic_issues": [],
-      "review_issues": [],
+      "review_issues": [
+        "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+      ],
       "gold": {
         "n": 18,
         "changed": [],
@@ -3753,8 +3763,8 @@
         "nonidempotent_ids": [],
         "errors": []
       },
-      "status": "CANDIDATE",
-      "reason": "first eligible candidate in source order; independent approval pending"
+      "status": "DEFERRED",
+      "reason": "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
     },
     "DB-F2-002": {
       "pack": "ind-sa-fw2",
@@ -4145,7 +4155,7 @@
         "DB-F1-001",
         "DB-F1-002"
       ],
-      "selected": "DB-F1-001"
+      "selected": null
     },
     {
       "pack": "ind-hi-hplt",
@@ -4154,7 +4164,7 @@
         "DB-F1-003",
         "DB-F1-004"
       ],
-      "selected": "DB-F1-003"
+      "selected": null
     },
     {
       "pack": "ind-sa-fw2",
@@ -4163,7 +4173,7 @@
         "DB-F1-008",
         "DB-F1-009"
       ],
-      "selected": "DB-F1-008"
+      "selected": null
     }
   ],
   "gold": {

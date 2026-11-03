@@ -172,15 +172,15 @@ def main():
               (', '.join(f'`{p}/{rid}` ({verdict})' for p, rid, verdict in failures) or 'none') + '.',
               '\nThese verdicts concern executable sheet blocks; deferred cards are excluded. Missing inputs are NOT TESTABLE, never PASS. Out-of-pack guards were checked on every available pack. The generated cleaner also has the shared F1, so its separate tests remain required. Results apply to the snapshots recorded in [results/cleaner/specv1_validation.json](../results/cleaner/specv1_validation.json).',
               '\nReproduce from the repository root (install `teams/01-data-a/spec_v1/requirements.txt` first):\n\n```bash\npython3 teams/01-data-a/spec_v1/tools/validate_specv1.py \\\n  --packs <packs folder> \\\n  --gold teams/01-data-a/gold\n```']
-    src = sheet.read_text()
+    src = sheet.read_text(encoding='utf-8')
     start = src.index('<!-- VALIDATION -->')
     end = src.index('\n## Medicine 1 ', start)
     src = src[:start] + '<!-- VALIDATION -->\n\n' + '\n'.join(lines) + '\n\n' + src[end:]
     src = add_card_evidence(src, report, rules, all_docs)
-    sheet.write_text(src)
+    sheet.write_text(src, encoding='utf-8', newline='\n')
     report['spec_sha256'] = digest(sheet)
     out = SPEC / 'results/cleaner/specv1_validation.json'
-    out.write_text(json.dumps(report, indent=2) + '\n')
+    out.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8', newline='\n')
     if failures or any(v.get('combined_gold', {}).get('result') in {'FAIL', 'ERROR'} for v in report['packs'].values()):
         return 1
     return 2 if any(v.get('result') == 'NOT TESTABLE' for v in report['packs'].values()) else 0

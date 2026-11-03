@@ -303,7 +303,7 @@ To refresh Indic selections from `medicine_indic.md`, run `tools/integrate_indic
 4. It puts each block in its own closure (`_<family>_<code>_<nnn>`), so helpers with the same name in two blocks do not clash. Two other changes are made to the blocks:
    - The `AUTHOR` line is dropped.
    - The code `DA-B4-009` rule no longer rewrites `<EMAIL>`, which is the F1 tag.
-5. It adds `spec_v1/tools/f1_rule.py` as the shared F1, in `SCOPE` under the name `f1_rule.py`, for the code, math and science packs (`SHARED_F1_FAMILIES`). English keeps `DA-F1-005`.
+5. It adds `spec_v1/tools/f1_rule.py` as the shared F1, in `SCOPE` under the name `f1_rule.py`, for the code, math, science and Indic packs (`SHARED_F1_FAMILIES`). English keeps `DA-F1-005`.
 6. It writes the 24 disease-code functions, `RULES`, `_PIPELINES` (each family's rules in sheet order), `_FAMILY` (pack to family) and `clean()`.
 
 ### What it prints
