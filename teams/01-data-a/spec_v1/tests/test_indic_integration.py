@@ -58,7 +58,7 @@ def test_factory_preserves_source_behavior_and_inputs(row):
 def test_combined_pipeline_unicode_and_idempotence(pack):
     row = next(row for row in SELECTED if row['pack'] == pack)
     assert c._FAMILY[pack] == 'indic'
-    assert pack not in c.SCOPE['f1_rule.py']
+    assert pack in c.SCOPE['f1_rule.py']  # the shared F1's Indic path replaces the source F1 rules
     for text in review.probes(pack).values():
         doc = document(row, text)
         action, new = c.clean(doc)
