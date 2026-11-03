@@ -266,7 +266,7 @@ ceb9279ae9096432,full,fix,B3,'<reponame>' at offset 0; '<filename>' at offset 28
 9c2b7c986daa2076,full,clean,,,,
 73590188e7440e69,full,clean,,,,
 ef40ec24e753f3cf,full,fix,B3,'<gh_stars>' at offset 0,,
-e6e3d412559d3d91,full,drop,B3;E1,'<reponame>' at offset 0; generated/compiled: auto-generated marker at offset 136,,generated/compiled code
+e6e3d412559d3d91,full,fix,B3,'<reponame>' at offset 0,,StarCoder prefix
 43ac0e8f4c53456a,full,clean,,,,
 b98db75c7011b0ee,full,clean,,,,
 20fee3a31cc2c747,full,fix,B3,'<filename>' at offset 0,,

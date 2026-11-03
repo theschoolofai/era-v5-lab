@@ -8,8 +8,10 @@ Write one section for each disease that you found more than five times.
 
 ### 1. Disease
 
-**Code:** B3  
-**Count in pack:** 258 documents out of 500  
+**Disease:** B3
+
+**Count in pack:** 258 documents out of 500
+
 **Description:** Documents from `bigcode/starcoderdata` carry StarCoder preprocessing tokens embedded in their text. These tokens were inserted by StarCoder's data pipeline to mark metadata (repository name, filename, star count) and to anonymise personal data (email addresses and author names). They are not part of the original source code. Training V5 on text containing these tokens would teach the model to generate them as plain text.
 
 The tokens observed:
@@ -85,7 +87,7 @@ OTHER_GHOST_RE = re.compile(
     r'|<think>|</think>'
 )
 
-def fix_b3(text: str) -> str:
+def cure_b3(text: str) -> str:
     """Strip StarCoder prefix and replace anonymisation tokens."""
     text = STARCODER_PREFIX_RE.sub('', text, count=1)
     text = EMAIL_TOKEN_RE.sub('user@example.com', text)
@@ -97,6 +99,8 @@ def fix_b3(text: str) -> str:
 ---
 
 ### 3. Action
+
+**Action:** fix
 
 **Fix the text.** The underlying code is valid; only the StarCoder metadata prefix and anonymisation tokens need to be removed or replaced. Dropping the whole document would be wasteful for 258 otherwise-clean files.
 
@@ -124,49 +128,25 @@ Key result for the anchor fix: test `1c` confirms that a `<filename>` line in th
 
 Tests `5c` and `5d` document that `OTHER_GHOST_RE` removes ghost tokens globally — including from inside string literals and comments. This is the intended behaviour (see side effect 8 below) and is tested, not assumed.
 
-#### 4b. Proxy harm test (informative, not definitive)
+#### 4b. Official harm test result
 
-**Official gold set status: BLOCKED — gold set unavailable.**
-
-The official JavaScript/TypeScript gold set (≥ 200 documents reviewed by two readers and marked `clean`) has not yet been released by the Data A team. The following proxy result is non-definitive and is provided for orientation only.
+**Command:**
+```
+python -I teams/01-data-a/tools/harm_test.py \
+  --pack code-js-ts.parquet \
+  --gold teams/01-data-a/gold/code-js-ts_gold.csv \
+  --rules diagnosis/submissions/code-js-ts/AjaySnl/medicine.md \
+  --rule B3
+```
 
 | Metric | Value |
 |---|---|
-| Proxy set | 233 documents labelled `clean` in the full-500 diagnosis |
-| Docs changed by `fix_b3()` | 0 |
-| Docs dropped by `fix_b3()` | 0 |
-| Percentage affected | 0.00% |
-| Passes 1% threshold? | Yes (informatively) |
-
-**What this proxy test does and does not cover:**
-
-The 233 proxy documents were labelled `clean` by automated scanning (every character checked by the detection functions). Per DISEASES.md, `read=partial` applies only when the reviewer does not read the language well; JavaScript and TypeScript impose no such barrier. All 233 proxy documents are marked `read=full`.
-
-The proxy test does **not** verify:
-- Whether `fix_b3()` correctly strips prefixes from the 258 B3 documents (the regression tests in §4a cover this).
-- Whether `fix_b3()` would alter any document in the official gold set (that set has not been released).
-- Whether the `<EMAIL>` → `user@example.com` substitution changes the correctness of email-validation tests in the gold set.
-
-**Procedure for the official gold-set test:**
-
-```python
-def run_harm_test(gold_docs, fix_fn):
-    """
-    gold_docs: list of {'doc_id': str, 'text': str} from the gold set.
-    Returns True if the medicine passes the 1% threshold.
-    """
-    changed = dropped = 0
-    for d in gold_docs:
-        fixed = fix_fn(d['text'])
-        if fixed == '':
-            dropped += 1
-        elif fixed != d['text']:
-            changed += 1
-    total = len(gold_docs)
-    pct = (changed + dropped) / total * 100 if total else 0
-    print(f"Gold set: {total}  changed: {changed}  dropped: {dropped}  affected: {pct:.2f}%")
-    return pct <= 1.0
-```
+| Gold documents evaluated | 204 |
+| Documents changed | 0 |
+| Documents dropped | 0 |
+| Limit | 2 (max(1, 1% of 204)) |
+| Result | **PASS** |
+| Exit code | 0 |
 
 ---
 
@@ -200,7 +180,188 @@ The regex allows up to five consecutive metadata lines (`{1,5}`). If a rare docu
 
 ---
 
-*Medicine sheet complete for pack `code-js-ts`. Only B3 qualifies (258 > 5 occurrences). E1 has 12 occurrences across all 500 docs; E3 has 1. Neither reaches the 5-occurrence threshold for medicine.*
+*Medicine sheet: B3 and E1 documented. Only B3 (258 occurrences) and E1 (11 confirmed, 1 B3-only reclassification) qualify at the > 5-occurrence threshold. E3 has 1 occurrence — below threshold.*
+
+---
+
+## Medicine 2 — E1: Minified or generated code
+
+### 1. Disease
+
+**Disease:** E1
+
+**Count in pack:** 11 confirmed E1 documents (one document initially labelled E1 was reclassified as B3-only after investigation; see labels.csv for `e6e3d412559d3d91`)
+
+**Description:** Minified bundles and compiler-generated JavaScript/TypeScript files. DISEASES.md definition: "one very long line; 'auto-generated, do not edit'". These files cannot be meaningfully cleaned — the original source is not present. Training on them would teach the model to produce minified or compiler-generated output patterns.
+
+**Detection tiers:**
+
+| Tier | Signal | Example |
+|---|---|---|
+| T1 | Autogenerated notice in the leading `/* */` block comment | AutoRest, Hardhat, ethers.js ABIs |
+| T2a | Any line ≥ 500 chars | Minified bundles |
+| T2b | Any line ≥ 300 chars + `//# sourceMappingURL=*.{js,ts}.map` at line start | Compiled TypeScript with source map |
+| T3 | Webpack bootstrap banner | `module.exports = /******/ (function(modules)` |
+| T4 | `Object.defineProperty(exports, "__esModule", …)` + compiler-specific helper | TypeScript/Babel compiler output |
+
+---
+
+### 2. Medicine
+
+**Rule in words:** Drop the document. Minified or compiler-generated code cannot be meaningfully cleaned; the original source is absent.
+
+**Rule in code:**
+
+```python
+import re
+
+_SC_LINE = r'<(?:reponame|filename|gh_stars)>[^\n]*\n?'
+_STARCODER_PREFIX_RE = re.compile(r'\A(?:' + _SC_LINE + r'){1,5}')
+
+_LEADING_BLOCK_RE = re.compile(r'\A\s*/\*+.*?\*/', re.DOTALL)
+_AUTOGEN_RE = re.compile(
+    r'autogenerated\s+file'
+    r'|this\s+file\s+was\s+autogenerated'
+    r'|code\s+generated\s+by.*?will\s+be\s+lost\s+if.*?regenerated',
+    re.IGNORECASE | re.DOTALL,
+)
+
+_LONG_LINE_RE = re.compile(r'.{500,}')
+
+_MOD_LINE_RE = re.compile(r'.{300,}')
+_SOURCEMAP_LINE_RE = re.compile(
+    r'^\s*//\s*#\s*sourceMappingURL=\S+\.(?:js|ts)\.map',
+    re.IGNORECASE | re.MULTILINE,
+)
+
+_WEBPACK_RE = re.compile(
+    r'module\.exports\s*=\s*\n?/\*+/\s*\(function\(modules\)',
+    re.MULTILINE,
+)
+
+_CC_ESMOD = r'[^/*"\'' + r'`\n]'
+
+_ESMODULE_RE = re.compile(
+    r'^' + _CC_ESMOD + r'*Object\.defineProperty\s*\(\s*exports\s*,\s*["\']__esModule["\']',
+    re.MULTILINE,
+)
+
+_INTEROP_RE = re.compile(
+    r'^' + _CC_ESMOD + r'*_interopRequireDefault\s*\(\s*require\s*\('
+    r'|^' + _CC_ESMOD + r'*function\s+_interopRequireDefault\s*\(',
+    re.MULTILINE,
+)
+
+_JSX_RUNTIME_RE = re.compile(
+    r'^' + _CC_ESMOD + r'*\bjsx_runtime_1\s*=\s*require\s*\('
+    r'|^' + _CC_ESMOD + r'*\bjsx_runtime_1\.\w+\s*\(',
+    re.MULTILINE,
+)
+
+_TSLIB_RE = re.compile(
+    r'^' + _CC_ESMOD + r'*\btslib_1\s*=\s*require\s*\('
+    r'|^' + _CC_ESMOD + r'*\btslib_1\.__\w+\s*\(',
+    re.MULTILINE,
+)
+
+_TSCLASS_RE = re.compile(
+    r'^' + _CC_ESMOD + r'*var\s+(\w+)\s*=\s*\(\s*function\s*\(\s*\)\s*\{'
+    r'.*?function\s+\1\s*\('
+    r'.*?return\s+\1\b'
+    r'.*?\}\s*\(\s*\)\s*\)',
+    re.DOTALL | re.MULTILINE,
+)
+
+_SOURCEMAP_HELPER_RE = re.compile(
+    r'^\s*//\s*#\s*sourceMappingURL=',
+    re.MULTILINE,
+)
+
+def drop_e1(text: str) -> bool:
+    effective = _STARCODER_PREFIX_RE.sub('', text, count=1)
+    m = _LEADING_BLOCK_RE.match(effective)
+    if m and _AUTOGEN_RE.search(m.group()):
+        return True
+    if _LONG_LINE_RE.search(effective):
+        return True
+    if _MOD_LINE_RE.search(effective) and _SOURCEMAP_LINE_RE.search(effective):
+        return True
+    if _WEBPACK_RE.search(effective):
+        return True
+    if _ESMODULE_RE.search(effective) and (
+        _INTEROP_RE.search(effective)
+        or _JSX_RUNTIME_RE.search(effective)
+        or _TSLIB_RE.search(effective)
+        or _TSCLASS_RE.search(effective)
+        or _SOURCEMAP_HELPER_RE.search(effective)
+    ):
+        return True
+    return False
+```
+
+**Known false-positive scenarios (documented, not resolvable without a parser):**
+
+The Tier-4 line-prefix guard `[^/*"'\`\n]*` filters identifiers appearing after `/`, `*`, `"`, `'`, or `` ` `` **on the same line**. It does not resolve two cases that require a JavaScript parser:
+
+1. Bare-text `/* */` block comment interiors with no leading `*` per line (tests P8, Q5, Q9 in the v6 test suite).
+2. Identifiers on interior lines of multiline template literals (tests R1–R5).
+
+None of the 204 gold documents triggered these scenarios (0 false positives in the official test).
+
+---
+
+### 3. Action
+
+**Action:** drop
+
+Drop the document. The underlying source code is not present. The document cannot be meaningfully cleaned.
+
+**Interaction with B3:** When B3 co-occurs with E1, this rule takes precedence. The document is dropped. The `drop_e1()` function strips any StarCoder prefix internally before detection.
+
+---
+
+### 4. Harm test
+
+#### 4a. Validation against labelled E1 documents
+
+| doc_id | drop_e1 result | Detection tier |
+|---|---|---|
+| `0c10e83429b075c5` | True (drop) | T1 |
+| `3b8592acb706fa75` | True (drop) | T2b |
+| `5e36e510c966759b` | True (drop) | T3 |
+| `748d8d68086d6405` | True (drop) | T4 |
+| `7edec6fc57a3a792` | True (drop) | T2a |
+| `82221f225ca38f48` | True (drop) | T1 |
+| `981b0586c9ab0fb7` | True (drop) | T4 |
+| `991e567591fcf611` | True (drop) | T1 |
+| `e6e3d412559d3d91` | **False (keep)** | NONE — B3-only, reclassified |
+| `e8483df9bbdbd7f3` | True (drop) | T2a |
+| `e91eca5bfe735229` | True (drop) | T4 |
+| `f348c1a155dff382` | True (drop) | T2a |
+
+`e6e3d412559d3d91` was initially labelled E1 but reclassified as B3-only after investigation. Its "do not edit" phrase appears inside a JavaScript template literal in a generator script, not in a file-level autogenerated notice. The document has zero compiler-output signals.
+
+**11/11 genuine E1 documents correctly classified for dropping. 1/1 reclassified document correctly retained.**
+
+#### 4b. Official harm test result
+
+**Command:**
+```
+python -I teams/01-data-a/tools/harm_test.py \
+  --pack code-js-ts.parquet \
+  --gold teams/01-data-a/gold/code-js-ts_gold.csv \
+  --rules diagnosis/submissions/code-js-ts/AjaySnl/medicine.md \
+  --rule E1
+```
+
+| Metric | Value |
+|---|---|
+| Gold documents evaluated | 204 |
+| Documents changed | 0 |
+| Documents dropped | 0 |
+| Limit | 2 (max(1, 1% of 204)) |
+| Result | **PASS** |
+| Exit code | 0 |
 
 ---
 
