@@ -248,7 +248,7 @@ def test_no_rule_runs_without_a_known_pack(pack):
 def build(tmp_path, sheet=SHEET):
     (tmp_path / "specv1.md").write_text(sheet, encoding="utf-8", newline="\n")
     return subprocess.run([sys.executable, "-I", str(BUILD), "--sheet", str(tmp_path / "specv1.md"), "--out", str(tmp_path / "clean.py")],
-                          capture_output=True, text=True)
+                          capture_output=True, encoding="utf-8", errors="replace")  # the build prints UTF-8 (Indic letters), on Windows too
 
 
 def with_packs(rid, packs):
