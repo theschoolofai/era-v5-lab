@@ -126,3 +126,62 @@ def test_review_detects_a_cross_rule_second_pass_action():
 
     doc = dict(doc_id='synthetic', text='start', url='', pack_id='pack', lang_label='en')
     assert review.interaction_check([('first', first), ('second', second)], {'synthetic': doc}) == {'first': ['synthetic']}
+
+
+@pytest.mark.parametrize('own_pack_inputs', ['missing_gold', 'empty_gold', 'missing_pack', 'valid'])
+def test_integration_requires_nonempty_own_pack_gold(tmp_path, monkeypatch, own_pack_inputs):
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    local = tmp_path / 'spec_v1'
+    for folder in ('sheets', 'tools', 'results/cleaner'):
+        (local / folder).mkdir(parents=True)
+    packs, gold = tmp_path / 'packs', tmp_path / 'gold'
+    packs.mkdir()
+    gold.mkdir()
+    # Exercise real source cards and the complete report/sheet writer in isolation.
+    # Hindi HPLT has valid gold; it must not substitute for Hindi FW2's own gold.
+    control, target = [next(row for row in SELECTED if row['pack'] == pack)
+                       for pack in ('ind-hi-hplt', 'ind-hi-fw2')]
+    (local / 'sheets/medicine_indic.md').write_text(
+        '\n\n'.join(row['body'] for row in (control, target)) + '\n', encoding='utf-8')
+    (local / 'sheets/specv1.md').write_bytes((SPEC / 'sheets/specv1.md').read_bytes())
+    (local / 'tools/extend_indic_siblings.py').write_bytes((SPEC / 'tools/extend_indic_siblings.py').read_bytes())
+    for row in (control, target):
+        doc = document(row, review.probes(row['pack'])['prose'])
+        pq.write_table(pa.Table.from_pylist([doc]), packs / (row['pack'] + '.parquet'))
+        (gold / (row['pack'] + '_gold.csv')).write_text(
+            'doc_id,reader_1,reader_2\nsynthetic-review,reader-one,reader-two\n', encoding='utf-8')
+    target_gold = gold / (target['pack'] + '_gold.csv')
+    if own_pack_inputs == 'missing_gold':
+        target_gold.unlink()
+    elif own_pack_inputs == 'empty_gold':
+        target_gold.write_text('doc_id,reader_1,reader_2\n', encoding='utf-8')
+    elif own_pack_inputs == 'missing_pack':
+        (packs / (target['pack'] + '.parquet')).unlink()
+    monkeypatch.setattr(review, 'SPEC', local)
+
+    report = review.integrate(packs, gold)
+
+    assert report['rules'][control['id']]['status'] == 'CANDIDATE'
+    assert report['gold'][control['pack']]['result'] == 'PASS'
+    decision = report['rules'][target['id']]
+    if own_pack_inputs == 'valid':
+        assert decision['status'] == 'CANDIDATE'
+        assert decision['gold']['result'] == 'PASS'
+    else:
+        assert decision['status'] == 'DEFERRED'
+        assert decision['gold']['result'] == 'NOT TESTABLE'
+        evidence = report['gold'][target['pack']]
+        assert evidence['result'] == 'NOT TESTABLE'
+        assert evidence['reason'] in decision['reason']
+        assert evidence['reason'] == decision['gold']['reason']
+        if own_pack_inputs == 'empty_gold':
+            assert evidence['reason'] == 'Gold set empty, not testable'
+        else:
+            assert ('gold' if own_pack_inputs == 'missing_gold' else 'pack') in evidence['missing']
+        sheet = (local / 'sheets/specv1.md').read_text(encoding='utf-8')
+        card = sheet.split(f'/ `{target["id"]}`\n', 1)[1]
+        assert '```python deferred\n' in card
+        assert 'STATUS = "DEFERRED"' in card
+    assert json.loads((local / 'results/cleaner/indic_integration.json').read_text(encoding='utf-8')) == report

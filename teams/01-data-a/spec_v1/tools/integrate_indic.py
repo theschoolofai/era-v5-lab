@@ -152,14 +152,21 @@ def integrate(packs, gold_dir):
     for pack in sorted({r['pack'] for r in rows}):
         path, gold = packs / (pack + '.parquet'), gold_dir / (pack + '_gold.csv')
         if not path.exists() or not gold.exists():
-            gold_reports[pack] = {'result': 'NOT TESTABLE', 'missing': [name for name, p in [('pack', path), ('gold', gold)] if not p.exists()]}
+            missing = [name for name, p in [('pack', path), ('gold', gold)] if not p.exists()]
+            gold_reports[pack] = {'result': 'NOT TESTABLE', 'missing': missing,
+                                  'reason': 'Required own-pack inputs missing: ' + ', '.join(missing)}
+            continue
+        try:
+            ids = ht.read_gold(gold)
+        except ht.NotTestable:
+            gold_reports[pack] = {'result': 'NOT TESTABLE', 'missing': ['nonempty gold'],
+                                  'reason': 'Gold set empty, not testable', 'gold_sha256': sha(gold)}
             continue
         import pyarrow.parquet as pq
         pack_rows = pq.read_table(path).to_pylist()
         assert all(row.get('pack_id', pack) == pack for row in pack_rows), 'pack metadata mismatch'
         pack_cache[pack] = {row['doc_id']: dict(row, pack_id=pack) for row in pack_rows}
         assert len(pack_cache[pack]) == len(pack_rows), 'duplicate diagnosis IDs'
-        ids = ht.read_gold(gold)
         docs = ht.read_pack_docs(path, ids)
         for doc in docs.values():
             doc['pack_id'] = pack
@@ -187,6 +194,9 @@ def integrate(packs, gold_dir):
                           result='ERROR' if errors else 'PASS' if ht.harm_percent(len(changed), len(dropped), n, Fraction(1))[1] else 'FAIL')
             if result['result'] != 'PASS':
                 issues.append('current own-pack gold: ' + result['result'])
+        else:
+            result['reason'] = gold_reports[pack]['reason']
+            issues.append('current own-pack gold: ' + result['reason'])
         if rid == 'DB-F2-001':
             issues.append('legacy Itihasa rule requires ITIHASA_TEST_SN; optional G9 F2 does not cover Itihasa')
         if r['code'] == 'F2':

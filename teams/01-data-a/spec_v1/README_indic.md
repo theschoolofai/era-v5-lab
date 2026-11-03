@@ -6,7 +6,7 @@ Selections remain CANDIDATE. Loading and compatibility checks do not establish p
 
 ## Selection and deferred rules
 
-`tools/integrate_indic.py` checks return values, mutation, ordinary synthetic prose, ZWJ/ZWNJ preservation, idempotence and unrelated-pack guards. It checks source rules on available full diagnosis packs for runtime errors and single-rule idempotence, then iteratively defers rules that act again after the selected full pipeline. It also runs every source rule on its own current gold when both the week-1 diagnosis pack and Data B gold file exist. Missing inputs are NOT TESTABLE. Combined gold failures defer the affected pack's selected pipeline.
+`tools/integrate_indic.py` checks return values, mutation, ordinary synthetic prose, ZWJ/ZWNJ preservation, idempotence and unrelated-pack guards. It checks source rules on available full diagnosis packs for runtime errors and single-rule idempotence, then iteratively defers rules that act again after the selected full pipeline. It also runs every source rule on its own current gold when both the week-1 diagnosis pack and Data B gold file exist. Missing own-pack inputs are NOT TESTABLE and explicitly defer the affected rules. Empty gold records "Gold set empty, not testable" and defers the rules without aborting review of other packs. Combined gold failures defer the affected pack's selected pipeline.
 
 For each of the 43 overlapping pack/disease groups, the first eligible source candidate is provisionally selected; later alternatives are deferred. This avoids stacking competing treatments. It is a deterministic integration choice, not a finding that the selected rule has better precision or recall. Positive-case review is still required.
 
