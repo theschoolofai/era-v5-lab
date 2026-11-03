@@ -3,7 +3,8 @@
 One section for each disease that was found more than five times. 
 
 All harm tests below were run with Data B's `teams/02-data-b/tools/harm_test_indic.py` on the shared gold set
-`teams/02-data-b/gold/ind-kn-sangraha-v_gold.csv` (30 documents), on the code exactly as it appears in this file. Each rule alone and all four in order pass:
+`teams/02-data-b/gold/ind-kn-sangraha-v_gold.csv` (103 documents, sha256 b523a045d9de), on the code exactly as it
+appears in this file. The rules also passed on the earlier 30-document gold set. Each rule alone and all four in order pass:
 
 ```
 python harm_test_indic.py --medicine medicine.md --pack ind-kn-sangraha-v.parquet --gold-dir teams/02-data-b/gold
@@ -79,8 +80,8 @@ the 500) it changes.
 
 3. **Action:** Fix the text. Drop the document only if under 200 characters remain after the fix.
 
-4. **Harm test:** Gold set of 30 documents: changed 0 of 30 (0.00%), dropped 0 of 30 (0.00%). **PASS** (limit: 1% or 1
-   document, whichever is more). ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**.
+4. **Harm test:** Gold set of 103 documents (gold csv sha256 b523a045d9de): changed 0 of 103 (0.00%), dropped
+   0 of 103 (0.00%). **PASS** (limit: 1% or 1 document, whichever is more, so at most 1). ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**.
    - Labelled C1 (83): fixes 61, drops 0, leaves 22.
    - Labelled `clean` (372): changes 3. Each loses a real promo line (`ಪ್ರಜಾವಾಣಿ ಫೇಸ್ಬುಕ್ …` twice,
      `A post shared by …` once) that the label missed.
@@ -134,8 +135,8 @@ the 500) it changes.
 
 3. **Action:** Fix the text. Never drop.
 
-4. **Harm test:** Gold set of 30 documents: changed 0 of 30 (0.00%), dropped 0 of 30 (0.00%). **PASS** (limit: 1% or 1
-   document, whichever is more). ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**.
+4. **Harm test:** Gold set of 103 documents (gold csv sha256 b523a045d9de): changed 0 of 103 (0.00%), dropped
+   0 of 103 (0.00%). **PASS** (limit: 1% or 1 document, whichever is more, so at most 1). ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**.
    - Labelled D3 (21): fixes 8 (6 hashtag feeds, 2 bracketed summaries), drops 0, leaves 13.
    - Labelled `clean` (372): changes 1 (`63471c4de2084c03`, two `- #…` feed lines the label missed).
 
@@ -188,8 +189,8 @@ the 500) it changes.
 3. **Action:** Fix the text by cutting the broken last sentence, and keep the cut document. Drop only when fewer
    than 200 characters of complete sentences remain.
 
-4. **Harm test:** Gold set of 30 documents: changed 0 of 30 (0.00%), dropped 0 of 30 (0.00%). **PASS** (limit: 1% or 1
-   document, whichever is more). ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**.
+4. **Harm test:** Gold set of 103 documents (gold csv sha256 b523a045d9de): changed 0 of 103 (0.00%), dropped
+   0 of 103 (0.00%). **PASS** (limit: 1% or 1 document, whichever is more, so at most 1). ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**.
    - Labelled C3 (12): fixes 6, drops 0, leaves 6.
    - Labelled `clean` (372): changes 5 (see side effects).
 
@@ -245,8 +246,8 @@ the 500) it changes.
 
 3. **Action:** Fix the text (remove the translation blocks and the caption). Do not drop.
 
-4. **Harm test:** Gold set of 30 documents: changed 0 of 30 (0.00%), dropped 0 of 30 (0.00%). **PASS** (limit: 1% or 1
-   document, whichever is more). ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**.
+4. **Harm test:** Gold set of 103 documents (gold csv sha256 b523a045d9de): changed 0 of 103 (0.00%), dropped
+   0 of 103 (0.00%). **PASS** (limit: 1% or 1 document, whichever is more, so at most 1). ZWJ/ZWNJ audit: **PASS**. Normal-form audit: **PASS**.
    - Labelled D4 (7): fixes 3 (both translation blocks and the caption), drops 0, leaves the 4 machine-translated
      prose documents.
    - Labelled `clean` (372): changes 0.
