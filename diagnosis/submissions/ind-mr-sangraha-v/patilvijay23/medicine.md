@@ -370,7 +370,7 @@ D3 also occurs in **26 `clean` documents** retained as natural code-mixing; dise
    - `fab4928039a870ab`: private-person-linked street-level location near offset 9.
    - `727a8a3d9a6f4fd4`: phone number near offset 2095.
    - `d2dbdd1f87b6a3e1`: private residential location near offset 278.
-   - **Additional reviewed example (rows 351–500 unless noted):** `b5776aacf45b7cac`: private-person identity/location at offset 256 (private values intentionally omitted).
+   - `b5776aacf45b7cac`: private-person identity/location at offset 256 (private values intentionally omitted).
 
 2. **Medicine:** **Context-specific privacy gate.** Identify and redact the exact private span with surrounding context, or exclude the document if the sensitive material cannot be safely removed. Names of public figures and public institutions are not automatically private data. **Do not embed any private values in rule code, examples, logs, PRs or JSON reports. The executable candidate first quarantines all 12 reviewed F1 records pending verified full-span redaction, then applies a bounded Marathi-aware redactor to other text. It uses `<PHONE>`, `<EMAIL>` and `<ADDRESS>` placeholders only with explicit private context; it preserves recognised organisation contacts, role mailboxes and example/government email domains.**
 
