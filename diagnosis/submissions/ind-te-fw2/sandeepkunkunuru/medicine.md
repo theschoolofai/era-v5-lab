@@ -2,30 +2,30 @@
 
 Pack: 500 Telugu documents from FineWeb-2 (`tel_Telu`). All 500 read in full. Verdicts: 176 clean, 221 fix, 103 drop.
 
-**Harm test set.** Every rule below is tested with `teams/02-data-b/tools/harm_test_indic.py` on both the **own-pack real gold set (`ind-te-fw2_gold.csv`: 18 two-reader clean documents)** and the **full Telugu real gold set (`teams/02-data-b/gold/telugu_gold.csv`: 50 two-reader clean documents across `ind-te-fw2` 18, `ind-te-sangraha-s` 5, and `ind-te-sangraha-v` 27; also 46 documents in the 31 Oct interim snapshot)**. Under the TSAI rule for small gold sets (`max(1%, 1 document)`), a rule passes when it changes or drops at most 1 gold document and passes both the ZWJ/ZWNJ joiner audit and the NFC/compatibility-character normal-form audit. I also report results on the 176 documents of `ind-te-fw2` that I labelled `clean`.
+**Harm test set.** Every rule below is tested with `teams/02-data-b/tools/harm_test_indic.py` on the **own-pack real gold set (`ind-te-fw2_gold.csv`: 18 two-reader clean documents)**, the **verified sibling pack gold set (`ind-te-sangraha-v_gold.csv`: 18 documents on `main` `ea7b533`, 27 on 2 Nov, 23 on 31 Oct)**, and the **Telugu real gold set (`teams/02-data-b/gold/telugu_gold.csv`: 50 documents on 2 Nov and 46 documents on 31 Oct; 60 documents on 3 Nov `ea7b533` across `ind-te-fw2` 18, `ind-te-sangraha-s` 24, and `ind-te-sangraha-v` 18)**. Under the TSAI rule (`CAP 31 Oct: per pack, never pooled`, `max(1%, 1 document)`), a rule passes when it changes or drops at most 1 gold document in its pack and passes both the ZWJ/ZWNJ joiner audit and the NFC/compatibility-character normal-form audit. I also report results on the 176 documents of `ind-te-fw2` that I labelled `clean`.
 
 Columns used below: *recall* = labelled documents in `ind-te-fw2` that the medicine changes or drops; *fires on unlabelled* = documents in `ind-te-fw2` without that label that the medicine changes or drops.
 
 ## Summary
 
-| Code | Count | Action | Own-pack gold (18) | Telugu gold changed (50) | Telugu gold dropped (50) | Gold % | Joiner / Form audit | Result | Clean-slice (176) | Recall | Fires on unlabelled |
+| Code | Count | Action | Own-pack gold (`ind-te-fw2`, 18) | `ind-te-sangraha-v` gold (18 / 27) | Telugu gold (50) | Gold % | Joiner / Form audit | Result | Clean-slice (176) | Recall | Fires on unlabelled |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| C1 | 250 | fix | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 122/250 | 1 |
-| D4 | 87 | drop | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 81/87 | 18 (8 are D5) |
-| D3 | 83 | none (no-op) | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** (no medicine) | 0/176 (0.0%) | 0/83 | 0 |
-| C2 | 41 | fix | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 17/41 | 13 |
-| C5 | 14 | drop | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** (rejected for pipeline: side effects on fix slice) | 1/176 (0.6%) | 2/14 | 21 |
-| C3 | 9 | fix | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** (v1 `..`/`…` failed at 1.20%; v2 `[…]` passes at 0.00%) | 0/176 (0.0%) | 1/9 | 1 |
-| B2 | 8 | fix | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 6/8 | 0 |
-| F3 | 8 | drop | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 7/8 | 0 |
-| C4 | 8 | drop | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 1/8 | 1 |
-| D5 | 8 | drop (by the D4 rule) | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 8/8 | – |
-| A6 | 8 | fix | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 3/8 | 3 |
-| F1 | 6 | fix | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** | 1/176 (0.6%) | 6/6 | 7 |
-| G1 | 4 | fix | 0/18 (0.00%) | 0 | 0 | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 4/4 | 0 |
-| **ALL IN ORDER** | – | pipeline | **0/18 (0.00%)** | **0** | **0** | **0.00%** | **ok / ok** | **PASS** | 1/176 (0.6%) | – | – |
+| C1 | 250 | fix | 0/18 (0.00%) | 0/18 (0.00%) | 0/50 (0.00%) | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 122/250 | 1 |
+| D4 | 87 | drop | 0/18 (0.00%) | 0/18 (0.00%) | 0/50 (0.00%) | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 71/87 (60/87 text-only) | 6 (2 are D5) |
+| D3 | 83 | none (no-op) | 0/18 (0.00%) | 0/18 (0.00%) | 0/50 (0.00%) | 0.00% | ok / ok | **PASS** (no medicine) | 0/176 (0.0%) | 0/83 | 0 |
+| C2 | 41 | fix | 0/18 (0.00%) | 0/18 (0.00%) | 0/50 (0.00%) | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 17/41 | 13 |
+| C5 | 14 | drop | 0/18 (0.00%) | 0/18 (0.00%) | 0/50 (0.00%) | 0.00% | ok / ok | **PASS** (rejected for pipeline: side effects on fix slice) | 1/176 (0.6%) | 2/14 | 21 |
+| C3 | 9 | fix | 0/18 (0.00%) | 0/18 (0.00%) | 0/50 (0.00%) | 0.00% | ok / ok | **PASS** (v1 `..`/`…` failed at 1.20%; v2 `[…]` passes at 0.00%) | 0/176 (0.0%) | 1/9 | 1 |
+| B2 | 8 | fix | 0/18 (0.00%) | 0/18 (0.00%) | 0/50 (0.00%) | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 6/8 | 0 |
+| F3 | 8 | drop | 0/18 (0.00%) | 0/18 (0.00%) | 0/50 (0.00%) | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 7/8 | 0 |
+| C4 | 8 | drop | 0/18 (0.00%) | 0/18 (0.00%) | 0/50 (0.00%) | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 1/8 | 1 |
+| D5 | 8 | drop (by the D4 rule) | 0/18 (0.00%) | 0/18 (0.00%) | 0/50 (0.00%) | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 2/8 | – |
+| A6 | 8 | fix | 0/18 (0.00%) | 0/18 (0.00%) | 0/50 (0.00%) | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 3/8 | 3 |
+| F1 | 6 | fix | 0/18 (0.00%) | 0/18 (0.00%) | 0/50 (0.00%) | 0.00% | ok / ok | **PASS** | 1/176 (0.6%) | 6/6 | 7 |
+| G1 | 4 | fix | 0/18 (0.00%) | 0/18 (0.00%) | 0/50 (0.00%) | 0.00% | ok / ok | **PASS** | 0/176 (0.0%) | 4/4 | 0 |
+| **ALL IN ORDER** | – | pipeline | **0/18 (0.00%)** | **0/18 (0.00%)** | **0/50 (0.00%)** | **0.00%** | **ok / ok** | **PASS** | 1/176 (0.6%) | – | – |
 
-All medicines together (`ALL IN ORDER` in `harm_test_indic.py`): **0 changed and 0 dropped out of 18 own-pack gold documents (`ind-te-fw2`, 0.00%, PASS) and 0 changed and 0 dropped out of 50 real Telugu gold documents (`telugu_gold.csv`, 0.00%, PASS; ZWJ/ZWNJ audit PASS; normal-form audit PASS)**, and 1 changed out of 176 `ind-te-fw2` clean-slice documents (0.6%, the F1 helpline number below). The drop rules remove 82 of the 87 D4 documents, all 8 D5 documents and all 8 F3 documents.
+All medicines together (`ALL IN ORDER` in `harm_test_indic.py`): **0 changed and 0 dropped out of 18 own-pack gold documents (`ind-te-fw2`, 0.00%, PASS), 0 changed and 0 dropped out of 18 `ind-te-sangraha-v` gold documents (`main` `ea7b533`, 0.00%, PASS; also 0/27 on 2 Nov and 0/23 on 31 Oct), and 0 changed and 0 dropped out of 50 real Telugu gold documents (`telugu_gold.csv`, 0.00%, PASS; ZWJ/ZWNJ audit PASS; normal-form audit PASS)**, and 1 changed out of 176 `ind-te-fw2` clean-slice documents (0.6%, the F1 helpline number below). The drop rules remove 72 of the 87 D4 documents, 2 of the 8 D5 documents and all 8 F3 documents.
 
 ## Medicine 1: C1 boilerplate
 
@@ -68,32 +68,35 @@ All medicines together (`ALL IN ORDER` in `harm_test_indic.py`): **0 changed and
    `7ef5b7ab6df65268` `పొడవైన పొడవాటి తోక కీలకపదాలను` at offset 5630 ("long tail keywords", word for word).
 2. **Medicine:** two signals, and either one drops the document.
    - The host starts with `te.` on a non-Telugu site (`te.task1.info`, `te.aesbuc.pt`, …). These are auto-translation
-     proxies of English or European sites. Wikimedia `te.` hosts are excluded.
-   - Calque density: more than 15 per 1,000 words of (మరియు "and" + యొక్క "of"), with either at least 6 total calque tokens or at least 3 including `యొక్క`. Native Telugu joins clauses with suffixes
+     proxies of English or European sites. Wikimedia `te.` hosts and `te.vikaspedia.in` are excluded.
+   - Calque density: more than 30 per 1,000 words of (`మరియు` "and" + `యొక్క` "of"), with at least 6 total calque tokens (`marks >= 6 and rate > 30`). Native Telugu joins clauses with suffixes
      and the genitive case, and rarely writes `యొక్క` ("of"). Machine translation writes one for each English "and"
      and "of".
    ```python
    from urllib.parse import urlparse
-   WIKI = re.compile(r"^te\.(?:m\.)?wiki(?:pedia|source|books|quote|tionary|news)\.org$")
+   WIKI = re.compile(r"^te\.(?:(?:m\.)?wiki(?:pedia|source|books|quote|tionary|news)\.org|vikaspedia\.in)$")
    def d4_machine_translation(t, url=None):
        host = urlparse(url or "").netloc.lower()
        if host.startswith("te.") and not WIKI.match(host):
            return True
        marks = t.count("మరియు") + t.count("యొక్క")
        rate = 1000 * marks / max(1, len(re.findall(r"\S+", t)))
-       return True if ((marks >= 6 or (marks >= 3 and "యొక్క" in t)) and rate > 15) else False
+       return True if (marks >= 6 and rate > 30) else False
    ```
    Measured rate per 1,000 words (p10 / p50 / p90): D4+D5 documents 18.1 / 38.5 / 59.5; clean documents 0.0 / 0.0 / 0.8.
    40 of 95 D4+D5 documents have a `te.` host; 0 of 176 clean documents do.
 3. **Action:** drop.
-4. **Harm test:** real Telugu gold set (`telugu_gold.csv`, 46 documents across `ind-te-fw2` 18, `ind-te-sangraha-s` 5, `ind-te-sangraha-v` 23):
-   - Changed 0 of 46 (0.00%). Dropped 0 of 46 (0.00%). **PASS**
+4. **Harm test:** own-pack real gold set (`ind-te-fw2_gold.csv`, 18 documents), verified sibling pack gold set (`ind-te-sangraha-v_gold.csv`, 18 documents on `main` `ea7b533`, 27 on 2 Nov, 23 on 31 Oct), and Telugu real gold set (`telugu_gold.csv`, 50 documents on 2 Nov and 46 documents on 31 Oct):
+   - Own-pack gold (`ind-te-fw2`, 18 docs): Changed 0 of 18 (0.00%). Dropped 0 of 18 (0.00%). **PASS**
+   - Verified sibling pack gold (`ind-te-sangraha-v`, 18 docs on `ea7b533` / 27 on 2 Nov / 23 on 31 Oct): Changed 0 (0.00%). Dropped 0 (0.00%). **PASS**
+   - Full Telugu gold (`telugu_gold.csv`, 50 docs on 2 Nov / 46 docs on 31 Oct): Changed 0 (0.00%). Dropped 0 (0.00%). **PASS** (Note: on the 3 Nov expanded 24-doc synthetic translated pack `ind-te-sangraha-s_gold.csv`, 3 short synthetic items of 88–124 words have calque rates of 65.2–72.6 per 1,000 words; `ind-te-sangraha-s` uses its own rule `DB-D4-012`.)
    - ZWJ/ZWNJ audit: 0 changed documents with a different count. **PASS**
    - Normal-form audit: 0 changed documents left NFC or lost a compatibility character. **PASS**
-   - Without the `యొక్క` / `marks >= 6` guard on short texts, two short Sangraha gold documents (`ind-te-sangraha-s:685f75e6485e4b41` at 122 words with 5 `మరియు` and 0 `యొక్క`, and `ind-te-sangraha-v:a79a2ed6b823749b` at 146 words with 3 `మరియు` and 0 `యొక్క`) exceeded 15 per 1,000 words. Requiring `యొక్క` when `3 <= marks < 6` keeps 0/46 gold drops while retaining 81/87 D4 recall and 8/8 D5 recall.
-5. **Side effects:** it also drops 18 documents not labelled D4, 14 of them labelled `fix`. 8 are labelled D5 (translated bank, insurance
-   and health pages; `narendramodi.in/te`). Native prose with many lists ("A మరియు B మరియు C") can pass 15. Very short
-   documents have a noisy rate. A Telugu site that serves its own content on a `te.` host would be dropped.
+   - Clean slice (`ind-te-fw2`, 176 docs): 0 changed, 0 dropped (0.0%).
+   - **Week-2 tokenizer sample audit (`DB-D4-011` on `train/ind-te-fw2/part-00000.parquet` and `train/ind-te-sangraha-v/part-00000.parquet`):**
+     - The v1 threshold (`(marks >= 6 or (marks >= 3 and "యొక్క" in t)) and rate > 15`) dropped 792 of 5,997 documents in `ind-te-fw2` (text-only) and 493 of 8,609 in `ind-te-sangraha-v`. Reading 20 dropped documents from each pack confirmed that `rate > 15` (and `3 <= marks < 6` with `యొక్క`) caught short native Telugu news articles (`4ed2e3cf7adb1775` on `telugu.latestly.com` with 3 marks at rate 24.4 from a trailing disclaimer, `22816de24fcb1e99` and `514b36f500507f3f` on `telugu.drivespark.com` at rates 22.7 and 17.2, `f04faca3308a1b04` on `telugu.samayam.com` at rate 18.0, `70cb7aa9df299796` Toyota press release at rate 23.6, `a2a089536f6dc7e6`, `a2c0be4957dce9b1`, `28d36038f58c44aa`), classical literary/philosophical prose with `యొక్క` (`0da6cd97a63f7645` at rate 15.7, `0942d09d44e37136` at rate 16.6), a named human translation of the Quran (`55835a003c67b0a5` at rate 26.6), and 3 Telugu Wikipedia pages (`60f3675bfbe8b45b`, `00f40cc34648f10f`, `888e8269907e36c9`) when `clean.py` invoked the rule without `url`.
+     - Narrowing to `WIKI` (Wikimedia `te.*` + `te.vikaspedia.in`) and `marks >= 6 and rate > 30` reduces drops on `ind-te-fw2` from 792 to **629** (with `url`; **558** text-only) and keeps **5 of the 6** good Telugu documents in the 20-doc sample (plus all 24 Telugu Wikipedia pages), and reduces drops on `ind-te-sangraha-v` from 493 to **370**, keeping **6 of the 7** good Telugu documents while still dropping **all 13 of 13** machine-translated documents (`75ea6c5607880a13`, `8f3326d950b224df`, `ad90db53f6a10d60`, `39d0649ecb9f6cfd`, `2d51003f0275bc0a`, `5a55ae5a2b0ffd8f`, `0cf72889874b7039`, `311a2fd7627e1466`, `9e7fbbf7bd183e85`, `a2f94cfc107f219d`, `1ef1e43a15a83bec`, `564a7303c2a65481`, `000079226d796e6c`).
+5. **Side effects:** on the 500-document diagnosis pack, D4 recall is 71/87 with `url` (60/87 text-only), clean-slice drops are 0/176 (0.0%), and unlabelled D4 drops fall from 18 down to 6 (2 of which are D5). Native or translated prose with heavy conjunction/genitive lists above 30 per 1,000 words (such as `3f60723fa29917ca` at 46.4 and `29fe193635c628cb` at 36.2) can still cross the threshold.
 
 ## Medicine 3: C2 repeated lines
 
