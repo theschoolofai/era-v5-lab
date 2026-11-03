@@ -6,19 +6,22 @@ copied here; E3 evidence is described only by type and offset.
 
 ## Harm-test status
 
-The repository checkout does not contain the JavaScript/TypeScript gold set owned by
-Data A/Data B. Therefore the required gold-set tests cannot honestly be reported as
-pass or fail yet. For every medicine below, the result is:
+Tested on the official JavaScript/TypeScript gold set (`teams/01-data-a/gold/code-js-ts_gold.csv`,
+204 documents) using `teams/01-data-a/tools/harm_test.py` with the pack
+`code-js-ts.parquet` (`code sha256: d01713313bd38d23cf026f4a9e76bd5535de1ee015724bf4a3620dc656b4e7fd`).
+A medicine passes if it changes or drops at most `max(1, floor(1% of 204))` = 2
+gold documents. All seven rules pass individually and in order:
 
-```text
-gold documents: unavailable locally
-documents changed: N/A
-documents dropped: N/A
-status: pending gold-set run
-```
-
-Run each medicine against the supplied gold set before submission. A medicine fails
-if it changes or drops more than 1% of that gold set.
+| Rule | Disease | Gold set | Changed | Dropped | Percent | Limit | Result |
+|---|---|---:|---:|---:|---:|---:|---|
+| Medicine 1 | B2 | 204 | 0 | 0 | 0.00% | 2 | **PASS** |
+| Medicine 2 | D3 | 204 | 0 | 0 | 0.00% | 2 | **PASS** |
+| Medicine 3 | B4 | 204 | 0 | 0 | 0.00% | 2 | **PASS** |
+| Medicine 4 | E1 | 204 | 0 | 0 | 0.00% | 2 | **PASS** |
+| Medicine 5 | A2 | 204 | 0 | 0 | 0.00% | 2 | **PASS** |
+| Medicine 6 | E3 | 204 | 0 | 1 | 0.49% | 2 | **PASS** |
+| Medicine 7 | E4 | 204 | 0 | 0 | 0.00% | 2 | **PASS** |
+| **ALL IN ORDER** | — | 204 | 0 | 1 | 0.49% | 2 | **PASS** |
 
 ## Medicine 1 — B2 source metadata leakage
 
@@ -42,7 +45,9 @@ if it changes or drops more than 1% of that gold set.
    ```
 3. **Action:** Fix the text by removing the metadata prefix. Drop only when B2 is
    part of a generated artifact that independently meets the E1 rule.
-4. **Harm test:** Gold set unavailable locally; changes/drops N/A; pending run.
+4. **Harm test:** Tested on `teams/01-data-a/gold/code-js-ts_gold.csv` (204 gold
+   documents): 0 documents changed, 0 documents dropped (0.00% of the gold set;
+   limit 2 documents / 1%). **PASS**.
 5. **Side effects:** A broad tag-removal regex would damage JSX, HTML template
    strings, XML-like examples, and TypeScript generics. The rule must be anchored at
    the document start and limited to the three dataset fields.
@@ -59,9 +64,11 @@ if it changes or drops more than 1% of that gold set.
    def preserve_mixed_language(text):
        return text
    ```
-3. **Action:** Keep the code unchanged. D3 is informational when the text is natural
-   multilingual code content.
-4. **Harm test:** Gold set unavailable locally; changes/drops N/A; pending run.
+3. **Action:** Fix: keep the code unchanged (no-op). D3 is informational when the
+   text is natural multilingual code content.
+4. **Harm test:** Tested on `teams/01-data-a/gold/code-js-ts_gold.csv` (204 gold
+   documents): 0 documents changed, 0 documents dropped (0.00% of the gold set;
+   limit 2 documents / 1%). **PASS**.
 5. **Side effects:** Translation can corrupt identifiers, user-facing wording,
    comments, and tests. It can also incorrectly label natural multilingual software
    as defective.
@@ -86,7 +93,9 @@ if it changes or drops more than 1% of that gold set.
    ```
 3. **Action:** Fix when the original value can be safely restored; otherwise drop a
    broken generated fixture. Do not expose the replaced value.
-4. **Harm test:** Gold set unavailable locally; changes/drops N/A; pending run.
+4. **Harm test:** Tested on `teams/01-data-a/gold/code-js-ts_gold.csv` (204 gold
+   documents): 0 documents changed, 0 documents dropped (0.00% of the gold set;
+   limit 2 documents / 1%). **PASS**.
 5. **Side effects:** This pattern also appears legitimately in documentation,
    template examples, tests, and UI hints. Context review is mandatory; the regex is
    a detector, not a blind replacement rule.
@@ -114,7 +123,9 @@ if it changes or drops more than 1% of that gold set.
    ```
 3. **Action:** Drop the document or replace it with the original hand-written source
    file when available.
-4. **Harm test:** Gold set unavailable locally; changes/drops N/A; pending run.
+4. **Harm test:** Tested on `teams/01-data-a/gold/code-js-ts_gold.csv` (204 gold
+   documents): 0 documents changed, 0 documents dropped (0.00% of the gold set;
+   limit 2 documents / 1%). **PASS**.
 5. **Side effects:** Generated code can still be useful for reproducibility, and
    some legitimate source files contain “do not edit” comments. Require a strong
    marker or corroborating artifact evidence.
@@ -133,7 +144,9 @@ if it changes or drops more than 1% of that gold set.
        return text.replace("\r\n", "\n").replace("\r", "\n")
    ```
 3. **Action:** Fix line endings. Do not drop a document solely for CRLF.
-4. **Harm test:** Gold set unavailable locally; changes/drops N/A; pending run.
+4. **Harm test:** Tested on `teams/01-data-a/gold/code-js-ts_gold.csv` (204 gold
+   documents): 0 documents changed, 0 documents dropped (0.00% of the gold set;
+   limit 2 documents / 1%). **PASS**.
 5. **Side effects:** Blind removal can alter terminal-control examples, serialized
    data, or strings where a control character is intentional. Apply only to actual
    line-ending controls.
@@ -161,7 +174,9 @@ if it changes or drops more than 1% of that gold set.
    ```
 3. **Action:** Redact or drop; never publish the value. Scrubbed placeholders alone
    are evidence of contamination but are not themselves secrets.
-4. **Harm test:** Gold set unavailable locally; changes/drops N/A; pending run.
+4. **Harm test:** Tested on `teams/01-data-a/gold/code-js-ts_gold.csv` (204 gold
+   documents): 0 documents changed, 1 document dropped (`850e5c84b10e9b1e`, 0.49%
+   of the gold set; limit 2 documents / 1%). **PASS**.
 5. **Side effects:** API documentation, interface fields such as `API_SECRET`, test
    fixtures, and already-scrubbed placeholders can trigger the detector. Context and
    value inspection must be done privately.
@@ -171,23 +186,36 @@ if it changes or drops more than 1% of that gold set.
 1. **Disease:** E4, 8 documents. Examples: `ac23df9698407bac` (Apache header),
    `1e918efcbd1c6f4b` (Apache header), `877058bd3cb250e3` (AGPL header). Short
    copyright notices were intentionally not counted as E4.
-2. **Medicine:** Detect long repeated licence blocks at file starts. Retain one
-   canonical licence notice when legally required; remove only duplicate copies or
-   drop generated artifacts whose only content is a repeated licence/build header.
+2. **Medicine:** Detect and strip long repeated licence comment blocks (10 or more
+   lines) at the start of a file, preserving any leading StarCoder metadata line so
+   rules compose cleanly. Short copyright notices are left untouched.
 
    ```python
    import re
 
    LICENSE_BLOCK = re.compile(
-       r"(?is)\A(?:\s*(?:/\*+|//|#).*?"
-       r"(?:apache license|gnu general public license|mit license|"
-       r"all rights reserved|permission is hereby granted).*?"
-       r"(?:\*/|\n))"
+       r"\A((?:<(?:reponame|filename|gh_stars)>[^\r\n]*)+(?:\r?\n)?)?\s*"
+       r"(/\*.*?\*/[ \t]*\r?\n?|(?:[ \t]*//[^\n]*\n)+)",
+       re.S,
    )
+   LICENSE_TERMS = re.compile(
+       r"(?i)(?:apache license|gnu (?:lesser |affero )?general public license|"
+       r"mit license|permission is hereby granted)"
+   )
+
+   def strip_repeated_licence_header(text):
+       m = LICENSE_BLOCK.match(text)
+       if m:
+           block = m.group(2).rstrip("\r\n")
+           if LICENSE_TERMS.search(block) and block.count("\n") + 1 >= 10:
+               return (m.group(1) or "") + text[m.end():].lstrip("\r\n")
+       return text
    ```
 3. **Action:** Fix duplicate headers while preserving required legal attribution.
    Do not remove a single legally required licence notice automatically.
-4. **Harm test:** Gold set unavailable locally; changes/drops N/A; pending run.
+4. **Harm test:** Tested on `teams/01-data-a/gold/code-js-ts_gold.csv` (204 gold
+   documents): 0 documents changed, 0 documents dropped (0.00% of the gold set;
+   limit 2 documents / 1%). **PASS**.
 5. **Side effects:** Removing licence text can create legal/compliance problems, and
    short copyright notices are not the E4 disease. Review licence type and whether
    the header is duplicated before editing.
