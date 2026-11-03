@@ -1,8 +1,8 @@
 # Medicine sheet: ind-hi-indiccorp (rajiviyer)
 
-500 documents reviewed: 440 clean, 44 fix, 16 drop.
+500 documents reviewed: 439 clean, 45 fix, 16 drop.
 Disease counts: F1: 25, C3: 16, D4: 6, C1: 7, A3: 5, C4: 5,
-D3: 3, D2: 2, G1: 1, C5: 1. A document can have several codes.
+D3: 3, D2: 2, G1: 2, C5: 1. A document can have several codes.
 
 Findings that do not match a defined disease, including minor spelling, grammar
 and spacing errors, are marked clean with comments in notes. Clean therefore
@@ -11,8 +11,8 @@ technical units and bracketed name/term glosses alone are not treated as D3;
 romanised Hindi and substantial Hindi-English mixing are recorded separately.
 
 The automatic rules below are prototypes tuned on this pack. Test results cover
-only 130 of the 272 published Hindi gold documents: the other 142 texts were not
-available locally. This is not a held-out test or a claim of complete cleaning.
+all 425 documents in the updated published gold set for this pack.
+This is not a held-out test or a claim of complete cleaning.
 Each rule takes original text only, with no document IDs or supplied span lists.
 Run these rules before any NFC conversion, which can shift character offsets.
 
@@ -51,8 +51,11 @@ def medicine_f1(text):
 
 ### Harm test
 
-Published 130-document subset: changed 1/130 (0.77%); dropped 0/130.
-PASS at the 1% threshold; ZWJ/ZWNJ and normal-form checks passed on changed text.
+| Gold documents | Changed | Dropped | Affected | Result at 1% |
+| --- | --- | --- | --- | --- |
+| 425 | 1 | 0 | 0.24% | PASS |
+
+ZWJ/ZWNJ and normal-form checks passed on changed text.
 The changed document is `e11903157ed9b336`.
 
 Coverage against the current labels: the rule acts on 14 of 25 F1 documents
@@ -98,7 +101,10 @@ def medicine_c1(text):
 
 ### Harm test
 
-Published 130-document subset: changed 0/130; dropped 0/130. PASS at 1%.
+| Gold documents | Changed | Dropped | Affected | Result at 1% |
+| --- | --- | --- | --- | --- |
+| 425 | 0 | 0 | 0.00% | PASS |
+
 Coverage: acts on 5 of 7 C1 documents, with no actions on other labelled rows.
 No changed gold documents were available to exercise joiner/form preservation.
 
@@ -152,7 +158,10 @@ def medicine_c3(text):
 
 ### Harm test
 
-Published 130-document subset: changed 0/130; dropped 0/130. PASS at 1%.
+| Gold documents | Changed | Dropped | Affected | Result at 1% |
+| --- | --- | --- | --- | --- |
+| 425 | 0 | 0 | 0.00% | PASS |
+
 Coverage: acts on 13 of 16 C3 documents, with no actions on other labelled rows.
 No changed gold documents were available to exercise joiner/form preservation.
 
@@ -177,18 +186,32 @@ Six documents contain D4.
 
 ### Rule and action
 
-A fluent Hindi reader checks whether the wording changes or obscures the
-intended meaning. Compare the original source where available; ordinary typos,
-loanwords and unfamiliar technical terms alone are not enough.
+A fluent Hindi reader checks for mistranslations that make the meaning wrong
+or unclear. Compare the original source where available. Minor spelling,
+grammar errors, loanwords and unfamiliar technical terms alone are not enough
+to mark D4.
 
-Use fix for a source-backed correction that preserves meaning. Use drop where
-the meaning is badly damaged and reliable retranslation is not available.
-There is no automatic detector or coded D4 medicine in this sheet.
+**Fix** when the intended meaning can be verified from the source. **Drop**
+when the meaning is badly damaged and a reliable correction is unavailable.
+Otherwise, keep the document.
 
-### Harm test: not run
+This is a manual review rule. There is no automatic D4 detector, and the
+official harm-test tool does not test it.
 
-The manual translation-review route has not been tested on the gold set.
-No D4 pass is claimed. The automatic-rule results do not cover this section.
+### Harm test: manual review
+
+I manually checked the earlier 130-document gold set for clear translation
+errors. Minor spelling, grammar and spacing mistakes were not treated as D4.
+
+| Gold documents | Changed | Dropped | Affected | Manual result at 1% |
+| --- | --- | --- | --- | --- |
+| 130 | 0 | 0 | 0.00% | PASS |
+
+No gold documents were excluded. No text was changed, so ZWJ/ZWNJ and normal
+form were unchanged.
+
+This result covers manual D4 review only. There is no automatic D4 detector.
+It has not been extended to the updated 425-document gold set.
 
 ### Possible mistakes
 
@@ -198,8 +221,12 @@ No D4 pass is claimed. The automatic-rule results do not cover this section.
 
 ## Other diseases and observations
 
-A3: 5; C4: 5; D3: 3; D2: 2; G1: 1; C5: 1. These do not exceed five
+A3: 5; C4: 5; D3: 3; D2: 2; G1: 2; C5: 1. These do not exceed five
 occurrences, so separate medicine sections are not required.
+
+G1 includes `f6d6895afbe7d2f1` (document 380): a malformed virama followed
+by a vowel sign at offsets 355-356 (`U+094D U+0940`) in इंस्ट्ीट्यूट.
+Verify the source before correcting it; the cause of the damage is unknown.
 
 For A3, suspected legacy-font damage is recorded under the closest code; the
 exact cause is not established. Check sources before changing characters.
@@ -215,14 +242,18 @@ Preserve ZWJ/ZWNJ; no general encoding-repair or document-splitting rule is test
 
 ## Gold-set scope
 
-Gold source: `teams/02-data-b/gold/ind-hi-indiccorp_gold.csv`, upstream main
-commit `5a1c5f3d5b0bc0a292503ea1689049ac9d415e73`. All 130 published IDs were used, unchanged.
+Automatic test: `teams/02-data-b/tools/harm_test_indic.py`, using
+`teams/02-data-b/gold/ind-hi-indiccorp_gold.csv` from upstream main commit
+`ea7b53353e9869f257b14a187f735735ab1306a8`. All 425 published IDs were used,
+unchanged, against the original pack. No IDs were excluded.
 
-All 130 published gold documents are accepted as clean in the final labels.
-The gold set was not edited and no IDs were excluded. The full 272-document
-Hindi gold set was not tested. The F1 change to `e11903157ed9b336` counts as a
-false positive and remains included in the harm result.
+The test is per pack; gold documents from other Hindi packs were not tested.
+The F1 change to `e11903157ed9b336` counts as a false positive and remains
+included in the harm result.
 
-F1, C1 and C3 together change 1/130 (0.77%) and drop 0: PASS on this subset.
-Their low observed harm does not establish complete redaction, held-out quality,
-or a D4 pass. The rules were tuned using this same pack.
+F1, C1 and C3 together change 1/425 (0.24%) and drop 0: PASS at 1%.
+ZWJ/ZWNJ and normal-form audits passed. D4 manual review used the earlier
+130-document gold set from commit `5a1c5f3d5b0bc0a292503ea1689049ac9d415e73`.
+These automatic-rule results are separate from the manual D4 result above.
+Low observed harm does not establish complete redaction or held-out quality.
+The automatic rules were tuned using this same pack.

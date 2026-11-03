@@ -378,7 +378,7 @@ b729d652cf449def,full,clean,,,,
 ec221ca032abde88,full,clean,,,,
 a5b0bc6742fb3274,full,clean,,,,
 f9d79275f9fb938c,full,clean,,,,
-f6d6895afbe7d2f1,full,clean,,,,
+f6d6895afbe7d2f1,full,fix,G1,Malformed virama followed by vowel sign at offsets 355-356,U+094D U+0940,Malformed character sequence in इंस्ट्ीट्यूट; verify source before correcting.
 4648a1acd788cfe4,full,clean,,,,
 534933e14b271c99,full,clean,,,,
 7f7860c85b704164,full,clean,,,,
