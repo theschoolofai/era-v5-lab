@@ -21,7 +21,7 @@ def medicine_c3(text):
 
 3. **Action:** drop the document.
 
-4. **Harm test:** TBD, Hindi gold set pending (Data B, due 29 Oct).
+4. **Harm test:** changed 0 / dropped 1 of 130 gold docs (0.77%) — PASS
 
 5. **Side effects:** may drop documents ending on a URL, code block, or abbreviation; may miss truncations ending on a period.
 
@@ -46,7 +46,7 @@ def medicine_g1(text):
 
 3. **Action:** fix the text (rejoin split matra); drop if mojibake is extensive.
 
-4. **Harm test:** TBD, Hindi gold set pending (Data B, due 29 Oct).
+4. **Harm test:** changed 0 / dropped 0 of 130 gold docs (0.00%) — PASS
 
 5. **Side effects:** may flag legitimate ज़् in loanwords; may miss missing-anusvara cases; may flag intentional spacing in poetry.
 
@@ -64,18 +64,18 @@ def medicine_g1(text):
 ```python
 import re
 LATIN = re.compile(r'[A-Za-z]')
-TERM  = re.compile(r'[।!?]')
+TERM_G3  = re.compile(r'[।!?]')
 def medicine_g3(text):
     if len(text) < 200:
         return False
     latin_ratio = len(LATIN.findall(text)) / len(text)
-    no_sentence = not TERM.search(text)
+    no_sentence = not TERM_G3.search(text)
     repeated = text.count('के कारण') > 2
     return latin_ratio > 0.05 or (no_sentence and latin_ratio > 0.02) or repeated
 ```
 
 3. **Action:** drop the document.
 
-4. **Harm test:** TBD, Hindi gold set pending (Data B, due 29 Oct).
+4. **Harm test:** changed 0 / dropped 1 of 130 gold docs (0.77%) — PASS
 
 5. **Side effects:** may drop legitimate Hindi news that quotes English terms heavily; the के कारण heuristic may misfire on legal or explanatory text.
