@@ -91,14 +91,12 @@
 
 5. **Side effects:** A location, person or subject in the prefix may not be repeated in Telugu. For example, `Delhi:` is present in a document labelled clean in this submission; the current gold sample does not cover all valid prefixes. C2 examples `822114ef3fae2236` (`Vizianagaram:`) and `ad15daf77d5f5dba` (`Sunil Deodhar:`) also match, but removing prefixes does not fix their repeated content. Human review of proposed removals remains necessary. Do not delete all English words from natural mixed-language text.
 
-## Other frequent diseases: current disposition
+## Why I have not proposed medicines for these codes
 
-These remain diagnosed in labels.csv; no automatic cleaning rule is asserted here yet.
+- **C2 — repeated content (24 documents):** Some passages repeat the same meaning using different words. I have not written a rule because it could delete useful details along with the repetition.
+- **C3 — incomplete text (60 documents):** A rule cannot know the missing words or how the sentence should end. I have kept the diagnosis instead of trying to fill in the text.
+- **C4 — multiple articles (27 documents):** I cannot reliably tell a script where one article ends and the next begins. Splitting at the wrong place could break useful content.
+- **D4 — bad translation (44 documents):** Fixing the translation needs someone who understands the language and meaning. I have not written a rule that guesses the correct wording.
+- **F3 — unsuitable content (64 documents):** I have already marked these documents as `drop` in labels.csv. I have not written a general detector because a simple keyword rule could also remove acceptable reporting.
 
-- **C2 (24):** exact repeated sentences/paragraphs can sometimes be deduplicated safely; semantic repetition requires review. Candidate not implemented or harm-tested.
-- **C3 (60):** truncated text cannot be reconstructed reliably by a regex. Human review is needed to choose retaining a useful fragment versus dropping the document. No automatic candidate.
-- **C4 (27):** multiple articles can potentially be split only where reliable boundaries and retained context are available. No automatic candidate.
-- **D4 (44):** bad translation needs native review or a validated quality filter; do not invent a corrected translation or a broad keyword drop rule. No automatic candidate.
-- **F3 (64):** retain the reviewed drop decisions in labels.csv. A general content detector needs its own validation; this sheet does not claim a new automatic detector or a harm-test pass for one.
-
-These dispositions document limits; they do not satisfy a request for executable, passing medicines for all frequent diseases. Raise the non-automatable cases with the reviewer rather than fabricate rules or results.
+I have kept these labels and explained the limits here. Please review whether this is sufficient or whether you need another medicine approach for any of these codes. No harm-test pass is claimed for them.
