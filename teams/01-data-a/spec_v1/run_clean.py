@@ -115,6 +115,11 @@ if f2:  # actions are clean.py's; final is what was written, after F2
     summary["f2"] = {"set_sha256": f2.fingerprints().set_sha256, "dropped": f2_dropped}
     summary["final"] = final
 (args.out / f"{name}_summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n")
-print("slowest rules (seconds, calls):", *(f"{rid} {v['seconds']} {v['calls']}" for rid, v in list(summary["rule_seconds"].items())[:5]), file=sys.stderr)
+profile = summary["rule_seconds"]
+rules_total = sum(v["seconds"] for v in profile.values()) or 1e-9
+print(f"\nslowest rules of {len(profile)} that ran (rules took {rules_total:.1f} s of {summary['seconds']} s):", file=sys.stderr)
+print(f"  {'rule':<14}{'seconds':>10}{'share':>8}{'calls':>9}{'ms/call':>10}", file=sys.stderr)
+for rid, v in list(profile.items())[:10]:
+    print(f"  {rid:<14}{v['seconds']:>10.1f}{v['seconds'] / rules_total:>8.1%}{v['calls']:>9}{v['ms_per_call']:>10.3f}", file=sys.stderr)
 print({k: v for k, v in summary.items() if k not in ("dropped", "f2", "rule_seconds")}, "dropped:", len(dropped), *(("F2 dropped:", len(f2_dropped)) if f2 else ()))
 sys.exit(1 if errors else 0)
