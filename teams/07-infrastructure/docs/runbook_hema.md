@@ -197,7 +197,7 @@ loop (default three crashes in 30 minutes). It logs each attempt and decision.
 
 Read `restore.done` from the restore test's `events/` files or the restart test's
 `logs/events.jsonl`. Retain repeat count, checkpoint bytes and each phase.
-The values below are this member's measurements, not the reference PR's values.
+The values below are measurements from these local runs.
 
 | Measurement | 1 CPU process | 2 CPU processes |
 |---|---:|---:|
@@ -225,10 +225,9 @@ difference between process counts as a restore failure.
 | 1 CPU process | 4.31079626 | 0.03366773 | 0.01066793 |
 | 2 CPU processes | 4.31079578 | 0.03366773 | 0.01066793 |
 
-A faster restore than [PR #291](https://github.com/theschoolofai/era-v5-lab/pull/291)
-is not sufficient to claim code improved. Compare checkpoint size, process count,
-software, hardware, storage and cache state; label other members' values as
-reference. No production-scale extrapolation follows from this tiny local test.
+Performance comparisons require matching checkpoint size, process count,
+software, hardware, storage and cache state. These measurements alone do not
+establish a code improvement or production-scale performance.
 
 ## 6. Scope and retained evidence
 

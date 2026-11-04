@@ -3,7 +3,7 @@
   "source_commit": "ddfe977ea8f771ba6fa9137c1e9f46aade0125d1",
   "measured_date_ist": "2026-11-04",
   "assembled_utc": "2026-11-04T16:39:15.467016+00:00",
-  "runner": "Codex-assisted execution on the member's local machine",
+  "runner": "Local CPU execution",
   "execution_env": {
     "OMP_NUM_THREADS": "1",
     "MKL_NUM_THREADS": "1",
