@@ -12,7 +12,7 @@ doc_id,read,verdict,diseases,evidence,hex,note
 7d9b03e1a823b03a,full,clean,,,,Relaxed from D5 
 7fd9125541575408,full,fix,D4,"ಲಗತ್ತಿಸಲಾಗಿದೆ, ಉದಾಹರಣೆಗೆ 1401  at offset 483",,"Half translation. ಲಗತ್ತಿಸಲಾಗಿದೆ, ಉದಾಹರಣೆಗೆ 1401 "
 80ec26e5644e6569,full,clean,,,,
-825761868c5dd386,full,drop,D4,ಚಿಕಿತ್ಸಕ ಅವಕಾಶ at offset 559 ,,"Machine-translated; provision as ಅವಕಾಶ, masculine noun for a woman, she becomes ಇದು; school name spelt three ways"
+825761868c5dd386,full,drop,D4,ಚಿಕಿತ್ಸಕ ಅವಕಾಶ at offset 559  + ಮನಶ್ಶಾಸ್ತ್ರಜ್ಞನನ್ನು ನೇಮಿಸಿಕೊಳ್ಳುತ್ತದೆ at offset 644 +  ಇದು ವಿದ್ಯಾರ್ಥಿಗಳಿಗೆ at offset 769,,"Machine-translated; provision as ಅವಕಾಶ, masculine noun for a woman, she becomes ಇದು; school name spelt three ways"
 8a8dc27b4a86d5b9,full,clean,,,,
 94552b481a3cf4fd,full,clean,,,,Relaxed D5 passes this.
 96d43ee81a0e801c,full,clean,,,,Relaxed from D4 (overlooked):
