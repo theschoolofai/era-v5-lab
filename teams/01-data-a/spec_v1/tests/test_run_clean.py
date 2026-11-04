@@ -59,6 +59,11 @@ def test_a_known_pack_is_cleaned_and_the_summary_names_its_clean_py(tmp_path):
     assert summary["input_sha256"] == sha256(pack)
     assert summary["clean_py_sha256"] == sha256(SPEC / "clean.py")
     assert "circle" not in raw and "newsletter" not in raw  # IDs and counts only, never text
+    profile = summary["rule_seconds"]  # the per-rule time profile: only rules that ran, slowest first, named by rule ID
+    assert profile and set(profile) <= set(c._RULE)
+    assert all(v["calls"] >= 1 and v["seconds"] >= 0 for v in profile.values())
+    assert max(v["calls"] for v in profile.values()) <= 3  # no rule runs on more documents than the pack has
+    assert [v["seconds"] for v in profile.values()] == sorted((v["seconds"] for v in profile.values()), reverse=True)
     kept = pq.read_table(tmp_path / "out" / "en-dclm_clean.parquet").to_pylist()
     assert [(row["doc_id"], row["text"], row["pack_id"]) for row in kept] == [(d, t, "en-dclm") for d, a, t in expected if a != "drop"]
 

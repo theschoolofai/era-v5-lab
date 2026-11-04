@@ -397,7 +397,7 @@ It reads only the pack, writes only to `--out`, and needs no network.
 | file | what is in it |
 |---|---|
 | `<results folder>/<name>_clean.parquet` | The documents that were kept, with their cleaned text and all their columns. A `pack_id` column is added if the file had none. |
-| `<results folder>/<name>_summary.json` | IDs and counts only, no text: `pack` (the file name), `input_sha256` (the SHA-256 of that file), `pack_id`, `family`, `rows`, `actions` (keep / fix / drop), `errors` (doc_id and error type), `dropped` (doc_ids), `seconds`, `docs_per_second`, and `clean_py_sha256`, the SHA-256 of the `clean.py` that ran. Two summaries with the same `clean_py_sha256` came from the same rules. To check which `clean.py` you have: `shasum -a 256 spec_v1/clean.py`. |
+| `<results folder>/<name>_summary.json` | IDs and counts only, no text: `pack` (the file name), `input_sha256` (the SHA-256 of that file), `pack_id`, `family`, `rows`, `actions` (keep / fix / drop), `errors` (doc_id and error type), `dropped` (doc_ids), `seconds`, `docs_per_second`, `rule_seconds` (the time profile: for each rule that ran, its total `seconds`, `calls` and `ms_per_call`, slowest first; rules `SCOPE` skips on the pack have no entry), and `clean_py_sha256`, the SHA-256 of the `clean.py` that ran. Two summaries with the same `clean_py_sha256` came from the same rules. To check which `clean.py` you have: `shasum -a 256 spec_v1/clean.py`. |
 
 `<name>` is the file name without `.parquet`: `en-dclm` for `en-dclm.parquet`. When `--pack-id` names a pack other than the file name, the pack comes first: `en-dclm_part-00000` for `part-00000.parquet` with `--pack-id en-dclm`.
 

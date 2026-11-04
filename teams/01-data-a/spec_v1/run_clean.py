@@ -11,6 +11,9 @@ doc_ids, and the SHA-256 of the input file and of the clean.py that ran; no text
 .parquet, after the pack when --pack-id names another (code-go_part-00000), so parts of two packs never overwrite each other.
 
 --f2 then runs F2, G9's benchmark fingerprints (tools/f2_rule.py), on each doc clean.py keeps, and drops the ones it flags.
+The summary also gets "rule_seconds": for each rule that ran, the seconds it took in total, how many documents it ran on ("calls")
+and the milliseconds per call, slowest first. A rule SCOPE skips on this pack, or one never reached because an earlier rule dropped
+the document, has no entry. It is the per-rule time profile for Gate 2: it shows which rules are slow at scale.
 The summary gets "f2": the set_sha256, and each dropped doc_id with up to 5 benchmark items and the offset in the cleaned text,
 and "final": kept, dropped by clean.py, dropped by F2 and errors, which add up to the input rows ("actions" stays clean.py's).
 
@@ -58,6 +61,30 @@ if args.f2:
         f2.fingerprints()  # load and check the set before anything is written
     except (OSError, ValueError) as e:
         sys.exit(f"--f2: {e}")
+rule_time = {}  # rule id -> [seconds, calls]
+
+
+def _timed(rid, make):
+    """The rule make() builds, with the clock running only while it runs: clean.py is not changed, and a rule _run skips costs nothing."""
+    def factory():
+        rule = make()
+
+        def timed(doc):
+            start = time.perf_counter()
+            try:
+                return rule(doc)
+            finally:  # a rule that raises still used the time
+                entry = rule_time.setdefault(rid, [0.0, 0])
+                entry[0] += time.perf_counter() - start
+                entry[1] += 1
+        return timed
+    return factory
+
+
+_timed_make = {make: _timed(rid, make) for rid, make in c._RULE.items()}
+c._ID.update({timed: c._ID[make] for make, timed in _timed_make.items()})  # _run looks the rule's SCOPE up by its factory
+_untimed_run = c._run
+c._run = lambda doc, *factories: _untimed_run(doc, *(_timed_make[make] for make in factories))  # every a1()..clean() calls _run
 args.out.mkdir(parents=True, exist_ok=True)
 t0, actions, dropped, errors, kept, f2_dropped = time.time(), Counter(), [], [], [], []
 print(f"cleaning {len(rows)} docs of {pack} ({c._FAMILY[pack]} family)" + (", then F2" if f2 else ""), file=sys.stderr)
@@ -81,10 +108,13 @@ if sum(final.values()) != len(rows):
 schema = table.schema if "pack_id" in table.schema.names else table.schema.append(pa.field("pack_id", pa.string()))
 pq.write_table(pa.Table.from_pylist(kept) if kept else schema.empty_table(), args.out / f"{name}_clean.parquet")  # all dropped: keep the columns
 summary = {"pack": args.pack.name, "input_sha256": sha256(args.pack), "pack_id": pack, "family": c._FAMILY[pack], "rows": len(rows), "actions": dict(actions), "errors": errors, "dropped": dropped, "seconds": round(time.time() - t0, 1), "docs_per_second": round(len(rows) / max(time.time() - t0, 1e-9), 1),
-           "clean_py_sha256": sha256(Path(c.__file__))}  # which rules ran: the same hash means the same clean.py
+           "clean_py_sha256": sha256(Path(c.__file__)),
+           "rule_seconds": {rid: {"seconds": round(t, 3), "calls": n, "ms_per_call": round(t / n * 1000, 3)}
+                            for rid, (t, n) in sorted(rule_time.items(), key=lambda kv: -kv[1][0])}}  # which rules ran: the same hash means the same clean.py
 if f2:  # actions are clean.py's; final is what was written, after F2
     summary["f2"] = {"set_sha256": f2.fingerprints().set_sha256, "dropped": f2_dropped}
     summary["final"] = final
 (args.out / f"{name}_summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n")
-print({k: v for k, v in summary.items() if k not in ("dropped", "f2")}, "dropped:", len(dropped), *(("F2 dropped:", len(f2_dropped)) if f2 else ()))
+print("slowest rules (seconds, calls):", *(f"{rid} {v['seconds']} {v['calls']}" for rid, v in list(summary["rule_seconds"].items())[:5]), file=sys.stderr)
+print({k: v for k, v in summary.items() if k not in ("dropped", "f2", "rule_seconds")}, "dropped:", len(dropped), *(("F2 dropped:", len(f2_dropped)) if f2 else ()))
 sys.exit(1 if errors else 0)
