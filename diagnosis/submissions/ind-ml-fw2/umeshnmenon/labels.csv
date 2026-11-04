@@ -7,7 +7,7 @@ e95ed7fc1706020c,full,fix,C1,offset 774-814 `Story high light: onion price`,,eng
 105083f8144dd629,full,clean,,,,
 b61e9a6fc72f518e,full,fix,C1,offset 0-1056 Just In,,Just In rail
 67cfcddf399de1f3,full,fix,C1;D3,offset 0-11 aparna shaji | offset 14-62 Last Modified,,byline is C1; the date line is a mixed sentence
-7a0d9ce65e64d866,full,fix,G1,offset 928-929 ്ി,offset 929 U+0D3F MALAYALAM VOWEL SIGN I,vowel sign cuts the conjunct
+7a0d9ce65e64d866,full,fix,G1,offset 928-929 ്ി,929 U+0D3F MALAYALAM VOWEL SIGN I,vowel sign cuts the conjunct
 3a02de5b36f36ddb,full,clean,,,,keep the number for date and time
 6688deacc2b01b04,full,fix,C1,offset 1273 `4/ 5Oleh evisionnews`,,pagination and english footer note - site credit
 a153c6be6203d747,full,fix,C4,offset 7499-7832 First they + offset 8707-10309 Deliberate,,two english passages joined to the article
@@ -52,19 +52,19 @@ be3335385b195976,full,clean,,,,
 af93aa3f8f700766,full,fix,C1,offset 462-876 English Summary:- There's no one who hasn't seen the Tom and Jerry cartoons at least once,,english summary
 d055d4b981d0534f,full,fix,C4,offset 1209-1265 നിരവധി മാർഗ്ഗങ്ങൾ ആണ് ഉള്ളത് കൂടുതൽ അറിയാൻ വീഡിയോ കാണുക,,standard cta labels
 764508e37990daf8,full,clean,,,,
-5deb7eee87a81416,full,fix,C4;C1;G1,offset 1009-1050 അവിശ്വസനീയ ഓഫറുകളുമായി ഗോദ്രെജ് ഇൻ്റീരിയോ | offset 1051-1099 © 2019 IBC Live. Developed By Web Designer London | offset 936-938 റ്്,offset 938 U+0D4D MALAYALAM SIGN VIRAMA,standard cta labels/ads and footer notes; doubled virama
+5deb7eee87a81416,full,fix,C4;C1;G1,offset 1009-1050 അവിശ്വസനീയ ഓഫറുകളുമായി ഗോദ്രെജ് ഇൻ്റീരിയോ | offset 1051-1099 © 2019 IBC Live. Developed By Web Designer London | offset 936-938 റ്്,938 U+0D4D MALAYALAM SIGN VIRAMA,standard cta labels/ads and footer notes; doubled virama
 f38f3ead604a0f8e,full,clean,,,,contains offensive comments
 2c642f38fac595c3,full,fix,B4,offset 1030-1340 Lorem ipsum dolor sit,,placeholder content
 919c4b5ddf95b9cd,full,fix,C1,offset 0-25 Screengrab: Twitter Videos + offset 1131-1140 Also Read,,
 d42bed01a40de5e0,full,clean,,,,names present
 224fdf1b8e794b9a,full,fix,F1,family member names at offset 1634,,family info
-552cbad46edb7d4d,full,fix,G1,offset 1462-1464 ു േ + offset 1632-1634 ന േ,offset 1463 U+0020 SPACE + offset 1633 U+0020 SPACE,
+552cbad46edb7d4d,full,fix,G1,offset 1462-1464 ു േ + offset 1632-1634 ന േ,1463 U+0020 SPACE + U+0D47 MALAYALAM VOWEL SIGN EE | 1633 U+0020 SPACE + U+0D47 MALAYALAM VOWEL SIGN EE,
 6bb33a264d4e4027,full,clean,,,,marginal-political opinion
 2c2242dd27f8d1b3,full,clean,,,,marginal-religious/superstitious content
 435fdd72e5a6455b,full,fix,C1,offset 925-981 Read Also:,,Read Also line (standard cta text); was D3;C4
 7804d5ca574727ea,full,fix,D3,offset 223-225 Wow + offset 760-763 P.M + offset 835 K,,
 6be4180dcfc3d165,full,fix,C1,"offset 0-4 India + offset 94-130 Last updated on Sep 02, 2021, 2:26 am",,category line and timestamp
-a918bb8f4988f468,full,fix,C1;G1,offset 3634-3710 English Summary: Hidden 'Hunger Stones' Reveal Drought Warnings From The Past | offset 2255-2257 ച്്,offset 2257 U+0D4D MALAYALAM SIGN VIRAMA,doubled virama
+a918bb8f4988f468,full,fix,C1;G1,offset 3634-3710 English Summary: Hidden 'Hunger Stones' Reveal Drought Warnings From The Past | offset 2255-2257 ച്്,2257 U+0D4D MALAYALAM SIGN VIRAMA,doubled virama
 05a31dce6c9e4db6,full,fix,D3;C1,offset 0-30 This post is part of the series | offset 41-67 Other posts in this series,,
 5f7000acdfb5698f,full,clean,,,,
 6be973c96a44d68f,full,clean,,,,
@@ -74,7 +74,7 @@ f0dbdc42a1ae460b,full,clean,,,,
 f0629518a5338cde,full,fix,D3,offset 862-883 www.harghartiranga.com,,correct usage - website url
 f07684d4c85091af,full,fix,D3,offset 48-75 Photo: twitter.com/BJP4India,,
 62e94166b65a499a,full,fix,D3,offset 78-79 By + offset 103-141 Published: 26th April 2019 08:19 AM,,
-90c2e79506052530,full,fix,D3;G1,offset 51-52 By + offset 76-114 Published: 27th April 2019 06:50 AM | offset 686-688 സ്്,offset 688 U+0D4D MALAYALAM SIGN VIRAMA,doubled virama
+90c2e79506052530,full,fix,D3;G1,offset 51-52 By + offset 76-114 Published: 27th April 2019 06:50 AM | offset 686-688 സ്്,688 U+0D4D MALAYALAM SIGN VIRAMA,doubled virama
 9cd2c33ba949d66c,full,fix,D3;C1,offset 946-963 You may also like: | offset 1733-1897 ഏറ്റവും വിശ്വാസ്യതയുള്ള വാർത്തകള്,,malayalam footer notes cta & marginal C4
 8f3b17ef84b7d02c,full,clean,,,,
 d3706728a6ac2b98,full,clean,,,,
@@ -117,17 +117,17 @@ ce32f63b27e51a58,full,drop,C2,offset 245-279 കുറഞ്ഞ സമയ + offs
 72bc5cd33f43d43c,full,fix,D3,offset 55-75 Oral Ulcer Symptoms,,english supplementary title
 5f3331d890a591b1,full,fix,C5,offset 0-680 Don't Miss,,boilerplate - link list cta
 55b6c4ac477e465a,full,fix,C1,offset 1370-1419 Lal jose about kavya madhavan's role in classmates,,english link title after the article
-96749642c6ee63b7,full,fix,G1,offset 614-616 ന്്,offset 616 U+0D4D MALAYALAM SIGN VIRAMA,doubled virama
+96749642c6ee63b7,full,fix,G1,offset 614-616 ന്്,616 U+0D4D MALAYALAM SIGN VIRAMA,doubled virama
 d2b8872de4bffe15,full,clean,,,,
 023b33e9335143e7,full,fix,D3,offset 581-588 identify,,
 4f9436d32444a489,full,clean,,,,
-c901aca60b2a4df5,full,fix,G1,offset 1917-1919 ച്്,offset 1919 U+0D4D MALAYALAM SIGN VIRAMA,doubled virama
+c901aca60b2a4df5,full,fix,G1,offset 1917-1919 ച്്,1919 U+0D4D MALAYALAM SIGN VIRAMA,doubled virama
 a796bbfa38e14b55,full,clean,,,,
 a2fe2e7718d165d2,full,clean,,,,religious strong opinions
 a5f6a6993fa3ac3e,full,fix,D3,offset 0-2 TIR,,high presence of loanwords
 928a3eadfba89e96,full,fix,D3;C1,offset 96-98 [1] + offset 118-122 ANZAC + offset 424-428 ANZAC | offset 347-364 ചരിത്രം[തിരുത്തുക],,
 6710b40ce0ef16fb,full,clean,,,,contains emojis and numbers
-fb1865d9dd7edc20,full,fix,G1,offset 1016-1018 ട്്,offset 1018 U+0D4D MALAYALAM SIGN VIRAMA,contains numbers; doubled virama
+fb1865d9dd7edc20,full,fix,G1,offset 1016-1018 ട്്,1018 U+0D4D MALAYALAM SIGN VIRAMA,contains numbers; doubled virama
 4babfd027928c534,full,fix,C1,offset 61-127 By സമകാലിക മലയാളം ഡെസ്ക് + offset 748-865 ഈ വാര്ത്ത കൂടി വായിക്കൂ,,article metadata|footer notes cta
 db84be0dc3da43d4,full,fix,C1,offset 88-154 By സമകാലിക മലയാളം ഡെസ്ക് + offset 1549-1666 ഈ വാര്ത്ത കൂടി വായിക്കൂ,,article metadata|footer notes cta
 b8223c8610700ee0,full,fix,C3,offset 0-10 മരിച്ച രതീഷ്,,truncated content
@@ -241,7 +241,7 @@ c60ae8446d84b93a,full,fix,C1,offset 0-28 23 Novembe,,
 0f33ec6172258c08,full,fix,C2;C1,offset 2987-3199 മാർത്താണ്ഡ + offset 6683-6939 ഗോൾവാൾക്കറ | offset 7715-7892 ദേശാഭിമാനി,,
 0b189250cabc1253,full,clean,,,,
 59e6edeb1177a035,full,clean,,,,
-410b12965e64a736,full,fix,G1,offset 145-147 ള ി + offset 352-353 ഇൗ + offset 475-476 ഒാ,offset 146 U+0020 SPACE + offset 353 U+0D57 MALAYALAM AU LENGTH MARK + offset 476 U+0D3E MALAYALAM VOWEL SIGN AA,Possible G1: a space or break sits before a vowel sign or virama.
+410b12965e64a736,full,fix,G1,offset 145-147 ള ി + offset 352-353 ഇൗ + offset 475-476 ഒാ,146 U+0020 SPACE + U+0D3F MALAYALAM VOWEL SIGN I | 353 U+0D57 MALAYALAM AU LENGTH MARK | 476 U+0D3E MALAYALAM VOWEL SIGN AA,Possible G1: a space or break sits before a vowel sign or virama.
 396ca17551d6e885,full,fix,C4,offset 237 ലൈ + offset 726 വൈ,,three news items combined
 a98aecb6cd13fde8,full,fix,D3,offset 136-151 Catherine + offset 332-340 Grogheda- + offset 352-407 Garda Nati,,
 eebc80712260a120,full,clean,,,,
@@ -255,17 +255,17 @@ b42f312915841673,full,fix,C1,offset 0-1002 Just In -,,
 10c319fdab01dab1,full,fix,C1,offset 892-929 Story High,,
 2773cdee6f1c63ca,full,fix,C1,offset 431-439 (PC: AFP) + offset 873-881 (PC: AFP) + offset 1318-1330 (PC: Reute,,
 f1e1b0fbf9ae106f,full,fix,C1;D3,offset 0-954 Just In - | offset 979-980 RS + offset 1590-1593 bhp- + offset 1946-1947 RS,,
-a8eda71b90824b2b,full,fix,G1,offset 508-509 ഒാ + offset 1025-1026 ഒാ,offset 509 U+0D3E MALAYALAM VOWEL SIGN AA + offset 1026 U+0D3E MALAYALAM VOWEL SIGN AA,possible G1
+a8eda71b90824b2b,full,fix,G1,offset 508-509 ഒാ + offset 1025-1026 ഒാ,509 U+0D3E MALAYALAM VOWEL SIGN AA | 1026 U+0D3E MALAYALAM VOWEL SIGN AA,possible G1
 d6151087f60ca13a,full,fix,C1,offset 1545-1624 Story High,,
 6368ffe7ef5269e7,full,fix,D3;C1,offset 503-505 AWH | offset 1085-1144 കൂടുതൽ കായ,,
-2e353de040d66840,full,fix,G1;C1,offset 72-73 ഒാ + offset 234-235 ഒാ + offset 1603-1604 ഉൗ | offset 1629-1939 Lorem ips,offset 73 U+0D3E MALAYALAM VOWEL SIGN AA + offset 235 U+0D3E MALAYALAM VOWEL SIGN AA + offset 1604 U+0D57 MALAYALAM AU LENGTH MARK,
+2e353de040d66840,full,fix,G1;C1,offset 72-73 ഒാ + offset 234-235 ഒാ + offset 1603-1604 ഉൗ | offset 1629-1939 Lorem ips,73 U+0D3E MALAYALAM VOWEL SIGN AA | 235 U+0D3E MALAYALAM VOWEL SIGN AA | 1604 U+0D57 MALAYALAM AU LENGTH MARK,
 fc570fd52b4921a9,full,fix,C1,offset 721-770 ശബ്ദം കേൾക,,
 afda27c8f1cbaed1,full,fix,C1,offset 1045-1111 https://tw,,
 6e6ae1be506fe871,full,clean,,,,
 860c88cc636ad126,full,clean,,,,
 348c447c8b1f09c0,full,fix,C1,offset 0-8 Malayalam,,
 537bc0defa373061,full,clean,,,,
-c1e6cf4274e851a1,full,fix,G1;C1,offset 348-350 .\n് | offset 627-763 ന്യൂനപക്ഷ,offset 349 U+000A LINE FEED,Possible G1: a space or break sits before a vowel sign or virama.
+c1e6cf4274e851a1,full,fix,G1;C1,offset 348-350 .\n് | offset 627-763 ന്യൂനപക്ഷ,349 U+000A LINE FEED + U+0D4D MALAYALAM SIGN VIRAMA,Possible G1: a space or break sits before a vowel sign or virama.
 1f562f2a691a3277,full,clean,,,,
 87d395ec9ccea638,full,fix,C1,offset 33-96 By ഹമീദ് ച,,
 4746f2061c393e9d,full,fix,C1,offset 5898-5908 ജയ് ഹനുമാൻ,,religious sarcasm
@@ -287,8 +287,8 @@ de9aba15db38666a,full,fix,C1,offset 0-8 Malayalam,,
 f98e0654d4ba9592,full,clean,,,,
 3be728a42f6dd8c7,full,clean,,,,
 c0d5744203b94dd4,full,fix,C1,offset 1561-1647 Story High,,
-d729ca84fca8f7f7,full,fix,G1;B4,offset 208-209 ്െ + offset 1162-1163 ്െ + offset 5648-5649 ്െ | offset 5428-5438 text_field,offset 209 U+0D46 MALAYALAM VOWEL SIGN E + offset 1163 U+0D46 MALAYALAM VOWEL SIGN E + offset 5649 U+0D46 MALAYALAM VOWEL SIGN E,possible G1
-a9115da5d2e8c06e,full,fix,G1,offset 318-320 0 ാ,offset 319 U+0020 SPACE,Possible G1: a space or break sits before a vowel sign or virama.
+d729ca84fca8f7f7,full,fix,G1;B4,offset 208-209 ്െ + offset 1162-1163 ്െ + offset 5648-5649 ്െ | offset 5428-5438 text_field,209 U+0D46 MALAYALAM VOWEL SIGN E | 1163 U+0D46 MALAYALAM VOWEL SIGN E | 5649 U+0D46 MALAYALAM VOWEL SIGN E,possible G1
+a9115da5d2e8c06e,full,fix,G1,offset 318-320 0 ാ,319 U+0020 SPACE + U+0D3E MALAYALAM VOWEL SIGN AA,Possible G1: a space or break sits before a vowel sign or virama.
 99e25303a01b7a64,full,fix,C1,offset 496-514 You might,,
 2a79dad48bfa5859,full,fix,C1,offset 1914-1933 Adjust Sto,,
 96cb63070cf6a35d,full,fix,B4,offset 1093-1403 Lorem ips,,placeholder content
@@ -330,7 +330,7 @@ f3600f9e3d5e8223,full,clean,,,,
 f0146deab08a9c2a,full,clean,,,,
 198cd98b5273b820,full,fix,C1,offset 1115-1417 അഴിമുഖം വാ,,
 a7e504c270278c2f,full,fix,D3,offset 436-439 VOOC + offset 678-681 VOOC,,possible H2
-91693f93929cf1c8,full,fix,C1;G1,offset 426-482 Begin typi + offset 2831-2840 Next Story | offset 2380-2382 സ്്,offset 2382 U+0D4D MALAYALAM SIGN VIRAMA,doubled virama
+91693f93929cf1c8,full,fix,C1;G1,offset 426-482 Begin typi + offset 2831-2840 Next Story | offset 2380-2382 സ്്,2382 U+0D4D MALAYALAM SIGN VIRAMA,doubled virama
 a8db73382ae054a9,full,clean,,,,
 3d038cdba7293fb4,full,fix,C1,offset 0-16 പി.എം മൊയ്,,
 f6ed974c6f7d8fb9,full,fix,C1;D3,offset 0-1054 Just In - | offset 2482-2484 TOI,,
@@ -363,7 +363,7 @@ c6bd65be01d166af,full,fix,C1,offset 3313-3497 Like our p,,
 9d825342c82f6ab1,full,fix,C1,offset 1240-1309 Content Hi,,
 918d57d2530cd07a,full,fix,C1,offset 1336-1432 ഫോട്ടോ htt,,
 716cfc6f24c20680,full,clean,,,,
-658ef9d2659c1c64,full,fix,G1,offset 1084-1086 െ ൈ,offset 1085 U+0020 SPACE,Possible G1: a space or break sits before a vowel sign or virama.
+658ef9d2659c1c64,full,fix,G1,offset 1084-1086 െ ൈ,1085 U+0020 SPACE + U+0D48 MALAYALAM VOWEL SIGN AI,Possible G1: a space or break sits before a vowel sign or virama.
 44468e44b7b8ff07,full,fix,C1,offset 1123-1290 സൈബര് നിയമ,,
 9e91a9d9b25adfb5,full,fix,C1,offset 924-1226 കൊവിഡ് പോര,,
 72833396e9ae6d97,full,clean,,,,
@@ -415,7 +415,7 @@ bdc1c34983da0a53,full,clean,,,,
 9a483aa7f9f71f5f,full,clean,,,,
 5191002bcd5fd1bb,full,clean,,,,high presence of names
 bfa005a139aed081,full,fix,C1,offset 2880-2968 (തുടരും.),,
-869114d23fc20d12,full,fix,D3;G1;G4,offset 580-585 formal + offset 2263 y + offset 5030-5039 Foundation | offset 6648-6650 s ാ | offset 20359 ാ,offset 6649 U+0020 SPACE | offset 20358 U+0020 SPACE,
+869114d23fc20d12,full,fix,D3;G1;G4,offset 580-585 formal + offset 2263 y + offset 5030-5039 Foundation | offset 6648-6650 s ാ | offset 20359 ാ,6649 U+0020 SPACE + U+0D3E MALAYALAM VOWEL SIGN AA | 20358 U+0020 SPACE + U+0D3E MALAYALAM VOWEL SIGN AA,
 3f969d9530fccca4,full,clean,,,,
 40ad2b75205349cd,full,fix,D3;C1,offset 95-102 NRI DESK | offset 1805-2375 You may al,,
 95db721b33a50981,full,clean,,,,
@@ -423,7 +423,7 @@ e391eab634548691,full,fix,C1,offset 0-684 Don't Miss,,
 130b7c977694d40d,full,clean,,,,
 880beb1b06d3b6ed,full,fix,C1;D3,offset 0-956 Just In - | offset 3356-3359 K10B,,
 49556c124ce1432f,full,fix,C1,offset 1880-2300 Top Storie,,
-0b5c0d5c22f51385,full,fix,D3;G1,offset 1965-1967 lux + offset 2380-2381 La + offset 4610-4611 is | offset 1967-1969 x ം,offset 1968 U+0020 SPACE,Possible G1: a space or break sits before a vowel sign or virama.
+0b5c0d5c22f51385,full,fix,D3;G1,offset 1965-1967 lux + offset 2380-2381 La + offset 4610-4611 is | offset 1967-1969 x ം,1968 U+0020 SPACE + U+0D02 MALAYALAM SIGN ANUSVARA,Possible G1: a space or break sits before a vowel sign or virama.
 a2af748a99b8428b,full,fix,C1,offset 1141-1439 കൊവിഡ് മഹാ,,
 bbcc6cfa25231b74,full,clean,,,,
 03a259edd433fd17,full,fix,C1,offset 1267-1565 കൊവിഡ് മഹാ,,
@@ -489,7 +489,7 @@ d3dd95984de53688,full,fix,D3,offset 233-239 ulation + offset 554-561 software + 
 d9c2e88749425fa7,full,drop,C2,offset 803-838 ആകർഷിക്കാൻ + offset 891-926 ആകർഷിക്കാൻ + offset 1173-1208 ആകർഷിക്കാൻ,,meaningless content
 87b7a8c1b17e8bf7,full,fix,C4;D3,offset 5354-5942 തിരുവനന്തപ + offset 5944 വ + offset 6431 എ | offset 6030-6034 (TWS) + offset 6197-6201 (ANC) + offset 6254-6256 TWS,,
 7a7b4f5ebc481bd1,full,fix,C1,offset 0-788 തണലിന്റെ സ + offset 1712-1727 29 Novembe,,
-f1aef54ee2bed426,full,fix,C1;C4;G1,offset 6598-6611 ആദില് മുഹമ + offset 7366-7983 Trending - | offset 5094 ക + offset 5671 ഖ + offset 6428 അ | offset 3733-3739 ര്്ക്കാ,offset 3735 U+0D4D MALAYALAM SIGN VIRAMA,"double virama in a conjunct, a G1-type break"
+f1aef54ee2bed426,full,fix,C1;C4;G1,offset 6598-6611 ആദില് മുഹമ + offset 7366-7983 Trending - | offset 5094 ക + offset 5671 ഖ + offset 6428 അ | offset 3733-3739 ര്്ക്കാ,3735 U+0D4D MALAYALAM SIGN VIRAMA,"double virama in a conjunct, a G1-type break"
 ca1a742dfa7577ee,full,clean,,,,terrorism report
 9f4de98d50efc58c,full,drop,C4,offset 15-2077 Actress\nമമ,,
 cf661286c248457c,full,fix,C1,offset 675-795 Also Read: + offset 1564-1612 'കൊവിഡിലടച,,
