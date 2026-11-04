@@ -7,12 +7,27 @@ Run medicines in order: **M1, M3, M2, M5, M4**. M5 (C1) runs before M4 so NetBea
 
 ## Harm test status
 
-Gold set not published yet. Stand-in: each medicine on documents marked `clean` in labels (140 docs).
-- M1 (B3): changes **0** of 140 clean
-- M3 (A2): changes **0** of 140 clean
-- M2 (B4): changes **0** of 140 clean
-- M5 (C1): changes **0** of 140 clean
-- M4 (E4): changes **0** of 140 clean
+Gold set: `teams/01-data-a/gold/code-java_gold.csv` (**116** documents, two-reader clean set).
+Tool: `teams/01-data-a/tools/harm_test.py` on `code-java.parquet`. Pass limit: **1** document changed or dropped (`max(1, 1% of 116)`).
+
+| Rule | Changed | Dropped | Result |
+|------|--------:|--------:|--------|
+| B3 (M1) | 0 | 0 | **PASS** |
+| B4 (M2) | 0 | 0 | **PASS** |
+| A2 (M3) | 0 | 0 | **PASS** |
+| E4 (M4) | 0 | 0 | **PASS** |
+| C1 (M5) | 0 | 0 | **PASS** |
+| All sections in file order | 0 | 0 | **PASS** |
+
+Command (from repo root):
+
+```
+python -I teams/01-data-a/tools/harm_test.py \
+  --pack <path-to>/code-java.parquet \
+  --gold teams/01-data-a/gold/code-java_gold.csv \
+  --rules diagnosis/submissions/code-java/curioustushar/medicine.md \
+  --rule all
+```
 
 ## Medicine 1: StarCoder metadata header (B3)
 
@@ -28,7 +43,7 @@ def m1_strip_meta_header(t: str) -> str:
     return META_HEAD.sub("", t, count=1)
    ```
 3. **Action:** fix.
-4. **Harm test:** gold set pending. Stand-in: changes 0 of 140 `clean` documents, drops 0.
+4. **Harm test:** 0 changed, 0 dropped of 116 gold documents; **PASS** (limit 1).
 5. **Side effects:** Repo path metadata is removed; anchor is line 0 only.
 
 ## Medicine 2: PII redaction placeholders (B4)
@@ -47,7 +62,7 @@ def m2_surrogate_placeholders(t: str) -> str:
     return t
    ```
 3. **Action:** fix.
-4. **Harm test:** gold set pending. Stand-in: changes 0 of 140 `clean` documents, drops 0.
+4. **Harm test:** 0 changed, 0 dropped of 116 gold documents; **PASS** (limit 1).
 5. **Side effects:** Placeholder tokens in pack: 54 `EMAIL`, 1 `KEY`, 118 `NAME`, 21 `PASSWORD`. Does not fix unredacted phones (F1).
 
 ## Medicine 3: CRLF line endings (A2)
@@ -62,7 +77,7 @@ def m3_normalise_newlines(t: str) -> str:
     return t.replace("\r\n", "\n").replace("\r", "\n")
    ```
 3. **Action:** fix.
-4. **Harm test:** gold set pending. Stand-in: changes 0 of 140 `clean` documents, drops 0.
+4. **Harm test:** 0 changed, 0 dropped of 116 gold documents; **PASS** (limit 1).
 5. **Side effects:** Does not change escaped \"\\r\\n\" inside string literals.
 
 ## Medicine 4: Licence headers (E4)
@@ -85,7 +100,7 @@ def m4_strip_licence_header(t: str) -> str:
     return t[m.end():].lstrip("\n")
    ```
 3. **Action:** fix.
-4. **Harm test:** gold set pending. Stand-in: changes 0 of 140 `clean` documents, drops 0.
+4. **Harm test:** 0 changed, 0 dropped of 116 gold documents; **PASS** (limit 1).
 5. **Side effects:** Skips NetBeans template comments (C1). Misses some //-line and short copyright-only headers; see labels.
 
 ## Medicine 5: IDE and generator boilerplate (C1)
@@ -109,5 +124,5 @@ def m5_strip_ide_boilerplate(t: str) -> str:
     return t
    ```
 3. **Action:** fix.
-4. **Harm test:** gold set pending. Stand-in: changes 0 of 140 `clean` documents, drops 0.
+4. **Harm test:** 0 changed, 0 dropped of 116 gold documents; **PASS** (limit 1).
 5. **Side effects:** Does not remove class Javadoc or real documentation. Empty @author-only blocks inside classes need a separate rule.
