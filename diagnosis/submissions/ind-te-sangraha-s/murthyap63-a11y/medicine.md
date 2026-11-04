@@ -1,13 +1,137 @@
-# Medicine sheet: ind-te-sangraha-s 
+# Telugu medicine functions — reviewer-ready handoff
 
-**Source pack:** 500 Telugu `ind-te-sangraha-s` documents. **Label source:** `labels.csv` (user-provided diagnosis).
+This delivery fixes the interface issues in the existing `medicine.md` without modifying the original 500-row labels or Parquet pack.
 
-## My opinion
-Articles are good in content. correct to 98%. With the short Desk Top Publishing exposure i had in telugu these articles are to be corrected by a script editor. This will become a good dataset. This is also supported by the agent. Whose results are given below.
+## Files
+
+- `medicine_ind_te_sangraha_s.py` — **actual importable Python module** containing all eight medicine functions: A3, A6, B2, B4, C2, C3, D4, D5.
+- `test_medicine_ind_te_sangraha_s.py` — 13 offline interface/behavior tests (Python standard library only).
+- `medicine.md` — updated medicine report(appended) with corrected function signatures and return values.
+
+## Requirements and usage
+
+The module uses the Python standard library (Python 3.10+). It does not edit files, start training, or need a GPU.
+
+From the directory containing both `.py` files:
+
+```bash
+python3 -m unittest -v test_medicine_ind_te_sangraha_s.py
+python3 - <<'PY'
+from medicine_ind_te_sangraha_s import medicine_a3, medicine_c3, medicine_d4
+text = "ఉదాహరణ Â"
+print(medicine_a3(text) == text)  # True: no approved repair supplied
+print(medicine_c3(text) == text)  # True: no verified ending supplied
+print(medicine_d4(text) == text)  # True: no verified translation supplied
+PY
+```
+
+## Function interface
+
+Every function accepts **only the document text** when called by the harm tester:
+
+```python
+result = medicine_a3(text)
+result = medicine_a6(text)
+result = medicine_b4(text)
+result = medicine_c3(text)
+result = medicine_d5(text)
+result = medicine_c2(text)
+result = medicine_b2(text)
+```
+
+Return values satisfy the reviewer contract: `str` for text (possibly unchanged), `True` for an explicitly approved drop. No `(action, text)` tuples. The six review-dependent rules have safe optional defaults, and can receive reviewer-verified corrections through optional parameters. D4's first argument is `text`, not `doc_id`; an approved mapping can still be passed by keyword with `doc_id=...`.
+
+**Critical distinction:** A gold-set test with no optional reviewer corrections will produce no changes from the six reviewer-dependent rules. That demonstrates *interface compatibility only*, not cleaning efficacy or harmlessness of later reviewer-approved patches. The two automatic rules (`C2`, `B2`) must still be tested on the official gold set.
+
+## Repository / PR steps
+
+## test_medicine_ind_te_sangraha_s.py
+
+### Offline interface/behavior checks; NOT the Data A/B Telugu gold-set harm test.
+
+import inspect
+import unittest
+
+import medicine_ind_te_sangraha_s as med
+
+
+class MedicineInterfaceTests(unittest.TestCase):
+    def test_eight_functions_accept_single_text_argument(self):
+        sample = "ఇది తెలుగు వాక్యం."
+        for name in med.__all__:
+            with self.subTest(medicine=name):
+                fn = getattr(med, name)
+                self.assertEqual(next(iter(inspect.signature(fn).parameters)), "text")
+                result = fn(sample)
+                self.assertTrue(isinstance(result, (str, bool)), (name, type(result)))
+                self.assertNotIsInstance(result, tuple)
+                self.assertEqual(result, sample)
+
+    def test_six_review_dependent_rules_default_to_no_change(self):
+        sample = "Â <ఐ. డి. 1> λαki తెలుగు"
+        for name in ["medicine_a3", "medicine_a6", "medicine_b4", "medicine_c3", "medicine_d4", "medicine_d5"]:
+            with self.subTest(medicine=name):
+                self.assertEqual(getattr(med, name)(sample), sample)
+
+    def test_verified_unicode_patch_a3(self):
+        self.assertEqual(med.medicine_a3("ఒక Â సమస్య", [(3, "Â", "")]), "ఒక  సమస్య")
+
+    def test_a6_patch(self):
+        self.assertEqual(med.medicine_a6("a λαki b", [(2, "λαki", "లాకి")]), "a లాకి b")
+
+    def test_b4_patch(self):
+        self.assertEqual(med.medicine_b4("ID1 ఉంది", [(0, "ID1", "నిజమైన పేరు")]), "నిజమైన పేరు ఉంది")
+
+    def test_d5_patch(self):
+        self.assertEqual(med.medicine_d5("విచిత్ర వాక్యం", [(0, "విచిత్ర", "సహజ")]), "సహజ వాక్యం")
+
+    def test_non_overlapping_patches_use_original_offsets(self):
+        self.assertEqual(med.medicine_b4("ID1 and ID2", [(0, "ID1", "X"), (8, "ID2", "Y")]), "X and Y")
+
+    def test_mismatched_patch_fails_instead_of_guessing(self):
+        with self.assertRaises(ValueError):
+            med.medicine_a3("తెలుగు", [(0, "wrong", "fixed")])
+
+    def test_overlapping_patches_are_rejected(self):
+        with self.assertRaises(ValueError):
+            med.medicine_b4("ABCDEF", [(0, "ABC", "X"), (2, "CD", "Y")])
+
+    def test_c3_review_path(self):
+        self.assertEqual(med.medicine_c3("మొదటి ", "మొదటి పూర్తి"), "మొదటి పూర్తి")
+        self.assertEqual(med.medicine_c3("మొదటి", "ఇతర పూర్తి"), "మొదటి")
+        self.assertIs(med.medicine_c3("మొదటి", confirmed_drop=True), True)
+
+    def test_d4_review_path_and_legacy_mapping(self):
+        self.assertEqual(med.medicine_d4("bad", approved_text="good"), "good")
+        self.assertEqual(
+            med.medicine_d4("bad", doc_id="doc7", approved_text_by_id={"doc7": "good"}), "good"
+        )
+        self.assertIs(
+            med.medicine_d4("bad", doc_id="doc7", confirmed_drop_ids={"doc7"}), True
+        )
+        self.assertIs(med.medicine_d4("bad", confirmed_drop=True), True)
+        self.assertEqual(med.medicine_d4("bad", approved_text=""), "bad")
+
+    def test_c2_collapses_only_five_or_more_identical_words(self):
+        self.assertEqual(med.medicine_c2("పెద్ద పెద్ద పెద్ద పెద్ద పెద్ద"), "పెద్ద")
+        self.assertEqual(med.medicine_c2("పెద్ద పెద్ద పెద్ద పెద్ద"), "పెద్ద పెద్ద పెద్ద పెద్ద")
+
+    def test_b2_converts_only_confirmed_break_tags(self):
+        self.assertEqual(med.medicine_b2("ఒక<br/>రెండు<బిఆర్>మూడు"), "ఒక\nరెండు\nమూడు")
+        self.assertEqual(med.medicine_b2("<div>టెక్స్ట్</div>"), "<div>టెక్స్ట్</div>")
+
+
+if __name__ == "__main__":
+    unittest.main()
+	
+# Medicine sheet: ind-te-sangraha-s (GitHub: @YOUR_GITHUB_HANDLE)
+
+**Source pack:** 500 Telugu `ind-te-sangraha-s` documents. **Label source:** `labels 1(1).csv` (user-provided diagnosis).
+**Status:** Reviewer-compatible executable functions provided in `medicine_ind_te_sangraha_s.py`; **not gold-set validated**. **No edits or drops have been applied to the source dataset.**
 
 ## Scope and evidence
 
-- Disease definitions and medicine requirements follow the supplied `DISEASES(1).md` and `medicine_TEMPLATE(1).md`.
+- Disease definitions and medicine requirements follow the `DISEASES(1).md` and `medicine_TEMPLATE(1).md`.
 - Counts below are **documents carrying the code**, not separate occurrences; one document may have multiple diseases.
 - Example quotations are exact Unicode substrings checked against the matching 500-document source-text export. Offsets are zero-based Python character offsets `[start,end)`.
 - The label sheet records `read=full` for all documents, but this medicine proposal cannot independently certify translation quality or source fidelity.
@@ -43,18 +167,21 @@ Articles are good in content. correct to 98%. With the short Desk Top Publishing
    **Python rule / function:**
 
    ```python
-   def medicine_d4(doc_id, text, approved_text_by_id, confirmed_drop_ids):
-       if doc_id in confirmed_drop_ids:
-           return 'drop', None
-       corrected = approved_text_by_id.get(doc_id)
-       if corrected and corrected.strip():
-           return 'fix', corrected  # complete source-verified Telugu text
-       return 'review', text       # abstain; do not fabricate a translation
-   ```
+def medicine_d4(text, approved_text=None, confirmed_drop=False, *,
+                doc_id=None, approved_text_by_id=None, confirmed_drop_ids=()):
+    if confirmed_drop or (doc_id is not None and doc_id in confirmed_drop_ids):
+        return True  # reviewer-approved drop
+    corrected = approved_text
+    if corrected is None and doc_id is not None and approved_text_by_id is not None:
+        corrected = approved_text_by_id.get(doc_id)
+    if isinstance(corrected, str) and corrected.strip():
+        return corrected  # source-verified full Telugu replacement
+    return text  # safe default: unchanged text
+```
 
 3. **Action:** **Fix** only with a source-checked, Telugu-reviewed rewrite. **Drop** a document when extensive mistranslation cannot be reliably repaired. A flagged document without a verified correction stays **pending**; do not treat it as corrected.
 
-4. **Harm test:** **NOT RUN — approved Telugu gold set unavailable.** Gold documents changed: **unknown**. Gold documents dropped: **unknown**. Result: **UNVERIFIED; do not deploy.** Before approval, run this medicine on the Data A/B clean Telugu gold set, count unique changed/dropped documents, and reject the medicine if more than 1% is affected.
+4. **Harm test:** **NOT RUN — ** Gold documents changed: **unknown**. Gold documents dropped: **unknown**. Result: **UNVERIFIED; do not deploy.** Before approval, run this medicine on the Data A/B clean Telugu gold set, count unique changed/dropped documents, and reject the medicine if more than 1% is affected.
 
 5. **Side effects:** An automated retranslation may change factual meaning, named entities, figures, gender, or terminology. Legitimate English names or technical terms may be mistakenly treated as errors. A language model alone cannot establish fidelity to an unavailable original source.
 
@@ -73,17 +200,19 @@ Articles are good in content. correct to 98%. With the short Desk Top Publishing
    **Python rule / function:**
 
    ```python
-   def medicine_c3(text, verified_complete_text=None):
-       if verified_complete_text is None:
-           return 'review', text
-       if not verified_complete_text.startswith(text):
-           return 'review', text   # mismatched or edited source; compare manually
-       return 'fix', verified_complete_text
-   ```
+def medicine_c3(text, verified_complete_text=None, confirmed_drop=False):
+    if confirmed_drop:
+        return True  # reviewer-approved drop
+    if verified_complete_text is None:
+        return text
+    if not verified_complete_text.startswith(text):
+        return text  # unverified/mismatched restoration: abstain
+    return verified_complete_text
+```
 
 3. **Action:** **Fix** by restoring verified missing content. **Drop** if the missing source cannot be recovered and the remaining document is unusably incomplete. Do not invent omitted lists, dates or names.
 
-4. **Harm test:** **NOT RUN — approved Telugu gold set unavailable.** Gold documents changed: **unknown**. Gold documents dropped: **unknown**. Result: **UNVERIFIED; do not deploy.** Before approval, run this medicine on the Data A/B clean Telugu gold set, count unique changed/dropped documents, and reject the medicine if more than 1% is affected.
+4. **Harm test:** **NOT RUN.** Gold documents changed: **unknown**. Gold documents dropped: **unknown**. Result: **UNVERIFIED; do not deploy.** Before approval, run this medicine on the Data A/B clean Telugu gold set, count unique changed/dropped documents, and reject the medicine if more than 1% is affected.
 
 5. **Side effects:** Some short encyclopaedia entries legitimately end after headings or Telugu visarga; a source may have been short originally. Blindly appending material may join unrelated documents. A partial source recovery can still leave a bad translation.
 
@@ -102,22 +231,14 @@ Articles are good in content. correct to 98%. With the short Desk Top Publishing
    **Python rule / function:**
 
    ```python
-   import re
-   B4_CANDIDATE = re.compile(
-       r'(?:\(?ID[0-9]+\)?|ఐడి[0-9]+|<ఐ\.?\s*డి\.?\s*[0-9]+>|\{\{[^{}\n]{1,80}\}\}|!\s*కొల్న్\s*=)'
-   )
-   def medicine_b4(text, verified_patches):
-       # verified_patches: list of (Unicode_start_offset, old_text, new_text)
-       for offset, old, new in sorted(verified_patches, reverse=True):
-           if text[offset:offset + len(old)] != old:
-               raise ValueError('B4 patch does not match original span')
-           text = text[:offset] + new + text[offset + len(old):]
-       return text
-   ```
+# _apply_verified_patches is defined in medicine_ind_te_sangraha_s.py.
+def medicine_b4(text, verified_patches=()):
+    return _apply_verified_patches(text, verified_patches)
+```
 
 3. **Action:** **Fix** confirmed placeholder spans using the original data, or **drop** a document if essential missing information makes it unrecoverable. Never replace an unknown ID with an invented value.
 
-4. **Harm test:** **NOT RUN — approved Telugu gold set unavailable.** Gold documents changed: **unknown**. Gold documents dropped: **unknown**. Result: **UNVERIFIED; do not deploy.** Before approval, run this medicine on the Data A/B clean Telugu gold set, count unique changed/dropped documents, and reject the medicine if more than 1% is affected.
+4. **Harm test:** **NOT RUN .** Gold documents changed: **unknown**. Gold documents dropped: **unknown**. Result: **UNVERIFIED; do not deploy.** Before approval, run this medicine on the Data A/B clean Telugu gold set, count unique changed/dropped documents, and reject the medicine if more than 1% is affected.
 
 5. **Side effects:** Strings such as `ID1` may be authentic identifiers, code examples, or meaningful notation. Removing table syntax can destroy the meaning of a scientific or statistical table. A missing source value cannot be reconstructed from the placeholder alone.
 
@@ -136,20 +257,14 @@ Articles are good in content. correct to 98%. With the short Desk Top Publishing
    **Python rule / function:**
 
    ```python
-   import re
-   FOREIGN_SCRIPT_CANDIDATE = re.compile(r'[\u0370-\u03FF\u0400-\u052F]')
-   def medicine_a6(text, verified_patches):
-       # verified_patches: list of (Unicode_start_offset, old_text, new_text)
-       for offset, old, new in sorted(verified_patches, reverse=True):
-           if text[offset:offset + len(old)] != old:
-               raise ValueError('A6 source text changed; verify again')
-           text = text[:offset] + new + text[offset + len(old):]
-       return text
-   ```
+# _apply_verified_patches is defined in medicine_ind_te_sangraha_s.py.
+def medicine_a6(text, verified_patches=()):
+    return _apply_verified_patches(text, verified_patches)
+```
 
 3. **Action:** **Fix** a confirmed corrupted name or token using source-verified spelling; **drop** only if the document is broadly unrecoverable. Keep unresolved cases pending human review.
 
-4. **Harm test:** **NOT RUN — approved Telugu gold set unavailable.** Gold documents changed: **unknown**. Gold documents dropped: **unknown**. Result: **UNVERIFIED; do not deploy.** Before approval, run this medicine on the Data A/B clean Telugu gold set, count unique changed/dropped documents, and reject the medicine if more than 1% is affected.
+4. **Harm test:** **NOT RUN .** Gold documents changed: **unknown**. Gold documents dropped: **unknown**. Result: **UNVERIFIED; do not deploy.** Before approval, run this medicine on the Data A/B clean Telugu gold set, count unique changed/dropped documents, and reject the medicine if more than 1% is affected.
 
 5. **Side effects:** Scientific text, mathematics, or legitimate foreign-language names can correctly contain Greek or Cyrillic. Replacing visually similar letters by appearance alone may corrupt a proper noun or formula.
 
@@ -177,7 +292,7 @@ Articles are good in content. correct to 98%. With the short Desk Top Publishing
 
 3. **Action:** **Fix** confirmed accidental repeats. **Drop** only when repetition makes a document unsalvageable and a reviewer approves that decision. The function below repairs word-runs only, not every C2 case.
 
-4. **Harm test:** **NOT RUN — approved Telugu gold set unavailable.** Gold documents changed: **unknown**. Gold documents dropped: **unknown**. Result: **UNVERIFIED; do not deploy.** Before approval, run this medicine on the Data A/B clean Telugu gold set, count unique changed/dropped documents, and reject the medicine if more than 1% is affected.
+4. **Harm test:** **NOT RUN .** Gold documents changed: **unknown**. Gold documents dropped: **unknown**. Result: **UNVERIFIED; do not deploy.** Before approval, run this medicine on the Data A/B clean Telugu gold set, count unique changed/dropped documents, and reject the medicine if more than 1% is affected.
 
 5. **Side effects:** Repeated words can be emphasis, a poem, quoted dialogue, or an accurate count of a repeated pattern. A single-word rule will not fix the duplicated whole sentences or phrases also present in these nine labels.
 
@@ -196,18 +311,14 @@ Articles are good in content. correct to 98%. With the short Desk Top Publishing
    **Python rule / function:**
 
    ```python
-   def medicine_d5(text, reviewed_phrases):
-       # reviewed_phrases: list of (Unicode_start_offset, old_text, idiomatic_text)
-       for offset, old, new in sorted(reviewed_phrases, reverse=True):
-           if text[offset:offset + len(old)] != old:
-               raise ValueError('D5 phrase location mismatch')
-           text = text[:offset] + new + text[offset + len(old):]
-       return text
-   ```
+# _apply_verified_patches is defined in medicine_ind_te_sangraha_s.py.
+def medicine_d5(text, reviewed_phrases=()):
+    return _apply_verified_patches(text, reviewed_phrases)
+```
 
 3. **Action:** **Fix** after a native-quality language edit; **drop** only if the meaning cannot be established. Do not automatically rewrite or claim the original meaning has been preserved.
 
-4. **Harm test:** **NOT RUN — approved Telugu gold set unavailable.** Gold documents changed: **unknown**. Gold documents dropped: **unknown**. Result: **UNVERIFIED; do not deploy.** Before approval, run this medicine on the Data A/B clean Telugu gold set, count unique changed/dropped documents, and reject the medicine if more than 1% is affected.
+4. **Harm test:** **NOT RUN.** Gold documents changed: **unknown**. Gold documents dropped: **unknown**. Result: **UNVERIFIED; do not deploy.** Before approval, run this medicine on the Data A/B clean Telugu gold set, count unique changed/dropped documents, and reject the medicine if more than 1% is affected.
 
 5. **Side effects:** Stylistic preferences differ by dialect, register, and domain. An apparently awkward phrasing may be valid formal Telugu; paraphrasing can accidentally change a technical distinction or the tone of a quotation.
 
@@ -234,7 +345,7 @@ Articles are good in content. correct to 98%. With the short Desk Top Publishing
 
 3. **Action:** **Fix** verified markup artifacts while preserving nearby content. **Drop** only if the markup corruption makes the content irrecoverable.
 
-4. **Harm test:** **NOT RUN — approved Telugu gold set unavailable.** Gold documents changed: **unknown**. Gold documents dropped: **unknown**. Result: **UNVERIFIED; do not deploy.** Before approval, run this medicine on the Data A/B clean Telugu gold set, count unique changed/dropped documents, and reject the medicine if more than 1% is affected.
+4. **Harm test:** **NOT RUN.** Gold documents changed: **unknown**. Gold documents dropped: **unknown**. Result: **UNVERIFIED; do not deploy.** Before approval, run this medicine on the Data A/B clean Telugu gold set, count unique changed/dropped documents, and reject the medicine if more than 1% is affected.
 
 5. **Side effects:** An HTML tutorial may quote `<br>` literally, and a literal angle-bracket expression may be meaningful. Replacing tags with a newline can also alter tables, lists or code examples. Broken tags may overlap A3 encoding errors.
 
@@ -253,32 +364,33 @@ Articles are good in content. correct to 98%. With the short Desk Top Publishing
    **Python rule / function:**
 
    ```python
-   import re
-   MOJIBAKE_CANDIDATE = re.compile(r'Â|Ã.|â€™|â€œ|â€')
-   def medicine_a3(text, verified_patches):
-       # verified_patches: list of (Unicode_start_offset, bad_text, repaired_text)
-       for offset, old, new in sorted(verified_patches, reverse=True):
-           if text[offset:offset + len(old)] != old:
-               raise ValueError('A3 patch is not at the recorded location')
-           text = text[:offset] + new + text[offset + len(old):]
-       return text
-   ```
+# _apply_verified_patches is defined in medicine_ind_te_sangraha_s.py.
+def medicine_a3(text, verified_patches=()):
+    return _apply_verified_patches(text, verified_patches)
+```
 
 3. **Action:** **Fix** an individually verified mojibake sequence using the original encoding/source. If the intended text cannot be recovered, mark it for review (or **drop** if the document is unusable).
 
-4. **Harm test:** **NOT RUN — approved Telugu gold set unavailable.** Gold documents changed: **unknown**. Gold documents dropped: **unknown**. Result: **UNVERIFIED; do not deploy.** Before approval, run this medicine on the Data A/B clean Telugu gold set, count unique changed/dropped documents, and reject the medicine if more than 1% is affected.
+4. **Harm test:** **NOT RUN.** Gold documents changed: **unknown**. Gold documents dropped: **unknown**. Result: **UNVERIFIED; do not deploy.** Before approval, run this medicine on the Data A/B clean Telugu gold set, count unique changed/dropped documents, and reject the medicine if more than 1% is affected.
 
 5. **Side effects:** The character `Â` can be legitimate in quotations, language examples, or names; some damaged byte sequences are not uniquely recoverable. A4 replacement characters are different and cannot be repaired by this rule.
 
 ---
 
-## Gold-set harm test procedure (pending)
+## Reviewer-compatible Python implementation (4 Nov 2026)
 
-The assignment states that Data A/B own the Telugu gold set (approximately 200 human-verified clean documents). The supplied files are the **sample pack, labels, disease list and blank medicine template**; they do not include that clean gold set. A sample-pack result is **not a substitute**.
+- Executable code is in `medicine_ind_te_sangraha_s.py`; this Markdown sheet is documentation.
+- Each of the eight rules can be called with a single `text` argument and returns `str` (possibly unchanged) or `True` for an explicitly approved drop. No rule returns `('review', text)`.
+- `A3`, `A6`, `B4`, `C3`, `D4`, and `D5` default to returning the input unchanged until verified reviewer inputs are passed. This enables the one-argument harm-test interface, but is **not proof that the eventual corrections are safe or effective**.
+- For `D4`, `text` is now the first argument; optional `doc_id` and the approved-text mapping are keyword-only inputs.
+- Verified patch validation, overlap checks, and all exact implementations are in the `.py` file. The accompanying unittest module contains 13 offline interface/behavior checks.
+- The Data A/B-approved Telugu gold-set harm tests have **not** been run here.
+
+## Gold-set harm test procedure (pending)
 
 For each proposed medicine:
 
-1. Obtain the approved Telugu gold documents. Do **not** treat the 48 `clean` labels from this same sample pack as the approved gold set.
+1. Do **not** treat the 48 `clean` labels from this same sample pack as the approved gold set.
 2. Run the medicine in a dry run on every gold document; count each changed or dropped document once. Count `review`/no-edit decisions as **neither changed nor dropped**, but do not approve a rule that is still missing the verification/rewrite inputs required to operate.
 3. Report `changed`, `dropped`, `affected=changed+dropped`, and `affected / N × 100` for each individual medicine; reject if `affected > 0.01 * N`.
 4. Review false positives and refine each rule. Re-run the full test before any approval; preserve the original dataset.
