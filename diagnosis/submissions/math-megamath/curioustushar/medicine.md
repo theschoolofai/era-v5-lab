@@ -2,9 +2,42 @@
 
 Pack: `math-megamath`, 500 documents in parquet order. Verdicts: 160 fix, 180 drop, 160 clean.
 
-Each medicine is a Python function that takes the document text and returns the new text and the action ('keep', 'fix' or 'drop'). Shared imports and helper used by several of them:
+## Harm test status
 
-~~~python
+Gold set: `teams/01-data-a/gold/math-megamath_gold.csv` (**26** documents, two-reader clean set).
+Tool: `teams/01-data-a/tools/harm_test.py` on `math-megamath.parquet`. Pass limit: **1** document changed or dropped (`max(1, 1% of 26)`).
+
+| Rule | Changed | Dropped | Result |
+|------|--------:|--------:|--------|
+| C1 | 0 | 0 | **PASS** |
+| B5 | 0 | 0 | **PASS** |
+| C5 | 0 | 0 | **PASS** |
+| C2 | 0 | 0 | **PASS** |
+| B2 | 0 | 0 | **PASS** |
+| G4 | 0 | 0 | **PASS** |
+| C3 | 0 | 0 | **PASS** |
+| C4 | 0 | 0 | **PASS** |
+| F1 | 0 | 0 | **PASS** |
+| A3 | 0 | 0 | **PASS** |
+| D3 | 0 | 0 | **PASS** |
+| A5 | 0 | 0 | **PASS** |
+| All sections in file order | 0 | 0 | **PASS** |
+
+Command (from repo root):
+
+```
+python -I teams/01-data-a/tools/harm_test.py \
+  --pack <path-to>/math-megamath.parquet \
+  --gold teams/01-data-a/gold/math-megamath_gold.csv \
+  --rules diagnosis/submissions/math-megamath/curioustushar/medicine.md \
+  --rule all
+```
+
+Note: Python blocks use ` ```python ` fences (required by `harm_test.py`). Return tuples use **`(action, text)`** order.
+
+Each medicine is a Python function that takes the document text and returns the action and new text: `('keep'|'fix'|'drop', text)`. Shared imports and helper used by several of them:
+
+```python
 import re, unicodedata
 
 FENCE = re.compile(r'```.*?```', re.S)
@@ -16,7 +49,7 @@ def _outside_code(text, fn):
         out.append(fn(text[last:m.start()])); out.append(m.group()); last = m.end()
     out.append(fn(text[last:]))
     return ''.join(out)
-~~~
+```
 ## Medicine 1
 
 1. **Disease:** C1 (Boilerplate), found in 72 documents. Examples:
@@ -25,7 +58,7 @@ def _outside_code(text, fn):
    - `264f83c578759870`: `Reply Link.` at offset 2654
 2. **Medicine:** Remove every line that consists only of a known piece of site chrome: share and comment widgets, sales buttons, Q&A templates, video-site boilerplate, chart download links, citation boxes, browser warnings, forum quote and member furniture, copyright and ad lines. Lines inside triple-backtick code fences are not touched. Only whole lines are removed, so a phrase inside a sentence is kept.
 
-   ~~~python
+   ```python
    # C1 Boilerplate: remove whole lines that are known site chrome.
    C1_LINE = re.compile(r'''^\s*(?:
        Skip\ to\ content | Leave\ a\ (?:Reply|comment) | \#*\s*Leave\ a\ Reply | Share\ this:? | Like\ this:? | Like\ Loading\.\.\.
@@ -42,11 +75,11 @@ def _outside_code(text, fn):
    def c1_boilerplate(t):
        new = _outside_code(t, lambda s: C1_LINE.sub('', s))
        new = re.sub(r'\n{3,}', '\n\n', new)
-       return (new, 'fix') if new != t else (t, 'keep')
-   ~~~
+       return ('fix', new) if new != t else ('keep', t)
+   ```
 
 3. **Action:** Fix (remove the matching lines).
-4. **Harm test:** gold set empty, not testable. The Data A gold set for this pack is not published yet. The test will run when it exists. Pass rule for the interim small gold sets: the medicine changes or drops at most 1 document or 1% of the gold set, whichever is larger.
+4. **Harm test:** 0 changed, 0 dropped of 26 gold documents; **PASS** (limit 1).
 5. **Side effects:** It removes a line that is real content but happens to equal a chrome phrase, for example a forum post whose whole text is "Submit" or a lesson line "Read More". It misses chrome that is not on the list (most of the 360 rows have site-specific chrome), so it is a partial cure.
 
 ## Medicine 2
@@ -57,7 +90,7 @@ def _outside_code(text, fn):
    - `30d58e04b952cb9e`: `defined for and conjectured that for all .` at offset 30
 2. **Medicine:** When formulas are stripped, a function word is left directly before punctuation ("where .", "equal to the .", "If , then") or an empty "( )" remains. Count these gaps outside code fences. A document with 3 or more gaps is too damaged to read.
 
-   ~~~python
+   ```python
    # B5 Broken markdown/LaTeX: stripped formulas leave a function word followed directly by
    # punctuation ("where .", "equal to the .", "If , then") or an empty "( )". Drop when 3+ gaps.
    B5_GAP = re.compile(r'\b(?:where|is|are|be|by|as|that|of|to|the|and|then|if|If|so|gives|becomes|equals|let|Let|for)\s+[.,;](?=\s|$)'
@@ -65,11 +98,11 @@ def _outside_code(text, fn):
 
    def b5_stripped_formulas(t):
        gaps = len(B5_GAP.findall(FENCE.sub('', t)))
-       return (t, 'drop') if gaps >= 3 else (t, 'keep')
-   ~~~
+       return ('drop', t) if gaps >= 3 else ('keep', t)
+   ```
 
 3. **Action:** Drop the document.
-4. **Harm test:** gold set empty, not testable. The Data A gold set for this pack is not published yet. The test will run when it exists. Pass rule for the interim small gold sets: the medicine changes or drops at most 1 document or 1% of the gold set, whichever is larger.
+4. **Harm test:** 0 changed, 0 dropped of 26 gold documents; **PASS** (limit 1).
 5. **Side effects:** It misses documents where the stripped formula leaves no function-word gap (a lead-in colon followed by the next paragraph). It can drop a good document that happens to contain three such patterns. It does not repair the other B5 forms (split bold markers, broken tables, escaped dollars).
 
 ## Medicine 3
@@ -80,20 +113,20 @@ def _outside_code(text, fn):
    - `264f83c578759870`: `Pleonaste Sodalite` at offset 160
 2. **Medicine:** A document of at least 15 non-empty lines (outside code) in which 70% or more of the lines are short fragments: 8 words or fewer, no sentence punctuation at the end, and no digits or math symbols.
 
-   ~~~python
+   ```python
    # C5 Lists of keywords or links: at least 15 lines, and 70%+ of them are short fragments
    # (8 words or fewer, no sentence punctuation at the end, no digits or math symbols).
    C5_MATH = re.compile(r'[$=\\^_{}|]|\d')
 
    def c5_link_lists(t):
        lines = [l.strip() for l in FENCE.sub('', t).split('\n') if l.strip()]
-       if len(lines) < 15: return t, 'keep'
+       if len(lines) < 15: return ('keep', t)
        frag = [l for l in lines if len(l.split()) <= 8 and not re.search(r'[.?!:;]$', l) and not C5_MATH.search(l)]
-       return (t, 'drop') if len(frag) / len(lines) >= 0.7 else (t, 'keep')
-   ~~~
+       return ('drop', t) if len(frag) / len(lines) >= 0.7 else ('keep', t)
+   ```
 
 3. **Action:** Drop the document.
-4. **Harm test:** gold set empty, not testable. The Data A gold set for this pack is not published yet. The test will run when it exists. Pass rule for the interim small gold sets: the medicine changes or drops at most 1 document or 1% of the gold set, whichever is larger.
+4. **Harm test:** 0 changed, 0 dropped of 26 gold documents; **PASS** (limit 1).
 5. **Side effects:** It drops a page that is a list but useful, for example a glossary of terms with no definitions on the same line. It misses lists that live inside a longer page (a "Related questions" block under a good answer), which is most of the 144 rows; those are left to C1.
 
 ## Medicine 4
@@ -104,7 +137,7 @@ def _outside_code(text, fn):
    - `264f83c578759870`: `Hundreds of mines are located` at offset 3881 (twice)
 2. **Medicine:** Remove every later copy of a line of 40 or more characters that already appeared earlier in the document. Lines inside triple-backtick code fences are not touched.
 
-   ~~~python
+   ```python
    # C2 Repeated lines: remove every later copy of a line of 40+ characters (outside code).
    def c2_dedupe(t):
        def dd(s):
@@ -116,11 +149,11 @@ def _outside_code(text, fn):
                out.append(line)
            return '\n'.join(out)
        new = _outside_code(t, dd)
-       return (new, 'fix') if new != t else (t, 'keep')
-   ~~~
+       return ('fix', new) if new != t else ('keep', t)
+   ```
 
 3. **Action:** Fix (keep the first copy of each line).
-4. **Harm test:** gold set empty, not testable. The Data A gold set for this pack is not published yet. The test will run when it exists. Pass rule for the interim small gold sets: the medicine changes or drops at most 1 document or 1% of the gold set, whichever is larger.
+4. **Harm test:** 0 changed, 0 dropped of 26 gold documents; **PASS** (limit 1).
 5. **Side effects:** Some repeats are real content: two tables with the same header row, a textbook glossary that repeats a phrase, an exercise statement repeated in its solution, a definition shared by two terms. The rule removes those too. Code that is not fenced loses its repeated lines.
 
 ## Medicine 5
@@ -131,7 +164,7 @@ def _outside_code(text, fn):
    - `487387f6895a6833`: `<![CDATA[` at offset 0
 2. **Medicine:** Outside code fences, replace `<br>` with a newline, remove common HTML tags (div, span, p, a, img, table cells, lists, headings, font, b, i, em, strong, sup, sub, code, pre) and remove CDATA wrappers.
 
-   ~~~python
+   ```python
    # B2 HTML or XML tags: <br> becomes a newline, other known tags are removed (outside code).
    B2_BR = re.compile(r'<br\s*/?>', re.I)
    B2_TAG = re.compile(r'</?(?:div|span|p|a|img|table|tr|td|th|ul|ol|li|h[1-6]|font|b|i|em|strong|sup|sub|code|pre)\b[^<>]{0,200}/?>', re.I)
@@ -139,11 +172,11 @@ def _outside_code(text, fn):
 
    def b2_tags(t):
        new = _outside_code(t, lambda s: B2_CDATA.sub('', B2_TAG.sub('', B2_BR.sub('\n', s))))
-       return (new, 'fix') if new != t else (t, 'keep')
-   ~~~
+       return ('fix', new) if new != t else ('keep', t)
+   ```
 
 3. **Action:** Fix (remove the tags).
-4. **Harm test:** gold set empty, not testable. The Data A gold set for this pack is not published yet. The test will run when it exists. Pass rule for the interim small gold sets: the medicine changes or drops at most 1 document or 1% of the gold set, whichever is larger.
+4. **Harm test:** 0 changed, 0 dropped of 26 gold documents; **PASS** (limit 1).
 5. **Side effects:** Text that discusses HTML outside a code fence loses its tags. Removing `<sup>` turns 10<sup>31</sup> into 1031, so a document with sup or sub tags needs the exponent kept by hand. It does not repair the larger part of B2 in this pack: words glued together where tags were already stripped ("applythe", "Losses1u").
 
 ## Medicine 6
@@ -154,7 +187,7 @@ def _outside_code(text, fn):
    - `607211d7cc2611f7`: `twentyseven` at offset 242
 2. **Medicine:** Restore hyphens in two safe patterns only: English number words ("twentyseven" becomes "twenty-seven") and 8-digit dates that are valid calendar dates and stand alone ("20080429" becomes "2008-04-29"). Dates inside URLs, paths, version stamps or longer numbers are not touched.
 
-   ~~~python
+   ```python
    # G4 Over-normalised (deleted hyphens): restore two safe patterns only.
    NUM = r'(?:twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)'
    UNIT = r'(?:one|two|three|four|five|six|seven|eight|nine)'
@@ -164,11 +197,11 @@ def _outside_code(text, fn):
    def g4_hyphens(t):
        new = G4_NUMWORD.sub(r'\1-\2', t)
        new = G4_DATE.sub(r'\1-\2-\3', new)
-       return (new, 'fix') if new != t else (t, 'keep')
-   ~~~
+       return ('fix', new) if new != t else ('keep', t)
+   ```
 
 3. **Action:** Fix.
-4. **Harm test:** gold set empty, not testable. The Data A gold set for this pack is not published yet. The test will run when it exists. Pass rule for the interim small gold sets: the medicine changes or drops at most 1 document or 1% of the gold set, whichever is larger.
+4. **Harm test:** 0 changed, 0 dropped of 26 gold documents; **PASS** (limit 1).
 5. **Side effects:** An 8-digit number that is not a date but looks like one (a product code 20080429) gets hyphens. Deleted minus signs inside formulas cannot be restored by rule, because the original sign is unknown; documents where they change the mathematics should be dropped by a reader, as in our labels.
 
 ## Medicine 7
@@ -179,20 +212,20 @@ def _outside_code(text, fn):
    - `d5065048d4363e87`: `Assume that e is` at offset 75 (text stops after this sentence)
 2. **Medicine:** If the last non-empty line of the document ends in a cut-off marker ("...", "…", or "… Expand"), remove that line. If nothing is left, drop the document.
 
-   ~~~python
+   ```python
    # C3 Truncated document: the last non-empty line ends in a cut-off marker ("...", "…", "… Expand").
    # Remove that last line; drop the document if nothing is left.
    C3_END = re.compile(r'(?:\.\.\.|…)(?:\s*Expand)?\s*$')
 
    def c3_truncated(t):
        body = t.rstrip()
-       if not C3_END.search(body): return t, 'keep'
+       if not C3_END.search(body): return ('keep', t)
        rest = body.rsplit('\n', 1)[0].rstrip() if '\n' in body else ''
-       return (rest + '\n', 'fix') if rest else (t, 'drop')
-   ~~~
+       return ('fix', rest + '\n') if rest else ('drop', t)
+   ```
 
 3. **Action:** Fix (remove the cut line), or drop if the document was only that line.
-4. **Harm test:** gold set empty, not testable. The Data A gold set for this pack is not published yet. The test will run when it exists. Pass rule for the interim small gold sets: the medicine changes or drops at most 1 document or 1% of the gold set, whichever is larger.
+4. **Harm test:** 0 changed, 0 dropped of 26 gold documents; **PASS** (limit 1).
 5. **Side effects:** A post that really ends with an ellipsis ("thanks in advance...") loses its last line. It misses truncation without a marker, where the text simply stops mid-sentence.
 
 ## Medicine 8
@@ -203,17 +236,17 @@ def _outside_code(text, fn):
    - `587de6ce9cffe118`: `They are distributed` at offset 0 (unrelated forum excerpts)
 2. **Medicine:** Most joined documents in this pack are SEO pages that stitch search snippets together, each snippet with a sales or teaser button. Count these prompts ("Get Price", "Get Best Quote", "chat online", "Learn More", "Read More", "More###", "Continue Reading"). Three or more means a stitched page.
 
-   ~~~python
+   ```python
    # C4 Two documents joined: SEO scrape pages that stitch search snippets together are marked by
    # repeated sales/teaser prompts. Drop when 3 or more such prompts appear.
    C4_PROMPT = re.compile(r'Get Price|Get Best Quote|chat online|Learn More|Read More|More###|Oline Chat|Continue Reading', re.I)
 
    def c4_joined(t):
-       return (t, 'drop') if len(C4_PROMPT.findall(t)) >= 3 else (t, 'keep')
-   ~~~
+       return ('drop', t) if len(C4_PROMPT.findall(t)) >= 3 else ('keep', t)
+   ```
 
 3. **Action:** Drop the document.
-4. **Harm test:** gold set empty, not testable. The Data A gold set for this pack is not published yet. The test will run when it exists. Pass rule for the interim small gold sets: the medicine changes or drops at most 1 document or 1% of the gold set, whichever is larger.
+4. **Harm test:** 0 changed, 0 dropped of 26 gold documents; **PASS** (limit 1).
 5. **Side effects:** A good blog index page with three "Read More" links is dropped. Joined documents without such prompts (forum excerpt lists, merged threads) are missed.
 
 ## Medicine 9
@@ -224,7 +257,7 @@ def _outside_code(text, fn):
    - `3f2cae8c98fa6e7d`: personal email written with " at " at offset 65
 2. **Medicine:** Mask email addresses, including the " at " spelling, with `<EMAIL>`. Do not mask Usenet message IDs (after Message-ID, References or news:), mailing-list and role addresses (info, support, sales, owner-..., ...-list, ...-discuss and similar), or strings whose domain part has no letters.
 
-   ~~~python
+   ```python
    # F1 Personal data: mask email addresses, including ' at ' obfuscation. Not masked: message IDs
    # (inside <...> after Message-ID/References/news:), and list or role addresses.
    F1_EMAIL = re.compile(r'(?<![\w.+-])[\w.+-]+(?:@| at | AT )[A-Za-z][\w-]*(?:\.[A-Za-z][\w-]*)*\.[A-Za-z]{2,}\b')
@@ -238,11 +271,11 @@ def _outside_code(text, fn):
                return s
            return '<EMAIL>'
        new = F1_EMAIL.sub(rep, t)
-       return (new, 'fix') if new != t else (t, 'keep')
-   ~~~
+       return ('fix', new) if new != t else ('keep', t)
+   ```
 
 3. **Action:** Fix (mask).
-4. **Harm test:** gold set empty, not testable. The Data A gold set for this pack is not published yet. The test will run when it exists. Pass rule for the interim small gold sets: the medicine changes or drops at most 1 document or 1% of the gold set, whichever is larger.
+4. **Harm test:** 0 changed, 0 dropped of 26 gold documents; **PASS** (limit 1).
 5. **Side effects:** A phrase like "available at site.org" is masked as if it were an email. A personal address that looks like a role or list address (for example a local part ending in "-users" or "-group") is not masked. Names, phone numbers and street addresses are not covered.
 
 ## Medicine 10
@@ -253,7 +286,7 @@ def _outside_code(text, fn):
    - `af0da3e1a9aa821e`: `â€¦` at offset 281
 2. **Medicine:** Find runs that look like UTF-8 read as Windows-1252 (a character such as Ã, Â or â followed by 1 to 3 characters from the Windows-1252 range). Encode each run back to Windows-1252 and decode it as UTF-8. If that fails, leave the run unchanged.
 
-   ~~~python
+   ```python
    # A3 Mojibake: UTF-8 text decoded as Windows-1252. Re-encode each damaged run and decode it again.
    A3_RUN = re.compile(r'(?:[ÂÃÅÆâ][\u0080-¿ŒœŠšŸŽžƒˆ˜–-™]{1,3})+')
 
@@ -263,11 +296,11 @@ def _outside_code(text, fn):
            try: return s.encode('cp1252').decode('utf-8')
            except (UnicodeEncodeError, UnicodeDecodeError): return s
        new = A3_RUN.sub(rep, t)
-       return (new, 'fix') if new != t else (t, 'keep')
-   ~~~
+       return ('fix', new) if new != t else ('keep', t)
+   ```
 
 3. **Action:** Fix.
-4. **Harm test:** gold set empty, not testable. The Data A gold set for this pack is not published yet. The test will run when it exists. Pass rule for the interim small gold sets: the medicine changes or drops at most 1 document or 1% of the gold set, whichever is larger.
+4. **Harm test:** 0 changed, 0 dropped of 26 gold documents; **PASS** (limit 1).
 5. **Side effects:** It does not repair other damage that we also coded A3: Windows-1250 mojibake ("BirkhĂ¤user"), symbols replaced by "?" or letters, shifted font encodings. A real Ã followed by a symbol in Portuguese or French text could be changed, although the decode step fails safely in most such cases.
 
 ## Medicine 12
@@ -278,7 +311,7 @@ def _outside_code(text, fn):
    - `25d526a09832efea`: `गुणनखण्ड` at offset 44
 2. **Medicine:** In this English pack, remove lines shorter than 40 characters that contain no ASCII characters and at least two letters in another script (language links, navigation and tag lines). Words in another language inside an English sentence are kept, because DISEASES.md says mixed language can be natural.
 
-   ~~~python
+   ```python
    # D3 Mixed language: in an English pack, remove short lines (under 40 chars) that are only in a
    # non-Latin script (navigation, tags, language links). Inline words in English sentences are kept.
    D3_LINE = re.compile(r'^[^\x00-\x7FÀ-ɏ\n]{1,39}$', re.M)
@@ -288,11 +321,11 @@ def _outside_code(text, fn):
            s = m.group()
            return '' if sum(ch.isalpha() for ch in s) >= 2 else s
        new = D3_LINE.sub(only_foreign, t)
-       return (new, 'fix') if new != t else (t, 'keep')
-   ~~~
+       return ('fix', new) if new != t else ('keep', t)
+   ```
 
 3. **Action:** Fix (remove the line).
-4. **Harm test:** gold set empty, not testable. The Data A gold set for this pack is not published yet. The test will run when it exists. Pass rule for the interim small gold sets: the medicine changes or drops at most 1 document or 1% of the gold set, whichever is larger.
+4. **Harm test:** 0 changed, 0 dropped of 26 gold documents; **PASS** (limit 1).
 5. **Side effects:** A short content line written in another script (a heading in Hindi on a bilingual textbook page) is removed. Mixed language in Latin script (German, French or Polish words) is not touched, so most of the 13 rows are not changed by this rule.
 
 ## Medicine 13
@@ -303,13 +336,13 @@ def _outside_code(text, fn):
    - `2a420404633d31fd`: `ﬁeld` at offset 11638
 2. **Medicine:** Replace the Latin ligature characters U+FB00 to U+FB06 (ﬀ, ﬁ, ﬂ, ﬃ, ﬄ, ﬅ, ﬆ) with their letter pairs, using NFKC on those characters only.
 
-   ~~~python
+   ```python
    # A5 Wrong normal form: expand the Latin ligature characters U+FB00..U+FB06 (ﬁ, ﬂ, ﬀ, ...).
    def a5_ligatures(t):
        new = ''.join(unicodedata.normalize('NFKC', c) if 0xFB00 <= ord(c) <= 0xFB06 else c for c in t)
-       return (new, 'fix') if new != t else (t, 'keep')
-   ~~~
+       return ('fix', new) if new != t else ('keep', t)
+   ```
 
 3. **Action:** Fix.
-4. **Harm test:** gold set empty, not testable. The Data A gold set for this pack is not published yet. The test will run when it exists. Pass rule for the interim small gold sets: the medicine changes or drops at most 1 document or 1% of the gold set, whichever is larger.
+4. **Harm test:** 0 changed, 0 dropped of 26 gold documents; **PASS** (limit 1).
 5. **Side effects:** A text about typography that shows the ligature characters on purpose loses them. Other A5 damage, such as accents written as separate characters ("M´ethodes"), is not repaired.
