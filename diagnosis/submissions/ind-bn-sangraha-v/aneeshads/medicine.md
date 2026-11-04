@@ -7,8 +7,8 @@ more than five documents, so this sheet has ten medicines. A count is the number
 **Harm test.** The gold set is `teams/02-data-b/gold/ind-bn-sangraha-v_gold.csv` on `main` (rebuilt 2 November):
 142 documents that the readers marked `clean`. The tool is `teams/02-data-b/tools/harm_test_indic.py`. A rule may
 change or drop at most 1% of the gold set or 1 document, whichever is more: on 142 documents that is **1 document**.
-Part 4 of each medicine is the tool's own text (run of 4 November, `--rule all`). All rules run in order change 2
-of 142 (1.41%, **FAIL**): the two documents are the A6 ones. To see harm on text that the gold set may not have,
+Part 4 of each medicine is the tool's own text (run of 4 November, `--rule all`). All rules run in order change 0
+of 142 (0.00%, **PASS**); without its frequency filter, A6 alone changed 2 (1.41%, fail). To see harm on text that the gold set may not have,
 each medicine was also run on a **stand-in**, the 329 documents of this pack that I marked `clean`, as in my first
 sheet. "Pack" gives what the medicine does to all 500 documents. The stand-in and pack numbers are from my run of
 30 October. Every rule is named `cure_<code>` and returns the new text, or `("drop", "")`, so
@@ -20,7 +20,7 @@ runs it as it is.
 | 1 | D3 | 105 (104) | none, out of spec v1 (candidate: fix) | – | – | – | no rule in code; candidate **fails** on stand-in | 28 / 0 (8.5%) | 45 of 104 | 51 / 0 |
 | 2 | C1 | 62 (62) | fix | 0 | 0 | 0.0% | pass | 4 / 0 | 32 of 62 | 38 / 0 |
 | 3 | C2 | 38 (37) | fix | 0 | 0 | 0.0% | pass | 0 / 0 | 32 of 37 | 34 / 0 |
-| 4 | A6 | 36 (36) | fix (`ৰ` → `র` only) | 2 | 0 | 1.41% | **fail** | 6 / 0 ¹ | 31 of 36 ¹ | 42 / 0 ¹ |
+| 4 | A6 | 36 (36) | fix (`ৰ` → `র`, more than 6 `ৰ`) | 0 | 0 | 0.0% | pass | 2 / 0 ¹ | 13 of 36 ¹ | 15 / 0 ¹ |
 | 5 | G1 | 36 (35) | fix | 0 | 0 | 0.0% | pass | 0 / 0 | 13 of 35 | 13 / 0 |
 | 6 | A3 | 23 (21) | fix, drop if still damaged | 0 | 0 | 0.0% | pass | 0 / 0 | 11 of 21 | 8 / 3 |
 | 7 | G2 | 12 (11) | fix | 0 | 0 | 0.0% | pass | 1 / 0 | 11 of 11 | 13 / 0 |
@@ -28,8 +28,7 @@ runs it as it is.
 | 9 | B4 | 8 (8) | fix | 0 | 0 | 0.0% | pass | 0 / 0 | 7 of 8 | 7 / 0 |
 | 10 | C4 | 7 (7) | fix | 0 | 0 | 0.0% | pass | 1 / 0 | 1 of 7 | 9 / 0 |
 
-¹ Measured on 30 October, when A6 still wrote the visarga between digits as a colon; not measured again since that
-part was removed.
+¹ Measured on 4 November with the frequency filter (more than 6 `ৰ`, fewer than `র`) and without the visarga part.
 
 The stand-in hits of C1, A6, G2 and C4 (12 documents) are documents that I marked `clean` but that do have the
 disease. They are errors in my labels, not harm by the medicine; each is named in the harm test of its medicine. The
@@ -56,7 +55,7 @@ Each medicine's code runs on its own, so a block defines every name it uses (`re
        return GLOSS.sub("", text)
    ```
 3. **Action:** keep the documents as they are. The candidate's action would be to fix the text.
-4. **Harm test:** gold set of 142 documents (ind-bn-sangraha-v 142), medicine.md sha256 5a07cd5cd7ac: "D3 has no rule
+4. **Harm test:** gold set of 142 documents (ind-bn-sangraha-v 142), medicine.md sha256 003835270496: "D3 has no rule
    in code, so nothing to test". D3 is out of spec v1, and the candidate is not tested.
 5. **Side effects:**
    - The candidate removes good text: names and terms in English that help a model link the two scripts. It also
@@ -106,7 +105,7 @@ Each medicine's code runs on its own, so a block defines every name it uses (`re
    - `14b51bf2092ebadc` has the copyright notice of প্রতিছবি ডট কম.
    - `c5f15f32bee8a1be` has the copyright footer. I marked it `clean` but also wrote C1 in its `diseases`, which
      does not agree.
-   **Harm test:** gold set of 142 documents (ind-bn-sangraha-v 142), medicine.md sha256 5a07cd5cd7ac; rule: changed or dropped at most 1% or 1 document, whichever is more.
+   **Harm test:** gold set of 142 documents (ind-bn-sangraha-v 142), medicine.md sha256 003835270496; rule: changed or dropped at most 1% or 1 document, whichever is more.
    - Changed 0 of 142 (0.00%). Dropped 0 of 142 (0.00%). **PASS**
    - ZWJ/ZWNJ audit: 0 changed documents with a different count. **PASS**
    - Normal-form audit: 0 changed documents left NFC or lost a compatibility character. **PASS**
@@ -157,7 +156,7 @@ Each medicine's code runs on its own, so a block defines every name it uses (`re
        return "\n".join(out)
    ```
 3. **Action:** fix the text.
-4. **Harm test:** gold set of 142 documents (ind-bn-sangraha-v 142), medicine.md sha256 5a07cd5cd7ac; rule: changed or dropped at most 1% or 1 document, whichever is more.
+4. **Harm test:** gold set of 142 documents (ind-bn-sangraha-v 142), medicine.md sha256 003835270496; rule: changed or dropped at most 1% or 1 document, whichever is more.
    - Changed 0 of 142 (0.00%). Dropped 0 of 142 (0.00%). **PASS**
    - ZWJ/ZWNJ audit: 0 changed documents with a different count. **PASS**
    - Normal-form audit: 0 changed documents left NFC or lost a compatibility character. **PASS**
@@ -184,27 +183,48 @@ Each medicine's code runs on its own, so a block defines every name it uses (`re
    - `7160f28b914f8629`, offset 0: `সুৰোধিনী` (09B8 09C1 **09F0** 09CB 09A7 09BF 09A8 09C0).
    - `0ca18aa03db2ef77`, offset 1184: `৭ঃ৪ঃ১১` (09ED **0983** 09EA **0983** 09E7 09E7), a verse number with the visarga
      U+0983 for the colon. Not treated by this medicine (see above).
-2. **Medicine:** in a document where `র` is more common than `ৰ` (so the document is Bengali, not Assamese), replace
-   every `ৰ` with `র`. The visarga is left as it is.
+2. **Medicine:** in a document where `ৰ` appears more than 6 times and fewer times than `র` (so the document is
+   Bengali, not Assamese, and the `ৰ` are a pattern of the scan, not a stray letter), replace every `ৰ` with `র`. The
+   visarga is left as it is. The frequency filter is the narrow condition of the TSAI decision of 4 November: the gold
+   set keeps two older Bengali texts with 5 and 4 `ৰ`, and the filter leaves them unchanged. The first two examples
+   above have 1 and 2 `ৰ`, so this medicine leaves them as they are (see Side effects).
    ```python
+   A6_MIN = 7   # the Assamese RA must appear more than 6 times
+
+
    def cure_a6(text):
-       if text.count("\u09F0") and text.count("\u09F0") < text.count("\u09B0"):
+       n_as, n_bn = text.count("\u09F0"), text.count("\u09B0")
+       if n_as >= A6_MIN and n_as < n_bn:
            text = text.replace("\u09F0", "\u09B0")
        return text
    ```
 3. **Action:** fix the text.
-4. **Harm test:** gold set of 142 documents (ind-bn-sangraha-v 142), medicine.md sha256 5a07cd5cd7ac; rule: changed or dropped at most 1% or 1 document, whichever is more.
-   - Changed 2 of 142 (1.41%). Dropped 0 of 142 (0.00%). **FAIL**
+4. **Harm test:** gold set of 142 documents (ind-bn-sangraha-v 142), medicine.md sha256 003835270496; rule: changed or dropped at most 1% or 1 document, whichever is more.
+   - Changed 0 of 142 (0.00%). Dropped 0 of 142 (0.00%). **PASS**
    - ZWJ/ZWNJ audit: 0 changed documents with a different count. **PASS**
    - Normal-form audit: 0 changed documents left NFC or lost a compatibility character. **PASS**
 
-   The two changed documents are `80199b73dc4150b0` (5 `ৰ`, 130 `র`) and `c7ddb9d7bb6a8e7c` (4 `ৰ`, 294 `র`), older
-   Bengali texts that the readers marked clean. By the TSAI decision of 4 November the gold set does not change for
-   spec v1: A6 goes in only with a condition that leaves these two unchanged; otherwise it is a candidate for v2.
+   Without the filter, A6 changed 2 gold documents (1.41%, **FAIL**): `80199b73dc4150b0` (5 `ৰ`, 130 `র`) and
+   `c7ddb9d7bb6a8e7c` (4 `ৰ`, 294 `র`). With the filter both stay as they are.
 
-   Pack (30 October, with the visarga part): 42 documents changed. In every one of them `র` is far more common than
-   `ৰ`. It treated 31 of my 36 A6 documents.
+   **Pack (500 documents, 4 November):**
+   - 15 documents changed (38 without the filter), 0 dropped. It treats 13 of my 36 A6 documents. The other two are
+     `53ad1531ea630e8c` and `968f2a4c6a08b9fc`, which I marked `clean` but which have 7 or more `ৰ`: errors in my
+     labels.
+   - The pack has 340 `ৰ` in 327 words. The medicine changes 287 of them (84.4%), in 275 words (84.1%). It leaves 53
+     (15.6%), in 52 words, all in 23 documents with 6 or fewer `ৰ`, among them the two gold documents. No document
+     of the pack has as many `ৰ` as `র` or more.
+   - Of the 275 changed words, 32 (11.6%) match a word of the pack's documents without `ৰ`. I read the other 243:
+     most are old spellings that modern pages no longer use (`ধর্ম্ম`, `কার্য্য`, `সর্ব্ব`, `কর্ত্তব্য`). By my
+     reading, about **90%** (248) become correct, about **5%** (14) stay wrong and about 5% (13) are OCR fragments
+     where neither form is right (`স্ফুৰাণব`, `পৰছেীঃ`). Not yet checked by a second reader.
 5. **Side effects:**
+   - The OCR also read some `ব` as `ৰ` (the two letters differ by one stroke). Such a word becomes `র` instead of `ব`
+     and stays wrong: `ৰলিলেন` → `রলিলেন` (should be `বলিলেন`), also `হইৰে`, `চলৰে`, `ভাৰছি`, `জানাৰেন`,
+     `বিৰেচনাধীন`, `অবয়ৰ`, `স্বয়মেৰ`. 14 of the 275 changed words; they were wrong before the change too.
+   - A document with 6 or fewer `ৰ` keeps them: 23 of my 36 A6 documents, 15.6% of the `ৰ` of the pack, among them
+     `87c77e18093a596b` (`প্ৰকাশ`) and `7160f28b914f8629` (`সুৰোধিনী`). The limit of 6 is set by the two gold
+     documents (5 and 4 `ৰ`), not by the disease.
    - An Assamese name or quotation inside a Bengali document would be respelled in Bengali.
    - The Assamese WA U+09F1 `ৱ` is not handled.
    - An Assamese document (more `ৰ` than `র`) is left alone: it is D1, a wrong language label, and needs another
@@ -229,7 +249,7 @@ Each medicine's code runs on its own, so a block defines every name it uses (`re
        return DOUBLED.sub(r"\1", text)
    ```
 3. **Action:** fix the text.
-4. **Harm test:** gold set of 142 documents (ind-bn-sangraha-v 142), medicine.md sha256 5a07cd5cd7ac; rule: changed or dropped at most 1% or 1 document, whichever is more.
+4. **Harm test:** gold set of 142 documents (ind-bn-sangraha-v 142), medicine.md sha256 003835270496; rule: changed or dropped at most 1% or 1 document, whichever is more.
    - Changed 0 of 142 (0.00%). Dropped 0 of 142 (0.00%). **PASS**
    - ZWJ/ZWNJ audit: 0 changed documents with a different count. **PASS**
    - Normal-form audit: 0 changed documents left NFC or lost a compatibility character. **PASS**
@@ -271,7 +291,7 @@ Each medicine's code runs on its own, so a block defines every name it uses (`re
        return fixed
    ```
 3. **Action:** fix the text; drop the document if three or more leftovers remain after the fix.
-4. **Harm test:** gold set of 142 documents (ind-bn-sangraha-v 142), medicine.md sha256 5a07cd5cd7ac; rule: changed or dropped at most 1% or 1 document, whichever is more.
+4. **Harm test:** gold set of 142 documents (ind-bn-sangraha-v 142), medicine.md sha256 003835270496; rule: changed or dropped at most 1% or 1 document, whichever is more.
    - Changed 0 of 142 (0.00%). Dropped 0 of 142 (0.00%). **PASS**
    - ZWJ/ZWNJ audit: 0 changed documents with a different count. **PASS**
    - Normal-form audit: 0 changed documents left NFC or lost a compatibility character. **PASS**
@@ -307,7 +327,7 @@ Each medicine's code runs on its own, so a block defines every name it uses (`re
        return TA_VIRAMA_END.sub("\u09CE", text)             # কামেনেত্ -> কামেনেৎ (khanda ta)
    ```
 3. **Action:** fix the text.
-4. **Harm test:** gold set of 142 documents (ind-bn-sangraha-v 142), medicine.md sha256 5a07cd5cd7ac; rule: changed or dropped at most 1% or 1 document, whichever is more.
+4. **Harm test:** gold set of 142 documents (ind-bn-sangraha-v 142), medicine.md sha256 003835270496; rule: changed or dropped at most 1% or 1 document, whichever is more.
    - Changed 0 of 142 (0.00%). Dropped 0 of 142 (0.00%). **PASS**
    - ZWJ/ZWNJ audit: 0 changed documents with a different count. **PASS**
    - Normal-form audit: 0 changed documents left NFC or lost a compatibility character. **PASS**
@@ -353,7 +373,7 @@ Each medicine's code runs on its own, so a block defines every name it uses (`re
        return LATIN_NUMBER.sub(to_bengali, text)
    ```
 3. **Action:** fix the text.
-4. **Harm test:** gold set of 142 documents (ind-bn-sangraha-v 142), medicine.md sha256 5a07cd5cd7ac; rule: changed or dropped at most 1% or 1 document, whichever is more.
+4. **Harm test:** gold set of 142 documents (ind-bn-sangraha-v 142), medicine.md sha256 003835270496; rule: changed or dropped at most 1% or 1 document, whichever is more.
    - Changed 0 of 142 (0.00%). Dropped 0 of 142 (0.00%). **PASS**
    - ZWJ/ZWNJ audit: 0 changed documents with a different count. **PASS**
    - Normal-form audit: 0 changed documents left NFC or lost a compatibility character. **PASS**
@@ -385,7 +405,7 @@ Each medicine's code runs on its own, so a block defines every name it uses (`re
        return ESCAPE.sub(lambda m: "\n" if m.group(1) == "n" else "\t", text)
    ```
 3. **Action:** fix the text.
-4. **Harm test:** gold set of 142 documents (ind-bn-sangraha-v 142), medicine.md sha256 5a07cd5cd7ac; rule: changed or dropped at most 1% or 1 document, whichever is more.
+4. **Harm test:** gold set of 142 documents (ind-bn-sangraha-v 142), medicine.md sha256 003835270496; rule: changed or dropped at most 1% or 1 document, whichever is more.
    - Changed 0 of 142 (0.00%). Dropped 0 of 142 (0.00%). **PASS**
    - ZWJ/ZWNJ audit: 0 changed documents with a different count. **PASS**
    - Normal-form audit: 0 changed documents left NFC or lost a compatibility character. **PASS**
@@ -415,7 +435,7 @@ Each medicine's code runs on its own, so a block defines every name it uses (`re
        return READ_MORE.sub("", text)
    ```
 3. **Action:** fix the text.
-4. **Harm test:** gold set of 142 documents (ind-bn-sangraha-v 142), medicine.md sha256 5a07cd5cd7ac; rule: changed or dropped at most 1% or 1 document, whichever is more.
+4. **Harm test:** gold set of 142 documents (ind-bn-sangraha-v 142), medicine.md sha256 003835270496; rule: changed or dropped at most 1% or 1 document, whichever is more.
    - Changed 0 of 142 (0.00%). Dropped 0 of 142 (0.00%). **PASS**
    - ZWJ/ZWNJ audit: 0 changed documents with a different count. **PASS**
    - Normal-form audit: 0 changed documents left NFC or lost a compatibility character. **PASS**
