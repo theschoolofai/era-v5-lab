@@ -2,36 +2,46 @@
 
 I labelled **500 documents**, all `full`: **239 clean, 231 fix and 30 drop**.
 Disease counts below are document counts; a document can have more than one label.
-I propose **three reusable coded medicines** for unattended use: C5, C1 and C2.
+I retain **three reusable coded medicines** for unattended use: C5, C1 and C2.
 The rules use text structure and metadata syntax, without document IDs, stored offsets,
 word-replacement tables or publisher-specific exceptions. The examples below are evidence,
 not lookup keys. A6 and G1 can be identified generically but have no reliable generic repair;
-they remain under rejected repair proposals. D3 can be detected, but the need for repair depends
-on context. F1 is retained as the last medicine, tested separately from the C5/C1/C2 combination.
-Its expanded phone/email rule passed the 175-document gold harm test and matched all **32 saved
-evidence offsets across 11 F1-labelled documents**. Public-contact matches remain a side effect.
+they remain under rejected repair proposals. D3 can be detected, but repair depends on context.
 
-For the harm test, I used the **175-document combined Kannada gold set**,
-[kannada_gold.csv](https://github.com/theschoolofai/era-v5-lab/blob/2e5bbc37f99313affe35bee66481b28d6d79af0e/teams/02-data-b/gold/kannada_gold.csv),
-and the [Indic harm-test reference](https://github.com/theschoolofai/era-v5-lab/blob/2e5bbc37f99313affe35bee66481b28d6d79af0e/teams/02-data-b/tools/harm_test_indic.py).
-All gold IDs were matched to original source text: **45 ind-kn-fw2, 27 ind-kn-sangraha-s
-and 103 ind-kn-sangraha-v**.
+**Review update, 5 Nov 2026:** I reproduced [millermuttu's review](https://github.com/theschoolofai/era-v5-lab/pull/63#issuecomment-6631031605)
+using the same medicine, pack and **114-document per-pack gold set**. C5, C1 and C2 pass
+individually. **F1 fails (2/114, 1.75%) and is rejected.** Its executable snippet has been removed;
+the three retained medicines are unchanged. The recorded four-rule combined run also fails
+(3/114, 2.63%). The revised **C5 → C1 → C2** combination was then tested on the same
+gold set: **changed 1/114 (0.88%), dropped 0/114, PASS**.
 
-C5, C1, C2 and their **three-rule combination** each changed **0/175** and dropped **0/175** documents:
-**0.00% harm, PASS**. This includes the current generic C1 snippet and the current three-rule
-combination. The result satisfies the template's **at most 1%** limit. Clean-gold harm results
-do not measure repair coverage on damaged documents.
+The current evidence uses [ind-kn-fw2_gold.csv at 724eec3](https://github.com/theschoolofai/era-v5-lab/blob/724eec3/teams/02-data-b/gold/ind-kn-fw2_gold.csv)
+and the [Indic harm-test harness at the same revision](https://github.com/theschoolofai/era-v5-lab/blob/724eec3/teams/02-data-b/tools/harm_test_indic.py).
+The original four-rule medicine was [aeb79b8](https://github.com/LokeshJatangi/era-v5-lab/blob/aeb79b86416f6af7296cb60dd0e62662b8c86629/diagnosis/submissions/ind-kn-fw2/LokeshJatangi/medicine.md),
+sha256 `5092f407bd65`. The revised three-rule medicine was tested as snapshot sha256
+`6a3854f4cddd`; only the documentation has subsequently changed. Both runs used gold
+sha256 `82c4bcaab136` and pack sha256 `3859c21e3f71`.
+The threshold is at most **1.14 of 114 documents** (1% or one document, whichever is more).
+All recorded runs preserve joiner counts and pass the normal-form audit. No document is dropped.
+The rerun left the original inputs unchanged.
 
-The medicines return repaired text without dropping documents, normalizing Unicode or converting
-Kannada digits. Structural deletions preserve joiners and compatibility characters.
-The C5/C1/C2 combination contains no privacy redaction or automatic document-drop rule. F1 redaction is available separately.
+**Why the earlier result used 175 documents:** it used the historical combined Kannada gold set,
+containing **45 ind-kn-fw2, 27 ind-kn-sangraha-s and 103 ind-kn-sangraha-v** documents.
+The updated 114-document set covers **ind-kn-fw2 alone**. They are different evaluation sets,
+not a reduction from 175 to 114 documents in the same sample. Historical results are retained below.
+Clean-gold harm tests measure changes to gold documents, not repair coverage on damaged documents.
+
+The retained medicines return repaired text without dropping documents, normalizing Unicode or
+converting Kannada digits. Structural deletions preserve joiners and compatibility characters.
 
 ## Combined medicines
 
 Load all Python snippets in document order to use the combined function. The text-only reference
 uses the same three-rule order. No accepted rule needs URL provenance or approved spans.
-A6 and G1 have no automatic repair. F1 is tested separately with `--rule F1` and is not in this
-three-rule combination. The reference with `--rule all` also includes the F1 snippet.
+A6 and G1 have no automatic repair. F1 is rejected and has no executable snippet in this sheet.
+The reference with `--rule all` now loads only C5, C1 and C2. On the 114-document
+gold set, this combination changed **1/114 (0.88%)**, dropped **0/114**, and **passed**
+the 1% threshold, joiner audit and normal-form audit (exit code 0).
 
 ```python
 def _rules():
@@ -88,8 +98,10 @@ def medicine_c5(text, url=""):
 
 3. **Action:** Fix text by removing only matched teaser links and hashtag-only lines. No automatic document drop.
 
-4. **Harm test:** **175-document** combined `kannada_gold.csv`, using the referenced Indic harness.
-   **Changed 0/175; dropped 0/175; harm 0.00%; PASS** under the 1% limit.
+4. **Harm test (5 Nov rerun):** **114-document** `ind-kn-fw2_gold.csv` at `724eec3`
+   (sha256 `82c4bcaab136`), revised three-rule medicine snapshot sha256 `6a3854f4cddd`.
+   **Changed 0/114; dropped 0/114; harm 0.00%; PASS** under the 1% limit.
+   ZWJ/ZWNJ and normal-form audits: **PASS**.
 
 5. **Side effects:** a legitimate standalone social-tag list can be removed. A multiword tag such as
 `#sachin tendulkar`, comma-separated tags, blank lines inside teaser lists, or a single teaser is outside
@@ -153,8 +165,10 @@ def medicine_c1(text, url=""):
 
 3. **Action:** Fix text by removing only the recognized standalone metadata and headers. No automatic document drop.
 
-4. **Harm test:** **175-document** combined `kannada_gold.csv`, using the referenced Indic harness.
-   **Changed 0/175; dropped 0/175; harm 0.00%; PASS** under the 1% limit.
+4. **Harm test (5 Nov rerun):** **114-document** `ind-kn-fw2_gold.csv` at `724eec3`
+   (sha256 `82c4bcaab136`), revised three-rule medicine snapshot sha256 `6a3854f4cddd`.
+   **Changed 0/114; dropped 0/114; harm 0.00%; PASS** under the 1% limit.
+   ZWJ/ZWNJ and normal-form audits: **PASS**.
 
 5. **Side effects:** a quoted metadata line or an article genuinely titled `Don't Miss!` can match.
 Date syntax does not prove calendar validity or boilerplate intent. Altered or wrapped metadata,
@@ -213,73 +227,75 @@ def medicine_c2(text, url=""):
 
 3. **Action:** Fix text by retaining the first exact long prose passage and removing later copies. No automatic document drop.
 
-4. **Harm test:** **175-document** combined `kannada_gold.csv`, using the referenced Indic harness.
-   **Changed 0/175; dropped 0/175; harm 0.00%; PASS** under the 1% limit.
+4. **Harm test (5 Nov rerun):** **114-document** `ind-kn-fw2_gold.csv` at `724eec3`
+   (sha256 `82c4bcaab136`), revised three-rule medicine snapshot sha256 `6a3854f4cddd`.
+   **Changed 1/114; dropped 0/114; harm 0.88%; PASS** under the 1% limit.
+   Changed document: `ind-kn-fw2:4d34a1a3048e4e7d`.
+   ZWJ/ZWNJ and normal-form audits: **PASS**.
 
 5. **Side effects:** intentionally restated long prose can still lose a later copy. Verse/layout detection is
 a protective heuristic, not a genre classifier. Different internal whitespace, line wrapping, joiners,
 capitalization or punctuation can prevent a match. Deleting a sentence can leave surrounding blank space;
 that whitespace is deliberately not rewritten.
 
-## Medicine 4 — F1
+## Rejected medicine — F1
 
-1. **Disease:** F1 — private-data candidates; **11 labelled documents**. Three recorded examples:
+**Rejected disease code:** F1 — private-data candidates; **11 labelled documents**.
 
-| doc_id | Type and original offset |
-|---|---|
-| `634f9d4743893171` | phone-number-like token at 20403 |
-| `c472a3db00395ba6` | phone-number-like token at 3081 |
-| `76fdbcb28c49fc27` | phone-number-like token at 4853 |
+The rejected automatic rule replaced ASCII email-address and phone-number-like candidates with
+`[REDACTED]`. Its syntactic matching does not establish private ownership and can redact public
+bank or hospital contact details. **No executable F1 snippet is retained in this sheet.** The
+original implementation remains available in the tested Git revision linked above.
 
-2. **Medicine:** Replace ASCII email-address candidates
-and phone-like numbers with `[REDACTED]`. Accept contiguous **10 or 11 digits**, two groups of
-**5+5 digits**, or a **3+8-digit** city-code/landline grouping separated by spaces or tabs.
-An optional `+` followed by one to three digits and spaces/tabs is consumed as a country prefix;
-no particular country code is hard-coded or required. Never join numbers across line breaks.
-The rule needs no approved spans, document IDs, saved offsets or observed private values.
-This is a syntactic redaction hypothesis, not a private-ownership classifier. Other groupings,
-hyphenated/parenthesized formats and internationalized email addresses are outside its scope.
-Original packs remain unchanged in the harm test.
+**Harm test (5 Nov rerun of the original rule):** changed **2/114 (1.75%)**, dropped **0/114**;
+**FAIL** against the 1% threshold. ZWJ/ZWNJ and normal-form audits: **PASS**.
+Affected documents: `ind-kn-fw2:51f68b9da172f3ae` and `ind-kn-fw2:99aef15a39ddc21c`.
+F1 is rejected for unattended use. The earlier 175-document PASS and saved-offset coverage do
+not override this result. No narrower replacement or reviewer exception is claimed.
 
-```python
-import re
+## Harm-test results — 114-document per-pack gold set
 
-F1_EMAIL = r"(?<![\w.+-])[A-Za-z0-9][A-Za-z0-9._%+-]*@[A-Za-z0-9][A-Za-z0-9.-]*\.[A-Za-z]{2,}(?![\w-])"
-F1_NUMBER = r"(?:[0-9]{10,11}|[0-9]{5}[ \t]+[0-9]{5}|[0-9]{3}[ \t]+[0-9]{8})"
-F1_PHONE = rf"(?<!\w)(?:\+[0-9]{{1,3}}[ \t]+)?{F1_NUMBER}(?!\w)"
-F1_CANDIDATE = re.compile(rf"(?:{F1_EMAIL})|(?:{F1_PHONE})")
+The retained C5/C1/C2 individual and combined rows below were tested after F1 removal,
+using medicine snapshot sha256 `6a3854f4cddd`; the run exited **0 (PASS)**. The rejected
+F1 and original four-rule rows retain the earlier run at `aeb79b8`, sha256 `5092f407bd65`
+(exit **1, FAIL**). Both used the same 114-document gold set, pack and pinned harness.
 
-def medicine_f1(text, url=""):
-    return F1_CANDIDATE.sub("[REDACTED]", text)
+| Rule / run | Gold docs | Changed | Dropped | Harm | Result / decision |
+|---|---:|---:|---:|---:|---|
+| C5 | 114 | 0 | 0 | 0.00% | PASS; retain |
+| C1 | 114 | 0 | 0 | 0.00% | PASS; retain |
+| C2 | 114 | 1 | 0 | 0.88% | PASS; retain |
+| F1, original rule | 114 | 2 | 0 | 1.75% | FAIL; reject |
+| C5 → C1 → C2 → F1, original ALL IN ORDER | 114 | 3 | 0 | 2.63% | FAIL; original four-rule combination not retained |
+| C5 → C1 → C2, revised retained combination | 114 | 1 | 0 | 0.88% | PASS; retain |
+
+C2 changed `ind-kn-fw2:4d34a1a3048e4e7d`. F1 changed the two IDs listed above.
+All completed rows passed the joiner and normal-form audits. The revised combination changes
+only `ind-kn-fw2:4d34a1a3048e4e7d` and passes the 1% threshold.
+
+Reproduction command for the revised three-rule run, using the pinned inputs above:
+
+```bash
+python3 teams/02-data-b/tools/harm_test_indic.py --medicine medicine.md \
+  --pack ind-kn-fw2.parquet --gold-dir teams/02-data-b/gold --show 114
 ```
 
-3. **Action:** Fix text by replacing matched phone/email candidates with `[REDACTED]`; no document
-drop. F1 is available separately from the C5/C1/C2 combination. The matcher does not establish
-private ownership; public contact details can also match.
+This command uses the revised three-rule medicine snapshot `6a3854f4cddd`. The original
+four-rule results above refer to snapshot `5092f407bd65`; the two runs are recorded separately.
 
-4. **Harm test:** **175-document** combined `kannada_gold.csv`, using the referenced Indic harness
-   with `--rule F1`: **changed 0/175; dropped 0/175; harm 0.00%; PASS** under the 1% limit.
-   On the 500-document labelled pack, candidates were found in **11/11 F1-labelled documents**
-   and **32/32 saved evidence offsets matched exactly**, with no missed saved offsets.
-   This validates candidate coverage on those labels, not the private ownership of every match.
+## Historical harm-test results — 175-document combined Kannada gold set
 
-5. **Side effects:** Public contact addresses, publisher phone numbers and ordinary 10- or 11-digit
-numeric values can be redacted. Regex matching does not prove personal ownership. Unsupported
-number groupings, non-ASCII digits and internationalized addresses can be missed. A clean-gold
-PASS would measure harm on this gold set, not establish complete privacy protection.
+The following earlier results used [kannada_gold.csv at 2e5bbc3](https://github.com/theschoolofai/era-v5-lab/blob/2e5bbc37f99313affe35bee66481b28d6d79af0e/teams/02-data-b/gold/kannada_gold.csv)
+and the [Indic harness at that revision](https://github.com/theschoolofai/era-v5-lab/blob/2e5bbc37f99313affe35bee66481b28d6d79af0e/teams/02-data-b/tools/harm_test_indic.py).
+They remain historical evidence only and do not certify the updated 114-document gold set.
 
-## Harm-test results
-
-C5/C1/C2 were tested individually and together on all **175** gold documents. The expanded F1 rule was tested separately:
-
-| Rule / run | Gold docs | Changed | Dropped | Harm | Result |
+| Rule / run | Gold docs | Changed | Dropped | Harm | Historical result |
 |---|---:|---:|---:|---:|---|
 | C5 | 175 | 0 | 0 | 0.00% | PASS |
 | C1 | 175 | 0 | 0 | 0.00% | PASS |
 | C2 | 175 | 0 | 0 | 0.00% | PASS |
 | C5 → C1 → C2, prior ALL IN ORDER | 175 | 0 | 0 | 0.00% | PASS |
-| D3 | — | — | — | — | Detection can be tested; no context-free repair submitted |
-| F1, expanded rule tested separately | 175 | 0 | 0 | 0.00% | PASS |
+| F1, original expanded rule tested separately | 175 | 0 | 0 | 0.00% | PASS; subsequently rejected after 114-document test |
 
 **D3 detection and harm-test status:** Mixed-language candidates can be identified and detector
 accuracy can be tested. A detected language change is not automatically a defect: names, quotations,
@@ -287,8 +303,9 @@ technical terms and ordinary code-switching may be appropriate. Whether to keep,
 text depends on context. No unconditional D3 repair is submitted, so no repair harm-test PASS is
 claimed. Structural boilerplate is handled by the separately tested C1/C5 rules.
 
-**F1 harm-test and coverage status:** The expanded matcher passed on all **175 gold documents**,
-changing 0 and dropping 0. On all 500 original pack documents, it found candidates in **11/11
+**F1 historical coverage, not approval:** The original expanded matcher passed the earlier
+**175-document** gold test, but fails the newer **114-document** test and is now rejected.
+On all 500 original pack documents, it found candidates in **11/11
 F1-labelled documents** and matched **32/32 saved evidence offsets exactly**, with no saved
 candidates missed. The saved offset in `10e60ad0965db2c1` was corrected from the space at 1013
 to the number's actual start at **1014** before recording these coverage counts.
@@ -326,7 +343,7 @@ submitted for either. The disease labels remain valid observations.
 | D4 | Bad machine translation — automatic rewriting | 23 | A reliable correction requires meaning and source context. No generic coded rewrite or drop rule is established. |
 | G2 | Suspected lost ZWJ/ZWNJ — automatic joiner insertion | 21 | Missing joiners cannot be inferred from every conjunct or loanword. A blanket insertion rule can change valid Kannada text. |
 | C3 | Truncation — reconstruction or automatic drop | 9 | An ellipsis, colon or missing final punctuation does not establish missing content or justify dropping a document. |
-| F1 | Previous approved-span-only redaction | 11 | The previous function required human-approved spans and did nothing without them, so that version remains rejected. The current automatic rule is retained as Medicine 4 with a passing gold harm test and 32/32 saved offsets matched; public-contact matches remain a side effect. |
+| F1 | Automatic and previous approved-span-only redaction | 11 | The previous function required human-approved spans and did nothing without them, so that version remains rejected. The expanded automatic rule is also rejected: it changes 2/114 gold documents (1.75%, FAIL). Its historical 175-document PASS and 32/32 saved-offset coverage do not establish safe unattended redaction; public-contact matches remain a side effect. |
 
 Publisher-specific C1 bylines and donation-footer matches were also removed from the retained C1
 medicine. They depend on named hosts and exact publisher text rather than a reusable metadata rule.
