@@ -143,6 +143,9 @@ def medicine_c2(text):
 **Harm test:** **0/269 → PASS**. The ≥5×/≥20-char gate skips benign structural
 repeats (quiz `उत्तर:`, verse refrains) a naive "any repeated line" rule flattens.
 
+**Gold-set harm (142 docs, 3 Nov):** 0/142 changed, 0/142 dropped → **PASS**;
+independently re-run by millermuttu with the same result.
+
 **Side effects:** a genuine 5× rhetorical refrain ≥20 chars would be clipped —
 rare; accept.
 
@@ -230,6 +233,9 @@ The explicit-marker rule touches **1/269 (0.4%) → PASS** — the single hit,
 `c85acdaeebe64599`, ends `…स्लाईड्सवर क्लिक करा...` (a "click next slide" CTA whose
 trailing `...` is rhetorical, not truncation). Under the bar, documented.
 
+**Gold-set harm (142 docs, 3 Nov):** 0/142 changed, 0/142 dropped → **PASS**;
+independently re-run by millermuttu with the same result.
+
 **Side effects:** rare clean docs ending in a rhetorical `...` CTA (1 above) would
 be mis-flagged; the explicit-`[…]`/`Continue Reading` subset avoids even that.
 
@@ -296,6 +302,9 @@ correct, since auto-stripping a parenthetical English run blind is the same
 over-reach that would hit the two D3 glosses; that doc is a `fix` doc already
 settled by reading.
 
+**Gold-set harm (142 docs, 3 Nov):** 0/142 changed, 0/142 dropped → **PASS**;
+independently re-run by millermuttu with the same result.
+
 **Side effects:** none on the clean set under the gate (0/269). Ungated, two D3
 parenthetical glosses would be touched — benign (a kept D3 gloss is not damaged by
 a flag), and the gate removes even that.
@@ -338,6 +347,9 @@ def medicine_b4(text):
 **Harm test:** the naive "remove any `:-`" rule touches **11/269 (4.1%) → FAILS** —
 `:-` is a normal dateline/time separator (`मुंबई :-`, `10:-30`). The **tokens +
 intra-word-`:-` ≥ 3** rule touches **0/269 → PASS**: no clean doc splinters 3+ words.
+
+**Gold-set harm (142 docs, 3 Nov):** 0/142 changed, 0/142 dropped → **PASS**;
+independently re-run by millermuttu with the same result.
 
 **Side effects:** none under the ≥3 gate; the blunt `:-` strip mangles datelines
 (documented — do not ship).
