@@ -7,27 +7,15 @@ Diseases found more than five times: B2 (43), C3 (30), A6 (30), C1 (24), D3 (16)
 C2, C4, B4, A3 are at or below five, so they get no medicine.
 
 All the code is in this file: the `python` blocks, read from top to bottom, make one script. The blocks are the
-imports below, the six medicines, and the harm test at the end. The official harm test is Data B's tool; it runs this
-file as it is:
+import below and the six medicines. The harm test is Data B's tool; it runs this file as it is:
 
 ```
 python3 teams/02-data-b/tools/harm_test_indic.py --medicine medicine.md --pack ind-kn-sangraha-s.parquet \
     --gold-dir teams/02-data-b/gold
 ```
 
-My own script also runs the self-check and the wider checks in the table (my clean rows, labelled docs fixed):
-
-```
-awk '/^ *```python/{f=1;next} /^ *```/{f=0;next} f{sub(/^   /,"");print}' medicine.md > medicine_run.py
-python3 medicine_run.py ind-kn-sangraha-s.parquet teams/02-data-b/gold/ind-kn-sangraha-s_gold.csv labels.csv
-```
-
 ```python
-import csv
 import re
-import sys
-
-import pyarrow.parquet as pq
 ```
 
 ## The harm test, in one table
@@ -209,60 +197,3 @@ have labelled C1 or C3. They are misses in my label sheet, not harm.
 4. **Harm test:** gold 0 changed, 0 dropped of 27. PASS (the rule keeps every text).
 5. **Side effects:** none on the text. The ratio does not see Latin words (English, German) because Latin is normal in
    this pack (names, units, acronyms).
-
-## The harm test code
-
-`main` runs every medicine on the gold documents that are in the pack, and on my own clean rows. It also counts how
-many of the labelled documents each medicine touches. `selftest` is the smallest check that each rule still works.
-
-```python
-def effect(fn, text):
-    out = fn(text)
-    return "drop" if out is True else ("change" if out != text else "same")
-
-
-def main(pack, gold_csv, labels_csv):
-    docs = {r["doc_id"]: r["text"] for r in pq.read_table(pack, columns=["doc_id", "text"]).to_pylist()}
-    gold = [r["doc_id"] for r in csv.DictReader(open(gold_csv, encoding="utf-8"))]
-    gold = [g for g in gold if g in docs]
-    labels = list(csv.DictReader(open(labels_csv, encoding="utf-8")))
-    clean = [r["doc_id"] for r in labels if r["verdict"] == "clean"]
-    print(f"pack {len(docs)} docs, gold in pack {len(gold)}, my clean rows {len(clean)}")
-    print("med disease | gold changed dropped | my-clean changed dropped | labelled docs touched | pack touched")
-    medicines = [("M1", "B2", m1_tags), ("M2", "B3", m2_ghost), ("M3", "A6", m3_half_translated),
-                 ("M4", "C1", m4_footer), ("M5", "C3", m5_dangling_intro)]
-    limit = max(1, 0.01 * len(gold))  # 1% of the gold set or 1 document, whichever is more
-    for name, code, fn in medicines:
-        g = [effect(fn, docs[i]) for i in gold]
-        c = [effect(fn, docs[i]) for i in clean]
-        sick = [r["doc_id"] for r in labels if code in r["diseases"].split(";")]
-        hit = sum(effect(fn, docs[i]) != "same" for i in sick)
-        allp = sum(effect(fn, t) != "same" for t in docs.values())
-        verdict = "PASS" if (g.count("change") + g.count("drop")) <= limit else "FAIL"
-        print(f"{name}  {code}  | {g.count('change'):3d} {g.count('drop'):3d} {verdict} | "
-              f"{c.count('change'):3d} {c.count('drop'):3d} | {hit}/{len(sick)} | {allp}")
-    sick = [r["doc_id"] for r in labels if "D3" in r["diseases"].split(";")]
-    print("M6  D3  | no text change; foreign-letter ratio of D3 docs:",
-          sorted(round(m6_foreign_ratio(docs[i]), 3) for i in sick))
-
-
-def selftest():
-    assert m1_tags("ಅ <ಐ. ಡಿ. 1> ಬ") == "ಅ ಬ"
-    assert m1_tags("ಅ<ಬಿ. ಆರ್.>ಬ") == "ಅ\nಬ"
-    assert m1_tags("<> </Â>x") == " x"
-    assert m1_tags("2 < 3 > 1") == "2 < 3 > 1"  # a comparison is not a tag
-    assert m2_ghost("ಅ<unk>ಬ") == "ಅಬ"
-    assert m3_half_translated("(i.ಇ. ಪಳೆಯುಳಿಕೆ)") == "(ಅಂದರೆ ಪಳೆಯುಳಿಕೆ)"
-    assert m4_footer("ಪಠ್ಯ " * 20 + "\nಉಲ್ಲೇಖಗಳು.\nಮೂಲಗಳು") == ("ಪಠ್ಯ " * 20).rstrip()
-    assert m5_dangling_intro("ಒಂದು.\nಅವು ಹೀಗಿವೆಃ") == "ಒಂದು.\n"
-    assert m5_dangling_intro("ಒಂದು. ಅವು ಹೀಗಿವೆಃ") == "ಒಂದು.\n"
-    assert m5_dangling_intro("ಅವು ಹೀಗಿವೆಃ") is True
-    assert m5_dangling_intro("ಒಂದು.") == "ಒಂದು."
-
-
-if __name__ == "__main__":
-    selftest()
-    if len(sys.argv) < 4:
-        sys.exit("usage: python3 medicine_run.py PACK.parquet GOLD.csv labels.csv")
-    main(*sys.argv[1:4])
-```
