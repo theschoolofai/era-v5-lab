@@ -16,8 +16,12 @@ question, so the scores can be rechecked from the repo), and `logs/` (the two ch
 
 - **Tolerance of check 3.** `TOL` in check 3 of `test_llamacpp_lm.py` is 0.10, not 0.05: Q4_K_M had a cache-vs-fresh difference of
   0.0786 (bf16: 0.0000). Checks 1 and 2 passed (`log p(' Paris')` -0.095 = generation -0.095). The notebook version is therefore
-  `ec7db60966d6+phi3tol0.10`, and these runs must not be combined with the OLMoE ones. The cause of the 0.0786 is being checked with a
-  rerun of Q4_K_M with the prefix cache off; the result will be added here.
+  `ec7db60966d6+phi3tol0.10`, and these runs must not be combined with the OLMoE ones. Diagnostic rerun of Q4_K_M with the prefix cache off (every request scored from scratch,
+  notebook `ec7db60966d6+phi3nocache`, TOL 0.05): check 3 passes (`logs/test_llamacpp_lm_Q4_K_M_nocache.log`, max diff 0.0000, trivially,
+  as both paths are then from scratch). Scores are unchanged within noise (mean 64.04 vs 64.02): ARC 54.6/54.6, HellaSwag 64.8/64.5,
+  MMLU 69.3/69.5, GSM8K 74.5/74.5, TruthfulQA 57.0/57.0 (no-cache/cached). 10 of 1,870 items flip (ARC 6, HellaSwag 1, MMLU 3). So the
+  0.0786 comes from the cached path (reused prefix, small continuation batch) and flips a few near-tie items; the cause inside the
+  quantized kernels is not proven. The scores in `runs.csv` are from the cached run.
 - **Model fields in `summary.json`.** `run_mini_gguf.py` writes the OLMoE default into `run_meta.model` and `run_meta.model_revision`.
   **I corrected those two fields in the committed files** (to `microsoft/Phi-3-mini-4k-instruct` and the revision above) and added
   `run_meta.fields_corrected_by_hand` with the original values. Nothing else in the two files was changed. The unmodified output is in
