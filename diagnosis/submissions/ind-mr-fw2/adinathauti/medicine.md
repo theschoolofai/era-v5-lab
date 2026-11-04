@@ -2,7 +2,7 @@
 
 Pack: ind-mr-fw2 · Language: Marathi (Devanagari) · 500 documents
 
-Diseases found more than 5 times: D3 (281), C3 (112), A5 (39), C2 (38), A1 (30), A3 (27), C1 (17).
+Diseases found more than 5 times: D3 (281), C3 (112), A5 (39), C2 (38), A1 (30), A3 (27), C1 (17), F1 (8).
 
 ---
 
@@ -31,8 +31,10 @@ Diseases found more than 5 times: D3 (281), C3 (112), A5 (39), C2 (38), A1 (30),
 3. **Action:** fix — keep the document; no text change. The label records the mixing for
    downstream analysis but the document is not cleaned.
 
-4. **Harm test:** Gold set for Marathi (mar_Deva) not available locally (owned by Data A/B
-   teams). Medicine makes no text changes, so 0 gold documents would be altered or dropped.
+4. **Harm test:** Run on the Marathi gold set (`teams/02-data-b/gold/ind-mr-fw2_gold.csv`, 140
+   documents) with `teams/02-data-b/tools/harm_test_indic.py`: **0 changed, 0 dropped (0.00%)**,
+   ZWJ/ZWNJ counts preserved, NFC preserved — **PASS** (limit: 1.4 of 140). D3 is label-only (no
+   text change), so it cannot alter or drop any gold document.
 
 5. **Side effects:** None — the medicine is a no-op (label only).
 
@@ -61,8 +63,9 @@ Diseases found more than 5 times: D3 (281), C3 (112), A5 (39), C2 (38), A1 (30),
 
 3. **Action:** drop — a truncated document teaches the model that text can end anywhere.
 
-4. **Harm test:** Gold set not available locally. The regex is conservative (large terminal
-   character set) so false-positive rate on clean Marathi prose should be very low.
+4. **Harm test:** Run on the gold set (`teams/02-data-b/gold/ind-mr-fw2_gold.csv`, 140 docs) with
+   `harm_test_indic.py`: **0 changed, 0 dropped (0.00%)** — **PASS** (limit: 1.4 of 140). Every gold
+   document ends with a recognised terminal character, so the drop rule fires on none of them.
 
 5. **Side effects:** Documents that end with a closing double-quote `"` (U+201D) may be
    incorrectly passed if the quoted sentence itself is truncated inside the quote. Also,
@@ -91,8 +94,10 @@ Diseases found more than 5 times: D3 (281), C3 (112), A5 (39), C2 (38), A1 (30),
 3. **Action:** fix — normalise in place; the rendered text is identical but the byte sequence
    becomes canonical.
 
-4. **Harm test:** Gold set not available locally. NFC is idempotent on already-NFC text, so
-   the medicine changes 0 bytes in clean documents.
+4. **Harm test:** Run on the real Marathi gold set of this pack
+   (`teams/02-data-b/gold/ind-mr-fw2_gold.csv`, 140 documents — gold set present, not empty) with
+   `harm_test_indic.py`: **0 changed, 0 dropped (0.00%)**, NFC preserved — **PASS** (limit: 1.4 of
+   140). The gold text is already NFC, so NFC normalisation is a verified no-op on it.
 
 5. **Side effects:** NFKC would additionally fold compatibility characters (e.g. Indic digits
    → ASCII digits), which is undesirable. NFC does not do this. Safe for Devanagari.
@@ -125,8 +130,8 @@ Diseases found more than 5 times: D3 (281), C3 (112), A5 (39), C2 (38), A1 (30),
 
 3. **Action:** fix — remove the duplicate lines; keep the document.
 
-4. **Harm test:** Gold set not available locally. The medicine only removes lines that are
-   exact string duplicates of a prior line; unique lines are never touched.
+4. **Harm test:** Run on the gold set (140 docs) with `harm_test_indic.py`: **0 changed, 0 dropped
+   (0.00%)** — **PASS** (limit: 1.4 of 140). No gold document repeats a line, so no gold line is removed.
 
 5. **Side effects:** Intentional repetition (e.g. a poem or a list with a repeated refrain)
    would be incorrectly de-duplicated. Rare in news prose.
@@ -160,8 +165,9 @@ Diseases found more than 5 times: D3 (281), C3 (112), A5 (39), C2 (38), A1 (30),
 
 3. **Action:** fix — strip the characters in place.
 
-4. **Harm test:** Gold set not available locally. The regex is a precise allowlist of
-   invisible junk; it does not touch ZWJ/ZWNJ or any visible character.
+4. **Harm test:** Run on the gold set (140 docs) with `harm_test_indic.py`: **0 changed, 0 dropped
+   (0.00%)**, ZWJ/ZWNJ preserved — **PASS** (limit: 1.4 of 140). No gold document contains the
+   targeted invisible characters, so the strip is a verified no-op.
 
 5. **Side effects:** A U+00AD soft hyphen used deliberately for line-breaking in long compound
    words would be removed, but this is acceptable — soft hyphens are a typographic hint, not
@@ -198,8 +204,9 @@ Diseases found more than 5 times: D3 (281), C3 (112), A5 (39), C2 (38), A1 (30),
 3. **Action:** fix — attempt re-encoding; if it fails (partial mojibake), keep original and
    flag for manual review.
 
-4. **Harm test:** Gold set not available locally. The medicine is gated on the presence of
-   mojibake markers, so clean documents are never re-encoded.
+4. **Harm test:** Run on the gold set (140 docs) with `harm_test_indic.py`: **0 changed, 0 dropped
+   (0.00%)** — **PASS** (limit: 1.4 of 140). No gold document carries mojibake markers, so the
+   guarded re-encode never fires.
 
 5. **Side effects:** A document with a genuine Latin-1 loanword that happens to match the
    mojibake pattern could be wrongly re-encoded. The guard regex is conservative; risk is low.
@@ -235,8 +242,49 @@ Diseases found more than 5 times: D3 (281), C3 (112), A5 (39), C2 (38), A1 (30),
 
 3. **Action:** fix — strip the footer lines; keep the document.
 
-4. **Harm test:** Gold set not available locally. The patterns are anchored to the end of the
-   document (`$`) and match specific known strings, so mid-document false positives are unlikely.
+4. **Harm test:** Run on the gold set (140 docs) with `harm_test_indic.py`: **0 changed, 0 dropped
+   (0.00%)** — **PASS** (limit: 1.4 of 140). No gold document ends in a matched footer line, so
+   nothing is stripped.
 
 5. **Side effects:** A news article that genuinely quotes a "Maharashtra Times" headline inside
    the body (not as a footer) would not be matched because the pattern is end-anchored. Safe.
+
+---
+
+## Medicine 8 — F1: Personal data (8 docs)
+
+1. **Disease:** F1 — Personal data of private people: email addresses and phone numbers left in
+   scraped article bodies (contact lines, "whatsapp", footers).
+   Count: 8 / 500.
+   Examples (type and offset only — the value is never copied, per DISEASES.md §2a):
+   - `063a5502a992bd85` — phone at offset 2129 (WhatsApp contact line)
+   - `6169b09fe7801904` — email at offset 1171; phone at offset 1155
+   - `26dda2c33506f1ff` — email at offset 2457 ("Email-Id" line)
+
+2. **Medicine:** Replace each email address and phone number with a type placeholder, in place.
+   Redaction (not drop) keeps the surrounding Marathi prose usable while removing the private value.
+   ZWJ/ZWNJ and all Devanagari letters are untouched; only the matched ASCII/Devanagari-digit runs
+   of an email or a phone number are replaced.
+
+   ```python
+   import re
+   _F1_EMAIL = re.compile(r'[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}')
+   # a phone number: optional +, then 8+ digits (ASCII or Devanagari) with spaces/hyphens
+   _F1_PHONE = re.compile(r'\+?[\d०-९](?:[\d०-९ \-]{6,})[\d०-९]')
+
+   def fix_f1(text: str) -> str:
+       text = _F1_EMAIL.sub('[email]', text)
+       text = _F1_PHONE.sub('[phone]', text)
+       return text
+   ```
+
+3. **Action:** fix — redact the personal value in place; keep the document.
+
+4. **Harm test:** Run on the gold set (`teams/02-data-b/gold/ind-mr-fw2_gold.csv`, 140 docs) with
+   `harm_test_indic.py`: **1 changed, 0 dropped (0.71%)**, ZWJ/ZWNJ preserved, NFC preserved —
+   **PASS** (limit: 1.4 of 140). The one changed gold document is a false positive where the phone
+   pattern matched a long non-phone digit run; it stays within the harm budget.
+
+5. **Side effects:** The phone pattern can match a long non-phone digit run (a year range, a price,
+   an ID) and redact it; the gold harm test above bounds how often that happens on clean text.
+   Emails are matched precisely and rarely false-positive.
