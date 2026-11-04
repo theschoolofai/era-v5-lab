@@ -1,8 +1,6 @@
 # Runbook: CPU checkpoint restore and crash recovery
 
-Independent Week 2 rotation evidence. This document follows the scope of
-[PR #291](https://github.com/theschoolofai/era-v5-lab/pull/291), with this member's
-own runs and measurements. Results are recorded in
+Results are recorded in
 [`rotation_hema.json`](../results/rotation_hema.json) and
 [`rotation_hema.txt`](../results/rotation_hema.txt).
 
