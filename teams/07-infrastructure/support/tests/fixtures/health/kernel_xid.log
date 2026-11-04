@@ -1,0 +1,5 @@
+2026-10-27T03:10:01+0000 c2 kernel: NVRM: Xid (PCI:0000:3b:00): 13, pid=4242, Graphics Exception: ESR 0x404600=0x80000002
+2026-10-27T03:12:44+0000 c2 kernel: NVRM: Xid (PCI:0000:5c:00): 79, pid=4242, GPU has fallen off the bus.
+2026-10-27T03:12:45+0000 c2 kernel: NVRM: Xid (PCI:0000:5c:00): 94, pid=4242, Contained ECC error.
+2026-10-27T03:13:00+0000 c2 kernel: NVRM: Xid (PCI:0000:3b:00): 157, pid=4242, an unknown code
+2026-10-27T03:13:30+0000 c2 kernel: usb 1-1: new high-speed USB device number 2

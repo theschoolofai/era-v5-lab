@@ -1,0 +1,5 @@
+gpu-1 allocated
+gpu-2 allocated
+gpu-3 idle
+gpu-5 idle~
+gpu-6 idle~

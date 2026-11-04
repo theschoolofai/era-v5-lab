@@ -19,7 +19,7 @@ jobs:
           script: |
             const TEAMS = ["01-data-a","02-data-b","03-tokenizer","04-ke2","05-architecture","06-performance",
               "07-infrastructure","08-monitoring","09-evaluation","10-post-training","11-release","12-quantization"];
-            const PACKS = ["cadj-commits","cadj-notebooks","cadj-stackexchange","code-cpp","code-go","code-java",
+            const PACKS = ["cadj-commits","chandassu","cadj-notebooks","cadj-stackexchange","code-cpp","code-go","code-java",
               "code-js-ts","code-python","code-rust","en-dclm","en-fineweb-edu","en-nemotroncc","en-nemotroncc-synth",
               "ind-bn-fw2","ind-bn-sangraha-v","ind-gu-fw2","ind-hi-fw2","ind-hi-hplt","ind-hi-indiccorp",
               "ind-hi-sangraha-s","ind-hi-sangraha-v","ind-kn-fw2","ind-kn-sangraha-s","ind-kn-sangraha-v","ind-ml-fw2",
