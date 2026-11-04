@@ -1,0 +1,126 @@
+Independent G7 rotation evidence. Source commit: ddfe977ea8f771ba6fa9137c1e9f46aade0125d1
+Public log paths replace member-specific paths with $REPO, $VENV and $SCRATCH.
+Execution used OMP_NUM_THREADS=1, MKL_NUM_THREADS=1, CUDA_VISIBLE_DEVICES empty.
+Initial sandbox attempt hit PermissionError before training; successful measured commands follow.
+
+=== restore_1p_1 ===
+$ python teams/07-infrastructure/jobs/restore_test/restore_test.py --nproc 1 --out $SCRATCH/restore_1p_1
+exit=0 whole_command_wall_s=6.675465
+W1104 21:59:17.254000 5778 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:17.948000 5780 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:20.541000 5781 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:22.049000 5801 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+PASS restore_test nproc=1 cpu: steps 101-200: loss_ntp and loss_mtp bit-equal, data ids equal
+
+=== restore_1p_2 ===
+$ python teams/07-infrastructure/jobs/restore_test/restore_test.py --nproc 1 --out $SCRATCH/restore_1p_2
+exit=0 whole_command_wall_s=4.993043
+W1104 21:59:23.521000 5805 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:24.169000 5810 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:25.668000 5815 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:27.066000 5819 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+PASS restore_test nproc=1 cpu: steps 101-200: loss_ntp and loss_mtp bit-equal, data ids equal
+
+=== restore_1p_3 ===
+$ python teams/07-infrastructure/jobs/restore_test/restore_test.py --nproc 1 --out $SCRATCH/restore_1p_3
+exit=0 whole_command_wall_s=5.086259
+W1104 21:59:28.530000 5823 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:29.187000 5830 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:30.676000 5834 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:32.106000 5840 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+PASS restore_test nproc=1 cpu: steps 101-200: loss_ntp and loss_mtp bit-equal, data ids equal
+
+=== restore_2p_1 ===
+$ python teams/07-infrastructure/jobs/restore_test/restore_test.py --nproc 2 --out $SCRATCH/restore_2p_1
+exit=0 whole_command_wall_s=6.059611
+W1104 21:59:33.625000 5844 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:34.387000 5849 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:34.388000 5850 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:36.185000 5860 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:36.185000 5859 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:37.982000 5865 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:37.982000 5866 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+PASS restore_test nproc=2 cpu: steps 101-200: loss_ntp and loss_mtp bit-equal, data ids equal
+
+=== restore_2p_2 ===
+$ python teams/07-infrastructure/jobs/restore_test/restore_test.py --nproc 2 --out $SCRATCH/restore_2p_2
+exit=0 whole_command_wall_s=6.026267
+W1104 21:59:39.701000 5872 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:40.460000 5880 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:40.461000 5879 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:42.306000 5893 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:42.306000 5892 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:44.018000 5898 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:44.019000 5897 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+PASS restore_test nproc=2 cpu: steps 101-200: loss_ntp and loss_mtp bit-equal, data ids equal
+
+=== restore_2p_3 ===
+$ python teams/07-infrastructure/jobs/restore_test/restore_test.py --nproc 2 --out $SCRATCH/restore_2p_3
+exit=0 whole_command_wall_s=5.984553
+W1104 21:59:45.742000 5902 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:46.451000 5918 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:46.451000 5917 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:48.319000 5923 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:48.319000 5924 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:50.016000 5928 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:50.016000 5929 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+PASS restore_test nproc=2 cpu: steps 101-200: loss_ntp and loss_mtp bit-equal, data ids equal
+
+=== restart ===
+$ python teams/07-infrastructure/jobs/restart_test/restart_test.py --out $SCRATCH/restart --also-kill-at 31,99,164 --report $SCRATCH/restart_cpu_hema.txt
+exit=0 whole_command_wall_s=18.065728
+W1104 21:59:51.720000 5933 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:52.412000 5940 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:54.181000 5945 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+[supervisor] attempt 0: exit -9 (crash: killed by SIGKILL) -> restart (crash: retry), latest.json at step 25
+W1104 21:59:55.104000 5954 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+[supervisor] attempt 1: exit 0 (done) -> stop (finished)
+W1104 21:59:56.729000 5958 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 21:59:58.404000 5962 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+[supervisor] attempt 0: exit -9 (crash: killed by SIGKILL) -> restart (crash: retry), latest.json at step 75
+W1104 21:59:59.518000 5966 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+[supervisor] attempt 1: exit 0 (done) -> stop (finished)
+W1104 22:00:01.017000 5970 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 22:00:02.718000 5974 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+[supervisor] attempt 0: exit -9 (crash: killed by SIGKILL) -> restart (crash: retry), latest.json at step 150
+W1104 22:00:04.066000 5978 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+[supervisor] attempt 1: exit 0 (done) -> stop (finished)
+restart_test: run restart, device cpu, steps 200, save every 25, kill after step 140, torch 2.14.1
+W1104 22:00:05.293000 5984 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+W1104 22:00:06.990000 5988 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+[supervisor] attempt 0: exit -9 (crash: killed by SIGKILL) -> restart (crash: retry), latest.json at step 125
+W1104 22:00:08.258000 5993 torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+[supervisor] attempt 1: exit 0 (done) -> stop (finished)
+PASS restart_test cpu: SIGKILL after step 141, restarted from COMPLETE checkpoint step 125, steps 1-200: loss_ntp and loss_mtp bit-equal, data ids equal
+
+=== pytest ===
+$ python -m pytest -q -ra -p no:cacheprovider --basetemp $SCRATCH/pytest_tmp --junitxml $SCRATCH/pytest.xml teams/07-infrastructure/support/tests teams/07-infrastructure/ckpt/test_supervisor.py teams/07-infrastructure/layout/test_parallel_layout.py
+exit=0 whole_command_wall_s=63.141395
+.............s.....sssssssss............................................ [ 55%]
+.........................................................                [100%]
+=============================== warnings summary ===============================
+teams/07-infrastructure/support/tests/test_ckpt.py::test_t8_export_safetensors
+teams/07-infrastructure/support/tests/test_ckpt.py::test_t24_old_attempt_cannot_commit_after_takeover
+teams/07-infrastructure/support/tests/test_ckpt.py::test_t27_async_save_owns_its_copy
+teams/07-infrastructure/support/tests/test_ckpt.py::test_t28_frozen_change_refused_at_save
+teams/07-infrastructure/support/tests/test_ckpt.py::test_t30_other_data_manifest_refused
+  $VENV/lib/python3.12/site-packages/torch/distributed/checkpoint/utils.py:488: UserWarning: torch.distributed is disabled, unavailable or uninitialized, assuming the intent is to load in a single process.
+    return func(*args, **kwargs)
+
+teams/07-infrastructure/support/tests/test_ckpt.py::test_t24_old_attempt_cannot_commit_after_takeover
+teams/07-infrastructure/support/tests/test_ckpt.py::test_t27_async_save_owns_its_copy
+teams/07-infrastructure/support/tests/test_ckpt.py::test_t28_frozen_change_refused_at_save
+teams/07-infrastructure/support/tests/test_ckpt.py::test_t30_other_data_manifest_refused
+  $VENV/lib/python3.12/site-packages/torch/distributed/checkpoint/utils.py:488: UserWarning: torch.distributed is disabled, unavailable or uninitialized, assuming the intent is to save in a single process.
+    return func(*args, **kwargs)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+SKIPPED [1] teams/07-infrastructure/support/tests/test_ckpt.py:244: FSDP2 needs 2 CUDA GPUs (runs on Kaggle (2 GPUs))
+SKIPPED [3] teams/07-infrastructure/support/tests/test_ckpt.py:329: needs deepspeed and 2 ranks
+SKIPPED [1] teams/07-infrastructure/support/tests/test_ckpt.py:351: needs deepspeed and 2 ranks
+SKIPPED [1] teams/07-infrastructure/support/tests/test_ckpt.py:368: needs deepspeed and 2 ranks
+SKIPPED [1] teams/07-infrastructure/support/tests/test_ckpt.py:379: needs deepspeed and 2 ranks
+SKIPPED [2] teams/07-infrastructure/support/tests/test_ckpt.py:393: needs deepspeed and 2 ranks
+SKIPPED [1] teams/07-infrastructure/support/tests/test_ckpt.py:403: DeepSpeed fp16 needs 2 CUDA GPUs (Kaggle (2 GPUs))
+119 passed, 10 skipped, 9 warnings in 62.67s (0:01:02)
