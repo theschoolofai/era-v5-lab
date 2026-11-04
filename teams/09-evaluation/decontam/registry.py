@@ -11,11 +11,14 @@ import json
 import os
 import re
 import sys
+import tarfile
 import tomllib
 import urllib.request
 from pathlib import Path
 
 REGISTRY = Path(__file__).resolve().parent / "benchmarks.toml"
+REPO_ROOT = Path(__file__).resolve().parents[3]  # a relative 'local' path is relative to the repo root
+BOILERPLATE_DIR = Path(__file__).resolve().parent / "boilerplate"  # same folder as fpset.BOILERPLATE_DIR
 STATUSES = ("active", "planned", "skip")
 
 # Text kinds. A code token is shorter than a prose word ("import numpy as np" is 4 tokens),
@@ -75,7 +78,7 @@ def validate(bid, b):
         for f in b.get("files", []):
             if not f.get("sha256") and b.get("source") != "local":
                 p.append(f"{f.get('path')}: pin the file with 'sha256'")
-            if Path(f.get("path", "")).suffix.lstrip(".") not in READERS:
+            if file_format(f) not in READERS:
                 p.append(f"{f.get('path')}: format must be one of {sorted(READERS)}")
         if not any(b.get(k) for k in KINDS):
             p.append(f"an active benchmark needs templates in one of {KINDS}")
@@ -90,6 +93,9 @@ def validate(bid, b):
                     p.append(f"unknown filter '{name}'")
     if not isinstance(b.get("tags", []), list):
         p.append("'tags' must be a list")
+    for rel in b.get("boilerplate", []):
+        if not (BOILERPLATE_DIR / rel).is_file():
+            p.append(f"boilerplate file not found: {rel}")
     return p
 
 
@@ -140,8 +146,9 @@ def _fetch_url(bid, b, f, cache):
 
 
 def _fetch_local(bid, b, f, cache):
-    # For private sets (for example FrontierMath, if TSAI gets it) and for tests.
-    return Path(os.path.expanduser(f["path"]))
+    # For private sets (for example FrontierMath, if TSAI gets it), files in this repo and tests.
+    path = Path(os.path.expanduser(f["path"]))
+    return path if path.is_absolute() else REPO_ROOT / path
 
 
 SOURCES = {"hf": _fetch_hf, "url": _fetch_url, "local": _fetch_local}
@@ -204,7 +211,49 @@ def _read_csv(path, columns):
             yield _keep(row, columns)
 
 
-READERS = {"parquet": _read_parquet, "jsonl": _read_jsonl, "json": _read_json, "csv": _read_csv}
+# "# BENCHMARK DATA SHOULD NEVER ... terminal-bench-canary GUID 26b5c67b-..." -> "terminal-bench-canary GUID 26b5c67b-..."
+# The GUID alone is BIG-bench's (HLE's canary has it too), so the prefix is kept: it names the benchmark.
+TASK_CANARY = re.compile(r"[\w-]*canary GUID [0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}")
+NOT_TEXT = (".enc", ".gz", ".tar", ".zip", ".png", ".jpg", ".jpeg", ".gif", ".pdf", ".bin", ".pt")
+
+
+def _read_task_dirs(path, columns):
+    """A .tar.gz of task folders (Terminal-Bench): one row for each folder with a task.toml.
+
+    Row fields: id (the folder name), instruction (instruction.md), solution (solution/solve.sh) and
+    canary (the first canary string in any text file of the folder). The archive is read in memory
+    and never extracted, so its paths cannot write anywhere.
+    """
+    with tarfile.open(path, "r:gz") as t:
+        tasks = {}
+        for m in t.getmembers():
+            parts = m.name.split("/", 2)  # <archive root>/<task folder>/<file>
+            if m.isfile() and len(parts) == 3:
+                tasks.setdefault(parts[1], {})[parts[2]] = m
+
+        def text(m):
+            return t.extractfile(m).read().decode("utf-8", "replace") if m else None
+
+        for tid in sorted(tasks):
+            files = tasks[tid]
+            if "task.toml" not in files:
+                continue
+            row = {"id": tid, "instruction": text(files.get("instruction.md")),
+                   "solution": text(files.get("solution/solve.sh"))}
+            if "canary" in columns:
+                hits = (TASK_CANARY.search(text(files[name])) for name in sorted(files)
+                        if not name.lower().endswith(NOT_TEXT))
+                row["canary"] = next((h.group() for h in hits if h), None)
+            yield _keep(row, columns)
+
+
+READERS = {"parquet": _read_parquet, "jsonl": _read_jsonl, "json": _read_json, "csv": _read_csv,
+           "task_dirs": _read_task_dirs}
+
+
+def file_format(f):
+    """The reader of a file: its 'format' key, else its extension. BFCL's .json files are JSON Lines."""
+    return f.get("format") or Path(f.get("path", "")).suffix.lstrip(".")
 
 
 # ---- text templates: "{field|filter|filter}" ----
@@ -227,6 +276,9 @@ FILTERS = {
     # "BENCHMARK DATA SHOULD NEVER ... canary GUID hle:3r2s:26b5c67b-..." -> "hle:3r2s:26b5c67b-..."
     "guid": lambda v: (re.search(r"\w+:\w+:[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", str(v)) or
                        re.search(r".+", str(v))).group(),
+    # BFCL "question": a list of turns, each a list of {"role", "content"} messages -> the user text
+    "user_turns": lambda v: "\n".join(str(m["content"]) for turn in _as_list(v) for m in _as_list(turn)
+                                      if isinstance(m, dict) and m.get("role") == "user"),
 }
 
 FIELD_RE = re.compile(r"\{([^{}|]+)((?:\|\w+)*)\}")  # field names can have spaces: {Final answer}
@@ -280,8 +332,8 @@ def items(bid, b, cache, canaries=None):
     split = b.get("split", "test")
     cols = fields(b)
     n, seen = 0, set()
-    for path in fetch(bid, b, cache):
-        for row in READERS[Path(path).suffix.lstrip(".")](path, cols):
+    for f, path in zip(b["files"], fetch(bid, b, cache)):
+        for row in READERS[file_format(f)](path, cols):
             item_id = render(b["id"], row) if b.get("id") else str(n)
             n += 1
             if b.get("dedupe"):
