@@ -1,28 +1,28 @@
 doc_id,read,verdict,diseases,evidence,hex,note
 0bf5c7545be53534,full,clean,,,,
-1b0eab31c6e19e40,full,fix,D4,ಜೀವಮಾನದ ಒಪ್ಪಂದವನ್ನು ಪಡೆದರು at offset 323,U+0C9C U+0CC0 U+0CB5 U+0CAE U+0CBE U+0CA8 U+0CA6 U+0020 U+0C92 U+0CAA U+0CCD U+0CAA U+0C82 U+0CA6 U+0CB5 U+0CA8 U+0CCD U+0CA8 U+0CC1 U+0020 U+0CAA U+0CA1 U+0CC6 U+0CA6 U+0CB0 U+0CC1,Bad machine translation
-1d09e7232d5a9e58,full,clean,,,,Relaxed from D5 (overlooked): association takes a plural human verb; evidence: 1962ರಿಂದ ಸಾಮಾಜಿಕ ಕಾರ್ಯಕರ್ತರ ಸಂಸ್ಥೆಗಳ ಸ್ಥಾಯಿ ಸಮ್ಮೇಳನದ ಸದಸ್ಯರಾಗಿದ್ದರು at offset 369
+1b0eab31c6e19e40,full,fix,D4,ಜೀವಮಾನದ ಒಪ್ಪಂದವನ್ನು ಪಡೆದರು at offset 323,,Bad machine translation
+1d09e7232d5a9e58,full,clean,,,,Relaxed D5 passes this.
 22cd5d17094fbb49,full,clean,,,,Machine-translated shell description; English terms left untranslated
 4538a0eab672d96f,full,clean,,,,
-4a61a2840739d273,full,clean,,,,Relaxed rules pass this. ಗುಂಪು ಹಂತದ ನಿರ್ಗಮನದಲ್ಲಿ at offset 963
-6fe7955f9dcca08d,full,clean,,,,Relaxed from D5 (overlooked): races take an honorific human verb; evidence: ಜಿಪಿ ಡಿ ಪ್ಲೌಯಿ ಬದಲಾಯಿಸಿದರು at offset 274
-7413f9ef1f35a6a9,full,clean,,,,"Relaxed from D5 (overlooked): title ಮೈಕೆಲ್ vs body ಮಿಚೆಲ್; stray quotes around Cardinal; evidence: ಕ್ರೆಸೆನ್ಜಿಯೋ ""ಕಾರ್ಡಿನಲ್"" ಸೆಪೆ at offset 494"
-79519b0dcca1226c,full,clean,,ವ್ಯಾಕರಣ ಶಾಲೆಯಲ್ಲಿ at offset 719 | ಸ್ನಾತಕೋತ್ತರ ಕಲೆಯೊಂದಿಗೆ ಪದವಿ at offset 566,,
-7c72b29fe1159297,full,fix,D4,"ರಚಿಸಲಾಯಿತು, ಮಹಿಳೆಯರು ಸೇವೆ ಸಲ್ಲಿಸಲು ಉತ್ಸುಕರಾಗಿದ್ದರು, ಜೊತೆಗೆ ವಾಯುಪಡೆ at offset 99",U+0CB0 U+0C9A U+0CBF U+0CB8 U+0CB2 U+0CBE U+0CAF U+0CBF U+0CA4 U+0CC1 U+002C U+0020 U+0CAE U+0CB9 U+0CBF U+0CB3 U+0CC6 U+0CAF U+0CB0 U+0CC1 U+0020 U+0CB8 U+0CC7 U+0CB5 U+0CC6 U+0020 U+0CB8 U+0CB2 U+0CCD U+0CB2 U+0CBF U+0CB8 U+0CB2 U+0CC1 U+0020 U+0C89 U+0CA4 U+0CCD U+0CB8 U+0CC1 U+0C95 U+0CB0 U+0CBE U+0C97 U+0CBF U+0CA6 U+0CCD U+0CA6 U+0CB0 U+0CC1 U+002C U+0020 U+0C9C U+0CCA U+0CA4 U+0CC6 U+0C97 U+0CC6 U+0020 U+0CB5 U+0CBE U+0CAF U+0CC1 U+0CAA U+0CA1 U+0CC6,Machine-translated; Incoherent
-7d9b03e1a823b03a,full,clean,,,,Relaxed from D5 (overlooked): literal visits a range of flowers; evidence: ಹೂವುಗಳ ಶ್ರೇಣಿಯನ್ನು ಭೇಟಿ ಮಾಡುತ್ತದೆ at offset 591
-7fd9125541575408,full,fix,D4,ಉದಾಹರಣೆಗೆ 1401  at offset 498,U+0C89 U+0CA6 U+0CBE U+0CB9 U+0CB0 U+0CA3 U+0CC6 U+0C97 U+0CC6 U+0020 U+0031 U+0034 U+0030 U+0031 U+0020,Machine-translated; protocol rendered as ಶಿಷ್ಟಾಚಾರ. Half sentences.
+4a61a2840739d273,full,clean,,,,Relaxed rules pass this
+6fe7955f9dcca08d,full,clean,,,,Relaxed from D5 (overlooked):
+7413f9ef1f35a6a9,full,clean,,,,Relaxed from D5 (overlooked):
+79519b0dcca1226c,full,clean,,,,
+7c72b29fe1159297,full,fix,D4,"ಜೊತೆಗೆ ವಾಯುಪಡೆಯ ಮುಖ್ಯಸ್ಥರು, at offset 151",,Machine-translated
+7d9b03e1a823b03a,full,clean,,,,Relaxed from D5 
+7fd9125541575408,full,fix,D4,"ಲಗತ್ತಿಸಲಾಗಿದೆ, ಉದಾಹರಣೆಗೆ 1401  at offset 483",,"Half translation. ಲಗತ್ತಿಸಲಾಗಿದೆ, ಉದಾಹರಣೆಗೆ 1401 "
 80ec26e5644e6569,full,clean,,,,
 825761868c5dd386,full,drop,D4,ಚಿಕಿತ್ಸಕ ಅವಕಾಶ at offset 559 | ಮನಶ್ಶಾಸ್ತ್ರಜ್ಞನನ್ನು at offset 644 | ಇದು ವಿದ್ಯಾರ್ಥಿಗಳಿಗೆ at offset 769,,"Machine-translated; provision as ಅವಕಾಶ, masculine noun for a woman, she becomes ಇದು; school name spelt three ways"
-8a8dc27b4a86d5b9,full,clean,,,,No disease apart from G2 (skipped); title ಡಿ 'ಓಸ್ಟೆ vs body ಡಿ 'ಒಯೆಸ್ಟೆ
-94552b481a3cf4fd,full,clean,,,,Relaxed from D5 (overlooked): Games rendered as ಆಟ; evidence: ಇದು ಆಟವೊಂದರಲ್ಲಿ ಅವರ ಅತ್ಯುತ್ತಮ ಫಲಿತಾಂಶವಾಗಿತ್ತು at offset 534
-96d43ee81a0e801c,full,clean,,,,"Relaxed from D4 (overlooked): Russian Orthodox becomes Russian traditional; quotes misplaced; ಚಾಟೆವ್ vs ಚೇಟೋ; evidence: ಔವರ್ನೆ ""ಪ್ರದೇಶದ"" at offset 115 | ರಷ್ಯಾದ ಸಾಂಪ್ರದಾಯಿಕ ಮಠವಾಗಿ at offset 481"
-a31508215ac74ccd,full,clean,,,,Relaxed from D5 (overlooked): killed in action rendered literally; evidence: ಆತ ಕಾರ್ಯಾಚರಣೆಯಲ್ಲಿ ಕೊಲ್ಲಲ್ಪಟ್ಟರು at offset 307
+8a8dc27b4a86d5b9,full,clean,,,,
+94552b481a3cf4fd,full,clean,,,,Relaxed D5 passes this.
+96d43ee81a0e801c,full,clean,,,,Relaxed from D4 (overlooked):
+a31508215ac74ccd,full,clean,,,,Relaxed from D5 (overlooked):
 b607c6ffc2ce50dc,full,clean,,,,
 c65b2eb0c2754e06,full,clean,,,,
 c9c71a193c8817c4,full,clean,,,,
-cd729466137551e1,full,clean,,,,Relaxed from D5 (overlooked): name spelt ಕ್ಯಾಂಟರ್/ಕಾನ್ಟರ್/ಕಾಂಟರ್; evidence: ತಮ್ಮನ್ನು ತಾವು ಸ್ಥಾಪಿಸಿಕೊಂಡರು at offset 488 | ಪದಕಗಳ ಹೊರತಾಗಿ ನಾಲ್ಕನೇ ಸ್ಥಾನದಲ್ಲಿ at offset 2612
-df939b576048ab70,full,clean,,,,Relaxed from D5 (overlooked): proper names translated word by word; evidence: ನೈತಿಕ ಸಂಸ್ಕೃತಿ ಫೀಲ್ಡ್ಸ್ಟನ್ ಶಾಲೆಯಲ್ಲಿ at offset 647
-e70b7b40d6d9332d,full,clean,,,,Relaxed from D5 (overlooked): literal phrasing; evidence: ಹೆಸ್ಟ್ರಿ ಕ್ಲೋಟೆಯಿಂದ ಈ ಸ್ಪರ್ಧೆಯಲ್ಲಿ ತಮ್ಮ ದೇಶದ ಯಶಸ್ಸನ್ನು ವಿಸ್ತರಿಸಿದರು at offset 192
-e7b59fdbff9ec346,full,fix,D4,ಸ್ಮಿತ್ಸ್ ಫಾಲ್ಸ್ಗೆ ಉದ್ಘಾಟಿಸಲಾಯಿತು at offset 786,U+0CB8 U+0CCD U+0CAE U+0CBF U+0CA4 U+0CCD U+0CB8 U+0CCD U+0020 U+0CAB U+0CBE U+0CB2 U+0CCD U+0CB8 U+0CCD U+0C97 U+0CC6 U+0020 U+0C89 U+0CA6 U+0CCD U+0C98 U+0CBE U+0C9F U+0CBF U+0CB8 U+0CB2 U+0CBE U+0CAF U+0CBF U+0CA4 U+0CC1 U+002E,Machine-translated; railway name Canadian Northern read as north of Canada; last sentence garbled
-ebfe9c51c247aebf,full,clean,,ಚುನಾವಣೆಗಳ ನಡುವಿನ at offset 91 | ಈ ಸದಸ್ಯರ ಅರ್ಧದಷ್ಟು ಸದಸ್ಯರು at offset 239,,Machine-translated; literal phrasing; 
-ef8b3f6622d5c7ab,full,clean,,,,Relaxed from D5 (overlooked): ದತ್ತಾಂಶ and ಡೇಟಾ used for the same word; evidence: ಡೇಟಾ ಪೇಲೋಡ್ ಅನ್ನು at offset 637
+cd729466137551e1,full,clean,,,,Relaxed from D5 
+df939b576048ab70,full,clean,,,,Relaxed from D5 
+e70b7b40d6d9332d,full,clean,,,,(overlooked): literal phrasing; 
+e7b59fdbff9ec346,full,fix,D4,ಸ್ಮಿತ್ಸ್ ಫಾಲ್ಸ್ಗೆ ಉದ್ಘಾಟಿಸಲಾಯಿತು at offset 786,,Machine-translated; railway name Canadian Northern read as north of Canada; last sentence garbled
+ebfe9c51c247aebf,full,clean,,,,Machine-translated; literal phrasing; 
+ef8b3f6622d5c7ab,full,clean,,,,Relaxed from D5 (
