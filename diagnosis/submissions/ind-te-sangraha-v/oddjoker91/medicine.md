@@ -1,44 +1,23 @@
 # Medicine sheet: ind-te-sangraha-v (oddjoker91)
 
-## Medicine 1: C6 — proposed code; punctuation and formatting candidates
+## Medicine 1: C6 — proposed code; repeated-dot normalization
 
-1. **Disease:** C6, **proposed code**. The instructor permits retaining C6 labels; final code adoption is a Gate 2 decision. There are 113 C6-labelled documents in the prepared 500-row export (three legacy I1 punctuation labels were renamed to C6).
+1. **Disease:** C6, **proposed code**. The instructor permits retaining C6 labels; final code adoption is a Gate 2 decision. There are 113 C6-labelled documents in the 500-row export (three legacy I1 punctuation labels were renamed to C6). Examples: `2a0cfe90fd36e4ed` has `. .`; `11960d16258cd4b5` has `..`; `05fa567dfc849e6b` has `. . .`.
 
-   Examples of repeated dots: `2a0cfe90fd36e4ed` has `. .`; `11960d16258cd4b5` has `..`; `05fa567dfc849e6b` has `. . .`.
-
-   Decimal examples: `f157a5cbd2fa544a` has `3. 28`; `6f4cb20218d172f1` has `7. 5`; `aab312911c6dde7b` has `6. 1`.
-
-2. **Medicine:** Two candidate steps, in this order:
-   - Join digits separated by a single full stop followed by horizontal spaces: `3. 67` → `3.67`. Do not cross line breaks or modify a single full stop without digits on both sides. This may also repair a spaced version number; it cannot determine whether a numeric sequence is a decimal or a numbered-list item.
-   - Normalize two or more ASCII dots, including horizontal whitespace between dots, to exactly `...`. Existing `...`, single dots and Unicode `…` remain unchanged; do not join dots across line breaks.
+2. **Medicine:** Normalize two or more ASCII dots, including horizontal whitespace between dots, to exactly `...`. Existing `...`, single dots and Unicode `…` remain unchanged. Do not join dots across line breaks. Decimal normalization is a separate deferred candidate below and is not called by this medicine.
 
    ```python
    import re
    _DOT_RUN = re.compile(r'\.(?:[^\S\r\n]*\.)+')
-   _DECIMAL = re.compile(r'(?<![\d.])(\d+)\.[ \t]+(\d+)(?![\d.])')
-   def _dots(text):
-       return _DOT_RUN.sub('...', text)
-   def _decimals(text):
-       return _DECIMAL.sub(r'\1.\2', text)
    def medicine_c6(text):
-       return _dots(_decimals(text))
+       return _DOT_RUN.sub('...', text)
    ```
 
-3. **Action:** Fix text only; never drop a document. **The combined candidate currently fails the gold test and is not ready for deployment.** No cleaned source text has been written back. The full-pack checks below measured in-memory transformations only.
+3. **Action:** Fix punctuation only; never drop a document. No cleaned text is written back to the source pack.
 
-4. **Harm test:** Tested on the current upstream `ind-te-sangraha-v_gold.csv`, all 18 documents, using Data B's official `harm_test_indic.py` on 2026-11-04. The limit is max(1 document, 1%): one document here. Each variant was run in isolation, and the combined function above was also tested.
+4. **Harm test:** **PASS** in isolation: 1/18 gold documents changed (5.56%), 0 dropped, zero errors; ZWJ/ZWNJ and NFC/compatibility-character audits PASS. The official limit is max(1 document, 1%): one document for this small set. This is a pass under that allowance, not a strict percentage-only 1% threshold. Changed gold ID: `85644a4840025b6f`. On the full diagnosis pack, 241 documents change in memory; 93 are C6-labelled. A match does not prove a defect.
 
-   | Candidate | Changed | Dropped | Result |
-   | --- | ---: | ---: | --- |
-   | Dots only | 1/18 (5.56%) | 0 | PASS |
-   | Decimal spacing only | 1/18 (5.56%) | 0 | PASS |
-   | Both C6 steps, combined | 2/18 (11.11%) | 0 | **FAIL** |
-
-   All variants had zero execution errors and passed the ZWJ/ZWNJ and NFC/compatibility-character audits. Dots change gold ID `85644a4840025b6f`; decimal spacing changes a different gold ID, `d0919ae0e6249f93`. Separate passes do not establish that their combination passes. Keep the gold set fixed; narrow the candidate on linguistic grounds or retain it for later review.
-
-   On the full 500-document diagnosis pack, dots affect 241 documents and decimal spacing affects 29; both steps together affect 251. These are in-memory measurements, not edits written to the source. This medicine does not resolve every C6 issue. English-prefix removal is a separate D3 medicine below.
-
-   Reproduce the combined test using the original pack (or its lossless doc_id/text JSONL export):
+   Reproduce the active C6/C1/D3 pipeline using the original pack or its lossless doc_id/text JSONL export:
 
    ```sh
    python3 teams/02-data-b/tools/harm_test_indic.py \
@@ -47,9 +26,19 @@
      --gold-dir teams/02-data-b/gold --rule all --show 20
    ```
 
-   Gold CSV Git blob: `e56a1e80788f5879d669f139eef8b1be64661129`. Harness Git blob: `5164392c541c4ef7b2516d5ca512fe263592e813`. No pooled language set or private replacement gold was used.
+   **Active pipeline result (C6 → C1 → D3): PASS**, changed 1/18 (5.56%), dropped 0, errors 0; joiner and normal-form audits PASS. The deferred decimal candidate is excluded.
 
-5. **Side effects:** Repeated dots can be intentional style, including four dots for a full stop plus ellipsis; structured text can contain meaningful repeated dots. Numeric sequences can be list numbering rather than decimals. This proposal does not fix unmatched quotes, word segmentation, missing unit spaces, excessive line breaks or unrelated trailing content. Review those separately; do not infer that a changed document is now clean.
+   Tested on 2026-11-04. Gold CSV Git blob: `e56a1e80788f5879d669f139eef8b1be64661129` (18 documents, exact pack). Harness Git blob: `5164392c541c4ef7b2516d5ca512fe263592e813`. No pooled or replacement gold used.
+
+5. **Side effects:** Repeated dots can be intentional writing style, including four dots representing a sentence-ending full stop plus ellipsis. Code, paths and other structured text may use dots meaningfully. This proposal does not fix every C6 issue or establish that affected documents become clean.
+
+### Separate C6 candidate: decimal normalization — deferred, not active
+
+- **Proposed action:** Join a single full stop and horizontal spaces between digits: `3. 67` → `3.67`, without crossing line breaks. Examples: `f157a5cbd2fa544a` (`3. 28`), `6f4cb20218d172f1` (`7. 5`), `aab312911c6dde7b` (`6. 1`).
+- **Candidate expression:** `re.sub(r'(?<![\d.])(\d+)\.[ \t]+(\d+)(?![\d.])', r'\1.\2', text)`.
+- **Standalone gold result:** 1/18 changed (5.56%), 0 dropped, zero errors; joiner and normal-form audits PASS under the same small-set allowance. Changed gold ID: `d0919ae0e6249f93`. Full-pack candidate affects 29 documents, 14 C6-labelled.
+- **Why deferred:** dots plus decimals together change 2/18 gold documents (11.11%) and **FAIL**. The failure is retained here; splitting the description does not make that combination safe. The candidate is excluded from the executable Python blocks and from `--rule all`; do not deploy both together without a new passing joint test.
+- **Side effects:** numeric sequences may be list numbering, times or versions rather than decimal quantities. Needs further review or a linguistically justified narrower condition. The gold set stays fixed.
 
 ## Medicine 2: C1 — remove marked English-led opening link lines
 
@@ -79,7 +68,7 @@
 
 3. **Action:** Fix text, never drop the document. This targets opening website-link/hashtag blocks identified in the C1 evidence. It does not establish that every English-led bullet or heading is boilerplate.
 
-4. **Harm test:** **PASS.** Official Data B harness on the current real 18-document gold set: changed 0/18 (0%), dropped 0/18, errors 0; ZWJ/ZWNJ and NFC/compatibility-character audits PASS. Gold and harness Git blobs are the same as reported for C6 above. Use the reproduction command above with `--rule C1`. Full-pack in-memory check: 20/500 documents change, including 17 C1-labelled documents and three additional candidates requiring review. Eight synthetic scope tests pass (marker variants, mixed-language lines, Telugu-led bullets, line-window limit, empty-output guard and CRLF preservation). This standalone pass does not change the failing C6 or combined-pipeline result.
+4. **Harm test:** **PASS.** Official Data B harness on the current real 18-document gold set: changed 0/18 (0%), dropped 0/18, errors 0; ZWJ/ZWNJ and NFC/compatibility-character audits PASS. Gold and harness Git blobs are the same as reported for C6 above. Use the reproduction command above with `--rule C1`. Full-pack in-memory check: 20/500 documents change, including 17 C1-labelled documents and three additional candidates requiring review. Eight synthetic scope tests pass (marker variants, mixed-language lines, Telugu-led bullets, line-window limit, empty-output guard and CRLF preservation). The active C6/C1/D3 pipeline is tested together; deferred candidates are excluded.
 
 5. **Side effects:** Legitimate opening bullet points or Markdown headings can match, including meaningful mixed-language content. Unmarked boilerplate and marked lines after the fifth non-empty line remain. The empty-output guard deliberately keeps documents composed only of matching lines. Do not infer that a fixed document is fully clean, or deploy solely because gold passes.
 
