@@ -1,0 +1,210 @@
+{
+  "hash_format": "ke2-codec-float32-v1",
+  "hash_serialization": "sorted JSON header plus LF; then all output values as row-major little-endian float32",
+  "scope": "raw-table forward codec, three fresh processes, fixed ascending order and batch size; no learned projection",
+  "measurement_mode": "strict deterministic algorithms disabled; CPU fallback and MPS fast math disabled",
+  "comparison": {
+    "rtol": 1e-05,
+    "atol": 1e-06
+  },
+  "summary": {
+    "32": {
+      "rows_per_run": 131072,
+      "full_vocabulary": true,
+      "mps_three_hashes_match": true,
+      "cpu_three_hashes_match": true,
+      "cpu_mps_bitwise_equal": false,
+      "cpu_mps_all_close": true,
+      "max_absolute_difference": 7.62939453125e-06,
+      "strict_probe_statuses": [
+        "rejected_no_deterministic_implementation",
+        "rejected_no_deterministic_implementation",
+        "rejected_no_deterministic_implementation"
+      ]
+    },
+    "64": {
+      "rows_per_run": 131072,
+      "full_vocabulary": true,
+      "mps_three_hashes_match": true,
+      "cpu_three_hashes_match": true,
+      "cpu_mps_bitwise_equal": false,
+      "cpu_mps_all_close": true,
+      "max_absolute_difference": 1.52587890625e-05,
+      "strict_probe_statuses": [
+        "rejected_no_deterministic_implementation",
+        "rejected_no_deterministic_implementation",
+        "rejected_no_deterministic_implementation"
+      ]
+    }
+  },
+  "runs": [
+    {
+      "environment": {
+        "codec_source_sha256": "08f08f13df5c648c94b1bf4a0a610e228d3602f719f3cde56bbb68325a94d38a",
+        "cpu_fallback": false,
+        "cpu_threads": 1,
+        "device": "mps",
+        "dtype": "float32",
+        "machine": "arm64",
+        "macos_version": "26.6.2",
+        "mps_fast_math": false,
+        "numpy_version": "2.2.6",
+        "python_version": "3.10.12",
+        "tokenizer_sha256": "01d968a7970b029c071b29f060abf6104b66168dedf2ff3b1a0290a545739fff",
+        "torch_version": "2.14.1"
+      },
+      "tables": {
+        "32": {
+          "batch_size": 512,
+          "bitwise_different_rows": 62623,
+          "bitwise_different_values": 508304374,
+          "cpu_sha256": "2fc24ff54abc7f6c14a01900a00b0cf4717aa1186d297ec9406f7853a90b4341",
+          "first_id": 0,
+          "last_id": 131071,
+          "max_absolute_difference": 7.62939453125e-06,
+          "mps_sha256": "e9910d71cdffc51ee38d43ee9e94e5c44387330a08347f5fe151a52b74011cb0",
+          "rows": 131072,
+          "strict_probe": {
+            "error": "scatter_reduce_mps does not have a deterministic implementation, but you set 'torch.use_deterministic_algorithms(True)'. You can turn off determinism just for this operation, or you can use the 'warn_only=True' option, if that's acceptable for your application. You can also file an issue at https://github.com/pytorch/pytorch/issues to help us prioritize adding deterministic support for this operation.",
+            "rows": 8,
+            "status": "rejected_no_deterministic_implementation"
+          },
+          "table_sha256": "b3f5476ec6ae8a6bc3a8ca18e6662d2407645c2ed6f3b3ca4561a9bafd8d04db",
+          "values_outside_tolerance": 0,
+          "vocabulary_size": 131072
+        },
+        "64": {
+          "batch_size": 512,
+          "bitwise_different_rows": 83216,
+          "bitwise_different_values": 1072767921,
+          "cpu_sha256": "c099efad99471e08a4a8bcdd43d9d48ccf1cad9493a696b05633224a0703d545",
+          "first_id": 0,
+          "last_id": 131071,
+          "max_absolute_difference": 1.52587890625e-05,
+          "mps_sha256": "67340dadfeaaaa6eb1db8da0fd6e16b61a0a1f0c90381af7b54daa2e979740ce",
+          "rows": 131072,
+          "strict_probe": {
+            "error": "scatter_reduce_mps does not have a deterministic implementation, but you set 'torch.use_deterministic_algorithms(True)'. You can turn off determinism just for this operation, or you can use the 'warn_only=True' option, if that's acceptable for your application. You can also file an issue at https://github.com/pytorch/pytorch/issues to help us prioritize adding deterministic support for this operation.",
+            "rows": 8,
+            "status": "rejected_no_deterministic_implementation"
+          },
+          "table_sha256": "3c7b3eedb78a34f88212906838565e4c920fdbb1eb04f5cf0b28d0f583ea6f5a",
+          "values_outside_tolerance": 0,
+          "vocabulary_size": 131072
+        }
+      }
+    },
+    {
+      "environment": {
+        "codec_source_sha256": "08f08f13df5c648c94b1bf4a0a610e228d3602f719f3cde56bbb68325a94d38a",
+        "cpu_fallback": false,
+        "cpu_threads": 1,
+        "device": "mps",
+        "dtype": "float32",
+        "machine": "arm64",
+        "macos_version": "26.6.2",
+        "mps_fast_math": false,
+        "numpy_version": "2.2.6",
+        "python_version": "3.10.12",
+        "tokenizer_sha256": "01d968a7970b029c071b29f060abf6104b66168dedf2ff3b1a0290a545739fff",
+        "torch_version": "2.14.1"
+      },
+      "tables": {
+        "32": {
+          "batch_size": 512,
+          "bitwise_different_rows": 62623,
+          "bitwise_different_values": 508304374,
+          "cpu_sha256": "2fc24ff54abc7f6c14a01900a00b0cf4717aa1186d297ec9406f7853a90b4341",
+          "first_id": 0,
+          "last_id": 131071,
+          "max_absolute_difference": 7.62939453125e-06,
+          "mps_sha256": "e9910d71cdffc51ee38d43ee9e94e5c44387330a08347f5fe151a52b74011cb0",
+          "rows": 131072,
+          "strict_probe": {
+            "error": "scatter_reduce_mps does not have a deterministic implementation, but you set 'torch.use_deterministic_algorithms(True)'. You can turn off determinism just for this operation, or you can use the 'warn_only=True' option, if that's acceptable for your application. You can also file an issue at https://github.com/pytorch/pytorch/issues to help us prioritize adding deterministic support for this operation.",
+            "rows": 8,
+            "status": "rejected_no_deterministic_implementation"
+          },
+          "table_sha256": "b3f5476ec6ae8a6bc3a8ca18e6662d2407645c2ed6f3b3ca4561a9bafd8d04db",
+          "values_outside_tolerance": 0,
+          "vocabulary_size": 131072
+        },
+        "64": {
+          "batch_size": 512,
+          "bitwise_different_rows": 83216,
+          "bitwise_different_values": 1072767921,
+          "cpu_sha256": "c099efad99471e08a4a8bcdd43d9d48ccf1cad9493a696b05633224a0703d545",
+          "first_id": 0,
+          "last_id": 131071,
+          "max_absolute_difference": 1.52587890625e-05,
+          "mps_sha256": "67340dadfeaaaa6eb1db8da0fd6e16b61a0a1f0c90381af7b54daa2e979740ce",
+          "rows": 131072,
+          "strict_probe": {
+            "error": "scatter_reduce_mps does not have a deterministic implementation, but you set 'torch.use_deterministic_algorithms(True)'. You can turn off determinism just for this operation, or you can use the 'warn_only=True' option, if that's acceptable for your application. You can also file an issue at https://github.com/pytorch/pytorch/issues to help us prioritize adding deterministic support for this operation.",
+            "rows": 8,
+            "status": "rejected_no_deterministic_implementation"
+          },
+          "table_sha256": "3c7b3eedb78a34f88212906838565e4c920fdbb1eb04f5cf0b28d0f583ea6f5a",
+          "values_outside_tolerance": 0,
+          "vocabulary_size": 131072
+        }
+      }
+    },
+    {
+      "environment": {
+        "codec_source_sha256": "08f08f13df5c648c94b1bf4a0a610e228d3602f719f3cde56bbb68325a94d38a",
+        "cpu_fallback": false,
+        "cpu_threads": 1,
+        "device": "mps",
+        "dtype": "float32",
+        "machine": "arm64",
+        "macos_version": "26.6.2",
+        "mps_fast_math": false,
+        "numpy_version": "2.2.6",
+        "python_version": "3.10.12",
+        "tokenizer_sha256": "01d968a7970b029c071b29f060abf6104b66168dedf2ff3b1a0290a545739fff",
+        "torch_version": "2.14.1"
+      },
+      "tables": {
+        "32": {
+          "batch_size": 512,
+          "bitwise_different_rows": 62623,
+          "bitwise_different_values": 508304374,
+          "cpu_sha256": "2fc24ff54abc7f6c14a01900a00b0cf4717aa1186d297ec9406f7853a90b4341",
+          "first_id": 0,
+          "last_id": 131071,
+          "max_absolute_difference": 7.62939453125e-06,
+          "mps_sha256": "e9910d71cdffc51ee38d43ee9e94e5c44387330a08347f5fe151a52b74011cb0",
+          "rows": 131072,
+          "strict_probe": {
+            "error": "scatter_reduce_mps does not have a deterministic implementation, but you set 'torch.use_deterministic_algorithms(True)'. You can turn off determinism just for this operation, or you can use the 'warn_only=True' option, if that's acceptable for your application. You can also file an issue at https://github.com/pytorch/pytorch/issues to help us prioritize adding deterministic support for this operation.",
+            "rows": 8,
+            "status": "rejected_no_deterministic_implementation"
+          },
+          "table_sha256": "b3f5476ec6ae8a6bc3a8ca18e6662d2407645c2ed6f3b3ca4561a9bafd8d04db",
+          "values_outside_tolerance": 0,
+          "vocabulary_size": 131072
+        },
+        "64": {
+          "batch_size": 512,
+          "bitwise_different_rows": 83216,
+          "bitwise_different_values": 1072767921,
+          "cpu_sha256": "c099efad99471e08a4a8bcdd43d9d48ccf1cad9493a696b05633224a0703d545",
+          "first_id": 0,
+          "last_id": 131071,
+          "max_absolute_difference": 1.52587890625e-05,
+          "mps_sha256": "67340dadfeaaaa6eb1db8da0fd6e16b61a0a1f0c90381af7b54daa2e979740ce",
+          "rows": 131072,
+          "strict_probe": {
+            "error": "scatter_reduce_mps does not have a deterministic implementation, but you set 'torch.use_deterministic_algorithms(True)'. You can turn off determinism just for this operation, or you can use the 'warn_only=True' option, if that's acceptable for your application. You can also file an issue at https://github.com/pytorch/pytorch/issues to help us prioritize adding deterministic support for this operation.",
+            "rows": 8,
+            "status": "rejected_no_deterministic_implementation"
+          },
+          "table_sha256": "3c7b3eedb78a34f88212906838565e4c920fdbb1eb04f5cf0b28d0f583ea6f5a",
+          "values_outside_tolerance": 0,
+          "vocabulary_size": 131072
+        }
+      }
+    }
+  ]
+}

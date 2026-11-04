@@ -1,0 +1,152 @@
+{
+ "duration_s": 165,
+ "passed": 13,
+ "total": 13,
+ "drills": [
+  {
+   "drill": "accounts",
+   "pass": true,
+   "accepted_job": "1",
+   "state": "COMPLETED",
+   "mainrun_preempts": "debug,normal",
+   "rejected_no_account": "sbatch: error: Batch job submission failed: Invalid account or account/partition combination specified"
+  },
+  {
+   "drill": "limit_wrong_account_refused",
+   "pass": true,
+   "message": "sbatch: error: Batch job submission failed: Invalid account or account/partition combination specified"
+  },
+  {
+   "drill": "limit_no_account_refused",
+   "pass": true,
+   "message": "sbatch: error: Batch job submission failed: Invalid account or account/partition combination specified"
+  },
+  {
+   "drill": "limit_gpu_share_waits",
+   "pass": true,
+   "third_job": [
+    "PENDING",
+    "AssocGrpGRES"
+   ],
+   "idle_gpu_nodes": "1"
+  },
+  {
+   "drill": "limit_cross_user_cancel_refused",
+   "pass": true,
+   "bob_scancel": "scancel: error: Kill job error on job id 2: Access/permission denied",
+   "state_after": "RUNNING"
+  },
+  {
+   "drill": "limit_gpus_per_job_refused",
+   "pass": true,
+   "gpus": 6,
+   "message": "sbatch: error: QOSMaxGRESPerJob\nsbatch: error: Batch job submission failed: Job violates accounting/QOS policy (job submit limit, user's size and/or time limits"
+  },
+  {
+   "drill": "limit_maxwall_refused",
+   "pass": true,
+   "time": "25:00:00",
+   "message": "sbatch: error: QOSMaxWallDurationPerJobLimit\nsbatch: error: Batch job submission failed: Job violates accounting/QOS policy (job submit limit, user's size and/o"
+  },
+  {
+   "drill": "limit_debug_qos",
+   "pass": true,
+   "second": [
+    "PENDING",
+    "QOSMaxJobsPerUserLimit"
+   ],
+   "third_refused": "sbatch: error: QOSMaxSubmitJobPerUserLimit\nsbatch: error: Batch job submission failed: Job violates ",
+   "two_gpus_refused": "sbatch: error: QOSMaxGRESPerJob\nsbatch: error: Batch job submission failed: Job violates accounting/"
+  },
+  {
+   "drill": "health_gpu_checks_run",
+   "pass": true,
+   "nodes": {
+    "c1": [
+     "pass",
+     "pass",
+     "pass",
+     "pass"
+    ],
+    "c2": [
+     "pass",
+     "pass",
+     "pass",
+     "pass"
+    ],
+    "c3": [
+     "pass",
+     "pass",
+     "pass",
+     "pass"
+    ]
+   }
+  },
+  {
+   "drill": "health_planted_faults",
+   "pass": true,
+   "faults": [
+    {
+     "fault": "gpus: 1 temperature.gpu=92",
+     "check": "gpu_temperature",
+     "status": "fail",
+     "verdict": "fail"
+    },
+    {
+     "fault": "gpus: 0 ecc.errors.uncorrected.volatile.total=",
+     "check": "ecc_uncorrectable",
+     "status": "fail",
+     "verdict": "fail"
+    },
+    {
+     "fault": "remap: 0 failure",
+     "check": "remapped_rows",
+     "status": "fail",
+     "verdict": "fail"
+    },
+    {
+     "fault": "nvlink: GPU 0: Fake\n\t Link 0: <inactive>\n\t Link ",
+     "check": "nvlink",
+     "status": "fail",
+     "verdict": "fail"
+    },
+    {
+     "fault": "dmesg: NVRM: Xid (PCI:0000:3b:00): 79, pid=1, G",
+     "check": "xid",
+     "status": "fail",
+     "verdict": "fail"
+    },
+    {
+     "fault": "dmesg: NVRM: Xid (PCI:0000:3b:00): 94, pid=1, C",
+     "check": "xid",
+     "status": "warn",
+     "verdict": "warn"
+    }
+   ]
+  },
+  {
+   "drill": "health_nvlink_drains_node",
+   "pass": true,
+   "reason": "v5:nvlink",
+   "drained_reason": "nvlink"
+  },
+  {
+   "drill": "preemption",
+   "pass": true,
+   "main_job": "10",
+   "preempted_team_runs": [
+    "ladder-arch",
+    "ladder-perf"
+   ],
+   "team_saved_before_exit": true,
+   "seconds_submit_to_running": 4.6
+  },
+  {
+   "drill": "kill_process_1",
+   "pass": true,
+   "node": "c1",
+   "restored_step": 129,
+   "lost_steps": 11
+  }
+ ]
+}
