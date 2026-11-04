@@ -1,0 +1,5 @@
+# Local environments and caches; never committed.
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/

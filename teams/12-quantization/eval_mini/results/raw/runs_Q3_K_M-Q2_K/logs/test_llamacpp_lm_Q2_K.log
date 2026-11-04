@@ -1,0 +1,4 @@
+Error in sitecustomize; set PYTHONVERBOSE for traceback:
+ModuleNotFoundError: No module named 'wrapt'
+OLMoE-1B-7B-0924-Q2_K.gguf: log p(' Paris') = -0.914, generation -0.944, off-by-one value -7.592; cache max diff 0.0209
+PASS

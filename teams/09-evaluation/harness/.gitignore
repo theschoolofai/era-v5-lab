@@ -1,0 +1,7 @@
+# Local harness state. Never commit model weights, datasets or raw harness output.
+runs/
+.venv/
+venv/
+__pycache__/
+*.pyc
+hf_cache/
