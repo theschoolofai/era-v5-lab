@@ -8,14 +8,24 @@ Three codes appear more than five times, so this sheet has three medicines.
 
 ## A note on the harm test
 
-`teams/02-data-b/gold/` holds gold sets for Indic packs only (`gold_coverage.csv` lists the
-`ind-*` packs and no `code-*` pack), so there is no official gold set for `code-rust`.
+The official gold set is now in the repository: `teams/01-data-a/gold/code-rust_gold.csv`,
+**234 documents** (`doc_id`, `reader_1`, `reader_2` — two independent readers). Every number
+below is measured on it with `teams/01-data-a/tools/harm_test.py`. The limit for this gold set
+is `max(1, floor(1% of 234))` = **2 documents** changed or dropped per rule.
 
-For the harm test I used a **local gold set: the 253 documents that I marked `clean` in my
-own pack** (`read=full`, `verdict=clean`, empty `diseases`, `evidence`, `hex`). It gives the
-same protection as the official gold set: documents that a medicine must not change. Every
-number below is measured on those 253 documents. If the official `code-rust` gold set exists
-somewhere, send me the path and I will rerun the medicines on it and update this sheet.
+Command (from the repo root), once per rule code:
+
+```
+python -I teams/01-data-a/tools/harm_test.py --pack code-rust.parquet \
+  --gold teams/01-data-a/gold/code-rust_gold.csv \
+  --rules diagnosis/submissions/code-rust/ranjanguddu/medicine.md --rule B3
+```
+
+| rule | changed | dropped | percent | limit | result |
+|---|---|---|---|---|---|
+| `B3` | 0 | 0 | 0.00% | 2 | **PASS** |
+| `B4` | 0 | 0 | 0.00% | 2 | **PASS** |
+| `C2` | 0 | 0 | 0.00% | 2 | **PASS** |
 
 ## Medicine 1
 
@@ -52,8 +62,9 @@ somewhere, send me the path and I will rerun the medicines on it and update this
 3. **Action:** **fix**. The wrapper is a line the builder added; the document underneath is
    real Rust code and is worth keeping.
 
-4. **Harm test:** on the local gold set (253 clean documents) the medicine **changes 0
-   documents and drops 0 documents = 0.00%**. It passes (limit 1%).
+4. **Harm test:** on the official gold set (`code-rust_gold.csv`, 234 documents) the medicine
+   **changes 0 documents and drops 0 documents = 0.00%**, limit 2 → **PASS**. The same 0.00%
+   was measured earlier on my local 253-document clean set.
 
    Recall on my own labels: it changes **225 of 225** documents that I marked `B3`.
 
@@ -100,8 +111,8 @@ somewhere, send me the path and I will rerun the medicines on it and update this
 
 3. **Action:** **fix**. The surrounding code is good; only the token is wrong.
 
-4. **Harm test:** on the local gold set (253 clean documents) the medicine **changes 0
-   documents and drops 0 documents = 0.00%**. It passes (limit 1%).
+4. **Harm test:** on the official gold set (`code-rust_gold.csv`, 234 documents) the medicine
+   **changes 0 documents and drops 0 documents = 0.00%**, limit 2 → **PASS**.
 
    Recall on my own labels: it changes **22 of 25** documents that I marked `B4`.
 
@@ -136,16 +147,16 @@ somewhere, send me the path and I will rerun the medicines on it and update this
    ```python
    from collections import Counter
 
-   def c2_repeated_line(text: str, min_repeat: int = 20, min_share: float = 0.10):
-       """The line that repeats, if the document is dominated by one repeated line."""
+   def c2_repeated_line(text: str, min_repeat: int = 20, min_share: float = 0.10) -> bool:
+       """True if the document is dominated by one repeated line, else False."""
        lines = text.split("\n")
        counts = Counter(line.strip() for line in lines if len(line.strip()) >= 8)
        if not counts:
-           return None
+           return False
        line, count = counts.most_common(1)[0]
        if count >= min_repeat and count / max(1, len(lines)) >= min_share:
-           return line, count, len(lines)
-       return None
+           return True
+       return False
    ```
 
 3. **Action:** **drop**, not fix. There is no safe line-level repair here: `#[allow(unused_mut)]`
@@ -155,8 +166,12 @@ somewhere, send me the path and I will rerun the medicines on it and update this
    The 13 rows for this code in `labels.csv` therefore carry `verdict=drop`. This costs 13 of
    500 documents (2.6%) of the pack.
 
-4. **Harm test:** the medicine has no safe operating point that is also useful, and that is the
-   result of the test:
+4. **Harm test:** on the official gold set (`code-rust_gold.csv`, 234 documents) the medicine
+   **changes 0 documents and drops 0 documents = 0.00%**, limit 2 → **PASS**. The only change
+   made for the test is the return value: the detector returns `True` (drop) or `False` (keep)
+   now, because `harm_test.py` rejects a tuple or `None` with `TypeError`. The detection and the
+   thresholds (`min_repeat=20, min_share=0.10`) are unchanged. The table below was measured
+   earlier on my local 253-document clean set, before the official gold set existed:
 
    | threshold | changes on gold set (253) | passes 1%? | catches my 13 `C2` rows |
    |---|---|---|---|
