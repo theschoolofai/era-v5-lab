@@ -1,8 +1,8 @@
 # Runbook: restoring a run from its last checkpoint
 
-First version. It covers restore (the steps and the restore time). Restart after a killed trainer
-(`ckpt/supervisor.py`, `results/restart_cpu.txt`) and the queue rules are written by other members and are
-marked **pending** below.
+Second version. It covers restore (the steps and the restore time) and restart after a killed trainer
+(`ckpt/supervisor.py`, `results/restart_cpu.txt`). The restart on the lab node, the 2-GPU restore and the queue
+rules (not yet merged) are marked **pending** below.
 
 > **In simple words.** Machines break and runs stop. Every few hundred steps the run saves a *checkpoint*: a
 > copy of everything the next step needs. To restore, the new copy of the run reads the newest good checkpoint,
@@ -24,6 +24,7 @@ Every number in this file is marked **measured** (run by us, with the command an
 | You see | What it means | Do |
 |---|---|---|
 | exit **75**, job back in the queue (`REQUEUED`, `BeginTime`) | a safe stop: preemption, spot notice, health drain, time limit, one crash | **nothing.** The next attempt restores by itself (section 3). |
+| the trainer was killed (SIGKILL, out of memory, lost node) and **there is no Slurm** (one machine, the TSAI runner, the CPU tests) | nothing restarts it unless a supervisor is running | start it under `ckpt/supervisor.py`, section 5.1 |
 | exit **78**, `squeue` shows `SPECIAL_EXIT` or `JobHeldUser` | stopped on purpose; retrying alone would not help | read the cause (section 2), then use the table in section 6 |
 | alert **CK-05** (a restore check failed) | the loaded state was not the saved state; the job fell back to the previous commit | section 6, `RestoreCheckError`; do not continue on that checkpoint |
 | alert **CK-13** (restore time) | the restart took long | section 7 |
@@ -114,7 +115,81 @@ Results so far:
 | 2 CPU processes, same machine, 9 runs | PASS 9 of 9 (**measured**) | this runbook, section 7 |
 | 2 GPUs | **pending**: needs a 2-GPU node, planned after Gate 2 | `results/restore_test_gpu.txt` |
 
-## 5. Roll back on purpose (after a NaN or a loss spike)
+## 5. Restart after a kill, and roll back on purpose
+
+### 5.1 Restart after a kill
+
+**With Slurm** nothing to type: `queue/job_queue.py run` (called by `slurm/mainrun.sbatch` and
+`slurm/team_job.sbatch`) turns the trainer's exit into 0, 75 or 78, Slurm requeues on 75, and the next attempt
+restores as in section 3.
+
+**Without Slurm** (a single machine, the TSAI runner, the CPU tests) `ckpt/supervisor.py` applies the same rules.
+It starts the trainer as a child process and, when the child ends, decides from the exit code. A restart runs the
+**same command** again; the trainer calls `Checkpointer.restore()`, which loads the newest COMPLETE checkpoint
+(`MANIFEST.json` written, then `latest.json` moved). A half-written checkpoint can never be loaded, and the
+supervisor does not need to know anything about the model.
+
+```bash
+RUN_ID=r1 V5_REMOTE_ROOT=/shared/ckpt python ckpt/supervisor.py --log out/supervisor.jsonl -- python my_train.py
+```
+
+| Child exit | Supervisor does | Supervisor exit |
+|---|---|---|
+| 0 | stops | 0 |
+| 75 (saved, run me again) | restarts, up to `--max-stops` times (default 100) | 78 when the limit is reached |
+| 78 | does not restart | 78 |
+| anything else (exception, SIGKILL, segfault) | restarts, unless it is a crash loop (3 crashes in 30 minutes, `CRASHLOOP_N` and `CRASHLOOP_WINDOW_S`) or `--max-restarts` (default 10) crashes are used up | 78 |
+
+It waits `--backoff` seconds (default 5) before a restart. SIGTERM and SIGUSR1 are passed on to the trainer;
+Ctrl-C is passed on as SIGTERM, because the trainer saves on SIGTERM and would crash on SIGINT. After a stop
+signal no new trainer starts and the supervisor exits 75 for the outer scheduler to decide. If the supervisor
+itself is killed with SIGKILL its child keeps running; that is safe, because the next attempt claims
+`latest.json` and the old child's next commit is refused (`FencedError`, section 6).
+
+**Read the log.** `--log` gets one JSON line per attempt, and `supervisor.*` events go to the events folder.
+`pointer_step` is the step `latest.json` points to when the restart is decided. It is **not proof** of what the
+trainer loaded: if that checkpoint fails its checks, `restore()` falls back to an older commit. The trainer's own
+`restore.done` event (section 3) has the step it really restored.
+
+**Prove it works.** `jobs/restart_test/restart_test.py` trains Team 05's tiny MoE twice. Run A goes from step 1 to
+200 without a stop, with a checkpoint every 25 steps. Run B is the same command under the supervisor and is killed
+with SIGKILL once it is past step 140. The supervisor restarts it, and for **every step 1 to 200** the losses must
+be bit-equal to run A and the batch data id (position and sha256 of the batch tokens) the same. The supervisor log
+must show exactly one restart (exit -9) and then exit 0.
+
+```bash
+CUDA_VISIBLE_DEVICES="" python jobs/restart_test/restart_test.py --out <scratch folder>          # about 10 s
+```
+
+PASS looks like this (last line; exit 0; exit 1 is a difference, 78 a crashed run, 75 the time limit):
+
+```
+PASS restart_test cpu: SIGKILL after step 140, restarted from COMPLETE checkpoint step 125, steps 1-200: loss_ntp and loss_mtp bit-equal, data ids equal
+```
+
+Numbers. The committed result names macOS arm64, Python 3.13.14, torch 2.14.1 (CPU); my runs are on an Apple M5, Python 3.13, torch 2.14.1 (CPU):
+
+| | killed after step | restarted from (last COMPLETE checkpoint) | steps done twice | bit-equal steps | wall time A / B |
+|---|---|---|---|---|---|
+| committed result, `results/restart_cpu.txt` (**reference**) | 140 | 125 | 15 | 200 of 200 | 2.4 s / 3.9 s |
+| same, kills after step 32, 100 and 165 (**reference**) | 32, 100, 165 | 25, 75, 150 | not listed | PASS on each | not listed |
+| my runs, 3 repetitions, same command (**measured**) | 140, 141, 141 | 125 each | 15, 16, 16 | 200 of 200 each | 1.3 to 1.5 s / 2.0 s |
+
+The supervisor log in all of them: attempt 0 exit -9 (crash: killed by SIGKILL), restart with `latest.json` at
+step 125; attempt 1 exit 0 (done), stop. Work lost per kill = the steps since the last checkpoint: 15 or 16 steps
+here, with a checkpoint every 25 (**computed**: killed-after step minus restarted-from step). Also **measured**:
+`ckpt/test_supervisor.py`, 19 passed in 2 s on the same machine.
+
+**What this does not cover.**
+- The kill always lands after step 140, when the step-125 checkpoint is already committed, so it never kills a
+  trainer in the middle of a save. That case is covered by the checkpoint drills (`kill_during_save`,
+  `kill_during_restore`; `support/docs/sim_results.md`) and tests T3, T4 and T19 in `support/tests/test_ckpt.py`.
+- One CPU process only. Not run on a GPU yet.
+- The run as a TSAI job under queue rules v1 (`--run-id`, output in `./out/<run_id>/`, checked by
+  `queue/queue_rules.py`): the rules file and the checker are in PR #245, not on main yet. The restart on the lab
+  node (`results/restart_node.txt`) is **pending**.
+
+### 5.2 Roll back on purpose (after a NaN or a loss spike)
 
 ```bash
 python ckpt/ckpt.py list --run <run>               # pick the last good step K
@@ -139,14 +214,14 @@ ids, is `support/docs/codes_and_actions.md` (generated from `common/reasons.py`)
 |---|---|---|---|
 | `IntegrityError` | falls back | a file did not match its sha256; the damaged checkpoint is never used and the previous commit is tried | pin the last good checkpoint (`ckpt.py pin --run <run> --step N`); find which hop corrupts data (disk, network, S3). Alert CK-04 |
 | `RestoreCheckError` | falls back | digest, probe loss, next batch or frozen hashes differ; the previous commit is tried | compare the two printed values in the job log; **do not continue on that checkpoint**. Alert CK-05 |
-| `CheckpointError` | 78 | every committed checkpoint failed, or the requested step does not exist | `ckpt.py list` and `verify --run <run>`; check the store. Alerts CK-04, CK-05 |
+| `CheckpointError` | 78 | every committed checkpoint failed, or the requested step does not exist | `ckpt.py list` and `verify --run <run>`; check the store (alerts CK-04 and CK-05 say where). Alert CK-06 |
 | `StrictLoadError` | 78 | restore refused; every key that differs is in the job log | fix the model code or the key mapping; never resume by ignoring keys. Alert CK-06 |
 | `EnvMismatchError` | 78 | restore refused; the differences are in the job log | if intended and approved, resubmit with `TRAIN_EXTRA=--allow-env-change` (it is logged); otherwise go back to the old image. Alert CK-06 |
 | `DataManifestError` | 78 | restore refused before any step | point the loader back at the run's shard list, or start a new branch on purpose and tell Teams 01/02. Alert CK-06 |
 | `ReshardError` | 78 | restore refused before any step | resubmit at the saved world size (the log names it), or fix the loader to keep one global ledger offset (`ckpt/loader_contract.py`). Alert CK-06 |
-| `FencedError` | 78 | this attempt's commit was refused; the pointer and the newer attempt are untouched | nothing for the run; find why the old attempt was still alive, and drain that node if it repeats |
-| `FrozenChangedError` | 78 | nothing saved; the previous checkpoint is still good | find which code trains the named tensor, fix it, then roll back (section 5) |
-| `nonfinite`, `loss_spike` | 78 | nothing saved after the bad step | roll back (section 5); tell Team 05 |
+| `FencedError` | 78 | this attempt's commit was refused; the pointer and the newer attempt are untouched | nothing for the run; find why the old attempt was still alive (node network, slurmd), and drain that node if it repeats. No alert |
+| `FrozenChangedError` | 78 | nothing saved; the previous checkpoint is still good | find which code trains the named tensor, fix it, then roll back (section 5.2). Alert CK-06 |
+| `nonfinite`, `loss_spike` | 78 | nothing saved after the bad step | roll back (section 5.2); tell Team 05. Alerts CK-07 (`nonfinite`), H-24 (`loss_spike`) |
 | `crash_loop` | 78 | 3 crashes in 30 minutes; held so it stops burning GPU hours | read the last job log for the real error, fix it, then `scontrol release <id>`. Alert Q-04 |
 | `unknown_fatal` | 78 | exit 78 with no exit note | read the end of the job log for the FATAL line, then follow that cause. Alert Q-02 |
 | `nvme_full` | save skipped | training continues, but nothing new is protected | free NVMe space or drain the node. Alert CK-03 |
@@ -242,18 +317,15 @@ A killed trainer was back and training in about 50 s (median of 3 runs), a preem
 
 | Item | Owner | Status |
 |---|---|---|
-| Restart after a killed trainer: supervisor that restarts from the last checkpoint with a COMPLETE marker, limits and logs restarts (`ckpt/supervisor.py`, `ckpt/test_supervisor.py`) | Member D | **pending**, due Thu 12 Nov |
-| SIGKILL on CPU, loss equal to run A (`results/restart_cpu.txt`) | Member D | **pending**, due Thu 12 Nov |
 | Restart job on the lab node (`results/restart_node.txt`) | Lead | **pending**, due Sat 14 Nov |
 | Restore on 2 GPUs | TSAI, after Gate 2 | **pending** |
 | Restore time on a GPU node with the real store and config v1 | G7 | **pending** |
-| Queue rules (`docs/queue_rules_v1.md`) | G7 | not part of this file |
-
-Until the supervisor lands, restart after a kill is Slurm's: the wrapper `queue/job_queue.py run` turns the
-exit into 75 or 78, Slurm requeues on 75, and the next attempt restores as in section 3.
+| Queue rules (`docs/queue_rules_v1.md`, `queue/queue_rules.py`) and the parallel layout (`docs/parallel_layout_v0.md`) | G7 | **pending**: PR #245 and PR #246, not on main; not part of this file |
+| Restart test on a GPU, as a TSAI job | G7 | **pending** |
 
 ## 9. Sources
 
 `USER_GUIDE.md` (sections 1.3 to 1.6, 5.2, 5.4), `ckpt/README.md`, `ckpt/ckpt.py` (`restore`, `_restore_one`),
-`jobs/restore_test/README.md`, `results/restore_test_cpu.txt`, `results/restore_test_gpu.txt`,
+`ckpt/supervisor.py`, `ckpt/test_supervisor.py`, `jobs/restore_test/README.md`, `jobs/restart_test/README.md`,
+`results/restart_cpu.txt`, `results/restore_test_cpu.txt`, `results/restore_test_gpu.txt`,
 `support/docs/codes_and_actions.md`, `common/reasons.py`, `metrics/catalog.yaml`, `queue/README.md`.
