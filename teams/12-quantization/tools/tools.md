@@ -48,10 +48,14 @@ Test models: `allenai/OLMoE-1B-7B-0924` (`OlmoeForCausalLM`, 64 experts, top-8, 
 Both use llama.cpp on `allenai/OLMoE-1B-7B-0924`. Both keep the 16 OLMoE router tensors (`blk.<n>.ffn_gate_inp.weight`)
 in **F32**, the precision the converter writes. They differ in the output layer and in whether they evaluate.
 
+**No results table in this folder comes from workflow A.** Every measured GGUF has `output.weight` at Q8_0 and the
+ladder `Q8_0 … Q2_K`: `runs/runs.csv` and `quality/` use workflow B, `eval_mini/` its notebook, and `perplexity/` the
+same `llama-quantize --output-tensor-type q8_0` commands run by hand on Kaggle.
+
 ### A. `quantize/quantize_olmoe.sh`: build + quantize
 
-Downloads the model, builds the current `llama.cpp`, converts a BF16 GGUF baseline, and creates `Q8_0`, `Q6_K`,
-`Q5_K_M`, `Q4_K_M` and `Q3_K_M`. Every variant keeps `output.weight` in **BF16** (`llama-quantize --output-tensor-type bf16`).
+Downloads the model, builds `llama.cpp` at the pinned tag `b11669` (= v0.7.0; override with `LLAMA_CPP_TAG`), converts
+a BF16 GGUF baseline, and creates `Q8_0`, `Q6_K`, `Q5_K_M`, `Q4_K_M` and `Q3_K_M`. It does not make `Q2_K`. Every variant keeps `output.weight` in **BF16** (`llama-quantize --output-tensor-type bf16`).
 The script checks each GGUF and exits with an error if a router or output tensor is missing or stored below 8-bit.
 
 ```bash
@@ -79,4 +83,4 @@ Requirements: llama.cpp binaries on PATH (`brew install llama.cpp`) or `--llama-
 
 - AutoRound, HQQ, torchao, Intel Neural Compressor, Model Optimizer: confirm OLMoE support by running them, not by reading the code.
 - llm-compressor on OLMoE: the router module name for OLMoE is `mlp.gate`. Confirm that the `ignore` regex matches it.
-- Output layer: workflow A keeps BF16, workflow B uses Q8_0. Both meet the "8-bit or bf16" rule; the team should pick one for the score-drop table so rows are comparable.
+- Output layer: workflow A keeps BF16, workflow B uses Q8_0. Both meet the "8-bit or bf16" rule. All tables use Q8_0, so their rows are comparable; GGUFs from A are not comparable with them.

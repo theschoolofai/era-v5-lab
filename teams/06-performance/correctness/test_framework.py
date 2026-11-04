@@ -10,6 +10,8 @@ Checks, for EVERY registered pair:
   * check on model-like cases: two outputs through a backward that may run only once (the reversible stack),
     a parameter with no gradient on both sides (an MoE expert with no tokens), a detached fast output fails
   * tolerances: fp32 defaults from TOLERANCES, fp32 >= 1e-2 refused, bf16 pairs are kept out of the drill
+  * output structure: tuples, lists, None, nested containers and Python floats / metadata in the outputs must
+    match between ref and fast (type, length, values), and a wrong tensor nested inside still fails
 """
 from __future__ import annotations
 
@@ -21,8 +23,6 @@ import pytest
 import torch
 
 from correctness.framework import Case, PAIRS, Pair, check, pair, rel_err, scaled
-
-parametrize = pytest.mark.parametrize
 
 
 
@@ -137,7 +137,7 @@ def test_wrong_shape_fails(device):
         check(p, device)
 
 
-@parametrize("name", sorted(n for n, p in PAIRS.items() if p.drill))
+@pytest.mark.parametrize("name", sorted(n for n, p in PAIRS.items() if p.drill))
 def test_every_registered_pair_scaled_fails(name, device):
     with pytest.raises(AssertionError):
         check(PAIRS[name], device, fast_override=scaled(1.01))
@@ -264,7 +264,7 @@ def test_output_structure_python_float_large_difference_fails(device):
         check(p, device)
 
 
-@parametrize("ref_value,fast_value", [
+@pytest.mark.parametrize("ref_value,fast_value", [
     (float("nan"), float("nan")),
     (float("inf"), float("inf")),
 ])

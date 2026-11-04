@@ -48,7 +48,6 @@ from models.config import ModelConfig
 from models.gpt import MLP, _residual_std
 from models.moe import DISPATCH, SparseMoE, record_routing, replay_routing
 
-parametrize = pytest.mark.parametrize     # see test_ke.py: a decorator at the start of a line trips pr-guard
 
 DIM, B, T, SEED = 64, 2, 37, 0
 ROUTER_STD = 0.5          # logits std ~ 0.5 * sqrt(64) = 4: peaked scores, clear top-k margins
@@ -170,7 +169,7 @@ for _d in DISPATCH:
     pair(f"moe.{_d}.bf16", dtype=torch.bfloat16)(_bf16_case(_d))
 
 
-@parametrize("name", pairs_in(__name__))
+@pytest.mark.parametrize("name", pairs_in(__name__))
 def test_pair(name, device):
     errors = check(PAIRS[name], device)
     assert "out[0]" in errors and "grad_in[0]" in errors, f"{name}: output and input gradient must be compared"
@@ -193,7 +192,7 @@ def test_idle_expert_gets_no_tokens(device):
 
 # ------------------------------------------------------------------------------ routing replay
 
-@parametrize("dispatch", list(DISPATCH))
+@pytest.mark.parametrize("dispatch", list(DISPATCH))
 def test_replay_reproduces_forward(dispatch, device):
     m, x = _moe(dispatch).to(device), _x(device=device)
     rec = []
@@ -210,7 +209,7 @@ def test_replay_reproduces_forward(dispatch, device):
     assert torch.equal(y, y2) and torch.equal(gx, x.grad) and torch.equal(gw, m.router.weight.grad)
 
 
-@parametrize("dispatch", list(DISPATCH))
+@pytest.mark.parametrize("dispatch", list(DISPATCH))
 def test_replay_holds_a_near_tie(dispatch, device):
     m = _moe(dispatch, router_std=1.0)
     g = torch.Generator().manual_seed(SEED + 3)
@@ -241,7 +240,7 @@ def test_replay_holds_a_near_tie(dispatch, device):
     assert x2.grad is not None and x2.grad.abs().sum() > 0, "input got no gradient under replay"
 
 
-@parametrize("dispatch", list(DISPATCH))
+@pytest.mark.parametrize("dispatch", list(DISPATCH))
 def test_replay_overrides_a_clear_switch(dispatch, device):
     m = _moe(dispatch, router_std=1.0)
     with torch.no_grad():
@@ -314,8 +313,9 @@ def test_router_runs_in_fp32_under_autocast(device):
     assert torch.equal(amp[0], plain[0]), "routing under bf16 autocast differs from fp32: the router is not in fp32"
 
 
-def test_update_bias_moves_toward_balance(device):
-    m = _moe("loop").to(device)
+@pytest.mark.parametrize("dispatch", list(DISPATCH))
+def test_update_bias_moves_toward_balance(dispatch, device):
+    m = _moe(dispatch).to(device)
     with torch.no_grad():
         m.router_bias.zero_()
     m.train()

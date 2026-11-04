@@ -102,9 +102,19 @@ Each fix is verified, and all are written up in `compare_v0_code_indic.md`.
 
 | Status | Count | What |
 |---|---|---|
-| PASS | 14 | MMLU-Pro ×3 (Open LLM Leaderboard), MILU-English, 10 of 12 code rows (Qwen report, EvalPlus leaderboard) |
+| PASS | 19 | MMLU-Pro ×3 (Open LLM Leaderboard), MILU en/hi/te for both models, 10 of 12 code rows |
 | FAIL | 2 | Qwen HumanEval+ −2.41, phi-2 MBPP+ −2.88; no timeouts recorded |
-| DEFERRED | 7 | Indic MILU rows (week-1 focus is code) |
+| DEFERRED | 2 | MILU-avg ×2, aggregation decided below |
 | NOT RUN | 3 | BBH (optional) |
 
 See `../results/compare_v0_code_indic.md` for every row, its source and the limitations.
+
+## MILU-avg aggregation (decision)
+
+MILU-avg is the **simple mean of the 11 per-language `gate_milu_<Language>` full runs** (Bengali, English, Gujarati, Hindi, Kannada,
+Malayalam, Marathi, Odia, Punjabi, Tamil, Telugu). `compare.py` computes it only when all 11 runs exist; otherwise the row is DEFERRED.
+The `milu` group task is not used, because lm-eval's group score is size-weighted.
+
+The MILU paper does not state how its avg column is aggregated. The simple mean of the paper's own 11 per-language scores gives
+31.43 (gemma-2-2b) and 32.85 (llama-3.2-3b), the published avg; the size-weighted mean would give 33.51 and 34.87. The rule is fixed
+before the remaining runs, so it cannot be tuned to a score. The pass rule is unchanged (|ours - published| <= 2.0), and a FAIL stands.

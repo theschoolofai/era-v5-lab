@@ -1,6 +1,0 @@
-# Lab model, small: KE v1 input, GQA, pre-LN inside the reversible f, 1 shared + top-2 of 8 MoE,
-# reversible midpoint stack (h = 1), Muon. Data: FineWeb sample-10BT retokenized with BrahmicTokenizer-131K (base.yaml).
-# G5's real configs go in configs/g5_*.yaml, in this same format.
-inherit: base.yaml
-model: {embedding: ke1, n_kv_head: 2, ffn: moe, moe: {num_shared: 1}, reversible: true}
-optim: {name: muon}

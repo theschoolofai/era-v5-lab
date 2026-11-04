@@ -102,10 +102,9 @@ _register("mlp")
 _register("moe")
 
 
-parametrize = pytest.mark.parametrize
 
 
-@parametrize("name", pairs_in(__name__))
+@pytest.mark.parametrize("name", pairs_in(__name__))
 def test_pair(name, device):
     errors = check(PAIRS[name], device)
     assert "out[0]" in errors, f"{name}: output was not compared"
@@ -113,7 +112,7 @@ def test_pair(name, device):
     assert any(key.startswith("grad_param[") for key in errors), f"{name}: no parameter gradients were compared"
 
 
-@parametrize("ffn", ["mlp", "moe"])
+@pytest.mark.parametrize("ffn", ["mlp", "moe"])
 def test_inversion(ffn, device):
     blocks = _blocks(ffn, N_LAYER_PAIR, seed=2).to(device)
     x = torch.randn(B, T, N_EMBD, device=device, generator=torch.Generator(device=device).manual_seed(3))
@@ -125,7 +124,7 @@ def test_inversion(ffn, device):
     assert err < 1e-4, f"inversion rel_err={err:.3e}"
 
 
-@parametrize("n_layer", [9, 24])
+@pytest.mark.parametrize("n_layer", [9, 24])
 def test_bf16_reconstruction_moe(n_layer, device):
     blocks = _blocks("moe", n_layer, seed=4).to(device)
     x = torch.randn(B, T, N_EMBD, device=device, generator=torch.Generator(device=device).manual_seed(5))
@@ -154,7 +153,7 @@ def test_bf16_grad_agrees_with_plain(device):
     assert err < 1e-3, f"bf16 grad rel_err={err:.3e}"
 
 
-@parametrize("rev_h", [0.5, 1.0])
+@pytest.mark.parametrize("rev_h", [0.5, 1.0])
 def test_step_size_h_scales_update_and_inversion(rev_h, device):
     blocks = _blocks("mlp", N_LAYER_PAIR, seed=8).to(device)
     for blk in blocks:
