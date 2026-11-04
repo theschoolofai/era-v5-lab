@@ -1,7 +1,7 @@
 Independent CPU restart evidence
 Source commit: ddfe977ea8f771ba6fa9137c1e9f46aade0125d1
 Date: 4 November 2026 IST
-$ python teams/07-infrastructure/jobs/restart_test/restart_test.py --out $SCRATCH/restart --also-kill-at 31,99,164 --report $SCRATCH/restart_cpu_hema.txt
+$ python teams/07-infrastructure/jobs/restart_test/restart_test.py --out $SCRATCH/restart --also-kill-at 31,99,164 --report $SCRATCH/restart_cpu_rotation_03.txt
 
 Requested kill / actual kill / actual restore / replayed steps / bit-equal steps / A seconds / B seconds
 140 / 141 / 125 / 16 / 200 of 200 / 1.7 / 2.6
