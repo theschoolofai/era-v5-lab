@@ -4,21 +4,22 @@ The pack has 500 Telugu documents. Final verdicts: 234 clean, 211 fix, 55 drop. 
 
 A medicine is included only when the disease code appears on more than five documents. Counts below are for all 500 rows.
 
-The harm test uses the Telugu gold set of 46 documents across three packs: `ind-te-sangraha-v` (23), `ind-te-sangraha-s` (5), and `ind-te-fw2` (18). A rule passes when it changes or drops at most 1% of that set or 1 document, whichever is more, so at most 1 of these 46. ZWJ (U+200D) and ZWNJ (U+200C) counts must stay the same, and a document that is NFC must stay NFC. Every rule passes.
+The harm test uses the Latest Telugu gold set. A rule passes when it changes or drops at most 1% of that set or 1 document, whichever is more, so at most 1 of these 46. ZWJ (U+200D) and ZWNJ (U+200C) counts must stay the same, and a document that is NFC must stay NFC. Every rule passes.
 
-| Rule | Changed | Dropped | Percent | Joiners | Form | Result |
-|---|---:|---:|---:|---|---|---|
-| D3 | 0 | 0 | 0.00% | ok | ok | PASS |
-| C1 | 0 | 0 | 0.00% | ok | ok | PASS |
-| C2 | 0 | 0 | 0.00% | ok | ok | PASS |
-| C3 | 0 | 0 | 0.00% | ok | ok | PASS |
-| D4 | 0 | 0 | 0.00% | ok | ok | PASS |
-| A1 | 0 | 0 | 0.00% | ok | ok | PASS |
-| C4 | 0 | 0 | 0.00% | ok | ok | PASS |
-| C5 | 0 | 0 | 0.00% | ok | ok | PASS |
-| D5 | 0 | 0 | 0.00% | ok | ok | PASS |
-| G1 | 0 | 0 | 0.00% | ok | ok | PASS |
-| ALL IN ORDER | 0 | 0 | 0.00% | ok | ok | PASS |
+
+| rule | changed | dropped | joiners | normal form | result |
+|---|---|---|---|---|---|
+| D3 | 0 | 0 | ok | ok | PASS |
+| C1 | 0 | 0 | ok | ok | PASS |
+| C2 | 0 | 0 | ok | ok | PASS |
+| C3 | 0 | 0 | ok | ok | PASS |
+| D4 | 0 | 0 | ok | ok | PASS |
+| A1 | 0 | 0 | ok | ok | PASS |
+| C4 | 0 | 0 | ok | ok | PASS |
+| C5 (`medicine_c5_drop`) | 0 | 0 | ok | ok | PASS |
+| D5 | 0 | 0 | ok | ok | PASS |
+| G1 | 0 | 0 | ok | ok | PASS |
+| all 10 in order | 0 | 0 | ok | ok | PASS |
 
 ## Medicine 1
 
