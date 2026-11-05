@@ -1,8 +1,8 @@
 # Runbook: restoring a run from its last checkpoint
 
 Second version. It covers restore (the steps and the restore time) and restart after a killed trainer
-(`ckpt/supervisor.py`, `results/restart_cpu.txt`). The restart on the lab node, the 2-GPU restore and the queue
-rules (not yet merged) are marked **pending** below.
+(`ckpt/supervisor.py`, `results/restart_cpu.txt`). The restart on the lab node, the 2-GPU restore and the GPU timing
+are marked **pending** below.
 
 > **In simple words.** Machines break and runs stop. Every few hundred steps the run saves a *checkpoint*: a
 > copy of everything the next step needs. To restore, the new copy of the run reads the newest good checkpoint,
@@ -14,7 +14,7 @@ Commands run from `teams/07-infrastructure/` and use the paths of the production
 the [user guide](../USER_GUIDE.md)). `<run>` is the run's checkpoint folder: `<remote_root>/<run_id>`, a folder
 on the shared file system or `s3://bucket/prefix/run_id`.
 
-Every number in this file is marked **measured** (run by us, with the command and machine named),
+Every number in this file is marked **measured** (run on a member machine, with the command and machine named),
 **computed** (arithmetic on measured numbers or on an input) or **reference** (taken from another document).
 
 ---
@@ -85,7 +85,7 @@ If every candidate fails, restore stops with `CheckpointError` (exit 78): nothin
 ## 4. Rehearse a restore (no GPU, no network, about 15 s)
 
 `jobs/restore_test/restore_test.py` trains Team 05's tiny MoE twice (run A without a stop, run B stopped at
-step 150), restores B from its step-100 checkpoint with our `Checkpointer`, and compares steps 101 to 200.
+step 150), restores B from its step-100 checkpoint with the `Checkpointer`, and compares steps 101 to 200.
 
 ```bash
 pip install -r teams/04-ke2/src/requirements.txt          # torch 2.14.1 or newer
@@ -111,8 +111,8 @@ Results so far:
 |---|---|---|
 | 1 and 2 CPU processes, Ubuntu, torch 2.14.1 | PASS, steps 101-200 bit-equal, data ids equal (**reference**) | `results/restore_test_cpu.txt` |
 | 1 GPU, TSAI job on the lab node | PASS (**reference**) | `results/restore_test_gpu.txt` |
-| 1 CPU process, Apple M5, torch 2.14.1, Python 3.13, 9 runs | PASS 9 of 9 (**measured**) | this runbook, section 7 |
-| 2 CPU processes, same machine, 9 runs | PASS 9 of 9 (**measured**) | this runbook, section 7 |
+| 1 CPU process, member machine (Apple M5), torch 2.14.1, Python 3.13, 9 runs | PASS 9 of 9 (**measured**) | section 7, `jobs/restore_time/` |
+| 2 CPU processes, same member machine, 9 runs | PASS 9 of 9 (**measured**) | section 7, `jobs/restore_time/` |
 | 2 GPUs | **pending**: needs a 2-GPU node, planned after Gate 2 | `results/restore_test_gpu.txt` |
 
 ## 5. Restart after a kill, and roll back on purpose
@@ -125,8 +125,10 @@ restores as in section 3.
 
 **Without Slurm** (a single machine, the TSAI runner, the CPU tests) `ckpt/supervisor.py` applies the same rules.
 It starts the trainer as a child process and, when the child ends, decides from the exit code. A restart runs the
-**same command** again; the trainer calls `Checkpointer.restore()`, which loads the newest COMPLETE checkpoint
-(`MANIFEST.json` written, then `latest.json` moved). A half-written checkpoint can never be loaded, and the
+**same command** again; the trainer calls `Checkpointer.restore()`, which loads the newest COMPLETE checkpoint.
+COMPLETE means the step folder has `MANIFEST.json` and `latest.json` or `commits.jsonl` names that folder; there
+is no separate COMPLETE file (queue rules v1.1, theschoolofai/era-v5-lab#245). `ckpt.py` writes `MANIFEST.json` last
+and moves `latest.json` only after it. A half-written checkpoint can never be loaded, and the
 supervisor does not need to know anything about the model.
 
 ```bash
@@ -136,7 +138,7 @@ RUN_ID=r1 V5_REMOTE_ROOT=/shared/ckpt python ckpt/supervisor.py --log out/superv
 | Child exit | Supervisor does | Supervisor exit |
 |---|---|---|
 | 0 | stops | 0 |
-| 75 (saved, run me again) | restarts, up to `--max-stops` times (default 100) | 78 when the limit is reached |
+| 75 (saved and stopped, run again) | restarts, up to `--max-stops` times (default 100) | 78 when the limit is reached |
 | 78 | does not restart | 78 |
 | anything else (exception, SIGKILL, segfault) | restarts, unless it is a crash loop (3 crashes in 30 minutes, `CRASHLOOP_N` and `CRASHLOOP_WINDOW_S`) or `--max-restarts` (default 10) crashes are used up | 78 |
 
@@ -167,13 +169,13 @@ PASS looks like this (last line; exit 0; exit 1 is a difference, 78 a crashed ru
 PASS restart_test cpu: SIGKILL after step 140, restarted from COMPLETE checkpoint step 125, steps 1-200: loss_ntp and loss_mtp bit-equal, data ids equal
 ```
 
-Numbers. The committed result names macOS arm64, Python 3.13.14, torch 2.14.1 (CPU); my runs are on an Apple M5, Python 3.13, torch 2.14.1 (CPU):
+Numbers. The committed result names macOS arm64, Python 3.13.14, torch 2.14.1 (CPU); the member runs are on an Apple M5, Python 3.13, torch 2.14.1 (CPU):
 
 | | killed after step | restarted from (last COMPLETE checkpoint) | steps done twice | bit-equal steps | wall time A / B |
 |---|---|---|---|---|---|
 | committed result, `results/restart_cpu.txt` (**reference**) | 140 | 125 | 15 | 200 of 200 | 2.4 s / 3.9 s |
 | same, kills after step 32, 100 and 165 (**reference**) | 32, 100, 165 | 25, 75, 150 | not listed | PASS on each | not listed |
-| my runs, 3 repetitions, same command (**measured**) | 140, 141, 141 | 125 each | 15, 16, 16 | 200 of 200 each | 1.3 to 1.5 s / 2.0 s |
+| member runs, 3 repetitions, same command (**measured**) | 140, 141, 141 | 125 each | 15, 16, 16 | 200 of 200 each | 1.3 to 1.5 s / 2.0 s |
 
 The supervisor log in all of them: attempt 0 exit -9 (crash: killed by SIGKILL), restart with `latest.json` at
 step 125; attempt 1 exit 0 (done), stop. Work lost per kill = the steps since the last checkpoint: 15 or 16 steps
@@ -185,9 +187,9 @@ here, with a checkpoint every 25 (**computed**: killed-after step minus restarte
   trainer in the middle of a save. That case is covered by the checkpoint drills (`kill_during_save`,
   `kill_during_restore`; `support/docs/sim_results.md`) and tests T3, T4 and T19 in `support/tests/test_ckpt.py`.
 - One CPU process only. Not run on a GPU yet.
-- The run as a TSAI job under queue rules v1 (`--run-id`, output in `./out/<run_id>/`, checked by
-  `queue/queue_rules.py`): the rules file and the checker are in PR #245, not on main yet. The restart on the lab
-  node (`results/restart_node.txt`) is **pending**.
+- The run as a TSAI job under queue rules v1.1 (`docs/queue_rules_v1.md`, `--run-id`, output in
+  `./out/<run_id>/`, checked with `python queue/queue_rules.py check-out ./out --run-id <run_id>`; merged in
+  theschoolofai/era-v5-lab#245). The restart on the lab node (`results/restart_node.txt`) is **pending**.
 
 ### 5.2 Roll back on purpose (after a NaN or a loss spike)
 
@@ -250,41 +252,49 @@ event and from timing `restore()` end to end. They are a **lower bound**, not th
 
 ### Measured: the restore test's own restore (tiny MoE, step 100)
 
-Machine: Apple M5, 10 cores, 16 GB, macOS, Python 3.13, torch 2.14.1 (CPU), local folder store.
-Method: `restore_test.py --out <scratch>` run 9 times each; rank 0's `restore.done` read from the events folder.
+Measured on a member machine: Apple M5, 10 cores, 16 GB, macOS, Python 3.13, torch 2.14.1 (CPU), local folder store.
+Command: `python jobs/restore_time/restore_time.py --parts tiny` (see `jobs/restore_time/README.md`): the restore
+test run 9 times per process count; rank 0's `restore.done` is read from the events folder.
 Median (min to max), seconds. **measured**
 
 | Phase | 1 process | 2 processes |
 |---|---|---|
-| checksums (`verify_s`) | 0.0006 (0.0006 to 0.0007) | 0.0008 (0.0008 to 0.0009) |
-| download (`download_s`) | 0.0013 (0.0013 to 0.0013) | 0.0067 (0.0065 to 0.0069) |
-| load (`load_s`) | 0.0145 (0.0142 to 0.0149) | 0.0180 (0.0176 to 0.0181) |
-| four proofs (`checks_s`) | 0.0065 (0.0064 to 0.0067) | 0.0070 (0.0069 to 0.0072) |
-| **restore (`restore_s`)** | **0.031 (0.030 to 0.031)** | **0.034 (0.034 to 0.035)** |
+| checksums (`verify_s`) | 0.0006 (0.0006 to 0.0010) | 0.0008 (0.0008 to 0.0009) |
+| download (`download_s`) | 0.0013 (0.0012 to 0.0015) | 0.0066 (0.0064 to 0.0096) |
+| load (`load_s`) | 0.0145 (0.0142 to 0.0154) | 0.0179 (0.0178 to 0.0183) |
+| four proofs (`checks_s`) | 0.0064 (0.0063 to 0.0065) | 0.0071 (0.0070 to 0.0075) |
+| **restore (`restore_s`)** | **0.031 (0.030 to 0.032)** | **0.034 (0.034 to 0.037)** |
 | checkpoint size | 1.5 MB | 1.5 MB |
-| whole script (for comparison) | 4.0 (4.0 to 4.2) | 4.9 (4.9 to 5.1) |
+| whole script (for comparison) | 4.0 (4.0 to 4.4) | 5.0 (4.9 to 5.3) |
 
 So for the tiny model the restore is about **30 ms**, under 1% of the script. The claim (step 1 of section 3) is
 not inside `restore_s`; timing `restore()` as a whole shows it costs about **1 ms** more on a local folder
-store (**computed**: total minus `restore_s`, 4 sizes below).
+store (**computed**: total minus `restore_s`, 0.5 to 1.2 ms over the 4 sizes below).
 
 ### Measured: how restore time grows with checkpoint size
 
-A scratch script (not in this repo) saves a synthetic model with AdamW state (8 square linear layers) and times
-`Checkpointer.restore` from a cold node-local folder, 9 repetitions per size, 1 process, same machine and store.
-Total = claim + restore. Median seconds (min to max). **measured**
+**These sizes are synthetic.** The 25 MB to 1,611 MB rows are a made-up model (8 square linear layers plus AdamW
+state), built only to give restore a size axis. They are **not** real model sizes: do not read 1.6 GB as "the real
+model". The real size arrives with config v1 (Sat 14 Nov).
 
-| Checkpoint | checksums | download | load | four proofs | **restore total** |
+Command: `python jobs/restore_time/restore_time.py --parts sweep` (script and README in `jobs/restore_time/`).
+It saves the synthetic model with its AdamW state (3 times the weights) to a temporary folder and times
+`Checkpointer.restore` from a cold node-local folder, 9 repetitions per size, 1 process, same machine and store as
+above. The checkpoints are deleted when the script exits; only a JSON file is written. Total = claim + restore.
+Median seconds (min to max). **measured**
+
+| Checkpoint (synthetic) | checksums | download | load | four proofs | **restore total** |
 |---|---|---|---|---|---|
-| 25 MB | 0.009 | 0.012 | 0.008 | 0.040 | **0.070** (0.069 to 0.071) |
-| 101 MB | 0.034 | 0.044 | 0.013 | 0.153 | **0.244** (0.243 to 0.245) |
-| 403 MB | 0.137 | 0.175 | 0.037 | 0.605 | **0.957** (0.947 to 0.997) |
-| 1,611 MB | 0.590 | 0.933 | 0.304 | 2.501 | **4.371** (4.102 to 4.588) |
+| 25 MB | 0.009 | 0.012 | 0.008 | 0.040 | **0.070** (0.070 to 0.071) |
+| 101 MB | 0.036 | 0.050 | 0.015 | 0.153 | **0.256** (0.254 to 0.314) |
+| 403 MB | 0.144 | 0.196 | 0.045 | 0.616 | **1.010** (0.997 to 1.127) |
+| 1,611 MB | 0.594 | 1.082 | 0.321 | 2.508 | **4.514** (4.189 to 5.040) |
 
-Reading it: restore time is linear in size over this range, about **2.4 to 2.7 s per GB**, **computed**
-from the table (total divided by size). The four proofs are the largest share (about 55%) and are compute-bound
-here, one CPU thread per process; on GPUs they run faster, which was not measured. This is local disk with a warm
-cache: it says nothing about S3 or network throughput.
+Reading it: restore time is linear in size over this range, about **2.5 to 2.8 s per GB**, **computed**
+from the table (total divided by size). The four proofs are the largest share (56 to 61% of the total) and are
+compute-bound here, one CPU thread per process. On GPUs they run faster, which is **not measured**; a separate
+1-GPU job request, still to be filed, covers that row. This is local disk with a warm cache: it says nothing about
+S3 or network throughput.
 
 ### To scale it to the real model: the inputs
 
@@ -293,7 +303,7 @@ cache: it says nothing about S3 or network throughput.
 | checkpoint size per rank (weights + AdamW state, about 3 times the fp32 weights) | `ckpt.py list`, or `du` on a step folder | **pending**: config v1 arrives Sat 14 Nov |
 | download throughput from the store, per node | the store's own benchmark; `download_s` in `restore.done` | **not measured**: no GPU node with the real store yet |
 | number of ranks, and whether the node-local copy is still valid (then there is no download) | the job | per run |
-| speed of the four proofs on GPU | `checks_s` in `restore.done` | **not measured** |
+| speed of the four proofs on GPU | `checks_s` in `restore.done`; `restore_time.py --parts sweep --device cuda` | **not measured**: a separate 1-GPU job request is still to be filed |
 
 How to use them: the checksums, load and four proofs scale with size at the rates in the table (the proofs
 faster on GPU); the download is `size / store throughput` instead of the local-disk copy above. Do not
@@ -319,13 +329,15 @@ A killed trainer was back and training in about 50 s (median of 3 runs), a preem
 |---|---|---|
 | Restart job on the lab node (`results/restart_node.txt`) | Lead | **pending**, due Sat 14 Nov |
 | Restore on 2 GPUs | TSAI, after Gate 2 | **pending** |
-| Restore time on a GPU node with the real store and config v1 | G7 | **pending** |
-| Queue rules (`docs/queue_rules_v1.md`, `queue/queue_rules.py`) and the parallel layout (`docs/parallel_layout_v0.md`) | G7 | **pending**: PR #245 and PR #246, not on main; not part of this file |
+| Speed of the four proofs on 1 GPU (`restore_time.py --device cuda`) | G7 | **pending**: separate 1-GPU job request, still to be filed |
+| Restore time with the real store and config v1 sizes | G7 | **pending**, config v1 arrives Sat 14 Nov |
+| Queue rules v1.1: `docs/queue_rules_v1.md`, `queue/queue_rules.py` (theschoolofai/era-v5-lab#245; COMPLETE = `MANIFEST.json` plus `latest.json` or `commits.jsonl` naming the folder) | G7 | merged; this runbook follows it (section 5.1) |
+| Parallel layout: `docs/parallel_layout_v0.md` | G7 | merged (theschoolofai/era-v5-lab#246); not part of this file |
 | Restart test on a GPU, as a TSAI job | G7 | **pending** |
 
 ## 9. Sources
 
 `USER_GUIDE.md` (sections 1.3 to 1.6, 5.2, 5.4), `ckpt/README.md`, `ckpt/ckpt.py` (`restore`, `_restore_one`),
-`ckpt/supervisor.py`, `ckpt/test_supervisor.py`, `jobs/restore_test/README.md`, `jobs/restart_test/README.md`,
+`ckpt/supervisor.py`, `ckpt/test_supervisor.py`, `jobs/restore_time/README.md`, `jobs/restore_test/README.md`, `jobs/restart_test/README.md`,
 `results/restart_cpu.txt`, `results/restore_test_cpu.txt`, `results/restore_test_gpu.txt`,
 `support/docs/codes_and_actions.md`, `common/reasons.py`, `metrics/catalog.yaml`, `queue/README.md`.
