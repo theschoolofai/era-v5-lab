@@ -1,7 +1,0 @@
-# Common EXP-1 execution approval. This resolves harness gates only; it does
-# not select a learning-rate winner or change config_v1.
-approval:
-  status: agreed
-  reference: "TSAI 2026-11-03 (PRs #180, #190, #191, #197, #253)"
-evaluation:
-  approved: true
