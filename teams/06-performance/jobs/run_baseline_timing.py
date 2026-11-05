@@ -55,6 +55,7 @@ def _run_bench(out: Path, *, smoke_cpu: bool, synthetic: bool) -> int:
             "--modes", "clean,layer",
             "--level", "3",
             "--repeat", "2",
+            "bench.layer_warmup=10",
             f"bench.out_dir={out.as_posix()}",
         ]
         if synthetic:
