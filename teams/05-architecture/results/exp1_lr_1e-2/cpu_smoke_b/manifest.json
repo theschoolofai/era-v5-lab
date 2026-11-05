@@ -90,12 +90,12 @@
       "dtype": "fp32"
     },
     "approval": {
-      "status": "agreed",
-      "reference": "TSAI 2026-11-03 (#180,"
+      "status": "pending",
+      "reference": null
     },
     "evaluation": {
       "boundary_policy": "bos_then_all_text_tokens_document_isolated",
-      "approved": true
+      "approved": false
     },
     "provenance": {
       "arm_sources": [
@@ -146,7 +146,7 @@
   "device": "cpu",
   "torch": "2.13.0+cpu",
   "smoke": true,
-  "identity_sha256": "92a0eb62846a1eabde4bbe50439cfae5d74ae31b78eb170859d97ee58836d0cb",
+  "identity_sha256": "255e96b9d83b81b6c8069fab299bc31405e8929939a73509708edf43f281ddcb",
   "baseline_commit": "3a2f898b990d253d8422419f31e147ae65ec1747",
   "parameters": 58080512,
   "gpu": null,

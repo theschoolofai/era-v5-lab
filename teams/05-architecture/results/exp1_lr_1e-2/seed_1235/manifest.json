@@ -90,12 +90,12 @@
       "dtype": "bf16"
     },
     "approval": {
-      "status": "agreed",
-      "reference": "TSAI 2026-11-03 (#180,"
+      "status": "pending",
+      "reference": null
     },
     "evaluation": {
       "boundary_policy": "bos_then_all_text_tokens_document_isolated",
-      "approved": true
+      "approved": false
     },
     "provenance": {
       "arm_sources": [
@@ -145,24 +145,25 @@
   },
   "device": "cuda",
   "torch": "2.11.0+cu128",
-  "smoke": false,
-  "identity_sha256": "afbb8b6a7dd75bb3dd4d7a9d0bfcc8bd7f1a045b2580d342f09aa48caeea3002",
+  "smoke": true,
+  "identity_sha256": "1e6cf4df812a60c1fccf73a1689f1ad9423459a1bf0ce402e5cf85041e342579",
   "baseline_commit": "3a2f898b990d253d8422419f31e147ae65ec1747",
   "parameters": 58080512,
   "gpu": "NVIDIA H200",
-  "status": "AGREED_BASELINE_RUN",
+  "status": "SMOKE_NOT_A_QUALITY_RESULT",
   "heldout_provenance": {
     "heldout_file": "data/heldout_v1.jsonl",
     "heldout_sha256": "21c6e4b2df8dae9d69e254f4a00fc934d2a3c70f0675065a03724299d94312bb",
-    "fingerprint_set_id": "11e290a44d1467875fdf8bebc55eab21f0a6367f411aab98a4a027a546fd372e",
-    "fingerprint_set_version": "v1",
-    "scope": "full",
+    "fingerprint_set_id": "2826a3b883210c653979103c09ce1c79e40fc4f7034b54027f2836482370d22a",
+    "fingerprint_set_version": "v2",
+    "scope": "full set except heldout_g5_v1",
     "matches": 0,
     "docs_checked": 1059,
-    "checker": "teams/09-evaluation/decontam/decontam_check.py --id-field id --text-field text (full fingerprint set, no --tags/--benchmarks)",
-    "checker_output": "heldout_decontam_v1.txt",
-    "checked_on": "2026-11-02",
-    "status": "FINAL"
+    "checker": "teams/09-evaluation/decontam/decontam_check.py --id-field id --text-field text --exclude heldout_g5_v1",
+    "checked_on": "2026-11-04",
+    "v1_fingerprint_set_id": "11e290a44d1467875fdf8bebc55eab21f0a6367f411aab98a4a027a546fd372e",
+    "v1_checked_on": "2026-11-02",
+    "note": "Checked on fingerprints v2 (0 matches across 1,059 docs excluding self-entry heldout_g5_v1); heldout_v1/heldout_report.json on main still records v1 (2026-11-02)"
   },
   "g8_external_writer": false,
   "token_budget_note": "Input positions include right padding; scored tokens/bytes reported separately",
