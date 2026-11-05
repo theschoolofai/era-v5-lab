@@ -1,8 +1,8 @@
 {
  "schema_version": "eval_mini_v0",
  "run_meta": {
-  "model": "allenai/OLMoE-1B-7B-0924",
-  "model_revision": "6d84c48581ece794365f2b8e9cfb043c68ade9c5",
+  "model": "Qwen/Qwen3-4B",
+  "model_revision": "1cfa9a7208912126459214e8b04321603b3df60c",
   "format": "Q4_K_M",
   "gguf": "Qwen3-4B-Q4_K_M.gguf",
   "gguf_bytes": 2591480736,
@@ -18,8 +18,8 @@
  },
  "records": [
   {
-   "model": "allenai/OLMoE-1B-7B-0924",
-   "model_revision": "6d84c48581ece794365f2b8e9cfb043c68ade9c5",
+   "model": "Qwen/Qwen3-4B",
+   "model_revision": "1cfa9a7208912126459214e8b04321603b3df60c",
    "dtype": "Q4_K_M",
    "profile": "mini",
    "limit": 500,
@@ -42,8 +42,8 @@
    "task_version": 1.0
   },
   {
-   "model": "allenai/OLMoE-1B-7B-0924",
-   "model_revision": "6d84c48581ece794365f2b8e9cfb043c68ade9c5",
+   "model": "Qwen/Qwen3-4B",
+   "model_revision": "1cfa9a7208912126459214e8b04321603b3df60c",
    "dtype": "Q4_K_M",
    "profile": "mini",
    "limit": 500,
@@ -66,8 +66,8 @@
    "task_version": 1.0
   },
   {
-   "model": "allenai/OLMoE-1B-7B-0924",
-   "model_revision": "6d84c48581ece794365f2b8e9cfb043c68ade9c5",
+   "model": "Qwen/Qwen3-4B",
+   "model_revision": "1cfa9a7208912126459214e8b04321603b3df60c",
    "dtype": "Q4_K_M",
    "profile": "mini",
    "limit": 400,
@@ -90,8 +90,8 @@
    "task_version": 1.0
   },
   {
-   "model": "allenai/OLMoE-1B-7B-0924",
-   "model_revision": "6d84c48581ece794365f2b8e9cfb043c68ade9c5",
+   "model": "Qwen/Qwen3-4B",
+   "model_revision": "1cfa9a7208912126459214e8b04321603b3df60c",
    "dtype": "Q4_K_M",
    "profile": "mini",
    "limit": 400,
@@ -114,8 +114,8 @@
    "task_version": 1.0
   },
   {
-   "model": "allenai/OLMoE-1B-7B-0924",
-   "model_revision": "6d84c48581ece794365f2b8e9cfb043c68ade9c5",
+   "model": "Qwen/Qwen3-4B",
+   "model_revision": "1cfa9a7208912126459214e8b04321603b3df60c",
    "dtype": "Q4_K_M",
    "profile": "mini",
    "limit": 10,
@@ -138,8 +138,8 @@
    "task_version": "2"
   },
   {
-   "model": "allenai/OLMoE-1B-7B-0924",
-   "model_revision": "6d84c48581ece794365f2b8e9cfb043c68ade9c5",
+   "model": "Qwen/Qwen3-4B",
+   "model_revision": "1cfa9a7208912126459214e8b04321603b3df60c",
    "dtype": "Q4_K_M",
    "profile": "mini",
    "limit": 200,
@@ -162,8 +162,8 @@
    "task_version": 3.0
   },
   {
-   "model": "allenai/OLMoE-1B-7B-0924",
-   "model_revision": "6d84c48581ece794365f2b8e9cfb043c68ade9c5",
+   "model": "Qwen/Qwen3-4B",
+   "model_revision": "1cfa9a7208912126459214e8b04321603b3df60c",
    "dtype": "Q4_K_M",
    "profile": "mini",
    "limit": 200,
@@ -186,8 +186,8 @@
    "task_version": 3.0
   },
   {
-   "model": "allenai/OLMoE-1B-7B-0924",
-   "model_revision": "6d84c48581ece794365f2b8e9cfb043c68ade9c5",
+   "model": "Qwen/Qwen3-4B",
+   "model_revision": "1cfa9a7208912126459214e8b04321603b3df60c",
    "dtype": "Q4_K_M",
    "profile": "mini",
    "limit": 200,
