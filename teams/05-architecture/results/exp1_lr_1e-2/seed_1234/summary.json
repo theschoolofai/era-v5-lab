@@ -1,5 +1,5 @@
 {
-  "status": "SMOKE",
+  "status": "NOT_ELIGIBLE_FOR_QUALITY_COMPARISON",
   "steps": 245,
   "wall_seconds": 411.121413625,
   "timed_out": false,

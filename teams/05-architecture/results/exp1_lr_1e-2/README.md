@@ -1,9 +1,9 @@
 # EXP-1 Arm `exp1-lr-1e-2` (`optim.lr = 0.01`) — Pre-Agreement T1 Verification Logs
 
-> **Status: Pre-agreement verification logs — NOT an approved EXP-1 quality result (`status = SMOKE_NOT_A_QUALITY_RESULT`, `eligible_for_quality_comparison = false`).**
+> **Status: Pre-agreement verification logs — NOT an approved EXP-1 quality result (`status = NOT_ELIGIBLE_NOT_A_QUALITY_RESULT`, `eligible_for_quality_comparison = false`).**
 >
-> Per lead review on PR #286, these 245-step `NVIDIA H200` `bf16` logs (seeds `1234`, `1235`, `1236`) and CPU smoke/resume logs are retained as verification evidence, with the quality-result claim removed until the following three items are in place on `main`:
-> 1. **Approval & Evaluation Flags (`configs/runtime.yaml`):** On `main`, `approval.status` is `pending` (`approval.reference: null`) and `evaluation.approved` is `false`. All manifests in this directory record those `main` values (`pending`, `null`, `false`) with `"smoke": true`, `"status": "SMOKE_NOT_A_QUALITY_RESULT"`, and `"eligible_for_quality_comparison": false`.
+> Per lead review on PR #286, these 245-step `NVIDIA H200` `bf16` logs (seeds `1234`, `1235`, `1236`) and 4-step CPU smoke/resume logs are retained as verification evidence, with the quality-result claim removed until the following three items are in place on `main`:
+> 1. **Approval & Evaluation Flags (`configs/runtime.yaml`):** On `main`, `approval.status` is `pending` (`approval.reference: null`) and `evaluation.approved` is `false`. All manifests in this directory record those `main` values (`pending`, `null`, `false`). For the 245-step `H200` CUDA runs (`seed_1234`, `seed_1235`, `seed_1236`), `manifest.json` sets `"smoke": false` and `"status": "NOT_ELIGIBLE_NOT_A_QUALITY_RESULT"`, and `summary.json` sets `"status": "NOT_ELIGIBLE_FOR_QUALITY_COMPARISON"` and `"eligible_for_quality_comparison": false`. The 4-step CPU runs (`cpu_smoke_a`, `cpu_smoke_b`, `cpu_resume`) stay `"smoke": true` (`"status": "SMOKE_NOT_A_QUALITY_RESULT"` / `"SMOKE"`, `"eligible_for_quality_comparison": false`).
 > 2. **Shared EXP-1 Training File:** These runs used a local 3,247-document FineWeb sample (`10,001,358` bytes, SHA-256 `3647da224420ef7b53d2d0ae4cf9150914519e31a2f373c156f1657f5e26fc77`). The shared EXP-1 training file across all five learning-rate arms has not been named yet.
 > 3. **Held-Out Provenance on Fingerprints v2:** `heldout_v1.jsonl` (`1,059` documents) was re-checked on **Fingerprints v2** (`set_sha256: 2826a3b883210c653979103c09ce1c79e40fc4f7034b54027f2836482370d22a`) via `python teams/09-evaluation/decontam/decontam_check.py teams/05-architecture/heldout_v1/data/heldout_v1.jsonl --id-field id --text-field text --exclude heldout_g5_v1` on `2026-11-04`, yielding `docs 1059 flagged 0 (0.00%) by benchmark {}`. Note that `teams/05-architecture/heldout_v1/heldout_report.json` on `main` still records `fingerprint_set_version: "v1"` (`2026-11-02`).
 
@@ -11,7 +11,7 @@
 - **Arm Config:** `teams/05-architecture/configs/arms/exp1/lr_1e-2.yaml` (inherits `configs/arms/t1.yaml`)
 - **Test Size:** `T1` (`d_model=256`, `n_layer=6`, `n_head=4`, `n_kv_head=2`, `num_experts=8`, `num_shared=1`, `top_k=2`, `ffn_hidden=512`, `block_size=1024`, `vocab_size=131072`, `58,080,512` parameters)
 - **Harness:** `teams/05-architecture/harness/train_week2.py`
-- **Runtime Test Settings (PR #253):** `rope_theta=10000.0`, `norm_eps=1.0e-5`, `mtp=false` (`mtp_weight=0.0`), `moe.bias=false` (`bias_gamma=0.0`), `moe.dispatch=loop`, `attn_impl=eager`, `ce_impl=torch`, `reversible=false`, dense untied output head (`nn.Linear(256, 131072, bias=False)`)
+- **Runtime Test Settings (PR #253):** `rope_theta=10000.0`, `norm_eps=1.0e-5`, `mtp=false` (`mtp_weight=0.0`), `moe.bias=false` (`bias_gamma=0.0`), `moe.dispatch=loop`, `attn_impl=eager`, `ce_impl=torch`, `reversible=false`, dense untied output head (`nn.Linear(256, 131072, bias=False)`). The copied `intended.tied_embeddings_intended: true` flag in `manifest.json` (inherited from `configs/arms/t1.yaml`) is stale, and the run used the dense untied head.
 - **Optimizer & Budget:** `AdamW` (`lr=0.01`, `betas=[0.9, 0.999]`, `eps=1e-8`, `weight_decay=0.0`, `grad_clip=1.0`, `schedule=constant`), `batch_size=8` (`8,192` tokens/step), `steps=245` (`2,007,040` input positions), `max_time_min=30`
 
 ---
@@ -26,7 +26,7 @@
    - `raw_table_P32.npz` content SHA-256: `47d411a9c6cae6fa2075935567243e51f4efbc377ccef3eef42c32fce66f869f` (`shape=(131072, 32)`, `n_truncated=0`)
 3. **Runtime Schema Validation (`check_week2.py`):**
    - `python teams/05-architecture/harness/check_week2.py teams/05-architecture/configs/arms/exp1/lr_1e-2.yaml` -> **`0 errors`**
-4. **CPU Smoke Repeatability & Checkpoint-Resume Verification (`seed=1234`, `steps=4`, `seq_len=64`, `batch_size=2`, `eligible_for_quality_comparison=false`):**
+4. **CPU Smoke Repeatability & Checkpoint-Resume Verification (`seed=1234`, `steps=4`, `seq_len=64`, `batch_size=2`, `smoke=true`, `status=SMOKE`, `eligible_for_quality_comparison=false`):**
    - `cpu_smoke_a` and `cpu_smoke_b` produce identical `losses.txt` (`first_ce=11.893761 -> last_ce=10.685356`) and identical `final_model_sha256` (`5008e39a95a071f05fb416a1639ee73cd89db2c020bc270010ff46b03b85c11a`).
    - `cpu_resume` (`2 steps + stop + --resume -> 4 steps`) matches the uninterrupted 4-step runs bit-for-bit (`final_model_sha256: 5008e39a95a071f05fb416a1639ee73cd89db2c020bc270010ff46b03b85c11a`).
 
@@ -50,9 +50,9 @@
 
 ---
 
-## 3. Pre-Agreement T1 GPU (`bf16`) Verification Logs (`steps = 245`, `eligible_for_quality_comparison = false`)
+## 3. Pre-Agreement T1 GPU (`bf16`) Verification Logs (`steps = 245`, `smoke = false`, `eligible_for_quality_comparison = false`)
 
-Seeds `1234`, `1235`, and `1236` each completed `245` steps (`timed_out=false`, `0` NaN/Inf steps) on `NVIDIA H200` in `bf16` under the merged runtime test settings (`norm_eps=1e-5`, `rope_theta=10000.0`, `mtp=false`, `moe.bias=false`). Because `approval.status` (`pending`) and `evaluation.approved` (`false`) are not set on `main` and the shared EXP-1 training file is not named yet, these runs are recorded with `"smoke": true`, `"status": "SMOKE_NOT_A_QUALITY_RESULT"`, and `"eligible_for_quality_comparison": false`.
+Seeds `1234`, `1235`, and `1236` each completed `245` steps (`timed_out=false`, `0` NaN/Inf steps) on `NVIDIA H200` in `bf16` under the merged runtime test settings (`norm_eps=1e-5`, `rope_theta=10000.0`, `mtp=false`, `moe.bias=false`) and the dense untied output head (note that the copied `intended.tied_embeddings_intended: true` flag in `manifest.json` is stale; the run used the untied head). Because `approval.status` (`pending`) and `evaluation.approved` (`false`) are not set on `main` and the shared EXP-1 training file is not named yet, these 245-step CUDA runs are recorded with `"smoke": false`, `"status": "NOT_ELIGIBLE_NOT_A_QUALITY_RESULT"` in `manifest.json`, and `"status": "NOT_ELIGIBLE_FOR_QUALITY_COMPARISON"`, `"eligible_for_quality_comparison": false` in `summary.json`.
 
 ### Summary Table Across Seeds (Pre-Agreement Verification)
 
@@ -66,7 +66,7 @@ Seeds `1234`, `1235`, and `1236` each completed `245` steps (`timed_out=false`, 
 | `train/ce_loss` (Step 1 -> Step 245, nats) | 11.963246 -> 7.520585 | 11.989516 -> 7.407004 | 11.952813 -> 6.930207 | 11.968525 -> 7.285932 | — |
 | Wall time (s) | 411.12 s | 414.82 s | 468.50 s | 431.48 s | — |
 | `final_model_sha256` | `15701d752a5c...` | `246226fadbc1...` | `927c0110e3fc...` | — | — |
-| `eligible_for_quality_comparison` | `false` | `false` | `false` | — | — |
+| `smoke` / `eligible_for_quality_comparison` | `false` / `false` | `false` / `false` | `false` / `false` | — | — |
 
 ### Per-Slice Held-Out Bits Per Byte at Step 245 (All 15 Slices)
 
@@ -115,8 +115,8 @@ Seeds `1234`, `1235`, and `1236` each completed `245` steps (`timed_out=false`, 
 
 ## 4. Files in This Folder
 
-- `seed_1234/` — Pre-agreement 245-step T1 GPU (`bf16`) verification logs for seed `1234` (`manifest.json`, `metrics.jsonl`, `losses.txt`, `total_losses.txt`, `summary.json`; marked `eligible_for_quality_comparison: false`)
-- `seed_1235/` — Pre-agreement 245-step T1 GPU (`bf16`) verification logs for seed `1235` (`eligible_for_quality_comparison: false`)
-- `seed_1236/` — Pre-agreement 245-step T1 GPU (`bf16`) verification logs for seed `1236` (`eligible_for_quality_comparison: false`)
+- `seed_1234/` — Pre-agreement 245-step T1 GPU (`bf16`) verification logs for seed `1234` (`manifest.json`, `metrics.jsonl`, `losses.txt`, `total_losses.txt`, `summary.json`; `smoke: false`, `status: NOT_ELIGIBLE_NOT_A_QUALITY_RESULT` / `NOT_ELIGIBLE_FOR_QUALITY_COMPARISON`, `eligible_for_quality_comparison: false`)
+- `seed_1235/` — Pre-agreement 245-step T1 GPU (`bf16`) verification logs for seed `1235` (`smoke: false`, `eligible_for_quality_comparison: false`)
+- `seed_1236/` — Pre-agreement 245-step T1 GPU (`bf16`) verification logs for seed `1236` (`smoke: false`, `eligible_for_quality_comparison: false`)
 - `train_exp1_v1_meta.json` — Metadata & SHA-256 checksum for the local 3,247-document FineWeb sample (`shared_exp1_training_file: false`)
-- `cpu_smoke_a/`, `cpu_smoke_b/`, `cpu_resume/` — CPU determinism and checkpoint-resume verification artifacts (`eligible_for_quality_comparison: false`)
+- `cpu_smoke_a/`, `cpu_smoke_b/`, `cpu_resume/` — 4-step CPU determinism and checkpoint-resume smoke verification artifacts (`smoke: true`, `status: SMOKE`, `eligible_for_quality_comparison: false`)
