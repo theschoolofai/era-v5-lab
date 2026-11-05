@@ -8,6 +8,6 @@ intended:
   acceptance_rule: winner
 model:
   attn_gate: true
-  attn_gate_input: null # Pending Revant: normalized or residual
-  attn_gate_bias: null # Pending Revant: explicit boolean
-  attn_gate_init: null # Pending Revant: zero or linear_default
+  attn_gate_input: normalized # source: Revant attention-owner clarification
+  attn_gate_bias: false # source: Revant attention-owner clarification
+  attn_gate_init: linear_default # source: Revant; nn.Linear initialization, no extra init

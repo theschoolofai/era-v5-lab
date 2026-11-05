@@ -6,7 +6,7 @@ Input: arm setting `embedding: ke1`, implemented by the native G4 raw-byte-code 
 
 Output: dense untied `nn.Linear(d_model, vocab_size, bias=False)` only, per TSAI's 1 Nov decision. No KE-tied output code, output-head switch or EXP-5 remains. Input projection and output parameters are independent.
 
-`embedding`, `attn_impl`, `mtp`, `reversible`, `ce_impl` and `moe.dispatch` must come explicitly from the arm chain. The native harness does not load mutable G6 defaults. Unknown/unsupported settings fail. Muon and alternate attention are pending owner integration; no DDP/EP implementation is claimed.
+`embedding`, `attn_impl`, `mtp`, `reversible`, `ce_impl` and `moe.dispatch` must come explicitly from the arm chain. The native harness does not load mutable G6 defaults. Unknown/unsupported settings fail. Muon is `optim.name: muon` (`harness/week2/optim.py`, Team 6's plain Muon): `muon_lr` for the 2D block matrices (attention, router, experts), `optim.lr` through AdamW for the embedding projection, output head and norm gains; the manifest records the split. Alternate attention is pending owner integration; no DDP/EP implementation is claimed.
 
 PR #253 supplies test values: RoPE theta 10000, norm epsilon 1e-5, expert bias false and inactive MTP weight 0. These are test settings, not config-v1 decisions. Router bias_gamma 0 and rotary_fraction 1 are implementation limits, not selected experiment values. Smoke choices must not be copied into approved arms. Production runs require an agreement reference, scoring agreement and holdout provenance. G8 writer is optional follow-up integration, not a Monday submission blocker.
 
