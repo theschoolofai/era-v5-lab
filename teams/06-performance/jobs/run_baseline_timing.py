@@ -7,6 +7,10 @@ Usage (repo root):
   python teams/06-performance/jobs/run_baseline_timing.py --out out --smoke-cpu
 
 No network. Reads configs under teams/06-performance. Writes only under --out.
+
+GPU path (non-smoke): two --repeat 1 clean,layer runs with layer_warmup=20 and a
+120s cool-down between them; the second run uses --against the first JSON so the
+compare gate still applies without tip-side sleep.
 """
 from __future__ import annotations
 
@@ -15,12 +19,28 @@ import json
 import os
 import subprocess
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 
 JOB_DIR = Path(__file__).resolve().parent
 PERF_ROOT = JOB_DIR.parent
 REPO_ROOT = PERF_ROOT.parents[1]
+
+# Cool-down between the two layer processes to cut thermal hysteresis on
+# fwd:block* / opt.muon when the node is warm from a prior long job.
+LAYER_COOLDOWN_S = 120
+LAYER_WARMUP = 20
+
+
+def _newest_json(out: Path, tag: str) -> Path | None:
+    """Resolve the JSON stem free_path wrote for ``tag`` (tag.json or tag-N.json)."""
+    matches = sorted(out.glob(f"{tag}.json")) + sorted(out.glob(f"{tag}-*.json"))
+    # Exclude second-run tags that start with ``{tag}-run``.
+    matches = [p for p in matches if not p.name.startswith(f"{tag}-run")]
+    if not matches:
+        return None
+    return max(matches, key=lambda p: p.stat().st_mtime)
 
 
 def _run_bench(out: Path, *, smoke_cpu: bool, synthetic: bool) -> int:
@@ -45,38 +65,88 @@ def _run_bench(out: Path, *, smoke_cpu: bool, synthetic: bool) -> int:
             "run.device=cpu",
             "run.dtype=fp32",
         ]
-    else:
-        config = PERF_ROOT / "configs" / "base.yaml"
-        tag = "baseline_v1_job"
-        args = [
-            sys.executable, "-m", "perfkit.bench",
-            "--config", str(config),
-            "--tag", tag,
-            "--modes", "clean,layer",
-            "--level", "3",
-            "--repeat", "2",
-            "bench.layer_warmup=10",
-            f"bench.out_dir={out.as_posix()}",
-        ]
-        if synthetic:
-            args.append("data.source=synthetic")
+        print("cwd:", PERF_ROOT)
+        print("cmd:", " ".join(args))
+        proc = subprocess.run(args, cwd=str(PERF_ROOT), env=env)
+        summary = {
+            "pass": proc.returncode == 0,
+            "exit_code": proc.returncode,
+            "tag": tag,
+            "config": str(config.relative_to(REPO_ROOT)),
+            "smoke_cpu": smoke_cpu,
+            "synthetic": synthetic,
+            "time_utc": datetime.now(timezone.utc).isoformat(),
+            "out_dir": str(out),
+        }
+        (out / "result.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(summary))
+        return proc.returncode
 
+    config = PERF_ROOT / "configs" / "base.yaml"
+    tag = "baseline_v1_job"
+    tag2 = f"{tag}-run2"
+    base_args = [
+        sys.executable, "-m", "perfkit.bench",
+        "--config", str(config),
+        "--modes", "clean,layer",
+        "--level", "3",
+        "--repeat", "1",
+        f"bench.layer_warmup={LAYER_WARMUP}",
+        f"bench.out_dir={out.as_posix()}",
+    ]
+    if synthetic:
+        base_args.append("data.source=synthetic")
+
+    args1 = [*base_args, "--tag", tag]
     print("cwd:", PERF_ROOT)
-    print("cmd:", " ".join(args))
-    proc = subprocess.run(args, cwd=str(PERF_ROOT), env=env)
+    print("cmd:", " ".join(args1))
+    proc1 = subprocess.run(args1, cwd=str(PERF_ROOT), env=env)
+    if proc1.returncode != 0:
+        summary = {
+            "pass": False,
+            "exit_code": proc1.returncode,
+            "tag": tag,
+            "config": str(config.relative_to(REPO_ROOT)),
+            "smoke_cpu": smoke_cpu,
+            "synthetic": synthetic,
+            "layer_warmup": LAYER_WARMUP,
+            "cooldown_s": LAYER_COOLDOWN_S,
+            "phase": "run1",
+            "time_utc": datetime.now(timezone.utc).isoformat(),
+            "out_dir": str(out),
+        }
+        (out / "result.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(summary))
+        return proc1.returncode
+
+    first_json = _newest_json(out, tag)
+    if first_json is None or not first_json.is_file():
+        print("ERROR: first-run JSON not found under", out, file=sys.stderr)
+        return 2
+
+    print(f"cool-down {LAYER_COOLDOWN_S}s between layer processes (thermal hysteresis)…")
+    time.sleep(LAYER_COOLDOWN_S)
+
+    args2 = [*base_args, "--tag", tag2, "--against", str(first_json)]
+    print("cmd:", " ".join(args2))
+    proc2 = subprocess.run(args2, cwd=str(PERF_ROOT), env=env)
     summary = {
-        "pass": proc.returncode == 0,
-        "exit_code": proc.returncode,
-        "tag": tag,
+        "pass": proc2.returncode == 0,
+        "exit_code": proc2.returncode,
+        "tag": tag2,
+        "against": str(first_json),
         "config": str(config.relative_to(REPO_ROOT)),
         "smoke_cpu": smoke_cpu,
         "synthetic": synthetic,
+        "layer_warmup": LAYER_WARMUP,
+        "cooldown_s": LAYER_COOLDOWN_S,
+        "phase": "run2",
         "time_utc": datetime.now(timezone.utc).isoformat(),
         "out_dir": str(out),
     }
     (out / "result.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(summary))
-    return proc.returncode
+    return proc2.returncode
 
 
 def main(argv: list[str] | None = None) -> int:
