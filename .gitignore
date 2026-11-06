@@ -1,0 +1,77 @@
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Packaging and build outputs
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+pip-wheel-metadata/
+
+# Virtual environments (keep uv.lock tracked)
+.venv/
+venv/
+env/
+ENV/
+
+# Python tooling and test outputs
+.pytest_cache/
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
+.pyright/
+.pytype/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+*.cover
+*.py,cover
+.cache/
+
+# Jupyter notebooks (not notebooks themselves)
+.ipynb_checkpoints/
+
+# IDEs and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*~
+*.swp
+*.swo
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+*.log
+
+# Downloaded datasets and local artifacts
+*.parquet
+*.arrow
+*.feather
+*.sqlite3
+*.db
+*.pkl
+*.pickle
+*.joblib
+
+# Allow versioned Parquet test fixtures
+!**/tests/fixtures/*.parquet
+
+# Local scratch and output directories
+scratch/
+tmp/
+temp/
+outputs/
