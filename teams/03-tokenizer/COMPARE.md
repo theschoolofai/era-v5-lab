@@ -349,39 +349,44 @@ The sections above measure C1–C3 on the held-out **check** split. This section
 | Sarvam-1 | | 2.3004 | −18.87% | 1.4313 | +15.88% | 0.3780 | +28.09% | 0.4240 | +32.71% | ❌ En, HumanEval, MBPP |
 | c0 | `a635bc3d…` | 2.3829 | −15.96% | 1.2596 | +1.98% | 0.2979 | +0.95% | 0.3226 | +0.97% | ✅ pass |
 | v1-c1 | `7d2cff92…` | 2.3543 | −16.97% | 1.2596 | +1.98% | 0.2979 | +0.95% | 0.3226 | +0.97% | ✅ pass |
-| C1 (sample v0) | `36acf126…` | pending | | | | | | | | measuring |
-| C2 (sample v0) | `b0d44576…` | pending | | | | | | | | measuring |
+| **C1 (sample v0)** | `36acf126…` | **2.3739** | **−16.28%** | 1.2334 | −0.15% | 0.2953 | +0.07% | 0.3203 | +0.25% | ✅ **pass** |
+| **C2 (sample v0)** | `b0d44576…` | **2.3686** | **−16.47%** | 1.2334 | −0.15% | 0.2953 | +0.07% | 0.3203 | +0.25% | ✅ **pass** |
 | **C3 (sample v0)** | `15468e66…` | **2.3505** | **−17.10%** | 1.2334 | −0.15% | 0.2953 | +0.07% | 0.3203 | +0.25% | ✅ **pass** |
 
 ### C1–C3 (sample v0) on FLORES-200 and code
 
-Measured by Harini on 3 Nov 2026. The sha256 of each downloaded tokenizer.json was checked against its manifest before measuring.
+Measured by Harini on 3 Nov (C3) and 5 Nov 2026 (C1, C2). The sha256 of each downloaded tokenizer.json was checked against its manifest before measuring.
 
 ```
 python teams/03-tokenizer/harness/run_harness.py --tokenizers BrahmicTokenizer-131K \
+    --candidate c1=<path>/tokenizer.json --candidate c2=<path>/tokenizer.json \
     --candidate c3=<path>/tokenizer.json --suites flores,code --check-reference \
     --brahmic-dir <BrahmicTokenizer-131K clone> --flores-dir <flores200_dataset>
 ```
 
-Reference check: PASS (max |d| = 0.0000).
+Reference check: PASS (max |d| = 0.0000) on both runs.
 
 | Tokenizer | En | Hi | Bn | Ta | Te | Kn | Ml | Mr | Gu | Pa | Or | As | Mean |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | BrahmicTokenizer-131K | 1.2352 | 1.6429 | 2.3295 | 3.1166 | 3.0292 | 3.2734 | 3.4738 | 2.5723 | 2.2748 | 2.5955 | 4.1287 | 2.7535 | 2.8355 |
-| C1 sample v0 | pending | | | | | | | | | | | | |
-| C2 sample v0 | pending | | | | | | | | | | | | |
+| C1 sample v0 | 1.2334 | 1.6226 | 2.2655 | 2.6592 | 2.5822 | 2.7782 | 3.0402 | 2.0946 | 2.1033 | 2.0045 | 2.6223 | 2.3402 | 2.3739 |
+| C2 sample v0 | 1.2334 | 1.6226 | 2.2655 | 2.5928 | 2.5538 | 2.7484 | 3.0402 | 2.0946 | 2.2092 | 2.0690 | 2.5187 | 2.3402 | 2.3686 |
 | **C3 sample v0** | 1.2334 | 1.6193 | 2.2293 | 2.5927 | 2.5531 | 2.7469 | 3.0324 | 2.0943 | 2.2092 | 2.0129 | 2.4861 | 2.2788 | **2.3505** |
+| C2 vs C1 | +0.00% | +0.00% | +0.00% | −2.50% | −1.10% | −1.07% | +0.00% | +0.00% | +5.03% | +3.22% | −3.95% | +0.00% | −0.22% |
+| C3 vs C2 | +0.00% | −0.20% | −1.60% | −0.00% | −0.03% | −0.05% | −0.26% | −0.01% | +0.00% | −2.71% | −1.29% | −2.62% | −0.76% |
 
 | Tokenizer | HumanEval | MBPP | GSM8K |
 |---|---|---|---|
 | BrahmicTokenizer-131K | 0.2951 | 0.3195 | 0.3010 |
-| C1 sample v0 | pending | | |
-| C2 sample v0 | pending | | |
+| C1 sample v0 | 0.2953 | 0.3203 | 0.3006 |
+| C2 sample v0 | 0.2953 | 0.3203 | 0.3006 |
 | C3 sample v0 | 0.2953 | 0.3203 | 0.3006 |
 
 **Reading it:**
 
-- Only our own candidates pass. Every outside tokenizer that beats the bar on Indic (Gemma-4, Sarvam-30B, Sarvam-1) loses at least 13% on code.
-- **C3 removes the English risk on FLORES too:** c0 and v1-c1 were at +1.98% against the 2.00% limit; C3 is at −0.15%. This agrees with the check-split result above (C1's o200k swap brings English level with the bar).
+- **All three week-2 candidates pass**, and each step improves the mean: C1 −16.28%, C2 −16.47%, C3 −17.10% against the bar. Only our own candidates pass. Every outside tokenizer that beats the bar on Indic (Gemma-4, Sarvam-30B, Sarvam-1) loses at least 13% on code.
+- **English and code are identical for C1–C3** (they share the o200k base), and English is no longer the tight limit: c0 and v1-c1 were at +1.98% against the 2.00% limit; C1–C3 are at −0.15%.
+- **C2 vs C1 (slot split)** matches the check split: Ta −2.50%, Te −1.10%, Kn −1.07% and Or −3.95%, paid for by Gu +5.03% and Pa +3.22% (check split: Gu +4.79%, Pa +3.95%).
+- **C3 vs C2 (normalizer)** is larger on FLORES than on the check split: Pa −2.71%, As −2.62%, Bn −1.60% and Or −1.29% here, against Bn −0.29% and As −0.17% on check. FLORES Bengali, Assamese and Punjabi contain many nukta letters in the decomposed form that the normalizer re-joins (#134), so the gain shows up more on this text. C3 also wins back most of C2's Punjabi loss.
 - C3 is better than BrahmicTokenizer-131K on all 12 FLORES languages, most on the v0 weak spots: Odia −39.8%, Punjabi −22.4%, Marathi −18.6%. The FLORES gains match the check-split gains above (C3 sample v0 vs baseline) to within about 1.5 points per language, except Malayalam (−12.7% on FLORES vs −15.0% on check). Mean Indic is −17.10% on FLORES vs −17.54% on check.
 - IndicBERTv2-SS and v0 + normalizer are not in the pass-bar table because they have no HumanEval/MBPP measurement.
