@@ -46,12 +46,12 @@ This confirms the outline only. TSAI still approves the final text.
 | Evaluation | The benchmarks, and the scores that TSAI approves | Evaluation | empty | pending |
 | Limitations and risks | What the model gets wrong, and the known risks | Evaluation, Release | empty | Evaluation pending; Release OK @pyru |
 | Licence and attribution | The licence of the model, and credit for each data source | Post-training | empty | pending |
-| Contributors | The teams, and the names of people who signed the consent form | Release | empty | Release OK @pyru |
+| Contributors | The teams that did the work, with no person names | Release | empty | Release OK @pyru |
 | How to find more | A link to the public lab repository | Release | empty | Release OK @pyru |
 
 ## Rules for every section
 
 - Write only about work that is done. Do not promise dates, sizes or results.
 - Write `[number: waiting for TSAI]` in place of any number that TSAI has not approved.
-- Name a person only if they signed the consent form.
+- Name teams only. Do not name any person.
 - Follow `teams/11-release/style/style_guide.md`.
