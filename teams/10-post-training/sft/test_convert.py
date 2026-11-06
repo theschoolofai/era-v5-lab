@@ -38,6 +38,13 @@ SWE = {
     ],
 }
 AYA = {"inputs": "नमस्ते​?", "targets": "क्‍ष और क्‌ष﻿", "language_code": "hin"}
+INDIC_ALIGN = {
+    "doc_id": "d1", "num_turns": 2,
+    "eng_Latn": [["Hi?", "Hello."], ["Why?", "Because."]],
+    "hin_Latn": [["Hello.", "Hi?"], ["Because.", "Why?"]],
+    **{col: [[f"{col} प्रश्न​", f"{col} क्‍ष﻿"], [f"{col} फिर?", f"{col} क्‌ष"]]
+       for col in convert.INDIC_ALIGN_COLUMNS},
+}
 
 
 def one(set_id: str, row: dict) -> tuple[dict, dict]:
@@ -55,6 +62,7 @@ def trained_text(sample: dict) -> list[str]:
     ("sft-code-codeforces-cots", CODEFORCES),
     ("sft-code-swe-rebench-openhands", SWE),
     ("sft-indic-aya-dataset", AYA),
+    ("sft-indic-indic-align-oasst-t", INDIC_ALIGN),
 ])
 def test_every_adapter_renders_and_parses_back(set_id, row):
     sample, manifest = one(set_id, row)
@@ -112,6 +120,36 @@ def test_aya_keeps_zwj_zwnj_strips_zwsp_bom_and_selects_indic_only():
     assert sample["id"] == "sft-indic-aya-dataset/1"
     assert "‍" in sample["text"] and "‌" in sample["text"]
     assert "​" not in sample["text"] and "﻿" not in sample["text"]
+
+
+def test_indic_align_takes_one_native_column_per_doc_id_and_keeps_turn_order():
+    col = convert.indic_align_column("d1")
+    assert col in convert.INDIC_ALIGN_COLUMNS and convert.indic_align_column("d1") == col
+    sample, manifest = one("sft-indic-indic-align-oasst-t", INDIC_ALIGN)
+    assert sample["source_id"] == "d1"
+    assert trained_text(sample) == [f"{col} क्‍ष{T['im_end']}", f"{col} क्‌ष{T['im_end']}"]
+    assert f"{col} प्रश्न" in sample["text"] and f"{col} फिर?" in sample["text"]
+    assert "​" not in sample["text"] and "Hello." not in sample["text"]
+    others = [c for c in convert.INDIC_ALIGN_COLUMNS if c != col]
+    assert all(f"{c} " not in sample["text"] for c in others)
+    assert manifest["source"] == "ai4bharat/indic-align" and "IndicTrans2" in manifest["generator_model"]
+    # ids spread over the ten languages instead of copying one conversation ten times
+    assert len({convert.indic_align_column(f"doc-{i}") for i in range(200)}) == 10
+
+
+def test_indic_align_thread_ending_on_user_drops_that_turn():
+    col = convert.indic_align_column("d1")
+    row = dict(INDIC_ALIGN, **{col: [["प्रश्न", "उत्तर", "धन्यवाद, और?"]]})
+    sample, _ = one("sft-indic-indic-align-oasst-t", row)
+    assert trained_text(sample) == [f"उत्तर{T['im_end']}"] and "धन्यवाद" not in sample["text"]
+
+
+def test_indic_align_rows_that_do_not_alternate_are_skipped():
+    col = convert.indic_align_column("d1")
+    rows = [dict(INDIC_ALIGN, **{col: [["only one"]]}), dict(INDIC_ALIGN, **{col: []}),
+            dict(INDIC_ALIGN, **{col: [["q", "a", "q"], ["q", "a"]]})]
+    lines, manifest = convert.convert("sft-indic-indic-align-oasst-t", rows, None, None)
+    assert lines == [] and manifest["skipped"] == {"translated turns do not alternate user, assistant": 3}
 
 
 def test_effort_is_smallest_budget_holding_think_and_tool_trace():
