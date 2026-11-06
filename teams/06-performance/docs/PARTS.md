@@ -5,13 +5,18 @@ This is the list the code is designed around. If a part is not in this file, the
 
 ## Design rules
 
-1. **Every row is a `region()`** with the name and level below (`perfkit/regions.py`).
-   Names are `<phase>:<part>`, e.g. `fwd:block3.attn.sdpa`, `bwd.recompute:block3`, `opt:opt.muon`.
-2. **Every expensive part is a config switch backed by a registry** (like `DISPATCH` in `models/moe.py`).
-   The plain PyTorch version stays as `reference`. A faster version is a new entry, never a rewrite.
-3. **No host syncs inside the step.** `.item()` only at logging steps.
-4. **All shapes come from `ModelConfig`.** G5's full-width config is a different YAML, nothing else.
-5. **Every faster version ships with a `@pair` correctness test** and a before/after timing on the same GPU.
+1. **Every row is a `region()`** with the name and level below (`perfkit/regions.py`). Names are `<phase>:<part>`,
+   e.g. `fwd:block3.attn.sdpa`, `bwd.recompute:block3`, `opt:opt.muon`. Levels: 1 phases, 2 per layer and big
+   parts (gated by the 5% rule), 3 inside a layer (information only).
+2. **Every expensive part is a config switch backed by a registry** (like `DISPATCH` in `models/moe.py`). The
+   plain version stays as the reference; a faster version is a new entry with a `@pair` test and a before / after
+   timing on the same GPU.
+3. **All shapes come from `ModelConfig`.**
+4. **Timing:** CUDA events only, read after the steps; no `synchronize`, `.item()` or `print` inside a timed step.
+   10 warmup steps, then 100 measured (`report.min_compare_steps`). Gate on the median, p10, p90; mean and std are
+   for information. Steps alternate recorder on / off; overhead above 2% flags the numbers. With
+   `bench.layer_prefill` (CUDA) each layer step starts with a GPU busy-wait, sent before the step timer starts, so
+   Python stays ahead of the GPU and every part is GPU time, not the CPU's time to send it.
 
 Levels: 1 = phases, 2 = per layer and big parts (gated: within 5% or less than 0.05 ms apart between two runs),
 3 = inside a layer (information only).
