@@ -12,7 +12,6 @@ import pytest
 SPEC = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SPEC))
 import clean as c
-sys.path.insert(0, str(SPEC / "tools"))
 import normalize as n
 
 KA, VIRAMA, SSA, ZWNJ, ZWJ = "\u0915", "\u094d", "\u0937", "\u200c", "\u200d"

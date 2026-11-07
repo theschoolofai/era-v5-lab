@@ -164,7 +164,7 @@ def test_harm_report_does_not_accept_partial_coverage(tmp_path, gold_state):
     (gold / 'ind-hi-fw2_gold.csv').write_text(
         'doc_id,reader_1,reader_2\n' + ('x,reader-one,reader-two\n' if gold_state == 'valid' else ''), encoding='utf-8')
     out = tmp_path / 'harm.json'
-    script = Path(__file__).resolve().parents[1] / 'tools/harm_f1_indic.py'
+    script = Path(__file__).resolve().parents[1] / 'validate/harm_f1_indic.py'
     result = subprocess.run([sys.executable, str(script), '--packs', str(packs), '--gold', str(gold), '--out', str(out)],
                             capture_output=True, text=True, encoding='utf-8')
     assert result.returncode == 2, result.stderr

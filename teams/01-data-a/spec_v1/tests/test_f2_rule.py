@@ -19,7 +19,7 @@ import pyarrow.parquet as pq
 import pytest
 
 SPEC = Path(__file__).resolve().parents[1]
-TOOLS = SPEC / "tools"
+TOOLS = SPEC  # f2_rule.py and normalize.py sit next to clean.py
 sys.path.insert(0, str(TOOLS))
 import f2_rule
 

@@ -55,7 +55,6 @@ for row in rows:  # clean.py picks the rules by pack_id: a file without the colu
         sys.exit(f"{args.pack.name}: doc_id {row['doc_id']} has pack_id {row['pack_id']!r}, not {pack!r}")
 f2 = None
 if args.f2:
-    sys.path.insert(0, str(Path(__file__).resolve().parent / "tools"))
     import f2_rule as f2
     try:
         f2.fingerprints()  # load and check the set before anything is written

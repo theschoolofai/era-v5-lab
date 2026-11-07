@@ -67,7 +67,7 @@ def extend(review, packs, gold_dir, report=None):
     report = report or json.loads(primary_path.read_text(encoding='utf-8'))
     if report.get('source_code_sha256') != source_code_digest(rows):
         raise ValueError('source algorithms changed: rerun integrate_indic.py before extending scopes')
-    if report.get('f1_rule_sha256') != review.sha(SPEC / 'tools/f1_rule.py'):
+    if report.get('f1_rule_sha256') != review.sha(SPEC / 'build/f1_rule.py'):
         raise ValueError('shared F1 changed: rerun integrate_indic.py before extending scopes')
     for pack, evidence in report['gold'].items():
         if evidence.get('pack_sha256'):
@@ -158,7 +158,7 @@ def extend(review, packs, gold_dir, report=None):
     supported = sorted({p for values in scopes.values() for p in values})
     privacy_missing = []  # Every registered Indic pack runs shared F1 last.
     result = {'privacy_missing_packs': privacy_missing, 'shared_f1_packs': supported,
-              'f1_rule_sha256': review.sha(SPEC / 'tools/f1_rule.py'),
+              'f1_rule_sha256': review.sha(SPEC / 'build/f1_rule.py'),
               'combined_execution': 'selected native/sibling medicines followed by shared Indic F1',
               'source_sha256': review.sha(SPEC / 'sheets/medicine_indic.md'), 'source_code_sha256': source_code_digest(rows),
               'policy': policy, 'targets': targets, 'rule_scopes': {rid: sorted(p) for rid, p in scopes.items()}}
@@ -214,7 +214,7 @@ def main():
     parser.add_argument('--packs', type=Path, required=True)
     parser.add_argument('--gold', type=Path, default=SPEC.parents[1] / '02-data-b/gold')
     args = parser.parse_args()
-    spec = importlib.util.spec_from_file_location('native_indic_review', SPEC / 'tools/integrate_indic.py')
+    spec = importlib.util.spec_from_file_location('native_indic_review', SPEC / 'build/integrate_indic.py')
     review = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(review)
     extend(review, args.packs, args.gold)

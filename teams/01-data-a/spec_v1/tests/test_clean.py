@@ -21,7 +21,7 @@ from pathlib import Path
 import pytest
 
 SPEC = Path(__file__).resolve().parents[1]
-BUILD = SPEC / "tools" / "build_clean.py"
+BUILD = SPEC / "build" / "build_clean.py"
 sys.path.insert(0, str(SPEC))
 import clean as c
 

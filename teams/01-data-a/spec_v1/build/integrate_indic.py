@@ -80,7 +80,7 @@ def sha(path):
 
 
 def shared_f1_rule():
-    spec = importlib.util.spec_from_file_location('indic_shared_f1', SPEC / 'tools/f1_rule.py')
+    spec = importlib.util.spec_from_file_location('indic_shared_f1', SPEC / 'build/f1_rule.py')
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module.f1
@@ -283,7 +283,7 @@ def integrate(packs, gold_dir):
             for rid, _ in active:
                 decisions[rid].update(status='DEFERRED', reason='combined own-pack gold: ' + result)
     report = {'source_sha256': sha(SPEC / 'sheets/medicine_indic.md'),
-              'f1_rule_sha256': sha(SPEC / 'tools/f1_rule.py'),
+              'f1_rule_sha256': sha(SPEC / 'build/f1_rule.py'),
               'combined_execution': 'selected native medicines followed by shared Indic F1',
               'placeholder_compatibility_rules': sorted(PLACEHOLDER_RULES),
               'source_code_sha256': hashlib.sha256('\n'.join(ast.dump(ast.parse(row['block'])) for row in rows).encode()).hexdigest(),
@@ -346,7 +346,7 @@ Only locally available week-1 diagnosis packs are eligible for gold tests. Week-
         appended.append(body)
     sheet.write_text(base.rstrip() + '\n\n' + '\n\n'.join(appended) + '\n', encoding='utf-8')
     print(f'Indic: {active_count} selected, {len(rows)-active_count} deferred; {len(gold_cache)}/13 diagnosis packs testable')
-    extension_spec = importlib.util.spec_from_file_location('indic_sibling_extension', SPEC / 'tools/extend_indic_siblings.py')
+    extension_spec = importlib.util.spec_from_file_location('indic_sibling_extension', SPEC / 'build/extend_indic_siblings.py')
     extension = importlib.util.module_from_spec(extension_spec)
     extension_spec.loader.exec_module(extension)
     api = SimpleNamespace(read_source=read_source, sha=sha, ht=ht, probes=probes, synthetic_check=synthetic_check, full_rule_check=full_rule_check, Fraction=Fraction, shared_f1_rule=shared_f1_rule)

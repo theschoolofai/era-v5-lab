@@ -26,7 +26,7 @@ args = ap.parse_args()
 def sha(p): return hashlib.sha256(p.read_bytes()).hexdigest()
 
 
-report, bad, ran = {"f1_rule_sha256": sha(SPEC / "tools" / "f1_rule.py"), "clean_sha256": sha(SPEC / "clean.py"),
+report, bad, ran = {"f1_rule_sha256": sha(SPEC / "build" / "f1_rule.py"), "clean_sha256": sha(SPEC / "clean.py"),
                      "harm_test_sha256": sha(TEAM / "harmtest" / "harm_test.py"), "packs": {}}, False, 0
 missing = False
 for pack in sorted(p for p, f in c._FAMILY.items() if f == "indic"):

@@ -12,7 +12,6 @@ import sys
 
 SPEC = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SPEC))
-sys.path.insert(0, str(SPEC / 'tools'))
 sys.path.insert(0, str(SPEC.parent / 'harmtest'))
 import clean
 import harm_test as ht
