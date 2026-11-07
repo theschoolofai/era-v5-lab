@@ -9,7 +9,7 @@ from types import SimpleNamespace
 import pytest
 
 HERE = Path(__file__).resolve().parent
-MODULE = HERE.parent / 'tools' / 'run_harm_suite.py'
+MODULE = HERE.parent.parent / 'harmtest' / 'run_harm_suite.py'
 spec = importlib.util.spec_from_file_location('run_harm_suite', MODULE)
 runner = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(runner)
@@ -24,8 +24,8 @@ def harness(tmp_path, monkeypatch):
     team = tmp_path / 'teams' / '01-data-a'
     team.mkdir(parents=True)
     monkeypatch.setattr(runner, 'TEAM', team)
-    (team / 'tools').mkdir()
-    (team / 'tools' / 'harm_test.py').write_text('')
+    (team / 'harmtest').mkdir()
+    (team / 'harmtest' / 'harm_test.py').write_text('')
     gold = team / 'gold'
     gold.mkdir()
     (gold / 'g1_pack_ids.txt').write_text('code-go\ncode-python\nmath-megamath\n')

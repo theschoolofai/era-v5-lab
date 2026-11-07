@@ -70,7 +70,7 @@ def test_g9s_normalize_is_used_even_when_team_1s_is_already_imported():
 
 def test_harm_test_reads_the_rule_without_loading_the_set():
     """harm_test.py runs this file's source with no __file__; the set loads only on the first doc."""
-    sys.path.insert(0, str(SPEC.parent / "tools"))
+    sys.path.insert(0, str(SPEC.parent / "harmtest"))
     import harm_test
     ns = harm_test.load_rules(TOOLS / "f2_rule.py")
     ns = ns[0] if isinstance(ns, tuple) else ns

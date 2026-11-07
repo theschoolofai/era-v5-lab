@@ -2,7 +2,7 @@
 
   python -I make_harm_tests.py <checkout> <packs dir> [<packs dir> ...] [--out <harm_tests.md>] [--results <dir>]
 
-<checkout> holds teams/01-data-a/tools/harm_test.py and teams/01-data-a/gold/. harm_test.py is imported as it is, never
+<checkout> holds teams/01-data-a/harmtest/harm_test.py and teams/01-data-a/gold/. harm_test.py is imported as it is, never
 changed, and its own functions read the gold, read the pack and count the harm, as tools/validate_specv1.py does.
 
 Each rule is tested alone, only on the gold sets of the packs SCOPE (the table at the top of clean.py) gives it. Then each
@@ -27,7 +27,7 @@ ap.add_argument("--out", type=Path, default=HERE / "results" / "cleaner" / "harm
 ap.add_argument("--results", type=Path, default=HERE / "results" / "cleaner")
 args = ap.parse_args()
 TEAM = args.checkout / "teams" / "01-data-a"
-sys.path.insert(0, str(TEAM / "tools")); import harm_test as ht
+sys.path.insert(0, str(TEAM / "harmtest")); import harm_test as ht
 sys.path.insert(0, str(HERE)); import clean as c
 LIMIT, TIMEOUT = Fraction(1), 5
 args.results.mkdir(parents=True, exist_ok=True)

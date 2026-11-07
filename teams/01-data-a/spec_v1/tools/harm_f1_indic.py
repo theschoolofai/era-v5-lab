@@ -2,7 +2,7 @@
 
   python -I spec_v1/tools/harm_f1_indic.py --packs <folder with the ind-*.parquet packs> [--gold ../02-data-b/gold]
 
-Run from teams/01-data-a/. Uses the team's harm_test.py (teams/01-data-a/tools/) as it is, and the limit
+Run from teams/01-data-a/. Uses the team's harm_test.py (teams/01-data-a/harmtest/) as it is, and the limit
 max(1, floor(1% of gold)). A pack's documents get pack_id from the file name when the Parquet has no such column.
 Writes spec_v1/results/cleaner/f1_indic_harm.json and prints one line per pack. IDs, counts and digests only.
 Exit 0: all supported Indic packs pass; 1: a pack fails or errors; 2: required inputs are missing or gold is empty.
@@ -13,7 +13,7 @@ from pathlib import Path
 
 SPEC = Path(__file__).resolve().parents[1]
 TEAM = SPEC.parent
-sys.path.insert(0, str(TEAM / "tools")); import harm_test as ht
+sys.path.insert(0, str(TEAM / "harmtest")); import harm_test as ht
 sys.path.insert(0, str(SPEC)); import clean as c
 
 ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -27,7 +27,7 @@ def sha(p): return hashlib.sha256(p.read_bytes()).hexdigest()
 
 
 report, bad, ran = {"f1_rule_sha256": sha(SPEC / "tools" / "f1_rule.py"), "clean_sha256": sha(SPEC / "clean.py"),
-                     "harm_test_sha256": sha(TEAM / "tools" / "harm_test.py"), "packs": {}}, False, 0
+                     "harm_test_sha256": sha(TEAM / "harmtest" / "harm_test.py"), "packs": {}}, False, 0
 missing = False
 for pack in sorted(p for p, f in c._FAMILY.items() if f == "indic"):
     path, gold = args.packs / f"{pack}.parquet", args.gold / f"{pack}_gold.csv"

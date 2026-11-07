@@ -10,7 +10,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))  # python -I: not on the path by itself
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "harmtest"))  # python -I: not on the path by itself
 import medicine_extract  # noqa: E402
 import rule_report  # noqa: E402
 

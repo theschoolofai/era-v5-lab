@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))  # python -I: not on the path by itself
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "harmtest"))  # python -I: not on the path by itself
 import medicine_conflicts as mc  # noqa: E402
 import medicine_extract  # noqa: E402
 

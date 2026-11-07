@@ -12,7 +12,7 @@ from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))  # python -I: not on the path by itself
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "harmtest"))  # python -I: not on the path by itself
 import harm_test  # noqa: E402
 
 MARKER_RULE = "def cure_b3(t):\n    return t.replace('<issue_start>', '[issue_start]')\n"  # changes d000 and d001

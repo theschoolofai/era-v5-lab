@@ -6,7 +6,7 @@ legacy inventory; the current spec_v1/sheets/specv1.md is not compatible with th
 For current sheet/cleaner validation, use spec_v1/tools/validate_specv1.py or make_harm_tests.py.
 
 Run from any directory:
-  python teams/01-data-a/tools/run_harm_suite.py --parquet-dir /path/to/original-packs --spec /path/to/legacy-inventory.md
+  python teams/01-data-a/harmtest/run_harm_suite.py --parquet-dir /path/to/original-packs --spec /path/to/legacy-inventory.md
 
 Spec v1 is a *non-executable* five-field review document: its code examples
 are ```text fences, NOT a --rules input. This runner reads the Spec inventory,
@@ -242,7 +242,7 @@ def run(parquet_dir: Path, report_dir: Path, spec: Path,
                     report = report_dir / 'rules' / (pack + '_' + rule_id + '_harm.json')
                     report.parent.mkdir(parents=True, exist_ok=True)
                     report.unlink(missing_ok=True)
-                    cmd = [sys.executable, str(TEAM / 'tools' / 'harm_test.py'),
+                    cmd = [sys.executable, str(TEAM / 'harmtest' / 'harm_test.py'),
                            '--pack', str(parquet), '--gold', str(gold),
                            '--registry', str(registry), '--rule', rule_id,
                            '--limit', str(limit), '--timeout', str(timeout), '--report', str(report)]

@@ -14,7 +14,7 @@ import sys
 import pyarrow.parquet as pq
 
 SPEC = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(SPEC.parent / 'tools'))
+sys.path.insert(0, str(SPEC.parent / 'harmtest'))
 import harm_test as ht
 
 
