@@ -15,7 +15,7 @@ Open a pull request; the lead reviews and merges it. The pr-guard check must pas
 | Run a sample job or inspect overlap results | [Jobs index](jobs/README.md) |
 | Interpret validation evidence | [Results index](spec_v1/results/README.md) |
 
-Directory roles: `harmtest/` holds the harm-test harness and the contributor-medicine review tools (formerly in `tools/`; `tools/harm_test.py` is a forwarder kept until Week 4); `tools/` holds gold-building, fetch and viewer utilities; `tests/` tests both (`tests/harmtest/` for the harness). `spec_v1/tools/` holds cleaner build and validation tools; `spec_v1/scripts/` holds sheet-reproduction and manual diagnosis helpers. Sample configuration remains in `spec_v1/jobs/`, linked from the jobs index.
+Directory roles: `harmtest/` holds the harm-test harness and the contributor-medicine review tools (formerly in `tools/`; `tools/harm_test.py` is a forwarder kept until Week 4); `tools/` holds gold-building, fetch and viewer utilities; `tests/` tests both (`tests/harmtest/`, `tests/tools/`). `spec_v1/tools/` holds cleaner build and validation tools; `spec_v1/scripts/` holds sheet-reproduction and manual diagnosis helpers. Sample configuration remains in `spec_v1/jobs/`, linked from the jobs index.
 
 ## Data preparation flow
 

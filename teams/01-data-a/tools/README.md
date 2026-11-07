@@ -13,11 +13,11 @@ These tools build gold, fetch contributor medicines, and inspect diagnosis packs
 | Probe a regex on labelled documents | [regex_check.py](regex_check.py) | Pack, gold, labels, disease code, and regex |
 | View a pack and audit Unicode | [view_pack.py](view_pack.py) | Local Parquet pack; run with `--help` for options |
 
-Tests for these utilities are in [../tests](../tests/). From the repository root, with [pinned dependencies](../spec_v1/requirements.txt) installed:
+Tests for these utilities are in [../tests/tools](../tests/tools/). From the repository root, with [pinned dependencies](../spec_v1/requirements.txt) installed:
 
 ```bash
-python -m pytest teams/01-data-a/tests -q
-python -I teams/01-data-a/tests/test_view_pack.py
+python -m pytest teams/01-data-a/tests/tools -q
+python -I teams/01-data-a/tests/tools/test_view_pack.py
 ```
 
 The viewer unittest suite uses made-up rows and mocked loading, so its direct command needs only the Python standard library. Real-pack harm tests require separately staged data. Fetching current open PRs is optional and is not part of local cleanup or unit testing.
