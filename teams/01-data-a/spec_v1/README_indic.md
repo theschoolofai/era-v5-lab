@@ -39,7 +39,7 @@ python teams/01-data-a/spec_v1/build/integrate_indic.py \
   --packs ../erav5-lab-other-files/packs \
   --gold teams/02-data-b/gold
 python teams/01-data-a/spec_v1/build/build_clean.py
-python -m pytest teams/01-data-a/spec_v1/tests -q
+python -m pytest teams/01-data-a/tests/spec_v1 -q
 python teams/01-data-a/spec_v1/validate/validate_specv1.py \
   --packs ../erav5-lab-other-files/packs \
   --gold teams/01-data-a/gold \

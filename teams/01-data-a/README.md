@@ -22,10 +22,11 @@ Open a pull request; the lead reviews and merges it. The pr-guard check must pas
 | [gold/](gold/) | Gold sets: document IDs only, no text | none |
 | [harmtest/](harmtest/README.md) | Harm test for a medicine or rule, and the contributor-medicine review tools. `tools/harm_test.py` is a forwarder to it, kept until Week 4 | `tests/harmtest/` |
 | [tools/](tools/README.md) | Build gold sets, fetch medicines, view a pack | `tests/tools/` |
-| [spec_v1/](spec_v1/README.md) | The cleaner: `clean.py`, `run_clean.py`, `normalize.py`, `f2_rule.py`, `run_tokenizer_sample.py` (the TSAI sample-job runner), with its `sheets/` and `results/` | `spec_v1/tests/` |
-| [spec_v1/build/](spec_v1/build/README.md) | Sheets to `clean.py`, and the Indic integration | `spec_v1/tests/` |
-| [spec_v1/validate/](spec_v1/validate/README.md) | Checks on the sheets and on `clean.py` | `spec_v1/tests/` |
-| [jobs/](jobs/README.md) | TSAI job requests, one folder for each job (config, manifest, local logs), and TSAI's returned results (paths set by `JOB_REQUEST.md`) | `spec_v1/tests/` |
+| [spec_v1/](spec_v1/README.md) | The cleaner: `clean.py`, `run_clean.py`, `normalize.py`, `f2_rule.py`, `run_tokenizer_sample.py` (the TSAI sample-job runner), with its `sheets/` and `results/` | `tests/spec_v1/` |
+| [spec_v1/build/](spec_v1/build/README.md) | Sheets to `clean.py`, and the Indic integration | `tests/spec_v1/` |
+| [spec_v1/validate/](spec_v1/validate/README.md) | Checks on the sheets and on `clean.py` | `tests/spec_v1/` |
+| [tests/](tests/) | The tests of every topic: `tests/spec_v1/` (the cleaner), `tests/harmtest/`, `tests/tools/`. `python -m pytest tests -q` runs all of them | none |
+| [jobs/](jobs/README.md) | TSAI job requests, one folder for each job (config, manifest, local logs), and TSAI's returned results (paths set by `JOB_REQUEST.md`) | `tests/spec_v1/` |
 | [rules/](rules/README.md), `medicines/` | Contributor registry snapshot; fetched annotator sheets (not committed) | none |
 | [oneoff/](oneoff/README.md) | The scripts that made the code sheet, kept for the record; their owners prune them | none |
 
@@ -41,7 +42,8 @@ From this folder (`teams/01-data-a/`), after `python3 -m pip install -r spec_v1/
 | Fetch the contributors' medicines | `python -I tools/fetch_medicines.py` (add `--include-open-prs` with a GitHub token) |
 | Build gold sets | `python -I tools/build_gold.py` (options in the [gold guide](tools/README_build_gold.md)) |
 | Look at a pack | `python -I tools/view_pack.py <pack>.parquet` |
-| Run the tests | `python -m pytest spec_v1/tests -q`, `python -m pytest tests/harmtest -q`, `python -m pytest tests/tools -q`. Run them one folder at a time, not the whole team folder |
+| Run the tests | `python -m pytest tests -q` for all of them (about 1,100 tests, 20 seconds), or one topic: `python -m pytest tests/spec_v1 -q`, `tests/harmtest`, `tests/tools` |
+| Run the Gate 2 evidence tests | From the repository root: `python -m pytest teams/01-data-a/tests/spec_v1 -q`. The week plan still names the old `spec_v1/tests` path |
 
 ## Data preparation flow
 

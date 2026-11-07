@@ -198,11 +198,11 @@ spec_v1/
   validate/f1_eval.py            checks the shared F1 on the code packs
   normalize.py                   the normaliser: words for G9, keys for duplicates; never changes a document
   validate/*_english.py          checks on the English packs: see validate/README_english.md
-  tests/test_clean.py            the unit tests of clean.py
-  tests/test_normalize.py        the unit tests of normalize.py
-  tests/test_normalize_contract.py  the G9 contract of normalize.py: words versus keys
-  tests/test_run_clean.py        the unit tests of run_clean.py
-  tests/test_validate_specv1.py  the paths validate/validate_specv1.py writes
+  ../tests/spec_v1/test_clean.py  the unit tests of clean.py
+  ../tests/spec_v1/test_normalize.py  the unit tests of normalize.py
+  ../tests/spec_v1/test_normalize_contract.py  the G9 contract of normalize.py: words versus keys
+  ../tests/spec_v1/test_run_clean.py  the unit tests of run_clean.py
+  ../tests/spec_v1/test_validate_specv1.py  the paths validate/validate_specv1.py writes
   results/cleaner/               harm_tests.md, specv1_<pack>_harm.json, specv1_validation.json and the English checks
   results/sheets/                harm reports of the family sheets
 ```
@@ -216,7 +216,7 @@ Run every command from `teams/01-data-a/`. "Packages" are what each script needs
 | script | command | packages | also needs | writes |
 |---|---|---|---|---|
 | `spec_v1/build/build_clean.py` | `python -I spec_v1/build/build_clean.py` | none (Python 3.9+) | `spec_v1/sheets/specv1.md`, `spec_v1/build/f1_rule.py` | `spec_v1/clean.py` |
-| `spec_v1/tests/` (see [step 2](#step-2-run-the-unit-tests)) | `python -m pytest spec_v1/tests` | all of `spec_v1/requirements.txt` | `spec_v1/clean.py`, `spec_v1/run_clean.py`, `spec_v1/sheets/specv1.md`, `spec_v1/build/build_clean.py`, `spec_v1/normalize.py`, `spec_v1/validate/validate_specv1.py`, `harmtest/harm_test.py` | temporary synthetic inputs and outputs only |
+| `tests/spec_v1/` (see [step 2](#step-2-run-the-unit-tests)) | `python -m pytest tests/spec_v1` | all of `spec_v1/requirements.txt` | `spec_v1/clean.py`, `spec_v1/run_clean.py`, `spec_v1/sheets/specv1.md`, `spec_v1/build/build_clean.py`, `spec_v1/normalize.py`, `spec_v1/validate/validate_specv1.py`, `harmtest/harm_test.py` | temporary synthetic inputs and outputs only |
 | `spec_v1/run_clean.py` | `python -I spec_v1/run_clean.py --pack <packs folder>/<pack_id>.parquet --out <results folder>`, or `--pack <part>.parquet --pack-id <pack_id>` | `pyarrow`, `ftfy`, `tree-sitter-language-pack` | the pack, or a part of one | `<results folder>/<name>_clean.parquet`, `<results folder>/<name>_summary.json` (see [What it writes](#what-it-writes)) |
 | `spec_v1/validate/make_harm_tests.py` | `python -I spec_v1/validate/make_harm_tests.py ../.. <packs folder> [<more packs folders>]` | `pyarrow`, `ftfy`, `tree-sitter-language-pack` | `harmtest/harm_test.py`, `gold/`, the packs | `spec_v1/results/cleaner/harm_tests.md`, `spec_v1/results/cleaner/specv1_<pack>_harm.json` |
 | `spec_v1/validate/validate_specv1.py` | `python -I spec_v1/validate/validate_specv1.py --packs <packs folder> --gold gold` | `pyarrow`, `ftfy` | `harmtest/harm_test.py`, `gold/`, the packs | the validation table and card evidence inside `spec_v1/sheets/specv1.md`, `spec_v1/results/cleaner/specv1_validation.json` |
@@ -271,7 +271,7 @@ python -I spec_v1/build/build_clean.py
 ```
 
 ```bash
-python -m pytest spec_v1/tests
+python -m pytest tests/spec_v1
 ```
 
 ```bash
@@ -332,10 +332,10 @@ It stops with an `AssertionError` that names the rule, and writes nothing, when:
 ## Step 2: run the unit tests
 
 ```bash
-python -m pytest spec_v1/tests
+python -m pytest tests/spec_v1
 ```
 
-The unit suites live in `spec_v1/tests/`; shared-tool tests are in `tests/`. The [build index](build/README.md) and [validation index](validate/README.md) include the Indic and streaming sample-job checks. `spec_v1/tests/test_clean.py` tests `clean.py`, in six sections:
+All unit tests live in `tests/`: `tests/spec_v1/` for the cleaner, `tests/harmtest/` and `tests/tools/` for the shared tools; `python -m pytest tests -q` runs all three. The [build index](build/README.md) and [validation index](validate/README.md) include the Indic and streaming sample-job checks. `tests/spec_v1/test_clean.py` tests `clean.py`, in six sections:
 
 | section | what it tests |
 |---|---|
@@ -346,11 +346,11 @@ The unit suites live in `spec_v1/tests/`; shared-tool tests are in `tests/`. The
 | 5. The math family | A teaser cut trimmed to its last sentence, a second clean changes nothing, a Symbol-font glyph mapped, cp866 mojibake repaired, BBCode maths converted, repeated answer options kept, foreign-script spam removed, Greek letters kept. |
 | 6. The shared F1 on math and science | The prose path of `spec_v1/build/f1_rule.py`: private phones, emails and addresses get their tag, a listing of individuals is dropped, organisations and look-alikes are kept, and it runs only on the math and science packs with their own language tags. |
 
-`spec_v1/tests/test_normalize.py` tests `spec_v1/normalize.py`: G9's own examples; each A1 character and listed compatibility form matching the plain word; ZWJ and ZWNJ kept, so words that differ by one stay different; Indic spellings of the same word (nukta, two-part vowel signs, chillu, khanda ta) matching; no full NFKC; the keys evening out B1, A2, A1, A5, case and spacing; and that no document or `clean()` result changes.
+`tests/spec_v1/test_normalize.py` tests `spec_v1/normalize.py`: G9's own examples; each A1 character and listed compatibility form matching the plain word; ZWJ and ZWNJ kept, so words that differ by one stay different; Indic spellings of the same word (nukta, two-part vowel signs, chillu, khanda ta) matching; no full NFKC; the keys evening out B1, A2, A1, A5, case and spacing; and that no document or `clean()` result changes.
 
-`spec_v1/tests/test_normalize_contract.py` holds G9's regression contract for `normalize.py`: `NORMALIZE_ID` and the offsets stay as agreed, and B1 entity decoding and A2 control removal belong to the keys only, never to `normalize()`.
+`tests/spec_v1/test_normalize_contract.py` holds G9's regression contract for `normalize.py`: `NORMALIZE_ID` and the offsets stay as agreed, and B1 entity decoding and A2 control removal belong to the keys only, never to `normalize()`.
 
-`spec_v1/tests/test_run_clean.py` tests `spec_v1/run_clean.py` on made-up packs it writes to a temporary folder:
+`tests/spec_v1/test_run_clean.py` tests `spec_v1/run_clean.py` on made-up packs it writes to a temporary folder:
 
 - a known pack is cleaned exactly as `clean.clean()` cleans each document;
 - its summary holds `pack_id`, `family`, the SHA-256 of the input file and of `clean.py`, and no text;
@@ -359,7 +359,7 @@ The unit suites live in `spec_v1/tests/`; shared-tool tests are in `tests/`. The
 - `--pack-id` cleans a file of any name (`train/en-dclm/part-00000.parquet`, a renamed download) as that pack, names the results after the pack and the part, and keeps the parts of two packs apart;
 - an unknown `--pack-id`, including an unsupported Indic pack, stops the run, and so does a `pack_id` column that disagrees with `--pack-id`.
 
-`spec_v1/tests/test_validate_specv1.py` checks that `validate/validate_specv1.py` writes no local folder: the gold path from the repository root, the pack as its file name.
+`tests/spec_v1/test_validate_specv1.py` checks that `validate/validate_specv1.py` writes no local folder: the gold path from the repository root, the pack as its file name.
 
 Every text in the tests is made up. Some science rules act only on documents the reviewers listed, so those tests use the doc_ids named in `specv1.md`. Run the complete spec suite with `spec_v1/requirements.txt` installed; current verification is recorded in the sample job request. The suite includes Indic privacy, placeholder preservation, complete-pipeline idempotence and own-pack-gold gating. Missing dependencies must be resolved before attaching submission evidence.
 
@@ -582,7 +582,7 @@ To see how many documents of a pack each step of the keys would even out (IDs an
 python -I spec_v1/normalize.py --pack <packs folder>/en-dclm.parquet
 ```
 
-On `en-dclm`, for example: B1 1 document, A2 3, A1 10, A5 6, case 500, space 260. Its tests are in `spec_v1/tests/test_normalize.py`.
+On `en-dclm`, for example: B1 1 document, A2 3, A1 10, A5 6, case 500, space 260. Its tests are in `tests/spec_v1/test_normalize.py`.
 
 ## Use clean.py from Python
 
@@ -699,7 +699,7 @@ The scope is checked twice, and both checks read `SCOPE`:
 1. Get a gold set for it in `gold/<pack_id>_gold.csv`. Without one its harm test is NOT TESTABLE, and its rules cannot be signed off.
 2. Add the pack ID to the `SPEC_PACKS` line of each rule that should run on it in `specv1.md`, and to its `ORIGIN` line (code and math rules).
 3. Rebuild (step 1). The pack then has a family in `clean._FAMILY`, and `run_clean.py` accepts it.
-4. Add it to `FAMILIES` in `spec_v1/tests/test_clean.py` and run the unit tests (step 2).
+4. Add it to `FAMILIES` in `tests/spec_v1/test_clean.py` and run the unit tests (step 2).
 5. Run the harm tests (step 4) on all the packs.
 
 ## Troubleshooting

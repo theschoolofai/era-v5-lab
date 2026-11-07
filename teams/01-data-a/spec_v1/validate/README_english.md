@@ -14,7 +14,7 @@ What checks the English family of `clean.py` on the English packs. Paths start a
 ```
 python3 -m pip install -r spec_v1/requirements.txt
 python -I spec_v1/build/build_clean.py
-python -m pytest spec_v1/tests
+python -m pytest tests/spec_v1
 python -I spec_v1/validate/verify_clean_english.py <folder with the packs>
 python -I spec_v1/validate/f1_eval_english.py <g1-harm-test checkout> <folder with the packs>
 python -I spec_v1/validate/order_checks_english.py <folder with the packs>

@@ -132,7 +132,7 @@ Step by step, with every option, output and error: [README_clean.md](README_clea
 ```
 python3 -m pip install -r spec_v1/requirements.txt
 python spec_v1/build/build_clean.py
-python -m pytest spec_v1/tests
+python -m pytest tests/spec_v1
 python spec_v1/run_clean.py --pack <pack>.parquet --out out
 python spec_v1/run_clean.py --pack <split>/<pack_id>/part-00000.parquet --pack-id <pack_id> --out out
 python spec_v1/run_clean.py --pack <pack>.parquet --out out --f2      # then F2, G9's benchmark fingerprints
@@ -187,7 +187,7 @@ Then:
 1. **Read the misses, not only the hits.** A rule can match every labelled row and still delete real code. `DA-E4-004` passed gold and removed `#include`.
 2. **Keep the match narrow.** Anchor it, set `LANGS`, and change only the bad part.
 3. **Check it is idempotent.** A second run must change nothing.
-4. **Add a unit test** with made-up values in `tests/`: one sick case and one look-alike that must stay.
+4. **Add a unit test** with made-up values in `tests/spec_v1/` (or the topic's folder under `tests/`): one sick case and one look-alike that must stay.
 5. **Run the harm test.** The limit is `max(1 document, 1%)` of the pack's gold, per pack, never pooled. An empty gold set is not testable.
 
 ## F1
