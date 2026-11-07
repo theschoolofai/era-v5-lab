@@ -217,9 +217,9 @@ def snippet(name, packs, action, c):
     langs = sorted(l for p in packs for l in LANG[p])
     arg = "doc" if ce.takes_doc(c["fn"]) else 'doc["text"]'
     return (f'RULE_ID = "{rid_of(name)}"\nCODE = "{c["code"]}"\nACTION = "{action}"\nSTAGE = "{STAGE[c["code"]]}"\nSTATUS = "CANDIDATE"\nLANGS = {{{", ".join(map(repr, langs))}}}\n'
-            f'ORIGIN = "{", ".join(packs)}"  # packs it runs on\nSOURCE = "{"new rule, written for this sheet" if c["id"] == "new:E3" else c["pack"]}"  # pack whose medicine this came from\nAUTHOR = "{c["handle"]}"\n'
+            f'ORIGIN = "{", ".join(packs)}"  # packs it runs on\nPACKS = set(ORIGIN.split(", "))  # a code pack may label every doc "code", so the pack is checked too\nSOURCE = "{"new rule, written for this sheet" if c["id"] == "new:E3" else c["pack"]}"  # pack whose medicine this came from\nAUTHOR = "{c["handle"]}"\n'
             + closure(src, fn).strip() + "\n\n\n" + STD + "\n\n\ndef medicine(doc):\n"
-            '    if doc.get("lang_label") not in LANGS:\n        return ("keep", doc["text"])\n'
+            '    if doc.get("lang_label") not in LANGS and doc.get("pack_id") not in PACKS:\n        return ("keep", doc["text"])\n'
             f'    return _std({fn}({arg}), doc["text"])\n')
 
 
@@ -246,8 +246,8 @@ def main():
     # the sheet
     head = ["# medicine_code: compiled code medicines", "",
             "Packs: " + ", ".join(f"{SHORT[p]} {len(data[p]['gold'])}" for p in PACKS) + " gold docs (Data A gold, `teams/01-data-a/gold/`). Each pack is tested on its own gold set.",
-            "Rule form: `RULE_ID`, `CODE`, `ACTION`, `STAGE`, `STATUS`, `LANGS`, `ORIGIN`, `SOURCE`, `AUTHOR`; `medicine(doc) -> (action, text)`, `doc = {doc_id, text, url, lang_label}`. A row outside `LANGS` passes unchanged. Same form as `medicine_en.md`, with `STAGE` and `STATUS` added. `AUTHOR` is a code field the team's `medicine_conflicts.py` reads; it is not used in the text.",
-            "Run order is section order, by stage: 10 characters, 20 markup, 30 source (drops, then strips), 40 data safety. An annotator's code is copied unchanged; only the imports it uses, `_std` and the `LANGS` guard are added. Two exceptions: `DA-E4-010` is `DA-E4-004` with 3 bugs fixed, and `DA-E3-004` is new.",
+            "Rule form: `RULE_ID`, `CODE`, `ACTION`, `STAGE`, `STATUS`, `LANGS`, `ORIGIN`, `SOURCE`, `AUTHOR`; `medicine(doc) -> (action, text)`, `doc = {doc_id, text, url, lang_label}`. A row outside `LANGS` passes unchanged, except a row whose `pack_id` is in `ORIGIN`: some code packs label every doc `code`. Same form as `medicine_en.md`, with `STAGE` and `STATUS` added. `AUTHOR` is a code field the team's `medicine_conflicts.py` reads; it is not used in the text.",
+            "Run order is section order, by stage: 10 characters, 20 markup, 30 source (drops, then strips), 40 data safety. An annotator's code is copied unchanged; only the imports it uses, `_std`, `PACKS` and the `LANGS` guard are added. Two exceptions: `DA-E4-010` is `DA-E4-004` with 3 bugs fixed, and `DA-E3-004` is new.",
             "IDs: Data A registry after running the extractor on the latest sheets. `DA-E3-004`, `DA-E4-009`, `DA-E4-010` and `DA-C4-002` are the next free numbers. All IDs are provisional until the team commits the registry.",
             "Assumption: the language tag on a row is correct. No language detector runs (`D1`).",
             "Tested on `g1-harm-test` at `bae5163`. Limit: changed + dropped at most `max(1, floor(1% of gold))`. Why each rule was picked, for each disease: `decisions_code.md`.", "",

@@ -12,7 +12,7 @@ What checks the English family of `clean.py` on the English packs. Paths start a
 ## Run it, in this order
 
 ```
-pip install pyarrow pytest ftfy tree-sitter-language-pack
+python3 -m pip install -r spec_v1/requirements.txt
 python -I spec_v1/tools/build_clean.py
 python -m pytest spec_v1/tests
 python -I spec_v1/tools/verify_clean_english.py <folder with the packs>

@@ -1,0 +1,516 @@
+{
+  "set_sha256": "11e290a44d1467875fdf8bebc55eab21f0a6367f411aab98a4a027a546fd372e",
+  "clean_sha256": "27eaac4479abe0ab82c030302e949ea427c94e401b3d0773d2998a587d68cdf2",
+  "f2_sha256": "0f6968be84b136574ffb5c6f566088baa1b7b4dfd3b2c74cd0eab153d52ab402",
+  "scope": "full pinned G9 set; Itihasa is not covered",
+  "packs": {
+    "ind-bn-fw2": {
+      "gold_n": 238,
+      "pack_sha256": "b5f91af826c982b548f7fc06404a2d53623b1393d511049f2e004b0353847913",
+      "gold_sha256": "72949bcc2f76496e2ddca0adbbc2854e6dc719f1940ec07f6500365a521e5856",
+      "f2_alone": {
+        "rule": "F2 alone",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      },
+      "combined": {
+        "rule": "clean then F2",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      }
+    },
+    "ind-bn-sangraha-v": {
+      "gold_n": 50,
+      "pack_sha256": "e64c471dd6391dac861e039c2ad1d3c3732b21b97f29efd4b9bcaf0bf54baf81",
+      "gold_sha256": "4fa861ea267d0db461f3085937f130903b21fae4be4a21da9dd1636e6b528f18",
+      "f2_alone": {
+        "rule": "F2 alone",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      },
+      "combined": {
+        "rule": "clean then F2",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      }
+    },
+    "ind-gu-fw2": {
+      "gold_n": 19,
+      "pack_sha256": "9f58ad695beac877b7f71f9773328c141e5f19385b9f292ebc9c2b21b19daa6a",
+      "gold_sha256": "1d9592a7729d51c8da817f8bbd7827ad222646ba0ec9f3461eb157fc0d745a8c",
+      "f2_alone": {
+        "rule": "F2 alone",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      },
+      "combined": {
+        "rule": "clean then F2",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      }
+    },
+    "ind-hi-fw2": {
+      "gold_n": 234,
+      "pack_sha256": "f9e1a898c982fcdfb788a931910f79f2204c177e530709df71a2d3b8223f5169",
+      "gold_sha256": "c42f5233f3af862d28271fc06734e3af5995290a8f580ee22ebba146e64307df",
+      "f2_alone": {
+        "rule": "F2 alone",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      },
+      "combined": {
+        "rule": "clean then F2",
+        "changed": 0,
+        "dropped": 1,
+        "affected_unique": 1,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.427350",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [
+          "0c9208a0c91789d6"
+        ],
+        "affected_ids": [
+          "0c9208a0c91789d6"
+        ]
+      }
+    },
+    "ind-hi-hplt": {
+      "gold_n": 67,
+      "pack_sha256": "497533fc4d6407b1ef2e83f7304d65ab7f9fe7892fee09ab6d10f45c913eadc6",
+      "gold_sha256": "c869bf4db6656ee08fe41054eced5837cac93680e2bfacf6ce53b63488ad589a",
+      "f2_alone": {
+        "rule": "F2 alone",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      },
+      "combined": {
+        "rule": "clean then F2",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      }
+    },
+    "ind-hi-indiccorp": {
+      "gold_n": 130,
+      "pack_sha256": "c55b80d3d5c820fb34cab3b0bf8ccaabd2e73496cea42267c08d05cc34ecd612",
+      "gold_sha256": "2d5e81819c987c4f0d2d924c3be405125ca1b98d003e76a010cbddad4edc4826",
+      "f2_alone": {
+        "rule": "F2 alone",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      },
+      "combined": {
+        "rule": "clean then F2",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      }
+    },
+    "ind-kn-fw2": {
+      "gold_n": 45,
+      "pack_sha256": "3859c21e3f715ff7c0fbe978dcd0719b48ead11cff58fe215afa23f1175fd3ee",
+      "gold_sha256": "ba40473594b4605a002ffa627d86d820eace8eb9012475ed657ebca91dca4978",
+      "f2_alone": {
+        "rule": "F2 alone",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      },
+      "combined": {
+        "rule": "clean then F2",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      }
+    },
+    "ind-kn-sangraha-s": {
+      "gold_n": 27,
+      "pack_sha256": "a161966005c037a1bdb70245c2b6135520967c57c5fc618cba5f29d9e248f427",
+      "gold_sha256": "d92de55e12640f1ec798a29e64f8064298ff61da06dec6dbc6d222152a0ee674",
+      "f2_alone": {
+        "rule": "F2 alone",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      },
+      "combined": {
+        "rule": "clean then F2",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      }
+    },
+    "ind-kn-sangraha-v": {
+      "gold_n": 103,
+      "pack_sha256": "39d2bce100b2b2016fbe44d0f58ccbf5d2df8df24d8b3418051e691115d877fc",
+      "gold_sha256": "b523a045d9de1648f029cd9d605ddeb78a01292777a0216129e43d30953e58d3",
+      "f2_alone": {
+        "rule": "F2 alone",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      },
+      "combined": {
+        "rule": "clean then F2",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      }
+    },
+    "ind-mr-fw2": {
+      "gold_n": 140,
+      "pack_sha256": "94a1d14caa9a46f40c2212c6d2c436b9ebb03093ac60ec04658023adeb2d3e2b",
+      "gold_sha256": "a9dd9cca00ab62a28f9de42debded3ab21ad054d16cbac2b3766518e0831ab9d",
+      "f2_alone": {
+        "rule": "F2 alone",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      },
+      "combined": {
+        "rule": "clean then F2",
+        "changed": 1,
+        "dropped": 0,
+        "affected_unique": 1,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.714286",
+        "result": "PASS",
+        "changed_ids": [
+          "870fb0ffd8d7a041"
+        ],
+        "dropped_ids": [],
+        "affected_ids": [
+          "870fb0ffd8d7a041"
+        ]
+      }
+    },
+    "ind-mr-sangraha-v": {
+      "gold_n": 88,
+      "pack_sha256": "ad598b6ac2330c00b423b26f826f6d120d8940f0eb7f5412fca2fcd045b4ef30",
+      "gold_sha256": "7771ac3d97e311c8e7a499c57e0ce906d34f857b65ccd7c77a00a8d660c2ec2e",
+      "f2_alone": {
+        "rule": "F2 alone",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      },
+      "combined": {
+        "rule": "clean then F2",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      }
+    },
+    "ind-sa-fw2": {
+      "gold_n": 68,
+      "pack_sha256": "95e08d6b9ef1c3baf2d98c7f6bef3a0d12236d6b7c54583e5d4565884b3108e0",
+      "gold_sha256": "14fa93da9a30aba5786435889bdf24b078417f55763f854e2ecc7cb8a428184f",
+      "f2_alone": {
+        "rule": "F2 alone",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      },
+      "combined": {
+        "rule": "clean then F2",
+        "changed": 1,
+        "dropped": 0,
+        "affected_unique": 1,
+        "errors": 0,
+        "error_types": [],
+        "percent": "1.470588",
+        "result": "PASS",
+        "changed_ids": [
+          "1ece1474b414d6fe"
+        ],
+        "dropped_ids": [],
+        "affected_ids": [
+          "1ece1474b414d6fe"
+        ]
+      }
+    },
+    "ind-ta-sangraha-v": {
+      "gold_n": 41,
+      "pack_sha256": "1df8e92c0f6a18d510ec8af5bf97d41aacf4834746fb9f24dc97821018057d78",
+      "gold_sha256": "4d54550d7ebcf6bf07f2c1d7efb56e3a04eacbbb9765819c1559614ad63d0c14",
+      "f2_alone": {
+        "rule": "F2 alone",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      },
+      "combined": {
+        "rule": "clean then F2",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      }
+    },
+    "ind-te-fw2": {
+      "gold_n": 18,
+      "pack_sha256": "f893df548895804bd63f47b5d6405b51393d79f0647e4389665956198cdaf5bb",
+      "gold_sha256": "242244e890f2466e23e16ae9df2322649de95fa297ecfbdaf051f0f602978871",
+      "f2_alone": {
+        "rule": "F2 alone",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      },
+      "combined": {
+        "rule": "clean then F2",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      }
+    },
+    "ind-te-sangraha-s": {
+      "gold_n": 5,
+      "pack_sha256": "feeb676e76dee102d132846c1af2a92c3ea4d1018e0fd5239f50fc0da0fb6069",
+      "gold_sha256": "455ff42bdbdd7388ca36044ab9d6b7073c507412bb057a2036d664621e5ab5ac",
+      "f2_alone": {
+        "rule": "F2 alone",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      },
+      "combined": {
+        "rule": "clean then F2",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      }
+    },
+    "ind-te-sangraha-v": {
+      "gold_n": 27,
+      "pack_sha256": "d3d928606d1fd0a7a81fcbce10db3e3d8f4b7df74486bc51c9a9d30299812817",
+      "gold_sha256": "4455d67be7a8460356555aa45da3b5d96d42a0503b2a5b4b2464444845cf5853",
+      "f2_alone": {
+        "rule": "F2 alone",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      },
+      "combined": {
+        "rule": "clean then F2",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      }
+    }
+  }
+}

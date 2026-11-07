@@ -12,15 +12,15 @@ A rule is tested only on the gold sets of the packs it applies to: its entry in 
 | code-go | code | 163 (1) | 0 | PASS | 260 / 44 | none | yes |
 | code-java | code | 116 (1) | 0 | PASS | 349 / 11 | none | yes |
 | code-js-ts | code | 204 (2) | 0 | PASS | 260 / 22 | none | yes |
-| code-python | code | 141 (1) | 0 | PASS | 319 / 16 | none | other snapshot |
+| code-python | code | 141 (1) | 0 | PASS | 319 / 16 | none | yes |
 | code-rust | code | 234 (2) | 0 | PASS | 236 / 17 | none | yes |
 | en-dclm | english | 62 (1) | 0 | PASS | 54 / 9 | none | yes |
 | en-fineweb-edu | english | 158 (1) | 0 | PASS | 12 / 1 | none | yes |
-| en-nemotroncc | english | 129 (1) | 0 | PASS | 62 / 17 | none | other snapshot |
+| en-nemotroncc | english | 129 (1) | 0 | PASS | 62 / 17 | none | yes |
 | en-nemotroncc-synth | english | 326 (3) | 0 | PASS | 32 / 1 | none | yes |
 | math-finemath | math | 86 (1) | 0 | PASS | 177 / 13 | none | yes |
 | math-megamath | math | 26 (1) | 0 | PASS | 62 / 10 | none | yes |
-| sci-finepdfs | sci | 202 (2) | 0 | PASS | 45 / 13 | none | other snapshot |
+| sci-finepdfs | sci | 202 (2) | 0 | PASS | 45 / 13 | none | yes |
 
 On the code, math and science packs `clean()` also runs the shared F1 (`spec_v1/tools/f1_rule.py`) last, and `DA-B4-009` leaves `<EMAIL>`: `specv1_validation.json` ran the sheet without them, so these packs may differ from it.
 

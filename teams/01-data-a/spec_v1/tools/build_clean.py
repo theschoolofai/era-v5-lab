@@ -3,6 +3,9 @@ scope table at the top that says which packs each rule applies to.
 
   python -I build_clean.py [--sheet ../sheets/specv1.md] [--out ../clean.py]
 
+DA- and DB- rule IDs are accepted. DEFERRED cards use non-executable `python deferred` fences and are inventoried
+in DEFERRED_RULES, not emitted as active rules. Indic _PACKS guards are intersected with SPEC_PACKS as well.
+
 specv1.md has one "## Medicine N — <family> / <code> / `<ID>`" section per rule, each with one python block. A block names
 its packs in SPEC_PACKS, and a math block checks its ORIGIN packs too (PACKS); the scope is what both allow. The build
 moves those pack IDs into SCOPE and points SPEC_PACKS and PACKS at it, so pack IDs are written once. A document goes to the
@@ -11,16 +14,22 @@ family of its pack_id and runs that family's rules in sheet order; a missing or 
 Each rule block goes into its own closure, so helpers with the same name in two blocks do not clash. Prints any string
 that indenting a block changed: only a multi-line string can change, and a docstring or a verbose regex does not care.
 """
-import argparse, ast, re, textwrap
+import argparse, ast, re, sys, textwrap
+
+# The build prints rule IDs and string fragments, which can hold Indic letters. A Windows console is cp1252, so print
+# would raise UnicodeEncodeError and stop the build. Write UTF-8, and escape anything the console cannot show.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(encoding="utf-8", errors="backslashreplace")
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 SPEC = HERE.parent
-SECTION = re.compile(r"^## Medicine (\d+) — (\w+) / (\w+) / `(DA-[A-H]\d-\d{3})`\n(.*?)(?=^## Medicine \d+ — |\Z)", re.S | re.M)
-BLOCK = re.compile(r"^```python\n(.*?)^```", re.S | re.M)  # at line start: a rule can hold ``` inside a regex
+SECTION = re.compile(r"^## Medicine (\d+) — (\w+) / (\w+) / `(D[AB]-[A-H]\d-\d{3})`\n(.*?)(?=^## Medicine \d+ — |\Z)", re.S | re.M)
+BLOCK = re.compile(r"^```python(?: deferred)?\n(.*?)^```", re.S | re.M)  # deferred fences are inventory, not harm-runner inputs
 CODE_ORDER = ["A1", "A2", "A6", "A4", "A5", "A3", "B1", "B2", "B5", "B3", "E1", "E2", "C3", "C4", "C5", "D4", "E4", "C1", "C2", "D1", "D3", "B4", "E3", "F1"]  # RULES order; each family runs in its own sheet order
 SHARED_F1 = "f1_rule.py"  # the shared F1 (TSAI ruling of 31 Oct), in SCOPE under this name: it runs last on the packs of these families
-SHARED_F1_FAMILIES = ("code", "math", "sci")  # code with tree-sitter, math and sci with the prose path (TSAI, 1 Nov). English keeps DA-F1-005
+SHARED_F1_FAMILIES = ("code", "math", "sci", "indic")  # code with tree-sitter, math and sci with the prose path (TSAI, 1 Nov), indic with the Indic path. English keeps DA-F1-005
 MUST_KEEP = {"DA-F1-005": "english"}  # the instructor's F1 rule: on every pack of its family, never left out
 
 
@@ -31,9 +40,12 @@ def literal(b, name, rid):
     return ast.literal_eval(lines[0])
 
 
-def rules(sheet):
+def rules(sheet, include_deferred=False):
     out = []
-    for n, family, code, rid, body in SECTION.findall(sheet.read_text(encoding="utf-8")):
+    source = sheet.read_text(encoding="utf-8")
+    sections = SECTION.findall(source)
+    assert len(sections) == len(re.findall(r"^## Medicine ", source, re.M)), "unsupported medicine heading"
+    for n, family, code, rid, body in sections:
         blocks = BLOCK.findall(body)
         assert len(blocks) == 1, f"medicine {n} ({rid}): {len(blocks)} python blocks"
         b = textwrap.dedent(blocks[0])
@@ -44,18 +56,29 @@ def rules(sheet):
             assert re.search(r'^PACKS = set\(ORIGIN\.split\(", "\)\)', b, re.M), f"{rid}: PACKS is not set(ORIGIN.split(...))"
             packs &= set(literal(b, "ORIGIN", rid).split(", "))
             b = re.sub(r"^PACKS = .*$", f'PACKS = SCOPE["{rid}"]  # the math packs share the "en" tag, so the pack is checked too', b, flags=re.M)
+        if re.search(r"^_PACKS = ", b, re.M):
+            assert re.search(r'^_PACKS = frozenset\(ORIGIN\.split\(", "\)\)', b, re.M), f"{rid}: unsupported Indic pack guard"
+            packs &= set(literal(b, "ORIGIN", rid).split(", "))
+            b = re.sub(r"^_PACKS = .*$", f'_PACKS = SCOPE["{rid}"]', b, flags=re.M)
         assert packs, f"{rid}: applies to no pack"
         for line in b.split("\n"):  # pack IDs come only from SCOPE
-            assert "pack_id" not in line or re.search(r'doc\.get\("pack_id"\) not in (SPEC_PACKS|PACKS)\b', line), f"{rid}: reads pack_id outside the guard: {line.strip()}"
+            assert "pack_id" not in line or re.search(r'doc\.get\("pack_id"\) not in (SPEC_PACKS|PACKS|_PACKS)\b', line), f"{rid}: reads pack_id outside the guard: {line.strip()}"
         if family == "code" and rid == "DA-B4-009":  # <EMAIL> is the tag TSAI asks for, so B4 must not rewrite it. Move this to the sheet when the team agrees.
             assert b.count('"<EMAIL>": "user@example.com", ') == 1
             b = b.replace('"<EMAIL>": "user@example.com", ', "")
         b = re.sub(r"^AUTHOR = .*\n", "", b, flags=re.M)  # the sheet keeps it for medicine_conflicts.py; the cleaner has no use for it
-        out.append(dict(n=int(n), id=rid, code=code, family=family, packs=packs, name=f"_{family}_{rid[3:].lower().replace('-', '_')}", src=b.rstrip()))
+        status = literal(b, "STATUS", rid) if re.search(r"^STATUS = ", b, re.M) else "CANDIDATE"
+        assert status in {"CANDIDATE", "APPROVED", "DEFERRED"}, f"{rid}: unsupported status {status}"
+        assert ('```python deferred\n' in body) == (status == "DEFERRED"), f"{rid}: status and executable fence disagree"
+        reason = literal(b, "DEFER_REASON", rid) if status == "DEFERRED" else None
+        assert status != "DEFERRED" or reason, f"{rid}: deferred rule needs a reason"
+        suffix = rid[3:] if rid.startswith("DA-") else rid.lower()
+        out.append(dict(n=int(n), id=rid, code=code, family=family, packs=packs, status=status, reason=reason,
+                        name=f"_{family}_{suffix.lower().replace('-', '_')}", src=b.rstrip()))
     assert [r["n"] for r in out] == list(range(1, len(out) + 1)), "medicine sections are not numbered 1, 2, 3, ..."
     ids = [r["id"] for r in out]
     assert len(ids) == len(set(ids)), "two medicines share an ID"
-    return out
+    return out if include_deferred else [r for r in out if r["status"] != "DEFERRED"]
 
 
 def strings(node): return [n.value for n in ast.walk(node) if isinstance(n, ast.Constant) and isinstance(n.value, str)]
@@ -101,14 +124,15 @@ def _run(doc, *factories):
 CLEAN = """
 
 def clean(doc):
-    \"\"\"The whole pipeline for one document: its pack's family in sheet order, then the shared F1 (code, math and sci packs).
+    \"\"\"The whole pipeline for one document: its pack's family in sheet order, then the shared F1 (code, math, sci and Indic packs).
     A missing or unknown pack_id passes unchanged; such a document is not eligible for release.\"\"\"
     return _run(doc, *_PIPELINES.get(_FAMILY.get(doc.get("pack_id")), ()), _shared_f1_rule)
 """
 
 
 def build(sheet, dest):
-    rs = rules(sheet)
+    inventory = rules(sheet, include_deferred=True)
+    rs = [r for r in inventory if r["status"] != "DEFERRED"]
     families = {}
     for r in rs:
         families.setdefault(r["family"], []).append(r)
@@ -121,7 +145,10 @@ def build(sheet, dest):
         assert r and r["code"] == "F1" and r["packs"] == family_packs[fam], f"{rid} must be in the sheet, under F1, on every {fam} pack"
     assert not set(SHARED_F1_FAMILIES) & set(MUST_KEEP.values()), "a family with its own required F1 must not get the shared F1"
     f1_packs = set().union(*(family_packs[f] for f in SHARED_F1_FAMILIES))
-    codes = [c for c in CODE_ORDER if any(r["code"] == c for r in rs)] + sorted({r["code"] for r in rs} - set(CODE_ORDER))
+    codes = [c for c in CODE_ORDER if c != "F1" and any(r["code"] == c for r in rs)]
+    codes += sorted({r["code"] for r in rs} - set(CODE_ORDER))
+    if any(r["code"] == "F1" for r in rs):
+        codes.append("F1")
     assert codes[-1] == "F1", "F1 must be the last disease code"
     out = ['"""Spec v1 cleaning: one function per disease code, and clean(doc) to run them in order. GENERATED by spec_v1/tools/build_clean.py from\n'
            f"spec_v1/sheets/{sheet.name}: change the sheet, not this file.\n\n"
@@ -135,6 +162,8 @@ def build(sheet, dest):
     out += [scope_line(r["id"], r["packs"], f'{r["family"]} {r["code"]}, medicine {r["n"]}') for r in rs]
     out.append(scope_line(SHARED_F1, f1_packs, f"the shared F1, spec_v1/tools/f1_rule.py: {', '.join(SHARED_F1_FAMILIES)} packs, last"))
     out.append("}\n\n\n")
+    deferred = {r["id"]: r["reason"] for r in inventory if r["status"] == "DEFERRED"}
+    out.append(f"DEFERRED_RULES = {deferred!r}  # documented candidates excluded from execution\n\n")
     out += [factory(r, sheet.name) + "\n" for r in rs]
     out.append((HERE / "f1_rule.py").read_text(encoding="utf-8").rstrip() + "\n\n")
     out.append(SHARED)

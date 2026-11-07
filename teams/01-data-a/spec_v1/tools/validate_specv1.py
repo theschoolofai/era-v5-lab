@@ -1,7 +1,8 @@
 """Validate consolidated spec with repository rule execution and the repository minimum-one harm policy.
 
-Usage: python validate_specv1.py --packs /path/to/packs --gold /path/to/gold
+Usage, from the repository root: python teams/01-data-a/spec_v1/tools/validate_specv1.py --packs <packs folder> --gold teams/01-data-a/gold
 Writes IDs, counts and digests; never source text. Source medicines are not modified.
+Paths are written relative to the repository root (gold sets) or as file names (packs), never as local absolute paths.
 """
 import argparse
 import hashlib
@@ -14,12 +15,21 @@ from fractions import Fraction
 import pyarrow.parquet as pq
 
 SPEC = Path(__file__).resolve().parents[1]
+ROOT = SPEC.parents[2]  # the era-v5-lab folder
 sys.path.insert(0, str(SPEC.parent / 'tools'))
 import harm_test as ht
 
 
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def report_paths(gold, pack):
+    """Where the gold set and the pack were, for the report, without local absolute paths (TSAI review, 2 Nov): the gold set
+    from the repository root (its file name if it is outside the repository), the pack as its file name. The digests next
+    to them identify the exact files."""
+    gold = gold.resolve()
+    return {'gold_path': gold.relative_to(ROOT).as_posix() if gold.is_relative_to(ROOT) else gold.name, 'pack_path': pack.name}
 
 
 def summarize(result, n):
@@ -30,11 +40,24 @@ def summarize(result, n):
             'PASS' if ht.harm_percent(len(changed), len(dropped), n, Fraction(1))[1] else 'FAIL'}
 
 
+def replace_validation_summary(src, lines):
+    start = src.index('<!-- VALIDATION -->')
+    end = src.index('\n## Medicine 1 ', start)
+    # Integration metadata shares this pre-card area with the harm table.
+    # Preserve its policy, scope and own-pack evidence when refreshing the table.
+    retained = ''.join(match.group(0) for match in re.finditer(
+        r'<!-- (INDIC INTEGRATION|VALIDATED SIBLING SCOPES) -->.*?<!-- END \1 -->\n*',
+        src[start:end], re.S))
+    return src[:start] + '<!-- VALIDATION -->\n\n' + '\n'.join(lines) + '\n\n' + retained + src[end:]
+
+
 def add_card_evidence(src, report, rules, all_docs):
     """Attach fresh per-card harm and exact original excerpts without exposing private spans."""
-    for i, (rid, fn) in enumerate(rules, 1):
-        start = src.index(f"## Medicine {i} —")
-        next_start = src.find(f"## Medicine {i + 1} —", start)
+    for rid, fn in rules:
+        heading = re.search(rf"^## Medicine \d+ — \w+ / \w+ / `{re.escape(rid)}`$", src, re.M)
+        assert heading, rid
+        start = heading.start()
+        next_start = src.find("\n## Medicine ", heading.end())
         end = next_start if next_start != -1 else len(src)
         card = src[start:end]
         # Replace our generated block on subsequent runs.
@@ -43,6 +66,10 @@ def add_card_evidence(src, report, rules, all_docs):
         examples = []
         code = rid.split("-")[1]
         for pack, data in report['packs'].items():
+            if data.get('result') == 'NOT TESTABLE':
+                if pack in fn.__globals__['SPEC_PACKS']:
+                    measured.append(pack + ': NOT TESTABLE (missing input)')
+                continue
             if rid not in data['independent_gold_rules']:
                 continue
             result = data['independent_gold_rules'][rid]
@@ -90,6 +117,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--packs', required=True, type=Path)
     ap.add_argument('--gold', required=True, type=Path)
+    ap.add_argument('--indic-gold', type=Path, default=SPEC.parents[1] / '02-data-b/gold')
+    ap.add_argument('--allow-missing', action='store_true', help='record missing diagnosis inputs as NOT TESTABLE; exit 2')
     args = ap.parse_args()
     sheet = SPEC / 'sheets' / 'specv1.md'
     ns, code_digest = ht.load_rules(sheet)
@@ -97,7 +126,7 @@ def main():
     packs = sorted({p for _, fn in rules for p in fn.__globals__['SPEC_PACKS']})
     report = {'rules_code_sha256': code_digest, 'sources': {
         p.name: digest(p) for p in (SPEC / 'sheets').glob('medicine_*.md')
-        if p.name in {'medicine_code.md', 'medicine_english.md', 'medicine_math.md', 'medicine_sci.md'}},
+        if p.name in {'medicine_code.md', 'medicine_english.md', 'medicine_math.md', 'medicine_sci.md', 'medicine_indic.md'}},
         'execution': 'harm_test.load_rules/run_rule/run_sheet; repository 1% minimum-one comparison; 5s timeout per rule/document',
         'harm_runner_sha256': digest(Path(ht.__file__)),
         'harm_policy': {'limit_percent': 1, 'allowed_documents': 'max(1, floor(n / 100))'},
@@ -108,7 +137,14 @@ def main():
     all_docs = {}
     for pack in packs:
         path = args.packs / (pack + '.parquet')
-        gold = args.gold / (pack + '_gold.csv')
+        gold = (args.indic_gold if pack.startswith('ind-') else args.gold) / (pack + '_gold.csv')
+        if not path.exists() or not gold.exists():
+            if not args.allow_missing:
+                ap.error(f'{pack}: missing diagnosis pack or gold; use --allow-missing to record NOT TESTABLE')
+            report['packs'][pack] = {'result': 'NOT TESTABLE', 'missing': [kind for kind, p in [('pack', path), ('gold', gold)] if not p.exists()]}
+            lines.append(f'| {pack} | — | — | NOT TESTABLE | — | — |')
+            print(pack, 'NOT TESTABLE (missing input)', flush=True)
+            continue
         ids = ht.read_gold(gold)
         # The repository validates metadata and gold membership before provenance injection.
         gold_docs = ht.read_pack_docs(path, ids)
@@ -136,28 +172,28 @@ def main():
         guard_result = ht.run_sheet(outside, docs, 5)
         if any(guard_result):
             raise ValueError('out-of-pack rule changed, dropped or errored on ' + pack)
-        report['packs'][pack] = {'pack_sha256': digest(path), 'gold_sha256': digest(gold),
-            'gold_path': str(gold.resolve()), 'pack_path': str(path.resolve()),
+        report['packs'][pack] = {'pack_sha256': digest(path), 'gold_sha256': digest(gold), **report_paths(gold, path),
             'independent_gold_rules': single, 'combined_gold': combined, 'combined_pack': full,
             'out_of_pack_guard': 'PASS'}
         lines.append(f'| {pack} | {len(ids)} | {len(combined["changed"])} / {len(combined["dropped"])} | {combined["result"]} | {len(full["changed"])} / {len(full["dropped"])} | {len(combined["errors"])} / {len(full["errors"])} |')
         print(pack, combined['result'], 'gold', len(combined['changed']), len(combined['dropped']), 'pack errors', len(full['errors']), flush=True)
     failures = [(p, rid, r['result']) for p, v in report['packs'].items()
-                for rid, r in v['independent_gold_rules'].items() if r['result'] != 'PASS']
+                for rid, r in v.get('independent_gold_rules', {}).items() if r['result'] != 'PASS']
     lines += ['\nIndependent gold rules failing the repository minimum-one limit: ' +
               (', '.join(f'`{p}/{rid}` ({verdict})' for p, rid, verdict in failures) or 'none') + '.',
-              '\nAll other independently tested in-scope rules passed. Every out-of-pack guard passed on all source documents. Results apply to the snapshots recorded in [results/cleaner/specv1_validation.json](../results/cleaner/specv1_validation.json). A failed candidate is retained for review and blocks release; it is not silently disabled to improve harm numbers.',
-              '\nReproduce from the repository root (Python requires `pyarrow` and `ftfy`):\n\n```bash\npython3 teams/01-data-a/spec_v1/tools/validate_specv1.py \\\n  --packs /home/vijay/projects/erav5/erav5-lab-other-files/packs \\\n  --gold /home/vijay/projects/erav5/era-v5-lab-second-clone/teams/01-data-a/gold\n```']
-    src = sheet.read_text()
-    start = src.index('<!-- VALIDATION -->')
-    end = src.index('\n## Medicine 1 ', start)
-    src = src[:start] + '<!-- VALIDATION -->\n\n' + '\n'.join(lines) + '\n\n' + src[end:]
+              '\nThese verdicts concern executable sheet blocks; deferred cards are excluded. Missing inputs are NOT TESTABLE, never PASS. Out-of-pack guards were checked on every available pack. The generated cleaner also has the shared F1, so its separate tests remain required. Results apply to the snapshots recorded in [results/cleaner/specv1_validation.json](../results/cleaner/specv1_validation.json).',
+              '\nReproduce from the repository root (install `teams/01-data-a/spec_v1/requirements.txt` first):\n\n```bash\npython3 teams/01-data-a/spec_v1/tools/validate_specv1.py \\\n  --packs <packs folder> \\\n  --gold teams/01-data-a/gold\n```']
+    src = sheet.read_text(encoding='utf-8')
+    src = replace_validation_summary(src, lines)
     src = add_card_evidence(src, report, rules, all_docs)
-    sheet.write_text(src)
+    sheet.write_text(src, encoding='utf-8', newline='\n')
     report['spec_sha256'] = digest(sheet)
     out = SPEC / 'results/cleaner/specv1_validation.json'
-    out.write_text(json.dumps(report, indent=2) + '\n')
+    out.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8', newline='\n')
+    if failures or any(v.get('combined_gold', {}).get('result') in {'FAIL', 'ERROR'} for v in report['packs'].values()):
+        return 1
+    return 2 if any(v.get('result') == 'NOT TESTABLE' for v in report['packs'].values()) else 0
 
 
 if __name__ == '__main__':
-    main()
+    raise SystemExit(main())

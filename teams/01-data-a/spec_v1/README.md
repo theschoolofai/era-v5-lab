@@ -11,10 +11,11 @@ teams/01-data-a/
     spec_v1_<family>.md     scope, order, conflicts, open items, freeze state
     medicine_<family>.md    the runnable rules: one block per rule, in run order
     decisions_<family>.md   why each rule was picked or not, for each disease
-    specv1.md               the four family sheets collated: what spec_v1/tools/build_clean.py reads
+    specv1.md               the five family sheets collated: what spec_v1/tools/build_clean.py reads
     clean.py                the cleaner, generated from specv1.md, with the scope table at the top
     README_clean.md         how to build, test and run clean.py, step by step
-    run_clean.py            runs the cleaner on one pack
+    run_clean.py            runs the cleaner on one pack, or on one part of a pack with --pack-id
+    requirements.txt        the pinned packages, for pip install -r
     tests/                  unit tests on made-up values
     results/cleaner/harm_tests.md   each rule on the gold sets of its packs, each clean.py function, and clean()
     results/cleaner/specv1_<pack>_harm.json   the reports behind harm_tests.md: IDs and digests only
@@ -25,7 +26,7 @@ teams/01-data-a/
   tools/                    build, harm test run, F1 rule, checks
 ```
 
-Families: `code`, `en`, `math`. Science and Indic follow when their owners are set.
+Families: `code`, `english`, `math`, `sci`, and `indic`. Indic covers 16 packs through native candidates and validated same-language sibling scopes; see [Indic integration](README_indic.md) for deferred rules and validation limits.
 
 **One source for each fact.** Rules live only in `medicine_<family>.md`. The registry of the template's §3 is the table at the top of that file, so it cannot drift from the code. Numbers come from `results/`, not from hand-typed tables.
 
@@ -37,13 +38,13 @@ A block in the sheet with these fields, and a `medicine(doc) -> (action, text)`.
 
 | field | meaning |
 |---|---|
-| `RULE_ID` | Stable `DA-<code>-<nnn>`. Never reused. |
+| `RULE_ID` | Stable `DA-<code>-<nnn>` or `DB-<code>-<nnn>`. Never reused. |
 | `CODE` | Disease code from `DISEASES.md`. |
 | `ACTION` | `fix`, `drop` or `fix+drop`. |
 | `STAGE` | Stage below. The run order is section order. |
 | `STATUS` | `CANDIDATE`, `APPROVED`, `FAILED`, `BLOCKED` or `DEFERRED`. |
-| `LANGS` | Language tags it runs on. A row outside passes unchanged. |
-| `ORIGIN` | Packs it runs on, comma separated. |
+| `LANGS` | Language tags it runs on. A row outside passes unchanged, except a code row whose `pack_id` is in `ORIGIN`: some code packs label every doc `code`. |
+| `ORIGIN` | Packs it runs on, comma separated. A code or math rule reads it, and its scope is the packs in both `SPEC_PACKS` and `ORIGIN`. |
 | `SOURCE` | Pack whose medicine it came from. |
 | `AUTHOR` | Code field for `medicine_conflicts.py`. Not used in any text. |
 
@@ -53,7 +54,7 @@ Around the block: disease with counts and `doc_id` examples, medicine in words, 
 
 | stage | what | why here |
 |---|---|---|
-| 00 guard | `LANGS` and the pack scope. | A rule must not touch a language it was not tested on. The language tag is taken as correct. |
+| 00 guard | `LANGS` and the pack scope. | A rule must not touch a language it was not tested on. The language tag is taken as correct, except in code packs: a code row whose pack is in `ORIGIN` is taken even when its tag is `code`. |
 | 10 characters | A1, A2, A4, A6. | Later patterns need clean characters. |
 | 20 markup | B3. | Later rules expect the file to start at its real first line. |
 | 30 source | Drops first (E1, E2, C3, C4), then strips (E4, C1). | A generated file with its banner inside the licence survives if the licence goes first. |
@@ -74,7 +75,7 @@ All of these, on every pack in `ORIGIN`. Anything else stays `CANDIDATE`, or `BL
 ## Assumptions
 
 - **Language tags are correct.** No detector runs. D1 rows wait for a language check at scale.
-- **F2 is BLOCKED on the G9 fingerprints.** The word "leetcode" alone is not a leak (instructor, 30 Oct).
+- **F2 is G9's fingerprint check** (`tools/f2_rule.py`, see "F2" below). The word "leetcode" alone is not a leak (instructor, 30 Oct).
 - **H3 has no rule.** A vendored copy is not a disease by itself. The same file twice in a pack is H1 or H2 on the second copy (instructor, 30 Oct).
 - **A 0 result is a bound, not proof.** With n gold docs and 0 hits, the harm rate is only shown to be below about 3/n. Show this next to the result. About 300 docs are needed to show 1%.
 
@@ -105,14 +106,14 @@ These tools are on `g1-harm-test`, not on this base branch. Results here were ma
 
 `clean.py` is the cleaner. `tools/build_clean.py` generates it from `specv1.md`, which collates the four family sheets, so **add rules to a sheet, never to `clean.py`**.
 
-A rule names the packs it applies to (instructor, 31 Oct): `SPEC_PACKS` in its block, and for a math rule its `ORIGIN` packs too. The build puts those pack IDs in one table, `SCOPE`, at the top of `clean.py`, and each rule reads its entry there. A document goes to the family of its `pack_id` and runs that family's rules in sheet order. A document with a missing or unknown `pack_id` passes unchanged and is not eligible for release. `run_clean.py` takes `pack_id` from the file name when a pack has no such column. `make_harm_tests.py` tests each rule only on the gold sets of the packs in its `SCOPE` entry. It also runs every rule that does not apply to a pack on that whole pack, where it must change nothing.
+A rule names the packs it applies to (instructor, 31 Oct): `SPEC_PACKS` in its block, and for a code or math rule its `ORIGIN` packs too. The build puts those pack IDs in one table, `SCOPE`, at the top of `clean.py`, and each rule reads its entry there. A document goes to the family of its `pack_id` and runs that family's rules in sheet order. A document with a missing or unknown `pack_id` passes unchanged and is not eligible for release. `run_clean.py` takes `pack_id` from the file name when a pack has no such column. `make_harm_tests.py` tests each rule only on the gold sets of the packs in its `SCOPE` entry. It also runs every rule that does not apply to a pack on that whole pack, where it must change nothing.
 
 | where | what | who changes it |
 |---|---|---|
 | `medicine_<family>.md` | The rules of one family: `code`, `english`, `math`, `sci` | The PR for that family |
 | `specv1.md` | The four sheets collated, with the packs of each rule | The pipeline owner |
 | `decisions_<family>.md` | Why each rule was picked or not | The same PR |
-| `tools/f1_rule.py` | The shared F1 rule; `SCOPE` runs it on the code, math and science packs | A PR that names the family it adds |
+| `tools/f1_rule.py` | The shared F1 rule; `SCOPE` runs it on the code, math, science and Indic packs | A PR that names the family it adds |
 | `clean.py`, `results/cleaner/harm_tests.md`, `results/cleaner/specv1_*` | Generated | Only the rebuild step, after a merge |
 
 ## Run it
@@ -120,14 +121,16 @@ A rule names the packs it applies to (instructor, 31 Oct): `SPEC_PACKS` in its b
 Step by step, with every option, output and error: [README_clean.md](README_clean.md).
 
 ```
-pip install pyarrow pytest tree-sitter-language-pack ftfy
+python3 -m pip install -r spec_v1/requirements.txt
 python spec_v1/tools/build_clean.py
 python -m pytest spec_v1/tests
 python spec_v1/run_clean.py --pack <pack>.parquet --out out
+python spec_v1/run_clean.py --pack <split>/<pack_id>/part-00000.parquet --pack-id <pack_id> --out out
+python spec_v1/run_clean.py --pack <pack>.parquet --out out --f2      # then F2, G9's benchmark fingerprints
 python spec_v1/tools/make_harm_tests.py <g1-harm-test checkout> <folder with the packs> [<another folder with packs> ...]
 ```
 
-Paths start at `teams/01-data-a/`. Run `make_harm_tests.py` where all 13 packs are: a pack it cannot find is listed as not run in `harm_tests.md`. `ftfy` is needed once the English A3 rule is in. `make_harm_tests.py` uses `harm_test.py`, which is on `g1-harm-test` until PR 140 merges. The packs are not in the repo, so get your link from the lab plan sheet.
+Paths start at `teams/01-data-a/`. Run `make_harm_tests.py` where all 13 packs are: a pack it cannot find is listed as not run in `harm_tests.md`. `requirements.txt` pins every package `clean.py`, the tools and the tests need (Python 3.10 or later). The second `run_clean.py` line cleans a tokenizer sample part, whose file is not named `<pack_id>.parquet`. `make_harm_tests.py` uses `harm_test.py`, which is on `g1-harm-test` until PR 140 merges. The packs are not in the repo, so get your link from the lab plan sheet.
 
 ## Add your medicines without double work
 
@@ -166,7 +169,7 @@ Each rule needs the fields in "What every rule must have" above, and has to meet
 | Regex finds some, not all | C1, C3, C5, E3 | Phrase lists and shapes fit the sites seen so far. Report what is left. |
 | Library | A3 | `ftfy`, as the English sheet does. |
 | Regex does not work | C4, D1, D3, D4, D5, F3, H1, H2, H3 | Label it. These need a whole-pack check, a language model or a classifier. |
-| Needs G9 | F2 | Blocked on the benchmark fingerprints. |
+| G9 fingerprints | F2 | `tools/f2_rule.py`: G9's check, not a regex. See "F2" below. |
 
 Try a pattern before you write the rule. This prints counts and doc_ids, never text:
 
@@ -186,8 +189,17 @@ Then:
 
 `tools/f1_rule.py` follows the TSAI decision: `<PHONE>`, `<EMAIL>` and `<ADDRESS>` for a private person, drop a personal listing, keep organisations and public offices.
 
-- **Where it runs:** on the code packs, with tree-sitter, and on the math and science packs, with the prose path (`_F1_PROSE`: `math-*` with `en`, `sci-*` with `eng_Latn`), as TSAI approved on 1 Nov. `SHARED_F1_FAMILIES` in `tools/build_clean.py` puts those packs in its `SCOPE` entry; on science it runs after `DA-F1-006`, so the reviewed drops stay. English keeps its own F1, `DA-F1-005`, and never gets the shared rule. The prose path is keyed by `pack_id` because English shares the `en` tag; a doc with no `pack_id` never takes it. To add a family, add it to `SHARED_F1_FAMILIES` and to `_F1_LANGS` (code) or `_F1_PROSE` (prose), run the harm test, and put the results in your PR.
+- **Where it runs:** on the code packs, with tree-sitter, and on the math and science packs, with the prose path (`_F1_PROSE`: `math-*` with `en`, `sci-*` with `eng_Latn`), as TSAI approved on 1 Nov. `SHARED_F1_FAMILIES` in `tools/build_clean.py` puts those packs in its `SCOPE` entry; on science it runs after `DA-F1-006`, so the reviewed drops stay. English keeps its own F1, `DA-F1-005`, and never gets the shared rule. The prose path is keyed by `pack_id` because English shares the `en` tag; a doc with no `pack_id` never takes it. To add a family, add it to `SHARED_F1_FAMILIES` and to `_F1_LANGS` (code) or `_F1_PROSE` (prose), run the harm test, and put the results in your PR. On the Indic packs (`ind-*`, any language tag) it takes the Indic path: a mobile number (+91 / 0 and ten digits from 6-9, in Latin or any Indic digits) becomes `<PHONE>` unless its block names an organisation or public office (English or Indian-language words); a landline only with a private label (`Home:`, `घर:`, `मोबाइल`); toll-free 1800/1860 numbers stay; an email becomes `<EMAIL>` unless it is a role mailbox or an Indian organisation domain (`.gov.in`, `.nic.in`, `.ac.in`, ...). It replaces Data B's source F1 rules, which are deferred. It does not treat street addresses on Indic packs.
 - **Prose path:** a value is private when a private label sits on it (`Home:`, `Cell:`, `Daytime Phone`), when it is in a person's contact card (each field on its own line, two personal fields or more), or in a `| Name | Telephone |` table. It is kept when its block or the heading above names an organisation or public office, and for toll-free numbers, role mailboxes and example domains. A page mostly of `SURNAME, Forenames, age, address` entries is dropped. It misses a private phone in running prose with no label, non-North-American numbers outside people tables, and addresses that are not "number + name + street type".
 - **Never write a private value** in a commit, a PR or chat. Use doc_ids and offsets, as `regex_check.py` does.
 - **Known limits:** it misses lower-case addresses, and it reads "8 Bit Drive" as an address. An email at a company domain counts as personal unless it is a role address like `support@`. Names are not in the TSAI list, so it leaves them.
 - **B4:** in `clean.py`, the code B4 rule leaves `<EMAIL>` alone, because it is now the F1 tag, and still replaces `<NAME>`, `<KEY>` and `<PASSWORD>`. Before this, a second run turned the tag into `user@example.com`. `tools/build_clean.py` makes this change, and `medicine_code.md` still has the old rule until the team agrees. 26 docs labelled B4 hold only `<EMAIL>`, so they keep the token.
+
+## F2
+
+`tools/f2_rule.py` is G9's decontamination check (`teams/09-evaluation/decontam`, PR 31) as a rule: a doc that shares one run of words (13 words, 20 tokens for code) with an item of G9's fingerprint set, or holds a benchmark canary, is dropped. It uses G9's code and set unchanged.
+
+- **Where it runs:** `run_clean.py --f2`, on every pack, after `clean.py`, on the text `clean.py` keeps. It is opt-in: without `--f2` nothing changes, and the tokenizer sample job does not use it. It is not in `clean.py`: the full set needs about 1.1 GB and 20 s to load. The summary gets `f2`: the `set_sha256`, and each dropped `doc_id` with its benchmark items and offset; and `final`: kept, dropped by `clean.py`, dropped by F2 and errors, which add up to the input rows. `actions` stays `clean.py`'s.
+- **Harm test:** `python -I tools/harm_test.py ... --rules spec_v1/tools/f2_rule.py --rule F2 --timeout 300`, and `clean.py` then F2 on the same gold sets. Results on the 13 packs, and a review of every drop: [results/f2/](results/f2/).
+- **The set is pinned:** `SET` and `SET_SHA256` in `tools/f2_rule.py`. A missing set, or one with another `set_sha256`, stops the run before anything is written. `F2_FINGERPRINTS` can point to a copy of the same set. A new set from G9 (v2) needs its own harm test, then both changed.
+- **Known limits (G9's README):** it finds copies only. A reworded, translated or very short item is not found, nor a benchmark outside the set (`not_covered` in G9's `MANIFEST.json`). A flag can be shared public text that a benchmark also quotes.

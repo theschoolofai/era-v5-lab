@@ -1,6 +1,6 @@
 # Spec v1 harm tests
 
-DRAFT. Made by `spec_v1/tools/make_harm_tests.py` on 01 Nov 2026 from `clean.py` (built by `spec_v1/tools/build_clean.py` from `specv1.md`) with the team's `harm_test.py`, run as it is. Each cell: gold docs changed + dropped. Limit: `max(1, floor(1% of gold))`, that is `max(1 document, 1%)` (TSAI decision), each pack on its own gold set, never pooled. An empty gold set is NOT TESTABLE and an error is never a PASS; a result other than PASS is shown after the count.
+DRAFT. Made by `spec_v1/tools/make_harm_tests.py` on 02 Nov 2026 from `clean.py` (built by `spec_v1/tools/build_clean.py` from `specv1.md`) with the team's `harm_test.py`, run as it is. Each cell: gold docs changed + dropped. Limit: `max(1, floor(1% of gold))`, that is `max(1 document, 1%)` (TSAI decision), each pack on its own gold set, never pooled. An empty gold set is NOT TESTABLE and an error is never a PASS; a result other than PASS is shown after the count.
 
 A rule is tested only on the gold sets of the packs it applies to: its entry in `SCOPE`, the table at the top of `clean.py`. `·` means the rule does not apply to that pack, so it was not run there.
 
@@ -10,7 +10,7 @@ A rule is tested only on the gold sets of the packs it applies to: its entry in 
 |---|---|---:|---:|---|---:|---|---|
 | math-finemath | math | 86 (1) | 0 | PASS | 177 / 13 | none | yes |
 | math-megamath | math | 26 (1) | 0 | PASS | 62 / 10 | none | yes |
-| sci-finepdfs | sci | 202 (2) | 0 | PASS | 45 / 13 | none | other snapshot |
+| sci-finepdfs | sci | 202 (2) | 0 | PASS | 45 / 13 | none | yes |
 
 On the code, math and science packs `clean()` also runs the shared F1 (`spec_v1/tools/f1_rule.py`) last, and `DA-B4-009` leaves `<EMAIL>`: `specv1_validation.json` ran the sheet without them, so these packs may differ from it.
 

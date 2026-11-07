@@ -17,7 +17,7 @@ A pack is a Parquet file of documents. The cleaner reads every document and does
 | fix | something inside it was repaired or removed, for example broken characters, leftover web-page text, template junk, or a private person's phone number, email or address, which is replaced with `<PHONE>`, `<EMAIL>` or `<ADDRESS>` |
 | drop | the document is left out, for example because it is cut off, spam, mostly in the wrong language, or a known private record |
 
-It knows 13 packs, in four families. Each pack gets only its own family's rules.
+It knows 29 packs, in five families. Each pack gets only its own family's rules.
 
 | family | packs |
 |---|---|
@@ -25,8 +25,9 @@ It knows 13 packs, in four families. Each pack gets only its own family's rules.
 | English | `en-dclm`, `en-fineweb-edu`, `en-nemotroncc`, `en-nemotroncc-synth` |
 | math | `math-finemath`, `math-megamath` |
 | science | `sci-finepdfs` |
+| Indic | 16 validated packs; scopes and exclusions are listed in [README_indic.md](README_indic.md) |
 
-A pack it doesn't know, for example an Indic pack, comes out unchanged: nothing in it is cleaned.
+An unknown pack passes unchanged through `clean()`. `run_clean.py` rejects unknown packs; the tokenizer-sample job explicitly reports them as unsupported pass-through. Indic F1 masks private phones/emails and keeps organization contacts; Indian street-address masking and personal-listing drops remain unimplemented.
 
 ## Before you start (once)
 
@@ -38,21 +39,21 @@ You need a terminal. On a Mac, open **Terminal** (in Applications, then Utilitie
 python3 --version
 ```
 
-You need `Python 3.9` or higher. If you see `command not found`, install Python from https://www.python.org/downloads/, then open a new terminal window.
+You need `Python 3.10` or higher. If you see `command not found`, install Python from https://www.python.org/downloads/, then open a new terminal window.
 
-**2. Install the three packages the cleaner needs:**
-
-```bash
-python3 -m pip install pyarrow ftfy tree-sitter-language-pack
-```
-
-**3. Get the code**, if you don't already have the `era-v5-lab` folder. This command downloads it into the folder your terminal is in:
+**2. Get the code**, if you don't already have the `era-v5-lab` folder. This command downloads it into the folder your terminal is in:
 
 ```bash
 git clone --branch g1-specv1 https://github.com/patilvijay23/era-v5-lab.git
 ```
 
 Without git: open https://github.com/patilvijay23/era-v5-lab/tree/g1-specv1, click **Code**, then **Download ZIP**, and unzip it.
+
+**3. Install the packages the cleaner needs.** They are listed, with the exact versions the cleaner was tested with, in `spec_v1/requirements.txt`. From the folder you ran `git clone` in:
+
+```bash
+python3 -m pip install -r era-v5-lab/teams/01-data-a/spec_v1/requirements.txt
+```
 
 **4. Put your packs in one folder**, for example a folder called `packs` in your home folder. Each file must be named exactly after its pack, for example `en-dclm.parquet`: the cleaner uses the name to choose the rules. Ask your team lead for the link to the packs.
 
@@ -74,7 +75,7 @@ python3 spec_v1/run_clean.py --pack ~/packs/en-dclm.parquet --out ~/clean_out
 
 Change the pack name and the two folders to yours. `--out` is where the results go; the folder is made if it doesn't exist. Choose a folder outside `era-v5-lab` (see [Keep the results private](#keep-the-results-private)).
 
-The file name must be one of the 13 pack names, for example `en-dclm.parquet`. With any other name the cleaner stops at once and writes nothing, because it has no rules for that pack (see [If something goes wrong](#if-something-goes-wrong)).
+The file name must be one of the 29 registered pack names, for example `en-dclm.parquet`. With any other name the cleaner stops at once and writes nothing, because it has no rules for that pack (see [If something goes wrong](#if-something-goes-wrong)). For a file with another name, such as a part of the tokenizer sample, see [Clean a file with another name](#clean-a-file-with-another-name---pack-id).
 
 **3. Read the line it prints.** After a few seconds you see one line like this (the long code at the end is shortened here):
 
@@ -99,7 +100,7 @@ The file name must be one of the 13 pack names, for example `en-dclm.parquet`. W
 
 ## Clean all your packs in one go
 
-From the team folder, set your two folders on the first two lines, then run the whole block. It cleans each of the 13 packs it finds in your packs folder and says which ones it skipped:
+From the team folder, set your two folders on the first two lines, then run the whole block. It cleans each of the original 13 Data A packs it finds in your packs folder and says which ones it skipped:
 
 ```bash
 PACKS=~/packs
@@ -109,10 +110,20 @@ for p in code-cpp code-go code-java code-js-ts code-python code-rust en-dclm en-
 done
 ```
 
+## Clean a file with another name: `--pack-id`
+
+A part of the tokenizer sample is not named after its pack: it is `part-00000.parquet` inside a folder named after the pack, for example `train/en-dclm/part-00000.parquet`. Tell the cleaner which pack it is with `--pack-id`:
+
+```bash
+python3 spec_v1/run_clean.py --pack ~/sample/train/en-dclm/part-00000.parquet --pack-id en-dclm --out ~/clean_out
+```
+
+`--pack-id` must be one of the 29 registered pack names. The results are named after the pack and the part, `en-dclm_part-00000_clean.parquet` and `en-dclm_part-00000_summary.json`, so the parts of different packs never overwrite each other. The summary also holds `input_sha256`, a fingerprint of the part, which can be matched against the sample's `SHA256SUMS` file.
+
 ## How to tell it worked
 
 - Every pack printed its line, with `'errors': []`.
-- No pack stopped with `is not one of the 13 packs`.
+- No pack stopped with `is not one of the 29 packs`.
 - The numbers are close to these, from a test run on 1 Nov (500 documents per pack):
 
 | pack | kept | fixed | dropped |
@@ -128,11 +139,11 @@ done
 | what you see | what to do |
 |---|---|
 | `python3: command not found` | Install Python (step 1 of [Before you start](#before-you-start-once)) and open a new terminal window. |
-| `No module named 'pyarrow'`, `'ftfy'` or `'tree_sitter_language_pack'` | Run the install command in step 2 of [Before you start](#before-you-start-once). |
+| `No module named 'pyarrow'`, `'ftfy'` or `'tree_sitter_language_pack'` | Run the install command in step 3 of [Before you start](#before-you-start-once). |
 | `can't open file ... spec_v1/run_clean.py` | You are not in the team folder. Run the `cd` command in step 1 of [Clean one pack](#clean-one-pack). |
 | `FileNotFoundError` with your pack's path | The folder or the file name is wrong. Check both, and that the file name ends in `.parquet`. |
-| `... is not one of the 13 packs clean.py has rules for, so nothing would be cleaned` | The file name is not one of the 13 pack names, so the cleaner stopped without writing anything. If it is one of the 13 packs under another name, rename the file, for example to `en-dclm.parquet`. If it is a new pack, don't rename it: ask the Data A team to add it (see [Add a new pack](#add-a-new-pack)). |
-| `doc_id ... has pack_id '...'` | The file name doesn't match the pack inside it. Rename the file to the name shown in quotes, plus `.parquet`. |
+| `... is not one of the 29 packs clean.py has rules for, so nothing would be cleaned` | The file name (or `--pack-id`) is not one of the 29 registered pack names, so the cleaner stopped without writing anything. If it is one of the 29 packs under another name, rename the file, for example to `en-dclm.parquet`, or add `--pack-id en-dclm` (see [Clean a file with another name](#clean-a-file-with-another-name---pack-id)). If it is a new pack, don't rename it: ask the Data A team to add it (see [Add a new pack](#add-a-new-pack)). |
+| `doc_id ... has pack_id '...', not '...'` | The pack named inside the file doesn't match its file name (or `--pack-id`). Rename the file to the first name in quotes, plus `.parquet`, or pass that name as `--pack-id`. |
 | `errors` is not `[]` | Those documents could not be cleaned and are left out of the cleaned pack. Send the `_summary.json` file to the Data A team: it holds only IDs and error types. |
 
 ## Keep the results private
@@ -143,7 +154,7 @@ The cleaned packs contain the documents' text. Keep them outside the `era-v5-lab
 
 The rest of this guide is for people who change the rules, rebuild `clean.py`, or run the tests and harm tests. Paths start at `teams/01-data-a/`.
 
-`spec_v1/clean.py` holds the 70 rules of `spec_v1/sheets/specv1.md` and the shared F1 rule, `spec_v1/tools/f1_rule.py`. The rules come from four families, which together cover 13 packs. It has one function per disease code, 24 in all, and `clean(doc)`, which runs a document through every rule of its family in sheet order. At the top is `SCOPE`, a table of the packs each rule applies to. A rule runs only on its own packs, and its harm test uses only the gold sets of those packs.
+`spec_v1/clean.py` holds 178 executable sheet rules and shared F1, `spec_v1/tools/f1_rule.py` (179 active rule IDs). The five families cover 29 packs. It has 31 disease-code functions and `clean(doc)`, which runs a document through its family's rules in sheet order. At the top is `SCOPE`, the packs each rule applies to. Gold checks use only each affected pack's own gold. The 176 Indic source cards comprise 108 selected and 68 deferred candidates; [README_indic.md](README_indic.md) explains the policy and labelled B2 privacy-placeholder compatibility wrappers.
 
 `clean.py` is generated. Do not edit it: change `specv1.md` and rebuild (step 1).
 
@@ -174,7 +185,8 @@ Paths start at `teams/01-data-a/`. The sheets are in `spec_v1/sheets/`, the tool
 ```
 spec_v1/
   clean.py                       the cleaner: generated, do not edit
-  run_clean.py                   cleans one pack with clean.py
+  run_clean.py                   cleans one pack, or one part of a pack (--pack-id), with clean.py
+  requirements.txt               the packages, pinned: pip install -r spec_v1/requirements.txt
   README_clean.md                this file
   sheets/specv1.md               the rules: the one sheet clean.py is built from
   sheets/medicine_<family>.md    the family sheets that specv1.md collates (code, english, math, sci)
@@ -188,20 +200,22 @@ spec_v1/
   tools/*_english.py             checks on the English packs: see tools/README_english.md
   tests/test_clean.py            the unit tests of clean.py
   tests/test_normalize.py        the unit tests of tools/normalize.py
+  tests/test_normalize_contract.py  the G9 contract of tools/normalize.py: words versus keys
   tests/test_run_clean.py        the unit tests of run_clean.py
+  tests/test_validate_specv1.py  the paths tools/validate_specv1.py writes
   results/cleaner/               harm_tests.md, specv1_<pack>_harm.json, specv1_validation.json and the English checks
   results/sheets/                harm reports of the family sheets
 ```
 
 ## Every script: command, what it needs, what it writes
 
-Run every command from `teams/01-data-a/`. "Packages" are what `pip install` must have added. `../..` is the `era-v5-lab` folder: the harm tests read `harm_test.py` from its `teams/01-data-a/tools/` and the gold sets from its `teams/01-data-a/gold/`.
+Run every command from `teams/01-data-a/`. "Packages" are what each script needs; `python3 -m pip install -r spec_v1/requirements.txt` installs them all. `../..` is the `era-v5-lab` folder: the harm tests read `harm_test.py` from its `teams/01-data-a/tools/` and the gold sets from its `teams/01-data-a/gold/`.
 
 | script | command | packages | also needs | writes |
 |---|---|---|---|---|
 | `spec_v1/tools/build_clean.py` | `python -I spec_v1/tools/build_clean.py` | none (Python 3.9+) | `spec_v1/sheets/specv1.md`, `spec_v1/tools/f1_rule.py` | `spec_v1/clean.py` |
-| `spec_v1/tests/` (`test_clean.py`, `test_normalize.py`, `test_run_clean.py`) | `python -m pytest spec_v1/tests` | `pytest`, `pyarrow`, `ftfy`, `tree-sitter-language-pack` | `spec_v1/clean.py`, `spec_v1/run_clean.py`, `spec_v1/sheets/specv1.md`, `spec_v1/tools/build_clean.py`, `spec_v1/tools/normalize.py` | nothing (`test_run_clean.py` writes made-up packs to a temporary folder) |
-| `spec_v1/run_clean.py` | `python -I spec_v1/run_clean.py --pack <packs folder>/<pack_id>.parquet --out <results folder>` | `pyarrow`, `ftfy`, `tree-sitter-language-pack` | the pack | `<results folder>/<pack>_clean.parquet`, `<results folder>/<pack>_summary.json` |
+| `spec_v1/tests/` (five files, see [step 2](#step-2-run-the-unit-tests)) | `python -m pytest spec_v1/tests` | all of `spec_v1/requirements.txt` | `spec_v1/clean.py`, `spec_v1/run_clean.py`, `spec_v1/sheets/specv1.md`, `spec_v1/tools/build_clean.py`, `spec_v1/tools/normalize.py`, `spec_v1/tools/validate_specv1.py`, `tools/harm_test.py` | nothing (`test_run_clean.py` writes made-up packs to a temporary folder) |
+| `spec_v1/run_clean.py` | `python -I spec_v1/run_clean.py --pack <packs folder>/<pack_id>.parquet --out <results folder>`, or `--pack <part>.parquet --pack-id <pack_id>` | `pyarrow`, `ftfy`, `tree-sitter-language-pack` | the pack, or a part of one | `<results folder>/<name>_clean.parquet`, `<results folder>/<name>_summary.json` (see [What it writes](#what-it-writes)) |
 | `spec_v1/tools/make_harm_tests.py` | `python -I spec_v1/tools/make_harm_tests.py ../.. <packs folder> [<more packs folders>]` | `pyarrow`, `ftfy`, `tree-sitter-language-pack` | `tools/harm_test.py`, `gold/`, the packs | `spec_v1/results/cleaner/harm_tests.md`, `spec_v1/results/cleaner/specv1_<pack>_harm.json` |
 | `spec_v1/tools/validate_specv1.py` | `python -I spec_v1/tools/validate_specv1.py --packs <packs folder> --gold gold` | `pyarrow`, `ftfy` | `tools/harm_test.py`, `gold/`, the packs | the validation table and card evidence inside `spec_v1/sheets/specv1.md`, `spec_v1/results/cleaner/specv1_validation.json` |
 | `spec_v1/tools/verify_clean.py` | `python -I spec_v1/tools/verify_clean.py ../.. <packs folder> spec_v1/sheets/medicine_code.md` | `pyarrow`, `tree-sitter-language-pack` | `gold/`, the annotators' labels in `diagnosis/submissions/`, the six code packs | prints only |
@@ -215,7 +229,7 @@ The pack files are not in the repo; get your link from the lab plan sheet. Each 
 
 | what | why |
 |---|---|
-| Python 3.9 or later (tested on 3.12) | `functools.cache` |
+| Python 3.10 or later (tested on 3.12.10) | every package below needs 3.10 or later |
 | `pyarrow` | reads and writes the Parquet packs |
 | `ftfy` | the English mojibake rule, `DA-A3-002` |
 | `tree-sitter-language-pack` | the shared F1 on code: it looks for private details only inside comments and strings |
@@ -223,8 +237,10 @@ The pack files are not in the repo; get your link from the lab plan sheet. Each 
 | the packs, `<pack_id>.parquet` | not in the repo; get your link from the lab plan sheet |
 | the gold sets, `gold/<pack>_gold.csv` | in the repo; only for step 4 and the [other checks](#other-checks) |
 
+`spec_v1/requirements.txt` pins the versions every test passes with: `pyarrow` 23.0.1, `ftfy` 6.3.1, `tree-sitter-language-pack` 1.22.1 (and `tree-sitter` 0.26.0, which it runs on) and `pytest` 9.1.1. Install them from `teams/01-data-a/`:
+
 ```bash
-pip install pyarrow ftfy tree-sitter-language-pack pytest
+python3 -m pip install -r spec_v1/requirements.txt
 ```
 
 `clean.py` imports without `ftfy` and `tree-sitter-language-pack`. Without them, the rules that need them raise an error when they run. `run_clean.py` then reports those documents as errors (see [Troubleshooting](#troubleshooting)).
@@ -238,14 +254,14 @@ pip install pyarrow ftfy tree-sitter-language-pack pytest
 | math | `math-finemath`, `math-megamath` |
 | sci | `sci-finepdfs` |
 
-A pack file must be named after its pack ID, for example `en-dclm.parquet`. It needs the columns `doc_id`, `text`, `url` and `lang_label`. The `pack_id` column may be missing: `run_clean.py` then takes the pack ID from the file name. `run_clean.py` stops on any file name that is not one of these 13 pack IDs.
+A pack file must be named after its pack ID, for example `en-dclm.parquet`. It needs the columns `doc_id`, `text`, `url` and `lang_label`. The `pack_id` column may be missing: `run_clean.py` then takes the pack ID from the file name. `run_clean.py` stops on any file name that is not one of the 29 registered pack IDs. A file with another name, such as a part of the tokenizer sample, needs `--pack-id` (see [step 3](#a-part-of-the-tokenizer-sample---pack-id)).
 
 ## Quick start
 
-Run these from `teams/01-data-a/`. First install the packages, once. Include `tree-sitter-language-pack`: without it, the shared F1 cannot read code files and 5 unit tests are skipped.
+Run these from `teams/01-data-a/`. First install the packages, once:
 
 ```bash
-pip install pyarrow ftfy tree-sitter-language-pack pytest
+python3 -m pip install -r spec_v1/requirements.txt
 ```
 
 ```bash
@@ -276,17 +292,19 @@ This reads `spec_v1/sheets/specv1.md` and writes `spec_v1/clean.py`. Use `--shee
 python -I spec_v1/tools/build_clean.py --sheet spec_v1/sheets/specv1.md --out /tmp/clean.py
 ```
 
+To refresh Indic selections from `medicine_indic.md`, run `tools/integrate_indic.py` first (it also validates the sibling policy declared in the source sheet); the builder does not discover family sheets automatically. See [README_indic.md](README_indic.md).
+
 **Rebuild after every change to `specv1.md` or `spec_v1/tools/f1_rule.py`.** The build gives the same file every time, and a unit test checks that `clean.py` matches a fresh build.
 
 ### What the build does
 
 1. It finds each `## Medicine N — <family> / <code> / \`<ID>\`` section and its Python block.
-2. It reads the block's packs: the `SPEC_PACKS` line, and for a math rule its `ORIGIN` packs as well (`PACKS = set(ORIGIN.split(", "))`). The rule's scope is the packs both allow.
+2. It reads the block's packs: the `SPEC_PACKS` line, and for a code or math rule its `ORIGIN` packs as well (`PACKS = set(ORIGIN.split(", "))`). The rule's scope is the packs both allow.
 3. It writes those packs into `SCOPE` at the top of `clean.py`, and points the block's `SPEC_PACKS` (and `PACKS`) at its `SCOPE` entry. So pack IDs are written in one place.
 4. It puts each block in its own closure (`_<family>_<code>_<nnn>`), so helpers with the same name in two blocks do not clash. Two other changes are made to the blocks:
    - The `AUTHOR` line is dropped.
    - The code `DA-B4-009` rule no longer rewrites `<EMAIL>`, which is the F1 tag.
-5. It adds `spec_v1/tools/f1_rule.py` as the shared F1, in `SCOPE` under the name `f1_rule.py`, for the code, math and science packs (`SHARED_F1_FAMILIES`). English keeps `DA-F1-005`.
+5. It adds `spec_v1/tools/f1_rule.py` as the shared F1, in `SCOPE` under the name `f1_rule.py`, for the code, math, science and Indic packs (`SHARED_F1_FAMILIES`). English keeps `DA-F1-005`.
 6. It writes the 24 disease-code functions, `RULES`, `_PIPELINES` (each family's rules in sheet order), `_FAMILY` (pack to family) and `clean()`.
 
 ### What it prints
@@ -294,7 +312,7 @@ python -I spec_v1/tools/build_clean.py --sheet spec_v1/sheets/specv1.md --out /t
 One line for each docstring or verbose regex whose indentation changed, for example `DA-E1-001 code strings changed: 1 [...]`. These are expected: the indentation of a docstring or a verbose regex does not change what the rule does. The last line is the summary:
 
 ```
-clean.py: rules 70 + shared F1 | code 24 rules on 6 packs, english 20 rules on 4 packs, math 14 rules on 2 packs, sci 12 rules on 1 packs | functions: 24
+clean.py: rules 178 + shared F1 | code 24 rules on 6 packs, english 20 rules on 4 packs, math 14 rules on 2 packs, sci 12 rules on 1 packs, indic 108 rules on 16 packs | functions: 31
 ```
 
 ### When the build stops
@@ -315,7 +333,7 @@ It stops with an `AssertionError` that names the rule, and writes nothing, when:
 python -m pytest spec_v1/tests
 ```
 
-The unit tests are in three files, one per module. `spec_v1/tests/test_clean.py` tests `clean.py`, in six sections:
+The unit tests are in five files. `spec_v1/tests/test_clean.py` tests `clean.py`, in six sections:
 
 | section | what it tests |
 |---|---|
@@ -328,14 +346,20 @@ The unit tests are in three files, one per module. `spec_v1/tests/test_clean.py`
 
 `spec_v1/tests/test_normalize.py` tests `spec_v1/tools/normalize.py`: G9's own examples; each A1 character and listed compatibility form matching the plain word; ZWJ and ZWNJ kept, so words that differ by one stay different; Indic spellings of the same word (nukta, two-part vowel signs, chillu, khanda ta) matching; no full NFKC; the keys evening out B1, A2, A1, A5, case and spacing; and that no document or `clean()` result changes.
 
+`spec_v1/tests/test_normalize_contract.py` holds G9's regression contract for `normalize.py`: `NORMALIZE_ID` and the offsets stay as agreed, and B1 entity decoding and A2 control removal belong to the keys only, never to `normalize()`.
+
 `spec_v1/tests/test_run_clean.py` tests `spec_v1/run_clean.py` on made-up packs it writes to a temporary folder:
 
 - a known pack is cleaned exactly as `clean.clean()` cleans each document;
-- its summary holds `pack_id`, `family` and the SHA-256 of `clean.py`, and no text;
-- a pack name that is not one of the 13 stops the run with exit code 1, before the file is read and before the `--out` folder is made, whether the file has no `pack_id` column, the new name in it, or an old name in it;
-- a `pack_id` column that does not match the file name stops the run.
+- its summary holds `pack_id`, `family`, the SHA-256 of the input file and of `clean.py`, and no text;
+- an unregistered pack stops the run with exit code 1, before the file is read and before the `--out` folder is made, whether the file has no `pack_id` column, the new name in it, or an old name in it;
+- a `pack_id` column that does not match the file name stops the run;
+- `--pack-id` cleans a file of any name (`train/en-dclm/part-00000.parquet`, a renamed download) as that pack, names the results after the pack and the part, and keeps the parts of two packs apart;
+- an unknown `--pack-id`, including an unsupported Indic pack, stops the run, and so does a `pack_id` column that disagrees with `--pack-id`.
 
-Every text in the tests is made up. Some science rules act only on documents the reviewers listed, so those tests use the doc_ids named in `specv1.md`. Expect `520 passed` (461 in `test_clean.py`, 53 in `test_normalize.py`, 6 in `test_run_clean.py`) with `tree-sitter-language-pack` installed. Without it, 515 pass and 5 are skipped: the shared F1 on code (`pip install tree-sitter-language-pack`).
+`spec_v1/tests/test_validate_specv1.py` checks that `tools/validate_specv1.py` writes no local folder: the gold path from the repository root, the pack as its file name.
+
+Every text in the tests is made up. Some science rules act only on documents the reviewers listed, so those tests use the doc_ids named in `specv1.md`. Run the complete spec suite with `spec_v1/requirements.txt` installed; current verification is recorded in the sample job request. The suite includes Indic privacy, placeholder preservation, complete-pipeline idempotence and own-pack-gold gating. Missing dependencies must be resolved before attaching submission evidence.
 
 ## Step 3: clean a pack
 
@@ -345,10 +369,10 @@ Every text in the tests is made up. Some science rules act only on documents the
 
 `run_clean.py` is in the repo beside `clean.py`, at `spec_v1/run_clean.py`. It loads `clean.py` from its own folder, so keep the two together. For each pack it:
 
-1. checks that the file name is one of the 13 pack IDs, and stops otherwise, before it reads the file or makes the `--out` folder. `clean.py` has no rules for any other pack, so every document would pass through unchanged and the run would still look successful;
-2. reads the pack's Parquet file, and fills in `pack_id` from the file name if the pack has no such column. If the column is there, it must match the file name;
+1. takes the pack from `--pack-id` if given, else from the file name, and checks that it is registered in `clean._FAMILY` (29 packs in this snapshot). It stops otherwise, before it reads the file or makes the `--out` folder;
+2. reads the Parquet file, and fills in `pack_id` with that pack if the file has no such column. If the column is there, it must name the same pack;
 3. calls `clean.clean(doc)` on every document (`import clean as c`, then `c.clean(row)`);
-4. writes the kept documents with their cleaned text, and a summary of what happened, including the SHA-256 of the `clean.py` that ran.
+4. writes the kept documents with their cleaned text, and a summary of what happened, including the SHA-256 of the input file and of the `clean.py` that ran.
 
 Every keep, fix and drop comes from `clean.py`; `run_clean.py` only reads and writes the files around it. Your own code can do the same by importing `clean.py` (see [Use clean.py from Python](#use-cleanpy-from-python)).
 
@@ -360,7 +384,8 @@ python -I spec_v1/run_clean.py --pack <packs folder>/en-dclm.parquet --out <resu
 
 | option | meaning |
 |---|---|
-| `--pack` | The pack, a Parquet file named `<pack_id>.parquet`, for one of the 13 packs in [the scope table](#the-scope-table). Any other name stops the run. |
+| `--pack` | The pack, a Parquet file named `<pack_id>.parquet`, for one of the 29 packs in [the scope table](#the-scope-table). Any other name stops the run, unless `--pack-id` is given. |
+| `--pack-id` | Optional. The pack the file belongs to, for a file with another name, such as a part of the tokenizer sample. It must be one of the 29 packs. See [A part of the tokenizer sample](#a-part-of-the-tokenizer-sample---pack-id). |
 | `--out` | The folder for the results; it is made if missing. Without `--out` it is `out`, a folder inside the one you run from: run from `teams/01-data-a/`, that is `teams/01-data-a/out/`. |
 
 It reads only the pack, writes only to `--out`, and needs no network.
@@ -371,8 +396,10 @@ It reads only the pack, writes only to `--out`, and needs no network.
 
 | file | what is in it |
 |---|---|
-| `<results folder>/<pack>_clean.parquet` | The documents that were kept, with their cleaned text and all their columns. A `pack_id` column is added if the pack had none. |
-| `<results folder>/<pack>_summary.json` | IDs and counts only, no text: `pack` (the file name), `pack_id`, `family`, `rows`, `actions` (keep / fix / drop), `errors` (doc_id and error type), `dropped` (doc_ids), `seconds`, `docs_per_second`, and `clean_py_sha256`, the SHA-256 of the `clean.py` that ran. Two summaries with the same `clean_py_sha256` came from the same rules. To check which `clean.py` you have: `shasum -a 256 spec_v1/clean.py`. |
+| `<results folder>/<name>_clean.parquet` | The documents that were kept, with their cleaned text and all their columns. A `pack_id` column is added if the file had none. |
+| `<results folder>/<name>_summary.json` | IDs and counts only, no text: `pack` (the file name), `input_sha256` (the SHA-256 of that file), `pack_id`, `family`, `rows`, `actions` (keep / fix / drop), `errors` (doc_id and error type), `dropped` (doc_ids), `seconds`, `docs_per_second`, `rule_seconds` (the time profile: for each rule that ran, its total `seconds`, `calls` and `ms_per_call`, slowest first; rules `SCOPE` skips on the pack have no entry), and `clean_py_sha256`, the SHA-256 of the `clean.py` that ran. Two summaries with the same `clean_py_sha256` came from the same rules. To check which `clean.py` you have: `shasum -a 256 spec_v1/clean.py`. |
+
+`<name>` is the file name without `.parquet`: `en-dclm` for `en-dclm.parquet`. When `--pack-id` names a pack other than the file name, the pack comes first: `en-dclm_part-00000` for `part-00000.parquet` with `--pack-id en-dclm`.
 
 A test run on the English packs (1 Nov, 500 documents each, 0 errors):
 
@@ -387,8 +414,8 @@ A test run on the English packs (1 Nov, 500 documents each, 0 errors):
 
 `run_clean.py` exits with 0 when no rule raised and 1 when one did. A document whose rule raised is left out of `_clean.parquet`, and its doc_id is listed under `errors`. It also exits with 1, and writes nothing, when:
 
-- the file name is not one of the 13 pack IDs (checked first, before the file is read);
-- the pack's `pack_id` column does not match its file name.
+- the pack (`--pack-id`, or else the file name) is not one of the 29 registered pack IDs (checked first, before the file is read);
+- the file's `pack_id` column names another pack.
 
 ### All 13 packs
 
@@ -399,6 +426,19 @@ for p in code-cpp code-go code-java code-js-ts code-python code-rust en-dclm en-
   python -I spec_v1/run_clean.py --pack "$PACKS/$p.parquet" --out "$OUT" || echo "$p: see $OUT/${p}_summary.json"
 done
 ```
+
+### A part of the tokenizer sample: `--pack-id`
+
+The tokenizer sample v0 is laid out as `<split>/<pack_id>/part-NNNNN.parquet` (split `train` or `heldout`), with a `SHA256SUMS` file listing every part; a downloaded part may also have been renamed, for example `part-00000 (12).parquet`. Its file names are not pack IDs, so name the pack:
+
+```bash
+python -I spec_v1/run_clean.py --pack <sample folder>/train/en-dclm/part-00000.parquet --pack-id en-dclm --out <results folder>
+```
+
+- `--pack-id` must be one of the 29 packs. The sample also holds Indic packs (`ind-<language>-<source>`): 16 are supported, while the six without validated own-pack scopes are rejected by `run_clean.py`. The sample-job runner reports unsupported packs as explicit pass-through.
+- If the part has a `pack_id` column, every row must name the same pack.
+- The results are `en-dclm_part-00000_clean.parquet` and `en-dclm_part-00000_summary.json`, so parts with the same file name from different packs never overwrite each other. A train and a heldout part of one pack do share a name, so give each split its own `--out`: a run stops, before writing, if `--out` already holds the results of another file with that name.
+- `input_sha256` in the summary is the part's SHA-256: look it up in the sample's `SHA256SUMS` to confirm which part was cleaned and that its folder is the `--pack-id` you gave.
 
 ## Step 4: run the harm tests
 
@@ -444,13 +484,15 @@ These are not needed to build or run `clean.py`, but they are how the numbers in
 
 ### `spec_v1/tools/validate_specv1.py`: check `specv1.md` itself
 
-It runs every block of `spec_v1/sheets/specv1.md` (the sheet, not `clean.py`) on each pack's gold set and whole pack, then rewrites the validation table and the "Current gold harm" lines inside `specv1.md`, and writes `spec_v1/results/cleaner/specv1_validation.json`.
+It runs every executable `python` block of `spec_v1/sheets/specv1.md` (`python deferred` inventory is excluded) (the sheet, not `clean.py`) on each pack's gold set and whole pack, then rewrites the validation table and the "Current gold harm" lines inside `specv1.md`, and writes `spec_v1/results/cleaner/specv1_validation.json`.
 
 It uses `harm_test.py` from `tools/` and the gold sets in `gold/`:
 
 ```bash
 python -I spec_v1/tools/validate_specv1.py --packs <packs folder> --gold gold
 ```
+
+It needs the diagnosis Parquet files for all 29 supported packs in `<packs folder>`: it stops at the first one missing. Indic gold comes from `teams/02-data-b/gold` by default (`--indic-gold` overrides it). Use `--allow-missing` to write explicit NOT TESTABLE rows for missing packs; that run exits with 2, and failed tests exit with 1. See [README_indic.md](README_indic.md) before regenerating Indic rules. The paths it writes name no local folder: `gold_path` starts at the repository root (`teams/01-data-a/gold/code-python_gold.csv`) and `pack_path` is the file name (`code-python.parquet`). The `gold_sha256` and `pack_sha256` next to them identify the exact files. Run it again whenever a gold set changes: `harm_tests.md` shows "other snapshot" for a pack until then.
 
 It changes `specv1.md`, but only the text around the code: `clean.py` does not need a rebuild. Run the unit tests after it.
 
@@ -601,7 +643,7 @@ One function per disease code. Each runs the rules of that code that apply to th
 
 ## Run order in each family
 
-`clean()` runs these in order. A drop ends the document, and a fix passes the new text to the next rule. The code, math and science families then run the shared F1 last.
+`clean()` runs these in order. A drop ends the document, and a fix passes the new text to the next rule. The code, math, science and Indic families then run shared F1 last.
 
 | family | order |
 |---|---|
@@ -609,6 +651,7 @@ One function per disease code. Each runs the rules of that code that apply to th
 | english | A1-004, A2-008, A5-001, A3-002, B1-002, B2-002, C3-001, C3-003, C5-002, D4-001, C1-006, C2-003, C5-005, D3-003, B4-007, B4-008, B4-012, B4-010, B4-011, F1-005 |
 | math | A3-001, A1-005, A6-003, A5-002, B2-001, B4-001, B5-001, C5-001, D3-005, C3-004, C1-001, C2-001, C5-006, C3-005, then the shared F1 |
 | sci | B4-013, B2-003, B5-002, A1-006, A6-002, C1-007, C2-004, C3-006, C4-003, D1-001, F1-006, D3-004, then the shared F1 |
+| indic | 108 selected source medicines in sheet order, restricted to each pack's validated native/sibling scopes, then shared F1; all source F1 cards are deferred |
 
 ## The scope table
 
@@ -622,10 +665,16 @@ SCOPE = {
 }
 ```
 
-Each rule applies to every pack of its family, except for seven math rules whose `ORIGIN` names one math pack:
+Each rule applies to every pack of its family, except for the code rules and seven math rules whose `ORIGIN` names fewer packs:
 
 | packs | rules |
 |---|---|
+| `code-go` only | `DA-E1-001`, `DA-C3-002`, `DA-E4-005`, `DA-C1-004` |
+| `code-java` only | `DA-A4-003`, `DA-E1-006`, `DA-C4-002`, `DA-E4-009`, `DA-C1-005` |
+| `code-js-ts` only | `DA-E1-008`, `DA-E4-007` |
+| `code-cpp` only | `DA-E1-005`, `DA-E1-007` |
+| `code-python`, `code-rust` | `DA-E1-004` |
+| every code pack except `code-js-ts` | `DA-E4-010` |
 | `math-finemath` only | `DA-A1-005`, `DA-A6-003`, `DA-C1-001`, `DA-C2-001`, `DA-C3-004`, `DA-C3-005` |
 | `math-megamath` only | `DA-C5-001` |
 
@@ -636,17 +685,17 @@ The scope is checked twice, and both checks read `SCOPE`:
 
 **To change a rule's packs,** do these in order:
 
-1. Edit its `SPEC_PACKS` line in `specv1.md`. For a math rule, edit `ORIGIN` too.
+1. Edit its `SPEC_PACKS` line in `specv1.md`. For a code or math rule, edit `ORIGIN` too.
 2. Rebuild (step 1).
 3. Run the unit tests (step 2).
 4. Run the harm tests (step 4).
 
 ### Add a new pack
 
-`clean.py` cleans only the 13 packs in `SCOPE`, and `run_clean.py` stops on any other. A new pack, or a new version of one such as `en-fineweb-edu-v2`, is not cleaned until it is added. Do not rename it to a known pack ID, and do not choose rules by name prefix (`en-*`, `code-*`): each rule's scope is tested on the gold sets of its own packs only. To add one, in order:
+`clean.py` cleans only the 29 registered packs in `SCOPE`, and `run_clean.py` stops on any other. A new pack, or a new version of one such as `en-fineweb-edu-v2`, is not cleaned until it is added. Do not rename it to a known pack ID, and do not choose rules by name prefix (`en-*`, `code-*`): each rule's scope is tested on the gold sets of its own packs only. To add one, in order:
 
 1. Get a gold set for it in `gold/<pack_id>_gold.csv`. Without one its harm test is NOT TESTABLE, and its rules cannot be signed off.
-2. Add the pack ID to the `SPEC_PACKS` line of each rule that should run on it in `specv1.md`.
+2. Add the pack ID to the `SPEC_PACKS` line of each rule that should run on it in `specv1.md`, and to its `ORIGIN` line (code and math rules).
 3. Rebuild (step 1). The pack then has a family in `clean._FAMILY`, and `run_clean.py` accepts it.
 4. Add it to `FAMILIES` in `spec_v1/tests/test_clean.py` and run the unit tests (step 2).
 5. Run the harm tests (step 4) on all the packs.
@@ -655,13 +704,13 @@ The scope is checked twice, and both checks read `SCOPE`:
 
 | what you see | why | what to do |
 |---|---|---|
-| `<file>: '<name>' is not one of the 13 packs clean.py has rules for` and exit code 1, nothing written | The file name is not one of the 13 pack IDs. Without this stop, every document would pass through unchanged. | If it is a known pack under another name, name the file `<pack_id>.parquet`. If it is a new pack, see [Add a new pack](#add-a-new-pack). |
-| `<file>: doc_id ... has pack_id '...'` and exit code 1 | The pack's `pack_id` column does not match its file name. | Rename the file to the pack ID in the column. |
-| `errors` lists `ModuleNotFoundError` on English documents | `ftfy` is not installed (`DA-A3-002`). | `pip install ftfy` |
-| `errors` lists `ModuleNotFoundError` on code documents | `tree-sitter-language-pack` is not installed. The shared F1 needs it when it finds an email, phone or address in code. | `pip install tree-sitter-language-pack` |
+| `<file>: '<name>' is not one of the 29 packs clean.py has rules for` and exit code 1, nothing written | The file name, or `--pack-id`, is not one of the 29 registered pack IDs. Without this stop, every document would pass through unchanged. | If it is a known pack under another name, name the file `<pack_id>.parquet` or pass `--pack-id <pack_id>`. If it is a new pack, see [Add a new pack](#add-a-new-pack). |
+| `<file>: doc_id ... has pack_id '...', not '...'` and exit code 1 | The file's `pack_id` column names another pack than its file name or `--pack-id`. | Rename the file to the pack ID in the column, or pass it as `--pack-id`. |
+| `errors` lists `ModuleNotFoundError` on English documents | `ftfy` is not installed (`DA-A3-002`). | `python3 -m pip install -r spec_v1/requirements.txt` |
+| `errors` lists `ModuleNotFoundError` on code documents | `tree-sitter-language-pack` is not installed. The shared F1 needs it when it finds an email, phone or address in code. | `python3 -m pip install -r spec_v1/requirements.txt` |
 | `make_harm_tests.py` stops with `ModuleNotFoundError: No module named 'harm_test'` | Its first argument is not the `era-v5-lab` folder. | Run it from `teams/01-data-a/` and pass `../..`. |
 | `harm_tests.md` lists packs as "pack not on this machine" | The pack is in none of the folders you passed. | Pass every folder that holds packs. |
-| `harm_tests.md` says "other snapshot" | Your gold set or pack is not the one `specv1_validation.json` used, so the two are not compared. | Use the gold sets in `gold/` and the current packs. |
+| `harm_tests.md` says "other snapshot" | Your gold set or pack is not the one `specv1_validation.json` used, so the two are not compared. A gold set that changed after the last validation does this. | Run `validate_specv1.py` with all 13 packs and the gold sets in `gold/` (see [Other checks](#other-checks)), then `make_harm_tests.py` again. |
 | `AssertionError` from `build_clean.py` | The sheet breaks one of the checks under [When the build stops](#when-the-build-stops). | Fix the rule the message names, and rebuild. |
 | `test_the_build_writes_this_clean_py` fails | `specv1.md` or `f1_rule.py` changed after the last build. | Rebuild (step 1). |
 
@@ -671,3 +720,9 @@ The scope is checked twice, and both checks read `SCOPE`:
 - Do not commit a `harm_tests.md` made without all 13 packs.
 - Do not commit packs or `_clean.parquet` outputs.
 - Do not take a rule off a pack to make a harm test pass. A failing rule stays in, and blocks release until it is reviewed, as `specv1.md` says.
+
+## TSAI job: Week-2 tokenizer sample v0 only
+
+TSAI clarified that the sample run is eligible for a job request; the restriction on cleaning the full corpus still applies. The prepared request is [2026-11-02-tokenizer-sample-v0-clean.md](../jobs/2026-11-02-tokenizer-sample-v0-clean.md), with a [two-part local execution log](../jobs/logs/2026-11-02-tokenizer-sample-v0-local.txt).
+
+`tools/run_tokenizer_sample.py` runs the pinned `clean.py` on the manifest's 48 train and 38 heldout parts. Its config, manifest pin and local-run command are in [jobs/README.md](jobs/README.md). It streams batches, preserves splits, writes only under `out/`, and reports counts from actual sequential rule invocations. Unsupported packs are explicitly preserved unchanged rather than presented as cleaned. The request records the large-Parquet return requirement separately from the small metadata reports. Optional F2 is off for this `clean.py` request.
