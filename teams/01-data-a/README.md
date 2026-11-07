@@ -8,14 +8,41 @@ Open a pull request; the lead reviews and merges it. The pr-guard check must pas
 
 | Task | Guide |
 |---|---|
-| Build, test, or run the cleaner | [Cleaner guide](spec_v1/README_clean.md), [spec and build flow](spec_v1/README.md) |
+| Build, test, or run the cleaner | [Cleaner guide](spec_v1/README_clean.md) (how to run it), [spec and build flow](spec_v1/README.md) (rules policy and layout) |
 | Review family medicines and decisions | [Sheet index](spec_v1/sheets/README.md), [science conflict review](spec_v1/sheets/medicine_sci_clash_resolution_and_harm_report.md) |
 | Build gold or review contributor rules | [Shared tools](tools/README.md), [gold builder](tools/README_build_gold.md), [harm tests](harmtest/README.md) |
 | Validate cleaner, privacy, or F2 behavior | [Build tools](spec_v1/build/README.md), [Validation tools](spec_v1/validate/README.md), [English checks](spec_v1/validate/README_english.md), [Indic checks](spec_v1/README_indic.md) |
 | Run a sample job or inspect overlap results | [Jobs index](jobs/README.md) |
 | Interpret validation evidence | [Results index](spec_v1/results/README.md) |
 
-Directory roles: `harmtest/` holds the harm-test harness and the contributor-medicine review tools (formerly in `tools/`; `tools/harm_test.py` is a forwarder kept until Week 4); `tools/` holds gold-building, fetch and viewer utilities; `tests/` tests both (`tests/harmtest/`, `tests/tools/`). `spec_v1/build/` generates `clean.py` from the sheets, `spec_v1/validate/` checks the sheets and the cleaner, and `spec_v1/tools/` holds only the sample-job runner for now (it moves when the tokenizer-sample job PR is merged); `oneoff/` holds the scripts that made the code sheet (kept for the record; their owners prune them). Sample configuration remains in `spec_v1/jobs/`, linked from the jobs index.
+## Folder map
+
+| Folder | What is in it | Tests |
+|---|---|---|
+| [gold/](gold/) | Gold sets: document IDs only, no text | none |
+| [harmtest/](harmtest/README.md) | Harm test for a medicine or rule, and the contributor-medicine review tools. `tools/harm_test.py` is a forwarder to it, kept until Week 4 | `tests/harmtest/` |
+| [tools/](tools/README.md) | Build gold sets, fetch medicines, view a pack | `tests/tools/` |
+| [spec_v1/](spec_v1/README.md) | The cleaner: `clean.py`, `run_clean.py`, `normalize.py`, `f2_rule.py`, with its `sheets/`, `results/` and `jobs/` (the pinned sample config) | `spec_v1/tests/` |
+| [spec_v1/build/](spec_v1/build/README.md) | Sheets to `clean.py`, and the Indic integration | `spec_v1/tests/` |
+| [spec_v1/validate/](spec_v1/validate/README.md) | Checks on the sheets and on `clean.py` | `spec_v1/tests/` |
+| [spec_v1/tools/](spec_v1/tools/README.md) | The streaming sample-job runner only, for now | `spec_v1/tests/` |
+| [jobs/](jobs/README.md) | TSAI job requests, logs and results (the path is set by `JOB_REQUEST.md`) | none |
+| [rules/](rules/README.md), `medicines/` | Contributor registry snapshot; fetched annotator sheets (not committed) | none |
+| [oneoff/](oneoff/README.md) | The scripts that made the code sheet, kept for the record; their owners prune them | none |
+
+## Run it
+
+From this folder (`teams/01-data-a/`), after `python3 -m pip install -r spec_v1/requirements.txt` once. A pack file is named `<pack_id>.parquet`, for example `en-dclm.parquet`.
+
+| I want to | Command |
+|---|---|
+| Clean one pack | `python3 spec_v1/run_clean.py --pack ~/packs/en-dclm.parquet --out ~/clean_out` |
+| Rebuild `clean.py` from the sheets | `python -I spec_v1/build/build_clean.py` (a test checks that it matches the committed `clean.py`) |
+| Harm-test a rule or a medicine sheet | `python -I harmtest/harm_test.py --pack <pack>.parquet --gold gold/<pack>_gold.csv --rules <sheet.md> --rule all` |
+| Fetch the contributors' medicines | `python -I tools/fetch_medicines.py` (add `--include-open-prs` with a GitHub token) |
+| Build gold sets | `python -I tools/build_gold.py` (options in the [gold guide](tools/README_build_gold.md)) |
+| Look at a pack | `python -I tools/view_pack.py <pack>.parquet` |
+| Run the tests | `python -m pytest spec_v1/tests -q`, `python -m pytest tests/harmtest -q`, `python -m pytest tests/tools -q`. Run them one folder at a time, not the whole team folder |
 
 ## Data preparation flow
 
