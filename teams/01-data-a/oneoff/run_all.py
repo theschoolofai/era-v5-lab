@@ -26,7 +26,7 @@ def run(*cmd, ok=(0,)):
 
 
 def harm(pack, gold, report, ok):
-    run(TEAM / "harmtest" / "harm_test.py", "--pack", args.packs / f"{pack}.parquet", "--gold", gold, "--rules", SPEC / "sheets" / "medicine_code.md",
+    run(TEAM / "tools" / "harm_test.py", "--pack", args.packs / f"{pack}.parquet", "--gold", gold, "--rules", SPEC / "sheets" / "medicine_code.md",
         "--rule", "all", "--report", report, ok=ok)
     d = json.loads(report.read_text(encoding="utf-8"))
     d["rules"] = "teams/01-data-a/spec_v1/sheets/medicine_code.md"  # the tool writes the path it was given, which differs per machine
