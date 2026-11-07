@@ -1,6 +1,6 @@
 # Scripts of the English family
 
-What checks the English family of `clean.py` on the English packs. Paths start at `teams/01-data-a/`. `clean.py` is the one cleaner: [../README_clean.md](../README_clean.md) says how to build and run it. The shared harm runner is [../../tools/harm_test.py](../../tools/harm_test.py); a checkout argument may point to this repository. The diagnosis packs and disputed-gold inputs must be staged separately.
+What checks the English family of `clean.py` on the English packs. Paths start at `teams/01-data-a/`. `clean.py` is the one cleaner: [../README_clean.md](../README_clean.md) says how to build and run it. The shared harm runner is [../../harmtest/harm_test.py](../../harmtest/harm_test.py); a checkout argument may point to this repository. The diagnosis packs and disputed-gold inputs must be staged separately.
 
 | script | makes |
 |---|---|

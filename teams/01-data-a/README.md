@@ -10,12 +10,12 @@ Open a pull request; the lead reviews and merges it. The pr-guard check must pas
 |---|---|
 | Build, test, or run the cleaner | [Cleaner guide](spec_v1/README_clean.md), [spec and build flow](spec_v1/README.md) |
 | Review family medicines and decisions | [Sheet index](spec_v1/sheets/README.md), [science conflict review](spec_v1/sheets/medicine_sci_clash_resolution_and_harm_report.md) |
-| Build gold or review contributor rules | [Shared tools](tools/README.md), [gold builder](tools/README_build_gold.md), [harm tests](tools/README_harm_test.md) |
+| Build gold or review contributor rules | [Shared tools](tools/README.md), [gold builder](tools/README_build_gold.md), [harm tests](harmtest/README.md) |
 | Validate cleaner, privacy, or F2 behavior | [Cleaner tools](spec_v1/tools/README.md), [English checks](spec_v1/tools/README_english.md), [Indic checks](spec_v1/README_indic.md) |
 | Run a sample job or inspect overlap results | [Jobs index](jobs/README.md) |
 | Interpret validation evidence | [Results index](spec_v1/results/README.md) |
 
-Directory roles: `tools/` holds shared review, gold, and viewer utilities; `tests/` tests those utilities. `spec_v1/tools/` holds cleaner build and validation tools; `spec_v1/scripts/` holds sheet-reproduction and manual diagnosis helpers. Sample configuration remains in `spec_v1/jobs/`, linked from the jobs index.
+Directory roles: `harmtest/` holds the harm-test harness and the contributor-medicine review tools (formerly in `tools/`; `tools/harm_test.py` is a forwarder kept until Week 4); `tools/` holds gold-building, fetch and viewer utilities; `tests/` tests both (`tests/harmtest/` for the harness). `spec_v1/tools/` holds cleaner build and validation tools; `spec_v1/scripts/` holds sheet-reproduction and manual diagnosis helpers. Sample configuration remains in `spec_v1/jobs/`, linked from the jobs index.
 
 ## Data preparation flow
 

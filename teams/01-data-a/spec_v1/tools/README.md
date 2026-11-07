@@ -1,6 +1,6 @@
 # Cleaner build and validation tools
 
-Paths and commands below start at the repository root. Install [../requirements.txt](../requirements.txt) before running data-dependent tools. [The cleaner guide](../README_clean.md) covers runner options; [shared review tools](../../tools/README.md) cover gold and contributor inputs.
+Paths and commands below start at the repository root. Install [../requirements.txt](../requirements.txt) before running data-dependent tools. [The cleaner guide](../README_clean.md) covers runner options; [shared tools](../../tools/README.md) and the [harm-test harness](../../harmtest/README.md) cover gold and contributor inputs.
 
 | Purpose | Scripts | Inputs / outputs |
 |---|---|---|

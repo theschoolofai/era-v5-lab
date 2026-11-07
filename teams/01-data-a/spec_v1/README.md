@@ -36,7 +36,7 @@ Families: `code`, `english`, `math`, `sci`, and `indic`. Indic covers 16 packs t
 
 **Source flow:** family `sheets/medicine_<family>.md` → reviewed consolidated `sheets/specv1.md` → `tools/build_clean.py` → `clean.py`. The builder reads only the consolidated spec: it does not automatically import family-sheet edits. Indic has a separate [integration and sibling-scope review](README_indic.md); the original English compilation tooling remains an external reproduction dependency. Numbers and qualification claims must identify the hashes of their evidence in [results](results/README.md).
 
-The shared [run_harm_suite.py](../tools/run_harm_suite.py) is a legacy registry-inventory runner. Its old `spec/spec_v1.md` input and builder are absent; its parser does not accept the current consolidated sheet. See [registry prerequisites](../rules/README.md). Use the tools below for the current cleaner.
+The shared [run_harm_suite.py](../harmtest/run_harm_suite.py) is a legacy registry-inventory runner. Its old `spec/spec_v1.md` input and builder are absent; its parser does not accept the current consolidated sheet. See [registry prerequisites](../rules/README.md). Use the tools below for the current cleaner.
 
 ## What every rule must have
 
@@ -92,12 +92,12 @@ Gold size, limit, changed, dropped, affected IDs, pack fixed / dropped / untouch
 ## Run the harm test on a sheet
 
 ```
-python -I teams/01-data-a/tools/harm_test.py --pack <pack>.parquet --gold teams/01-data-a/gold/<pack>_gold.csv \
+python -I teams/01-data-a/harmtest/harm_test.py --pack <pack>.parquet --gold teams/01-data-a/gold/<pack>_gold.csv \
   --rules teams/01-data-a/spec_v1/sheets/medicine_code.md --rule all --report teams/01-data-a/spec_v1/results/sheets/<pack>_harm.json
-python -I teams/01-data-a/tools/medicine_conflicts.py --packs code- --sheet teams/01-data-a/spec_v1/sheets/medicine_code.md --out <file>
+python -I teams/01-data-a/harmtest/medicine_conflicts.py --packs code- --sheet teams/01-data-a/spec_v1/sheets/medicine_code.md --out <file>
 ```
 
-These tools are available in [../tools](../tools/README.md). Some committed code-sheet evidence was produced using the historical `bae5163` checkout; its reproduction steps remain in [scripts/README.md](scripts/README.md). Stage the original diagnosis packs and matching gold before rerunning.
+These tools are available in [../harmtest](../harmtest/README.md) and [../tools](../tools/README.md). Some committed code-sheet evidence was produced using the historical `bae5163` checkout; its reproduction steps remain in [scripts/README.md](scripts/README.md). Stage the original diagnosis packs and matching gold before rerunning.
 
 ## Review and reproduction boundaries
 
@@ -202,6 +202,6 @@ Then:
 `tools/f2_rule.py` is G9's decontamination check (`teams/09-evaluation/decontam`, PR 31) as a rule: a doc that shares one run of words (13 words, 20 tokens for code) with an item of G9's fingerprint set, or holds a benchmark canary, is dropped. It uses G9's code and set unchanged.
 
 - **Where it runs:** `run_clean.py --f2`, on every pack, after `clean.py`, on the text `clean.py` keeps. It is opt-in: without `--f2` nothing changes, and the tokenizer sample job does not use it. It is not in `clean.py`: the full set needs about 1.1 GB and 20 s to load. The summary gets `f2`: the `set_sha256`, and each dropped `doc_id` with its benchmark items and offset; and `final`: kept, dropped by `clean.py`, dropped by F2 and errors, which add up to the input rows. `actions` stays `clean.py`'s.
-- **Harm test:** `python -I tools/harm_test.py ... --rules spec_v1/tools/f2_rule.py --rule F2 --timeout 300`, and `clean.py` then F2 on the same gold sets. Results on the 13 packs, and a review of every drop: [results/f2/](results/f2/).
+- **Harm test:** `python -I harmtest/harm_test.py ... --rules spec_v1/tools/f2_rule.py --rule F2 --timeout 300`, and `clean.py` then F2 on the same gold sets. Results on the 13 packs, and a review of every drop: [results/f2/](results/f2/).
 - **The set is pinned:** `SET` and `SET_SHA256` in `tools/f2_rule.py`. A missing set, or one with another `set_sha256`, stops the run before anything is written. `F2_FINGERPRINTS` can point to a copy of the same set. A new set from G9 (v2) needs its own harm test, then both changed.
 - **Known limits (G9's README):** it finds copies only. A reworded, translated or very short item is not found, nor a benchmark outside the set (`not_covered` in G9's `MANIFEST.json`). A flag can be shared public text that a benchmark also quotes.

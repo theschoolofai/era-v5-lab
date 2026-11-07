@@ -216,10 +216,10 @@ Run every command from `teams/01-data-a/`. "Packages" are what each script needs
 | script | command | packages | also needs | writes |
 |---|---|---|---|---|
 | `spec_v1/tools/build_clean.py` | `python -I spec_v1/tools/build_clean.py` | none (Python 3.9+) | `spec_v1/sheets/specv1.md`, `spec_v1/tools/f1_rule.py` | `spec_v1/clean.py` |
-| `spec_v1/tests/` (see [step 2](#step-2-run-the-unit-tests)) | `python -m pytest spec_v1/tests` | all of `spec_v1/requirements.txt` | `spec_v1/clean.py`, `spec_v1/run_clean.py`, `spec_v1/sheets/specv1.md`, `spec_v1/tools/build_clean.py`, `spec_v1/tools/normalize.py`, `spec_v1/tools/validate_specv1.py`, `tools/harm_test.py` | temporary synthetic inputs and outputs only |
+| `spec_v1/tests/` (see [step 2](#step-2-run-the-unit-tests)) | `python -m pytest spec_v1/tests` | all of `spec_v1/requirements.txt` | `spec_v1/clean.py`, `spec_v1/run_clean.py`, `spec_v1/sheets/specv1.md`, `spec_v1/tools/build_clean.py`, `spec_v1/tools/normalize.py`, `spec_v1/tools/validate_specv1.py`, `harmtest/harm_test.py` | temporary synthetic inputs and outputs only |
 | `spec_v1/run_clean.py` | `python -I spec_v1/run_clean.py --pack <packs folder>/<pack_id>.parquet --out <results folder>`, or `--pack <part>.parquet --pack-id <pack_id>` | `pyarrow`, `ftfy`, `tree-sitter-language-pack` | the pack, or a part of one | `<results folder>/<name>_clean.parquet`, `<results folder>/<name>_summary.json` (see [What it writes](#what-it-writes)) |
-| `spec_v1/tools/make_harm_tests.py` | `python -I spec_v1/tools/make_harm_tests.py ../.. <packs folder> [<more packs folders>]` | `pyarrow`, `ftfy`, `tree-sitter-language-pack` | `tools/harm_test.py`, `gold/`, the packs | `spec_v1/results/cleaner/harm_tests.md`, `spec_v1/results/cleaner/specv1_<pack>_harm.json` |
-| `spec_v1/tools/validate_specv1.py` | `python -I spec_v1/tools/validate_specv1.py --packs <packs folder> --gold gold` | `pyarrow`, `ftfy` | `tools/harm_test.py`, `gold/`, the packs | the validation table and card evidence inside `spec_v1/sheets/specv1.md`, `spec_v1/results/cleaner/specv1_validation.json` |
+| `spec_v1/tools/make_harm_tests.py` | `python -I spec_v1/tools/make_harm_tests.py ../.. <packs folder> [<more packs folders>]` | `pyarrow`, `ftfy`, `tree-sitter-language-pack` | `harmtest/harm_test.py`, `gold/`, the packs | `spec_v1/results/cleaner/harm_tests.md`, `spec_v1/results/cleaner/specv1_<pack>_harm.json` |
+| `spec_v1/tools/validate_specv1.py` | `python -I spec_v1/tools/validate_specv1.py --packs <packs folder> --gold gold` | `pyarrow`, `ftfy` | `harmtest/harm_test.py`, `gold/`, the packs | the validation table and card evidence inside `spec_v1/sheets/specv1.md`, `spec_v1/results/cleaner/specv1_validation.json` |
 | `spec_v1/tools/verify_clean.py` | `python -I spec_v1/tools/verify_clean.py ../.. <packs folder> spec_v1/sheets/medicine_code.md` | `pyarrow`, `tree-sitter-language-pack` | `gold/`, the annotators' labels in `diagnosis/submissions/`, the six code packs | prints only |
 | `spec_v1/tools/f1_eval.py` | `python -I spec_v1/tools/f1_eval.py ../.. <packs folder> [docs per pack, default 40]` | `pyarrow`, `tree-sitter-language-pack` | `gold/`, the annotators' labels in `diagnosis/submissions/`, the six code packs | prints only |
 | `spec_v1/tools/normalize.py` | `python -I spec_v1/tools/normalize.py --pack <packs folder>/<pack_id>.parquet` | `pyarrow` (only for `--pack`) | the pack | prints only |
@@ -450,7 +450,7 @@ python -I spec_v1/tools/make_harm_tests.py ../.. <packs folder> [<another packs 
 
 | argument | meaning |
 |---|---|
-| `../..` | The `era-v5-lab` folder, seen from `teams/01-data-a/`. The script reads `teams/01-data-a/tools/harm_test.py` and `teams/01-data-a/gold/<pack>_gold.csv` from it. `harm_test.py` is imported as it is, never changed. |
+| `../..` | The `era-v5-lab` folder, seen from `teams/01-data-a/`. The script reads `teams/01-data-a/harmtest/harm_test.py` and `teams/01-data-a/gold/<pack>_gold.csv` from it. `harm_test.py` is imported as it is, never changed. |
 | `<packs folder>` | One or more folders holding the packs; a pack is looked for in each. |
 | `--out` | The report (default `spec_v1/results/cleaner/harm_tests.md`). |
 | `--results` | The folder for the per-pack JSON reports (default `spec_v1/results/cleaner`). |

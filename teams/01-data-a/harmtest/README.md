@@ -1,4 +1,6 @@
-# Data A tools: medicine checks
+# Data A harm test: medicine checks
+
+> **Formerly in `tools/`.** The harm-test harness moved here from `teams/01-data-a/tools/`: `harm_test.py`, `medicine_extract.py`, `medicine_conflicts.py`, `rule_report.py`, `run_harm_suite.py` and `registry_view.py`. Use the `harmtest/` paths. `tools/harm_test.py` is a forwarder kept until Week 4, so old commands still run. Tests: `tests/harmtest/`.
 
 Current cleaner operation is documented in [../spec_v1/README_clean.md](../spec_v1/README_clean.md). This guide also covers the older contributor-registry review workflow. Its source prerequisites and preserved viewer are described in [../rules/README.md](../rules/README.md); registry snapshots alone cannot run rules whose extracted files are absent.
 
@@ -14,7 +16,7 @@ Before you commit your `medicine.md`, check that each rule changes at most 1% of
 **Run** (from the repo root; `B3` is the disease code of the rule you want to test)
 
 ```
-python -I teams/01-data-a/tools/harm_test.py \
+python -I teams/01-data-a/harmtest/harm_test.py \
   --pack <your_pack>.parquet \
   --gold teams/01-data-a/gold/<pack_id>_gold.csv \
   --rules diagnosis/submissions/<pack_id>/<your-handle>/medicine.md \
@@ -103,7 +105,7 @@ Exit code: 0 done, 1 it could not run (for example a missing folder or token).
 ## 1. Extract the rules: `medicine_extract.py`
 
 ```
-python -I teams/01-data-a/tools/medicine_extract.py diagnosis/submissions/<pack_id>/<handle>/medicine.md
+python -I teams/01-data-a/harmtest/medicine_extract.py diagnosis/submissions/<pack_id>/<handle>/medicine.md
 ```
 
 Reads the `medicine.md` (it does not run it). Each `**Disease:** <code>` line starts a section, and the Python in that section is its rule. It writes:
@@ -114,7 +116,7 @@ Reads the `medicine.md` (it does not run it). Each `**Disease:** <code>` line st
 To do all the files in one run, give a folder laid out as `<pack_id>/<handle>/medicine.md` with `--dir <folder>`. It extracts every file and saves the registry once. A file that gives no rule is listed at the end, and the others are still done.
 
 ```
-python -I teams/01-data-a/tools/medicine_extract.py --dir teams/01-data-a/medicines/submissions
+python -I teams/01-data-a/harmtest/medicine_extract.py --dir teams/01-data-a/medicines/submissions
 ```
 
 | Option | Meaning |
@@ -133,7 +135,7 @@ The extractor finds the function for a code in this order: a function named `med
 ## 2. Harm test: `harm_test.py`
 
 ```
-python -I teams/01-data-a/tools/harm_test.py --pack <pack.parquet> --gold <pack_gold.csv> --rule DA-B3-001
+python -I teams/01-data-a/harmtest/harm_test.py --pack <pack.parquet> --gold <pack_gold.csv> --rule DA-B3-001
 ```
 
 Runs one rule on the gold set. Prints documents changed, documents dropped, the percent, the limit, and PASS or FAIL. The exit code is 0 for PASS, 1 for FAIL and 2 for invalid inputs, rule errors or an empty gold set.
@@ -171,8 +173,8 @@ At a plain 1%, a gold set under 100 rows (en-nemotroncc 34, math-finemath 30, sc
 **Medicine sheets.** A sheet such as `code-medicines/medicine_code.md` has one rule per ```python block. Each block has its own `RULE_ID = "DA-B3-001"` and a function `medicine(doc)`. Each block runs in its own namespace, so blocks may reuse names. A single rule is found by its ID:
 
 ```
-python -I teams/01-data-a/tools/harm_test.py --pack <pack.parquet> --gold <pack_gold.csv> --rules <sheet.md> --rule DA-B3-008
-python -I teams/01-data-a/tools/harm_test.py --pack <pack.parquet> --gold <pack_gold.csv> --rules <sheet.md> --rule all
+python -I teams/01-data-a/harmtest/harm_test.py --pack <pack.parquet> --gold <pack_gold.csv> --rules <sheet.md> --rule DA-B3-008
+python -I teams/01-data-a/harmtest/harm_test.py --pack <pack.parquet> --gold <pack_gold.csv> --rules <sheet.md> --rule all
 ```
 
 `--rule all` tests every rule in the supplied file on its own, then the whole file in order. In that last line, `ALL IN ORDER`, a drop ends the document and a fix passes the new text to the next rule. The exit code is the worst result. Not every annotator's Markdown examples are executable rules; malformed Python blocks are errors, not silently skipped.
@@ -186,7 +188,7 @@ Two more kinds of rule are accepted:
 ## 3. Report: `rule_report.py`
 
 ```
-python -I teams/01-data-a/tools/rule_report.py --pack-id <pack_id> --pack-file <pack.parquet> --gold <pack_gold.csv>
+python -I teams/01-data-a/harmtest/rule_report.py --pack-id <pack_id> --pack-file <pack.parquet> --gold <pack_gold.csv>
 ```
 
 Runs every rule of the pack and writes `teams/01-data-a/rules/<pack_id>/REPORT.md`:
@@ -216,7 +218,7 @@ Exit code: 0 done, 2 the report could not be made.
 > Registry mode requires staged `medicines/submissions/` and extracted rules, currently absent. Direct `--sheet spec_v1/sheets/medicine_english.md` mode can inspect an existing family sheet without those inputs. Missing sheets in registry mode produce `NO MEDICINE`; that is a missing-input finding, not evidence against the current cleaner.
 
 ```
-python -I teams/01-data-a/tools/medicine_conflicts.py [--packs en-]
+python -I teams/01-data-a/harmtest/medicine_conflicts.py [--packs en-]
 ```
 
 Reads the medicine sheets, the gold files and the registry, and writes `teams/01-data-a/rules/MEDICINE_CHECK.md`: a section for each gold file, then the codes that several packs of one language treat. **Nothing is run.** The sheets and the rules files are only read (with `ast`), so it is safe to run before anyone has read the annotators' code. It does not run the harm test (`harm_test.py` does that) and it does not choose between rules (`rule_report.py` does that). Run it after step 1.
@@ -256,14 +258,14 @@ Run the **batch audit** after collecting/extracting medicines and generating the
 From the repository root, first inspect the planned coverage (does not execute contributor code):
 
 ```bash
-uv run python teams/01-data-a/tools/run_harm_suite.py \
+uv run python teams/01-data-a/harmtest/run_harm_suite.py \
   --parquet-dir /path/to/original-packs --spec /path/to/legacy-inventory.md --dry-run
 ```
 
 Then run harm tests against the original Parquet files and current official gold CSVs:
 
 ```bash
-uv run python teams/01-data-a/tools/run_harm_suite.py \
+uv run python teams/01-data-a/harmtest/run_harm_suite.py \
   --parquet-dir /path/to/original-packs --spec /path/to/legacy-inventory.md
 ```
 
@@ -301,7 +303,7 @@ uv run python teams/01-data-a/tools/run_harm_suite.py \
 | `withdrawn` | `true` if the rule is no longer in the `medicine.md` |
 | `code_sha256` | fingerprint of the code in the `medicine.md` when it was extracted. `harm_test.py` prints the same value as `code sha256` for a plain `medicine.md`, so you can check that the code you run is the code the annotator tested. Comments, blank lines and spacing do not change it |
 
-To look at the preserved source, open [registry.html](../rules/registry.html). After reconstructing a matching registry and its source files, `python -I teams/01-data-a/tools/registry_view.py --out <new-viewer.html>` generates a new viewer without executing rule code or requiring `pyarrow`. Avoid overwriting the preserved viewer from this incomplete source tree. `--show DA-B3-001` prints a staged rule in the terminal.
+To look at the preserved source, open [registry.html](../rules/registry.html). After reconstructing a matching registry and its source files, `python -I teams/01-data-a/harmtest/registry_view.py --out <new-viewer.html>` generates a new viewer without executing rule code or requiring `pyarrow`. Avoid overwriting the preserved viewer from this incomplete source tree. `--show DA-B3-001` prints a staged rule in the terminal.
 
 | Option | Meaning |
 |---|---|
