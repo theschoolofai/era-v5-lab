@@ -1,4 +1,4 @@
-"""Unit tests for tools/f2_rule.py, F2 with G9's benchmark fingerprints, and for run_clean.py --f2: F2 reads the text clean.py
+"""Unit tests for spec_v1/f2_rule.py, F2 with G9's benchmark fingerprints, and for run_clean.py --f2: F2 reads the text clean.py
 keeps, the final counts add up to the input rows, an F2 error is reported, an all-dropped output keeps its columns, a missing
 or another set is refused, and a train and a heldout part never overwrite each other. Every doc here is made up; the one
 benchmark string is a canary read from G9's fingerprint set at run time, never written in this file. One run_clean.py test

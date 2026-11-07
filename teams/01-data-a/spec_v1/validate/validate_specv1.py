@@ -1,6 +1,6 @@
 """Validate consolidated spec with repository rule execution and the repository minimum-one harm policy.
 
-Usage, from the repository root: python teams/01-data-a/spec_v1/tools/validate_specv1.py --packs <packs folder> --gold teams/01-data-a/gold
+Usage, from the repository root: python teams/01-data-a/spec_v1/validate/validate_specv1.py --packs <packs folder> --gold teams/01-data-a/gold
 Writes IDs, counts and digests; never source text. Source medicines are not modified.
 Paths are written relative to the repository root (gold sets) or as file names (packs), never as local absolute paths.
 """

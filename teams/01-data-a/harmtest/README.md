@@ -251,7 +251,7 @@ Exit code: 0 done, 1 a gold file has no medicine or no rule that can run (`NO ME
 
 ## 4. Run the legacy inventory harm suite: `run_harm_suite.py`
 
-> **Legacy workflow.** This runner needs a nonexecutable inventory, extracted registry source files, and matching contributor submissions. Those inputs are absent. Its default `spec/spec_v1.md` is historical; pass `--spec` for a staged legacy inventory. Do not pass `spec_v1/sheets/specv1.md`: that executable-sheet format is incompatible. For current validation use [validate_specv1.py](../spec_v1/tools/validate_specv1.py) and [make_harm_tests.py](../spec_v1/tools/make_harm_tests.py).
+> **Legacy workflow.** This runner needs a nonexecutable inventory, extracted registry source files, and matching contributor submissions. Those inputs are absent. Its default `spec/spec_v1.md` is historical; pass `--spec` for a staged legacy inventory. Do not pass `spec_v1/sheets/specv1.md`: that executable-sheet format is incompatible. For current validation use [validate_specv1.py](../spec_v1/validate/validate_specv1.py) and [make_harm_tests.py](../spec_v1/validate/make_harm_tests.py).
 
 Run the **batch audit** after collecting/extracting medicines and generating the draft parent Spec v1. Unlike `harm_test.py --rule all`, this script evaluates **individual active registry rules** for each applicable pack; it does **not** execute the `spec_v1.md` itself. The parent spec contains review-only fenced `text` code examples, not executable `python` rule blocks. The suite reads its medicine inventory, proposal statuses, and conflict ledger, then maps candidate rules from `rules/registry.json` by pack, contributor, and disease code.
 

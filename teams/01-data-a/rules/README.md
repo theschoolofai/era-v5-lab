@@ -2,7 +2,7 @@
 
 [registry.json](registry.json) stores 125 historical rule IDs, including 112 nonwithdrawn entries. The 24 distinct source files referenced by active entries are absent from this checkout. [registry.html](registry.html) embeds source from the same ID inventory and includes 13 error records; retain it as historical review evidence.
 
-Current cleaner builds use the [reviewed medicine sheets](../spec_v1/sheets/README.md) and [build_clean.py](../spec_v1/tools/build_clean.py). They do not load this registry. Shared review tools can still use the registry after their source inputs are staged.
+Current cleaner builds use the [reviewed medicine sheets](../spec_v1/sheets/README.md) and [build_clean.py](../spec_v1/build/build_clean.py). They do not load this registry. Shared review tools can still use the registry after their source inputs are staged.
 
 ## Reconstruct a review workspace
 

@@ -1,4 +1,4 @@
-"""Unit tests for spec_v1/tools/validate_specv1.py: the paths it writes into results/cleaner/specv1_validation.json and
+"""Unit tests for spec_v1/validate/validate_specv1.py: the paths it writes into results/cleaner/specv1_validation.json and
 specv1.md never name a local folder (TSAI review of spec v1, 2 Nov). The validation run itself needs all 13 packs, so it is
 not run here.
 

@@ -1,6 +1,6 @@
 """Harm test of the shared F1 on the Indic packs: F1 alone and the whole clean(), on each pack's own gold set.
 
-  python -I spec_v1/tools/harm_f1_indic.py --packs <folder with the ind-*.parquet packs> [--gold ../02-data-b/gold]
+  python -I spec_v1/validate/harm_f1_indic.py --packs <folder with the ind-*.parquet packs> [--gold ../02-data-b/gold]
 
 Run from teams/01-data-a/. Uses the team's harm_test.py (teams/01-data-a/harmtest/) as it is, and the limit
 max(1, floor(1% of gold)). A pack's documents get pack_id from the file name when the Parquet has no such column.

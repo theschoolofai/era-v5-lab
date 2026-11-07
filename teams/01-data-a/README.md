@@ -11,11 +11,11 @@ Open a pull request; the lead reviews and merges it. The pr-guard check must pas
 | Build, test, or run the cleaner | [Cleaner guide](spec_v1/README_clean.md), [spec and build flow](spec_v1/README.md) |
 | Review family medicines and decisions | [Sheet index](spec_v1/sheets/README.md), [science conflict review](spec_v1/sheets/medicine_sci_clash_resolution_and_harm_report.md) |
 | Build gold or review contributor rules | [Shared tools](tools/README.md), [gold builder](tools/README_build_gold.md), [harm tests](harmtest/README.md) |
-| Validate cleaner, privacy, or F2 behavior | [Cleaner tools](spec_v1/tools/README.md), [English checks](spec_v1/tools/README_english.md), [Indic checks](spec_v1/README_indic.md) |
+| Validate cleaner, privacy, or F2 behavior | [Build tools](spec_v1/build/README.md), [Validation tools](spec_v1/validate/README.md), [English checks](spec_v1/validate/README_english.md), [Indic checks](spec_v1/README_indic.md) |
 | Run a sample job or inspect overlap results | [Jobs index](jobs/README.md) |
 | Interpret validation evidence | [Results index](spec_v1/results/README.md) |
 
-Directory roles: `harmtest/` holds the harm-test harness and the contributor-medicine review tools (formerly in `tools/`; `tools/harm_test.py` is a forwarder kept until Week 4); `tools/` holds gold-building, fetch and viewer utilities; `tests/` tests both (`tests/harmtest/`, `tests/tools/`). `spec_v1/tools/` holds cleaner build and validation tools; `oneoff/` holds the scripts that made the code sheet (kept for the record; their owners prune them). Sample configuration remains in `spec_v1/jobs/`, linked from the jobs index.
+Directory roles: `harmtest/` holds the harm-test harness and the contributor-medicine review tools (formerly in `tools/`; `tools/harm_test.py` is a forwarder kept until Week 4); `tools/` holds gold-building, fetch and viewer utilities; `tests/` tests both (`tests/harmtest/`, `tests/tools/`). `spec_v1/build/` generates `clean.py` from the sheets, `spec_v1/validate/` checks the sheets and the cleaner, and `spec_v1/tools/` holds only the sample-job runner for now (it moves when the tokenizer-sample job PR is merged); `oneoff/` holds the scripts that made the code sheet (kept for the record; their owners prune them). Sample configuration remains in `spec_v1/jobs/`, linked from the jobs index.
 
 ## Data preparation flow
 
@@ -26,7 +26,7 @@ flowchart TD
     cleaned["Cleaned dataset parquet files"]
     deduper["Deduper flow<br/>Script: WIP"]
     deduped["Deduped dataset"]
-    f2["F2 decontamination<br/>spec_v1/tools/f2_rule.py"]
+    f2["F2 decontamination<br/>spec_v1/f2_rule.py"]
     decontam["Decontaminated data"]
     tokenizer["Tokenizer<br/>Existing implementation: Team 06 dataio/tokenizer.py"]
     sharder["Sharder<br/>TBD / Existing FineWeb implementation: Team 06 dataio/prepare_fineweb.py"]
@@ -39,5 +39,5 @@ Script paths in the cleaner and F2 nodes are relative to this folder. This diagr
 
 - **Cleaner:** [clean.py](spec_v1/clean.py) implements the rules. [run_tokenizer_sample.py](spec_v1/tools/run_tokenizer_sample.py) writes cleaned sample Parquet parts while preserving train/heldout splits. [run_clean.py](spec_v1/run_clean.py) is the single-pack/part runner.
 - **Deduper:** A standalone dataset deduplication script is TBD.
-- **F2:** [f2_rule.py](spec_v1/tools/f2_rule.py) checks benchmark contamination using Team 09's fingerprint set. The existing `run_clean.py --f2` integration runs F2 immediately after cleaning; it does not insert the deduper stage shown above. The tokenizer-sample runner disables optional F2. TBD: separate decontamination stage with documents being marked for exclusion.
+- **F2:** [f2_rule.py](spec_v1/f2_rule.py) checks benchmark contamination using Team 09's fingerprint set. The existing `run_clean.py --f2` integration runs F2 immediately after cleaning; it does not insert the deduper stage shown above. The tokenizer-sample runner disables optional F2. TBD: separate decontamination stage with documents being marked for exclusion.
 - **Tokenizer, sharder, and save:** Team 06's [tokenizer.py](../06-performance/dataio/tokenizer.py) provides `BrahmicTokenizer.encode()`. Its [prepare_fineweb.py](../06-performance/dataio/prepare_fineweb.py) tokenizes a raw FineWeb stream and writes train/validation `.bin` shards containing uint32 token IDs, plus `tokenizer.json.meta`. These are existing implementations for that FineWeb path; an adapter from the decontaminated Parquet dataset to this final stage is still TBD.

@@ -4,21 +4,21 @@ What checks the English family of `clean.py` on the English packs. Paths start a
 
 | script | makes |
 |---|---|
-| `spec_v1/tools/verify_clean_english.py` | `results/cleaner/verify_clean_english.json`: `clean.py` gives the same action and text as the English rules of `specv1.md` on every English doc; a second run; ZWJ and ZWNJ. |
-| `spec_v1/tools/f1_eval_english.py` | `results/cleaner/f1_eval_english.json`: F1 on the English packs, real hits and made-up values, as `spec_v1/tools/f1_eval.py` checks code. |
-| `spec_v1/tools/order_checks_english.py` | `results/cleaner/order_checks_english.json`: pipeline attribution and rule/stage-swap checks on `sheets/medicine_english.md`. |
-| `spec_v1/tools/make_harm_tests_english.py` | `results/cleaner/harm_tests_english.md`, and the reports of `clean.py` (`results/cleaner/`) and `medicine_english.md` (`results/sheets/`), official gold and with the disputed docs left in. |
+| `spec_v1/validate/verify_clean_english.py` | `results/cleaner/verify_clean_english.json`: `clean.py` gives the same action and text as the English rules of `specv1.md` on every English doc; a second run; ZWJ and ZWNJ. |
+| `spec_v1/validate/f1_eval_english.py` | `results/cleaner/f1_eval_english.json`: F1 on the English packs, real hits and made-up values, as `spec_v1/validate/f1_eval.py` checks code. |
+| `spec_v1/validate/order_checks_english.py` | `results/cleaner/order_checks_english.json`: pipeline attribution and rule/stage-swap checks on `sheets/medicine_english.md`. |
+| `spec_v1/validate/make_harm_tests_english.py` | `results/cleaner/harm_tests_english.md`, and the reports of `clean.py` (`results/cleaner/`) and `medicine_english.md` (`results/sheets/`), official gold and with the disputed docs left in. |
 
 ## Run it, in this order
 
 ```
 python3 -m pip install -r spec_v1/requirements.txt
-python -I spec_v1/tools/build_clean.py
+python -I spec_v1/build/build_clean.py
 python -m pytest spec_v1/tests
-python -I spec_v1/tools/verify_clean_english.py <folder with the packs>
-python -I spec_v1/tools/f1_eval_english.py <g1-harm-test checkout> <folder with the packs>
-python -I spec_v1/tools/order_checks_english.py <folder with the packs>
-python -I spec_v1/tools/make_harm_tests_english.py <g1-harm-test checkout> <folder with the packs> <gold made with build_gold.py --allow-disputed>
+python -I spec_v1/validate/verify_clean_english.py <folder with the packs>
+python -I spec_v1/validate/f1_eval_english.py <g1-harm-test checkout> <folder with the packs>
+python -I spec_v1/validate/order_checks_english.py <folder with the packs>
+python -I spec_v1/validate/make_harm_tests_english.py <g1-harm-test checkout> <folder with the packs> <gold made with build_gold.py --allow-disputed>
 ```
 
 `verify_clean_english.py` takes about 4 minutes, `order_checks_english.py` about 6, the others a minute or two. Every output is IDs, counts and digests, never document text. The packs must carry `pack_id`: `clean.py` picks the English rules by it.

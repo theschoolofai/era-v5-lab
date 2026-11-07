@@ -1,4 +1,4 @@
-"""F1 on the Indic packs (ind-*): the Indic path of tools/f1_rule.py, under the TSAI ruling (31 Oct): <PHONE> and <EMAIL>
+"""F1 on the Indic packs (ind-*): the Indic path of build/f1_rule.py, under the TSAI ruling (31 Oct): <PHONE> and <EMAIL>
 for a private person, organisations and public offices kept. Every value is made up; emails are joined at run time.
 
   python -m pytest spec_v1/tests/test_f1_indic.py

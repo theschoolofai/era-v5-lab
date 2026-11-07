@@ -1,4 +1,4 @@
-"""Tests for spec_v1/tools/normalize.py: normalize(), the word list Team 1 shares with G9, and the keys (match_key,
+"""Tests for spec_v1/normalize.py: normalize(), the word list Team 1 shares with G9, and the keys (match_key,
 line_keys, explain) for duplicates and repeated lines. Every text is made up.
 
   python -m pytest spec_v1/tests/test_normalize.py

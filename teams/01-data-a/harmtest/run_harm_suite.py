@@ -3,7 +3,7 @@
 This runner requires the former non-executable inventory format and staged registry source files.
 Its historical default spec/spec_v1.md is absent from this checkout. Supply --spec for a staged
 legacy inventory; the current spec_v1/sheets/specv1.md is not compatible with this parser.
-For current sheet/cleaner validation, use spec_v1/tools/validate_specv1.py or make_harm_tests.py.
+For current sheet/cleaner validation, use spec_v1/validate/validate_specv1.py or make_harm_tests.py.
 
 Run from any directory:
   python teams/01-data-a/harmtest/run_harm_suite.py --parquet-dir /path/to/original-packs --spec /path/to/legacy-inventory.md

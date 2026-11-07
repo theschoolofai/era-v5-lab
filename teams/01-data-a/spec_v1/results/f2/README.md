@@ -1,8 +1,8 @@
 # F2 results: G9 fingerprints v1
 
-These are historical validation snapshots tied to the hashes below, not a fresh validation of the current cleaner. The [Indic report](indic_gold_validation.json) records cleaner `27eaac44…`; use [validate_f2_indic.py](../../tools/validate_f2_indic.py) with the [documented own-pack inputs](../../README_indic.md#optional-f2-validation) to refresh it. Keep old report hashes intact when reorganizing evidence.
+These are historical validation snapshots tied to the hashes below, not a fresh validation of the current cleaner. The [Indic report](indic_gold_validation.json) records cleaner `27eaac44…`; use [validate_f2_indic.py](../../validate/validate_f2_indic.py) with the [documented own-pack inputs](../../README_indic.md#optional-f2-validation) to refresh it. Keep old report hashes intact when reorganizing evidence.
 
-`run_clean.py --f2` and the F2 harm tests on the 13 Data A packs. Fingerprint set `11e290a44d1467875fdf8bebc55eab21f0a6367f411aab98a4a027a546fd372e` (full set, pinned in `tools/f2_rule.py`), `clean.py` `a5a1a596a0e7`, `tools/f2_rule.py` `0f6968be84b1`. The reports of F2 alone are `f2_<pack>_harm.json`.
+`run_clean.py --f2` and the F2 harm tests on the 13 Data A packs. Fingerprint set `11e290a44d1467875fdf8bebc55eab21f0a6367f411aab98a4a027a546fd372e` (full set, pinned in `spec_v1/f2_rule.py`), `clean.py` `a5a1a596a0e7`, `spec_v1/f2_rule.py` `0f6968be84b1`. The reports of F2 alone are `f2_<pack>_harm.json`.
 
 | pack | docs | dropped by `clean.py` | **dropped by F2** | kept | errors | gold hit by F2 alone | gold hit by `clean.py` then F2 | gold docs | limit | harm |
 |---|---:|---:|---:|---:|---:|---:|---|---:|---:|---|
