@@ -143,6 +143,34 @@ def aya_dataset(row: dict) -> list[dict]:
     ]
 
 
+# indic-align columns for the same 10 languages. Only native script: in the `_Latn` columns the
+# turn order is not reliable (answer before question in Dolly_T).
+INDIC_ALIGN_COLUMNS = ("ben_Beng", "guj_Gujr", "hin_Deva", "kan_Knda", "mal_Mlym",
+                       "mar_Deva", "ory_Orya", "pan_Guru", "tam_Taml", "tel_Telu")
+
+
+def indic_align_column(doc_id: str) -> str:
+    """One language per source conversation, fixed by its doc_id.
+
+    Every row holds the same conversation translated into each language; taking all of them
+    would add ten near-copies of one conversation.
+    """
+    digest = hashlib.sha256(doc_id.encode("utf-8")).digest()
+    return INDIC_ALIGN_COLUMNS[int.from_bytes(digest[:8], "big") % len(INDIC_ALIGN_COLUMNS)]
+
+
+def indic_align_t(row: dict) -> list[dict]:
+    # Each inner list alternates user, assistant, user, ... A thread that ends on a user turn
+    # has no reply to train on, so that last turn is dropped.
+    threads = row[indic_align_column(row["doc_id"])]
+    if threads and len(threads[-1]) % 2:
+        threads = [*threads[:-1], threads[-1][:-1]]
+    if not threads or any(not thread or len(thread) % 2 for thread in threads):
+        raise Skip("translated turns do not alternate user, assistant")
+    return [{"role": ("user", "assistant")[i % 2], "content": text_prep.prepare_text(text)}
+            for thread in threads for i, text in enumerate(thread)]
+
+
 # set id -> (adapter, source id field, Hugging Face config/split, row selection or None, selection note)
 ADAPTERS: dict[str, tuple[Callable[[dict], list[dict]], str, tuple[str, str], Callable[[dict], bool] | None, str]] = {
     "sft-code-commitpackft": (commitpackft, "commit", ("python", "train"), None, ""),
@@ -151,6 +179,10 @@ ADAPTERS: dict[str, tuple[Callable[[dict], list[dict]], str, tuple[str, str], Ca
     "sft-indic-aya-dataset": (
         aya_dataset, "", ("default", "train"),
         lambda row: row["language_code"] in AYA_INDIC, "language_code in " + ",".join(sorted(AYA_INDIC)),
+    ),
+    "sft-indic-indic-align-oasst-t": (
+        indic_align_t, "doc_id", ("OpenAssistant_T", "train"), None,
+        "one native-script column per row by sha256(doc_id) from " + ",".join(INDIC_ALIGN_COLUMNS),
     ),
 }
 

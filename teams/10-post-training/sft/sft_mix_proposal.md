@@ -125,3 +125,21 @@ The five-set licence review above left the shares unchanged at that revision. Th
 - The separate safety evaluation list remains removed. The specifically requested alignment-faking-rl research artifact is documented in Stage 2 with its actual purpose and generator provenance.
 - **Commercial permission and lab eligibility are separate:** Anthropic/hh-rlhf is MIT-licensed, and Anthropic/alignment-faking-rl is CC-BY-4.0; those published licences permit commercial reuse subject to their terms. WildJailbreak's ODC-By licence covers database rights, not every right in its individual contents, and its Ai2 access conditions also apply. Closed-model provenance does not itself make a dataset non-commercial, but the week 2 rule still excludes closed-model-generated text. Keep these assessments as `TSAI reserves`; any exception to that rule requires an explicit TSAI decision before training. [HH-RLHF licence](https://github.com/anthropics/hh-rlhf/blob/master/LICENSE), [alignment-faking-rl card](https://huggingface.co/datasets/Anthropic/alignment-faking-rl), [CC-BY-4.0 terms](https://creativecommons.org/licenses/by/4.0/), [WildJailbreak card](https://huggingface.co/datasets/allenai/wildjailbreak), [ODC-By scope](https://opendatacommons.org/licenses/by/1-0/).
 - **Alignment-faking-rl training purpose:** Commercial reuse permission does not make its experimental evaluation transcripts desired safe-response demonstrations. The release contains misaligned reasoning and uses canaries/scrambling to limit accidental training contamination; preserve those precautions. TSAI decides whether it has a suitable mitigation/research role or any approved post-training use.
+
+## 7. Revision note (6 Nov): Indic quantity check
+
+Row counts for the Indic area, read from the Hugging Face datasets-server statistics and from `convert.py` runs on 6 Nov. Shares are not changed here.
+
+| Set | Rows for the ten proposal languages | Notes |
+| :--- | ---: | :--- |
+| `sft-indic-aya-dataset` | 41,261 | Tamil 14,133, Telugu 8,439, Panjabi 6,385, Gujarati 3,989, Marathi 3,545, Malayalam 1,749, Bengali 1,534, **Hindi 1,153**, Kannada 334, **Odia 0**. Single turn |
+| `sft-indic-aya-collection` (12 templated subsets) | 688,637 | 467,090 are `templated_telugu_news` and 170,848 are Hindi news or headlines (68% and 25%). Task-style, four scripts |
+| `sft-indic-indic-align-oasst-t` (new) | 19,909 | Human-written oasst1 conversations translated by IndicTrans2 (MIT). One language per conversation, about 2,000 each, Odia included. 12,686 have two or more assistant turns |
+| `sft-indic-indic-align-dolly-t` (new) | about 10,500 usable of 15,011 | Human-written Dolly translated by IndicTrans2. 4,455 rows lost their context passage in translation and must be dropped; no adapter yet |
+
+What this means for the 15%:
+
+- **Human-written Indic chat is small and uneven.** `aya_dataset` has 1,153 Hindi rows and none in Odia, while Tamil alone is a third of it. Adding `oasst-t` gives the area its only multi-turn data and a near-even spread over the ten languages, roughly half again as many conversations as `aya_dataset`.
+- **`aya_collection` must be capped per subset.** Without a cap, Telugu news is two thirds of the Indic area. A cap of a few thousand rows per subset keeps the 12 subsets as task variety, not as the bulk.
+- **Proposed composition inside the 15%:** `aya_dataset` (all rows), `oasst-t` (all rows), `aya_collection` (capped per subset), `dolly-t` once its context rows are filtered. All of them are short (effort `1k`), so the Indic share adds no long-reasoning data.
+- **Decontamination:** `oasst-t` was run on 6 Nov with fingerprints v2, full set: 9 of 19,909 rows flagged (`in22_conv`, `hle`) and removed, 0 canary, 19,900 kept. `dolly-t` needs the same run once its adapter exists.
