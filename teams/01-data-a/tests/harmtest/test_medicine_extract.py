@@ -1,4 +1,4 @@
-"""Tests for medicine_extract.py. Run: python -I teams/01-data-a/tests/test_medicine_extract.py"""
+"""Tests for medicine_extract.py. Run: python -I teams/01-data-a/tests/harmtest/test_medicine_extract.py"""
 import contextlib
 import io
 import json

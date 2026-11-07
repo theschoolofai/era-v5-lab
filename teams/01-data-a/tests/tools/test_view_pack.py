@@ -1,7 +1,7 @@
 """Regression tests for the Indic/Unicode pack viewer (standard-library unittest).
 
 Run from the repository root:
-    python -I teams/01-data-a/tests/test_view_pack.py
+    python -I teams/01-data-a/tests/tools/test_view_pack.py
 
 No Parquet fixture or pyarrow installation is required: CLI tests mock load_pack.
 """
@@ -14,7 +14,7 @@ import unicodedata
 from pathlib import Path
 from unittest import mock
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "tools"))
 import view_pack as vp
 
 

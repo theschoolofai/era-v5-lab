@@ -1,4 +1,4 @@
-"""Tests for fetch_medicines.py. Run: python -I teams/01-data-a/tests/test_fetch_medicines.py"""
+"""Tests for fetch_medicines.py. Run: python -I teams/01-data-a/tests/tools/test_fetch_medicines.py"""
 import base64
 import contextlib
 import io
@@ -7,8 +7,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))  # python -I: not on the path by itself
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "harmtest"))  # medicine_extract lives here now
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "tools"))  # python -I: not on the path by itself
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "harmtest"))  # medicine_extract lives here now
 import fetch_medicines  # noqa: E402
 
 

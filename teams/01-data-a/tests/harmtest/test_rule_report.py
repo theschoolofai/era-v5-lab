@@ -1,4 +1,4 @@
-"""Tests for rule_report.py. Run: python -I teams/01-data-a/tests/test_rule_report.py"""
+"""Tests for rule_report.py. Run: python -I teams/01-data-a/tests/harmtest/test_rule_report.py"""
 import contextlib
 import io
 import sys

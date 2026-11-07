@@ -1,4 +1,4 @@
-"""Run with: python -m unittest discover -s teams/01-data-a/tests -v"""
+"""Run with: python -m unittest discover -s teams/01-data-a/tests/tools -v"""
 import base64
 import csv
 import importlib.util
@@ -8,7 +8,7 @@ import tempfile
 import sys
 import unittest
 
-SCRIPT = Path(__file__).resolve().parents[1] / 'tools' / 'build_gold.py'
+SCRIPT = Path(__file__).resolve().parents[2] / 'tools' / 'build_gold.py'
 spec = importlib.util.spec_from_file_location('g1_build_gold', SCRIPT)
 bg = importlib.util.module_from_spec(spec)
 sys.modules[spec.name] = bg

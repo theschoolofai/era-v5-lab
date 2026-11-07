@@ -1,4 +1,4 @@
-"""Tests for gold_notes.py. Run: python -I teams/01-data-a/tests/test_gold_notes.py"""
+"""Tests for gold_notes.py. Run: python -I teams/01-data-a/tests/tools/test_gold_notes.py"""
 import contextlib
 import io
 import sys
@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))  # python -I: not on the path by itself
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "tools"))  # python -I: not on the path by itself
 import gold_notes  # noqa: E402
 
 HEADER = "date,pack_id,doc_id,decision,code,raised_by,second_reader,rule_id,reason\n"

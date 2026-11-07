@@ -1,4 +1,4 @@
-"""Tests for registry_view.py. Run: python -I teams/01-data-a/tests/test_registry_view.py"""
+"""Tests for registry_view.py. Run: python -I teams/01-data-a/tests/harmtest/test_registry_view.py"""
 import contextlib
 import io
 import json
