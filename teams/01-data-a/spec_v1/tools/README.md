@@ -15,4 +15,4 @@ Paths and commands below start at the repository root. Install [../requirements.
 | Run the tokenizer sample cleaning job | [run_tokenizer_sample.py](run_tokenizer_sample.py) | [Pinned sample config/manifest](../jobs/README.md); outputs under fresh `out/<job>/` |
 | Shared runtime rules and matching helpers | [f1_rule.py](f1_rule.py), [f2_rule.py](f2_rule.py), [normalize.py](normalize.py) | F1 is embedded by the builder; F2 is opt-in through `run_clean.py --f2`; normalization also has a Team 09 version contract |
 
-The [sheet-reproduction helpers](../scripts/README.md) have a separate role: reconstructing contributor evidence and explaining selection decisions. Report files and their snapshot status are indexed in [../results/README.md](../results/README.md).
+The [sheet-reproduction helpers](../../oneoff/README.md) have a separate role: reconstructing contributor evidence and explaining selection decisions. Report files and their snapshot status are indexed in [../results/README.md](../results/README.md).

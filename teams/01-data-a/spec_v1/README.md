@@ -29,7 +29,7 @@ teams/01-data-a/
     results/sheets/<pack>_harm.json   harm_test.py --report on the sheet: IDs and digests only
     results/sheets/stress_<pack>_harm.json   the same, with disputed docs left in
     results/sheets/evidence.json, inputs_manifest.json   every medicine on every pack; digest of every input
-    scripts/                what makes the sheet and results: see scripts/README.md
+    ../oneoff/              the scripts that made the code sheet, kept for the record: see ../oneoff/README.md
 ```
 
 Families: `code`, `english`, `math`, `sci`, and `indic`. Indic covers 16 packs through native candidates and validated same-language sibling scopes; see [Indic integration](README_indic.md) for deferred rules and validation limits.
@@ -97,7 +97,7 @@ python -I teams/01-data-a/harmtest/harm_test.py --pack <pack>.parquet --gold tea
 python -I teams/01-data-a/harmtest/medicine_conflicts.py --packs code- --sheet teams/01-data-a/spec_v1/sheets/medicine_code.md --out <file>
 ```
 
-These tools are available in [../harmtest](../harmtest/README.md) and [../tools](../tools/README.md). Some committed code-sheet evidence was produced using the historical `bae5163` checkout; its reproduction steps remain in [scripts/README.md](scripts/README.md). Stage the original diagnosis packs and matching gold before rerunning.
+These tools are available in [../harmtest](../harmtest/README.md) and [../tools](../tools/README.md). Some committed code-sheet evidence was produced using the historical `bae5163` checkout; its reproduction steps remain in [oneoff/README.md](../oneoff/README.md). Stage the original diagnosis packs and matching gold before rerunning.
 
 ## Review and reproduction boundaries
 

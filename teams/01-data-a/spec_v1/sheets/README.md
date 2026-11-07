@@ -2,7 +2,7 @@
 
 | Family | Medicine source | Review / decisions |
 |---|---|---|
-| Code | [medicine_code.md](medicine_code.md) | [decisions_code.md](decisions_code.md), [reproduction scripts](../scripts/README.md) |
+| Code | [medicine_code.md](medicine_code.md) | [decisions_code.md](decisions_code.md), [reproduction scripts](../../oneoff/README.md) |
 | English | [medicine_english.md](medicine_english.md) | [decisions_english.md](decisions_english.md), [validation tools](../tools/README_english.md) |
 | Math | [medicine_math.md](medicine_math.md) | [decisions_math.md](decisions_math.md) |
 | Science | [medicine_sci.md](medicine_sci.md) | [Conflict resolution and harm report](medicine_sci_clash_resolution_and_harm_report.md) |
