@@ -22,11 +22,10 @@ Open a pull request; the lead reviews and merges it. The pr-guard check must pas
 | [gold/](gold/) | Gold sets: document IDs only, no text | none |
 | [harmtest/](harmtest/README.md) | Harm test for a medicine or rule, and the contributor-medicine review tools. `tools/harm_test.py` is a forwarder to it, kept until Week 4 | `tests/harmtest/` |
 | [tools/](tools/README.md) | Build gold sets, fetch medicines, view a pack | `tests/tools/` |
-| [spec_v1/](spec_v1/README.md) | The cleaner: `clean.py`, `run_clean.py`, `normalize.py`, `f2_rule.py`, with its `sheets/`, `results/` and `jobs/` (the pinned sample config) | `spec_v1/tests/` |
+| [spec_v1/](spec_v1/README.md) | The cleaner: `clean.py`, `run_clean.py`, `normalize.py`, `f2_rule.py`, `run_tokenizer_sample.py` (the TSAI sample-job runner), with its `sheets/` and `results/` | `spec_v1/tests/` |
 | [spec_v1/build/](spec_v1/build/README.md) | Sheets to `clean.py`, and the Indic integration | `spec_v1/tests/` |
 | [spec_v1/validate/](spec_v1/validate/README.md) | Checks on the sheets and on `clean.py` | `spec_v1/tests/` |
-| [spec_v1/tools/](spec_v1/tools/README.md) | The streaming sample-job runner only, for now | `spec_v1/tests/` |
-| [jobs/](jobs/README.md) | TSAI job requests, logs and results (the path is set by `JOB_REQUEST.md`) | none |
+| [jobs/](jobs/README.md) | TSAI job requests, one folder for each job (config, manifest, local logs), and TSAI's returned results (paths set by `JOB_REQUEST.md`) | `spec_v1/tests/` |
 | [rules/](rules/README.md), `medicines/` | Contributor registry snapshot; fetched annotator sheets (not committed) | none |
 | [oneoff/](oneoff/README.md) | The scripts that made the code sheet, kept for the record; their owners prune them | none |
 
@@ -49,7 +48,7 @@ From this folder (`teams/01-data-a/`), after `python3 -m pip install -r spec_v1/
 ```mermaid
 flowchart TD
     input["Input data: Parquet packs"]
-    cleaner["Cleaner code<br/>spec_v1/clean.py<br/>Runner: spec_v1/tools/run_tokenizer_sample.py"]
+    cleaner["Cleaner code<br/>spec_v1/clean.py<br/>Runner: spec_v1/run_tokenizer_sample.py"]
     cleaned["Cleaned dataset parquet files"]
     deduper["Deduper flow<br/>Script: WIP"]
     deduped["Deduped dataset"]
@@ -64,7 +63,7 @@ flowchart TD
 
 Script paths in the cleaner and F2 nodes are relative to this folder. This diagram describes the intended stage order; the full flow is not yet wired into one runner.
 
-- **Cleaner:** [clean.py](spec_v1/clean.py) implements the rules. [run_tokenizer_sample.py](spec_v1/tools/run_tokenizer_sample.py) writes cleaned sample Parquet parts while preserving train/heldout splits. [run_clean.py](spec_v1/run_clean.py) is the single-pack/part runner.
+- **Cleaner:** [clean.py](spec_v1/clean.py) implements the rules. [run_tokenizer_sample.py](spec_v1/run_tokenizer_sample.py) writes cleaned sample Parquet parts while preserving train/heldout splits. [run_clean.py](spec_v1/run_clean.py) is the single-pack/part runner.
 - **Deduper:** A standalone dataset deduplication script is TBD.
 - **F2:** [f2_rule.py](spec_v1/f2_rule.py) checks benchmark contamination using Team 09's fingerprint set. The existing `run_clean.py --f2` integration runs F2 immediately after cleaning; it does not insert the deduper stage shown above. The tokenizer-sample runner disables optional F2. TBD: separate decontamination stage with documents being marked for exclusion.
 - **Tokenizer, sharder, and save:** Team 06's [tokenizer.py](../06-performance/dataio/tokenizer.py) provides `BrahmicTokenizer.encode()`. Its [prepare_fineweb.py](../06-performance/dataio/prepare_fineweb.py) tokenizes a raw FineWeb stream and writes train/validation `.bin` shards containing uint32 token IDs, plus `tokenizer.json.meta`. These are existing implementations for that FineWeb path; an adapter from the decontaminated Parquet dataset to this final stage is still TBD.

@@ -20,13 +20,12 @@ teams/01-data-a/
     clean.py                generated cleaner with its scope table
     README_clean.md         how to build, test and run clean.py, step by step
     run_clean.py            runs the cleaner on one pack, or on one part of a pack with --pack-id
+    run_tokenizer_sample.py runs the cleaner on the tokenizer sample, for a TSAI job: see ../jobs/README.md
     requirements.txt        the pinned packages, for pip install -r
     build/                  sheets to clean.py: build_clean.py, f1_rule.py, Indic integration
     validate/               checks on the sheets and on clean.py: harm tests, Indic and F2 validation
     normalize.py, f2_rule.py   the normaliser (shared with G9) and the F2 rule, next to clean.py
-    tools/                  run_tokenizer_sample.py only, for now
     tests/                  cleaner tests on made-up values
-    jobs/                   pinned sample config and manifest; linked from ../jobs/
     results/README.md       report producers, snapshot hashes, reproduction limits
     results/cleaner/harm_tests.md   each rule on the gold sets of its packs, each clean.py function, and clean()
     results/cleaner/specv1_<pack>_harm.json   the reports behind harm_tests.md: IDs and digests only

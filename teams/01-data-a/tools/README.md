@@ -1,6 +1,6 @@
 # Shared Data A tools
 
-These tools build gold, fetch contributor medicines, and inspect diagnosis packs. The harm-test harness (`harm_test.py`, `medicine_extract.py`, `rule_report.py`, `medicine_conflicts.py`, `run_harm_suite.py`, `registry_view.py`) moved to [harmtest](../harmtest/README.md); `tools/harm_test.py` is a forwarder kept until Week 4. Cleaner build and validation tools are indexed separately in [spec_v1/tools](../spec_v1/tools/README.md).
+These tools build gold, fetch contributor medicines, and inspect diagnosis packs. The harm-test harness (`harm_test.py`, `medicine_extract.py`, `rule_report.py`, `medicine_conflicts.py`, `run_harm_suite.py`, `registry_view.py`) moved to [harmtest](../harmtest/README.md); `tools/harm_test.py` is a forwarder kept until Week 4. The cleaner's build and validation scripts are indexed in [spec_v1/build](../spec_v1/build/README.md) and [spec_v1/validate](../spec_v1/validate/README.md).
 
 | Task | Scripts | Guide / inputs |
 |---|---|---|
