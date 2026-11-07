@@ -1,36 +1,42 @@
 # Spec v1: structure, requirements and how to run it
 
-Status: **DRAFT.** A proposal for how Data A's Spec v1 is laid out and what a rule must show before it is approved. It follows `spec_v1_TEMPLATE.md`. The code family is filled in as the worked example; other families can copy the form.
+Status: **DRAFT / CANDIDATE.** This is the current layout and review policy for the five-family cleaner. The [consolidated spec](sheets/specv1.md) records executable and deferred selections; inclusion does not grant production approval. Family sources and review decisions are indexed in [sheets/README.md](sheets/README.md).
 
 ## Layout
 
 ```
 teams/01-data-a/
+  README.md                 pipeline and navigation
+  tools/                    shared gold, medicine-review, and viewer tools
+  tests/                    tests for the shared tools
+  gold/                     own-pack gold sets, coverage, and removal provenance
+  rules/                    historical contributor registry and viewer snapshot
+  jobs/                     request, log, and execution-result index
   spec_v1/
     README.md               this file
-    spec_v1_<family>.md     scope, order, conflicts, open items, freeze state
-    medicine_<family>.md    the runnable rules: one block per rule, in run order
-    decisions_<family>.md   why each rule was picked or not, for each disease
-    specv1.md               the five family sheets collated: what spec_v1/tools/build_clean.py reads
-    clean.py                the cleaner, generated from specv1.md, with the scope table at the top
+    sheets/                 five family medicine sheets, decisions, science review
+      specv1.md             reviewed consolidated input to tools/build_clean.py
+    clean.py                generated cleaner with its scope table
     README_clean.md         how to build, test and run clean.py, step by step
     run_clean.py            runs the cleaner on one pack, or on one part of a pack with --pack-id
     requirements.txt        the pinned packages, for pip install -r
-    tests/                  unit tests on made-up values
+    tools/                  cleaner build, validation, runtime rules, sample runner
+    tests/                  cleaner tests on made-up values
+    jobs/                   pinned sample config and manifest; linked from ../jobs/
+    results/README.md       report producers, snapshot hashes, reproduction limits
     results/cleaner/harm_tests.md   each rule on the gold sets of its packs, each clean.py function, and clean()
     results/cleaner/specv1_<pack>_harm.json   the reports behind harm_tests.md: IDs and digests only
     results/sheets/<pack>_harm.json   harm_test.py --report on the sheet: IDs and digests only
     results/sheets/stress_<pack>_harm.json   the same, with disputed docs left in
     results/sheets/evidence.json, inputs_manifest.json   every medicine on every pack; digest of every input
     scripts/                what makes the sheet and results: see scripts/README.md
-  tools/                    build, harm test run, F1 rule, checks
 ```
 
 Families: `code`, `english`, `math`, `sci`, and `indic`. Indic covers 16 packs through native candidates and validated same-language sibling scopes; see [Indic integration](README_indic.md) for deferred rules and validation limits.
 
-**One source for each fact.** Rules live only in `medicine_<family>.md`. The registry of the template's §3 is the table at the top of that file, so it cannot drift from the code. Numbers come from `results/`, not from hand-typed tables.
+**Source flow:** family `sheets/medicine_<family>.md` → reviewed consolidated `sheets/specv1.md` → `tools/build_clean.py` → `clean.py`. The builder reads only the consolidated spec: it does not automatically import family-sheet edits. Indic has a separate [integration and sibling-scope review](README_indic.md); the original English compilation tooling remains an external reproduction dependency. Numbers and qualification claims must identify the hashes of their evidence in [results](results/README.md).
 
-`build_spec_v1.py` and `run_harm_suite.py` on `g1-harm-test` still use `spec/spec_v1.md`. This layout does not use it for now: see "Decide" below.
+The shared [run_harm_suite.py](../tools/run_harm_suite.py) is a legacy registry-inventory runner. Its old `spec/spec_v1.md` input and builder are absent; its parser does not accept the current consolidated sheet. See [registry prerequisites](../rules/README.md). Use the tools below for the current cleaner.
 
 ## What every rule must have
 
@@ -91,28 +97,28 @@ python -I teams/01-data-a/tools/harm_test.py --pack <pack>.parquet --gold teams/
 python -I teams/01-data-a/tools/medicine_conflicts.py --packs code- --sheet teams/01-data-a/spec_v1/sheets/medicine_code.md --out <file>
 ```
 
-These tools are on `g1-harm-test`, not on this base branch. Results here were made with them at `bae5163`. To remake the sheet and all results, see [scripts/README.md](scripts/README.md).
+These tools are available in [../tools](../tools/README.md). Some committed code-sheet evidence was produced using the historical `bae5163` checkout; its reproduction steps remain in [scripts/README.md](scripts/README.md). Stage the original diagnosis packs and matching gold before rerunning.
 
-## Decide
+## Review and reproduction boundaries
 
-| question | proposal |
+| Area | Current behavior / outstanding work |
 |---|---|
-| Is the sheet the source for Spec v1? | Yes. `build_spec_v1.py` lists every submission as a non-executable draft (about 3,800 lines) and stays useful for inventory. The sheet is what runs. |
-| Should `run_harm_suite.py` read sheets? | Yes. It now tests registry rules one at a time and never the combined sheet, so someone has to run `harm_test.py --rule all` as well. |
-| Do `STAGE` and `STATUS` apply to the other sheets? | Yes, so all families have one form. |
-| Freeze date: 31 Oct or Week 2? | The template says 31 Oct, and 24 code rules still need a reviewer. |
+| Executable source | The reviewed consolidated sheet drives builds; the former draft-inventory builder is not shipped here. |
+| Combined validation | `validate_specv1.py` checks the executable sheet; `make_harm_tests.py` checks generated cleaner rules/functions/pipelines. The legacy registry runner does neither. |
+| Evidence | A historical gold pass applies to its recorded code/input hashes. Missing inputs are not a current pass. |
+| Approval | Follow each family's review decisions and deferred status; a successful build or unit test does not freeze or approve rules. |
 
 ## The cleaner
 
-`clean.py` is the cleaner. `tools/build_clean.py` generates it from `specv1.md`, which collates the four family sheets, so **add rules to a sheet, never to `clean.py`**.
+`clean.py` is the cleaner. `tools/build_clean.py` generates it from `sheets/specv1.md`, which consolidates the five family sheets, so **add rules to a sheet, never to `clean.py`**. Update the reviewed consolidated input through the appropriate family process before rebuilding.
 
 A rule names the packs it applies to (instructor, 31 Oct): `SPEC_PACKS` in its block, and for a code or math rule its `ORIGIN` packs too. The build puts those pack IDs in one table, `SCOPE`, at the top of `clean.py`, and each rule reads its entry there. A document goes to the family of its `pack_id` and runs that family's rules in sheet order. A document with a missing or unknown `pack_id` passes unchanged and is not eligible for release. `run_clean.py` takes `pack_id` from the file name when a pack has no such column. `make_harm_tests.py` tests each rule only on the gold sets of the packs in its `SCOPE` entry. It also runs every rule that does not apply to a pack on that whole pack, where it must change nothing.
 
 | where | what | who changes it |
 |---|---|---|
-| `medicine_<family>.md` | The rules of one family: `code`, `english`, `math`, `sci` | The PR for that family |
-| `specv1.md` | The four sheets collated, with the packs of each rule | The pipeline owner |
-| `decisions_<family>.md` | Why each rule was picked or not | The same PR |
+| `sheets/medicine_<family>.md` | The rules of one family: `code`, `english`, `math`, `sci`, `indic` | The PR for that family |
+| `sheets/specv1.md` | Five families consolidated, with selected/deferred status and scope | The pipeline owner / reviewed integration step |
+| `sheets/decisions_<family>.md` or family review report | Why each rule was picked or not | The same PR |
 | `tools/f1_rule.py` | The shared F1 rule; `SCOPE` runs it on the code, math, science and Indic packs | A PR that names the family it adds |
 | `clean.py`, `results/cleaner/harm_tests.md`, `results/cleaner/specv1_*` | Generated | Only the rebuild step, after a merge |
 
@@ -127,20 +133,16 @@ python -m pytest spec_v1/tests
 python spec_v1/run_clean.py --pack <pack>.parquet --out out
 python spec_v1/run_clean.py --pack <split>/<pack_id>/part-00000.parquet --pack-id <pack_id> --out out
 python spec_v1/run_clean.py --pack <pack>.parquet --out out --f2      # then F2, G9's benchmark fingerprints
-python spec_v1/tools/make_harm_tests.py <g1-harm-test checkout> <folder with the packs> [<another folder with packs> ...]
+python spec_v1/tools/make_harm_tests.py ../.. <folder with the packs> [<another folder with packs> ...]
 ```
 
-Paths start at `teams/01-data-a/`. Run `make_harm_tests.py` where all 13 packs are: a pack it cannot find is listed as not run in `harm_tests.md`. `requirements.txt` pins every package `clean.py`, the tools and the tests need (Python 3.10 or later). The second `run_clean.py` line cleans a tokenizer sample part, whose file is not named `<pack_id>.parquet`. `make_harm_tests.py` uses `harm_test.py`, which is on `g1-harm-test` until PR 140 merges. The packs are not in the repo, so get your link from the lab plan sheet.
+Paths start at `teams/01-data-a/`; `../..` points to the repository root for the shared harm runner. `make_harm_tests.py` lists unavailable packs/gold as not run and currently looks for gold in Data A's `gold/`. Use [Indic validation](README_indic.md#rebuild-and-validate) with Data B's own-pack gold for Indic coverage. `requirements.txt` pins the dependencies (Python 3.10 or later). The second `run_clean.py` line cleans a tokenizer sample part, whose filename is not a pack ID. Original packs must be staged separately; week-2 shards cannot replace diagnosis packs for harm tests.
 
 ## Add your medicines without double work
 
 1. **Check first.** Look at the open PRs to `g1-specv1`. If a PR already covers your family and code, comment there instead of starting again.
 2. **Claim it.** Open a draft PR to `g1-specv1` early, titled `medicine_<family>: <codes>`. Only one open PR per family sheet at a time, so sheets do not conflict.
-3. **Put each rule in your family's sheet, in the form of `medicine_code.md`,** at the place its stage says. Add your sheet to this folder if your family has none yet:
-   - **English:** the sheet is on `g1-en-medicines`. Move it to `medicine_en.md`.
-   - **Math:** make `medicine_math.md`. The finemath sheet has code fragments and no functions, so each needs writing as a `medicine(doc)`.
-   - **Science:** make `medicine_sci.md`: one medicine from all 500 rows, as TSAI ruled. The 5 diagnosis PRs stay as they are.
-   - **Code:** add to `medicine_code.md`. Sheets that came after it still need checking against it.
+3. **Put each rule in the existing family sheet under `sheets/`,** in the form of `medicine_code.md`, at the place its stage says. Use the [sheet index](sheets/README.md) for all five families and their review decisions. Indic changes also require the explicit integration/sibling-scope process.
 4. **Resolve conflicts before you ask for review.** Run `medicine_conflicts.py --packs <family prefix> --sheet <your sheet>`, then for each code with more than one rule:
 
    | what you find | what to do |
@@ -157,7 +159,7 @@ Paths start at `teams/01-data-a/`. Run `make_harm_tests.py` where all 13 packs a
 
 Each rule needs the fields in "What every rule must have" above, and has to meet the bar in "When a rule is APPROVED".
 
-**Rule IDs:** an ID only has to be unique inside its sheet. `clean.py` adds the family, so `DA-A2-007` in two families does not clash. Registry IDs get renumbered, so a sheet's ID is a label and not a link to the registry.
+**Rule IDs:** the consolidated builder requires unique IDs across its complete inventory, including deferred cards. Preserve the source `DA-` / `DB-` identity; do not infer a link to the historical contributor registry merely from a matching ID.
 
 ## Regex: which diseases, and how
 

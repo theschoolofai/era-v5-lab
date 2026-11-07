@@ -209,12 +209,14 @@ spec_v1/
 
 ## Every script: command, what it needs, what it writes
 
+The [cleaner-tool index](tools/README.md) covers all current tools, including Indic integration/validation and the streaming sample job. [Results/README.md](results/README.md) distinguishes recorded validation snapshots from current-run evidence.
+
 Run every command from `teams/01-data-a/`. "Packages" are what each script needs; `python3 -m pip install -r spec_v1/requirements.txt` installs them all. `../..` is the `era-v5-lab` folder: the harm tests read `harm_test.py` from its `teams/01-data-a/tools/` and the gold sets from its `teams/01-data-a/gold/`.
 
 | script | command | packages | also needs | writes |
 |---|---|---|---|---|
 | `spec_v1/tools/build_clean.py` | `python -I spec_v1/tools/build_clean.py` | none (Python 3.9+) | `spec_v1/sheets/specv1.md`, `spec_v1/tools/f1_rule.py` | `spec_v1/clean.py` |
-| `spec_v1/tests/` (five files, see [step 2](#step-2-run-the-unit-tests)) | `python -m pytest spec_v1/tests` | all of `spec_v1/requirements.txt` | `spec_v1/clean.py`, `spec_v1/run_clean.py`, `spec_v1/sheets/specv1.md`, `spec_v1/tools/build_clean.py`, `spec_v1/tools/normalize.py`, `spec_v1/tools/validate_specv1.py`, `tools/harm_test.py` | nothing (`test_run_clean.py` writes made-up packs to a temporary folder) |
+| `spec_v1/tests/` (see [step 2](#step-2-run-the-unit-tests)) | `python -m pytest spec_v1/tests` | all of `spec_v1/requirements.txt` | `spec_v1/clean.py`, `spec_v1/run_clean.py`, `spec_v1/sheets/specv1.md`, `spec_v1/tools/build_clean.py`, `spec_v1/tools/normalize.py`, `spec_v1/tools/validate_specv1.py`, `tools/harm_test.py` | temporary synthetic inputs and outputs only |
 | `spec_v1/run_clean.py` | `python -I spec_v1/run_clean.py --pack <packs folder>/<pack_id>.parquet --out <results folder>`, or `--pack <part>.parquet --pack-id <pack_id>` | `pyarrow`, `ftfy`, `tree-sitter-language-pack` | the pack, or a part of one | `<results folder>/<name>_clean.parquet`, `<results folder>/<name>_summary.json` (see [What it writes](#what-it-writes)) |
 | `spec_v1/tools/make_harm_tests.py` | `python -I spec_v1/tools/make_harm_tests.py ../.. <packs folder> [<more packs folders>]` | `pyarrow`, `ftfy`, `tree-sitter-language-pack` | `tools/harm_test.py`, `gold/`, the packs | `spec_v1/results/cleaner/harm_tests.md`, `spec_v1/results/cleaner/specv1_<pack>_harm.json` |
 | `spec_v1/tools/validate_specv1.py` | `python -I spec_v1/tools/validate_specv1.py --packs <packs folder> --gold gold` | `pyarrow`, `ftfy` | `tools/harm_test.py`, `gold/`, the packs | the validation table and card evidence inside `spec_v1/sheets/specv1.md`, `spec_v1/results/cleaner/specv1_validation.json` |
@@ -333,7 +335,7 @@ It stops with an `AssertionError` that names the rule, and writes nothing, when:
 python -m pytest spec_v1/tests
 ```
 
-The unit tests are in five files. `spec_v1/tests/test_clean.py` tests `clean.py`, in six sections:
+The unit suites live in `spec_v1/tests/`; shared-tool tests are in `tests/`. The [tool index](tools/README.md) includes the Indic and streaming sample-job checks. `spec_v1/tests/test_clean.py` tests `clean.py`, in six sections:
 
 | section | what it tests |
 |---|---|
@@ -498,7 +500,7 @@ It changes `specv1.md`, but only the text around the code: `clean.py` does not n
 
 ### `spec_v1/tools/verify_clean.py` and `spec_v1/tools/f1_eval.py`: the code packs
 
-Both run on the six code packs only and print IDs, counts and masked shapes, never a private value. They also count the rows the annotators labelled, from `diagnosis/submissions/<pack>/<reader>/labels.csv` in the `era-v5-lab` folder; on this branch that folder holds only a README, so those counts come out as 0 until the label files are there. `verify_clean.py` checks that `clean.py` gives what `spec_v1/sheets/medicine_code.md` gives, what the shared F1 does per pack, and that a second clean changes nothing. `f1_eval.py` checks the shared F1 with made-up values planted in real gold docs, and what B4 does to its tags.
+Both run on the six code packs only and print IDs, counts and masked shapes, never a private value. They also count the rows the annotators labelled, from `diagnosis/submissions/<pack>/<reader>/labels.csv` in the supplied checkout; stage the intended label snapshot before interpreting those counts. `verify_clean.py` checks that `clean.py` gives what `spec_v1/sheets/medicine_code.md` gives, what the shared F1 does per pack, and that a second clean changes nothing. `f1_eval.py` checks the shared F1 with made-up values planted in real gold docs, and what B4 does to its tags.
 
 ```bash
 python -I spec_v1/tools/verify_clean.py ../.. <packs folder> spec_v1/sheets/medicine_code.md

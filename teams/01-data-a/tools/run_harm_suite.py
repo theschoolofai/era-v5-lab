@@ -1,7 +1,12 @@
-"""Audit G1 Data A candidate rules against refreshed gold sets (Spec v1 DRAFT).
+"""Legacy registry-inventory audit of G1 Data A candidate rules against refreshed gold sets.
+
+This runner requires the former non-executable inventory format and staged registry source files.
+Its historical default spec/spec_v1.md is absent from this checkout. Supply --spec for a staged
+legacy inventory; the current spec_v1/sheets/specv1.md is not compatible with this parser.
+For current sheet/cleaner validation, use spec_v1/tools/validate_specv1.py or make_harm_tests.py.
 
 Run from any directory:
-  python teams/01-data-a/tools/run_harm_suite.py --parquet-dir /path/to/original-packs
+  python teams/01-data-a/tools/run_harm_suite.py --parquet-dir /path/to/original-packs --spec /path/to/legacy-inventory.md
 
 Spec v1 is a *non-executable* five-field review document: its code examples
 are ```text fences, NOT a --rules input. This runner reads the Spec inventory,
@@ -285,7 +290,8 @@ def main(argv=None):
     parser.add_argument('--parquet-dir', type=Path, required=True)
     parser.add_argument('--report-dir', type=Path, default=TEAM / 'reports')
     parser.add_argument('--gold-dir', type=Path, default=TEAM / 'gold')
-    parser.add_argument('--spec', type=Path, default=SPEC)
+    parser.add_argument('--spec', type=Path, default=SPEC,
+                        help='legacy inventory format, not the current medicine sheet; historical default is absent from this checkout')
     parser.add_argument('--registry', type=Path, default=REGISTRY)
     parser.add_argument('--pack-ids', type=Path, default=G1_PACKS)
     parser.add_argument('--limit', default='1')

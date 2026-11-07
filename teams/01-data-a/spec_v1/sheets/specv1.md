@@ -1,6 +1,6 @@
 # Medicine sheet: Data A — consolidated spec v1 (contributors retained per rule)
 
-Status: **DRAFT / CANDIDATE**. Consolidates the five local medicine sheets; no rule is approved by this document. Follows [medicine_TEMPLATE.md](../../../diagnosis/templates/medicine_TEMPLATE.md): each medicine retains disease/count/examples, words and Python, action, harm evidence, and side effects. Compiler identity is not inferred from contributor handles.
+Status: **DRAFT / CANDIDATE**. Consolidates the five local medicine sheets; no rule is approved by this document. Follows [medicine_TEMPLATE.md](../../../../diagnosis/templates/medicine_TEMPLATE.md): each medicine retains disease/count/examples, words and Python, action, harm evidence, and side effects. Compiler identity is not inferred from contributor handles.
 
 ## Scope, dispatch and executable contract
 

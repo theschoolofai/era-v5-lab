@@ -100,11 +100,18 @@ def test_run_clean_without_f2_has_no_f2_entry(tmp_path):
 
 def run_f2_here(monkeypatch, tmp_path, rows):
     """run_clean.py --f2 in this process, with one benchmark loaded (fast): (exit code, summary, written table)."""
+    import clean
+
     pack = tmp_path / "en-dclm.parquet"
     pq.write_table(pa.Table.from_pylist(rows), pack)
     monkeypatch.setattr(sys, "argv", ["run_clean.py", "--pack", str(pack), "--out", str(tmp_path / "out"), "--f2"])
-    with pytest.raises(SystemExit) as e:
-        runpy.run_path(str(SPEC / "run_clean.py"), run_name="__main__")
+    # The CLI installs timing wrappers for its process lifetime. Isolate those
+    # changes when exercising it inside pytest, including its in-place _ID update.
+    with monkeypatch.context() as runner_state:
+        runner_state.setattr(clean, "_run", clean._run)
+        runner_state.setattr(clean, "_ID", dict(clean._ID))
+        with pytest.raises(SystemExit) as e:
+            runpy.run_path(str(SPEC / "run_clean.py"), run_name="__main__")
     s = json.loads((tmp_path / "out" / "en-dclm_summary.json").read_text(encoding="utf-8"))
     assert sum(s["final"].values()) == s["rows"]  # every input row is kept, dropped by clean.py, dropped by F2 or an error
     return e.value.code, s, pq.read_table(tmp_path / "out" / "en-dclm_clean.parquet")

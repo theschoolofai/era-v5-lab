@@ -53,6 +53,18 @@ The validator uses the repository minimum-one policy, `max(1, floor(1% × gold_c
 
 Week-2 training shards are not substitutes for the week-1 diagnosis packs: they intentionally contain different document IDs. All 13 native diagnosis packs and the three newly supported receivers have nonempty own-pack gold. Other receiving packs remain unregistered until the required inputs and checks are available. Week-2 heldout data is not substituted for diagnosis gold.
 
+## Optional F2 validation
+
+[tools/validate_f2_indic.py](tools/validate_f2_indic.py) measures F2 alone and `clean.py` followed by F2 on each supported Indic pack's own gold. From the repository root, with pinned dependencies, original diagnosis packs, Data B gold, and the full pinned G9 fingerprint set available:
+
+```bash
+python teams/01-data-a/spec_v1/tools/validate_f2_indic.py \
+  --packs /path/to/week1-diagnosis-packs \
+  --gold teams/02-data-b/gold
+```
+
+The command writes [results/f2/indic_gold_validation.json](results/f2/indic_gold_validation.json) and exits 1 if any harm check fails. It does not enable F2 in the default cleaner or sample job. The committed report records cleaner `27eaac44…`, while the pinned sample cleaner is `97c1a55b…`; it is historical evidence, not a current-cleaner F2 pass. A rerun replaces that report, so review its input/code hashes before publishing new results. See the [F2 results guide](results/f2/README.md) and [evidence index](results/README.md).
+
 For an independent comparison with the cleaner before integration:
 
 ```bash

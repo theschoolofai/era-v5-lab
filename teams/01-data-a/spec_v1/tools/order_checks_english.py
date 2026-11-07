@@ -1,4 +1,4 @@
-"""The checks of the conflict ledger in ../sheets/spec_v1_english.md: what each English medicine does in the whole sheet run, and
+"""English conflict/order checks: what each medicine in ../sheets/medicine_english.md does in the whole sheet run, and
 what changes when two stages or two rules swap. IDs and counts only, never text.
 
   python -I order_checks_english.py <packs dir>

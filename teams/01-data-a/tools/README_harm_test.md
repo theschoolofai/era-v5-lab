@@ -1,5 +1,7 @@
 # Data A tools: medicine checks
 
+Current cleaner operation is documented in [../spec_v1/README_clean.md](../spec_v1/README_clean.md). This guide also covers the older contributor-registry review workflow. Its source prerequisites and preserved viewer are described in [../rules/README.md](../rules/README.md); registry snapshots alone cannot run rules whose extracted files are absent.
+
 ## For annotators: test your own medicine.md
 
 Before you commit your `medicine.md`, check that each rule changes at most 1% of the clean (gold) documents of your pack, and never less than 1 document: the limit is `max(1, floor(0.01 × n))` documents, where n is the number of rows in your pack's gold set. For every gold set under 200 rows this is 1 document.
@@ -60,19 +62,19 @@ Run them in this order. Steps 2 and 3 can use the rules and IDs that step 1 make
 | 1 | `medicine_extract.py` | one `medicine.md`, or a directory (eg submissions dir) | the rules as a Python file, and a rule ID for each rule |
 | 2 | `harm_test.py` | one pack, one gold file, one rule ID | documents changed, documents dropped, the percent, PASS or FAIL at max(1, 1%) documents |
 | 3 | `rule_report.py` | one pack, its gold file, all its rules | `REPORT.md`: harm test of every rule for the pack, and advice on which rules to keep |
-| 4 | `run_harm_suite.py` (Week 2) | draft Spec v1, registry, G1 pack list, original Parquet files, refreshed gold CSVs | per-rule JSON evidence, per-pack coverage/status summary, run metadata |
-| any time | `medicine_conflicts.py` (Week 2) | the medicine sheets, the gold files, the registry | `MEDICINE_CHECK.md`: which gold files lack medicines, and which medicines clash. Nothing is run |
+| 4 | `run_harm_suite.py` (legacy) | legacy inventory, staged registry/source files, G1 pack list, original packs, gold | per-rule evidence and legacy inventory coverage/status summary |
+| any time | `medicine_conflicts.py` | medicine sheets, gold files, and registry or `--sheet` | `MEDICINE_CHECK.md`: coverage and conflict review; nothing is run |
 | any time | `registry_view.py` | the registry | `registry.html`: a page to search the rules and see each rule's function |
 
-**Week 2: files that are not in this PR yet.** This PR has the scripts, `rules/registry.json` and `rules/registry.html`. It does not have the files that the scripts read and write. They are added in week 2:
+**Legacy review inputs absent from this checkout.** The shared tools and registry/viewer snapshots are present. Stage the following before running the corresponding registry workflow:
 
-| Not in this PR | Made by | Needed by |
+| Absent input | How it was produced | Needed by |
 |---|---|---|
 | `medicines/submissions/<pack_id>/<handle>/medicine.md` | step 0, `fetch_medicines.py` | step 1 with `--dir`, `medicine_conflicts.py` |
 | `rules/<pack_id>/<handle>.py`, the rules files that `registry.json` points to | step 1, `medicine_extract.py` | step 2 with a rule ID (and no `--rules`), steps 3 and 4, `registry_view.py` (the function of each rule), `medicine_conflicts.py` (to tell whether a rule can run) |
-| `spec/spec_v1.md` | `spec/build_spec_v1.py` | step 4 |
+| Legacy nonexecutable inventory (`spec/spec_v1.md` was the historical path) | Historical `spec/build_spec_v1.py`, also absent here | step 4; supply a compatible inventory with `--spec` |
 
-Until then, use `harm_test.py --rules <medicine.md> --rule <code>` (see "For annotators" above). It does not need any of these files. Until the rules files are added, `registry.json` has IDs that point to files that are not in the repository.
+For direct sheet testing, use `harm_test.py --rules <medicine.md> --rule <code>` (see "For annotators" above). It does not need these registry inputs. All 24 active registry source-file paths are currently absent; extraction in a review checkout must reconstruct them before registry-based execution.
 
 ## 0. Fetch the medicines: `fetch_medicines.py`
 
@@ -148,7 +150,7 @@ At a plain 1%, a gold set under 100 rows (en-nemotroncc 34, math-finemath 30, sc
 
 **Where the cleaning code comes from.** `harm_test.py` is a **test runner**, not a collection of hardcoded cleaning rules. It loads executable Python supplied by annotators in one of two ways:
 
-1. **By rule ID (registry):** *(Week 2: the generated rules files are not in this PR yet, so use `--rules` until then.)* With `--rule DA-B3-001` and no `--rules`, it looks up the ID in `teams/01-data-a/rules/registry.json`. The registry points to a generated `teams/01-data-a/rules/<pack_id>/<handle>.py` file written by `medicine_extract.py` from an annotator's `medicine.md`. The runner loads that file and selects the matching `RULES_BY_ID` entry.
+1. **By rule ID (registry):** requires staged extracted source files, currently absent; use `--rules` for direct sheet testing. With `--rule DA-B3-001` and no `--rules`, it looks up the ID in `teams/01-data-a/rules/registry.json`. The registry points to a generated `teams/01-data-a/rules/<pack_id>/<handle>.py` file written by `medicine_extract.py` from an annotator's `medicine.md`. The runner loads that file and selects the matching `RULES_BY_ID` entry.
 2. **By explicit file:** With `--rules <rules.py or medicine.md> --rule B3` (or a full rule ID), it loads the supplied file directly, without consulting the registry. A Markdown sheet can contain separate executable `RULE_ID` / `medicine(doc)` blocks; A plain `medicine.md` (one `**Disease:**` section per code) is read by the same code as `medicine_extract.py`, so the rules that run are the rules the extractor writes to `rules/<pack_id>/<handle>.py`. A fragment (a block that does not run on its own) or a block with a syntax error stops the test: fix or remove it. The extractor leaves such a block out and reports it. Two sections for one code, or a name defined with different code in two blocks, is an error too. Python files can define `RULES_BY_ID`, `RULES`, or `cure_<code>`.
 
 **The data comes from different files:** `--pack` supplies the original Parquet documents; `--gold` supplies independently reviewed clean `doc_id`s (with `reader_1` and `reader_2`). Neither is a source of cleaning functions. `harm_test.py` does **not** discover or test all files under `medicines/submissions` automatically; `--rule all` runs only the rules in the **one file** given by `--rules`. The extractor and `rule_report.py` handle multi-submission workflows.
@@ -209,9 +211,9 @@ The advice is for a person to check. Nothing records the decision yet.
 
 Exit code: 0 done, 2 the report could not be made.
 
-## Check the medicines: `medicine_conflicts.py` (Week 2)
+## Check the medicines: `medicine_conflicts.py`
 
-> **Week 2.** This script reads the sheets in `medicines/submissions/` and the rules files that the registry points to. Neither is in this PR. Without the sheets every gold file is flagged `NO MEDICINE` and the exit code is 1, so the report says nothing useful yet.
+> Registry mode requires staged `medicines/submissions/` and extracted rules, currently absent. Direct `--sheet spec_v1/sheets/medicine_english.md` mode can inspect an existing family sheet without those inputs. Missing sheets in registry mode produce `NO MEDICINE`; that is a missing-input finding, not evidence against the current cleaner.
 
 ```
 python -I teams/01-data-a/tools/medicine_conflicts.py [--packs en-]
@@ -240,14 +242,14 @@ For each code with two or more medicines in one pack: `ACTIONS DIFFER` (they dis
 | `--medicines <folder>` | the medicine sheets, as `<pack_id>/<handle>/medicine.md` or `<pack_id>-medicine/<handle>-medicine.md`. Default: `medicines/submissions` |
 | `--gold-dir <folder>` | the gold files, `<pack_id>_gold.csv`. Default: `gold` |
 | `--registry <file>` | the registry to read. Default: `rules/registry.json` |
-| `--sheet <file>` | take the rules from a standard sheet (one `RULE_ID` block per rule, with `ORIGIN` and `AUTHOR`), for example `en-medicines/medicine_en.md`, instead of the registry. A rule whose `ORIGIN` lists several packs counts for each of them |
+| `--sheet <file>` | take the rules from a standard sheet (one `RULE_ID` block per rule, with `ORIGIN` and `AUTHOR`), for example `spec_v1/sheets/medicine_english.md`, instead of the registry. A rule whose `ORIGIN` lists several packs counts for each of them |
 | `--out <file>` | where to write the report. Default: `rules/MEDICINE_CHECK.md` |
 
 Exit code: 0 done, 1 a gold file has no medicine or no rule that can run (`NO MEDICINE`, `NOT ENOUGH`), 2 the report could not be made.
 
-## 4. Run the Spec v1 harm suite: `run_harm_suite.py` (Week 2)
+## 4. Run the legacy inventory harm suite: `run_harm_suite.py`
 
-> **Week 2.** This script needs `spec/spec_v1.md`, the rules files that the registry points to, and `medicines/submissions/`. None of them is in this PR, so it cannot be run yet.
+> **Legacy workflow.** This runner needs a nonexecutable inventory, extracted registry source files, and matching contributor submissions. Those inputs are absent. Its default `spec/spec_v1.md` is historical; pass `--spec` for a staged legacy inventory. Do not pass `spec_v1/sheets/specv1.md`: that executable-sheet format is incompatible. For current validation use [validate_specv1.py](../spec_v1/tools/validate_specv1.py) and [make_harm_tests.py](../spec_v1/tools/make_harm_tests.py).
 
 Run the **batch audit** after collecting/extracting medicines and generating the draft parent Spec v1. Unlike `harm_test.py --rule all`, this script evaluates **individual active registry rules** for each applicable pack; it does **not** execute the `spec_v1.md` itself. The parent spec contains review-only fenced `text` code examples, not executable `python` rule blocks. The suite reads its medicine inventory, proposal statuses, and conflict ledger, then maps candidate rules from `rules/registry.json` by pack, contributor, and disease code.
 
@@ -255,14 +257,14 @@ From the repository root, first inspect the planned coverage (does not execute c
 
 ```bash
 uv run python teams/01-data-a/tools/run_harm_suite.py \
-  --parquet-dir /path/to/original-packs --dry-run
+  --parquet-dir /path/to/original-packs --spec /path/to/legacy-inventory.md --dry-run
 ```
 
 Then run harm tests against the original Parquet files and current official gold CSVs:
 
 ```bash
 uv run python teams/01-data-a/tools/run_harm_suite.py \
-  --parquet-dir /path/to/original-packs
+  --parquet-dir /path/to/original-packs --spec /path/to/legacy-inventory.md
 ```
 
 | Option | Meaning |
@@ -285,7 +287,7 @@ uv run python teams/01-data-a/tools/run_harm_suite.py \
 
 ## The registry and Spec v1
 
-> **Week 2.** `rules/registry.json` is in this PR. The rules files that it points to, `spec/spec_v1.md` and `medicines/submissions/` are not: they are added in week 2.
+> **Snapshot status.** Registry/viewer files are preserved, but their extracted source files, the legacy inventory, and collected contributor submissions are absent. See [reconstruction prerequisites](../rules/README.md). Current five-family cleaner selection and Indic integration are documented in [spec_v1/README.md](../spec_v1/README.md).
 
 `teams/01-data-a/rules/registry.json` has one entry for every rule that the extractor found:
 
@@ -299,7 +301,7 @@ uv run python teams/01-data-a/tools/run_harm_suite.py \
 | `withdrawn` | `true` if the rule is no longer in the `medicine.md` |
 | `code_sha256` | fingerprint of the code in the `medicine.md` when it was extracted. `harm_test.py` prints the same value as `code sha256` for a plain `medicine.md`, so you can check that the code you run is the code the annotator tested. Comments, blank lines and spacing do not change it |
 
-To look at the rules, run `python -I teams/01-data-a/tools/registry_view.py`. It writes `rules/registry.html`, a page you open in a browser: search the rules and expand one to see its function. It does not run the code and needs no `pyarrow`. Run it again after the registry changes and commit the new page. `--show DA-B3-001` prints one rule in the terminal.
+To look at the preserved source, open [registry.html](../rules/registry.html). After reconstructing a matching registry and its source files, `python -I teams/01-data-a/tools/registry_view.py --out <new-viewer.html>` generates a new viewer without executing rule code or requiring `pyarrow`. Avoid overwriting the preserved viewer from this incomplete source tree. `--show DA-B3-001` prints a staged rule in the terminal.
 
 | Option | Meaning |
 |---|---|
@@ -307,12 +309,12 @@ To look at the rules, run `python -I teams/01-data-a/tools/registry_view.py`. It
 | `--out <file>` | where to write the page. Default: `registry.html` next to the registry |
 | `--show <rule ID>` | print the source of one rule in the terminal, and write no page |
 
-To build the **draft parent medicine** from all collected submissions, run `python teams/01-data-a/spec/build_spec_v1.py`. This recursively reads `teams/01-data-a/medicines/submissions/<pack_id>/<handle>/medicine.md` and writes `spec/spec_v1.md`, `spec/spec_v1_sources.csv`, and `spec/spec_v1_conflicts.csv`. It **does not execute** contributor code or automatically approve conflicting medicines. Before freezing the specification:
+Historically, the absent `spec/build_spec_v1.py` compiled a nonexecutable parent inventory from collected submissions into `spec/spec_v1.md`, `spec/spec_v1_sources.csv`, and `spec/spec_v1_conflicts.csv`. That was a review inventory, not the current cleaner build. For a reconstructed legacy review:
 
 1. Run the extractor on every `medicine.md`, then `rule_report.py` for every pack.
 2. Take the rules that are not withdrawn, PASS the harm test, and that the report advises to KEEP.
 3. For each one, write the ID, the code, the action (from the registry), the rule in words (the **Medicine** text in that annotator's `medicine.md`), the rule in code (the function in `file`), and the harm test result (from the report).
-4. Integrate the Indic rules from G2 **when that team completes its handoff** (currently pending).
+4. Record which handoff and review snapshot the inventory describes. Current Indic selections are maintained separately through the [Indic integration process](../spec_v1/README_indic.md).
 5. Decide the order the rules run. The registry does not hold an order, so the team decides it.
 
 The generated `spec_v1.md` is a **draft**: reviewers must resolve clashes and verify harm on regenerated official gold sets before approving any executable pipeline. Use the `run_harm_suite.py` batch audit above to collect current per-rule evidence and identify missing coverage; it does not approve conflicts or run the combined pipeline.
@@ -331,5 +333,5 @@ The generated `spec_v1.md` is a **draft**: reviewers must resolve clashes and ve
 - Gold files go in `teams/01-data-a/gold/<pack_id>_gold.csv`: `doc_id`, `reader_1`, `reader_2` (no raw text). A `_DUMMY` gold file is for testing.
 - The pack Parquet files are not in the repo.
 - **Regression-test code is different from medicine code:** `test_harm_test.py` and `test_medicine_extract.py` create small synthetic rules, mock/test Parquet rows, and gold CSV fixtures to check the **harness**. Their pytest PASS results do **not** establish that annotators' real cleaning rules pass the harm test (`max(1, floor(1% of n))` documents). For real harm results, run `harm_test.py` with the relevant medicine/registered rule, original pack Parquet, and refreshed official gold CSV.
-- Tests are in `teams/01-data-a/tests/`. Run one with `python -I teams/01-data-a/tests/test_harm_test.py` (and `test_medicine_extract.py`, `test_rule_report.py`, `test_fetch_medicines.py`, `test_registry_view.py`). `test_run_harm_suite.py` needs pytest.
+- Tests are in `teams/01-data-a/tests/`. Run the suite with `python -m pytest teams/01-data-a/tests`; standard-library unittest files such as `test_harm_test.py`, `test_medicine_extract.py`, `test_rule_report.py`, and `test_view_pack.py` also support direct `python -I teams/01-data-a/tests/<file>` invocation. The legacy inventory suite needs pytest.
 - `registry.json` is shared. Decide who runs the extractor and commits it, to avoid merge conflicts.

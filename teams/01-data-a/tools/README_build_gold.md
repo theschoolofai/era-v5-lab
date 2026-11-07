@@ -6,8 +6,9 @@ private information, medicine text, or diagnosis evidence.
 
 ## Install and run
 
-Copy `tools/build_gold.py` and `tests/test_build_gold.py` into the corresponding
-`teams/01-data-a/` paths in a local checkout of the lab repo.
+The builder is [build_gold.py](build_gold.py), with tests in
+[../tests/test_build_gold.py](../tests/test_build_gold.py). Run the commands below
+from a local checkout's repository root.
 
 Requires Python 3.9+ (standard library only for the main task).
 

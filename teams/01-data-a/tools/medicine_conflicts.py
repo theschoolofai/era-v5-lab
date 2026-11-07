@@ -9,7 +9,7 @@ Usage:
     --packs      only the packs whose id starts with this, for example en-
     --registry   the rule registry (default: ../rules/registry.json)
     --sheet      take the rules from a standard sheet instead (one RULE_ID block per rule, with ORIGIN and AUTHOR),
-                 for example ../en-medicines/medicine_en.md
+                 for example ../spec_v1/sheets/medicine_english.md
     --out        the report (default: ../rules/MEDICINE_CHECK.md)
 
 Nothing is run: the sheets and the rules files are only read (with ast), so this is safe before anyone has read
@@ -199,7 +199,7 @@ class RulesFile:
 
 
 def read_sheet_rules(path: Path) -> list:
-    """The rules of a standard sheet (such as en-medicines/medicine_en.md): one ```python block per rule with
+    """The rules of a standard sheet (such as spec_v1/sheets/medicine_english.md): one ```python block per rule with
     RULE_ID, CODE, ACTION, ORIGIN (the pack) and AUTHOR (the annotator), and medicine(doc). Each block is read
     with ast, on its own, as harm_test.py runs it. Returned in the form of registry entries, with "missing" set."""
     rules, seen = [], {}

@@ -5,7 +5,7 @@ Rule form: `RULE_ID`, `CODE`, `ACTION`, `STAGE`, `STATUS`, `LANGS`, `ORIGIN`, `S
 Run order is section order, by stage: 10 characters, 20 markup, 30 drops, 35 strips, 40 data safety. An annotator's code is copied unchanged: only the definitions the rule uses. What is added is marked `# added by Data A`: the imports or constants their code uses but their rules file never defines (taken from their own `medicine.md`), `_std` (their result in the shared form) and the `LANGS` guard. Each block gives the same result as the author's own function on all 2,000 English documents (`results/equivalence_english.json`).
 IDs: Data A registry after running the extractor on the latest sheets. New rules take the next free number after the registry and PR 16's code sheet. All IDs are provisional until the team commits the registry.
 Assumption: the language tag on a row is correct. No language detector runs.
-F1 is `DA-F1-005`, written to the instructor's F1 ruling of 31 Oct, and is never left out. The shared `../tools/f1_rule.py` does not run on English (`_F1_LANGS`), so `../tools/build_clean.py` keeps this sheet's own F1 and `clean_english.py` runs it on `en` and `eng` text, last.
+F1 is `DA-F1-005`, written to the instructor's F1 ruling of 31 Oct, and is never left out. The shared `../tools/f1_rule.py` does not run on English (`_F1_LANGS`), so `../tools/build_clean.py` keeps this sheet's own F1 and the consolidated `../clean.py` runs it on English packs, last.
 Tested on `g1-harm-test` at `bae5163`. Limit: changed + dropped at most `max(1, floor(1% of gold))`. Why each rule was picked, for each disease: `decisions_english.md`.
 
 | pack | gold sha256 | pack sha256 |
