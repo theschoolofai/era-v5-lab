@@ -1,0 +1,67 @@
+{
+  "pack": "/Users/aneeshadas/ERA5/Capstone/Week2-G1-work/deduplication/Cap1-packs/en-dclm",
+  "normalize_id": "g1-spec-v1",
+  "key": "h1_key of h1_sha256.py: normalize.match_key, then NFKC, casefold, whitespace runs to one space",
+  "shingles": "word 5-grams of the key as 8-byte BLAKE2b digests; a key under 5 words is one shingle",
+  "documents": {
+    "Part_1": 46245,
+    "Part_2": 15122,
+    "Heldout": 608,
+    "all": 61975
+  },
+  "documents_under_50_words": 381,
+  "distinct_shingles": 55580835,
+  "shingles_in_2_or_more_documents": 738794,
+  "pairs_compared": 1920419325,
+  "pairs_sharing_a_shingle": 13448291,
+  "pairs_at_or_above": {
+    "0.70": 81,
+    "0.75": 41,
+    "0.80": 14,
+    "0.85": 7,
+    "0.90": 1,
+    "0.95": 0
+  },
+  "floor": 0.5,
+  "pairs_stored": 284,
+  "pairs_at_or_above_by_folder": {
+    "0.50": {
+      "Part_1 x Part_1": 116,
+      "Part_1 x Part_2": 133,
+      "Part_1 x Heldout": 1,
+      "Part_2 x Part_2": 33,
+      "Part_2 x Heldout": 1
+    },
+    "0.70": {
+      "Part_1 x Part_1": 29,
+      "Part_1 x Part_2": 38,
+      "Part_1 x Heldout": 1,
+      "Part_2 x Part_2": 12,
+      "Part_2 x Heldout": 1
+    },
+    "0.75": {
+      "Part_1 x Part_1": 18,
+      "Part_1 x Part_2": 15,
+      "Part_1 x Heldout": 1,
+      "Part_2 x Part_2": 6,
+      "Part_2 x Heldout": 1
+    },
+    "0.80": {
+      "Part_1 x Part_1": 8,
+      "Part_1 x Part_2": 4,
+      "Part_1 x Heldout": 1,
+      "Part_2 x Heldout": 1
+    },
+    "0.85": {
+      "Part_1 x Part_1": 3,
+      "Part_1 x Part_2": 2,
+      "Part_1 x Heldout": 1,
+      "Part_2 x Heldout": 1
+    },
+    "0.90": {
+      "Part_1 x Part_1": 1
+    },
+    "0.95": {}
+  },
+  "seconds": 104.0
+}

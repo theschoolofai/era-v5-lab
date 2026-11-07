@@ -1,0 +1,5 @@
+numpy
+scipy
+pyarrow
+# Lexer token boundaries affect the code H2 decision; pin the tested version.
+pygments==2.21.0
