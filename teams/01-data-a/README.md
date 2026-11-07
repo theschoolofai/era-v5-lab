@@ -14,7 +14,6 @@ Open a pull request; the lead reviews and merges it. The pr-guard check must pas
 | Validate cleaner, privacy, or F2 behavior | [Cleaner tools](spec_v1/tools/README.md), [English checks](spec_v1/tools/README_english.md), [Indic checks](spec_v1/README_indic.md) |
 | Run a sample job or inspect overlap results | [Jobs index](jobs/README.md) |
 | Interpret validation evidence | [Results index](spec_v1/results/README.md) |
-| Review cleanup and remaining limitations | [Cleanup status](cleanup_audit/README.md) |
 
 Directory roles: `tools/` holds shared review, gold, and viewer utilities; `tests/` tests those utilities. `spec_v1/tools/` holds cleaner build and validation tools; `spec_v1/scripts/` holds sheet-reproduction and manual diagnosis helpers. Sample configuration remains in `spec_v1/jobs/`, linked from the jobs index.
 
