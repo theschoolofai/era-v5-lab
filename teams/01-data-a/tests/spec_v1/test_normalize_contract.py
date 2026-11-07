@@ -1,6 +1,6 @@
 """Regression contract for G1/G9 word fingerprints versus G1 comparison keys.
 
-Run: python -m pytest teams/01-data-a/spec_v1/tests/test_normalize_contract.py -q
+Run: python -m pytest teams/01-data-a/tests/spec_v1/test_normalize_contract.py -q
 All inputs are synthetic. These tests do not change fingerprints or clean.py.
 """
 
@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 
-MODULE_PATH = Path(__file__).resolve().parents[1] / "normalize.py"
+MODULE_PATH = Path(__file__).resolve().parents[2] / "spec_v1" / "normalize.py"
 SPEC = importlib.util.spec_from_file_location("g1_normalize_contract", MODULE_PATH)
 n = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(n)

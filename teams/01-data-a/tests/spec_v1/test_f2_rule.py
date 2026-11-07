@@ -4,7 +4,7 @@ or another set is refused, and a train and a heldout part never overwrite each o
 benchmark string is a canary read from G9's fingerprint set at run time, never written in this file. One run_clean.py test
 loads the full set (about 20 s, 1.1 GB); the others load one benchmark.
 
-  python -m pytest spec_v1/tests
+  python -m pytest tests/spec_v1
 """
 import hashlib
 import json
@@ -18,7 +18,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-SPEC = Path(__file__).resolve().parents[1]
+SPEC = Path(__file__).resolve().parents[2] / "spec_v1"
 TOOLS = SPEC  # f2_rule.py and normalize.py sit next to clean.py
 sys.path.insert(0, str(TOOLS))
 import f2_rule

@@ -6,7 +6,7 @@ import sys
 
 import pytest
 
-SPEC = Path(__file__).resolve().parents[1]
+SPEC = Path(__file__).resolve().parents[2] / "spec_v1"
 sys.path.insert(0, str(SPEC))
 import clean as c
 

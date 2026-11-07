@@ -2,12 +2,12 @@
 specv1.md never name a local folder (TSAI review of spec v1, 2 Nov). The validation run itself needs all 13 packs, so it is
 not run here.
 
-  python -m pytest spec_v1/tests
+  python -m pytest tests/spec_v1
 """
 import sys
 from pathlib import Path
 
-SPEC = Path(__file__).resolve().parents[1]
+SPEC = Path(__file__).resolve().parents[2] / "spec_v1"
 TEAM = SPEC.parent
 sys.path.insert(0, str(SPEC / "validate"))
 import validate_specv1 as v
