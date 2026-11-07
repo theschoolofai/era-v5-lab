@@ -10,7 +10,7 @@ spec = importlib.util.spec_from_file_location("ce", HERE / "compile_evidence.py"
 STRESS = Path(sys.argv[3])
 data = ce.load_data()
 rules = []
-for b in re.findall(r"```python\n(.*?)```", open(HERE.parent / "sheets" / "medicine_code.md", encoding="utf-8").read(), re.S):
+for b in re.findall(r"```python\n(.*?)```", open(HERE.parent / "spec_v1" / "sheets" / "medicine_code.md", encoding="utf-8").read(), re.S):
     ns = {"__name__": "rules"}; exec(textwrap.dedent(b), ns); rules.append((ns["RULE_ID"], ns["LANGS"], ns["medicine"]))
 for pack, d in data.items():
     stress = {r["doc_id"] for r in csv.DictReader(open(STRESS / f"{pack}_gold.csv", encoding="utf-8"))}

@@ -8,7 +8,7 @@ import argparse, hashlib, json, subprocess, sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-SPEC = HERE.parent
+SPEC = HERE.parent / "spec_v1"
 RESULTS = SPEC / "results" / "sheets"
 PACKS = ["code-go", "code-rust", "code-js-ts", "code-java", "code-cpp", "code-python"]
 ap = argparse.ArgumentParser(description=__doc__)

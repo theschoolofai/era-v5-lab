@@ -3,7 +3,7 @@
 Picks and reasons are written by hand in PICKS, NOT_PICKED and DISEASE_NOTES after reading the code and evidence.json;
 the numbers are all computed. The annotators' code is copied unchanged (with ast); only the wrapper is added.
 
-  python -I compile_medicine_code.py <checkout> <packs dir>   -> ../medicine_code.md, ../decisions_code.md
+  python -I compile_medicine_code.py <checkout> <packs dir>   -> ../spec_v1/sheets/medicine_code.md, ../spec_v1/sheets/decisions_code.md
 """
 import ast, hashlib, importlib.util, json, re, sys, textwrap
 from pathlib import Path
@@ -13,7 +13,7 @@ HERE = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location("ce", HERE / "compile_evidence.py")
 ce = importlib.util.module_from_spec(spec); sys.modules["ce"] = ce; spec.loader.exec_module(ce)
 TEAM = ce.TEAM
-OUT = HERE.parent
+OUT = HERE.parent / "spec_v1"
 PACKS = ce.PACK_IDS
 SHORT = {"code-go": "go", "code-rust": "rust", "code-js-ts": "js-ts", "code-java": "java", "code-cpp": "cpp", "code-python": "python"}
 LANG = {"code-go": ["go"], "code-rust": ["rust"], "code-js-ts": ["javascript", "typescript"], "code-java": ["java"],
@@ -235,7 +235,7 @@ def run_sheet(rules, doc):
 
 def main():
     cands = {c["id"]: c for c in ce.load_candidates()}; data = ce.load_data()
-    ev = json.loads((HERE.parent / "results" / "sheets" / "evidence.json").read_text(encoding="utf-8"))
+    ev = json.loads((OUT / "results" / "sheets" / "evidence.json").read_text(encoding="utf-8"))
     assert {n for n, *_ in PICKS} <= set(cands)
     def touched(name, p): return set(ev["rules"][name]["per"][p]["fix"]) | set(ev["rules"][name]["per"][p]["drop"])
     def cell(name, p, packs=None):
