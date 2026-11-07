@@ -26,7 +26,7 @@ import time
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-SPEC = Path(__file__).resolve().parents[1]
+SPEC = Path(__file__).resolve().parent
 REPO = SPEC.parents[2]
 sys.path.insert(0, str(SPEC))
 import clean

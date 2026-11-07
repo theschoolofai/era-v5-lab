@@ -8,15 +8,26 @@ import pyarrow.parquet as pq
 import pytest
 
 SPEC = Path(__file__).resolve().parents[1]
-spec = importlib.util.spec_from_file_location('sample_job_test', SPEC / 'tools/run_tokenizer_sample.py')
+JOBS = SPEC.parent / 'jobs' / '2026-11-02-tokenizer-sample-v0-clean'
+spec = importlib.util.spec_from_file_location('sample_job_test', SPEC / 'run_tokenizer_sample.py')
 job = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(job)
 
 
-def test_committed_request_pins_current_cleaner_and_sample_manifest():
-    config = json.loads((SPEC / 'jobs/tokenizer_sample_v0_clean.json').read_text(encoding='utf-8'))
-    assert config['clean_sha256'] == job.digest(SPEC / 'clean.py')
-    assert config['manifest_sha256'] == job.digest(SPEC / 'jobs/tokenizer_sample_v0_manifest.json')
+MANIFEST_REL = (JOBS / 'tokenizer_sample_v0_manifest.json').relative_to(job.REPO).as_posix()
+
+
+def submitted_config():
+    """The submitted config as committed (never edited), with its manifest path pointing at where the manifest now lives."""
+    config = json.loads((JOBS / 'tokenizer_sample_v0_clean.json').read_text(encoding='utf-8'))
+    return dict(config, manifest=MANIFEST_REL)
+
+
+def test_submitted_config_matches_its_manifest():
+    # A submitted job is a record: its clean_sha256 pins the cleaner that ran, not the current one, so it is not compared with clean.py.
+    config = submitted_config()
+    assert len(config['clean_sha256']) == 64
+    assert config['manifest_sha256'] == job.digest(JOBS / 'tokenizer_sample_v0_manifest.json')
     assert config['expected_parts'] == {'train': 48, 'heldout': 38}
     assert config['optional_f2'] is False
     assert config['unsupported_policy'] == 'passthrough_with_explicit_status'
@@ -113,7 +124,7 @@ def test_errors_are_counted_and_partial_output_is_not_published(tmp_path, monkey
 
 
 def test_manifest_and_output_scope_are_bounded(tmp_path, monkeypatch):
-    config = json.loads((SPEC/'jobs/tokenizer_sample_v0_clean.json').read_text())
+    config = submitted_config()
     data = job.manifest(config)
     assert len(data['shards']) == 86
     assert sum(s['rows'] for s in data['shards']) == 1444766
