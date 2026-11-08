@@ -13,7 +13,7 @@ Open a pull request; the lead reviews and merges it. The pr-guard check must pas
 | Build gold or review contributor rules | [Shared tools](tools/README.md), [gold builder](tools/README_build_gold.md), [harm tests](harmtest/README.md) |
 | Validate cleaner, privacy, or F2 behavior | [Build tools](spec_v1/build/README.md), [Validation tools](spec_v1/validate/README.md), [English checks](spec_v1/validate/README_english.md), [Indic checks](spec_v1/README_indic.md) |
 | Run a sample job or inspect overlap results | [Jobs index](jobs/README.md) |
-| Interpret validation evidence | [Results index](spec_v1/results/README.md) |
+| Interpret validation evidence | [Results index](results/README.md) |
 
 ## Folder map
 
@@ -22,9 +22,10 @@ Open a pull request; the lead reviews and merges it. The pr-guard check must pas
 | [gold/](gold/) | Gold sets: document IDs only, no text | none |
 | [harmtest/](harmtest/README.md) | Harm test for a medicine or rule, and the contributor-medicine review tools. `tools/harm_test.py` is a forwarder to it, kept until Week 4 | `tests/harmtest/` |
 | [tools/](tools/README.md) | Build gold sets, fetch medicines, view a pack | `tests/tools/` |
-| [spec_v1/](spec_v1/README.md) | The cleaner: `clean.py`, `run_clean.py`, `normalize.py`, `f2_rule.py`, `run_tokenizer_sample.py` (the TSAI sample-job runner), with its `sheets/` and `results/` | `tests/spec_v1/` |
+| [spec_v1/](spec_v1/README.md) | The cleaner: `clean.py`, `run_clean.py`, `normalize.py`, `f2_rule.py`, `run_tokenizer_sample.py` (the TSAI sample-job runner), with its `sheets/` | `tests/spec_v1/` |
 | [spec_v1/build/](spec_v1/build/README.md) | Sheets to `clean.py`, and the Indic integration | `tests/spec_v1/` |
 | [spec_v1/validate/](spec_v1/validate/README.md) | Checks on the sheets and on `clean.py` | `tests/spec_v1/` |
+| [results/](results/README.md) | The reports our scripts write (IDs, counts, digests): `results/spec_v1/` holds the cleaner's harm tests, validation, Indic and F2 reports | none |
 | [tests/](tests/) | The tests of every topic: `tests/spec_v1/` (the cleaner), `tests/harmtest/`, `tests/tools/`. `python -m pytest tests -q` runs all of them | none |
 | [jobs/](jobs/README.md) | TSAI job requests, one folder for each job (config, manifest, local logs), and TSAI's returned results (paths set by `JOB_REQUEST.md`) | `tests/spec_v1/` |
 | [rules/](rules/README.md), `medicines/` | Contributor registry snapshot; fetched annotator sheets (not committed) | none |

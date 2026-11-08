@@ -3,7 +3,7 @@ what changes when two stages or two rules swap. IDs and counts only, never text.
 
   python -I order_checks_english.py <packs dir>
 
-Writes ../results/cleaner/order_checks_english.json.
+Writes ../../results/spec_v1/cleaner/order_checks_english.json.
 """
 import json
 import re

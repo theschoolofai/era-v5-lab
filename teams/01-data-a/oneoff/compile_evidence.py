@@ -6,7 +6,7 @@ Inputs (a scratch checkout of g1-harm-test, passed as argv[1]):
   medicines/submissions/  the sheets, for the medicines the extractor cannot take
   diagnosis/submissions/  the latest labels.csv of every annotator
 
-  python -I compile_evidence.py <checkout> <packs dir>   -> ../spec_v1/results/sheets/evidence.json
+  python -I compile_evidence.py <checkout> <packs dir>   -> ../results/spec_v1/sheets/evidence.json
 """
 import csv, inspect, json, os, re, sys, textwrap, time
 from collections import defaultdict

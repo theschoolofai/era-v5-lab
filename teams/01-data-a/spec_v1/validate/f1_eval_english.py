@@ -11,7 +11,7 @@ alone decides), to show what switching it on would do. Neither file is changed.
               and nothing else changed; organisations and look-alikes kept
   3 again     a second clean() leaves every F1 tag as it is
 
-Writes ../results/cleaner/f1_eval_english.json.
+Writes ../../results/spec_v1/cleaner/f1_eval_english.json.
 """
 import csv
 import json

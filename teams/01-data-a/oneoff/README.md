@@ -2,13 +2,13 @@
 
 > **Kept for the record, not part of the pipeline.** These scripts built the code family's sheet from the open PRs of one day. Run them from this folder (`teams/01-data-a/oneoff/`) against the old `bae5163` checkout; they write into `spec_v1/`. Script owners: delete the ones you no longer need.
 
-These make `spec_v1/sheets/medicine_code.md`, `spec_v1/sheets/decisions_code.md` and `spec_v1/results/sheets/`. Picks and reasons are written by hand in `compile_medicine_code.py`; every number is computed.
+These make `spec_v1/sheets/medicine_code.md`, `spec_v1/sheets/decisions_code.md` and `results/spec_v1/sheets/`. Picks and reasons are written by hand in `compile_medicine_code.py`; every number is computed.
 
 | file | what it does |
 |---|---|
 | `run_all.py` | Runs the steps below that make files. Start here. |
 | `collect_inputs.py` | Copies the latest code `labels.csv` and `medicine.md` of every open PR into a checkout. |
-| `compile_evidence.py` | Runs every medicine on every pack: `spec_v1/results/sheets/evidence.json`, IDs only. |
+| `compile_evidence.py` | Runs every medicine on every pack: `results/spec_v1/sheets/evidence.json`, IDs only. |
 | `compile_medicine_code.py` | The picks. Writes `spec_v1/sheets/medicine_code.md` and `spec_v1/sheets/decisions_code.md`. Copies each rule from its author's code, then checks the copy behaves the same on every doc. |
 | `e3_rule.py` | Source of the new rule `DA-E3-004`. |
 | `verdict_block.md` | Top of `decisions_code.md`, by hand. |
@@ -48,6 +48,6 @@ python -I stress_docs.py <checkout> <packs> <stress gold>
 python -I regex_on_issues.py <checkout> <packs>
 ```
 
-PRs keep moving. `spec_v1/results/sheets/inputs_manifest.json` holds the digest of every input used here, so compare against it before trusting a rerun. New inputs give new numbers and can shift rule IDs.
+PRs keep moving. `results/spec_v1/sheets/inputs_manifest.json` holds the digest of every input used here, so compare against it before trusting a rerun. New inputs give new numbers and can shift rule IDs.
 
 `build_gold.py` reads the open PRs from GitHub, so it needs a token, and it reads their latest state.

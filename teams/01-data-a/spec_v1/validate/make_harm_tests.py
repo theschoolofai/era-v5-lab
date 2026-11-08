@@ -1,4 +1,4 @@
-"""Task 4: test spec_v1/clean.py with the team's harm_test.py, and write spec_v1/results/cleaner/harm_tests.md.
+"""Task 4: test spec_v1/clean.py with the team's harm_test.py, and write results/spec_v1/cleaner/harm_tests.md.
 
   python -I make_harm_tests.py <checkout> <packs dir> [<packs dir> ...] [--out <harm_tests.md>] [--results <dir>]
 

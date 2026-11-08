@@ -1,4 +1,4 @@
-"""Make every generated file in spec_v1/: results/sheets/evidence.json, sheets/medicine_code.md, sheets/decisions_code.md, results/sheets/*_harm.json, results/sheets/inputs_manifest.json.
+"""Make every generated file in spec_v1/: results/spec_v1/sheets/evidence.json, sheets/medicine_code.md, sheets/decisions_code.md, results/spec_v1/sheets/*_harm.json, results/spec_v1/sheets/inputs_manifest.json.
 
   python -I run_all.py <checkout> <packs dir> [--stress-gold <dir>]
 

@@ -9,7 +9,7 @@ packs. Prints IDs and counts only, never text.
   4 clean(clean(doc)) == ("keep", clean(doc)): a second run changes nothing
   5 ZWJ U+200D and ZWNJ U+200C: clean() never deletes a joiner on its own
 
-Writes ../results/cleaner/verify_clean_english.json.
+Writes ../../results/spec_v1/cleaner/verify_clean_english.json.
 """
 import difflib
 import json
