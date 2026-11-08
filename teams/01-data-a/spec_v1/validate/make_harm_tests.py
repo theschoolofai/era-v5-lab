@@ -1,4 +1,4 @@
-"""Task 4: test spec_v1/clean.py with the team's harm_test.py, and write spec_v1/results/cleaner/harm_tests.md.
+"""Task 4: test spec_v1/clean.py with the team's harm_test.py, and write results/spec_v1/cleaner/harm_tests.md.
 
   python -I make_harm_tests.py <checkout> <packs dir> [<packs dir> ...] [--out <harm_tests.md>] [--results <dir>]
 
@@ -23,8 +23,8 @@ HERE = Path(__file__).resolve().parents[1]
 ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 ap.add_argument("checkout", type=Path)
 ap.add_argument("packs", type=Path, nargs="+")
-ap.add_argument("--out", type=Path, default=HERE / "results" / "cleaner" / "harm_tests.md")
-ap.add_argument("--results", type=Path, default=HERE / "results" / "cleaner")
+ap.add_argument("--out", type=Path, default=HERE.parent / "results" / "spec_v1" / "cleaner" / "harm_tests.md")
+ap.add_argument("--results", type=Path, default=HERE.parent / "results" / "spec_v1" / "cleaner")
 args = ap.parse_args()
 TEAM = args.checkout / "teams" / "01-data-a"
 sys.path.insert(0, str(TEAM / "harmtest")); import harm_test as ht
@@ -56,7 +56,7 @@ def cell(r):
 
 
 families = {fam: sorted(p for p, f in c._FAMILY.items() if f == fam) for fam in c._PIPELINES}  # sorted: the same table on every run
-validation = HERE / "results" / "cleaner" / "specv1_validation.json"
+validation = HERE.parent / "results" / "spec_v1" / "cleaner" / "specv1_validation.json"
 validation = json.loads(validation.read_text(encoding="utf-8"))["packs"] if validation.exists() else {}
 ran, missing, failed = {}, [], False
 for fam, packs in families.items():

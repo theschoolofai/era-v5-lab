@@ -7,7 +7,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-SPEC = Path(__file__).resolve().parents[1]
+SPEC = Path(__file__).resolve().parents[2] / "spec_v1"
 JOBS = SPEC.parent / 'jobs' / '2026-11-02-tokenizer-sample-v0-clean'
 spec = importlib.util.spec_from_file_location('sample_job_test', SPEC / 'run_tokenizer_sample.py')
 job = importlib.util.module_from_spec(spec)

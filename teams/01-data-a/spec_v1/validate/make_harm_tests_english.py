@@ -1,16 +1,16 @@
 """Run each function of ../clean.py, and each English medicine, on each English gold set with the team's harm_test.py,
-and write ../results/cleaner/harm_tests_english.md: the English packs in more detail than make_harm_tests.py,
-which writes ../results/cleaner/harm_tests.md for every pack.
+and write ../../results/spec_v1/cleaner/harm_tests_english.md: the English packs in more detail than make_harm_tests.py,
+which writes ../../results/spec_v1/cleaner/harm_tests.md for every pack.
 
   python -I make_harm_tests_english.py <g1-harm-test checkout> <packs dir> <gold dir with the disputed docs left in>
 
-harm_test.py is run as it is, never changed. Four runs per pack, reports in ../results/ (IDs and digests only):
+harm_test.py is run as it is, never changed. Four runs per pack, reports in ../../results/spec_v1/ (IDs and digests only):
   cleaner/clean_<pack>_harm.json         ../clean.py --rule all, official gold: each function, then ALL IN ORDER in RULES order
   cleaner/clean_stress_<pack>_harm.json  the same, with the disputed docs left in
   sheets/<pack>_harm.json                ../sheets/medicine_english.md --rule all, official gold: each medicine, then the sheet
   sheets/stress_<pack>_harm.json         the same, with the disputed docs left in
 The packs carry pack_id, which clean.py needs to pick the English rules. Section 4 of harm_tests_english.md comes from
-../results/cleaner/verify_clean_english.json and section 5 from ../results/cleaner/f1_eval_english.json: run those two scripts first.
+../../results/spec_v1/cleaner/verify_clean_english.json and section 5 from ../../results/spec_v1/cleaner/f1_eval_english.json: run those two scripts first.
 """
 import csv
 import hashlib
@@ -29,7 +29,7 @@ CHECKOUT, PACKS_DIR, STRESS = (Path(a).resolve() for a in sys.argv[1:4])
 TEAM = CHECKOUT / "teams" / "01-data-a"
 HARM = TEAM / "harmtest" / "harm_test.py"
 CLEAN, SHEET = SPEC / "clean.py", SPEC / "sheets" / "medicine_english.md"
-CLEANER, SHEETS = SPEC / "results" / "cleaner", SPEC / "results" / "sheets"  # clean.py's reports; the sheet's reports
+CLEANER, SHEETS = SPEC.parent / "results" / "spec_v1" / "cleaner", SPEC.parent / "results" / "spec_v1" / "sheets"  # clean.py's reports; the sheet's reports
 PACKS = ["en-dclm", "en-fineweb-edu", "en-nemotroncc", "en-nemotroncc-synth"]
 SHORT = {"en-dclm": "dclm", "en-fineweb-edu": "fineweb-edu", "en-nemotroncc": "nemotroncc", "en-nemotroncc-synth": "synth"}
 IN_REPO = {CLEAN: "teams/01-data-a/spec_v1/clean.py", SHEET: "teams/01-data-a/spec_v1/sheets/medicine_english.md"}

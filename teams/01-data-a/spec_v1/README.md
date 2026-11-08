@@ -26,18 +26,18 @@ teams/01-data-a/
     validate/               checks on the sheets and on clean.py: harm tests, Indic and F2 validation
     normalize.py, f2_rule.py   the normaliser (shared with G9) and the F2 rule, next to clean.py
     tests/                  cleaner tests on made-up values
-    results/README.md       report producers, snapshot hashes, reproduction limits
-    results/cleaner/harm_tests.md   each rule on the gold sets of its packs, each clean.py function, and clean()
-    results/cleaner/specv1_<pack>_harm.json   the reports behind harm_tests.md: IDs and digests only
-    results/sheets/<pack>_harm.json   harm_test.py --report on the sheet: IDs and digests only
-    results/sheets/stress_<pack>_harm.json   the same, with disputed docs left in
-    results/sheets/evidence.json, inputs_manifest.json   every medicine on every pack; digest of every input
+    ../results/spec_v1/README.md   report producers, snapshot hashes, reproduction limits
+    ../results/spec_v1/cleaner/harm_tests.md   each rule on the gold sets of its packs, each clean.py function, and clean()
+    ../results/spec_v1/cleaner/specv1_<pack>_harm.json   the reports behind harm_tests.md: IDs and digests only
+    ../results/spec_v1/sheets/<pack>_harm.json   harm_test.py --report on the sheet: IDs and digests only
+    ../results/spec_v1/sheets/stress_<pack>_harm.json   the same, with disputed docs left in
+    ../results/spec_v1/sheets/evidence.json, inputs_manifest.json   every medicine on every pack; digest of every input
     ../oneoff/              the scripts that made the code sheet, kept for the record: see ../oneoff/README.md
 ```
 
 Families: `code`, `english`, `math`, `sci`, and `indic`. Indic covers 16 packs through native candidates and validated same-language sibling scopes; see [Indic integration](README_indic.md) for deferred rules and validation limits.
 
-**Source flow:** family `sheets/medicine_<family>.md` → reviewed consolidated `sheets/specv1.md` → `build/build_clean.py` → `clean.py`. The builder reads only the consolidated spec: it does not automatically import family-sheet edits. Indic has a separate [integration and sibling-scope review](README_indic.md); the original English compilation tooling remains an external reproduction dependency. Numbers and qualification claims must identify the hashes of their evidence in [results](results/README.md).
+**Source flow:** family `sheets/medicine_<family>.md` → reviewed consolidated `sheets/specv1.md` → `build/build_clean.py` → `clean.py`. The builder reads only the consolidated spec: it does not automatically import family-sheet edits. Indic has a separate [integration and sibling-scope review](README_indic.md); the original English compilation tooling remains an external reproduction dependency. Numbers and qualification claims must identify the hashes of their evidence in [results](../results/spec_v1/README.md).
 
 The shared [run_harm_suite.py](../harmtest/run_harm_suite.py) is a legacy registry-inventory runner. Its old `spec/spec_v1.md` input and builder are absent; its parser does not accept the current consolidated sheet. See [registry prerequisites](../rules/README.md). Use the tools below for the current cleaner.
 
@@ -96,7 +96,7 @@ Gold size, limit, changed, dropped, affected IDs, pack fixed / dropped / untouch
 
 ```
 python -I teams/01-data-a/harmtest/harm_test.py --pack <pack>.parquet --gold teams/01-data-a/gold/<pack>_gold.csv \
-  --rules teams/01-data-a/spec_v1/sheets/medicine_code.md --rule all --report teams/01-data-a/spec_v1/results/sheets/<pack>_harm.json
+  --rules teams/01-data-a/spec_v1/sheets/medicine_code.md --rule all --report teams/01-data-a/results/spec_v1/sheets/<pack>_harm.json
 python -I teams/01-data-a/harmtest/medicine_conflicts.py --packs code- --sheet teams/01-data-a/spec_v1/sheets/medicine_code.md --out <file>
 ```
 
@@ -123,7 +123,7 @@ A rule names the packs it applies to (instructor, 31 Oct): `SPEC_PACKS` in its b
 | `sheets/specv1.md` | Five families consolidated, with selected/deferred status and scope | The pipeline owner / reviewed integration step |
 | `sheets/decisions_<family>.md` or family review report | Why each rule was picked or not | The same PR |
 | `build/f1_rule.py` | The shared F1 rule; `SCOPE` runs it on the code, math, science and Indic packs | A PR that names the family it adds |
-| `clean.py`, `results/cleaner/harm_tests.md`, `results/cleaner/specv1_*` | Generated | Only the rebuild step, after a merge |
+| `clean.py`, `results/spec_v1/cleaner/harm_tests.md`, `results/spec_v1/cleaner/specv1_*` | Generated | Only the rebuild step, after a merge |
 
 ## Run it
 
@@ -132,7 +132,7 @@ Step by step, with every option, output and error: [README_clean.md](README_clea
 ```
 python3 -m pip install -r spec_v1/requirements.txt
 python spec_v1/build/build_clean.py
-python -m pytest spec_v1/tests
+python -m pytest tests/spec_v1
 python spec_v1/run_clean.py --pack <pack>.parquet --out out
 python spec_v1/run_clean.py --pack <split>/<pack_id>/part-00000.parquet --pack-id <pack_id> --out out
 python spec_v1/run_clean.py --pack <pack>.parquet --out out --f2      # then F2, G9's benchmark fingerprints
@@ -157,7 +157,7 @@ Paths start at `teams/01-data-a/`; `../..` points to the repository root for the
    | It needs an answer from TSAI | Hold it as `BLOCKED`, with the question. |
 
 5. **Do not edit someone else's rule to change what it does.** Add a new block and say why in the decisions file.
-6. **In your PR, change only your sheet, your decisions file and your tests.** Leave `clean.py` and everything in `results/cleaner/` out: two PRs regenerating them will always conflict. Paste your harm results in the PR text.
+6. **In your PR, change only your sheet, your decisions file and your tests.** Leave `clean.py` and everything in `results/spec_v1/cleaner/` out: two PRs regenerating them will always conflict. Paste your harm results in the PR text.
 7. **After a merge,** whoever merges reruns the steps in "Run it" and commits the generated files.
 
 Each rule needs the fields in "What every rule must have" above, and has to meet the bar in "When a rule is APPROVED".
@@ -187,7 +187,7 @@ Then:
 1. **Read the misses, not only the hits.** A rule can match every labelled row and still delete real code. `DA-E4-004` passed gold and removed `#include`.
 2. **Keep the match narrow.** Anchor it, set `LANGS`, and change only the bad part.
 3. **Check it is idempotent.** A second run must change nothing.
-4. **Add a unit test** with made-up values in `tests/`: one sick case and one look-alike that must stay.
+4. **Add a unit test** with made-up values in `tests/spec_v1/` (or the topic's folder under `tests/`): one sick case and one look-alike that must stay.
 5. **Run the harm test.** The limit is `max(1 document, 1%)` of the pack's gold, per pack, never pooled. An empty gold set is not testable.
 
 ## F1
@@ -205,6 +205,6 @@ Then:
 `f2_rule.py` is G9's decontamination check (`teams/09-evaluation/decontam`, PR 31) as a rule: a doc that shares one run of words (13 words, 20 tokens for code) with an item of G9's fingerprint set, or holds a benchmark canary, is dropped. It uses G9's code and set unchanged.
 
 - **Where it runs:** `run_clean.py --f2`, on every pack, after `clean.py`, on the text `clean.py` keeps. It is opt-in: without `--f2` nothing changes, and the tokenizer sample job does not use it. It is not in `clean.py`: the full set needs about 1.1 GB and 20 s to load. The summary gets `f2`: the `set_sha256`, and each dropped `doc_id` with its benchmark items and offset; and `final`: kept, dropped by `clean.py`, dropped by F2 and errors, which add up to the input rows. `actions` stays `clean.py`'s.
-- **Harm test:** `python -I harmtest/harm_test.py ... --rules spec_v1/f2_rule.py --rule F2 --timeout 300`, and `clean.py` then F2 on the same gold sets. Results on the 13 packs, and a review of every drop: [results/f2/](results/f2/).
+- **Harm test:** `python -I harmtest/harm_test.py ... --rules spec_v1/f2_rule.py --rule F2 --timeout 300`, and `clean.py` then F2 on the same gold sets. Results on the 13 packs, and a review of every drop: [results/spec_v1/f2/](../results/spec_v1/f2/).
 - **The set is pinned:** `SET` and `SET_SHA256` in `f2_rule.py`. A missing set, or one with another `set_sha256`, stops the run before anything is written. `F2_FINGERPRINTS` can point to a copy of the same set. A new set from G9 (v2) needs its own harm test, then both changed.
 - **Known limits (G9's README):** it finds copies only. A reworded, translated or very short item is not found, nor a benchmark outside the set (`not_covered` in G9's `MANIFEST.json`). A flag can be shared public text that a benchmark also quotes.

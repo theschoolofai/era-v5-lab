@@ -1,7 +1,7 @@
 """Tests for spec_v1/normalize.py: normalize(), the word list Team 1 shares with G9, and the keys (match_key,
 line_keys, explain) for duplicates and repeated lines. Every text is made up.
 
-  python -m pytest spec_v1/tests/test_normalize.py
+  python -m pytest tests/spec_v1/test_normalize.py
 """
 import re
 import sys
@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-SPEC = Path(__file__).resolve().parents[1]
+SPEC = Path(__file__).resolve().parents[2] / "spec_v1"
 sys.path.insert(0, str(SPEC))
 import clean as c
 import normalize as n

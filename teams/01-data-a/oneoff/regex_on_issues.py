@@ -8,7 +8,7 @@ from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8")
 HERE = Path(__file__).resolve().parent
 spec = importlib.util.spec_from_file_location("ce", HERE / "compile_evidence.py"); ce = importlib.util.module_from_spec(spec); sys.modules["ce"] = ce; spec.loader.exec_module(ce)
-data = ce.load_data(); ev = json.load(open(HERE.parent / "spec_v1" / "results" / "sheets" / "evidence.json", encoding="utf-8"))
+data = ce.load_data(); ev = json.load(open(HERE.parent / "results" / "spec_v1" / "sheets" / "evidence.json", encoding="utf-8"))
 LIC = re.compile(r"(?i)licen[cs]e|copyright|all rights reserved|spdx|permission is hereby|redistribut|warrant")
 GEN = re.compile(r"(?i)generated|do not edit|do not modify|auto-?gen|machine generated")
 PH = re.compile(r"<(?:NAME|EMAIL|KEY|PASSWORD)>")

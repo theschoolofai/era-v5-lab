@@ -292,7 +292,7 @@ def integrate(packs, gold_dir):
               'rules': decisions, 'overlaps': [dict(pack=p, code=c, ids=ids,
                  selected=next((rid for rid in ids if decisions[rid]['status'] == 'CANDIDATE'), None))
                  for (p, c), ids in groups.items() if len(ids) > 1], 'gold': gold_reports}
-    path = SPEC / 'results/cleaner/indic_integration.json'
+    path = SPEC.parent / 'results/spec_v1/cleaner/indic_integration.json'
     path.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
     sheet = SPEC / 'sheets/specv1.md'
     base = re.split(r'^## Medicine \d+ — indic /', sheet.read_text(encoding='utf-8'), maxsplit=1, flags=re.M)[0].rstrip()

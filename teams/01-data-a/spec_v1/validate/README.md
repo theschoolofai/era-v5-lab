@@ -1,10 +1,10 @@
 # Validate: checks on the sheets and on `clean.py`
 
-Paths and commands start at the repository root. Install [../requirements.txt](../requirements.txt) before running data-dependent tools. The scripts that produce `clean.py` are in [../build](../build/README.md). Report files and their snapshot status are indexed in [../results/README.md](../results/README.md).
+Paths and commands start at the repository root. Install [../requirements.txt](../requirements.txt) before running data-dependent tools. The scripts that produce `clean.py` are in [../build](../build/README.md). Report files and their snapshot status are indexed in [../results/README.md](../../results/spec_v1/README.md).
 
 | Purpose | Scripts | Inputs / outputs |
 |---|---|---|
-| Validate the executable sheet | [validate_specv1.py](validate_specv1.py) | Original packs and own-pack gold → `results/cleaner/specv1_validation.json` |
+| Validate the executable sheet | [validate_specv1.py](validate_specv1.py) | Original packs and own-pack gold → `results/spec_v1/cleaner/specv1_validation.json` |
 | Validate generated cleaner behavior and harm | [make_harm_tests.py](make_harm_tests.py) | Checkout, pack folders → per-pack reports and `harm_tests.md` |
 | Compare an Indic build with a baseline | [check_indic_integration.py](check_indic_integration.py) | Explicit baseline file and diagnosis/gold packs; see Indic guide |
 | Check code equivalence and privacy behavior | [verify_clean.py](verify_clean.py), [f1_eval.py](f1_eval.py) | Code diagnosis packs, source sheet, labels/gold; IDs and counts only |

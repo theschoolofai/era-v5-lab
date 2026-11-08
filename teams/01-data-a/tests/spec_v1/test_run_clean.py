@@ -3,7 +3,7 @@ clean.py has no rules for, before reading or writing anything; --pack-id names t
 tokenizer sample part); and its summary records which input and which clean.py ran. Every text here is made up; none
 comes from a pack. pyarrow and ftfy come from spec_v1/requirements.txt: without them these tests fail, they do not skip.
 
-  python -m pytest spec_v1/tests
+  python -m pytest tests/spec_v1
 """
 import hashlib
 import json
@@ -15,7 +15,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 
-SPEC = Path(__file__).resolve().parents[1]
+SPEC = Path(__file__).resolve().parents[2] / "spec_v1"
 RUN = SPEC / "run_clean.py"
 sys.path.insert(0, str(SPEC))
 import clean as c

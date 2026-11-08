@@ -9,7 +9,7 @@ packs. Prints IDs and counts only, never text.
   4 clean(clean(doc)) == ("keep", clean(doc)): a second run changes nothing
   5 ZWJ U+200D and ZWNJ U+200C: clean() never deletes a joiner on its own
 
-Writes ../results/cleaner/verify_clean_english.json.
+Writes ../../results/spec_v1/cleaner/verify_clean_english.json.
 """
 import difflib
 import json
@@ -107,7 +107,7 @@ def main():
         print(f"{p}: {len(rows)} docs, clean() {actions} | functions vs sheet blocks differ {sum(map(len, fn_differ.values()))} | "
               f"clean() vs sheet {len(sheet_differ)} | RULES order vs clean() {len(order_c)} {order_c[:4]} | "
               f"second run changes {len(again)} {again[:4]} | docs with a joiner {with_joiners}, joiners lost {len(lost)}")
-    out = SPEC / "results" / "cleaner" / "verify_clean_english.json"
+    out = SPEC.parent / "results" / "spec_v1" / "cleaner" / "verify_clean_english.json"
     out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8", newline="\n")
     bad = any(v["function_vs_sheet_blocks"] or v["clean_vs_sheet"] or v["second_run_changes"] or v["joiners_lost_in_kept_lines"]
               for v in report["packs"].values())

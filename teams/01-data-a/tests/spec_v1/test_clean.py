@@ -2,7 +2,7 @@
 build that writes it from specv1.md. Every text here is made up; none comes from a pack. Some science rules act only on
 documents the reviewers named, so those cases use the doc_id the rule lists in specv1.md (an ID, never the document's text).
 
-  python -m pytest spec_v1/tests
+  python -m pytest tests/spec_v1
 
   1  every disease-code function, on every family that has a rule for it
   2  the scope table and the build
@@ -20,7 +20,7 @@ from pathlib import Path
 
 import pytest
 
-SPEC = Path(__file__).resolve().parents[1]
+SPEC = Path(__file__).resolve().parents[2] / "spec_v1"
 BUILD = SPEC / "build" / "build_clean.py"
 sys.path.insert(0, str(SPEC))
 import clean as c

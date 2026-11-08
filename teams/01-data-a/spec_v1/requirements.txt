@@ -1,4 +1,4 @@
-# Spec v1: clean.py, run_clean.py, the tools in spec_v1/tools/ and the tests in spec_v1/tests/.
+# Spec v1: clean.py, run_clean.py, the scripts in spec_v1/build/ and spec_v1/validate/ and the tests in tests/spec_v1/.
 # Python 3.10 or later (every package below needs it); tested on Python 3.12.10, where all the tests pass.
 # Install from teams/01-data-a/:
 #   python3 -m pip install -r spec_v1/requirements.txt

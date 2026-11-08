@@ -4,7 +4,7 @@
 
 Run from teams/01-data-a/. Uses the team's harm_test.py (teams/01-data-a/harmtest/) as it is, and the limit
 max(1, floor(1% of gold)). A pack's documents get pack_id from the file name when the Parquet has no such column.
-Writes spec_v1/results/cleaner/f1_indic_harm.json and prints one line per pack. IDs, counts and digests only.
+Writes results/spec_v1/cleaner/f1_indic_harm.json and prints one line per pack. IDs, counts and digests only.
 Exit 0: all supported Indic packs pass; 1: a pack fails or errors; 2: required inputs are missing or gold is empty.
 """
 import argparse, hashlib, json, sys
@@ -19,7 +19,7 @@ sys.path.insert(0, str(SPEC)); import clean as c
 ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 ap.add_argument("--packs", type=Path, required=True)
 ap.add_argument("--gold", type=Path, default=TEAM.parent / "02-data-b" / "gold")
-ap.add_argument("--out", type=Path, default=SPEC / "results" / "cleaner" / "f1_indic_harm.json")
+ap.add_argument("--out", type=Path, default=SPEC.parent / "results" / "spec_v1" / "cleaner" / "f1_indic_harm.json")
 args = ap.parse_args()
 
 
