@@ -73,7 +73,7 @@ def main():
         print(p, "acts in the sheet run:", {k[3:]: v for k, v in acts.items() if v})
         for name in VARIANTS:
             print(f"   {name:42} differ {res[name]['differ']:3} (drop decisions {res[name]['drop_decisions_differ']}) {res[name]['ids']}")
-    dest = HERE.parent / "results" / "cleaner" / "order_checks_english.json"
+    dest = HERE.parent.parent / "results" / "spec_v1" / "cleaner" / "order_checks_english.json"
     dest.write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8", newline="\n")
     print("wrote", dest.name)
 

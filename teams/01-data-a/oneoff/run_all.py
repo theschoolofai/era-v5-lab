@@ -9,7 +9,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 SPEC = HERE.parent / "spec_v1"
-RESULTS = SPEC / "results" / "sheets"
+RESULTS = SPEC.parent / "results" / "spec_v1" / "sheets"
 PACKS = ["code-go", "code-rust", "code-js-ts", "code-java", "code-cpp", "code-python"]
 ap = argparse.ArgumentParser(description=__doc__)
 ap.add_argument("checkout", type=Path)

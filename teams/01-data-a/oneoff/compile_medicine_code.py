@@ -235,7 +235,7 @@ def run_sheet(rules, doc):
 
 def main():
     cands = {c["id"]: c for c in ce.load_candidates()}; data = ce.load_data()
-    ev = json.loads((OUT / "results" / "sheets" / "evidence.json").read_text(encoding="utf-8"))
+    ev = json.loads((OUT.parent / "results" / "spec_v1" / "sheets" / "evidence.json").read_text(encoding="utf-8"))
     assert {n for n, *_ in PICKS} <= set(cands)
     def touched(name, p): return set(ev["rules"][name]["per"][p]["fix"]) | set(ev["rules"][name]["per"][p]["drop"])
     def cell(name, p, packs=None):

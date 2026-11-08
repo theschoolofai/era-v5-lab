@@ -49,7 +49,7 @@ def main():
         report['packs'][pack] = {'gold_n': len(ids), 'pack_sha256': sha(path), 'gold_sha256': sha(gold), 'f2_alone': raw, 'combined': combined}
         failed |= raw['result'] != 'PASS' or combined['result'] != 'PASS'
         print(pack, 'F2 alone', raw['result'], raw['changed'], raw['dropped'], 'combined', combined['result'], combined['changed'], combined['dropped'], flush=True)
-    (SPEC / 'results/f2/indic_gold_validation.json').write_text(json.dumps(report, indent=2)+'\n', encoding='utf-8')
+    (SPEC.parent / 'results/spec_v1/f2/indic_gold_validation.json').write_text(json.dumps(report, indent=2)+'\n', encoding='utf-8')
     return 1 if failed else 0
 
 

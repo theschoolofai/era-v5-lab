@@ -188,7 +188,7 @@ def main():
     src = add_card_evidence(src, report, rules, all_docs)
     sheet.write_text(src, encoding='utf-8', newline='\n')
     report['spec_sha256'] = digest(sheet)
-    out = SPEC / 'results/cleaner/specv1_validation.json'
+    out = SPEC.parent / 'results/spec_v1/cleaner/specv1_validation.json'
     out.write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8', newline='\n')
     if failures or any(v.get('combined_gold', {}).get('result') in {'FAIL', 'ERROR'} for v in report['packs'].values()):
         return 1

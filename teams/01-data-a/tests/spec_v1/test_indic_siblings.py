@@ -21,7 +21,7 @@ def module(name, path):
 extension = module('sibling_extension_test', SPEC / 'build/extend_indic_siblings.py')
 review = module('sibling_source_test', SPEC / 'build/integrate_indic.py')
 ROWS = {row['id']: row for row in review.read_source()}
-REPORT = json.loads((SPEC / 'results/cleaner/indic_sibling_scopes.json').read_text(encoding='utf-8'))
+REPORT = json.loads((SPEC.parent / 'results/spec_v1/cleaner/indic_sibling_scopes.json').read_text(encoding='utf-8'))
 BORROWED = [(pack, rid) for pack, result in REPORT['targets'].items() for rid in result['accepted']]
 
 

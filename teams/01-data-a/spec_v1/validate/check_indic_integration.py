@@ -91,7 +91,7 @@ def main():
         failed |= result != 'PASS' or bool(again)
         print(pack, result, 'gold', len(changed), len(dropped), 'full', len(fixed), len(removed),
               'errors', len(full_errors), 'second-run changes', len(again), flush=True)
-    (SPEC / 'results/cleaner/indic_clean_validation.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
+    (SPEC.parent / 'results/spec_v1/cleaner/indic_clean_validation.json').write_text(json.dumps(report, indent=2) + '\n', encoding='utf-8')
     return 1 if failed else 2 if missing else 0
 
 

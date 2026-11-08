@@ -16,7 +16,7 @@ review = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(review)
 SOURCE = review.read_source()
 SELECTED = [row for row in SOURCE if row['id'] in c._RULE]
-DECISIONS = json.loads((SPEC / 'results/cleaner/indic_integration.json').read_text(encoding='utf-8'))
+DECISIONS = json.loads((SPEC.parent / 'results/spec_v1/cleaner/indic_integration.json').read_text(encoding='utf-8'))
 
 
 def document(row, text):
@@ -134,8 +134,9 @@ def test_integration_requires_nonempty_own_pack_gold(tmp_path, monkeypatch, own_
     import pyarrow.parquet as pq
 
     local = tmp_path / 'spec_v1'
-    for folder in ('sheets', 'build', 'results/cleaner'):
+    for folder in ('sheets', 'build'):
         (local / folder).mkdir(parents=True)
+    (tmp_path / 'results/spec_v1/cleaner').mkdir(parents=True)
     packs, gold = tmp_path / 'packs', tmp_path / 'gold'
     packs.mkdir()
     gold.mkdir()
@@ -185,4 +186,4 @@ def test_integration_requires_nonempty_own_pack_gold(tmp_path, monkeypatch, own_
         card = sheet.split(f'/ `{target["id"]}`\n', 1)[1]
         assert '```python deferred\n' in card
         assert 'STATUS = "DEFERRED"' in card
-    assert json.loads((local / 'results/cleaner/indic_integration.json').read_text(encoding='utf-8')) == report
+    assert json.loads((tmp_path / 'results/spec_v1/cleaner/indic_integration.json').read_text(encoding='utf-8')) == report

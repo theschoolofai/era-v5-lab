@@ -19,7 +19,7 @@ sys.path.insert(0, str(SPEC)); import clean as c
 ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 ap.add_argument("--packs", type=Path, required=True)
 ap.add_argument("--gold", type=Path, default=TEAM.parent / "02-data-b" / "gold")
-ap.add_argument("--out", type=Path, default=SPEC / "results" / "cleaner" / "f1_indic_harm.json")
+ap.add_argument("--out", type=Path, default=SPEC.parent / "results" / "spec_v1" / "cleaner" / "f1_indic_harm.json")
 args = ap.parse_args()
 
 

@@ -168,7 +168,7 @@ def main():
             per[pack] = dict(drop=drop, fix=fix, err=err)
         ev["rules"][c["id"]] = dict(handle=c["handle"], pack=c["pack"], code=c["code"], how=c["how"], per=per)
         print(f"{c['id']:18} {c['handle']:20} {time.time() - t0:6.1f}s", file=sys.stderr, flush=True)
-    (HERE.parent / "spec_v1" / "results" / "sheets" / "evidence.json").write_text(json.dumps(ev), encoding="utf-8", newline="\n")
+    (HERE.parent / "results" / "spec_v1" / "sheets" / "evidence.json").write_text(json.dumps(ev), encoding="utf-8", newline="\n")
 
 
 if __name__ == "__main__":
