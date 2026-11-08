@@ -9,7 +9,7 @@ documents the reviewers named, so those cases use the doc_id the rule lists in s
   3  the code family: licences, generated files, the shared F1
   4  the English family: look-alikes, ZWJ and ZWNJ, DA-F1-005, clean() equal to the sheet
   5  the math family
-  6  the shared F1 on the math and science packs: the prose path of spec_v1/tools/f1_rule.py (TSAI, 1 Nov)
+  6  the shared F1 on the math and science packs: the prose path of spec_v1/build/f1_rule.py (TSAI, 1 Nov)
 """
 import re
 import subprocess
@@ -21,7 +21,7 @@ from pathlib import Path
 import pytest
 
 SPEC = Path(__file__).resolve().parents[1]
-BUILD = SPEC / "tools" / "build_clean.py"
+BUILD = SPEC / "build" / "build_clean.py"
 sys.path.insert(0, str(SPEC))
 import clean as c
 
@@ -90,7 +90,7 @@ SICK = [
     ("code", "C1", code("package v1\n\n// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!\ntype A struct{}\n"), "fix", None),
     ("code", "B4", code('package main\nconst a = "<NAME>"\n'), "fix", None),
     ("code", "E3", code('package main\nconst k = "AKIA' + "ABCDEFGHIJKLMNOP" + '"\n'), "fix", None),
-    ("code", "F1", code("package main // by a" + AT + "mail.io\n"), "fix", None),  # the shared F1, tools/f1_rule.py
+    ("code", "F1", code("package main // by a" + AT + "mail.io\n"), "fix", None),  # the shared F1, build/f1_rule.py
 
     ("english", "A1", en("Hello\u200bworld\ufeff and more."), "fix", "Helloworld and more."),
     ("english", "A2", en("Bell\x07 here\r\nnext line"), "fix", "Bell here\nnext line"),
@@ -185,7 +185,7 @@ def test_clean_keeps_a_clean_document(kind):
     assert c.clean(CLEAN[kind]) == ("keep", CLEAN[kind]["text"])
 
 
-# 2. The scope table (SCOPE) and tools/build_clean.py, which writes it from specv1.md
+# 2. The scope table (SCOPE) and build/build_clean.py, which writes it from specv1.md
 
 def test_every_rule_has_one_scope_entry_in_sheet_order():
     assert list(c.SCOPE) == list(c._RULE) == [rid for _, rid in SECTIONS] + ["f1_rule.py"]
@@ -280,7 +280,7 @@ def test_the_build_stops_on_a_bad_scope(tmp_path, rid, packs, error):
 
 @pytest.fixture
 def prose(monkeypatch):
-    """The shared F1 (spec_v1/tools/f1_rule.py) on prose. clean.py runs it on the code, math and sci packs; English has its own F1, DA-F1-005."""
+    """The shared F1 (spec_v1/build/f1_rule.py) on prose. clean.py runs it on the code, math and sci packs; English has its own F1, DA-F1-005."""
     monkeypatch.setattr(c, "_F1_LANGS", c._F1_LANGS | {"en"})
 
 
@@ -550,7 +550,7 @@ def test_greek_letters_are_maths_not_foreign():
     assert c.d3(maths(text)) == ("keep", text)
 
 
-# 6. The shared F1 on the math and science packs: the prose path of spec_v1/tools/f1_rule.py (TSAI, 1 Nov).
+# 6. The shared F1 on the math and science packs: the prose path of spec_v1/build/f1_rule.py (TSAI, 1 Nov).
 # Made-up values only: 555-01xx numbers, example names and domains.
 
 def sci_prose(text): return dict(doc("sci-finepdfs", text, "eng_Latn"), url="http://a/b.pdf")

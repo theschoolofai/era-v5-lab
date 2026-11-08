@@ -6,7 +6,7 @@ Selections remain CANDIDATE. Loading and compatibility checks do not establish p
 
 ## Selection and deferred rules
 
-`tools/integrate_indic.py` checks return values, mutation, ordinary synthetic prose, ZWJ/ZWNJ preservation, idempotence and unrelated-pack guards. It checks source rules on available full diagnosis packs for runtime errors and single-rule idempotence, then iteratively defers rules that act again after the selected full pipeline. It also runs every source rule on its own current gold when both the week-1 diagnosis pack and Data B gold file exist. Missing own-pack inputs are NOT TESTABLE and explicitly defer the affected rules. Empty gold records "Gold set empty, not testable" and defers the rules without aborting review of other packs. Combined gold failures defer the affected pack's selected pipeline.
+`build/integrate_indic.py` checks return values, mutation, ordinary synthetic prose, ZWJ/ZWNJ preservation, idempotence and unrelated-pack guards. It checks source rules on available full diagnosis packs for runtime errors and single-rule idempotence, then iteratively defers rules that act again after the selected full pipeline. It also runs every source rule on its own current gold when both the week-1 diagnosis pack and Data B gold file exist. Missing own-pack inputs are NOT TESTABLE and explicitly defer the affected rules. Empty gold records "Gold set empty, not testable" and defers the rules without aborting review of other packs. Combined gold failures defer the affected pack's selected pipeline.
 
 For each of the 43 overlapping pack/disease groups, the first eligible source candidate is provisionally selected; later alternatives are deferred. This avoids stacking competing treatments. It is a deterministic integration choice, not a finding that the selected rule has better precision or recall. Positive-case review is still required.
 
@@ -18,7 +18,7 @@ All 176 source IDs retain their `DB-` prefix. The builder accepts both `DA-` and
 
 ## Scope and privacy
 
-Indic uses the pack guard, independently of whether a source language tag uses `mr` or `mar_Deva`. F1 on every Indic pack is the shared rule, `tools/f1_rule.py`, run last (its Indic path: Indian phone formats and digits, Indian organisation domains and words, organisation and public-office contacts kept). The source F1 rules, including their sibling scopes, are deferred: they used other placeholders (`[EMAIL]`, `[REDACTED]`) or deleted values, and replaced organisation contacts, against the TSAI ruling. Every supported Indic pack now has F1, including the three that had no selected F1 candidate. Harm: `python -I spec_v1/tools/harm_f1_indic.py --packs <packs>` (F1 alone and `clean()` on each pack's own gold set). Do not interpret a clean gold pass as full privacy coverage: Indian street addresses are not treated.
+Indic uses the pack guard, independently of whether a source language tag uses `mr` or `mar_Deva`. F1 on every Indic pack is the shared rule, `build/f1_rule.py`, run last (its Indic path: Indian phone formats and digits, Indian organisation domains and words, organisation and public-office contacts kept). The source F1 rules, including their sibling scopes, are deferred: they used other placeholders (`[EMAIL]`, `[REDACTED]`) or deleted values, and replaced organisation contacts, against the TSAI ruling. Every supported Indic pack now has F1, including the three that had no selected F1 candidate. Harm: `python -I spec_v1/validate/harm_f1_indic.py --packs <packs>` (F1 alone and `clean()` on each pack's own gold set). Do not interpret a clean gold pass as full privacy coverage: Indian street addresses are not treated.
 
 The source contributes native candidates from 13 packs. Its sibling policy is declared near the top of `sheets/medicine_indic.md`, separately from the copied contributor code. Integration tests selected donors on same-language receivers and writes accepted `ORIGIN`/`SPEC_PACKS` scopes to `sheets/specv1.md`, with `SOURCE_ORIGIN` retaining the donor. Native disease selections take priority; only missing diseases are filled. `clean.py` is generated from those scopes.
 
@@ -35,19 +35,19 @@ Still unsupported: `ind-hi-sangraha-s`, `ind-hi-sangraha-v`, `ind-ta-fw2`, `ind-
 Run from the repository root, using Python with `spec_v1/requirements.txt` installed:
 
 ```bash
-python teams/01-data-a/spec_v1/tools/integrate_indic.py \
+python teams/01-data-a/spec_v1/build/integrate_indic.py \
   --packs ../erav5-lab-other-files/packs \
   --gold teams/02-data-b/gold
-python teams/01-data-a/spec_v1/tools/build_clean.py
+python teams/01-data-a/spec_v1/build/build_clean.py
 python -m pytest teams/01-data-a/spec_v1/tests -q
-python teams/01-data-a/spec_v1/tools/validate_specv1.py \
+python teams/01-data-a/spec_v1/validate/validate_specv1.py \
   --packs ../erav5-lab-other-files/packs \
   --gold teams/01-data-a/gold \
   --indic-gold teams/02-data-b/gold \
   --allow-missing
 ```
 
-The integration step refreshes native decisions, then automatically reviews sibling scopes from the source policy. `tools/extend_indic_siblings.py --packs <packs folder>` can recheck scopes using cached native decisions only if source Python blocks and native input digests still match; otherwise rerun integration. The builder still reads only the consolidated spec: rerunning it alone does not discover changes to an individual medicine sheet. To promote or change a selection, update the review policy/source evidence, rerun integration, rebuild, and validate.
+The integration step refreshes native decisions, then automatically reviews sibling scopes from the source policy. `build/extend_indic_siblings.py --packs <packs folder>` can recheck scopes using cached native decisions only if source Python blocks and native input digests still match; otherwise rerun integration. The builder still reads only the consolidated spec: rerunning it alone does not discover changes to an individual medicine sheet. To promote or change a selection, update the review policy/source evidence, rerun integration, rebuild, and validate.
 
 The validator uses the repository minimum-one policy, `max(1, floor(1% × gold_count))`. With `--allow-missing`, it records missing inputs and exits 2; actual test failures exit 1. Exit 0 requires all required inputs and tests to pass. The sheet validator tests the executable sheet; generated-cleaner validation additionally exercises dispatch, closures and the shared F1.
 
@@ -55,10 +55,10 @@ Week-2 training shards are not substitutes for the week-1 diagnosis packs: they 
 
 ## Optional F2 validation
 
-[tools/validate_f2_indic.py](tools/validate_f2_indic.py) measures F2 alone and `clean.py` followed by F2 on each supported Indic pack's own gold. From the repository root, with pinned dependencies, original diagnosis packs, Data B gold, and the full pinned G9 fingerprint set available:
+[validate/validate_f2_indic.py](validate/validate_f2_indic.py) measures F2 alone and `clean.py` followed by F2 on each supported Indic pack's own gold. From the repository root, with pinned dependencies, original diagnosis packs, Data B gold, and the full pinned G9 fingerprint set available:
 
 ```bash
-python teams/01-data-a/spec_v1/tools/validate_f2_indic.py \
+python teams/01-data-a/spec_v1/validate/validate_f2_indic.py \
   --packs /path/to/week1-diagnosis-packs \
   --gold teams/02-data-b/gold
 ```
@@ -69,7 +69,7 @@ For an independent comparison with the cleaner before integration:
 
 ```bash
 git show a6eab62:teams/01-data-a/spec_v1/clean.py > /tmp/clean_before_indic.py
-python teams/01-data-a/spec_v1/tools/check_indic_integration.py \
+python teams/01-data-a/spec_v1/validate/check_indic_integration.py \
   --packs ../erav5-lab-other-files/packs \
   --gold teams/02-data-b/gold \
   --baseline /tmp/clean_before_indic.py

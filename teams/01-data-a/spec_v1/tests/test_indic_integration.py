@@ -11,7 +11,7 @@ SPEC = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SPEC))
 import clean as c
 
-spec = importlib.util.spec_from_file_location('indic_review', SPEC / 'tools/integrate_indic.py')
+spec = importlib.util.spec_from_file_location('indic_review', SPEC / 'build/integrate_indic.py')
 review = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(review)
 SOURCE = review.read_source()
@@ -94,7 +94,7 @@ def test_builder_does_not_silently_skip_a_bad_heading(tmp_path):
     sheet = tmp_path / 'specv1.md'
     sheet.write_text(source, encoding='utf-8', newline='\n')
     dest = tmp_path / 'clean.py'
-    result = subprocess.run([sys.executable, '-I', str(SPEC / 'tools/build_clean.py'), '--sheet', str(sheet), '--out', str(dest)], capture_output=True)
+    result = subprocess.run([sys.executable, '-I', str(SPEC / 'build/build_clean.py'), '--sheet', str(sheet), '--out', str(dest)], capture_output=True)
     assert result.returncode != 0 and b'unsupported medicine heading' in result.stderr
     assert not dest.exists()
 
@@ -134,7 +134,7 @@ def test_integration_requires_nonempty_own_pack_gold(tmp_path, monkeypatch, own_
     import pyarrow.parquet as pq
 
     local = tmp_path / 'spec_v1'
-    for folder in ('sheets', 'tools', 'results/cleaner'):
+    for folder in ('sheets', 'build', 'results/cleaner'):
         (local / folder).mkdir(parents=True)
     packs, gold = tmp_path / 'packs', tmp_path / 'gold'
     packs.mkdir()
@@ -146,8 +146,8 @@ def test_integration_requires_nonempty_own_pack_gold(tmp_path, monkeypatch, own_
     (local / 'sheets/medicine_indic.md').write_text(
         '\n\n'.join(row['body'] for row in (control, target)) + '\n', encoding='utf-8')
     (local / 'sheets/specv1.md').write_bytes((SPEC / 'sheets/specv1.md').read_bytes())
-    (local / 'tools/extend_indic_siblings.py').write_bytes((SPEC / 'tools/extend_indic_siblings.py').read_bytes())
-    (local / 'tools/f1_rule.py').write_bytes((SPEC / 'tools/f1_rule.py').read_bytes())
+    (local / 'build/extend_indic_siblings.py').write_bytes((SPEC / 'build/extend_indic_siblings.py').read_bytes())
+    (local / 'build/f1_rule.py').write_bytes((SPEC / 'build/f1_rule.py').read_bytes())
     for row in (control, target):
         doc = document(row, review.probes(row['pack'])['prose'])
         pq.write_table(pa.Table.from_pylist([doc]), packs / (row['pack'] + '.parquet'))

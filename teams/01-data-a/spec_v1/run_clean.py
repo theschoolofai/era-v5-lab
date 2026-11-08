@@ -10,7 +10,7 @@ Writes out/<name>_clean.parquet (the kept docs, with their cleaned text) and out
 doc_ids, and the SHA-256 of the input file and of the clean.py that ran; no text). <name> is the file name without
 .parquet, after the pack when --pack-id names another (code-go_part-00000), so parts of two packs never overwrite each other.
 
---f2 then runs F2, G9's benchmark fingerprints (tools/f2_rule.py), on each doc clean.py keeps, and drops the ones it flags.
+--f2 then runs F2, G9's benchmark fingerprints (f2_rule.py), on each doc clean.py keeps, and drops the ones it flags.
 The summary also gets "rule_seconds": for each rule that ran, the seconds it took in total, how many documents it ran on ("calls")
 and the milliseconds per call, slowest first. A rule SCOPE skips on this pack, or one never reached because an earlier rule dropped
 the document, has no entry. It is the per-rule time profile for Gate 2: it shows which rules are slow at scale.
@@ -55,7 +55,6 @@ for row in rows:  # clean.py picks the rules by pack_id: a file without the colu
         sys.exit(f"{args.pack.name}: doc_id {row['doc_id']} has pack_id {row['pack_id']!r}, not {pack!r}")
 f2 = None
 if args.f2:
-    sys.path.insert(0, str(Path(__file__).resolve().parent / "tools"))
     import f2_rule as f2
     try:
         f2.fingerprints()  # load and check the set before anything is written

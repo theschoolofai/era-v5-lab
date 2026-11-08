@@ -1,4 +1,4 @@
-"""Unit tests for spec_v1/tools/validate_specv1.py: the paths it writes into results/cleaner/specv1_validation.json and
+"""Unit tests for spec_v1/validate/validate_specv1.py: the paths it writes into results/cleaner/specv1_validation.json and
 specv1.md never name a local folder (TSAI review of spec v1, 2 Nov). The validation run itself needs all 13 packs, so it is
 not run here.
 
@@ -9,7 +9,7 @@ from pathlib import Path
 
 SPEC = Path(__file__).resolve().parents[1]
 TEAM = SPEC.parent
-sys.path.insert(0, str(SPEC / "tools"))
+sys.path.insert(0, str(SPEC / "validate"))
 import validate_specv1 as v
 
 
@@ -26,7 +26,7 @@ def test_folders_outside_the_repository_are_not_written(tmp_path):
 
 
 def test_the_script_holds_no_local_folder():
-    src = (SPEC / "tools" / "validate_specv1.py").read_text(encoding="utf-8")
+    src = (SPEC / "validate" / "validate_specv1.py").read_text(encoding="utf-8")
     assert "/home/" not in src and "/Users/" not in src
 
 

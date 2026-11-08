@@ -1,4 +1,4 @@
-"""Unit tests for tools/f2_rule.py, F2 with G9's benchmark fingerprints, and for run_clean.py --f2: F2 reads the text clean.py
+"""Unit tests for spec_v1/f2_rule.py, F2 with G9's benchmark fingerprints, and for run_clean.py --f2: F2 reads the text clean.py
 keeps, the final counts add up to the input rows, an F2 error is reported, an all-dropped output keeps its columns, a missing
 or another set is refused, and a train and a heldout part never overwrite each other. Every doc here is made up; the one
 benchmark string is a canary read from G9's fingerprint set at run time, never written in this file. One run_clean.py test
@@ -19,7 +19,7 @@ import pyarrow.parquet as pq
 import pytest
 
 SPEC = Path(__file__).resolve().parents[1]
-TOOLS = SPEC / "tools"
+TOOLS = SPEC  # f2_rule.py and normalize.py sit next to clean.py
 sys.path.insert(0, str(TOOLS))
 import f2_rule
 
@@ -70,7 +70,7 @@ def test_g9s_normalize_is_used_even_when_team_1s_is_already_imported():
 
 def test_harm_test_reads_the_rule_without_loading_the_set():
     """harm_test.py runs this file's source with no __file__; the set loads only on the first doc."""
-    sys.path.insert(0, str(SPEC.parent / "tools"))
+    sys.path.insert(0, str(SPEC.parent / "harmtest"))
     import harm_test
     ns = harm_test.load_rules(TOOLS / "f2_rule.py")
     ns = ns[0] if isinstance(ns, tuple) else ns

@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 
 
-MODULE_PATH = Path(__file__).resolve().parents[1] / "tools" / "normalize.py"
+MODULE_PATH = Path(__file__).resolve().parents[1] / "normalize.py"
 SPEC = importlib.util.spec_from_file_location("g1_normalize_contract", MODULE_PATH)
 n = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(n)
