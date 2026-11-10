@@ -9,8 +9,14 @@ text is not accepted.
     python gguf_roundtrip.py --tokenizer v0/tokenizer.json --name v0 \
         --llama-cpp /path/to/llama.cpp-b11669 --work /tmp/rt --out ../results
 
-Writes <out>/gguf_roundtrip_<name>.md (report) and .json (per-line mismatch indices). Downloads its data into --work
-(~26 MB) and checks every file's sha256. The reports hold counts, line indices and token ids only, never line text.
+Writes <out>/gguf_roundtrip_<name>.md (report) and .json (per-line mismatch indices). The reports hold counts, line
+indices, token ids and hashes only, never line text.
+
+Test text (TSAI, 10 Nov: no benchmark text): Team 3's held-out sources, streamed from Hugging Face at pinned dataset
+commits into --work (about 2 minutes, 10-20 MB; needs network and the `datasets` package): the FineWeb-2 `test` split of
+12 languages and 5 others, FineWeb for English, codeparrot-clean-valid for Python. Derived from it: lines with ZWNJ / ZWJ
+inserted, NFD lines, Malayalam old-style chillu. Delete --work afterwards to remove all of it. A second run with the same
+--work reads the cache.
 
 Exit code (decided by the first --pre type): 0 = same ids on every line; 1 = anything else; 2 = only with
 --normalize-first, see below.
@@ -33,28 +39,33 @@ so conversion stops ("BPE pre-tokenizer was not recognized"). This script sets t
 Tokenizer v0 is not in the repo (7.7 MB); build it with teams/03-tokenizer/v0/build_v0.py and check SHA256SUMS.
 
 Versions used: Python 3.12, llama.cpp b11669 (converter + gguf-py), llama-cpp-python 0.3.36, tokenizers 0.22.2,
-transformers 4.57.6, torch 2.11.0 (CPU), numpy 2.2.6, sentencepiece 0.2.2, protobuf 4.25.9, gguf 0.19.0
+transformers 4.57.6, torch 2.11.0 (CPU), numpy 2.2.6, sentencepiece 0.2.2, protobuf 4.25.9, gguf 0.19.0, datasets 4.8.5
 (llama.cpp's gguf-py). Optional --llama-tokenize: the llama-tokenize binary of the same llama.cpp build.
 """
 from __future__ import annotations
 
-import argparse, gzip, hashlib, json, os, platform, subprocess, sys, tarfile, time, unicodedata, urllib.request
+import argparse, hashlib, json, os, platform, subprocess, sys, time, unicodedata
 from pathlib import Path
 
-FLORES = ("https://dl.fbaipublicfiles.com/nllb/flores200_dataset.tar.gz",
-          "b8b0b76783024b85797e5cc75064eb83fc5288b41e9654dabc7be6ae944011f6")
-HUMANEVAL = ("https://raw.githubusercontent.com/openai/human-eval/b9453e8f1865df0a0057a1383767caa400acfbcf/data/HumanEval.jsonl.gz",
-             "b796127e635a67f93fb35c04f4cb03cf06f38c8072ee7cee8833d7bee06979ef")
-MBPP = ("https://raw.githubusercontent.com/google-research/google-research/83f1e7b59e762648c953de751d31f75720683622/mbpp/sanitized-mbpp.json",
-        "ca95deaa9a01ef0a6f439f88bcf0dd3db3563d22f22aad6cae04ebb9a8d8c8e9")
+# Test text: Team 3's held-out sources (teams/03-tokenizer/train/fetch_heldout.py), not benchmark data. Pinned by the
+# dataset repository's commit; streamed in order, so the same commit gives the same lines.
+FW2 = ("HuggingFaceFW/fineweb-2", "af9c13333eb981300149d5ca60a8e9d659b276b9")                  # per-language `test` split
+FW = ("HuggingFaceFW/fineweb", "9bb295ddab0e05d785b879661af7260fed5140fc")                     # English, sample-10BT
+CODE = ("codeparrot/codeparrot-clean-valid", "4db92d2ec0c1b4c41eeb439cfae16854511d9dcd")      # Python files
 
-# Team 3's 12 languages (harness/run_harness.py): every Brahmic script the tokenizer covers, plus English
-LANGS = ["eng_Latn", "hin_Deva", "mar_Deva", "ben_Beng", "asm_Beng", "tam_Taml", "tel_Telu", "kan_Knda",
-         "mal_Mlym", "guj_Gujr", "pan_Guru", "ory_Orya"]
-# not asked for; Latin with diacritics, Greek and Cyrillic test llama.cpp's approximation of the regex's case classes
+# Team 3's languages (harness/run_harness.py): English + every Brahmic script the tokenizer covers
+INDIC = ["hin_Deva", "mar_Deva", "ben_Beng", "asm_Beng", "tam_Taml", "tel_Telu", "kan_Knda", "mal_Mlym", "guj_Gujr",
+         "pan_Guru", "ory_Orya"]
+# not asked for; Latin with diacritics, Greek and Cyrillic test the regex's case classes
 EXTRA = ["fra_Latn", "deu_Latn", "vie_Latn", "ell_Grek", "rus_Cyrl"]
-N = 1000
-ZW = ("‌", "‍")   # ZWNJ, ZWJ
+N = 1000          # lines per language and for code
+N_DERIVED = 100   # lines per Indic language in the derived sets
+N_FILES, MAX_FILE = 100, 20_000   # whole Python files, at most this many characters each
+VIRAMAS = "\u094d\u09cd\u0a4d\u0acd\u0b4d\u0bcd\u0c4d\u0ccd\u0d4d"
+ZWNJ, ZWJ = "\u200c", "\u200d"
+# Malayalam atomic chillu -> consonant + virama + ZWJ (the old spelling); Team 3's normalizer joins them back
+OLD_CHILLU = {0x0D7A: "\u0d23\u0d4d\u200d", 0x0D7B: "\u0d28\u0d4d\u200d", 0x0D7C: "\u0d30\u0d4d\u200d",
+              0x0D7D: "\u0d32\u0d4d\u200d", 0x0D7E: "\u0d33\u0d4d\u200d", 0x0D7F: "\u0d15\u0d4d\u200d"}
 DEFAULT_PRE = ["granite-embed-multi-97m", "gpt-4o"]
 
 
@@ -66,47 +77,92 @@ def sha256(p) -> str:
     return h.hexdigest()
 
 
-def fetch(url_sha, work: Path) -> Path:
-    url, want = url_sha
-    p = work / url.rsplit("/", 1)[1]
-    if not p.exists():
-        urllib.request.urlretrieve(url, p)
-    if sha256(p) != want:
-        sys.exit(f"{p}: sha256 {sha256(p)} != pinned {want}")
-    return p
+def sha256_lines(lines: list[str]) -> str:
+    return hashlib.sha256(("\n".join(lines) + "\n").encode("utf-8")).hexdigest()
+
+
+def insert_zw(line: str) -> str:
+    """ZWNJ after every 3rd virama starting with the 1st, ZWJ after every 3rd starting with the 2nd (deterministic)."""
+    out, k = [], 0
+    for ch in line:
+        out.append(ch)
+        if ch in VIRAMAS:
+            k += 1
+            if k % 3 == 1:
+                out.append(ZWNJ)
+            elif k % 3 == 2:
+                out.append(ZWJ)
+    return "".join(out)
+
+
+def stream_docs(repo, config, split, field):
+    from datasets import load_dataset
+    for row in load_dataset(repo[0], name=config, split=split, streaming=True, revision=repo[1]):
+        if row[field].strip():
+            yield row[field]
+
+
+def first_lines(docs, n: int) -> list[str]:
+    out = []
+    for doc in docs:
+        out += [ln for ln in doc.split("\n") if ln.strip()]
+        if len(out) >= n:
+            break
+    return out[:n]
+
+
+def fetch_heldout(work: Path) -> dict[str, list[str]]:
+    """The first N non-blank lines of each held-out stream, and the first whole Python files; cached in work/heldout/."""
+    pins = {"fineweb-2": FW2[1], "fineweb": FW[1], "codeparrot-clean-valid": CODE[1], "n": N, "files": [N_FILES, MAX_FILE]}
+    cache = work / "heldout" / "lines.json"
+    if cache.exists() and json.loads(cache.read_text(encoding="utf-8"))["pins"] == pins:
+        return json.loads(cache.read_text(encoding="utf-8"))["lines"]
+    os.environ.setdefault("HF_HOME", str(work / "hf"))   # every download stays under --work
+    os.environ.setdefault("HF_HUB_DISABLE_PROGRESS_BARS", "1")
+    raw = {lang: first_lines(stream_docs(FW2, lang, "test", "text"), N) for lang in INDIC + EXTRA}
+    raw["eng_Latn"] = first_lines(stream_docs(FW, "sample-10BT", "train", "text"), N)
+    lines, files = [], []
+    for doc in stream_docs(CODE, None, "train", "content"):
+        if len(lines) < N:
+            lines += [ln for ln in doc.split("\n") if ln.strip()]
+        if len(files) < N_FILES and len(doc) <= MAX_FILE:
+            files.append(doc)
+        if len(lines) >= N and len(files) >= N_FILES:
+            break
+    raw["code_py_lines"], raw["code_py_files"] = lines[:N], files
+    short = {k: len(v) for k, v in raw.items() if len(v) < (N_FILES if k == "code_py_files" else N)}
+    if short:
+        sys.exit(f"held-out stream too short: {short}")
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    cache.write_text(json.dumps({"pins": pins, "lines": raw}, ensure_ascii=False), encoding="utf-8")
+    return raw
 
 
 def load_sets(work: Path) -> dict[str, dict]:
-    """name -> {lines, kind, source}. FLORES: first 1,000 of dev+devtest (2,009). Code: first 1,000 non-blank lines."""
-    tar = fetch(FLORES, work)
-    root = work / "flores200_dataset"
-    if not root.exists():
-        with tarfile.open(tar) as t:
-            t.extractall(work, members=[m for m in t.getmembers() if m.name.split("/")[-1].split(".")[0] in LANGS + EXTRA],
-                         filter="data")
-
-    def flores(lang):
-        return [s for sp in ("dev", "devtest")
-                for s in (root / sp / f"{lang}.{sp}").read_text(encoding="utf-8").splitlines()]
-
-    sets = {}
-    for lang in LANGS + EXTRA:
-        sets[lang] = {"lines": flores(lang)[:N], "kind": "extra" if lang in EXTRA else "script",
-                      "source": "FLORES-200 dev+devtest, first 1,000"}
-    zw = [s for lang in LANGS for s in flores(lang) if any(c in s for c in ZW)]
-    sets["zwj_zwnj"] = {"lines": zw, "kind": "script", "source": "every FLORES line (all 2,009, 12 languages) with ZWJ or ZWNJ"}
-    sets["nfd_indic"] = {"lines": [unicodedata.normalize("NFD", s) for lang in LANGS[1:] for s in flores(lang)[:100]],
-                         "kind": "extra", "source": "first 100 lines of each Indic language, NFD-decomposed"}
-
-    he = [json.loads(l) for l in gzip.open(fetch(HUMANEVAL, work), "rt", encoding="utf-8")]
-    mb = json.loads(fetch(MBPP, work).read_text(encoding="utf-8"))
-    he_docs = [r["prompt"] + r["canonical_solution"] for r in he]
-    sets["code_humaneval"] = {"lines": [s for d in he_docs for s in d.splitlines() if s.strip()][:N], "kind": "code",
-                              "source": "HumanEval prompt + solution, first 1,000 non-blank lines (indentation kept)"}
-    sets["code_mbpp"] = {"lines": [s for r in mb for s in r["code"].splitlines() if s.strip()][:N], "kind": "code",
-                         "source": "MBPP sanitized code, first 1,000 non-blank lines"}
-    sets["code_files"] = {"lines": he_docs, "kind": "code",
-                          "source": "all 164 HumanEval problems as whole multi-line strings (newlines, indentation runs)"}
+    """name -> {lines, kind, source}. Text from Team 3's held-out sources; the ZWJ/ZWNJ, old-chillu and NFD sets are
+    derived from it, because the natural text has no ZWJ or ZWNJ at all."""
+    raw = fetch_heldout(work)
+    fw2 = lambda lang: f"{FW2[0]} {lang} test @{FW2[1][:8]}, first {N} non-blank lines"
+    sets = {"eng_Latn": {"lines": raw["eng_Latn"], "kind": "script",
+                         "source": f"{FW[0]} sample-10BT @{FW[1][:8]}, first {N} non-blank lines"}}
+    for lang in INDIC:
+        sets[lang] = {"lines": raw[lang], "kind": "script", "source": fw2(lang)}
+    for lang in EXTRA:
+        sets[lang] = {"lines": raw[lang], "kind": "extra", "source": fw2(lang)}
+    with_virama = {lang: [x for x in raw[lang] if any(v in x for v in VIRAMAS)][:N_DERIVED] for lang in INDIC}
+    sets["zwj_zwnj"] = {"lines": [insert_zw(x) for xs in with_virama.values() for x in xs], "kind": "script",
+                        "source": f"first {N_DERIVED} lines with a virama of each Indic language above, with ZWNJ and ZWJ "
+                                  "inserted after viramas (the natural text has none)"}
+    sets["nfd_indic"] = {"lines": [unicodedata.normalize("NFD", x) for lang in INDIC for x in raw[lang][:N_DERIVED]],
+                         "kind": "extra", "source": f"first {N_DERIVED} lines of each Indic language above, NFD-decomposed"}
+    chillu = [x for x in raw["mal_Mlym"] if any(chr(c) in x for c in OLD_CHILLU)][:N_DERIVED]
+    sets["old_chillu_ml"] = {"lines": [x.translate(OLD_CHILLU) for x in chillu], "kind": "extra",
+                             "source": f"mal_Mlym lines with a chillu, spelled consonant+virama+ZWJ ({len(chillu)} lines)"}
+    sets["code_py_lines"] = {"lines": raw["code_py_lines"], "kind": "code",
+                             "source": f"{CODE[0]} @{CODE[1][:8]}, first {N} non-blank lines (indentation kept)"}
+    sets["code_py_files"] = {"lines": raw["code_py_files"], "kind": "code",
+                             "source": f"{CODE[0]} @{CODE[1][:8]}, first {len(raw['code_py_files'])} whole files up to "
+                                       f"{MAX_FILE:,} characters (newlines and indentation runs)"}
     return sets
 
 
@@ -166,7 +222,7 @@ def cli_check(binary: Path, gguf: Path, enc, lines_by_set: dict, work: Path) -> 
 
 
 def first_diff(g: list, h: list, k: int) -> dict:
-    """Where two id lists first differ, as ids (no text: the lines are benchmark text)."""
+    """Where two id lists first differ, as ids; line text never goes into a report."""
     j = next(i for i, (a, b) in enumerate(zip(g + [-1], h + [-1])) if a != b)
     lo = max(0, j - 2)
     return {"line": k, "at_token": j, "hf_ids": h[lo:j + 4], "gguf_ids": g[lo:j + 4]}
@@ -341,9 +397,11 @@ def report(args, info, sets, results) -> str:
     L += ["## Sets", "", "| Set | Source |", "|---|---|"]
     L += [f"| {n} | {s['source']} |" for n, s in sets.items()]
     L += ["", "Kinds: `script` = what the task asks (each script the tokenizer covers, and code); `extra` = harder input "
-          "outside the task (other Latin, Greek, Cyrillic, NFD). The sources are public benchmark datasets (FLORES-200, "
-          "HumanEval, MBPP), pinned by sha256 below and downloaded when the script runs; this file and the .json hold counts, "
-          "line indices and token ids only, never line text. FLORES-200 is CC-BY-SA 4.0 (NLLB Team et al., 2022).", "",
+          "outside the task (other Latin, Greek, Cyrillic, NFD). The text is web text from Team 3's held-out sources (FineWeb, "
+          "FineWeb-2, codeparrot-clean-valid), not benchmark data; each source is pinned by its dataset commit below, and "
+          "each set by the sha256 of its lines. Team 3's own held-out files cannot be rebuilt without their training corpus "
+          "(they drop overlapping documents), so this run reads the same sources directly and its hashes differ from "
+          "theirs. This file and the .json hold counts, line indices, token ids and hashes only, never line text.", "",
           "## Inputs and outputs (sha256)", "", "| What | sha256 |", "|---|---|"]
     L += [f"| {k} | `{v}` |" for k, v in info["sha256"].items()]
     L += ["", f"Longest token: {info['longest_token_bytes']} bytes. Normalizer in tokenizer.json: {info['normalizer']}.", "",
@@ -383,7 +441,8 @@ def main():
             "stock_error": stock_convert_error(args.llama_cpp, model_dir, args.work),
             "normalizer": "none" if nj is None else nj["type"] + (f", {len(nj['normalizers'])} steps" if nj.get("normalizers") else ""),
             "sha256": {f"tokenizer.json ({args.name})": sha256(args.tokenizer),
-                       "FLORES-200 tarball": FLORES[1], "HumanEval.jsonl.gz": HUMANEVAL[1], "sanitized-mbpp.json": MBPP[1],
+                       "fineweb-2 dataset commit": FW2[1], "fineweb dataset commit": FW[1],
+                       "codeparrot-clean-valid dataset commit": CODE[1],
                        "llama.cpp convert_hf_to_gguf.py": sha256(args.llama_cpp / "convert_hf_to_gguf.py"),
                        "llama.cpp conversion/base.py": sha256(args.llama_cpp / "conversion" / "base.py")},
             "versions": {"Python": platform.python_version(), "llama-cpp-python": llama_cpp.__version__,
@@ -396,6 +455,8 @@ def main():
     if nj is not None:
         info["sha256"]["normalizer (canonical json, 16 hex)"] = hashlib.sha256(
             json.dumps(nj, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()[:16]
+    for n, st in sets.items():
+        info["sha256"][f"lines of {n}, joined with newlines (text not committed)"] = sha256_lines(st["lines"])
     hf = Tokenizer.from_file(str(args.tokenizer))
     plain = Tokenizer.from_str(hf.to_str()); plain.normalizer = None
     norm_sets = {n: [hf.normalizer.normalize_str(x) for x in s["lines"]] if hf.normalizer is not None else s["lines"]
