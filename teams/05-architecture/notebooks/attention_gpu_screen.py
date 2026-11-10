@@ -57,7 +57,7 @@ def lab_intro():
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def reading_the_settings():
     mo.md(r"""
     ## Reading the run settings
@@ -121,7 +121,7 @@ def hardware():
     return (hardware,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def hardware_cards(hardware):
     mo.Html(f"""
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:12px 0">
@@ -227,7 +227,7 @@ def gpu_driver(REPORTS_DIR):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def inputs_intro():
     mo.md(r"""
     ## Inputs: real tokenizer, synthetic text
@@ -506,7 +506,7 @@ def single_seed_plan(ATTENTION_CASES):
     return DIAGNOSTIC_STEPS, QUALITY_STEPS, SCREEN_LR, SCREEN_SEED
 
 
-@app.cell
+@app.cell(hide_code=True)
 def execution_diagram(REPORTS_DIR, gpu_refresh):
     gpu_refresh.value
     _path = REPORTS_DIR / "screen-comparison.json"
@@ -715,7 +715,7 @@ def execution_helpers(
     )
 
 
-@app.cell
+@app.cell(hide_code=True)
 def checkpoint_explanation():
     mo.md("""
     ## Can a stopped GPU job continue faithfully?
@@ -883,7 +883,7 @@ def gpu_diagnostic_plots(
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def real_data_explanation():
     mo.md("""
     ## Real-data screen: a reproducible preparation route
@@ -1162,7 +1162,7 @@ def data_preparation_queue(
     return (data_future,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def data_readiness(INPUTS_DIR, REPORTS_DIR, data_future, gpu_refresh):
     gpu_refresh.value
     _progress_path = REPORTS_DIR / "data-progress.json"
@@ -1185,7 +1185,7 @@ def data_readiness(INPUTS_DIR, REPORTS_DIR, data_future, gpu_refresh):
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def screen_explanation():
     mo.md("""
     ## The five real-data runs
@@ -1280,7 +1280,7 @@ def window_cache_helpers(
     return CACHE_DATA_SHA, WINDOW_CACHE_DIR, build_real_window_caches
 
 
-@app.cell
+@app.cell(hide_code=True)
 def window_cache_control():
     prepare_cache_button = mo.ui.run_button(label="Build the verified reusable real-data cache")
     mo.vstack([
@@ -1731,7 +1731,7 @@ def parallel_execution_helpers(
     return OVERLAP_LIMIT, refresh_completed_designs, run_overlapped_design
 
 
-@app.cell
+@app.cell(hide_code=True)
 def parallel_execution_controls():
     overlap_gate_button = mo.ui.run_button(label="Overlap output-gate design")
     overlap_rope_button = mo.ui.run_button(label="Overlap half-RoPE design")
@@ -1939,7 +1939,7 @@ def result_table_exports(
             if not rows:
                 return
             with (REPORTS_DIR / filename).open("w",newline="",encoding="utf-8") as stream:
-                writer = csv.DictWriter(stream,fieldnames=list(rows[0]))
+                writer = csv.DictWriter(stream,fieldnames=list(rows[0]),lineterminator="\n")
                 writer.writeheader()
                 writer.writerows(rows)
 
