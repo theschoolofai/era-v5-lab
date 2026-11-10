@@ -1,12 +1,13 @@
 """Summarise the exp1-lr-1e-3 seeds from the EXP-1 job output.
 
 Reads the run folders written by harness/train_week2.py (manifest.json, summary.json,
-metrics.jsonl, losses.txt). Checks each run, then prints per-seed bits per byte, the mean,
-the seed spread and the NaN check, and writes the same numbers to a JSON file.
+metrics.jsonl, and losses.txt if present). Checks each run, then prints per-seed bits per byte,
+the mean, the seed spread and the NaN check, and writes the same numbers to a JSON file.
 Standard library only. It does not change any run file.
 
 Usage (from the repository root):
     python teams/05-architecture/experiments/exp1/lr_1e-3/summarize_arm.py RUN_DIR [RUN_DIR ...] \
+        --heldout-sha256 <TSAI published held-out sha256> \
         --json teams/05-architecture/experiments/exp1/lr_1e-3/arm_summary.json
 
 --smoke-ok accepts CPU smoke folders, only to test this script. Its output is marked NOT A RESULT.
@@ -54,7 +55,12 @@ def check_run(run: Path, smoke_ok: bool, expected_heldout: str | None):
     manifest = json.loads((run / "manifest.json").read_text(encoding="utf8"))
     summary = json.loads((run / "summary.json").read_text(encoding="utf8"))
     rows = [json.loads(line) for line in (run / "metrics.jsonl").read_text(encoding="utf8").splitlines() if line.strip()]
-    losses = [float.fromhex(v) for v in (run / "losses.txt").read_text(encoding="utf8").split()]
+    # The EXP-1 job returns only manifest, summary and metrics; then the losses come from metrics.jsonl.
+    losses_file = run / "losses.txt"
+    if losses_file.exists():
+        losses = [float.fromhex(v) for v in losses_file.read_text(encoding="utf8").split()]
+    else:
+        losses = [r["loss_ntp"] for r in rows if r.get("step", 0) >= 1 and "loss_ntp" in r]
     cfg = manifest["config"]
     seed = cfg["run"]["seed"]
 
@@ -85,9 +91,9 @@ def check_run(run: Path, smoke_ok: bool, expected_heldout: str | None):
     # 3. NaN / inf: every number in metrics.jsonl and summary.json, and every logged loss.
     bad = [f"metrics step {r.get('step')}: {p}" for r in rows for p, x in finite_numbers(r) if not math.isfinite(x)]
     bad += [f"summary: {p}" for p, x in finite_numbers(summary) if not math.isfinite(x)]
-    bad += [f"losses.txt line {i + 1}" for i, x in enumerate(losses) if not math.isfinite(x)]
+    bad += [f"training loss at step {i + 1}" for i, x in enumerate(losses) if not math.isfinite(x)]
     if len(losses) != summary.get("steps"):
-        errors.append(f"losses.txt has {len(losses)} lines, run reached {summary.get('steps')} steps")
+        errors.append(f"{len(losses)} logged training losses, run reached {summary.get('steps')} steps")
     if bad:
         errors.append("non-finite values: " + "; ".join(bad[:5]))
 
@@ -146,13 +152,16 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("runs", nargs="+", type=Path, help="one train_week2.py output folder per seed")
     ap.add_argument("--json", type=Path, help="write the summary here")
-    ap.add_argument("--heldout-sha256-file", type=Path, default=Path("teams/05-architecture/results/heldout_v1.sha256"))
+    ap.add_argument("--heldout-sha256", help="expected held-out sha256 (the EXP-1 job uses TSAI's published v0-clean held-out)")
+    ap.add_argument("--heldout-sha256-file", type=Path, help="or a sha256 file whose first field is the expected hash")
     ap.add_argument("--smoke-ok", action="store_true", help="test this script on CPU smoke folders; output is NOT A RESULT")
     a = ap.parse_args()
 
-    expected = None
-    if a.heldout_sha256_file.exists():
+    expected = a.heldout_sha256
+    if a.heldout_sha256_file:
         expected = a.heldout_sha256_file.read_text(encoding="utf8").split()[0]
+    if expected is None:
+        print("NOTE: no expected held-out sha256 given; the held-out file is not checked against a published hash.\n")
 
     per_seed, problems, manifests, smoke, repeats = {}, {}, [], False, []
     for run in a.runs:
