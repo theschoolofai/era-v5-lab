@@ -33,7 +33,7 @@ with app.setup:
 
 
 
-@app.cell
+@app.cell(hide_code=True)
 def lab_intro():
     mo.md(r"""
     # Attention smoke lab
@@ -53,7 +53,7 @@ def lab_intro():
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def glossary():
     mo.md(r"""
     ## A few labels used below
@@ -306,7 +306,7 @@ def synthetic_inputs(INPUTS_DIR, REPORTS_DIR, artifacts):
          "text": "def add(a, b):\n    return a + b\n\nassert add(2, 3) == 5\n" * 30},
         {"id": "synthetic-train-hi",
          "text": "यह एक छोटा परीक्षण है। हम परिणाम लिखते हैं और फिर उन्हें जाँचते हैं। " * 35},
-    ]
+        ]
     heldout_records = [
         {"id": "synthetic-eval-en", "text": "The green boat rests beside the bridge."},
         {"id": "synthetic-eval-code", "text": "def square(x):\n    return x * x\n"},
@@ -385,7 +385,7 @@ def attention_cases(REPO_DIR, load_runtime, validate_config):
     return ARM_DIR, ATTENTION_CASES, arm_configurations
 
 
-@app.cell
+@app.cell(hide_code=True)
 def attention_map(ATTENTION_CASES):
     _patterns = {
         "attn-0": "GGGGGGGG", "attn-1": "GGGGGGGG",
@@ -447,7 +447,7 @@ def smoke_intro():
     return
 
 
-@app.cell
+@app.cell(hide_code=True)
 def verification_intro():
     mo.md(r"""
     ## Verification before interpreting anything
@@ -500,13 +500,16 @@ def smoke_runner(
         ]
         # The trainer also records an initial evaluation at step 0.
         updates = [row for row in records if "train/ce_loss" in row]
-        expected_model = {**arm_configurations[case.key]["model"],
-                          "block_size": SMOKE_CONTEXT}
+        expected = json.loads(json.dumps(arm_configurations[case.key]))
+        expected["model"]["block_size"] = SMOKE_CONTEXT
+        expected["run"].update(
+            steps=SMOKE_STEPS[device], batch_size=1, micro_batch_size=1, seed=SMOKE_SEED,
+            dtype="fp32" if device == "cpu" else expected["run"]["dtype"],
+        )
         assert summary["status"] == "SMOKE" and not summary["timed_out"]
         assert manifest["smoke"] and not summary["eligible_for_quality_comparison"]
         assert summary["steps"] == len(updates) == SMOKE_STEPS[device]
-        assert manifest["config"]["model"] == expected_model
-        assert manifest["config"]["run"]["seed"] == SMOKE_SEED
+        assert manifest["config"] == expected, "Cached training settings differ; use a fresh workspace."
         assert manifest["artifacts"] == artifacts.identity()
         assert manifest["train_sha256"] == sha256_file(TRAIN_PATH)
         assert manifest["heldout_sha256"] == sha256_file(HELDOUT_PATH)
@@ -582,7 +585,7 @@ def run_controls(hardware):
     run_checks = mo.ui.run_button(label="Run verification and smoke tests")
     include_gpu_checks = mo.ui.checkbox(
         value=hardware["cuda_available"] and hardware.get("bf16_supported", False),
-        disabled=not hardware["cuda_available"],
+        disabled=not (hardware["cuda_available"] and hardware.get("bf16_supported", False)),
         label="Include GPU bf16 checks",
     )
     mo.vstack([
@@ -776,7 +779,7 @@ def evidence_export(
     return (BUNDLE_PATH,)
 
 
-@app.cell
+@app.cell(hide_code=True)
 def next_steps():
     mo.md(r"""
     ## What comes next?
