@@ -37,9 +37,16 @@ SENTENCES = {
 }
 CLUSTERS = {'bn': 'ক্', 'gu': 'ક્', 'hi': 'क्', 'kn': 'ಕ್', 'mr': 'क्', 'sa': 'क्', 'ta': 'க்', 'te': 'క్'}
 FENCE = re.compile(r'^```python\n(.*?)^```', re.S | re.M)
+CARD_FENCE = re.compile(r'^```python(?: deferred)?\n(.*?)^```', re.S | re.M)
+VISARGA = {'bn': 'ঃ', 'gu': 'ઃ', 'hi': 'ः', 'kn': 'ಃ', 'mr': 'ः', 'sa': 'ः', 'ta': 'ஃ', 'te': 'ః'}
+V1_EXCLUSIONS = {
+    'DB-G2-001', 'DB-G2-002', 'DB-F1-005', 'DB-F2-001', 'DB-F2-002',
+    'DB-G4-001', 'DB-G4-005', 'DB-A6-010', 'DB-A6-011', 'DB-A6-012',
+    'DB-A6-014', 'DB-A6-018',
+}
 
 
-F1_REPLACED = "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+F1_REPLACED = "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
 
 # Added by Data A after PR #28: preserve reserved privacy markers while keeping
 # the original contributor functions unchanged. Embedded in the affected cards,
@@ -89,11 +96,18 @@ def shared_f1_rule():
 def probes(pack):
     lang = pack.split('-')[1]
     sentence, cluster = SENTENCES[lang], CLUSTERS[lang]
-    return {
+    result = {
         'prose': sentence + '\n' + sentence.replace('।', '.') + '\n' + sentence + '\n',
         'joiners': (sentence + ' ') * 5 + cluster + '\u200d' + cluster[0] + ' ' + cluster + '\u200c' + cluster[0],
         'nfc': unicodedata.normalize('NFC', sentence),
     }
+    word = sentence.split()[0]
+    # Match the ordinary-prose probe's length. Repeating six Telugu sentences
+    # would trigger D4's conjunction-density threshold instead of testing signs.
+    for gap, label in [('', 'visarga'), (' ', 'spaced-visarga')]:
+        result[label] = (sentence + ' ') * 2 + word + gap + VISARGA[lang] + ' ' + sentence
+    result['colon'] = (sentence + ' ') * 2 + word + ': ' + sentence
+    return result
 
 
 def synthetic_check(rule, pack, lang):
@@ -105,8 +119,14 @@ def synthetic_check(rule, pack, lang):
             if action == 'drop':
                 issues.append(label + ': drops ordinary synthetic prose')
                 continue
-            if any(new.count(c) < text.count(c) for c in ('\u200c', '\u200d')):
-                issues.append(label + ': removes script joiner')
+            if any(new.count(c) != text.count(c) for c in ('\u200c', '\u200d')):
+                issues.append(label + ': changes script joiner count')
+            if label in ('visarga', 'spaced-visarga'):
+                script = pack.split('-')[1]
+                gap = ' ' if label == 'spaced-visarga' else ''
+                context = SENTENCES[script].split()[0] + gap + VISARGA[script] + ' '
+                if new.count(VISARGA[script]) != text.count(VISARGA[script]) or context not in new:
+                    issues.append(label + ': changes visarga or adjacent spacing')
             action2, new2 = ht._invoke(rule, dict(doc, text=new), 2)
             if action2 == 'drop' or new2 != new:
                 issues.append(label + ': not idempotent')
@@ -138,6 +158,37 @@ def read_source():
         rows.append(dict(id=ns['RULE_ID'], code=ns['CODE'], pack=packs[0], action=ns['ACTION'],
                          lang=sorted(ns['LANGS'])[0], rule=ns['medicine'], body=body, block=block))
     assert len({r['id'] for r in rows}) == len(rows)
+    assert not V1_EXCLUSIONS & {r['id'] for r in rows}, 'out-of-v1 rule in ready source'
+    return rows
+
+
+def read_retired():
+    """Read historical metadata without importing or executing retired Python."""
+    source = SPEC / 'sheets/medicine_indic_retired.md'
+    if not source.exists():
+        return []
+    src = source.read_text(encoding='utf-8')
+    heads = list(re.finditer(r'^## \d+\. ', src, re.M))
+    rows = []
+    for i, head in enumerate(heads):
+        body = src[head.start():heads[i + 1].start() if i + 1 < len(heads) else len(src)].rstrip()
+        blocks = re.findall(r'^```python deferred\n(.*?)^```', body, re.S | re.M)
+        assert len(blocks) == 1, 'retired card must have one deferred block'
+        block = textwrap.dedent(blocks[0])
+        names = {'RULE_ID', 'CODE', 'ACTION', 'LANGS', 'ORIGIN', 'STATUS', 'DEFER_REASON'}
+        metadata = {}
+        for node in ast.parse(block).body:
+            if isinstance(node, ast.Assign):
+                for target in node.targets:
+                    if isinstance(target, ast.Name) and target.id in names:
+                        assert target.id not in metadata, 'duplicate retired metadata'
+                        metadata[target.id] = ast.literal_eval(node.value)
+        assert names <= metadata.keys() and metadata['STATUS'] == 'DEFERRED'
+        assert metadata['RULE_ID'] in V1_EXCLUSIONS and metadata['DEFER_REASON']
+        rows.append(dict(id=metadata['RULE_ID'], code=metadata['CODE'], pack=metadata['ORIGIN'],
+                         action=metadata['ACTION'], lang=sorted(metadata['LANGS'])[0],
+                         reason=metadata['DEFER_REASON'], body=body, block=block))
+    assert len(rows) == len({row['id'] for row in rows})
     return rows
 
 
@@ -194,6 +245,8 @@ def interaction_check(active, docs):
 
 def integrate(packs, gold_dir):
     rows = read_source()
+    retired = read_retired()
+    assert not {r['id'] for r in rows} & {r['id'] for r in retired}
     shared_f1 = shared_f1_rule()
     gold_cache, gold_reports, pack_cache = {}, {}, {}
     for pack in sorted({r['pack'] for r in rows}):
@@ -282,7 +335,14 @@ def integrate(packs, gold_dir):
             # No active family is emitted with a known combined harm failure.
             for rid, _ in active:
                 decisions[rid].update(status='DEFERRED', reason='combined own-pack gold: ' + result)
+    for row in retired:
+        decisions[row['id']] = dict(pack=row['pack'], code=row['code'], status='DEFERRED',
+                                    reason=row['reason'], review_issues=[row['reason']],
+                                    gold={'result': 'NOT RUN', 'reason': 'retired; policy excludes execution'},
+                                    full_rule={'result': 'NOT RUN'}, synthetic_issues=[], retired=True)
     report = {'source_sha256': sha(SPEC / 'sheets/medicine_indic.md'),
+              'ready_count': len(rows), 'retired_count': len(retired),
+              'retired_sha256': sha(SPEC / 'sheets/medicine_indic_retired.md') if retired else None,
               'f1_rule_sha256': sha(SPEC / 'build/f1_rule.py'),
               'combined_execution': 'selected native medicines followed by shared Indic F1',
               'placeholder_compatibility_rules': sorted(PLACEHOLDER_RULES),
@@ -302,14 +362,15 @@ def integrate(packs, gold_dir):
     base = base.replace('The 13 packs are partitioned into code (six), English prose (four), math (two), and science (one).',
                         'The 26 covered packs are partitioned into code (six), English prose (four), math (two), science (one), and Indic (13). Nine additional Indic sample packs have no candidates in this source sheet and remain unsupported.')
     active_count = sum(d['status'] == 'CANDIDATE' for d in decisions.values())
+    native_count = len({row['pack'] for row in rows})
     summary = f'''<!-- INDIC INTEGRATION -->
 ## Indic integration and deferred inventory
 
-[medicine_indic.md](medicine_indic.md) contributes {len(rows)} source candidates on 13 diagnosis packs; **{active_count} are selected and {len(rows) - active_count} deferred**. Original contributor code and source IDs remain in that sheet. All selections are CANDIDATE, not APPROVED. Source SHA-256: `{report['source_sha256']}`.
+[medicine_indic.md](medicine_indic.md) contributes {len(rows)} ready source candidates on {native_count} diagnosis packs; **{active_count} are selected and {len(rows) - active_count} deferred**. Another {len(retired)} retired local cards are preserved in [medicine_indic_retired.md](medicine_indic_retired.md) as policy-deferred history and are never executed. Source IDs and the pinned Data B code, including its labelled visarga trims, remain in the source sheets. All local selections are CANDIDATE, not APPROVED. Source SHA-256: `{report['source_sha256']}`.
 
-Each overlapping pack/disease group uses the first candidate in source section order that passes the local checks. Later alternatives remain deferred; this avoids stacking competing fixes/drop heuristics and makes no claim of superior recall. Review all 43 groups and positive cases before freeze. The full per-rule decision and available gold evidence is in [indic_integration.json](../results/cleaner/indic_integration.json).
+Each overlapping pack/disease group uses the first candidate in source section order that passes the local checks. Later alternatives remain deferred; this avoids stacking competing fixes/drop heuristics and makes no claim of superior recall. Review all {len(report['overlaps'])} groups and positive cases before freeze. The four #19 medicines are sample-hash-specific; a gold pass does not establish general pack coverage. All D3 wrappers keep the original text. The full per-rule decision and available gold evidence is in [indic_integration.json](../../results/spec_v1/cleaner/indic_integration.json).
 
-F1 on the Indic packs is the shared rule, `tools/f1_rule.py` (its Indic path: Indian phone formats and digits, Indian organisation domains and words), run last on every Indic pack; the source F1 rules are deferred, because they did not follow the TSAI ruling's placeholders and organisation exception. Rules use original `ORIGIN` pack guards regardless of the spelling of language tags. `SPEC_PACKS` supplies equivalent scope to the builder. Original Indic order is retained within its family; the disease registry keeps F1 last without reordering each pack pipeline.
+F1 on the Indic packs is the shared rule, `build/f1_rule.py` (its Indic path: Indian phone formats and digits, Indian organisation domains and words), run last on every Indic pack; the source F1 rules are deferred, because they did not follow the TSAI ruling's placeholders and organisation exception. Rules use original `ORIGIN` pack guards regardless of the spelling of language tags. `SPEC_PACKS` supplies equivalent scope to the builder. Original Indic order is retained within its family; the disease registry keeps F1 last without reordering each pack pipeline.
 
 Data A adds a labelled compatibility wrapper to `DB-B2-001`, `DB-B2-003` and `DB-B2-004` to preserve reserved `<PHONE>`, `<EMAIL>` and `<ADDRESS>` tokens while removing HTML. The original contributor functions remain unchanged in the source sheet and in the generated cards. Native and sibling combined validation includes shared F1 last; records contain its SHA-256. Gold checks use only the affected pack's current nonempty gold. Missing or empty own-pack inputs defer the rules; flag-only entries and pending author-approved format rewrites are not made executable by this integration.
 
@@ -327,16 +388,17 @@ Only locally available week-1 diagnosis packs are eligible for gold tests. Week-
     base = base[:first] + summary + base[first:]
     n = len(re.findall(r'^## Medicine \d+ — ', base, re.M))
     appended = []
-    for i, row in enumerate(rows, n + 1):
+    for i, row in enumerate(rows + retired, n + 1):
         decision = decisions[row['id']]
         block = row['block']
         block = re.sub(r'^STATUS = .*$', f'STATUS = "{decision["status"]}"', block, flags=re.M)
+        block = re.sub(r'^DEFER_REASON = .*\n', '', block, flags=re.M)
         additions = 'SPEC_PACKS = ' + repr({row['pack']}) + '\n'
         if decision['status'] == 'DEFERRED':
             additions += 'DEFER_REASON = ' + json.dumps(decision['reason']) + '\n'
         block = re.sub(r'^(STATUS = .*\n)', lambda m: m.group(0) + additions, block, count=1, flags=re.M)
         fence = 'python deferred' if decision['status'] == 'DEFERRED' else 'python'
-        body = FENCE.sub(lambda m: '```' + fence + '\n' + block.rstrip() + '\n```', row['body'])
+        body = CARD_FENCE.sub(lambda m: '```' + fence + '\n' + block.rstrip() + '\n```', row['body'])
         heading = f'## Medicine {i} — indic / {row["code"]} / `{row["id"]}`'
         body = re.sub(r'^## .*', lambda m: heading, body, count=1)
         note = ('\n\n**Integration decision:** ' + decision['status'] + '. ' + decision['reason'] +
@@ -345,7 +407,7 @@ Only locally available week-1 diagnosis packs are eligible for gold tests. Week-
         body = body.replace('\n\n', note + '\n', 1)
         appended.append(body)
     sheet.write_text(base.rstrip() + '\n\n' + '\n\n'.join(appended) + '\n', encoding='utf-8')
-    print(f'Indic: {active_count} selected, {len(rows)-active_count} deferred; {len(gold_cache)}/13 diagnosis packs testable')
+    print(f'Indic: {active_count} selected, {len(rows)-active_count} deferred, {len(retired)} retired; {len(gold_cache)}/{native_count} diagnosis packs testable')
     extension_spec = importlib.util.spec_from_file_location('indic_sibling_extension', SPEC / 'build/extend_indic_siblings.py')
     extension = importlib.util.module_from_spec(extension_spec)
     extension_spec.loader.exec_module(extension)

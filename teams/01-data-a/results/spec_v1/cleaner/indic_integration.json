@@ -1,5 +1,8 @@
 {
-  "source_sha256": "c64f03cec960ab680766df9a02bdc902be0e81d28544cfb73b13150939686940",
+  "source_sha256": "166ab23156de5fd4ae6beb58d411c6463312a42a6edc2ad63eb635c326bd7565",
+  "ready_count": 260,
+  "retired_count": 10,
+  "retired_sha256": "bada4c420ad5f974b626b9e98576aef491b0883b0b0291f0c823e72e5769e3b4",
   "f1_rule_sha256": "28250b0688c9cabaf16b13aca0c35beebd9343772196a5cd286cd2e81e773fd4",
   "combined_execution": "selected native medicines followed by shared Indic F1",
   "placeholder_compatibility_rules": [
@@ -7,17 +10,93 @@
     "DB-B2-003",
     "DB-B2-004"
   ],
-  "source_code_sha256": "bc84738e8a7cab5f0a9091f179861751c72346ae1b90e4e3fa6cf40a1184edd2",
+  "source_code_sha256": "6b9dfeaeeef689c5b45f6dde63503d138812741bcff32902f01e2db4302d61a5",
   "policy": "one eligible candidate per pack/disease, first in source order; F2 deferred; no approvals inferred",
   "privacy_missing_packs": [],
   "rules": {
+    "DB-A1-001": {
+      "pack": "ind-mr-fw2",
+      "code": "A1",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 142,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-A1-002": {
+      "pack": "ind-te-sangraha-v",
+      "code": "A1",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 18,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-A2-001": {
+      "pack": "ind-bn-sangraha-v",
+      "code": "A2",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 142,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
     "DB-A3-001": {
       "pack": "ind-bn-fw2",
       "code": "A3",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 238,
+        "n": 244,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-A3-007": {
+      "pack": "ind-bn-sangraha-v",
+      "code": "A3",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 142,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -36,7 +115,45 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 19,
+        "n": 80,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-A3-005": {
+      "pack": "ind-kn-sangraha-s",
+      "code": "A3",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 27,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-A3-006": {
+      "pack": "ind-mr-fw2",
+      "code": "A3",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 142,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -55,7 +172,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 238,
+        "n": 244,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -74,7 +191,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 238,
+        "n": 244,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -93,7 +210,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 19,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -114,7 +231,7 @@
         "not idempotent on own diagnosis pack"
       ],
       "gold": {
-        "n": 19,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -137,7 +254,7 @@
         "not idempotent on own diagnosis pack"
       ],
       "gold": {
-        "n": 67,
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -156,6 +273,25 @@
       },
       "status": "DEFERRED",
       "reason": "not idempotent on own diagnosis pack"
+    },
+    "DB-A5-009": {
+      "pack": "ind-mr-fw2",
+      "code": "A5",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 142,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
     },
     "DB-A5-006": {
       "pack": "ind-mr-sangraha-v",
@@ -180,33 +316,9 @@
       "pack": "ind-sa-fw2",
       "code": "A5",
       "synthetic_issues": [],
-      "review_issues": [
-        "acts again on retained documents after the full pipeline"
-      ],
-      "gold": {
-        "n": 68,
-        "changed": [],
-        "dropped": [],
-        "errors": [],
-        "result": "PASS"
-      },
-      "full_rule": {
-        "nonidempotent_ids": [],
-        "errors": []
-      },
-      "status": "DEFERRED",
-      "reason": "acts again on retained documents after the full pipeline",
-      "interaction_ids": [
-        "e2dfb86fcdd47c40"
-      ]
-    },
-    "DB-A5-008": {
-      "pack": "ind-sa-fw2",
-      "code": "A5",
-      "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 68,
+        "n": 71,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -219,13 +331,32 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
+    "DB-A5-008": {
+      "pack": "ind-sa-fw2",
+      "code": "A5",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 71,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-A5-007"
+    },
     "DB-A6-001": {
       "pack": "ind-bn-fw2",
       "code": "A6",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 238,
+        "n": 244,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -244,7 +375,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 238,
+        "n": 244,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -257,13 +388,51 @@
       "status": "DEFERRED",
       "reason": "overlap alternative; provisional source-order selection is DB-A6-001"
     },
+    "DB-A6-020": {
+      "pack": "ind-bn-sangraha-v",
+      "code": "A6",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 142,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
     "DB-A6-003": {
       "pack": "ind-gu-fw2",
       "code": "A6",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 19,
+        "n": 80,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-A6-017": {
+      "pack": "ind-hi-hplt",
+      "code": "A6",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -282,26 +451,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 67,
-        "changed": [],
-        "dropped": [],
-        "errors": [],
-        "result": "PASS"
-      },
-      "full_rule": {
-        "nonidempotent_ids": [],
-        "errors": []
-      },
-      "status": "CANDIDATE",
-      "reason": "first eligible candidate in source order; independent approval pending"
-    },
-    "DB-A6-005": {
-      "pack": "ind-hi-hplt",
-      "code": "A6",
-      "synthetic_issues": [],
-      "review_issues": [],
-      "gold": {
-        "n": 67,
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -312,7 +462,26 @@
         "errors": []
       },
       "status": "DEFERRED",
-      "reason": "overlap alternative; provisional source-order selection is DB-A6-004"
+      "reason": "overlap alternative; provisional source-order selection is DB-A6-017"
+    },
+    "DB-A6-005": {
+      "pack": "ind-hi-hplt",
+      "code": "A6",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 62,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-A6-017"
     },
     "DB-A6-006": {
       "pack": "ind-kn-sangraha-s",
@@ -332,6 +501,25 @@
       },
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-A6-016": {
+      "pack": "ind-kn-sangraha-s",
+      "code": "A6",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 27,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-A6-006"
     },
     "DB-A6-007": {
       "pack": "ind-kn-sangraha-v",
@@ -358,7 +546,26 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 140,
+        "n": 142,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-A6-021": {
+      "pack": "ind-mr-sangraha-v",
+      "code": "A6",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 88,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -387,79 +594,8 @@
         "nonidempotent_ids": [],
         "errors": []
       },
-      "status": "CANDIDATE",
-      "reason": "first eligible candidate in source order; independent approval pending"
-    },
-    "DB-A6-010": {
-      "pack": "ind-sa-fw2",
-      "code": "A6",
-      "synthetic_issues": [],
-      "review_issues": [
-        "acts again on retained documents after the full pipeline"
-      ],
-      "gold": {
-        "n": 68,
-        "changed": [],
-        "dropped": [],
-        "errors": [],
-        "result": "PASS"
-      },
-      "full_rule": {
-        "nonidempotent_ids": [],
-        "errors": []
-      },
       "status": "DEFERRED",
-      "reason": "acts again on retained documents after the full pipeline",
-      "interaction_ids": [
-        "eab8173a901b8794",
-        "c3452b55fcd4bede",
-        "6d81c9d79a9677f8",
-        "66a9c2d6e2a78709",
-        "0c969f47702063ed"
-      ]
-    },
-    "DB-A6-011": {
-      "pack": "ind-sa-fw2",
-      "code": "A6",
-      "synthetic_issues": [],
-      "review_issues": [
-        "acts again on retained documents after the full pipeline"
-      ],
-      "gold": {
-        "n": 68,
-        "changed": [],
-        "dropped": [],
-        "errors": [],
-        "result": "PASS"
-      },
-      "full_rule": {
-        "nonidempotent_ids": [],
-        "errors": []
-      },
-      "status": "DEFERRED",
-      "reason": "acts again on retained documents after the full pipeline",
-      "interaction_ids": [
-        "6d81c9d79a9677f8"
-      ]
-    },
-    "DB-A6-012": {
-      "pack": "ind-ta-sangraha-v",
-      "code": "A6",
-      "synthetic_issues": [],
-      "review_issues": [],
-      "gold": {
-        "n": 41,
-        "changed": [],
-        "dropped": [],
-        "errors": [],
-        "result": "PASS"
-      },
-      "full_rule": {
-        "nonidempotent_ids": [],
-        "errors": []
-      },
-      "status": "CANDIDATE",
-      "reason": "first eligible candidate in source order; independent approval pending"
+      "reason": "overlap alternative; provisional source-order selection is DB-A6-021"
     },
     "DB-A6-013": {
       "pack": "ind-te-fw2",
@@ -480,13 +616,13 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
-    "DB-A6-014": {
-      "pack": "ind-te-sangraha-s",
-      "code": "A6",
+    "DB-G1-001": {
+      "pack": "ind-bn-fw2",
+      "code": "G1",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 5,
+        "n": 244,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -499,13 +635,13 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
-    "DB-G1-001": {
-      "pack": "ind-bn-fw2",
+    "DB-G1-015": {
+      "pack": "ind-bn-sangraha-v",
       "code": "G1",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 238,
+        "n": 142,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -517,6 +653,29 @@
       },
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-G1-017": {
+      "pack": "ind-bn-sangraha-v",
+      "code": "G1",
+      "synthetic_issues": [],
+      "review_issues": [
+        "not idempotent on own diagnosis pack"
+      ],
+      "gold": {
+        "n": 142,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [
+          "e4e559c63731c7fd"
+        ],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "not idempotent on own diagnosis pack"
     },
     "DB-G1-002": {
       "pack": "ind-gu-fw2",
@@ -526,7 +685,7 @@
         "not idempotent on own diagnosis pack"
       ],
       "gold": {
-        "n": 19,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -547,7 +706,26 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 19,
+        "n": 80,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-G1-016": {
+      "pack": "ind-hi-hplt",
+      "code": "G1",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -566,7 +744,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 67,
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -576,8 +754,8 @@
         "nonidempotent_ids": [],
         "errors": []
       },
-      "status": "CANDIDATE",
-      "reason": "first eligible candidate in source order; independent approval pending"
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-G1-016"
     },
     "DB-G1-005": {
       "pack": "ind-kn-fw2",
@@ -585,7 +763,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 45,
+        "n": 114,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -595,8 +773,8 @@
         "nonidempotent_ids": [],
         "errors": []
       },
-      "status": "CANDIDATE",
-      "reason": "first eligible candidate in source order; independent approval pending"
+      "status": "DEFERRED",
+      "reason": "combined own-pack gold: FAIL"
     },
     "DB-G1-006": {
       "pack": "ind-mr-fw2",
@@ -604,7 +782,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 140,
+        "n": 142,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -623,7 +801,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 68,
+        "n": 71,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -642,7 +820,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 68,
+        "n": 71,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -655,6 +833,25 @@
       "status": "DEFERRED",
       "reason": "overlap alternative; provisional source-order selection is DB-G1-007"
     },
+    "DB-G1-013": {
+      "pack": "ind-ta-sangraha-v",
+      "code": "G1",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 141,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
     "DB-G1-009": {
       "pack": "ind-ta-sangraha-v",
       "code": "G1",
@@ -663,7 +860,7 @@
         "not idempotent on own diagnosis pack"
       ],
       "gold": {
-        "n": 41,
+        "n": 141,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -697,13 +894,13 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
-    "DB-G2-001": {
-      "pack": "ind-bn-fw2",
-      "code": "G2",
+    "DB-G1-014": {
+      "pack": "ind-te-sangraha-v",
+      "code": "G1",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 238,
+        "n": 18,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -715,25 +912,6 @@
       },
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
-    },
-    "DB-G2-002": {
-      "pack": "ind-bn-fw2",
-      "code": "G2",
-      "synthetic_issues": [],
-      "review_issues": [],
-      "gold": {
-        "n": 238,
-        "changed": [],
-        "dropped": [],
-        "errors": [],
-        "result": "PASS"
-      },
-      "full_rule": {
-        "nonidempotent_ids": [],
-        "errors": []
-      },
-      "status": "DEFERRED",
-      "reason": "overlap alternative; provisional source-order selection is DB-G2-001"
     },
     "DB-G2-003": {
       "pack": "ind-sa-fw2",
@@ -741,7 +919,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 68,
+        "n": 71,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -754,15 +932,13 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
-    "DB-G4-001": {
-      "pack": "ind-kn-sangraha-v",
+    "DB-G4-006": {
+      "pack": "ind-bn-sangraha-v",
       "code": "G4",
       "synthetic_issues": [],
-      "review_issues": [
-        "acts again on retained documents after the full pipeline"
-      ],
+      "review_issues": [],
       "gold": {
-        "n": 103,
+        "n": 142,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -772,11 +948,27 @@
         "nonidempotent_ids": [],
         "errors": []
       },
-      "status": "DEFERRED",
-      "reason": "acts again on retained documents after the full pipeline",
-      "interaction_ids": [
-        "a31dbea5a0d6b216"
-      ]
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-G4-007": {
+      "pack": "ind-hi-hplt",
+      "code": "G4",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 62,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
     },
     "DB-G4-002": {
       "pack": "ind-mr-fw2",
@@ -784,7 +976,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 140,
+        "n": 142,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -803,7 +995,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 68,
+        "n": 71,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -822,7 +1014,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 41,
+        "n": 141,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -860,7 +1052,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 67,
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -872,6 +1064,44 @@
       },
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-B2-008": {
+      "pack": "ind-hi-sangraha-s",
+      "code": "B2",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 24,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-B2-009": {
+      "pack": "ind-hi-sangraha-s",
+      "code": "B2",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 24,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-B2-008"
     },
     "DB-B2-003": {
       "pack": "ind-kn-sangraha-s",
@@ -892,6 +1122,25 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
+    "DB-B2-006": {
+      "pack": "ind-kn-sangraha-s",
+      "code": "B2",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 27,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-B2-003"
+    },
     "DB-B2-004": {
       "pack": "ind-te-fw2",
       "code": "B2",
@@ -911,13 +1160,13 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
-    "DB-B2-005": {
+    "DB-B2-007": {
       "pack": "ind-te-sangraha-s",
       "code": "B2",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 5,
+        "n": 24,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -929,6 +1178,25 @@
       },
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-B2-005": {
+      "pack": "ind-te-sangraha-s",
+      "code": "B2",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 24,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-B2-007"
     },
     "DB-B3-001": {
       "pack": "ind-kn-sangraha-s",
@@ -949,13 +1217,32 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
+    "DB-B3-002": {
+      "pack": "ind-kn-sangraha-s",
+      "code": "B3",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 27,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-B3-001"
+    },
     "DB-A3-003": {
       "pack": "ind-bn-fw2",
       "code": "A3",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 238,
+        "n": 244,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -993,7 +1280,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 68,
+        "n": 71,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1012,7 +1299,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 19,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1025,13 +1312,73 @@
       "status": "DEFERRED",
       "reason": "overlap alternative; provisional source-order selection is DB-A6-003"
     },
+    "DB-A6-019": {
+      "pack": "ind-hi-sangraha-s",
+      "code": "A6",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 24,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-B4-008": {
+      "pack": "ind-hi-sangraha-s",
+      "code": "B4",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 24,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-C2-019": {
+      "pack": "ind-hi-sangraha-s",
+      "code": "C2",
+      "synthetic_issues": [
+        "joiners: drops ordinary synthetic prose"
+      ],
+      "review_issues": [
+        "joiners: drops ordinary synthetic prose"
+      ],
+      "gold": {
+        "n": 24,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "result": "NOT TESTABLE"
+      },
+      "status": "DEFERRED",
+      "reason": "joiners: drops ordinary synthetic prose"
+    },
     "DB-C3-001": {
       "pack": "ind-bn-fw2",
       "code": "C3",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 238,
+        "n": 244,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1050,7 +1397,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 67,
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1063,6 +1410,49 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
+    "DB-C3-025": {
+      "pack": "ind-hi-indiccorp",
+      "code": "C3",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 425,
+        "changed": [],
+        "dropped": [
+          "c1403c97611401f8"
+        ],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-C3-019": {
+      "pack": "ind-mr-fw2",
+      "code": "C3",
+      "synthetic_issues": [
+        "joiners: drops ordinary synthetic prose"
+      ],
+      "review_issues": [
+        "joiners: drops ordinary synthetic prose"
+      ],
+      "gold": {
+        "n": 142,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "result": "NOT TESTABLE"
+      },
+      "status": "DEFERRED",
+      "reason": "joiners: drops ordinary synthetic prose"
+    },
     "DB-C3-003": {
       "pack": "ind-mr-fw2",
       "code": "C3",
@@ -1073,7 +1463,7 @@
         "joiners: drops ordinary synthetic prose"
       ],
       "gold": {
-        "n": 140,
+        "n": 142,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1091,7 +1481,26 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 68,
+        "n": 71,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-C3-020": {
+      "pack": "ind-te-sangraha-v",
+      "code": "C3",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 18,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1110,7 +1519,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 238,
+        "n": 244,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1142,13 +1551,32 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
+    "DB-C4-012": {
+      "pack": "ind-hi-fw2",
+      "code": "C4",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 234,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-C4-002"
+    },
     "DB-C4-003": {
       "pack": "ind-hi-hplt",
       "code": "C4",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 67,
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1167,7 +1595,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 67,
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1186,7 +1614,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 140,
+        "n": 142,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1218,13 +1646,51 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
+    "DB-C5-021": {
+      "pack": "ind-bn-sangraha-v",
+      "code": "C5",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 142,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-C5-016": {
+      "pack": "ind-hi-fw2",
+      "code": "C5",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 234,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
     "DB-C5-001": {
       "pack": "ind-hi-hplt",
       "code": "C5",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 67,
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1243,7 +1709,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 67,
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1281,7 +1747,26 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 140,
+        "n": 142,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-C5-017": {
+      "pack": "ind-ta-sangraha-v",
+      "code": "C5",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 141,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1300,7 +1785,26 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 41,
+        "n": 141,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-C5-017"
+    },
+    "DB-C5-006": {
+      "pack": "ind-te-fw2",
+      "code": "C5",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 18,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1313,8 +1817,8 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
-    "DB-C5-006": {
-      "pack": "ind-te-fw2",
+    "DB-C5-018": {
+      "pack": "ind-te-sangraha-v",
       "code": "C5",
       "synthetic_issues": [],
       "review_issues": [],
@@ -1338,9 +1842,11 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 238,
+        "n": 244,
         "changed": [],
-        "dropped": [],
+        "dropped": [
+          "016f4687d4a36ce9"
+        ],
         "errors": [],
         "result": "PASS"
       },
@@ -1357,7 +1863,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 238,
+        "n": 244,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1376,7 +1882,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 19,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1395,7 +1901,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 19,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1408,13 +1914,32 @@
       "status": "DEFERRED",
       "reason": "overlap alternative; provisional source-order selection is DB-D4-003"
     },
+    "DB-D4-013": {
+      "pack": "ind-hi-fw2",
+      "code": "D4",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 234,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
     "DB-D4-005": {
       "pack": "ind-hi-hplt",
       "code": "D4",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 67,
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1433,7 +1958,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 67,
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1445,6 +1970,25 @@
       },
       "status": "DEFERRED",
       "reason": "overlap alternative; provisional source-order selection is DB-D4-005"
+    },
+    "DB-D4-018": {
+      "pack": "ind-hi-sangraha-s",
+      "code": "D4",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 24,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
     },
     "DB-D4-007": {
       "pack": "ind-kn-sangraha-v",
@@ -1490,7 +2034,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 68,
+        "n": 71,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1509,7 +2053,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 68,
+        "n": 71,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1526,9 +2070,33 @@
       "pack": "ind-te-fw2",
       "code": "D4",
       "synthetic_issues": [],
-      "review_issues": [],
+      "review_issues": [
+        "acts again on retained documents after the full pipeline"
+      ],
       "gold": {
         "n": 18,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "acts again on retained documents after the full pipeline",
+      "interaction_ids": [
+        "df34dc3e0a7cad9d"
+      ]
+    },
+    "DB-D4-012": {
+      "pack": "ind-te-sangraha-s",
+      "code": "D4",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 24,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1541,13 +2109,13 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
-    "DB-D4-012": {
-      "pack": "ind-te-sangraha-s",
+    "DB-D4-016": {
+      "pack": "ind-te-sangraha-v",
       "code": "D4",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 5,
+        "n": 18,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1566,7 +2134,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 5,
+        "n": 24,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1579,307 +2147,24 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
-    "DB-F2-001": {
-      "pack": "ind-sa-fw2",
-      "code": "F2",
-      "synthetic_issues": [
-        "prose: RuntimeError",
-        "joiners: RuntimeError",
-        "nfc: RuntimeError"
-      ],
-      "review_issues": [
-        "prose: RuntimeError",
-        "joiners: RuntimeError",
-        "nfc: RuntimeError",
-        "current own-pack gold: ERROR",
-        "legacy Itihasa rule requires ITIHASA_TEST_SN; optional G9 F2 does not cover Itihasa",
-        "legacy sentence-based F2 is excluded; G9 decontamination is separate and opt-in through run_clean.py --f2"
-      ],
+    "DB-D5-004": {
+      "pack": "ind-te-sangraha-v",
+      "code": "D5",
+      "synthetic_issues": [],
+      "review_issues": [],
       "gold": {
-        "n": 68,
+        "n": 18,
         "changed": [],
         "dropped": [],
-        "errors": [
-          [
-            "02e2f07b7adebb75",
-            "RuntimeError"
-          ],
-          [
-            "06e0f92ae0345b6c",
-            "RuntimeError"
-          ],
-          [
-            "1df3fbe123f02d35",
-            "RuntimeError"
-          ],
-          [
-            "1ece1474b414d6fe",
-            "RuntimeError"
-          ],
-          [
-            "21724a4366244a85",
-            "RuntimeError"
-          ],
-          [
-            "242065a2438b8737",
-            "RuntimeError"
-          ],
-          [
-            "252ca43152ca873c",
-            "RuntimeError"
-          ],
-          [
-            "2fe2fc68cbbaf427",
-            "RuntimeError"
-          ],
-          [
-            "3ee49e9739a3b13b",
-            "RuntimeError"
-          ],
-          [
-            "43244f8fcf18628d",
-            "RuntimeError"
-          ],
-          [
-            "456388d692515b11",
-            "RuntimeError"
-          ],
-          [
-            "457cc525bd535c16",
-            "RuntimeError"
-          ],
-          [
-            "45fff831cb80552d",
-            "RuntimeError"
-          ],
-          [
-            "468a239bdf7f4bdf",
-            "RuntimeError"
-          ],
-          [
-            "478faf818edfa708",
-            "RuntimeError"
-          ],
-          [
-            "5119dd2efae87757",
-            "RuntimeError"
-          ],
-          [
-            "582b02447cefe779",
-            "RuntimeError"
-          ],
-          [
-            "5c678469f2dee531",
-            "RuntimeError"
-          ],
-          [
-            "5f7a275fad83d74b",
-            "RuntimeError"
-          ],
-          [
-            "620f537bf714ed07",
-            "RuntimeError"
-          ],
-          [
-            "637805ecd76f5eb8",
-            "RuntimeError"
-          ],
-          [
-            "674cb9e9f4b4f2c8",
-            "RuntimeError"
-          ],
-          [
-            "67604f99e1bc0bb9",
-            "RuntimeError"
-          ],
-          [
-            "69a8c276a28cf226",
-            "RuntimeError"
-          ],
-          [
-            "6d337a7c3fcfcead",
-            "RuntimeError"
-          ],
-          [
-            "6eba5e805e8e645a",
-            "RuntimeError"
-          ],
-          [
-            "726cdfe175329d0b",
-            "RuntimeError"
-          ],
-          [
-            "72799f70146f9908",
-            "RuntimeError"
-          ],
-          [
-            "76a5291199a022a9",
-            "RuntimeError"
-          ],
-          [
-            "782bc596ef2ea285",
-            "RuntimeError"
-          ],
-          [
-            "7d53fe10bd78809f",
-            "RuntimeError"
-          ],
-          [
-            "7f401406f993fd8b",
-            "RuntimeError"
-          ],
-          [
-            "8106bb9224546f71",
-            "RuntimeError"
-          ],
-          [
-            "82e29f0f36c49fc0",
-            "RuntimeError"
-          ],
-          [
-            "88b15f4ec3b433c8",
-            "RuntimeError"
-          ],
-          [
-            "8bba27ec6e46002a",
-            "RuntimeError"
-          ],
-          [
-            "9511405510e8d28d",
-            "RuntimeError"
-          ],
-          [
-            "9590726c00dff5b8",
-            "RuntimeError"
-          ],
-          [
-            "968c4d6223290ca8",
-            "RuntimeError"
-          ],
-          [
-            "9d7dc69c900c7cd7",
-            "RuntimeError"
-          ],
-          [
-            "9f2c008d0abf3830",
-            "RuntimeError"
-          ],
-          [
-            "a42c4e08623b1278",
-            "RuntimeError"
-          ],
-          [
-            "a7916174044d372a",
-            "RuntimeError"
-          ],
-          [
-            "ace287e58116460f",
-            "RuntimeError"
-          ],
-          [
-            "ad1765d8d625bdeb",
-            "RuntimeError"
-          ],
-          [
-            "b03435bbcc19b769",
-            "RuntimeError"
-          ],
-          [
-            "b06f8ca0dba6c75a",
-            "RuntimeError"
-          ],
-          [
-            "b682aeff8a212540",
-            "RuntimeError"
-          ],
-          [
-            "b739cee4c424f28f",
-            "RuntimeError"
-          ],
-          [
-            "b871232cf96a7d4e",
-            "RuntimeError"
-          ],
-          [
-            "bb0c1b62e32dba81",
-            "RuntimeError"
-          ],
-          [
-            "bc0b9a9535e64f3b",
-            "RuntimeError"
-          ],
-          [
-            "bc135c7e7b0bb34a",
-            "RuntimeError"
-          ],
-          [
-            "bc4bb2b4e3a1d7f6",
-            "RuntimeError"
-          ],
-          [
-            "c12593b9e88af2b1",
-            "RuntimeError"
-          ],
-          [
-            "c57cec982b0b4018",
-            "RuntimeError"
-          ],
-          [
-            "c598474e7d50854b",
-            "RuntimeError"
-          ],
-          [
-            "cc57c5729384cdaf",
-            "RuntimeError"
-          ],
-          [
-            "ceccd891fdccd574",
-            "RuntimeError"
-          ],
-          [
-            "d6fd04699658223d",
-            "RuntimeError"
-          ],
-          [
-            "d9a452ad5bf664bf",
-            "RuntimeError"
-          ],
-          [
-            "d9d141e47490c46b",
-            "RuntimeError"
-          ],
-          [
-            "db108b63d536cfbe",
-            "RuntimeError"
-          ],
-          [
-            "dd49974dc0cae63e",
-            "RuntimeError"
-          ],
-          [
-            "e0dec8f14781eee4",
-            "RuntimeError"
-          ],
-          [
-            "e872dd25bb4f240a",
-            "RuntimeError"
-          ],
-          [
-            "f523d4c3cdc3cb9b",
-            "RuntimeError"
-          ],
-          [
-            "fd570f569d21deec",
-            "RuntimeError"
-          ]
-        ],
-        "result": "ERROR"
+        "errors": [],
+        "result": "PASS"
       },
       "full_rule": {
-        "result": "NOT TESTABLE"
+        "nonidempotent_ids": [],
+        "errors": []
       },
-      "status": "DEFERRED",
-      "reason": "prose: RuntimeError; joiners: RuntimeError; nfc: RuntimeError; current own-pack gold: ERROR; legacy Itihasa rule requires ITIHASA_TEST_SN; optional G9 F2 does not cover Itihasa; legacy sentence-based F2 is excluded; G9 decontamination is separate and opt-in through run_clean.py --f2"
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
     },
     "DB-F3-001": {
       "pack": "ind-bn-fw2",
@@ -1887,7 +2172,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 238,
+        "n": 244,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1906,7 +2191,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 238,
+        "n": 244,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1919,6 +2204,44 @@
       "status": "DEFERRED",
       "reason": "overlap alternative; provisional source-order selection is DB-F3-001"
     },
+    "DB-F3-004": {
+      "pack": "ind-hi-fw2",
+      "code": "F3",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 234,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-F3-005": {
+      "pack": "ind-ta-sangraha-v",
+      "code": "F3",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 141,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
     "DB-F3-003": {
       "pack": "ind-te-fw2",
       "code": "F3",
@@ -1926,6 +2249,25 @@
       "review_issues": [],
       "gold": {
         "n": 18,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-G1-012": {
+      "pack": "ind-hi-indiccorp",
+      "code": "G1",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 425,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1957,6 +2299,25 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
+    "DB-G3-003": {
+      "pack": "ind-hi-indiccorp",
+      "code": "G3",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 425,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
     "DB-G3-001": {
       "pack": "ind-sa-fw2",
       "code": "G3",
@@ -1965,7 +2326,7 @@
         "acts again on retained documents after the full pipeline"
       ],
       "gold": {
-        "n": 68,
+        "n": 71,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1988,7 +2349,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 238,
+        "n": 244,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2001,13 +2362,35 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
+    "DB-C1-024": {
+      "pack": "ind-bn-fw2",
+      "code": "C1",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 244,
+        "changed": [
+          "642e2d510bf80d87",
+          "656e1a989097ab40"
+        ],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-C1-001"
+    },
     "DB-C1-002": {
       "pack": "ind-bn-fw2",
       "code": "C1",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 238,
+        "n": 244,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2020,13 +2403,37 @@
       "status": "DEFERRED",
       "reason": "overlap alternative; provisional source-order selection is DB-C1-001"
     },
+    "DB-C1-023": {
+      "pack": "ind-bn-sangraha-v",
+      "code": "C1",
+      "synthetic_issues": [],
+      "review_issues": [
+        "acts again on retained documents after the full pipeline"
+      ],
+      "gold": {
+        "n": 142,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "acts again on retained documents after the full pipeline",
+      "interaction_ids": [
+        "7378fae019d08f76"
+      ]
+    },
     "DB-C1-003": {
       "pack": "ind-gu-fw2",
       "code": "C1",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 19,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2047,7 +2454,7 @@
         "not idempotent on own diagnosis pack"
       ],
       "gold": {
-        "n": 19,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2090,13 +2497,32 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
+    "DB-C1-017": {
+      "pack": "ind-hi-fw2",
+      "code": "C1",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 234,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-C1-005"
+    },
     "DB-C1-006": {
       "pack": "ind-hi-hplt",
       "code": "C1",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 67,
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2115,7 +2541,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 67,
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2128,13 +2554,13 @@
       "status": "DEFERRED",
       "reason": "overlap alternative; provisional source-order selection is DB-C1-006"
     },
-    "DB-C1-008": {
-      "pack": "ind-kn-fw2",
+    "DB-C1-018": {
+      "pack": "ind-hi-indiccorp",
       "code": "C1",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 45,
+        "n": 425,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2147,13 +2573,32 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
+    "DB-C1-008": {
+      "pack": "ind-kn-fw2",
+      "code": "C1",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 114,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "combined own-pack gold: FAIL"
+    },
     "DB-C1-009": {
       "pack": "ind-kn-fw2",
       "code": "C1",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 45,
+        "n": 114,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2185,13 +2630,30 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
+    "DB-C1-019": {
+      "pack": "ind-kn-sangraha-v",
+      "code": "C1",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 103,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
     "DB-C1-011": {
       "pack": "ind-kn-sangraha-v",
       "code": "C1",
       "synthetic_issues": [],
-      "review_issues": [
-        "acts again on retained documents after the full pipeline"
-      ],
+      "review_issues": [],
       "gold": {
         "n": 103,
         "changed": [],
@@ -2204,12 +2666,37 @@
         "errors": []
       },
       "status": "DEFERRED",
-      "reason": "acts again on retained documents after the full pipeline",
-      "interaction_ids": [
-        "71f2dd6d48ebe5d2",
-        "cac1e9c1e7750da3",
-        "0a877ab38ad06f39"
-      ]
+      "reason": "overlap alternative; provisional source-order selection is DB-C1-019"
+    },
+    "DB-C1-020": {
+      "pack": "ind-mr-fw2",
+      "code": "C1",
+      "synthetic_issues": [],
+      "review_issues": [
+        "not idempotent on own diagnosis pack"
+      ],
+      "gold": {
+        "n": 142,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [
+          "626fc9159542b61c",
+          "654e623661c0b8c6",
+          "f2c7bce34d00c7fe",
+          "95c44a1c33389719",
+          "0c41a70258bbc0b4",
+          "1f2b883d24e8de1a",
+          "cb4ad24f3cb1b80b",
+          "23726a04d8316b4c"
+        ],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "not idempotent on own diagnosis pack"
     },
     "DB-C1-012": {
       "pack": "ind-mr-sangraha-v",
@@ -2236,7 +2723,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 68,
+        "n": 71,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2255,7 +2742,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 68,
+        "n": 71,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2268,13 +2755,13 @@
       "status": "DEFERRED",
       "reason": "overlap alternative; provisional source-order selection is DB-C1-013"
     },
-    "DB-C1-015": {
+    "DB-C1-021": {
       "pack": "ind-ta-sangraha-v",
       "code": "C1",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 41,
+        "n": 141,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2286,6 +2773,25 @@
       },
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-C1-015": {
+      "pack": "ind-ta-sangraha-v",
+      "code": "C1",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 141,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-C1-021"
     },
     "DB-C1-016": {
       "pack": "ind-te-fw2",
@@ -2306,13 +2812,63 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
+    "DB-C1-022": {
+      "pack": "ind-te-sangraha-v",
+      "code": "C1",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 18,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-C1-025": {
+      "pack": "ind-te-sangraha-v",
+      "code": "C1",
+      "synthetic_issues": [],
+      "review_issues": [
+        "not idempotent on own diagnosis pack"
+      ],
+      "gold": {
+        "n": 18,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [
+          "6d0e763d35ffc73c",
+          "f6f4daa0825fdc8d",
+          "7d0eb95ce450da31",
+          "ad0c90d6600df2bf",
+          "7b6e215475880c86",
+          "19bd9f73743a0eb0",
+          "1be5c8a382d18b18",
+          "48763ca91722e24a",
+          "4fa31a993a419991"
+        ],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "not idempotent on own diagnosis pack"
+    },
     "DB-C2-001": {
       "pack": "ind-bn-fw2",
       "code": "C2",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 238,
+        "n": 244,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2331,7 +2887,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 238,
+        "n": 244,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2344,13 +2900,98 @@
       "status": "DEFERRED",
       "reason": "overlap alternative; provisional source-order selection is DB-C2-001"
     },
+    "DB-C2-020": {
+      "pack": "ind-bn-sangraha-v",
+      "code": "C2",
+      "synthetic_issues": [],
+      "review_issues": [
+        "acts again on retained documents after the full pipeline"
+      ],
+      "gold": {
+        "n": 142,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "acts again on retained documents after the full pipeline",
+      "interaction_ids": [
+        "7378fae019d08f76",
+        "84232835daf80e9f",
+        "8a82a545913a2a14"
+      ]
+    },
+    "DB-C2-023": {
+      "pack": "ind-bn-sangraha-v",
+      "code": "C2",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 142,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
     "DB-C2-003": {
       "pack": "ind-gu-fw2",
       "code": "C2",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 19,
+        "n": 80,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-C2-014": {
+      "pack": "ind-hi-fw2",
+      "code": "C2",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 234,
+        "changed": [
+          "277fa2fd630f90fd"
+        ],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-C2-021": {
+      "pack": "ind-hi-hplt",
+      "code": "C2",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2369,26 +3010,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 67,
-        "changed": [],
-        "dropped": [],
-        "errors": [],
-        "result": "PASS"
-      },
-      "full_rule": {
-        "nonidempotent_ids": [],
-        "errors": []
-      },
-      "status": "CANDIDATE",
-      "reason": "first eligible candidate in source order; independent approval pending"
-    },
-    "DB-C2-005": {
-      "pack": "ind-hi-hplt",
-      "code": "C2",
-      "synthetic_issues": [],
-      "review_issues": [],
-      "gold": {
-        "n": 67,
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2399,15 +3021,15 @@
         "errors": []
       },
       "status": "DEFERRED",
-      "reason": "overlap alternative; provisional source-order selection is DB-C2-004"
+      "reason": "overlap alternative; provisional source-order selection is DB-C2-021"
     },
-    "DB-C2-006": {
-      "pack": "ind-kn-fw2",
+    "DB-C2-005": {
+      "pack": "ind-hi-hplt",
       "code": "C2",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 45,
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2417,8 +3039,29 @@
         "nonidempotent_ids": [],
         "errors": []
       },
-      "status": "CANDIDATE",
-      "reason": "first eligible candidate in source order; independent approval pending"
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-C2-021"
+    },
+    "DB-C2-006": {
+      "pack": "ind-kn-fw2",
+      "code": "C2",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 114,
+        "changed": [
+          "4d34a1a3048e4e7d"
+        ],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "combined own-pack gold: FAIL"
     },
     "DB-C2-007": {
       "pack": "ind-kn-fw2",
@@ -2426,7 +3069,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 45,
+        "n": 114,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2458,6 +3101,25 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
+    "DB-C2-015": {
+      "pack": "ind-mr-fw2",
+      "code": "C2",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 142,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
     "DB-C2-009": {
       "pack": "ind-mr-fw2",
       "code": "C2",
@@ -2466,7 +3128,7 @@
         "not idempotent on own diagnosis pack"
       ],
       "gold": {
-        "n": 140,
+        "n": 142,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2480,6 +3142,25 @@
       },
       "status": "DEFERRED",
       "reason": "not idempotent on own diagnosis pack"
+    },
+    "DB-C2-022": {
+      "pack": "ind-mr-fw2",
+      "code": "C2",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 142,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-C2-015"
     },
     "DB-C2-010": {
       "pack": "ind-mr-sangraha-v",
@@ -2508,7 +3189,7 @@
         "acts again on retained documents after the full pipeline"
       ],
       "gold": {
-        "n": 68,
+        "n": 71,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2524,13 +3205,13 @@
         "70af3032daba67ad"
       ]
     },
-    "DB-C2-012": {
+    "DB-C2-016": {
       "pack": "ind-ta-sangraha-v",
       "code": "C2",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 41,
+        "n": 141,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2543,8 +3224,65 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
+    "DB-C2-012": {
+      "pack": "ind-ta-sangraha-v",
+      "code": "C2",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 141,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-C2-016"
+    },
     "DB-C2-013": {
       "pack": "ind-te-fw2",
+      "code": "C2",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 18,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-C2-017": {
+      "pack": "ind-te-sangraha-s",
+      "code": "C2",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 24,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-C2-018": {
+      "pack": "ind-te-sangraha-v",
       "code": "C2",
       "synthetic_issues": [],
       "review_issues": [],
@@ -2566,13 +3304,13 @@
       "pack": "ind-bn-fw2",
       "code": "C3",
       "synthetic_issues": [
-        "joiners: removes script joiner"
+        "joiners: changes script joiner count"
       ],
       "review_issues": [
-        "joiners: removes script joiner"
+        "joiners: changes script joiner count"
       ],
       "gold": {
-        "n": 238,
+        "n": 244,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2582,7 +3320,7 @@
         "result": "NOT TESTABLE"
       },
       "status": "DEFERRED",
-      "reason": "joiners: removes script joiner"
+      "reason": "joiners: changes script joiner count"
     },
     "DB-C3-006": {
       "pack": "ind-hi-fw2",
@@ -2603,6 +3341,44 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
+    "DB-C3-015": {
+      "pack": "ind-hi-fw2",
+      "code": "C3",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 234,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-C3-006"
+    },
+    "DB-C3-022": {
+      "pack": "ind-hi-hplt",
+      "code": "C3",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 62,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-C3-002"
+    },
     "DB-C3-007": {
       "pack": "ind-hi-hplt",
       "code": "C3",
@@ -2611,7 +3387,7 @@
         "not idempotent on own diagnosis pack"
       ],
       "gold": {
-        "n": 67,
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2632,6 +3408,44 @@
       },
       "status": "DEFERRED",
       "reason": "not idempotent on own diagnosis pack"
+    },
+    "DB-C3-016": {
+      "pack": "ind-hi-indiccorp",
+      "code": "C3",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 425,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-C3-025"
+    },
+    "DB-C3-023": {
+      "pack": "ind-hi-sangraha-s",
+      "code": "C3",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 24,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
     },
     "DB-C3-008": {
       "pack": "ind-kn-sangraha-s",
@@ -2661,14 +3475,33 @@
       "status": "DEFERRED",
       "reason": "not idempotent on own diagnosis pack"
     },
-    "DB-C3-009": {
+    "DB-C3-017": {
+      "pack": "ind-kn-sangraha-s",
+      "code": "C3",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 27,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-C3-018": {
       "pack": "ind-kn-sangraha-v",
       "code": "C3",
       "synthetic_issues": [
-        "joiners: removes script joiner"
+        "joiners: changes script joiner count"
       ],
       "review_issues": [
-        "joiners: removes script joiner"
+        "joiners: changes script joiner count"
       ],
       "gold": {
         "n": 103,
@@ -2681,7 +3514,48 @@
         "result": "NOT TESTABLE"
       },
       "status": "DEFERRED",
-      "reason": "joiners: removes script joiner"
+      "reason": "joiners: changes script joiner count"
+    },
+    "DB-C3-009": {
+      "pack": "ind-kn-sangraha-v",
+      "code": "C3",
+      "synthetic_issues": [
+        "joiners: changes script joiner count"
+      ],
+      "review_issues": [
+        "joiners: changes script joiner count"
+      ],
+      "gold": {
+        "n": 103,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "result": "NOT TESTABLE"
+      },
+      "status": "DEFERRED",
+      "reason": "joiners: changes script joiner count"
+    },
+    "DB-C3-024": {
+      "pack": "ind-mr-fw2",
+      "code": "C3",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 142,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
     },
     "DB-C3-010": {
       "pack": "ind-mr-sangraha-v",
@@ -2708,7 +3582,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 68,
+        "n": 71,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2721,17 +3595,36 @@
       "status": "DEFERRED",
       "reason": "overlap alternative; provisional source-order selection is DB-C3-004"
     },
+    "DB-C3-021": {
+      "pack": "ind-ta-sangraha-v",
+      "code": "C3",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 141,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
     "DB-C3-012": {
       "pack": "ind-ta-sangraha-v",
       "code": "C3",
       "synthetic_issues": [
-        "joiners: removes script joiner"
+        "joiners: changes script joiner count"
       ],
       "review_issues": [
-        "joiners: removes script joiner"
+        "joiners: changes script joiner count"
       ],
       "gold": {
-        "n": 41,
+        "n": 141,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2741,7 +3634,7 @@
         "result": "NOT TESTABLE"
       },
       "status": "DEFERRED",
-      "reason": "joiners: removes script joiner"
+      "reason": "joiners: changes script joiner count"
     },
     "DB-C3-013": {
       "pack": "ind-te-fw2",
@@ -2774,7 +3667,7 @@
         "not idempotent on own diagnosis pack"
       ],
       "gold": {
-        "n": 5,
+        "n": 24,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2793,13 +3686,13 @@
       "status": "DEFERRED",
       "reason": "not idempotent on own diagnosis pack"
     },
-    "DB-C4-007": {
-      "pack": "ind-gu-fw2",
+    "DB-C4-015": {
+      "pack": "ind-bn-sangraha-v",
       "code": "C4",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 19,
+        "n": 142,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2811,6 +3704,44 @@
       },
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-C4-007": {
+      "pack": "ind-gu-fw2",
+      "code": "C4",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 80,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-C4-016": {
+      "pack": "ind-hi-hplt",
+      "code": "C4",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 62,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-C4-003"
     },
     "DB-C4-008": {
       "pack": "ind-kn-sangraha-v",
@@ -2861,7 +3792,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 68,
+        "n": 71,
         "changed": [
           "1ece1474b414d6fe"
         ],
@@ -2882,7 +3813,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 68,
+        "n": 71,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2895,13 +3826,51 @@
       "status": "DEFERRED",
       "reason": "overlap alternative; provisional source-order selection is DB-C4-010"
     },
+    "DB-C4-013": {
+      "pack": "ind-ta-sangraha-v",
+      "code": "C4",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 141,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-C4-014": {
+      "pack": "ind-te-sangraha-v",
+      "code": "C4",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 18,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
     "DB-C5-007": {
       "pack": "ind-bn-fw2",
       "code": "C5",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 238,
+        "n": 244,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2920,7 +3889,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 238,
+        "n": 244,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2939,7 +3908,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 19,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2958,7 +3927,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 19,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2971,13 +3940,13 @@
       "status": "DEFERRED",
       "reason": "overlap alternative; provisional source-order selection is DB-C5-009"
     },
-    "DB-C5-011": {
-      "pack": "ind-kn-fw2",
+    "DB-C5-019": {
+      "pack": "ind-hi-hplt",
       "code": "C5",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 45,
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2987,8 +3956,27 @@
         "nonidempotent_ids": [],
         "errors": []
       },
-      "status": "CANDIDATE",
-      "reason": "first eligible candidate in source order; independent approval pending"
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-C5-001"
+    },
+    "DB-C5-011": {
+      "pack": "ind-kn-fw2",
+      "code": "C5",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 114,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "combined own-pack gold: FAIL"
     },
     "DB-C5-012": {
       "pack": "ind-kn-fw2",
@@ -2996,7 +3984,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 45,
+        "n": 114,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3008,6 +3996,25 @@
       },
       "status": "DEFERRED",
       "reason": "overlap alternative; provisional source-order selection is DB-C5-011"
+    },
+    "DB-C5-020": {
+      "pack": "ind-mr-fw2",
+      "code": "C5",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 142,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-C5-004"
     },
     "DB-C5-013": {
       "pack": "ind-mr-sangraha-v",
@@ -3039,7 +4046,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 68,
+        "n": 71,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3058,7 +4065,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 68,
+        "n": 71,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3071,13 +4078,13 @@
       "status": "DEFERRED",
       "reason": "overlap alternative; provisional source-order selection is DB-C5-014"
     },
-    "DB-D2-001": {
+    "DB-D2-003": {
       "pack": "ind-hi-hplt",
       "code": "D2",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 67,
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3090,13 +4097,32 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
+    "DB-D2-001": {
+      "pack": "ind-hi-hplt",
+      "code": "D2",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 62,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-D2-003"
+    },
     "DB-D2-002": {
       "pack": "ind-sa-fw2",
       "code": "D2",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 68,
+        "n": 71,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3115,7 +4141,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 238,
+        "n": 244,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3134,7 +4160,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 238,
+        "n": 244,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3147,13 +4173,32 @@
       "status": "DEFERRED",
       "reason": "overlap alternative; provisional source-order selection is DB-D3-001"
     },
+    "DB-D3-021": {
+      "pack": "ind-bn-sangraha-v",
+      "code": "D3",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 142,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
     "DB-D3-003": {
       "pack": "ind-gu-fw2",
       "code": "D3",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 19,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3172,7 +4217,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 19,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3204,13 +4249,32 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
-    "DB-D3-006": {
+    "DB-D3-015": {
+      "pack": "ind-hi-fw2",
+      "code": "D3",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 234,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-D3-005"
+    },
+    "DB-D3-020": {
       "pack": "ind-hi-hplt",
       "code": "D3",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 67,
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3223,13 +4287,13 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
-    "DB-D3-007": {
+    "DB-D3-006": {
       "pack": "ind-hi-hplt",
       "code": "D3",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 67,
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3240,7 +4304,26 @@
         "errors": []
       },
       "status": "DEFERRED",
-      "reason": "overlap alternative; provisional source-order selection is DB-D3-006"
+      "reason": "overlap alternative; provisional source-order selection is DB-D3-020"
+    },
+    "DB-D3-007": {
+      "pack": "ind-hi-hplt",
+      "code": "D3",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 62,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-D3-020"
     },
     "DB-D3-008": {
       "pack": "ind-kn-sangraha-s",
@@ -3249,6 +4332,25 @@
       "review_issues": [],
       "gold": {
         "n": 27,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-D3-016": {
+      "pack": "ind-kn-sangraha-v",
+      "code": "D3",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 103,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3277,6 +4379,25 @@
         "nonidempotent_ids": [],
         "errors": []
       },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-D3-016"
+    },
+    "DB-D3-017": {
+      "pack": "ind-mr-fw2",
+      "code": "D3",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 142,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
@@ -3286,7 +4407,26 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 140,
+        "n": 142,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-D3-017"
+    },
+    "DB-D3-022": {
+      "pack": "ind-mr-sangraha-v",
+      "code": "D3",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 88,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3315,8 +4455,8 @@
         "nonidempotent_ids": [],
         "errors": []
       },
-      "status": "CANDIDATE",
-      "reason": "first eligible candidate in source order; independent approval pending"
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-D3-022"
     },
     "DB-D3-012": {
       "pack": "ind-sa-fw2",
@@ -3324,7 +4464,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 68,
+        "n": 71,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3343,7 +4483,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 68,
+        "n": 71,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3355,6 +4495,25 @@
       },
       "status": "DEFERRED",
       "reason": "overlap alternative; provisional source-order selection is DB-D3-012"
+    },
+    "DB-D3-018": {
+      "pack": "ind-ta-sangraha-v",
+      "code": "D3",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 141,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
     },
     "DB-D3-014": {
       "pack": "ind-te-fw2",
@@ -3375,13 +4534,127 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
+    "DB-D3-019": {
+      "pack": "ind-te-sangraha-v",
+      "code": "D3",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 18,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-D4-019": {
+      "pack": "ind-hi-sangraha-s",
+      "code": "D4",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 24,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-D4-018"
+    },
+    "DB-D4-014": {
+      "pack": "ind-kn-sangraha-s",
+      "code": "D4",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 27,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-D4-015": {
+      "pack": "ind-kn-sangraha-v",
+      "code": "D4",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 103,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-D4-007"
+    },
+    "DB-D4-017": {
+      "pack": "ind-ta-sangraha-v",
+      "code": "D4",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 141,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-D5-003": {
+      "pack": "ind-hi-fw2",
+      "code": "D5",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 234,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
     "DB-D5-002": {
       "pack": "ind-hi-hplt",
       "code": "D5",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 67,
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3402,7 +4675,7 @@
         "acts again on retained documents after the full pipeline"
       ],
       "gold": {
-        "n": 5,
+        "n": 24,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3424,7 +4697,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 68,
+        "n": 71,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3443,7 +4716,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 68,
+        "n": 71,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3456,13 +4729,13 @@
       "status": "DEFERRED",
       "reason": "overlap alternative; provisional source-order selection is DB-H3-001"
     },
-    "DB-B4-001": {
-      "pack": "ind-gu-fw2",
+    "DB-B4-009": {
+      "pack": "ind-bn-sangraha-v",
       "code": "B4",
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 19,
+        "n": 142,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3475,6 +4748,44 @@
       "status": "CANDIDATE",
       "reason": "first eligible candidate in source order; independent approval pending"
     },
+    "DB-B4-001": {
+      "pack": "ind-gu-fw2",
+      "code": "B4",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 80,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-B4-010": {
+      "pack": "ind-hi-sangraha-s",
+      "code": "B4",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 24,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-B4-008"
+    },
     "DB-B4-002": {
       "pack": "ind-kn-sangraha-v",
       "code": "B4",
@@ -3482,6 +4793,25 @@
       "review_issues": [],
       "gold": {
         "n": 103,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-B4-011": {
+      "pack": "ind-mr-fw2",
+      "code": "B4",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 142,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3519,7 +4849,26 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 68,
+        "n": 71,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "CANDIDATE",
+      "reason": "first eligible candidate in source order; independent approval pending"
+    },
+    "DB-B4-007": {
+      "pack": "ind-ta-sangraha-v",
+      "code": "B4",
+      "synthetic_issues": [],
+      "review_issues": [],
+      "gold": {
+        "n": 141,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3538,7 +4887,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 41,
+        "n": 141,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3548,8 +4897,8 @@
         "nonidempotent_ids": [],
         "errors": []
       },
-      "status": "CANDIDATE",
-      "reason": "first eligible candidate in source order; independent approval pending"
+      "status": "DEFERRED",
+      "reason": "overlap alternative; provisional source-order selection is DB-B4-007"
     },
     "DB-B4-006": {
       "pack": "ind-te-sangraha-s",
@@ -3557,7 +4906,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 5,
+        "n": 24,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3575,10 +4924,10 @@
       "code": "F1",
       "synthetic_issues": [],
       "review_issues": [
-        "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+        "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
       ],
       "gold": {
-        "n": 19,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3589,17 +4938,17 @@
         "errors": []
       },
       "status": "DEFERRED",
-      "reason": "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+      "reason": "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
     },
     "DB-F1-002": {
       "pack": "ind-gu-fw2",
       "code": "F1",
       "synthetic_issues": [],
       "review_issues": [
-        "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+        "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
       ],
       "gold": {
-        "n": 19,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3610,17 +4959,38 @@
         "errors": []
       },
       "status": "DEFERRED",
-      "reason": "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+      "reason": "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+    },
+    "DB-F1-012": {
+      "pack": "ind-hi-hplt",
+      "code": "F1",
+      "synthetic_issues": [],
+      "review_issues": [
+        "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+      ],
+      "gold": {
+        "n": 62,
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "full_rule": {
+        "nonidempotent_ids": [],
+        "errors": []
+      },
+      "status": "DEFERRED",
+      "reason": "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
     },
     "DB-F1-003": {
       "pack": "ind-hi-hplt",
       "code": "F1",
       "synthetic_issues": [],
       "review_issues": [
-        "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+        "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
       ],
       "gold": {
-        "n": 67,
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3631,17 +5001,17 @@
         "errors": []
       },
       "status": "DEFERRED",
-      "reason": "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+      "reason": "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
     },
     "DB-F1-004": {
       "pack": "ind-hi-hplt",
       "code": "F1",
       "synthetic_issues": [],
       "review_issues": [
-        "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+        "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
       ],
       "gold": {
-        "n": 67,
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3652,38 +5022,43 @@
         "errors": []
       },
       "status": "DEFERRED",
-      "reason": "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+      "reason": "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
     },
-    "DB-F1-005": {
-      "pack": "ind-kn-fw2",
+    "DB-F1-011": {
+      "pack": "ind-hi-indiccorp",
       "code": "F1",
       "synthetic_issues": [],
       "review_issues": [
-        "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+        "not idempotent on own diagnosis pack",
+        "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
       ],
       "gold": {
-        "n": 45,
-        "changed": [],
+        "n": 425,
+        "changed": [
+          "e11903157ed9b336"
+        ],
         "dropped": [],
         "errors": [],
         "result": "PASS"
       },
       "full_rule": {
-        "nonidempotent_ids": [],
+        "nonidempotent_ids": [
+          "ebe1660c7122bfa0"
+        ],
         "errors": []
       },
       "status": "DEFERRED",
-      "reason": "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+      "reason": "not idempotent on own diagnosis pack; replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
     },
     "DB-F1-006": {
       "pack": "ind-mr-fw2",
       "code": "F1",
       "synthetic_issues": [],
       "review_issues": [
-        "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+        "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
       ],
       "gold": {
-        "n": 140,
+        "n": 142,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3694,14 +5069,14 @@
         "errors": []
       },
       "status": "DEFERRED",
-      "reason": "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+      "reason": "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
     },
     "DB-F1-007": {
       "pack": "ind-mr-sangraha-v",
       "code": "F1",
       "synthetic_issues": [],
       "review_issues": [
-        "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+        "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
       ],
       "gold": {
         "n": 88,
@@ -3715,17 +5090,17 @@
         "errors": []
       },
       "status": "DEFERRED",
-      "reason": "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+      "reason": "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
     },
     "DB-F1-008": {
       "pack": "ind-sa-fw2",
       "code": "F1",
       "synthetic_issues": [],
       "review_issues": [
-        "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+        "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
       ],
       "gold": {
-        "n": 68,
+        "n": 71,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3736,17 +5111,17 @@
         "errors": []
       },
       "status": "DEFERRED",
-      "reason": "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+      "reason": "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
     },
     "DB-F1-009": {
       "pack": "ind-sa-fw2",
       "code": "F1",
       "synthetic_issues": [],
       "review_issues": [
-        "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+        "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
       ],
       "gold": {
-        "n": 68,
+        "n": 71,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3757,14 +5132,14 @@
         "errors": []
       },
       "status": "DEFERRED",
-      "reason": "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+      "reason": "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
     },
     "DB-F1-010": {
       "pack": "ind-te-fw2",
       "code": "F1",
       "synthetic_issues": [],
       "review_issues": [
-        "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+        "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
       ],
       "gold": {
         "n": 18,
@@ -3778,27 +5153,187 @@
         "errors": []
       },
       "status": "DEFERRED",
-      "reason": "replaced by the shared F1, spec_v1/tools/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+      "reason": "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
+    },
+    "DB-A6-010": {
+      "pack": "ind-sa-fw2",
+      "code": "A6",
+      "status": "DEFERRED",
+      "reason": "TSAI 5 November: visarga/colon conversion in either direction is excluded from spec v1 in every script, including Tamil \u0b83",
+      "review_issues": [
+        "TSAI 5 November: visarga/colon conversion in either direction is excluded from spec v1 in every script, including Tamil \u0b83"
+      ],
+      "gold": {
+        "result": "NOT RUN",
+        "reason": "retired; policy excludes execution"
+      },
+      "full_rule": {
+        "result": "NOT RUN"
+      },
+      "synthetic_issues": [],
+      "retired": true
+    },
+    "DB-A6-011": {
+      "pack": "ind-sa-fw2",
+      "code": "A6",
+      "status": "DEFERRED",
+      "reason": "TSAI 5 November: visarga/colon conversion in either direction is excluded from spec v1 in every script, including Tamil \u0b83",
+      "review_issues": [
+        "TSAI 5 November: visarga/colon conversion in either direction is excluded from spec v1 in every script, including Tamil \u0b83"
+      ],
+      "gold": {
+        "result": "NOT RUN",
+        "reason": "retired; policy excludes execution"
+      },
+      "full_rule": {
+        "result": "NOT RUN"
+      },
+      "synthetic_issues": [],
+      "retired": true
+    },
+    "DB-A6-012": {
+      "pack": "ind-ta-sangraha-v",
+      "code": "A6",
+      "status": "DEFERRED",
+      "reason": "TSAI 5 November: visarga/colon conversion in either direction is excluded from spec v1 in every script, including Tamil \u0b83",
+      "review_issues": [
+        "TSAI 5 November: visarga/colon conversion in either direction is excluded from spec v1 in every script, including Tamil \u0b83"
+      ],
+      "gold": {
+        "result": "NOT RUN",
+        "reason": "retired; policy excludes execution"
+      },
+      "full_rule": {
+        "result": "NOT RUN"
+      },
+      "synthetic_issues": [],
+      "retired": true
+    },
+    "DB-A6-014": {
+      "pack": "ind-te-sangraha-s",
+      "code": "A6",
+      "status": "DEFERRED",
+      "reason": "TSAI 5 November: visarga/colon conversion in either direction is excluded from spec v1 in every script, including Tamil \u0b83",
+      "review_issues": [
+        "TSAI 5 November: visarga/colon conversion in either direction is excluded from spec v1 in every script, including Tamil \u0b83"
+      ],
+      "gold": {
+        "result": "NOT RUN",
+        "reason": "retired; policy excludes execution"
+      },
+      "full_rule": {
+        "result": "NOT RUN"
+      },
+      "synthetic_issues": [],
+      "retired": true
+    },
+    "DB-G2-001": {
+      "pack": "ind-bn-fw2",
+      "code": "G2",
+      "status": "DEFERRED",
+      "reason": "TSAI 4 November: adds ZWJ by design; excluded from spec v1 and all sibling scopes; held for v2",
+      "review_issues": [
+        "TSAI 4 November: adds ZWJ by design; excluded from spec v1 and all sibling scopes; held for v2"
+      ],
+      "gold": {
+        "result": "NOT RUN",
+        "reason": "retired; policy excludes execution"
+      },
+      "full_rule": {
+        "result": "NOT RUN"
+      },
+      "synthetic_issues": [],
+      "retired": true
+    },
+    "DB-G2-002": {
+      "pack": "ind-bn-fw2",
+      "code": "G2",
+      "status": "DEFERRED",
+      "reason": "TSAI 4 November: adds ZWJ by design; excluded from spec v1 and all sibling scopes; held for v2",
+      "review_issues": [
+        "TSAI 4 November: adds ZWJ by design; excluded from spec v1 and all sibling scopes; held for v2"
+      ],
+      "gold": {
+        "result": "NOT RUN",
+        "reason": "retired; policy excludes execution"
+      },
+      "full_rule": {
+        "result": "NOT RUN"
+      },
+      "synthetic_issues": [],
+      "retired": true
+    },
+    "DB-G4-001": {
+      "pack": "ind-kn-sangraha-v",
+      "code": "G4",
+      "status": "DEFERRED",
+      "reason": "TSAI 5 November: visarga/colon conversion in either direction is excluded from spec v1 in every script, including Tamil \u0b83",
+      "review_issues": [
+        "TSAI 5 November: visarga/colon conversion in either direction is excluded from spec v1 in every script, including Tamil \u0b83"
+      ],
+      "gold": {
+        "result": "NOT RUN",
+        "reason": "retired; policy excludes execution"
+      },
+      "full_rule": {
+        "result": "NOT RUN"
+      },
+      "synthetic_issues": [],
+      "retired": true
+    },
+    "DB-F2-001": {
+      "pack": "ind-sa-fw2",
+      "code": "F2",
+      "status": "DEFERRED",
+      "reason": "TSAI 4 November: needs Itihasa test sentences via ITIHASA_TEST_SN; legacy F2 excluded from spec v1; optional G9 F2 does not cover Itihasa",
+      "review_issues": [
+        "TSAI 4 November: needs Itihasa test sentences via ITIHASA_TEST_SN; legacy F2 excluded from spec v1; optional G9 F2 does not cover Itihasa"
+      ],
+      "gold": {
+        "result": "NOT RUN",
+        "reason": "retired; policy excludes execution"
+      },
+      "full_rule": {
+        "result": "NOT RUN"
+      },
+      "synthetic_issues": [],
+      "retired": true
+    },
+    "DB-F1-005": {
+      "pack": "ind-kn-fw2",
+      "code": "F1",
+      "status": "DEFERRED",
+      "reason": "fails current own-pack gold (2 of 114); source F1 is also replaced by shared Indic F1",
+      "review_issues": [
+        "fails current own-pack gold (2 of 114); source F1 is also replaced by shared Indic F1"
+      ],
+      "gold": {
+        "result": "NOT RUN",
+        "reason": "retired; policy excludes execution"
+      },
+      "full_rule": {
+        "result": "NOT RUN"
+      },
+      "synthetic_issues": [],
+      "retired": true
     },
     "DB-F2-002": {
       "pack": "ind-sa-fw2",
       "code": "F2",
-      "synthetic_issues": [],
+      "status": "DEFERRED",
+      "reason": "TSAI 4 November: needs FLORES/IN22/Itihasa benchmark text; legacy F2 excluded from spec v1",
       "review_issues": [
-        "legacy sentence-based F2 is excluded; G9 decontamination is separate and opt-in through run_clean.py --f2"
+        "TSAI 4 November: needs FLORES/IN22/Itihasa benchmark text; legacy F2 excluded from spec v1"
       ],
       "gold": {
-        "n": 68,
-        "changed": [],
-        "dropped": [],
-        "errors": [],
-        "result": "PASS"
+        "result": "NOT RUN",
+        "reason": "retired; policy excludes execution"
       },
       "full_rule": {
-        "result": "NOT TESTABLE"
+        "result": "NOT RUN"
       },
-      "status": "DEFERRED",
-      "reason": "legacy sentence-based F2 is excluded; G9 decontamination is separate and opt-in through run_clean.py --f2"
+      "synthetic_issues": [],
+      "retired": true
     }
   },
   "overlaps": [
@@ -3836,7 +5371,7 @@
         "DB-A5-007",
         "DB-A5-008"
       ],
-      "selected": "DB-A5-008"
+      "selected": "DB-A5-007"
     },
     {
       "pack": "ind-bn-fw2",
@@ -3860,19 +5395,38 @@
       "pack": "ind-hi-hplt",
       "code": "A6",
       "ids": [
+        "DB-A6-017",
         "DB-A6-004",
         "DB-A6-005"
       ],
-      "selected": "DB-A6-004"
+      "selected": "DB-A6-017"
     },
     {
-      "pack": "ind-sa-fw2",
+      "pack": "ind-kn-sangraha-s",
       "code": "A6",
       "ids": [
-        "DB-A6-010",
-        "DB-A6-011"
+        "DB-A6-006",
+        "DB-A6-016"
       ],
-      "selected": null
+      "selected": "DB-A6-006"
+    },
+    {
+      "pack": "ind-mr-sangraha-v",
+      "code": "A6",
+      "ids": [
+        "DB-A6-021",
+        "DB-A6-009"
+      ],
+      "selected": "DB-A6-021"
+    },
+    {
+      "pack": "ind-bn-sangraha-v",
+      "code": "G1",
+      "ids": [
+        "DB-G1-015",
+        "DB-G1-017"
+      ],
+      "selected": "DB-G1-015"
     },
     {
       "pack": "ind-gu-fw2",
@@ -3884,6 +5438,15 @@
       "selected": "DB-G1-003"
     },
     {
+      "pack": "ind-hi-hplt",
+      "code": "G1",
+      "ids": [
+        "DB-G1-016",
+        "DB-G1-004"
+      ],
+      "selected": "DB-G1-016"
+    },
+    {
       "pack": "ind-sa-fw2",
       "code": "G1",
       "ids": [
@@ -3893,13 +5456,58 @@
       "selected": "DB-G1-007"
     },
     {
-      "pack": "ind-bn-fw2",
-      "code": "G2",
+      "pack": "ind-ta-sangraha-v",
+      "code": "G1",
       "ids": [
-        "DB-G2-001",
-        "DB-G2-002"
+        "DB-G1-013",
+        "DB-G1-009"
       ],
-      "selected": "DB-G2-001"
+      "selected": "DB-G1-013"
+    },
+    {
+      "pack": "ind-hi-sangraha-s",
+      "code": "B2",
+      "ids": [
+        "DB-B2-008",
+        "DB-B2-009"
+      ],
+      "selected": "DB-B2-008"
+    },
+    {
+      "pack": "ind-kn-sangraha-s",
+      "code": "B2",
+      "ids": [
+        "DB-B2-003",
+        "DB-B2-006"
+      ],
+      "selected": "DB-B2-003"
+    },
+    {
+      "pack": "ind-te-sangraha-s",
+      "code": "B2",
+      "ids": [
+        "DB-B2-007",
+        "DB-B2-005"
+      ],
+      "selected": "DB-B2-007"
+    },
+    {
+      "pack": "ind-kn-sangraha-s",
+      "code": "B3",
+      "ids": [
+        "DB-B3-001",
+        "DB-B3-002"
+      ],
+      "selected": "DB-B3-001"
+    },
+    {
+      "pack": "ind-hi-sangraha-s",
+      "code": "B4",
+      "ids": [
+        "DB-B4-008",
+        "DB-B4-010"
+      ],
+      "selected": "DB-B4-008"
     },
     {
       "pack": "ind-bn-fw2",
@@ -3915,9 +5523,29 @@
       "code": "C3",
       "ids": [
         "DB-C3-002",
+        "DB-C3-022",
         "DB-C3-007"
       ],
       "selected": "DB-C3-002"
+    },
+    {
+      "pack": "ind-hi-indiccorp",
+      "code": "C3",
+      "ids": [
+        "DB-C3-025",
+        "DB-C3-016"
+      ],
+      "selected": "DB-C3-025"
+    },
+    {
+      "pack": "ind-mr-fw2",
+      "code": "C3",
+      "ids": [
+        "DB-C3-019",
+        "DB-C3-003",
+        "DB-C3-024"
+      ],
+      "selected": "DB-C3-024"
     },
     {
       "pack": "ind-sa-fw2",
@@ -3929,11 +5557,21 @@
       "selected": "DB-C3-004"
     },
     {
+      "pack": "ind-hi-fw2",
+      "code": "C4",
+      "ids": [
+        "DB-C4-002",
+        "DB-C4-012"
+      ],
+      "selected": "DB-C4-002"
+    },
+    {
       "pack": "ind-hi-hplt",
       "code": "C4",
       "ids": [
         "DB-C4-003",
-        "DB-C4-004"
+        "DB-C4-004",
+        "DB-C4-016"
       ],
       "selected": "DB-C4-003"
     },
@@ -3942,9 +5580,28 @@
       "code": "C5",
       "ids": [
         "DB-C5-001",
-        "DB-C5-002"
+        "DB-C5-002",
+        "DB-C5-019"
       ],
       "selected": "DB-C5-001"
+    },
+    {
+      "pack": "ind-mr-fw2",
+      "code": "C5",
+      "ids": [
+        "DB-C5-004",
+        "DB-C5-020"
+      ],
+      "selected": "DB-C5-004"
+    },
+    {
+      "pack": "ind-ta-sangraha-v",
+      "code": "C5",
+      "ids": [
+        "DB-C5-017",
+        "DB-C5-005"
+      ],
+      "selected": "DB-C5-017"
     },
     {
       "pack": "ind-bn-fw2",
@@ -3974,6 +5631,24 @@
       "selected": "DB-D4-005"
     },
     {
+      "pack": "ind-hi-sangraha-s",
+      "code": "D4",
+      "ids": [
+        "DB-D4-018",
+        "DB-D4-019"
+      ],
+      "selected": "DB-D4-018"
+    },
+    {
+      "pack": "ind-kn-sangraha-v",
+      "code": "D4",
+      "ids": [
+        "DB-D4-007",
+        "DB-D4-015"
+      ],
+      "selected": "DB-D4-007"
+    },
+    {
       "pack": "ind-sa-fw2",
       "code": "D4",
       "ids": [
@@ -3981,15 +5656,6 @@
         "DB-D4-010"
       ],
       "selected": "DB-D4-009"
-    },
-    {
-      "pack": "ind-sa-fw2",
-      "code": "F2",
-      "ids": [
-        "DB-F2-001",
-        "DB-F2-002"
-      ],
-      "selected": null
     },
     {
       "pack": "ind-bn-fw2",
@@ -4005,6 +5671,7 @@
       "code": "C1",
       "ids": [
         "DB-C1-001",
+        "DB-C1-024",
         "DB-C1-002"
       ],
       "selected": "DB-C1-001"
@@ -4017,6 +5684,15 @@
         "DB-C1-004"
       ],
       "selected": "DB-C1-003"
+    },
+    {
+      "pack": "ind-hi-fw2",
+      "code": "C1",
+      "ids": [
+        "DB-C1-005",
+        "DB-C1-017"
+      ],
+      "selected": "DB-C1-005"
     },
     {
       "pack": "ind-hi-hplt",
@@ -4034,7 +5710,16 @@
         "DB-C1-008",
         "DB-C1-009"
       ],
-      "selected": "DB-C1-008"
+      "selected": null
+    },
+    {
+      "pack": "ind-kn-sangraha-v",
+      "code": "C1",
+      "ids": [
+        "DB-C1-019",
+        "DB-C1-011"
+      ],
+      "selected": "DB-C1-019"
     },
     {
       "pack": "ind-sa-fw2",
@@ -4046,6 +5731,24 @@
       "selected": "DB-C1-013"
     },
     {
+      "pack": "ind-ta-sangraha-v",
+      "code": "C1",
+      "ids": [
+        "DB-C1-021",
+        "DB-C1-015"
+      ],
+      "selected": "DB-C1-021"
+    },
+    {
+      "pack": "ind-te-sangraha-v",
+      "code": "C1",
+      "ids": [
+        "DB-C1-022",
+        "DB-C1-025"
+      ],
+      "selected": "DB-C1-022"
+    },
+    {
       "pack": "ind-bn-fw2",
       "code": "C2",
       "ids": [
@@ -4055,13 +5758,23 @@
       "selected": "DB-C2-001"
     },
     {
+      "pack": "ind-bn-sangraha-v",
+      "code": "C2",
+      "ids": [
+        "DB-C2-020",
+        "DB-C2-023"
+      ],
+      "selected": "DB-C2-023"
+    },
+    {
       "pack": "ind-hi-hplt",
       "code": "C2",
       "ids": [
+        "DB-C2-021",
         "DB-C2-004",
         "DB-C2-005"
       ],
-      "selected": "DB-C2-004"
+      "selected": "DB-C2-021"
     },
     {
       "pack": "ind-kn-fw2",
@@ -4070,7 +5783,62 @@
         "DB-C2-006",
         "DB-C2-007"
       ],
-      "selected": "DB-C2-006"
+      "selected": null
+    },
+    {
+      "pack": "ind-mr-fw2",
+      "code": "C2",
+      "ids": [
+        "DB-C2-015",
+        "DB-C2-009",
+        "DB-C2-022"
+      ],
+      "selected": "DB-C2-015"
+    },
+    {
+      "pack": "ind-ta-sangraha-v",
+      "code": "C2",
+      "ids": [
+        "DB-C2-016",
+        "DB-C2-012"
+      ],
+      "selected": "DB-C2-016"
+    },
+    {
+      "pack": "ind-hi-fw2",
+      "code": "C3",
+      "ids": [
+        "DB-C3-006",
+        "DB-C3-015"
+      ],
+      "selected": "DB-C3-006"
+    },
+    {
+      "pack": "ind-kn-sangraha-s",
+      "code": "C3",
+      "ids": [
+        "DB-C3-008",
+        "DB-C3-017"
+      ],
+      "selected": "DB-C3-017"
+    },
+    {
+      "pack": "ind-kn-sangraha-v",
+      "code": "C3",
+      "ids": [
+        "DB-C3-018",
+        "DB-C3-009"
+      ],
+      "selected": null
+    },
+    {
+      "pack": "ind-ta-sangraha-v",
+      "code": "C3",
+      "ids": [
+        "DB-C3-021",
+        "DB-C3-012"
+      ],
+      "selected": "DB-C3-021"
     },
     {
       "pack": "ind-sa-fw2",
@@ -4106,7 +5874,7 @@
         "DB-C5-011",
         "DB-C5-012"
       ],
-      "selected": "DB-C5-011"
+      "selected": null
     },
     {
       "pack": "ind-sa-fw2",
@@ -4116,6 +5884,15 @@
         "DB-C5-015"
       ],
       "selected": "DB-C5-014"
+    },
+    {
+      "pack": "ind-hi-hplt",
+      "code": "D2",
+      "ids": [
+        "DB-D2-003",
+        "DB-D2-001"
+      ],
+      "selected": "DB-D2-003"
     },
     {
       "pack": "ind-bn-fw2",
@@ -4136,13 +5913,50 @@
       "selected": "DB-D3-003"
     },
     {
+      "pack": "ind-hi-fw2",
+      "code": "D3",
+      "ids": [
+        "DB-D3-005",
+        "DB-D3-015"
+      ],
+      "selected": "DB-D3-005"
+    },
+    {
       "pack": "ind-hi-hplt",
       "code": "D3",
       "ids": [
+        "DB-D3-020",
         "DB-D3-006",
         "DB-D3-007"
       ],
-      "selected": "DB-D3-006"
+      "selected": "DB-D3-020"
+    },
+    {
+      "pack": "ind-kn-sangraha-v",
+      "code": "D3",
+      "ids": [
+        "DB-D3-016",
+        "DB-D3-009"
+      ],
+      "selected": "DB-D3-016"
+    },
+    {
+      "pack": "ind-mr-fw2",
+      "code": "D3",
+      "ids": [
+        "DB-D3-017",
+        "DB-D3-010"
+      ],
+      "selected": "DB-D3-017"
+    },
+    {
+      "pack": "ind-mr-sangraha-v",
+      "code": "D3",
+      "ids": [
+        "DB-D3-022",
+        "DB-D3-011"
+      ],
+      "selected": "DB-D3-022"
     },
     {
       "pack": "ind-sa-fw2",
@@ -4163,6 +5977,15 @@
       "selected": "DB-H3-001"
     },
     {
+      "pack": "ind-ta-sangraha-v",
+      "code": "B4",
+      "ids": [
+        "DB-B4-007",
+        "DB-B4-005"
+      ],
+      "selected": "DB-B4-007"
+    },
+    {
       "pack": "ind-gu-fw2",
       "code": "F1",
       "ids": [
@@ -4175,6 +5998,7 @@
       "pack": "ind-hi-hplt",
       "code": "F1",
       "ids": [
+        "DB-F1-012",
         "DB-F1-003",
         "DB-F1-004"
       ],
@@ -4193,18 +6017,29 @@
   "gold": {
     "ind-bn-fw2": {
       "result": "PASS",
-      "n": 238,
+      "n": 244,
       "pack_sha256": "b5f91af826c982b548f7fc06404a2d53623b1393d511049f2e004b0353847913",
-      "gold_sha256": "72949bcc2f76496e2ddca0adbbc2854e6dc719f1940ec07f6500365a521e5856",
+      "gold_sha256": "4868dc1a46c3651a25e0b6fe7f33d62f79518e42d8dc95fa7d5860a705fd3f24",
+      "changed": [],
+      "dropped": [
+        "016f4687d4a36ce9"
+      ],
+      "errors": []
+    },
+    "ind-bn-sangraha-v": {
+      "result": "PASS",
+      "n": 142,
+      "pack_sha256": "e64c471dd6391dac861e039c2ad1d3c3732b21b97f29efd4b9bcaf0bf54baf81",
+      "gold_sha256": "c1594fda9363e9d37cfd605c775a87a14fbb6b2bfd2f187ea4392364a2be14f2",
       "changed": [],
       "dropped": [],
       "errors": []
     },
     "ind-gu-fw2": {
       "result": "PASS",
-      "n": 19,
+      "n": 80,
       "pack_sha256": "9f58ad695beac877b7f71f9773328c141e5f19385b9f292ebc9c2b21b19daa6a",
-      "gold_sha256": "1d9592a7729d51c8da817f8bbd7827ad222646ba0ec9f3461eb157fc0d745a8c",
+      "gold_sha256": "1a1592f183e6c8a153b5d6a3573848f73bee05d553d66d106437208301616a14",
       "changed": [],
       "dropped": [],
       "errors": []
@@ -4214,25 +6049,50 @@
       "n": 234,
       "pack_sha256": "f9e1a898c982fcdfb788a931910f79f2204c177e530709df71a2d3b8223f5169",
       "gold_sha256": "c42f5233f3af862d28271fc06734e3af5995290a8f580ee22ebba146e64307df",
-      "changed": [],
+      "changed": [
+        "277fa2fd630f90fd"
+      ],
       "dropped": [],
       "errors": []
     },
     "ind-hi-hplt": {
       "result": "PASS",
-      "n": 67,
+      "n": 62,
       "pack_sha256": "497533fc4d6407b1ef2e83f7304d65ab7f9fe7892fee09ab6d10f45c913eadc6",
-      "gold_sha256": "c869bf4db6656ee08fe41054eced5837cac93680e2bfacf6ce53b63488ad589a",
+      "gold_sha256": "44b4893000ea15190c6a7c6748bd48b3ce1574178036e91b9d311d896db85dfd",
+      "changed": [],
+      "dropped": [],
+      "errors": []
+    },
+    "ind-hi-indiccorp": {
+      "result": "PASS",
+      "n": 425,
+      "pack_sha256": "c55b80d3d5c820fb34cab3b0bf8ccaabd2e73496cea42267c08d05cc34ecd612",
+      "gold_sha256": "a0b3f7021b6a168666eacb60c3d517feb403f302d8afa791bf176a6920d5718a",
+      "changed": [],
+      "dropped": [
+        "c1403c97611401f8"
+      ],
+      "errors": []
+    },
+    "ind-hi-sangraha-s": {
+      "result": "PASS",
+      "n": 24,
+      "pack_sha256": "7fd34f97729659a7c0c7f6bed0190e7f4eda29ed8a0f9b9eacbfe4a607a3ff6d",
+      "gold_sha256": "f3943ff76a96e9e67896a88130bb41ee3b08b2025c010381d8e052807e10ea80",
       "changed": [],
       "dropped": [],
       "errors": []
     },
     "ind-kn-fw2": {
-      "result": "PASS",
-      "n": 45,
+      "result": "FAIL",
+      "n": 114,
       "pack_sha256": "3859c21e3f715ff7c0fbe978dcd0719b48ead11cff58fe215afa23f1175fd3ee",
-      "gold_sha256": "ba40473594b4605a002ffa627d86d820eace8eb9012475ed657ebca91dca4978",
-      "changed": [],
+      "gold_sha256": "82c4bcaab136214652457f4ecbf82b9d27966d0eccc54466ca44498bba0b1061",
+      "changed": [
+        "4d34a1a3048e4e7d",
+        "51f68b9da172f3ae"
+      ],
       "dropped": [],
       "errors": []
     },
@@ -4256,9 +6116,9 @@
     },
     "ind-mr-fw2": {
       "result": "PASS",
-      "n": 140,
+      "n": 142,
       "pack_sha256": "94a1d14caa9a46f40c2212c6d2c436b9ebb03093ac60ec04658023adeb2d3e2b",
-      "gold_sha256": "a9dd9cca00ab62a28f9de42debded3ab21ad054d16cbac2b3766518e0831ab9d",
+      "gold_sha256": "77ac2d31255eb65eda643a6e99526a0b6939dd01c2bcbeaf58ea4a50ee11e976",
       "changed": [],
       "dropped": [],
       "errors": []
@@ -4274,9 +6134,9 @@
     },
     "ind-sa-fw2": {
       "result": "PASS",
-      "n": 68,
+      "n": 71,
       "pack_sha256": "95e08d6b9ef1c3baf2d98c7f6bef3a0d12236d6b7c54583e5d4565884b3108e0",
-      "gold_sha256": "14fa93da9a30aba5786435889bdf24b078417f55763f854e2ecc7cb8a428184f",
+      "gold_sha256": "bfa93e597a4ab341f2c597388ce8b7c8e3912e728283e867fca8fa5970046865",
       "changed": [
         "1ece1474b414d6fe"
       ],
@@ -4285,10 +6145,12 @@
     },
     "ind-ta-sangraha-v": {
       "result": "PASS",
-      "n": 41,
+      "n": 141,
       "pack_sha256": "1df8e92c0f6a18d510ec8af5bf97d41aacf4834746fb9f24dc97821018057d78",
-      "gold_sha256": "4d54550d7ebcf6bf07f2c1d7efb56e3a04eacbbb9765819c1559614ad63d0c14",
-      "changed": [],
+      "gold_sha256": "da9e3ff4db5df66b3886dc957ea7db35828083d2c78ed8a7fc8760a386af6948",
+      "changed": [
+        "2134d8e197faedf0"
+      ],
       "dropped": [],
       "errors": []
     },
@@ -4303,9 +6165,18 @@
     },
     "ind-te-sangraha-s": {
       "result": "PASS",
-      "n": 5,
+      "n": 24,
       "pack_sha256": "feeb676e76dee102d132846c1af2a92c3ea4d1018e0fd5239f50fc0da0fb6069",
-      "gold_sha256": "455ff42bdbdd7388ca36044ab9d6b7073c507412bb057a2036d664621e5ab5ac",
+      "gold_sha256": "410ce1d6483c56086e8c9f6d1f23265278246999520e2f6f20845010ebc0f3e3",
+      "changed": [],
+      "dropped": [],
+      "errors": []
+    },
+    "ind-te-sangraha-v": {
+      "result": "PASS",
+      "n": 18,
+      "pack_sha256": "d3d928606d1fd0a7a81fcbce10db3e3d8f4b7df74486bc51c9a9d30299812817",
+      "gold_sha256": "911f3ecb899f154d5b61472228b09f2831f484d86c22726b093c57b446b98b8d",
       "changed": [],
       "dropped": [],
       "errors": []
@@ -4313,12 +6184,35 @@
   },
   "sibling_scopes_report": "indic_sibling_scopes.json",
   "rule_scopes": {
-    "DB-A3-001": [
+    "DB-A1-001": [
+      "ind-mr-fw2",
+      "ind-mr-sangraha-v"
+    ],
+    "DB-A1-002": [
+      "ind-te-fw2",
+      "ind-te-sangraha-s",
+      "ind-te-sangraha-v"
+    ],
+    "DB-A2-001": [
       "ind-bn-fw2",
+      "ind-bn-sangraha-v"
+    ],
+    "DB-A3-001": [
+      "ind-bn-fw2"
+    ],
+    "DB-A3-007": [
       "ind-bn-sangraha-v"
     ],
     "DB-A3-002": [
       "ind-gu-fw2"
+    ],
+    "DB-A3-005": [
+      "ind-kn-fw2",
+      "ind-kn-sangraha-s"
+    ],
+    "DB-A3-006": [
+      "ind-mr-fw2",
+      "ind-mr-sangraha-v"
     ],
     "DB-A5-001": [
       "ind-bn-fw2",
@@ -4327,22 +6221,25 @@
     "DB-A5-003": [
       "ind-gu-fw2"
     ],
+    "DB-A5-009": [
+      "ind-mr-fw2"
+    ],
     "DB-A5-006": [
-      "ind-mr-fw2",
       "ind-mr-sangraha-v"
     ],
-    "DB-A5-008": [
+    "DB-A5-007": [
       "ind-sa-fw2"
     ],
     "DB-A6-001": [
-      "ind-bn-fw2",
+      "ind-bn-fw2"
+    ],
+    "DB-A6-020": [
       "ind-bn-sangraha-v"
     ],
     "DB-A6-003": [
       "ind-gu-fw2"
     ],
-    "DB-A6-004": [
-      "ind-hi-fw2",
+    "DB-A6-017": [
       "ind-hi-hplt",
       "ind-hi-indiccorp"
     ],
@@ -4356,52 +6253,56 @@
     "DB-A6-008": [
       "ind-mr-fw2"
     ],
-    "DB-A6-009": [
+    "DB-A6-021": [
       "ind-mr-sangraha-v"
-    ],
-    "DB-A6-012": [
-      "ind-ta-sangraha-v"
     ],
     "DB-A6-013": [
       "ind-te-fw2",
+      "ind-te-sangraha-s",
       "ind-te-sangraha-v"
     ],
-    "DB-A6-014": [
-      "ind-te-sangraha-s"
-    ],
     "DB-G1-001": [
-      "ind-bn-fw2",
+      "ind-bn-fw2"
+    ],
+    "DB-G1-015": [
       "ind-bn-sangraha-v"
     ],
     "DB-G1-003": [
       "ind-gu-fw2"
     ],
-    "DB-G1-004": [
+    "DB-G1-016": [
       "ind-hi-fw2",
       "ind-hi-hplt",
-      "ind-hi-indiccorp"
-    ],
-    "DB-G1-005": [
-      "ind-kn-fw2",
-      "ind-kn-sangraha-s"
+      "ind-hi-sangraha-s"
     ],
     "DB-G1-006": [
-      "ind-mr-fw2"
+      "ind-mr-fw2",
+      "ind-mr-sangraha-v"
     ],
     "DB-G1-007": [
       "ind-sa-fw2"
     ],
+    "DB-G1-013": [
+      "ind-ta-sangraha-v"
+    ],
     "DB-G1-010": [
       "ind-te-fw2",
-      "ind-te-sangraha-s",
-      "ind-te-sangraha-v"
+      "ind-te-sangraha-s"
     ],
-    "DB-G2-001": [
-      "ind-bn-fw2",
-      "ind-bn-sangraha-v"
+    "DB-G1-014": [
+      "ind-te-sangraha-v"
     ],
     "DB-G2-003": [
       "ind-sa-fw2"
+    ],
+    "DB-G4-006": [
+      "ind-bn-fw2",
+      "ind-bn-sangraha-v"
+    ],
+    "DB-G4-007": [
+      "ind-hi-hplt",
+      "ind-hi-indiccorp",
+      "ind-hi-sangraha-s"
     ],
     "DB-G4-002": [
       "ind-mr-fw2",
@@ -4420,6 +6321,9 @@
     "DB-B2-002": [
       "ind-hi-hplt"
     ],
+    "DB-B2-008": [
+      "ind-hi-sangraha-s"
+    ],
     "DB-B2-003": [
       "ind-kn-fw2",
       "ind-kn-sangraha-s",
@@ -4429,7 +6333,7 @@
       "ind-te-fw2",
       "ind-te-sangraha-v"
     ],
-    "DB-B2-005": [
+    "DB-B2-007": [
       "ind-te-sangraha-s"
     ],
     "DB-B3-001": [
@@ -4438,31 +6342,46 @@
       "ind-kn-sangraha-v"
     ],
     "DB-A3-004": [
-      "ind-kn-fw2",
-      "ind-kn-sangraha-s",
       "ind-kn-sangraha-v"
     ],
     "DB-A4-001": [
       "ind-sa-fw2"
+    ],
+    "DB-A6-019": [
+      "ind-hi-fw2",
+      "ind-hi-sangraha-s"
+    ],
+    "DB-B4-008": [
+      "ind-hi-fw2",
+      "ind-hi-hplt",
+      "ind-hi-indiccorp",
+      "ind-hi-sangraha-s"
     ],
     "DB-C3-001": [
       "ind-bn-fw2",
       "ind-bn-sangraha-v"
     ],
     "DB-C3-002": [
-      "ind-hi-hplt",
+      "ind-hi-hplt"
+    ],
+    "DB-C3-025": [
       "ind-hi-indiccorp"
     ],
     "DB-C3-004": [
       "ind-sa-fw2"
     ],
+    "DB-C3-020": [
+      "ind-te-fw2",
+      "ind-te-sangraha-s",
+      "ind-te-sangraha-v"
+    ],
     "DB-C4-001": [
-      "ind-bn-fw2",
-      "ind-bn-sangraha-v"
+      "ind-bn-fw2"
     ],
     "DB-C4-002": [
       "ind-hi-fw2",
-      "ind-hi-indiccorp"
+      "ind-hi-indiccorp",
+      "ind-hi-sangraha-s"
     ],
     "DB-C4-003": [
       "ind-hi-hplt"
@@ -4472,15 +6391,21 @@
     ],
     "DB-C4-006": [
       "ind-te-fw2",
-      "ind-te-sangraha-s",
-      "ind-te-sangraha-v"
+      "ind-te-sangraha-s"
+    ],
+    "DB-C5-021": [
+      "ind-bn-sangraha-v"
+    ],
+    "DB-C5-016": [
+      "ind-hi-fw2",
+      "ind-hi-indiccorp",
+      "ind-hi-sangraha-s"
     ],
     "DB-C5-001": [
-      "ind-hi-fw2",
-      "ind-hi-hplt",
-      "ind-hi-indiccorp"
+      "ind-hi-hplt"
     ],
     "DB-C5-003": [
+      "ind-kn-fw2",
       "ind-kn-sangraha-s",
       "ind-kn-sangraha-v"
     ],
@@ -4488,12 +6413,14 @@
       "ind-mr-fw2",
       "ind-mr-sangraha-v"
     ],
-    "DB-C5-005": [
+    "DB-C5-017": [
       "ind-ta-sangraha-v"
     ],
     "DB-C5-006": [
       "ind-te-fw2",
-      "ind-te-sangraha-s",
+      "ind-te-sangraha-s"
+    ],
+    "DB-C5-018": [
       "ind-te-sangraha-v"
     ],
     "DB-D4-001": [
@@ -4503,14 +6430,18 @@
     "DB-D4-003": [
       "ind-gu-fw2"
     ],
-    "DB-D4-005": [
+    "DB-D4-013": [
       "ind-hi-fw2",
-      "ind-hi-hplt",
       "ind-hi-indiccorp"
+    ],
+    "DB-D4-005": [
+      "ind-hi-hplt"
+    ],
+    "DB-D4-018": [
+      "ind-hi-sangraha-s"
     ],
     "DB-D4-007": [
       "ind-kn-fw2",
-      "ind-kn-sangraha-s",
       "ind-kn-sangraha-v"
     ],
     "DB-D4-008": [
@@ -4520,49 +6451,73 @@
     "DB-D4-009": [
       "ind-sa-fw2"
     ],
-    "DB-D4-011": [
-      "ind-te-fw2",
-      "ind-te-sangraha-v"
-    ],
     "DB-D4-012": [
+      "ind-te-fw2",
       "ind-te-sangraha-s"
     ],
+    "DB-D4-016": [
+      "ind-te-sangraha-v"
+    ],
     "DB-D5-001": [
+      "ind-te-sangraha-s"
+    ],
+    "DB-D5-004": [
       "ind-te-fw2",
-      "ind-te-sangraha-s",
       "ind-te-sangraha-v"
     ],
     "DB-F3-001": [
       "ind-bn-fw2",
       "ind-bn-sangraha-v"
     ],
+    "DB-F3-004": [
+      "ind-hi-fw2",
+      "ind-hi-hplt",
+      "ind-hi-indiccorp",
+      "ind-hi-sangraha-s"
+    ],
+    "DB-F3-005": [
+      "ind-ta-sangraha-v"
+    ],
     "DB-F3-003": [
       "ind-te-fw2",
       "ind-te-sangraha-s",
       "ind-te-sangraha-v"
     ],
+    "DB-G1-012": [
+      "ind-hi-indiccorp"
+    ],
     "DB-G1-011": [
+      "ind-kn-fw2",
+      "ind-kn-sangraha-s",
       "ind-kn-sangraha-v"
     ],
+    "DB-G3-003": [
+      "ind-hi-fw2",
+      "ind-hi-hplt",
+      "ind-hi-indiccorp",
+      "ind-hi-sangraha-s"
+    ],
     "DB-C1-001": [
-      "ind-bn-fw2",
-      "ind-bn-sangraha-v"
+      "ind-bn-fw2"
     ],
     "DB-C1-003": [
       "ind-gu-fw2"
     ],
     "DB-C1-005": [
       "ind-hi-fw2",
-      "ind-hi-indiccorp"
+      "ind-hi-sangraha-s"
     ],
     "DB-C1-006": [
       "ind-hi-hplt"
     ],
-    "DB-C1-008": [
-      "ind-kn-fw2"
+    "DB-C1-018": [
+      "ind-hi-indiccorp"
     ],
     "DB-C1-010": [
-      "ind-kn-sangraha-s",
+      "ind-kn-fw2",
+      "ind-kn-sangraha-s"
+    ],
+    "DB-C1-019": [
       "ind-kn-sangraha-v"
     ],
     "DB-C1-012": [
@@ -4572,49 +6527,75 @@
     "DB-C1-013": [
       "ind-sa-fw2"
     ],
-    "DB-C1-015": [
+    "DB-C1-021": [
       "ind-ta-sangraha-v"
     ],
     "DB-C1-016": [
       "ind-te-fw2",
-      "ind-te-sangraha-s",
+      "ind-te-sangraha-s"
+    ],
+    "DB-C1-022": [
       "ind-te-sangraha-v"
     ],
     "DB-C2-001": [
-      "ind-bn-fw2",
+      "ind-bn-fw2"
+    ],
+    "DB-C2-023": [
       "ind-bn-sangraha-v"
     ],
     "DB-C2-003": [
       "ind-gu-fw2"
     ],
-    "DB-C2-004": [
-      "ind-hi-hplt",
-      "ind-hi-indiccorp"
+    "DB-C2-014": [
+      "ind-hi-fw2",
+      "ind-hi-indiccorp",
+      "ind-hi-sangraha-s"
     ],
-    "DB-C2-006": [
-      "ind-kn-fw2",
-      "ind-kn-sangraha-s"
+    "DB-C2-021": [
+      "ind-hi-hplt"
     ],
     "DB-C2-008": [
+      "ind-kn-sangraha-s",
       "ind-kn-sangraha-v"
+    ],
+    "DB-C2-015": [
+      "ind-mr-fw2"
     ],
     "DB-C2-010": [
       "ind-mr-sangraha-v"
     ],
-    "DB-C2-012": [
+    "DB-C2-016": [
       "ind-ta-sangraha-v"
     ],
     "DB-C2-013": [
-      "ind-te-fw2",
-      "ind-te-sangraha-s",
+      "ind-te-fw2"
+    ],
+    "DB-C2-017": [
+      "ind-te-sangraha-s"
+    ],
+    "DB-C2-018": [
       "ind-te-sangraha-v"
     ],
     "DB-C3-006": [
       "ind-hi-fw2"
     ],
+    "DB-C3-023": [
+      "ind-hi-sangraha-s"
+    ],
+    "DB-C3-017": [
+      "ind-kn-sangraha-s"
+    ],
+    "DB-C3-024": [
+      "ind-mr-fw2"
+    ],
     "DB-C3-010": [
-      "ind-mr-fw2",
       "ind-mr-sangraha-v"
+    ],
+    "DB-C3-021": [
+      "ind-ta-sangraha-v"
+    ],
+    "DB-C4-015": [
+      "ind-bn-sangraha-v"
     ],
     "DB-C4-007": [
       "ind-gu-fw2"
@@ -4625,29 +6606,34 @@
     "DB-C4-010": [
       "ind-sa-fw2"
     ],
+    "DB-C4-013": [
+      "ind-ta-sangraha-v"
+    ],
+    "DB-C4-014": [
+      "ind-te-sangraha-v"
+    ],
     "DB-C5-007": [
-      "ind-bn-fw2",
-      "ind-bn-sangraha-v"
+      "ind-bn-fw2"
     ],
     "DB-C5-009": [
       "ind-gu-fw2"
     ],
-    "DB-C5-011": [
-      "ind-kn-fw2"
-    ],
     "DB-C5-014": [
       "ind-sa-fw2"
     ],
-    "DB-D2-001": [
+    "DB-D2-003": [
       "ind-hi-fw2",
       "ind-hi-hplt",
-      "ind-hi-indiccorp"
+      "ind-hi-indiccorp",
+      "ind-hi-sangraha-s"
     ],
     "DB-D2-002": [
       "ind-sa-fw2"
     ],
     "DB-D3-001": [
-      "ind-bn-fw2",
+      "ind-bn-fw2"
+    ],
+    "DB-D3-021": [
       "ind-bn-sangraha-v"
     ],
     "DB-D3-003": [
@@ -4655,39 +6641,58 @@
     ],
     "DB-D3-005": [
       "ind-hi-fw2",
-      "ind-hi-indiccorp"
+      "ind-hi-indiccorp",
+      "ind-hi-sangraha-s"
     ],
-    "DB-D3-006": [
+    "DB-D3-020": [
       "ind-hi-hplt"
     ],
     "DB-D3-008": [
       "ind-kn-fw2",
       "ind-kn-sangraha-s"
     ],
-    "DB-D3-009": [
+    "DB-D3-016": [
       "ind-kn-sangraha-v"
     ],
-    "DB-D3-010": [
+    "DB-D3-017": [
       "ind-mr-fw2"
     ],
-    "DB-D3-011": [
+    "DB-D3-022": [
       "ind-mr-sangraha-v"
     ],
     "DB-D3-012": [
       "ind-sa-fw2"
     ],
+    "DB-D3-018": [
+      "ind-ta-sangraha-v"
+    ],
     "DB-D3-014": [
       "ind-te-fw2",
-      "ind-te-sangraha-s",
+      "ind-te-sangraha-s"
+    ],
+    "DB-D3-019": [
       "ind-te-sangraha-v"
     ],
-    "DB-D5-002": [
+    "DB-D4-014": [
+      "ind-kn-sangraha-s"
+    ],
+    "DB-D4-017": [
+      "ind-ta-sangraha-v"
+    ],
+    "DB-D5-003": [
       "ind-hi-fw2",
-      "ind-hi-hplt",
-      "ind-hi-indiccorp"
+      "ind-hi-indiccorp",
+      "ind-hi-sangraha-s"
+    ],
+    "DB-D5-002": [
+      "ind-hi-hplt"
     ],
     "DB-H3-001": [
       "ind-sa-fw2"
+    ],
+    "DB-B4-009": [
+      "ind-bn-fw2",
+      "ind-bn-sangraha-v"
     ],
     "DB-B4-001": [
       "ind-gu-fw2"
@@ -4697,14 +6702,16 @@
       "ind-kn-sangraha-s",
       "ind-kn-sangraha-v"
     ],
+    "DB-B4-011": [
+      "ind-mr-fw2"
+    ],
     "DB-B4-003": [
-      "ind-mr-fw2",
       "ind-mr-sangraha-v"
     ],
     "DB-B4-004": [
       "ind-sa-fw2"
     ],
-    "DB-B4-005": [
+    "DB-B4-007": [
       "ind-ta-sangraha-v"
     ],
     "DB-B4-006": [

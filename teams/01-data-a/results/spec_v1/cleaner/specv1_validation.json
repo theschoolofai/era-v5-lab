@@ -1,9 +1,9 @@
 {
-  "rules_code_sha256": "feedf3bbd06380b0e22cd55206f61731555b0decb00e120e89449966fd82ada7",
+  "rules_code_sha256": "67116648d0fa90767a31d29fdb7aa577b5cc1c71eb07b3312c705823363b411c",
   "sources": {
-    "medicine_indic.md": "c64f03cec960ab680766df9a02bdc902be0e81d28544cfb73b13150939686940",
-    "medicine_english.md": "904c63b621515fc07bdd07cfff3553b6cff49504c89f41c2ec1fce2d27b0652c",
-    "medicine_sci.md": "5f1e743253062fee2b91d3e04f13b2c302eddae4a9c02b0f54144d2252e1c411",
+    "medicine_indic.md": "166ab23156de5fd4ae6beb58d411c6463312a42a6edc2ad63eb635c326bd7565",
+    "medicine_english.md": "c68b91c78917190dbb3414bf1c811f4f3891269aaf0de460cd6df836720763e7",
+    "medicine_sci.md": "a09baedebdf1c2f272043a4ac1df9f27b917251d7235efe83640b650b8f86458",
     "medicine_math.md": "d80f46be988242e92774802497e2d78360295e3c57c7e1a0a1a88f5c914a6224",
     "medicine_code.md": "12b34b3eeb27f9dfd94bb1853ea70a43bf7af1f6f7bc6ad324b59dcdab58efb6"
   },
@@ -4161,12 +4161,20 @@
     },
     "ind-bn-fw2": {
       "pack_sha256": "b5f91af826c982b548f7fc06404a2d53623b1393d511049f2e004b0353847913",
-      "gold_sha256": "72949bcc2f76496e2ddca0adbbc2854e6dc719f1940ec07f6500365a521e5856",
+      "gold_sha256": "4868dc1a46c3651a25e0b6fe7f33d62f79518e42d8dc95fa7d5860a705fd3f24",
       "gold_path": "teams/02-data-b/gold/ind-bn-fw2_gold.csv",
       "pack_path": "ind-bn-fw2.parquet",
       "independent_gold_rules": {
+        "DB-A2-001": {
+          "n": 244,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 2,
+          "result": "PASS"
+        },
         "DB-A3-001": {
-          "n": 238,
+          "n": 244,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4174,7 +4182,7 @@
           "result": "PASS"
         },
         "DB-A5-001": {
-          "n": 238,
+          "n": 244,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4182,7 +4190,7 @@
           "result": "PASS"
         },
         "DB-A6-001": {
-          "n": 238,
+          "n": 244,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4190,23 +4198,25 @@
           "result": "PASS"
         },
         "DB-G1-001": {
-          "n": 238,
+          "n": 244,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 2,
           "result": "PASS"
         },
-        "DB-G2-001": {
-          "n": 238,
-          "changed": [],
+        "DB-G4-006": {
+          "n": 244,
+          "changed": [
+            "7c0457dedb71f333"
+          ],
           "dropped": [],
           "errors": [],
           "limit_documents": 2,
           "result": "PASS"
         },
         "DB-C3-001": {
-          "n": 238,
+          "n": 244,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4214,7 +4224,7 @@
           "result": "PASS"
         },
         "DB-C4-001": {
-          "n": 238,
+          "n": 244,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4222,15 +4232,17 @@
           "result": "PASS"
         },
         "DB-D4-001": {
-          "n": 238,
+          "n": 244,
           "changed": [],
-          "dropped": [],
+          "dropped": [
+            "016f4687d4a36ce9"
+          ],
           "errors": [],
           "limit_documents": 2,
           "result": "PASS"
         },
         "DB-F3-001": {
-          "n": 238,
+          "n": 244,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4238,7 +4250,7 @@
           "result": "PASS"
         },
         "DB-C1-001": {
-          "n": 238,
+          "n": 244,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4246,7 +4258,7 @@
           "result": "PASS"
         },
         "DB-C2-001": {
-          "n": 238,
+          "n": 244,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4254,7 +4266,7 @@
           "result": "PASS"
         },
         "DB-C5-007": {
-          "n": 238,
+          "n": 244,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4262,7 +4274,15 @@
           "result": "PASS"
         },
         "DB-D3-001": {
-          "n": 238,
+          "n": 244,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 2,
+          "result": "PASS"
+        },
+        "DB-B4-009": {
+          "n": 244,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4271,9 +4291,13 @@
         }
       },
       "combined_gold": {
-        "n": 238,
-        "changed": [],
-        "dropped": [],
+        "n": 244,
+        "changed": [
+          "7c0457dedb71f333"
+        ],
+        "dropped": [
+          "016f4687d4a36ce9"
+        ],
         "errors": [],
         "limit_documents": 2,
         "result": "PASS"
@@ -4286,64 +4310,57 @@
           "fb97c8e54faa6ea5",
           "cf36b4821fc79560",
           "926ebfd4255ef0a5",
+          "de3a5c9980984ea0",
           "e9bc37a7fcf3808d",
           "20eb3e61ca9713c1",
           "61dc0261aeb4ced0",
           "81aa335138508d57",
-          "977423f75b08e75f",
           "67cf0263943dd1d9",
           "1389a8ce5eb872bf",
           "2e787ced72539a9f",
+          "ea1a5f0452280ed3",
           "f93b659eb49f48a6",
-          "61e81566d086ef88",
           "25ce3d7ca0f24773",
           "7eaecd9fbc29ab74",
           "e5e627361261f59c",
-          "cc07a8eb9ec9edb7",
           "b205db03a45e1e9f",
           "258f1a8d90585fdc",
           "8225f65057f1384c",
           "bc5e3f5507654361",
-          "3024066d06a72875",
+          "3f0c89c1bc69537e",
           "0ca0ac43cc9f2526",
-          "0e17bd15660c43eb",
-          "ab7da7647bb4d31f",
           "0cc55d56de34d944",
           "1b3f77a799e452d2",
           "cce7279bc231cf64",
           "17d425168aa54166",
-          "e7aafb7e6bc62a54",
           "79d342d94467ab43",
+          "b81402677842bbf2",
           "22bbaeb20947a96e",
           "b3078fdb5f1f3ae9",
           "a005aedd65fe3aa8",
           "71bb93238817a1c8",
           "8c5effdd6a07346b",
           "bd59fdf51e29e37b",
-          "ce8a91b51a89e51a",
-          "1dcd9a93f5d16664",
           "a56a957cb95356f8",
-          "caff60831d4a5172",
           "35fd8e384286cd77",
-          "567b3f7d45e2b61b",
+          "7c0457dedb71f333",
           "4f21302fa2468076",
           "b9c8f89ff096bcd9",
           "392194eefa44ef05",
           "482a27019963a3e4",
           "760ff5d5ee5af700",
-          "1fe1d1e7d0f8acc9",
           "98e5974ca028e7f9",
           "9cb3f78dbf4d7626",
           "4daaf2d1c7aea69f",
           "3565629bf4c02e8d",
           "7e6d5db9d0e8bb0c",
+          "f815940ddf0fd422",
           "e2151b8902a9093f",
           "32ce1d4f4ac6557e",
           "e6fab2d58d724c25",
           "e190a2e835dbb558",
           "825fb2363530926a",
           "0797b23ded114680",
-          "ab9a0079afc95a73",
           "a315585629ebfd19",
           "7cf586fbf15a514a",
           "b12d4aa765fb806a",
@@ -4371,8 +4388,10 @@
           "9124690eea013210",
           "fced7dbaf445e641",
           "f6af8060b15e4a87",
+          "7b65bbecd0338588",
           "27fc3258e4c1e797",
           "4b93d08ed10573b7",
+          "74cfc35c73599b14",
           "8890381f8b7ea519",
           "f9082ffd058f43f6",
           "37e2209eb0c6ba96",
@@ -4381,24 +4400,20 @@
           "735dde1b37156260",
           "8cc468f2057b8502",
           "ad13e0a296579edf",
-          "74e67a941dbac79d",
           "5e97b5c50857ac64",
           "3b076d6ea54d58f5",
-          "dcfb4dde46d6ca77",
           "9e59d3bf8d83f090",
           "ad775f9e632a9a9c",
-          "a5f662ce33955cc7",
+          "16cee304b419b31e",
           "62c5f3e4025232d1",
           "dcd2c02f6daa9af7",
           "472a7c984104da64",
-          "937ce1e450b426b5",
           "e9ab2a2b522f5799",
           "1ba559f84f223c6d"
         ],
         "dropped": [
           "3c0d0458978d7c51",
           "e9410476bfce6d73",
-          "3f0c89c1bc69537e",
           "b2fc1fd4e984416c",
           "6a18f8751bb83059",
           "9b2133913fa2e071",
@@ -4428,7 +4443,6 @@
           "afa756faaec849d9",
           "7bbe5a23532255c3",
           "95261ddc152835cc",
-          "7b65bbecd0338588",
           "25e2faa686bb8b66",
           "2d5cb140654e24a6",
           "80d6bada82e5ff0b",
@@ -4449,12 +4463,20 @@
     },
     "ind-bn-sangraha-v": {
       "pack_sha256": "e64c471dd6391dac861e039c2ad1d3c3732b21b97f29efd4b9bcaf0bf54baf81",
-      "gold_sha256": "4fa861ea267d0db461f3085937f130903b21fae4be4a21da9dd1636e6b528f18",
+      "gold_sha256": "c1594fda9363e9d37cfd605c775a87a14fbb6b2bfd2f187ea4392364a2be14f2",
       "gold_path": "teams/02-data-b/gold/ind-bn-sangraha-v_gold.csv",
       "pack_path": "ind-bn-sangraha-v.parquet",
       "independent_gold_rules": {
-        "DB-A3-001": {
-          "n": 50,
+        "DB-A2-001": {
+          "n": 142,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-A3-007": {
+          "n": 142,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4462,31 +4484,31 @@
           "result": "PASS"
         },
         "DB-A5-001": {
-          "n": 50,
+          "n": 142,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-A6-001": {
-          "n": 50,
+        "DB-A6-020": {
+          "n": 142,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-G1-001": {
-          "n": 50,
+        "DB-G1-015": {
+          "n": 142,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-G2-001": {
-          "n": 50,
+        "DB-G4-006": {
+          "n": 142,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4494,15 +4516,15 @@
           "result": "PASS"
         },
         "DB-C3-001": {
-          "n": 50,
+          "n": 142,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-C4-001": {
-          "n": 50,
+        "DB-C5-021": {
+          "n": 142,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4510,7 +4532,7 @@
           "result": "PASS"
         },
         "DB-D4-001": {
-          "n": 50,
+          "n": 142,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4518,39 +4540,39 @@
           "result": "PASS"
         },
         "DB-F3-001": {
-          "n": 50,
+          "n": 142,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-C1-001": {
-          "n": 50,
+        "DB-C2-023": {
+          "n": 142,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-C2-001": {
-          "n": 50,
+        "DB-C4-015": {
+          "n": 142,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-C5-007": {
-          "n": 50,
+        "DB-D3-021": {
+          "n": 142,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-D3-001": {
-          "n": 50,
+        "DB-B4-009": {
+          "n": 142,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4559,7 +4581,7 @@
         }
       },
       "combined_gold": {
-        "n": 50,
+        "n": 142,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4569,54 +4591,77 @@
       "combined_pack": {
         "n": 500,
         "changed": [
+          "54442e06493e7751",
           "bf521322a90491aa",
-          "b0c095487dd72b87",
+          "017b4f09daad47e4",
           "43c51cdac699187d",
-          "b0d8affd2329469d",
-          "1da19ac48860fb47",
+          "b3f021daf03eebe5",
+          "7378fae019d08f76",
           "95e8cf26b9b8e1d6",
+          "42f394b1b2292a07",
           "b5d3379fa1dd2757",
           "248e684b505bba63",
           "4620e19b5836f03f",
           "87590e5df7527a67",
           "58827dcddbbf097e",
+          "7bd37b13e5ceedf7",
           "4fd6a400467e4b0b",
-          "1670dbc449715e08",
+          "489141c194e52d26",
+          "179bd747b4c185fa",
+          "63a1a908974b93be",
+          "c870ec0472382d1a",
           "fa5d153e743890ce",
           "aaef08f714a954f2",
           "b998ff5bdaeeedb1",
           "5584556a2ea2dcfd",
-          "40bc92a5caa8e45a",
+          "5c996dfab49e076f",
+          "84232835daf80e9f",
           "d085df373c288998",
-          "3efce0f19f5c8712",
+          "a16e7291bad69a10",
+          "975e9170d8259094",
+          "a29ac4eccbb96bea",
+          "251870ed41c8f19c",
           "93ae15cbd5dcb150",
+          "1530194906022e0e",
+          "32029c674c355e1b",
+          "d3ab7bf3efcff498",
           "b7344cb5bd3ae08c",
           "d9db806d0a1584f7",
+          "53ad1531ea630e8c",
           "9f1ee6844c1f2dea",
-          "ae514bf1e320bdad",
+          "b8ec2be7b83efca5",
+          "fc44be28d237bf38",
+          "c28196b9fd75bc7c",
+          "60c8969d1910969c",
+          "8e75560ea6d4e0f7",
+          "8d3b898a86f08629",
+          "aff4b1672b5f55db",
           "99ce3f273b237b32",
-          "80ff514fd37a3c36",
+          "9aa7ee6652b511a0",
+          "ccc51da5eb6d2694",
+          "ae228a0cbe2b097e",
           "8280f2f65d31c666",
           "f6fbab13b4b3b443",
-          "fadb66be94959179",
+          "8a82a545913a2a14",
+          "968f2a4c6a08b9fc",
           "704157870c38f059",
-          "b32d7bc9b3c9d3b3",
+          "c03dbc4ed2f2858d",
+          "4fde42ef89761a0d",
           "9419f580e774eb4d",
-          "9e332b609469b248",
-          "6ad2871a67a61206",
+          "6a3345ed5d8e4c08",
+          "581257cb150a5f79",
           "611e3e5fe427f168",
           "916b7af32bb57841",
-          "ddd12b8b4efce4e8",
-          "6073f8a55a5582ca"
+          "d165b6304b7040a4"
         ],
         "dropped": [
           "bb139803564a2da9",
           "e4e559c63731c7fd",
-          "12f9d49fcda388b9",
-          "323e7cd037bc2dda",
-          "8d3b898a86f08629",
+          "fadb66be94959179",
           "7196d31657f5a6f3",
-          "b48dcc6627ca260e"
+          "b48dcc6627ca260e",
+          "bf4fd3ccaf9e861d",
+          "6ad2871a67a61206"
         ],
         "errors": [],
         "limit_documents": 5
@@ -4625,12 +4670,12 @@
     },
     "ind-gu-fw2": {
       "pack_sha256": "9f58ad695beac877b7f71f9773328c141e5f19385b9f292ebc9c2b21b19daa6a",
-      "gold_sha256": "1d9592a7729d51c8da817f8bbd7827ad222646ba0ec9f3461eb157fc0d745a8c",
+      "gold_sha256": "1a1592f183e6c8a153b5d6a3573848f73bee05d553d66d106437208301616a14",
       "gold_path": "teams/02-data-b/gold/ind-gu-fw2_gold.csv",
       "pack_path": "ind-gu-fw2.parquet",
       "independent_gold_rules": {
         "DB-A3-002": {
-          "n": 19,
+          "n": 80,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4638,7 +4683,7 @@
           "result": "PASS"
         },
         "DB-A5-003": {
-          "n": 19,
+          "n": 80,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4646,7 +4691,7 @@
           "result": "PASS"
         },
         "DB-A6-003": {
-          "n": 19,
+          "n": 80,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4654,7 +4699,7 @@
           "result": "PASS"
         },
         "DB-G1-003": {
-          "n": 19,
+          "n": 80,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4662,7 +4707,7 @@
           "result": "PASS"
         },
         "DB-D4-003": {
-          "n": 19,
+          "n": 80,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4670,7 +4715,7 @@
           "result": "PASS"
         },
         "DB-C1-003": {
-          "n": 19,
+          "n": 80,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4678,7 +4723,7 @@
           "result": "PASS"
         },
         "DB-C2-003": {
-          "n": 19,
+          "n": 80,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4686,7 +4731,7 @@
           "result": "PASS"
         },
         "DB-C4-007": {
-          "n": 19,
+          "n": 80,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4694,7 +4739,7 @@
           "result": "PASS"
         },
         "DB-C5-009": {
-          "n": 19,
+          "n": 80,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4702,7 +4747,7 @@
           "result": "PASS"
         },
         "DB-D3-003": {
-          "n": 19,
+          "n": 80,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4710,7 +4755,7 @@
           "result": "PASS"
         },
         "DB-B4-001": {
-          "n": 19,
+          "n": 80,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -4719,7 +4764,7 @@
         }
       },
       "combined_gold": {
-        "n": 19,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4921,15 +4966,7 @@
       "gold_path": "teams/02-data-b/gold/ind-hi-fw2_gold.csv",
       "pack_path": "ind-hi-fw2.parquet",
       "independent_gold_rules": {
-        "DB-A6-004": {
-          "n": 234,
-          "changed": [],
-          "dropped": [],
-          "errors": [],
-          "limit_documents": 2,
-          "result": "PASS"
-        },
-        "DB-G1-004": {
+        "DB-G1-016": {
           "n": 234,
           "changed": [],
           "dropped": [],
@@ -4945,6 +4982,22 @@
           "limit_documents": 2,
           "result": "PASS"
         },
+        "DB-A6-019": {
+          "n": 234,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 2,
+          "result": "PASS"
+        },
+        "DB-B4-008": {
+          "n": 234,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 2,
+          "result": "PASS"
+        },
         "DB-C4-002": {
           "n": 234,
           "changed": [],
@@ -4953,7 +5006,7 @@
           "limit_documents": 2,
           "result": "PASS"
         },
-        "DB-C5-001": {
+        "DB-C5-016": {
           "n": 234,
           "changed": [],
           "dropped": [],
@@ -4961,11 +5014,27 @@
           "limit_documents": 2,
           "result": "PASS"
         },
-        "DB-D4-005": {
+        "DB-D4-013": {
+          "n": 234,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 2,
+          "result": "PASS"
+        },
+        "DB-F3-004": {
+          "n": 234,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 2,
+          "result": "PASS"
+        },
+        "DB-G3-003": {
           "n": 234,
           "changed": [],
           "dropped": [
-            "0c9208a0c91789d6"
+            "8296566eea7d3680"
           ],
           "errors": [],
           "limit_documents": 2,
@@ -4979,6 +5048,16 @@
           "limit_documents": 2,
           "result": "PASS"
         },
+        "DB-C2-014": {
+          "n": 234,
+          "changed": [
+            "277fa2fd630f90fd"
+          ],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 2,
+          "result": "PASS"
+        },
         "DB-C3-006": {
           "n": 234,
           "changed": [],
@@ -4987,7 +5066,7 @@
           "limit_documents": 2,
           "result": "PASS"
         },
-        "DB-D2-001": {
+        "DB-D2-003": {
           "n": 234,
           "changed": [],
           "dropped": [],
@@ -5003,7 +5082,7 @@
           "limit_documents": 2,
           "result": "PASS"
         },
-        "DB-D5-002": {
+        "DB-D5-003": {
           "n": 234,
           "changed": [],
           "dropped": [],
@@ -5014,9 +5093,11 @@
       },
       "combined_gold": {
         "n": 234,
-        "changed": [],
+        "changed": [
+          "277fa2fd630f90fd"
+        ],
         "dropped": [
-          "0c9208a0c91789d6"
+          "8296566eea7d3680"
         ],
         "errors": [],
         "limit_documents": 2,
@@ -5025,35 +5106,68 @@
       "combined_pack": {
         "n": 500,
         "changed": [
+          "28a097ed297531b9",
           "7550aa66f80ae7c0",
-          "c3d6c6b67a11a989",
+          "3c41dd2124256f65",
+          "1cee6ad3ea435ff6",
           "b8d161e14742a312",
           "3a3f617148815241",
           "f20d2c1d0f21d026",
           "7a4d26d7944e45a1",
           "aa8349351a3ec6ad",
           "a39c1d6613339084",
+          "394e0e4242e51bc8",
           "0887e5955ae65887",
           "d1d1391817354e55",
           "eb3063eaa2ebf1f4",
           "a73c147b82325290",
+          "9ac3c8da3cf4a30f",
           "b64bd6512a79ebbf",
           "9aa74d85206e0e2b",
           "4b8ae0431de8850b",
+          "277fa2fd630f90fd",
           "a4980dfb1a672de8",
+          "5e22a0826f355e47",
+          "f317e201dfd0f441",
+          "e8bfbcac0f43818e",
+          "fa82e96aac3a9802",
           "c4f7d073273b4048",
-          "10ee275a9dea2acf",
           "2f2fbdf81419e6f5",
-          "ee19639bfb2e22a0",
           "27629db1e5ca2e8a",
-          "aba71959d76cfb52",
-          "44b70490c1eca8b2"
+          "295eda948f78481d",
+          "44b70490c1eca8b2",
+          "805cc15effd7a1d9"
         ],
         "dropped": [
-          "c83fbbec4a82f87a",
+          "e49a90539eea7e8d",
+          "8f73e0fb991da311",
           "9992ed6ebadee109",
-          "0c9208a0c91789d6",
-          "513aa97763bf5d89"
+          "94bf5a5a85787667",
+          "6e481baf5e01324e",
+          "a4d3c071f097b6bf",
+          "a7de2dc157a00a1f",
+          "c823f35a4a44b283",
+          "346f4f81c4b9de1e",
+          "c500da54ea4d9701",
+          "12dc3faa84e51afe",
+          "9779ccdb13b8b17d",
+          "fc67141484216745",
+          "85161f8c49d4fc21",
+          "6b9514673a4ef7d3",
+          "abc546d2ca093cee",
+          "513aa97763bf5d89",
+          "719d317f0af939eb",
+          "c8cd72c89d00fa5d",
+          "d47858af3f5b3cca",
+          "1e25a2ab52d602a1",
+          "bd18d6439ac40893",
+          "30ffa83f7816f9f7",
+          "f1da3c26654d39e8",
+          "542bb284b00b3f9f",
+          "aeb8f1c0d68630cb",
+          "8296566eea7d3680",
+          "225a123014b5f2b1",
+          "c7ac46b5daeb1d5b"
         ],
         "errors": [],
         "limit_documents": 5
@@ -5062,20 +5176,28 @@
     },
     "ind-hi-hplt": {
       "pack_sha256": "497533fc4d6407b1ef2e83f7304d65ab7f9fe7892fee09ab6d10f45c913eadc6",
-      "gold_sha256": "c869bf4db6656ee08fe41054eced5837cac93680e2bfacf6ce53b63488ad589a",
+      "gold_sha256": "44b4893000ea15190c6a7c6748bd48b3ce1574178036e91b9d311d896db85dfd",
       "gold_path": "teams/02-data-b/gold/ind-hi-hplt_gold.csv",
       "pack_path": "ind-hi-hplt.parquet",
       "independent_gold_rules": {
-        "DB-A6-004": {
-          "n": 67,
+        "DB-A6-017": {
+          "n": 62,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-G1-004": {
-          "n": 67,
+        "DB-G1-016": {
+          "n": 62,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-G4-007": {
+          "n": 62,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -5083,7 +5205,15 @@
           "result": "PASS"
         },
         "DB-B2-002": {
-          "n": 67,
+          "n": 62,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-B4-008": {
+          "n": 62,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -5091,7 +5221,7 @@
           "result": "PASS"
         },
         "DB-C3-002": {
-          "n": 67,
+          "n": 62,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -5099,7 +5229,7 @@
           "result": "PASS"
         },
         "DB-C4-003": {
-          "n": 67,
+          "n": 62,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -5107,7 +5237,7 @@
           "result": "PASS"
         },
         "DB-C5-001": {
-          "n": 67,
+          "n": 62,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -5115,7 +5245,23 @@
           "result": "PASS"
         },
         "DB-D4-005": {
-          "n": 67,
+          "n": 62,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-F3-004": {
+          "n": 62,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-G3-003": {
+          "n": 62,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -5123,31 +5269,31 @@
           "result": "PASS"
         },
         "DB-C1-006": {
-          "n": 67,
+          "n": 62,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-C2-004": {
-          "n": 67,
+        "DB-C2-021": {
+          "n": 62,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-D2-001": {
-          "n": 67,
+        "DB-D2-003": {
+          "n": 62,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-D3-006": {
-          "n": 67,
+        "DB-D3-020": {
+          "n": 62,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -5155,7 +5301,7 @@
           "result": "PASS"
         },
         "DB-D5-002": {
-          "n": 67,
+          "n": 62,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -5164,7 +5310,7 @@
         }
       },
       "combined_gold": {
-        "n": 67,
+        "n": 62,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -5174,98 +5320,103 @@
       "combined_pack": {
         "n": 500,
         "changed": [
+          "f6f77aeff3b688d0",
           "7261baa0a3edfb1d",
-          "a02caf8e245bbcf3",
-          "2a5f73bb1b272717",
-          "620e84c0a37af831",
           "7952deb7a1c71995",
           "5e11af86c2578f82",
           "1dc03c85e4d5e1db",
           "2d3b04f109d069ec",
-          "1e638ceb8920faf1",
-          "866d467e1fa36988",
           "ac36464759436542",
-          "be03493ed6a40df3",
+          "0573df3b6b0cbc3c",
           "ba46f050779683f6",
-          "3d6eb9299f7584d3",
+          "ad807ec042dcf55c",
           "4b82ad7e92695e55",
-          "0f58a7ef798cc635",
-          "9fb6446d62cd9b6c",
           "f5c53cee3cf98112",
           "4afe033e58052d68",
           "c41ed049261af1f3",
-          "a9453140c7a770a1",
+          "5f8ec0015e1c9d86",
           "340122661b614c55",
-          "6f15f4e750e02f26",
           "f124c15b78c719a1",
-          "6252483773742b19",
           "66f615f4832cdea0",
+          "eb2b39c2632386c3",
+          "471e47bc9b8d5b10",
           "88ad59b16919a3fc",
           "156518ecd2ad3a57",
           "963bc36e772c0e6f",
           "7b6db4f0bb885a22",
-          "c3e124057f6f2980",
           "1c76d700f03c72c3",
           "66d261af3e6d9ad7",
           "2dad1287ae8ae2a3",
           "cc691d07be827a3a",
           "f9459f538d631672",
+          "a84a99c119f39ecc",
           "8efb1ea07dc0a92a",
+          "f58f7dc20fcdca26",
           "55e92f1bdd6f4e4f",
+          "17e9e5290ce19307",
           "20bc3794b7330cbf",
           "c5d703d494161749",
-          "f19322797744e0e8",
+          "b2038fc0ce4c0647",
+          "0b1a9ae5d06de113",
           "dd9014442ae0ef19",
           "6ed59c8b3d2fb25e",
           "ce96985c67ce0982",
           "cbf5b6db4d347458",
           "edbf3e7786dc248c",
           "cbe6fc2d0bcbfe70",
+          "49acbe98dd323a0d",
           "fbdba8173b7d1dce",
           "dfefa94752636673",
+          "ac978eebeb22bd2d",
           "c02e0ea3fe225110",
+          "a0848337833360c2",
           "738a512de07c9191",
+          "09038c57ea71db49",
           "36ec064654f3569f",
           "4341269d71f31499",
+          "fa46520839cbad8f",
           "e3794ff0495fb376",
-          "8b80a48ec843734c",
+          "5069983b41e65253",
+          "81b35916e1827428",
+          "adab62ce109a1f5a",
           "74b6ee81a4bf7c32",
+          "6fb692302972d758",
+          "60be38020ad85a90",
+          "e015e6aed34052c5",
+          "b28b0cfed2b69567",
           "703c5cb5b2bd7bee",
           "ef3ed1ee60b1d6fd",
           "807df03f48cd325a",
+          "250c6e18f59532d9",
+          "725b6e02a998d3c5",
           "e2e8c748d77ed529",
-          "fc3021f18b27b447",
-          "68e96f730d695c8b",
-          "d0d6643a049db712",
+          "d92f53199567b330",
+          "403e2aff951036ff",
           "a6026c80b8651400",
           "507d85f2021e27ed",
-          "27c3cc715e797fcf",
-          "1f5d2ee7d5a54668",
+          "c80b6ba958512284",
+          "012575be42ba7add",
+          "1bbf936a7db6c6a0",
           "7143c8411c407518",
           "6986f5a56a43afa7",
           "8caad773f38d813e",
-          "d2a97857054a6f66",
           "f82b02d1f13dc036",
           "bfc1dbc23c23d44b",
           "d031e04ce5f9bf94",
-          "d6040bc88c6d3b0d",
           "a0fda086fb33034b",
-          "8dbd286b4981e1cb",
-          "b9704157a6671f7c",
-          "616c483d9fcd6c27",
-          "868de61beb15afa1",
-          "23f947e89804a196",
+          "ae32a227022b1382",
+          "294286e18f0ee0f9",
+          "07cd8705d5bf839d",
           "41b896fd170a34ca",
-          "4d0a570286ef0833",
-          "b1d3e15982c34a0e",
           "2769482745a359c7",
-          "89b547763f1784f4",
-          "afd294fc18465a08",
-          "919b3ec55ee3bfc1"
+          "1e9a6bbc2a3d69a1",
+          "25f028264b1d21a1"
         ],
         "dropped": [
           "57294dfeff306304",
+          "dbfd9f11de78269d",
           "ca38e3770cd4bd18",
+          "a02caf8e245bbcf3",
           "7a2bc38b934a51ad",
           "8fed2d4464e4cc06",
           "84b3adb7174dfd68",
@@ -5276,11 +5427,16 @@
           "1f6c20e8fe2546b7",
           "bd80634fbfa8c282",
           "27639e8ebd0d9b00",
+          "1e638ceb8920faf1",
+          "43cc84a259e08cf2",
           "f74b5fdf430bd426",
+          "9d7b9c8580e163e8",
+          "e0ec0553a96913a8",
           "f0870f4a99612b98",
           "c8d69b4928763080",
           "b8d46e4abba176c4",
           "803472a29da319bf",
+          "9fb6446d62cd9b6c",
           "940b36dcbfda56aa",
           "1c61f6e0c56fbbc9",
           "a752dfa857b4ecd2",
@@ -5292,11 +5448,28 @@
           "812cedd5d950774e",
           "e9245802d6596af1",
           "b69bf008c2be42b5",
+          "8d9cebd001bc3d57",
           "bfc1c6d3c7e30e6d",
+          "beffe2f4292b3658",
           "e988773eff0ee985",
           "06b4d2157512fa34",
           "028ceb288dc7b23c",
-          "27b477b016ace389"
+          "1e1f81ab0381c3c9",
+          "b7b6f0875de87466",
+          "040230cb436bac74",
+          "36d8116218d8e18a",
+          "62d86205a48d912d",
+          "27b477b016ace389",
+          "868de61beb15afa1",
+          "b58829cf9c7439aa",
+          "7a445049fcd6aea3",
+          "fe8bef052135294e",
+          "e547dfa8be905ea3",
+          "919b3ec55ee3bfc1",
+          "8473b8f9d0badd9c",
+          "59f49990300b94e6",
+          "06fbadf09c4cf382",
+          "44690b65c81bea21"
         ],
         "errors": [],
         "limit_documents": 5
@@ -5305,36 +5478,219 @@
     },
     "ind-hi-indiccorp": {
       "pack_sha256": "c55b80d3d5c820fb34cab3b0bf8ccaabd2e73496cea42267c08d05cc34ecd612",
-      "gold_sha256": "2d5e81819c987c4f0d2d924c3be405125ca1b98d003e76a010cbddad4edc4826",
+      "gold_sha256": "a0b3f7021b6a168666eacb60c3d517feb403f302d8afa791bf176a6920d5718a",
       "gold_path": "teams/02-data-b/gold/ind-hi-indiccorp_gold.csv",
       "pack_path": "ind-hi-indiccorp.parquet",
       "independent_gold_rules": {
-        "DB-A6-004": {
-          "n": 130,
-          "changed": [],
+        "DB-A6-017": {
+          "n": 425,
+          "changed": [
+            "3dff830fcad18cef"
+          ],
           "dropped": [],
           "errors": [],
-          "limit_documents": 1,
+          "limit_documents": 4,
           "result": "PASS"
         },
-        "DB-G1-004": {
-          "n": 130,
-          "changed": [],
+        "DB-G4-007": {
+          "n": 425,
+          "changed": [
+            "3dff830fcad18cef"
+          ],
           "dropped": [],
           "errors": [],
-          "limit_documents": 1,
+          "limit_documents": 4,
           "result": "PASS"
         },
         "DB-B2-001": {
-          "n": 130,
+          "n": 425,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 4,
+          "result": "PASS"
+        },
+        "DB-B4-008": {
+          "n": 425,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 4,
+          "result": "PASS"
+        },
+        "DB-C3-025": {
+          "n": 425,
+          "changed": [],
+          "dropped": [
+            "c1403c97611401f8"
+          ],
+          "errors": [],
+          "limit_documents": 4,
+          "result": "PASS"
+        },
+        "DB-C4-002": {
+          "n": 425,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 4,
+          "result": "PASS"
+        },
+        "DB-C5-016": {
+          "n": 425,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 4,
+          "result": "PASS"
+        },
+        "DB-D4-013": {
+          "n": 425,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 4,
+          "result": "PASS"
+        },
+        "DB-F3-004": {
+          "n": 425,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 4,
+          "result": "PASS"
+        },
+        "DB-G1-012": {
+          "n": 425,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 4,
+          "result": "PASS"
+        },
+        "DB-G3-003": {
+          "n": 425,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 4,
+          "result": "PASS"
+        },
+        "DB-C1-018": {
+          "n": 425,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 4,
+          "result": "PASS"
+        },
+        "DB-C2-014": {
+          "n": 425,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 4,
+          "result": "PASS"
+        },
+        "DB-D2-003": {
+          "n": 425,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 4,
+          "result": "PASS"
+        },
+        "DB-D3-005": {
+          "n": 425,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 4,
+          "result": "PASS"
+        },
+        "DB-D5-003": {
+          "n": 425,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 4,
+          "result": "PASS"
+        }
+      },
+      "combined_gold": {
+        "n": 425,
+        "changed": [
+          "3dff830fcad18cef"
+        ],
+        "dropped": [
+          "c1403c97611401f8"
+        ],
+        "errors": [],
+        "limit_documents": 4,
+        "result": "PASS"
+      },
+      "combined_pack": {
+        "n": 500,
+        "changed": [
+          "7f8cfa9789fcd35a",
+          "30bb38cf2f84eed7",
+          "3dff830fcad18cef",
+          "d3ec691647a71ee4",
+          "e74fd7d46234214b"
+        ],
+        "dropped": [
+          "03a2a8b37cd767ef",
+          "45faba24d7143976",
+          "9404128cff85f9f4",
+          "6404b661ab7d5119",
+          "c1403c97611401f8",
+          "32bad94f4807cfad"
+        ],
+        "errors": [],
+        "limit_documents": 5
+      },
+      "out_of_pack_guard": "PASS"
+    },
+    "ind-hi-sangraha-s": {
+      "pack_sha256": "7fd34f97729659a7c0c7f6bed0190e7f4eda29ed8a0f9b9eacbfe4a607a3ff6d",
+      "gold_sha256": "f3943ff76a96e9e67896a88130bb41ee3b08b2025c010381d8e052807e10ea80",
+      "gold_path": "teams/02-data-b/gold/ind-hi-sangraha-s_gold.csv",
+      "pack_path": "ind-hi-sangraha-s.parquet",
+      "independent_gold_rules": {
+        "DB-G1-016": {
+          "n": 24,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-C3-002": {
-          "n": 130,
+        "DB-G4-007": {
+          "n": 24,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-B2-008": {
+          "n": 24,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-A6-019": {
+          "n": 24,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-B4-008": {
+          "n": 24,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -5342,23 +5698,39 @@
           "result": "PASS"
         },
         "DB-C4-002": {
-          "n": 130,
+          "n": 24,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-C5-001": {
-          "n": 130,
+        "DB-C5-016": {
+          "n": 24,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-D4-005": {
-          "n": 130,
+        "DB-D4-018": {
+          "n": 24,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-F3-004": {
+          "n": 24,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-G3-003": {
+          "n": 24,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -5366,23 +5738,31 @@
           "result": "PASS"
         },
         "DB-C1-005": {
-          "n": 130,
+          "n": 24,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-C2-004": {
-          "n": 130,
+        "DB-C2-014": {
+          "n": 24,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-D2-001": {
-          "n": 130,
+        "DB-C3-023": {
+          "n": 24,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-D2-003": {
+          "n": 24,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -5390,15 +5770,15 @@
           "result": "PASS"
         },
         "DB-D3-005": {
-          "n": 130,
+          "n": 24,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-D5-002": {
-          "n": 130,
+        "DB-D5-003": {
+          "n": 24,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -5407,7 +5787,7 @@
         }
       },
       "combined_gold": {
-        "n": 130,
+        "n": 24,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -5417,11 +5797,168 @@
       "combined_pack": {
         "n": 500,
         "changed": [
-          "45faba24d7143976",
-          "3dff830fcad18cef",
-          "6a628253e38b2aaa"
+          "22fd653de4dd666a",
+          "0901d3609c93ba66",
+          "257cef1fe99b6355",
+          "b1a4beabde242ec5",
+          "6ac8afdd66e11675",
+          "e9572dd501de07d7",
+          "5700b1ccb1a5ed64",
+          "b7c291414b1d1553",
+          "a2298260d4c4d456",
+          "d91bed496e0da474",
+          "99184df1a9f23e59",
+          "4495e33ab8e92bf2",
+          "ddb13bd73de06a29",
+          "c1820ebf7ce53eb0",
+          "f8d5ecf7edddbda5",
+          "bc3b79b5a25ba346",
+          "9c5687343dbf4ce6",
+          "cbcd66923da5dee2",
+          "55686def0b8c7f0e",
+          "1e605651dd5280dd",
+          "487a621e98c3ad74",
+          "f4081ac8b58e6150",
+          "d74c9f254b46cf28",
+          "0d7483eb103b5b18",
+          "2cf437a706bcb66d",
+          "a9faf786b84ac401",
+          "ede046aff8410b34",
+          "8c8e5d81e49a40c9",
+          "933f9f99ffa5df97",
+          "adf9e0b02bb38d84",
+          "183904f0198028f4",
+          "39c1b81b0ab5d73f",
+          "6f393c00c1e73405",
+          "33ec0915207451ed",
+          "7fb8a72f26527014",
+          "4823e59f8dae012b",
+          "2159deadb8cd9585",
+          "9e50ece9a4d4dd49",
+          "8f19dfb84174b48a",
+          "10537713438d015c",
+          "b3f7fde713afb821",
+          "23282c5f6023c120",
+          "d6acdbe109fbe1cd",
+          "4a25059e2ff2aeda",
+          "5922a815195d2cbb",
+          "3480b47070644e63",
+          "a13028df02ac76db",
+          "9f9ca3b803de6c51",
+          "288256abc87a0394",
+          "42a6a4ae00db0272",
+          "7196d76c66f5ef3a",
+          "cb3db8be595c55f8",
+          "23126aa51f23afda",
+          "f5e11562da4c1cef",
+          "05ebeaba9b521511",
+          "0799de218d4b1a22",
+          "9dc8bedc6f3876b4",
+          "067b75fd660e1c86",
+          "8ee76b71bcd12eec",
+          "3eac70164b00781e",
+          "f8a7ebb1360bddf8",
+          "4ac4131b45950799",
+          "01645176f698fe99",
+          "9c9f1a13d39084da",
+          "16e8bf2e18d66972",
+          "2d3c348e10c327bf",
+          "e4f8a5e8b6c6f286",
+          "6dcce271f1e920c7",
+          "f9bc160931bf399e",
+          "32de2a5abc0c682b",
+          "884f96ca18e5221b",
+          "ad7dee6b1ef00fb8",
+          "e503278c63f37efa",
+          "ec5155bfb5a397b7",
+          "246f4c3cee15575f",
+          "2594bb58ca4f0afc",
+          "e46937227c99c268",
+          "8bf042a658ef04b3",
+          "4a7d732bcb2cad19",
+          "4d17b1316f5c5d16",
+          "3a2877516d31aea7",
+          "c29e5b93132f0216",
+          "2ba2ffc1a9821979",
+          "5ef6fd86577026ea",
+          "6c8db6f7b01348ae",
+          "6169794a6a1b9ce8",
+          "bd760241b44d162f",
+          "57d6ce3583960cad",
+          "8fc1c7e4a81d352c",
+          "8b8163f3385141dc",
+          "992c63a7bed22578",
+          "b9ddb778d21a2902",
+          "ac789d08377cc4a4"
         ],
-        "dropped": [],
+        "dropped": [
+          "635cbbdde03f1dad",
+          "7d88f7c2eb90abbc",
+          "7d19a48a349e18f7",
+          "ea9b683e28d08e16",
+          "8d4a1eb74b3a464c",
+          "faea12423891cfc0",
+          "3ded81eed3f30293",
+          "bb1d0da7e5c5ffad",
+          "24b172241f306228",
+          "97c453c003f59b98",
+          "c0a4b051b8d083be",
+          "b0f98468f972a16a",
+          "2d0a7c663fbb2a07",
+          "882a6808fb9cc17e",
+          "fa3576b785b17bfd",
+          "ad64756420739330",
+          "75a7b13d473abf7d",
+          "1d73bfa1e18b4663",
+          "4a26d9ce3fbaa87b",
+          "9056bfe057729e8e",
+          "6779b0ad36d5159e",
+          "7cecc8230c52fcd5",
+          "59aef801fa585bdf",
+          "55fd71e07f34885b",
+          "688981b1174c1697",
+          "d1bb93071ffd5f86",
+          "dfb81d8434acb2d9",
+          "2d893ae7459cad50",
+          "8814b7e96f6fdff7",
+          "19f30f42d6a5abc0",
+          "520dd0b10c215e87",
+          "e5d87ae0c9767889",
+          "a285d1d618a6c203",
+          "c0d76190e7567c09",
+          "2ee06880093dbbc0",
+          "0c3f77bc51651127",
+          "80ca104819761b62",
+          "7f147a72b53922f0",
+          "927068cf9fe8563d",
+          "15d8cb83486bc38e",
+          "5f3423e2ce7728f5",
+          "930a7dc9d4be2b34",
+          "63548becd083d18a",
+          "38ea6e7718826a61",
+          "accb39e8e9fec362",
+          "902e54e1a689f94f",
+          "c5c3213f172cb0e2",
+          "3a6243bc1b19bda9",
+          "c9ffe4441ddba8be",
+          "3118541eb2f4d0e8",
+          "20af588b1d0ffcbc",
+          "2b1cb6aa4aa4c670",
+          "24dca057e85850bc",
+          "6785746cee0cab05",
+          "9fc6ddfa556b5dec",
+          "648012e895412a1a",
+          "953f87af2516aa53",
+          "b7ce1a3f11625f5c",
+          "f4364e163bcf39bd",
+          "bcbbabd72dd6915d",
+          "a0e8ae7f7d9deb55",
+          "3caf02b800a7082a",
+          "7ce7ed15a974ce7b",
+          "f97484118803aafe",
+          "34278cc4a98370a5",
+          "64f4471b8abe9fa4"
+        ],
         "errors": [],
         "limit_documents": 5
       },
@@ -5429,20 +5966,20 @@
     },
     "ind-kn-fw2": {
       "pack_sha256": "3859c21e3f715ff7c0fbe978dcd0719b48ead11cff58fe215afa23f1175fd3ee",
-      "gold_sha256": "ba40473594b4605a002ffa627d86d820eace8eb9012475ed657ebca91dca4978",
+      "gold_sha256": "82c4bcaab136214652457f4ecbf82b9d27966d0eccc54466ca44498bba0b1061",
       "gold_path": "teams/02-data-b/gold/ind-kn-fw2_gold.csv",
       "pack_path": "ind-kn-fw2.parquet",
       "independent_gold_rules": {
-        "DB-A6-006": {
-          "n": 45,
+        "DB-A3-005": {
+          "n": 114,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-G1-005": {
-          "n": 45,
+        "DB-A6-006": {
+          "n": 114,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -5450,7 +5987,7 @@
           "result": "PASS"
         },
         "DB-B2-003": {
-          "n": 45,
+          "n": 114,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -5458,15 +5995,15 @@
           "result": "PASS"
         },
         "DB-B3-001": {
-          "n": 45,
+          "n": 114,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-A3-004": {
-          "n": 45,
+        "DB-C5-003": {
+          "n": 114,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -5474,31 +6011,23 @@
           "result": "PASS"
         },
         "DB-D4-007": {
-          "n": 45,
+          "n": 114,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-C1-008": {
-          "n": 45,
+        "DB-G1-011": {
+          "n": 114,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-C2-006": {
-          "n": 45,
-          "changed": [],
-          "dropped": [],
-          "errors": [],
-          "limit_documents": 1,
-          "result": "PASS"
-        },
-        "DB-C5-011": {
-          "n": 45,
+        "DB-C1-010": {
+          "n": 114,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -5506,7 +6035,7 @@
           "result": "PASS"
         },
         "DB-D3-008": {
-          "n": 45,
+          "n": 114,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -5514,7 +6043,7 @@
           "result": "PASS"
         },
         "DB-B4-002": {
-          "n": 45,
+          "n": 114,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -5523,7 +6052,7 @@
         }
       },
       "combined_gold": {
-        "n": 45,
+        "n": 114,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -5533,98 +6062,11 @@
       "combined_pack": {
         "n": 500,
         "changed": [
-          "a7746a3981e58f31",
-          "95fcd3a60a26a368",
-          "10c1bbd17380fb15",
-          "352f61da6247acd6",
-          "9e6f962f2be34876",
-          "96c2582ac07d1e04",
-          "2c8cbb93230afa7d",
-          "945ed506b47bbafc",
-          "537c659abc80e1a6",
-          "a4153fd935d239d9",
-          "7ac7b308228f3ad7",
-          "91eea0530670d2f8",
-          "1548138be5151389",
-          "3f2bb8ae6f78b502",
-          "feb54bf1fc697c7e",
-          "436fd1e4f828cb2a",
-          "c38abea7a3377c5b",
-          "3576168c62157973",
-          "45e2a6539ee4f226",
-          "5324bc601e15d2a1",
-          "51fa1af6aa0279aa",
-          "cc93c2dfddb5ec05",
-          "88007426f7aea253",
-          "e7b8bf9fcc02f67e",
-          "d78b35287b746574",
-          "2749edfd33a4cb37",
-          "6de6e36caaf540b9",
-          "a94b940f10441a9b",
-          "6f8df6a1e26de654",
-          "c69e1a6483bd6ac2",
-          "4f6fb355e6e5e1bd",
-          "76eda4fd0b953dd6",
-          "2914f93d5aa778b8",
-          "502e2621f024d74d",
-          "e86caa84ec92a192",
-          "9dc01e19af71a83a",
-          "46041fd3e4c244ca",
-          "bd00df225e66a17f",
-          "b97d07f5fb39741f",
-          "dd9112736c5e2d9a",
-          "bc2c40a34ef0d872",
-          "4e963c8aaa033a06",
-          "81ab9728476fadf9",
-          "7499824ba12d1b42",
-          "83454d018b62efb7",
-          "103ab680a7809f88",
-          "ed50a1d4e8c8d866",
-          "3aef2434dcb83f67",
-          "d4abec56d292b564",
-          "61d2e6fc6d32cf31",
-          "dd2729d522a08c58",
-          "157858cf4ee0e60b",
-          "4d34a1a3048e4e7d",
-          "4bca14f5b27788ec",
-          "4ca6103d6b8e1d9c",
-          "01889f08ad435afa",
-          "a942f2e7c4f748cc",
-          "c9affeb711a678f0",
-          "23aeaad8ca5c718e",
-          "dffe49981dfa3613",
-          "24fddf2ce16a4b54",
-          "0284835ce3b73c2b",
-          "87f73bb696b0bb4f",
-          "581a9bb7ad6f9611",
-          "f82c8b32441571c8",
-          "fa951c200eac04e4",
-          "a2de22174cc7fd60",
-          "037dd826b84f6f32",
-          "0f52e8c63e977510",
-          "39d902703f233992",
-          "7c1f12f761dd4395",
-          "4a2b2bc6ca58335a",
-          "5a22566fc782e7fe",
-          "06f5bc84c497ab74",
-          "848aef9c84b1f845",
-          "1478243b56864e4f",
-          "0e4c74235ff06c8b",
-          "d2944caefce91140",
-          "c72eb39a843e25c7",
-          "4b6b115448ca1b9b",
-          "2e6f4bf8087d77f2"
+          "6652e0ea74804194",
+          "edbfc11291eab3fc"
         ],
         "dropped": [
-          "634f9d4743893171",
-          "bf21eb9f2a9511b6",
-          "6652e0ea74804194",
-          "17e5d6b10dc06231",
-          "5af6bd124c4d7388",
-          "47424ea4989c5934",
-          "442de0ddbdf11639",
-          "ac9e11758c1a22ac",
-          "d6ee45607d0f322e"
+          "903f40f262239bdd"
         ],
         "errors": [],
         "limit_documents": 5
@@ -5637,7 +6079,7 @@
       "gold_path": "teams/02-data-b/gold/ind-kn-sangraha-s_gold.csv",
       "pack_path": "ind-kn-sangraha-s.parquet",
       "independent_gold_rules": {
-        "DB-A6-006": {
+        "DB-A3-005": {
           "n": 27,
           "changed": [],
           "dropped": [],
@@ -5645,7 +6087,7 @@
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-G1-005": {
+        "DB-A6-006": {
           "n": 27,
           "changed": [],
           "dropped": [],
@@ -5662,14 +6104,6 @@
           "result": "PASS"
         },
         "DB-B3-001": {
-          "n": 27,
-          "changed": [],
-          "dropped": [],
-          "errors": [],
-          "limit_documents": 1,
-          "result": "PASS"
-        },
-        "DB-A3-004": {
           "n": 27,
           "changed": [],
           "dropped": [],
@@ -5685,7 +6119,7 @@
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-D4-007": {
+        "DB-G1-011": {
           "n": 27,
           "changed": [],
           "dropped": [],
@@ -5701,7 +6135,15 @@
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-C2-006": {
+        "DB-C2-008": {
+          "n": 27,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C3-017": {
           "n": 27,
           "changed": [],
           "dropped": [],
@@ -5710,6 +6152,14 @@
           "result": "PASS"
         },
         "DB-D3-008": {
+          "n": 27,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-D4-014": {
           "n": 27,
           "changed": [],
           "dropped": [],
@@ -5737,82 +6187,151 @@
       "combined_pack": {
         "n": 500,
         "changed": [
+          "bd7252ce7767cbad",
+          "418db7f8ae6fded8",
+          "9e20e8d482b36907",
           "3a69a945a1b7aeaa",
+          "865bb4af9d177158",
           "c3db2fd821c28710",
           "ab411bfbfa80fe2a",
+          "eae97bf2fe895835",
+          "9c8c88baf0ae132b",
           "4014a84b9c3e0022",
           "54f770edbfb0f27e",
+          "6a9e9f12190ec61a",
+          "f23b0cf45b154aa0",
           "652430783641cf74",
           "ff6d56a4f0b67604",
           "b78645d9990988c3",
+          "3033449d8c8aa6d6",
+          "b09132dc931f8d94",
           "7321eaa4be29770f",
+          "8643e1935cd37e22",
           "629a3a0788816ad9",
           "605c195dc5422a06",
           "fd842936cba5d6b7",
+          "6fd0fbd24176698c",
+          "e72ae1889412923f",
+          "40da27327d56a254",
           "de997c2e752683e0",
-          "21f3f80ab22e0719",
+          "6376e4f80c1c3ef3",
+          "b328cee1c4a7e2f2",
+          "f9bc9ead3b1d2c39",
           "4c6c7ddb7fca4227",
           "8f808a85f9708958",
           "3da04151703f4541",
           "60bbcaa85c2d6028",
+          "a58c9a8aebca7532",
           "bddb7db5986a353f",
           "33435c6f9965fb8d",
           "566cbc92712fb526",
           "51aca881c982b6c4",
+          "5536f96e1ede85b8",
+          "81ed1befb7cfeb55",
+          "78d4cc1c6596f536",
           "76ff156acd160ee4",
           "a48c306ed85a970d",
+          "c9d63206d812b84d",
           "7696c91439e39dd0",
+          "53d7e796e27bef12",
           "a06d1a685aa9f218",
+          "22d1f95bcd1ae24a",
+          "9632f5c75380baf6",
+          "a0ee8f67d70aa82b",
           "7316a3d779366b1a",
+          "5c892dd92849fb65",
+          "920bf28a4e6e4cc8",
+          "9bef527665efefa3",
+          "447e9d948ab25456",
           "637a85b1c3251107",
+          "a890d747ed4473a4",
           "dd25dbb314d9d416",
+          "378c502cc7ad043b",
+          "cea1fedab01a7b28",
           "0295264fc59e194f",
+          "d89787ebd29373f4",
+          "523fee1068dc3fa9",
+          "eeef421b307b90ec",
           "ea7e1afd07060b11",
           "bf2e5e5773d04116",
           "7212610f297cbe1b",
+          "1fee81170e7900aa",
+          "57209a614969b1ba",
+          "50a52c16052618d7",
           "1684cdb71a24c23c",
           "1b2783df7756eb8a",
           "48b6ac54d21c01c8",
           "73a266977409ce7c",
           "4fde496efbb5da8b",
           "ed7cfe412cf5a9bb",
+          "77e171d6cd5b0de9",
           "2db4b3fe4ae885e6",
+          "33a6aac5acc55c00",
+          "931fdf9d3d74420f",
           "d01a0f66934a10a5",
           "b6fa26245e5bbee0",
           "d5133441c9d74b4f",
           "d3099c2a0f58fa1e",
+          "bea967a8e294d507",
           "309c6300b2a22783",
+          "4af3b19d647d84f6",
           "61ac039ff7e47d50",
+          "3f735eeec6402f87",
           "a567d25bdf9307a8",
+          "ef333648089a5724",
           "0d7f88244748a4e1",
           "502641c94d2458d2",
+          "f619ab7d5ee8a52d",
+          "32e63d082af06f2a",
+          "4bb0207874ea24df",
           "a84cbd8f664d1816",
+          "a71c9d43e85931a9",
+          "35ce5bb8ecf34db6",
           "714258ffd059057e",
           "248d753341105364",
+          "5182f57e468c0d70",
           "be733daaf8b845c5",
+          "0b958053024326fd",
+          "23f4f87c70219557",
           "5f6f044745aeb4f4",
+          "1e1de41eb43d681d",
           "2237fbd5cc07cfb8",
+          "0a7a2b891fd6e0a5",
+          "a46f72598331d845",
           "449224733e6ac5b2",
+          "61aca5de1b8b7c75",
+          "d81ac25f13bd9ad8",
+          "415af4cce5b11700",
+          "090c2eceee50d9e9",
+          "499b82b627b065a1",
+          "69736fc6a4b44210",
+          "7aaabeb4ed927188",
           "d26800ae2e940502",
           "b93c2a1c84dcd991",
           "5477f4457221c30c",
           "c1e6470f463ee8c7",
-          "e288409d61b677ba",
           "502f0850289dfdba",
           "2ceba289898aba63",
+          "db80897e2760a8ad",
           "8772f7c961f3c48f",
           "87837e2933dbaa8b",
           "9ffcbc94aa8d6004",
+          "ffff3cd82c21275c",
           "2d9a373d2ef00c46",
           "7213ef84e617ab3c",
+          "e28cda1384b964f0",
+          "d7bebd5a829f5b54",
           "6c7a7189b34d91b0",
+          "ee72705a400103f5",
+          "ee2758858961a338",
           "96ecccbf319e8469",
+          "d4b0b0457bf1369e",
+          "cc4d1418e2c11546",
+          "99af5d9592fc43cd",
           "d67be9974e2512bf",
           "1428f9e8314543c8"
         ],
-        "dropped": [
-          "25874ea69e8cd152"
-        ],
+        "dropped": [],
         "errors": [],
         "limit_documents": 5
       },
@@ -5880,7 +6399,7 @@
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-C1-010": {
+        "DB-C1-019": {
           "n": 103,
           "changed": [],
           "dropped": [],
@@ -5896,7 +6415,7 @@
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-D3-009": {
+        "DB-D3-016": {
           "n": 103,
           "changed": [],
           "dropped": [],
@@ -5925,42 +6444,102 @@
         "n": 500,
         "changed": [
           "dfca849b43c8a487",
+          "46e7b0e4e20a9f23",
           "1a60d090264d7942",
+          "9989015b2548a0c6",
+          "4f46a79a46229306",
+          "779ce47ff73e29c4",
+          "5315c2bcd65db2d3",
+          "e98438ec714e99ba",
+          "5aef363fc0d5fe65",
+          "c39c4419ed61eed1",
+          "45198a72954822e3",
           "3db23e9e76ca858e",
           "c3ade5a08282ceea",
+          "73199ec9ce96ae81",
           "035d7a62badd87a3",
+          "e36492eaffb501b0",
+          "ba0274378f441038",
+          "6ecb82407b97693f",
+          "a7314b2b0b81d2d2",
           "0fddd312da4d1f53",
+          "e7b4e0ef6f12fe8a",
+          "b13ce93e81365507",
           "84b68b5e64af6321",
+          "95eee9fbade34056",
+          "f9cd5f96c3e09704",
+          "0e44a06b5bbea224",
           "8e109920ba86923c",
+          "91a265a7e22e9274",
           "fed1a89a799daac6",
+          "748fe42063d270f0",
+          "ac5bc35d619e9f3d",
+          "97df7f69b46734ed",
+          "8a012eae0df721e2",
+          "853057ab7e534fbc",
+          "5fc6184e914a5963",
           "4c839d178430cf1e",
+          "7cb5e5e5da3d7721",
           "572a54015b5b8aa1",
           "d6782f4121e10366",
           "e36745aad511ed0f",
           "349415ffeec8c13c",
+          "83b1ba0f31d25548",
+          "c1c26519d52bab0e",
+          "1e8f01ccd4824ed7",
+          "ba05b870e075775a",
+          "59482dca295d8d6a",
           "cda8a7fb4c34da99",
+          "5447cf535577448e",
           "71f2dd6d48ebe5d2",
+          "0e82f78f23c1917e",
           "63b560933dce4556",
+          "8bc52a0f5c047bf3",
           "cac1e9c1e7750da3",
           "3353185ca785923e",
+          "7d3b6390fcb13bcc",
+          "41ace5bf8346488c",
+          "40f2d08efe83d426",
           "2bb2e05c4eacf24f",
           "af897fd315bd2a8b",
+          "a5d5d23fa7605123",
+          "717a9d77d70d8352",
           "8068dbf413e834f7",
+          "e2d245a8cf66d332",
+          "055bd95d9a932260",
+          "fdfb58aca075dc2a",
+          "dda6146c661da8a7",
+          "a05b52f4e1d2becf",
           "f8849202ab1a46be",
           "a31dbea5a0d6b216",
+          "f3f8d845dc300abd",
+          "8f9b8396b6fad625",
           "0a877ab38ad06f39",
           "a443c91d47a90627",
           "2819548c06815088",
           "fb94d02148066a39",
+          "77d13d9d62f7ba0b",
           "c2f29dd15ca2688f",
+          "bdbefd99522fd1f1",
           "d9ec06a95ff824e8",
           "537bcf926fe3415f",
           "c2473fe6ac414d6f",
           "d538f5625cac72a8",
+          "354429783ace3ce2",
+          "fa05390f2fb68856",
           "9c3494808deb97a7",
+          "33fbed41592d16f3",
+          "722166b0119910c3",
+          "2234003f2922e252",
           "d332ebcfc14a1d12",
           "f8a015e3eca2c954",
-          "7f58502a21c86228"
+          "81f295c7fafbae82",
+          "af0dd5ceca7b74ab",
+          "b7f4adf415278e44",
+          "7f58502a21c86228",
+          "97d9f9d3b1fbe7ba",
+          "1f2b6c5db7ef33db",
+          "6648d8d9f388650e"
         ],
         "dropped": [
           "f1ee75f8842c24c6",
@@ -5983,12 +6562,28 @@
     },
     "ind-mr-fw2": {
       "pack_sha256": "94a1d14caa9a46f40c2212c6d2c436b9ebb03093ac60ec04658023adeb2d3e2b",
-      "gold_sha256": "a9dd9cca00ab62a28f9de42debded3ab21ad054d16cbac2b3766518e0831ab9d",
+      "gold_sha256": "77ac2d31255eb65eda643a6e99526a0b6939dd01c2bcbeaf58ea4a50ee11e976",
       "gold_path": "teams/02-data-b/gold/ind-mr-fw2_gold.csv",
       "pack_path": "ind-mr-fw2.parquet",
       "independent_gold_rules": {
-        "DB-A5-006": {
-          "n": 140,
+        "DB-A1-001": {
+          "n": 142,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-A3-006": {
+          "n": 142,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-A5-009": {
+          "n": 142,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -5996,7 +6591,7 @@
           "result": "PASS"
         },
         "DB-A6-008": {
-          "n": 140,
+          "n": 142,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -6004,7 +6599,7 @@
           "result": "PASS"
         },
         "DB-G1-006": {
-          "n": 140,
+          "n": 142,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -6012,7 +6607,7 @@
           "result": "PASS"
         },
         "DB-G4-002": {
-          "n": 140,
+          "n": 142,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -6020,7 +6615,7 @@
           "result": "PASS"
         },
         "DB-C4-005": {
-          "n": 140,
+          "n": 142,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -6028,7 +6623,7 @@
           "result": "PASS"
         },
         "DB-C5-004": {
-          "n": 140,
+          "n": 142,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -6036,7 +6631,7 @@
           "result": "PASS"
         },
         "DB-D4-008": {
-          "n": 140,
+          "n": 142,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -6044,7 +6639,7 @@
           "result": "PASS"
         },
         "DB-C1-012": {
-          "n": 140,
+          "n": 142,
           "changed": [
             "870fb0ffd8d7a041"
           ],
@@ -6053,24 +6648,32 @@
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-C3-010": {
-          "n": 140,
+        "DB-C2-015": {
+          "n": 142,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-D3-010": {
-          "n": 140,
+        "DB-C3-024": {
+          "n": 142,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-B4-003": {
-          "n": 140,
+        "DB-D3-017": {
+          "n": 142,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-B4-011": {
+          "n": 142,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -6079,7 +6682,7 @@
         }
       },
       "combined_gold": {
-        "n": 140,
+        "n": 142,
         "changed": [
           "870fb0ffd8d7a041"
         ],
@@ -6099,9 +6702,10 @@
           "5c05e18231a55839",
           "c8ad1802a6fbb058",
           "654e623661c0b8c6",
-          "9c9cb2366bc14d88",
-          "36198f74122a5919",
+          "26dda2c33506f1ff",
+          "41e0cdfe755b14a1",
           "052f2791183c599c",
+          "d6ac7b4f104ac3c6",
           "ea74237e4114182f",
           "2815f742fa358d99",
           "28d9d12b99013cf5",
@@ -6115,23 +6719,31 @@
           "b07709b7ea20272a",
           "f2c7bce34d00c7fe",
           "a9cabc0f10b5a600",
+          "98cde70aac792386",
           "70386fb4070fc50f",
           "678e525481bd9723",
+          "489da5c3b5d9ffe2",
+          "0e8893761b8a7317",
           "875818dd2944faba",
+          "c85acdaeebe64599",
+          "699300b19e4c14a2",
           "e6b4976ea98d0201",
           "9b72ed35dc9f139d",
           "95c44a1c33389719",
           "4d9bf15a8b501e04",
           "5fc9c4afe4c1afd4",
+          "f21b3178cb113107",
           "5c283a7d039a2a51",
           "4816319ebae6cf01",
           "0c41a70258bbc0b4",
           "818a7989ee6bbb3a",
           "7c1eb17e89c7a9fd",
           "a3103fc0cfd04984",
+          "1f6ac623059aea97",
           "1f2b883d24e8de1a",
           "cb4ad24f3cb1b80b",
           "e2a39bab4d12c71d",
+          "2542e8ad88e5f64e",
           "ed5e9d22283ae0b8",
           "ca612c764bdb90df",
           "787ee315f56122c5",
@@ -6140,30 +6752,46 @@
           "aef47ee08575addb",
           "c5c7f7feea32245d",
           "d618f2f374d381ad",
+          "e18b2b9f09421434",
           "62b7c3478b8ad2b5",
           "5cf39e4d221fc993",
           "05045fec2475fdb9",
           "23726a04d8316b4c",
+          "fb42a6458cd3395d",
           "4ab66b3a5d21bfe7",
+          "1a0463d29958d890",
           "e9695776c7f0759f",
           "baf65fb63aad97d8",
           "16802c1b71453845",
+          "a17a859aa9af0546",
           "ae7305a6399c73a4",
           "af6d761021e6cdf8",
+          "e05f6dce2f8eba1a",
           "d105bc0a3cae322a",
+          "a2e44c403a265323",
           "5e5dfd4352f5175a",
           "882d0520964c5691",
+          "4675a6fa4875bc96",
+          "3088291538a576fb",
           "9c89c65a56773845",
           "1b4157e305d9f847",
           "2575adfe593246a8",
+          "f1df86c8801084ea",
           "829ad6bc1b89893f",
           "7e79c712d70e4f59",
           "f5173b6ce87f3538",
           "3cd39218930da1e3",
           "a38b25d1523e45f9",
+          "c2bdd48dd41bfd63",
+          "a042cee16d499f88",
+          "08bcea3851725af6",
+          "5003be98207c7290",
+          "831c2e8f89cd9871",
           "3a87c3949bbefd3e",
           "e44e79f1da899fb0",
           "340ec57eef39bb14",
+          "a5f0c335e9254f6f",
+          "41cb0794c0d942d6",
           "45e629cd4dbed94b",
           "921cd61b0b3e5e1e",
           "b8fe461aa712d377"
@@ -6172,6 +6800,7 @@
           "a84ec9a0a34a3f12",
           "d40a6e0c632b3dd0",
           "cedda2a2f29ef819",
+          "05b7b743f394e916",
           "5882f47ccec0c8ad",
           "bcad9002241e874b",
           "75649161ae22af18",
@@ -6189,6 +6818,22 @@
       "gold_path": "teams/02-data-b/gold/ind-mr-sangraha-v_gold.csv",
       "pack_path": "ind-mr-sangraha-v.parquet",
       "independent_gold_rules": {
+        "DB-A1-001": {
+          "n": 88,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-A3-006": {
+          "n": 88,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
         "DB-A5-006": {
           "n": 88,
           "changed": [],
@@ -6197,7 +6842,15 @@
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-A6-009": {
+        "DB-A6-021": {
+          "n": 88,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-G1-006": {
           "n": 88,
           "changed": [],
           "dropped": [],
@@ -6261,7 +6914,7 @@
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-D3-011": {
+        "DB-D3-022": {
           "n": 88,
           "changed": [],
           "dropped": [],
@@ -6335,6 +6988,7 @@
           "974d89860a3c644d",
           "5563bee2f6b2fd3d",
           "4dea645e7a66adbb",
+          "001bc250879bd0f7",
           "14b9ee03ca1ae8ef",
           "71ef1d9a6e3a3fce",
           "71bf6684fd65db89",
@@ -6367,6 +7021,7 @@
           "e579eb8eef66a97a",
           "d1aea1e5cde4c439",
           "c47c9670f950ed13",
+          "510f7867f1a9a181",
           "623073684d438688",
           "7afd6dd90c3c36f1",
           "b5268f279611a015",
@@ -6417,10 +7072,12 @@
           "9887087dc04ed50d",
           "038ffeeda8d9dca7",
           "6402789257fa2f5a",
+          "a86208dcb2bb5b4d",
           "5d9c437be099626e",
           "789de958ee2b7a1a",
           "9b2356eb730083ef",
           "0c7dfc2909665bcf",
+          "eb7ae38a850ac013",
           "822b1cc48687fa00",
           "393f996b7429a483",
           "6cfa5d3d8d97a06a",
@@ -6435,9 +7092,9 @@
           "38883c0a19ae2828",
           "dcdf431ee860b2da",
           "a2560327d285a851",
+          "e05bd523f8a4c4aa",
           "4aafe7c72732ae6d",
           "e24f0951fd2762a3",
-          "c8f1b56d8caf1c84",
           "f01e5da7f7d04ebf",
           "524d7c12d2b57d87",
           "425cde4ca2175602",
@@ -6490,6 +7147,7 @@
           "800b9e0d8542c927",
           "505dfcc22808bb3e",
           "deaae1e825de42db",
+          "95923c4beafdfb6d",
           "bc3bea59fb3dae3f",
           "b540720c907be23b",
           "0f71740b98b0f5d9",
@@ -6498,6 +7156,7 @@
           "5eabbd5f7f8e4982",
           "b18ce857e723514f",
           "8201800337322c63",
+          "7d5867bf37cf6900",
           "ef2f9ba2db385e79",
           "a3ad394a1d2c36fe",
           "c1b62d8aab38ea29",
@@ -6591,12 +7250,12 @@
     },
     "ind-sa-fw2": {
       "pack_sha256": "95e08d6b9ef1c3baf2d98c7f6bef3a0d12236d6b7c54583e5d4565884b3108e0",
-      "gold_sha256": "14fa93da9a30aba5786435889bdf24b078417f55763f854e2ecc7cb8a428184f",
+      "gold_sha256": "bfa93e597a4ab341f2c597388ce8b7c8e3912e728283e867fca8fa5970046865",
       "gold_path": "teams/02-data-b/gold/ind-sa-fw2_gold.csv",
       "pack_path": "ind-sa-fw2.parquet",
       "independent_gold_rules": {
-        "DB-A5-008": {
-          "n": 68,
+        "DB-A5-007": {
+          "n": 71,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -6604,7 +7263,7 @@
           "result": "PASS"
         },
         "DB-G1-007": {
-          "n": 68,
+          "n": 71,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -6612,7 +7271,7 @@
           "result": "PASS"
         },
         "DB-G2-003": {
-          "n": 68,
+          "n": 71,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -6620,7 +7279,7 @@
           "result": "PASS"
         },
         "DB-G4-003": {
-          "n": 68,
+          "n": 71,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -6628,7 +7287,7 @@
           "result": "PASS"
         },
         "DB-A4-001": {
-          "n": 68,
+          "n": 71,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -6636,7 +7295,7 @@
           "result": "PASS"
         },
         "DB-C3-004": {
-          "n": 68,
+          "n": 71,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -6644,7 +7303,7 @@
           "result": "PASS"
         },
         "DB-D4-009": {
-          "n": 68,
+          "n": 71,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -6652,7 +7311,7 @@
           "result": "PASS"
         },
         "DB-C1-013": {
-          "n": 68,
+          "n": 71,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -6660,7 +7319,7 @@
           "result": "PASS"
         },
         "DB-C4-010": {
-          "n": 68,
+          "n": 71,
           "changed": [
             "1ece1474b414d6fe"
           ],
@@ -6670,7 +7329,7 @@
           "result": "PASS"
         },
         "DB-C5-014": {
-          "n": 68,
+          "n": 71,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -6678,7 +7337,7 @@
           "result": "PASS"
         },
         "DB-D2-002": {
-          "n": 68,
+          "n": 71,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -6686,7 +7345,7 @@
           "result": "PASS"
         },
         "DB-D3-012": {
-          "n": 68,
+          "n": 71,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -6694,7 +7353,7 @@
           "result": "PASS"
         },
         "DB-H3-001": {
-          "n": 68,
+          "n": 71,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -6702,7 +7361,7 @@
           "result": "PASS"
         },
         "DB-B4-004": {
-          "n": 68,
+          "n": 71,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -6711,7 +7370,7 @@
         }
       },
       "combined_gold": {
-        "n": 68,
+        "n": 71,
         "changed": [
           "1ece1474b414d6fe"
         ],
@@ -6852,7 +7511,6 @@
           "d70432f192be0448",
           "3c665906e6b381ec",
           "6eb374b98007fea3",
-          "41ea68d210c5513e",
           "e592be91e6952193",
           "c921bd43953f64a7",
           "50fc357fc2e3ac56",
@@ -6981,12 +7639,12 @@
     },
     "ind-ta-sangraha-v": {
       "pack_sha256": "1df8e92c0f6a18d510ec8af5bf97d41aacf4834746fb9f24dc97821018057d78",
-      "gold_sha256": "4d54550d7ebcf6bf07f2c1d7efb56e3a04eacbbb9765819c1559614ad63d0c14",
+      "gold_sha256": "da9e3ff4db5df66b3886dc957ea7db35828083d2c78ed8a7fc8760a386af6948",
       "gold_path": "teams/02-data-b/gold/ind-ta-sangraha-v_gold.csv",
       "pack_path": "ind-ta-sangraha-v.parquet",
       "independent_gold_rules": {
-        "DB-A6-012": {
-          "n": 41,
+        "DB-G1-013": {
+          "n": 141,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -6994,39 +7652,79 @@
           "result": "PASS"
         },
         "DB-G4-004": {
-          "n": 41,
+          "n": 141,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-C5-005": {
-          "n": 41,
+        "DB-C5-017": {
+          "n": 141,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-C1-015": {
-          "n": 41,
+        "DB-F3-005": {
+          "n": 141,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-C2-012": {
-          "n": 41,
+        "DB-C1-021": {
+          "n": 141,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-B4-005": {
-          "n": 41,
+        "DB-C2-016": {
+          "n": 141,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C3-021": {
+          "n": 141,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C4-013": {
+          "n": 141,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-D3-018": {
+          "n": 141,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-D4-017": {
+          "n": 141,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-B4-007": {
+          "n": 141,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -7035,7 +7733,7 @@
         }
       },
       "combined_gold": {
-        "n": 41,
+        "n": 141,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -7045,225 +7743,111 @@
       "combined_pack": {
         "n": 500,
         "changed": [
-          "ba0521a76a80c6ba",
-          "803e203a2c7d60da",
           "b696ac9e380537d5",
-          "70717a9a2d8c2b37",
           "28e55a22748757af",
-          "b314ba477f78d672",
           "7cce84d0d76b0c30",
           "2bd051878060e7e3",
           "73b0ad27a538f16e",
-          "9872bc3de5476a56",
-          "f36561b899eeedf9",
           "c7e4a7ea75c2044e",
-          "34e3b93f0cec8833",
-          "facaa5118b633598",
-          "65126393f0ef52c9",
           "9277c615355d0c15",
           "00b0ea09f19c54e1",
-          "92ab99210be56e29",
           "caf1190306aaaad1",
-          "ad52606f936aa623",
-          "97f85878476cd809",
-          "9a112ddbdcf4b4d2",
-          "5ac08ceb0db9c1ca",
-          "f5f3259826c724cb",
-          "9a017d6ab6910ee5",
           "89879512ea611689",
-          "8fd2711299925f32",
           "78a681d105a4a147",
-          "a48cbb35f5ab2603",
           "086f4273ad802fea",
           "7582703c5da3e94d",
           "caec687442776b1a",
           "6810c612520fe2b8",
-          "42686daa22d0e057",
-          "368e7b6a663593c7",
-          "e5bdb400d14b4bde",
-          "8b6b217ae67c4717",
-          "5ec82c27d7df0286",
           "fa6df887b3a3ed81",
-          "dee696c1d3059391",
           "3c3a2a0df8ad93a1",
-          "b2f3b49721ef4f89",
           "5f9924a721d815ea",
           "939cefd2cf7ac11d",
-          "bbc0131080e6d45e",
           "5a90191547d16576",
-          "1e486125322b4217",
           "392b30c8f372490c",
-          "60c6714c9fff6fc3",
-          "21f0e929d3beefe8",
           "a433e6b081fd240c",
-          "3d47555ac0e81130",
-          "b2c838dc3fb7809a",
           "5fb762c034ff5d74",
           "9190ec930248487d",
           "9b5bc6e506f9a66d",
-          "63f9cef899d5865e",
-          "f1458fcf9a5e80f6",
           "14359b6d0f5fdff2",
           "c8a35fd923dc95e1",
           "a75c49e642feb642",
-          "67ef3df1ebe69226",
-          "15ad44e8bd0e7b68",
           "1f750756a09593b2",
           "be78e299cf6a26d8",
-          "9a64628a6d4aadee",
           "88f21b27659396af",
-          "26559494b14c516f",
-          "904e805ed71fb02b",
-          "b16791a5741328a2",
-          "e39821d7953fdd92",
           "f2cd43ce576f5a6a",
           "b5aeeb823c83e186",
           "3e9a2568d776f212",
-          "8f963103c58ca614",
-          "e6a64d2209a176ac",
-          "bb508fee46f757c6",
           "94f80a2793c41b1a",
-          "0ea22f1d5549e92c",
-          "038b72086dad07d0",
-          "07c1dff9e4dd265c",
-          "74ca49aa67cbb7c6",
           "13de1d751434be22",
-          "1a9ed0fec40cf637",
-          "5bd30425ae32d874",
           "e604d1e54b857c29",
           "0919bcad4eecf54f",
           "5f21fa5756c8bb25",
           "9b445bb288698dd7",
           "4c3114a092ee7902",
-          "d239ce20094990e2",
           "90778075c5a367b9",
           "e0fae85a5d9aa22e",
           "2b001ea51163c37c",
-          "c52e4d8f75876863",
-          "9c3ef21f717ca002",
           "41a31a33b942c4d5",
           "7007c4b46133be84",
           "7cf1e2870271ffef",
-          "78900d8c1fda8d84",
           "c42ea882436061c2",
-          "90851a19c7500722",
-          "14f1c117f70cfdb5",
-          "61957b6260e7f6a8",
-          "ffea78726d9ffca6",
+          "704da7b4b8285f8e",
           "a626483a05fce5b6",
           "5bf861c5fdd4fbbf",
-          "ed70dc771c386f78",
           "9c8df7a489dae1e5",
           "db60e8852386ca6c",
-          "73b608edff80349d",
           "15d47286a3f3eaaa",
           "0f823692e31222e1",
-          "b6c58f006021825d",
           "d54a206a217eaefe",
           "a8c212b32a048791",
           "2462d1f3d47e664d",
-          "af0dc5593985a89b",
-          "16cb493140c9b304",
-          "807dd3de8128b3f2",
           "b99e3edeb497d1e8",
-          "b54a137e794fc027",
-          "cf439e3ef083eb9a",
-          "2b6a7e9a9f4d374a",
           "2db3d228d31ac88b",
-          "a8c71b36c8643c9a",
           "b67249767c8648d2",
           "a7bf101ae44cbbf5",
-          "69708e0a0ed25f6e",
           "5f70e425033aa85d",
           "362e7deef4d21716",
-          "ed6128692cd922cc",
-          "0177fe3bb2958282",
           "bbc152125e8e3f6c",
           "f3daab42470fb231",
-          "74b96e50a582118f",
-          "7f25dbd61174b722",
-          "5ce4e2e89f1e5d31",
           "2c707bb8b0bf77ff",
           "c7adce749989a558",
           "2d0a42d9a17f72e3",
-          "b69cb7b45edb1712",
-          "4693c8ea8158a9f6",
-          "9210fbc5b0005b29",
           "aa62bfe3f9cf29b4",
-          "dbfa5aa64ec98382",
           "541e89ab67caa447",
-          "f30ee3325ba1d996",
-          "73887f1880e1e4b2",
-          "5eff05f90deef5c7",
-          "3e4a06d3cbe92599",
           "ea43ecbea2c199a8",
-          "7236d4e017556a62",
-          "7dd04a63e5dc9c12",
-          "92e44ae6c0d41e91",
           "746c972295747ed2",
-          "ff6997a91f83b747",
           "449b600d82e101cb",
-          "c43ff8bfe0b5ea18",
-          "f40e265059bd9c69",
-          "234a3c35ad8437ee",
           "5efe0964359bb62e",
-          "16c9bb939966677b",
           "40febaaff7304655",
           "9cdaba05f0178858",
           "2a23dd84f9242e4b",
           "62e816d00f772c37",
           "0d344e18220ee92e",
-          "9fa99180ef1a228f",
           "f66cefd0f87a1bff",
-          "300ef674d5adb6e1",
-          "4ffde22ed398c158",
           "0a1adc2f83e36303",
           "54ecf9fed53f096f",
-          "219cdfc7e77bef26",
-          "d7bfa9ea9330bb1d",
           "b23efb48ddcdde65",
           "8c1ba0bd4ff745b9",
           "95434ffdef3926d3",
           "d4c9633036c996b7",
           "29cb665ac4054100",
-          "cbb8b1b41428ee60",
           "9b9bc0b19525f801",
-          "d8ab2f7008a887ef",
-          "7d98f16ae3375c14",
-          "61aa1813e78bbfe2",
           "fc4d6d249bb8f249",
-          "2d5875160140fc33",
-          "5dd0a91898a1230f",
           "39387398ec39d34c",
           "d777a691df4e1b15",
-          "a1bb891fcd48ec19",
-          "2172fbfc8ec32092",
           "aef97de3db86446b",
-          "6c56c21aa57d5b3d",
           "3e6a97bf515c0cec",
-          "e50dbb6b99a1fd80",
           "78a416ddb22e0850",
           "88f57dbd458580ef",
-          "5444c67c8120cbbb",
-          "df3469a4b4508f34",
           "690dd575bb89459d",
-          "0d9df0eb390bfd71",
           "5cd458c4948a9f41",
-          "df638bfc7149b36e",
           "79c04d87809c891d",
           "0207fd177841f24e",
-          "5dc80d9d825fa6cc",
           "14031c4af0f72a4a",
-          "bbbf6b441072c407",
           "86410fc85b0c07cb",
-          "8fb37ca66fe1e1f7",
           "7630e557dfb0f6ae"
         ],
-        "dropped": [
-          "3ec2b85b9976a2dd",
-          "60d23b63db1f5dfe",
-          "581feefe2ea19ac5"
-        ],
+        "dropped": [],
         "errors": [],
         "limit_documents": 5
       },
@@ -7275,6 +7859,14 @@
       "gold_path": "teams/02-data-b/gold/ind-te-fw2_gold.csv",
       "pack_path": "ind-te-fw2.parquet",
       "independent_gold_rules": {
+        "DB-A1-002": {
+          "n": 18,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
         "DB-A6-013": {
           "n": 18,
           "changed": [],
@@ -7299,6 +7891,14 @@
           "limit_documents": 1,
           "result": "PASS"
         },
+        "DB-C3-020": {
+          "n": 18,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
         "DB-C4-006": {
           "n": 18,
           "changed": [],
@@ -7315,7 +7915,7 @@
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-D4-011": {
+        "DB-D4-012": {
           "n": 18,
           "changed": [],
           "dropped": [],
@@ -7323,7 +7923,7 @@
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-D5-001": {
+        "DB-D5-004": {
           "n": 18,
           "changed": [],
           "dropped": [],
@@ -7383,8 +7983,10 @@
       "combined_pack": {
         "n": 500,
         "changed": [
+          "7ef5b7ab6df65268",
           "4dff27fbc7052a2c",
           "c366b77cfbaa1ca4",
+          "be0cefed31a362c7",
           "7bf385a9a1c4fb03",
           "93bbfccf9f8b420f",
           "2ce4582bc4f24c0c",
@@ -7395,16 +7997,22 @@
           "92f5760870cdd59d",
           "93e12eda26737171",
           "d871aec13b8eb81d",
+          "9f1d3e17f2fa0c25",
           "188fec738adc0293",
+          "6f5bd09765fcba54",
+          "0712800649d5fb29",
           "fa1823f097100328",
           "64092f3350df3952",
           "a472cbb07057854e",
           "6d807ae605962b0e",
           "82cd50de1fd2248b",
+          "1528f001fa87bb6a",
           "b1fc122a01e457a3",
+          "d5308e76e13e8058",
           "142ddb551bbdbbd2",
           "b488551508b39dbd",
           "6eab4dbf2c6122fc",
+          "9c89a7eaa9e0c0cd",
           "32af6c88af5197f5",
           "13c7b26934e4bb05",
           "6ff09e9d46423aca",
@@ -7413,22 +8021,33 @@
           "56244645c2f33337",
           "043488b2251ca38b",
           "5138ea4a5e77613d",
+          "acc33e15a02a759b",
+          "492c90e92cdc9844",
+          "fd6f8ba32b96ab9f",
+          "8a6531db54116c79",
           "e1f40ed04cdff50e",
           "264a06765fd90137",
           "7203daff273018fa",
           "701668a26b4c5508",
           "beb479b227852301",
           "355c7af0fe13fc53",
+          "41c998453152115f",
           "c0c6990261d0d7ab",
           "b84adcd535648e79",
           "f3afb012f3c52eb2",
+          "a9d090b17941483f",
           "27116446ff359540",
           "b45958445e48fefe",
           "fa6cf942c7c88aaf",
           "58251ca1eae9e9ca",
+          "8abe1c3c8d3e1696",
+          "499898c17a98e3ef",
           "8b81d877c44df99c",
+          "0642038506ef1eee",
           "ee82b5653a41e703",
           "7d1b11163e35e658",
+          "e16b17169a5ea66c",
+          "f3ce3a145909c90f",
           "c5ccbaf027e082d3",
           "df624e86d90050e3",
           "1ee5b379afb77b51",
@@ -7442,18 +8061,22 @@
           "56e8be4376bf80d1",
           "27287c1c7b0ea3b3",
           "628b1404a25677d8",
+          "64e785802da2651a",
           "718a78420b711442",
           "f415fb2adcd485e2",
           "e3d31e38cd709220",
           "ac5dbe469948ac5e",
           "14084cdd46c29cf0",
           "78b1d93ba9aa11f9",
+          "78ffe031dc34c6b5",
           "1fabacb2ee62bad4",
           "fca6f19b3aa9a76c",
           "2a02f3b95f06dc16",
           "929389db510b2cb1",
           "f96cedc7fb781e6d",
+          "b3861313f1a301b7",
           "bde556c40be28c5f",
+          "cd472e26cdda4bdb",
           "9c501ac3f84605e4",
           "557103b844649264",
           "fa3069b31dad3407",
@@ -7462,6 +8085,7 @@
           "102d71a4b24f0a36",
           "b59cc78294a8662b",
           "845c55824e6314dd",
+          "df34dc3e0a7cad9d",
           "5f19ec824fcec596",
           "ac1513277ca092a1",
           "232615716ef393f4",
@@ -7474,9 +8098,12 @@
           "19499950e087f669",
           "64f8c52a4e1de626",
           "ecd0b0c3c0a83258",
+          "be436e7d7a74c411",
           "8e0e3b4e6e2e051c",
           "d7c2b27098b3ea30",
+          "a21d4277b589c5e4",
           "b0e9faff408bb5c3",
+          "07485a3bd56ab847",
           "a87f66fe7b7604c8",
           "0d4c6a8f9ba38b04",
           "be0033d6d9dc244c",
@@ -7484,126 +8111,44 @@
           "b3707e7b2e4a3b61",
           "33817e6f4452aec1",
           "937d8a613a18e6fc",
+          "e7d4e52fa23118e1",
           "dd64aef74210ffe8",
+          "53d7f0d3b32a954e",
           "6c593bbe5b8d94e9",
+          "517651eb715d8ee0",
           "f1058ebe8fbacedd",
           "a07af5085485b490",
           "22794ad1a892545a",
           "af0b1ed4a7ffe48b",
-          "0f828a96df65197c"
+          "0f828a96df65197c",
+          "0144d53f72675f91",
+          "9e40cb21c44e1477"
         ],
         "dropped": [
-          "0085c49fc57558bf",
-          "7ef5b7ab6df65268",
-          "668d883fb77963f5",
-          "be0cefed31a362c7",
-          "115bba807a058523",
           "6faa50209f00b4cf",
-          "2e1ca01703ecdfa2",
-          "78d482cb86a87ec4",
-          "ba133083568cfeae",
-          "c871c674ee4a7cae",
-          "4c9db4e00856fe76",
-          "9f1d3e17f2fa0c25",
-          "49a71d88fbcc7784",
-          "08da3c8f1d8c4459",
-          "6f5bd09765fcba54",
           "8348b209ce713e97",
-          "0712800649d5fb29",
-          "e40c7e6df995ca05",
-          "d0a4489a82f809e3",
-          "7662103929f8f5fa",
-          "8ebdc344120b5e1e",
           "a70f76757da6fd5e",
           "2acf40242963f9fd",
-          "1528f001fa87bb6a",
-          "d0692f163114fdb4",
-          "27d41b60de032ba2",
-          "710313401d6f415f",
-          "d5308e76e13e8058",
           "6cfff787aa9eede7",
           "b5637f3271aa29f2",
-          "9c89a7eaa9e0c0cd",
-          "d4447c0c8cf4e26c",
-          "c4036226db9700ad",
-          "2b2da968d594dc4c",
-          "4b22023a8e5e6f1e",
-          "dc158151a1c2e5f4",
-          "acc33e15a02a759b",
-          "492c90e92cdc9844",
-          "72016ea2f5ed434c",
-          "fd6f8ba32b96ab9f",
-          "8a6531db54116c79",
           "8e98aa5123625bb0",
-          "41c998453152115f",
-          "2f86ffc22b632174",
-          "719e238632236ea9",
-          "768b4cd95716cb01",
-          "1b5325715426ac9e",
-          "a9d090b17941483f",
-          "e75651a22860e045",
-          "aa3d8930cac21214",
-          "d1f226df894bd14e",
-          "61cb015f246c8d47",
-          "8abe1c3c8d3e1696",
           "a67b96eea7a20ae7",
-          "499898c17a98e3ef",
-          "0642038506ef1eee",
-          "e16b17169a5ea66c",
-          "f3ce3a145909c90f",
-          "b936ed3b471922cc",
           "d55fceacc521ac59",
           "61612475b96886d7",
-          "4f49826fa1ce1e40",
           "7a0b8b7c8b50bb37",
-          "a930802df90a88c8",
-          "80d73accbe799c13",
           "a01e604e40c46242",
-          "64e785802da2651a",
-          "ff9abe4e53e70b8d",
           "6c201abb1befc85a",
-          "6e35d1be71ef8559",
-          "78ffe031dc34c6b5",
-          "d264edd18b36c0d9",
-          "b3861313f1a301b7",
-          "8c7558f0b39dcb28",
           "503719a99f769a80",
-          "cd472e26cdda4bdb",
-          "a6647b6cfa6b4974",
-          "8fc63c47d8d4c576",
-          "5592e453e8487d63",
-          "037d566e9fb4531c",
-          "95a9f6930dd0130b",
-          "df34dc3e0a7cad9d",
           "8cac6c338ccde963",
           "bb1141fb17535a2e",
           "4287bce74601163a",
-          "0185ef658bc91c11",
-          "5e04165acce4cb97",
-          "0b297678d9a775ad",
-          "dbeffea727bc96b6",
-          "d87157a4d57322bd",
-          "be436e7d7a74c411",
-          "c31e2c87167d34a8",
-          "a21d4277b589c5e4",
-          "7f13dedd14627775",
-          "07485a3bd56ab847",
-          "6f34f3b3e3b1a493",
-          "0a9ff9e0c5b7b1ac",
           "6f76bd988a1da563",
           "cddaf967665ddca9",
           "ae717ef9da38e753",
-          "851fe1fec1d49c0a",
-          "e7d4e52fa23118e1",
-          "53d7f0d3b32a954e",
-          "517651eb715d8ee0",
           "2beeb23880a0f1b4",
           "be0a3e30ba42803f",
           "54d708ad4ecdc9b8",
-          "3717a47e1c7afe08",
-          "49f7a4236aa9f245",
-          "0144d53f72675f91",
-          "9e40cb21c44e1477"
+          "49f7a4236aa9f245"
         ],
         "errors": [],
         "limit_documents": 5
@@ -7612,12 +8157,20 @@
     },
     "ind-te-sangraha-s": {
       "pack_sha256": "feeb676e76dee102d132846c1af2a92c3ea4d1018e0fd5239f50fc0da0fb6069",
-      "gold_sha256": "455ff42bdbdd7388ca36044ab9d6b7073c507412bb057a2036d664621e5ab5ac",
+      "gold_sha256": "410ce1d6483c56086e8c9f6d1f23265278246999520e2f6f20845010ebc0f3e3",
       "gold_path": "teams/02-data-b/gold/ind-te-sangraha-s_gold.csv",
       "pack_path": "ind-te-sangraha-s.parquet",
       "independent_gold_rules": {
-        "DB-A6-014": {
-          "n": 5,
+        "DB-A1-002": {
+          "n": 24,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-A6-013": {
+          "n": 24,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -7625,15 +8178,23 @@
           "result": "PASS"
         },
         "DB-G1-010": {
-          "n": 5,
+          "n": 24,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-B2-005": {
-          "n": 5,
+        "DB-B2-007": {
+          "n": 24,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-C3-020": {
+          "n": 24,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -7641,7 +8202,7 @@
           "result": "PASS"
         },
         "DB-C4-006": {
-          "n": 5,
+          "n": 24,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -7649,7 +8210,7 @@
           "result": "PASS"
         },
         "DB-C5-006": {
-          "n": 5,
+          "n": 24,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -7657,7 +8218,7 @@
           "result": "PASS"
         },
         "DB-D4-012": {
-          "n": 5,
+          "n": 24,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -7665,7 +8226,7 @@
           "result": "PASS"
         },
         "DB-D5-001": {
-          "n": 5,
+          "n": 24,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -7673,7 +8234,7 @@
           "result": "PASS"
         },
         "DB-F3-003": {
-          "n": 5,
+          "n": 24,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -7681,15 +8242,15 @@
           "result": "PASS"
         },
         "DB-C1-016": {
-          "n": 5,
+          "n": 24,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-C2-013": {
-          "n": 5,
+        "DB-C2-017": {
+          "n": 24,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -7697,7 +8258,7 @@
           "result": "PASS"
         },
         "DB-D3-014": {
-          "n": 5,
+          "n": 24,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -7705,7 +8266,7 @@
           "result": "PASS"
         },
         "DB-B4-006": {
-          "n": 5,
+          "n": 24,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -7714,7 +8275,7 @@
         }
       },
       "combined_gold": {
-        "n": 5,
+        "n": 24,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -7724,112 +8285,21 @@
       "combined_pack": {
         "n": 500,
         "changed": [
-          "a28871107b0cefc2",
           "39a6ba9db8c951b9",
-          "0a959795abcefb55",
-          "29196613cdcd085b",
-          "96d7b80d980f1d2e",
-          "7fa0ec3272bae6f2",
-          "ae7453a3683bcbc4",
-          "8ee3a4fd303f802a",
-          "e8dbde5348f4a62a",
-          "c6a8902c73289b17",
-          "d0693c2069163e1a",
-          "14c6c67a1af2e07f",
-          "79aae4509fe0dbcc",
-          "2a1bf5ca4cf5f93c",
           "d7d13ed37c277bea",
-          "a33b1897b1457dc1",
-          "89d9603f0bc9ba86",
-          "d352fb4e6a80de95",
-          "5a7b61b6960f11d8",
-          "956be202bc7290d8",
-          "5b95cabc1c6bb77b",
-          "092a8d42f599af0d",
-          "310cdd8998973fd0",
-          "bb1309ec2ecee6c7",
-          "38c7656aa2d5cb66",
           "3dbf4ee7290f1569",
-          "b61666502c18b14f",
-          "79167d66fe9ef5eb",
-          "28c06d56fa392fa3",
           "976b619191078e2d",
-          "5c1b142ee4cd51b6",
-          "ea61bb9b483c1a1c",
-          "d9629ff60f5f0525",
-          "157a782ff76c4f62",
-          "edbdd66ba7126402",
-          "ade1aec14e02e1d1",
           "ece2c016b6dd2f17",
-          "2090feda89270c9e",
-          "07e4bfc491689567",
-          "ef9445145a1d8e04",
-          "cdebb429b9a9e4fb",
           "135bc37cf2e5f3ce",
-          "5bd30f6858dc8fd2",
-          "09241043f91d59cf",
-          "9f04c92239e38c58",
-          "c16371299da8e911",
           "a159bb53277b0e87",
-          "416a45e735f685a7",
-          "c6f7f5d8fac58f5a",
-          "cac8249415d4b54b",
-          "f7327893ff4e3b8d",
           "4c66553f2e36df76",
-          "df8e875e2715bcfb",
-          "77edfaefcbac75c3",
-          "dad2d7fc7b4910af",
-          "d8a9e57fbdf31722",
-          "70beb1399e476a55",
-          "5652787cc6fcb38f",
-          "fd45a88deb7f7934",
-          "ac13e2b997b297a8",
           "b1aa1bf8cb147fc0",
-          "00edb81a29bf7393",
-          "05787c529c79cb73",
-          "734d977a4606f7ef",
           "f94e9d5d5b935e79",
-          "a550fbd1f02f72cb",
           "c6c6765b694bf410",
-          "327641747832fd77",
           "805b60b877660bc0",
-          "e6a63e91713be5b2",
-          "362ffddae7c97ed8",
-          "57a65aa824d6d1b5",
-          "bc51bc59da52e930",
-          "d302462cf4a3140a",
-          "76ec6882306890c4",
-          "d60717af22ab14d4",
-          "1aa28983376de797",
-          "5016565f32a35fc0",
-          "8287cb49fd1d497f",
-          "cd681170cc9fc146",
           "06246a8108ac4997",
           "464cb33ef0c83159",
-          "1a95170270b09373",
-          "0423e8bdd33d304f",
-          "3a934860ee14fdc3",
-          "dbb8379777b3794e",
-          "5c2516752c918c2f",
-          "7bca1ff6c1a0afe9",
-          "a42cd491fbb0de02",
-          "fc97a555b0f09231",
-          "ef5f7cb9344c9a4c",
-          "eba43cb19b243506",
-          "b419cc52aac60380",
-          "e67d22a2868c8c75",
-          "b599f68aadb90f26",
-          "0df58aaedb63bff2",
-          "8876003946a7ed16",
-          "00d56c4063f454b9",
-          "767cad4c9059e88c",
-          "3d5ae25a9e759fd3",
-          "7cc069c0d85e74d7",
-          "d9847acee9859373",
-          "421e47a34ed96d40",
-          "1c78e3a6979d25f9",
-          "d71953b1566640e4",
-          "bf276cd0b33cad7d"
+          "ef5f7cb9344c9a4c"
         ],
         "dropped": [
           "d9d92df25bb9bbed",
@@ -7870,20 +8340,28 @@
     },
     "ind-te-sangraha-v": {
       "pack_sha256": "d3d928606d1fd0a7a81fcbce10db3e3d8f4b7df74486bc51c9a9d30299812817",
-      "gold_sha256": "4455d67be7a8460356555aa45da3b5d96d42a0503b2a5b4b2464444845cf5853",
+      "gold_sha256": "911f3ecb899f154d5b61472228b09f2831f484d86c22726b093c57b446b98b8d",
       "gold_path": "teams/02-data-b/gold/ind-te-sangraha-v_gold.csv",
       "pack_path": "ind-te-sangraha-v.parquet",
       "independent_gold_rules": {
-        "DB-A6-013": {
-          "n": 27,
+        "DB-A1-002": {
+          "n": 18,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-G1-010": {
-          "n": 27,
+        "DB-A6-013": {
+          "n": 18,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-G1-014": {
+          "n": 18,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -7891,39 +8369,39 @@
           "result": "PASS"
         },
         "DB-B2-004": {
-          "n": 27,
+          "n": 18,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-C4-006": {
-          "n": 27,
+        "DB-C3-020": {
+          "n": 18,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-C5-006": {
-          "n": 27,
+        "DB-C5-018": {
+          "n": 18,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-D4-011": {
-          "n": 27,
+        "DB-D4-016": {
+          "n": 18,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-D5-001": {
-          "n": 27,
+        "DB-D5-004": {
+          "n": 18,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -7931,31 +8409,39 @@
           "result": "PASS"
         },
         "DB-F3-003": {
-          "n": 27,
+          "n": 18,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-C1-016": {
-          "n": 27,
+        "DB-C1-022": {
+          "n": 18,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-C2-013": {
-          "n": 27,
+        "DB-C2-018": {
+          "n": 18,
           "changed": [],
           "dropped": [],
           "errors": [],
           "limit_documents": 1,
           "result": "PASS"
         },
-        "DB-D3-014": {
-          "n": 27,
+        "DB-C4-014": {
+          "n": 18,
+          "changed": [],
+          "dropped": [],
+          "errors": [],
+          "limit_documents": 1,
+          "result": "PASS"
+        },
+        "DB-D3-019": {
+          "n": 18,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -7963,7 +8449,7 @@
           "result": "PASS"
         },
         "DB-B4-006": {
-          "n": 27,
+          "n": 18,
           "changed": [],
           "dropped": [],
           "errors": [],
@@ -7972,7 +8458,7 @@
         }
       },
       "combined_gold": {
-        "n": 27,
+        "n": 18,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -7982,72 +8468,31 @@
       "combined_pack": {
         "n": 500,
         "changed": [
-          "aa570ec040718364",
           "05fa567dfc849e6b",
           "4dad3347bd40bbca",
           "27667afb5f1275fb",
+          "5f780207a338aae4",
+          "fc48a4849a6197cc",
           "0049a605ea022805",
-          "b4523e3d75fea2fd",
           "a2fe262d06a6c8d1",
-          "7d0eb95ce450da31",
-          "a49dde064901e3c4",
+          "ca452950eb2680f7",
           "78fafac09ce98623",
-          "0d73731f03dbd277",
-          "7f08939004c5c298",
           "d953b096c2367373",
-          "57558e75ec2ff83c",
-          "aa988ce9e13884da",
-          "e93775bb218455ef",
           "9e51f015da032472",
-          "b090166be19fbf0a",
-          "123141ba7400bfd5",
-          "48763ca91722e24a",
           "e164027178639a3e",
           "9c00599739ab0177",
+          "515066ab2810e25b",
           "5fef847936051386",
           "b1384c6cc6ab6eba",
           "dbb876c745d6d1d0",
-          "b4e45fdff16b4d6a",
           "95aae9f19a5f5ba3",
-          "6d7c47d27fd642d8",
-          "9d67d54ba7ac66e7",
-          "a107b9c63ce760b8",
           "598e28c450bf2c6d",
-          "97ea81fd3b0243ce",
           "5c626d8adbf27718",
-          "f4a7b263fde8b2dc"
+          "f4a7b263fde8b2dc",
+          "b50a4cc592e3b96d"
         ],
         "dropped": [
-          "8acd153461c0a159",
-          "ba8fbf4025410834",
-          "5fcfc2b6e785c4eb",
-          "93d55157e97c7352",
-          "38899aec9d0abbc7",
-          "26c5ea8a2cda7c47",
-          "fc48a4849a6197cc",
-          "baa2c61cf2fb2845",
-          "088d8221c0d32f2f",
-          "dc336e87d9461f6b",
-          "a00eafdfdfb59a55",
-          "bf8b81b3f168236a",
-          "e28ad63b02d08c67",
-          "914d223d96eef13d",
-          "6a7aee85387abc6b",
-          "a35a6bf67baec465",
-          "8404d1ae16f7e16f",
-          "b3a94168e26a91c6",
-          "012697e62432d373",
-          "fecfa73c3f1c3a7b",
-          "df87f71a036d591d",
-          "d1a71ff6161f043e",
-          "515066ab2810e25b",
-          "fde5545d5e022b99",
-          "aec0f3099a4ba58e",
-          "f86581827a0148e3",
-          "b6523b1d250e441c",
-          "4fa31a993a419991",
-          "245dcfe47b3f7c14",
-          "cba19edffd96cc7b"
+          "204fcbd26303bcea"
         ],
         "errors": [],
         "limit_documents": 5
@@ -8733,5 +9178,5 @@
       "out_of_pack_guard": "PASS"
     }
   },
-  "spec_sha256": "e35944cdcc6ec115bc65728fb8a4433a59d20fa8779bf7a5b5bc90f85265f196"
+  "spec_sha256": "38e3aba151430b10248f628b214f2d65517a0763334b891a934a9752038d2447"
 }
