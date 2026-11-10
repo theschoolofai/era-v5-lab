@@ -1,4 +1,13 @@
-# Attention smoke lab
+# Attention notebooks
+
+| Notebook | Purpose |
+|---|---|
+| `attention_smoke.py` | Short synthetic CPU/GPU launch checks |
+| `attention_gpu_screen.py` | Five full-step real-data designs, one common seed; preliminary evidence |
+
+Both use explicit controls and start no training when opened or exported.
+
+## Short smoke lab
 
 A readable marimo notebook that checks the existing G5 attention implementations
 with the actual Week-2 training program. It changes no model or trainer source.
@@ -100,3 +109,77 @@ Choose a fresh workspace if a prior probe exists; evidence is never overwritten.
 
 The [compute request](../jobs/2026-11-10-attention-t2.md) includes the full
 five-design, three-seed matrix and links the saved evidence.
+
+## Single-seed GPU screen
+
+`attention_gpu_screen.py` is a separate, annotated notebook for the owner's
+requested preliminary comparison: all five attention designs, one common seed
+**1235**, full context/batch shape and **1,221 updates per design**. Seed 1235 had
+the lowest reported score in the earlier learning-rate screen; that observation
+does not establish a generally best seed. The submitted three-seed request is
+unchanged.
+
+This notebook discovers the published cleaned sample through the course's public
+plan widget, downloads all **48 TRAIN parts across 38 packs**, verifies their
+official checksums, and applies the existing full G9 v2 protection checks.
+Flagged documents and exact held-out copies are removed; other IDs/text are
+preserved in deterministic part/row order. It uses the permanent, published
+**1,059-document G5 held-out set**, which supplies all 15 slices. The cleaned
+sample's own held-out split lacks Punjabi and Assamese. This reconstructed bundle
+is explicitly different from the unpublished JSONL staging of job #310.
+
+Runs use the supported development flag with the full step budget, without shape
+reductions, and keep checkpointing enabled. They retain pending approval,
+`smoke=true` and `eligible_for_quality_comparison=false`; one seed cannot satisfy
+the final mean/range comparison. The notebook records actual scored-token counts
+and does not infer them from padded input positions.
+
+A documented data-loader repair restores the CPU sampler's RNG state on CPU
+after a checkpoint is mapped to CUDA. Original and repaired file hashes are
+recorded; the model and optimizer mathematics are unchanged. The restart check
+compares six continuous steps against three steps plus a resumed three steps.
+
+Execution is pinned to `c1849c1b9dd11eec9ed1958c07deee173ca73265`.
+The optional `build_window_cache.py` companion prepares checksum-verified numeric
+windows, then the trainer reads those files through a read-only memory map.
+Ordered workers retain the existing strict tokenizer/UTF-8 validation. Input,
+artifact, source and window-setting identities are checked before reuse; no
+pickle or raw-document cache is used. The default uncached loader is unchanged.
+
+On the GPU runtime, **113 harness tests passed**. Six-step uncached, cached and
+cached/resumed checks produced byte-identical losses and identical final model
+hashes. The cache avoids repeating tokenization and large Python-list allocation;
+it preserves the documents, sample order and numerical training behavior.
+
+All execution controls are explicit, background tasks survive display refreshes,
+and completed results are read from evidence files. Opening or exporting the
+notebook does not start training. The default workspace is `attention-gpu-lab/`;
+set `ATTENTION_GPU_DIR` to choose another location. Signed download URLs and
+credentials are never included in notebook output or evidence downloads.
+
+After measuring spare capacity, optional controls overlap the half-RoPE and
+output-gate designs with the original queue, capped at **three independent
+trainers**. Each process keeps the same run settings. The observed GPU activity
+rose from 37–52% with one trainer to 94–100% with two; the three-trainer trial
+used about 37 GiB of 95 GiB. Short-window aggregate training throughput improved
+by approximately 50% over one trainer. These operational samples and contended
+wall times are not comparative model-speed benchmarks.
+
+Training plots show raw batch losses and an explicitly labeled 25-update moving
+average. Evaluation plots retain the actual logged held-out scores, including
+the initial evaluation. Plot labels name the designs in plain language.
+
+## Completed real-data screen: 10 November 2026
+
+| Design | Three-group BPB | Code BPB | Indic BPB | Difference from reference |
+|---|---:|---:|---:|---:|
+| Reference | 1.9379 | 2.0936 | 1.6325 | +0.0000 |
+| More key/value sharing | 1.9360 | 2.0892 | 1.6243 | -0.0020 |
+| Recent text + learned sink | 1.9250 | 2.0694 | 1.6231 | -0.0129 |
+| Partial position rotation | 1.9313 | 2.0886 | 1.6177 | -0.0066 |
+| Learned output gate | 1.9214 | 2.0844 | 1.5996 | -0.0165 |
+
+All five runs completed 1,221 updates at the same seed 1235 and full model/batch shape.
+These are single-seed preliminary scores; approval and the formal three-seed comparison
+remain pending. The learned output gate is lowest overall/Indic; windowed attention
+is lowest on code. [Raw evidence and limitations](../jobs/evidence/2026-11-10-attention-screen/README.md).

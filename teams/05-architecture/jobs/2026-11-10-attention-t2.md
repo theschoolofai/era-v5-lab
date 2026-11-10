@@ -23,7 +23,7 @@ Notebook:        ../notebooks/attention_smoke.py (annotated, explicit run contro
 
 ## Source and controls
 
-Reviewed source commit: c9cac5a0d5811e712212a37a01d6c540346ff1a1. Revalidate if TSAI applies a different commit.
+Tested execution source: c1849c1b9dd11eec9ed1958c07deee173ca73265. Model/optimizer mathematics remain those of c9cac5a; the data-loader cache and CUDA sampler-resume repair are separately identified and tested. Revalidate if TSAI applies a different commit.
 All five designs keep the approved T2 shape, context 2048, global batch 8,
 16 routed + 1 shared expert, top-2, expert width 768, SwiGLU, dense untied head.
 Use AdamW LR 0.001 as the current proposed/common fallback; comparison_final remains
@@ -134,3 +134,25 @@ and checkpoint workload and does not guarantee a full-budget finish.
 [Full-size evidence and limitations](evidence/2026-11-10-attention-smoke/full-shape/README.md).
 
 ![Full-size synthetic GPU launch losses and diagnostic step times](evidence/2026-11-10-attention-smoke/full-shape/full-shape-losses.png)
+
+## Completed owner-managed preliminary screen
+
+The separate [annotated GPU notebook](../notebooks/attention_gpu_screen.py) completed
+all five designs at seed 1235 for 1,221 full-shape updates each, with checkpoints.
+This uses a declared reconstruction from the published cleaned TRAIN parts and
+permanent G5 heldout, and keeps pending approval/development eligibility. It does
+not replace the exact #310 staging request or the three-seed quality matrix above.
+
+| Design | Three-group BPB | Code BPB | Indic BPB | Difference from reference |
+|---|---:|---:|---:|---:|
+| Reference | 1.9379 | 2.0936 | 1.6325 | +0.0000 |
+| More key/value sharing | 1.9360 | 2.0892 | 1.6243 | -0.0020 |
+| Recent text + learned sink | 1.9250 | 2.0694 | 1.6231 | -0.0129 |
+| Partial position rotation | 1.9313 | 2.0886 | 1.6177 | -0.0066 |
+| Learned output gate | 1.9214 | 2.0844 | 1.5996 | -0.0165 |
+
+[Raw logs, 75 slice scores, input identities and limitations](evidence/2026-11-10-attention-screen/README.md).
+
+![Completed real-data training losses; single-seed preliminary evidence](evidence/2026-11-10-attention-screen/screen-losses.png)
+
+![Completed held-out score curves](evidence/2026-11-10-attention-screen/screen-heldout-bpb.png)

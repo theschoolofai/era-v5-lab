@@ -1,4 +1,5 @@
 attention-smoke-lab/
+attention-gpu-lab/
 __pycache__/
 exports/
 *.html
