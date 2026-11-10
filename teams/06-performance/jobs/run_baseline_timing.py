@@ -8,9 +8,10 @@ Usage (repo root):
 
 No network. Reads configs under teams/06-performance. Writes only under --out.
 
-GPU path (non-smoke): two --repeat 1 clean,layer runs with layer_warmup=20 and a
-120s cool-down between them; the second run uses --against the first JSON so the
-compare gate still applies without tip-side sleep.
+GPU path (non-smoke): process 1 is --repeat 1 clean,layer with layer_warmup=20
+(clean KPI once); after a 120s cool-down, process 2 is --modes layer only with
+--against the first JSON so the 5% gate covers layer parts without dual-gating
+cold clean medians across processes.
 """
 from __future__ import annotations
 
@@ -31,6 +32,8 @@ REPO_ROOT = PERF_ROOT.parents[1]
 # fwd:block* / opt.muon when the node is warm from a prior long job.
 LAYER_COOLDOWN_S = 120
 LAYER_WARMUP = 20
+RUN1_MODES = "clean,layer"
+RUN2_MODES = "layer"
 
 
 def _newest_json(out: Path, tag: str) -> Path | None:
@@ -88,7 +91,6 @@ def _run_bench(out: Path, *, smoke_cpu: bool, synthetic: bool) -> int:
     base_args = [
         sys.executable, "-m", "perfkit.bench",
         "--config", str(config),
-        "--modes", "clean,layer",
         "--level", "3",
         "--repeat", "1",
         f"bench.layer_warmup={LAYER_WARMUP}",
@@ -97,7 +99,7 @@ def _run_bench(out: Path, *, smoke_cpu: bool, synthetic: bool) -> int:
     if synthetic:
         base_args.append("data.source=synthetic")
 
-    args1 = [*base_args, "--tag", tag]
+    args1 = [*base_args, "--modes", RUN1_MODES, "--tag", tag]
     print("cwd:", PERF_ROOT)
     print("cmd:", " ".join(args1))
     proc1 = subprocess.run(args1, cwd=str(PERF_ROOT), env=env)
@@ -111,6 +113,7 @@ def _run_bench(out: Path, *, smoke_cpu: bool, synthetic: bool) -> int:
             "synthetic": synthetic,
             "layer_warmup": LAYER_WARMUP,
             "cooldown_s": LAYER_COOLDOWN_S,
+            "run1_modes": RUN1_MODES,
             "phase": "run1",
             "time_utc": datetime.now(timezone.utc).isoformat(),
             "out_dir": str(out),
@@ -127,7 +130,12 @@ def _run_bench(out: Path, *, smoke_cpu: bool, synthetic: bool) -> int:
     print(f"cool-down {LAYER_COOLDOWN_S}s between layer processes (thermal hysteresis)…")
     time.sleep(LAYER_COOLDOWN_S)
 
-    args2 = [*base_args, "--tag", tag2, "--against", str(first_json)]
+    args2 = [
+        *base_args,
+        "--modes", RUN2_MODES,
+        "--tag", tag2,
+        "--against", str(first_json),
+    ]
     print("cmd:", " ".join(args2))
     proc2 = subprocess.run(args2, cwd=str(PERF_ROOT), env=env)
     summary = {
@@ -140,6 +148,8 @@ def _run_bench(out: Path, *, smoke_cpu: bool, synthetic: bool) -> int:
         "synthetic": synthetic,
         "layer_warmup": LAYER_WARMUP,
         "cooldown_s": LAYER_COOLDOWN_S,
+        "run1_modes": RUN1_MODES,
+        "run2_modes": RUN2_MODES,
         "phase": "run2",
         "time_utc": datetime.now(timezone.utc).isoformat(),
         "out_dir": str(out),
