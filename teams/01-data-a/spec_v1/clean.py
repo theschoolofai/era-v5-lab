@@ -2415,12 +2415,23 @@ def _english_d3_003():
     SOURCE = "en-nemotroncc"  # pack whose medicine this came from
     import re
 
+    import unicodedata
+
+    _LATIN = {}  # letter -> True if its Unicode name starts with LATIN: looked up once per distinct letter, not once per occurrence
+
+    def _latin(c):
+        v = _LATIN.get(c)
+        if v is None:
+            v = _LATIN[c] = unicodedata.name(c, "").split(" ")[0] == "LATIN"
+        return v
+
     def d3(t):
         """Delete lines whose letters are mostly non-Latin (CJK, Cyrillic, Hangul, Devanagari ...) in an English document."""
-        import unicodedata
         def foreign(l):
+            if l.isascii():  # an ASCII letter is always Latin, so an ASCII line is never foreign
+                return False
             letters = [c for c in l if c.isalpha()]
-            return len(letters) >= 3 and sum(unicodedata.name(c, "").split(" ")[0] != "LATIN" for c in letters) / len(letters) > 0.5
+            return len(letters) >= 3 and sum(not _latin(c) for c in letters) / len(letters) > 0.5
         return "\n".join(l for l in t.split("\n") if not foreign(l))
 
 

@@ -16,6 +16,7 @@ import re
 import subprocess
 import sys
 import textwrap
+import unicodedata
 from functools import cache
 from pathlib import Path
 
@@ -518,6 +519,89 @@ def test_d3_takes_a_joiner_only_with_a_whole_foreign_line():
     a, new = c.d3(en(PARA + "\n" + hindi_line + "\n" + english_line))
     assert (a, new) == ("fix", PARA + "\n" + english_line)
     assert joiners(new) == joiners(english_line)
+
+
+# DA-D3-003: a line goes when it has 3 or more letters and more than half of them are not Latin. The rule skips ASCII lines
+# (an ASCII letter is always Latin) and looks each letter's script up once, so these cases pin what it still must do.
+
+def d3_reference(text):
+    """DA-D3-003 as it was before the ASCII skip and the cache: unicodedata.name on every letter of every line."""
+    def foreign(line):
+        letters = [ch for ch in line if ch.isalpha()]
+        return len(letters) >= 3 and sum(unicodedata.name(ch, "").split(" ")[0] != "LATIN" for ch in letters) / len(letters) > 0.5
+    return "\n".join(line for line in text.split("\n") if not foreign(line))
+
+
+def d3_result(text):
+    """What d3 gives for text, in the shared form, from the reference."""
+    out = d3_reference(text)
+    return ("drop", text) if not out.strip() else ("fix" if out != text else "keep", out)
+
+
+# (the line, whether D3 deletes it). Each line sits between two English paragraphs.
+D3_LINES = [
+    ("Hello world, and more. It's 5 o'clock (almost)!", False),   # ASCII only
+    ("12345 67890 -- ??", False),                                 # no letters at all
+    ("Café naïve façade déjà vu Ångström", False),                # Latin letters outside ASCII
+    ("Это строка на русском языке.", True),                       # Cyrillic
+    ("日本語のテキストです", True),                                 # Han and Hiragana
+    ("한국어 문장입니다", True),                                     # Hangul
+    ("यह हिंदी की एक पंक्ति है", True),                           # Devanagari
+    ("Ελληνικό κείμενο εδώ", True),                               # Greek
+    ("Hello Привет мир", True),                                   # ASCII word and Cyrillic: 9 of 14 letters are not Latin
+    ("The word привет means hello in Russian.", False),           # a foreign word inside an English sentence: 6 of 32
+    ("12345 -- привет", True),                                    # digits and punctuation do not count as letters
+    ("ab аб", False),                                             # exactly half non-Latin is not more than half
+    ("ab абв", True),                                             # 3 of 5
+    ("abc аб", False),                                            # 2 of 5
+    ("аб", False),                                                # fewer than 3 letters: kept however foreign
+    ("я", False),
+    ("абв", True),                                                # exactly 3 letters
+]
+
+
+@pytest.mark.parametrize("line, goes", D3_LINES, ids=[f"d3-line-{i}" for i in range(len(D3_LINES))])
+def test_d3_deletes_a_line_only_when_more_than_half_its_letters_are_not_latin(line, goes):
+    text = PARA + "\n" + line + "\n" + EN_TEXT
+    a, new = c.d3(en(text))
+    assert (a, new) == (("fix", PARA + "\n" + EN_TEXT) if goes else ("keep", text))
+    assert (a, new) == d3_result(text)  # and the reference agrees
+
+
+def test_d3_cached_script_lookup_equals_unicodedata_name_for_every_letter():
+    """A line of one repeated letter goes exactly when the reference says so, for every alphabetic code point. The same
+    letters come up again and again, so this also reads the cache after it is filled."""
+    for _ in range(2):
+        for cp in range(0x110000):
+            if chr(cp).isalpha():
+                line = chr(cp) * 3
+                text = PARA + "\n" + line
+                a, new = c.d3(en(text))
+                assert (a == "fix") == (unicodedata.name(chr(cp), "").split(" ")[0] != "LATIN"), hex(cp)
+                assert new == d3_reference(text), hex(cp)
+
+
+def test_every_ascii_letter_is_latin():
+    """The reason D3 may skip an ASCII line."""
+    assert all(unicodedata.name(chr(cp)).split(" ")[0] == "LATIN" for cp in range(128) if chr(cp).isalpha())
+
+
+def test_d3_equals_the_unicodedata_reference_on_random_documents():
+    """Random lines from scripts, digits, punctuation and spaces, so that ASCII, Latin, foreign and mixed lines all come up."""
+    pools = ["abcdefghijklmnopqrstuvwxyz", "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "0123456789 .,;:!?'-()", "    ", "éèàüöñçøåßÿ", "абвгдежзийклмн", "ΑΒΓαβγδεζ",
+             "日本語中文字漢", "한국어문장", "कखगघचछजझ्ािी", "ابتثجحخد", "😀🙂★☆"]
+    rng = random.Random(11)
+    docs = []
+    for _ in range(3000):
+        lines = []
+        for _ in range(rng.randint(1, 8)):
+            mix = rng.sample(pools, rng.randint(1, 3))
+            lines.append("".join(rng.choice(rng.choice(mix)) for _ in range(rng.randint(0, 40))))
+        docs.append("\n".join(lines))
+    cut = [d for d in docs if d3_reference(d) != d]
+    assert 300 < len(cut) < len(docs) - 300  # lines go in some documents and stay in others: the check is not vacuous
+    for d in docs:
+        assert c.d3(en(d)) == d3_result(d)
 
 
 @pytest.mark.parametrize("lang", ["en", "eng"])
