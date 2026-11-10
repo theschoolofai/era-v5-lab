@@ -2,7 +2,7 @@
 
 ## Medicine 1: C6 — proposed code; repeated-dot normalization
 
-1. **Disease:** C6, **proposed code**. The instructor permits retaining C6 labels; final code adoption is a Gate 2 decision. The reviewed website snapshot checked on 9 November has 161 C6-labelled documents (three legacy I1 punctuation labels were renamed to C6 in the earlier submission). Examples: `2a0cfe90fd36e4ed` has `. .`; `11960d16258cd4b5` has `..`; `05fa567dfc849e6b` has `. . .`.
+1. **Disease:** C6, **proposed code**. Per the TSAI ruling of 5 November, C6 goes into spec v1 once this PR is approved. The reviewed website snapshot checked on 9 November has 161 C6-labelled documents (three legacy I1 punctuation labels were renamed to C6 in the earlier submission). Examples: `2a0cfe90fd36e4ed` has `. .`; `11960d16258cd4b5` has `..`; `05fa567dfc849e6b` has `. . .`.
 
 2. **Medicine:** Normalize two or more ASCII dots, including horizontal whitespace between dots, to exactly `...`. Existing `...`, single dots and Unicode `…` remain unchanged. Do not join dots across line breaks. Decimal normalization is a separate deferred candidate below and is not called by this medicine.
 
