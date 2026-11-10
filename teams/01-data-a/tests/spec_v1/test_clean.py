@@ -11,6 +11,7 @@ documents the reviewers named, so those cases use the doc_id the rule lists in s
   5  the math family
   6  the shared F1 on the math and science packs: the prose path of spec_v1/build/f1_rule.py (TSAI, 1 Nov)
 """
+import random
 import re
 import subprocess
 import sys
@@ -73,6 +74,24 @@ def joiners(s):
     return s.count(ZWJ), s.count(ZWNJ)
 
 
+# DA-F1-005 asks whether an organisation word sits in the 13 lines around a contact line (6 each way), and whether a
+# public role (reporter, editor ...) sits in the line or the 2 lines above an email. These lines hold no digit, no
+# at-sign and none of those words, and each differs from the others, so no other rule sees a repeat.
+FILL = ["The river rises in the hills.", "It runs south to the sea.", "Growers plant rice and wheat.", "The dry months are long.",
+        "Rain returns in June.", "Boats cross the bend at dawn.", "Fish are sold at noon.", "Evenings are quiet and cool.",
+        "Children swim near the sandbar."]
+ORG_LINE, ORG_LINE_2 = "The library is on the corner.", "The museum opens at nine."
+PHONE_LINE, PHONE_MASKED = "Call 555-867-5309 now.", "Call <PHONE> now."
+EMAIL_LINE, EMAIL_MASKED = "Write to ravi.kumar" + AT + "brightwave.net today.", "Write to <EMAIL> today."
+ROLE_LINE, REACH_LINE = "The reporter wrote this story.", "Reach jane.doe" + AT + "newsdesk.net today."
+ORG_VOICE_LINE = "Please call us any time."  # one phrase like this makes the whole page an organisation's
+
+
+def gap(n):
+    """n different lines with nothing in them, as a block of text."""
+    return "\n".join(FILL[:n])
+
+
 # 1. Every disease-code function, on every family that has a rule for it
 
 # (family, function, document, what the function does, the text after a fix: None checks only that the text changed)
@@ -115,6 +134,23 @@ SICK = [
     ("english", "F1", en(PARA + "\nCall me on 555-867-5309 or write to ravi.kumar" + AT + "gmail.com."), "fix",
      PARA + "\nCall me on <PHONE> or write to <EMAIL>."),  # DA-F1-005
     ("english", "F1", en(PARA + "\nI live at 42 Elm Street, Springfield, IL 62704."), "fix", PARA + "\nI live at <ADDRESS>."),
+    # DA-F1-005, the 13-line window: an organisation word 6 lines away keeps the contact, one 7 lines away does not
+    ("english", "F1", en(ORG_LINE + "\n" + gap(5) + "\n" + PHONE_LINE), "keep", None),
+    ("english", "F1", en(ORG_LINE + "\n" + gap(6) + "\n" + PHONE_LINE), "fix",
+     ORG_LINE + "\n" + gap(6) + "\n" + PHONE_MASKED),
+    ("english", "F1", en(EMAIL_LINE + "\n" + gap(5) + "\n" + ORG_LINE), "keep", None),  # the same below the contact line
+    ("english", "F1", en(EMAIL_LINE + "\n" + gap(6) + "\n" + ORG_LINE), "fix",
+     EMAIL_MASKED + "\n" + gap(6) + "\n" + ORG_LINE),
+    ("english", "F1", en(FILL[0] + "\n" + PHONE_LINE + "\n" + ORG_LINE_2), "keep", None),  # an organisation on the next line
+    ("english", "F1", en(ORG_VOICE_LINE + "\n" + gap(9) + "\n" + PHONE_LINE), "keep", None),  # an organisation's page, far away
+    ("english", "F1", en("Email me at ravi dot kumar at brightwave dot net.\nPhone: five five five, eight six seven.\n" + ORG_LINE),
+     "keep", None),  # no digit and no at-sign on any line
+    ("english", "F1", en(FILL[0] + "\n\n" + PHONE_LINE + "\n\n" + FILL[1] + "\n"), "fix",
+     FILL[0] + "\n\n" + PHONE_MASKED + "\n\n" + FILL[1] + "\n"),  # only the contact line changes: blank lines and the last newline stay
+    # a public role in the email line or the 2 lines above it keeps an email at an organisation's domain; 3 lines above does not
+    ("english", "F1", en(ROLE_LINE + "\n" + FILL[1] + "\n" + REACH_LINE), "keep", None),
+    ("english", "F1", en(ROLE_LINE + "\n" + FILL[1] + "\n" + FILL[2] + "\n" + REACH_LINE), "fix",
+     ROLE_LINE + "\n" + FILL[1] + "\n" + FILL[2] + "\nReach <EMAIL> today."),
 
     ("math", "A3", maths("Hereâ€™s the proof.\n" + BODY), "fix", None),  # mojibake of a right single quote
     ("math", "A1", maths("Area\u200b of a circle is pi r squared.\n" + BODY), "fix", None),
@@ -490,6 +526,134 @@ def test_f1_tags_survive_a_second_clean(lang):
     a, once = c.clean(en(text, lang))
     assert a == "fix" and all(t in once for t in ("<PHONE>", "<EMAIL>", "<ADDRESS>"))
     assert c.clean(en(once, lang)) == ("keep", once)
+
+
+@cache
+def f1_namespace():
+    """The DA-F1-005 block of specv1.md run on its own, to reach its regexes and its medicine_f1."""
+    body = re.search(r"^## Medicine \d+ — english / F1 / `DA-F1-005`\n(.*?)(?=^## Medicine |\Z)", SHEET, re.S | re.M).group(1)
+    ns = {"__name__": "rules"}
+    exec(textwrap.dedent(re.search(r"^```python\n(.*?)^```", body, re.S | re.M).group(1)), ns)
+    return ns
+
+
+def f1_joined_window(text):
+    """DA-F1-005 as it was before the window was searched line by line: for every line, ORGANISATION runs on the joined
+    13-line window. The reference that medicine_f1 must equal."""
+    ns = f1_namespace()
+    lines = text.split("\n")
+    org_page = bool(ns["ORG_VOICE"].search(text))
+    out = []
+    for i, line in enumerate(lines):
+        org = org_page or bool(ns["ORGANISATION"].search("\n".join(lines[max(0, i - 6):i + 7])))
+        new = ns["EMAIL"].sub(lambda m: ns["_email"](m, org or bool(ns["PUBLIC_ROLE"].search(
+            "\n".join(lines[max(0, i - 2):i + 1])))), line)
+        if ns["PHONE"].search(new) or ns["ADDRESS"].search(new):
+            if not org:
+                new = ns["PHONE"].sub(lambda m: m.group() if ns["TOLL_FREE"].match(m.group()) else "<PHONE>", new)
+                if len(line.strip()) <= ns["CONTACT_LINE"]:
+                    new = ns["ADDRESS"].sub("<ADDRESS>", new)
+        out.append(new)
+    return "\n".join(out)
+
+
+def test_f1_window_fixtures_hold_what_the_cases_assume():
+    ns = f1_namespace()
+    plain = FILL + [PHONE_LINE, EMAIL_LINE, REACH_LINE]
+    assert not any(ns[name].search(x) for name in ("ORGANISATION", "ORG_VOICE", "PUBLIC_ROLE") for x in plain)
+    assert all(ns["ORGANISATION"].search(x) for x in (ORG_LINE, ORG_LINE_2))
+    assert ns["ORG_VOICE"].search(ORG_VOICE_LINE) and not ns["ORGANISATION"].search(ORG_VOICE_LINE)
+    assert ns["PUBLIC_ROLE"].search(ROLE_LINE) and not ns["ORGANISATION"].search(ROLE_LINE)
+
+
+def test_f1_searching_the_window_line_by_line_equals_searching_it_joined():
+    """The optimisation must change nothing: random documents of contact lines, organisation words, roles and plain lines,
+    most of them close enough together for the 13-line windows to overlap."""
+    pieces = (FILL + [ORG_LINE, ORG_LINE_2, ORG_VOICE_LINE, ROLE_LINE, PHONE_LINE, EMAIL_LINE, REACH_LINE, "", " ", "123",
+              "Open Mon-Fri, fax 020 7946 0958", "Toll free 1-800-555-0199", "Ring +1 (312) 555-0142 or 312 555 0142",
+              "Home: 42 Elm Street, Springfield, IL 62704", "12 N. Oak Avenue", "He lived at No. 12 High Street.",
+              "sam99" + AT + "uni.edu", "info" + AT + "brightwave.net", "ravi_k" + AT + "gmail.com", "a" + AT + "b", "ten at the real\nestate office"])
+    rng = random.Random(5)
+    docs = ["\n".join(" ".join(rng.choices(pieces, k=rng.randint(0, 2))) for _ in range(rng.randint(1, 40))) for _ in range(2000)]
+    expected = [f1_joined_window(d) for d in docs]
+    assert [f1_namespace()["medicine_f1"](d) for d in docs] == expected
+    assert 200 < sum(a != d for a, d in zip(expected, docs)) < len(docs) - 200  # both outcomes are exercised, so the check is not vacuous
+    for d, e in zip(docs[:200], expected):  # clean.py's own F1, through the shared form
+        want = ("drop", d) if not e.strip() else ("fix" if e != d else "keep", e)
+        assert c.RULES["F1"](en(d)) == want
+
+
+# Two pages laid out like real ones in week1-packs: en-dclm 91baef5b95248038 (short contact lines beside organisation lines)
+# and en-nemotroncc fab230d1a3b03a77 (one last line holding a webmail address and a phone). Only the layout is copied:
+# which lines are blank, where the organisation words and the contacts sit, how long the page is. Every word is made up.
+SHAPE_PROSE = ["Rivers carry silt to the delta each spring.", "Her grandfather kept bees on the hill.",
+               "The trail follows a ridge above the valley.", "Snow arrived early and stayed until April.",
+               "Children learned to swim in the lake.", "A narrow bridge crosses the stream near the mill.",
+               "Lanterns were lit along the harbour wall.", "The orchard produces apples, pears and plums.",
+               "Winter evenings were spent reading by the fire.", "Few visitors reach the northern cliffs.",
+               "Wild herbs grow between the old stones.", "The ferry leaves at dawn and returns at dusk.",
+               "Fog settled over the fields before sunrise.", "Songs drifted from the open windows.",
+               "Maps of the coast were drawn by hand.", "A quiet road leads past the old windmill.",
+               "Gulls circled the boats all afternoon.", "Rain fell softly on the slate roofs.",
+               "The baker's cart rolled down the lane.", "Distant bells rang across the water."]
+SHAPE_A_BLANK = {0, 1, 3, 5, 7, 9, 12, 14, 16, 18, 20, 22, 24, 28, 30}  # 33 lines
+SHAPE_A_CONTACT = {4: "Tel: 555-867-5309", 6: "Our address: 1425 Willow Street", 26: "880 Rose Road"}
+SHAPE_A_MASKED = {4: "Tel: <PHONE>", 6: "Our address: <ADDRESS>", 26: "<ADDRESS>"}
+SHAPE_A_ORG = {2: "Free consultation for new clients.",
+               17: "The clinic keeps long opening hours and offers health checks on most days of the week.",
+               21: "A small auto workshop stands beside the river, and the owner knows every engine in town.",
+               25: "Family law and wills."}
+SHAPE_A_PLAIN = {2: "Welcome to the village page.", 17: "Snow lay thick on the fields all week.",
+                 21: "Rain fell on the roofs of the old town.", 25: "Candles burned late in the hall."}
+
+
+def shape_a(org):
+    """The first page: contacts on lines 4, 6 and 26, organisation words only on the lines named in org."""
+    prose = iter(SHAPE_PROSE)
+    lines = []
+    for i in range(33):
+        if i in SHAPE_A_CONTACT:
+            lines.append(SHAPE_A_CONTACT[i])
+        elif i in SHAPE_A_ORG:
+            lines.append(SHAPE_A_ORG[i] if i in org else SHAPE_A_PLAIN[i])
+        elif i in SHAPE_A_BLANK:
+            lines.append("")
+        else:
+            lines.append(next(prose))
+    return lines
+
+
+@pytest.mark.parametrize("org, masked", [
+    ((2, 17, 21, 25), ()),            # as in the real page: every contact has an organisation within 6 lines, nothing changes
+    ((17, 21, 25), (4, 6)),           # line 2 is the only organisation word near lines 4 and 6, and 24 lines from line 26
+    ((2, 17), (26,)),                 # lines 21 and 25 are the organisation words near line 26; line 17 is 9 lines away
+    ((), (4, 6, 26)),                 # no organisation word: the phone and both addresses go
+], ids=["organisations-everywhere", "top-organisation-removed", "bottom-organisations-removed", "no-organisation"])
+def test_f1_on_a_page_laid_out_like_a_real_one(org, masked):
+    lines = shape_a(org)
+    assert len(lines) == 33
+    text = "\n".join(lines)
+    want = "\n".join(SHAPE_A_MASKED[i] if i in masked else line for i, line in enumerate(lines))
+    assert c.RULES["F1"](en(text)) == (("fix", want) if masked else ("keep", text))
+    assert f1_joined_window(text) == want  # and the joined-window reference agrees
+
+
+def test_f1_masks_the_webmail_address_and_keeps_the_phone_on_one_organisation_line():
+    """The second page: 41 lines, text on the even ones, and a last line with both, beside an organisation word."""
+    lines = [SHAPE_PROSE[i // 2] if i % 2 == 0 else "" for i in range(38)] + ["The university runs the survey.", "",
+             "Further information: front desk (555) 867\u20105309 or sam.lee" + AT + "gmail.com"]
+    assert len(lines) == 41
+    text = "\n".join(lines)
+    want = "\n".join(lines[:-1] + ["Further information: front desk (555) 867\u20105309 or <EMAIL>"])
+    assert c.RULES["F1"](en(text)) == ("fix", want)  # the phone stays: the line belongs to an organisation; a webmail address is a person's
+
+
+def test_f1_shaped_pages_hold_what_their_cases_assume():
+    ns = f1_namespace()
+    plain = SHAPE_PROSE + list(SHAPE_A_PLAIN.values()) + list(SHAPE_A_CONTACT.values())
+    assert not any(ns[name].search(x) for name in ("ORGANISATION", "ORG_VOICE", "PUBLIC_ROLE") for x in plain)
+    assert all(ns["ORGANISATION"].search(x) for x in SHAPE_A_ORG.values())
+    assert not any(ns["ORG_VOICE"].search(x) or ns["PUBLIC_ROLE"].search(x) for x in SHAPE_A_ORG.values())
 
 
 @pytest.mark.parametrize("text", [t for _, t, _, _ in ENGLISH_SICK] + [t for _, t in LOOK_ALIKE] + list(JOINER_PROBES.values()),
