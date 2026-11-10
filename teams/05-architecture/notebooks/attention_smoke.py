@@ -715,6 +715,31 @@ def loss_plots(ATTENTION_CASES, REPORTS_DIR, results_refresh, smoke_directory):
 
 
 @app.cell
+def full_shape_results(LAB_DIR):
+    full_shape_path = LAB_DIR / 'full-shape-probe' / 'probe-summary.json'
+    full_shape_rows = json.loads(full_shape_path.read_text()) if full_shape_path.exists() else []
+    mo.vstack([
+        mo.md(r'''
+        ## Optional: does the full training shape fit?
+
+        The short checks above use shorter sequences and smaller batches. The separate
+        `full_shape_probe.py` helper in this repository's notebooks folder checks three
+        GPU steps at **2048 tokens, global batch 8, microbatch 1** for each design.
+        Run it after setup, pointing `--workspace` to the workspace shown above.
+
+        It uses longer synthetic documents. Timing excludes the official evaluation
+        and checkpoint workload; it cannot establish a complete 90-minute run.
+        Saved results appear below after this cell is refreshed. Memory is sampled
+        total device use, rather than the trainer's peak tensor allocation.
+        '''),
+        mo.ui.table(full_shape_rows, selection=None) if full_shape_rows else
+            mo.md('No full-size probe results in this workspace yet.'),
+    ])
+
+    return
+
+
+@app.cell
 def evidence_export(
     ATTENTION_CASES,
     LAB_DIR,

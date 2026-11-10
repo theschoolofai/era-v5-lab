@@ -83,3 +83,20 @@ quality run is automatically launched.
 Keep tokenizer/table downloads, run outputs, model checkpoints, archives, HTML,
 and PDF exports outside Git. The notebook contains no kernel URL or credential.
 Notebook setup/orchestration is AI-assisted; model code is the upstream code.
+
+## Optional full-size GPU fit check
+
+After the notebook prepares the workspace, run this separate, bounded helper:
+
+```bash
+python full_shape_probe.py --workspace /path/to/attention-smoke-lab
+```
+
+It runs each design for three steps at context 2048, global batch 8 and
+microbatch 1, using longer synthetic documents. It preserves the trainer and
+records actual per-step timing and sampled total device memory. It does not
+measure official evaluation/checkpoint overhead or establish a 90-minute finish.
+Choose a fresh workspace if a prior probe exists; evidence is never overwritten.
+
+The [compute request](../jobs/2026-11-10-attention-t2.md) includes the full
+five-design, three-seed matrix and links the saved evidence.
