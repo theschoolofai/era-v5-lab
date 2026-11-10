@@ -1094,9 +1094,7 @@ PUBLIC_ROLE = re.compile(r"(?i)\b(?:reporter|editor|journalist|correspondent|spo
                          r"publicist|author of|professor|prof\.|dr\.|lecturer|faculty|researcher|principal investigator|"
                          r"media contact|press contact|for more information|high[- ]res|images|photos)\b")
 
-def _organisation_near(lines, i):
-    """An organisation word in the contact block around line i: up to 6 lines each way."""
-    return bool(ORGANISATION.search("\n".join(lines[max(0, i - 6):i + 7])))
+DIGIT = re.compile(r"\d")
 
 def _email(m, org):
     addr = m.group()
@@ -1111,13 +1109,25 @@ def _email(m, org):
 def medicine_f1(text):
     lines = text.split("\n")
     org_page = bool(ORG_VOICE.search(text))
+    has_org = {}  # line number -> an organisation word on that line: searched once, and only when a contact line asks
+
+    def org_near(i):  # same answer as searching the joined 13-line window, as no match spans a newline
+        for j in range(max(0, i - 6), min(len(lines), i + 7)):
+            if j not in has_org:
+                has_org[j] = ORGANISATION.search(lines[j]) is not None
+            if has_org[j]:
+                return True
+        return False
+
     out = []
     for i, line in enumerate(lines):
-        org = org_page or _organisation_near(lines, i)
-        new = EMAIL.sub(lambda m: _email(m, org or bool(PUBLIC_ROLE.search(
-            "\n".join(lines[max(0, i - 2):i + 1])))), line)
+        if "@" not in line and not DIGIT.search(line):  # no EMAIL, PHONE or ADDRESS can match
+            out.append(line)
+            continue
+        new = EMAIL.sub(lambda m: _email(m, org_page or org_near(i) or bool(PUBLIC_ROLE.search(
+            "\n".join(lines[max(0, i - 2):i + 1])))), line) if "@" in line else line
         if PHONE.search(new) or ADDRESS.search(new):
-            if not org:
+            if not (org_page or org_near(i)):
                 new = PHONE.sub(lambda m: m.group() if TOLL_FREE.match(m.group()) else "<PHONE>", new)
                 if len(line.strip()) <= CONTACT_LINE:
                     new = ADDRESS.sub("<ADDRESS>", new)
