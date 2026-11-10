@@ -1,0 +1,6 @@
+attention-smoke-lab/
+__pycache__/
+exports/
+*.html
+*.pdf
+*.zip
