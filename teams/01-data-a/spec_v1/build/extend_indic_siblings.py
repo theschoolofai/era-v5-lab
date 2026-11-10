@@ -24,9 +24,16 @@ def policy_from_source():
     return json.loads(match.group(1)) if match else {'enabled': False}
 
 
-def target_rule(row, pack):
+def scope_allowed(row, pack, policy):
+    allowed = policy.get('allowed_rule_packs', {}).get(row['id'])
+    return allowed is None or pack in allowed
+
+
+def target_rule(row, pack, policy=None):
     if pack.split('-')[1] != row['pack'].split('-')[1]:
         raise ValueError('cross-language sibling scope is forbidden')
+    if not scope_allowed(row, pack, policy if policy is not None else policy_from_source()):
+        raise ValueError('rule/pack scope excluded by review policy')
     ns = {'__name__': 'indic_sibling_candidate'}
     exec(compile(row['block'], row['id'], 'exec'), ns)
     # The only runtime scope used by the copied source wrapper. The author function is unchanged.
@@ -62,6 +69,9 @@ def extend(review, packs, gold_dir, report=None):
                                                     'fill_missing_diseases_only', 'require_receiving_gold')):
         raise ValueError('unsupported sibling scope policy')
     rows = review.read_source()
+    for row in rows:
+        if not scope_allowed(row, row['pack'], policy):
+            raise ValueError('native rule scope excluded by review policy: ' + row['id'])
     shared_f1 = review.shared_f1_rule()
     primary_path = SPEC.parent / 'results/spec_v1/cleaner/indic_integration.json'
     report = report or json.loads(primary_path.read_text(encoding='utf-8'))
@@ -110,13 +120,17 @@ def extend(review, packs, gold_dir, report=None):
             d['pack_id'] = pack
         chosen = {row['id'] for row in native}
         codes = set(native_codes)
-        functions = {row['id']: target_rule(row, pack) for row in native + candidates}
+        functions = {row['id']: target_rule(row, pack, policy) for row in native}
         for row in candidates:
             if row['code'] in codes:
                 continue
             rid = row['id']
             attempt = {'rule_id': rid, 'source_pack': row['pack'], 'code': row['code']}
             entry['attempts'].append(attempt)
+            if not scope_allowed(row, pack, policy):
+                attempt.update(result='REJECTED', reasons=['rule/pack scope excluded by review policy'])
+                continue
+            functions[rid] = target_rule(row, pack, policy)
             fn = functions[rid]
             issues = review.synthetic_check(fn, pack, lang)
             single = review.ht._result(rid, review.ht.run_rule(fn, gold_docs, 5), len(ids), review.Fraction(1))
@@ -185,7 +199,7 @@ def extend(review, packs, gold_dir, report=None):
     summary = '''<!-- VALIDATED SIBLING SCOPES -->
 ## Validated Indic sibling scopes
 
-The scope policy starts in [medicine_indic.md](medicine_indic.md). Integration borrows selected native candidates only within the same language, preserves native disease selections, and tests every receiving scope on its own gold and full diagnosis pack. `SOURCE_ORIGIN` preserves the donor; `ORIGIN` and `SPEC_PACKS` contain validated execution scopes. No source algorithm or rule ID changes. Results: [indic_sibling_scopes.json](../results/cleaner/indic_sibling_scopes.json).
+The scope policy starts in [medicine_indic.md](medicine_indic.md). Integration borrows selected native candidates only within the same language, preserves native disease selections, and tests every receiving scope on its own gold and full diagnosis pack. Explicit review restrictions override fallback borrowing: `DB-D4-011` runs only on `ind-te-fw2`, and `DB-D5-001` only on `ind-te-sangraha-s`. `SOURCE_ORIGIN` preserves the donor; `ORIGIN` and `SPEC_PACKS` contain validated execution scopes. No source algorithm or rule ID changes. Results: [indic_sibling_scopes.json](../../results/spec_v1/cleaner/indic_sibling_scopes.json).
 
 '''
     summary += f'Current Indic coverage: **{len(supported)} packs**; **{sum(len(v["accepted"]) for v in targets.values())} additional rule/pack scopes**. All are CANDIDATE. Packs without nonempty receiving gold remain unregistered; Malayalam/Odia have no same-language donor.\n\n'
@@ -195,7 +209,7 @@ The scope policy starts in [medicine_indic.md](medicine_indic.md). Integration b
     summary += '\n<!-- END VALIDATED SIBLING SCOPES -->\n\n'
     first = source.index('## Medicine 1 ')
     source = source[:first] + summary + source[first:]
-    source = re.sub(r'The 26 covered packs are partitioned[^\n]*', f'The {13+len(supported)} covered packs are partitioned into code (six), English prose (four), math (two), science (one), and Indic ({len(supported)}). Indic sibling scopes are validated separately below.', source)
+    source = re.sub(r'The \d+ covered packs are partitioned[^\n]*', f'The {13+len(supported)} covered packs are partitioned into code (six), English prose (four), math (two), science (one), and Indic ({len(supported)}). Indic sibling scopes are validated separately below.', source)
     source = source.replace('Nine additional Indic sample packs have no candidates in this source sheet and remain unsupported.', 'Remaining Indic packs without validated scopes are unsupported.')
     source = re.sub(r'Source SHA-256: `[0-9a-f]+`', 'Source SHA-256: `' + result['source_sha256'] + '`', source)
     source = re.sub(r'No selected F1 candidate exists for: [^.]*\.', 'No selected F1 candidate exists for: ' + ', '.join(privacy_missing) + '.', source)

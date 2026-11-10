@@ -41,6 +41,14 @@ def digest(path):
         return hashlib.file_digest(stream, 'sha256').hexdigest()
 
 
+def peak_rss_mib():
+    if resource is None:
+        return None
+    rss = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    unit = 1024 * 1024 if sys.platform == 'darwin' else 1024
+    return round(rss / unit, 3)
+
+
 def read_json(path):
     return json.loads(Path(path).read_text(encoding='utf-8'))
 
@@ -289,7 +297,7 @@ def main(argv=None):
     for shard, source in resolved:
         reports.append(process_part(source, shard, output, config['batch_size']))
     provenance.update(wall_seconds=round(time.monotonic()-started,3),
-                      peak_rss_mib=round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1024,3) if resource else None)
+                      peak_rss_mib=peak_rss_mib())
     summary = write_aggregate(output, reports, provenance, len(data['shards']))
     print(json.dumps({'event':'complete', **{key:summary[key] for key in ('completed_parts','input_rows','output_rows','errors','actions','wall_seconds','peak_rss_mib')}}, sort_keys=True), flush=True)
     return 0

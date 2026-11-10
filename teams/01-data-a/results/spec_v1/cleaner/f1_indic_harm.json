@@ -1,13 +1,13 @@
 {
   "f1_rule_sha256": "28250b0688c9cabaf16b13aca0c35beebd9343772196a5cd286cd2e81e773fd4",
-  "clean_sha256": "97c1a55b89f4a15ef4985928ef124f29f04a37c21038eb0ea4977598767ae58f",
+  "clean_sha256": "14ce613473e691b67cc4d46598c8cb7bec6b7fbd49ef2c2563380f8d88a55de9",
   "harm_test_sha256": "4dcc04bf8ac553c9c0b39c8812bd7275aee9c8727b80a7a5a026d0e3f7bbafd2",
   "packs": {
     "ind-bn-fw2": {
-      "gold": 238,
+      "gold": 244,
       "limit": 2,
       "pack_sha256": "b5f91af826c982b548f7fc06404a2d53623b1393d511049f2e004b0353847913",
-      "gold_sha256": "72949bcc2f76496e2ddca0adbbc2854e6dc719f1940ec07f6500365a521e5856",
+      "gold_sha256": "4868dc1a46c3651a25e0b6fe7f33d62f79518e42d8dc95fa7d5860a705fd3f24",
       "f1": {
         "changed": [],
         "dropped": [],
@@ -15,17 +15,21 @@
         "result": "PASS"
       },
       "clean": {
-        "changed": [],
-        "dropped": [],
+        "changed": [
+          "7c0457dedb71f333"
+        ],
+        "dropped": [
+          "016f4687d4a36ce9"
+        ],
         "errors": [],
         "result": "PASS"
       }
     },
     "ind-bn-sangraha-v": {
-      "gold": 50,
+      "gold": 142,
       "limit": 1,
       "pack_sha256": "e64c471dd6391dac861e039c2ad1d3c3732b21b97f29efd4b9bcaf0bf54baf81",
-      "gold_sha256": "4fa861ea267d0db461f3085937f130903b21fae4be4a21da9dd1636e6b528f18",
+      "gold_sha256": "c1594fda9363e9d37cfd605c775a87a14fbb6b2bfd2f187ea4392364a2be14f2",
       "f1": {
         "changed": [],
         "dropped": [],
@@ -40,10 +44,10 @@
       }
     },
     "ind-gu-fw2": {
-      "gold": 19,
+      "gold": 80,
       "limit": 1,
       "pack_sha256": "9f58ad695beac877b7f71f9773328c141e5f19385b9f292ebc9c2b21b19daa6a",
-      "gold_sha256": "1d9592a7729d51c8da817f8bbd7827ad222646ba0ec9f3461eb157fc0d745a8c",
+      "gold_sha256": "1a1592f183e6c8a153b5d6a3573848f73bee05d553d66d106437208301616a14",
       "f1": {
         "changed": [],
         "dropped": [],
@@ -69,19 +73,21 @@
         "result": "PASS"
       },
       "clean": {
-        "changed": [],
+        "changed": [
+          "277fa2fd630f90fd"
+        ],
         "dropped": [
-          "0c9208a0c91789d6"
+          "8296566eea7d3680"
         ],
         "errors": [],
         "result": "PASS"
       }
     },
     "ind-hi-hplt": {
-      "gold": 67,
+      "gold": 62,
       "limit": 1,
       "pack_sha256": "497533fc4d6407b1ef2e83f7304d65ab7f9fe7892fee09ab6d10f45c913eadc6",
-      "gold_sha256": "c869bf4db6656ee08fe41054eced5837cac93680e2bfacf6ce53b63488ad589a",
+      "gold_sha256": "44b4893000ea15190c6a7c6748bd48b3ce1574178036e91b9d311d896db85dfd",
       "f1": {
         "changed": [],
         "dropped": [],
@@ -96,10 +102,32 @@
       }
     },
     "ind-hi-indiccorp": {
-      "gold": 130,
-      "limit": 1,
+      "gold": 425,
+      "limit": 4,
       "pack_sha256": "c55b80d3d5c820fb34cab3b0bf8ccaabd2e73496cea42267c08d05cc34ecd612",
-      "gold_sha256": "2d5e81819c987c4f0d2d924c3be405125ca1b98d003e76a010cbddad4edc4826",
+      "gold_sha256": "a0b3f7021b6a168666eacb60c3d517feb403f302d8afa791bf176a6920d5718a",
+      "f1": {
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "result": "PASS"
+      },
+      "clean": {
+        "changed": [
+          "3dff830fcad18cef"
+        ],
+        "dropped": [
+          "c1403c97611401f8"
+        ],
+        "errors": [],
+        "result": "PASS"
+      }
+    },
+    "ind-hi-sangraha-s": {
+      "gold": 24,
+      "limit": 1,
+      "pack_sha256": "7fd34f97729659a7c0c7f6bed0190e7f4eda29ed8a0f9b9eacbfe4a607a3ff6d",
+      "gold_sha256": "f3943ff76a96e9e67896a88130bb41ee3b08b2025c010381d8e052807e10ea80",
       "f1": {
         "changed": [],
         "dropped": [],
@@ -114,18 +142,22 @@
       }
     },
     "ind-kn-fw2": {
-      "gold": 45,
+      "gold": 114,
       "limit": 1,
       "pack_sha256": "3859c21e3f715ff7c0fbe978dcd0719b48ead11cff58fe215afa23f1175fd3ee",
-      "gold_sha256": "ba40473594b4605a002ffa627d86d820eace8eb9012475ed657ebca91dca4978",
+      "gold_sha256": "82c4bcaab136214652457f4ecbf82b9d27966d0eccc54466ca44498bba0b1061",
       "f1": {
-        "changed": [],
+        "changed": [
+          "51f68b9da172f3ae"
+        ],
         "dropped": [],
         "errors": [],
         "result": "PASS"
       },
       "clean": {
-        "changed": [],
+        "changed": [
+          "51f68b9da172f3ae"
+        ],
         "dropped": [],
         "errors": [],
         "result": "PASS"
@@ -168,10 +200,10 @@
       }
     },
     "ind-mr-fw2": {
-      "gold": 140,
+      "gold": 142,
       "limit": 1,
       "pack_sha256": "94a1d14caa9a46f40c2212c6d2c436b9ebb03093ac60ec04658023adeb2d3e2b",
-      "gold_sha256": "a9dd9cca00ab62a28f9de42debded3ab21ad054d16cbac2b3766518e0831ab9d",
+      "gold_sha256": "77ac2d31255eb65eda643a6e99526a0b6939dd01c2bcbeaf58ea4a50ee11e976",
       "f1": {
         "changed": [],
         "dropped": [],
@@ -206,10 +238,10 @@
       }
     },
     "ind-sa-fw2": {
-      "gold": 68,
+      "gold": 71,
       "limit": 1,
       "pack_sha256": "95e08d6b9ef1c3baf2d98c7f6bef3a0d12236d6b7c54583e5d4565884b3108e0",
-      "gold_sha256": "14fa93da9a30aba5786435889bdf24b078417f55763f854e2ecc7cb8a428184f",
+      "gold_sha256": "bfa93e597a4ab341f2c597388ce8b7c8e3912e728283e867fca8fa5970046865",
       "f1": {
         "changed": [],
         "dropped": [],
@@ -226,18 +258,22 @@
       }
     },
     "ind-ta-sangraha-v": {
-      "gold": 41,
+      "gold": 141,
       "limit": 1,
       "pack_sha256": "1df8e92c0f6a18d510ec8af5bf97d41aacf4834746fb9f24dc97821018057d78",
-      "gold_sha256": "4d54550d7ebcf6bf07f2c1d7efb56e3a04eacbbb9765819c1559614ad63d0c14",
+      "gold_sha256": "da9e3ff4db5df66b3886dc957ea7db35828083d2c78ed8a7fc8760a386af6948",
       "f1": {
-        "changed": [],
+        "changed": [
+          "2134d8e197faedf0"
+        ],
         "dropped": [],
         "errors": [],
         "result": "PASS"
       },
       "clean": {
-        "changed": [],
+        "changed": [
+          "2134d8e197faedf0"
+        ],
         "dropped": [],
         "errors": [],
         "result": "PASS"
@@ -262,10 +298,10 @@
       }
     },
     "ind-te-sangraha-s": {
-      "gold": 5,
+      "gold": 24,
       "limit": 1,
       "pack_sha256": "feeb676e76dee102d132846c1af2a92c3ea4d1018e0fd5239f50fc0da0fb6069",
-      "gold_sha256": "455ff42bdbdd7388ca36044ab9d6b7073c507412bb057a2036d664621e5ab5ac",
+      "gold_sha256": "410ce1d6483c56086e8c9f6d1f23265278246999520e2f6f20845010ebc0f3e3",
       "f1": {
         "changed": [],
         "dropped": [],
@@ -280,10 +316,10 @@
       }
     },
     "ind-te-sangraha-v": {
-      "gold": 27,
+      "gold": 18,
       "limit": 1,
       "pack_sha256": "d3d928606d1fd0a7a81fcbce10db3e3d8f4b7df74486bc51c9a9d30299812817",
-      "gold_sha256": "4455d67be7a8460356555aa45da3b5d96d42a0503b2a5b4b2464444845cf5853",
+      "gold_sha256": "911f3ecb899f154d5b61472228b09f2831f484d86c22726b093c57b446b98b8d",
       "f1": {
         "changed": [],
         "dropped": [],

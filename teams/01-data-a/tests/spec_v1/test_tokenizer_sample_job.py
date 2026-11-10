@@ -33,6 +33,20 @@ def test_submitted_config_matches_its_manifest():
     assert config['unsupported_policy'] == 'passthrough_with_explicit_status'
 
 
+@pytest.mark.parametrize('platform,rss', [('darwin', 512 * 1024 * 1024), ('linux', 512 * 1024)])
+def test_peak_memory_uses_platform_units(platform, rss, monkeypatch):
+    from types import SimpleNamespace
+    monkeypatch.setattr(job, 'resource', SimpleNamespace(
+        RUSAGE_SELF=0, getrusage=lambda _: SimpleNamespace(ru_maxrss=rss)))
+    monkeypatch.setattr(job.sys, 'platform', platform)
+    assert job.peak_rss_mib() == 512.0
+
+
+def test_peak_memory_is_unavailable_without_resource(monkeypatch):
+    monkeypatch.setattr(job, 'resource', None)
+    assert job.peak_rss_mib() is None
+
+
 def part(tmp_path, pack='en-dclm', split='train'):
     rows = [dict(doc_id='d1', text='Area of a circle.\n', pack_id=pack, lang_label='en', url=''),
             dict(doc_id='d2', text='Area\u200b of a circle.\n', pack_id=pack, lang_label='en', url=''),

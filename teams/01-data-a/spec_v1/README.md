@@ -25,7 +25,7 @@ teams/01-data-a/
     build/                  sheets to clean.py: build_clean.py, f1_rule.py, Indic integration
     validate/               checks on the sheets and on clean.py: harm tests, Indic and F2 validation
     normalize.py, f2_rule.py   the normaliser (shared with G9) and the F2 rule, next to clean.py
-    tests/                  cleaner tests on made-up values
+    ../tests/spec_v1/       cleaner tests on made-up values
     ../results/spec_v1/README.md   report producers, snapshot hashes, reproduction limits
     ../results/spec_v1/cleaner/harm_tests.md   each rule on the gold sets of its packs, each clean.py function, and clean()
     ../results/spec_v1/cleaner/specv1_<pack>_harm.json   the reports behind harm_tests.md: IDs and digests only
@@ -35,7 +35,7 @@ teams/01-data-a/
     ../oneoff/              the scripts that made the code sheet, kept for the record: see ../oneoff/README.md
 ```
 
-Families: `code`, `english`, `math`, `sci`, and `indic`. Indic covers 16 packs through native candidates and validated same-language sibling scopes; see [Indic integration](README_indic.md) for deferred rules and validation limits.
+Families: `code`, `english`, `math`, `sci`, and `indic`. Indic covers 17 packs through native candidates and validated same-language sibling scopes; see [Indic integration](README_indic.md) for deferred rules and validation limits. The ready Indic intake is pinned to PR #240 at `3bbd31f`; retired local cards remain separate, non-executable history.
 
 **Source flow:** family `sheets/medicine_<family>.md` → reviewed consolidated `sheets/specv1.md` → `build/build_clean.py` → `clean.py`. The builder reads only the consolidated spec: it does not automatically import family-sheet edits. Indic has a separate [integration and sibling-scope review](README_indic.md); the original English compilation tooling remains an external reproduction dependency. Numbers and qualification claims must identify the hashes of their evidence in [results](../results/spec_v1/README.md).
 
@@ -49,7 +49,7 @@ A block in the sheet with these fields, and a `medicine(doc) -> (action, text)`.
 |---|---|
 | `RULE_ID` | Stable `DA-<code>-<nnn>` or `DB-<code>-<nnn>`. Never reused. |
 | `CODE` | Disease code from `DISEASES.md`. |
-| `ACTION` | `fix`, `drop` or `fix+drop`. |
+| `ACTION` | `fix`, `drop`, `fix+drop`, or `keep` for a label-only rule. Indic D3 always keeps the original text. |
 | `STAGE` | Stage below. The run order is section order. |
 | `STATUS` | `CANDIDATE`, `APPROVED`, `FAILED`, `BLOCKED` or `DEFERRED`. |
 | `LANGS` | Language tags it runs on. A row outside passes unchanged, except a code row whose `pack_id` is in `ORIGIN`: some code packs label every doc `code`. |
