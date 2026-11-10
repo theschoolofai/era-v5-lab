@@ -24,8 +24,16 @@ def document(row, text):
 
 
 def test_inventory_and_overlap_decisions_are_explicit():
-    assert len(SOURCE) == 176
-    assert len(DECISIONS['overlaps']) == 43
+    assert len(SOURCE) == DECISIONS['ready_count'] == 260
+    assert len(DECISIONS['overlaps']) == 74
+    retired = review.read_retired()
+    assert len(retired) == DECISIONS['retired_count'] == 10
+    assert len(DECISIONS['rules']) == 270
+    for row in retired:
+        assert DECISIONS['rules'][row['id']]['retired'] is True
+        assert c.DEFERRED_RULES[row['id']] == row['reason']
+    assert not review.V1_EXCLUSIONS & c._RULE.keys()
+    assert not review.V1_EXCLUSIONS & c.SCOPE.keys()
     for row in SOURCE:
         decision = DECISIONS['rules'][row['id']]
         assert (row['id'] in c._RULE) == (decision['status'] == 'CANDIDATE')
@@ -48,7 +56,7 @@ def test_factory_preserves_source_behavior_and_inputs(row):
         assert actual[0] in {'keep', 'fix', 'drop'} and isinstance(actual[1], str)
         assert doc == original
         assert actual[0] != 'drop'
-        assert all(actual[1].count(ch) >= text.count(ch) for ch in ('\u200c', '\u200d'))
+        assert all(actual[1].count(ch) == text.count(ch) for ch in ('\u200c', '\u200d'))
         assert medicine(dict(doc, text=actual[1])) == ('keep', actual[1])
         for pack in ('code-cpp', 'math-finemath', 'sci-finepdfs', 'en-dclm', 'ind-unknown', None):
             assert medicine(dict(doc, pack_id=pack)) == ('keep', text)
@@ -63,7 +71,7 @@ def test_combined_pipeline_unicode_and_idempotence(pack):
         doc = document(row, text)
         action, new = c.clean(doc)
         assert action != 'drop'
-        assert all(new.count(ch) >= text.count(ch) for ch in ('\u200c', '\u200d'))
+        assert all(new.count(ch) == text.count(ch) for ch in ('\u200c', '\u200d'))
         assert c.clean(dict(doc, text=new)) == ('keep', new)
 
 

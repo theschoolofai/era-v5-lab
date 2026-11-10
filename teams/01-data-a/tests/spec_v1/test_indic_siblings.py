@@ -27,11 +27,11 @@ BORROWED = [(pack, rid) for pack, result in REPORT['targets'].items() for rid in
 
 def test_policy_is_declared_in_source_and_native_ids_are_preserved():
     assert extension.policy_from_source() == REPORT['policy']
-    assert len(ROWS) == 176
+    assert len(ROWS) == 260
     for rid, packs in REPORT['rule_scopes'].items():
         assert c.SCOPE[rid] == frozenset(packs)
         assert ROWS[rid]['pack'] in packs
-    assert {'ind-bn-sangraha-v', 'ind-hi-indiccorp', 'ind-te-sangraha-v'} <= c._FAMILY.keys()
+    assert {'ind-bn-sangraha-v', 'ind-hi-indiccorp', 'ind-hi-sangraha-s', 'ind-te-sangraha-v'} <= c._FAMILY.keys()
     indic = {pack for pack, family in c._FAMILY.items() if family == 'indic'}
     assert REPORT['privacy_missing_packs'] == []
     assert set(REPORT['shared_f1_packs']) == indic
@@ -62,7 +62,7 @@ def test_borrowed_callable_has_the_tested_scope_and_source_behavior(pack, rid):
 
 
 def test_empty_or_missing_gold_never_creates_a_pipeline():
-    for pack in ('ind-hi-sangraha-s', 'ind-hi-sangraha-v', 'ind-ta-fw2', 'ind-ta-sangraha-s'):
+    for pack in ('ind-hi-sangraha-v', 'ind-ta-fw2', 'ind-ta-sangraha-s'):
         assert REPORT['targets'][pack]['result'] == 'NOT TESTABLE'
         assert pack not in c._FAMILY
     for pack in ('ind-ml-fw2', 'ind-or-fw2'):
@@ -88,3 +88,33 @@ def test_receiving_pipeline_checks_include_shared_f1_and_keep_pack_guards():
     assert pipeline(doc) == ('fix', 'संपर्क करें: <PHONE>')
     assert pipeline(dict(doc, pack_id='ind-unknown')) == ('keep', doc['text'])
     assert pipeline(dict(doc, text='संपर्क करें: <PHONE>')) == ('keep', 'संपर्क करें: <PHONE>')
+
+
+@pytest.mark.parametrize('rid,own', [('DB-D4-011', 'ind-te-fw2'), ('DB-D5-001', 'ind-te-sangraha-s')])
+def test_telugu_review_restrictions_override_fallback_borrowing(rid, own):
+    assert c.SCOPE.get(rid, frozenset()) <= {own}
+    assert REPORT['rule_scopes'].get(rid, []) in ([], [own])
+    if rid not in c._RULE:
+        assert rid in c.DEFERRED_RULES  # a ready source may still fail integration
+    own_rule = extension.target_rule(ROWS[rid], own)
+    for pack in ('ind-te-fw2', 'ind-te-sangraha-s', 'ind-te-sangraha-v'):
+        if pack == own:
+            continue
+        # The restriction applies even when a receiving pack has no native rule.
+        assert not extension.scope_allowed(ROWS[rid], pack, REPORT['policy'])
+        with pytest.raises(ValueError, match='scope excluded'):
+            extension.target_rule(ROWS[rid], pack)
+        doc = dict(doc_id='synthetic', text='మరియు ' * 30, url='https://te.example.org/',
+                   lang_label='tel_Telu', pack_id=pack)
+        assert own_rule(doc) == ('keep', doc['text'])
+        if rid in c._RULE:
+            assert c._RULE[rid]()(doc) == ('keep', doc['text'])
+    assert all(rid not in entry['accepted'] for pack, entry in REPORT['targets'].items() if pack != own)
+    assert REPORT['policy']['allowed_rule_packs'][rid] == [own]
+
+
+def test_telugu_sangraha_v_has_native_d4_and_d5():
+    entry = REPORT['targets']['ind-te-sangraha-v']
+    assert {'DB-D4-016', 'DB-D5-004'} <= set(entry['native_rules'])
+    assert c.SCOPE['DB-D4-016'] >= {'ind-te-sangraha-v'}
+    assert c.SCOPE['DB-D5-004'] >= {'ind-te-sangraha-v'}

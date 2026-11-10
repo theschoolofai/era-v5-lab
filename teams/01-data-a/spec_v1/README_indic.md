@@ -1,97 +1,92 @@
 # Indic integration
 
-The generated cleaner includes the Indic family from `sheets/medicine_indic.md`. Copied contributor functions remain unchanged; Data A policy notes are separate from them. The consolidated `sheets/specv1.md` contains all 176 source cards, with 108 selected candidates and 68 explicitly deferred cards. The final cleaner has 178 sheet rules plus shared F1 (179 active rule IDs), across five families and 29 validated packs (16 Indic).
+The Indic source is pinned to [PR #240 at 3bbd31f](https://github.com/Pritish52718/era-v5-lab/blob/3bbd31f051ae0f714ddf932cbec247c40d475a70/teams/02-data-b/indic_rules/medicine_indic.md), including the final visarga fixes of 6 November. The ready sheet has **260 cards on 17 native packs**. Local review selects **152**, defers **108**, and retains **10 retired local cards** separately: 270 Indic inventory IDs in total. The generated cleaner has **222 executable sheet rules plus shared F1 (223 active IDs)** on **30 packs, including 17 Indic packs**.
 
-Selections remain CANDIDATE. Loading and compatibility checks do not establish positive-case recall or independent approval.
+Local selections remain CANDIDATE. A source gold pass, compatibility check or deterministic overlap selection does not establish positive-case recall or independent approval.
 
 ## Selection and deferred rules
 
-`build/integrate_indic.py` checks return values, mutation, ordinary synthetic prose, ZWJ/ZWNJ preservation, idempotence and unrelated-pack guards. It checks source rules on available full diagnosis packs for runtime errors and single-rule idempotence, then iteratively defers rules that act again after the selected full pipeline. It also runs every source rule on its own current gold when both the week-1 diagnosis pack and Data B gold file exist. Missing own-pack inputs are NOT TESTABLE and explicitly defer the affected rules. Empty gold records "Gold set empty, not testable" and defers the rules without aborting review of other packs. Combined gold failures defer the affected pack's selected pipeline.
+[build/integrate_indic.py](build/integrate_indic.py) checks ordinary prose, both additions and removals of script joiners in retained-word probes, visarga and adjacent spacing, unrelated-pack guards, mutation, runtime and idempotence. It re-runs every ready rule on current own-pack gold and checks full diagnosis-pack interactions with shared F1 last. Missing or empty own-pack inputs are NOT TESTABLE and defer affected rules.
 
-For each of the 43 overlapping pack/disease groups, the first eligible source candidate is provisionally selected; later alternatives are deferred. This avoids stacking competing treatments. It is a deterministic integration choice, not a finding that the selected rule has better precision or recall. Positive-case review is still required.
+For each of the **74 overlapping pack/disease groups**, the first eligible source candidate is provisionally selected; alternatives are deferred. This preserves the existing one-rule-per-pack/disease policy. It does not mean that the selected rule has better recall.
 
-Four C3 candidates fail synthetic ordinary-prose/joiner probes: `DB-C3-003`, `DB-C3-005`, `DB-C3-009`, `DB-C3-012`. Both legacy Sanskrit F2 candidates are deferred: `DB-F2-001` needs an approved benchmark and `ITIHASA_TEST_SN`; `DB-F2-002` returns text unchanged and does not implement benchmark remediation. Source algorithms are not silently patched or wrapped in exception-to-keep fallbacks. PR #26 separately adds G9 decontamination as `run_clean.py --f2`, after the default cleaner. It is opt-in, pinned to G9 v1 and does not cover Itihasa. It is not a `clean.py` function or a reason to enable the legacy Sanskrit detectors. Optional F2 gold evidence for the 16 supported Indic packs is in `results/spec_v1/f2/indic_gold_validation.json`.
+The new code is retained even when integration defers execution. Two material decisions in this refresh are:
 
-Each deferred card has `STATUS = "DEFERRED"`, `DEFER_REASON`, and a `python deferred` fence. These fences are intentionally excluded by the repository harm runner. The builder validates the complete numbered inventory but emits only executable candidates. `clean.DEFERRED_RULES` records the exclusions; they are absent from executable `SCOPE`, `_RULE`, and family pipelines.
+- The narrowed, URL-aware `DB-D4-011` passes its 18-document own-pack gold but acts again after the full pipeline, so it stays deferred. Its source and consolidated card use author commit `a74df32`, the revised host pattern, `marks >= 6 and rate > 30`, and `_AUTHOR_RULE(doc["text"], doc.get("url"))`. Validated sibling alternatives supply missing eligible diseases; the deferred rule is never borrowed.
+- The selected native Kannada FW2 pipeline changes 2 of 114 gold documents, exceeding its allowance of 1. Its native selections are deferred. The independently validated receiving pipeline uses sibling rules and passes. The native FAIL is retained in `indic_integration.json`; final receiving-pipeline evidence is in `indic_sibling_scopes.json` and `indic_clean_validation.json`.
 
-All 176 source IDs retain their `DB-` prefix. The builder accepts both `DA-` and `DB-`, recognizes the Indic `_PACKS = frozenset(ORIGIN.split(", "))` guard, intersects it with `SPEC_PACKS`, and redirects both to its central `SCOPE` table. Each rule still has an isolated closure. New disease functions include D2, D5, F3, G1, G2, G4 and H3. All legacy G3 and F2 candidates are deferred in this snapshot, so those functions are not emitted; the builder supports them when an eligible rule is added. F1 remains last in the disease registry; per-family execution follows source section order.
+[medicine_indic_retired.md](sheets/medicine_indic_retired.md) archives ten IDs from the older local intake with explicit policy reasons. The loader reads their metadata with AST literals and never executes their Python. Consolidated deferred cards use `STATUS = "DEFERRED"`, `DEFER_REASON` and `python deferred` fences. The builder omits them from executable `SCOPE`, `_RULE` and pipelines and records their reasons in `clean.DEFERRED_RULES`.
+
+The retired IDs cover the two G2 rules that add ZWJ, the failing source F1 rule, both legacy F2 rules, and five visarga-conversion rules already present in the older intake. `DB-G4-005` and `DB-A6-018` were never in that local snapshot and remain outside ready intake too. #30/#112 G2, unapproved #58/#83 rewrites, and conditional #177 C6 are not enabled. Approved #46/#70/#112 rewrites are included in the pinned source, subject to the same local gates.
+
+## Visarga, labels and action semantics
+
+A visarga used as a colon stays as written in every script, including Tamil `ஃ`. V1 converts neither direction between a visarga and `:`, deletes no such sign and preserves the space before it. The source contains the final seven retained-rule trims: `DB-A6-004`, `DB-G1-006`, `DB-G1-002`, `DB-G1-010`, `DB-G1-005`, `DB-G1-007`, `DB-G1-014`. Their other approved jobs remain intact.
+
+Every source rule labelled `keep` returns `("keep", doc["text"])` without calling a potentially destructive author function. **All 22 source D3 rules are label-only.** The old Kannada D3 driver is absent. `DB-G1-012` uses the latest code without the false mojibake pattern for NFC `ज़्यादा`; boolean-returning medicines carry corrected `drop` or `fix+drop` action metadata.
+
+[test_indic_pr240.py](../tests/spec_v1/test_indic_pr240.py) checks source provenance against the pinned Git blob, all source visarga cases and selected generated rules, complete receiving pipelines, label-only behavior, Hindi NFC prose, Telugu URLs/thresholds, and non-execution of retired code. A whole-document drop can legitimately remove a sign with its words; it must also occur in the ASCII-colon control. Changes elsewhere, such as `DB-C3-017` removing list lines after a heading, are evaluated separately from visarga preservation.
 
 ## Scope and privacy
 
-Indic uses the pack guard, independently of whether a source language tag uses `mr` or `mar_Deva`. F1 on every Indic pack is the shared rule, `build/f1_rule.py`, run last (its Indic path: Indian phone formats and digits, Indian organisation domains and words, organisation and public-office contacts kept). The source F1 rules, including their sibling scopes, are deferred: they used other placeholders (`[EMAIL]`, `[REDACTED]`) or deleted values, and replaced organisation contacts, against the TSAI ruling. Every supported Indic pack now has F1, including the three that had no selected F1 candidate. Harm: `python -I spec_v1/validate/harm_f1_indic.py --packs <packs>` (F1 alone and `clean()` on each pack's own gold set). Do not interpret a clean gold pass as full privacy coverage: Indian street addresses are not treated.
+Scope follows the pack, independently of whether a language tag uses `mr` or `mar_Deva`. Source IDs retain their `DB-` prefix. The builder redirects the source `_PACKS` guard and `SPEC_PACKS` to its central `SCOPE` table, with an isolated closure per rule. F1 remains last; each family otherwise follows source section order. G3 now has an eligible source rule, while legacy F2 stays outside the default cleaner.
 
-The source contributes native candidates from 13 packs. Its sibling policy is declared near the top of `sheets/medicine_indic.md`, separately from the copied contributor code. Integration tests selected donors on same-language receivers and writes accepted `ORIGIN`/`SPEC_PACKS` scopes to `sheets/specv1.md`, with `SOURCE_ORIGIN` retaining the donor. Native disease selections take priority; only missing diseases are filled. `clean.py` is generated from those scopes.
+The source sheet declares the sibling policy separately from copied Data B code. Integration accepts **79 additional same-language rule/pack scopes**, filling missing diseases after native selections. Every receiving scope passes its own nonempty gold and full-pack runtime/idempotence/combined-pipeline checks. `SOURCE_ORIGIN` preserves the donor; accepted `ORIGIN` and `SPEC_PACKS` determine execution.
 
-The current review accepts **75 additional rule/pack scopes**, extending coverage to **16 Indic packs**. Newly supported: `ind-bn-sangraha-v`, `ind-hi-indiccorp`, `ind-te-sangraha-v`. Six previously borrowed F1 scopes are replaced by shared F1. Existing packs also gain validated rules for previously uncovered diseases. See `results/spec_v1/cleaner/indic_sibling_scopes.json` for every attempted scope, rejection reason, gold result and combined full-pack check. Its combined checks include shared F1, and `shared_f1_packs` records all 16 covered packs.
+Explicit review restrictions override fallback borrowing, even if a receiving native rule is deferred: `DB-D4-011` is allowed only on `ind-te-fw2` and `DB-D5-001` only on `ind-te-sangraha-s`. Telugu sangraha-v uses its native `DB-D4-016` and `DB-D5-004`. Hindi sangraha-s now has native candidates and 24 gold documents, so it is supported.
 
-Data A adds a labelled compatibility wrapper to the generated `DB-B2-001`, `DB-B2-003` and `DB-B2-004` cards. It preserves reserved `<PHONE>`, `<EMAIL>` and `<ADDRESS>` markers while the original contributor functions remove HTML. The copied functions are unchanged; the sheet harm runner, sibling review and generated cleaner use the same wrapper. Full pipeline interaction checks include shared F1 last. Shared F1 recognizes contiguous `91` prefixes, distinguishes generic mobile labels from explicit personal ownership, and does not treat a generic Hindi contact prompt as organization evidence.
+Five Indic packs remain unregistered: `ind-hi-sangraha-v`, `ind-ta-fw2`, `ind-ta-sangraha-s`, `ind-ml-fw2`, `ind-or-fw2`. Their gold is empty; Malayalam and Odia also lack a same-language donor. `run_clean.py` rejects unsupported packs. The sample runner explicitly passes them through rather than calling them cleaned.
 
-TSAI Issue #211 intake: the 176 source cards are the ready inventory, not a claim that every candidate is executable. Deferred decisions and overlap alternatives remain explicit in the reports. Additional re-runs must use current own-pack gold by 4 November 23:59 IST; medicines with missing/empty gold remain outside executable spec v1. Format rewrites require the author's approval in their PR, and flag-only entries remain notes in Data B's `rules_status.md`. No pending medicine is enabled by this refresh. Later intake follows the deadline and the same validation gates.
+Every supported Indic pack runs shared [build/f1_rule.py](build/f1_rule.py) last. It masks private phones/emails with `<PHONE>`/`<EMAIL>` and keeps organisation/public-office contacts; source F1 candidates stay deferred. Indian street-address masking and personal-listing drops remain unimplemented. Labelled Data A adapters on `DB-B2-001`, `DB-B2-003`, `DB-B2-004` protect `<PHONE>`, `<EMAIL>`, `<ADDRESS>` during HTML removal; copied Data B functions are unchanged by those adapters.
 
-Still unsupported: `ind-hi-sangraha-s`, `ind-hi-sangraha-v`, `ind-ta-fw2`, `ind-ta-sangraha-s` (no usable receiving gold), and `ind-ml-fw2`, `ind-or-fw2` (no same-language donor). They are not registered merely because their language is known. `run_clean.py` rejects unsupported packs.
+The four #19 rules `DB-C3-010`, `DB-C4-009`, `DB-D4-008`, `DB-F1-007` match sample-document hashes. They provide targeted sample coverage and do almost nothing on the full pack; do not infer general recall. Source `DB-F1-007` is replaced locally by shared F1.
 
 ## Rebuild and validate
 
-Run from the repository root, using Python with `spec_v1/requirements.txt` installed:
+Use Python 3 with [requirements.txt](requirements.txt) installed. Run from the repository root:
 
 ```bash
-python teams/01-data-a/spec_v1/build/integrate_indic.py \
+python3 teams/01-data-a/spec_v1/build/integrate_indic.py \
   --packs ../erav5-lab-other-files/packs \
   --gold teams/02-data-b/gold
-python teams/01-data-a/spec_v1/build/build_clean.py
-python -m pytest teams/01-data-a/tests/spec_v1 -q
-python teams/01-data-a/spec_v1/validate/validate_specv1.py \
+python3 teams/01-data-a/spec_v1/build/build_clean.py
+python3 -m pytest teams/01-data-a/tests -q
+python3 teams/01-data-a/spec_v1/validate/validate_specv1.py \
   --packs ../erav5-lab-other-files/packs \
   --gold teams/01-data-a/gold \
-  --indic-gold teams/02-data-b/gold \
-  --allow-missing
+  --indic-gold teams/02-data-b/gold
+python3 teams/01-data-a/spec_v1/validate/harm_f1_indic.py \
+  --packs ../erav5-lab-other-files/packs --gold teams/02-data-b/gold
 ```
 
-The integration step refreshes native decisions, then automatically reviews sibling scopes from the source policy. `build/extend_indic_siblings.py --packs <packs folder>` can recheck scopes using cached native decisions only if source Python blocks and native input digests still match; otherwise rerun integration. The builder still reads only the consolidated spec: rerunning it alone does not discover changes to an individual medicine sheet. To promote or change a selection, update the review policy/source evidence, rerun integration, rebuild, and validate.
+Integration refreshes native decisions, archived cards and sibling scopes in the consolidated spec. The builder reads only `sheets/specv1.md`; running it alone cannot import updated source sheets. Standalone `extend_indic_siblings.py` reuses native decisions only when source-code and native input digests still match. Rebuild after changing executable sheet code and verify the sample config's cleaner hash.
 
-The validator uses the repository minimum-one policy, `max(1, floor(1% × gold_count))`. With `--allow-missing`, it records missing inputs and exits 2; actual test failures exit 1. Exit 0 requires all required inputs and tests to pass. The sheet validator tests the executable sheet; generated-cleaner validation additionally exercises dispatch, closures and the shared F1.
+The validator applies `max(1, floor(gold_count / 100))` changed-or-dropped documents per rule and combined pipeline, separately per pack. `--allow-missing` records NOT TESTABLE and exits 2; it is not a complete pass. All 17 nonempty Indic gold CSVs have matching local week-1 diagnosis inputs. Week-2 shards do not replace diagnosis packs or gold IDs.
 
-Week-2 training shards are not substitutes for the week-1 diagnosis packs: they intentionally contain different document IDs. All 13 native diagnosis packs and the three newly supported receivers have nonempty own-pack gold. Other receiving packs remain unregistered until the required inputs and checks are available. Week-2 heldout data is not substituted for diagnosis gold.
+For an independent comparison, save the pre-refresh cleaner before editing, then run:
+
+```bash
+python3 teams/01-data-a/spec_v1/validate/check_indic_integration.py \
+  --packs ../erav5-lab-other-files/packs --gold teams/02-data-b/gold \
+  --baseline /path/to/saved-clean.py
+```
+
+The committed report compares with pulled branch HEAD `88e2265`. It checks non-Indic behavior, available Indic gold/full packs and second-run changes. Matching baseline exceptions are recorded separately, never counted as successful cleaning.
 
 ## Optional F2 validation
 
-[validate/validate_f2_indic.py](validate/validate_f2_indic.py) measures F2 alone and `clean.py` followed by F2 on each supported Indic pack's own gold. From the repository root, with pinned dependencies, original diagnosis packs, Data B gold, and the full pinned G9 fingerprint set available:
+[validate/validate_f2_indic.py](validate/validate_f2_indic.py) measures optional G9 F2 alone and after the cleaner, using each supported pack's own gold and the full pinned fingerprint set. The committed [F2 report](../results/spec_v1/f2/indic_gold_validation.json) is historical evidence for cleaner `27eaac44…` and 16 earlier Indic pipelines. It has not been rerun for this refresh and does not attest the current cleaner. See the [F2 guide](../results/spec_v1/f2/README.md).
 
-```bash
-python teams/01-data-a/spec_v1/validate/validate_f2_indic.py \
-  --packs /path/to/week1-diagnosis-packs \
-  --gold teams/02-data-b/gold
-```
+G9 F2 remains separate and opt-in through `run_clean.py --f2`, not a default `clean.py` function. It does not cover Itihasa and does not enable the two retired Sanskrit detectors. Optional F2 stays off in the sample job.
 
-The command writes [results/spec_v1/f2/indic_gold_validation.json](../results/spec_v1/f2/indic_gold_validation.json) and exits 1 if any harm check fails. It does not enable F2 in the default cleaner or sample job. The committed report records cleaner `27eaac44…`, while the pinned sample cleaner is `97c1a55b…`; it is historical evidence, not a current-cleaner F2 pass. A rerun replaces that report, so review its input/code hashes before publishing new results. See the [F2 results guide](../results/spec_v1/f2/README.md) and [evidence index](../results/spec_v1/README.md).
+## Measured verification and evidence
 
-For an independent comparison with the cleaner before integration:
+The 10 November refresh uses **1,957 current gold documents across 17 Indic packs**, and checks **8,500 Indic diagnosis documents**. Exact per-pack results and digests are recorded in:
 
-```bash
-git show a6eab62:teams/01-data-a/spec_v1/clean.py > /tmp/clean_before_indic.py
-python teams/01-data-a/spec_v1/validate/check_indic_integration.py \
-  --packs ../erav5-lab-other-files/packs \
-  --gold teams/02-data-b/gold \
-  --baseline /tmp/clean_before_indic.py
-```
+- [indic_integration.json](../results/spec_v1/cleaner/indic_integration.json): all 260 ready and 10 retired decisions, 74 overlap groups, native gold and interaction findings.
+- [indic_sibling_scopes.json](../results/spec_v1/cleaner/indic_sibling_scopes.json): every accepted/rejected receiving scope, policy restrictions and final combined checks with shared F1.
+- [indic_clean_validation.json](../results/spec_v1/cleaner/indic_clean_validation.json): current generated-cleaner gold/full-pack/idempotence results and the 6,500-document non-Indic comparison.
+- [f1_indic_harm.json](../results/spec_v1/cleaner/f1_indic_harm.json): shared F1 alone and the complete generated cleaner on current Indic gold.
+- [specv1_validation.json](../results/spec_v1/cleaner/specv1_validation.json): executable sheet checks, per-rule/per-pack harm and out-of-pack guards.
 
-This compares actions and text for the original 13 packs, distinguishes matching pre-existing exceptions from new regressions, and tests available Indic gold, full packs and second-run changes. It exits 2 for missing Indic inputs and 1 for regressions, failures, new errors or non-idempotence. A matching baseline exception is recorded, not represented as successful cleaning.
-
-## Measured verification
-
-- The full spec unit/contract suite, F2 runner tests and sibling-scope tests are rerun after rebuilding; the current run is recorded with the job evidence.
-- All 16 supported Indic generated pipelines pass their own gold sets (1,300 documents total). Current gold impact: Hindi FW2 drops 1/234; Marathi FW2 changes 1/140; Sanskrit changes 1/68; the other 13 packs have zero gold impact. Each is within its own minimum-one limit.
-- All 8,000 supported Indic diagnosis documents execute without errors or second-pass changes.
-- Comparing all 6,500 original code/English/math/science documents with the pre-refresh baseline finds zero behavior differences. Three documents raise the same pre-existing exceptions in both cleaners (one Java, two Python); they remain recorded rather than counted as successful cleaning.
-- The optional F2 report is historical evidence for the cleaner digest it records. Optional G9 F2 is off for the tokenizer-sample job; this refresh makes no new F2 or Itihasa coverage claim.
-- Synthetic source/factory equivalence, pack isolation, joiners, source-trigger cases and build reproducibility are covered by the tests. These checks do not imply final approval.
-
-## Evidence
-
-- `results/spec_v1/cleaner/indic_sibling_scopes.json`: source policy, accepted rule scopes and every receiving-pack validation attempt.
-- `results/spec_v1/f2/indic_gold_validation.json`: G9 F2 alone and the composed pipeline on supported Indic gold.
-- `results/spec_v1/cleaner/indic_integration.json`: source digest, every candidate's decision, all overlap selections, synthetic findings and current own-pack gold tests.
-- `results/spec_v1/cleaner/specv1_validation.json`: executable sheet rules and combined pipelines, per-pack snapshots, missing inputs and out-of-pack guard checks.
-- `results/spec_v1/cleaner/indic_clean_validation.json`: generated cleaner versus the saved baseline, Indic gold/full-pack outcomes and second-run changes.
-
-Reports contain IDs, counts, digests and error types, not source text. The original four Data A medicine sheets, copied Indic contributor functions and normalization fingerprints are unchanged. Shared Indic F1 and the labelled B2 compatibility wrappers are the explicit execution changes in this refresh.
+JSON reports contain IDs, counts, digests and error types, not document text. The other four family source sheets and normalization fingerprints are unchanged. A gold pass does not establish privacy completeness or positive-case recall; these remain review limits.

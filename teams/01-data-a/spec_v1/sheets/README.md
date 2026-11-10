@@ -6,7 +6,7 @@
 | English | [medicine_english.md](medicine_english.md) | [decisions_english.md](decisions_english.md), [validation tools](../validate/README_english.md) |
 | Math | [medicine_math.md](medicine_math.md) | [decisions_math.md](decisions_math.md) |
 | Science | [medicine_sci.md](medicine_sci.md) | [Conflict resolution and harm report](medicine_sci_clash_resolution_and_harm_report.md) |
-| Indic | [medicine_indic.md](medicine_indic.md) | [Integration policy, deferred rules, and validation](../README_indic.md) |
+| Indic | [medicine_indic.md](medicine_indic.md), [retired cards](medicine_indic_retired.md) | [Integration policy, deferred rules, and validation](../README_indic.md); PR #240 at `3bbd31f` |
 
 [specv1.md](specv1.md) is the reviewed consolidated input consumed by [build_clean.py](../build/build_clean.py). The build reads this consolidated file; it does not automatically collect changed family sheets. Indic integration refreshes its own consolidated cards through the separately documented review process. English source compilation has an outstanding reproduction dependency described in [the English guide](../validate/README_english.md#removed-legacy-files).
 
