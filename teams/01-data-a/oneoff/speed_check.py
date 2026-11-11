@@ -13,6 +13,9 @@ prints IDs, counts, hashes and timings, never document text. Needs pyarrow.
   # 2. compare: exit 0 only if every pack has the same output sha256 in both runs
   python -I speed_check.py compare before.json after.json [--md speed_table.md]
 
+  # 3. how many documents a rule fixes or drops, per pack (for the docs-changed figure of a speed-log entry)
+  python -I speed_check.py count --clean-dir <tree>/teams/01-data-a/spec_v1 --packs <packs> --rules DA-C5-002 --only en-dclm
+
 The output sha256 of a pack covers, for every document in file order, doc_id, action ("keep"/"fix"/"drop") and the
 cleaned text (or the exception type if clean() raised), each length-prefixed. Parquet bytes, summaries and timings are
 not hashed, so the same behaviour always gives the same sha. Every --repeat must give the same sha, or the run stops
@@ -85,9 +88,10 @@ def run(args):
     for pack in packs:
         path = Path(args.packs) / f"{pack}.parquet"
         print(f"[{time.strftime('%H:%M:%S')}] {pack}: loading {path.name}", file=sys.stderr, flush=True)
-        rows = pq.read_table(path).to_pylist()
+        table = pq.read_table(path)
         if args.limit:
-            rows = rows[:args.limit]  # the first N docs in file order: the same N for the before and the after run
+            table = table.slice(0, args.limit)  # the first N docs in file order: the same N for the before and the after run
+        rows = table.to_pylist()
         passes = [clean_pass(c, rows, pack, f"pass {n}/{args.repeat}", args.progress) for n in range(1, args.repeat + 1)]
         shas = {p[1] for p in passes}
         if len(shas) != 1:
@@ -101,6 +105,58 @@ def run(args):
               f"{e['output_sha256'][:16]}  {e['actions']}", file=sys.stderr, flush=True)
     Path(args.out).write_text(json.dumps(out, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(f"wrote {args.out}: {len(out['packs'])} packs, clean.py {out['clean_py_sha256'][:12]}")
+
+
+def count(args):
+    """For each pack, how many documents each named rule fixes or drops while clean.py runs (rules in pipeline order)."""
+    import pyarrow.parquet as pq
+    from collections import defaultdict
+    c = load_cleaner(args.clean_dir)
+    rules = args.rules.split(",")
+    unknown = [r for r in rules if r not in c._RULE]
+    if unknown:
+        sys.exit(f"not a rule id in clean.py: {unknown}")
+    tally = defaultdict(lambda: {"calls": 0, "fix": 0, "drop": 0})
+
+    def counted(rid, make):
+        def factory():
+            rule = make()
+
+            def run_rule(doc):
+                action, text = rule(doc)
+                e = tally[rid]
+                e["calls"] += 1
+                if action == "drop":
+                    e["drop"] += 1
+                elif text != doc["text"]:
+                    e["fix"] += 1
+                return action, text
+            return run_rule
+        return factory
+
+    wrapped = {make: counted(rid, make) for rid, make in c._RULE.items()}
+    c._ID.update({w: c._ID[m] for m, w in wrapped.items()})  # _run looks a rule's SCOPE up by its factory
+    original_run = c._run
+    c._run = lambda doc, *factories: original_run(doc, *(wrapped[make] for make in factories))
+    packs = sorted(p.stem for p in Path(args.packs).glob("*.parquet"))
+    packs = [p for p in packs if (not args.only or p in args.only) and p in c._FAMILY]
+    out = {}
+    for pack in packs:
+        table = pq.read_table(Path(args.packs) / f"{pack}.parquet")
+        if args.limit:
+            table = table.slice(0, args.limit)
+        tally.clear()
+        fixed = dropped = 0
+        rows = table.to_pylist()
+        for row in rows:
+            action, _ = c.clean(dict(row, pack_id=pack))
+            fixed += action == "fix"
+            dropped += action == "drop"
+        out[pack] = {"docs": len(rows), "clean_fixed": fixed, "clean_dropped": dropped, **{r: dict(tally[r]) for r in rules}}
+        parts = "; ".join(f"{r}: ran on {tally[r]['calls']}, fixed {tally[r]['fix']}, dropped {tally[r]['drop']}" for r in rules)
+        print(f"{pack:<22}{len(rows):>7} docs  (clean() fixed {fixed}, dropped {dropped})  {parts}", flush=True)
+    if args.out:
+        Path(args.out).write_text(json.dumps(out, indent=2) + "\n", encoding="utf-8", newline="\n")
 
 
 def compare(args):
@@ -143,6 +199,14 @@ r.add_argument("--progress", type=int, default=30, help="print progress to stder
 r.add_argument("--limit", type=int, default=0, help="use only the first N docs of each pack (0 = all); give the before and after run the same N")
 r.add_argument("--out", required=True, type=Path)
 r.set_defaults(fn=run)
+n = sub.add_parser("count", help="how many documents each named rule fixes or drops, per pack (the 'docs changed' figure)")
+n.add_argument("--clean-dir", required=True, type=Path)
+n.add_argument("--packs", required=True, type=Path)
+n.add_argument("--rules", required=True, help="rule ids, comma separated, e.g. DA-C5-002,DA-D3-003")
+n.add_argument("--only", nargs="*", default=[], help="count on just these pack ids")
+n.add_argument("--limit", type=int, default=0)
+n.add_argument("--out", type=Path, help="also write the counts as JSON")
+n.set_defaults(fn=count)
 k = sub.add_parser("compare", help="compare two run files; exit 1 if any pack's output sha256 differs")
 k.add_argument("before", type=Path)
 k.add_argument("after", type=Path)
