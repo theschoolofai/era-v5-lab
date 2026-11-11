@@ -61,6 +61,8 @@ A row that is both flagged and carries a canary counts once in Removed.
 
 ## 2. Flagged documents by benchmark
 
+The `sft-code-opencodereasoning-2` row is from the earlier two-shard run (shards 0 and 1: 21,018 rows scanned, 4,557 flagged), not from the full run of section 1 (542,219 scanned, 115,067 flagged). The files in the repo for the full run (`results/ocr2_full_run.json`, `results/ocr2_coverage.md`) hold totals only, so the full run has no per-benchmark, coverage-band, top-overlap or input-hash rows yet. Those need the per-shard run records, which are in the private run folder.
+
 | Set | `aime_2024` | `aime_2025` | `bfcl_v3` | `codeforces` | `flores200` | `gaia` | `gpqa_diamond` | `gsm8k` | `heldout_g5_v1` | `hle` | `in22_conv` | `in22_gen` | `livecodebench` | `longbench_v2` | `milu` | `mmlu` | `swe_bench_live` | `swe_bench_pro` | `swe_bench_verified` | `terminal_bench_2` |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
 | `sft-agentic-nemotron-agentic-v1` | 0 | 0 | 66 | 0 | 6 | 0 | 0 | 0 | 0 | 27 | 2 | 0 | 6 | 0 | 43 | 6 | 277 | 0 | 0 | 0 |
