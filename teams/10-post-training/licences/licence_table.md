@@ -1087,6 +1087,8 @@ Verifiable-answer and test-based sets for RL (math, code, SWE tasks). Each entry
 - **Generator model:** None for the parts we use: issue, patch and tests come from real merged PRs. Qwen2.5-72B-Instruct wrote the install recipes and quality labels; we do not use them, because that model's licence is outside the generator rule.
 - **Decision:** `allowed (TSAI, 4 Nov: human parts only, every env rebuilt and gold-checked by us)`
 - **Our opinion:** use to scale the SWE env pool for RL. Only rows that `make_env.py` rebuilds and `verify.py --check` passes become envs.
+- **Pilot (11 Nov):** 5 envs in `swe-envs/rebench-pilot/`, read from Hub commit `89cdfbab4ab1bd8f5a658bb212d1b63624f4f881`, split `test` (file sha256 values in `rebench-pilot/source_manifest.json`). Issue, fix and tests come from GitHub; from the release only ids, dates, base commit and test lists are read, to compare with the rebuild. Decontamination: fingerprints v2 full set, 15 documents (issue, tests, fix), 0 flagged, 0 canaries. Results: [`results/swe_rebench_pilot.md`](../results/swe_rebench_pilot.md).
+
 ### `rl-code-acecode-87k` — AceCode-87K
 
 - **Stage:** RL
