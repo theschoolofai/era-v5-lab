@@ -1,0 +1,13 @@
+EXP-3 reduced CUDA smoke
+Main: 3b3bb125b2b3f7b24bbde7eeb1b734f756f46184
+Environment: PyTorch 2.5.1, NVIDIA GeForce RTX 3070 Laptop GPU, BF16 supported.
+Seed: 1234. Synthetic train and holdout JSONL. Tokenizer v0 and matching P32 v0 table.
+Scope: one step at sequence length 8, batch size 1, no checkpoint. Fixture resolution.
+Command (run separately for each CONFIG stem below; stage local assets under ./inputs):
+python teams/05-architecture/harness/train_week2.py --config teams/05-architecture/configs/arms/CONFIG.yaml --runtime teams/05-architecture/configs/runtime.yaml --resolution teams/05-architecture/configs/small/smoke_resolution.yaml --tokenizer ./inputs/tokenizer_v0.json --byte-table ./inputs/raw_table_v0_P32.npz --train-data ./inputs/train.jsonl --heldout-data ./inputs/heldout.jsonl --device cuda --lr 0.001 --seed 1234 --out ./out/CONFIG --smoke --smoke-steps 1 --smoke-seq-len 8 --smoke-batch-size 1 --no-checkpoint
+
+Results from run manifests and summaries:
+t2 exit=0 status=SMOKE steps=1 routed=16 shared=1 expert_ffn=768 ce=12.0312814712524 quality_eligible=False
+exp3_experts_8 exit=0 status=SMOKE steps=1 routed=8 shared=1 expert_ffn=768 ce=12.0205450057983 quality_eligible=False
+exp3_experts_32 exit=0 status=SMOKE steps=1 routed=32 shared=1 expert_ffn=768 ce=12.1936569213867 quality_eligible=False
+exp3_shared_0 exit=0 status=SMOKE steps=1 routed=16 shared=0 expert_ffn=768 ce=11.4190683364868 quality_eligible=False
