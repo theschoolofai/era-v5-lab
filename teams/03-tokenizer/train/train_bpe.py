@@ -83,7 +83,6 @@ import argparse
 import hashlib
 import heapq
 import json
-import os
 import subprocess
 import sys
 import time
@@ -390,11 +389,9 @@ def run_verify(brahmic_dir, tok_path, compare_to):
         ["verify_sarvam_m_structural_identity.py", tok_path, compare_to],
     ]
     results = {}
-    verify_env = os.environ.copy()
-    verify_env["PYTHONUTF8"] = "1"
     for cmd in cmds:
         p = subprocess.run([sys.executable, str(Path(brahmic_dir) / cmd[0]), *map(str, cmd[1:])],
-                           capture_output=True, text=True, encoding="utf-8", env=verify_env)
+                           capture_output=True, text=True)
         out = p.stdout + p.stderr
         # verify_kronecker exits 0 even on a failed constraint, so read its RESULT line too.
         ok = p.returncode == 0 and "RESULT: FAIL" not in out and "FAIL:" not in out
