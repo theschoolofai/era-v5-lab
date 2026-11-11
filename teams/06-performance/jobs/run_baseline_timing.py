@@ -8,12 +8,13 @@ Usage (repo root):
 
 No network. Reads configs under teams/06-performance. Writes only under --out.
 
-GPU path (non-smoke): process 1 is --repeat 1 clean,layer with layer_warmup=20
-(clean KPI once); after a 120s cool-down, process 2 is --modes layer only with
---against the first JSON. Lab Cap A++: process 2 sets
-report.compare_clean_step=false (skip gating clean step under SwPowerCap),
-report.tol_pct=10 for layer parts, and report.abs_tol_ms=0.25 so sub-ms parts
-like data can pass by absolute floor (TSAI).
+GPU path (non-smoke) — Lab Cap Choice A3a:
+  Process 1: --repeat 1 clean,layer with layer_warmup=20 (clean KPI once).
+  After a 120s cool-down: process 2a is layer-only (no against); process 2b is
+  layer-only --against 2a JSON. Against uses Lab Cap A++:
+  report.compare_clean_step=false, report.tol_pct=10, report.abs_tol_ms=0.25.
+  Comparing two layer samples after cool-down avoids the cross-process fwd skew
+  seen when gating process-1 layer regions against a second OS process (3b5196f).
 """
 from __future__ import annotations
 
@@ -30,13 +31,12 @@ JOB_DIR = Path(__file__).resolve().parent
 PERF_ROOT = JOB_DIR.parent
 REPO_ROOT = PERF_ROOT.parents[1]
 
-# Cool-down between the two layer processes to cut thermal hysteresis on
-# fwd:block* / opt.muon when the node is warm from a prior long job.
+# Cool-down before the layer pair to cut thermal hysteresis from process 1.
 LAYER_COOLDOWN_S = 120
 LAYER_WARMUP = 20
 RUN1_MODES = "clean,layer"
 RUN2_MODES = "layer"
-# Process-2 against policy for lab power-cap nodes (TSAI: 5% cross-process too tight).
+# Against policy for lab power-cap nodes (TSAI: 5% cross-process too tight).
 RUN2_COMPARE_CLEAN_STEP = "false"
 RUN2_TOL_PCT = "10"
 RUN2_ABS_TOL_MS = "0.25"
@@ -93,7 +93,8 @@ def _run_bench(out: Path, *, smoke_cpu: bool, synthetic: bool) -> int:
 
     config = PERF_ROOT / "configs" / "base.yaml"
     tag = "baseline_v1_job"
-    tag2 = f"{tag}-run2"
+    tag_layer_a = f"{tag}-layerA"
+    tag_layer_b = f"{tag}-layerB"
     base_args = [
         sys.executable, "-m", "perfkit.bench",
         "--config", str(config),
@@ -120,6 +121,7 @@ def _run_bench(out: Path, *, smoke_cpu: bool, synthetic: bool) -> int:
             "layer_warmup": LAYER_WARMUP,
             "cooldown_s": LAYER_COOLDOWN_S,
             "run1_modes": RUN1_MODES,
+            "lab_cap": "A3a",
             "phase": "run1",
             "time_utc": datetime.now(timezone.utc).isoformat(),
             "out_dir": str(out),
@@ -128,30 +130,54 @@ def _run_bench(out: Path, *, smoke_cpu: bool, synthetic: bool) -> int:
         print(json.dumps(summary))
         return proc1.returncode
 
-    first_json = _newest_json(out, tag)
-    if first_json is None or not first_json.is_file():
-        print("ERROR: first-run JSON not found under", out, file=sys.stderr)
-        return 2
-
-    print(f"cool-down {LAYER_COOLDOWN_S}s between layer processes (thermal hysteresis)…")
+    print(f"cool-down {LAYER_COOLDOWN_S}s before layer pair (thermal hysteresis)…")
     time.sleep(LAYER_COOLDOWN_S)
 
-    args2 = [
+    args2a = [*base_args, "--modes", RUN2_MODES, "--tag", tag_layer_a]
+    print("cmd:", " ".join(args2a))
+    proc2a = subprocess.run(args2a, cwd=str(PERF_ROOT), env=env)
+    if proc2a.returncode != 0:
+        summary = {
+            "pass": False,
+            "exit_code": proc2a.returncode,
+            "tag": tag_layer_a,
+            "config": str(config.relative_to(REPO_ROOT)),
+            "smoke_cpu": smoke_cpu,
+            "synthetic": synthetic,
+            "layer_warmup": LAYER_WARMUP,
+            "cooldown_s": LAYER_COOLDOWN_S,
+            "run1_modes": RUN1_MODES,
+            "run2_modes": RUN2_MODES,
+            "lab_cap": "A3a",
+            "phase": "layerA",
+            "time_utc": datetime.now(timezone.utc).isoformat(),
+            "out_dir": str(out),
+        }
+        (out / "result.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+        print(json.dumps(summary))
+        return proc2a.returncode
+
+    layer_a_json = _newest_json(out, tag_layer_a)
+    if layer_a_json is None or not layer_a_json.is_file():
+        print("ERROR: layerA JSON not found under", out, file=sys.stderr)
+        return 2
+
+    args2b = [
         *base_args,
         "--modes", RUN2_MODES,
-        "--tag", tag2,
-        "--against", str(first_json),
+        "--tag", tag_layer_b,
+        "--against", str(layer_a_json),
         f"report.compare_clean_step={RUN2_COMPARE_CLEAN_STEP}",
         f"report.tol_pct={RUN2_TOL_PCT}",
         f"report.abs_tol_ms={RUN2_ABS_TOL_MS}",
     ]
-    print("cmd:", " ".join(args2))
-    proc2 = subprocess.run(args2, cwd=str(PERF_ROOT), env=env)
+    print("cmd:", " ".join(args2b))
+    proc2b = subprocess.run(args2b, cwd=str(PERF_ROOT), env=env)
     summary = {
-        "pass": proc2.returncode == 0,
-        "exit_code": proc2.returncode,
-        "tag": tag2,
-        "against": str(first_json),
+        "pass": proc2b.returncode == 0,
+        "exit_code": proc2b.returncode,
+        "tag": tag_layer_b,
+        "against": str(layer_a_json),
         "config": str(config.relative_to(REPO_ROOT)),
         "smoke_cpu": smoke_cpu,
         "synthetic": synthetic,
@@ -162,13 +188,14 @@ def _run_bench(out: Path, *, smoke_cpu: bool, synthetic: bool) -> int:
         "run2_compare_clean_step": RUN2_COMPARE_CLEAN_STEP == "true",
         "run2_tol_pct": float(RUN2_TOL_PCT),
         "run2_abs_tol_ms": float(RUN2_ABS_TOL_MS),
-        "phase": "run2",
+        "lab_cap": "A3a",
+        "phase": "layerB_against_layerA",
         "time_utc": datetime.now(timezone.utc).isoformat(),
         "out_dir": str(out),
     }
     (out / "result.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(summary))
-    return proc2.returncode
+    return proc2b.returncode
 
 
 def main(argv: list[str] | None = None) -> int:
