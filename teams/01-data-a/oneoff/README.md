@@ -19,6 +19,7 @@ These make `spec_v1/sheets/medicine_code.md`, `spec_v1/sheets/decisions_code.md`
 | `regex_on_issues.py` | What the picked rules catch on labelled rows, what the missed rows look like, and the short-note E4 option. |
 | `e1_triggers.py` | Why `DA-E1-008` drops each js-ts file, and `DA-E4-006` against `DA-E4-007`. |
 | `sheet_compare.py` | Two sheets over all packs: which docs end differently. |
+| `speed_check.py` | Not part of the code sheet: a reusable before/after check for any `clean.py` speed-up (English, Indic, ...). `run` hashes the output and times `clean()` per pack; `compare` shows whether the output sha256 is equal and the docs/s change. Used for `results/spec_v1/speed_v1.md`; its header has the commands. |
 
 ## Reproduce
 
