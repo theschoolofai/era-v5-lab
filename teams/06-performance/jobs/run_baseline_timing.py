@@ -10,8 +10,9 @@ No network. Reads configs under teams/06-performance. Writes only under --out.
 
 GPU path (non-smoke): process 1 is --repeat 1 clean,layer with layer_warmup=20
 (clean KPI once); after a 120s cool-down, process 2 is --modes layer only with
---against the first JSON so the 5% gate covers layer parts without dual-gating
-cold clean medians across processes.
+--against the first JSON. Lab Cap Choice A+: process 2 sets
+report.compare_clean_step=false (bench always runs clean, so skip gating step
+across processes under SwPowerCap) and report.tol_pct=10 for layer parts.
 """
 from __future__ import annotations
 
@@ -34,6 +35,9 @@ LAYER_COOLDOWN_S = 120
 LAYER_WARMUP = 20
 RUN1_MODES = "clean,layer"
 RUN2_MODES = "layer"
+# Process-2 against policy for lab power-cap nodes (TSAI: 5% cross-process too tight).
+RUN2_COMPARE_CLEAN_STEP = "false"
+RUN2_TOL_PCT = "10"
 
 
 def _newest_json(out: Path, tag: str) -> Path | None:
@@ -135,6 +139,8 @@ def _run_bench(out: Path, *, smoke_cpu: bool, synthetic: bool) -> int:
         "--modes", RUN2_MODES,
         "--tag", tag2,
         "--against", str(first_json),
+        f"report.compare_clean_step={RUN2_COMPARE_CLEAN_STEP}",
+        f"report.tol_pct={RUN2_TOL_PCT}",
     ]
     print("cmd:", " ".join(args2))
     proc2 = subprocess.run(args2, cwd=str(PERF_ROOT), env=env)
@@ -150,6 +156,8 @@ def _run_bench(out: Path, *, smoke_cpu: bool, synthetic: bool) -> int:
         "cooldown_s": LAYER_COOLDOWN_S,
         "run1_modes": RUN1_MODES,
         "run2_modes": RUN2_MODES,
+        "run2_compare_clean_step": RUN2_COMPARE_CLEAN_STEP == "true",
+        "run2_tol_pct": float(RUN2_TOL_PCT),
         "phase": "run2",
         "time_utc": datetime.now(timezone.utc).isoformat(),
         "out_dir": str(out),

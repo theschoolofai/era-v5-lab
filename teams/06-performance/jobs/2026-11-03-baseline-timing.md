@@ -29,7 +29,7 @@ Test log:        teams/06-performance/jobs/2026-11-03-baseline-timing.log (own m
 ## Notes
 
 - Lab GPU: use `--synthetic` so nodes without FineWeb shards do not exit 4.
-- Default without `--smoke-cpu`: process 1 is `--modes clean,layer --level 3 --repeat 1` (clean KPI once); after 120s cool-down, process 2 is `--modes layer --repeat 1 --against` run-1 JSON (layer 5% gate only; no dual-gate on clean).
+- Default without `--smoke-cpu`: process 1 is `--modes clean,layer --level 3 --repeat 1` (clean KPI once); after 120s cool-down, process 2 is `--modes layer --repeat 1 --against` run-1 JSON with `report.compare_clean_step=false` and `report.tol_pct=10` (Lab Cap Choice A+: skip clean-step gate under SwPowerCap; layer parts at 10%).
 - Prior TSAI working baseline on `48af4ce` (synthetic by hand): step ~104–106 ms, ~39k tok/s; `opt:opt.muon` 5.7% outside 5%; power-cap warns — working not final.
 - Gate 2: report step_ms, tokens/s, and Muon part with spread; MFU/HFU / GPU model per TSAI scrub rules.
 - The attached test log is the same script with `--smoke-cpu` (tiny synthetic CPU); TSAI GPU run uses `--synthetic` and omits `--smoke-cpu`.
