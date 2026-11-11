@@ -814,7 +814,19 @@ import re
 DETOK = re.compile("(?<=[A-Za-z])(?<![^A-Za-z][frbuFRBU])(?<![^A-Za-z][rR][bB])(?<![^A-Za-z][bB][rR])'(?!s\\b|t\\b|re\\b|ll\\b|ve\\b|d\\b|m\\b|em\\b|n'|er\\b|clock\\b|all\\b|am\\b)(?=[srmSRM][A-Za-z][^'\\n]{0,40}'(?:[\\s,.;:)!?]|$))", re.M)  # added by Data A: from maheshsv's medicine.md
 
 def fix_detok_quotes(text: str) -> tuple[str | None, bool]:
-    new = DETOK.sub(" '", text)
+    # DETOK can only match at an apostrophe, and a scan of every position costs far more than looking at the apostrophes:
+    # find them with str.find and ask DETOK about each one in place (match at that position sees the same text before it).
+    out, last, i = [], 0, text.find("'")
+    while i != -1:
+        if DETOK.match(text, i):
+            out.append(text[last:i])
+            out.append(" '")
+            last = i + 1
+        i = text.find("'", i + 1)
+    if not out:
+        return text, False
+    out.append(text[last:])
+    new = "".join(out)
     return new, new != text
 
 

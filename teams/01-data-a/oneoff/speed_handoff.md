@@ -52,7 +52,7 @@ The packs are `<pack_id>.parquet` files in one folder (`--packs`). The default i
 2. **Understand it.** Find its block in `spec_v1/sheets/specv1.md` (`RULE_ID = "..."`). The time usually goes in a regex or a per-character or per-line loop that runs on every document even when it cannot match. Look for a *cheap necessary condition*: a substring or character test that must hold before the rule can change anything, or an early exit once the answer is certain. Time the parts of the rule on a pack before you change anything, so you fix the part that costs.
 3. **Change the block in `specv1.md`.** The result must stay exactly the same. Keep the author's names and logic recognisable and add a short comment on why the fast path is safe. If the rule is also in `sheets/medicine_english.md` (the English author's source), make the same edit there; the English commits did.
 4. **Rebuild** `clean.py`: `python -I teams/01-data-a/spec_v1/build/build_clean.py`. Only your block should differ from the previous `clean.py`.
-5. **Write tests.** Copy the idea of the English ones in `tests/spec_v1/test_clean.py` (search for `test_c5_002`, `test_d3`, `test_b4_010`): keep a copy of the **old rule code** in the test as the reference, then (a) hand-written cases at the edges of the fast path, (b) a random-document comparison with the reference (4,000 documents, with a check that drops and fixes both occur), (c) a sweep around any threshold.
+5. **Write tests**, in the speed-up test file, not in `test_clean.py`. Copy the idea of the English ones in `tests/spec_v1/test_speed_equivalence.py` (see the `c5_`, `d3_`, `b4_` tests): keep a copy of the **old rule code** in the test as the reference, then (a) hand-written cases at the edges of the fast path, (b) a random-document comparison with the reference (4,000 documents, with a check that drops and fixes both occur), (c) a sweep around any threshold.
 6. **Run the new tests and the whole suite:** `$PY -m pytest teams/01-data-a/tests -q`. Optional but worth doing once per rule: break your fix on purpose in `clean.py` (for example turn a `<=` into `<`), run only your new tests and see them fail, then rebuild `clean.py`. Tests that pass on a broken fix prove nothing.
 7. **The full check, before you commit:**
    ```bash
@@ -69,7 +69,7 @@ Two people edit different rules, so most files merge on their own. Three need ca
 | file | what to do |
 |---|---|
 | `spec_v1/clean.py` | **never merge by hand.** After merging the branches, rebuild with `build_clean.py` and run `speed_compare.sh build pytest`. On a conflict, take either side and rebuild. |
-| `tests/spec_v1/test_clean.py` | one person appends tests here; the other puts tests in a new file (`tests/spec_v1/test_speed_indic.py`) so the two never touch the same lines. |
+| `tests/spec_v1/test_speed_equivalence.py` | the speed-up tests of the English rules. The second person puts theirs in a new file (`tests/spec_v1/test_speed_equivalence_indic.py`) so the two never touch the same lines. `test_clean.py` stays as it was. |
 | `results/spec_v1/speed_v1.md` | the second person writes entries in `results/spec_v1/speed_v1_indic.md` in the same format; they are merged into one log at the end. |
 
 Make one commit per rule, with its log entry. Do not commit the scratch folder. Example of the message style: `Speed up DA-C5-002 spam rule - search the nine patterns as one union first, check for 6 "|" before the keyword-line regex (0.65 to 0.27 ms/doc) + update medicine_english.md and tests`.

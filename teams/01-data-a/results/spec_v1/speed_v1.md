@@ -10,7 +10,7 @@ Every fix has to pass three checks before it is logged:
 
 ## 1. Summary
 
-Fixed so far: 4 rules. Speed is docs/s on one core, 500-doc sample packs, best of 5 (step 4: best of 3, see below).
+Fixed so far: 5 rules. Speed is docs/s on one core, 500-doc sample packs, best of 5 (steps 4 and 5: best of 3, see below).
 
 | step | `clean.py` (first 12) | en-dclm | en-fineweb-edu | en-nemotroncc | en-nemotroncc-synth |
 |---|---|---:|---:|---:|---:|
@@ -19,9 +19,10 @@ Fixed so far: 4 rules. Speed is docs/s on one core, 500-doc sample packs, best o
 | 2. `DA-D3-003` fixed | `fc6d1a2deea4` | 300.3 (1.2x) | 408.0 (1.3x) | 504.2 (1.3x) | 1062.5 (1.4x) |
 | 3. `DA-C5-002` fixed | `622b0d48c65f` | 341.6 (1.1x) | 461.3 (1.1x) | 547.8 (1.1x) | 1150.0 (1.1x) |
 | 4. `DA-B4-010` fixed | `742787d7c310` | 397.2 (1.13x) | 546.2 (1.14x) | 679.2 (1.14x) | 1478.9 (1.17x) |
-| **all four** | | **8.3x** | **5.8x** | **7.0x** | **8.8x** |
+| 5. `DA-B4-008` fixed | `08e8fe016458` | 465.4 (1.16x) | 648.7 (1.16x) | 796.7 (1.16x) | 1787.2 (1.20x) |
+| **all five** | | **9.7x** | **6.9x** | **8.2x** | **10.6x** |
 
-Each step's speed-up is against the row above it. Step 2 starts from `553fcfe32796`, which is step 1 plus the Indic refresh merge; it runs at the same speed as step 1 (en-dclm 249.0 against 250.0). Step 4 was timed in a separate run with `speed_compare.sh` (best of 3; before `622b0d48c65f` was 352.4 and 481.2 docs/s on en-dclm and en-fineweb-edu in that run), so the "all four" figures mix two runs and are approximate.
+Each step's speed-up is against the row above it. Step 2 starts from `553fcfe32796`, which is step 1 plus the Indic refresh merge; it runs at the same speed as step 1 (en-dclm 249.0 against 250.0). Steps 4 and 5 were each timed in a separate run with `speed_compare.sh` (best of 3; the before value was 352.4 and 481.2 docs/s on en-dclm and en-fineweb-edu for step 4, and 400.5 and 559.2 for step 5), so the "all five" figures mix runs and are approximate.
 
 | # | rule | the fix | rule time, en-dclm / en-fineweb-edu (ms per doc) | output sha256 | harm tests | pytest | docs changed in en-dclm / en-fineweb-edu (500 docs, large part) | commit |
 |---|---|---|---|---|---|---|---|---|
@@ -29,10 +30,11 @@ Each step's speed-up is against the row above it. Step 2 starts from `553fcfe327
 | 2 | `DA-D3-003` (foreign lines) | skip ASCII lines, cache each letter's script | 0.872 to 0.211 / 0.690 to 0.130 | same, 13 of 13 | unchanged | 1576 passed | 3 and 1, 387 and 190 fixed | `8a74553` |
 | 3 | `DA-C5-002` (keyword spam) | search the nine patterns as one union first | 0.664 to 0.272 / 0.513 to 0.202 | same, 13 of 13 | unchanged | 1596 passed | 4 and 0, 50 and 39 dropped | `2d03ebb` |
 | 4 | `DA-B4-010` (template and code-like lines) | stop the code-line scan once the answer is certain; skip the template regex when no hint is present | 0.509 to 0.194 / 0.383 to 0.139 | same, 13 of 13 | unchanged | 1618 passed | 0 and 1 (500 docs; large part not counted) | `a187284` |
+| 5 | `DA-B4-008` (detokenised quotes) | look at the apostrophes with `str.find` and ask the unchanged regex about each, instead of scanning every position | 0.334 to 0.007 / 0.268 to 0.003 | same, 13 of 13 | unchanged | 1630 passed | 2 and 0 (500 docs; large part not counted) | this commit |
 
-**Next slowest rules** (after step 4, en-dclm / en-fineweb-edu): `DA-F1-005` is still the slowest at 17.1% / 19.2% of the time (0.443 / 0.355 ms/doc), already sped up once in step 1. The next rule not yet touched is **`DA-B4-008`** at 13.1% / 14.1% (0.338 / 0.261 ms/doc), then `DA-B2-002` (10.8% / 11.5%) and `DA-C5-002` (10.7% / 11.2%, fixed in step 3). The profile is flat: no rule is above 20%. Not changed yet.
+**Next slowest rules** (after step 5, en-dclm / en-fineweb-edu): `DA-F1-005` is still the slowest at 19.6% / 22.1% of the time (0.439 / 0.414 ms/doc), already sped up once in step 1. The next rule not yet touched is **`DA-B2-002`** at 12.4% / 13.6% (0.273 / 0.255 ms/doc), then `DA-C5-002` (12.2% / 12.8%, fixed in step 3). The profile is flat: no rule other than F1 is above 14%. Not changed yet.
 
-The code, math and science packs are not slower: 1.0x to 1.1x after the first pass and 1.0x after fixes 3 and 4 (re-timed; none of these rules run on them).
+The code, math and science packs are not slower: 1.0x to 1.1x after the first pass and 1.0x after fixes 3 to 5 (re-timed; none of these rules run on them).
 
 ## 2. The log
 
@@ -75,10 +77,20 @@ The code, math and science packs are not slower: 1.0x to 1.1x after the first pa
 - **Pytest:** 1618 passed, 1 skipped. 22 new tests: hand-written cases, a sweep around the exact half-the-text threshold, and a 4,000-document comparison with the old rule code.
 - **Docs this rule changes:** 500-doc packs: en-dclm 0, en-fineweb-edu 1 (a fix), en-nemotroncc 0, en-nemotroncc-synth 0, so about 1 document in 2,000; the large parts were not counted. It runs on 483 to 499 of every 500 documents and almost never changes one, which is why a cheap pre-check pays off.
 
+### 5. `DA-B4-008`: detokenised opening quotes, this commit
+
+- **Fix:** the rule is one regex over the whole text that puts back the space in `said'sure it is'`. It can only match at an apostrophe, but it begins with look-behinds, so Python tried it at every character position. It now finds the apostrophes with `str.find` and asks the unchanged regex about each one in place (`DETOK.match(text, i)`, which sees the same text before the position), and rebuilds the text from the pieces.
+- **Speed:** `742787d7c310` to `08e8fe016458`. Rule time en-dclm 0.334 to 0.007 ms/doc (48x), en-fineweb-edu 0.268 to 0.003. docs/s en-dclm 400.5 to 465.4 (1.16x), en-fineweb-edu 559.2 to 648.7 (1.16x), en-nemotroncc 688.6 to 796.7 (1.16x), en-nemotroncc-synth 1484.5 to 1787.2 (1.20x) (best of 3, one run with `speed_compare.sh`; a first run of the same pair gave 0.88x on two packs and was discarded as disturbed: the rule time had dropped 48x and the other two packs sped up in the same run).
+- **Share of the time:** 13.1% of the cleaning time on en-dclm before, under 1% after.
+- **Output sha256:** same on all 13 sample packs.
+- **Harm tests:** unchanged: all per-pack result files identical apart from the `clean.py` hash.
+- **Pytest:** 1630 passed, 1 skipped. 21 new tests in `tests/spec_v1/test_speed_equivalence.py` (the speed-up tests were moved there from `test_clean.py` in this commit): 19 hand-written cases, a sweep around the 40-character limit of the quoted span, and a 6,000-document comparison with the old regex.
+- **Docs this rule changes:** 500-doc packs: en-dclm 2, en-fineweb-edu 0, en-nemotroncc 0, en-nemotroncc-synth 18 of 499 (3.6%); the large parts were not counted. All are fixes (a space inserted).
+
 ## 3. Method
 
 - **Machine:** CPU, Python 3.12.15. Each timing run is pinned to one core with `taskset -c 0`, one run at a time. Cores 0 and 1 are two threads of the same physical core, so never time two runs on cores 0 and 1 together.
-- **Timing:** only the `clean(doc)` loop, packs already in memory. Best of 5 passes (best of 3 for step 4). Timings vary by about 5% between runs on this laptop, so treat ratios under 1.1x as about equal.
+- **Timing:** only the `clean(doc)` loop, packs already in memory. Best of 5 passes (best of 3 for steps 4 and 5). Timings vary by about 5% between runs on this laptop, so treat ratios under 1.1x as about equal.
 - **Versions compared:** all from git, only `clean.py` differs.
 
   | label | `clean.py` (first 12) | source |
@@ -89,6 +101,7 @@ The code, math and science packs are not slower: 1.0x to 1.1x after the first pa
   | fix 2 | `fc6d1a2deea4` | `8a74553` (HEAD `bb0d997` has the same file) |
   | fix 3 | `622b0d48c65f` | `2d03ebb` |
   | fix 4 | `742787d7c310` | `a187284` |
+  | fix 5 | `08e8fe016458` | this commit |
 
   The Indic refresh (`3b91add`) changes Indic rule scopes only. The baseline, fix 1 and fix 1 plus refresh give the same output sha256 on all 13 packs.
 - **Rule time:** `spec_v1/run_clean.py` records the seconds each rule takes on a 500-doc pack. Docs changed per rule come from counting each rule's fixes and drops while `clean.py` runs, in pipeline order.
