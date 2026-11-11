@@ -10,7 +10,7 @@ Every fix passes three checks before it is logged:
 
 ## 1. Speed, docs/s per core, before and after each fix
 
-500-doc sample packs, one core, `clean()` loop only. Each rule's before and after were timed back to back on the same machine (steps 1 to 3: best of 5 passes; steps 4 and 5: best of 3). The rule time is the per-document time of that rule alone, from the per-rule profile.
+500-doc sample packs, one core, `clean()` loop only. Each rule's before and after were timed back to back on the same machine (steps 1 to 3: best of 5 passes; steps 4 to 6: best of 3). The rule time is the per-document time of that rule alone, from the per-rule profile.
 
 | # | rule (what it checks) | en-dclm docs/s | en-fineweb-edu docs/s | rule time en-dclm, ms/doc | rule time en-fineweb-edu, ms/doc |
 |---|---|---|---|---|---|
@@ -19,9 +19,10 @@ Every fix passes three checks before it is logged:
 | 3 | `DA-C5-002` (keyword spam) | 300.3 to 341.6 (1.1x) | 408.0 to 461.3 (1.1x) | 0.664 to 0.272 | 0.513 to 0.202 |
 | 4 | `DA-B4-010` (template and code-like text) | 352.4 to 397.2 (1.13x) | 481.2 to 546.2 (1.14x) | 0.509 to 0.194 | 0.383 to 0.139 |
 | 5 | `DA-B4-008` (detokenised quotes) | 400.5 to 465.4 (1.16x) | 559.2 to 648.7 (1.16x) | 0.334 to 0.007 | 0.268 to 0.003 |
-| | **all five** | **47.9 to 465.4 (9.7x)** | **94.7 to 648.7 (6.9x)** | | |
+| 6 | `DA-B2-002` (HTML tags) | 467.1 to 545.8 (1.17x) | 662.5 to 769.9 (1.16x) | 0.270 to 0.003 | 0.205 to 0.003 |
+| | **all six** | **47.9 to 545.8 (11.4x)** | **94.7 to 769.9 (8.1x)** | | |
 
-The "all five" row is the baseline (first row's before) against the last row's after. The rows were timed in separate runs, so it is approximate. The code, math and science packs are not slower (1.0x; none of these rules run on them).
+The "all six" row is the baseline (first row's before) against the last row's after. The rows were timed in separate runs, so it is approximate. The code, math and science packs are not slower (1.0x; none of these rules run on them).
 
 ## 2. Status of each fix
 
@@ -32,6 +33,7 @@ The "all five" row is the baseline (first row's before) against the last row's a
 | 3 | `DA-C5-002` | same, 13 of 13 | unchanged | 1596 passed | 4 / 0 / 0 / 0 dropped | `622b0d48c65f` | `2d03ebb` |
 | 4 | `DA-B4-010` | same, 13 of 13 | unchanged | 1618 passed | 0 / 1 / 0 / 0 fixed | `742787d7c310` | `a187284` |
 | 5 | `DA-B4-008` | same, 13 of 13 | unchanged | 1630 passed | 2 / 0 / 0 / 18 fixed | `08e8fe016458` | `04b68e6` |
+| 6 | `DA-B2-002` | same, 13 of 13 | unchanged | 1648 passed | 1 / 1 / 0 / 0 fixed | `7836cb354f09` | this commit |
 
 The baseline is `clean.py` `97c1a55b89f4` (commit `730253d^`). Pytest counts are the whole suite at that commit (1 test skipped in each).
 
@@ -42,12 +44,13 @@ The baseline is `clean.py` `97c1a55b89f4` (commit `730253d^`). Pytest counts are
 3. **`DA-C5-002`, keyword-spam pages.** The rule searched nine case-insensitive spam patterns on every document, and needs two different patterns to match before it drops. One search of the union of the nine now comes first, and the nine run one by one only when it matches; the keyword-line pattern runs only when the text has 6 or more `|`, which it needs. The rule drops few documents and is a hardcoded list of spam themes from en-dclm; it does no harm on the gold sets, so it was kept as it is (whether to keep it is the sheet author's and the team's decision).
 4. **`DA-B4-010`, template expressions and code-like text.** The rule ran a large token regex on every line to decide whether more than half of the text is code, then searched the whole text for template expressions. It now stops reading lines as soon as the answer cannot change (a prose document is settled halfway through), and runs the template regex only when the text contains one of `{{`, `{%`, `${`, a backtick, `undefined`, `NaN` or `null`, which every alternative of that regex needs. It runs on nearly every document and almost never changes one, which is why a cheap pre-check pays off.
 5. **`DA-B4-008`, detokenised opening quotes.** The rule is one regex that puts back the space in `said'sure it is'`. It can only match at an apostrophe, but it begins with look-behinds, so Python tried it at every character position. It now finds the apostrophes with `str.find` and asks the unchanged regex about each one in place (`DETOK.match(text, i)`), then rebuilds the text.
+6. **`DA-B2-002`, HTML tags.** The rule removes HTML tags from a text that has two or more of them and is not about HTML. It ran a case-insensitive search for "html", "tag", "element", `class=`, a code fence and `<!DOCTYPE` on every document first (0.16 ms/doc), although only 3 of the 2,000 sample documents have two tags. It now counts `<` first (a tag holds exactly one, so fewer than two means fewer than two tags), then the tags, and asks the about-HTML question only about the few texts that have two or more.
 
-The tests for fixes 1 to 5 are in `tests/spec_v1/test_speed_equivalence.py`: each rule is compared with a frozen copy of its old code on hand-written edge cases and on random documents.
+The tests for fixes 1 to 6 are in `tests/spec_v1/test_speed_equivalence.py`: each rule is compared with a frozen copy of its old code on hand-written edge cases and on random documents.
 
 ## 4. Next slowest rules
 
-After fix 5, on en-dclm / en-fineweb-edu: `DA-F1-005` is still the slowest at 19.6% / 22.1% of the time (0.439 / 0.414 ms/doc), already sped up once in fix 1. The next rule not yet touched is **`DA-B2-002`** at 12.4% / 13.6% (0.273 / 0.255 ms/doc), then `DA-C5-002` (12.2% / 12.8%, fixed in fix 3). The profile is flat: no rule other than F1 is above 14%.
+After fix 6, on en-dclm / en-fineweb-edu: `DA-F1-005` is still the slowest at 22.4% / 26.0% of the time (0.421 / 0.338 ms/doc), already sped up once in fix 1. Then `DA-C5-002` (14.1% / 14.9%, fixed in fix 3), `DA-C3-003` (11.9% on en-dclm) and `DA-B4-010` (10.3% on en-fineweb-edu, fixed in fix 4). The rule not yet touched with the largest share is **`DA-C3-003`**; the profile is now dominated by rules that were already sped up once.
 
 ## 5. Method, and adding the next entry
 
@@ -63,7 +66,7 @@ To add a fix:
 2. Before committing, run `teams/01-data-a/oneoff/speed_compare.sh --rules <RULE_ID>`.  It checks the fresh build, the full pytest suite, the output sha256 on the 13 packs, the harm tests, the profile and the documents the rule changes, and ends with a SUMMARY. It must say `RESULT: PASS`, `output sha256: the same on 13 of 13 packs` and `harm: unchanged`; its SUMMARY has the figures for the tables.
 3. Add a row to the tables in sections 1 and 2 and a line in section 3, and update section 4. Commit the fix and this log together; write `this commit` in the commit column, or fill in its id with the next commit.
 
-To replay the timings of the five fixes in order, from the repository root (about 3 to 5 minutes each). Each command builds its own before and after from git; only the `trees speed profile` steps are used, because `build` and `pytest` check your working copy, not the commits:
+To replay the timings of the fixes in order, from the repository root (about 3 to 5 minutes each). Each command builds its own before and after from git; only the `trees speed profile` steps are used, because `build` and `pytest` check your working copy, not the commits:
 
 ```
 S=teams/01-data-a/oneoff/speed_compare.sh
@@ -72,6 +75,7 @@ $S --before d956c6a   --after 8a74553 --rules DA-D3-003 trees speed profile
 $S --before 8a74553   --after 2d03ebb --rules DA-C5-002 trees speed profile
 $S --before 2d03ebb   --after a187284 --rules DA-B4-010 trees speed profile
 $S --before a187284   --after 04b68e6 --rules DA-B4-008 trees speed profile
+$S --before 04b68e6   --after <fix 6 commit> --rules DA-B2-002 trees speed profile
 ```
 
 - The scripts are run from your current checkout; the commits only supply `clean.py` and the tree it runs in.

@@ -10,8 +10,9 @@ from a pack.
   DA-C5-002  keyword spam: the nine patterns are searched as one union first
   DA-B4-010  template and code-like text: the line scan stops once the answer is certain
   DA-B4-008  detokenised quotes: only the apostrophes are examined
+  DA-B2-002  HTML tags: the cheap tests (count of "<", tag search) run before the slow "is it about HTML" search
 
-The frozen copies (the f1_joined_window, d3_reference, c5_result, b4_reference, b4_008_reference functions) record what each
+The frozen copies (the f1_joined_window, d3_reference, c5_result, b4_reference, b4_008_reference, b2_reference functions) record what each
 rule did before. If a rule's behaviour is ever changed on purpose, update or delete its copy here. The rest of the rule's
 own tests are in test_clean.py. One test file per speed-up round keeps test_clean.py as it was.
 """
@@ -576,3 +577,74 @@ def test_b4_008_equals_the_reference_on_random_documents():
     assert sum(r[0] == "keep" and "'" in d for r, d in zip(results, docs)) > 1000
     for d, expected in zip(docs, results):
         assert b4_008(d) == expected
+
+
+# DA-B2-002: with 2 or more HTML tags in a text that is not about HTML, the tags become spaces and runs of spaces shrink to one.
+# The rule counts "<" first (a tag holds exactly one), then the tags, and only then asks whether the text is about HTML (the slow
+# search); these cases pin that it still gives what the original order gives.
+
+B2_TAG_REF = re.compile(r"</?(?:div|span|p|br|li|ul|ol|img|table|tr|td|th|tbody|thead|strong|em|font|iframe|script|style|center|hr)"
+                        r"(?:\s[^<>]{0,200})?\s*/?>", re.I)
+B2_ABOUT_HTML_REF = re.compile(r"```|\bclass\s*=|<!DOCTYPE|\bhtml\b|\btag\b|\belement\b", re.I)
+
+
+def b2_reference(text):
+    """DA-B2-002 as it was: the about-HTML search first, then the tag count."""
+    if B2_ABOUT_HTML_REF.search(text) or len(B2_TAG_REF.findall(text)) < 2:
+        return ("keep", text)
+    new = re.sub(r"[ \t]{2,}", " ", B2_TAG_REF.sub(" ", text))
+    return ("fix" if new != text else "keep", new)
+
+
+def b2_002(text):
+    return c._run(en(text), c._english_b2_002)
+
+
+B2_CASES = [
+    ("Hello <div>world</div> and more.", "fix"),
+    ("Hello <DIV>world</DIV>  and   more.", "fix"),                    # tag names are case-insensitive; spaces collapse
+    ("Hello <b>bold</b> and <i>it</i>.", "keep"),                      # b and i are not in the list
+    ("Hello <div>world and more.", "keep"),                            # one tag is not enough
+    ("No angle bracket in this text at all.", "keep"),
+    ("", "keep"),
+    ("if a < b and b < c then a < c", "keep"),                         # three "<" but no tag
+    ("Use the html element: <div>a</div> <span>b</span>", "keep"),     # about HTML ("html", "element")
+    ("Each tag is shown here: <div>a</div> <p>b</p>", "keep"),         # "tag"
+    ("Code: ```<div>a</div> <p>b</p>```", "keep"),                     # a code fence
+    ("<div class=\"x\">a</div> <p>b</p>", "keep"),                     # class=
+    ("<!DOCTYPE x> <div>a</div> <p>b</p>", "keep"),
+    ("<p>One</p>\t<p>Two</p>   <br/>  Three", "fix"),
+    ("<div <div>a</div> <p>b</p>", "fix"),                             # the first "<div" is no tag; the other two are
+    ("<img src=a.png><hr>", "fix"),
+    ("<table><tr><td>cell</td></tr></table>", "fix"),
+]
+
+
+@pytest.mark.parametrize("text, action", B2_CASES, ids=[f"b2-case-{i}" for i in range(len(B2_CASES))])
+def test_b2_002_gives_what_the_original_order_gives(text, action):
+    got = b2_002(text)
+    assert got == b2_reference(text)
+    assert got[0] == action
+
+
+def test_b2_002_attribute_length_boundary():
+    """A tag may hold up to 200 characters of attributes: 200 is a tag, 201 is not."""
+    for n in range(195, 206):
+        text = "a <p " + "x" * n + "> b <hr> c"
+        assert b2_002(text) == b2_reference(text), n
+    assert b2_002("a <p " + "x" * 199 + "> b <hr> c")[0] == "fix"       # " " plus 199 characters
+    assert b2_002("a <p " + "x" * 205 + "> b <hr> c")[0] == "keep"      # only <hr> is a tag
+
+
+def test_b2_002_equals_the_reference_on_random_documents():
+    """Texts built from tags, bare angle brackets, HTML-about words, spaces, tabs and newlines."""
+    pieces = ["<div>", "</div>", "<p>", "</p>", "<br/>", "<br />", "<span style=\"a\">", "<TD>", "<b>", "<", ">", "a < b", "<!DOCTYPE html>",
+              "html", "tag", "element", "class=", "class =", "```", "word", "more words here", " ", "  ", "\t", "\n", "<img src=x>", "<hr>",
+              "<p " + "y" * 200 + ">", "<p " + "y" * 201 + ">", "<scripts>", "</ p>"]
+    rng = random.Random(2)
+    docs = ["".join(rng.choice(pieces) for _ in range(rng.randint(1, 14))) for _ in range(6000)]
+    results = [b2_reference(d) for d in docs]
+    assert sum(r[0] == "fix" for r in results) > 300
+    assert sum(r[0] == "keep" and d.count("<") >= 2 for r, d in zip(results, docs)) > 300   # two "<" and still kept
+    for d, expected in zip(docs, results):
+        assert b2_002(d) == expected

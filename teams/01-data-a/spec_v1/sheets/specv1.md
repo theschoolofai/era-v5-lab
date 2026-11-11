@@ -2624,7 +2624,10 @@ B2_ABOUT_HTML = re.compile(r"```|\bclass\s*=|<!DOCTYPE|\bhtml\b|\btag\b|\belemen
 
 
 def medicine_b2(text):
-    if B2_ABOUT_HTML.search(text) or len(B2_TAG.findall(text)) < 2:
+    # Keep when the text is about HTML or has fewer than 2 tags: the same test with the cheap parts first. A tag begins
+    # with "<" and holds no other "<", so fewer than 2 "<" means fewer than 2 tags, and B2_ABOUT_HTML (the slow part) is
+    # asked only about the few texts that have 2 or more tags.
+    if text.count("<") < 2 or len(B2_TAG.findall(text)) < 2 or B2_ABOUT_HTML.search(text):
         return ("keep", text)
     new = re.sub(r"[ \t]{2,}", " ", B2_TAG.sub(" ", text))
     return ("fix" if new != text else "keep", new)
