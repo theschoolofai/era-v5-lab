@@ -144,7 +144,7 @@ stage_big() {
   for side in before after; do
     nohup taskset -c $core "$PY" -I "$CHECK" run --clean-dir "$(tree $side)" --packs "$WORK/big" --repeat 1 \
       --out "$WORK/${side}_big.json" > "$WORK/${side}_big.log" 2>&1 &
-    core=$((core + 1))
+    core=$((core + 2))   # cpu 0 and 1 are two threads of one physical core on the author's laptop: use 0 and 2
   done
   echo "  started. Watch: tail -f $WORK/before_big.log"
   echo "  when both say 'wrote': $PY -I $CHECK compare $WORK/before_big.json $WORK/after_big.json --md $WORK/speed_table_big.md"

@@ -1,50 +1,105 @@
-# clean.py speed: before and after the F1 and D3 fixes
+# clean.py speed log
 
-Spec v1.1, Gate 2. Measured on 11 Nov 2026. Reports counts, hashes and timings only, never document text.
+Spec v1.1, Gate 2. A log of the slow rules in `clean.py` that were sped up, one entry per rule, with the speed change and the checks that show nothing else changed. Last updated 12 Nov 2026. Reports counts, hashes and timings only, never document text.
 
-**Result.** `clean.py` is 4.3x to 6.3x faster on the four English packs (en-dclm 49.9 to 311 docs/s per core) and the output is byte-identical on all 13 sample packs and on two large week-2 parts (100,249 docs). The harm test results are unchanged. The code, math and science packs are not slower (1.0x). The next slowest rule is `DA-C5-002`.
+Every fix has to pass three checks before it is logged:
 
-## 1. What was measured
+1. **Output sha256 unchanged.** `clean.py` before and after gives the same output sha256 on all 13 sample packs. The sha256 covers every document in file order: its `doc_id`, the final action (keep, fix or drop) and the final cleaned text. Equal sha256 means byte-identical output.
+2. **Harm tests unchanged.** Every rule and `clean()` on each pack gives the same harm result and the same gold changed/dropped counts.
+3. **Pytest suite passes.**
 
-| | before | after |
-|---|---|---|
-| `clean.py` sha256 (first 12) | `97c1a55b89f4` | `fc6d1a2deea4` |
-| source | `730253d^` (the last commit before the F1 fix; same file as `8da2ac4`) | HEAD `bb0d997` |
-| the two fixes | none | `DA-F1-005` per-line ORGANISATION search, skipped on lines with no `@` or digit (`730253d`); `DA-D3-003` ASCII fast path and cached script lookup per character (`8a74553`) |
+## 1. Summary
 
-The "after" file also contains the Indic refresh (`3b91add`). It changes rule scopes for Indic packs only; none of the 13 packs below is Indic, and their outputs match.
+Fixed so far: 3 rules. Speed is docs/s on one core, 500-doc sample packs, best of 5.
 
-- Machine: AMD Ryzen 7 6800H, Python 3.12.15, each run pinned to one core with `taskset -c 0` (the two large runs ran at the same time, on cores 0 and 1).
-- Timing: only the `clean(doc)` loop, packs already in memory. Best of 3 passes on the 500-doc packs; one pass on the large parts.
-- Tool: [`oneoff/speed_check.py`](../../oneoff/speed_check.py). The output sha256 of a pack covers, for every document in file order, its `doc_id`, the final action (keep, fix or drop) and the final cleaned text, so equal sha256 means byte-identical output. Input pack hashes were equal too.
+| step | `clean.py` (first 12) | en-dclm | en-fineweb-edu | en-nemotroncc | en-nemotroncc-synth |
+|---|---|---:|---:|---:|---:|
+| baseline | `97c1a55b89f4` | 47.9 | 94.7 | 96.9 | 167.8 |
+| 1. `DA-F1-005` fixed | `7a76c7eddb51` | 250.0 (5.2x) | 333.4 (3.5x) | 398.2 (4.1x) | 799.6 (4.8x) |
+| 2. `DA-D3-003` fixed | `fc6d1a2deea4` | 300.3 (1.2x) | 408.0 (1.3x) | 504.2 (1.3x) | 1062.5 (1.4x) |
+| 3. `DA-C5-002` fixed | `622b0d48c65f` | 341.6 (1.1x) | 461.3 (1.1x) | 547.8 (1.1x) | 1150.0 (1.1x) |
+| **all three** | | **7.1x** | **4.9x** | **5.7x** | **6.9x** |
 
-## 2. Speed, docs/s per core
+Each step's speed-up is against the row above it. Step 2 starts from `553fcfe32796`, which is step 1 plus the Indic refresh merge; it runs at the same speed as step 1 (en-dclm 249.0 against 250.0).
 
-The 500-doc sample packs (the packs TSAI timed):
+| # | rule | the fix | rule time, en-dclm / en-fineweb-edu (ms per doc) | output sha256 | harm tests | pytest | docs changed in en-dclm / en-fineweb-edu (500 docs, large part) | commit |
+|---|---|---|---|---|---|---|---|---|
+| 1 | `DA-F1-005` (PII) | search ORGANISATION once per line, cached | 17.284 to 0.435 / 7.653 to 0.338 | same, 13 of 13 | unchanged | 1138 passed | 2 and 0, 402 and 139 fixed | `730253d` |
+| 2 | `DA-D3-003` (foreign lines) | skip ASCII lines, cache each letter's script | 0.872 to 0.211 / 0.690 to 0.130 | same, 13 of 13 | unchanged | 1576 passed | 3 and 1, 387 and 190 fixed | `8a74553` |
+| 3 | `DA-C5-002` (keyword spam) | search the nine patterns as one union first | 0.664 to 0.272 / 0.513 to 0.202 | same, 13 of 13 | unchanged | 1596 passed | 4 and 0, 50 and 39 dropped | not yet committed |
 
-| pack | before | after | speed-up | TSAI's number (main, `d3464bda`) |
-|---|---:|---:|---:|---|
-| en-dclm | 49.9 | 311.0 | 6.2x | about 45 |
-| en-fineweb-edu | 97.9 | 419.9 | 4.3x | about 30,000 (see note) |
-| en-nemotroncc | 102.5 | 521.6 | 5.1x | |
-| en-nemotroncc-synth | 165.3 | 1047.3 | 6.3x | |
+**Next slowest rule: `DA-B4-010`** (English B4, finds template and code-like lines): 0.506 ms/doc, 17.7% of the time on en-dclm and 18.7% on en-fineweb-edu. Then `DA-F1-005` (15% to 17%) and `DA-B4-008` (12% to 13%). The profile is flat, with no rule above 19%. Not changed yet.
 
-Large parts, `week-2/train/<pack>/part-00000.parquet`:
+The code, math and science packs are not slower: 1.0x to 1.1x after the first pass and 1.0x after the third fix (re-timed alternating before and after; none of these rules run on them).
 
-| pack | docs | before | after | speed-up |
-|---|---:|---:|---:|---:|
-| en-dclm | 46,245 | 45.7 | 193.4 | 4.2x |
-| en-fineweb-edu | 54,004 | 97.3 | 236.2 | 2.4x |
+## 2. The log
 
-Other packs, 500 docs each (not targeted by the fixes; re-measured twice, alternating before and after, best of 5): code-cpp 322/313, code-go 427/425, code-java 482/482, code-js-ts 699/679, code-python 300/299, code-rust 444/449, all 1.0x. The first run showed 0.8x to 0.9x on the code packs; the repeats show that was noise. math-finemath 166/175, math-megamath 504/534 and sci-finepdfs 151/152 are 1.0x to 1.1x.
+### 1. `DA-F1-005`: PII (emails, phones, addresses), commit `730253d`
 
-**Note on en-fineweb-edu.** We measured 98 docs/s before the fix on this machine, not 30,000. We do not know how the 30,000 was obtained (a different sample, or rules not running); please check with TSAI. The numbers here are all measured on one machine, with the same input files before and after.
+- **Fix:** the rule ran the ORGANISATION regex on a joined 13-line window for every line, even lines with no email, phone or address. It now runs ORGANISATION once per line, caches the per-line result and builds the window from the cached results, and a line with no `@` or digit never reaches it (the check is lazy).
+- **Speed:** `clean.py` `97c1a55b89f4` to `7a76c7eddb51`. Rule time en-dclm 17.284 to 0.435 ms/doc (40x), en-fineweb-edu 7.653 to 0.338 (23x). docs/s en-dclm 47.9 to 250.0, en-fineweb-edu 94.7 to 333.4 (see section 1).
+- **Share of the time:** 83.3% of the cleaning time on en-dclm before, 13.2% after the fix.
+- **Output sha256:** same on all 13 sample packs (before `97c1a55b89f4`, after `7a76c7eddb51`). The same on the two large week-2 parts for the first two fixes together (section 4), and on 20,000 generated test documents when the fix was made.
+- **Harm tests:** unchanged. Checked for fixes 1 and 2 together (`97c1a55b89f4` against `fc6d1a2deea4`): every per-pack result file is identical apart from the `clean.py` hash.
+- **Pytest:** 1138 passed, 1 skipped at the fix commit. The tests added afterwards include a joined-window equivalence test.
+- **Docs this rule changes:** it redacts PII, so its fixes are rewritten documents. 500-doc packs: en-dclm 2, en-fineweb-edu 0, en-nemotroncc 1, en-nemotroncc-synth 2. Large parts: en-dclm 402 of 46,245 (0.9%), en-fineweb-edu 139 of 54,004 (0.3%). It drops no documents.
 
-The speed-up is smaller on the large parts than on the 500-doc packs (en-dclm 4.2x against 6.2x), and the large parts run slower per doc after the fix (193 against 311 docs/s). We did not find out why. The 500-doc profile in section 5 may therefore not match the cost at scale, and should be repeated on a large slice (for example `--limit 5000` of a week-2 part) before Gate 2.
+### 2. `DA-D3-003`: lines in a foreign script, commit `8a74553`
 
-## 3. Same output (sha256)
+- **Fix:** the rule looked up `unicodedata.name()` for every letter of every line. An ASCII line is never foreign (an ASCII letter is always Latin), so it is skipped, and the script of each distinct letter is looked up once and cached.
+- **Speed:** `553fcfe32796` to `fc6d1a2deea4`. Rule time en-dclm 0.872 to 0.211 ms/doc, en-fineweb-edu 0.690 to 0.130. docs/s en-dclm 249.0 to 300.3, en-fineweb-edu 326.0 to 408.0.
+- **Output sha256:** same on all 13 sample packs.
+- **Harm tests:** unchanged (together with fix 1, as above).
+- **Pytest:** 1576 passed, 1 skipped at the fix commit. The tests compare the cached lookup with `unicodedata.name` for every alphabetic code point, and the rule with the old code on 3,000 random documents.
+- **Docs this rule changes:** 500-doc packs: en-dclm 3, en-fineweb-edu 1, en-nemotroncc 3, en-nemotroncc-synth 0. Large parts: en-dclm 387 of 46,245 (0.8%), en-fineweb-edu 190 of 54,004 (0.4%). All are fixes (lines removed).
 
-All 13 sample packs have the same output sha256 before and after (500 docs each):
+### 3. `DA-C5-002`: keyword-spam pages, not yet committed
+
+- **Fix:** the rule searched nine case-insensitive spam patterns on every document, and needs two different patterns to match before it drops. One search of the union of the nine now comes first, and the nine run one by one only when it matches (about 10 of 500 en-dclm documents). The keyword-line pattern runs only when the text has 6 or more `|`, which that pattern needs. Both checks are necessary conditions for a drop.
+- **Speed:** `fc6d1a2deea4` to `622b0d48c65f`. Rule time en-dclm 0.664 to 0.272 ms/doc, en-fineweb-edu 0.513 to 0.202. docs/s en-dclm 300.3 to 341.6, en-fineweb-edu 408.0 to 461.3.
+- **Output sha256:** same on all 13 sample packs.
+- **Harm tests:** unchanged: the per-pack result files differ only in the `clean.py` hash and `harm_tests.md` is identical.
+- **Pytest:** 1596 passed, 1 skipped. 20 new tests: 19 hand-written cases and a 4,000-document random comparison against the nine separate searches, which fail under four deliberate mutations.
+- **Docs this rule changes:** it only drops. 500-doc packs: en-dclm 4, the other three 0. Large parts: en-dclm 50 of 46,245 (0.11%), en-fineweb-edu 39 of 54,004 (0.07%). Its gold harm is 0 changed, 0 dropped on all four English packs.
+- **Value of the rule:** it catches few documents (about 2% of the labelled keyword-list pages) and is a hardcoded list of spam themes from en-dclm. It does no harm on the gold sets, so it was kept as it is; whether to keep it is the sheet author's and the team's decision.
+
+## 3. Method
+
+- **Machine:** CPU, Python 3.12.15. Each timing run is pinned to one core with `taskset -c 0`, one run at a time. Cores 0 and 1 are two threads of the same physical core, so never time two runs on cores 0 and 1 together.
+- **Timing:** only the `clean(doc)` loop, packs already in memory. Best of 5 passes. Timings vary by about 5% between runs on this laptop, so treat ratios under 1.1x as about equal.
+- **Versions compared:** all from git, only `clean.py` differs.
+
+  | label | `clean.py` (first 12) | source |
+  |---|---|---|
+  | baseline | `97c1a55b89f4` | `730253d^` (same file as `8da2ac4`) |
+  | fix 1 | `7a76c7eddb51` | `730253d` |
+  | fix 1 + Indic refresh | `553fcfe32796` | `d956c6a` (merge) |
+  | fix 2 | `fc6d1a2deea4` | `8a74553` (HEAD `bb0d997` has the same file) |
+  | fix 3 | `622b0d48c65f` | working copy, not yet committed |
+
+  The Indic refresh (`3b91add`) changes Indic rule scopes only. The baseline, fix 1 and fix 1 plus refresh give the same output sha256 on all 13 packs.
+- **Rule time:** `spec_v1/run_clean.py` records the seconds each rule takes on a 500-doc pack. Docs changed per rule come from counting each rule's fixes and drops while `clean.py` runs, in pipeline order.
+- **Tools:** [speed_compare.sh](../../oneoff/speed_compare.sh) runs the whole check; [speed_check.py](../../oneoff/speed_check.py) hashes and times; [make_harm_tests.py](../../spec_v1/validate/make_harm_tests.py) runs the harm tests.
+
+### Adding the next entry
+
+1. Edit the rule in `spec_v1/sheets/specv1.md` and `medicine_english.md`, rebuild with `python -I spec_v1/build/build_clean.py`, add tests.
+2. Run `python -m pytest teams/01-data-a/tests` and note the count.
+3. Run `teams/01-data-a/oneoff/speed_compare.sh --before HEAD --after worktree all`. It must say `13 of 13 packs have the same output sha256`, `all result files identical` and `finished, no failures`. Take the rule's ms/doc from its profile.
+4. Add a row to both tables in section 1 and an entry in section 2, and update the next slowest rule. Count the docs the rule changes (500-doc packs, and a large part if time allows).
+
+## 4. Large-part evidence for fixes 1 and 2
+
+Week-2 train part-00000 of each pack, `clean.py` `97c1a55b89f4` against `fc6d1a2deea4`: the output sha256 is the same on both.
+
+| pack | docs | output sha256 (first 16) | docs/s before | docs/s after |
+|---|---:|---|---:|---:|
+| en-dclm | 46,245 | `2066a50c9d45f631` | 45.7 | 193.4 |
+| en-fineweb-edu | 54,004 | `2a845063667d63e3` | 97.3 | 236.2 |
+
+The timings are indicative only: the two runs shared one physical core (cores 0 and 1), so both were slowed. The identical output is not affected. The large parts run slower per doc than the 500-doc packs, and a profile of the first 1,000 docs of the en-dclm part ranks the rules in the same order with higher ms/doc (`DA-C5-002` 1.08 ms against 0.65), so the 500-doc profile is a fair guide to which rule to fix next. Fix 3 was not run on the large parts.
+
+## 5. Output sha256 of the 13 sample packs (identical before and after every fix)
 
 | pack | output sha256 (first 16) | pack | output sha256 (first 16) |
 |---|---|---|---|
@@ -56,35 +111,8 @@ All 13 sample packs have the same output sha256 before and after (500 docs each)
 | code-rust | `ad6141d053488d1c` | en-dclm | `3fdbc3056421bbe7` |
 | | | en-fineweb-edu | `4c8be607c9590b8e` |
 
-The two large parts are also identical: en-dclm part-00000 (46,245 docs) `2066a50c9d45f631`, en-fineweb-edu part-00000 (54,004 docs) `2a845063667d63e3`. The same actions were also seen on the 500-doc en-dclm pack: 437 kept, 54 fixed, 9 dropped, both before and after.
+## 6. Notes
 
-## 4. Harm tests unchanged
-
-`spec_v1/validate/make_harm_tests.py` was run with each `clean.py` on the same packs and the same gold (`harm_test.py` unchanged). Every rule alone, every disease code, and `clean()` on each of the 13 packs gave the same results before and after: the 13 per-pack result files differ only in `rules_file_sha256` (the new `clean.py` hash), and no PASS cell and no gold changed or dropped count differs.
-
-`harm_tests.md` has three further differences, all about the Indic pack `ind-hi-sangraha-s`, which is not on this machine: it is added to the "not run on" list of the F1 rows, a row `G3` (applies to none of the 13 packs) and a "pack not on this machine" line. `clean.py` has no mention of `ind-hi-sangraha-s` at `730253d^` and 43 at `3b91add`, so these come from the Indic refresh and not from the two speed fixes.
-
-## 5. Profile, and the next slowest rule
-
-`run_clean.py` per-rule time on the 500-doc packs, one core, top 3 rules and the two fixed rules:
-
-en-dclm (rules took 10.2 s before, 1.6 s after)
-
-| rule | before: share, ms/doc | after: share, ms/doc |
-|---|---|---|
-| `DA-F1-005` (PII) | 83.3%, 17.284 | 13.2%, 0.435 |
-| `DA-D3-003` (foreign lines) | 4.2%, 0.872 | 6.3%, 0.211 |
-| `DA-C5-002` (keyword lists) | 3.2%, 0.651 | **20.4%, 0.668** |
-| `DA-B4-010` | 2.4%, 0.503 | 15.5%, 0.513 |
-
-en-fineweb-edu (rules took 5.1 s before, 1.2 s after): `DA-F1-005` 75.0% (7.653 ms/doc) to 14.6% (0.338), `DA-D3-003` 6.8% (0.690) to 5.6% (0.130), `DA-C5-002` 4.8% (0.492) to **21.3% (0.495)**.
-
-**Next slowest rule: `DA-C5-002`** (English C5, drops a document with two or more injected-keyword markers or a run of short pipe-separated phrases): 0.668 ms/doc, 20.4% of the time on en-dclm and 21.3% on en-fineweb-edu. Then `DA-B4-010` (15.5% and 16.4%), then `DA-F1-005` again at about 13% to 15% and `DA-B4-008` (10% and 11%). The profile is flat now: no rule takes more than about 21%, so speeding up one more rule gains at most 1.25x. This was not changed here.
-
-## 6. Reproduce
-
-```
-python -I oneoff/speed_check.py run --clean-dir <tree>/teams/01-data-a/spec_v1 --packs <packs> --exclude ind-mr-sangraha-v --repeat 3 --out run.json   # once per clean.py
-python -I oneoff/speed_check.py compare before.json after.json
-python -I spec_v1/run_clean.py --pack <packs>/en-dclm.parquet --out <dir>                                        # per-rule profile
-```
+- **TSAI's figures:** en-dclm about 45 docs/s matches what we measured before the fixes. The en-fineweb-edu figure of about 30,000 docs/s does not: we measure 94.7 docs/s on the same pack before the fixes. How it was obtained is unknown (a different sample, or rules not running); it should be checked with TSAI.
+- **Indic packs** are not measured here. The 13 packs exclude `ind-mr-sangraha-v`.
+- **Harm test difference to expect:** `harm_tests.md` for fixes 1 and 2 together has extra Indic lines for `ind-hi-sangraha-s` (not on this machine) that come from the Indic refresh in the "after" file, not from the fixes.
