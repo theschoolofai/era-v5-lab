@@ -357,18 +357,26 @@ _DANGLING = frozenset(
     "that this these those which who because however".split()
 )
 
-_LAST_TOKEN = re.compile(r"([A-Za-z0-9']+)[^A-Za-z0-9']*$")
+_TOKEN = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'")  # the characters of [A-Za-z0-9']
+_LONGEST = max(map(len, _DANGLING))  # a last token longer than every dangling word cannot be one
 
 def medicine_c3(text):
     tail = text.rstrip()
     if not tail:
         return text
-    if _MARKER.search(tail):
+    if tail.endswith("]") and _MARKER.search(tail):  # the marker ends the text, so the text must end in "]"
         return ("drop", "")
     if tail.endswith((".", "!", "?", '"', "'", ")", ":", "…")):
         return text
-    token = _LAST_TOKEN.search(tail)
-    if token and token.group(1).lower() in _DANGLING:
+    # The last token is the final run of [A-Za-z0-9'] characters. It is read backwards from the end: the regex that found it,
+    # ([A-Za-z0-9']+)[^A-Za-z0-9']*$, searched the whole text from the start, which cost far more than the answer needs.
+    end = len(tail)
+    while end and tail[end - 1] not in _TOKEN:
+        end -= 1
+    start = end
+    while start and tail[start - 1] in _TOKEN and end - start <= _LONGEST:
+        start -= 1
+    if end - start <= _LONGEST and tail[start:end].lower() in _DANGLING:
         return ("drop", "")
     return text
 

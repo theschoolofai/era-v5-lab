@@ -11,8 +11,9 @@ from a pack.
   DA-B4-010  template and code-like text: the line scan stops once the answer is certain
   DA-B4-008  detokenised quotes: only the apostrophes are examined
   DA-B2-002  HTML tags: the cheap tests (count of "<", tag search) run before the slow "is it about HTML" search
+  DA-C3-003  cut-off pages: the last word is read backwards from the end instead of searched for from the start
 
-The frozen copies (the f1_joined_window, d3_reference, c5_result, b4_reference, b4_008_reference, b2_reference functions) record what each
+The frozen copies (the f1_joined_window, d3_reference, c5_result, b4_reference, b4_008_reference, b2_reference, c3_reference functions) record what each
 rule did before. If a rule's behaviour is ever changed on purpose, update or delete its copy here. The rest of the rule's
 own tests are in test_clean.py. One test file per speed-up round keeps test_clean.py as it was.
 """
@@ -648,3 +649,87 @@ def test_b2_002_equals_the_reference_on_random_documents():
     assert sum(r[0] == "keep" and d.count("<") >= 2 for r, d in zip(results, docs)) > 300   # two "<" and still kept
     for d, expected in zip(docs, results):
         assert b2_002(d) == expected
+
+
+# DA-C3-003: drop a text that ends in a "[...]" marker, or that is cut off after a dangling word (the, and, of ...); a text ending
+# in sentence punctuation is kept. The rule reads the last word backwards from the end instead of searching the whole text for
+# it with a regex; these cases pin that it still drops exactly what the regex version dropped.
+
+C3_MARKER_REF = re.compile(r"\[\s*(?:…|\.\.\.)\s*\]$")
+C3_DANGLING_REF = frozenset("a an the and or but of to in on at for with from by as is are was were "
+                            "that this these those which who because however".split())
+C3_LAST_TOKEN_REF = re.compile(r"([A-Za-z0-9']+)[^A-Za-z0-9']*$")
+
+
+def c3_reference(text):
+    """DA-C3-003 as it was: a regex searched the whole text for the last token. Returned in the shared form."""
+    tail = text.rstrip()
+    if not tail:
+        out = text
+    elif C3_MARKER_REF.search(tail):
+        out = ("drop", "")
+    elif tail.endswith((".", "!", "?", '"', "'", ")", ":", "…")):
+        out = text
+    else:
+        token = C3_LAST_TOKEN_REF.search(tail)
+        out = ("drop", "") if token and token.group(1).lower() in C3_DANGLING_REF else text
+    if isinstance(out, tuple) or not out.strip():
+        return ("drop", text)
+    return ("keep", text)
+
+
+def c3_003(text):
+    return c._run(en(text), c._english_c3_003)
+
+
+C3_CASES = [
+    ("He went to the", "drop"),
+    ("He went to the market.", "keep"),
+    ("Read more [...]", "drop"),
+    ("Read more [ … ]", "drop"),
+    ("Read more [\u2026]\n\n", "drop"),                         # trailing whitespace is ignored
+    ("[...] and then more text here", "keep"),                   # a marker that does not end the text
+    ("We stopped because", "drop"),
+    ("WE STOPPED BECAUSE", "drop"),                              # case does not matter
+    ("He went to the,", "drop"),                                 # punctuation after the word is skipped
+    ("He went to the \n\n", "drop"),
+    ("He went to the \u00e9", "drop"),                           # a non-ASCII character after it is not part of any token
+    ("He went to the...", "keep"),                               # ends in a full stop
+    ("There were 12", "keep"),                                   # a number is not a dangling word
+    ("The word it's", "keep"),
+    ("a", "drop"),                                               # the whole text is one dangling word
+    ("", "drop"),                                                # a blank text is dropped by the shared form
+    ("  \n ", "drop"),
+    ("!!!", "keep"),
+    ("Il est all\u00e9 \u00e0 la", "keep"),                      # "la" is not in the list
+]
+
+
+@pytest.mark.parametrize("text, action", C3_CASES, ids=[f"c3-case-{i}" for i in range(len(C3_CASES))])
+def test_c3_003_gives_what_the_regex_version_gives(text, action):
+    got = c3_003(text)
+    assert got == c3_reference(text)
+    assert got[0] == action
+
+
+def test_c3_003_last_word_length_boundary():
+    """The longest dangling word has 7 letters: a last token of 7 letters can be one, a longer one cannot."""
+    for word in ("because", "however", "bbecause", "xhowever", "because'", "'because", "be", "becaus", "x" * 40, "because" * 5):
+        for tail in ("", " ", "  ,", ";;"):
+            text = "He said " + word + tail
+            assert c3_003(text) == c3_reference(text), (word, tail)
+    assert c3_003("He said because")[0] == "drop"
+    assert c3_003("He said bbecause")[0] == "keep"
+
+
+def test_c3_003_equals_the_reference_on_random_documents():
+    """Texts built from dangling words, other words, markers, punctuation, spaces, newlines, digits and non-ASCII characters."""
+    pieces = ["the", "and", "of", "because", "however", "market", "He went", "12", "it's", "who", "a", "x" * 9, "[...]", "[ \u2026 ]", "[",
+              "]", ".", "!", "?", ",", ";", ":", '"', "'", ")", "\u2026", " ", "  ", "\n", "\t", "\u00e9", "\u4e2d", "-", "...", "THE", "To"]
+    rng = random.Random(3)
+    docs = ["".join(rng.choice(pieces) + (" " if rng.random() < 0.6 else "") for _ in range(rng.randint(0, 10))) for _ in range(8000)]
+    results = [c3_reference(d) for d in docs]
+    assert sum(r[0] == "drop" for r in results) > 500
+    assert sum(r[0] == "keep" for r in results) > 500
+    for d, expected in zip(docs, results):
+        assert c3_003(d) == expected
