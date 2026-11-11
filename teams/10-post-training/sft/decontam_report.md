@@ -61,7 +61,7 @@ A row that is both flagged and carries a canary counts once in Removed.
 
 ## 2. Flagged documents by benchmark
 
-The `sft-code-opencodereasoning-2` row is from the earlier two-shard run (shards 0 and 1: 21,018 rows scanned, 4,557 flagged), not from the full run of section 1 (542,219 scanned, 115,067 flagged). The files in the repo for the full run (`results/ocr2_full_run.json`, `results/ocr2_coverage.md`) hold totals only, so the full run has no per-benchmark, coverage-band, top-overlap or input-hash rows yet. Those need the per-shard run records, which are in the private run folder.
+The `sft-code-opencodereasoning-2` row is the full run: 70 python shards, 542,219 rows scanned, 115,067 flagged. Documents can hit more than one benchmark, so these columns do not sum to 115,067. Flagged documents per benchmark were rebuilt from the shard summaries and cross-checked against the scan records of shards 0 to 3. Coverage bands (section 3) and the largest-overlap items (section 4) cover only shards 0 to 3: per-document records for shards 4 to 69 were not retained after the scan. Section 6 holds the input hashes.
 
 | Set | `aime_2024` | `aime_2025` | `bfcl_v3` | `codeforces` | `flores200` | `gaia` | `gpqa_diamond` | `gsm8k` | `heldout_g5_v1` | `hle` | `in22_conv` | `in22_gen` | `livecodebench` | `longbench_v2` | `milu` | `mmlu` | `swe_bench_live` | `swe_bench_pro` | `swe_bench_verified` | `terminal_bench_2` |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -77,7 +77,7 @@ The `sft-code-opencodereasoning-2` row is from the earlier two-shard run (shards
 | `sft-code-nemotron-opencode` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 332 | 0 | 0 | 0 |
 | `sft-code-nemotron-terminal` | 0 | 0 | 0 | 7812 | 0 | 2 | 0 | 0 | 3 | 183 | 0 | 0 | 5743 | 0 | 2 | 0 | 9 | 2 | 0 | 0 |
 | `sft-code-opencodereasoning` | 0 | 1 | 0 | 73195 | 0 | 45 | 0 | 0 | 41 | 2573 | 1 | 0 | 65305 | 0 | 3 | 6 | 0 | 7 | 0 | 0 |
-| `sft-code-opencodereasoning-2` | 0 | 0 | 0 | 2231 | 0 | 0 | 0 | 0 | 0 | 71 | 0 | 0 | 2662 | 0 | 0 | 0 | 0 | 1 | 0 | 0 |
+| `sft-code-opencodereasoning-2` | 0 | 1 | 0 | 84155 | 0 | 3 | 0 | 0 | 47 | 2046 | 0 | 0 | 68079 | 0 | 93 | 3 | 7 | 3 | 0 | 0 |
 | `sft-code-swe-rebench-openhands` | 0 | 0 | 0 | 1 | 0 | 0 | 0 | 0 | 0 | 8 | 0 | 0 | 1 | 0 | 0 | 0 | 4474 | 21 | 1058 | 0 |
 | `sft-code-swe-zero-openhands` | 0 | 0 | 16 | 23 | 0 | 0 | 0 | 0 | 0 | 111 | 22 | 0 | 3 | 1 | 5 | 16 | 19751 | 255 | 6051 | 2 |
 | `sft-dolly-15k` | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 2 | 2 | 0 | 0 | 0 | 0 |
@@ -120,6 +120,7 @@ Coverage is the share of one benchmark item's runs that the document contains (t
 | `sft-code-nemotron-opencode` | 332 | 0 | 0 | 332 |
 | `sft-code-nemotron-terminal` | 9901 | 321 | 454 | 9126 |
 | `sft-code-opencodereasoning` | 112753 | 0 | 1311 | 111442 |
+| `sft-code-opencodereasoning-2` | 115067 | 0* | 40* | 9113* |
 | `sft-code-swe-rebench-openhands` | 4864 | 147 | 263 | 4454 |
 | `sft-code-swe-zero-openhands` | 22167 | 222 | 2230 | 19715 |
 | `sft-dolly-15k` | 4 | 0 | 1 | 3 |
@@ -141,11 +142,11 @@ Coverage is the share of one benchmark item's runs that the document contains (t
 | `sft-science-nemotron-science` | 369 | 0 | 3 | 366 |
 | `sft-stem-code-openthoughts3` | 7457 | 0 | 40 | 7417 |
 
-This table does not list `sft-code-opencodereasoning-2` (115,067 flagged) or `sft-safety-aegis-v1` (2 flagged); they are in section 1 only. With them, the flagged counts here add up to section 1.
+`sft-safety-aegis-v1` (2 flagged) is in section 1 only. `sft-code-opencodereasoning-2` (115,067 flagged) is listed here; its bands cover shards 0 to 3 only (9,153 flagged; shards 4 to 69 per-document records were not retained): no document reached 0.5, 40 reached 0.1 to 0.5 (all hle) and 9,113 are below 0.1. Every flagged document is removed whatever its band.
 
 ## 4. Benchmark items with the largest overlap
 
-Sections 4, 5 and 6 cover the 32 sets run with the records of this report. `sft-code-opencodereasoning-2` (115,067 flagged) and `sft-safety-aegis-v1` (2 flagged) are in sections 1 and 2 only; `sft-indic-indic-align-dolly-t` has no flagged document, so it has no entry here.
+Sections 4, 5 and 6 cover the 32 sets run with the records of this report, plus `sft-code-opencodereasoning-2`. Its coverage bands (section 3) and largest-overlap items here cover only shards 0 to 3. `sft-safety-aegis-v1` (2 flagged) is in sections 1 and 2 only; `sft-indic-indic-align-dolly-t` has no flagged document, so it has no entry here. Document ids are not listed for the OCR-2 rows.
 
 **`sft-agentic-nemotron-agentic-v1`**: at least 44 different benchmark items found in 432 documents (top 15 by coverage; the checker lists the best 5 items per document, so this is a lower bound)
 
@@ -677,6 +678,54 @@ Sections 4, 5 and 6 cover the 32 sets run with the records of this report. `sft-
 
 Coverage is the share of the item's runs found in the document. A value near 1.0 is a full copy; a low value is a short shared passage, for example a common problem statement. The ids above are enough to find the document in the set; the item text stays in Team 9's restricted folder.
 
+**`sft-code-opencodereasoning-2`**: at least 285 different codeforces items, 461 livecodebench items and 21 hle items found in the 9,153 flagged documents of shards 0 to 3 (the shards whose per-document records were retained; 115,067 were flagged in all 70 shards). Counts below are lower bounds: the checker lists the best 5 items per document. Document ids and offsets are not listed, by request.
+
+**codeforces**
+
+| Benchmark item | Documents | Highest coverage |
+|---|---:|---:|
+| `codeforces:test:2018/B` | 659 | 0.086 |
+| `codeforces:test:2060/D` | 431 | 0.079 |
+| `codeforces:test:1998/B` | 389 | 0.043 |
+| `codeforces:test:2038/B` | 378 | 0.051 |
+| `codeforces:test:2009/D` | 348 | 0.044 |
+| `codeforces:test:2056/D` | 290 | 0.073 |
+| `codeforces:test:1993/B` | 264 | 0.036 |
+| `codeforces:test:2009/F` | 239 | 0.034 |
+| `codeforces:test:2018/C` | 229 | 0.063 |
+| `codeforces:test:2030/E` | 229 | 0.048 |
+
+**livecodebench**
+
+| Benchmark item | Documents | Highest coverage |
+|---|---:|---:|
+| `livecodebench:release_v6:abc365_b` | 580 | 0.071 |
+| `livecodebench:release_v6:abc346_a` | 576 | 0.063 |
+| `livecodebench:release_v6:abc324_a` | 521 | 0.062 |
+| `livecodebench:release_v6:abc383_d` | 507 | 0.083 |
+| `livecodebench:release_v6:abc329_b` | 489 | 0.066 |
+| `livecodebench:release_v6:abc333_a` | 474 | 0.074 |
+| `livecodebench:release_v6:abc341_a` | 413 | 0.068 |
+| `livecodebench:release_v6:abc373_c` | 410 | 0.038 |
+| `livecodebench:release_v6:abc398_a` | 383 | 0.071 |
+| `livecodebench:release_v6:1873_B` | 324 | 0.050 |
+
+**hle**
+
+| Benchmark item | Documents | Highest coverage |
+|---|---:|---:|
+| `hle:test:66eeea0187ec4a6a04092e78` | 61 | 0.163 |
+| `hle:test:670c2d61886695e43e7c18b3` | 50 | 0.023 |
+| `hle:test:672bb2bbe5bc491689003908` | 11 | 0.002 |
+| `hle:test:66f28a89f1256af80477e15d` | 9 | 0.136 |
+| `hle:test:66ea3ba5444b8f31ef575799` | 9 | 0.004 |
+| `hle:test:672f6cfd609b665328565e5c` | 8 | 0.421 |
+| `hle:test:672e24f117ed86a6ef9def55` | 8 | 0.183 |
+| `hle:test:673627bc10ec0a5f859365ce` | 7 | 0.188 |
+| `hle:test:67373220a4d09488d430f640` | 7 | 0.185 |
+| `hle:test:674d5d4980a9a6adc4f86bc6` | 6 | 0.008 |
+
+
 ## 5. Checks
 
 Counts are out of the 32 sets of section 6; `sft-code-opencodereasoning-2` and `sft-safety-aegis-v1` are not counted here.
@@ -702,7 +751,7 @@ Counts are out of the 32 sets of section 6; `sft-code-opencodereasoning-2` and `
 
 ## 6. Inputs (to reproduce a run)
 
-The 32 sets of section 3. `sft-code-opencodereasoning-2` (joined shards, see section 1) and `sft-safety-aegis-v1` (stored `text` column) have no row here.
+The 33 sets of sections 1 to 4. `sft-safety-aegis-v1` (stored `text` column) has no row here. For `sft-code-opencodereasoning-2`, the 70 joined shards are listed inline below (scan input, `rendered.jsonl`); the hashes of every pipeline file for every shard, plus the 70 input shards, are in `results/ocr2_full_run_inputs.tsv`.
 
 | Set | Input file | Bytes | sha256 |
 |---|---|---:|---|
@@ -1093,6 +1142,76 @@ The 32 sets of section 3. `sft-code-opencodereasoning-2` (joined shards, see sec
 | `sft-code-nemotron-opencode` | `u000.part0019.jsonl` | 300,084,880 | `860ae3a0df4a3ecf64eb720e45e4f7927a1f07e9ee62d3f1321f20e01ea97e53` |
 | `sft-code-nemotron-opencode` | `u000.part0020.jsonl` | 247,859,056 | `f402b34105e68b9bcfa5e12edee42f4f3f1cc16cde12f975493852e5a224b067` |
 | `sft-code-nemotron-terminal` | `code-nemotron-terminal.jsonl` | 2,231,536,740 | `445c53c776d693214ab7fdf73e8ebdc1e17430a95584f1d3d8a57631226056f5` |
+| `sft-code-opencodereasoning-2` | `shard-00000/rendered.jsonl` | 767,093,546 | `357524debf577452fe84a2a5d3bf4b0653f8fa4180884c9cbbd3fe3f6d2dda7c` |
+| `sft-code-opencodereasoning-2` | `shard-00001/rendered.jsonl` | 755,964,980 | `f0aa09975d945e606dc4933ef026c4da9db15a6fb369044b204e165737536465` |
+| `sft-code-opencodereasoning-2` | `shard-00002/rendered.jsonl` | 748,873,945 | `8169f045ba23e8502d8dabdd081c81bf6d08e1984998cb7e6830b2f0662812cd` |
+| `sft-code-opencodereasoning-2` | `shard-00003/rendered.jsonl` | 764,396,607 | `e0bf4492fa84a65a8cbf812c68bda5f5433d96f3a694698d154858b7ffcf8b02` |
+| `sft-code-opencodereasoning-2` | `shard-00004/rendered.jsonl` | 764,729,454 | `e31fc4b13e957ba1f027ae818b2e2b99dfb5193c99f4a89b2e80286b1e6a917a` |
+| `sft-code-opencodereasoning-2` | `shard-00005/rendered.jsonl` | 761,563,979 | `520c6ccb65697d6e1585ae8d0a2f0d497ddd3d4fbb5927a867c912bc24e4e0eb` |
+| `sft-code-opencodereasoning-2` | `shard-00006/rendered.jsonl` | 763,313,393 | `798988d047b7487a68e1fe7b1f687e2af16814e1b31a54561b7ded72a1a72222` |
+| `sft-code-opencodereasoning-2` | `shard-00007/rendered.jsonl` | 755,820,860 | `e008a485cdf20ecb9db8d140600cfa7598474cfb61134b9377bb52fdd7182828` |
+| `sft-code-opencodereasoning-2` | `shard-00008/rendered.jsonl` | 767,709,601 | `ba971ffc914b870fe0fd107d08b8771063051149a880bcae22beaa3201c8da1f` |
+| `sft-code-opencodereasoning-2` | `shard-00009/rendered.jsonl` | 759,012,418 | `2705686bc6b814c36d9501be76dcaea356023f3f2e2f81c4dbd5bb85dd868da3` |
+| `sft-code-opencodereasoning-2` | `shard-00010/rendered.jsonl` | 761,774,749 | `7c2fa984747aec6d7936ad24ca9af211618dfc6dfe7e9675e56ccd6f281d4387` |
+| `sft-code-opencodereasoning-2` | `shard-00011/rendered.jsonl` | 756,445,995 | `c5caf74a4ecc22f6da448da8ab139301bc4878902fcae383883a050260e335ed` |
+| `sft-code-opencodereasoning-2` | `shard-00012/rendered.jsonl` | 715,146,698 | `7811500b46bed281b578246dcec7ff383cdfa34964143a1878a7534595fc5ef4` |
+| `sft-code-opencodereasoning-2` | `shard-00013/rendered.jsonl` | 648,324,663 | `f4891c2f231e5a45547c76ff7c5de0eff0ec03be118105d4b8f3c35508253c1e` |
+| `sft-code-opencodereasoning-2` | `shard-00014/rendered.jsonl` | 693,187,240 | `78009ed560fc7856b2303534a213914bab3bc185f90fa3a86ab131b7d43647dc` |
+| `sft-code-opencodereasoning-2` | `shard-00015/rendered.jsonl` | 666,341,331 | `546621af93c77309c6cd7b1741486778d7cffc7b867195687dbc686699de6985` |
+| `sft-code-opencodereasoning-2` | `shard-00016/rendered.jsonl` | 812,766,561 | `d0df388ab0af6b0bde4f5cc101c947286e7f58bf678f943d86e2cf6a4b35ecbf` |
+| `sft-code-opencodereasoning-2` | `shard-00017/rendered.jsonl` | 834,255,422 | `d27960fb2ee300a9c239daa1548c59449bd7bdbcf4a875bc226b5b84e636b370` |
+| `sft-code-opencodereasoning-2` | `shard-00018/rendered.jsonl` | 702,101,380 | `62f40c0ae970c54f2c3c4e34fc7c819b92a5030f3ecbe02ea20e57e9e742ec78` |
+| `sft-code-opencodereasoning-2` | `shard-00019/rendered.jsonl` | 865,515,491 | `fb2afca4ab60e09dc24348f0c4b7d2e9ce2823474e7546dcc2c8cc2dcd6c625e` |
+| `sft-code-opencodereasoning-2` | `shard-00020/rendered.jsonl` | 699,299,548 | `9aeccab042273a01f251c321a071107cc18d16a0ebe76d12b4f18b50bf986fdc` |
+| `sft-code-opencodereasoning-2` | `shard-00021/rendered.jsonl` | 855,308,022 | `4c3a6b375a3da552c497b659dc6018a416015bb17aca8eadf0cee4ba68fdd98d` |
+| `sft-code-opencodereasoning-2` | `shard-00022/rendered.jsonl` | 763,599,959 | `1a2b50009b05fd8eecb211770dadf59836de6ec1b210be89e97405962af6b8c4` |
+| `sft-code-opencodereasoning-2` | `shard-00023/rendered.jsonl` | 758,486,946 | `009c57c30947cf20fa4eb2c1463db4f5fdab5bc77e99d6e4d0b466865791cec3` |
+| `sft-code-opencodereasoning-2` | `shard-00024/rendered.jsonl` | 775,018,591 | `8a721bd5fa3f60c59050eb04f80b395f073f34b3fa0684f3696dea4ebddb9558` |
+| `sft-code-opencodereasoning-2` | `shard-00025/rendered.jsonl` | 750,368,692 | `66af289f4de5c1ce11376ab2d39d16c10070a2e47fa37f2c6c845ad37320a75f` |
+| `sft-code-opencodereasoning-2` | `shard-00026/rendered.jsonl` | 789,848,158 | `8d74c3845ba5aaa19526739c93efe1c0a4bb020a20e934242143f1a77d13769b` |
+| `sft-code-opencodereasoning-2` | `shard-00027/rendered.jsonl` | 653,171,715 | `3e3a59115a7f2baa2a80bff64c08874c492b33f514a3583dae1a3bc4414854ef` |
+| `sft-code-opencodereasoning-2` | `shard-00028/rendered.jsonl` | 660,634,750 | `d3eeb39c5baa7fe163683c75f23cf301d0b11df5380e4466134ed9a478b865b8` |
+| `sft-code-opencodereasoning-2` | `shard-00029/rendered.jsonl` | 717,712,874 | `3da93b3d93746ec4d6415092e70ff161a0c621b1ebf410e8c87237479e6fdd63` |
+| `sft-code-opencodereasoning-2` | `shard-00030/rendered.jsonl` | 151,042,648 | `7cd6477b4f9b8cb293b1c2c70bcf573a614173c79c9a846c0d7804fdaeb065e5` |
+| `sft-code-opencodereasoning-2` | `shard-00031/rendered.jsonl` | 531,075,796 | `b7316e80be2a345665a3d3cf4b145a3d9b3ec5c4be17f50168b81778ce67b0b5` |
+| `sft-code-opencodereasoning-2` | `shard-00032/rendered.jsonl` | 325,810,646 | `75d879e3878b7260631bb3edbbc9b1fd3069b1e100b3ac2fa4059a1f4ede33ce` |
+| `sft-code-opencodereasoning-2` | `shard-00033/rendered.jsonl` | 874,799,005 | `3137f45d8ab8793bc2beee8fdb66377436ad85b62b5810be31de2fba4bd67e3c` |
+| `sft-code-opencodereasoning-2` | `shard-00034/rendered.jsonl` | 853,456,268 | `a88249ff7d3e1d3ff1b93d1e65a8d3817f43531eb4cab655ab47696a822acdad` |
+| `sft-code-opencodereasoning-2` | `shard-00035/rendered.jsonl` | 878,488,344 | `d673d76e9753c5840c60524bcdb07df40fdc8097567a92d2953d75eba3e73668` |
+| `sft-code-opencodereasoning-2` | `shard-00036/rendered.jsonl` | 814,906,462 | `f6312897bae816aae0af901fbbaf6d3a87d47d8c70bab933595a44093aa431cf` |
+| `sft-code-opencodereasoning-2` | `shard-00037/rendered.jsonl` | 900,621,153 | `36dbee832e788a6f2dff7c833995663f5af56d6bf075945d6bf733fc4fe3df63` |
+| `sft-code-opencodereasoning-2` | `shard-00038/rendered.jsonl` | 879,976,273 | `0da35261401b3b66dc89515c1967bc86289102a2cf09b0c3635621f9c023601c` |
+| `sft-code-opencodereasoning-2` | `shard-00039/rendered.jsonl` | 817,522,389 | `37c3d2acc3eb544131a614da339e392bb815b1c7f1f4b0261c3eaa23300bbe3e` |
+| `sft-code-opencodereasoning-2` | `shard-00040/rendered.jsonl` | 890,162,886 | `c2f88824b32e83858f8709ce069fba6e75bc0da74f5810da389048b020947af7` |
+| `sft-code-opencodereasoning-2` | `shard-00041/rendered.jsonl` | 554,736,034 | `da3f2bead1a906f6ac4bff63b35f66cee999f0d907a029288aa9b727d00b7640` |
+| `sft-code-opencodereasoning-2` | `shard-00042/rendered.jsonl` | 743,667,625 | `698bfcb41907444a2297d512652580ebfd6279744a0a79ab78360c9cffa83ecd` |
+| `sft-code-opencodereasoning-2` | `shard-00043/rendered.jsonl` | 754,651,747 | `e2ceaf1aabf47cd0eed9aba11de2e03bbc5c42751d9bf4d64be4d2509227810d` |
+| `sft-code-opencodereasoning-2` | `shard-00044/rendered.jsonl` | 824,431,573 | `5e3c8e006202fbe6d72c20a59890e1cd56e9516437eb4a6c620dd912ca428372` |
+| `sft-code-opencodereasoning-2` | `shard-00045/rendered.jsonl` | 881,066,011 | `281b20c025aa01be56c715e7665f86213500f3f2c94584f48fe584c2834c7084` |
+| `sft-code-opencodereasoning-2` | `shard-00046/rendered.jsonl` | 801,211,830 | `42caab055286f6d50cef08fa000c40c26110392b1db0c9a5ae7c4d16b7196705` |
+| `sft-code-opencodereasoning-2` | `shard-00047/rendered.jsonl` | 835,289,169 | `2961923542785a4be5f1f15441b695310599f7c5a1bd906c7dd036b159b6740c` |
+| `sft-code-opencodereasoning-2` | `shard-00048/rendered.jsonl` | 880,424,266 | `13739b4f407efd8eab92a1e3ced16103d308442521c87dec6e76ac7aa5c788de` |
+| `sft-code-opencodereasoning-2` | `shard-00049/rendered.jsonl` | 810,849,035 | `a1d318c9a4679cab54ebcac5281d1ec89c28aa2724ab51bda8eab475e73268e1` |
+| `sft-code-opencodereasoning-2` | `shard-00050/rendered.jsonl` | 755,150,322 | `18c45d4e8ff8877d8a72034ce32b5398cb3b5a411ead92cc4882155008a434a8` |
+| `sft-code-opencodereasoning-2` | `shard-00051/rendered.jsonl` | 508,564,522 | `b3c854feebb36d50c5b1f9a25a7d2e24348b0ec8cc3f75539e5d3b756d505c15` |
+| `sft-code-opencodereasoning-2` | `shard-00052/rendered.jsonl` | 165,204,617 | `ff61dd4a739075d93684a5f7883b435c8876a1408718633a9fe2a8dab241075f` |
+| `sft-code-opencodereasoning-2` | `shard-00053/rendered.jsonl` | 149,397,089 | `895a08b9f09d9d12ee8b438385b1d7d9c5beb38969fa7cb4ff3de5efd906bcc3` |
+| `sft-code-opencodereasoning-2` | `shard-00054/rendered.jsonl` | 154,633,693 | `fe0ff39a0665abff91008996f95cec4ada49aec46f93bc89fcaa6558c390909e` |
+| `sft-code-opencodereasoning-2` | `shard-00055/rendered.jsonl` | 156,343,150 | `b8e71c98d00984dbf419293e1a083cbfa306518cd93cafe1522d7877d6a86969` |
+| `sft-code-opencodereasoning-2` | `shard-00056/rendered.jsonl` | 147,686,447 | `39becb0a077c712b3cda636e33d762ea2481768a35bc72bccf9d713e0d3aa9d3` |
+| `sft-code-opencodereasoning-2` | `shard-00057/rendered.jsonl` | 159,390,707 | `8181a2d4ac40d70f58b83bcf2be8bc5994d02f6ebcf0ab463215356cdc0a3a10` |
+| `sft-code-opencodereasoning-2` | `shard-00058/rendered.jsonl` | 154,109,067 | `49770cf443bef7eaf279da881ddb176371b4b21802eeff746eb78bd2bfd2b28d` |
+| `sft-code-opencodereasoning-2` | `shard-00059/rendered.jsonl` | 148,703,583 | `f05e69ab9026d8b3a0a35a22b142b7e617291a4f76b555dd4b26fe91354eb6e1` |
+| `sft-code-opencodereasoning-2` | `shard-00060/rendered.jsonl` | 160,335,656 | `a93fb32b824351e864eab5272932eee0f0595780570913b476a5de8717836580` |
+| `sft-code-opencodereasoning-2` | `shard-00061/rendered.jsonl` | 151,244,973 | `24bdaa348c01bb3061faa2b8eae41cddb6fcc256dc96a949966feb78f2e70655` |
+| `sft-code-opencodereasoning-2` | `shard-00062/rendered.jsonl` | 154,659,435 | `11e5f443c6cda76b0ab371c2bec8a4dfdfcdde3f2738bba766759739c7d5d752` |
+| `sft-code-opencodereasoning-2` | `shard-00063/rendered.jsonl` | 158,330,889 | `482d67b972290bdf6cdd90f28710637ae8aa374b52ccac99c1941e73f90c6b20` |
+| `sft-code-opencodereasoning-2` | `shard-00064/rendered.jsonl` | 153,571,092 | `65cb902ec0388580d2dbb4f94e5c89d4dde351bd072b1bd8c89ab8208d501fca` |
+| `sft-code-opencodereasoning-2` | `shard-00065/rendered.jsonl` | 158,728,420 | `c7623e2c5a61ce3e2293350442cc67a55bcf357fa1d31d901ce70ac97fa04d71` |
+| `sft-code-opencodereasoning-2` | `shard-00066/rendered.jsonl` | 155,387,580 | `efd2c28d390c448056a9e34c9e19991614299a8b584243c36b2d74b3e877b571` |
+| `sft-code-opencodereasoning-2` | `shard-00067/rendered.jsonl` | 149,707,750 | `5dede94537a11435d3b9c947134b2a68fb64a223db82cbba8dae53715233fe7a` |
+| `sft-code-opencodereasoning-2` | `shard-00068/rendered.jsonl` | 151,861,588 | `0225070d2601c37bf11cd24249ca2193cda0775c21b8de4b24dd1fa4dff773c2` |
+| `sft-code-opencodereasoning-2` | `shard-00069/rendered.jsonl` | 140,626,086 | `609070c6060d757a395912ad807d0e6f9e70f0b1544f9db432e166a42c556ca3` |
 | `sft-code-opencodereasoning` | `u027.part0000.jsonl` | 300,012,540 | `0e4a528b6e975384362e7baf31e47f1ddebdf0d94979f70021ca49930a3810e8` |
 | `sft-code-opencodereasoning` | `u027.part0001.jsonl` | 300,001,966 | `0acd4bb64538aeb61894f7055325189a3947f788977d68f3621908c25273ef9d` |
 | `sft-code-opencodereasoning` | `u027.part0002.jsonl` | 300,004,178 | `cf5c1f4d2251c47c9be833e9898296b4475a28b6e9997958ef4481da67766fc7` |
