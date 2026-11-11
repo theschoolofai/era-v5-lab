@@ -604,6 +604,91 @@ def test_d3_equals_the_unicodedata_reference_on_random_documents():
         assert c.d3(en(d)) == d3_result(d)
 
 
+# DA-C5-002: drop a document when two different spam patterns match, or when one line is 7 or more short "|"-separated phrases.
+# The rule searches the union of the nine patterns first and checks for 6 "|" before the line pattern; these cases pin that
+# it still drops exactly what the nine separate searches and the line pattern alone drop.
+
+C5_SPAM_PATTERNS = (  # the nine patterns as the author wrote them, searched one by one
+    r"\bcheap\s+(?:nfl|nba|mlb|nhl)\b",
+    r"\bcheap\s+(?:michael\s+kors|oakley|ray\s*bans?|jerseys)\b",
+    r"\bray\s*bans?\s+(?:sunglasses|outlet)\b",
+    r"\b(?:auto|car)\s+insur\w*\s+(?:quotes?|qiotes?|rates?)\b",
+    r"\bfree\s+auto\s+insurance\s+quotes\b",
+    r"\bsex\s+dating\s+in\b",
+    r"\bwrite\s+my\s+essay\b",
+    r"\b(?:카지노|바카라|룰렛)\b",
+    r"\bpigmentación\s+capilar\b",
+)
+C5_SPAM = tuple(re.compile(p, re.I) for p in C5_SPAM_PATTERNS)
+C5_KEYWORD_LINE = re.compile(r"^(?![ \t]*[•·*\-])(?:[^|\n]{2,40}\|){6,}[^|\n]{2,40}[ \t]*$", re.M)
+
+
+def c5_result(text):
+    """DA-C5-002 as it was before the union search: nine searches, then the line pattern on every document."""
+    dropped = sum(1 for p in C5_SPAM if p.search(text)) >= 2 or C5_KEYWORD_LINE.search(text)
+    return ("drop", text) if dropped or not text.strip() else ("keep", text)
+
+
+def c5_002(text):
+    return c._run(en(text), c._english_c5_002)
+
+
+C5_CASES = [
+    ("Visit our shop for cheap NFL jerseys today.", False),                     # one pattern is not enough
+    ("Cheap NFL gear. Cheap NBA gear. Cheap MLB gear.", False),                 # the same pattern three times counts once
+    ("cheap nfl jerseys and free auto insurance quotes", True),                 # two different patterns
+    ("CHEAP MICHAEL KORS and WRITE MY ESSAY", True),                            # case does not matter
+    ("Cheap\n\nRay Bans Sunglasses and Sex Dating In Texas", True),             # \s spans a line break, \b needs a word edge
+    ("cheapnfl and sex dating in", False),                                      # no \b between "cheap" and "nfl": one pattern only
+    ("카지노 and 바카라 sites", False),                                          # one Korean pattern is one pattern
+    ("카지노 and write my essay", True),
+    ("Pigmentación Capilar y write my essay", True),
+    ("ſex dating in town and write my essay", True),                            # re.I folds U+017F to s: the union must see it too
+    ("auto insurance qiotes and car insur rates", False),                       # both words match the same single pattern
+    ("A | b | c | d | e | f | g", True),                                        # 6 pipes on a line: 7 phrases
+    ("A | b | c | d | e | f", False),                                           # 5 pipes
+    ("ab|cd|ef|gh|ij|kl|mn", True),                                             # no spaces
+    ("a|b|c|d|e|f|g", False),                                                   # phrases need 2 or more characters
+    ("• ab|cd|ef|gh|ij|kl|mn", False),                                          # a bullet line is not a keyword line
+    ("one|two\nthree|four\nfive|six\nseven|eight", False),                      # 7 pipes in all, but no line has 6
+    ("An intro line.\nab|cd|ef|gh|ij|kl|mn\nA closing line.", True),            # the line sits inside a document
+    ("Nothing to see here, just an English line.", False),
+]
+
+
+@pytest.mark.parametrize("text, goes", C5_CASES, ids=[f"c5-case-{i}" for i in range(len(C5_CASES))])
+def test_c5_002_drops_what_the_nine_searches_and_the_line_pattern_drop(text, goes):
+    full = PARA + "\n" + text + "\n" + EN_TEXT
+    assert c5_002(full) == c5_result(full)
+    assert (c5_002(full)[0] == "drop") == goes
+
+
+def test_c5_002_equals_the_reference_on_random_documents():
+    """Documents built from spam phrases, pipe runs, bullets and filler, so that every pattern, every pair and the line
+    pattern come up alone, together and not at all."""
+    phrases = ["cheap nfl", "Cheap Oakley", "ray bans outlet", "auto insurance quotes", "car insur rates", "free auto insurance quotes",
+               "sex dating in", "write my essay", "카지노", "룰렛", "pigmentación capilar", "ſex dating in", "CHEAP JERSEYS", "ray-bans sunglasses"]
+    filler = ["the river rises", "in the hills", "and runs south", "to the sea.", "cheap", "dating", "insurance", "essay", "|", "- item", "• item"]
+    rng = random.Random(5)
+    docs = []
+    for _ in range(4000):
+        lines = []
+        for _ in range(rng.randint(1, 6)):
+            kind = rng.random()
+            if kind < 0.3:
+                lines.append(" ".join(rng.choice(filler + phrases) for _ in range(rng.randint(1, 8))))
+            elif kind < 0.6:
+                lines.append(("• " if rng.random() < 0.2 else "") + " | ".join(rng.choice(filler[:4] + ["ab", "x", "cd ef"]) for _ in range(rng.randint(2, 10))))
+            else:
+                lines.append(rng.choice(phrases) + " " + rng.choice(filler))
+        docs.append("\n".join(lines))
+    dropped = [d for d in docs if c5_result(d)[0] == "drop"]
+    assert 400 < len(dropped) < len(docs) - 400  # documents go in some cases and stay in others: the check is not vacuous
+    assert sum(1 for d in docs if sum(1 for p in C5_SPAM if p.search(d)) == 1) > 200  # one pattern alone is common
+    for d in docs:
+        assert c5_002(d) == c5_result(d)
+
+
 @pytest.mark.parametrize("lang", ["en", "eng"])
 def test_f1_tags_survive_a_second_clean(lang):
     text = PARA + "\nCall me on 555-867-5309 or write to ravi.kumar" + AT + "gmail.com.\nI live at 42 Elm Street, Springfield, IL 62704."

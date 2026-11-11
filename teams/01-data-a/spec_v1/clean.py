@@ -2133,26 +2133,27 @@ def _english_c5_002():
     SOURCE = "en-dclm"  # pack whose medicine this came from
     import re
 
-    _SPAM = tuple(
-        re.compile(p, re.I)
-        for p in (
-            r"\bcheap\s+(?:nfl|nba|mlb|nhl)\b",
-            r"\bcheap\s+(?:michael\s+kors|oakley|ray\s*bans?|jerseys)\b",
-            r"\bray\s*bans?\s+(?:sunglasses|outlet)\b",
-            r"\b(?:auto|car)\s+insur\w*\s+(?:quotes?|qiotes?|rates?)\b",
-            r"\bfree\s+auto\s+insurance\s+quotes\b",
-            r"\bsex\s+dating\s+in\b",
-            r"\bwrite\s+my\s+essay\b",
-            r"\b(?:카지노|바카라|룰렛)\b",
-            r"\bpigmentación\s+capilar\b",
-        )
+    _SPAM_PATTERNS = (
+        r"\bcheap\s+(?:nfl|nba|mlb|nhl)\b",
+        r"\bcheap\s+(?:michael\s+kors|oakley|ray\s*bans?|jerseys)\b",
+        r"\bray\s*bans?\s+(?:sunglasses|outlet)\b",
+        r"\b(?:auto|car)\s+insur\w*\s+(?:quotes?|qiotes?|rates?)\b",
+        r"\bfree\s+auto\s+insurance\s+quotes\b",
+        r"\bsex\s+dating\s+in\b",
+        r"\bwrite\s+my\s+essay\b",
+        r"\b(?:카지노|바카라|룰렛)\b",
+        r"\bpigmentación\s+capilar\b",
     )
+    _SPAM = tuple(re.compile(p, re.I) for p in _SPAM_PATTERNS)
+    _SPAM_ANY = re.compile("|".join(_SPAM_PATTERNS), re.I)  # matches exactly when one of the nine does
 
     _KEYWORD_LINE = re.compile(r"^(?![ \t]*[•·*\-])(?:[^|\n]{2,40}\|){6,}[^|\n]{2,40}[ \t]*$", re.M)
 
     def medicine_c5(text):
-        hits = sum(1 for p in _SPAM if p.search(text))
-        if hits >= 2 or _KEYWORD_LINE.search(text):
+        # Two different patterns must match to drop. Almost no document matches even one, so one search of their union
+        # comes first and the nine run one by one only when it matches. A keyword line needs 6 or more "|" characters.
+        hits = sum(1 for p in _SPAM if p.search(text)) if _SPAM_ANY.search(text) else 0
+        if hits >= 2 or (text.count("|") >= 6 and _KEYWORD_LINE.search(text)):
             return ("drop", "")
         return text
 
