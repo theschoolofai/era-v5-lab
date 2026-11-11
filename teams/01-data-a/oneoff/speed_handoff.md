@@ -1,6 +1,6 @@
 # Handoff: speeding up slow rules in clean.py
 
-The routine for making a slow rule in `clean.py` faster without changing its output, and for logging it. It was worked out on the English rules (`DA-F1-005`, `DA-D3-003`, `DA-C5-002`, `DA-B4-010`); section 7 covers what is different for the Indic rules, which are the next job. Read [results/spec_v1/speed_v1.md](../results/spec_v1/speed_v1.md) first: it is the log you add to, and its first section shows what a finished entry looks like.
+The routine for making a slow rule in `clean.py` faster without changing its output, and for logging it. It was worked out on the English rules (`DA-F1-005`, `DA-D3-003`, `DA-C5-002`, `DA-B4-010`); section 7 covers what is different for the Indic rules, which are the next job. Read [results/spec_v1/speed_v1.md](../results/spec_v1/speed_v1.md) first: it is the log you add to: each fix is one row in two tables and one line of text.
 
 ## 1. The task
 
@@ -59,7 +59,7 @@ The packs are `<pack_id>.parquet` files in one folder (`--packs`). The default i
    teams/01-data-a/oneoff/speed_compare.sh --work "$WORK" --rules <RULE_ID>
    ```
    It takes about 6 to 8 minutes and ends with a SUMMARY. It must say `RESULT: PASS`, `output sha256: the same on 13 of 13 packs` and `harm: unchanged`, and the line `clean.py <old sha> -> <new sha>` must show two different shas. If you already committed the fix, use `--before HEAD~1 --after HEAD`; the script stops with a message if before and after are the same file.
-8. **Log it.** Add a row to both tables in `speed_v1.md` (or in your own log file, section 6) and an entry copying the structure of the existing ones: the fix in one or two sentences, rule time before and after, docs/s before and after, the three checks, documents changed, commit. The numbers come from the SUMMARY, which also names the next slowest rules.
+8. **Log it** in `speed_v1.md` (or in your own log file, in the same format): a row in the speed table (docs/s before and after on the two packs, rule time before and after), a row in the status table (output sha256, harm tests, pytest count, documents changed, `clean.py` sha, commit), and one line in "What each fix did" with the fix in one or two sentences. The numbers come from the SUMMARY, which also names the next slowest rules.
 9. **Commit** the fix and the log entry together, in one commit per rule (`specv1.md`, `medicine_*.md` if edited, `clean.py`, the tests, `speed_v1.md`). A commit cannot contain its own id, so write `this commit` in the entry's commit field, or fill in the id with the next commit. Then go back to step 1.
 
 ## 5. Merging two people's work
