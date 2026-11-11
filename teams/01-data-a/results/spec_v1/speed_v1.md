@@ -53,7 +53,7 @@ The code, math and science packs are not slower: 1.0x to 1.1x after the first pa
 - **Pytest:** 1576 passed, 1 skipped at the fix commit. The tests compare the cached lookup with `unicodedata.name` for every alphabetic code point, and the rule with the old code on 3,000 random documents.
 - **Docs this rule changes:** 500-doc packs: en-dclm 3, en-fineweb-edu 1, en-nemotroncc 3, en-nemotroncc-synth 0. Large parts: en-dclm 387 of 46,245 (0.8%), en-fineweb-edu 190 of 54,004 (0.4%). All are fixes (lines removed).
 
-### 3. `DA-C5-002`: keyword-spam pages, not yet committed
+### 3. `DA-C5-002`: keyword-spam pages, commit 2d03ebb
 
 - **Fix:** the rule searched nine case-insensitive spam patterns on every document, and needs two different patterns to match before it drops. One search of the union of the nine now comes first, and the nine run one by one only when it matches (about 10 of 500 en-dclm documents). The keyword-line pattern runs only when the text has 6 or more `|`, which that pattern needs. Both checks are necessary conditions for a drop.
 - **Speed:** `fc6d1a2deea4` to `622b0d48c65f`. Rule time en-dclm 0.664 to 0.272 ms/doc, en-fineweb-edu 0.513 to 0.202. docs/s en-dclm 300.3 to 341.6, en-fineweb-edu 408.0 to 461.3.

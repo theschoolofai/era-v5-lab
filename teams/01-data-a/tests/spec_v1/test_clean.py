@@ -689,6 +689,103 @@ def test_c5_002_equals_the_reference_on_random_documents():
         assert c5_002(d) == c5_result(d)
 
 
+# DA-B4-010: drop a document when more than half of it is code-looking lines, else remove template expressions ({{ x }},
+# ${x}, NaN ...). The rule stops reading lines once the answer is certain and skips the template search for a text with no
+# template hint; these cases pin that it still gives what the full line scan and the full template search give.
+
+B4_TEMPLATE_REF = re.compile(
+    r"\{\{[^{}\n]{0,80}\}\}"
+    r"|\{%[^\n]{0,80}?%\}"
+    r"|\$\{[^{}\n]{0,80}\}"
+    r"|`[\w.]+(?:\s*(?:\|\||&&)\s*[\w.]+)+`"
+    r"|(?<=[:=$])\s*(?:undefined|NaN)\b"
+    r"|^[ \t]*(?:undefined|NaN|null)[ \t]*$", re.M)
+B4_CODE_TOKENS_REF = re.compile(
+    r"::|->|=>|==|!=|<=|>=|&&|\|\||\+\+|\+=|-=|\);|\)\s*\{|[{};]\s*$|\}"
+    r"|^\s*(?:#include|import\s|from\s+\S+\s+import|def\s|class\s|public\s|private\s|static\s|void\s|return\b"
+    r"|require\s|var\s|let\s|const\s|function\b|Sub\s|End Sub|Dim\s|\$\s|>>>\s|>\s)"
+    r"|\b(?:End Sub|ByVal|As Integer|System\.out|printf|println)\b", re.M)
+B4_TABLE_ROW_REF = re.compile(r"^\s*\|.*\|\|")
+
+
+def b4_reference(text):
+    """DA-B4-010 as it was before the early stop and the hint check: every line scanned, the template regex on every text."""
+    code = 0
+    for line in text.split("\n"):
+        tokens = len(B4_CODE_TOKENS_REF.findall(line))
+        if tokens >= 2 and tokens * 6 >= len(line.split()) and not B4_TABLE_ROW_REF.match(line):
+            code += len(line)
+    if text.strip() and code > 0.5 * len(text.strip()):
+        return ("drop", text)
+    new = B4_TEMPLATE_REF.sub("", text)
+    return ("fix" if new != text else "keep", new)
+
+
+def b4_010(text):
+    return c._run(en(text), c._english_b4_010)
+
+
+B4_CODE_LINE = "x = a == b && c != d;"            # 4 code tokens in 7 words
+B4_PROSE_LINE = "The river rises in the hills and runs south to the sea."
+B4_CASES = [
+    (B4_CODE_LINE + "\n" + B4_CODE_LINE, "drop"),                                      # all code
+    (B4_PROSE_LINE + "\n" + B4_PROSE_LINE, "keep"),                                    # all prose
+    (B4_PROSE_LINE + "\n" + B4_CODE_LINE * 6, "drop"),                                 # code only in the second half: no early stop to "keep"
+    ("\n".join([B4_CODE_LINE] * 6 + [B4_PROSE_LINE]), "drop"),                         # code first
+    ("\n".join([B4_PROSE_LINE] * 6 + [B4_CODE_LINE]), "keep"),                         # a little code at the end
+    ("if (a == b) { return c; }", "drop"),
+    ("| a | b ||\n| c | d ||\n| e == f && g ||", "keep"),                              # table rows are never code lines
+    ("Hello {{ name }}, welcome back.", "drop"),                                       # two "}" in 5 words: a code line, so the whole text is code
+    ("The river rises in the hills and runs south to the sea, so hello {{ name }} and welcome back.", "fix"),   # more than 12 words: not a code line
+    ("The river rises in the hills and runs south to the sea, so {% if x %}Hi{% endif %} and welcome back.", "fix"),
+    ("The total is ${price} today.", "fix"),
+    ("Price: NaN\nName=undefined", "fix"),
+    ("Set `page.data.title || page.data.name` first.", "fix"),
+    ("A line\nundefined\nanother line\nnull\nNaN", "fix"),
+    ("A nullable value is not null-safe, and the NaNs and undefineds stay.", "keep"),   # hints present, no match
+    ("Nothing special here at all.", "keep"),
+    ("", "keep"),
+    ("   \n\n  ", "keep"),
+    ("{{", "keep"),
+    ("{{ unterminated\n}}", "keep"),
+]
+
+
+@pytest.mark.parametrize("text, action", B4_CASES, ids=[f"b4-case-{i}" for i in range(len(B4_CASES))])
+def test_b4_010_gives_what_the_full_scan_gives(text, action):
+    got = b4_010(text)
+    assert got == b4_reference(text)
+    assert got[0] == action
+
+
+def test_b4_010_threshold_is_exact_around_half_the_text():
+    """A code line and a prose line of every length around the point where code is exactly half of the text."""
+    for n in range(len(B4_CODE_LINE) - 6, len(B4_CODE_LINE) + 7):
+        for tail in ("", "\n", " "):
+            for text in (B4_CODE_LINE + "\n" + "p" * n + tail, "p" * n + "\n" + B4_CODE_LINE + tail):
+                assert b4_010(text) == b4_reference(text), (n, tail)
+    half = len(B4_CODE_LINE) - 1                    # the code line plus "\n" plus this many characters: code is exactly half
+    assert b4_010(B4_CODE_LINE + "\n" + "p" * half)[0] == "keep"        # exactly half is not more than half
+    assert b4_010(B4_CODE_LINE + "\n" + "p" * (half - 1))[0] == "drop"  # one character less prose: just over half
+    assert b4_010(B4_CODE_LINE + "\n" + "p" * (half + 1))[0] == "keep"
+
+
+def test_b4_010_equals_the_reference_on_random_documents():
+    """Documents of code lines, prose, template pieces, table rows, blank lines and hint words, so that every outcome and
+    both early stops come up."""
+    pieces = [B4_CODE_LINE, "if (a == b) { return c; }", "import os", "#include <stdio.h>", "foo->bar(baz);", "}", B4_PROSE_LINE,
+              "Some words in a plain sentence.", "Hello {{ user }}!", "Cost ${total}", "{% for x in y %}", "Price: NaN", "undefined", "null",
+              "`a.b || c.d`", "| a | b ||", "| a == b && c ||", "", "   ", "nullable and NaNs", "a ==", "x = y;"]
+    rng = random.Random(9)
+    docs = ["\n".join(rng.choice(pieces) for _ in range(rng.randint(1, 12))) for _ in range(4000)]
+    results = [b4_reference(d) for d in docs]
+    assert sum(r[0] == "drop" for r in results) > 300
+    assert sum(r[0] == "fix" for r in results) > 300
+    assert sum(r[0] == "keep" for r in results) > 300
+    for d, expected in zip(docs, results):
+        assert b4_010(d) == expected
+
+
 @pytest.mark.parametrize("lang", ["en", "eng"])
 def test_f1_tags_survive_a_second_clean(lang):
     text = PARA + "\nCall me on 555-867-5309 or write to ravi.kumar" + AT + "gmail.com.\nI live at 42 Elm Street, Springfield, IL 62704."

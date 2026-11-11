@@ -2699,11 +2699,34 @@ def _english_b4_010():
             pos += len(line) + 1
         return out
 
+    def b4_mostly_code(text):
+        """Whether the lines b4_code_lines finds are more than B4_SHARE of the text, as b4_spans asks. The same test, but it
+        stops as soon as the answer cannot change: when the code lines already pass the limit, or when the code found plus
+        every character not yet read cannot reach it (a prose document is settled halfway through)."""
+        if not text.strip():
+            return False
+        limit = B4_SHARE * len(text.strip())
+        code, left = 0, len(text)
+        for line in text.split("\n"):
+            tokens = len(B4_CODE_TOKENS.findall(line))
+            if tokens >= B4_MIN_TOKENS and tokens * B4_WORDS_PER_TOKEN >= len(line.split()) and not TABLE_ROW.match(line):
+                code += len(line)
+                if code > limit:
+                    return True
+            left -= len(line) + 1
+            if code + left <= limit:
+                return False
+        return False
+
+    # Every alternative of B4_TEMPLATE contains one of these, so a text with none of them has no template expression.
+    B4_TEMPLATE_HINTS = ("{{", "{%", "${", "`", "undefined", "NaN", "null")
+
     def b4_spans(text):
         """B4: the document is dropped if it is mostly code; otherwise template expressions are removed."""
-        code = sum(e - s for s, e in b4_code_lines(text))
-        if text.strip() and code > B4_SHARE * len(text.strip()):
+        if b4_mostly_code(text):
             return [(0, len(text), "B4-mostly-code")]
+        if not any(hint in text for hint in B4_TEMPLATE_HINTS):
+            return []
         return [(m.start(), m.end(), "B4-template") for m in B4_TEMPLATE.finditer(text)]
 
 
