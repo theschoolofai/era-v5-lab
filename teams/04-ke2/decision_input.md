@@ -19,7 +19,7 @@ Every number below is read from a results file in this tree. Upstream PR #349 co
 | swatibansal/era-v5-lab #3 | Theorem 2 (structural decode) and Theorem 3 (nearest-code cosine) | `proof.md` sections 5 and 6, `results/decode_checks.json` |
 | swatibansal/era-v5-lab #4 | exact minimum decode margin per script class, fp64 / fp32 / bf16 | `min_margin.md`, `results/min_margin/` |
 | swatibansal/era-v5-lab #5 | tau sweep (synthetic vectors); CPU counterpart of the GPU determinism run | `min_margin.md` "Acceptance threshold", `results/min_margin/tau_*`; `determinism_gpu.md` section 7, `results/decode_cpu/` |
-| 12 Nov follow-up to upstream #349 | Team 3 C1-s0, C2-s0, and frozen C3-s0 candidate tables | `output_shape.md`, `results/tokenizer_candidates/sample_v0/` |
+| Avnish's PR #372 (follow-up to merged #349) | Team 3 C1-s0, C2-s0, and frozen C3-s0 candidate tables | `output_shape.md`, `results/tokenizer_candidates/sample_v0/` |
 
 The proof, margin and CPU/GPU determinism runs use the HF baseline tokenizer BrahmicTokenizer-131K (sha256
 `01d968a7…739fff`). Team 3 candidates are measured separately by the revalidation script behind sections 1 and 2.
@@ -131,14 +131,14 @@ guarantee of section 3 follow.
 
 | # | owner | status | risk |
 |---|---|---|---|
-| 1 | TSAI | closed with caveats | CUDA determinism: PR #268, section 4. Caveats: one GPU class, dense decoder, batch <= 4,096. |
-| 2 | Team 5 -> Team 4 | open | No predicted vectors yet. tau = 0.3 is proposed from synthetic error models only (section 3) and must be re-checked on Team 5's vectors with `tau_sweep.py --vectors`; the margin, not tau, is what detects a near-code wrong answer. |
-| 3 | TSAI | open | E4 to E8 are single-seed in TSAI's files. Multi-seed still needed. |
+| 1 | TSAI | closed with caveats | CUDA determinism: PR #268, section 4. CPU repeats now match the CUDA token-ID hash; CUDA evidence still covers one GPU class and batches up to 4,096. |
+| 2 | Team 5 -> Team 4 | open | No Team 5 predicted-vector artifact is present in this checkout. tau = 0.3 is proposed from synthetic error models only (section 3) and must be re-checked on Team 5's vectors with `tau_sweep.py --vectors`; the margin, not tau, is what detects a near-code wrong answer. |
+| 3 | TSAI | open | E4 to E8 remain single-seed evidence. The four 11 Nov GPU re-runs use seed 0 and check reproducibility against TSAI's reported values; they do not measure seed-to-seed variation. Multi-seed results are still needed. |
 | 4 | Lab decision | open | Unit-norm codes cannot express a per-token frequency prior; the fix is one scalar per token, V extra parameters. |
-| 5 | Team 4 with Team 3 | partially closed | v0, v0.1, v1-c1, C1 to C3, C1-s0, C2-s0 and C3-s0 measured: longest token 32 bytes, 0 raw collisions. The v2 file remains unmeasured (ask A). |
-| 6 | Team 4 with Team 3 | open | The special-token designation is unconfirmed, and the one file we have disagrees with Team 3 on the end-of-text id (ask B). No committed number depends on it; the upstream-compatibility check and the tokenizer test gate do. |
-| 7 | Team 5 | partially closed | Margin floor and precision rules are now proven and measured (section 3). The cosine-decoder requirement and the margin-reporting requirement are stated here, not yet in Team 5's decoder. |
-| 8 | Team 4 with Team 3 | new | Team 3's `verify_kronecker_constraints_unified.py` reports 131,072 normal and 0 special tokens; the correct split is 130,716 and 356 (`output_shape.md`). Its length and cross-script gates still pass (ask C). |
+| 5 | Team 4 with Team 3 | partially closed | v0, v0.1, v1-c1, C1 to C3, and sample-v0 C1-s0 to frozen C3-s0 are measured: longest token 32 bytes, 0 raw collisions. The v2 file remains unmeasured (ask A). |
+| 6 | Team 4 with Team 3 | open | Special-token role mapping remains unresolved. Team 3 documents id 130822 `<|endoftext|>` as a G10 end-of-document marker and keeps id 36 `<|end_of_text|>` distinct; the model's bos/eos/pad/unk roles and HF config for the 356 specials are not supplied (ask B). |
+| 7 | Team 5 | partially closed | Margin floor and precision rules are proven and measured (section 3). The cosine-decoder and margin-reporting requirements remain open; this checkout has no evidence that the downstream predicted-vector decode path implements them. |
+| 8 | Team 4 with Team 3 | open | A prior run recorded incorrect normal/special counts from `verify_kronecker_constraints_unified.py` (output_shape.md). That verifier source is absent from this checkout, so whether the display bug was fixed is unconfirmed (ask C). |
 
 Asks to Team 3 (owner of risks 5, 6 and 8 on their side: @sohamniyogi, lead @rjvim):
 
@@ -150,21 +150,22 @@ also passed and is measured. Please supply the v2 file `0862f683…5bc47` (pin e
 `--candidate v2@<sha256>=<path>`). A token over 32 bytes in it reopens P = 32 (section 2); a collision in its raw
 table reopens section 1.
 
-B. **Special-token designation and the end-of-text id.** Our runs read the 356 special ids from `added_tokens`
+B. **Special-token roles and loader configuration.** Our runs read the 356 special ids from `added_tokens`
 (`special: true`) inside `tokenizer.json`; that is what every committed table, margin and determinism result uses.
-The only `special_tokens_map.json` and `tokenizer_config.json` on our side were synthesised on 31 Oct from the
-baseline's added tokens, because the HF repo is gated; they name three tokens, bos `<|begin_of_text|>`, eos
-`<|end_of_text|>` (id 36) and pad `<|pad|>`. Team 3's `v0/special_slots.md` (lab main `9ab4f3d`) says G10's
-end-of-document marker is `<|endoftext|>` at id 130822 and that id 36 is a different token that stays as it is. Nothing
-in the lab repository defines which of the two the model will treat as eos, and no candidate ships either file. What it
-touches on our side: the upstream-compatibility check `src/proofs/proof_checks.py` takes the literal-text path only for
-ids named in the map (3 today, against 356 specials; its `fed_equals_raw` of 129,766 was computed with the synthesised
-map), and `tests/conftest.py` enables the 59 tokenizer tests only when the map is present, so no Team 3 candidate can
-run the full suite as shipped. Asks: (1) publish `special_tokens_map.json` and `tokenizer_config.json` with every
-candidate, or state that `added_tokens` in `tokenizer.json` is the single source of truth; (2) confirm bos, eos, pad
-and unk by id, in particular 36 versus 130822; (3) say whether all 356 specials are `additional_special_tokens` or only
-the named ones. Until then the special-token policy sentence in `proof.md` section 4 stays open.
+The only `special_tokens_map.json` and `tokenizer_config.json` on our side were synthesized on 31 Oct from the
+baseline's added tokens because the HF repo is gated; they name bos `<|begin_of_text|>`, eos `<|end_of_text|>` (id 36)
+and pad `<|pad|>`. Team 3's `v0/special_slots.md` says G10's `<|endoftext|>` at id 130822 is an end-of-document marker
+and that id 36 remains a distinct token. This is not evidence that the two IDs are interchangeable or that Team 3
+changed id 36. The release contains `tokenizer.json` but no `special_tokens_map.json` or `tokenizer_config.json`.
+The upstream-compatibility check `src/proofs/proof_checks.py` takes the literal-text path only for IDs named in the
+map (3 today, against 356 specials; its `fed_equals_raw` of 129,766 used the synthesized map), and `tests/conftest.py`
+enables the 59 tokenizer tests only when the map is present. Please confirm whether `added_tokens.special` is the
+single source of truth or publish the intended config; define bos/eos/pad/unk by ID; and specify how the 356 specials
+map to HF named or additional special-token roles. Until then the special-token loader policy and integration test
+gate remain open.
 
-C. **Verifier count bug.** `verify_kronecker_constraints_unified.py` prints `131,072 normal tokens` and `0 special
-tokens` for v0 and v0.1; the tokenizer has 130,716 and 356. The maximum-length and cross-script checks are unaffected;
-the two printed counts should not be used as provenance until fixed.
+C. **Verifier count bug.** A prior run of `verify_kronecker_constraints_unified.py` printed `131,072 normal tokens`
+and `0 special tokens` for v0 and v0.1; the tokenizer has 130,716 normal and 356 special tokens. The maximum-length
+and cross-script checks passed, but the displayed category counts were wrong. The verifier source is not in this
+checkout, so fix status cannot be checked here. Please point to the fix or confirm the corrected counts before using
+that verifier output as provenance.
