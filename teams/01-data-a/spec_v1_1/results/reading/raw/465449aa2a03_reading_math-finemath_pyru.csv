@@ -1,0 +1,333 @@
+doc_id,kind,code,offsets,quote,why,source
+f85486e0d9ad0a50,harm,DA-C2-001,984-984,,"C2 line rule deleted 30 survey trial lines (amount lost, ticket price) because each wording repeats 5+ times across different trials; 8 trials are now empty and most lost their price",ai
+02265dbc8fa20259,missed,C1,3353-3439,,blog footer: end marker and community invite lines,ai
+7aa25f450cbc9b70,missed,C1,1393-1429,,Q&A comment signature with date and time,ai
+1ab888d9366a43fd,new,NEW-hyphen-split-words,503-513,,"print line-end hyphens left inside about 15 words, with a space after the hyphen",ai
+1ab888d9366a43fd,new,NEW-missing-spaces,1017-1026,,words run together where a subscript or line break was lost,ai
+1ab888d9366a43fd,new,NEW-flattened-formulas,1522-1546,,subscripts and the fraction of the load formula flattened into one line; same in the later formula lines,ai
+1ab888d9366a43fd,missed,C1,6061-6370,,author bio and association contact footer,ai
+fe843a72092064cd,new,NEW-ai-generated-text,0-12636,,"likely AI-generated SEO article: each topic written twice in other words, wrong statements of the laws of cosines and tangents",ai
+fe843a72092064cd,missed,C1,36-102,,breadcrumb navigation lines,ai
+fe843a72092064cd,missed,C1,11622-12636,,author bio block at the end,ai
+0610be9612d18bc6,missed,C2,1534-2086,,post 3 quotes post 2 almost in full; the rule removed only the quoted diagram,ai
+ee9ac5fd44a100b7,missed,C1,63-112,,byline and review line under the title,ai
+ee9ac5fd44a100b7,missed,C1,2828-2950,,subscription advert at the end,ai
+9e9292036542a1b0,missed,C5,208-443,,"lower-case keyword list, so the Title-Case C5 rule does not match; includes a non-English word",ai
+9e9292036542a1b0,new,NEW-orphan-figure-labels,472-488,,"bullet lists of single figure labels left from an interactive 3D scene, in all 5 sections",ai
+9e9292036542a1b0,missed,C1,5088-6527,,related-items block (titles and teasers of other pages); C2 only removed its repeated teaser,ai
+9373e806c8ee0ac8,new,D4,0-4457,,spun text: words replaced by odd synonyms throughout; math has no D4 rule,ai
+9373e806c8ee0ac8,missed,C1,4205-4457,,tutoring-service advert footer,ai
+54656567cb9c8e38,missed,C1,483-502,,Q&A comment timestamps after each of 7 comments,ai
+32b1f031d8c464e4,missed,C1,0-152,,"contact block at the top, its address already missing",ai
+32b1f031d8c464e4,new,NEW-template-pages,0-2813,,"calculator page generated from a template for one number pair, with store coupon names filled in",ai
+32b1f031d8c464e4,missed,C1,376-516,,empty calculator form labels,ai
+32b1f031d8c464e4,missed,C1,2747-2813,,navigation line at the end,ai
+0815e685a1a74bda,missed,C1,38-66,,"forum post headers (post number, date, user name) before each of 20 posts, plus 5 edit-note lines",ai
+f19cd0cc87cb399a,missed,C1,64-183,,"document-host viewer header (size, start page, download, transcription)",ai
+f19cd0cc87cb399a,new,NEW-merged-table-cells,327-414,,"scope-and-sequence table (topics by grade with check marks) flattened into running text; grade columns, check marks and PDF page breaks run into the sentences",ai
+f19cd0cc87cb399a,new,NEW-missing-formulas,1481-1500,,"PDF text lost characters: equals sign shown as plus, numbers cut at line ends, minus signs gone",ai
+f19cd0cc87cb399a,missed,C1,21977-49032,,"about 90 related-document teasers from the host after the transcription, over half the doc; C2 removed only one repeated teaser",ai
+a48d37861a2ab782,missed,C1,39-71,,"forum post headers (post number, date, user name) before each of 6 posts; the last header has no post",ai
+8f098ccbede3a46d,missed,C1,97-101,,quiz button label after each of 18 questions,ai
+8f098ccbede3a46d,new,NEW-missing-formulas,162-177,,"formulas shown as images are gone: questions 5-9, 15 and 18 and most answer options are empty",ai
+8f098ccbede3a46d,new,NEW-flattened-formulas,844-849,,"superscripts flattened onto the base line (powers of e, x and a binomial)",ai
+920808a906ef229b,missed,C1,3191-3290,,homework-site teaser: the solution itself is not in the page,ai
+dcd6058ecb2cfc18,missed,C1,1283-1341,,forum related-news line,ai
+dcd6058ecb2cfc18,missed,C2,3287-3355,,quoted replies repeat earlier posts in full (3 quoted posts); the rule only removed the user-title lines,ai
+743e8c255952e983,new,NEW-missing-formulas,569-586,,the pictures the questions are about are gone; many questions are only an answer or an explanation,ai
+743e8c255952e983,missed,C3,5910-5930,,"page ends inside question 6 of the review, with no answer or the remaining questions",ai
+4ffb288e0df06071,missed,C1,533-3139,,similar-questions block with 10 teasers; the C1 line rule misses the heading because of the markdown ## prefix,ai
+8d724d02426ad3ff,missed,C1,26-48,,"breadcrumb line at the top and again at the end, plus a next-topic link",ai
+8d724d02426ad3ff,new,NEW-flattened-formulas,2898-2927,,superscripts and subscripts flattened (powers and combination notation),ai
+8d724d02426ad3ff,new,NEW-missing-formulas,4078-4089,,characters lost inside formulas (a combination value garbled; less-or-equal shown as less-than),ai
+7872171b9bf54929,missed,C1,20-98,,homework-marketplace order lines naming the tutors wanted,ai
+7872171b9bf54929,new,NEW-missing-formulas,608-650,,the linear-program model lost its operators (plus and inequality signs); loose symbol lines are left above it,ai
+7872171b9bf54929,missed,B2,746-757,,"paragraph tags split across lines, so the B2 tag rule does not match",ai
+7872171b9bf54929,new,NEW-flattened-formulas,824-842,,formula tokens split one per line (subscripts and coefficients on their own lines) in several solutions,ai
+7872171b9bf54929,new,NEW-merged-table-cells,3387-3411,,spreadsheet solver output tables broken into one cell per line or run together on one line (4 tables),ai
+2334d216e03d1058,new,NEW-missing-formulas,1042-1077,,equals sign lost in one step of the solution,ai
+789dfcb4222e401e,missed,C1,0-17,,documentation permalink signs (pilcrow) at the end of 12 headings,ai
+767037306d97bc86,missed,C1,0-80,,"course navigation header (exercise, chapter, ordering, transcript label)",ai
+767037306d97bc86,missed,C2,424-561,,"the factors-of-16 working is repeated word for word inside one line, which the line and passage rules cannot see",ai
+42c81cfd52a5849d,missed,B5,304-313,,site math converter broke the units: letters spaced apart and a negative exponent split so part of it sits outside the superscript,ai
+d72a2a98549b9142,missed,C5,0-2297,,"catalogue listing page: 11 worksheet titles, each twice, with one-line blurbs and Math / Worksheet labels; no maths content",ai
+c63a6dd114e246eb,new,NEW-ai-generated-text,1059-2745,,site-added AI summary line and 5-question FAQ under the forum thread,ai
+c63a6dd114e246eb,missed,C1,2747-2884,,"related-threads block left as bare numbers: the C1 line filter drops the Replies/Views labels before its own Replies-Views block pattern runs, so the counts stay",ai
+9453359091e63dfc,missed,B5,106-140,,site-specific math delimiter tags instead of $ (9 pairs),ai
+a77ec4895195a433,new,NEW-missing-formulas,1063-1083,,3 displayed formulas are gone; the sentences that introduce them end in a colon or stop,ai
+facfd603bc865298,new,NEW-seo-filler,0-2775,,"question-heading SEO page on an unrelated site; answers pasted from several sources, with a stray section number",ai
+facfd603bc865298,new,NEW-flattened-formulas,1268-1278,,derivative fractions flattened into two words,ai
+facfd603bc865298,missed,C3,2742-2775,,doc ends in the middle of a sentence,ai
+afa476465dcc2169,missed,C1,290-347,,"answers-site chrome: study-guide widget at the end, plus a vote count and two timestamps",ai
+25e224253f9a5c0a,missed,C1,49-85,,forum section headers and 2 moderator edit-note lines,ai
+25e224253f9a5c0a,missed,C2,6550-6822,,a reply quotes the previous post's closing paragraph word for word,ai
+26bf10df32e94547,missed,B5,192-204,,site math converter split the exponent and the limit subscript so they read as products (2 places),ai
+d805befbd984308c,missed,C1,262-433,,"answer-box widget, plus vote count, update date and two relative-age lines",ai
+d805befbd984308c,missed,C1,435-4176,,"12 related questions with their answers, most of the doc; C1 removed only the block heading",ai
+d805befbd984308c,new,NEW-flattened-formulas,1277-1290,,degree sign flattened to the letter o in 3 angles,ai
+d805befbd984308c,new,B1,1362-1370,,HTML entity left in the text; math has no B1 rule,ai
+9dd2fc49a23b7e73,missed,C1,64-85,,"permalink signs (pilcrow) after 8 headings, with section numbers glued to the titles",ai
+10d547035dd610e2,new,NEW-ai-generated-text,0-4567,,incoherent machine-written SEO article that never answers its title question; the title names the wrong shape,ai
+053c7e6dfbdb4e46,missed,C1,0-49,,breadcrumb line,ai
+053c7e6dfbdb4e46,new,NEW-seo-filler,78-2117,,3 site-wide template paragraphs about exams and shortcut tricks before the content,ai
+053c7e6dfbdb4e46,missed,C1,2821-2871,,"answer-button line: C2 removed the later copies but keeps the first copy, and one workspace label",ai
+053c7e6dfbdb4e46,missed,C1,5851-6451,,"related-links list, comment prompt and 2 reader comments at the end",ai
+fd804060f7a299ac,missed,C1,0-51,,javascript warning glued to the page title on the first line,ai
+fd804060f7a299ac,new,NEW-seo-filler,164-904,,series template paragraph and topic-outline links before the questions,ai
+fd804060f7a299ac,missed,C1,1544-1556,,empty explanation label after each of 50 questions (answers held back for premium members),ai
+fd804060f7a299ac,missed,A3,3803-3808,,"UTF-8 read as Thai cp874: degree signs, apostrophes, Greek letters and no-break spaces garbled in about 40 places; the A3 rule only repairs cp1252 and cp866",ai
+fd804060f7a299ac,new,NEW-flattened-formulas,11196-11209,,powers flattened (a power of 10 and unit exponents written as plain digits),ai
+fd804060f7a299ac,missed,C1,16290-17021,,site promotion and premium-membership advert at the end,ai
+4ac56ea0cf68007b,missed,C1,1-71,,integer-sequence site header line and a row of view links,ai
+4ac56ea0cf68007b,new,NEW-merged-table-cells,464-483,,all record fields and program code run into one line; code lost its line breaks,ai
+4ac56ea0cf68007b,missed,C1,2814-3087,,site navigation bar and last-modified footer; C1 removed only two other footer lines,ai
+6647e054e451c4dc,missed,A3,49-83,,"UTF-8 read as Greek cp1253: about 20 emojis became a lone pi sign (reads as maths), no-break spaces became capital Beta, an apostrophe became beta; the A3 rule only repairs cp1252 and cp866",ai
+6647e054e451c4dc,missed,C1,2807-3445,,subscription advert with prices at the end,ai
+4e9a082228b0c45e,missed,C5,0-8252,,"topic listing page: 50 problem titles with one-line teasers, many cut off; C2 removed only the repeated age labels",ai
+4e9a082228b0c45e,missed,C1,77-271,,"search filter labels, result count and breadcrumb at the top",ai
+885bc9229d4bb0bf,missed,C1,31-91,,"forum user-info blocks, tag toggle headings (the C1 line rule misses them because of the markdown heading prefix), kudos counts and signatures on all 6 posts",ai
+885bc9229d4bb0bf,missed,B5,201-224,,"currency dollar signs not escaped, so the text between two prices reads as a LaTeX math span",ai
+885bc9229d4bb0bf,missed,C2,2107-2140,,"the bump-bot message is posted twice; the second copy is run into one line, so the passage rule does not match it",ai
+885bc9229d4bb0bf,missed,C1,2658-2982,,similar-topics table at the end,ai
+e492f103e239bec0,new,D4,0-4018,,spun copy of a maths lesson: phrases replaced by a rewriter throughout; math has no D4 rule,ai
+e492f103e239bec0,new,NEW-seo-filler,177-227,,SEO line injected by the copying site,ai
+e492f103e239bec0,new,NEW-missing-formulas,1655-1664,,"fraction images are gone: one expression ends with a dangling word, and Example 4's expression is missing",ai
+e492f103e239bec0,new,NEW-merged-table-cells,3391-3430,,phrase/expression tables and answer buttons run together without separators,ai
+e492f103e239bec0,missed,C5,3726-3806,,see-more link to an unrelated page in the middle of a line; the C5 rule only removes lines that start with it,ai
+f09378316ce939e1,missed,C1,1032-1260,,related-questions block; C2 deleted its repeated prompt lines and left the rest as fragments,ai
+a8004bba3cd5bbfb,new,NEW-seo-filler,0-3976,,question-heading SEO page on an unrelated domain; the answers are snippets pasted from other sites,ai
+a8004bba3cd5bbfb,new,NEW-missing-spaces,93-102,,pasted snippets lost the spaces between list items and sentences,ai
+a8004bba3cd5bbfb,missed,C1,1747-1791,,related-link line inside the text,ai
+a8004bba3cd5bbfb,missed,C1,3251-3976,,related-posts block with teasers at the end,ai
+dc76a8ad4d35952e,missed,C1,1453-1461,,like counters after 14 posts and a hidden-post notice,ai
+dc76a8ad4d35952e,new,D2,2247-2301,,romanised Hindi comments (about 6 lines); math has no D2 rule,ai
+ec20a4ca6692ddb7,missed,C1,67-106,,"forum user-info blocks (rank, posts, karma), posted-on and reply-number date lines, a read counter and an edit-note line on 4 posts",ai
+63783f04778f7000,missed,C1,1178-1199,,Q&A comment timestamps after 3 comments,ai
+8d53fca95d65362b,missed,B5,388-406,,site math converter split the lower limit -2 into a subscript minus and a separate 2 (2 places),ai
+291cff41d0672085,missed,C5,0-20777,,"search-results page (result count, page 5): about 100 unrelated question teasers, many cut off, some listed 2-3 times; C2 removed only 4 longer repeats",ai
+291cff41d0672085,missed,A3,4699-4716,,"pi sign shown as a Latin letter eth (a Greek cp1253 byte read as cp1252), 2 places; the A3 rule only repairs multi-byte runs",ai
+2fb9464195bf2edc,missed,C1,0-25,,answer timestamp as the first line (the question itself is not in the page),ai
+2fb9464195bf2edc,new,NEW-flattened-formulas,153-164,,"mixed number 9 1/3 written 91/3, the space between whole part and fraction lost",ai
+cb9a946cd4eba389,new,NEW-seo-filler,0-5364,,"SEO page of generic filler sentences, pasted snippets and three app reviews with reviewer names",ai
+cb9a946cd4eba389,new,NEW-flattened-formulas,2787-2806,,quadratic formula flattened into a run of spaced letters and digits,ai
+3567192e9fc75b00,missed,C1,288-301,,post labels left after the poster names were removed (3 posts),ai
+90d9ff5ef9c45a37,new,NEW-missing-formulas,1007-1042,,formula images replaced by question marks (problems 6 and 17 cannot be solved without them),ai
+90d9ff5ef9c45a37,missed,C1,3021-3408,,submit-a-problem form text and calculator link at the end,ai
+6712725af9da5453,missed,C1,18-37,,forum user name and member-title lines before each of 4 posts,ai
+a91801046f79b716,missed,C1,764-801,,Q&A comment signatures with date and time after about 10 comments,ai
+4783c724f8fbfa52,missed,B2,127-150,,broken forum quote tag (BBCode with its opening bracket lost); the B2 rule only removes HTML tags,ai
+a345d577da510a26,missed,B5,144-176,,"unrendered site math markup (colour commands, 2 lines) and unbalanced $ delimiters, one escaped",ai
+d68e2a6365d972da,missed,C1,23-60,,blog byline with history link and relative date,ai
+d3c81797986b7e17,missed,C1,3088-5137,,"citation widget (four citation styles), editing-tool help, media and email widgets after the article, about 40% of the doc",ai
+473eccb431e6029a,missed,C1,539-616,,promotional link line at the end,ai
+8d88bdd73268baaa,missed,C1,5558-5901,,feed-syndication notice and social-follow footer,ai
+b47ab81de0a41d92,missed,C1,3496-3527,,Q&A comment timestamps after 7 comments,ai
+06f2d75b8c5610f1,missed,C1,0-173,,"navigation and breadcrumb line at the top, and a copyright and validator footer",ai
+06f2d75b8c5610f1,new,NEW-merged-table-cells,644-661,,"proof table columns run together: step numbers merge with the hypothesis references, so the numbers read wrong",ai
+06f2d75b8c5610f1,new,NEW-missing-formulas,1903-1919,,"big-union and negation symbols lost from proof lines (steps 22-29, 38-41)",ai
+9c393ad230dc838b,missed,C1,184-253,,"Q&A site status, timestamp and counters",ai
+9c393ad230dc838b,new,NEW-flattened-formulas,326-340,,fractions and subscripts split one token per line in both answers,ai
+9c393ad230dc838b,missed,C2,634-947,,"the second answer repeats the first word for word; its blocks are short, so the passage rule does not match",ai
+a919c1b20d1178f0,new,NEW-missing-formulas,362-396,,intersection and not-equal signs lost in the probability expressions,ai
+a919c1b20d1178f0,missed,C1,826-884,,site reward widget at the end,ai
+e71f555ad2f37d57,missed,B5,0-14,,"a prose mailing-list reply is wrapped whole in a ``` code fence, so it would read as code",ai
+28f56e454b2ade39,new,NEW-template-pages,0-4148,,"number-facts page generated from a template for one number (properties, base conversions, shapes, hashes)",ai
+28f56e454b2ade39,new,NEW-flattened-formulas,178-190,,powers flattened (a power of 10 and other exponents written as plain digits),ai
+28f56e454b2ade39,new,NEW-merged-table-cells,2597-2638,,"tables run together: headers and values in one line, row labels lost (divisibility, powers, shapes)",ai
+28f56e454b2ade39,new,E2,3836-3872,,hash values of the number (four hash functions) as a data blob; math has no E2 rule,ai
+1eadf4cf278db7e6,missed,B5,42-73,,"the whole PDF transcription is wrapped in a ``` code fence, so prose and tables would read as code",ai
+1eadf4cf278db7e6,missed,A3,2888-2904,,"UTF-8 read as Cyrillic cp1251 all through the chapter (Greek letters, minus, times, dashes); the A3 rule only repairs cp1252 and cp866",ai
+1eadf4cf278db7e6,new,NEW-missing-formulas,3511-3544,,"displayed formulas lost from the PDF text: an equation left with nothing after the equals sign, loose subscript digits on their own lines",ai
+1eadf4cf278db7e6,new,NEW-interleaved-columns,7597-7693,,"two-column exercise pages read line by line across both columns, so sentences of two exercises alternate",ai
+1eadf4cf278db7e6,harm,DA-D3-005,21807-21807,,"D3 foreign-line rule deleted 98 formula and number lines (hypotheses, test statistics, data values, signs) and 6 bullet lines, because their cp1251 mojibake of sigma, nu, minus and times counts as Cyrillic",ai
+1eadf4cf278db7e6,missed,C1,64506-64605,,"document-host footer (category, views, file size, tags, report link)",ai
+1f2abff491b96656,new,NEW-flattened-formulas,451-469,,"fraction, powers and subscripts flattened (a negative power of 10, a concentration with its unit run together)",ai
+1f2abff491b96656,missed,C1,1845-1998,,feedback widget with vote counts at the end,ai
+3bc7339b3365a201,harm,DA-C2-001,160-160,,"C2 line rule deleted 7 of 8 copies of the curve equation, including a working step in the first post and the line a later reply points to, so that reply now refers to a missing equation",ai
+3bc7339b3365a201,missed,C2,1261-1312,,"two replies quote the first post in full; the quoted blocks are joined to the reply text, so the passage rule does not match",ai
+3825a12534054bb3,new,NEW-missing-formulas,39-102,,the probability function the question is about is not in the text,ai
+3825a12534054bb3,missed,C1,290-318,,Q&A comment signatures with date and time after 7 comments,ai
+0a34dcef3fe6b07a,missed,C2,649-785,,the reply quotes the objective and constraint lines again; C2 removed only the repeated long paragraph,ai
+6aea632beaa6aacf,new,NEW-flattened-formulas,157-169,,x squared written as x followed by 2 all through the post,ai
+6aea632beaa6aacf,missed,C1,2920-3510,,comment section with one promotional comment,ai
+9b89f0605fe52eea,new,NEW-seo-filler,0-4828,,"SEO page on an unrelated domain: generic worksheet paragraphs under a byline, unrelated to its title",ai
+9b89f0605fe52eea,missed,C1,4173-4828,,sidebar widgets left as headings and about 30 bare date lines (too short for the C2 line rule),ai
+f3a2d01395300022,missed,C1,0-13,,question and answer timestamps and vote counts,ai
+fcc79d8f03cf663e,missed,C1,68-157,,breadcrumb line,ai
+fcc79d8f03cf663e,missed,C1,9041-9057,,quiz feedback label: C2 removed the later copies but keeps the first,ai
+379ab92860d593f5,missed,C1,319-1271,,"lesson-page chrome (print, likes, empty standards fields, teacher name) and a similar-lessons block; the lesson itself is not in the page",ai
+d0693c18056bae02,new,NEW-template-pages,0-2092,,"unit-conversion page generated from a template for one value, with a 10-row table and a spelled-out number",ai
+4f2da70883d8d65f,missed,C1,0-298,,"glossary navigation (level and topic filters) at the start, and a range label",ai
+4f2da70883d8d65f,new,NEW-missing-spaces,672-700,,all glossary entries run together on one line; spaces lost where lines joined,ai
+4f2da70883d8d65f,new,NEW-missing-formulas,1904-1920,,"relation symbols lost (less-or-equal, intersection, set minus) in several entries; a formula image in one entry is gone",ai
+4f2da70883d8d65f,missed,C1,6708-7250,,site menu and copyright footer,ai
+ec4ea0009df33e1a,new,NEW-template-pages,0-5383,,"one page of an element-by-element template series (Bohr model of each element), with the step pictures missing",ai
+ec4ea0009df33e1a,missed,C1,23-70,,"fact-check badge, a contents label and a link to the next page in the series",ai
+0614bc6ecf034495,missed,C1,652-974,,"related-links list after the intro, plus the site name line at the top",ai
+0614bc6ecf034495,missed,C1,1052-1150,,shopping advert before the questions,ai
+0614bc6ecf034495,new,NEW-missing-formulas,4889-4904,,"images of a number and of the sector-area formula are gone (one question has no subject, one formula is missing)",ai
+0614bc6ecf034495,missed,C1,17357-19832,,"site menu of chapters and papers, scroll link and page-speed plugin credit at the end",ai
+c7e8da53587e0e2a,missed,C1,456-553,,"wiki-post banner and notice, and post numbers (the last with no post)",ai
+c7e8da53587e0e2a,missed,A3,2036-2049,,"UTF-8 read as Central European cp1250 (curly quotes, Greek tau) left in 2 places; A3 fixed the cp1252 runs in the same doc but cannot re-encode these",ai
+6f08675347237529,missed,C1,30-66,,print-view page label and posted-date lines on 5 posts,ai
+6f08675347237529,new,NEW-merged-table-cells,4657-4698,,a table of English phrases and logic symbols run into one line; the and-symbol shown as a circumflex,ai
+74b959b3e8c2b31b,new,NEW-template-pages,0-2097,,number-converter page generated from a template for one number (96),ai
+74b959b3e8c2b31b,missed,C1,55-750,,"site log of recent conversions by other users, with timestamps",ai
+2842cc032aca51f3,missed,C1,848-978,,"answer form, related-questions links and post button at the end, plus post labels on 4 posts",ai
+033ab42a96110ff9,missed,C1,0-17,,site menu line at the top,ai
+033ab42a96110ff9,new,A4,227-236,,multiplication dots lost and replaced by question marks (3 places); math has no A4 rule,ai
+033ab42a96110ff9,new,NEW-flattened-formulas,535-551,,powers flattened (x to the 4 and x cubed); x to the 0 shown as a degree sign,ai
+033ab42a96110ff9,missed,C1,562-690,,homework-site teaser and price: the solution is not in the page,ai
+cc0bf2c48f0be1a8,new,NEW-ai-generated-text,0-4624,,"machine-written SEO article with false statements about ordinal numbers, unrelated to its title",ai
+ec7ecf0ffc763747,missed,C1,1700-2279,,"Q&A site chrome: user reputation run together, editor help, tag counts, asked/seen/updated lines; also a close sign and difficulty label at the top and two solution links with no target",ai
+5073e2edc460a575,missed,C1,73-139,,"post metadata lines (date, word count, category) under the title",ai
+cdccda71cb0f4ff3,missed,C1,43-135,,"price and ordering block and a link to a Spanish edition, plus a lone symbol line at the top",ai
+cdccda71cb0f4ff3,missed,C1,1324-4734,,"product cross-sell list, bundle offer, where to buy, licence terms and newsletter sign-up blocks, about half the doc",ai
+d8cdfe9d696affee,missed,C1,462-486,,"Q&A site comment signatures (dash, user name, date, time) after every comment, about 15 in the doc; later comments also run together on one line",ai
+1b1c42eddd14c8e7,new,NEW-merged-table-cells,2926-3198,,"two run-time tables flattened: cell values joined with no separator, so the numbers read wrong; the micro sign is garbled",ai
+2206a4b3f2fa1c98,missed,B5,1102-1109,,dollar signs escaped as backslash-dollar all through: inline math and R code (data frame column access) are broken; code fences doubled to six backticks,ai
+2206a4b3f2fa1c98,missed,C1,9089-9113,,"blog comment section at the end: reply counter, comment dates and sign-offs",ai
+74081137bc07599a,missed,C1,37-69,,"forum post headers on all 10 posts (post number, date, user-name heading, staff titles), an edit-history line, and an empty template heading for equations",ai
+11ece04d6039799d,missed,C1,68-193,,site promo blocks: chat-community invite at the start; course and resource-library adverts and a spreadsheet-skills call to action at the end,ai
+11ece04d6039799d,missed,B5,1493-1501,,"unsure: currency dollar signs written as backslash-dollar (markdown escape) all through; maybe the FineMath convention, ask the lead",ai
+cc98b78d56e7d12a,missed,C1,27-52,,"forum post headers on all 6 posts (bullet, date, time, user name) and quote-attribution lines",ai
+cc98b78d56e7d12a,missed,C2,229-269,,"quoted posts repeat earlier posts word for word, 4 quotes",ai
+0d5843ac84b81432,new,E1,0-12244,,"machine-generated test report of a computer-algebra rule set: rule code, input and output blocks for six algebra systems, error and timeout lines, expressions hard-wrapped in the middle of tokens",ai
+0f2f052fd95da6d4,missed,C1,58-70,,slide-site header line,ai
+0f2f052fd95da6d4,new,NEW-flattened-formulas,2078-2354,,"slide equations lost their layout: fractions, subscripts and square roots run into the text, decimals split after the point; several formulas unreadable",ai
+0f2f052fd95da6d4,missed,B5,2624-2628,,"unsure: currency dollar signs written as backslash-dollar; maybe the FineMath convention, ask the lead",ai
+bfb1450cc0baabcd,new,NEW-template-pages,0-4900,,"template page generated for one large number (properties, base conversions, geometric shapes); table cells merged with headers lost, and powers of ten lose their exponent sign",ai
+404146d814b03d07,missed,B4,77-78,,"notebook export leftovers: pilcrow anchor mark after every heading, notebook input prompts",ai
+404146d814b03d07,harm,DA-C2-001,1018-1018,,"repeated-line rule deleted 4 real print statements from Python examples, so the code no longer prints the words its shown output starts with",ai
+50963f2a333bf053,missed,C1,0-242,,"search-page chrome at the start: filter labels, result count, breadcrumb; the repeated-line rule removed only the later copies of the age and difficulty lines, so the first copies stay",ai
+50963f2a333bf053,missed,C5,0-8118,,"unsure: the whole doc is a search-results listing: 63 problem titles with one-line teasers, several titles missing",ai
+611df2fbc4c0e699,new,NEW-missing-spaces,167-180,,"words joined where line breaks were dropped, in many places",ai
+611df2fbc4c0e699,new,C4,5689-8954,,"an unrelated nanotechnology Q&A thread from the site's discussion widget is appended after the lesson, about 90 lines with user names",ai
+611df2fbc4c0e699,missed,C1,8955-9079,,site footer and widget prompt at the end; also a page-number line at the start,ai
+29e09f00864fb729,missed,C1,0-237,,"search-page chrome at the top: filter labels, result count, breadcrumb",ai
+29e09f00864fb729,missed,C5,0-2537,,unsure: the whole doc is a search-results listing: 12 activity titles with one-line teasers,ai
+29e09f00864fb729,missed,C2,475-506,,the stage and difficulty metadata line repeated on every item (12 times); spec v1 removed the same kind of lines in another doc but not here,ai
+83efffa29c3912fb,new,NEW-merged-table-cells,293-366,,"the fact-family table is flattened into one line, so the four facts run together",ai
+a4e9be8e5651af40,missed,C1,0-24,,tutor-site header and vote counter at the top,ai
+a4e9be8e5651af40,new,NEW-flattened-formulas,1175-1193,,"superscripts lost: squares of numbers, terms and units read as a plain trailing 2; the working is wrong as written",ai
+f54f128a54a43837,missed,C1,0-357,,"article page chrome before the text: byline block, copyright line, two trivia widgets with read-more links, slideshow link",ai
+f799043f1ea9cf26,missed,C1,1116-1143,,"Q&A site comment signatures (dash, user name, date, time) on all 5 comments",ai
+f69cc8bbc85d948a,missed,C1,632-842,,unrelated news-headline widget in the middle of the thread; also quote-attribution forum lines,ai
+8f88eda8c99d74b2,missed,C3,0-8630,,"document-site preview: about 150 lines, each the cut-off first line of a different PDF paragraph; almost no complete sentence or formula",ai
+8f88eda8c99d74b2,missed,C1,0-131,,"document-site chrome at the start and again at the end (ratings, views, availability, a note about pages missing from the preview)",ai
+1b1a0d909bc9c515,missed,C1,257-417,,wiki status notice at the top,ai
+1b1a0d909bc9c515,missed,B5,4818-4832,,"dollar signs inside code written as backslash-dollar (BASIC string functions, Dart and Wren interpolation, CLU), so that code is wrong",ai
+1b1a0d909bc9c515,new,NEW-missing-code-lines,8773-8807,,"many programs lost lines already in the source (function headers, the mask set-up, if-tests), so the C, TypeScript, Arturo and BASIC versions cannot run; not caused by spec v1",ai
+1b1a0d909bc9c515,harm,DA-C2-001,8943-8943,,"repeated-line rule deleted 44 lines: result lines shared by many programs' outputs (a list of squares) and the language-translation note lines, so several outputs are cut to two lines and no longer match their programs",ai
+b7a39f13e9256ff5,missed,C1,2245-2938,,"course-site widgets and advert (practice-exam boxes with a status label, college-credit pitch); the rest of the page is a course description with no worked math",ai
+006ffef8ad023034,missed,C1,2-231,,"integer-sequence site chrome left after spec v1 removed two footer lines: donation banner, hints line, link labels, navigation bar, last-modified and sequence-count footer",ai
+684104b74a06267b,new,NEW-missing-formulas,444-466,,"card-suit symbols were images and are gone, so every bridge bid reads as a bare number; the auction tables are flattened into one cell per line",ai
+085f9f7987b7cf56,new,NEW-seo-filler,0-4302,,"spun SEO article around worksheet images: the math is wrong or meaningless (a quadratic given as a linear equation, steps that do not graph anything), a stray brace left by a text spinner",ai
+085f9f7987b7cf56,missed,C1,1808-1951,,"image-caption spam lines with source sites, 3 of them",ai
+726a52bba345c3bc,missed,B5,183-188,,"unsure: currency dollar signs written as backslash-dollar; maybe the FineMath convention, ask the lead",ai
+726a52bba345c3bc,missed,C1,1538-1586,,page navigation line at the end and the question-author header line,ai
+1e7fad525310d310,new,NEW-merged-table-cells,1927-1994,,the availability table is flattened into one run of version names,ai
+1e7fad525310d310,new,NEW-missing-spaces,2817-2838,,"the arrow between function name and description was dropped in 6 list items, joining the two words",ai
+91bf5e3b4ad423ee,new,NEW-ai-generated-text,40-126,,"machine-written summary at the top and a 5-question FAQ at the end, added by the forum, not by its users; if it comes from a closed model the licence rule excludes it",ai
+91bf5e3b4ad423ee,missed,C2,1053-1093,,quoted reply repeats the earlier post word for word,ai
+91bf5e3b4ad423ee,missed,C1,3614-3705,,related-threads block: spec v1 removed the reply and view labels and repeated forum names but left 22 lines of bare reply and view counts; also edit-history lines,ai
+36c3e8b4b4457083,new,NEW-ai-generated-text,0-2289,,unsure: step-by-step answer in the fixed numbered-step and solution layout of an AI homework solver site; if it comes from a closed model the licence rule excludes it; the question also writes a power of ten without its exponent sign,ai
+c91ec668b0457861,missed,C1,702-761,,"Q&A site chrome: answer-count and add-answer line, a posted-date label, an empty sources label and a site footer line",ai
+e6b99ccca7c2ddc9,missed,C2,910-991,,"quoted earlier posts repeat those posts word for word, 4 quotes",ai
+e6b99ccca7c2ddc9,missed,C1,2053-2790,,"forum page footer: support-team blurb, teaser headlines for other threads, open-day list, poll and guide links; also a follow button label stuck to the title",ai
+2030d68728594df9,missed,C2,248-350,,"quoted earlier posts repeat those posts word for word, 4 quotes; spec v1 removed only one repeated line",ai
+61515ee94cba4c0c,missed,C1,107-364,,"example-site chrome between the answer and the related list: comment prompts, an empty knowledge heading, a calculator link; also an empty solution heading",ai
+61515ee94cba4c0c,new,B1,583-589,,"broken HTML entity for the multiplication sign in one product; also one related problem lost its number, shown as question marks",ai
+fc3df208c596140d,new,NEW-template-pages,0-13254,,"unit-converter page generated from a template for one value; repeats the value dozens of times and states wrong results (a pound-to-kilogram line that gives the factor, not the result; a garbled ounces value; a wrong rounded figure)",ai
+fc3df208c596140d,missed,B4,10365-10388,,unfilled template code left in the text: a random-element call and a template variable name,ai
+487be44b6ec97e28,missed,C1,2-193,,"integer-sequence site chrome left after spec v1 removed two footer lines: donation banner, hints line, link labels, navigation bar",ai
+35e1acff2d77be17,missed,C1,0-41,,browser warning at the start and a stray link title for a division word-problem page in the middle,ai
+5a93d530d9026175,missed,F2,2132-2242,,"a past exam question with its options that is in the MILU test set (Team 9 decontam scan, #342: milu:test:18603, verdict real); the job ran without F2",manual
+5a93d530d9026175,missed,C1,3797-3831,,quiz-widget line at the end; answer options flattened into one line per question,ai
+e1d06f4e49257cfe,missed,C1,2801-3167,,"site footer: search prompt, a feedback line (the job's F1 rule replaced the site's contact email in it with a placeholder), a recent-articles list with dates",ai
+0930f3267a518a19,missed,C1,1012-1032,,"Q&A site comment signatures (user name, date, time) on all 7 comments",ai
+2e13692256fe1603,new,NEW-seo-filler,0-2722,,"homework-app SEO page: generic filler paragraphs, one cut off mid-sentence, and two app reviews with reviewer names",ai
+2e13692256fe1603,missed,C5,2562-2646,,keyword list of search phrases at the end,ai
+e10da4c47ad873bd,missed,C1,132-474,,"exam-site chrome: exam-source line, a link to all papers, free mock-test advert with counters",ai
+5788f0b66f0d48e2,missed,C1,158-308,,"video-site promo and counters above the answer (one promo line is romanised Hindi), a stray one-word first line and a bare number before the solution",ai
+5788f0b66f0d48e2,missed,C1,514-770,,related-video block at the end: only view and like counters and durations are left,ai
+647d9713533c5664,new,NEW-template-pages,0-2420,,"number page generated from a template: the number spelt out wrongly in words, a non-standard Roman numeral, numerology, and a wrong value for the number squared",ai
+48f9583ca4f5f6d7,new,NEW-missing-formulas,189-219,,formula images dropped: two sentences end in a colon with no formula after them,ai
+48f9583ca4f5f6d7,missed,C1,1674-2460,,"related-topics links and four site testimonials with names, jobs and cities; also a video heading",ai
+8758fc16164dd1b6,missed,C5,0-15939,,"unsure: the whole doc is a catalogue of about 40 teaching-resource blurbs with file-sharing links, emoji and shop and feedback promos; little math content",ai
+8758fc16164dd1b6,new,B1,961-979,,"HTML entities left as text, about 38 of them (escaped greater-than signs as list bullets, escaped ampersands between words)",ai
+fe988ef1a6257c35,missed,C1,374-441,,Q&A site status and counter line with a timestamp,ai
+fe988ef1a6257c35,new,NEW-missing-formulas,969-1002,,"two equation images dropped: two lines end in an equals sign with nothing after them, so one step of the working is missing",ai
+78a24d025dbbec07,missed,C1,0-153,,"blog header block: post date, blog name and tagline, link line",ai
+97998a6e3228aef8,missed,C1,0-148,,"forum chrome at the start (tagline, symbol palette, login notice, options menu) and a user-name plus timestamp header on each of 22 posts",ai
+97998a6e3228aef8,new,NEW-missing-formulas,307-343,,"formula images dropped: several sentences stop where the formula was (a circle's equation, a line's graph), so two problems cannot be followed",ai
+0e89fda818263262,new,NEW-missing-formulas,0-1462,,all formulas and all answer options were images and are gone: 9 questions with empty (A)-(D) choices and sentences with blanks where the symbols were,ai
+0e89fda818263262,missed,C1,104-243,,site promo line under the title; the title also has an Armenian apostrophe inside a word,ai
+b0db84c6cc4bfa1d,missed,B5,0-68,,code fences doubled to six backticks on every block,ai
+b0db84c6cc4bfa1d,missed,D3,1220-1240,,"Chinese site name and a date left at the end after spec v1 removed the Chinese headings; the page has no explanatory text left, only code",ai
+125fe0fb9ea9baf6,missed,C1,0-33,,site header line; the three description paragraphs are keyword-stuffed SEO text that repeats the same two names for the subtraction method over and over,ai
+125fe0fb9ea9baf6,new,E2,1526-1587,,JSON data blob of the worksheet's 12 questions at the end,ai
+841c670703589d6f,missed,C2,1311-1376,,"the reply quotes the whole first post again, 14 lines",ai
+841c670703589d6f,missed,C1,2263-2667,,"forum footer (reply prompt, site values list); also user-name headings, member titles, edit-history lines and a related-news line",ai
+8368193ce67a8aed,missed,B5,266-283,,"unsure: currency dollar signs written as backslash-dollar; maybe the FineMath convention, ask the lead",ai
+8368193ce67a8aed,missed,C1,4954-10212,,"blog-platform comment section, about 35 comments with relative-date markers and a promo link; also an image-credit label stuck to the title; the comments are about crypto trading, not math",ai
+2efabdcf89a1b7fd,new,NEW-missing-formulas,716-756,,"formula images dropped: sentences end in a connective word with no formula after it, and subscripts fall onto their own line",ai
+627f7669b7376fb5,missed,B4,8035-8041,,a stray empty template value as the last line,ai
+bf617118c1ef6d8b,harm,DA-C2-001,1432-1432,,"repeated-line rule deleted 8 column-header lines of R matrix printouts, so every printout after the first has no column header; mild harm",ai
+8f07e29a799ad0cc,missed,C1,345-366,,"Q&A site comment signatures (user name, date, time) on all 9 comments",ai
+eb991e7190deb462,missed,C1,3166-3194,,"Q&A site comment signatures on all 6 comments, one of them an empty comment left with only its signature",ai
+362f33b15513ca3f,missed,C1,2606-2746,,"blog sign-off block (author name, title, a store link label) and the blog date header; the screencast links the post lists are gone, leaving bare titles",ai
+91fddbdb172ba0b0,new,NEW-ai-generated-text,0-11832,,"unsure: generic how-to article in a machine-written layout (numbered FAQ, conclusion) with wrong cube-solving moves (the same short sequence offered for different steps, wrong claims about what it does); provenance unknown",ai
+91fddbdb172ba0b0,missed,C1,571-581,,table-of-contents widget label (Indonesian for 'quick read'),ai
+d2994cf7f9224a43,missed,C1,0-240,,solutions-site promo paragraph at the top,ai
+d2994cf7f9224a43,new,NEW-missing-formulas,326-439,,"answers to questions 1 and 2 were images and are gone, so the answer labels have nothing after them",ai
+86bde6e4d785cc63,missed,C1,0-97,,"tutoring-site chrome at the start, and date lines, ellipsis placeholders and an icon name at the end",ai
+1fecb45d0ff3dce1,new,NEW-flattened-formulas,105-120,,superscripts lost all through the solution: each square reads as the base followed by a plain digit 2,ai
+6f02ef48c5a546c4,missed,C2,1014-1056,,quoted earlier posts repeat the question twice and a reply once,ai
+6f02ef48c5a546c4,new,NEW-missing-formulas,2019-2087,,"the LaTeX images in the last two replies are gone, leaving sentences with holes; subscripts and powers in the question are flattened",ai
+6f02ef48c5a546c4,missed,C1,3201-3935,,"forum page footer: feed links, an empty-thread prompt, open-day list, a voter-registration poll with results; also post numbers, vote counts and a follow button label in the title",ai
+fa0a090b409130f7,missed,C1,0-1869,,"textbook-solution paywall page: the solution is hidden (empty steps 1 to 3); the rest is access banners, ratings, a templated SEO paragraph and an unlock button label",ai
+fa0a090b409130f7,new,NEW-missing-formulas,686-699,,"arrow symbols dropped from the two limit statements in the problem, and subscripts flattened",ai
+2a0b42a85dad4b55,missed,C1,514-753,,"tutor-site advert at the end; also author labels, a tutor rating with review count, a slogan, report links and date lines between the posts",ai
+c4f8ad82ea97fd64,missed,C1,0-23,,document-site page counter in Indonesian at the top,ai
+c4f8ad82ea97fd64,new,NEW-flattened-formulas,393-7340,,"PDF text layer: every subscript, superscript and fraction part sits on its own line and Greek letters, sums, bars, hats and minus signs are gone, so no formula in the 5 pages is readable",ai
+c4f8ad82ea97fd64,new,NEW-dropped-ligatures,1159-1167,,"fi, ff and ffi ligatures dropped from words, so many common words lose two or three letters",ai
+a2bb043ed2daf997,missed,C1,846-2506,,block of unrelated riddles and jokes at the end; also comment headers with user name and date,ai
+f285339020e1209a,missed,C2,491-504,,the reply quotes the first five lines of the question again; spec v1 removed the rest of the quote,ai
+e9bdb26928ae1153,missed,C2,3597-3685,,"quoted posts repeat earlier posts word for word, 2 quotes",ai
+e9bdb26928ae1153,missed,C1,4438-4816,,"forum footer (tags, thread tools, similar-threads table); also a member-info block (joined, location, posts, thanks) inside every post and edit-history lines",ai
+8f1f8a9c194e88f2,missed,B5,96-141,,"currency dollar signs collide with the LaTeX math delimiters, so the title and both cost results are broken text",ai
+8f1f8a9c194e88f2,new,NEW-ai-generated-text,395-486,,"unsure: generic filler paragraph before the expert answer, in a machine-written style; the answer also gives wrong costs (a cents value shown as a different dollar amount)",ai
+ac3b6e69316582a1,missed,C1,1831-1884,,"Q&A site reward promo at the end; the question also appears twice at the top (a cut-off teaser line, then in full)",ai
+bb610211dc626e72,new,NEW-flattened-formulas,895-906,,superscripts lost (n squared reads as n followed by a plain 2) and the minus sign turned into a question mark in the second copy of the formula; the worked example under it is garbled,ai
+bb610211dc626e72,missed,C1,3564-3588,,tutorial-site navigation link at the end,ai
+d420078066dbe0e3,missed,C1,0-249,,"slide-sharing site chrome at the start (page counter, uploader name, category, view and download counts, embed size); a date, course and slide-number footer on every slide",ai
+d420078066dbe0e3,new,NEW-flattened-formulas,3149-3247,,"slide equations broken into fragments on separate lines (fractions, squares, subscripts lost), and on one analysis slide the formulas for the maximum height and the range are empty",ai
+d420078066dbe0e3,missed,B4,3384-3414,,"slide-template placeholder text, twice",ai
+d10ec0084ee609b0,new,NEW-seo-filler,0-9654,,"spun SEO text: the same paragraphs appear 3 to 4 times with words swapped for odd synonyms, mixed with retailer product disclaimers and shop links",ai
+f8993128de3e2a07,missed,C1,43-92,,table header labels of the worksheet page,ai
+f8993128de3e2a07,harm,DA-C2-001,166-166,,"repeated-line rule deleted the instruction line from problems 2 to 14, so they are bare expressions; mild harm",ai
+0156e747a3f842b7,missed,C1,37-216,,"answer-form template text from the Q&A site (writing tips, preview, placeholder prompts) before the real answer",ai
+0156e747a3f842b7,missed,B5,350-379,,"broken LaTeX: a misspelt command, and the degree unit split across a roman-text command",ai
+0156e747a3f842b7,missed,C2,581-597,,14 relative-time lines from a recent-activity widget at the end,ai
+cb0c11649966e8e2,missed,C1,2292-2363,,"author box and forum and explore links at the end, and a share-button line at the start",ai
+21a4cd70d938f919,missed,C1,76-1327,,"test-prep forum chrome left after spec v1 removed the kudos lines: timer promo, events box, question stats, tag headings; each post also starts with a member profile block (joined, location, 12 lines of test scores, followers)",ai
+c9cc04b4cece5d95,new,NEW-unattributed-copy,0-6093,,"unsure: the text is an encyclopedia article copied by a mirror site with no attribution; the licence rule keeps CC-BY-SA only with attribution, ask the lead",ai
+c9cc04b4cece5d95,missed,C1,11-203,,mirror-site promo line under the title; an orphan image caption in the text,ai
+2c28686b0e067a28,missed,C1,136-2246,,"similar-questions block of 10 cut-off unrelated questions, longer than the thread itself",ai
+f27d1907594e1111,missed,C1,0-398,,"search-page chrome at the start: filter labels, a related-tags list, result count, breadcrumb; the first copies of the stage and difficulty lines stay after spec v1 removed the repeats",ai
+f27d1907594e1111,missed,C5,0-3441,,"unsure: the whole doc is a search-results listing: 20 problem titles with one-line teasers, some titles missing",ai
+ddb33aaa60f363c7,missed,C1,42-105,,"message-board chrome: navigation links, a reply-to header with author and date, and empty reply-form labels at the end",ai
+2c170d176eb7921c,missed,C1,87-227,,"learning-platform widgets at the top (time estimate twice, progress, memory meter) and a video title line",ai
+2c170d176eb7921c,missed,C1,2205-2288,,notes-and-highlights widget labels at the end,ai
+add901f9b4e42472,missed,C1,0-83,,repository site header and a JavaScript notice before the module; an email-the-author link label in the byline,ai
+add901f9b4e42472,missed,C1,6951-8077,,"repository footer: download links and the help text for EPUB, favourites and lenses, about 20 lines",ai
+8a65dd95beda74c4,missed,B5,115-138,,"unsure: uses a LaTeX macro defined only on the source site, so the LaTeX does not render elsewhere",ai
+8a65dd95beda74c4,missed,C1,2950-3030,,"blog chrome: comment-form footer line, a comment-count heading, author bio box and an empty footnote back-link",ai
+3de57c8832f9a452,missed,C1,0-12,,quiz-widget leftovers at the top: a counter and an icon name,ai
+8df3b2b6e4aa72b7,missed,B2,0-131,,an HTML tracking-pixel tag left as the first line,ai
+8df3b2b6e4aa72b7,missed,C1,234-386,,learning-platform widgets at the top and the notes-and-highlights labels at the end,ai
+8df3b2b6e4aa72b7,new,NEW-missing-formulas,2589-2616,,"formula and graph images dropped: sentences in examples D and the guided practice stop where the equations were, and two part answers are empty",ai
+88ccc6ac7603665c,new,NEW-missing-formulas,4443-4471,,"all formula and diagram images dropped: three bullets end with no formula, a sentence that promises code is followed by nothing, and the square of the hypotenuse loses its superscript",ai
+88ccc6ac7603665c,missed,C1,4947-5765,,"unrelated news-teaser block at the end (bank, turntable, space station, cloud); spec v1 removed its Chinese heading and one Chinese teaser but left the English ones",ai
+349089a95c833a09,missed,C1,520-541,,"Q&A site comment signatures (date, time) on both comments",ai
