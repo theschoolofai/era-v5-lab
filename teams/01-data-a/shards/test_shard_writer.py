@@ -89,7 +89,7 @@ def test_a_doc_is_never_split_and_the_shard_stops_at_the_limit(tmp_path):
 def test_the_round_trip_compares_with_the_normalized_text(tmp_path):
     """A tokenizer with an NFC normalizer: a decomposed é comes back composed, and the doc is kept."""
     spec_ = json.loads(Path(BASE).read_text(encoding="utf-8"))
-    spec_["normalizer"] = {"type": "NFC"}
+    spec_["normalizer"] = {"type": "Sequence", "normalizers": [{"type": "NFC"}]}  # a Sequence, as in C3: it tests falsy
     nfc = tmp_path / "nfc_tokenizer.json"
     nfc.write_text(json.dumps(spec_), encoding="utf-8")
     m, out, q = write(tmp_path, [("cafe", "café au lait\n", "en")], "--any-tokenizer", tokenizer=nfc)

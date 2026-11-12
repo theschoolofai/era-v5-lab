@@ -93,7 +93,7 @@ def main(argv=None):
     if "f2" not in s:
         sys.exit(f"{a.summary}: no F2 in this run; shards are made only from run_clean.py --f2 output")
     tok, tok_sha, specials = load_tokenizer(a.tokenizer, a.any_tokenizer)
-    norm = tok.normalizer.normalize_str if tok.normalizer else (lambda t: t)
+    norm = tok.normalizer.normalize_str if tok.normalizer is not None else (lambda t: t)  # a Sequence normalizer has len 0, so it is falsy
     pack_id, shard_id = s["pack_id"], f"{s['pack_id']}-{a.split}-{a.index:06d}"
 
     table = pq.read_table(a.clean, columns=["doc_id", "text", "lang_label"])
