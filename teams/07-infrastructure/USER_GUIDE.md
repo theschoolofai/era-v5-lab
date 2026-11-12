@@ -294,7 +294,9 @@ restoring the previous mode. It must call the model on every rank (FSDP/ZeRO-3 f
 | Variable | Meaning |
 |---|---|
 | `V5_EMBEDDING_POLICY_ID` | Team 04's embedding policy (e.g. `ke2-v1`); part of the environment check |
-| `GIT_SHA`, `IMAGE_DIGEST`, `TOKENIZER_SHA` | recorded in every manifest and must match on resume |
+| `IMAGE_DIGEST`, `TOKENIZER_SHA` | recorded in every manifest and must match on resume |
+| `GIT_SHA` | source commit, recorded but not compared (issue #298). Unset: `git rev-parse HEAD` of the checkout; no git either: `none` and a `checkpoint.provenance_unknown` event |
+| `V5_CODE_PATHS` | extra files that change the numbers (trainer, model, loader), `:`-separated; with `ckpt.py` and `Checkpointer(code_paths=...)` they make `code_sha256`, which must match on resume |
 | `V5_ASYNC_SAVE` | `1` (default) async save; `0` blocking save |
 | `V5_VERIFY_MODE` | `full` (re-hash every object; tests) or `head` (compare the checksum an S3 store kept at upload; TB-size runs) |
 | `V5_DEEPSPEED`, `V5_ZERO_STAGE`, `V5_DS_PRECISION` | test trainer: DeepSpeed backend, ZeRO 0–3, fp32/fp16/bf16 |

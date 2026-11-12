@@ -99,7 +99,7 @@ format:
   "world_size": 64, "parallel": {"dp": 8, "ep": 8, "zero_stage": 3},
   "files": [{"path": "__0_0.distcp", "bytes": 0, "sha256": "..."}],
   "data": {"ledger_offset": 0, "skip_list": []},
-  "env": {"git_sha": "...", "image_digest": "...", "torch": "...", "cuda": "...", "nccl": "..."},
+  "env": {"git_sha": "...", "git_sha_source": "git", "code_sha256": "...", "image_digest": "...", "torch": "...", "cuda": "...", "nccl": "..."},
   "checks": {"loss_at_save": 0.0, "probe_batch_loss": 0.0, "frozen_hashes": {}},
   "created": "ISO-8601", "save_seconds": {"stall": 0.0, "write": 0.0, "upload": 0.0}
 }

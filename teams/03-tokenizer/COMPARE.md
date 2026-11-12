@@ -390,3 +390,28 @@ Reference check: PASS (max |d| = 0.0000) on both runs.
 - **C3 vs C2 (normalizer)** is larger on FLORES than on the check split: Pa −2.71%, As −2.62%, Bn −1.60% and Or −1.29% here, against Bn −0.29% and As −0.17% on check. FLORES Bengali, Assamese and Punjabi contain many nukta letters in the decomposed form that the normalizer re-joins (#134), so the gain shows up more on this text. C3 also wins back most of C2's Punjabi loss.
 - C3 is better than BrahmicTokenizer-131K on all 12 FLORES languages, most on the v0 weak spots: Odia −39.8%, Punjabi −22.4%, Marathi −18.6%. The FLORES gains match the check-split gains above (C3 sample v0 vs baseline) to within about 1.5 points per language, except Malayalam (−12.7% on FLORES vs −15.0% on check). Mean Indic is −17.10% on FLORES vs −17.54% on check.
 - IndicBERTv2-SS and v0 + normalizer are not in the pass-bar table because they have no HumanEval/MBPP measurement.
+
+
+## Telugu yardstick: Vemana (Udgam Labs) on FLORES devtest
+
+Udgam Labs' Vemana is a 278M-parameter Telugu language model with its own 32,000-token SentencePiece BPE tokenizer ([technical report, 27 Oct 2026](https://udgamlabs.com/research/vemana)). The report gives Telugu tokens per whitespace-separated word on **FLORES devtest only** (1,012 sentences). Our harness tables above use dev+devtest (2,009 sentences), so C3 and BrahmicTokenizer-131K were re-measured on devtest only for this comparison (same method as the harness: no BOS/EOS, whitespace words). No tokenizer or sha256 changes.
+
+| Tokenizer | Vocab | Telugu tokens/word (FLORES devtest) | Source |
+|---|---|---|---|
+| Goldfish Telugu | 51k | 1.47 | Vemana report |
+| **Vemana** | 32k, Telugu only | **1.73** | Vemana report |
+| Sarvam-1 | 68k | 2.14 | Vemana report; we measure 2.1402 (cross-check) |
+| **C3 sample v0** (`15468e66…`, frozen in #340) | 131k | **2.5619** | measured here |
+| Gemma 3 | 262k | 2.84 | Vemana report |
+| BrahmicTokenizer-131K | 131k | 3.0410 | measured here |
+| Qwen3.5 | 248k | 4.63 | Vemana report |
+| Qwen3 | 152k | 11.40 | Vemana report |
+| LFM2.5 | 64k | 19.83 | Vemana report |
+
+**Reading it:**
+
+- **The method matches the report.** Our Sarvam-1 measurement (2.1402) reproduces the report's 2.14, so the C3 and BrahmicTokenizer-131K rows are comparable with the report's rows.
+- **C3 vs BrahmicTokenizer-131K:** −15.75% on Telugu devtest (−15.7% on dev+devtest in the tables above).
+- **C3 vs Vemana:** C3 uses 48% more tokens per Telugu word (2.56 vs 1.73). Vemana spends all 32k tokens on one language. C3 shares 131k ids across English, code and 11 Indic languages, and gives the Telugu script block 1,920 merges (`slots_v2.json`).
+- C3 is ahead of every multilingual tokenizer in the report except Sarvam-1, which is 19.7% better on Telugu but 28% worse on HumanEval and 16% worse on English (pass-bar table above).
+- **English:** the report gives no English figure for Vemana, so there is no English comparison here. On FLORES devtest English, C3 is 1.2369 and BrahmicTokenizer-131K 1.2393 tokens/word.
