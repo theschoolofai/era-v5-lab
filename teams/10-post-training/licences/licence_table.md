@@ -107,6 +107,10 @@ Three stages. Sets marked `excluded` stay in the table with the reason and are n
 | sft-chat-dolci-think-sft | [allenai/Dolci-Think-SFT](https://huggingface.co/datasets/allenai/Dolci-Think-SFT), `source` in {OpenThoughts3, WildChat, OpenAssistant Guanaco, Aya} | English / Math, Code, Chat; some multilingual rows via Aya | DeepSeek-R1 and R1-0528 (MIT) write the traces over human WildChat, OASST1 and Aya prompts; the OpenThoughts3 rows are the existing QwQ-32B (Apache-2.0) traces | odc-by (Hub tag; card adds "intended for research and educational use" under Ai2's Responsible Use Guidelines, a statement of intent, not a licence term) | TSAI reserves |
 | sft-chat-dolci-think-sft-other | [allenai/Dolci-Think-SFT](https://huggingface.co/datasets/allenai/Dolci-Think-SFT), all other `source` values | English / Instruction following, Python, Safety, Tables | Three new Ai2 subsets (Think Persona IF, Precise IF, Think Python; about 823k rows) name no generator; SYNTHETIC-2 has no licence on its own card; Nemotron-Post-Training-v1 code is `excluded` above; WildGuardMix, WildJailbreak and CoCoNot prompts were written by GPT-4 or unnamed models; TableGPT synthesis method not verified | odc-by (Hub tag) on the release; upstream licences or generators unstated | excluded |
 | sft-agentic-apigen-mt-5k | [Salesforce/APIGen-MT-5k](https://huggingface.co/datasets/Salesforce/APIGen-MT-5k) | English / Tool use (retail, airline) | GPT-4o (OpenAI, proprietary closed) and DeepSeek-V3 (MIT) write the agent and simulated-user turns (arXiv 2504.03601) | cc-by-nc-4.0 (Hub tag; non-commercial; card: "for research purposes only") | excluded |
+| sft-agentic-toucan | [Agent-Ark/Toucan-1.5M](https://huggingface.co/datasets/Agent-Ark/Toucan-1.5M) | English / Tool use (MCP agent trajectories) | GPT-OSS-120B (Apache-2.0), Kimi-K2 (Modified MIT) and Qwen3-32B (Apache-2.0) write the trajectories, one config each; tasks by Mistral-Small, DevStral-Small, GPT-OSS, Kimi-K2 and Qwen3-32B; Kimi-K2 annotates and GPT-OSS-120B judges (arXiv 2510.01179); all open weights | apache-2.0 (Hub tag; commercial use permitted per tag) | TSAI reserves |
+| sft-tool-when2call | [nvidia/When2Call](https://huggingface.co/datasets/nvidia/When2Call) | English / Tool use (when to call, ask or decline) | Mixtral-8x22B (Apache-2.0) rewrites questions and answers built on APIGen (xLAM) data, which includes DeepSeek-V2-Chat rows (DeepSeek Licence); rows carry no generator field | cc-by-4.0 (Hub tag; attribution needed); `train_sft` and `train_pref` only, the test split is built from BFCL v2 Live | needs TSAI decision |
+| sft-indic-indic-instruct-hi | [ai4bharat/indic-instruct-data-v0.1](https://huggingface.co/datasets/ai4bharat/indic-instruct-data-v0.1) | Hindi (`wikihow` and `nmt-seed` subsets only) | none: `wikihow` is native Hindi wikiHow text, `nmt-seed` is human-made BPCC-Human en-hi pairs; the other subsets (Llama-2-70B in `anudesh`, closed models in `lm_sys` and `hh-rlhf`) are not part of this set | no Hub tag; per-subset licences stated in arXiv 2401.15006: `wikihow` CC-0, `nmt-seed` CC-BY-4.0 | TSAI reserves |
+| sft-indic-updesh | [microsoft/Updesh_beta](https://huggingface.co/datasets/microsoft/Updesh_beta) | 13 Indic languages incl. Odia | Qwen3-235B-A22B (Updesh-G); Llama-3.1-405B-Instruct named for one stage; reasoning part translated from Microsoft Orca sets | other: Microsoft Research License (non-commercial research use only, no redistribution) | excluded |
 
 ### Stage 2: Preference optimization and RLVR
 
@@ -140,6 +144,7 @@ Three stages. Sets marked `excluded` stay in the table with the reason and are n
 | rl-code-leetcodedataset | [newfacade/LeetCodeDataset](https://huggingface.co/datasets/newfacade/LeetCodeDataset) | Code (Python) | Unknown for test inputs (an unnamed "LLM" wrote them, arXiv 2504.14655, Figs 4–5); outputs come from human canonical solutions; SFT responses by Qwen2.5-Coder-32B-Instruct (Apache-2.0) | apache-2.0 (Hub tag); MIT on GitHub; problem text belongs to LeetCode; pending until the test-input generator is known | needs TSAI decision |
 | rl-math-processbench | [Qwen/ProcessBench](https://huggingface.co/datasets/Qwen/ProcessBench) | English / Mathematics (step verification) | Not on the card; the paper (arXiv 2412.06559, Table 4) names 12 Qwen2/Qwen2.5 and Llama-3/3.1 Instruct models; step errors labelled by human experts | apache-2.0 (Hub tag); eval only, not training data (G9 evaluation probe) | excluded |
 | rl-math-deepscaler | [agentica-org/DeepScaleR-Preview-Dataset](https://huggingface.co/datasets/agentica-org/DeepScaleR-Preview-Dataset) | English / Mathematics (competition) | none for problems and solutions (human AIME 1984-2023, AMC before 2023, Omni-MATH, Still); gemini-1.5-pro-002 (Google, proprietary closed) is used in the preprocessing code as a proof-problem filter and difficulty judge; the Still rows (MATH, NuminaMath-CoT, AIME) have no stated licence and the release has no `source` column to drop them | mit (Hub tag) on the release; Still source licence unstated | excluded |
+| rl-safety-aya-redteaming | [CohereLabs/aya_redteaming](https://huggingface.co/datasets/CohereLabs/aya_redteaming) | Hindi (`aya_hin`, 915 prompts); 7 other languages not used | none: harmful prompts written by paid human annotators; prompts only, no responses | apache-2.0 (Hub tag; commercial use permitted per tag) | TSAI reserves |
 
 ---
 
@@ -1037,6 +1042,57 @@ Twenty-three sets in the two stage sections are `excluded`: eleven earlier ones 
 - **Our opinion:** excluded. It is the closest public match to our `<|tool_call|>` multi-turn format, so it is worth recording why it is out. Salesforce's `sft-salesforce-xlam-60k` (single-turn, CC-BY-4.0, Mixtral and DeepSeek-V2 writers) stays the tool-use source. Do not substitute the xLAM-2 models trained on this set either; they carry the same CC-BY-NC terms.
 - **Added by:** swatibansal (Week 2 rotation, 11 Nov 2026). Hugging Face cards, papers and repository code read on 10-11 Nov 2026. A tag is not legal clearance.
 
+### `sft-agentic-toucan` — Toucan-1.5M
+
+- **Stage:** SFT
+- **Set:** `sft-agentic-toucan`
+- **Language:** English / Tool use (multi-turn MCP agent trajectories, Hermes tool format)
+- **Source:** [`Agent-Ark/Toucan-1.5M`](https://huggingface.co/datasets/Agent-Ark/Toucan-1.5M) (card revision `0df3cf37f2`); paper [arXiv 2510.01179](https://arxiv.org/abs/2510.01179)
+- **Licence:** `apache-2.0` — Hugging Face tag read on 8 Nov 2026 and unchanged on 12 Nov 2026; the card: "This dataset is released under Apache 2.0." Permissive: in under the data licence rule. A tag is not legal clearance.
+- **Generator model:** Trajectories: "trajectories generated by Qwen3-32B, Kimi-K2, and GPT-OSS-120B, each stored under separate configurations" (card). Tasks: "five open-source LLMs (Mistral-Small, DevStral-Small, GPT-OSS, Kimi-K2, and Qwen3-32B) as task generators"; quality annotation: "the Kimi-K2 model as the annotator"; trajectory judge: GPT-OSS-120B (paper). GPT-OSS and Qwen3 are Apache-2.0 open weights. Kimi-K2 is open weights under a Modified MIT licence ([`moonshotai/Kimi-K2-Instruct` LICENSE](https://huggingface.co/moonshotai/Kimi-K2-Instruct/blob/main/LICENSE), revision `fd1984e2b7`, read on 12 Nov 2026): MIT, plus a product with more than 100 million monthly active users or more than 20 million US dollars monthly revenue must display "Kimi K2" in its user interface. The paper does not give versions for Mistral-Small and DevStral-Small, so their licences are not verified here. GPT-4o appears in the paper only as the user simulator for tau-bench evaluation, not in the data.
+- **Decision:** `TSAI reserves` — permissive licence; the trajectory writers are gpt-oss (in by name under the data licence rule) and the open-weight Qwen3-32B and Kimi-K2. Open points for TSAI: whether Kimi-K2's Modified MIT attribution term is acceptable (if not, keep only the `OSS` and `Qwen3` configs), and the unstated Mistral-Small / DevStral-Small versions used for task generation.
+- **Our opinion:** use, starting from the `OSS` config (457,130 rows, GPT-OSS-120B trajectories), which matches the "gpt-oss data is in" rule word for word; `Qwen3` (551,613) and `Kimi-K2` (518,516) are also open-weight. The `SFT` config (119,287 rows) is the authors' curated mix; check which generators it holds before using it. Messages are in the Hermes tool format, so `sft/convert.py` needs an adapter to the `<|tool_call|>` format. The tool definitions come from public MCP servers; tool results may contain scraped web text.
+- **For Team 9:** decontaminate against tool-use benchmarks (BFCL, tau-bench) before use.
+- **Added by:** jssunil (Week 2 rotation, 8 Nov 2026). Card and paper read on 8 Nov 2026; card revision re-checked and Kimi-K2 licence read on 12 Nov 2026.
+
+### `sft-tool-when2call` — When2Call
+
+- **Stage:** SFT (`train_sft`, 15,000 rows); `train_pref` (9,000 chosen/rejected pairs) is preference data for Stage 2
+- **Set:** `sft-tool-when2call`
+- **Language:** English / Tool use: when to call a tool, ask a follow-up question, or say the tools cannot answer
+- **Source:** [`nvidia/When2Call`](https://huggingface.co/datasets/nvidia/When2Call) (card revision `0582f7749d`); paper [NAACL 2025](https://aclanthology.org/2025.naacl-long.174/)
+- **Licence:** `cc-by-4.0` — Hugging Face tag and card text read on 8 Nov 2026 and unchanged on 12 Nov 2026. Permissive with attribution: in under the data licence rule. Attribution must go in the model card. A tag is not legal clearance.
+- **Generator model:** Mixtral-8x22B (Apache-2.0, open weights): "We synthetically generate the new data for When2Call in two main steps, using Mixtral 8x22B" (paper §2.2). The training data comes from applying that pipeline "to the APIGen dataset" (§3.3.1), i.e. `Salesforce/xlam-function-calling-60k`, which this table records as Mixtral-8x22B-Instruct plus DeepSeek-V2-Chat (DeepSeek Licence). The released rows have only `tools` and `messages`, so the DeepSeek-made rows cannot be filtered out.
+- **Decision:** `needs TSAI decision` — `sft-salesforce-xlam-60k` is `TSAI reserves` with the note "keep only Mixtral-8x22B-Instruct Apache-2.0 rows if split by generator". When2Call cannot be split that way, so TSAI should rule whether its unsplit rows (some built on DeepSeek-V2-Chat output) are acceptable. If yes, use; if not, excluded.
+- **Our opinion:** use if TSAI accepts the unsplit rows. It is the only set found that trains the "when not to call" behaviour the mix proposal (§3, Tool Use) asks for. The tool specs use a different schema (`"type": "dict"`, Python type names), so `convert.py` needs an adapter.
+- **For Team 9:** the test split (3,952 rows) is built from BFCL v2 Live, a benchmark. Use `train_sft` and `train_pref` only, and check them against BFCL.
+- **Added by:** jssunil (Week 2 rotation, 8 Nov 2026). Card and paper read on 8 Nov 2026; card revision re-checked on 12 Nov 2026.
+
+### `sft-indic-indic-instruct-hi` — indic-instruct-data-v0.1, `wikihow` and `nmt-seed` (Hindi)
+
+- **Stage:** SFT
+- **Set:** `sft-indic-indic-instruct-hi`
+- **Language:** Hindi. This set is the `hi` split of two subsets: `wikihow` (6,055 rows) and `nmt-seed` (50,000 rows).
+- **Source:** [`ai4bharat/indic-instruct-data-v0.1`](https://huggingface.co/datasets/ai4bharat/indic-instruct-data-v0.1) (card revision `82cd1437a0`); the Airavata report [arXiv 2401.15006](https://arxiv.org/abs/2401.15006)
+- **Licence:** The Hub card has no licence tag (still none on 12 Nov 2026); it points to the report. The report gives per-subset licences: `wikihow` "released under the CC-0 license"; `nmt-seed` (BPCC-Human) "released under the CC-BY-4.0 license". Read on 8 Nov 2026. Both are permissive, but the data licence rule puts unstated licences out, and here the licence is stated only in the report, not on the dataset card.
+- **Generator model:** None. `wikihow`: native Hindi wikiHow articles, "human-moderated", turned into completion tasks by the authors. `nmt-seed`: "A multi-domain human-annotated dataset containing 50K bitext English-Hindi translation pairs from BPCC-Human."
+- **Decision:** `TSAI reserves` — human-written text, no generator model, permissive licences per the report. Open point for TSAI: whether a licence stated in the authors' report, with no tag on the card, counts as stated under the data licence rule.
+- **Other subsets (not in this set):** `anudesh` — responses by Llama 2 70B: excluded (Llama). `lm_sys` — LMSYS-Chat-1M responses from 25 models including closed ones, LMSYS licence: excluded. `hh-rlhf` — Anthropic model responses: excluded, as `rl-safety-hh-rlhf`. `dolly` and `oasst1` — IndicTrans2 translations of the same sources as `sft-indic-indic-align-dolly-t` and `sft-indic-indic-align-oasst-t`: not added, to avoid training the same conversations twice. `flan_v2` — the report gives Apache-2.0, but FLAN mixes many source datasets with their own licences: not checked.
+- **Our opinion:** use `wikihow`; it is native Hindi, not translated, and five times the Hindi rows of `sft-indic-aya-dataset` (1,153). `nmt-seed` is translation pairs, not chat: use a small, capped share if TSAI wants translation ability. Both are single-turn, effort `1k`.
+- **Added by:** jssunil (Week 2 rotation, 8 Nov 2026). Card and report read on 8 Nov 2026; card revision re-checked on 12 Nov 2026.
+
+### `sft-indic-updesh` — Updesh_beta
+
+- **Stage:** SFT
+- **Set:** `sft-indic-updesh`
+- **Language:** 13 Indic languages (Assamese, Bengali, Gujarati, Hindi, Kannada, Malayalam, Marathi, Nepali, Odia, Punjabi, Tamil, Telugu, Urdu) and English
+- **Source:** [`microsoft/Updesh_beta`](https://huggingface.co/datasets/microsoft/Updesh_beta) (card revision `73ed1f8e08`)
+- **Licence:** `other` — [Microsoft Research License](https://huggingface.co/datasets/microsoft/Updesh_beta/blob/main/LICENSE.md), read on 8 Nov 2026: "use the Materials solely for non-commercial, non-revenue generating, research purposes" and "you may not distribute the data or your modifications to the data".
+- **Generator model:** Updesh-G (generative part): Qwen3-235B-A22B (card). The card also names Llama-3.1-405B-Instruct for one stage. The reasoning part (Updesh-R) is selectively translated from Microsoft's Orca-AgentInstruct and OrcaMath sets.
+- **Decision:** `excluded` — data licence rule: non-commercial licences are out. Text made by Llama models is also out, which would exclude the Llama-3.1-405B stage on its own.
+- **Our opinion:** excluded on the licence alone. Recorded because it is a large Indic set with Odia, and it will be proposed again.
+- **Added by:** jssunil (Week 2 rotation, 8 Nov 2026). Card and LICENSE.md read on 8 Nov 2026; card revision re-checked on 12 Nov 2026.
+
 ## Stage 2: Preference optimization and RLVR, candidate sets
 
 Verifiable-answer and test-based sets for RL (math, code, SWE tasks). Each entry has the standard fields, `TSAI reserves` as the decision (`excluded` where TSAI ruled a set out), and one line of opinion. Licence values are the Hugging Face tags read on 29 Oct 2026; a tag is not legal clearance. Per-dataset notes, 20-row samples and a benchmark-overlap check are in [team10-datasets](https://github.com/RaviNaik/ERA/tree/main/v5/capstone/team10-datasets).
@@ -1480,6 +1536,19 @@ Verifiable-answer and test-based sets for RL (math, code, SWE tasks). Each entry
 - **Decision:** `excluded` — data licence rule: unstated licences are out and sources we cannot trace are out. The Still rows have no stated licence and include NuminaMath-CoT problems (`excluded` above for GPT-4 / GPT-4o content), and the release has only `problem`, `answer` and `solution` columns, with no `source` field, so those rows cannot be dropped. The MIT tag on the release does not cure the upstream terms.
 - **Our opinion:** excluded as released. The traceable parts are available directly: AIME and AMC problems through `rl-code-code-contests`-style competition sources, and Omni-MATH (Apache-2.0) as its own set, which a future rotation could add as `rl-math-omni-math`. If TSAI prefers to keep this set, the open questions are the Still licence, the closed-model filter, and the unverified Gemini answer extraction; G9 would also need the decontamination test, because the combined preprocessing notebook loads a `math` file not listed on the card.
 - **Added by:** swatibansal (Week 2 rotation, 11 Nov 2026). Hugging Face cards, papers and repository code read on 10-11 Nov 2026. A tag is not legal clearance.
+
+### `rl-safety-aya-redteaming` — Aya Red-teaming (Hindi)
+
+- **Stage:** RL (safety prompts; also usable as SFT refusal prompts once responses are written)
+- **Set:** `rl-safety-aya-redteaming`
+- **Language:** Hindi (`aya_hin.jsonl`, 915 prompts: 608 global harm, 307 local harm). The other seven languages (Arabic, English, Filipino, French, Russian, Serbian, Spanish) are not used.
+- **Source:** [`CohereLabs/aya_redteaming`](https://huggingface.co/datasets/CohereLabs/aya_redteaming) (card revision `5a16fee03c`); paper [arXiv 2406.18682](https://arxiv.org/abs/2406.18682)
+- **Licence:** `apache-2.0` — Hugging Face tag and card read on 8 Nov 2026 and unchanged on 12 Nov 2026: "This dataset can be used for any purpose, whether academic or commercial, under the terms of the Apache 2.0 License." Permissive: in under the data licence rule. A tag is not legal clearance.
+- **Generator model:** None. "Curated by: Professional compensated annotators" (card). Each row has the original prompt, a literal and a semantic English translation, a harm category and an explanation.
+- **Decision:** `TSAI reserves` — permissive licence, human-written prompts, no generator model.
+- **Our opinion:** use as Hindi safety prompts for the refusal / safety reward. Prompts only, so responses must come from the policy (RL) or an allowed generator (SFT). The prompts are harmful by design; keep them out of any general SFT mix. Small (915 rows), but human-written in Hindi with India-specific ("local") harms, which the English safety sets do not cover.
+- **For Team 9:** check it is not in the safety evaluation set; Aya red-teaming prompts are used as an eval in the paper.
+- **Added by:** jssunil (Week 2 rotation, 8 Nov 2026). Card read and Hindi file counted on 8 Nov 2026; card revision re-checked on 12 Nov 2026.
 
 ## Strategy v0
 
