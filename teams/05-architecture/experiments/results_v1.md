@@ -1,6 +1,6 @@
 # Results v1
 
-Gate 2 proposal, 12 Nov 2026. A bits-per-byte number is recorded only when the run is a result. A missing number keeps the config v0 default. This file does not name a winner.
+Gate 2 proposal, 12 Nov 2026. A bits-per-byte number is recorded only when the run is a result. A missing number keeps the config v0 default. The provisional T1 learning rate is recorded below. No other arm is decided.
 
 The EXP-1 numbers are final whole-file val/bpb from the TSAI comment on pull request 310 (7 Nov 2026). Each run reached 245 steps. The value is the summed next-token loss in nats, divided by ln 2, divided by the UTF-8 byte count. It is one number for the whole held-out file. It is not the three-group mean, and it has no English, code, or Indic split.
 
@@ -16,7 +16,9 @@ The EXP-1 numbers are final whole-file val/bpb from the TSAI comment on pull req
 
 Seed spread is the highest seed minus the lowest seed in the posted table. Means and standard deviations are the values TSAI posted.
 
-The lowest mean is 1e-3 at 1.9686. The second is 3e-3 at 2.0771. The gap is 0.1085. The larger of those two seed spreads is 0.0623. The gap is wider than that spread on this one column. The plan still needs the three-group mean, the code guard, and the Indic guard. Those three values are not in the posted result, so this column does not name a winner.
+The lowest mean is 1e-3 at 1.9686. The second is 3e-3 at 2.0771. The gap is 0.1085. The larger of those two seed spreads is 0.0623. 1e-3 is also the lowest on every seed, and its spread, 0.0140, is the smallest of the five.
+
+The instructor set `optim.lr` to 1e-3 on 12 Nov 2026, provisional, so pull request 374 can carry it. The three-group, code, and Indic values were not measured. The choice holds for 245-step T1 runs only. EXP-2 and EXP-3 keep their own test of the rate.
 
 ## Arms with no bits per byte
 

@@ -1,5 +1,6 @@
 # Gate 2 proposal, 12 Nov 2026. TSAI signs this on 14 Nov.
-# No arm is named a winner. Every open value stays the config v0 default.
+# optim.lr is 1e-3, provisional, for 245-step T1 runs only.
+# Every other open value stays the config v0 default.
 # Model sizes and embedding.ke2_output_dim stay empty.
 # The numbers are in experiments/results_v1.md. The reasons are in decisions.md.
 settings:
@@ -13,9 +14,9 @@ settings:
     value: adamw
     source: "No optimizer result. EXP-2 has no held-out bits per byte. Config v0 default stays. 12 Nov 2026."
   - key: optim.lr
-    value: null
+    value: 0.001
     open: true
-    source: "EXP-1 whole-file val/bpb is on pull request 310. The three-group split is not in that table, so the plan rule does not name a winner. optim.lr stays null. 12 Nov 2026."
+    source: "Provisional T1 rate, instructor 12 Nov 2026. 1e-3 has the lowest whole-file val/bpb on all three seeds and the smallest spread, mean 1.9686, SD 0.0070. The three-group, code, and Indic values were not measured. This choice holds for 245-step T1 runs only. EXP-2 and EXP-3 keep their own test of the rate."
   - key: tokenizer.name
     value: BrahmicTokenizer-131K
     source: "G3 week-1 note. BrahmicTokenizer-131K is tokenizer v0. The file arrives 28 Oct."

@@ -1,10 +1,10 @@
 # Decisions for config v1
 
-Gate 2 proposal, 12 Nov 2026. TSAI signs this on 14 Nov. The numbers are in `experiments/results_v1.md`. No arm is named a winner. An arm with no bits per byte keeps the config v0 default. Model sizes are not copied in from the test-size line.
+Gate 2 proposal, 12 Nov 2026. TSAI signs this on 14 Nov. The numbers are in `experiments/results_v1.md`. The provisional T1 learning rate is 1e-3. No other arm is decided. An arm with no bits per byte keeps the config v0 default. Model sizes are not copied in from the test-size line.
 
 | Setting | Decision | Why |
 |---|---|---|
-| optim.lr | null | EXP-1 has a whole-file val/bpb table. The three-group mean, the code guard, and the Indic guard are not in it, so the plan rule does not name a winner. |
+| optim.lr | 0.001, provisional, T1 only | Instructor, 12 Nov 2026. 1e-3 has the lowest whole-file val/bpb on all three seeds and the smallest spread, mean 1.9686, SD 0.0070. The three-group, code, and Indic values were not measured. The choice holds for 245-step T1 runs only. EXP-2 and EXP-3 keep their own test of the rate. |
 | optim.name | adamw | EXP-2 has no held-out bits per byte. |
 | moe.n_expert | null | EXP-3 has no bits per byte. The test-size count is not copied in. |
 | shared expert | unset | EXP-3 has no bits per byte. The test-size line is not copied in. |
