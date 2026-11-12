@@ -9,6 +9,7 @@ Paths and commands start at the repository root. Install [../requirements.txt](.
 | Compare an Indic build with a baseline | [check_indic_integration.py](check_indic_integration.py) | Explicit baseline file and diagnosis/gold packs; see Indic guide |
 | Check code equivalence and privacy behavior | [verify_clean.py](verify_clean.py), [f1_eval.py](f1_eval.py) | Code diagnosis packs, source sheet, labels/gold; IDs and counts only |
 | Run English equivalence, order, privacy, and stress checks | [verify_clean_english.py](verify_clean_english.py), [order_checks_english.py](order_checks_english.py), [f1_eval_english.py](f1_eval_english.py), [make_harm_tests_english.py](make_harm_tests_english.py) | [English commands and order](README_english.md) |
+| Validate optional F2 on all supported packs | [validate_f2.py](validate_f2.py) | [v2 migration](../../results/spec_v1/f2/README.md#current-v2-pin-and-validation); full pinned set, per-pack raw and clean-then-F2 gold checks, missing inputs fail |
 | Validate Indic F1 and optional F2 | [harm_f1_indic.py](harm_f1_indic.py), [validate_f2_indic.py](validate_f2_indic.py) | [Indic commands](../README_indic.md#optional-f2-validation); current own-pack gold, full pinned G9 set for F2 |
 
 The [sheet-reproduction scripts](../../oneoff/README.md) have a separate role: reconstructing contributor evidence and explaining selection decisions.

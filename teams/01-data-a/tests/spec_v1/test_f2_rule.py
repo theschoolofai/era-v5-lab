@@ -68,6 +68,31 @@ def test_g9s_normalize_is_used_even_when_team_1s_is_already_imported():
     assert sys.modules["normalize"] is team1
 
 
+def test_v2_matching_removes_joiners_without_editing_document_text(gpqa, one_benchmark):
+    assert gpqa.manifest['version'] == 'v2' and gpqa.norm.id == 'g9-v2'
+    text = 'क्\u200dष क्\u200cष'
+    assert gpqa.norm.words_with_offsets(text) == [('क्ष', 0), ('क्ष', 5)]
+    assert f2_rule.f2({'doc_id': 'joiners', 'text': text}) == ('keep', text)
+
+
+def test_v2_adds_terminal_bench_canary_coverage():
+    fp = f2_rule.fingerprints(('terminal_bench_2',))
+    path = f2_rule._g9().parent / 'fingerprints' / f2_rule.SET / 'terminal_bench_2/canaries.txt'
+    text = 'Notes.\n' + path.read_text(encoding='utf-8').splitlines()[0]
+    flagged, hits = fp.check(text)
+    assert flagged and any(hit['item'] == 'terminal_bench_2:canary' for hit in hits)
+
+
+def test_v1_override_is_refused_after_v2_migration(monkeypatch):
+    monkeypatch.setenv('F2_FINGERPRINTS', str(f2_rule._g9().parent / 'fingerprints/v1'))
+    f2_rule.fingerprints.cache_clear()
+    try:
+        with pytest.raises(ValueError, match='not the pinned'):
+            f2_rule.fingerprints(('gpqa_diamond',))
+    finally:
+        f2_rule.fingerprints.cache_clear()
+
+
 def test_harm_test_reads_the_rule_without_loading_the_set():
     """harm_test.py runs this file's source with no __file__; the set loads only on the first doc."""
     sys.path.insert(0, str(SPEC.parent / "harmtest"))

@@ -9,8 +9,8 @@ check, and a report gives its set_sha256.
 
 --timeout 300: the set loads inside the first rule call, past harm_test.py's default of 5 s.
 The set is pinned: SET names its folder and SET_SHA256 its set_sha256, and a set with another set_sha256 is refused.
-F2_FINGERPRINTS can point to a copy of the same set elsewhere. A new set from G9 (v2) needs its own harm test, then both
-SET and SET_SHA256 changed here.
+F2_FINGERPRINTS can point to a copy of the same set elsewhere. A future set needs its own harm test, then both
+SET and SET_SHA256 changed here. The v2 migration evidence is results/spec_v1/f2/v2_validation.json.
 The full set needs about 1.1 GB of memory and loads in about 20 s, once, on the first doc.
 It finds copies only (G9's README): a reworded, translated or very short item is not found, nor a benchmark outside the set.
 """
@@ -21,8 +21,8 @@ import sys
 from functools import cache
 from pathlib import Path
 
-SET = "v1"  # G9's fingerprint set: teams/09-evaluation/fingerprints/<SET>
-SET_SHA256 = "11e290a44d1467875fdf8bebc55eab21f0a6367f411aab98a4a027a546fd372e"  # its set_sha256, harm-tested on the 13 packs
+SET = "v2"  # G9's fingerprint set: teams/09-evaluation/fingerprints/<SET>
+SET_SHA256 = "2826a3b883210c653979103c09ce1c79e40fc4f7034b54027f2836482370d22a"
 
 
 def _g9():

@@ -518,7 +518,12 @@ python -I spec_v1/validate/f1_eval.py ../.. <packs folder>
 
 ### G9 fingerprint contract and limitations
 
-The G9 adapter is `normalize(text)` / `words_with_offsets(text)` with
+The optional F2 wrapper pins fingerprint set **v2** and uses the G9 `g9-v2`
+normalizer recorded by its manifest. G9 derives match keys from the spec-v1
+words, then removes ZWJ/ZWNJ from each key; it preserves document text and raw
+character offsets. See the [v2 validation](../results/spec_v1/f2/README.md#current-v2-pin-and-validation).
+
+The Data A adapter is `normalize(text)` / `words_with_offsets(text)` with
 `NORMALIZE_ID = "g1-spec-v1"`. This word-fingerprint interface does **not**
 perform B1 HTML-entity decoding or A2 control-character removal. Those are
 additional operations of `match_key()` and `line_keys()` only. These APIs are
