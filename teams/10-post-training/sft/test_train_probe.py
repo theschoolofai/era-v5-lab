@@ -9,7 +9,9 @@ import math
 from pathlib import Path
 
 import pytest
-from pytest import fixture
+
+module_fixture = pytest.fixture(scope="module")
+parametrize = pytest.mark.parametrize
 import torch
 
 HERE = Path(__file__).resolve().parent
@@ -21,12 +23,12 @@ CONFIG = HERE / "config" / "probe.yaml"
 IGN = tp.IGNORE
 
 
-@fixture
+@module_fixture
 def cfg() -> dict:
     return tp.load_config(CONFIG)
 
 
-@fixture
+@module_fixture
 def tiny_cfg(cfg) -> dict:
     return dict(cfg, d_model=16, n_heads=2, n_layers=1, max_len=32)
 
@@ -43,7 +45,7 @@ def test_config_loads_and_respects_update_cap(cfg):
     assert cfg["pad_id"] != cfg["eos_id"]
 
 
-@pytest.mark.parametrize("change", [{"max_steps": 31}, {"max_steps": 0}, {"pad_id": 999}, {"d_model": 30}])
+@parametrize("change", [{"max_steps": 31}, {"max_steps": 0}, {"pad_id": 999}, {"d_model": 30}])
 def test_config_rejects_bad_values(cfg, change):
     with pytest.raises(ValueError):
         tp.check_config(dict(cfg, **change))
@@ -66,7 +68,7 @@ def test_validate_accepts_good_row():
     assert tp.validate_example(r) is r
 
 
-@pytest.mark.parametrize(
+@parametrize(
     "bad",
     [row([5, 6, 7], [0, 1]), row([5, 6, 7], [0, 2, 1]), {"input_ids": [1, 2]}],
 )
@@ -352,7 +354,7 @@ def test_load_jsonl_counts_rejects(tmp_path, cfg):
 # ---------------------------------------------------------------- the probe itself
 
 
-@fixture(scope="module")
+@module_fixture
 def report():
     cfg = tp.load_config(CONFIG)
     return cfg, tp.run_probe(cfg, tp.synthetic_rows(cfg))
