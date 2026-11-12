@@ -47,7 +47,7 @@ Three stages. Sets marked `excluded` stay in the table with the reason and are n
 | sft-agentic-nemotron-sft-agentic-v2-other | [nvidia/Nemotron-SFT-Agentic-v2](https://huggingface.co/datasets/nvidia/Nemotron-SFT-Agentic-v2) (search and customer-service parts) | English / web search, customer service | Unknown (not stated on the card for either part) | cc-by-4.0, apache-2.0, mit (Hub tags) | excluded |
 | sft-code-nemotron-terminal | [nvidia/Nemotron-Terminal-Corpus](https://huggingface.co/datasets/nvidia/Nemotron-Terminal-Corpus) | Code (terminal agent) | DeepSeek-V3.2 (MIT, open weights) for both the synthetic tasks and the trajectories (paper, arXiv 2602.21193) | cc-by-4.0 (Hub tag; commercial use permitted per tag) | TSAI reserves |
 | sft-code-opencodereasoning | [nvidia/OpenCodeReasoning](https://huggingface.co/datasets/nvidia/OpenCodeReasoning) | Code (competitive) | DeepSeek-R1 (MIT, open weights) | cc-by-4.0 (Hub tag; commercial use permitted per tag) | TSAI reserves |
-| sft-code-opencodereasoning-2 | [nvidia/OpenCodeReasoning-2](https://huggingface.co/datasets/nvidia/OpenCodeReasoning-2) | Code (competitive) | DeepSeek-R1 (MIT) for solutions, QwQ-32B (Apache-2.0) for critiques (both open weights) | cc-by-4.0 (Hub tag; commercial use permitted per tag) | TSAI reserves |
+| sft-code-opencodereasoning-2 | [nvidia/OpenCodeReasoning-2](https://huggingface.co/datasets/nvidia/OpenCodeReasoning-2) | Code (competitive) | DeepSeek-R1 (MIT) for solutions, QwQ-32B (Apache-2.0) for critiques (both open weights) | cc-by-4.0 (Hub tag; commercial use permitted per tag) | allowed (TSAI admitted, 11 Nov 2026) |
 | sft-code-codeforces-cots | [open-r1/codeforces-cots](https://huggingface.co/datasets/open-r1/codeforces-cots) | Code (competitive) | DeepSeek-R1 (MIT, open weights) | cc-by-4.0 (Hub tag; commercial use permitted per tag) | TSAI reserves |
 | sft-indic-aya-collection | [CohereLabs/aya_collection](https://huggingface.co/datasets/CohereLabs/aya_collection) (12 templated Indic subsets only) | Hindi, Bengali, Tamil, Telugu | none (human speaker-written templates applied to human-annotated Indic NLP datasets; no model generator) | apache-2.0 (Hub tag; commercial use permitted per tag) | TSAI reserves |
 | sft-indic-aya-collection-other | [CohereLabs/aya_collection](https://huggingface.co/datasets/CohereLabs/aya_collection) (all 19 translated datasets and the other templated subsets) | 101 languages | NLLB-3.3B (CC-BY-NC-4.0, non-commercial) machine translation; upstream English generator models not stated on the card | apache-2.0 (Hub tag) | excluded |
@@ -453,7 +453,7 @@ Twenty-three sets in the two stage sections are `excluded`: eleven earlier ones 
 - **Source:** [`nvidia/OpenCodeReasoning-2`](https://huggingface.co/datasets/nvidia/OpenCodeReasoning-2)
 - **Licence:** `cc-by-4.0` — Hugging Face tag read on 29 Oct 2026. A tag is not legal clearance.
 - **Generator model:** DeepSeek-R1 for solutions, QwQ for critiques (both open weights)
-- **Decision:** `TSAI reserves`
+- **Decision:** `allowed (TSAI admitted, 11 Nov 2026)`
 - **Our opinion:** use, check. Same teacher-terms check as OpenCodeReasoning.
 - **Details and 20-row sample:** [nvidia__OpenCodeReasoning-2](https://github.com/RaviNaik/ERA/tree/main/v5/capstone/team10-datasets/nvidia__OpenCodeReasoning-2)
 
