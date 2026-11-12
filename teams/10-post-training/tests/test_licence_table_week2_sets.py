@@ -11,8 +11,6 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-import pytest
-
 TEAM = Path(__file__).resolve().parents[1]
 TABLE = (TEAM / "licences" / "licence_table.md").read_text(encoding="utf-8")
 
@@ -62,30 +60,28 @@ def test_set_ids_are_unique_in_the_summary_tables():
     assert not dup, f"set ids listed more than once: {dup}"
 
 
-@pytest.mark.parametrize("sid", sorted(WEEK2_SETS))
-def test_week2_set_has_one_summary_row_with_a_valid_decision(sid):
-    label, hub_id, _ = WEEK2_SETS[sid]
-    rows = _summary_rows().get(sid)
-    assert rows and len(rows) == 1, f"{sid}: expected exactly one summary row"
-    cells = rows[0]
-    assert len(cells) == 6, f"{sid}: summary row has {len(cells)} cells, expected 6"
-    assert hub_id in cells[1], f"{sid}: source cell does not link {hub_id}"
-    assert cells[3] and cells[4], f"{sid}: generator-model and licence cells must not be empty"
-    assert cells[5] == label or cells[5].startswith(label), f"{sid}: decision {cells[5]!r}, expected {label!r}"
-    assert cells[5] in DECISIONS or cells[5].startswith("allowed")
+def test_week2_sets_have_one_summary_row_with_a_valid_decision():
+    for sid, (label, hub_id, _) in sorted(WEEK2_SETS.items()):
+        rows = _summary_rows().get(sid)
+        assert rows and len(rows) == 1, f"{sid}: expected exactly one summary row"
+        cells = rows[0]
+        assert len(cells) == 6, f"{sid}: summary row has {len(cells)} cells, expected 6"
+        assert hub_id in cells[1], f"{sid}: source cell does not link {hub_id}"
+        assert cells[3] and cells[4], f"{sid}: generator-model and licence cells must not be empty"
+        assert cells[5] == label or cells[5].startswith(label), f"{sid}: decision {cells[5]!r}, expected {label!r}"
+        assert cells[5] in DECISIONS or cells[5].startswith("allowed")
 
 
-@pytest.mark.parametrize("sid", sorted(WEEK2_SETS))
-def test_week2_set_detail_entry_matches_summary(sid):
-    label, hub_id, revision = WEEK2_SETS[sid]
-    section = _detail_sections().get(sid)
-    assert section, f"{sid}: no ### detail entry with '- **Set:** `{sid}`'"
-    assert _decision_of(section) == label
-    assert f"https://huggingface.co/datasets/{hub_id}" in section
-    assert revision in section, f"{sid}: card revision {revision} not recorded"
-    for field in ("Stage", "Language", "Source", "Licence", "Generator model", "Decision", "Added by"):
-        assert re.search(rf"^- \*\*{field}:\*\*", section, flags=re.M), f"{sid}: missing **{field}:**"
-    assert _summary_rows()[sid][0][5].startswith(_decision_of(section))
+def test_week2_set_detail_entries_match_the_summary():
+    for sid, (label, hub_id, revision) in sorted(WEEK2_SETS.items()):
+        section = _detail_sections().get(sid)
+        assert section, f"{sid}: no ### detail entry with '- **Set:** `{sid}`'"
+        assert _decision_of(section) == label, sid
+        assert f"https://huggingface.co/datasets/{hub_id}" in section, sid
+        assert revision in section, f"{sid}: card revision {revision} not recorded"
+        for field in ("Stage", "Language", "Source", "Licence", "Generator model", "Decision", "Added by"):
+            assert re.search(rf"^- \*\*{field}:\*\*", section, flags=re.M), f"{sid}: missing **{field}:**"
+        assert _summary_rows()[sid][0][5].startswith(_decision_of(section)), sid
 
 
 def test_updesh_is_excluded_for_its_licence_not_only_for_llama():
