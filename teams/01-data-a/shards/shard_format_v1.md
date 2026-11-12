@@ -4,10 +4,9 @@ How the cleaned packs become token shards for training. Agreed with G3 (tokenize
 (infrastructure). The manifest template is `shard_manifest_v1.template.json`; `shard_writer.py` writes one shard from one
 cleaned part and checks it; `test_shard_writer.py` tests it.
 
-**Sample:** `sample/` holds `code-go-train-000000` (266 docs, 262,109 tokens) with every file below except the
-`.bin` and `.docs.parquet`, which pr-guard refuses in a PR (`shard_writer.py` makes them; `.dump.md` shows what they hold). It
-was written with the baseline tokenizer and EOS id 36, before G3's answers, and is rewritten with C3 once the C3
-`tokenizer.json` is here.
+**Sample:** `sample/` holds `code-go-train-000000` (271 docs, 262,032 tokens), written with the C3 tokenizer from the CAP-1
+tokenizer sample, with every file below except the `.bin` and `.docs.parquet`, which pr-guard refuses in a PR.
+`sample/README.md` gives the inputs, the commands that make them, and the sha256 of every file.
 
 ## Files of one shard
 
@@ -118,7 +117,6 @@ corpus-v1/
 
 ## Not done yet
 
-- The C3 `tokenizer.json` (G3's Kaggle dataset), then the sample rewritten with it.
 - Several shards per part, and the release's `SHA256SUMS` and `admission.jsonl`.
 - The loader and its run of `ckpt/loader_contract.py`.
 - The `capability_lane` values: from the training plan.
