@@ -1,6 +1,8 @@
 # PR #240 change plan
 
-Status: implemented and validated on 10 November 2026 after the pull to
+Current follow-up: [PR #244 validation after gold rebuild #362](../results/spec_v1/cleaner/pr244_gold_refresh/README.md) is complete locally, including the new Hindi diagnosis pack and the necessary Marathi receiving-scope correction. It supersedes the validation counts below. TSAI review/merge and the sample-job decision remain pending.
+
+Historical status: implemented and validated on 10 November 2026 after the pull to
 `88e22653781904bdb82d663bfc3825ff1d089c67`. The changes remain local for review.
 
 ## Rechecked inputs and review decisions

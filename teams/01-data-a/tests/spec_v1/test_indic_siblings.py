@@ -62,12 +62,43 @@ def test_borrowed_callable_has_the_tested_scope_and_source_behavior(pack, rid):
 
 
 def test_empty_or_missing_gold_never_creates_a_pipeline():
-    for pack in ('ind-hi-sangraha-v', 'ind-ta-fw2', 'ind-ta-sangraha-s'):
+    for pack in ('ind-ta-fw2', 'ind-ta-sangraha-s'):
         assert REPORT['targets'][pack]['result'] == 'NOT TESTABLE'
         assert pack not in c._FAMILY
     for pack in ('ind-ml-fw2', 'ind-or-fw2'):
         assert REPORT['targets'][pack]['result'] == 'NO SAME-LANGUAGE DONOR'
         assert pack not in c._FAMILY
+
+
+def test_new_hindi_sangraha_v_registration_requires_validated_receiving_scope():
+    pack = 'ind-hi-sangraha-v'
+    entry = REPORT['targets'][pack]
+    assert entry['result'] == entry['combined_gold']['result'] == 'PASS'
+    assert entry['gold_n'] > 0 and entry['accepted']
+    assert c._FAMILY[pack] == 'indic' and pack in c.SCOPE['f1_rule.py']
+    for text in review.probes(pack).values():
+        outcomes = []
+        for lang in ('hi', 'hin_Deva'):
+            row = dict(doc_id='synthetic-hindi-receiver', text=text, url='', pack_id=pack, lang_label=lang)
+            action, new = c.clean(row)
+            assert action != 'drop'
+            assert c.clean(dict(row, text=new)) == ('keep', new)
+            outcomes.append((action, new))
+        assert outcomes[0] == outcomes[1]
+
+
+def test_rejected_combined_harm_scopes_are_not_emitted():
+    failures = []
+    for pack, entry in REPORT['targets'].items():
+        for attempt in entry['attempts']:
+            if attempt.get('combined_gold', {}).get('result') in {'FAIL', 'ERROR'}:
+                failures.append((pack, attempt['rule_id']))
+                assert attempt['result'] == 'REJECTED'
+                assert pack not in c.SCOPE.get(attempt['rule_id'], frozenset())
+                assert ROWS[attempt['rule_id']]['pack'] in c.SCOPE.get(attempt['rule_id'], frozenset())
+    # Rebuilt Marathi gold exposes individually passing changes whose union exceeds the limit.
+    assert ('ind-mr-fw2', 'DB-C1-012') in failures
+    assert 'ind-mr-fw2' in c.SCOPE['DB-C3-024']  # preserve the native rule
 
 
 def test_sibling_rule_factory_refuses_a_cross_language_target():

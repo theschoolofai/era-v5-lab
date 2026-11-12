@@ -3,7 +3,7 @@ spec_v1/sheets/specv1.md: change the sheet, not this file.
 
 doc is {doc_id, text, url, lang_label, pack_id}. Each function returns (action, text), action being keep, fix or drop.
 SCOPE says which packs each rule applies to; on any other pack, or without a pack_id, a rule does nothing.
-Families: code (6 packs, 24 rules), english (4 packs, 20 rules), math (2 packs, 14 rules), sci (1 packs, 12 rules), indic (17 packs, 152 rules).
+Families: code (6 packs, 24 rules), english (4 packs, 20 rules), math (2 packs, 14 rules), sci (1 packs, 12 rules), indic (18 packs, 152 rules).
 """
 import re
 from functools import cache
@@ -96,7 +96,7 @@ SCOPE = {
     "DB-A6-001": frozenset({"ind-bn-fw2"}),  # indic A6, medicine 88
     "DB-A6-020": frozenset({"ind-bn-sangraha-v"}),  # indic A6, medicine 90
     "DB-A6-003": frozenset({"ind-gu-fw2"}),  # indic A6, medicine 91
-    "DB-A6-017": frozenset({"ind-hi-hplt", "ind-hi-indiccorp"}),  # indic A6, medicine 92
+    "DB-A6-017": frozenset({"ind-hi-hplt", "ind-hi-indiccorp", "ind-hi-sangraha-v"}),  # indic A6, medicine 92
     "DB-A6-006": frozenset({"ind-kn-fw2", "ind-kn-sangraha-s"}),  # indic A6, medicine 95
     "DB-A6-007": frozenset({"ind-kn-sangraha-v"}),  # indic A6, medicine 97
     "DB-A6-008": frozenset({"ind-mr-fw2"}),  # indic A6, medicine 98
@@ -105,7 +105,7 @@ SCOPE = {
     "DB-G1-001": frozenset({"ind-bn-fw2"}),  # indic G1, medicine 102
     "DB-G1-015": frozenset({"ind-bn-sangraha-v"}),  # indic G1, medicine 103
     "DB-G1-003": frozenset({"ind-gu-fw2"}),  # indic G1, medicine 106
-    "DB-G1-016": frozenset({"ind-hi-fw2", "ind-hi-hplt", "ind-hi-sangraha-s"}),  # indic G1, medicine 107
+    "DB-G1-016": frozenset({"ind-hi-fw2", "ind-hi-hplt", "ind-hi-sangraha-s", "ind-hi-sangraha-v"}),  # indic G1, medicine 107
     "DB-G1-006": frozenset({"ind-mr-fw2", "ind-mr-sangraha-v"}),  # indic G1, medicine 110
     "DB-G1-007": frozenset({"ind-sa-fw2"}),  # indic G1, medicine 111
     "DB-G1-013": frozenset({"ind-ta-sangraha-v"}),  # indic G1, medicine 113
@@ -113,11 +113,11 @@ SCOPE = {
     "DB-G1-014": frozenset({"ind-te-sangraha-v"}),  # indic G1, medicine 116
     "DB-G2-003": frozenset({"ind-sa-fw2"}),  # indic G2, medicine 117
     "DB-G4-006": frozenset({"ind-bn-fw2", "ind-bn-sangraha-v"}),  # indic G4, medicine 118
-    "DB-G4-007": frozenset({"ind-hi-hplt", "ind-hi-indiccorp", "ind-hi-sangraha-s"}),  # indic G4, medicine 119
+    "DB-G4-007": frozenset({"ind-hi-hplt", "ind-hi-indiccorp", "ind-hi-sangraha-s", "ind-hi-sangraha-v"}),  # indic G4, medicine 119
     "DB-G4-002": frozenset({"ind-mr-fw2", "ind-mr-sangraha-v"}),  # indic G4, medicine 120
     "DB-G4-003": frozenset({"ind-sa-fw2"}),  # indic G4, medicine 121
     "DB-G4-004": frozenset({"ind-ta-sangraha-v"}),  # indic G4, medicine 122
-    "DB-B2-001": frozenset({"ind-hi-fw2", "ind-hi-indiccorp"}),  # indic B2, medicine 123
+    "DB-B2-001": frozenset({"ind-hi-fw2", "ind-hi-indiccorp", "ind-hi-sangraha-v"}),  # indic B2, medicine 123
     "DB-B2-002": frozenset({"ind-hi-hplt"}),  # indic B2, medicine 124
     "DB-B2-008": frozenset({"ind-hi-sangraha-s"}),  # indic B2, medicine 125
     "DB-B2-003": frozenset({"ind-kn-fw2", "ind-kn-sangraha-s", "ind-kn-sangraha-v"}),  # indic B2, medicine 127
@@ -127,19 +127,19 @@ SCOPE = {
     "DB-A3-004": frozenset({"ind-kn-sangraha-v"}),  # indic A3, medicine 135
     "DB-A4-001": frozenset({"ind-sa-fw2"}),  # indic A4, medicine 136
     "DB-A6-019": frozenset({"ind-hi-fw2", "ind-hi-sangraha-s"}),  # indic A6, medicine 138
-    "DB-B4-008": frozenset({"ind-hi-fw2", "ind-hi-hplt", "ind-hi-indiccorp", "ind-hi-sangraha-s"}),  # indic B4, medicine 139
+    "DB-B4-008": frozenset({"ind-hi-fw2", "ind-hi-hplt", "ind-hi-indiccorp", "ind-hi-sangraha-s", "ind-hi-sangraha-v"}),  # indic B4, medicine 139
     "DB-C3-001": frozenset({"ind-bn-fw2", "ind-bn-sangraha-v"}),  # indic C3, medicine 141
-    "DB-C3-002": frozenset({"ind-hi-hplt"}),  # indic C3, medicine 142
+    "DB-C3-002": frozenset({"ind-hi-hplt", "ind-hi-sangraha-v"}),  # indic C3, medicine 142
     "DB-C3-025": frozenset({"ind-hi-indiccorp"}),  # indic C3, medicine 143
     "DB-C3-004": frozenset({"ind-sa-fw2"}),  # indic C3, medicine 146
     "DB-C3-020": frozenset({"ind-te-fw2", "ind-te-sangraha-s", "ind-te-sangraha-v"}),  # indic C3, medicine 147
     "DB-C4-001": frozenset({"ind-bn-fw2"}),  # indic C4, medicine 148
-    "DB-C4-002": frozenset({"ind-hi-fw2", "ind-hi-indiccorp", "ind-hi-sangraha-s"}),  # indic C4, medicine 149
+    "DB-C4-002": frozenset({"ind-hi-fw2", "ind-hi-indiccorp", "ind-hi-sangraha-s", "ind-hi-sangraha-v"}),  # indic C4, medicine 149
     "DB-C4-003": frozenset({"ind-hi-hplt"}),  # indic C4, medicine 151
     "DB-C4-005": frozenset({"ind-mr-fw2"}),  # indic C4, medicine 153
     "DB-C4-006": frozenset({"ind-te-fw2", "ind-te-sangraha-s"}),  # indic C4, medicine 154
     "DB-C5-021": frozenset({"ind-bn-sangraha-v"}),  # indic C5, medicine 155
-    "DB-C5-016": frozenset({"ind-hi-fw2", "ind-hi-indiccorp", "ind-hi-sangraha-s"}),  # indic C5, medicine 156
+    "DB-C5-016": frozenset({"ind-hi-fw2", "ind-hi-indiccorp", "ind-hi-sangraha-s", "ind-hi-sangraha-v"}),  # indic C5, medicine 156
     "DB-C5-001": frozenset({"ind-hi-hplt"}),  # indic C5, medicine 157
     "DB-C5-003": frozenset({"ind-kn-fw2", "ind-kn-sangraha-s", "ind-kn-sangraha-v"}),  # indic C5, medicine 159
     "DB-C5-004": frozenset({"ind-mr-fw2", "ind-mr-sangraha-v"}),  # indic C5, medicine 160
@@ -148,7 +148,7 @@ SCOPE = {
     "DB-C5-018": frozenset({"ind-te-sangraha-v"}),  # indic C5, medicine 164
     "DB-D4-001": frozenset({"ind-bn-fw2", "ind-bn-sangraha-v"}),  # indic D4, medicine 165
     "DB-D4-003": frozenset({"ind-gu-fw2"}),  # indic D4, medicine 167
-    "DB-D4-013": frozenset({"ind-hi-fw2", "ind-hi-indiccorp"}),  # indic D4, medicine 169
+    "DB-D4-013": frozenset({"ind-hi-fw2", "ind-hi-indiccorp", "ind-hi-sangraha-v"}),  # indic D4, medicine 169
     "DB-D4-005": frozenset({"ind-hi-hplt"}),  # indic D4, medicine 170
     "DB-D4-018": frozenset({"ind-hi-sangraha-s"}),  # indic D4, medicine 172
     "DB-D4-007": frozenset({"ind-kn-fw2", "ind-kn-sangraha-v"}),  # indic D4, medicine 173
@@ -159,20 +159,20 @@ SCOPE = {
     "DB-D5-001": frozenset({"ind-te-sangraha-s"}),  # indic D5, medicine 180
     "DB-D5-004": frozenset({"ind-te-fw2", "ind-te-sangraha-v"}),  # indic D5, medicine 181
     "DB-F3-001": frozenset({"ind-bn-fw2", "ind-bn-sangraha-v"}),  # indic F3, medicine 182
-    "DB-F3-004": frozenset({"ind-hi-fw2", "ind-hi-hplt", "ind-hi-indiccorp", "ind-hi-sangraha-s"}),  # indic F3, medicine 184
+    "DB-F3-004": frozenset({"ind-hi-fw2", "ind-hi-hplt", "ind-hi-indiccorp", "ind-hi-sangraha-s", "ind-hi-sangraha-v"}),  # indic F3, medicine 184
     "DB-F3-005": frozenset({"ind-ta-sangraha-v"}),  # indic F3, medicine 185
     "DB-F3-003": frozenset({"ind-te-fw2", "ind-te-sangraha-s", "ind-te-sangraha-v"}),  # indic F3, medicine 186
     "DB-G1-012": frozenset({"ind-hi-indiccorp"}),  # indic G1, medicine 187
     "DB-G1-011": frozenset({"ind-kn-fw2", "ind-kn-sangraha-s", "ind-kn-sangraha-v"}),  # indic G1, medicine 188
-    "DB-G3-003": frozenset({"ind-hi-fw2", "ind-hi-hplt", "ind-hi-indiccorp", "ind-hi-sangraha-s"}),  # indic G3, medicine 189
+    "DB-G3-003": frozenset({"ind-hi-fw2", "ind-hi-hplt", "ind-hi-indiccorp", "ind-hi-sangraha-s", "ind-hi-sangraha-v"}),  # indic G3, medicine 189
     "DB-C1-001": frozenset({"ind-bn-fw2"}),  # indic C1, medicine 191
     "DB-C1-003": frozenset({"ind-gu-fw2"}),  # indic C1, medicine 195
-    "DB-C1-005": frozenset({"ind-hi-fw2", "ind-hi-sangraha-s"}),  # indic C1, medicine 197
+    "DB-C1-005": frozenset({"ind-hi-fw2", "ind-hi-sangraha-s", "ind-hi-sangraha-v"}),  # indic C1, medicine 197
     "DB-C1-006": frozenset({"ind-hi-hplt"}),  # indic C1, medicine 199
     "DB-C1-018": frozenset({"ind-hi-indiccorp"}),  # indic C1, medicine 201
     "DB-C1-010": frozenset({"ind-kn-fw2", "ind-kn-sangraha-s"}),  # indic C1, medicine 204
     "DB-C1-019": frozenset({"ind-kn-sangraha-v"}),  # indic C1, medicine 205
-    "DB-C1-012": frozenset({"ind-mr-fw2", "ind-mr-sangraha-v"}),  # indic C1, medicine 208
+    "DB-C1-012": frozenset({"ind-mr-sangraha-v"}),  # indic C1, medicine 208
     "DB-C1-013": frozenset({"ind-sa-fw2"}),  # indic C1, medicine 209
     "DB-C1-021": frozenset({"ind-ta-sangraha-v"}),  # indic C1, medicine 211
     "DB-C1-016": frozenset({"ind-te-fw2", "ind-te-sangraha-s"}),  # indic C1, medicine 213
@@ -180,7 +180,7 @@ SCOPE = {
     "DB-C2-001": frozenset({"ind-bn-fw2"}),  # indic C2, medicine 216
     "DB-C2-023": frozenset({"ind-bn-sangraha-v"}),  # indic C2, medicine 219
     "DB-C2-003": frozenset({"ind-gu-fw2"}),  # indic C2, medicine 220
-    "DB-C2-014": frozenset({"ind-hi-fw2", "ind-hi-indiccorp", "ind-hi-sangraha-s"}),  # indic C2, medicine 221
+    "DB-C2-014": frozenset({"ind-hi-fw2", "ind-hi-indiccorp", "ind-hi-sangraha-s", "ind-hi-sangraha-v"}),  # indic C2, medicine 221
     "DB-C2-021": frozenset({"ind-hi-hplt"}),  # indic C2, medicine 222
     "DB-C2-008": frozenset({"ind-kn-sangraha-s", "ind-kn-sangraha-v"}),  # indic C2, medicine 227
     "DB-C2-015": frozenset({"ind-mr-fw2"}),  # indic C2, medicine 228
@@ -204,12 +204,12 @@ SCOPE = {
     "DB-C5-007": frozenset({"ind-bn-fw2"}),  # indic C5, medicine 265
     "DB-C5-009": frozenset({"ind-gu-fw2"}),  # indic C5, medicine 267
     "DB-C5-014": frozenset({"ind-sa-fw2"}),  # indic C5, medicine 274
-    "DB-D2-003": frozenset({"ind-hi-fw2", "ind-hi-hplt", "ind-hi-indiccorp", "ind-hi-sangraha-s"}),  # indic D2, medicine 276
+    "DB-D2-003": frozenset({"ind-hi-fw2", "ind-hi-hplt", "ind-hi-indiccorp", "ind-hi-sangraha-s", "ind-hi-sangraha-v"}),  # indic D2, medicine 276
     "DB-D2-002": frozenset({"ind-sa-fw2"}),  # indic D2, medicine 278
     "DB-D3-001": frozenset({"ind-bn-fw2"}),  # indic D3, medicine 279
     "DB-D3-021": frozenset({"ind-bn-sangraha-v"}),  # indic D3, medicine 281
     "DB-D3-003": frozenset({"ind-gu-fw2"}),  # indic D3, medicine 282
-    "DB-D3-005": frozenset({"ind-hi-fw2", "ind-hi-indiccorp", "ind-hi-sangraha-s"}),  # indic D3, medicine 284
+    "DB-D3-005": frozenset({"ind-hi-fw2", "ind-hi-indiccorp", "ind-hi-sangraha-s", "ind-hi-sangraha-v"}),  # indic D3, medicine 284
     "DB-D3-020": frozenset({"ind-hi-hplt"}),  # indic D3, medicine 286
     "DB-D3-008": frozenset({"ind-kn-fw2", "ind-kn-sangraha-s"}),  # indic D3, medicine 289
     "DB-D3-016": frozenset({"ind-kn-sangraha-v"}),  # indic D3, medicine 290
@@ -222,7 +222,7 @@ SCOPE = {
     "DB-D4-014": frozenset({"ind-kn-sangraha-s"}),  # indic D4, medicine 302
     "DB-D4-017": frozenset({"ind-ta-sangraha-v"}),  # indic D4, medicine 304
     "DB-D5-003": frozenset({"ind-hi-fw2", "ind-hi-indiccorp", "ind-hi-sangraha-s"}),  # indic D5, medicine 305
-    "DB-D5-002": frozenset({"ind-hi-hplt"}),  # indic D5, medicine 306
+    "DB-D5-002": frozenset({"ind-hi-hplt", "ind-hi-sangraha-v"}),  # indic D5, medicine 306
     "DB-H3-001": frozenset({"ind-sa-fw2"}),  # indic H3, medicine 308
     "DB-B4-009": frozenset({"ind-bn-fw2", "ind-bn-sangraha-v"}),  # indic B4, medicine 310
     "DB-B4-001": frozenset({"ind-gu-fw2"}),  # indic B4, medicine 311
@@ -232,7 +232,7 @@ SCOPE = {
     "DB-B4-004": frozenset({"ind-sa-fw2"}),  # indic B4, medicine 316
     "DB-B4-007": frozenset({"ind-ta-sangraha-v"}),  # indic B4, medicine 317
     "DB-B4-006": frozenset({"ind-te-fw2", "ind-te-sangraha-s", "ind-te-sangraha-v"}),  # indic B4, medicine 319
-    "f1_rule.py": frozenset({"code-cpp", "code-go", "code-java", "code-js-ts", "code-python", "code-rust", "ind-bn-fw2", "ind-bn-sangraha-v", "ind-gu-fw2", "ind-hi-fw2", "ind-hi-hplt", "ind-hi-indiccorp", "ind-hi-sangraha-s", "ind-kn-fw2", "ind-kn-sangraha-s", "ind-kn-sangraha-v", "ind-mr-fw2", "ind-mr-sangraha-v", "ind-sa-fw2", "ind-ta-sangraha-v", "ind-te-fw2", "ind-te-sangraha-s", "ind-te-sangraha-v", "math-finemath", "math-megamath", "sci-finepdfs"}),  # the shared F1, spec_v1/tools/f1_rule.py: code, math, sci, indic packs, last
+    "f1_rule.py": frozenset({"code-cpp", "code-go", "code-java", "code-js-ts", "code-python", "code-rust", "ind-bn-fw2", "ind-bn-sangraha-v", "ind-gu-fw2", "ind-hi-fw2", "ind-hi-hplt", "ind-hi-indiccorp", "ind-hi-sangraha-s", "ind-hi-sangraha-v", "ind-kn-fw2", "ind-kn-sangraha-s", "ind-kn-sangraha-v", "ind-mr-fw2", "ind-mr-sangraha-v", "ind-sa-fw2", "ind-ta-sangraha-v", "ind-te-fw2", "ind-te-sangraha-s", "ind-te-sangraha-v", "math-finemath", "math-megamath", "sci-finepdfs"}),  # the shared F1, spec_v1/tools/f1_rule.py: code, math, sci, indic packs, last
 }
 
 
@@ -5083,7 +5083,7 @@ def _indic_db_a6_017():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-A6-017"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-hplt, ind-hi-indiccorp"
+    ORIGIN = "ind-hi-hplt, ind-hi-indiccorp, ind-hi-sangraha-v"
     SOURCE_ORIGIN = "ind-hi-hplt"
     SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
 
@@ -5497,7 +5497,7 @@ def _indic_db_g1_016():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-G1-016"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-hplt, ind-hi-fw2, ind-hi-sangraha-s"
+    ORIGIN = "ind-hi-hplt, ind-hi-fw2, ind-hi-sangraha-s, ind-hi-sangraha-v"
     SOURCE_ORIGIN = "ind-hi-hplt"
     SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
 
@@ -5894,7 +5894,7 @@ def _indic_db_g4_007():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-G4-007"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-hplt, ind-hi-indiccorp, ind-hi-sangraha-s"
+    ORIGIN = "ind-hi-hplt, ind-hi-indiccorp, ind-hi-sangraha-s, ind-hi-sangraha-v"
     SOURCE_ORIGIN = "ind-hi-hplt"
     SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
 
@@ -6112,7 +6112,7 @@ def _indic_db_b2_001():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-B2-001"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-fw2, ind-hi-indiccorp"
+    ORIGIN = "ind-hi-fw2, ind-hi-indiccorp, ind-hi-sangraha-v"
     SOURCE_ORIGIN = "ind-hi-fw2"
     SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 
@@ -6667,7 +6667,7 @@ def _indic_db_b4_008():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-B4-008"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-sangraha-s, ind-hi-fw2, ind-hi-hplt, ind-hi-indiccorp"
+    ORIGIN = "ind-hi-sangraha-s, ind-hi-fw2, ind-hi-hplt, ind-hi-indiccorp, ind-hi-sangraha-v"
     SOURCE_ORIGIN = "ind-hi-sangraha-s"
     SOURCE = "ind-hi-sangraha-s"  # pack whose medicine this came from
 
@@ -6762,7 +6762,7 @@ def _indic_db_c3_002():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C3-002"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-hplt"
+    ORIGIN = "ind-hi-hplt, ind-hi-sangraha-v"
     SOURCE_ORIGIN = "ind-hi-hplt"
     SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`
@@ -6989,7 +6989,7 @@ def _indic_db_c4_002():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C4-002"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-fw2, ind-hi-indiccorp, ind-hi-sangraha-s"
+    ORIGIN = "ind-hi-fw2, ind-hi-indiccorp, ind-hi-sangraha-s, ind-hi-sangraha-v"
     SOURCE_ORIGIN = "ind-hi-fw2"
     SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 
@@ -7212,7 +7212,7 @@ def _indic_db_c5_016():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C5-016"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-fw2, ind-hi-indiccorp, ind-hi-sangraha-s"
+    ORIGIN = "ind-hi-fw2, ind-hi-indiccorp, ind-hi-sangraha-s, ind-hi-sangraha-v"
     SOURCE_ORIGIN = "ind-hi-fw2"
     SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 
@@ -7641,7 +7641,7 @@ def _indic_db_d4_013():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D4-013"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-fw2, ind-hi-indiccorp"
+    ORIGIN = "ind-hi-fw2, ind-hi-indiccorp, ind-hi-sangraha-v"
     SOURCE_ORIGIN = "ind-hi-fw2"
     SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 
@@ -8188,7 +8188,7 @@ def _indic_db_f3_004():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-F3-004"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-fw2, ind-hi-hplt, ind-hi-indiccorp, ind-hi-sangraha-s"
+    ORIGIN = "ind-hi-fw2, ind-hi-hplt, ind-hi-indiccorp, ind-hi-sangraha-s, ind-hi-sangraha-v"
     SOURCE_ORIGIN = "ind-hi-fw2"
     SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 
@@ -8447,7 +8447,7 @@ def _indic_db_g3_003():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-G3-003"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-indiccorp, ind-hi-fw2, ind-hi-hplt, ind-hi-sangraha-s"
+    ORIGIN = "ind-hi-indiccorp, ind-hi-fw2, ind-hi-hplt, ind-hi-sangraha-s, ind-hi-sangraha-v"
     SOURCE_ORIGIN = "ind-hi-indiccorp"
     SOURCE = "ind-hi-indiccorp"  # pack whose medicine this came from
 
@@ -8627,7 +8627,7 @@ def _indic_db_c1_005():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C1-005"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-fw2, ind-hi-sangraha-s"
+    ORIGIN = "ind-hi-fw2, ind-hi-sangraha-s, ind-hi-sangraha-v"
     SOURCE_ORIGIN = "ind-hi-fw2"
     SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 
@@ -8919,7 +8919,7 @@ def _indic_db_c1_012():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C1-012"]
     LANGS = {"mar_Deva"}
-    ORIGIN = "ind-mr-sangraha-v, ind-mr-fw2"
+    ORIGIN = "ind-mr-sangraha-v"
     SOURCE_ORIGIN = "ind-mr-sangraha-v"
     SOURCE = "ind-mr-sangraha-v"  # pack whose medicine this came from
 
@@ -9350,7 +9350,7 @@ def _indic_db_c2_014():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-C2-014"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-fw2, ind-hi-indiccorp, ind-hi-sangraha-s"
+    ORIGIN = "ind-hi-fw2, ind-hi-indiccorp, ind-hi-sangraha-s, ind-hi-sangraha-v"
     SOURCE_ORIGIN = "ind-hi-fw2"
     SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 
@@ -10597,7 +10597,7 @@ def _indic_db_d2_003():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D2-003"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-hplt, ind-hi-fw2, ind-hi-indiccorp, ind-hi-sangraha-s"
+    ORIGIN = "ind-hi-hplt, ind-hi-fw2, ind-hi-indiccorp, ind-hi-sangraha-s, ind-hi-sangraha-v"
     SOURCE_ORIGIN = "ind-hi-hplt"
     SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
 
@@ -10836,7 +10836,7 @@ def _indic_db_d3_005():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D3-005"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-fw2, ind-hi-indiccorp, ind-hi-sangraha-s"
+    ORIGIN = "ind-hi-fw2, ind-hi-indiccorp, ind-hi-sangraha-s, ind-hi-sangraha-v"
     SOURCE_ORIGIN = "ind-hi-fw2"
     SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 
@@ -11431,7 +11431,7 @@ def _indic_db_d5_002():
     STATUS = "CANDIDATE"
     SPEC_PACKS = SCOPE["DB-D5-002"]
     LANGS = {"hin_Deva"}
-    ORIGIN = "ind-hi-hplt"
+    ORIGIN = "ind-hi-hplt, ind-hi-sangraha-v"
     SOURCE_ORIGIN = "ind-hi-hplt"
     SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
     import re  # added by Data B: harm_test_indic.py gives every block `re`

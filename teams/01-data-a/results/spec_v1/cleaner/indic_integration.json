@@ -3,7 +3,7 @@
   "ready_count": 260,
   "retired_count": 10,
   "retired_sha256": "bada4c420ad5f974b626b9e98576aef491b0883b0b0291f0c823e72e5769e3b4",
-  "f1_rule_sha256": "28250b0688c9cabaf16b13aca0c35beebd9343772196a5cd286cd2e81e773fd4",
+  "f1_rule_sha256": "6e5c18000f762c14313444598ea1886c1982c3a9cf3f52c52a8f43d07d651b9a",
   "combined_execution": "selected native medicines followed by shared Indic F1",
   "placeholder_compatibility_rules": [
     "DB-B2-001",
@@ -20,7 +20,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
+        "n": 158,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -39,7 +39,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 18,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -58,7 +58,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
+        "n": 137,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -77,7 +77,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 244,
+        "n": 227,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -96,7 +96,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
+        "n": 137,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -134,7 +134,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 27,
+        "n": 22,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -153,7 +153,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
+        "n": 158,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -172,7 +172,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 244,
+        "n": 227,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -191,7 +191,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 244,
+        "n": 227,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -254,7 +254,7 @@
         "not idempotent on own diagnosis pack"
       ],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -280,7 +280,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
+        "n": 158,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -299,7 +299,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 88,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -356,7 +356,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 244,
+        "n": 227,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -375,7 +375,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 244,
+        "n": 227,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -394,7 +394,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
+        "n": 137,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -432,7 +432,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -451,7 +451,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -470,7 +470,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -489,7 +489,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 27,
+        "n": 22,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -508,7 +508,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 27,
+        "n": 22,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -527,7 +527,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 103,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -546,7 +546,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
+        "n": 158,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -565,7 +565,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 88,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -584,7 +584,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 88,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -603,7 +603,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 18,
+        "n": 17,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -622,7 +622,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 244,
+        "n": 227,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -641,7 +641,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
+        "n": 137,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -662,7 +662,7 @@
         "not idempotent on own diagnosis pack"
       ],
       "gold": {
-        "n": 142,
+        "n": 137,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -725,7 +725,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -744,7 +744,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -763,7 +763,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 114,
+        "n": 115,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -782,7 +782,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
+        "n": 158,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -881,7 +881,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 18,
+        "n": 17,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -900,7 +900,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 18,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -938,7 +938,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
+        "n": 137,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -957,7 +957,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -976,7 +976,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
+        "n": 158,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1033,7 +1033,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 234,
+        "n": 218,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1052,7 +1052,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1109,7 +1109,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 27,
+        "n": 22,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1128,7 +1128,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 27,
+        "n": 22,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1147,7 +1147,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 18,
+        "n": 17,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1204,7 +1204,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 27,
+        "n": 22,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1223,7 +1223,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 27,
+        "n": 22,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1242,7 +1242,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 244,
+        "n": 227,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1261,7 +1261,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 103,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1378,7 +1378,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 244,
+        "n": 227,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1397,7 +1397,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1441,7 +1441,7 @@
         "joiners: drops ordinary synthetic prose"
       ],
       "gold": {
-        "n": 142,
+        "n": 158,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1463,7 +1463,7 @@
         "joiners: drops ordinary synthetic prose"
       ],
       "gold": {
-        "n": 142,
+        "n": 158,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1500,7 +1500,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 18,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1519,7 +1519,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 244,
+        "n": 227,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1538,7 +1538,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 234,
+        "n": 218,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1557,7 +1557,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 234,
+        "n": 218,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1576,7 +1576,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1595,7 +1595,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1614,7 +1614,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
+        "n": 158,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1633,7 +1633,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 18,
+        "n": 17,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1652,7 +1652,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
+        "n": 137,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1671,7 +1671,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 234,
+        "n": 218,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1690,7 +1690,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1709,7 +1709,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1728,7 +1728,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 103,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1747,7 +1747,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
+        "n": 158,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1804,7 +1804,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 18,
+        "n": 17,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1823,7 +1823,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 18,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1842,7 +1842,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 244,
+        "n": 227,
         "changed": [],
         "dropped": [
           "016f4687d4a36ce9"
@@ -1863,7 +1863,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 244,
+        "n": 227,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1920,7 +1920,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 234,
+        "n": 218,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1939,7 +1939,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1958,7 +1958,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -1996,7 +1996,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 103,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2015,7 +2015,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 88,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2074,7 +2074,7 @@
         "acts again on retained documents after the full pipeline"
       ],
       "gold": {
-        "n": 18,
+        "n": 17,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2115,7 +2115,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 18,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2153,7 +2153,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 18,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2172,7 +2172,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 244,
+        "n": 227,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2191,7 +2191,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 244,
+        "n": 227,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2210,7 +2210,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 234,
+        "n": 218,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2248,7 +2248,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 18,
+        "n": 17,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2286,7 +2286,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 103,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2349,7 +2349,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 244,
+        "n": 227,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2368,11 +2368,8 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 244,
-        "changed": [
-          "642e2d510bf80d87",
-          "656e1a989097ab40"
-        ],
+        "n": 227,
+        "changed": [],
         "dropped": [],
         "errors": [],
         "result": "PASS"
@@ -2390,7 +2387,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 244,
+        "n": 227,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2411,7 +2408,7 @@
         "acts again on retained documents after the full pipeline"
       ],
       "gold": {
-        "n": 142,
+        "n": 137,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2484,7 +2481,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 234,
+        "n": 218,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2503,7 +2500,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 234,
+        "n": 218,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2522,7 +2519,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2541,7 +2538,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2579,7 +2576,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 114,
+        "n": 115,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2598,7 +2595,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 114,
+        "n": 115,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2617,7 +2614,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 27,
+        "n": 22,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2636,7 +2633,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 103,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2655,7 +2652,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 103,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2676,7 +2673,7 @@
         "not idempotent on own diagnosis pack"
       ],
       "gold": {
-        "n": 142,
+        "n": 158,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2704,7 +2701,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 88,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2799,7 +2796,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 18,
+        "n": 17,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2818,7 +2815,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 18,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2839,7 +2836,7 @@
         "not idempotent on own diagnosis pack"
       ],
       "gold": {
-        "n": 18,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2868,7 +2865,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 244,
+        "n": 227,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2887,7 +2884,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 244,
+        "n": 227,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2908,7 +2905,7 @@
         "acts again on retained documents after the full pipeline"
       ],
       "gold": {
-        "n": 142,
+        "n": 137,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2932,7 +2929,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
+        "n": 137,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -2970,7 +2967,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 234,
+        "n": 218,
         "changed": [
           "277fa2fd630f90fd"
         ],
@@ -2991,7 +2988,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3010,7 +3007,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3029,7 +3026,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3048,7 +3045,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 114,
+        "n": 115,
         "changed": [
           "4d34a1a3048e4e7d"
         ],
@@ -3069,7 +3066,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 114,
+        "n": 115,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3088,7 +3085,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 103,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3107,7 +3104,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
+        "n": 158,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3128,7 +3125,7 @@
         "not idempotent on own diagnosis pack"
       ],
       "gold": {
-        "n": 142,
+        "n": 158,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3149,7 +3146,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
+        "n": 158,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3168,7 +3165,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 88,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3249,7 +3246,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 18,
+        "n": 17,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3287,7 +3284,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 18,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3310,7 +3307,7 @@
         "joiners: changes script joiner count"
       ],
       "gold": {
-        "n": 244,
+        "n": 227,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3328,7 +3325,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 234,
+        "n": 218,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3347,7 +3344,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 234,
+        "n": 218,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3366,7 +3363,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3387,7 +3384,7 @@
         "not idempotent on own diagnosis pack"
       ],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3455,7 +3452,7 @@
         "not idempotent on own diagnosis pack"
       ],
       "gold": {
-        "n": 27,
+        "n": 22,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3481,7 +3478,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 27,
+        "n": 22,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3504,7 +3501,7 @@
         "joiners: changes script joiner count"
       ],
       "gold": {
-        "n": 103,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3526,7 +3523,7 @@
         "joiners: changes script joiner count"
       ],
       "gold": {
-        "n": 103,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3544,8 +3541,10 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
-        "changed": [],
+        "n": 158,
+        "changed": [
+          "c85acdaeebe64599"
+        ],
         "dropped": [],
         "errors": [],
         "result": "PASS"
@@ -3563,7 +3562,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 88,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3644,7 +3643,7 @@
         "not idempotent on own diagnosis pack"
       ],
       "gold": {
-        "n": 18,
+        "n": 17,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3692,7 +3691,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
+        "n": 137,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3730,7 +3729,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3751,7 +3750,7 @@
         "acts again on retained documents after the full pipeline"
       ],
       "gold": {
-        "n": 103,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3773,7 +3772,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 88,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3851,7 +3850,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 18,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3870,7 +3869,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 244,
+        "n": 227,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3889,7 +3888,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 244,
+        "n": 227,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3946,7 +3945,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3965,7 +3964,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 114,
+        "n": 115,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -3984,7 +3983,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 114,
+        "n": 115,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4003,7 +4002,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
+        "n": 158,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4024,7 +4023,7 @@
         "acts again on retained documents after the full pipeline"
       ],
       "gold": {
-        "n": 88,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4084,7 +4083,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4103,7 +4102,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4141,7 +4140,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 244,
+        "n": 227,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4160,7 +4159,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 244,
+        "n": 227,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4179,7 +4178,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
+        "n": 137,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4236,7 +4235,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 234,
+        "n": 218,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4255,7 +4254,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 234,
+        "n": 218,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4274,7 +4273,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4293,7 +4292,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4312,7 +4311,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4331,7 +4330,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 27,
+        "n": 22,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4350,7 +4349,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 103,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4369,7 +4368,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 103,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4388,7 +4387,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
+        "n": 158,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4407,7 +4406,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
+        "n": 158,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4426,7 +4425,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 88,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4445,7 +4444,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 88,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4521,7 +4520,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 18,
+        "n": 17,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4540,7 +4539,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 18,
+        "n": 80,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4578,7 +4577,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 27,
+        "n": 22,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4597,7 +4596,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 103,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4635,7 +4634,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 234,
+        "n": 218,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4654,7 +4653,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4735,7 +4734,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
+        "n": 137,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4792,7 +4791,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 103,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4811,7 +4810,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 142,
+        "n": 158,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4830,7 +4829,7 @@
       "synthetic_issues": [],
       "review_issues": [],
       "gold": {
-        "n": 88,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4969,7 +4968,7 @@
         "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
       ],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -4990,7 +4989,7 @@
         "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
       ],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -5011,7 +5010,7 @@
         "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
       ],
       "gold": {
-        "n": 62,
+        "n": 37,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -5058,7 +5057,7 @@
         "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
       ],
       "gold": {
-        "n": 142,
+        "n": 158,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -5079,7 +5078,7 @@
         "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
       ],
       "gold": {
-        "n": 88,
+        "n": 99,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -5142,7 +5141,7 @@
         "replaced by the shared F1, spec_v1/build/f1_rule.py (Indic path): the TSAI ruling's <PHONE>/<EMAIL> placeholders with organisation and public-office contacts kept; this source rule used other placeholders or deleted values, and replaced organisation contacts"
       ],
       "gold": {
-        "n": 18,
+        "n": 17,
         "changed": [],
         "dropped": [],
         "errors": [],
@@ -6017,9 +6016,9 @@
   "gold": {
     "ind-bn-fw2": {
       "result": "PASS",
-      "n": 244,
+      "n": 227,
       "pack_sha256": "b5f91af826c982b548f7fc06404a2d53623b1393d511049f2e004b0353847913",
-      "gold_sha256": "4868dc1a46c3651a25e0b6fe7f33d62f79518e42d8dc95fa7d5860a705fd3f24",
+      "gold_sha256": "fb5538fa063daedf1dfbd2c1fcdf8e43267217de93794206bda8398e5877b7ff",
       "changed": [],
       "dropped": [
         "016f4687d4a36ce9"
@@ -6028,9 +6027,9 @@
     },
     "ind-bn-sangraha-v": {
       "result": "PASS",
-      "n": 142,
+      "n": 137,
       "pack_sha256": "e64c471dd6391dac861e039c2ad1d3c3732b21b97f29efd4b9bcaf0bf54baf81",
-      "gold_sha256": "c1594fda9363e9d37cfd605c775a87a14fbb6b2bfd2f187ea4392364a2be14f2",
+      "gold_sha256": "a3858b50eaed2fdfcd865ad5be92e1457b39fd75b960f1bbcee9ca2ac6570982",
       "changed": [],
       "dropped": [],
       "errors": []
@@ -6046,9 +6045,9 @@
     },
     "ind-hi-fw2": {
       "result": "PASS",
-      "n": 234,
+      "n": 218,
       "pack_sha256": "f9e1a898c982fcdfb788a931910f79f2204c177e530709df71a2d3b8223f5169",
-      "gold_sha256": "c42f5233f3af862d28271fc06734e3af5995290a8f580ee22ebba146e64307df",
+      "gold_sha256": "f164fd765388e20a2bbf859fa744802d325fd6f952e25badabdb8e5e4d71663f",
       "changed": [
         "277fa2fd630f90fd"
       ],
@@ -6057,9 +6056,9 @@
     },
     "ind-hi-hplt": {
       "result": "PASS",
-      "n": 62,
+      "n": 37,
       "pack_sha256": "497533fc4d6407b1ef2e83f7304d65ab7f9fe7892fee09ab6d10f45c913eadc6",
-      "gold_sha256": "44b4893000ea15190c6a7c6748bd48b3ce1574178036e91b9d311d896db85dfd",
+      "gold_sha256": "53b7cbdbed01a111b70454d4e241f0ca7bba83932fbe54b225fefa73fff0d9a3",
       "changed": [],
       "dropped": [],
       "errors": []
@@ -6086,9 +6085,9 @@
     },
     "ind-kn-fw2": {
       "result": "FAIL",
-      "n": 114,
+      "n": 115,
       "pack_sha256": "3859c21e3f715ff7c0fbe978dcd0719b48ead11cff58fe215afa23f1175fd3ee",
-      "gold_sha256": "82c4bcaab136214652457f4ecbf82b9d27966d0eccc54466ca44498bba0b1061",
+      "gold_sha256": "3f8661f313b07d8e5f8aa598d32db591d6cd46ba939d22afe7d417ddeabbb381",
       "changed": [
         "4d34a1a3048e4e7d",
         "51f68b9da172f3ae"
@@ -6098,36 +6097,38 @@
     },
     "ind-kn-sangraha-s": {
       "result": "PASS",
-      "n": 27,
+      "n": 22,
       "pack_sha256": "a161966005c037a1bdb70245c2b6135520967c57c5fc618cba5f29d9e248f427",
-      "gold_sha256": "d92de55e12640f1ec798a29e64f8064298ff61da06dec6dbc6d222152a0ee674",
+      "gold_sha256": "4aacabee4d5ab012f3041d63cd91310a7188cf68877692c644d7bc080c055556",
       "changed": [],
       "dropped": [],
       "errors": []
     },
     "ind-kn-sangraha-v": {
       "result": "PASS",
-      "n": 103,
+      "n": 99,
       "pack_sha256": "39d2bce100b2b2016fbe44d0f58ccbf5d2df8df24d8b3418051e691115d877fc",
-      "gold_sha256": "b523a045d9de1648f029cd9d605ddeb78a01292777a0216129e43d30953e58d3",
+      "gold_sha256": "42b45e25c85f3c793a0e0de0740ed6d3352e74d81bb8e10f1d6af10684305645",
       "changed": [],
       "dropped": [],
       "errors": []
     },
     "ind-mr-fw2": {
       "result": "PASS",
-      "n": 142,
+      "n": 158,
       "pack_sha256": "94a1d14caa9a46f40c2212c6d2c436b9ebb03093ac60ec04658023adeb2d3e2b",
-      "gold_sha256": "77ac2d31255eb65eda643a6e99526a0b6939dd01c2bcbeaf58ea4a50ee11e976",
-      "changed": [],
+      "gold_sha256": "401a155d5768b1e44cacdd6f5e813365bff625828a1ee7ebfbbed565512f65d0",
+      "changed": [
+        "c85acdaeebe64599"
+      ],
       "dropped": [],
       "errors": []
     },
     "ind-mr-sangraha-v": {
       "result": "PASS",
-      "n": 88,
+      "n": 99,
       "pack_sha256": "ad598b6ac2330c00b423b26f826f6d120d8940f0eb7f5412fca2fcd045b4ef30",
-      "gold_sha256": "7771ac3d97e311c8e7a499c57e0ce906d34f857b65ccd7c77a00a8d660c2ec2e",
+      "gold_sha256": "a38541f77304d18871b7fc30c275969452e5c74eea2a9f13ae4bbb0b4a6c3f61",
       "changed": [],
       "dropped": [],
       "errors": []
@@ -6156,9 +6157,9 @@
     },
     "ind-te-fw2": {
       "result": "PASS",
-      "n": 18,
+      "n": 17,
       "pack_sha256": "f893df548895804bd63f47b5d6405b51393d79f0647e4389665956198cdaf5bb",
-      "gold_sha256": "242244e890f2466e23e16ae9df2322649de95fa297ecfbdaf051f0f602978871",
+      "gold_sha256": "25c25c78467ce64f812582f46f2e27e2b15a2c78dc97fe7eaeb5167f3c25da3d",
       "changed": [],
       "dropped": [],
       "errors": []
@@ -6174,9 +6175,9 @@
     },
     "ind-te-sangraha-v": {
       "result": "PASS",
-      "n": 18,
+      "n": 80,
       "pack_sha256": "d3d928606d1fd0a7a81fcbce10db3e3d8f4b7df74486bc51c9a9d30299812817",
-      "gold_sha256": "911f3ecb899f154d5b61472228b09f2831f484d86c22726b093c57b446b98b8d",
+      "gold_sha256": "f73858bf14d7d4d37537644f573b5d492c681a7a2f07644e7760202793ade075",
       "changed": [],
       "dropped": [],
       "errors": []
@@ -6241,7 +6242,8 @@
     ],
     "DB-A6-017": [
       "ind-hi-hplt",
-      "ind-hi-indiccorp"
+      "ind-hi-indiccorp",
+      "ind-hi-sangraha-v"
     ],
     "DB-A6-006": [
       "ind-kn-fw2",
@@ -6273,7 +6275,8 @@
     "DB-G1-016": [
       "ind-hi-fw2",
       "ind-hi-hplt",
-      "ind-hi-sangraha-s"
+      "ind-hi-sangraha-s",
+      "ind-hi-sangraha-v"
     ],
     "DB-G1-006": [
       "ind-mr-fw2",
@@ -6302,7 +6305,8 @@
     "DB-G4-007": [
       "ind-hi-hplt",
       "ind-hi-indiccorp",
-      "ind-hi-sangraha-s"
+      "ind-hi-sangraha-s",
+      "ind-hi-sangraha-v"
     ],
     "DB-G4-002": [
       "ind-mr-fw2",
@@ -6316,7 +6320,8 @@
     ],
     "DB-B2-001": [
       "ind-hi-fw2",
-      "ind-hi-indiccorp"
+      "ind-hi-indiccorp",
+      "ind-hi-sangraha-v"
     ],
     "DB-B2-002": [
       "ind-hi-hplt"
@@ -6355,14 +6360,16 @@
       "ind-hi-fw2",
       "ind-hi-hplt",
       "ind-hi-indiccorp",
-      "ind-hi-sangraha-s"
+      "ind-hi-sangraha-s",
+      "ind-hi-sangraha-v"
     ],
     "DB-C3-001": [
       "ind-bn-fw2",
       "ind-bn-sangraha-v"
     ],
     "DB-C3-002": [
-      "ind-hi-hplt"
+      "ind-hi-hplt",
+      "ind-hi-sangraha-v"
     ],
     "DB-C3-025": [
       "ind-hi-indiccorp"
@@ -6381,7 +6388,8 @@
     "DB-C4-002": [
       "ind-hi-fw2",
       "ind-hi-indiccorp",
-      "ind-hi-sangraha-s"
+      "ind-hi-sangraha-s",
+      "ind-hi-sangraha-v"
     ],
     "DB-C4-003": [
       "ind-hi-hplt"
@@ -6399,7 +6407,8 @@
     "DB-C5-016": [
       "ind-hi-fw2",
       "ind-hi-indiccorp",
-      "ind-hi-sangraha-s"
+      "ind-hi-sangraha-s",
+      "ind-hi-sangraha-v"
     ],
     "DB-C5-001": [
       "ind-hi-hplt"
@@ -6432,7 +6441,8 @@
     ],
     "DB-D4-013": [
       "ind-hi-fw2",
-      "ind-hi-indiccorp"
+      "ind-hi-indiccorp",
+      "ind-hi-sangraha-v"
     ],
     "DB-D4-005": [
       "ind-hi-hplt"
@@ -6473,7 +6483,8 @@
       "ind-hi-fw2",
       "ind-hi-hplt",
       "ind-hi-indiccorp",
-      "ind-hi-sangraha-s"
+      "ind-hi-sangraha-s",
+      "ind-hi-sangraha-v"
     ],
     "DB-F3-005": [
       "ind-ta-sangraha-v"
@@ -6495,7 +6506,8 @@
       "ind-hi-fw2",
       "ind-hi-hplt",
       "ind-hi-indiccorp",
-      "ind-hi-sangraha-s"
+      "ind-hi-sangraha-s",
+      "ind-hi-sangraha-v"
     ],
     "DB-C1-001": [
       "ind-bn-fw2"
@@ -6505,7 +6517,8 @@
     ],
     "DB-C1-005": [
       "ind-hi-fw2",
-      "ind-hi-sangraha-s"
+      "ind-hi-sangraha-s",
+      "ind-hi-sangraha-v"
     ],
     "DB-C1-006": [
       "ind-hi-hplt"
@@ -6521,7 +6534,6 @@
       "ind-kn-sangraha-v"
     ],
     "DB-C1-012": [
-      "ind-mr-fw2",
       "ind-mr-sangraha-v"
     ],
     "DB-C1-013": [
@@ -6549,7 +6561,8 @@
     "DB-C2-014": [
       "ind-hi-fw2",
       "ind-hi-indiccorp",
-      "ind-hi-sangraha-s"
+      "ind-hi-sangraha-s",
+      "ind-hi-sangraha-v"
     ],
     "DB-C2-021": [
       "ind-hi-hplt"
@@ -6625,7 +6638,8 @@
       "ind-hi-fw2",
       "ind-hi-hplt",
       "ind-hi-indiccorp",
-      "ind-hi-sangraha-s"
+      "ind-hi-sangraha-s",
+      "ind-hi-sangraha-v"
     ],
     "DB-D2-002": [
       "ind-sa-fw2"
@@ -6642,7 +6656,8 @@
     "DB-D3-005": [
       "ind-hi-fw2",
       "ind-hi-indiccorp",
-      "ind-hi-sangraha-s"
+      "ind-hi-sangraha-s",
+      "ind-hi-sangraha-v"
     ],
     "DB-D3-020": [
       "ind-hi-hplt"
@@ -6685,7 +6700,8 @@
       "ind-hi-sangraha-s"
     ],
     "DB-D5-002": [
-      "ind-hi-hplt"
+      "ind-hi-hplt",
+      "ind-hi-sangraha-v"
     ],
     "DB-H3-001": [
       "ind-sa-fw2"

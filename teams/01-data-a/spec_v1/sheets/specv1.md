@@ -4,7 +4,7 @@ Status: **DRAFT / CANDIDATE**. Consolidates the five local medicine sheets; no r
 
 ## Scope, dispatch and executable contract
 
-The 30 covered packs are partitioned into code (six), English prose (four), math (two), science (one), and Indic (17). Indic sibling scopes are validated separately below.
+The 31 covered packs are partitioned into code (six), English prose (four), math (two), science (one), and Indic (18). Indic sibling scopes are validated separately below.
 
 Each Python fence is one independent rule module. Load with `teams/01-data-a/tools/harm_test.py`, which isolates sheet blocks. Concatenating fences into one Python namespace or using `medicine_extract.py` on this compiled sheet is unsupported: shared names (`medicine`, `_std`, `LANGS`, helpers) have different meanings. All IDs in this document are unique; renamed IDs are provisional local aliases, require registry reconciliation, and preserve `SOURCE_RULE_ID`. No existing registry is changed.
 
@@ -153,23 +153,24 @@ Fresh local execution using the repository loader, mutation checks, timeouts and
 | en-fineweb-edu | 158 | 0 / 0 | PASS | 12 / 1 | 0 / 0 |
 | en-nemotroncc | 129 | 0 / 0 | PASS | 62 / 17 | 0 / 0 |
 | en-nemotroncc-synth | 326 | 0 / 0 | PASS | 32 / 1 | 0 / 0 |
-| ind-bn-fw2 | 244 | 1 / 1 | PASS | 105 / 43 | 0 / 0 |
-| ind-bn-sangraha-v | 142 | 0 / 0 | PASS | 62 / 7 | 0 / 0 |
+| ind-bn-fw2 | 227 | 1 / 1 | PASS | 105 / 43 | 0 / 0 |
+| ind-bn-sangraha-v | 137 | 1 / 0 | PASS | 62 / 7 | 0 / 0 |
 | ind-gu-fw2 | 80 | 0 / 0 | PASS | 168 / 10 | 0 / 0 |
-| ind-hi-fw2 | 234 | 1 / 1 | PASS | 31 / 29 | 0 / 0 |
-| ind-hi-hplt | 62 | 0 / 0 | PASS | 91 / 57 | 0 / 0 |
+| ind-hi-fw2 | 218 | 1 / 1 | PASS | 31 / 29 | 0 / 0 |
+| ind-hi-hplt | 37 | 0 / 0 | PASS | 91 / 57 | 0 / 0 |
 | ind-hi-indiccorp | 425 | 1 / 1 | PASS | 5 / 6 | 0 / 0 |
 | ind-hi-sangraha-s | 24 | 0 / 0 | PASS | 93 / 66 | 0 / 0 |
-| ind-kn-fw2 | 114 | 0 / 0 | PASS | 2 / 1 | 0 / 0 |
-| ind-kn-sangraha-s | 27 | 0 / 0 | PASS | 143 / 0 | 0 / 0 |
-| ind-kn-sangraha-v | 103 | 0 / 0 | PASS | 97 / 12 | 0 / 0 |
-| ind-mr-fw2 | 142 | 1 / 0 | PASS | 101 / 9 | 0 / 0 |
-| ind-mr-sangraha-v | 88 | 0 / 0 | PASS | 272 / 26 | 0 / 0 |
+| ind-hi-sangraha-v | 219 | 2 / 0 | PASS | 40 / 5 | 0 / 0 |
+| ind-kn-fw2 | 115 | 0 / 0 | PASS | 2 / 1 | 0 / 0 |
+| ind-kn-sangraha-s | 22 | 0 / 0 | PASS | 143 / 0 | 0 / 0 |
+| ind-kn-sangraha-v | 99 | 0 / 0 | PASS | 97 / 12 | 0 / 0 |
+| ind-mr-fw2 | 158 | 1 / 0 | PASS | 72 / 9 | 0 / 0 |
+| ind-mr-sangraha-v | 99 | 0 / 0 | PASS | 272 / 26 | 0 / 0 |
 | ind-sa-fw2 | 71 | 1 / 0 | PASS | 226 / 21 | 0 / 0 |
 | ind-ta-sangraha-v | 141 | 0 / 0 | PASS | 103 / 0 | 0 / 0 |
-| ind-te-fw2 | 18 | 0 / 0 | PASS | 140 / 24 | 0 / 0 |
+| ind-te-fw2 | 17 | 0 / 0 | PASS | 140 / 24 | 0 / 0 |
 | ind-te-sangraha-s | 24 | 0 / 0 | PASS | 15 / 30 | 0 / 0 |
-| ind-te-sangraha-v | 18 | 0 / 0 | PASS | 22 / 1 | 0 / 0 |
+| ind-te-sangraha-v | 80 | 0 / 0 | PASS | 22 / 1 | 0 / 0 |
 | math-finemath | 86 | 0 / 0 | PASS | 176 / 13 | 0 / 0 |
 | math-megamath | 26 | 0 / 0 | PASS | 37 / 10 | 0 / 0 |
 | sci-finepdfs | 202 | 0 / 0 | PASS | 32 / 12 | 0 / 0 |
@@ -203,23 +204,23 @@ Only locally available week-1 diagnosis packs are eligible for gold tests. Week-
 
 | Pack | Native medicines plus shared F1: local own-pack gold result |
 |---|---|
-| ind-bn-fw2 | PASS (244 gold docs) |
-| ind-bn-sangraha-v | PASS (142 gold docs) |
+| ind-bn-fw2 | PASS (227 gold docs) |
+| ind-bn-sangraha-v | PASS (137 gold docs) |
 | ind-gu-fw2 | PASS (80 gold docs) |
-| ind-hi-fw2 | PASS (234 gold docs) |
-| ind-hi-hplt | PASS (62 gold docs) |
+| ind-hi-fw2 | PASS (218 gold docs) |
+| ind-hi-hplt | PASS (37 gold docs) |
 | ind-hi-indiccorp | PASS (425 gold docs) |
 | ind-hi-sangraha-s | PASS (24 gold docs) |
-| ind-kn-fw2 | FAIL (114 gold docs) |
-| ind-kn-sangraha-s | PASS (27 gold docs) |
-| ind-kn-sangraha-v | PASS (103 gold docs) |
-| ind-mr-fw2 | PASS (142 gold docs) |
-| ind-mr-sangraha-v | PASS (88 gold docs) |
+| ind-kn-fw2 | FAIL (115 gold docs) |
+| ind-kn-sangraha-s | PASS (22 gold docs) |
+| ind-kn-sangraha-v | PASS (99 gold docs) |
+| ind-mr-fw2 | PASS (158 gold docs) |
+| ind-mr-sangraha-v | PASS (99 gold docs) |
 | ind-sa-fw2 | PASS (71 gold docs) |
 | ind-ta-sangraha-v | PASS (141 gold docs) |
-| ind-te-fw2 | PASS (18 gold docs) |
+| ind-te-fw2 | PASS (17 gold docs) |
 | ind-te-sangraha-s | PASS (24 gold docs) |
-| ind-te-sangraha-v | PASS (18 gold docs) |
+| ind-te-sangraha-v | PASS (80 gold docs) |
 
 <!-- END INDIC INTEGRATION -->
 
@@ -228,7 +229,7 @@ Only locally available week-1 diagnosis packs are eligible for gold tests. Week-
 
 The scope policy starts in [medicine_indic.md](medicine_indic.md). Integration borrows selected native candidates only within the same language, preserves native disease selections, and tests every receiving scope on its own gold and full diagnosis pack. Explicit review restrictions override fallback borrowing: `DB-D4-011` runs only on `ind-te-fw2`, and `DB-D5-001` only on `ind-te-sangraha-s`. `SOURCE_ORIGIN` preserves the donor; `ORIGIN` and `SPEC_PACKS` contain validated execution scopes. No source algorithm or rule ID changes. Results: [indic_sibling_scopes.json](../../results/spec_v1/cleaner/indic_sibling_scopes.json).
 
-Current Indic coverage: **17 packs**; **79 additional rule/pack scopes**. All are CANDIDATE. Packs without nonempty receiving gold remain unregistered; Malayalam/Odia have no same-language donor.
+Current Indic coverage: **18 packs**; **94 additional rule/pack scopes**. All are CANDIDATE. Packs without nonempty receiving gold remain unregistered; Malayalam/Odia have no same-language donor.
 
 | Receiving pack | Borrowed scopes | Result |
 |---|---:|---|
@@ -239,12 +240,12 @@ Current Indic coverage: **17 packs**; **79 additional rule/pack scopes**. All ar
 | ind-hi-hplt | 3 | PASS |
 | ind-hi-indiccorp | 12 | PASS |
 | ind-hi-sangraha-s | 11 | PASS |
-| ind-hi-sangraha-v | 0 | NOT TESTABLE |
+| ind-hi-sangraha-v | 16 | PASS |
 | ind-kn-fw2 | 10 | PASS |
 | ind-kn-sangraha-s | 4 | PASS |
 | ind-kn-sangraha-v | 2 | PASS |
 | ind-ml-fw2 | 0 | NO SAME-LANGUAGE DONOR |
-| ind-mr-fw2 | 2 | PASS |
+| ind-mr-fw2 | 1 | PASS |
 | ind-mr-sangraha-v | 5 | PASS |
 | ind-or-fw2 | 0 | NO SAME-LANGUAGE DONOR |
 | ind-sa-fw2 | 0 | PASS |
@@ -5884,7 +5885,7 @@ def medicine(doc):
 
 1. **Disease:** A1 Invisible junk characters. Pack `ind-mr-fw2`. Source: section A1 of `diagnosis/submissions/ind-mr-fw2/adinathauti/medicine.md`, PR #114 at `22714bb`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 142 (PASS); ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
+**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 158 (PASS); ind-mr-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -5948,7 +5949,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A1 Invisible junk characters. Pack `ind-te-sangraha-v`. Source: section A1 of `diagnosis/submissions/ind-te-sangraha-v/SreekanthZipsy/medicine.md`, PR #109 at `694029b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 24 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 17 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 24 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 80 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -6008,7 +6009,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A2 Control characters. Pack `ind-bn-sangraha-v`. Source: Data B's rewrite `teams/02-data-b/indic_rules/rewrites/ind-bn-sangraha-v__pratik-2025__112.md` at `bbb104f` (TSAI ruling 3) of PR #112, section A2; the author's OK: https://github.com/theschoolofai/era-v5-lab/pull/112#issuecomment-6631062594.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 244 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 142 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 227 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 137 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -6067,7 +6068,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A3 Mojibake. Pack `ind-bn-fw2`. Source: section A3 of `diagnosis/submissions/ind-bn-fw2/sohamniyogi/medicine.md`, PR #138 at `8a50c48`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 244 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 227 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -6133,7 +6134,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A3 Mojibake. Pack `ind-bn-sangraha-v`. Source: section A3 of `diagnosis/submissions/ind-bn-sangraha-v/aneeshads/medicine.md`, PR #30 at `55d181e`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-sangraha-v: 0 changed / 0 dropped of 142 (PASS).
+**Current gold harm:** ind-bn-sangraha-v: 0 changed / 0 dropped of 137 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -6282,7 +6283,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A3 Mojibake. Pack `ind-kn-sangraha-s`. Source: section A3 of `diagnosis/submissions/ind-kn-sangraha-s/subramanyanaik/medicine.md`, PR #94 at `338e2f9`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 114 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS).
+**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 115 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 22 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -6351,7 +6352,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A3 Mojibake. Pack `ind-mr-fw2`. Source: section A3 of `diagnosis/submissions/ind-mr-fw2/adinathauti/medicine.md`, PR #114 at `22714bb`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 142 (PASS); ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
+**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 158 (PASS); ind-mr-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -6416,7 +6417,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A5 Wrong normal form. Pack `ind-bn-fw2`. Source: section A5 of `diagnosis/submissions/ind-bn-fw2/AditeyaAItronics/medicine.md`, PR #64 at `840d13d`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 244 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 142 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 227 (PASS); ind-bn-sangraha-v: 1 changed / 0 dropped of 137 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -6754,7 +6755,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A5 Wrong normal form. Pack `ind-mr-fw2`. Source: section A5 of `diagnosis/submissions/ind-mr-fw2/adinathauti/medicine.md`, PR #114 at `22714bb`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 142 (PASS).
+**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 158 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -6814,7 +6815,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A5 Wrong normal form. Pack `ind-mr-sangraha-v`. Source: section A5 of `diagnosis/submissions/ind-mr-sangraha-v/patilvijay23/medicine.md`, PR #19 at `07d884f`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
+**Current gold harm:** ind-mr-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -7013,7 +7014,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A6 Wrong or mixed script. Pack `ind-bn-fw2`. Source: section A6 of `diagnosis/submissions/ind-bn-fw2/AditeyaAItronics/medicine.md`, PR #64 at `840d13d`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 244 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 227 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -7138,7 +7139,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A6 Wrong or mixed script. Pack `ind-bn-sangraha-v`. Source: section A6 of `diagnosis/submissions/ind-bn-sangraha-v/aneeshads/medicine.md`, PR #30 at `55d181e`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-sangraha-v: 0 changed / 0 dropped of 142 (PASS).
+**Current gold harm:** ind-bn-sangraha-v: 0 changed / 0 dropped of 137 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -7276,7 +7277,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A6 Wrong or mixed script. Pack `ind-hi-hplt`. Source: Data B's rewrite `teams/02-data-b/indic_rules/rewrites/ind-hi-hplt__gmrammohan15__70.md` at `f53185d` (TSAI ruling 3) of PR #70, section A6; the author's OK: https://github.com/theschoolofai/era-v5-lab/pull/70#issuecomment-6620889534.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 62 (PASS); ind-hi-indiccorp: 1 changed / 0 dropped of 425 (PASS).
+**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 37 (PASS); ind-hi-indiccorp: 1 changed / 0 dropped of 425 (PASS); ind-hi-sangraha-v: 2 changed / 0 dropped of 219 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -7293,9 +7294,9 @@ CODE = "A6"
 ACTION = "fix"
 STAGE = "10"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-hplt', 'ind-hi-indiccorp'}
+SPEC_PACKS = {'ind-hi-hplt', 'ind-hi-indiccorp', 'ind-hi-sangraha-v'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-hplt, ind-hi-indiccorp"
+ORIGIN = "ind-hi-hplt, ind-hi-indiccorp, ind-hi-sangraha-v"
 SOURCE_ORIGIN = "ind-hi-hplt"
 SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
 AUTHOR = "gmrammohan15"  # PR #70; Data B rewrite at f53185d
@@ -7482,7 +7483,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A6 Wrong or mixed script. Pack `ind-kn-sangraha-s`. Source: section A6 of `diagnosis/submissions/ind-kn-sangraha-s/millermuttu/medicine.md`, PR #104 at `5dfac48`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 114 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS).
+**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 115 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 22 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -7617,7 +7618,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A6 Wrong or mixed script. Pack `ind-kn-sangraha-v`. Source: section A6 of `diagnosis/submissions/ind-kn-sangraha-v/pyru/medicine.md`, PR #25 at `5eaa16e`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-sangraha-v: 0 changed / 0 dropped of 103 (PASS).
+**Current gold harm:** ind-kn-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -7694,7 +7695,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A6 Wrong or mixed script. Pack `ind-mr-fw2`. Source: section A6 of `diagnosis/submissions/ind-mr-fw2/thinktinkergreen/medicine.md`, PR #50 at `0d85486`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 142 (PASS).
+**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 158 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -7756,7 +7757,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A6 Wrong or mixed script. Pack `ind-mr-sangraha-v`. Source: Data B's rewrite `teams/02-data-b/indic_rules/rewrites/ind-mr-sangraha-v__avnishbm__46.md` at `bbb104f` (TSAI ruling 3) of PR #46, section A6; the author's OK: https://github.com/theschoolofai/era-v5-lab/pull/46#issuecomment-6633827892.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
+**Current gold harm:** ind-mr-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -7878,7 +7879,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A6 Wrong or mixed script. Pack `ind-te-fw2`. Source: section A6 of `diagnosis/submissions/ind-te-fw2/sandeepkunkunuru/medicine.md`, PR #3 at `a74df32`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 24 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 17 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 24 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 80 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -7940,7 +7941,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** G1 Cut at the vowel sign. Pack `ind-bn-fw2`. Source: section G1 of `diagnosis/submissions/ind-bn-fw2/sohamniyogi/medicine.md`, PR #138 at `8a50c48`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 244 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 227 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -8005,7 +8006,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** G1 Cut at the vowel sign. Pack `ind-bn-sangraha-v`. Source: section G1 of `diagnosis/submissions/ind-bn-sangraha-v/aneeshads/medicine.md`, PR #30 at `55d181e`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-sangraha-v: 0 changed / 0 dropped of 142 (PASS).
+**Current gold harm:** ind-bn-sangraha-v: 0 changed / 0 dropped of 137 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -8249,7 +8250,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** G1 Cut at the vowel sign. Pack `ind-hi-hplt`. Source: Data B's rewrite `teams/02-data-b/indic_rules/rewrites/ind-hi-hplt__gmrammohan15__70.md` at `f53185d` (TSAI ruling 3) of PR #70, section G1; the author's OK: https://github.com/theschoolofai/era-v5-lab/pull/70#issuecomment-6620889534.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS); ind-hi-hplt: 0 changed / 0 dropped of 62 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 218 (PASS); ind-hi-hplt: 0 changed / 0 dropped of 37 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS); ind-hi-sangraha-v: 0 changed / 0 dropped of 219 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -8267,9 +8268,9 @@ CODE = "G1"
 ACTION = "fix"
 STAGE = "10"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-hplt', 'ind-hi-sangraha-s'}
+SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-hplt', 'ind-hi-sangraha-s', 'ind-hi-sangraha-v'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-hplt, ind-hi-fw2, ind-hi-sangraha-s"
+ORIGIN = "ind-hi-hplt, ind-hi-fw2, ind-hi-sangraha-s, ind-hi-sangraha-v"
 SOURCE_ORIGIN = "ind-hi-hplt"
 SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
 AUTHOR = "gmrammohan15"  # PR #70; Data B rewrite at f53185d
@@ -8439,7 +8440,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** G1 Cut at the vowel sign. Pack `ind-mr-fw2`. Source: section G1 of `diagnosis/submissions/ind-mr-fw2/thinktinkergreen/medicine.md`, PR #50 at `0d85486`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 142 (PASS); ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
+**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 158 (PASS); ind-mr-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -8753,7 +8754,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** G1 Cut at the vowel sign. Pack `ind-te-fw2`. Source: section G1 of `diagnosis/submissions/ind-te-fw2/sandeepkunkunuru/medicine.md`, PR #3 at `a74df32`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 17 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -8815,7 +8816,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** G1 Cut at the vowel sign. Pack `ind-te-sangraha-v`. Source: section G1 of `diagnosis/submissions/ind-te-sangraha-v/SreekanthZipsy/medicine.md`, PR #109 at `694029b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-sangraha-v: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-sangraha-v: 0 changed / 0 dropped of 80 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -8957,7 +8958,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** G4 Over-normalised. Pack `ind-bn-sangraha-v`. Source: section G4 of `diagnosis/submissions/ind-bn-sangraha-v/aneeshads/medicine.md`, PR #30 at `55d181e`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 1 changed / 0 dropped of 244 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 142 (PASS).
+**Current gold harm:** ind-bn-fw2: 1 changed / 0 dropped of 227 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 137 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -9036,7 +9037,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** G4 Over-normalised. Pack `ind-hi-hplt`. Source: Data B's rewrite `teams/02-data-b/indic_rules/rewrites/ind-hi-hplt__gmrammohan15__70.md` at `f53185d` (TSAI ruling 3) of PR #70, section G4; the author's OK: https://github.com/theschoolofai/era-v5-lab/pull/70#issuecomment-6620889534.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 62 (PASS); ind-hi-indiccorp: 1 changed / 0 dropped of 425 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
+**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 37 (PASS); ind-hi-indiccorp: 1 changed / 0 dropped of 425 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS); ind-hi-sangraha-v: 1 changed / 0 dropped of 219 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -9053,9 +9054,9 @@ CODE = "G4"
 ACTION = "fix"
 STAGE = "10"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-hplt', 'ind-hi-indiccorp', 'ind-hi-sangraha-s'}
+SPEC_PACKS = {'ind-hi-hplt', 'ind-hi-indiccorp', 'ind-hi-sangraha-s', 'ind-hi-sangraha-v'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-hplt, ind-hi-indiccorp, ind-hi-sangraha-s"
+ORIGIN = "ind-hi-hplt, ind-hi-indiccorp, ind-hi-sangraha-s, ind-hi-sangraha-v"
 SOURCE_ORIGIN = "ind-hi-hplt"
 SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
 AUTHOR = "gmrammohan15"  # PR #70; Data B rewrite at f53185d
@@ -9113,7 +9114,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** G4 Over-normalised. Pack `ind-mr-fw2`. Source: section G4 of `diagnosis/submissions/ind-mr-fw2/thinktinkergreen/medicine.md`, PR #50 at `0d85486`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 142 (PASS); ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
+**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 158 (PASS); ind-mr-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -9338,10 +9339,13 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** B2 HTML or XML tags. Pack `ind-hi-fw2`. Source: section B2 of `diagnosis/submissions/ind-hi-fw2/raj-harit-v2/medicine.md`, PR #8 at `2642f7b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 425 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 218 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 425 (PASS); ind-hi-sangraha-v: 0 changed / 0 dropped of 219 (PASS).
 
+**Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
-**Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
+- `9b77bf8d98e2216a` (ind-hi-sangraha-v), original offset 2923: `"sing\":\"<div class=\\\"mw-parser-ou"` (fix).
+
+**Example gap:** 1/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
 <!-- END CARD EVIDENCE -->
 
 2. **Medicine:** the author's code, unchanged. Main function: `medicine_b2(text)`.
@@ -9352,9 +9356,9 @@ CODE = "B2"
 ACTION = "fix"
 STAGE = "20"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-indiccorp'}
+SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-indiccorp', 'ind-hi-sangraha-v'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-fw2, ind-hi-indiccorp"
+ORIGIN = "ind-hi-fw2, ind-hi-indiccorp, ind-hi-sangraha-v"
 SOURCE_ORIGIN = "ind-hi-fw2"
 SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 AUTHOR = "raj-harit-v2"  # PR #8 at 2642f7b
@@ -9432,7 +9436,7 @@ medicine = _da_keep_privacy_placeholders(medicine)
 
 1. **Disease:** B2 HTML or XML tags. Pack `ind-hi-hplt`. Source: section B2 of `diagnosis/submissions/ind-hi-hplt/narasimhatejav/medicine.md`, PR #170 at `4aaf84b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 62 (PASS).
+**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 37 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -9630,7 +9634,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** B2 HTML or XML tags. Pack `ind-kn-sangraha-s`. Source: section B2 of `diagnosis/submissions/ind-kn-sangraha-s/millermuttu/medicine.md`, PR #104 at `5dfac48`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 114 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS); ind-kn-sangraha-v: 0 changed / 0 dropped of 103 (PASS).
+**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 115 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 22 (PASS); ind-kn-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -9782,7 +9786,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** B2 HTML or XML tags. Pack `ind-te-fw2`. Source: section B2 of `diagnosis/submissions/ind-te-fw2/sandeepkunkunuru/medicine.md`, PR #3 at `a74df32`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 17 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 80 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -9987,7 +9991,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** B3 Ghost chat markers. Pack `ind-kn-sangraha-s`. Source: section B3 of `diagnosis/submissions/ind-kn-sangraha-s/millermuttu/medicine.md`, PR #104 at `5dfac48`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 114 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS); ind-kn-sangraha-v: 0 changed / 0 dropped of 103 (PASS).
+**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 115 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 22 (PASS); ind-kn-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -10185,7 +10189,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A3 Mojibake. Pack `ind-kn-sangraha-v`. Source: section A3 of `diagnosis/submissions/ind-kn-sangraha-v/pyru/medicine.md`, PR #25 at `5eaa16e`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-sangraha-v: 0 changed / 0 dropped of 103 (PASS).
+**Current gold harm:** ind-kn-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -10404,7 +10408,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** A6 Wrong or mixed script. Pack `ind-hi-sangraha-s`. Source: section A6 of `diagnosis/submissions/ind-hi-sangraha-s/tejaswivinnakota/medicine.md`, PR #160 at `88a8a20`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 218 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -10481,7 +10485,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** B4 Template and code junk in prose. Pack `ind-hi-sangraha-s`. Source: section B4 of `diagnosis/submissions/ind-hi-sangraha-s/tejaswivinnakota/medicine.md`, PR #160 at `88a8a20`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS); ind-hi-hplt: 0 changed / 0 dropped of 62 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 425 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 218 (PASS); ind-hi-hplt: 0 changed / 0 dropped of 37 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 425 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS); ind-hi-sangraha-v: 0 changed / 0 dropped of 219 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -10498,9 +10502,9 @@ CODE = "B4"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-hplt', 'ind-hi-indiccorp', 'ind-hi-sangraha-s'}
+SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-hplt', 'ind-hi-indiccorp', 'ind-hi-sangraha-s', 'ind-hi-sangraha-v'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-sangraha-s, ind-hi-fw2, ind-hi-hplt, ind-hi-indiccorp"
+ORIGIN = "ind-hi-sangraha-s, ind-hi-fw2, ind-hi-hplt, ind-hi-indiccorp, ind-hi-sangraha-v"
 SOURCE_ORIGIN = "ind-hi-sangraha-s"
 SOURCE = "ind-hi-sangraha-s"  # pack whose medicine this came from
 AUTHOR = "tejaswivinnakota"  # PR #160 at 88a8a20
@@ -10603,7 +10607,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C3 Truncated document. Pack `ind-bn-fw2`. Source: section C3 of `diagnosis/submissions/ind-bn-fw2/AditeyaAItronics/medicine.md`, PR #64 at `840d13d`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 244 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 142 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 227 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 137 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -10671,7 +10675,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C3 Truncated document. Pack `ind-hi-hplt`. Source: section C3 of `diagnosis/submissions/ind-hi-hplt/narasimhatejav/medicine.md`, PR #170 at `4aaf84b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 62 (PASS).
+**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 37 (PASS); ind-hi-sangraha-v: 0 changed / 0 dropped of 219 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -10688,9 +10692,9 @@ CODE = "C3"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-hplt'}
+SPEC_PACKS = {'ind-hi-hplt', 'ind-hi-sangraha-v'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-hplt"
+ORIGIN = "ind-hi-hplt, ind-hi-sangraha-v"
 SOURCE_ORIGIN = "ind-hi-hplt"
 SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
 AUTHOR = "narasimhatejav"  # PR #170 at 4aaf84b
@@ -10984,7 +10988,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C3 Truncated document. Pack `ind-te-sangraha-v`. Source: section C3 of `diagnosis/submissions/ind-te-sangraha-v/SreekanthZipsy/medicine.md`, PR #109 at `694029b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 24 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 17 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 24 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 80 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -11042,7 +11046,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C4 Two documents joined. Pack `ind-bn-fw2`. Source: section C4 of `diagnosis/submissions/ind-bn-fw2/AditeyaAItronics/medicine.md`, PR #64 at `840d13d`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 244 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 227 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -11107,7 +11111,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C4 Two documents joined. Pack `ind-hi-fw2`. Source: section C4 of `diagnosis/submissions/ind-hi-fw2/raj-harit-v2/medicine.md`, PR #8 at `2642f7b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 425 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 218 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 425 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS); ind-hi-sangraha-v: 0 changed / 0 dropped of 219 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -11125,9 +11129,9 @@ CODE = "C4"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-indiccorp', 'ind-hi-sangraha-s'}
+SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-indiccorp', 'ind-hi-sangraha-s', 'ind-hi-sangraha-v'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-fw2, ind-hi-indiccorp, ind-hi-sangraha-s"
+ORIGIN = "ind-hi-fw2, ind-hi-indiccorp, ind-hi-sangraha-s, ind-hi-sangraha-v"
 SOURCE_ORIGIN = "ind-hi-fw2"
 SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 AUTHOR = "raj-harit-v2"  # PR #8 at 2642f7b
@@ -11238,7 +11242,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C4 Two documents joined. Pack `ind-hi-hplt`. Source: section C4 of `diagnosis/submissions/ind-hi-hplt/narasimhatejav/medicine.md`, PR #170 at `4aaf84b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 62 (PASS).
+**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 37 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -11358,7 +11362,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C4 Two documents joined. Pack `ind-mr-fw2`. Source: section C4 of `diagnosis/submissions/ind-mr-fw2/thinktinkergreen/medicine.md`, PR #50 at `0d85486`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 142 (PASS).
+**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 158 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -11421,7 +11425,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C4 Two documents joined. Pack `ind-te-fw2`. Source: section C4 of `diagnosis/submissions/ind-te-fw2/sandeepkunkunuru/medicine.md`, PR #3 at `a74df32`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 17 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -11485,7 +11489,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C5 Lists of keywords or links. Pack `ind-bn-sangraha-v`. Source: Data B's rewrite `teams/02-data-b/indic_rules/rewrites/ind-bn-sangraha-v__pratik-2025__112.md` at `bbb104f` (TSAI ruling 3) of PR #112, section C5; the author's OK: https://github.com/theschoolofai/era-v5-lab/pull/112#issuecomment-6631062594.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-sangraha-v: 0 changed / 0 dropped of 142 (PASS).
+**Current gold harm:** ind-bn-sangraha-v: 0 changed / 0 dropped of 137 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -11551,7 +11555,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C5 Lists of keywords or links. Pack `ind-hi-fw2`. Source: section C5 of `diagnosis/submissions/ind-hi-fw2/revantg/medicine.md`, PR #23 at `f1f39f5`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 425 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 218 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 425 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS); ind-hi-sangraha-v: 0 changed / 0 dropped of 219 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -11568,9 +11572,9 @@ CODE = "C5"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-indiccorp', 'ind-hi-sangraha-s'}
+SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-indiccorp', 'ind-hi-sangraha-s', 'ind-hi-sangraha-v'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-fw2, ind-hi-indiccorp, ind-hi-sangraha-s"
+ORIGIN = "ind-hi-fw2, ind-hi-indiccorp, ind-hi-sangraha-s, ind-hi-sangraha-v"
 SOURCE_ORIGIN = "ind-hi-fw2"
 SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 AUTHOR = "revantg"  # PR #23 at f1f39f5
@@ -11620,7 +11624,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C5 Lists of keywords or links. Pack `ind-hi-hplt`. Source: section C5 of `diagnosis/submissions/ind-hi-hplt/narasimhatejav/medicine.md`, PR #170 at `4aaf84b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 62 (PASS).
+**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 37 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -11736,7 +11740,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C5 Lists of keywords or links. Pack `ind-kn-sangraha-v`. Source: section C5 of `diagnosis/submissions/ind-kn-sangraha-v/pyru/medicine.md`, PR #25 at `5eaa16e`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 114 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS); ind-kn-sangraha-v: 0 changed / 0 dropped of 103 (PASS).
+**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 115 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 22 (PASS); ind-kn-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -11808,7 +11812,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C5 Lists of keywords or links. Pack `ind-mr-fw2`. Source: section C5 of `diagnosis/submissions/ind-mr-fw2/thinktinkergreen/medicine.md`, PR #50 at `0d85486`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 142 (PASS); ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
+**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 158 (PASS); ind-mr-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -11987,7 +11991,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C5 Lists of keywords or links. Pack `ind-te-fw2`. Source: section C5 of `diagnosis/submissions/ind-te-fw2/sandeepkunkunuru/medicine.md`, PR #3 at `a74df32`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 17 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -12065,7 +12069,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C5 Lists of keywords or links. Pack `ind-te-sangraha-v`. Source: section C5 of `diagnosis/submissions/ind-te-sangraha-v/SreekanthZipsy/medicine.md`, PR #109 at `694029b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-sangraha-v: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-sangraha-v: 0 changed / 0 dropped of 80 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -12132,7 +12136,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D4 Bad machine translation. Pack `ind-bn-fw2`. Source: section D4 of `diagnosis/submissions/ind-bn-fw2/AditeyaAItronics/medicine.md`, PR #64 at `840d13d`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 1 dropped of 244 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 142 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 1 dropped of 227 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 137 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -12385,7 +12389,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D4 Bad machine translation. Pack `ind-hi-fw2`. Source: section D4 of `diagnosis/submissions/ind-hi-fw2/revantg/medicine.md`, PR #23 at `f1f39f5`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 425 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 218 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 425 (PASS); ind-hi-sangraha-v: 0 changed / 0 dropped of 219 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -12402,9 +12406,9 @@ CODE = "D4"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-indiccorp'}
+SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-indiccorp', 'ind-hi-sangraha-v'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-fw2, ind-hi-indiccorp"
+ORIGIN = "ind-hi-fw2, ind-hi-indiccorp, ind-hi-sangraha-v"
 SOURCE_ORIGIN = "ind-hi-fw2"
 SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 AUTHOR = "revantg"  # PR #23 at f1f39f5
@@ -12453,7 +12457,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D4 Bad machine translation. Pack `ind-hi-hplt`. Source: section D4 of `diagnosis/submissions/ind-hi-hplt/narasimhatejav/medicine.md`, PR #170 at `4aaf84b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 62 (PASS).
+**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 37 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -12640,7 +12644,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D4 Bad machine translation. Pack `ind-kn-sangraha-v`. Source: section D4 of `diagnosis/submissions/ind-kn-sangraha-v/pyru/medicine.md`, PR #25 at `5eaa16e`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 114 (PASS); ind-kn-sangraha-v: 0 changed / 0 dropped of 103 (PASS).
+**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 115 (PASS); ind-kn-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -12714,7 +12718,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D4 Bad machine translation. Pack `ind-mr-sangraha-v`. Source: section D4 of `diagnosis/submissions/ind-mr-sangraha-v/patilvijay23/medicine.md`, PR #19 at `07d884f`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 142 (PASS); ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
+**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 158 (PASS); ind-mr-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -13017,7 +13021,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D4 Bad machine translation. Pack `ind-te-sangraha-s`. Source: section D4 of `diagnosis/submissions/ind-te-sangraha-s/shankarpandala/medicine.md`, PR #92 at `2e61b3b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 17 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -13087,7 +13091,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D4 Bad machine translation. Pack `ind-te-sangraha-v`. Source: section D4 of `diagnosis/submissions/ind-te-sangraha-v/SreekanthZipsy/medicine.md`, PR #109 at `694029b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-sangraha-v: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-sangraha-v: 0 changed / 0 dropped of 80 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -13208,7 +13212,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D5 Translationese. Pack `ind-te-sangraha-v`. Source: section D5 of `diagnosis/submissions/ind-te-sangraha-v/SreekanthZipsy/medicine.md`, PR #109 at `694029b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 17 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 80 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -13266,7 +13270,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** F3 Harmful content. Pack `ind-bn-fw2`. Source: section F3 of `diagnosis/submissions/ind-bn-fw2/AditeyaAItronics/medicine.md`, PR #64 at `840d13d`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 244 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 142 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 227 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 137 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -13391,7 +13395,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** F3 Harmful content. Pack `ind-hi-fw2`. Source: section F3 of `diagnosis/submissions/ind-hi-fw2/revantg/medicine.md`, PR #23 at `f1f39f5`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS); ind-hi-hplt: 0 changed / 0 dropped of 62 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 425 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 218 (PASS); ind-hi-hplt: 0 changed / 0 dropped of 37 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 425 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS); ind-hi-sangraha-v: 0 changed / 0 dropped of 219 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -13408,9 +13412,9 @@ CODE = "F3"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-hplt', 'ind-hi-indiccorp', 'ind-hi-sangraha-s'}
+SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-hplt', 'ind-hi-indiccorp', 'ind-hi-sangraha-s', 'ind-hi-sangraha-v'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-fw2, ind-hi-hplt, ind-hi-indiccorp, ind-hi-sangraha-s"
+ORIGIN = "ind-hi-fw2, ind-hi-hplt, ind-hi-indiccorp, ind-hi-sangraha-s, ind-hi-sangraha-v"
 SOURCE_ORIGIN = "ind-hi-fw2"
 SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 AUTHOR = "revantg"  # PR #23 at f1f39f5
@@ -13514,7 +13518,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** F3 Harmful content. Pack `ind-te-fw2`. Source: section F3 of `diagnosis/submissions/ind-te-fw2/sandeepkunkunuru/medicine.md`, PR #3 at `a74df32`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 24 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 17 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 24 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 80 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -13645,7 +13649,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** G1 Cut at the vowel sign. Pack `ind-kn-sangraha-v`. Source: section G1 of `diagnosis/submissions/ind-kn-sangraha-v/pyru/medicine.md`, PR #25 at `5eaa16e`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 114 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS); ind-kn-sangraha-v: 0 changed / 0 dropped of 103 (PASS).
+**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 115 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 22 (PASS); ind-kn-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -13752,7 +13756,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** G3 Indic dropped by an English rule. Pack `ind-hi-indiccorp`. Source: section G3 of `diagnosis/submissions/ind-hi-indiccorp/ranjani-cse/medicine.md`, PR #11 at `702e783`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-fw2: 0 changed / 1 dropped of 234 (PASS); ind-hi-hplt: 0 changed / 0 dropped of 62 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 425 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 1 dropped of 218 (PASS); ind-hi-hplt: 0 changed / 0 dropped of 37 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 425 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS); ind-hi-sangraha-v: 0 changed / 0 dropped of 219 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -13769,9 +13773,9 @@ CODE = "G3"
 ACTION = "drop"
 STAGE = "30"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-hplt', 'ind-hi-indiccorp', 'ind-hi-sangraha-s'}
+SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-hplt', 'ind-hi-indiccorp', 'ind-hi-sangraha-s', 'ind-hi-sangraha-v'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-indiccorp, ind-hi-fw2, ind-hi-hplt, ind-hi-sangraha-s"
+ORIGIN = "ind-hi-indiccorp, ind-hi-fw2, ind-hi-hplt, ind-hi-sangraha-s, ind-hi-sangraha-v"
 SOURCE_ORIGIN = "ind-hi-indiccorp"
 SOURCE = "ind-hi-indiccorp"  # pack whose medicine this came from
 AUTHOR = "ranjani-cse"  # PR #11 at 702e783
@@ -13885,7 +13889,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C1 Boilerplate. Pack `ind-bn-fw2`. Source: section C1 of `diagnosis/submissions/ind-bn-fw2/AditeyaAItronics/medicine.md`, PR #64 at `840d13d`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 244 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 227 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -14368,7 +14372,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C1 Boilerplate. Pack `ind-hi-fw2`. Source: section C1 of `diagnosis/submissions/ind-hi-fw2/raj-harit-v2/medicine.md`, PR #8 at `2642f7b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 218 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS); ind-hi-sangraha-v: 0 changed / 0 dropped of 219 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -14385,9 +14389,9 @@ CODE = "C1"
 ACTION = "fix"
 STAGE = "35"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-sangraha-s'}
+SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-sangraha-s', 'ind-hi-sangraha-v'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-fw2, ind-hi-sangraha-s"
+ORIGIN = "ind-hi-fw2, ind-hi-sangraha-s, ind-hi-sangraha-v"
 SOURCE_ORIGIN = "ind-hi-fw2"
 SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 AUTHOR = "raj-harit-v2"  # PR #8 at 2642f7b
@@ -14533,7 +14537,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C1 Boilerplate. Pack `ind-hi-hplt`. Source: section C1 of `diagnosis/submissions/ind-hi-hplt/narasimhatejav/medicine.md`, PR #170 at `4aaf84b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 62 (PASS).
+**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 37 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -14926,7 +14930,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C1 Boilerplate. Pack `ind-kn-sangraha-s`. Source: section C1 of `diagnosis/submissions/ind-kn-sangraha-s/millermuttu/medicine.md`, PR #104 at `5dfac48`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 114 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS).
+**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 115 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 22 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -14992,7 +14996,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C1 Boilerplate. Pack `ind-kn-sangraha-v`. Source: section C1 of `diagnosis/submissions/ind-kn-sangraha-v/Anusha-raju/medicine.md`, PR #40 at `f3d07a6`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-sangraha-v: 0 changed / 0 dropped of 103 (PASS).
+**Current gold harm:** ind-kn-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -15222,13 +15226,13 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C1 Boilerplate. Pack `ind-mr-sangraha-v`. Source: section C1 of `diagnosis/submissions/ind-mr-sangraha-v/patilvijay23/medicine.md`, PR #19 at `07d884f`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-fw2: 1 changed / 0 dropped of 142 (PASS); ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
+**Current gold harm:** ind-mr-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
-- `00eed90bde196e9c` (ind-mr-fw2), original offset 1322: `"\u093e\u0939\u0942\u092f\u093e..\n\u0939\u0947 \u0939\u0940 \u0935\u093e\u091a\u093e << \u0924\u094b\u0902\u0921\u093e\u0935\u0930 \u0928\u093e"` (fix).
-- `870fb0ffd8d7a041` (ind-mr-fw2), original offset 886: `"\u094d\u0939\u0923\u093e\u0932\u0947.\n\u0939\u0947\u0939\u0940 \u0935\u093e\u091a\u093e >>> \u0938\u092e\u0943\u0926\u094d\u0927\u0940 \u092e\u0939"` (fix).
-- `924d41c82dfe4138` (ind-mr-fw2), original offset 1130: `"\u0940 \u092e\u0939\u093e\u0917\u2026\n\u0939\u0947 \u0939\u0940 \u0935\u093e\u091a\u093e<< \u0938\u094d\u092e\u0943\u0924\u0940 \u0907\u0930\u093e\u0923"` (fix).
+- `2c66d24bfd6db2ef` (ind-mr-sangraha-v), original offset 1073: `"\u0947 \u0939\u094b\u0924\u0947.\n \u0939\u0947 \u0939\u0940 \u0935\u093e\u091a\u093e\u0903\n\u0938\u093f\u0926\u094d\u0927\u0942 \u092e\u0941\u0938\u0935"` (fix).
+- `f2b95376047a782c` (ind-mr-sangraha-v), original offset 1659: `"\u093e \u0939\u094b\u0924\u0940.\n \u0939\u0947 \u0939\u0940 \u0935\u093e\u091a\u093e\u0903\n\u0909\u0926\u094d\u0927\u0935 \u0920\u093e\u0915\u0930\u0947"` (fix).
+- `d9e954e478572fc0` (ind-mr-sangraha-v), original offset 1513: `"\u0930 \u0906\u0939\u0947\u0924.\n Read Also :\n\u092e\u0939\u093e\u0930\u093e\u0937\u094d\u091f\u094d\u0930 "` (fix).
 <!-- END CARD EVIDENCE -->
 
 2. **Medicine:** the author's code, unchanged. Main function: `cure_c1(text)`.
@@ -15239,9 +15243,9 @@ CODE = "C1"
 ACTION = "fix"
 STAGE = "35"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-mr-fw2', 'ind-mr-sangraha-v'}
+SPEC_PACKS = {'ind-mr-sangraha-v'}
 LANGS = {"mar_Deva"}
-ORIGIN = "ind-mr-sangraha-v, ind-mr-fw2"
+ORIGIN = "ind-mr-sangraha-v"
 SOURCE_ORIGIN = "ind-mr-sangraha-v"
 SOURCE = "ind-mr-sangraha-v"  # pack whose medicine this came from
 AUTHOR = "patilvijay23"  # PR #19 at 07d884f
@@ -15647,7 +15651,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C1 Boilerplate. Pack `ind-te-fw2`. Source: section C1 of `diagnosis/submissions/ind-te-fw2/sandeepkunkunuru/medicine.md`, PR #3 at `a74df32`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 17 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -15720,7 +15724,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C1 Boilerplate. Pack `ind-te-sangraha-v`. Source: section C1 of `diagnosis/submissions/ind-te-sangraha-v/SreekanthZipsy/medicine.md`, PR #109 at `694029b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-sangraha-v: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-sangraha-v: 0 changed / 0 dropped of 80 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -15860,7 +15864,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C2 Repeated lines. Pack `ind-bn-fw2`. Source: section C2 of `diagnosis/submissions/ind-bn-fw2/AditeyaAItronics/medicine.md`, PR #64 at `840d13d`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 244 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 227 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -16061,7 +16065,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C2 Repeated lines. Pack `ind-bn-sangraha-v`. Source: Data B's rewrite `teams/02-data-b/indic_rules/rewrites/ind-bn-sangraha-v__pratik-2025__112.md` at `bbb104f` (TSAI ruling 3) of PR #112, section C2; the author's OK: https://github.com/theschoolofai/era-v5-lab/pull/112#issuecomment-6631062594.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-sangraha-v: 0 changed / 0 dropped of 142 (PASS).
+**Current gold harm:** ind-bn-sangraha-v: 0 changed / 0 dropped of 137 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -16202,7 +16206,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C2 Repeated lines. Pack `ind-hi-fw2`. Source: section C2 of `diagnosis/submissions/ind-hi-fw2/revantg/medicine.md`, PR #23 at `f1f39f5`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-fw2: 1 changed / 0 dropped of 234 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 425 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
+**Current gold harm:** ind-hi-fw2: 1 changed / 0 dropped of 218 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 425 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS); ind-hi-sangraha-v: 0 changed / 0 dropped of 219 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -16219,9 +16223,9 @@ CODE = "C2"
 ACTION = "fix"
 STAGE = "35"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-indiccorp', 'ind-hi-sangraha-s'}
+SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-indiccorp', 'ind-hi-sangraha-s', 'ind-hi-sangraha-v'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-fw2, ind-hi-indiccorp, ind-hi-sangraha-s"
+ORIGIN = "ind-hi-fw2, ind-hi-indiccorp, ind-hi-sangraha-s, ind-hi-sangraha-v"
 SOURCE_ORIGIN = "ind-hi-fw2"
 SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 AUTHOR = "revantg"  # PR #23 at f1f39f5
@@ -16279,7 +16283,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C2 Repeated lines. Pack `ind-hi-hplt`. Source: Data B's rewrite `teams/02-data-b/indic_rules/rewrites/ind-hi-hplt__gmrammohan15__70.md` at `f53185d` (TSAI ruling 3) of PR #70, section C2; the author's OK: https://github.com/theschoolofai/era-v5-lab/pull/70#issuecomment-6620889534.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 62 (PASS).
+**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 37 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -16635,7 +16639,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C2 Repeated lines. Pack `ind-kn-sangraha-v`. Source: section C2 of `diagnosis/submissions/ind-kn-sangraha-v/pyru/medicine.md`, PR #25 at `5eaa16e`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS); ind-kn-sangraha-v: 0 changed / 0 dropped of 103 (PASS).
+**Current gold harm:** ind-kn-sangraha-s: 0 changed / 0 dropped of 22 (PASS); ind-kn-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -16708,7 +16712,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C2 Repeated lines. Pack `ind-mr-fw2`. Source: section C2 of `diagnosis/submissions/ind-mr-fw2/adinathauti/medicine.md`, PR #114 at `22714bb`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 142 (PASS).
+**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 158 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -16898,7 +16902,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C2 Repeated lines. Pack `ind-mr-sangraha-v`. Source: section C2 of `diagnosis/submissions/ind-mr-sangraha-v/patilvijay23/medicine.md`, PR #19 at `07d884f`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
+**Current gold harm:** ind-mr-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -17171,7 +17175,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C2 Repeated lines. Pack `ind-te-fw2`. Source: section C2 of `diagnosis/submissions/ind-te-fw2/sandeepkunkunuru/medicine.md`, PR #3 at `a74df32`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 17 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -17304,7 +17308,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C2 Repeated lines. Pack `ind-te-sangraha-v`. Source: section C2 of `diagnosis/submissions/ind-te-sangraha-v/SreekanthZipsy/medicine.md`, PR #109 at `694029b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-sangraha-v: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-sangraha-v: 0 changed / 0 dropped of 80 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -17438,7 +17442,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C3 Truncated document. Pack `ind-hi-fw2`. Source: section C3 of `diagnosis/submissions/ind-hi-fw2/raj-harit-v2/medicine.md`, PR #8 at `2642f7b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 218 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -17875,7 +17879,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C3 Truncated document. Pack `ind-kn-sangraha-s`. Source: section C3 of `diagnosis/submissions/ind-kn-sangraha-s/subramanyanaik/medicine.md`, PR #94 at `338e2f9`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS).
+**Current gold harm:** ind-kn-sangraha-s: 0 changed / 0 dropped of 22 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -18111,7 +18115,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C3 Truncated document. Pack `ind-mr-fw2`. Source: section C3 of `diagnosis/submissions/ind-mr-fw2/vpw/medicine.md`, PR #43 at `58280e3`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 142 (PASS).
+**Current gold harm:** ind-mr-fw2: 1 changed / 0 dropped of 158 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -18179,7 +18183,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C3 Truncated document. Pack `ind-mr-sangraha-v`. Source: section C3 of `diagnosis/submissions/ind-mr-sangraha-v/patilvijay23/medicine.md`, PR #19 at `07d884f`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
+**Current gold harm:** ind-mr-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -18555,7 +18559,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C4 Two documents joined. Pack `ind-bn-sangraha-v`. Source: section C4 of `diagnosis/submissions/ind-bn-sangraha-v/aneeshads/medicine.md`, PR #30 at `55d181e`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-sangraha-v: 0 changed / 0 dropped of 142 (PASS).
+**Current gold harm:** ind-bn-sangraha-v: 0 changed / 0 dropped of 137 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -18835,7 +18839,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C4 Two documents joined. Pack `ind-mr-sangraha-v`. Source: section C4 of `diagnosis/submissions/ind-mr-sangraha-v/patilvijay23/medicine.md`, PR #19 at `07d884f`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
+**Current gold harm:** ind-mr-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -19116,7 +19120,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C4 Two documents joined. Pack `ind-te-sangraha-v`. Source: section C4 of `diagnosis/submissions/ind-te-sangraha-v/SreekanthZipsy/medicine.md`, PR #109 at `694029b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-sangraha-v: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-sangraha-v: 0 changed / 0 dropped of 80 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -19174,7 +19178,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** C5 Lists of keywords or links. Pack `ind-bn-fw2`. Source: section C5 of `diagnosis/submissions/ind-bn-fw2/AditeyaAItronics/medicine.md`, PR #64 at `840d13d`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 244 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 227 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -19935,7 +19939,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D2 Romanised Indic. Pack `ind-hi-hplt`. Source: Data B's rewrite `teams/02-data-b/indic_rules/rewrites/ind-hi-hplt__gmrammohan15__70.md` at `f53185d` (TSAI ruling 3) of PR #70, section D2; the author's OK: https://github.com/theschoolofai/era-v5-lab/pull/70#issuecomment-6620889534.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS); ind-hi-hplt: 0 changed / 0 dropped of 62 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 425 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 218 (PASS); ind-hi-hplt: 0 changed / 0 dropped of 37 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 425 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS); ind-hi-sangraha-v: 0 changed / 0 dropped of 219 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -19952,9 +19956,9 @@ CODE = "D2"
 ACTION = "fix"
 STAGE = "35"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-hplt', 'ind-hi-indiccorp', 'ind-hi-sangraha-s'}
+SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-hplt', 'ind-hi-indiccorp', 'ind-hi-sangraha-s', 'ind-hi-sangraha-v'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-hplt, ind-hi-fw2, ind-hi-indiccorp, ind-hi-sangraha-s"
+ORIGIN = "ind-hi-hplt, ind-hi-fw2, ind-hi-indiccorp, ind-hi-sangraha-s, ind-hi-sangraha-v"
 SOURCE_ORIGIN = "ind-hi-hplt"
 SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
 AUTHOR = "gmrammohan15"  # PR #70; Data B rewrite at f53185d
@@ -20145,7 +20149,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D3 Mixed language. Pack `ind-bn-fw2`. Source: section D3 of `diagnosis/submissions/ind-bn-fw2/AditeyaAItronics/medicine.md`, PR #64 at `840d13d`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 244 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 227 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -20260,7 +20264,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D3 Mixed language. Pack `ind-bn-sangraha-v`. Source: Data B's rewrite `teams/02-data-b/indic_rules/rewrites/ind-bn-sangraha-v__pratik-2025__112.md` at `bbb104f` (TSAI ruling 3) of PR #112, section D3; the author's OK: https://github.com/theschoolofai/era-v5-lab/pull/112#issuecomment-6631062594.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-sangraha-v: 0 changed / 0 dropped of 142 (PASS).
+**Current gold harm:** ind-bn-sangraha-v: 0 changed / 0 dropped of 137 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -20441,7 +20445,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D3 Mixed language. Pack `ind-hi-fw2`. Source: section D3 of `diagnosis/submissions/ind-hi-fw2/raj-harit-v2/medicine.md`, PR #8 at `2642f7b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 425 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 218 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 425 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS); ind-hi-sangraha-v: 0 changed / 0 dropped of 219 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -20455,9 +20459,9 @@ CODE = "D3"
 ACTION = "keep"
 STAGE = "35"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-indiccorp', 'ind-hi-sangraha-s'}
+SPEC_PACKS = {'ind-hi-fw2', 'ind-hi-indiccorp', 'ind-hi-sangraha-s', 'ind-hi-sangraha-v'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-fw2, ind-hi-indiccorp, ind-hi-sangraha-s"
+ORIGIN = "ind-hi-fw2, ind-hi-indiccorp, ind-hi-sangraha-s, ind-hi-sangraha-v"
 SOURCE_ORIGIN = "ind-hi-fw2"
 SOURCE = "ind-hi-fw2"  # pack whose medicine this came from
 AUTHOR = "raj-harit-v2"  # PR #8 at 2642f7b
@@ -20566,7 +20570,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D3 Mixed language. Pack `ind-hi-hplt`. Source: Data B's rewrite `teams/02-data-b/indic_rules/rewrites/ind-hi-hplt__gmrammohan15__70.md` at `f53185d` (TSAI ruling 3) of PR #70, section D3; the author's OK: https://github.com/theschoolofai/era-v5-lab/pull/70#issuecomment-6620889534.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 62 (PASS).
+**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 37 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -20733,7 +20737,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D3 Mixed language. Pack `ind-kn-sangraha-s`. Source: section D3 of `diagnosis/submissions/ind-kn-sangraha-s/millermuttu/medicine.md`, PR #104 at `5dfac48`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 114 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS).
+**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 115 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 22 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -20796,7 +20800,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D3 Mixed language. Pack `ind-kn-sangraha-v`. Source: section D3 of `diagnosis/submissions/ind-kn-sangraha-v/Anusha-raju/medicine.md`, PR #40 at `f3d07a6`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-sangraha-v: 0 changed / 0 dropped of 103 (PASS).
+**Current gold harm:** ind-kn-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -20928,7 +20932,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D3 Mixed language. Pack `ind-mr-fw2`. Source: section D3 of `diagnosis/submissions/ind-mr-fw2/adinathauti/medicine.md`, PR #114 at `22714bb`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 142 (PASS).
+**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 158 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -21039,7 +21043,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D3 Mixed language. Pack `ind-mr-sangraha-v`. Source: Data B's rewrite `teams/02-data-b/indic_rules/rewrites/ind-mr-sangraha-v__avnishbm__46.md` at `bbb104f` (TSAI ruling 3) of PR #46, section D3; the author's OK: https://github.com/theschoolofai/era-v5-lab/pull/46#issuecomment-6633827892.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
+**Current gold harm:** ind-mr-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -21381,7 +21385,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D3 Mixed language. Pack `ind-te-fw2`. Source: section D3 of `diagnosis/submissions/ind-te-fw2/sandeepkunkunuru/medicine.md`, PR #3 at `a74df32`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 17 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -21439,7 +21443,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D3 Mixed language. Pack `ind-te-sangraha-v`. Source: section D3 of `diagnosis/submissions/ind-te-sangraha-v/SreekanthZipsy/medicine.md`, PR #109 at `694029b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-sangraha-v: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-sangraha-v: 0 changed / 0 dropped of 80 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -21573,7 +21577,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D4 Bad machine translation. Pack `ind-kn-sangraha-s`. Source: section D4 of `diagnosis/submissions/ind-kn-sangraha-s/subramanyanaik/medicine.md`, PR #94 at `338e2f9`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS).
+**Current gold harm:** ind-kn-sangraha-s: 0 changed / 0 dropped of 22 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -21776,7 +21780,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D5 Translationese. Pack `ind-hi-fw2`. Source: section D5 of `diagnosis/submissions/ind-hi-fw2/revantg/medicine.md`, PR #23 at `f1f39f5`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 234 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 425 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
+**Current gold harm:** ind-hi-fw2: 0 changed / 0 dropped of 218 (PASS); ind-hi-indiccorp: 0 changed / 0 dropped of 425 (PASS); ind-hi-sangraha-s: 0 changed / 0 dropped of 24 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -21844,7 +21848,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** D5 Translationese. Pack `ind-hi-hplt`. Source: section D5 of `diagnosis/submissions/ind-hi-hplt/narasimhatejav/medicine.md`, PR #170 at `4aaf84b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 62 (PASS).
+**Current gold harm:** ind-hi-hplt: 0 changed / 0 dropped of 37 (PASS); ind-hi-sangraha-v: 0 changed / 0 dropped of 219 (PASS).
 
 
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
@@ -21858,9 +21862,9 @@ CODE = "D5"
 ACTION = "keep"
 STAGE = "35"
 STATUS = "CANDIDATE"
-SPEC_PACKS = {'ind-hi-hplt'}
+SPEC_PACKS = {'ind-hi-hplt', 'ind-hi-sangraha-v'}
 LANGS = {"hin_Deva"}
-ORIGIN = "ind-hi-hplt"
+ORIGIN = "ind-hi-hplt, ind-hi-sangraha-v"
 SOURCE_ORIGIN = "ind-hi-hplt"
 SOURCE = "ind-hi-hplt"  # pack whose medicine this came from
 AUTHOR = "narasimhatejav"  # PR #170 at 4aaf84b
@@ -22091,7 +22095,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** B4 Template and code junk in prose. Pack `ind-bn-sangraha-v`. Source: section B4 of `diagnosis/submissions/ind-bn-sangraha-v/aneeshads/medicine.md`, PR #30 at `55d181e`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 244 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 142 (PASS).
+**Current gold harm:** ind-bn-fw2: 0 changed / 0 dropped of 227 (PASS); ind-bn-sangraha-v: 0 changed / 0 dropped of 137 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -22275,7 +22279,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** B4 Template and code junk in prose. Pack `ind-kn-sangraha-v`. Source: section B4 of `diagnosis/submissions/ind-kn-sangraha-v/pyru/medicine.md`, PR #25 at `5eaa16e`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 114 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 27 (PASS); ind-kn-sangraha-v: 0 changed / 0 dropped of 103 (PASS).
+**Current gold harm:** ind-kn-fw2: 0 changed / 0 dropped of 115 (PASS); ind-kn-sangraha-s: 0 changed / 0 dropped of 22 (PASS); ind-kn-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -22345,7 +22349,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** B4 Template and code junk in prose. Pack `ind-mr-fw2`. Source: section B4 of `diagnosis/submissions/ind-mr-fw2/vpw/medicine.md`, PR #43 at `58280e3`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 142 (PASS).
+**Current gold harm:** ind-mr-fw2: 0 changed / 0 dropped of 158 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -22418,7 +22422,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** B4 Template and code junk in prose. Pack `ind-mr-sangraha-v`. Source: section B4 of `diagnosis/submissions/ind-mr-sangraha-v/patilvijay23/medicine.md`, PR #19 at `07d884f`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-mr-sangraha-v: 0 changed / 0 dropped of 88 (PASS).
+**Current gold harm:** ind-mr-sangraha-v: 0 changed / 0 dropped of 99 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 
@@ -22669,7 +22673,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 
 1. **Disease:** B4 Template and code junk in prose. Pack `ind-te-sangraha-s`. Source: section B4 of `diagnosis/submissions/ind-te-sangraha-s/shankarpandala/medicine.md`, PR #92 at `2e61b3b`.
 <!-- CARD EVIDENCE -->
-**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 18 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 24 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 18 (PASS).
+**Current gold harm:** ind-te-fw2: 0 changed / 0 dropped of 17 (PASS); ind-te-sangraha-s: 0 changed / 0 dropped of 24 (PASS); ind-te-sangraha-v: 0 changed / 0 dropped of 80 (PASS).
 
 **Exact source characters:** JSON string literals below decode to verbatim original characters. Fix excerpts surround the first edit; drop excerpts identify the affected source document and do not establish which substring caused the drop. These are execution examples, not additional independently adjudicated labels.
 

@@ -35,7 +35,7 @@ teams/01-data-a/
     ../oneoff/              the scripts that made the code sheet, kept for the record: see ../oneoff/README.md
 ```
 
-Families: `code`, `english`, `math`, `sci`, and `indic`. Indic covers 17 packs through native candidates and validated same-language sibling scopes; see [Indic integration](README_indic.md) for deferred rules and validation limits. The ready Indic intake is pinned to PR #240 at `3bbd31f`; retired local cards remain separate, non-executable history.
+Families: `code`, `english`, `math`, `sci`, and `indic`. Indic covers 18 packs through native candidates and validated same-language sibling scopes; see [Indic integration](README_indic.md) for deferred rules and validation limits. The ready Indic intake is pinned to PR #240 at `3bbd31f`; retired local cards remain separate, non-executable history. The [post-#362 validation packet](../results/spec_v1/cleaner/pr244_gold_refresh/README.md) records the refreshed gold checks, Hindi sangraha-v registration and Marathi receiving-scope correction.
 
 **Source flow:** family `sheets/medicine_<family>.md` → reviewed consolidated `sheets/specv1.md` → `build/build_clean.py` → `clean.py`. The builder reads only the consolidated spec: it does not automatically import family-sheet edits. Indic has a separate [integration and sibling-scope review](README_indic.md); the original English compilation tooling remains an external reproduction dependency. Numbers and qualification claims must identify the hashes of their evidence in [results](../results/spec_v1/README.md).
 

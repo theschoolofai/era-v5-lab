@@ -7,7 +7,7 @@
   "limit_percent": "1",
   "limit_documents": 1,
   "rules": "teams/01-data-a/spec_v1/clean.py",
-  "rules_file_sha256": "d3464bdaa394d1fb004d64ef2aee67cc65257acb8de31c4ab9dde042636b329c",
+  "rules_file_sha256": "22d818c72c9f30bf338de344a0fcda230e2d1de30a1aaec5d92bc525bae99179",
   "harm_test_sha256": "4dcc04bf8ac553c9c0b39c8812bd7275aee9c8727b80a7a5a026d0e3f7bbafd2",
   "family": "math",
   "rules_alone": [

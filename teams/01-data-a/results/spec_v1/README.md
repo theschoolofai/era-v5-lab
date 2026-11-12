@@ -2,10 +2,13 @@
 
 These are recorded runs, not automatically refreshed attestations of the current cleaner. Read each report's input, gold, sheet/rule, cleaner, and fingerprint hashes before applying its result to a build. Historical code hashes and provenance paths are preserved during cleanup.
 
+The [post-#362 PR #244 validation](cleaner/pr244_gold_refresh/README.md) refreshes the integration, sibling-scope, generated-cleaner, shared-F1, sheet and Indic F2 reports for cleaner `22d818c7…`. All 18 Indic pipelines pass on 2,193 own-pack gold documents; 9,000 Indic diagnosis documents have zero errors or second-pass changes. All 31 generated-cleaner harm checks pass on 4,162 gold documents. The packet records digests, reproduction commands and the necessary Hindi/Marathi scope changes.
+
 **Start here:** the harm test of every rule and of `clean()` on each pack is [cleaner/harm_tests.md](cleaner/harm_tests.md), with the English packs in more detail in [cleaner/harm_tests_english.md](cleaner/harm_tests_english.md). The validation of the sheet itself is [cleaner/specv1_validation.json](cleaner/specv1_validation.json).
 
 | Family / location | Producer | Interpretation |
 |---|---|---|
+| [PR #244 gold-refresh packet](cleaner/pr244_gold_refresh/README.md) | Integration, build and validation commands in the packet | Post-#362 scope changes, current hashes, all-pack harm, tests and optional Indic F2 |
 | [cleaner/harm_tests.md](cleaner/harm_tests.md), `cleaner/specv1_<pack>_harm.json` | [make_harm_tests.py](../../spec_v1/validate/make_harm_tests.py) | Generated-cleaner per-rule/function/combined harm and out-of-scope checks; inspect `rules_file_sha256` |
 | [cleaner/specv1_validation.json](cleaner/specv1_validation.json) | [validate_specv1.py](../../spec_v1/validate/validate_specv1.py) | Executable-sheet validation snapshot; code/input/gold digests are recorded separately |
 | [cleaner/harm_tests_english.md](cleaner/harm_tests_english.md), `cleaner/clean_*`, `cleaner/clean_stress_*` | [English tools](../../spec_v1/validate/README_english.md) | English cleaner, ordering, privacy, and disputed-gold snapshots |

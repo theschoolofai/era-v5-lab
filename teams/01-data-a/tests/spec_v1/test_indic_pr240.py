@@ -82,12 +82,13 @@ def test_visarga_and_its_spacing_survive_every_retained_rule(rid):
 
 @pytest.mark.parametrize('pack', sorted(pack for pack, family in c._FAMILY.items() if family == 'indic'))
 def test_visarga_survives_the_complete_receiving_pipeline(pack):
-    row = next(row for row in ROWS.values() if row['pack'] == pack)
     lang = pack.split('-')[1]
     for gap in ['', ' ']:
         context = review.SENTENCES[lang].split()[0] + gap + review.VISARGA[lang] + ' '
         text = (review.SENTENCES[lang] + ' ') * 2 + context + review.SENTENCES[lang]
-        action, new = c.clean(document(row, text))
+        # A receiving-only pack need not have a native source card.
+        action, new = c.clean(dict(doc_id='synthetic-receiver-visarga', text=text,
+                                  url='', pack_id=pack, lang_label=lang))
         assert action != 'drop'
         assert context in new
         assert new.count(review.VISARGA[lang]) == text.count(review.VISARGA[lang])

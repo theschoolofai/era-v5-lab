@@ -1,6 +1,8 @@
 # F2 results: G9 fingerprints v1
 
-These are historical validation snapshots tied to the hashes below, not a fresh validation of the current cleaner. The [Indic report](indic_gold_validation.json) records cleaner `27eaac44…`; use [validate_f2_indic.py](../../../spec_v1/validate/validate_f2_indic.py) with the [documented own-pack inputs](../../../spec_v1/README_indic.md#optional-f2-validation) to refresh it. Keep old report hashes intact when reorganizing evidence.
+The [Indic report](indic_gold_validation.json) was refreshed after #362 for cleaner `22d818c7…`: all 18 Indic own-pack gold sets (2,193 documents) pass with F2 alone and after cleaning, and F2 alone drops zero raw gold documents. See the [PR #244 evidence packet](../cleaner/pr244_gold_refresh/README.md) for hashes and results, or [validate_f2_indic.py](../../../spec_v1/validate/validate_f2_indic.py) with the [documented inputs](../../../spec_v1/README_indic.md#optional-f2-validation) to reproduce it. F2 remains opt-in and does not cover Itihasa.
+
+The 13 non-Indic pack results and drop review below remain historical snapshots tied to their recorded hashes. They were not rerun in this gold refresh.
 
 `run_clean.py --f2` and the F2 harm tests on the 13 Data A packs. Fingerprint set `11e290a44d1467875fdf8bebc55eab21f0a6367f411aab98a4a027a546fd372e` (full set, pinned in `spec_v1/f2_rule.py`), `clean.py` `a5a1a596a0e7`, `spec_v1/f2_rule.py` `0f6968be84b1`. The reports of F2 alone are `f2_<pack>_harm.json`.
 
