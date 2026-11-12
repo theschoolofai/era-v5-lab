@@ -63,13 +63,13 @@ class JsonlTail:
     def poll(self):
         if not self.path.exists():
             return []
-        with open(self.path, encoding="utf-8") as f:
+        with open(self.path, "rb") as f:    # binary: the offset is a byte position
             f.seek(self.offset)
             data = f.read()
-        end = data.rfind("\n") + 1          # only whole lines; a partial line waits for the next poll
-        self.offset += len(data[:end].encode("utf-8"))
+        end = data.rfind(b"\n") + 1         # only whole lines; a partial line waits for the next poll
+        self.offset += end
         fired = []
-        for line in data[:end].splitlines():
+        for line in data[:end].decode("utf-8").splitlines():
             if not line.strip():
                 continue
             row = json.loads(line)
