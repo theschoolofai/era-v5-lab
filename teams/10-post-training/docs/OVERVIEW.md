@@ -1,6 +1,6 @@
 # Team 10 (Post-training and Agentic): folder overview
 
-The rules for where files go are in `README.md` of this folder. This page says what each folder holds and where its README is.
+The rules for where files go are in `teams/10-post-training/README.md`. This page says what each folder holds and where its README is. Paths are relative to `teams/10-post-training/`.
 
 | Folder | What it holds | README |
 |---|---|---|
