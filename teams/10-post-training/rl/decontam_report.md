@@ -10,7 +10,7 @@ Run for G10 on 2026-11-06. Every set was checked against Team 9's benchmark fing
   - `lab_canary.py`: `373536a777c9f16367cf6affcc2cc6243755ac23e75850a2624eadf65918ea09`
   - `normalize.py`: `570dcb820ac2ae6c667b1abc5ea1d781a6795aa42a7735aa94377e756d7d70e9`
 - **Runner and reconciliation:** `sft/decontam_run.py`; this file is written by `sft/decontam_report.py`.
-- **Sets run:** 4. **Rows in:** 47,192. **Removed (flagged or canary):** 9,843 (20.86%). **Kept:** 37,349.
+- **Sets run:** 4. **Rows in:** 47,192. **Removed (flagged, canary or policy):** 9,884 (20.94%). **Kept:** 37,308.
 - No benchmark item text is in this file or in the run records: only set names, counts, document ids, benchmark item ids, offsets and sha256 values.
 
 ## 1. Result per set
@@ -18,12 +18,14 @@ Run for G10 on 2026-11-06. Every set was checked against Team 9's benchmark fing
 | Set | Rows in | Flagged | Canary | Removed | Rows kept | Clean file sha256 |
 |---|---:|---:|---:|---:|---:|---|
 | `rl-code-code-contests` | 13,328 | 2,454 | 0 | 2,454 (18.41%) | 10,874 | `f8a15cb66d69…` |
-| `rl-code-codeforces` | 9,556 | 624 | 0 | 624 (6.53%) | 8,932 | `6bebfb332fef…` |
+| `rl-code-codeforces` | 9,556 | 624 | 0 | 665 (6.96%: 624 flagged + 41 policy-excluded) | 8,891 | `220b2f86a415…` |
 | `rl-code-deepcoder` | 24,287 | 6,765 | 0 | 6,765 (27.85%) | 17,522 | `0ea67ce470df…` |
 | `rl-code-swe-envs-g10` | 21 | 0 | 0 | 0 (0.00%) | 21 | `46e7f7da3161…` |
-| **Total** | **47,192** | **9,843** | **0** | **9,843** (20.86%) | **37,349** | |
+| **Total** | **47,192** | **9,843** | **0** | **9,884** (20.94%: includes 41 policy-excluded) | **37,308** | |
 
 A row that is both flagged and carries a canary counts once in Removed.
+
+**Policy drop update (12 Nov 2026):** 41 `rl-code-codeforces` rows were removed by a separate policy decision after the 6 Nov run (contests 1990, 1991, 1992, 1994, 1995, 1996 and 1997). The excluded `(contest_id, problem_id)` pairs are committed as `teams/10-post-training/rl-data/rl-code-codeforces.excluded_ids.jsonl` (41 rows; sha256 `79a4fdafe3f19c4591acdf6a7080627689c6dce2211c181f104e3ddf65c0ea19`). The rebuilt file is committed as `teams/10-post-training/rl-data/rl-code-codeforces.clean.v2.jsonl` (8,891 rows; sha256 `220b2f86a4151b8ff67061e368549ae864b1a7f385dcf419a9f1a39668567de4`). This was not a fingerprint flag and no benchmark item text is involved. The clean v2 file is a subset of the 6 Nov clean file, so `clean_file_flags_0` remains 0 for the kept rows; the counts above are updated to include the 41 exclusions.
 
 ## 2. Flagged documents by benchmark
 
