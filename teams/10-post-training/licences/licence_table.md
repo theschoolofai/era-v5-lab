@@ -145,6 +145,7 @@ Three stages. Sets marked `excluded` stay in the table with the reason and are n
 | rl-math-processbench | [Qwen/ProcessBench](https://huggingface.co/datasets/Qwen/ProcessBench) | English / Mathematics (step verification) | Not on the card; the paper (arXiv 2412.06559, Table 4) names 12 Qwen2/Qwen2.5 and Llama-3/3.1 Instruct models; step errors labelled by human experts | apache-2.0 (Hub tag); eval only, not training data (G9 evaluation probe) | excluded |
 | rl-math-deepscaler | [agentica-org/DeepScaleR-Preview-Dataset](https://huggingface.co/datasets/agentica-org/DeepScaleR-Preview-Dataset) | English / Mathematics (competition) | none for problems and solutions (human AIME 1984-2023, AMC before 2023, Omni-MATH, Still); gemini-1.5-pro-002 (Google, proprietary closed) is used in the preprocessing code as a proof-problem filter and difficulty judge; the Still rows (MATH, NuminaMath-CoT, AIME) have no stated licence and the release has no `source` column to drop them | mit (Hub tag) on the release; Still source licence unstated | excluded |
 | rl-safety-aya-redteaming | [CohereLabs/aya_redteaming](https://huggingface.co/datasets/CohereLabs/aya_redteaming) | Hindi (`aya_hin`, 915 prompts); 7 other languages not used | none: harmful prompts written by paid human annotators; prompts only, no responses | apache-2.0 (Hub tag; commercial use permitted per tag) | TSAI reserves |
+| rl-agentic-nemotron-tool-use-pivot | [nvidia/Nemotron-RL-Agentic-Conversational-Tool-Use-Pivot-v1](https://huggingface.co/datasets/nvidia/Nemotron-RL-Agentic-Conversational-Tool-Use-Pivot-v1) | English / conversational tool use (838 domains) | DeepSeek-R1-0528 (MIT), DeepSeek-V3.2 (MIT), Qwen3-235B-A22B-Thinking-2507 (Apache-2.0) and Qwen3-32B (Apache-2.0) make the data; gpt-oss-120b and Qwen3-235B-A22B-Instruct-2507 (Apache-2.0) label it | cc-by-4.0 (Hub tag; card says ready for commercial use) | TSAI reserves |
 
 ---
 
@@ -1549,6 +1550,18 @@ Verifiable-answer and test-based sets for RL (math, code, SWE tasks). Each entry
 - **Our opinion:** use as Hindi safety prompts for the refusal / safety reward. Prompts only, so responses must come from the policy (RL) or an allowed generator (SFT). The prompts are harmful by design; keep them out of any general SFT mix. Small (915 rows), but human-written in Hindi with India-specific ("local") harms, which the English safety sets do not cover.
 - **For Team 9:** check it is not in the safety evaluation set; Aya red-teaming prompts are used as an eval in the paper.
 - **Added by:** jssunil (Week 2 rotation, 8 Nov 2026). Card read and Hindi file counted on 8 Nov 2026; card revision re-checked on 12 Nov 2026.
+
+### `rl-agentic-nemotron-tool-use-pivot` — Nemotron-RL-Agentic-Conversational-Tool-Use-Pivot-v1
+
+- **Stage:** RL
+- **Set:** `rl-agentic-nemotron-tool-use-pivot`
+- **Language:** English / conversational tool use (authentication, lookup, booking; 838 domains)
+- **Source:** [`nvidia/Nemotron-RL-Agentic-Conversational-Tool-Use-Pivot-v1`](https://huggingface.co/datasets/nvidia/Nemotron-RL-Agentic-Conversational-Tool-Use-Pivot-v1) (card revision `bfc7a4dd55`)
+- **Licence:** `cc-by-4.0`: Hub tag and card, read on 9 Nov 2026 and unchanged on 12 Nov 2026. The card says it is ready for commercial use. Attribution is needed. A tag is not legal clearance.
+- **Generator model:** data from DeepSeek-R1-0528 (MIT), DeepSeek-V3.2 (MIT), Qwen3-235B-A22B-Thinking-2507 (Apache-2.0) and Qwen3-32B (Apache-2.0). Labels from gpt-oss-120b (Apache-2.0) and Qwen3-235B-A22B-Instruct-2507 (Apache-2.0). Both lists are in the card's Dataset Characterization section.
+- **Decision:** `TSAI reserves`. It passes the 3 Nov generator rule: every model named is open-weight MIT or Apache-2.0.
+- **Our opinion:** use, check. 170,320 train rows. Each assistant step is a reward check: did the policy pick the same tool call as the expert trajectory? The card does not name the source of those expert trajectories. The format is NeMo Gym JSON, so it needs an adapter for our RL loop.
+- **Added by:** shankarpandala (Week 2 rotation, 9 Nov 2026). Hugging Face card and model pages read on 9 Nov 2026; card revision re-checked on 12 Nov 2026.
 
 ## Strategy v0
 
