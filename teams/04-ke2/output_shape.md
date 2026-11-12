@@ -1,7 +1,7 @@
 # KE2 output shape (for G5)
 
-**Status:** revalidated through the committed C3 chain; C1-s0 and C2-s0 were added on 12 Nov.
-Not yet measured on C3-s0 or the v2 file. Both P = 32 and P = 64 are supported; P = 32 is
+**Status:** revalidated through the committed C3 chain; C1-s0, C2-s0, and frozen C3-s0 were measured on 12 Nov.
+The v2 file is not yet measured. Both P = 32 and P = 64 are supported; P = 32 is
 recommended.
 
 ## Shape
@@ -123,13 +123,15 @@ C1 has 14 known decode-collapse groups containing 1,109 tokens (1,095 excess). C
 have 15 groups containing 1,111 tokens (1,096 excess). All three have zero raw collisions, zero
 truncations and zero unexplained groups at P=32 and P=64.
 
-C1 sample-v0 has 13 known decode-collapse groups containing 1,107 tokens (1,094 excess), and C2
-sample-v0 has 14 groups containing 1,109 tokens (1,095 excess), at both P values. Both have zero
-raw collisions, zero truncations, zero empty rows and zero unexplained groups. Their separate
+C1 sample-v0 has 13 known decode-collapse groups containing 1,107 tokens (1,094 excess), C2
+sample-v0 has 14 groups containing 1,109 tokens (1,095 excess), and frozen C3-s0 has 14 groups
+containing 1,109 tokens (1,095 excess), at both P values. All three have zero raw collisions,
+zero truncations, zero empty rows and zero unexplained groups. Their separate
 compact reports are under
 [`results/tokenizer_candidates/sample_v0/`](results/tokenizer_candidates/sample_v0/) so the
 earlier C1–C3 candidate chain remains intact. C2 sample-v0 changes exactly 8,704 raw rows and
-8,704 decode rows relative to C1 sample-v0.
+8,704 decode rows relative to C1 sample-v0. C3-s0 changes 5,406 raw rows and 5,406 decode rows
+relative to C2-s0; its SHA-256 matches Team 3's frozen #340 artifact.
 
 v0.1 differs from v0 only at token IDs 130822–130826, the five G10 slot renames. Therefore five
 raw rows and five decode rows change, while vocabulary size, output shape, maximum byte length,
@@ -145,13 +147,14 @@ first/last examples for large differences.
 Run the same validator within one day of every delivered candidate. The registry already pins the
 published hashes for v1-c1 (PR #137), C1, C2 and C3, plus their sample-v0 retrains. A candidate is
 reported as measured only after its exact `tokenizer.json` has been supplied or rebuilt and its
-SHA-256 has passed the loader gate. At this revision, v0, v0.1, v1-c1, the committed C1–C3, C1-s0
-and C2-s0 are measured. v1-c1 was
+SHA-256 has passed the loader gate. At this revision, v0, v0.1, v1-c1, the committed C1–C3, C1-s0,
+C2-s0 and C3-s0 are measured. v1-c1 was
 rebuilt with the exact PR #137 scripts after all 11 corpus byte counts and hashes matched its
 manifest; the rebuilt tokenizer matched `7d2cff92…6af44`. C1–C3 were rebuilt from those same
 verified corpus files and each matched its published hash. C1-s0 and C2-s0 were measured from
 locally supplied tokenizer files after their full SHA-256 values matched the published identities.
-C3-s0 remains outside this sample-v0 report. The v2 file in Team 3's `train/v2_manifest.json` (sha
+C3-s0 was rebuilt from the #195 job with checksum-verified sample-v0 and corpus60 inputs; its SHA-256
+matched Team 3's frozen #340 artifact (`15468e66…2ddc3`). The v2 file in Team 3's `train/v2_manifest.json` (sha
 `0862f6…bc47`) is likewise unmeasured and is not in the script's hash registry. Manifest claims
 alone are not copied into the KE collision results.
 
@@ -169,13 +172,14 @@ python teams/04-ke2/src/revalidate_tokenizer_candidates.py \
 python teams/04-ke2/src/revalidate_tokenizer_candidates.py \
   --candidate C1-s0=/path/to/c1-sample-v0/tokenizer.json \
   --candidate C2-s0=/path/to/c2-sample-v0/tokenizer.json \
+  --candidate C3-s0=/path/to/c3-sample-v0/tokenizer.json \
   --out teams/04-ke2/results/tokenizer_candidates/sample_v0
 ```
 
 For a newly announced candidate not yet in the registry, pin it on the command line as
 `--candidate NAME@FULL_SHA256=/path/to/tokenizer.json`.
 
-Based on: Team 3 tokenizer v0, v0.1, v1-c1, C1–C3, C1-s0 and C2-s0, all accepted only at the full
+Based on: Team 3 tokenizer v0, v0.1, v1-c1, C1–C3, C1-s0, C2-s0 and C3-s0, all accepted only at the full
 hashes recorded above and in the generated reports; BrahmicTokenizer-131K baseline
 `01d968a7970b029c071b29f060abf6104b66168dedf2ff3b1a0290a545739fff`; and
 kronecker-embeddings 0.1.1 (commit d07cb54, as pinned in `src/ke2/config.py`).

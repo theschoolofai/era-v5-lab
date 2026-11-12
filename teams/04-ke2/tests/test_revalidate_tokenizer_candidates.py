@@ -84,9 +84,9 @@ def test_committed_candidate_results_are_internally_consistent():
 
 
 def test_sample_v0_candidate_results_are_internally_consistent():
-    """The separately generated sample-v0 report covers the delivered C1/C2 artifacts."""
+    """The separately generated sample-v0 report covers the delivered C1/C2/C3 artifacts."""
     report = json.loads((SAMPLE_V0_RESULTS / "summary.json").read_text(encoding="utf-8"))
-    expected_order = ["C1-s0", "C2-s0"]
+    expected_order = ["C1-s0", "C2-s0", "C3-s0"]
     assert report["candidate_order"] == expected_order
     assert set(report["candidates"]) == set(expected_order)
 
@@ -120,3 +120,8 @@ def test_sample_v0_candidate_results_are_internally_consistent():
     assert difference["reference"] == "C1-s0"
     assert difference["raw_changed"]["count"] == 8_704
     assert difference["decode_changed"]["count"] == 8_704
+
+    difference = report["differences_from_previous_candidate"]["C3-s0"]
+    assert difference["reference"] == "C2-s0"
+    assert difference["raw_changed"]["count"] == 5_406
+    assert difference["decode_changed"]["count"] == 5_406
