@@ -8,9 +8,11 @@ Decisions requested:
 4. Whether to add one scalar per token for a frequency prior (risk 4) is a lab call, not Team 4's.
 
 Every number below is read from a results file in this tree. Upstream PR #349 consolidated the week-2 package; the
-12 Nov follow-up adds C1-s0, C2-s0, and frozen C3-s0 candidate reports. Three exceptions cite documents instead: risks 3 and 4
-(TSAI's week-1 experiment files and decision notes) and the Team 3 statements in asks B and C
-(`teams/03-tokenizer/v0/special_slots.md`, `output_shape.md`). Paths are relative to `teams/04-ke2/`.
+12 Nov follow-up adds C1-s0, C2-s0, and frozen C3-s0 candidate reports. Exceptions cite documents instead: risks 3
+and 4 (TSAI's week-1 experiment files and decision notes), the Team 3 v2 request in ask A
+(`teams/03-tokenizer/train/v2_spec.md`), and the Team 3 statements in asks B and C
+(`teams/03-tokenizer/v0/special_slots.md`, `output_shape.md`). Paths are relative to `teams/04-ke2/` unless stated
+otherwise.
 
 | Source | What it adds | Files cited below |
 |---|---|---|
@@ -36,8 +38,9 @@ whole-token and no special-token collision exists. Theorem 1 says the codec adds
 ## 2. P = 32
 
 Longest token is 32 bytes on v0, v0.1, v1-c1, C1, C2, C3, C1-s0, C2-s0 and C3-s0; nothing is cut at P = 32 and there are 0
-raw collisions (`results/tokenizer_candidates/summary.json` and `sample_v0/summary.json`). P = 64 doubles D for no
-gain (`output_shape.md`). D = 8,192. Not measured: the v2 file (sha `0862f6…`). A token over 32 bytes would reopen P.
+raw collisions (`results/tokenizer_candidates/summary.json` and `sample_v0/summary.json`). P = 64 doubles D without
+improving the 32-byte fit or raw collision count (`output_shape.md`). D = 8,192. Not measured: the v2 file (sha
+`0862f6…`). A token over 32 bytes would reopen P.
 Re-check with `python src/revalidate_tokenizer_candidates.py` when Team 3 supplies it. The
 loader verifies the file against the registry hash or an explicit `NAME@SHA256=PATH` identity supplied on the command
 line.
@@ -142,13 +145,16 @@ guarantee of section 3 follow.
 
 Asks to Team 3 (owner of risks 5, 6 and 8 on their side: @sohamniyogi, lead @rjvim):
 
-A. **Tokenizer file for the remaining unmeasured candidate.** C1-s0
+A. **Tokenizer file for the remaining unmeasured candidate: v2.** The sample-v0 files C1-s0
 `36acf1264248c0f7ed1e3b18cfef6e4e9f489660d749c1e9c2b79e80901c82a2` and C2-s0
 `b0d44576012cede10ea197d33251377ee5aac72f246aca954b96a95a20f8488a` were supplied locally, passed the exact-hash
 loader gate, and are now measured. Frozen C3-s0 `15468e66457b43af79f695cbe585c0d03e3cfe7a4a5d04d189dd3c6b9f02ddc3`
-also passed and is measured. Please supply the v2 file `0862f683…5bc47` (pin explicitly as
+also passed and is measured. Please supply the v2 file with SHA-256
+`0862f6832229f16bf35acb211307d473b2eea8aa812eb2f3d2c1419191e5bc47` (pin explicitly as
 `--candidate v2@<sha256>=<path>`). A token over 32 bytes in it reopens P = 32 (section 2); a collision in its raw
-table reopens section 1.
+table reopens section 1. Team 3's `train/v2_spec.md` separately asks G4/G5 to confirm whether reusing 13,850
+v1-c1 token IDs is acceptable and proposes a small-model v1-c1 versus v2 bits-per-byte comparison. Neither is
+covered by this tokenizer table check.
 
 B. **Special-token roles and loader configuration.** Our runs read the 356 special ids from `added_tokens`
 (`special: true`) inside `tokenizer.json`; that is what every committed table, margin and determinism result uses.
