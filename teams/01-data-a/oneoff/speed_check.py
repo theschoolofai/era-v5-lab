@@ -10,8 +10,11 @@ prints IDs, counts, hashes and timings, never document text. Needs pyarrow.
   taskset -c 0 python -I speed_check.py run --clean-dir <after>/teams/01-data-a/spec_v1  --packs <packs> \\
       --exclude ind-mr-sangraha-v --repeat 3 --out after.json
 
-  # 2. compare: exit 0 only if every pack has the same output sha256 in both runs
+  # 2. compare: require the original 13 packs, zero errors, equal rows/actions and input/output hashes
   python -I speed_check.py compare before.json after.json [--md speed_table.md]
+
+  # A deliberately different population must declare its exact inventory:
+  python -I speed_check.py compare before.json after.json --expected-packs code-cpp code-go
 
   # 3. how many documents a rule fixes or drops, per pack (for the docs-changed figure of a speed-log entry)
   python -I speed_check.py count --clean-dir <tree>/teams/01-data-a/spec_v1 --packs <packs> --rules DA-C5-002 --only en-dclm
@@ -27,8 +30,10 @@ Timing: only the clean(doc) loop is timed (the pack is already in memory), best 
 one core with taskset as above. The first repeat is also recorded (`first_docs_per_s`): it is the cold-cache number, and
 the best of the later repeats can be a little higher for rules that cache lookups (such as the foreign-letter script cache).
 """
-import argparse, hashlib, importlib, json, platform, struct, sys, time
+import argparse, hashlib, importlib, json, os, platform, struct, sys, time
 from pathlib import Path
+
+ORIGINAL_PACKS = "code-cpp code-go code-java code-js-ts code-python code-rust en-dclm en-fineweb-edu en-nemotroncc en-nemotroncc-synth math-finemath math-megamath sci-finepdfs".split()
 
 
 def sha256_file(path):
@@ -75,16 +80,25 @@ def clean_pass(c, rows, pack, label="", progress=30):
 
 def run(args):
     import pyarrow.parquet as pq
+    if args.repeat < 1 or args.limit < 0 or args.progress < 0:
+        sys.exit("repeat must be positive; limit and progress must be nonnegative")
     c = load_cleaner(args.clean_dir)
     packs = sorted(p.stem for p in Path(args.packs).glob("*.parquet"))
     if args.only:
+        missing = set(args.only) - set(packs)
+        if missing:
+            sys.exit(f"requested packs missing: {sorted(missing)}")
         packs = [p for p in packs if p in args.only]
     packs = [p for p in packs if p not in args.exclude]
     skipped = [p for p in packs if p not in c._FAMILY]
     packs = [p for p in packs if p in c._FAMILY]
+    if not packs:
+        sys.exit("no registered packs selected")
     out = {"clean_py_sha256": sha256_file(c.__file__), "clean_py": str(Path(c.__file__).resolve()),
            "python": platform.python_version(), "machine": platform.processor() or platform.machine(),
-           "repeat": args.repeat, "limit": args.limit, "skipped_not_registered": skipped, "packs": {}}
+           "repeat": args.repeat, "limit": args.limit, "skipped_not_registered": skipped,
+           "cpu_affinity": sorted(os.sched_getaffinity(0)) if hasattr(os, "sched_getaffinity") else None, "packs": {}}
+    failed = False
     for pack in packs:
         path = Path(args.packs) / f"{pack}.parquet"
         print(f"[{time.strftime('%H:%M:%S')}] {pack}: loading {path.name}", file=sys.stderr, flush=True)
@@ -92,6 +106,8 @@ def run(args):
         if args.limit:
             table = table.slice(0, args.limit)  # the first N docs in file order: the same N for the before and the after run
         rows = table.to_pylist()
+        if not rows:
+            sys.exit(f"{pack}: empty input cannot be benchmarked")
         passes = [clean_pass(c, rows, pack, f"pass {n}/{args.repeat}", args.progress) for n in range(1, args.repeat + 1)]
         shas = {p[1] for p in passes}
         if len(shas) != 1:
@@ -100,11 +116,14 @@ def run(args):
         out["packs"][pack] = {"docs": len(rows), "output_sha256": passes[0][1], "actions": passes[0][2], "errors": passes[0][3],
                               "input_sha256": sha256_file(path), "seconds": [round(t, 4) for t in times],
                               "docs_per_s": round(len(rows) / min(times), 1), "first_docs_per_s": round(len(rows) / times[0], 1)}
+        failed |= any(p[3] for p in passes)
         e = out["packs"][pack]
         print(f"{pack:<22}{e['docs']:>6} docs  {e['docs_per_s']:>9.1f} docs/s (first {e['first_docs_per_s']:.1f})  "
               f"{e['output_sha256'][:16]}  {e['actions']}", file=sys.stderr, flush=True)
     Path(args.out).write_text(json.dumps(out, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(f"wrote {args.out}: {len(out['packs'])} packs, clean.py {out['clean_py_sha256'][:12]}")
+    if failed:
+        sys.exit("cleaning errors occurred; this run is not equivalence evidence")
 
 
 def count(args):
@@ -161,6 +180,9 @@ def count(args):
 
 def compare(args):
     b, a = (json.loads(Path(p).read_text(encoding="utf-8")) for p in (args.before, args.after))
+    expected = set(args.expected_packs)
+    if not expected or set(b["packs"]) != expected or set(a["packs"]) != expected:
+        sys.exit(f"pack inventory must match expected packs: {sorted(expected)}")
     if b.get("limit") != a.get("limit"):
         sys.exit(f"the runs used different --limit values ({b.get('limit')} and {a.get('limit')}): not comparable")
     names = sorted(set(b["packs"]) | set(a["packs"]))
@@ -173,7 +195,11 @@ def compare(args):
             bad += 1
             continue
         x, y = b["packs"][p], a["packs"][p]
-        same = x["output_sha256"] == y["output_sha256"] and x["input_sha256"] == y["input_sha256"]
+        if x.get("errors") != 0 or y.get("errors") != 0:
+            sys.exit(f"{p}: cleaning errors invalidate the comparison")
+        if x["docs"] <= 0 or x["docs"] != y["docs"] or x["docs_per_s"] <= 0 or y["docs_per_s"] <= 0:
+            sys.exit(f"{p}: document counts and positive timings must be comparable")
+        same = x["output_sha256"] == y["output_sha256"] and x["input_sha256"] == y["input_sha256"] and x["actions"] == y["actions"]
         bad += not same
         sha = f"`{x['output_sha256'][:16]}`" if same else f"`{x['output_sha256'][:12]}` vs `{y['output_sha256'][:12]}`"
         lines.append(f"| {p} | {x['docs']} | {sha} | {'yes' if same else '**NO**'} | {x['docs_per_s']:.1f} | {y['docs_per_s']:.1f} | "
@@ -211,6 +237,8 @@ k = sub.add_parser("compare", help="compare two run files; exit 1 if any pack's 
 k.add_argument("before", type=Path)
 k.add_argument("after", type=Path)
 k.add_argument("--md", type=Path, help="also write the table to this file")
+k.add_argument("--expected-packs", nargs="+", default=ORIGINAL_PACKS,
+               help="exact required pack inventory (default: the 13 original sample packs)")
 k.set_defaults(fn=compare)
 args = ap.parse_args()
 args.fn(args)

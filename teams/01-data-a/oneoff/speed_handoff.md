@@ -70,7 +70,7 @@ Two people edit different rules, so most files merge on their own. Three need ca
 |---|---|
 | `spec_v1/clean.py` | **never merge by hand.** After merging the branches, rebuild with `build_clean.py` and run `speed_compare.sh build pytest`. On a conflict, take either side and rebuild. |
 | `tests/spec_v1/test_speed_equivalence.py` | the speed-up tests of the English rules. The second person puts theirs in a new file (`tests/spec_v1/test_speed_equivalence_indic.py`) so the two never touch the same lines. `test_clean.py` stays as it was. |
-| `results/spec_v1/speed_v1.md` | the second person writes entries in `results/spec_v1/speed_v1_indic.md` in the same format; they are merged into one log at the end. |
+| `results/spec_v1/speed_v1.md` | the second person writes entries in `results/spec_v1/speed_v1_indic.md` (or `speed_v1_code.md` for code packs) in the same format; they are linked from the main log. |
 
 Make one commit per rule, with its log entry. Do not commit the scratch folder. Example of the message style: `Speed up DA-C5-002 spam rule - search the nine patterns as one union first, check for 6 "|" before the keyword-line regex (0.65 to 0.27 ms/doc) + update medicine_english.md and tests`.
 

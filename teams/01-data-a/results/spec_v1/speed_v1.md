@@ -1,5 +1,7 @@
 # clean.py speed log
 
+Code-pack follow-up measurements and checks are recorded in [speed_v1_code.md](speed_v1_code.md).
+
 Spec v1.1, Gate 2. A log of the slow rules in `clean.py` that were sped up: for each rule, what the fix was, docs/s per core before and after, and the checks showing that nothing else changed. Last updated 12 Nov 2026. Reports counts, hashes and timings only, never document text.
 
 Every fix passes three checks before it is logged:
@@ -103,3 +105,14 @@ $S --before 2a89f71   --after <fix 7 commit> --rules DA-C3-003 trees speed profi
 - **TSAI's figures:** en-dclm about 45 docs/s matches what we measured before the fixes. The en-fineweb-edu figure of about 30,000 docs/s does not: we measure 94.7 docs/s on the same pack before the fixes. How it was obtained is unknown (a different sample, or rules not running); it should be checked with TSAI.
 - **Indic packs** are not measured here (the 13 packs exclude `ind-mr-sangraha-v`). The Indic rules are being sped up separately.
 - **Harm tests:** for fixes 1 and 2 together, `harm_tests.md` has extra Indic lines for `ind-hi-sangraha-s` (not on this machine); they come from the Indic refresh in the "after" file, not from the fixes. Fixes 1 and 2 were checked together for the harm tests.
+
+## 8. Code-pack follow-up after merging PR #34
+
+The [code-pack report](speed_v1_code.md) compares merged baseline `9299ff2`
+with the code-only secret-masking and shared-F1 fast paths. Across six code packs,
+the 500-document diagnosis checks improve **1.79–2.51×** and the 5,000-document
+raw sample slices improve **1.32–1.64×** on one core, best of three passes.
+All 30 supported diagnosis packs and eight larger slices retain identical outputs
+with zero errors. All 30 harm reports are unchanged on 3,926 own-pack gold documents;
+2,090 tests and 42 subtests pass, with one test skipped. Full hashes, repetitions
+and final bottlenecks are in [speed_v1_code.json](speed_v1_code.json).

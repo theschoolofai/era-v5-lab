@@ -28,8 +28,10 @@
 #   --profile-packs "p1 p2"  packs to profile and report docs/s for     (default: the first 2 packs the rule runs on)
 #   --count-packs "p1 p2"    packs to count on                          (default: every pack the rule runs on)
 #   --include-all  speed also runs ind-mr-sangraha-v, which is left out by default (use with a folder of Indic packs)
+#   --expected-packs "p1 p2" exact required speed/harm inventory (default: original 13; --include-all: all registered packs)
 # Python with pyarrow: the PY environment variable (default: the era5 conda python).
 set -u
+set -o pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO="$(git -C "$HERE" rev-parse --show-toplevel)"
 TEAM="$(dirname "${HERE#"$REPO"/}")"                      # teams/01-data-a
@@ -37,7 +39,7 @@ PARENT="$(dirname "$REPO")"
 BEFORE="${BEFORE:-HEAD}"; AFTER="${AFTER:-worktree}"
 PACKS="${PACKS:-$PARENT/week1-packs}"; WORK="${WORK:-$PARENT/scratchpad/clean-speed}"
 PY="${PY:-/home/forest/miniconda3/envs/era5/bin/python}"
-RULES=""; LIMIT=0; STAGES=(); PROFILE_PACKS=(); COUNT_PACKS=(); EXCLUDE=(ind-mr-sangraha-v)
+RULES=""; LIMIT=0; STAGES=(); PROFILE_PACKS=(); COUNT_PACKS=(); EXCLUDE=(ind-mr-sangraha-v); EXPECTED_PACKS=()
 help() { awk 'NR>1 && /^#/ {sub(/^# ?/, ""); print; next} NR>1 {exit}' "$0"; }
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -45,6 +47,7 @@ while [ $# -gt 0 ]; do
     --packs) PACKS="$2"; shift 2;; --work) WORK="$2"; shift 2;; --limit) LIMIT="$2"; shift 2;;
     --profile-packs) read -ra PROFILE_PACKS <<< "$2"; shift 2;; --count-packs) read -ra COUNT_PACKS <<< "$2"; shift 2;;
     --include-all) EXCLUDE=(); shift;;
+    --expected-packs) read -ra EXPECTED_PACKS <<< "$2"; shift 2;;
     -h|--help) help; exit 0;;
     -*) echo "unknown option $1" >&2; exit 2;; *) STAGES+=("$1"); shift;;
   esac
@@ -58,6 +61,20 @@ CLEAN="$REPO/$TEAM/spec_v1/clean.py"; CHECK="$HERE/speed_check.py"; FAIL=0
 PIN=(); command -v taskset >/dev/null && PIN=(taskset -c 0)          # CPU 0 and 1 are one physical core on the author's laptop
 EXCL=(); [ ${#EXCLUDE[@]} -gt 0 ] && EXCL=(--exclude "${EXCLUDE[@]}")
 LIM=();  [ "$LIMIT" -gt 0 ] && LIM=(--limit "$LIMIT")
+if [ ${#EXPECTED_PACKS[@]} -eq 0 ]; then
+  if [ ${#EXCLUDE[@]} -eq 0 ]; then
+    read -ra EXPECTED_PACKS <<< "$("$PY" -I - "$CLEAN" <<'EOF'
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(sys.argv[1]).parent))
+import clean
+print(" ".join(sorted(clean._FAMILY)))
+EOF
+)"
+  else
+    read -ra EXPECTED_PACKS <<< "code-cpp code-go code-java code-js-ts code-python code-rust en-dclm en-fineweb-edu en-nemotroncc en-nemotroncc-synth math-finemath math-megamath sci-finepdfs"
+  fi
+fi
 BUILD_RESULT="not run"; PYTEST_LINE="not run"; HARM_RESULT="not run"; SPEED_RAN=0; PROFILE_RAN=0; COUNT_RAN=0
 say() { printf '\n== %s\n' "$*"; }
 tree() { echo "$WORK/$1/$TEAM/spec_v1"; }
@@ -93,9 +110,9 @@ stage_build() {
 
 stage_pytest() {
   say "pytest: the whole suite"
-  local out; out="$(cd "$REPO" && "$PY" -m pytest "$TEAM/tests" -q -p no:cacheprovider 2>&1)"
+  local out status=0; out="$(cd "$REPO" && "$PY" -m pytest "$TEAM/tests" -q -p no:cacheprovider 2>&1)" || status=$?
   PYTEST_LINE="$(echo "$out" | tail -1)"
-  case "$PYTEST_LINE" in *failed*|*error*) FAIL=1; echo "$out" | tail -15;; *) echo "$PYTEST_LINE";; esac
+  if [ "$status" -ne 0 ]; then FAIL=1; echo "$out" | tail -15; else echo "$PYTEST_LINE"; fi
 }
 
 stage_trees() {
@@ -123,7 +140,7 @@ stage_speed() {
       --repeat 3 --progress 0 --out "$WORK/$side.json" 2> "$WORK/$side.log" || { echo "$side run failed, see $WORK/$side.log"; FAIL=1; return; }
     echo "  $side done"
   done
-  "$PY" -I "$CHECK" compare "$WORK/before.json" "$WORK/after.json" --md "$WORK/speed_table.md" || FAIL=1
+  "$PY" -I "$CHECK" compare "$WORK/before.json" "$WORK/after.json" --md "$WORK/speed_table.md" --expected-packs "${EXPECTED_PACKS[@]}" || FAIL=1
 }
 
 stage_profile() {
@@ -137,11 +154,12 @@ stage_profile() {
 import sys, pyarrow.parquet as pq
 pq.write_table(pq.read_table(sys.argv[1]).slice(0, int(sys.argv[3])), sys.argv[2])
 EOF
+      [ $? -eq 0 ] || { echo "slice failed: $pack"; FAIL=1; return; }
       src="$WORK/slices/$pack.parquet"
     fi
     for side in before after; do
       "${PIN[@]}" "$PY" -I "$(tree $side)/run_clean.py" --pack "$src" \
-        --out "$WORK/profile/$side-$pack" 2> "$WORK/profile/$side-$pack.log" >/dev/null
+        --out "$WORK/profile/$side-$pack" 2> "$WORK/profile/$side-$pack.log" >/dev/null || { echo "profile failed: $side $pack"; FAIL=1; return; }
       echo "  profiled $side $pack (full table: $WORK/profile/$side-$pack.log)"
     done
   done
@@ -157,13 +175,21 @@ stage_harm() {
   done
   for p in "${pids[@]}"; do wait "$p" || { echo "a harm run failed, see $WORK/harm/*.log"; HARM_RESULT="FAIL: a run failed"; FAIL=1; return; }; done
   echo "-- per-pack result files, ignoring rules_file_sha256 (the clean.py hash):"
-  local bad=0 f n
-  for f in "$WORK"/harm/before/results/*.json; do
-    n="$(basename "$f")"
-    if ! diff -q <(grep -v rules_file_sha256 "$f") <(grep -v rules_file_sha256 "$WORK/harm/after/results/$n") >/dev/null; then
-      echo "  DIFFERS: $n"; bad=1
-    fi
-  done
+  local bad=0
+  "$PY" -I - "$WORK/harm/before/results" "$WORK/harm/after/results" "${EXPECTED_PACKS[@]}" <<'EOF' || bad=1
+import json, sys
+from pathlib import Path
+before, after = (Path(p) for p in sys.argv[1:3])
+expected = {f"specv1_{p}_harm.json" for p in sys.argv[3:]}
+if not expected or {p.name for p in before.glob("*.json")} != expected or {p.name for p in after.glob("*.json")} != expected:
+    sys.exit("harm result inventory differs from expected packs")
+for name in sorted(expected):
+    b, a = (json.loads((folder / name).read_text()) for folder in (before, after))
+    b.pop("rules_file_sha256", None)
+    a.pop("rules_file_sha256", None)
+    if b != a:
+        sys.exit(f"harm differs: {name}")
+EOF
   if [ $bad -eq 0 ]; then HARM_RESULT="unchanged: all result files identical (every gold changed/dropped count and PASS)"
   else HARM_RESULT="DIFFERS in some result files, see above"; FAIL=1; fi
   echo "  $HARM_RESULT"

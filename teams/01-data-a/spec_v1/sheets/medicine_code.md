@@ -1463,6 +1463,11 @@ ASSIGNED = re.compile(
 
 SDK_KEY = re.compile(r"""(?P<head>\bnew\s+Pusher\(\s*(?P<quote>["'`]))[0-9a-fA-F]{16,}(?P=quote)""")
 
+# Each literal is necessary for its KNOWN pattern. Test the current text before each
+# substitution so the original substitution order and any cascading matches remain intact.
+KNOWN_HINTS = ("AIza", "AKIA", "gh", "github_pat_", "sk-", "k_live_", "SG.", "xox", "eyJ", "-----BEGIN ")
+ASSIGNED_HINT = re.compile(r"secret|token|key|passw(?:or)?d|pwd", re.I)  # a superset of every ASSIGNED name, including Unicode case folds
+
 DUMMY = re.compile(r"(?i)example|sample|dummy|test|fake|mock|placeholder|changeme|change_me|your|xxxx|0000|1234|abcd|secret|password|token|<|>|\$\{|\{\{|%s")
 
 def _entropy(v):
@@ -1481,10 +1486,13 @@ def _looks_random(v):
 
 def medicine_e3(text):
     new = text
-    for rx in KNOWN:
-        new = rx.sub(PLACEHOLDER, new)
-    new = SDK_KEY.sub(lambda m: m.group("head") + PLACEHOLDER + m.group("quote"), new)
-    new = ASSIGNED.sub(lambda m: m.group("head") + PLACEHOLDER + m.group("quote") if _looks_random(m.group("value")) else m.group(0), new)
+    for rx, hint in zip(KNOWN, KNOWN_HINTS):
+        if hint in new:
+            new = rx.sub(PLACEHOLDER, new)
+    if "Pusher" in new:
+        new = SDK_KEY.sub(lambda m: m.group("head") + PLACEHOLDER + m.group("quote"), new)
+    if ASSIGNED_HINT.search(new):
+        new = ASSIGNED.sub(lambda m: m.group("head") + PLACEHOLDER + m.group("quote") if _looks_random(m.group("value")) else m.group(0), new)
     return new
 
 

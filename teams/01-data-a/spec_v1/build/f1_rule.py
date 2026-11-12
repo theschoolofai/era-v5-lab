@@ -22,6 +22,7 @@ _F1_PHONE_WORD = re.compile(r"(?i)\b(tel|telephone|phone|mobile|cell|fax|whatsap
 _F1_ADDRESS = re.compile(r"\b\d{1,5}[A-Za-z]?\s+(?:[A-Z][A-Za-z]*\.?\s+){1,4}(?:Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Court|Ct|Place|Pl|Terrace|Crescent|Nagar|Marg|Colony)\b\.?")
 _F1_ORG = re.compile(r"(?i)\b(inc|ltd|llc|corp|corporation|company|university|college|school|hospital|clinic|department|dept|ministry|council|office|"
                      r"embassy|police|bank|library|museum|hotel|restaurant|customer service|support|helpline|hotline|toll[- ]free|headquarters|hq|reception|sales)\b")
+_F1_DIGIT = re.compile(r"\d")  # the same Unicode decimal digits required by PHONE and ADDRESS
 
 
 @cache
@@ -54,12 +55,21 @@ def _f1_is_phone(m, line):
 def _f1_hits(line, previous):
     """(start, end, tag) of a private person's details on one line. An organisation on this line or the one above keeps its phone and address."""
     out = [(m.start(), m.end(), "<EMAIL>") for m in _F1_EMAIL.finditer(line)
-           if not (_F1_ROLE.match(m.group(1)) or _F1_SAFE_DOMAIN.search(m.group(2)) or _F1_FILE_END.search(m.group(2)))]
-    if not (_F1_ORG.search(line) or _F1_ORG.search(previous)):
-        for rx, tag in ((_F1_PHONE, "<PHONE>"), (_F1_ADDRESS, "<ADDRESS>")):
-            for m in rx.finditer(line):
-                if (tag != "<PHONE>" or _f1_is_phone(m, line)) and not any(s < m.end() and m.start() < e for s, e, _ in out):
-                    out.append((m.start(), m.end(), tag))
+           if not (_F1_ROLE.match(m.group(1)) or _F1_SAFE_DOMAIN.search(m.group(2)) or _F1_FILE_END.search(m.group(2)))] if "@" in line else []
+    if not _F1_DIGIT.search(line):
+        return out  # email finditer already orders the spans; no phone/address can match
+    org = None
+    for rx, tag in ((_F1_PHONE, "<PHONE>"), (_F1_ADDRESS, "<ADDRESS>")):
+        for m in rx.finditer(line):
+            if tag == "<PHONE>" and not _f1_is_phone(m, line):
+                continue
+            # Organisation context only matters when a phone/address could actually be masked.
+            if org is None:
+                org = bool(_F1_ORG.search(line) or _F1_ORG.search(previous))
+            if org:
+                return out  # all phones/addresses stay; only the ordered email spans remain
+            if not any(s < m.end() and m.start() < e for s, e, _ in out):
+                out.append((m.start(), m.end(), tag))
     return sorted(out)
 
 
