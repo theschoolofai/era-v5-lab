@@ -12,6 +12,18 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 CONTROLLER = 'slurmctld'
 
+# Never send a local virtualenv or generated output directory to the Slurm shared volume.
+SOURCE_EXCLUDE_PARTS = {
+    '.git', '.venv', 'venv', '__pycache__', '.pytest_cache', '.mypy_cache',
+    '.ruff_cache', '.tox', 'logs', 'evidence', 'runs', 'out', 'dist', 'build'
+}
+
+def should_stage_source(path):
+    rel = path.relative_to(ROOT)
+    return (path.is_file() and not path.is_symlink()
+            and not any(part in SOURCE_EXCLUDE_PARTS for part in rel.parts)
+            and path.suffix not in {'.pt', '.pth', '.pyc'})
+
 
 def command(*args):
     result = subprocess.run(['docker','exec',CONTROLLER,*args],capture_output=True,text=True,check=True)
@@ -40,7 +52,7 @@ def main():
         with tarfile.open(archive,'w') as tf:
             for path in sorted(ROOT.rglob('*')):
                 rel=path.relative_to(ROOT)
-                if path.is_file() and not any(s in ('.git','__pycache__','logs','evidence') for s in rel.parts):
+                if should_stage_source(path):
                     tf.add(path,arcname=str(rel),recursive=False)
         subprocess.run(['docker','cp',str(archive),CONTROLLER+':'+base+'/source.tar'],check=True)
     command('tar','xf',base+'/source.tar','-C',base+'/infra')

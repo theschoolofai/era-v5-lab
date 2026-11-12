@@ -1,6 +1,11 @@
-# Team 7 H100 infrastructure
+# Team 7 Infrastructure — Week 2 CPU Gate 2 and H100 launcher
 
-This repository provides infrastructure, not a model trainer. The supported launch is:
+This directory is intended for `teams/07-infrastructure/` in the shared ERA V5 Lab repository.
+It provides infrastructure, not a model trainer. The CPU Gate 2 fixture was
+validated on host CPU and a local Docker-hosted Slurm CPU demo; the H100 launcher
+path below is a design/implementation awaiting actual GPU validation.
+
+The planned H100 launch is:
 
 ```text
 Slurm login host: submit.sh -> sbatch
@@ -80,7 +85,32 @@ python tests/gate2_validate.py --output /tmp/team7-gate2-NEW
 python -m unittest discover -s tests -p 'test_*.py' -v
 ```
 
-Use a Python environment with Torch and NumPy. See [Gate 2 evidence](evidence/VALIDATION.md),
+Use a Python environment with Torch and NumPy; setup steps are in [the current runbook](docs/runbook.md). See [Gate 2 evidence](evidence/VALIDATION.md),
 [operations](docs/runbook.md), [job packages](docs/job_package_v1.md),
 [queue rules](queue_rules_v1.md), [parallel layout](parallel_layout_v0.md) and
 [Week 1 merge provenance](docs/week1_merge.md).
+
+## Shared-repository submission and CI
+
+This folder is designed to be placed directly at `teams/07-infrastructure/` in
+the shared repository; **do not nest another `infrastructure/` folder inside it**.
+Keep its scripts, examples, docs, tests, and the curated small evidence set.
+The previous standalone checkout's `.github/workflows/build_docker.yaml` is
+**not included**: a workflow nested in this team folder would not run on GitHub,
+and the old version would build the wrong context and publish to a personal GHCR
+package on pushes to `main`. If the shared-repository owners want image CI, they
+must add a separately reviewed workflow at the *repository root* with
+`context: ./teams/07-infrastructure` and
+`file: ./teams/07-infrastructure/Dockerfile`, correct permissions and the
+approved image destination. Do not enable auto-publishing as part of Gate 2.
+
+`evidence/` here is intentionally **curated**: it contains summary JSON, raw
+comparison traces, supervisor logs, job accounting and regression records.
+Generated `.pt` tensors/checkpoints, run locks and corrupted fixtures were
+excluded from GitHub; rerun the tests to recreate these artifacts.
+`evidence/SHA256SUMS.json` fingerprints all files in this submission tree
+except itself. `docs/week1/source_sha256.json` is a *historical source inventory*,
+not the current folder's integrity manifest.
+
+See [submission notes](docs/submission_notes.md) for what was fixed and what
+remains outside Gate 2 acceptance. No GitHub push is part of this archive.

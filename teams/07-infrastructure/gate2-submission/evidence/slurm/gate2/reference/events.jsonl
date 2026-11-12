@@ -1,3 +1,0 @@
-{"attempt": 1, "command": ["/data/team7-gate2-py312/bin/python", "/data/team7-gate2-20261102T083952Z/infra/tests/gate2_worker.py", "--config", "/data/team7-gate2-20261102T083952Z/infra/examples/gate2_config.json", "--run-dir", "/data/team7-gate2-20261102T083952Z/gate2/reference", "--resume", "none"], "event": "attempt_started", "pid": 574, "resume_step": 0, "time_ns": 1793608796936991587}
-{"attempt": 1, "event": "attempt_exited", "returncode": 0, "time_ns": 1793608797890253630}
-{"attempts": 1, "event": "succeeded", "time_ns": 1793608797891175838}

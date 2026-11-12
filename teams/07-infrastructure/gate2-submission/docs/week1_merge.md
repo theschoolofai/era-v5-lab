@@ -2,11 +2,11 @@
 
 Updated in the existing checkout, without git reset, commit, push or creating a new repository.
 
-- Existing source: `/Users/shashanks/Documents/Codex/2026-10-29/referenced-chatgpt-conversation-this-is-an/outputs/infrastructure`.
+- Existing source: the historical standalone `Team7-infrastructure` working tree (local absolute path not included in shared submission).
 - Origin: `https://github.com/murthyap63-a11y/Team7-infrastructure`.
 - Base HEAD: `7beee4005f0b5fed3df4b993f2ded7f6f37ab6a6`.
 - Checkout already contained uncommitted launcher, GPU checks, Docker and documentation fixes from Week 1. All were retained. A full pre-edit backup is retained in this chat's work directory.
-- Additional Week 1 source: `2026-10-25/referenced-chatgpt-conversation-this-is-an-2/outputs/team7-week1/submission/teams/07-infrastructure/bootstrap` beneath Documents/Codex. Exact source SHA256 inventory: `docs/week1/source_sha256.json`.
+- Additional Week 1 source: a separate historical Week 1 bootstrap source archive (not bundled here). Exact source SHA256 inventory: `docs/week1/source_sha256.json`.
 
 | Week 1 input | Integration decision |
 |---|---|
@@ -19,3 +19,5 @@ Updated in the existing checkout, without git reset, commit, push or creating a 
 | Existing `docs/RUNBOOK.md` | Preserved its contents as `docs/week1_runbook.md`, and supplied requested `docs/runbook.md` as the current Gate 2 runbook. This also avoids case-only file collisions on macOS. |
 
 No real model checkout/config/data or remote GPU environment was found. The added CPU fixture is explicitly labeled as infrastructure acceptance code, not a replacement model project. An external TSAI schema was not supplied; `docs/job_package_v1.md` defines the implemented repository contract for TSAI review.
+
+**Note for shared-repo readers:** Historical source SHA-256 values in `docs/week1/source_sha256.json` refer to bootstrap inputs, some of which were intentionally not copied into this combined folder. They must not be used as checksums for this submission. Use `../evidence/SHA256SUMS.json` for that purpose.

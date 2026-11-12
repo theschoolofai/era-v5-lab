@@ -1,11 +1,23 @@
-# Team 7 launch and validation runbook
+# Team 7 Week 1 launch and validation runbook (historical)
+
+**Historical record, not the current portable Gate 2 procedure.**
+Prefer [`docs/runbook.md`](runbook.md) for current CPU Gate 2 commands.
+Original developer-specific absolute paths have been replaced with environment
+variables. To adapt these older commands set `TEAM7_INFRA_DIR` to the absolute
+path of `teams/07-infrastructure` and `SLURM_DEMO_DIR` to your separately
+installed Docker Slurm demo checkout. Both resources must actually exist.
+
+```bash
+export TEAM7_INFRA_DIR="$(pwd)/teams/07-infrastructure"  # from shared repo root
+export SLURM_DEMO_DIR=/path/to/local/slurm-docker-cluster
+```
 
 ## 1. Verified local project locations
 
 The existing host Git checkout is:
 
 ```text
-/Users/shashanks/Documents/Codex/2026-10-29/referenced-chatgpt-conversation-this-is-an/outputs/infrastructure
+$TEAM7_INFRA_DIR
 origin: https://github.com/murthyap63-a11y/Team7-infrastructure
 base commit: 7beee4005f0b5fed3df4b993f2ded7f6f37ab6a6
 ```
@@ -19,7 +31,7 @@ Use the host checkout as the editable source of truth. Changing files in a conta
 From the host checkout:
 
 ```bash
-cd /Users/shashanks/Documents/Codex/2026-10-29/referenced-chatgpt-conversation-this-is-an/outputs/infrastructure
+cd "$TEAM7_INFRA_DIR"
 for script in ./*.sh; do bash -n "$script"; done
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 TEAM7_MODE=preflight bash submit.sh --dry-run
@@ -46,7 +58,7 @@ Expect CUDA unavailable, zero GPUs, restored CPU training losses exactly equal f
 The inspected cluster's actual Compose directory is the **nested** checkout:
 
 ```text
-/Users/shashanks/slurm-docker-cluster/slurm-docker-cluster
+$SLURM_DEMO_DIR
 ```
 
 Do not run a second copy of the parent checkout: both define fixed container names. Do not mount the Docker socket into the training image or add Slurm daemons to it. This queue exercise uses independent controller/database/CPU-worker containers and never calls the GPU launcher.
@@ -81,7 +93,7 @@ done
 If recreating this demo on a fresh machine, use the nested checkout with `GPU_ENABLE=false` and two CPU workers:
 
 ```bash
-cd /Users/shashanks/slurm-docker-cluster/slurm-docker-cluster
+cd "$SLURM_DEMO_DIR"
 GPU_ENABLE=false CPU_WORKER_COUNT=2 docker compose build slurmdbd
 GPU_ENABLE=false CPU_WORKER_COUNT=2 docker compose up -d mysql slurmdbd slurmctld cpu-worker
 ```
@@ -101,7 +113,7 @@ Skip identities already present and matching. These manual demo identities live 
 Run the included test from the infrastructure checkout, with exactly two idle CPU nodes and no other jobs:
 
 ```bash
-cd /Users/shashanks/Documents/Codex/2026-10-29/referenced-chatgpt-conversation-this-is-an/outputs/infrastructure
+cd "$TEAM7_INFRA_DIR"
 python3 tests/slurm_queue_smoke.py
 ```
 

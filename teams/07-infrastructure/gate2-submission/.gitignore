@@ -1,3 +1,32 @@
+# Local Python environments and caches
+.venv/
+venv/
 __pycache__/
-*.pyc
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+
+# Runtime output, checkpoints and private environment settings
+.env
+.env.*
+!.env.example
 logs/
+runs/
+out/
+build/
+dist/
+checkpoints/
+*.pt
+*.pth
+*.ckpt
+*.log.tmp
+.runner.lock
+*.lock
+
+# Retained curated evidence (logs / JSONL / summaries) is intentionally tracked.
+evidence/**/checkpoints/
+evidence/**/final.pt
+evidence/**/.runner.lock
+evidence/**/paused

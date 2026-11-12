@@ -6,16 +6,26 @@ The source of truth is the existing `Team7-infrastructure` checkout; Week 1 laun
 
 ## 1. Prepare and inspect
 
-Use the existing checkout, not another project:
+Start in the shared repository's team directory. Use a Python environment
+with a compatible PyTorch/NumPy installation; on a fresh machine create one:
 
 ```bash
-cd /Users/shashanks/Documents/Codex/2026-10-29/referenced-chatgpt-conversation-this-is-an/outputs/infrastructure
-export PYTHON=/Users/shashanks/Documents/Codex/2026-10-25/referenced-chatgpt-conversation-this-is-an-2/work/venv/bin/python
+cd teams/07-infrastructure     # from the ERA V5 Lab repository root
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+export PYTHON="$(command -v python)"
 "$PYTHON" -c 'import torch,numpy; print(torch.__version__,numpy.__version__)'
 "$PYTHON" tsai_runner.py examples/gate2_job.json --validate
 ```
 
-That interpreter existed locally and passed tests. On another machine create a virtual environment and install Torch/NumPy appropriate to its platform; Linux demo requirements are captured in `evidence/slurm/linux-requirements.txt`. Reproduce comparisons within one fixed environment; bitwise equality is not promised across operating systems, hardware or Torch versions. [PyTorch reproducibility guidance](https://docs.pytorch.org/docs/stable/notes/randomness.html).
+If the directory is already open in a terminal, omit the `cd` line. If your
+platform requires a specific PyTorch wheel/index, install a supported build
+first. The historical tested versions are in
+`evidence/host-requirements.txt` and `evidence/slurm/linux-requirements.txt`;
+these are environment records, not universally portable lockfiles.
+Bitwise equality is checked *within one fixed environment*, not across OS,
+hardware or Torch versions. [PyTorch reproducibility guidance](https://docs.pytorch.org/docs/stable/notes/randomness.html).
 
 ## 2. Reproduce host CPU Gate 2
 
@@ -33,7 +43,7 @@ Artifacts: reference/restored/killed traces and final states, checkpoint payload
 
 ## 3. Reproduce existing Docker/Slurm CPU tests
 
-The existing demo lives at `/Users/shashanks/slurm-docker-cluster/slurm-docker-cluster`. Its controller and two workers share `/data`. Start only those existing services and inspect them:
+The tested demo was a separately installed Docker-based Slurm cluster with a `slurmctld` controller, MySQL/slurmdbd, two CPU workers (`c1`, `c2`) and shared `/data`. **This demo is not bundled in this team folder.** Provision or reuse an authorized equivalent before running Slurm tests. On the original local demo, start the existing services and inspect them:
 
 ```bash
 open -a Docker
@@ -45,7 +55,7 @@ docker exec slurmctld sinfo -Nel
 docker exec slurmctld scontrol show nodes c1,c2
 ```
 
-On 2 November both workers were DOWN only because the Docker VM had rebooted. Their slurmd processes were healthy and no jobs existed. They were resumed with `docker exec slurmctld scontrol update NodeName=c1,c2 State=RESUME`; wait until both report idle. Inspect reason/health first on future runs. Do not resume unknown failures or change production node state using these demo instructions.
+In the original local demo, nodes sometimes showed DOWN after a Docker VM reboot; the workers were checked and resumed only after confirming their processes were healthy and no jobs were present. Inspect the node reason, slurmd health and queue before any state change. Only for this isolated demo after a verified reboot issue, an authorized operator may use `docker exec slurmctld scontrol update NodeName=c1,c2 State=RESUME`, then wait for both nodes to report idle. Do not apply this to production or unknown failures.
 
 The isolated demo environment was created once on the shared volume (no global container Python changes):
 
@@ -54,7 +64,7 @@ docker exec slurmctld python3 -m venv /data/team7-gate2-py312
 docker exec slurmctld /data/team7-gate2-py312/bin/python -m pip install torch==2.5.1 numpy==2.1.3
 ```
 
-Skip setup if it already exists and imports successfully. The exact transitive installed versions are in the saved Linux requirements file. Users user1 (1002) and user2 (1003) already existed identically across the controller/workers. Require two idle CPU nodes for these tests:
+Skip setup if it already exists and imports successfully. The exact transitive installed versions are in the saved Linux requirements file. Users `user1` and `user2` must exist with matching UID/GID on the controller and workers, and the shared Python interpreter at `/data/team7-gate2-py312/bin/python` must be accessible to both jobs. These prerequisites were present in the tested demo; they are **not installed automatically by the source archive**. Check identities and require two idle CPU nodes:
 
 ```bash
 python3 tests/slurm_gate2.py --output /tmp/team7-gate2-slurm-NEW
@@ -75,4 +85,4 @@ For cancellation use `scancel JOBID` (or TERM the local runner). Cancellation st
 
 Local evidence does not validate H100, CUDA, NCCL, real MoE training, mixed precision, sharded checkpointing, production shared-storage durability, account quotas, cgroup isolation, or automatic allocation/node recovery. Supply the genuine model checkout/config/data/tokenizer and a reachable authorized GPU Slurm environment; confirm site runtime/epilog requirements in `week1_runbook.md`. Implement the model's distributed safe-step checkpoint adapter and loss/ordered-ID trace, then repeat restore/kill/cancellation tests on the actual layout. The CPU writer rejects distributed worlds larger than one.
 
-Gate 2 local evidence and exact tested job IDs are indexed in [evidence/VALIDATION.md](../evidence/VALIDATION.md). The archive is a working-tree handoff; it is not a GitHub commit, push or published image.
+Gate 2 local evidence and tested job IDs are indexed in [evidence/VALIDATION.md](../evidence/VALIDATION.md). Large binary checkpoints were intentionally excluded from the submission; rerunning the validators reconstructs them. This archive is source/evidence only, not a GitHub commit, push or published image.
