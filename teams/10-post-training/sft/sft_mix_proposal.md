@@ -203,11 +203,11 @@ Ten sets were checked against the Hub cards, the papers and the branch tip on 12
 
 | Set | Licence | Reason |
 |---|---|---|
-| `sft-code-swe-smith` | mit | o3-mini (closed OpenAI) writes the bugs |
+| `sft-code-swe-smith` | mit | o3-mini (closed OpenAI) is the main bug-writing model (paper) |
 | `sft-agentic-swe-smith-trajectories` | mit | Claude 3.7 Sonnet (closed Anthropic) writes most trajectories |
 | `sft-reasoning-r1-distill-sft` | cc-by-nc-sa-4.0 | Non-commercial |
 | `sft-agentic-apigen-mt-5k` | cc-by-nc-4.0 | Non-commercial, and GPT-4o (closed OpenAI). Row was already in the table |
-| `sft-agentic-open-agentrl-sft-3k` | none stated | Unstated licences are out. The teacher (Qwen3-Coder-30B-A3B, Apache-2.0) passes the generator rule |
+| `sft-agentic-open-agentrl-sft-3k` | none stated | Unstated licences are out. The paper names Qwen3-Coder-30B-A3B (Apache-2.0) as teacher for the self-curated trajectories |
 | `rl-agentic-open-agentrl-30k` | none stated | RL data. No licence, and 3K MegaScience rows are cc-by-nc-sa-4.0 |
 
 - **Unresolved (1):** "MadeAgents/Hammer" is not a Hub name. If `MadeAgents/xlam-irrelevance-7.5k` was meant, it is cc-by-4.0 but built on `xlam-60k`, so it has the same DeepSeek-V2 rows question as When2Call and needs a TSAI decision. If `MadeAgents/HammerBench` was meant, it is an Apache-2.0 benchmark, not a training set, and could go on Team 9's decontam list.

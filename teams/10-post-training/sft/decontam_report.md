@@ -2648,7 +2648,7 @@ An `excluded` set is out of training, so it was not run.
 | `sft-safety-wildjailbreak` | excluded | GPT-4 and GPT-3.5. |
 | `sft-safety-nemotron-sft-v2` | excluded | English generator is not named. |
 | `sft-code-self-oss-instruct` | excluded | StarCoder2, BigCode OpenRAIL-M. |
-| `sft-code-swe-smith` | excluded | o3-mini (closed OpenAI) writes the bugs. |
+| `sft-code-swe-smith` | excluded | o3-mini (closed OpenAI) is the main bug-writing model. |
 | `sft-agentic-swe-smith-trajectories` | excluded | Claude 3.7 Sonnet (closed Anthropic) writes most trajectories. |
 | `sft-reasoning-r1-distill-sft` | excluded | cc-by-nc-sa-4.0, non-commercial. |
 | `sft-agentic-apigen-mt-5k` | excluded | cc-by-nc-4.0 and GPT-4o. |

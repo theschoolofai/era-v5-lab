@@ -107,10 +107,10 @@ Three stages. Sets marked `excluded` stay in the table with the reason and are n
 | sft-chat-dolci-think-sft | [allenai/Dolci-Think-SFT](https://huggingface.co/datasets/allenai/Dolci-Think-SFT), `source` in {OpenThoughts3, WildChat, OpenAssistant Guanaco, Aya} | English / Math, Code, Chat; some multilingual rows via Aya | DeepSeek-R1 and R1-0528 (MIT) write the traces over human WildChat, OASST1 and Aya prompts; the OpenThoughts3 rows are the existing QwQ-32B (Apache-2.0) traces | odc-by (Hub tag; card adds "intended for research and educational use" under Ai2's Responsible Use Guidelines, a statement of intent, not a licence term) | TSAI reserves |
 | sft-chat-dolci-think-sft-other | [allenai/Dolci-Think-SFT](https://huggingface.co/datasets/allenai/Dolci-Think-SFT), all other `source` values | English / Instruction following, Python, Safety, Tables | Three new Ai2 subsets (Think Persona IF, Precise IF, Think Python; about 823k rows) name no generator; SYNTHETIC-2 has no licence on its own card; Nemotron-Post-Training-v1 code is `excluded` above; WildGuardMix, WildJailbreak and CoCoNot prompts were written by GPT-4 or unnamed models; TableGPT synthesis method not verified | odc-by (Hub tag) on the release; upstream licences or generators unstated | excluded |
 | sft-agentic-apigen-mt-5k | [Salesforce/APIGen-MT-5k](https://huggingface.co/datasets/Salesforce/APIGen-MT-5k) | English / Tool use (retail, airline) | GPT-4o (OpenAI, proprietary closed) and DeepSeek-V3 (MIT) write the agent and simulated-user turns (arXiv 2504.03601) | cc-by-nc-4.0 (Hub tag; non-commercial; card: "for research purposes only") | excluded |
-| sft-code-swe-smith | [SWE-bench/SWE-smith](https://huggingface.co/datasets/SWE-bench/SWE-smith) | English / Python SWE task instances | o3-mini (OpenAI, proprietary closed) writes the bugs (SWE-smith paper) | mit (Hub tag) | excluded |
+| sft-code-swe-smith | [SWE-bench/SWE-smith](https://huggingface.co/datasets/SWE-bench/SWE-smith) | English / Python SWE task instances | o3-mini (OpenAI, proprietary closed) is the main model that writes the bugs (SWE-smith paper) | mit (Hub tag) | excluded |
 | sft-agentic-swe-smith-trajectories | [SWE-bench/SWE-smith-trajectories](https://huggingface.co/datasets/SWE-bench/SWE-smith-trajectories) | English / SWE-agent trajectories | Claude 3.7 Sonnet (Anthropic, proprietary closed) writes most trajectories (card) | mit (Hub tag) | excluded |
 | sft-reasoning-r1-distill-sft | [ServiceNow-AI/R1-Distill-SFT](https://huggingface.co/datasets/ServiceNow-AI/R1-Distill-SFT) | English / Math and instruction reasoning | DeepSeek-R1-32b distillation (card), prompts from Numina-math and Tulu | cc-by-nc-sa-4.0 (Hub tag; non-commercial) | excluded |
-| sft-agentic-open-agentrl-sft-3k | [Gen-Verse/Open-AgentRL-SFT-3K](https://huggingface.co/datasets/Gen-Verse/Open-AgentRL-SFT-3K) | English / Agentic reasoning | Qwen3-Coder-30B-A3B (Apache-2.0) is the teacher | none stated on the card or in the paper | excluded |
+| sft-agentic-open-agentrl-sft-3k | [Gen-Verse/Open-AgentRL-SFT-3K](https://huggingface.co/datasets/Gen-Verse/Open-AgentRL-SFT-3K) | English / Agentic reasoning | Qwen3-Coder-30B-A3B (Apache-2.0) is the teacher for the self-curated trajectories (paper) | none stated on the card or in the paper | excluded |
 | sft-agentic-toucan | [Agent-Ark/Toucan-1.5M](https://huggingface.co/datasets/Agent-Ark/Toucan-1.5M) | English / Tool use (MCP agent trajectories) | GPT-OSS-120B (Apache-2.0), Kimi-K2 (Modified MIT) and Qwen3-32B (Apache-2.0) write the trajectories, one config each; tasks by Mistral-Small, DevStral-Small, GPT-OSS, Kimi-K2 and Qwen3-32B; Kimi-K2 annotates and GPT-OSS-120B judges (arXiv 2510.01179); all open weights | apache-2.0 (Hub tag; commercial use permitted per tag) | TSAI reserves |
 | sft-tool-when2call | [nvidia/When2Call](https://huggingface.co/datasets/nvidia/When2Call) | English / Tool use (when to call, ask or decline) | Mixtral-8x22B (Apache-2.0) rewrites questions and answers built on APIGen (xLAM) data, which includes DeepSeek-V2-Chat rows (DeepSeek Licence); rows carry no generator field | cc-by-4.0 (Hub tag; attribution needed); `train_sft` and `train_pref` only, the test split is built from BFCL v2 Live | needs TSAI decision |
 | sft-indic-indic-instruct-hi | [ai4bharat/indic-instruct-data-v0.1](https://huggingface.co/datasets/ai4bharat/indic-instruct-data-v0.1) | Hindi (`wikihow` and `nmt-seed` subsets only) | none: `wikihow` is native Hindi wikiHow text, `nmt-seed` is human-made BPCC-Human en-hi pairs; the other subsets (Llama-2-70B in `anudesh`, closed models in `lm_sys` and `hh-rlhf`) are not part of this set | no Hub tag; per-subset licences stated in arXiv 2401.15006: `wikihow` CC-0, `nmt-seed` CC-BY-4.0 | TSAI reserves |
@@ -149,7 +149,7 @@ Three stages. Sets marked `excluded` stay in the table with the reason and are n
 | rl-math-processbench | [Qwen/ProcessBench](https://huggingface.co/datasets/Qwen/ProcessBench) | English / Mathematics (step verification) | Not on the card; the paper (arXiv 2412.06559, Table 4) names 12 Qwen2/Qwen2.5 and Llama-3/3.1 Instruct models; step errors labelled by human experts | apache-2.0 (Hub tag); eval only, not training data (G9 evaluation probe) | excluded |
 | rl-math-deepscaler | [agentica-org/DeepScaleR-Preview-Dataset](https://huggingface.co/datasets/agentica-org/DeepScaleR-Preview-Dataset) | English / Mathematics (competition) | none for problems and solutions (human AIME 1984-2023, AMC before 2023, Omni-MATH, Still); gemini-1.5-pro-002 (Google, proprietary closed) is used in the preprocessing code as a proof-problem filter and difficulty judge; the Still rows (MATH, NuminaMath-CoT, AIME) have no stated licence and the release has no `source` column to drop them | mit (Hub tag) on the release; Still source licence unstated | excluded |
 | rl-safety-aya-redteaming | [CohereLabs/aya_redteaming](https://huggingface.co/datasets/CohereLabs/aya_redteaming) | Hindi (`aya_hin`, 915 prompts); 7 other languages not used | none: harmful prompts written by paid human annotators; prompts only, no responses | apache-2.0 (Hub tag; commercial use permitted per tag) | TSAI reserves |
-| rl-agentic-open-agentrl-30k | [Gen-Verse/Open-AgentRL-30K](https://huggingface.co/datasets/Gen-Verse/Open-AgentRL-30K) | English / RL prompts (17K DAPO-Math, 3K MegaScience science, agentic tasks) | none for the prompts | none stated; includes 3K MegaScience rows (cc-by-nc-sa-4.0) | excluded |
+| rl-agentic-open-agentrl-30k | [Gen-Verse/Open-AgentRL-30K](https://huggingface.co/datasets/Gen-Verse/Open-AgentRL-30K) | English / RL prompts (17K DAPO-Math, 3K MegaScience science, plus LeetCode and Skywork-OR1 data) | none for the prompts | none stated; includes 3K MegaScience rows (cc-by-nc-sa-4.0) | excluded |
 
 ---
 
@@ -1053,7 +1053,7 @@ Twenty-three sets in the two stage sections are `excluded`: eleven earlier ones 
 - **Set:** `sft-code-swe-smith`
 - **Source:** [`SWE-bench/SWE-smith`](https://huggingface.co/datasets/SWE-bench/SWE-smith)
 - **Licence:** `mit` (Hub tag).
-- **Generator model:** o3-mini (OpenAI, proprietary closed) writes the bugs, per the SWE-smith paper.
+- **Generator model:** o3-mini (OpenAI, proprietary closed) is the main model that writes the bugs, per the SWE-smith paper (other bugs are procedural or taken from PRs).
 - **Decision:** `excluded` — data rule: text made by closed OpenAI models is out. The MIT tag does not change that.
 - **Our opinion:** Out. The task instances are useful as a reference for building our own SWE environments, not as training text.
 - **Added by:** RaviNaik (12 Nov 2026), from the Hub cards and papers. A tag is not legal clearance.
@@ -1086,7 +1086,7 @@ Twenty-three sets in the two stage sections are `excluded`: eleven earlier ones 
 - **Set:** `sft-agentic-open-agentrl-sft-3k`
 - **Source:** [`Gen-Verse/Open-AgentRL-SFT-3K`](https://huggingface.co/datasets/Gen-Verse/Open-AgentRL-SFT-3K)
 - **Licence:** None stated on the Hub card or in the paper.
-- **Generator model:** Qwen3-Coder-30B-A3B (Apache-2.0) is the teacher, so the generator rule passes.
+- **Generator model:** The paper names Qwen3-Coder-30B-A3B (Apache-2.0) as the teacher for the self-curated trajectories. The card also lists `s1K-1.1` and `ReTool-SFT` as problem sources; their generators are not traced here.
 - **Decision:** `excluded` — data rule: a set with no stated licence is out. It stays out until the authors state one.
 - **Our opinion:** If the authors add a licence, ask TSAI to review it again. The set is small (about 3K rows).
 - **Added by:** RaviNaik (12 Nov 2026), from the Hub cards and papers. A tag is not legal clearance.
@@ -1151,8 +1151,8 @@ Verifiable-answer and test-based sets for RL (math, code, SWE tasks). Each entry
 - **Stage:** RL
 - **Set:** `rl-agentic-open-agentrl-30k`
 - **Source:** [`Gen-Verse/Open-AgentRL-30K`](https://huggingface.co/datasets/Gen-Verse/Open-AgentRL-30K)
-- **Licence:** None stated. The card lists 17K DAPO-Math prompts, 3K MegaScience science prompts (`cc-by-nc-sa-4.0`) and agentic tasks.
-- **Generator model:** none for the prompts (RL data).
+- **Licence:** None stated on the card. The card lists 17K DAPO-Math prompts, 3K MegaScience science prompts (MegaScience's own card says `cc-by-nc-sa-4.0`), self-curated LeetCode data and data from Skywork-OR1.
+- **Generator model:** none for the prompts (RL data); the card does not say who made the LeetCode and Skywork-OR1 parts.
 - **Decision:** `excluded` — data rule: no stated licence, and the MegaScience part is non-commercial.
 - **Our opinion:** Out as a whole. A part-by-part review would be needed to use only the DAPO-Math rows; not proposed.
 - **Added by:** RaviNaik (12 Nov 2026), from the Hub cards and papers. A tag is not legal clearance.
