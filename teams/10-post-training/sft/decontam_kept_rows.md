@@ -43,7 +43,7 @@ Rows in, removed and kept for the 33 SFT sets that were run on every converted r
 
 ## Notes on the table
 
-- `sft-code-opencodereasoning-2`: all 70 python shards after the question join. 1,398,166 raw rows; 268,752 upstream test rows, 3,629 protected-family rows and 513,809 rows that fail the quality proposal are left out before the scan, and 69,690 `open-r1/codeforces` rows are held. 542,219 rows reach the scan. Its licence status is still `TSAI reserves`, so none of the kept rows is admitted.
+- `sft-code-opencodereasoning-2`: all 70 python shards after the question join. 1,398,166 raw rows; 268,752 upstream test rows, 3,629 protected-family rows and 513,809 rows that fail the quality proposal are left out before the scan, and 69,690 `open-r1/codeforces` rows are held. 542,219 rows reach the scan. TSAI admitted the set on 11 Nov 2026 (`allowed (TSAI admitted, 11 Nov 2026)`, CC-BY-4.0, attribution retained), so it is licence-eligible for admission. No kept rows are admitted yet: the pack is blocked on source identity approval and verification, the frozen tokenizer, the context limit (`max_sequence_tokens`), and the Codeforces pool producer revision, as recorded in `licence_table.md` and the pack admission report.
 
 - The total in section 1 of `decontam_report.md` (18,376,709 rows in) is this total plus the `sft-safety-aegis-v1` text column (11,997 rows, 2 removed), which is not training text.
 
