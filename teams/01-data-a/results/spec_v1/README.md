@@ -4,6 +4,8 @@ These are recorded runs, not automatically refreshed attestations of the current
 
 The [post-#362 PR #244 validation](cleaner/pr244_gold_refresh/README.md) refreshes the integration, sibling-scope, generated-cleaner, shared-F1, sheet and Indic F2 reports for cleaner `22d818c7…`. All 18 Indic pipelines pass on 2,193 own-pack gold documents; 9,000 Indic diagnosis documents have zero errors or second-pass changes. All 31 generated-cleaner harm checks pass on 4,162 gold documents. The packet records digests, reproduction commands and the necessary Hindi/Marathi scope changes.
 
+The [12 November sample-v0 rerun request](../../jobs/2026-11-12-pr244-rerun.md) pins the current cleaner and has fresh validation and two-part smoke logs. No new full sample has been processed locally.
+
 **Start here:** the harm test of every rule and of `clean()` on each pack is [cleaner/harm_tests.md](cleaner/harm_tests.md), with the English packs in more detail in [cleaner/harm_tests_english.md](cleaner/harm_tests_english.md). The validation of the sheet itself is [cleaner/specv1_validation.json](cleaner/specv1_validation.json).
 
 | Family / location | Producer | Interpretation |

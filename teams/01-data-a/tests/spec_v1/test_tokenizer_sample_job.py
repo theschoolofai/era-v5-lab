@@ -33,6 +33,22 @@ def test_submitted_config_matches_its_manifest():
     assert config['unsupported_policy'] == 'passthrough_with_explicit_status'
 
 
+def test_pr244_rerun_config_pins_current_cleaner_and_recorded_smoke():
+    rerun = SPEC.parent / 'jobs' / '2026-11-12-pr244-rerun'
+    path = rerun / 'tokenizer_sample_v0_clean.json'
+    config = json.loads(path.read_text(encoding='utf-8'))
+    smoke = json.loads((rerun / 'logs/job_summary.json').read_text(encoding='utf-8'))
+    assert config['clean_sha256'] == job.digest(SPEC / 'clean.py') == smoke['clean_sha256']
+    assert smoke['config_sha256'] == job.digest(path)
+    assert config['manifest'] == MANIFEST_REL
+    assert len(job.manifest(config)['shards']) == 86
+    assert config['optional_f2'] is False
+    assert config['unsupported_policy'] == 'passthrough_with_explicit_status'
+    assert config['output_root'] != submitted_config()['output_root']
+    assert smoke['scope'] == 'partial smoke test' and smoke['completed_parts'] == 2
+    assert smoke['errors'] == 0 and smoke['input_rows'] == smoke['output_rows'] + smoke['actions']['drop']
+
+
 @pytest.mark.parametrize('platform,rss', [('darwin', 512 * 1024 * 1024), ('linux', 512 * 1024)])
 def test_peak_memory_uses_platform_units(platform, rss, monkeypatch):
     from types import SimpleNamespace

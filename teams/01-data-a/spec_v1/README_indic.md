@@ -91,5 +91,6 @@ The [post-#362 refresh for PR #244](../results/spec_v1/cleaner/pr244_gold_refres
 - [f1_indic_harm.json](../results/spec_v1/cleaner/f1_indic_harm.json): shared F1 alone and the complete generated cleaner on current Indic gold.
 - [specv1_validation.json](../results/spec_v1/cleaner/specv1_validation.json): executable sheet checks, per-rule/per-pack harm and out-of-pack guards.
 - [Refresh packet](../results/spec_v1/cleaner/pr244_gold_refresh/README.md): scope changes, hashes, per-pack outcomes and reproduction commands.
+- [Current sample-v0 rerun request](../jobs/2026-11-12-pr244-rerun.md): current `22d818c7…` pin, fresh validation and two-part Hindi/Telugu smoke; optional F2 off.
 
 JSON reports contain IDs, counts, digests and error types, not document text. The other four family source sheets and normalization fingerprints are unchanged. A gold pass does not establish privacy completeness or positive-case recall; these remain review limits.
