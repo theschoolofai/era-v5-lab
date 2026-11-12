@@ -5,6 +5,8 @@ Spec v1.1 adds medicines and harm tests for the new diseases that the Week 2 rea
 | file | what it does |
 |---|---|
 | `collect_reading_prs.py` | Collects every `reading_<pack>_<reader>.csv` and `.md` from the open reading PRs and from `g1-reading` on `mittalutkarsh/era-v5-lab`. Counts each disease per domain (english, code, math, science) and lists the Spec v1.1 candidates. Tests: `tests/test_collect_reading_prs.py`. |
+| `show_examples.py` | For each Spec v1.1 candidate, writes every reader's row and the cleaned text at their offsets, read from the cleaned sample parts. For the hand check and for writing the medicine. The file holds pack text, so it is written outside the repo. Tests: `tests/test_show_examples.py`. |
+| `reading_recall.py` | Runs each rule of a medicine sheet on the cleaned docs of the reading rows with its code, and counts the docs it changes or drops: the "reading rows the rule treats" figure on each card. Loads the sheet the way `tools/harm_test.py` does. Prints doc_ids and counts only. Tests: `tests/test_reading_recall.py`. |
 
 ## Run
 
@@ -16,6 +18,14 @@ python3 -I collect_reading_prs.py --docs-read pyru=199 --watch 30   again every 
 ```
 
 `--docs-read READER=N` is for a reader who read more or fewer than 100 docs; pyru read 199. `--alias CODE=CODE` counts two readers' names for one disease as one. `--min-percent` sets the cut (default 1, so 2 of 200 docs counts and 2 of 299 does not).
+
+Then, with the cleaned sample ("tokenizer sample v0-clean", Train parts) unzipped outside the repo:
+
+```
+python3 -I show_examples.py --domain math --parts <folder>/<math parts>.parquet --out <outside the repo>/examples_math.md
+```
+
+It refuses an `--out` inside the repo, never shows F1 or E3 rows, and prints only counts. `--context N` sets the characters shown on each side of a reader's span (default 300).
 
 The spec v1 rules column is read from `../../spec_v1/sheets/specv1.md`. A GitHub token comes from `GH_TOKEN`, `GITHUB_TOKEN` or `gh auth token`; without one GitHub allows 60 requests an hour, and a run uses about 10.
 
