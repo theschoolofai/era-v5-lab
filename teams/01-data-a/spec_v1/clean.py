@@ -1983,7 +1983,10 @@ def _english_b2_002():
 
 
     def medicine_b2(text):
-        if B2_ABOUT_HTML.search(text) or len(B2_TAG.findall(text)) < 2:
+        # Keep when the text is about HTML or has fewer than 2 tags: the same test with the cheap parts first. A tag begins
+        # with "<" and holds no other "<", so fewer than 2 "<" means fewer than 2 tags, and B2_ABOUT_HTML (the slow part) is
+        # asked only about the few texts that have 2 or more tags.
+        if text.count("<") < 2 or len(B2_TAG.findall(text)) < 2 or B2_ABOUT_HTML.search(text):
             return ("keep", text)
         new = re.sub(r"[ \t]{2,}", " ", B2_TAG.sub(" ", text))
         return ("fix" if new != text else "keep", new)
@@ -2075,18 +2078,26 @@ def _english_c3_003():
         "that this these those which who because however".split()
     )
 
-    _LAST_TOKEN = re.compile(r"([A-Za-z0-9']+)[^A-Za-z0-9']*$")
+    _TOKEN = frozenset("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'")  # the characters of [A-Za-z0-9']
+    _LONGEST = max(map(len, _DANGLING))  # a last token longer than every dangling word cannot be one
 
     def medicine_c3(text):
         tail = text.rstrip()
         if not tail:
             return text
-        if _MARKER.search(tail):
+        if tail.endswith("]") and _MARKER.search(tail):  # the marker ends the text, so the text must end in "]"
             return ("drop", "")
         if tail.endswith((".", "!", "?", '"', "'", ")", ":", "…")):
             return text
-        token = _LAST_TOKEN.search(tail)
-        if token and token.group(1).lower() in _DANGLING:
+        # The last token is the final run of [A-Za-z0-9'] characters. It is read backwards from the end: the regex that found it,
+        # ([A-Za-z0-9']+)[^A-Za-z0-9']*$, searched the whole text from the start, which cost far more than the answer needs.
+        end = len(tail)
+        while end and tail[end - 1] not in _TOKEN:
+            end -= 1
+        start = end
+        while start and tail[start - 1] in _TOKEN and end - start <= _LONGEST:
+            start -= 1
+        if end - start <= _LONGEST and tail[start:end].lower() in _DANGLING:
             return ("drop", "")
         return text
 
@@ -2133,26 +2144,27 @@ def _english_c5_002():
     SOURCE = "en-dclm"  # pack whose medicine this came from
     import re
 
-    _SPAM = tuple(
-        re.compile(p, re.I)
-        for p in (
-            r"\bcheap\s+(?:nfl|nba|mlb|nhl)\b",
-            r"\bcheap\s+(?:michael\s+kors|oakley|ray\s*bans?|jerseys)\b",
-            r"\bray\s*bans?\s+(?:sunglasses|outlet)\b",
-            r"\b(?:auto|car)\s+insur\w*\s+(?:quotes?|qiotes?|rates?)\b",
-            r"\bfree\s+auto\s+insurance\s+quotes\b",
-            r"\bsex\s+dating\s+in\b",
-            r"\bwrite\s+my\s+essay\b",
-            r"\b(?:카지노|바카라|룰렛)\b",
-            r"\bpigmentación\s+capilar\b",
-        )
+    _SPAM_PATTERNS = (
+        r"\bcheap\s+(?:nfl|nba|mlb|nhl)\b",
+        r"\bcheap\s+(?:michael\s+kors|oakley|ray\s*bans?|jerseys)\b",
+        r"\bray\s*bans?\s+(?:sunglasses|outlet)\b",
+        r"\b(?:auto|car)\s+insur\w*\s+(?:quotes?|qiotes?|rates?)\b",
+        r"\bfree\s+auto\s+insurance\s+quotes\b",
+        r"\bsex\s+dating\s+in\b",
+        r"\bwrite\s+my\s+essay\b",
+        r"\b(?:카지노|바카라|룰렛)\b",
+        r"\bpigmentación\s+capilar\b",
     )
+    _SPAM = tuple(re.compile(p, re.I) for p in _SPAM_PATTERNS)
+    _SPAM_ANY = re.compile("|".join(_SPAM_PATTERNS), re.I)  # matches exactly when one of the nine does
 
     _KEYWORD_LINE = re.compile(r"^(?![ \t]*[•·*\-])(?:[^|\n]{2,40}\|){6,}[^|\n]{2,40}[ \t]*$", re.M)
 
     def medicine_c5(text):
-        hits = sum(1 for p in _SPAM if p.search(text))
-        if hits >= 2 or _KEYWORD_LINE.search(text):
+        # Two different patterns must match to drop. Almost no document matches even one, so one search of their union
+        # comes first and the nine run one by one only when it matches. A keyword line needs 6 or more "|" characters.
+        hits = sum(1 for p in _SPAM if p.search(text)) if _SPAM_ANY.search(text) else 0
+        if hits >= 2 or (text.count("|") >= 6 and _KEYWORD_LINE.search(text)):
             return ("drop", "")
         return text
 
@@ -2415,12 +2427,23 @@ def _english_d3_003():
     SOURCE = "en-nemotroncc"  # pack whose medicine this came from
     import re
 
+    import unicodedata
+
+    _LATIN = {}  # letter -> True if its Unicode name starts with LATIN: looked up once per distinct letter, not once per occurrence
+
+    def _latin(c):
+        v = _LATIN.get(c)
+        if v is None:
+            v = _LATIN[c] = unicodedata.name(c, "").split(" ")[0] == "LATIN"
+        return v
+
     def d3(t):
         """Delete lines whose letters are mostly non-Latin (CJK, Cyrillic, Hangul, Devanagari ...) in an English document."""
-        import unicodedata
         def foreign(l):
+            if l.isascii():  # an ASCII letter is always Latin, so an ASCII line is never foreign
+                return False
             letters = [c for c in l if c.isalpha()]
-            return len(letters) >= 3 and sum(unicodedata.name(c, "").split(" ")[0] != "LATIN" for c in letters) / len(letters) > 0.5
+            return len(letters) >= 3 and sum(not _latin(c) for c in letters) / len(letters) > 0.5
         return "\n".join(l for l in t.split("\n") if not foreign(l))
 
 
@@ -2539,7 +2562,19 @@ def _english_b4_008():
     DETOK = re.compile("(?<=[A-Za-z])(?<![^A-Za-z][frbuFRBU])(?<![^A-Za-z][rR][bB])(?<![^A-Za-z][bB][rR])'(?!s\\b|t\\b|re\\b|ll\\b|ve\\b|d\\b|m\\b|em\\b|n'|er\\b|clock\\b|all\\b|am\\b)(?=[srmSRM][A-Za-z][^'\\n]{0,40}'(?:[\\s,.;:)!?]|$))", re.M)  # added by Data A: from maheshsv's medicine.md
 
     def fix_detok_quotes(text: str) -> tuple[str | None, bool]:
-        new = DETOK.sub(" '", text)
+        # DETOK can only match at an apostrophe, and a scan of every position costs far more than looking at the apostrophes:
+        # find them with str.find and ask DETOK about each one in place (match at that position sees the same text before it).
+        out, last, i = [], 0, text.find("'")
+        while i != -1:
+            if DETOK.match(text, i):
+                out.append(text[last:i])
+                out.append(" '")
+                last = i + 1
+            i = text.find("'", i + 1)
+        if not out:
+            return text, False
+        out.append(text[last:])
+        new = "".join(out)
         return new, new != text
 
 
@@ -2687,11 +2722,34 @@ def _english_b4_010():
             pos += len(line) + 1
         return out
 
+    def b4_mostly_code(text):
+        """Whether the lines b4_code_lines finds are more than B4_SHARE of the text, as b4_spans asks. The same test, but it
+        stops as soon as the answer cannot change: when the code lines already pass the limit, or when the code found plus
+        every character not yet read cannot reach it (a prose document is settled halfway through)."""
+        if not text.strip():
+            return False
+        limit = B4_SHARE * len(text.strip())
+        code, left = 0, len(text)
+        for line in text.split("\n"):
+            tokens = len(B4_CODE_TOKENS.findall(line))
+            if tokens >= B4_MIN_TOKENS and tokens * B4_WORDS_PER_TOKEN >= len(line.split()) and not TABLE_ROW.match(line):
+                code += len(line)
+                if code > limit:
+                    return True
+            left -= len(line) + 1
+            if code + left <= limit:
+                return False
+        return False
+
+    # Every alternative of B4_TEMPLATE contains one of these, so a text with none of them has no template expression.
+    B4_TEMPLATE_HINTS = ("{{", "{%", "${", "`", "undefined", "NaN", "null")
+
     def b4_spans(text):
         """B4: the document is dropped if it is mostly code; otherwise template expressions are removed."""
-        code = sum(e - s for s, e in b4_code_lines(text))
-        if text.strip() and code > B4_SHARE * len(text.strip()):
+        if b4_mostly_code(text):
             return [(0, len(text), "B4-mostly-code")]
+        if not any(hint in text for hint in B4_TEMPLATE_HINTS):
+            return []
         return [(m.start(), m.end(), "B4-template") for m in B4_TEMPLATE.finditer(text)]
 
 
@@ -2839,9 +2897,7 @@ def _english_f1_005():
                              r"publicist|author of|professor|prof\.|dr\.|lecturer|faculty|researcher|principal investigator|"
                              r"media contact|press contact|for more information|high[- ]res|images|photos)\b")
 
-    def _organisation_near(lines, i):
-        """An organisation word in the contact block around line i: up to 6 lines each way."""
-        return bool(ORGANISATION.search("\n".join(lines[max(0, i - 6):i + 7])))
+    DIGIT = re.compile(r"\d")
 
     def _email(m, org):
         addr = m.group()
@@ -2856,13 +2912,25 @@ def _english_f1_005():
     def medicine_f1(text):
         lines = text.split("\n")
         org_page = bool(ORG_VOICE.search(text))
+        has_org = {}  # line number -> an organisation word on that line: searched once, and only when a contact line asks
+
+        def org_near(i):  # same answer as searching the joined 13-line window, as no match spans a newline
+            for j in range(max(0, i - 6), min(len(lines), i + 7)):
+                if j not in has_org:
+                    has_org[j] = ORGANISATION.search(lines[j]) is not None
+                if has_org[j]:
+                    return True
+            return False
+
         out = []
         for i, line in enumerate(lines):
-            org = org_page or _organisation_near(lines, i)
-            new = EMAIL.sub(lambda m: _email(m, org or bool(PUBLIC_ROLE.search(
-                "\n".join(lines[max(0, i - 2):i + 1])))), line)
+            if "@" not in line and not DIGIT.search(line):  # no EMAIL, PHONE or ADDRESS can match
+                out.append(line)
+                continue
+            new = EMAIL.sub(lambda m: _email(m, org_page or org_near(i) or bool(PUBLIC_ROLE.search(
+                "\n".join(lines[max(0, i - 2):i + 1])))), line) if "@" in line else line
             if PHONE.search(new) or ADDRESS.search(new):
-                if not org:
+                if not (org_page or org_near(i)):
                     new = PHONE.sub(lambda m: m.group() if TOLL_FREE.match(m.group()) else "<PHONE>", new)
                     if len(line.strip()) <= CONTACT_LINE:
                         new = ADDRESS.sub("<ADDRESS>", new)
