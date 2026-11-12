@@ -1,6 +1,6 @@
 # Spec v1.1 harm tests: summary (Data A)
 
-**Committed:** not yet. Fill in after the commit, from `git log -1 --format='%H %cd'`.
+**Committed:** `14d45499a5213b7a981debe1c41abdd7ff825774`, 13 Nov 2026, 00:36:54 IST (+0530), by Aneesha Das. The harm reports and the results in this file belong to that commit. This line was filled in by a follow-up commit.
 **Written:** 13 Nov 2026.
 **Branch:** `g1-spec-v1-1` on patilvijay23/era-v5-lab, for theschoolofai/era-v5-lab#365.
 
