@@ -18,7 +18,7 @@ Totals: 22/440 correct (code 2/240, math 20/200), 28 censored, 0 parse failures,
 
 ## What the numbers show
 
-- Every cell parses. Each label has 6 to 8 censored cells: 15 of the 17 math ones are Level 4 or 5, and the other 11 are code.
+- Every cell parses, but trivially: OLMoE writes plain text with no G10 markers. Each label has 6 to 8 censored cells: 15 of the 17 math ones are Level 4 or 5, and the other 11 are code.
 - Almost every success comes from Level 1 to 3 math: math-01, 03 and 04 (Level 1), 06 (Level 2) and 14 (Level 3). Code passes once, and only code-15 (16k and 64k, sample 1), the same cell as Stage A.
 - The label does nothing visible at a fixed cap. Median length stays at 411 to 427 tokens, and against 1k the matched cells move +2/−2, +2/−2 and +3/−1. That is noise at k=2.
 - The 80 Stage A cells inside Stage B came out byte-identical, so the generation is reproducible.
