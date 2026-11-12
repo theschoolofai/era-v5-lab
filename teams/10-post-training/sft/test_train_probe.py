@@ -8,7 +8,7 @@ import json
 import math
 from pathlib import Path
 
-import pytest
+from pytest import fixture
 import torch
 
 HERE = Path(__file__).resolve().parent
@@ -20,12 +20,12 @@ CONFIG = HERE / "config" / "probe.yaml"
 IGN = tp.IGNORE
 
 
-@pytest.fixture
+@fixture
 def cfg() -> dict:
     return tp.load_config(CONFIG)
 
 
-@pytest.fixture
+@fixture
 def tiny_cfg(cfg) -> dict:
     return dict(cfg, d_model=16, n_heads=2, n_layers=1, max_len=32)
 
@@ -351,7 +351,7 @@ def test_load_jsonl_counts_rejects(tmp_path, cfg):
 # ---------------------------------------------------------------- the probe itself
 
 
-@pytest.fixture(scope="module")
+@fixture(scope="module")
 def report():
     cfg = tp.load_config(CONFIG)
     return cfg, tp.run_probe(cfg, tp.synthetic_rows(cfg))
