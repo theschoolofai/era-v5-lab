@@ -159,3 +159,56 @@ Added to `sft/decontam_report.md` on 9 and 10 Nov, same fingerprints, 0 canaries
 All 70 OpenCodeReasoning-2 python shards are converted. Of the 1,398,166 raw rows, 268,752 are upstream test splits, 3,629 are protected family, 513,809 fail the quality proposal and 69,690 are held because the `open-r1/codeforces` revision is not established; 542,286 join, 67 are rejected by the converter and 542,219 reach the scan, with 0 canaries. The joined rows are 19,825 distinct problems by position (19,340 by content at Jaccard 0.8). The 427,152 kept rows are 15,670 problems by position and 15,402 by content at Jaccard 0.8, about 2.54B trained tokens (2,539,177,884). In the proofs part, 121,242 of the 414,890 source rows are over the 64k budget and were not converted, so they were not checked.
 
 `sft-safety-aegis-v1` has no assistant turn. Its stored `text` column was still checked on 9 Nov (11,997 rows, 2 removed, 0 canary). That does not make it chat training data. `sft-safety-indicguard`, `sft-safety-nemotron-guard-v3`, `sft-safety-wildjailbreak`, `sft-safety-nemotron-sft-v2`, and `sft-code-self-oss-instruct` are `excluded`. So are `rl-community-alignment`, `rl-safety-hh-rlhf`, `rl-safety-alignment-faking`, and `rl-wildguardmix`. Until TSAI names an allowed safety set with chat rows, use the section 6 fallback: **0% Safety / 10% General**.
+
+## 9. TSAI decision items for Gate 2 (Sat 14 Nov)
+
+TSAI decides these four items at Gate 2. They do not block the Gate 2 file. Each item has the facts and a proposed answer for TSAI to accept or change. The numbers come from `decontam_report.md`, `results/ocr2_coverage.md` and `ocr2_policy.json`.
+
+### 9.1 OCR-2 quality threshold
+
+- **What is set now:** `ocr2_policy.json` admits only rows judged `right` with `min_pass_rate` 1.0. A critique of "wrong" or a pass rate under 1 leaves the row out. A row with no execution evidence (`pass_rate` -1) is kept and tagged `exec_missing`, never counted as a pass.
+- **Effect (all 70 Python shards, measured):** of 1,398,166 raw rows, 310,019 are left out for a "wrong" critique and 203,790 for a pass rate under 1 (513,809 in all). After the join and the scan, 427,152 rows are kept (15,670 distinct problems by position, 2,539,177,884 trained tokens).
+- **What a lower threshold would add:** measured on the first three shards only: a pass rate of 0.9 recovers 2,421 rows (445 problems), and 0.5 recovers 6,694 rows (1,259 problems). It is not measured on all 70 shards and is not extrapolated here.
+- **Proposed answer:** keep `right` and 1.0 for the first pack. The kept set is already large (15,670 problems), and a lower threshold admits rows that failed a test or were called wrong by the critic. Revisit only if TSAI wants more problems.
+
+### 9.2 Codeforces rows
+
+There are two separate Codeforces questions.
+
+- **OCR-2 rows held (SFT):** 69,690 rows name `open-r1/codeforces`, and no producer revision is established. `ocr2_policy.json` records `training_approved: false` for this source, with the statement terms not recorded and Team 9 confirmation open. These rows are not in the 427,152 kept rows.
+  - **Proposed answer:** keep them held. They enter the pack only after a revision is named and Team 9 confirms.
+- **41 rows of the RL Codeforces pool:** the pick is to drop them, and TSAI's instructor accepted it for the clean set on 12 Nov. Rebuilt result (from G10, 12 Nov): 8,891 rows kept (8,932 before), new clean sha256 `220b2f86…`, raw `efe89e87…` unchanged, and the excluded contest and problem ids in `rl-code-codeforces.excluded_ids.jsonl` next to the clean file.
+  - **Still to do:** copy the rebuilt file and its record next to the RL files and update the Codeforces rows in `rl/decontam_report.md`. This PR does not change `rl/`.
+
+### 9.3 SFT mix shares
+
+- **Proposal, unchanged:** Code 35%, Agentic 25%, Tool Use 15%, Indic 15%, General 7%, Safety 3%. See section 2.
+- **What is measured:** kept rows per set after the Team 9 check (`decontam_kept_rows.md`; 33 sets run on every converted row). Token supply is measured for OCR-2 only; 32 other sets have row counts and no token record (`../docs/eligibility_ledger.md`, section 6). The shares are token and trajectory shares, and no per-area token supply is measured.
+- **Open quantity risks:** Indic (the human-written sets hold 41,261 `aya_dataset` rows, 19,909 `oasst-t` rows and 10,541 `dolly-t` rows; `aya_collection` has to be capped per subset, section 7) and General (`dolly-15k` is small).
+- **`aya_collection`:** Ranjani's licence check (PR 399) traced the 12 templated subsets: 10 usable (Apache-2.0, CC0 or MIT), `templated_hindi_headline` excluded (CC BY-NC-SA 4.0) and `templated_hindi_news` needs a TSAI decision (CC BY-SA 4.0). Hindi news and headlines together are 170,848 of the 688,637 rows in section 7, so a decision on `templated_hindi_news` changes the Hindi supply.
+- **Proposed answer:** accept the shares as the starting proposal, with the two quantity risks above as the first things to re-check once `convert.py` row counts and token counts exist for the whole mix.
+
+### 9.4 Safety share fallback
+
+- **Facts:** `sft-safety-indicguard`, `sft-safety-nemotron-guard-v3`, `sft-safety-wildjailbreak` and `sft-safety-nemotron-sft-v2` are `excluded` (section 8). `sft-safety-aegis-v1` has no assistant turn, so it is not chat training data. No allowed safety set with chat rows exists today.
+- **Fallback (section 6):** **0% Safety / 10% General**, with General's 7% math and STEM plus 3% concise instructions split.
+- **Proposed answer:** use the fallback until TSAI names an allowed safety set with chat rows. If TSAI names one, the 3% Safety share applies and General returns to 7%.
+
+## 10. Revision note (12 Nov): the ten new datasets
+
+Ten sets were checked against the Hub cards, the papers and the branch tip on 12 Nov. Three are usable and already covered, six are `excluded`, and one is unresolved.
+
+- **Usable and already covered:** `sft-code-nemotron-cascade-swe`, `sft-agentic-nemotron-agentic-v1` and `sft-agentic-nemotron-sft-agentic-v2-tool-calling`. Each has a licence row (`TSAI reserves`), a place in this proposal (Agentic and Tool Use) and a full-set run in `decontam_report.md`.
+- **Excluded (licence rows added, with the reason in each):**
+
+| Set | Licence | Reason |
+|---|---|---|
+| `sft-code-swe-smith` | mit | o3-mini (closed OpenAI) writes the bugs |
+| `sft-agentic-swe-smith-trajectories` | mit | Claude 3.7 Sonnet (closed Anthropic) writes most trajectories |
+| `sft-reasoning-r1-distill-sft` | cc-by-nc-sa-4.0 | Non-commercial |
+| `sft-agentic-apigen-mt-5k` | cc-by-nc-4.0 | Non-commercial, and GPT-4o (closed OpenAI). Row was already in the table |
+| `sft-agentic-open-agentrl-sft-3k` | none stated | Unstated licences are out. The teacher (Qwen3-Coder-30B-A3B, Apache-2.0) passes the generator rule |
+| `rl-agentic-open-agentrl-30k` | none stated | RL data. No licence, and 3K MegaScience rows are cc-by-nc-sa-4.0 |
+
+- **Unresolved (1):** "MadeAgents/Hammer" is not a Hub name. If `MadeAgents/xlam-irrelevance-7.5k` was meant, it is cc-by-4.0 but built on `xlam-60k`, so it has the same DeepSeek-V2 rows question as When2Call and needs a TSAI decision. If `MadeAgents/HammerBench` was meant, it is an Apache-2.0 benchmark, not a training set, and could go on Team 9's decontam list.
+- **No decontam run was needed** for any of the ten (see `decontam_report.md`, section 7).
