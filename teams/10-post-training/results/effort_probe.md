@@ -4,6 +4,10 @@ Date: 11 Nov 2026 (IST). Code: `eval/effort_suite.py`, `eval/effort_manifest.jso
 **No model has generated anything for this suite yet.** This file reports the suite and the CPU checks only.
 No GPU was used.
 
+> 12 Nov update: the first model run, a **Stage A canary on OLMoE-1B-7B-0924-Instruct**, is in
+> [Stage A: OLMoE-1B-7B-0924-Instruct canary](#stage-a-olmoe-1b-7b-0924-instruct-canary-12-nov). The 11 Nov text
+> above and below is left as written; it describes the suite and the CPU checks of that date.
+
 ## What the suite measures
 
 Each fixed prompt is crossed with the four effort labels `1k, 4k, 16k, 64k`. Every record keeps the
@@ -93,9 +97,102 @@ and resealed-bad manifests, deterministic slot-major 4-label matrix with one see
 default, lowered common cap and unsupported cells from the context preflight, missing checkers giving `None`
 rather than 0, output marking and the training guard, and the resolver's file, text and answer hash checks.
 
+## Stage A: OLMoE-1B-7B-0924-Instruct canary (12 Nov)
+
+**Honesty note.** Stage A only: 10 prompts, 4 labels, 2 samples per cell. The model is
+`allenai/OLMoE-1B-7B-0924-Instruct` with its own chat template, sampled at temperature 0.7 with base seeds
+1234 and 1235. That makes it an optimization diagnostic on an open stand-in. It is **not the capstone model** and
+not the G10 template, and Stage B was not run. No comparison with any other model, checkpoint or label is invited
+from these numbers. With 20 cells per label, one cell moves a rate by 5 points.
+
+### What ran
+
+| | |
+|---|---|
+| Prompts | The manifest's own Stage A list: code-00, code-01 (aizu), code-08 (atcoder), code-15 (codechef), code-22 (hackerearth), math-00 … math-20 (MATH levels 1 to 5). Every text, test set and reference answer was hash-checked against `effort_manifest.json` (sha256 `d6190b2d…`) before generation |
+| Prompt form | Raw task text as the user message, `Reasoning effort: {label}` as the system message, the model's native template (the same messages as the suite's `hf` backend). No instruction wrapper, so there is no request for `\boxed{}` or a code block |
+| Cells | 10 prompts × 4 labels (`1k, 4k, 16k, 64k`) × 2 samples = 80, all of which ran. None was unsupported: the longest prompt is 964 tokens, so 964 + 1024 fits the 4096 context and no cap was lowered |
+| Samples | `run_stage` was called once per sample, with base_seed 1234 (sample 0) and 1235 (sample 1). The seed is `prompt_seed(base_seed, slot)`, so a prompt has the same seed under all four labels |
+| Sampling | temperature 0.7, top_p 1.0, common cap 1024 for every label (`max_tokens`), stop on EOS id 50279, `enable_thinking=False` passed to the template (OLMoE's template ignores it) |
+| Model | `allenai/OLMoE-1B-7B-0924-Instruct` @ `7f1c97f440f06ce36705e4f2b843edb5925f4498`, Apache-2.0, un-gated, bf16, context 4096 |
+| Engine | vLLM 0.32.0 on 1× H100 80GB HBM3 (Modal). Load 94 s; generation 38.5 s (sample 0) + 33.0 s (sample 1), one cell at a time |
+| Image | `debian_slim` Python 3.12 + `vllm==0.32.0` + `huggingface_hub[hf_xet]`. Env: `VLLM_USE_DEEP_GEMM=0`, `VLLM_USE_FLASHINFER_SAMPLER=0`, `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`, `TOKENIZERS_PARALLELISM=false` |
+| Scoring | Local, after generation: `math_check` (math-verify 0.9.0) and `stdio_check` in Docker 29.9.2, both from the rl-data checkers of PR saitej123/era-v5-lab#54 @ 957534c and unchanged. Censored cells stay in every denominator |
+
+The suite code (`effort_suite.py`, manifest, tests) is unchanged. Two new files run it:
+`eval/stage_a_modal.py` adds a vLLM `Backend` and calls the suite's `run_stage`, and `eval/stage_a_report.py` fills
+in checker success and pools the two samples. Records and summaries are in
+`results/effort_stageA_olmoe_2026-11-12/`. Every record carries `do_not_train: true`.
+
+### Numbers per label (20 cells each = 10 prompts × 2 samples)
+
+| Label | Ran | Parse ok (malformed / empty) | Within cap (censored) | ≤ label budget | Correct | Code correct | Math correct | Prompts solved in either sample | Median generated tokens |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1k | 20 | 20 (0 / 0) | 19 (1) | 20 | 0/20 | 0/10 | 0/10 | 0/10 | 559 |
+| 4k | 20 | 20 (0 / 0) | 20 (0) | 20 | 0/20 | 0/10 | 0/10 | 0/10 | 474 |
+| 16k | 20 | 20 (0 / 0) | 19 (1) | 20 | 1/20 | 1/10 | 0/10 | 1/10 | 541 |
+| 64k | 20 | 20 (0 / 0) | 20 (0) | 20 | 1/20 | 1/10 | 0/10 | 1/10 | 460 |
+
+- The two censored cells are both math-20 (MATH level 5), sample 0, at `1k` and `16k`. Each hit 1024 tokens.
+- The two correct cells are both code-15 (codechef), sample 1, at `16k` and `64k`, passing all tests. Every other
+  cell failed: math 40/40 wrong answer; code 23 runtime error on a test, 13 wrong answer on a test, 2 no code block.
+- Checker sanity: the math checker scores each of the five reference answers 1, so the 0/40 on math is the model's
+  answers (for example 16 against a reference of 12 on the level 1 item), not the scoring path.
+- "Parse ok" is the suite's G10-format check: does the completion parse as one assistant turn, with no
+  malformed or unclosed trace? OLMoE writes plain text with no G10 markers, so it passes trivially here. It shows
+  that nothing malformed was emitted. It does not show that the format was learned. For a descriptive view only,
+  math completions containing `\boxed`: 1k 2/10, 4k 4/10, 16k 4/10, 64k 1/10. Code completions containing a
+  ```` ```python ```` block: 9, 10, 10 and 9 out of 10.
+- "≤ label budget" is always true under one common cap of 1024, since the smallest budget is 1024. It carries no
+  information about the label in Stage A.
+- Matched against `1k` (same prompt, same seed): sample 1 has one gain at `16k` and one at `64k` (both code-15),
+  with no losses. Sample 0 has no changes. These are two cells, not an effect.
+
+### Short Pass/Fail per label
+
+The rules were fixed in `stage_a_report.py` before the run. **Format obeyed:** PASS if every cell parses ok.
+**Cap respected:** PASS if no cell is censored. **Answer correct:** PASS if at least one cell is verified
+correct. That last rule is a canary bar for the scoring path, not a quality bar.
+
+| Label | Format obeyed | Cap respected | Answer correct |
+|---|---|---|---|
+| 1k | PASS (20/20, trivially: plain text) | FAIL (19/20) | FAIL (0/20) |
+| 4k | PASS (20/20, trivially: plain text) | PASS (20/20) | FAIL (0/20) |
+| 16k | PASS (20/20, trivially: plain text) | FAIL (19/20) | PASS (1/20) |
+| 64k | PASS (20/20, trivially: plain text) | PASS (20/20) | PASS (1/20) |
+
+The Cap and Correct verdicts differ between labels by one cell each, and these are draws at temperature 0.7.
+They are not a ranking of the labels.
+
+### Command and billing
+
+```bash
+cd teams/10-post-training
+modal run eval/stage_a_modal.py --out RAW_DIR --checker-dir RL_DATA_DIR \
+    --source-dir code_contests=CODE_CONTESTS_DIR --source-dir2 hendrycks_math=HENDRYCKS_MATH_DIR
+python eval/stage_a_report.py --raw RAW_DIR --checker-dir RL_DATA_DIR \
+    --source-dir code_contests=CODE_CONTESTS_DIR --source-dir hendrycks_math=HENDRYCKS_MATH_DIR \
+    --out results/effort_stageA_olmoe_2026-11-12
+```
+
+`RL_DATA_DIR` is `teams/10-post-training/rl-data` from PR saitej123/era-v5-lab#54 @ 957534c. The source dirs hold
+the pinned `deepmind/code_contests` @ `802411c3…` and `EleutherAI/hendrycks_math` @ `21a56338…` files. The weights
+were already cached in the Modal Volume from an earlier run. The modal CLI was 1.6.3.
+
+`modal billing report --for today --json`, 12 Nov 08:35 IST (the day starts 00:00 UTC):
+
+```json
+{"object_id": "ap-3Fn43Gp7kITZAdCm7AzLpb", "description": "g10-effort-stagea", "cost": "0.21434245"}
+{"object_id": "ap-6nfU0QRhbJt2CYS6FxCizL", "description": "g10-effort-stagea", "cost": "0.00294350"}
+```
+
+`ap-3Fn4…` is this run. `ap-6nfU…` is a first attempt that stopped at import, because `render.py` reads the
+Team 3 marker files from the repo layout and the image had not copied them yet. Nothing was generated in that
+attempt. **Stage A total: $0.217** against a $3 ceiling.
+
 ## Not done, and what it needs
 
-- **No generation run.** Next: Stage A on the open OLMoE checkpoint with `--backend hf` on a GPU job (diagnostic),
+- **No generation run.** (11 Nov text. On 12 Nov Stage A ran on OLMoE-Instruct, see above. Stage B has not run.) Next: Stage A on the open OLMoE checkpoint with `--backend hf` on a GPU job (diagnostic),
   then Stage B. The G10-template comparison waits for the G5 bundle (`team5` backend; the adapter returns
   `WAITING_FOR_G5_ARTIFACT` until it arrives).
 - The `hf` and `team5` backends have not been exercised on a real model here (no local model, no GPU).
