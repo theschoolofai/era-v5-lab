@@ -138,7 +138,7 @@ guarantee of section 3 follow.
 | 5 | Team 4 with Team 3 | partially closed | v0, v0.1, v1-c1, C1 to C3, and sample-v0 C1-s0 to frozen C3-s0 are measured: longest token 32 bytes, 0 raw collisions. The v2 file remains unmeasured (ask A). |
 | 6 | Team 4 with Team 3 | open | Special-token role mapping remains unresolved. Team 3 documents id 130822 `<|endoftext|>` as a G10 end-of-document marker and keeps id 36 `<|end_of_text|>` distinct; the model's bos/eos/pad/unk roles and HF config for the 356 specials are not supplied (ask B). |
 | 7 | Team 5 | partially closed | Margin floor and precision rules are proven and measured (section 3). The cosine-decoder and margin-reporting requirements remain open; this checkout has no evidence that the downstream predicted-vector decode path implements them. |
-| 8 | Team 4 with Team 3 | open | A prior run recorded incorrect normal/special counts from `verify_kronecker_constraints_unified.py` (output_shape.md). That verifier source is absent from this checkout, so whether the display bug was fixed is unconfirmed (ask C). |
+| 8 | Team 4 with Team 3 | open | A prior run recorded incorrect normal/special counts from `verify_kronecker_constraints_unified.py` (output_shape.md). PR #195 added sample-v0 candidate artifacts, not the verifier; its fix status remains unconfirmed (ask C). |
 
 Asks to Team 3 (owner of risks 5, 6 and 8 on their side: @sohamniyogi, lead @rjvim):
 
@@ -166,6 +166,7 @@ gate remain open.
 
 C. **Verifier count bug.** A prior run of `verify_kronecker_constraints_unified.py` printed `131,072 normal tokens`
 and `0 special tokens` for v0 and v0.1; the tokenizer has 130,716 normal and 356 special tokens. The maximum-length
-and cross-script checks passed, but the displayed category counts were wrong. The verifier source is not in this
-checkout, so fix status cannot be checked here. Please point to the fix or confirm the corrected counts before using
-that verifier output as provenance.
+and cross-script checks passed, but the displayed category counts were wrong. [PR #195](https://github.com/theschoolofai/era-v5-lab/pull/195)
+adds the sample-v0 tokenizer candidates but does not include this verifier, so it does not establish whether the
+display bug was fixed. Please point to the fix or confirm the corrected counts before using that verifier output as
+provenance.
