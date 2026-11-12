@@ -415,3 +415,26 @@ Udgam Labs' Vemana is a 278M-parameter Telugu language model with its own 32,000
 - **C3 vs Vemana:** C3 uses 48% more tokens per Telugu word (2.56 vs 1.73). Vemana spends all 32k tokens on one language. C3 shares 131k ids across English, code and 11 Indic languages, and gives the Telugu script block 1,920 merges (`slots_v2.json`).
 - C3 is ahead of every multilingual tokenizer in the report except Sarvam-1, which is 19.7% better on Telugu but 28% worse on HumanEval and 16% worse on English (pass-bar table above).
 - **English:** the report gives no English figure for Vemana, so there is no English comparison here. On FLORES devtest English, C3 is 1.2369 and BrahmicTokenizer-131K 1.2393 tokens/word.
+
+## Comparators: Sarvam-1, IndicBERT v2, IndicTrans2 (FLORES-200)
+
+Tokens per whitespace word on FLORES-200 dev+devtest, lower is better; Mean = 11 Indic languages. Measured with `harness/comparators.py`, which calls the harness's own `load_flores` and `run_flores`, so the method is the same as the tables above. HF tokenizers encode with `add_special_tokens=False`.
+
+| Tokenizer | Source @ revision | En | Hi | Bn | Ta | Te | Kn | Ml | Mr | Gu | Pa | Or | As | Mean |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| BrahmicTokenizer-131K | theschoolofai/BrahmicTokenizer-131K | 1.2352 | 1.6429 | 2.3295 | 3.1166 | 3.0292 | 3.2734 | 3.4738 | 2.5723 | 2.2748 | 2.5955 | 4.1287 | 2.7535 | 2.8355 |
+| C3 sample-v0 | `15468e66…` (#195) | 1.2334 | 1.6193 | 2.2293 | 2.5927 | 2.5531 | 2.7469 | 3.0324 | 2.0943 | 2.2092 | 2.0129 | 2.4861 | 2.2788 | 2.3505 |
+| Sarvam-1 | sarvamai/sarvam-1 @ `e960733` | 1.4313 | 1.4039 | 2.0467 | 2.1554 | 2.1321 | 2.4001 | 2.8345 | 1.7765 | 1.8024 | 1.6826 | 2.3251 | 4.7451 | 2.3004 |
+| IndicBERTv2 | ai4bharat/IndicBERTv2-MLM-only @ `8598f13` | 1.2352 | 1.2380 | 1.4030 | 1.6865 | 1.6951 | 1.8427 | 1.9919 | 1.4836 | 1.5094 | 1.3368 | 1.5941 | 1.5958 | 1.5797 |
+| IndicBERTv2-SS | ai4bharat/IndicBERTv2-SS @ `d717ffc` | 1.3475 | 1.2460 | 5.0411 | 8.0997 | 6.6185 | 6.6938 | 8.6727 | 1.4678 | 4.9905 | 3.9078 | 5.5849 | 5.2258 | 5.2317 |
+| IndicTrans2 | ai4bharat/indictrans2-indic-en-1B @ `ac3daf0` + en-indic-1B @ `89cd000` (`model.SRC`) | 1.2759 | 1.2624 | 5.4400 | 9.0933 | 7.6936 | 7.3379 | 9.9004 | 1.5885 | 6.0061 | 5.1790 | 6.8347 | 5.5795 | 5.9923 |
+
+Notes:
+
+- **Cross-check:** Sarvam-1 and IndicBERTv2-SS reproduce the values already in this file exactly (max |Δ| 0.0000).
+- **IndicBERTv2 En equals BrahmicTokenizer-131K only after rounding.** Exact counts on English dev+devtest (2009 sentences, 42855 words): BrahmicTokenizer-131K 52934 tokens (1.235188), IndicBERTv2 52936 tokens (1.235235). The tokenizers differ (dev alone: 25,858 vs 25,791 tokens).
+- **IndicBERTv2 (MLM-only)** has the lowest Indic fertility here. It is lossless on FLORES dev (decode after removing `##` and spaces equals the input for 100% of En/Hi/Ta/Ml/Bn sentences, 0% unk), but it is a 250K-vocab BERT (WordPiece) encoder vocabulary, not a size-matched comparison.
+- **IndicTrans2 is measured on raw text, outside its pipeline.** Its tokenizer is the source-side SentencePiece (`model.SRC`, indic-en for Indic, en-indic for English). IndicTrans2 normally runs its own preprocessing first (language tags and IndicNLP normalisation). Its strength only on Devanagari (Hi, Mr), like IndicBERTv2-SS, suggests its source vocabulary expects script-converted text, so the other scripts are not a fair measure of IndicTrans2 in its own pipeline.
+- **IndicBERTv2-SS** is likewise strong only on Devanagari (Hi, Mr).
+- **Sarvam-1** is slightly ahead of C3 on mean Indic (2.3004 vs 2.3505) but 16% worse on English and weak on Assamese (4.7451); it is also 28–33% worse on HumanEval and MBPP (pass-bar table above).
+- Reproduce: `python3 harness/comparators.py --lab <repo root> --brahmic-dir <BrahmicTokenizer-131K> --flores-dir <flores200_dataset> --c3 <C3 tokenizer.json> --out-dir <folder>`. IndicTrans2 is gated on Hugging Face: accept its terms and log in first.
