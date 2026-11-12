@@ -1,0 +1,330 @@
+# CPU test of teams/09-evaluation/harness_lab/run_team5_runs.py (12 Nov 2026, Windows 11 laptop, CPU, no GPU)
+# Environment: python 3.12.10, torch 2.13.0+cpu, lm_eval 0.4.13, datasets 5.1.0, tokenizers 0.23.3, numpy 2.5.4
+# Inputs:
+#   tokenizer_v0.json  sha256 2de039f20d17afd17615095c406c43087359673b767ed0fe2c480b995f2af8e5  (teams/03-tokenizer/v0/build_v0.py from BrahmicTokenizer-131K @ 93df154c)
+#   raw_table_P32.npz  content sha256 47d411a9c6cae6fa2075935567243e51f4efbc377ccef3eef42c32fce66f869f  (teams/04-ke2/src/build_tables.py on tokenizer v0; same content hash as Team 5's runs)
+#   run folder exp1-lr1e-3-smoke: train_week2.py --smoke, configs/arms/exp1/lr_1e-3.yaml (EXP-1 T1 shape), 2 steps, context 256,
+#     synthetic text, CPU fp32 (summary.json status SMOKE, not a quality result); checkpoint.pt sha256 18c4fb62270c9c61504de77f7cd786cd47575fadfdbb86674c42cc6d52582673
+#   HF cache: filled by one online run with an HF login; the run below is --offline with no token.
+# Unit tests: pytest teams/09-evaluation/harness_lab/tests -q  ->  5 passed
+# Firewall (eval_firewall.md section 3, rule 5), after the run:
+#   python teams/09-evaluation/decontam/canary_scan.py out <this log> --lab-only  ->  exit 0 (docs 4, with_canary 0, hits 0)
+#   item-text probe: the first items of 5 datasets (MMLU, MILU, ARC-Challenge, MMLU-Pro, Belebele) searched in this log and out/  ->  0 found
+# Result: 16 v1 records, v1 checks ok; 548 log-likelihood requests in 343.5 s including the one-time lm-eval task index;
+#   encode fallbacks 0 (every prompt round-trips exactly through Team 5's Artifacts.encode).
+#   Guard (2 items per task, a 2-step model): mmlu 28.95 on 114 items, near chance as expected.
+# Edits to this log: progress-bar lines removed; the local folder is shown as <lab>. "fatal: not a git repository" is lm-eval
+#   looking for a git hash in the unpacked source copy; it is harmless.
+
+$ python teams/09-evaluation/harness_lab/run_team5_runs.py --runs ./inputs/runs --tokenizer ./inputs/tokenizer_v0.json --byte-table ./inputs/raw_table_P32.npz --hf-home ./inputs/hf --offline --device cpu --limit 2 --out ./out
+[13:42:55Z] checking tokenizer and byte table
+[13:42:57Z] exp1-lr1e-3-smoke: loading checkpoint
+[13:43:02Z] exp1-lr1e-3-smoke: group mini
+  indexing lm-eval tasks (once per process)
+  scoring mmlu (limit 2)
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'abstract_algebra' at <lab>\hf\datasets\cais___mmlu\abstract_algebra\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:03:21 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'abstract_algebra' at <lab>\hf\datasets\cais___mmlu\abstract_algebra\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:03:21 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'anatomy' at <lab>\hf\datasets\cais___mmlu\anatomy\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:03:30 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'anatomy' at <lab>\hf\datasets\cais___mmlu\anatomy\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:03:30 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'astronomy' at <lab>\hf\datasets\cais___mmlu\astronomy\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:03:40 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'astronomy' at <lab>\hf\datasets\cais___mmlu\astronomy\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:03:40 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'college_biology' at <lab>\hf\datasets\cais___mmlu\college_biology\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:03:49 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'college_biology' at <lab>\hf\datasets\cais___mmlu\college_biology\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:03:49 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'college_chemistry' at <lab>\hf\datasets\cais___mmlu\college_chemistry\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:03:57 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'college_chemistry' at <lab>\hf\datasets\cais___mmlu\college_chemistry\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:03:57 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'college_computer_science' at <lab>\hf\datasets\cais___mmlu\college_computer_science\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:04:06 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'college_computer_science' at <lab>\hf\datasets\cais___mmlu\college_computer_science\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:04:06 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'college_mathematics' at <lab>\hf\datasets\cais___mmlu\college_mathematics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:04:15 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'college_mathematics' at <lab>\hf\datasets\cais___mmlu\college_mathematics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:04:15 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'college_physics' at <lab>\hf\datasets\cais___mmlu\college_physics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:04:24 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'college_physics' at <lab>\hf\datasets\cais___mmlu\college_physics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:04:24 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'computer_security' at <lab>\hf\datasets\cais___mmlu\computer_security\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:04:33 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'computer_security' at <lab>\hf\datasets\cais___mmlu\computer_security\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:04:33 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'conceptual_physics' at <lab>\hf\datasets\cais___mmlu\conceptual_physics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:04:42 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'conceptual_physics' at <lab>\hf\datasets\cais___mmlu\conceptual_physics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:04:42 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'electrical_engineering' at <lab>\hf\datasets\cais___mmlu\electrical_engineering\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:04:52 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'electrical_engineering' at <lab>\hf\datasets\cais___mmlu\electrical_engineering\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:04:52 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'elementary_mathematics' at <lab>\hf\datasets\cais___mmlu\elementary_mathematics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:05:00 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'elementary_mathematics' at <lab>\hf\datasets\cais___mmlu\elementary_mathematics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:05:00 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'high_school_biology' at <lab>\hf\datasets\cais___mmlu\high_school_biology\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:05:09 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'high_school_biology' at <lab>\hf\datasets\cais___mmlu\high_school_biology\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:05:09 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'high_school_chemistry' at <lab>\hf\datasets\cais___mmlu\high_school_chemistry\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:05:18 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'high_school_chemistry' at <lab>\hf\datasets\cais___mmlu\high_school_chemistry\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:05:18 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'high_school_computer_science' at <lab>\hf\datasets\cais___mmlu\high_school_computer_science\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:05:27 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'high_school_computer_science' at <lab>\hf\datasets\cais___mmlu\high_school_computer_science\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:05:27 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'high_school_mathematics' at <lab>\hf\datasets\cais___mmlu\high_school_mathematics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:05:36 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'high_school_mathematics' at <lab>\hf\datasets\cais___mmlu\high_school_mathematics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:05:36 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'high_school_physics' at <lab>\hf\datasets\cais___mmlu\high_school_physics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:05:45 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'high_school_physics' at <lab>\hf\datasets\cais___mmlu\high_school_physics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:05:45 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'high_school_statistics' at <lab>\hf\datasets\cais___mmlu\high_school_statistics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:05:54 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'high_school_statistics' at <lab>\hf\datasets\cais___mmlu\high_school_statistics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:05:54 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'machine_learning' at <lab>\hf\datasets\cais___mmlu\machine_learning\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:06:03 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'machine_learning' at <lab>\hf\datasets\cais___mmlu\machine_learning\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:06:03 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'business_ethics' at <lab>\hf\datasets\cais___mmlu\business_ethics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:06:12 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'business_ethics' at <lab>\hf\datasets\cais___mmlu\business_ethics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:06:12 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'clinical_knowledge' at <lab>\hf\datasets\cais___mmlu\clinical_knowledge\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:06:21 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'clinical_knowledge' at <lab>\hf\datasets\cais___mmlu\clinical_knowledge\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:06:21 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'college_medicine' at <lab>\hf\datasets\cais___mmlu\college_medicine\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:06:30 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'college_medicine' at <lab>\hf\datasets\cais___mmlu\college_medicine\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:06:30 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'global_facts' at <lab>\hf\datasets\cais___mmlu\global_facts\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:06:39 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'global_facts' at <lab>\hf\datasets\cais___mmlu\global_facts\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:06:39 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'human_aging' at <lab>\hf\datasets\cais___mmlu\human_aging\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:06:48 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'human_aging' at <lab>\hf\datasets\cais___mmlu\human_aging\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:06:48 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'management' at <lab>\hf\datasets\cais___mmlu\management\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:06:57 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'management' at <lab>\hf\datasets\cais___mmlu\management\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:06:57 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'marketing' at <lab>\hf\datasets\cais___mmlu\marketing\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:07:08 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'marketing' at <lab>\hf\datasets\cais___mmlu\marketing\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:07:08 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'medical_genetics' at <lab>\hf\datasets\cais___mmlu\medical_genetics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:07:17 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'medical_genetics' at <lab>\hf\datasets\cais___mmlu\medical_genetics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:07:17 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'miscellaneous' at <lab>\hf\datasets\cais___mmlu\miscellaneous\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:07:26 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'miscellaneous' at <lab>\hf\datasets\cais___mmlu\miscellaneous\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:07:26 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'nutrition' at <lab>\hf\datasets\cais___mmlu\nutrition\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:07:35 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'nutrition' at <lab>\hf\datasets\cais___mmlu\nutrition\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:07:35 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'professional_accounting' at <lab>\hf\datasets\cais___mmlu\professional_accounting\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:07:43 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'professional_accounting' at <lab>\hf\datasets\cais___mmlu\professional_accounting\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:07:43 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'professional_medicine' at <lab>\hf\datasets\cais___mmlu\professional_medicine\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:07:53 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'professional_medicine' at <lab>\hf\datasets\cais___mmlu\professional_medicine\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:07:53 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'virology' at <lab>\hf\datasets\cais___mmlu\virology\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:08:02 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'virology' at <lab>\hf\datasets\cais___mmlu\virology\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:08:02 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'econometrics' at <lab>\hf\datasets\cais___mmlu\econometrics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:08:11 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'econometrics' at <lab>\hf\datasets\cais___mmlu\econometrics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:08:11 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'high_school_geography' at <lab>\hf\datasets\cais___mmlu\high_school_geography\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:08:20 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'high_school_geography' at <lab>\hf\datasets\cais___mmlu\high_school_geography\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:08:20 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'high_school_government_and_politics' at <lab>\hf\datasets\cais___mmlu\high_school_government_and_politics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:08:29 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'high_school_government_and_politics' at <lab>\hf\datasets\cais___mmlu\high_school_government_and_politics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:08:29 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'high_school_macroeconomics' at <lab>\hf\datasets\cais___mmlu\high_school_macroeconomics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:08:39 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'high_school_macroeconomics' at <lab>\hf\datasets\cais___mmlu\high_school_macroeconomics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:08:39 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'high_school_microeconomics' at <lab>\hf\datasets\cais___mmlu\high_school_microeconomics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:08:48 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'high_school_microeconomics' at <lab>\hf\datasets\cais___mmlu\high_school_microeconomics\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:08:48 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'high_school_psychology' at <lab>\hf\datasets\cais___mmlu\high_school_psychology\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:08:58 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'high_school_psychology' at <lab>\hf\datasets\cais___mmlu\high_school_psychology\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:08:58 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'human_sexuality' at <lab>\hf\datasets\cais___mmlu\human_sexuality\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:09:07 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'human_sexuality' at <lab>\hf\datasets\cais___mmlu\human_sexuality\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:09:07 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'professional_psychology' at <lab>\hf\datasets\cais___mmlu\professional_psychology\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:09:16 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'professional_psychology' at <lab>\hf\datasets\cais___mmlu\professional_psychology\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:09:16 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'public_relations' at <lab>\hf\datasets\cais___mmlu\public_relations\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:09:25 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'public_relations' at <lab>\hf\datasets\cais___mmlu\public_relations\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:09:25 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'security_studies' at <lab>\hf\datasets\cais___mmlu\security_studies\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:09:35 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'security_studies' at <lab>\hf\datasets\cais___mmlu\security_studies\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:09:35 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'sociology' at <lab>\hf\datasets\cais___mmlu\sociology\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:09:44 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'sociology' at <lab>\hf\datasets\cais___mmlu\sociology\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:09:44 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'us_foreign_policy' at <lab>\hf\datasets\cais___mmlu\us_foreign_policy\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:09:53 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'us_foreign_policy' at <lab>\hf\datasets\cais___mmlu\us_foreign_policy\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 17:09:53 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'formal_logic' at <lab>\hf\datasets\cais___mmlu\formal_logic\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:43:00 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'formal_logic' at <lab>\hf\datasets\cais___mmlu\formal_logic\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:43:00 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'high_school_european_history' at <lab>\hf\datasets\cais___mmlu\high_school_european_history\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:43:09 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'high_school_european_history' at <lab>\hf\datasets\cais___mmlu\high_school_european_history\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:43:09 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'high_school_us_history' at <lab>\hf\datasets\cais___mmlu\high_school_us_history\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:43:17 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'high_school_us_history' at <lab>\hf\datasets\cais___mmlu\high_school_us_history\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:43:17 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'high_school_world_history' at <lab>\hf\datasets\cais___mmlu\high_school_world_history\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:43:27 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'high_school_world_history' at <lab>\hf\datasets\cais___mmlu\high_school_world_history\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:43:27 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'international_law' at <lab>\hf\datasets\cais___mmlu\international_law\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:43:36 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'international_law' at <lab>\hf\datasets\cais___mmlu\international_law\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:43:36 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'jurisprudence' at <lab>\hf\datasets\cais___mmlu\jurisprudence\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:43:47 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'jurisprudence' at <lab>\hf\datasets\cais___mmlu\jurisprudence\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:43:47 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'logical_fallacies' at <lab>\hf\datasets\cais___mmlu\logical_fallacies\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:43:57 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'logical_fallacies' at <lab>\hf\datasets\cais___mmlu\logical_fallacies\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:43:57 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'moral_disputes' at <lab>\hf\datasets\cais___mmlu\moral_disputes\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:44:06 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'moral_disputes' at <lab>\hf\datasets\cais___mmlu\moral_disputes\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:44:06 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'moral_scenarios' at <lab>\hf\datasets\cais___mmlu\moral_scenarios\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:44:15 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'moral_scenarios' at <lab>\hf\datasets\cais___mmlu\moral_scenarios\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:44:15 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'philosophy' at <lab>\hf\datasets\cais___mmlu\philosophy\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:44:25 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'philosophy' at <lab>\hf\datasets\cais___mmlu\philosophy\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:44:25 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'prehistory' at <lab>\hf\datasets\cais___mmlu\prehistory\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:44:35 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'prehistory' at <lab>\hf\datasets\cais___mmlu\prehistory\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:44:35 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'professional_law' at <lab>\hf\datasets\cais___mmlu\professional_law\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:44:45 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'professional_law' at <lab>\hf\datasets\cais___mmlu\professional_law\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:44:45 2026).
+Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since cais/mmlu couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'world_religions' at <lab>\hf\datasets\cais___mmlu\world_religions\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:44:56 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'world_religions' at <lab>\hf\datasets\cais___mmlu\world_religions\0.0.0\c30699e8356da336a370243923dbaf21066bb9fe (last modified on Thu Nov 12 18:44:56 2026).
+fatal: not a git repository (or any of the parent directories): .git
+[13:47:30Z] exp1-lr1e-3-smoke: mmlu done (114 items)
+  scoring arc_challenge (limit 2)
+Using the latest cached version of the dataset since allenai/ai2_arc couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since allenai/ai2_arc couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'ARC-Challenge' at <lab>\hf\datasets\allenai___ai2_arc\ARC-Challenge\0.0.0\210d026faf9955653af8916fad021475a3f00453 (last modified on Thu Nov 12 19:06:23 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'ARC-Challenge' at <lab>\hf\datasets\allenai___ai2_arc\ARC-Challenge\0.0.0\210d026faf9955653af8916fad021475a3f00453 (last modified on Thu Nov 12 19:06:23 2026).
+fatal: not a git repository (or any of the parent directories): .git
+[13:47:40Z] exp1-lr1e-3-smoke: arc_challenge done (2 items)
+  scoring hellaswag (limit 2)
+Using the latest cached version of the dataset since Rowan/hellaswag couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since Rowan/hellaswag couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at <lab>\hf\datasets\Rowan___hellaswag\default\0.0.0\218ec52e09a7e7462a5400043bb9a69a41d06b76 (last modified on Thu Nov 12 19:07:13 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'default' at <lab>\hf\datasets\Rowan___hellaswag\default\0.0.0\218ec52e09a7e7462a5400043bb9a69a41d06b76 (last modified on Thu Nov 12 19:07:13 2026).
+fatal: not a git repository (or any of the parent directories): .git
+[13:47:59Z] exp1-lr1e-3-smoke: hellaswag done (2 items)
+[13:47:59Z] exp1-lr1e-3-smoke: group code_indic
+  scoring milu_Hindi, milu_Telugu, milu_Tamil, milu_Bengali, leaderboard_mmlu_pro, belebele_hin_Deva, belebele_tel_Telu, belebele_tam_Taml (5-shot, spec items)
+Using the latest cached version of the dataset since ai4bharat/MILU couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since ai4bharat/MILU couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'Hindi' at <lab>\hf\datasets\ai4bharat___milu\Hindi\0.0.0\846d7016558b2004386f30e59a2158731262492f (last modified on Thu Nov 12 19:10:18 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'Hindi' at <lab>\hf\datasets\ai4bharat___milu\Hindi\0.0.0\846d7016558b2004386f30e59a2158731262492f (last modified on Thu Nov 12 19:10:18 2026).
+Using the latest cached version of the dataset since ai4bharat/MILU couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since ai4bharat/MILU couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'Telugu' at <lab>\hf\datasets\ai4bharat___milu\Telugu\0.0.0\846d7016558b2004386f30e59a2158731262492f (last modified on Thu Nov 12 19:10:26 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'Telugu' at <lab>\hf\datasets\ai4bharat___milu\Telugu\0.0.0\846d7016558b2004386f30e59a2158731262492f (last modified on Thu Nov 12 19:10:26 2026).
+Using the latest cached version of the dataset since ai4bharat/MILU couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since ai4bharat/MILU couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'Tamil' at <lab>\hf\datasets\ai4bharat___milu\Tamil\0.0.0\846d7016558b2004386f30e59a2158731262492f (last modified on Thu Nov 12 19:10:36 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'Tamil' at <lab>\hf\datasets\ai4bharat___milu\Tamil\0.0.0\846d7016558b2004386f30e59a2158731262492f (last modified on Thu Nov 12 19:10:36 2026).
+Using the latest cached version of the dataset since ai4bharat/MILU couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since ai4bharat/MILU couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'Bengali' at <lab>\hf\datasets\ai4bharat___milu\Bengali\0.0.0\846d7016558b2004386f30e59a2158731262492f (last modified on Thu Nov 12 19:10:44 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'Bengali' at <lab>\hf\datasets\ai4bharat___milu\Bengali\0.0.0\846d7016558b2004386f30e59a2158731262492f (last modified on Thu Nov 12 19:10:44 2026).
+Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since TIGER-Lab/MMLU-Pro couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'default' at <lab>\hf\datasets\TIGER-Lab___mmlu-pro\default\0.0.0\b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Thu Nov 12 19:10:55 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'default' at <lab>\hf\datasets\TIGER-Lab___mmlu-pro\default\0.0.0\b189ec765aa7ed75c8acfea42df31fdae71f97be (last modified on Thu Nov 12 19:10:55 2026).
+Using the latest cached version of the dataset since facebook/belebele couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since facebook/belebele couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'hin_Deva' at <lab>\hf\datasets\facebook___belebele\hin_Deva\0.0.0\7899cdfa4e1e0d733fd77c848e2c273cb1d32be2 (last modified on Thu Nov 12 19:11:01 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'hin_Deva' at <lab>\hf\datasets\facebook___belebele\hin_Deva\0.0.0\7899cdfa4e1e0d733fd77c848e2c273cb1d32be2 (last modified on Thu Nov 12 19:11:01 2026).
+Using the latest cached version of the dataset since facebook/belebele couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since facebook/belebele couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'tel_Telu' at <lab>\hf\datasets\facebook___belebele\tel_Telu\0.0.0\7899cdfa4e1e0d733fd77c848e2c273cb1d32be2 (last modified on Thu Nov 12 19:11:04 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'tel_Telu' at <lab>\hf\datasets\facebook___belebele\tel_Telu\0.0.0\7899cdfa4e1e0d733fd77c848e2c273cb1d32be2 (last modified on Thu Nov 12 19:11:04 2026).
+Using the latest cached version of the dataset since facebook/belebele couldn't be found on the Hugging Face Hub (offline mode is enabled).
+WARNING datasets.load: Using the latest cached version of the dataset since facebook/belebele couldn't be found on the Hugging Face Hub (offline mode is enabled).
+Found the latest cached dataset configuration 'tam_Taml' at <lab>\hf\datasets\facebook___belebele\tam_Taml\0.0.0\7899cdfa4e1e0d733fd77c848e2c273cb1d32be2 (last modified on Thu Nov 12 19:11:08 2026).
+WARNING datasets.packaged_modules.cache.cache: Found the latest cached dataset configuration 'tam_Taml' at <lab>\hf\datasets\facebook___belebele\tam_Taml\0.0.0\7899cdfa4e1e0d733fd77c848e2c273cb1d32be2 (last modified on Thu Nov 12 19:11:08 2026).
+WARNING lm_eval.evaluator: Overwriting default num_fewshot of milu_Hindi from None to 5
+WARNING lm_eval.evaluator: Overwriting default num_fewshot of milu_Telugu from None to 5
+WARNING lm_eval.evaluator: Overwriting default num_fewshot of milu_Tamil from None to 5
+WARNING lm_eval.evaluator: Overwriting default num_fewshot of milu_Bengali from None to 5
+WARNING lm_eval.evaluator: Overwriting default num_fewshot of leaderboard_mmlu_pro from 5 to 5
+WARNING lm_eval.evaluator: Overwriting default num_fewshot of belebele_hin_Deva from None to 5
+WARNING lm_eval.evaluator: Overwriting default num_fewshot of belebele_tel_Telu from None to 5
+WARNING lm_eval.evaluator: Overwriting default num_fewshot of belebele_tam_Taml from None to 5
+fatal: not a git repository (or any of the parent directories): .git
+[13:48:41Z] exp1-lr1e-3-smoke: milu_Hindi done (2 items)
+[13:48:41Z] exp1-lr1e-3-smoke: milu_Telugu done (2 items)
+[13:48:41Z] exp1-lr1e-3-smoke: milu_Tamil done (2 items)
+[13:48:41Z] exp1-lr1e-3-smoke: milu_Bengali done (2 items)
+[13:48:41Z] exp1-lr1e-3-smoke: leaderboard_mmlu_pro done (2 items)
+[13:48:41Z] exp1-lr1e-3-smoke: belebele_hin_Deva done (2 items)
+[13:48:41Z] exp1-lr1e-3-smoke: belebele_tel_Telu done (2 items)
+[13:48:41Z] exp1-lr1e-3-smoke: belebele_tam_Taml done (2 items)
+v1 checks:
+  ok  record count: 16 (expected 16)
+  ok  records missing a required field: 0 (expected 0)
+  ok  values outside 0-100: 0 (expected 0)
+  ok  stderr neither null nor a number >= 0: 0 (expected 0)
+  ok  duplicate keys: 0 (expected 0)
+  ok  records with an empty model_revision: 0 (expected 0)
+  ok  records with neither a seed nor greedy decoding: 0 (expected 0)
+wrote 16 records for 1 run(s) to <lab>\out_offline
+  guard {"run": "exp1-lr1e-3-smoke", "freeze_tasks": {"milu_Bengali": [0.0, 2], "milu_Hindi": [0.0, 2], "milu_Tamil": [50.0, 2], "milu_Telugu": [0.0, 2], "mmlu": [28.95, 114]}, "pooled_items": 122, "pooled_accuracy": 27.87, "complete": false, "below_pooled_floor": false}
+exit=0
