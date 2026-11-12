@@ -19,7 +19,7 @@ Every number below is read from a results file in this tree. Upstream PR #349 co
 | swatibansal/era-v5-lab #3 | Theorem 2 (structural decode) and Theorem 3 (nearest-code cosine) | `proof.md` sections 5 and 6, `results/decode_checks.json` |
 | swatibansal/era-v5-lab #4 | exact minimum decode margin per script class, fp64 / fp32 / bf16 | `min_margin.md`, `results/min_margin/` |
 | swatibansal/era-v5-lab #5 | tau sweep (synthetic vectors); CPU counterpart of the GPU determinism run | `min_margin.md` "Acceptance threshold", `results/min_margin/tau_*`; `determinism_gpu.md` section 7, `results/decode_cpu/` |
-| Avnish's PR #372 (follow-up to merged #349) | Team 3 C1-s0, C2-s0, and frozen C3-s0 candidate tables | `output_shape.md`, `results/tokenizer_candidates/sample_v0/` |
+| `theschoolofai/era-v5-lab` #372 (follow-up to merged #349) | Team 3 C1-s0, C2-s0, and frozen C3-s0 candidate tables | `output_shape.md`, `results/tokenizer_candidates/sample_v0/` |
 
 The proof, margin and CPU/GPU determinism runs use the HF baseline tokenizer BrahmicTokenizer-131K (sha256
 `01d968a7…739fff`). Team 3 candidates are measured separately by the revalidation script behind sections 1 and 2.
