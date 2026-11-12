@@ -316,31 +316,47 @@ def run_clean(s: Setup, n: int):
 
 
 def layer_pass(s: Setup, n: int, max_level: int, warm: int) -> dict:
-    """n steps with the recorder, n without, alternating. Returns the layer section for this level."""
+    """warm recorded steps, then n steps with the recorder and n without, alternating. Returns the layer section
+    for this max_level.
+    bench.layer_prefill (CUDA): every step, recorder on or off, starts with a GPU busy-wait (T.QueueFill), so a part's
+    time is GPU time on any CPU. The warmup sizes the wait: 1.5x the host time of a step, doubled while the GPU
+    still runs out of queued work. Measured steps where it still did are counted in queue_fill.starved_steps."""
     pool = T.EventPool() if s.device.type == "cuda" else None
+    fill = T.QueueFill(s.device) if s.cfg["bench"].get("layer_prefill") and s.device.type == "cuda" else None
     n_ev = 0
-    for _ in range(warm):                 # the first recorded steps touch every region once
-        rec = T.EventRecorder(s.device, max_level, pool)
+    for i in range(warm):                 # the first recorded steps touch every region once
+        if fill is not None:
+            fill.fill()
+        rec = T.EventRecorder(s.device, max_level, pool, check_idle=fill is not None)
+        t0 = time.perf_counter()
         with use_recorder(rec):
             train_step(s)
+        host_ms = (time.perf_counter() - t0) * 1e3
         n_ev = rec.n_events()
         rec.collect()
+        if fill is not None and (i == 0 or rec.idle):
+            fill.ms = min(fill.max_ms, max(1.5 * host_ms, 2 * fill.ms))
     if pool is not None:
         pool.reserve(4 * n_ev + 64)       # no event is created inside a measured step
         created = pool.created
     on_t, off_t = (T.StepTimer(s.device, expected_steps=n),
                    T.StepTimer(s.device, expected_steps=n))
     order, pending, parts, data_host = [], deque(), [], []
+    starved, idle = 0, 0
     for i in range(2 * n):
-        on = i % 2 == 1
+        on = i % 2 == 1                   # recorder on every other step: overhead from neighbouring steps
+        if fill is not None:
+            fill.fill()                   # before the step timer starts: the wait is not in the step time
         if on:
-            rec = T.EventRecorder(s.device, max_level, pool)
+            rec = T.EventRecorder(s.device, max_level, pool, check_idle=fill is not None)
             on_t.start()
             with use_recorder(rec):
                 d, _ = train_step(s)
             on_t.stop()
             data_host.append(d)
             pending.append(rec)
+            starved += rec.idle > 0
+            idle += rec.idle
         else:
             off_t.start()
             train_step(s)
@@ -368,6 +384,8 @@ def layer_pass(s: Setup, n: int, max_level: int, warm: int) -> dict:
         out["data_note"] = ("regions['data'] is GPU-stream time between two events around the host fetch: the "
                             "host-to-device copy, or ~0 when the GPU is still busy with the previous step. "
                             "The host time of the fetch is data_host_ms.")
+    if fill is not None:
+        out["queue_fill"] = {"ms": round(fill.ms, 3), "starved_steps": starved, "idle_points": idle, "steps": n}
     if pool is not None and pool.created > created:
         out["events_created_while_measuring"] = pool.created - created
     return out
@@ -394,8 +412,9 @@ def run_layer(s: Setup, n: int, level: int, warm: int) -> dict:
     out = {**main, "level": level, "regions": regions}
     out["inner_pass"] = {k: inner[k] for k in ("level", "overhead_pct", "step_ms", "step_ms_recorder_off",
                                                "events_per_step", "events_created_during_steps")}
-    if "events_created_while_measuring" in inner:
-        out["inner_pass"]["events_created_while_measuring"] = inner["events_created_while_measuring"]
+    for key in ("events_created_while_measuring", "queue_fill"):
+        if key in inner:
+            out["inner_pass"][key] = inner[key]
     return out
 
 
@@ -709,7 +728,12 @@ def quick_compare(a: dict, b: dict, tol_pct: float, gate_level: int, abs_tol_ms:
         if va != vb:
             problems.append(f"different {section} config" if key is None else
                             f"different {section}.{key}: {va} vs {vb}")
-    pairs = [("step (clean)", a["clean"]["step_ms"]["median"], b["clean"]["step_ms"]["median"])]
+    # Default true: Gate-2 / --repeat still gate clean step. Job may set report.compare_clean_step=false
+    # so a layer-only --against run does not dual-gate cold clean under lab SwPowerCap (Choice A+).
+    pairs = []
+    rep = (a.get("config") or {}).get("report") or {}
+    if rep.get("compare_clean_step", True):
+        pairs.append(("step (clean)", a["clean"]["step_ms"]["median"], b["clean"]["step_ms"]["median"]))
     ra, rb = (a.get("layer") or {}).get("regions", {}), (b.get("layer") or {}).get("regions", {})
     gated = [n for n, r in ra.items() if r["level"] <= gate_level]
     gated += [n for n, r in rb.items() if r["level"] <= gate_level and n not in ra]     # a part only b has
@@ -934,6 +958,11 @@ def run_once(a, overrides):
                 warns.append(f"recorder overhead {lay['overhead_pct']:.1f}% > {b['max_overhead_pct']}%: "
                              "layer numbers are flagged")
             for pass_name, pass_data in (("layer", lay), ("layer.inner_pass", lay.get("inner_pass") or {})):
+                qf = pass_data.get("queue_fill") or {}
+                if qf.get("starved_steps"):
+                    warns.append(f"{pass_name}: the GPU ran out of queued work in {qf['starved_steps']} of "
+                                 f"{qf['steps']} recorded steps despite a {qf['ms']:.0f} ms queue fill: those parts "
+                                 "include host time")
                 pool_events = pass_data.get("events_created_while_measuring", 0)
                 if pool_events > 0:
                     warns.append(f"{pool_events} recorder-pool CUDA events were created during {pass_name} measured steps")

@@ -56,6 +56,7 @@ bench:
   ckpt_repeats: 10      # checkpoint saves timed (after one warm save that is not counted)
   max_overhead_pct: 2.0
   layer_warmup: 2       # recorded steps before the layer pass is measured (touch every region once)
+  layer_prefill: true   # CUDA: a GPU busy-wait before each layer step, so part times are GPU time on any CPU
   comm_reps: 30         # all_to_all calls timed per rank in comm mode (torchrun)
   peak_tflops: null     # null: from the GPU peak table (perfkit.metrics); a number for a GPU not in it
   out_dir: results/runs
@@ -68,6 +69,7 @@ report:
   gate_level: 2         # parts at this level or coarser must agree within tol_pct
   tol_pct: 5.0
   abs_tol_ms: 0.05      # TSAI 30 Oct: a part also passes when the two runs differ by less than this (timer noise)
+  compare_clean_step: true  # false: --against / report.compare skip step (clean); job uses this under SwPowerCap
   # Needed because each part's time is the median over bench.steps measured steps: a part well under 1 ms
   # (data, one forward block) moves 10%+ between runs on GPU-timer and host-launch jitter when that median
   # comes from few calls. TSAI 30 Oct: time very small parts over many repeats (e.g. the median of 100 calls)
