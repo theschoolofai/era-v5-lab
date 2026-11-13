@@ -49,7 +49,7 @@ Three stages. Sets marked `excluded` stay in the table with the reason and are n
 | sft-code-opencodereasoning | [nvidia/OpenCodeReasoning](https://huggingface.co/datasets/nvidia/OpenCodeReasoning) | Code (competitive) | DeepSeek-R1 (MIT, open weights) | cc-by-4.0 (Hub tag; commercial use permitted per tag) | TSAI reserves |
 | sft-code-opencodereasoning-2 | [nvidia/OpenCodeReasoning-2](https://huggingface.co/datasets/nvidia/OpenCodeReasoning-2) | Code (competitive) | DeepSeek-R1 (MIT) for solutions, QwQ-32B (Apache-2.0) for critiques (both open weights) | cc-by-4.0 (Hub tag; commercial use permitted per tag) | allowed (TSAI admitted, 11 Nov 2026) |
 | sft-code-codeforces-cots | [open-r1/codeforces-cots](https://huggingface.co/datasets/open-r1/codeforces-cots) | Code (competitive) | DeepSeek-R1 (MIT, open weights) | cc-by-4.0 (Hub tag; commercial use permitted per tag) | TSAI reserves |
-| sft-indic-aya-collection | [CohereLabs/aya_collection](https://huggingface.co/datasets/CohereLabs/aya_collection) (12 templated Indic subsets only) | Hindi, Bengali, Tamil, Telugu | none (human speaker-written templates applied to human-annotated Indic NLP datasets; no model generator) | apache-2.0 (Hub tag; commercial use permitted per tag) | TSAI reserves |
+| sft-indic-aya-collection | [CohereLabs/aya_collection](https://huggingface.co/datasets/CohereLabs/aya_collection) (12 reviewed: 10 with permissive source licences, 1 excluded, 1 pending TSAI) | Indic, multilingual | none (human speaker-written templates applied to human-annotated Indic NLP datasets) | apache-2.0 (Hub tag); source licences reviewed in [PR #399](https://github.com/theschoolofai/era-v5-lab/pull/399) | TSAI reserves |
 | sft-indic-aya-collection-other | [CohereLabs/aya_collection](https://huggingface.co/datasets/CohereLabs/aya_collection) (all 19 translated datasets and the other templated subsets) | 101 languages | NLLB-3.3B (CC-BY-NC-4.0, non-commercial) machine translation; upstream English generator models not stated on the card | apache-2.0 (Hub tag) | excluded |
 | sft-indic-aya-dataset | [CohereLabs/aya_dataset](https://huggingface.co/datasets/CohereLabs/aya_dataset) | Multilingual incl. Indic | none (human-written annotations; no model generator) | apache-2.0 (Hub tag; commercial use permitted per tag) | TSAI reserves |
 | sft-indic-indic-align | [ai4bharat/indic-align](https://huggingface.co/datasets/ai4bharat/indic-align) | 14 Indic languages | Llama-2-70B-Chat (Llama 2 Community Licence, use restrictions) for many parts; Mistral-7B (Apache-2.0) in some parts | cc-by-4.0 (Hub tag; commercial use permitted per tag) | excluded |
@@ -480,16 +480,16 @@ Twenty-three sets in the two stage sections are `excluded`: eleven earlier ones 
 - **Our opinion:** use, check. R1 traces on Codeforces problems. Use the `_decontaminated` configs.
 - **Details and 20-row sample:** [open-r1__codeforces-cots](https://github.com/RaviNaik/ERA/tree/main/v5/capstone/team10-datasets/open-r1__codeforces-cots)
 
-### `sft-indic-aya-collection` — aya_collection, 12 templated Indic subsets
+### `sft-indic-aya-collection` — aya_collection, templated Indic subset licence review
 
 - **Stage:** SFT
 - **Set:** `sft-indic-aya-collection`
-- **Language:** Hindi, Bengali, Tamil, Telugu
-- **Source:** [`CohereLabs/aya_collection`](https://huggingface.co/datasets/CohereLabs/aya_collection), only these subsets: `templated_bengali_news`, `templated_hindi_headline`, `templated_hindi_news`, `templated_indic_paraphrase`, `templated_indic_sentiment`, `templated_tamil_stories`, `templated_tamil_thirukkural`, `templated_telugu_food`, `templated_telugu_jokes`, `templated_telugu_news`, `templated_telugu_poems`, `templated_telugu_riddles`
-- **Licence:** `apache-2.0` — Hugging Face tag and card read on 2 Nov 2026. The card says it aims to include only permissive datasets; it does not list the licence of each of the 44 source datasets. A tag is not legal clearance.
+- **Language:** Multilingual Indic (see the SFT mix proposal for target-language coverage)
+- **Source:** [`CohereLabs/aya_collection`](https://huggingface.co/datasets/CohereLabs/aya_collection). The 10 subsets with permissive source licences are `templated_bengali_news`, `templated_indic_paraphrase`, `templated_indic_sentiment`, `templated_tamil_stories`, `templated_tamil_thirukkural`, `templated_telugu_food`, `templated_telugu_jokes`, `templated_telugu_news`, `templated_telugu_poems`, `templated_telugu_riddles`
+- **Licence:** `apache-2.0` (Hub tag for the collection). The merged [source licence review](https://github.com/theschoolofai/era-v5-lab/pull/399) found 10 subsets with Apache 2.0, CC0, or MIT source licences. It excluded `templated_hindi_headline` (CC BY-NC-SA 4.0) and held `templated_hindi_news` for a TSAI decision (CC BY-SA 4.0).
 - **Generator model:** None for the text. In these subsets, templates written by fluent speakers are applied to existing datasets (news, headlines, sentiment, paraphrase, jokes, poems, riddles, stories, couplets); no model writes the answers. The source datasets are not named on the card.
 - **Decision:** `TSAI reserves`
-- **Our opinion:** use only these 12 subsets, and only after the source dataset, licence and origin of each one are written in this section (a rotation task). They are task-style data (classification, headline writing), not open instructions, and cover only four of the ten scripts: expect less usable text than the mix proposal's 5% assumes, and fill the gap from `aya_dataset`.
+- **Our opinion:** Consider the 10 subsets with permissive source licences for task-style supervision, subject to TSAI selection. Filter to the proposal languages, cap each subset, and fill any shortfall from `aya_dataset`.
 - **Details and 20-row sample:** [CohereLabs__aya_collection](https://github.com/RaviNaik/ERA/tree/main/v5/capstone/team10-datasets/CohereLabs__aya_collection)
 
 ### `sft-indic-aya-collection-other` — aya_collection, translated datasets and other subsets
@@ -497,7 +497,7 @@ Twenty-three sets in the two stage sections are `excluded`: eleven earlier ones 
 - **Stage:** SFT
 - **Set:** `sft-indic-aya-collection-other`
 - **Language:** 101 languages
-- **Source:** [`CohereLabs/aya_collection`](https://huggingface.co/datasets/CohereLabs/aya_collection): the 19 `translated_*` datasets and every templated subset not listed above
+- **Source:** [`CohereLabs/aya_collection`](https://huggingface.co/datasets/CohereLabs/aya_collection): the 19 `translated_*` datasets and every templated subset outside the 12 reviewed above
 - **Licence:** `apache-2.0` — Hugging Face tag read on 2 Nov 2026.
 - **Generator model:** The 19 datasets are English sets machine-translated with NLLB 3.3B (card). The card does not list the English sources or who wrote them. At least one is model-written: `soda`, whose card says the dialogues are distilled from InstructGPT (OpenAI, closed).
 - **Decision:** `excluded` — TSAI Week 2 rule: text made by closed OpenAI models is out, and sources we cannot trace are out.
@@ -1642,7 +1642,7 @@ For Team 11's public model card, datasheet, and release compliance ledger:
 
 1. **Permissive & Attribution-Required Post-Training Sets (`TSAI reserves`):**
    - **MIT:** `bigcode/commitpackft`, `SWE-Gym/SWE-Gym`, `agentica-org/DeepCoder-Preview-Dataset`, `zwhe99/DeepMath-103K`, `BodduSriPavan111/chandassu`.
-   - **Apache-2.0:** `CohereLabs/aya_collection` (12 templated Indic subsets only), `CohereLabs/aya_dataset`, `open-r1/OpenR1-Math-220k`, `open-thoughts/OpenThoughts3-1.2M`, `bespokelabs/Bespoke-Stratos-17k`, `OpenAssistant/oasst2` (human turns only), `Jackrong/GLM-5.1-Reasoning-1M-Cleaned` (`PHD-Science` config).
+   - **Apache-2.0:** `CohereLabs/aya_collection` (Apache-2.0 collection tag, 10 subsets with permissive source licences under TSAI review; see [source licence review](https://github.com/theschoolofai/era-v5-lab/pull/399)), `CohereLabs/aya_dataset`, `open-r1/OpenR1-Math-220k`, `open-thoughts/OpenThoughts3-1.2M`, `bespokelabs/Bespoke-Stratos-17k`, `OpenAssistant/oasst2` (human turns only), `Jackrong/GLM-5.1-Reasoning-1M-Cleaned` (`PHD-Science` config).
    - **CC-BY-4.0 (Attribution required in release model card):** `nebius/SWE-rebench-openhands-trajectories`, `nvidia/Nemotron-Terminal-Corpus`, `nvidia/OpenCodeReasoning`, `nvidia/OpenCodeReasoning-2`, `open-r1/codeforces-cots`, `nvidia/OpenMathReasoning`, `nvidia/Nemotron-Science-v1`, `Salesforce/xlam-function-calling-60k` (Mixtral-8x22B-Instruct Apache-2.0 rows), `nvidia/Nemotron-Cascade-SFT-SWE`, `nvidia/Nemotron-Agentic-v1`, `nvidia/Nemotron-SFT-Agentic-v2` (tool-calling part only), `nvidia/Aegis-AI-Content-Safety-Dataset-1.0`, `nebius/SWE-rebench-V2`, `open-r1/codeforces`, `ai4bharat/sangraha`, `ai4bharat/IndicCorpV2`.
    - **Stack per-file permissive (MIT, Apache-2.0, BSD; attribution required):** `bigcode/starcoderdata` (`code-go`, `code-python`, `code-rust` permissive subsets; copyleft and non-commercial files filtered out).
    - **ODC-By v1.0 (Attribution required in release model card):** `HuggingFaceFW/fineweb-2` (`ind-mr-fw2`, `ind-kn-fw2`), `nvidia/Nemotron-Instruction-Following-Chat-v1` (chat split), `nvidia/Nemotron-SFT-Instruction-Following-Chat-v2`.
