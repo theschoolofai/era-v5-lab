@@ -109,6 +109,7 @@ vocabulary and pass, but those two displayed category counts should not be used 
 | Team 3 C3 | `54f20825…055306` | 131,072 | 32 | 0 | 0 / 0 | 1,096 / 1,096 excess tokens |
 | Team 3 C1 sample-v0 | `36acf126…01c82a2` | 131,072 | 32 | 0 | 0 / 0 | 1,094 / 1,094 excess tokens |
 | Team 3 C2 sample-v0 | `b0d44576…f8488a` | 131,072 | 32 | 0 | 0 / 0 | 1,095 / 1,095 excess tokens |
+| Team 3 C3 sample-v0 (frozen, #340) | `15468e66…2ddc3` | 131,072 | 32 | 0 | 0 / 0 | 1,095 / 1,095 excess tokens |
 
 For v0 and v0.1 at each P, the decode table has 10 groups containing 1,151 tokens (1,141
 excess tokens), all with the known `decode_collapse` cause. Partial UTF-8 tokens become U+FFFD
