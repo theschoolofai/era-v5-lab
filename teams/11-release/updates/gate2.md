@@ -46,7 +46,7 @@ How to fill it:
 | Evaluation | [#357](https://github.com/theschoolofai/era-v5-lab/pull/357) | no |
 | Data B | [#327](https://github.com/theschoolofai/era-v5-lab/pull/327) | no |
 | Data A | [#255](https://github.com/theschoolofai/era-v5-lab/pull/255), [#365](https://github.com/theschoolofai/era-v5-lab/pull/365) | no |
-| Post-training | [#312](https://github.com/theschoolofai/era-v5-lab/pull/312) | no |
+| Post-training | [#312](https://github.com/theschoolofai/era-v5-lab/pull/312), [#391](https://github.com/theschoolofai/era-v5-lab/pull/391) | no |
 | Quantization | [#221](https://github.com/theschoolofai/era-v5-lab/pull/221) | no |
 
 - [x] `check_style.py` gives 0 errors
