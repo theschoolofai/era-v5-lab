@@ -178,7 +178,7 @@ There are two separate Codeforces questions.
 - **OCR-2 rows held (SFT):** 69,690 rows name `open-r1/codeforces`, and no producer revision is established. `ocr2_policy.json` records `training_approved: false` for this source, with the statement terms not recorded and Team 9 confirmation open. These rows are not in the 427,152 kept rows.
   - **Proposed answer:** keep them held. They enter the pack only after a revision is named and Team 9 confirms.
 - **41 rows of the RL Codeforces pool:** the pick is to drop them, and TSAI's instructor accepted it for the clean set on 12 Nov. Rebuilt result (from G10, 12 Nov): 8,891 rows kept (8,932 before), new clean sha256 `220b2f86…`, raw `efe89e87…` unchanged, and the excluded contest and problem ids in `rl-code-codeforces.excluded_ids.jsonl` next to the clean file.
-  - **Still to do:** copy the rebuilt file and its record next to the RL files and update the Codeforces rows in `rl/decontam_report.md`. This PR does not change `rl/`.
+  - **Done (13 Nov, fork PR #75):** `rl/decontam_report.md` records the drop. 8,891 rows kept, clean sha256 `220b2f86…`. The 41 ids are in `rl-data/rl-code-codeforces.excluded_ids.jsonl`. The rebuilt clean file is recorded by hash and is not committed.
 
 ### 9.3 SFT mix shares
 
