@@ -1,17 +1,11 @@
-"""Model config and YAML loading.  [CONTRACT]
-
-Changing a field name or meaning changes a shared interface: bench, report and tests read these.
-
-Rule: no number about the model is hard-coded anywhere else. Everything reads ModelConfig.
-G5's configs become new configs/g5_*.yaml files. If they need a field we do not have,
-add it here with a default, so every old config still loads.
+"""Model config and YAML loading.  Contract: bench, report and tests read these field names.
 
     cfg = load_config("configs/base.yaml", ["model.n_layer=4", "run.batch_size=8"])
-    mcfg = model_config(cfg)          # ModelConfig; unknown or missing keys are an error, not ignored
+    mcfg = model_config(cfg)          # ModelConfig
 
-The YAML is the only source of values: a key written twice in one file, an override of a key the config
-does not have (a typo such as run.batchsize=16 would otherwise be ignored), and a model field missing from
-the YAML are all errors. The dataclass defaults below only serve tests that build one part directly.
+No model number is hard-coded anywhere else. The YAML is the only source of values: a key written twice, an
+override of a key the config lacks, or a model field missing from the YAML is an error. New fields get a default,
+so old configs still load; the dataclass defaults only serve tests that build one part directly.
 """
 from __future__ import annotations
 
@@ -21,50 +15,122 @@ from pathlib import Path
 
 import yaml
 
-MOE_KEYS = {"num_experts", "top_k", "num_shared", "bias_gamma", "dispatch"}   # SparseMoE keyword arguments
-CE_IMPLS = ("torch", "chunked")
+MOE_KEYS = {"num_experts", "top_k", "num_shared", "bias_gamma", "dispatch", "ffn_hidden"}   # SparseMoE keyword arguments
+CE_IMPLS = ("torch", "chunked", "fused", "fused_cached", "fused_liger", "fused_cce",
+            "triton_ce")
 ATTN_IMPLS = ("sdpa", "eager")
+ACTIVATIONS = ("gelu", "swiglu")
+REV_IMPLS = ("two_pass", "one_pass")
+POSITIONS = ("learned", "rope")
+LN_IMPLS = ("torch_ln", "triton_ln")
+VOCAB_PAD_MODES = ("slice", "mask")
 
 
 @dataclass
 class ModelConfig:
     vocab_size: int = 131072         # exact BrahmicTokenizer-131K vocabulary, no padding
+    vocab_pad_multiple: int = 1      # ROUND-UP GRANULARITY, not an amount to add: head rows = vocab_size rounded up to
+                                     # the next multiple of this. 1 = no padding; 128: 50257 -> 50304, 131072 stays
+                                     # 131072 (already a multiple). Padded columns are sliced off the logits, so the
+                                     # loss and outputs do not change. Applies to the head and a tied table only
+    vocab_pad_mode: str = "mask"     # how the padded columns leave the loss (only when padding is on): mask (default) = a
+                                     # -inf bias on those columns, added by the head matmul, loss runs at the padded width;
+                                     # slice = cut them off the logits (one strided copy, ~8% slower step). Same loss and grads
     block_size: int = 512            # sequence length T
     n_layer: int = 9
     n_head: int = 8                  # query heads
     n_kv_head: int | None = None     # GQA: key/value heads, divides n_head; None = n_head (plain multi-head)
     n_embd: int = 256                # d_model
+    ln_impl: str = "torch_ln"        # torch_ln | triton_ln (CUDA/Triton)
     attn_impl: str = "sdpa"          # sdpa (F.scaled_dot_product_attention) | eager (explicit softmax; G5 config_v0)
+    position: str = "learned"        # learned (block_size x d table added to the embedding) | rope (rotary q, k)
+    rope_theta: float | None = None  # RoPE base: pair i of a head turns by t * rope_theta^(-2i / head_dim);
+                                     # required with position=rope (no silent default), unused by learned
     mlp_ratio: int = 4               # MLP / expert hidden = mlp_ratio * n_embd
+    activation: str = "gelu"         # gelu: c_proj(GELU(c_fc x)), with biases | swiglu: c_proj(SiLU(c_gate x) * c_fc x),
+                                     # no biases. Dense MLP, routed experts (every dispatch) and shared experts
     embedding: str = "table"         # table (tied head) | ke1 (Kronecker v1, untied head) | ke2 (Kronecker v2, G4 raw table, untied head)
+    tie_embeddings: bool | None = None  # None: tie iff embedding==table; True: require table; False: never tie
     ke_max_pos: int = 32             # KE v1 byte positions: codec dim = 256 * ke_max_pos
     ke_mode: str = "dynamic"         # KE v1: dynamic (codec every step) | cached (V x D table)
     ffn: str = "mlp"                 # mlp | moe
     moe: dict = field(default_factory=lambda: dict(num_experts=8, top_k=2, num_shared=0,
-                                                   bias_gamma=0.01, dispatch="loop"))
+                                                   bias_gamma=0.01, dispatch="loop", ffn_hidden=None))
     reversible: bool = False         # True: midpoint reversible stack
     rev_h: float = 1.0               # midpoint step size
-    ce_impl: str = "torch"           # torch: full fp32 logits (baseline) | chunked: ce_chunks pieces, checkpointed
-    ce_chunks: int = 8
+    rev_impl: str = "two_pass"       # two_pass (invert + recompute) | one_pass (single f in backward)
+    ce_impl: str = "torch"           # torch | chunked | fused | fused_cached | fused_liger | fused_cce | triton_ce
+    ce_chunks: int = 8                # number of token chunks for chunked / fused
+    ce_vocab_chunk: int = 4096        # vocabulary tile size for fused_cce
+    ce_token_chunk: int = 16           # token tile size for fused_cached / fused_liger
+    ce_triton_backward: str = "auto"  # auto | vocab | chunked | recompute (slow comparison)
+    ce_triton_chunk: int = 128          # max token rows in Triton backward scratch
+    ce_triton_vocab_chunk: int = 4096   # max classes per vocabulary-streamed derivative tile
+    ce_triton_scratch_mb: int = 64      # MiB cap for derivative or forward-statistics scratch
+    ce_triton_grad_precision: str = "auto"  # auto: fp32 products for fp16, bf16 products for bf16 | fp32
+    ce_triton_validate_targets: bool = False  # debug bounds check; synchronizes GPU
     mtp: bool = False                # True: second untied head predicts token t+2 (G5 config_v0); loss = ntp + mtp
 
     def __post_init__(self):
         assert self.embedding in ("table", "ke1", "ke2"), f"embedding={self.embedding!r}"
+        assert self.tie_embeddings in (None, True, False), f"tie_embeddings={self.tie_embeddings!r}"
+        if self.tie_embeddings is True:
+            assert self.embedding == "table", (
+                "tie_embeddings=True requires model.embedding='table' (KE1/KE2 has no [V, d] table)"
+            )
         assert self.ffn in ("mlp", "moe"), f"ffn={self.ffn!r}"
+        assert self.vocab_pad_mode in VOCAB_PAD_MODES, f"vocab_pad_mode={self.vocab_pad_mode!r} not in {VOCAB_PAD_MODES}"
+        assert type(self.vocab_pad_multiple) is int and self.vocab_pad_multiple >= 1, \
+            f"vocab_pad_multiple={self.vocab_pad_multiple!r} must be a positive integer"
         assert self.n_embd % self.n_head == 0, "n_embd must be divisible by n_head"
         assert self.attn_impl in ATTN_IMPLS, f"attn_impl={self.attn_impl!r} not in {ATTN_IMPLS}"
+        assert self.activation in ACTIVATIONS, f"activation={self.activation!r} not in {ACTIVATIONS}"
+        assert self.ln_impl in LN_IMPLS, f"ln_impl={self.ln_impl!r} not in {LN_IMPLS}"
+        assert self.rev_impl in REV_IMPLS, f"rev_impl={self.rev_impl!r} not in {REV_IMPLS}"
+        assert self.position in POSITIONS, f"position={self.position!r} not in {POSITIONS}"
+        if self.position == "rope":
+            assert (self.n_embd // self.n_head) % 2 == 0, "position=rope needs an even head dim"
+            assert self.rope_theta is not None, (
+                "position=rope needs model.rope_theta (e.g. model.rope_theta=10000); null is for learned only")
+            assert self.rope_theta > 0, "rope_theta must be > 0"
         assert self.ce_impl in CE_IMPLS, f"ce_impl={self.ce_impl!r} not in {CE_IMPLS}"
+        assert self.ce_triton_backward in ("auto", "vocab", "chunked", "recompute"), "invalid ce_triton_backward"
+        assert type(self.ce_triton_chunk) is int and self.ce_triton_chunk > 0, \
+            "ce_triton_chunk must be a positive integer"
+        assert type(self.ce_triton_vocab_chunk) is int and self.ce_triton_vocab_chunk > 0, \
+            "ce_triton_vocab_chunk must be a positive integer"
+        assert type(self.ce_triton_scratch_mb) is int and self.ce_triton_scratch_mb > 0, \
+            "ce_triton_scratch_mb must be a positive integer"
+        assert self.ce_triton_grad_precision in ("auto", "fp32"), "invalid ce_triton_grad_precision"
+        assert type(self.ce_triton_validate_targets) is bool, "ce_triton_validate_targets must be boolean"
+        assert self.ce_chunks > 0 and self.ce_vocab_chunk > 0 and self.ce_token_chunk > 0, \
+            "cross-entropy chunk sizes must be positive"
         unknown = sorted(set(self.moe) - MOE_KEYS)
         assert not unknown, f"unknown moe keys {unknown}; known: {sorted(MOE_KEYS)}"
+        hidden = self.moe.get("ffn_hidden")
+        assert hidden is None or (type(hidden) is int and hidden > 0), (
+            "model.moe.ffn_hidden must be a positive integer or null"
+        )
+        if self.ffn == "moe" and hidden is None:
+            assert type(self.mlp_ratio) is int and self.mlp_ratio > 0, (
+                "MoE requires ffn_hidden or positive mlp_ratio"
+            )
         if self.n_kv_head is None:
             self.n_kv_head = self.n_head
         assert self.n_kv_head > 0 and self.n_head % self.n_kv_head == 0, "n_kv_head must be > 0 and divide n_head"
+
+    @property
+    def padded_vocab_size(self) -> int:
+        """Rows of the output head: vocab_size rounded up to a multiple of vocab_pad_multiple (== vocab_size at 1)."""
+        m = self.vocab_pad_multiple
+        return -(-self.vocab_size // m) * m
 
     def to_dict(self):
         return asdict(self)
 
 
 def _merge(base, over):
+    """base with over's values on top; nested dicts merge key by key (inherit: child over parent)."""
     out = copy.deepcopy(base)
     for k, v in (over or {}).items():
         out[k] = _merge(out[k], v) if isinstance(v, dict) and isinstance(out.get(k), dict) else v
@@ -111,6 +177,7 @@ def load_config(path, overrides=()):
 
 
 def model_config(cfg: dict) -> ModelConfig:
+    """ModelConfig from a whole config (its model section) or a model dict; every field must be set."""
     m = dict(cfg.get("model", cfg))
     known = {f.name for f in fields(ModelConfig)}
     unknown = sorted(set(m) - known)

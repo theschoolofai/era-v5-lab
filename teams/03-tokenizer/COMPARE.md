@@ -325,6 +325,46 @@ On FineWeb-2 dev, the mean Indic change vs the committed builds is −0.07% for 
   3. From the same directory, the C1, C2, C3 builds above with `--corpus corpus60 --mix mix_s0.json` (about 6 minutes each).
 
 
+## Pruned-o200k candidates: C3 sample-v0 plus extra Indic merges (v2_spec idea 1)
+
+TSAI asked for this test before the freeze. C3 sample-v0 used 13,850 of the 36,587 unused o200k base tokens in `o200k_v2.json`. These candidates prune the next ones in the same list and order. Each script then gets that many extra merges, and its last merges take the freed ids. A script's ids are its C3 block plus these ranges (TSAI 12 Nov: several ranges per script are fine if the four verify scripts pass). The 356 specials and the vocab size 131,072 do not change. Everything else is C3 sample-v0: `slots_v2.json` blocks, `mix_s0.json`, normalizer v1, v0.1 specials.
+
+| Candidate | Extra ids | sha256 (built twice, same both times) | Manifest |
+|---|---|---|---|
+| **+1,536 per script** (chosen) | 13,824 | `e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b` | `train/p1536_s0_manifest.json` |
+| **+768 per script** | 6,912 | `2cbd1a3b354aa900d9506a5d7f160763f65ffe0d5ec5d438292dfcd30dab498b` | `train/p768_s0_manifest.json` |
+
+- **Ids:** `check_ids.py --old-has-swap` passes against C3 sample-v0. The 356 specials are identical, and every C3 id is identical except the extra ids. All 16,739 script-block ids keep their C3 token, because each script's first merges are exactly C3's and the extra merges come after them. All four verify scripts pass on both builds.
+- **Without `extra`, `train_bpe.py` still builds C3 sample-v0** (`15468e66…`).
+- **Which tokens are pruned.** +768 per script takes 4,062 Common tokens (digit and punctuation runs), 1,589 Latin and 1,261 tokens of other scripts (Cyrillic, CJK, Hebrew, Arabic, Thai, Greek). +1,536 per script also takes 8,501 Latin tokens. All of them are unused on the 30 MB English and 20 MB Python usage sets (`prune_o200k.py`). Idea 4 in `v2_spec.md` warned about pruning Latin before the usage sets are bigger, and the code row below is where that shows.
+- **Rule** (`train/extra_compare.py`, results in `train/extra_compare.json`): choose on FineWeb-2 dev plus the even documents of the sample's held-out text, and report on FineWeb-2 check plus the odd documents. FLORES is not read. A candidate is eligible if no Indic language is worse than C3 sample-v0 and English and code stay within the pass bar (at most 2% worse than BrahmicTokenizer-131K). The largest eligible candidate is chosen. Both are eligible, and both hold on the report splits.
+- **Indic:** every language is better than C3 sample-v0 on all four sets. With +1,536 the mean Indic change is −9.55% on dev, −9.13% on half a, −9.51% on check and −9.37% on half b. The smallest gain is Hi (−4.1% to −4.3%), because Devanagari already had 3,072 slots. The largest gains are Or (−15.8%), Pa (−14.5%) and Gu (−10.9%).
+- **English and code** are slightly worse than C3 sample-v0. English is +0.02% on check and +0.08% on half b, still better than the baseline. Code is +0.06% on codeparrot check and **+0.99% on the sample's code held-out**, which is **+1.10% against BrahmicTokenizer-131K** (C3: +0.11%). That is within the 2% bar. The pruned Latin tokens are unused in the usage sets but appear in some of the sample's code.
+
+**Check split** (FineWeb-2 `test` check half, FineWeb, codeparrot; report only):
+
+| Tokenizer | En | Code | Hi | Bn | Ta | Te | Kn | Ml | Mr | Gu | Pa | Or | As | Mean Indic |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| C3 sample v0 | 1.2895 | 0.2453 | 1.5667 | 2.1680 | 2.5256 | 2.5237 | 2.5581 | 2.8565 | 2.0159 | 2.0762 | 1.9046 | 2.2935 | 2.1950 | 2.2440 |
+| +768 per script | 1.2896 | 0.2454 | 1.5315 | 2.0638 | 2.3813 | 2.3932 | 2.4147 | 2.7197 | 1.9588 | 1.9419 | 1.7303 | 2.0716 | 2.0965 | 2.1185 |
+| +1,536 per script | 1.2897 | 0.2455 | 1.5003 | 1.9862 | 2.2802 | 2.2956 | 2.3109 | 2.6226 | 1.9109 | 1.8509 | 1.6289 | 1.9317 | 2.0174 | 2.0305 |
+| +768 vs C3 | +0.01% | +0.02% | -2.25% | -4.81% | -5.71% | -5.17% | -5.61% | -4.79% | -2.83% | -6.47% | -9.15% | -9.67% | -4.49% | -5.59% |
+| +1,536 vs C3 | +0.02% | +0.06% | -4.24% | -8.39% | -9.72% | -9.04% | -9.66% | -8.19% | -5.21% | -10.85% | -14.48% | -15.77% | -8.09% | -9.51% |
+| +1,536 vs baseline | -0.08% | -0.06% | -5.24% | -12.83% | -25.31% | -22.94% | -23.38% | -21.94% | -23.66% | -13.84% | -34.83% | -50.11% | -23.67% | -25.39% |
+
+**Sample v0 held-out, odd documents** (half b; report only; no Pa or As pack):
+
+| Tokenizer | En | Code | Hi | Bn | Ta | Te | Kn | Ml | Mr | Gu | Or | Mean Indic |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| C3 sample v0 | 1.2876 | 0.2672 | 1.6267 | 2.1883 | 2.6482 | 2.6980 | 2.6015 | 2.8093 | 2.0137 | 2.1195 | 2.3539 | 2.3399 |
+| +768 per script | 1.2885 | 0.2693 | 1.5887 | 2.0902 | 2.5144 | 2.5485 | 2.4513 | 2.6633 | 1.9575 | 1.9743 | 2.1171 | 2.2117 |
+| +1,536 per script | 1.2886 | 0.2698 | 1.5570 | 2.0164 | 2.3992 | 2.4474 | 2.3510 | 2.5583 | 1.9066 | 1.8778 | 1.9730 | 2.1207 |
+| +768 vs C3 | +0.07% | +0.78% | -2.34% | -4.48% | -5.05% | -5.54% | -5.77% | -5.20% | -2.79% | -6.85% | -10.06% | -5.48% |
+| +1,536 vs C3 | +0.08% | +0.99% | -4.29% | -7.85% | -9.40% | -9.29% | -9.63% | -8.94% | -5.32% | -11.40% | -16.18% | -9.37% |
+| +1,536 vs baseline | -0.04% | +1.10% | -5.63% | -13.13% | -23.74% | -22.17% | -23.87% | -22.76% | -24.22% | -14.52% | -50.65% | -24.77% |
+
+The FLORES-200 and HumanEval/MBPP pass-bar rows for these two candidates are left to the pass-bar section's owner. FLORES was not read here.
+
 ## Pass bar on FLORES-200 + HumanEval/MBPP: every row against BrahmicTokenizer-131K
 
 The sections above measure C1–C3 on the held-out **check** split. This section applies the Gate 2 pass bar on the **FLORES-200 + code** suites, with BrahmicTokenizer-131K (= v0) as the bar. A tokenizer passes only if all four hold:
@@ -390,3 +430,51 @@ Reference check: PASS (max |d| = 0.0000) on both runs.
 - **C3 vs C2 (normalizer)** is larger on FLORES than on the check split: Pa −2.71%, As −2.62%, Bn −1.60% and Or −1.29% here, against Bn −0.29% and As −0.17% on check. FLORES Bengali, Assamese and Punjabi contain many nukta letters in the decomposed form that the normalizer re-joins (#134), so the gain shows up more on this text. C3 also wins back most of C2's Punjabi loss.
 - C3 is better than BrahmicTokenizer-131K on all 12 FLORES languages, most on the v0 weak spots: Odia −39.8%, Punjabi −22.4%, Marathi −18.6%. The FLORES gains match the check-split gains above (C3 sample v0 vs baseline) to within about 1.5 points per language, except Malayalam (−12.7% on FLORES vs −15.0% on check). Mean Indic is −17.10% on FLORES vs −17.54% on check.
 - IndicBERTv2-SS and v0 + normalizer are not in the pass-bar table because they have no HumanEval/MBPP measurement.
+
+
+## Telugu yardstick: Vemana (Udgam Labs) on FLORES devtest
+
+Udgam Labs' Vemana is a 278M-parameter Telugu language model with its own 32,000-token SentencePiece BPE tokenizer ([technical report, 27 Oct 2026](https://udgamlabs.com/research/vemana)). The report gives Telugu tokens per whitespace-separated word on **FLORES devtest only** (1,012 sentences). Our harness tables above use dev+devtest (2,009 sentences), so C3 and BrahmicTokenizer-131K were re-measured on devtest only for this comparison (same method as the harness: no BOS/EOS, whitespace words). No tokenizer or sha256 changes.
+
+| Tokenizer | Vocab | Telugu tokens/word (FLORES devtest) | Source |
+|---|---|---|---|
+| Goldfish Telugu | 51k | 1.47 | Vemana report |
+| **Vemana** | 32k, Telugu only | **1.73** | Vemana report |
+| Sarvam-1 | 68k | 2.14 | Vemana report; we measure 2.1402 (cross-check) |
+| **C3 sample v0** (`15468e66…`, frozen in #340) | 131k | **2.5619** | measured here |
+| Gemma 3 | 262k | 2.84 | Vemana report |
+| BrahmicTokenizer-131K | 131k | 3.0410 | measured here |
+| Qwen3.5 | 248k | 4.63 | Vemana report |
+| Qwen3 | 152k | 11.40 | Vemana report |
+| LFM2.5 | 64k | 19.83 | Vemana report |
+
+**Reading it:**
+
+- **The method matches the report.** Our Sarvam-1 measurement (2.1402) reproduces the report's 2.14, so the C3 and BrahmicTokenizer-131K rows are comparable with the report's rows.
+- **C3 vs BrahmicTokenizer-131K:** −15.75% on Telugu devtest (−15.7% on dev+devtest in the tables above).
+- **C3 vs Vemana:** C3 uses 48% more tokens per Telugu word (2.56 vs 1.73). Vemana spends all 32k tokens on one language. C3 shares 131k ids across English, code and 11 Indic languages, and gives the Telugu script block 1,920 merges (`slots_v2.json`).
+- C3 is ahead of every multilingual tokenizer in the report except Sarvam-1, which is 19.7% better on Telugu but 28% worse on HumanEval and 16% worse on English (pass-bar table above).
+- **English:** the report gives no English figure for Vemana, so there is no English comparison here. On FLORES devtest English, C3 is 1.2369 and BrahmicTokenizer-131K 1.2393 tokens/word.
+
+## Comparators: Sarvam-1, IndicBERT v2, IndicTrans2 (FLORES-200)
+
+Tokens per whitespace word on FLORES-200 dev+devtest, lower is better; Mean = 11 Indic languages. Measured with `harness/comparators.py`, which calls the harness's own `load_flores` and `run_flores`, so the method is the same as the tables above. HF tokenizers encode with `add_special_tokens=False`.
+
+| Tokenizer | Source @ revision | En | Hi | Bn | Ta | Te | Kn | Ml | Mr | Gu | Pa | Or | As | Mean |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| BrahmicTokenizer-131K | theschoolofai/BrahmicTokenizer-131K | 1.2352 | 1.6429 | 2.3295 | 3.1166 | 3.0292 | 3.2734 | 3.4738 | 2.5723 | 2.2748 | 2.5955 | 4.1287 | 2.7535 | 2.8355 |
+| C3 sample-v0 | `15468e66…` (#195) | 1.2334 | 1.6193 | 2.2293 | 2.5927 | 2.5531 | 2.7469 | 3.0324 | 2.0943 | 2.2092 | 2.0129 | 2.4861 | 2.2788 | 2.3505 |
+| Sarvam-1 | sarvamai/sarvam-1 @ `e960733` | 1.4313 | 1.4039 | 2.0467 | 2.1554 | 2.1321 | 2.4001 | 2.8345 | 1.7765 | 1.8024 | 1.6826 | 2.3251 | 4.7451 | 2.3004 |
+| IndicBERTv2 | ai4bharat/IndicBERTv2-MLM-only @ `8598f13` | 1.2352 | 1.2380 | 1.4030 | 1.6865 | 1.6951 | 1.8427 | 1.9919 | 1.4836 | 1.5094 | 1.3368 | 1.5941 | 1.5958 | 1.5797 |
+| IndicBERTv2-SS | ai4bharat/IndicBERTv2-SS @ `d717ffc` | 1.3475 | 1.2460 | 5.0411 | 8.0997 | 6.6185 | 6.6938 | 8.6727 | 1.4678 | 4.9905 | 3.9078 | 5.5849 | 5.2258 | 5.2317 |
+| IndicTrans2 | ai4bharat/indictrans2-indic-en-1B @ `ac3daf0` + en-indic-1B @ `89cd000` (`model.SRC`) | 1.2759 | 1.2624 | 5.4400 | 9.0933 | 7.6936 | 7.3379 | 9.9004 | 1.5885 | 6.0061 | 5.1790 | 6.8347 | 5.5795 | 5.9923 |
+
+Notes:
+
+- **Cross-check:** Sarvam-1 and IndicBERTv2-SS reproduce the values already in this file exactly (max |Δ| 0.0000).
+- **IndicBERTv2 En equals BrahmicTokenizer-131K only after rounding.** Exact counts on English dev+devtest (2009 sentences, 42855 words): BrahmicTokenizer-131K 52934 tokens (1.235188), IndicBERTv2 52936 tokens (1.235235). The tokenizers differ (dev alone: 25,858 vs 25,791 tokens).
+- **IndicBERTv2 (MLM-only)** has the lowest Indic fertility here. It is lossless on FLORES dev (decode after removing `##` and spaces equals the input for 100% of En/Hi/Ta/Ml/Bn sentences, 0% unk), but it is a 250K-vocab BERT (WordPiece) encoder vocabulary, not a size-matched comparison.
+- **IndicTrans2 is measured on raw text, outside its pipeline.** Its tokenizer is the source-side SentencePiece (`model.SRC`, indic-en for Indic, en-indic for English). IndicTrans2 normally runs its own preprocessing first (language tags and IndicNLP normalisation). Its strength only on Devanagari (Hi, Mr), like IndicBERTv2-SS, suggests its source vocabulary expects script-converted text, so the other scripts are not a fair measure of IndicTrans2 in its own pipeline.
+- **IndicBERTv2-SS** is likewise strong only on Devanagari (Hi, Mr).
+- **Sarvam-1** is slightly ahead of C3 on mean Indic (2.3004 vs 2.3505) but 16% worse on English and weak on Assamese (4.7451); it is also 28–33% worse on HumanEval and MBPP (pass-bar table above).
+- Reproduce: `python3 harness/comparators.py --lab <repo root> --brahmic-dir <BrahmicTokenizer-131K> --flores-dir <flores200_dataset> --c3 <C3 tokenizer.json> --out-dir <folder>`. IndicTrans2 is gated on Hugging Face: accept its terms and log in first.

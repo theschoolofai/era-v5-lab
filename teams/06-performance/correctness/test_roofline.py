@@ -28,6 +28,15 @@ def test_forward_costs_uses_model_shapes_and_named_leaf_regions():
                                              ("fwd:embed", "fwd:stack", "fwd:head+loss"))
 
 
+def test_forward_costs_rope_adds_qk_rotation_and_drops_position_table():
+    learned = forward_costs(_cfg(), B=2, T=4, dtype="bf16")["regions"]
+    rope = forward_costs(_cfg(position="rope"), B=2, T=4, dtype="bf16")["regions"]
+    m, d, kv_width = 8, 8, 4
+    assert rope["fwd:block0.attn.qkv"]["flops"] - learned["fwd:block0.attn.qkv"]["flops"] == 3 * m * (d + kv_width)
+    assert rope["fwd:embed"]["bytes"] < learned["fwd:embed"]["bytes"]
+    assert rope["fwd:block0.attn.sdpa"] == learned["fwd:block0.attn.sdpa"]
+
+
 def test_forward_costs_exposes_moe_ke_and_dtype_bytes():
     moe = _cfg(ffn="moe", moe={"num_experts": 4, "top_k": 2, "num_shared": 1, "dispatch": "sorted"})
     costs = forward_costs(moe, B=2, T=4, dtype="bf16")
@@ -47,6 +56,22 @@ def test_forward_costs_exposes_moe_ke_and_dtype_bytes():
 def test_forward_costs_rejects_invalid_shapes_and_dtypes(args):
     with pytest.raises(ValueError):
         forward_costs(_cfg(), *args)
+
+
+def test_forward_costs_moe_ffn_hidden_when_mlp_ratio_null():
+    """T2/T3 arms set mlp_ratio: null and moe.ffn_hidden; roofline must not crash."""
+    costs = forward_costs(
+        _cfg(
+            mlp_ratio=None,
+            ffn="moe",
+            n_embd=64,
+            moe={"num_experts": 4, "top_k": 2, "num_shared": 0, "dispatch": "loop",
+                 "ffn_hidden": 896},
+        ),
+        B=2, T=4, dtype="bf16",
+    )
+    assert "fwd:block0.moe.router" in costs["regions"]
+    assert costs["totals"]["flops"] > 0
 
 
 def test_estimate_costs_reports_separate_compute_bandwidth_and_launch_bounds():
@@ -98,3 +123,19 @@ def test_render_table_includes_aligned_estimates_and_optional_measurements():
     assert "0.200" in table and "2.50x" in table
     assert "Total (top-level regions)" in table
     assert "saved-run.json" in table
+
+
+def test_forward_costs_swiglu_has_three_ffn_matrices():
+    """SwiGLU: gate, up and down matmuls (6 * M * d * h) and 3 weight matrices of traffic; GELU stays at 2."""
+    B, T = 2, 4
+    M, d, h = B * T, 8, 16
+    gelu = forward_costs(_cfg(), B=B, T=T, dtype="bf16")["regions"]["fwd:block0.mlp"]
+    swiglu = forward_costs(_cfg(activation="swiglu"), B=B, T=T, dtype="bf16")["regions"]["fwd:block0.mlp"]
+    assert gelu["flops"] == 4 * M * d * h + 8 * M * h
+    assert swiglu["flops"] == 6 * M * d * h + 6 * M * h
+    assert swiglu["bytes"] - gelu["bytes"] == d * h * 2 + M * h * 2          # one more bf16 matrix and hidden read
+    moe = _cfg(ffn="moe", activation="swiglu", moe={"num_experts": 2, "top_k": 1, "num_shared": 1, "dispatch": "loop"})
+    regions = forward_costs(moe, B=B, T=T, dtype="bf16")["regions"]
+    assert regions["fwd:block0.moe.shared"]["flops"] == 6 * M * d * h + 6 * M * h
+    with pytest.raises(ValueError, match="activation"):
+        forward_costs(_cfg(activation="relu"), B=B, T=T, dtype="bf16")

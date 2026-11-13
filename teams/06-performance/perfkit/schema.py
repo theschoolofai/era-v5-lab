@@ -1,11 +1,9 @@
-"""The run JSON: what bench writes and what report and G8 read.  [CONTRACT]
+"""The run JSON that bench writes and report and G8 read.  REQUIRED is the source of truth (contract).
 
-bench.py must produce it; report.py and the G8 exporter consume it. REQUIRED below is the source of truth:
-docs/PLAN.md section 2.6 is a copy of it.
-New fields can be added freely. Renaming or removing one breaks report, metrics and G8: agree it first.
+New fields can be added freely; renaming or removing one breaks report, metrics and G8, so agree it first.
 
     problems = validate_run(run_dict)      # [] when the run has every required field
-    run = example_run()                    # a hand-made run, so the report can be built before bench exists
+    run = example_run()                    # a hand-made run, for tests
 """
 from __future__ import annotations
 
@@ -30,10 +28,16 @@ REGION_KEYS = ("median", "p10", "p90", "iqr", "n", "level", "calls_per_step")
 METRIC_UNAVAILABLE_REASONS = {
     "unknown_gpu", "unsupported_dtype", "peak_tflops_unavailable", "invalid_peak_tflops",
     "hw_flops_unavailable",
+    # run-level MFU (metrics.mfu_run)
+    "participants_unavailable", "participant_peak_unavailable", "invalid_global_throughput",
+    "duplicate_participants",
 }
+MFU_SCOPES = ("selected_gpu", "run")
+MFU_METHODS = ("g6-v1", "g6-v2")          # see docs/METRICS.md; a file with no mfu_method is g6-v1
 
 
 def _get(d, dotted):
+    """d[a][b]... for 'a.b'; KeyError naming the dotted path when a level is missing."""
     for k in dotted.split("."):
         if not isinstance(d, dict) or k not in d:
             raise KeyError(dotted)
@@ -42,6 +46,7 @@ def _get(d, dotted):
 
 
 def validate_run(run: dict) -> list:
+    """[] when the run has every required field and consistent MFU fields; else one line per problem."""
     problems = []
     for section, keys in REQUIRED.items():
         if section not in run:
@@ -69,6 +74,18 @@ def validate_run(run: dict) -> list:
             problems.append(f"metrics.{reason_key} is required when metrics.{metric} is null")
         if value is not None and reason is not None:
             problems.append(f"metrics.{reason_key} must be null when metrics.{metric} is available")
+    method = metrics.get("mfu_method")
+    if method is not None and method not in MFU_METHODS:
+        problems.append(f"metrics.mfu_method {method!r} not in {MFU_METHODS}")
+    scope = metrics.get("mfu_scope")
+    if scope is not None and scope not in MFU_SCOPES:
+        problems.append(f"metrics.mfu_scope {scope!r} not in {MFU_SCOPES}")
+    if scope == "run":
+        parts = metrics.get("participants")
+        if not isinstance(parts, dict) or not all(k in parts for k in ("world_size", "peak_tflops_sum", "devices")):
+            problems.append("metrics.participants (world_size, peak_tflops_sum, devices) is required when mfu_scope is 'run'")
+        if "global_tokens_per_s" not in metrics:
+            problems.append("metrics.global_tokens_per_s is required when mfu_scope is 'run'")
     memory = run.get("memory")
     if memory is not None:
         if not isinstance(memory, dict):
@@ -86,6 +103,7 @@ def validate_run(run: dict) -> list:
 
 
 def _s(median):
+    """Example stats around a median."""
     return {"median": median, "p10": median * 0.98, "p90": median * 1.03, "iqr": median * 0.02, "n": 50}
 
 

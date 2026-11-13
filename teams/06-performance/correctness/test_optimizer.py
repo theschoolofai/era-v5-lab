@@ -1,17 +1,107 @@
 """Optimizer parameter assignment, numerical updates, state restore, and scaler checks."""
 import copy
 import os
+from unittest.mock import patch
+
+import numpy as np
 import pytest
 import torch
 from torch import nn
 
+from correctness.framework import PAIRS, Case, check, pair, pairs_in
+from dataio.loader import Loader
+from dataio.tokenizer import BrahmicTokenizer
 from models.config import ModelConfig
 from models.gpt import GPT
+from models.ke1 import KroneckerEmbedding
 from models.optim import (Muon, MuonAdamW, Optimizers, build_optimizer,
                           zeropower_via_newtonschulz5, zeropower_via_newtonschulz5_batched)
-from dataio.tokenizer import BrahmicTokenizer
-from models.ke1 import KroneckerEmbedding
 
+
+
+@pair("optim.muon_ns.batched", tol=5e-3, grad_tol=5e-3)
+def _batched_muon_ns_case(device):
+    """Compare the same Newton-Schulz transform and input gradients, loop vs batched."""
+    if device.type == "cuda":
+        torch.cuda.init()
+    generator = torch.Generator(device=device).manual_seed(73)
+    wide = torch.randn(5, 4, 3, generator=generator, device=device).requires_grad_()
+    tall = torch.randn(5, 3, 4, generator=generator, device=device).requires_grad_()
+
+    def loop(wide_grad, tall_grad):
+        return (torch.stack([zeropower_via_newtonschulz5(g) for g in wide_grad]),
+                torch.stack([zeropower_via_newtonschulz5(g) for g in tall_grad]))
+
+    def batched(wide_grad, tall_grad):
+        return (zeropower_via_newtonschulz5_batched(wide_grad),
+                zeropower_via_newtonschulz5_batched(tall_grad))
+
+    return Case(ref=loop, fast=batched, inputs=[wide, tall])
+
+
+def _optimizer_updates_case(device, kind):
+    """Same initial parameters and gradient sequence, replayed through loop and optimized updates."""
+    generator = torch.Generator(device=device).manual_seed(101)
+    initial = torch.randn(4, 4, 4, generator=generator, device=device)
+    gradients = torch.randn(4, 4, 4, 4, generator=generator, device=device)
+
+    def run(initial_params, grad_steps, impl):
+        params = [torch.nn.Parameter(p.clone()) for p in initial_params]
+        if kind == "muon":
+            optimizer = Muon(params, lr=0.012, momentum=0.8, ns_steps=5,
+                             weight_decay=0.03, impl=impl)
+        else:
+            optimizer = MuonAdamW([{
+                "params": params, "kind": "adamw", "lr": 0.012,
+                "betas": (0.9, 0.95), "eps": 1e-8, "weight_decay": 0.03,
+                "impl": impl,
+            }])
+        for step_grads in grad_steps:
+            for param, grad in zip(params, step_grads):
+                param.grad = grad.clone()
+            optimizer.step()
+        return torch.stack([p.detach() for p in params])
+
+    return Case(
+        ref=lambda p, gs: run(p, gs, "loop"),
+        fast=lambda p, gs: run(p, gs, "batched" if kind == "muon" else "foreach"),
+        inputs=[initial, gradients], grads=False,
+    )
+
+
+@pair("opt.muon.batched", tol=5e-3, grad_tol=5e-3)
+def _muon_batched_case(device):
+    return _optimizer_updates_case(device, "muon")
+
+
+@pair("opt.adamw.foreach", tol=5e-4, grad_tol=5e-4)
+def _adamw_foreach_case(device):
+    return _optimizer_updates_case(device, "adamw")
+
+
+def _synthetic_loader(device, prefetch):
+    """A real Loader with a tiny stand-in tokenizer; synthetic batches need no tokenizer operations."""
+    class StubTokenizer:
+        def __init__(self, _path=None):
+            self.vocab_size = 131072
+
+    with patch("dataio.loader.BrahmicTokenizer", StubTokenizer):
+        return Loader(source="synthetic", batch_size=3, block_size=7, device=device,
+                      vocab_size=131072, seed=223, prefetch=prefetch)
+
+
+@pair("data.prefetch", tol=1e-7, grad_tol=1e-7)
+def _data_prefetch_case(device):
+    def batches(prefetch):
+        loader = _synthetic_loader(device, prefetch)
+        result = []
+        for _ in range(4):
+            result.extend(loader.next_batch())
+            if prefetch:
+                loader.prefetch()
+        return tuple(result)
+
+    return Case(ref=lambda: batches(False), fast=lambda: batches(True), inputs=[], grads=False)
 
 
 @pytest.mark.parametrize("embedding", ["table", "ke1"])
@@ -374,6 +464,71 @@ def test_polar_muon_rectangular_scaling_matches_reference(shape):
     torch.testing.assert_close(p, expected, rtol=2e-5, atol=2e-6)
 
 
+def _polar_muon_loop_and_batched(initial, weight_decay, device="cpu"):
+    """Two MuonAdamW optimizers on copies of the same parameters: muon impl loop and batched."""
+    out = []
+    for impl in ("loop", "batched"):
+        params = [torch.nn.Parameter(p.clone().to(device)) for p in initial]
+        opt = MuonAdamW([{
+            "params": params, "kind": "muon", "lr": 0.02, "momentum": 0.95, "beta2": 0.95,
+            "ns_steps": 5, "weight_decay": weight_decay, "impl": impl,
+        }])
+        out.append((params, opt))
+    return out
+
+
+@pytest.mark.parametrize("weight_decay", [0.0, 0.03])
+@pytest.mark.parametrize("shape", [(6, 4), (4, 6), (5, 5)])
+def test_batched_polar_muon_matches_loop_with_missing_grad(shape, weight_decay):
+    # The batched step fuses each Polar Express iteration into baddbmm and skips zero weight decay:
+    # parameters and both state buffers must still follow the per-matrix loop, a skipped grad included.
+    torch.manual_seed(43)
+    initial = [torch.randn(shape) for _ in range(3)]
+    (loop_params, loop), (batch_params, batched) = _polar_muon_loop_and_batched(initial, weight_decay)
+    for step in range(3):
+        for i, (lp, bp) in enumerate(zip(loop_params, batch_params)):
+            if step == 1 and i == 1:
+                lp.grad = bp.grad = None
+                continue
+            grad = torch.randn(shape) * (step + i + 1)
+            lp.grad, bp.grad = grad.clone(), grad.clone()
+        loop.step()
+        batched.step()
+        for lp, bp in zip(loop_params, batch_params):
+            torch.testing.assert_close(bp, lp, rtol=1e-5, atol=1e-6)
+            for key in ("momentum_buffer", "second_momentum_buffer"):
+                torch.testing.assert_close(batched.state[bp][key], loop.state[lp][key], rtol=1e-5, atol=1e-6)
+
+
+@pytest.mark.skipif(
+    not torch.cuda.is_available() or not torch.cuda.is_bf16_supported(),
+    reason="CUDA bf16 comparison is intended for the GPU correctness job",
+)
+@pytest.mark.parametrize("shape", [(64, 32), (32, 64), (48, 48)])
+def test_batched_polar_muon_matches_loop_on_cuda_bf16(shape):
+    # The Polar Express iterations run in bf16 on CUDA, so neither impl matches exact math: the loop is
+    # 3-5% off an fp32 run and baddbmm (one rounding instead of one per op) about 1-2%. Comparing the two
+    # with each other measures the loop's error, so each is compared with the same steps in fp32 on CPU:
+    # the batched update must be no further from it than the loop's.
+    torch.manual_seed(43)
+    initial = [torch.randn(shape) for _ in range(3)]
+    grads = [[torch.randn(shape) * (step + 1) for _ in initial] for step in range(2)]
+    (loop_params, loop), (batch_params, batched) = _polar_muon_loop_and_batched(initial, 0.0, "cuda")
+    ref_params, ref = _polar_muon_loop_and_batched(initial, 0.0, "cpu")[0]
+    for step_grads in grads:
+        for lp, bp, rp, grad in zip(loop_params, batch_params, ref_params, step_grads):
+            lp.grad, bp.grad, rp.grad = grad.cuda(), grad.cuda(), grad.clone()
+        loop.step()
+        batched.step()
+        ref.step()
+    for lp, bp, rp, p0 in zip(loop_params, batch_params, ref_params, initial):
+        d_ref = rp.detach() - p0
+        err_loop = ((lp.detach().cpu() - p0 - d_ref).norm() / d_ref.norm()).item()
+        err_batch = ((bp.detach().cpu() - p0 - d_ref).norm() / d_ref.norm()).item()
+        assert err_batch <= 1.1 * err_loop + 1e-3, (
+            f"CUDA bf16 polar Muon: batched update is {err_batch:.4f} off fp32, loop {err_loop:.4f} (relative norm)")
+
+
 def test_hybrid_optimizer_state_dict_resumes_identically():
     cfg = ModelConfig(vocab_size=16, block_size=4, n_layer=1, n_head=2, n_embd=8,
                       ffn="moe", moe=dict(num_experts=2, top_k=1, num_shared=1))
@@ -434,6 +589,119 @@ def test_cosine_learning_rate_schedule():
     optimizers.set_lr(4, 5, schedule="cosine", warmup_steps=2, min_lr_ratio=0.1)
     assert optimizers.named[0][1].param_groups[0]["lr"] == pytest.approx(0.02)
 
+
+# ---- @pair correctness checks --------------------------------------------------
+# Cases the pairs above do not cover, so the names differ (a pair name is registered once).
+
+@pair("opt.muon.batched.missing_grad", tol=2e-3, grad_tol=5e-5)
+def _(device):
+    # Keep loop as the reference; batched is fast.  Same 3 params, 3 steps, missing grad
+    # on step 1 param 1 — matches the existing non-pair test so we can cross-check.
+    torch.manual_seed(42)
+    shape = (4, 3)
+    initial = [torch.randn(shape), torch.randn(shape), torch.randn(shape)]
+    step_grads = [
+        [torch.linspace(-0.3, 0.4, shape[0] * shape[1]).reshape(shape) * (s + i + 1)
+         for i in range(3)]
+        for s in range(3)
+    ]
+    kwargs = dict(lr=0.025, momentum=0.8, ns_steps=5, weight_decay=0.03)
+
+    def _run(impl, *init):
+        # CPU-only: NS uses bf16 internally on CUDA (bmm vs mm accumulation differs
+        # ~4% on A100), already covered by test_batched_muon_matches_loop_on_cuda_bf16.
+        # This pair tests fp32 math correctness of batched vs loop.
+        params = [nn.Parameter(p.float().cpu().clone()) for p in init]
+        opt = Muon(params, impl=impl, **kwargs)
+        for s in range(3):
+            for i, p in enumerate(params):
+                p.grad = None if (s == 1 and i == 1) else step_grads[s][i].float().to(p.device).clone()
+            opt.step()
+        return torch.stack([p.detach() for p in params])
+
+    return Case(
+        ref=lambda *inputs: _run("loop", *inputs),
+        fast=lambda *inputs: _run("batched", *inputs),
+        inputs=initial,
+        grads=False,
+    )
+
+
+@pair("opt.adamw.foreach.groups", tol=1e-6, grad_tol=5e-5)
+def _(device):
+    # Two 2D params share one _foreach bucket (same step count); one 1D param runs alone.
+    # Loop is the reference; foreach is fast.
+    torch.manual_seed(42)
+    initial = [torch.randn(3, 4), torch.randn(2, 3), torch.randn(5)]
+    adamw_kw = dict(lr=0.001, betas=(0.9, 0.95), eps=1e-8)
+
+    def _grads(step):
+        return [
+            torch.linspace(-0.1, 0.1, 12).reshape(3, 4) * (step + 1) * 0.1,
+            torch.linspace(0.05, 0.15, 6).reshape(2, 3) * (step + 2) * 0.1,
+            torch.ones(5) * (step + 3) * 0.01,
+        ]
+
+    def _run(impl, *init):
+        params = [nn.Parameter(p.float().clone()) for p in init]
+        groups = [
+            {"params": [params[0], params[1]], "kind": "adamw", "weight_decay": 0.01,
+             "impl": impl, **adamw_kw},
+            {"params": [params[2]], "kind": "adamw", "weight_decay": 0.0,
+             "impl": impl, **adamw_kw},
+        ]
+        opt = MuonAdamW(groups)
+        for step in range(3):
+            for p, g in zip(params, _grads(step)):
+                p.grad = g.float().to(p.device).clone()
+            opt.step()
+        return torch.cat([p.detach().flatten() for p in params])
+
+    return Case(
+        ref=lambda *inputs: _run("loop", *inputs),
+        fast=lambda *inputs: _run("foreach", *inputs),
+        inputs=initial,
+        grads=False,
+    )
+
+
+@pair("data.prefetch.first", tol=0.0, grad_tol=5e-5)
+def _(device):
+    # prefetch=True pre-samples the next batch while the GPU is busy; both paths must yield
+    # identical token IDs because they advance the RNG in the same order.
+    batch_size, block_size, n_steps, seed = 2, 8, 4, 17
+    tokenizer_path = os.environ.get("BRAHMIC_TOKENIZER_PATH")
+
+    def _run(prefetch, _dummy):
+        loader = Loader("synthetic", batch_size, block_size, "cpu", seed=seed,
+                        prefetch=prefetch, tokenizer_path=tokenizer_path)
+        chunks = []
+        for _ in range(n_steps):
+            if prefetch:
+                loader.prefetch()
+            x, y = loader.next_batch()
+            chunks.append(x.float())
+            chunks.append(y.float())
+        return torch.cat([c.flatten() for c in chunks])
+
+    return Case(
+        ref=lambda d: _run(False, d),
+        fast=lambda d: _run(True, d),
+        inputs=[torch.zeros(1)],
+        grads=False,
+    )
+
+
+# After the last @pair: pairs_in() lists the pairs registered so far.
+@pytest.mark.parametrize("name", pairs_in(__name__))
+def test_pair(name, device):
+    errors = check(PAIRS[name], device)
+    assert any(key.startswith("out[") for key in errors)
+    if name == "optim.muon_ns.batched":
+        assert any(key.startswith("grad_in[") for key in errors)
+
+
+# ---- fixtures and integration tests --------------------------------------------
 
 @pytest.fixture(scope="module")
 def tokenizer():

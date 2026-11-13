@@ -4,9 +4,10 @@
 run:
   device: auto          # auto | cuda | cpu | mps
   dtype: bf16           # bf16 | fp16 (T4 / P100 / V100) | fp32
-  batch_size: 16        # B, always from here. 32 fits A100 / L4 / H100; use 8 on T4 / P100 / V100 (fp32 logits are 8 GB at 32)
+  batch_size: 16        # B, always from here. 32 fits A100 / L4 / H100; 8 on T4 / P100 / V100 (fp32 logits + grad: 8 GiB at 32)
   seed: 42
   compile: false
+  compile_mode: default   # default | max-autotune-no-cudagraphs (used only when compile=true)
   grad_clip: 1.0
 
 data:
@@ -18,22 +19,38 @@ data:
 
 model:                  # fields of models.config.ModelConfig, nothing else
   vocab_size: 131072
+  vocab_pad_mode: mask  # mask | slice: how padded head columns are kept out of the loss (only with vocab_pad_multiple > 1)
+  vocab_pad_multiple: 1 # round head rows UP to the next multiple of this (1 = off; B2 treatment 128). Not a pad amount: 131072 stays 131072
   block_size: 256
   n_layer: 6
   n_head: 8
   n_kv_head: null       # GQA key/value heads; null = n_head (plain multi-head)
   n_embd: 256
+  ln_impl: torch_ln    # torch_ln | triton_ln (CUDA/Triton)
   attn_impl: eager      # sdpa | eager (explicit softmax, G5 config_v0: two seeds match)
+  position: learned     # learned (position table) | rope (rotary q and k, full head dim)
+  rope_theta: null      # RoPE base; required with position: rope (no default: G5 to confirm), ignored by learned
   mlp_ratio: 4
+  activation: gelu      # gelu | swiglu (SiLU(gate) * up, 3 matrices, no biases): dense MLP and every expert
   embedding: ke2        # table | ke1 | ke2 (G4 raw table, teams/04-ke2)
+  tie_embeddings: false # null: tie iff embedding=table; true: require table; false: never tie
   ke_max_pos: 32
   ke_mode: dynamic      # dynamic | cached
   ffn: mlp              # mlp | moe
-  moe: {num_experts: 8, top_k: 2, num_shared: 1, bias_gamma: 0.01, dispatch: loop}
+  moe: {num_experts: 8, top_k: 2, num_shared: 1, bias_gamma: 0.01, dispatch: loop, ffn_hidden: null}
   reversible: true
   rev_h: 1.0
-  ce_impl: torch        # torch (full fp32 logits, the baseline) | chunked (ce_chunks pieces, checkpointed)
-  ce_chunks: 8
+  rev_impl: two_pass    # two_pass (invert + recompute) | one_pass (single f in backward)
+  ce_impl: torch        # torch | chunked | fused | fused_cached | fused_liger | fused_cce | triton_ce
+  ce_chunks: 8          # token chunk count for chunked / fused (need not divide B*T)
+  ce_vocab_chunk: 4096  # vocabulary tile size for fused_cce
+  ce_token_chunk: 16    # token tile size for fused_cached / fused_liger
+  ce_triton_backward: auto     # auto | vocab | chunked | recompute (slow old comparison)
+  ce_triton_chunk: 128         # max token rows in backward scratch; memory/time tradeoff
+  ce_triton_vocab_chunk: 4096  # max vocabulary columns per derivative tile
+  ce_triton_scratch_mb: 64     # MiB cap for derivative or forward-statistics scratch
+  ce_triton_grad_precision: auto  # auto (fp16 -> fp32 products; bf16 -> bf16) | fp32
+  ce_triton_validate_targets: false  # debug ID bounds check; incurs GPU synchronization
   mtp: false            # true: second untied head on token t+2 (G5 config_v0); trained loss = ntp + mtp
 
 optim:
@@ -56,6 +73,7 @@ bench:
   ckpt_repeats: 10      # checkpoint saves timed (after one warm save that is not counted)
   max_overhead_pct: 2.0
   layer_warmup: 2       # recorded steps before the layer pass is measured (touch every region once)
+  layer_prefill: true   # CUDA: a GPU busy-wait before each layer step, so part times are GPU time on any CPU
   comm_reps: 30         # all_to_all calls timed per rank in comm mode (torchrun)
   peak_tflops: null     # null: from the GPU peak table (perfkit.metrics); a number for a GPU not in it
   out_dir: results/runs

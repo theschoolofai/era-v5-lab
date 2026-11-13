@@ -1,11 +1,7 @@
-"""Reversible stack: custom backward against plain autograd, plus inversion.
+"""Reversible stack: custom backward against plain autograd (plain_forward on fp64 copies), plus inversion.
 
-Pairs: ReversibleStack.apply(x, blocks) (fast) vs models.reversible.plain_forward on an fp64 copy
-of the same blocks (ref), for ffn="mlp" and ffn="moe"; gradients of x and of every parameter.
-Extra test: run forward, then invert every block in reverse: the input comes back (rel err < 1e-4).
-Pairs run in fp32 / fp64 (correctness/framework.py: precision). bf16 is a property test, not a pair:
-with ffn="moe" under bf16 autocast, models.reversible.reconstruction_error < 1e-3 at 9 and 24 layers
-(measured ~2.5e-4 on CPU and A100), and the custom-backward gradient of x is within 1e-3 of plain_forward's.
+Pairs for ffn="mlp" and "moe": the gradients of x and every parameter. Inversion rebuilds x (rel err < 1e-4).
+bf16 is a property test: reconstruction_error < 1e-3 at 9 and 24 layers, x gradient within 1e-3.
 """
 from __future__ import annotations
 
@@ -17,7 +13,14 @@ import torch
 from correctness.framework import PAIRS, Case, check, pair, pairs_in, rel_err, to64
 from models.config import ModelConfig
 from models.gpt import Block
-from models.reversible import ReversibleStack, plain_forward, reconstruction_error, _forward_recording, _replaying
+from models.reversible import (
+    ReversibleOnePassStack,
+    ReversibleStack,
+    plain_forward,
+    reconstruction_error,
+    _forward_recording,
+    _replaying,
+)
 
 N_EMBD, N_HEAD, N_LAYER_PAIR = 32, 4, 3
 B, T = 2, 17
@@ -102,6 +105,37 @@ _register("mlp")
 _register("moe")
 
 
+def _register_one_pass(ffn: str):
+    name = f"reversible.one_pass.{ffn}"
+
+    @pair(name, tol=1e-5, grad_tol=5e-5)
+    def build(device):
+        fast_blocks = _blocks(ffn, N_LAYER_PAIR, seed=0).to(device)
+        ref_blocks = to64(fast_blocks)
+        x = torch.randn(
+            B, T, N_EMBD, device=device,
+            generator=torch.Generator(device=device).manual_seed(1),
+        ).requires_grad_(True)
+
+        def fast_fn(inp):
+            return ReversibleOnePassStack.apply(inp, fast_blocks)
+
+        def ref_fn(inp):
+            return plain_forward(inp, ref_blocks)
+
+        return Case(
+            ref=ref_fn,
+            fast=fast_fn,
+            inputs=[x],
+            params_ref=_all_params(ref_blocks),
+            params_fast=_all_params(fast_blocks),
+        )
+
+    return build
+
+
+_register_one_pass("mlp")
+_register_one_pass("moe")
 
 
 @pytest.mark.parametrize("name", pairs_in(__name__))

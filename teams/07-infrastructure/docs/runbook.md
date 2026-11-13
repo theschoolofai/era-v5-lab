@@ -87,7 +87,7 @@ Every trainer calls `Checkpointer.restore()` at start. Nobody picks a folder by 
 | 1 | **Claim**: write `latest.json` with `epoch + 1`, only if nobody changed it since it was read. An older copy of the run can no longer commit (fencing) | another attempt owns the run: `FencedError`, 78 |
 | 2 | **Candidates**: `latest.json` first, then `commits.jsonl` newest to oldest | none committed: fresh start at step 0 |
 | 3 | **Checksums**: every file in `MANIFEST.json` against its sha256 | `IntegrityError`: try the previous commit |
-| 4 | **Environment**: image, torch / CUDA / NCCL, config, tokenizer, `git_sha`, `OMP_NUM_THREADS` | `EnvMismatchError`: 78 |
+| 4 | **Environment**: image, torch / CUDA / NCCL, config, tokenizer, `code_sha256`, `OMP_NUM_THREADS` | `EnvMismatchError`: 78 |
 | 5 | **Copy** to node-local disk, each copy checked again | try the previous commit |
 | 6 | **Strict keys**: every tensor name, shape and dtype | `StrictLoadError`: 78 |
 | 7 | **Load**: weights, optimizer, random generators, data position (resharded if the device count changed) | `DataManifestError` / `ReshardError`: 78 |
@@ -194,9 +194,10 @@ Full list with alert ids: [`codes_and_actions.md`](../support/docs/codes_and_act
 | `nonfinite`, `loss_spike` | 78 | nothing saved after the bad step | roll back (section 6); tell Team 05 | CK-07, H-24 |
 | `crash_loop` | 78 | 3 crashes in 30 min; held so it stops burning device hours | read the last trainer error (`logs/job.log` in a job, else the supervisor's terminal), fix it, then restart | Q-04 |
 
-**Watch out:** `git_sha` is one of the fields that must match, and it comes from `GIT_SHA` (`unknown` when unset).
-Set it the same way on every attempt of a run, or the restore stops with `EnvMismatchError` (issue #298 tracks
-recording it by default).
+**Code check:** `code_sha256` (the trainer, model and loader files, plus `ckpt.py`) must match; a docs-only commit
+does not change it. `git_sha` is recorded but not compared: from `GIT_SHA`, else the checkout's HEAD, else `none`
+with a `checkpoint.provenance_unknown` event (issue #298). A checkpoint saved before this change has no
+`code_sha256`, and the code is then not checked.
 
 ---
 
@@ -362,7 +363,6 @@ Other evidence: [`results/restore_test_cpu.txt`](../results/restore_test_cpu.txt
 | 1-GPU `restore_s` and size sweep as a TSAI job (8.2, 8.4) | Lead files the request | after Gate 2 if not run by Sat 14 Nov |
 | Restart on the lab node, `results/restart_node.txt` | Lead | **done**: TSAI job on #258, 1 GPU, PASS (8.3) |
 | Real restore time at config v1 size on the real store (8.5) | checkpoint owner + Team 6 | after Sat 14 Nov |
-| Manifests record `git_sha=unknown` when `GIT_SHA` is unset | checkpoint owner | issue #298 |
 | 2-GPU restore | TSAI | after Gate 2 |
 
 ## 12. Change log
