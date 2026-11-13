@@ -1,0 +1,67 @@
+{
+  "pack": "en-fineweb-edu.parquet",
+  "pack_sha256": "3a0ad16983c03e9d8b6a40d8e58d769d9b89e68406a3b86e79fd7b8d68e022de",
+  "gold": "en-fineweb-edu_gold.csv",
+  "gold_sha256": "a06212a5f4952b9bf0922d3e21dc72ee3110e53dec60fec533af9deb87084190",
+  "gold_count": 158,
+  "rules": "teams/01-data-a/spec_v1_1/sheets/medicine_english.md",
+  "rules_file_sha256": "0c41bfe52eb2d14c490e668b8f5e29d3691449323e12ff188b9f81215a95e9ef",
+  "code_sha256": "2285329611cdfee005b09ae96fc864af8d934303ee292f191e3a150a9f60e393",
+  "limit_percent": "1",
+  "limit_documents": 1,
+  "status": "PASS",
+  "results": [
+    {
+      "rule": "DA-A8-003",
+      "changed": 0,
+      "dropped": 0,
+      "affected_unique": 0,
+      "errors": 0,
+      "error_types": [],
+      "percent": "0.000000",
+      "result": "PASS",
+      "changed_ids": [],
+      "dropped_ids": [],
+      "affected_ids": []
+    },
+    {
+      "rule": "DA-D6-002",
+      "changed": 0,
+      "dropped": 0,
+      "affected_unique": 0,
+      "errors": 0,
+      "error_types": [],
+      "percent": "0.000000",
+      "result": "PASS",
+      "changed_ids": [],
+      "dropped_ids": [],
+      "affected_ids": []
+    },
+    {
+      "rule": "DA-D7-001",
+      "changed": 0,
+      "dropped": 0,
+      "affected_unique": 0,
+      "errors": 0,
+      "error_types": [],
+      "percent": "0.000000",
+      "result": "PASS",
+      "changed_ids": [],
+      "dropped_ids": [],
+      "affected_ids": []
+    },
+    {
+      "rule": "ALL IN ORDER",
+      "changed": 0,
+      "dropped": 0,
+      "affected_unique": 0,
+      "errors": 0,
+      "error_types": [],
+      "percent": "0.000000",
+      "result": "PASS",
+      "changed_ids": [],
+      "dropped_ids": [],
+      "affected_ids": []
+    }
+  ]
+}

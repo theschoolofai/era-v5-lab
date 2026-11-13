@@ -1,7 +1,44 @@
 domain,kind,code,docs,docs_read,percent,readers,spec_v1_rules,spec_v1_1,example_doc_ids
-code,missed,E4,3,100,3.0,revant,DA-E4-005 CANDIDATE; DA-E4-010 CANDIDATE; DA-E4-009 CANDIDATE; DA-E4-007 CANDIDATE,,11aa7a16ad5a2061 811ce55eef413610 a0d94ae2c8f0d393
-code,missed,C3,2,100,2.0,revant,DA-C3-002 CANDIDATE,,7d0432188888631b df63f98851068f39
-code,missed,E1,2,100,2.0,revant,DA-E1-001 CANDIDATE; DA-E1-004 CANDIDATE; DA-E1-008 CANDIDATE; DA-E1-006 CANDIDATE; DA-E1-005 CANDIDATE; DA-E1-007 CANDIDATE,,8f07828d5c3af2a6 d840fa74b5200b65
+code,missed,E4,6,200,3.0,narasimhatejav revant,DA-E4-005 CANDIDATE; DA-E4-010 CANDIDATE; DA-E4-009 CANDIDATE; DA-E4-007 CANDIDATE,,11aa7a16ad5a2061 1247e834aaf22251 811ce55eef413610
+code,missed,E1,4,200,2.0,narasimhatejav revant,DA-E1-001 CANDIDATE; DA-E1-004 CANDIDATE; DA-E1-008 CANDIDATE; DA-E1-006 CANDIDATE; DA-E1-005 CANDIDATE; DA-E1-007 CANDIDATE,,43de7e6958f10c11 6455ab7982d0ccb2 8f07828d5c3af2a6
+code,missed,C3,2,200,1.0,revant,DA-C3-002 CANDIDATE,,7d0432188888631b df63f98851068f39
+code,missed,C1,1,200,0.5,narasimhatejav,DA-C1-004 CANDIDATE; DA-C1-005 CANDIDATE,,c347430edfae2bbe
+code,missed,E2,1,200,0.5,narasimhatejav,DA-E2-001 CANDIDATE,,85156d78fee179b8
+code,missed,E3,1,200,0.5,narasimhatejav,DA-E3-003 CANDIDATE; DA-E3-004 CANDIDATE,,7b383f4c84665082
+english,new,C4,4,200,2.0,kunal,none,yes,52bd1da881ee0592 b4281ea0782a6671 bf1cefdecf84bf1a
+english,new,NEW-factual-error,4,200,2.0,kunal,none,yes,0f7240ba1fdd3411 0f7b90400c1362df 52bd1da881ee0592
+english,new,NEW-appended-qa,3,200,1.5,kunal,none,yes,5aeafd200220c080 c3d88009d8a459e9 ffaad5c6d3dde332
+english,new,NEW-missing-spaces,2,200,1.0,aneesha,none,yes,2feb05980d7d894a 502ee3da08920d31
+english,new,NEW-abstract-with-no-paper-behind-it,1,200,0.5,aneesha,none,,8e878c3f109876a1
+english,new,NEW-ad-disguised-as-an-article,1,200,0.5,aneesha,none,,31578015b87b9c76
+english,new,NEW-bibtex-record,1,200,0.5,smita,none,,f0bdeaae299d2822
+english,new,NEW-clickbait-and-promotional-tone,1,200,0.5,aneesha,none,,e959f68211479a14
+english,new,NEW-footnote-whose-main-content-is-missing,1,200,0.5,aneesha,none,,986032c30098ab9b
+english,new,NEW-grammar-error,1,200,0.5,aneesha,none,,012f59fe9357a1d2
+english,new,NEW-header-details-stripped,1,200,0.5,aneesha,none,,c29476cba55fb465
+english,new,NEW-heading-stuck-to-the-paragraph,1,200,0.5,aneesha,none,,cfa8295d1ae741dd
+english,new,NEW-hyphen-split-words,1,200,0.5,aneesha,none,,c0141829a89b70e5
+english,new,NEW-leftover-hyphens-from-line-breaks,1,200,0.5,aneesha,none,,c0141829a89b70e5
+english,new,NEW-mismatched-quotation-marks,1,200,0.5,aneesha,none,,c0141829a89b70e5
+english,new,NEW-missing-code,1,200,0.5,kunal,none,,ea84635879759482
+english,new,NEW-missing-space-after-a-full-stop,1,200,0.5,aneesha,none,,e956f775c244329d
+english,new,NEW-old-place-name-spelling,1,200,0.5,aneesha,none,,1f9b5ac7201191fd
+english,new,NEW-pronoun-slip,1,200,0.5,aneesha,none,,1f9b5ac7201191fd
+english,new,NEW-spliced-sentences,1,200,0.5,aneesha,none,,c0141829a89b70e5
+english,new,NEW-squashed-into-prose,1,200,0.5,aneesha,none,,c2a1accfe1ee73c1
+english,new,NEW-text-describing-a-missing-video,1,200,0.5,aneesha,none,,e959f68211479a14
+english,new,NEW-text-with-the-link-gone,1,200,0.5,aneesha,none,,012f59fe9357a1d2
+english,new,NEW-too-few-words,1,200,0.5,aneesha,none,,ac425325b462b50e
+english,new,NEW-two-pieces-stuck-together-with-no-space,1,200,0.5,aneesha,none,,e959f68211479a14
+english,new,NEW-two-words-stuck-together,1,200,0.5,aneesha,none,,6846c04d749df61b
+english,new,NEW-typos-and-grammar-errors,1,200,0.5,aneesha,none,,6846c04d749df61b
+english,missed,C1,38,200,19.0,aneesha kunal narasimhatejav smita,DA-C1-006 CANDIDATE,,005b6af570979c96 01eb3742a898cd17 0b9075e915ffceac
+english,missed,C3,6,200,3.0,aneesha,DA-C3-001 CANDIDATE; DA-C3-003 CANDIDATE,,11878b0609eb47c3 1199766d07c144b5 8d8a59cfa7b6bf97
+english,missed,B4,3,200,1.5,kunal,DA-B4-007 CANDIDATE; DA-B4-008 CANDIDATE; DA-B4-012 CANDIDATE; DA-B4-010 CANDIDATE; DA-B4-011 CANDIDATE,,0407920ed49eb6af 55eb060ae2bc2600 82aa41d29e468a85
+english,missed,D3,3,200,1.5,aneesha narasimhatejav,DA-D3-003 CANDIDATE,,91ec00ec7f982d18 dbcb78a28f12027d fd566045d10b5f73
+english,missed,B1,1,200,0.5,aneesha,DA-B1-002 CANDIDATE,,11878b0609eb47c3
+english,missed,F1,1,200,0.5,smita,DA-F1-005 CANDIDATE,,6b35cf6dc52ed772
+english,harm,DA-C2-003,1,200,0.5,smita,DA-C2-003 english CANDIDATE,,21866f62a874ae46
 math,new,NEW-missing-formulas,29,299,9.7,pyru satyanarayana,none,yes,0614bc6ecf034495 06f2d75b8c5610f1 0e89fda818263262
 math,new,NEW-flattened-formulas,22,299,7.4,pyru satyanarayana,none,yes,033ab42a96110ff9 0f2f052fd95da6d4 1ab888d9366a43fd
 math,new,NEW-seo-filler,15,299,5.0,pyru satyanarayana,none,yes,053c7e6dfbdb4e46 085f9f7987b7cf56 0e2b9cc0beb5fb11
@@ -41,26 +78,39 @@ math,missed,D3,1,299,0.3,pyru,DA-D3-005 CANDIDATE,,b0db84c6cc4bfa1d
 math,missed,F2,1,299,0.3,pyru,none,,5a93d530d9026175
 math,harm,DA-C2-001,6,299,2.0,pyru,DA-C2-001 math CANDIDATE,,1b1a0d909bc9c515 3bc7339b3365a201 404146d814b03d07
 math,harm,DA-D3-005,1,299,0.3,pyru,DA-D3-005 math CANDIDATE,,1eadf4cf278db7e6
-science,new,NEW-pdf-ligatures,5,100,5.0,aditeya,none,yes,21f33206f24a2f0e 255f57592e1e996a 507e3afaa15e2375
-science,new,NEW-hyphen-split-words,3,100,3.0,aditeya,none,yes,5a201c19575522f9 75768b1b6b165557 93412124dc441459
-science,new,NEW-merged-table-cells,3,100,3.0,aditeya,none,yes,680400a6c14bde86 6cdcf2807cbf5156 6deaff0b02c57734
-science,new,NEW-missing-table-data,3,100,3.0,aditeya,none,yes,0863ac75c9ec153e 4a33733776358fac fac0d63aba9fab0c
-science,new,NEW-reading-order,2,100,2.0,aditeya,none,yes,e4d1400f9236b8c9 ef812364b6cca7a0
-science,new,NEW-seo-filler,2,100,2.0,aditeya,none,yes,365b8539483e5a3f d8a1ed9b1607a1dd
-science,new,NEW-toc-dot-leaders,2,100,2.0,aditeya,none,yes,59aef569bc52cdff b1857f12c0d28f07
-science,new,NEW-underscore-blanks,2,100,2.0,aditeya,none,yes,3b2c0420a33ccaab d8e3f724095e4aaa
-science,new,C5,1,100,1.0,aditeya,none,yes,39bb03a0df7d4af5
-science,new,NEW-detached-diacritics,1,100,1.0,aditeya,none,yes,21f33206f24a2f0e
-science,new,NEW-figure-only-doc,1,100,1.0,aditeya,none,yes,35d51dcf919068f8
-science,new,NEW-generated-image-captions,1,100,1.0,aditeya,none,yes,79596acc4ee8648a
-science,new,NEW-missing-spaces,1,100,1.0,aditeya,none,yes,f163172e98bdaa35
-science,new,NEW-orphan-figure-labels,1,100,1.0,aditeya,none,yes,75183caf56d8e54b
-science,new,NEW-pdf-quote-glyphs,1,100,1.0,aditeya,none,yes,a286f7d691161a05
-science,new,NEW-split-superscripts,1,100,1.0,aditeya,none,yes,db955ac64864c36c
-science,new,NEW-spun-text,1,100,1.0,aditeya,none,yes,f82d23a50e08a31f
-science,missed,C1,18,100,18.0,aditeya,DA-C1-007 ?,,00b17b2db8046697 03f43ec094ecc97c 1a15c4ec5610cc58
-science,missed,C2,4,100,4.0,aditeya,DA-C2-004 ?,,2223dc794fb288a2 980d490625a9634d b1857f12c0d28f07
-science,missed,F1,4,100,4.0,aditeya,DA-F1-006 ?,,1a15c4ec5610cc58 687e6f4c567f4a39 980d490625a9634d
-science,missed,C3,3,100,3.0,aditeya,DA-C3-006 ?,,00b17b2db8046697 c7953f24786c4754 e46456a5002848ec
-science,missed,A1,1,100,1.0,aditeya,DA-A1-006 ?,,507e3afaa15e2375
-science,missed,D1,1,100,1.0,aditeya,DA-D1-001 ?,,79596acc4ee8648a
+science,new,NEW-page-artifact,9,200,4.5,utkarsh,none,yes,28b7763d4a13a37e 3f77b536af11bdbd 6431e058711852b7
+science,new,NEW-underscore-blanks,7,200,3.5,aditeya utkarsh,none,yes,323d03a0c69a993a 3b2c0420a33ccaab 5379152bb87b7ecf
+science,new,NEW-pdf-ligatures,5,200,2.5,aditeya,none,yes,21f33206f24a2f0e 255f57592e1e996a 507e3afaa15e2375
+science,new,NEW-hyphen-split-words,3,200,1.5,aditeya,none,yes,5a201c19575522f9 75768b1b6b165557 93412124dc441459
+science,new,NEW-merged-table-cells,3,200,1.5,aditeya,none,yes,680400a6c14bde86 6cdcf2807cbf5156 6deaff0b02c57734
+science,new,NEW-missing-spaces,3,200,1.5,aditeya utkarsh,none,yes,48ffcdfea0bdbaf7 4a6a549c3ead2ceb f163172e98bdaa35
+science,new,NEW-missing-table-data,3,200,1.5,aditeya,none,yes,0863ac75c9ec153e 4a33733776358fac fac0d63aba9fab0c
+science,new,NEW-drop-cap-split,2,200,1.0,utkarsh,none,yes,768ce30e6fac2306 94f54a2af0a8c897
+science,new,NEW-missing-figures,2,200,1.0,utkarsh,none,yes,469a6695b57d9130 ceea9671dd61d0b1
+science,new,NEW-near-empty,2,200,1.0,utkarsh,none,yes,766c83b5e63a0192 e5c998e626aeaef9
+science,new,NEW-reading-order,2,200,1.0,aditeya,none,yes,e4d1400f9236b8c9 ef812364b6cca7a0
+science,new,NEW-seo-filler,2,200,1.0,aditeya,none,yes,365b8539483e5a3f d8a1ed9b1607a1dd
+science,new,NEW-small-caps-split,2,200,1.0,utkarsh,none,yes,5b348d724c744d07 feaaf0b7ad58777d
+science,new,NEW-toc-dot-leaders,2,200,1.0,aditeya,none,yes,59aef569bc52cdff b1857f12c0d28f07
+science,new,C5,1,200,0.5,aditeya,none,,39bb03a0df7d4af5
+science,new,NEW-detached-diacritics,1,200,0.5,aditeya,none,,21f33206f24a2f0e
+science,new,NEW-empty-table-rows,1,200,0.5,utkarsh,none,,762ce1e85df1342d
+science,new,NEW-figure-only-doc,1,200,0.5,aditeya,none,,35d51dcf919068f8
+science,new,NEW-generated-image-captions,1,200,0.5,aditeya,none,,79596acc4ee8648a
+science,new,NEW-huge-tables,1,200,0.5,utkarsh,none,,1644d240cedb1491
+science,new,NEW-latex-residue,1,200,0.5,utkarsh,none,,ceea9671dd61d0b1
+science,new,NEW-orphan-figure-labels,1,200,0.5,aditeya,none,,75183caf56d8e54b
+science,new,NEW-pdf-quote-glyphs,1,200,0.5,aditeya,none,,a286f7d691161a05
+science,new,NEW-personal-names-ages,1,200,0.5,utkarsh,none,,f8dbaec0629f41c8
+science,new,NEW-prose-in-code-fence,1,200,0.5,utkarsh,none,,ded2213a089b6cec
+science,new,NEW-scrambled-vertical-text,1,200,0.5,utkarsh,none,,fa41800a38a7ef77
+science,new,NEW-split-superscripts,1,200,0.5,aditeya,none,,db955ac64864c36c
+science,new,NEW-spun-text,1,200,0.5,aditeya,none,,f82d23a50e08a31f
+science,missed,C1,20,200,10.0,aditeya utkarsh,DA-C1-007 ?,,00b17b2db8046697 03f43ec094ecc97c 1a15c4ec5610cc58
+science,missed,F1,8,200,4.0,aditeya utkarsh,DA-F1-006 ?,,1a15c4ec5610cc58 24bebaf6ee460f90 687e6f4c567f4a39
+science,missed,C2,6,200,3.0,aditeya utkarsh,DA-C2-004 ?,,2223dc794fb288a2 24eaaeb743718ed2 3f77b536af11bdbd
+science,missed,A5,4,200,2.0,utkarsh,none,check: no sci rule,2f28fd430f65033c d14d57d2f7ae06c9 e58d6a06c9323550
+science,missed,A1,3,200,1.5,aditeya utkarsh,DA-A1-006 ?,,507e3afaa15e2375 af56bfd768132ef9 e77b0eeab987db14
+science,missed,C3,3,200,1.5,aditeya,DA-C3-006 ?,,00b17b2db8046697 c7953f24786c4754 e46456a5002848ec
+science,missed,D1,3,200,1.5,aditeya utkarsh,DA-D1-001 ?,,1644d240cedb1491 75d3197ef1eebe14 79596acc4ee8648a
+science,missed,B4,1,200,0.5,utkarsh,DA-B4-013 ?,,92c5a95d0a91a30f

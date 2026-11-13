@@ -14,8 +14,8 @@ The flow follows spec v1:
 | `scripts/` | `collect_reading_prs.py` (the candidate list) and `show_examples.py` (the text behind each reading row). See `scripts/README.md`. |
 | `tests/` | One test file per script. Run from `teams/01-data-a`: `python3 -m unittest discover -s spec_v1_1/tests`. |
 | `results/reading/` | The collector's output: `summary.md`, `diseases_by_domain.csv` and `findings_all.csv`. |
-| `results/sheets/` | Harm-test reports (JSON with IDs only), one per pack, and `summary.md`, a summary of the results, the gold contradictions and what is open, with the commit they belong to. |
-| `sheets/` | `medicine_<domain>.md`, `decisions_<domain>.md`, and later `specv1_1.md`. |
+| `results/sheets/` | Harm-test reports (JSON with IDs only), one per pack. `harm_tests.md` is the record to submit: each new disease with its medicine and harm test. `summary.md` covers the results per pack, the gold contradictions and what is open, with the commit they belong to. |
+| `sheets/` | `medicine_<domain>.md`, `decisions_<domain>.md` and `NEW_DISEASES.md`. Also `specv1_1.md`, the consolidated sheet (draft, 13 Nov), arranged like `../spec_v1/sheets/specv1.md`. Its 23 cards (2 English, 8 math, 12 science, and 1 Indic) and their python blocks are copied unchanged from the four medicine sheets. `medicine_indic.md` carries Data B's `DB-C6-001`, its function unchanged, inside a pack check. |
 
 ## Steps
 
@@ -24,8 +24,8 @@ The flow follows spec v1:
 3. **Sheets.** Fill `sheets/medicine_<domain>.md` and `sheets/decisions_<domain>.md`, one card per candidate, in the spec v1 card form.
 4. **Unit tests** for each medicine go in `tests/`.
 5. **Harm tests**, with the commands below. Write the reports to `results/sheets/`, never to `rules/`.
-6. **Conflicts:** `../tools/medicine_conflicts.py`, with `--out` pointing into `results/sheets/`.
-7. **Collate** into `sheets/specv1_1.md`.
+6. **Conflicts:** `../harmtest/medicine_conflicts.py`, with `--out` pointing into `results/sheets/`.
+7. **Collate** into `sheets/specv1_1.md`. A first draft was made on 13 Nov. When a medicine sheet changes, rebuild it so the cards match.
 8. **Push** to `g1-spec-v1-1` on patilvijay23/era-v5-lab. This updates theschoolofai/era-v5-lab#365.
 
 ## Harm tests
@@ -33,7 +33,7 @@ The flow follows spec v1:
 **Command.** Run from the repo root. One run per pack, never pooled. `--rule all` tests each section on its own, then all of them in file order.
 
 ```
-python3 -I teams/01-data-a/tools/harm_test.py \
+python3 -I teams/01-data-a/harmtest/harm_test.py \
   --pack <pack Parquet> \
   --gold teams/01-data-a/gold/<pack>_gold.csv \
   --rules teams/01-data-a/spec_v1_1/sheets/medicine_<domain>.md \

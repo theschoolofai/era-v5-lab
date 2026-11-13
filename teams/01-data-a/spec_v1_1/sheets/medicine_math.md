@@ -31,7 +31,7 @@ Each harm cell gives the gold harm % (gold docs changed or dropped / gold docs) 
 
 These are gold contradictions, not false positives. Under spec v1's hold rule, `DA-A8-001` would be held, because it treats fewer reading rows, and that would leave A8 without a working medicine.
 
-**Proposed handling: gold contradictions** (aneeshads, 13 Nov; waiting for Vijay's ruling). This is how spec v1 handled `eee25e81417bc1b7` in sci.
+**Handling: gold contradictions** (proposed by aneeshads on 13 Nov; Vijay agreed). This is how spec v1 handled `eee25e81417bc1b7` in sci.
 - Both docs stay out of the count for these two rules only.
 - They are flagged for a reader to check again at the next gold refresh.
 - Without them, finemath in order touches 0 of the other 84 gold docs and passes.

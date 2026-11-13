@@ -4,15 +4,19 @@
 The readers put reading_<pack>_<name>.csv and .md in teams/01-data-a/reading/ and open a PR to g1-reading in
 mittalutkarsh/era-v5-lab (see that folder's README). Some PRs land in another repo by mistake, so this looks at the
 open PRs of all three era-v5-lab repos whose branch starts with g1-reading- or whose title starts with "reading",
-and at the files already merged into g1-reading.
+and at the files already merged: into g1-reading, and into theschoolofai/era-v5-lab main, where readings that went
+there by mistake end up once merged.
 
 From spec_v1_1/scripts/:
 
     python3 -I collect_reading_prs.py                       collect once
     python3 -I collect_reading_prs.py --watch 30            collect again every 30 minutes (Ctrl-C stops)
     python3 -I collect_reading_prs.py --docs-read pyru=199  a reader who read more or fewer than 100 docs
+    python3 -I collect_reading_prs.py --docs-read narasimhatejav@english=50
+                                                            the same, in one domain only
     python3 -I collect_reading_prs.py --alias NEW-missing-formula=NEW-missing-formulas
                                                             count two readers' names for a disease as one
+    python3 -I collect_reading_prs.py --skip-reader utkarsh leave out every reading file of one reader
 
 What it writes (default: spec_v1_1/results/reading/; the spec v1 rules come from spec_v1/sheets/specv1.md):
     findings_all.csv         every row of every reading CSV, with domain, pack, reader and where it came from
@@ -21,11 +25,12 @@ What it writes (default: spec_v1_1/results/reading/; the spec v1 rules come from
     summary.md               the PRs found, the README rows with no reading yet, and the Spec v1.1 list: new
                              diseases in 1% or more of the docs read in a domain (--min-percent; the README's
                              example is 2+ docs out of 200, so 2 of 200 counts and 2 of 299 does not)
+The cache goes outside the repo (--cache; default: reading_cache/ next to the repo folder):
     raw/                     the downloaded files, named by git blob SHA, so an unchanged file is not fetched again
     state.json               the PR heads of the last run, to print what changed since then
 
-Which copy of a file counts: the reader's own open PR (its branch ends in their name), else the merged copy on
-g1-reading, else any other open PR that carries it. Downloaded files are only read as CSV, never run.
+Which copy of a file counts: the reader's own open PR (its branch ends in their name), else a merged copy (on
+g1-reading, then on theschoolofai main), else any other open PR that carries it. Downloaded files are only read as CSV, never run.
 The quote column is left empty for F1 and E3 rows: type and offset only, never the value.
 
 Token: GH_TOKEN or GITHUB_TOKEN, else `gh auth token`, else none (60 API requests an hour; a run uses about 10).
@@ -51,6 +56,7 @@ from pathlib import Path
 
 REPOS = ("mittalutkarsh/era-v5-lab", "theschoolofai/era-v5-lab", "patilvijay23/era-v5-lab")
 READING_REPO, READING_BRANCH = "mittalutkarsh/era-v5-lab", "g1-reading"
+MERGED = ((READING_REPO, READING_BRANCH), ("theschoolofai/era-v5-lab", "main"))  # merged copies, preferred in this order
 READING_DIR = "teams/01-data-a/reading"
 READING_FILE = re.compile(r"^teams/01-data-a/reading/(?P<name>reading_(?P<pack>.+)_(?P<reader>[^_/]+)\.(?P<ext>csv|md))$")
 COLUMNS = ("doc_id", "kind", "code", "offsets", "quote", "why", "source")
@@ -63,6 +69,8 @@ DOCS_PER_READER = 100  # README: "100 docs per person"
 PRIVATE_CODES = ("F1", "E3")
 HERE = Path(__file__).resolve().parent  # teams/01-data-a/spec_v1_1/scripts
 DEFAULT_OUT = HERE.parent / "results" / "reading"
+REPO = HERE.parents[3]  # era-v5-lab
+DEFAULT_CACHE = REPO.parent / "reading_cache"  # raw/ and state.json, kept out of the repo
 DEFAULT_SPEC = HERE.parents[1] / "spec_v1" / "sheets" / "specv1.md"
 API = "https://api.github.com"
 SPEC_HEADING = re.compile(r"^## Medicine \d+ — (?P<family>[\w-]+) / (?P<code>[A-Z]\d) / `(?P<rule>[^`]+)`", re.M)
@@ -79,6 +87,20 @@ def domain_of(pack: str) -> str:
         if p.startswith(prefix):
             return domain
     return DOMAIN_WORDS.get(p, "unknown")
+
+
+def full_pack(row_pack: str, file_pack: str):
+    """(pack, domain) of a row. A bare pack name in a row ("cpp" in reading_code_x.csv) takes its domain from the
+    file name and gets that domain's prefix ("code-cpp")."""
+    domain = domain_of(row_pack)
+    if domain != "unknown":
+        return row_pack, domain
+    file_domain = domain_of(file_pack)
+    if file_domain == "unknown":
+        return row_pack, domain
+    prefix = next(p for p, d in PREFIXES if d == file_domain)
+    name = row_pack.strip().lower()
+    return (name if name.startswith(prefix) else prefix + name), file_domain
 
 
 def normalize_code(code: str) -> str:
@@ -126,19 +148,30 @@ def parse_reading_csv(text: str, pack: str, reader: str):
         if not doc_id:
             continue
         kind, code, row_pack = get("kind").lower(), normalize_code(get("code")), get("pack") or pack
+        row_pack, row_domain = full_pack(row_pack, pack)
         if kind not in KINDS:
             warnings.append(f"line {table.line_num}: kind {kind!r} is not new, missed or harm")
-        rows.append({"domain": domain_of(row_pack), "pack": row_pack, "reader": reader, "doc_id": doc_id,
+        rows.append({"domain": row_domain, "pack": row_pack, "reader": reader, "doc_id": doc_id,
                      "kind": kind, "code": code, "offsets": get("offsets"),
                      "quote": "" if is_private(code) else get("quote"), "why": get("why"), "source": get("source")})
     return rows, warnings
 
 
+def leave_out(chosen, skip):
+    """Split the chosen copies into the ones kept and the ones of a reader in `skip` (lower-case names):
+    ({name: (copy, others)}, [(name, reader, pack, where it came from)])."""
+    kept = {n: v for n, v in chosen.items() if v[0]["reader"].lower() not in skip}
+    left = sorted((n, v[0]["reader"], v[0]["pack"], v[0]["from"]) for n, v in chosen.items()
+                  if v[0]["reader"].lower() in skip)
+    return kept, left
+
+
 def choose(candidates):
-    """One copy per file name: {name: (chosen, others)}. The reader's own open PR, then g1-reading, then the rest."""
+    """One copy per file name: {name: (chosen, others)}. The reader's own open PR, then a merged copy (g1-reading
+    before theschoolofai main, as in MERGED), then the rest."""
     def rank(c):
         own = c["pr"] is not None and c["head_ref"].lower().endswith("-" + c["reader"].lower())
-        return (0 if own else 1 if c["pr"] is None else 2, -c["updated_ts"])
+        return (0 if own else 1 if c["pr"] is None else 2, c.get("merged_rank", 0), -c["updated_ts"])
     by_name = defaultdict(list)
     for c in candidates:
         by_name[c["name"]].append(c)
@@ -147,6 +180,46 @@ def choose(candidates):
         ordered = sorted(copies, key=rank)
         out[name] = (ordered[0], ordered[1:])
     return out
+
+
+def listing_candidates(items, repo: str, branch: str, merged_rank: int = 0):
+    """A reading folder's contents listing -> (candidates, the README's download URL or None).
+    reading_check files and anything that isn't a reading file are left out."""
+    found, readme = [], None
+    for item in items:
+        if item.get("type") != "file":
+            continue
+        if item["name"] == "README.md":
+            readme = item["download_url"]
+            continue
+        m = READING_FILE.match(f"{READING_DIR}/{item['name']}")
+        if m and not m["name"].startswith("reading_check"):
+            found.append({"name": m["name"], "pack": m["pack"], "reader": m["reader"], "ext": m["ext"],
+                          "blob": item["sha"], "url": item["download_url"], "from": f"{repo}@{branch}",
+                          "pr": None, "head_ref": "", "updated_ts": 0.0, "merged_rank": merged_rank})
+    return found, readme
+
+
+def docs_read_overrides(values):
+    """--docs-read values -> {"reader": N, "reader@domain": N}. READER@DOMAIN=N sets one domain only."""
+    out = {}
+    for key, n in parse_pairs(values, "--docs-read", int).items():
+        reader, at, domain = key.lower().partition("@")
+        reader = reader.strip()
+        if at:
+            d = DOMAIN_WORDS.get(domain.strip())
+            if not d or not reader:
+                raise ValueError(f"--docs-read READER@DOMAIN=N: {key!r} (domain is english, code, math or science)")
+            out[f"{reader}@{d}"] = n
+        else:
+            out[reader] = n
+    return out
+
+
+def docs_for(overrides, reader: str, domain: str) -> int:
+    """Docs a reader read in a domain: READER@DOMAIN, else READER, else 100."""
+    r = reader.lower()
+    return overrides.get(f"{r}@{domain}", overrides.get(r, DOCS_PER_READER))
 
 
 def parse_spec(text: str):
@@ -313,18 +386,18 @@ def fetch(gh, warnings):
                                    "head_ref": pr["head"]["ref"], "updated_ts": iso_ts(pr["updated_at"])})
             prs.append(info)
     readme = ""
-    for item in gh.pages(f"/repos/{READING_REPO}/contents/{READING_DIR}", {"ref": READING_BRANCH}):
-        if item.get("type") != "file":
+    for rank, (repo, branch) in enumerate(MERGED):
+        try:
+            items = gh.pages(f"/repos/{repo}/contents/{READING_DIR}", {"ref": branch})
+        except urllib.error.HTTPError as e:
+            if e.code != 404:
+                raise
+            warnings.append(f"{repo}@{branch}: no {READING_DIR} folder")
             continue
-        if item["name"] == "README.md":
-            readme = gh.get(item["download_url"])[0].decode("utf-8", errors="replace")
-            continue
-        m = READING_FILE.match(f"{READING_DIR}/{item['name']}")
-        if m and not m["name"].startswith("reading_check"):
-            candidates.append({"name": m["name"], "pack": m["pack"], "reader": m["reader"], "ext": m["ext"],
-                               "blob": item["sha"], "url": item["download_url"],
-                               "from": f"{READING_REPO}@{READING_BRANCH}", "pr": None, "head_ref": "",
-                               "updated_ts": 0.0})
+        found, readme_url = listing_candidates(items, repo, branch, rank)
+        candidates += found
+        if readme_url and (repo, branch) == (READING_REPO, READING_BRANCH):  # the README of the reading task
+            readme = gh.get(readme_url)[0].decode("utf-8", errors="replace")
     return prs, candidates, readme
 
 
@@ -359,7 +432,8 @@ def write_summary(path, when, prs, used, readme_matches, docs_read, readers_by_d
     out += [md_table(["PR", "title", "author", "branch -> base", "reading files"],
                      [(f"[{p['from']}]({p['url']})", p["title"], p["author"], f"{p['head_ref']} -> {p['base']}",
                        ", ".join(p["files"]) or "none") for p in prs]) if prs else "None.", ""]
-    out += ["## Files used", "", "One copy per file: the reader's own open PR, else g1-reading, else another PR.", ""]
+    out += ["## Files used", "", "One copy per file: the reader's own open PR, else a merged copy (g1-reading, then "
+            "theschoolofai main), else another PR.", ""]
     out += [md_table(["file", "from", "rows", "also in"],
                      [(n, src, rows if rows is not None else "-", ", ".join(o) or "") for n, src, rows, o in used]),
             ""]
@@ -372,7 +446,7 @@ def write_summary(path, when, prs, used, readme_matches, docs_read, readers_by_d
             f"{DOCS_PER_READER} per reader unless `--docs-read` says otherwise. Used for the % column and the "
             "Spec v1.1 list.", ""]
     out += [md_table(["domain", "docs read", "readers"],
-                     [(d, docs_read[d], ", ".join(f"{r} {overrides.get(r.lower(), DOCS_PER_READER)}"
+                     [(d, docs_read[d], ", ".join(f"{r} {docs_for(overrides, r, d)}"
                                                  for r in sorted(readers_by_domain[d])))
                       for d in sorted(docs_read)]), ""]
     flagged = [t for t in table if t["spec_v1_1"]]
@@ -403,11 +477,13 @@ def write_summary(path, when, prs, used, readme_matches, docs_read, readers_by_d
 def run_once(gh, args, overrides, aliases):
     warnings = []
     prs, candidates, readme = fetch(gh, warnings)
-    raw_dir = args.out / "raw"
+    raw_dir = args.cache / "raw"
     raw_dir.mkdir(parents=True, exist_ok=True)
 
     rows, used, notes, files, readers_by_domain = [], [], [], [], defaultdict(set)
-    for name, (c, others) in sorted(choose(candidates).items()):
+    chosen, left = leave_out(choose(candidates), args.skip_reader)
+    warnings += [f"left out on request (--skip-reader {reader}): {name} ({src})" for name, reader, _, src in left]
+    for name, (c, others) in sorted(chosen.items()):
         data = download(gh, c, raw_dir)
         if c["ext"] != "csv":
             notes.append((name, c["from"], None, sorted({o["from"] for o in others})))
@@ -432,7 +508,7 @@ def run_once(gh, args, overrides, aliases):
     else:
         warnings.append(f"spec not found ({args.spec}): the spec v1 rules column is empty")
 
-    docs_read = {d: sum(overrides.get(r.lower(), DOCS_PER_READER) for r in rs) for d, rs in readers_by_domain.items()}
+    docs_read = {d: sum(docs_for(overrides, r, d) for r in rs) for d, rs in readers_by_domain.items()}
     table = summarize(rows, docs_read, args.min_percent, spec_by_code, spec_by_id)
     when = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
@@ -441,12 +517,15 @@ def run_once(gh, args, overrides, aliases):
     write_csv(args.out / "diseases_by_domain.csv", table,
               ["domain", "kind", "code", "docs", "docs_read", "percent", "readers", "spec_v1_rules", "spec_v1_1",
                "example_doc_ids"])
-    readme_matches = match_rows(parse_readme_rows(readme), files) if readme else []
+    left_names = {name for name, _, _, _ in left}
+    readme_matches = match_rows(parse_readme_rows(readme), files + [(n, r, {p}) for n, r, p, _ in left]) if readme else []
+    readme_matches = [(row, reader, packs, [n + " (left out on request)" if n in left_names else n for n in names])
+                      for row, reader, packs, names in readme_matches]
     write_summary(args.out / "summary.md", when, prs, used, readme_matches, docs_read, readers_by_domain,
                   overrides, table, args.min_percent, warnings)
 
     heads = {p["from"]: p["head_sha"] for p in prs}
-    report_changes(args.out / "state.json", heads)
+    report_changes(args.cache / "state.json", heads)
     flagged = sum(1 for t in table if t["spec_v1_1"])
     print(f"{when}: {len(prs)} open reading PRs, {len(used)} files, {len(rows)} rows, "
           f"{flagged} Spec v1.1 candidates -> {args.out / 'summary.md'}")
@@ -472,6 +551,11 @@ def report_changes(state_path: Path, heads: dict):
     state_path.write_text(json.dumps({"heads": heads}, indent=1), encoding="utf-8")
 
 
+def inside_repo(path: Path) -> bool:
+    p = path.expanduser().resolve()
+    return p == REPO or REPO in p.parents
+
+
 def parse_pairs(values, what, convert):
     out = {}
     for v in values:
@@ -485,17 +569,22 @@ def parse_pairs(values, what, convert):
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Collect the Week 2 reading audits and count diseases per domain.")
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT, help="output folder (default spec_v1_1/results/reading)")
+    ap.add_argument("--cache", type=Path, default=DEFAULT_CACHE,
+                    help="folder for raw/ and state.json, outside the repo (default: reading_cache/ next to the repo)")
     ap.add_argument("--spec", type=Path, default=DEFAULT_SPEC, help="specv1.md, for the spec v1 rules column")
     ap.add_argument("--min-percent", type=float, default=1.0,
                     help="share of a domain's docs read for the Spec v1.1 list (default 1, i.e. 1%% or more)")
-    ap.add_argument("--docs-read", action="append", default=[], metavar="READER=N",
-                    help="docs a reader read, if not 100 (reader as in the file name)")
+    ap.add_argument("--docs-read", action="append", default=[], metavar="READER[@DOMAIN]=N",
+                    help="docs a reader read, if not 100 (reader as in the file name); READER@DOMAIN=N for one domain")
     ap.add_argument("--alias", action="append", default=[], metavar="CODE=CODE",
                     help="count the first code as the second, e.g. NEW-missing-formula=NEW-missing-formulas")
     ap.add_argument("--watch", type=float, metavar="MINUTES", help="collect again every MINUTES until Ctrl-C")
+    ap.add_argument("--skip-reader", action="append", default=[], metavar="READER",
+                    help="leave out every reading file of this reader (name as in the file name); repeatable")
     args = ap.parse_args(argv)
+    args.skip_reader = {r.strip().lower() for r in args.skip_reader if r.strip()}
     try:
-        overrides = {k.lower(): v for k, v in parse_pairs(args.docs_read, "--docs-read", int).items()}
+        overrides = docs_read_overrides(args.docs_read)
         aliases = {normalize_code(k): normalize_code(v) for k, v in parse_pairs(args.alias, "--alias", str).items()}
     except ValueError as e:
         ap.error(str(e))
@@ -505,7 +594,10 @@ def main(argv=None) -> int:
         ap.error("--docs-read must be 1 or more")
     if args.watch is not None and args.watch < 5:
         ap.error("--watch must be 5 minutes or more (GitHub allows 60 requests an hour without a token)")
+    if inside_repo(args.cache):
+        ap.error(f"--cache {args.cache} is inside the repo; keep raw/ and state.json out of it")
     args.out.mkdir(parents=True, exist_ok=True)
+    args.cache.mkdir(parents=True, exist_ok=True)
 
     gh = GitHub(find_token())
     try:
