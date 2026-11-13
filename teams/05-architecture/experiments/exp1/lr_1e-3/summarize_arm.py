@@ -77,7 +77,7 @@ def check_run(run: Path, smoke_ok: bool, expected_heldout: str | None):
         if cfg["run"]["steps"] != STEPS or cfg["run"]["max_time_min"] != MAX_TIME_MIN:
             errors.append(f"budget {cfg['run']['steps']} steps / {cfg['run']['max_time_min']} min, plan is {STEPS} / {MAX_TIME_MIN}")
         if expected_heldout and manifest.get("heldout_sha256") != expected_heldout:
-            errors.append("held-out sha256 is not the one named by results/heldout_v1.sha256")
+            errors.append(f"held-out sha256 {manifest.get('heldout_sha256')} does not match the expected {expected_heldout} given on the command line")
         if not manifest.get("heldout_sources_sha256"):
             errors.append("no held-out slice sources: slice and three-group scores missing")
 
@@ -198,7 +198,10 @@ def main():
         vals = [r[name] for r in counted if r[name] is not None]
         agg[f"mean_{name}"] = math.fsum(vals) / len(vals) if vals else None
         agg[f"spread_{name}"] = (max(vals) - min(vals)) if len(vals) >= 2 else None
-    agg["can_win"] = len(counted) >= 2 and not smoke
+    # plan_v1: the winner rule needs the three-group mean and the code and Indic-mean guards on every counted seed.
+    rule_keys = ("three_group_bpb", "code_bpb", "indic_mean_bpb")
+    agg["rule_values_present"] = bool(counted) and all(r[k] is not None for r in counted for k in rule_keys)
+    agg["can_win"] = len(counted) >= 2 and not smoke and agg["rule_values_present"]
     agg["any_nan_or_inf"] = any(r["nan_or_inf"] for r in per_seed.values())
 
     clean = not problems and not setup_errors
@@ -222,7 +225,9 @@ def main():
     print(f"Finished seeds: {agg['finished_seeds']}  (missing: {missing or 'none'})")
     for name in SPREAD_KEYS:
         print(f"{name}: mean {fmt(agg['mean_' + name])}, spread {fmt(agg['spread_' + name])}")
-    print(f"Any NaN/inf: {'yes' if agg['any_nan_or_inf'] else 'no'}.  Can win (>= 2 finished seeds): {'yes' if agg['can_win'] else 'no'}")
+    print(f"Any NaN/inf: {'yes' if agg['any_nan_or_inf'] else 'no'}.  "
+          f"Three-group, code and Indic-mean present on every counted seed: {'yes' if agg['rule_values_present'] else 'no'}.  "
+          f"Can win (>= 2 finished seeds and those values): {'yes' if agg['can_win'] else 'no'}")
     for line in repeats:
         print(f"Repeat check {line}")
     for s, errs in problems.items():
