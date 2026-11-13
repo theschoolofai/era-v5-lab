@@ -1,17 +1,16 @@
-# KE2 decision input for Gate 2 (Team 04-ke2, consolidated 10 Nov and updated 12 Nov 2026; TSAI decides Sat 14 Nov)
+# KE2 decision input for Gate 2 (Team 04-ke2, consolidated 10 Nov and updated 13 Nov 2026; TSAI decides Sat 14 Nov)
 
 Decisions requested:
 1. Byte table: the raw byte table, not `decode([id])` text (section 1).
-2. P = 32, D = 8,192; provisional until Team 3's v2 candidate is measured (section 2, ask A).
+2. P = 32, D = 8,192, supported by the frozen C3-s0 tokenizer; recheck any newly accepted candidate (section 2).
 3. Decoder contract for Teams 5 and 6: cosine over the raw table, fp32 scores, margin and ties reported; tau = 0.3,
    provisional until re-checked on Team 5's predicted vectors (section 3).
 4. Whether to add one scalar per token for a frequency prior (risk 4) is a lab call, not Team 4's.
 
 Every number below is read from a results file in this tree. Upstream PR #349 consolidated the week-2 package; the
 12 Nov follow-up adds C1-s0, C2-s0, and frozen C3-s0 candidate reports. Exceptions cite documents instead: risks 3
-and 4 (TSAI's week-1 experiment files and decision notes), the Team 3 v2 request in ask A
-(`teams/03-tokenizer/train/v2_spec.md`), and the Team 3 statements in asks B and C
-(`teams/03-tokenizer/v0/special_slots.md`, `output_shape.md`). Paths are relative to `teams/04-ke2/` unless stated
+and 4 (TSAI's week-1 experiment files and decision notes) and the Team 3 statements in the responses below
+(Team 3's 13 Nov reply, PR #407, `teams/03-tokenizer/v0/special_slots.md`, `output_shape.md`). Paths are relative to `teams/04-ke2/` unless stated
 otherwise.
 
 | Source | What it adds | Files cited below |
@@ -39,9 +38,10 @@ whole-token and no special-token collision exists. Theorem 1 says the codec adds
 
 Longest token is 32 bytes on v0, v0.1, v1-c1, C1, C2, C3, C1-s0, C2-s0 and C3-s0; nothing is cut at P = 32 and there are 0
 raw collisions (`results/tokenizer_candidates/summary.json` and `sample_v0/summary.json`). P = 64 doubles D without
-improving the 32-byte fit or raw collision count (`output_shape.md`). D = 8,192. Not measured: the v2 file (sha
-`0862f6…`). A token over 32 bytes would reopen P.
-Re-check with `python src/revalidate_tokenizer_candidates.py` when Team 3 supplies it. The
+improving the 32-byte fit or raw collision count (`output_shape.md`). D = 8,192. Team 3 confirmed that the older v2
+corpus60 build (`0862f6…`) was replaced by frozen C3-s0 and needs no check because nothing trains on it. A token
+over 32 bytes in a newly accepted candidate would reopen P. Re-check with `python src/revalidate_tokenizer_candidates.py`
+when Team 3 announces a new candidate and sends its SHA-256. The
 loader verifies the file against the registry hash or an explicit `NAME@SHA256=PATH` identity supplied on the command
 line.
 
@@ -138,41 +138,25 @@ guarantee of section 3 follow.
 | 2 | Team 5 -> Team 4 | open | No Team 5 predicted-vector artifact is present in this checkout. tau = 0.3 is proposed from synthetic error models only (section 3) and must be re-checked on Team 5's vectors with `tau_sweep.py --vectors`; the margin, not tau, is what detects a near-code wrong answer. |
 | 3 | TSAI | open | E4 to E8 remain single-seed evidence. The four 11 Nov GPU re-runs use seed 0 and check reproducibility against TSAI's reported values; they do not measure seed-to-seed variation. Multi-seed results are still needed. |
 | 4 | Lab decision | open | Unit-norm codes cannot express a per-token frequency prior; the fix is one scalar per token, V extra parameters. |
-| 5 | Team 4 with Team 3 | partially closed | v0, v0.1, v1-c1, C1 to C3, and sample-v0 C1-s0 to frozen C3-s0 are measured: longest token 32 bytes, 0 raw collisions. The v2 file remains unmeasured (ask A). |
-| 6 | Team 4 with Team 3 | open | Special-token role mapping remains unresolved. Team 3 documents id 130822 `<|endoftext|>` as a G10 end-of-document marker and keeps id 36 `<|end_of_text|>` distinct; the model's bos/eos/pad/unk roles and HF config for the 356 specials are not supplied (ask B). |
+| 5 | Team 4 with Team 3 | closed for frozen C3-s0 | v0, v0.1, v1-c1, C1 to C3, and sample-v0 C1-s0 to frozen C3-s0 are measured: longest token 32 bytes, 0 raw collisions. Team 3 replaced the older v2 corpus60 build with C3-s0; check any newly accepted candidate after its SHA-256 is announced (response A). |
+| 6 | Team 4 with Team 3 | partially closed | Team 3 confirmed `added_tokens.special` as the source of truth and supplied bos/eos/pad/unk IDs. PR #407 adds the HF configuration files; integration against those files remains to be checked when available (response B). |
 | 7 | Team 5 | partially closed | Margin floor and precision rules are proven and measured (section 3). The cosine-decoder and margin-reporting requirements remain open; this checkout has no evidence that the downstream predicted-vector decode path implements them. |
-| 8 | Team 4 with Team 3 | open | A prior run recorded incorrect normal/special counts from `verify_kronecker_constraints_unified.py` (output_shape.md). PR #195 added sample-v0 candidate artifacts, not the verifier; its fix status remains unconfirmed (ask C). |
+| 8 | Team 3 verifier | known bug | `verify_kronecker_constraints_unified.py` still displays incorrect normal/special counts. Use `added_tokens.special`: 130,716 normal and 356 special, including C3-s0 (response C). |
 
-Asks to Team 3 (owner of risks 5, 6 and 8 on their side: @sohamniyogi, lead @rjvim):
+Team 3 responses received 13 Nov (risks 5, 6 and 8):
 
-A. **Tokenizer file for the remaining unmeasured candidate: v2.** The sample-v0 files C1-s0
-`36acf1264248c0f7ed1e3b18cfef6e4e9f489660d749c1e9c2b79e80901c82a2` and C2-s0
-`b0d44576012cede10ea197d33251377ee5aac72f246aca954b96a95a20f8488a` were supplied locally, passed the exact-hash
-loader gate, and are now measured. Frozen C3-s0 `15468e66457b43af79f695cbe585c0d03e3cfe7a4a5d04d189dd3c6b9f02ddc3`
-also passed and is measured. Please supply the v2 file with SHA-256
-`0862f6832229f16bf35acb211307d473b2eea8aa812eb2f3d2c1419191e5bc47` (pin explicitly as
-`--candidate v2@<sha256>=<path>`). A token over 32 bytes in it reopens P = 32 (section 2); a collision in its raw
-table reopens section 1. Team 3's `train/v2_spec.md` separately asks G4/G5 to confirm whether reusing 13,850
-v1-c1 token IDs is acceptable and proposes a small-model v1-c1 versus v2 bits-per-byte comparison. Neither is
-covered by this tokenizer table check.
+A. **Closed: older v2 build.** Team 3 confirmed that v2 (`0862f6…`) was its 31 Oct corpus60 build of C3, superseded
+by C3-s0 from PR #195. Nothing trains on v2, so it needs no separate table check. No model trained on v1-c1; Team 3
+also withdrew the earlier ID-reuse and bits-per-byte requests in `train/v2_spec.md`. If a new pruned-o200k candidate
+is accepted, Team 3 will send its SHA-256 before validation.
 
-B. **Special-token roles and loader configuration.** Our runs read the 356 special ids from `added_tokens`
-(`special: true`) inside `tokenizer.json`; that is what every committed table, margin and determinism result uses.
-The only `special_tokens_map.json` and `tokenizer_config.json` on our side were synthesized on 31 Oct from the
-baseline's added tokens because the HF repo is gated; they name bos `<|begin_of_text|>`, eos `<|end_of_text|>` (id 36)
-and pad `<|pad|>`. Team 3's `v0/special_slots.md` says G10's `<|endoftext|>` at id 130822 is an end-of-document marker
-and that id 36 remains a distinct token. This is not evidence that the two IDs are interchangeable or that Team 3
-changed id 36. The release contains `tokenizer.json` but no `special_tokens_map.json` or `tokenizer_config.json`.
-The upstream-compatibility check `src/proofs/proof_checks.py` takes the literal-text path only for IDs named in the
-map (3 today, against 356 specials; its `fed_equals_raw` of 129,766 used the synthesized map), and `tests/conftest.py`
-enables the 59 tokenizer tests only when the map is present. Please confirm whether `added_tokens.special` is the
-single source of truth or publish the intended config; define bos/eos/pad/unk by ID; and specify how the 356 specials
-map to HF named or additional special-token roles. Until then the special-token loader policy and integration test
-gate remain open.
+B. **Roles confirmed; configuration in PR #407.** Team 3 confirmed that `added_tokens` entries with `special: true`
+in `tokenizer.json` are the source of truth, with the same IDs as v0: bos 130725, eos `<|endoftext|>` 130822,
+pad 130726, unk 130727. ID 36 `<|end_of_text|>` is distinct from eos. PR #407 adds `tokenizer_config.json` and
+`special_tokens_map.json`. The older locally synthesized map named id 36 as eos; do not use it as Team 3's role
+mapping. Once PR #407's files are available, re-run the loader and special-token integration checks against them.
 
-C. **Verifier count bug.** A prior run of `verify_kronecker_constraints_unified.py` printed `131,072 normal tokens`
-and `0 special tokens` for v0 and v0.1; the tokenizer has 130,716 normal and 356 special tokens. The maximum-length
-and cross-script checks passed, but the displayed category counts were wrong. [PR #195](https://github.com/theschoolofai/era-v5-lab/pull/195)
-adds the sample-v0 tokenizer candidates but does not include this verifier, so it does not establish whether the
-display bug was fixed. Please point to the fix or confirm the corrected counts before using that verifier output as
-provenance.
+C. **Known verifier display bug.** Team 3 confirmed that `verify_kronecker_constraints_unified.py` is in
+`theschoolofai/BrahmicTokenizer-131K` and PR #195 did not change it. Its earlier display of `131,072 normal tokens`
+and `0 special tokens` for v0/v0.1 remains unfixed. Use the `added_tokens.special` counts instead: 130,716 normal
+and 356 special, also for C3-s0. Do not cite the verifier's displayed category counts as provenance.
