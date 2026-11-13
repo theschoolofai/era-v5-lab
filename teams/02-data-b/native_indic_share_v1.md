@@ -79,7 +79,8 @@ every language (12.1 million tokens). Romanised segments inside native documents
 
 ### 2.4 Translated
 On 13 Nov only part of the ratings are in: Kannada has two sheets (#419, #425), Telugu one (#429), Hindi and Tamil none.
-The review pack (#212) has 50 documents per language for Hindi, Kannada, Tamil and Telugu, 25 shared by two readers. `translation/quality_v1.md` and `agreement_v1.md` (due Fri 13 Nov) will give the mean score and
+The review pack (#212) has 50 documents per language for Hindi, Kannada, Tamil and Telugu, 25 shared by two readers.
+`translation/quality_v1.md` and `agreement_v1.md` (due Fri 13 Nov) will give the mean score and
 the agreement of each language.
 
 ### 2.5 What the cleaning code does to the clean documents
