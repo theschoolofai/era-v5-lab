@@ -1,8 +1,8 @@
-"""perfkit/report.py.
+"""perfkit/report.py: the 5% comparison's refusals and A/B labels, and the run Markdown diagnostics.
 
   * compare(): refuses a baseline pair that does not time the same committed code (other commit, dirty or unknown
     tree) or that changes a MoE setting other than dispatch; accepts and labels A/B a pair that differs only in
-    optim.muon_impl or model.moe.dispatch.
+    optim.muon_impl, model.moe.dispatch or model.ce_impl.
   * render(): the CUDA timing-event allocation diagnostics per stage and the run's warnings, word for word.
 """
 from __future__ import annotations
@@ -43,6 +43,33 @@ def test_same_commit_moe_dispatch_variants_can_be_compared():
     assert ok and problems == []
     assert "model.moe.dispatch: loop vs sorted" in report.ab_note(a, b)
     assert "A/B" in report.baseline_md(a, b, [], ok, problems)
+
+
+def test_same_commit_cross_entropy_variants_can_be_compared():
+    a, b = _pair()
+    a["config"]["model"].update(ce_impl="torch")
+    b["config"]["model"].update(ce_impl="fused")
+    _, ok, problems = report.compare(a, b, 5.0, 2, 0.0)
+    assert ok and problems == []
+    assert "model.ce_impl: torch vs fused" in report.ab_note(a, b)
+
+
+def test_same_commit_vocab_padding_variants_can_be_compared():
+    a, b = _pair()
+    a["config"]["model"].update(vocab_pad_multiple=1)
+    b["config"]["model"].update(vocab_pad_multiple=128)
+    _, ok, problems = report.compare(a, b, 5.0, 2, 0.0)
+    assert ok and problems == []
+    assert "model.vocab_pad_multiple: 1 vs 128" in report.ab_note(a, b)
+
+
+def test_same_commit_vocab_pad_mode_variants_can_be_compared():
+    a, b = _pair()
+    a["config"]["model"].update(vocab_pad_multiple=128, vocab_pad_mode="slice")
+    b["config"]["model"].update(vocab_pad_multiple=128, vocab_pad_mode="mask")
+    _, ok, problems = report.compare(a, b, 5.0, 2, 0.0)
+    assert ok and problems == []
+    assert "model.vocab_pad_mode: slice vs mask" in report.ab_note(a, b)
 
 
 def test_same_implementation_is_not_labelled_ab():
@@ -116,7 +143,7 @@ def test_render_preserves_exact_warning_text_and_no_false_ke_claim():
     assert "## Five slowest leaf parts" in md
 
 
-# Sunil PR24 review regression: distinct pool-counter diagnostics
+# PR24 review regression: distinct pool-counter diagnostics
 def test_render_flags_inner_pool_allocation_when_timer_count_is_zero():
     run = example_run()
     run["layer"] = {"events_created_during_steps": 0,
@@ -140,3 +167,32 @@ def test_baseline_md_renders_run_metadata_comparison_and_gate_verdict():
     assert "## Comparison table" in md
     assert "| step (clean) |" in md
     assert "| ok |" in md
+
+
+def test_a_model_key_added_later_counts_as_its_default():
+    """A run written before model.activation existed compares equal to a new GELU run (the default keeps the old
+    behaviour), and is refused against a SwiGLU run: a different model."""
+    old, new = _pair()
+    old["config"]["model"].pop("activation", None)
+    new["config"]["model"]["activation"] = "gelu"
+    _, ok, problems = report.compare(old, new, 5.0, 2, 0.0)
+    assert ok and problems == []
+    new["config"]["model"]["activation"] = "swiglu"
+    _, ok, problems = report.compare(old, new, 5.0, 2, 0.0)
+    assert not ok and "different model config" in problems
+
+
+def test_a_key_added_later_inside_model_moe_counts_as_its_default():
+    """The same one level down: a run whose model.moe lacks a key compares equal to a run that sets that key to
+    the ModelConfig default (a new moe key such as an expert width keeps old baselines comparable), and is
+    refused when the value differs."""
+    from models.config import ModelConfig
+    default = ModelConfig().moe
+    old, new = _pair()
+    old["config"]["model"]["moe"] = {k: v for k, v in default.items() if k != "bias_gamma"}
+    new["config"]["model"]["moe"] = dict(default)
+    _, ok, problems = report.compare(old, new, 5.0, 2, 0.0)
+    assert ok and problems == []
+    new["config"]["model"]["moe"]["bias_gamma"] = default["bias_gamma"] * 2
+    _, ok, problems = report.compare(old, new, 5.0, 2, 0.0)
+    assert not ok and "different model config" in problems

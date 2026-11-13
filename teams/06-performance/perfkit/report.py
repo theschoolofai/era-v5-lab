@@ -1,26 +1,12 @@
-"""Run JSON -> Markdown, two-run comparison, baseline and slowest-parts files.
+"""Run JSON -> Markdown, the two-run 5% comparison, and the baseline / slowest-parts files.
 
-bench writes <tag>.md with render() after every run, and uses compare_lines() / ab_note() for --against.
-
-    python -m perfkit.report results/runs/<tag>.json                       # rewrites <tag>.md
+    python -m perfkit.report results/runs/<tag>.json                                      # rewrites <tag>.md
     python -m perfkit.report b.json --compare a.json --baseline out.md --slowest out5.md   # exit 2 on FAIL
 
-The committed results/baseline_v0.md and slowest5_v0.md are hand-written from such output; do not overwrite them.
-
-  * render(run) -> Markdown: header (GPU, dtype, B x T, torch, commit), step stats, MFU, diagnostics (CUDA
-    timing-event allocations, the run's warnings), per-region table (ms, p90, % of step, level),
-    "time by part type" (sum over layers), five slowest leaf parts.
-  * compare(a, b, tol_pct, gate_level, abs_tol_ms) -> (rows, ok, problems): the whole step, every region with
-    level <= gate_level, checkpoint save (both runs) and the measured MoE all-to-all (both runs) must pass
-    gate(): within tol_pct (diff = slower / faster - 1) OR less than abs_tol_ms apart (TSAI, 30 Oct: a very
-    small part can be 10% apart on timer noise alone). Both run times are reported for every part. Refuses (problems) runs on
-    different GPUs, commits, vocabularies, dtypes, B or T, a dirty tree, or a different COMPARE_CONFIG.
-    Level-3 rows are listed as information only. Runs that differ only in an IMPL_SWITCHES entry are compared
-    and labelled A/B (ab_note).
-  * baseline_md(...): GPU name, commits, config, PASS / FAIL / A/B / REFUSED, the comparison table.
-  * slowest_md(run): five slowest leaf parts, each with ms, % of step and the trace file; the "why" and the
-    week-2 idea are placeholders to fill in by hand.
-Per-part trace files are cut from the full trace by perfkit/parts.py (bench, trace mode).
+  render(run)                    the run Markdown that bench writes next to every run JSON
+  compare(a, b, ...)             every gated part through gate(): within tol_pct or abs_tol_ms; refuses runs that
+                                 differ in GPU, commit, vocabulary, dtype, B, T, dirty tree or COMPARE_CONFIG
+  baseline_md(...), slowest_md(run)   draft result pages; the committed results/*.md are edited by hand
 """
 from __future__ import annotations
 
@@ -44,10 +30,34 @@ COMPARE_CONFIG = [
 # Implementation switches: the same model and update, computed another way. Two runs that differ only in
 # these are compared (an A/B timing), and the verdict is labelled A/B: a part outside tol_pct there is the
 # change being measured. The 5% repeat check stays two runs of one implementation (bench --repeat).
-IMPL_SWITCHES = [("model", "moe", "dispatch"), ("optim", "muon_impl"), ("optim", "adamw_impl"), ("data", "prefetch")]
+IMPL_SWITCHES = [
+    ("model", "moe", "dispatch"),
+    ("model", "ce_impl"),
+    ("model", "ce_triton_backward"),
+    ("model", "ce_triton_chunk"),
+    ("model", "ce_triton_vocab_chunk"),
+    ("model", "ce_triton_scratch_mb"),
+    ("model", "ce_triton_grad_precision"),
+    ("model", "ce_triton_validate_targets"),
+    ("model", "ln_impl"),
+    ("model", "rev_impl"),  # two_pass vs one_pass: same update, different backward
+    ("model", "vocab_pad_mode"),      # slice vs mask of the padded columns (B2)
+    ("model", "vocab_pad_multiple"),  # head rows rounded up (B2): same loss, padded logits sliced off
+    ("optim", "muon_impl"),
+    ("optim", "adamw_impl"),
+    ("data", "prefetch"),
+]
+
+# Keys added after early run JSONs; missing == these defaults so old vs new baselines still compare.
+_MODEL_COMPARE_DEFAULTS = {
+    "tie_embeddings": False,  # base.yaml; ke* was always untied; table+missing was legacy-tied but rare in runs
+    "rev_impl": "two_pass",
+    "ln_impl": "torch_ln",
+}
 
 
 def _switch_value(config: dict, path: tuple):
+    """config[path[0]][path[1]]..., or None when a level is missing."""
     for k in path:
         if not isinstance(config, dict):
             return None
@@ -55,12 +65,39 @@ def _switch_value(config: dict, path: tuple):
     return config
 
 
+def _model_defaults_filled(model: dict) -> dict:
+    """A run's model config with every ModelConfig field it lacks set to the field's default. A field is added
+    with a default that keeps the old behaviour (models/config.py), so a run written before the field existed
+    (e.g. week-1 runs without model.activation) still compares equal to a new run that uses that default. The same
+    holds one level down for a dict field: a key added to model.moe's default is filled into a run's moe section."""
+    try:
+        from dataclasses import MISSING, fields
+
+        from models.config import ModelConfig
+    except ImportError:                                  # report run outside teams/06-performance: compare as is
+        return model
+    out = dict(model)
+    for f in fields(ModelConfig):
+        default = f.default_factory() if f.default is MISSING else f.default
+        if f.name not in out:
+            out[f.name] = default
+        elif isinstance(default, dict) and isinstance(out[f.name], dict):      # e.g. a key added to model.moe later
+            out[f.name] = {**{k: v for k, v in default.items() if k not in out[f.name]}, **out[f.name]}
+    return out
+
+
 def compare_config_value(config: dict, section: str, key: str | None):
-    """config[section] (key None) or config[section][key], without the IMPL_SWITCHES."""
-    value = config.get(section, {}) if key is None else config.get(section, {}).get(key)
+    """config[section] (key None) or config[section][key], without the IMPL_SWITCHES. Model fields a run lacks
+    count as their ModelConfig default (_model_defaults_filled)."""
+    sect = config.get(section, {})
+    if section == "model" and isinstance(sect, dict):
+        sect = _model_defaults_filled(sect)
+    value = sect if key is None else sect.get(key)
     if key is not None or not isinstance(value, dict):
         return value
-    for path in IMPL_SWITCHES:
+    if section == "model":
+        value = {**_MODEL_COMPARE_DEFAULTS, **value}
+    for path in IMPL_SWITCHES:                         # left out: an A/B may differ in these
         if path[0] != section:
             continue
         *parents, leaf = path[1:]
@@ -82,6 +119,7 @@ def impl_differences(a: dict, b: dict) -> list[str]:
 
 
 def ab_note(a: dict, b: dict) -> str | None:
+    """The A/B label when two runs differ in IMPL_SWITCHES, else None."""
     diffs = impl_differences(a, b)
     if not diffs:
         return None
@@ -181,6 +219,12 @@ def _pct_delta(x, y) -> float | None:
     return math.inf
 
 
+def _utilization_warnings(metrics: dict) -> list[str]:
+    """MFU or HFU above 1 is stored as it is, never clipped: it means a wrong peak or over-counted FLOPs."""
+    return [f"{name.upper()} is {100 * metrics[name]:.1f}%, above 100%: check peak_tflops and the FLOP count"
+            for name in ("mfu", "hfu") if metrics.get(name) is not None and metrics[name] > 1]
+
+
 def _batch_size(run: dict):
     meta = run.get("meta") or {}
     if "batch_size" in meta and meta["batch_size"] is not None:
@@ -243,6 +287,7 @@ def _part_type_key(name: str) -> str:
 
 
 def _part_type_sums(regions: dict) -> dict[str, float]:
+    """Median ms per part type, with block<i> folded into block*."""
     sums: dict[str, float] = {}
     for name, r in regions.items():
         key = _part_type_key(name)
@@ -263,6 +308,7 @@ def _is_leaf(name: str, regions: dict) -> bool:
 
 
 def _leaf_regions(run: dict) -> list[tuple[str, dict]]:
+    """The level-3 leaf regions, or the deepest leaves when the run has no level 3."""
     regions = _regions(run)
     level3 = [(n, r) for n, r in regions.items() if r.get("level") == 3 and _is_leaf(n, regions)]
     if level3:
@@ -283,6 +329,7 @@ def _five_slowest(run: dict) -> list[tuple[str, dict, float]]:
 
 
 def render(run: dict) -> str:
+    """The run Markdown: header, step, diagnostics, regions, time by part type, five slowest leaf parts."""
     meta = run.get("meta") or {}
     cfg_run = (run.get("config") or {}).get("run") or {}
     cfg_model = (run.get("config") or {}).get("model") or {}
@@ -334,7 +381,7 @@ def render(run: dict) -> str:
         ("layer.inner_pass.recorder_pool", (layer.get("inner_pass") or {}).get("events_created_while_measuring")),
         ("communication.max_rank", comm.get("events_created_during_steps")),
     ]
-    warnings = run.get("warnings") or []
+    warnings = [*(run.get("warnings") or []), *_utilization_warnings(metrics)]
     lines += ["## Diagnostics", "", "### CUDA timing-event allocations", ""]
     for stage, count in allocations:
         if count is not None:
@@ -386,6 +433,7 @@ def render(run: dict) -> str:
 
 
 def compare(a: dict, b: dict, tol_pct: float, gate_level: int, abs_tol_ms: float):
+    """(rows, ok, problems): every gated part through gate(), then the finer parts as information rows."""
     problems = _refuse(a, b)
     rows = []
     ok = not problems
@@ -434,6 +482,7 @@ def compare(a: dict, b: dict, tol_pct: float, gate_level: int, abs_tol_ms: float
 
 
 def baseline_md(a: dict, b: dict, rows, ok, problems) -> str:
+    """A draft baseline or A/B page from compare()'s rows."""
     meta_a = a.get("meta") or {}
     meta_b = b.get("meta") or {}
     note = ab_note(a, b)
@@ -480,6 +529,7 @@ def baseline_md(a: dict, b: dict, rows, ok, problems) -> str:
 
 
 def slowest_md(run: dict) -> str:
+    """A draft five-slowest page; the why and the idea are placeholders to fill in by hand."""
     meta = run.get("meta") or {}
     trace = (run.get("trace") or {}).get("trace_file")
     lines = [
@@ -504,6 +554,7 @@ def slowest_md(run: dict) -> str:
 
 
 def main(argv=None) -> int:
+    """Rewrite <run>.md; with --compare, print the 5% check and return 2 on FAIL."""
     ap = argparse.ArgumentParser(description="Render / compare perfkit run JSON to Markdown.")
     ap.add_argument("run", help="Primary run JSON path")
     ap.add_argument("--compare", help="Earlier / other run JSON to compare against")

@@ -35,9 +35,13 @@ the benchmarks cannot. Q4_K_M is the smallest format with no significant benchma
 | [`perplexity/`](perplexity/) | WikiText-2 perplexity, llama.cpp v0.7.0 on Kaggle | [`README.md`](perplexity/README.md) |
 | [`quality/`](quality/) | KL divergence and same-top-1 against bf16 (`llama-perplexity --kl-divergence`) | [`README.md`](quality/README.md) |
 | [`runs/runs.csv`](runs/runs.csv) | one row per format: size, bits per weight, quantize time, generation speed, eval_mini score | notes column |
+| `runs/manifest_<date>.json` | SHA-256 of each GGUF `quantize_eval.py` writes that day (bf16 and every quant) | beside `runs.csv`; a same-day rerun replaces that file's entry |
+| [`docs/bitwidth_vs_drop.md`](docs/bitwidth_vs_drop.md) | bits per weight against task drop, perplexity ratio and KL; which format to demo | Q4_K_M |
+| [`docs/bitwidth_proposal.md`](docs/bitwidth_proposal.md) | formats to keep, and the drop limit per task | keep through Q4_K_M when the limits hold; not Q3_K_M or Q2_K |
 | [`scripts/quantize_eval.py`](scripts/quantize_eval.py) | makes the GGUFs (output tensor Q8_0) and measures size, quantize time and speed; its own eval is the 25 Oct stand-in, whose scores in runs.csv were replaced by eval_mini | script docstring |
 | [`quantize/quantize_olmoe.sh`](quantize/quantize_olmoe.sh) | an alternative recipe (output BF16, down to Q3_K_M); **not** the one measured here | script header |
 | [`tools/tools.md`](tools/tools.md) | survey of quantization and serving tools: licences, MoE support | |
+| [`tokenizer/gguf_roundtrip.py`](tokenizer/gguf_roundtrip.py) | week 2: does llama.cpp give the same token ids as the HF tokenizer after GGUF conversion? Tokenizer v0: yes with pre-tokenizer `granite-embed-multi-97m` (0 of 22,033 lines differ); `gpt-4o` differs on 14,517 | [`results/gguf_roundtrip_v0.md`](results/gguf_roundtrip_v0.md) |
 
 **Rerun.**
 - **Benchmarks:** import `eval_mini/eval_mini.ipynb` into Kaggle (GPU T4 x2, Internet on), set `FORMATS`, then

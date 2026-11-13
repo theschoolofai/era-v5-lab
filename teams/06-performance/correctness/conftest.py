@@ -1,22 +1,16 @@
 """pytest setup for the correctness tests.
 
-  * Puts teams/06-performance on sys.path, so `pytest teams/06-performance/correctness` works from the
-    repo root (the Gate 1 command) as well as from teams/06-performance.
-  * `device` fixture: cuda if available, else cpu.
-  * A test that hits a stub (NotImplementedError) is reported as SKIPPED with the stub's name, not failed.
-    `pytest -rs` lists them. At Gate 1 no stub skip may be left (skips for missing CUDA / bf16 are expected
-    on a laptop).
-  * Only what configs/base.yaml uses runs by default. A test of a feature base.yaml does not select (MoE when
-    model.ffn is mlp, KE1 when model.embedding is ke2, SDPA when model.attn_impl is eager, ...) is DESELECTED:
-    it does not run and is not listed, and its 1.01 drill goes with it. `pytest correctness --all-configs` runs every test (Gate 1:
-    the KE, attention, MoE and reversible pairs must all pass). The rules are in config_requirements() below.
-    Exception: the strict xfail in test_ke.py (a recorded KE1 contract gap) always runs, so every run shows it.
-  * At the end of the run: one row per pair, grouped by area: the worst output and gradient error, how much
-    of the tolerance it uses, whether two runs were bit-identical, and PASS/FAIL with the first failure line.
+  * Puts teams/06-performance on sys.path, so the tests run from the repo root too.
+  * `device` fixture: cuda if available, else cpu; GPU memory freed after each test.
+  * A test that hits a stub (NotImplementedError) is SKIPPED with the stub's name (`pytest -rs`).
+  * Only what configs/base.yaml selects runs by default; `--all-configs` runs every test (rules in
+    config_requirements()). The strict xfail in test_ke.py always runs.
+  * At the end: one row per pair with its worst errors, tolerance use, determinism and PASS / FAIL.
 """
 from __future__ import annotations
 
 import functools
+import gc
 import re
 import sys
 from pathlib import Path
@@ -31,6 +25,17 @@ CONFIG = ROOT / "configs" / "base.yaml"
 ATTN_TEST_HEADS = 8                  # N_HEAD in test_attention.py: test_causal's first parameter is n_kv_head
 
 
+@pytest.fixture(autouse=True)
+def _free_gpu_memory():
+    """Free a test's GPU memory when it ends. Models and graphs sit in reference cycles, which only the garbage collector
+    frees, so without this they pile up until it happens to run: the all-configs suite reached 14.5 GiB and ran out of
+    memory on a 16 GB GPU, at a point that moved with the number of tests."""
+    yield
+    if torch.cuda.is_available():
+        gc.collect()
+        torch.cuda.empty_cache()
+
+
 def pytest_addoption(parser):
     parser.addoption("--all-configs", action="store_true",
                      help="run every test, not only those for what configs/base.yaml selects")
@@ -43,25 +48,44 @@ def _config():
     return cfg, model_config(cfg)
 
 
+@functools.cache
+def _dispatches():
+    """Every MoE dispatch in models.moe.DISPATCH (loop, sorted, grouped, ...): a test_moe.py test parametrized by a
+    dispatch needs model.moe.dispatch set to it. Read from the code, so a new dispatch needs no edit here."""
+    from models.moe import DISPATCH
+    return tuple(DISPATCH)
+
+
 def _attn_kind(n_head, n_kv_head):
     return "mha" if n_kv_head == n_head else "mqa" if n_kv_head == 1 else "gqa"
 
 
 def _pair_needs(name):
     """[(key, value)] a registered pair needs from base.yaml; None = always skipped by default."""
+    if name.startswith("ce."):
+        return []                         # direct linear-CE pairs do not depend on the selected GPT config
     if name.startswith("attention."):
         impl = "eager" if "eager" in name else "sdpa"
         kind = "mha" if "mha" in name else "mqa" if "mqa" in name else "gqa"
-        return [("model.attn_impl", impl), ("attention", kind)]
+        needs = [("model.attn_impl", impl), ("attention", kind)]
+        return needs + [("model.position", "rope")] if name.startswith("attention.rope") else needs
     if name.startswith("ke1."):
         return [("model.embedding", "ke1"), ("model.ke_mode", name.split(".")[1])]
     if name.startswith("ke2"):
         return [("model.embedding", "ke2")]
     if name.startswith("moe."):
-        return [("model.ffn", "moe"), ("model.moe.dispatch", name.split(".")[1])]
+        return [("model.ffn", "moe"), ("model.moe.dispatch", name.split(".")[1]),
+                ("model.activation", "swiglu" if ".swiglu" in name else "gelu")]
+    if name.startswith("mlp."):                      # test_swiglu.py: the dense MLP with an activation
+        return [("model.ffn", "mlp"), ("model.activation", name.split(".")[1])]
     if name.startswith("reversible."):
-        return [("model.reversible", True), ("model.ffn", name.split(".")[1])]
-    if re.match(r"model\.base\.(embedding|ffn|attn_impl|reversible)_", name):
+        parts = name.split(".")
+        ffn = parts[-1]
+        needs = [("model.reversible", True), ("model.ffn", ffn)]
+        if "one_pass" in parts:
+            needs.append(("model.rev_impl", "one_pass"))
+        return needs
+    if re.match(r"model\.base\.(embedding|ffn|attn_impl|reversible|activation|tie_embeddings|position)_", name):
         return None                  # a choice base.yaml does not make (test_model.CHOICES)
     needs = []
     if name.endswith(".bf16"):
@@ -86,22 +110,40 @@ def _test_needs(item):
             return [("model.attn_impl", "sdpa"), ("attention", "gqa" if param != "1" else "mqa")]
         if fn == "test_eager_matches_sdpa":
             return [("model.attn_impl", "sdpa")]
+        if fn.startswith("test_rope"):
+            return [("model.position", "rope")]
     if fn == "test_a_token_longer_than_P_is_normalised_with_L_truncated_to_P":
         return []                    # a recorded contract gap (strict xfail): shown in every run until it is fixed
     if file in ("test_ke.py", "test_tokenizer_optimizer.py"):
         return [("model.embedding", "ke1")] + ([("model.ke_mode", param)] if param in ("dynamic", "cached") else [])
     if file == "test_ke2.py":
         return [("model.embedding", "ke2")]
+    if file == "test_swiglu.py":
+        return [("model.activation", "swiglu")]
     if file == "test_moe.py":
-        return [("model.ffn", "moe")] + ([("model.moe.dispatch", param)] if param in ("loop", "sorted") else [])
+        return [("model.ffn", "moe")] + ([("model.moe.dispatch", param)] if param in _dispatches() else [])
     if file == "test_reversible.py":
         moe = "moe" in fn or param == "moe" or fn == "test_bf16_grad_agrees_with_plain"
-        return [("model.reversible", True)] + ([("model.ffn", "moe")] if moe else
-                                                [("model.ffn", "mlp")] if param == "mlp" else [])
+        needs = [("model.reversible", True)]
+        if moe:
+            needs.append(("model.ffn", "moe"))
+        elif param == "mlp" or "mlp" in fn:
+            needs.append(("model.ffn", "mlp"))
+        if "one_pass" in fn or "one_pass" in param:
+            needs.append(("model.rev_impl", "one_pass"))
+        return needs
     if file == "test_model.py" and fn == "test_mtp_loss_parts":
         return [("model.mtp", True)]
     if file == "test_ce.py":
-        return [("model.ce_impl", "chunked")]
+        if fn == "test_source_inspired_impls_match_plain_loss_and_all_gradients":
+            return []
+        if fn.startswith("test_fused_liger"):
+            return [("model.ce_impl", "fused_liger")]
+        if fn.startswith("test_fused_cce"):
+            return [("model.ce_impl", "fused_cce")]
+        if fn.startswith("test_fused_cached"):
+            return [("model.ce_impl", "fused_cached")]
+        return [("model.ce_impl", "fused" if fn.startswith("test_fused") else "chunked")]
     if file == "test_optimizer.py":
         if "polar" in fn:
             return [("optim.name", "polar_muon_adamw")]
@@ -189,12 +231,14 @@ def _used(err, tol) -> str:
     """How much of the tolerance the error uses: '3%' (fine) ... '100%+' (over)."""
     if err is None:
         return ""
+    if tol == 0.0:
+        return "exact" if err == 0.0 else "OVER"
     pct = 100 * err / tol
     return "<1%" if pct < 1 else f"{pct:.0f}%"
 
 
 def pytest_terminal_summary(terminalreporter):
-    """Each pair's worst error against its tolerance (the Instructor asked for every test's error)."""
+    """Each pair's worst error against its tolerance."""
     from correctness.framework import RESULTS, TOLERANCES
     names = sorted(set(RESULTS) | set(FAILED_PAIRS))
     if not names:

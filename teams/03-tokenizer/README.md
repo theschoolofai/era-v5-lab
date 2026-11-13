@@ -27,10 +27,12 @@ Each task is a GitHub issue titled `[G3] ...`. The issue is the source of truth;
 | #137 | `train_bpe --special-layout v0` (closes #127) and v1-c1 retrain: mean Indic −16.97% vs v0 (closes #128) | @sohamniyogi |
 | #145 | COMPARE.md: v0 per-language results table (closes #131) | @HariniJasti |
 | #147 | Sarvam-m vs Tekken structural identity: same BPE table, 6 renamed specials, ids 10-19 shifted (closes #130) | @riyaagrahari |
+| #305 | Harness: `--suites in22`, `--suites heldout`, round-trip on 1,000 docs/pack (Gate 2 suite) | @riyaagrahari |
 | #166 | v2: o200k pruning by usage (13,850 never-used base tokens swapped for English/code o200k tokens; specials and all script ids unchanged), slot split chosen on held-out FineWeb-2: held-out English +1.74% → −0.10% vs baseline, no Indic language worse than v1-c1; counts as C3, sha256 sent to G4 (closes #163) | @sohamniyogi |
 | #173 | v0.1: G10 ChatML v0 markers, `g10_slot_00..04` renamed in place to `<|endoftext|>`, `<|think|>`, `<|/think|>`, `<|/tool_call|>`, `<|/tool_result|>`; ids and `special: true` unchanged, sha256 `a33c9907…e578` (closes #132) | @sohamniyogi |
 | #183 | Week-2 candidates (closes #182) with v0.1 specials: C1 (o200k swap only), C2 (+slots_v1), C3 (+normalizer v1 = v2); manifests with corpus hashes in `train/` | @sohamniyogi |
 | #195 | C1–C3 retrained with the week-2 tokenizer sample v0: per-script text mix (`mix_search.py`, `train_bpe.py --mix`), Devanagari, Gujarati and Oriya changed; check mean Indic −0.12%, sample held-out −0.36% vs the committed C1–C3, no language worse beyond 3 tokens; manifests `train/c*_s0_manifest.json` | @sohamniyogi |
+| this PR | Pruned-o200k candidates (v2_spec idea 1): C3 sample-v0 + 1,536 (chosen, `e6b93a93…`) or 768 (`2cbd1a3b…`) extra merges per script on more pruned o200k base ids; every Indic language better than C3 sample-v0 on dev, check and the sample halves (check mean −9.51% / −5.59%); code +1.10% vs baseline on the sample's code held-out (bar 2%); manifests `train/p1536_s0_manifest.json`, `train/p768_s0_manifest.json` | @sohamniyogi |
 
 ### Areas
 
@@ -40,6 +42,15 @@ Each task is a GitHub issue titled `[G3] ...`. The issue is the source of truth;
 | Harness | `harness/` | @riyaagrahari |
 | Training (`train_bpe.py`, c0, v1 retrain) | `train/` | @sohamniyogi |
 | v0 special slots | `v0/` | @rjvim |
+
+## Verification setup
+If you run verification through `train_bpe.py --brahmic-dir ...`, UTF-8 mode is set
+automatically. If you run a verifier directly on Windows, set it first in
+PowerShell:
+
+```powershell
+$env:PYTHONUTF8 = "1"
+```
 
 ### Decisions (do not change without a team note)
 
