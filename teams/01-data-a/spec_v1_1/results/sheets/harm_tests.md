@@ -232,7 +232,7 @@ The numbers in the `#` column match the disease tables above. "Twice" means a te
     | all in order | 2/80 | 0 | 1 | ok | **FAIL**; 0/78 PASS with them left out |
 
     - **The 2 docs:** each has a bare `..`, which the rule turns into `...`. Both readers (oddjoker91 and sreekanthzipsy) marked the docs clean. But oddjoker91 labelled a bare `..` as C6 in other docs: 23 C6 labels point at a 2-character span. So the docs hold the disease as the pack's reader defined it. They are gold contradictions (see "Gold contradictions" above).
-    - **The pack file:** `ind-te-sangraha-v.parquet`, 500 docs, the pack that was read and labelled. The Week-1 copy in `Cap1-packs` holds none of the 80 gold docs.
+    - **The pack file:** `ind-te-sangraha-v.parquet`, 500 docs, the pack that was read and labelled. The Week-1 copy in `Cap1-packs` holds none of the 80 gold docs. Its sha256, `d3d928606d1fd0a7a81fcbce10db3e3d8f4b7df74486bc51c9a9d30299812817`, is the `pack_sha256` in `../../../results/spec_v1/cleaner/specv1_ind-te-sangraha-v_harm.json` (theschoolofai/era-v5-lab#244). So it is the same file as the spec v1 harm run on this pack.
     - **What the rule reaches there:** it changes 241 of the 500 docs, including 144 of the 161 C6-labelled ones.
     - **A narrower version was tried and not taken.** It left a bare `..` alone and passed on all five packs (0/80, 0/24, 0/22, 0/24). But it fixed only 102 of the 161 labelled docs, so Data B's function was kept unchanged.
   - **Run on the sangraha-s packs (aneeshads, 13 Nov):** `teams/02-data-b/tools/harm_test_indic.py --rule all` on oddjoker91's `medicine.md`. Report: `indic_sangraha-s_harm.md` in this folder.
@@ -245,6 +245,15 @@ The numbers in the `#` column match the disease tables above. "Twice" means a te
     | ind-ta-sangraha-s | none | not testable | | | | |
 
     The rules have no pack check, so they ran on every gold doc and changed none. That is no harm on these packs. The disease was found on ind-te-sangraha-v, which this run doesn't cover.
+
+    **The pack files** are the 500-doc samples published on the `sangraha-s-packs` branch of shankarpandala/era-v5-lab (commit `a836972`, 13 Nov). The packs come from the week-1 packs, from Sangraha's synthetic (translated) split, by AI4Bharat ([ai4bharat/sangraha](https://huggingface.co/datasets/ai4bharat/sangraha), CC-BY-4.0). The copies used match the sha256 values in that branch's `NOTICE.txt` (`shasum -a 256 -c`, all OK):
+
+    | pack file | sha256 |
+    |---|---|
+    | `ind-hi-sangraha-s.parquet` | `7fd34f97729659a7c0c7f6bed0190e7f4eda29ed8a0f9b9eacbfe4a607a3ff6d` |
+    | `ind-kn-sangraha-s.parquet` | `a161966005c037a1bdb70245c2b6135520967c57c5fc618cba5f29d9e248f427` |
+    | `ind-ta-sangraha-s.parquet` | `40509e609fb6020649a86baf1b8e849659442ef8e807b02a842ac8f9f757b74d` |
+    | `ind-te-sangraha-s.parquet` | `feeb676e76dee102d132846c1af2a92c3ea4d1018e0fd5239f50fc0da0fb6069` |
   - **In `specv1_1.md`:** Medicine 23, through `sheets/medicine_indic.md`. Data B's function is copied unchanged inside a `pack_id` check for ind-te-sangraha-v.
   - **Unit tests:** `tests/test_medicine_indic.py`, 7 tests:
     - runs of dots (`. .`, `..`, `. . .`, with spaces or tabs) become `...`, and `....` becomes `...`;
