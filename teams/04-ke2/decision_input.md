@@ -7,11 +7,11 @@ Decisions requested:
    provisional until re-checked on Team 5's predicted vectors (section 3).
 4. Whether to add one scalar per token for a frequency prior (risk 4) is a lab call, not Team 4's.
 
-Every number below is read from a results file in this tree. Upstream PR #349 consolidated the week-2 package; the
-12 Nov follow-up adds C1-s0, C2-s0, and frozen C3-s0 candidate reports. Exceptions cite documents instead: risks 3
-and 4 (TSAI's week-1 experiment files and decision notes) and the Team 3 statements in the responses below
-(Team 3's 13 Nov reply, PR #407, `teams/03-tokenizer/v0/special_slots.md`, `output_shape.md`). Paths are relative to `teams/04-ke2/` unless stated
-otherwise.
+The measured candidate numbers below are read from results files in this tree. Upstream PR #349 consolidated the
+week-2 package; the 12 Nov follow-up adds C1-s0, C2-s0, and frozen C3-s0 reports. Other sources are named where used:
+TSAI's week-1 experiment files and decision notes (risks 3 and 4), Team 3's 13 Nov reply and PR #407 (responses
+A to C), and the local before/after verifier run described in response C. Paths are relative to `teams/04-ke2/`
+unless stated otherwise.
 
 | Source | What it adds | Files cited below |
 |---|---|---|
@@ -141,7 +141,7 @@ guarantee of section 3 follow.
 | 5 | Team 4 with Team 3 | closed for frozen C3-s0 | v0, v0.1, v1-c1, C1 to C3, and sample-v0 C1-s0 to frozen C3-s0 are measured: longest token 32 bytes, 0 raw collisions. Team 3 replaced the older v2 corpus60 build with C3-s0; check any newly accepted candidate after its SHA-256 is announced (response A). |
 | 6 | Team 4 with Team 3 | partially closed | Frozen C3-s0 confirms ids 36 and 130822 are distinct special tokens. Team 3 confirmed eos is 130822 and `added_tokens.special` is the source of truth. PR #407 adds the HF configuration files; integration against those files remains to be checked when available (response B). |
 | 7 | Team 5 | partially closed | Margin floor and precision rules are proven and measured (section 3). The cosine-decoder and margin-reporting requirements remain open; this checkout has no evidence that the downstream predicted-vector decode path implements them. |
-| 8 | Team 3 verifier | known bug | `verify_kronecker_constraints_unified.py` still displays incorrect normal/special counts. Use `added_tokens.special`: 130,716 normal and 356 special, including C3-s0 (response C). |
+| 8 | Team 3 verifier | fix proposed upstream | `verify_kronecker_constraints_unified.py` still displays incorrect normal/special counts in its released version. [BrahmicTokenizer-131K PR #1](https://github.com/theschoolofai/BrahmicTokenizer-131K/pull/1) proposes a fix; use `added_tokens.special` counts until it is merged and rechecked (response C). |
 
 Team 3 responses received 13 Nov (risks 5, 6 and 8):
 
@@ -159,7 +159,10 @@ PR #407 adds `tokenizer_config.json` and `special_tokens_map.json`. The older lo
 as eos; do not use it as Team 3's role mapping. Once PR #407's files are available, re-run the loader and
 special-token integration checks against them.
 
-C. **Known verifier display bug.** Team 3 confirmed that `verify_kronecker_constraints_unified.py` is in
+C. **Verifier display fix proposed upstream.** Team 3 confirmed that `verify_kronecker_constraints_unified.py` is in
 `theschoolofai/BrahmicTokenizer-131K` and PR #195 did not change it. Its earlier display of `131,072 normal tokens`
-and `0 special tokens` for v0/v0.1 remains unfixed. Use the `added_tokens.special` counts instead: 130,716 normal
-and 356 special, also for C3-s0. Do not cite the verifier's displayed category counts as provenance.
+and `0 special tokens` for v0/v0.1 remains unfixed upstream. [BrahmicTokenizer-131K PR #1](https://github.com/theschoolofai/BrahmicTokenizer-131K/pull/1)
+reads the special IDs from `tokenizer.json` in both local-JSON paths. Local before/after runs on v0, v0.1 and frozen
+C3-s0 changed only the displayed split from 131,072 / 0 to 130,716 normal / 356 special; maximum byte length 32,
+zero over-limit tokens, zero cross-script tokens and the PASS verdict remained the same. The PR is open as of 13 Nov.
+Use `added_tokens.special` as provenance until the fix is merged and the released verifier is rerun.
