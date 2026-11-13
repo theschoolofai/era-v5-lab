@@ -111,36 +111,64 @@ class WindowCacheTests(unittest.TestCase):
         cached, _ = self.cached(require_ids=True, sources_path=sources)
         self.assertEqual(native.window_slices, list(cached.window_slices))
         self.assertEqual(native.slice_raw_bytes, cached.slice_raw_bytes)
+        before = len(self.cache_keys())
         with patch.dict(os.environ, G5_DOCUMENT_CACHE_DIR=str(self.cache)):
-            with self.assertRaises(FileNotFoundError):
-                self.native(sources_path=sources)  # require_ids is part of identity.
+            self.native(sources_path=sources)  # require_ids is part of identity.
+        self.assertEqual(len(self.cache_keys()), before + 1)
         sources.write_text(sources.read_text().replace('"slice": "code"', '"slice": "en"', 1))
         with patch.dict(os.environ, G5_DOCUMENT_CACHE_DIR=str(self.cache)):
-            with self.assertRaises(FileNotFoundError):
-                self.native(require_ids=True, sources_path=sources)
+            relabeled = self.native(require_ids=True, sources_path=sources)
+        self.assertEqual(len(self.cache_keys()), before + 2)
+        expected = self.native(require_ids=True, sources_path=sources)
+        self.assertEqual(list(relabeled.window_slices), expected.window_slices)
+        self.assertEqual(relabeled.slice_raw_bytes, expected.slice_raw_bytes)
 
-    def test_missing_cache_never_silently_falls_back(self):
+    def cache_keys(self):
+        if not self.cache.exists():
+            return set()
+        return {p.name for p in self.cache.iterdir() if not p.name.startswith(".")}
+
+    def test_first_run_builds_cache_and_later_run_does_not_tokenize(self):
+        native = self.native()
         with patch.dict(os.environ, G5_DOCUMENT_CACHE_DIR=str(self.cache)):
-            with self.assertRaises(FileNotFoundError):
-                self.native()
+            first = self.native()
+            self.assertEqual(len(self.cache_keys()), 1)
+            with patch.object(ByteFixture, "encode",
+                              side_effect=AssertionError("tokenized again")):
+                second = self.native()
+            self.assertEqual(len(self.cache_keys()), 1)
+        for loaded in (first, second):
+            self.assertEqual(list(loaded.windows), native.windows)
+            self.assertEqual(list(loaded.window_slices), native.window_slices)
+            self.assertEqual(loaded.tokens, native.tokens)
+            self.assertEqual(loaded.raw_bytes, native.raw_bytes)
+            self.assertEqual(loaded.document_hashes, native.document_hashes)
+
+    def test_cache_stays_off_unless_directory_is_set(self):
+        self.native()
+        self.assertFalse(self.cache.exists())
         with patch.dict(os.environ, G5_DOCUMENT_CACHE_DIR=""):
             with self.assertRaises(ValueError):
                 self.native()
 
     def test_input_artifact_and_sequence_changes_cannot_reuse_cache(self):
         self.cached()
+        self.assertEqual(len(self.cache_keys()), 1)
         with patch.dict(os.environ, G5_DOCUMENT_CACHE_DIR=str(self.cache)):
-            with self.assertRaises(FileNotFoundError):
-                DocumentWindows(self.input, self.artifacts, 8)
+            DocumentWindows(self.input, self.artifacts, 8)
+            self.assertEqual(len(self.cache_keys()), 2)
             with patch.object(ByteFixture, "pad_id", 258):
-                with self.assertRaises(FileNotFoundError):
-                    self.native()
+                self.native()
+            self.assertEqual(len(self.cache_keys()), 3)
             self.input.write_text(
                 self.input.read_text(encoding="utf8") + '{"id":"extra","text":"z"}\n',
                 encoding="utf8",
             )
-            with self.assertRaises(FileNotFoundError):
-                self.native()
+            changed = self.native()
+            self.assertEqual(len(self.cache_keys()), 4)
+        fresh = self.native()
+        self.assertEqual(list(changed.windows), fresh.windows)
+        self.assertEqual(changed.tokens, fresh.tokens)
 
     def test_corruption_and_truncation_fail_closed(self):
         # Build without opening memory maps so Windows permits overwriting files.

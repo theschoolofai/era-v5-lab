@@ -250,10 +250,18 @@ class DocumentWindows:
     def __init__(self, path, artifacts, seq_len, require_ids=False, sources_path=None):
         cache_dir = os.environ.get("G5_DOCUMENT_CACHE_DIR")
         if cache_dir is not None:
-            key, identity = _cache_identity(path, artifacts, seq_len, require_ids, sources_path)
             if not cache_dir:
                 raise ValueError("G5_DOCUMENT_CACHE_DIR must name a cache directory")
-            self.__dict__.update(_load_window_cache(Path(cache_dir) / key, identity, artifacts))
+            key, identity = _cache_identity(path, artifacts, seq_len, require_ids, sources_path)
+            directory = Path(cache_dir) / key
+            if not directory.exists():
+                # First run for this file, tokenizer and seq_len: encode once with the
+                # same Artifacts.encode as the uncached path, verify, then publish.
+                # A changed file/tokenizer/seq_len has a new key, so it never reuses
+                # an old cache. Later runs only load the verified token ids.
+                build_window_cache(path, artifacts, seq_len, cache_dir,
+                                   require_ids=require_ids, sources_path=sources_path)
+            self.__dict__.update(_load_window_cache(directory, identity, artifacts))
             return
         self.windows = []
         self.raw_bytes = 0
