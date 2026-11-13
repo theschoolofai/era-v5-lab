@@ -1,0 +1,10 @@
+pack,doc_id,kind,code,offsets,quote,why,source
+cpp,6455ab7982d0ccb2,missed,E1,0-12597,WEBKIT_DOM_HTML_BODY_ELEMENT,IDL-generated GObject DOM binding: six identical property get/set blocks; not dropped by cpp E1 rules,manual
+cpp,1247e834aaf22251,missed,E4,0-1592,Redistribution and use in source and binary forms,Full BSD 3-clause licence header still at top of file,manual
+cpp,ec7bea7f056139ab,missed,E4,66-1081,GNU General Public License,Copyright block plus full GPL v2 notice still in file header,manual
+cpp,af9a4f86884eb472,missed,E4,0-672,Lizenziert gemäß Apache Licence Version 2.0,Apache 2.0 licence header in German still at top; E4 rules appear to match English only,manual
+go,7b383f4c84665082,missed,E3,526-558,,"API key value hardcoded in test string (apikey=...), type: exchange API key; not replaced by E3 rule",manual
+go,7b383f4c84665082,missed,E3,601-633,,"Secret key value hardcoded in test string (secret_key=...), type: exchange secret key; not replaced by E3 rule",manual
+go,85156d78fee179b8,missed,E2,263-12833,var s_orig = [1024]uint{,1024-entry hex constant table (Blowfish S-box) is ~77% of doc; legitimate cipher constants but a large data blob; go E2 rule did not drop it. Reviewer judgement.,manual
+java,c347430edfae2bbe,missed,C1,165-308,@Description:,Empty IDE file-template header (Program/ClassName/Author/CreateTime/Version/Description) still present; DA-C1-005 targets this,manual
+java,43de7e6958f10c11,missed,E1,0-2556,This is an auto-generated file: do not edit,File states it is auto-generated (do not edit); serializer boilerplate from the TPM spec; java E1 rule did not drop it,manual

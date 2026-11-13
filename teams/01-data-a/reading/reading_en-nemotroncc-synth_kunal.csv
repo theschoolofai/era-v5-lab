@@ -1,0 +1,17 @@
+doc_id,kind,code,offsets,quote,why,source
+5aeafd200220c080,new,NEW-appended-qa,716-953,Question: Who is Leven and what did he comment on? Answer:,synthetic Q&A appended after the passage; its answer (Duke of Lauderdale) is not supported by the text,ai
+0f7b90400c1362df,new,NEW-factual-error,752-794,"earning her the moniker ""the Virgin Queen""","'the Virgin Queen' is Elizabeth I, not Victoria: error introduced in the synthetic rewrite",ai
+0407920ed49eb6af,missed,B4,442-480,The speaker attended a Catholic school,"rewrite refers to its source ('the speaker', 'the individual'); DA-B4-007 only matches 'given/provided text' phrasing",ai
+82aa41d29e468a85,missed,B4,12-53,The user expresses disdain for small talk,every line describes 'the user' of a source conversation; meta-reference not caught by DA-B4-007,ai
+55eb060ae2bc2600,missed,B4,14-45,The text discusses carbon taxes,summary refers to 'the text'; DA-B4-007 matches 'the given/provided text' but not 'The text discusses',ai
+ea84635879759482,new,NEW-missing-code,1328-1380,"consider the following compact, yet complex, example",announces a code example that is not in the document,ai
+0f7240ba1fdd3411,new,NEW-factual-error,272-308,the battles of Artemisia and Salamis,the battle is Artemisium; 'Artemisia' is the admiral's name,ai
+ffaad5c6d3dde332,new,C4,1939-3421,Dormant stem cells for emergencies,"a press release on Dutch health insurance ends ('###', credit line) and an unrelated article on stem cells starts; no rule for C4",ai
+ffaad5c6d3dde332,new,NEW-appended-qa,3423-3657,Question: What is the main finding,synthetic Q&A appended after the article,ai
+c3d88009d8a459e9,missed,C1,453-471,Paul Tong / Op Art,image credit line left in the text,ai
+c3d88009d8a459e9,new,NEW-appended-qa,2140-2287,Question: What is the name of the nonprofit,synthetic Q&A appended; the answer 'The Institute' is wrong (the Albert Shanker Institute),ai
+b4281ea0782a6671,new,C4,667-882,Eva Garland Consulting (EGC):,"a list about Wikipedia and books, then an unrelated block about a consulting firm; no rule for C4",ai
+52bd1da881ee0592,new,C4,1718-2215,"The Covenant, undeniably, was an uprising",biblical covenant notes followed by a paragraph on the Scottish Covenant that ends with 'Yahweh': two sources merged,ai
+52bd1da881ee0592,new,NEW-factual-error,1320-1362,"In Exodus 9, two narratives are interwoven","the Gibeonite covenant is Joshua 9, not Exodus 9",ai
+f2a8b2cc25bb5c7a,new,NEW-factual-error,337-385,introduced at a lower price with a built-in lens,the 1Ds is an interchangeable-lens DSLR; the XC10 is the one with a fixed lens: the comparison is reversed,ai
+bf1cefdecf84bf1a,new,C4,689-3772,"In the context of security, armed guards","five unrelated topics (elections, a security guard case, USPS finances, a shooting, LGBTQ+ rights) stitched into one doc; no rule for C4",ai

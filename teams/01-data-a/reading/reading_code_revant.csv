@@ -1,0 +1,8 @@
+doc_id,kind,code,offsets,quote,why,source,pack
+8f07828d5c3af2a6,missed,E1,0-911,,Metadata and wrapper structure suggest generated source beyond E1 directory predicates; upstream generation remains inferred and exclusion policy is open.,ai,code-js-ts
+a0d94ae2c8f0d393,missed,E4,0-1067,,Substantial Python license survives the internal language-label condition; copied-label diagnostic would also remove a useful modification annotation; preserve provenance.,ai,code-python
+811ce55eef413610,missed,E4,49-624,,Substantial Python license survives the internal language-label condition; original replay matches; copied-label diagnostic metadata was not persisted.,ai,code-python
+d840fa74b5200b65,missed,E1,0-2771,,Metadata and mechanical schema structure suggest generated source outside E1 banner predicates; upstream generation and exclusion policy remain unconfirmed.,ai,code-python
+11aa7a16ad5a2061,missed,E4,0-707,,Full Python license survives the internal language-label condition; original pair is unchanged; preserve provenance and resolve intended header treatment.,ai,code-python
+df63f98851068f39,missed,C3,3693-3714;13273-13291,,Verified upstream redactions sever two executable references; C3 coverage gap beyond the correctly Go-only rule scope; no B4-caused harm.,ai,code-python
+7d0432188888631b,missed,C3,5564-5609,,Verified upstream redactions sever a TypeScript member lookup; C3 coverage gap beyond the correctly Go-only rule scope; no B4-caused harm.,ai,code-js-ts

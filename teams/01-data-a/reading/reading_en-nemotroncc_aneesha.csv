@@ -1,0 +1,53 @@
+doc_id,kind,code,offsets,quote,why,source
+a5beaed27fce57f4,missed,C1,753-1219,Related Stories Sea surface temperatures in the Northeast Shelf Large Marine Ec…,Unrelated to the original paragraph,manual
+c2a1accfe1ee73c1,new,NEW-squashed-into-prose,3569-3623,A why hydrogen b what is a hydrogen fueling station c,an agenda whose line breaks and bullets were lost,manual
+1f9b5ac7201191fd,new,NEW-pronoun-slip,1778-1782,his,Person being addressed is unclear,manual
+1f9b5ac7201191fd,new,NEW-old-place-name-spelling,2678-2682,Kiev,"New spelling ""Kyiv""",manual
+8e878c3f109876a1,new,NEW-abstract-with-no-paper-behind-it,132-158,is proposed in this paper.,No mention of paper being referred to,manual
+6846c04d749df61b,new,NEW-typos-and-grammar-errors,364-379,Iranian capitol,Iran called Iranian,manual
+6846c04d749df61b,new,NEW-two-words-stuck-together,1175-1188,Johnsonissued,No space between two words,manual
+6846c04d749df61b,missed,C1,1370-1407,Advertisement - story continues below,Boilerplate,manual
+e959f68211479a14,missed,C1,0-5,Pages,Heading does not align with text,manual
+e959f68211479a14,missed,C1,7-17,Categories,Heading does not align with text,manual
+e959f68211479a14,new,NEW-clickbait-and-promotional-tone,235-258,Get ready to be stunned,clickbait,manual
+e959f68211479a14,new,NEW-text-describing-a-missing-video,312-334,In this must-see video,Video link missing,manual
+e959f68211479a14,new,NEW-two-pieces-stuck-together-with-no-space,443-512,marketplaces like OpenSeaGameStop was struggling until Wallstreetbets,Two words with no space,manual
+986032c30098ab9b,new,NEW-footnote-whose-main-content-is-missing,0-249,"*Tuesday ages are tentative. There are two instructors in the clasroom, so we c…",Cut off from main content,manual
+012f59fe9357a1d2,new,NEW-grammar-error,1788-1798,downloaded,Wrong grammar,manual
+012f59fe9357a1d2,new,NEW-text-with-the-link-gone,1803-1819,full report here,Missing download link,manual
+e956f775c244329d,new,NEW-missing-space-after-a-full-stop,189-211,Georgetown University.,Space missing,manual
+c0141829a89b70e5,new,NEW-spliced-sentences,23602-23693,"While initially a form of computer application, Although the accuracy of facial…",glues the start of one sentence onto another,manual
+c0141829a89b70e5,new,NEW-leftover-hyphens-from-line-breaks,37596-37606,Scrip-ture,Discontinuous sentence,manual
+c0141829a89b70e5,new,NEW-hyphen-split-words,39162-39170,to-ward,discontinuous sentence,manual
+c0141829a89b70e5,new,NEW-hyphen-split-words,39250-39257,be-come,discontinuous sentence,manual
+c0141829a89b70e5,new,NEW-mismatched-quotation-marks,39373-39392,"""do not be afraid.'",Mismatched quotes,manual
+c0141829a89b70e5,new,NEW-mismatched-quotation-marks,39746-39758,"""Jerusalem'",Mismatched quotes,manual
+c0141829a89b70e5,missed,C1,41206-41224,"(Reuters, 9/21/04)",Boiler plate,manual
+c29476cba55fb465,new,NEW-header-details-stripped,1006-1025,Riesbeck's dialogue,Header details stripped,manual
+31578015b87b9c76,new,NEW-ad-disguised-as-an-article,2319-2359,we will discuss and recommend treatments,Promotion within an article,manual
+91ec00ec7f982d18,missed,D3,16-24,aląąjį',Navajo and English mixed,manual
+91ec00ec7f982d18,missed,C3,1066-1091,currently President Obama,Truncated document,manual
+2feb05980d7d894a,new,NEW-missing-spaces,479-500,as you choose.Compose,Space missing after .,manual
+ac425325b462b50e,new,NEW-too-few-words,0-7,chance,Only one word present,manual
+da1284ff5b1a26e9,missed,C1,0-11,Slide Title,Boiler plate,manual
+da1284ff5b1a26e9,missed,C1,13-33,Photographer/Creator,Boiler plate,manual
+da1284ff5b1a26e9,missed,C1,35-43,Preview,Boiler plate,manual
+da1284ff5b1a26e9,missed,C1,44-48,Date,Boiler plate,manual
+da1284ff5b1a26e9,missed,C1,50-56,5-1974,Boiler plate,manual
+da1284ff5b1a26e9,missed,C1,58-69,Description,Boiler plate,manual
+cfa8295d1ae741dd,missed,C1,0-13,Uncategorized,Boiler plate,manual
+cfa8295d1ae741dd,new,NEW-heading-stuck-to-the-paragraph,2333-2403,Food With Her ParentsWhen you are off to dinner along with her parents,New line missing,manual
+11878b0609eb47c3,missed,B1,9-25,Coming up: ( - ),Code artefact,manual
+11878b0609eb47c3,missed,C1,27-76,Watch Canal 6 right here for free on ARTV.watch!,Boiler plate,manual
+11878b0609eb47c3,missed,C3,2184-2202,that will keep you,Truncated document,manual
+4531052708320471,missed,C1,0-5,Pages,Boiler plate,manual
+be70a0b5686b443e,missed,C3,1670-1813,Exercise 4.1 Another example of a void function is a function that takes a real…,Truncated document,manual
+502ee3da08920d31,new,NEW-missing-spaces,157-163,awhile,Missing space,manual
+1199766d07c144b5,missed,C1,0-7,Sermons,Boiler plate,manual
+1199766d07c144b5,missed,C3,6689-6726,"Let go, and be transfigured in Christ",Truncated document,manual
+eadb3c4ab96e8ea5,missed,C1,89-99,Learn More,Boiler plate,manual
+005b6af570979c96,missed,C1,56-65,Main menu,Boiler plate,manual
+c816e82b9664794c,missed,C1,40-180,The best way to learn Mondo Generator songs on guitar. Play tab and chords dire…,Boiler plate,manual
+c816e82b9664794c,missed,C1,168-180,read more...,Boiler plate,manual
+c816e82b9664794c,missed,C3,504-581,The LP wouldn't be released until 3 years later due to Oliveri and Homme bein,Truncated document,manual
+8d8a59cfa7b6bf97,missed,C3,6645-6660,please visit .,Truncated document,manual

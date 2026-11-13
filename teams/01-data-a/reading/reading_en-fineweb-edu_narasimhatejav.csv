@@ -1,0 +1,15 @@
+doc_id,kind,code,offsets,quote,why,source
+fd566045d10b5f73,missed,D3,2774-2787,9 мая 2019 г.,Russian date fragment glued to an English sentence (also no space after the full stop); D3 only drops mostly non-Latin lines,manual
+2f50ea982f698219,missed,C1,0-132,Presentation on theme:,"slideplayer wrapper text ('Presentation on theme ... Presentation transcript:'), not slide content",manual
+2f50ea982f698219,missed,C1,8208-8272,Your consent to our cookies,Cookie banner text left at the end of the page,manual
+6b3e869b7576ba25,missed,C1,0-34,Go to this verse :: Verse pop-up,"Button label from the site's verse-lookup widget, not commentary text",manual
+8ab065232be7266c,missed,C1,2902-3196,Latest posts by,"Blog author box with links to other posts, not part of the article",manual
+01eb3742a898cd17,missed,C1,0-398,Navigate through the tabs,"Site instructions about the page's tabs, not about the breed",manual
+01eb3742a898cd17,missed,C1,3423-3499,Our Mobile Application,Promo for the site's mobile app at the end of the page,manual
+d5b548bc0f39f117,missed,C1,1060-1130,Read the full story:,Call-to-action link labels (Read the full story / Download article) whose links are gone,manual
+807ef2ed55b5870c,missed,C1,1920-2132,Buy Cheapest Related Product From Amazon.com,"Affiliate shopping link plus Previous/Next post navigation naming other articles, site chrome after the story",manual
+5e7ec8f9deba2878,missed,C1,6079-6335,How to cite this page,"Empty 'More on' links heading plus the site's cite-this-page widget (with a viewed-on date), not article text",manual
+dbcb78a28f12027d,missed,C1,159-198,Access this Article,"Database buttons ('Access this Article / Search this Article'), not abstract text",manual
+dbcb78a28f12027d,missed,D3,0-56,[in Japanese],Japanese-language title (with an [in Japanese] tag) at the start of an English document,manual
+dbcb78a28f12027d,missed,D3,896-922,2015-01,Journal citation line written only in Japanese letters; D3 should drop a line like this,manual
+c16c6ed1ea3b91d7,missed,C1,3958-4082,Top 10 Missing Links,Related-story link list (headlines of other articles) at the end of the page,manual

@@ -1,0 +1,23 @@
+doc_id,kind,code,offsets,quote,why,source
+0b9075e915ffceac,missed,C1,911-998,Log Out / Change ) Twitter picture Facebook photo Google+ ph,WordPress comment-login widget text at the end of the post,ai
+dec657da5609fd56,missed,C1,1588-1601,Leave a reply,'Leave a reply' comment-form label at the end,ai
+dec657da5609fd56,missed,C1,0-39,Health & Medical Fitness & bodybuilding,category breadcrumb at the start,ai
+c2a7eaeb2b784189,missed,C1,2069-2104,You may also like... Leave a Reply,related-posts and comment-form labels at the end,ai
+21866f62a874ae46,harm,DA-C2-003,5991-6008,Anonymous said...,"Cleaner had deleted '<name> said...' comment-header lines, but some are still left",manual
+13eaa07ada811509,missed,C1,2759-2770,Your Answer,Q&A 'Your Answer' form label at the end,ai
+2287fd9e465fdbef,missed,C1,0-65,"From Wikipedia, the free encyclopedia Jump to: navigation, s",Wikipedia page header (site chrome) at the start,ai
+19557aba45b99172,missed,C1,38752-38764,• Close Menu,menu-close label at the end,ai
+c6565d3fa99ecdf4,missed,C1,4313-4352,Top Back Home Web Statistics,site navigation row at the end,ai
+b30b6cbd053b962e,missed,C1,11077-11249,• Post a new comment Comments allowed for members only,"LiveJournal comment-form widget at the end: post-comment link, members-only and anonymous-comment notices, userpic and IP notice",manual
+cd61bed30779f726,missed,C1,3260-3327,About the Author Photo Credits • Eising/Photodisc/Getty Imag,author box and photo credit at the end,ai
+18ee2d2741be1cdb,missed,C1,2306-2319,Leave a Reply,comment-form label at the end,ai
+8a44dc21a6065507,missed,C1,36744-36794,Sign up to our newsletter Newsletter Preferences,newsletter widget at the end,ai
+c5a8f9d8fc3ac30f,missed,C1,3601-3767,Leave a Reply You are commenting using your account. Log Out,"WordPress comment-login widget at the end (Leave a Reply, login prompt, Google photo / Twitter picture / Facebook photo, 'Connecting to %s', '%d bloggers like this:')",manual
+6b35cf6dc52ed772,missed,F1,3197-3212,,"phone at offset 3197: DA-F1-005 missed it (country code + 11 digits in one block); business contact block, email beside it was replaced",manual
+6b35cf6dc52ed772,missed,F1,3219-3236,,phone at offset 3219: DA-F1-005 missed it (4-4-7 digit groups); same contact block,manual
+7559294831c4ff58,missed,C1,4524-4544,Comments are closed.,comment-section notice at the end,ai
+6ad54ee8d7a97abe,missed,C1,17960-18046,- - - - is at This subject presentation was last updated on,page footer template at the end,ai
+ca99e6d44576a2c2,missed,C1,14040-14214,Leave a Reply WordPress.com Logo Twitter picture Facebook photo,"WordPress comment-login widget at the end (Leave a Reply, WordPress.com Logo, social-login pictures, 'Connecting to %s', 'Get every new post delivered to your Inbox', '%d bloggers like this:')",manual
+f0bdeaae299d2822,new,NEW-bibtex-record,0-17,@inbook {MATHEDUC,"whole doc is one BibTeX citation record (author/title/booktitle/publisher/msc2010/identifier fields); only the abstract is prose; braces are field delimiters and balanced, so not B4/B5",manual
+6ea66e2255976696,missed,C1,0-24,Take the 2-minute tour ×,StackExchange tour banner at the start,ai
+6ea66e2255976696,missed,C1,625-675,share|improve this answer add comment Your Answer,StackExchange answer widgets at the end,ai

@@ -1,0 +1,66 @@
+doc_id,kind,code,offsets,quote,why,source
+a286f7d691161a05,missed,C1,5475-5561,,"journal running header/footer (journal name, ISSN, impact factor, site, CC licence line, paper ID, page number) repeated on every page, 3 copies",ai
+a286f7d691161a05,new,NEW-pdf-quote-glyphs,11679-11680,,quotation marks extracted as '―' and '‖' (PDF font mapping),ai
+d84b6b9fb2522239,new,NEW-pdf-ligatures,539-7056,,"15 ligature characters (U+FB00-FB06, e.g. fi fl ffi) inside words; NFC keeps them",ai
+255f57592e1e996a,missed,C1,5413-5791,,publisher advert footer (submit-your-manuscript pitch) at the end of the abstract,ai
+255f57592e1e996a,new,NEW-pdf-ligatures,5574-5575,,"1 ligature characters (U+FB00-FB06, e.g. fi fl ffi) inside words; NFC keeps them",ai
+0863ac75c9ec153e,new,NEW-missing-table-data,808-842,,table headings survive but their numbers were lost in extraction,ai
+75183caf56d8e54b,new,NEW-orphan-figure-labels,1142-2958,,"diagram callouts extracted as one-letter and number lines (A, C, J, 35, 1) with no text",ai
+5a201c19575522f9,missed,C1,0-2221,,"repository cover page (follow-this-work links, recommended citation, open-access notice); not one of the four cover formats DA-C1-007 matches",ai
+5a201c19575522f9,new,NEW-hyphen-split-words,10463-10477,,"line-end hyphen kept with a space ('company- owned', 'performance- based')",ai
+4a33733776358fac,new,NEW-missing-table-data,572-599,,the committee member list it introduces is missing,ai
+00b17b2db8046697,missed,C1,2289-2667,,"ebook-site preview footer (download formats, VIP membership) after the text",ai
+00b17b2db8046697,missed,C3,2289-2289,,"story stops mid-scene: this is a preview, the rest of the book is missing",ai
+03f43ec094ecc97c,missed,C1,12569-12579,,PDF page stamp 'Blank Page' left as the last line,ai
+c0b8a3e02c4dee8b,new,NEW-pdf-ligatures,56-232,,"2 ligature characters (U+FB00-FB06, e.g. fi fl ffi) inside words; NFC keeps them",ai
+c7953f24786c4754,missed,C3,0-80,,only a title line survives (80 characters); the roster or schedule it introduces is missing,ai
+ef812364b6cca7a0,new,NEW-reading-order,415-544,,"numbered steps extracted out of order (3, 5, 4)",ai
+91c24a54b1ea3ba6,missed,C1,996-1188,,"company address, phone, web and page-number footer repeated on each of the 3 pages",ai
+980d490625a9634d,missed,C2,110817-110867,,calendar listing printed twice (2 listings repeated word for word),ai
+980d490625a9634d,missed,F1,100134-100148,,phone at this offset: private individual given as event contact (type only),ai
+980d490625a9634d,missed,F1,111670-111684,,phone at this offset: private individual given as event contact (type only),ai
+75768b1b6b165557,missed,C1,41074-41561,,publisher advert footer (why publish with BioMed Central) plus page stamp,ai
+75768b1b6b165557,new,NEW-hyphen-split-words,12630-12644,,line-end hyphen kept with a space ('stereo- scopic'),ai
+d8a1ed9b1607a1dd,new,NEW-seo-filler,0-6921,,"spun 'download this ebook' SEO page, keyword title repeated, no real content",ai
+732559ee8e39b4b7,missed,C1,1826-1847,,data-sheet footer 'REV 1.0 Page n of 3' repeated on each page,ai
+dc43735254d92153,missed,C1,5003-5017,,"report date printed as a running header on each page (7 copies), with the analyst contact block",ai
+dc43735254d92153,missed,C2,0-68,,title printed twice in the first line,ai
+f82d23a50e08a31f,new,NEW-spun-text,0-31391,,"article run through a synonym spinner ('sun powered detached plan' for passive solar design, 'petroleum derivatives' for fossil fuels)",ai
+687e6f4c567f4a39,missed,F1,415-429,,phone at this offset: private parishioner to call (type only),ai
+687e6f4c567f4a39,missed,F1,4339-5517,,prayer list: names of private people with family relationships (type only),ai
+93412124dc441459,new,NEW-hyphen-split-words,232-243,,line-end hyphen kept with a space ('day- to-day'),ai
+680400a6c14bde86,new,NEW-merged-table-cells,75259-75296,,table row has 6 cells under a 5-column header; values shifted one column,ai
+a2138bc5d5b2b2a4,missed,C1,5155-5242,,agency page header (department and board name) repeated mid-text on each page,ai
+f163172e98bdaa35,new,NEW-missing-spaces,1234-1245,,line break lost between a URL and the next label,ai
+6deaff0b02c57734,new,NEW-merged-table-cells,643-830,,"spec table flattened: headers cut, values scattered on separate lines",ai
+b1857f12c0d28f07,missed,C2,280-673,,"thesis title page printed 4 times (cover, title page, copyright page)",ai
+b1857f12c0d28f07,new,NEW-toc-dot-leaders,4674-11194,,table of contents with dot leaders and page numbers (about 70 lines),ai
+d8e3f724095e4aaa,new,NEW-underscore-blanks,0-10473,,blank fill-in form: long underscore runs make up much of the text,ai
+e46456a5002848ec,missed,C3,0-141,,accounts-payable list cut after its first entry (141 characters left),ai
+e4d1400f9236b8c9,new,NEW-reading-order,411-745,,roll-call sentence split and its parts scrambled across lines,ai
+3b2c0420a33ccaab,new,NEW-underscore-blanks,0-12989,,blank questionnaire: long underscore runs make up much of the text,ai
+381b21b367f75de6,missed,C1,780-783,,page counter '1/3' splits a sentence ('explained Brian / 1/3 / Jeffs'); also 'Powered by TCPDF' and the site's copyright footer,ai
+63f1b68a2107c1b6,missed,C1,2671-2700,,magazine running footer and page number (114) inside a sentence,ai
+21f33206f24a2f0e,missed,C1,95-153,,download-site stamp at the top of the paper,ai
+21f33206f24a2f0e,missed,C1,3958-4000,,"journal running header 'AoB PLANTS' + site glued together, 6 copies; 'The Authors 2015' footer 5 copies",ai
+21f33206f24a2f0e,new,NEW-detached-diacritics,299-306,,accent extracted as a separate spacing character ('Mo´nica' for 'Mónica'),ai
+21f33206f24a2f0e,new,NEW-pdf-ligatures,992-36369,,"38 ligature characters (U+FB00-FB06, e.g. fi fl ffi) inside words; NFC keeps them",ai
+765f3f0bbe7e9a83,missed,C1,0-1542,,"repository cover (important note, citation, copyright, take-down policy, downloaded-from line) before the text",ai
+cac6d71a34e4928f,missed,C1,0-421,,"repository cover (follow-this-work, recommended citation, open-access notice); carries a CC licence, so keep the licence line if removed",ai
+b3ae8754bf05c33f,missed,F1,15056-18416,,"cadet profiles: names of minors with rank, school grade and activity (type only)",ai
+1a15c4ec5610cc58,missed,C1,981-997,,docket print stamp with requester id repeated on each page (4 copies),ai
+1a15c4ec5610cc58,missed,F1,0-5164,,court docket: names of private claimants and defendants in civil cases (type only),ai
+365b8539483e5a3f,new,NEW-seo-filler,0-9217,,"spun 'access free ebook' SEO page with 'Page n/33' markers, keyword title repeated",ai
+3b17c7620d42f333,missed,C1,7174-7562,,print-view footer: 'Source URL' and the numbered link list,ai
+59aef569bc52cdff,new,NEW-toc-dot-leaders,2633-4743,,table of contents with dot leaders and page numbers,ai
+39bb03a0df7d4af5,new,C5,0-5202,,"search-snippet farm: the same book title repeated with dated snippet lines, no content",ai
+2223dc794fb288a2,missed,C2,271-306,,slide deck exported with every build step: the outline is repeated 5 times and 2 long passages twice,ai
+507e3afaa15e2375,missed,A1,722-735,,soft hyphen U+00AD plus a space splits 3 words; DA-A1-006 removes only U+FEFF and U+200B,ai
+507e3afaa15e2375,new,NEW-pdf-ligatures,1414-5266,,"4 ligature characters (U+FB00-FB06, e.g. fi fl ffi) inside words; NFC keeps them",ai
+6cdcf2807cbf5156,new,NEW-merged-table-cells,1083-1104,,"count and percent merged into one cell, the next cell left empty",ai
+5ffff0464dd66f71,missed,C1,1518-1620,,PDF-creator watermark line at the end,ai
+79596acc4ee8648a,missed,D1,0-11615,,"labelled en, but the document itself is Japanese; the English in it is only generated image captions",ai
+79596acc4ee8648a,new,NEW-generated-image-captions,3844-11205,,English machine-written picture descriptions inserted between the Japanese text (about 10),ai
+fac0d63aba9fab0c,new,NEW-missing-table-data,1155-1396,,"action-plan table: column headings survive, the table body is lost",ai
+35d51dcf919068f8,new,NEW-figure-only-doc,0-1117,,"supplementary file whose content was figures; only the title, authors and licence text are left",ai
+db955ac64864c36c,new,NEW-split-superscripts,58083-58111,,"ordinal suffixes ('th') moved onto a separate line, away from the date",ai
