@@ -262,8 +262,11 @@ initialised model of the final shape. You don't need a trained model to measure 
 Section D of the week-2 plan. The save time is compared with the stall budget in section 11 (stall ≤ 2% of the
 interval) and the interval in section 7.
 
-**Status: provisional.** The numbers below are from Team 6's week-1 baseline. They are replaced by the Team 6
-week-2 hand-off (Fri 13 Nov) and scaled to the real per-rank size once config v1 is out (Sat 14 Nov).
+**Status: provisional.** The numbers below are from Team 6's week-1 baseline. Team 6 confirmed on 12 Nov that
+they are the right numbers to use for now and that the 30 min interval is fine
+([reply on PR #239](https://github.com/theschoolofai/era-v5-lab/pull/239#issuecomment-6828432703)); their week-2
+runs did not measure checkpoint save. They are replaced by a separate Team 6 checkpoint job (after their Gate-2
+pack, same stall / write / size split) and scaled to the real per-rank size once config v1 is out (Sat 14 Nov).
 
 ### Measured save time
 
@@ -296,11 +299,11 @@ yet.
 ### Decision
 
 **The 30 min interval stays.** It is set by the eval cadence and the most work we accept losing (section 7),
-not by save cost. Revisit only if the week-2 number or the config v1 per-rank size moves the stall above 36 s
+not by save cost. Revisit only if the Team 6 checkpoint job or the config v1 per-rank size moves the stall above 36 s
 or the background pipeline above 30 min.
 
 | Input | Value | Source |
 |---|---|---|
 | Save time (stall, then background write) | 37 ms / 1.9 s (normal), 67 ms / 3.5 s (MTP); provisional | Team 6 week-1 baseline, [baseline_v0.md](../../06-performance/results/baseline_v0.md) |
-| Save time, week-2 hand-off | _pending, Fri 13 Nov_ | Team 6 |
+| Save time, week-2 checkpoint job | _pending, after the Team 6 Gate-2 pack_ | Team 6, to be posted on [PR #239](https://github.com/theschoolofai/era-v5-lab/pull/239) |
 | Checkpoint size per rank | _pending, config v1 (Sat 14 Nov)_ | Team 5 config v1, [parallel_layout_v0.md](parallel_layout_v0.md) |
