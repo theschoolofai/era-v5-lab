@@ -39,7 +39,8 @@ so conversion stops ("BPE pre-tokenizer was not recognized"). This script sets t
 Tokenizer v0 is not in the repo (7.7 MB); build it with teams/03-tokenizer/v0/build_v0.py and check SHA256SUMS.
 
 Versions used: Python 3.12, llama.cpp b11669 (converter + gguf-py), llama-cpp-python 0.3.36, tokenizers 0.22.2,
-transformers 4.57.6, torch 2.11.0 (CPU), numpy 2.2.6, sentencepiece 0.2.2, protobuf 4.25.9, gguf 0.19.0, datasets 4.8.5
+transformers 4.57.6, torch 2.11.0 (CPU), numpy 2.2.6, sentencepiece 0.2.2, protobuf 4.25.9, gguf 0.19.0, datasets 4.8.5,
+regex 2026.11.9 (optional, for the cause analysis)
 (llama.cpp's gguf-py). Optional --llama-tokenize: the llama-tokenize binary of the same llama.cpp build.
 """
 from __future__ import annotations
@@ -228,6 +229,82 @@ def first_diff(g: list, h: list, k: int) -> dict:
     return {"line": k, "at_token": j, "hf_ids": h[lo:j + 4], "gguf_ids": g[lo:j + 4]}
 
 
+def byte_map() -> dict:
+    """GPT-2's byte-level alphabet: the character that stands for each byte, inverted (character -> byte)."""
+    bs = list(range(33, 127)) + list(range(161, 173)) + list(range(174, 256))
+    cs, n = bs[:], 0
+    for b in range(256):
+        if b not in bs:
+            bs.append(b); cs.append(256 + n); n += 1
+    return {chr(c): b for b, c in zip(bs, cs)}
+
+
+def all_tokens(llm, plain, tok: dict) -> dict:
+    """Every vocabulary id: (1) llama.cpp's text for the id equals tokenizer.json's bytes; (2) tokenizing that text gives
+    the same ids in llama.cpp and HF (tokens that are whole UTF-8 text; special tokens are checked separately)."""
+    bm = byte_map()
+    special = {a["id"]: a["content"] for a in tok["added_tokens"] if a["special"]}
+    res = {"ids": 0, "piece_bad": [], "text_ids": 0, "tok_bad": []}
+    for text, i in tok["model"]["vocab"].items():
+        want = special[i].encode("utf-8") if i in special else bytes(bm[c] for c in text)
+        res["ids"] += 1
+        if llm.detokenize([i], special=True) != want:
+            res["piece_bad"].append(i)
+            continue
+        if i in special:
+            continue
+        try:
+            s = want.decode("utf-8")
+        except UnicodeDecodeError:
+            continue   # part of a character: no text to tokenize
+        res["text_ids"] += 1
+        if llm.tokenize(want, add_bos=False, special=True) != plain.encode(s, add_special_tokens=False).ids:
+            res["tok_bad"].append(i)
+    return res
+
+
+PRE_TYPES = {"granite-embed-multi-97m": "LLAMA_VOCAB_PRE_TYPE_GRANITE_EMB_MULTI"}   # llama.cpp's name for the type
+
+
+def explain_pretok(r: dict, tok: dict, sets: dict, norm_sets: dict, llama_cpp: Path, pre: str, nf: bool) -> dict:
+    """Why do lines or tokens differ for a reason other than the normalizer? Counts only, no text. For the lines that
+    differ off the normalizer's account (the normalized pass with --normalize-first, else the raw pass on lines it does not
+    change) and for the vocabulary tokens that tokenize differently: how many have a different cut in the pre-tokenizer
+    regex of tokenizer.json and in the pattern llama.cpp uses for this type (read from its source, run with the `regex`
+    package), and how many tokens are all-capital words with an accented capital that end in an ASCII capital."""
+    import string
+    out = {"lines": 0, "lines_by_set": {}, "lines_cut_differs": None, "tokens": len(r["all_tokens"]["tok_bad"]), "shape": 0,
+           "tokens_cut_differs": None}
+    todo = []   # (text, "line" or "token")
+    for name, st in r["sets"].items():
+        ids = st["normalized"]["id_mismatch"] if nf else [k for k in st["id_mismatch"] if k not in set(st["changed"])]
+        if ids:
+            out["lines_by_set"][name] = len(ids)
+            todo += [(norm_sets[name][k] if nf else sets[name]["lines"][k], "line") for k in ids]
+    out["lines"] = len(todo)
+    bm, inv = byte_map(), {v: k for k, v in tok["model"]["vocab"].items()}
+    for i in r["all_tokens"]["tok_bad"]:
+        t = bytes(bm[c] for c in inv[i]).decode("utf-8")
+        letters = [c for c in t if unicodedata.category(c).startswith("L")]
+        out["shape"] += bool(letters and all(unicodedata.category(c) == "Lu" for c in letters)
+                             and any(ord(c) > 127 for c in letters) and t[-1] in string.ascii_uppercase)
+        todo.append((t, "token"))
+    try:
+        import regex
+        src = (llama_cpp / "src" / "llama-vocab.cpp").read_text(encoding="utf-8")
+        block = src[src.index("case " + PRE_TYPES[pre]):][:1500]
+        llama_pat = json.loads(next(l.strip().rstrip(",") for l in block.splitlines() if l.strip().startswith('"[^')))
+        hf_pat = tok["pre_tokenizer"]["pretokenizers"][0]["pattern"]["Regex"]
+        cuts = lambda pat, t: {m.end() for m in regex.finditer(pat, t)}
+        diff = {"line": 0, "token": 0}
+        for t, kind in todo:
+            diff[kind] += cuts(hf_pat, t) != cuts(llama_pat, t)
+        out["lines_cut_differs"], out["tokens_cut_differs"] = diff["line"], diff["token"]
+    except (ImportError, KeyError, ValueError, StopIteration, OSError):
+        pass   # no `regex` package, or a pre-tokenizer type this script has no source mapping for
+    return out
+
+
 def check(gguf: Path, hf, plain, tok: dict, sets: dict, norm_sets: dict, normalize_first: bool = False) -> dict:
     """hf: the tokenizer as trained (with its normalizer); plain: the same without the normalizer; norm_sets:
     each set's lines after the normalizer (the same lines when there is none)."""
@@ -282,12 +359,23 @@ def check(gguf: Path, hf, plain, tok: dict, sets: dict, norm_sets: dict, normali
         if g != [a["id"]] or llm.detokenize(g, special=True) != a["content"].encode("utf-8"):
             bad.append({"id": a["id"], "content": a["content"], "gguf": g})
     res["specials"] = {"n": len(tok["added_tokens"]), "bad": bad}
+    res["all_tokens"] = all_tokens(llm, plain, tok)
     return res
 
 
+def vocab_bad(r: dict) -> bool:
+    return bool(r["all_tokens"]["piece_bad"] or r["all_tokens"]["tok_bad"])
+
+
 def verdict(r: dict, normalize_first: bool = False) -> int:
-    """0 = same ids on every line; 2 = raw pass differs only on lines the normalizer changes and the normalized pass is
-    clean (needs --normalize-first); 1 = anything else."""
+    """Exit code. 0 = same ids on every line and every vocabulary id checks out; 2 = raw pass differs only on lines the
+    normalizer changes, the normalized pass is clean and the vocabulary checks out (needs --normalize-first);
+    1 = anything else."""
+    return 1 if vocab_bad(r) else line_verdict(r, normalize_first)
+
+
+def line_verdict(r: dict, normalize_first: bool = False) -> int:
+    """The same, for the test lines, the specials and the converted model only (not the whole-vocabulary check)."""
     base = not r["specials"]["bad"] and r["generates"]
     sets = r["sets"].values()
     if base and all(r["cli"].values()) and all(not s["id_mismatch"] and not s["gguf_text_err"] for s in sets):
@@ -330,38 +418,71 @@ def report(args, info, sets, results) -> str:
                 + (f" ({sum(s['mismatch_changed'] for s in r['sets'].values()):,} on lines the normalizer changes, "
                    f"{sum(s['mismatch_unchanged'] for s in r['sets'].values()):,} on lines it does not)" if hasn else "")
                 + f", {tot('gguf_text_err'):,} decode errors; "
-                f"specials {r['specials']['n'] - len(r['specials']['bad'])}/{r['specials']['n']} exact.")
+                f"specials {r['specials']['n'] - len(r['specials']['bad'])}/{r['specials']['n']} exact; "
+                f"{len(r['all_tokens']['piece_bad']) + len(r['all_tokens']['tok_bad'])} bad ids of {r['all_tokens']['ids']:,} "
+                "in the whole-vocabulary check.")
         if nf:
             line += (f" Normalized pass: {sum(len(s['normalized']['id_mismatch']) for s in r['sets'].values()):,} of {n:,} "
                      f"lines differ, {sum(len(s['normalized']['hf_pipeline_diff']) for s in r['sets'].values()):,} differ "
                      "from HF's own pipeline.")
-        L.append(line + labels[verdict(r, nf)])
+        v, lv = verdict(r, nf), line_verdict(r, nf)
+        L.append(line + (" **LINES " + ("PASS" if lv == 0 else "KNOWN LIMIT (normalizer)") + ", WHOLE-VOCABULARY CHECK FAILS**"
+                         if v == 1 and lv in (0, 2) else labels[v]))
     L += ["", f"The stock converter (no `--pre` override) says: `{info['stock_error']}`", ""]
-    good = [p for p in args.pre if verdict(results[p], nf) in (0, 2)]
-    trap = [p for p in args.pre if p not in good and not any(s["gguf_text_err"] for s in results[p]["sets"].values())]
-    L.append("**What it means.** " + (
-        f"Convert models that use this tokenizer with pre-tokenizer `{good[0]}`; until llama.cpp knows this tokenizer's "
-        f"hash, the converter must be told the type, as this script does. " if good else
-        "**No tested llama.cpp pre-tokenizer gives the same ids: blocker for G3 and G12** (mismatches per language "
-        "below). ") + (
-        " ".join(f"`{p}` decodes every line back to the same text, but cuts "
-                 f"{sum(len(s['id_mismatch']) for s in results[p]['sets'].values()):,} lines into different tokens."
-                 for p in trap) + " A check of decoded text alone would pass it; the model would see ids it was not "
-        "trained on." if trap else ""))
-    if good and verdict(results[good[0]], nf) == 2:
-        r = results[good[0]]
-        ch = sum(len(s["changed"]) for s in r["sets"].values()); mm = sum(s["mismatch_changed"] for s in r["sets"].values())
-        n = sum(s["lines"] for s in r["sets"].values())
-        L += ["", f"**Normalizer: blocker for G3 and G12, with one cause.** llama.cpp alone does not reproduce the training "
-              f"ids on the {mm:,} lines whose text the normalizer changes ({ch:,} of {n:,} lines are changed). Every other "
-              "line matches, and with the normalizer applied first every line matches, so nothing else is wrong. A serving "
-              "app that uses llama.cpp must run the normalizer on the text before tokenizing; the GGUF cannot carry it."]
+    def unexplained(r):   # lines (raw pass off the normalizer's account, or normalized pass) + vocabulary tokens
+        lines = sum(len(st["normalized"]["id_mismatch"]) if nf else st["mismatch_unchanged"] for st in r["sets"].values())
+        return lines + len(r["all_tokens"]["tok_bad"]) + len(r["all_tokens"]["piece_bad"])
+    ok = [p for p in args.pre if verdict(results[p], nf) in (0, 2)]
+    best = ok[0] if ok else min(args.pre, key=lambda p: unexplained(results[p]))
+    rb = results[best]
+    trap = [p for p in args.pre if p != best and not any(st["gguf_text_err"] for st in results[p]["sets"].values())]
+    if ok:
+        L.append(f"**What it means.** Convert models that use this tokenizer with pre-tokenizer `{best}`; until llama.cpp knows "
+                 "this tokenizer's hash, the converter must be told the type, as this script does.")
+    else:
+        pt = rb["pretok"]
+        L.append("**What it means.** **No tested llama.cpp pre-tokenizer gives the same ids on every line and every vocabulary "
+                 f"token: blocker for G3 and G12.** The closest is `{best}`: apart from the lines the normalizer changes, "
+                 f"{unexplained(rb) - len(rb['all_tokens']['tok_bad']) - len(rb['all_tokens']['piece_bad']):,} test line(s) and "
+                 f"{len(rb['all_tokens']['tok_bad']) + len(rb['all_tokens']['piece_bad']):,} vocabulary token(s) differ.")
+    if trap:
+        L.append(" ".join(f"`{p}` decodes every line back to the same text, but cuts "
+                          f"{sum(len(st['id_mismatch']) for st in results[p]['sets'].values()):,} lines into different tokens."
+                          for p in trap) + " A check of decoded text alone would pass it; the model would see ids it was not "
+                 "trained on.")
+    if nf and any(st["mismatch_changed"] for st in rb["sets"].values()):
+        ch = sum(len(st["changed"]) for st in rb["sets"].values()); mm = sum(st["mismatch_changed"] for st in rb["sets"].values())
+        n = sum(st["lines"] for st in rb["sets"].values())
+        L += ["", f"**Normalizer.** llama.cpp alone does not reproduce the training ids on the {mm:,} lines whose text the "
+              f"normalizer changes ({ch:,} of {n:,} lines are changed). With the normalizer applied first those lines match "
+              "(see the normalized pass). A serving app that uses llama.cpp must run the normalizer on the text before "
+              "tokenizing; the GGUF cannot carry it."]
+    if not ok:
+        pt = rb["pretok"]
+        by = ", ".join(f"{k} {v}" for k, v in pt["lines_by_set"].items()) or "none"
+        L += ["", "**Pre-tokenizer.** What differs besides the normalizer: "
+              f"{pt['lines']:,} test line(s) (by set: {by}) and {pt['tokens']:,} vocabulary token(s) "
+              f"({pt['shape']:,} of the tokens are all-capital words with an accented capital that end in an ASCII capital). "
+              "The pattern llama.cpp uses for this type (`src/llama-vocab.cpp`) tells upper from lower case with the ASCII "
+              "ranges `[^a-z]` and `[^A-Z]`, while tokenizer.json's regex uses `\\p{Lu}` and `\\p{Ll}`. For cased letters "
+              "outside ASCII (accented Latin, Cyrillic, Greek) the two cut words differently where the case changes, for "
+              "example a word in CamelCase or an all-capital word with an accented capital."
+              + (f" Running both regexes with the `regex` package gives a different cut for {pt['lines_cut_differs']:,} of "
+                 f"{pt['lines']:,} lines and {pt['tokens_cut_differs']:,} of {pt['tokens']:,} tokens."
+                 if pt["lines_cut_differs"] is not None else "")
+              + " Scripts without case (every Indic script and the code sets here) are not affected: none of their "
+              "test lines differs for this reason. Text with such words (all-capital headings, CamelCase in Cyrillic or Greek) "
+              "gets different ids from llama.cpp; the line numbers and token ids are in the .json."]
     L.append("")
     for pre in args.pre:
         r = results[pre]
         L += [f"## Per set, pre-tokenizer `{pre}`", "",
               f"GGUF metadata: `tokenizer.ggml.pre` = `{r['pre']}`, n_vocab {r['n_vocab']:,}, bos {r['bos']}, eos {r['eos']}. "
-              f"The full GGUF loads and generates: {'yes' if r['generates'] else 'NO'}.", ""]
+              f"The full GGUF loads and generates: {'yes' if r['generates'] else 'NO'}.", "",
+              f"**Whole vocabulary.** All {r['all_tokens']['ids']:,} ids: llama.cpp's text equals tokenizer.json's for "
+              f"{r['all_tokens']['ids'] - len(r['all_tokens']['piece_bad']):,}; tokenizing a token's own text gives the same "
+              f"ids as HF for {r['all_tokens']['text_ids'] - len(r['all_tokens']['tok_bad']):,} of {r['all_tokens']['text_ids']:,} "
+              "tokens that are whole text (the rest are parts of a character, or special tokens, checked on their own).", ""]
         if nf:
             L += ["**Raw pass** (text as it is):", ""]
         cols = (["Set", "Kind", "Lines"] + (["Changed by normalizer"] if hasn else []) + ["Different ids"]
@@ -407,9 +528,17 @@ def report(args, info, sets, results) -> str:
     L += ["", f"Longest token: {info['longest_token_bytes']} bytes. Normalizer in tokenizer.json: {info['normalizer']}.", "",
           "Versions: " + ", ".join(f"{k} {v}" for k, v in info["versions"].items()) + ".", "",
           "Rerun: `python tokenizer/gguf_roundtrip.py --tokenizer <tokenizer.json> --name " + args.name +
-          (" --normalize-first" if nf else "") +
+          (" --normalize-first" if nf else "") + (f' --eos "{args.eos}"' if args.eos != "<|end_of_text|>" else "") +
           " --llama-cpp <llama.cpp b11669> --llama-tokenize <its llama-tokenize> --work <tmp> --out results`", ""]
     return "\n".join(L)
+
+
+def _version(package: str) -> str | None:
+    from importlib.metadata import PackageNotFoundError, version
+    try:
+        return version(package)
+    except PackageNotFoundError:
+        return None
 
 
 def main():
@@ -447,7 +576,7 @@ def main():
                        "llama.cpp conversion/base.py": sha256(args.llama_cpp / "conversion" / "base.py")},
             "versions": {"Python": platform.python_version(), "llama-cpp-python": llama_cpp.__version__,
                          "tokenizers": tokenizers.__version__, "transformers": transformers.__version__,
-                         "torch": torch.__version__},
+                         "torch": torch.__version__, **{m: v for m in ("datasets", "regex") if (v := _version(m))}},
             "tiny_model": f"Llama, 1 layer, hidden 64, vocab {n_vocab:,}, random weights (seed 0), f16 GGUF"}
     # byte-level vocab: one character per byte. llama-cpp-python's detokenize holds one token's text in 32 bytes, so a
     # longer token makes the GGUF decode check fail on its own, with the ids still right (BrahmicTokenizer's rule: <= 32)
@@ -471,9 +600,10 @@ def main():
             if args.llama_tokenize else {}
         r["cli_norm"] = cli_check(args.llama_tokenize, gguf, plain, norm_sets, args.work) \
             if args.llama_tokenize and args.normalize_first else {}
+        r["pretok"] = explain_pretok(r, tok, sets, norm_sets, args.llama_cpp, pre, args.normalize_first)
         print(f"{pre}: {sum(len(s['id_mismatch']) for s in r['sets'].values())} lines with different ids, "
               f"{sum(len(s['gguf_text_err']) for s in r['sets'].values())} decode errors, "
-              f"{len(r['specials']['bad'])} bad specials"
+              f"{len(r['specials']['bad'])} bad specials, {len(r['all_tokens']['piece_bad'])}+{len(r['all_tokens']['tok_bad'])} bad ids"
               + (f"; normalized pass: {sum(len(s['normalized']['id_mismatch']) for s in r['sets'].values())} different, "
                  f"{sum(len(s['changed']) for s in r['sets'].values())} lines changed by the normalizer"
                  if args.normalize_first else "") + f"; verdict {verdict(r, args.normalize_first)}")
