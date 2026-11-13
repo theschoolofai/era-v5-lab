@@ -112,6 +112,18 @@ metrics:
     ln(val/perplexity). G5's main held-out number is val/bpb (bits per byte), which does not depend on the
     tokenizer; validation_loss does, so compare it only between runs with the same tokenizer.
 
+# The held-out number to compare runs with different G3 tokenizers: it counts bytes, not tokens.
+- name: validation_bpb
+  unit: bits per byte
+  cadence: Each validation run - the same rows as validation_loss (step 0, every run.eval_every_steps steps and the
+    last step)
+  source: G5 train_week2.py, from week2.evaluation.evaluate() in the same metrics.jsonl row, as val/nll_nats (the
+    summed loss) and val/utf8_bytes. metrics_writer.py works out validation_bpb = val/nll_nats / (ln(2) *
+    val/utf8_bytes); when those two are missing it takes G5's own val/bpb, which is the same number.
+  notes: Held-out bits per UTF-8 byte on G5's fixed held-out set, G5's main held-out metric (val/bpb). The bytes are
+    the same whatever the tokenizer, so unlike validation_loss it can be compared between runs with different G3
+    tokenizers. Lower is better. Grafana panel 25.
+
 # --- System metrics; G6 to supply ---
 # Are the GPUs busy? Low values may mean GPU time is being wasted.
 - name: gpu_utilization

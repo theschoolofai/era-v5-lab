@@ -42,6 +42,11 @@ validation run carry it. A value the trainer passes itself wins.
 
     writer.write(step, loss_ntp=..., **evaluate(model, val, ...))     # on the steps that run validation
 
+`validation_bpb` (held-out bits per UTF-8 byte) comes from the same result: `val/nll_nats` / (ln(2) x
+`val/utf8_bytes`), G5's `val/bpb`. It does not depend on the tokenizer (bytes are the same for every G3 tokenizer),
+so runs with different tokenizers can be compared on one axis; validation_loss cannot. When the two inputs are
+missing, G5's own `val/bpb` is used. A value the trainer passes itself wins.
+
 `update_weight_ratio` is the global L2 update-to-weight ratio ||lr * update||_2 / ||W||_2 (one scalar for the
 whole model). Call `compute_update_weight_ratio` around the optimizer step and pass the result when it is not
 None. By default it only returns a value every 10 steps (`every_n_steps=10`, matching `flush_every`); use
@@ -74,7 +79,7 @@ FLUSH_EVERY = 10
 # Metric list, per-step metrics only. Per-layer / per-expert metrics take a list or a dict.
 METRICS = frozenset({
     "loss_ntp", "loss_mtp", "lr", "tokens_per_second", "gpu_alloc_gib",
-    "gradient_norm", "gradient_clipping_applied", "validation_loss",
+    "gradient_norm", "gradient_clipping_applied", "validation_loss", "validation_bpb",
     "update_weight_ratio", "expert_load", "router_max_vio", "expert_load_imbalance",
     "dead_experts_count", "dead_experts_by_layer", "expert_utilization_min",
     "model_flops_utilization", "loader_wait_time",
@@ -291,6 +296,40 @@ def validation_loss(nll_nats, scored_tokens):
     return total / tokens
 
 
+def validation_bpb(nll_nats, utf8_bytes):
+    """Held-out bits per UTF-8 byte: nll_nats / (ln(2) * utf8_bytes); None when it cannot be told.
+
+    These are `val/nll_nats` and `val/utf8_bytes` from G5's evaluate(), whose `val/bpb` is the same number. None
+    when either is missing, the byte count is not a positive whole number, or the sum is not a finite number >= 0.
+    """
+    if nll_nats is None or utf8_bytes is None or isinstance(nll_nats, bool) or isinstance(utf8_bytes, bool):
+        return None
+    if hasattr(nll_nats, "item"):  # numpy / torch scalar
+        nll_nats = nll_nats.item()
+    if hasattr(utf8_bytes, "item"):
+        utf8_bytes = utf8_bytes.item()
+    try:
+        total, nbytes = float(nll_nats), float(utf8_bytes)
+    except (TypeError, ValueError):
+        return None
+    if not math.isfinite(total) or total < 0 or not math.isfinite(nbytes) or nbytes < 1 or nbytes != int(nbytes):
+        return None
+    return total / (math.log(2) * nbytes)
+
+
+def _bpb_value(bpb):
+    """G5's own val/bpb as a float, or None when it is missing or not a finite number >= 0."""
+    if bpb is None or isinstance(bpb, bool):
+        return None
+    if hasattr(bpb, "item"):
+        bpb = bpb.item()
+    try:
+        bpb = float(bpb)
+    except (TypeError, ValueError):
+        return None
+    return bpb if math.isfinite(bpb) and bpb >= 0 else None
+
+
 def _sq_l2_norm(value):
     """Squared L2 (Frobenius) norm of a tensor, array, or nested list; NaN if any value is not finite."""
     if hasattr(value, "detach"):
@@ -474,10 +513,18 @@ class MetricsWriter:
                     metrics[name] = value
         # validation_loss from G5's evaluate() result; a value passed by the trainer wins. The two inputs are used up.
         nll_nats, scored = metrics.pop("val/nll_nats", None), metrics.pop("val/scored_tokens", None)
+        utf8_bytes, g5_bpb = metrics.pop("val/utf8_bytes", None), metrics.pop("val/bpb", None)
         if metrics.get("validation_loss") is None:
             loss = validation_loss(nll_nats, scored)
             if loss is not None:
                 metrics["validation_loss"] = loss
+        # validation_bpb likewise, from val/nll_nats and val/utf8_bytes, else G5's own val/bpb.
+        if metrics.get("validation_bpb") is None:
+            bpb = validation_bpb(nll_nats, utf8_bytes)
+            if bpb is None:
+                bpb = _bpb_value(g5_bpb)
+            if bpb is not None:
+                metrics["validation_bpb"] = bpb
         # Names outside the metric list are skipped, not written.
         for name in metrics:
             if name not in METRICS and name not in self._warned:
