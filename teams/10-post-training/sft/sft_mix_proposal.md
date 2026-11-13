@@ -196,7 +196,7 @@ There are two separate Codeforces questions.
 
 ## 10. Revision note (12 Nov): the ten new datasets
 
-Ten sets were checked against the Hub cards, the papers and the branch tip on 12 Nov. Three are usable and already covered, six are `excluded`, and one is unresolved.
+Ten sets were checked against the Hub cards, the papers and the branch tip on 12 Nov. Three are usable and already covered, six are `excluded`, and one (MadeAgents/Hammer) was unresolved on 12 Nov and resolved on 13 Nov.
 
 - **Usable and already covered:** `sft-code-nemotron-cascade-swe`, `sft-agentic-nemotron-agentic-v1` and `sft-agentic-nemotron-sft-agentic-v2-tool-calling`. Each has a licence row (`TSAI reserves`), a place in this proposal (Agentic and Tool Use) and a full-set run in `decontam_report.md`.
 - **Excluded (licence rows added, with the reason in each):**
@@ -210,5 +210,5 @@ Ten sets were checked against the Hub cards, the papers and the branch tip on 12
 | `sft-agentic-open-agentrl-sft-3k` | none stated | Unstated licences are out. The paper names Qwen3-Coder-30B-A3B (Apache-2.0) as teacher for the self-curated trajectories |
 | `rl-agentic-open-agentrl-30k` | none stated | RL data. No licence, and 3K MegaScience rows are cc-by-nc-sa-4.0 |
 
-- **Unresolved (1):** "MadeAgents/Hammer" is not a Hub name. If `MadeAgents/xlam-irrelevance-7.5k` was meant, it is cc-by-4.0 but built on `xlam-60k`, so it has the same DeepSeek-V2 rows question as When2Call and needs a TSAI decision. If `MadeAgents/HammerBench` was meant, it is an Apache-2.0 benchmark, not a training set, and could go on Team 9's decontam list.
+- **Resolved (13 Nov, chapanduk):** "MadeAgents/Hammer" is the model family, not a dataset. Both MadeAgents datasets now have licence rows: `sft-tool-xlam-irrelevance-7.5k` (cc-by-4.0, 7,500 xlam-60k rows with the right tool removed; `needs TSAI decision`, the same DeepSeek-V2-Chat question as When2Call) and `rl-tool-hammerbench` (apache-2.0 benchmark with unnamed open-source generators; `excluded` from training, proposed to Team 9 as an eval probe).
 - **No decontam run was needed** for any of the ten (see `decontam_report.md`, section 7).
