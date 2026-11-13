@@ -1,10 +1,11 @@
-# Native Indic share: Data B's proposal for Gate 2 (v1.1, draft of 12 Nov 2026, numbers updated 13 Nov)
+# Native Indic share: Data B's proposal for Gate 2 (v1.1, draft of 12 Nov 2026, numbers updated 14 Nov)
 
 Deliverable of #217 ("Our proposal for the native Indic share, by Thu 12 Nov") and the first item of #216. TSAI decides
 the share at Gate 2 (14 Nov) and said that a pack with few clean documents is important evidence for it (G2, 31 Oct).
 This file brings that evidence and a proposal. **What is measured and what is a proposed value is kept apart below.**
 Only counts and pack IDs are used; no document text. The gold numbers are those of the gold sets rebuilt from the readers'
-sheets of 11 Nov (#229, #362); they replace the 2 Nov gold (1,957 documents) that v1 used.
+sheets of 11 Nov (#229, #362); they replace the 2 Nov gold (1,957 documents) that v1 used. The translation ratings are those of
+`translation/quality_v1.md` and `agreement_v1.md` of 13 Nov (18:45 IST); they are not final.
 
 ## 1. What "native Indic share" means here
 
@@ -79,14 +80,22 @@ every language (12.1 million tokens). Romanised segments inside native documents
 1% per language (option B).
 
 ### 2.4 Translated
-Ratings are not in yet. The review pack (#212) has 50 documents per language for Hindi, Kannada, Tamil and Telugu, 20
-shared by two readers. `translation/quality_v1.md` and `agreement_v1.md` (due Fri 13 Nov) will give the mean score and
-the agreement of each language.
+Ratings of 13 Nov (`translation/quality_v1.md`, `agreement_v1.md`, 1 to 5 on TSAI's rubric; from the #212 review pack):
+
+| Language | Readers | Documents rated | Mean score | Agreement (within 1 point, at least 20 shared) |
+|---|---:|---:|---:|---|
+| kn | 2 | 50 | 3.31 | 19 of 25 (76%): **fails** (the second reader scores lower on 21 of 25, never higher) |
+| ta | 1 | 37 | 2.81 | not checkable: second sheet not in |
+| te | 1 | 38 | 2.37 | not checkable: second sheet not in |
+| hi | 0 | none | none | not checkable: no sheets |
+
+Under the rating condition of Option B below (mean 3.5 or higher, and agreement of 80% or more), **no language qualifies
+today**, so translated text would be 0% in every language for now. The files are updated when more sheets come in.
 
 ### 2.5 What the cleaning code does to the clean documents
 The filters of #214 (D1 script share, A1 invisible characters, G1 broken vowel signs) change or drop 0 of the gold
-documents (the rebuilt gold) in each of the five packs tested so far (ind-bn-fw2, ind-bn-sangraha-v, ind-kn-fw2, ind-kn-sangraha-s,
-ind-te-sangraha-s). So the clean counts above are not reduced by these filters; the other 13 packs (all with gold, including ind-hi-sangraha-v) are not run yet, because their pack files are missing.
+documents (the rebuilt gold) in each of the six packs tested so far (ind-bn-fw2, ind-bn-sangraha-v, ind-hi-sangraha-s, ind-kn-fw2,
+ind-kn-sangraha-s, ind-te-sangraha-s). So the clean counts above are not reduced by these filters; the other 12 packs (all with gold) are not run yet, because their pack files are missing.
 
 ## 3. What the evidence says
 1. **Translated text is the least clean source.** 4.7% clean in `sangraha-s`, against 25.3% in `fw2` and 25.8% in
@@ -129,7 +138,9 @@ back high), at a cost of 3.2% of the clean gold documents. **Why not C:** at 4.7
 evidence we have, and TSAI asked for a few-clean-documents pack to weigh most.
 
 ## 5. What is not known yet (so this draft will change)
-- The translation ratings and the agreement check (Thu 12 and Fri 13 Nov): they decide the rating condition above.
+- The rest of the translation ratings and the agreement checks: Tamil and Telugu need a second reader and Hindi has no
+  sheets yet (2.4). Kannada's low agreement is a steady offset between its two readers, not random, so it may change once
+  the readers align.
 - Tokens per source for the full corpus. The sample has 500 documents per pack, so the share of translated text in the
   sample is an artefact of how it was drawn and is not used here.
 - Gold for `ind-ta-fw2`, `ind-ta-sangraha-s`, `ind-ml-fw2`, `ind-or-fw2` (one reader each).
