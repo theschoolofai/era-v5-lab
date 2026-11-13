@@ -67,3 +67,5 @@ map and does not tokenize again. A changed file, tokenizer, table or sequence le
 new key, so an old cache is never reused. Token ids, sample order, loss and BPB are identical
 to the uncached loader. Without the variable the loader is unchanged. An empty value is an
 error. `notebooks/build_window_cache.py` can still prebuild the same cache with parallel workers.
+If two jobs start on an empty cache folder, both build the same key; the job that publishes
+second verifies and reuses the published cache instead of failing.

@@ -151,6 +151,29 @@ class WindowCacheTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.native()
 
+    def test_concurrent_first_runs_reuse_the_published_cache(self):
+        stages, published = [], []
+
+        def job_one_progress(info):
+            stages.append(info["stage"])
+            if info["stage"] == "verifying numeric payloads" and not published:
+                # Job 2 builds and publishes the same key while job 1 is verifying.
+                published.append(build_window_cache(self.input, self.artifacts, 7, self.cache))
+
+        destination = build_window_cache(self.input, self.artifacts, 7, self.cache,
+                                         progress=job_one_progress)
+        self.assertEqual(published, [destination])
+        self.assertIn("verified concurrently published cache", stages)
+        # Only the published cache remains; job 1's temporary copy is removed.
+        self.assertEqual([p.name for p in self.cache.iterdir()], [destination.name])
+        native = self.native()
+        with patch.dict(os.environ, G5_DOCUMENT_CACHE_DIR=str(self.cache)):
+            with patch.object(ByteFixture, "encode",
+                              side_effect=AssertionError("tokenized again")):
+                cached = self.native()
+        self.assertEqual(list(cached.windows), native.windows)
+        self.assertEqual(cached.tokens, native.tokens)
+
     def test_input_artifact_and_sequence_changes_cannot_reuse_cache(self):
         self.cached()
         self.assertEqual(len(self.cache_keys()), 1)

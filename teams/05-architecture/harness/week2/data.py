@@ -207,7 +207,18 @@ def build_window_cache(path, artifacts, seq_len, cache_dir, require_ids=False,
         if progress:
             progress({"stage": "verifying numeric payloads", **summary})
         _load_window_cache(temporary, identity, artifacts)
-        temporary.rename(destination)
+        try:
+            temporary.rename(destination)
+        except OSError:
+            # Another job built the same key and published first. The key binds
+            # identical inputs, so verify the published cache fully and reuse it
+            # instead of failing; this job's temporary copy is discarded.
+            if not destination.is_dir():
+                raise
+            _load_window_cache(destination, identity, artifacts)
+            if progress:
+                progress({"stage": "verified concurrently published cache", "cache_key": key})
+            return destination
     if progress:
         progress({"stage": "complete", "cache_key": key, **summary})
     return destination
