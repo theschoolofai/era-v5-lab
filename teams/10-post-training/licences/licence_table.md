@@ -115,6 +115,7 @@ Three stages. Sets marked `excluded` stay in the table with the reason and are n
 | sft-tool-when2call | [nvidia/When2Call](https://huggingface.co/datasets/nvidia/When2Call) | English / Tool use (when to call, ask or decline) | Mixtral-8x22B (Apache-2.0) rewrites questions and answers built on APIGen (xLAM) data, which includes DeepSeek-V2-Chat rows (DeepSeek Licence); rows carry no generator field | cc-by-4.0 (Hub tag; attribution needed); `train_sft` and `train_pref` only, the test split is built from BFCL v2 Live | needs TSAI decision |
 | sft-indic-indic-instruct-hi | [ai4bharat/indic-instruct-data-v0.1](https://huggingface.co/datasets/ai4bharat/indic-instruct-data-v0.1) | Hindi (`wikihow` and `nmt-seed` subsets only) | none: `wikihow` is native Hindi wikiHow text, `nmt-seed` is human-made BPCC-Human en-hi pairs; the other subsets (Llama-2-70B in `anudesh`, closed models in `lm_sys` and `hh-rlhf`) are not part of this set | no Hub tag; per-subset licences stated in arXiv 2401.15006: `wikihow` CC-0, `nmt-seed` CC-BY-4.0 | TSAI reserves |
 | sft-indic-updesh | [microsoft/Updesh_beta](https://huggingface.co/datasets/microsoft/Updesh_beta) | 13 Indic languages incl. Odia | Qwen3-235B-A22B (Updesh-G); Llama-3.1-405B-Instruct (translation) and Llama 3.3 70B (back-translation quality check) named; reasoning part translated from Microsoft Orca sets | other: Microsoft Research License (non-commercial research use only, no redistribution) | excluded |
+| sft-tool-xlam-irrelevance-7.5k | [MadeAgents/xlam-irrelevance-7.5k](https://huggingface.co/datasets/MadeAgents/xlam-irrelevance-7.5k) (the data behind "MadeAgents/Hammer") | English / Tool use (irrelevance detection, 7,500 rows) | none new: 7,500 rows sampled from `Salesforce/xlam-function-calling-60k`, the correct tool removed and the answer set to `[]` (arXiv 2410.04587, §4.2); queries keep xlam-60k's Mixtral-8x22B-Instruct and DeepSeek-V2-Chat origin | cc-by-4.0 (Hub tag; attribution needed) | needs TSAI decision |
 
 ### Stage 2: Preference optimization and RLVR
 
@@ -151,6 +152,7 @@ Three stages. Sets marked `excluded` stay in the table with the reason and are n
 | rl-safety-aya-redteaming | [CohereLabs/aya_redteaming](https://huggingface.co/datasets/CohereLabs/aya_redteaming) | Hindi (`aya_hin`, 915 prompts); 7 other languages not used | none: harmful prompts written by paid human annotators; prompts only, no responses | apache-2.0 (Hub tag; commercial use permitted per tag) | TSAI reserves |
 | rl-agentic-open-agentrl-30k | [Gen-Verse/Open-AgentRL-30K](https://huggingface.co/datasets/Gen-Verse/Open-AgentRL-30K) | English / RL prompts (17K DAPO-Math, 3K MegaScience science, plus LeetCode and Skywork-OR1 data) | none for the prompts | none stated; includes 3K MegaScience rows (cc-by-nc-sa-4.0) | excluded |
 | rl-agentic-nemotron-tool-use-pivot | [nvidia/Nemotron-RL-Agentic-Conversational-Tool-Use-Pivot-v1](https://huggingface.co/datasets/nvidia/Nemotron-RL-Agentic-Conversational-Tool-Use-Pivot-v1) | English / conversational tool use (838 domains) | DeepSeek-R1-0528 (MIT), DeepSeek-V3.2 (MIT), Qwen3-235B-A22B-Thinking-2507 (Apache-2.0) and Qwen3-32B (Apache-2.0) make the data; gpt-oss-120b and Qwen3-235B-A22B-Instruct-2507 (Apache-2.0) label it | cc-by-4.0 (Hub tag; card says ready for commercial use) | TSAI reserves |
+| rl-tool-hammerbench | [MadeAgents/HammerBench](https://huggingface.co/datasets/MadeAgents/HammerBench) | English and Chinese / Tool use (mobile-app function calling, multi-turn) | Unnamed "open-source models" generate queries and dialogues from app functions and anonymized user logs (arXiv 2412.16516, §4); the paper does not name them | apache-2.0 (Hub tag); eval only, not training data | excluded |
 
 ---
 
@@ -1143,6 +1145,19 @@ Fifty-five sets in the two stage tables are `excluded` (36 in Stage 1, 19 in Sta
 - **Our opinion:** excluded on the licence alone. Recorded because it is a large Indic set with Odia, and it will be proposed again.
 - **Added by:** jssunil (Week 2 rotation, 8 Nov 2026). Card and LICENSE.md read on 8 Nov 2026; card revision re-checked on 12 Nov 2026.
 
+### `sft-tool-xlam-irrelevance-7.5k` — xlam-irrelevance-7.5k (Hammer)
+
+- **Stage:** SFT
+- **Set:** `sft-tool-xlam-irrelevance-7.5k`
+- **Language:** English / Tool use (irrelevance detection: the tool list does not contain the right function, and the correct answer is no call). 7,500 rows with `query`, `tools` and `answers`.
+- **Source:** [`MadeAgents/xlam-irrelevance-7.5k`](https://huggingface.co/datasets/MadeAgents/xlam-irrelevance-7.5k) (card revision `34323bf09e`); paper [arXiv 2410.04587](https://arxiv.org/abs/2410.04587). The rotation list named "MadeAgents/Hammer", which is the model family, not a dataset; this is the training set the paper releases for Hammer. MadeAgents' other dataset, HammerBench, is `rl-tool-hammerbench` in Stage 2.
+- **Licence:** `cc-by-4.0` — Hugging Face tag and card front matter, read on 13 Nov 2026. Attribution needed.
+- **Generator model:** none new. The paper (§4.2) and card say the rows are "7,500 examples sampled from the original training set, in which the correct functions are deliberately excluded from the candidate list, and the labels are replaced with empty lists". The original set is `Salesforce/xlam-function-calling-60k` (`sft-salesforce-xlam-60k`), so each query and tool list keeps its xlam-60k origin: Mixtral-8x22B-Instruct (Apache-2.0) or DeepSeek-V2-Chat (DeepSeek Licence). The answers (`[]`) are written by a program.
+- **Decision:** `needs TSAI decision` — permissive licence, and no model text is added on top of `sft-salesforce-xlam-60k`. But the queries keep xlam-60k's DeepSeek-V2-Chat rows (DeepSeek Licence), and the rows carry no generator field, so they cannot be split by generator. That is the same question as `sft-tool-when2call`. Question for TSAI: are the DeepSeek-V2-Chat-written xlam-60k queries allowed? If yes, this set follows `sft-salesforce-xlam-60k` (`TSAI reserves`); if no, it is out with them.
+- **Our opinion:** if TSAI allows it, use together with `sft-salesforce-xlam-60k` if that set is used. The paper finds that about 10% irrelevance rows give the best balance between calling a tool and declining. It adds the "do not call" case that xlam-60k lacks, alongside `sft-tool-when2call`. The queries are copies of xlam-60k queries, so do not count them as new prompts in the mix.
+- **For Team 9:** decontaminate against BFCL irrelevance and live-irrelevance; the paper reports BFCL v2 scores.
+- **Added by:** chapanduk (Week 2 rotation, 13 Nov 2026). Card and paper read on 13 Nov 2026. A tag is not legal clearance.
+
 ## Stage 2: Preference optimization and RLVR, candidate sets
 
 Verifiable-answer and test-based sets for RL (math, code, SWE tasks). Each entry has the standard fields, `TSAI reserves` as the decision (`excluded` where TSAI ruled a set out), and one line of opinion. Licence values are the Hugging Face tags read on 29 Oct 2026; a tag is not legal clearance. Per-dataset notes, 20-row samples and a benchmark-overlap check are in [team10-datasets](https://github.com/RaviNaik/ERA/tree/main/v5/capstone/team10-datasets).
@@ -1622,6 +1637,19 @@ Verifiable-answer and test-based sets for RL (math, code, SWE tasks). Each entry
 - **Decision:** `TSAI reserves`. It passes the 3 Nov generator rule: every model named is open-weight MIT or Apache-2.0.
 - **Our opinion:** use, check. 170,320 train rows. Each assistant step is a reward check: did the policy pick the same tool call as the expert trajectory? The card does not name the source of those expert trajectories. The format is NeMo Gym JSON, so it needs an adapter for our RL loop.
 - **Added by:** shankarpandala (Week 2 rotation, 9 Nov 2026). Hugging Face card and model pages read on 9 Nov 2026; card revision re-checked on 12 Nov 2026.
+
+### `rl-tool-hammerbench` — HammerBench
+
+- **Stage:** RL (eval only)
+- **Set:** `rl-tool-hammerbench`
+- **Language:** English and Chinese (`en/` and `zh/`) / Tool use (mobile-app function calling: imperfect instructions, intent and argument shifts, external information, irrelevant tools)
+- **Source:** [`MadeAgents/HammerBench`](https://huggingface.co/datasets/MadeAgents/HammerBench) (card revision `18b4f4ea47`); paper [arXiv 2412.16516](https://arxiv.org/abs/2412.16516)
+- **Licence:** `apache-2.0` — Hugging Face tag and card front matter, read on 13 Nov 2026.
+- **Generator model:** not named. The paper builds the data from app-store functions and anonymized user logs and "expanded the dataset with open-source models, creating a cost-effective data generation pipeline" (§1, §4); "LLMs then generate queries" (§4.1.1). The models are not named. GPT-4o and Claude 3.5 Sonnet appear only as evaluated baselines.
+- **Decision:** `excluded` — it is an evaluation benchmark, not training data, and its generator models are not stated.
+- **Our opinion:** do not train on it. It is a good multi-turn function-calling probe for Team 9.
+- **For Team 9:** candidate evaluation probe for multi-turn tool use. If it is used, add it to the decontamination benchmark list so tool-use SFT sets are checked against it.
+- **Added by:** chapanduk (Week 2 rotation, 13 Nov 2026). Card and paper read on 13 Nov 2026. A tag is not legal clearance.
 
 ## Strategy v0
 
