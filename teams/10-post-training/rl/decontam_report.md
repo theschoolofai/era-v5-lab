@@ -134,17 +134,17 @@ Coverage is the share of the item's runs found in the document. A value near 1.0
 |---|---|---:|---|
 | `rl-code-code-contests` | `rl-code-code-contests.jsonl` | 25,783,224 | `08b7a4840bd8ab7cdd18f4cbb38515a620c7c0b316e7f0bf6d4ce9be690da396` |
 | `rl-code-codeforces` | `rl-code-codeforces.jsonl` | 9,859,558 | `efe89e87faeba433d8bd560617606749b7314ca06a0fbb73cc81bc5458f9174a` |
-
-`rl-code-codeforces` source: `open-r1/codeforces` at revision `fbe3f6e903ee854eec2e69e9d96d0306cde59baf`, split `train` (`data/train-*`).
 | `rl-code-deepcoder` | `rl-code-deepcoder.jsonl` | 47,651,967 | `fe30a2c55dac405bc4ee97be22e53c03dec8dec6f861683dffdb181919a41e8d` |
 | `rl-code-swe-envs-g10` | `rl-code-swe-envs-g10.jsonl` | 23,134 | `46e7f7da31612e24e6bbb20231a372bfa052d0f6b2c9c60033f8eaaefa95f002` |
+
+`rl-code-codeforces` source: `open-r1/codeforces` at revision `fbe3f6e903ee854eec2e69e9d96d0306cde59baf`, split `train` (`data/train-*`).
 
 ```
 python teams/10-post-training/sft/decontam_run.py --set <set-id> --input <set>.jsonl --out-dir decontam_out
 python teams/10-post-training/sft/decontam_report.py --records decontam_out --out teams/10-post-training/rl/decontam_report.md --sets <set-id> ... --title "RL decontamination report"
 ```
 
-**Rebuild `rl-code-codeforces.clean.v2.jsonl`:** download the `train` split (`data/train-*`) of `open-r1/codeforces` at revision `fbe3f6e903ee854eec2e69e9d96d0306cde59baf`, remove exactly the 41 `(contest_id, problem_id)` rows listed in `rl-code-codeforces.excluded_ids.jsonl`, and verify the result has 8,891 lines and sha256 `220b2f86a4151b8ff67061e368549ae864b1a7f385dcf419a9f1a39668567de4`.
+**Rebuild `rl-code-codeforces.clean.v2.jsonl`:** download the `train` split (`data/train-*`) of `open-r1/codeforces` at revision `fbe3f6e903ee854eec2e69e9d96d0306cde59baf`, build or obtain the G10 task file `rl-code-codeforces.jsonl` (9,556 rows, sha256 `efe89e87faeba433d8bd560617606749b7314ca06a0fbb73cc81bc5458f9174a`), remove the 624 fingerprint-flagged rows from the 6 Nov 2026 run first (this report records the counts, not those ids), which leaves 8,932 rows (sha256 `6bebfb332fef…`), then remove exactly the 41 `(contest_id, problem_id)` rows listed in `rl-code-codeforces.excluded_ids.jsonl`. Verify the result has 8,891 rows and sha256 `220b2f86a4151b8ff67061e368549ae864b1a7f385dcf419a9f1a39668567de4`.
 
 ## 7. Sets not in the 4-set run (9 Nov)
 
