@@ -11,4 +11,6 @@ This is the test log for `../../2026-11-14-rotation-attn2-seed1237.md`. It shows
 
 The paths in `smoke.log` are shown as `./inputs/...` and `./out/...`. The run used the same files from a scratch folder.
 
+**With the real held-out files.** One more run of the attn-2 command used the real `heldout_v1` (`teams/05-architecture/heldout_v1/data/`), its sources file, `results/heldout_v1.sha256`, the held-out report and `--lr 0.001`, 2 smoke steps. The harness accepted all of them: the manifest was written with 1,059 held-out documents and held-out sha256 `21c6e4b2…4312bb`, the same as the TSAI attention screen. I stopped it after 500 seconds without a result, because scoring 1,059 documents on a CPU is too slow. It is not part of the evidence above. The full-size run needs the GPU.
+
 This smoke does not test the official run: no GPU, bf16, full context 2048, 1,221 steps or the real `heldout_v1` and training bundle. TSAI runs those.
