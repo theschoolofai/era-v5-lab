@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <a href="#quick-start">Quick start</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#the-job-chain">Jobs</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#how-a-document-travels">Flow</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#the-count-chain">Count chain</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#guards">Guards</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#survivor-loss">Survivor loss</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#the-ledger">Ledger</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#outputs-and-the-manifest">Outputs</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#measured-on-real-data">Measured</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#tests">Tests</a>
+  <a href="#quick-start">Quick start</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#the-job-chain">Jobs</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#how-a-document-travels">Flow</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#the-count-chain">Count chain</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#guards">Guards</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#survivor-loss">Survivor loss</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#the-ledger">Ledger</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#outputs-and-the-manifest">Outputs</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#measured-on-real-data">Measured</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#speed-and-scale">Scale</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#tests">Tests</a>
 </p>
 
 <br>
@@ -15,7 +15,7 @@ The **Clean → Dedup → F2** pipeline of Data A, as one command. It chains the
 | **Order** | clean → overlap → dedup → **apply the remove list** → **F2** → **survivor loss** → **ledger** → **shards** → **reconcile** (the last two optional) |
 | **In** | the cleaned parts (`train/`, `heldout/`) and the outputs of overlap and dedup |
 | **Out** | filtered Parquet in the same layout, same schema, unchanged text · `pipeline_manifest.json` · the ledger, one row per document · shards (optional) |
-| **New here** | `apply_dedup.py` · `survivor_loss.py` · `ledger.py` · `f2_pool.py` · `reconcile_shards.py` · `run_pipeline.py` · `pipeline.json` · `stage_args.py` · `local_trial/` · 173 tests |
+| **New here** | `apply_dedup.py` · `survivor_loss.py` · `ledger.py` · `f2_pool.py` · `reconcile_shards.py` · `hashing.py` · `arrowtools.py` · `runlock.py` · `run_pipeline.py` · `pipeline.json` · `stage_args.py` · `local_trial/` · 245 tests |
 | **Reused, never copied** | `spec_v1/run_clean.py` (#244) · `dedup/overlap.py`, `dedup/dedup.py` (#255) · `spec_v1/run_f2.py` (#35, on this branch since #40) |
 | **Needs** | Python 3.11+ (tested on 3.13) with `pyarrow` for the pipeline; `numpy` and `tokenizers` for the shard stage; `numpy`, `scipy` and `pygments` to run overlap and dedup locally; `pytest` for the tests. Install them into the environment itself: the scripts run with `python -I` |
 
@@ -202,7 +202,7 @@ The manifest's `totals` carry the headline: `cleaned → removed_by_dedup → dr
 
 <p align="center"><img src="assets/guards.svg" width="100%" alt="The guards that stop a run"></p>
 
-`apply_dedup.py` runs **all** of its checks before it writes anything. Every file is written to `.tmp` and then renamed, so a stopped run never leaves a half-written Parquet in place. The runner stops at the first failed check: the files of the failed run stay in its run folder for inspection, and a rerun refuses Parquet files that don't belong to the current parts.
+`apply_dedup.py` runs **all** of its checks before it writes anything. One process at a time may write an output folder (a lock the system releases if the process dies), a temp file left by a killed run is deleted rather than written through, and the ledger is swapped in whole, so no folder ever mixes two runs. Every file is written to `.tmp` and then renamed, so a stopped run never leaves a half-written Parquet in place. The runner stops at the first failed check: the files of the failed run stay in its run folder for inspection, and a rerun refuses Parquet files that don't belong to the current parts.
 
 <details>
 <summary><b>Every check, where it runs, what you see</b></summary>
@@ -228,6 +228,13 @@ The manifest's `totals` carry the headline: `cleaned → removed_by_dedup → dr
 | Every F2 report covers its part; each final part holds exactly the ledger's kept docs, in order | ledger | `no F2 report` · `the final part … does not hold the ledger's … kept documents in order` |
 | Mode B with cleaning reports: drops and input rows per part agree | ledger | `… the cleaning report …` |
 | Ledger totals = apply's and F2's counts | runner | `ledger kept = F2's kept` · `ledger removed_by_dedup = apply's removed` |
+| One writer per output folder: a second apply, ledger or reconcile into the same folder stops at once | apply · ledger · reconcile | `another process is writing into … (it holds ….lock)` |
+| A temp file a killed run left (possibly a hard link to the input) is deleted, never written through | apply | (no message: it is removed before the part is written) |
+| No row of any part without a `pack_id` | apply | `… row(s) have no pack_id` |
+| The ledger's `--out` is missing, empty or an earlier ledger, and is replaced only when the new ledger is complete | ledger | `--out … exists and is not a ledger folder` |
+| The swap never loses a ledger: a rename Windows refuses (a file in it open) is retried, then undone, and a run killed between the renames gets the previous ledger back | ledger | `could not swap the new ledger in for … Nothing was lost: …` |
+| A part holding documents of two packs is checked against its shard once, with both packs' ledger files | reconcile | (no message: they are read together) |
+| A file system that cannot lock files does not stop the run | apply · ledger · reconcile | `runlock: the file system of … cannot lock files …` (a warning) |
 | With `from`, earlier outputs still match their recorded digest | runner | `… changed after the manifest recorded it; rerun from …` |
 | The whole config before the first stage | runner | `config: stages.dedup.output is missing` · `f2 script … not found` |
 | A run stage's settings file exists and matches its pin; its output is below `out/`, not a folder of the run, not another stage's | runner (config) | `config: overlap: … pins …` · `… named subfolder …` · `… is a folder of the run itself` · `stages.clean.output and stages.overlap.output overlap` |
@@ -336,7 +343,7 @@ t.filter(pc.equal(t["final"], "dropped_by_f2")).select(["pack_id", "doc_id", "f2
                  "manifest_sha256": "7fd647c8…", "expected_parts": { "train": 48, "heldout": 38 } },
     "overlap": { "mode": "run", "settings": "teams/01-data-a/dedup/overlap.json" },
     "dedup":   { "mode": "run", "settings": "teams/01-data-a/dedup/dedup.json" },
-    "apply":   { "link": true },             // hard-link untouched parts (no extra disk)
+    "apply":   { "link": true, "workers": 4 },   // hard-link untouched parts; 4 parts at a time
     "f2":      { "script": "teams/01-data-a/spec_v1/run_f2.py", "workers": 4, "pool": true },  // pool: the set loaded once
     "ledger":  { "raw": "out/tokenizer_sample_v0_raw" },  // optional: mode B
     "shards":  { "tokenizer": "<c3>/tokenizer.json" },  // optional: leave it out and the run stops after the ledger
@@ -366,6 +373,8 @@ t.filter(pc.equal(t["final"], "dropped_by_f2")).select(["pack_id", "doc_id", "f2
 | `stages.shards.tokens` · `.packs` · `.pack_table` | optional | passed to `run_shards.py`: token limit per shard, only these packs, a pack table other than `shards/pack_table.json` |
 | `stages.shards.script` · `.any_tokenizer` | optional | `run_shards.py` (default `teams/01-data-a/shards/run_shards.py`); `any_tokenizer: true` accepts another tokenizer (tests only) |
 | `stages.apply.link` | `true` (default) · `false` | hard-link untouched parts instead of copying them; falls back to a copy across file systems |
+| `stages.apply.workers` | whole number ≥ 1 (default 4) | parts checked and written at once; each holds one batch and one output row group in memory |
+| `hash_cache` | `true` (default) · `false` | **true**: every sha256 is computed once and kept in `<run>/cache/sha256.json`, keyed on each file's device, inode, size, mtime and change time (ctime on Linux, NTFS's ChangeTime on Windows), so the digests reuse apply's hashes and a resumed run hashes nothing it has hashed already. **false**: hash everything again, for an audit |
 | `stages.ledger.raw` | folder (optional) | the raw parts the cleaner read, as `<raw>/<split>/<pack>/<file>` or `<raw>/<pack>/<split>/<file>` (found by the sha256 in the cleaning report, else by name): the ledger runs in **mode B** (keep / fix / drop per document). Without it, **mode C** |
 
 **One file per run.** Everything that defines a run is a key in the config file, and `--config <file>` is all a TSAI job's `Command:` needs. The committed `pipeline.json` is the generic template (no dates, no returned folders); for a job, copy it to `jobs/<date>-<name>/run.json` and edit that copy:
@@ -443,6 +452,7 @@ Read each row left to right: `cleaned − dedup − f2 = final`. In mode B two c
 ```text
 out/pipeline/<run_id>/
 ├── pipeline_manifest.json             the record of the run
+├── cache/sha256.json                  the hash cache (hashing.py): a shortcut, never trusted over a file that changed
 ├── logs/                              one log per script: overlap.log, f2_train.log or f2_train_<pack>.log, shards.log, …
 ├── deduped/                           04 apply
 │   ├── train/<pack>/part-NNNNN.parquet
@@ -545,7 +555,8 @@ Language, script, domain and lane come from the pack's row in `shards/pack_table
 
 - **IDs, counts, offsets and hashes only.** No summary, report, log or manifest holds document text or benchmark text, and the tests check this.
 - **Outputs live in `out/`**, which git ignores. Parquet, archives and files over 5 MB never go into the repository.
-- **Untouched parts stay untouched.** A part with nothing to remove is hard-linked (or byte-copied), so its sha256 proves it, and it costs no extra disk. Nothing in the pipeline edits a file in place: every write goes to `.tmp` and is renamed, so a link never changes its source. A filtered part keeps its row groups and compression codec.
+- **Filtered parts keep their codec, rows and row order;** their row groups hold up to 64k rows or 32 MiB and their pages about 1 MiB, whatever the input used (the cleaner's 128-row groups made writing slow), so their bytes differ from a part copied row group by row group.
+- **Untouched parts stay untouched.** A part with nothing to remove is hard-linked (or byte-copied), so its sha256 proves it, and it costs no extra disk. Nothing in the pipeline edits a file in place: every write goes to `.tmp` and is renamed, so a link never changes its source.
 - **Benchmarks:** F2 uses G9's pinned fingerprint set v2 (`set_sha256 2826a3b8…d22a`), unchanged. The pipeline sees benchmark item IDs, never benchmark text.
 
 <br>
@@ -570,22 +581,59 @@ Smoke run on 13 Nov: a Windows laptop, one process, two packs of cleaned sample 
 
 <br>
 
+## Speed and scale
+
+Every module works on whole columns with pyarrow (no Python loop over documents), keeps memory bounded by a batch, a part or a pack rather than the run, and is parallel where the work is independent. Measured on 2 million synthetic documents shaped like the real inputs: 20 parts written in the cleaner's 128-row groups, 5% removed by dedup with matching groups and log, 1% dropped by F2. A Windows laptop, one fresh process per module and run, **medians of 3 runs**; the old code is this branch before the scale pass (b5f6bd9). **The outputs are the same**: the same rows in the same order in every part, ledger file and reconcile file, and a byte-identical `survivor_loss.csv` (filtered parts are written with larger row groups, so their bytes differ).
+
+| Module | Before | After | Speed | Peak memory |
+|---|---:|---:|:-:|---|
+| apply | 25.9 s | **2.6 s** | **10×** | Python heap 33 → 12 MiB. Arrow is bounded per worker (121 MiB with 4) where the old code read one 128-row group at a time (6 MiB). On 4,000 documents of 200 KB: 111 MiB (old 123; before the review's fix, 2,132) |
+| survivor loss | 4.1 s | **0.6 s** | 6.5× | Python heap 146 → 7 MiB (it grew with every group row); Arrow 118 MiB |
+| ledger | 7.3 s | 7.6 s | same | Arrow 390 → **162 MiB** (each pack's first part was kept alive by the sample) |
+| reconcile | 9.9 s | 8.7 s | same | Arrow **1,423 → 170 MiB**: one pack at a time instead of the whole run (about 14 GB at 20M documents before) |
+| stage digests | 0.09 s | 0.12 s, then **0.01 s** | cached | the second hash of a file (the next stage, or a resumed run) comes from the cache instead of reading the data again |
+
+The old apply varied most (25 to 121 s over 3 runs; writing thousands of 128-row groups). The gains that matter at full size are apply's time and every module's memory: reconcile and the ledger no longer grow with the run.
+
+<details>
+<summary><b>What makes each one scale</b></summary>
+<br>
+
+| Module | How |
+|---|---|
+| `apply_dedup.py` | The remove list is checked column-wise (held-out rows, split, row numbers, duplicates), and the first bad line is still reported. Every part is checked before anything is written, by `workers` threads. A part is filtered with **one keep-mask** while it is read in batches sized **in bytes** (about 16 MiB, at most 8,192 rows: a fixed 8,192 rows of 200 KB documents would be 1.6 GB) through an 8 MiB read buffer, so neither a single huge row group nor large documents sit in memory whole; a batch that loses no row is not copied. Output row groups are coalesced to 64k rows or 32 MiB, with pages of about 1 MiB. |
+| `hashing.py` | Each file is hashed **once**, keyed on (device, inode, size, mtime, change time), the change time being ctime on Linux and NTFS's ChangeTime on Windows, so an edit that puts mtime back is still seen. A hard link moves the change time, so apply records the input's sha256 for a part it linked (`remember`). Files are hashed in parallel threads. Kept on disk under `<run>/cache/`, so a resumed run hashes nothing it has hashed already. |
+| `survivor_loss.py` | One join of the survivors with F2's drops on (split, part, doc_id), and one `group_by(group_id)` for the statuses. |
+| `ledger.py` | Part by part. Mode B compares texts in batches sized in bytes while both parts are read (the cleaner keeps raw order). The sample is taken by index. Built in `<out>.partial` and swapped in whole, with retries and a way back. |
+| `reconcile_shards.py` | One ledger file (one pack and split) at a time, appended to one Parquet writer; ledger files that share a part (two packs in one part) are read together; shards no ledger file claims are checked at the end. |
+| `f2_pool.py` | G9's 1.1 GB set loaded once; on Linux the workers share it, so `workers` can match the cores. |
+| `arrowtools.py` | Shared helpers. `by_part` cuts a sorted table where a key changes, never by `group_by`'s output order, which is not the order of first appearance (with 60+ parts it paired rows with the wrong part). `batch_rows` sizes a read batch from the footer. |
+
+</details>
+
+> [!IMPORTANT]
+> **F2 takes about 95% of a run.** Measured at 15–55 docs/s per process on real text (more on short documents), plus about 20 s to load the set. For the job request, set `stages.f2.pool: true` with `workers` near the core count: the set is loaded once and the parts are shared out, so the run time divides by the cores. Further speed-ups beyond the pipeline folder (for example in the F2 check itself, or larger row groups from the cleaning job) are open questions for their owners; the measurements behind them are above.
+
+<br>
+
 ## Tests
 
 ```bash
-python -m pytest teams/01-data-a/pipeline/tests -q      # 173 passed
+python -m pytest teams/01-data-a/pipeline/tests -q      # 245 passed
 ```
 
 | File | Tests | Covers |
 |---|:-:|---|
-| `test_apply_dedup.py` | 25 | exact removal · byte copies · hard links (and `--copy`) · the same doc_id in two parts · Windows `\` paths · 8 bad lists, each with the bad row in the last part processed and nothing written · an unreadable or column-less part · row-group boundaries, with zstd kept · stale outputs · a corrupted output redone on rerun · train-only · resume · no text in the summary · CLI |
-| `test_survivor_loss.py` | 9 | lost · partly hit · untouched · without survivor · split + part + doc_id matching · F2 errors count as dropped · no drops · an uncovered part · mixed fingerprint sets · CLI |
+| `test_apply_dedup.py` | 45 | exact removal · byte copies · hard links (and `--copy`) · the same doc_id in two parts · Windows `\` paths · 8 bad lists, each with the bad row in the last part processed and nothing written · an unreadable or column-less part · row-group boundaries, with zstd kept · stale outputs · a corrupted output redone on rerun · train-only · resume · no text in the summary · CLI · a hard-linked temp file left by a killed run never touches the input · two runs into one folder · a newline inside a quoted doc_id · Unicode and odd doc_ids · a null pack_id · an empty part and a part with every row removed · one huge row group read in batches · 120 packs · 1 worker = 8 workers · a resumed run that hashes nothing · bad workers · batches and row groups bounded in bytes · the peak memory with 200 KB documents · a hard-linked part is not hashed again · other code redoes the parts · a part name with glob characters |
+| `test_survivor_loss.py` | 11 | lost · partly hit · untouched · without survivor · split + part + doc_id matching · F2 errors count as dropped · no drops · an uncovered part · mixed fingerprint sets · CLI · the row order (G9 before G10, the CSV's order within a group) · a doc both dropped and an error counts once, as the error |
 | `test_local_trial.py` (not in the repo yet) | 10 | the trial configs agree with each other and with the tracked sample manifest (pin, parts, run ids, steps) and each has its command in the trial README · `show.py` prints a run and flags a failed check |
 | `test_stage_args.py` | 19 | the command each stage script gets: a generated config for clean, overlap and dedup (path keys filled in, other settings kept) · `only` · the settings pin · outputs outside `out/` or the repository refused |
-| `test_run_pipeline.py` | 68 | the full chain (13 → 11 → 9) · parallel F2 gives the same result as one process · a crashed pack is named and a rerun recovers · bad `workers` values · identical runs give identical digests · `--from` keeps earlier checks · a changed adopted folder · dedup from another overlap run · overlap of other parts · count mismatch · held-out removed · F2 errors · F2 that read other files · stale F2 output · train-only · `run` mode success and failure · a bad config stopped before anything runs · CLI · the ledger in the full chain and with parallel F2 · mode B adds the cleaner's drops to the totals · `"from": "ledger"` · a `raw` that is not a folder · the per-pack table, its checks against apply, a pack the cleaner emptied (mode B), and the table printed by the CLI · F2 through `f2_pool.py` gives the same run · the reconcile stage after shards, and a failed reconciliation |
-| `test_ledger.py` | 25 | each document's row in mode C (removed copy with its H1 match, survivor dropped by F2, kept with its final row) · `final_row` points into the final parts · mode B keep / fix / drop, with both raw layouts · a raw file found by sha256 under another name, and a same-named one from another run refused · cleaning reports agree, or stop · raw from another run · a missing raw part · a list naming another doc_id or a row past the end · groups disagreeing with the list · a row in two groups · a log row naming a survivor · an unknown part · a final part out of order · a missing F2 report · F2 naming a removed doc · F2 errors as their own status · no log · byte-identical reruns · stale ledger files · a stopped rebuild leaves no summary · no text in the sample or summary · CLI |
+| `test_run_pipeline.py` | 73 | the full chain (13 → 11 → 9) · parallel F2 gives the same result as one process · a crashed pack is named and a rerun recovers · bad `workers` values · identical runs give identical digests · `--from` keeps earlier checks · a changed adopted folder · dedup from another overlap run · overlap of other parts · count mismatch · held-out removed · F2 errors · F2 that read other files · stale F2 output · train-only · `run` mode success and failure · a bad config stopped before anything runs · CLI · the ledger in the full chain and with parallel F2 · mode B adds the cleaner's drops to the totals · `"from": "ledger"` · a `raw` that is not a folder · the per-pack table, its checks against apply, a pack the cleaner emptied (mode B), and the table printed by the CLI · F2 through `f2_pool.py` gives the same run · the reconcile stage after shards, and a failed reconciliation · CSV records, not lines · the new config keys · a resumed run reuses the hash cache · the same digests without it |
+| `test_ledger.py` | 39 | each document's row in mode C (removed copy with its H1 match, survivor dropped by F2, kept with its final row) · `final_row` points into the final parts · mode B keep / fix / drop, with both raw layouts · a raw file found by sha256 under another name, and a same-named one from another run refused · cleaning reports agree, or stop · raw from another run · a missing raw part · a list naming another doc_id or a row past the end · groups disagreeing with the list · a row in two groups · a log row naming a survivor · an unknown part · a final part out of order · a missing F2 report · F2 naming a removed doc · F2 errors as their own status · no log · byte-identical reruns · stale ledger files · a stopped rebuild leaves no summary · no text in the sample or summary · CLI · two builds into one folder · an --out that is not a ledger folder · a rerun replaces the ledger whole · a stopped rebuild leaves the previous one whole · the streamed text compare = the in-memory one · a cleaned part out of raw order · a pack folder named unlike its pack_id · 60 parts keep their own dedup rows · mode B without a text column · large documents compared in small batches · a refused swap keeps both ledgers · a refused rename is retried · a run killed between the renames gets the previous ledger back |
 | `test_f2_pool.py` | 14 | the pool writes the same bytes as run_f2.py part by part (spawn, and fork where the machine has it) · in-process · resume · a broken part or a dying worker fails only its part · a broken set stops before any worker · relative inputs reported as given · the summary names this run's script |
-| `test_reconcile_shards.py` | 13 | every kept document accounted for (in a shard, left out with each of the writer's four reasons, not sharded) · a document both left out and in a shard · a dropped document in a shard · a row past the part · a document in two shards · a truncated part (not_reached) · a silently missing document · a left-out document that is not kept · a manifest count mismatch · packs not selected · a written part without its files · CLI |
+| `test_hashing_and_lock.py` | 24 | a file hashed once · a rewritten file and an in-place edit hashed again · a hard link has its source's hash · the cache on disk · a broken, old or bad cache never trusted · many files in parallel, in order · audit mode · one writer per folder · a killed holder releases the lock · an in-place edit that puts mtime back · a link recorded without reading it · the code hash covers the helper modules · only a lock someone holds is busy: a file system without locks warns and goes on, an I/O error is raised (7 cases) |
+| `test_arrowtools.py` | 3 | `by_part` cuts at every key change in sorted order · rows with a null key stay together · `batch_rows` from the widest row group |
+| `test_reconcile_shards.py` | 17 | every kept document accounted for (in a shard, left out with each of the writer's four reasons, not sharded) · a document both left out and in a shard · a dropped document in a shard · a row past the part · a document in two shards · a truncated part (not_reached) · a silently missing document · a left-out document that is not kept · a manifest count mismatch · packs not selected · a written part without its files · CLI · a shard no ledger file claims · two runs into one folder · a part holding two packs · statuses in input_part order whatever the case of the pack names |
 
 The data is made up inside the tests (`conftest.py`), in dedup's real formats (`G000001` group ids, rule numbers 0–4). The runner's tests use `tests/fake_run_f2.py`, a stand-in with `run_f2.py`'s command line, its output files and its exit codes. The real F2 needs G9's full set (about 1.1 GB) and is tested in its own PR, and on real data above.
 
@@ -606,6 +654,10 @@ The data is made up inside the tests (`conftest.py`), in dedup's real formats (`
 | **Byte-copy untouched parts** | The sha256 proves the part is untouched, and copying is faster than rewriting. |
 | **"Lost" vs "partly hit"** | Held-out groups can have several survivors. Losing one is not losing the group. |
 | **Fail closed** | A half-filtered dataset is worse than no dataset. |
+| **Hash each file once, by its identity** | The same bytes were hashed three or four times per run (stage digests, apply's input and output, every resume). A key of device, inode, size, mtime and change time finds a file again, and every writer replaces files by rename, so a changed file is always hashed again; a hard link apply makes takes its input's hash. |
+| **A system lock per output folder** | Two runs into one folder would interleave their writes. An OS lock (flock / msvcrt) is released when the process dies, so a crash never leaves a lock to delete by hand. |
+| **Build the ledger aside, swap it in whole** | A rerun can never leave files of two runs side by side, and a failed rebuild leaves the previous ledger as it was. |
+| **Memory bounded by a batch, a part or a pack** | At tens of millions of documents, anything that holds the whole run (as reconcile did) or a whole part's text (as apply and mode B did) runs out of memory. Batches are sized in bytes, not rows, since documents range from a few hundred bytes to hundreds of KB. |
 | **F2 pool: load the set once, share out parts** | The set costs 1.1 GB and 20 s per load. One load, forked workers and parts handed out largest first make the bound the largest part, not the largest pack, with no change to G9's code. |
 | **Reconcile on (input_part, input_row)** | The shard writer records where each document came from in the final parts, and the ledger records where each kept document is: the two meet in one join, with nothing to guess. |
 | **A ledger built from the stages' own outputs** | It records what happened rather than recomputing it, and every count it reports is checked against the stage that made it. |
@@ -629,12 +681,17 @@ The data is made up inside the tests (`conftest.py`), in dedup's real formats (`
 | `… changed after the manifest recorded it` | an adopted folder changed since the last run | rerun from that stage (`"from": "<stage>"`) |
 | `"from": f2: stage clean has no record` | `from` needs the earlier stages recorded | run once without `from`, or with `"to": "apply"` |
 | `ledger: … name another doc_id than the cleaned part holds` | the adopted dedup folder was made from other cleaned parts | adopt the matching folders, or rerun overlap and dedup |
+| `another process is writing into … (it holds ….lock)` | a second run into the same folder, or one still running | wait for it; a killed run's lock is released by the system, so nothing needs deleting |
+| `--out … exists and is not a ledger folder` | the ledger's `--out` holds other files | use a new `--out`; the ledger only replaces a folder that holds `ledger_summary.json` |
+| `… row(s) have no pack_id` | a cleaned part has rows without a pack_id | fix the cleaning job's output; every row needs its pack |
+| `ledger: could not swap the new ledger in for …` | a file in the ledger folder is open (a notebook, an Explorer preview, a virus scan) | close it and rerun; nothing was lost, and the message says where the previous and the new ledger are |
+| `runlock: the file system of … cannot lock files` | a mount without file locks (some NFS, FUSE or Lustre mounts) | a warning: the run goes on; make sure no other run writes into the same folder |
+| `ledger: … no text column (mode B …)` | a raw or cleaned part has no `text` column | point `stages.ledger.raw` at the raw parts the cleaner read |
 | `ledger: no raw part has the sha256 the cleaning report names` | the raw folder holds other files than the cleaning run read | point `stages.ledger.raw` at the raw parts of that run |
 | `reconcile: … not_reached` | a part did not fit in one shard and was cut short | the shard writer must continue into another shard (#39); until then, a smaller part or a larger `stages.shards.tokens` |
 | `reconcile: … missing` · `… at no kept ledger position` | the shards do not match this run's ledger | shard this run's `final/` again (`"from": "shards"`), and look at `reconcile/reconcile_docs.parquet` |
 | `ledger: … cleaned doc(s) are not in the raw part` | `stages.ledger.raw` is not the raw input of this cleaning run | point it at the raw parts the cleaner read, or drop it (mode C) |
 | `ledger: … does not hold the ledger's … kept documents in order` | a final part was changed or replaced after F2 wrote it | rerun with `"from": "f2"` |
-| `ledger: … ledger file(s) this run will not write` | an earlier run left files for other packs in `ledger/` | delete that folder, or use a new `run_id` |
 
 <br>
 

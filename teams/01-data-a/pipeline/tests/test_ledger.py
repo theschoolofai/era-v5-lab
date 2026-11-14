@@ -5,6 +5,7 @@ what each stage wrote, and changed inputs must stop it.
 """
 import csv
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -226,13 +227,22 @@ def test_f2_errors_are_their_own_status(chain):
     assert (s["totals"]["f2_error"], s["totals"]["kept"]) == (1, 8)
 
 
-def test_stale_ledger_file_stops(chain):
-    stale = chain["out"] / "train" / "old-pack.parquet"
-    stale.parent.mkdir(parents=True)
-    stale.write_bytes(b"left by an earlier run")
-    with pytest.raises(ledger.Stop, match="not write"):
+def test_an_out_that_is_not_a_ledger_folder_stops_untouched(chain):
+    other = chain["out"] / "notes.txt"
+    other.parent.mkdir(parents=True)
+    other.write_text("someone else's file", encoding="utf-8")
+    with pytest.raises(ledger.Stop, match="not a ledger folder"):
         ledger.build(**chain)
-    assert not list(chain["out"].rglob("*.tmp"))
+    assert other.read_text(encoding="utf-8") == "someone else's file" and [p.name for p in chain["out"].iterdir()] == ["notes.txt"]
+
+
+def test_a_rerun_replaces_an_earlier_ledger_whole(chain):
+    ledger.build(**chain)
+    stale = chain["out"] / "train" / "old-pack.parquet"
+    stale.write_bytes(b"left by an earlier run")
+    ledger.build(**chain)
+    assert not stale.exists() and not list(chain["out"].parent.glob("ledger.partial"))
+    assert not list(chain["out"].parent.glob("ledger.old"))
 
 
 def test_cli(chain):
@@ -295,11 +305,184 @@ def test_mode_b_same_name_but_another_raw_file_stops(chain, tmp_path):
         ledger.build(**chain, raw=raw)
 
 
-def test_a_stopped_rebuild_leaves_no_summary(chain):
+def test_a_stopped_rebuild_leaves_the_previous_ledger_whole(chain):
     ledger.build(**chain)
+    before = {f.relative_to(chain["out"]).as_posix(): f.read_bytes() for f in chain["out"].rglob("*") if f.is_file()}
     f = chain["f2"] / "train" / "en-dclm" / "part-00000.parquet"
     t = pq.read_table(f)
     pq.write_table(t.take(list(reversed(range(t.num_rows)))), f)
     with pytest.raises(ledger.Stop):
         ledger.build(**chain)
-    assert not (chain["out"] / "ledger_summary.json").exists() and not list(chain["out"].rglob("*.tmp"))
+    after = {f.relative_to(chain["out"]).as_posix(): f.read_bytes() for f in chain["out"].rglob("*") if f.is_file()}
+    assert after == before and not list(chain["out"].parent.glob("ledger.partial"))
+
+
+
+
+# --- scale and robustness (the scale audit, 14 Nov) -----------------------------------------------------------------
+def test_two_builds_into_one_folder_are_refused(chain):
+    import runlock
+    with runlock.exclusive(chain["out"]):
+        with pytest.raises(ledger.Stop, match="another process is writing"):
+            ledger.build(**chain)
+
+
+def write_texts(path, ids, texts):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    pq.write_table(pa.table({"doc_id": ids, "text": texts, "pack_id": ["p"] * len(ids)}), path)
+    return path
+
+
+@pytest.mark.parametrize("batch", [1, 2, 3, 1000])
+def test_streamed_text_compare_matches_the_in_memory_one(tmp_path, monkeypatch, batch):
+    import pyarrow.compute as pc
+    monkeypatch.setattr(ledger, "TEXT_BATCH", batch)
+    raw_ids = [f"d{i}" for i in range(11)]
+    raw_text = [f"text {i}" for i in range(11)]
+    kept = [0, 1, 3, 4, 5, 8, 10]  # the cleaner dropped 2, 6, 7, 9 and fixed 4 and 10
+    clean_text = [("FIXED " if i in (4, 10) else "") + raw_text[i] for i in kept]
+    raw = write_texts(tmp_path / "raw.parquet", raw_ids, raw_text)
+    cleaned = write_texts(tmp_path / "clean.parquet", [raw_ids[i] for i in kept], clean_text)
+    matched = pa.array([i in kept for i in range(11)])
+    rip = pa.array([kept.index(i) if i in kept else None for i in range(11)], pa.int64())
+    streamed = ledger.same_text_streamed(raw, cleaned, matched)
+    in_memory = ledger.same_text_in_memory(raw, cleaned, rip)
+    want = [i in kept and i not in (4, 10) for i in range(11)]
+    assert streamed.to_pylist() == want and in_memory.to_pylist() == want
+
+
+def test_mode_b_with_a_cleaned_part_out_of_raw_order(chain, tmp_path):
+    raw = make_raw(chain["cleaned"], tmp_path / "raw")
+    f = chain["cleaned"] / "train" / "code-go" / "part-00000.parquet"
+    rf = raw / "train" / "code-go" / "part-00000.parquet"
+    t = pq.read_table(rf)
+    pq.write_table(t.take(list(reversed(range(t.num_rows)))), rf)  # raw order reversed: the cleaned part is out of order
+    s = ledger.build(**chain, raw=raw)
+    assert s["totals"]["dropped_by_clean"] == 4 and s["totals"]["kept"] == 9
+    r = rows(chain["out"])
+    assert r[("train", "code-go/part-00000.parquet", "g1")]["clean_action"] == "keep"
+    assert r[("train", "code-go/part-00000.parquet", "x-g0")]["final"] == "dropped_by_clean"
+
+
+def test_a_pack_folder_named_unlike_its_pack_id_can_be_rebuilt(chain):
+    import shutil
+    for root in (chain["cleaned"], chain["f2"]):
+        for split in ("train",):
+            shutil.move(str(root / split / "en-dclm"), str(root / split / "english-folder"))
+    for name in ("remove_list", "groups_csv"):
+        path = chain[name]
+        path.write_text(path.read_text(encoding="utf-8").replace("en-dclm/part", "english-folder/part"), encoding="utf-8")
+    log = chain["log"]
+    log.write_text(log.read_text(encoding="utf-8").replace("en-dclm/part", "english-folder/part"), encoding="utf-8")
+    ledger.build(**chain)
+    s = ledger.build(**chain)  # the rerun used to stop: its files are named by pack_id, not by folder
+    assert (chain["out"] / "train" / "en-dclm.parquet").is_file() and s["totals"]["kept"] == 9
+
+
+def test_many_parts_keep_their_own_dedup_rows(tmp_path):
+    """60 parts in 30 packs: each part's remove-list rows, groups and log land on that part (the by_part ordering bug)."""
+    import csv
+    cleaned, f2 = tmp_path / "cleaned", tmp_path / "final"
+    removes, groups, logs = [], [], []
+    for k in range(60):
+        pack, part = f"p{k // 2:02d}", f"p{k // 2:02d}/part-{k % 2:05d}.parquet"
+        ids = [f"{k}-{i}" for i in range(4)]
+        for root, keep in ((cleaned, [0, 1, 2, 3]), (f2, [0, 2, 3])):
+            path = root / "train" / part
+            path.parent.mkdir(parents=True, exist_ok=True)
+            pq.write_table(pa.table({"doc_id": [ids[i] for i in keep], "text": ["x"] * len(keep),
+                                     "pack_id": [pack] * len(keep)}), path)
+        (f2 / "train" / (part + ".f2.json")).write_text(json.dumps({"rows": 3, "set_sha256": "s", "dropped": [],
+                                                                     "errors": []}), encoding="utf-8")
+        removes.append([pack, "train", part, 1, ids[1]])
+        groups += [[f"G{k:06d}", 2, 4, "survivor", pack, "train", part, 0, ids[0]],
+                   [f"G{k:06d}", 2, 4, "removed", pack, "train", part, 1, ids[1]]]
+        logs.append({"removed_split": "train", "removed_part": part, "removed_row_in_part": 1, "removed_id": ids[1],
+                     "rule": "H1", "similarity": 1.0, "kept_id": ids[0], "stage": "within_pack"})
+    write_csv(tmp_path / "remove_list.csv", HEADER, removes)
+    write_csv(tmp_path / "groups.csv", GROUP_HEADER, groups)
+    (tmp_path / "log.jsonl").write_text("".join(json.dumps(e) + "\n" for e in logs), encoding="utf-8")
+    s = ledger.build(cleaned, tmp_path / "remove_list.csv", tmp_path / "groups.csv", f2, tmp_path / "ledger",
+                     log=tmp_path / "log.jsonl")
+    assert s["totals"]["removed_by_dedup"] == 60 and s["totals"]["kept"] == 180
+    r = rows(tmp_path / "ledger")
+    for k in range(60):
+        part = f"p{k // 2:02d}/part-{k % 2:05d}.parquet"
+        assert r[("train", part, f"{k}-1")]["final"] == "removed_by_dedup"
+        assert r[("train", part, f"{k}-1")]["dedup_kept_doc"] == f"{k}-0"
+        assert r[("train", part, f"{k}-0")]["dedup_role"] == "survivor"
+
+
+# --- the review of the scale pass (14 Nov) ---------------------------------------------------------------------------
+def files_of(folder):
+    return {f.relative_to(folder).as_posix(): f.read_bytes() for f in folder.rglob("*") if f.is_file()}
+
+
+def test_mode_b_without_a_text_column_stops(chain, tmp_path):
+    raw = make_raw(chain["cleaned"], tmp_path / "raw")
+    f = raw / "train" / "en-dclm" / "part-00000.parquet"
+    pq.write_table(pq.read_table(f).drop_columns(["text"]), f)
+    with pytest.raises(ledger.Stop, match="no text column"):
+        ledger.build(**chain, raw=raw)
+
+
+def test_mode_b_reads_large_documents_in_small_batches(tmp_path, monkeypatch):
+    """Batches are sized in bytes: 2 KB documents with a 5 KB budget are compared a few rows at a time, same result."""
+    import arrowtools as at
+    seen, real = [], at.batch_rows
+    monkeypatch.setattr(at, "batch_rows", lambda *a, **k: seen.append(real(*a, **k)) or seen[-1])
+    monkeypatch.setattr(ledger, "TEXT_BYTES", 5000)
+    ids = [f"d{i}" for i in range(9)]
+    raw_text = [f"{i}" * 2000 for i in range(9)]
+    kept = [0, 2, 3, 5, 8]
+    raw = write_texts(tmp_path / "raw.parquet", ids, raw_text)
+    cleaned = write_texts(tmp_path / "clean.parquet", [ids[i] for i in kept], ["fixed" if i == 3 else raw_text[i] for i in kept])
+    got = ledger.same_text_streamed(raw, cleaned, pa.array([i in kept for i in range(9)]))
+    assert got.to_pylist() == [i in kept and i != 3 for i in range(9)]
+    assert len(seen) == 2 and all(1 <= n <= 3 for n in seen)
+
+
+def test_a_failed_swap_keeps_the_previous_ledger_and_the_new_one(chain, monkeypatch):
+    """Windows will not rename a folder while a file in it is open: the swap is retried, then undone; nothing is lost."""
+    ledger.build(**chain)
+    out = chain["out"]
+    before, real = files_of(out), os.replace
+
+    def replace(a, b):
+        if Path(a).name == "ledger.partial":
+            raise PermissionError(13, "a file in it is open")
+        return real(a, b)
+    monkeypatch.setattr(ledger.os, "replace", replace)
+    monkeypatch.setattr(ledger, "RENAME_WAIT", 0)
+    with pytest.raises(ledger.Stop, match="Nothing was lost: the previous ledger is still in"):
+        ledger.build(**chain)
+    assert files_of(out) == before and not out.with_name("ledger.old").exists()
+    assert (out.with_name("ledger.partial") / "ledger_summary.json").is_file()  # the new one, whole, to look at
+
+
+def test_a_rename_refused_for_a_moment_is_retried(chain, monkeypatch):
+    real, refused = os.replace, []
+
+    def replace(a, b):
+        if Path(a).name == "ledger.partial" and len(refused) < 3:
+            refused.append(a)
+            raise PermissionError(13, "a virus scan has a file open")
+        return real(a, b)
+    monkeypatch.setattr(ledger.os, "replace", replace)
+    monkeypatch.setattr(ledger, "RENAME_WAIT", 0)
+    s = ledger.build(**chain)
+    assert len(refused) == 3 and s["totals"]["kept"] == 9 and (chain["out"] / "ledger_summary.json").is_file()
+    assert not chain["out"].with_name("ledger.partial").exists() and not chain["out"].with_name("ledger.old").exists()
+
+
+def test_a_run_killed_between_the_two_renames_gets_the_previous_ledger_back(chain):
+    ledger.build(**chain)
+    out = chain["out"]
+    before = files_of(out)
+    os.replace(out, out.with_name("ledger.old"))  # killed after the first rename: no --out, the previous ledger in .old
+    f = chain["f2"] / "train" / "en-dclm" / "part-00000.parquet"  # and the next run stops on a check
+    t = pq.read_table(f)
+    pq.write_table(t.take(list(reversed(range(t.num_rows)))), f)
+    with pytest.raises(ledger.Stop):
+        ledger.build(**chain)
+    assert files_of(out) == before and not out.with_name("ledger.old").exists()

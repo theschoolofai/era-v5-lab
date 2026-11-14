@@ -57,16 +57,35 @@ OUTPUT (in --out)
   <split>/<pack>.parquet   the ledger, one file per pack and split (zstd)
   ledger_summary.json      clean mode, inputs (sha256), totals and counts per pack and split by final status, files
   ledger_sample.csv        to read by eye: per pack and split, up to 5 rows of each final status
-Files are written to .tmp and renamed at the end; the old summary and sample are removed first, so a run that stops
-never leaves a summary that looks complete. --out may hold no other ledger file (one left by an earlier run). In mode B
-the summary lists every raw file used with its sha256.
+The ledger is built in <out>.partial and swapped in for <out> only when it is complete, so --out never mixes two runs
+and a run that stops leaves the previous ledger whole. The swap renames --out to <out>.old, <out>.partial to --out, and
+deletes <out>.old. Windows will not rename a folder while a file in it is open (a notebook reading the ledger, a virus
+scan), so each rename is retried for a while; if the swap still fails, --out is renamed back (the previous ledger), the
+new one stays in <out>.partial, and the run stops saying so. A run killed between the two renames leaves the previous
+ledger in <out>.old; the next run puts it back first. --out must be missing, empty or an earlier ledger (it holds
+ledger_summary.json); anything else stops the run before anything is touched. One run at a time may write --out
+(runlock.py). In mode B the summary lists every raw file used with its sha256.
+
+SPEED AND SCALE
+===============
+Part by part, with pyarrow joins and compute functions. Mode B compares texts in batches of about 32 MiB (at most 8,192
+rows, fewer for large documents) while it reads both parts (the cleaner keeps raw order, so the k-th kept raw row is
+the k-th cleaned row); only a cleaned part that is not in raw order falls back to holding both texts at once. The sample is taken by index, so it holds a few rows, not
+the tables they came from. The dedup inputs are read once and cut by part.
 """
 import sys
 sys.dont_write_bytecode = True
 
-import argparse, hashlib, json
+import argparse, hashlib, json, os, shutil, time
 from collections import Counter, defaultdict
 from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
+import arrowtools as at  # noqa: E402
+import runlock  # noqa: E402
+from hashing import code_sha256  # noqa: E402
 
 SPLITS = ("train", "heldout")
 FINAL = ("kept", "dropped_by_clean", "removed_by_dedup", "dropped_by_f2", "f2_error")
@@ -75,6 +94,11 @@ REMOVE_HEADER = ["pack_id", "split", "part", "row_in_part", "doc_id"]
 GROUP_HEADER = ["group_id", "group_size", "priority_rule", "role", "pack_id", "split", "part", "row_in_part", "doc_id"]
 SAMPLE_PER_STATUS = 5
 LIST_LABEL = "dedup"
+TEXT_BATCH = 8192  # at most this many rows of text held at a time in mode B ...
+TEXT_BYTES = 32 << 20  # ... and about this many bytes (arrowtools.batch_rows)
+READ_BUFFER = 8 << 20  # column chunks are read through a buffer of this size, never whole
+RENAME_TRIES = 20  # each rename of the swap is tried this often ...
+RENAME_WAIT = 0.5  # ... this many seconds apart, while Windows says a file in the folder is open
 
 
 class Stop(Exception):
@@ -101,39 +125,23 @@ def schema():
         ("final", s), ("final_part", s), ("final_row", i)])
 
 
-def opened(path):
-    """A ParquetFile closed on leaving the with-block (Windows keeps hard-linked files locked while one is open)."""
-    import contextlib
-    import pyarrow.parquet as pq
-    pf = pq.ParquetFile(path)
-    return contextlib.closing(pf) if hasattr(pf, "close") else contextlib.nullcontext(pf)
+opened, as_str, const, count = at.opened, at.as_str, at.const, at.count
 
 
 def read_columns(path, columns):
-    with opened(path) as pf:
-        missing = set(columns) - set(pf.schema_arrow.names)
-        if missing:
-            raise Stop(f"{path}: no {', '.join(sorted(missing))} column")
-        return pf.read(columns=list(columns))
+    return at.read_columns(path, columns, Stop)
 
 
-def as_str(arr):
-    import pyarrow as pa
-    return arr.cast(pa.string()) if arr.type != pa.string() else arr
+def arange(n):
+    return at.arange(n)
 
 
 # --- the dedup and F2 inputs ----------------------------------------------------------------------------------------
 def read_csv(path, header, ints=("row_in_part",)):
-    """A CSV as a pyarrow Table with every column a string except the ints, and part written with /."""
-    import pyarrow as pa, pyarrow.compute as pc, pyarrow.csv as pcsv
-    path = Path(path)
-    with open(path, encoding="utf-8", newline="") as f:
-        first = f.readline().rstrip("\r\n").split(",")
-    if first != header:
-        raise Stop(f"{path}: header is {first}, expected dedup.py's {header}")
-    types = {c: (pa.int64() if c in ints else pa.string()) for c in header}
-    t = pcsv.read_csv(path, convert_options=pcsv.ConvertOptions(column_types=types, strings_can_be_null=False))
-    return t.set_column(t.schema.get_field_index("part"), "part", pc.replace_substring(t.column("part"), "\\", "/"))
+    """A CSV as a pyarrow Table with every column a string except the ints, and part written with /. A quoted value may
+    hold a newline."""
+    import pyarrow as pa
+    return at.posix(at.read_csv(Path(path), header, {c: pa.int64() for c in ints}, Stop))
 
 
 def read_log(path):
@@ -152,18 +160,8 @@ def read_log(path):
 
 
 def by_part(table):
-    """{(split, part): the table's rows for that part}. Loops over parts, not rows."""
-    import pyarrow.compute as pc
-    if table.num_rows == 0:
-        return {}
-    t = table.sort_by([("split", "ascending"), ("part", "ascending")])
-    g = t.group_by(["split", "part"], use_threads=False).aggregate(
-        [("row_in_part", "count", pc.CountOptions(mode="all"))])  # in order of first appearance, as sorted
-    out, start = {}, 0
-    for split, part, n in zip(g["split"].to_pylist(), g["part"].to_pylist(), g["row_in_part_count"].to_pylist()):
-        out[(split, part)] = t.slice(start, n)
-        start += n
-    return out
+    """{(split, part): the table's rows for that part}. Loops over parts, not rows (arrowtools.by_part)."""
+    return at.by_part(table)
 
 
 def read_f2_report(path):
@@ -226,23 +224,6 @@ def clean_report(cleaned, split, part):
     return r if isinstance(r.get("actions"), dict) and "input_rows" in r else None
 
 
-def const(value, n, typ):
-    """An array of n copies of value (pyarrow, no Python list of n items)."""
-    import pyarrow as pa
-    return pa.repeat(pa.scalar(value, typ), n)
-
-
-def arange(n):
-    """0, 1, ..., n-1 as int64."""
-    import pyarrow as pa, pyarrow.compute as pc
-    return pc.subtract(pc.cumulative_sum(const(1, n, pa.int64())), 1) if n else pa.array([], pa.int64())
-
-
-def count(mask):
-    import pyarrow.compute as pc
-    return pc.sum(mask).as_py() or 0
-
-
 def col_or_null(t, name, typ=None):
     import pyarrow as pa
     return t.column(name) if name in t.column_names else pa.nulls(t.num_rows, typ or pa.string())
@@ -259,8 +240,8 @@ def base_table(cleaned_path, raw_file, split, part):
         return pa.table({"pack_id": as_str(c.column("pack_id")), "raw_row": pa.nulls(n, pa.int64()),
                          "row_in_part": arange(n), "doc_id": as_str(c.column("doc_id")),
                          "clean_action": const("unknown", n, pa.string())})
-    c = read_columns(cleaned_path, ["doc_id", "text"])
-    r = read_columns(raw_file, ["doc_id", "pack_id", "text"])
+    c = read_columns(cleaned_path, ["doc_id"])  # ids first: the texts are compared in batches below
+    r = read_columns(raw_file, ["doc_id", "pack_id"])
     unique(c.column("doc_id"), f"{split}/{part}")
     unique(r.column("doc_id"), f"raw {split}/{part}")
     no_pack(r.column("pack_id"), f"raw {split}/{part}")
@@ -271,15 +252,54 @@ def base_table(cleaned_path, raw_file, split, part):
     if count(matched) != c.num_rows:
         raise Stop(f"{split}/{part}: {c.num_rows - count(matched)} cleaned doc(s) are not in the raw part {raw_file}: "
                    "the raw and cleaned parts are from different runs")
-    # raw doc_ids are unique, so after the sort raw_row is 0..n-1: the raw columns line up as they are, no take needed
-    rt = r.column("text")
-    ct = c.column("text").take(rip)  # null where the cleaner dropped the doc
-    if ct.type != rt.type:
-        rt, ct = rt.cast(pa.large_string()), ct.cast(pa.large_string())
-    same = pc.fill_null(pc.equal(rt, ct), False)
+    in_order = c.num_rows == 0 or pc.all(pc.equal(rip.filter(matched), arange(c.num_rows))).as_py()
+    same = (same_text_streamed(raw_file, cleaned_path, matched) if in_order
+            else same_text_in_memory(raw_file, cleaned_path, rip))
     action = pc.if_else(matched, pc.if_else(same, "keep", "fix"), "drop")
     return pa.table({"pack_id": as_str(r.column("pack_id")), "raw_row": j.column("raw_row"), "row_in_part": rip,
                      "doc_id": j.column("doc_id"), "clean_action": action})
+
+
+def same_text_streamed(raw_file, cleaned_file, matched):
+    """Per raw row: does its text equal its cleaned text? For a cleaned part in raw order: the k-th matched raw row is
+    cleaned row k, so both files are read in batches of TEXT_BATCH rows and compared as they come. False where the
+    cleaner dropped the row."""
+    import pyarrow as pa, pyarrow.compute as pc
+    matched = at.flat(matched)
+    out, offset, buf, pos = [], 0, None, 0
+    with opened(raw_file, READ_BUFFER) as rf, opened(cleaned_file, READ_BUFFER) as cf:
+        for f, pf in ((raw_file, rf), (cleaned_file, cf)):
+            if "text" not in pf.schema_arrow.names:
+                raise Stop(f"{f}: no text column (mode B compares the raw and cleaned texts)")
+        cleaned_batches = cf.iter_batches(batch_size=at.batch_rows(cf, TEXT_BYTES, TEXT_BATCH, ["text"]), columns=["text"])
+        for rb in rf.iter_batches(batch_size=at.batch_rows(rf, TEXT_BYTES, TEXT_BATCH, ["text"]), columns=["text"]):
+            n = rb.num_rows
+            m = matched.slice(offset, n)
+            offset += n
+            rt = rb.column(0).filter(m)
+            need, pieces = len(rt), []
+            while need:
+                if buf is None or pos >= len(buf):
+                    buf, pos = next(cleaned_batches).column(0), 0
+                take = min(need, len(buf) - pos)
+                pieces.append(buf.slice(pos, take))
+                pos, need = pos + take, need - take
+            ct = pa.concat_arrays(pieces) if pieces else pa.array([], rt.type)
+            if ct.type != rt.type:
+                rt, ct = rt.cast(pa.large_string()), ct.cast(pa.large_string())
+            eq = pc.fill_null(pc.equal(rt, ct), False)
+            out.append(pc.replace_with_mask(const(False, n, pa.bool_()), pc.fill_null(m, False), eq) if n else eq)
+    return pa.chunked_array(out, pa.bool_()) if out else pa.chunked_array([], pa.bool_())
+
+
+def same_text_in_memory(raw_file, cleaned_file, rip):
+    """The same comparison when the cleaned part is not in raw order: both text columns at once."""
+    import pyarrow as pa, pyarrow.compute as pc
+    rt = read_columns(raw_file, ["text"]).column("text")
+    ct = read_columns(cleaned_file, ["text"]).column("text").take(rip)  # null where the cleaner dropped the doc
+    if ct.type != rt.type:
+        rt, ct = rt.cast(pa.large_string()), ct.cast(pa.large_string())
+    return pc.fill_null(pc.equal(rt, ct), False)
 
 
 def unique(arr, where):
@@ -386,12 +406,20 @@ def part_ledger(cleaned_path, raw_file, split, part, removes, groups, log, f2_di
     final = pc.if_else(clean_drop, "dropped_by_clean",
                        pc.if_else(in_rem, "removed_by_dedup", pc.fill_null(f2_final, "kept")))
     kept = pc.equal(final, "kept")
-    final_row = pc.if_else(kept, pc.subtract(pc.cumulative_sum(pc.cast(kept, pa.int64())), 1), pa.nulls(n, pa.int64()))
+    # apply and F2 keep the cleaned order, so a kept document's row in the final part is its rank by row_in_part among
+    # the kept rows (in mode C the rows are already in that order; in mode B they are in raw order)
+    kept_rip = base.column("row_in_part").filter(kept)
+    by_cleaned = pc.sort_indices(kept_rip)
+    if order == "row_in_part" or count(kept) == 0:
+        final_row = pc.if_else(kept, pc.subtract(pc.cumulative_sum(pc.cast(kept, pa.int64())), 1), pa.nulls(n, pa.int64()))
+    else:
+        ranks = pc.cast(pc.subtract(pc.rank(kept_rip, sort_keys="ascending", tiebreaker="first"), 1), pa.int64())
+        final_row = pc.replace_with_mask(pa.nulls(n, pa.int64()), at.flat(pc.fill_null(kept, False)), at.flat(ranks))
 
     out_part = f2_dir / split / part
     if count(kept) or out_part.is_file():
         got = read_columns(out_part, ["doc_id"]).column("doc_id") if out_part.is_file() else None
-        want = base.column("doc_id").filter(kept)
+        want = base.column("doc_id").filter(kept).take(by_cleaned)  # in final-part order
         same = got is not None and len(got) == len(want) and (len(want) == 0 or pc.all(pc.equal(as_str(got), want)).as_py())
         if not same:
             raise Stop(f"{where}: the final part {out_part} does not hold the ledger's {len(want)} kept documents in order")
@@ -420,8 +448,82 @@ def find_parts(cleaned):
     return parts
 
 
+def is_ledger(folder):
+    """A folder build() may replace: missing, empty, or holding ledger_summary.json."""
+    return not folder.exists() or (folder.is_dir() and (not any(folder.iterdir()) or (folder / "ledger_summary.json").is_file()))
+
+
 def build(cleaned, remove_list, groups_csv, f2, out, log=None, raw=None):
-    """Write the ledger to out. Returns the summary dict. Raises Stop on any failed check."""
+    """Write the ledger to out: built in <out>.partial under out's lock, then swapped in whole. Returns the summary.
+    Raises Stop on any failed check (out is then left as it was)."""
+    out = Path(out)
+    if not is_ledger(out):
+        raise Stop(f"--out {out} exists and is not a ledger folder (it has no ledger_summary.json): use a new --out")
+    try:
+        with runlock.exclusive(out):
+            stage, old = out.with_name(out.name + ".partial"), out.with_name(out.name + ".old")
+            if not out.exists() and old.is_dir() and (old / "ledger_summary.json").is_file():
+                retry(os.replace, old, out)  # a run killed between the two renames of publish(): the previous ledger
+            if stage.exists():  # left by a killed run; ours, under the lock
+                retry(shutil.rmtree, stage)
+            stage.mkdir(parents=True)
+            built = False
+            try:
+                summary = _build(cleaned, remove_list, groups_csv, f2, stage, log, raw)
+                built = True
+                publish(stage, out)
+                return summary
+            finally:
+                if not built:  # half a ledger: nothing to keep (a complete one that could not be swapped in stays)
+                    shutil.rmtree(stage, ignore_errors=True)
+    except runlock.Busy as e:
+        raise Stop(str(e)) from None
+
+
+def retry(fn, *args):
+    """fn(*args), tried RENAME_TRIES times while it raises PermissionError: Windows refuses to rename or delete a folder
+    while a file in it is open, and a reader or a virus scan lets go after a moment."""
+    for i in range(RENAME_TRIES):
+        try:
+            return fn(*args)
+        except PermissionError:
+            if i == RENAME_TRIES - 1:
+                raise
+            time.sleep(RENAME_WAIT)
+
+
+def publish(stage, out):
+    """Replace out by stage: out moves aside to <out>.old, stage takes its name, <out>.old is deleted. If stage cannot
+    take its name, out is renamed back, stage stays as it is, and Stop says so: --out always holds a whole ledger, the
+    previous one or the new one. (A crash between the renames leaves the previous ledger in <out>.old, which build()
+    puts back first.)"""
+    old = out.with_name(out.name + ".old")
+    try:
+        if old.exists():
+            retry(shutil.rmtree, old)
+        moved = False
+        if out.exists():
+            retry(os.replace, out, old)
+            moved = True
+        try:
+            retry(os.replace, stage, out)
+        except OSError:
+            if moved:
+                retry(os.replace, old, out)
+            raise
+    except OSError as e:
+        where = f"the previous ledger is in {old}; rename it to {out}" if old.exists() and not out.exists() else \
+            f"the previous ledger is still in {out}"
+        raise Stop(f"could not swap the new ledger in for {out} ({type(e).__name__}: {e}). Is a file in it open? "
+                   f"Nothing was lost: {where}, and the new one is in {stage}") from None
+    try:  # first the summary, so a .old that could only be partly deleted is never taken for a whole ledger
+        (old / "ledger_summary.json").unlink(missing_ok=True)
+    except OSError:
+        pass
+    shutil.rmtree(old, ignore_errors=True)
+
+
+def _build(cleaned, remove_list, groups_csv, f2, out, log=None, raw=None):
     import pyarrow as pa, pyarrow.compute as pc, pyarrow.csv as pcsv, pyarrow.parquet as pq
     cleaned, remove_list, groups_csv, f2, out = map(Path, (cleaned, remove_list, groups_csv, f2, out))
     raw = Path(raw) if raw else None
@@ -432,23 +534,19 @@ def build(cleaned, remove_list, groups_csv, f2, out, log=None, raw=None):
     known = {(s, p) for s, p, _ in parts}
     removes = by_part(read_csv(remove_list, REMOVE_HEADER))
     groups_t = read_csv(groups_csv, GROUP_HEADER, ints=("row_in_part", "group_size", "priority_rule"))
+    groups_rows, removed_role = groups_t.num_rows, count(pc.equal(groups_t.column("role"), "removed"))
     groups = by_part(groups_t)
+    del groups_t  # by_part holds a sorted copy; the unsorted table is not needed again
     log_t = read_log(log) if log is not None else None
+    log_rows = log_t.num_rows if log_t is not None else 0
     logs = by_part(log_t) if log_t is not None else None
+    del log_t
     for name, d in (("remove_list.csv", removes), ("dedup_groups.csv", groups), ("dedup_log.jsonl", logs or {})):
         absent = sorted(k for k in d if k not in known)
         if absent:
             raise Stop(f"{name}: {len(absent)} part(s) not among the cleaned parts, e.g. {absent[0][0]}/{absent[0][1]}")
 
-    out.mkdir(parents=True, exist_ok=True)
-    expected = {(s, p.partition("/")[0]) for s, p, _ in parts}  # pack folders; the exact check runs again at the end
-    stale = sorted(f.relative_to(out).as_posix() for f in out.rglob("*.parquet")
-                   if len(f.relative_to(out).parts) != 2 or (f.parent.name, f.stem) not in expected)
-    if stale:
-        raise Stop(f"--out {out} holds {len(stale)} ledger file(s) this run will not write, e.g. {stale[0]}: left by an "
-                   "earlier run. Use a new --out, or delete them")
-    for name in ("ledger_summary.json", "ledger_sample.csv"):  # a stopped run must not leave a summary that looks valid
-        (out / name).unlink(missing_ok=True)
+    out.mkdir(parents=True, exist_ok=True)  # the staging folder: empty, ours
     writers, written, sets, hashes, raw_files = {}, {}, set(), {}, []
     counts = defaultdict(lambda: defaultdict(Counter))  # pack -> split -> status / rows
     sample = defaultdict(list)
@@ -492,15 +590,12 @@ def build(cleaned, remove_list, groups_csv, f2, out, log=None, raw=None):
                 writers[key].write_table(tp)
                 for status in FINAL:
                     k = (split, pack, status)
-                    if need[k] > 0:
-                        s = tp.filter(pc.equal(tp.column("final"), status)).slice(0, need[k])
+                    if need[k] > 0:  # by index: the sample holds its few rows, not the table they came from
+                        idx = pc.indices_nonzero(pc.equal(tp.column("final"), status))
+                        s = tp.take(idx.slice(0, need[k]))
                         need[k] -= s.num_rows
                         if s.num_rows:
                             sample[(split, pack)].append(s)
-        stale = sorted(p.relative_to(out).as_posix() for p in out.rglob("*.parquet") if p not in written.values())
-        if stale:
-            raise Stop(f"--out {out} holds {len(stale)} ledger file(s) this run did not write, e.g. {stale[0]}: left by an "
-                       "earlier run. Use a new --out, or delete them")
         if len(sets) != 1 or None in sets:
             raise Stop(f"the F2 reports name {len(sets)} different set_sha256 values: {sorted(map(str, sets))}")
         ok = True
@@ -528,15 +623,14 @@ def build(cleaned, remove_list, groups_csv, f2, out, log=None, raw=None):
     for pack in counts:
         for split in counts[pack]:
             totals.update(counts[pack][split])
-    removed_role = pc.sum(pc.equal(groups_t.column("role"), "removed")).as_py() or 0
     summary = {
-        "tool": "ledger.py", "code_sha256": sha256(Path(__file__)), "clean_mode": "B" if raw is not None else "C",
+        "tool": "ledger.py", "code_sha256": code_sha256(Path(__file__))[0], "clean_mode": "B" if raw is not None else "C",
         "inputs": {"raw": {"path": raw.as_posix(), "files": raw_files} if raw is not None else None,
                    "remove_list": {"path": remove_list.as_posix(), "sha256": sha256(remove_list),
                                    "rows": sum(t.num_rows for t in removes.values())},
-                   "groups": {"path": groups_csv.as_posix(), "sha256": sha256(groups_csv), "rows": groups_t.num_rows,
+                   "groups": {"path": groups_csv.as_posix(), "sha256": sha256(groups_csv), "rows": groups_rows,
                               "removed_rows": removed_role},
-                   "log": {"path": log.as_posix(), "sha256": sha256(log), "rows": log_t.num_rows} if log is not None else None,
+                   "log": {"path": log.as_posix(), "sha256": sha256(log), "rows": log_rows} if log is not None else None,
                    "set_sha256": sets.pop()},
         "parts": len(parts),
         "totals": {"rows": totals["rows"], "rows_cleaned": totals["rows_cleaned"], **{s: totals[s] for s in FINAL},

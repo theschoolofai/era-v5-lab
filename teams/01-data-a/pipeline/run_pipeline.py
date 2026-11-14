@@ -46,7 +46,8 @@ apply, f2, survivor_loss and ledger always run. f2 takes "script" (default teams
 (default 1; each run_f2.py process loads G9's full set, about 1.1 GB of memory, so N workers need about N × 1.1 GB plus the
 documents in flight). shards takes "tokenizer" (required: G3's C3 tokenizer.json), and optionally "script" (default
 teams/01-data-a/shards/run_shards.py), "out" (default <run>/shards), "tokens", "packs" (only these packs), "pack_table" and
-"any_tokenizer" (tests only). apply takes "link" (default true: untouched parts are hard-linked, not copied). ledger takes "raw"
+"any_tokenizer" (tests only). apply takes "link" (default true: untouched parts are hard-linked, not copied) and "workers"
+(default 4: parts checked and written at once, one row group in memory each). ledger takes "raw"
 (optional: the raw parts the cleaner read; with it the ledger says keep / fix / drop per document, mode B, else the
 cleaner's decision is "unknown", mode C); it reads dedup_log.jsonl when the dedup folder has one. Scripts run with
 python -I, which ignores user site-packages and PYTHONPATH: install pyarrow and the rest into the environment itself.
@@ -56,6 +57,9 @@ Without stages.shards the run stops after the ledger, and "to": "shards" is an e
 CONFIG (JSON; keys starting with "_" are comments; paths relative to the repository root, or absolute)
 =====================================================================================================
   run_id   name of this run;   out   folder for runs (default out/pipeline);   stages   as above
+  hash_cache   true (default): every sha256 is computed once and kept in <run>/cache/sha256.json, keyed on each file's
+               (device, inode, size, mtime, change time), so the digests reuse apply's hashes and a resumed run hashes
+               nothing it has already hashed (hashing.py). false: hash everything again, for an audit
 The whole config is checked before the first stage runs.
 
 CHECKS (any failure stops the run; exit code 1)
@@ -80,18 +84,21 @@ by clean when the ledger ran in mode B, cleaned, removed by dedup, dropped by F2
 stage ran), and by_pack: the same chain for every pack and split, from the ledger. At the end of a run the per-pack
 table is also printed to stderr. A digest is the sha256 over the sorted relative path and sha256 of every file in the folder;
 JSON summaries are hashed without the fields that change between identical runs (timings, absolute paths, skip flags), so two
-runs on the same inputs give the same digests. IDs, counts and hashes only.
+runs on the same inputs give the same digests. The files are hashed in parallel threads, through the run's hash cache.
+IDs, counts and hashes only.
 """
 import sys
 sys.dont_write_bytecode = True
 
 import argparse, hashlib, json, platform, subprocess, time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
 sys.path.insert(0, str(HERE))
 import stage_args  # noqa: E402  (how clean, overlap and dedup get their paths)
+from hashing import HashCache, code_sha256  # noqa: E402  (every sha256 once, in parallel)
 STAGES = ("clean", "overlap", "dedup", "apply", "f2", "survivor_loss", "ledger", "shards", "reconcile")
 OPTIONAL = ("shards", "reconcile")  # run only when configured (reconcile also needs shards)
 EXTERNAL = ("clean", "overlap", "dedup")
@@ -101,7 +108,7 @@ DEFAULT_F2 = "teams/01-data-a/spec_v1/run_f2.py"
 DEFAULT_SHARDS = "teams/01-data-a/shards/run_shards.py"
 POOL = "teams/01-data-a/pipeline/f2_pool.py"
 SPLITS = ("train", "heldout")
-RESERVED = ("deduped", "final", "report", "ledger", "shards", "reconcile", "cfg", "logs")  # folders of the run that no stage output may take
+RESERVED = ("deduped", "final", "report", "ledger", "shards", "reconcile", "cfg", "logs", "cache")  # folders of the run that no stage output may take
 VOLATILE = {"seconds", "input", "path", "cleaned", "skipped"}  # JSON fields that differ between identical runs
 
 
@@ -109,12 +116,12 @@ class Stop(Exception):
     """A check failed: the message says which and where."""
 
 
+_CACHE = HashCache()  # in memory, for digest() called without the run's cache
+FOOTER_WORKERS = 16  # threads reading Parquet footers
+
+
 def sha256(path):
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        for block in iter(lambda: f.read(1 << 20), b""):
-            h.update(block)
-    return h.hexdigest()
+    return _CACHE.sha256(path)
 
 
 def stable(obj):
@@ -125,24 +132,34 @@ def stable(obj):
     return obj
 
 
-def file_hash(p):
+def json_hash(p):
+    """sha256 of a JSON file's content without the volatile fields, or None when it is not valid JSON."""
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return None
+    return hashlib.sha256(json.dumps(stable(data), sort_keys=True).encode("utf-8")).hexdigest()
+
+
+def file_hash(p, cache=None):
     """sha256 of a file; for JSON, of its content without the volatile fields."""
     if p.suffix == ".json":
-        try:
-            data = json.loads(p.read_text(encoding="utf-8"))
-            return hashlib.sha256(json.dumps(stable(data), sort_keys=True).encode("utf-8")).hexdigest()
-        except (ValueError, UnicodeDecodeError):
-            pass
-    return sha256(p)
+        h = json_hash(p)
+        if h is not None:
+            return h
+    return (cache or _CACHE).sha256(p)
 
 
-def digest(folder):
-    """(digest over every file's relative path and hash, file count)."""
-    folder = Path(folder)
+def digest(folder, cache=None):
+    """(digest over every file's relative path and hash, file count). The data files are hashed through `cache`, in
+    parallel threads, so a file another stage already hashed (or a hard link to it) is not read again."""
+    folder, cache = Path(folder), cache or _CACHE
     files = sorted(p for p in folder.rglob("*") if p.is_file() and not p.name.endswith(".tmp"))
+    hashes = {p: json_hash(p) for p in files if p.suffix == ".json"}
+    hashes.update(cache.sha256_many([p for p in files if hashes.get(p) is None]))
     h = hashlib.sha256()
     for p in files:
-        h.update(f"{p.relative_to(folder).as_posix()}\t{file_hash(p)}\n".encode("utf-8"))
+        h.update(f"{p.relative_to(folder).as_posix()}\t{hashes[p]}\n".encode("utf-8"))
     return h.hexdigest(), len(files)
 
 
@@ -171,21 +188,42 @@ def tail(log, n=5):
 def parquet_rows(folder):
     """{"rows", "by_split", "by_part" ({"<split>/<part>": rows})} from the Parquet footers."""
     import pyarrow.parquet as pq
+    files = [(split, f) for split in SPLITS if (folder / split).is_dir() for f in sorted((folder / split).rglob("*.parquet"))]
+
+    def rows(item):
+        split, f = item
+        try:
+            return pq.read_metadata(f).num_rows
+        except Exception as e:  # not Parquet, truncated, unreadable
+            raise Stop(f"clean: {split}/{f.relative_to(folder / split).as_posix()} cannot be read as Parquet ({type(e).__name__})")
+
+    with ThreadPoolExecutor(max_workers=max(1, min(FOOTER_WORKERS, len(files)))) as pool:  # thousands of footers
+        counts = list(pool.map(rows, files))
     by_split, by_part = {}, {}
-    for split in SPLITS:
-        if (folder / split).is_dir():
-            for f in sorted((folder / split).rglob("*.parquet")):
-                n = pq.ParquetFile(f).metadata.num_rows
-                by_part[f"{split}/{f.relative_to(folder / split).as_posix()}"] = n
-                by_split[split] = by_split.get(split, 0) + n
+    for (split, f), n in zip(files, counts):
+        by_part[f"{split}/{f.relative_to(folder / split).as_posix()}"] = n
+        by_split[split] = by_split.get(split, 0) + n
     if not by_split:
         raise Stop(f"clean: {folder} has no Parquet parts under train/ or heldout/")
     return {"rows": sum(by_split.values()), "by_split": by_split, "by_part": by_part}
 
 
+def csv_column(file, column):
+    """One column of a CSV, every value a string, read by pyarrow (a remove list can hold millions of rows)."""
+    import pyarrow as pa, pyarrow.csv as pcsv
+    try:
+        return pcsv.read_csv(file, parse_options=pcsv.ParseOptions(newlines_in_values=True),
+                             convert_options=pcsv.ConvertOptions(include_columns=[column], column_types={column: pa.string()},
+                                                                 strings_can_be_null=False)).column(column)
+    except (pa.ArrowInvalid, KeyError) as e:
+        raise Stop(f"{file}: cannot be read as CSV with a {column} column ({e})")
+
+
 def csv_rows(file):
+    """Records of a CSV, without the header (a quoted value may hold a newline, so lines are not records)."""
     with open(file, encoding="utf-8", newline="") as f:
-        return max(sum(1 for _ in f) - 1, 0)
+        first = f.readline().rstrip("\r\n").split(",")[0]
+    return len(csv_column(file, first)) if first else 0
 
 
 def load_json(file):
@@ -207,6 +245,9 @@ class Run:
             raise Stop("config: stages.clean.only must be a list of sample parts, e.g. [\"train/code-go/part-00000.parquet\"]")
         self.dir = path(self.cfg.get("out", "out/pipeline")) / self.cfg["run_id"]
         self.manifest_path = self.dir / "pipeline_manifest.json"
+        if not isinstance(self.cfg.get("hash_cache", True), bool):
+            raise Stop("config: hash_cache must be true or false")
+        self.cache = HashCache(self.dir / "cache" / "sha256.json", enabled=self.cfg.get("hash_cache", True))
         self.done, self.checks = {}, []
 
     def output(self, stage):
@@ -273,9 +314,10 @@ class Run:
                 if not cmd and script and not path(script).is_file():
                     raise Stop(f"config: stages.{stage} script {script} not found")
                 self.stage_command(stage, write=False)
-        workers = self.stages.get("f2", {}).get("workers", 1)
-        if not isinstance(workers, int) or isinstance(workers, bool) or workers < 1:
-            raise Stop(f"config: stages.f2.workers is {workers!r}, expected a whole number >= 1")
+        for stage, default in (("f2", 1), ("apply", 4)):
+            workers = self.stages.get(stage, {}).get("workers", default)
+            if not isinstance(workers, int) or isinstance(workers, bool) or workers < 1:
+                raise Stop(f"config: stages.{stage}.workers is {workers!r}, expected a whole number >= 1")
         if not isinstance(self.stages.get("f2", {}).get("pool", False), bool):
             raise Stop("config: stages.f2.pool must be true or false")
         if "reconcile" in self.stages and "shards" not in self.stages:
@@ -413,12 +455,10 @@ class Run:
     def counts_dedup(self, out):
         s = load_json(out / "dedup_summary.json")
         ov = self.done["overlap"]["counts"]
-        groups = set()
-        with open(out / "dedup_groups.csv", encoding="utf-8", newline="") as f:
-            next(f, None)
-            groups = {line.split(",", 1)[0] for line in f if line.strip()}
+        import pyarrow.compute as pc
+        groups = pc.count_distinct(csv_column(out / "dedup_groups.csv", "group_id")).as_py()
         counts = {"remove_list_rows": csv_rows(out / "remove_list.csv"), "removed": s.get("removed"),
-                  "heldout_removed": s.get("heldout_removed"), "groups": len(groups)}
+                  "heldout_removed": s.get("heldout_removed"), "groups": groups}
         self.check("dedup finished", s.get("status") == "complete", f"status {s.get('status')!r}")
         checked = s.get("overlap_run", {}).get("checked_sha256", {})
         self.check("dedup used this overlap run", checked == ov["files_sha256"],
@@ -438,7 +478,9 @@ class Run:
         try:
             s = apply_dedup.apply(self.output("clean"), self.output("dedup") / "remove_list.csv", out,
                                   splits=tuple(sp for sp in SPLITS if sp in clean["by_split"]),
-                                  link=bool(self.stages.get("apply", {}).get("link", True)))
+                                  link=bool(self.stages.get("apply", {}).get("link", True)),
+                                  workers=self.stages.get("apply", {}).get("workers", apply_dedup.DEFAULT_WORKERS),
+                                  cache=self.cache)
         except apply_dedup.Stop as e:
             raise Stop(f"apply: {e}")
         counts = dict(s["totals"])
@@ -666,15 +708,16 @@ class Run:
             if STAGES.index(stage) < STAGES.index(start):
                 if stage not in old:
                     raise Stop(f"\"from\": {start}: stage {stage} has no record in {self.manifest_path}; run it first")
-                if not out.exists() or digest(out)[0] != old[stage]["digest"]:
+                if not out.exists() or digest(out, self.cache)[0] != old[stage]["digest"]:
                     raise Stop(f"{stage}: {out} changed after the manifest recorded it; rerun from {stage}")
                 self.done[stage] = old[stage]
                 continue
             t0, self.checks = time.time(), []
             rec = self.stage_external(stage) if stage in EXTERNAL else getattr(self, f"stage_{stage}")()
-            rec["digest"], rec["files"] = digest(out)
+            rec["digest"], rec["files"] = digest(out, self.cache)
             self.done[stage] = {"stage": stage, **rec, "checks": self.checks, "seconds": round(time.time() - t0, 1)}
             self.write()
+            self.cache.save()  # a resumed run reuses every hash so far
             print(f"{stage}: {json.dumps({k: v for k, v in self.done[stage]['counts'].items() if k != 'by_part'})}",
                   file=sys.stderr, flush=True)
         m = self.write()
@@ -700,7 +743,7 @@ class Run:
         stages = [self.done[s] for s in STAGES if s in self.done]
         by_pack = self.done.get("ledger", {}).get("by_pack")
         manifest = {"tool": "run_pipeline.py", "run_id": self.cfg["run_id"], "config": self.cfg,
-                    "code_sha256": sha256(Path(__file__)), "git_commit": git_commit(),
+                    "code_sha256": code_sha256(Path(__file__), _CACHE, ("stage_args.py",))[0], "git_commit": git_commit(),
                     "python": platform.python_version(), "pyarrow": pyarrow_version(), "stages": stages,
                     "checks": [dict(ch, stage=s["stage"]) for s in stages for ch in s.get("checks", [])], "totals": totals}
         if by_pack:

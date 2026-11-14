@@ -2,7 +2,9 @@
   "_comment": "Generic run config for run_pipeline.py: nothing here is specific to one run. Paths are relative to the repository root. Everything that defines a run is a key in this file, and the command is only --config <file>: for a job, copy this file to jobs/<date>-<name>/run.json and edit the copy. run_id names the run and its folders (out/pipeline/<run_id>/). The clean stage also names the input set (input folder, manifest_sha256, expected_parts); a new input set means new values here. Each of clean, overlap and dedup runs from a settings file (settings only, no paths; the runner fills the paths into <run>/cfg/<stage>.json), or is adopted: {\"mode\": \"adopt\", \"output\": \"<folder TSAI returned>\"}. Optional keys: \"to\" (stop after this stage, only the stages up to it are checked), \"from\" (resume at this stage), stages.clean.only (a list of sample parts, for trials). 'run_pipeline.py --config <file> --plan' prints every folder and command and runs nothing.",
   "run_id": "sample-v0",
   "out": "out/pipeline",
-  "_to": "optional: clean, overlap, dedup, apply, f2, survivor_loss, ledger or shards",
+  "_to": "optional: clean, overlap, dedup, apply, f2, survivor_loss, ledger, shards or reconcile",
+  "hash_cache": true,
+  "_hash_cache": "true: every sha256 computed once, kept in <run>/cache/sha256.json (a resumed run hashes nothing again); false: hash everything again, for an audit",
   "_from": "optional: resume at this stage; the earlier stages must be recorded in the manifest",
   "stages": {
     "clean": {
@@ -30,12 +32,15 @@
     },
     "f2": {
       "script": "teams/01-data-a/spec_v1/run_f2.py",
-      "workers": 4,
-      "_workers": "parallel run_f2.py processes, one per pack folder; each needs about 1.1 GB of memory"
+      "pool": true,
+      "workers": 16,
+      "_pool": "true: f2_pool.py loads G9's set (1.1 GB) once per split and shares the parts out to 'workers' processes; on Linux they share the loaded set, so set workers to the cores. false: one run_f2.py per pack folder, each loading the set (workers x 1.1 GB)"
     },
     "apply": {
       "link": true,
-      "_link": "hard-link untouched parts instead of copying them (same file system)"
+      "_link": "hard-link untouched parts instead of copying them (same file system)",
+      "workers": 4,
+      "_workers": "parts checked and written at once (one row group in memory each)"
     },
     "ledger": {
       "_raw": "optional: the raw parts the cleaner read (<raw>/<split>/<pack>/part-*.parquet). Set \"raw\" for mode B (keep / fix / drop per document); without it the ledger is mode C (clean_action unknown)"

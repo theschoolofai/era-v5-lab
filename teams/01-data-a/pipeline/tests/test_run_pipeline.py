@@ -827,3 +827,44 @@ def test_a_failed_reconciliation_stops_the_run(tmp_path, shard_config, monkeypat
     shard_config.write_text(json.dumps(cfg), encoding="utf-8")
     with pytest.raises(rp.Stop, match="reconcile: .*not_reached"):
         rp.run(shard_config)
+
+
+# --- scale and robustness (the scale audit, 14 Nov) -----------------------------------------------------------------
+def test_records_are_counted_not_lines(tmp_path):
+    f = tmp_path / "list.csv"
+    write_csv(f, HEADER, [["p", "train", "p/part-00000.parquet", 0, "two\nlines"], ["p", "train", "p/part-00000.parquet", 1, "b"]])
+    assert rp.csv_rows(f) == 2 and len(f.read_text(encoding="utf-8").splitlines()) == 4
+
+
+@pytest.mark.parametrize("key, value, message", [("hash_cache", "yes", "hash_cache"), ("apply_workers", 0, "stages.apply.workers")])
+def test_new_config_keys_are_checked(tmp_path, config, key, value, message):
+    cfg = json.loads(config.read_text(encoding="utf-8"))
+    if key == "hash_cache":
+        cfg["hash_cache"] = value
+    else:
+        cfg["stages"]["apply"] = {"workers": value}
+    config.write_text(json.dumps(cfg), encoding="utf-8")
+    with pytest.raises(rp.Stop, match=message):
+        rp.run(config)
+
+
+def test_a_resumed_run_reuses_the_hash_cache(tmp_path, config):
+    first = rp.run(config)
+    store = tmp_path / "runs" / "test-run" / "cache" / "sha256.json"
+    assert store.is_file() and json.loads(store.read_text(encoding="utf-8"))["sha256"]
+    run = rp.Run(config)
+    m = run.execute(start="ledger")
+    assert [s["digest"] for s in m["stages"]] == [s["digest"] for s in first["stages"]]
+    new_files = [f for f in (tmp_path / "runs" / "test-run" / "ledger").rglob("*") if f.is_file() and f.suffix != ".json"]
+    assert run.cache.misses == len(new_files) and run.cache.hits > 0  # only the rewritten ledger is read; the rest is cached
+
+
+def test_without_the_hash_cache_the_digests_are_the_same(tmp_path, config, tsai_outputs):
+    a = rp.run(config)
+    cfg = write_config(tmp_path / "nocache.json", tsai_outputs, run_id="nocache")
+    data = json.loads(cfg.read_text(encoding="utf-8"))
+    data["hash_cache"] = False
+    cfg.write_text(json.dumps(data), encoding="utf-8")
+    b = rp.run(cfg)
+    assert [s["digest"] for s in a["stages"]] == [s["digest"] for s in b["stages"]]
+    assert not (tmp_path / "runs" / "nocache" / "cache").exists()
