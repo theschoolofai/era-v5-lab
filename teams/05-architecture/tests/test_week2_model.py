@@ -17,7 +17,7 @@ TEAM = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TEAM / "harness"))
 from week2.model import KE2, codec, GQA, MoE, LanguageModel, SwiGLU
 from week2.config import load, load_runtime, merge, validate
-from train_week2 import apply_resolution
+from train_week2 import apply_resolution, check_step_and_clip
 
 
 def fixture(mtp=False):
@@ -79,6 +79,24 @@ class CodecTests(unittest.TestCase):
         )
 
 
+class FiniteStepTests(unittest.TestCase):
+    def test_combined_check_accepts_finite_loss_and_returns_preclip_norm(self):
+        parameter = torch.nn.Parameter(torch.ones(1))
+        parameter.grad = torch.tensor([2.0])
+        norm = check_step_and_clip([parameter], torch.tensor([[1.0, 0.5, 0.0]]), 1.0)
+        torch.testing.assert_close(norm, torch.tensor(2.0))
+        torch.testing.assert_close(parameter.grad, torch.ones(1))
+
+    def test_combined_check_rejects_nonfinite_loss_or_gradient(self):
+        for loss, grad in [(float("nan"), 1.0), (1.0, float("inf"))]:
+            with self.subTest(loss=loss, grad=grad):
+                parameter = torch.nn.Parameter(torch.ones(1))
+                parameter.grad = torch.tensor([grad])
+                with self.assertRaisesRegex(ValueError, "Nonfinite"):
+                    check_step_and_clip([parameter], torch.tensor([[loss]]), 1.0)
+                torch.testing.assert_close(parameter, torch.ones(1))
+
+
 class BackboneTests(unittest.TestCase):
     def setUp(self):
         torch.manual_seed(1234)
@@ -124,6 +142,7 @@ class BackboneTests(unittest.TestCase):
     def test_dispatch_outputs_and_gradients_match_dense_reference(self):
         a = MoE(self.c["model"])
         b = copy.deepcopy(a)
+        a.dispatch = "batched"
         x = torch.randn(2, 8, 16, requires_grad=True)
         y = x.detach().clone().requires_grad_()
         valid = torch.ones(2, 8, dtype=torch.bool)
@@ -234,8 +253,8 @@ class ConfigTests(unittest.TestCase):
 
     def test_muon_rate_and_comparison_remain_pending(self):
         c = load_runtime(TEAM / "configs/arms/exp2_muon.yaml")
-        self.assertIsNone(c["optim"]["muon_lr"])
-        self.assertIsNone(c["optim"]["lr"])
+        self.assertEqual(c["optim"]["muon_lr"], 0.01)
+        self.assertEqual(c["optim"]["lr"], 0.001)
         a = load_runtime(TEAM / "configs/arms/exp2_adamw.yaml")
         self.assertIs(a["intended"]["comparison_final"], False)
 
@@ -290,6 +309,8 @@ class ConfigTests(unittest.TestCase):
     def test_muon_not_silently_adamw(self):
         c = self.resolved("exp2_muon.yaml")
         self.assertEqual(c["optim"]["name"], "muon")
+        self.assertEqual(validate(c), [])
+        c["optim"]["muon_lr"] = None
         self.assertTrue(any("Muon" in e for e in validate(c)))
 
     def test_instructor_dimensions_and_lead_budgets(self):

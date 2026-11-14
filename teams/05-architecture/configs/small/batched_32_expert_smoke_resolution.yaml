@@ -1,0 +1,6 @@
+# Local execution pilot. TSAI approval and input resolution supplied separately.
+model:
+  moe:
+    dispatch: batched
+run:
+  micro_batch_size: 1

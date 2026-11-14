@@ -203,6 +203,8 @@ class MoE(nn.Module):
         h = m["moe"]["ffn_hidden"]
         cfg = m["moe"]
         self.topk = cfg["top_k"]
+        self.dispatch = cfg.get("dispatch", "loop")
+        self.used_experts = None
         self.router = nn.Linear(w, cfg["num_experts"], bias=False)
         self.experts = nn.ModuleList(
             SwiGLU(w, h, cfg["bias"]) for _ in range(cfg["num_experts"])
@@ -219,6 +221,8 @@ class MoE(nn.Module):
             scores = F.linear(flat.float(), self.router.weight.float()).softmax(-1)
         gates, choice = scores.topk(self.topk, dim=-1)
         gates = gates / gates.sum(-1, keepdim=True)
+        if self.dispatch == "batched":
+            return self.batched(flat, active, choice, gates).reshape(shape)
         output = torch.zeros_like(flat)
         # Each expert sees only selected non-padding rows. Distinct row indices
         # within an expert -> no many-to-one atomic combine operation.
@@ -232,6 +236,54 @@ class MoE(nn.Module):
         for expert in self.shared:
             output = output + expert(flat) * active[:, None]
         return output.reshape(shape)
+
+
+    def batched(self, flat, active, choice, gates):
+        """Pack routes into per-expert rows with unique scatter destinations."""
+        expert_count = len(self.experts)
+        route_experts = choice.flatten()
+        valid = active[:, None].expand_as(choice).flatten()
+        membership = route_experts[:, None] == torch.arange(
+            expert_count, device=flat.device
+        )
+        used = (membership & valid[:, None]).any(dim=0)
+        if self.training and torch.is_grad_enabled():
+            self.used_experts = used if self.used_experts is None else self.used_experts | used
+
+        # Pad only to the largest route group. Reading capacity once avoids
+        # worst-case allocation and replaces per-expert nonzero synchronizations.
+        counts = membership.sum(dim=0)
+        capacity = int(counts.max())
+        order = route_experts.argsort(stable=True)
+        sorted_experts = route_experts[order]
+        positions = torch.arange(order.numel(), device=flat.device)
+        positions = positions - (counts.cumsum(0) - counts)[sorted_experts]
+        slots = sorted_experts * capacity + positions
+        routes = flat[:, None, :].expand(-1, self.topk, -1).reshape(-1, flat.size(-1))
+        packed = flat.new_zeros(expert_count * capacity, flat.size(-1))
+        packed = packed.index_copy(0, slots, routes[order]).view(expert_count, capacity, -1)
+        values = self.project_experts(packed, self.experts).flatten(0, 1)
+
+        inverse = torch.empty_like(order).index_copy(0, order, slots)
+        routed = values[inverse].reshape(flat.size(0), self.topk, -1)
+        gates = gates.to(flat.dtype).masked_fill(~active[:, None], 0)
+        output = (routed.to(flat.dtype) * gates.unsqueeze(-1)).sum(dim=1)
+        if self.shared:
+            shared = flat.unsqueeze(0).expand(len(self.shared), -1, -1)
+            output = output + self.project_experts(shared, self.shared).sum(dim=0) * active[:, None]
+        return output
+
+    @staticmethod
+    def project_experts(packed, experts):
+        def project(inputs, name):
+            layers = [getattr(expert, name) for expert in experts]
+            weights = torch.stack([layer.weight for layer in layers])
+            output = torch.einsum("ecd,ehd->ech", inputs, weights)
+            if layers[0].bias is not None:
+                output = output + torch.stack([layer.bias for layer in layers])[:, None]
+            return output
+
+        return project(F.silu(project(packed, "gate")) * project(packed, "up"), "down")
 
 
 class Block(nn.Module):
