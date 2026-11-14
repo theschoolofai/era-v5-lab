@@ -14,7 +14,8 @@ doc_id, text, shard_id, n_tokens. decontam_check.py and canary_scan.py read that
 Each document is its tokens minus the final EOS (<|endoftext|> id 130822), decoded with the frozen C3 tokenizer
 (sha256 C3_SHA256; TSAI allowed it for decoding in week 3). The text is the tokenizer-normalized text the model trains on.
 
-Checks (any failure stops with exit code 1; nothing is written for that shard):
+Checks (a shard that fails one is reported and skipped, with nothing written for it; the other shards still run, and the
+exit code is 1 if any shard failed):
   - header magic and version, and file size = 1,024 + 4 x token count;
   - .idx.npy starts at 0, rises, and ends at the token count; one docs.parquet row per document;
   - manifest: payload, index and docs sha256, doc_count, token_count, eos_token_id and tokenizer_sha256 all match;
@@ -180,7 +181,7 @@ def main(argv=None):
         try:
             table = decode_shard(path, tok, tok_sha)
             summary = {"shard_id": table.column("shard_id")[0].as_py(), "docs": table.num_rows,
-                       "tokens": int(pa.compute.sum(table.column("n_tokens")).as_py()), "tokenizer": tok_sha[:12]}
+                       "tokens": int(sum(table.column("n_tokens").to_pylist())), "tokenizer": tok_sha[:12]}
             if a.check_text:
                 checked, bad = check_text(table, a.check_text, tok)
                 summary["round_trip"] = f"{checked - len(bad)}/{checked} match"
