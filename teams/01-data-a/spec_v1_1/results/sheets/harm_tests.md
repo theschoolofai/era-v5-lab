@@ -143,18 +143,54 @@ Each gold doc touched has the very disease its rule targets. The gold set was bu
 
 With the two finemath docs left out, finemath in order touches 0 of the other 84 gold docs and passes. With the two Indic docs left out, `DB-C6-001` passes at 0/78. The gold CSVs, `harm_test.py` and `harm_test_indic.py` are not changed.
 
+## Speed (TSAI rule of 14 Nov)
+
+All 23 rules of `specv1_1.md` were timed with `scripts/time_rules.py` on every doc of 8 whole packs, not only the gold:
+- **The packs:** the Week-1 packs used by the harm runs (sha256 checked against each `<pack>_harm.json`), and `ind-te-sangraha-v.parquet`. Each pack has 500 docs.
+- **The method:** each rule alone, then the whole sheet in order, as `clean.py` runs it.
+- **Result:** 0 errors, and 0 docs over the 5 s limit. On a pack a rule doesn't cover, its `pack_id` check costs under 1 µs per doc.
+
+**Five science rules were made faster on 14 Nov.**
+- **The fixes:** each now does a cheap check for text its regex needs, and returns at once without it. `DA-B6-001` no longer counts characters in a Python loop.
+- **The output is identical:** old and new versions gave the same output on every doc of all 8 packs, rule by rule and in order.
+- **Harm and tests:** the sci-finepdfs harm test is unchanged (5/202 in order; only the code fingerprint in `sci-finepdfs_harm.json` is new). The 177 unit tests pass, 10 of them for `time_rules.py`.
+
+| rule | sci-finepdfs, 500 docs: before → after | the change |
+|---|---|---|
+| `DA-C9-002` | 2.11 s → 0.44 s | skip unless the text holds a phrase every spinner sentence needs (`ebook`, `perplexed to enjoy` …) |
+| `DA-C7-003` | 1.78 s → 0.48 s | skip unless the text holds "the following" and one of its nouns |
+| `DA-B6-001` | 1.11 s → 0.33 s | skip unless the text holds `_____`; count non-space characters with one regex pass, not a Python loop |
+| `DA-A8-002` | 1.15 s → 0.57 s | a fast search for any `Label:` before the slow insert pass |
+| `DA-A7-001` | 0.59 s → 0.55 s | skip unless the text holds `- ` (most science docs do) |
+
+| pack (500 docs) | whole sheet in order, before → after |
+|---|---|
+| sci-finepdfs | 7.86 s (64 docs/s) → **3.43 s (146 docs/s)** |
+| math-finemath / math-megamath | 1.35 s / 1.57 s (370 / 319 docs/s), unchanged |
+| en-nemotroncc | 0.16 s (3,087 docs/s) |
+| en-dclm, en-fineweb-edu, en-nemotroncc-synth | 0.015 s each (about 34,000 docs/s) |
+| ind-te-sangraha-v | 0.017 s (29,715 docs/s) |
+
+The "after" column is the run of `scripts/time_rules.py` quoted in the PR (14 Nov): 14.0 s for all 8 packs, 0 errors or timeouts.
+
+**What is still slowest:**
+- **Science:** `DA-A8-002` (0.57 s), `DA-A7-001` (0.55 s) and `DA-C7-003` (0.48 s) on sci-finepdfs.
+- **Math:** `DA-C7-001` (0.50 to 0.57 s) and `DA-C9-001` (0.36 to 0.45 s).
+
+None of them is near the 5 s per-doc limit. The slowest single doc for any rule is now 82 ms (`DA-A7-001` on `35eb8b91a98d3a41`). Before the fixes it was 255 ms (`DA-C9-002`, the same doc).
+
 ## Unit tests for each medicine
 
 The harm test checks a rule against the gold set. The unit tests check that it does what its card says: what it must change or drop, what it must leave alone, and that running it twice gives the same text.
 - **How they load the rules:** each test file loads its sheet the way `harmtest/harm_test.py` does (`harm_test.load_rules`), so the tests run the same code as the harm test.
 - **Text:** all of it is made up. Where a test copies the shape of a gold doc a rule once harmed, it is a look-alike, not gold text.
 - **Run:** from `teams/01-data-a`: `python3 -m unittest discover -s spec_v1_1/tests`.
-- **Last run:** 13 Nov 2026, 167 tests, **OK**:
+- **Last run:** 14 Nov 2026, 177 tests, **OK**:
   - 41 for the math medicines;
   - 44 for the science medicines;
   - 10 for the English medicines;
   - 7 for the Indic medicine;
-  - 65 for the scripts (`test_collect_reading_prs.py` 39, `test_show_examples.py` 11, `test_reading_check.py` 10, `test_reading_recall.py` 5).
+  - 75 for the scripts (`test_collect_reading_prs.py` 39, `test_show_examples.py` 11, `test_reading_check.py` 10, `test_time_rules.py` 10, `test_reading_recall.py` 5).
 
 The numbers in the `#` column match the disease tables above. "Twice" means a test that runs the rule on its own output and expects no change.
 

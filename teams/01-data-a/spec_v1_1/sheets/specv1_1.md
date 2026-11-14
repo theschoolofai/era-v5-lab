@@ -66,7 +66,7 @@ Source code stays CANDIDATE after a measured pass. Semantic side effects, review
 |---|---|---|
 | [medicine_english.md](medicine_english.md) | `8fb54cd51b87245c9cab97c30b18854062ac35a7ca5c4103f8fc8090eb9628e6` | `en-dclm_harm.json` (from an older version of the sheet, code `22853296…`), `en-fineweb-edu_harm.json` (from an older version of the sheet, code `22853296…`), `en-nemotroncc_harm.json` (from an older version of the sheet, code `22853296…`), `en-nemotroncc-synth_harm.json` |
 | [medicine_math.md](medicine_math.md) | `538501e9c2657325344184dec40a165e301ee9c0f209b768d28861f49805e200` | `math-finemath_harm.json`, `math-megamath_harm.json` |
-| [medicine_sci.md](medicine_sci.md) | `82b62928cea0792c7e510da299a9b1be8a48f2dd40a73615fb3f1d969f67045f` | `sci-finepdfs_harm.json` |
+| [medicine_sci.md](medicine_sci.md) | `5b3564131fb02d71ddf3dbcbf7c315abcbba3ce8a71952f2504b0f2c75eedd05` | `sci-finepdfs_harm.json` |
 | [medicine_indic.md](medicine_indic.md) | `4cbb55c02cde32dbff07ef2a4c797c7394548e0c9642bf7f0e9cbaf5bba5a09f` | `indic_sangraha-v_harm.md` and `indic_sangraha-s_harm.md` (Data B's `harm_test_indic.py`, run on Data B's function, which the sheet copies unchanged) |
 
 ## Identity mapping
@@ -964,6 +964,8 @@ def _a7_join(m):
 
 
 def medicine_a7(text):
+    if "- " not in text:  # speed (14 Nov): A7_SPLIT needs a hyphen and a space
+        return text
     return A7_SPLIT.sub(_a7_join, text)
 
 
@@ -1027,12 +1029,18 @@ C9S_SPINNER = re.compile("|".join((
 )), re.I)
 C9S_PAGE = re.compile(r"\bPage \d+/\d+\b")
 C9S_MIN_PAGES = 5
+# Speed (14 Nov): every spinner sentence, and the page test, needs one of these. casefold() maps every character that
+# re.I matches to these letters, so a doc without any of them can't match, and the slow search is skipped.
+C9S_NEEDS = ("such a referred", "perplexed to enjoy", "ebook", "best seller from us", "we have countless")
 
 
 def medicine_c9s(text):
+    low = text.casefold()
+    if not any(k in low for k in C9S_NEEDS):
+        return False
     if C9S_SPINNER.search(text):
         return True
-    return len(C9S_PAGE.findall(text)) >= C9S_MIN_PAGES and "ebook" in text.lower()
+    return "ebook" in text.lower() and len(C9S_PAGE.findall(text)) >= C9S_MIN_PAGES
 
 
 def medicine(doc):
@@ -1079,10 +1087,13 @@ import re
 
 B6_RUN = re.compile(r"_{5,}")
 B6_SHARE = 0.30  # the reading docs are at 0.31 and 0.63; the highest gold doc is at 0.26
+B6_SPACE = re.compile(r"\s")  # \s is str.isspace(): both use the same Unicode whitespace test
 
 
 def medicine_b6(text):
-    chars = sum(1 for c in text if not c.isspace())
+    if "_____" not in text:  # speed (14 Nov): no blank, so it can't reach the share
+        return False
+    chars = len(text) - len(B6_SPACE.findall(text))  # non-space characters, in one pass, not a Python loop
     blanks = sum(len(m.group()) for m in B6_RUN.finditer(text))
     return chars > 0 and blanks >= B6_SHARE * chars
 
@@ -1137,6 +1148,10 @@ C7T_NOUNS = r"(?:members|persons|names|people|officials|officers|staff|students|
 C7T_INTRO = re.compile(r"[ \t]*\b(?:(?:with|of|are|is|as|by)[ \t]+)?the following " + C7T_NOUNS + r"[ \t]*[.:][ \t]*$", re.I)
 C7T_LIST = re.compile(r"^[ \t]*(?:[-*|•●▪]|\(?\d{1,2}[.)]|\(?[A-Za-z][.)][ \t])")
 C7T_SHORT = 60
+# Speed (14 Nov): C7T_INTRO needs "the following " and a noun. These cut each noun before any "i", because re.I also
+# matches a dotless "ı" that casefold() keeps, so a doc without any of them can't match.
+C7T_NEEDS = tuple("the following " + n for n in ("member", "person", "name", "people", "off", "staff", "student",
+                                                  "part", "cand"))
 
 
 def _c7t_is_list(line):
@@ -1144,6 +1159,9 @@ def _c7t_is_list(line):
 
 
 def medicine_c7t(text):
+    low = text.casefold()
+    if not any(k in low for k in C7T_NEEDS):  # skip the line loop
+        return text
     lines = text.split("\n")
     for i, line in enumerate(lines):
         if not C7T_INTRO.search(line):
@@ -1491,9 +1509,14 @@ A8L_LABELS = ("Current Value", "Contract Value", "Duration", "Value", "Client", 
               "Contact", "Telephone", "Tel", "Phone", "Fax", "E-Mail", "Email", "Address", "Website", "Web site",
               "Project", "Sector", "Programme", "Cost")
 A8L_GLUED = re.compile(r"(?<=[A-Za-z0-9])(?=(?:" + "|".join(re.escape(l) for l in A8L_LABELS) + r")[ \t]*:)")
+# Speed (14 Nov): a fast search for any "Label:" first. It starts with the labels, so the regex engine can skip to
+# their first letters; A8L_GLUED, which starts with a lookbehind, is tried at every character.
+A8L_ANY = re.compile(r"(?:" + "|".join(re.escape(l) for l in A8L_LABELS) + r")[ \t]*:")
 
 
 def medicine_a8l(text):
+    if not A8L_ANY.search(text):
+        return text
     return A8L_GLUED.sub(" ", text)
 
 
