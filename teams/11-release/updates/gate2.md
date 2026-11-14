@@ -9,9 +9,9 @@ At this gate, TSAI reviewed the proposals from the teams below. Each decision us
 
 | Decision | Team that proposed it | Decision text |
 |---|---|---|
-| Freeze the tokenizer | Tokenizer | Freeze C3 (sample v0). It gives [number: waiting for TSAI] bits per byte against [number: waiting for TSAI] for the baseline tokenizer on the same test. eos is id [number: waiting for TSAI] ([#407](https://github.com/theschoolofai/era-v5-lab/pull/407)). After the freeze, token IDs stay fixed. TSAI approves each later fix. |
-| KE2 | KE2 | Accept the KE2 validation of C3 ([#372](https://github.com/theschoolofai/era-v5-lab/pull/372)). Align the KE2 special-token map to eos id [number: waiting for TSAI]. |
-| First model configuration: attention type, number of experts, optimizer and learning rate | Architecture | Muon optimizer. Keep the v0 attention. [number: waiting for TSAI] routed experts plus [number: waiting for TSAI] shared expert, top-[number: waiting for TSAI]. Learning rate [number: waiting for TSAI] stays provisional. |
+| Freeze the tokenizer | Tokenizer | Freeze C3 (sample v0). It gives [number: waiting for TSAI] bits per byte against [number: waiting for TSAI] for the baseline tokenizer on the same test. eos is id 130822 ([#407](https://github.com/theschoolofai/era-v5-lab/pull/407)). After the freeze, token IDs stay fixed. TSAI approves each later fix. |
+| KE2 | KE2 | Accept the KE2 validation of C3 ([#372](https://github.com/theschoolofai/era-v5-lab/pull/372)). Align the KE2 special-token map to eos id 130822. |
+| First model configuration: attention type, number of experts, optimizer and learning rate | Architecture | Muon optimizer. Keep the v0 attention. 16 routed experts plus 1 shared expert, top-2. Learning rate 1e-3 stays provisional. |
 | Share of Indic text in its own script, and the limit on Indic text in Latin script | Data B | Rerun [#400](https://github.com/theschoolofai/era-v5-lab/pull/400) with C3 this week. TSAI sets the share from that table. |
 | Duplicate removal, source priority list and the updated data spec | Data A | One spec v1.1. Cleaner [#244](https://github.com/theschoolofai/era-v5-lab/pull/244) is merged and ran on sample v0. Run the [#255](https://github.com/theschoolofai/era-v5-lab/pull/255) dedup design on the cleaned sample. |
 | Data mix for supervised fine-tuning | Post-training | [#391](https://github.com/theschoolofai/era-v5-lab/pull/391) is SFT mix v1. Week 3 adds strong SFT tests and a [method name: waiting for TSAI] study against full fine-tuning. |
