@@ -55,7 +55,7 @@ This file records each new disease: its name, a description, its code, its rule 
 | **A7** | Word split in extraction: small caps | NEW-small-caps-split | sci | sci-finepdfs (2) | yes | `DA-A7-003` | written, tested; narrowed after it harmed 3 gold docs, now 0/202 |
 | **A8** | Words run together | NEW-missing-spaces | math | math-finemath (5), math-megamath (8) | yes | `DA-A8-001` | written, tested |
 | **A8** | Words run together | NEW-missing-spaces | sci | sci-finepdfs (3) | yes | `DA-A8-002` | written, tested |
-| **A8** | Words run together | NEW-missing-spaces | english | en-nemotroncc (2) | yes | `DA-A8-003` | written, tested |
+| **A8** | Words run together | NEW-missing-spaces | english | en-nemotroncc (2; and 56 of 500 Week 1 diagnosis docs in HariniJasti's labels without a full stop) | yes | `DA-A8-003`, `DA-A8-004` | written, tested; `DA-A8-004` from HariniJasti (patilvijay23/era-v5-lab#41), carried in 14 Nov |
 | **A9** | Accent split from its letter | NEW-detached-diacritics | sci | sci-finepdfs (1) | no (1 of 200) | (`DA-A9-001`) | - |
 | **B6** | Blank form fields (Utkarsh's NEW-form-blanks counted with it) | NEW-underscore-blanks | sci | sci-finepdfs (7) | yes | `DA-B6-001` | written, tested; catches 2 of 7 |
 | **C6** | Inconsistent punctuation and formatting (runs of dots) | C6 (diagnosis labels, #177) | **Indic** | ind-te-sangraha-v (161 of 500 labelled docs, one reader) | yes (32%) | `DB-C6-001` | written by Data B (#177, Medicine 1). Harm test on the 80-doc gold: 2/80 FAIL, both gold contradictions, so 0/78 PASS without them (13 Nov). Carried into `specv1_1.md` as Medicine 23 through `medicine_indic.md`, unchanged (13 Nov) |
@@ -240,7 +240,7 @@ The Indic family's rules are `DB-<code>-<nnn>`.
   - **The 2 docs are gold contradictions.** Each has a bare `..` in mid-sentence. Both readers marked them clean, but oddjoker91 labelled a bare `..` as C6 in other docs of the pack. Vijay agreed to marking gold contradictions, so they are left out of the count: **0 of 78, PASS**.
   - **Reach:** the rule changes 241 of the 500 docs, and 144 of the 161 C6-labelled ones.
   - **A narrower version was tried and not taken.** It left a bare `..` alone and passed (0 of 80), but fixed only 102 of the 161 labelled docs.
-- **In the consolidated sheet (13 Nov):** `sheets/medicine_indic.md` carries `DB-C6-001` into `specv1_1.md` as Medicine 23.
+- **In the consolidated sheet (13 Nov):** `sheets/medicine_indic.md` carries `DB-C6-001` into `specv1_1_additions.md` as Medicine 23. From there it goes into the combined `specv1_1.md` (14 Nov) as Medicine 363, the last Indic rule.
   - **The code:** Data B's `medicine_c6` is copied unchanged. Only the block's header lines and a `pack_id` check for ind-te-sangraha-v are added, so it loads with `harm_test.py` and runs on that pack only.
   - **Tests:** `tests/test_medicine_indic.py`, 7 tests.
   - **Not carried:** C1 and C2 from the same sheet, which aren't new.
@@ -265,12 +265,12 @@ Readers flagged these as new, either as `NEW-…` codes or as a known code with 
 ## Open
 
 - **The team's agreement** is still needed for every proposed code, both Data A's and Data B's.
-- **Gold contradictions.** Nine gold docs have a new disease that a v1.1 rule targets:
+- **Gold contradictions.** Ten gold docs have a new disease that a v1.1 rule targets:
   - finemath `2d328b828fa97706` (A8)
   - finemath `0f119a596e8b7f63` (C9 template pages)
   - sci `920855df51f37db8` (A7)
   - sci `4b958ac1f45443b5`, `d0a0a41263e845f5` and `eb6ad9726f2d7ddd` (C7 empty image links, `DA-C7-004`; read 13 Nov)
-  - en-nemotroncc `056cc9bc44c927e2` (A8, `DA-A8-003`: `tantrum.To`; within the limit; read 13 Nov)
+  - en-nemotroncc `056cc9bc44c927e2` (A8, `DA-A8-003`: `tantrum.To`; within the limit; read 13 Nov) and `fd16036899796ca4` (A8, `DA-A8-004`: `saidSanaz`; 14 Nov)
   - ind-te-sangraha-v `85644a4840025b6f` and `01418489e7410bdf` (C6, `DB-C6-001`: a bare `..`; read 13 Nov)
 
   The handling proposed by aneeshads on 13 Nov, which **Vijay agreed to**, is to mark them as gold contradictions: out of the count for those rules only, and re-read at the next gold refresh. So the finemath run in order passes (0/84), and so do `DA-C7-004` and the science run in order (1/198, `b6fd81dbf90b0d17`). `DB-C6-001` passes too (0/78). Still to do: the re-read at the next gold refresh.

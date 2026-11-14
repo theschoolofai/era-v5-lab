@@ -133,5 +133,5 @@ One `<pack>_harm.json` per pack is in this folder: the 2 math packs, sci-finepdf
    - **Math:** 299 docs, with Satyanarayana's reading now read from theschoolofai `main`.
 5. **Appended Q&A in en-nemotroncc-synth:** is it a disease, or the pack's own format? `DA-D6-002` was withdrawn after it changed 32 of 326 gold docs.
 6. **The human check** of the reading examples.
-7. **Collation:** `medicine_conflicts.py` and `specv1_1.md`, built on `g1-specv1`'s `specv1.md`. That one has Smita's pack check for the code rules, and main's doesn't.
-8. **Whether the counting run** should be v1 + v1.1 rules together.
+7. **Collation:** done on 14 Nov (Gate 2). `specv1_1.md` is now the combined spec, from `specv1.md` as on TSAI main (with Smita's pack check, on main since #244) and `specv1_1_additions.md`. Her spec v1 math speed fixes (patilvijay23/era-v5-lab#43) were taken back out of this PR on Vijay's ruling (14 Nov), and go into the `clean.py` PR. `medicine_conflicts.py` has not been run on it.
+8. **The counting run:** settled by Gate 2. It is v1 + v1.1 together; see `../combined/validation.md`.

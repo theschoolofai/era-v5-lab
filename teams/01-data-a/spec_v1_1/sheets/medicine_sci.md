@@ -464,6 +464,7 @@ A7S_PAIR = re.compile(r"(?<![\w’'])([A-Z]) ([A-Z]{2,})\b")  # not after an apo
 A7S_WORDS = {"A", "I"}  # one-letter words: joined only on a small-caps line
 A7S_MIN_DOC = 3  # splits on small-caps lines in the doc, not counting A and I
 A7S_WHOLE = re.compile(r"\b[A-Z]{3,}\b")
+A7S_LOWER = re.compile(r"[a-z]")  # speed (14 Nov): on an ASCII line, a lowercase letter is one of a-z
 
 
 def _a7s_pairs(line):
@@ -472,7 +473,8 @@ def _a7s_pairs(line):
 
 def _a7s_small_caps(line):
     """No lowercase letter, and more split pairs than whole capital words."""
-    if any(ch.islower() for ch in line):
+    # speed (14 Nov): one regex search on an ASCII line instead of a Python loop over its characters
+    if A7S_LOWER.search(line) if line.isascii() else any(ch.islower() for ch in line):
         return False
     pairs = _a7s_pairs(line)
     return pairs > 0 and pairs > len(A7S_WHOLE.findall(A7S_PAIR.sub(" ", line)))

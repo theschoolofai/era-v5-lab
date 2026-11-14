@@ -1,6 +1,6 @@
 # medicine_indic: the Indic family's Spec v1.1 medicine (Data B)
 
-**Draft, 13 Nov.** This sheet carries the Indic family's one new disease in `NEW_DISEASES.md` into the Spec v1.1 consolidated sheet (`specv1_1.md`), in the same form as the Data A sheets. The rule is Data B's.
+**Draft, 13 Nov.** This sheet carries the Indic family's one new disease in `NEW_DISEASES.md` into the Spec v1.1 consolidated sheet (`specv1_1_additions.md`, and through it the combined `specv1_1.md`), in the same form as the Data A sheets. The rule is Data B's.
 
 - **Source:** oddjoker91's `diagnosis/submissions/ind-te-sangraha-v/oddjoker91/medicine.md`, Medicine 1 (theschoolofai/era-v5-lab#177). Data B listed it for Spec v1.1 in theschoolofai/era-v5-lab#216.
 - **The code:** Data B's function `medicine_c6` is copied **unchanged**. Only the block's header lines (`RULE_ID`, `CODE`, `ORIGIN` …) and a `pack_id` check are added around it, the way spec v1 wrapped its source rules. So the block loads with `harmtest/harm_test.py`, and the rule runs only on the pack where the disease was found.

@@ -88,6 +88,7 @@ Each English rule also keeps every doc of en-dclm and en-fineweb-edu, which aren
 | # | new disease (reading code) | docs, rate | rule | action | medicine | harm test (alone) | reading docs treated |
 |---|---|---|---|---|---|---|---|
 | 21 | Words run together (NEW-missing-spaces) | 2, 1.0% | `DA-A8-003` | fix | Puts the space back after a full stop between a lowercase word and a capitalised one (`choose.Compose` → `choose. Compose`). It leaves URLs, abbreviations and code alone. | en-nemotroncc 1/129 PASS (a gold contradiction) · en-nemotroncc-synth 0/326 (not in ORIGIN) | 1 / 2 |
+| 21b | Words run together with no full stop (NEW-missing-spaces; HariniJasti, patilvijay23/era-v5-lab#41) | 56 of 500 Week 1 diagnosis docs (HariniJasti's labels) | `DA-A8-004` | fix | Puts a space between a lowercase word of 3+ letters and a capitalised word glued to it (`fileEdit` → `file Edit`). It leaves code lines, multi-hump camelCase, 1–2 letter prefixes (`iPhone`) and a short list of names (`youTube`) alone. | en-nemotroncc 1/129 PASS (a gold contradiction, `fd16036899796ca4`) | not measured on the reading sample; 28 of the 500 diagnosis docs |
 | 22 | Facts the rewrite got wrong (NEW-factual-error), new code D7 | 4, 2.0% | `DA-D7-001` | drop | Quarantines the 6 confirmed docs by doc_id: kunal's 4, and 2 wrong answers from appended Q&A. Nothing in the text marks a wrong fact, so it finds no other cases. | en-nemotroncc-synth 0/326 PASS (trivial: no listed doc is gold) · en-nemotroncc 0/129 (not in ORIGIN) | 4 / 4, and the 2 wrong answers |
 | 23 | Machine-written text: an appended question and answer (NEW-appended-qa) | 3, 1.5% | `DA-D6-002`, **withdrawn** | — | It removed trailing `Question: … Answer: …` lines, and caught all 3 reading docs. | en-nemotroncc-synth **32/326 FAIL** in its first run | 3 / 3 |
 
@@ -97,7 +98,7 @@ Each English rule also keeps every doc of en-dclm and en-fineweb-edu, which aren
 - **kunal's 3 docs:** his 2 wrong answers are facts the rewrite got wrong, so they went to `DA-D7-001`; the third answer is correct.
 - **Open:** whether appended Q&A is a disease is for the team to rule.
 
-**Of the 22 medicines in force, 21 pass their harm test on their own.** `DA-C7-004` fails: it changes 3 of 202 gold docs, against a limit of 2, and all 3 have the disease itself (gold contradictions, below). With them left out, it passes at 0/199. A 23rd, `DA-D6-002`, was withdrawn after failing at 32/326. Data B's `DB-C6-001`, the 23rd medicine in `specv1_1.md`, also fails alone: 2/80 on ind-te-sangraha-v, both gold contradictions, so 0/78 without them (see "Other families and diseases").
+**Of the 23 Data A medicines in force, 22 pass their harm test on their own.** (The 23rd is `DA-A8-004`, added on 14 Nov from HariniJasti's #41: 1/129 PASS.) `DA-C7-004` fails: it changes 3 of 202 gold docs, against a limit of 2, and all 3 have the disease itself (gold contradictions, below). With them left out, it passes at 0/199. A 23rd, `DA-D6-002`, was withdrawn after failing at 32/326. Data B's `DB-C6-001`, the 23rd medicine in `specv1_1.md`, also fails alone: 2/80 on ind-te-sangraha-v, both gold contradictions, so 0/78 without them (see "Other families and diseases").
 
 ## All the rules of a sheet together (ALL IN ORDER)
 
@@ -108,7 +109,7 @@ Each English rule also keeps every doc of en-dclm and en-fineweb-edu, which aren
 | sci-finepdfs | 202 (2) | 4 | 1 | **FAIL** (5/202) | `920855df51f37db8` (`DA-A7-001`); `4b958ac1f45443b5`, `d0a0a41263e845f5`, `eb6ad9726f2d7ddd` (`DA-C7-004`); `b6fd81dbf90b0d17` dropped (`DA-C7-005`) |
 | en-dclm | 62 (1) | 0 | 0 | **PASS** | none |
 | en-fineweb-edu | 158 (1) | 0 | 0 | **PASS** | none |
-| en-nemotroncc | 129 (1) | 1 | 0 | **PASS** (1/129) | `056cc9bc44c927e2` (`DA-A8-003`) |
+| en-nemotroncc | 129 (1) | 2 | 0 | **FAIL** (2/129); 0/127 PASS without the gold contradictions | `056cc9bc44c927e2` (`DA-A8-003`), `fd16036899796ca4` (`DA-A8-004`) |
 | en-nemotroncc-synth | 326 (3) | 0 | 0 | **PASS** | none (32/326 FAIL before `DA-D6-002` was withdrawn) |
 
 With sections 1–6 only (12 Nov), sci-finepdfs was 1/202 PASS in order. With all 12 rules, the first run of 13 Nov was 9/202. After the gold docs were read and two rules narrowed, it is 5/202. 4 of those 5 are gold contradictions. With them left out, it passes at 1/198.
@@ -134,6 +135,7 @@ Each gold doc touched has the very disease its rule targets. The gold set was bu
 | `d0a0a41263e845f5` | `DA-C7-004`, empty image links (fix) | `![Biotin](image)`, `![Folate](image)`, `![Ascorbic acid](image1.png)` and 4 more: structure drawings that aren't there. |
 | `eb6ad9726f2d7ddd` | `DA-C7-004`, empty image links (fix) | `![Diagram](image)` after "according to the following diagram:". |
 | `056cc9bc44c927e2` | `DA-A8-003`, words run together (fix) | `tantrum.To the sociopath`: a missing space after a full stop, in en-nemotroncc. This one is within the limit. |
+| `fd16036899796ca4` | `DA-A8-004`, words run together with no full stop (fix) | `saidSanaz`: a quote glued to the speaker's name (withheld here), in en-nemotroncc. Alone it is within the limit; with `056cc9bc44c927e2` it takes en-nemotroncc in order to 2/129. |
 | `85644a4840025b6f` | `DB-C6-001`, runs of dots (fix), ind-te-sangraha-v | A bare `..` after మాట్లాడుతూ ("speaking"), before a quote. oddjoker91 labelled a bare `..` as C6 in other docs of the pack. |
 | `01418489e7410bdf` | `DB-C6-001`, runs of dots (fix), ind-te-sangraha-v | A bare `..` after మరణిస్తే ("if they die"), at the end of a clause. |
 
@@ -143,9 +145,18 @@ Each gold doc touched has the very disease its rule targets. The gold set was bu
 
 With the two finemath docs left out, finemath in order touches 0 of the other 84 gold docs and passes. With the two Indic docs left out, `DB-C6-001` passes at 0/78. The gold CSVs, `harm_test.py` and `harm_test_indic.py` are not changed.
 
+## The combined spec v1.1 (Gate 2, 14 Nov)
+
+TSAI made spec v1 and spec v1.1 one spec. `sheets/specv1_1.md` now holds both, in run order: 364 cards (with `DA-A8-004`), which build into a `clean.py` of 246 rules and the shared F1. Its `clean()` was harm-tested per pack, and the results are in `../combined/`, summarised in `../combined/validation.md`.
+- **Harm, all rules in order:** on every pack it changes exactly the gold docs the v1.1 rules change on their own. Spec v1 alone changes none.
+  - **Pass:** the 6 code packs, en-dclm, en-fineweb-edu, en-nemotroncc-synth and math-megamath.
+  - **Fail:** en-nemotroncc 2/129, math-finemath 2/86, sci-finepdfs 5/202 and ind-te-sangraha-v 2/80, each only on its gold contradictions (and `DA-C7-005`'s one false positive on sci-finepdfs).
+  - **Without the gold contradictions:** every pack passes (en-nemotroncc 0/127, finemath 0/84, sci-finepdfs 1/198, ind-te-sangraha-v 0/78).
+- **Speed, whole `clean()`** (Apple M4, one core, best of 3; spec v1 as on TSAI main): unchanged on code, English and Indic, except en-nemotroncc (714 → 556 docs/s). Math goes from 167 and 417 to 122 and 227 docs/s, and sci-finepdfs from 125 to 70 docs/s: the v1.1 rules' own time, after both speed passes below. 0 errors.
+
 ## Speed (TSAI rule of 14 Nov)
 
-All 23 rules of `specv1_1.md` were timed with `scripts/time_rules.py` on every doc of 8 whole packs, not only the gold:
+All 23 rules of the Spec v1.1 sheet (then `specv1_1.md`, now `specv1_1_additions.md`) were timed with `scripts/time_rules.py` on every doc of 8 whole packs, not only the gold:
 - **The packs:** the Week-1 packs used by the harm runs (sha256 checked against each `<pack>_harm.json`), and `ind-te-sangraha-v.parquet`. Each pack has 500 docs.
 - **The method:** each rule alone, then the whole sheet in order, as `clean.py` runs it.
 - **Result:** 0 errors, and 0 docs over the 5 s limit. On a pack a rule doesn't cover, its `pack_id` check costs under 1 µs per doc.
@@ -153,7 +164,7 @@ All 23 rules of `specv1_1.md` were timed with `scripts/time_rules.py` on every d
 **Five science rules were made faster on 14 Nov.**
 - **The fixes:** each now does a cheap check for text its regex needs, and returns at once without it. `DA-B6-001` no longer counts characters in a Python loop.
 - **The output is identical:** old and new versions gave the same output on every doc of all 8 packs, rule by rule and in order.
-- **Harm and tests:** the sci-finepdfs harm test is unchanged (5/202 in order; only the code fingerprint in `sci-finepdfs_harm.json` is new). The 177 unit tests pass, 10 of them for `time_rules.py`.
+- **Harm and tests:** the sci-finepdfs harm test is unchanged (5/202 in order; only the code fingerprint in `sci-finepdfs_harm.json` is new). The 177 unit tests of that day pass, 10 of them for `time_rules.py`.
 
 | rule | sci-finepdfs, 500 docs: before → after | the change |
 |---|---|---|
@@ -173,11 +184,30 @@ All 23 rules of `specv1_1.md` were timed with `scripts/time_rules.py` on every d
 
 The "after" column is the run of `scripts/time_rules.py` quoted in the PR (14 Nov): 14.0 s for all 8 packs, 0 errors or timeouts.
 
-**What is still slowest:**
-- **Science:** `DA-A8-002` (0.57 s), `DA-A7-001` (0.55 s) and `DA-C7-003` (0.48 s) on sci-finepdfs.
-- **Math:** `DA-C7-001` (0.50 to 0.57 s) and `DA-C9-001` (0.36 to 0.45 s).
+**A second speed pass (14 Nov), on the rules the skill's checklist flagged.** It took out the last Python loops over tokens and characters, and added cheap checks to three more rules. Old and new gave **identical output on every doc of the 8 packs**, for each of the three sheets, rule by rule and in order. The harm tests on the 7 packs of these sheets are unchanged (only the code fingerprints in `<pack>_harm.json` are new). 199 unit tests pass.
 
-None of them is near the 5 s per-doc limit. The slowest single doc for any rule is now 82 ms (`DA-A7-001` on `35eb8b91a98d3a41`). Before the fixes it was 255 ms (`DA-C9-002`, the same doc).
+| rule | before → after, 500 docs | the change |
+|---|---|---|
+| `DA-C9-001` (math) | 0.36 / 0.44 s → **0.11 / 0.15 s** (finemath / megamath) | skip the 11-way case-insensitive search unless the text holds a phrase every alternative needs (`tutor`, `homework`, `6ya` …) |
+| `DA-C7-001` (math) | 0.50 / 0.57 s → 0.43 / 0.47 s | count the cheap gaps first and stop at 4; skip the line loop when no line ends in `=` or a dangling word, or is an empty option |
+| `DA-C8-002` (math) | 0.08 / 0.09 s → 0.07 / 0.09 s | **the Python loop over tokens is gone**: one anchored regex counts the tokens that `C8T_CELL` matches whole |
+| `DA-A7-003` (sci) | 0.34 s → **0.21 s** | **the Python loop over characters is gone on ASCII lines**: one `[a-z]` search. A non-ASCII line keeps `str.islower` |
+| `DA-A8-003` (English) | 0.15 s → **0.08 s** | skip the line loop when no glued `word.Word` is in the text |
+
+Two other ideas were measured and dropped, because they were slower: a whole-text pre-check for `DA-A8-001` (0.21 → 0.27 s) and one for `DA-A7-003` (0.34 → 0.48 s).
+
+| pack (500 docs) | v1.1 rules in order (`time_rules.py`): after pass 1 → after pass 2 |
+|---|---|
+| math-finemath / math-megamath | 1.35 / 1.57 s (370 / 319 docs/s) → **1.03 / 1.17 s (486 / 429 docs/s)** |
+| sci-finepdfs | 3.43 s (146 docs/s) → 3.30 s (152 docs/s) |
+| en-nemotroncc | 0.16 s (3,087 docs/s) → **0.09 s (5,369 docs/s)** |
+
+**What is still slowest:**
+- **Science:** `DA-A8-002` (0.58 s), `DA-A7-001` (0.56 s), `DA-C7-003` (0.49 s), `DA-C9-002` (0.44 s) and `DA-B6-001` (0.34 s). All are regex passes or cheap checks, with no Python loop over characters or tokens. Where in each the time goes was not profiled further.
+- **Math:** `DA-C7-001` (0.44 to 0.47 s).
+- **Loops left:** about 10 rules still loop over a doc's lines, because each line is compared with its neighbours (`DA-D6-001`, `DA-C8-004`, `DA-C8-005`, `DA-A7-002` …).
+
+None is near the 5 s per-doc limit. The slowest single doc for any rule is 96 ms (`DA-B6-001` on `35eb8b91a98d3a41`). Before the first pass it was 255 ms (`DA-C9-002`, the same doc).
 
 ## Unit tests for each medicine
 
@@ -185,10 +215,11 @@ The harm test checks a rule against the gold set. The unit tests check that it d
 - **How they load the rules:** each test file loads its sheet the way `harmtest/harm_test.py` does (`harm_test.load_rules`), so the tests run the same code as the harm test.
 - **Text:** all of it is made up. Where a test copies the shape of a gold doc a rule once harmed, it is a look-alike, not gold text.
 - **Run:** from `teams/01-data-a`: `python3 -m unittest discover -s spec_v1_1/tests`.
-- **Last run:** 14 Nov 2026, 182 tests, **OK**:
+- **Last run:** 14 Nov 2026, 206 tests, **OK**:
+  - 17 for `scripts/combine_spec.py` (`test_combine_spec.py`): run order, wrapper, links and refusals on made-up sheets; that `build_clean.py` reads the real combined sheet; and that `sheets/specv1_1.md` is up to date;
   - 41 for the math medicines;
   - 44 for the science medicines;
-  - 10 for the English medicines;
+  - 17 for the English medicines (7 of them for `DA-A8-004`);
   - 7 for the Indic medicine;
   - 5 for a spec v1 code rule on docs labelled `lang_label = "code"` (`test_code_lang_label.py`, Gate 2 request): `DA-A1-001` fires in all 6 code packs, because of its `pack_id` check;
   - 75 for the scripts (`test_collect_reading_prs.py` 39, `test_show_examples.py` 11, `test_reading_check.py` 10, `test_time_rules.py` 10, `test_reading_recall.py` 5).
@@ -235,7 +266,7 @@ The numbers in the `#` column match the disease tables above. "Twice" means a te
 | 19 | `DA-C7-004` empty image links | `C7Images` (5) | `![Particle size distribution](image1.png)` → its caption as text; an inline link → its caption; links with no caption (`![](image)`) deleted | real links (a URL, a folder path); a link with no `!`; the word "image" in a sentence | twice |
 | 20 | `DA-C7-005` near-empty doc | `C7NearEmpty` (2) | a title and a date only (about 100 characters) | a doc of 254 characters | |
 
-### English: `tests/test_medicine_english.py`, 10 tests
+### English: `tests/test_medicine_english.py`, 17 tests
 
 **For the whole sheet (4):**
 - `test_one_rule_for_each_new_english_disease`: the sheet holds exactly the 2 English rules in force.
@@ -245,6 +276,7 @@ The numbers in the `#` column match the disease tables above. "Twice" means a te
 
 | # | rule | test class (tests) | must change or drop | must stay | other checks |
 |---|---|---|---|---|---|
+| 21b | `DA-A8-004` no full stop (HariniJasti's 3, and 4 for the review changes) | `A8NoFullStop` (7) | `fileEdit` → `file Edit`; `saidSanaz` → `said Sanaz`; a prose line with `$`, `<` or a mid-line `;`; `thank youFor` → `thank you For` | `iPhone`, `eBay`, `macOS`, `pdfFiller`, `youTube`, `getMockBuilder`, a code line, a line ending in `;`, a fence, `creamthe` (lowercase glue, not caught) | twice |
 | 21 | `DA-A8-003` no space after a full stop | `A8` (3) | `choose.Compose` → `choose. Compose`; `there.Then,` → `there. Then,` | `www.Google.com`, `e.g.The`, `Mr.Smith`, `Node.Js`, `awhile`, a code line, a code fence, an email address, a line with a URL | twice |
 | 22 | `DA-D7-001` facts the rewrite got wrong | `D7` (3) | the 6 confirmed doc IDs (dropped) | `ffaad5c6d3dde332`, the appended-Q&A doc whose answer is correct; any other doc | |
 
@@ -255,6 +287,28 @@ The numbers in the `#` column match the disease tables above. "Twice" means a te
 - **`DA-C7-004`:** `test_lines_of_empty_image_links_go` became `test_links_become_their_captions`. `test_links_with_no_caption_go` was added, and the twice test now expects the caption kept.
 
 ## Other families and diseases
+
+- **C1 boilerplate in en-nemotroncc (spec v1's `DA-C1-006`, 14 Nov).** HariniJasti's Week 1 labels list C1 lines that `clean()` left in. Her doc_ids were run through `DA-C1-006` and spec v1's whole English `clean()`:
+
+  | label | doc | today | change |
+  |---|---|---|---|
+  | `Menu` | `f27c315dee45a78b`, `f7b15b4a083e9b67` | removed | none needed |
+  | `Advertisement` (a whole line) | `fe09c89adf442739` | removed | none needed |
+  | `Share This Post, Choose Your Platform!` | `e19e0e25c760eef3` | kept | added |
+  | `STORY CONTINUES BELOW THESE SALTWIRE VIDEOS` | `7533f8eb8ea4eb8d` | kept | added, as `story continues below` and up to 4 words |
+  | `Featured athletes` | `739f7ece88e53e0d` | kept | added |
+  | `Vote in our latest poll` | `dbd1dda436710dba` | kept | added |
+  | `Story Headers` | `58e73b4d54222916` | kept | added |
+  | `Hosted 6 events total` | `8eb16f1232108357` | kept | added, as `hosted N events total` |
+  | `Link copied`, glued to the end of a headline | `21bd8896d208bfd6` | kept | out of reach: a whole-line rule can't cut it from a content line |
+  | `Advertisement – Continue Reading Below …`, the start of a content line | `82b8dbe973dc9e52` | kept | out of reach, for the same reason |
+
+  - **Not in this PR.** `DA-C1-006` is a spec v1 rule, and on Vijay's ruling of 14 Nov this PR holds only spec v1.1. The six labels go into the `clean.py` PR, with the spec v1 speed fixes. The patch is ready: it adds them to `DA-C1-006`'s `WIDGET` list in `spec_v1/sheets/medicine_english.md` and `specv1.md`, still as whole-line matches.
+  - **Tested on 14 Nov:**
+    - **Old vs new:** they differ on exactly the 6 docs above, and on no other doc of the 4 English packs (2,000 docs).
+    - **Gold:** no gold doc changes (0 of 675).
+    - **Spec v1's English `clean()`** on the gold stays at 0 changed on all 4 packs, as in #244.
+    - **Spec v1's 2,300 pytest tests pass**, with a `clean.py` rebuilt from the edited sheet.
 
 - **Indic family (Data B):** C6, inconsistent punctuation and formatting (`DB-C6-001`, ind-te-sangraha-v, 161 of 500 docs).
   - **Medicine:** Data B's, Medicine 1 in #177. It turns runs of dots into `...`.
@@ -291,7 +345,7 @@ The numbers in the `#` column match the disease tables above. "Twice" means a te
     | `ind-kn-sangraha-s.parquet` | `a161966005c037a1bdb70245c2b6135520967c57c5fc618cba5f29d9e248f427` |
     | `ind-ta-sangraha-s.parquet` | `40509e609fb6020649a86baf1b8e849659442ef8e807b02a842ac8f9f757b74d` |
     | `ind-te-sangraha-s.parquet` | `feeb676e76dee102d132846c1af2a92c3ea4d1018e0fd5239f50fc0da0fb6069` |
-  - **In `specv1_1.md`:** Medicine 23, through `sheets/medicine_indic.md`. Data B's function is copied unchanged inside a `pack_id` check for ind-te-sangraha-v.
+  - **In `specv1_1_additions.md`:** Medicine 23 (Medicine 363 of the combined `specv1_1.md`), through `sheets/medicine_indic.md`. Data B's function is copied unchanged inside a `pack_id` check for ind-te-sangraha-v.
   - **Unit tests:** `tests/test_medicine_indic.py`, 7 tests:
     - runs of dots (`. .`, `..`, `. . .`, with spaces or tabs) become `...`, and `....` becomes `...`;
     - single dots, `…`, an existing `...`, dots across a line break and `3.67` stay;

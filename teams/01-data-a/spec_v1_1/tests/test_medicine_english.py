@@ -30,7 +30,7 @@ def run(rule_id, text, pack, **kw):
 class Sheet(unittest.TestCase):
     def test_one_rule_for_each_new_english_disease(self):
         # DA-D6-002 (appended Q&A) was withdrawn on 13 Nov: 32 of 326 gold docs have the same Q&A
-        self.assertEqual(sorted(RULES), ["DA-A8-003", "DA-D7-001"])
+        self.assertEqual(sorted(RULES), ["DA-A8-003", "DA-A8-004", "DA-D7-001"])
 
     def test_every_rule_is_off_on_other_packs(self):
         text = PASSAGE + "\n\nQuestion: Who? Answer: Them.\nas you choose.Compose a paper"
@@ -41,6 +41,7 @@ class Sheet(unittest.TestCase):
     def test_each_rule_runs_only_on_its_pack(self):
         self.assertEqual(run("DA-D7-001", PASSAGE, "en-nemotroncc", doc_id="0f7b90400c1362df"), ("keep", PASSAGE))
         self.assertEqual(run("DA-A8-003", "choose.Compose a", "en-nemotroncc-synth"), ("keep", "choose.Compose a"))
+        self.assertEqual(run("DA-A8-004", "your fileEdit now", "en-nemotroncc-synth"), ("keep", "your fileEdit now"))
 
     def test_appended_questions_and_answers_are_left_alone(self):
         # no rule removes them: the gold set has them in 32 of 326 en-nemotroncc-synth docs
@@ -66,6 +67,51 @@ class A8(unittest.TestCase):
     def test_idempotent(self):
         once = run(self.R, "as you choose.Compose it.Then go", self.P)[1]
         self.assertEqual(run(self.R, once, self.P), ("keep", once))
+
+
+class A8NoFullStop(unittest.TestCase):
+    """DA-A8-004: HariniJasti's tests (patilvijay23/era-v5-lab#41), then the review changes."""
+    R, P = "DA-A8-004", "en-nemotroncc"
+
+    def test_a_lowercase_word_glued_to_a_capitalised_one_is_split(self):
+        self.assertEqual(run(self.R, "import your fileEdit with ease", self.P), ("fix", "import your file Edit with ease"))
+        self.assertEqual(run(self.R, "your first adjustmentHere are the steps", self.P),
+                         ("fix", "your first adjustment Here are the steps"))
+        self.assertEqual(run(self.R, "the topographyZoom into the map.", self.P), ("fix", "the topography Zoom into the map."))
+        self.assertEqual(run(self.R, '"We expect it," saidSanaz Lee.', self.P), ("fix", '"We expect it," said Sanaz Lee.'))
+
+    def test_names_brands_and_code_stay(self):
+        for text in ("Buy an iPhone or use eBay", "Runs on macOS with jQuery", "Sign it with pdfFiller today",
+                     "Use webAssembly here", "a getMockBuilder call", "$this->assertTrue($v->validateString());",
+                     "list of <responseType> items", "x = userName", "```\nmy fileEdit here\n```",
+                     "Visit YouTube and WordPress", "see www.siteName.com now", "the McDonald family",
+                     "Every once in awhile", "eating ice creamthe wrong way"):
+            self.assertEqual(run(self.R, text, self.P), ("keep", text), text)
+
+    def test_idempotent(self):
+        once = run(self.R, "your fileEdit and adjustmentHere now", self.P)[1]
+        self.assertEqual(run(self.R, once, self.P), ("keep", once))
+
+    def test_prose_signs_no_longer_mark_a_code_line(self):
+        # review change: "<", ">", "$" and a ";" inside a line occur in prose, as in the 8 glues it won back
+        for text, fixed in (("It costs $5; your fileEdit works", "It costs $5; your file Edit works"),
+                            ("ages 3 < 5 and the devicesTo use", "ages 3 < 5 and the devices To use"),
+                            ("see the modelsWhat > all", "see the models What > all")):
+            self.assertEqual(run(self.R, text, self.P), ("fix", fixed), text)
+
+    def test_a_semicolon_at_the_end_of_a_line_still_marks_code(self):
+        self.assertEqual(run(self.R, "set theValue;", self.P), ("keep", "set theValue;"))
+        self.assertEqual(run(self.R, "call now() with theValue", self.P), ("keep", "call now() with theValue"))
+        self.assertEqual(run(self.R, "set theValue; then go", self.P), ("fix", "set the Value; then go"))  # not at the end
+
+    def test_the_keep_list_holds_whole_tokens(self):
+        # review change: a first word such as "you" no longer keeps a real glue
+        self.assertEqual(run(self.R, "thank youFor coming", self.P), ("fix", "thank you For coming"))
+        self.assertEqual(run(self.R, "watch it on youTube now", self.P), ("keep", "watch it on youTube now"))
+
+    def test_no_glued_token_returns_the_text_unchanged(self):
+        text = PASSAGE + "\nA plain line. Another One here."
+        self.assertEqual(run(self.R, text, self.P), ("keep", text))
 
 
 class D7(unittest.TestCase):
