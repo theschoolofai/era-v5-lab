@@ -178,7 +178,7 @@ def combine(v1_text, add_text, validation=""):
     add_body = re.sub(r"^## ", "### ", replace_section(add_pre.split("\n", 1)[1], "Identity mapping", ""), flags=re.M)
     top = (
         "# Medicine sheet: Data A — spec v1.1, combined (spec v1 + Spec v1.1, contributors retained per rule)\n\n"
-        "Status: **DRAFT / CANDIDATE**. TSAI's Gate 2 decision (14 Nov 2026): spec v1 and spec v1.1 become one spec "
+        "Status: FINAL SUBMISSION for TSAI's Gate 2 decision (14 Nov 2026): spec v1 and spec v1.1 become one spec "
         "v1.1, and theschoolofai/era-v5-lab#435 is that spec. This sheet holds both, in run order: "
         f"{len(cards)} rules ({sum(k['v1'] for k in counts.values())} from spec v1 and "
         f"{sum(k['v1.1'] for k in counts.values())} from Spec v1.1). No rule is approved by this document.\n\n"

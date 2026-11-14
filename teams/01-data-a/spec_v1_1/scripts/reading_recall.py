@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """How many of the readers' docs each rule of a medicine sheet treats, on the cleaned text the readers read.
 
-Loads the sheet the way harmtest/harm_test.py does, and runs each rule on the cleaned docs of the reading rows that
+Loads the sheet the way tools/harm_test.py does, and runs each rule on the cleaned docs of the reading rows that
 carry its reading code. A doc counts as treated when the rule changes or drops it. This gives the
 "reading rows the rule treats / reading rows with its code" figure on each card. The harm test on gold
 is separate.
@@ -22,7 +22,7 @@ from collections import defaultdict
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent  # teams/01-data-a/spec_v1_1/scripts
-TOOLS = HERE.parents[1] / "harmtest"  # harm_test.py moved here from tools/ (theschoolofai/era-v5-lab#244)
+TOOLS = HERE.parents[1] / "tools"
 READING = HERE.parent / "results" / "reading"
 DOMAINS = ("english", "code", "math", "science")
 FIELDS = ("doc_id", "text", "url", "lang_label", "pack_id")

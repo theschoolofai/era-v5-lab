@@ -3,7 +3,7 @@
 `clean.py` was built from this sheet with `spec_v1/build/build_clean.py`, in a copy of the branch, not committed: the rebuild is task 2, due 17 Nov. It holds 246 rules and the shared F1: code 24, English 23, math 22, sci 24, Indic 153.
 - **The harm runs:** `spec_v1/validate/make_harm_tests.py` (the #244 harness) on that `clean()`, with `harm_test.py` run as it is. ind-te-sangraha-v was run with `harm_test.py` on this sheet and Data B's gold.
 - **The packs:** each is the same file as in #244 (sha256 checked).
-- **Reports:** `../results/combined/`, which holds doc_ids, counts and digests only.
+- **Reports:** the per-pack reports (doc_ids, counts and digests only) go into the `clean.py` PR, with the rebuilt `clean.py` they test.
 
 | pack | gold docs (limit) | `clean()`, all rules in order: changed + dropped | result | without the gold contradictions | spec v1 alone (#244) |
 |---|---|---|---|---|---|
@@ -20,7 +20,7 @@
 - **Scope holds:** no rule acted on a pack it doesn't cover (`make_harm_tests.py` runs each rule on every other pack).
 - **The other 17 Indic packs:** no v1.1 rule runs on them, so #244's results stand there. They need Data B's gold, and most aren't on this machine.
 
-**Speed.** `spec_v1/run_clean.py` timed the whole `clean()`, shared F1 included, on 500 docs a pack: Apple M4, one core, Python 3.12.10, the best of 3 runs, 0 errors (`../results/combined/speed.md`). Spec v1 is as on TSAI main; its math speed fixes (#43) are for the `clean.py` PR.
+**Speed.** `spec_v1/run_clean.py` timed the whole `clean()`, shared F1 included, on 500 docs a pack: Apple M4, one core, Python 3.12.10, the best of 3 runs, 0 errors (the full table, `speed.md`, goes into the `clean.py` PR). Spec v1 is as on TSAI main; its math speed fixes (#43) are for the `clean.py` PR.
 
 | pack | spec v1 → combined, docs/s |
 |---|---|

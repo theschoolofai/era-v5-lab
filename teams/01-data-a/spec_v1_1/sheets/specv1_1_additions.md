@@ -122,7 +122,7 @@ python3 -I teams/01-data-a/harmtest/harm_test.py --pack <W1>/<pack>.parquet --go
   --report teams/01-data-a/spec_v1_1/results/sheets/<pack>_harm.json
 ```
 
-The same command with `--rules teams/01-data-a/spec_v1_1/sheets/specv1_1.md` runs this sheet: the other families' rules keep every doc of the pack.
+The same command with `--rules teams/01-data-a/spec_v1_1/sheets/specv1_1_additions.md` runs this sheet: the other families' rules keep every doc of the pack.
 
 **Indic (`DB-C6-001`).** Its harm test is Data B's, run with `teams/02-data-b/tools/harm_test_indic.py --medicine <sheet> --pack <pack>.parquet --gold-dir teams/02-data-b/gold --rule all`.
 
@@ -293,7 +293,7 @@ def medicine(doc):
    **Changed in review (aneeshads, 14 Nov, from HariniJasti's patilvijay23/era-v5-lab#41):**
    - **The code test is narrower.** `<`, `>`, `$` and a `;` inside a line also occur in prose (prices, lists), so they no longer mark a line as code. On the 500 docs this wins back 8 glued pairs (`devicesTo`, `modelsWhat`, `potentialTourism` …), and it changes no other gold doc.
    - **`A8F_KEEP` is a list of whole tokens, not first words.** A first word such as `you` also kept real glues (`thank youFor`).
-   - **A quick check first** (speed rule): a doc with no glued token at all is returned as it is. It takes the rule from 0.20 s to 0.12 s per 500 en-nemotroncc docs (`scripts/time_rules.py`, best of 3), with the same output.
+   - **A quick check first** (speed rule): a doc with no glued token at all is returned as it is. It takes the rule from 0.20 s to 0.12 s per 500 en-nemotroncc docs (`scripts/time_rules.py`, in the `clean.py` PR; best of 3), with the same output.
 
 ```python
 RULE_ID = "DA-A8-004"

@@ -147,7 +147,7 @@ With the two finemath docs left out, finemath in order touches 0 of the other 84
 
 ## The combined spec v1.1 (Gate 2, 14 Nov)
 
-TSAI made spec v1 and spec v1.1 one spec. `sheets/specv1_1.md` now holds both, in run order: 364 cards (with `DA-A8-004`), which build into a `clean.py` of 246 rules and the shared F1. Its `clean()` was harm-tested per pack, and the results are in `../combined/`, summarised in `../combined/validation.md`.
+TSAI made spec v1 and spec v1.1 one spec. `sheets/specv1_1.md` holds both, in run order: 364 cards (with `DA-A8-004`), which build into a `clean.py` of 246 rules and the shared F1. `scripts/combine_spec.py` writes it from `specv1.md` and `specv1_1_additions.md`. Its `clean()` was harm-tested per pack, summarised in `../combined/validation.md`; the per-pack reports go into the `clean.py` PR, with the rebuilt `clean.py`. It was checked on 14 Nov:
 - **Harm, all rules in order:** on every pack it changes exactly the gold docs the v1.1 rules change on their own. Spec v1 alone changes none.
   - **Pass:** the 6 code packs, en-dclm, en-fineweb-edu, en-nemotroncc-synth and math-megamath.
   - **Fail:** en-nemotroncc 2/129, math-finemath 2/86, sci-finepdfs 5/202 and ind-te-sangraha-v 2/80, each only on its gold contradictions (and `DA-C7-005`'s one false positive on sci-finepdfs).
@@ -156,7 +156,7 @@ TSAI made spec v1 and spec v1.1 one spec. `sheets/specv1_1.md` now holds both, i
 
 ## Speed (TSAI rule of 14 Nov)
 
-All 23 rules of the Spec v1.1 sheet (then `specv1_1.md`, now `specv1_1_additions.md`) were timed with `scripts/time_rules.py` on every doc of 8 whole packs, not only the gold:
+All 23 rules of the Spec v1.1 sheet (then `specv1_1.md`, now `specv1_1_additions.md`) were timed with `scripts/time_rules.py` (which comes with the `clean.py` PR) on every doc of 8 whole packs, not only the gold:
 - **The packs:** the Week-1 packs used by the harm runs (sha256 checked against each `<pack>_harm.json`), and `ind-te-sangraha-v.parquet`. Each pack has 500 docs.
 - **The method:** each rule alone, then the whole sheet in order, as `clean.py` runs it.
 - **Result:** 0 errors, and 0 docs over the 5 s limit. On a pack a rule doesn't cover, its `pack_id` check costs under 1 µs per doc.
@@ -215,14 +215,14 @@ The harm test checks a rule against the gold set. The unit tests check that it d
 - **How they load the rules:** each test file loads its sheet the way `harmtest/harm_test.py` does (`harm_test.load_rules`), so the tests run the same code as the harm test.
 - **Text:** all of it is made up. Where a test copies the shape of a gold doc a rule once harmed, it is a look-alike, not gold text.
 - **Run:** from `teams/01-data-a`: `python3 -m unittest discover -s spec_v1_1/tests`.
-- **Last run:** 14 Nov 2026, 206 tests, **OK**:
+- **Last run:** 14 Nov 2026, 181 tests, **OK**:
   - 17 for `scripts/combine_spec.py` (`test_combine_spec.py`): run order, wrapper, links and refusals on made-up sheets; that `build_clean.py` reads the real combined sheet; and that `sheets/specv1_1.md` is up to date;
   - 41 for the math medicines;
   - 44 for the science medicines;
   - 17 for the English medicines (7 of them for `DA-A8-004`);
   - 7 for the Indic medicine;
   - 5 for a spec v1 code rule on docs labelled `lang_label = "code"` (`test_code_lang_label.py`, Gate 2 request): `DA-A1-001` fires in all 6 code packs, because of its `pack_id` check;
-  - 75 for the scripts (`test_collect_reading_prs.py` 39, `test_show_examples.py` 11, `test_reading_check.py` 10, `test_time_rules.py` 10, `test_reading_recall.py` 5).
+  - 50 for the reading scripts, as on main (`test_collect_reading_prs.py` 24, `test_show_examples.py` 11, `test_reading_check.py` 10, `test_reading_recall.py` 5). The tests of `time_rules.py` go into the `clean.py` PR with it.
 
 The numbers in the `#` column match the disease tables above. "Twice" means a test that runs the rule on its own output and expects no change.
 

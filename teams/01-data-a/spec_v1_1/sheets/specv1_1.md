@@ -15,7 +15,7 @@ Status: FINAL SUBMISSION for TSAI's Gate 2 decision (14 Nov 2026): spec v1 and s
 `clean.py` was built from this sheet with `spec_v1/build/build_clean.py`, in a copy of the branch, not committed: the rebuild is task 2, due 17 Nov. It holds 246 rules and the shared F1: code 24, English 23, math 22, sci 24, Indic 153.
 - **The harm runs:** `spec_v1/validate/make_harm_tests.py` (the #244 harness) on that `clean()`, with `harm_test.py` run as it is. ind-te-sangraha-v was run with `harm_test.py` on this sheet and Data B's gold.
 - **The packs:** each is the same file as in #244 (sha256 checked).
-- **Reports:** `../results/combined/`, which holds doc_ids, counts and digests only.
+- **Reports:** the per-pack reports (doc_ids, counts and digests only) go into the `clean.py` PR, with the rebuilt `clean.py` they test.
 
 | pack | gold docs (limit) | `clean()`, all rules in order: changed + dropped | result | without the gold contradictions | spec v1 alone (#244) |
 |---|---|---|---|---|---|
@@ -32,7 +32,7 @@ Status: FINAL SUBMISSION for TSAI's Gate 2 decision (14 Nov 2026): spec v1 and s
 - **Scope holds:** no rule acted on a pack it doesn't cover (`make_harm_tests.py` runs each rule on every other pack).
 - **The other 17 Indic packs:** no v1.1 rule runs on them, so #244's results stand there. They need Data B's gold, and most aren't on this machine.
 
-**Speed.** `spec_v1/run_clean.py` timed the whole `clean()`, shared F1 included, on 500 docs a pack: Apple M4, one core, Python 3.12.10, the best of 3 runs, 0 errors (`../results/combined/speed.md`). Spec v1 is as on TSAI main; its math speed fixes (#43) are for the `clean.py` PR.
+**Speed.** `spec_v1/run_clean.py` timed the whole `clean()`, shared F1 included, on 500 docs a pack: Apple M4, one core, Python 3.12.10, the best of 3 runs, 0 errors (the full table, `speed.md`, goes into the `clean.py` PR). Spec v1 is as on TSAI main; its math speed fixes (#43) are for the `clean.py` PR.
 
 | pack | spec v1 → combined, docs/s |
 |---|---|
@@ -324,7 +324,7 @@ python3 -I teams/01-data-a/harmtest/harm_test.py --pack <W1>/<pack>.parquet --go
   --report teams/01-data-a/spec_v1_1/results/sheets/<pack>_harm.json
 ```
 
-The same command with `--rules teams/01-data-a/spec_v1_1/sheets/specv1_1.md` runs this sheet: the other families' rules keep every doc of the pack.
+The same command with `--rules teams/01-data-a/spec_v1_1/sheets/specv1_1_additions.md` runs this sheet: the other families' rules keep every doc of the pack.
 
 **Indic (`DB-C6-001`).** Its harm test is Data B's, run with `teams/02-data-b/tools/harm_test_indic.py --medicine <sheet> --pack <pack>.parquet --gold-dir teams/02-data-b/gold --rule all`.
 
@@ -4436,7 +4436,7 @@ def medicine(doc):
    **Changed in review (aneeshads, 14 Nov, from HariniJasti's patilvijay23/era-v5-lab#41):**
    - **The code test is narrower.** `<`, `>`, `$` and a `;` inside a line also occur in prose (prices, lists), so they no longer mark a line as code. On the 500 docs this wins back 8 glued pairs (`devicesTo`, `modelsWhat`, `potentialTourism` …), and it changes no other gold doc.
    - **`A8F_KEEP` is a list of whole tokens, not first words.** A first word such as `you` also kept real glues (`thank youFor`).
-   - **A quick check first** (speed rule): a doc with no glued token at all is returned as it is. It takes the rule from 0.20 s to 0.12 s per 500 en-nemotroncc docs (`scripts/time_rules.py`, best of 3), with the same output.
+   - **A quick check first** (speed rule): a doc with no glued token at all is returned as it is. It takes the rule from 0.20 s to 0.12 s per 500 en-nemotroncc docs (`scripts/time_rules.py`, in the `clean.py` PR; best of 3), with the same output.
 
 ```python
 RULE_ID = "DA-A8-004"
