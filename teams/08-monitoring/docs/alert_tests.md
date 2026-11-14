@@ -24,6 +24,8 @@ records the time to alert. Add one row per rule you test, plus a short "How to r
 | @raghavTayal | `spike_score` (page) | synthetic 150-step stream, `MetricsWriter` + `AlarmMonitor` | 125 | 125 (jsonl: 130) | 0 (jsonl: 5) | 0.015 | 0.359 | PASS |
 | @s9k96 | `moe_routing` (warn) | synthetic 200-step stream, `MetricsWriter` + `AlarmMonitor`, `moe_patience=5` | 120 | 124 (jsonl: 130) | 4 (jsonl: 10) | 0.019 | 0.523 | PASS |
 | @s9k96 | `ema_z` (warn) | synthetic 200-step stream, `MetricsWriter` + `AlarmMonitor`, `ema_z_threshold=5.0` | 155 | 155 (jsonl: 160) | 0 (jsonl: 5) | 0.017 | 0.492 | PASS |
+| @pyru | `static_bound` (warn) | synthetic 400-step stream, `MetricsWriter` + `AlarmMonitor`, `bounds={"gpu_alloc_gib": (None, 40.0)}` | 125 | 125 (jsonl: 130) | 0 (jsonl: 5) | 0.064 | 4.134 | PASS |
+| @pyru | `throughput_drop` (warn) | synthetic 400-step stream, `MetricsWriter` + `AlarmMonitor`, default settings | 200 | 299 (jsonl: 300) | 99 (jsonl: 100) | 0.082 | 3.577 | PASS |
 
 ## @raghavTayal: `non_finite` and `spike_score` (Issue #19)
 
@@ -104,3 +106,42 @@ python teams/08-monitoring/alarms/test_alert_injection_s9k96.py                 
 The test needs only `pytest` (no NumPy or torch). It checks the rule, severity and alert step in-harness, the
 `metrics.jsonl` flush lag (5 for `ema_z`, 10 for `moe_routing`), no false alarms, non-negative timings, and the two
 findings above.
+
+## @pyru: `static_bound` and `throughput_drop`
+
+**Setup.** [`alarms/test_alert_injection_pyru.py`](../alarms/test_alert_injection_pyru.py) runs a 400-step
+synthetic stream (seed 23): `loss_ntp`, `lr`, `tokens_per_second = 38,000 + N(0, 400)` (650 on step 0, a slow setup
+step) and `gpu_alloc_gib = 24.5 + N(0, 0.05)`. Every step goes through `MetricsWriter` (`flush_every = 10`) and is
+checked in-harness and from `metrics.jsonl`, as in the Raghav test. Both monitors use
+`AlarmMonitor(bounds={"gpu_alloc_gib": (None, 40.0)})`, the bound in `tests/test_alarms.py`; `throughput_drop` uses
+the default settings (10% drop, 100 steps).
+
+**Faults.**
+- `static_bound`: `gpu_alloc_gib` about 44 GiB on steps 125-144. The rule latches, so it fires once, at step 125.
+- `throughput_drop`: `tokens_per_second` 25% below normal on steps 200-349. The rule needs 100 slow steps in a row,
+  so the expected alert step is 200 + 100 - 1 = 299, and `delta_steps = 99` is by design, not lag.
+  For this row `jsonl_flush_to_alert_ms` runs from the write of the step-299 row.
+
+**Results.** Both rules fire with severity `warn` on the expected step in-harness, once each, and nothing else fires
+on either path, including the slow step-0 setup value. The timings are from one run on a laptop CPU (Windows 11,
+Python 3.12); `jsonl_flush_to_alert_ms` was 3.6 to 4.8 ms over four runs, mostly the disk sync in
+`MetricsWriter.flush()`.
+
+**Finding 1: `static_bound` is off unless the caller passes `bounds`.** `AlarmMonitor()` (the README example) and
+`alarms.py --jsonl` set none, and the CLI has no option for them. For dry run 1 the harness must pass `bounds`, or
+this rule never fires. The test `test_static_bound_is_off_without_bounds` records this.
+
+**Finding 2: time to alert for `throughput_drop` is set by `tps_patience`.** In a real run it is 100 slow steps,
+`tps_patience × normal step time / (1 - drop)`: with a 25% drop, about 133 normal step times, so under one minute
+only if a normal step takes less than 0.45 s. A 99-step slowdown never alerts, and neither does a drop under 10%.
+
+**How to reproduce.**
+
+```bash
+python -m pytest teams/08-monitoring/alarms/test_alert_injection_pyru.py -q   # 8 tests
+python teams/08-monitoring/alarms/test_alert_injection_pyru.py                 # prints the two table rows
+```
+
+The test needs only `pytest` (no NumPy or torch). It checks the rule, severity and alert step in-harness, the
+`metrics.jsonl` flush lag (5 for `static_bound`, 1 for `throughput_drop`), one alarm per fault and no false alarms,
+non-negative timings, the 99-step, 100-step and 8% slowdowns, re-arming of `static_bound`, and finding 1.
