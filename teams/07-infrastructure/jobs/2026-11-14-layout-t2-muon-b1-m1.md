@@ -1,0 +1,38 @@
+# Layout speed: T2 with Muon, one GPU, b = 1, m = 1
+
+DRAFT. Not submitted. The owner first runs the command on an EC2 GPU and attaches that log.
+
+```text
+Team:            07-infrastructure
+Owner:           <your name as on Axiom> (<github handle>)
+Lead approval:   pending, sureshmantha
+Question:        What are the tokens per second and the memory of T2 with Muon on one GPU at 1 sequence per forward and 1 forward per optimizer step?
+Script:          teams/05-architecture/harness/train_week2.py   (Team 5, merged; not edited)
+Command:         python teams/05-architecture/harness/train_week2.py --config teams/05-architecture/configs/arms/exp2_muon.yaml --runtime teams/05-architecture/configs/runtime.yaml --tokenizer ./inputs/tokenizer_v0.json --byte-table ./inputs/raw_table_P32.npz --train-data ./inputs/train.jsonl --heldout-data ./inputs/heldout.jsonl --device cuda --seed 1234 --smoke --smoke-steps 110 --no-checkpoint --smoke-batch-size 1 --out ./out/t2-b1-m1
+Config:          teams/05-architecture/configs/arms/exp2_muon.yaml + teams/05-architecture/configs/runtime.yaml
+Inputs:          the TSAI-staged bundle of official job #310: tokenizer v0, its P32 raw byte table, train and held-out JSONL
+Hardware:        1 GPU with native bf16 and at least 24 GiB (peak estimate 8.1 GiB)
+Max time:        15 minutes
+Precision:       bf16 (autocast, fp32 weights, as the harness does)
+Measures:        median and p10/p90 of tokens_per_second over steps 11-110, median perf/step_ms, median gpu_alloc_gb, out of memory yes/no, GPU name
+Expected result: gpu_alloc_gb about 3.4 GiB; peak about 8.1 GiB, so no out of memory on the stated GPU; tokens/s has no estimate (see below)
+Outputs:         out/t2-b1-m1/metrics.jsonl, summary.json, manifest.json (under 5 MB); no checkpoint
+Test log:        pending: the owner's EC2 run of this command
+```
+
+## What this run is
+
+One row of `results/layouts.md`, section 2: T2 (8 layers, width 512, 237.1M parameters) with Muon, as config v1 (PR 447) decides, at
+b = 1 sequences of 2,048 tokens per forward and m = 1 forward per optimizer step, 2,048 tokens
+per step. In the command, `--smoke-batch-size 1` sets the batch and the micro-batch to 1, so b = 1, m = 1. `exp2_muon.yaml` is Team 5's T2 arm with `optim.name: muon` (merged).
+
+`--smoke` is needed: without it the harness refuses to run while the approvals in `runtime.yaml` are pending.
+It keeps the shape, bf16 on CUDA and Muon, sets 110 steps and marks the output as not a quality result.
+
+The memory estimates are from `python layout/parallel_layout_v1a.py --arm ../05-architecture/configs/arms/t2.yaml
+--layout b=1,m=1` with config v1 as in PR 447. `gpu_alloc_gb` is the memory still allocated at the end of a
+step: weights, gradients, Muon and AdamW state, and the bf16 logits of the last micro-batch. The harness does not
+log the peak; out of memory, or none, checks it. Tokens/s is what the job measures; it has no estimate because
+the speed of Team 5's model with Muon was never measured.
+
+The same question at the other splits and shape: [t2-b1-m8](2026-11-14-layout-t2-muon-b1-m8.md), [t2-b2-m1](2026-11-14-layout-t2-muon-b2-m1.md), [t2-b4-m1](2026-11-14-layout-t2-muon-b4-m1.md), [t2-b8-m1](2026-11-14-layout-t2-muon-b8-m1.md), [t3-b1-m8](2026-11-14-layout-t3-muon-b1-m8.md), [t3-b1-m1](2026-11-14-layout-t3-muon-b1-m1.md), [t3-b2-m1](2026-11-14-layout-t3-muon-b2-m1.md), [t3-b4-m1](2026-11-14-layout-t3-muon-b4-m1.md), [t3-b8-m1](2026-11-14-layout-t3-muon-b8-m1.md).
