@@ -13,7 +13,7 @@ python -m pytest dt/tests -q        # 12 tests, CPU, no download
 ```
 
 `--train-marker-rows` (with `--method dt` or `lora`) also trains the embedding rows of the mapped chat markers. That is a
-**hybrid control**, not pure DT; it needs `--wd 0`. Results: `../results/dt_vs_fft.md`. `run_triple.sh` reproduces one
+**hybrid control**, not pure DT; it needs `--wd 0`. Results: `../results/dt_sft_surrogate.md`. `run_triple.sh` reproduces one
 checkpoint's pure full / LoRA / DT row (job request `../jobs/2026-11-19-dt-vs-fft-1.7b.md`).
 
 `LICENSE.upstream` preserves the official MIT notice. `analysis.py` collects evaluation-only per-row NLL and computes paired cluster-bootstrap intervals (see the report for measured scope):

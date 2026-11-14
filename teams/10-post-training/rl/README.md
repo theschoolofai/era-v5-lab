@@ -57,6 +57,18 @@ with reward._pool().CodePool(workers=8) as cp:                        # warm poo
 - Throughput: `results/reward_pool_bench.md` (`python rl/bench_pool.py --write results/reward_pool_bench.md`).
 - Every reference solution and gold patch scores 1, and every wrong answer scores 0: `python rl/reward.py --check-all [--pool]`.
 
+## Session 18 objective (`objective_v1.py`)
+
+`objective_v1.md` is the v1 rule. Group advantage is the reward minus the group mean, with no division by the standard deviation. Groups whose rewards are all equal are dropped. A token whose importance ratio is outside `[1 - 0.2, 1 + 0.2]` is masked out of the sum. The trainer minimizes the returned loss and skips the step when every group was dropped.
+
+```bash
+python -m pytest teams/10-post-training/rl/test_objective_v1.py -q -p no:cacheprovider
+```
+
+## Go tasks
+
+The Go verifier, its runner, the Docker image and the Go tasks are in [`go/`](go/README.md). They use `verifier.py` from this folder and nothing else here depends on them.
+
 ## Files in this folder
 
 | File | What it is |
@@ -64,6 +76,8 @@ with reward._pool().CodePool(workers=8) as cp:                        # warm poo
 | `verifier.py`, `_sandbox_child.py`, `test_verifier.py` | The verifier: binary reward for one task, expected answers kept outside the sandbox. |
 | `tasks/` | The original coding tasks (see "Writing a task"). |
 | `reward.py`, `test_reward.py` | The one `reward(env_id, output)` entry point for code and SWE environments. |
+| `objective_v1.py`, `objective_v1.md`, `test_objective_v1.py` | Session 18 objective: group advantage, equal-reward drop, trust-region mask. |
+| `small_rl.py`, `test_small_rl.py` | Local RL loop on one code task. The result is `results/small_rl.md`. |
 | `pool.py`, `bench_pool.py` | The warm container pool for code tasks, and the rollouts-per-second benchmark. |
 | `design_note.md` | Design, the cheating cases and open questions. |
 | `decontam_report.md` | Benchmark-overlap check of the RL sets (see below). |

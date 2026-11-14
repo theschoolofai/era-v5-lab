@@ -14,6 +14,8 @@ This README covers the tools that turn a candidate SFT set into chat-format v0 r
 | `test_decontam_run.py` | Tests for `decontam_run.py` and `decontam_report.py`, on a toy fingerprint set built from made-up items. |
 | `decontam_report.md` | The result per set: flagged, canary and kept rows, benchmarks hit, and the inputs to reproduce a run. |
 | `decontam_kept_rows.md` | Rows in, removed and kept per set for the sets run on every converted row. |
+| `deletion_tuning.py` | Deletion Tuning mask from arXiv 2611.10866: frozen weight, soft mask, hard mask, Wanda init. |
+| `dt_vs_fft.py`, `test_deletion_tuning.py` | Equal-step comparison of Deletion Tuning, LoRA, and full fine-tuning on one synthetic slice. |
 
 The RL sets use the same tools. Their report is `rl/decontam_report.md`.
 
