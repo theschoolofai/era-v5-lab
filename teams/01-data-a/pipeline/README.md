@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/hero.svg" width="100%" alt="Data A Pipeline: clean, overlap, dedup, apply, f2, survivor loss, ledger, shards">
+  <img src="assets/hero.svg" width="100%" alt="Data A Pipeline: clean, overlap, dedup, apply, f2, survivor loss, ledger, shards, reconcile">
 </p>
 
 <p align="center">
@@ -12,12 +12,12 @@ The **Clean → Dedup → F2** pipeline of Data A, as one command. It chains the
 
 | | |
 |---|---|
-| **Order** | clean → overlap → dedup → **apply the remove list** → **F2** → **survivor loss** → **ledger** → **shards** (optional) |
+| **Order** | clean → overlap → dedup → **apply the remove list** → **F2** → **survivor loss** → **ledger** → **shards** → **reconcile** (the last two optional) |
 | **In** | the cleaned parts (`train/`, `heldout/`) and the outputs of overlap and dedup |
 | **Out** | filtered Parquet in the same layout, same schema, unchanged text · `pipeline_manifest.json` · the ledger, one row per document · shards (optional) |
 | **New here** | `apply_dedup.py` · `survivor_loss.py` · `ledger.py` · `f2_pool.py` · `reconcile_shards.py` · `run_pipeline.py` · `pipeline.json` · `stage_args.py` · `local_trial/` · 173 tests |
 | **Reused, never copied** | `spec_v1/run_clean.py` (#244) · `dedup/overlap.py`, `dedup/dedup.py` (#255) · `spec_v1/run_f2.py` (#35, on this branch since #40) |
-| **Needs** | Python 3.9+ with `pyarrow`; `pytest` for the tests |
+| **Needs** | Python 3.11+ (tested on 3.13) with `pyarrow` for the pipeline; `numpy` and `tokenizers` for the shard stage; `numpy`, `scipy` and `pygments` to run overlap and dedup locally; `pytest` for the tests. Install them into the environment itself: the scripts run with `python -I` |
 
 > [!NOTE]
 > Cleaning, overlap and dedup are **TSAI jobs** (JOB_REQUEST rule 6). The runner **adopts** the folders TSAI returns and checks them before carrying on. Each of those stages can also be **run** locally, for tests and small trials.
@@ -93,7 +93,7 @@ H1/H2 (same language) and, if agreed, H3 (another language, #44) all go through 
 
 ## How a document travels
 
-<p align="center"><img src="assets/flow.svg" width="100%" alt="Seven stages (shards optional); duplicates leave at apply, benchmark copies at f2, the rest is kept"></p>
+<p align="center"><img src="assets/flow.svg" width="100%" alt="Nine stages (shards and reconcile optional); duplicates leave at apply, benchmark copies at f2, the rest is kept"></p>
 
 | | Stage | Script | From | Reads | Writes |
 |:-:|---|---|---|---|---|
@@ -124,13 +124,14 @@ flowchart LR
     dedup["03 dedup<br/>dedup.py · #255"]:::tsai
   end
 
-  subgraph RUNNER["run_pipeline.py · always run, shards optional"]
+  subgraph RUNNER["run_pipeline.py · always run; shards and reconcile optional"]
     direction LR
     apply["04 apply<br/>apply_dedup.py"]:::mine
-    f2["05 f2 · per split<br/>run_f2.py · #35"]:::mine
+    f2["05 f2 · per split<br/>run_f2.py or f2_pool.py"]:::mine
     loss["06 survivor loss<br/>survivor_loss.py"]:::mine
     led["07 ledger<br/>ledger.py"]:::mine
     shards["08 shards · optional<br/>run_shards.py"]:::mine
+    rec["09 reconcile · optional<br/>reconcile_shards.py"]:::mine
   end
 
   raw --> clean -->|"cleaned"| overlap
@@ -149,6 +150,9 @@ flowchart LR
   f2 -.->|"final/"| shards
   man -.->|"stages, checks"| shards
   shards ==> tokens[("shards<br/>.bin + manifest")]:::out
+  led -.->|"kept docs"| rec
+  tokens -.->|"docs.parquet"| rec
+  rec ==> recout[["reconcile/<br/>a status per kept doc"]]:::out
 
   classDef data fill:#16191f,stroke:#5f6670,color:#e6e8ec
   classDef tsai fill:#14211d,stroke:#8fc9b5,color:#dff2ea
@@ -576,7 +580,7 @@ python -m pytest teams/01-data-a/pipeline/tests -q      # 173 passed
 |---|:-:|---|
 | `test_apply_dedup.py` | 25 | exact removal · byte copies · hard links (and `--copy`) · the same doc_id in two parts · Windows `\` paths · 8 bad lists, each with the bad row in the last part processed and nothing written · an unreadable or column-less part · row-group boundaries, with zstd kept · stale outputs · a corrupted output redone on rerun · train-only · resume · no text in the summary · CLI |
 | `test_survivor_loss.py` | 9 | lost · partly hit · untouched · without survivor · split + part + doc_id matching · F2 errors count as dropped · no drops · an uncovered part · mixed fingerprint sets · CLI |
-| `test_local_trial.py` | 10 | the trial configs agree with each other and with the tracked sample manifest (pin, parts, run ids, steps) and each has its command in the trial README · `show.py` prints a run and flags a failed check |
+| `test_local_trial.py` (not in the repo yet) | 10 | the trial configs agree with each other and with the tracked sample manifest (pin, parts, run ids, steps) and each has its command in the trial README · `show.py` prints a run and flags a failed check |
 | `test_stage_args.py` | 19 | the command each stage script gets: a generated config for clean, overlap and dedup (path keys filled in, other settings kept) · `only` · the settings pin · outputs outside `out/` or the repository refused |
 | `test_run_pipeline.py` | 68 | the full chain (13 → 11 → 9) · parallel F2 gives the same result as one process · a crashed pack is named and a rerun recovers · bad `workers` values · identical runs give identical digests · `--from` keeps earlier checks · a changed adopted folder · dedup from another overlap run · overlap of other parts · count mismatch · held-out removed · F2 errors · F2 that read other files · stale F2 output · train-only · `run` mode success and failure · a bad config stopped before anything runs · CLI · the ledger in the full chain and with parallel F2 · mode B adds the cleaner's drops to the totals · `"from": "ledger"` · a `raw` that is not a folder · the per-pack table, its checks against apply, a pack the cleaner emptied (mode B), and the table printed by the CLI · F2 through `f2_pool.py` gives the same run · the reconcile stage after shards, and a failed reconciliation |
 | `test_ledger.py` | 25 | each document's row in mode C (removed copy with its H1 match, survivor dropped by F2, kept with its final row) · `final_row` points into the final parts · mode B keep / fix / drop, with both raw layouts · a raw file found by sha256 under another name, and a same-named one from another run refused · cleaning reports agree, or stop · raw from another run · a missing raw part · a list naming another doc_id or a row past the end · groups disagreeing with the list · a row in two groups · a log row naming a survivor · an unknown part · a final part out of order · a missing F2 report · F2 naming a removed doc · F2 errors as their own status · no log · byte-identical reruns · stale ledger files · a stopped rebuild leaves no summary · no text in the sample or summary · CLI |
