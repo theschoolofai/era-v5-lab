@@ -10,8 +10,8 @@ A shard (teams/01-data-a/shards/shard_format_v1.md) holds token IDs, not text:
   <shard_id>.json          the manifest (shard_id, file names, sha256 of each file, counts, EOS id, tokenizer sha256)
 
 This script checks a shard against its manifest and against the rules shard_writer.py asserts, then writes
-<out>/<shard_id>.text.parquet with the columns doc_id, text, shard_id, n_tokens. decontam_check.py and canary_scan.py
-read that file as it is (doc_id and text columns). Each document is its tokens minus the final EOS (<|endoftext|> id
+<out>/<shard_id>.text.parquet with the columns doc_id, text, shard_id, n_tokens, payload_sha256, dataset_version and
+split. decontam_check.py and canary_scan.py read that file as it is (doc_id and text columns). Each document is its tokens minus the final EOS (<|endoftext|> id
 130822), decoded with the frozen C3 tokenizer (sha256 C3_SHA256; TSAI allowed it for decoding in week 3). The text is the
 tokenizer-normalized text the model trains on.
 
@@ -20,7 +20,8 @@ other shards still run, and the exit code is 1 if any shard failed.
   - header magic and version; file size = 1,024 + 4 x token count = the manifest's payload_bytes;
   - .idx.npy is int64, starts at 0, rises, and ends at the token count;
   - docs.parquet: one row per document, doc_id unique and not null, n_tokens = the document's length in the index;
-  - manifest: schema_version shard-v1, token_dtype uint32, shard_id and the three file names match the files; payload,
+  - manifest: schema_version shard-v1, token_dtype uint32, shard_id and the three file names (the last part of each
+    *_uri, which may be a full store path) match the files; payload,
     index and docs sha256, doc_count, token_count, eos_token_id and tokenizer_sha256 match;
   - every token id is below the vocab size (131,072 for C3);
   - every document ends with EOS, and no special id occurs inside a document, EOS included. Special ids are the
@@ -29,9 +30,11 @@ other shards still run, and the exit code is 1 if any shard failed.
 With --check-text <clean.parquet> (the run_clean.py output one shard was written from; one shard per run), each decoded
 document must equal the tokenizer-normalized source text of the same doc_id: a round-trip test of the decoder.
 
-In a folder, only a .bin with its <shard_id>.json next to it counts as a shard; other .bin files are listed and ignored.
-Memory: the whole shard is read at once (about 4 bytes per token plus the decoded text), which is fine for the 2^26-token
-shards of the format; a single oversized document in its own shard needs memory in proportion.
+In a folder, a .bin counts as a shard when any of its .idx.npy, .docs.parquet or .json is next to it; a shard with a file
+missing (e.g. an incomplete download) fails. A .bin with none of them (e.g. a model file) is listed and ignored.
+The printed summary and the output's columns name the shard's payload_sha256, dataset_version and split, so the result
+can be tied to the exact shard bytes. Memory: about 20 bytes per token at peak (measured 1.8 GB for a 67M-token shard),
+fine for the 2^26-token shards of the format; a single oversized document in its own shard needs memory in proportion.
 
 The output holds document text. Do not commit it or paste it anywhere (pr-guard refuses .parquet anyway); the report gives
 only IDs, items, coverage and offsets. Needs numpy, pyarrow and tokenizers (no torch).
@@ -42,7 +45,7 @@ import hashlib
 import json
 import os
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import numpy as np
 import pyarrow as pa
@@ -147,9 +150,13 @@ def read_shard(bin_path, tokenizer_sha, specials, vocab, eos_id=None):
         if a != b:
             raise ShardError(f"{f['docs'].name}: row {i} ({doc_ids[i]}) n_tokens {a}, the index gives {b}")
 
-    want = {"schema_version": "shard-v1", "token_dtype": "uint32", "shard_id": f["shard_id"],
-            "payload_uri": f["bin"].name, "index_uri": f["idx"].name, "sample_metadata_uri": f["docs"].name,
-            "payload_bytes": size, "payload_sha256": sha256(f["bin"]), "index_sha256": sha256(f["idx"]),
+    if m.get("shard_id") != f["shard_id"]:
+        raise ShardError(f"{f['manifest'].name}: shard_id is {m.get('shard_id')!r}, the shard gives {f['shard_id']!r}")
+    for key, name in (("payload_uri", f["bin"].name), ("index_uri", f["idx"].name), ("sample_metadata_uri", f["docs"].name)):
+        uri = m.get(key)
+        if not isinstance(uri, str) or PurePosixPath(uri).name != name:  # a *_uri may be a full store path
+            raise ShardError(f"{f['manifest'].name}: {key} is {uri!r}, the file is {name!r}")
+    want = {"schema_version": "shard-v1", "token_dtype": "uint32", "shard_id": f["shard_id"], "payload_bytes": size, "payload_sha256": sha256(f["bin"]), "index_sha256": sha256(f["idx"]),
             "sample_metadata_sha256": sha256(f["docs"]), "doc_count": n_docs, "token_count": n_tok,
             "eos_token_id": eos_id, "tokenizer_sha256": tokenizer_sha}
     for key, value in want.items():
@@ -170,20 +177,23 @@ def read_shard(bin_path, tokenizer_sha, specials, vocab, eos_id=None):
         pos = int(np.flatnonzero(hit)[0])
         doc = int(np.searchsorted(starts, pos, side="right") - 1)
         raise ShardError(f"{f['shard_id']}: special id {int(tokens[pos])} inside document {doc_ids[doc]}")
-    return f["shard_id"], tokens, starts, doc_ids
+    return f["shard_id"], tokens, starts, doc_ids, m
 
 
 def decode_shard(bin_path, tok, tokenizer_sha, eos_id=None, special_from=None):
-    """Return a pyarrow table: doc_id, text, shard_id, n_tokens (n_tokens includes the final EOS)."""
+    """Return a pyarrow table: doc_id, text, shard_id, n_tokens (with the final EOS), payload_sha256, dataset_version, split."""
     eos_id = EOS_ID if eos_id is None else eos_id
-    shard_id, tokens, starts, doc_ids = read_shard(bin_path, tokenizer_sha, special_ids(tok, special_from),
-                                                   vocab_end(tok), eos_id)
+    shard_id, tokens, starts, doc_ids, m = read_shard(bin_path, tokenizer_sha, special_ids(tok, special_from),
+                                                      vocab_end(tok), eos_id)
     texts = []
     for i in range(0, len(doc_ids), BATCH):
         seqs = [tokens[starts[j]:starts[j + 1] - 1].tolist() for j in range(i, min(i + BATCH, len(doc_ids)))]
         texts.extend(tok.decode_batch(seqs, skip_special_tokens=False))
-    return pa.table({"doc_id": doc_ids, "text": texts, "shard_id": [shard_id] * len(doc_ids),
-                     "n_tokens": np.diff(starts).astype(np.int64)})
+    n = len(doc_ids)
+    return pa.table({"doc_id": doc_ids, "text": texts, "shard_id": [shard_id] * n,
+                     "n_tokens": np.diff(starts).astype(np.int64),
+                     "payload_sha256": [m["payload_sha256"]] * n,
+                     "dataset_version": [str(m.get("dataset_version"))] * n, "split": [str(m.get("split"))] * n})
 
 
 def check_text(table, clean_parquet, tok):
@@ -204,12 +214,12 @@ def check_text(table, clean_parquet, tok):
 
 
 def find_shards(path):
-    """(shards, ignored): in a folder, a .bin counts only with its <shard_id>.json next to it."""
+    """(shards, ignored): in a folder, a .bin is a shard when its .idx.npy, .docs.parquet or .json is next to it."""
     path = Path(path)
     if path.is_dir():
         bins = sorted(path.rglob("*.bin"))
-        has_manifest = [shard_files(b)["manifest"].exists() for b in bins]
-        return [b for b, ok in zip(bins, has_manifest) if ok], [b for b, ok in zip(bins, has_manifest) if not ok]
+        is_shard = [any(shard_files(b)[k].exists() for k in ("idx", "docs", "manifest")) for b in bins]
+        return [b for b, ok in zip(bins, is_shard) if ok], [b for b, ok in zip(bins, is_shard) if not ok]
     if path.suffix == ".bin":
         return [path], []
     raise ShardError(f"{path}: give a .bin file or a folder of shards")
@@ -227,18 +237,21 @@ def main(argv=None):
     try:
         tok, tok_sha = load_tokenizer(a.tokenizer, a.any_tokenizer)
         shards, ignored = find_shards(a.shards)
+        a.out.mkdir(parents=True, exist_ok=True)
     except ShardError as e:
         print(f"decode_shard: {e}", file=sys.stderr)
         return 1
+    except Exception as e:  # missing or invalid tokenizer file, --out is a file, ...
+        print(f"decode_shard: {type(e).__name__}: {e}", file=sys.stderr)
+        return 1
     for b in ignored:
-        print(f"decode_shard: ignoring {b} (no {shard_files(b)['manifest'].name} next to it, so not a shard)", file=sys.stderr)
+        print(f"decode_shard: ignoring {b} (no shard files next to it, so not a shard)", file=sys.stderr)
     if not shards:
         print(f"decode_shard: no shards under {a.shards}", file=sys.stderr)
         return 1
     if a.check_text and len(shards) > 1:
         print("decode_shard: --check-text takes one shard (the one the clean parquet was written into)", file=sys.stderr)
         return 1
-    a.out.mkdir(parents=True, exist_ok=True)
     failed, seen = 0, set()
     for path in shards:
         shard_id = shard_files(path)["shard_id"]
@@ -249,7 +262,9 @@ def main(argv=None):
             seen.add(shard_id)
             out.unlink(missing_ok=True)  # never leave an old output next to a shard that now fails
             table = decode_shard(path, tok, tok_sha)
-            summary = {"shard_id": shard_id, "docs": table.num_rows,
+            summary = {"shard_id": shard_id, "payload_sha256": table.column("payload_sha256")[0].as_py(),
+                       "dataset_version": table.column("dataset_version")[0].as_py(),
+                       "split": table.column("split")[0].as_py(), "docs": table.num_rows,
                        "tokens": int(sum(table.column("n_tokens").to_pylist())), "tokenizer": tok_sha[:12]}
             if a.check_text:
                 checked, bad = check_text(table, a.check_text, tok)

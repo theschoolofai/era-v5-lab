@@ -23,6 +23,7 @@ pa = pytest.importorskip("pyarrow")
 pq = pytest.importorskip("pyarrow.parquet")
 tokenizers = pytest.importorskip("tokenizers")
 
+import canary_scan  # noqa: E402
 import decode_shard as ds  # noqa: E402
 from decontam_check import read_docs  # noqa: E402
 
@@ -136,6 +137,39 @@ def test_output_reads_in_decontam_check(tmp_path, toy_tokenizer):
     out = tmp_path / "toy.text.parquet"
     pq.write_table(_decode(files, toy_tokenizer), out)
     assert list(read_docs([out], "doc_id", "text")) == list(DOCS.items())
+
+
+def test_output_reads_in_canary_scan(tmp_path, toy_tokenizer):
+    files = write_shard(tmp_path, toy_tokenizer)
+    out = tmp_path / "toy.text.parquet"
+    pq.write_table(_decode(files, toy_tokenizer), out)
+    assert list(canary_scan.read_file(out, out.name, "doc_id", "text")) == list(DOCS.items())
+
+
+def test_output_names_the_exact_shard(tmp_path, toy_tokenizer):
+    files = write_shard(tmp_path, toy_tokenizer)
+    table = _decode(files, toy_tokenizer)
+    m = json.loads(files["manifest"].read_text())
+    assert set(table.column("payload_sha256").to_pylist()) == {m["payload_sha256"]}
+    assert set(table.column("dataset_version").to_pylist()) == {"None"}  # the toy manifest has none
+    assert set(table.column("split").to_pylist()) == {"None"}
+
+
+def test_int_doc_ids_are_accepted_as_strings(tmp_path, toy_tokenizer):
+    def int_ids(files):
+        pq.write_table(pa.table({"doc_id": [11, 12, 13], "n_tokens": [3, 4, 2]}), files["docs"])
+    files = write_shard(tmp_path, toy_tokenizer, tamper=int_ids)
+    assert _decode(files, toy_tokenizer).column("doc_id").to_pylist() == ["11", "12", "13"]
+
+
+def test_uri_may_be_a_full_store_path(tmp_path, toy_tokenizer):
+    """The manifest template puts a store path in *_uri; only the file name has to match."""
+    files = write_shard(tmp_path, toy_tokenizer)
+    m = json.loads(files["manifest"].read_text())
+    for key, f in (("payload_uri", "bin"), ("index_uri", "idx"), ("sample_metadata_uri", "docs")):
+        m[key] = f"<store>/corpus-v1/toy/train/{files[f].name}"
+    files["manifest"].write_text(json.dumps(m))
+    assert _decode(files, toy_tokenizer).num_rows == 3
 
 
 def test_check_text_finds_a_changed_document(tmp_path, toy_tokenizer):
@@ -278,6 +312,35 @@ def test_stray_bin_without_manifest_is_ignored(tmp_path, toy_tokenizer, capsys):
     rc = _run_cli([str(shards), "--tokenizer", str(toy_tokenizer), "--out", str(tmp_path / "out"), "--any-tokenizer"])
     err = capsys.readouterr().err
     assert rc == 0 and "ignoring" in err and "pytorch_model.bin" in err and "decoded 1 of 1 shard(s)" in err
+
+
+def test_shard_missing_its_manifest_fails_and_old_output_is_removed(tmp_path, toy_tokenizer, capsys):
+    """An incomplete download (.bin, .idx.npy, .docs.parquet, no .json) is a failed shard, not an ignored file."""
+    shards, out = tmp_path / "shards", tmp_path / "out"
+    shards.mkdir()
+    write_shard(shards, toy_tokenizer, shard_id="toy-train-000000")
+    files = write_shard(shards, toy_tokenizer, shard_id="toy-train-000001")
+    argv = [str(shards), "--tokenizer", str(toy_tokenizer), "--out", str(out), "--any-tokenizer"]
+    assert _run_cli(argv) == 0 and (out / "toy-train-000001.text.parquet").exists()
+    files["manifest"].unlink()
+    assert _run_cli(argv) == 1
+    assert not (out / "toy-train-000001.text.parquet").exists()
+    assert "missing toy-train-000001.json" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("bad", ["missing_tokenizer", "out_is_a_file"])
+def test_bad_arguments_give_a_message_not_a_traceback(tmp_path, toy_tokenizer, capsys, bad):
+    shards = tmp_path / "shards"
+    shards.mkdir()
+    write_shard(shards, toy_tokenizer)
+    tok, out = toy_tokenizer, tmp_path / "out"
+    if bad == "missing_tokenizer":
+        tok = tmp_path / "nope.json"
+    else:
+        out.write_text("a file")
+    assert _run_cli([str(shards), "--tokenizer", str(tok), "--out", str(out), "--any-tokenizer"]) == 1
+    err = capsys.readouterr().err
+    assert err.startswith("decode_shard: ") and "Traceback" not in err
 
 
 def test_failed_rerun_removes_the_old_output(tmp_path, toy_tokenizer):
