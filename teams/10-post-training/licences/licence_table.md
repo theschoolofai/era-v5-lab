@@ -111,6 +111,7 @@ Three stages. Sets marked `excluded` stay in the table with the reason and are n
 | sft-tool-when2call | [nvidia/When2Call](https://huggingface.co/datasets/nvidia/When2Call) | English / Tool use (when to call, ask or decline) | Mixtral-8x22B (Apache-2.0) rewrites questions and answers built on APIGen (xLAM) data, which includes DeepSeek-V2-Chat rows (DeepSeek Licence); rows carry no generator field | cc-by-4.0 (Hub tag; attribution needed); `train_sft` and `train_pref` only, the test split is built from BFCL v2 Live | needs TSAI decision |
 | sft-indic-indic-instruct-hi | [ai4bharat/indic-instruct-data-v0.1](https://huggingface.co/datasets/ai4bharat/indic-instruct-data-v0.1) | Hindi (`wikihow` and `nmt-seed` subsets only) | none: `wikihow` is native Hindi wikiHow text, `nmt-seed` is human-made BPCC-Human en-hi pairs; the other subsets (Llama-2-70B in `anudesh`, closed models in `lm_sys` and `hh-rlhf`) are not part of this set | no Hub tag; per-subset licences stated in arXiv 2401.15006: `wikihow` CC-0, `nmt-seed` CC-BY-4.0 | TSAI reserves |
 | sft-indic-updesh | [microsoft/Updesh_beta](https://huggingface.co/datasets/microsoft/Updesh_beta) | 13 Indic languages incl. Odia | Qwen3-235B-A22B (Updesh-G); Llama-3.1-405B-Instruct (translation) and Llama 3.3 70B (back-translation quality check) named; reasoning part translated from Microsoft Orca sets | other: Microsoft Research License (non-commercial research use only, no redistribution) | excluded |
+| sft-math-s1k-1.1 | [simplescaling/s1K-1.1](https://huggingface.co/datasets/simplescaling/s1K-1.1) | English / Mathematics | Gemini Flash Thinking Experimental (Google, proprietary closed) writes the `gemini_*` traces; DeepSeek-R1 (MIT) writes the `deepseek_*` traces; both are stored on every row | mit (Hub tag) | excluded |
 
 ### Stage 2: Preference optimization and RLVR
 
@@ -145,6 +146,10 @@ Three stages. Sets marked `excluded` stay in the table with the reason and are n
 | rl-math-processbench | [Qwen/ProcessBench](https://huggingface.co/datasets/Qwen/ProcessBench) | English / Mathematics (step verification) | Not on the card; the paper (arXiv 2412.06559, Table 4) names 12 Qwen2/Qwen2.5 and Llama-3/3.1 Instruct models; step errors labelled by human experts | apache-2.0 (Hub tag); eval only, not training data (G9 evaluation probe) | excluded |
 | rl-math-deepscaler | [agentica-org/DeepScaleR-Preview-Dataset](https://huggingface.co/datasets/agentica-org/DeepScaleR-Preview-Dataset) | English / Mathematics (competition) | none for problems and solutions (human AIME 1984-2023, AMC before 2023, Omni-MATH, Still); gemini-1.5-pro-002 (Google, proprietary closed) is used in the preprocessing code as a proof-problem filter and difficulty judge; the Still rows (MATH, NuminaMath-CoT, AIME) have no stated licence and the release has no `source` column to drop them | mit (Hub tag) on the release; Still source licence unstated | excluded |
 | rl-safety-aya-redteaming | [CohereLabs/aya_redteaming](https://huggingface.co/datasets/CohereLabs/aya_redteaming) | Hindi (`aya_hin`, 915 prompts); 7 other languages not used | none: harmful prompts written by paid human annotators; prompts only, no responses | apache-2.0 (Hub tag; commercial use permitted per tag) | TSAI reserves |
+| rl-math-hendrycks | [EleutherAI/hendrycks_math](https://huggingface.co/datasets/EleutherAI/hendrycks_math) (train split only) | English / Mathematics | none (human AMC, AIME and other contest problems with human step-by-step solutions) | mit (Hub tag and GitHub MIT licence) | TSAI reserves |
+| rl-code-apps | [codeparrot/apps](https://huggingface.co/datasets/codeparrot/apps) (train split only) | English / Code (Python) | none (human contest problems and human solutions) | mit (Hub tag and GitHub MIT licence) | TSAI reserves |
+| rl-code-taco | [BAAI/TACO](https://huggingface.co/datasets/BAAI/TACO) (train split; HackerRank and LeetCode rows left out) | English / Code (Python) | none (contest problems and verified Python solutions; no model generator named) | apache-2.0 (Hub tag; card also names MIT and CC-BY-4.0 on parts; HackerRank licence unknown on the card) | TSAI reserves |
+| rl-math-omni-math | [KbsdJames/Omni-MATH](https://huggingface.co/datasets/KbsdJames/Omni-MATH) | English / Mathematics (Olympiad) | none for problems and solutions (human contest and AoPS text); GPT-4o (OpenAI, closed) only writes some difficulty scores and the domain labels | apache-2.0 (Hub tag) | needs TSAI decision |
 
 ---
 
@@ -1093,6 +1098,18 @@ Twenty-three sets in the two stage sections are `excluded`: eleven earlier ones 
 - **Our opinion:** excluded on the licence alone. Recorded because it is a large Indic set with Odia, and it will be proposed again.
 - **Added by:** jssunil (Week 2 rotation, 8 Nov 2026). Card and LICENSE.md read on 8 Nov 2026; card revision re-checked on 12 Nov 2026.
 
+### `sft-math-s1k-1.1` — s1K-1.1
+
+- **Stage:** SFT
+- **Set:** `sft-math-s1k-1.1`
+- **Language:** English / Mathematics (1,000 questions)
+- **Source:** [`simplescaling/s1K-1.1`](https://huggingface.co/datasets/simplescaling/s1K-1.1) (card revision `96c411f1fe4c49d20f0e2a1565f61e1a28b0b84d`); paper [arXiv 2501.19393](https://arxiv.org/abs/2501.19393)
+- **Licence:** `mit` — Hugging Face tag read on 14 Nov 2026. A tag is not legal clearance. The MIT tag does not clear the Gemini traces or the upstream question text.
+- **Generator model:** Two writers, both stored on every row. `gemini_thinking_trajectory` and `gemini_attempt` are written by Gemini Flash Thinking Experimental (Google, proprietary closed). The s1 paper (§2.1) generated the original traces with the Google Gemini Flash Thinking API. `deepseek_thinking_trajectory` and `deepseek_attempt` are written by DeepSeek-R1 (MIT, open weights). The [`deepseek-ai/DeepSeek-R1` LICENSE](https://huggingface.co/deepseek-ai/DeepSeek-R1/blob/56d4cbbb4d29/LICENSE) is the MIT licence, read on 14 Nov 2026. The card says these 1,000 questions are the same as s1K and that the R1 traces are the ones to train on, but the Gemini columns are still in the file. The `metadata` field embeds the upstream messages. The card's own example has `source_type` `AI-MO/NuminaMath-CoT/aops_forum`.
+- **Decision:** `excluded` — data licence rule: text made by closed Google models is out. The Gemini columns are on every row. The questions come from the s1 pool (NuminaMATH, historical AIME, Omni-MATH, AGIEval, OlympicArena and others, arXiv 2501.19393 §2.1). That pool mixes `sft-math-numinamath-cot` (excluded above for GPT-4 / GPT-4o text) with benchmark problems, and this release has no split that drops those rows.
+- **Our opinion:** excluded as released. DeepSeek-R1's own traces would pass the generator rule. They cannot be taken from this file without also taking the Gemini columns or the NuminaMath text in `metadata`. A later release that ships only the R1 traces, and whose `source_type` leaves out NuminaMath-CoT and the benchmark sources, can be checked again.
+- **Added by:** SreekanthZipsy (Week 10 rotation 13 Nov 2026). Hugging Face card, DeepSeek-R1 licence and the s1 paper read on 14 Nov 2026. A tag is not legal clearance.
+
 ## Stage 2: Preference optimization and RLVR, candidate sets
 
 Verifiable-answer and test-based sets for RL (math, code, SWE tasks). Each entry has the standard fields, `TSAI reserves` as the decision (`excluded` where TSAI ruled a set out), and one line of opinion. Licence values are the Hugging Face tags read on 29 Oct 2026; a tag is not legal clearance. Per-dataset notes, 20-row samples and a benchmark-overlap check are in [team10-datasets](https://github.com/RaviNaik/ERA/tree/main/v5/capstone/team10-datasets).
@@ -1549,6 +1566,58 @@ Verifiable-answer and test-based sets for RL (math, code, SWE tasks). Each entry
 - **Our opinion:** use as Hindi safety prompts for the refusal / safety reward. Prompts only, so responses must come from the policy (RL) or an allowed generator (SFT). The prompts are harmful by design; keep them out of any general SFT mix. Small (915 rows), but human-written in Hindi with India-specific ("local") harms, which the English safety sets do not cover.
 - **For Team 9:** check it is not in the safety evaluation set; Aya red-teaming prompts are used as an eval in the paper.
 - **Added by:** jssunil (Week 2 rotation, 8 Nov 2026). Card read and Hindi file counted on 8 Nov 2026; card revision re-checked on 12 Nov 2026.
+
+### `rl-math-hendrycks` — MATH (train)
+
+- **Stage:** RL (also usable as SFT on the human solutions)
+- **Set:** `rl-math-hendrycks`
+- **Language:** English / Mathematics
+- **Source:** [`EleutherAI/hendrycks_math`](https://huggingface.co/datasets/EleutherAI/hendrycks_math) (card revision `21a5633873b6a120296cce3e2df9d5550074f4a3`, the snapshot named in `results/effort_probe.md`); GitHub [`hendrycks/math`](https://github.com/hendrycks/math); paper [arXiv 2103.03874](https://arxiv.org/abs/2103.03874)
+- **Licence:** `mit` — Hugging Face tag read on 14 Nov 2026, and the GitHub LICENSE (MIT, copyright 2021 Dan Hendrycks) read the same day. Permissive: in under the data licence rule. A tag is not legal clearance.
+- **Generator model:** None. The paper (§3.1) collects 12,500 competition problems (AMC 10, AMC 12, AIME and others) from AoPS, each with a human step-by-step solution. This release is that set: 7,500 train and 5,000 test, across algebra, counting and probability, geometry, intermediate algebra, number theory, prealgebra and precalculus. It does not include the AMPS pretraining corpus (Khan Academy and Mathematica).
+- **Decision:** `TSAI reserves` — permissive licence, human-written problems and solutions, no generator model. Train split only.
+- **Our opinion:** use the train split (7,500 problems) for RL, or for short SFT on the human solutions. The 5,000-problem test split is the MATH benchmark: do not train on it.
+- **For Team 9:** decontaminate the train split against MATH, MATH-500, AIME and any other contest eval that shares these problems. The test split stays an eval hold-out.
+- **Added by:** SreekanthZipsy (Week 10 rotation 13 Nov 2026). Card, GitHub licence and paper read on 14 Nov 2026. A tag is not legal clearance.
+
+### `rl-code-apps` — APPS (train)
+
+- **Stage:** RL (also usable as SFT on the human solutions)
+- **Set:** `rl-code-apps`
+- **Language:** English / Code (Python)
+- **Source:** [`codeparrot/apps`](https://huggingface.co/datasets/codeparrot/apps) (card revision `21e74ddf8de1a21436da12e3e653065c5213e9d1`); GitHub [`hendrycks/apps`](https://github.com/hendrycks/apps); paper [arXiv 2105.09938](https://arxiv.org/abs/2105.09938)
+- **Licence:** `mit` — Hugging Face tag read on 14 Nov 2026, and the GitHub LICENSE (MIT, copyright 2021 Dan Hendrycks) read the same day. Permissive. A tag is not legal clearance. Problem text is scraped from Codewars, AtCoder, Kattis and Codeforces (paper §3), the same kind of upstream contest text as `rl-code-code-contests`.
+- **Generator model:** None. The paper (§3) says the 232,421 ground-truth solutions were written by humans. Problems were manually curated from those sites. No model generator is named.
+- **Decision:** `TSAI reserves` — permissive licence, human problems and human solutions. Train split only (5,000 problems).
+- **Our opinion:** use the train split for execution-checked RL. The test split (5,000) is the APPS benchmark: do not train on it. TACO reports an overlap coefficient of 0.3778 with APPS (arXiv 2312.14852), and both overlap `rl-code-code-contests`, so de-duplicate by problem URL before mixing.
+- **For Team 9:** decontaminate against APPS, HumanEval, MBPP and LiveCodeBench.
+- **Added by:** SreekanthZipsy (Week 10 rotation 13 Nov 2026). Card, GitHub licence and paper read on 14 Nov 2026. A tag is not legal clearance.
+
+### `rl-code-taco` — TACO (train, HackerRank and LeetCode left out)
+
+- **Stage:** RL
+- **Set:** `rl-code-taco`
+- **Language:** English / Code (Python)
+- **Source:** [`BAAI/TACO`](https://huggingface.co/datasets/BAAI/TACO) (card revision `d593ed0a2becbbc952230bb89be09189bf1056dc`), train split, rows whose `source` is not HackerRank and not LeetCode; paper [arXiv 2312.14852](https://arxiv.org/abs/2312.14852)
+- **Licence:** `apache-2.0` on the release — Hugging Face tag and card read on 14 Nov 2026. The card adds that some content is under MIT or was web-crawled under CC-BY-4.0, and then says: "We don't know what the legal rights or data licenses of HackerRank." Those rows are not part of this set. LeetCode problem text is the open question already recorded on `rl-code-leetcodedataset`, so those rows are not part of this set either. A tag is not legal clearance.
+- **Generator model:** None named. The paper (§2 and §3.1) collects problems by scraping CodeChef, Codeforces, HackerRank and GeeksforGeeks, and by reusing APPS, CodeContests and Description2Code. It ships 1,539,152 verified Python 3 solutions collected with those problems. It names no LLM writer. The authors consolidated the sites' raw tags into skill labels.
+- **Decision:** `TSAI reserves` — the kept train rows have a stated permissive licence and no model generator. HackerRank is out because its licence is unstated, in the card's own words. LeetCode is out until TSAI answers `rl-code-leetcodedataset`.
+- **Our opinion:** use the filtered train split. The release has 25,443 train problems before that filter. The `source` field is what makes the filter possible. The test split (1,000) is the TACO benchmark and is not part of this set. Contest-site text is the same point TSAI already accepted for `rl-code-code-contests`. De-duplicate against `rl-code-apps` and `rl-code-code-contests`.
+- **For Team 9:** decontaminate against the TACO test split, APPS, HumanEval, MBPP and LiveCodeBench.
+- **Added by:** SreekanthZipsy (Week 10 rotation 13 Nov 2026). Card and paper read on 14 Nov 2026. A tag is not legal clearance.
+
+### `rl-math-omni-math` — Omni-MATH
+
+- **Stage:** RL, if TSAI allows a set the publisher released only as a benchmark
+- **Set:** `rl-math-omni-math`
+- **Language:** English / Mathematics (Olympiad)
+- **Source:** [`KbsdJames/Omni-MATH`](https://huggingface.co/datasets/KbsdJames/Omni-MATH) (card revision `40ba231d8f16e29ecd40e6407e2c8640145a8f62`); paper [arXiv 2410.07985](https://arxiv.org/abs/2410.07985)
+- **Licence:** `apache-2.0` — Hugging Face tag read on 14 Nov 2026. Permissive with attribution. A tag is not legal clearance. Problems and solutions are crawled from contest sites and AoPS (paper §2.1), the same kind of upstream text as `rl-code-code-contests`.
+- **Generator model:** None for the problem and solution text. The paper (§2.1) crawls official contest solutions and AoPS Wiki solutions, and AoPS forum posts that agree on the answer, then has graduate annotators check them: 4,428 problems after that check. GPT-4o (OpenAI, proprietary closed) is used only to assign a difficulty score when the contest is missing from the AoPS rating page, and to assign the domain label (§2.2 and §2.3). Those two fields are closed-model output. Drop them. They are not the problem or the solution.
+- **Decision:** `needs TSAI decision` — the problem and solution text passes the generator rule (human) and the licence is permissive. The publisher released all 4,428 rows as one benchmark, with no train split. The card and the paper title both call it an Olympiad benchmark. The question for TSAI: train on it, or keep it eval-only the way `rl-math-processbench` is eval-only. `rl-math-deepscaler` was excluded partly because it mixed this set with unlicensed Still rows. This entry is that set on its own.
+- **Our opinion:** use for RL only if Team 9 does not report Omni-MATH. If it is an eval, do not train on any row. There is no train split to keep.
+- **For Team 9:** if this set is approved for training, Omni-MATH cannot also be a reported benchmark. The difficulty and domain columns stay out either way.
+- **Added by:** SreekanthZipsy (Week 10 rotation 13 Nov 2026). Card and paper read on 14 Nov 2026. A tag is not legal clearance.
 
 ## Strategy v0
 
