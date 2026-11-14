@@ -1,0 +1,48 @@
+{
+  "pack": "/Users/aneeshadas/ERA5/Capstone/Week2-G1-work/deduplication/Cap1-packs/en-dclm",
+  "normalize_id": "g1-spec-v1",
+  "key": "sha256(utf-8 h1_key(text)): normalize.match_key, then NFKC, casefold, whitespace runs to one space",
+  "files": {
+    "Part_1": [
+      "part-00000.parquet"
+    ],
+    "Part_2": [
+      "part-00001.parquet"
+    ],
+    "Heldout": [
+      "part-00000.parquet"
+    ]
+  },
+  "documents": {
+    "Part_1": 46245,
+    "Part_2": 15122,
+    "Heldout": 608,
+    "all": 61975
+  },
+  "pairs_compared": 1920419325,
+  "unique_hashes": 61975,
+  "duplicate_groups": 0,
+  "cross_folder_groups": 0,
+  "documents_in_duplicate_groups": 0,
+  "extra_copies": 0,
+  "duplicate_pairs": 0,
+  "duplicate_pairs_same_doc_id": 0,
+  "documents_with_a_copy_in": {
+    "Part_1": {
+      "Part_1": 0,
+      "Part_2": 0,
+      "Heldout": 0
+    },
+    "Part_2": {
+      "Part_1": 0,
+      "Part_2": 0,
+      "Heldout": 0
+    },
+    "Heldout": {
+      "Part_1": 0,
+      "Part_2": 0,
+      "Heldout": 0
+    }
+  },
+  "seconds": 37.1
+}
