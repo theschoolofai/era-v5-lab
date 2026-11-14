@@ -9,7 +9,6 @@ Lead approval:   pending review by shivman. Shivanshu named this arm and seed fo
 Question:        Does attn-2 (sliding window 128 with a sink) still pass its not-worse rule against the T2 reference at a new seed, 1237? The rule is the one in docs/attention_harness.md: three-group mean, code mean and Indic mean each not worse than attn-0 by more than the larger seed spread of the two arms.
 Script:          teams/05-architecture/harness/train_week2.py (on main)
 Command:         python teams/05-architecture/harness/train_week2.py --config teams/05-architecture/configs/arms/attn2_swa128_sink.yaml --runtime teams/05-architecture/configs/runtime.yaml --resolution ./inputs/resolution.yaml --tokenizer ./inputs/tokenizer_v0.json --byte-table ./inputs/raw_table_P32.npz --train-data ./inputs/train.jsonl --heldout-data ./inputs/heldout.jsonl --heldout-sources ./inputs/heldout_sources.jsonl --heldout-sha256 ./inputs/heldout.sha256 --heldout-report ./inputs/heldout_report.json --device cuda --lr 0.001 --seed 1237 --out ./out/attn-2-1237
-                 python teams/05-architecture/harness/train_week2.py --config teams/05-architecture/configs/arms/t2.yaml --runtime teams/05-architecture/configs/runtime.yaml --resolution ./inputs/resolution.yaml --tokenizer ./inputs/tokenizer_v0.json --byte-table ./inputs/raw_table_P32.npz --train-data ./inputs/train.jsonl --heldout-data ./inputs/heldout.jsonl --heldout-sources ./inputs/heldout_sources.jsonl --heldout-sha256 ./inputs/heldout.sha256 --heldout-report ./inputs/heldout_report.json --device cuda --lr 0.001 --seed 1237 --out ./out/attn-0-1237
 Config:          attn2_swa128_sink.yaml: inherits t2.yaml. Only the attention changes: layer pattern L L L G L L L G, window 128 on L layers, learned sink on L layers. t2.yaml is the reference, unchanged. Both use AdamW with `--lr 0.001` passed explicitly, the same command form and output names as the TSAI attention job (attn-0 and attn-2). config v1 is not touched.
 Inputs:          the same TSAI-staged bundle as the TSAI T2 runs (train split of tokenizer sample v0-clean, tokenizer teams/03-tokenizer/v0, byte table raw_table_P32.npz). Held-out is heldout_v1 (all 15 slices). I have not checked that the bundle is staged for a new job. TSAI to confirm the paths.
 Hardware:        1 GPU, native bf16 (compute capability 8 or higher)
@@ -27,6 +26,8 @@ Test log:        no fresh GPU or CPU training run was made for this request. The
 |---|---|---:|---|
 | attn-2 | attn2_swa128_sink.yaml | 1237 | ./out/attn-2-1237/ |
 | reference (attn-0) | t2.yaml | 1237 | ./out/attn-0-1237/ |
+
+The Command field holds the attn-2 run. The reference run is the same command with `--config teams/05-architecture/configs/arms/t2.yaml` and `--out ./out/attn-0-1237`.
 
 ## How the result will be read (R2)
 
