@@ -4,8 +4,10 @@
 
 One step: take `prompts_per_step` training prompts, sample `k` completions for each, score them, drop groups whose
 rewards are all equal, and take `ppo_epochs` optimiser steps on the clipped surrogate of the chosen algorithm (grpo,
-dr_grpo, rloo or gspo; see grpo.py). Every `eval_every` steps the held-out prompts are scored (that is the number
-Gate 4 should be judged on, not the training reward). The router is frozen before training and its checksum must
+dr_grpo, rloo or gspo; see grpo.py). `algo: objective_v1` instead uses the lead's Session 18 objective
+(rl/objective_v1.md): centred rewards, dropped tied groups, plain -A*log pi with a closed trust-region mask on the
+ratio to the sampling policy, one batch-global token denominator; it has no clipping, IS weight or reference KL.
+Every `eval_every` steps the held-out prompts are scored (that is the number Gate 4 should be judged on, not the training reward). The router is frozen before training and its checksum must
 be identical at the end; the run fails otherwise.
 
 Writes to `out_dir` (default ./out, the TSAI job rule): metrics.jsonl (one line per step), summary.json.
@@ -29,6 +31,10 @@ GPU-run options (config `train.*`, all optional):
     tis_clip       truncated importance sampling for the vLLM/trainer gap (grpo.tis_weights), e.g. 2.0
     routing_log    expert load and top-k flip rates (routing.py); routing_probe = held-out prompts in the probe
     kl_to_start    K3 KL(current || step 0) on held-out completions at every eval
+    tr_epsilon     objective_v1 only: trust-region half-width, default 0.2 (kl_coef and tis_clip must be unset)
+    fail_on_lost_update  objective_v1 only, default true: raise when, of the probed trainable entries that had a
+                   nonzero gradient, fewer than min_stored_update_ratio (default 0.5) changed in storage after the
+                   optimizer step (a small update rounded away in bf16); false = warn and log only
 metrics.jsonl adds per-step timings (rollout, reward, old_logprobs, train, sync), sampled tokens and tokens/s,
 GPU memory, and the sampler/trainer mismatch. summary.json adds the paired-bootstrap CI of the held-out change,
 the trainable-weight change, and the library versions.
@@ -113,6 +119,8 @@ def build_task(tcfg: dict, tokenizer, seed: int):
                                    tasks.code_task_prompts(tcfg["heldout"]))
     if tcfg["kind"] == "math":
         return math_task(tcfg, tokenizer)
+    if tcfg["kind"] == "stdio":
+        return stdio_task(tcfg, tokenizer)
     raise ValueError(f"unknown task.kind {tcfg['kind']!r}")
 
 
@@ -152,6 +160,50 @@ def math_task(tcfg: dict, tokenizer):
     return tasks.RewardEnvTask(tokenizer, items(tcfg["train_ids"]), items(tcfg["heldout_ids"]), reward_fn)
 
 
+def stdio_task(tcfg: dict, tokenizer):
+    """stdin/stdout program tasks (rl-data/build.py records, e.g. RL data v1 code_contests) scored by
+    rl-data/stdio_check.py (Docker, or G10_STDIO_RUNNER=local where Docker is absent, e.g. Modal).
+
+    task: {kind: stdio, tasks: <jsonl>, train_ids: <file>, heldout_ids: <file>}
+    The prompt is the record's human-written statement as the user message. No instruction text is added: the team
+    has not written one, and assistant-written text may not become RL prompts (TSAI 3 Nov rule).
+    """
+    import importlib.util  # noqa: PLC0415
+    if tokenizer is None:
+        raise ValueError("stdio tasks need model.kind hf (a tokenizer)")
+    spec = importlib.util.spec_from_file_location("g10_stdio_check", HERE.parent / "rl-data" / "stdio_check.py")
+    sc = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(sc)
+    by_id = {}
+    for line in Path(tcfg["tasks"]).read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            t = json.loads(line)
+            by_id[t["id"]] = t
+
+    def items(ids_file):
+        ids = [x.strip() for x in Path(ids_file).read_text(encoding="utf-8").splitlines() if x.strip()]
+        missing = [i for i in ids if i not in by_id]
+        if missing:
+            raise ValueError(f"{len(missing)} ids not in {tcfg['tasks']}")
+        return [(i, by_id[i]["statement"]) for i in ids]
+
+    def reward_fn(env_id: str, text: str):
+        r = sc.score(by_id[env_id], text)
+        return float(r["reward"]), r
+
+    return tasks.RewardEnvTask(tokenizer, items(tcfg["train_ids"]), items(tcfg["heldout_ids"]), reward_fn)
+
+
+def score_completions(task, pairs: list[tuple[list[int], list[int]]], workers: int = 1) -> list[float]:
+    """task.reward over (prompt, completion) pairs, in order. workers > 1 scores in threads (the stdio checker runs
+    each program in a subprocess, so threads overlap); workers == 1 is the original sequential loop."""
+    if workers <= 1:
+        return [task.reward(p, c) for p, c in pairs]
+    from concurrent.futures import ThreadPoolExecutor  # noqa: PLC0415
+    with ThreadPoolExecutor(workers) as ex:
+        return list(ex.map(lambda pc: task.reward(*pc), pairs))
+
+
 def set_trainable(model, patterns: list[str] | None) -> int:
     """If patterns are given, train only matching parameters (e.g. attention); the router stays frozen regardless."""
     if patterns:
@@ -163,13 +215,16 @@ def set_trainable(model, patterns: list[str] | None) -> int:
 
 # --- evaluation and training ----------------------------------------------------------------------
 
-def evaluate(sampler, task, prompts, k: int, max_new: int, temperature: float, gen):
+def evaluate(sampler, task, prompts, k: int, max_new: int, temperature: float, gen, workers: int = 1):
     """Per-problem pass@1 (mean reward over k samples) and the rollouts (reused as the routing probe)."""
     rolls = sampler.sample(prompts, k, max_new, temperature, gen)
-    per_problem = []
-    for p, r in zip(prompts, rolls):
-        rs = [task.reward(p, row[m].tolist()) for row, m in zip(r.seq[:, len(p):], r.cmask)]
-        per_problem.append(sum(rs) / len(rs))
+    pairs = [(p, row[m].tolist()) for p, r in zip(prompts, rolls) for row, m in zip(r.seq[:, len(p):], r.cmask)]
+    flat = score_completions(task, pairs, workers)
+    per_problem, i = [], 0
+    for r in rolls:
+        n = r.seq.shape[0]
+        per_problem.append(sum(flat[i:i + n]) / n)
+        i += n
     return per_problem, rolls
 
 
@@ -301,6 +356,65 @@ def backward_group(policy, group, algo: str, clip_eps: float, kl_coef: float, n_
     return total, agg
 
 
+def backward_objective_v1(policy, group, eps: float, n_tokens: int, micro_rows: int | None):
+    """Loss and backward for one kept group under objective_v1, optionally in row chunks.
+
+    group = (seq, cmask, adv, sampler_lp, None, plen, None); sampler_lp is the log-probability of each sampled token
+    under the policy that sampled it (vLLM's rollout_lp when present, else the trainer's pre-update old_lp).
+    n_tokens is the real-token count of ALL kept groups in the step, so each chunk's numerator / n_tokens is its exact
+    share of the batch loss and any chunking (or grouping) sums to the same gradient. Returns device tensors only."""
+    seq, cmask, adv, sampler_lp, _, plen, _ = group
+    k = seq.shape[0]
+    step = micro_rows if micro_rows and micro_rows < k else k
+    total, agg = None, {}
+    for i in range(0, k, step):
+        sl = slice(i, min(i + step, k))
+        new_lp = completion_logprobs(policy, seq[sl], plen)
+        num, st = grpo.objective_v1_terms(new_lp, sampler_lp[sl], adv[sl], cmask[sl], eps)
+        part = num / n_tokens
+        part.backward()
+        total = part.detach() if total is None else total + part.detach()
+        for key, v in st.items():
+            agg[key] = v if key not in agg else agg[key] + v
+    return total, agg
+
+
+class UpdateProbe:
+    """Did the optimizer step change the STORED trainable weights? Samples up to n entries of every trainable tensor
+    (strided, fixed positions), snapshots them and their gradients before a step and, after it, compares the share of
+    entries whose stored value changed with the share that had a nonzero gradient (AdamW moves every such entry by
+    about lr). In bf16 storage a small update rounds back to the old value, so stored/expected falls far below 1.
+    One host sync per step."""
+
+    def __init__(self, named, n: int = 512):
+        self.views = []
+        for _, p in named:
+            flat = p.detach().view(-1)
+            stride = max(1, flat.numel() // n)
+            self.views.append((p, stride, min(n, flat.numel())))
+        self.saved = None
+
+    @torch.no_grad()
+    def _sample(self):
+        return [p.detach().view(-1)[::s][:m].clone() for p, s, m in self.views]
+
+    @torch.no_grad()
+    def before(self):
+        self.saved = self._sample()
+        self.graded = [(p.grad.view(-1)[::s][:m] != 0) if p.grad is not None else torch.zeros(m, dtype=torch.bool,
+                       device=p.device) for p, s, m in self.views]
+
+    @torch.no_grad()
+    def shares(self) -> tuple[float, float]:
+        """(share of probed entries whose stored value changed, share that had a nonzero gradient)."""
+        now = self._sample()
+        changed = torch.stack([(a != b).sum() for a, b in zip(now, self.saved)]).sum()
+        graded = torch.stack([g.sum() for g in self.graded]).sum()
+        total = max(sum(int(a.numel()) for a in now), 1)
+        both = torch.stack([changed, graded]).tolist()
+        return both[0] / total, both[1] / total
+
+
 @no_grad()
 def check_vllm_sync(policy, vllm, prompts, trainable_named, max_new: int = 16) -> dict:
     """Prove that sync() really changes what vLLM samples (lessons file: a silent sync failure looks like
@@ -342,6 +456,16 @@ def train(cfg: dict) -> dict:
     t = cfg["train"]
     algo, k, max_new = t["algo"], int(t["k"]), int(t["max_new"])
     temperature = float(t["temperature"])
+    if algo not in grpo.ALL_ALGOS:
+        raise ValueError(f"unknown algo {algo!r}; choose from {grpo.ALL_ALGOS}")
+    v1 = algo == grpo.OBJECTIVE_V1
+    if v1:  # refuse silent additions to the lead's contract
+        if float(t.get("kl_coef", 0)) > 0:
+            raise ValueError("objective_v1 has no reference-KL term (rl/objective_v1.md); set kl_coef: 0")
+        if t.get("tis_clip"):
+            raise ValueError("objective_v1 uses the sampler ratio only as a mask; tis_clip would add IS weighting")
+    tr_eps = float(t.get("tr_epsilon", grpo.TR_EPSILON))
+    max_train_s = float(t["max_train_seconds"]) if t.get("max_train_seconds") is not None else None
     sampler_kind = t.get("sampler") or ("hf_batch" if cfg["model"]["kind"] in ("hf", "tiny_olmoe") else "policy")
     if cfg["model"]["kind"] == "team5_adapter" and sampler_kind != "policy":
         raise ValueError(f"sampler {sampler_kind} is not available for the G5 LanguageModel; use sampler: policy")
@@ -361,7 +485,12 @@ def train(cfg: dict) -> dict:
         set_trainable(model, t.get("trainable"))
         patterns = tuple(cfg.get("router_patterns", router.ROUTER_PATTERNS))
     router_trainable = bool(t.get("router_trainable", False))  # control runs only; Gate 4 keeps the router frozen
-    if router_trainable:
+    dense = bool(cfg["model"].get("dense", False))  # explicit opt-out for dense models (no router to freeze)
+    if dense and (adapter is not None or router_trainable):
+        raise ValueError("model.dense is for dense HF models only")
+    if dense:
+        frozen = []
+    elif router_trainable:
         frozen = []
         for _, p_ in router.router_params(model, patterns):
             p_.requires_grad_(True)
@@ -370,7 +499,7 @@ def train(cfg: dict) -> dict:
         router.assert_router_frozen(model, patterns)
     if adapter is not None and frozen != adapter.bundle.selection["router_names"]:
         raise RuntimeError(f"frozen routers {frozen} differ from the adapter's {adapter.bundle.selection['router_names']}")
-    checksum_before = router.router_checksum(model, patterns)
+    checksum_before = "dense model: no router" if dense else router.router_checksum(model, patterns)
     n_trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     n_fp32 = use_fp32_master(policy) if t.get("fp32_master", True) else 0
     trainable_named = [(n, p) for n, p in model.named_parameters() if p.requires_grad]
@@ -386,6 +515,10 @@ def train(cfg: dict) -> dict:
                             weight_decay=float(t.get("weight_decay", 0.0)))
     tis_clip = float(t["tis_clip"]) if t.get("tis_clip") else None
     micro_rows = int(t["micro_rows"]) if t.get("micro_rows") else None
+    probe_w = UpdateProbe(trainable_named) if v1 else None
+    fail_on_lost = bool(t.get("fail_on_lost_update", True))
+    min_stored = float(t.get("min_stored_update_ratio", 0.5))
+    reward_workers = int(t.get("reward_workers", 1))
     log_routing = bool(t.get("routing_log", False)) and bool(routing.router_modules(model))
     n_experts = getattr(getattr(model, "config", None), "num_experts", None)
     # Native sampling draws on the model's device, so its generator lives there; HF/vLLM keep host-side generators.
@@ -406,14 +539,15 @@ def train(cfg: dict) -> dict:
     extra_evals: dict = {}
 
     def extra_eval(step):
-        scores, rolls = evaluate(sampler, task, task.heldout, eval_k, extra_max_new, temperature, gen_extra)
+        scores, rolls = evaluate(sampler, task, task.heldout, eval_k, extra_max_new, temperature, gen_extra,
+                                 reward_workers)
         extra_evals[step] = {"pass": sum(scores) / len(scores), "scores": scores,
                              **length_stats(rolls, extra_max_new, policy.eos_id)}
         print(json.dumps({"extra_eval_step": step, "max_new": extra_max_new,
                           **{k_: v for k_, v in extra_evals[step].items() if k_ != "scores"}}), flush=True)
 
     def log_heldout(step):
-        scores, rolls = evaluate(sampler, task, task.heldout, eval_k, max_new, temperature, gen)
+        scores, rolls = evaluate(sampler, task, task.heldout, eval_k, max_new, temperature, gen, reward_workers)
         r = sum(scores) / len(scores)
         heldout_curve.append((step, r))
         heldout_scores[step] = scores
@@ -447,12 +581,52 @@ def train(cfg: dict) -> dict:
         (out / "vllm_sync_check.json").write_text(json.dumps(sync_check, indent=1))
         if sync_check.get("ok") is False:
             raise RuntimeError(f"vLLM weight sync does not work: {sync_check}")
+    screen = t.get("screen")  # mixed-band selection on TRAIN prompts only; the held-out set is never filtered
+    if screen:
+        c0 = time.time()
+        n_s, k_s, need = int(screen.get("n", 64)), int(screen.get("k", k)), int(screen.get("min_mixed", 12))
+        cand = task.train[:n_s]
+        gen_s = torch.Generator(device=gen_device).manual_seed(seed + 2)
+        s_rolls = sampler.sample(cand, k_s, max_new, temperature, gen_s)
+        s_time = time.time() - c0
+        flat = score_completions(task, [(p, row[m].tolist()) for p, r in zip(cand, s_rolls)
+                                        for row, m in zip(r.seq[:, len(p):], r.cmask)], reward_workers)
+        passes = [int(sum(flat[i * k_s:(i + 1) * k_s])) for i in range(len(cand))]
+        ids = [getattr(task, "_items", {}).get(tuple(p)) for p in cand]
+        mixed = [p for p, c in zip(cand, passes) if 0 < c < k_s]
+        s_tok = int(sum(int(r.cmask.sum()) for r in s_rolls))
+        rec_s = {"n": len(cand), "k": k_s, "min_mixed": need, "mixed": len(mixed),
+                 "all_pass": sum(c == k_s for c in passes), "all_fail": sum(c == 0 for c in passes),
+                 "pass_rate": round(sum(passes) / max(len(cand) * k_s, 1), 4),
+                 "histogram": {str(i): passes.count(i) for i in range(k_s + 1)},
+                 "per_task": [{"id": i, "passes": c} for i, c in zip(ids, passes)],
+                 "mixed_ids": [i for i, c in zip(ids, passes) if 0 < c < k_s],
+                 "sampled_tokens": s_tok, "rollout_s": round(s_time, 2), "score_s": round(time.time() - c0 - s_time, 2),
+                 **length_stats(s_rolls, max_new, policy.eos_id), **gpu_memory()}
+        (out / "screen.json").write_text(json.dumps(rec_s, indent=1))
+        print(json.dumps({"screen": {k_: v for k_, v in rec_s.items() if k_ not in ("per_task", "mixed_ids")}}),
+              flush=True)
+        if len(mixed) < need:
+            metrics_f.close()
+            summary = {"status": "NO_GO_MIXED_BAND", "algo": algo, "screen": {k_: v for k_, v in rec_s.items()
+                                                                              if k_ != "per_task"},
+                       "seconds": round(time.time() - start, 1), "versions": versions()}
+            (out / "summary.json").write_text(json.dumps(summary, indent=1))
+            return summary
+        task.train = mixed
+        order = list(range(len(task.train)))
     h0, extra0 = log_heldout(0)
     if cfg.get("verbose", True):
         print(json.dumps({"step": 0, "heldout_reward": h0, **extra0}), flush=True)
     if extra_max_new:
         extra_eval(0)
+    steps_done = 0
     for step in range(1, int(t["steps"]) + 1):
+        if max_train_s is not None and step > 1 and time.time() - start > max_train_s:
+            print(json.dumps({"stopped_early": f"max_train_seconds {max_train_s} reached before step {step}"}),
+                  flush=True)
+            break
+        steps_done = step
         times = {}
         random.shuffle(order)
         batch = [task.train[i] for i in order[: int(t["prompts_per_step"])]]
@@ -463,10 +637,23 @@ def train(cfg: dict) -> dict:
         c0 = time.time()
         groups, rewards_all, dropped, mism = [], [], 0, []
         scored = []
-        for p, r in zip(batch, rolls):
-            rewards = torch.tensor([task.reward(p, row[m].tolist()) for row, m in zip(r.seq[:, len(p):], r.cmask)])
+        kinds = {"all_one": 0, "all_zero": 0, "tied_other": 0, "singleton": 0, "mixed": 0}
+        if reward_workers > 1:
+            flat = score_completions(task, [(p, row[m].tolist()) for p, r in zip(batch, rolls)
+                                            for row, m in zip(r.seq[:, len(p):], r.cmask)], reward_workers)
+        for gi, (p, r) in enumerate(zip(batch, rolls)):
+            if reward_workers > 1:
+                rewards = torch.tensor(flat[gi * k:(gi + 1) * k])
+            else:
+                rewards = torch.tensor([task.reward(p, row[m].tolist()) for row, m in zip(r.seq[:, len(p):], r.cmask)])
             rewards_all += rewards.tolist()
             scored.append((p, r, grpo.advantages(rewards, algo)))
+            if v1:
+                if not torch.isfinite(rewards).all():
+                    raise ValueError("reward must be finite (objective_v1 contract)")
+                rl_ = rewards.tolist()
+                kinds["singleton" if len(rl_) < 2 else "mixed" if max(rl_) != min(rl_) else
+                      "all_one" if rl_[0] == 1.0 else "all_zero" if rl_[0] == 0.0 else "tied_other"] += 1
         times["reward"] = time.time() - c0
         c0 = time.time()
         for p, r, adv in scored:
@@ -481,14 +668,68 @@ def train(cfg: dict) -> dict:
                 mism.append(grpo.mismatch(old_lp, r.rollout_lp, r.cmask))
                 if tis_clip:
                     isw = grpo.tis_weights(old_lp, r.rollout_lp, r.cmask, algo, tis_clip)
+            if v1:  # ratio denominator = the policy that sampled the tokens
+                sampler_lp = r.rollout_lp if r.rollout_lp is not None else old_lp
+                ratio_src = "rollout_lp" if r.rollout_lp is not None else "old_lp"
+                groups.append((r.seq, r.cmask, adv.to(device), sampler_lp, None, len(p), None))
+                continue
             groups.append((r.seq, r.cmask, adv.to(device), old_lp, ref_lp, len(p), isw))
         times["old_logprobs"] = time.time() - c0
         stats = {"clip_frac": 0.0, "ratio_mean": 1.0, "kl": 0.0}
         loss_val = 0.0
         step_flip = step_top1 = step_mass = None
         grad_norm = None
+        v1_rec = {}
+        if v1:
+            stats = {}
+            n_tok = int(sum(g_[1].sum() for g_ in groups)) if groups else 0  # batch-global T (one host sync)
+            if groups and not bool(torch.stack([torch.isfinite(torch.where(g_[1], g_[3], 0.0)).all()
+                                                for g_ in groups]).all()):  # one host sync for the step
+                raise ValueError("non-finite sampler log-probability on a real token (objective_v1 contract)")
+            v1_rec = {"tr_epsilon": tr_eps, "group_kinds": dict(kinds), "tokens": n_tok,
+                      "passes": int(sum(1 for x in rewards_all if x == 1.0)), "rollouts": len(rewards_all),
+                      "ratio_source": ratio_src if groups else None, "optimizer_stepped": False}
         c0 = time.time()
-        if groups:
+        if v1 and groups and n_tok > 0:
+            if vllm is not None:
+                vllm.sleep()
+            model.train()
+            epochs = []
+            for _ in range(int(t.get("ppo_epochs", 1))):
+                opt.zero_grad()
+                ep_loss, ep = None, {}
+                for g_ in groups:
+                    lv, st = backward_objective_v1(policy, g_, tr_eps, n_tok, micro_rows)
+                    ep_loss = lv if ep_loss is None else ep_loss + lv
+                    for key, v in st.items():
+                        ep[key] = v if key not in ep else ep[key] + v
+                if int(ep["nonfinite"]):  # before the optimizer step; one host sync per epoch
+                    raise ValueError("non-finite current log-probability or ratio on a real token (objective_v1 contract)")
+                grad_norm = float(torch.nn.utils.clip_grad_norm_([p for _, p in trainable_named],
+                                                                 float(t.get("grad_clip", 1.0))))
+                probe_w.before()
+                opt.step()
+                share, expected = probe_w.shares()
+                ep = {key: int(v) for key, v in ep.items()}
+                epochs.append({"loss": float(ep_loss), "tokens_inside": ep["inside"],
+                               "masked_frac": round(1 - ep["inside"] / max(ep["tokens"], 1), 6),
+                               "masked_frac_pos": round(ep["masked_pos"] / max(ep["tokens_pos"], 1), 6),
+                               "masked_frac_neg": round(ep["masked_neg"] / max(ep["tokens_neg"], 1), 6),
+                               "grad_norm": float(f"{grad_norm:.4g}"), "stored_update_share": round(share, 6),
+                               "grad_nonzero_share": round(expected, 6)})
+                if expected > 0 and share < min_stored * expected:
+                    msg = (f"step {step}: {share:.4g} of probed stored weights changed but {expected:.4g} had a "
+                           f"nonzero gradient (lost update; bf16 storage without fp32_master?)")
+                    if fail_on_lost:
+                        raise RuntimeError(msg)
+                    print(json.dumps({"warning": msg}), flush=True)
+            loss_val = sum(e["loss"] for e in epochs)
+            v1_rec.update(optimizer_stepped=True, **{key: epochs[-1][key] for key in epochs[-1] if key != "loss"})
+            if len(epochs) > 1:
+                v1_rec["epochs"] = epochs
+        elif v1:
+            pass  # every group dropped, or kept groups without a real token: no zero_grad, no step, no state
+        elif groups:
             if log_routing:
                 g = groups[0]
                 fmask = routing.completion_positions(g[5], g[1])
@@ -519,7 +760,7 @@ def train(cfg: dict) -> dict:
                 sync_bytes = vllm.sync(trainable_named)
         times["sync"] = time.time() - c0
         rec = {"step": step, "train_reward": sum(rewards_all) / len(rewards_all), "groups_used": len(groups),
-               "groups_dropped": dropped, "loss": loss_val, **stats,
+               "groups_dropped": dropped, "loss": loss_val, **stats, **v1_rec,
                "sampled_tokens": sampled_tokens,
                "rollout_tokens_per_s": round(sampled_tokens / max(times["rollout"], 1e-9), 1),
                "times_s": {k_: round(v, 3) for k_, v in times.items()}, "step_s": round(sum(times.values()), 3),
@@ -532,7 +773,7 @@ def train(cfg: dict) -> dict:
             rec["step_flip"] = round(step_flip, 4)
             rec["step_top1_flip"] = round(step_top1, 4)
             rec["step_mass_shift"] = float(f"{step_mass:.4g}")
-        if grad_norm is not None:
+        if grad_norm is not None and "grad_norm" not in rec:
             rec["grad_norm"] = float(f"{grad_norm:.4g}")
         if step % int(t.get("eval_every", 10)) == 0 or step == int(t["steps"]):
             rec["heldout_reward"], extra = log_heldout(step)
@@ -542,6 +783,11 @@ def train(cfg: dict) -> dict:
         if cfg.get("verbose", True):
             print(json.dumps(rec), flush=True)
     metrics_f.close()
+    planned_steps = int(t["steps"])
+    if steps_done < planned_steps:  # stopped by max_train_seconds: evaluate where training stopped
+        if steps_done not in heldout_scores:
+            log_heldout(steps_done)
+        t["steps"] = steps_done
     if extra_max_new:
         extra_eval(int(t["steps"]))
     saved_weights = None
@@ -553,7 +799,7 @@ def train(cfg: dict) -> dict:
         saved_weights = {"path": str(path), "bytes": path.stat().st_size,
                          "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
 
-    checksum_after = router.router_checksum(model, patterns)
+    checksum_after = "dense model: no router" if dense else router.router_checksum(model, patterns)
     recs = [json.loads(line) for line in metrics_path.read_text().splitlines()]
     later = recs[1:] or recs  # step 1 includes warm-up (compilation, caches); report it separately
     last = max(heldout_scores)
@@ -583,6 +829,14 @@ def train(cfg: dict) -> dict:
         ks = [r["mismatch_k3"] for r in recs if "mismatch_k3" in r]
         summary["mean_mismatch_k3"] = round(sum(ks) / len(ks), 6)
     summary["router_trainable"] = router_trainable
+    if planned_steps != summary["steps"]:
+        summary["steps_planned"] = planned_steps
+    if v1:
+        summary["objective"] = {"name": "objective_v1", "contract": "rl/objective_v1.md (lead, commit ff19ce2)",
+                                "tr_epsilon": tr_eps, "reference_kl": "none (not in the contract)",
+                                "steps_with_optimizer_update": sum(1 for r in recs if r.get("optimizer_stepped")),
+                                "group_kinds_total": {k_: sum(r["group_kinds"][k_] for r in recs)
+                                                      for k_ in recs[0]["group_kinds"]} if recs else {}}
     summary["saved_trainable_weights"] = saved_weights
     if extra_max_new:
         e0, e1 = extra_evals[0], extra_evals[int(t["steps"])]
