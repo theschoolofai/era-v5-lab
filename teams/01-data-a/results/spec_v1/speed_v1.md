@@ -1,6 +1,6 @@
 # clean.py speed log
 
-Code-pack follow-up measurements and checks are recorded in [speed_v1_code.md](speed_v1_code.md), and math-pack ones in [speed_v1_math.md](speed_v1_math.md).
+Code-pack follow-up measurements and checks are recorded in [speed_v1_code.md](speed_v1_code.md).
 
 Spec v1.1, Gate 2. A log of the slow rules in `clean.py` that were sped up: for each rule, what the fix was, docs/s per core before and after, and the checks showing that nothing else changed. Last updated 12 Nov 2026. Reports counts, hashes and timings only, never document text.
 

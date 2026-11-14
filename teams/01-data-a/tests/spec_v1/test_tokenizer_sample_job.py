@@ -33,16 +33,12 @@ def test_submitted_config_matches_its_manifest():
     assert config['unsupported_policy'] == 'passthrough_with_explicit_status'
 
 
-def test_pr244_rerun_config_matches_recorded_smoke():
-    # Like the submitted config above, this job is a record: its clean_sha256 pins the cleaner that ran the smoke test (which the
-    # smoke summary records), not the current clean.py, so it is not compared with clean.py. A later cleaner (such as the
-    # speed-ups in results/spec_v1/speed_v1_math.md) needs its own job config that pins it.
+def test_pr244_rerun_config_pins_current_cleaner_and_recorded_smoke():
     rerun = SPEC.parent / 'jobs' / '2026-11-12-pr244-rerun'
     path = rerun / 'tokenizer_sample_v0_clean.json'
     config = json.loads(path.read_text(encoding='utf-8'))
     smoke = json.loads((rerun / 'logs/job_summary.json').read_text(encoding='utf-8'))
-    assert len(config['clean_sha256']) == 64
-    assert config['clean_sha256'] == smoke['clean_sha256']
+    assert config['clean_sha256'] == job.digest(SPEC / 'clean.py') == smoke['clean_sha256']
     assert smoke['config_sha256'] == job.digest(path)
     assert config['manifest'] == MANIFEST_REL
     assert len(job.manifest(config)['shards']) == 86
