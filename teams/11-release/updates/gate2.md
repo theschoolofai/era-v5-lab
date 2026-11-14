@@ -14,7 +14,7 @@ At this gate, TSAI reviewed the proposals from the teams below. Each decision us
 | First model configuration: attention type, number of experts, optimizer and learning rate | Architecture | Muon optimizer. Keep the v0 attention. 16 routed experts plus 1 shared expert, top-2. Learning rate 1e-3 stays provisional. |
 | Share of Indic text in its own script, and the limit on Indic text in Latin script | Data B | Rerun [#400](https://github.com/theschoolofai/era-v5-lab/pull/400) with C3 this week. TSAI sets the share from that table. |
 | Duplicate removal, source priority list and the updated data spec | Data A | One spec v1.1. Cleaner [#244](https://github.com/theschoolofai/era-v5-lab/pull/244) is merged and ran on sample v0. Run the [#255](https://github.com/theschoolofai/era-v5-lab/pull/255) dedup design on the cleaned sample. |
-| Data mix for supervised fine-tuning | Post-training | [#391](https://github.com/theschoolofai/era-v5-lab/pull/391) is SFT mix v1. Week 3 adds strong SFT tests and a Deletion Tuning study against full fine-tuning. |
+| Data mix for supervised fine-tuning | Post-training | [#391](https://github.com/theschoolofai/era-v5-lab/pull/391) is SFT mix v1. Week 3 adds strong SFT tests and a [method name: waiting for TSAI] study against full fine-tuning. |
 | Bit widths for the smaller versions of the model | Quantization | No evidence yet. This decision moves to Gate 3. |
 
 ## Next
@@ -51,7 +51,7 @@ How to fill it:
 - [x] Every number in the text has TSAI approval
 - [x] The text names teams only, and no person
 - [x] Nothing from the internal list in `public_internal.md`
-- [x] No `[waiting for TSAI]` left in the text
+- [ ] No `[waiting for TSAI]` left in the text
 - [ ] A team member commented on this pull request
 - [ ] TSAI approved on: [DD Mon YYYY]
 - [ ] Merged after TSAI approved
