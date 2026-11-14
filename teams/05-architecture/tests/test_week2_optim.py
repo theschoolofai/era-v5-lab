@@ -91,6 +91,27 @@ class SplitTests(unittest.TestCase):
 
 
 class StepTests(unittest.TestCase):
+    def test_batched_muon_matches_loop_with_inactive_parameter(self):
+        torch.manual_seed(1234)
+        params = [torch.nn.Parameter(torch.randn(4, 3)) for _ in range(3)]
+        before = [p.detach().clone() for p in params]
+        optimizer = Muon(params, lr=0.01)
+        for p in params[:2]:
+            p.grad = torch.randn_like(p)
+        optimizer.step()
+
+        for p, initial in zip(params[:2], before):
+            momentum = p.grad * 0.05
+            grad = p.grad.lerp(momentum, 0.95)
+            update = zeropower_via_newtonschulz5(grad)
+            torch.testing.assert_close(optimizer.state[p]["buf"], momentum)
+            torch.testing.assert_close(
+                p, initial - 0.01 * (4 / 3) ** 0.5 * update,
+                rtol=1e-4, atol=1e-4,
+            )
+        self.assertNotIn(params[2], optimizer.state)
+        torch.testing.assert_close(params[2], before[2], rtol=0, atol=0)
+
     def test_one_step_moves_muon_and_adamw_weights(self):
         c, rows, lengths = muon_fixture()
         torch.manual_seed(1234)

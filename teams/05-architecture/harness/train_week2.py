@@ -39,6 +39,17 @@ class JsonWriter:
         self.file.close()
 
 
+def check_step_and_clip(parameters, step_losses, max_norm):
+    """Check the loss and pre-clip gradient norm together before updating weights."""
+    norm = torch.nn.utils.clip_grad_norm_(
+        parameters, max_norm, error_if_nonfinite=False
+    )
+    values = torch.cat((step_losses.flatten(), norm.detach().reshape(1)))
+    if not torch.isfinite(values).all():
+        raise ValueError("Nonfinite training loss or gradient norm")
+    return norm
+
+
 def model_hash(model):
     h = hashlib.sha256()
     for name, value in sorted(model.state_dict().items()):
@@ -51,6 +62,7 @@ def model_hash(model):
 
 def apply_resolution(cfg, resolution):
     allowed = {
+        "model.moe.dispatch",
         "approval.status",
         "approval.reference",
         "model.rope_theta",
@@ -68,6 +80,9 @@ def apply_resolution(cfg, resolution):
             out.extend(paths(v, key + ".")) if isinstance(v, dict) else out.append(key)
         return out
 
+    dispatch = resolution.get("model", {}).get("moe", {}).get("dispatch", "batched")
+    if dispatch != "batched":
+        raise ValueError("Execution override must select batched MoE dispatch")
     unknown = set(paths(resolution)) - allowed
     if unknown:
         raise ValueError(
@@ -76,6 +91,8 @@ def apply_resolution(cfg, resolution):
     for key, value in (
         cfg.get("provenance", {}).get("lead_explicit_choices", {}).items()
     ):
+        if key == "model.moe.dispatch":
+            continue  # Execution backend only; topology is fixed by the arm.
         node = resolution
         for component in key.split("."):
             if not isinstance(node, dict) or component not in node:
@@ -409,9 +426,7 @@ def main():
             optimizer.zero_grad(set_to_none=True)
             count = int((y != -100).sum())
             mtp_count = int((y[:, 1:] != -100).sum())
-            total = 0.0
-            ntp_value = 0.0
-            mtp_value = 0.0
+            losses = []
             micro = cfg["run"]["micro_batch_size"]
             for start in range(0, len(x), micro):
                 tx, ty = x[start : start + micro], y[start : start + micro]
@@ -429,24 +444,26 @@ def main():
                         if mtp is None or cfg["model"]["mtp_weight"] == 0
                         else ntp + cfg["model"]["mtp_weight"] * mtp
                     )
-                if not torch.isfinite(loss):
-                    raise ValueError("Nonfinite training objective")
-                if mtp is not None and not torch.isfinite(mtp):
-                    raise ValueError("Nonfinite MTP component")
+                zero = ntp.new_zeros(())
+                losses.append(torch.stack((loss.detach(), ntp.detach(), mtp.detach() if mtp is not None else zero)))
                 loss.backward()
-                total += float(loss.detach())
-                ntp_value += float(ntp.detach())
-                if mtp is not None:
-                    mtp_value += float(mtp.detach())
-            for name, param in model.named_parameters():
-                if param.grad is not None and not torch.isfinite(param.grad).all():
-                    raise ValueError("Nonfinite gradient: " + name)
-            norm = torch.nn.utils.clip_grad_norm_(
-                model.parameters(), cfg["run"]["grad_clip"], error_if_nonfinite=True
+            # A stacked projection gives inactive experts zero gradients. Restore
+            # the loop's missing-gradient semantics before clipping or updating.
+            batched_moes = [block.moe for block in model.blocks if block.moe.used_experts is not None]
+            if batched_moes:
+                used = torch.stack([moe.used_experts for moe in batched_moes]).tolist()
+                for moe, active_experts in zip(batched_moes, used):
+                    for expert, active in zip(moe.experts, active_experts):
+                        if not active:
+                            for parameter in expert.parameters():
+                                parameter.grad = None
+                    moe.used_experts = None
+            step_losses = torch.stack(losses)
+            norm = check_step_and_clip(
+                model.parameters(), step_losses, cfg["run"]["grad_clip"]
             )
+            total, ntp_value, mtp_value = map(sum, zip(*step_losses.tolist()))
             optimizer.step()
-            if any(not torch.isfinite(v).all() for v in model.parameters()):
-                raise ValueError("Nonfinite parameter")
             if device.type == "cuda":
                 torch.cuda.synchronize()
             ms = (time.perf_counter() - tick) * 1000

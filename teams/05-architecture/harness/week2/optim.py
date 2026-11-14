@@ -2,7 +2,7 @@
 
 Muon is the plain loop path of teams/06-performance/models/optim.py (commit 0968eb8): momentum 0.95
 with Nesterov, five Newton-Schulz steps with coefficients (3.4445, -4.7750, 2.0315), and the update
-scaled by sqrt(max(1, rows/cols)). Timing regions, the batched path and polar_muon_adamw are not ported.
+scaled by sqrt(max(1, rows/cols)). The batched Newton-Schulz kernel follows Team 6's implementation.
 Muon takes optim.muon_lr; AdamW keeps optim.lr, betas, eps and weight_decay from the arm chain.
 """
 
@@ -35,6 +35,25 @@ def zeropower_via_newtonschulz5(G, steps=5, eps=1e-7):
     return X.T if transpose else X
 
 
+def zeropower_via_newtonschulz5_batched(G: torch.Tensor, steps: int = 5,
+                                        eps: float = 1e-7) -> torch.Tensor:
+    """Apply the same Newton-Schulz iteration independently to [batch, rows, cols]."""
+    if G.ndim != 3 or G.size(0) == 0:
+        raise ValueError(f"expected a nonempty [batch, rows, cols] tensor, got {tuple(G.shape)}")
+    a, b, c = NS_COEFFS
+    X = G.to(torch.bfloat16 if (not G.is_cuda or _native_bf16()) else torch.float32)
+    transpose = X.size(1) > X.size(2)
+    if transpose:
+        X = X.transpose(1, 2)
+    norms = torch.linalg.vector_norm(X, dim=(1, 2), keepdim=True)
+    X = X / (norms + eps)
+    for _ in range(steps):
+        A = torch.bmm(X, X.transpose(1, 2))
+        B = b * A + c * torch.bmm(A, A)
+        X = a * X + torch.bmm(B, X)
+    return X.transpose(1, 2) if transpose else X
+
+
 class Muon(torch.optim.Optimizer):
     def __init__(
         self, params, lr, momentum=0.95, nesterov=True, ns_steps=5, weight_decay=0.0
@@ -53,6 +72,7 @@ class Muon(torch.optim.Optimizer):
     @torch.no_grad()
     def step(self, closure=None):
         for group in self.param_groups:
+            buckets = {}
             for p in group["params"]:
                 # Like AdamW: an expert that saw no tokens gets no update and keeps its momentum.
                 if p.grad is None:
@@ -63,12 +83,17 @@ class Muon(torch.optim.Optimizer):
                 buf = state["buf"]
                 buf.lerp_(p.grad, 1 - group["momentum"])
                 g = p.grad.lerp(buf, group["momentum"]) if group["nesterov"] else buf
-                u = zeropower_via_newtonschulz5(g, group["ns_steps"])
+                buckets.setdefault((p.shape, p.device, p.dtype), []).append((p, g))
+            for (shape, _, _), bucket in buckets.items():
+                params, grads = zip(*bucket)
+                updates = zeropower_via_newtonschulz5_batched(
+                    torch.stack(grads), group["ns_steps"]
+                )
                 if group["weight_decay"]:
-                    p.mul_(1 - group["lr"] * group["weight_decay"])
-                p.add_(
-                    u.to(p.dtype),
-                    alpha=-group["lr"] * max(1.0, p.size(0) / p.size(1)) ** 0.5,
+                    torch._foreach_mul_(params, 1 - group["lr"] * group["weight_decay"])
+                torch._foreach_add_(
+                    params, list(updates.to(params[0].dtype).unbind(0)),
+                    alpha=-group["lr"] * max(1.0, shape[0] / shape[1]) ** 0.5,
                 )
 
 
