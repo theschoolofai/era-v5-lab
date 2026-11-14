@@ -368,9 +368,58 @@ def test_lora_run_trains_adapters_only(tiny_setup):
     assert not torch.equal(base["model.layers.0.self_attn.q_proj.weight"], merged["model.layers.0.self_attn.q_proj.weight"])
 
 
-def test_dt_is_a_stub_until_wp2(tiny_setup):
-    with pytest.raises(NotImplementedError):
-        _run(tiny_setup, "dt", method="dt")
+def _run_extra(d, out, extra, method="dt", seed=5, steps=6):
+    args = train.parse_args(["--train", str(d / "train.tok.jsonl"), "--model", str(d / "base"), "--revision", "main",
+                             "--tokenizer-dir", str(d / "tokdir"), "--method", method, "--steps", str(steps),
+                             "--warmup", "2", "--lr", "1e-2", "--seed", str(seed), "--device", "cpu", "--micro-tokens",
+                             "64", "--out", str(d / out), "--log-every", "100", *extra])
+    args.revision = None
+    return train.train(args)
+
+
+def test_dt_run_trains_logits_only_and_saves_the_hard_mask(tiny_setup):
+    from safetensors.torch import load_file
+
+    rep = _run_extra(tiny_setup, "dt", ["--dt-targets", "mlp", "--dt-eta", "0.01", "--dt-calib-rows", "8"])
+    c = rep["checks"]
+    assert c["writeback_step1"]["pass"] and c["writeback_step1"]["tensor"].endswith(".gate")
+    assert c["frozen_weights_unchanged"]["pass"]
+    assert c["bake_parity"]["pass"] and c["reload_parity"]["pass"] and c["reload_parity"]["logits_max_abs_diff"] == 0.0
+    m = rep["method"]
+    assert m["masked_layers"] == 6 and m["trainable"] == 2 * (3 * 64 * 32)
+    assert m["deletion_at_init"]["deleted"] > 0 and 0 < m["deletion_final"]["deleted_frac_of_targeted"] < 1
+    assert m["alpha_final"] == 1000.0
+    assert all("reg" in r for r in rep["log"])
+    base = load_file(str(tiny_setup / "base" / "model.safetensors"))
+    saved = load_file(str(tiny_setup / "dt" / "model" / "model.safetensors"))
+    for k, v in base.items():  # every saved weight is the base weight or exactly zero where the hard mask deletes
+        assert ((saved[k] == v) | (saved[k] == 0)).all(), k
+        if "mlp" not in k:
+            assert torch.equal(saved[k], v), k
+    zeros = sum(int(((saved[k] == 0) & (v != 0)).sum()) for k, v in base.items())
+    assert zeros == m["deletion_final"]["deleted"]
+    assert (tiny_setup / "dt" / "dt_mask.bin").stat().st_size == m["mask_artifact"]["compressed_bytes"]
+    a, b = rep, _run_extra(tiny_setup, "dt2", ["--dt-targets", "mlp", "--dt-eta", "0.01", "--dt-calib-rows", "8"])
+    assert a["saved_state_sha256"] == b["saved_state_sha256"]  # deterministic on CPU
+
+
+def test_marker_hybrid_moves_only_marker_rows(tiny_setup):
+    from safetensors.torch import load_file
+
+    for method in ("dt", "lora"):
+        rep = _run_extra(tiny_setup, f"{method}-m", ["--train-marker-rows", "--marker-lr", "1e-2"], method=method)
+        assert rep["method"]["hybrid"]["label"] == f"{method}+markers"
+        assert rep["checks"]["frozen_weights_unchanged"]["pass"]
+        ids = rep["method"]["hybrid"]["marker_row_ids"]
+        assert ids == [0, 1, 2, 15, 16]
+        base = load_file(str(tiny_setup / "base" / "model.safetensors"))["model.embed_tokens.weight"]
+        new = load_file(str(tiny_setup / f"{method}-m" / "model" / "model.safetensors"))["model.embed_tokens.weight"]
+        moved = [i for i in range(base.shape[0]) if not torch.equal(base[i], new[i])]
+        assert moved and set(moved) <= set(ids), (method, moved)
+    with pytest.raises(SystemExit):
+        _run_extra(tiny_setup, "full-m", ["--train-marker-rows"], method="full")
+    with pytest.raises(SystemExit):
+        _run_extra(tiny_setup, "dt-m-wd", ["--train-marker-rows", "--wd", "0.01"], method="dt")
 
 
 # ---------------------------------------------------------------- format judge

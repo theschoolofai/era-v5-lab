@@ -109,7 +109,7 @@ not read from billing.
 ## Not measured / gaps
 - The Mac did not complete 400 steps. The 400-step runs are on Modal A10 (controller-authorised change). There is no matched
   MPS-versus-CUDA comparison, and no claim of cross-device bit identity.
-- Only one LoRA seed, and no control for the LoRA format failure. The DT arm is a stub (`NotImplementedError`) until WP2.
+- Only one LoRA seed, and no control for the LoRA format failure. The DT arm and the marker controls are in `results/dt_vs_fft.md` (WP2).
 - Bench tests: 18 pass on CPU. Existing `sft/verify.sh` completed with `verify: OK`; its final reused-tools suite reports 104 passes (not the combined total). The bench tests are not yet wired into `verify.sh`.
 - Format validity uses one greedy sample per problem, n=110. A 95% interval for 77% is about ±8 pp.
 - LR optimum may lie above 1e-4 (full) and 1e-3 (LoRA).

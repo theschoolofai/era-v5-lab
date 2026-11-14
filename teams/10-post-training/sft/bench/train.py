@@ -53,10 +53,17 @@ def _load(name: str, path: Path):
 
 
 probe = _load("g10_train_probe_for_bench", HERE.parent / "train_probe.py")
+dtmask = _load("g10_dt_mask", HERE.parents[1] / "dt" / "mask.py")
 IGNORE = probe.IGNORE
 ZeroTargetError = probe.ZeroTargetError
 masked_nll_sum = probe.masked_nll_sum
 METHODS = ("full", "lora", "dt")
+
+
+def retok_markers() -> list[tuple[str, int]]:
+    """(surrogate surface, id) of every mapped G10 marker, from retok.MARKER_MAP (the single source of the mapping)."""
+    retok = _load("g10_bench_retok", HERE / "retok.py")
+    return list(retok.MARKER_MAP.values())
 
 
 # ---------------------------------------------------------------- rows and batches
@@ -193,7 +200,13 @@ LORA_TARGETS = ("q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", 
 def apply_method(model: nn.Module, method: str, args) -> dict:
     """Make the model trainable for `method`. Returns a description (trainable counts, targets)."""
     if method == "dt":
-        raise NotImplementedError("--method dt: Deletion Tuning is WP2 (P/dt/mask.py); not implemented in the bench yet")
+        names = dtmask.convert(model, dtmask.TARGET_SETS[args.dt_targets], args.dt_alpha_start, args.dt_alpha_end,
+                               args.steps, seed=args.seed)
+        trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        return {"method": "dt", "targets": args.dt_targets, "target_patterns": list(dtmask.TARGET_SETS[args.dt_targets]),
+                "masked_layers": len(names), "trainable": trainable, "alpha": [args.dt_alpha_start, args.dt_alpha_end],
+                "eta": args.dt_eta, "lambda": args.dt_lambda, "lambda_schedule": "linear decay to 0 (official train_sft.py)",
+                "prior_strength": args.dt_prior_strength, "calib_rows": args.dt_calib_rows, "official": dtmask.OFFICIAL}
     if method == "full":
         for p in model.parameters():
             p.requires_grad_(True)
@@ -223,6 +236,39 @@ def merge_lora(model: nn.Module) -> None:
                 with torch.no_grad():
                     lin.weight.copy_(child.merged_weight())
                 setattr(module, child_name, lin)
+
+
+def enable_marker_rows(model: nn.Module, ids: list[int]) -> list[nn.Parameter]:
+    """HYBRID control (label it): make only the embedding rows `ids` trainable. The tied LM head shares the tensor, so
+    the same rows move on the output side. A gradient hook zeroes every other row; with weight decay 0, AdamW then
+    leaves those rows bit-identical (zero first and second moments give an exact zero update)."""
+    out = []
+    for w in {id(t): t for t in (model.get_input_embeddings().weight, model.lm_head.weight)}.values():
+        rowmask = torch.zeros(w.shape[0], 1, dtype=w.dtype, device=w.device)
+        rowmask[ids] = 1
+        w.requires_grad_(True)
+        w.register_hook(lambda g, m=rowmask: g * m)
+        out.append(w)
+    return out
+
+
+def frozen_sha256(model: nn.Module, marker_ids: list[int] | None = None) -> str:
+    """sha256 over every parameter that must not change: all frozen tensors, plus the non-marker rows of a
+    marker-trainable embedding. Mask logits and adapter tensors are excluded (they are the trained state)."""
+    h = hashlib.sha256()
+    for name, p in sorted(model.named_parameters(remove_duplicate=True), key=lambda kv: kv[0]):
+        if name.endswith(".gate") or "lora_" in name:
+            continue
+        t = p.detach()
+        if p.requires_grad:
+            if not marker_ids or t.dim() != 2:
+                continue  # trained tensor (full FT): nothing frozen to hash
+            keep = torch.ones(t.shape[0], dtype=torch.bool, device=t.device)
+            keep[marker_ids] = False
+            t = t[keep]
+        h.update(name.encode())
+        h.update(t.to("cpu").contiguous().numpy().tobytes())
+    return h.hexdigest()
 
 
 # ---------------------------------------------------------------- checks
@@ -313,8 +359,10 @@ def load_model(name: str, revision: str | None, device: str):
 def train(args) -> dict:
     if args.revision in ("", "none", "None"):
         args.revision = None  # a local folder
-    if args.method == "dt":  # fail before loading anything
-        apply_method(None, "dt", args)
+    if args.train_marker_rows and args.method == "full":
+        raise SystemExit("--train-marker-rows is a hybrid control for frozen-embedding methods; full FT trains every row")
+    if args.train_marker_rows and args.wd != 0:
+        raise SystemExit("--train-marker-rows needs --wd 0: decoupled weight decay would move the unselected embedding rows")
     random.seed(args.seed)
     torch.manual_seed(args.seed)
     device = args.device
@@ -329,15 +377,40 @@ def train(args) -> dict:
     vocab = model.config.vocab_size
     rows, rejected = load_train_rows(args.train, args.max_tokens, vocab)
     method_info = apply_method(model, args.method, args)
+    marker_ids = sorted(sid for _, sid in retok_markers()) if args.train_marker_rows else None
+    marker_params = enable_marker_rows(model, marker_ids) if marker_ids else []
+    if marker_ids:
+        method_info["hybrid"] = {"label": f"{args.method}+markers", "marker_row_ids": marker_ids, "marker_lr": args.marker_lr,
+                                 "note": "HYBRID control: embedding/LM-head rows of the mapped chat markers are trained; "
+                                         "not the pure method"}
+    if args.method == "dt":
+        calib_rng = random.Random(10_000 + args.seed)
+        calib = [rows[i] for i in calib_rng.sample(range(len(rows)), min(args.dt_calib_rows, len(rows)))]
+        cbatches = [collate(g, 0) for g in plan_microbatches(calib, args.micro_tokens)]
+        t_cal = time.perf_counter()
+        scores = dtmask.wanda_scores(model, ({"input_ids": b.input_ids, "attention_mask": b.attention_mask} for b in cbatches), device)
+        method_info["wanda_prior"] = dtmask.apply_wanda_prior(model, scores, args.dt_eta, args.dt_prior_strength)
+        method_info["wanda_prior"]["calibration_seconds"] = round(time.perf_counter() - t_cal, 2)
+        method_info["wanda_prior"]["calibration_tokens"] = int(sum(int(b.attention_mask.sum()) for b in cbatches))
+        method_info["deletion_at_init"] = dtmask.deletion_stats(model)
+        del scores
+    frozen_before = frozen_sha256(model, marker_ids) if args.method != "full" else None
     if args.grad_checkpointing:
         model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
         model.config.use_cache = False
     model.train()
     params = [p for p in model.parameters() if p.requires_grad]
-    opt = torch.optim.AdamW(params, lr=args.lr, betas=(0.9, 0.95), eps=1e-8, weight_decay=args.wd)
+    mids = {id(p) for p in marker_params}
+    groups = [{"params": [p for p in params if id(p) not in mids], "base_lr": args.lr}]
+    if marker_params:
+        groups.append({"params": marker_params, "base_lr": args.marker_lr})
+    opt = torch.optim.AdamW(groups, lr=args.lr, betas=(0.9, 0.95), eps=1e-8, weight_decay=args.wd)
     # the tensor watched by the step-1 writeback check
     if args.method == "full":
         watch_name, watch = "model.layers.0.self_attn.q_proj.weight", model.model.layers[0].self_attn.q_proj.weight
+    elif args.method == "dt":
+        watch_name, layer0 = dtmask.masked_layers(model)[0]
+        watch_name, watch = watch_name + ".gate", layer0.gate
     else:
         watch_name, watch = "model.layers.0.self_attn.q_proj.lora_B", model.model.layers[0].self_attn.q_proj.lora_B
     rng = random.Random(args.seed)
@@ -358,19 +431,27 @@ def train(args) -> dict:
         mbs = [collate(g, pad_id) for g in groups]
         lr = lr_at(step, args)
         for g in opt.param_groups:
-            g["lr"] = lr
+            g["lr"] = g["base_lr"] * lr / args.lr
         opt.zero_grad(set_to_none=True)
         loss, count = accumulate(model, mbs, device)
+        reg_val = None
+        if args.method == "dt" and args.dt_lambda > 0:
+            lam = dtmask.lambda_at(step, args.steps, args.dt_lambda)
+            reg = dtmask.regulariser(model)
+            (-lam * reg).backward()  # once per optimizer step: the official per-microbatch term averaged over accumulation
+            reg_val = float(reg.detach())
         gn = torch.nn.utils.clip_grad_norm_(params, args.clip)
         if step == 0:
             p0, g0 = watch.detach().clone(), watch.grad.detach().clone()
         opt.step()
+        if args.method == "dt":
+            dtmask.step_all(model)
         if step == 0:
             checks["writeback_step1"] = {"tensor": watch_name, "lr": lr, "storage_dtype": str(watch.dtype),
                                          **writeback_check(p0.cpu(), g0.cpu(), watch.detach().cpu(), lr, args.wd, 1e-8)}
             del p0, g0
         seen_rows += len(take)
-        rec = {"step": step + 1, "loss": loss, "targets": count, "lr": lr, "grad_norm": float(gn),
+        rec = {"step": step + 1, "loss": loss, "targets": count, "lr": lr, "grad_norm": float(gn), **({"reg": reg_val} if reg_val is not None else {}),
                "tokens": sum(len(rows[i]["input_ids"]) for i in take), "microbatches": len(mbs)}
         if (step + 1) % 100 == 0 or step + 1 == args.steps:
             sync(device)
@@ -396,6 +477,24 @@ def train(args) -> dict:
     with torch.no_grad():
         ref_logits = model(input_ids=pb.input_ids.to(device), attention_mask=pb.attention_mask.to(device)).logits.float().cpu()
     lora_state = None
+    if frozen_before is not None:
+        frozen_after = frozen_sha256(model, marker_ids)
+        checks["frozen_weights_unchanged"] = {"sha256_before": frozen_before, "sha256_after": frozen_after,
+                                              "scope": "every frozen tensor" + (" + non-marker embedding rows" if marker_ids else ""),
+                                              "pass": frozen_before == frozen_after}
+    if args.method == "dt":
+        method_info["deletion_final"] = dtmask.deletion_stats(model)
+        method_info["alpha_final"] = dtmask.masked_layers(model)[0][1].alpha
+        masks = dtmask.bake(model)  # hard mask written into plain Linear layers: every evaluation sees W * 1[G > 0]
+        blob, meta = dtmask.pack_masks(masks)
+        (out / "dt_mask.bin").write_bytes(blob)
+        (out / "dt_mask.json").write_text(json.dumps(meta), encoding="utf-8")
+        method_info["mask_artifact"] = {k: v for k, v in meta.items() if k != "shapes"}
+        with torch.no_grad():
+            baked_logits = model(input_ids=pb.input_ids.to(device), attention_mask=pb.attention_mask.to(device)).logits.float().cpu()
+        checks["bake_parity"] = {"logits_max_abs_diff": float((baked_logits - ref_logits)[pb.attention_mask.bool()].abs().max()),
+                                 "compared": "eval-mode MaskedLinear (hard mask) vs baked nn.Linear", "tolerance": 0.0}
+        checks["bake_parity"]["pass"] = checks["bake_parity"]["logits_max_abs_diff"] == 0.0
     if args.method == "lora":
         lora_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items() if "lora_" in k}
         torch.save(lora_state, out / "lora_adapter.pt")
@@ -421,7 +520,7 @@ def train(args) -> dict:
         re_logits = reloaded(input_ids=pb.input_ids.to(device), attention_mask=pb.attention_mask.to(device)).logits.float().cpu()
     valid = pb.attention_mask.bool()
     max_diff = float((re_logits - ref_logits)[valid].abs().max())
-    tol = 0.0 if args.method == "full" else 1e-3
+    tol = 1e-3 if args.method == "lora" else 0.0
     checks["reload_parity"] = {"tensors_bit_identical": bool(tensors_equal), "logits_max_abs_diff": max_diff,
                                "tolerance": tol, "compared": "in-memory model (LoRA unmerged) vs reloaded saved folder",
                                "pass": bool(tensors_equal and max_diff <= tol),
@@ -468,6 +567,16 @@ def parse_args(argv=None):
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--lora-r", type=int, default=4)
     ap.add_argument("--lora-alpha", type=float, default=8.0)
+    ap.add_argument("--dt-targets", choices=sorted(dtmask.TARGET_SETS), default="gate")
+    ap.add_argument("--dt-eta", type=float, default=1 / 2048, help="Wanda prior quantile (the knob; deletion is an outcome)")
+    ap.add_argument("--dt-alpha-start", type=float, default=100.0)
+    ap.add_argument("--dt-alpha-end", type=float, default=1000.0)
+    ap.add_argument("--dt-lambda", type=float, default=1e-5)
+    ap.add_argument("--dt-prior-strength", type=float, default=3.0)
+    ap.add_argument("--dt-calib-rows", type=int, default=64)
+    ap.add_argument("--train-marker-rows", action="store_true",
+                    help="HYBRID control for lora/dt: also train the embedding rows of the mapped chat markers")
+    ap.add_argument("--marker-lr", type=float, default=1e-4, help="peak LR of the marker rows (same schedule shape)")
     ap.add_argument("--device", default="mps" if torch.backends.mps.is_available() else "cpu")
     ap.add_argument("--log-every", type=int, default=10)
     ap.add_argument("--out", required=True)
@@ -480,7 +589,7 @@ def main(argv=None) -> int:
     summary = {k: rep[k] for k in ("rows", "epochs", "train_seconds", "seconds_per_100_steps", "peak_rss_mb",
                                     "first_loss", "last_loss", "mean_loss_first_20", "mean_loss_last_20", "checks")}
     print(json.dumps(summary, indent=1))
-    ok = rep["checks"]["writeback_step1"]["pass"] and rep["checks"]["reload_parity"]["pass"]
+    ok = all(c.get("pass", True) for c in rep["checks"].values())
     return 0 if ok else 1
 
 

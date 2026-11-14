@@ -8,10 +8,10 @@ Results: [`../../results/small_sft.md`](../../results/small_sft.md). Scorers: [`
 |---|---|
 | `slice.py` | Builds train/dev/test from admitted OCR-2 pack rows. Split unit = near-duplicate cluster of the problem family key (never a row, never the completion id). Drops rows whose cluster touches a WP1 held-out family. Writes ids, counts and sha256 in `manifest.json`. |
 | `retok.py` | Maps G10 markers to existing surrogate special tokens (no new embedding rows), re-tokenises in one batch, rebuilds the mask with `convert.train_spans` + `convert.token_mask`. |
-| `train.py` | AdamW, FP32 master weights, loss contract of `train_probe.py` (imported), methods `full`, `lora` (r=4 on q/k/v/o/gate/up/down), `dt` (stub: raises `NotImplementedError` until WP2). Step-1 stored-weight writeback check; save + reload parity check. |
+| `train.py` | AdamW, FP32 master weights, loss contract of `train_probe.py` (imported), methods `full`, `lora` (r=4 on q/k/v/o/gate/up/down), `dt` (Deletion Tuning from `../../dt/mask.py`: gate_proj mask logits, hard mask baked for evaluation; `--train-marker-rows` adds the labelled marker-row hybrid, wd must be 0). Step-1 stored-weight writeback check; save + reload parity check. |
 | `evaluate.py` | Separate process. Target bits per byte, format validity, execution pass@1 (Docker, `rl-data/stdio_check.py`), forgetting bpb on G5 held-out v1 (G5 `scoring.py`), Team 9 eval-mini (black box). |
 | `exec_tasks.py` | stdin/stdout tests for dev/test problems from the pinned human-written sources, accepted only if the statement's family hash matches. |
-| `tests/test_bench.py` | 18 tests: marker ids, mask parity with `convert.py` (fixtures, and 50 real rows when `G10_BENCH_SLICE` is set), zero split overlap, held-out guard, eval firewall, loss and gradient equal to `train_probe`, zero-target rejection, target bytes counted once under byte-fallback tokens, writeback check, CPU determinism of two seeded runs, LoRA trains adapters only, DT stub, format judge. |
+| `tests/test_bench.py` | 19 tests: marker ids, mask parity with `convert.py` (fixtures, and 50 real rows when `G10_BENCH_SLICE` is set), zero split overlap, held-out guard, eval firewall, loss and gradient equal to `train_probe`, zero-target rejection, target bytes counted once under byte-fallback tokens, writeback check, CPU determinism of two seeded runs, LoRA trains adapters only, DT end-to-end (logits only, base-or-zero weights, mask artefact), marker hybrid moves only marker rows, format judge. |
 
 ## Marker table (SmolLM2-135M)
 
