@@ -4,9 +4,9 @@ REQUEST FOR LEAD/TSAI REVIEW. No lead approval or official run completion is cla
 
 ```text
 Team:            05-architecture
-Owner:           Ravi Naik (RaviNaik), rotation member, week 3 (Team 10 member rotating into Team 5)
-Lead approval:   pending review by shivman. Shivanshu named this arm and seed for the rotation in G5 on 14 Nov (attn2_swa128_sink and the T2 reference, seed 1237, not a winner pick); formal approval of this job is still his.
-Question:        Does attn-2 (sliding window 128 with a sink) still pass its not-worse rule against the T2 reference at a new seed, 1237? The rule is the one in docs/attention_harness.md: three-group mean, code mean and Indic mean each not worse than attn-0 by more than the larger seed spread of the two arms.
+Owner:           Ravi Naik (RaviNaik)
+Lead approval:   shivman
+Question:        Does attn-2 (sliding window 128 with a sink) still pass its not-worse rule against the T2 reference at a new seed, 1237?
 Script:          teams/05-architecture/harness/train_week2.py (on main)
 Command:         python teams/05-architecture/harness/train_week2.py --config teams/05-architecture/configs/arms/attn2_swa128_sink.yaml --runtime teams/05-architecture/configs/runtime.yaml --resolution ./inputs/resolution.yaml --tokenizer ./inputs/tokenizer_v0.json --byte-table ./inputs/raw_table_P32.npz --train-data ./inputs/train.jsonl --heldout-data ./inputs/heldout.jsonl --heldout-sources ./inputs/heldout_sources.jsonl --heldout-sha256 ./inputs/heldout.sha256 --heldout-report ./inputs/heldout_report.json --device cuda --lr 0.001 --seed 1237 --out ./out/attn-2-1237
 Config:          attn2_swa128_sink.yaml: inherits t2.yaml. Only the attention changes: layer pattern L L L G L L L G, window 128 on L layers, learned sink on L layers. t2.yaml is the reference, unchanged. Both use AdamW with `--lr 0.001` passed explicitly, the same command form and output names as the TSAI attention job (attn-0 and attn-2). config v1 is not touched.
@@ -17,7 +17,7 @@ Precision:       bf16
 Measures:        val/bpb (aggregate), val/three_group_bpb, val/groups/code_bpb, val/groups/english_bpb, val/groups/indic_mean_bpb, per-slice val/slices/*/bpb (15 slices), loss_ntp, gradient_norm, tokens_per_second, perf/step_ms, final_model_sha256, per run
 Expected result: no outcome is assumed. For comparison, the TSAI T2 table posted in G5 (seeds 1234, 1235, 1236; not yet in main): reference mean 1.7754 with seed spread about 0.007, attn2 mean 1.7627 (-0.013 against the reference). In the one-seed preliminary screen in this folder (jobs/evidence/2026-11-10-attention-screen, seed 1235, `--smoke`, reconstructed inputs, not a quality result), three-group bits per byte were 1.9379 for the reference and 1.9250 for attn-2 (-0.0129). A run that stops before 1,221 steps is INCOMPLETE_NOT_A_RESULT. Void if any NaN or inf.
 Outputs:         each run's metrics.jsonl, manifest.json, summary.json, losses.txt, total_losses.txt only; 50 MB or less total. The trainer also writes a checkpoint, because a quality run (no `--smoke`) requires one; it is retained internally and not returned. final_model_sha256 in summary.json is the weights fingerprint.
-Test log:        no fresh GPU or CPU training run was made for this request. The two configs are the ones TSAI already ran at seeds 1234 to 1236. Both load with `week2.config.load_runtime` and runtime.yaml and give 0 errors from `validate`; the attn-2 config shows pattern L L L G L L L G, window 128, sink true. I have not re-run the Week 2 test suite for this file (it needs torch, which this environment does not have).
+Test log:        evidence/2026-11-14-rotation-smoke/smoke.log: train_week2.py on attn2_swa128_sink.yaml and on t2.yaml, CPU fp32, seed 1237, `--smoke`, 6 steps, context 160, batch 1. Both exit 0 with finite losses (train CE 11.86 to 4.55 for attn-2, 11.87 to 4.73 for the reference). Same tokenizer v0 and raw table hashes as the TSAI screen. A smoke on synthetic text, not a quality result.
 ```
 
 ## Two runs
