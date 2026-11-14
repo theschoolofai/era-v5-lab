@@ -39,13 +39,13 @@ How to fill it:
 
 | Team | Proposal pull request | Lead OK |
 |---|---|---|
-| Tokenizer | [#340](https://github.com/theschoolofai/era-v5-lab/pull/340) | no |
+| Tokenizer | [#340](https://github.com/theschoolofai/era-v5-lab/pull/340) | yes |
 | KE2 | [#349](https://github.com/theschoolofai/era-v5-lab/pull/349) | no |
 | Architecture | [#374](https://github.com/theschoolofai/era-v5-lab/pull/374) | no |
-| Data B | [#327](https://github.com/theschoolofai/era-v5-lab/pull/327) | no |
-| Data A | [#255](https://github.com/theschoolofai/era-v5-lab/pull/255), [#365](https://github.com/theschoolofai/era-v5-lab/pull/365) | no |
-| Post-training | [#312](https://github.com/theschoolofai/era-v5-lab/pull/312), [#391](https://github.com/theschoolofai/era-v5-lab/pull/391) | no |
-| Quantization | [#221](https://github.com/theschoolofai/era-v5-lab/pull/221) | no |
+| Data B | [#327](https://github.com/theschoolofai/era-v5-lab/pull/327), [#383](https://github.com/theschoolofai/era-v5-lab/pull/383), [#400](https://github.com/theschoolofai/era-v5-lab/pull/400) | yes |
+| Data A | [#255](https://github.com/theschoolofai/era-v5-lab/pull/255), [#365](https://github.com/theschoolofai/era-v5-lab/pull/365) | yes |
+| Post-training | [#312](https://github.com/theschoolofai/era-v5-lab/pull/312), [#391](https://github.com/theschoolofai/era-v5-lab/pull/391) | yes |
+| Quantization | [#221](https://github.com/theschoolofai/era-v5-lab/pull/221) | yes |
 
 - [x] `check_style.py` gives 0 errors
 - [ ] Every number in the text has TSAI approval
