@@ -14,6 +14,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import build_deepcoder as deepcoder  # noqa: E402
 import stdio_check  # noqa: E402
 
+parametrize = pytest.mark.parametrize
+
 
 def fixture_row() -> dict:
     return {
@@ -37,7 +39,7 @@ def test_converts_to_stdio_task_with_pinned_source():
     ]
 
 
-@pytest.mark.parametrize("tests", [
+@parametrize("tests", [
     "",
     "[]",
     '[{"type": "function_call", "input": "1", "output": "2"}]',
