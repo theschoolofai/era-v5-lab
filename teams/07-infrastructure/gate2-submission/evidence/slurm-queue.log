@@ -1,0 +1,23 @@
+Slurmctld(primary) at slurmctld is UP
+Mon Nov 02 08:40:04 2026
+NODELIST   NODES PARTITION       STATE CPUS    S:C:T MEMORY TMP_DISK WEIGHT AVAIL_FE REASON              
+c1             1      cpu*        idle 10     1:10:1   7934        0      1      cpu none                
+c2             1      cpu*        idle 10     1:10:1   7934        0      1      cpu none
+Queue test outputs: /data/team7-smoke-20261102T084004Z
+user1 job=33 RUNNING|None
+user2 job=34 PENDING|Resources
+JOBID       USER        STATE     NODELIST(REASON)
+          34      user2      PENDING          (Resources)
+          33      user1      RUNNING               c[1-2]
+33|user1|COMPLETED|0:0|c[1-2]
+user1 output:
+user1
+user1
+c1
+c2
+34|user2|COMPLETED|0:0|c1
+user2 output:
+user2
+c1
+QUEUE_SMOKE_DONE
+[PASS] user1 occupied both CPU nodes, user2 queued, then completed after resources freed. This does not test CUDA, training, fair-share or account limits.

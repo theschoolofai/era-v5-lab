@@ -1,0 +1,23 @@
+# Build context must be teams/07-infrastructure, not the shared repo root.
+.git
+.gitignore
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+.ruff_cache
+.tox
+.env
+.env.*
+evidence
+logs
+runs
+out
+checkpoints
+*.pt
+*.pth
+*.ckpt
+build
+dist

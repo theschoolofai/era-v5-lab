@@ -1,0 +1,50 @@
+{"attempt": 1, "command": ["/data/team7-gate2-py312/bin/python", "/data/team7-gate2-20261102T083952Z/infra/tests/gate2_worker.py", "--config", "/data/team7-gate2-20261102T083952Z/infra/examples/gate2_config.json", "--run-dir", "/data/team7-gate2-20261102T083952Z/gate2/reference", "--resume", "none"], "event": "attempt_started", "pid": 574, "resume_step": 0, "time_ns": 1793608796936991587}
+{"attempt": 1, "event": "attempt_exited", "returncode": 0, "time_ns": 1793608797890253630}
+{"attempts": 1, "event": "succeeded", "time_ns": 1793608797891175838}
+{"restored_step": 100, "torch": "2.5.1", "device": "cpu"}
+{
+  "status": "PASS",
+  "device": "cpu",
+  "torch": "2.5.1",
+  "python": "3.12.15 (main, Oct  1 2026, 00:00:00) [GCC 11.5.0 20240719 (Red Hat 11.5.0-14)]",
+  "platform": "linux",
+  "restore": {
+    "compared_steps": 100,
+    "first_step": 101,
+    "last_step": 200,
+    "bit_equal_loss": true,
+    "identical_ordered_data_ids": true,
+    "final_state_equal": {
+      "model": true,
+      "optimizer": true,
+      "scheduler": true,
+      "sampler": true,
+      "rng": true
+    }
+  },
+  "automatic_restart": {
+    "compared_steps": 100,
+    "first_step": 101,
+    "last_step": 200,
+    "bit_equal_loss": true,
+    "identical_ordered_data_ids": true,
+    "final_state_equal": {
+      "model": true,
+      "optimizer": true,
+      "scheduler": true,
+      "sampler": true,
+      "rng": true
+    },
+    "signal": "SIGKILL",
+    "killed_after_step": 125,
+    "resumed_checkpoint_step": 100,
+    "attempts": 2,
+    "invalid_checkpoints_excluded": 4,
+    "incomplete_temporary_directory_ignored": true,
+    "stale_lock_quarantined": true,
+    "corrupt_future_publish_path_recovered": true,
+    "concurrent_writer_rejected": true
+  },
+  "supervisor_TERM_cancels_without_restart": true,
+  "scope": "Single-process CPU acceptance fixture. No GPU/MoE/distributed/Slurm allocation-loss certification."
+}

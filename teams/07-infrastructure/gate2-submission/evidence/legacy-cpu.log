@@ -1,0 +1,4 @@
+torch=2.14.1 cuda_available=False gpu_count=0
+[CHECKPOINT] Atomically saved checkpoint to state.pt
+[CHECKPOINT] Successfully loaded checkpoint from state.pt (Step 1)
+[PASS] CPU tensor math; atomic checkpoint replacement; model, optimizer and Python/NumPy/Torch RNG restore; five identical resumed CPU losses
