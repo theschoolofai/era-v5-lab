@@ -1,6 +1,6 @@
 # Medicine sheet: Data A — spec v1.1, combined (spec v1 + Spec v1.1, contributors retained per rule)
 
-Status: **DRAFT / CANDIDATE**. TSAI's Gate 2 decision (14 Nov 2026): spec v1 and spec v1.1 become one spec v1.1, and theschoolofai/era-v5-lab#435 is that spec. This sheet holds both, in run order: 364 rules (340 from spec v1 and 24 from Spec v1.1). No rule is approved by this document.
+Status: FINAL SUBMISSION for TSAI's Gate 2 decision (14 Nov 2026): spec v1 and spec v1.1 become one spec v1.1, and theschoolofai/era-v5-lab#435 is that spec. This sheet holds both, in run order: 364 rules (340 from spec v1 and 24 from Spec v1.1). No rule is approved by this document.
 
 ## How this sheet is made
 
