@@ -28,25 +28,32 @@ from decontam_check import read_docs  # noqa: E402
 
 EOS, SPECIAL = 9, 9  # toy vocab: id 9 is the EOS and the first special id
 VOCAB = {"[UNK]": 0, "hello": 1, "world": 2, "foo": 3, "bar": 4, "baz": 5, "<x>": 8, "<eos>": 9}
-DOCS = {"d1": "hello world", "d2": "foo bar baz", "d3": "world"}
+DOCS = {"d1": "hello world", "d2": "foo bar baz", "d3": "world"}  # d1: 0-2, d2: 3-6, d3: 7-8 (EOS last)
 
 
 def _sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-@pytest.fixture
-def toy_tokenizer(tmp_path):
+def _toy(tmp_path, specials=()):
     from tokenizers import Tokenizer, models, pre_tokenizers
     tok = Tokenizer(models.WordLevel(VOCAB, unk_token="[UNK]"))
     tok.pre_tokenizer = pre_tokenizers.Whitespace()
-    path = tmp_path / "toy_tokenizer.json"
+    if specials:
+        tok.add_special_tokens(list(specials))
+    path = tmp_path / f"toy_tokenizer{len(specials)}.json"
     tok.save(str(path))
     return path
 
 
+@pytest.fixture
+def toy_tokenizer(tmp_path):
+    return _toy(tmp_path)
+
+
 def write_shard(folder, tok_path, docs=DOCS, shard_id="toy-train-000000", eos=EOS, tamper=None):
-    """Write <shard_id>.{bin,idx.npy,docs.parquet,json} like shard_writer.py. tamper(files) may edit before the manifest."""
+    """Write <shard_id>.{bin,idx.npy,docs.parquet,json} like shard_writer.py, with a full manifest.
+    tamper(files) may edit the files before the manifest is written, so the sha256 checks still pass."""
     from tokenizers import Tokenizer
     tok = Tokenizer.from_file(str(tok_path))
     seqs = [tok.encode(text).ids + [eos] for text in docs.values()]
@@ -62,17 +69,53 @@ def write_shard(folder, tok_path, docs=DOCS, shard_id="toy-train-000000", eos=EO
     pq.write_table(pa.table({"doc_id": list(docs), "n_tokens": np.diff(starts)}), files["docs"])
     if tamper:
         tamper(files)
-    manifest = {"shard_id": shard_id, "payload_sha256": _sha(files["bin"]), "index_sha256": _sha(files["idx"]),
-                "sample_metadata_sha256": _sha(files["docs"]), "doc_count": len(docs), "token_count": len(tokens),
-                "eos_token_id": eos, "tokenizer_sha256": _sha(tok_path)}
+    idx_now = np.load(files["idx"])
+    manifest = {"schema_version": "shard-v1", "token_dtype": "uint32", "shard_id": shard_id,
+                "payload_uri": files["bin"].name, "index_uri": files["idx"].name,
+                "sample_metadata_uri": files["docs"].name, "payload_bytes": files["bin"].stat().st_size,
+                "payload_sha256": _sha(files["bin"]), "index_sha256": _sha(files["idx"]),
+                "sample_metadata_sha256": _sha(files["docs"]), "doc_count": len(idx_now) - 1,
+                "token_count": int(idx_now[-1]), "eos_token_id": eos, "tokenizer_sha256": _sha(tok_path)}
     files["manifest"].write_text(json.dumps(manifest), encoding="utf-8")
     return files
 
 
-def _decode(files, tok_path):
+def _decode(files, tok_path, special_from=SPECIAL):
     tok, sha = ds.load_tokenizer(tok_path, any_tokenizer=True)
-    return ds.decode_shard(files["bin"], tok, sha, eos_id=EOS, special_from=SPECIAL)
+    return ds.decode_shard(files["bin"], tok, sha, eos_id=EOS, special_from=special_from)
 
+
+def _run_cli(argv):
+    old = (ds.EOS_ID, ds.SPECIAL_FROM)
+    ds.EOS_ID, ds.SPECIAL_FROM = EOS, SPECIAL
+    try:
+        return ds.main(argv)
+    finally:
+        ds.EOS_ID, ds.SPECIAL_FROM = old
+
+
+def _set_token(pos, value):
+    def tamper(files):
+        raw = bytearray(files["bin"].read_bytes())
+        at = ds.HEADER_BYTES + 4 * pos
+        raw[at:at + 4] = int(value).to_bytes(4, "little")
+        files["bin"].write_bytes(bytes(raw))
+    return tamper
+
+
+def _set_header(index, value):
+    def tamper(files):
+        raw = bytearray(files["bin"].read_bytes())
+        raw[4 * index:4 * index + 4] = int(value).to_bytes(4, "little", signed=True)
+        files["bin"].write_bytes(bytes(raw))
+    return tamper
+
+
+def _docs(**cols):
+    return lambda f: pq.write_table(pa.table(cols), f["docs"])
+
+
+# --- correct shards -----------------------------------------------------------------------------------------------
 
 def test_decode_round_trip(tmp_path, toy_tokenizer):
     files = write_shard(tmp_path, toy_tokenizer)
@@ -81,6 +124,11 @@ def test_decode_round_trip(tmp_path, toy_tokenizer):
     assert table.column("text").to_pylist() == list(DOCS.values())
     assert table.column("n_tokens").to_pylist() == [3, 4, 2]  # tokens plus the final EOS
     assert set(table.column("shard_id").to_pylist()) == {"toy-train-000000"}
+
+
+def test_one_document_shard(tmp_path, toy_tokenizer):
+    files = write_shard(tmp_path, toy_tokenizer, docs={"only": "foo"})
+    assert _decode(files, toy_tokenizer).column("text").to_pylist() == ["foo"]
 
 
 def test_output_reads_in_decontam_check(tmp_path, toy_tokenizer):
@@ -107,12 +155,7 @@ def test_cli_writes_one_file_per_shard(tmp_path, toy_tokenizer, capsys):
     shards.mkdir()
     write_shard(shards, toy_tokenizer, shard_id="toy-train-000000")
     write_shard(shards, toy_tokenizer, docs={"e1": "baz foo"}, shard_id="toy-train-000001")
-    old = (ds.EOS_ID, ds.SPECIAL_FROM)
-    ds.EOS_ID, ds.SPECIAL_FROM = EOS, SPECIAL
-    try:
-        rc = ds.main([str(shards), "--tokenizer", str(toy_tokenizer), "--out", str(tmp_path / "out"), "--any-tokenizer"])
-    finally:
-        ds.EOS_ID, ds.SPECIAL_FROM = old
+    rc = _run_cli([str(shards), "--tokenizer", str(toy_tokenizer), "--out", str(tmp_path / "out"), "--any-tokenizer"])
     assert rc == 0
     assert sorted(p.name for p in (tmp_path / "out").iterdir()) == ["toy-train-000000.text.parquet",
                                                                     "toy-train-000001.text.parquet"]
@@ -124,13 +167,7 @@ def test_refuses_a_tokenizer_that_is_not_c3(toy_tokenizer):
         ds.load_tokenizer(toy_tokenizer)
 
 
-def _set_header(index, value):
-    def tamper(files):
-        raw = bytearray(files["bin"].read_bytes())
-        raw[4 * index:4 * index + 4] = int(value).to_bytes(4, "little", signed=True)
-        files["bin"].write_bytes(bytes(raw))
-    return tamper
-
+# --- shards that must be refused ----------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("tamper, message", [
     (_set_header(0, 1234), "bad header"),
@@ -138,43 +175,67 @@ def _set_header(index, value):
     (lambda f: f["bin"].write_bytes(f["bin"].read_bytes()[:-4]), "size"),
     (lambda f: np.save(f["idx"], np.array([0, 3, 7], dtype=np.int64)), "end at the token count"),
     (lambda f: np.save(f["idx"], np.array([0, 3, 3, 9], dtype=np.int64)), "rise"),
-    (lambda f: pq.write_table(pa.table({"doc_id": ["d1", "d2"]}), f["docs"]), "rows"),
+    (_docs(doc_id=["d1", "d2"], n_tokens=[3, 4]), "rows"),
+    (_docs(doc_id=["d1", "d2", "d3"]), "no n_tokens column"),
+    (_docs(doc_id=["d1", "d1", "d3"], n_tokens=[3, 4, 2]), "not unique"),
+    (_docs(doc_id=["d1", None, "d3"], n_tokens=[3, 4, 2]), "null or empty"),
+    (_docs(doc_id=["d3", "d1", "d2"], n_tokens=[2, 3, 4]), r"row 0 \(d3\) n_tokens 2, the index gives 3"),  # rows shifted
+    (_set_token(1, EOS), "special id 9 inside document d1"),            # an EOS inside a document
+    (_set_token(4, 8), "special id 8 inside document d2"),              # a reserved special id inside a document
+    (_set_token(4, 200_000), "token id 200000 at position 4 is not below the vocab size 10"),
+    (_set_token(8, 2), "does not end with EOS"),
 ])
-def test_bad_shard_files_are_refused(tmp_path, toy_tokenizer, tamper, message):
+def test_bad_shard_is_refused(tmp_path, toy_tokenizer, tamper, message):
     files = write_shard(tmp_path, toy_tokenizer, tamper=tamper)
     with pytest.raises(ds.ShardError, match=message):
+        _decode(files, toy_tokenizer, special_from=8)
+
+
+def test_merged_documents_are_refused(tmp_path, toy_tokenizer):
+    """Drop one index boundary and its docs row: two documents would come out as one, joined by an EOS."""
+    def merge_d1_d2(files):
+        np.save(files["idx"], np.array([0, 7, 9], dtype=np.int64))
+        pq.write_table(pa.table({"doc_id": ["d1", "d3"], "n_tokens": [7, 2]}), files["docs"])
+    files = write_shard(tmp_path, toy_tokenizer, tamper=merge_d1_d2)
+    with pytest.raises(ds.ShardError, match="special id 9 inside document d1"):
         _decode(files, toy_tokenizer)
 
 
-def test_manifest_hash_mismatch_is_refused(tmp_path, toy_tokenizer):
+def test_added_special_token_below_the_reserved_block_is_refused(tmp_path):
+    """C3 has added special tokens below 130,725 (e.g. 36, 129994); they count as special too."""
+    path = _toy(tmp_path, specials=["<sp>"])
+    from tokenizers import Tokenizer
+    sp_id = Tokenizer.from_file(str(path)).token_to_id("<sp>")
+    files = write_shard(tmp_path, path, tamper=_set_token(4, sp_id))
+    tok, sha = ds.load_tokenizer(path, any_tokenizer=True)
+    assert sp_id in ds.special_ids(tok).tolist()
+    with pytest.raises(ds.ShardError, match=f"special id {sp_id} inside document d2"):
+        ds.decode_shard(files["bin"], tok, sha, eos_id=EOS)  # default block (130,725+) is above this toy vocab
+
+
+@pytest.mark.parametrize("key, value", [
+    ("schema_version", "shard-v0"), ("token_dtype", "uint16"), ("shard_id", "hindi-web-train-000123"),
+    ("payload_uri", "other.bin"), ("index_uri", "other.idx.npy"), ("sample_metadata_uri", "other.docs.parquet"),
+    ("payload_bytes", 1), ("payload_sha256", "0" * 64), ("index_sha256", "0" * 64),
+    ("sample_metadata_sha256", "0" * 64), ("doc_count", 2), ("token_count", 8), ("eos_token_id", 7),
+    ("tokenizer_sha256", "0" * 64),
+])
+def test_manifest_mismatch_is_refused(tmp_path, toy_tokenizer, key, value):
     files = write_shard(tmp_path, toy_tokenizer)
     m = json.loads(files["manifest"].read_text())
-    m["payload_sha256"] = "0" * 64
+    m[key] = value
     files["manifest"].write_text(json.dumps(m))
-    with pytest.raises(ds.ShardError, match="payload_sha256"):
+    with pytest.raises(ds.ShardError, match=key):
         _decode(files, toy_tokenizer)
 
 
-def test_document_without_eos_is_refused(tmp_path, toy_tokenizer):
-    def drop_last_eos(files):
-        raw = bytearray(files["bin"].read_bytes())
-        raw[-4:] = (2).to_bytes(4, "little")  # last doc ends with "world" instead of EOS
-        files["bin"].write_bytes(bytes(raw))
-    files = write_shard(tmp_path, toy_tokenizer, tamper=drop_last_eos)
-    with pytest.raises(ds.ShardError, match="does not end with EOS"):
-        _decode(files, toy_tokenizer)
-
-
-def test_special_id_inside_a_document_is_refused(tmp_path, toy_tokenizer):
-    def put_special_in_d2(files):
-        raw = bytearray(files["bin"].read_bytes())
-        pos = ds.HEADER_BYTES + 4 * 4  # token 4 = second token of d2 ("bar")
-        raw[pos:pos + 4] = (8).to_bytes(4, "little")
-        files["bin"].write_bytes(bytes(raw))
-    files = write_shard(tmp_path, toy_tokenizer, tamper=put_special_in_d2)
-    tok, sha = ds.load_tokenizer(toy_tokenizer, any_tokenizer=True)
-    with pytest.raises(ds.ShardError, match="special id 8 inside document d2"):
-        ds.decode_shard(files["bin"], tok, sha, eos_id=EOS, special_from=8)
+def test_renamed_shard_is_refused(tmp_path, toy_tokenizer):
+    """The shard_id comes from the manifest, not just the file name."""
+    files = write_shard(tmp_path, toy_tokenizer)
+    for f in files.values():
+        f.rename(f.with_name(f.name.replace("toy-train-000000", "hindi-web-train-000123")))
+    with pytest.raises(ds.ShardError, match="shard_id"):
+        _decode(ds.shard_files(tmp_path / "hindi-web-train-000123.bin"), toy_tokenizer)
 
 
 def test_missing_file_is_refused(tmp_path, toy_tokenizer):
@@ -184,58 +245,15 @@ def test_missing_file_is_refused(tmp_path, toy_tokenizer):
         _decode(files, toy_tokenizer)
 
 
-real = pytest.mark.skipif(not (os.environ.get("ERA_SHARD") and os.environ.get("ERA_C3_TOKENIZER")),
-                          reason="set ERA_SHARD and ERA_C3_TOKENIZER to test a real shard")
+# --- the command line on bad input --------------------------------------------------------------------------------
 
-
-@real
-def test_real_shard_decodes_and_matches_its_manifest():
-    tok, sha = ds.load_tokenizer(os.environ["ERA_C3_TOKENIZER"])
-    table = ds.decode_shard(os.environ["ERA_SHARD"], tok, sha)
-    manifest = json.loads(ds.shard_files(os.environ["ERA_SHARD"])["manifest"].read_text(encoding="utf-8"))
-    assert table.num_rows == manifest["doc_count"]
-    assert sum(table.column("n_tokens").to_pylist()) == manifest["token_count"]
-    if os.environ.get("ERA_SHARD_CLEAN"):
-        checked, bad = ds.check_text(table, os.environ["ERA_SHARD_CLEAN"], tok)
-        assert bad == [], f"{len(bad)} of {checked} documents do not round-trip"
-
-
-def _run_cli(argv):
-    old = (ds.EOS_ID, ds.SPECIAL_FROM)
-    ds.EOS_ID, ds.SPECIAL_FROM = EOS, SPECIAL
-    try:
-        return ds.main(argv)
-    finally:
-        ds.EOS_ID, ds.SPECIAL_FROM = old
-
-
-def test_added_special_token_below_the_reserved_block_is_refused(tmp_path):
-    """C3 has added special tokens below 130,725 (e.g. 36, 129994); they count as special too."""
-    from tokenizers import Tokenizer, models, pre_tokenizers
-    tok = Tokenizer(models.WordLevel(VOCAB, unk_token="[UNK]"))
-    tok.pre_tokenizer = pre_tokenizers.Whitespace()
-    sp_id = tok.add_special_tokens(["<sp>"]) and tok.token_to_id("<sp>")
-    path = tmp_path / "tok_with_special.json"
-    tok.save(str(path))
-
-    def put_added_special_in_d2(files):
-        raw = bytearray(files["bin"].read_bytes())
-        pos = ds.HEADER_BYTES + 4 * 4
-        raw[pos:pos + 4] = int(sp_id).to_bytes(4, "little")
-        files["bin"].write_bytes(bytes(raw))
-    files = write_shard(tmp_path, path, tamper=put_added_special_in_d2)
-    t, sha = ds.load_tokenizer(path, any_tokenizer=True)
-    assert sp_id in ds.special_ids(t).tolist()
-    with pytest.raises(ds.ShardError, match=f"special id {sp_id} inside document d2"):
-        ds.decode_shard(files["bin"], t, sha, eos_id=EOS)  # default block (130,725+) is above this toy vocab
-
-
-def test_corrupt_manifest_skips_that_shard_only(tmp_path, toy_tokenizer, capsys):
+@pytest.mark.parametrize("manifest", ["{not json", "[]"])
+def test_bad_manifest_skips_that_shard_only(tmp_path, toy_tokenizer, capsys, manifest):
     shards = tmp_path / "shards"
     shards.mkdir()
     write_shard(shards, toy_tokenizer, shard_id="toy-train-000000")
     bad = write_shard(shards, toy_tokenizer, docs={"e1": "baz"}, shard_id="toy-train-000001")
-    bad["manifest"].write_text("{not json", encoding="utf-8")
+    bad["manifest"].write_text(manifest, encoding="utf-8")
     rc = _run_cli([str(shards), "--tokenizer", str(toy_tokenizer), "--out", str(tmp_path / "out"), "--any-tokenizer"])
     assert rc == 1
     assert [p.name for p in (tmp_path / "out").iterdir()] == ["toy-train-000000.text.parquet"]
@@ -250,3 +268,67 @@ def test_duplicate_shard_id_is_refused(tmp_path, toy_tokenizer, capsys):
                    "--any-tokenizer"])
     err = capsys.readouterr().err
     assert rc == 1 and "appears twice" in err and "decoded 1 of 2 shard(s)" in err
+
+
+def test_stray_bin_without_manifest_is_ignored(tmp_path, toy_tokenizer, capsys):
+    shards = tmp_path / "shards"
+    shards.mkdir()
+    write_shard(shards, toy_tokenizer)
+    (shards / "pytorch_model.bin").write_bytes(b"\0" * 64)
+    rc = _run_cli([str(shards), "--tokenizer", str(toy_tokenizer), "--out", str(tmp_path / "out"), "--any-tokenizer"])
+    err = capsys.readouterr().err
+    assert rc == 0 and "ignoring" in err and "pytorch_model.bin" in err and "decoded 1 of 1 shard(s)" in err
+
+
+def test_failed_rerun_removes_the_old_output(tmp_path, toy_tokenizer):
+    shards, out = tmp_path / "shards", tmp_path / "out"
+    shards.mkdir()
+    files = write_shard(shards, toy_tokenizer)
+    argv = [str(shards), "--tokenizer", str(toy_tokenizer), "--out", str(out), "--any-tokenizer"]
+    assert _run_cli(argv) == 0 and (out / "toy-train-000000.text.parquet").exists()
+    _set_token(0, 2)(files)  # corrupt the .bin; the manifest sha256 no longer matches
+    assert _run_cli(argv) == 1
+    assert not (out / "toy-train-000000.text.parquet").exists()
+
+
+def test_cli_check_text_mismatch_writes_nothing(tmp_path, toy_tokenizer, capsys):
+    shards = tmp_path / "shards"
+    shards.mkdir()
+    write_shard(shards, toy_tokenizer)
+    clean = tmp_path / "clean.parquet"
+    pq.write_table(pa.table({"doc_id": list(DOCS), "text": ["hello world", "foo baz", "world"]}), clean)
+    rc = _run_cli([str(shards), "--tokenizer", str(toy_tokenizer), "--out", str(tmp_path / "out"), "--any-tokenizer",
+                   "--check-text", str(clean)])
+    assert rc == 1 and not list((tmp_path / "out").iterdir())
+    assert "1 of 3 documents do not round-trip (first: d2)" in capsys.readouterr().err
+
+
+def test_check_text_with_several_shards_is_refused(tmp_path, toy_tokenizer, capsys):
+    shards = tmp_path / "shards"
+    shards.mkdir()
+    write_shard(shards, toy_tokenizer, shard_id="toy-train-000000")
+    write_shard(shards, toy_tokenizer, shard_id="toy-train-000001")
+    clean = tmp_path / "clean.parquet"
+    pq.write_table(pa.table({"doc_id": list(DOCS), "text": list(DOCS.values())}), clean)
+    rc = _run_cli([str(shards), "--tokenizer", str(toy_tokenizer), "--out", str(tmp_path / "out"), "--any-tokenizer",
+                   "--check-text", str(clean)])
+    assert rc == 1 and "takes one shard" in capsys.readouterr().err
+
+
+# --- a real shard (optional) --------------------------------------------------------------------------------------
+
+real = pytest.mark.skipif(not (os.environ.get("ERA_SHARD") and os.environ.get("ERA_C3_TOKENIZER")),
+                          reason="set ERA_SHARD and ERA_C3_TOKENIZER to test a real shard")
+
+
+@real
+def test_real_shard_decodes():
+    tok, sha = ds.load_tokenizer(os.environ["ERA_C3_TOKENIZER"])
+    table = ds.decode_shard(os.environ["ERA_SHARD"], tok, sha)
+    docs = pq.read_table(ds.shard_files(os.environ["ERA_SHARD"])["docs"])
+    assert table.column("doc_id").to_pylist() == [str(d) for d in docs.column("doc_id").to_pylist()]
+    assert all(isinstance(t, str) and t for t in table.column("text").to_pylist())
+    assert "<|endoftext|>" not in "".join(table.column("text").to_pylist())
+    if os.environ.get("ERA_SHARD_CLEAN"):
+        checked, bad = ds.check_text(table, os.environ["ERA_SHARD_CLEAN"], tok)
+        assert bad == [], f"{len(bad)} of {checked} documents do not round-trip"

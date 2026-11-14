@@ -114,17 +114,32 @@ python teams/09-evaluation/decontam/canary_scan.py <dir>/<shard_id>.text.parquet
 
 - **Tokenizer:** only the frozen C3 `tokenizer.json` (sha256 `15468e66…02ddc3`, G3 #340) is accepted. TSAI allowed it
   for decoding in week 3. It is not in the repo (8 MB); G3 shares it on Kaggle.
-- **Checks before decoding:** header (magic 20261025, version 2), file size, `.idx.npy`, one `.docs.parquet` row per
-  document, and the manifest's payload, index and docs sha256, doc and token counts, EOS id and tokenizer sha256. Every
-  document must end with EOS 130822 and hold no other special id. Any failure stops with exit code 1.
+- **Checks before decoding** (the rules `shard_writer.py` asserts, so a shard with a bad structure is refused even when its
+  manifest hashes match):
+  - header (magic 20261025, version 2); file size = the manifest's `payload_bytes`;
+  - `.idx.npy` starts at 0, rises, ends at the token count;
+  - `.docs.parquet`: one row per document, `doc_id` unique and not null, `n_tokens` equal to each document's length in
+    the index (so doc_ids cannot attach to the wrong text);
+  - manifest: `schema_version`, `token_dtype`, `shard_id` and the file names match the files; payload, index and docs
+    sha256, doc and token counts, EOS id and tokenizer sha256 match;
+  - every token id is below the vocab size (131,072); every document ends with EOS 130822 and holds no special id,
+    EOS included. Special ids are the same set the writer refuses: C3's special tokens (9 of them below 130,725, e.g. 36
+    and 129994) plus 130,725 and above.
+- **On failure:** the shard is reported and skipped, any old output for it is removed, and nothing new is written. Other
+  shards still run; the exit code is 1 if any shard failed. A `.bin` with no `<shard_id>.json` next to it is not a shard:
+  it is listed and ignored.
 - **Text:** each document is its tokens minus the final EOS, decoded with C3, so it is the tokenizer-normalized text the
-  model trains on. `--check-text <run_clean.py *_clean.parquet>` compares every decoded document with the normalized
-  source text (round trip).
+  model trains on. `--check-text <run_clean.py *_clean.parquet>` (one shard per run) compares every decoded document with
+  the normalized source text (round trip).
 - **Output holds document text:** keep it local; never commit or paste it. Reports give IDs, items, coverage and offsets.
 - **Tested** on Data A's sample shard, rebuilt with the two commands in
-  [`../../01-data-a/shards/sample/README.md`](../../01-data-a/shards/sample/README.md): the `.bin` and `.idx.npy` match
-  the published sha256; 271 documents decoded, 271/271 round-trip; `decontam_check.py` 0 of 271 flagged (set
-  `2826a3b8…`, full set); `canary_scan.py` 0 hits. Decoding took 0.4 s for 262,032 tokens on a laptop CPU.
+  [`../../01-data-a/shards/sample/README.md`](../../01-data-a/shards/sample/README.md). The rebuilt `.bin` and `.idx.npy`
+  match the published sha256. The rebuilt `.docs.parquet` holds the same rows but is not byte-identical (Parquet output
+  depends on the writer version), so the test used the manifest the rebuild wrote; against the committed manifest the
+  decoder refuses it on `sample_metadata_sha256`, as it should. Result: 271 documents decoded, 271/271 round-trip;
+  `decontam_check.py` 0 of 271 flagged (set `2826a3b8…`, full set); `canary_scan.py` 0 hits. Decoding took 0.4 s for
+  262,032 tokens on a laptop CPU. Corrupted copies of that shard (an EOS or an id ≥ 131,072 inside a document, rows
+  shifted, two documents merged, a renamed shard, a broken manifest) are all refused.
 - **Tests:** `pytest teams/09-evaluation/decontam/tests/test_decode_shard.py -q` (toy shards, no C3 needed). Set
   `ERA_SHARD`, `ERA_C3_TOKENIZER` (and optionally `ERA_SHARD_CLEAN`) to also test a real shard.
 
