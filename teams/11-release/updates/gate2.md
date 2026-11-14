@@ -3,7 +3,7 @@
 **Date:** 14 Nov 2026
 **Period:** 1 Nov to 14 Nov 2026
 
-[A short text about the lab at this gate. Release writes it after TSAI decides.]
+At this gate, TSAI decided on the proposals from the teams below. Each decision uses the words that TSAI approved.
 
 ## Decisions
 
@@ -20,7 +20,7 @@
 
 ## Next
 
-[One sentence about the next steps. No dates or results without TSAI approval.]
+Next, the lab runs the first dry run and prepares the first data shards, and Release writes the public text for the dashboard.
 
 ---
 
