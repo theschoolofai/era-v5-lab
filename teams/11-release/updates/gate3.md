@@ -45,9 +45,9 @@ How to fill it:
 | Part | Team | Source | Text received | Lead OK |
 |---|---|---|---|---|
 | The first dry run | Infrastructure | | no | no |
-| The first data shards | Data A | | no | no |
-| Bit widths | Quantization | [#221](https://github.com/theschoolofai/era-v5-lab/pull/221) | no | no |
-| Indic share | Data B | [#400](https://github.com/theschoolofai/era-v5-lab/pull/400) | no | no |
+| The first data shards | Data A | [#358](https://github.com/theschoolofai/era-v5-lab/pull/358), [#373](https://github.com/theschoolofai/era-v5-lab/pull/373) | no | no |
+| Bit widths (moved from Gate 2) | Quantization | [#221](https://github.com/theschoolofai/era-v5-lab/pull/221) | no | no |
+| Indic share (rerun of #400 with C3, from Gate 2) | Data B | [#400](https://github.com/theschoolofai/era-v5-lab/pull/400) | no | no |
 
 - [ ] `check_style.py` gives 0 errors
 - [ ] Every number in the text has TSAI approval
