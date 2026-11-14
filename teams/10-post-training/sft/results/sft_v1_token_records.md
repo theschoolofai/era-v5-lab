@@ -192,19 +192,21 @@ The single-thread columns are the matched comparison of the algorithm: the old c
 
 ## 5. Full conversions
 
+`unknown` in a runtime column means the record was written by `sft_v1_records.py finalize` from the finished files of a conversion run by an earlier driver process, which did not record that figure; it is not zero and not estimated.
+
 `full` rows are streamed from the pinned Hub files, rolled into parts, gzipped per part with the decompressed bytes verified, and checked with the same checks as section 3. **Converted, not decontaminated; not a pack.** No held-out id list exists for these sets, so 0 ids are excluded.
 
 | Set | Licence state | Rows out | Skips | Tokens | Targets | Share | p50 / p95 / max | Over 32,768 | Effort 1k / 4k / 16k / 64k | Parts | Plain GiB | gz GiB | content_sha256 | Checks | Rerun prefix same | Wall (min) | Rows/s | Peak RSS MB |
 |---|---|---:|---|---:|---:|---:|---|---:|---|---:|---:|---:|---|---|---|---:|---:|---:|
 | `sft-dolly-15k` | allowed | 15,011 | none | 2,923,577 | 1,186,477 | 40.6% | 123 / 560 / 5,664 | 0 | 15,011 / 0 / 0 / 0 | 3 | 0.04 | 0.01 | `87790ad28099267f…` | pass | yes | 0.6 | 432.44 | 157 |
 | `sft-indic-indic-align-dolly-t` | allowed | 10,541 | none | 1,951,624 | 1,425,682 | 73.1% | 136 / 472 / 7,379 | 0 | 10,541 / 0 / 0 / 0 | 1 | 0.03 | 0.01 | `cf963f4a41759afa…` | pass | yes | 0.7 | 373.6 | 616 |
+| `sft-math-nemotron-proofs` | allowed | 920,881 | statement only, no messages 455782 | 10,383,997,134 | 8,434,061,917 | 81.2% | 9,269 / 27,182 / 80,407 | 18,661 | 21,363 / 319,910 / 529,257 / 50,351 | 287 | 106.76 | 10.24 | `d9c9d00024268d48…` | pass | yes | unknown | unknown | unknown |
 
 ## 6. Full conversions that are not finished or not started
 
 | Set | Licence state | Status | Rows converted by the 6 Nov decontam run (`decontam_kept_rows.md`, rows in) | Mean tokens per output row, first 1,000 rows | Tokens if the prefix mean held (estimate, not a measurement) |
 |---|---|---|---:|---:|---:|
 | `sft-math-nemotron-math-v2` | allowed | does not fit the 80 GiB allocation (50.3 GB source, about 270 GB gzip estimated): tested job request jobs/2026-11-14-sft-v1-math-v2-full.md | 7,079,896 | 17,931 | 126,953,083,027 |
-| `sft-math-nemotron-proofs` | allowed | IN PROGRESS (allowed): full conversion still running; no count is claimed until its checks finish (see FINAL_HANDOFF) | 920,831 | 10,696 | 9,849,219,403 |
 | `sft-agentic-nemotron-agentic-v1` | reserved | deferred: reserved, not admitted; lower-priority local backlog | 315,560 | 3,760 | 1,186,512,549 |
 | `sft-agentic-nemotron-sft-agentic-v2-tool-calling` | reserved | deferred: reserved, not admitted; lower-priority local backlog | 364,889 | 5,281 | 1,927,249,556 |
 | `sft-bespoke-stratos-17k` | reserved | deferred: reserved, not admitted; lower-priority local backlog | 16,710 | 4,686 | 78,306,602 |

@@ -116,10 +116,25 @@ def _overlaps(starts: np.ndarray, ends: np.ndarray, ranges: list[tuple[int, int]
     return (i >= 0) & (re_[np.clip(i, 0, None)] > starts) & (starts < ends)
 
 
-def check_files(paths: list[Path], tokenizer_path: str, batch: int = 64) -> dict:
+def load_tok(tokenizer_path: str):
     from tokenizers import Tokenizer
 
-    tok = Tokenizer.from_file(tokenizer_path)
+    return Tokenizer.from_file(tokenizer_path)
+
+
+def checker_version() -> str:
+    """sha256 of the source of the row checks. A stored per-part result is reused only if it carries this value."""
+    import inspect
+
+    src = "".join(inspect.getsource(f) for f in (_ranges, _inside, _overlaps, check_part))
+    return hashlib.sha256(src.encode("utf-8")).hexdigest()
+
+
+def check_part(path: Path, tok, tokenizer_sha256: str, batch: int = 64) -> dict:
+    """Run every row check on one file (.jsonl or .jsonl.gz) and return mergeable counters.
+
+    Besides the checks it hashes the decompressed bytes of the file (the same lines `convert.py` hashed) and records
+    the compressed file's sha256, so the result is bound to those exact bytes. No row text is kept."""
     vocab = tok.get_vocab_size(with_added_tokens=True)
     eos_id = tok.token_to_id(T["endoftext"])
     norm = tok.normalizer
@@ -128,6 +143,7 @@ def check_files(paths: list[Path], tokenizer_path: str, batch: int = 64) -> dict
     lengths = array("I")
     efforts: Counter = Counter()
     ids_seen: set[str] = set()
+    ids_in_order: list[str] = []
     n = tokens = trained = shifted = spans_n = calls_n = results_n = tool_rows = 0
     trained_excluded_boundary = 0
 
@@ -144,6 +160,7 @@ def check_files(paths: list[Path], tokenizer_path: str, batch: int = 64) -> dict
             if r["id"] in ids_seen:
                 fail["duplicate_id"] += 1
             ids_seen.add(r["id"])
+            ids_in_order.append(r["id"])
             try:
                 parsed = render.parse(text)
                 if parsed["effort"] != r["effort"]:
@@ -200,30 +217,68 @@ def check_files(paths: list[Path], tokenizer_path: str, batch: int = 64) -> dict
                 inside_call = _inside(starts, ends, calls)
                 trained_excluded_boundary += int((inside_call & ~m).sum())
 
+    plain_h, plain_bytes = hashlib.sha256(), 0
     rows: list[dict] = []
-    files = []
-    for path in paths:
-        files.append({"name": path.name, "bytes": path.stat().st_size, "sha256": sha256_file(path)})
-        with (gzip.open(path, "rt", encoding="utf-8") if path.suffix == ".gz" else open(path, encoding="utf-8")) as f:
-            for line in f:
-                rows.append(json.loads(line))
-                if len(rows) >= batch:
-                    flush(rows)
-                    rows = []
+    with (gzip.open(path, "rb") if path.suffix == ".gz" else open(path, "rb")) as f:  # gzip checks the CRC at end of stream
+        for line in f:
+            plain_h.update(line)
+            plain_bytes += len(line)
+            rows.append(json.loads(line))
+            if len(rows) >= batch:
+                flush(rows)
+                rows = []
     if rows:
         flush(rows)
-    arr = np.sort(np.frombuffer(lengths, dtype=np.uint32)) if len(lengths) else np.zeros(0, dtype=np.uint32)
+    return {"checker_version": checker_version(), "tokenizer_sha256": tokenizer_sha256,
+            "file": {"name": path.name, "bytes": path.stat().st_size, "sha256": sha256_file(path)},
+            "plain_sha256": plain_h.hexdigest(), "plain_bytes": plain_bytes, "rows": n, "fail": dict(fail), "info": dict(info),
+            "efforts": dict(efforts), "tokens": tokens, "trained": trained, "shifted": shifted, "spans": spans_n,
+            "calls": calls_n, "results": results_n, "tool_rows": tool_rows, "untrained_in_calls": trained_excluded_boundary,
+            "lengths": lengths.tolist(), "ids": ids_in_order}
+
+
+def merge_parts(parts: list[dict]) -> dict:
+    """Combine per-part results, in file order, into the result `check_files` has always returned.
+
+    `duplicate_id` is recomputed on the union of ids, so a repeat across two parts is counted exactly as a single pass would."""
+    fail: Counter = Counter()
+    info: Counter = Counter()
+    efforts: Counter = Counter()
+    for p in parts:
+        fail.update(p["fail"])
+        info.update(p["info"])
+        efforts.update(p["efforts"])
+    n = sum(p["rows"] for p in parts)
+    union: set[str] = set()
+    for p in parts:
+        union.update(p["ids"])
+    dup = n - len(union)
+    if dup:
+        fail["duplicate_id"] = dup
+    else:
+        fail.pop("duplicate_id", None)
+    untrained_calls = sum(p["untrained_in_calls"] for p in parts)
+    if untrained_calls:
+        fail["tool_call_token_untrained"] = untrained_calls
+    tokens, trained = sum(p["tokens"] for p in parts), sum(p["trained"] for p in parts)
+    arr = np.sort(np.concatenate([np.asarray(p["lengths"], dtype=np.uint32) for p in parts])) if n else np.zeros(0, dtype=np.uint32)
     return {
-        "rows": n, "files": files, "checks_failed": dict(fail), "checks_ok": not fail, "info": dict(info),
+        "rows": n, "files": [p["file"] for p in parts], "checks_failed": dict(fail), "checks_ok": not fail, "info": dict(info),
         "tokens": tokens, "trained_tokens": trained, "trained_share": round(trained / tokens, 6) if tokens else None,
-        "shifted_supervised_targets": shifted,
+        "shifted_supervised_targets": sum(p["shifted"] for p in parts),
         "length": {"p50": percentile(arr, 0.5), "p95": percentile(arr, 0.95), "max": int(arr[-1]) if n else None, "min": int(arr[0]) if n else None},
         "rows_over_max_len": int((arr > MAX_LEN).sum()), "max_len": MAX_LEN,
         "effort_rows": {k: efforts.get(k, 0) for k in ("1k", "4k", "16k", "64k")},
-        "train_spans": spans_n, "tool_call_blocks": calls_n, "tool_result_blocks": results_n, "rows_with_tool_blocks": tool_rows,
-        "tool_call_tokens_untrained": trained_excluded_boundary,
-        "unique_ids": len(ids_seen) == n,
+        "train_spans": sum(p["spans"] for p in parts), "tool_call_blocks": sum(p["calls"] for p in parts),
+        "tool_result_blocks": sum(p["results"] for p in parts), "rows_with_tool_blocks": sum(p["tool_rows"] for p in parts),
+        "tool_call_tokens_untrained": untrained_calls,
+        "unique_ids": len(union) == n,
     }
+
+
+def check_files(paths: list[Path], tokenizer_path: str, batch: int = 64) -> dict:
+    tok, sha = load_tok(tokenizer_path), sha256_file(Path(tokenizer_path))
+    return merge_parts([check_part(Path(p), tok, sha, batch) for p in paths])
 
 
 def run_convert(a, out: Path, progress: Path) -> dict:
@@ -441,6 +496,227 @@ def cmd_full(a) -> int:
     return 0 if ok else 1
 
 
+def write_json_atomic(path: Path, obj, *, overwrite: bool = False) -> None:
+    """Write JSON to a temporary file in the same folder, then rename. Refuses to replace an existing file unless told to."""
+    path = Path(path)
+    if path.exists() and not overwrite:
+        raise SystemExit(f"{path} already exists; not overwritten")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # Two check-parts workers may meet at the same part. Each writer needs its own
+    # temporary file; a shared .tmp path lets one rename the other writer's file.
+    import tempfile
+
+    with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent,
+                                     prefix=path.name + ".", suffix=".tmp", delete=False) as handle:
+        tmp = Path(handle.name)
+        json.dump(obj, handle, indent=1, sort_keys=True, ensure_ascii=False)
+        handle.write("\n")
+    try:
+        if overwrite:
+            tmp.replace(path)
+        else:
+            # Atomic no-replace publication, including when two finalizers race.
+            # The temporary file and destination are on the same filesystem.
+            try:
+                os.link(tmp, path)
+            except FileExistsError:
+                raise SystemExit(f"{path} already exists; not overwritten") from None
+    finally:
+        tmp.unlink(missing_ok=True)
+
+
+def complete_gz_parts(set_dir: Path, set_id: str) -> list[Path]:
+    """Finished parts of a running `full` conversion: `<set>.partNNNN.jsonl.gz` whose plain `.jsonl` has been removed.
+
+    The driver gzips a finished part, reads the .gz back against the plain bytes and only then deletes the plain file,
+    so a .gz that still has its plain sibling may be mid-write and is skipped."""
+    out = []
+    for gz in sorted(set_dir.glob(f"{set_id}.part*.jsonl.gz")):
+        if not Path(str(gz)[: -len(".gz")]).exists():
+            out.append(gz)
+    return out
+
+
+def partial_path(partials_dir: Path, gz: Path) -> Path:
+    return Path(partials_dir) / f"{gz.name}.check.json"
+
+
+def load_valid_partial(partials_dir: Path, gz: Path, tokenizer_sha256: str) -> dict | None:
+    """A stored per-part result, only if it was made by this checker version, with this tokenizer, on these exact gz bytes."""
+    path = partial_path(partials_dir, gz)
+    if not path.is_file():
+        return None
+    try:
+        part = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError:
+        return None
+    ok = (part.get("checker_version") == checker_version() and part.get("tokenizer_sha256") == tokenizer_sha256
+          and part["file"]["name"] == gz.name and part["file"]["bytes"] == gz.stat().st_size
+          and part["file"]["sha256"] == sha256_file(gz))
+    return part if ok else None
+
+
+def cmd_check_parts(a) -> int:
+    """Check the finished parts of a running conversion, one part at a time, and store each result next to its gz sha256.
+
+    Run it while `full` is still converting; `finalize` reuses every stored result that is still valid and checks the rest."""
+    require_c3(a.tokenizer, a.allow_other_tokenizer)
+    set_dir = Path(a.out_dir) / a.set
+    tok, tsha = load_tok(a.tokenizer), sha256_file(Path(a.tokenizer))
+    deadline = time.monotonic() + a.max_seconds if a.max_seconds else None
+    done = skipped = 0
+    todo = complete_gz_parts(set_dir, a.set)
+    for gz in (todo[::-1] if a.reverse else todo):  # two processes, one with --reverse, meet in the middle
+        if load_valid_partial(a.partials_dir, gz, tsha) is not None:
+            skipped += 1
+            continue
+        t0 = time.monotonic()
+        part = check_part(gz, tok, tsha)
+        part["check_wall_s"] = round(time.monotonic() - t0, 2)
+        write_json_atomic(partial_path(a.partials_dir, gz), part, overwrite=True)
+        done += 1
+        print(json.dumps({"part": gz.name, "rows": part["rows"], "tokens": part["tokens"], "fail": part["fail"],
+                          "wall_s": part["check_wall_s"]}), flush=True)
+        if deadline and time.monotonic() > deadline:
+            break
+    print(json.dumps({"checked_now": done, "already_valid": skipped, "complete_parts": len(complete_gz_parts(set_dir, a.set))}))
+    return 0
+
+
+def cmd_finalize(a) -> int:
+    """Finish a conversion from its finished files, without converting again, and write the full record.
+
+    Every check `full` makes is made here, from the files on disk:
+      * the manifest exists, names exactly the parts on disk (no extra, partial or uncompressed part), and its Hub revision,
+        tokenizer hash and decision agree with the pin file, the C3 hash and the licence table;
+      * each part decompresses to the end (gzip CRC) and its plain bytes are hashed; the hash of all plain bytes in order
+        equals the manifest's `content_sha256`; the line count equals the manifest's row count;
+      * every row check of `check_files` (parse round trip, ids, decode, masks, spans, tool blocks, EOS, length, unique ids),
+        taken from valid stored per-part results where there are any, and run here for the others;
+      * the first rows are converted again from the pinned source and their hash equals the first lines of the output.
+    What the original run measured and this one cannot (convert wall time, CPU time, peak RSS, rows per second, Hub bytes)
+    is written as null with the reason. The record is written once, atomically, after every check has passed."""
+    require_c3(a.tokenizer, a.allow_other_tokenizer)
+    os.environ.setdefault("RAYON_NUM_THREADS", str(a.threads))
+    out_dir = Path(a.out_dir) / a.set
+    prefix = out_dir / a.set
+    rec_path = Path(a.record_dir) / f"{a.set}.full.record.json"
+    if rec_path.exists():
+        raise SystemExit(f"{rec_path} already exists; not overwritten")
+    manifest_path = Path(f"{prefix}.manifest.json")
+    if not manifest_path.is_file():
+        raise SystemExit(f"{manifest_path} is missing: the converter has not finished")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    problems: list[str] = []
+    # --- layout ----------------------------------------------------------------------------------
+    want = [f"{name}.gz" for name in manifest.get("parts", [])]
+    on_disk = sorted(p.name for p in out_dir.glob(f"{a.set}.part*"))
+    if not want:
+        problems.append("manifest lists no parts")
+    if on_disk != sorted(want):
+        problems.append(f"parts on disk differ from the manifest: missing {sorted(set(want) - set(on_disk))[:3]}, extra {sorted(set(on_disk) - set(want))[:3]}")
+    if want != sorted(want) or [int(w.split(".part")[1][:4]) for w in want] != list(range(len(want))):
+        problems.append("part numbers are not 0..N-1 in order")
+    pins = json.loads(Path(a.revisions_json).read_text(encoding="utf-8"))["datasets"]
+    meta = _load("g10_convert_fin", HERE / "convert.py").licence_row(a.set)
+    tsha = sha256_file(Path(a.tokenizer))
+    if manifest.get("hub_revision") != pins.get(meta["source"], {}).get("sha"):
+        problems.append(f"manifest hub_revision {manifest.get('hub_revision')} is not the pinned {pins.get(meta['source'], {}).get('sha')}")
+    if f"tokenizer sha256 {tsha}" != manifest.get("effort_counter"):
+        problems.append("manifest effort_counter does not name the C3 tokenizer hash")
+    for key in ("decision", "generator_model", "licence", "source"):
+        if manifest.get(key) != meta[key]:
+            problems.append(f"manifest {key} differs from the licence table now")
+    if problems:
+        raise SystemExit("cannot finalize: " + "; ".join(problems))
+    gz_paths = [out_dir / w for w in want]
+    # --- integrity: every part to the end of its stream, hash of all plain bytes in order -----------------
+    t0 = time.monotonic()
+    running, parts, lines_total = hashlib.sha256(), [], 0
+    for gz in gz_paths:
+        plain_h, size, lines = hashlib.sha256(), 0, 0
+        with gzip.open(gz, "rb") as f:
+            for block in iter(lambda: f.read(1 << 22), b""):
+                plain_h.update(block)
+                running.update(block)
+                size += len(block)
+                lines += block.count(b"\n")
+        lines_total += lines
+        parts.append({"name": gz.name, "plain_bytes": size, "plain_sha256": plain_h.hexdigest(), "gz_bytes": gz.stat().st_size,
+                      "gz_sha256": sha256_file(gz), "rows": lines})
+    integrity_s = time.monotonic() - t0
+    if running.hexdigest() != manifest["content_sha256"]:
+        raise SystemExit("sha256 of the decompressed parts in order differs from the manifest content_sha256")
+    if lines_total != manifest["rows"]:
+        raise SystemExit(f"{lines_total} lines in the parts, manifest says {manifest['rows']} rows")
+    # --- row checks: reuse valid stored results, run the rest -------------------------------------------
+    tok = load_tok(a.tokenizer)
+    results, reused, ran_here = [], 0, 0
+    t1 = time.monotonic()
+    for gz, info in zip(gz_paths, parts):
+        part = None if a.no_reuse else load_valid_partial(a.partials_dir, gz, tsha) if a.partials_dir else None
+        if part is not None and part["plain_sha256"] == info["plain_sha256"] and part["plain_bytes"] == info["plain_bytes"] and part["rows"] == info["rows"]:
+            reused += 1
+        else:
+            part = check_part(gz, tok, tsha)
+            ran_here += 1
+            if (part["plain_sha256"], part["rows"]) != (info["plain_sha256"], info["rows"]):
+                raise SystemExit(f"{gz.name}: the check read different bytes from the integrity pass")
+        results.append(part)
+    checks = merge_parts(results)
+    check_s = time.monotonic() - t1
+    if checks["rows"] != manifest["rows"]:
+        raise SystemExit(f"checks saw {checks['rows']} rows, manifest says {manifest['rows']}")
+    # --- determinism: the first rows converted again from the pinned source --------------------------------
+    rerun_hash = rerun_rows = None
+    deterministic = None
+    if a.rerun_rows:
+        again = out_dir / "rerun.jsonl"
+        sub = argparse.Namespace(set=a.set, rows=a.rerun_rows, tokenizer=a.tokenizer, revisions_json=a.revisions_json,
+                                 file_spec=None, max_hub_gb=a.max_hub_gb, local_root=a.local_root)
+        second = run_convert(sub, again, out_dir / "progress2.json")
+        rerun_rows, rerun_hash = second["manifest"]["rows"], second["manifest"]["content_sha256"]
+        again.unlink(missing_ok=True)
+        Path(f"{again}.manifest.json").unlink(missing_ok=True)
+        deterministic = first_lines_sha256(gz_paths, rerun_rows) == rerun_hash
+    plain, gz_total = sum(p["plain_bytes"] for p in parts), sum(p["gz_bytes"] for p in parts)
+    unknown = "unknown: the converter was not run by this command, and the original driver did not record it"
+    record = {
+        "set": a.set, "scope": "full set as selected by the adapter, source order, C3", "status": a.status,
+        "tokenizer_sha256": tsha, "decision": manifest["decision"], "generator_model": manifest["generator_model"],
+        "licence": manifest["licence"], "source": manifest["source"], "hub_revision": manifest.get("hub_revision"),
+        "input": manifest["input"], "selection": manifest["selection"], "rows_scanned": manifest["rows_scanned"],
+        "rows_in": manifest["rows_in"], "rows_out": manifest["rows"], "skipped": manifest["skipped"], "effort_manifest": manifest["effort"],
+        "content_sha256": manifest["content_sha256"], "rerun_rows": rerun_rows, "rerun_content_sha256": rerun_hash,
+        "deterministic_rerun": deterministic,
+        "parts": [{k: p[k] for k in ("name", "plain_bytes", "plain_sha256", "gz_bytes", "gz_sha256")} for p in parts],
+        "plain_bytes": plain, "gz_bytes": gz_total, "gz_ratio": round(plain / gz_total, 2) if gz_total else None,
+        "checks": checks, "checks_wall_s": round(check_s, 1),
+        "convert": {"wall_s": None, "cpu_user_s": None, "cpu_sys_s": None, "max_rss_mb": None, "threads": None, "hub_bytes_read": None,
+                    "unknown": unknown},
+        "rows_per_s_convert": None, "tokens_per_s_convert": None,
+        "finalized": {"by": "sft_v1_records.py finalize", "integrity_pass_wall_s": round(integrity_s, 1), "parts_reused_from_stored_checks": reused,
+                      "parts_checked_here": ran_here, "check_threads": int(os.environ["RAYON_NUM_THREADS"]),
+                      "checker_version": checker_version(), "convert_py_sha256": sha256_file(HERE / "convert.py")},
+        "decontam": "not run on this output: no kept-row record exists for this set; converted, not decontaminated",
+        "heldout_ids_excluded": 0, "heldout_note": "no held-out id list exists for this set at run time (WP15 lists cover OCR-2 shards only)",
+    }
+    record["token_record"] = {"set_id": a.set, "rows": manifest["rows"], "sequence_tokens": checks["tokens"],
+                              "shifted_supervised_targets": checks["shifted_supervised_targets"], "tokenizer_sha256": tsha,
+                              "length": checks["length"], "effort": manifest["effort"],
+                              "basis": record["scope"] + "; converted, not decontaminated"}
+    ok = checks["checks_ok"] and deterministic is not False
+    if not ok:
+        print(json.dumps({"set": a.set, "ok": False, "failed": checks["checks_failed"], "deterministic": deterministic}))
+        return 1
+    write_json_atomic(rec_path, record)
+    print(json.dumps({"set": a.set, "rows_out": record["rows_out"], "tokens": checks["tokens"], "share": checks["trained_share"],
+                      "over": checks["rows_over_max_len"], "gz_GiB": round(gz_total / 2**30, 2), "ok": True, "failed": checks["checks_failed"],
+                      "deterministic": deterministic, "reused_parts": reused, "checked_here": ran_here,
+                      "integrity_s": round(integrity_s, 1), "check_s": round(check_s, 1)}))
+    return 0
+
+
 def cmd_verify_local(a) -> int:
     """Check a staged copy of a Hub repo (`<root>/<dataset id>/<file>`) against the pinned LFS sha256 of every file the set reads."""
     convert = _load("g10_convert_vl", HERE / "convert.py")
@@ -510,6 +786,30 @@ def main() -> int:
     f.add_argument("--local-root", help="read a staged copy of the Hub repo under <local-root>/<dataset id>/ instead of the Hub")
     f.add_argument("--status", default="converted, not decontaminated; not a pack")
     f.set_defaults(fn=cmd_full)
+    cp = sub.add_parser("check-parts", help="check the finished parts of a running conversion and store each result")
+    cp.add_argument("--set", required=True)
+    cp.add_argument("--tokenizer", required=True)
+    cp.add_argument("--out-dir", required=True)
+    cp.add_argument("--partials-dir", required=True, type=Path)
+    cp.add_argument("--max-seconds", type=float, help="stop starting new parts after this long")
+    cp.add_argument("--reverse", action="store_true", help="take parts from the last one backwards")
+    cp.add_argument("--allow-other-tokenizer", action="store_true")
+    cp.set_defaults(fn=cmd_check_parts)
+    fz = sub.add_parser("finalize", help="finish a conversion from its files on disk and write the full record")
+    fz.add_argument("--set", required=True)
+    fz.add_argument("--tokenizer", required=True)
+    fz.add_argument("--revisions-json", required=True)
+    fz.add_argument("--out-dir", required=True)
+    fz.add_argument("--record-dir", required=True)
+    fz.add_argument("--partials-dir", type=Path, help="stored per-part checks to reuse where still valid")
+    fz.add_argument("--no-reuse", action="store_true", help="run every row check here, ignoring stored results")
+    fz.add_argument("--rerun-rows", type=int, default=2000)
+    fz.add_argument("--threads", type=int, default=4)
+    fz.add_argument("--max-hub-gb", type=float, default=2.0)
+    fz.add_argument("--local-root")
+    fz.add_argument("--status", default="converted, not decontaminated; not a pack")
+    fz.add_argument("--allow-other-tokenizer", action="store_true")
+    fz.set_defaults(fn=cmd_finalize)
     v = sub.add_parser("verify-local")
     v.add_argument("--set", required=True)
     v.add_argument("--root", required=True)

@@ -218,6 +218,7 @@ Tokenizer: C3 (`tokenizer_sha256` in each record), rendered with `chat-format/re
 | `sft-indic-indic-align-oasst-t` | tsai_reserves | first 1,000 rows, C3 | 1,000 | 1,000 | 543,672 | 448,740 | 82.5% | 430 / 1,363 / 5,727 | 0 | pass |
 | `sft-math-nemotron-math-v2` | allowed | first 1,000 rows, C3 | 1,000 | 982 | 17,608,723 | 17,492,437 | 99.3% | 13,965 / 46,450 / 66,993 | 144 | pass |
 | `sft-math-nemotron-proofs` | allowed | first 1,000 rows, C3 | 1,000 | 668 | 7,144,936 | 5,764,192 | 80.7% | 8,276 / 28,061 / 41,105 | 17 | pass |
+| `sft-math-nemotron-proofs` | allowed | full set, C3, converted, not decontaminated | 1,376,663 | 920,881 | 10,383,997,134 | 8,434,061,917 | 81.2% | 9,269 / 27,182 / 80,407 | 18,661 | pass |
 | `sft-math-nemotron-proofs-v3-sft` | tsai_reserves | first 1,000 rows, C3 | 1,000 | 34 | 1,885,993 | 1,853,549 | 98.3% | 58,877 / 67,409 / 67,634 | 34 | pass |
 | `sft-math-openr1-math` | tsai_reserves | first 1,000 rows, C3 | 1,000 | 996 | 4,809,673 | 4,697,013 | 97.7% | 3,771 / 12,243 / 17,381 | 0 | pass |
 | `sft-oasst2` | tsai_reserves | first 1,000 rows, C3 | 1,000 | 737 | 323,135 | 268,497 | 83.1% | 342 / 1,138 / 5,263 | 0 | pass |

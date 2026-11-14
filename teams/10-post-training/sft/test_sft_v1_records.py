@@ -20,6 +20,7 @@ HERE = Path(__file__).resolve().parent
 
 # A named decorator: pr-guard takes a dotted decorator line of a diff for an email address.
 fixture = pytest.fixture
+parametrize = pytest.mark.parametrize
 
 
 def _load(name: str, file: str):
@@ -312,3 +313,199 @@ def test_verify_local_checks_the_pinned_sha256(tmp_path, capsys):
     (root / repo / name).write_bytes(b'{"a": 2}\n')  # same size, different bytes
     assert records.cmd_verify_local(a) == 1
     assert "DIFFER" in capsys.readouterr().out
+
+
+# --- finalize / check-parts ----------------------------------------------------------------------
+
+def _make_full_output(toy, tmp_path, n_rows=7, rows_per_part=3):
+    """A finished `full` output for a toy set: gzip parts of real convert.py lines, plus the manifest convert.py writes."""
+    import gzip as gz
+    import hashlib as hl
+
+    set_id, repo = "sft-code-commitpackft", "bigcode/commitpackft"
+    rows = [dict(COMMIT, commit=f"c{i}", response=f"def f{i}(a):\n    return a + {i}\n") for i in range(n_rows)]
+    lines, manifest = convert.convert(set_id, rows, None, toy)
+    out_dir = tmp_path / "full" / set_id
+    out_dir.mkdir(parents=True)
+    names = []
+    for k in range(0, len(lines), rows_per_part):
+        name = f"{set_id}.part{k // rows_per_part:04d}.jsonl"
+        with gz.open(out_dir / f"{name}.gz", "wb") as f:
+            f.write("".join(lines[k:k + rows_per_part]).encode("utf-8"))
+        names.append(name)
+    tsha = hl.sha256(Path(toy).read_bytes()).hexdigest()
+    manifest.update(parts=names, input="hub file test", index_base=0, hub_revision="a" * 40)
+    assert manifest["effort_counter"] == f"tokenizer sha256 {tsha}"
+    (out_dir / f"{set_id}.manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+    pins = tmp_path / "pins.json"
+    pins.write_text(json.dumps({"datasets": {repo: {"sha": "a" * 40, "files": {}}}}), encoding="utf-8")
+    return set_id, out_dir, pins, manifest
+
+
+def _fin_args(toy, tmp_path, set_id, pins, **kw):
+    import argparse
+
+    base = dict(set=set_id, tokenizer=toy, revisions_json=str(pins), out_dir=str(tmp_path / "full"), record_dir=str(tmp_path / "rec"),
+                partials_dir=tmp_path / "partials", no_reuse=False, rerun_rows=0, threads=1, max_hub_gb=1.0, local_root=None,
+                status="converted, not decontaminated; not a pack", allow_other_tokenizer=True)
+    base.update(kw)
+    return argparse.Namespace(**base)
+
+
+def test_finalize_writes_the_record_that_a_single_pass_check_gives(toy_tokenizer, tmp_path):
+    set_id, out_dir, pins, manifest = _make_full_output(toy_tokenizer, tmp_path)
+    parts = sorted(out_dir.glob("*.gz"))
+    one_pass = records.check_files(parts, toy_tokenizer)
+    # stored per-part checks for the first two parts only: the third is checked inside finalize
+    a = _fin_args(toy_tokenizer, tmp_path, set_id, pins, max_seconds=None)
+    tok, tsha = records.load_tok(toy_tokenizer), records.sha256_file(Path(toy_tokenizer))
+    for gz in parts[:2]:
+        records.write_json_atomic(records.partial_path(a.partials_dir, gz), records.check_part(gz, tok, tsha))
+    assert records.cmd_finalize(a) == 0
+    rec = json.loads((tmp_path / "rec" / f"{set_id}.full.record.json").read_text(encoding="utf-8"))
+    assert rec["checks"] == one_pass and rec["content_sha256"] == manifest["content_sha256"]
+    assert rec["finalized"]["parts_reused_from_stored_checks"] == 2 and rec["finalized"]["parts_checked_here"] == 1
+    assert rec["convert"]["wall_s"] is None and rec["convert"]["max_rss_mb"] is None and rec["rows_per_s_convert"] is None
+    assert [p["name"] for p in rec["parts"]] == [p.name for p in parts] and rec["rows_out"] == 7
+    assert not list((tmp_path / "rec").glob("*.tmp"))
+    with pytest.raises(SystemExit):  # a record is never overwritten
+        records.cmd_finalize(a)
+
+
+def test_merge_counts_a_duplicate_id_across_parts_once_like_a_single_pass(toy_tokenizer, tmp_path):
+    import gzip as gz
+
+    set_id, out_dir, pins, _ = _make_full_output(toy_tokenizer, tmp_path, n_rows=4, rows_per_part=2)
+    first = (out_dir / f"{set_id}.part0000.jsonl.gz")
+    copy = tmp_path / "dup.part0001.jsonl.gz"
+    copy.write_bytes(first.read_bytes())  # the same two ids again, in another file
+    res = records.check_files([first, copy], toy_tokenizer)
+    assert res["checks_failed"] == {"duplicate_id": 2} and not res["unique_ids"]
+    assert records.check_files([first], toy_tokenizer)["checks_ok"]
+
+
+@parametrize("damage", ["missing_manifest", "extra_part", "wrong_content_sha", "wrong_revision", "wrong_tokenizer_note", "corrupt_gzip",
+                        "row_count", "missing_part"])
+def test_finalize_refuses_a_damaged_output_and_writes_nothing(toy_tokenizer, tmp_path, damage):
+    set_id, out_dir, pins, manifest = _make_full_output(toy_tokenizer, tmp_path)
+    mpath = out_dir / f"{set_id}.manifest.json"
+    if damage == "missing_manifest":
+        mpath.unlink()
+    elif damage == "extra_part":
+        (out_dir / f"{set_id}.part0099.jsonl.gz").write_bytes(b"")
+    elif damage == "missing_part":
+        (out_dir / f"{set_id}.part0001.jsonl.gz").unlink()
+    elif damage in ("wrong_content_sha", "row_count", "wrong_tokenizer_note"):
+        key, val = {"wrong_content_sha": ("content_sha256", "0" * 64), "row_count": ("rows", 99),
+                    "wrong_tokenizer_note": ("effort_counter", "tokenizer sha256 " + "1" * 64)}[damage]
+        mpath.write_text(json.dumps(dict(manifest, **{key: val})), encoding="utf-8")
+    elif damage == "wrong_revision":
+        pins.write_text(json.dumps({"datasets": {"bigcode/commitpackft": {"sha": "b" * 40, "files": {}}}}), encoding="utf-8")
+    elif damage == "corrupt_gzip":
+        path = out_dir / f"{set_id}.part0001.jsonl.gz"
+        raw = bytearray(path.read_bytes())
+        raw[len(raw) // 2] ^= 0xFF  # a flipped byte inside the compressed stream
+        path.write_bytes(bytes(raw))
+    import zlib
+
+    with pytest.raises((SystemExit, OSError, EOFError, zlib.error)):
+        records.cmd_finalize(_fin_args(toy_tokenizer, tmp_path, set_id, pins))
+    assert not (tmp_path / "rec" / f"{set_id}.full.record.json").exists()
+
+
+def test_a_stored_check_is_ignored_when_its_part_changed_or_the_checker_changed(toy_tokenizer, tmp_path):
+    set_id, out_dir, pins, _ = _make_full_output(toy_tokenizer, tmp_path)
+    gz = sorted(out_dir.glob("*.gz"))[0]
+    tok, tsha = records.load_tok(toy_tokenizer), records.sha256_file(Path(toy_tokenizer))
+    pdir = tmp_path / "partials"
+    part = records.check_part(gz, tok, tsha)
+    records.write_json_atomic(records.partial_path(pdir, gz), part)
+    assert records.load_valid_partial(pdir, gz, tsha) is not None
+    assert records.load_valid_partial(pdir, gz, "f" * 64) is None  # other tokenizer
+    records.write_json_atomic(records.partial_path(pdir, gz), dict(part, checker_version="old"), overwrite=True)
+    assert records.load_valid_partial(pdir, gz, tsha) is None  # other checker
+    records.write_json_atomic(records.partial_path(pdir, gz), part, overwrite=True)
+    gz.write_bytes(gz.read_bytes() + b"\0")  # trailing byte: different file
+    assert records.load_valid_partial(pdir, gz, tsha) is None
+
+
+def test_complete_gz_parts_skips_a_part_whose_plain_file_still_exists(tmp_path):
+    d = tmp_path / "s"
+    d.mkdir()
+    (d / "s.part0000.jsonl.gz").write_bytes(b"x")
+    (d / "s.part0001.jsonl.gz").write_bytes(b"x")  # being written: its plain part has not been removed yet
+    (d / "s.part0001.jsonl").write_bytes(b"x")
+    (d / "s.part0002.jsonl.tmp").write_bytes(b"x")
+    assert [p.name for p in records.complete_gz_parts(d, "s")] == ["s.part0000.jsonl.gz"]
+
+
+def test_atomic_cache_writers_use_distinct_temporary_files(tmp_path, monkeypatch):
+    """Opposing part-check workers can finish the same part at the same instant."""
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+
+    path = tmp_path / "part.check.json"
+    barrier = Barrier(2)
+    replace = records.os.replace
+    sources = []
+
+    def simultaneous_replace(source, target):
+        sources.append(str(source))
+        barrier.wait(timeout=5)
+        return replace(source, target)
+
+    monkeypatch.setattr(records.os, "replace", simultaneous_replace)
+    payloads = [{"writer": i, "payload": str(i) * 2048} for i in range(2)]
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [pool.submit(records.write_json_atomic, path, obj, overwrite=True) for obj in payloads]
+        for future in futures:
+            future.result(timeout=10)
+    assert len(set(sources)) == 2
+    assert json.loads(path.read_text()) in payloads
+    assert not list(tmp_path.glob("*.tmp"))
+
+
+def test_atomic_record_refuses_a_concurrent_second_finalizer(tmp_path, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+
+    path = tmp_path / "full.record.json"
+    barrier = Barrier(2)
+    link = records.os.link
+
+    def simultaneous_link(source, target):
+        barrier.wait(timeout=5)
+        return link(source, target)
+
+    def publish(value):
+        try:
+            records.write_json_atomic(path, {"writer": value})
+        except SystemExit as error:
+            assert "not overwritten" in str(error)
+            return "refused"
+        return "published"
+
+    monkeypatch.setattr(records.os, "link", simultaneous_link)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [pool.submit(publish, i) for i in range(2)]
+        outcomes = [f.result(timeout=10) for f in futures]
+    assert sorted(outcomes) == ["published", "refused"]
+    assert json.loads(path.read_text())["writer"] in (0, 1)
+    assert not list(tmp_path.glob("*.tmp"))
+
+
+def test_record_rejects_untrained_tokens_inside_a_tool_call(toy_tokenizer, tmp_path):
+    from tokenizers import Tokenizer
+
+    out, _ = _write_rows(toy_tokenizer, "sft-agentic-nemotron-agentic-v1", [AGENT], tmp_path)
+    row = json.loads(out.read_text())
+    enc = Tokenizer.from_file(toy_tokenizer).encode(row["text"], add_special_tokens=False)
+    start = row["text"].index(T["tool_call"])
+    end = row["text"].index(T["tool_call_end"], start) + len(T["tool_call_end"])
+    token = next(i for i, (a, b) in enumerate(enc.offsets) if start < a < b < end and row["loss_mask"][i])
+    row["loss_mask"][token] = 0
+    out.write_text(json.dumps(row) + "\n")
+    result = records.check_files([out], toy_tokenizer)
+    assert result["tool_call_tokens_untrained"] == 1
+    assert not result["checks_ok"]
+    assert result["checks_failed"]["tool_call_token_untrained"] == 1

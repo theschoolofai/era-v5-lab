@@ -22,6 +22,11 @@ def n(x) -> str:
     return "n/a" if x is None else f"{int(x):,}"
 
 
+def unk(value, fmt=str) -> str:
+    """A runtime figure, or `unknown` where the record could not measure it (a finalized run); never 0."""
+    return "unknown" if value is None else fmt(value)
+
+
 def short_reason(text: str) -> str:
     text = text.replace("trajectory did not resolve the issue (resolved != 1)", "unresolved trajectory")
     text = text.replace("trace over the 64k effort budget", "trace over 64k")
@@ -260,6 +265,10 @@ def main() -> int:
     if not full:
         w("None yet.")
     else:
+        if any(r["convert"]["wall_s"] is None for r in full.values()):
+            w("`unknown` in a runtime column means the record was written by `sft_v1_records.py finalize` from the finished files of a "
+              "conversion run by an earlier driver process, which did not record that figure; it is not zero and not estimated.")
+            w("")
         w("`full` rows are streamed from the pinned Hub files, rolled into parts, gzipped per part with the decompressed bytes "
           "verified, and checked with the same checks as section 3. **Converted, not decontaminated; not a pack.** No held-out id "
           "list exists for these sets, so 0 ids are excluded.")
@@ -276,8 +285,8 @@ def main() -> int:
               f"{c['trained_share']:.1%} | {n(c['length']['p50'])} / {n(c['length']['p95'])} / {n(c['length']['max'])} | {n(c['rows_over_max_len'])} | "
               f"{n(e['1k'])} / {n(e['4k'])} / {n(e['16k'])} / {n(e['64k'])} | {len(r['parts'])} | {r['plain_bytes'] / 2**30:.2f} | {r['gz_bytes'] / 2**30:.2f} | "
               f"`{r['content_sha256'][:16]}…` | {'pass' if c['checks_ok'] else 'FAIL ' + json.dumps(c['checks_failed'])} | "
-              f"{'yes' if r['deterministic_rerun'] else 'NO' if r['deterministic_rerun'] is False else 'n/a'} | {r['convert']['wall_s'] / 60:.1f} | "
-              f"{r['rows_per_s_convert']} | {r['convert']['max_rss_mb']:.0f} |")
+              f"{'yes' if r['deterministic_rerun'] else 'NO' if r['deterministic_rerun'] is False else 'n/a'} | {unk(r['convert']['wall_s'], lambda v: f'{v / 60:.1f}')} | "
+              f"{unk(r['rows_per_s_convert'])} | {unk(r['convert']['max_rss_mb'], lambda v: f'{v:.0f}')} |")
     w("")
     notes = json.loads(a.run_notes.read_text(encoding="utf-8")) if a.run_notes and a.run_notes.exists() else {}
     # --- full-conversion state of every set that is not finished ------------------------------------------
