@@ -3,15 +3,23 @@
 **Date:** 21 Nov 2026
 **Period:** 15 Nov to 21 Nov 2026
 
-[A short text about the lab at this gate. Release writes it after TSAI decides.]
+At this gate, TSAI reviewed the first dry run, the first data shards and the public text for the dashboard. Each
+decision uses the words that TSAI approved.
 
 ## The first dry run
+
+A dry run is a short test of the whole training setup before the main training run.
 
 [Text from Infrastructure, based on the summary of the first dry run. Facts only. No numbers without TSAI approval.]
 
 ## The first data shards
 
-[Text from Data A about the first data shards. Facts only. No numbers without TSAI approval.]
+A shard is a file that holds cleaned text as token IDs, ready for training. Data A set the format of the shards.
+Each shard keeps whole documents and marks the end of each one. Each shard comes with a manifest and a quality
+report, so the lab can check it. Data A wrote a first sample shard, from code in the Go programming language, with the frozen tokenizer
+([#358](https://github.com/theschoolofai/era-v5-lab/pull/358), [#373](https://github.com/theschoolofai/era-v5-lab/pull/373)).
+
+[Data A: confirm the text above or change it, and add the first full shards if they exist by Fri 20 Nov.]
 
 ## Decisions
 
@@ -45,7 +53,7 @@ How to fill it:
 | Part | Team | Source | Text received | Lead OK |
 |---|---|---|---|---|
 | The first dry run | Infrastructure | | no | no |
-| The first data shards | Data A | [#358](https://github.com/theschoolofai/era-v5-lab/pull/358), [#373](https://github.com/theschoolofai/era-v5-lab/pull/373) | no | no |
+| The first data shards | Data A | [#358](https://github.com/theschoolofai/era-v5-lab/pull/358), [#373](https://github.com/theschoolofai/era-v5-lab/pull/373) | draft by Release, waiting for Data A | no |
 | Bit widths (moved from Gate 2) | Quantization | [#221](https://github.com/theschoolofai/era-v5-lab/pull/221) | no | no |
 | Indic share (rerun of #400 with C3, from Gate 2) | Data B | [#400](https://github.com/theschoolofai/era-v5-lab/pull/400) | no | no |
 
