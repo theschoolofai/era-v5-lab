@@ -65,6 +65,10 @@ with reward._pool().CodePool(workers=8) as cp:                        # warm poo
 python -m pytest teams/10-post-training/rl/test_objective_v1.py -q -p no:cacheprovider
 ```
 
+## Go tasks
+
+The Go verifier, its runner, the Docker image and the Go tasks are in [`go/`](go/README.md). They use `verifier.py` from this folder and nothing else here depends on them.
+
 ## Files in this folder
 
 | File | What it is |
