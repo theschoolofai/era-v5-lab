@@ -185,11 +185,12 @@ The harm test checks a rule against the gold set. The unit tests check that it d
 - **How they load the rules:** each test file loads its sheet the way `harmtest/harm_test.py` does (`harm_test.load_rules`), so the tests run the same code as the harm test.
 - **Text:** all of it is made up. Where a test copies the shape of a gold doc a rule once harmed, it is a look-alike, not gold text.
 - **Run:** from `teams/01-data-a`: `python3 -m unittest discover -s spec_v1_1/tests`.
-- **Last run:** 14 Nov 2026, 177 tests, **OK**:
+- **Last run:** 14 Nov 2026, 182 tests, **OK**:
   - 41 for the math medicines;
   - 44 for the science medicines;
   - 10 for the English medicines;
   - 7 for the Indic medicine;
+  - 5 for a spec v1 code rule on docs labelled `lang_label = "code"` (`test_code_lang_label.py`, Gate 2 request): `DA-A1-001` fires in all 6 code packs, because of its `pack_id` check;
   - 75 for the scripts (`test_collect_reading_prs.py` 39, `test_show_examples.py` 11, `test_reading_check.py` 10, `test_time_rules.py` 10, `test_reading_recall.py` 5).
 
 The numbers in the `#` column match the disease tables above. "Twice" means a test that runs the rule on its own output and expects no change.
