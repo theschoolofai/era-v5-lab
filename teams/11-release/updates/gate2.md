@@ -17,6 +17,8 @@ At this gate, TSAI reviewed the proposals from the teams below. Each decision us
 | Data mix for supervised fine-tuning | Post-training | [#391](https://github.com/theschoolofai/era-v5-lab/pull/391) is SFT mix v1. Week 3 adds strong SFT tests and a [method name: waiting for TSAI] study against full fine-tuning. |
 | Bit widths for the smaller versions of the model | Quantization | No evidence yet. This decision moves to Gate 3. |
 
+Short forms: C3 is the name of the chosen tokenizer candidate. eos is the token that marks the end of a document. KE2 is the lab team that tests its embedding method on the lab's tokenizer. SFT means supervised fine-tuning. Dedup means duplicate removal. Top-2 means that each token goes to two of the routed experts.
+
 ## Next
 
 Next, the lab runs the first dry run and prepares the first data shards, and Release writes the public text for the dashboard.
@@ -52,6 +54,6 @@ How to fill it:
 - [x] The text names teams only, and no person
 - [x] Nothing from the internal list in `public_internal.md`
 - [ ] No `[waiting for TSAI]` left in the text
-- [ ] A team member commented on this pull request
+- [x] A team member commented on this pull request
 - [ ] TSAI approved on: [DD Mon YYYY]
 - [ ] Merged after TSAI approved
