@@ -5,7 +5,7 @@ the share at Gate 2 (14 Nov) and said that a pack with few clean documents is im
 This file brings that evidence and a proposal. **What is measured and what is a proposed value is kept apart below.**
 Only counts and pack IDs are used; no document text. The gold numbers are those of the gold sets rebuilt from the readers'
 sheets of 11 Nov (#229, #362); they replace the 2 Nov gold (1,957 documents) that v1 used. The translation ratings are those of
-`translation/quality_v1.md` and `agreement_v1.md` of 13 Nov (18:45 IST); they are not final.
+`translation/quality_v1.md` and `agreement_v1.md` of 14 Nov (Tamil now has both sheets, #432 and #438; #440 updates the two files); they are not final.
 
 ## 1. What "native Indic share" means here
 
@@ -80,17 +80,17 @@ every language (12.1 million tokens). Romanised segments inside native documents
 1% per language (option B).
 
 ### 2.4 Translated
-Ratings of 13 Nov (`translation/quality_v1.md`, `agreement_v1.md`, 1 to 5 on TSAI's rubric; from the #212 review pack):
+Ratings of 14 Nov (`translation/quality_v1.md`, `agreement_v1.md`, 1 to 5 on TSAI's rubric; from the #212 review pack; the Tamil row is from #432 and #438, as updated in #440):
 
-| Language | Readers | Documents rated | Mean score | Agreement (within 1 point, at least 20 shared) |
+| Language | Readers | Documents rated | Mean score | Agreement (within 1 point; at least 20 shared; 25 per language now) |
 |---|---:|---:|---:|---|
 | kn | 2 | 50 | 3.31 | 19 of 25 (76%): **fails** (the second reader scores lower on 21 of 25, never higher) |
-| ta | 1 | 37 | 2.81 | not checkable: second sheet not in |
+| ta | 2 | 50 | 3.21 | 21 of 25 (84%): passes |
 | te | 1 | 38 | 2.37 | not checkable: second sheet not in |
 | hi | 0 | none | none | not checkable: no sheets |
 
 Under the rating condition of Option B below (mean 3.5 or higher, and agreement of 80% or more), **no language qualifies
-today**, so translated text would be 0% in every language for now. The files are updated when more sheets come in.
+today** (Kannada is under 3.5 and fails agreement; Tamil agrees but its mean is under 3.5; Telugu has one reader; Hindi has no sheets), so translated text would be 0% in every language for now. The Tamil row comes from #440, which is not merged yet: once it is, check this table against the merged `quality_v1.md` and `agreement_v1.md` (dated 14 Nov, sheets of 14 Nov 09:50 IST). Both files are updated when more sheets come in.
 
 ### 2.5 What the cleaning code does to the clean documents
 The filters of #214 (D1 script share, A1 invisible characters, G1 broken vowel signs) change or drop 0 of the gold
@@ -107,9 +107,11 @@ ind-kn-sangraha-s, ind-te-sangraha-s). So the clean counts above are not reduced
    in each of the three packs). No share fixes this, and filtering alone cannot: at the sample rate 500 documents leave about 40
    clean ones.
 3. **The clean share depends on the source** (3.4% to 85.0%), so one global share would be wrong for some languages.
-4. **Four packs cannot be judged** (one reader), among them Malayalam, Odia, and two Tamil packs.
+4. **Four packs cannot be judged (one reader): Malayalam, Odia, and two Tamil packs.**
 
 ## 4. Proposal
+
+Data B's proposal as posted on #216 is Option B below, with Indic at least 12% of all pre-training tokens (the S05 Indic floor; V4 used 8%).
 
 *Measured:* sections 2 and 3. *Proposed (my values, not derived from the data: the data gives the direction and the
 per-language conditions, TSAI sets the numbers):*
@@ -123,7 +125,7 @@ per-language conditions, TSAI sets the numbers):*
 
 Rating condition for translated text in Option B (scale 1 to 5, #212; both are proposed thresholds):
 - a language's translated share may be used only if its mean rating is **3.5 or higher** and the two readers agree
-  within 1 point on at least 80% of the 20 shared documents (the agreement rule of #216);
+  within 1 point on at least 80% of the shared documents, at least 20 (each language has 25 shared; the agreement rule of #216);
 - a mean of **4.0 or higher** allows the full 9%; from 3.5 up to 4.0, **at most 4.5%** (half);
 - a language with no rating, one reader, or a mean under 3.5 gets **0%** translated: nothing then shows it is safe.
 
@@ -138,7 +140,7 @@ back high), at a cost of 3.2% of the clean gold documents. **Why not C:** at 4.7
 evidence we have, and TSAI asked for a few-clean-documents pack to weigh most.
 
 ## 5. What is not known yet (so this draft will change)
-- The rest of the translation ratings and the agreement checks: Tamil and Telugu need a second reader and Hindi has no
+- The rest of the translation ratings and the agreement checks: Telugu needs a second reader and Hindi has no
   sheets yet (2.4). Kannada's low agreement is a steady offset between its two readers, not random, so it may change once
   the readers align.
 - Tokens per source for the full corpus. The sample has 500 documents per pack, so the share of translated text in the
