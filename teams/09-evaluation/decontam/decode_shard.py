@@ -19,7 +19,9 @@ exit code is 1 if any shard failed):
   - header magic and version, and file size = 1,024 + 4 x token count;
   - .idx.npy starts at 0, rises, and ends at the token count; one docs.parquet row per document;
   - manifest: payload, index and docs sha256, doc_count, token_count, eos_token_id and tokenizer_sha256 all match;
-  - every document ends with EOS, and no other special id occurs inside a document.
+  - every document ends with EOS, and no other special id occurs inside a document. Special ids are the tokenizer's
+    added tokens marked special (C3 has 9 below 130,725, e.g. 36 <|end_of_text|> and 129994 <|im_start|>) plus
+    130,725 to the end of the vocab: the same set shard_writer.py refuses.
 With --check-text <clean.parquet> (the run_clean.py output the shard was written from), each decoded document must equal
 the tokenizer-normalized source text of the same doc_id: a round-trip test of the decoder.
 
@@ -65,6 +67,14 @@ def load_tokenizer(path, any_tokenizer=False):
     return Tokenizer.from_file(str(path)), got
 
 
+def special_ids(tok, special_from=None):
+    """Sorted int array: added tokens marked special, plus special_from to the end of the vocab (as shard_writer.py)."""
+    special_from = SPECIAL_FROM if special_from is None else special_from
+    vocab = max(tok.get_vocab(with_added_tokens=True).values()) + 1  # highest id + 1 (a vocab may have gaps)
+    ids = {i for i, t in tok.get_added_tokens_decoder().items() if t.special} | set(range(special_from, vocab))
+    return np.array(sorted(ids), dtype=np.int64)
+
+
 def shard_files(bin_path):
     bin_path = Path(bin_path)
     stem = bin_path.name[: -len(".bin")]
@@ -73,10 +83,9 @@ def shard_files(bin_path):
             "manifest": Path(f"{base}.json"), "shard_id": stem}
 
 
-def read_shard(bin_path, tokenizer_sha, eos_id=None, special_from=None):
-    """Check one shard against its manifest. Return (shard_id, tokens, starts, doc_ids)."""
+def read_shard(bin_path, tokenizer_sha, specials, eos_id=None):
+    """Check one shard against its manifest. specials: special_ids(tok). Return (shard_id, tokens, starts, doc_ids)."""
     eos_id = EOS_ID if eos_id is None else eos_id
-    special_from = SPECIAL_FROM if special_from is None else special_from
     f = shard_files(bin_path)
     for key in ("bin", "idx", "docs", "manifest"):
         if not f[key].exists():
@@ -115,8 +124,9 @@ def read_shard(bin_path, tokenizer_sha, eos_id=None, special_from=None):
         raise ShardError(f"{f['shard_id']}: document {doc_ids[bad]} does not end with EOS {eos_id}")
     inner = np.ones(n_tok, dtype=bool)
     inner[ends] = False
-    if np.any(tokens[inner] >= special_from):
-        pos = int(np.flatnonzero(inner & (tokens >= special_from))[0])
+    hit = inner & np.isin(tokens, specials)
+    if np.any(hit):
+        pos = int(np.flatnonzero(hit)[0])
         doc = int(np.searchsorted(starts, pos, side="right") - 1)
         raise ShardError(f"{f['shard_id']}: special id {int(tokens[pos])} inside document {doc_ids[doc]}")
     return f["shard_id"], tokens, starts, doc_ids
@@ -124,7 +134,10 @@ def read_shard(bin_path, tokenizer_sha, eos_id=None, special_from=None):
 
 def decode_shard(bin_path, tok, tokenizer_sha, eos_id=None, special_from=None):
     """Return a pyarrow table: doc_id, text, shard_id, n_tokens (n_tokens includes the final EOS)."""
-    shard_id, tokens, starts, doc_ids = read_shard(bin_path, tokenizer_sha, eos_id, special_from)
+    eos_id = EOS_ID if eos_id is None else eos_id
+    specials = special_ids(tok, special_from)
+    specials = specials[specials != eos_id]
+    shard_id, tokens, starts, doc_ids = read_shard(bin_path, tokenizer_sha, specials, eos_id)
     texts = []
     for i in range(0, len(doc_ids), BATCH):
         seqs = [tokens[starts[j]:starts[j + 1] - 1].tolist() for j in range(i, min(i + BATCH, len(doc_ids)))]
@@ -176,9 +189,13 @@ def main(argv=None):
         print(f"decode_shard: no .bin shards under {a.shards}", file=sys.stderr)
         return 1
     a.out.mkdir(parents=True, exist_ok=True)
-    failed = 0
+    failed, seen = 0, set()
     for path in shards:
         try:
+            shard_id = shard_files(path)["shard_id"]
+            if shard_id in seen:
+                raise ShardError(f"{path}: shard_id {shard_id} appears twice under {a.shards}")
+            seen.add(shard_id)
             table = decode_shard(path, tok, tok_sha)
             summary = {"shard_id": table.column("shard_id")[0].as_py(), "docs": table.num_rows,
                        "tokens": int(sum(table.column("n_tokens").to_pylist())), "tokenizer": tok_sha[:12]}
@@ -192,9 +209,10 @@ def main(argv=None):
             pq.write_table(table, out)
             summary["out"] = str(out)
             print(json.dumps(summary))
-        except ShardError as e:
+        except (ShardError, ValueError, OSError) as e:  # ValueError covers bad JSON and bad Parquet
             failed += 1
-            print(f"decode_shard: {e}", file=sys.stderr)
+            print(f"decode_shard: {path}: {e}" if not isinstance(e, ShardError) else f"decode_shard: {e}",
+                  file=sys.stderr)
     print(f"decoded {len(shards) - failed} of {len(shards)} shard(s)", file=sys.stderr)
     return 1 if failed else 0
 

@@ -198,3 +198,55 @@ def test_real_shard_decodes_and_matches_its_manifest():
     if os.environ.get("ERA_SHARD_CLEAN"):
         checked, bad = ds.check_text(table, os.environ["ERA_SHARD_CLEAN"], tok)
         assert bad == [], f"{len(bad)} of {checked} documents do not round-trip"
+
+
+def _run_cli(argv):
+    old = (ds.EOS_ID, ds.SPECIAL_FROM)
+    ds.EOS_ID, ds.SPECIAL_FROM = EOS, SPECIAL
+    try:
+        return ds.main(argv)
+    finally:
+        ds.EOS_ID, ds.SPECIAL_FROM = old
+
+
+def test_added_special_token_below_the_reserved_block_is_refused(tmp_path):
+    """C3 has added special tokens below 130,725 (e.g. 36, 129994); they count as special too."""
+    from tokenizers import Tokenizer, models, pre_tokenizers
+    tok = Tokenizer(models.WordLevel(VOCAB, unk_token="[UNK]"))
+    tok.pre_tokenizer = pre_tokenizers.Whitespace()
+    sp_id = tok.add_special_tokens(["<sp>"]) and tok.token_to_id("<sp>")
+    path = tmp_path / "tok_with_special.json"
+    tok.save(str(path))
+
+    def put_added_special_in_d2(files):
+        raw = bytearray(files["bin"].read_bytes())
+        pos = ds.HEADER_BYTES + 4 * 4
+        raw[pos:pos + 4] = int(sp_id).to_bytes(4, "little")
+        files["bin"].write_bytes(bytes(raw))
+    files = write_shard(tmp_path, path, tamper=put_added_special_in_d2)
+    t, sha = ds.load_tokenizer(path, any_tokenizer=True)
+    assert sp_id in ds.special_ids(t).tolist()
+    with pytest.raises(ds.ShardError, match=f"special id {sp_id} inside document d2"):
+        ds.decode_shard(files["bin"], t, sha, eos_id=EOS)  # default block (130,725+) is above this toy vocab
+
+
+def test_corrupt_manifest_skips_that_shard_only(tmp_path, toy_tokenizer, capsys):
+    shards = tmp_path / "shards"
+    shards.mkdir()
+    write_shard(shards, toy_tokenizer, shard_id="toy-train-000000")
+    bad = write_shard(shards, toy_tokenizer, docs={"e1": "baz"}, shard_id="toy-train-000001")
+    bad["manifest"].write_text("{not json", encoding="utf-8")
+    rc = _run_cli([str(shards), "--tokenizer", str(toy_tokenizer), "--out", str(tmp_path / "out"), "--any-tokenizer"])
+    assert rc == 1
+    assert [p.name for p in (tmp_path / "out").iterdir()] == ["toy-train-000000.text.parquet"]
+    assert "decoded 1 of 2 shard(s)" in capsys.readouterr().err
+
+
+def test_duplicate_shard_id_is_refused(tmp_path, toy_tokenizer, capsys):
+    for sub in ("a", "b"):
+        (tmp_path / "shards" / sub).mkdir(parents=True)
+        write_shard(tmp_path / "shards" / sub, toy_tokenizer, shard_id="toy-train-000000")
+    rc = _run_cli([str(tmp_path / "shards"), "--tokenizer", str(toy_tokenizer), "--out", str(tmp_path / "out"),
+                   "--any-tokenizer"])
+    err = capsys.readouterr().err
+    assert rc == 1 and "appears twice" in err and "decoded 1 of 2 shard(s)" in err
