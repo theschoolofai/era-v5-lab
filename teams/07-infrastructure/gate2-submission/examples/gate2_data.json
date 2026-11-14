@@ -1,0 +1,1 @@
+{"id":"gate2-synthetic-v1","ordered_ids":"integers 0 through 256","features":"sin(id/10 + arange(16)) plus saved-RNG augmentation","targets":"cos(id/10 + arange(4))","purpose":"CPU infrastructure acceptance fixture; no external training data"}

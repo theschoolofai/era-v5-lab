@@ -1,0 +1,32 @@
+test_failed_save_never_publishes (test_gate2.CheckpointTests.test_failed_save_never_publishes) ... ok
+test_incomplete_corrupt_and_malformed_state_skipped (test_gate2.CheckpointTests.test_incomplete_corrupt_and_malformed_state_skipped) ... ok
+test_no_valid_checkpoint_and_foreign_config_fail (test_gate2.CheckpointTests.test_no_valid_checkpoint_and_foreign_config_fail) ... ok
+test_publish_is_atomic_and_validated (test_gate2.CheckpointTests.test_publish_is_atomic_and_validated) ... ok
+test_stale_lock_and_distributed_are_refused (test_gate2.CheckpointTests.test_stale_lock_and_distributed_are_refused) ... ok
+test_symlink_checkpoint_excluded (test_gate2.CheckpointTests.test_symlink_checkpoint_excluded) ... ok
+test_bad_resource_placeholder_and_path_are_rejected (test_gate2.RunnerTests.test_bad_resource_placeholder_and_path_are_rejected) ... ok
+test_budget_is_bounded_and_persisted (test_gate2.RunnerTests.test_budget_is_bounded_and_persisted) ... ok
+test_changed_identity_refused (test_gate2.RunnerTests.test_changed_identity_refused) ... ok
+test_fatal_exit_is_not_retried (test_gate2.RunnerTests.test_fatal_exit_is_not_retried) ... ok
+test_no_checkpoint_refuses_restart_from_scratch (test_gate2.RunnerTests.test_no_checkpoint_refuses_restart_from_scratch) ... ok
+test_slurm_preview_keeps_cpu_resource_contract (test_gate2.RunnerTests.test_slurm_preview_keeps_cpu_resource_contract) ... ok
+test_batch_term_forwards_to_srun (test_local.InfrastructureTests.test_batch_term_forwards_to_srun) ... ok
+test_container_arguments_and_failure (test_local.InfrastructureTests.test_container_arguments_and_failure) ... ok
+test_ecc_failures (test_local.InfrastructureTests.test_ecc_failures) ... ok
+test_gpu_mapping_rejects_missing_duplicate_alias_and_wrong_hardware (test_local.InfrastructureTests.test_gpu_mapping_rejects_missing_duplicate_alias_and_wrong_hardware) ... ok
+test_memory_and_topology_rejected_before_docker_run (test_local.InfrastructureTests.test_memory_and_topology_rejected_before_docker_run) ... ok
+test_missing_training_blocks_submission (test_local.InfrastructureTests.test_missing_training_blocks_submission) ... ok
+test_no_allocation (test_local.InfrastructureTests.test_no_allocation) ... ok
+test_one_srun_and_failure_propagation (test_local.InfrastructureTests.test_one_srun_and_failure_propagation) ... ok
+test_preflight_preview_creates_logs_without_sbatch (test_local.InfrastructureTests.test_preflight_preview_creates_logs_without_sbatch) ... ok
+test_shell_syntax (test_local.InfrastructureTests.test_shell_syntax) ... ok
+test_step_gpu_allocation_overrides_job_allocation (test_local.InfrastructureTests.test_step_gpu_allocation_overrides_job_allocation) ... ok
+test_submit_options_keep_topology_fixed (test_local.InfrastructureTests.test_submit_options_keep_topology_fixed) ... ok
+test_term_stops_only_owned_container (test_local.InfrastructureTests.test_term_stops_only_owned_container) ... ok
+test_training_path_must_stay_inside_mount (test_local.InfrastructureTests.test_training_path_must_stay_inside_mount) ... ok
+test_xid_real_kernel_format (test_local.InfrastructureTests.test_xid_real_kernel_format) ... ok
+
+----------------------------------------------------------------------
+Ran 27 tests in 11.653s
+
+OK

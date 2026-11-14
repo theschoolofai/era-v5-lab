@@ -1,0 +1,2 @@
+[PASS] backend=gloo rank=1 world=2 sum=3.0[PASS] backend=gloo rank=0 world=2 sum=3.0
+

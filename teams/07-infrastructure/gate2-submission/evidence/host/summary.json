@@ -1,0 +1,46 @@
+{
+  "automatic_restart": {
+    "attempts": 2,
+    "bit_equal_loss": true,
+    "compared_steps": 100,
+    "concurrent_writer_rejected": true,
+    "corrupt_future_publish_path_recovered": true,
+    "final_state_equal": {
+      "model": true,
+      "optimizer": true,
+      "rng": true,
+      "sampler": true,
+      "scheduler": true
+    },
+    "first_step": 101,
+    "identical_ordered_data_ids": true,
+    "incomplete_temporary_directory_ignored": true,
+    "invalid_checkpoints_excluded": 4,
+    "killed_after_step": 125,
+    "last_step": 200,
+    "resumed_checkpoint_step": 100,
+    "signal": "SIGKILL",
+    "stale_lock_quarantined": true
+  },
+  "device": "cpu",
+  "platform": "darwin",
+  "python": "3.14.0 (main, Oct  7 2025, 09:34:52) [Clang 17.0.0 (clang-1700.3.19.1)]",
+  "restore": {
+    "bit_equal_loss": true,
+    "compared_steps": 100,
+    "final_state_equal": {
+      "model": true,
+      "optimizer": true,
+      "rng": true,
+      "sampler": true,
+      "scheduler": true
+    },
+    "first_step": 101,
+    "identical_ordered_data_ids": true,
+    "last_step": 200
+  },
+  "scope": "Single-process CPU acceptance fixture. No GPU/MoE/distributed/Slurm allocation-loss certification.",
+  "status": "PASS",
+  "supervisor_TERM_cancels_without_restart": true,
+  "torch": "2.14.1"
+}

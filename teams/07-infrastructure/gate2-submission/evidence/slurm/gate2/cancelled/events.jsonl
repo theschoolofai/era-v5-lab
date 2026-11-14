@@ -1,0 +1,3 @@
+{"attempt": 1, "command": ["/data/team7-gate2-py312/bin/python", "/data/team7-gate2-20261102T083952Z/infra/tests/gate2_worker.py", "--config", "/data/team7-gate2-20261102T083952Z/infra/examples/gate2_config.json", "--run-dir", "/data/team7-gate2-20261102T083952Z/gate2/cancelled", "--resume", "none", "--pause-at", "125"], "event": "attempt_started", "pid": 617, "resume_step": 0, "time_ns": 1793608802409983757}
+{"attempt": 1, "event": "attempt_exited", "returncode": -15, "time_ns": 1793608803216126215}
+{"event": "cancelled", "signal": 15, "time_ns": 1793608803217157549}

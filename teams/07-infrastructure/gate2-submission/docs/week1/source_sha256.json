@@ -1,0 +1,19 @@
+{
+  "README.md": "79e2505f8043a363db9617a7a89bc805751590aba87b04bd170929bd10893a53",
+  "checkpoint_demo.py": "0ab385ec4fc49f3f8dfd4df82833a25d18bca3f4e5d52284862383da0cba4589",
+  "checkpoint_design_v0.md": "941d2e4ed72e43cceab6a6ecb0990ef953c404404a85eed03a83c8a4ef167a31",
+  "ckpt.py": "34c0f866f390a91f8646a8e1a72227c783a958eb36ac194f7a18e627956def63",
+  "gpu_health.py": "cd1d6dfbf5005a88343470a0805048c421cd85c0212d1b626ca370277c64f2e5",
+  "gpu_health.sh": "410a630b5e636ef64f6f96c571de7e0c7c19daa8b95e48f64d567d46c0844566",
+  "launch.sh": "1820f9a1e60fd04e055f9a38c5415f89c13a731e1a29bb430ca33bd4544c6e86",
+  "nccl_all_reduce.py": "e8416962717413ec86bf269d35df3a6481f0f412c9cc877374f9a07377c2dc51",
+  "queue_design_v0.md": "6c4aa8a58b051f035b8f27f8cd80e008151c73da9e7456b46511f0c9bd306b7f",
+  "requirements.txt": "70fa5dae94eeba8486768c7d8b7342c1d9edee5773720c5695535aab556bd879",
+  "slurm-docker/Dockerfile": "7e20da308380a32997af435272e4acfb273310ed3e40b71eda2e0c6ab72b3811",
+  "slurm-docker/entrypoint.sh": "d057b9a08c088ddc48ac28984c42b580cc5b8fb304e65c13356daf1f0af71090",
+  "slurm-docker/slurm.conf": "56043b7078015d93c3ae922fe91d9e10bd400c5dbf1b2f09097cd2e652ebb753",
+  "slurm-docker/slurmdbd.conf": "49da9aedd801c3b7722ff4030f552badb0d53f2be306e93d8b9df4b5a40ed256",
+  "slurm-docker/test_accounts.sh": "7bce12b18ac4eff6ec6f0a79be4fe8faf8bd83455ada04d63bf7c72c72943683",
+  "tests/test_infrastructure.py": "57bcad837df535ce80f9d0ffac42f7f5a5499ee1d6238b04c606286d910215be",
+  "xid_scan.py": "80330a17ce8ac8d981c8decbc1ea271412018bf3ee6122b50918dc5be1b8aed2"
+}
