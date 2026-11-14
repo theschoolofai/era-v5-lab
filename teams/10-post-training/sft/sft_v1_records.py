@@ -123,11 +123,22 @@ def load_tok(tokenizer_path: str):
 
 
 def checker_version() -> str:
-    """sha256 of the source of the row checks. A stored per-part result is reused only if it carries this value."""
+    """Bind stored checks to their logic, renderer/marker state and relevant runtime dependencies."""
     import inspect
+    import tokenizers
 
     src = "".join(inspect.getsource(f) for f in (_ranges, _inside, _overlaps, check_part))
-    return hashlib.sha256(src.encode("utf-8")).hexdigest()
+    context = {
+        "schema": 2,
+        "row_checks_source_sha256": hashlib.sha256(src.encode("utf-8")).hexdigest(),
+        "renderer_source_sha256": sha256_file(Path(render.__file__)),
+        "effective_marker_assignments": render.ASSIGNED_SURFACES,
+        "effective_surfaces": T,
+        "max_len": MAX_LEN,
+        "runtime": {"numpy": np.__version__, "tokenizers": tokenizers.__version__,
+                    "python": list(sys.version_info[:3])},
+    }
+    return hashlib.sha256(json.dumps(context, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
 
 
 def check_part(path: Path, tok, tokenizer_sha256: str, batch: int = 64) -> dict:

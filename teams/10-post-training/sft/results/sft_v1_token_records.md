@@ -194,6 +194,8 @@ The single-thread columns are the matched comparison of the algorithm: the old c
 
 `unknown` in a runtime column means the record was written by `sft_v1_records.py finalize` from the finished files of a conversion run by an earlier driver process, which did not record that figure; it is not zero and not estimated.
 
+For a finalized record, `checks_wall_s` measures the finalizer's stored-check validation, any uncached row checks, and aggregation. Earlier per-part checking time is separate; a short cached finalization time does not measure a fresh full-data token check. The record names how many parts were reused.
+
 `full` rows are streamed from the pinned Hub files, rolled into parts, gzipped per part with the decompressed bytes verified, and checked with the same checks as section 3. **Converted, not decontaminated; not a pack.** No held-out id list exists for these sets, so 0 ids are excluded.
 
 | Set | Licence state | Rows out | Skips | Tokens | Targets | Share | p50 / p95 / max | Over 32,768 | Effort 1k / 4k / 16k / 64k | Parts | Plain GiB | gz GiB | content_sha256 | Checks | Rerun prefix same | Wall (min) | Rows/s | Peak RSS MB |

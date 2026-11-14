@@ -269,6 +269,11 @@ def main() -> int:
             w("`unknown` in a runtime column means the record was written by `sft_v1_records.py finalize` from the finished files of a "
               "conversion run by an earlier driver process, which did not record that figure; it is not zero and not estimated.")
             w("")
+        if any(r.get("finalized") for r in full.values()):
+            w("For a finalized record, `checks_wall_s` measures the finalizer's stored-check validation, any uncached "
+              "row checks, and aggregation. Earlier per-part checking time is separate; a short cached finalization "
+              "time does not measure a fresh full-data token check. The record names how many parts were reused.")
+            w("")
         w("`full` rows are streamed from the pinned Hub files, rolled into parts, gzipped per part with the decompressed bytes "
           "verified, and checked with the same checks as section 3. **Converted, not decontaminated; not a pack.** No held-out id "
           "list exists for these sets, so 0 ids are excluded.")

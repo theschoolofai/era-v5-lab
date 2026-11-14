@@ -429,6 +429,32 @@ def test_a_stored_check_is_ignored_when_its_part_changed_or_the_checker_changed(
     assert records.load_valid_partial(pdir, gz, tsha) is None
 
 
+@parametrize("dependency", ["renderer", "markers", "tokenizers", "max_len"])
+def test_stored_check_is_rejected_after_a_dependency_changes(toy_tokenizer, tmp_path, monkeypatch, dependency):
+    _, out_dir, _, _ = _make_full_output(toy_tokenizer, tmp_path)
+    gz = sorted(out_dir.glob("*.gz"))[0]
+    tok, tsha = records.load_tok(toy_tokenizer), records.sha256_file(Path(toy_tokenizer))
+    pdir = tmp_path / "partials"
+    records.write_json_atomic(records.partial_path(pdir, gz), records.check_part(gz, tok, tsha))
+    assert records.load_valid_partial(pdir, gz, tsha) is not None
+    if dependency == "renderer":
+        changed = tmp_path / "render_changed.py"
+        changed.write_bytes(Path(records.render.__file__).read_bytes() + b"\n# changed renderer revision\n")
+        monkeypatch.setattr(records.render, "__file__", str(changed))
+    elif dependency == "markers":
+        assignments = dict(records.render.ASSIGNED_SURFACES)
+        key = next(iter(assignments))
+        name, surface = assignments[key]
+        assignments[key] = (name, surface + "changed")
+        monkeypatch.setattr(records.render, "ASSIGNED_SURFACES", assignments)
+    elif dependency == "tokenizers":
+        import tokenizers
+        monkeypatch.setattr(tokenizers, "__version__", tokenizers.__version__ + "-changed")
+    else:
+        monkeypatch.setattr(records, "MAX_LEN", records.MAX_LEN + 1)
+    assert records.load_valid_partial(pdir, gz, tsha) is None
+
+
 def test_complete_gz_parts_skips_a_part_whose_plain_file_still_exists(tmp_path):
     d = tmp_path / "s"
     d.mkdir()

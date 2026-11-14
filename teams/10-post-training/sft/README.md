@@ -51,6 +51,20 @@ python teams/10-post-training/sft/sft_v1_records.py full --set sft-dolly-15k --t
 - A full output is **converted, not decontaminated, and not a pack**: it can hold rows over 32,768 tokens, it has not been through the decontamination run at the pinned revision, and a held-out id list, if one exists, has not been applied. `TSAI reserves` sets are measurements only.
 - `full` keeps no source copy, gzips each finished part and checks that it decompresses to the same bytes, and stops if one set passes `--budget-gb` or everything under `--out-dir` passes `--global-budget-gb` (default 80). `--local-root` reads a staged copy of the Hub repo (`<root>/<dataset id>/<file>`; check it with `verify-local`) and uses no network.
 
+## Recover a completed conversion
+
+`sft_v1_records.py check-parts` checks completed gzip parts while conversion runs. `finalize` verifies the manifest,
+all decompressed hashes/CRC, row counts and source-prefix determinism, then aggregates valid stored checks. See
+each command's `--help` for required paths. Stored checks bind the gzip/tokenizer hashes, row-check source,
+renderer source, effective marker assignments/surfaces, maximum length and NumPy/tokenizers/Python versions.
+Keep the checked source and environment fixed during a run. Changed dependencies invalidate the stored checks.
+
+The full Proofs execution used revision `8574a9b516562ca6d5086c36ef64b276ba21871e` and its historical checker key.
+`results/sft_v1_proofs_execution_context.json` records the observed dependency context. The broader cache key was
+added after that verified run; the completed record retains the key actually used. In a finalized record,
+`checks_wall_s` covers cache validation/aggregation and any uncached checks, excluding earlier per-part work.
+Conversion metrics unavailable from the original driver stay `null`, rather than being inferred from these times.
+
 ## Decontaminate a set
 
 ```bash
