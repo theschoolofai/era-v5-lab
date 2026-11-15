@@ -9,9 +9,10 @@ import re
 _F1_TREE = {"cpp", "go", "java", "javascript", "python", "rust", "typescript"}
 _F1_LANGS = set(_F1_TREE)  # families with a harm test so far. Prose families go here after theirs; prose has no tree, so regex alone decides
 # Prose packs with their own harm test run the prose path below instead (block context, contact cards, people tables), not the
-# line regex. Keyed by pack_id prefix, because "en" is shared with the English family, which has no F1 harm test yet. A doc
-# without a pack_id never takes this path.
-_F1_PROSE = {"math-": {"en"}, "sci-": {"eng_Latn"}}
+# line regex. The pack decides, by pack_id prefix, not the language label: "en" is shared with the English family, which has its
+# own F1 rule, and the label for one pack differs between the week-1 sample packs ("eng_Latn" for science) and the week-2 data
+# ("en"). A doc without a pack_id never takes this path.
+_F1_PROSE = ("math-", "sci-")
 _F1_EMAIL = re.compile(r"(?<![\w.+%-])([A-Za-z0-9._%+-]+)@([A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,})(?![\w-])")
 _F1_ROLE = re.compile(r"(?i)^(info|contact|contacts|support|help|helpdesk|admin|administrator|sales|office|press|media|hello|enquiries|inquiries|"
                       r"webmaster|postmaster|noreply|no-reply|donotreply|service|services|customerservice|billing|careers|jobs|hr|legal|security|abuse|team|git|root)$")
@@ -368,7 +369,7 @@ def f1(doc):
     if pack.startswith("ind-"):                 # Indic packs: any language tag
         new = _f1_indic(text)
         return ("fix" if new != text else "keep", new)
-    if lang not in _F1_TREE and any(pack.startswith(p) and lang in tags for p, tags in _F1_PROSE.items()):
+    if lang not in _F1_TREE and pack.startswith(_F1_PROSE):      # a code label keeps the tree path, whatever the pack
         new = _f1_prose(text)
         if isinstance(new, tuple):
             return ("drop", text)

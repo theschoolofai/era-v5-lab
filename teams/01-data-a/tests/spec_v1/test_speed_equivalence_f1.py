@@ -22,7 +22,7 @@ sys.path.insert(0, str(SPEC))
 import clean as c
 
 NEW_F1 = c._RULE["f1_rule.py"]()
-PACKS = {"math-finemath": "en", "math-megamath": "en", "sci-finepdfs": "eng_Latn"}   # the pack and the label the prose path accepts
+PACKS = {"math-finemath": "en", "math-megamath": "en", "sci-finepdfs": "eng_Latn"}   # the prose packs and the label of each in the week-1 packs
 
 
 def doc(text, pack="math-finemath", lang=None):
@@ -217,10 +217,12 @@ def test_phone_regexes_agree_on_random_strings_without_a_plus():
 
 # ---- scope ----------------------------------------------------------------------------------------------------------------
 
-def test_other_packs_and_labels_are_untouched():
+def test_other_packs_are_untouched_and_the_label_does_not_matter_for_prose_packs():
     text = "Home: 555-123-4567\nMail jane.doe@gmail.com\njane at example.com"
-    assert NEW_F1(doc(text, "sci-finepdfs", lang="hi")) == ("keep", text)
     assert NEW_F1(doc(text, "en-dclm", lang="en")) == ("keep", text)       # English has no prose path: it has its own F1 rule
+    for pack in PACKS:                                                     # the prose path is chosen by the pack: any label gives the old rule's result
+        for lang in ("en", "eng_Latn", "hi", "", None):
+            assert NEW_F1(dict(doc(text, pack), lang_label=lang)) == expected(text)
     assert same(text) == "fix"
 
 

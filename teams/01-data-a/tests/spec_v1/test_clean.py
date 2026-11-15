@@ -602,10 +602,23 @@ def test_prose_f1_keeps_organisations_and_look_alikes(text):
 @pytest.mark.parametrize("row", [
     {"doc_id": "x", "text": "Home: 312-555-0142", "lang_label": "en"},                                   # no pack_id
     {"doc_id": "x", "text": "Home: 312-555-0142", "lang_label": "en", "pack_id": "en-dclm"},            # English: has its own F1, DA-F1-005
-    {"doc_id": "x", "text": "Home: 312-555-0142", "lang_label": "en", "pack_id": "sci-finepdfs"},       # wrong tag for that pack
 ])
 def test_prose_path_runs_only_on_math_and_sci_packs(row):
     assert c._shared_f1(row) == ("keep", row["text"])  # the shared rule alone; SCOPE also keeps it off English
+
+
+@pytest.mark.parametrize("pack", ["math-finemath", "math-megamath", "sci-finepdfs"])
+@pytest.mark.parametrize("lang", ["en", "eng_Latn", "eng", "hi", "", None])
+def test_prose_path_is_chosen_by_the_pack_not_the_language_label(pack, lang):
+    # the science pack is labelled eng_Latn in the week-1 sample packs and en in the week-2 data: both must be cleaned
+    row = {"doc_id": "x", "text": "Call me.\nHome: 312-555-0142\n", "lang_label": lang, "pack_id": pack}
+    assert c._shared_f1(row) == ("fix", "Call me.\nHome: <PHONE>\n")
+
+
+def test_a_code_label_keeps_the_tree_path_even_in_a_prose_pack():
+    pytest.importorskip("tree_sitter_language_pack")
+    row = {"doc_id": "x", "text": "x = 1\nHome: 312-555-0142\n", "lang_label": "python", "pack_id": "sci-finepdfs"}
+    assert c._shared_f1(row) == ("keep", row["text"])   # a number outside any comment or string stays in code; the prose path would mask it
 
 
 def test_clean_twice_is_clean_once_on_prose():
