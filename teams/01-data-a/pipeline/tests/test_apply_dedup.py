@@ -432,3 +432,68 @@ def test_a_part_name_with_glob_characters(tmp_path, write_remove_list):
     stale.write_bytes(b"left by a killed run")
     ad.apply(root, write_remove_list([["p", "train", "p/part[1].parquet", 1, "d1"]]), out, splits=("train",))
     assert not stale.exists() and ids(out / "train" / "p" / "part[1].parquet") == ["d0", "d2"]
+
+
+# --- Vijay's review of PR #46 (15 Nov) -------------------------------------------------------------------------------
+def test_the_same_long_text_repeated_is_read_in_small_batches(tmp_path, write_remove_list, monkeypatch):
+    """600 rows of one 200 KB text in 128-row groups: dictionary-encoded, about 1.5 KB a row stored, 200 KB decoded.
+    Reads are sized from the decoded bytes, and no output row group passes its limit."""
+    import pyarrow as pa
+    seen, real = [], pq.ParquetFile.iter_batches
+
+    def spy(self, *a, **k):
+        for b in real(self, *a, **k):
+            seen.append(b.nbytes)
+            yield b
+    monkeypatch.setattr(pq.ParquetFile, "iter_batches", spy)
+    monkeypatch.setattr(ad, "BATCH_BYTES", 2 << 20)
+    monkeypatch.setattr(ad, "ROW_GROUP_BYTES", 4 << 20)
+    root = tmp_path / "c"
+    text = "abcdefgh" * 25_000
+    path = root / "train" / "p" / "part-00000.parquet"
+    path.parent.mkdir(parents=True)
+    pq.write_table(pa.table({"doc_id": [f"d{i}" for i in range(600)], "text": [text] * 600, "pack_id": ["p"] * 600}), path,
+                   row_group_size=128)
+    md = pq.ParquetFile(path).metadata
+    assert md.row_group(0).total_byte_size / md.row_group(0).num_rows < 5_000  # the footer says a few KB a row
+    out = tmp_path / "deduped"
+    ad.apply(root, write_remove_list([["p", "train", "p/part-00000.parquet", 7, "d7"]]), out, splits=("train",))
+    got = out / "train" / "p" / "part-00000.parquet"
+    assert ids(got) == [f"d{i}" for i in range(600) if i != 7]
+    assert max(seen) <= 2 * (2 << 20)  # a batch is at most twice the target, never the whole part (114 MiB)
+    t = pq.read_table(got)
+    assert t.column("text").to_pylist() == [text] * 599
+
+
+def test_peak_memory_with_the_same_long_text_repeated(tmp_path, write_remove_list):
+    """The review's measurement, in a fresh process: 600 rows of one 200 KB text, one removal, one worker. The PR head
+    peaked at 229 MiB of Arrow allocations, the branch before it at 50 MiB; the defaults now stay near that."""
+    import pyarrow as pa
+    root = tmp_path / "c"
+    path = root / "train" / "p" / "part-00000.parquet"
+    path.parent.mkdir(parents=True)
+    pq.write_table(pa.table({"doc_id": [f"d{i}" for i in range(600)], "text": ["abcdefgh" * 25_000] * 600,
+                             "pack_id": ["p"] * 600}), path, row_group_size=128)
+    rl = write_remove_list([["p", "train", "p/part-00000.parquet", 7, "d7"]])
+    code = ("import sys, json; sys.path.insert(0, sys.argv[1]); import apply_dedup as ad, pyarrow as pa\n"
+            "s = ad.apply(sys.argv[2], sys.argv[3], sys.argv[4], splits=('train',), workers=1)\n"
+            "print(json.dumps({'kept': s['totals']['kept'], 'peak': pa.default_memory_pool().max_memory()}))")
+    r = subprocess.run([sys.executable, "-I", "-B", "-c", code, str(PIPELINE), str(root), str(rl), str(tmp_path / "out")],
+                       capture_output=True, text=True, check=True)
+    got = json.loads(r.stdout.strip().splitlines()[-1])
+    assert got["kept"] == 599 and got["peak"] < 80 << 20, got
+
+
+def test_a_batch_bigger_than_a_row_group_is_split(tmp_path, write_remove_list, monkeypatch):
+    import pyarrow as pa
+    monkeypatch.setattr(ad, "BATCH_BYTES", 64 << 20)  # reads far bigger than ...
+    monkeypatch.setattr(ad, "ROW_GROUP_BYTES", 1 << 20)  # ... an output row group
+    root = tmp_path / "c"
+    write_part(root, "train", "p/part-00000.parquet",
+               [{"doc_id": f"d{i}", "text": f"{i:05d}" * 20_000, "pack_id": "p"} for i in range(40)], row_group_size=40)
+    out = tmp_path / "deduped"
+    ad.apply(root, write_remove_list([["p", "train", "p/part-00000.parquet", 3, "d3"]]), out, splits=("train",))
+    got = out / "train" / "p" / "part-00000.parquet"
+    md = pq.ParquetFile(got).metadata
+    assert ids(got) == [f"d{i}" for i in range(40) if i != 3] and md.num_row_groups >= 3
+    assert all(md.row_group(g).total_byte_size <= 1.25 * (1 << 20) for g in range(md.num_row_groups))

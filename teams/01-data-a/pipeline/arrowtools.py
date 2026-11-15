@@ -6,7 +6,8 @@
   flat(arr)                          one Array from an Array or a ChunkedArray
   as_str(arr)                        the array as pa.string() (from large_string, dictionary, ...)
   opened(path, buffer_size=0)        a ParquetFile that is closed on leaving the with-block
-  batch_rows(pf, target, most, cols)  rows per read batch that hold about `target` bytes, from the footer
+  iter_sized(pf, target, most, cols)  the file's rows in batches of about `target` decoded bytes, sized as it reads
+  batch_rows(pf, target, most, cols)  rows that hold about `target` bytes by the footer (an estimate only)
   read_columns(path, cols, error)    those columns of a Parquet file; `error` is raised when one is missing
   read_csv(path, header, types, error)   a CSV whose first line must be exactly `header`, typed as given
   posix(table, col)                  the column with \\ turned into /
@@ -60,26 +61,74 @@ def opened(path, buffer_size=0):
     return contextlib.closing(pf) if hasattr(pf, "close") else contextlib.nullcontext(pf)
 
 
-def batch_rows(pf, target_bytes, most, columns=None):
-    """Rows per batch for pf.iter_batches, so that one batch holds about target_bytes of decoded data: target_bytes over
-    the widest row group's uncompressed bytes per row (of `columns`, or of all columns), at least 1 and at most `most`.
-    A fixed row count would not do: iter_batches does not stop at row-group edges, so 8,192 rows of 200 KB documents
-    would be 1.6 GB in one batch. The sizes come from the footer; nothing is read."""
-    md = pf.metadata
+def _column_indices(md, columns):
+    """The Parquet column indices of `columns` (all columns: None)."""
     if columns is None:
-        idx = None
-    else:
-        wanted = set(columns)
-        idx = [j for j in range(md.num_columns) if md.schema.column(j).path.split(".")[0] in wanted]
-    widest = 0.0
-    for i in range(md.num_row_groups):
-        rg = md.row_group(i)
-        if rg.num_rows:
-            size = rg.total_byte_size if idx is None else sum(rg.column(j).total_uncompressed_size for j in idx)
-            widest = max(widest, size / rg.num_rows)
-    if widest <= 0:
-        return most
-    return int(max(1, min(most, target_bytes // widest)))
+        return None
+    wanted = set(columns)
+    return [j for j in range(md.num_columns) if md.schema.column(j).path.split(".")[0] in wanted]
+
+
+def _stored_per_row(rg, idx):
+    """A row group's uncompressed stored bytes per row (of the columns idx, or of all): what the footer says."""
+    size = rg.total_byte_size if idx is None else sum(rg.column(j).total_uncompressed_size for j in idx)
+    return size / rg.num_rows if rg.num_rows else 0.0
+
+
+def batch_rows(pf, target_bytes, most, columns=None):
+    """Rows that hold about target_bytes by the footer: target_bytes over the widest row group's stored bytes per row,
+    at least 1 and at most `most`. Only an estimate, for the writer's page size: dictionary-encoded repeated text
+    decodes far larger than it is stored. Reads size their batches with iter_sized."""
+    md = pf.metadata
+    idx = _column_indices(md, columns)
+    widest = max((_stored_per_row(md.row_group(i), idx) for i in range(md.num_row_groups)), default=0.0)
+    return most if widest <= 0 else int(max(1, min(most, target_bytes // widest)))
+
+
+def iter_sized(pf, target_bytes, most, columns=None, first=16):
+    """pf's rows in file order, in batches of about target_bytes of decoded data, at most `most` rows each.
+
+    The footer alone cannot size a read: a dictionary-encoded column of repeated text decodes far larger than it is
+    stored (600 copies of one 200 KB text are stored in about 1.5 KB a row). So the first read is `first` rows, and
+    every later one is sized from the most decoded bytes per row seen so far (or the footer's, if larger). One reader
+    runs across row groups, and is replaced only when that size changes by more than half: after the first read, and
+    when rows grow (the rest is then read from the row group it reached, skipping what was already given out). So a
+    jump in row size costs at most one oversized read (at most `most` rows) before reads shrink."""
+    import bisect
+    md = pf.metadata
+    n_groups = md.num_row_groups
+    idx = _column_indices(md, columns)
+    starts, total = [], 0
+    for i in range(n_groups):
+        starts.append(total)
+        total += md.row_group(i).num_rows
+    stored = max((_stored_per_row(md.row_group(i), idx) for i in range(n_groups)), default=0.0)
+    pos, seen = 0, 0.0  # rows given out; the most decoded bytes per row so far
+
+    def size(per_row):
+        return most if per_row <= 0 else int(max(1, min(most, target_bytes // per_row)))
+
+    while pos < total:
+        b = min(size(max(seen, stored)), first) if seen == 0 else size(max(seen, stored))
+        g = bisect.bisect_right(starts, pos) - 1
+        skip, cut = pos - starts[g], False
+        for batch in pf.iter_batches(batch_size=b, row_groups=list(range(g, n_groups)), columns=columns):
+            if skip:  # rows of this row group already given out before the reader was replaced
+                if skip >= batch.num_rows:
+                    skip -= batch.num_rows
+                    continue
+                batch, skip = batch.slice(skip), 0
+            if not batch.num_rows:
+                continue
+            seen = max(seen, batch.nbytes / batch.num_rows)
+            pos += batch.num_rows
+            yield batch
+            want = size(max(seen, stored))
+            if want < b / 2 or want > 2 * b:
+                cut = True  # read the rest at the size the data showed
+                break
+        if not cut:
+            break
 
 
 def read_columns(path, columns, error=ValueError):

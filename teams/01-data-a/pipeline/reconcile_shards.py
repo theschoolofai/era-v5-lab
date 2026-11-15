@@ -238,6 +238,11 @@ def reconcile(ledger, shards, out, packs=None, cache=None):
     """Write the outputs (under out's lock, each file atomically); return the summary. Raises Stop when a check fails
     (after writing) or an input is unreadable."""
     out = Path(out)
+    for name, p in (("--ledger", ledger), ("--shards", shards)):
+        for what, q in (("--out", out), ("the lock file", runlock.lock_path(out))):
+            a, b = Path(p).resolve(), Path(q).resolve()
+            if a == b or a in b.parents or b in a.parents:
+                raise Stop(f"{name} {p} and {what} {q} overlap: use another --out")
     try:
         with runlock.exclusive(out):
             return _reconcile(Path(ledger), Path(shards), out, packs, cache or HashCache())

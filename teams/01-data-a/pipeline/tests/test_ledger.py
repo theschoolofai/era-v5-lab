@@ -429,8 +429,13 @@ def test_mode_b_without_a_text_column_stops(chain, tmp_path):
 def test_mode_b_reads_large_documents_in_small_batches(tmp_path, monkeypatch):
     """Batches are sized in bytes: 2 KB documents with a 5 KB budget are compared a few rows at a time, same result."""
     import arrowtools as at
-    seen, real = [], at.batch_rows
-    monkeypatch.setattr(at, "batch_rows", lambda *a, **k: seen.append(real(*a, **k)) or seen[-1])
+    seen, real = [], at.iter_sized
+
+    def spy(*a, **k):
+        for b in real(*a, **k):
+            seen.append(b.num_rows)
+            yield b
+    monkeypatch.setattr(at, "iter_sized", spy)
     monkeypatch.setattr(ledger, "TEXT_BYTES", 5000)
     ids = [f"d{i}" for i in range(9)]
     raw_text = [f"{i}" * 2000 for i in range(9)]
@@ -439,7 +444,7 @@ def test_mode_b_reads_large_documents_in_small_batches(tmp_path, monkeypatch):
     cleaned = write_texts(tmp_path / "clean.parquet", [ids[i] for i in kept], ["fixed" if i == 3 else raw_text[i] for i in kept])
     got = ledger.same_text_streamed(raw, cleaned, pa.array([i in kept for i in range(9)]))
     assert got.to_pylist() == [i in kept and i != 3 for i in range(9)]
-    assert len(seen) == 2 and all(1 <= n <= 3 for n in seen)
+    assert seen and all(1 <= n <= 3 for n in seen)  # 2 or 3 rows of 2 KB a read, from both files
 
 
 def test_a_failed_swap_keeps_the_previous_ledger_and_the_new_one(chain, monkeypatch):
@@ -486,3 +491,76 @@ def test_a_run_killed_between_the_two_renames_gets_the_previous_ledger_back(chai
     with pytest.raises(ledger.Stop):
         ledger.build(**chain)
     assert files_of(out) == before and not out.with_name("ledger.old").exists()
+
+
+# --- Vijay's review of PR #46 (15 Nov) -------------------------------------------------------------------------------
+@pytest.mark.parametrize("name", ["ledger.partial", "ledger.old"])
+def test_an_input_in_a_folder_the_ledger_deletes_is_never_touched(chain, name):
+    """The cleaned parts at <out>.partial or <out>.old: the ledger deleted them. It now stops before touching anything."""
+    moved = chain["out"].with_name(name)
+    shutil.copytree(chain["cleaned"], moved)
+    before = files_of(moved)
+    with pytest.raises(ledger.Stop, match="overlap"):
+        ledger.build(**{**chain, "cleaned": moved})
+    assert files_of(moved) == before and not chain["out"].exists()
+
+
+def test_an_out_inside_an_input_stops(chain):
+    with pytest.raises(ledger.Stop, match="overlap"):
+        ledger.build(**{**chain, "out": chain["f2"] / "ledger"})
+    assert not (chain["f2"] / "ledger").exists()
+
+
+@pytest.mark.parametrize("name", ["ledger.partial", "ledger.old"])
+def test_a_folder_by_those_names_the_ledger_did_not_make_is_never_deleted(chain, name):
+    other = chain["out"].with_name(name)
+    other.mkdir(parents=True)
+    (other / "notes.txt").write_text("someone else's", encoding="utf-8")
+    with pytest.raises(ledger.Stop, match="not a folder the ledger made"):
+        ledger.build(**chain)
+    assert (other / "notes.txt").read_text(encoding="utf-8") == "someone else's" and not chain["out"].exists()
+
+
+def test_a_staging_folder_a_killed_run_left_is_cleared(chain):
+    stage = chain["out"].with_name("ledger.partial")
+    stage.mkdir(parents=True)
+    (stage / ledger.STAGING_MARK).write_text("x", encoding="utf-8")
+    (stage / "half.parquet").write_bytes(b"half a ledger")
+    s = ledger.build(**chain)
+    assert s["totals"]["kept"] == 9 and not stage.exists()
+    assert not (chain["out"] / ledger.STAGING_MARK).exists() and not list(chain["out"].rglob("half.parquet"))
+
+
+def test_an_old_ledger_that_could_only_be_partly_deleted_is_cleared_next_time(chain):
+    ledger.build(**chain)
+    old = chain["out"].with_name("ledger.old")
+    old.mkdir()
+    (old / ledger.OLD_MARK).write_text("x", encoding="utf-8")
+    (old / "train").mkdir()
+    (old / "train" / "left.parquet").write_bytes(b"left over")
+    ledger.build(**chain)
+    assert not old.exists()
+
+
+def test_mode_b_with_the_same_long_text_repeated_reads_small_batches(tmp_path, monkeypatch):
+    """Dictionary-encoded repeated text is stored in a few bytes a row but decodes to the whole text: batches are sized
+    from what was decoded, not from the footer."""
+    import arrowtools as at
+    seen = []
+    real = at.iter_sized
+
+    def spy(*a, **k):
+        for b in real(*a, **k):
+            seen.append(b.nbytes)
+            yield b
+    monkeypatch.setattr(at, "iter_sized", spy)
+    monkeypatch.setattr(ledger, "TEXT_BYTES", 1 << 20)
+    text = "abcdefgh" * 25_000  # 200 KB
+    ids = [f"d{i}" for i in range(300)]
+    for name in ("raw", "clean"):
+        pq.write_table(pa.table({"doc_id": ids, "text": [text] * 300, "pack_id": ["p"] * 300}), tmp_path / f"{name}.parquet",
+                       row_group_size=128)
+    got = ledger.same_text_streamed(tmp_path / "raw.parquet", tmp_path / "clean.parquet", pa.array([True] * 300))
+    assert got.to_pylist() == [True] * 300
+    probes = [n for n in seen if n > 2 * (1 << 20)]
+    assert len(probes) <= 2 and max(seen) <= 16 * 200_016  # one 16-row first read per file, then sized from it

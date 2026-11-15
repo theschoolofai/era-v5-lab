@@ -47,10 +47,12 @@ SPEED AND SCALE
 ===============
 Whole columns at a time with pyarrow, never a Python loop over rows: the list's checks are vectorised, each part's
 listed rows are checked with one take/compare, and a part is filtered with one keep-mask (built once per part) while
-it is read in batches of about 16 MiB (at most 8,192 rows; fewer when the documents are large, sized from the footer)
-through an 8 MiB read buffer, so memory stays near a batch plus one 32 MiB output row group per worker (plus a page of
-the input, which the cleaner's writer sets), even for a part written as a single huge row group or one of 200 KB
-documents. A batch that loses no row is passed on as it is, not copied. Parts are checked and written by --workers threads
+it is read in batches of about 16 MiB of decoded data (at most 1,024 rows), through an 8 MiB read buffer. The size of
+each read comes from the decoded bytes per row seen so far, not from the footer alone: repeated text in a
+dictionary-encoded column decodes far larger than it is stored (arrowtools.iter_sized). So memory stays near a batch
+plus one 32 MiB output row group per worker (plus a page of the input, which the cleaner's writer sets), even for a
+part written as a single huge row group, one of 200 KB documents, or one of the same long text repeated. A batch that
+loses no row is passed on as it is, not copied; one bigger than an output row group is split before it is written. Parts are checked and written by --workers threads
 (default 4; pyarrow and hashlib release the GIL). Every sha256 goes through hashing.HashCache: a hard-linked part takes
 its input's sha256 (it is the same file), and the runner's digests reuse these hashes (--hash-cache keeps them on disk
 for a resumed run). The summary is rewritten at most every few seconds, not after every part.
@@ -79,8 +81,8 @@ SPLITS = ("train", "heldout")
 SUMMARY = "apply_dedup_summary.json"
 DEFAULT_WORKERS = 4
 SUMMARY_EVERY = 5.0  # seconds between progress writes of the summary
-BATCH_ROWS = 8192  # at most this many rows read at a time while filtering ...
-BATCH_BYTES = 16 << 20  # ... and about this many bytes of decoded data (arrowtools.batch_rows)
+BATCH_ROWS = 1024  # at most this many rows read at a time while filtering ...
+BATCH_BYTES = 16 << 20  # ... and about this many bytes of decoded data (arrowtools.iter_sized)
 READ_BUFFER = 8 << 20  # column chunks are read through a buffer of this size, never whole
 ROW_GROUP_ROWS = 65536  # an output row group holds at most this many rows ...
 ROW_GROUP_BYTES = 32 << 20  # ... and this many bytes in memory
@@ -219,9 +221,9 @@ def compression(pf):
 
 def filter_part(src, tmp, rows):
     """Write src without the rows in `rows` (an int64 array of 0-based row numbers) to tmp, with the input's codec.
-    One keep-mask for the whole part (one lookup set), applied to batches of about BATCH_BYTES (at most BATCH_ROWS rows)
-    as they are read; an output row group is written before it would pass ROW_GROUP_ROWS rows or ROW_GROUP_BYTES bytes.
-    Returns the rows written."""
+    One keep-mask for the whole part (one lookup set), applied to batches of about BATCH_BYTES of decoded data (at most
+    BATCH_ROWS rows) as they are read; an output row group is written before it would pass ROW_GROUP_ROWS rows or
+    ROW_GROUP_BYTES bytes, and a batch bigger than that is split first. Returns the rows written."""
     kept, offset, pending, pending_rows, pending_bytes = 0, 0, [], 0, 0
     with at.opened(src, buffer_size=READ_BUFFER) as pf, \
             pq.ParquetWriter(tmp, pf.schema_arrow, compression=compression(pf),
@@ -234,19 +236,28 @@ def filter_part(src, tmp, rows):
                 w.write_table(pa.Table.from_batches(pending, schema=pf.schema_arrow), row_group_size=pending_rows)
             pending, pending_rows, pending_bytes = [], 0, 0
 
-        for batch in pf.iter_batches(batch_size=at.batch_rows(pf, BATCH_BYTES, BATCH_ROWS)):
+        def add(b):
+            nonlocal pending_rows, pending_bytes
+            if pending_rows and (pending_rows + b.num_rows > ROW_GROUP_ROWS or pending_bytes + b.nbytes > ROW_GROUP_BYTES):
+                flush()
+            pending.append(b)
+            pending_rows += b.num_rows
+            pending_bytes += b.nbytes
+
+        for batch in at.iter_sized(pf, BATCH_BYTES, BATCH_ROWS):
             mask = keep.slice(offset, batch.num_rows)
             offset += batch.num_rows
             b = batch if at.count(mask) == batch.num_rows else batch.filter(mask)  # no copy when no row goes
             del batch
             if not b.num_rows:
                 continue
-            if pending_rows and (pending_rows + b.num_rows > ROW_GROUP_ROWS or pending_bytes + b.nbytes > ROW_GROUP_BYTES):
-                flush()
-            pending.append(b)
-            pending_rows += b.num_rows
-            pending_bytes += b.nbytes
             kept += b.num_rows
+            if b.nbytes > ROW_GROUP_BYTES and b.num_rows > 1:  # never one row group above the limit
+                step = max(1, b.num_rows * ROW_GROUP_BYTES // b.nbytes)
+                for start in range(0, b.num_rows, step):
+                    add(b.slice(start, step))
+            else:
+                add(b)
         flush()
     return kept
 

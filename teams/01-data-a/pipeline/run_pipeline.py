@@ -109,6 +109,7 @@ DEFAULT_SHARDS = "teams/01-data-a/shards/run_shards.py"
 POOL = "teams/01-data-a/pipeline/f2_pool.py"
 SPLITS = ("train", "heldout")
 RESERVED = ("deduped", "final", "report", "ledger", "shards", "reconcile", "cfg", "logs", "cache")  # folders of the run that no stage output may take
+BESIDE = (".partial", ".old", ".lock")  # what the scripts make next to a folder they write: <x>.partial, <x>.old, <x>.lock
 VOLATILE = {"seconds", "input", "path", "cleaned", "skipped"}  # JSON fields that differ between identical runs
 
 
@@ -338,11 +339,24 @@ class Run:
         for stage, o in outs.items():
             if o == r or o in r.parents:
                 raise Stop(f"config: stages.{stage}.output and the run folder {self.dir} overlap")
-            if r in o.parents and o.relative_to(r).parts[0] in RESERVED:
-                raise Stop(f"config: stages.{stage}.output {o} is a folder of the run itself ({', '.join(RESERVED)})")
+            if self.owned(o):
+                raise Stop(f"config: stages.{stage}.output {o} is a folder of the run itself ({', '.join(RESERVED)}, "
+                           f"or one of them with {', '.join(BESIDE)})")
+        raw_dir = self.stages.get("ledger", {}).get("raw")
+        if raw_dir is not None and STAGES.index(upto) >= STAGES.index("ledger") and self.owned(path(raw_dir).resolve()):
+            raise Stop(f"config: stages.ledger.raw {raw_dir} is a folder of the run itself")
         for a, b in [(a, b) for i, a in enumerate(active) for b in active[i + 1:]]:
             if outs[a] == outs[b] or outs[a] in outs[b].parents or outs[b] in outs[a].parents:
                 raise Stop(f"config: stages.{a}.output and stages.{b}.output overlap")
+
+    def owned(self, p):
+        """Is p (resolved) in a folder the run writes, swaps or deletes: deduped/, ledger/, ... or ledger.partial,
+        ledger.old, deduped.lock and the like next to them?"""
+        r = self.dir.resolve()
+        if r not in p.parents:
+            return False
+        first = p.relative_to(r).parts[0]
+        return first in RESERVED or any(first == name + end for name in RESERVED for end in BESIDE)
 
     def validate_shards(self, upto):
         spec = self.stages.get("shards")

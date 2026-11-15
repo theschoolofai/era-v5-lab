@@ -868,3 +868,27 @@ def test_without_the_hash_cache_the_digests_are_the_same(tmp_path, config, tsai_
     b = rp.run(cfg)
     assert [s["digest"] for s in a["stages"]] == [s["digest"] for s in b["stages"]]
     assert not (tmp_path / "runs" / "nocache" / "cache").exists()
+
+
+# --- Vijay's review of PR #46 (15 Nov) -------------------------------------------------------------------------------
+@pytest.mark.parametrize("name", ["ledger.partial", "ledger.old", "deduped.lock", "ledger"])
+def test_an_input_in_a_folder_the_run_writes_is_refused(tmp_path, tsai_outputs, name):
+    """stages.clean.output at <run>/ledger.partial passed validation, and the ledger then deleted the cleaned parts. The
+    config now stops before any stage runs, and the parts are untouched."""
+    import shutil
+    target = tmp_path / "runs" / "test-run" / name
+    shutil.copytree(tsai_outputs["cleaned"], target)
+    before = sorted(p.relative_to(target).as_posix() for p in target.rglob("*.parquet"))
+    cfg = write_config(tmp_path / "c.json", {**tsai_outputs, "cleaned": target})
+    with pytest.raises(rp.Stop, match="folder of the run itself"):
+        rp.run(cfg)
+    assert sorted(p.relative_to(target).as_posix() for p in target.rglob("*.parquet")) == before
+
+
+def test_a_raw_folder_the_run_writes_is_refused(tmp_path, tsai_outputs):
+    raw = tmp_path / "runs" / "test-run" / "ledger.old"
+    raw.mkdir(parents=True)
+    cfg = write_config(tmp_path / "c.json", tsai_outputs, ledger={"raw": str(raw)})
+    with pytest.raises(rp.Stop, match="stages.ledger.raw .* is a folder of the run itself"):
+        rp.run(cfg)
+    assert raw.is_dir()

@@ -237,3 +237,11 @@ def test_statuses_come_in_input_part_order_whatever_the_case_of_the_pack_names(t
     t = pq.read_table(tmp_path / "rec" / "reconcile_docs.parquet")
     assert t.equals(t.sort_by([("input_part", "ascending"), ("input_row", "ascending")]))
     assert t["pack_id"].to_pylist()[::3] == ["Beta", "Zeta", "alpha", "beta-2"]
+
+
+# --- Vijay's review of PR #46 (15 Nov) -------------------------------------------------------------------------------
+def test_an_out_that_overlaps_an_input_stops(run, tmp_path):
+    shards = write_shards(run, tmp_path / "shards")
+    with pytest.raises(rs.Stop, match="overlap"):
+        rs.reconcile(run / "ledger", shards, shards / "rec")
+    assert not (shards / "rec").exists()

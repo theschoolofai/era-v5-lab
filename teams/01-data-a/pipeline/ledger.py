@@ -63,13 +63,16 @@ deletes <out>.old. Windows will not rename a folder while a file in it is open (
 scan), so each rename is retried for a while; if the swap still fails, --out is renamed back (the previous ledger), the
 new one stays in <out>.partial, and the run stops saying so. A run killed between the two renames leaves the previous
 ledger in <out>.old; the next run puts it back first. --out must be missing, empty or an earlier ledger (it holds
-ledger_summary.json); anything else stops the run before anything is touched. One run at a time may write --out
+ledger_summary.json); anything else stops the run before anything is touched. The ledger only ever deletes folders it
+made: <out>.partial holds a marker file (.ledger_partial) from the moment it is made, and <out>.old is an earlier
+ledger; any other folder by those names stops the run untouched. No input (--cleaned, --remove-list, --groups, --f2,
+--log, --raw) may be or hold --out, <out>.partial, <out>.old or <out>.lock, nor lie inside them. One run at a time may write --out
 (runlock.py). In mode B the summary lists every raw file used with its sha256.
 
 SPEED AND SCALE
 ===============
-Part by part, with pyarrow joins and compute functions. Mode B compares texts in batches of about 32 MiB (at most 8,192
-rows, fewer for large documents) while it reads both parts (the cleaner keeps raw order, so the k-th kept raw row is
+Part by part, with pyarrow joins and compute functions. Mode B compares texts in batches of about 32 MiB of decoded
+text (at most 8,192 rows; arrowtools.iter_sized sizes each read from the text seen so far) while it reads both parts (the cleaner keeps raw order, so the k-th kept raw row is
 the k-th cleaned row); only a cleaned part that is not in raw order falls back to holding both texts at once. The sample is taken by index, so it holds a few rows, not
 the tables they came from. The dedup inputs are read once and cut by part.
 """
@@ -95,7 +98,7 @@ GROUP_HEADER = ["group_id", "group_size", "priority_rule", "role", "pack_id", "s
 SAMPLE_PER_STATUS = 5
 LIST_LABEL = "dedup"
 TEXT_BATCH = 8192  # at most this many rows of text held at a time in mode B ...
-TEXT_BYTES = 32 << 20  # ... and about this many bytes (arrowtools.batch_rows)
+TEXT_BYTES = 32 << 20  # ... and about this many bytes of decoded text (arrowtools.iter_sized)
 READ_BUFFER = 8 << 20  # column chunks are read through a buffer of this size, never whole
 RENAME_TRIES = 20  # each rename of the swap is tried this often ...
 RENAME_WAIT = 0.5  # ... this many seconds apart, while Windows says a file in the folder is open
@@ -271,8 +274,8 @@ def same_text_streamed(raw_file, cleaned_file, matched):
         for f, pf in ((raw_file, rf), (cleaned_file, cf)):
             if "text" not in pf.schema_arrow.names:
                 raise Stop(f"{f}: no text column (mode B compares the raw and cleaned texts)")
-        cleaned_batches = cf.iter_batches(batch_size=at.batch_rows(cf, TEXT_BYTES, TEXT_BATCH, ["text"]), columns=["text"])
-        for rb in rf.iter_batches(batch_size=at.batch_rows(rf, TEXT_BYTES, TEXT_BATCH, ["text"]), columns=["text"]):
+        cleaned_batches = at.iter_sized(cf, TEXT_BYTES, TEXT_BATCH, ["text"])
+        for rb in at.iter_sized(rf, TEXT_BYTES, TEXT_BATCH, ["text"]):
             n = rb.num_rows
             m = matched.slice(offset, n)
             offset += n
@@ -448,25 +451,63 @@ def find_parts(cleaned):
     return parts
 
 
+STAGING_MARK = ".ledger_partial"  # in <out>.partial from the moment build() makes it: the folder is ours to delete
+OLD_MARK = ".ledger_old"  # in an <out>.old that publish() could only partly delete
+
+
 def is_ledger(folder):
     """A folder build() may replace: missing, empty, or holding ledger_summary.json."""
     return not folder.exists() or (folder.is_dir() and (not any(folder.iterdir()) or (folder / "ledger_summary.json").is_file()))
+
+
+def is_ours(folder, mark):
+    """A folder build() made: it holds ledger_summary.json or the marker file, or it is empty."""
+    return folder.is_dir() and (not any(folder.iterdir()) or (folder / mark).is_file()
+                                or (folder / "ledger_summary.json").is_file())
+
+
+def overlap(a, b):
+    a, b = Path(a).resolve(), Path(b).resolve()
+    return a == b or a in b.parents or b in a.parents
+
+
+def check_paths(out, inputs):
+    """Stop, before anything is touched, when an input is or holds --out or a folder or file the ledger makes or
+    deletes next to it, or lies inside one; and when <out>.partial or <out>.old is a folder the ledger did not make."""
+    stage, old = out.with_name(out.name + ".partial"), out.with_name(out.name + ".old")
+    ours = {"--out": out, "the staging folder": stage, "the backup folder": old, "the lock file": runlock.lock_path(out)}
+    for name, p in inputs.items():
+        if p is None:
+            continue
+        for what, q in ours.items():
+            if overlap(p, q):
+                raise Stop(f"{name} {p} and {what} {q} overlap: the ledger writes, swaps and deletes there, so it would "
+                           "change its own input. Use another --out")
+    if not is_ledger(out):
+        raise Stop(f"--out {out} exists and is not a ledger folder (it has no ledger_summary.json): use a new --out")
+    for folder, mark in ((stage, STAGING_MARK), (old, OLD_MARK)):
+        if folder.exists() and not is_ours(folder, mark):
+            raise Stop(f"{folder} exists and is not a folder the ledger made (no {mark} or ledger_summary.json): the "
+                       "ledger deletes that folder, so move it away or use another --out")
 
 
 def build(cleaned, remove_list, groups_csv, f2, out, log=None, raw=None):
     """Write the ledger to out: built in <out>.partial under out's lock, then swapped in whole. Returns the summary.
     Raises Stop on any failed check (out is then left as it was)."""
     out = Path(out)
-    if not is_ledger(out):
-        raise Stop(f"--out {out} exists and is not a ledger folder (it has no ledger_summary.json): use a new --out")
+    inputs = {"--cleaned": cleaned, "--remove-list": remove_list, "--groups": groups_csv, "--f2": f2, "--log": log,
+              "--raw": raw}
+    check_paths(out, inputs)
     try:
         with runlock.exclusive(out):
+            check_paths(out, inputs)  # again under the lock: nothing changed it in between
             stage, old = out.with_name(out.name + ".partial"), out.with_name(out.name + ".old")
             if not out.exists() and old.is_dir() and (old / "ledger_summary.json").is_file():
                 retry(os.replace, old, out)  # a run killed between the two renames of publish(): the previous ledger
-            if stage.exists():  # left by a killed run; ours, under the lock
+            if stage.exists():  # left by a killed run, and ours (check_paths)
                 retry(shutil.rmtree, stage)
             stage.mkdir(parents=True)
+            (stage / STAGING_MARK).write_text("made by ledger.py; deleted with the folder\n", encoding="utf-8")
             built = False
             try:
                 summary = _build(cleaned, remove_list, groups_csv, f2, stage, log, raw)
@@ -475,7 +516,7 @@ def build(cleaned, remove_list, groups_csv, f2, out, log=None, raw=None):
                 return summary
             finally:
                 if not built:  # half a ledger: nothing to keep (a complete one that could not be swapped in stays)
-                    shutil.rmtree(stage, ignore_errors=True)
+                    remove_marked(stage, STAGING_MARK)
     except runlock.Busy as e:
         raise Stop(str(e)) from None
 
@@ -506,6 +547,7 @@ def publish(stage, out):
             retry(os.replace, out, old)
             moved = True
         try:
+            (stage / STAGING_MARK).unlink(missing_ok=True)  # the published ledger holds only the ledger
             retry(os.replace, stage, out)
         except OSError:
             if moved:
@@ -516,11 +558,34 @@ def publish(stage, out):
             f"the previous ledger is still in {out}"
         raise Stop(f"could not swap the new ledger in for {out} ({type(e).__name__}: {e}). Is a file in it open? "
                    f"Nothing was lost: {where}, and the new one is in {stage}") from None
-    try:  # first the summary, so a .old that could only be partly deleted is never taken for a whole ledger
+    try:  # first the summary, so a .old that could only be partly deleted is never taken for a whole ledger ...
+        (old / OLD_MARK).write_text("made by ledger.py; an earlier ledger being deleted\n", encoding="utf-8")
         (old / "ledger_summary.json").unlink(missing_ok=True)
     except OSError:
         pass
-    shutil.rmtree(old, ignore_errors=True)
+    remove_marked(old, OLD_MARK)  # ... and the marker, deleted last, says it is ours if anything is left
+
+
+def remove_marked(folder, mark):
+    """Delete a folder the ledger made, its marker file last: whatever a failed delete leaves (Windows: a file still open)
+    still says it is the ledger's, so the next run deletes it instead of stopping."""
+    if not folder.is_dir():
+        return
+    for child in folder.iterdir():
+        if child.name == mark:
+            continue
+        try:
+            if child.is_dir() and not child.is_symlink():
+                shutil.rmtree(child)
+            else:
+                child.unlink()
+        except OSError:
+            pass
+    try:
+        (folder / mark).unlink(missing_ok=True)
+        folder.rmdir()
+    except OSError:
+        pass
 
 
 def _build(cleaned, remove_list, groups_csv, f2, out, log=None, raw=None):
