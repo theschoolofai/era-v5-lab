@@ -8,6 +8,7 @@ checker under its env_id, so the trainer calls one function."
 env_id is "<type>/<name>":
     code/<task_id>       rl/tasks/<task_id>, scored by rl/verifier.py (output = the model's completion)
     swe/<instance_id>    swe-envs/<instance_id>, scored by swe-envs/verify.py (output = a unified diff)
+    indic/<task_id>      rl/indic/tasks/<task_id>, scored by rl/indic/indic_verifier.py (exact answer, no container)
 
 New environment types call register("<type>", checker), where checker(name, output, **options) returns a dict
 with at least "reward" (0 or 1). An unknown env_id raises KeyError: it never scores 0 silently, because a
@@ -25,6 +26,7 @@ pool.py for why and for the measurement):
 CLI:
     python rl/reward.py --list
     python rl/reward.py --check-all [--pool]   # every reference/gold scores 1, every wrong answer scores 0
+    python rl/reward.py --check-all --type indic   # only one environment type (indic needs no docker)
 """
 from __future__ import annotations
 
@@ -40,6 +42,7 @@ from typing import Callable
 HERE = Path(__file__).resolve().parent
 TASKS = HERE / "tasks"
 SWE_ENVS = HERE.parent / "swe-envs"
+INDIC_TASKS = HERE / "indic" / "tasks"
 
 _NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")  # no slashes, no "..": an env_id cannot leave its folder
 _REGISTRY: dict[str, Callable[..., dict]] = {}
@@ -108,13 +111,36 @@ def swe_checker(name: str, output: str, executor=None, **_) -> dict:
     return _pool().swe_verify_module().reward(env_dir, output, executor or _OPTIONS["swe_executor"])
 
 
+_INDIC_MODULE = None
+
+
+def _indic():
+    """indic/indic_verifier.py, loaded by path like pool.py."""
+    global _INDIC_MODULE
+    if _INDIC_MODULE is None:
+        import importlib.util  # noqa: PLC0415
+        spec = importlib.util.spec_from_file_location("g10_rl_indic_verifier", HERE / "indic" / "indic_verifier.py")
+        _INDIC_MODULE = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(_INDIC_MODULE)
+    return _INDIC_MODULE
+
+
+def indic_checker(name: str, output: str, **_) -> dict:
+    task_dir = INDIC_TASKS / name
+    if not (task_dir / "task.json").is_file():
+        raise KeyError(f"no indic task {name!r} in {INDIC_TASKS}")
+    return _indic().reward(task_dir, output)
+
+
 register("code", code_checker)
 register("swe", swe_checker)
+register("indic", indic_checker)
 
 
 def list_envs() -> list[str]:
     ids = [f"code/{p.parent.name}" for p in sorted(TASKS.glob("*/task.json"))]
     ids += [f"swe/{p.parent.name}" for p in sorted(SWE_ENVS.glob("*/env.json"))]
+    ids += [f"indic/{p.parent.name}" for p in sorted(INDIC_TASKS.glob("*/task.json"))]
     return ids
 
 
@@ -134,6 +160,8 @@ def known_outputs(env_id: str) -> tuple[str, str]:
         return good, bad
     if env_type == "swe":
         return (SWE_ENVS / name / "gold.patch").read_text(encoding="utf-8"), NOOP_PATCH
+    if env_type == "indic":
+        return _indic().known_outputs(INDIC_TASKS / name)
     raise KeyError(f"no known outputs for {env_type!r}")
 
 
@@ -158,19 +186,23 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--check-all", action="store_true")
     ap.add_argument("--pool", action="store_true", help="use the warm code pool from pool.py")
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--type", help="check only this environment type, for example indic")
     args = ap.parse_args(argv)
     if args.list:
         print("\n".join(list_envs()))
         return 0
     if args.check_all:
+        ids = [i for i in list_envs() if i.split("/", 1)[0] == args.type] if args.type else None
+        if args.type and not ids:
+            ap.error(f"no environments of type {args.type!r}")
         if args.pool:
             pool = _pool()
             with pool.CodePool(workers=args.workers) as cp:
                 configure(code_runner=cp.runner)
-                rows = check_all(args.workers)
+                rows = check_all(args.workers, ids)
             configure()
         else:
-            rows = check_all(args.workers)
+            rows = check_all(args.workers, ids)
         for r in rows:
             print(json.dumps(r))
         bad = [r for r in rows if not r["ok"]]

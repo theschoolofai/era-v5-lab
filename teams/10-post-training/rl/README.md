@@ -69,13 +69,18 @@ python -m pytest teams/10-post-training/rl/test_objective_v1.py -q -p no:cachepr
 
 The Go verifier, its runner, the Docker image and the Go tasks are in [`go/`](go/README.md). They use `verifier.py` from this folder and nothing else here depends on them.
 
+## Indic tasks
+
+Indic short-answer tasks are in [`indic/`](indic/README.md): an Indic prompt, and one checkable answer in `<answer>...</answer>` (an integer in any script's digits, a word in the task's script, or a choice label). `indic/indic_verifier.py` checks the answer exactly after normalising it. It runs no code, so it needs no container. `reward.py` registers it as `indic/<task_id>`, and `python rl/reward.py --check-all --type indic` runs without docker.
+
 ## Files in this folder
 
 | File | What it is |
 |---|---|
 | `verifier.py`, `_sandbox_child.py`, `test_verifier.py` | The verifier: binary reward for one task, expected answers kept outside the sandbox. |
 | `tasks/` | The original coding tasks (see "Writing a task"). |
-| `reward.py`, `test_reward.py` | The one `reward(env_id, output)` entry point for code and SWE environments. |
+| `reward.py`, `test_reward.py` | The one `reward(env_id, output)` entry point for code, SWE and Indic environments. |
+| `indic/` | The Indic verifier set: exact-answer reward, its tasks and tests. |
 | `objective_v1.py`, `objective_v1.md`, `test_objective_v1.py` | Session 18 objective: group advantage, equal-reward drop, trust-region mask. |
 | `small_rl.py`, `test_small_rl.py` | Local RL loop on one code task. The result is `results/small_rl.md`. |
 | `pool.py`, `bench_pool.py` | The warm container pool for code tasks, and the rollouts-per-second benchmark. |
