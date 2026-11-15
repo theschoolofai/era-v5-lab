@@ -137,9 +137,8 @@ python teams/09-evaluation/decontam/canary_scan.py <dir>/<shard_id>.text.parquet
 - **Which shard:** the printed summary and the output's columns give `payload_sha256`, `dataset_version` and `split`, so
   a result can be tied to the exact shard bytes in the run's shard list.
 - **Text:** each document is its tokens minus the final EOS, decoded with the shard's tokenizer, so it is the
-  tokenizer-normalized text the
-  model trains on. `--check-text <run_clean.py *_clean.parquet>` (one shard per run) compares every decoded document with
-  the normalized source text (round trip).
+  tokenizer-normalized text the model trains on. `--check-text <run_clean.py *_clean.parquet>` (one shard per run)
+  compares every decoded document with the normalized source text (round trip).
 - **Output holds document text:** keep it local; never commit or paste it. Reports give IDs, items, coverage and offsets.
 - **Tested** on Data A's sample shard, rebuilt with the two commands in
   [`../../01-data-a/shards/sample/README.md`](../../01-data-a/shards/sample/README.md). The rebuilt `.bin` and `.idx.npy`
