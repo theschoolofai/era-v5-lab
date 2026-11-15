@@ -1,12 +1,12 @@
 # Week 3 frozen-tokenizer comparison
 
-**Status: preflight complete. Matched BPB comparison pending.** Due Wed 18 Nov 2026.
+**Status: old baseline confirmed. Frozen C3 run and BPB delta pending.** Due Wed 18 Nov 2026.
 
 ## Reference and run plan
 
-The lead selected the Gate 2 T2 Muon arm (`exp2_muon`). TSAI reported mean held-out BPB of **1.6607** across seeds 1234, 1235 and 1236 after 1,221 steps. Use the final BPB and manifest for the same seed as the frozen run. Seeds 1235 and 1236 used batched Muon. The three-seed mean is context for the matched comparison. [EXP-2 request](https://github.com/theschoolofai/era-v5-lab/pull/354)
+The lead selected the Gate 2 T2 Muon arm (`exp2_muon`). TSAI reported mean held-out BPB of **1.6607** across seeds 1234, 1235 and 1236 after 1,221 steps. TSAI confirmed seed 1235 as the match and reported old-tokenizer BPB of **1.6601** at that seed (1234: 1.6443, 1236: 1.6777). The manifests are on the Gate 2 evidence page. The three-seed mean is context for the matched comparison. [EXP-2 request](https://github.com/theschoolofai/era-v5-lab/pull/354)
 
-Use trainer commit `71bc0fb` with TSAI's Gate 2 speed fixes and `runtime_fast.yaml`. Match the selected seed's resolved settings, raw training text, holdout, and 1,221-step budget. Confirm the exact training file and resolution from the manifest. Keep artifact validation enabled and pass the pinned C3 tokenizer identity in the run setup. [Gate 2 trainer diff discussion](https://github.com/theschoolofai/era-v5-lab/pull/441)
+TSAI will stage the same Gate 2 `train.jsonl` (SHA-256 starts `267c33bf`), `runtime_fast.yaml`, and the `t2m1` resolution. TSAI will apply the C3 scoring patch on top of the speed fixes at `71bc0fb` after reviewing [#474](https://github.com/theschoolofai/era-v5-lab/pull/474) on Mon 16 Nov. Match the seed's resolved settings, raw training text, holdout, and 1,221-step budget. Verify the full training digest and resolved settings from the manifest. Keep artifact validation enabled and pass the pinned C3 tokenizer identity in the run setup. [Gate 2 trainer diff discussion](https://github.com/theschoolofai/era-v5-lab/pull/441)
 
 ## Verified local inputs
 
@@ -34,10 +34,10 @@ The exact TSAI training file still needs a preflight. The local harness patch is
 
 | Run | Seed | Completed steps | Held-out BPB | Evidence |
 | --- | --- | --- | --- | --- |
-| Old tokenizer | Pending | Pending manifest | Pending per-seed score | TSAI manifest and metrics |
-| Frozen C3 | Same seed | Pending | Pending | TSAI manifest and metrics |
+| Old tokenizer | 1235 | 1,221 | 1.6601 | TSAI confirmation. Manifest on the Gate 2 evidence page. |
+| Frozen C3 | 1235 | Pending | Pending | TSAI manifest and metrics |
 
-**BPB delta (frozen minus old):** Pending. Record the scoring policy, held-out byte count, scored tokens, training bytes where available, trainer and runtime identity, and any differences in run settings.
+**BPB delta (frozen BPB minus 1.6601):** Pending. Record the scoring policy, held-out byte count, scored tokens, training bytes where available, trainer and runtime identity, and any differences in run settings.
  
 ## Local verification of the scoring path
 
