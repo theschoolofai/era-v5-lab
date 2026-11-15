@@ -20,7 +20,7 @@ be rebuilt. It is not a one-line edit to the pack.
 | TACO, APPS, code_contests: repo + exact revision recorded; level `pinned_revision` (not relabelled `verified`) | TSAI ruling, 14 Nov (record repo and revision); the level name is G10's | policy `approval`, `pack.accepted_identity_levels` |
 | "Any row without a clear source stays out": 14 TACO problems excluded as `policy_unclear_source` | the rule is TSAI's; which rows it covers is a G10 judgement. These are candidates where both identity signals lose to neighbouring rows, from shards 0-2. **The WP11 human spot check has not happened; no verdict exists** | policy `unclear_source_rows` |
 | Quality: critique `right`, pass_rate 1.0, missing execution evidence admitted and tagged | #391 rule (SFT mix v1); the policy still calls it a proposal; TSAI has named no other threshold | policy `target_quality` |
-| 2% of problem families held out as `heldout_eval_v1` | **G10 plan proposal (D9), not a ruling.** Task 8 (eval_v1) is claimed by another member; they and the lead have not agreed to it | policy `pack.heldout_eval_v1` |
+| 2% of problem families held out as `heldout_eval_v1` | **TSAI confirmed: keep the split.** The latest G10 ruling also asks for the split seed and row IDs in the pack manifest, and completion of the 14 source spot checks before finalization. The existing salted-hash split and bytes are unchanged. | policy `pack.heldout_eval_v1`; post-build ruling in the summary manifest |
 
 ## Counts (from the manifest by `render_tables.py`; no number typed by hand)
 

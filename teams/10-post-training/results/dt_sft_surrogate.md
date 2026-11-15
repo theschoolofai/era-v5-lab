@@ -1,8 +1,8 @@
 # Deletion Tuning vs LoRA vs full fine-tuning on the SFT bench (WP2 draft, 14 Nov 2026)
 
 **Evidence level: surrogate, exploratory.** Dense SmolLM2 (Apache-2.0), AdamW, one OCR-2 code slice. Nothing here measures
-the capstone MoE, Muon or KE2. **Data provenance is conditional** on WP1 (draft #79: WP11 verdicts and the held-out split
-are open lead decisions). The main table uses the bench `slice-v1` test split. It was already scored in WP3, so every
+the capstone MoE, Muon or KE2. **Data provenance is conditional** on WP1 (draft #79: the 14 WP11 source spot checks
+remain open; TSAI has now confirmed keeping the 2% held-out split). The main table uses the bench `slice-v1` test split. It was already scored in WP3, so every
 number on it is **exploratory**. A small fresh supplement (91 rows, 22 problem clusters, below) gives limited
 independent corroboration. It is not a confirmatory or official result. Settings were chosen on the dev split only. The
 preregistration and its three amendments were written and hashed before the corresponding scores existed.
@@ -136,8 +136,10 @@ would show whether 76 vs 93 and 84 vs 93 are stable.
   base checkpoint but only 8/110 from Instruct (82 foreign special tokens). The token ids emitted were not recorded.
 - Capstone follow-up: verify that the actual checkpoint can distinguish and generate the required markers, with a
   development control using a supported native format or distinct marker mapping. Tokenizers assign IDs; model weights
-  learn representations. The surrogate five-row hybrid does not transfer unchanged to G5 KE2, which uses a shared byte-
-  code projection rather than an independently addressable embedding table. This remains an untested capstone inference.
+  learn representations. The surrogate five-row hybrid has not been tested on the capstone. The latest TSAI ruling
+  in CAP, checked in the 15 Nov export, keeps the dry-run-1 output head dense untied and makes the KE2 cosine decoder
+  evaluation-only. This study uses SmolLM2's tied embeddings/output head, so its marker-row intervention does not
+  establish how the actual dry-run-1 head will behave.
 
 ## Code and checks
 

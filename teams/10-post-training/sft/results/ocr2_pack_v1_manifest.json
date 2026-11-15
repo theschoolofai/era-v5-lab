@@ -8,7 +8,7 @@
   "open-r1/codeforces: held out of v1; the producer's revision is not established and Team 9 confirmation of the Codeforces pool is open",
   "max_sequence_tokens 32768 is provisional for SFT data v1",
   "unclear_source_rows: 14 TACO problems excluded pending a human spot check; removing an entry folds its rows back",
-  "pack.heldout_eval_v1: 2% of problem families held out for eval_v1 task 8; fraction 0 folds them back"
+  "heldout split confirmed by TSAI; complete the requested split-seed/row-ID manifest handoff alongside the private pack artifacts"
  ],
  "build": {
   "run_id": "admission-7107d5b9dc9c",
@@ -175,7 +175,7 @@
    "salt": "g10-ocr2-heldout-eval-v1",
    "note": "problem families whose salted sha256 falls under 2% go to a separate held-out file (eval_v1 code prompts), never into the pack"
   },
-  "authority": "G10 plan proposal (D9), not a TSAI ruling; fraction 0 folds it back (changes the policy sha and so the run id)",
+  "authority": "TSAI confirmed keeping the 2% held-out split in G10; record split seed and row IDs in the pack manifest and finish the 14 source spot checks before finalization.",
   "rows": 8507,
   "families": 317,
   "rows_by_source": {
@@ -184,7 +184,8 @@
    "taco/train": 4732
   },
   "id_list_sha256": "193d589d942ec54b44c64ddf66d32af7f3a99ea842689b1275d6881f6bced7f1",
-  "id_list_note": "ids and keys only; kept private, rebuilt by the recipe"
+  "id_list_note": "ids and keys only; kept private, rebuilt by the recipe",
+  "authority_at_build": "G10 plan proposal (D9), not a TSAI ruling; fraction 0 folds it back (changes the policy sha and so the run id)"
  },
  "max_length_tokens": 29829,
  "supervision_note": "loss covers assistant bodies and their closing <|im_end|>; the final <|endoftext|> (id 130822) is present but not a supervised token",
@@ -1702,6 +1703,14 @@
    "heldout_sha256": "8128964a88686181c9522ab633a196e4504ffc15bc53fd494ef7f3706804d020",
    "deterministic_sha256": "904b1d85e15f0dc76c6a37632a461a9e6acedd71d2a208cdfc61a39822346fb0",
    "heldout_bytes": 1175636
+  }
+ ],
+ "post_build_rulings": [
+  {
+   "source": "G10 Instructor reply to the 70-shard completion message; latest export checked 15 Nov 2026",
+   "decision": "Keep the 2% held-out split. Record split seed and row IDs in the pack manifest. Finish the 14 source spot checks before finalizing.",
+   "scope": "Approval metadata only. Policy, split salt, source/pack hashes, counts and output bytes are unchanged.",
+   "remaining_manifest_handoff": "This public summary stores the split salt and private ID-list hash. The requested complete seed/row-ID manifest handoff remains open; no private ID list is published here."
   }
  ]
 }
