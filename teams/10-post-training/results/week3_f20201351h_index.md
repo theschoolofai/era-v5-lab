@@ -15,6 +15,7 @@ One consolidated draft PR targets `saitej123:g10-week3-post-training`. Original 
 | Verifier and RL data v1 note, 15 Nov | `verifier_data_note_20261115.md` | 3.1% reward false positives on unused source tests (base model); 116 of 3,723 code tasks have no problem description | Human review of the flagged list; other task families |
 | MoE trust-region note for the lead, 15 Nov (surrogate) | `moe_trust_region_note_20261115.md` | OLMoE: 2.04% of tokens outside objective_v1's region with identical weights (dense 0.044%); bf16 routing flips; fp32 trainer alone does not close the gap | Capstone-family probe once G5 ships a checkpoint and sampler |
 | DT SFT addendum, 15 Nov (surrogate, one seed) | `dt_sft_surrogate.md` (dated addendum) | Marker-only controls, untied-head scope, deletion/layer sweep | Second seeds at 1.7B |
+| SFT data v1 close, 15 Nov | `../sft/results/sft_v1_close.md`, `../sft/sft_v1_admit.py`, `../sft/ocr2_heldout_handoff.py`, `../jobs/2026-11-16-sft-v1-proofs-decontam.md` | Rulings applied without new decisions; admission index (Dolly 15,007 and dolly-t 10,541 rows admissible; Proofs 3 of 287 parts decontaminated); Aya 10-subset policy in the converter (output byte-identical on saved inputs); OCR-2 held-out rule checker | 19 TSAI-reserve sets and 4 held sets need rulings; `templated_hindi_news`; 14 TACO spot checks; held-out id location; Proofs decontam and math-v2 full build are TSAI jobs |
 
 ## Integration verification
 

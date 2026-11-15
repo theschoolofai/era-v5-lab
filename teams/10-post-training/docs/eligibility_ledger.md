@@ -211,7 +211,7 @@ Tokenizer: C3 (`tokenizer_sha256` in each record), rendered with `chat-format/re
 | `sft-code-swe-rebench-openhands` | tsai_reserves | first 1,000 rows, C3 | 1,000 | 469 | 22,977,354 | 6,539,070 | 28.5% | 47,256 / 70,935 / 80,330 | 445 | pass |
 | `sft-dolly-15k` | allowed | first 1,000 rows, C3 | 1,000 | 1,000 | 193,844 | 84,057 | 43.4% | 129 / 536 / 2,549 | 0 | pass |
 | `sft-dolly-15k` | allowed | full set, C3, converted, not decontaminated | 15,011 | 15,011 | 2,923,577 | 1,186,477 | 40.6% | 123 / 560 / 5,664 | 0 | pass |
-| `sft-indic-aya-collection` | tsai_reserves | first 1,000 rows, C3 | 996 | 996 | 398,743 | 194,329 | 48.7% | 177 / 1,491 / 5,417 | 0 | pass |
+| `sft-indic-aya-collection` | tsai_reserves | first 1,000 rows, C3 | 1,000 | 1,000 | 263,599 | 139,196 | 52.8% | 152 / 812 / 5,240 | 0 | pass |
 | `sft-indic-aya-dataset` | tsai_reserves | first 1,000 rows, C3 | 1,000 | 1,000 | 304,967 | 202,054 | 66.3% | 169 / 947 / 6,576 | 0 | pass |
 | `sft-indic-indic-align-dolly-t` | allowed | first 1,000 rows, C3 | 1,000 | 1,000 | 185,131 | 136,104 | 73.5% | 138 / 490 / 1,637 | 0 | pass |
 | `sft-indic-indic-align-dolly-t` | allowed | full set, C3, converted, not decontaminated | 10,541 | 10,541 | 1,951,624 | 1,425,682 | 73.1% | 136 / 472 / 7,379 | 0 | pass |

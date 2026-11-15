@@ -6,7 +6,7 @@ Tokenizer: C3, `tokenizer.json` sha256 `15468e66457b43af79f695cbe585c0d03e3cfe7a
 
 ## 1. Work list
 
-Built by `sft/sft_v1_worklist.py` from `convert.py` ADAPTERS (33), the Stage 1 licence table (78 sets) and the #391 proposal `sft_mix_proposal.md`. Input hashes: `convert_py` `71c00be1edcf…`, `licence_table` `003b15d4f880…`, `sft_mix_proposal` `7c05153b2bdd…`.
+Built by `sft/sft_v1_worklist.py` from `convert.py` ADAPTERS (33), the Stage 1 licence table (78 sets) and the #391 proposal `sft_mix_proposal.md`. Input hashes: `convert_py` `1f8709cae299…`, `licence_table` `003b15d4f880…`, `sft_mix_proposal` `7c05153b2bdd…`.
 
 - **Allowed + adapter + in the proposal (4):** `sft-dolly-15k`, `sft-indic-indic-align-dolly-t`, `sft-math-nemotron-math-v2`, `sft-math-nemotron-proofs`.
 - **TSAI reserves + adapter + in the proposal, no data-rule flag (19, measurement only):** `sft-agentic-nemotron-agentic-v1`, `sft-agentic-nemotron-sft-agentic-v2-tool-calling`, `sft-bespoke-stratos-17k`, `sft-code-codeforces-cots`, `sft-code-commitpackft`, `sft-code-nemotron-cascade-swe`, `sft-code-nemotron-terminal`, `sft-code-opencodereasoning`, `sft-code-swe-rebench-openhands`, `sft-indic-aya-collection`, `sft-indic-aya-dataset`, `sft-indic-indic-align-oasst-t`, `sft-math-nemotron-proofs-v3-sft`, `sft-math-openr1-math`, `sft-oasst2`, `sft-rl-math-openmathreasoning`, `sft-science-glm51-phd`, `sft-science-nemotron-science`, `sft-stem-code-openthoughts3`.
@@ -100,7 +100,7 @@ Every number in this table is `first 1,000 rows, C3` (rows in = 1,000 selected r
 | `sft-code-nemotron-terminal` | reserved | 1,000 | none | 52 / 200 / 686 / 62 | 17,112,495 | 12,506,878 | 73.1% | 18,658 / 26,558 / 35,912 | 2 | `896fd58ee6512d28…` |
 | `sft-code-opencodereasoning` | reserved | 1,000 | none | 33 / 264 / 703 / 0 | 8,247,869 | 7,763,510 | 94.1% | 7,787 / 15,919 / 17,870 | 0 | `60b315d2160662e1…` |
 | `sft-code-swe-rebench-openhands` | reserved | 469 | trace over 64k 23; unresolved trajectory 508 | 0 / 0 / 2 / 467 | 22,977,354 | 6,539,070 | 28.5% | 47,256 / 70,935 / 80,330 | 445 | `b8fc9c6707d21524…` |
-| `sft-indic-aya-collection` | reserved | 996 | none | 996 / 0 / 0 / 0 | 398,743 | 194,329 | 48.7% | 177 / 1,491 / 5,417 | 0 | `a5c1ebb2576423a4…` |
+| `sft-indic-aya-collection` | reserved | 1,000 | none | 1,000 / 0 / 0 / 0 | 263,599 | 139,196 | 52.8% | 152 / 812 / 5,240 | 0 | `136c4bf4652b5bcf…` |
 | `sft-indic-aya-dataset` | reserved | 1,000 | none | 1,000 / 0 / 0 / 0 | 304,967 | 202,054 | 66.3% | 169 / 947 / 6,576 | 0 | `643613dbd13ba8dc…` |
 | `sft-indic-indic-align-oasst-t` | reserved | 1,000 | none | 1,000 / 0 / 0 / 0 | 543,672 | 448,740 | 82.5% | 430 / 1,363 / 5,727 | 0 | `4ef51ed4ec1a4cb9…` |
 | `sft-math-nemotron-proofs-v3-sft` | reserved | 34 | trace over 64k 966 | 0 / 0 / 0 / 34 | 1,885,993 | 1,853,549 | 98.3% | 58,877 / 67,409 / 67,634 | 34 | `d18bb50628180a3a…` |
@@ -128,7 +128,7 @@ Every number in this table is `first 1,000 rows, C3` (rows in = 1,000 selected r
 | `sft-code-nemotron-terminal` | pass | pass | pass | 0 | 0 | no tool calls | pass | yes | yes |
 | `sft-code-opencodereasoning` | pass | pass | pass | 0 | 0 | no tool calls | pass | yes | yes |
 | `sft-code-swe-rebench-openhands` | pass | pass | pass (2 rows decode to the NFC-normalised text only) | 0 | 0 | pass (26,786 calls, 26,317 results) | pass | yes | yes |
-| `sft-indic-aya-collection` | pass | pass | pass (148 rows decode to the NFC-normalised text only) | 0 | 0 | no tool calls | pass | yes | yes |
+| `sft-indic-aya-collection` | pass | pass | pass (154 rows decode to the NFC-normalised text only) | 0 | 0 | no tool calls | pass | yes | yes |
 | `sft-indic-aya-dataset` | pass | pass | pass (115 rows decode to the NFC-normalised text only) | 0 | 0 | no tool calls | pass | yes | yes |
 | `sft-indic-indic-align-oasst-t` | pass | pass | pass (183 rows decode to the NFC-normalised text only) | 0 | 0 | no tool calls | pass | yes | yes |
 | `sft-math-nemotron-proofs-v3-sft` | pass | pass | pass | 0 | 0 | no tool calls | pass | yes | yes |
@@ -160,7 +160,7 @@ Hardware: Apple M1 Pro, 8 cores, 16 GB, shared with other sessions (host load av
 | `sft-code-nemotron-terminal` | 1,000 | 485.6 | 2.06 | 35,238 | 56.9 | 1639 | 854.8 | 25.21 |
 | `sft-code-opencodereasoning` | 1,000 | 43.0 | 23.24 | 191,691 | 29.6 | 565 | 242.5 | 11.04 |
 | `sft-code-swe-rebench-openhands` | 1,000 | 74.0 | 13.52 | 310,660 | 94.5 | 819 | 130.4 | 43.11 |
-| `sft-indic-aya-collection` | 996 | 70.5 | 14.13 | 5,659 | 2.6 | 287 | 123.3 | 0.93 |
+| `sft-indic-aya-collection` | 1,000 | 60.5 | 16.54 | 4,359 | 2.6 | 241 | 55.6 | 1.45 |
 | `sft-indic-aya-dataset` | 4,850 | 6.8 | 709.17 | 44,592 | 1.6 | 345 | 34.0 | 0.7 |
 | `sft-indic-indic-align-oasst-t` | 1,000 | 79.1 | 12.63 | 6,869 | 5.1 | 446 | 466.2 | 1.07 |
 | `sft-math-nemotron-proofs-v3-sft` | 1,000 | 197.0 | 5.08 | 9,575 | 349.8 | 1845 | 696.0 | 2.55 |
@@ -218,7 +218,7 @@ For a finalized record, `checks_wall_s` measures the finalizer's stored-check va
 | `sft-code-nemotron-terminal` | reserved | deferred: reserved, not admitted; lower-priority local backlog | 31,928 | 17,112 | 546,367,740 |
 | `sft-code-opencodereasoning` | reserved | deferred: reserved, not admitted; lower-priority local backlog | 567,831 | 8,247 | 4,683,395,702 |
 | `sft-code-swe-rebench-openhands` | reserved | INTERRUPTED at 23:39 IST by the scope correction: partial files kept, incomplete, no record; deferred | 27,516 | 48,992 | 1,348,070,090 |
-| `sft-indic-aya-collection` | reserved | deferred: reserved, not admitted; lower-priority local backlog | 654,530 | 400 | 262,037,405 |
+| `sft-indic-aya-collection` | reserved | deferred: reserved, not admitted; lower-priority local backlog | 654,530 | 263 | 172,533,453 |
 | `sft-indic-aya-dataset` | reserved | deferred: reserved, not admitted; lower-priority local backlog | 41,261 | 304 | 12,583,243 |
 | `sft-indic-indic-align-oasst-t` | reserved | deferred: reserved, not admitted; lower-priority local backlog | 19,909 | 543 | 10,823,965 |
 | `sft-math-nemotron-proofs-v3-sft` | reserved | deferred: reserved; job request jobs/2026-11-14-sft-v1-proofs-v3-full.md is BLOCKED ON ADMISSION | 293,648 | 55,470 | 16,288,766,837 |

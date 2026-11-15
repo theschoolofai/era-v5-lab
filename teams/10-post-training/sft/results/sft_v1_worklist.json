@@ -9,7 +9,7 @@
   "stage1_sets": 78
  },
  "inputs_sha256": {
-  "convert_py": "71c00be1edcfd63345ef75798544ca227dd5b4090397ab3d9a13e9ebf90edbb2",
+  "convert_py": "1f8709cae2999081588cb2c65c7f5fc14f8b3437c26d04875e25a8aa64eaab92",
   "licence_table": "003b15d4f88032d644e9e20c8f1499f8e878eac3bfeb1be0ec8024708204885e",
   "sft_mix_proposal": "7c05153b2bddc77e55cdfce0936d1930ec48c1b4a4ab3d694dd934185bce6ebb"
  },
@@ -1047,7 +1047,7 @@
    "reasons": [
     "TSAI reserves: measurement only, not admitted"
    ],
-   "selection": "12 templated Indic subsets, equal share of rows from the start of each",
+   "selection": "10 templated Indic subsets with permissive source licences (PR #399; hindi_headline excluded, hindi_news pending TSAI), language in ben,guj,hin,kan,mal,mar,ory,pan,tam,tel, equal share of rows from the start of each",
    "set": "sft-indic-aya-collection",
    "source": "CohereLabs/aya_collection",
    "track": "reserved"

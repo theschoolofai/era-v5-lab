@@ -293,7 +293,7 @@ def check_files(paths: list[Path], tokenizer_path: str, batch: int = 64) -> dict
 
 
 def run_convert(a, out: Path, progress: Path) -> dict:
-    if getattr(a, "source_rows", None):  # a set whose reader splits `n` over its parts (aya_collection: n // 12 per subset)
+    if getattr(a, "source_rows", None):  # a set whose reader splits `n` over its parts (aya_collection: n // len(AYA_COLLECTION_SUBSETS) per subset)
         reading = ["--hf-file", str(a.source_rows)]
     else:
         reading = ["--hf-file", str(10**9), "--limit", str(a.rows)]

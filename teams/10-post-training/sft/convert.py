@@ -448,10 +448,17 @@ def oasst2_build(messages: Iterable[dict], offset: int, n: int) -> Iterator[dict
             return
 
 
+# aya_collection source licence review (school repo PR #399; mix proposal Area 4 and section 9.3 on
+# g10-week1-post-training 72d65ef): of the 12 reviewed templated subsets, 10 have Apache-2.0, CC0 or MIT source
+# licences and stay `TSAI reserves`; `templated_hindi_headline` is excluded (CC BY-NC-SA 4.0) and
+# `templated_hindi_news` waits for a TSAI decision (CC BY-SA 4.0). Only the 10 are read. Rows are then filtered to the
+# ten proposal languages (AYA_INDIC), which drops the Urdu rows of `templated_indic_sentiment`.
+AYA_COLLECTION_EXCLUDED = ("templated_hindi_headline",)
+AYA_COLLECTION_PENDING_TSAI = ("templated_hindi_news",)
 AYA_COLLECTION_SUBSETS = tuple(
     f"templated_{name}/train-00000-of-00001.parquet"
-    for name in ("bengali_news", "hindi_headline", "hindi_news", "indic_paraphrase", "indic_sentiment", "tamil_stories",
-                 "tamil_thirukkural", "telugu_food", "telugu_jokes", "telugu_news", "telugu_poems", "telugu_riddles")
+    for name in ("bengali_news", "indic_paraphrase", "indic_sentiment", "tamil_stories", "tamil_thirukkural",
+                 "telugu_food", "telugu_jokes", "telugu_news", "telugu_poems", "telugu_riddles")
 )
 
 
@@ -465,7 +472,9 @@ def aya_collection(row: dict) -> list[dict]:
 
 
 def aya_collection_rows(dataset: str, _path: str, offset: int, n: int) -> Iterator[dict]:
-    """The 12 Indic templated subsets, an equal share of `n` rows from the start of each (offset applies per subset)."""
+    """The usable Indic templated subsets, an equal share of `n` rows from the start of each (offset applies per subset).
+
+    Each row gets `source_key` = `<subset>/<source id>`, so an output row can be traced to its source row."""
     share = max(1, n // len(AYA_COLLECTION_SUBSETS))
     for path in AYA_COLLECTION_SUBSETS:
         for attempt in range(4):
@@ -478,6 +487,7 @@ def aya_collection_rows(dataset: str, _path: str, offset: int, n: int) -> Iterat
                 time.sleep(5 * (attempt + 1))
         for row in rows:
             row["subset"] = path.split("/")[0]
+            row["source_key"] = f"{row['subset']}/{row.get('id')}"
             yield row
 
 
@@ -529,8 +539,10 @@ ADAPTERS: dict[str, tuple[Callable[[dict], list[dict]], str, tuple[str, str], Ca
     "sft-math-nemotron-proofs-v3-sft": (nemotron_chat, "uuid", ("file", "glob:data/*.jsonl"), None, "all 10 jsonl files"),
     "sft-oasst2": (oasst2_thread, "id", ("oasst2", "data/train-00000-of-00001-88ba0162028a73fc.parquet"), None,
                    "best-ranked reply at each step; not deleted, not synthetic, ready_for_export trees"),
-    "sft-indic-aya-collection": (aya_collection, "", ("aya", ""), None,
-                                 "12 templated Indic subsets, equal share of rows from the start of each"),
+    "sft-indic-aya-collection": (aya_collection, "source_key", ("aya", ""), lambda row: row.get("language") in AYA_INDIC,
+                                 "10 templated Indic subsets with permissive source licences (PR #399; hindi_headline "
+                                 "excluded, hindi_news pending TSAI), language in " + ",".join(sorted(AYA_INDIC))
+                                 + ", equal share of rows from the start of each"),
     "sft-dolly-15k": (dolly, "", ("file", "databricks-dolly-15k.jsonl"), None, ""),
 }
 
