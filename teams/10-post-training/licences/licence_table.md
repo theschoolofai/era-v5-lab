@@ -19,15 +19,45 @@ Three stages. Sets marked `excluded` stay in the table with the reason and are n
 
 | Set | Source | Language | Licence | Decision |
 | --- | --- | --- | --- | --- |
-| code-python | bigcode/starcoderdata | Code | other (per-file permissive Stack licences; attribution required) | TSAI reserves |
-| chandassu | BodduSriPavan111/chandassu | Telugu | MIT (commercial use allowed) | TSAI reserves |
-| ind-mr-fw2 | [HuggingFaceFW/fineweb-2](https://huggingface.co/datasets/HuggingFaceFW/fineweb-2) | Marathi (mr) | ODC-By v1.0 (commercial use permitted with attribution) | TSAI reserves |
-| ind-ta-sangraha-v | [ai4bharat/sangraha](https://huggingface.co/datasets/ai4bharat/sangraha) | Tamil (ta) | CC-BY-4.0 (commercial use permitted with attribution) | TSAI reserves |
+| code-python | bigcode/starcoderdata | Code (Python) | other (per-file permissive Stack licences; attribution required) | TSAI reserves |
+| code-cpp | bigcode/starcoderdata | Code (C++) | other (per-file permissive Stack licences; attribution required) | TSAI reserves |
+| code-go | bigcode/starcoderdata | Code (Go) | other (per-file permissive Stack licences; attribution required) | TSAI reserves |
+| code-java | bigcode/starcoderdata | Code (Java) | other (per-file permissive Stack licences; attribution required) | TSAI reserves |
+| code-js-ts | bigcode/starcoderdata | Code (JavaScript / TypeScript) | other (per-file upstream licensing; attribution required) | TSAI reserves |
+| code-rust | bigcode/starcoderdata | Code (Rust) | other (per-file permissive Stack licences; attribution required) | TSAI reserves |
+| cadj-commits | [bigcode/commitpackft](https://huggingface.co/datasets/bigcode/commitpackft) | Code (Git commits) | mit (per-file upstream repository licences; attribution required) | TSAI reserves |
+| cadj-notebooks | [HuggingFaceTB/issues-kaggle-notebooks](https://huggingface.co/datasets/HuggingFaceTB/issues-kaggle-notebooks) | Code (Python notebooks) | apache-2.0 | TSAI reserves |
+| cadj-stackexchange | [bigcode/starcoder2data-extras](https://huggingface.co/datasets/bigcode/starcoder2data-extras) | Code (Q&A) | cc-by-sa-4.0 (commercial use permitted with attribution) | TSAI reserves |
+| en-dclm | [mlfoundations/dclm-baseline-1.0-parquet](https://huggingface.co/datasets/mlfoundations/dclm-baseline-1.0-parquet) | English | odc-by (Apple DCLM terms; Common Crawl) | TSAI reserves |
+| en-fineweb-edu | [HuggingFaceFW/fineweb-edu](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu) | English | ODC-By v1.0 (commercial use permitted with attribution) | TSAI reserves |
+| en-nemotroncc | [nvidia/Nemotron-CC](https://huggingface.co/datasets/nvidia/Nemotron-CC) | English | cc-by-4.0 (commercial use permitted with attribution) | TSAI reserves |
+| en-nemotroncc-synth | [nvidia/Nemotron-CC](https://huggingface.co/datasets/nvidia/Nemotron-CC) | English | cc-by-4.0 (commercial use permitted with attribution) | TSAI reserves |
+| math-finemath | [HuggingFaceTB/finemath](https://huggingface.co/datasets/HuggingFaceTB/finemath) | English / Mathematics | apache-2.0 | TSAI reserves |
+| math-megamath | [LLM360/MegaMath](https://huggingface.co/datasets/LLM360/MegaMath) | English / Mathematics | apache-2.0 | TSAI reserves |
+| sci-finepdfs | [HuggingFaceFW/finepdfs](https://huggingface.co/datasets/HuggingFaceFW/finepdfs) | English / Science | ODC-By v1.0 (commercial use permitted with attribution) | TSAI reserves |
+| ind-bn-fw2 | [HuggingFaceFW/fineweb-2](https://huggingface.co/datasets/HuggingFaceFW/fineweb-2) | Bengali (bn) | ODC-By v1.0 (commercial use permitted with attribution) | TSAI reserves |
+| ind-bn-sangraha-v | [ai4bharat/sangraha](https://huggingface.co/datasets/ai4bharat/sangraha) | Bengali (bn) | CC-BY-4.0 (commercial use permitted with attribution) | TSAI reserves |
+| ind-gu-fw2 | [HuggingFaceFW/fineweb-2](https://huggingface.co/datasets/HuggingFaceFW/fineweb-2) | Gujarati (gu) | ODC-By v1.0 (commercial use permitted with attribution) | TSAI reserves |
+| ind-hi-fw2 | [HuggingFaceFW/fineweb-2](https://huggingface.co/datasets/HuggingFaceFW/fineweb-2) | Hindi (hi) | ODC-By v1.0 (commercial use permitted with attribution) | TSAI reserves |
 | ind-hi-hplt | [data.hplt-project.org/three/sorted/hin_Deva](https://data.hplt-project.org/three/sorted/hin_Deva) | Hindi (hi) | CC0-1.0 (packaging) / Web terms | TSAI reserves |
 | ind-hi-indiccorp | [ai4bharat/IndicCorpV2](https://huggingface.co/datasets/ai4bharat/IndicCorpV2) | Hindi (hi) | CC-BY-4.0 (commercial use permitted with attribution) | TSAI reserves |
+| ind-hi-sangraha-s | [ai4bharat/sangraha](https://huggingface.co/datasets/ai4bharat/sangraha) | Hindi (hi) | CC-BY-4.0 (commercial use permitted with attribution) | TSAI reserves |
+| ind-hi-sangraha-v | [ai4bharat/sangraha](https://huggingface.co/datasets/ai4bharat/sangraha) | Hindi (hi) | CC-BY-4.0 (commercial use permitted with attribution) | TSAI reserves |
 | ind-kn-fw2 | [HuggingFaceFW/fineweb-2](https://huggingface.co/datasets/HuggingFaceFW/fineweb-2) | Kannada (kn) | ODC-By v1.0 (commercial use permitted with attribution) | TSAI reserves |
-| code-go | bigcode/starcoderdata | Code (Go) | other (per-file permissive Stack licences; attribution required) | TSAI reserves |
-| code-js-ts | bigcode/starcoderdata | Code (JavaScript / TypeScript) | other (per-file upstream licensing; attribution and training-use rights require further verification) | TSAI reserves |
+| ind-kn-sangraha-s | [ai4bharat/sangraha](https://huggingface.co/datasets/ai4bharat/sangraha) | Kannada (kn) | CC-BY-4.0 (commercial use permitted with attribution) | TSAI reserves |
+| ind-kn-sangraha-v | [ai4bharat/sangraha](https://huggingface.co/datasets/ai4bharat/sangraha) | Kannada (kn) | CC-BY-4.0 (commercial use permitted with attribution) | TSAI reserves |
+| ind-ml-fw2 | [HuggingFaceFW/fineweb-2](https://huggingface.co/datasets/HuggingFaceFW/fineweb-2) | Malayalam (ml) | ODC-By v1.0 (commercial use permitted with attribution) | TSAI reserves |
+| ind-mr-fw2 | [HuggingFaceFW/fineweb-2](https://huggingface.co/datasets/HuggingFaceFW/fineweb-2) | Marathi (mr) | ODC-By v1.0 (commercial use permitted with attribution) | TSAI reserves |
+| ind-mr-sangraha-v | [ai4bharat/sangraha](https://huggingface.co/datasets/ai4bharat/sangraha) | Marathi (mr) | CC-BY-4.0 (commercial use permitted with attribution) | TSAI reserves |
+| ind-or-fw2 | [HuggingFaceFW/fineweb-2](https://huggingface.co/datasets/HuggingFaceFW/fineweb-2) | Odia (or) | ODC-By v1.0 (commercial use permitted with attribution) | TSAI reserves |
+| ind-sa-fw2 | [HuggingFaceFW/fineweb-2](https://huggingface.co/datasets/HuggingFaceFW/fineweb-2) | Sanskrit (sa) | ODC-By v1.0 (commercial use permitted with attribution) | TSAI reserves |
+| ind-ta-fw2 | [HuggingFaceFW/fineweb-2](https://huggingface.co/datasets/HuggingFaceFW/fineweb-2) | Tamil (ta) | ODC-By v1.0 (commercial use permitted with attribution) | TSAI reserves |
+| ind-ta-sangraha-s | [ai4bharat/sangraha](https://huggingface.co/datasets/ai4bharat/sangraha) | Tamil (ta) | CC-BY-4.0 (commercial use permitted with attribution) | TSAI reserves |
+| ind-ta-sangraha-v | [ai4bharat/sangraha](https://huggingface.co/datasets/ai4bharat/sangraha) | Tamil (ta) | CC-BY-4.0 (commercial use permitted with attribution) | TSAI reserves |
+| ind-te-fw2 | [HuggingFaceFW/fineweb-2](https://huggingface.co/datasets/HuggingFaceFW/fineweb-2) | Telugu (te) | ODC-By v1.0 (commercial use permitted with attribution) | TSAI reserves |
+| ind-te-sangraha-s | [ai4bharat/sangraha](https://huggingface.co/datasets/ai4bharat/sangraha) | Telugu (te) | CC-BY-4.0 (commercial use permitted with attribution) | TSAI reserves |
+| ind-te-sangraha-v | [ai4bharat/sangraha](https://huggingface.co/datasets/ai4bharat/sangraha) | Telugu (te) | CC-BY-4.0 (commercial use permitted with attribution) | TSAI reserves |
+| chandassu | BodduSriPavan111/chandassu | Telugu | MIT (commercial use allowed) | TSAI reserves |
 
 ### Stage 1: Supervised fine-tuning (SFT) instruction mixture
 
