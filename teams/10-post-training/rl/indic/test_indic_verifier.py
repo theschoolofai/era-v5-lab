@@ -107,6 +107,12 @@ def test_an_answer_inside_the_think_span_does_not_count():
     assert r["reward"] == 0 and r["reason"] == "no answer tag"
 
 
+def test_only_the_reply_after_the_last_think_span_counts():
+    two_spans = "<|think|>a<|/think|>b <answer>22</answer><|think|>c<|/think|><answer>40</answer>"
+    assert score("hi_mango_count", two_spans)["reward"] == 1  # with the first span's end, two answers would score 0
+    assert score("hi_mango_count", "<|think|>a<|/think|><answer>40</answer><|think|>c<|/think|>")["reason"] == "no answer tag"
+
+
 def test_a_think_span_that_never_closes_has_no_answer():
     assert score("hi_mango_count", "<|think|>\nसोच रहा हूँ <answer>40</answer>")["reason"] == "think span not closed"
 
@@ -134,9 +140,29 @@ def test_extra_words_or_units_with_an_integer_score_zero():
 
 # --- normalisation -----------------------------------------------------------------------------
 
-def test_indic_digits_equal_ascii_digits():
-    for answer in ("40", "४०", "৪০", "௪௦", "0040"):
+def test_the_tasks_own_digits_equal_ascii_digits():
+    for answer in ("40", "४०"):
         assert score("hi_mango_count", f"<answer>{answer}</answer>")["reward"] == 1, answer
+    for answer in ("36", "௩௬"):
+        assert score("ta_class_present", f"<answer>{answer}</answer>")["reward"] == 1, answer
+
+
+def test_another_scripts_digits_score_zero():
+    for answer in ("৪০", "௪௦", "٤٠", "\uff14\uff10"):  # Bengali, Tamil, Arabic-Indic, fullwidth
+        assert score("hi_mango_count", f"<answer>{answer}</answer>")["reason"] == "answer is not an integer", answer
+    assert score("ta_class_present", "<answer>३६</answer>")["reward"] == 0
+
+
+def test_a_leading_zero_scores_zero():
+    for answer in ("040", "0040", "०४०", "0,040"):
+        assert score("hi_mango_count", f"<answer>{answer}</answer>")["reward"] == 0, answer
+    item = v.prepare({"id": "zero", "answer_type": "integer", "script": "Deva"}, [0])
+    assert v.score(item, "<answer>0</answer>")["reward"] == 1 and v.score(item, "<answer>०</answer>")["reward"] == 1
+
+
+def test_a_leak_in_the_prompt_is_found_in_any_script_and_with_leading_zeros():
+    for shown in ("40", "४०", "৪০", "040"):
+        assert v.answer_in_prompt(f"कुल {shown} आम", "integer", [40]), shown
 
 
 def test_digits_of_two_scripts_in_one_number_score_zero():
@@ -160,6 +186,19 @@ def test_decomposed_text_equals_composed_text():
     assert v.normalise(unicodedata.normalize("NFD", composed)) == v.normalise(composed)
     nfd = unicodedata.normalize("NFD", "শনিবার")
     assert v.normalise(nfd) == v.normalise("শনিবার")
+
+
+def test_normalisation_is_nfc_not_nfkc():
+    # NFKC would turn superscript two into "2" and fullwidth a into "a"; NFC keeps both.
+    assert v.normalise("x\u00b2") == "x\u00b2" and v.normalise("\uff41") == "\uff41"
+    item = v.prepare({"id": "nfc", "answer_type": "text", "script": "Latn"}, ["a2"])
+    assert v.score(item, "<answer>\uff41\u00b2</answer>")["reward"] == 0
+
+
+def test_latin_letters_are_case_folded():
+    assert v.normalise("ABC Def") == "abc def"
+    item = v.prepare({"id": "fold", "answer_type": "choice", "script": "Latn"}, ["B"])
+    assert v.score(item, "<answer>b</answer>")["reward"] == 1 and v.score(item, "<answer>c</answer>")["reward"] == 0
 
 
 def test_zero_width_space_and_bom_are_removed_but_zwj_and_zwnj_are_kept():

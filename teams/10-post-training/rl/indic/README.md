@@ -36,7 +36,7 @@ From the trainer, use the shared entry point: `reward.reward("indic/<task_id>", 
 
 | `answer_type` | Scores 1 when | Scores 0, for example |
 |---|---|---|
-| `integer` | the value is accepted. Digits may be of any one script (`40`, `४०`, `৪০`, `௪௦`), optionally grouped `3,05,042` or `305,042`, with an optional minus sign | `40 आम`, `चालीस`, `4०` (two scripts), `30,50,42` |
+| `integer` | the value is accepted. Digits are ASCII or the task's own script's (`40` or `४०` on a Hindi task, `36` or `௩௬` on a Tamil task), optionally grouped `3,05,042` or `305,042`, with an optional minus sign | `40 आम`, `चालीस`, `4०` (two scripts), `৪০` or `٤٠` on a Hindi task (another script), `040` (leading zero), `30,50,42` |
 | `text` | the answer equals an accepted variant, and every letter and mark is in the task's `script` | `Shanivar` for a Devanagari task, a different word |
 | `choice` | the answer is the accepted option label from `choices` | another label, or the option's text instead of its label |
 
@@ -57,7 +57,7 @@ A task is a folder `tasks/<task_id>/`. The folder name equals `id`, and the name
 - every accepted answer scores 1, and every wrong answer scores 0;
 - no answer is both accepted and wrong;
 - accepted text answers are in the task's script, and a choice answer is one of the choices;
-- the prompt asks for `<answer>` and does not contain the answer (any number in the prompt equal to an accepted integer counts, in any script).
+- the prompt asks for `<answer>` and does not contain the answer (any number in the prompt equal to an accepted integer counts, in any script and with leading zeros).
 
 Then add the task's correct and wrong completion to `CASES` in `test_indic_verifier.py`. A test fails when a task has no entry there.
 

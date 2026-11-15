@@ -15,8 +15,9 @@ swe-task/hindi_text_prep.py, plus what an exact check needs):
   * runs of whitespace become one space; quotes, brackets and the end marks . , ; : ! ? । ॥ are stripped at the ends.
 
 Answer types (answer_type in task.json; the accepted answers are in answer.json and never in the prompt):
-  integer  decimal digits of one script (ASCII, Devanagari, Bengali, Tamil, ...), optionally grouped as 1,00,000 or
-           100,000, with an optional minus sign. "४२" equals "42". Mixed scripts ("4२"), units and words score 0.
+  integer  ASCII digits or the task's own script's digits (Devanagari for a Hindi task, Tamil for a Tamil task, ...),
+           optionally grouped as 1,00,000 or 100,000, with an optional minus sign. "४२" equals "42" on a Hindi task.
+           Mixed scripts ("4२"), another script's digits ("٤٢"), a leading zero ("042"), units and words score 0.
   text     equal to one accepted variant, and every letter and mark is in the task's script, so a Hindi answer
            written in Latin letters scores 0.
   choice   one of the option labels in task.json "choices" (for example क ख ग घ).
@@ -76,6 +77,9 @@ SCRIPTS = {
     "Latn": ((0x0041, 0x005A), (0x0061, 0x007A), (0x00C0, 0x024F), (0x1E00, 0x1EFF)),
 }
 _SCRIPT_CHARS = {k: frozenset(chr(c) for lo, hi in v for c in range(lo, hi + 1)) for k, v in SCRIPTS.items()}
+# The digit zero of each script. An integer answer may use ASCII digits or its task's own digits.
+DIGIT_ZERO = {"Deva": 0x966, "Beng": 0x9E6, "Guru": 0xA66, "Gujr": 0xAE6, "Orya": 0xB66, "Taml": 0xBE6,
+              "Telu": 0xC66, "Knda": 0xCE6, "Mlym": 0xD66, "Latn": 0x30}
 
 
 # --- text --------------------------------------------------------------------------------------
@@ -110,12 +114,24 @@ def extract_answers(completion: str) -> tuple[set[str] | None, str]:
     return (answers, "ok") if all(answers) else (None, "empty answer")
 
 
-def parse_integer(s: str) -> int | None:
-    """The value of a normalised integer answer, or None. All digits must come from one script."""
+def parse_integer(s: str, script: str | None = None) -> int | None:
+    """The value of a normalised integer answer, or None. All digits must come from one script.
+
+    With a script (scoring an answer): the digits are ASCII or that script's own, and there is no leading zero, so a
+    Hindi task takes 40 or ४० but not ٤٠, ４０ or 040. Without one (finding an answer written in a prompt): digits of
+    any one script and leading zeros count, so a leak is found whatever way it is written.
+    """
     if not _INT.fullmatch(s):
         return None
-    if len({ord(c) - unicodedata.decimal(c) for c in s if c.isdecimal()}) != 1:
+    zeros = {ord(c) - unicodedata.decimal(c) for c in s if c.isdecimal()}
+    if len(zeros) != 1:
         return None
+    if script is not None:
+        if zeros.pop() not in (0x30, DIGIT_ZERO[script]):
+            return None
+        body = s.lstrip("-\u2212").replace(",", "")
+        if len(body) > 1 and unicodedata.decimal(body[0]) == 0:
+            return None
     return int(s.replace(",", "").replace("\u2212", "-"))
 
 
@@ -161,7 +177,7 @@ def score(task: dict, completion: str) -> dict:
     if answers is None:
         return {**out, "reason": why}
     if task["answer_type"] == "integer":
-        values = {parse_integer(a) for a in answers}  # "40" and "४०" are one answer
+        values = {parse_integer(a, task["script"]) for a in answers}  # "40" and "४०" are one answer
         if None in values:
             return {**out, "reason": "answer is not an integer"}
         answers = values
@@ -197,6 +213,17 @@ def _values_ok(kind: str, values) -> bool:
     if kind == "integer":
         return all(type(v) is int for v in values)
     return all(isinstance(v, str) for v in values)
+
+
+def answer_in_prompt(prompt: str, kind: str, accepted: list, allowed: bool = False) -> bool:
+    """True if the prompt gives the answer away: an accepted integer written in any script, or an accepted text
+    answer (unless the task is a span task, allowed=True). Choice labels are always in the prompt."""
+    if kind == "integer":
+        return bool({parse_integer(m.group()) for m in _INT.finditer(unicodedata.normalize("NFC", prompt))} & set(accepted))
+    if kind == "text" and not allowed:
+        flat = normalise(prompt)
+        return any(normalise(a) in flat for a in accepted)
+    return False
 
 
 def check_task(task_dir: Path | str) -> list[str]:
@@ -257,12 +284,7 @@ def check_task(task_dir: Path | str) -> list[str]:
             problems.append("task.json choices must list two or more distinct labels")
         elif not {normalise(a) for a in accepted} <= labels:
             problems.append("an accepted answer is not one of the choices")
-    flat = normalise(prompt)
-    if kind == "integer":
-        shown = {parse_integer(m.group()) for m in _INT.finditer(unicodedata.normalize("NFC", prompt))}
-        if shown & set(accepted):
-            problems.append("an accepted answer appears in prompt.md")
-    elif kind == "text" and not meta.get("answer_in_prompt") and any(normalise(a) in flat for a in accepted):
+    if answer_in_prompt(prompt, kind, accepted, bool(meta.get("answer_in_prompt"))):
         problems.append('an accepted answer appears in prompt.md (set "answer_in_prompt": true for span tasks)')
     if problems:
         return problems
