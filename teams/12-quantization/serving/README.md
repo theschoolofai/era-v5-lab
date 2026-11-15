@@ -93,6 +93,20 @@ to `--out`.
 
 ## Status
 
-- Parsers and checks: 60 tests pass on CPU with vLLM 0.33.0 (vLLM's parser composition, without a GPU).
-- GPU run on the stand-in: to do (`serve_check.ipynb` on Kaggle). `results/serve_check.md` is written by that run, not by hand.
-- Our checkpoint: waits for the dry-run-1 checkpoint (G7, D4) and `export_hf.py`.
+- **Kaggle, 15 Nov 2026** ([`results/serve_check.md`](../results/serve_check.md)): Qwen3-4B-Instruct-2507 (stand-in),
+  vLLM 0.33.0, T4 x2, fp16.
+  - **Fields: PASS.** 100/100 HTTP 200. 98/100 answers are clean; the other 2 are the model writing its think block
+    after the answer, which the replay confirms. 0 parser faults.
+  - **Fields filled:** reasoning in `message.reasoning` on 25/25 reason prompts; tool calls in `message.tool_calls`
+    on 28/30 tool prompts; no call on 20/20 prompts that need none.
+  - **Streaming:** 19/20 match. In the one miss the model's reasoning wording changed between the two runs
+    (fp16, batched vs. alone); the answer is identical.
+  - **Time:** 165 s server start, 97 s for the 100 prompts (200 tokens/s), 0.17 GPU-hours, $0 on Kaggle.
+  - **Earlier run:** the first full run failed the old marker check on 6 answers. All 6 were the model breaking the
+    layout, 2 of them invited by a format hint that taught tool calls on prompts with no tools. That run led to the
+    replay and to the hint change.
+- **Known difference, cosmetic:** on requests without tools, streamed `content` can keep the whitespace that follows
+  `<|/think|>`. After reasoning ends, vLLM passes deltas through without the tool parser. The non-streamed content
+  is stripped. The check compares stripped text.
+- **Our checkpoint:** waits for the dry-run-1 checkpoint (G7, D4) and `export_hf.py`. Then the same notebook runs
+  with `MODEL` set to the export and `FORMAT_HINT = "off"`.
