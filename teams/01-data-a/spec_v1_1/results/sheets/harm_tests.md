@@ -88,7 +88,7 @@ Each English rule also keeps every doc of en-dclm and en-fineweb-edu, which aren
 | # | new disease (reading code) | docs, rate | rule | action | medicine | harm test (alone) | reading docs treated |
 |---|---|---|---|---|---|---|---|
 | 21 | Words run together (NEW-missing-spaces) | 2, 1.0% | `DA-A8-003` | fix | Puts the space back after a full stop between a lowercase word and a capitalised one (`choose.Compose` → `choose. Compose`). It leaves URLs, abbreviations and code alone. | en-nemotroncc 1/129 PASS (a gold contradiction) · en-nemotroncc-synth 0/326 (not in ORIGIN) | 1 / 2 |
-| 21b | Words run together with no full stop (NEW-missing-spaces; HariniJasti, patilvijay23/era-v5-lab#41) | 56 of 500 Week 1 diagnosis docs (HariniJasti's labels) | `DA-A8-004` | fix | Puts a space between a lowercase word of 3+ letters and a capitalised word glued to it (`fileEdit` → `file Edit`). It leaves code lines, multi-hump camelCase, 1–2 letter prefixes (`iPhone`) and a short list of names (`youTube`) alone. | en-nemotroncc 1/129 PASS (a gold contradiction, `fd16036899796ca4`) | not measured on the reading sample; 28 of the 500 diagnosis docs |
+| 21b | Words run together with no full stop (NEW-missing-spaces; HariniJasti, patilvijay23/era-v5-lab#41) | 56 of 500 Week 1 diagnosis docs (HariniJasti's labels) | `DA-A8-004` | fix | Puts a space between a lowercase word of 3+ letters and a capitalised word glued to it (`fileEdit` → `file Edit`). It leaves code lines, multi-hump camelCase, 1–2 letter prefixes (`iPhone`) and a short list of names (`youTube`) alone. | en-nemotroncc 1/129 PASS (a gold contradiction, `fd16036899796ca4`) | not measured on the reading sample; 29 of the 500 diagnosis docs, 66 glued pairs (15 Nov) |
 | 22 | Facts the rewrite got wrong (NEW-factual-error), new code D7 | 4, 2.0% | `DA-D7-001` | drop | Quarantines the 6 confirmed docs by doc_id: kunal's 4, and 2 wrong answers from appended Q&A. Nothing in the text marks a wrong fact, so it finds no other cases. | en-nemotroncc-synth 0/326 PASS (trivial: no listed doc is gold) · en-nemotroncc 0/129 (not in ORIGIN) | 4 / 4, and the 2 wrong answers |
 | 23 | Machine-written text: an appended question and answer (NEW-appended-qa) | 3, 1.5% | `DA-D6-002`, **withdrawn** | — | It removed trailing `Question: … Answer: …` lines, and caught all 3 reading docs. | en-nemotroncc-synth **32/326 FAIL** in its first run | 3 / 3 |
 
@@ -196,6 +196,8 @@ The "after" column is the run of `scripts/time_rules.py` quoted in the PR (14 No
 
 Two other ideas were measured and dropped, because they were slower: a whole-text pre-check for `DA-A8-001` (0.21 → 0.27 s) and one for `DA-A7-003` (0.34 → 0.48 s).
 
+**`DA-A8-004`, 15 Nov (HariniJasti's two suggestions on patilvijay23/era-v5-lab#41).** A quick check, `[a-z]{3}[A-Z][a-z]`, on the doc and then on each line, takes the rule from 0.123 s to **0.085 s** per 500 en-nemotroncc docs (4,079 → 5,908 docs/s; Apple M4, one core, best of 5), with identical output on all 500 docs. Her narrower code test, added with it, splits 66 glued pairs in 29 docs, not 55 in 28, and loses none. The harm tests of the 4 English packs are unchanged (only the code fingerprints in `<pack>_harm.json` are new), and so is the combined sheet's on en-nemotroncc (the same 2 gold contradictions).
+
 | pack (500 docs) | v1.1 rules in order (`time_rules.py`): after pass 1 → after pass 2 |
 |---|---|
 | math-finemath / math-megamath | 1.35 / 1.57 s (370 / 319 docs/s) → **1.03 / 1.17 s (486 / 429 docs/s)** |
@@ -215,11 +217,11 @@ The harm test checks a rule against the gold set. The unit tests check that it d
 - **How they load the rules:** each test file loads its sheet the way `harmtest/harm_test.py` does (`harm_test.load_rules`), so the tests run the same code as the harm test.
 - **Text:** all of it is made up. Where a test copies the shape of a gold doc a rule once harmed, it is a look-alike, not gold text.
 - **Run:** from `teams/01-data-a`: `python3 -m unittest discover -s spec_v1_1/tests`.
-- **Last run:** 14 Nov 2026, 181 tests, **OK**:
+- **Last run:** 15 Nov 2026, 184 tests, **OK**:
   - 17 for `scripts/combine_spec.py` (`test_combine_spec.py`): run order, wrapper, links and refusals on made-up sheets; that `build_clean.py` reads the real combined sheet; and that `sheets/specv1_1.md` is up to date;
   - 41 for the math medicines;
   - 44 for the science medicines;
-  - 17 for the English medicines (7 of them for `DA-A8-004`);
+  - 20 for the English medicines (10 of them for `DA-A8-004`);
   - 7 for the Indic medicine;
   - 5 for a spec v1 code rule on docs labelled `lang_label = "code"` (`test_code_lang_label.py`, Gate 2 request): `DA-A1-001` fires in all 6 code packs, because of its `pack_id` check;
   - 50 for the reading scripts, as on main (`test_collect_reading_prs.py` 24, `test_show_examples.py` 11, `test_reading_check.py` 10, `test_reading_recall.py` 5). The tests of `time_rules.py` go into the `clean.py` PR with it.
@@ -276,7 +278,7 @@ The numbers in the `#` column match the disease tables above. "Twice" means a te
 
 | # | rule | test class (tests) | must change or drop | must stay | other checks |
 |---|---|---|---|---|---|
-| 21b | `DA-A8-004` no full stop (HariniJasti's 3, and 4 for the review changes) | `A8NoFullStop` (7) | `fileEdit` → `file Edit`; `saidSanaz` → `said Sanaz`; a prose line with `$`, `<` or a mid-line `;`; `thank youFor` → `thank you For` | `iPhone`, `eBay`, `macOS`, `pdfFiller`, `youTube`, `getMockBuilder`, a code line, a line ending in `;`, a fence, `creamthe` (lowercase glue, not caught) | twice |
+| 21b | `DA-A8-004` no full stop (HariniJasti's 3, 4 for the review changes of 14 Nov, and 3 for those of 15 Nov) | `A8NoFullStop` (10) | `fileEdit` → `file Edit`; `saidSanaz` → `said Sanaz`; a prose line with `$`, `<` or a mid-line `;`; `thank youFor` → `thank you For`; a prose line with `return`, `function`, a bare `=` or a URL; a later line after a plain one | `iPhone`, `eBay`, `macOS`, `pdfFiller`, `youTube`, `getMockBuilder`, a code line (` = `, `==`, `=>`, `// `, `$this`, a tag, braces, `()`), a line ending in `;`, a fence, `creamthe` (lowercase glue, not caught) | twice |
 | 21 | `DA-A8-003` no space after a full stop | `A8` (3) | `choose.Compose` → `choose. Compose`; `there.Then,` → `there. Then,` | `www.Google.com`, `e.g.The`, `Mr.Smith`, `Node.Js`, `awhile`, a code line, a code fence, an email address, a line with a URL | twice |
 | 22 | `DA-D7-001` facts the rewrite got wrong | `D7` (3) | the 6 confirmed doc IDs (dropped) | `ffaad5c6d3dde332`, the appended-Q&A doc whose answer is correct; any other doc | |
 

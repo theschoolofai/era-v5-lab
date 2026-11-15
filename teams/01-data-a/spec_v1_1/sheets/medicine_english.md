@@ -158,7 +158,7 @@ def medicine(doc):
    - `566402921614f959`: `Admission is freeJohn McCrae`
    - `fd16036899796ca4`: `saidSanaz` (a gold doc, see the harm test; the rest of the name is withheld)
 2. **Medicine:** put a space between a lowercase word of 3 or more letters and a capitalised word glued to it, so `fileEdit` becomes `file Edit`. The glued token must stand alone: before it a space, the start of the line, or an opening quote or bracket; after it a space, punctuation or the end of the line. It leaves these alone:
-   - **code and markup:** a line with `{`, `}` or `=`, a `;` at its end, `()`, `::`, `->`, `//`, `def`, `function` or `return`, and a line inside a code fence. So `validateString();` and `$this->assertTrue` stay;
+   - **code and markup:** a line with `{` or `}`, a `;` at its end, `==`, `=>`, `->`, `::`, `()`, ` = `, `$this`, a tag (`<div>`) or a `// ` comment, and a line inside a code fence. So `validateString();` and `$this->assertTrue` stay;
    - **camelCase with more humps:** `getMockBuilder` stays, because the token must end after the second word;
    - **one- and two-letter prefixes:** `iPhone`, `eBay`, `macOS` and `jQuery` stay;
    - **product names on a short list** (`A8F_KEEP`, whole tokens): `pdfFiller`, `webAssembly`, `appStore`, `youTube`.
@@ -169,6 +169,11 @@ def medicine(doc):
    - **The code test is narrower.** `<`, `>`, `$` and a `;` inside a line also occur in prose (prices, lists), so they no longer mark a line as code. On the 500 docs this wins back 8 glued pairs (`devicesTo`, `modelsWhat`, `potentialTourism` …), and it changes no other gold doc.
    - **`A8F_KEEP` is a list of whole tokens, not first words.** A first word such as `you` also kept real glues (`thank youFor`).
    - **A quick check first** (speed rule): a doc with no glued token at all is returned as it is. It takes the rule from 0.20 s to 0.12 s per 500 en-nemotroncc docs (`scripts/time_rules.py`, in the `clean.py` PR; best of 3), with the same output.
+
+   **Changed on 15 Nov, from HariniJasti's two follow-up suggestions on patilvijay23/era-v5-lab#41:**
+   - **The code test is narrower again.** `return`, `function`, `def`, a bare `=` and a `//` inside a URL no longer mark a line as code. A line now counts as code if it has braces, a `;` at its end, `==`, `=>`, `->`, `::`, `()`, ` = `, `$this`, a tag, or a `// ` comment. On the 500 docs this splits 66 glued pairs in 29 docs, not 55 in 28, and loses none. The 11 it adds are `civilizationThe` and `influencesEgyptian` (one doc), `newCage`, and `pdfFile` and `pdfDownload` 4 times each (one doc of download links). The gold doc changed is the same one.
+   - **A cheaper quick check** (`A8F_QUICK`, `[a-z]{3}[A-Z][a-z]`) runs on the whole doc, then on each line before the code test. Output is identical on all 500 docs. The rule goes from 0.123 s to 0.085 s per 500 en-nemotroncc docs (4,079 to 5,911 docs/s; Apple M4, one core, best of 5).
+   - The code test is written from HariniJasti's description of it; her own pattern wasn't posted.
 
 ```python
 RULE_ID = "DA-A8-004"
@@ -183,14 +188,17 @@ AUTHOR = "HariniJasti"
 import re
 
 A8F_GLUED = re.compile(r"(?:(?<=^)|(?<=[\s\"“(]))([a-z]{3,})([A-Z][a-z]{1,})(?=[\s,;:!?\"”]|\.(?:\s|$)|$)", re.M)
-# a code line: "<", ">", "$" and a ";" inside a line are left out, as they occur in prose; a ";" at the end still counts
-A8F_CODE = re.compile(r"[{}=]|;[ \t]*$|==|=>|->|::|//|\bdef |\bfunction\b|\breturn\b|\(\)")
+# speed: a doc, or a line, without this cannot hold a glued token, so it is skipped before the slower tests
+A8F_QUICK = re.compile(r"[a-z]{3}[A-Z][a-z]")
+# a code line: braces, a ";" at the end, ==, =>, ->, ::, (), " = ", $this, a tag or a "// " comment.
+# "return", "function", a bare "=" and the "//" of a URL occur in prose, so they no longer count (15 Nov)
+A8F_CODE = re.compile(r"[{}]|;[ \t]*$|==|=>|->|::|\(\)| = |\$this|</?[A-Za-z][^<>]*>|(?:^|\s)//\s")
 # whole tokens, not first words: a first word such as "you" would also keep real glues ("thank youFor")
 A8F_KEEP = frozenset({"youTube", "pdfFiller", "webAssembly", "appStore", "airPods", "airBnb", "dotNet", "macBook"})
 
 
 def medicine_a8f(text):
-    if not A8F_GLUED.search(text):  # speed: no glued token anywhere, so no line changes
+    if not A8F_QUICK.search(text) or not A8F_GLUED.search(text):  # speed: no glued token anywhere, so no line changes
         return text
     out, fence = [], False
     for line in text.split("\n"):
@@ -198,7 +206,7 @@ def medicine_a8f(text):
             fence = not fence
             out.append(line)
             continue
-        if fence or A8F_CODE.search(line):
+        if fence or not A8F_QUICK.search(line) or A8F_CODE.search(line):
             out.append(line)
             continue
         out.append(A8F_GLUED.sub(
@@ -214,7 +222,7 @@ def medicine(doc):
 ```
 
 3. **Action:** fix. **Runs on:** en-nemotroncc.
-   - **Diagnosis docs it treats:** 28 of the 500 Week 1 diagnosis docs, with 55 glued pairs. HariniJasti read the 47 pairs her version split: all are words run together, and none is a name or code. The 8 pairs the narrower code test adds were read by aneeshads, as a first pass: all are glues too.
+   - **Diagnosis docs it treats:** 29 of the 500 Week 1 diagnosis docs, with 66 glued pairs. HariniJasti read the 47 pairs her first version split: all are words run together, and none is a name or code. The 8 pairs the first narrower code test added (14 Nov) and the 11 the second one adds (15 Nov) were read by aneeshads, as a first pass: all are glues too, though `pdfFile` and `pdfDownload` sit in one doc of download links.
    - **Reading docs it treats:** not measured, because the cleaned reading sample of en-nemotroncc was not rerun. That makes this column unlike the other rows', which count reading docs (`scripts/reading_recall.py`).
 4. **Harm test:** en-nemotroncc 0.78% (1/129) PASS on its own. The gold doc it changes, `fd16036899796ca4`, has the disease itself (`saidSanaz`: a quote glued to the speaker's name, withheld here), so it is a gold contradiction, as `056cc9bc44c927e2` is for `DA-A8-003`.
    - **All in order:** 2/129 with `DA-A8-003`, FAIL against a limit of 1. Both changed gold docs hold the disease, and Vijay agreed to marking gold contradictions, so it is **0/127 PASS** without them. They are to be re-read at the next gold refresh.
@@ -222,6 +230,7 @@ def medicine(doc):
    - A brand written with a lowercase prefix of 3+ letters and not on `A8F_KEEP` gets a space (`fooBar`-style names in prose).
    - **camelCase names in prose** are split when the line has no code sign (`setTimeout`, `forEach`, `useState`, `linkedIn`). None is in this pack.
    - A German or Dutch compound glued to a capitalised noun is split (`gesuchtJugendherbergen` on this pack, which is itself a glue).
-   - **Lines with code signs:** a glue on such a line is still missed. On this pack that is 11 pairs: `civilizationThe`, `influencesEgyptian`, `newCage`, and `pdfDownload` and `pdfFile` 4 times each.
+   - **Lines with code signs:** a glue on such a line is still missed. The narrower test of 15 Nov leaves fewer of these: the 11 pairs missed on 14 Nov are now split.
+   - **Prose that looks like code:** a prose line with ` = ` (a sum such as `x = 2`) or an empty `()` is still treated as code, and its glues are missed.
    - **Lowercase-to-lowercase glues** are missed (see above).
 6. **Spec v1.1:** status CANDIDATE, reviewer pending. Author: HariniJasti, from her en-nemotroncc diagnosis (theschoolofai/era-v5-lab#79), raised on #435 and proposed in patilvijay23/era-v5-lab#41. Review changes by aneeshads, 14 Nov.

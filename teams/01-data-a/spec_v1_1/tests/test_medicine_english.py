@@ -113,6 +113,24 @@ class A8NoFullStop(unittest.TestCase):
         text = PASSAGE + "\nA plain line. Another One here."
         self.assertEqual(run(self.R, text, self.P), ("keep", text))
 
+    def test_prose_words_and_urls_no_longer_mark_a_code_line(self):
+        # 15 Nov, HariniJasti's suggestion: "return", "function", "def", a bare "=" and a URL's "//" occur in prose
+        for text, fixed in (("the function of the civilizationThe state", "the function of the civilization The state"),
+                            ("they return to the newCage next year", "they return to the new Cage next year"),
+                            ("see https://example.org for the newCage plans", "see https://example.org for the new Cage plans"),
+                            ("rate=high and the influencesEgyptian art", "rate=high and the influences Egyptian art")):
+            self.assertEqual(run(self.R, text, self.P), ("fix", fixed), text)
+
+    def test_code_signs_still_mark_a_code_line(self):
+        for text in ("x = theValue", "if a == theValue go", "x => theValue go", "the theValue // a note",
+                     "$this and theValue", "<br> the theValue here", "{ theValue }", "f() with theValue"):
+            self.assertEqual(run(self.R, text, self.P), ("keep", text), text)
+
+    def test_a_line_without_a_glued_shape_is_skipped_but_others_are_fixed(self):
+        # the quick check skips a line with no [a-z]{3}[A-Z][a-z]; a later line is still fixed
+        text = "Plain words on this line.\nimport your fileEdit with ease"
+        self.assertEqual(run(self.R, text, self.P), ("fix", "Plain words on this line.\nimport your file Edit with ease"))
+
 
 class D7(unittest.TestCase):
     R, P = "DA-D7-001", "en-nemotroncc-synth"

@@ -10,29 +10,32 @@ Status: FINAL SUBMISSION for TSAI's Gate 2 decision (14 Nov 2026): spec v1 and s
 - **Spec v1's cards** are copied unchanged, python blocks included. Only relative links are rewritten, so they still reach the same files from this folder.
 - **Each v1.1 block** gets spec v1's wrapper: `SPEC_PACKS`, from the block's `ORIGIN`, guards the source medicine, as in `specv1.md`. So every block has the form `build_clean.py` reads.
 
-## Combined validation (14 Nov 2026)
+## Combined validation (15 Nov 2026)
 
-`clean.py` was built from this sheet with `spec_v1/build/build_clean.py`, in a copy of the branch, not committed: the rebuild is task 2, due 17 Nov. It holds 246 rules and the shared F1: code 24, English 23, math 22, sci 24, Indic 153.
-- **The harm runs:** `spec_v1/validate/make_harm_tests.py` (the #244 harness) on that `clean()`, with `harm_test.py` run as it is. ind-te-sangraha-v was run with `harm_test.py` on this sheet and Data B's gold.
-- **The packs:** each is the same file as in #244 (sha256 checked).
-- **Reports:** the per-pack reports (doc_ids, counts and digests only) go into the `clean.py` PR, with the rebuilt `clean.py` they test.
+**Harm test of this sheet on every pack with a gold set.** `teams/01-data-a/harmtest/harm_test.py`, run as it is, once per pack with `--rules spec_v1_1/sheets/specv1_1.md --rule all`: each of the 364 rules alone, then all of them in sheet order. Each rule's `pack_id` check keeps it to its own packs.
+- **The gold:** Data A's (`teams/01-data-a/gold/`) for the 13 code, English, math and science packs; Data B's (`teams/02-data-b/gold/`) for the 18 Indic packs and cadj-commits. 32 packs in all.
+- **The packs:** TSAI's sample packs, 500 docs each: the same files as in the spec v1.1 harm runs and #244 (sha256 checked).
+- **Not in this test:** the shared F1 (`f1_rule.py`), which is not a card in the sheet.
 
-| pack | gold docs (limit) | `clean()`, all rules in order: changed + dropped | result | without the gold contradictions | spec v1 alone (#244) |
-|---|---|---|---|---|---|
-| code-cpp, code-go, code-java, code-js-ts, code-python, code-rust | 122, 163, 116, 204, 141, 234 | 0 each | PASS | — | 0 |
-| en-dclm, en-fineweb-edu, en-nemotroncc-synth | 62, 158, 326 | 0 each | PASS | — | 0 |
-| en-nemotroncc | 129 (1) | 2: `056cc9bc44c927e2` (`DA-A8-003`), `fd16036899796ca4` (`DA-A8-004`) | **FAIL** | 0/127 PASS | 0 |
-| math-finemath | 86 (1) | 2: `2d328b828fa97706` (`DA-A8-001`), `0f119a596e8b7f63` dropped (`DA-C9-003`) | **FAIL** | 0/84 PASS | 0 |
-| math-megamath | 26 (1) | 0 | PASS | — | 0 |
-| sci-finepdfs | 202 (2) | 5: `920855df51f37db8` (`DA-A7-001`); `4b958ac1f45443b5`, `d0a0a41263e845f5`, `eb6ad9726f2d7ddd` (`DA-C7-004`); `b6fd81dbf90b0d17` dropped (`DA-C7-005`, a false positive) | **FAIL** | 1/198 PASS | 0 |
-| ind-te-sangraha-v | 80 (1) | 2: `01418489e7410bdf`, `85644a4840025b6f` (`DB-C6-001`) | **FAIL** | 0/78 PASS | 0 |
+| pack | gold docs (limit) | all rules in order: changed + dropped | result | without the gold contradictions |
+|---|---|---|---|---|
+| code-cpp, code-go, code-java, code-js-ts, code-python, code-rust | 122, 163, 116, 204, 141, 234 | 0 each | PASS | — |
+| en-dclm, en-fineweb-edu, en-nemotroncc-synth | 62, 158, 326 | 0 each | PASS | — |
+| en-nemotroncc | 129 (1) | 2: `056cc9bc44c927e2` (`DA-A8-003`), `fd16036899796ca4` (`DA-A8-004`) | **FAIL** | 0/127 PASS |
+| math-finemath | 86 (1) | 2: `2d328b828fa97706` (`DA-A8-001`), `0f119a596e8b7f63` dropped (`DA-C9-003`) | **FAIL** | 0/84 PASS |
+| math-megamath | 26 (1) | 0 | PASS | — |
+| sci-finepdfs | 202 (2) | 5: `920855df51f37db8` (`DA-A7-001`); `4b958ac1f45443b5`, `d0a0a41263e845f5`, `eb6ad9726f2d7ddd` (`DA-C7-004`); `b6fd81dbf90b0d17` dropped (`DA-C7-005`, a false positive) | **FAIL** | 1/198 PASS |
+| ind-te-sangraha-v | 80 (1) | 2: `01418489e7410bdf`, `85644a4840025b6f` (`DB-C6-001`) | **FAIL** | 0/78 PASS |
+| the other 17 Indic packs | 2,113 in all | ind-bn-fw2 2/227, ind-hi-fw2 2/218, ind-hi-indiccorp 2/425, ind-hi-sangraha-v 2/219, ind-bn-sangraha-v 1/137, ind-mr-fw2 1/158, ind-sa-fw2 1/71; 0 on the other 10 | PASS each | — |
+| cadj-commits | 413 (4) | 0: no rule runs on a cadj pack | PASS | — |
 
-- **Spec v1's rules first change nothing in the gold.** On every pack, the combined `clean()` changes exactly the gold docs that the v1.1 rules change on their own. Spec v1 alone changes none of them.
-- **Every touched gold doc is a gold contradiction or a recorded false positive.** Vijay agreed to marking gold contradictions: they are left out of the count for their rule, and re-read at the next gold refresh.
-- **Scope holds:** no rule acted on a pack it doesn't cover (`make_harm_tests.py` runs each rule on every other pack).
-- **The other 17 Indic packs:** no v1.1 rule runs on them, so #244's results stand there. They need Data B's gold, and most aren't on this machine.
+- **Spec v1.1 adds only its own 11 gold docs**, the ones in the table above. On the other 17 Indic packs, the gold docs changed are exactly those spec v1's own Data B rules change (`DB-A6-017`, `DB-G4-007` …), all within the limit: no v1.1 rule runs there.
+- **Every v1.1 gold doc touched is a gold contradiction or a recorded false positive.** Vijay agreed to marking gold contradictions: they are left out of the count for their rule, and re-read at the next gold refresh.
+- **Rules that fail on their own:** only `DA-C7-004` (3/202) and `DB-C6-001` (2/80), both on gold contradictions.
+- **Scope holds:** on every pack, only the rules that cover it changed a gold doc.
+- **No gold set, so NOT TESTABLE:** cadj-notebooks, cadj-stackexchange, ind-ml-fw2, ind-or-fw2, ind-ta-fw2 and ind-ta-sangraha-s.
 
-**Speed.** `spec_v1/run_clean.py` timed the whole `clean()`, shared F1 included, on 500 docs a pack: Apple M4, one core, Python 3.12.10, the best of 3 runs, 0 errors (the full table, `speed.md`, goes into the `clean.py` PR). Spec v1 is as on TSAI main; its math speed fixes (#43) are for the `clean.py` PR.
+**Speed (14 Nov).** `spec_v1/run_clean.py` timed the whole `clean()` built from this sheet, shared F1 included, on 500 docs a pack: Apple M4, one core, Python 3.12.10, the best of 3 runs, 0 errors. Spec v1 is as on TSAI main.
 
 | pack | spec v1 → combined, docs/s |
 |---|---|
@@ -42,7 +45,7 @@ Status: FINAL SUBMISSION for TSAI's Gate 2 decision (14 Nov 2026): spec v1 and s
 | sci-finepdfs | 125 → **70** |
 | ind-te-sangraha-v | 625 → 625 |
 
-On math and science, the v1.1 rules run on every doc, and they add about 1 s and 3 s per 500 docs. Two speed passes went into them (`../results/sheets/harm_tests.md`, "Speed"): each fix gave identical output on every doc of 8 packs. Each v1.1 rule is a regex pass over the text, or a loop over its lines (about 10 rules, which compare a line with its neighbours). Python loops over tokens are gone. A loop over characters is left in one place: `DA-A7-003`'s lowercase test on a non-ASCII line, where a regex can't stand in for `str.islower`. ASCII lines, most of them, take one regex search.
+On math and science the v1.1 rules add about 1 s and 3 s per 500 docs, after two speed passes (`spec_v1_1/results/sheets/harm_tests.md`, "Speed"). No v1.1 rule loops over tokens. The one loop over characters is `DA-A7-003`'s `str.islower` on non-ASCII lines.
 
 ## Spec v1
 
@@ -295,7 +298,7 @@ Source code stays CANDIDATE after a measured pass. Semantic side effects, review
 
 | Source | Code sha256 (python blocks, as `harm_test.py` hashes them) | Harm reports |
 |---|---|---|
-| [medicine_english.md](medicine_english.md) | `f254645a300efe42a474ca9852d26011f89ac9fd3c391c2882bda6d9efe7907a` | `en-dclm_harm.json`, `en-fineweb-edu_harm.json`, `en-nemotroncc_harm.json`, `en-nemotroncc-synth_harm.json` |
+| [medicine_english.md](medicine_english.md) | `882209876997f090dacc2ad2ee71f478be07641ae4b65a3ed227d0c8e716e2e6` | `en-dclm_harm.json`, `en-fineweb-edu_harm.json`, `en-nemotroncc_harm.json`, `en-nemotroncc-synth_harm.json` |
 | [medicine_math.md](medicine_math.md) | `9bcc84b267a7ad53ba9da138823bb55ce48d35e975ddd2fdc9e4ca6ec4665ff6` | `math-finemath_harm.json`, `math-megamath_harm.json` |
 | [medicine_sci.md](medicine_sci.md) | `ed7d1cc0a0b4e2620c7e206ab1fd40a172b71442209524461ead92754c00b0cd` | `sci-finepdfs_harm.json` |
 | [medicine_indic.md](medicine_indic.md) | `4cbb55c02cde32dbff07ef2a4c797c7394548e0c9642bf7f0e9cbaf5bba5a09f` | `indic_sangraha-v_harm.md` and `indic_sangraha-s_harm.md` (Data B's `harm_test_indic.py`, run on Data B's function, which the sheet copies unchanged) |
@@ -4426,7 +4429,7 @@ def medicine(doc):
 <!-- END CARD EVIDENCE -->
 
 2. **Medicine:** put a space between a lowercase word of 3 or more letters and a capitalised word glued to it, so `fileEdit` becomes `file Edit`. The glued token must stand alone: before it a space, the start of the line, or an opening quote or bracket; after it a space, punctuation or the end of the line. It leaves these alone:
-   - **code and markup:** a line with `{`, `}` or `=`, a `;` at its end, `()`, `::`, `->`, `//`, `def`, `function` or `return`, and a line inside a code fence. So `validateString();` and `$this->assertTrue` stay;
+   - **code and markup:** a line with `{` or `}`, a `;` at its end, `==`, `=>`, `->`, `::`, `()`, ` = `, `$this`, a tag (`<div>`) or a `// ` comment, and a line inside a code fence. So `validateString();` and `$this->assertTrue` stay;
    - **camelCase with more humps:** `getMockBuilder` stays, because the token must end after the second word;
    - **one- and two-letter prefixes:** `iPhone`, `eBay`, `macOS` and `jQuery` stay;
    - **product names on a short list** (`A8F_KEEP`, whole tokens): `pdfFiller`, `webAssembly`, `appStore`, `youTube`.
@@ -4437,6 +4440,11 @@ def medicine(doc):
    - **The code test is narrower.** `<`, `>`, `$` and a `;` inside a line also occur in prose (prices, lists), so they no longer mark a line as code. On the 500 docs this wins back 8 glued pairs (`devicesTo`, `modelsWhat`, `potentialTourism` …), and it changes no other gold doc.
    - **`A8F_KEEP` is a list of whole tokens, not first words.** A first word such as `you` also kept real glues (`thank youFor`).
    - **A quick check first** (speed rule): a doc with no glued token at all is returned as it is. It takes the rule from 0.20 s to 0.12 s per 500 en-nemotroncc docs (`scripts/time_rules.py`, in the `clean.py` PR; best of 3), with the same output.
+
+   **Changed on 15 Nov, from HariniJasti's two follow-up suggestions on patilvijay23/era-v5-lab#41:**
+   - **The code test is narrower again.** `return`, `function`, `def`, a bare `=` and a `//` inside a URL no longer mark a line as code. A line now counts as code if it has braces, a `;` at its end, `==`, `=>`, `->`, `::`, `()`, ` = `, `$this`, a tag, or a `// ` comment. On the 500 docs this splits 66 glued pairs in 29 docs, not 55 in 28, and loses none. The 11 it adds are `civilizationThe` and `influencesEgyptian` (one doc), `newCage`, and `pdfFile` and `pdfDownload` 4 times each (one doc of download links). The gold doc changed is the same one.
+   - **A cheaper quick check** (`A8F_QUICK`, `[a-z]{3}[A-Z][a-z]`) runs on the whole doc, then on each line before the code test. Output is identical on all 500 docs. The rule goes from 0.123 s to 0.085 s per 500 en-nemotroncc docs (4,079 to 5,911 docs/s; Apple M4, one core, best of 5).
+   - The code test is written from HariniJasti's description of it; her own pattern wasn't posted.
 
 ```python
 RULE_ID = "DA-A8-004"
@@ -4452,14 +4460,17 @@ AUTHOR = "HariniJasti"
 import re
 
 A8F_GLUED = re.compile(r"(?:(?<=^)|(?<=[\s\"“(]))([a-z]{3,})([A-Z][a-z]{1,})(?=[\s,;:!?\"”]|\.(?:\s|$)|$)", re.M)
-# a code line: "<", ">", "$" and a ";" inside a line are left out, as they occur in prose; a ";" at the end still counts
-A8F_CODE = re.compile(r"[{}=]|;[ \t]*$|==|=>|->|::|//|\bdef |\bfunction\b|\breturn\b|\(\)")
+# speed: a doc, or a line, without this cannot hold a glued token, so it is skipped before the slower tests
+A8F_QUICK = re.compile(r"[a-z]{3}[A-Z][a-z]")
+# a code line: braces, a ";" at the end, ==, =>, ->, ::, (), " = ", $this, a tag or a "// " comment.
+# "return", "function", a bare "=" and the "//" of a URL occur in prose, so they no longer count (15 Nov)
+A8F_CODE = re.compile(r"[{}]|;[ \t]*$|==|=>|->|::|\(\)| = |\$this|</?[A-Za-z][^<>]*>|(?:^|\s)//\s")
 # whole tokens, not first words: a first word such as "you" would also keep real glues ("thank youFor")
 A8F_KEEP = frozenset({"youTube", "pdfFiller", "webAssembly", "appStore", "airPods", "airBnb", "dotNet", "macBook"})
 
 
 def medicine_a8f(text):
-    if not A8F_GLUED.search(text):  # speed: no glued token anywhere, so no line changes
+    if not A8F_QUICK.search(text) or not A8F_GLUED.search(text):  # speed: no glued token anywhere, so no line changes
         return text
     out, fence = [], False
     for line in text.split("\n"):
@@ -4467,7 +4478,7 @@ def medicine_a8f(text):
             fence = not fence
             out.append(line)
             continue
-        if fence or A8F_CODE.search(line):
+        if fence or not A8F_QUICK.search(line) or A8F_CODE.search(line):
             out.append(line)
             continue
         out.append(A8F_GLUED.sub(
@@ -4493,7 +4504,7 @@ def medicine(doc):
 ```
 
 3. **Action:** fix. **Runs on:** en-nemotroncc.
-   - **Diagnosis docs it treats:** 28 of the 500 Week 1 diagnosis docs, with 55 glued pairs. HariniJasti read the 47 pairs her version split: all are words run together, and none is a name or code. The 8 pairs the narrower code test adds were read by aneeshads, as a first pass: all are glues too.
+   - **Diagnosis docs it treats:** 29 of the 500 Week 1 diagnosis docs, with 66 glued pairs. HariniJasti read the 47 pairs her first version split: all are words run together, and none is a name or code. The 8 pairs the first narrower code test added (14 Nov) and the 11 the second one adds (15 Nov) were read by aneeshads, as a first pass: all are glues too, though `pdfFile` and `pdfDownload` sit in one doc of download links.
    - **Reading docs it treats:** not measured, because the cleaned reading sample of en-nemotroncc was not rerun. That makes this column unlike the other rows', which count reading docs (`scripts/reading_recall.py`).
 4. **Harm test:** en-nemotroncc 0.78% (1/129) PASS on its own. The gold doc it changes, `fd16036899796ca4`, has the disease itself (`saidSanaz`: a quote glued to the speaker's name, withheld here), so it is a gold contradiction, as `056cc9bc44c927e2` is for `DA-A8-003`.
    - **All in order:** 2/129 with `DA-A8-003`, FAIL against a limit of 1. Both changed gold docs hold the disease, and Vijay agreed to marking gold contradictions, so it is **0/127 PASS** without them. They are to be re-read at the next gold refresh.
@@ -4501,7 +4512,8 @@ def medicine(doc):
    - A brand written with a lowercase prefix of 3+ letters and not on `A8F_KEEP` gets a space (`fooBar`-style names in prose).
    - **camelCase names in prose** are split when the line has no code sign (`setTimeout`, `forEach`, `useState`, `linkedIn`). None is in this pack.
    - A German or Dutch compound glued to a capitalised noun is split (`gesuchtJugendherbergen` on this pack, which is itself a glue).
-   - **Lines with code signs:** a glue on such a line is still missed. On this pack that is 11 pairs: `civilizationThe`, `influencesEgyptian`, `newCage`, and `pdfDownload` and `pdfFile` 4 times each.
+   - **Lines with code signs:** a glue on such a line is still missed. The narrower test of 15 Nov leaves fewer of these: the 11 pairs missed on 14 Nov are now split.
+   - **Prose that looks like code:** a prose line with ` = ` (a sum such as `x = 2`) or an empty `()` is still treated as code, and its glues are missed.
    - **Lowercase-to-lowercase glues** are missed (see above).
 6. **Spec v1.1:** status CANDIDATE, reviewer pending. Author: HariniJasti, from her en-nemotroncc diagnosis (theschoolofai/era-v5-lab#79), raised on #435 and proposed in patilvijay23/era-v5-lab#41. Review changes by aneeshads, 14 Nov.
 
