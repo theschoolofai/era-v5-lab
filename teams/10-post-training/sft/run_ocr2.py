@@ -356,6 +356,9 @@ def _work_pack(cfg, shard_id, shard_dir, tmp, entry_path, done):
     _write_json_atomic(tmp / "pack_report.json", report)
     return {"attempted": report["attempted"], "row_checks_passed": report["row_checks_passed"],
             "pack_rejected": report["pack_rejected"], "admitted": report["admitted"], "emitted": report["emitted"],
+            "train_rows": report["train_rows"], "heldout_rows": report["heldout_rows"],
+            "train_pack": report["train_pack"], "heldout_eval_v1": report["heldout_eval_v1"],
+            "pack_sha256": report["pack_sha256"],
             "training_admissible": report["training_admissible"], "blockers": report["blockers"],
             "row_outcomes": report["row_outcomes"], "passed_rows": report["passed_rows"]}
 
@@ -431,7 +434,7 @@ def _stage(cfg: dict, shard_id: int, shard_dir: Path, stage: str, entry_path: Pa
 
 
 def reconcile(counts: dict) -> list[str]:
-    """The four conservation equations of one shard. Returns the ones that do not hold."""
+    """The five conservation equations of one shard. Returns the ones that do not hold."""
     j, r, s, p = counts["joined"], counts["rendered"], counts["screened"], counts["pack"]
     checks = {
         "raw = policy excluded + malformed or unresolved + eligible joined":
@@ -439,6 +442,7 @@ def reconcile(counts: dict) -> list[str]:
         "eligible joined = converter rejected + rendered": j["eligible_joined"] == r["converter_rejected"] + r["rendered"],
         "rendered = removed + clean": r["rendered"] == s["rows_removed"] + s["rows_kept"] and s["rows_in"] == r["rendered"],
         "clean = pack rejected + pack row checks passed": s["rows_kept"] == p["pack_rejected"] + p["row_checks_passed"] == p["attempted"],
+        "row checks passed = train rows + held-out rows": p["row_checks_passed"] == p["train_rows"] + p["heldout_rows"],
     }
     return [name for name, ok in checks.items() if not ok]
 
@@ -525,7 +529,7 @@ def run(manifest_path, policy_path, shards: str, workers: int, out_dir, resume: 
         for stage, keys in (("joined", ("raw_rows", "policy_excluded", "malformed_or_unresolved", "eligible_joined")),
                             ("rendered", ("converter_rejected", "rendered")),
                             ("screened", ("rows_flagged", "rows_canary", "rows_removed", "rows_kept")),
-                            ("pack", ("attempted", "row_checks_passed", "pack_rejected", "admitted", "emitted"))):
+                            ("pack", ("attempted", "row_checks_passed", "pack_rejected", "train_rows", "heldout_rows", "admitted", "emitted"))):
             for key in keys:
                 totals[f"{stage}.{key}"] = totals.get(f"{stage}.{key}", 0) + r["counts"][stage][key]
     expected = len(manifest["ocr2"]["shards"])
@@ -575,7 +579,7 @@ def main(argv=None) -> int:
             line += (f" [{shard['input_coverage']}] raw {c['joined']['raw_rows']} eligible {c['joined']['eligible_joined']}"
                      f" rendered {c['rendered']['rendered']} flagged {c['screened']['rows_flagged']}"
                      f" canary {c['screened']['rows_canary']} kept {c['screened']['rows_kept']}"
-                     f" admitted {c['pack']['admitted']} ({shard['final_state']})")
+                     f" admitted {c['pack']['admitted']} heldout {c['pack']['heldout_rows']} ({shard['final_state']})")
         elif shard["state"] != "not_available_locally":
             line += f": {shard.get('error') or shard.get('incident')}"
         print(line)
