@@ -14,6 +14,12 @@ checks what the mask MEANS, by walking the token ids alone with the chat markers
                     the role header (`assistant` + newline) is never trained
     every row       at least one shifted target (mask[1:]) and length <= --limit
 
+Converted SFT parts (`convert.py` output, `.jsonl` or `.jsonl.gz`) carry the same `input_ids` / `loss_mask`, so the
+same check runs on any SFT set: leave out `--sidecar` and rows are grouped by their `set` field instead of an OCR-2
+source.
+
+    python check_pack_rows.py --pack <set>.part0000.jsonl.gz ... --tokenizer c3.json --report check.json
+
 It exits 1 on any violation. `--dump` writes, for `--per-source` rows per source (seeded), each token
 beside its mask bit and its shifted label (the token it is the target for). The dump holds row text:
 keep it private and out of Git. The report holds counts only.
@@ -22,6 +28,7 @@ keep it private and out of Git. The report holds counts only.
 from __future__ import annotations
 
 import argparse
+import gzip
 import json
 import random
 import sys
@@ -78,6 +85,11 @@ def check_row(ids: list, mask: list, ids_of: dict, decode) -> tuple[Counter, dic
     return bad, dict(trained_by_role)
 
 
+def open_rows(path: Path):
+    """A pack or converted part, plain or gzip."""
+    return gzip.open(path, "rt", encoding="utf-8") if str(path).endswith(".gz") else open(path, encoding="utf-8")
+
+
 def dump_row(stream, rid: str, source: str, ids: list, mask: list, tok_str) -> None:
     stream.write(f"\n=== {rid}  [{source}]  tokens {len(ids)}  trained {sum(mask)}  shifted targets {sum(mask[1:])}\n")
     stream.write("pos   id      mask  token                         | shifted label (target at pos-1 -> this token)\n")
@@ -98,7 +110,8 @@ def dump_row(stream, rid: str, source: str, ids: list, mask: list, tok_str) -> N
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--pack", type=Path, nargs="+", required=True, help="pack JSONL file(s)")
-    ap.add_argument("--sidecar", type=Path, nargs="+", required=True, help="joined.sidecar.jsonl of the same shard(s)")
+    ap.add_argument("--sidecar", type=Path, nargs="+", default=None,
+                    help="joined.sidecar.jsonl of the same OCR-2 shard(s); leave out for converted SFT parts (grouped by `set`)")
     ap.add_argument("--tokenizer", type=Path, required=True)
     ap.add_argument("--limit", type=int, default=32768)
     ap.add_argument("--report", type=Path, required=True)
@@ -122,7 +135,7 @@ def main(argv=None) -> int:
         return cache[key]
 
     source_of = {}
-    for path in args.sidecar:
+    for path in args.sidecar or ():
         with open(path, encoding="utf-8") as stream:
             for line in stream:
                 entry = json.loads(line)
@@ -133,12 +146,15 @@ def main(argv=None) -> int:
     by_source: Counter = Counter()
     max_len, rows, tokens, trained = 0, 0, 0, 0
     sample_ids: dict = {}
+    def source_for(row):
+        return source_of.get(row["id"], "(no sidecar entry)") if args.sidecar else row.get("set", "(no set field)")
+
     for path in args.pack:
-        with open(path, encoding="utf-8") as stream:
+        with open_rows(path) as stream:
             for line in stream:
                 row = json.loads(line)
                 ids, mask = row["input_ids"], row["loss_mask"]
-                source = source_of.get(row["id"], "(no sidecar entry)")
+                source = source_for(row)
                 bad, roles = check_row(ids, mask, ids_of, decode)
                 if len(ids) > args.limit:
                     bad["over_limit"] += 1
@@ -157,10 +173,10 @@ def main(argv=None) -> int:
         with open(args.dump, "w", encoding="utf-8") as out:
             out.write("PRIVATE: decoded pack rows (text). Not for Git.\n")
             for path in args.pack:
-                with open(path, encoding="utf-8") as stream:
+                with open_rows(path) as stream:
                     for line in stream:
                         row = json.loads(line)
-                        source = source_of.get(row["id"], "(no sidecar entry)")
+                        source = source_for(row)
                         if row["id"] in picked.get(source, ()):
                             dump_row(out, row["id"], source, row["input_ids"], row["loss_mask"], tok.id_to_token)
     report = {"schema": "g10-ocr2-pack-row-check/1", "rows": rows, "tokens": tokens, "trained_tokens": trained,

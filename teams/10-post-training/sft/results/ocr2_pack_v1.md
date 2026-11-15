@@ -193,3 +193,20 @@ command. Earlier trial attempts that failed before any work are not counted. Che
 Rebuild recipe: `../jobs/2026-11-16-ocr2-pack-v1.md` (run-root layout, command, expected per-shard hashes). The source manifest
 is `../manifests/ocr2_source_manifest_v1.json` (sha256 `ded9be9e…eaf9c4`); every input file is pinned by sha256, and the runner
 refuses any mismatch.
+
+## Final state, 16 Nov 2026 (metadata only; no rebuild)
+
+- **Final as built.** The 14 unclear-source TACO keys (176 rows in 29 shards) stay out under TSAI's "any row without a
+  clear source stays out". The manifest `unclear_source` block lists the ordinals and rows per shard, says what a later
+  "same" verdict would change (`if_cleared`), and records no verdict. The human spot check is pending; its side-by-side
+  sheet holds dataset text and is not in Git.
+- **Checks re-run.** `aggregate.py` against a `git archive` of the build commit `91ee136`: 37 of 37, output sha256
+  `0dfcdb1c…` (byte-identical to the build's). Against the merged branch it refuses one check,
+  `config.code_on_disk_matches_run`, for `sft/convert.py` and `chat-format/render.py`, which changed after the build.
+  Shard 3 re-rendered with the merged `convert.py` is byte-identical (`30068a5f…`). Details and the rebuild revision:
+  `../../jobs/2026-11-16-ocr2-pack-v1.md`, "Code revision"; manifest `rebuild_code`.
+- **Held-out handoff** re-verified against the updated manifest: 8,507 rows, 317 families, 8 of 8 checks
+  (`ocr2_heldout_v1_handoff.json`, new manifest sha256).
+- **Tokenizer.** TSAI's Gate 3 notice (15 Nov) moved the frozen tokenizer to p1536 (same special ids, eos 130822, same
+  vocabulary size) and kept C3 work valid as a record. This pack's token ids, counts and lengths are C3. Which one v1
+  training uses is a TSAI question (manifest `post_build_rulings`).

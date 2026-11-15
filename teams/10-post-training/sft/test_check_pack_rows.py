@@ -52,3 +52,33 @@ def test_each_kind_of_wrong_mask_is_named():
     assert check([0] * len(ROW))[0] == {"no_shifted_target": 1, "assistant_im_end_not_trained": 1}
     assert check(GOOD[:-1])[0] == {"mask_shape": 1}
     assert check(GOOD[:-1], ROW[:-1])[0] == {"last_token_not_untrained_endoftext": 1}
+
+
+def _toy_tokenizer(tmp_path):
+    from tokenizers import Tokenizer
+    from tokenizers.models import WordLevel
+
+    path = tmp_path / "toy.json"
+    Tokenizer(WordLevel({v: k for k, v in VOCAB.items()}, unk_token="x")).save(str(path))
+    return path
+
+
+def test_converted_gz_parts_are_checked_without_a_sidecar_and_grouped_by_set(tmp_path):
+    import gzip
+    import json
+
+    part = tmp_path / "sft-toy.part0000.jsonl.gz"
+    rows = [{"id": "sft-toy/0", "set": "sft-toy", "input_ids": ROW, "loss_mask": GOOD},
+            {"id": "sft-toy/1", "set": "sft-toy", "input_ids": ROW, "loss_mask": flip(9)}]
+    with gzip.open(part, "wt", encoding="utf-8") as out:
+        out.writelines(json.dumps(r) + "\n" for r in rows)
+    tok = _toy_tokenizer(tmp_path)
+    report = tmp_path / "check.json"
+    assert cpr.main(["--pack", str(part), "--tokenizer", str(tok), "--report", str(report)]) == 1
+    got = json.loads(report.read_text())
+    assert got["by_source"] == {"sft-toy": 2} and got["rows_with_violations_by_source"] == {"sft-toy": 1}
+    assert got["violations"] == {"trained_outside_assistant:user": 1} and "no_sidecar_entry" not in got["violations"]
+    with gzip.open(part, "wt", encoding="utf-8") as out:
+        out.write(json.dumps(rows[0]) + "\n")
+    assert cpr.main(["--pack", str(part), "--tokenizer", str(tok), "--report", str(report)]) == 0
+    assert json.loads(report.read_text())["ok"] is True

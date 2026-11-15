@@ -1,14 +1,15 @@
 {
  "schema": "g10-ocr2-pack-v1-manifest/1",
  "set": "sft-code-opencodereasoning-2",
- "status": "built and checked by G10 (local + Modal CPU); not yet reviewed by the lead or TSAI; bytes not stored by TSAI",
+ "status": "final for SFT data v1 as built (16 Nov 2026): the 14 unclear-source TACO keys are left out under TSAI's 'any row without a clear source stays out'; built and checked by G10 (local + Modal CPU); not yet reviewed by TSAI; bytes not stored by TSAI (job request pending lead approval)",
  "ruling": "TSAI, 14 Nov 2026: tokenizer frozen (C3, eos id 130822); max_sequence_tokens 32768 accepted as provisional for SFT data v1; hold the 69,690 Codeforces rows out of v1; for TACO, APPS and code_contests record the source repo and revision in the manifest; any row without a clear source stays out; build by Mon 16 Nov, 11:59 PM IST.",
  "open_items": [
   "the target-quality thresholds below are the #391 rule (SFT mix v1); the policy note calls them a proposal and TSAI has not named another threshold",
   "open-r1/codeforces: held out of v1; the producer's revision is not established and Team 9 confirmation of the Codeforces pool is open",
   "max_sequence_tokens 32768 is provisional for SFT data v1",
-  "unclear_source_rows: 14 TACO problems excluded pending a human spot check; removing an entry folds its rows back",
-  "heldout split confirmed by TSAI; complete the requested split-seed/row-ID manifest handoff alongside the private pack artifacts"
+  "unclear_source_rows: the 14 TACO keys are left out of v1 (final as built). The human spot check (same/different per key) is pending; a 'same' verdict reopens that key, see unclear_source.if_cleared",
+  "held-out row ids: the id list is private and verified by sft/ocr2_heldout_handoff.py (results/ocr2_heldout_v1_handoff.json holds its hashes); where the list lives (TSAI storage via the job request, or Git) is a lead/TSAI decision",
+  "tokenizer: TSAI's Gate 3 notice (15 Nov 2026) moved the frozen tokenizer from C3 to p1536 for new work; this pack's input_ids are C3. Whether v1 training uses this C3 pack or a p1536 re-tokenisation is a TSAI decision, see post_build_rulings"
  ],
  "build": {
   "run_id": "admission-7107d5b9dc9c",
@@ -138,9 +139,63 @@
  },
  "unclear_source": {
   "keys": 14,
+  "taco_train_ordinals": [
+   305,
+   2084,
+   2761,
+   3895,
+   4783,
+   5995,
+   6161,
+   7545,
+   8575,
+   12452,
+   14613,
+   15139,
+   18983,
+   19744
+  ],
   "rows_excluded": 176,
   "shards_with_rows": 29,
-  "status": "conservative exclusion pending the WP11 human spot check; no verdict recorded"
+  "rows_by_shard": {
+   "0": 8,
+   "1": 12,
+   "2": 9,
+   "3": 15,
+   "4": 9,
+   "5": 9,
+   "6": 9,
+   "7": 9,
+   "8": 11,
+   "9": 10,
+   "10": 8,
+   "11": 9,
+   "12": 6,
+   "14": 1,
+   "15": 3,
+   "22": 2,
+   "23": 4,
+   "29": 3,
+   "31": 5,
+   "32": 3,
+   "35": 1,
+   "36": 1,
+   "41": 3,
+   "42": 9,
+   "43": 1,
+   "47": 1,
+   "49": 4,
+   "50": 10,
+   "57": 1
+  },
+  "status": "left out of pack v1 (final as built); no verdict recorded",
+  "basis": "TSAI, 14 Nov 2026: 'any row without a clear source stays out'. Both identity signals (reasoning and solution similarity to the joined TACO row) lose to the neighbouring rows on shards 0-2.",
+  "spot_check": {
+   "state": "pending: a private side-by-side sheet (TACO question beside the OCR-2 reasoning and solution, with word-overlap scores) is prepared; it holds dataset text and is not in Git",
+   "verdicts": null
+  },
+  "if_confirmed_different": "record the verdict here; no rebuild; the pack stays as built",
+  "if_cleared": "remove that key from sft/ocr2_policy.json unclear_source_rows. The policy sha256, config sha256 and run id change for every shard. Pack bytes carry no run id, so only the shards in rows_by_shard that hold the key change content; rebuild those, then either rebuild the other shards under the new run id or show their pack sha256 unchanged, and rerun aggregate.py (37 checks, including one config for all 70 shards). Report the rows folded back."
  },
  "decontam_flagged_by_benchmark": {
   "aime_2025": 1,
@@ -1711,6 +1766,35 @@
    "decision": "Keep the 2% held-out split. Record split seed and row IDs in the pack manifest. Finish the 14 source spot checks before finalizing.",
    "scope": "Approval metadata only. Policy, split salt, source/pack hashes, counts and output bytes are unchanged.",
    "remaining_manifest_handoff": "This public summary stores the split salt and private ID-list hash. The requested complete seed/row-ID manifest handoff remains open; no private ID list is published here."
+  },
+  {
+   "source": "TSAI Gate 3 notice, general channel, 15 Nov 2026",
+   "decision": "The frozen tokenizer changes from C3 to p1536 (sha256 e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b). Special tokens and ids are identical to C3 (eos id 130822), vocabulary 131,072. Teams re-pin to the new sha for all new work. Work already done on C3 stays valid as a record and does not need redoing.",
+   "scope": "This pack was built with C3 before the notice and stays valid as a record. Its input_ids, token counts and lengths are C3; p1536 merges differ, so they would differ under p1536. Not re-measured here: the p1536 file is not on the build machine."
+  },
+  {
+   "source": "G10, 16 Nov 2026 (no new ruling)",
+   "decision": "Pack v1 is final as built with the 14 unclear-source keys left out; the held-out split and id-list hash are verified by sft/ocr2_heldout_handoff.py (results/ocr2_heldout_v1_handoff.json).",
+   "scope": "Metadata only. Policy, split salt, source/pack hashes, counts and output bytes are unchanged."
   }
- ]
+ ],
+ "rebuild_code": {
+  "commit": "91ee1368cf064b1836352a4801e5acf7c5ec6787",
+  "ref": "f20201351h-maker/era-v5-lab branch backup/pr79-pre-week3-91ee136",
+  "why": "build.code_sha256 is part of run_ocr2's config, so the run id admission-7107d5b9dc9c is reproduced only with the code of the build. 91ee136 is the only commit whose seven code files all hash to build.code_sha256.",
+  "merged_branch": "on g10-week3-post-training after PR 79, sft/convert.py (four later commits: batched tokenizer calls, chat-template parity, Aya subsets) and chat-format/render.py (docstring and one unused constant) differ, so a rebuild from the merged branch gets a different run id.",
+  "render_parity_check": {
+   "shard": 3,
+   "stage": "rendered (convert.py --set sft-code-opencodereasoning-2 --input joined.jsonl --index-base 60000 --tokenizer C3)",
+   "rows": 10558,
+   "build_rendered_sha256": "30068a5f9596b546ebecaf4737e40abfdfe415d4658c40989bb22aaac1bf6e7a",
+   "merged_branch_rendered_sha256": "30068a5f9596b546ebecaf4737e40abfdfe415d4658c40989bb22aaac1bf6e7a",
+   "merged_branch_commit": "ff0f656",
+   "identical": true,
+   "machine": "Apple M1 Pro, RAYON_NUM_THREADS=4",
+   "seconds": 227.08,
+   "scope": "one shard, render stage only. The join (prepare_ocr2.py) and pack (pack_admission.py) stages use convert.py's licence_row, read_rows, token_mask and train_spans; those four functions are AST-identical between 91ee136 and ff0f656. The other convert.py changes touch the Hub revision in remote reads, a byte guard, Aya and the batched render path checked here. The join and pack stages were not re-run with the merged code."
+  },
+  "pack_rows_carry_run_id": false
+ }
 }
