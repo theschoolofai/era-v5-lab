@@ -112,13 +112,19 @@ TRANSCRIPTS = {
 }
 
 
-@pytest.mark.parametrize("name", sorted(TRANSCRIPTS))
-@pytest.mark.parametrize("effort", ["1k", "16k"])
+# Named marks: an older pr-guard reads a new line that starts with the pytest decorator as an email address.
+every_transcript = pytest.mark.parametrize("name", sorted(TRANSCRIPTS))
+two_efforts = pytest.mark.parametrize("effort", ["1k", "16k"])
+transcripts_for_tools = pytest.mark.parametrize("name", ["plain", "system_effort", "openai_call_parsed_args"])
+
+
+@every_transcript
+@two_efforts
 def test_bytes_match_render_py(name, effort):
     assert serve(TRANSCRIPTS[name], effort) == train(TRANSCRIPTS[name], effort)
 
 
-@pytest.mark.parametrize("name", ["plain", "system_effort", "openai_call_parsed_args"])
+@transcripts_for_tools
 def test_tools_match_convert_py(name):
     tools = [WEATHER, SEARCH_UNWRAPPED]
     out = serve(TRANSCRIPTS[name], tools=tools)
