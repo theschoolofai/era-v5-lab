@@ -124,8 +124,8 @@ def swe_rebench_openhands(row: dict) -> list[dict]:
         role, content = message["role"], message.get("content") or ""
         if role == "system" and index == 0:
             # Tool schemas go in the system turn as plain JSON text (chat_format_v0.md, Tier 1).
-            tools = json.dumps(row["tools"], ensure_ascii=False, sort_keys=True)
-            messages.append({"role": "system", "content": f"{content}\n\nTools:\n{tools}"})
+            tools = tools_json(row["tools"])
+            messages.append({"role": "system", "content": f"{content}\n\nTools:\n{tools}" if content else f"Tools:\n{tools}"})
         elif role == "assistant":
             calls = [{"function": c["function"], "id": c.get("id")} for c in message.get("tool_calls") or []]
             messages.append({"role": "assistant", "content": content, "tool_calls": calls})
@@ -196,6 +196,16 @@ def dolly_t_without_context(row: dict) -> bool:
 
 # --- adapters for the nvidia / open-r1 families (reasoning_content, tool_calls, tool turns) -----
 
+def tools_json(tools) -> str:
+    """Tool schemas for the first system turn: a JSON array of the function schemas, unwrapped from
+    {"type": "function", "function": {...}}, keys sorted. chat_template.jinja renders the same bytes from an OpenAI
+    `tools` list (tests/test_chat_template_parity.py)."""
+    if not isinstance(tools, list):
+        return json.dumps(tools, ensure_ascii=False, sort_keys=True)
+    fns = [t["function"] if isinstance(t, dict) and isinstance(t.get("function"), dict) else t for t in tools]
+    return json.dumps(fns, ensure_ascii=False, sort_keys=True)
+
+
 def _text(value) -> str:
     """Message or tool content as text: JSON objects (some tool results) are written out as JSON."""
     if value is None:
@@ -233,10 +243,10 @@ def nemotron_chat(row: dict) -> list[dict]:
         else:
             messages.append({"role": role, "content": content})
     if row.get("tools") and messages and messages[0]["role"] == "system":
-        tools = json.dumps(row["tools"], ensure_ascii=False, sort_keys=True)
+        tools = tools_json(row["tools"])
         messages[0] = {"role": "system", "content": f"{messages[0]['content']}\n\nTools:\n{tools}"}
     elif row.get("tools"):
-        tools = json.dumps(row["tools"], ensure_ascii=False, sort_keys=True)
+        tools = tools_json(row["tools"])
         messages.insert(0, {"role": "system", "content": f"Tools:\n{tools}"})
     return messages
 
@@ -251,7 +261,7 @@ def xlam_function_calling(row: dict) -> list[dict]:
              for a in answers if isinstance(a, dict) and a.get("name")]
     if not calls or len(calls) != len(answers):
         raise Skip("no usable tool call")
-    system = "Tools:\n" + json.dumps(tools, ensure_ascii=False, sort_keys=True)
+    system = "Tools:\n" + tools_json(tools)
     return [{"role": "system", "content": system}, {"role": "user", "content": _text(row["query"])},
             {"role": "assistant", "content": "", "tool_calls": calls}]
 
