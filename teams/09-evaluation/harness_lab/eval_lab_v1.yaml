@@ -13,6 +13,10 @@ spec:
   path: harness_code_indic/eval_mini_v0_spec.json          # relative to teams/09-evaluation
   sha256: 94de47d2334eff1d5419aad73c355c91abe16d278c9f45c9e2a4acf9ef3d399a   # item_set of the spec records in eval_mini_v1.json
 
+# The lm-eval version of all 86 lm-eval records in results/eval_mini_v1.json: its task folders, prompts, default seeds.
+# The scorer stops on another version.
+lm_eval_version: "0.4.13"
+
 # The lm-eval 0.4.13 task folders (under lm_eval/tasks) that hold these tasks. The scorer indexes only them and
 # harness_code_indic/tasks (MILU), not all 14,000 default task files; it stops if a task is not found.
 lm_eval_task_dirs: [mmlu/default, arc, hellaswag, leaderboard/mmlu_pro, belebele]

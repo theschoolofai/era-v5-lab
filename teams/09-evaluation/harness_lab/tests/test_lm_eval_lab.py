@@ -16,7 +16,7 @@ from torch import nn
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent))
-from lm_eval_lab import TIER_ROLE, LabLM, split_pair  # noqa: E402
+from lm_eval_lab import TIER_ROLE, LabLM, check_lm_eval_version, split_pair, without_env_report  # noqa: E402
 
 V = 2 + 256 + 1          # pad, bos, one id per byte, and one id ("~") whose table bytes are wrong on purpose
 BAD = V - 1
@@ -209,6 +209,30 @@ def test_generation_is_refused():
     lm = LabLM(StubModel(), StubArtifacts(), block_size=16, device="cpu", bf16=False)
     with pytest.raises(NotImplementedError):
         lm.generate_until([])
+
+
+def test_the_env_report_is_skipped_and_restored():
+    """simple_evaluate calls add_env_info and get_git_commit_hash by these module names (lm-eval 0.4.13); if a new
+    version stops doing so, the skip would silently do nothing, so this checks the call sites too."""
+    import inspect
+
+    import lm_eval.evaluator as ev
+
+    source = inspect.getsource(ev.simple_evaluate)
+    assert "add_env_info(results)" in source and "get_git_commit_hash()" in source
+    before = ev.add_env_info, ev.get_git_commit_hash
+    with without_env_report():
+        results = {}
+        assert ev.add_env_info(results) is None and results == {} and ev.get_git_commit_hash() is None
+    assert (ev.add_env_info, ev.get_git_commit_hash) == before
+
+
+def test_the_lm_eval_version_is_pinned():
+    from importlib import metadata
+
+    check_lm_eval_version({"lm_eval_version": metadata.version("lm_eval")})
+    with pytest.raises(SystemExit, match="pins lm-eval 0.0.1"):
+        check_lm_eval_version({"lm_eval_version": "0.0.1"})
 
 
 def test_tiers_split_the_config_by_role():

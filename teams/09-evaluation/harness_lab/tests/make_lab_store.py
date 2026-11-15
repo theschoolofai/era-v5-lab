@@ -35,6 +35,8 @@ def main(argv=None) -> int:
     ap.add_argument("--byte-table", type=Path, required=True)
     ap.add_argument("--n-layer", type=int, help="override the arm's layer count (a smaller model for a CPU test)")
     ap.add_argument("--commits", type=int, default=3)
+    ap.add_argument("--final", action="store_true",
+                    help='commit the last checkpoint with reason "final", as Team 7\'s trainer ends a run')
     ap.add_argument("--steps-per-commit", type=int, default=2)
     ap.add_argument("--run-id", default="lab-store")
     ap.add_argument("--out", type=Path, required=True)
@@ -66,8 +68,9 @@ def main(argv=None) -> int:
     ck = Checkpointer(a.run_id, str(a.out / "local"), str(a.out / "store"), config_path=str(a.arm), seed=0,
                       code_paths=tuple(str(p) for p in code))
     threads, step = torch.get_num_threads(), 0
-    for _ in range(a.commits):
+    for n in range(1, a.commits + 1):
         t0 = time.perf_counter()
+        reason = "final" if a.final and n == a.commits else "interval"
         for _ in range(a.steps_per_commit):
             ids = loader.next()                     # Team 7's synthetic ids (0..255), valid ids of any vocab
             logits = model(ids[:, :-1], torch.ones_like(ids[:, :-1], dtype=torch.bool))
@@ -77,11 +80,11 @@ def main(argv=None) -> int:
             optim.step()
             step += 1
         torch.set_num_threads(1)                    # the probe bits must match run_lab_ckpt.py's export settings
-        if not (ck.save(step, model, optim, loader, probe_loss, tokens=step * ids.numel()) and ck.wait()):
+        if not (ck.save(step, model, optim, loader, probe_loss, tokens=step * ids.numel(), reason=reason) and ck.wait()):
             raise SystemExit(f"checkpoint at step {step} was not committed")
         torch.set_num_threads(threads)
         model.train()
-        print(f"committed step {step} (loss {loss.item():.3f}) in {time.perf_counter() - t0:.1f} s", flush=True)
+        print(f"committed step {step} ({reason}, loss {loss.item():.3f}) in {time.perf_counter() - t0:.1f} s", flush=True)
     print(f"run folder: {(a.out / 'store' / a.run_id).as_posix()}")
     print(f"model config: {(a.out / 'model.json').as_posix()}")
     return 0

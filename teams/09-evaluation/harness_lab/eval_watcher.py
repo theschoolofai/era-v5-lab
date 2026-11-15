@@ -10,15 +10,15 @@ process and loads the result into Team 8's ``eval_mini`` table. Nobody has to st
     python teams/09-evaluation/harness_lab/eval_watcher.py \\
         --run-dir teams/07-infrastructure/jobs/restore_test/out/ckpt_store/restore-b --once --no-load
 
-    # dry run 1, on the eval slot (never on a training node): Tier A on every commit, polled every 60 s.
-    # Arguments after -- go to run_lab_ckpt.py and its scorer unchanged.
-    python teams/09-evaluation/harness_lab/eval_watcher.py --run-dir <remote_root>/<run_id> --label tier-a \\
+    # dry run 1, on the eval slot (never on a training node): Tier A on every commit, polled every 60 s, until the
+    # run's final checkpoint is scored. Arguments after -- go to run_lab_ckpt.py and its scorer unchanged.
+    python teams/09-evaluation/harness_lab/eval_watcher.py --run-dir <remote_root>/<run_id> --label tier-a --until-final \\
         --scorer lm_eval_lab:team5 --clickhouse-url http://<host>:8123 -- --device cuda --tier A \\
         --model-config <arm.yaml> --tokenizer <tokenizer.json> --tokenizer-sha256 <sha256> --byte-table <table.npz> \\
         --hf-home <HF cache> --offline
 
     # Tier B on every 10th commit (TSAI, #357): a second watcher with its own label; both share one GPU slot lock
-    python teams/09-evaluation/harness_lab/eval_watcher.py --run-dir <remote_root>/<run_id> --label tier-b --every 10 \\
+    python teams/09-evaluation/harness_lab/eval_watcher.py --run-dir <remote_root>/<run_id> --label tier-b --every 10 --until-final \\
         --scorer lm_eval_lab:team5 --clickhouse-url http://<host>:8123 -- --device cuda --tier B <same inputs>
 
 Rules it keeps (results/eval_mini_v1_schema.md section 6; Team 7 docs/checkpoint_design_v0.md sections 5 and 8,
@@ -47,7 +47,9 @@ docs/checkpoint_interval.md):
 - A scoring failure is retried on the next poll, ``--max-attempts`` times in all (default 2, as in JOB_REQUEST.md
   rule 5). A ClickHouse failure keeps the scored file and retries only the load.
 - The time per checkpoint (the scorer's wall time) and the lag from commit to score are printed and kept in the
-  state file, and summed up at the end.
+  state file, and summed up at the end. Each checkpoint's log is appended to, so a retry keeps the first attempt.
+- With ``--until-final`` it exits by itself once the run's final checkpoint (reason "final") is committed and every
+  owned commit is done. Otherwise it runs until a signal: SIGTERM saves the state and exits 75, and a restart goes on.
 
 Exit codes (Team 7's contract: 0 done, 75 run again, 78 fatal): 0 all owned commits are done; 1 a checkpoint
 failed ``--max-attempts`` times (see the state file and its log); 75 stopped by a signal, the store could not be
@@ -268,9 +270,10 @@ def _end(proc: subprocess.Popen) -> None:
 
 
 def run_scorer(argv: list[str], log_path: Path, timeout: float, stop: threading.Event) -> int:
-    """Run one scorer process; stdout and stderr go straight to log_path (nothing is held in memory)."""
-    with open(log_path, "wb") as log:
-        log.write(f"$ {subprocess.list2cmdline(argv)}\n".encode("utf-8"))
+    """Run one scorer process; stdout and stderr go straight to log_path (nothing is held in memory). The log is
+    appended to, so a retry keeps the first attempt's output (JOB_REQUEST.md rule 5 sends both back to the team)."""
+    with open(log_path, "ab") as log:
+        log.write(f"=== {now_utc()}\n$ {subprocess.list2cmdline(argv)}\n".encode("utf-8"))
         log.flush()
         proc = subprocess.Popen(argv, stdout=log, stderr=subprocess.STDOUT, start_new_session=POSIX)
         deadline = time.monotonic() + timeout
@@ -500,6 +503,11 @@ class Watcher:
             return EXIT_RETRY
         return EXIT_FAILED if any(r["status"] == "failed" for r in items) else EXIT_OK
 
+    def run_ended(self) -> bool:
+        """The run committed its final checkpoint (Team 7's trainer saves it with reason "final") and every commit this
+        watcher owns is done."""
+        return any(c.get("reason") == "final" for c in self.commits) and self.outcome() in (EXIT_OK, EXIT_FAILED)
+
     def timing(self) -> str:
         """Time per checkpoint in this process: the scorer's wall time, and the lag from commit to score."""
         if not self.session:
@@ -542,6 +550,9 @@ def parse_args(argv=None) -> argparse.Namespace:
                          "shows whether it does")
     ap.add_argument("--max-attempts", type=int, default=2, help="scoring attempts per checkpoint")
     ap.add_argument("--once", action="store_true", help="one pass, then exit (tests, catch-up)")
+    ap.add_argument("--until-final", action="store_true",
+                    help="exit once the run's final commit (reason \"final\") is in commits.jsonl and every owned "
+                         "commit is done, so a job ends by itself")
     ap.add_argument("scorer_args", nargs=argparse.REMAINDER, help="after --: passed to run_lab_ckpt.py unchanged")
     a = ap.parse_args(argv)
     if a.scorer_args[:1] == ["--"]:
@@ -583,6 +594,9 @@ def main(argv=None) -> int:
             while True:
                 w.poll()
                 if a.once or stop.is_set():
+                    break
+                if a.until_final and w.run_ended():
+                    print("the run committed its final checkpoint and every owned commit is done", flush=True)
                     break
                 stop.wait(a.interval)
         except Stopped:

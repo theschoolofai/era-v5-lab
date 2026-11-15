@@ -23,19 +23,20 @@ sys.modules["eval_watcher"] = ew
 _spec.loader.exec_module(ew)
 
 
-def make_run(root: Path, commits, name="run-x", newline_last=True, committed_at=0.0) -> Path:
-    """A run folder in Team 7's layout. commits: (step, epoch, has_manifest)."""
+def make_run(root: Path, commits, name="run-x", newline_last=True, committed_at=0.0, final=False) -> Path:
+    """A run folder in Team 7's layout. commits: (step, epoch, has_manifest). final: the last commit ends the run."""
     run = root / name
     run.mkdir(parents=True)
     lines = []
-    for step, epoch, has_manifest in commits:
+    for n, (step, epoch, has_manifest) in enumerate(commits, 1):
         rel = f"main/step_{step:08d}-e{epoch}"
         if has_manifest:
             (run / rel).mkdir(parents=True)
             (run / rel / "MANIFEST.json").write_text(json.dumps({"run_id": name, "branch": "main", "step": step,
                                                                  "committed_at": committed_at}))
+        reason = "final" if final and n == len(commits) else "interval"
         lines.append(json.dumps({"step": step, "branch": "main", "path": rel, "time": committed_at,
-                                 "reason": "interval", "epoch": epoch}))
+                                 "reason": reason, "epoch": epoch}))
     text = "\n".join(lines) + ("\n" if newline_last and lines else "")
     (run / "commits.jsonl").write_text(text, encoding="utf-8")
     return run
@@ -370,13 +371,37 @@ def test_a_held_slot_waits_and_a_stop_ends_the_wait(tmp_path, scorer):
     assert not (tmp_path / "out" / "state.json").exists()  # nothing was decided, so nothing was saved
 
 
+def test_until_final_ends_the_watch_after_the_last_commit(tmp_path, scorer):
+    run_dir = make_run(tmp_path, [(100, 1, True), (200, 1, True), (300, 1, True)], final=True)
+    code = ew.main(["--run-dir", str(run_dir), "--out-dir", str(tmp_path / "out"), "--no-load", "--until-final",
+                    "--interval", "0.01"])
+    assert code == ew.EXIT_OK and scorer.steps == [100, 200, 300]
+
+
+def test_until_final_waits_while_the_run_goes_on_or_work_is_left(tmp_path, scorer):
+    a = ew.parse_args(["--run-dir", str(make_run(tmp_path, [(100, 1, True)])), "--out-dir", str(tmp_path / "o1")])
+    w = ew.Watcher(a, threading.Event())
+    w.poll()
+    assert not w.run_ended()                    # no final commit yet: keep watching
+    b = ew.parse_args(["--run-dir", str(make_run(tmp_path / "r2", [(100, 1, True)], final=True)),
+                       "--out-dir", str(tmp_path / "o2"), "--no-load"])
+    w = ew.Watcher(b, threading.Event())
+    w.read_commits()
+    assert not w.run_ended()                    # final commit seen, but not scored yet
+    w.poll()
+    assert w.run_ended()
+
+
 def test_real_subprocess_timeout_and_log(tmp_path):
-    """run_scorer itself: output goes to the log, and a scorer past --timeout is stopped."""
+    """run_scorer itself: output goes to the log, a scorer past --timeout is stopped, and a retry keeps the first
+    attempt's output in the same log."""
     log = tmp_path / "x.log"
     code = ew.run_scorer([sys.executable, "-c", "print('hello from scorer')"], log, 30, threading.Event())
     assert code == 0 and "hello from scorer" in log.read_text()
     code = ew.run_scorer([sys.executable, "-c", "import time; time.sleep(30)"], log, 1.5, threading.Event())
-    assert code == ew.TIMEOUT_CODE and "--timeout" in log.read_text()
+    text = log.read_text()
+    assert code == ew.TIMEOUT_CODE and "--timeout" in text and "hello from scorer" in text
+    assert text.count("=== ") == 2
 
 
 @pytest.mark.skipif(os.name == "nt", reason="process groups are POSIX; Windows ends the scorer process only")

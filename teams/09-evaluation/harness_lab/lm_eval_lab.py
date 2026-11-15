@@ -13,7 +13,9 @@ Speed (course rule of 13 Nov: batched operations, no Python loop over tokens, no
 - rows are sorted by length and batched under --max-batch-tokens, right-padded with the `valid` mask (attention is
   causal and the MoE skips invalid rows, so padding does not change a real position);
 - the output head runs only on the continuation positions, in chunks, so a 131,072-way softmax is never built for the
-  whole batch, and each batch makes one device-to-host copy.
+  whole batch, and each batch makes one device-to-host copy;
+- lm-eval indexes only the task folders in eval_lab_v1.yaml, and its per-call environment report (pip list, OS queries,
+  git) is skipped.
 
     # what the watcher runs for each checkpoint (Tier A = the freeze set; Tier B = the labelled diagnostics)
     python teams/09-evaluation/harness_lab/run_lab_ckpt.py --run-dir <remote_root>/<run_id> --step <N> --device cuda \\
@@ -34,7 +36,7 @@ import os
 import platform
 import sys
 import time
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from importlib import metadata
 from pathlib import Path
 
@@ -170,6 +172,29 @@ def _n_items(res, task):
     return {"effective": sum(v["effective"] for v in ns.values()), "original": sum(v["original"] for v in ns.values())}
 
 
+@contextmanager
+def without_env_report():
+    """lm-eval's simple_evaluate ends every call with torch's collect_env (pip list and OS queries) and a git lookup,
+    for result fields (pretty_env_info, git_hash) this scorer never writes: 16 s on the first call and 5 s on each
+    later one on the laptop, 2 calls for Tier A and 4 for Tier B. They are skipped for the calls made here."""
+    import lm_eval.evaluator as ev
+
+    saved = ev.add_env_info, ev.get_git_commit_hash
+    ev.add_env_info, ev.get_git_commit_hash = (lambda results: None), (lambda: None)
+    try:
+        yield
+    finally:
+        ev.add_env_info, ev.get_git_commit_hash = saved
+
+
+def check_lm_eval_version(cfg: dict) -> None:
+    """The task folders, prompts and default seeds of eval_lab_v1.yaml are lm-eval's at one version, the one the
+    lm-eval records of results/eval_mini_v1.json used; another version can change the numbers without an error."""
+    have, want = metadata.version("lm_eval"), str(cfg["lm_eval_version"])
+    if have != want:
+        raise SystemExit(f"eval_lab_v1.yaml pins lm-eval {want}; this environment has {have}")
+
+
 _TASK_MANAGERS = {}
 
 
@@ -197,7 +222,9 @@ def evaluate_group(lm, group, spec, tm, limit=None):
         for e in group["tasks"]:
             n = min(limit, e["limit"]) if limit else e["limit"]
             print(f"  scoring {e['task']} (limit {n})", flush=True)
-            res = lm_eval.simple_evaluate(tasks=[e["task"]], num_fewshot=e["num_fewshot"] or None, limit=n, **common)
+            with without_env_report():
+                res = lm_eval.simple_evaluate(tasks=[e["task"]], num_fewshot=e["num_fewshot"] or None, limit=n,
+                                              **common)
             yield e, {"results": res["results"], "n": {e["task"]: _n_items(res, e["task"])}}
     else:
         # Same as harness_code_indic/run_lm_eval.py with the eval-mini spec: the spec's doc ids, grouped by shot count.
@@ -208,7 +235,8 @@ def evaluate_group(lm, group, spec, tm, limit=None):
             names = [e["task"] for e in entries]
             print(f"  scoring {', '.join(names)} ({shot}-shot, spec items)", flush=True)
             samples = {t: spec["tasks"][t]["doc_ids"][:limit] if limit else spec["tasks"][t]["doc_ids"] for t in names}
-            res = lm_eval.simple_evaluate(tasks=names, num_fewshot=shot, samples=samples, **common)
+            with without_env_report():
+                res = lm_eval.simple_evaluate(tasks=names, num_fewshot=shot, samples=samples, **common)
             for e in entries:
                 yield e, {"results": res["results"], "n": {e["task"]: _n_items(res, e["task"])}}
 
@@ -305,6 +333,9 @@ class Team5Scorer:
         if a.offline:
             os.environ["HF_DATASETS_OFFLINE"] = "1"
             os.environ["HF_HUB_OFFLINE"] = "1"
+        # Off, as in #387. On, batched encoding was 4.6x faster at 5-shot sizes (about 8 s a Tier A checkpoint on CPU),
+        # but the first CPU log run with it on hung once in hellaswag (stopped by --timeout; 5 reruns did not hang).
+        # The cause is not proven, so the setting with no hang in any run stays.
         os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
         logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(name)s: %(message)s")
         for name in ("lm-eval", "lm_eval", "transformers", "huggingface_hub", "urllib3"):
@@ -318,6 +349,7 @@ class Team5Scorer:
         self.a = a
         t0 = time.perf_counter()
         cfg = yaml.safe_load(a.eval_config.read_text(encoding="utf-8"))
+        check_lm_eval_version(cfg)
         self.label = cfg["labels"]
         spec_path = TEAM / cfg["spec"]["path"]
         spec = text_bytes(spec_path)

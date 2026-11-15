@@ -45,12 +45,15 @@ python teams/09-evaluation/harness_lab/run_lab_ckpt.py --run-dir <remote_root>/<
   `MANIFEST.json` records `env.tokenizer_sha`, that too. The byte table is Team 4's raw table for the same tokenizer
   (`teams/04-ke2/src/build_tables.py`). C3's normalizer changes some Indic text, so a few prompts do not rebuild their
   exact bytes; the scorer counts them ("encode fallbacks") and uses the tokenizer's ids, as #387 did.
-- **Speed** (course rule of 13 Nov): every distinct text is tokenized once in one batched call; requests with the same
-  input tokens (the answer letters of one item) share one forward row; rows are length-sorted and batched under
-  `--max-batch-tokens`; the output head runs only on the continuation positions, in chunks; one device-to-host copy per
-  batch. lm-eval indexes only the task folders in `eval_lab_v1.yaml` (`lm_eval_task_dirs`), not its 14,000 default
-  task files. The numbers equal #387's code (`tests/test_lm_eval_lab.py` keeps #387's loop as the reference); the
-  timings are in `logs/watcher_cpu_test.log`.
+- **Speed** (course rule of 13 Nov): every distinct text is tokenized once in one batched call;
+  requests with the same input tokens (the answer letters of one item) share one forward row; rows are length-sorted
+  and batched under `--max-batch-tokens`; the output head runs only on the continuation positions, in chunks; one
+  device-to-host copy per batch. lm-eval indexes only the task folders in `eval_lab_v1.yaml` (`lm_eval_task_dirs`),
+  not its 14,000 default task files, and its per-call environment report (pip list, OS queries, git: 5 to 16 s a
+  call) is skipped. The numbers equal #387's code (`tests/test_lm_eval_lab.py` keeps #387's loop as the reference);
+  the timings are in `logs/watcher_cpu_test.log`.
+- **lm-eval version:** pinned to 0.4.13 in `eval_lab_v1.yaml` (`lm_eval_version`), the version of the lm-eval records
+  in `../results/eval_mini_v1.json`; the scorer stops on another one, because prompts and default seeds can change.
 - **Firewall** (`../firewall/eval_firewall.md` section 3): with `--offline` no network; no `log_samples`; no item text
   in the output or the log. The spec file's sha256 is taken with LF line endings, so a Windows checkout with
   `core.autocrlf=true` gives the same `item_set` as Linux.
@@ -67,11 +70,12 @@ python teams/07-infrastructure/jobs/restore_test/restore_test.py
 python teams/09-evaluation/harness_lab/eval_watcher.py \
     --run-dir teams/07-infrastructure/jobs/restore_test/out/ckpt_store/restore-b --once --no-load
 
-# dry run 1, on the eval slot: Tier A on every commit, Tier B on every 10th; both share one GPU slot lock
-python teams/09-evaluation/harness_lab/eval_watcher.py --run-dir <remote_root>/<run_id> --label tier-a \
+# dry run 1, on the eval slot: Tier A on every commit, Tier B on every 10th; both share one GPU slot lock and end
+# by themselves after the run's final checkpoint (--until-final)
+python teams/09-evaluation/harness_lab/eval_watcher.py --run-dir <remote_root>/<run_id> --label tier-a --until-final \
     --scorer lm_eval_lab:team5 --clickhouse-url http://<host>:8123 -- --device cuda --tier A <scorer inputs>
 python teams/09-evaluation/harness_lab/eval_watcher.py --run-dir <remote_root>/<run_id> --label tier-b --every 10 \
-    --scorer lm_eval_lab:team5 --clickhouse-url http://<host>:8123 -- --device cuda --tier B <scorer inputs>
+    --until-final --scorer lm_eval_lab:team5 --clickhouse-url http://<host>:8123 -- --device cuda --tier B <scorer inputs>
 
 # a Team 5 LanguageModel store in Team 7's layout, for a test before dry run 1 checkpoints exist
 python teams/09-evaluation/harness_lab/tests/make_lab_store.py --arm teams/05-architecture/configs/arms/t2.yaml \
@@ -90,7 +94,8 @@ python -m pytest teams/09-evaluation/harness_lab/tests -q
 | One GPU slot | Every watcher takes `--slot-lock` (default `out/watcher/gpu_slot.lock`) around a scorer run, so two tiers never load two models at once. |
 | Isolation | One process per checkpoint. On Linux it gets its own process group, and `--timeout` (default 1,800 s, for a hung scorer) or a stop ends the whole group. Logs go to `<out folder>/logs/`. |
 | Time per checkpoint | Each scored checkpoint prints and keeps the scorer's wall time, the wait for the slot and the lag from its commit; the last lines give the mean and the max. A checkpoint must score within the save interval (600 s in dry run 1) for the watcher to keep up. |
-| Restarts | State in `state.json` (written atomically), one watcher per state file (OS lock). A scoring failure is retried once more (`--max-attempts 2`, JOB_REQUEST.md rule 5); a ClickHouse failure keeps the scored file and retries only the load. A commit superseded by a later commit of the same step, or deleted by retention, is recorded and skipped. If `commits.jsonl` cannot be read (a store or mount that dropped out), nothing is marked and the exit is 75. |
+| End of the run | `--until-final`: the watcher exits by itself once the run's final checkpoint (Team 7's trainer commits it with reason `final`) is committed and every owned commit is done. Without it, or if the run never commits a final checkpoint, SIGTERM saves the state and exits 75. |
+| Restarts | State in `state.json` (written atomically), one watcher per state file (OS lock). A scoring failure is retried once more (`--max-attempts 2`, JOB_REQUEST.md rule 5), and the checkpoint's log keeps both attempts; a ClickHouse failure keeps the scored file and retries only the load. A commit superseded by a later commit of the same step, or deleted by retention, is recorded and skipped. If `commits.jsonl` cannot be read (a store or mount that dropped out), nothing is marked and the exit is 75. |
 | Events | `eval.scored`, `eval.loaded`, `eval.failed`, `eval.load_failed`, `eval.skipped`, `eval.store_unavailable` through Team 7's `common/events.py` when `V5_EVENTS_DIR` is set. |
 | Exit codes | 0 done, 1 a checkpoint failed `--max-attempts` times, 75 stopped, store unreadable or work left for a rerun, 78 fatal. |
 
