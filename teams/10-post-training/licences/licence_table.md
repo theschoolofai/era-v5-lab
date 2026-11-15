@@ -28,12 +28,12 @@ Three stages. Sets marked `excluded` stay in the table with the reason and are n
 | cadj-commits | [bigcode/commitpackft](https://huggingface.co/datasets/bigcode/commitpackft) | Code (Git commits) | mit (per-file upstream repository licences; attribution required) | TSAI reserves |
 | cadj-notebooks | [HuggingFaceTB/issues-kaggle-notebooks](https://huggingface.co/datasets/HuggingFaceTB/issues-kaggle-notebooks) | Code (Python notebooks) | apache-2.0 | TSAI reserves |
 | cadj-stackexchange | [bigcode/starcoder2data-extras](https://huggingface.co/datasets/bigcode/starcoder2data-extras) | Code (Q&A) | cc-by-sa-4.0 (commercial use permitted with attribution) | TSAI reserves |
-| en-dclm | [mlfoundations/dclm-baseline-1.0-parquet](https://huggingface.co/datasets/mlfoundations/dclm-baseline-1.0-parquet) | English | odc-by (Apple DCLM terms; Common Crawl) | TSAI reserves |
+| en-dclm | [mlfoundations/dclm-baseline-1.0-parquet](https://huggingface.co/datasets/mlfoundations/dclm-baseline-1.0-parquet) | English | CC-BY-4.0 (DCLM packaging; Common Crawl terms) | TSAI reserves |
 | en-fineweb-edu | [HuggingFaceFW/fineweb-edu](https://huggingface.co/datasets/HuggingFaceFW/fineweb-edu) | English | ODC-By v1.0 (commercial use permitted with attribution) | TSAI reserves |
-| en-nemotroncc | [nvidia/Nemotron-CC](https://huggingface.co/datasets/nvidia/Nemotron-CC) | English | cc-by-4.0 (commercial use permitted with attribution) | TSAI reserves |
-| en-nemotroncc-synth | [nvidia/Nemotron-CC](https://huggingface.co/datasets/nvidia/Nemotron-CC) | English | cc-by-4.0 (commercial use permitted with attribution) | TSAI reserves |
-| math-finemath | [HuggingFaceTB/finemath](https://huggingface.co/datasets/HuggingFaceTB/finemath) | English / Mathematics | apache-2.0 | TSAI reserves |
-| math-megamath | [LLM360/MegaMath](https://huggingface.co/datasets/LLM360/MegaMath) | English / Mathematics | apache-2.0 | TSAI reserves |
+| en-nemotroncc | [nvidia/Nemotron-CC](https://huggingface.co/datasets/nvidia/Nemotron-CC) | English | Common Crawl terms (pipeline Apache-2.0) | TSAI reserves |
+| en-nemotroncc-synth | [nvidia/Nemotron-CC](https://huggingface.co/datasets/nvidia/Nemotron-CC) | English | Common Crawl terms + permissive synthetic contribution (Mistral-NeMo-12B-Instruct, Apache-2.0; Wikipedia rewrites inherit CC-BY-SA) | TSAI reserves |
+| math-finemath | [HuggingFaceTB/finemath](https://huggingface.co/datasets/HuggingFaceTB/finemath) | English / Mathematics | ODC-By v1.0 (commercial use permitted with attribution) | TSAI reserves |
+| math-megamath | [LLM360/MegaMath](https://huggingface.co/datasets/LLM360/MegaMath) | English / Mathematics | ODC-By v1.0 (`megamath-web` subset; commercial use permitted with attribution) | TSAI reserves |
 | sci-finepdfs | [HuggingFaceFW/finepdfs](https://huggingface.co/datasets/HuggingFaceFW/finepdfs) | English / Science | ODC-By v1.0 (commercial use permitted with attribution) | TSAI reserves |
 | ind-bn-fw2 | [HuggingFaceFW/fineweb-2](https://huggingface.co/datasets/HuggingFaceFW/fineweb-2) | Bengali (bn) | ODC-By v1.0 (commercial use permitted with attribution) | TSAI reserves |
 | ind-bn-sangraha-v | [ai4bharat/sangraha](https://huggingface.co/datasets/ai4bharat/sangraha) | Bengali (bn) | CC-BY-4.0 (commercial use permitted with attribution) | TSAI reserves |
