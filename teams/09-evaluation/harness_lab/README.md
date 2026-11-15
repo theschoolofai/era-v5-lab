@@ -16,14 +16,93 @@ python teams/09-evaluation/harness_lab/run_lab_ckpt.py \
 CPU log: `logs/cpu_test.log`. Needs torch >= 2.14.1, safetensors, and the pinned `kronecker-embeddings`
 (`teams/04-ke2/src/requirements.txt`).
 
+## Scorers
+
+`--scorer smoke` scores Team 5's tiny MoE (a pipeline test, not an eval-mini task). `--scorer <module>:<function>`
+loads a real scorer; the arguments `run_lab_ckpt.py` does not know go to it. The contract is in the docstring of
+`run_lab_ckpt.py`: the scorer builds the model, gives the probe for the export check, and returns the record fields.
+
+`lm_eval_lab:team5` (`lm_eval_lab.py`) is eval-mini on a Team 5 `LanguageModel` (`week2/model.py`), the model class
+dry run 1 trains. The task list, items and seeds are `eval_lab_v1.yaml`:
+
+| Tier | `--tier` | Tasks | Items | Requests | Use |
+|---|---|---|---|---|---|
+| A | `A` | `mmlu` 0-shot, first 10 per subject; `milu_Hindi`, `milu_Telugu`, `milu_Tamil`, `milu_Bengali` 5-shot, eval-mini spec items | 970 | 3,880 | the freeze set, every checkpoint (`results/config_freeze_proposal.md` section 6.2) |
+| B | `B` | `arc_challenge` 0-shot first 500; `hellaswag` 0-shot first 400; `leaderboard_mmlu_pro` 5-shot, 300 spec items; `belebele_hin_Deva`, `belebele_tel_Telu`, `belebele_tam_Taml` 5-shot, 100 spec items each | 1,500 | 7,800 | diagnostics, every 10th checkpoint (TSAI on #357); each number labelled "diagnostic, not cleared for contamination" |
+
+```bash
+python teams/09-evaluation/harness_lab/run_lab_ckpt.py --run-dir <remote_root>/<run_id> --step <N> --device cuda \
+    --scorer lm_eval_lab:team5 --model-config <arm.yaml | run manifest.json | model.json> \
+    --tokenizer <tokenizer.json> --tokenizer-sha256 <sha256> --byte-table <raw table .npz> \
+    --tier A --hf-home <HF cache> --offline
+```
+
+- **Model:** built by Team 5's own code from `--model-config`; Team 7's export checks every file's sha256 and the
+  strict key list against it, so a wrong config stops at the export. The probe is `probe_loss` (next-token loss on a
+  fixed seeded batch); the export compares it only with bits saved on the same device class (a GPU-trained checkpoint
+  exported on CPU is checked by file sha256 and keys).
+- **Tokenizer:** `--tokenizer-sha256` must match the file (Team 5's `Artifacts` checks it) and, when the checkpoint's
+  `MANIFEST.json` records `env.tokenizer_sha`, that too. The byte table is Team 4's raw table for the same tokenizer
+  (`teams/04-ke2/src/build_tables.py`). C3's normalizer changes some Indic text, so a few prompts do not rebuild their
+  exact bytes; the scorer counts them ("encode fallbacks") and uses the tokenizer's ids, as #387 did.
+- **Speed** (course rule of 13 Nov): every distinct text is tokenized once in one batched call; requests with the same
+  input tokens (the answer letters of one item) share one forward row; rows are length-sorted and batched under
+  `--max-batch-tokens`; the output head runs only on the continuation positions, in chunks; one device-to-host copy per
+  batch. lm-eval indexes only the task folders in `eval_lab_v1.yaml` (`lm_eval_task_dirs`), not its 14,000 default
+  task files. The numbers equal #387's code (`tests/test_lm_eval_lab.py` keeps #387's loop as the reference); the
+  timings are in `logs/watcher_cpu_test.log`.
+- **Firewall** (`../firewall/eval_firewall.md` section 3): with `--offline` no network; no `log_samples`; no item text
+  in the output or the log. The spec file's sha256 is taken with LF line endings, so a Windows checkout with
+  `core.autocrlf=true` gives the same `item_set` as Linux.
+
+## eval_watcher.py: score every new checkpoint, load it into ClickHouse
+
+`eval_watcher.py` follows one run in the checkpoint store. For each new line in the run's `commits.jsonl` it runs
+`run_lab_ckpt.py --step <N>` in its own process and loads the eval-mini v1 file into Team 8's `eval_mini` table
+with `teams/08-monitoring/clickhouse/load_jsonl.py`. The watcher itself needs only the Python standard library.
+
+```bash
+# CPU test on Team 7's tiny store; --no-load parses the rows exactly as the load would, without ClickHouse
+python teams/07-infrastructure/jobs/restore_test/restore_test.py
+python teams/09-evaluation/harness_lab/eval_watcher.py \
+    --run-dir teams/07-infrastructure/jobs/restore_test/out/ckpt_store/restore-b --once --no-load
+
+# dry run 1, on the eval slot: Tier A on every commit, Tier B on every 10th; both share one GPU slot lock
+python teams/09-evaluation/harness_lab/eval_watcher.py --run-dir <remote_root>/<run_id> --label tier-a \
+    --scorer lm_eval_lab:team5 --clickhouse-url http://<host>:8123 -- --device cuda --tier A <scorer inputs>
+python teams/09-evaluation/harness_lab/eval_watcher.py --run-dir <remote_root>/<run_id> --label tier-b --every 10 \
+    --scorer lm_eval_lab:team5 --clickhouse-url http://<host>:8123 -- --device cuda --tier B <scorer inputs>
+
+# a Team 5 LanguageModel store in Team 7's layout, for a test before dry run 1 checkpoints exist
+python teams/09-evaluation/harness_lab/tests/make_lab_store.py --arm teams/05-architecture/configs/arms/t2.yaml \
+    --tokenizer <tokenizer.json> --tokenizer-sha256 <sha256> --byte-table <raw table .npz> --out <dir>
+
+# tests (no GPU, no ClickHouse server, no network)
+python -m pytest teams/09-evaluation/harness_lab/tests -q
+```
+
+| Point | How |
+|---|---|
+| Which checkpoints | Lines of `commits.jsonl` (written after MANIFEST.json and latest.json), never a directory listing. A line without its newline is an append in flight and waits for the next poll. A complete line that is not a commit stops the watcher (exit 78). |
+| Tier B | `--every N` scores commit N, 2N, ...: the count Team 7's retention uses for `--protect-every`. Dry run 1 retention is `--keep 9 --protect-every 15` at a 600 s interval (`teams/07-infrastructure/docs/checkpoint_interval.md`), so an unprotected checkpoint stays about 90 minutes; one deleted before it is scored is recorded as `gone`. |
+| Labels | `--label` names the out folder (`out/watcher/<run>.<label>.every<N>/`), the state and the ClickHouse run_ids. The default is the scorer plus a hash of the arguments after `--`, so Tier A and Tier B never share a state. |
+| ClickHouse `run_id` | `<run>:<commit path>:<label>:<model_revision[:12]>`. `load_jsonl.py` deletes all rows of a run_id before it inserts, so the run_id is unique per checkpoint, tier and run (two runs with one name differ in `model_revision`, the sha256 of MANIFEST.json). |
+| One GPU slot | Every watcher takes `--slot-lock` (default `out/watcher/gpu_slot.lock`) around a scorer run, so two tiers never load two models at once. |
+| Isolation | One process per checkpoint. On Linux it gets its own process group, and `--timeout` (default 1,800 s, for a hung scorer) or a stop ends the whole group. Logs go to `<out folder>/logs/`. |
+| Time per checkpoint | Each scored checkpoint prints and keeps the scorer's wall time, the wait for the slot and the lag from its commit; the last lines give the mean and the max. A checkpoint must score within the save interval (600 s in dry run 1) for the watcher to keep up. |
+| Restarts | State in `state.json` (written atomically), one watcher per state file (OS lock). A scoring failure is retried once more (`--max-attempts 2`, JOB_REQUEST.md rule 5); a ClickHouse failure keeps the scored file and retries only the load. A commit superseded by a later commit of the same step, or deleted by retention, is recorded and skipped. If `commits.jsonl` cannot be read (a store or mount that dropped out), nothing is marked and the exit is 75. |
+| Events | `eval.scored`, `eval.loaded`, `eval.failed`, `eval.load_failed`, `eval.skipped`, `eval.store_unavailable` through Team 7's `common/events.py` when `V5_EVENTS_DIR` is set. |
+| Exit codes | 0 done, 1 a checkpoint failed `--max-attempts` times, 75 stopped, store unreadable or work left for a rerun, 78 fatal. |
+
 ## What is and is not done
 
 | | State |
 |---|---|
-| Pointer, manifest, `model_revision`, `checkpoint` block, export, `check(doc, 0)` | Done, tested on the tiny MoE on CPU |
-| `--scorer smoke` (next-token accuracy on Team 5's seeded stream) | Done. It tests the pipeline. It is not an eval-mini task and says nothing about quality |
-| lm-eval tasks on a real lab model | **Not wired.** The tokenizer (BrahmicTokenizer-131K) and Team 5's model (`week2/model.py`) exist; an lm-eval wrapper that loads them does not. `--scorer <module>:<function>` is reserved for it |
-| Team 5 `checkpoint.pt` + `manifest.json` layout (section 6, last paragraph) | Not done |
+| Pointer, manifest, `model_revision`, `checkpoint` block, export, `check(doc, 0)` | Done, tested on the tiny MoE and on a Team 5 `LanguageModel` on CPU |
+| `--scorer smoke` (next-token accuracy on Team 5's seeded stream) | Done. It tests the pipeline. It is not an eval-mini task and says nothing about quality. Output byte-identical to before the scorer contract |
+| lm-eval tasks on a Team 5 `LanguageModel` in Team 7's layout (`lm_eval_lab:team5`) | Done, CPU end to end in `logs/watcher_cpu_test.log`. The dry run 1 model config, checkpoint path and run ID come with Team 7's dry-run-1 job package |
+| `eval_watcher.py`: each new commit scored and loaded, restarts, retries, tiers, slot lock | Done; tests without GPU or ClickHouse. The store must be a local or mounted path, as for `run_lab_ckpt.py` |
+| Team 5 `checkpoint.pt` + `manifest.json` layout (section 6, last paragraph) | Not done here. #387 had `run_team5_runs.py` for it; only its scorer, `lm_eval_lab.py`, moved into this folder |
 | `--run-name` for queue jobs (`<job_run_id>/<arm>`) | Done, not tested on a real queue job |
 
 ## Schema point to confirm
