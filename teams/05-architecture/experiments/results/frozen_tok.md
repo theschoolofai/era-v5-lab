@@ -32,14 +32,18 @@ The exact TSAI training file still needs a preflight. The local harness patch is
 
 ## Result
 
+For C3, `train/utf8_bytes` counts encoded training bytes after tokenizer normalization. `val/utf8_bytes` and per-slice validation byte counts use the original UTF-8 text. `val/encoded_utf8_bytes` records the normalized holdout byte count separately.
+
 | Run | Seed | Completed steps | Held-out BPB | Evidence |
 | --- | --- | --- | --- | --- |
 | Old tokenizer | 1235 | 1,221 | 1.6601 | TSAI confirmation. Manifest on the Gate 2 evidence page. |
 | Frozen C3 | 1235 | Pending | Pending | TSAI manifest and metrics |
 
 **BPB delta (frozen BPB minus 1.6601):** Pending. Record the scoring policy, held-out byte count, scored tokens, training bytes where available, trainer and runtime identity, and any differences in run settings.
- 
+
+**Frozen run data-load time:** Pending. Copy `data_load_seconds` from the TSAI manifest. This times construction of the training and held-out windows together, after file hashing.
+
 ## Local verification of the scoring path
 
-The frozen C3 path loaded every original holdout document and all 15 slices. A targeted test checked whole-file and per-slice BPB using different original and encoded byte counts. A one-step CPU Muon smoke at seed 1235 with synthetic text containing decomposed Bengali nukta completed training, evaluation, and output writing in 51.40 seconds. The scorer used 72 original bytes and logged 60 encoded bytes. This is integration evidence. Full T2 quality and performance remain pending.
+The frozen C3 path loaded every original holdout document and all 15 slices. The attached scoring patch includes a regression for whole-file and per-slice BPB using different original and encoded byte counts. It exercises both fixed and token-budgeted evaluation batches. A one-step CPU Muon smoke at seed 1235 with synthetic text containing decomposed Bengali nukta completed training, evaluation, and output writing in 51.40 seconds. The scorer used 72 original bytes and logged 60 encoded bytes. This is integration evidence. Full T2 quality and performance remain pending.
 The local CUDA integration smoke also completed three steps in 5.98 seconds. See the [smoke command and output](../../jobs/evidence/2026-11-15-frozen-c3-muon/smoke.md).

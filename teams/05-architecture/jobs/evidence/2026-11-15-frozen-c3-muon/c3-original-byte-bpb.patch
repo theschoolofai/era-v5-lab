@@ -32,7 +32,24 @@
      if len(artifacts.lengths) != cfg["model"]["vocab_size"]:
          p.error("Model/tokenizer vocabulary mismatch")
      if artifacts.pos_dim != cfg["model"]["ke_max_pos"]:
-@@ -314,6 +321,8 @@
+@@ -232,6 +239,7 @@
+     heldout_hash = sha256(args.heldout_data)
+     if train_hash == heldout_hash:
+         p.error("Training and holdout files are identical")
++    data_load_started = time.perf_counter() if artifacts.normalize_c3 else None
+     train = DocumentWindows(args.train_data, artifacts, cfg["model"]["block_size"])
+     val = DocumentWindows(
+         args.heldout_data,
+@@ -240,6 +248,8 @@
+         require_ids=not args.smoke,
+         sources_path=args.heldout_sources,
+     )
++    if data_load_started is not None:
++        data_load_seconds = time.perf_counter() - data_load_started
+     if train.document_hashes & val.document_hashes:
+         p.error("Exact document overlap between train and holdout")
+     if args.heldout_sha256:
+@@ -314,6 +324,8 @@
          "torch": torch.__version__,
          "smoke": args.smoke,
      }
@@ -41,6 +58,15 @@
      # Resume checks bind the checkpoint to the resolved inputs and source hashes.
      identity_hash = hashlib.sha256(
          json.dumps(identity, sort_keys=True).encode()
+@@ -333,6 +345,8 @@
+         "train_documents": train.document_count,
+         "heldout_documents": val.document_count,
+     }
++    if data_load_started is not None:
++        manifest["data_load_seconds"] = data_load_seconds
+     (args.out / "manifest.json").write_text(
+         json.dumps(manifest, indent=2), encoding="utf8"
+     )
 --- a/teams/05-architecture/harness/week2/artifacts.py
 +++ b/teams/05-architecture/harness/week2/artifacts.py
 @@ -17,6 +17,9 @@
@@ -167,3 +193,82 @@
                          f'val/slices/{name}/scored_tokens': totals['tokens'],
                      }
                  )
+--- a/teams/05-architecture/tests/test_week2_scoring.py
++++ b/teams/05-architecture/tests/test_week2_scoring.py
+@@ -1,5 +1,7 @@
+ import hashlib, json, math, sys, tempfile, unittest
+ from pathlib import Path
++import os
++from types import SimpleNamespace
+ from contextlib import nullcontext
+ import torch
+ from unittest.mock import patch
+@@ -49,6 +51,68 @@
+             ds.raw_bytes,
+         )
+         self.assertEqual(r, evaluate(UniformModel(), ds, 1, 'cpu', nullcontext))
++
++    def test_frozen_c3_bpb_uses_original_bytes(self):
++        decomposed = "য়"
++        composed = "য়"
++
++        def normalize(text):
++            return text.replace(decomposed, composed)
++
++        class NormalizingByteFixture(ByteFixture):
++            normalize_c3 = True
++            tokenizer = SimpleNamespace(normalizer=SimpleNamespace(normalize_str=normalize))
++
++            def encode(self, text):
++                return super().encode(normalize(text))
++
++        class BatchedUniformModel(UniformModel):
++            def hidden(self, x, valid):
++                return x.unsqueeze(-1)
++
++            def head(self, hidden):
++                return hidden.new_zeros((len(hidden), 258), dtype=torch.float32)
++
++        document, source = next(
++            (document, source)
++            for document, source in zip(self.docs, self.rows)
++            if source["slice"] == "bn"
++        )
++        document["text"] = decomposed
++        source["text_sha256"] = hashlib.sha256(decomposed.encode("utf-8")).hexdigest()
++        self.text.write_text(
++            "".join(json.dumps(document) + "\n" for document in self.docs),
++            encoding="utf-8",
++        )
++        self.save()
++
++        original_bytes = sum(len(doc["text"].encode("utf-8")) for doc in self.docs)
++        encoded_bytes = sum(len(normalize(doc["text"]).encode("utf-8")) for doc in self.docs)
++        self.assertGreater(original_bytes, encoded_bytes)
++        with patch.dict(os.environ):
++            os.environ.pop("G5_DOCUMENT_CACHE_DIR", None)
++            dataset = DocumentWindows(
++                self.text, NormalizingByteFixture(), 7, True, self.sources
++            )
++
++        for budget in (None, 24):
++            with self.subTest(max_batch_tokens=budget):
++                result = evaluate(
++                    BatchedUniformModel(), dataset, 1, "cpu", nullcontext,
++                    max_batch_tokens=budget,
++                )
++                self.assertEqual(result["val/utf8_bytes"], original_bytes)
++                self.assertEqual(result["val/encoded_utf8_bytes"], encoded_bytes)
++                self.assertEqual(result["val/scored_tokens"], encoded_bytes)
++                self.assertAlmostEqual(
++                    result["val/bpb"], math.log2(258) * encoded_bytes / original_bytes,
++                    places=6,
++                )
++                self.assertEqual(result["val/slices/bn/utf8_bytes"], 6)
++                self.assertEqual(result["val/slices/bn/scored_tokens"], 3)
++                self.assertAlmostEqual(
++                    result["val/slices/bn/bpb"], math.log2(258) / 2, places=6,
++                )
+ 
+     def test_batched_eval_matches_reference_and_projects_only_scored_tokens(self):
+         ds = DocumentWindows(self.text, ByteFixture(), 7, True, self.sources)

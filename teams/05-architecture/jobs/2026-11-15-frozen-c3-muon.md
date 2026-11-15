@@ -5,7 +5,7 @@ Draft for G5 lead and TSAI review. One new run is requested at TSAI-confirmed se
 ```text
 Team:            05-architecture
 Owner:           Udit Singhania (udisinghania)
-Lead approval:   Pending shivman review
+Lead approval:   shivman (lead review on #474)
 Question:        How does frozen C3 change held-out bits per original UTF-8 byte versus tokenizer v0 for the same T2 Muon arm and seed?
 Script:          teams/05-architecture/harness/train_week2.py at 71bc0fb, with the TSAI Gate 2 speed fixes and the C3 scoring patch linked below
 Command:         python teams/05-architecture/harness/train_week2.py --config teams/05-architecture/configs/arms/exp2_muon.yaml --runtime teams/05-architecture/configs/runtime_fast.yaml --resolution ./inputs/resolution.yaml --tokenizer-release frozen-c3 --tokenizer ./inputs/tokenizer_c3.json --byte-table ./inputs/raw_table_c3_P32.npz --train-data ./inputs/train.jsonl --heldout-data ./inputs/heldout_v1.jsonl --heldout-sources ./inputs/heldout_v1_sources.jsonl --heldout-sha256 ./inputs/heldout_v1.sha256 --heldout-report ./inputs/heldout_report.json --device cuda --seed 1235 --out ./out/frozen-c3-muon-1235
@@ -14,7 +14,7 @@ Inputs:          Same Gate 2 train.jsonl (TSAI-confirmed SHA-256 prefix 267c33bf
 Hardware:        1 GPU with native BF16 support
 Max time:        90 minutes requested, matching the EXP-2 job
 Precision:       bf16
-Measures:        Final val/bpb, val/nll_nats, val/utf8_bytes, val/encoded_utf8_bytes, scored tokens, per-slice and grouped BPB, completed steps, finite loss and gradient norm, step and wall time
+Measures:        Final val/bpb, val/nll_nats, val/utf8_bytes, val/encoded_utf8_bytes, scored tokens, per-slice and grouped BPB, completed steps, finite loss and gradient norm, step and wall time, data_load_seconds from manifest.json
 Expected result: 1,221 completed steps and BPB on the original heldout_v1 bytes. Report frozen BPB minus 1.6601 at seed 1235. No direction assumed.
 Outputs:         ./out/frozen-c3-muon-1235/{manifest.json,summary.json,metrics.jsonl,losses.txt,total_losses.txt}, 50 MB or less in total. Retain the checkpoint on the job machine.
 Test log:        teams/05-architecture/jobs/evidence/2026-11-15-frozen-c3-muon/smoke.md
@@ -30,3 +30,11 @@ Test log:        teams/05-architecture/jobs/evidence/2026-11-15-frozen-c3-muon/s
 ## Scoring and reporting
 
 Use the unchanged `heldout_v1` text for both runs. C3 normalizes inside the tokenizer. The harness checks its token bytes against that normalized text, while total and per-slice BPB divide by the original source byte counts. The full holdout has 1,059 documents and 3,775,551 original UTF-8 bytes. The 74 changed documents remain in the score. Reuse the old seed's original score as directed by TSAI. Report the matched delta as frozen BPB minus 1.6601, with the three-seed mean 1.6607 as context. A timeout before step 1,221 is `INCOMPLETE_NOT_A_RESULT`.
+
+After applying the C3 patch, run the targeted original-vs-encoded-byte BPB regression from the repository root:
+
+```bash
+python -m unittest discover -s teams/05-architecture/tests -p test_week2_scoring.py -k test_frozen_c3_bpb_uses_original_bytes -v
+```
+
+Report `data_load_seconds` from the run manifest. It measures construction of the training and held-out windows together, after file hashing.
