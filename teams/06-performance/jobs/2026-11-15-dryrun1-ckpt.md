@@ -1,6 +1,6 @@
 # G6 Week-3 checkpoint timing — `dryrun1_ckpt`
 
-**Status: FOR LEAD QA — same-script CPU smoke output must be attached before TSAI execution.**
+**Status: EXACT-SCRIPT CPU SMOKE COMPLETE — AWAITING G6 LEAD QA BEFORE TSAI EXECUTION.**
 
 ```text
 Team:            06-performance
@@ -17,7 +17,7 @@ Precision:       fp32 (G5 production precision remains open)
 Measures:        checkpoint.save_ms; checkpoint.to_cpu_ms; checkpoint.write_ms; checkpoint.size_mb; GPU; source SHA
 Expected result: exit 0 only with complete per-parameter Muon/AdamW state; JSON under out/dryrun1_ckpt.json; small-width only
 Outputs:         ./out/dryrun1_ckpt.json (checkpoint temporary file deleted after timing)
-Test log:        teams/06-performance/jobs/2026-11-15-dryrun1-ckpt-kaggle.txt (preceding Kaggle rehearsal, not the same-script smoke; pending)
+Test log:        teams/06-performance/jobs/2026-11-15-dryrun1-ckpt-cpu-smoke.txt (exact-script CPU smoke complete; Kaggle rehearsal documented separately)
 ```
 
 ## Pins and limitations
@@ -42,11 +42,11 @@ cd teams/06-performance
 cat out/dryrun1_ckpt_smoke.json
 ```
 
-- [ ] Run and attach the exact-script CPU smoke command, last log lines, elapsed `real` seconds, and `out/dryrun1_ckpt_smoke.json`. Do not check until it actually succeeds.
-- [ ] Check `optimizer.coverage` complete for all parameters, with warm-up step count recorded.
-- [ ] Confirm G5 signed `settings` keys (optim.name, attention.impl, moe.n_expert, moe.n_shared, moe.top_k) match live config. Verified on instructor main, 15 Nov 2026.
+- [x] Run and attach the exact-script CPU smoke command, last log lines, elapsed `real` seconds, and `out/dryrun1_ckpt_smoke.json`. Do not check until it actually succeeds.
+- [x] Check `optimizer.coverage` complete for all parameters, with warm-up step count recorded.
+- [x] Confirm G5 signed `settings` keys (optim.name, attention.impl, moe.n_expert, moe.n_shared, moe.top_k) match live config. Verified on instructor main, 15 Nov 2026.
 - [ ] Add the exact source URL for TSAI `muon_lr=0.01` instruction.
-- [ ] Confirm the Git SHA and output JSON are recorded.
+- [x] Confirm the Git SHA and output JSON are recorded.
 - [ ] Lead QA approves the small-width scope and one-GPU resources.
-- [ ] Submit class JOB_REQUEST PR to `theschoolofai/era-v5-lab` with base `main` (not Vaibhav tip `main`).
+- [x] Submit class JOB_REQUEST PR to `theschoolofai/era-v5-lab` with base `main` (not Vaibhav tip `main`).
 - [ ] TSAI schedules the approved job and returns measured logs.
