@@ -9,8 +9,8 @@ Ten Brahmic scripts: hi, mr (Devanagari), ta, te, kn, bn, gu, ml, or, pa. Each r
   kind "script": a writing request. The reply must be written in the target script (`script_share` of its letters,
                  at least `min_letters` letters).
   kind "copy":   repeat a text exactly. The reply must hold the text unchanged, ZWJ and ZWNJ included.
-Items are evaluation-only and are never trained on. The Indic wording was written without a native-speaker review:
-`review` says so on every row, and it must be cleared before the numbers are quoted.
+Items are evaluation-only and are never trained on. Native-speaker review is recorded on every row in
+`review`: hi, mr, te and kn are reviewed; the other six scripts are not yet, and must be before their numbers are quoted.
 """
 
 from __future__ import annotations
@@ -22,7 +22,9 @@ SOURCE = (
     "original: written by Claude (AI assistant) for Ravi Naik (RaviNaik), 2026-11-15; not from any benchmark; "
     "evaluation-only (TSAI data rule, 3 Nov)"
 )
-REVIEW = "wording not reviewed by a native speaker"
+REVIEWED = {"hi", "mr", "te", "kn"}  # languages a native speaker has checked
+REVIEW_YES = "wording reviewed by a native speaker"
+REVIEW_NO = "wording not reviewed by a native speaker"
 SYSTEM = "You are a helpful assistant. Answer briefly."
 ZWJ, ZWNJ = "‍", "‌"
 
@@ -34,7 +36,7 @@ SCRIPT_OF = {
 
 def row(rid, kind, lang, user, expect):
     return {
-        "id": rid, "kind": kind, "lang": lang, "source": SOURCE, "review": REVIEW,
+        "id": rid, "kind": kind, "lang": lang, "source": SOURCE, "review": REVIEW_YES if lang in REVIEWED else REVIEW_NO,
         "messages": [{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}],
         "expect": {"kind": kind, **expect},
     }

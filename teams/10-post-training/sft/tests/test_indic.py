@@ -58,10 +58,13 @@ def test_set_covers_ten_scripts_and_three_kinds():
         assert any(r["kind"] == "script" and r["lang"] == lang for r in INDIC), lang
 
 
-def test_every_row_says_who_wrote_it_and_that_it_is_unreviewed():
+def test_every_row_says_who_wrote_it_and_whether_a_native_speaker_reviewed_it():
     for r in INDIC:
         assert r["source"].startswith("original:") and "evaluation-only" in r["source"]
-        assert "not reviewed by a native speaker" in r["review"]
+        if r["lang"] in {"hi", "mr", "te", "kn"}:
+            assert r["review"] == "wording reviewed by a native speaker", r["id"]
+        else:
+            assert r["review"] == "wording not reviewed by a native speaker", r["id"]
 
 
 def test_every_prompt_renders_and_parses_back():

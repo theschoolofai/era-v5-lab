@@ -445,3 +445,11 @@ def test_random_markers_and_fragments_never_crash_the_scorers():
         text = "".join(rng.choice(atoms) for _ in range(rng.randint(0, 9)))
         assert scorers.score_toolcall(rng.choice(TOOLCALL), text)["score"] in (0, 1)
         assert scorers.score_indic(rng.choice(indic), text)["score"] in (0, 1)
+
+
+def test_tool_call_rows_with_indic_text_record_native_review():
+    rows = scorers.load_jsonl(HERE / "toolcall_v1.jsonl")
+    got = {r["id"]: r["review"] for r in rows if "review" in r}
+    assert set(got) == {"tc-indic-01", "tc-indic-02", "tc-indic-03", "tc-indic-04", "tc-none-04"}
+    assert got["tc-indic-03"] == "wording not reviewed by a native speaker"  # Tamil
+    assert all(v == "wording reviewed by a native speaker" for k, v in got.items() if k != "tc-indic-03")

@@ -162,6 +162,16 @@ ROWS = [
 ]
 
 
+# Rows with Indic text carry `review`: hi and kn are reviewed by a native speaker, ta is not yet.
+INDIC_REVIEW = {
+    "tc-indic-01": True, "tc-indic-02": True, "tc-none-04": True, "tc-indic-04": True, "tc-indic-03": False,
+}
+for _r in ROWS:
+    if _r["id"] in INDIC_REVIEW:
+        _r["review"] = ("wording reviewed by a native speaker" if INDIC_REVIEW[_r["id"]]
+                        else "wording not reviewed by a native speaker")
+
+
 def main() -> None:
     out = Path(__file__).with_name("toolcall_v1.jsonl")
     ids = [r["id"] for r in ROWS]
