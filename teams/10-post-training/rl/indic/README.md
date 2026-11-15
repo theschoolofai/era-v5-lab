@@ -10,7 +10,12 @@ rl/indic/
   indic_verifier.py       reward(), score(), prepare(), check_task(), the command line and --bench
   test_indic_verifier.py  correct and wrong answer for every task, the cheating cases, normalisation, the lint
   tasks/<task_id>/        task.json, prompt.md, answer.json
+  generate.py             many checked items from one person-written template (output to out/, never committed)
+  test_generate.py        template lint, safe expressions, item self-checks, determinism, the command line
+  templates/indic_templates.yaml   the training templates, written by people (empty until they are)
 ```
+
+The prompt families, who writes them, and the Team 2 check are in [`../indic_prompts_v0.md`](../indic_prompts_v0.md).
 
 ```bash
 python teams/10-post-training/rl/indic/indic_verifier.py --check-all                                   # lint every task
@@ -62,6 +67,22 @@ A task is a folder `tasks/<task_id>/`. The folder name equals `id`, and the name
 Then add the task's correct and wrong completion to `CASES` in `test_indic_verifier.py`. A test fails when a task has no entry there.
 
 **Who may write a training task.** TSAI's data rule of 3 Nov (`../../rl-data/README.md`): training problems are written by people. A task with `"eligibility": "train"` fails the lint if its `source` names a model, or if it has no `team2_reviewer` other than the author. The six tasks here were written by Claude (AI assistant) for gmrammohan15. Each `task.json` says so, and each is `"eligibility": "eval"`. They test the verifier and can be used for evaluation. A Team 2 reader still has to confirm each answer and the wording; the reader's handle then goes in `team2_reviewer`.
+
+## Templates and the generator (`generate.py`)
+
+A template is a prompt with `{placeholders}`, the parameter ranges, and the answer and one or two wrong answers as small expressions. The format is in the docstring of `generate.py` and in the comments of `templates/indic_templates.yaml`.
+
+```bash
+python teams/10-post-training/rl/indic/generate.py --templates teams/10-post-training/rl/indic/templates/indic_templates.yaml --check
+python teams/10-post-training/rl/indic/generate.py --templates teams/10-post-training/rl/indic/templates/indic_templates.yaml --per-template 200 --seed 1234 --out out/indic_items.jsonl
+python -m pytest teams/10-post-training/rl/indic/test_generate.py -q -p no:cacheprovider
+```
+
+- **Expressions** may use only integers, strings, the template's names, `+ - * // %`, comparisons, `and or not`, `x if c else y`, indexing, and `min max abs len digits`. A placeholder must be a plain name. Anything else is rejected when the template is read, so a template cannot run code. `*` works on integers only, with the product at most 10^30, and no computed value may be longer than 10,000 characters, so a template cannot use up memory either (`'ab' * 10**12` is refused at once).
+- **Every item is checked before it is written**: its answer scores 1 with `indic_verifier`, each wrong answer scores 0, and its prompt does not give the answer away. A draw that fails, or repeats a prompt, is drawn again. A template that cannot give the asked number of distinct items stops with an error after 5,000 draws in a row with no new item. It never loops.
+- **Same seed, same items**: each template has its own random stream (`seed:template_id`), so adding a template does not change the items of the others.
+- **Speed**: about 50,000 checked items per second on one laptop CPU core (20,000 items from one template in about 0.4 s; five runs on 15 Nov: 46,829 to 51,808 per second).
+- The trainer scores an item with `indic_verifier.score(indic_verifier.prepare(item, item["accepted"]), completion)`.
 
 ## Tasks so far (6)
 
