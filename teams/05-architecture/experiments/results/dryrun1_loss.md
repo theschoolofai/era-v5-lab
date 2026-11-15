@@ -4,8 +4,8 @@
 when TSAI returns them. **Gate 3 evidence:** "dry run 1 ends with a stable loss curve" (Fri 20 Nov, 23:59 IST).
 
 How the numbers are made, the two spike rules and how to rerun everything: [`dryrun1_README.md`](dryrun1_README.md).
-What this record will look like once filled: [`dryrun1_loss_sample_attn0.md`](dryrun1_loss_sample_attn0.md), the same
-layout filled from a week-2 log.
+What this record will look like once filled: 🧪 [`dryrun1_loss_sample_attn0.md`](dryrun1_loss_sample_attn0.md), a
+SAMPLE for illustration only (a week-2 log with injected spikes and stops; not dry run 1).
 
 ## 1. What ran
 
@@ -22,15 +22,17 @@ layout filled from a week-2 log.
 
 ## 2. The loss curve
 
-_To fill: the table printed by `dryrun1_spikes.py` (about 20 rows, every spike step marked), and the chart it draws
-with `--svg`._
+_To fill: the curve table printed by `dryrun1_spikes.py`, and the chart it draws with `--svg`._
 
 ## 3. Every spike
 
-_To fill: the spike table printed by `dryrun1_spikes.py`, both rules side by side, plus "what happened next" for
-each row from the job log (continued; paged; held and rolled back to step K on a new branch)._
+_To fill: the close-up chart (`--spike-svg`) and the spike table printed by `dryrun1_spikes.py`, both rules side by
+side, then the details of each spike: which rule caught it and why, and what happened next from the job log
+(continued; paged; held and rolled back to step K on a new branch)._
 
 ## 4. Stops and restarts
+
+_To fill: the attempts table printed by `dryrun1_spikes.py`, then from the job log:_
 
 | Time | Step | Exit code | Cause | What happened | Source |
 |---|---:|---:|---|---|---|
