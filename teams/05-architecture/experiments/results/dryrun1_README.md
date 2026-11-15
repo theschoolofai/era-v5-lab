@@ -38,6 +38,13 @@ The script imports Team 8's `AlarmMonitor` unchanged and copies Team 7's guard w
 (`--spike-ratio 1.5`, `--spike-window 100`, `--spike-steps 3`), so both rules are exactly the ones the lab runs.
 Both run inside the trainer, so both start empty after every restart; the script does the same.
 
+**In dry run 1 neither rule runs inside the job.** Dry run 1 runs `train_week2.py` directly
+([#475](https://github.com/theschoolofai/era-v5-lab/pull/475)), and that trainer has no loss guard and no Team 8
+monitor; it stops only on a NaN or infinite value, with an error, before that step's row is written. So the record
+applies both rules to the returned `metrics.jsonl` and reports what each **would** have done. The script reads that
+trainer's fields as they are: its smoke log in `jobs/evidence/2026-11-15-dryrun1/metrics.jsonl` has every field the
+script uses, and the script reads it unchanged.
+
 ## 2. How to run it
 
 From the repository root:
@@ -130,8 +137,12 @@ For dry run 1 the same script runs on its own logs; the parts added by hand are 
 
 ## 5. What is still open
 
-- Where dry run 1's returned logs are kept: proposed `teams/05-architecture/jobs/evidence/<date>-dryrun1/`, laid out
-  like the attention screen, with the record linking to them (to agree in G5).
-- The dry run 1 job request (Shivanshu, Mon 16 Nov): the shards, steps, where the logs come back, and whether
-  Team 7's trainer writes the same `metrics.jsonl` fields. The script may need a field-name mapping if not.
-- The logs themselves (TSAI and Team 7, Tue 17 to Thu 19 Nov), including the job log and Team 8's alarm output.
+- **Job request: filed** as [#475](https://github.com/theschoolofai/era-v5-lab/pull/475) (Shivanshu, 15 Nov):
+  `exp2_muon.yaml` at T2, `muon_lr` 0.01, frozen C3 tokenizer, 1,221 steps, seed 1234, `train_week2.py` with the C3
+  scoring patch of [#474](https://github.com/theschoolofai/era-v5-lab/pull/474) (TSAI reviews it Mon 16 Nov).
+  "What ran" in `dryrun1_loss.md` is filled from it.
+- **Where the returned logs go:** #475 already uses `teams/05-architecture/jobs/evidence/2026-11-15-dryrun1/` for its
+  smoke; the record will link to the returned files there, or wherever TSAI puts them.
+- **Returned files:** #475 lists `manifest.json`, `summary.json`, `metrics.jsonl`, `losses.txt`, `total_losses.txt`.
+  The run's console output is also needed: a NaN stops the trainer with an error that is not in `metrics.jsonl`.
+- The logs themselves (TSAI, Tue 17 to Thu 19 Nov).
