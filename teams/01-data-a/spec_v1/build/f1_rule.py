@@ -291,6 +291,12 @@ _F1I_MOBILE = re.compile(r"(?<![\w/.+-])(?:(?:\+|00)[ \t]?91[ \t-]?|91[ \t-]?|0[
                          r"(?:[6-9][0-9]{4}[ \t-]?[0-9]{5}|[6-9][0-9]{2}[ \t-][0-9]{3}[ \t-][0-9]{4})(?![\w/-]|\.[0-9])", re.A)
 _F1I_LANDLINE = re.compile(r"(?<![\w/.+-])(?:\+91[ \t-]?)?\(?0[1-9][0-9]{1,3}\)?[ \t-]?[2-9][0-9]{2,3}[ \t-]?[0-9]{3,4}(?![\w/-]|\.[0-9])", re.A)
 _F1I_TOLL_FREE = re.compile(r"(?<![\w/.+-])18[06]0[ \t-]?[0-9]{3}[ \t-]?[0-9]{3,4}(?![\w/-])", re.A)
+# Speed: most texts hold no phone number, and each of the three regexes above starts with a lookbehind, so the engine tries every
+# position. A text that lacks the core every match must contain (the regex without its lookarounds and optional prefixes) cannot
+# match, so the regex is skipped. A regex that starts with a literal or a character set is scanned much faster.
+_F1I_INDIC_DIGIT = re.compile("[" + "".join(map(chr, _F1I_DIGITS)) + "]")   # the characters _F1I_DIGITS maps: none in the text, nothing to translate
+_F1I_MOBILE_CORE = re.compile(r"[6-9][0-9]{4}[ \t-]?[0-9]{5}|[6-9][0-9]{2}[ \t-][0-9]{3}[ \t-][0-9]{4}", re.A)
+_F1I_LANDLINE_CORE = re.compile(r"0[1-9][0-9]{1,3}\)?[ \t-]?[2-9][0-9]{2,3}[ \t-]?[0-9]{3,4}", re.A)   # _F1I_TOLL_FREE needs "1800" or "1860"
 _F1I_ORG_DOMAIN = re.compile(r"(?i)(?:^|\.)(?:gov|nic|ac|edu|res|ernet|org|co|mil)\.in$")
 _F1I_ORG_WORDS = re.compile(
     "\u0915\u093e\u0930\u094d\u092f\u093e\u0932\u092f|\u0935\u093f\u092d\u093e\u0917|\u092e\u0902\u0924\u094d\u0930\u093e\u0932\u092f|\u092e\u0928\u094d\u0924\u094d\u0930\u093e\u0932\u092f|\u0938\u0930\u0915\u093e\u0930|\u0936\u093e\u0938\u0928|\u0935\u093f\u0936\u094d\u0935\u0935\u093f\u0926\u094d\u092f\u093e\u0932\u092f|\u092e\u0939\u093e\u0935\u093f\u0926\u094d\u092f\u093e\u0932\u092f|\u0935\u093f\u0926\u094d\u092f\u093e\u0932\u092f|\u0935\u093f\u0926\u094d\u092f\u093e\u092a\u0940\u0920|\u0938\u0902\u0938\u094d\u0925\u093e\u0928|\u0938\u0902\u0938\u094d\u0925\u093e|\u0915\u0902\u092a\u0928\u0940|\u0915\u092e\u094d\u092a\u0928\u0940|"
@@ -330,21 +336,25 @@ def _F1I_labelled(text, start):
 
 
 def _f1_indic(text):
-    key = text.translate(_F1I_DIGITS)            # Indic digits read as 0-9; same length, so spans match the text
+    # Indic digits read as 0-9; same length, so spans match the text. A text with none of those characters is its own key.
+    key = text.translate(_F1I_DIGITS) if _F1I_INDIC_DIGIT.search(text) else text
     spans = []
-    for m in _F1I_TOLL_FREE.finditer(key):
-        spans.append((m.start(), m.end(), None))
+    if "1800" in key or "1860" in key:           # speed: see _F1I_MOBILE_CORE
+        for m in _F1I_TOLL_FREE.finditer(key):
+            spans.append((m.start(), m.end(), None))
     taken = lambda s, e: any(a < e and s < b for a, b, _ in spans)
-    for m in _F1I_MOBILE.finditer(key):
-        if not taken(m.start(), m.end()):
-            private = bool(_F1I_PERSONAL.search(text[max(0, m.start() - 50):m.start()])) or not _F1I_org_near(text, m.start(), m.end())
-            spans.append((m.start(), m.end(), _F1P_PHONE_PH if private else None))
-    for m in _F1I_LANDLINE.finditer(key):
-        if not taken(m.start(), m.end()):
-            line = text[text.rfind("\n", 0, m.start()) + 1:m.start()]
-            private = bool(_F1I_PERSONAL.search(text[max(0, m.start() - 50):m.start()])) or (
-                _F1I_labelled(text, m.start()) and not (_F1I_ORG_WORDS.search(line) or _F1P_ORG.search(line)))
-            spans.append((m.start(), m.end(), _F1P_PHONE_PH if private else None))
+    if _F1I_MOBILE_CORE.search(key):
+        for m in _F1I_MOBILE.finditer(key):
+            if not taken(m.start(), m.end()):
+                private = bool(_F1I_PERSONAL.search(text[max(0, m.start() - 50):m.start()])) or not _F1I_org_near(text, m.start(), m.end())
+                spans.append((m.start(), m.end(), _F1P_PHONE_PH if private else None))
+    if _F1I_LANDLINE_CORE.search(key):
+        for m in _F1I_LANDLINE.finditer(key):
+            if not taken(m.start(), m.end()):
+                line = text[text.rfind("\n", 0, m.start()) + 1:m.start()]
+                private = bool(_F1I_PERSONAL.search(text[max(0, m.start() - 50):m.start()])) or (
+                    _F1I_labelled(text, m.start()) and not (_F1I_ORG_WORDS.search(line) or _F1P_ORG.search(line)))
+                spans.append((m.start(), m.end(), _F1P_PHONE_PH if private else None))
     out, last = [], 0
     for s, e, tag in sorted(spans):
         if tag:
@@ -359,7 +369,7 @@ def _f1_indic(text):
         if not _F1I_PERSONAL.search(m.string[max(0, m.start() - 50):m.start()]) and _F1I_org_near(m.string, m.start(), m.end()):
             return m.group(0)
         return _F1P_EMAIL_PH
-    return _F1P_EMAIL.sub(email, out)
+    return _F1P_EMAIL.sub(email, out) if "@" in out else out      # speed: _F1P_EMAIL needs an "@"
 
 
 def f1(doc):
