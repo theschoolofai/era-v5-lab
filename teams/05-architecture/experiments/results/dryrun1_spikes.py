@@ -27,6 +27,8 @@ import statistics
 import sys
 from pathlib import Path
 
+sys.dont_write_bytecode = True  # importing Team 8's alarms.py must leave no __pycache__ in their folder
+
 CURVE_FIELDS = ("loss_ntp", "loss_mtp", "gradient_norm", "lr", "tokens_per_second")
 T7_RATIO, T7_WINDOW, T7_STEPS = 1.5, 100, 3
 
@@ -156,7 +158,7 @@ def main():
         Path(a.out).write_text(text, encoding="utf-8")
         print(f"wrote {a.out}")
     else:
-        sys.stdout.write(text)
+        sys.stdout.buffer.write(text.encode("utf-8"))  # UTF-8 on every console (Windows cp1252 cannot print the sigma sign)
 
 
 if __name__ == "__main__":
