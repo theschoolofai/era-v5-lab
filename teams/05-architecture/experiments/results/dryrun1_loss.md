@@ -4,6 +4,8 @@
 when TSAI returns them. **Gate 3 evidence:** "dry run 1 ends with a stable loss curve" (Fri 20 Nov, 23:59 IST).
 
 How the numbers are made, the two spike rules and how to rerun everything: [`dryrun1_README.md`](dryrun1_README.md).
+What this record will look like once filled: [`dryrun1_loss_sample_attn0.md`](dryrun1_loss_sample_attn0.md), the same
+layout filled from a week-2 log.
 
 ## 1. What ran
 
@@ -20,7 +22,8 @@ How the numbers are made, the two spike rules and how to rerun everything: [`dry
 
 ## 2. The loss curve
 
-_To fill: the table printed by `dryrun1_spikes.py` (about 20 rows, every spike step marked), and a chart._
+_To fill: the table printed by `dryrun1_spikes.py` (about 20 rows, every spike step marked), and the chart it draws
+with `--svg`._
 
 ## 3. Every spike
 
