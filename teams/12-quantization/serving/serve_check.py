@@ -11,8 +11,11 @@ Starts `vllm serve` with:
 Then it sends prompts_v1.jsonl (100 prompts, tools from tools_v1.json) at temperature 0, plus a streamed copy of
 --stream-check of them. Each answer is checked:
   * fields: no chat marker (<|think|>, <|tool_call|>, <|im_end|>, ...) left in content, reasoning or tool arguments.
-    This is the serving check: it fails if a parser puts text in the wrong field. Exit code 1 if any marker leaks
-    or any request fails.
+    Every answer that has one is replayed: /tokenize renders the same prompt, /v1/completions regenerates the raw
+    text at the same settings, and g10_parsers parses it offline. If that gives the fields the server returned, the
+    parser did its job and the model broke the G10 layout (for example a think block after the answer); that is
+    reported, not failed. Otherwise it counts as a parser fault. Exit code 1 if any request fails or any marker is
+    not explained by the replay.
   * behaviour: reason prompts have reasoning, tool prompts call the expected tool with valid JSON arguments,
     no_tool / tool_result prompts call none. This measures the model, not the server. It is reported, not enforced.
   * streaming: the streamed reasoning, content and tool calls equal the non-streamed ones.
@@ -38,6 +41,7 @@ import os
 import platform
 import re
 import shutil
+import signal
 import statistics
 import subprocess
 import sys
@@ -50,7 +54,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
 sys.path.insert(0, str(HERE))
-from g10_parsers import MARKERS  # noqa: E402
+from g10_parsers import CALL, MARKERS, THINK, THINK_END, parse_tool_calls, split_reasoning  # noqa: E402
 
 NATIVE_MARKERS = ("<think>", "</think>", "<tool_call>", "</tool_call>")   # a stand-in falling back to its own format
 CATEGORIES = ("chat", "reason", "tool", "tool_result", "no_tool")
@@ -58,13 +62,17 @@ TEXT_CAP = 2000
 
 FORMAT_HINT = (
     "Answer in this exact format.\n"
-    "1. First think step by step between the markers <|think|> and <|/think|>, each marker on its own line.\n"
-    "2. To call a tool, write exactly this and nothing after it:\n"
+    "1. Start with your thinking, once, between the markers <|think|> and <|/think|>, each marker on its own line. "
+    "Nothing comes before <|think|>.\n"
+    "2. After <|/think|>, write the final answer for the user, in the user's language, with no markers.\n"
+)
+FORMAT_HINT_TOOLS = (                          # only when the request offers tools: a hint without tools invited calls
+    "To call one of the tools below instead of answering, write this right after <|/think|> and nothing after it:\n"
     "<|tool_call|>\n"
     '{"arguments": {"<parameter>": <value>}, "name": "<tool name>"}\n'
     "<|/tool_call|>\n"
-    "3. Otherwise write the final answer for the user, in the user's language, with no markers.\n"
-    "If a tool result is already in the conversation, answer from it and do not call the tool again."
+    "Call only the tools listed below. If a tool result is already in the conversation, answer from it and do not "
+    "call the tool again."
 )
 
 
@@ -186,9 +194,9 @@ def launch(args, out: Path):
 def build_body(row, tools_db, args, served_name, stream=False):
     msgs = [dict(m) for m in row["messages"]]
     system = []
-    if args.format_hint == "on":
-        system.append(FORMAT_HINT)
     tools = [tools_db[n] for n in row["tools"] or []]
+    if args.format_hint == "on":
+        system.append(FORMAT_HINT + (FORMAT_HINT_TOOLS if tools else ""))
     if tools and args.tools_in_system_on:
         system.append("You can call these tools:\n" +
                       "\n".join(json.dumps(t["function"], ensure_ascii=False) for t in tools))
@@ -305,6 +313,62 @@ def same_fields(a, b) -> bool:
     return norm(a) == norm(b)
 
 
+def offline_fields(raw: str, row) -> dict:
+    """The fields the g10 parsers give for this raw output, applied as vLLM does: reasoning first, then tool calls
+    only when the request offers tools (tool_choice "auto"). Without tools the rest stays content."""
+    reasoning, content = split_reasoning(raw, final=True)
+    calls = []
+    if row["tools"]:
+        found, visible = parse_tool_calls(content or "")
+        if found:
+            calls, content = found, visible
+    if content is not None and not content.strip():
+        content = None
+    return {"reasoning": reasoning, "content": content,
+            "tool_calls": [{"name": c["name"], "arguments": c["arguments"]} for c in calls]}
+
+
+def violation_reasons(raw: str, row) -> list[str]:
+    """How a raw output breaks the G10 assistant layout (think block first, then tool calls, then the answer)."""
+    why, s = [], raw.lstrip()
+    if THINK in raw and not s.startswith(THINK):
+        why.append("think block after the answer")
+    elif raw.count(THINK) > 1:
+        why.append("second think block")
+    if raw.count(THINK_END) > raw.count(THINK):
+        why.append("stray <|/think|>")
+    if CALL in raw:
+        why.append("tool call although no tools were offered" if not row["tools"]
+                   else "tool call the layout does not allow (malformed, or after the answer)")
+    return why or ["marker outside the G10 layout"]
+
+
+def replay(base, body) -> dict:
+    """The raw text for this request: /tokenize renders the prompt (same server, template, tools, effort) and
+    /v1/completions regenerates it at the same settings, with no parser in between."""
+    tok_req = {"model": body["model"], "messages": body["messages"], "add_generation_prompt": True}
+    for k in ("tools", "chat_template_kwargs"):
+        if k in body:
+            tok_req[k] = body[k]
+    try:
+        _, tok = http_json(base + "/tokenize", tok_req)
+        _, comp = http_json(base + "/v1/completions", {
+            "model": body["model"], "prompt": tok["tokens"], "max_tokens": body["max_tokens"],
+            "temperature": body["temperature"], "seed": body["seed"], "skip_special_tokens": False})
+    except urllib.error.HTTPError as e:
+        return {"error": f"HTTP {e.code}: {e.read().decode(errors='replace')[:300]}"}
+    except Exception as e:                                            # noqa: BLE001
+        return {"error": repr(e)[:300]}
+    return {"raw": comp["choices"][0]["text"], "finish_reason": comp["choices"][0].get("finish_reason")}
+
+
+def stream_leaks(st) -> list[str]:
+    if "error" in st:
+        return []
+    texts = [st.get("reasoning"), st.get("content")] + [c["arguments"] for c in st.get("tool_calls") or []]
+    return sorted({m for t in texts for m in leaks(t, MARKERS)})
+
+
 # ------------------------------------------------------------------------------ report
 
 def pct(n, d):
@@ -323,8 +387,10 @@ def write_md(path: Path, s: dict):
     g = s["gate"]
     L.append("## Result\n")
     L.append(f"- **Requests:** {g['http_ok']} returned HTTP 200.")
-    L.append(f"- **Fields (the serving check):** {g['fields_ok']} answers have no chat marker in `content`, "
-             f"`reasoning` or tool arguments → **{'PASS' if g['pass'] else 'FAIL'}**.")
+    L.append(f"- **Fields (the serving check): {'PASS' if g['pass'] else 'FAIL'}.** {g['fields_ok']} answers have no "
+             f"chat marker in `content`, `reasoning` or tool arguments. Every other answer was replayed (raw text "
+             f"regenerated, parsed offline by g10_parsers): model broke the G10 layout and the parser placed it as "
+             f"specified: {g['model_breaks']}; parser fault or not explained: {g['parser_faults']}.")
     L.append(f"- **Reasoning in `message.reasoning`:** {g['reasoning']} reason prompts.")
     L.append(f"- **Tool calls in `message.tool_calls`:** {g['tool_calls']} tool prompts call the expected tool "
              f"with valid JSON arguments.")
@@ -344,7 +410,7 @@ def write_md(path: Path, s: dict):
     t = s["timing"]
     L.append("## Time and cost\n")
     L.append(f"- Server start to ready: {t['startup_s']} s. 100 prompts at concurrency {s['settings']['concurrency']}: "
-             f"{t['prompts_wall_s']} s. Streamed copies: {t['stream_wall_s']} s. Total: {t['total_wall_s']} s.")
+             f"{t['prompts_wall_s']} s. Streamed copies: {t['stream_wall_s']} s. Replays: {t['replay_wall_s']} s. Total: {t['total_wall_s']} s.")
     L.append(f"- Output: {t['completion_tokens']} completion tokens, {t['tokens_per_s']} tokens/s (all requests "
              f"together, non-streamed pass).")
     L.append(f"- GPU time: {t['gpu_hours']} GPU-hours ({s['settings']['n_gpus']} GPU); cost at "
@@ -438,9 +504,16 @@ def main(argv=None):
         streamed = {i: send_stream(base, build_body(rows[i], tools_db, args, args.served_name, stream=True))
                     for i in stream_idx}                                # one at a time: closest to the greedy pass
         stream_wall = time.time() - t0
+
+        # every answer with a marker in a field: regenerate the raw text and parse it offline (one at a time)
+        flagged = [i for i, (row, r) in enumerate(zip(rows, results)) if r.get("status") == 200 and
+                   (check_row(row, r, tools_db)["marker_leaks"] or (i in streamed and stream_leaks(streamed[i])))]
+        t0 = time.time()
+        replays = {i: replay(base, build_body(rows[i], tools_db, args, args.served_name)) for i in flagged}
+        replay_wall = time.time() - t0
     finally:
         if proc is not None:
-            proc.terminate()
+            proc.send_signal(signal.SIGINT)                    # vLLM's clean shutdown (SIGTERM logs a dead engine)
             try:
                 proc.wait(timeout=60)
             except subprocess.TimeoutExpired:
@@ -461,16 +534,34 @@ def main(argv=None):
             st = streamed[i]
             rec["stream_agree"] = "error" not in st and r.get("status") == 200 and same_fields(r, st)
             rec["stream_ttft_s"] = st.get("ttft_s")
-            rec["stream_marker_leaks"] = sorted({m for t in [st.get("reasoning"), st.get("content")] +
-                                                 [c["arguments"] for c in st.get("tool_calls") or []]
-                                                 for m in leaks(t, MARKERS)}) if "error" not in st else None
+            rec["stream_marker_leaks"] = stream_leaks(st) if "error" not in st else None
+            rec["stream"] = {"reasoning": (st.get("reasoning") or "")[:TEXT_CAP] or None,
+                             "content": (st.get("content") or "")[:TEXT_CAP] or None,
+                             "tool_calls": st.get("tool_calls"), "error": st.get("error")}
+        if i in replays:
+            rp = replays[i]
+            if "error" in rp:
+                rec["leak_cause"], rec["leak_why"] = "unexplained", [f"replay failed: {rp['error']}"]
+            elif not same_fields(offline_fields(rp["raw"], row), r):
+                rec["leak_cause"] = "unexplained"
+                rec["leak_why"] = ["the replayed raw text parses to other fields (a parser fault, or the model "
+                                   "answered differently this time)"]
+            elif not chk["marker_leaks"]:
+                rec["leak_cause"], rec["leak_why"] = "parser", ["marker only in the streamed fields"]
+            else:
+                rec["leak_cause"], rec["leak_why"] = "model", violation_reasons(rp["raw"], row)
+            rec["replay_raw"] = (rp.get("raw") or "")[:TEXT_CAP] or None
         records.append(rec)
         what = []
         if not chk["http_ok"]:
             what.append(f"HTTP {r.get('status')}: {r.get('error', '')[:120]}")
         else:
-            if chk["marker_leaks"]:
-                what.append("marker in a field: " + " ".join(f"`{m}`" for m in chk["marker_leaks"]))
+            if chk["marker_leaks"] or rec.get("stream_marker_leaks"):
+                cause = {"model": "model broke the G10 layout", "parser": "PARSER FAULT",
+                         "unexplained": "NOT EXPLAINED"}.get(rec.get("leak_cause"), "?")
+                markers = sorted(set(chk["marker_leaks"]) | set(rec.get("stream_marker_leaks") or []))
+                what.append(f"marker in a field ({cause}: {', '.join(rec.get('leak_why') or [])}): "
+                            + " ".join(f"`{m}`" for m in markers))
             if not chk["behaviour_ok"]:
                 cat = row["category"]
                 if cat == "reason" and not chk["has_reasoning"]:
@@ -488,8 +579,6 @@ def main(argv=None):
                 what.append("own markers " + " ".join(f"`{m}`" for m in chk["native_markers"]))
             if rec.get("stream_agree") is False:
                 what.append("stream differs")
-            if rec.get("stream_marker_leaks"):
-                what.append("marker in a streamed field")
         if what:
             failures.append({"id": row["id"], "lang": row["lang"], "what": "; ".join(what)})
 
@@ -522,8 +611,10 @@ def main(argv=None):
     n_tok = sum(x["completion_tokens"] or 0 for x in ok)
     streamed_recs = [x for x in records if "stream_agree" in x]
     fields_ok = sum(x["fields_ok"] for x in ok)
-    all_pass = (len(ok) == len(records) and fields_ok == len(ok)
-                and not any(x.get("stream_marker_leaks") for x in streamed_recs))
+    leaked = [x for x in ok if "leak_cause" in x]
+    model_breaks = sum(x["leak_cause"] == "model" for x in leaked)
+    parser_faults = len(leaked) - model_breaks
+    all_pass = len(ok) == len(records) and parser_faults == 0
 
     def cat_count(c, key):
         xs = [x for x in ok if x["category"] == c]
@@ -538,13 +629,15 @@ def main(argv=None):
         "finished": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
         "gpu": gpu_info(), "versions": versions(), "platform": platform.platform(),
         "gate": {"http_ok": pct(len(ok), len(records)), "fields_ok": pct(fields_ok, len(ok)), "pass": all_pass,
+                 "model_breaks": model_breaks, "parser_faults": parser_faults,
                  "reasoning": pct(r_n, r_d), "tool_calls": pct(t_n, t_d),
                  "no_tool": pct(sum(x["n_tool_calls"] == 0 for x in nt), len(nt)),
                  "stream_agree": pct(sum(bool(x["stream_agree"]) for x in streamed_recs), len(streamed_recs)),
                  "native": pct(sum(bool(x["native_markers"]) for x in ok), len(ok))},
         "per_category": per_category,
         "timing": {"startup_s": round(startup_s), "prompts_wall_s": round(prompts_wall, 1),
-                   "stream_wall_s": round(stream_wall, 1), "total_wall_s": round(total_wall),
+                   "stream_wall_s": round(stream_wall, 1), "replay_wall_s": round(replay_wall, 1),
+                   "total_wall_s": round(total_wall),
                    "completion_tokens": n_tok, "tokens_per_s": round(n_tok / prompts_wall, 1) if prompts_wall else None,
                    "gpu_hours": round(gpu_hours, 3), "cost_usd": round(gpu_hours * args.usd_per_gpu_hour, 2)},
         "settings": {"chat_template": rel(args.chat_template), "chat_template_sha256": sha256(args.chat_template),

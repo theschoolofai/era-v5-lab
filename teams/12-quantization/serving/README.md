@@ -63,9 +63,13 @@ to `--out`.
 
 ## What the check measures
 
-- **Fields (pass or fail, exit code 1 on failure).** No chat marker (`<|think|>`, `<|tool_call|>`, `<|im_end|>`, …)
-  is left in `content`, `reasoning` or tool arguments, streamed or not, and every request returns HTTP 200. That is
-  the serving check: a parser fault shows up here.
+- **Fields (pass or fail, exit code 1 on failure).** Every request returns HTTP 200, and no chat marker
+  (`<|think|>`, `<|tool_call|>`, `<|im_end|>`, …) is left in `content`, `reasoning` or tool arguments, streamed or
+  not, unless the replay explains it. Each answer with a marker is replayed: `/tokenize` renders the same prompt,
+  `/v1/completions` regenerates the raw text with no parser, and `g10_parsers` parses it offline.
+  - Same fields as the server: the parser did what the format says, and the model broke the G10 layout. This is
+    reported (for example a think block after the answer, or a tool call when no tools were offered).
+  - Different fields, or a marker only in the streamed answer: a parser fault, which fails the check.
 - **Behaviour (reported).** Reason prompts have reasoning, tool prompts call the expected tool with JSON arguments
   that have the schema's required keys, and no_tool / tool_result prompts call none. This measures the model. For
   a stand-in that never saw our format it is a lower bound. Answers in the stand-in's own format (`<think>`,

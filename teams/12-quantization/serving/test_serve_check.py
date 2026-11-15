@@ -90,3 +90,51 @@ def test_stream_comparison_ignores_argument_spacing():
     b = _resp("r", "c", [("f", '{"x":1}')])
     assert sc.same_fields(a, b)
     assert not sc.same_fields(a, _resp("r", "c2", [("f", '{"x": 1}')]))
+
+
+# ------------------------------------------------------------------------------ replay classification
+# Raw outputs of Qwen3-4B-Instruct-2507 (stand-in) from the first Kaggle run, cut short; the server fields are what
+# vLLM returned for them.
+
+KAGGLE = [
+    ("no_tool-04", 'The opposite is "modern."\n\n<|think|>\nThe user asks for an antonym.\n<|/think|>',
+     _resp(None, 'The opposite is "modern."\n\n<|think|>\nThe user asks for an antonym.\n<|/think|>'),
+     ["think block after the answer"]),
+    ("chat-22", "<|think|>\nA Kannada poem.\n<|/think|>\n\nಹಸಿರು ಮರಗಳ ಮೇಲೆ\n\n<|/think|>",
+     _resp("A Kannada poem.", "ಹಸಿರು ಮರಗಳ ಮೇಲೆ\n\n<|/think|>"), ["stray <|/think|>"]),
+    ("reason-02", '<|think|>\nDistance = 60 × 2.5\n<|/think|>\n  \n<|tool_call|>  \n{"arguments": {"speed": 60}, '
+     '"name": "calculate_distance"}  \n<|/tool_call|>',
+     _resp("Distance = 60 × 2.5", '<|tool_call|>  \n{"arguments": {"speed": 60}, "name": "calculate_distance"}  \n'
+           '<|/tool_call|>'), ["tool call although no tools were offered"]),
+]
+
+
+def test_replay_explains_model_layout_breaks():
+    for rid, raw, server, why in KAGGLE:
+        row = ROWS[rid]
+        assert sc.same_fields(sc.offline_fields(raw, row), server), rid
+        assert sc.violation_reasons(raw, row) == why, rid
+
+
+def test_replay_does_not_explain_a_parser_fault():
+    # a well-formed answer whose reasoning the server left in content: the offline parse disagrees
+    raw = "<|think|>\n17*23 = 391\n<|/think|>\n391"
+    assert sc.offline_fields(raw, ROWS["reason-01"]) == {"reasoning": "17*23 = 391", "content": "391", "tool_calls": []}
+    assert not sc.same_fields(sc.offline_fields(raw, ROWS["reason-01"]), _resp(None, raw))
+
+
+def test_offline_tool_calls_only_when_tools_are_offered():
+    raw = '<|tool_call|>\n{"arguments": {"city": "Pune"}, "name": "get_weather"}\n<|/tool_call|>'
+    with_tools = sc.offline_fields(raw, ROWS["tool-01"])
+    assert with_tools["tool_calls"] == [{"name": "get_weather", "arguments": '{"city": "Pune"}'}]
+    assert with_tools["content"] is None
+    without = sc.offline_fields(raw, ROWS["chat-01"])
+    assert without["tool_calls"] == [] and without["content"] == raw
+
+
+def test_format_hint_teaches_tool_calls_only_with_tools():
+    args = Namespace(format_hint="on", tools_in_system_on=True, max_tokens=64, temperature=0.0, seed=0)
+    no_tools = sc.build_body(ROWS["chat-01"], TOOLS, args, "m")["messages"][0]["content"]
+    with_tools = sc.build_body(ROWS["tool-01"], TOOLS, args, "m")["messages"][0]["content"]
+    assert "<|think|>" in no_tools and "<|tool_call|>" not in no_tools
+    assert "<|tool_call|>" in with_tools and "get_weather" in with_tools

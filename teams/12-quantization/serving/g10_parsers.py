@@ -66,7 +66,7 @@ def split_reasoning(text: str, final: bool = True) -> tuple[str | None, str | No
     """Split one assistant output into (reasoning, content).
 
     A reasoning block counts only at the start of the output (after optional whitespace). The newline the template
-    writes after <|think|> and before <|/think|>, and the one after <|/think|>, are removed. final=False is the
+    writes after <|think|> and before <|/think|> are removed, and content loses its leading whitespace. final=False is the
     streaming view of a prefix: it holds back anything that may still change (a partial marker, a trailing newline
     that may precede <|/think|>, and an output too short to tell whether it opens with <|think|>). It returns
     (None, None) while undecided."""
@@ -74,7 +74,7 @@ def split_reasoning(text: str, final: bool = True) -> tuple[str | None, str | No
     if not stripped.startswith(THINK):
         if not final and THINK.startswith(stripped):
             return None, None                        # "", "  " or "<|th": may still become <|think|>
-        return None, (text if text else None)
+        return None, (stripped if stripped else None)
     body = _drop_one(stripped[len(THINK):], prefix="\n")
     end = body.find(THINK_END)
     if end < 0:                                      # reasoning still open (streaming) or cut off (max_tokens)
@@ -83,10 +83,9 @@ def split_reasoning(text: str, final: bool = True) -> tuple[str | None, str | No
             body = _drop_one(body, suffix="\n")
         return body, None
     reasoning = _drop_one(body[:end], suffix="\n")
-    content = body[end + len(THINK_END):]
+    content = body[end + len(THINK_END):].lstrip()           # visible text: leading whitespace carries nothing
     if not final and content == "":
         return reasoning, None
-    content = _drop_one(content, prefix="\n")
     return reasoning, (content if content else None)
 
 
