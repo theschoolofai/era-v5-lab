@@ -214,7 +214,6 @@ def test_both_frozen_tokenizers_load_and_others_are_refused(tmp_path, monkeypatc
     """Two toy tokenizers stand in for p1536 and C3 (same vocab, EOS and specials, different sha256)."""
     p1536, c3, other = _toy(tmp_path, ["<a>"]), _toy(tmp_path, ["<a>", "<b>"]), _toy(tmp_path, ["<a>", "<b>", "<c>"])
     monkeypatch.setattr(ds, "FROZEN_TOKENIZERS", {_sha(p1536): "p1536", _sha(c3): "C3"})
-    monkeypatch.setattr(ds, "VOCAB", None)
     for path in (p1536, c3, other):
         assert ds.Tokenizer.from_file(str(path)).id_to_token(EOS) == "<eos>"  # added tokens did not take id 9
     monkeypatch.setattr(ds, "EOS_ID", EOS)
@@ -247,7 +246,8 @@ def test_shard_from_one_frozen_tokenizer_is_refused_with_the_other(tmp_path, toy
     (_docs(doc_id=["d1", "d2", "d3"]), "no n_tokens column"),
     (_docs(doc_id=["d1", "d1", "d3"], n_tokens=[3, 4, 2]), "not unique"),
     (_docs(doc_id=["d1", None, "d3"], n_tokens=[3, 4, 2]), "null or empty"),
-    (_docs(doc_id=["d3", "d1", "d2"], n_tokens=[2, 3, 4]), r"row 0 \(d3\) n_tokens 2, the index gives 3"),  # rows shifted
+    # rows shifted by one: every doc_id would point at another document's text
+    (_docs(doc_id=["d3", "d1", "d2"], n_tokens=[2, 3, 4]), r"row 0 \(d3\) n_tokens 2, the index gives 3"),
     (_set_token(1, EOS), "special id 9 inside document d1"),            # an EOS inside a document
     (_set_token(4, 8), "special id 8 inside document d2"),              # a reserved special id inside a document
     (_set_token(4, 200_000), "token id 200000 at position 4 is not below the vocab size 10"),
