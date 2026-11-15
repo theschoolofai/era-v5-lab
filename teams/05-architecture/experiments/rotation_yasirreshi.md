@@ -25,15 +25,22 @@ The three-group score is the mean of English, code and the Indic mean (`harness/
 | Indic | −0.0002 | −0.0081 | −0.0083 |
 | English | −0.0098 | +0.0066 | −0.0033 |
 
+![Dot plot: for each of the three-group, code, Indic and English scores, the BPB of MQA at seed 1235 and at seed 1238 minus the reference. Both seeds are below the reference on three-group, code and Indic; on English seed 1235 is above and seed 1238 below.](../jobs/evidence/2026-11-15-rotation-mqa-seed1238/rotation-scores.svg)
+
 ## Does the screen result hold?
 
 - **Direction: yes.** At seed 1238, MQA again scores below the reference on the three-group, code and Indic scores.
 - **Code and Indic: the gap repeats closely.** Against the reference, code is −0.0050 here and was −0.0044 at seed 1235. Indic is −0.0083 here and was −0.0081. On these two groups the two MQA seeds differ by only 0.0006 and 0.0002.
 - **Three-group: the size of the gap is not stable.** The two MQA seeds differ by 0.0035, which is more than the 0.0020 gap the screen measured. Almost all of that seed-to-seed change is English (0.0098). English is also where MQA was worse than the reference at seed 1235 (+0.0066) but better at seed 1238 (−0.0033).
+- **Over training, the gap is noisy.** The run scores the held-out set every 50 steps. From step 600 on, MQA minus the reference on the three-group score ranges from −0.0150 to +0.0113 across those evaluations, taking both seeds together (the figure below). Both final gaps, −0.0020 and −0.0055, lie well inside that range.
 - **Against the arm's own rule: nothing points to MQA being worse.** The arm file sets `acceptance_rule: not_worse`. `docs/attention_harness.md` defines the rule: on each of the three-group, code and Indic means, MQA minus the reference must be no more than the larger seed range of the two arms. The two-seed MQA mean minus the reference is −0.0038 on three-group, −0.0047 on code and −0.0082 on Indic. All three are negative, so MQA is not worse on any of them. The MQA seed range is 0.0035, 0.0006 and 0.0002. The rule is defined on three seeds per arm, and neither arm has three yet, so this is not a formal pass.
 - **Limits.** The reference has only one seed, so its own seed-to-seed spread is unknown. Comparing MQA at seed 1238 with the reference at seed 1235 crosses seeds. As Team 5 set out, this run picks no winner, does not change config v1, and leaves `comparison_final` false.
 
+![Line chart: three-group BPB of MQA minus the reference at each evaluation from step 200 to 1,221, for seed 1235 and seed 1238. Both lines cross zero several times. From step 600 on they stay between −0.0150 and +0.0113.](../jobs/evidence/2026-11-15-rotation-mqa-seed1238/rotation-gap.svg)
+
 ## Per-slice BPB at step 1,221
+
+![Dot plot: for each of the 15 slices, BPB of MQA at seed 1235 and at seed 1238 minus the reference. The two seeds differ by up to 0.11 BPB on single slices: Odia, Punjabi and Telugu move most.](../jobs/evidence/2026-11-15-rotation-mqa-seed1238/rotation-slices.svg)
 
 | Slice | Scored tokens | Reference, seed 1235 | MQA, seed 1235 | MQA, seed 1238 | 1238 − 1235 |
 |---|---|---|---|---|---|
@@ -76,7 +83,8 @@ Everything is in `jobs/evidence/2026-11-15-rotation-mqa-seed1238/`:
 - `command.json` and `runtime_t2_150min.yaml`: the run as launched;
 - `manifest.json`, `summary.json`, `metrics.jsonl`, `losses.txt` and `total_losses.txt`: the trainer's output, minus the checkpoint;
 - `attempt1/`: the first attempt's manifest, summary and losses;
-- `compare_rotation.py`: recomputes every number above from those files and the screen's evidence, writes `rotation-comparison.csv` and `rotation-slice-scores.csv`, and runs these checks.
+- `compare_rotation.py`: recomputes every number above from those files and the screen's evidence, writes `rotation-comparison.csv` and `rotation-slice-scores.csv`, and runs these checks;
+- `rotation_figures.py`: draws the three figures (`rotation-scores.svg`, `rotation-gap.svg`, `rotation-slices.svg`) from those CSVs and the three runs' `metrics.jsonl`. It uses the standard library only.
 
 | Check | What it verifies | Result |
 |---|---|---|
@@ -92,4 +100,5 @@ To reproduce from the repo root:
 
 ```
 python teams/05-architecture/jobs/evidence/2026-11-15-rotation-mqa-seed1238/compare_rotation.py
+python teams/05-architecture/jobs/evidence/2026-11-15-rotation-mqa-seed1238/rotation_figures.py
 ```
