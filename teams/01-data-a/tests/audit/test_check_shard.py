@@ -121,7 +121,8 @@ def test_missing_dedup_version_fails(tmp_path):
 
 
 @pytest.mark.parametrize("field,value", [("eos_token_id", 36), ("split", "test"),
-                                          ("tokenizer_sha256", "f" * 64), ("schema_version", "shard-v0")])
+                                          ("tokenizer_sha256", "f" * 64), ("schema_version", "shard-v0"),
+                                          ("created_by", "5255556"), ("created_by", "<git commit of the shard writer>")])
 def test_bad_manifest_values_fail(tmp_path, field, value):
     man_path = write_shard(tmp_path)
     man = json.loads(man_path.read_text())

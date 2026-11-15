@@ -17,7 +17,7 @@ Checked on 15 Nov 2026 against main `ae4c03dbe69b9a46bfdd8a0922cf5d48118ab51f`.
 
 ## How it was checked
 
-[`check_shard.py`](check_shard.py), in this folder, reads the manifest and every file the manifest names, and reports each check as PASS, FAIL or NOT CHECKED. A file that is not present is NOT CHECKED, never PASS. It prints IDs, counts and hashes only, never document text. The same script will run on the real shards, where it also checks the `.bin` (size, header, every id below the vocab, an EOS at the end of every document and no special id inside one) and the `.docs.parquet` (rows, unique doc_ids, `n_tokens` equal to the index). It does not decode text: G9's `teams/09-evaluation/decontam/decode_shard.py` does that, and needs the `.bin`. Tests: `tests/audit/test_check_shard.py`, 12 cases on a made-up shard (a good shard, missing files, a changed byte, a wrong count, a missing EOS, a special id inside a document, an id at the vocab size, bad manifest values, a missing field).
+[`check_shard.py`](check_shard.py), in this folder, reads the manifest and every file the manifest names, and reports each check as PASS, FAIL or NOT CHECKED. A file that is not present is NOT CHECKED, never PASS. It prints IDs, counts and hashes only, never document text. The same script will run on the real shards, where it also checks the `.bin` (size, header, every id below the vocab, an EOS at the end of every document and no special id inside one) and the `.docs.parquet` (rows, unique doc_ids, `n_tokens` equal to the index). It does not decode text: G9's `teams/09-evaluation/decontam/decode_shard.py` does that, and needs the `.bin`. Tests: `tests/audit/test_check_shard.py`, 14 cases on a made-up shard (a good shard, missing files, a changed byte, a wrong count, a missing EOS, a special id inside a document, an id at the vocab size, bad manifest values including a short or placeholder `created_by`, a missing field).
 
 Rerun, from the repository root (Python 3.12, numpy 2.5.4, pyarrow 26.0.1):
 
@@ -26,11 +26,11 @@ python -I teams/01-data-a/audit/check_shard.py teams/01-data-a/shards/sample cod
 python -m pytest teams/01-data-a/tests/audit -q
 ```
 
-Last lines of output: `{'PASS': 29, 'FAIL': 1, 'NOT CHECKED': 4}` (exit code 1, from the expected `dedup` FAIL) and `12 passed`.
+Last lines of output: `{'PASS': 30, 'FAIL': 1, 'NOT CHECKED': 4}` (exit code 1, from the expected `dedup` FAIL) and `14 passed`.
 
 ## Results: `code-go-train-000000`
 
-29 PASS, 1 FAIL (expected for a sample, see note 1), 4 NOT CHECKED (the files are not in git).
+30 PASS, 1 FAIL (expected for a sample, see note 1), 4 NOT CHECKED (the files are not in git).
 
 ### Manifest fields
 
@@ -45,6 +45,7 @@ Last lines of output: `{'PASS': 29, 'FAIL': 1, 'NOT CHECKED': 4}` (exit code 1, 
 | `split` | `train` or `validation` | `train` | PASS |
 | `shard_id` | `<pack_id>-<split>-<6 digits>` | `code-go-train-000000` | PASS |
 | `payload_bytes` = 1,024 + 4 × `token_count` | 1,049,152 | 1,049,152 | PASS |
+| `created_by` is a full git commit hash | 40 hex characters | `5255556c7fc4…` (traced in note 2) | PASS |
 
 ### Hashes (recomputed from the files in git)
 

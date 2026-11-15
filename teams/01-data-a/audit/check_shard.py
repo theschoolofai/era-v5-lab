@@ -71,6 +71,9 @@ def run_checks(folder, shard_id, template=TEMPLATE, clean_py=CLEAN_PY):
     id_ok = re.fullmatch(rf"{re.escape(str(m.get('pack_id')))}-{re.escape(str(m.get('split')))}-\d{{6}}", shard_id)
     check("shard_id = <pack_id>-<split>-<6 digits>", bool(id_ok) and m.get("shard_id") == shard_id,
           f"{m.get('pack_id')}-{m.get('split')}-NNNNNN", m.get("shard_id"))
+    writer = str(m.get("created_by"))
+    check("created_by is a full git commit hash", bool(re.fullmatch(r"[0-9a-f]{40}", writer)), "40 hex characters",
+          writer[:12] if re.fullmatch(r"[0-9a-f]{40}", writer) else writer)
     if isinstance(tc, int):
         check("payload_bytes = 1024 + 4 x token_count", m.get("payload_bytes") == HEADER_BYTES + 4 * tc,
               HEADER_BYTES + 4 * tc, m.get("payload_bytes"))
