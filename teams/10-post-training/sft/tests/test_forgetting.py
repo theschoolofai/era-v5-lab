@@ -13,6 +13,9 @@ sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).parent))
 import forgetting as fg  # noqa: E402
 
+# A named decorator: pr-guard takes a dotted decorator line of a diff for an email address.
+parametrize = pytest.mark.parametrize
+
 SHA = "21c6e4b2" + "0" * 48 + "12bb"
 
 
@@ -71,7 +74,7 @@ def test_missing_stderr_is_never_a_significant_drop_and_is_flagged():
     assert "no stderr" in fg.render_markdown(res)
 
 
-@pytest.mark.parametrize("mutate,needle", [
+@parametrize("mutate,needle", [
     (lambda r: r["forgetting"].update(heldout_sha256="f" * 64), "held-out"),
     (lambda r: r["forgetting"].update(window=1024), "window"),
     (lambda r: r.update(tokenizer_sha256="x" * 64), "tokenizer"),
@@ -88,8 +91,8 @@ def test_reports_that_measured_different_things_are_refused(mutate, needle):
         fg.compare(report(), after)
 
 
-@pytest.mark.parametrize("which", ["before", "after"])
-@pytest.mark.parametrize("mutate,needle", [
+@parametrize("which", ["before", "after"])
+@parametrize("mutate,needle", [
     (lambda r: r.pop("forgetting"), "forgetting"),
     (lambda r: r.pop("eval_mini"), "eval_mini"),
     (lambda r: r["forgetting"].update(bpb_all=float("nan")), "bpb_all"),
