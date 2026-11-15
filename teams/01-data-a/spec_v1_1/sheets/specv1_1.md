@@ -4611,8 +4611,13 @@ def _email(m, org):
 
 def medicine_f1(text):
     lines = text.split("\n")
-    org_page = bool(ORG_VOICE.search(text))
+    org_page = []  # ORG_VOICE on the whole text: searched once, and only when a contact line asks
     has_org = {}  # line number -> an organisation word on that line: searched once, and only when a contact line asks
+
+    def on_org_page():
+        if not org_page:
+            org_page.append(bool(ORG_VOICE.search(text)))
+        return org_page[0]
 
     def org_near(i):  # same answer as searching the joined 13-line window, as no match spans a newline
         for j in range(max(0, i - 6), min(len(lines), i + 7)):
@@ -4627,10 +4632,10 @@ def medicine_f1(text):
         if "@" not in line and not DIGIT.search(line):  # no EMAIL, PHONE or ADDRESS can match
             out.append(line)
             continue
-        new = EMAIL.sub(lambda m: _email(m, org_page or org_near(i) or bool(PUBLIC_ROLE.search(
+        new = EMAIL.sub(lambda m: _email(m, on_org_page() or org_near(i) or bool(PUBLIC_ROLE.search(
             "\n".join(lines[max(0, i - 2):i + 1])))), line) if "@" in line else line
         if PHONE.search(new) or ADDRESS.search(new):
-            if not (org_page or org_near(i)):
+            if not (on_org_page() or org_near(i)):
                 new = PHONE.sub(lambda m: m.group() if TOLL_FREE.match(m.group()) else "<PHONE>", new)
                 if len(line.strip()) <= CONTACT_LINE:
                     new = ADDRESS.sub("<ADDRESS>", new)

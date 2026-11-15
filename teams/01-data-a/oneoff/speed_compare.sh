@@ -22,6 +22,10 @@
 #   --rules IDS    the rule(s) you changed, comma separated (needed for count and the rule times in the SUMMARY)
 #   --before REV   revision whose clean.py is "before"                  [BEFORE, default HEAD]
 #   --after REV    revision for "after", or "worktree" = your working copy [AFTER, default worktree]
+#   --before-clean FILE, --after-clean FILE   use this clean.py instead of the one in that revision, for a change that is
+#                  in a sheet but not yet in the committed clean.py (for example a rule of spec_v1_1/sheets/specv1_1.md:
+#                  build_clean.py --sheet ... --out FILE, once from the sheet as committed and once from the edited sheet).
+#                  The build step then checks the after file against --sheet.
 #   --packs DIR    <pack_id>.parquet files                              [PACKS, default <repo parent>/week1-packs]
 #   --work DIR     trees, results and logs                              [WORK, default <repo parent>/scratchpad/clean-speed]
 #   --limit N      speed, profile and count use only the first N docs of each pack (default all; for large packs)
@@ -41,7 +45,7 @@ PARENT="$(dirname "$REPO")"
 BEFORE="${BEFORE:-HEAD}"; AFTER="${AFTER:-worktree}"
 PACKS="${PACKS:-$PARENT/week1-packs}"; WORK="${WORK:-$PARENT/scratchpad/clean-speed}"
 PY="${PY:-/home/forest/miniconda3/envs/era5/bin/python}"
-SHEET="${SHEET:-}"
+SHEET="${SHEET:-}"; BEFORE_CLEAN=""; AFTER_CLEAN=""
 RULES=""; LIMIT=0; STAGES=(); PROFILE_PACKS=(); COUNT_PACKS=(); EXCLUDE=(ind-mr-sangraha-v); EXPECTED_PACKS=()
 help() { awk 'NR>1 && /^#/ {sub(/^# ?/, ""); print; next} NR>1 {exit}' "$0"; }
 while [ $# -gt 0 ]; do
@@ -50,6 +54,7 @@ while [ $# -gt 0 ]; do
     --packs) PACKS="$2"; shift 2;; --work) WORK="$2"; shift 2;; --limit) LIMIT="$2"; shift 2;;
     --profile-packs) read -ra PROFILE_PACKS <<< "$2"; shift 2;; --count-packs) read -ra COUNT_PACKS <<< "$2"; shift 2;;
     --sheet) SHEET="$2"; shift 2;;
+    --before-clean) BEFORE_CLEAN="$2"; shift 2;; --after-clean) AFTER_CLEAN="$2"; shift 2;;
     --include-all) EXCLUDE=(); shift;;
     --expected-packs) read -ra EXPECTED_PACKS <<< "$2"; shift 2;;
     -h|--help) help; exit 0;;
@@ -66,17 +71,20 @@ mkdir -p "$WORK"
 LOG="$WORK/run-$(date +%Y%m%d-%H%M%S).log"
 exec > >(tee "$LOG") 2>&1
 echo "log: $LOG"
-CLEAN="$REPO/$TEAM/spec_v1/clean.py"; CHECK="$HERE/speed_check.py"; FAIL=0
+for f in BEFORE_CLEAN AFTER_CLEAN; do      # a clean.py given on the command line, as an absolute path
+  [ -z "${!f}" ] && continue
+  [ -f "${!f}" ] || { echo "--${f%_CLEAN}-clean: no such file: ${!f}" >&2; exit 2; }
+  printf -v "$f" '%s' "$(cd "$(dirname "${!f}")" && pwd)/$(basename "${!f}")"
+done
+CLEAN="${AFTER_CLEAN:-$REPO/$TEAM/spec_v1/clean.py}"; CHECK="$HERE/speed_check.py"; FAIL=0
 PIN=(); command -v taskset >/dev/null && PIN=(taskset -c 0)          # CPU 0 and 1 are one physical core on the author's laptop
 EXCL=(); [ ${#EXCLUDE[@]} -gt 0 ] && EXCL=(--exclude "${EXCLUDE[@]}")
 LIM=();  [ "$LIMIT" -gt 0 ] && LIM=(--limit "$LIMIT")
 if [ ${#EXPECTED_PACKS[@]} -eq 0 ]; then
   if [ ${#EXCLUDE[@]} -eq 0 ]; then
     read -ra EXPECTED_PACKS <<< "$("$PY" -I - "$CLEAN" <<'EOF'
-import sys
-from pathlib import Path
-sys.path.insert(0, str(Path(sys.argv[1]).parent))
-import clean
+import importlib.util, sys
+spec = importlib.util.spec_from_file_location("clean", sys.argv[1]); clean = importlib.util.module_from_spec(spec); spec.loader.exec_module(clean)
 print(" ".join(sorted(clean._FAMILY)))
 EOF
 )"
@@ -92,10 +100,9 @@ need_trees() { [ -f "$(tree before)/clean.py" ] && [ -f "$(tree after)/clean.py"
 # the packs the first rule runs on (its SCOPE in clean.py) that exist in --packs: the defaults for profile and count
 if [ -n "$RULES" ] && { [ ${#PROFILE_PACKS[@]} -eq 0 ] || [ ${#COUNT_PACKS[@]} -eq 0 ]; }; then
   read -ra RULE_PACKS <<< "$(PYTHONDONTWRITEBYTECODE=1 "$PY" -I - "$CLEAN" "$PACKS" "${RULES%%,*}" <<'EOF'
-import sys
+import importlib.util, sys
 from pathlib import Path
-sys.path.insert(0, str(Path(sys.argv[1]).parent))
-import clean as c
+spec = importlib.util.spec_from_file_location("clean", sys.argv[1]); c = importlib.util.module_from_spec(spec); spec.loader.exec_module(c)
 have = {p.stem for p in Path(sys.argv[2]).glob("*.parquet")}
 print(" ".join(sorted(p for p in c.SCOPE.get(sys.argv[3], ()) if p in have)))
 EOF
@@ -131,8 +138,10 @@ stage_trees() {
   local rev="$AFTER"; [ "$AFTER" = worktree ] && rev=HEAD
   git -C "$REPO" archive "$rev" | tar -x -C "$WORK/after"
   [ "$AFTER" = worktree ] && cp "$CLEAN" "$(tree after)/clean.py"
+  [ -n "$AFTER_CLEAN" ] && cp "$AFTER_CLEAN" "$(tree after)/clean.py"
   cp -r "$WORK/after/." "$WORK/before/"
-  git -C "$REPO" show "$BEFORE:$TEAM/spec_v1/clean.py" > "$(tree before)/clean.py" || { echo "no clean.py at $BEFORE"; exit 1; }
+  if [ -n "$BEFORE_CLEAN" ]; then cp "$BEFORE_CLEAN" "$(tree before)/clean.py"
+  else git -C "$REPO" show "$BEFORE:$TEAM/spec_v1/clean.py" > "$(tree before)/clean.py" || { echo "no clean.py at $BEFORE"; exit 1; }; fi
   local b a; b="$(sha256sum "$(tree before)/clean.py" | cut -c1-12)"; a="$(sha256sum "$(tree after)/clean.py" | cut -c1-12)"
   echo "  before $b   after $a"
   if [ "$b" = "$a" ]; then
@@ -183,7 +192,12 @@ stage_harm() {
       --out "$WORK/harm/$side/harm_tests.md" --results "$WORK/harm/$side/results" > "$WORK/harm/$side.log" 2>&1 &
     pids+=($!)
   done
-  for p in "${pids[@]}"; do wait "$p" || { echo "a harm run failed, see $WORK/harm/*.log"; HARM_RESULT="FAIL: a run failed"; FAIL=1; return; }; done
+  local exited=0
+  for p in "${pids[@]}"; do wait "$p" || exited=1; done     # make_harm_tests.py exits 1 when a pack fails its own harm limit
+  for side in before after; do
+    [ -f "$WORK/harm/$side/harm_tests.md" ] || { echo "a harm run failed, see $WORK/harm/*.log"; HARM_RESULT="FAIL: a run failed"; FAIL=1; return; }
+  done
+  [ $exited -eq 0 ] || echo "(a harm run exited with 1: some pack fails its own harm limit, in the logs; what is compared is that the results are the same before and after)"
   echo "-- per-pack result files, ignoring rules_file_sha256 (the clean.py hash):"
   local bad=0
   "$PY" -I - "$WORK/harm/before/results" "$WORK/harm/after/results" "${EXPECTED_PACKS[@]}" <<'EOF' || bad=1
