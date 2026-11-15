@@ -95,7 +95,7 @@ class FiniteStepTests(unittest.TestCase):
                 with self.assertRaisesRegex(ValueError, "Nonfinite"):
                     check_step_and_clip([parameter], torch.tensor([[loss]]), 1.0)
                 torch.testing.assert_close(parameter, torch.ones(1))
-                
+
 class ScoredTrainingLossTests(unittest.TestCase):
     def test_padding_does_not_change_loss_or_gradients(self):
         torch.manual_seed(1234)

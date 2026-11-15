@@ -48,7 +48,7 @@ def check_step_and_clip(parameters, step_losses, max_norm):
     if not torch.isfinite(values).all():
         raise ValueError("Nonfinite training loss or gradient norm")
     return norm
-  
+
 def scored_ntp_loss(model, ids, targets):
     """Sum next-token NLL without materializing logits for ignored positions."""
     scored = targets != -100
