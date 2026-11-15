@@ -75,6 +75,11 @@ SANDBOX_BASE = Path(os.environ.get("G10_SANDBOX_BASE", "/tmp/g10sbx"))
 SANDBOX_NPROC = 64
 LOCAL_MEMORY_BYTES = 1 << 30   # per process (Python itself needs ~30 MB; the runner and the solution each get this)
 LOCAL_FILE_BYTES = 10_000_000
+# Local runner only: stop a program at its first wrong answer, as it already stops at its first error or timeout.
+# The comparison happens in this trusted process, which holds the expected outputs anyway, so nothing new enters
+# the sandbox. The reward needs every test, so reward, passed, total and reason are unchanged; only the tests after
+# the first failure are not run. G10_STDIO_EARLY_EXIT=0 restores the old behaviour (matched timing runs).
+EARLY_EXIT = os.environ.get("G10_STDIO_EARLY_EXIT", "1") != "0"
 
 
 def _local_limits():  # runs in the child before exec (Linux)
@@ -109,6 +114,17 @@ def _next_uid() -> int:
         return SANDBOX_UID_BASE + _uid_next[0]
 
 
+def set_uid_range(start: int, span: int) -> None:
+    """Give this process its own slice of the sandbox uid range. Several scorer processes on one machine must not
+    hand out the same uid at the same time: a uid's cleanup kills every process of that uid."""
+    global SANDBOX_UID_BASE, SANDBOX_UID_SPAN
+    if start < 61000 or span < 1 or start + span > 65000:
+        raise ValueError(f"sandbox uid range {start}+{span} is outside 61000..65000")
+    with _uid_lock:
+        SANDBOX_UID_BASE, SANDBOX_UID_SPAN = start, span
+        _uid_next[0] = 0
+
+
 def isolation_available() -> tuple[bool, str]:
     if not sys.platform.startswith("linux"):
         return False, "isolated local runner needs Linux"
@@ -134,7 +150,8 @@ def _kill_uid(uid: int) -> None:
                    group=uid, extra_groups=[], capture_output=True, timeout=10, env={})
 
 
-def run_isolated(code: str, inputs: list[str], time_limit_s: float) -> list[dict] | str:
+def run_isolated(code: str, inputs: list[str], time_limit_s: float,
+                 expected: list[str] | None = None) -> list[dict] | str:
     ok, why = isolation_available()
     if not ok:
         raise RuntimeError(f"G10_STDIO_RUNNER=local refused: {why}; use docker")
@@ -154,7 +171,7 @@ def run_isolated(code: str, inputs: list[str], time_limit_s: float) -> list[dict
         env = {"PATH": "/usr/local/bin:/usr/bin:/bin", "PYTHONHASHSEED": "0", "HOME": str(w), "TMPDIR": str(w),
                "LANG": "C.UTF-8"}
         out = []
-        for text in inputs:
+        for i, text in enumerate(inputs):
             try:
                 p = subprocess.run([sys.executable, "-B", "-s", str(w / "solution.py")], input=text,
                                    capture_output=True, text=True, timeout=time_limit_s, cwd=w, env=env, user=uid,
@@ -166,6 +183,8 @@ def run_isolated(code: str, inputs: list[str], time_limit_s: float) -> list[dict
                 _kill_uid(uid)  # a timed-out program may still run; the normal sweep is once per program below
             if out[-1]["status"] != "ok":
                 break  # the reward needs every test; stop at the first failure
+            if expected is not None and not same_output(out[-1]["stdout"], expected[i]):
+                break  # first wrong answer: score() stops counting here too
         return out
     finally:
         _kill_uid(uid)
@@ -178,10 +197,12 @@ def same_output(actual: str, expected: str) -> bool:
     return actual.split() == expected.split()
 
 
-def run_program(code: str, inputs: list[str], time_limit_s: float) -> list[dict] | str:
-    """Run code on each input in a fresh container. Returns per-input results, or an error string."""
+def run_program(code: str, inputs: list[str], time_limit_s: float,
+                expected: list[str] | None = None) -> list[dict] | str:
+    """Run code on each input in a fresh container. Returns per-input results, or an error string.
+    `expected` is used by the local runner only (early exit in the trusted process); it never reaches Docker."""
     if RUNNER_KIND == "local":
-        return run_isolated(code, inputs, time_limit_s)
+        return run_isolated(code, inputs, time_limit_s, expected if EARLY_EXIT else None)
     if RUNNER_KIND not in ("docker", "local_unisolated"):
         raise RuntimeError(f"unknown G10_STDIO_RUNNER {RUNNER_KIND!r}")
     with tempfile.TemporaryDirectory(prefix="g10stdio-", ignore_cleanup_errors=True) as tmp:
@@ -228,7 +249,8 @@ def score(task: dict, completion: str) -> dict:
     if code is None:
         return {**out, "reason": why}
     tests = task["tests"][:MAX_TESTS]
-    results = run_program(code, [t["input"] for t in tests], float(task.get("time_limit_s", 4)))
+    results = run_program(code, [t["input"] for t in tests], float(task.get("time_limit_s", 4)),
+                          [t["output"] for t in tests])
     if isinstance(results, str):
         return {**out, "reason": results}
     passed = 0

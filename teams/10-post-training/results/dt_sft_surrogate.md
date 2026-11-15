@@ -215,3 +215,109 @@ Example reproduction (inputs/checkpoints must be staged; no private items are co
 python dt/analysis.py collect --model "$MODEL" --split-file "$SUPPLEMENT" --device cuda --out "$OUT/arm.json"
 python dt/analysis.py bootstrap --arm "dt=$OUT/dt.json" --arm "full=$OUT/full.json" --pair dt:full --out "$OUT/bootstrap.json"
 ```
+
+## Addendum, 15 Nov 2026: marker controls, untied head, deletion/layer sweep (one seed each)
+
+**Surrogate, exploratory, one seed per arm.** Added after the sections above, which are unchanged. Same slice-v1 data,
+400 steps x 8 rows, seed 1, evaluation commands and integrity checks (writeback, frozen-weight hash, reload parity: all
+pass on every arm) as the 14 Nov study. Rows marked "ref" are the 14 Nov measurements, not rerun. Preregistrations are
+local files, not in the repository. Evidence (aggregate reports, no generations): `fable_20261115_evidence/`
+(`mk17b-s1.json`, `mk17b-lr1e-3-s1.json`, `loram17b-s1.json`, `mcnemar.json`, `dtm135-*.json`).
+
+The Modal driver (`modal_e2.py`) stayed local. Each arm ran these in-repo commands (from `teams/10-post-training`):
+
+```bash
+python sft/bench/train.py --train <slice-v1>/train.tok.jsonl --model <weights> --revision none --tokenizer-dir <weights> \
+  --steps 400 --seed 1 --device cuda --autocast bf16 --micro-tokens 8192 --grad-checkpointing --log-every 50 --out <run> <ARM ARGS>
+python sft/bench/evaluate.py --model <run>/model --split-file <slice-v1>/test.tok.jsonl --metrics bpb,format,forget \
+  --gen-limit 200 --gen-batch <37 at 1.7B, 56 at 135M> --token-budget 16384 --device cuda --generations-out <private> --out <test.json>
+python sft/bench/evaluate.py --model <run>/model --split-file <heldout-sup-v1>/test.tok.jsonl --metrics bpb,format \
+  --gen-limit 200 --gen-batch <same> --token-budget 16384 --device cuda --generations-out <private> --out <sup.json>
+```
+
+New bench options used here (this PR): `--method markers` (every weight frozen, only the marker rows train),
+`--untie-head` and `--marker-scope {both,input,output}`. Tests: `sft/bench/tests/test_bench.py`.
+
+### R3. Marker controls on SmolLM2-1.7B base (NVIDIA L40S)
+
+Arm args: markers `--method markers --lr 1e-4 --train-marker-rows --marker-lr 1e-4` (and `1e-3` for both LRs);
+LoRA+markers `--method lora --lr 0.001 --train-marker-rows --marker-lr 1e-4`.
+
+| Arm | Trains | Test bpb | Valid replies / 110 | Supplement valid / 22 | Held-out v1 bpb (change vs base 0.8434) |
+|---|---|---:|---:|---:|---:|
+| untrained (ref) | nothing | 1.0490 | 0 | 0 | 0.8434 |
+| markers only, LR 1e-4 | 5 marker rows | 0.5871 | 3 | 0 | 0.8417 (-0.0017) |
+| markers only, LR 1e-3 | 5 marker rows | 0.5112 | 1 | 1 | 0.8543 (+0.0109) |
+| pure DT (ref) | gate masks | 0.3698 | 0 | 0 | 0.8597 (+0.0163) |
+| DT + markers (ref) | gate masks + 5 rows | 0.3633 | 76 | 14 | 0.8525 (+0.0091) |
+| LoRA + markers | LoRA r4 + 5 rows | 0.3483 | 81 | 17 | 0.8815 (+0.0381) |
+| LoRA (ref) | LoRA r4 | 0.3500 | 84 | 12 | 0.9121 (+0.0687) |
+| full FT (ref) | everything | 0.3332 | 93 | 16 | 0.9180 (+0.0746) |
+
+*Surrogate model, one seed per arm.*
+
+Execution pass@1 on the first 100 test prompts (all / the 69 with a validated reference), scored locally in Docker with
+the 14 Nov script: LoRA + markers 15 / 14; reference rows LoRA 18 / 17, DT + markers 13 / 13, full FT 21 / 20.
+Markers-only arms were not scored (1 and 3 valid replies). The execution scorer's caveat in `small_sft.md` applies (the
+17/24 dev reference-control check does not establish a scorer ceiling).
+
+Paired exact McNemar on the 110 format prompts (`mcnemar.json`): LoRA+markers vs DT+markers 81 vs 76, discordant
+19/14, p = 0.49; LoRA+markers vs LoRA 81 vs 84, p = 0.72; LoRA+markers vs full FT 81 vs 93, p = 0.029.
+
+- **Marker rows alone do not produce the format** (3/110 and 1/110; "never closes the turn" in 102 and 108 of 110).
+  Pure DT alone does not either (0/110). Together they give 76/110: the hybrid's repair is an interaction. The
+  preregistered reading "format needs body adaptation too" held; "markers are sufficient" is rejected at both LRs.
+- **Teacher-forced bpb overstates adaptation.** Training five rows moves bpb from 1.049 to 0.511, 75% of full
+  fine-tuning's bpb gain, while producing one valid reply in 110. The 14 Nov "bpb-gain ratio 0.95 for pure DT" should
+  be read with this in mind.
+- With the same marker freedom, DT and LoRA are not distinguishable on format (76 vs 81, p = 0.49) or execution (13 vs
+  15 of 100). DT+markers has the higher bpb (0.363 vs 0.348) and the smaller held-out drift (+0.009 vs +0.038). Marker
+  rows did not change LoRA's format (81 vs 84). Differences of a few prompts are not interpretable at one seed.
+- Cost $3.46 for the three arms (ledger estimate).
+
+### R8. Untied head at 135M: the output-side marker rows carry the repair (NVIDIA A10)
+
+SmolLM2-135M, head untied before training, DT on gate_proj plus five marker rows, arm args
+`--method dt --lr 0.002 --train-marker-rows --marker-lr 1e-4 --untie-head --marker-scope {both,input,output}`.
+
+| Marker rows trained | Valid replies / 110 | Supplement / 22 | Test bpb |
+|---|---:|---:|---:|
+| output head only | 60 | 8 | 0.5287 |
+| both sides | 57 | 9 | 0.5286 |
+| input embeddings only | **0** | 0 | 0.5321 |
+| tied, 14 Nov (ref, not rerun) | 63 | | 0.5287 |
+
+*Surrogate model, one seed per arm.*
+
+Output-only equals both; input-only is exactly as bad as pure DT (0/110, and the same bpb as pure DT, 0.5321). The
+prediction "output rows carry it" held. The untied head here starts as a copy of the embeddings, which the capstone's
+dense untied head (dry-run-1 ruling) will not. Cost $1.11 (ledger estimate).
+
+### R10. Deletion-fraction and target-layer sweep at 135M (NVIDIA A10)
+
+SmolLM2-135M, tied head, five marker rows trainable in every arm, base held-out v1 bpb 1.0981. Arm args: the R8 DT
+args without `--untie-head`, plus `--dt-eta 0.0001220703125` (1/8192), `--dt-eta 0.00390625` (1/256),
+`--dt-targets mlp` or `--dt-targets attn`.
+
+| Target layers | Init quantile (knob) | Deleted at init, of targeted | Deleted at end, of targeted / of all weights | Test bpb | Valid / 110 | Supplement / 22 | Held-out v1 bpb change |
+|---|---|---:|---:|---:|---:|---:|---:|
+| MLP gate | 1/8192 | 0.15% | 3.17% / 0.63% | 0.5288 | 62 | 13 | +0.0295 |
+| MLP gate (14 Nov, ref) | 1/2048 | 0.18% | 3.21% / 0.63% | 0.5287 | 63 | 9 | +0.0295 |
+| MLP gate | 1/256 | 0.52% | 3.50% / 0.69% | 0.5286 | 59 | 12 | +0.0276 |
+| all MLP (gate, up, down) | 1/2048 | 0.18% | 1.55% / 0.92% | **0.5048** | 71 | 12 | +0.0426 |
+| attention (q, k, v, o) | 1/2048 | 0.18% | 2.65% / 0.52% | 0.5303 | 71 | 11 | +0.0471 |
+
+*Surrogate model, one seed per arm; every arm is the DT+markers hybrid, not pure DT.*
+
+- **The init quantile hardly matters.** A 32-fold change moves the realised deletion from 3.17% to 3.50% of the
+  targeted weights and leaves bpb, format and forgetting unchanged. Training decides what is deleted; at this scale the
+  deletion fraction is an outcome, not a control.
+- **The target layers matter more.** All three MLP matrices lower bpb (0.505 vs 0.529) and give 71 valid replies, at
+  about 45% more held-out drift than gate-only. Attention masks give the same 71 with gate-level bpb and the largest
+  drift.
+- With one seed, 59 to 71 valid replies is inside the spread seen between full-FT seeds at this size (81 to 87), so
+  the format column does not rank the arms; bpb and drift differences are the readable part.
+- Cost $1.50 (ledger estimate).
+
+Still not done after this addendum: second seeds at 1.7B, the capstone model, and DT-then-RL. DT as the RL method
+itself (no SFT stage) is in `dt_rl_e4_20261115.md`.

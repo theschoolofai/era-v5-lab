@@ -422,6 +422,62 @@ def test_marker_hybrid_moves_only_marker_rows(tiny_setup):
         _run_extra(tiny_setup, "dt-m-wd", ["--train-marker-rows", "--wd", "0.01"], method="dt")
 
 
+def test_markers_only_control_trains_nothing_but_marker_rows(tiny_setup):
+    from safetensors.torch import load_file
+
+    rep = _run_extra(tiny_setup, "mk", ["--train-marker-rows", "--marker-lr", "1e-2", "--lr", "1e-2"], method="markers")
+    assert rep["method"]["method"] == "markers" and rep["method"]["hybrid"]["label"] == "markers+markers"
+    c = rep["checks"]
+    assert c["frozen_weights_unchanged"]["pass"] and c["reload_parity"]["pass"]
+    assert c["writeback_step1"]["pass"] and c["writeback_step1"]["lr"] > 0
+    base = load_file(str(tiny_setup / "base" / "model.safetensors"))
+    new = load_file(str(tiny_setup / "mk" / "model" / "model.safetensors"))
+    for k, v in base.items():
+        if k == "model.embed_tokens.weight":
+            moved = [i for i in range(v.shape[0]) if not torch.equal(v[i], new[k][i])]
+            assert moved and set(moved) <= {0, 1, 2, 15, 16}, moved
+        else:
+            assert torch.equal(v, new[k]), k
+    with pytest.raises(SystemExit):
+        _run_extra(tiny_setup, "mk-none", [], method="markers")
+
+
+def test_untied_head_marker_scope_moves_only_the_chosen_side(tiny_setup):
+    from safetensors.torch import load_file
+
+    base = load_file(str(tiny_setup / "base" / "model.safetensors"))["model.embed_tokens.weight"]
+    for scope, moved_emb, moved_head in (("input", True, False), ("output", False, True), ("both", True, True)):
+        rep = _run_extra(tiny_setup, f"untied-{scope}", ["--train-marker-rows", "--marker-lr", "1e-2", "--untie-head",
+                                                         "--marker-scope", scope])
+        assert rep["method"]["untied_head"] and rep["method"]["hybrid"]["scope"] == scope
+        assert rep["checks"]["frozen_weights_unchanged"]["pass"] and rep["checks"]["reload_parity"]["pass"]
+        saved = load_file(str(tiny_setup / f"untied-{scope}" / "model" / "model.safetensors"))
+        assert "lm_head.weight" in saved  # the head is its own tensor on disk
+        for name, expect in (("model.embed_tokens.weight", moved_emb), ("lm_head.weight", moved_head)):
+            rows = [i for i in range(base.shape[0]) if not torch.equal(base[i], saved[name][i])]
+            assert set(rows) <= {0, 1, 2, 15, 16}, (scope, name, rows)
+            assert bool(rows) == expect, (scope, name, rows)
+    with pytest.raises(SystemExit):
+        _run_extra(tiny_setup, "tied-output", ["--train-marker-rows", "--marker-scope", "output"])
+
+
+def test_markers_only_with_untied_output_scope_watches_the_head(tiny_setup):
+    # Regression (port review, 15 Nov): the markers control watched the input embedding, which is frozen under
+    # --untie-head --marker-scope output, so step 1 crashed on a missing gradient.
+    from safetensors.torch import load_file
+
+    rep = _run_extra(tiny_setup, "mk-untied-out", ["--train-marker-rows", "--marker-lr", "1e-2", "--lr", "1e-2",
+                                                   "--untie-head", "--marker-scope", "output"], method="markers")
+    wb = rep["checks"]["writeback_step1"]
+    assert wb["tensor"] == "lm_head (marker rows)" and wb["pass"] and wb["lr"] > 0
+    assert rep["checks"]["frozen_weights_unchanged"]["pass"] and rep["checks"]["reload_parity"]["pass"]
+    base = load_file(str(tiny_setup / "base" / "model.safetensors"))["model.embed_tokens.weight"]
+    saved = load_file(str(tiny_setup / "mk-untied-out" / "model" / "model.safetensors"))
+    assert torch.equal(saved["model.embed_tokens.weight"], base)
+    moved = [i for i in range(base.shape[0]) if not torch.equal(base[i], saved["lm_head.weight"][i])]
+    assert moved and set(moved) <= {0, 1, 2, 15, 16}, moved
+
+
 # ---------------------------------------------------------------- format judge
 
 

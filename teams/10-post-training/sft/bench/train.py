@@ -57,7 +57,7 @@ dtmask = _load("g10_dt_mask", HERE.parents[1] / "dt" / "mask.py")
 IGNORE = probe.IGNORE
 ZeroTargetError = probe.ZeroTargetError
 masked_nll_sum = probe.masked_nll_sum
-METHODS = ("full", "lora", "dt")
+METHODS = ("full", "lora", "dt", "markers")
 
 
 def retok_markers() -> list[tuple[str, int]]:
@@ -211,6 +211,11 @@ def apply_method(model: nn.Module, method: str, args) -> dict:
         for p in model.parameters():
             p.requires_grad_(True)
         return {"method": "full", "trainable": sum(p.numel() for p in model.parameters())}
+    if method == "markers":  # control: nothing but the marker rows (enabled by --train-marker-rows) is trained
+        for p in model.parameters():
+            p.requires_grad_(False)
+        return {"method": "markers", "trainable": 0,
+                "note": "CONTROL: every weight frozen; only the mapped chat-marker embedding/LM-head rows train"}
     if method == "lora":
         for p in model.parameters():
             p.requires_grad_(False)
@@ -238,12 +243,26 @@ def merge_lora(model: nn.Module) -> None:
                 setattr(module, child_name, lin)
 
 
-def enable_marker_rows(model: nn.Module, ids: list[int]) -> list[nn.Parameter]:
+def untie_head(model: nn.Module, trainable: bool = False) -> None:
+    """Give the LM head its own copy of the embedding matrix (the capstone dry-run-1 head is dense and untied). The
+    two start equal; from here the input rows and the output rows are separate parameters."""
+    if model.lm_head.weight is not model.get_input_embeddings().weight:
+        return
+    model.lm_head.weight = nn.Parameter(model.lm_head.weight.detach().clone(), requires_grad=trainable)
+    model.config.tie_word_embeddings = False
+
+
+def enable_marker_rows(model: nn.Module, ids: list[int], scope: str = "both") -> list[nn.Parameter]:
     """HYBRID control (label it): make only the embedding rows `ids` trainable. The tied LM head shares the tensor, so
     the same rows move on the output side. A gradient hook zeroes every other row; with weight decay 0, AdamW then
-    leaves those rows bit-identical (zero first and second moments give an exact zero update)."""
+    leaves those rows bit-identical (zero first and second moments give an exact zero update).
+    scope (untied head only): "input" = embedding rows, "output" = LM-head rows, "both"."""
+    emb, head = model.get_input_embeddings().weight, model.lm_head.weight
+    if scope != "both" and emb is head:
+        raise SystemExit("--marker-scope input/output needs --untie-head (tied rows cannot be trained separately)")
+    chosen = {"both": (emb, head), "input": (emb,), "output": (head,)}[scope]
     out = []
-    for w in {id(t): t for t in (model.get_input_embeddings().weight, model.lm_head.weight)}.values():
+    for w in {id(t): t for t in chosen}.values():
         rowmask = torch.zeros(w.shape[0], 1, dtype=w.dtype, device=w.device)
         rowmask[ids] = 1
         w.requires_grad_(True)
@@ -361,6 +380,8 @@ def train(args) -> dict:
         args.revision = None  # a local folder
     if args.train_marker_rows and args.method == "full":
         raise SystemExit("--train-marker-rows is a hybrid control for frozen-embedding methods; full FT trains every row")
+    if args.method == "markers" and not args.train_marker_rows:
+        raise SystemExit("--method markers trains only the marker rows: pass --train-marker-rows")
     if args.train_marker_rows and args.wd != 0:
         raise SystemExit("--train-marker-rows needs --wd 0: decoupled weight decay would move the unselected embedding rows")
     random.seed(args.seed)
@@ -377,10 +398,14 @@ def train(args) -> dict:
     vocab = model.config.vocab_size
     rows, rejected = load_train_rows(args.train, args.max_tokens, vocab)
     method_info = apply_method(model, args.method, args)
+    if args.untie_head:
+        untie_head(model, trainable=args.method == "full")  # frozen like every other weight unless full FT
+        method_info["untied_head"] = True
     marker_ids = sorted(sid for _, sid in retok_markers()) if args.train_marker_rows else None
-    marker_params = enable_marker_rows(model, marker_ids) if marker_ids else []
+    marker_params = enable_marker_rows(model, marker_ids, args.marker_scope) if marker_ids else []
     if marker_ids:
         method_info["hybrid"] = {"label": f"{args.method}+markers", "marker_row_ids": marker_ids, "marker_lr": args.marker_lr,
+                                 "scope": args.marker_scope,
                                  "note": "HYBRID control: embedding/LM-head rows of the mapped chat markers are trained; "
                                          "not the pure method"}
     if args.method == "dt":
@@ -402,6 +427,8 @@ def train(args) -> dict:
     params = [p for p in model.parameters() if p.requires_grad]
     mids = {id(p) for p in marker_params}
     groups = [{"params": [p for p in params if id(p) not in mids], "base_lr": args.lr}]
+    if not groups[0]["params"]:
+        groups = []
     if marker_params:
         groups.append({"params": marker_params, "base_lr": args.marker_lr})
     opt = torch.optim.AdamW(groups, lr=args.lr, betas=(0.9, 0.95), eps=1e-8, weight_decay=args.wd)
@@ -411,6 +438,10 @@ def train(args) -> dict:
     elif args.method == "dt":
         watch_name, layer0 = dtmask.masked_layers(model)[0]
         watch_name, watch = watch_name + ".gate", layer0.gate
+    elif args.method == "markers":  # watch a tensor that trains: with --marker-scope output only the head rows move
+        watch = marker_params[0]
+        watch_name = ("input embedding (marker rows)" if watch is model.get_input_embeddings().weight
+                      else "lm_head (marker rows)")
     else:
         watch_name, watch = "model.layers.0.self_attn.q_proj.lora_B", model.model.layers[0].self_attn.q_proj.lora_B
     rng = random.Random(args.seed)
@@ -442,13 +473,15 @@ def train(args) -> dict:
             reg_val = float(reg.detach())
         gn = torch.nn.utils.clip_grad_norm_(params, args.clip)
         if step == 0:
-            p0, g0 = watch.detach().clone(), watch.grad.detach().clone()
+            sel = (lambda t: t[marker_ids]) if args.method == "markers" else (lambda t: t)  # only these rows train
+            p0, g0 = sel(watch.detach()).clone(), sel(watch.grad.detach()).clone()
         opt.step()
         if args.method == "dt":
             dtmask.step_all(model)
         if step == 0:
-            checks["writeback_step1"] = {"tensor": watch_name, "lr": lr, "storage_dtype": str(watch.dtype),
-                                         **writeback_check(p0.cpu(), g0.cpu(), watch.detach().cpu(), lr, args.wd, 1e-8)}
+            wlr = lr * args.marker_lr / args.lr if args.method == "markers" else lr  # the watched tensor's group LR
+            checks["writeback_step1"] = {"tensor": watch_name, "lr": wlr, "storage_dtype": str(watch.dtype),
+                                         **writeback_check(p0.cpu(), g0.cpu(), sel(watch.detach()).cpu(), wlr, args.wd, 1e-8)}
             del p0, g0
         seen_rows += len(take)
         rec = {"step": step + 1, "loss": loss, "targets": count, "lr": lr, "grad_norm": float(gn), **({"reg": reg_val} if reg_val is not None else {}),
@@ -577,6 +610,10 @@ def parse_args(argv=None):
     ap.add_argument("--train-marker-rows", action="store_true",
                     help="HYBRID control for lora/dt: also train the embedding rows of the mapped chat markers")
     ap.add_argument("--marker-lr", type=float, default=1e-4, help="peak LR of the marker rows (same schedule shape)")
+    ap.add_argument("--untie-head", action="store_true",
+                    help="copy the tied embedding matrix into a separate LM head before training (capstone-like head)")
+    ap.add_argument("--marker-scope", choices=("both", "input", "output"), default="both",
+                    help="with --untie-head: train the marker rows of the embedding, of the LM head, or of both")
     ap.add_argument("--device", default="mps" if torch.backends.mps.is_available() else "cpu")
     ap.add_argument("--log-every", type=int, default=10)
     ap.add_argument("--out", required=True)
