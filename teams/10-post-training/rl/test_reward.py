@@ -104,9 +104,19 @@ def test_list_envs_covers_every_shipped_task_and_env():
     ids = reward.list_envs()
     assert len([i for i in ids if i.startswith("code/")]) == len(list((HERE / "tasks").glob("*/task.json")))
     assert len([i for i in ids if i.startswith("swe/")]) == len(list((HERE.parent / "swe-envs").glob("*/env.json")))
+    assert len([i for i in ids if i.startswith("indic/")]) == len(list((HERE / "indic" / "tasks").glob("*/task.json")))
     for i in ids:
         good, bad = reward.known_outputs(i)
         assert good and bad and good != bad
+
+
+def test_indic_envs_score_the_known_good_one_and_the_known_bad_zero_without_docker():
+    ids = [i for i in reward.list_envs() if i.startswith("indic/")]
+    assert ids
+    rows = reward.check_all(workers=2, ids=ids)
+    assert len(rows) == 2 * len(ids) and all(r["ok"] for r in rows), [r for r in rows if not r["ok"]]
+    with pytest.raises(KeyError):
+        reward.reward("indic/no_such_task", "<answer>1</answer>")
 
 
 def test_swe_integrity_checks_hold_with_any_executor(monkeypatch):
