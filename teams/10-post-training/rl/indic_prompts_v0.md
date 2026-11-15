@@ -66,8 +66,8 @@ Kept out of v0, because one exact answer is not possible or not safe:
 
 | Item | Status |
 |---|---|
-| Verifier, 6 seed tasks, tests, `indic/<task_id>` in `reward.py` | done: PR #88 (correct = 1 and wrong = 0 for every task; 53 tests) |
-| Generator and template lint | done in this PR (31 tests; about 55,000 checked items per second on one CPU core) |
+| Verifier, 6 seed tasks, tests, `indic/<task_id>` in `reward.py` | done: PR #88 (correct = 1 and wrong = 0 for every task; 59 tests) |
+| Generator and template lint | done in this PR (41 tests; about 50,000 checked items per second on one CPU core) |
 | Templates written by people | **open**. gmrammohan15 writes the first Hindi templates (F1, F2, F3). Readers of the other languages are asked to write or check one template each |
 | Team 2 check | **open**. Request to Team 2 (Data B) readers, by language, from `teams/02-data-b/readers.md`: Hindi mittalutkarsh; Tamil truesrini; Telugu shankarpandala; Bengali aneeshads; Kannada keshavamurali. Each reader checks the wording of the seed task in their language and of each template, and five generated items. When they agree, their handle goes in `team2_reviewer` and the link to their reply goes here |
 | Decontamination of the training prompts | runs on each template's generated file before it is used (section 6) |

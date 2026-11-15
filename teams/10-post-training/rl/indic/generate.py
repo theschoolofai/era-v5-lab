@@ -34,8 +34,9 @@ Template file (YAML, a list). Every field below is written by a person:
 
 Expressions are a small part of Python: integers, strings, the names above, + - * // %, comparisons, and, or, not,
 `x if c else y`, indexing, and the functions min, max, abs, len and digits(n, script) (n written in that script's
-digits). Anything else (attributes, imports, other calls, **) is rejected when the template is read, and a placeholder
-must be a plain name, so a template cannot run code.
+digits). Anything else (attributes, imports, other calls, keywords, **) is rejected when the template is read, and a
+placeholder must be a plain name, so a template cannot run code. * works on integers only, with the product at most
+10**30, and no computed value is longer than 10,000 characters, so a template cannot use up memory either.
 
     python generate.py --templates templates/indic_templates.yaml --check                 # lint the templates
     python generate.py --templates templates/indic_templates.yaml --per-template 200 --seed 1234 --out out/indic_items.jsonl
@@ -70,15 +71,31 @@ REQUIRED = ("id", "author", "eligibility", "language", "script", "answer_type", 
 MAX_DRAWS_PER_ITEM = 50
 MAX_MISSES_IN_A_ROW = 5_000
 MAX_CONSTANT = 10**12
+MAX_PRODUCT = 10**30
+MAX_VALUE_CHARS = 10_000
 _HANDLE = re.compile(r"^[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})$")
-ZERO = {"Deva": 0x966, "Beng": 0x9E6, "Guru": 0xA66, "Gujr": 0xAE6, "Orya": 0xB66, "Taml": 0xBE6, "Telu": 0xC66,
-        "Knda": 0xCE6, "Mlym": 0xD66, "Latn": 0x30}
 
 
 def digits(n: int, script: str) -> str:
     """n written with the decimal digits of script (ASCII for Latn)."""
-    shift = ZERO[script] - 0x30
+    shift = iv.DIGIT_ZERO[script] - 0x30
     return "".join(chr(ord(c) + shift) if c.isdigit() else c for c in str(n))
+
+
+def _mul(a, b):
+    if type(a) is not int or type(b) is not int:
+        raise ValueError("* is only for integers")
+    if abs(a * b) > MAX_PRODUCT:
+        raise ValueError("product too large")
+    return a * b
+
+
+class _MulToCall(ast.NodeTransformer):
+    def visit_BinOp(self, node):
+        self.generic_visit(node)
+        if isinstance(node.op, ast.Mult):
+            return ast.copy_location(ast.Call(ast.Name("_mul", ast.Load()), [node.left, node.right], []), node)
+        return node
 
 
 FUNCS = {"min": min, "max": max, "abs": abs, "len": len, "digits": digits}
@@ -95,16 +112,22 @@ def compile_expr(text, names: set[str]):
             raise ValueError(f"{type(node).__name__} is not allowed in {text!r}")
         if isinstance(node, ast.Name) and node.id not in names and node.id not in FUNCS:
             raise ValueError(f"unknown name {node.id!r} in {text!r}")
-        if isinstance(node, ast.Call) and (not isinstance(node.func, ast.Name) or node.func.id not in FUNCS
-                                           or node.keywords):
-            raise ValueError(f"only min, max, abs, len and digits may be called, without keywords: {text!r}")
+        if isinstance(node, ast.Call) and (not isinstance(node.func, ast.Name) or node.func.id not in FUNCS):
+            raise ValueError(f"only min, max, abs, len and digits may be called: {text!r}")
         if isinstance(node, ast.Constant) and isinstance(node.value, int) and abs(node.value) > MAX_CONSTANT:
             raise ValueError(f"constant too large in {text!r}")
+    tree = ast.fix_missing_locations(_MulToCall().visit(tree))
     return compile(tree, "<template>", "eval")
 
 
 def _run(code, ns: dict):
-    return eval(code, {"__builtins__": {}, **FUNCS}, ns)  # noqa: S307  (AST checked by compile_expr)
+    try:
+        value = eval(code, {"__builtins__": {}, "_mul": _mul, **FUNCS}, ns)  # noqa: S307  (AST checked by compile_expr)
+    except TypeError as e:
+        raise ValueError(str(e)) from None
+    if isinstance(value, (str, list, tuple)) and len(value) > MAX_VALUE_CHARS:
+        raise ValueError(f"a value is longer than {MAX_VALUE_CHARS}")
+    return value
 
 
 def _fields(prompt: str) -> list[str]:

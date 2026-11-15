@@ -104,10 +104,27 @@ def test_indic_digits_in_the_prompt_and_any_digits_in_the_answer():
     assert iv.score(task, f"<answer>{it['accepted'][0]}</answer>")["reward"] == 1
 
 
-def test_same_seed_same_items_and_order_of_templates_does_not_matter():
+def test_same_seed_same_items():
     a = g.Template(INTEGER).generate(30, seed=11)
     assert a == g.Template(INTEGER).generate(30, seed=11)
     assert a != g.Template(INTEGER).generate(30, seed=12)
+
+
+def test_each_template_has_its_own_random_stream():
+    a = g.Template(INTEGER).generate(30, seed=11)
+    renamed = g.Template(tpl(INTEGER, id="hi_fixture_other")).generate(30, seed=11)
+    assert [it["prompt"] for it in a] != [it["prompt"] for it in renamed]
+
+
+def test_adding_a_template_before_another_does_not_change_its_items(tmp_path):
+    def items_of(templates, name):
+        path, out = tmp_path / f"{name}.yaml", tmp_path / f"{name}.jsonl"
+        path.write_text(yaml.safe_dump(templates, allow_unicode=True), encoding="utf-8")
+        assert g.main(["--templates", str(path), "--per-template", "20", "--seed", "3", "--out", str(out)]) == 0
+        rows = [json.loads(line) for line in out.read_text(encoding="utf-8").splitlines()]
+        return [r for r in rows if r["template"] == INTEGER["id"]]
+
+    assert items_of([INTEGER], "alone") == items_of([WEEKDAY, INTEGER], "second")
 
 
 def test_a_draw_where_a_wrong_answer_equals_the_answer_is_skipped():
@@ -115,6 +132,36 @@ def test_a_draw_where_a_wrong_answer_equals_the_answer_is_skipped():
             wrong=["a + b"])
     for it in g.Template(t).generate(20, seed=2):
         assert it["accepted"][0] not in it["wrong"]  # b = 0 makes a + b == a - b: never kept
+
+
+def test_a_wrong_answer_equal_to_the_answer_is_dropped_before_scoring(monkeypatch):
+    def never(*_):
+        raise AssertionError("scored a draw whose wrong answer equals the answer")
+
+    monkeypatch.setattr(g.iv, "score", never)
+    with pytest.raises(ValueError, match="items after"):
+        g.Template(tpl(INTEGER, wrong=["a - b"])).generate(1, seed=1)
+
+
+@parametrize("reward", [0, 1])
+def test_a_draw_the_verifier_does_not_confirm_is_dropped(monkeypatch, reward):
+    # reward 0: the answer does not score 1; reward 1: the wrong answers do not score 0.
+    monkeypatch.setattr(g.iv, "score", lambda *_: {"reward": reward})
+    with pytest.raises(ValueError, match="items after"):
+        g.Template(INTEGER).generate(1, seed=1)
+
+
+@parametrize("expr", ["'ab' * 1000000000000", "person * 1000000000000", "[a] * b", "999999999999 * 999999999999 * 999999999999"])
+def test_multiplying_text_lists_or_into_huge_numbers_is_refused_without_using_memory(expr):
+    with pytest.raises(ValueError):
+        g.Template(tpl(INTEGER, derive={"big": expr}, wrong=["a + b"])).generate(1, seed=1)
+    assert g.check_file([tpl(INTEGER, derive={"big": expr})])["hi_fixture_left"]
+
+
+def test_a_very_long_computed_value_is_refused():
+    t = tpl(INTEGER, derive={"s1": "person + person", **{f"s{i}": f"s{i - 1} + s{i - 1}" for i in range(2, 20)}})
+    with pytest.raises(ValueError, match="longer than"):
+        g.Template(t).generate(1, seed=1)
 
 
 def test_a_draw_that_puts_the_answer_in_the_prompt_is_skipped():
