@@ -14,6 +14,7 @@ Gate 3 asks that the endpoint return reasoning and tool calls in the right field
 | [`serve_check.py`](serve_check.py) | starts `vllm serve` with the template and both parsers, sends the 100 prompts (plus 20 streamed), checks every field, and writes `serve_check.md`, `summary.json`, `serve_check.jsonl` and the server log to `--out` |
 | [`prompts_v1.jsonl`](prompts_v1.jsonl), [`tools_v1.json`](tools_v1.json) | the 100 prompts and 6 tool schemas, written by [`make_prompts.py`](make_prompts.py) |
 | [`test_g10_parsers.py`](test_g10_parsers.py) | template round trip, streaming in 1-char and random chunks, reasoning end on multi-turn prompts, and the parsers inside vLLM's own `DelegatingParser` (needs vllm) |
+| [`serve_check.ipynb`](serve_check.ipynb) | Kaggle / Colab notebook: install vLLM 0.33.0, run the tests, download the model, run serve_check, zip the results |
 | [`test_serve_check.py`](test_serve_check.py) | the field and behaviour checks, the answer check on Indic digits, request building |
 
 ## Why our own parsers
@@ -42,24 +43,18 @@ python -m pytest teams/12-quantization/serving -q          # vLLM adapter tests 
 With `vllm==0.33.0` installed, all 60 pass. On a Mac, `pip install --no-deps vllm==0.33.0` plus the modules
 the parser imports is enough.
 
-**Kaggle (GPU T4 x2, Internet on).** Stand-in model `Qwen/Qwen3-4B-Instruct-2507` (Apache-2.0). Each cell:
-```bash
-!git clone --depth 1 -b g12-week3-soma https://github.com/SomaKorada07/era-v5-lab.git
-%cd era-v5-lab
-!pip install -q "vllm==0.33.0"
-!python -m pytest teams/12-quantization/serving -q
-!python -c "from huggingface_hub import snapshot_download; snapshot_download('Qwen/Qwen3-4B-Instruct-2507', local_dir='/kaggle/working/models/Qwen3-4B-Instruct-2507')"
-# smoke: 10 prompts, 5 streamed
-!python teams/12-quantization/serving/serve_check.py --model /kaggle/working/models/Qwen3-4B-Instruct-2507 \
-    --label "Qwen3-4B-Instruct-2507 (stand-in)" --limit 10 --stream-check 5 --out /kaggle/working/smoke \
-    --vllm-arg=--dtype=half --vllm-arg=--max-model-len=4096 --vllm-arg=--tensor-parallel-size=2 --n-gpus 2
-# full: 100 prompts, 20 streamed
-!python teams/12-quantization/serving/serve_check.py --model /kaggle/working/models/Qwen3-4B-Instruct-2507 \
-    --label "Qwen3-4B-Instruct-2507 (stand-in)" --out /kaggle/working/out \
-    --vllm-arg=--dtype=half --vllm-arg=--max-model-len=4096 --vllm-arg=--tensor-parallel-size=2 --n-gpus 2
-```
-A T4 has no bf16, so `--dtype half`. Copy `out/serve_check.md` to `results/serve_check.md`, and `summary.json` and
-`serve_check.jsonl` to `results/serve_check/`. Keep `vllm_server.log` out of the repo; if needed, put it in a gist.
+**Kaggle (GPU T4 x2, Internet on): [`serve_check.ipynb`](serve_check.ipynb).** Stand-in model
+`Qwen/Qwen3-4B-Instruct-2507` (Apache-2.0). Import the notebook and check the settings cell (branch, model).
+1. `SMOKE = True`: run all cells interactively (about 15 min). Every step runs on 10 prompts.
+2. `SMOKE = False`: **Save Version → Save & Run All (Commit)**. Download `serve_check_results.zip` from the
+   version's Output tab and copy its `results/` folder into `teams/12-quantization/`. That gives
+   `results/serve_check.md` and `results/serve_check/{summary.json, serve_check.jsonl, environment.json}`. Keep
+   `logs/` (server log) out of the repo; if needed, put it in a gist.
+
+The notebook installs vLLM 0.33.0 in its own uv environment and runs the tests (none may skip). It uses
+`--dtype half` on T4 (no bf16) and tensor parallel 2 on T4 x2. It writes the zip even if the check fails.
+Without the notebook, the same run is
+`python serving/serve_check.py --model <folder> --vllm-arg=--dtype=half --vllm-arg=--max-model-len=4096 --out out`.
 
 **Our checkpoint (job request).** Once `export_hf.py` (Member D) turns a dry-run-1 checkpoint into a Hugging Face
 `GraniteMoeSharedForCausalLM` folder (`unsupported_parts.md` §8), run the same script on it with
@@ -95,5 +90,5 @@ to `--out`.
 ## Status
 
 - Parsers and checks: 60 tests pass on CPU with vLLM 0.33.0 (vLLM's parser composition, without a GPU).
-- GPU run on the stand-in: to do (Kaggle). `results/serve_check.md` is written by that run, not by hand.
+- GPU run on the stand-in: to do (`serve_check.ipynb` on Kaggle). `results/serve_check.md` is written by that run, not by hand.
 - Our checkpoint: waits for the dry-run-1 checkpoint (G7, D4) and `export_hf.py`.
