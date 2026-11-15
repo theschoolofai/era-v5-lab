@@ -45,6 +45,18 @@ from typing import Callable, Iterable, Iterator
 TEAM = Path(__file__).resolve().parents[1]
 LICENCE_TABLE = TEAM / "licences" / "licence_table.md"
 BYTES_READ = 0  # bytes fetched from the Hub by this process (progress reporting)
+REVISIONS: dict[str, str] = {}  # Hub dataset id -> commit sha to read (set by --revisions-json); unlisted ids read `main`
+
+
+def hub_revision(dataset: str) -> str:
+    return REVISIONS.get(dataset, "main")
+
+
+def _guard_bytes() -> None:
+    """Stop a run that has fetched more than $G10_MAX_HUB_BYTES from the Hub (a disk and bandwidth guard)."""
+    cap = os.environ.get("G10_MAX_HUB_BYTES")
+    if cap and BYTES_READ > int(cap):
+        raise SystemExit(f"read {BYTES_READ:,} bytes from the Hub, over the G10_MAX_HUB_BYTES cap of {int(cap):,}")
 
 
 def _load(name: str, path: Path):
@@ -400,7 +412,7 @@ def oasst2_threads(dataset: str, path: str, offset: int, n: int) -> Iterator[dic
     """Read the oasst2 parquet from the Hub and rebuild threads (see `oasst2_build`)."""
     import pyarrow.parquet as pq
 
-    pf = pq.ParquetFile(io.BufferedReader(_RangeFile(f"https://huggingface.co/datasets/{dataset}/resolve/main/{urllib.parse.quote(path)}"),
+    pf = pq.ParquetFile(io.BufferedReader(_RangeFile(f"https://huggingface.co/datasets/{dataset}/resolve/{hub_revision(dataset)}/{urllib.parse.quote(path)}"),
                                           buffer_size=4 << 20))
     yield from oasst2_build((m for batch in pf.iter_batches(batch_size=4096) for m in batch.to_pylist()), offset, n)
 
@@ -579,13 +591,22 @@ def pick_effort(trace_tokens: int) -> str:
     raise Skip("trace over the 64k effort budget")
 
 
-def convert_row(messages: list[dict], count: Callable[[str], int]) -> tuple[str, str, list[tuple[int, int]]]:
-    """Render one transcript; return (effort, text, train spans). Raises Skip if it does not fit."""
+def prepare_row(messages: list[dict]) -> list[str]:
+    """Stage 1 of one row: its checks and a probe render. Returns the trace segments whose tokens set the effort
+    tier. Raises Skip if the row does not fit."""
     if any(m.get("role") == "user" and not m.get("content") for m in messages):
         raise Skip("empty user turn")
     try:
         probe = render.render(messages, EFFORTS[0])  # the trace does not depend on the effort line
-        effort = pick_effort(sum(count(m.group()) for m in TRACE.finditer(probe)))
+    except render.RenderError as exc:
+        raise Skip(re.sub(r"^message \d+ ", "", str(exc))) from None
+    return [m.group() for m in TRACE.finditer(probe)]
+
+
+def finish_row(messages: list[dict], segment_tokens: Iterable[int]) -> tuple[str, str, list[tuple[int, int]]]:
+    """Stage 2: the effort tier from the segments' token counts, the final render and its checks."""
+    effort = pick_effort(sum(segment_tokens))
+    try:
         text = render.render(messages, effort)
     except render.RenderError as exc:
         raise Skip(re.sub(r"^message \d+ ", "", str(exc))) from None
@@ -601,6 +622,14 @@ def convert_row(messages: list[dict], count: Callable[[str], int]) -> tuple[str,
     return effort, text, spans
 
 
+def convert_row(messages: list[dict], count: Callable[[str], int]) -> tuple[str, str, list[tuple[int, int]]]:
+    """Render one transcript; return (effort, text, train spans). Raises Skip if it does not fit."""
+    return finish_row(messages, [count(segment) for segment in prepare_row(messages)])
+
+
+CHUNK_ROWS = 32  # rows tokenised per `encode_batch` call (the Rust tokenizer spreads a batch over its threads)
+
+
 def convert(
     set_id: str, rows: Iterable[dict], limit: int | None, tokenizer_path: str | None, first_index: int = 0, sink=None, progress=None
 ) -> tuple[list[str], dict]:
@@ -612,6 +641,10 @@ def convert(
     A row's id is `<set>/<row index in the source split>` (`first_index` is the index of the first
     row given), so ids stay unique when a source repeats its own ids (codeforces-cots has several
     generations per problem). The source's own id, if it has one, is kept as `source_id`.
+
+    Rows are handled in chunks of `CHUNK_ROWS`: the trace segments of a chunk are counted in one batch call, then
+    the final texts are encoded in one batch call. Output, counters and their order are those of row-by-row
+    processing (the tokenizer's batch call returns what its single call returns); only the call pattern differs.
     """
     meta = licence_row(set_id)
     check_allowed(meta)
@@ -621,15 +654,15 @@ def convert(
 
         tok = Tokenizer.from_file(tokenizer_path)
 
-        def count(text: str) -> int:
-            return len(tok.encode(text, add_special_tokens=False).ids)
+        def count_many(texts: list[str]) -> list[int]:
+            return [len(e.ids) for e in tok.encode_batch(texts, add_special_tokens=False)] if texts else []
 
         counter = "tokenizer sha256 " + hashlib.sha256(Path(tokenizer_path).read_bytes()).hexdigest()
     else:
         tok = None
 
-        def count(text: str) -> int:
-            return (len(text.encode("utf-8")) + 3) // 4
+        def count_many(texts: list[str]) -> list[int]:
+            return [(len(t.encode("utf-8")) + 3) // 4 for t in texts]
 
         counter = "estimate: UTF-8 bytes / 4 (no tokenizer given)"
 
@@ -640,30 +673,62 @@ def convert(
     efforts: Counter = Counter()
     scanned = taken = tokens = trained = 0
     last_report = time.monotonic()
-    for index, row in enumerate(rows):
-        scanned += 1
-        if progress and scanned % 500 == 0 and time.monotonic() - last_report >= 2:
-            last_report = time.monotonic()
-            progress(scanned, written)
-        if select and not select(row):
-            continue
-        taken += 1
-        try:
+    source = iter(enumerate(rows))
+    finished = False
+    while not finished:
+        chunk: list[tuple[int, dict]] = []
+        while len(chunk) < CHUNK_ROWS:
             try:
-                messages = adapter(row)
-            except (KeyError, TypeError, AttributeError) as exc:
-                raise Skip(f"missing or malformed field ({type(exc).__name__})") from None
-            effort, text, spans = convert_row(messages, count)
-        except Skip as exc:
-            skipped[str(exc)] += 1
-        else:
+                index, row = next(source)
+            except StopIteration:
+                finished = True
+                break
+            scanned += 1
+            if progress and scanned % 500 == 0 and time.monotonic() - last_report >= 2:
+                last_report = time.monotonic()
+                progress(scanned, written)
+            if select and not select(row):
+                continue
+            taken += 1
+            chunk.append((index, row))
+            if limit and taken >= limit:
+                finished = True
+                break
+        # stage 1: adapter, checks, probe render (per row); one batch call counts every trace segment of the chunk
+        prepared: list[tuple[int, dict, list[dict] | None, list[str], str | None]] = []
+        for index, row in chunk:
+            try:
+                try:
+                    messages = adapter(row)
+                except (KeyError, TypeError, AttributeError) as exc:
+                    raise Skip(f"missing or malformed field ({type(exc).__name__})") from None
+                prepared.append((index, row, messages, prepare_row(messages), None))
+            except Skip as exc:
+                prepared.append((index, row, None, [], str(exc)))
+        counts = iter(count_many([seg for p in prepared for seg in p[3]]))
+        # stage 2: effort tier, final render, spans
+        outcomes: list[tuple[int, dict, tuple[str, str, list] | None, str | None]] = []
+        for index, row, messages, segments, reason in prepared:
+            if reason is not None:
+                outcomes.append((index, row, None, reason))
+                continue
+            try:
+                outcomes.append((index, row, finish_row(messages, [next(counts) for _ in segments]), None))
+            except Skip as exc:
+                outcomes.append((index, row, None, str(exc)))
+        encodings = iter(count_encodings(tok, [o[2][1] for o in outcomes if o[2]]) if tok else [])
+        for index, row, done, reason in outcomes:
+            if reason is not None:
+                skipped[reason] += 1
+                continue
+            effort, text, spans = done
             efforts[effort] += 1
             sample = {"id": f"{set_id}/{first_index + index}", "set": set_id}
             if id_field:
                 sample["source_id"] = row.get(id_field)
             sample.update(effort=effort, text=text, train_spans=[list(s) for s in spans])
             if tok:
-                enc = tok.encode(text, add_special_tokens=False)
+                enc = next(encodings)
                 sample["input_ids"] = enc.ids
                 sample["loss_mask"] = token_mask(spans, enc.offsets)
                 tokens += len(enc.ids)
@@ -675,8 +740,6 @@ def convert(
                 sink.write(line)
             else:
                 lines.append(line)
-        if limit and taken >= limit:
-            break
 
     manifest = {
         **meta,
@@ -692,6 +755,11 @@ def convert(
     if tok:
         manifest["tokens"], manifest["trained_tokens"] = tokens, trained
     return lines, manifest
+
+
+def count_encodings(tok, texts: list[str]) -> list:
+    """Encodings of the final texts in one batch call (offsets are kept for the loss mask)."""
+    return tok.encode_batch(texts, add_special_tokens=False) if texts else []
 
 
 # --- input -----------------------------------------------------------------------------------
@@ -772,6 +840,7 @@ class _RangeFile(io.RawIOBase):
         buffer[: len(data)] = data
         self.pos += len(data)
         BYTES_READ += len(data)
+        _guard_bytes()
         return len(data)
 
 
@@ -798,7 +867,7 @@ def expand_paths(dataset: str, spec: str) -> list[str]:
             return names
         for attempt in range(4):
             try:
-                with urllib.request.urlopen(f"https://huggingface.co/api/datasets/{dataset}/tree/main?recursive=1", timeout=60) as r:
+                with urllib.request.urlopen(f"https://huggingface.co/api/datasets/{dataset}/tree/{hub_revision(dataset)}?recursive=1", timeout=60) as r:
                     tree = json.load(r)
                 break
             except OSError:
@@ -877,7 +946,7 @@ def _one_file_rows(dataset: str, path: str, offset: int, n: int) -> Iterator[dic
     Only the bytes needed are fetched: a .jsonl is streamed and closed after the last row, a .parquet is read
     row group by row group through range requests. Rows are never truncated, unlike the datasets-server API.
     """
-    url = f"https://huggingface.co/datasets/{dataset}/resolve/main/{urllib.parse.quote(path)}"
+    url = f"https://huggingface.co/datasets/{dataset}/resolve/{hub_revision(dataset)}/{urllib.parse.quote(path)}"
     taken = 0
     local = local_path(dataset, path)
     if local is not None and local.is_file():
@@ -901,6 +970,7 @@ def _one_file_rows(dataset: str, path: str, offset: int, n: int) -> Iterator[dic
         global BYTES_READ
         for line in r:
             BYTES_READ += len(line)
+            _guard_bytes()
             if taken >= offset + n:
                 return
             if taken >= offset:
@@ -964,7 +1034,14 @@ def main() -> None:
     ap.add_argument("--index-base", type=int, help="ids start at <set>/<this number> (for parallel runs on file groups)")
     ap.add_argument("--roll-mb", type=float, help="write <out>.partNNNN.jsonl parts of about this size instead of one file")
     ap.add_argument("--progress", type=Path, help="rewrite this JSON file every few seconds with rows and bytes read")
+    ap.add_argument("--revisions-json", type=Path,
+                    help="JSON with datasets.<hub id>.sha (see sft_v1_worklist.py fetch-hf): Hub reads use these commits, not main")
     a = ap.parse_args()
+    if a.revisions_json:
+        if a.hf_rows:
+            raise SystemExit("--revisions-json pins the file reads of --hf-file/--input; the datasets-server (--hf-rows) cannot be pinned")
+        REVISIONS.update({repo: v["sha"] for repo, v in json.loads(a.revisions_json.read_text(encoding="utf-8"))["datasets"].items()
+                          if v.get("sha")})
 
     meta = licence_row(a.set)
     check_allowed(meta)
@@ -1003,6 +1080,8 @@ def main() -> None:
     report(manifest["rows_scanned"], manifest["rows"])
     manifest["input"] = where
     manifest["index_base"] = first
+    if a.hf_file:
+        manifest["hub_revision"] = hub_revision(meta["source"]) if meta["source"] in REVISIONS else "unpinned (main at read time)"
     manifest_path.write_text(json.dumps(manifest, indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     print(json.dumps({k: manifest[k] for k in ("set", "rows_in", "rows", "skipped", "effort", "content_sha256")}, ensure_ascii=False))
 

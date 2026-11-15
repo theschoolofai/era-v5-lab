@@ -1,0 +1,97 @@
+{
+ "checks": {
+  "checks_failed": {},
+  "checks_ok": true,
+  "effort_rows": {
+   "16k": 0,
+   "1k": 996,
+   "4k": 0,
+   "64k": 0
+  },
+  "files": [
+   {
+    "bytes": 7300999,
+    "name": "sft-indic-aya-collection.first1000.jsonl",
+    "sha256": "a5c1ebb2576423a4acf0187f3c65fbd70d4daa147c3dc137c1b133b77b584b10"
+   }
+  ],
+  "info": {
+   "decode_equals_normalised_text_only": 148
+  },
+  "length": {
+   "max": 5417,
+   "min": 43,
+   "p50": 177,
+   "p95": 1491
+  },
+  "max_len": 32768,
+  "rows": 996,
+  "rows_over_max_len": 0,
+  "rows_with_tool_blocks": 0,
+  "shifted_supervised_targets": 194329,
+  "tokens": 398743,
+  "tool_call_blocks": 0,
+  "tool_call_tokens_untrained": 0,
+  "tool_result_blocks": 0,
+  "train_spans": 996,
+  "trained_share": 0.487354,
+  "trained_tokens": 194329,
+  "unique_ids": true
+ },
+ "checks_wall_s": 0.93,
+ "content_sha256": "a5c1ebb2576423a4acf0187f3c65fbd70d4daa147c3dc137c1b133b77b584b10",
+ "convert": {
+  "cpu_sys_s": 0.785,
+  "cpu_user_s": 1.814,
+  "hub_bytes_read": 123266683,
+  "max_rss_mb": 286.9,
+  "wall_s": 70.464
+ },
+ "decision": "TSAI reserves",
+ "deterministic_rerun": true,
+ "effort_manifest": {
+  "16k": 0,
+  "1k": 996,
+  "4k": 0,
+  "64k": 0
+ },
+ "file_bytes": 7300999,
+ "file_sha256": "a5c1ebb2576423a4acf0187f3c65fbd70d4daa147c3dc137c1b133b77b584b10",
+ "generator_model": "none (human speaker-written templates applied to human-annotated Indic NLP datasets; no model generator)",
+ "hub_revision": "09069079fad96ad9c7f8781be8c1d70471dfa768",
+ "input": "hub file CohereLabs/aya_collection  rows 0..995",
+ "licence": "apache-2.0 (Hub tag; commercial use permitted per tag)",
+ "rerun_content_sha256": "a5c1ebb2576423a4acf0187f3c65fbd70d4daa147c3dc137c1b133b77b584b10",
+ "rerun_wall_s": 36.943,
+ "rows_in": 996,
+ "rows_out": 996,
+ "rows_per_s_convert": 14.13,
+ "rows_scanned": 996,
+ "scope": "first 996 source rows (an equal share of each subset), C3",
+ "selection": "12 templated Indic subsets, equal share of rows from the start of each",
+ "set": "sft-indic-aya-collection",
+ "skipped": {},
+ "source": "CohereLabs/aya_collection",
+ "token_record": {
+  "basis": "first 996 source rows (an equal share of each subset), C3; not the admissible kept rows",
+  "effort": {
+   "16k": 0,
+   "1k": 996,
+   "4k": 0,
+   "64k": 0
+  },
+  "length": {
+   "max": 5417,
+   "min": 43,
+   "p50": 177,
+   "p95": 1491
+  },
+  "rows": 996,
+  "sequence_tokens": 398743,
+  "set_id": "sft-indic-aya-collection",
+  "shifted_supervised_targets": 194329,
+  "tokenizer_sha256": "15468e66457b43af79f695cbe585c0d03e3cfe7a4a5d04d189dd3c6b9f02ddc3"
+ },
+ "tokenizer_sha256": "15468e66457b43af79f695cbe585c0d03e3cfe7a4a5d04d189dd3c6b9f02ddc3",
+ "tokens_per_s_convert": 5659
+}
