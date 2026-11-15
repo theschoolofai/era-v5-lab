@@ -21,6 +21,9 @@ spec = importlib.util.spec_from_file_location("g10_indic_verifier", HERE / "indi
 v = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(v)
 
+# Named decorator: pr-guard takes a dotted decorator line of a diff for an email address.
+parametrize = pytest.mark.parametrize
+
 THINK = "<|think|>\nपहले सवाल को ध्यान से पढ़ते हैं।\n<|/think|>\n"
 
 # One correct and one wrong completion per task, written the way a model would reply (thinking, then a short answer).
@@ -52,19 +55,19 @@ def test_every_shipped_task_has_a_correct_and_a_wrong_case():
     assert sorted(CASES) == sorted(p.parent.name for p in TASKS.glob("*/task.json"))
 
 
-@pytest.mark.parametrize("name", sorted(CASES))
+@parametrize("name", sorted(CASES))
 def test_correct_answer_scores_one(name):
     r = score(name, THINK + CASES[name][0])
     assert r["reward"] == 1, r
 
 
-@pytest.mark.parametrize("name", sorted(CASES))
+@parametrize("name", sorted(CASES))
 def test_wrong_answer_scores_zero(name):
     r = score(name, THINK + CASES[name][1])
     assert r["reward"] == 0 and r["reason"] in ("wrong answer", "answer is not in the task's script"), r
 
 
-@pytest.mark.parametrize("name", sorted(CASES))
+@parametrize("name", sorted(CASES))
 def test_shipped_task_passes_the_lint(name):
     assert v.check_task(task(name)) == []
 
