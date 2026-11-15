@@ -27,6 +27,8 @@
 #   --limit N      speed, profile and count use only the first N docs of each pack (default all; for large packs)
 #   --profile-packs "p1 p2"  packs to profile and report docs/s for     (default: the first 2 packs the rule runs on)
 #   --count-packs "p1 p2"    packs to count on                          (default: every pack the rule runs on)
+#   --sheet FILE   sheet the build step builds clean.py from, if not spec_v1/sheets/specv1.md (for example the combined
+#                  spec_v1_1/sheets/specv1_1.md); relative to the current folder, or absolute  [SHEET]
 #   --include-all  speed also runs ind-mr-sangraha-v, which is left out by default (use with a folder of Indic packs)
 #   --expected-packs "p1 p2" exact required speed/harm inventory (default: original 13; --include-all: all registered packs)
 # Python with pyarrow: the PY environment variable (default: the era5 conda python).
@@ -39,6 +41,7 @@ PARENT="$(dirname "$REPO")"
 BEFORE="${BEFORE:-HEAD}"; AFTER="${AFTER:-worktree}"
 PACKS="${PACKS:-$PARENT/week1-packs}"; WORK="${WORK:-$PARENT/scratchpad/clean-speed}"
 PY="${PY:-/home/forest/miniconda3/envs/era5/bin/python}"
+SHEET="${SHEET:-}"
 RULES=""; LIMIT=0; STAGES=(); PROFILE_PACKS=(); COUNT_PACKS=(); EXCLUDE=(ind-mr-sangraha-v); EXPECTED_PACKS=()
 help() { awk 'NR>1 && /^#/ {sub(/^# ?/, ""); print; next} NR>1 {exit}' "$0"; }
 while [ $# -gt 0 ]; do
@@ -46,6 +49,7 @@ while [ $# -gt 0 ]; do
     --rules) RULES="$2"; shift 2;; --before) BEFORE="$2"; shift 2;; --after) AFTER="$2"; shift 2;;
     --packs) PACKS="$2"; shift 2;; --work) WORK="$2"; shift 2;; --limit) LIMIT="$2"; shift 2;;
     --profile-packs) read -ra PROFILE_PACKS <<< "$2"; shift 2;; --count-packs) read -ra COUNT_PACKS <<< "$2"; shift 2;;
+    --sheet) SHEET="$2"; shift 2;;
     --include-all) EXCLUDE=(); shift;;
     --expected-packs) read -ra EXPECTED_PACKS <<< "$2"; shift 2;;
     -h|--help) help; exit 0;;
@@ -53,6 +57,11 @@ while [ $# -gt 0 ]; do
   esac
 done
 [ ${#STAGES[@]} -eq 0 ] && STAGES=(build pytest trees speed profile harm count)
+SHEET_ARGS=()
+if [ -n "$SHEET" ]; then
+  [ -f "$SHEET" ] || { echo "--sheet: no such file: $SHEET" >&2; exit 2; }
+  SHEET="$(cd "$(dirname "$SHEET")" && pwd)/$(basename "$SHEET")"; SHEET_ARGS=(--sheet "$SHEET")
+fi
 mkdir -p "$WORK"
 LOG="$WORK/run-$(date +%Y%m%d-%H%M%S).log"
 exec > >(tee "$LOG") 2>&1
@@ -96,14 +105,15 @@ EOF
 fi
 [ ${#PROFILE_PACKS[@]} -eq 0 ] && PROFILE_PACKS=(en-dclm en-fineweb-edu)
 [ ${#COUNT_PACKS[@]} -eq 0 ] && COUNT_PACKS=("${PROFILE_PACKS[@]}")
+echo "sheet for the build step: ${SHEET:-default (spec_v1/sheets/specv1.md)}"
 echo "rules: ${RULES:-none}; before: $BEFORE; after: $AFTER; profile packs: ${PROFILE_PACKS[*]}; count packs: ${COUNT_PACKS[*]}"
 
 stage_build() {
-  say "build: clean.py is the fresh build of spec_v1/sheets/specv1.md"
-  if "$PY" -I "$REPO/$TEAM/spec_v1/build/build_clean.py" --out "$WORK/fresh_clean.py" >/dev/null && cmp -s "$WORK/fresh_clean.py" "$CLEAN"; then
-    BUILD_RESULT="ok, clean.py $(sha256sum "$CLEAN" | cut -c1-12) is the fresh build"
+  say "build: clean.py is the fresh build of ${SHEET:-spec_v1/sheets/specv1.md}"
+  if "$PY" -I "$REPO/$TEAM/spec_v1/build/build_clean.py" "${SHEET_ARGS[@]}" --out "$WORK/fresh_clean.py" >/dev/null && cmp -s "$WORK/fresh_clean.py" "$CLEAN"; then
+    BUILD_RESULT="ok, clean.py $(sha256sum "$CLEAN" | cut -c1-12) is the fresh build of ${SHEET:-specv1.md}"
   else
-    BUILD_RESULT="FAIL: clean.py differs from a fresh build. Run: python -I $TEAM/spec_v1/build/build_clean.py"; FAIL=1
+    BUILD_RESULT="FAIL: clean.py differs from a fresh build. Run: python -I $TEAM/spec_v1/build/build_clean.py ${SHEET_ARGS[*]}"; FAIL=1
   fi
   echo "$BUILD_RESULT"
 }

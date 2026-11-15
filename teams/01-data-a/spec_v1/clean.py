@@ -11973,6 +11973,9 @@ _F1P_PLACEHOLDER = re.compile(r"<(?:PHONE|EMAIL|ADDRESS)>")
 _F1P_EMAIL = re.compile(r"(?<![\w.+-])([A-Za-z0-9][A-Za-z0-9._%+-]*)@([A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,})(?![\w-])")
 # "name at host.tld" as written in mailing-list archives: only alone on its line, or inside <...>
 _F1P_AT_EMAIL = re.compile(r"(?m)(?:^[ \t]*|<)([a-z0-9][a-z0-9._%+-]*) at ((?:[a-z0-9-]+\.)+[a-z]{2,})(?=[ \t]*$|>)")
+# Speed: every match of the pattern above holds " at " and a host name, so a text without this cannot match, and the slower
+# search for the whole pattern is skipped.
+_F1P_AT_HOST = re.compile(r" at (?:[a-z0-9-]+\.)+[a-z]{2,}")
 _F1P_ROLE_LOCAL = re.compile(
     r"^(?:info|admin|administrator|team|contact|contactus|support|hello|office|mail|webmaster|help|helpdesk|"
     r"no-?reply|donotreply|sales|security|abuse|postmaster|enquiries|enquiry|inquiries|press|media|news|"
@@ -12049,9 +12052,12 @@ def _F1P_context(text, start, end):
 
 
 # ---------------------------------------------------------------- phones
-_F1P_PHONE = re.compile(
-    r"(?<![\w/.-])(?:\+?1[ .-]?)?(?:\(\d{3}\)\s?|\d{3}[ .-])\d{3}[ .-]\d{4}(?![\w/-])"   # North American
-    r"|(?<![\w/.-])\+\d{1,3}(?:[ .-]?\(?\d{1,4}\)?){2,5}\d(?![\w/-])")                     # +international
+_F1P_PHONE_NA = r"(?<![\w/.-])(?:\+?1[ .-]?)?(?:\(\d{3}\)\s?|\d{3}[ .-])\d{3}[ .-]\d{4}(?![\w/-])"   # North American
+_F1P_PHONE_INTL = r"(?<![\w/.-])\+\d{1,3}(?:[ .-]?\(?\d{1,4}\)?){2,5}\d(?![\w/-])"                   # +international
+_F1P_PHONE = re.compile(_F1P_PHONE_NA + "|" + _F1P_PHONE_INTL)       # the same pattern as before, written in two parts
+# Speed: the international form starts with a literal "+", so in a text with no "+" only the North American form can match, and a
+# regex of that form alone finds exactly the same matches (the engine tries the first form first and the second can never match).
+_F1P_PHONE_NA_ONLY = re.compile(_F1P_PHONE_NA)
 _F1P_TOLL_FREE = re.compile(r"^(?:\+?1[ .-]?)?\(?(?:800|888|877|866|855|844|833)\b")
 
 # ---------------------------------------------------------------- street addresses
@@ -12131,9 +12137,11 @@ def _f1_prose(text):
         return ("drop", "")
 
     out = _F1P_people_tables(text)
-    out = _F1P_EMAIL.sub(_F1P_email, out)
-    out = _F1P_AT_EMAIL.sub(lambda m: m.group(0).replace(m.group(1) + " at " + m.group(2), _F1P_EMAIL_PH)
-                       if _F1P_email_is_private(m.string, m.start(1), m.end(2), m.group(1), m.group(2)) else m.group(0), out)
+    if "@" in out:                       # speed: _F1P_EMAIL needs an "@", and most texts have none
+        out = _F1P_EMAIL.sub(_F1P_email, out)
+    if _F1P_AT_HOST.search(out):         # speed: see _F1P_AT_HOST
+        out = _F1P_AT_EMAIL.sub(lambda m: m.group(0).replace(m.group(1) + " at " + m.group(2), _F1P_EMAIL_PH)
+                           if _F1P_email_is_private(m.string, m.start(1), m.end(2), m.group(1), m.group(2)) else m.group(0), out)
 
     def phone(m):
         if _F1P_TOLL_FREE.match(m.group(0)):
@@ -12142,7 +12150,7 @@ def _f1_prose(text):
         if verdict is None:
             verdict = _F1P_value_alone(m.string, m.start(), m.end()) and _F1P_card(_F1P_window(m.string, m.start(), m.end())[0])
         return _F1P_PHONE_PH if verdict else m.group(0)
-    out = _F1P_PHONE.sub(phone, out)
+    out = (_F1P_PHONE if "+" in out else _F1P_PHONE_NA_ONLY).sub(phone, out)     # speed: see _F1P_PHONE_NA_ONLY
 
     def address(m):
         verdict = _F1P_context(m.string, m.start(), m.end())
