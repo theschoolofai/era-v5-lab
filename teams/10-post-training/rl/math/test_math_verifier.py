@@ -192,6 +192,7 @@ def test_a_record_missing_from_the_pool_raises(fx, tmp_path):
         v.reward(fx.dirs["int"], box("5"), empty)
 
 
+@needs_mv
 def test_the_reply_never_contains_the_reference(fx):
     out = fx("year", box("2018"))
     assert "2019" not in json.dumps(out)

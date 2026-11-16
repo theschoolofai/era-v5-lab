@@ -41,6 +41,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 import threading
@@ -306,8 +307,26 @@ def known_outputs(env_id: str) -> tuple[str, str]:
     raise KeyError(f"no known outputs for {env_type!r}")
 
 
+def math_unavailable() -> str | None:
+    """Why the math set cannot be checked on this machine, or None. Its pool is data and stays out of the repository."""
+    import importlib.util  # noqa: PLC0415
+    pool = os.environ.get("G10_MATH_POOL")
+    if not pool or not Path(pool).is_file():
+        return "skipped: G10_MATH_POOL is not set to the RL data v1 math pool (rl/math/README.md)"
+    if importlib.util.find_spec("math_verify") is None:
+        return "skipped: the math_verify package is not installed (rl/math/README.md)"
+    return None
+
+
 def check_all(workers: int = 4, ids: list[str] | None = None) -> list[dict]:
-    jobs = [(i, kind, out) for i in (ids or list_envs()) for kind, out in zip(("good", "bad"), known_outputs(i))]
+    """Every id with its known good and bad output. Math ids are reported as skipped, never scored and never raised,
+    when the pool or its dependency is absent, so the other sets can still be checked on a plain clone."""
+    all_ids = ids or list_envs()
+    why = math_unavailable() if any(i.startswith("math/") for i in all_ids) else None
+    skipped = [{"env_id": i, "kind": kind, "score": None, "ok": True, "skipped": True, "reason": why, "seconds": 0.0}
+               for i in all_ids if why and i.startswith("math/") for kind in ("good", "bad")]
+    jobs = [(i, kind, out) for i in all_ids if not (why and i.startswith("math/"))
+            for kind, out in zip(("good", "bad"), known_outputs(i))]
 
     def one(job):
         env_id, kind, out = job
@@ -318,7 +337,7 @@ def check_all(workers: int = 4, ids: list[str] | None = None) -> list[dict]:
                 "reason": str(info.get("reason", ""))[:120], "seconds": round(time.monotonic() - t0, 2)}
 
     with ThreadPoolExecutor(workers) as ex:
-        return list(ex.map(one, jobs))
+        return list(ex.map(one, jobs)) + skipped
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -347,7 +366,13 @@ def main(argv: list[str] | None = None) -> int:
         for r in rows:
             print(json.dumps(r))
         bad = [r for r in rows if not r["ok"]]
-        print(json.dumps({"checked": len(rows), "wrong": len(bad)}))
+        skipped = [r for r in rows if r.get("skipped")]
+        summary = {"checked": len(rows) - len(skipped), "wrong": len(bad)}
+        if skipped:
+            summary["skipped"] = len(skipped)
+        print(json.dumps(summary))
+        if skipped and len(skipped) == len(rows):
+            return 2  # nothing was checked: not a pass
         return 1 if bad else 0
     ap.error("give --list or --check-all")
     return 2
