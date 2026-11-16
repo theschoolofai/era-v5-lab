@@ -16,18 +16,21 @@ A dry run is a short test of the whole training setup before the main training r
 
 A shard is a file that holds cleaned text as token IDs, ready for training. Data A set the format of the shards.
 Each shard keeps whole documents and marks the end of each one. Each shard comes with a manifest and a quality
-report, so the lab can check it. Data A wrote a first sample shard, from code in the Go programming language, to test the format
+report, so the lab can check it. Data A tested the format on a sample shard
 ([#358](https://github.com/theschoolofai/era-v5-lab/pull/358), [#373](https://github.com/theschoolofai/era-v5-lab/pull/373)).
+Data A made the first 41 shards with the frozen tokenizer p1536, not C3.
 
-[Data A: confirm the text above or change it, and add the first full shards if they exist by Fri 20 Nov.]
+[Data A: confirm the text above or change it, and add the pull request of the first 41 shards.]
 
 ## Decisions
 
 | Decision | Team that proposed it | Decision text |
 |---|---|---|
-| The tokenizer for training | Tokenizer | [waiting for TSAI] |
+| The tokenizer for training | Tokenizer | The frozen tokenizer is p1536, not C3. |
 | Bit widths for the smaller versions of the model | Quantization | [waiting for TSAI] |
-| Share of Indic text in its own script, and the limit on Indic text in Latin script | Data B | [waiting for TSAI] |
+| Share of Indic text in its own script, and the limit on Indic text in Latin script | Data B | The Indic share in its own script is 8% of every batch. The limit on romanised Indic text is 1% of tokens per language (a ceiling). |
+
+Short forms: p1536 and C3 are the names of two tokenizer candidates. Romanised Indic text is Indic text written in Latin script.
 
 ## Next
 
@@ -54,10 +57,10 @@ How to fill it:
 | Part | Team | Source | Text received | Lead OK |
 |---|---|---|---|---|
 | The first dry run | Infrastructure | | no | no |
-| The first data shards | Data A | [#358](https://github.com/theschoolofai/era-v5-lab/pull/358), [#373](https://github.com/theschoolofai/era-v5-lab/pull/373) | draft by Release, waiting for Data A | no |
-| Tokenizer for training (p1536 in place of C3) | Tokenizer | [#504](https://github.com/theschoolofai/era-v5-lab/pull/504) | no | no |
+| The first data shards | Data A | [#358](https://github.com/theschoolofai/era-v5-lab/pull/358), [#373](https://github.com/theschoolofai/era-v5-lab/pull/373), first 41 shards: to come | draft by Release with the TSAI words, waiting for Data A | no |
+| Tokenizer for training (p1536 in place of C3) | Tokenizer | [#504](https://github.com/theschoolofai/era-v5-lab/pull/504) | TSAI words on this pull request | no |
 | Bit widths (moved from Gate 2) | Quantization | [#221](https://github.com/theschoolofai/era-v5-lab/pull/221) | no | no |
-| Indic share (rerun of #400 with C3, from Gate 2) | Data B | [#400](https://github.com/theschoolofai/era-v5-lab/pull/400) | no | no |
+| Indic share (from Gate 2) | Data B | [#400](https://github.com/theschoolofai/era-v5-lab/pull/400) | TSAI numbers on this pull request; Data B text to come | no |
 
 - [ ] `check_style.py` gives 0 errors
 - [ ] Every number in the text has TSAI approval
