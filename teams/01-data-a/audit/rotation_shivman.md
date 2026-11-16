@@ -70,4 +70,4 @@ Failed check(s): cleaning_pipeline records a dedup version (observed None).
 
 ## Problems filed (R2)
 
-1. `cleaning_pipeline.json` for this p1536 sample-v0 bundle records `dedup` as null on both shards (same observation as the earlier sample on main). Filed as a Data A issue with this pull request.
+1. `cleaning_pipeline.json` for this p1536 sample-v0 bundle records `dedup` as null on both shards (same observation as the earlier sample on main). Filed as issue #503.
