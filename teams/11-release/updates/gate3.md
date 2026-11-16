@@ -16,7 +16,7 @@ A dry run is a short test of the whole training setup before the main training r
 
 A shard is a file that holds cleaned text as token IDs, ready for training. Data A set the format of the shards.
 Each shard keeps whole documents and marks the end of each one. Each shard comes with a manifest and a quality
-report, so the lab can check it. Data A wrote a first sample shard, from code in the Go programming language, with the frozen tokenizer
+report, so the lab can check it. Data A wrote a first sample shard, from code in the Go programming language, to test the format
 ([#358](https://github.com/theschoolofai/era-v5-lab/pull/358), [#373](https://github.com/theschoolofai/era-v5-lab/pull/373)).
 
 [Data A: confirm the text above or change it, and add the first full shards if they exist by Fri 20 Nov.]
@@ -25,6 +25,7 @@ report, so the lab can check it. Data A wrote a first sample shard, from code in
 
 | Decision | Team that proposed it | Decision text |
 |---|---|---|
+| The tokenizer for training | Tokenizer | [waiting for TSAI] |
 | Bit widths for the smaller versions of the model | Quantization | [waiting for TSAI] |
 | Share of Indic text in its own script, and the limit on Indic text in Latin script | Data B | [waiting for TSAI] |
 
@@ -54,6 +55,7 @@ How to fill it:
 |---|---|---|---|---|
 | The first dry run | Infrastructure | | no | no |
 | The first data shards | Data A | [#358](https://github.com/theschoolofai/era-v5-lab/pull/358), [#373](https://github.com/theschoolofai/era-v5-lab/pull/373) | draft by Release, waiting for Data A | no |
+| Tokenizer for training (p1536 in place of C3) | Tokenizer | [#504](https://github.com/theschoolofai/era-v5-lab/pull/504) | no | no |
 | Bit widths (moved from Gate 2) | Quantization | [#221](https://github.com/theschoolofai/era-v5-lab/pull/221) | no | no |
 | Indic share (rerun of #400 with C3, from Gate 2) | Data B | [#400](https://github.com/theschoolofai/era-v5-lab/pull/400) | no | no |
 
