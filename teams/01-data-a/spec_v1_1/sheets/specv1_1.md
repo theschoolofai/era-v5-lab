@@ -5467,9 +5467,19 @@ C1_SITE = re.compile(
 # phpBB "Replies / <n> / Views / <n>" block, one value per line
 C1_REPLIES = re.compile(r"(?m)^Replies\n\d+\nViews\n[\d.]+K?\n?")
 
+# Speed: on a pure-ASCII line, (?i) matching C1_SITE equals matching its lower-cased pattern against the lower-cased line
+# (every escape in C1_SITE is lower-case, \d \s \w \u..., and it has no non-ASCII character, so lower() cannot change its
+# meaning). Non-ASCII lines keep the original (?i) regex.
+assert C1_SITE.pattern.startswith("(?i)")
+C1_SITE_ASCII = re.compile(C1_SITE.pattern[4:].lower())
+
+def _c1_site(l):
+    return C1_SITE_ASCII.search(l.lower()) if l.isascii() else C1_SITE.search(l)
+
 def medicine_c1(text):
+    # the length test goes first: it is cheap, and a line over 120 characters is kept whatever C1_SITE finds
     keep = [l for l in text.split("\n")
-            if not (C1_LINE.fullmatch(l) or (C1_SITE.search(l) and len(l) <= 120))]
+            if not (C1_LINE.fullmatch(l) or (len(l) <= 120 and _c1_site(l)))]
     return C1_REPLIES.sub("", "\n".join(keep))
 
 
