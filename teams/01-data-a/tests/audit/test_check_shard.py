@@ -44,7 +44,7 @@ def write_shard(d, docs=DOCS, dedup="dedup-v1"):
         {"clean_py_sha256": clean_sha, "f2_set_sha256": cs.F2_V2_SHA256, "dedup": dedup}))
     man = json.loads(cs.TEMPLATE.read_text())
     man.update({
-        "dataset_version": "test", "shard_id": SID, "pack_id": "code-go", "language": "go", "domain": "code",
+        "dataset_version": "test", "shard_id": SID, "tokenizer_sha256": cs.P1536_SHA256, "pack_id": "code-go", "language": "go", "domain": "code",
         "capability_lane": "code", "split": "train",
         "payload_uri": f"{SID}.bin", "payload_sha256": _sha(d / f"{SID}.bin"),
         "payload_bytes": cs.HEADER_BYTES + 4 * len(toks),
@@ -64,12 +64,36 @@ def by_status(rows, status):
     return [r["check"] for r in rows if r["status"] == status]
 
 
+LOW_SPECIALS = (36, 129994)  # two of the special ids below 130,725 in p1536 and C3
+
+
 def test_good_shard_passes_every_check(tmp_path):
     write_shard(tmp_path)
-    rows = cs.run_checks(tmp_path, SID)
+    rows = cs.run_checks(tmp_path, SID, special_ids=LOW_SPECIALS)
     assert by_status(rows, cs.FAIL) == []
     assert by_status(rows, cs.NOT_CHECKED) == []
     assert "every document ends with EOS" in by_status(rows, cs.PASS)
+
+
+def test_low_special_id_inside_a_document_fails(tmp_path):
+    write_shard(tmp_path, docs=[[11, 36, 13, cs.EOS_ID], [21, cs.EOS_ID]])
+    rows = cs.run_checks(tmp_path, SID, special_ids=LOW_SPECIALS)
+    assert by_status(rows, cs.FAIL) == ["none of the 2 special ids below 130725 inside a document"]
+    unchecked = cs.run_checks(tmp_path, SID)  # without the special ids it cannot tell, and says so
+    assert "special ids below 130725 inside a document" in by_status(unchecked, cs.NOT_CHECKED)
+
+
+def test_expected_tokenizer(tmp_path):
+    write_shard(tmp_path)  # write_shard names p1536
+    assert by_status(cs.run_checks(tmp_path, SID, expect_tokenizer=cs.P1536_SHA256), cs.FAIL) == []
+    assert by_status(cs.run_checks(tmp_path, SID, expect_tokenizer=cs.C3_SHA256), cs.FAIL) == ["tokenizer_sha256 is C3"]
+
+
+def test_special_ids_from_tokenizer_json(tmp_path):
+    p = tmp_path / "tokenizer.json"
+    p.write_text(json.dumps({"added_tokens": [{"id": 36, "special": True}, {"id": 500, "special": False},
+                                              {"id": 130822, "special": True}]}))
+    assert cs.special_ids_from(p) == [36, 130822]
 
 
 def test_missing_bin_and_docs_are_not_checked_never_pass(tmp_path):
@@ -107,7 +131,7 @@ def test_doc_without_eos_and_special_id_inside_fail(tmp_path):
     write_shard(tmp_path, docs=[[11, 12, 13, 99], [cs.SPECIAL_LO, cs.EOS_ID]])
     failed = by_status(cs.run_checks(tmp_path, SID), cs.FAIL)
     assert "every document ends with EOS" in failed
-    assert "no special id inside a document" in failed
+    assert "no special id >= 130725 inside a document" in failed
 
 
 def test_id_at_vocab_fails(tmp_path):

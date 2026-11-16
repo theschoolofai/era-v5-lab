@@ -21,7 +21,9 @@ import numpy as np
 REPO = Path(__file__).resolve().parents[3]
 TEMPLATE = REPO / "teams/01-data-a/shards/shard_manifest_v1.template.json"
 CLEAN_PY = REPO / "teams/01-data-a/spec_v1/clean.py"
-C3_SHA256 = "15468e66457b43af79f695cbe585c0d03e3cfe7a4a5d04d189dd3c6b9f02ddc3"  # G3 freeze, #340
+P1536_SHA256 = "e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b"  # Gate 3 freeze, #504
+C3_SHA256 = "15468e66457b43af79f695cbe585c0d03e3cfe7a4a5d04d189dd3c6b9f02ddc3"  # earlier freeze, #340 (sample shard)
+FROZEN_TOKENIZERS = {P1536_SHA256: "p1536", C3_SHA256: "C3"}
 F2_V2_SHA256 = "2826a3b883210c653979103c09ce1c79e40fc4f7034b54027f2836482370d22a"  # G9 fingerprints v2
 EOS_ID, VOCAB, SPECIAL_LO = 130_822, 131_072, 130_725  # SPECIAL_LO..VOCAB-1: G3's special and reserved ids
 HEADER_BYTES, MAGIC, VERSION = 1024, 20261025, 2
@@ -36,8 +38,18 @@ def sha(path):
     return h.hexdigest()
 
 
-def run_checks(folder, shard_id, template=TEMPLATE, clean_py=CLEAN_PY):
-    """Return a list of {check, status, expected, observed}."""
+def special_ids_from(tokenizer_json):
+    """Ids of the added tokens marked special in a tokenizer.json (p1536 and C3 have the same ones, G3 #504)."""
+    data = json.loads(Path(tokenizer_json).read_text(encoding="utf-8"))
+    return sorted(t["id"] for t in data.get("added_tokens", []) if t.get("special"))
+
+
+def run_checks(folder, shard_id, template=TEMPLATE, clean_py=CLEAN_PY, expect_tokenizer=None, special_ids=()):
+    """Return a list of {check, status, expected, observed}.
+
+    expect_tokenizer: a tokenizer sha256 the shard must name (default: either frozen tokenizer).
+    special_ids: extra special ids (below 130,725) that must not occur inside a document, from special_ids_from().
+    """
     folder = Path(folder)
     rows = []
 
@@ -65,7 +77,13 @@ def run_checks(folder, shard_id, template=TEMPLATE, clean_py=CLEAN_PY):
     check("format", m.get("format") == "brahmic_u32_v2+doc_index", "brahmic_u32_v2+doc_index", m.get("format"))
     check("token_dtype", m.get("token_dtype") == "uint32", "uint32", m.get("token_dtype"))
     check("eos_token_id", m.get("eos_token_id") == EOS_ID, EOS_ID, m.get("eos_token_id"))
-    check("tokenizer_sha256 is frozen C3", m.get("tokenizer_sha256") == C3_SHA256, short(C3_SHA256), short(m.get("tokenizer_sha256")))
+    tok = m.get("tokenizer_sha256")
+    want = FROZEN_TOKENIZERS.get(expect_tokenizer) if expect_tokenizer else None
+    if expect_tokenizer:
+        check(f"tokenizer_sha256 is {want or expect_tokenizer[:12]}", tok == expect_tokenizer, short(expect_tokenizer), short(tok))
+    else:
+        check("tokenizer_sha256 is a frozen tokenizer (p1536 or C3)", tok in FROZEN_TOKENIZERS, "p1536 or C3",
+              f"{FROZEN_TOKENIZERS.get(tok, 'unknown')} {short(tok)}")
     check("decontam_set_sha256 is F2 v2", m.get("decontam_set_sha256") == F2_V2_SHA256, short(F2_V2_SHA256), short(m.get("decontam_set_sha256")))
     check("split is train or validation", m.get("split") in ("train", "validation"), "train|validation", m.get("split"))
     id_ok = re.fullmatch(rf"{re.escape(str(m.get('pack_id')))}-{re.escape(str(m.get('split')))}-\d{{6}}", shard_id)
@@ -150,8 +168,15 @@ def run_checks(folder, shard_id, template=TEMPLATE, clean_py=CLEAN_PY):
             check("every document ends with EOS", n_eos == dc, dc, n_eos)
             inside = np.ones(len(toks), dtype=bool)
             inside[ends] = False  # a special id is allowed only at a document's last position, and only EOS there
-            n_inside = int((toks[inside] >= SPECIAL_LO).sum())
-            check("no special id inside a document", n_inside == 0, 0, n_inside)
+            inner = toks[inside]
+            n_inside = int((inner >= SPECIAL_LO).sum())
+            check(f"no special id >= {SPECIAL_LO} inside a document", n_inside == 0, 0, n_inside)
+            low = [i for i in special_ids if i < SPECIAL_LO]
+            if low:
+                n_low = int(np.isin(inner, np.array(low, dtype="<u4")).sum())
+                check(f"none of the {len(low)} special ids below {SPECIAL_LO} inside a document", n_low == 0, 0, n_low)
+            else:
+                check(f"special ids below {SPECIAL_LO} inside a document", None, "", "no --specials-from tokenizer given")
     else:
         check(".bin checks (size, header, ids, EOS)", None, "", ".bin not present")
 
@@ -175,8 +200,14 @@ def main(argv=None):
     ap.add_argument("folder", type=Path)
     ap.add_argument("shard_id")
     ap.add_argument("--json", type=Path, help="also write the results here")
+    ap.add_argument("--expect-tokenizer", choices=["p1536", "C3"],
+                    help="the frozen tokenizer the shard must name (default: either)")
+    ap.add_argument("--specials-from", type=Path, metavar="TOKENIZER_JSON",
+                    help="a tokenizer.json to read the special ids from (p1536 or C3: the same special ids)")
     a = ap.parse_args(argv)
-    rows = run_checks(a.folder, a.shard_id)
+    expect = {v: k for k, v in FROZEN_TOKENIZERS.items()}.get(a.expect_tokenizer)
+    specials = special_ids_from(a.specials_from) if a.specials_from else ()
+    rows = run_checks(a.folder, a.shard_id, expect_tokenizer=expect, special_ids=specials)
     w = max(len(r["check"]) for r in rows)
     for r in rows:
         print(f"{r['status']:<12} {r['check']:<{w}}  expected={r['expected']}  observed={r['observed']}")
