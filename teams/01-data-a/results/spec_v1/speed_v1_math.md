@@ -16,19 +16,21 @@ Every fix passes three checks before it is logged:
 |---|---|---|---|---|---|
 | 1 | `DA-C1-001` (site boilerplate) | 127.3 to 242.7 (1.91x) | 259.3 to 286.6 (1.11x) | 3.858 to 0.606 | n/a (rule not on this pack) |
 | 2 | `DA-D3-005` (foreign-script lines) | 253.6 to 279.9 (1.10x) | 296.9 to 339.8 (1.14x) | 0.358 to 0.033 | 0.434 to 0.038 |
+| 3 | `DA-C7-001` (content lost in extraction) | 274.4 to 304.2 (1.11x) | 328.2 to 392.6 (1.20x) | 0.757 to 0.353 | 0.912 to 0.423 |
 
-The rule itself is 11x faster on `math-finemath` and 11x on `math-megamath` in fix 2, but it was a small share of the time (about 9% and 15% before), so the whole-pack gain is 1.10x and 1.14x. The packs a fix does not touch read 1.0x to 1.2x, timing noise (for example `math-megamath` in fix 1: the rule is not on that pack).
+In fix 2 the rule itself is 11x faster on both packs, but it was a small share of the time (about 9% and 15% before), so the whole-pack gain is 1.10x and 1.14x. In fix 3 the rule is 2.2x faster on both packs; it was the largest rule on them (20% and 28% of the time), so the whole-pack gain is 1.11x and 1.20x. The packs a fix does not touch read 1.0x to 1.2x, timing noise (for example `math-megamath` in fix 1: the rule is not on that pack).
 
 ## 2. Status of each fix
 
 | # | rule | output sha256 | harm tests | pytest | documents changed, 500 docs each: math-finemath / math-megamath | `clean.py` before | `clean.py` after | commit |
 |---|---|---|---|---|---|---|---|---|
-| 1 | `DA-C1-001` | same, 31 of 31 packs | unchanged, 31 of 31 packs | 2763 passed | ran on 487, fixed 97, dropped 0 / not on this pack | `9a4e3a87f124` | `ddf379d68e29` | `a54c5f5` |
-| 2 | `DA-D3-005` | same, 31 of 31 packs | unchanged, 31 of 31 packs | 2820 passed | ran on 500, fixed 7, dropped 1 / ran on 490, fixed 3, dropped 0 | `ddf379d68e29` | `ea14b0899085` | this commit |
+| 1 | `DA-C1-001` | same, 31 of 31 packs | unchanged, 31 of 31 packs | 2763 passed | ran on 487, fixed 97, dropped 0 / not on this pack | `9a4e3a87f124` | `ddf379d68e29` | `10e4635` |
+| 2 | `DA-D3-005` | same, 31 of 31 packs | unchanged, 31 of 31 packs | 2820 passed | ran on 500, fixed 7, dropped 1 / ran on 490, fixed 3, dropped 0 | `ddf379d68e29` | `ea14b0899085` | `5022efb` |
+| 3 | `DA-C7-001` | same, 31 of 31 packs | unchanged, 31 of 31 packs | 2896 passed | ran on 479, fixed 0, dropped 12 / ran on 487, fixed 0, dropped 18 | `ea14b0899085` | `55f8653af9a1` | this commit |
 
-- **Baseline:** fix 1: `clean.py` `9a4e3a87f124`, the build from `specv1_1.md` in commit `4149bcc`; fix 2: `ddf379d68e29`, with fix 1 (`a54c5f5`). The output sha256 of the two math packs under it: `math-finemath` `c6a3183c9d076f12`, `math-megamath` `6fb0de7bad7c44e0` (the v1.1 build; the hashes in [speed_v1.md section 6](speed_v1.md#6-output-sha256-of-the-13-sample-packs-identical-before-and-after-every-fix) are for the v1 build, which has 24 fewer rules).
+- **Baseline:** fix 1: `clean.py` `9a4e3a87f124`, the build from `specv1_1.md` in commit `3089352`; fix 2: `ddf379d68e29`, with fix 1 (`10e4635`); fix 3: `ea14b0899085`, with fix 2 (`5022efb`, merged as #49). The output sha256 of the two math packs under it: `math-finemath` `c6a3183c9d076f12`, `math-megamath` `6fb0de7bad7c44e0` (the v1.1 build; the hashes in [speed_v1.md section 6](speed_v1.md#6-output-sha256-of-the-13-sample-packs-identical-before-and-after-every-fix) are for the v1 build, which has 24 fewer rules).
 - **Pytest:** the whole suite (`teams/01-data-a/tests` and `spec_v1_1/tests`), 1 test skipped, 51 subtests passed.
-- **Harm tests:** `make_harm_tests.py` on all 31 packs, with the 18 Indic gold sets copied into both trees (as in [speed_v1_f1.md section 5](speed_v1_f1.md#5-commands)): every result file is identical before and after. Four packs do not pass their harm limit under the v1.1 `clean.py`, before and after alike (`en-nemotroncc`, `math-finemath`, `sci-finepdfs`, `ind-te-sangraha-v`; see [spec_v1_1/results/combined/validation.md](../../spec_v1_1/results/combined/validation.md)); `DA-C1-001` and `DA-D3-005` are not among the failing rules.
+- **Harm tests:** `make_harm_tests.py` on all 31 packs, with the 18 Indic gold sets copied into both trees (as in [speed_v1_f1.md section 5](speed_v1_f1.md#5-commands)): every result file is identical before and after. Four packs do not pass their harm limit under the v1.1 `clean.py`, before and after alike (`en-nemotroncc`, `math-finemath`, `sci-finepdfs`, `ind-te-sangraha-v`; see [spec_v1_1/results/combined/validation.md](../../spec_v1_1/results/combined/validation.md)); `DA-C1-001`, `DA-D3-005` and `DA-C7-001` are not among the failing rules.
 
 ## 3. What each fix did
 
@@ -36,7 +38,12 @@ The rule itself is 11x faster on `math-finemath` and 11x on `math-megamath` in f
 
 2. **`DA-D3-005`, foreign-script lines (both math packs).** The rule removes a line that is mostly Cyrillic, Indic, kana, CJK, Hangul or Arabic script, and drops the document if more than 30% of its letters were in removed lines. It counted the letters of every line, and then of the whole text, even though a line with no foreign character is never removed and its count is never used. Now the whole text is returned as it is when it holds no foreign character (most documents), letters are counted only on lines that hold one, and the letters of the whole text are counted only when a line was removed (otherwise the drop test cannot fire). Documents with foreign script behave as before.
 
-The edits are to the `DA-C1-001` and `DA-D3-005` cards of `specv1_1.md`; the `medicine_<family>.md` files are not read by the build and are not changed. Tests: `tests/spec_v1/test_speed_equivalence_math.py` (126 tests for fix 1 and 57 for fix 2), against frozen copies of the old rules (`c1_reference` and `d3_reference`, inside the test file).
+3. **`DA-C7-001`, content lost in extraction (both math packs).** The rule drops a document with four or more "gaps": a formula that was lost, leaving a sentence cut at `=` or at a dangling word ("the slope is"), an empty answer option, a keyword followed by a lone `.` `,` or `;` ("show that ."), or a `?` where a value was. The 14 Nov guards already skipped most work; what was left took 0.76 ms/doc (20%) on `math-finemath` and 0.91 ms/doc (28%) on `math-megamath`, in three places. All three are exact:
+   - **Keyword followed by punctuation (`C7_NO_OBJECT`).** The regex starts with `\b`, so the engine tried it at every position. The punctuation is found first, with a regex that starts with a character set, and for each hit the whole word before it is checked with the same keyword regex. The counts are the same.
+   - **Question marks.** The regex has two halves; the second starts with a lookbehind and was tried at every position. It is now searched only when the text holds `???`. The halves never overlap, so their counts add up.
+   - **Candidate lines.** One search of three patterns joined with `|` over the whole text is replaced by a per-line test: a line that can be a gap ends, after its trailing blanks, in `=`, a letter, `)` or `.`, and only those lines run the three regexes. The loop that follows is unchanged.
+
+The edits are to the `DA-C1-001`, `DA-D3-005` and `DA-C7-001` cards of `specv1_1.md`; the `medicine_<family>.md` files are not read by the build and are not changed. Tests: `tests/spec_v1/test_speed_equivalence_math.py` (126 tests for fix 1, 57 for fix 2 and 76 for fix 3), against frozen copies of the old rules (`c1_reference`, `d3_reference` and `c7_reference`, inside the test file; the tests of fix 3 read the new rule from `specv1_1.md`).
 
 ## 4. Method and commands
 

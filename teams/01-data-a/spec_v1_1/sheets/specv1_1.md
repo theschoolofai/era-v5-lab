@@ -6219,27 +6219,57 @@ C7_DANGLING = re.compile(r"\b(?:is|are|was|of|that|by|be|as|equals|gives|get|obt
 C7_VALUE = re.compile("^[ \t]*[-+\\d(−√$\\\\]")  # the next line starts with a value: the formula is there
 # the next line carries on: lowercase (a wrapped line or "a^2 + a = 0"), an answer option, a bullet, or a formula
 C7_CONTINUES = re.compile("^[ \t]*(?:[a-z]|\\(?[A-Da-d][).][ \t]|[-*•])|[=^]")
-C7_NO_OBJECT = re.compile(r"\b(?:is|are|as|that|of|to|by|be|get|gives?|obtain|equals?|becomes?|write|find|show|compute"
-                          r"|calculate|evaluate|simplify|solve|comparing|where|and|or|then|than|with|for)[ \t]+[.,;](?=[ \t]|$)",
-                          re.M | re.I)
+C7_NO_OBJECT_WORDS = (r"(?:is|are|as|that|of|to|by|be|get|gives?|obtain|equals?|becomes?|write|find|show|compute"
+                      r"|calculate|evaluate|simplify|solve|comparing|where|and|or|then|than|with|for)")
+C7_NO_OBJECT = re.compile(r"\b" + C7_NO_OBJECT_WORDS + r"[ \t]+[.,;](?=[ \t]|$)", re.M | re.I)
 C7_OPTION = re.compile(r"^[ \t]*\(?[A-Da-d][).][ \t]*$")
 C7_QUESTION_MARK = re.compile(r"[:=][ \t]*\?[ \t]*$|(?<!\?)\?{3,}", re.M)
 C7_MIN_GAPS = 4  # the most gaps in a gold doc is 3; the reading docs it drops have 4 to over 100
-# Speed (14 Nov). C7_NO_OBJECT needs a space or tab before . , or ;, and C7_QUESTION_MARK needs a "?": without them
-# each counts 0. A line adds a gap only if it ends in "=" or a dangling word, or is an empty answer option:
-# C7_CANDIDATE finds such a line anywhere in the text, so without one the line loop adds nothing. And the count
-# only grows, so once it reaches C7_MIN_GAPS the answer is known.
-C7_SPACE_PUNCT = re.compile(r"[ \t][.,;]")
-C7_CANDIDATE = re.compile("|".join(p.pattern for p in (C7_EQ_END, C7_DANGLING, C7_OPTION)), re.I | re.M)
+# Speed (16 Nov, after the 14 Nov guards). The count only grows, so once it reaches C7_MIN_GAPS the answer is known.
+# 1. len(C7_NO_OBJECT.findall(text)) is found from its punctuation: every match ends in a blank run, one of . , ; and a
+#    blank or the end of the line, and the blank run is preceded by the whole word that must be one of the words. A
+#    regex that starts with a charset finds the punctuation much faster than C7_NO_OBJECT, which starts with \b and is tried
+#    at every position, and the word is checked, with the same regex, only before the few hits.
+# 2. C7_QUESTION_MARK is two regexes, and the second (a lookbehind first) is tried at every position: it is only searched
+#    when the text holds "???". The two never overlap (the "?" of the first is followed by blanks only), so the counts add.
+# 3. The line loop below needs a line that ends in "=" or a dangling word, or is an answer option; such a line ends, after
+#    its trailing blanks, in "=", a letter, ")" or ".": only those lines are tested with the three regexes. This is the
+#    same test as one search of the three regexes joined with | over the whole text, which was slower.
+C7_PUNCT_HIT = re.compile(r"[ \t]+[.,;](?=[ \t]|$)", re.M)
+C7_NO_OBJECT_WORD = re.compile(C7_NO_OBJECT_WORDS, re.I)
+C7_QUESTION_END = re.compile(r"[:=][ \t]*\?[ \t]*$", re.M)
+C7_QUESTION_RUN = re.compile(r"(?<!\?)\?{3,}")
+
+
+def _c7_no_object(text):
+    n = 0
+    for hit in C7_PUNCT_HIT.finditer(text):
+        end = start = hit.start()
+        while start > 0 and (text[start - 1].isalnum() or text[start - 1] == "_"):   # \w
+            start -= 1
+        if C7_NO_OBJECT_WORD.fullmatch(text, start, end):   # an empty word never matches
+            n += 1
+    return n
+
+
+def _c7_has_candidate_line(text):
+    for line in text.split("\n"):
+        tail = line.rstrip(" \t")
+        if tail and (tail[-1] == "=" or tail[-1].isalpha() or tail[-1] in ").") and (
+                C7_EQ_END.search(line) or C7_DANGLING.search(line) or C7_OPTION.match(line)):
+            return True
+    return False
 
 
 def medicine_c7(text):
-    gaps = len(C7_NO_OBJECT.findall(text)) if C7_SPACE_PUNCT.search(text) else 0
+    gaps = _c7_no_object(text)
     if "?" in text:
-        gaps += len(C7_QUESTION_MARK.findall(text))
+        gaps += len(C7_QUESTION_END.findall(text))
+        if "???" in text:
+            gaps += len(C7_QUESTION_RUN.findall(text))
     if gaps >= C7_MIN_GAPS:
         return True
-    if not C7_CANDIDATE.search(text):
+    if not _c7_has_candidate_line(text):
         return False
     lines = [line for line in text.split("\n") if line.strip()]
     for k, line in enumerate(lines):

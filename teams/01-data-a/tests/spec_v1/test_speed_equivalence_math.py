@@ -9,6 +9,9 @@ documents. Every text here is made up; none comes from a pack.
              line the search uses the lower-cased pattern on the lower-cased line instead of the (?i) pattern
   DA-D3-005  foreign-script lines (math-finemath, math-megamath): letters are counted only for lines that hold a foreign
              character, and the whole text is returned as it is when it holds none
+  DA-C7-001  content lost in extraction (both math packs): the "no object" gaps are found from their punctuation, the
+             question-mark runs are searched only when the text holds "???", and the line loop starts only when a line
+             can be a gap (the namespace of the rule is read from specv1_1.md, as the English F1 test does)
 
 The speed-up tests of the English rules are in test_speed_equivalence.py, those of the code rules in
 test_speed_equivalence_code.py and those of the F1 rule in test_speed_equivalence_f1*.py. If the rule's behaviour is ever
@@ -450,3 +453,204 @@ def test_random_documents_match_old_rule_and_cover_all_outcomes():
         foreign_kept += action == "keep" and bool(D3_REF["D3_FOREIGN"].search(text))
     assert seen["keep"] > 800 and seen["fix"] > 400 and seen["drop"] > 100, seen    # the draw hits all three outcomes
     assert foreign_kept > 50       # documents with a foreign character that nothing removes: they take the slow path and are kept
+
+
+# =====================================================================================================================
+# DA-C7-001: content lost in extraction
+# =====================================================================================================================
+
+import textwrap
+
+SHEET = SPEC.parent / "spec_v1_1" / "sheets" / "specv1_1.md"
+
+
+def c7_reference():
+    """DA-C7-001 as it was before its second speed pass (clean.py ea14b0899085, specv1_1.md medicine 66): the rule with the
+    14 Nov guards. Returns the namespace so tests can reach its regexes and medicine_c7."""
+    C7_EQ_END = re.compile(r"=[ \t]*$")
+    C7_DANGLING = re.compile(r"\b(?:is|are|was|of|that|by|be|as|equals|gives|get|obtain|therefore|becomes)[ \t]*$", re.I)
+    C7_VALUE = re.compile("^[ \t]*[-+\\d(−√$\\\\]")  # the next line starts with a value: the formula is there
+    # the next line carries on: lowercase (a wrapped line or "a^2 + a = 0"), an answer option, a bullet, or a formula
+    C7_CONTINUES = re.compile("^[ \t]*(?:[a-z]|\\(?[A-Da-d][).][ \t]|[-*•])|[=^]")
+    C7_NO_OBJECT = re.compile(r"\b(?:is|are|as|that|of|to|by|be|get|gives?|obtain|equals?|becomes?|write|find|show|compute"
+                              r"|calculate|evaluate|simplify|solve|comparing|where|and|or|then|than|with|for)[ \t]+[.,;](?=[ \t]|$)",
+                              re.M | re.I)
+    C7_OPTION = re.compile(r"^[ \t]*\(?[A-Da-d][).][ \t]*$")
+    C7_QUESTION_MARK = re.compile(r"[:=][ \t]*\?[ \t]*$|(?<!\?)\?{3,}", re.M)
+    C7_MIN_GAPS = 4  # the most gaps in a gold doc is 3; the reading docs it drops have 4 to over 100
+    # Speed (14 Nov). C7_NO_OBJECT needs a space or tab before . , or ;, and C7_QUESTION_MARK needs a "?": without them
+    # each counts 0. A line adds a gap only if it ends in "=" or a dangling word, or is an empty answer option:
+    # C7_CANDIDATE finds such a line anywhere in the text, so without one the line loop adds nothing. And the count
+    # only grows, so once it reaches C7_MIN_GAPS the answer is known.
+    C7_SPACE_PUNCT = re.compile(r"[ \t][.,;]")
+    C7_CANDIDATE = re.compile("|".join(p.pattern for p in (C7_EQ_END, C7_DANGLING, C7_OPTION)), re.I | re.M)
+
+
+    def medicine_c7(text):
+        gaps = len(C7_NO_OBJECT.findall(text)) if C7_SPACE_PUNCT.search(text) else 0
+        if "?" in text:
+            gaps += len(C7_QUESTION_MARK.findall(text))
+        if gaps >= C7_MIN_GAPS:
+            return True
+        if not C7_CANDIDATE.search(text):
+            return False
+        lines = [line for line in text.split("\n") if line.strip()]
+        for k, line in enumerate(lines):
+            nxt = lines[k + 1] if k + 1 < len(lines) else ""
+            if (C7_EQ_END.search(line) or C7_DANGLING.search(line)) and not (C7_VALUE.match(nxt) or C7_CONTINUES.search(nxt)):
+                gaps += 1  # "... tank B =" or "... the parallel line is", then a new sentence: the formula is gone
+            if C7_OPTION.match(line) and (not nxt or C7_OPTION.match(nxt)):
+                gaps += 1  # an answer option with nothing in it
+        return gaps >= C7_MIN_GAPS
+
+    return {"medicine_c7": medicine_c7, "C7_NO_OBJECT": C7_NO_OBJECT, "C7_QUESTION_MARK": C7_QUESTION_MARK, "C7_CANDIDATE": C7_CANDIDATE,
+            "C7_EQ_END": C7_EQ_END, "C7_DANGLING": C7_DANGLING, "C7_OPTION": C7_OPTION}
+
+
+OLD = c7_reference()
+OLD_C7 = OLD["medicine_c7"]
+
+
+def c7_namespace():
+    """The DA-C7-001 card of specv1_1.md run on its own: a fresh copy each time, so a test can wrap its regexes."""
+    text = SHEET.read_text(encoding="utf-8")
+    body = re.search(r"^## Medicine \d+ — math / C7 / `DA-C7-001`\n(.*?)(?=^## Medicine |\Z)", text, re.S | re.M).group(1)
+    ns = {"__name__": "rules"}
+    exec(textwrap.dedent(re.search(r"^```python\n(.*?)^```", body, re.S | re.M).group(1)), ns)
+    return ns
+
+
+NEW = c7_namespace()
+NEW_C7 = NEW["medicine_c7"]
+GAPS4 = ("The number of fish in tank B =\nUse Binet's formula to show that .\nComparing , we can see that it holds.\n"
+         "The area of the circle is\nNow find the perimeter.")
+
+
+def test_the_patterns_of_the_new_rule_are_the_old_ones():
+    assert NEW["C7_NO_OBJECT"].pattern == OLD["C7_NO_OBJECT"].pattern and NEW["C7_NO_OBJECT"].flags == OLD["C7_NO_OBJECT"].flags
+    assert NEW["C7_QUESTION_END"].pattern + "|" + NEW["C7_QUESTION_RUN"].pattern == OLD["C7_QUESTION_MARK"].pattern
+    for name in ("C7_EQ_END", "C7_DANGLING", "C7_OPTION"):
+        assert NEW[name].pattern == OLD[name].pattern and NEW[name].flags == OLD[name].flags, name
+
+
+C7_TEXTS = {
+    "four gaps": GAPS4,
+    "three gaps": "The number of fish in tank B =\nUse Binet's formula to show that .\nThe area of the circle is\nNow find the perimeter.",
+    "empty answer options": "Q1. Find the value.\n(A)\n(B)\n(C)\n(D)\n",
+    "options with text": "Q1. Find the value.\n(A) 3\n(B) 4\n(C) 5\n(D) 6\n",
+    "an equals sign then a value": "The value is =\n12\nand more text follows here.\nThe area is =\n(3 + 4)\nThe rest.\nx =\n5\ny =\n6",
+    "a dangling word then a lowercase line": "The slope is\nsteeper than before.\nThe area is\nlarger.\nIt is\nclear.\nThat is\nall.",
+    "question marks at the end": "Find x: ?\nFind y = ?\nFind z : ? \nFind w =\t?\t\n",
+    "three question marks": "What is it ???\nWho??? Why ?????\n?? no",
+    "question mark before another": "x = ??\n: ???",
+    "question runs and ends together": "a = ?\nb = ???\nc : ?\nd ???? e",
+    "punctuation after a word": "Show that .\nFind , and then solve ;\nwrite .\nOR ,\nIs .",
+    "tab before the punctuation": "write\t.\nfind\t\t,\nshow \t; x",
+    "two blanks before the punctuation": "write  .\nfind   ,",
+    "punctuation followed by a letter": "show .x and find ,y and write .5",
+    "punctuation at the end of the text": "so find .",
+    "punctuation at the end of a line": "so find .\nwrite ,\r\nshow ;\n",
+    "a keyword inside a word": "this .\nprofit ,\nbefore .\nx_is .\n3is .\n-is .\nnot-is .",
+    "a keyword after a digit or an underscore": "5or .\n_or .\n2 or .",
+    "a keyword at the start of the text": "is .\nare ,",
+    "a blank run at the start of the text": " .\n ,\n\t;",
+    "a long word before the punctuation": "comparing , we see\ncalculate .\nevaluate ;\nsimplify ,",
+    "case": "FIND .\nShow ,\nCoMpUtE ;",
+    "a dangling word ending in a lookalike letter": "The area i\u017f\nNew sentence.\nThe slope wa\u017f\nNew sentence.\nIt give\u017f\nA new one.\nThe value i\u017f",
+    "lookalike letters": "i\u017f .\n\u0131s .\n\u212aind .\nfor\u017f .",
+    "other scripts": "\u0627\u0644 is .\n\u00e9 is .\n\u4e2d\u6587 ,\n\u00e9and .",
+    "no candidate": "A short sentence. And another one.\nNothing odd here.",
+    "empty": "",
+    "newline only": "\n\n\n",
+    "a trailing blank after the equals sign": "x =  \nThe next line starts here.\ny =\t\nAnother new sentence.\nz =\nFinal new sentence begins.",
+    "a carriage return before the newline": "x =\r\nNew sentence.\nThe slope is\r\nNew sentence.\n(A)\r\n(B)\r\n",
+    "option lines": "A.\nb)\n(c)\n(D.\nE.\n a)\n\t(B)\n",
+    "option then text": "(A)\nsome text\n(B)\n\n(C)\n",
+    "a formula after a dangling word": "The result is\n$x^2$\nThe answer equals\n\u221a2\nThat gives\n-3\nIt becomes\n(x+1)",
+    "a bullet after a dangling word": "The result is\n- item\nIt equals\n* item\nThat gives\n\u2022 item\nof\n= 3\nas\n^2",
+    "blank lines between": "The area is =\n\n\nNew sentence here.\n\nThe slope is\n\n\nAnother new one.",
+}
+
+
+@pytest.mark.parametrize("name", list(C7_TEXTS))
+def test_c7_hand_cases_match_old_rule(name):
+    text = C7_TEXTS[name]
+    assert NEW_C7(text) == OLD_C7(text), name
+
+
+@pytest.mark.parametrize("name", list(C7_TEXTS))
+def test_c7_pieces_match_the_old_regexes(name):
+    text = C7_TEXTS[name]
+    assert NEW["_c7_no_object"](text) == len(OLD["C7_NO_OBJECT"].findall(text))
+    q = len(NEW["C7_QUESTION_END"].findall(text)) + (len(NEW["C7_QUESTION_RUN"].findall(text)) if "???" in text else 0)
+    assert q == len(OLD["C7_QUESTION_MARK"].findall(text))
+    assert NEW["_c7_has_candidate_line"](text) == bool(OLD["C7_CANDIDATE"].search(text))
+
+
+def test_c7_the_hand_cases_reach_every_branch():
+    outcomes = {NEW_C7(t) for t in C7_TEXTS.values()}
+    assert outcomes == {True, False}
+    assert any(NEW["_c7_no_object"](t) for t in C7_TEXTS.values())
+    assert any(NEW["_c7_has_candidate_line"](t) for t in C7_TEXTS.values())
+    assert any(not NEW["_c7_has_candidate_line"](t) for t in C7_TEXTS.values())
+    assert any(NEW["C7_QUESTION_RUN"].search(t) for t in C7_TEXTS.values() if "???" in t)
+
+
+def test_c7_a_gap_search_stops_looking_for_candidate_lines_only_when_the_answer_is_known():
+    # four "no object" gaps are enough without any candidate line; three need a fourth gap from a line
+    four = "write .\nfind ,\nshow ;\nsolve .\nplain."
+    assert NEW_C7(four) is True and not NEW["_c7_has_candidate_line"](four)
+    three_and_a_line = "write .\nfind ,\nshow ;\nThe area is =\nA new sentence begins."
+    assert NEW_C7(three_and_a_line) is True
+    three = "write .\nfind ,\nshow ;\nplain."
+    assert NEW_C7(three) is False
+
+
+PIECES = ["is", "are", "Is", "OF", "to", "find", "Find", "comparing", "and", "or", "then", "x", "3", "_", "-", "tank", "B", "this", "profit",
+          "equals", "gives", "gets", "becomes", "was", "therefore", "(A)", "A.", "b)", "(c", "=", ":", "?", "??", "???", "????",
+          ".", ",", ";", "\u017f", "\u0131", "\u212a", "\u00e9", "\u2212", "\u221a2", "$x^2$", "\u2022", "*", "^2", "5", "12"]
+SEPS = [" ", " ", " ", "  ", "\t", "\n", "\n", "\n\n", "\r\n", " \n", "\t\n", ""]
+
+
+def random_c7_text(rng):
+    out = []
+    for _ in range(rng.randint(0, 70)):
+        out.append(rng.choice(PIECES))
+        out.append(rng.choice(SEPS))
+    return "".join(out)
+
+
+def test_c7_random_texts_match_the_old_rule_and_cover_every_branch():
+    rng = random.Random(23)
+    seen = {"drop": 0, "keep": 0, "early": 0, "no_candidate": 0, "loop_gap": 0}
+    for _ in range(12000):
+        text = random_c7_text(rng)
+        old, new = OLD_C7(text), NEW_C7(text)
+        assert new == old, repr(text)
+        assert NEW["_c7_no_object"](text) == len(OLD["C7_NO_OBJECT"].findall(text)), repr(text)
+        assert NEW["_c7_has_candidate_line"](text) == bool(OLD["C7_CANDIDATE"].search(text)), repr(text)
+        seen["drop" if new else "keep"] += 1
+        early = NEW["_c7_no_object"](text) + len(OLD["C7_QUESTION_MARK"].findall(text)) >= 4
+        seen["early"] += early
+        seen["no_candidate"] += (not early) and not NEW["_c7_has_candidate_line"](text)
+        seen["loop_gap"] += (not early) and NEW["_c7_has_candidate_line"](text) and new
+    assert all(v > 200 for v in seen.values()), seen
+
+
+def test_c7_random_token_strings_match_the_old_regex_counts_directly():
+    rng = random.Random(29)
+    for _ in range(30000):
+        text = "".join(rng.choice(PIECES + SEPS * 3) for _ in range(rng.randint(0, 14)))
+        assert NEW["_c7_no_object"](text) == len(OLD["C7_NO_OBJECT"].findall(text)), repr(text)
+        q = len(NEW["C7_QUESTION_END"].findall(text)) + (len(NEW["C7_QUESTION_RUN"].findall(text)) if "???" in text else 0)
+        assert q == len(OLD["C7_QUESTION_MARK"].findall(text)), repr(text)
+
+
+def test_c7_the_rule_in_clean_py_acts_only_on_the_math_packs_and_equals_the_old_rule():
+    rule = c._RULE["DA-C7-001"]()
+    for text in (GAPS4, C7_TEXTS["empty answer options"], C7_TEXTS["no candidate"], ""):
+        for pack in ("math-finemath", "math-megamath"):
+            want = ("drop", text) if OLD_C7(text) else ("keep", text)
+            assert rule(doc(text, pack)) == want
+        for pack in ("en-dclm", "sci-finepdfs", "code-go", None):
+            assert rule(doc(text, pack)) == ("keep", text)
