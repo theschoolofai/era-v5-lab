@@ -15,7 +15,7 @@ The **Clean → Dedup → F2** pipeline of Data A, as one command. It chains the
 | **Order** | clean → overlap → dedup → **apply the remove list** → **F2** → **survivor loss** → **ledger** → **shards** → **reconcile** (the last two optional) |
 | **In** | the cleaned parts (`train/`, `heldout/`) and the outputs of overlap and dedup |
 | **Out** | filtered Parquet in the same layout, same schema, unchanged text · `pipeline_manifest.json` · the ledger, one row per document · shards (optional) |
-| **New here** | `apply_dedup.py` · `survivor_loss.py` · `ledger.py` · `f2_pool.py` · `reconcile_shards.py` · `hashing.py` · `arrowtools.py` · `runlock.py` · `run_pipeline.py` · `pipeline.json` · `stage_args.py` · `local_trial/` · 267 tests |
+| **New here** | `apply_dedup.py` · `survivor_loss.py` · `ledger.py` · `f2_pool.py` · `reconcile_shards.py` · `hashing.py` · `arrowtools.py` · `runlock.py` · `run_pipeline.py` · `pipeline.json` · `stage_args.py` · `local_trial/` · 302 tests |
 | **Reused, never copied** | `spec_v1/run_clean.py` (#244) · `dedup/overlap.py`, `dedup/dedup.py` (#255) · `spec_v1/run_f2.py` (#35, on this branch since #40) |
 | **Needs** | Python 3.11+ (tested on 3.13) with `pyarrow` for the pipeline; `numpy` and `tokenizers` for the shard stage; `numpy`, `scipy` and `pygments` to run overlap and dedup locally; `pytest` for the tests. Install them into the environment itself: the scripts run with `python -I` |
 
@@ -341,6 +341,7 @@ t.filter(pc.equal(t["final"], "dropped_by_f2")).select(["pack_id", "doc_id", "f2
 {
   "run_id": "sample-v0",                 // outputs go to <out>/<run_id>/; --run-id replaces it per job
   "out": "out/pipeline",                 // git-ignored, like every out/ folder
+  "intermediates": "keep",               // or "drop": once reconcile has passed, delete the deduped and final Parquet of the parts the shard stage accounts for
   "stages": {
     "clean":   { "mode": "run", "settings": "teams/01-data-a/spec_v1/clean.json", "input": "inputs/tokenizer_sample_v0",
                  "manifest_sha256": "7fd647c8…", "expected_parts": { "train": 48, "heldout": 38 } },
@@ -378,6 +379,7 @@ t.filter(pc.equal(t["final"], "dropped_by_f2")).select(["pack_id", "doc_id", "f2
 | `stages.apply.link` | `true` (default) · `false` | hard-link untouched parts instead of copying them; falls back to a copy across file systems |
 | `stages.apply.workers` | whole number ≥ 1 (default 4) | parts checked and written at once; each holds one batch and one output row group in memory |
 | `hash_cache` | `true` (default) · `false` | **true**: every sha256 is computed once and kept in `<run>/cache/sha256.json`, keyed on each file's device, inode, size, mtime and change time (ctime on Linux, NTFS's ChangeTime on Windows), so the digests reuse apply's hashes and a resumed run hashes nothing it has hashed already. **false**: hash everything again, for an audit |
+| `intermediates` | `keep` (default) · `drop` | **keep**: every stage's Parquet stays on disk (the cleaner audit reads the parts before and after `clean.py`). **drop**: once reconcile has passed, the run deletes, from `deduped/` and `final/`, the Parquet of every part whose kept documents are all in shards or left out by the shard writer for a stated reason; held-out parts, parts of packs the shard stage was not asked for, and the cleaned folder stay. Needs a run that ends at reconcile. See [Intermediate Parquet](#intermediate-parquet-keep-or-drop) |
 | `stages.ledger.raw` | folder (optional) | the raw parts the cleaner read, as `<raw>/<split>/<pack>/<file>` or `<raw>/<pack>/<split>/<file>` (found by the sha256 in the cleaning report, else by name): the ledger runs in **mode B** (keep / fix / drop per document). Without it, **mode C** |
 
 **One file per run.** Everything that defines a run is a key in the config file, and `--config <file>` is all a TSAI job's `Command:` needs. The committed `pipeline.json` is the generic template (no dates, no returned folders); for a job, copy it to `jobs/<date>-<name>/run.json` and edit that copy:
@@ -481,6 +483,8 @@ out/pipeline/<run_id>/
     └── reconcile_summary.json         per pack and split, the count of each status; the checks
 ```
 
+With `"intermediates": "drop"`, the `part-NNNNN.parquet` files of the parts the shard stage accounts for are gone from `deduped/` and `final/` at the end of the run; everything else in the tree stays, the held-out parts included.
+
 <details>
 <summary><b>What <code>pipeline_manifest.json</code> holds</b></summary>
 <br>
@@ -504,6 +508,7 @@ out/pipeline/<run_id>/
   ],
   "checks": [ { "stage": "dedup", "check": "dedup used this overlap run", "ok": true, "detail": "…" }, … ],
   "totals": { "cleaned": …, "removed_by_dedup": …, "dropped_by_f2": …, "final": …, "shards_written": … },  // mode B adds "raw", "dropped_by_clean"
+  "intermediates": { "mode": "keep" },   // after a drop: "state": "done", "parts": { "dropped": …, "left": … }, "folders": { "final": { "stage": "f2", "parquet_files": …, "bytes": …, "hard_links": … }, … }
   "by_pack": {                                                                          // from the ledger
     "sci-finepdfs": { "train":   { "cleaned": 6011, "removed_by_dedup": 2, "dropped_by_f2": 14, "final": 5995 },
                       "heldout": { "cleaned": 63,   "removed_by_dedup": 0, "dropped_by_f2": 0,  "final": 63 } }, …
@@ -551,6 +556,60 @@ python -I teams/01-data-a/shards/run_shards.py --input <run>/final --manifest <r
 | `--pack` | only this pack (repeatable) |
 
 Language, script, domain and lane come from the pack's row in `shards/pack_table.json`; a pack that is not in the table, or has a null field, is skipped. The shard number is the part's number (`part-00001.parquet` becomes `<pack>-train-000001`). Nothing is written if one of the shards is already in `--out`. A part the writer stops on is recorded and the run goes on; the exit code is 1 unless every part was written or `not_sharded`. `<out>/shards_summary.json` lists each part with its status, shard id, docs, tokens, rows read of the rows in the part, and `truncated` (the writer fills one shard per part up to `--tokens` and drops the rest).
+
+### Intermediate Parquet: keep or drop
+
+Between the input and the shards, a run writes Parquet three times: `clean/` (when it runs the clean job itself), `deduped/` and `final/`. One key, `intermediates`, says what happens to `deduped/` and `final/` when the run is over.
+
+| | `"intermediates": "keep"` (default) | `"intermediates": "drop"` |
+|---|---|---|
+| **Use it for** | the cleaner audit (task 5), which reads the parts before and after `clean.py`; trials; any run you may resume | a run whose product is the shards |
+| **At the end of the run** | nothing is deleted | in `deduped/` and `final/`, the Parquet of every part **whose kept documents are all in shards, or left out by the shard writer for a stated reason,** is deleted |
+| **Needs** | nothing | a run that ends at `reconcile` (so `stages.shards` and `stages.reconcile`, and no earlier `"to"`) |
+| **Afterwards** | `"from"` works as usual | the run cannot be resumed or rerun in place: a new run needs a new `run_id` |
+
+**Which parts go.** The drop reads `reconcile/reconcile_docs.parquet`, the reconciliation's one row per kept document. A part's Parquet is deleted only when **every** kept document of that part has the status `in_shard` or `left_out:<reason>` (the shard writer left it out and says why), and `shards_summary.json` reports the part as `written`. Anything else keeps the whole part, in both folders:
+
+| Part | Status of its kept documents | Its Parquet in `deduped/` and `final/` |
+|---|---|---|
+| a train part the shard stage wrote | `in_shard`, `left_out:<reason>` | **deleted** |
+| a held-out part | `not_sharded` | stays: `final/heldout/` is the only filtered copy of the held-out set |
+| a part of a pack the shard stage was not asked for (`stages.shards.packs`) | `not_selected` | stays |
+| a part with no kept document | (no row) | stays |
+
+A run stops at `reconcile` when a kept document of a selected pack is missing, cut off or in a failed part, so those never reach the drop; if such a status were present, the part would stay too.
+
+**What a drop never deletes.**
+
+- **The cleaned folder**, adopted or written by this run. An adopted folder is an input. A folder this run wrote may since have been adopted by another run (`local_trial/configs/4-adopt-clean.json` does exactly that), and the runner cannot see who has, so it stays.
+- The raw input, the overlap and dedup folders, the ledger, the shards (`*.docs.parquet` included), the reconciliation, F2's `*.f2.json` reports, every summary, the logs, the manifest.
+
+A part that apply hard-linked from the cleaned folder loses only its name in `deduped/`; the file stays in the cleaned folder (`hard_links` in the manifest counts these: deleting them frees no disk).
+
+**What still tells the story afterwards.** The ledger has one row per document with every stage's decision and the document's position in the final part; `reconcile_docs.parquet` maps each kept document to its shard; the shards' `docs.parquet` point back at the same `(input_part, input_row)`. The manifest keeps every stage's digest **as it was checked, before the drop**, and adds what was deleted:
+
+```jsonc
+"intermediates": { "mode": "drop", "state": "done",
+  "parts": { "dropped": …, "left": … },              // left: held-out, not selected
+  "folders": { "deduped": { "stage": "apply", "parquet_files": …, "bytes": …, "hard_links": … },
+               "final":   { "stage": "f2",    "parquet_files": …, "bytes": …, "hard_links": 0 } } }
+```
+
+**Guards.** The config is checked before the first stage runs, and `--plan` names the two folders. Everything about the files is checked before the first one is deleted.
+
+| Guard | What it stops |
+|---|---|
+| `drop` without a run that ends at `reconcile` | deleting `final/` when it is the run's only product, or before the shards are known to hold a part's documents |
+| `stages.shards.out` or `stages.clean.input` inside `deduped/` or `final/` (a `stages.ledger.raw` there is refused for every run) | shards or an input in a folder the drop deletes from |
+| only files named `<split>/<pack>/<file>.parquet` from the reconciliation are deleted | anything else that happens to lie in the folder |
+| `deduped/`, `final/` and each part's own folder must be where they should be once links are resolved | a folder that is a link to somewhere else, outside the run folder or inside it: the drop stops, nothing is deleted |
+| a read-only part (Windows) stops the drop before it starts | changing the attribute of a file that a hard link shares with the adopted folder |
+| `"state": "started"` is in the manifest before the first file goes; it is taken back only if the very first deletion fails, and never written when there is nothing to delete | a drop that was interrupted halfway looking like an intact run. A run killed between the mark and the first deletion stays marked: the guard errs on the side of refusing |
+| a manifest with a drop state refuses `"from"` and a rerun | a stage starting on folders whose reports are there but whose Parquet is gone |
+
+**For the audit.** Run the sample with the final cleaner and `"intermediates": "keep"` (clean in `"mode": "run"`): the raw parts are the input folder, the cleaned parts are `<run>/clean/`, and the ledger (with `stages.ledger.raw`) says keep / fix / drop per document. The job on the training sources can then set `"drop"`.
+
+**What this switch is not.** It does not change how the stages pass data to each other: each stage is still the team's own script reading and writing Parquet, so a run with `drop` uses the same disk at its peak as one with `keep`, and its cleaned folder stays. It decides what is left of `deduped/` and `final/` when the run is over.
 
 <br>
 
@@ -622,7 +681,7 @@ The old apply varied most (25 to 121 s over 3 runs; writing thousands of 128-row
 ## Tests
 
 ```bash
-python -m pytest teams/01-data-a/pipeline/tests -q      # 267 passed
+python -m pytest teams/01-data-a/pipeline/tests -q      # 302 passed
 ```
 
 | File | Tests | Covers |
@@ -631,7 +690,7 @@ python -m pytest teams/01-data-a/pipeline/tests -q      # 267 passed
 | `test_survivor_loss.py` | 11 | lost · partly hit · untouched · without survivor · split + part + doc_id matching · F2 errors count as dropped · no drops · an uncovered part · mixed fingerprint sets · CLI · the row order (G9 before G10, the CSV's order within a group) · a doc both dropped and an error counts once, as the error |
 | `test_local_trial.py` (not in the repo yet) | 10 | the trial configs agree with each other and with the tracked sample manifest (pin, parts, run ids, steps) and each has its command in the trial README · `show.py` prints a run and flags a failed check |
 | `test_stage_args.py` | 19 | the command each stage script gets: a generated config for clean, overlap and dedup (path keys filled in, other settings kept) · `only` · the settings pin · outputs outside `out/` or the repository refused |
-| `test_run_pipeline.py` | 79 | the full chain (13 → 11 → 9) · parallel F2 gives the same result as one process · a crashed pack is named and a rerun recovers · bad `workers` values · identical runs give identical digests · `--from` keeps earlier checks · a changed adopted folder · dedup from another overlap run · overlap of other parts · count mismatch · held-out removed · F2 errors · F2 that read other files · stale F2 output · train-only · `run` mode success and failure · a bad config stopped before anything runs · CLI · the ledger in the full chain and with parallel F2 · mode B adds the cleaner's drops to the totals · `"from": "ledger"` · a `raw` that is not a folder · the per-pack table, its checks against apply, a pack the cleaner emptied (mode B), and the table printed by the CLI · F2 through `f2_pool.py` gives the same run · the reconcile stage after shards, and a failed reconciliation · CSV records, not lines · the new config keys · a resumed run reuses the hash cache · the same digests without it · an input in a folder the run writes (`ledger.partial`, `ledger.old`, `deduped.lock`, `ledger`) is refused before any stage · a `raw` folder there too · run-varying fields of overlap and dedup summaries leave the digest unchanged |
+| `test_run_pipeline.py` | 114 | the full chain (13 → 11 → 9) · parallel F2 gives the same result as one process · a crashed pack is named and a rerun recovers · bad `workers` values · identical runs give identical digests · `--from` keeps earlier checks · a changed adopted folder · dedup from another overlap run · overlap of other parts · count mismatch · held-out removed · F2 errors · F2 that read other files · stale F2 output · train-only · `run` mode success and failure · a bad config stopped before anything runs · CLI · the ledger in the full chain and with parallel F2 · mode B adds the cleaner's drops to the totals · `"from": "ledger"` · a `raw` that is not a folder · the per-pack table, its checks against apply, a pack the cleaner emptied (mode B), and the table printed by the CLI · F2 through `f2_pool.py` gives the same run · the reconcile stage after shards, and a failed reconciliation · CSV records, not lines · the new config keys · a resumed run reuses the hash cache · the same digests without it · an input in a folder the run writes (`ledger.partial`, `ledger.old`, `deduped.lock`, `ledger`) is refused before any stage · a `raw` folder there too · run-varying fields of overlap and dedup summaries leave the digest unchanged · `intermediates`: kept by default · `drop` deletes, from `deduped/` and `final/`, only the parts whose kept documents are all in shards or left out for a stated reason (held-out and unselected parts stay byte for byte), leaves the cleaned folder alone even when the run wrote it, and keeps the checked digests · one document with any other status (not selected, not sharded, missing, none) keeps its part, and so does a part the shard stage did not write · with nothing to drop the run stays resumable · a name that is not `<split>/<pack>/<file>.parquet` is refused · a part already missing is skipped · a folder that cannot be written stops the drop first · it needs a run that ends at reconcile · a failed reconciliation drops nothing · a finished run resumed at reconcile drops · `started` is in the manifest before the first file goes · a first deletion that fails leaves the run whole and resumable, a later one leaves it marked · a dropped or half-dropped run cannot be resumed · a read-only part stops the drop first (Windows) · the shards or an input inside `deduped/` or `final/` is refused · a pack, split or stage folder that is a link elsewhere, outside or inside the run folder, stops the drop |
 | `test_ledger.py` | 47 | each document's row in mode C (removed copy with its H1 match, survivor dropped by F2, kept with its final row) · `final_row` points into the final parts · mode B keep / fix / drop, with both raw layouts · a raw file found by sha256 under another name, and a same-named one from another run refused · cleaning reports agree, or stop · raw from another run · a missing raw part · a list naming another doc_id or a row past the end · groups disagreeing with the list · a row in two groups · a log row naming a survivor · an unknown part · a final part out of order · a missing F2 report · F2 naming a removed doc · F2 errors as their own status · no log · byte-identical reruns · stale ledger files · a stopped rebuild leaves no summary · no text in the sample or summary · CLI · two builds into one folder · an --out that is not a ledger folder · a rerun replaces the ledger whole · a stopped rebuild leaves the previous one whole · the streamed text compare = the in-memory one · a cleaned part out of raw order · a pack folder named unlike its pack_id · 60 parts keep their own dedup rows · mode B without a text column · large documents compared in small batches · a refused swap keeps both ledgers · a refused rename is retried · a run killed between the renames gets the previous ledger back · an input at `<out>.partial` or `<out>.old` is never touched · an --out inside an input · a folder by those names the ledger did not make is never deleted · a staging folder a killed run left is cleared · an old ledger only partly deleted is cleared next time · the same long text repeated in mode B |
 | `test_f2_pool.py` | 14 | the pool writes the same bytes as run_f2.py part by part (spawn, and fork where the machine has it) · in-process · resume · a broken part or a dying worker fails only its part · a broken set stops before any worker · relative inputs reported as given · the summary names this run's script |
 | `test_hashing_and_lock.py` | 24 | a file hashed once · a rewritten file and an in-place edit hashed again · a hard link has its source's hash · the cache on disk · a broken, old or bad cache never trusted · many files in parallel, in order · audit mode · one writer per folder · a killed holder releases the lock · an in-place edit that puts mtime back · a link recorded without reading it · the code hash covers the helper modules · only a lock someone holds is busy: a file system without locks warns and goes on, an I/O error is raised (7 cases) |
@@ -666,6 +725,7 @@ The data is made up inside the tests (`conftest.py`), in dedup's real formats (`
 | **A ledger built from the stages' own outputs** | It records what happened rather than recomputing it, and every count it reports is checked against the stage that made it. |
 | **Ledger in its own folder (`ledger/`)** | If it lived inside `report/`, writing it would change survivor loss's digest and make `"from": "ledger"` refuse to start. |
 | **Ledger files per pack and split** | At 1.4M documents one file is unwieldy; per pack, anyone can open the pack they own. |
+| **Intermediate Parquet is kept unless the config says `drop`; a drop is per part, after reconcile, and never the cleaned folder** | Deleting is the one thing a run cannot undo, so it is never the default. A part goes only when the reconciliation shows all its kept documents in shards or left out by the writer for a stated reason, which leaves the held-out set and unselected packs in place. The cleaned folder stays because other runs adopt it. |
 | **Mode B compares text, mode A will name rules** | Comparing raw with cleaned works today with no change to the cleaning job; rule ids need the job to write them. |
 
 <br>

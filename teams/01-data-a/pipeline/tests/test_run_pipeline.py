@@ -908,3 +908,362 @@ def test_run_varying_fields_of_overlap_and_dedup_summaries_do_not_change_a_diges
         "documents_all": 14, "wall_seconds": 1.0, "peak_rss_mb": 1.0,
         "config": {"out": "x", "results": "x", "inputs": "out/cleaned", "k": 5}}), encoding="utf-8")
     assert rp.digest(a)[0] != rp.digest(b)[0]  # a real difference still shows
+
+
+# --- task 4.8: the run's own intermediate Parquet, kept (default) or dropped once reconcile has passed (16 Nov) --------
+# The chain's kept documents: train code-go/part-00000 (g1-g4) and part-00001 (g5, g6), which the stand-in shard stage
+# puts in shards; train en-dclm/part-00000 (e0, e1), a pack the shard stage is not asked for (not_selected); heldout
+# code-go/part-00000 (h0), not_sharded. So a drop takes the two code-go train parts and leaves the other two.
+SHARD_COUNTS = {"written": 2, "failed": 0, "skipped": 0, "not_sharded": 1, "truncated": 0, "parts": 3}
+THROUGH_LEDGER = rp.STAGES[: rp.STAGES.index("ledger") + 1]
+SHARDED = ["train/code-go/part-00000.parquet", "train/code-go/part-00001.parquet"]
+NOT_IN_SHARDS = ["heldout/code-go/part-00000.parquet", "train/en-dclm/part-00000.parquet"]
+
+
+def with_reconcile(path, monkeypatch, intermediates=None, after_shards=None, **shard_kw):
+    """Give the config at `path` a reconcile stage, and the run a shard stage that writes shards in the writer's format
+    from the run's final parts (as test_reconcile_runs_after_the_shards does). Sets "intermediates" when given;
+    after_shards(run) is called once the shards are written."""
+    from test_reconcile_shards import write_shards
+
+    def fake_shards(self):
+        write_shards(self.dir, self.output("shards"), packs={"code-go"}, **shard_kw)
+        if after_shards:
+            after_shards(self)
+        return {"mode": "run", "command": ["fake"], "code_sha256": None, "output": "shards", "counts": dict(SHARD_COUNTS)}
+    monkeypatch.setattr(rp.Run, "stage_shards", fake_shards)
+    cfg = json.loads(path.read_text(encoding="utf-8"))
+    cfg["stages"]["reconcile"] = {}
+    if intermediates is not None:
+        cfg["intermediates"] = intermediates
+    path.write_text(json.dumps(cfg), encoding="utf-8")
+    return path
+
+
+def parquet_under(folder):
+    return sorted(p.relative_to(folder).as_posix() for p in Path(folder).rglob("*.parquet"))
+
+
+def snapshot(folder):
+    """{relative path: sha256} of every file in a folder, to show that a run left it alone."""
+    return {p.relative_to(folder).as_posix(): sha(p) for p in sorted(Path(folder).rglob("*")) if p.is_file()}
+
+
+def manifest_of(run):
+    return json.loads((run / "pipeline_manifest.json").read_text(encoding="utf-8"))
+
+
+def link_dir(target, link):
+    """A directory link: a symlink, or a junction on Windows, where a symlink needs a privilege."""
+    try:
+        os.symlink(target, link, target_is_directory=True)
+    except OSError:
+        if sys.platform != "win32":
+            pytest.skip("cannot make a directory link here")
+        import _winapi
+        _winapi.CreateJunction(str(target), str(link))
+
+
+def test_intermediates_are_kept_unless_the_config_says_drop(tmp_path, shard_config, monkeypatch):
+    m = rp.run(with_reconcile(shard_config, monkeypatch))
+    run = tmp_path / "runs" / "test-run"
+    assert m["intermediates"] == {"mode": "keep"} and m["stages"][-1]["stage"] == "reconcile"
+    assert len(parquet_under(run / "deduped")) == 4 and len(parquet_under(run / "final")) == 4
+    assert "intermediates: keep" in rp.plan(shard_config)
+
+
+def test_drop_deletes_only_the_parts_whose_kept_documents_are_all_in_shards(tmp_path, shard_config, tsai_outputs, monkeypatch, capsys):
+    adopted = snapshot(tsai_outputs["cleaned"])
+    kept = rp.run(with_reconcile(shard_config, monkeypatch))  # the same chain with everything kept, to compare with
+    run = tmp_path / "runs" / "test-run"
+    linked = sum((run / "deduped" / p).stat().st_nlink > 1 for p in SHARDED)  # parts apply hard-linked from the adopted folder
+    left = {f: {p: sha(run / f / p) for p in NOT_IN_SHARDS} for f in ("deduped", "final")}
+    shutil.rmtree(run)
+    plan = rp.plan(with_reconcile(shard_config, monkeypatch, intermediates="drop"))
+    assert "intermediates: drop" in plan and "runs/test-run/deduped and " in plan and "runs/test-run/final;" in plan
+    m = rp.run(shard_config)
+    # the two code-go train parts are in shards: their Parquet is gone from both folders. The held-out part and the
+    # part of the pack the shard stage was not asked for are in no shard: they stay, byte for byte
+    assert parquet_under(run / "deduped") == NOT_IN_SHARDS and parquet_under(run / "final") == NOT_IN_SHARDS
+    assert {f: {p: sha(run / f / p) for p in NOT_IN_SHARDS} for f in ("deduped", "final")} == left
+    assert final_ids(run) == ["e0", "e1", "h0"]
+    # what the stages reported stays, and so do the ledger, the shards and the reconciliation
+    assert (run / "deduped" / "apply_dedup_summary.json").is_file() and (run / "final" / "train" / "f2_summary.json").is_file()
+    assert len(list((run / "final").rglob("*.f2.json"))) == 4
+    assert len(parquet_under(run / "ledger")) == 3 and len(parquet_under(run / "shards")) == 2
+    assert (run / "reconcile" / "reconcile_docs.parquet").is_file() and (run / "report" / "survivor_loss.csv").is_file()
+    # the adopted folder is an input: every file is still there, the ones the run hard-linked too
+    assert snapshot(tsai_outputs["cleaned"]) == adopted
+    d = m["intermediates"]
+    assert (d["mode"], d["state"], d["parts"]) == ("drop", "done", {"dropped": 2, "left": 2})
+    assert sorted(d["folders"]) == ["deduped", "final"]
+    assert d["folders"]["deduped"] == {"stage": "apply", "parquet_files": 2, "bytes": d["folders"]["deduped"]["bytes"], "hard_links": linked}
+    assert d["folders"]["final"] == {"stage": "f2", "parquet_files": 2, "bytes": d["folders"]["final"]["bytes"], "hard_links": 0}
+    assert d["folders"]["deduped"]["bytes"] > 0 and d["folders"]["final"]["bytes"] > 0
+    assert manifest_of(run)["intermediates"] == d
+    # the manifest still describes the folders as they were checked, before the drop
+    digests = lambda man: {s["stage"]: s["digest"] for s in man["stages"] if s["stage"] in THROUGH_LEDGER}
+    assert digests(m) == digests(kept) and m["totals"] == kept["totals"] and all(ch["ok"] for ch in m["checks"])
+    assert "intermediates: dropped 2 part(s), left 2: deduped 2 Parquet file(s)" in capsys.readouterr().err
+
+
+def test_a_part_with_a_document_the_shards_do_not_hold_is_left(tmp_path, shard_config, monkeypatch):
+    """A written part goes only when reconcile_docs.parquet shows all its kept documents in a shard or left out for a
+    stated reason: one row with any other status keeps the whole part. (reconcile itself stops a run on a missing
+    document; this is the drop's own reading of the statuses.)"""
+    import pyarrow as pa
+    rp.run(with_reconcile(shard_config, monkeypatch))
+    run = tmp_path / "runs" / "test-run"
+    r = rp.Run(shard_config)
+    assert r.droppable_parts() == (SHARDED, 2)
+    docs = run / "reconcile" / "reconcile_docs.parquet"
+    schema = pq.read_schema(docs)
+    rows = pq.read_table(docs).to_pylist()
+    for status in ("not_selected", "not_sharded", "missing", "not_reached", "part_failed", None):
+        for row in rows:
+            if row["doc_id"] == "g5":
+                row["shard_status"] = status
+            if row["doc_id"] == "g1":
+                row["shard_status"] = "left_out:empty"
+        pq.write_table(pa.Table.from_pylist(rows, schema=schema), docs)
+        # part-00001 holds g5, so it stays whatever that status is; part-00000's g1 was left out for a stated reason
+        assert r.droppable_parts() == (SHARDED[:1], 3), status
+    summary = run / "shards" / "shards_summary.json"
+    s = json.loads(summary.read_text(encoding="utf-8"))
+    s["parts"][SHARDED[0]]["status"] = "failed"
+    summary.write_text(json.dumps(s), encoding="utf-8")
+    assert r.droppable_parts() == ([], 4)  # and a part the shard stage does not report as written stays too
+
+
+def test_drop_never_touches_the_cleaned_folder_not_even_one_this_run_wrote(tmp_path, staged, tsai_outputs, monkeypatch):
+    path, repo = staged
+    tokenizer = tmp_path / "tokenizer.json"
+    tokenizer.write_text("{}", encoding="utf-8")
+    set_stage(path, "shards", {"script": str(FAKE_SHARDS), "tokenizer": str(tokenizer), "packs": ["code-go"]})
+    with_reconcile(path, monkeypatch, intermediates="drop")
+    m = rp.run(path)
+    run = repo / "out" / "runs" / "test-run"
+    assert m["stages"][0]["mode"] == "run" and sorted(m["intermediates"]["folders"]) == ["deduped", "final"]
+    assert parquet_under(run / "deduped") == NOT_IN_SHARDS and parquet_under(run / "final") == NOT_IN_SHARDS
+    # another run may have adopted <run>/clean, so it stays whole: the same files the clean job wrote
+    assert snapshot(run / "clean") == snapshot(tsai_outputs["cleaned"]) and len(parquet_under(run / "clean")) == 4
+
+
+@pytest.mark.parametrize("reconcile, to", [(False, None), (True, "ledger"), (True, "shards")])
+def test_drop_needs_a_run_that_ends_at_reconcile(tmp_path, shard_config, reconcile, to):
+    cfg = json.loads(shard_config.read_text(encoding="utf-8"))
+    cfg["intermediates"] = "drop"
+    if reconcile:
+        cfg["stages"]["reconcile"] = {}
+    if to:
+        cfg["to"] = to
+    shard_config.write_text(json.dumps(cfg), encoding="utf-8")
+    for call in (rp.run, rp.plan):
+        with pytest.raises(rp.Stop, match="needs a run that ends at reconcile"):
+            call(shard_config)
+    assert not (tmp_path / "runs").exists()
+
+
+def test_intermediates_must_be_keep_or_drop(tmp_path, config):
+    edit_config(config, intermediates=True)
+    with pytest.raises(rp.Stop, match="intermediates is True, expected keep or drop"):
+        rp.run(config)
+    assert not (tmp_path / "runs").exists()
+
+
+def test_a_failed_reconciliation_drops_nothing(tmp_path, shard_config, monkeypatch):
+    with pytest.raises(rp.Stop, match="reconcile: .*not_reached"):
+        rp.run(with_reconcile(shard_config, monkeypatch, intermediates="drop",
+                              rows_read={"train/code-go/part-00000.parquet": 2}))
+    run = tmp_path / "runs" / "test-run"
+    assert len(parquet_under(run / "deduped")) == 4 and len(parquet_under(run / "final")) == 4
+    on_disk = manifest_of(run)
+    assert on_disk["intermediates"] == {"mode": "drop"} and on_disk["stages"][-1]["stage"] == "shards"
+
+
+def test_a_finished_run_can_be_resumed_at_reconcile_to_drop(tmp_path, shard_config, monkeypatch):
+    rp.run(with_reconcile(shard_config, monkeypatch))
+    run = tmp_path / "runs" / "test-run"
+    edit_config(shard_config, intermediates="drop")
+    m = rp.run(shard_config, start="reconcile")
+    assert m["intermediates"]["state"] == "done" and parquet_under(run / "final") == NOT_IN_SHARDS
+    assert [s["stage"] for s in m["stages"]] == list(rp.STAGES)
+
+
+@pytest.mark.parametrize("state", ["done", "started"])
+def test_a_run_that_dropped_its_parquet_cannot_be_resumed_or_rerun_in_place(tmp_path, shard_config, monkeypatch, state):
+    """"started" is what a drop that was interrupted leaves in the manifest: refused like a finished one."""
+    run = tmp_path / "runs" / "test-run"
+    if state == "done":
+        rp.run(with_reconcile(shard_config, monkeypatch, intermediates="drop"))
+    else:
+        rp.run(with_reconcile(shard_config, monkeypatch))
+        m = manifest_of(run)
+        m["intermediates"] = {"mode": "drop", "state": "started"}
+        (run / "pipeline_manifest.json").write_text(json.dumps(m), encoding="utf-8")
+    assert manifest_of(run)["intermediates"]["state"] == state
+    for start in (None, "f2", "reconcile"):
+        with pytest.raises(rp.Stop, match=f"dropped its intermediate Parquet .*{state}.*new run_id"):
+            rp.run(shard_config, start=start)
+    edit_config(shard_config, intermediates="keep")  # nor with the switch turned back
+    with pytest.raises(rp.Stop, match="new run_id"):
+        rp.run(shard_config, start="ledger")
+
+
+def test_the_manifest_says_started_before_the_first_file_goes(tmp_path, shard_config, monkeypatch):
+    run, seen = tmp_path / "runs" / "test-run", []
+    unlink = Path.unlink
+
+    def watched(self, *a, **kw):
+        if self.suffix == ".parquet" and run in self.parents and self.parent.parent.parent.name in ("deduped", "final"):
+            seen.append((manifest_of(run)["intermediates"], len(parquet_under(run / "deduped")) + len(parquet_under(run / "final"))))
+        return unlink(self, *a, **kw)
+    with_reconcile(shard_config, monkeypatch, intermediates="drop")
+    monkeypatch.setattr(Path, "unlink", watched)
+    rp.run(shard_config)
+    assert seen[0] == ({"mode": "drop", "state": "started"}, 8) and len(seen) == 4
+
+
+def failing_unlink(monkeypatch, run, fail_at):
+    """Path.unlink fails on the fail_at-th Parquet part deleted from the run's deduped/ or final/ (1 = the first)."""
+    unlink, calls = Path.unlink, []
+
+    def flaky(self, *a, **kw):
+        if self.suffix == ".parquet" and run in self.parents and self.parent.parent.parent.name in ("deduped", "final"):
+            calls.append(self)
+            if len(calls) == fail_at:
+                raise PermissionError(13, "made up: access denied")
+        return unlink(self, *a, **kw)
+    monkeypatch.setattr(Path, "unlink", flaky)
+
+
+def test_a_drop_that_cannot_delete_its_first_file_leaves_the_run_whole_and_resumable(tmp_path, shard_config, monkeypatch):
+    run = tmp_path / "runs" / "test-run"
+    with_reconcile(shard_config, monkeypatch, intermediates="drop")
+    with monkeypatch.context() as mp:
+        failing_unlink(mp, run, fail_at=1)
+        with pytest.raises(rp.Stop, match="could not delete .*nothing was deleted"):
+            rp.run(shard_config)
+    assert len(parquet_under(run / "deduped")) == 4 and len(parquet_under(run / "final")) == 4
+    assert manifest_of(run)["intermediates"] == {"mode": "drop"}  # the "started" mark was taken back
+    m = rp.run(shard_config, start="reconcile")  # so the run can be picked up again, and then drops
+    assert m["intermediates"]["state"] == "done" and parquet_under(run / "final") == NOT_IN_SHARDS
+
+
+def test_a_drop_that_fails_halfway_stays_marked_started(tmp_path, shard_config, monkeypatch):
+    run = tmp_path / "runs" / "test-run"
+    with_reconcile(shard_config, monkeypatch, intermediates="drop")
+    with monkeypatch.context() as mp:
+        failing_unlink(mp, run, fail_at=2)
+        with pytest.raises(rp.Stop, match="after 1 file.s. were deleted; the manifest records the drop as started"):
+            rp.run(shard_config)
+    assert len(parquet_under(run / "deduped")) + len(parquet_under(run / "final")) == 7
+    assert manifest_of(run)["intermediates"] == {"mode": "drop", "state": "started"}
+    with pytest.raises(rp.Stop, match="new run_id"):
+        rp.run(shard_config, start="reconcile")
+
+
+def test_a_read_only_part_stops_the_drop_before_anything_is_deleted(tmp_path, shard_config, monkeypatch):
+    """On Windows a read-only file cannot be deleted, and the attribute belongs to the adopted file too when the part is
+    a hard link, so it is not changed: the drop stops first, with every file in place."""
+    if os.name != "nt":
+        pytest.skip("deleting a read-only file needs no change of the file on this system")
+    import stat
+    run = tmp_path / "runs" / "test-run"
+
+    def lock_one(r):
+        os.chmod(r.dir / "final" / SHARDED[1], stat.S_IREAD)
+    with_reconcile(shard_config, monkeypatch, intermediates="drop", after_shards=lock_one)
+    try:
+        with pytest.raises(rp.Stop, match="cannot be deleted .read-only.; nothing was deleted"):
+            rp.run(shard_config)
+        assert len(parquet_under(run / "deduped")) == 4 and len(parquet_under(run / "final")) == 4
+        assert manifest_of(run)["intermediates"] == {"mode": "drop"}
+    finally:
+        os.chmod(run / "final" / SHARDED[1], stat.S_IWRITE | stat.S_IREAD)
+
+
+def test_drop_refuses_the_shards_or_an_input_inside_a_folder_it_deletes_from(tmp_path, staged, monkeypatch):
+    path, repo = staged
+    run = repo / "out" / "runs" / "test-run"
+    tokenizer = tmp_path / "tokenizer.json"
+    tokenizer.write_text("{}", encoding="utf-8")
+    shards = {"script": str(FAKE_SHARDS), "tokenizer": str(tokenizer), "packs": ["code-go"]}
+    set_stage(path, "shards", {**shards, "out": str(run / "final" / "train" / "shards")})
+    with_reconcile(path, monkeypatch, intermediates="drop")
+    with pytest.raises(rp.Stop, match="stages.shards.out .* lies in it"):
+        rp.run(path)
+    set_stage(path, "shards", shards)
+    edit_stage(path, "clean", input=str(run / "deduped" / "raw"))
+    with pytest.raises(rp.Stop, match="stages.clean.input .* lies in it"):
+        rp.run(path)
+    assert not run.exists()  # stopped in validation, before any stage
+
+
+@pytest.mark.parametrize("link", ["final/train/code-go", "final/train", "final", "deduped/train/code-go"])
+def test_drop_never_follows_a_folder_link_out_of_its_place(tmp_path, shard_config, monkeypatch, link):
+    """A pack, split or stage folder that has become a link to somewhere else (here: after the shards were written):
+    the drop stops before the first file goes, in the folder with the link and in the other one."""
+    run, elsewhere, before = tmp_path / "runs" / "test-run", tmp_path / "elsewhere", {}
+
+    def swap(r):
+        shutil.move(str(r.dir / link), str(elsewhere))
+        link_dir(elsewhere, r.dir / link)
+        before.update(snapshot(elsewhere))
+    with_reconcile(shard_config, monkeypatch, intermediates="drop", after_shards=swap)
+    with pytest.raises(rp.Stop, match="is a link to somewhere else; nothing was deleted"):
+        rp.run(shard_config)
+    other = "deduped" if link.startswith("final") else "final"
+    assert before and snapshot(elsewhere) == before and len(parquet_under(run / other)) == 4
+    assert manifest_of(run)["intermediates"] == {"mode": "drop"}
+
+
+def test_a_link_to_another_folder_of_the_same_run_is_not_followed_either(tmp_path, shard_config, monkeypatch):
+    """final/train/code-go as a link to another folder of the same run: inside the run folder, but not the part's own
+    place, so nothing there is deleted either."""
+    run = tmp_path / "runs" / "test-run"
+
+    def swap(r):
+        decoy = r.dir / "report" / "decoy"
+        shutil.move(str(r.dir / "final" / "train" / "code-go"), str(decoy))
+        link_dir(decoy, r.dir / "final" / "train" / "code-go")
+    with_reconcile(shard_config, monkeypatch, intermediates="drop", after_shards=swap)
+    with pytest.raises(rp.Stop, match="is a link to somewhere else; nothing was deleted"):
+        rp.run(shard_config)
+    assert len(parquet_under(run / "report" / "decoy")) == 2 and len(parquet_under(run / "deduped")) == 4
+
+
+def test_with_nothing_to_drop_the_run_is_not_marked_and_stays_resumable(tmp_path, shard_config, monkeypatch):
+    run = tmp_path / "runs" / "test-run"
+    with_reconcile(shard_config, monkeypatch, intermediates="drop")
+    monkeypatch.setattr(rp.Run, "droppable_parts", lambda self: ([], 4))
+    m = rp.run(shard_config)
+    assert m["intermediates"]["parts"] == {"dropped": 0, "left": 4} and "state" not in m["intermediates"]
+    assert manifest_of(run)["intermediates"] == m["intermediates"]
+    assert len(parquet_under(run / "deduped")) == 4 and len(parquet_under(run / "final")) == 4
+    edit_config(shard_config, intermediates="keep")
+    assert rp.run(shard_config, start="reconcile")["intermediates"] == {"mode": "keep"}  # not refused: nothing was dropped
+
+
+@pytest.mark.parametrize("name", ["train/code-go/../part-00000.parquet", "train/../code-go/part-00000.parquet", "train/code-go/part-00000.txt",
+                                  "train/code-go/sub/part-00000.parquet", "train/part-00000.parquet", "test/code-go/part-00000.parquet",
+                                  "train//part-00000.parquet", "/train/code-go/part-00000.parquet", "train/code-go/a\\part-00000.parquet",
+                                  "train/../part-00000.parquet", "train/./part-00000.parquet"])
+def test_only_a_part_name_is_ever_deleted(tmp_path, shard_config, monkeypatch, name):
+    if name.endswith("a\\part-00000.parquet") and os.name != "nt":
+        pytest.skip("a backslash is an ordinary character in a file name here")
+    rp.run(with_reconcile(shard_config, monkeypatch))
+    with pytest.raises(rp.Stop, match="is not a part name .*nothing was deleted"):
+        rp.Run(shard_config).drop_files([name])
+
+
+def test_a_part_that_is_already_missing_is_skipped_and_a_folder_that_cannot_be_written_stops_the_drop(tmp_path, shard_config, monkeypatch):
+    rp.run(with_reconcile(shard_config, monkeypatch))
+    run, r = tmp_path / "runs" / "test-run", rp.Run(shard_config)
+    assert [(n, f.relative_to(run / n).as_posix()) for n, f in r.drop_files(SHARDED)] == [(n, p) for n in ("deduped", "final") for p in SHARDED]
+    (run / "deduped" / SHARDED[0]).unlink()
+    assert [(n, f.relative_to(run / n).as_posix()) for n, f in r.drop_files(SHARDED)] == [("deduped", SHARDED[1]), ("final", SHARDED[0]), ("final", SHARDED[1])]
+    access = os.access
+    monkeypatch.setattr(rp.os, "access", lambda p, mode: False if Path(p).is_dir() else access(p, mode))
+    with pytest.raises(rp.Stop, match="cannot be deleted .read-only.; nothing was deleted"):
+        r.drop_files(SHARDED)

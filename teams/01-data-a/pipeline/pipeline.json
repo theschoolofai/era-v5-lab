@@ -6,6 +6,8 @@
   "hash_cache": true,
   "_hash_cache": "true: every sha256 computed once, kept in <run>/cache/sha256.json (a resumed run hashes nothing again); false: hash everything again, for an audit",
   "_from": "optional: resume at this stage; the earlier stages must be recorded in the manifest",
+  "intermediates": "keep",
+  "_intermediates": "keep: every stage's Parquet stays on disk (the cleaner audit reads the parts before and after clean.py). drop: once reconcile has passed, the run deletes, from deduped/ and final/, the Parquet of every part whose kept documents are all in shards or left out by the shard writer for a stated reason; held-out parts, parts of packs the shard stage was not asked for and the cleaned folder stay, as do reports, summaries, the ledger, the manifest and the shards. drop needs stages.shards and stages.reconcile, and the run cannot be resumed afterwards",
   "stages": {
     "clean": {
       "mode": "run",

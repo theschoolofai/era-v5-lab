@@ -42,6 +42,14 @@ RUN PARAMETERS (all in the config file; the manifest embeds the whole config)
   to                     stop after this stage; only the stages up to it are checked
   from                   resume at this stage: the earlier stages must be recorded in the manifest with unchanged digests
   stages.clean.only      run the clean job on these sample parts only (a list, for trials); overlap then expects no packs
+  intermediates          "keep" (default): every stage's Parquet stays on disk, e.g. for the audit of the cleaner, which
+                         reads the parts before and after clean.py. "drop": once reconcile has passed, the run deletes,
+                         from <run>/deduped and <run>/final, the Parquet of every part whose kept documents are all in
+                         shards (or left out by the shard writer for a stated reason). A held-out part, a part of a pack
+                         the shard stage was not asked for and a part without kept documents stay, in both folders. The
+                         cleaned folder is never touched (other runs adopt it), nor the raw input, the reports, summaries,
+                         ledger, manifest and shards. It needs a run that ends at reconcile, and such a run cannot be
+                         resumed or rerun in place afterwards (new run_id)
 apply, f2, survivor_loss and ledger always run. f2 takes "script" (default teams/01-data-a/spec_v1/run_f2.py) and "workers"
 (default 1; each run_f2.py process loads G9's full set, about 1.1 GB of memory, so N workers need about N × 1.1 GB plus the
 documents in flight). shards takes "tokenizer" (required: G3's C3 tokenizer.json), and optionally "script" (default
@@ -85,12 +93,14 @@ stage ran), and by_pack: the same chain for every pack and split, from the ledge
 table is also printed to stderr. A digest is the sha256 over the sorted relative path and sha256 of every file in the folder;
 JSON summaries are hashed without the fields that change between identical runs (timings, absolute paths, skip flags), so two
 runs on the same inputs give the same digests. The files are hashed in parallel threads, through the run's hash cache.
+"intermediates" holds the mode and, after a drop, how many parts went and how many were left, and per folder the Parquet
+files and bytes deleted; the stage digests stay those of the folders as they were checked, before the drop.
 IDs, counts and hashes only.
 """
 import sys
 sys.dont_write_bytecode = True
 
-import argparse, hashlib, json, platform, subprocess, time
+import argparse, hashlib, json, os, platform, subprocess, time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -110,6 +120,7 @@ POOL = "teams/01-data-a/pipeline/f2_pool.py"
 SPLITS = ("train", "heldout")
 RESERVED = ("deduped", "final", "report", "ledger", "shards", "reconcile", "cfg", "logs", "cache")  # folders of the run that no stage output may take
 BESIDE = (".partial", ".old", ".lock")  # what the scripts make next to a folder they write: <x>.partial, <x>.old, <x>.lock
+INTERMEDIATES = ("keep", "drop")  # the run's own Parquet between the input and the shards: left on disk, or deleted at the end
 # JSON fields that differ between identical runs: timings, absolute or run-named paths, skip flags (and overlap.py's and
 # dedup.py's wall time, peak memory and the output folders they record when the runner runs them)
 VOLATILE = {"seconds", "input", "path", "cleaned", "skipped", "wall_seconds", "peak_rss_mb", "out", "results"}
@@ -251,7 +262,7 @@ class Run:
         if not isinstance(self.cfg.get("hash_cache", True), bool):
             raise Stop("config: hash_cache must be true or false")
         self.cache = HashCache(self.dir / "cache" / "sha256.json", enabled=self.cfg.get("hash_cache", True))
-        self.done, self.checks = {}, []
+        self.done, self.checks, self.dropped = {}, [], None
 
     def output(self, stage):
         if stage in EXTERNAL:
@@ -350,6 +361,33 @@ class Run:
         for a, b in [(a, b) for i, a in enumerate(active) for b in active[i + 1:]]:
             if outs[a] == outs[b] or outs[a] in outs[b].parents or outs[b] in outs[a].parents:
                 raise Stop(f"config: stages.{a}.output and stages.{b}.output overlap")
+        mode = self.cfg.get("intermediates", "keep")
+        if mode not in INTERMEDIATES:
+            raise Stop(f"config: intermediates is {mode!r}, expected keep or drop")
+        if mode == "drop":
+            self.validate_drop(upto)
+
+    def drop_folders(self):
+        """{stage: folder} a drop deletes Parquet parts from: apply's and F2's, the two folders every run writes itself.
+        Never the cleaned folder: it is an input when adopted, and when this run wrote it another run may have adopted it."""
+        return {"apply": self.output("apply"), "f2": self.output("f2")}
+
+    def validate_drop(self, upto):
+        """"intermediates": "drop" deletes Parquet, so: only in a run that ends at reconcile (the kept documents of a part
+        are then known to be in the shards), and nothing the run reads or keeps may lie in a folder it deletes from."""
+        if upto != "reconcile":
+            raise Stop("config: \"intermediates\": \"drop\" needs a run that ends at reconcile (stages.shards and "
+                       "stages.reconcile, and no earlier \"to\"): a part's Parquet is deleted only once its kept documents "
+                       "are accounted for in the shards")
+        kept = {"stages.shards.out": self.output("shards")}  # (validate() refuses stages.ledger.raw there for every run)
+        if (self.stages.get("clean") or {}).get("input") is not None:
+            kept["stages.clean.input"] = path(self.stages["clean"]["input"])
+        for folder in self.drop_folders().values():
+            d = folder.resolve()
+            for name, p in kept.items():
+                if p.resolve() == d or d in p.resolve().parents:
+                    raise Stop(f"config: \"intermediates\": \"drop\" deletes Parquet under {self.shown(d)}, and {name} "
+                               f"({self.shown(p)}) lies in it")
 
     def owned(self, p):
         """Is p (resolved) in a folder the run writes, swaps or deletes: deduped/, ledger/, ... or ledger.partial,
@@ -413,6 +451,13 @@ class Run:
                 lines.append(f"{n:02d} {stage:13} run    {out}   {spec.get('script', DEFAULT_SHARDS)}, tokenizer {spec['tokenizer']}")
             else:
                 lines.append(f"{n:02d} {stage:13} run    {out}")
+        if self.cfg.get("intermediates", "keep") == "drop":
+            lines.append("intermediates: drop   after reconcile passes, the Parquet of every part whose kept documents are all "
+                         "in shards (or left out by the shard writer for a stated reason) is deleted from "
+                         + " and ".join(self.shown(f) for f in self.drop_folders().values())
+                         + "; held-out and unselected parts, the cleaned folder, reports, the ledger and the shards stay")
+        else:
+            lines.append("intermediates: keep   every stage's Parquet stays on disk")
         return "\n".join(lines)
 
     def check(self, name, ok, detail):
@@ -717,7 +762,12 @@ class Run:
         if STAGES.index(start) > STAGES.index(to):
             raise Stop(f"\"from\": {start} comes after \"to\": {to}")
         self.validate(to)
-        old = {s["stage"]: s for s in load_json(self.manifest_path)["stages"]} if self.manifest_path.is_file() else {}
+        prior = load_json(self.manifest_path) if self.manifest_path.is_file() else {}
+        state = (prior.get("intermediates") or {}).get("state")
+        if state:  # a drop began in this run folder: parts of deduped/ and final/ may be gone
+            raise Stop(f"{self.manifest_path} records that this run dropped its intermediate Parquet (\"intermediates\": "
+                       f"\"drop\", {state}): it cannot be resumed or rerun in place; start a new run with a new run_id")
+        old = {s["stage"]: s for s in prior.get("stages", [])}
         sys.path.insert(0, str(HERE))
         for stage in STAGES[: STAGES.index(to) + 1]:
             out = self.output(stage)
@@ -737,9 +787,96 @@ class Run:
             print(f"{stage}: {json.dumps({k: v for k, v in self.done[stage]['counts'].items() if k != 'by_part'})}",
                   file=sys.stderr, flush=True)
         m = self.write()
+        if self.cfg.get("intermediates", "keep") == "drop":  # validated: the run ended at reconcile, and every check passed
+            m = self.drop()
         table = pack_table(m.get("by_pack") or {})
         if table:
             print(table, file=sys.stderr, flush=True)
+        return m
+
+    def droppable_parts(self):
+        """(the parts <split>/<pack>/<file> whose Parquet a drop deletes, how many parts with kept documents it leaves).
+        A part goes only when reconcile_docs.parquet shows every kept document of it in a shard, or left out by the shard
+        writer for a stated reason, and the shard stage reports the part as written. So a held-out part (not_sharded), a
+        part of a pack the shard stage was not asked for (not_selected) and a part without kept documents all stay.
+        Read a batch at a time: two columns of one row per kept document."""
+        import pyarrow as pa, pyarrow.parquet as pq
+        from collections import Counter
+        written = {name for name, e in load_json(self.output("shards") / "shards_summary.json").get("parts", {}).items()
+                   if e.get("status") == "written"}
+        ok, other = Counter(), Counter()
+        with pq.ParquetFile(self.output("reconcile") / "reconcile_docs.parquet") as docs:
+            for batch in docs.iter_batches(columns=["input_part", "shard_status"]):
+                groups = pa.Table.from_batches([batch]).group_by(["input_part", "shard_status"]).aggregate([([], "count_all")])
+                for g in groups.to_pylist():
+                    status = g["shard_status"] or ""
+                    (ok if status == "in_shard" or status.startswith("left_out:") else other)[g["input_part"]] += g["count_all"]
+        parts = sorted(p for p in ok if p not in other and p in written)
+        return parts, len(set(ok) | set(other)) - len(parts)
+
+    def drop_files(self, parts):
+        """[(folder name, file)]: the Parquet of these parts under deduped/ and final/. Every check is made here, before
+        the first file goes: the name is <split>/<pack>/<file>.parquet and nothing else; the folder and the part's own
+        folder are where they should be in the run folder once links are resolved (a folder that is a link to somewhere
+        else stops the drop); and the file can be deleted (on Windows a read-only file cannot, and its attribute is not
+        changed here, since a hard-linked part shares it with the adopted file)."""
+        root, files = self.dir.resolve(), []
+        for folder in self.drop_folders().values():
+            real = folder.resolve()
+            if real != root / folder.name:
+                raise Stop(f"intermediates: {folder} is a link to somewhere else; nothing was deleted")
+            for name in parts:
+                bits = name.split("/")
+                if (len(bits) != 3 or bits[0] not in SPLITS or not bits[2].endswith(".parquet")
+                        or any(b in ("", ".", "..") or Path(b).name != b for b in bits)):
+                    raise Stop(f"intermediates: {name!r} is not a part name (<split>/<pack>/<file>.parquet); nothing was deleted")
+                f = folder.joinpath(*bits)
+                if not f.is_file():
+                    continue
+                if f.parent.resolve() != real.joinpath(*bits[:2]):
+                    raise Stop(f"intermediates: {f.parent} is a link to somewhere else; nothing was deleted")
+                if not os.access(f.parent, os.W_OK) or (os.name == "nt" and not os.access(f, os.W_OK)):
+                    raise Stop(f"intermediates: {f} cannot be deleted (read-only); nothing was deleted")
+                files.append((folder.name, f))
+        return files
+
+    def drop(self):
+        """Delete, from deduped/ and final/, the Parquet of every part whose kept documents are all in shards or left out by
+        the shard writer for a stated reason (see droppable_parts and drop_files; nothing else is deleted). The manifest
+        says "started" before the first file goes and "done" with the counts afterwards: "parts" counts parts, "folders"
+        the files deleted. If the very first deletion fails the mark is taken back, since the run folder is then whole;
+        with nothing to delete there is no mark at all, and the run stays resumable. A hard-linked part loses only this
+        name. Returns the manifest."""
+        parts, left = self.droppable_parts()
+        files = self.drop_files(parts)
+        folders = {f.name: {"stage": stage, "parquet_files": 0, "bytes": 0, "hard_links": 0}
+                   for stage, f in self.drop_folders().items()}
+        if not files:  # no part is wholly in shards (or its Parquet is not there): nothing changes on disk
+            self.dropped = {"mode": "drop", "parts": {"dropped": 0, "left": left + len(parts)}, "folders": folders}
+            print("intermediates: nothing to drop (no part has all its kept documents in shards)", file=sys.stderr, flush=True)
+            return self.write()
+        self.dropped = {"mode": "drop", "state": "started"}
+        self.write()  # on disk before the first file goes: a run stopped halfway through the drop says so
+        gone = 0
+        for name, f in files:
+            try:
+                st = f.stat()
+                f.unlink()
+            except OSError as e:
+                if gone:
+                    raise Stop(f"intermediates: could not delete {f} ({e}) after {gone} file(s) were deleted; the manifest "
+                               "records the drop as started")
+                self.dropped = None
+                self.write()
+                raise Stop(f"intermediates: could not delete {f} ({e}); nothing was deleted")
+            gone += 1
+            c = folders[name]
+            c["parquet_files"], c["bytes"], c["hard_links"] = c["parquet_files"] + 1, c["bytes"] + st.st_size, c["hard_links"] + (st.st_nlink > 1)
+        self.dropped = {"mode": "drop", "state": "done", "parts": {"dropped": len(parts), "left": left}, "folders": folders}
+        m = self.write()
+        print(f"intermediates: dropped {len(parts)} part(s), left {left}: " + ", ".join(
+            f"{name} {c['parquet_files']} Parquet file(s), {c['bytes']:,} bytes" for name, c in folders.items()),
+            file=sys.stderr, flush=True)
         return m
 
     def write(self):
@@ -761,7 +898,8 @@ class Run:
         manifest = {"tool": "run_pipeline.py", "run_id": self.cfg["run_id"], "config": self.cfg,
                     "code_sha256": code_sha256(Path(__file__), _CACHE, ("stage_args.py",))[0], "git_commit": git_commit(),
                     "python": platform.python_version(), "pyarrow": pyarrow_version(), "stages": stages,
-                    "checks": [dict(ch, stage=s["stage"]) for s in stages for ch in s.get("checks", [])], "totals": totals}
+                    "checks": [dict(ch, stage=s["stage"]) for s in stages for ch in s.get("checks", [])], "totals": totals,
+                    "intermediates": self.dropped or {"mode": self.cfg.get("intermediates", "keep")}}
         if by_pack:
             manifest["by_pack"] = by_pack
         self.dir.mkdir(parents=True, exist_ok=True)
