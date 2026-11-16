@@ -217,6 +217,47 @@ def deletion_stats(model: nn.Module) -> dict:
 
 
 @_no_grad()
+def keep_masks(model: nn.Module) -> list[torch.Tensor]:
+    """The hard keep mask 1[G > 0] of every masked layer (bool, on the logits' device), in model order."""
+    return [m.gate > 0 for _, m in masked_layers(model)]
+
+
+@_no_grad()
+def flip_counts(model: nn.Module, prev: list[torch.Tensor]) -> tuple[dict, list[torch.Tensor]]:
+    """Gross hard-mask changes since `prev` (from keep_masks): weights newly deleted (kept -> deleted) and restored
+    (deleted -> kept). The net change of the deleted count hides flips in both directions; these do not.
+    Returns (counts, the current keep masks to pass next time). One host sync."""
+    now = keep_masks(model)
+    if len(now) != len(prev):
+        raise ValueError("prev does not match the masked layers")
+    newly = torch.stack([(p & ~k).sum() for p, k in zip(prev, now)]).sum()
+    back = torch.stack([(~p & k).sum() for p, k in zip(prev, now)]).sum()
+    a, b = torch.stack([newly, back]).tolist()
+    return {"newly_deleted": int(a), "restored": int(b)}, now
+
+
+@_no_grad()
+def band_stats(model: nn.Module, edge: float = 1e-3) -> dict:
+    """Where the mask can still learn, measured on all logits (exact, not sampled):
+    live_share: share of logits whose FP32 local derivative sigmoid'(alpha G) is nonzero (outside it the gradient is
+                exactly zero in FP32, so only Adam momentum can still move the logit);
+    band_share: share whose soft mask lies in (edge, 1 - edge), i.e. |alpha G| < log((1 - edge) / edge);
+    soft_hard_gap: mean |sigmoid(alpha G) - 1[G > 0]| over the targeted weights, the per-weight distance between the
+                   trainer's soft mask and the sampler's hard mask. One host sync."""
+    live, band, gap, n = [], [], [], 0
+    for _, m in masked_layers(model):
+        s = m.soft_mask()
+        live.append((s * (1 - s) > 0).sum())
+        band.append(((s > edge) & (s < 1 - edge)).sum())
+        gap.append((s - (m.gate > 0).to(s.dtype)).abs().sum(dtype=torch.float64))
+        n += m.gate.numel()
+    lv, bd = torch.stack(live).sum(), torch.stack(band).sum()
+    g = torch.stack(gap).sum()
+    lv, bd, g = torch.stack([lv.double(), bd.double(), g]).tolist()
+    return {"live_share": lv / n, "band_share": bd / n, "soft_hard_gap": g / n}
+
+
+@_no_grad()
 def bake(model: nn.Module) -> dict[str, torch.Tensor]:
     """Replace every MaskedLinear by nn.Linear(W * 1[G > 0], b) in place. Returns {name.weight: bool keep mask}."""
     masks = {}

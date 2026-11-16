@@ -419,15 +419,17 @@ def rescore(run_id: str, limit: int = 512):
 
 @local_entrypoint()
 def e4(run_id: str, steps: int = 40, budget_s: int = 3000, grace_s: int = 600, max_calls: int = 2,
-       config: str = "cfg_e4_dt.yaml", train_ids_file: str = ""):
-    """Deletion Tuning as the RL method on the E1 cohort (no screen): H200, same held-out set and evaluations."""
+       config: str = "cfg_e4_dt.yaml", train_ids_file: str = "", pad_s: int = 300):
+    """Deletion Tuning as the RL method on the E1 cohort (no screen): H200, same held-out set and evaluations.
+    Function timeout = budget_s + grace_s + pad_s (pad_s covers the post-run file reads and volume commit; E4b
+    needed about 10 s of it). The guard refuses a call whose worst case (timeout + 180 s) passes the cap."""
     cfg = (HERE / config).read_text()
     tasks_text, _, heldout_ids = _data()
     train_ids = Path(train_ids_file).read_text()
     _smoke_or_exit(cfg)
     rate = H200_RATE + GPU_CPU * CPU_RATE + H200_MEM_GIB * MEM_RATE
     for call in range(1, max_calls + 1):
-        timeout = budget_s + grace_s + 300
+        timeout = budget_s + grace_s + pad_s
         _guard((timeout + 180) * rate)
         t0 = time.time()
         r = run_call_h200.with_options(timeout=timeout).remote(cfg, tasks_text, train_ids, heldout_ids, run_id, steps,

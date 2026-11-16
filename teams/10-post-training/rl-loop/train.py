@@ -526,7 +526,7 @@ def backward_objective_v1(policy, group, eps: float, n_tokens: int, micro_rows: 
     under the policy that sampled it (vLLM's rollout_lp when present, else the trainer's pre-update old_lp).
     n_tokens is the real-token count of ALL kept groups in the step, so each chunk's numerator / n_tokens is its exact
     share of the batch loss and any chunking (or grouping) sums to the same gradient. Returns device tensors only."""
-    seq, cmask, adv, sampler_lp, _, plen, _ = group
+    seq, cmask, adv, sampler_lp, hard_lp, plen, _ = group
     k = seq.shape[0]
     step = micro_rows if micro_rows and micro_rows < k else k
     total, agg = None, {}
@@ -534,12 +534,30 @@ def backward_objective_v1(policy, group, eps: float, n_tokens: int, micro_rows: 
         sl = slice(i, min(i + step, k))
         new_lp = completion_logprobs(policy, seq[sl], plen)
         num, st = grpo.objective_v1_terms(new_lp, sampler_lp[sl], adv[sl], cmask[sl], eps)
+        if hard_lp is not None:  # Deletion Tuning: the trainer's soft-mask policy vs the same weights hard-masked
+            st = {**st, **soft_hard_terms(new_lp.detach(), hard_lp[sl], cmask[sl], eps)}
         part = num / n_tokens
         part.backward()
         total = part.detach() if total is None else total + part.detach()
         for key, v in st.items():
             agg[key] = v if key not in agg else agg[key] + v
     return total, agg
+
+
+SOFT_HARD_KEYS = ("sh_k3_sum", "sh_abs_sum", "sh_outside")
+
+
+def soft_hard_terms(soft_lp: torch.Tensor, hard_lp: torch.Tensor, cmask: torch.Tensor, eps: float) -> dict:
+    """Soft/hard mask gap on the real tokens, same engine (HF), same weights, same tokens: r = log pi_soft - log
+    pi_hard. Sums (device tensors, no host sync) of K3 = exp(r) - 1 - r and |r|, and the count of tokens whose
+    soft/hard ratio alone falls outside [1 - eps, 1 + eps], i.e. tokens the trust-region mask would drop from the
+    mask gap even with a perfect sampler. Callers divide by the real-token count."""
+    m = cmask.bool()
+    r = torch.where(m, soft_lp - hard_lp, torch.zeros_like(soft_lp))
+    ratio = torch.exp(r)
+    return {"sh_k3_sum": torch.where(m, ratio - 1 - r, torch.zeros_like(r)).sum(dtype=torch.float64),
+            "sh_abs_sum": r.abs().sum(dtype=torch.float64),
+            "sh_outside": (m & ((ratio < 1 - eps) | (ratio > 1 + eps))).sum()}
 
 
 class UpdateProbe:
@@ -792,6 +810,7 @@ def train(cfg: dict) -> dict:
               flush=True)
     elif dt_cfg and vllm is not None:
         vllm.sync(sync_named())  # the Wanda prior already deletes a few weights: the sampler starts from them
+    dt_prev = dtmask.keep_masks(model) if dt_cfg else None  # hard mask before the next update (gross flip counts)
     if resumed is not None:
         read_jsonl(metrics_path, start_step)  # drop rows of steps that will be redone
     past_evals = read_jsonl(evals_path, start_step) if resumed is not None else []
@@ -1016,7 +1035,8 @@ def train(cfg: dict) -> dict:
             if v1:  # ratio denominator = the policy that sampled the tokens
                 sampler_lp = r.rollout_lp if r.rollout_lp is not None else old_lp
                 ratio_src = "rollout_lp" if r.rollout_lp is not None else "old_lp"
-                groups.append((r.seq, r.cmask, adv.to(device), sampler_lp, None, len(p), None))
+                # DT runs also carry the trainer's hard-mask log-probs (old_lp, eval mode) for the soft/hard metric
+                groups.append((r.seq, r.cmask, adv.to(device), sampler_lp, old_lp if dt_cfg else None, len(p), None))
                 continue
             groups.append((r.seq, r.cmask, adv.to(device), old_lp, ref_lp, len(p), isw))
         times["old_logprobs"] = time.time() - c0
@@ -1062,8 +1082,13 @@ def train(cfg: dict) -> dict:
                 if dt_cfg:
                     dtmask.step_all(model)
                 share, expected = probe_w.shares()
+                sh = {key: float(ep.pop(key)) for key in SOFT_HARD_KEYS if key in ep}
                 ep = {key: int(v) for key, v in ep.items()}
-                epochs.append({"loss": float(ep_loss), "tokens_inside": ep["inside"],
+                if sh:  # DT: soft-mask policy vs hard-mask policy, same engine, before this epoch's update
+                    n_ = max(ep["tokens"], 1)
+                    sh = {"sh_k3": float(f"{sh['sh_k3_sum'] / n_:.4g}"), "sh_abs_logratio": float(f"{sh['sh_abs_sum'] / n_:.4g}"),
+                          "sh_outside_frac": round(sh["sh_outside"] / n_, 6)}
+                epochs.append({"loss": float(ep_loss), "tokens_inside": ep["inside"], **sh,
                                "masked_frac": round(1 - ep["inside"] / max(ep["tokens"], 1), 6),
                                "masked_frac_pos": round(ep["masked_pos"] / max(ep["tokens_pos"], 1), 6),
                                "masked_frac_neg": round(ep["masked_neg"] / max(ep["tokens_neg"], 1), 6),
@@ -1079,8 +1104,13 @@ def train(cfg: dict) -> dict:
             v1_rec.update(optimizer_stepped=True, **{key: epochs[-1][key] for key in epochs[-1] if key != "loss"})
             if dt_cfg:
                 d_ = dtmask.deletion_stats(model)
+                flips, dt_prev = dtmask.flip_counts(model, dt_prev)
+                band = dtmask.band_stats(model)
                 v1_rec.update(dt_alpha=dt_layer0.alpha, dt_deleted=d_["deleted"],
-                              dt_deleted_frac_of_targeted=d_["deleted_frac_of_targeted"])
+                              dt_deleted_frac_of_targeted=d_["deleted_frac_of_targeted"],
+                              dt_newly_deleted=flips["newly_deleted"], dt_restored=flips["restored"],
+                              dt_live_share=round(band["live_share"], 6), dt_band_share=round(band["band_share"], 6),
+                              dt_soft_hard_gap=float(f"{band['soft_hard_gap']:.4g}"))
             if len(epochs) > 1:
                 v1_rec["epochs"] = epochs
         elif v1:
