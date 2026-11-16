@@ -78,9 +78,9 @@ verdict equal to the `--workers 1` run; 123 s against 135 s on the loaded host (
 | Decontam record | Team 9 tools `b470b4c0`, fingerprints v2 `2826a3b8…`; records equal to 11 Nov except `run_at` (manifest `decontam` fields) |
 | Counts and funnel | `rl_data_v1_closure.md` (funnel) and section 2 above (flags) |
 | Rebuild | `rl-data/rebuild_v1/rebuild_v1.py` (section 1); 12 of 12 outputs reproduce from the repo copy |
-| Job request | `jobs/2026-11-18-rl-data-v1-pool.md` (draft, lead approval pending): TSAI rebuilds and stores the pool files for Team 9 |
+| Job request | `jobs/2026-11-18-rl-data-v1-pool.md` (lead-approved `saitej123`, 16 Nov): TSAI rebuilds and stores the pool files for Team 9 |
 
-The lead can instead hand the close pools (8.7 MB) to Team 9 directly; that is the lead's call.
+The lead also confirms the 8.7 MB close pools can be handed directly to Team 9 if TSAI prefers direct delivery over the job route.
 
 ## 5. Recommendation for evaluation (not a change to the reward)
 
@@ -94,7 +94,7 @@ kept 20 tests; only the evaluation would add the unused ones. Also in `../rl-dat
 
 ## 6. Open (needs someone else)
 
-- Python-2-only references: keep (pool 3,577) or drop (2,058). Lead / TSAI.
+- Python-2-only references: lead default is keep in the v1 close pool (`3,577` tasks; candidate completions are Python 3 checked against I/O pairs); TSAI can reverse with `--drop-python2` (`2,058` tasks).
 - The 116 statement-less tasks are flagged out by a regex; a human look at the private list may clear some.
 - Hendrycks MATH admission for RL (TSAI); the 7,209-task part is ready as is.
 - Pass-rate filtering on the real starting model (needs the checkpoint).

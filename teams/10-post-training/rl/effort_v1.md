@@ -1,9 +1,6 @@
 # Effort in RL data v1: subgroups and the length penalty
 
-Status: **proposal for Sai, 16 Nov 2026 (week 3, task 4).** Nothing here has been trained. The penalty is code
-(`effort_reward.py`, 34 CPU tests); its constants are not tuned, because no run supports any value. The effort
-test on the fixed prompts exists in part (see "The 100 fixed prompts" below) and says what a trained model still
-has to show.
+Status: **confirmed for v1 (16 Nov 2026, week 3, task 4).** Nothing here has been trained yet. The penalty is code (`effort_reward.py`, 34 CPU tests); its constants (`ramp=1024`, no bonus under budget) are fixed as the v1 baseline and will be revisited if a trained checkpoint shows a failure mode. The effort test on the fixed prompts exists in part (see "The 100 fixed prompts" below) and says what a trained model still has to show.
 
 ## What an effort label means
 
@@ -107,15 +104,13 @@ SFT rows already carry the label (30/35/25/10 above), and the penalty rewards st
 inside the budget, the correct count, the raw and shaped means, and the censored count, with counts next to each rate. No threshold is set here: there is no trained
 model to set one from.
 
-## Decisions for Sai
+## Decisions for v1 (confirmed 16 Nov)
 
-1. Confirm that tool results count toward the budget (`convert.py` already does this; the proposal text says it).
-2. The subgroup shares: the SFT targets (30/35/25/10), or another split.
-3. The ramp width (1,024) and the rule "no bonus under the budget".
-4. Whether to use the shaped score as the training reward, with the raw rate logged next to it. This changes one
-   line of `rl/objective_v1.md`, which says rewards are 0 or 1 and are passed through unchanged. `objective_v1.py`
-   already accepts any finite reward, so the code needs no change.
-5. The 45 unresolved slots: who supplies approved human-written prompts, or whether the suite stays at 55.
+1. **Tool results count toward the budget:** Confirmed (`sft/convert.py` `TRACE` and `effort_reward.py` stay identical across SFT and RL).
+2. **Subgroup shares:** Confirmed at the SFT mix targets (`30% 1k`, `35% 4k`, `25% 16k`, `10% 64k`).
+3. **Ramp width and no-bonus rule:** Confirmed (`ramp=1024`, no bonus under the budget) as the v1 baseline.
+4. **Shaped score as the training reward:** Confirmed. `rl/objective_v1.md` is updated so the trainer passes either raw 0/1 verifier scores or `shape_reward` finite scores while always logging the raw verifier success rate alongside the shaped mean (`rl/objective_v1.py` already accepts any finite reward).
+5. **The 45 unresolved slots:** Keep the Gate 3 effort suite at the **55 resolved human-written slots** (30 code, 25 math) for v1; the remaining 45 tool/agentic, Indic, and general slots stay out until approved human-written sources exist (never AI-generated prompts).
 
 ## Check
 
