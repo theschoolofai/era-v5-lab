@@ -18,9 +18,9 @@ A shard is a file that holds cleaned text as token IDs, ready for training. Data
 Each shard keeps whole documents and marks the end of each one. Each shard comes with a manifest and a quality
 report, so the lab can check it. Data A tested the format on a sample shard
 ([#358](https://github.com/theschoolofai/era-v5-lab/pull/358), [#373](https://github.com/theschoolofai/era-v5-lab/pull/373)).
-Data A made the first 41 shards with the frozen tokenizer p1536, not C3.
+The lab made the first 41 shards with the frozen tokenizer p1536, not C3.
 
-[Data A: confirm the text above or change it, and add the pull request of the first 41 shards.]
+[Data A: confirm the text above or send your own text.]
 
 ## Decisions
 
@@ -57,7 +57,7 @@ How to fill it:
 | Part | Team | Source | Text received | Lead OK |
 |---|---|---|---|---|
 | The first dry run | Infrastructure | | no | no |
-| The first data shards | Data A | [#358](https://github.com/theschoolofai/era-v5-lab/pull/358), [#373](https://github.com/theschoolofai/era-v5-lab/pull/373), first 41 shards: to come | draft by Release with the TSAI words, waiting for Data A | no |
+| The first data shards | Data A | [#358](https://github.com/theschoolofai/era-v5-lab/pull/358), [#373](https://github.com/theschoolofai/era-v5-lab/pull/373), first 41 shards: TSAI comment on this pull request | draft by Release with the TSAI words, waiting for Data A | no |
 | Tokenizer for training (p1536 in place of C3) | Tokenizer | [#504](https://github.com/theschoolofai/era-v5-lab/pull/504) | TSAI words on this pull request | no |
 | Bit widths (moved from Gate 2) | Quantization | [#221](https://github.com/theschoolofai/era-v5-lab/pull/221) | no | no |
 | Indic share (from Gate 2) | Data B | [#400](https://github.com/theschoolofai/era-v5-lab/pull/400) | TSAI numbers on this pull request; Data B text to come | no |
