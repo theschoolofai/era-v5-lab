@@ -1,9 +1,13 @@
-# Small SFT on the bench: SmolLM2-135M, OCR-2 slice (draft, 14 Nov 2026)
+# Small SFT on the bench: SmolLM2-135M, OCR-2 slice (14 Nov 2026; forgetting verdict and data status updated 16 Nov)
 
 **Evidence level: surrogate.** This tests the harness and shows what a small dense model does on this slice. The numbers do
-not transfer to the capstone model. **Data provenance is conditional:** rows come from the WP1 C3 OCR-2 pack v1 (draft PR #79),
-whose unclear-source review (WP11) and 2% held-out split are still open decisions. Only the training pack was read. The WP1
-held-out rows were never opened. The bench drops every row whose near-duplicate cluster touches a WP1 held-out family.
+not transfer to the capstone model. **Data provenance:** rows come from the OCR-2 pack v1 built with the C3 tokenizer (PR #79,
+merged as the C3 record). Since 16 Nov the lead has confirmed the 2% `heldout_eval_v1` split and the conservative pack that
+leaves out 14 unclear-source rows (`jobs/2026-11-16-ocr2-pack-v1.md`). TSAI froze the **p1536** tokenizer (sha256 `e6b93a93...`)
+and G10 rebuilds SFT data v1 with it (PR #103, `jobs/2026-11-17-ocr2-pack-v1-p1536.md`). **The slice below was built from the C3
+shards 0-3 and was not rebuilt with p1536**; the pack sha256 values in the Setup table are the C3 ones. Whether a p1536 rebuild
+changes which rows fit 2,048 tokens or the split was not checked. Only the training pack was read. The WP1 held-out rows were
+never opened. The bench drops every row whose near-duplicate cluster touches a WP1 held-out family.
 
 ## Setup
 
@@ -54,6 +58,29 @@ above are the files the runs actually used.
 Eval-mini: Team 9 `run_eval_mini.py --profile mini` (ARC-Challenge 500 items, HellaSwag 400 items, 0-shot). It ran as a black
 box that returns scores only. Standard errors are about 0.020 and 0.025, so the observed eval-mini differences are small relative to the reported per-score standard errors. A paired significance test was not performed; these results do not establish a general capability improvement. Seeds differ only in data order, from the same base weights. Exec pass@1 uses greedy
 decoding on 100 of the 110 test problems. The dev reference-control check through the same sandbox passed 17/24. This does not establish a scorer ceiling: the seven failures remain unexplained (possible strict-output, source/test or unverified-reference issues). Treat execution pass counts as provisional until those failures are diagnosed.
+
+### Forgetting verdict (limits confirmed 16 Nov: bits per byte +0.05, at-limit mark within 0.01)
+
+Rules are those of `sft/eval_v1.md` and `sft/tests/forgetting.py`: forgetting if held-out bits per byte rise by more than 0.05
+over the base, or a benchmark falls by more than 2 x its combined stderr and by at least 0.01. A result within 0.01 of its
+limit, on either side, is "at the limit". The limits set the verdict only; the numbers above are all reported.
+
+| Run | bits per byte change | vs limit 0.05 | ARC-C change | HellaSwag change | Verdict |
+|---|---|---|---|---|---|
+| full FT 1e-4, seed 1 | +0.0503 | over by 0.0003, **at the limit** | +0.012 | +0.0125 | **FORGETTING** (bits per byte) |
+| full FT 1e-4, seed 2 | +0.0515 | over by 0.0015, **at the limit** | +0.012 | +0.0125 | **FORGETTING** (bits per byte) |
+| full FT 1e-4, seed 3 | +0.0507 | over by 0.0007, **at the limit** | +0.012 | +0.0025 | **FORGETTING** (bits per byte) |
+| LoRA r=4 1e-3, seed 1 | +0.0384 | under by 0.0116, not at the limit | +0.002 | +0.005 | No forgetting |
+
+- **Benchmarks:** none fell, so neither benchmark counts as forgotten for any run. The drop bar for each is at least 0.01 and
+  about 2 x 0.028 (ARC-C) and 2 x 0.035 (HellaSwag) from the stderrs of about 0.020 and 0.025 given above; every change is a rise.
+- **Full FT is a close call.** All three seeds exceed the limit by 0.0003-0.0015, a spread smaller than the seed-to-seed
+  spread of the change (0.0012). Read it as "about at the limit", not as a clear breach. The bits-per-byte rise is in every
+  group (English, code, Indic).
+- **How this was computed.** By hand from the table's rounded values with the rules above. `forgetting.py` was **not** run on these
+  runs: the `bench/evaluate.py` report files (schema `g10-bench-eval/1`) are not in Git, and the benchmark stderrs here are the
+  rounded "about" values. Re-run `forgetting.py --before base.json --after <run>.json` on the original reports to confirm;
+  differences in the 4th decimal could move a run across the limit.
 
 **What held:** test target bpb fell from 0.815 to 0.484 in all three seeds. Format validity rose from 0% to 74-79%. Every
 valid reply has a think block and a fenced code block. The other 21-27% ran to the 2,048-token budget without closing the
@@ -113,4 +140,6 @@ not read from billing.
 - Bench tests: 18 pass on CPU. Existing `sft/verify.sh` completed with `verify: OK`; its final reused-tools suite reports 104 passes (not the combined total). The bench tests are not yet wired into `verify.sh`.
 - Format validity uses one greedy sample per problem, n=110. A 95% interval for 77% is about ±8 pp.
 - LR optimum may lie above 1e-4 (full) and 1e-3 (LoRA).
-- Data is conditional on WP1 decisions. If WP11 or the held-out split changes the pack, the slice must be rebuilt.
+- The forgetting verdict is not yet a `forgetting.py` output (reports not in Git, see above).
+- The slice is from the C3 pack. The lead's decisions on the held-out split and the 14 unclear-source rows are now confirmed, but the p1536
+  rebuild (PR #103) has not been compared with this slice; if the rebuilt pack changes the rows that fit 2,048 tokens, rebuild the slice.
