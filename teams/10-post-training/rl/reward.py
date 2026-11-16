@@ -11,6 +11,7 @@ env_id is "<type>/<name>":
     indic/<task_id>      rl/indic/tasks/<task_id>, scored by rl/indic/indic_verifier.py (exact answer, no container)
     go/<task_id>         rl/go/tasks/<task_id>, scored by rl/go/go_verifier.py (output = the model's completion;
                          docker sandbox by default, the image is built from rl/go/go.Dockerfile)
+    tool_call/<task_id>  rl/tasks/tool_call/<task_id>, exact name/arguments JSON comparison, no execution
 
 New environment types call register("<type>", checker), where checker(name, output, **options) returns a dict
 with at least "reward" (0 or 1). An unknown env_id raises KeyError: it never scores 0 silently, because a
@@ -47,6 +48,7 @@ TASKS = HERE / "tasks"
 SWE_ENVS = HERE.parent / "swe-envs"
 INDIC_TASKS = HERE / "indic" / "tasks"
 GO_TASKS = HERE / "go" / "tasks"
+TOOL_CALL_TASKS = TASKS / "tool_call"
 
 _NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")  # no slashes, no "..": an env_id cannot leave its folder
 _REGISTRY: dict[str, Callable[..., dict]] = {}
@@ -167,10 +169,33 @@ def go_checker(name: str, output: str, sandbox="docker", **_) -> dict:
     return _go().reward(task_dir, output, sandbox)
 
 
+_TOOL_CALL_MODULE = None
+
+
+def _tool_call():
+    """Load the data-only tool-call verifier from any working directory."""
+    global _TOOL_CALL_MODULE
+    if _TOOL_CALL_MODULE is None:
+        import importlib.util  # noqa: PLC0415
+        spec = importlib.util.spec_from_file_location("g10_rl_tool_call_verifier", HERE / "tool_call_verifier.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _TOOL_CALL_MODULE = module
+    return _TOOL_CALL_MODULE
+
+
+def tool_call_checker(name: str, output: str, **_) -> dict:
+    task_dir = TOOL_CALL_TASKS / name
+    if not (task_dir / "task.json").is_file():
+        raise KeyError(f"no tool-call task {name!r} in {TOOL_CALL_TASKS}")
+    return _tool_call().reward(task_dir, output)
+
+
 register("code", code_checker)
 register("swe", swe_checker)
 register("indic", indic_checker)
 register("go", go_checker)
+register("tool_call", tool_call_checker)
 
 
 def list_envs() -> list[str]:
@@ -178,6 +203,7 @@ def list_envs() -> list[str]:
     ids += [f"swe/{p.parent.name}" for p in sorted(SWE_ENVS.glob("*/env.json"))]
     ids += [f"indic/{p.parent.name}" for p in sorted(INDIC_TASKS.glob("*/task.json"))]
     ids += [f"go/{p.parent.name}" for p in sorted(GO_TASKS.glob("*/task.json"))]
+    ids += [f"tool_call/{p.parent.name}" for p in sorted(TOOL_CALL_TASKS.glob("*/task.json"))]
     return ids
 
 
@@ -199,6 +225,8 @@ def known_outputs(env_id: str) -> tuple[str, str]:
         return (SWE_ENVS / name / "gold.patch").read_text(encoding="utf-8"), NOOP_PATCH
     if env_type == "indic":
         return _indic().known_outputs(INDIC_TASKS / name)
+    if env_type == "tool_call":
+        return _tool_call().known_outputs(TOOL_CALL_TASKS / name)
     if env_type == "go":
         meta = json.loads((GO_TASKS / name / "task.json").read_text(encoding="utf-8"))
         ref = (GO_TASKS / name / "reference.go").read_text(encoding="utf-8")
