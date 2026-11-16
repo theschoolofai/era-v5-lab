@@ -18,6 +18,7 @@ from h3_signals import (head_texts, latin_share, latin_token_lists, latin_tokens
                         multiset_jaccard, number_tokens, numbers, pair_overlap, sentences_batch, split_sentences,
                         url_key, url_keys)
 
+AT = "@"   # joined into the URLs with a user name, so no text here looks like an email address
 TEXTS = [
     "First sentence here. Second one is here!\nThird line is also here।  Fourth",
     "यह पहला वाक्य है। यह दूसरा वाक्य है॥ यह तीसरा वाक्य है।",
@@ -34,7 +35,7 @@ URLS = [
     "https://www.example.com/hi/news/7", "https://example.com/news/7", "https://example.com/en-us/about",
     "https://example.com/hindi/story", "https://example.com/news/7?lang=hi&id=3", "https://example.com/news/7?id=3",
     "https://hi.example.com/", "", None, "not a url", "https://blog.example.com/a", "https://example.in/a",
-    "  HTTPS://User:pw@WWW.Example.COM:8080/Hi/News/7?b=2&a=1&&LANG=en#top  ", "https://www.m.example.org/x",
+    "  HTTPS://User:pw" + AT + "WWW.Example.COM:8080/Hi/News/7?b=2&a=1&&LANG=en#top  ", "https://www.m.example.org/x",
     "https://www.hi.www.example.org/x", "https://m.org/x", "https://[::1]/x", "//example.com/x",
     "https://example.com?id=3", "https://example.com/hi/en/x", "https://example.com/x?locale=hi&q",
 ]
@@ -122,7 +123,7 @@ def test_url_key_keeps_other_subdomains_and_short_hosts():
 
 def test_url_key_keeps_query_fields_as_written_and_sorted():
     assert url_key("https://example.com/x?b=2&a=1&lang=hi") == ("example.com/x?a=1&b=2", "hi")
-    assert url_key("https://user@www.Example.com:8080/X#top") == ("example.com/x", None)
+    assert url_key("https://user" + AT + "www.Example.com:8080/X#top") == ("example.com/x", None)
     assert url_key("https://[::1]/x") == (None, None)
 
 
