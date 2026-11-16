@@ -1,167 +1,86 @@
 # G12 week 3 rotation — jssunil
 
-**Status: draft preparation; checkpoint run NOT RUN.** Updated 15 November 2026.
-R1 is the quantize-and-evaluate run on one checkpoint (due 18 November); R2 adds
-measured time and cost (due 19 November). This report does not yet complete either task.
+**Status: plan; run NOT RUN. Checkpoint: open-source stand-in, as the lead answered (G12, 16 Nov 19:56).** Updated 16 November 2026.
+R1: run the quantize-and-evaluate flow on **one checkpoint** (due Wed 18 Nov). R2: record the time and the cost
+(due Thu 19 Nov). Both come from the G12 week 3 work order, §4. The flow on the dry run 1 checkpoint is core task 5
+(Member B, D6), filed as theschoolofai/era-v5-lab#508; this rotation run does not duplicate it.
 
-## Preparation and dependencies
+## 1. Which checkpoint (lead's answer, 16 Nov 19:56: "some open source model checkpoint", refer #18)
 
-- Target: `SreekanthZipsy/era-v5-lab`, `G12-Week3`; inspected base
-  `f446357b150e6cf460495d5c18bc69a9cbcb17f7`.
-- The base script's `--help` runs successfully, but it only supports the Hub-model
-  path. The checkpoint path is in [PR #14](https://github.com/SreekanthZipsy/era-v5-lab/pull/14),
-  inspected at `222be778537f9d1a9ee80114ef4a79839b9c30bd`; it was still open when checked.
-  Recheck the merged implementation and pin its commit before running.
-- PR #14 reports a random-weight smoke test. That establishes neither trained-checkpoint
-  quality nor a passing round trip for the checkpoint's actual tokenizer.
-- Checkpoint selection, its matching tokenizer release/hash, evaluation input and
-  compute allocation remain unconfirmed. An earlier small checkpoint needs the lead's
-  agreement; it must be labelled separately from dry run 1 evidence.
-- The command below is a preparation template, **not a submitted TSAI job**. The current
-  pipeline resolves a llama.cpp tag over the network and can download build dependencies
-  and round-trip data. A TSAI submission needs an offline, provisioned entry point and
-  local smoke log meeting [JOB_REQUEST.md](../../../JOB_REQUEST.md).
-  Code basis: [`llama_tag`, `convert_env` and `roundtrip` in the inspected pipeline][pipeline].
-
-```mermaid
-flowchart LR
-    A[Checkpoint and matching tokenizer] --> B[HF export and A1 check]
-    B --> C[BF16 GGUF]
-    C --> D[A3 and tokenizer round trip]
-    C --> E[Quantized GGUF formats]
-    C --> F[Same evaluation items and settings]
-    E --> F
-    D --> G[Review checks, scores, time and cost]
-    F --> G
-```
-
-## Inputs to pin before execution
-
-| Input | Required record | Current state |
+| Option | What it proves | Status |
 |---|---|---|
-| Checkpoint | Source/run ID, training step, weights SHA-256, model manifest or explicit spec | Pending |
-| Tokenizer | Checkpoint-matching release, tokenizer SHA-256, BOS/EOS strings and IDs | Pending; do not assume the pipeline's default C3 hash matches |
-| Evaluation | File SHA-256, provenance, item count and kinds; any subset's IDs/seed | Pending |
-| Pipeline/runtime | Lab commit, llama.cpp commit/build, converter and Python dependency versions | PR #14 inspected; execution versions pending |
-| Run settings | Formats including BF16; prompt mode/template, context, generation caps, GPU offload | Pending confirmation |
-| Machine and billing | CPU/GPU model and count, RAM/VRAM, billing interval, currency/rate and source | Pending allocation |
+| A. Labelled stand-in public model (not Qwen2.5-0.5B or 1.5B, already used in #13 / #18) | The flow runs end to end on trained weights; drift numbers for one architecture | **Chosen:** `ibm-granite/granite-3.0-1b-a400m-base`, pinned revision: a small MoE (router to check), Granite MoE family like our export target |
+| B. Dry run 1 checkpoint (#475, p1536 tokenizer) | The V5 path itself | Not for rotation (task 5, #508) |
 
-**Basis:** the pipeline records checkpoint/tokenizer hashes and evaluates all formats
-with the same loaded items and arguments ([code][evaluation]). Model choice, hardware,
-format subset and acceptance thresholds have **Basis: none in index** for this specific
-run; settle these with the checkpoint manifest, G12 lead's scope and assigned machine.
-No new threshold or bit-width recommendation is proposed here.
+The result is labelled with the checkpoint actually used. A stand-in result is not presented as dry run 1 or
+Gate 3 evidence.
 
-## Command template after the dependencies are resolved
+## 2. Quality: four measures on the same checkpoint
 
-Run from the lab repository root. Set the `G12_*` variables from the confirmed inputs
-above; unset values stop the shell before inference. Use a fresh run ID and work directory
-so cached exports, validation reports and quantization times cannot be mistaken for a
-fresh run. A G5 checkpoint needs its model manifest beside it; otherwise add the
-confirmed `--spec` argument. Use the tokenizer's actual BOS/EOS strings.
+A 1,221-step T2 model, or a small stand-in, scores near zero on exact-match benchmarks, so a benchmark delta of 0
+says nothing. The run reports each quantized format's drift from bf16 first and the benchmark last.
 
-```bash
-set -euo pipefail
-G12_OUT="./out/rotation_jssunil/${G12_RUN_ID:?set a fresh run ID}"
-mkdir -p "$(dirname "$G12_OUT")"
-mkdir "$G12_OUT"
-/usr/bin/time -p -o "$G12_OUT/wall_time.txt" \
-  python teams/12-quantization/scripts/quantize_eval.py \
-  --checkpoint "${G12_CHECKPOINT:?set checkpoint path}" \
-  --name rotation_jssunil \
-  --tokenizer "${G12_TOKENIZER:?set matching tokenizer path}" \
-  --tokenizer-sha256 "${G12_TOKENIZER_SHA256:?set confirmed hash}" \
-  --bos "${G12_BOS:?set BOS token}" --eos "${G12_EOS:?set EOS token}" \
-  --eval "${G12_EVAL:?set approved evaluation JSON}" \
-  --formats "${G12_FORMATS:?set formats including bf16}" \
-  --prompt-mode "${G12_PROMPT_MODE:?set completion or chat}" \
-  --ctx "${G12_CTX:?set context length}" \
-  --max-tokens "${G12_MAX_TOKENS:?set generation cap}" \
-  --max-tokens-mcq "${G12_MAX_TOKENS_MCQ:?set MCQ cap}" \
-  --llama-bin "${G12_LLAMA_BIN:?set pinned binary directory}" \
-  --ngl "${G12_NGL:?set GPU offload layers; 0 for CPU}" \
-  --roundtrip \
-  --work "$G12_OUT/work" \
-  --runs-csv "$G12_OUT/runs.csv" \
-  --scores-out "$G12_OUT/scores.json" \
-  --notes "rotation=jssunil; run=$G12_RUN_ID" \
-  > "$G12_OUT/pipeline.log" 2>&1
-```
+| # | Measure | Tool | Why |
+|---|---|---|---|
+| 1 | KL divergence to bf16 (mean, median, 99th percentile, max), top-1 agreement (`same_top_p`), perplexity ratio | `quality/kl_eval.py` (llama.cpp `llama-perplexity`) | Compares the full next-token distribution on every scored token; the tail (p99, max) catches rare bad tokens that a mean hides |
+| 2 | Output agreement on 100 fixed prompts: identical outputs, mean shared prefix | `scripts/flow_fixed_prompts.py` (theschoolofai/era-v5-lab#478) with the 100 fixed prompts the lead named: G10's `teams/10-post-training/eval/effort_manifest.json` (manifest sha256 `d6190b2d…9226`; pointers to rows of pinned upstream files, texts fetched by hash). #478's own `prompts/fixed_100.jsonl` (`da3f6851…4919`) only if the lead prefers it | The team's task 5 check (Sreekanth on #478, 15 Nov, and G12 chat, 16 Nov 16:48); fetching the texts needs the network, so do it before an offline run |
+| 3 | Bits per byte on the same text as (1) | derived from (1): tokens scored × ln(PPL) ÷ ln 2 ÷ UTF-8 bytes of the scored text | Does not depend on the tokenizer, so it stays valid if GGUF and HF token IDs differ (Indic lines, #467) |
+| 4 | MMLU / GSM8K exact match | `scripts/quantize_eval.py` (#14 path) | Reference only; expected near chance. Run locally where downloads are allowed, never in an offline TSAI job |
 
-This uses the checkpoint CLI proposed in PR #14, not the current base CLI. Preserve
-the exact expanded command and environment versions with the returned logs. Keep
-weights, GGUFs and evaluation data outside Git; only small, reviewed evidence belongs
-in the PR. The separate `--runs-csv` path also keeps incomplete runs out of the shared table.
+Text for (1) and (3): WikiText-2 test as pinned in `kl_eval.py` for a stand-in; for dry run 1, G3/G9 held-out text
+with the p1536 tokenizer, if the lead approves its use.
 
-## Checks required before interpreting scores
+**Basis:** Session 18: keep the router unquantised and compare formats on the same evaluation
+[N `local:sessions/session_18_preference_alignment_and_inference_serving.md#0013`, `#0046`]. KL between the
+full-precision and reduced-precision output distributions as a quantization error measure [P 2610.38277#0022].
+Llama 3: benchmarks looked fine under FP8 while the model "occasionally produces corrupted responses"
+[P 2407.21783#0136]. BPB is independent of the tokenizer
+[N `local:sessions/session_16_scaling_laws_and_compute_planning.md#0003`]. An "acceptable" KL threshold:
+**Basis: none in index**; this run reports numbers and proposes no threshold.
 
-| Check | Evidence to retain | Result |
+## 3. Checks before any number is read
+
+| Check | Evidence kept | Result |
 |---|---|---|
-| Input identity | Checkpoint, tokenizer, evaluation and model-spec hashes | NOT RUN |
-| A1: G5 versus HF export | `export_report.json`, compared prompts, error and top-1 results | NOT RUN |
-| A3: G5 versus BF16 GGUF | A3 JSON, compared prompts and reported pass/fail | NOT RUN |
-| Tokenizer round trip | Full report, line/token mismatch counts and exit code | NOT RUN |
-| Tensor types | Observed router/output tensor types for every GGUF | NOT RUN |
-| Evaluation completeness | Item count, per-kind scores, rejected prompts, effective context | NOT RUN |
+| Input identity | checkpoint, tokenizer, text and prompt-file sha256 | NOT RUN |
+| Tokenizer | stand-in: its own tokenizer; dry run 1: p1536, sha256 `e6b93a93…a64b` (TSAI Gate 3 notice), **not** the C3 default `15468e66…` in #14 | NOT RUN |
+| Export checks A1 / A3 (#14 path only) | reports, with pass/fail written here even when the process exits 0 | NOT RUN |
+| Tokenizer round trip | exit code and mismatch counts. On p1536, exit 1 from 6 vocabulary tokens and one Cyrillic line is the known state (#467); anything beyond that is a failure | NOT RUN |
+| Router and output tensor types | `gguf-dump` of every GGUF: the router must be F32 (the #14 guard also accepts Q8_0, which would break the Session 18 rule) | NOT RUN |
 
-The current implementation reports A3 failures and round-trip exit codes without
-necessarily failing the whole command ([A3 code][checks], [round-trip implementation][pipeline]).
-A process exit of zero is therefore insufficient. Retain failures and request lead
-review before claiming the checkpoint/export is validated. Report observed router/output
-types: the [current guard][types] permits F32, BF16, F16 or Q8_0, so passing it alone
-does not prove the router stayed F32.
+## 4. R1 results
 
-## R1 results — awaiting execution
+| Format | Size | KL mean / p99 / max | Top-1 agree | PPL ratio | BPB | fixed_100 identical / shared prefix | Benchmark (ref.) |
+|---|---|---|---|---|---|---|---|
+| bf16 | NOT RUN | — | — | 1.000 | NOT RUN | — | NOT RUN |
+| Q8_0 | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN |
+| Q4_K_M | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN | NOT RUN |
 
-| Format | GGUF SHA-256 / size | Score / per-kind scores | Delta vs BF16 (percentage points) | Rejected prompts | Evidence |
-|---|---|---|---|---|---|
-| BF16 baseline | NOT RUN | NOT RUN | — | NOT RUN | Pending |
-| Each confirmed quantized format (one row per format) | NOT RUN | NOT RUN | NOT RUN | NOT RUN | Pending |
+## 5. R2: time and cost, measured per stage on the machine that ran it
 
-Compute the score delta as `100 * (quantized_score - bf16_score)` on identical items
-and settings. The pipeline score is total correct / item count; its generation speed
-is an average of reported per-request decode rates, not end-to-end throughput
-([implementation][evaluation]). This evaluator is separate from G9's full `eval_mini`
-runner. Label a stand-in or smoke subset explicitly; do not present it as full benchmark
-or Gate 3 evidence. The template requires an explicit evaluation file and does not
-silently generate the stand-in set.
+TSAI keeps raw timing private, so R2 uses this run's own machine. Each stage is timed separately; set-up (clone,
+build, downloads) is listed but kept out of the pipeline total.
 
-## R2 time and cost — awaiting execution
-
-| Stage | Measured elapsed seconds | Fresh/cached and evidence |
+| Stage | Seconds | Notes |
 |---|---|---|
-| Provisioning / downloads | NOT RUN | Pending |
-| HF export + A1, BF16 conversion | NOT RUN | Pending |
-| A3 and tokenizer round trip | NOT RUN | Pending |
-| Quantization, per format | NOT RUN | Pending |
-| Evaluation, per format | NOT RUN | Pending |
-| Whole pipeline wall time | NOT RUN | `wall_time.txt` after execution |
+| Set-up: llama.cpp build, downloads | NOT RUN | not part of the pipeline total |
+| Convert to bf16 GGUF | NOT RUN | |
+| Quantize, per format | NOT RUN | fresh files only; a reused GGUF's `.quant_time` is the old value |
+| KL pass, per format | NOT RUN | |
+| fixed_100 run, per format | NOT RUN | also records decode tokens/s |
+| Pipeline total (excluding set-up) | NOT RUN | |
+| Peak memory and decode tokens/s, per format | NOT RUN | the numbers a serving choice uses |
 
-Record stage timings from timestamped logs or explicit timers; if a boundary was not
-measured, mark it unavailable. BF16's `quant_time_s = 0` does not measure conversion.
-On resumed runs, `.quant_time` can contain the original creation time rather than work
-done in the current invocation ([code][types]); keep that separate from current wall time.
+**Cost:** on a local machine, "none (local)" with the machine named; on Modal, billed GPU-hours × the published
+rate, with the rate and its date. No rate is assumed. Serving cost per million tokens = price per hour ÷
+(tokens/s × 3,600) × 10⁶ [N `local:sessions/session_18_preference_alignment_and_inference_serving.md#0013`,
+`#0045`]. Reporting time alone when there is no billed rate: **Basis: none in index** (team practice in #13).
 
-**Cost: unavailable — no run or billed rate yet.** Record allocated runtime, node/GPU
-count, rate unit, currency, billing rounding and the rate's source. For a per-node-hour
-rate use billed node-hours × rate; for a per-GPU-hour rate use billed GPU-hours × rate.
-Do not multiply the device count twice. Separate preparation from the measured pipeline
-interval. If no billed rate is supplied, publish measured time and leave monetary cost
-unavailable. **Basis:** [N1], Session 18 §10,
-`local:sessions/session_18_preference_alignment_and_inference_serving.md#0014` (course notes;
-no provider price assumed).
+## 6. Checklist
 
-## Completion checklist
-
-- [x] Inspect the target branch and checkpoint-pipeline proposal.
-- [x] Prepare the report, input checklist and command template.
-- [ ] Confirm and pin checkpoint, tokenizer, evaluation and runtime inputs.
-- [ ] Resolve pipeline/offline-job dependencies; execute and attach logs.
-- [ ] Review A1/A3, tokenizer and tensor-type evidence; disclose all failures.
-- [ ] Fill R1 scores and R2 timing/cost from this run's artifacts.
-- [ ] Ask the lead to review the completed evidence before taking the PR out of draft.
-
-[pipeline]: https://github.com/shekar-maker/era-v5-lab/blob/222be778537f9d1a9ee80114ef4a79839b9c30bd/teams/12-quantization/scripts/quantize_eval.py
-[evaluation]: https://github.com/shekar-maker/era-v5-lab/blob/222be778537f9d1a9ee80114ef4a79839b9c30bd/teams/12-quantization/scripts/quantize_eval.py#L372-L411
-[checks]: https://github.com/shekar-maker/era-v5-lab/blob/222be778537f9d1a9ee80114ef4a79839b9c30bd/teams/12-quantization/scripts/quantize_eval.py#L497-L508
-[types]: https://github.com/shekar-maker/era-v5-lab/blob/222be778537f9d1a9ee80114ef4a79839b9c30bd/teams/12-quantization/scripts/quantize_eval.py#L531-L554
+- [x] Read the work order, #13, #14, #18, #478 (and the lead's comment there), #508, G10's `effort_manifest.json` and the team's `kl_eval.py`.
+- [x] Lead confirms the checkpoint: open-source model (16 Nov 19:56).
+- [ ] Confirm llama.cpp converts the chosen model before the run.
+- [ ] Pin inputs and hashes; run the checks in §3.
+- [ ] Fill §4 and §5 from this run's own logs; attach a gist with the logs.
+- [ ] Take the PR out of draft and link it in the G12 group.
