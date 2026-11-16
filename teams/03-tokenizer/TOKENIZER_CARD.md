@@ -1,15 +1,17 @@
-# G3 tokenizer card: C3 sample-v0 (frozen)
+# G3 tokenizer card: p1536 (frozen)
+
+> 15 Nov: TSAI froze p1536 (e6b93a93…a64b), replacing C3 from Gate 2 (#443). Token ids are identical and eos stays 130822. p1536 mean Indic FLORES is −24.81% (#436). The C3 sections below are kept for history.
 
 Frozen at Gate 2 (#340, #443). Token ids never change without a TSAI approval.
 Cite this card with the sha below. Every number links to the PR or file it comes from.
 
 | Field | Value |
 |---|---|
-| Name | C3 sample-v0 |
+| Name | p1536 |
 | File | `tokenizer.json` (8 MB, not in the repo: over pr-guard's 5 MB limit) |
-| sha256 | `15468e66457b43af79f695cbe585c0d03e3cfe7a4a5d04d189dd3c6b9f02ddc3` |
+| sha256 | `e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b` |
 | Pinned in | `release/SHA256SUMS` (#340) |
-| Rebuild | `train/rebuild_c3_s0.py` from `train/c3_s0_manifest.json`; TSAI job #218 gave the same sha (no network, CPU) |
+| Rebuild | `train/rebuild_cand.py` (p1536); TSAI rebuilt it and got the same sha |
 | Type | byte-level BPE, Hugging Face `tokenizers` format |
 | Base | BrahmicTokenizer-131K (`theschoolofai/BrahmicTokenizer-131K`, commit `7dfcf398`) |
 | Owners | Team 3 Tokenizer. Card: @rjvim |
@@ -21,12 +23,12 @@ import hashlib
 from tokenizers import Tokenizer
 
 p = "release/tokenizer.json"
-assert hashlib.sha256(open(p, "rb").read()).hexdigest().startswith("15468e66")
+assert hashlib.sha256(open(p, "rb").read()).hexdigest().startswith("e6b93a93")
 tok = Tokenizer.from_file(p)
 ids = tok.encode("नमस्ते दुनिया", add_special_tokens=False).ids + [130822]  # eos per doc
 ```
 
-- Load the file directly. G6's `BrahmicTokenizer` class pins the baseline sha (`01d968a7…`) and will not load C3.
+- Load the file directly. G6's `BrahmicTokenizer` class pins the baseline sha (`01d968a7…`) and will not load it.
 - `transformers`: put `release/tokenizer_config.json` and `release/special_tokens_map.json` (#407) next to `tokenizer.json`, then `AutoTokenizer.from_pretrained("release/")`.
 - Do not add your own NFC/NFKC step. The normalizer is inside `tokenizer.json`.
 
@@ -175,4 +177,5 @@ No outside tokenizer passes the bar: every one that beats C3 on Indic (Gemma-4, 
 | v0 | `2de039f2…f8e5` | reserved slots named, same ids | #107 |
 | v0.1 | `a33c9907…e578` | Team 10 chat markers in `g10_slot_00..04` | #173 |
 | C3 sample-v0 | `15468e66…ddc3` | o200k swap + slots_v2 + normalizer v1, retrained on sample v0 | #195, #340 |
+| p1536 (frozen) | `e6b93a93…a64b` | pruned o200k candidate, same ids as C3 | #414, #436 |
 | Special-token roles | (config only, ids unchanged) | eos 130822, bos, pad, unk | #407 |
