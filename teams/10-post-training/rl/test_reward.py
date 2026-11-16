@@ -110,6 +110,8 @@ def test_list_envs_covers_every_shipped_task_and_env():
     assert len([i for i in ids if i.startswith("indic/")]) == len(list((HERE / "indic" / "tasks").glob("*/task.json")))
     assert len([i for i in ids if i.startswith("go/")]) == len(list((HERE / "go" / "tasks").glob("*/task.json")))
     assert len([i for i in ids if i.startswith("agentic/")]) == len(list((HERE / "agentic" / "tasks").glob("*/task.json")))
+    assert len([i for i in ids if i.startswith("js/")]) == len(list((HERE / "jsts" / "tasks" / "js").glob("*/task.json")))
+    assert len([i for i in ids if i.startswith("ts/")]) == len(list((HERE / "jsts" / "tasks" / "ts").glob("*/task.json")))
     assert len([i for i in ids if i.startswith("math/")]) == len(list((HERE / "math" / "tasks").glob("*/task.json")))
     for i in ids:
         if i.startswith("math/") and not os.environ.get("G10_MATH_POOL"):

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -66,6 +67,9 @@ def main() -> int:
         listing = test_listing(env_dir, env)
         prompt = (COMMAND_HEADER + "\nIssue (upstream text, unchanged):\n\n" + issue + "\n\nTest files in the "
                   "repository:\n\n" + "\n".join(listing) + "\n")
+        cands = [f for f in listing if re.search(r"(^|/)test_[^/]*\.py$|_tests?\.py$", f)]
+        meta["candidate_test_files"] = len(cands)
+        meta["chance_level"] = round(1 / len(cands), 3)  # picking a listed test file at random
         args, why = av.parse_command(env["test_cmd"])
         assert args is not None, why
         side = av.run_command(env_dir, env, args)

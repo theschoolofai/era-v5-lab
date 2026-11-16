@@ -11,6 +11,9 @@ env_id is "<type>/<name>":
     indic/<task_id>      rl/indic/tasks/<task_id>, scored by rl/indic/indic_verifier.py (exact answer, no container)
     go/<task_id>         rl/go/tasks/<task_id>, scored by rl/go/go_verifier.py (output = the model's completion;
                          docker sandbox by default, the image is built from rl/go/go.Dockerfile)
+    js/<task_id>         rl/jsts/tasks/js/<task_id>, scored by rl/jsts/jsts_verifier.py (output = one JavaScript module,
+                         docker sandbox, image g10-jsts-rl:1 built from rl/jsts/jsts.Dockerfile)
+    ts/<task_id>         rl/jsts/tasks/ts/<task_id>, the same for TypeScript
     math/<task_id>       rl/math/tasks/<task_id>, scored by rl/math/math_verifier.py (exact boxed answer, no container;
                          needs the RL data v1 math pool: set G10_MATH_POOL, see rl/math/README.md)
     agentic/<task_id>    rl/agentic/tasks/<task_id>, scored by rl/agentic/agentic_verifier.py (output = one pytest
@@ -53,6 +56,8 @@ INDIC_TASKS = HERE / "indic" / "tasks"
 GO_TASKS = HERE / "go" / "tasks"
 AGENTIC_TASKS = HERE / "agentic" / "tasks"
 MATH_TASKS = HERE / "math" / "tasks"
+JS_TASKS = HERE / "jsts" / "tasks" / "js"
+TS_TASKS = HERE / "jsts" / "tasks" / "ts"
 
 _NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")  # no slashes, no "..": an env_id cannot leave its folder
 _REGISTRY: dict[str, Callable[..., dict]] = {}
@@ -218,12 +223,39 @@ def math_checker(name: str, output: str, pool=None, **_) -> dict:
     return _math().reward(task_dir, output, pool)
 
 
+_JSTS_MODULE = None
+
+
+def _jsts():
+    """jsts/jsts_verifier.py, loaded by path like pool.py."""
+    global _JSTS_MODULE
+    if _JSTS_MODULE is None:
+        import importlib.util  # noqa: PLC0415
+        spec = importlib.util.spec_from_file_location("g10_rl_jsts_verifier", HERE / "jsts" / "jsts_verifier.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _JSTS_MODULE = module
+    return _JSTS_MODULE
+
+
+def _jsts_checker(folder: Path, kind: str):
+    def checker(name: str, output: str, executor=None, **_) -> dict:
+        """Needs docker and the g10-jsts-rl:1 image; a failure to run raises, it is never scored 0 as a model error."""
+        task_dir = folder / name
+        if not (task_dir / "task.json").is_file():
+            raise KeyError(f"no {kind} task {name!r} in {folder}")
+        return _jsts().reward(task_dir, output, executor)
+    return checker
+
+
 register("code", code_checker)
 register("swe", swe_checker)
 register("indic", indic_checker)
 register("go", go_checker)
 register("agentic", agentic_checker)
 register("math", math_checker)
+register("js", _jsts_checker(JS_TASKS, "js"))
+register("ts", _jsts_checker(TS_TASKS, "ts"))
 
 
 def list_envs() -> list[str]:
@@ -233,6 +265,8 @@ def list_envs() -> list[str]:
     ids += [f"go/{p.parent.name}" for p in sorted(GO_TASKS.glob("*/task.json"))]
     ids += [f"agentic/{p.parent.name}" for p in sorted(AGENTIC_TASKS.glob("*/task.json"))]
     ids += [f"math/{p.parent.name}" for p in sorted(MATH_TASKS.glob("*/task.json"))]
+    ids += [f"js/{p.parent.name}" for p in sorted(JS_TASKS.glob("*/task.json"))]
+    ids += [f"ts/{p.parent.name}" for p in sorted(TS_TASKS.glob("*/task.json"))]
     return ids
 
 
@@ -263,6 +297,8 @@ def known_outputs(env_id: str) -> tuple[str, str]:
             raise ValueError(f"go/{name}: reference.go has no one-line signature for {meta['entry_point']}")
         bad = f"```go\npackage main\n\n{sig.group(0)}\n\tpanic(\"stub\")\n}}\n```"
         return f"```go\n{ref}\n```", bad
+    if env_type in ("js", "ts"):
+        return _jsts().known_outputs((JS_TASKS if env_type == "js" else TS_TASKS) / name)
     if env_type == "math":
         return _math().known_outputs(MATH_TASKS / name)
     if env_type == "agentic":

@@ -56,6 +56,14 @@ without Docker.
   taken from a human-written source, replace `COMMAND_HEADER` and `PATCH_HEADER` in `build_tasks.py` and rebuild.
 - The wrong patches in `test_agentic_verifier.py` are fixtures derived from a human gold patch, kept out of any pool.
 
+## Chance level, and what the tasks are for
+
+Each command task is in effect a choice among the test files in its prompt. `task.json` records
+`candidate_test_files` and `chance_level` (1 divided by the number of `test_*.py` files listed; for example 0.25
+for `humanize-26` with 4 files and 0.034 for `boltons-302` with 29). Read a pass rate against that number: a 25% pass
+rate on `humanize-26` is chance, not skill. The five tasks (four command, one patch) demonstrate the verifier and are not an
+RL pool; a pool needs many more tasks built with `build_tasks.py`.
+
 ## Limits
 
 - A policy can score by matching words of the issue to a file name in the listing; that is the intended skill, but an

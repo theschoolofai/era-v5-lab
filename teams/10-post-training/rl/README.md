@@ -77,6 +77,8 @@ Agentic tasks (one pytest command or one patch, run in a SWE env image) are in [
 
 Math tasks (an exact boxed answer from the RL data v1 math pool, pinned by SHA-256) are in [`math/`](math/README.md). `reward.py` registers them as `math/<task_id>`; they need the pool (`G10_MATH_POOL`) and `math-verify==0.9.0`. TSAI has not ruled on MATH for RL.
 
+JavaScript and TypeScript tasks (Exercism exercises, hidden jest tests, docker image `g10-jsts-rl:1`) are in [`jsts/`](jsts/README.md). `reward.py` registers them as `js/<task_id>` and `ts/<task_id>`; `python rl/reward.py --check-all --type js` (or `ts`) needs docker and the image.
+
 ## Files in this folder
 
 | File | What it is |
@@ -84,6 +86,7 @@ Math tasks (an exact boxed answer from the RL data v1 math pool, pinned by SHA-2
 | `verifier.py`, `_sandbox_child.py`, `test_verifier.py` | The verifier: binary reward for one task, expected answers kept outside the sandbox. |
 | `tasks/` | The original coding tasks (see "Writing a task"). |
 | `reward.py`, `test_reward.py` | The one `reward(env_id, output)` entry point for code, SWE, Indic and Go environments. |
+| `jsts/` | The JavaScript and TypeScript verifier set: hidden jest tests in a docker image, Exercism tasks, tests. |
 | `math/` | The math verifier set: boxed exact answer, pins into the RL data v1 math pool, tests. |
 | `agentic/` | The agentic verifier set: command and patch checks, its tasks and tests. |
 | `indic/` | The Indic verifier set: exact-answer reward, its tasks and tests, and the template generator. |
