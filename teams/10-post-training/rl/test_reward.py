@@ -277,3 +277,23 @@ def test_pool_does_not_follow_a_replaced_slot_folder(monkeypatch, tmp_path):
         worker.close()
     assert err == "result file is not a regular file or is too large"
     assert not (work / "results.json").exists()
+
+
+def test_pool_module_loads_once_and_whole_when_many_threads_ask_at_once():
+    import threading  # noqa: PLC0415
+
+    fresh = _load("g10_rl_reward_threads", HERE / "reward.py")  # its _POOL_MODULE is still None
+    start, got = threading.Barrier(16), []
+
+    def ask():
+        start.wait()
+        m = fresh._pool()
+        got.append((m, callable(getattr(m, "verifier_module", None))))  # what this thread sees when it gets it
+
+    threads = [threading.Thread(target=ask) for _ in range(16)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert len(got) == 16 and len({id(m) for m, _ in got}) == 1
+    assert all(whole for _, whole in got)  # no thread was handed a half-run module

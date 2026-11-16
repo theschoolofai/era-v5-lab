@@ -16,7 +16,7 @@
  "ok": true,
  "pack_manifest": {
   "name": "ocr2_pack_v1_manifest.json",
-  "sha256": "7554fb723413e0621fbe0943240dc7763d53b9bf4c2d9389045090a89fe48532"
+  "sha256": "c15a54a1109cbc1d6944e1e99b0957495c272ea8a8617a08ee9a6c5aa717b414"
  },
  "private_bundle_note": "the id list and family list are private (ids and keys only, no text); TSAI receives them through a job request, and Git holds only these hashes",
  "rows": 8507,

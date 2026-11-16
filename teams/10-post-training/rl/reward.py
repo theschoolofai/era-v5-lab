@@ -34,6 +34,7 @@ import argparse
 import json
 import re
 import sys
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -83,16 +84,23 @@ def reward(env_id: str, output: str, **options) -> tuple[float, dict]:
 # --- built-in checkers --------------------------------------------------------------------------
 
 _POOL_MODULE = None
+_POOL_LOCK = threading.Lock()
 
 
 def _pool():
-    """pool.py, loaded by path so reward.py works from any working directory."""
+    """pool.py, loaded by path so reward.py works from any working directory.
+
+    Thread-safe: the module is published only after it has run, so a second thread (check_all, a trainer's scorer
+    threads) never sees a half-loaded module."""
     global _POOL_MODULE
     if _POOL_MODULE is None:
-        import importlib.util  # noqa: PLC0415
-        spec = importlib.util.spec_from_file_location("g10_rl_pool", HERE / "pool.py")
-        _POOL_MODULE = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(_POOL_MODULE)
+        with _POOL_LOCK:
+            if _POOL_MODULE is None:
+                import importlib.util  # noqa: PLC0415
+                spec = importlib.util.spec_from_file_location("g10_rl_pool", HERE / "pool.py")
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                _POOL_MODULE = module
     return _POOL_MODULE
 
 
