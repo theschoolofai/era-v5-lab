@@ -51,7 +51,7 @@ Size reduction 66.6%, compression ratio 3.00x.
 - G12's rules are checked by `gguf_check_*.json` (both `ok: true`): `output.weight` is Q8_0 in the quantized file and
   BF16 in the bf16 file. The model is dense, so there is no router (`router_type` is `-` in `runs.csv`).
 - Evaluation with llama-cpp-python 0.3.36 (Metal, all layers on the GPU, n_ctx 2048) and lm-eval 0.4.13, in a venv
-  without torch or transformers. The eval code is the version from PR #221 (lab commit `048de644e7b5`), the same as
+  without torch or transformers. The eval code is pinned to lab commit `048de644e7b5`, the same as
   `sarvam-30b/`: its `run_mini_gguf.py` writes no item text, and `combine.py` from that commit accepts both runs. G9's
   `run_eval_mini.py` has sha256 prefix `e91bd8b37975d098`.
 - Hardware: Apple M4 Pro, 24 GB unified memory, own machine (not Kaggle). Both formats ran on the same machine.
@@ -84,3 +84,7 @@ python teams/12-quantization/eval_mini/combine.py teams/12-quantization/eval_min
 For a model rerun, use the conversion and evaluation tooling at the pinned lab commit above, the pinned model revision, bf16 conversion, and `llama-quantize --output-tensor-type q8_0` for Q4_K_M. Use the same G9 mini profile, seed 42, and n_ctx 2048 for both formats. The original model binaries are not included. Artifact validation does not rerun inference or establish the cause of the recorded sanity failure.
 
 TruthfulQA MC2 uses paired continuous per-item differences for its confidence interval; McNemar's binary test does not apply. Significance statements above are nominal, without correction for multiple comparisons.
+
+### GGUF checksum evidence
+
+The recorded evaluation code commit is `048de644e7b5e85e23177add0458f7fe124566b5`. This identifies code provenance, not the model file contents. The supplied artifacts do not include SHA-256 digests of the bf16 and Q4_K_M GGUFs, and the original GGUF binaries are not available in this submission. A verified `runs/manifest_<date>.json` requires hashes computed from those exact original files; tensor checks and byte sizes cannot substitute for file hashes.
