@@ -186,3 +186,72 @@ def test_bake_equals_hard_mask_and_masks_round_trip(tmp_path):
     back = dtmask.unpack_masks(blob, meta)
     assert set(back) == set(masks) and all(torch.equal(back[k], masks[k]) for k in masks)
     assert meta["bits"] == sum(v.numel() for v in masks.values())
+
+
+# --- Team 5 LanguageModel targets (capstone model code, imported from this checkout) -----------------------------
+
+def tiny_g5(attn_gate=False):
+    harness = HERE.parents[2] / "05-architecture" / "harness"
+    spec_ = importlib.util.spec_from_file_location("g5_model_for_dt_test", harness / "week2" / "model.py")
+    g5 = importlib.util.module_from_spec(spec_)
+    spec_.loader.exec_module(g5)
+    import numpy as np  # noqa: PLC0415
+    rows = np.zeros((64, 4), dtype=np.uint8)
+    rows[:, 0] = np.arange(64)
+    lengths = np.ones(64, dtype=np.int16)
+    m = {"vocab_size": 64, "n_embd": 16, "n_head": 2, "n_kv_head": 1, "n_layer": 2, "rope_theta": 10000.0,
+         "norm_eps": 1e-5, "mtp": False, "moe": {"num_experts": 4, "top_k": 2, "num_shared": 1, "ffn_hidden": 32,
+                                                  "bias": False}}
+    if attn_gate:
+        m.update(attn_gate=True, attn_gate_input="normalized", attn_gate_bias=False, attn_gate_init="zero")
+    torch.manual_seed(0)
+    return g5.LanguageModel(m, rows, lengths)
+
+
+def test_g5_target_sets_select_exactly_the_intended_linears():
+    m = tiny_g5(attn_gate=True)
+    names = dtmask.convert(tiny_g5(attn_gate=True), dtmask.TARGET_SETS["g5_gate"], total_steps=10)
+    assert len(names) == 2 * (4 + 1) and all(n.endswith(".gate") and ".moe." in n for n in names)
+    assert not any(".attn.gate" in n for n in names)  # the optional attention gate is not an expert gate
+    names = dtmask.convert(tiny_g5(), dtmask.TARGET_SETS["g5_mlp"], total_steps=10)
+    assert len(names) == 2 * 5 * 3
+    names = dtmask.convert(tiny_g5(attn_gate=True), dtmask.TARGET_SETS["g5_attn"], total_steps=10)
+    assert sorted({n.split(".")[-1] for n in names}) == ["k", "o", "q", "v"] and len(names) == 2 * 4
+    assert not any("router" in n or n.startswith("head") or "embedding" in n for n in names)
+    # the substring sets meant for Hugging Face names find nothing in the G5 model (the gap this entry closes)
+    with pytest.raises(ValueError, match="no nn.Linear matched"):
+        dtmask.convert(m, dtmask.TARGET_SETS["gate"], total_steps=10)
+
+
+def test_target_match_keeps_substring_semantics():
+    assert dtmask.target_match("model.layers.0.mlp.gate_proj", ("gate_proj",))
+    assert not dtmask.target_match("model.layers.0.mlp.up_proj", ("gate_proj",))
+    assert dtmask.target_match("blocks.1.attn.o", (r"re:blocks\.\d+\.attn\.(q|k|v|o)",))
+    assert not dtmask.target_match("blocks.1.attn.o.extra", (r"re:blocks\.\d+\.attn\.(q|k|v|o)",))
+
+
+def test_wanda_scores_on_g5_experts_use_routed_rows_and_ignore_padding():
+    """G5 experts see gathered [routed tokens, d] rows (valid positions only); attention sees [B, T, d]. A padded
+    batch must give the same Wanda norms as the two rows calibrated separately without padding."""
+    a, b = [3, 7, 9, 11, 13, 5], [4, 10, 12]
+
+    class Wrap(torch.nn.Module):  # the call shape wanda_scores uses
+        def __init__(self, lm):
+            super().__init__()
+            self.lm = lm
+
+        def forward(self, input_ids, attention_mask):
+            return self.lm(input_ids, attention_mask.bool())
+
+    def scores(batches):
+        lm = tiny_g5()
+        dtmask.convert(lm, dtmask.TARGET_SETS["g5_mlp"] + dtmask.TARGET_SETS["g5_attn"], total_steps=10)
+        return dtmask.wanda_scores(Wrap(lm), batches, "cpu")
+
+    padded = {"input_ids": torch.tensor([a, b + [0, 0, 0]]), "attention_mask": torch.tensor([[1] * 6, [1] * 3 + [0] * 3])}
+    sep = [{"input_ids": torch.tensor([a]), "attention_mask": torch.ones(1, 6, dtype=torch.long)},
+           {"input_ids": torch.tensor([b]), "attention_mask": torch.ones(1, 3, dtype=torch.long)}]
+    s_pad, s_sep = scores([padded]), scores(sep)
+    assert set(s_pad) == set(s_sep) and any(".moe.experts." in n for n in s_pad)
+    for n in s_pad:
+        assert torch.allclose(s_pad[n], s_sep[n], rtol=1e-5, atol=1e-6), n
