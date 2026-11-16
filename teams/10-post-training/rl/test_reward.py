@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -36,6 +37,8 @@ def _has_image(image: str) -> bool:
     return subprocess.run(["docker", "image", "inspect", image], capture_output=True).returncode == 0
 
 
+needs_go_image = pytest.mark.skipif(
+    not _has_image(os.environ.get("G10_GO_IMAGE", "g10-go-rl:1")), reason="docker or the g10-go-rl:1 image is missing")
 needs_code_image = pytest.mark.skipif(not _has_image(pool.CODE_IMAGE), reason="docker or python:3.12-slim missing")
 SWE_ENV = "python-validators__validators-191"
 needs_swe_image = pytest.mark.skipif(not _has_image(f"g10-swe/{SWE_ENV}:v1"), reason="SWE env image missing")
@@ -105,6 +108,7 @@ def test_list_envs_covers_every_shipped_task_and_env():
     assert len([i for i in ids if i.startswith("code/")]) == len(list((HERE / "tasks").glob("*/task.json")))
     assert len([i for i in ids if i.startswith("swe/")]) == len(list((HERE.parent / "swe-envs").glob("*/env.json")))
     assert len([i for i in ids if i.startswith("indic/")]) == len(list((HERE / "indic" / "tasks").glob("*/task.json")))
+    assert len([i for i in ids if i.startswith("go/")]) == len(list((HERE / "go" / "tasks").glob("*/task.json")))
     for i in ids:
         good, bad = reward.known_outputs(i)
         assert good and bad and good != bad
@@ -117,6 +121,39 @@ def test_indic_envs_score_the_known_good_one_and_the_known_bad_zero_without_dock
     assert len(rows) == 2 * len(ids) and all(r["ok"] for r in rows), [r for r in rows if not r["ok"]]
     with pytest.raises(KeyError):
         reward.reward("indic/no_such_task", "<answer>1</answer>")
+
+
+def test_go_is_registered_and_an_unknown_go_task_is_a_key_error():
+    assert "go" in reward._REGISTRY
+    assert [i for i in reward.list_envs() if i.startswith("go/")]
+    with pytest.raises(KeyError):
+        reward.reward("go/no_such_task", "```go\npackage main\n```")
+    with pytest.raises(KeyError):
+        reward.reward("go/../x", "x")
+
+
+def test_go_checker_passes_the_sandbox_through_and_defaults_to_docker(monkeypatch):
+    seen = []
+    monkeypatch.setattr(reward._go(), "reward", lambda task_dir, out, sandbox: seen.append(sandbox) or {"reward": 1})
+    name = next(i for i in reward.list_envs() if i.startswith("go/"))
+    assert reward.reward(name, "x")[0] == 1.0
+    runner = lambda work, t: None  # noqa: E731
+    reward.reward(name, "x", sandbox=runner)
+    assert seen == ["docker", runner]
+
+
+def test_go_known_bad_output_has_the_reference_signature_and_no_reference_body():
+    for env_id in [i for i in reward.list_envs() if i.startswith("go/")]:
+        good, bad = reward.known_outputs(env_id)
+        assert bad.startswith("```go\npackage main\n\nfunc ") and 'panic("stub")' in bad
+        assert bad.count("\n") < 10 < good.count("\n")
+
+
+@needs_go_image
+def test_go_envs_score_the_known_good_one_and_the_known_bad_zero_in_docker():
+    ids = [i for i in reward.list_envs() if i.startswith("go/")]
+    rows = reward.check_all(workers=4, ids=ids)
+    assert len(rows) == 2 * len(ids) and all(r["ok"] for r in rows), [r for r in rows if not r["ok"]]
 
 
 def test_swe_integrity_checks_hold_with_any_executor(monkeypatch):

@@ -41,7 +41,7 @@ result = objective_v1([
 
 `result.advantages` is one tuple per kept group, in the same order as the input. `result.loss` is `L`.
 
-Rewards are the verifier scores, 0 or 1 for v1. Pass them through unchanged. A non-finite reward, a negative ratio, or a log-probability list that differs in length from its ratio list raises `ValueError`.
+Rewards are the verifier scores (0 or 1) or the effort-shaped finite scores from `rl/effort_reward.py` (`shape_reward`). Both are passed through unchanged; when effort shaping is enabled, log the raw verifier success rate beside the shaped reward. A non-finite reward, a negative ratio, or a log-probability list that differs in length from its ratio list raises `ValueError`.
 
 ## Checked by the tests
 

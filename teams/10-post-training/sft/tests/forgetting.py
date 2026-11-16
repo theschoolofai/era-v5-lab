@@ -13,6 +13,9 @@ Verdict (the limits are arguments, the defaults are the ones in eval_v1.md):
   bits per byte   up by more than `--max-bpb-rise` (0.05) over the base               -> forgetting
   a benchmark     down by more than `--sigmas` (2) times its combined stderr, and down
                   by at least `--min-drop` (0.01) in absolute value                    -> forgetting
+
+The limits only set the verdict line. Every number is printed, and a result within `--at-limit-margin` (0.01) of
+its limit, on either side, is marked "at the limit": the verdict there is a coin flip, read the numbers.
 """
 
 from __future__ import annotations
@@ -25,6 +28,9 @@ from pathlib import Path
 
 SCHEMA = "g10-bench-eval/1"
 TASKS = ("arc_challenge", "hellaswag")
+
+
+MARK = " (at the limit)"
 
 
 class ReportError(ValueError):
@@ -96,7 +102,13 @@ def _records(report: dict, label: str) -> dict[str, dict]:
     return out
 
 
-def compare(before: dict, after: dict, *, max_bpb_rise: float = 0.05, sigmas: float = 2.0, min_drop: float = 0.01) -> dict:
+def _near(value: float, limit: float, margin: float) -> bool:
+    """True when `value` is within `margin` of `limit` (a tiny slack keeps 0.06 - 0.05 inside a 0.01 margin)."""
+    return abs(value - limit) <= margin + 1e-9
+
+
+def compare(before: dict, after: dict, *, max_bpb_rise: float = 0.05, sigmas: float = 2.0, min_drop: float = 0.01,
+            at_limit_margin: float = 0.01) -> dict:
     fb, fa = _forgetting(before, "before"), _forgetting(after, "after")
     if fb["heldout_sha256"] != fa["heldout_sha256"]:
         raise ReportError("before and after used different held-out files (heldout_sha256 differs)")
@@ -129,16 +141,22 @@ def compare(before: dict, after: dict, *, max_bpb_rise: float = 0.05, sigmas: fl
         drop = -d
         # Without both stderr values a drop cannot be called significant: report it and flag it as unproven.
         significant = bool(se is not None and drop >= min_drop and drop > sigmas * se)
+        # The drop must beat both the stderr bar and the absolute floor; "at the limit" is near the higher of the two.
+        bar = max(min_drop, sigmas * se) if se is not None else None
+        at_limit = bool(bar is not None and _near(drop, bar, at_limit_margin))
         bench[t] = {"metric": b.get("metric"), "n_items": b.get("n_items"), "before": b["value"], "after": a["value"],
-                    "delta": d, "stderr_combined": se, "significant_drop": significant, "no_stderr": se is None}
+                    "delta": d, "stderr_combined": se, "significant_drop": significant, "no_stderr": se is None,
+                    "at_limit": at_limit}
 
     forgot_bpb = delta > max_bpb_rise
+    bpb_at_limit = _near(delta, max_bpb_rise, at_limit_margin)
     forgot = [t for t, r in bench.items() if r["significant_drop"]]
     return {
         "bpb": {"before": fb["bpb_all"], "after": fa["bpb_all"], "delta": delta, "limit": max_bpb_rise,
-                "rose_too_much": forgot_bpb, "heldout_sha256": fb["heldout_sha256"], "groups": groups},
+                "rose_too_much": forgot_bpb, "at_limit": bpb_at_limit, "heldout_sha256": fb["heldout_sha256"], "groups": groups},
         "benchmarks": bench,
-        "limits": {"max_bpb_rise": max_bpb_rise, "sigmas": sigmas, "min_drop": min_drop},
+        "limits": {"max_bpb_rise": max_bpb_rise, "sigmas": sigmas, "min_drop": min_drop,
+                   "at_limit_margin": at_limit_margin},
         "forgetting": bool(forgot_bpb or forgot),
         "reasons": ([f"held-out bits per byte rose by {delta:+.4f} (limit {max_bpb_rise})"] if forgot_bpb else [])
         + [f"{t} fell by {-bench[t]['delta']:.4f} (more than {sigmas} x stderr {bench[t]['stderr_combined']:.4f})" for t in forgot],
@@ -149,19 +167,23 @@ def render_markdown(result: dict) -> str:
     b = result["bpb"]
     lines = [
         "| Measure | Base | After SFT | Change |", "|---|---|---|---|",
-        f"| Held-out bits per byte (G5 held-out v1, all) | {b['before']:.4f} | {b['after']:.4f} | {b['delta']:+.4f} |",
+        f"| Held-out bits per byte (G5 held-out v1, all) | {b['before']:.4f} | {b['after']:.4f} | {b['delta']:+.4f}{MARK if b['at_limit'] else ''} |",
     ]
     for g, r in b["groups"].items():
         lines.append(f"| bits per byte, group {g} | {r['before']:.4f} | {r['after']:.4f} | {r['delta']:+.4f} |")
     for t, r in result["benchmarks"].items():
         se = "no stderr" if r["no_stderr"] else f"stderr {r['stderr_combined']:.4f}"
-        lines.append(f"| {t} {r['metric']} (n={r['n_items']}) | {r['before']:.4f} | {r['after']:.4f} | {r['delta']:+.4f} ({se}) |")
+        lines.append(f"| {t} {r['metric']} (n={r['n_items']}) | {r['before']:.4f} | {r['after']:.4f} | {r['delta']:+.4f} ({se}){MARK if r['at_limit'] else ''} |")
     verdict = "FORGETTING: " + "; ".join(result["reasons"]) if result["forgetting"] else "No forgetting beyond the limits."
     lim = result["limits"]
+    near = [n for n, v in [("bits per byte", b["at_limit"])] + [(t, r["at_limit"]) for t, r in result["benchmarks"].items()] if v]
     lines += ["", f"Verdict: {verdict}",
               f"Limits: bits per byte may rise by at most {lim['max_bpb_rise']}; a benchmark may fall by at most "
               f"{lim['sigmas']} x its combined stderr (and {lim['min_drop']} absolute).",
               f"Held-out file sha256: {b['heldout_sha256']}"]
+    if near:
+        lines.append(f"At the limit (within {lim['at_limit_margin']} of it, either side; the verdict is a close call, read the numbers): "
+                     + ", ".join(near) + ".")
     if any(r["no_stderr"] for r in result["benchmarks"].values()):
         lines.append("Note: a benchmark without stderr is never called a significant drop; read its change by hand.")
     return "\n".join(lines) + "\n"
@@ -176,11 +198,14 @@ def main(argv=None) -> int:
     ap.add_argument("--max-bpb-rise", type=float, default=0.05)
     ap.add_argument("--sigmas", type=float, default=2.0)
     ap.add_argument("--min-drop", type=float, default=0.01)
+    ap.add_argument("--at-limit-margin", type=float, default=0.01,
+                    help="mark a result within this distance of its limit as 'at the limit' (verdict unchanged)")
     args = ap.parse_args(argv)
     try:
         before = merge_reports(*[load_report(p) for p in args.before])
         after = merge_reports(*[load_report(p) for p in args.after])
-        result = compare(before, after, max_bpb_rise=args.max_bpb_rise, sigmas=args.sigmas, min_drop=args.min_drop)
+        result = compare(before, after, max_bpb_rise=args.max_bpb_rise, sigmas=args.sigmas, min_drop=args.min_drop,
+                         at_limit_margin=args.at_limit_margin)
     except ReportError as e:
         print(f"error: {e}", file=sys.stderr)
         return 2

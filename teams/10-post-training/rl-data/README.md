@@ -18,6 +18,10 @@ python teams/10-post-training/rl-data/filter.py --tasks out/tasks.jsonl --server
 python -m pytest teams/10-post-training/rl-data/test_rl_data.py -q -p no:cacheprovider
 ```
 
+## DeepCoder Python
+
+See the [Week 3 Task 2 pilot](deepcoder.md) for the pinned PrimeIntellect build, Docker verifier checks, and decontamination evidence.
+
 ## Files
 
 | File | What |

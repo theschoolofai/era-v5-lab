@@ -25,7 +25,7 @@
     "codechef": 489,
     "hackerearth": 1056
    },
-   "decision": "open: lead / TSAI",
+   "decision": "lead: keep in v1 close pool (3,577 tasks; Python 3 candidate completions checked against I/O pairs); TSAI can reverse with --drop-python2",
    "ids_sha256": "a92c5c5f50baa176ab51b67689cf362d3460f832de5b246a093b926373f10956",
    "in_pool_after_other_flags": 1519,
    "outcome_drop": {

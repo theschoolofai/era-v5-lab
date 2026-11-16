@@ -1,4 +1,4 @@
-# Job request (DRAFT, not sent): RL data v1 and its Team 9 pool files, rebuild and store
+# Job request: RL data v1 and its Team 9 pool files, rebuild and store
 
 Why a job request: the instructor's reply in the G10 group on 14 Nov 2026 was "do not commit large files. Commit the
 script, the manifest with sha256 and the row count, and the rebuild recipe. If TSAI needs the built file, send a job
@@ -6,17 +6,14 @@ request and TSAI stores it." The work order also says "we give to Team 9" the RL
 job rebuilds RL data v1 from pinned bytes so that TSAI holds the files Team 9 checks. It adds no new cleaning rule:
 the decontamination is Team 9's own tool and fingerprint set, run as it was on 11 Nov.
 
-**Before sending (lead):**
-1. Route: if the lead prefers to hand Team 9 the pool files directly (8.7 MB for the close pools), this request is not
-   needed (BLOCKED B13).
-2. The pool flags are G10 decisions, reversible by a ruling: 116 statement-less tasks and the 55 effort-suite tasks are
-   out; Python-2-only tasks are in (open, B10); MATH is a separate reserved part (TSAI has not admitted it, B12). A
-   ruling changes only the close pools and their expected sha256, not the v1 files.
+**Lead decisions before sending (16 Nov):**
+1. Route: approved for TSAI rebuild & storage (`Lead approval: saitej123`) so Team 9 reads deterministic files from TSAI storage (we can also supply the 8.7 MB close pool directly if requested).
+2. Pool flags: keep `python2_only` (`1,545` tasks) in the v1 close pool (`3,577` tasks) for Team 9 decontamination and TSAI admission (`stdio_check.py` scores candidate Python 3 completions against pinned I/O pairs; `drop_python2: false` remains reversible via `--drop-python2`). Keep the 116 `statement_less` tasks and 55 `effort_suite` tasks excluded; MATH (`7,209`) stays in its separate reserved part pending TSAI admission.
 
 ```
 Team:            10-post-training
 Owner:           f20201351h-maker
-Lead approval:   saitej123 (pending)
+Lead approval:   saitej123 (approved, 16 Nov)
 Question:        Does a rebuild of RL data v1 from pinned bytes give exactly the 12 output sha256 recorded in teams/10-post-training/rl-data/rebuild_v1/pins_v1.json ("expected"), so TSAI can store the pool files for Team 9's check?
 Script:          teams/10-post-training/rl-data/rebuild_v1/rebuild_v1.py   (in this PR; it runs the four step scripts next to it and sft/decontam_run.py)
 Command:         python teams/10-post-training/rl-data/rebuild_v1/rebuild_v1.py --cc-dir ROOT/code_contests/data --math-dir ROOT/hendrycks_math --math500 ROOT/math500/test.jsonl --g9-tools ROOT/g9/teams/09-evaluation/decontam --out out/run

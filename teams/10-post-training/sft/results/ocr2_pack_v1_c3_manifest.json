@@ -8,7 +8,7 @@
   "open-r1/codeforces: held out of v1; the producer's revision is not established and Team 9 confirmation of the Codeforces pool is open",
   "max_sequence_tokens 32768 is provisional for SFT data v1",
   "unclear_source_rows: the 14 TACO keys are left out of v1 (final as built). The human spot check (same/different per key) is pending; a 'same' verdict reopens that key, see unclear_source.if_cleared",
-  "held-out row ids: the id list is private and verified by sft/ocr2_heldout_handoff.py (results/ocr2_heldout_v1_handoff.json holds its hashes); where the list lives (TSAI storage via the job request, or Git) is a lead/TSAI decision",
+  "held-out row ids: the id list is private and verified by sft/ocr2_heldout_handoff.py (results/ocr2_heldout_v1_handoff.json holds its hashes); lead decision (16 Nov): private bundle goes to TSAI storage via the job request, never Git",
   "tokenizer: TSAI's Gate 3 notice (15 Nov 2026) moved the frozen tokenizer from C3 to p1536 for new work; this pack's input_ids are C3. Whether v1 training uses this C3 pack or a p1536 re-tokenisation is a TSAI decision, see post_build_rulings"
  ],
  "build": {

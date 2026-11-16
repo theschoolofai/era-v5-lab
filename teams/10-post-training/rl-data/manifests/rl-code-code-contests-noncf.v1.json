@@ -244,5 +244,5 @@
  },
  "rebuild": "work/wp4-rl-integration-2026-11-15/rldata_rebuild/run_rebuild.sh (wrappers copied byte-for-byte from work/rl-data-v1-2026-11-11: verify_pins.py, build_v1.py, assemble_v1.py, math500_guard.py; builders teams/10-post-training/rl-data/{build,build_math}.py; decontam teams/10-post-training/sft/decontam_run.py with Team 9 tools b470b4c)",
  "rebuild_seconds_total_both_sets": 63,
- "open_decision": "codechef (489) and hackerearth (1,056) v1 tasks have only Python 2 human references; their correct-answer test converts them with lib2to3. Keep or drop is the lead's call."
+ "open_decision": "codechef (489) and hackerearth (1,056) v1 tasks have only Python 2 human references; their correct-answer test converts them with lib2to3. Lead decision (16 Nov): keep in v1 close pool (3,577 tasks; candidate Python 3 completions are checked against I/O pairs); TSAI can reverse with --drop-python2."
 }

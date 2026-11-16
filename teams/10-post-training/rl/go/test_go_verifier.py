@@ -313,6 +313,7 @@ def test_lint_catches_a_hidden_call_copied_in_go_style(tmp_path):
     assert any("hidden test call appears" in p for p in gv.check_task(t))
 
 
+@needs_go
 def test_lint_accepts_a_prompt_that_only_shows_visible_calls(tmp_path):
     t = _copy_task(tmp_path)
     assert not any("hidden test call appears" in p for p in gv.check_task(t))
