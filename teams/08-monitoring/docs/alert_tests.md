@@ -24,6 +24,11 @@ records the time to alert. Add one row per rule you test, plus a short "How to r
 | @raghavTayal | `spike_score` (page) | synthetic 150-step stream, `MetricsWriter` + `AlarmMonitor` | 125 | 125 (jsonl: 130) | 0 (jsonl: 5) | 0.015 | 0.359 | PASS |
 | @s9k96 | `moe_routing` (warn) | synthetic 200-step stream, `MetricsWriter` + `AlarmMonitor`, `moe_patience=5` | 120 | 124 (jsonl: 130) | 4 (jsonl: 10) | 0.019 | 0.523 | PASS |
 | @s9k96 | `ema_z` (warn) | synthetic 200-step stream, `MetricsWriter` + `AlarmMonitor`, `ema_z_threshold=5.0` | 155 | 155 (jsonl: 160) | 0 (jsonl: 5) | 0.017 | 0.492 | PASS |
+| @swatibansal | `throughput_drop` (warn) | synthetic 300-step stream, `MetricsWriter` + `AlarmMonitor`, default `tps_patience=100` | 150 | 249 (jsonl: 250) | 99 (jsonl: 100) | 0.016 | 0.220 | PASS |
+| @swatibansal | `static_bound` (warn) | synthetic 300-step stream, `MetricsWriter` + `AlarmMonitor`, `bounds={"gpu_alloc_gib": (None, 70.0)}` | 205 | 205 (jsonl: 210) | 0 (jsonl: 5) | 0.014 | 0.358 | PASS |
+||||||| 6728a7a
+| @pyru | `static_bound` (warn) | synthetic 400-step stream, `MetricsWriter` + `AlarmMonitor`, `bounds={"gpu_alloc_gib": (None, 40.0)}` | 125 | 125 (jsonl: 130) | 0 (jsonl: 5) | 0.064 | 4.134 | PASS |
+| @pyru | `throughput_drop` (warn) | synthetic 400-step stream, `MetricsWriter` + `AlarmMonitor`, default settings | 200 | 299 (jsonl: 300) | 99 (jsonl: 100) | 0.082 | 3.577 | PASS |
 
 ## @raghavTayal: `non_finite` and `spike_score` (Issue #19)
 
@@ -104,3 +109,88 @@ python teams/08-monitoring/alarms/test_alert_injection_s9k96.py                 
 The test needs only `pytest` (no NumPy or torch). It checks the rule, severity and alert step in-harness, the
 `metrics.jsonl` flush lag (5 for `ema_z`, 10 for `moe_routing`), no false alarms, non-negative timings, and the two
 findings above.
+
+## @swatibansal: `throughput_drop` and `static_bound` (Issue #19)
+
+**Setup.** [`alarms/test_alert_injection_swatibansal.py`](../alarms/test_alert_injection_swatibansal.py) runs a 300-step
+synthetic stream (seed 19): `tokens_per_second = 50,000 x (1 + N(0, 0.01))` (half speed at step 0, the setup step the
+rule skips), `gpu_alloc_gib = 60 + N(0, 0.2)`, `loss_ntp` and `lr`. Every step goes through `MetricsWriter`
+(`flush_every = 10`) and is checked in-harness and from `metrics.jsonl`, as in the Raghav and Shubham tests. Both
+monitors use `AlarmMonitor(bounds={"gpu_alloc_gib": (None, 70.0)})`: `throughput_drop` keeps its defaults (100-step
+window, 10% drop, `tps_patience = 100`), and `static_bound` is off unless `bounds` is passed.
+
+**Faults.**
+- `throughput_drop`: `tokens_per_second` falls by 25% from step 150 to the end of the stream. The rule needs
+  `tps_patience` consecutive slow steps, so the expected alert step is 150 + 100 - 1 = 249, and `delta_steps = 99`
+  is by design, not lag. For this row `jsonl_flush_to_alert_ms` runs from the write of the step-249 row.
+- `static_bound`: `gpu_alloc_gib` jumps to about 72 GiB on steps 205-230, above the 70.0 upper bound. The alarm
+  reports the value and the bound it crossed.
+
+**Results.** Both rules fire with severity `warn` on the expected step in-harness, once each, and nothing else fires
+on either path. The timings are from one run on a laptop CPU (Apple Silicon, Python 3.14); they vary by a few
+microseconds between runs.
+
+**Finding 1: a slowdown shorter than `tps_patience` never alerts.** The slow streak resets on the first step back at
+speed, so a 25% slowdown on steps 150-248 (99 steps) fires nothing, in-harness or from the file. With the default
+patience, a run can lose a quarter of its speed for 99 steps and the alarm stays silent; only the dashboard shows
+it. The test `test_finding_slowdown_shorter_than_patience_never_alerts` records this.
+
+**Finding 2: the `metrics.jsonl` lag is 0 on a flush step.** Raghav's row showed a finite fault reaching the file at
+the next `step % 10 == 0` flush. The lag depends on where the fault lands: the same `static_bound` fault at step 210
+(a flush step) is seen from the file at 210, and at step 205 it is seen at 210. So the file-path lag is 0 to 9 steps,
+not a fixed delay. The test `test_finding_fault_on_a_flush_step_has_no_jsonl_lag` records this.
+
+**Finding 3: `static_bound` fires once per excursion.** The rule latches on the first step out of bounds and re-arms
+only when the metric returns in-bounds. Out of bounds on 205-230 gives one alarm at 205; back in bounds, then out
+again on 260-265 gives a second alarm at 260. A monitor that counts alarms therefore counts excursions, not steps
+out of bounds. The test `test_finding_static_bound_latches_and_rearms` records this.
+
+**How to reproduce.**
+
+```bash
+python -m pytest teams/08-monitoring/alarms/test_alert_injection_swatibansal.py -q   # 7 tests
+python teams/08-monitoring/alarms/test_alert_injection_swatibansal.py                 # prints the two table rows
+```
+
+The test needs only `pytest` (no NumPy or torch). It checks the rule, severity and alert step in-harness, the
+`metrics.jsonl` flush lag (5 for `static_bound`, 1 for `throughput_drop`, whose alert step 249 is one short of the
+step-250 flush), no false alarms, non-negative timings, and the three findings above.
+||||||| 6728a7a
+## @pyru: `static_bound` and `throughput_drop`
+
+**Setup.** [`alarms/test_alert_injection_pyru.py`](../alarms/test_alert_injection_pyru.py) runs a 400-step
+synthetic stream (seed 23): `loss_ntp`, `lr`, `tokens_per_second = 38,000 + N(0, 400)` (650 on step 0, a slow setup
+step) and `gpu_alloc_gib = 24.5 + N(0, 0.05)`. Every step goes through `MetricsWriter` (`flush_every = 10`) and is
+checked in-harness and from `metrics.jsonl`, as in the Raghav test. Both monitors use
+`AlarmMonitor(bounds={"gpu_alloc_gib": (None, 40.0)})`, the bound in `tests/test_alarms.py`; `throughput_drop` uses
+the default settings (10% drop, 100 steps).
+
+**Faults.**
+- `static_bound`: `gpu_alloc_gib` about 44 GiB on steps 125-144. The rule latches, so it fires once, at step 125.
+- `throughput_drop`: `tokens_per_second` 25% below normal on steps 200-349. The rule needs 100 slow steps in a row,
+  so the expected alert step is 200 + 100 - 1 = 299, and `delta_steps = 99` is by design, not lag.
+  For this row `jsonl_flush_to_alert_ms` runs from the write of the step-299 row.
+
+**Results.** Both rules fire with severity `warn` on the expected step in-harness, once each, and nothing else fires
+on either path, including the slow step-0 setup value. The timings are from one run on a laptop CPU (Windows 11,
+Python 3.12); `jsonl_flush_to_alert_ms` was 3.6 to 4.8 ms over four runs, mostly the disk sync in
+`MetricsWriter.flush()`.
+
+**Finding 1: `static_bound` is off unless the caller passes `bounds`.** `AlarmMonitor()` (the README example) and
+`alarms.py --jsonl` set none, and the CLI has no option for them. For dry run 1 the harness must pass `bounds`, or
+this rule never fires. The test `test_static_bound_is_off_without_bounds` records this.
+
+**Finding 2: time to alert for `throughput_drop` is set by `tps_patience`.** In a real run it is 100 slow steps,
+`tps_patience × normal step time / (1 - drop)`: with a 25% drop, about 133 normal step times, so under one minute
+only if a normal step takes less than 0.45 s. A 99-step slowdown never alerts, and neither does a drop under 10%.
+
+**How to reproduce.**
+
+```bash
+python -m pytest teams/08-monitoring/alarms/test_alert_injection_pyru.py -q   # 8 tests
+python teams/08-monitoring/alarms/test_alert_injection_pyru.py                 # prints the two table rows
+```
+
+The test needs only `pytest` (no NumPy or torch). It checks the rule, severity and alert step in-harness, the
+`metrics.jsonl` flush lag (5 for `static_bound`, 1 for `throughput_drop`), one alarm per fault and no false alarms,
+non-negative timings, the 99-step, 100-step and 8% slowdowns, re-arming of `static_bound`, and finding 1.
