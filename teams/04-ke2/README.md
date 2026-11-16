@@ -61,11 +61,17 @@ table is bound to its `tokenizer.json` SHA-256 (`01d968a7…739fff`). `build_tab
 fetches it when it is missing. The MPS step runs only where MPS is available.
 `KE2_RUN_V1_MPS_TESTS=1` enables the MPS integration test, and `KE2_RUN_GPU_TESTS=1` the CUDA one.
 
-For the frozen Team 3 C3-s0 tokenizer, use its SHA-256 `15468e66…2ddc3` and place the
+For new Gate 3 work, use the frozen Team 3 p1536-s0 tokenizer with SHA-256
+`e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b` and the
+tables in `results/tables/p1536-s0/`. Supply its local `tokenizer.json` explicitly to
+`build_tables.py` or `revalidate_tokenizer_candidates.py`; neither script downloads it.
+The earlier C3-s0 tokenizer has SHA-256 `15468e66…2ddc3` and its measurements remain a
+historical record. For either tokenizer, place the
 `special_tokens_map.json` and `tokenizer_config.json` from merged Team 3 PR #407 beside its
 `tokenizer.json`. The named roles are bos 130725, eos `<|endoftext|>` 130822, pad 130726 and
 unk 130727. ID 36 `<|end_of_text|>` is still marked special but has no named model role.
-The pinned baseline tables and results above remain tied to their original tokenizer hash.
+The pinned baseline proof, margin, decoder and determinism results above remain tied to their
+original tokenizer hash. The p1536 table and collision results do not rerun those experiments.
 
 ### `decode_ref.py`: the reference decoder for G6
 
