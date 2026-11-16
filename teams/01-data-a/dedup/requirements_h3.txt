@@ -1,6 +1,6 @@
-# h3.py: numpy and pyarrow as for overlap.py, plus the encoder libraries. Not pinned yet: pin these to the versions
-# that the first local test log records (h3_summary.json, "model" and "versions"), before the job request.
-numpy
-pyarrow
-torch
-sentence-transformers
+# h3.py: numpy and pyarrow for the data, torch and sentence-transformers for the encoder (Python 3.12).
+numpy==2.4.3
+pyarrow==23.0.1
+torch==2.13.0
+sentence-transformers==6.3.0
+transformers==5.23.0

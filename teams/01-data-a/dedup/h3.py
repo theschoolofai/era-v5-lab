@@ -12,32 +12,43 @@ applies to any later removal: a held-out copy always survives (source_priority_v
 
 HOW TO RUN IT
 =============
-Python 3.9+ with numpy, pyarrow, torch and sentence-transformers (requirements_h3.txt), and the encoder in a local folder
-(model_path: LaBSE in sentence-transformers format). The model is never downloaded: the script sets the Hugging Face
-libraries offline, so it needs no network and no keys. It reads only its inputs and writes only to out/ in the
+Python 3.10+ with numpy, pyarrow, torch and sentence-transformers (requirements_h3.txt), and the encoder in a local
+folder (model_path: LaBSE in sentence-transformers format). The model is never downloaded: the script sets the Hugging
+Face libraries offline, so it needs no network and no keys. It reads only its inputs and writes only to out/ in the
 repository root; paths in the config are relative to the repository root.
 
     python teams/01-data-a/dedup/h3.py --config teams/01-data-a/dedup/h3_local.json
 
 STAGES (cheapest first, so the encoder sees as little text as possible; each stage is timed)
 ==========================================================================================
-  read      only the parts whose pack_id matches a configured pack (the pack_id column is read first); sentences are
-            split and short documents skipped without the model; with max_docs_per_pack a part is left as soon as its
-            packs have enough documents
-  encode    one vector per document from its first head_sentences sentences, in batches; cached per part under cache,
+  read      only the parts whose pack_id matches a configured pack (the pack_id column is read first), in record
+            batches; sentences are split and short documents skipped without the model; with max_docs_per_pack a part
+            is left as soon as its packs have enough documents
+  encode    one vector per document from its first head_sentences sentences, in chunks; cached per part under cache,
             so a rerun with other thresholds encodes nothing again
   url       pages whose URLs differ only in a language marker (hi.example.org, /hi/, ?lang=hi): an exact key join
   retrieve  for each configured language pair, each document's top_k nearest documents in the other language by exact
             cosine, in blocks of rows (no index to build, no estimate); with mutual, a pair must be in both lists
-  verify    URL pairs first, then the others by cosine, at most max_verify: the length ratio is checked, then each
-            document's sentences are encoded (once per document) and the mutual best sentence matches are counted
+  verify    URL pairs first, then the others by cosine, at most max_verify: the length ratio is checked, the texts of
+            those documents are read again (only the row groups that hold them), their sentences encoded once, and each
+            pair's mutual best sentence matches counted, pair_batch pairs per step
+
+SPEED (TSAI rule, 14 Nov: batched operations, no Python loops over tokens, no avoidable host-device syncs)
+==========================================================================================================
+Text is processed as whole pyarrow record batches (the batch functions of h3_signals.py) and indices as numpy arrays:
+no Python loop runs over rows, documents, sentences, tokens or pairs. Vectors stay on the encoder's device: retrieval
+is a blocked matmul with topk and alignment one bmm per batch of pairs (h3_align.py), and each stage's result is copied
+to the host once. precision "auto" is fp16 on CUDA, with TF32 matmuls, and fp32 elsewhere. With sync_debug on CUDA,
+torch warns at every host-device sync after the read stage. Python loops remain over parts, record batches, encoder
+chunks, row blocks, pair batches, the configured packs and language pairs, the distinct sizes of URL groups and the
+distinct non-ASCII digits in numbers. The cache copies each part's head vectors to the host, once per part.
 
 TIME
 ====
-max_minutes stops the run at the next check (between batches, blocks and chunks). The summary then has status
-"stopped_time_limit" and no other output is written: an incomplete run must not be used. Each stage's seconds and rate
-are in the summary. A test run limited by max_docs_per_pack also gets an estimate for all documents of the selected
-packs, and a suggested Max time for the job request (1.5 x the estimate).
+max_minutes stops the run at the next check (between record batches, encoder chunks, blocks and pair batches). The
+summary then has status "stopped_time_limit" and no other output is written: an incomplete run must not be used. Each
+stage's seconds and rate are in the summary. A test run limited by max_docs_per_pack also gets an estimate for all
+documents of the selected packs, and a suggested Max time for the job request (1.5 x the estimate).
 
 CONFIG (JSON; keys starting with "_" are comments)
 ==================================================
@@ -47,14 +58,16 @@ CONFIG (JSON; keys starting with "_" are comments)
   out, cache          the output folder and the embedding cache, both inside out/; cache "" turns the cache off
   packs               {pack_id pattern: language}, e.g. {"ind-hi-*": "hi", "en-*": "en"}; other packs are not read
   pairs               the language pairs to compare, e.g. [["sa", "en"], ["hi", "en"]]
-  model_path, device  the local encoder folder; auto, cpu, mps or cuda
+  model_path, device, precision                      the local encoder folder; auto, cpu, mps or cuda; auto, fp32,
+                                                     fp16 or bf16
   batch_size, max_seq_length                         encoder batch and token limit
   min_chars, min_sentences                           shorter documents are skipped (counted, never encoded)
   sentence_min_chars, head_sentences, max_sentences  sentence length; sentences in the document vector; sentences kept
   top_k, doc_floor, mutual                           neighbours per document, lowest cosine kept, both lists required
   max_length_ratio                                   longer/shorter characters allowed (URL pairs are kept regardless)
   sentence_threshold, coverage_threshold, report_floor   aligned sentence cosine, H3 coverage, lowest coverage listed
-  max_verify, url_group_max, block, max_docs_per_pack (0: all), max_minutes, max_output_mb
+  max_verify, url_group_max, block (rows per retrieval step), pair_batch (pairs per alignment step),
+  max_docs_per_pack (0: all), max_minutes, max_output_mb, sync_debug (true: torch warns at host-device syncs on CUDA)
 
 WHAT IT WRITES (in out; IDs, scores and counts only, never text)
 ================================================================
@@ -62,7 +75,7 @@ WHAT IT WRITES (in out; IDs, scores and counts only, never text)
   h3_candidates.csv   every verified pair at or above report_floor, and every URL pair, highest coverage first
   h3_matches.csv      pairs at or above coverage_threshold, keyed by document for dedup.py (h3_join.py): pack_id, split,
                       part, row_in_part and doc_id of each document, then lang_a, lang_b, coverage
-  h3_by_pack.csv     pack x pack: retrieved, URL, verified, listed and qualifying pairs
+  h3_by_pack.csv      pack x pack: retrieved, URL, verified, listed and qualifying pairs
   h3_histogram.csv    bins of 0.01: the cosine of every retrieved pair, the coverage of every verified pair
   h3_summary.json     counts, stage times and rates, the estimate, the model and package versions, each output's sha256
 
@@ -73,42 +86,44 @@ by (pack_id, split, part, row_in_part) and checks its doc_id, so H3 and overlap 
 import sys
 sys.dont_write_bytecode = True   # write only to ./out/: no __pycache__ beside the scripts
 
-import argparse, csv, fnmatch, hashlib, json, math, os, platform, resource, time  # noqa: E402,E401
+import argparse, fnmatch, hashlib, json, math, os, platform, resource, time  # noqa: E402,E401
 from collections import Counter, defaultdict  # noqa: E402
 from contextlib import contextmanager  # noqa: E402
-from itertools import combinations  # noqa: E402
 from pathlib import Path  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from h3_signals import (latin_share, latin_tokens, length_ratio, multiset_jaccard, numbers,  # noqa: E402
-                        split_sentences, url_key)
 
 try:
     import numpy as np
     import pyarrow as pa
+    import pyarrow.compute as pc
+    import pyarrow.csv as pacsv
     import pyarrow.parquet as pq
-    from h3_align import align, cross_topk, unit
+    import torch
+    from h3_align import align_batch, cross_topk, unit
+    from h3_signals import (head_texts, latin_token_lists, number_tokens, pair_overlap, rank_in_group,
+                            sentences_batch, url_keys)
 except ImportError:   # main() says what to install
     np = None
 
 REPO = Path(__file__).resolve().parents[3]   # teams/01-data-a/dedup/h3.py -> the repository root
 DEFAULTS = {"inputs": "out/tokenizer_sample_v0_clean", "out": "out/h3", "cache": "out/h3_cache",
-            "packs": {}, "pairs": [], "model_path": "", "device": "auto", "batch_size": 64, "max_seq_length": 128,
-            "min_chars": 200, "min_sentences": 3, "sentence_min_chars": 20, "head_sentences": 4, "max_sentences": 16,
-            "top_k": 3, "doc_floor": 0.5, "mutual": True, "max_length_ratio": 4.0,
+            "packs": {}, "pairs": [], "model_path": "", "device": "auto", "precision": "auto", "batch_size": 64,
+            "max_seq_length": 128, "min_chars": 200, "min_sentences": 3, "sentence_min_chars": 20, "head_sentences": 4,
+            "max_sentences": 16, "top_k": 3, "doc_floor": 0.5, "mutual": True, "max_length_ratio": 4.0,
             "sentence_threshold": 0.7, "coverage_threshold": 0.6, "report_floor": 0.3,
-            "max_verify": 10000, "url_group_max": 20, "block": 128, "max_docs_per_pack": 0,
-            "max_minutes": 60, "max_output_mb": 50}
+            "max_verify": 10000, "url_group_max": 20, "block": 512, "pair_batch": 1024, "max_docs_per_pack": 0,
+            "max_minutes": 60, "max_output_mb": 50, "sync_debug": False}
 POSITIVE = ("batch_size", "max_seq_length", "head_sentences", "max_sentences", "top_k", "max_verify", "url_group_max",
-            "block")
+            "block", "pair_batch")
 NONNEGATIVE = ("min_chars", "min_sentences", "sentence_min_chars", "max_docs_per_pack")
 OUTPUTS = ("h3_docs.parquet", "h3_candidates.csv", "h3_matches.csv", "h3_by_pack.csv", "h3_histogram.csv")
 MATCHES_HEADER = ["pack_id_a", "split_a", "part_a", "row_in_part_a", "doc_id_a",      # H3_HEADER of h3_join.py
                   "pack_id_b", "split_b", "part_b", "row_in_part_b", "doc_id_b", "lang_a", "lang_b", "coverage"]
 SPLITS = ("train", "heldout")   # the split folders of TSAI's cleaned output, as overlap.py reads them
+PRECISIONS = ("auto", "fp32", "fp16", "bf16")
+BATCH_ROWS = 16384      # rows per record batch read
 CHUNK = 2048            # texts per encoder call; the time limit is checked between calls
-PAIR_CHUNK = 512        # candidate pairs per verify step
-SENTENCE_CACHE = 20000  # documents whose sentence vectors are held at once
 
 
 class TimeLimit(Exception):
@@ -181,10 +196,13 @@ def load_config(path):
         sys.exit("ERROR: max_minutes must be above 0")
     if not number(cfg["max_output_mb"]) or not 0 < cfg["max_output_mb"] <= 50:
         sys.exit("ERROR: max_output_mb must be above 0 and at most 50 (JOB_REQUEST.md)")
-    if type(cfg["mutual"]) is not bool:
-        sys.exit("ERROR: mutual must be true or false")
+    for name in ("mutual", "sync_debug"):
+        if type(cfg[name]) is not bool:
+            sys.exit(f"ERROR: {name} must be true or false")
     if cfg["device"] not in ("auto", "cpu", "mps", "cuda"):
         sys.exit("ERROR: device must be auto, cpu, mps or cuda")
+    if cfg["precision"] not in PRECISIONS:
+        sys.exit(f"ERROR: precision must be one of {', '.join(PRECISIONS)}")
     return cfg
 
 
@@ -229,11 +247,16 @@ def peak_rss_mb():
     return round(r / (1 << 20) if sys.platform == "darwin" else r / 1024, 1)
 
 
-def write_csv(path, header, rows):
-    with open(path, "w", newline="", encoding="utf-8") as f:
-        w = csv.writer(f)
-        w.writerow(header)
-        w.writerows(rows)
+def write_csv(path, columns):
+    """columns: {name: values}, in order. pyarrow quotes every string field ("needed" covers any string, since it
+    could hold a quote or a comma); csv.DictReader, as in h3_join.py, reads it unchanged."""
+    pacsv.write_csv(pa.table(columns), path, write_options=pacsv.WriteOptions(quoting_style="needed"))
+
+
+def floats(x, digits=6):
+    """A float column rounded to digits; NaN is written as an empty field."""
+    x = np.asarray(x, dtype=np.float64)
+    return pa.array(np.round(x, digits), mask=np.isnan(x))
 
 
 def histogram(values):
@@ -242,57 +265,91 @@ def histogram(values):
     return np.bincount(np.minimum((v * 100 + 1e-9).astype(np.int64), 99), minlength=100)
 
 
-class Encoder:
-    """The sentence-transformers model in model_path, loaded offline. encode() returns unit float32 rows."""
+def bools(x):
+    return np.asarray(x.to_numpy(zero_copy_only=False), dtype=bool)
 
-    def __init__(self, cfg):
+
+def to_device(a, device):
+    """An index array as a torch tensor on device."""
+    return torch.from_numpy(np.ascontiguousarray(a, dtype=np.int64)).to(device)
+
+
+def string_column(col, path, name):
+    """A column as a string array; large strings, dictionaries of strings and all-null columns are cast."""
+    col = col.combine_chunks() if isinstance(col, pa.ChunkedArray) else col
+    t = col.type
+    if t == pa.string():
+        return col
+    if (pa.types.is_large_string(t) or pa.types.is_null(t)
+            or (pa.types.is_dictionary(t) and (pa.types.is_string(t.value_type)
+                                               or pa.types.is_large_string(t.value_type)))):
+        return pc.cast(col, pa.string())
+    sys.exit(f"ERROR: {path} column {name} is {t}, not text")
+
+
+def resolve_device(name):
+    if name != "auto":
+        return name
+    return "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+
+
+def resolve_dtype(precision, device):
+    if precision == "auto":
+        precision = "fp16" if device == "cuda" else "fp32"
+    return {"fp32": torch.float32, "fp16": torch.float16, "bf16": torch.bfloat16}[precision], precision
+
+
+class Encoder:
+    """The sentence-transformers model in model_path, loaded offline, on device in dtype. encode() returns unit rows as
+    a tensor on the device."""
+
+    def __init__(self, cfg, device, dtype):
         os.environ["HF_HUB_OFFLINE"] = "1"         # never download: the model must already be in model_path
         os.environ["TRANSFORMERS_OFFLINE"] = "1"
         path = REPO / cfg["model_path"]
         if not cfg["model_path"] or not path.is_dir():
             sys.exit(f"ERROR: model_path {cfg['model_path']!r} is not a local folder; the model is never downloaded")
         try:
-            import torch
             import sentence_transformers
             from sentence_transformers import SentenceTransformer
         except ImportError:
-            sys.exit("ERROR: needs torch and sentence-transformers: "
+            sys.exit("ERROR: needs sentence-transformers: "
                      "python3 -m pip install -r teams/01-data-a/dedup/requirements_h3.txt")
-        device = cfg["device"]
-        if device == "auto":
-            device = ("cuda" if torch.cuda.is_available()
-                      else "mps" if torch.backends.mps.is_available() else "cpu")
         self.model = SentenceTransformer(str(path), device=device)
+        if dtype != torch.float32:
+            self.model = self.model.to(dtype)
         self.model.max_seq_length = cfg["max_seq_length"]
         self.batch_size = cfg["batch_size"]
         weights = {p.relative_to(path).as_posix(): {"bytes": p.stat().st_size, "sha256": sha256_file(p)}
                    for p in sorted(path.rglob("*")) if p.is_file() and p.suffix in (".safetensors", ".bin")
                    and ".cache" not in p.relative_to(path).parts}
         config_sha = sha256_file(path / "config.json") if (path / "config.json").is_file() else ""
-        self.info = {"path": cfg["model_path"], "name": path.name, "device": device,
-                     "max_seq_length": cfg["max_seq_length"], "dim": self.model.get_sentence_embedding_dimension(),
+        dim = getattr(self.model, "get_embedding_dimension", None) or self.model.get_sentence_embedding_dimension
+        self.info = {"path": cfg["model_path"], "name": path.name, "device": device, "dtype": str(dtype),
+                     "max_seq_length": cfg["max_seq_length"], "dim": dim(),
                      "config_sha256": config_sha, "weights": weights,
-                     "torch": torch.__version__, "sentence_transformers": sentence_transformers.__version__}
-        self.id = hashlib.sha256(json.dumps([config_sha, weights, cfg["max_seq_length"]],
+                     "sentence_transformers": sentence_transformers.__version__}
+        self.id = hashlib.sha256(json.dumps([config_sha, weights, cfg["max_seq_length"], str(dtype)],
                                             sort_keys=True).encode()).hexdigest()
 
     def encode(self, texts):
-        v = self.model.encode(list(texts), batch_size=self.batch_size, convert_to_numpy=True,
-                              normalize_embeddings=True, show_progress_bar=False)
-        return np.asarray(v, dtype=np.float32)
+        return self.model.encode(texts, batch_size=self.batch_size, convert_to_tensor=True,
+                                 normalize_embeddings=True, show_progress_bar=False)
 
 
-def encode(encoder, texts, clock, stats, counter):
-    """Encode in chunks of CHUNK texts, checking the time limit before each."""
+def encode(encoder, texts, clock, stats, counter, device, dtype):
+    """Unit vectors of a string array of texts, on device in dtype: one encoder call per CHUNK texts, the time limit
+    checked before each."""
     out = []
-    for lo in range(0, len(texts), CHUNK):
+    for lo in range(0, len(texts), CHUNK):                       # chunks of texts: one encoder call each
         clock.check()
-        out.append(unit(encoder.encode(texts[lo:lo + CHUNK])))
-        stats[counter] += len(texts[lo:lo + CHUNK])
-    return np.concatenate(out)
+        chunk = texts[lo:lo + CHUNK].to_pylist()                  # the tokenizer takes Python strings
+        out.append(unit(torch.as_tensor(encoder.encode(chunk), device=device)).to(dtype))
+        stats[counter] += len(chunk)
+    return torch.cat(out) if out else torch.zeros((0, 0), device=device, dtype=dtype)
 
 
-def encode_heads(encoder, heads, rows, path, cfg, cache, clock, stats):
+def encode_heads(encoder, heads, rows, path, cfg, cache, clock, stats, device, dtype):
     """One vector per document of a part; from the cache when the same encoder, part bytes, settings and rows were
     encoded before."""
     file = None
@@ -309,53 +366,132 @@ def encode_heads(encoder, heads, rows, path, cfg, cache, clock, stats):
                 v = np.load(file)
                 if len(v) == len(heads):
                     stats["cached_parts"] += 1
-                    return unit(v)
+                    return unit(torch.from_numpy(v).to(device)).to(dtype)
     with clock.stage("encode"):
-        v = encode(encoder, heads, clock, stats, "encoded_heads")
+        v = encode(encoder, heads, clock, stats, "encoded_heads", device, dtype)
     if file is not None:
         cache.mkdir(parents=True, exist_ok=True)
-        np.save(file, v.astype(np.float16))
+        np.save(file, v.to(torch.float16).cpu().numpy())         # the cache's one copy of the part to the host
     return v
 
 
-def read_texts(todo, D, part_paths, cfg, clock):
-    """For the documents of the pairs to verify: (sentences, numbers, Latin tokens), from one more pass over their
-    parts. Text is held only for these documents, and never written."""
-    need = defaultdict(dict)   # (split, part) -> {row_in_part: document row}; a part name can be in both splits
-    for a, b, *_ in todo:
-        for d in (a, b):
-            need[(D["split"][d], D["part"][d])][D["row_in_part"][d]] = d
-    info = {}
-    for key, rows in need.items():
-        last, row = max(rows), 0
-        for batch in pq.ParquetFile(part_paths[key]).iter_batches(batch_size=1000, columns=["text"]):
-            clock.check()
-            for text in batch.column(0).to_pylist():
-                if row in rows:
-                    text = text if isinstance(text, str) else ""
-                    info[rows[row]] = (split_sentences(text, cfg["sentence_min_chars"], cfg["max_sentences"]),
-                                       numbers(text), latin_tokens(text))
-                row += 1
-            if row > last:
-                break
-    return info
+def select_documents(batch, row0, pack_set, cfg, counts, path):
+    """The documents of one record batch to compare, found with no loop over rows: the rows of a configured pack that
+    are long enough (min_chars, min_sentences), at most max_docs_per_pack per pack. Adds to counts (examined, eligible
+    and taken documents per pack) and returns their columns and heads, or None."""
+    examined, eligible, taken = counts
+    pidx = pc.index_in(string_column(batch.column(0), path, "pack_id"), value_set=pack_set)
+    sel = bools(pc.is_valid(pidx))
+    if not sel.any():
+        return None
+    mask, rows = pa.array(sel), row0 + np.flatnonzero(sel)
+    pack = np.asarray(pidx.filter(mask), dtype=np.int64)
+    doc_id = string_column(batch.column(1), path, "doc_id").filter(mask)
+    bad = bools(pc.fill_null(pc.equal(pc.utf8_length(pc.utf8_trim_whitespace(doc_id)), 0), True))
+    if bad.any():
+        k = int(np.flatnonzero(bad)[0])
+        sys.exit(f"ERROR: {path} row {rows[k]} has invalid doc_id {doc_id[k].as_py()!r}")
+    text = pc.fill_null(string_column(batch.column(2), path, "text").filter(mask), "")
+    chars = np.asarray(pc.utf8_length(text), dtype=np.int64)
+    sents, parent = sentences_batch(text, cfg["sentence_min_chars"], cfg["max_sentences"])
+    nsent = np.bincount(parent, minlength=len(pack))
+    ok = (chars >= cfg["min_chars"]) & (nsent >= cfg["min_sentences"])
+    examined += np.bincount(pack, minlength=len(examined))
+    eligible += np.bincount(pack[ok], minlength=len(eligible))
+    take = ok.copy()
+    if cfg["max_docs_per_pack"]:
+        e = np.flatnonzero(ok)
+        e = e[np.argsort(pack[e], kind="stable")]                 # eligible rows by pack, in row order within each
+        take[e] = rank_in_group(pack[e]) < cfg["max_docs_per_pack"] - taken[pack[e]]
+    taken += np.bincount(pack[take], minlength=len(taken))
+    t = np.flatnonzero(take)
+    if not len(t):
+        return None
+    ti = pa.array(t)
+    url = (url_keys(string_column(batch.column(3), path, "url").filter(mask).take(ti)) if batch.num_columns > 3
+           else pa.nulls(len(t), pa.string()))
+    return {"pack": pack[t], "row_in_part": rows[t], "doc_id": doc_id.take(ti), "chars": chars[t],
+            "sentences": nsent[t], "url": url,
+            "head": head_texts(sents, parent, len(pack), cfg["head_sentences"]).take(ti)}
 
 
-def estimate(cfg, clock, stats, D, rows_total, seen, taken, verified):
+def url_pairs(keys, max_group):
+    """Every pair (a, b), a < b, of documents with the same URL key, in groups of at most max_group documents; and the
+    number of groups with 2 or more documents and of those over max_group."""
+    g = np.asarray(pc.fill_null(pc.dictionary_encode(keys).indices, -1), dtype=np.int64)
+    docs = np.flatnonzero(g >= 0)
+    docs = docs[np.argsort(g[docs], kind="stable")]               # by key, then document
+    empty = np.zeros(0, np.int64)
+    if not len(docs):
+        return empty, empty, 0, 0
+    gs = g[docs]
+    starts = np.flatnonzero(np.concatenate(([True], gs[1:] != gs[:-1])))
+    sizes = np.diff(np.concatenate((starts, [len(gs)])))
+    a, b = [empty], [empty]
+    for size in np.unique(sizes[(sizes >= 2) & (sizes <= max_group)]).tolist():   # distinct group sizes only
+        first = starts[sizes == size][:, None]
+        i, j = np.triu_indices(size, 1)
+        a.append(docs[(first + i).ravel()])
+        b.append(docs[(first + j).ravel()])
+    return np.concatenate(a), np.concatenate(b), int((sizes >= 2).sum()), int((sizes > max_group).sum())
+
+
+def row_cosines(V, a, b, device):
+    """The cosine of each document pair (a[p], b[p]), in one step."""
+    if not len(a):
+        return np.zeros(0, np.float32)
+    return (V[to_device(a, device)].float() * V[to_device(b, device)].float()).sum(1).cpu().numpy()
+
+
+def merge_pairs(a, b, cos, how, n):
+    """One row per document pair (a < b): the cosine of its first listing and how it was found (1 embedding, 2 URL)."""
+    if not len(a):
+        return a, b, cos, how
+    key = a * n + b
+    order = np.argsort(key, kind="stable")
+    key, cos, how = key[order], cos[order], how[order]
+    u, first = np.unique(key, return_index=True)
+    return u // n, u % n, cos[first], np.bitwise_or.reduceat(how, first)
+
+
+def read_texts(docs, part_ix, row_in_part, paths, clock):
+    """The text of each document in docs, in that order, reading only the row groups of each part that hold them."""
+    pieces, where = [], []
+    pdocs = part_ix[docs]
+    for part in np.unique(pdocs).tolist():                        # the parts that hold the documents
+        clock.check()
+        at = np.flatnonzero(pdocs == part)
+        rows = row_in_part[docs[at]]
+        pf = pq.ParquetFile(paths[part])
+        sizes = np.array([pf.metadata.row_group(g).num_rows for g in range(pf.num_row_groups)], np.int64)  # footer
+        starts = np.concatenate(([0], np.cumsum(sizes)))
+        rg = np.searchsorted(starts, rows, side="right") - 1
+        need = np.unique(rg)
+        base = np.concatenate(([0], np.cumsum(sizes[need])[:-1]))
+        local = rows - starts[rg] + base[np.searchsorted(need, rg)]
+        col = pf.read_row_groups(need.tolist(), columns=["text"]).column(0)
+        pieces.append(string_column(col, paths[part], "text").take(pa.array(local)))
+        where.append(at)
+    if not pieces:
+        return pa.array([], pa.string())
+    return pc.fill_null(pa.concat_arrays(pieces).take(pa.array(np.argsort(np.concatenate(where)))), "")
+
+
+def estimate(cfg, clock, stats, langs, pack_lang, rows_total, counts, verified):
     """The time for every document of the selected packs, from this run's rates: read scales with rows, encode with
     documents, retrieve with the product of the two languages' documents, verify with the smaller language's documents
     (at most max_verify pairs)."""
-    st = clock.stages
-    now, full = Counter(D["lang"]), Counter()
-    for pack, rows in rows_total.items():
-        if seen[pack]:
-            full[lang_of(pack, cfg["packs"])] += rows * taken[pack] / seen[pack]
-    product = lambda c: sum(c[a] * c[b] for a, b in cfg["pairs"])
-    smaller = lambda c: sum(min(c[a], c[b]) for a, b in cfg["pairs"])
-    scanned, total_rows = stats["rows_scanned"], sum(rows_total.values())
+    examined, eligible, taken = counts
+    st, L = clock.stages, {lang: i for i, lang in enumerate(langs)}
+    now = np.bincount(pack_lang, weights=taken, minlength=len(langs))
+    share = np.divide(eligible, examined, out=np.zeros(len(eligible)), where=examined > 0)
+    full = np.bincount(pack_lang, weights=rows_total * share, minlength=len(langs))
+    product = lambda c: sum(c[L[a]] * c[L[b]] for a, b in cfg["pairs"])
+    smaller = lambda c: sum(min(c[L[a]], c[L[b]]) for a, b in cfg["pairs"])
+    scanned, total_rows = stats["rows_scanned"], int(rows_total.sum())
     sec = {"load_model": st.get("load_model", 0.0),
            "read": st.get("read", 0.0) * total_rows / scanned if scanned else None,
-           "encode": (st["encode"] / stats["encoded_heads"] * sum(full.values())
+           "encode": (st["encode"] / stats["encoded_heads"] * float(full.sum())
                       if stats["encoded_heads"] and st.get("encode") else None),
            "retrieve": st.get("retrieve", 0.0) * product(full) / product(now) if product(now) else None}
     pairs_full = min(cfg["max_verify"], verified * smaller(full) / smaller(now)) if smaller(now) else 0
@@ -363,7 +499,8 @@ def estimate(cfg, clock, stats, D, rows_total, seen, taken, verified):
     sec["verify"] = verify_time / verified * pairs_full if verified else None
     known = [v for v in sec.values() if v is not None]
     total = sum(known)
-    return {"documents_encoded": dict(now), "documents_full": {k: round(v) for k, v in full.items()},
+    return {"documents_encoded": {lang: int(now[i]) for lang, i in L.items()},
+            "documents_full": {lang: round(float(full[i])) for lang, i in L.items()},
             "seconds": {k: (round(v, 1) if v is not None else None) for k, v in sec.items()},
             "minutes_total": round(total / 60, 1), "every_stage_measured": len(known) == len(sec),
             "suggested_max_time_minutes": math.ceil(1.5 * total / 60) if known else None,
@@ -371,12 +508,12 @@ def estimate(cfg, clock, stats, D, rows_total, seen, taken, verified):
                      "two languages' documents, verify with the smaller language's documents (at most max_verify)"}
 
 
-def run(cfg, encoder, clock, stats, summary):
+def run(cfg, encoder, device, dtype, clock, stats, summary):
     inputs, out = REPO / cfg["inputs"], REPO / cfg["out"]
     cache = REPO / cfg["cache"] if cfg["cache"] else None
     parts = find_parts(inputs)
 
-    # 1. Select the parts by their pack_id column, then read them: sentences, length, URL key, and the head to encode.
+    # 1. Select the parts by their pack_id column.
     selected, rows_total = [], Counter()
     with clock.stage("read"):
         for split, name, path in parts:
@@ -384,191 +521,212 @@ def run(cfg, encoder, clock, stats, summary):
             missing = {"pack_id", "doc_id", "text"} - set(pf.schema_arrow.names)
             if missing:
                 sys.exit(f"ERROR: {path} has no {sorted(missing)} column (it has {pf.schema_arrow.names})")
-            counts = Counter(pf.read(columns=["pack_id"]).column(0).to_pylist())
-            keep = {p for p in counts if isinstance(p, str) and lang_of(p, cfg["packs"])}
+            vc = pc.value_counts(pf.read(columns=["pack_id"]).column(0))
+            in_part = dict(zip(vc.field("values").to_pylist(), vc.field("counts").to_pylist()))   # one per pack
+            keep = sorted(p for p in in_part if isinstance(p, str) and lang_of(p, cfg["packs"]))
             if keep:
                 selected.append((split, name, path, keep, "url" in pf.schema_arrow.names))
                 for p in keep:
-                    rows_total[p] += counts[p]
+                    rows_total[p] += in_part[p]
     if not selected:
         sys.exit(f"ERROR: no part under {inputs} holds a pack matching {sorted(cfg['packs'])}")
     print(f"{len(selected)} of {len(parts)} parts hold a configured pack: {', '.join(sorted(rows_total))}", flush=True)
 
-    D = {k: [] for k in ("pack", "lang", "split", "part", "row_in_part", "doc_id", "chars", "sentences", "url")}
-    vectors, seen, short, taken, limit = [], Counter(), Counter(), Counter(), cfg["max_docs_per_pack"]
-    for split, name, path, keep, has_url in selected:
-        heads, rows = [], []
+    # 2. Read the selected parts in record batches: sentences, length, URL key and the head of each document; encode
+    #    each part's heads.
+    packs, langs = sorted(rows_total), sorted(set(cfg["packs"].values()))
+    pack_lang = np.array([langs.index(lang_of(p, cfg["packs"])) for p in packs], np.int64)
+    counts = tuple(np.zeros(len(packs), np.int64) for _ in range(3))      # examined, eligible, taken per pack
+    pack_set, limit, cols, vectors = pa.array(packs, pa.string()), cfg["max_docs_per_pack"], defaultdict(list), []
+    for part_no, (split, name, path, keep, has_url) in enumerate(selected):
+        keep_ix = np.searchsorted(np.array(packs), keep)
+        if limit and (counts[2][keep_ix] >= limit).all():
+            print(f"{split}/{name}: not read, its packs have max_docs_per_pack documents", flush=True)
+            continue
+        got = []
         with clock.stage("read"):
             columns = ["pack_id", "doc_id", "text"] + (["url"] if has_url else [])
-            row = 0
-            for batch in pq.ParquetFile(path).iter_batches(batch_size=1000, columns=columns):
+            row0 = 0
+            for batch in pq.ParquetFile(path).iter_batches(batch_size=BATCH_ROWS, columns=columns):
                 clock.check()
-                values = [batch.column(c).to_pylist() for c in columns]
-                for k in range(batch.num_rows):
-                    r, row, pack = row, row + 1, values[0][k]
-                    if pack not in keep or (limit and taken[pack] >= limit):
-                        continue
-                    doc_id = values[1][k]
-                    if not isinstance(doc_id, str) or not doc_id.strip():
-                        sys.exit(f"ERROR: {path} row {r} has invalid doc_id {doc_id!r}")
-                    text = values[2][k] if isinstance(values[2][k], str) else ""
-                    seen[pack] += 1
-                    sentences = split_sentences(text, cfg["sentence_min_chars"], cfg["max_sentences"])
-                    if len(text) < cfg["min_chars"] or len(sentences) < cfg["min_sentences"]:
-                        short[pack] += 1
-                        continue
-                    taken[pack] += 1
-                    for column, value in (("pack", pack), ("lang", lang_of(pack, cfg["packs"])), ("split", split),
-                                          ("part", name), ("row_in_part", r), ("doc_id", doc_id),
-                                          ("chars", len(text)), ("sentences", len(sentences)),
-                                          ("url", url_key(values[3][k])[0] if has_url else None)):
-                        D[column].append(value)
-                    heads.append(" ".join(sentences[:cfg["head_sentences"]]))
-                    rows.append(r)
+                docs = select_documents(batch, row0, pack_set, cfg, counts, path)
+                if docs:
+                    got.append(docs)
+                row0 += batch.num_rows
                 stats["rows_scanned"] += batch.num_rows
-                if limit and all(taken[p] >= limit for p in keep):
+                if limit and (counts[2][keep_ix] >= limit).all():
                     break
-        if heads:
-            vectors.append(encode_heads(encoder, heads, rows, path, cfg, cache, clock, stats))
-        print(f"{split}/{name}: {len(heads)} documents encoded or cached ({clock.elapsed():.0f}s)", flush=True)
-    N = len(D["pack"])
+        n_docs = 0
+        if got:
+            rows = np.concatenate([d["row_in_part"] for d in got])
+            heads = pa.concat_arrays([d["head"] for d in got])
+            vectors.append(encode_heads(encoder, heads, rows, path, cfg, cache, clock, stats, device, dtype))
+            for d in got:
+                for k in ("pack", "row_in_part", "doc_id", "chars", "sentences", "url"):
+                    cols[k].append(d[k])
+            cols["part"].append(np.full(len(rows), part_no))
+            cols["split"].append(np.full(len(rows), SPLITS.index(split)))
+            n_docs = len(rows)
+        print(f"{split}/{name}: {n_docs} documents encoded or cached ({clock.elapsed():.0f}s)", flush=True)
+    N = int(sum(len(p) for p in cols["pack"]))
     if N < 2:
         sys.exit(f"ERROR: {N} document(s) long enough to compare")
-    V = np.concatenate(vectors)
-    lang = np.array(D["lang"])
-    pairset = {frozenset(p) for p in cfg["pairs"]}
-    cands = {}   # (row_a, row_b) with row_a < row_b -> [document cosine, how it was found]
+    cat = lambda k: np.concatenate(cols[k])
+    pack_ix, part_ix, split_ix, row_in_part = cat("pack"), cat("part"), cat("split"), cat("row_in_part")
+    chars, nsent, lang_ix = cat("chars"), cat("sentences"), pack_lang[cat("pack")]
+    doc_id, url = pa.concat_arrays(cols["doc_id"]), pa.concat_arrays(cols["url"])
+    V = torch.cat(vectors)
+    allowed = np.zeros((len(langs), len(langs)), bool)
+    for la, lb in cfg["pairs"]:                                   # the configured language pairs
+        allowed[langs.index(la), langs.index(lb)] = allowed[langs.index(lb), langs.index(la)] = True
+    if cfg["sync_debug"] and device == "cuda":
+        torch.cuda.set_sync_debug_mode("warn")
 
-    # 2. URL: the same page in two languages, by an exact join on the language-neutral URL key.
-    url_stats = Counter()
+    # 3. URL: the same page in two languages, by an exact join on the language-neutral URL key.
     with clock.stage("url"):
-        groups = defaultdict(list)
-        for i, key in enumerate(D["url"]):
-            if key:
-                groups[key].append(i)
-        for group in groups.values():
-            if len(group) < 2:
-                continue
-            url_stats["groups_with_2_or_more"] += 1
-            if len(group) > cfg["url_group_max"]:
-                url_stats["groups_over_url_group_max"] += 1
-                continue
-            for a, b in combinations(group, 2):
-                if frozenset((D["lang"][a], D["lang"][b])) in pairset:
-                    cands.setdefault((a, b), [float(V[a] @ V[b]), set()])[1].add("url")
-                    url_stats["pairs"] += 1
+        ua, ub, groups, over = url_pairs(url, cfg["url_group_max"])
+        keep = allowed[lang_ix[ua], lang_ix[ub]]
+        ua, ub = ua[keep], ub[keep]
+        ucos = row_cosines(V, ua, ub, device)
+    url_stats = {"groups_with_2_or_more": groups, "groups_over_url_group_max": over, "pairs": int(len(ua))}
 
-    # 3. Retrieve: each document's top_k nearest documents in the other language.
-    hist_cos, retrieved = np.zeros(100, np.int64), {}
+    # 4. Retrieve: each document's top_k nearest documents in the other language.
+    hist_cos, retrieved, ea, eb, ec = np.zeros(100, np.int64), {}, [], [], []
     with clock.stage("retrieve"):
         for la, lb in cfg["pairs"]:
-            ia, ib = np.flatnonzero(lang == la), np.flatnonzero(lang == lb)
+            ia, ib = np.flatnonzero(lang_ix == langs.index(la)), np.flatnonzero(lang_ix == langs.index(lb))
             name = f"{la}-{lb}"
             retrieved[name] = {"documents_a": int(len(ia)), "documents_b": int(len(ib)), "pairs_in_top_k": 0, "kept": 0}
             if not len(ia) or not len(ib):
                 continue
-            i, j, cos, side = cross_topk(V[ia], V[ib], cfg["top_k"], cfg["block"], clock.check)
+            i, j, cos, side = cross_topk(V[to_device(ia, device)], V[to_device(ib, device)], cfg["top_k"],
+                                         cfg["block"], clock.check)
             hist_cos += histogram(cos)
             keep = cos >= cfg["doc_floor"]
             if cfg["mutual"]:
                 keep &= side == 3
-            for x, y, c in zip(ia[i[keep]].tolist(), ib[j[keep]].tolist(), cos[keep].tolist()):
-                cands.setdefault((min(x, y), max(x, y)), [c, set()])[1].add("embedding")
+            x, y = ia[i[keep]], ib[j[keep]]
+            ea.append(np.minimum(x, y))
+            eb.append(np.maximum(x, y))
+            ec.append(cos[keep])
             retrieved[name].update(pairs_in_top_k=int(len(cos)), kept=int(keep.sum()))
             print(f"retrieve {name}: {len(ia)} x {len(ib)} documents, {int(keep.sum())} candidates "
                   f"({clock.elapsed():.0f}s)", flush=True)
+    n_emb = int(sum(len(x) for x in ea))
+    ca, cb, ccos, chow = merge_pairs(np.concatenate(ea + [ua]), np.concatenate(eb + [ub]),
+                                     np.concatenate(ec + [ucos]).astype(np.float32),
+                                     np.concatenate([np.ones(n_emb, np.int8), np.full(len(ua), 2, np.int8)]), N)
 
-    # 4. Verify: URL pairs first, then by cosine; sentence alignment of each pair.
-    todo, too_long = [], 0
-    for (a, b), (cos, found) in sorted(cands.items(), key=lambda kv: ("url" not in kv[1][1], -kv[1][0], kv[0])):
-        ratio = length_ratio(D["chars"][a], D["chars"][b])
-        if ratio > cfg["max_length_ratio"] and "url" not in found:
-            too_long += 1
-            continue
-        todo.append((a, b, cos, "+".join(sorted(found)), ratio))
-    not_verified = max(0, len(todo) - cfg["max_verify"])
-    todo = todo[:cfg["max_verify"]]
-    part_paths = {(split, name): path for split, name, path, _, _ in selected}
+    # 5. Verify: URL pairs first, then by cosine; the sentence alignment of every pair, in batches of pairs.
+    by_url = (chow & 2) > 0
+    lo_c, hi_c = np.minimum(chars[ca], chars[cb]), np.maximum(chars[ca], chars[cb]).astype(np.float64)
+    ratio = np.divide(hi_c, lo_c, out=np.full(len(ca), np.inf), where=lo_c > 0)
+    too_long = (ratio > cfg["max_length_ratio"]) & ~by_url
+    order = np.lexsort((cb, ca, -ccos, ~by_url))
+    order = order[~too_long[order]]
+    not_verified = max(0, len(order) - cfg["max_verify"])
+    order = order[:cfg["max_verify"]]
+    va, vb, vcos, vhow, vratio = ca[order], cb[order], ccos[order], chow[order], ratio[order]
+    paths = [path for _, _, path, _, _ in selected]
     with clock.stage("verify_read"):
-        info = read_texts(todo, D, part_paths, cfg, clock)
-    results, hist_cov, vecs = [], np.zeros(100, np.int64), {}
+        U = np.unique(np.concatenate([va, vb]))
+        texts = read_texts(U, part_ix, row_in_part, paths, clock)
     with clock.stage("verify"):
-        for lo in range(0, len(todo), PAIR_CHUNK):
-            chunk = todo[lo:lo + PAIR_CHUNK]
-            missing = sorted({d for a, b, *_ in chunk for d in (a, b) if d not in vecs})
-            texts = [s for d in missing for s in info[d][0]]
-            if texts:
-                V2, offset = encode(encoder, texts, clock, stats, "encoded_sentences"), 0
-                for d in missing:
-                    vecs[d] = V2[offset:offset + len(info[d][0])]
-                    offset += len(info[d][0])
-            for a, b, cos, found, ratio in chunk:
-                (sa, na_, la_), (sb, nb_, lb_) = info[a], info[b]
-                aligned, mean = align(vecs[a], vecs[b], cfg["sentence_threshold"])
-                coverage = aligned / min(len(sa), len(sb)) if min(len(sa), len(sb)) else 0.0
-                results.append((a, b, cos, found, ratio, multiset_jaccard(na_, nb_), latin_share(la_, lb_),
-                                len(sa), len(sb), aligned, coverage, mean, coverage >= cfg["coverage_threshold"]))
-            if len(vecs) > SENTENCE_CACHE:
-                vecs.clear()
-            print(f"verify: {min(lo + PAIR_CHUNK, len(todo))}/{len(todo)} pairs ({clock.elapsed():.0f}s)", flush=True)
-        hist_cov += histogram([r[10] for r in results]) if results else 0
+        sents, parent = sentences_batch(texts, cfg["sentence_min_chars"], cfg["max_sentences"])
+        count = np.bincount(parent, minlength=len(U))
+        start = np.concatenate(([0], np.cumsum(count)[:-1]))
+        E = encode(encoder, sents, clock, stats, "encoded_sentences", device, dtype)
+        la, lb = np.searchsorted(U, va), np.searchsorted(U, vb)
+        st, ct, ta, tb = (to_device(x, device) for x in (start, count, la, lb))
+        step, n_al, means = cfg["pair_batch"], [], []
+        for lo in range(0, len(va), step):                        # batches of pairs: one bmm each
+            clock.check()
+            n, m = align_batch(E, st, ct, ta[lo:lo + step], tb[lo:lo + step], cfg["sentence_threshold"],
+                               cfg["max_sentences"])
+            n_al.append(n)
+            means.append(m)
+        aligned = torch.cat(n_al).cpu().numpy() if n_al else np.zeros(0, np.int64)    # the stage's copy to the host
+        mean_cos = torch.cat(means).cpu().numpy() if means else np.zeros(0)
+        na, nb = count[la], count[lb]
+        shorter = np.minimum(na, nb)
+        coverage = np.divide(aligned, shorter, out=np.zeros(len(va)), where=shorter > 0)
+        qualifies = coverage >= cfg["coverage_threshold"]
+        tok, tp = number_tokens(texts)
+        sh, sa, sb = pair_overlap(tok, tp, len(U), la, lb, distinct=False)
+        numbers_j = np.divide(sh, sa + sb - sh, out=np.full(len(va), np.nan), where=(sa + sb) > 0)
+        tok, tp = latin_token_lists(texts)
+        sh, sa, sb = pair_overlap(tok, tp, len(U), la, lb, distinct=True)
+        latin = np.divide(sh, np.minimum(sa, sb), out=np.full(len(va), np.nan), where=np.minimum(sa, sb) > 0)
+        print(f"verify: {len(va)} pairs ({clock.elapsed():.0f}s)", flush=True)
+    hist_cov = histogram(coverage)
 
-    # 5. Outputs, all inside ./out/: IDs, scores and counts only.
+    # 6. Outputs, all inside ./out/: IDs, scores and counts only.
     out.mkdir(parents=True, exist_ok=True)
-    ids = [f"{p}-{d}" for p, d in zip(D["pack"], D["doc_id"])]
-    pq.write_table(pa.table({"row": np.arange(N), "id": ids, "doc_id": D["doc_id"], "pack": D["pack"],
-                             "lang": D["lang"], "split": D["split"], "part": D["part"],
-                             "row_in_part": D["row_in_part"], "chars": D["chars"], "sentences": D["sentences"]}),
-                   out / "h3_docs.parquet", compression="zstd")
-    fmt = lambda x: "" if x is None else f"{x:.6f}"
-    listed = sorted((r for r in results if r[10] >= cfg["report_floor"] or "url" in r[3]),
-                    key=lambda r: (-r[10], -r[2], r[0], r[1]))
-    write_csv(out / "h3_candidates.csv",
-              ["row_a", "row_b", "id_a", "id_b", "pack_a", "pack_b", "lang_a", "lang_b", "split_a", "split_b",
-               "found_by", "doc_cosine", "length_ratio", "numbers_jaccard", "latin_share", "sentences_a",
-               "sentences_b", "aligned", "coverage", "mean_sentence_cosine", "qualifies"],
-              ([a, b, ids[a], ids[b], D["pack"][a], D["pack"][b], D["lang"][a], D["lang"][b], D["split"][a],
-                D["split"][b], found, fmt(cos), f"{ratio:.3f}", fmt(nj), fmt(ls), n_a, n_b, n, f"{cov:.6f}",
-                fmt(mean), q] for a, b, cos, found, ratio, nj, ls, n_a, n_b, n, cov, mean, q in listed))
-    matches = [r for r in listed if r[12]]
-    key = lambda d: [D["pack"][d], D["split"][d], D["part"][d], D["row_in_part"][d], D["doc_id"][d]]
-    write_csv(out / "h3_matches.csv", MATCHES_HEADER,
-              ([*key(r[0]), *key(r[1]), D["lang"][r[0]], D["lang"][r[1]], f"{r[10]:.6f}"] for r in matches))
-    grid = defaultdict(Counter)
-    pack_pair = lambda a, b: tuple(sorted((D["pack"][a], D["pack"][b])))
-    for (a, b), (_, found) in cands.items():
-        for how in found:
-            grid[pack_pair(a, b)][how] += 1
-    for r in results:
-        grid[pack_pair(r[0], r[1])]["verified"] += 1
-        grid[pack_pair(r[0], r[1])]["listed"] += r[10] >= cfg["report_floor"] or "url" in r[3]
-        grid[pack_pair(r[0], r[1])]["qualifying"] += r[12]
-    write_csv(out / "h3_by_pack.csv", ["pack_a", "pack_b", "retrieved", "url", "verified", "listed", "qualifying"],
-              ([pa_, pb_, c["embedding"], c["url"], c["verified"], c["listed"], c["qualifying"]]
-               for (pa_, pb_), c in sorted(grid.items())))
-    write_csv(out / "h3_histogram.csv", ["from", "to", "retrieved_pairs_doc_cosine", "verified_pairs_coverage"],
-              ([f"{b / 100:.2f}", f"{(b + 1) / 100:.2f}", int(hist_cos[b]), int(hist_cov[b])] for b in range(100)))
+    take = lambda arr, ix: arr.take(pa.array(np.asarray(ix, dtype=np.int64)))
+    pack_arr, lang_arr = take(pa.array(packs), pack_ix), take(pa.array(langs), lang_ix)
+    split_arr, part_arr = take(pa.array(list(SPLITS)), split_ix), take(pa.array([s[1] for s in selected]), part_ix)
+    ids = pc.binary_join_element_wise(pack_arr, doc_id, "-")
+    pq.write_table(pa.table({"row": np.arange(N), "id": ids, "doc_id": doc_id, "pack": pack_arr, "lang": lang_arr,
+                             "split": split_arr, "part": part_arr, "row_in_part": row_in_part, "chars": chars,
+                             "sentences": nsent}), out / "h3_docs.parquet", compression="zstd")
+    listed = (coverage >= cfg["report_floor"]) | ((vhow & 2) > 0)
+    Li = np.flatnonzero(listed)
+    Li = Li[np.lexsort((vb[Li], va[Li], -vcos[Li], -coverage[Li]))]   # highest coverage first
+    a, b = va[Li], vb[Li]
+    found = take(pa.array(["", "embedding", "url", "embedding+url"]), vhow[Li])
+    write_csv(out / "h3_candidates.csv", {
+        "row_a": a, "row_b": b, "id_a": take(ids, a), "id_b": take(ids, b), "pack_a": take(pack_arr, a),
+        "pack_b": take(pack_arr, b), "lang_a": take(lang_arr, a), "lang_b": take(lang_arr, b),
+        "split_a": take(split_arr, a), "split_b": take(split_arr, b), "found_by": found,
+        "doc_cosine": floats(vcos[Li]), "length_ratio": floats(vratio[Li], 3), "numbers_jaccard": floats(numbers_j[Li]),
+        "latin_share": floats(latin[Li]), "sentences_a": na[Li], "sentences_b": nb[Li], "aligned": aligned[Li],
+        "coverage": floats(coverage[Li]), "mean_sentence_cosine": floats(mean_cos[Li]), "qualifies": qualifies[Li]})
+    M = Li[qualifies[Li]]
+    side = lambda ix, s: {f"pack_id_{s}": take(pack_arr, ix), f"split_{s}": take(split_arr, ix),
+                          f"part_{s}": take(part_arr, ix), f"row_in_part_{s}": row_in_part[ix],
+                          f"doc_id_{s}": take(doc_id, ix)}
+    matches = {**side(va[M], "a"), **side(vb[M], "b"), "lang_a": take(lang_arr, va[M]),
+               "lang_b": take(lang_arr, vb[M]), "coverage": floats(coverage[M])}
+    assert list(matches) == MATCHES_HEADER
+    write_csv(out / "h3_matches.csv", matches)
+    K = len(packs)
+    pack_pair = lambda x, y: np.minimum(pack_ix[x], pack_ix[y]) * K + np.maximum(pack_ix[x], pack_ix[y])
+    ck, vk = pack_pair(ca, cb), pack_pair(va, vb)
+    keys = np.unique(ck)
+    tally = lambda k, w=None: np.bincount(np.searchsorted(keys, k), minlength=len(keys),
+                                          weights=None if w is None else w.astype(np.float64)).astype(np.int64)
+    write_csv(out / "h3_by_pack.csv", {
+        "pack_a": take(pa.array(packs), keys // K), "pack_b": take(pa.array(packs), keys % K),
+        "retrieved": tally(ck, (chow & 1) > 0), "url": tally(ck, (chow & 2) > 0), "verified": tally(vk),
+        "listed": tally(vk, listed), "qualifying": tally(vk, qualifies)})
+    write_csv(out / "h3_histogram.csv", {"from": [f"{x / 100:.2f}" for x in range(100)],   # the 100 bin edges
+                                         "to": [f"{(x + 1) / 100:.2f}" for x in range(100)],
+                                         "retrieved_pairs_doc_cosine": hist_cos, "verified_pairs_coverage": hist_cov})
 
     files = {f: {"bytes": (out / f).stat().st_size, "sha256": sha256_file(out / f)} for f in OUTPUTS}
     output_bytes = sum(v["bytes"] for v in files.values())
-    by_lang = Counter(f"{D['lang'][r[0]]}-{D['lang'][r[1]]}" for r in matches)
+    nl = len(langs)
+    lk, ln = np.unique(lang_ix[va[M]] * nl + lang_ix[vb[M]], return_counts=True)
+    examined, eligible, taken = counts
     summary.update({
         "status": "complete",
         "inputs": {"root": cfg["inputs"], "parts_found": len(parts), "parts_selected": len(selected),
                    "parts": [f"{s}/{n}" for s, n, *_ in selected]},
-        "documents": {p: {"lang": lang_of(p, cfg["packs"]), "rows_in_parts": rows_total[p], "read": seen[p],
-                          "too_short": short[p], "encoded": taken[p]} for p in sorted(rows_total)},
+        "documents": {p: {"lang": langs[pack_lang[i]], "rows_in_parts": rows_total[p], "read": int(examined[i]),
+                          "too_short": int(examined[i] - eligible[i]), "encoded": int(taken[i])}
+                      for i, p in enumerate(packs)},
         "documents_compared": N,
-        "url": dict(url_stats),
+        "url": url_stats,
         "retrieved": retrieved,
-        "candidates": len(cands),
-        "rejected_length_ratio": too_long,
+        "candidates": int(len(ca)),
+        "rejected_length_ratio": int(too_long.sum()),
         "not_verified_over_max_verify": not_verified,
-        "verified": len(results),
-        "listed": len(listed),
-        "qualifying": len(matches),
-        "qualifying_heldout_train": sum(1 for r in matches if {D["split"][r[0]], D["split"][r[1]]} == {"train", "heldout"}),
-        "qualifying_by_language_pair": dict(by_lang),
+        "verified": int(len(va)),
+        "listed": int(len(Li)),
+        "qualifying": int(len(M)),
+        "qualifying_heldout_train": int((split_ix[va[M]] != split_ix[vb[M]]).sum()),
+        "qualifying_by_language_pair": {f"{langs[k // nl]}-{langs[k % nl]}": int(c)
+                                        for k, c in zip(lk.tolist(), ln.tolist())},
         "rule": {"h3": f"aligned sentences / sentences of the shorter document >= {cfg['coverage_threshold']}; "
                        f"a sentence pair aligns when each is the other's best match with cosine >= "
                        f"{cfg['sentence_threshold']}",
@@ -579,11 +737,12 @@ def run(cfg, encoder, clock, stats, summary):
                                        if clock.stages.get("encode") else None),
                   "sentences_per_second": (round(stats["encoded_sentences"] / clock.stages["verify"], 1)
                                            if clock.stages.get("verify") else None)},
-        "estimate_all_documents": estimate(cfg, clock, stats, D, rows_total, seen, taken, len(results)),
+        "estimate_all_documents": estimate(cfg, clock, stats, langs, pack_lang,
+                                           np.array([rows_total[p] for p in packs], np.float64), counts, len(va)),
         "wall_seconds": round(clock.elapsed(), 1),
         "peak_rss_mb": peak_rss_mb(),
         "versions": {"python": platform.python_version(), "numpy": np.__version__, "pyarrow": pa.__version__,
-                     "platform": platform.platform()},
+                     "torch": torch.__version__, "platform": platform.platform()},
         "outputs": files,
         "output_mb": round(output_bytes / (1 << 20), 2),
     })
@@ -605,15 +764,22 @@ def main(encoder=None):
     ap.add_argument("--config", required=True, help="JSON config; see CONFIG above")
     cfg = load_config(ap.parse_args().config)
     if np is None:
-        sys.exit("ERROR: needs numpy and pyarrow: python3 -m pip install -r teams/01-data-a/dedup/requirements_h3.txt")
+        sys.exit("ERROR: needs numpy, pyarrow and torch: "
+                 "python3 -m pip install -r teams/01-data-a/dedup/requirements_h3.txt")
+    device = resolve_device(cfg["device"])
+    dtype, precision = resolve_dtype(cfg["precision"], device)
+    if device == "cuda":
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
     clock, stats, out = Clock(cfg["max_minutes"]), Counter(), REPO / cfg["out"]
-    summary = {"status": "running", "config": cfg}
+    summary = {"status": "running", "config": cfg, "device": device, "precision": precision}
     try:
         if encoder is None:
             with clock.stage("load_model"):
-                encoder = Encoder(cfg)
+                encoder = Encoder(cfg, device, dtype)
         summary["model"] = encoder.info
-        run(cfg, encoder, clock, stats, summary)
+        with torch.inference_mode():
+            run(cfg, encoder, device, dtype, clock, stats, summary)
     except TimeLimit:
         out.mkdir(parents=True, exist_ok=True)
         for f in OUTPUTS:                     # no output of an earlier run may sit beside this summary
@@ -622,6 +788,9 @@ def main(encoder=None):
                        wall_seconds=round(clock.elapsed(), 1), peak_rss_mb=peak_rss_mb())
         (out / "h3_summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
         sys.exit(f"ERROR: stopped at max_minutes {cfg['max_minutes']}; the run is incomplete and must not be used")
+    finally:
+        if cfg["sync_debug"] and device == "cuda":
+            torch.cuda.set_sync_debug_mode(0)
 
 
 if __name__ == "__main__":
