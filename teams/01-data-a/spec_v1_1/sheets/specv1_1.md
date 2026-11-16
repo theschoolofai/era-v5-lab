@@ -4937,6 +4937,10 @@ A5_CJK = re.compile("[\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af]")
 
 def medicine_a5(text):
     out = A5_LIG.sub(lambda m: unicodedata.normalize("NFKC", m.group()), text)      # ligature to letters
+    # Speed: with no fullwidth character the substitution below changes nothing, whatever the share of CJK letters, so the
+    # letters (a Python loop over every character) are counted only for a text that has one. Most documents have none.
+    if not A5_FULLWIDTH.search(out):
+        return out
     letters = sum(c.isalpha() for c in out) or 1
     if len(A5_CJK.findall(out)) / letters < 0.01:                                    # leave real CJK text alone
         out = A5_FULLWIDTH.sub(lambda m: chr(ord(m.group()) - 0xFEE0), out)          # fullwidth to ASCII

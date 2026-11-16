@@ -17,8 +17,9 @@ Every fix passes three checks before it is logged:
 | 1 | `DA-C1-001` (site boilerplate) | 127.3 to 242.7 (1.91x) | 259.3 to 286.6 (1.11x) | 3.858 to 0.606 | n/a (rule not on this pack) |
 | 2 | `DA-D3-005` (foreign-script lines) | 253.6 to 279.9 (1.10x) | 296.9 to 339.8 (1.14x) | 0.358 to 0.033 | 0.434 to 0.038 |
 | 3 | `DA-C7-001` (content lost in extraction) | 274.4 to 304.2 (1.11x) | 328.2 to 392.6 (1.20x) | 0.757 to 0.353 | 0.912 to 0.423 |
+| 4 | `DA-A5-002` (ligatures and fullwidth letters) | 281.8 to 298.0 (1.06x) | 363.7 to 403.3 (1.11x) | 0.296 to 0.064 | 0.311 to 0.082 |
 
-In fix 2 the rule itself is 11x faster on both packs, but it was a small share of the time (about 9% and 15% before), so the whole-pack gain is 1.10x and 1.14x. In fix 3 the rule is 2.2x faster on both packs; it was the largest rule on them (20% and 28% of the time), so the whole-pack gain is 1.11x and 1.20x. The packs a fix does not touch read 1.0x to 1.2x, timing noise (for example `math-megamath` in fix 1: the rule is not on that pack).
+In fix 2 the rule itself is 11x faster on both packs, but it was a small share of the time (about 9% and 15% before), so the whole-pack gain is 1.10x and 1.14x. In fix 3 the rule is 2.2x faster on both packs; it was the largest rule on them (20% and 28% of the time), so the whole-pack gain is 1.11x and 1.20x. In fix 4 the rule is 4.6x and 3.8x faster; it was about 9% and 12% of the time, so the whole-pack gain is 1.06x and 1.11x. The packs a fix does not touch read 1.0x to 1.2x, timing noise (for example `math-megamath` in fix 1: the rule is not on that pack).
 
 ## 2. Status of each fix
 
@@ -26,11 +27,12 @@ In fix 2 the rule itself is 11x faster on both packs, but it was a small share o
 |---|---|---|---|---|---|---|---|---|
 | 1 | `DA-C1-001` | same, 31 of 31 packs | unchanged, 31 of 31 packs | 2763 passed | ran on 487, fixed 97, dropped 0 / not on this pack | `9a4e3a87f124` | `ddf379d68e29` | `10e4635` |
 | 2 | `DA-D3-005` | same, 31 of 31 packs | unchanged, 31 of 31 packs | 2820 passed | ran on 500, fixed 7, dropped 1 / ran on 490, fixed 3, dropped 0 | `ddf379d68e29` | `ea14b0899085` | `5022efb` |
-| 3 | `DA-C7-001` | same, 31 of 31 packs | unchanged, 31 of 31 packs | 2896 passed | ran on 479, fixed 0, dropped 12 / ran on 487, fixed 0, dropped 18 | `ea14b0899085` | `55f8653af9a1` | this commit |
+| 3 | `DA-C7-001` | same, 31 of 31 packs | unchanged, 31 of 31 packs | 2896 passed | ran on 479, fixed 0, dropped 12 / ran on 487, fixed 0, dropped 18 | `ea14b0899085` | `55f8653af9a1` | `72f4674` |
+| 4 | `DA-A5-002` | same, 31 of 31 packs | unchanged, 31 of 31 packs | 2920 passed | ran on 500, fixed 6, dropped 0 / ran on 500, fixed 11, dropped 0 | `55f8653af9a1` | `097eb0a4fd3e` | this commit |
 
-- **Baseline:** fix 1: `clean.py` `9a4e3a87f124`, the build from `specv1_1.md` in commit `3089352`; fix 2: `ddf379d68e29`, with fix 1 (`10e4635`); fix 3: `ea14b0899085`, with fix 2 (`5022efb`, merged as #49). The output sha256 of the two math packs under it: `math-finemath` `c6a3183c9d076f12`, `math-megamath` `6fb0de7bad7c44e0` (the v1.1 build; the hashes in [speed_v1.md section 6](speed_v1.md#6-output-sha256-of-the-13-sample-packs-identical-before-and-after-every-fix) are for the v1 build, which has 24 fewer rules).
+- **Baseline:** fix 1: `clean.py` `9a4e3a87f124`, the build from `specv1_1.md` in commit `3089352`; fix 2: `ddf379d68e29`, with fix 1 (`10e4635`); fix 3: `ea14b0899085`, with fix 2 (`5022efb`, merged as #49); fix 4: `55f8653af9a1`, with fix 3 (`72f4674`). The output sha256 of the two math packs under it: `math-finemath` `c6a3183c9d076f12`, `math-megamath` `6fb0de7bad7c44e0` (the v1.1 build; the hashes in [speed_v1.md section 6](speed_v1.md#6-output-sha256-of-the-13-sample-packs-identical-before-and-after-every-fix) are for the v1 build, which has 24 fewer rules).
 - **Pytest:** the whole suite (`teams/01-data-a/tests` and `spec_v1_1/tests`), 1 test skipped, 51 subtests passed.
-- **Harm tests:** `make_harm_tests.py` on all 31 packs, with the 18 Indic gold sets copied into both trees (as in [speed_v1_f1.md section 5](speed_v1_f1.md#5-commands)): every result file is identical before and after. Four packs do not pass their harm limit under the v1.1 `clean.py`, before and after alike (`en-nemotroncc`, `math-finemath`, `sci-finepdfs`, `ind-te-sangraha-v`; see [spec_v1_1/results/combined/validation.md](../../spec_v1_1/results/combined/validation.md)); `DA-C1-001`, `DA-D3-005` and `DA-C7-001` are not among the failing rules.
+- **Harm tests:** `make_harm_tests.py` on all 31 packs, with the 18 Indic gold sets copied into both trees (as in [speed_v1_f1.md section 5](speed_v1_f1.md#5-commands)): every result file is identical before and after. Four packs do not pass their harm limit under the v1.1 `clean.py`, before and after alike (`en-nemotroncc`, `math-finemath`, `sci-finepdfs`, `ind-te-sangraha-v`; see [spec_v1_1/results/combined/validation.md](../../spec_v1_1/results/combined/validation.md)); `DA-C1-001`, `DA-D3-005`, `DA-C7-001` and `DA-A5-002` are not among the failing rules.
 
 ## 3. What each fix did
 
@@ -43,7 +45,9 @@ In fix 2 the rule itself is 11x faster on both packs, but it was a small share o
    - **Question marks.** The regex has two halves; the second starts with a lookbehind and was tried at every position. It is now searched only when the text holds `???`. The halves never overlap, so their counts add up.
    - **Candidate lines.** One search of three patterns joined with `|` over the whole text is replaced by a per-line test: a line that can be a gap ends, after its trailing blanks, in `=`, a letter, `)` or `.`, and only those lines run the three regexes. The loop that follows is unchanged.
 
-The edits are to the `DA-C1-001`, `DA-D3-005` and `DA-C7-001` cards of `specv1_1.md`; the `medicine_<family>.md` files are not read by the build and are not changed. Tests: `tests/spec_v1/test_speed_equivalence_math.py` (126 tests for fix 1, 57 for fix 2 and 76 for fix 3), against frozen copies of the old rules (`c1_reference`, `d3_reference` and `c7_reference`, inside the test file; the tests of fix 3 read the new rule from `specv1_1.md`).
+4. **`DA-A5-002`, ligatures and fullwidth letters (both math packs).** The rule turns ligatures (`ﬁ`, `ﬃ`) into letters and fullwidth characters (`Ａ`, `１`, `！`) into ASCII, unless more than 1% of the letters are Chinese, Japanese or Korean (then the text is real CJK text and is left alone). It counted the letters of every document with a Python loop before looking for a fullwidth character, although the fullwidth step does nothing without one, and almost no document has one (2 and 3 of 500 do; the rule changes 6 and 11, mostly through ligatures). Now a text with no fullwidth character is returned after the ligature step, and the letters are counted only for a text that has one. The result is the same for every text.
+
+The edits are to the `DA-C1-001`, `DA-D3-005`, `DA-C7-001` and `DA-A5-002` cards of `specv1_1.md`; the `medicine_<family>.md` files are not read by the build and are not changed. Tests: `tests/spec_v1/test_speed_equivalence_math.py` (126 tests for fix 1, 57 for fix 2, 76 for fix 3 and 24 for fix 4), against frozen copies of the old rules (`c1_reference`, `d3_reference`, `c7_reference` and `a5_reference`, inside the test file; the tests of fixes 3 and 4 read the new rule from `specv1_1.md`).
 
 ## 4. Method and commands
 

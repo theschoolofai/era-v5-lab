@@ -9,6 +9,8 @@ documents. Every text here is made up; none comes from a pack.
              line the search uses the lower-cased pattern on the lower-cased line instead of the (?i) pattern
   DA-D3-005  foreign-script lines (math-finemath, math-megamath): letters are counted only for lines that hold a foreign
              character, and the whole text is returned as it is when it holds none
+  DA-A5-002  ligatures and fullwidth letters (both math packs): a text with no fullwidth character is returned after the
+             ligature step, without counting its letters
   DA-C7-001  content lost in extraction (both math packs): the "no object" gaps are found from their punctuation, the
              question-mark runs are searched only when the text holds "???", and the line loop starts only when a line
              can be a gap (the namespace of the rule is read from specv1_1.md, as the English F1 test does)
@@ -653,4 +655,142 @@ def test_c7_the_rule_in_clean_py_acts_only_on_the_math_packs_and_equals_the_old_
             want = ("drop", text) if OLD_C7(text) else ("keep", text)
             assert rule(doc(text, pack)) == want
         for pack in ("en-dclm", "sci-finepdfs", "code-go", None):
+            assert rule(doc(text, pack)) == ("keep", text)
+
+
+# =====================================================================================================================
+# DA-A5-002: ligatures and fullwidth letters
+# =====================================================================================================================
+
+def a5_reference():
+    """DA-A5-002 as it was before its speed-up (clean.py 55f8653af9a1, specv1_1.md medicine 51): the letters of every text are
+    counted before the fullwidth step. Returns the namespace so tests can reach its regexes."""
+    import unicodedata
+    A5_LIG = re.compile("[\ufb00-\ufb06]")
+    A5_FULLWIDTH = re.compile("[\uff01-\uff5e]")
+    A5_CJK = re.compile("[\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af]")
+
+    def medicine_a5(text):
+        out = A5_LIG.sub(lambda m: unicodedata.normalize("NFKC", m.group()), text)      # ligature to letters
+        letters = sum(c.isalpha() for c in out) or 1
+        if len(A5_CJK.findall(out)) / letters < 0.01:                                    # leave real CJK text alone
+            out = A5_FULLWIDTH.sub(lambda m: chr(ord(m.group()) - 0xFEE0), out)          # fullwidth to ASCII
+        return out
+
+    return {"medicine_a5": medicine_a5, "A5_LIG": A5_LIG, "A5_FULLWIDTH": A5_FULLWIDTH, "A5_CJK": A5_CJK}
+
+
+def a5_namespace():
+    """The DA-A5-002 card of specv1_1.md run on its own."""
+    text = SHEET.read_text(encoding="utf-8")
+    body = re.search(r"^## Medicine \d+ — math / A5 / `DA-A5-002`\n(.*?)(?=^## Medicine |\Z)", text, re.S | re.M).group(1)
+    ns = {"__name__": "rules"}
+    exec(textwrap.dedent(re.search(r"^```python\n(.*?)^```", body, re.S | re.M).group(1)), ns)
+    return ns
+
+
+A5_OLD = a5_reference()
+OLD_A5 = A5_OLD["medicine_a5"]
+A5_NEW = a5_namespace()
+NEW_A5 = A5_NEW["medicine_a5"]
+WORDS = "The proof of the lemma follows from the first term."
+FULL = "\uff21\uff22\uff23\uff11\uff12\uff01\uff0c\uff1a"      # fullwidth A B C 1 2 ! , :
+
+
+def test_a5_the_patterns_are_the_old_ones():
+    for name in ("A5_LIG", "A5_FULLWIDTH", "A5_CJK"):
+        assert A5_NEW[name].pattern == A5_OLD[name].pattern and A5_NEW[name].flags == A5_OLD[name].flags, name
+
+
+def cjk_share(n_cjk, n_letters):
+    """A text of n_letters letters, n_cjk of them CJK, and one fullwidth letter that is one of the others."""
+    return "\u4e2d" * n_cjk + "a" * (n_letters - n_cjk - 1) + "\uff21"
+
+
+A5_TEXTS = {
+    "empty": "",
+    "plain": WORDS,
+    "ligatures only": "the \ufb01rst \ufb02ow o\ufb00 and o\ufb03ce and \ufb04 \ufb05 \ufb06",
+    "the edges of the ligature range": "\ufb00 \ufb06 \ufb07 \ufaff",
+    "fullwidth only": WORDS + " " + FULL,
+    "the edges of the fullwidth range": "\uff00 \uff01 \uff5e \uff5f x",
+    "fullwidth and ligatures": "\ufb01rst " + FULL + " o\ufb03ce",
+    "fullwidth with CJK, under the limit": cjk_share(0, 200),
+    "fullwidth with CJK, 1 in 100": cjk_share(2, 200),
+    "fullwidth with CJK, just under 1 in 100": cjk_share(1, 200),
+    "fullwidth with CJK, just over 1 in 100": cjk_share(3, 200),
+    "fullwidth with mostly CJK": "\u4e2d\u6587\u3042\u30a2\uac00 " + FULL,
+    "CJK without fullwidth": "\u4e2d\u6587 \u3042\u30a2 \uac00 text",
+    "a ligature that adds letters, then a fullwidth": "\ufb03" * 3 + cjk_share(1, 100),
+    "digits and symbols only": "1234 + 5678 = 6912 \u2211 \u221a",
+    "fullwidth digits only": "\uff11\uff12\uff13",
+    "half width forms (not fullwidth)": "\uff61\uff71\uff9f\uffe0",
+    "a lone fullwidth space": "a\u3000b",
+    "newlines": "line one\n" + FULL + "\nline \ufb01 three\n",
+}
+
+
+@pytest.mark.parametrize("name", list(A5_TEXTS))
+def test_a5_hand_cases_match_old_rule(name):
+    assert NEW_A5(A5_TEXTS[name]) == OLD_A5(A5_TEXTS[name]), name
+
+
+def test_a5_the_hand_cases_change_and_leave_text_both_ways():
+    changed = [n for n, t in A5_TEXTS.items() if NEW_A5(t) != t]
+    assert "ligatures only" in changed and "fullwidth only" in changed and "plain" not in changed
+    assert "fullwidth with mostly CJK" not in changed       # the CJK rule still protects the fullwidth letters
+    assert "fullwidth with CJK, just over 1 in 100" not in changed and "fullwidth with CJK, just under 1 in 100" in changed
+
+
+def test_a5_a_text_without_fullwidth_is_not_scanned_for_letters(monkeypatch):
+    """What the new rule saves: the letter count is a Python loop over the text, and it must not run for a text with no fullwidth."""
+    calls = []
+    real = A5_NEW["A5_CJK"]
+
+    class Spy:
+        def findall(self, text): calls.append(1); return real.findall(text)
+    ns = a5_namespace(); ns["A5_CJK"] = Spy()
+    ns["medicine_a5"](WORDS * 50 + "\ufb01")
+    assert calls == []
+    ns["medicine_a5"](WORDS + FULL)
+    assert calls == [1]
+
+
+A5_ASCII = ["the", "proof", "of", "x", "1", "2", " ", " ", "\n", ".", ",", "caf\u00e9", "\u00e9", "\u2211", "\u3000", "\uff61", "\ufb07", "\uff00", "\uff5f"]
+A5_CJK_PIECES = ["\u4e2d", "\u6587", "\u3042", "\u30a2", "\uac00"]
+A5_FULL_PIECES = ["\uff21", "\uff22", "\uff11", "\uff01", "\uff0c", "\uff5e"]
+A5_LIG_PIECES = ["\ufb00", "\ufb01", "\ufb03", "\ufb06"]
+
+
+def random_a5_text(rng):
+    """Mostly ordinary words, with a random few CJK letters, fullwidth characters and ligatures: the CJK share goes from none to far over 1%."""
+    parts = [rng.choice(A5_ASCII) + " " for _ in range(rng.randint(0, 150))]
+    for pool in (A5_CJK_PIECES, A5_FULL_PIECES, A5_LIG_PIECES):
+        parts += [rng.choice(pool) for _ in range(rng.choice([0, 0, 1, 2, 3, 8]))]
+    rng.shuffle(parts)
+    return "".join(parts)
+
+
+def test_a5_random_texts_match_old_rule_and_cover_every_branch():
+    rng = random.Random(31)
+    seen = {"plain": 0, "ligature": 0, "fullwidth_converted": 0, "fullwidth_protected": 0}
+    for _ in range(15000):
+        text = random_a5_text(rng)
+        old, new = OLD_A5(text), NEW_A5(text)
+        assert new == old, repr(text)
+        full = bool(A5_OLD["A5_FULLWIDTH"].search(A5_OLD["A5_LIG"].sub("", text)))
+        seen["plain"] += new == text
+        seen["ligature"] += (new != text) and not full
+        seen["fullwidth_converted"] += full and A5_OLD["A5_FULLWIDTH"].search(new) is None
+        seen["fullwidth_protected"] += full and A5_OLD["A5_FULLWIDTH"].search(new) is not None
+    assert all(v > 300 for v in seen.values()), seen
+
+
+def test_a5_the_rule_in_clean_py_acts_only_on_the_math_packs_and_equals_the_old_rule():
+    rule = c._RULE["DA-A5-002"]()
+    for text in (WORDS, "the \ufb01rst " + FULL, "\u4e2d\u6587 " + FULL, ""):
+        for pack in ("math-finemath", "math-megamath"):
+            new = OLD_A5(text)
+            assert rule(doc(text, pack)) == (("fix" if new != text else "keep"), new)
+        for pack in ("en-dclm", "sci-finepdfs", None):
             assert rule(doc(text, pack)) == ("keep", text)
