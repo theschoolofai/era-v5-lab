@@ -37,10 +37,10 @@ import pyarrow.compute as pc
 import pyarrow.parquet as pq
 from tokenizers import Tokenizer
 
-ZWJ, ZWNJ = "‍", "‌"
+ZWJ, ZWNJ = "\u200d", "\u200c"
 # The tokenizer normalizer replaces each of these with one atomic chillu (U+0D7A to U+0D7F), so one ZWJ goes away.
-OLD_CHILLU = ["ണ്‍", "ന്‍", "ര്‍",
-              "ല്‍", "ള്‍", "ക്‍"]
+OLD_CHILLU = ["ണ്\u200d", "ന്\u200d", "ര്\u200d",
+              "ല്\u200d", "ള്\u200d", "ക്\u200d"]
 MAGIC, VERSION, HEADER_BYTES, EOS_ID = 20261025, 2, 1024, 130822
 
 

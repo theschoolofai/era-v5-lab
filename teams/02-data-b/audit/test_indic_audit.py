@@ -76,32 +76,32 @@ class AuditTest(unittest.TestCase):
         self.assertEqual((row["pack_id"], row["docs_raw"], row["docs_dropped"]), ("ind-hi-test", 2, 0))
 
     def test_joiners_kept_are_not_flagged(self):
-        docs = [("a1", "क्‍ष और र‌य"), ("a2", "no joiners here")]
+        docs = [("a1", "क्\u200dष और र\u200cय"), ("a2", "no joiners here")]
         row, flagged = self.run_pack(docs, docs)
         self.assertEqual((row["zwj_raw"], row["zwj_shard"], row["zwnj_raw"], row["zwnj_shard"]), (1, 1, 1, 1))
         self.assertEqual(flagged, [])
 
     def test_zwj_lost_in_cleaning_is_flagged(self):
-        raw = [("b1", "क्‍ष"), ("b2", "ok")]
+        raw = [("b1", "क्\u200dष"), ("b2", "ok")]
         row, flagged = self.run_pack(raw, [("b1", "क्ष"), ("b2", "ok")])
         self.assertEqual((row["docs_joiners_changed"], row["docs_joiners_changed_in_kept_text"]), (1, 1))
         self.assertEqual(flagged, [("ind-hi-test", "b1", "kept text")])
 
     def test_zwnj_lost_in_cleaning_is_flagged(self):
-        row, flagged = self.run_pack([("c1", "र‌य")], [("c1", "रय")])
+        row, flagged = self.run_pack([("c1", "र\u200cय")], [("c1", "रय")])
         self.assertEqual(flagged, [("ind-hi-test", "c1", "kept text")])
 
     def test_zwj_added_is_flagged(self):
-        row, flagged = self.run_pack([("c2", "कष")], [("c2", "क‍ष")])
+        row, flagged = self.run_pack([("c2", "कष")], [("c2", "क\u200dष")])
         self.assertEqual(flagged, [("ind-hi-test", "c2", "kept text")])
 
     def test_zwj_in_text_cut_by_cleaning_is_marked_cut(self):
-        row, flagged = self.run_pack([("c3", "पहला वाक्य। Also Read - क्‍ष")], [("c3", "पहला वाक्य।")])
+        row, flagged = self.run_pack([("c3", "पहला वाक्य। Also Read - क्\u200dष")], [("c3", "पहला वाक्य।")])
         self.assertEqual((row["docs_joiners_changed"], row["docs_joiners_changed_in_kept_text"]), (1, 0))
         self.assertEqual(flagged, [("ind-hi-test", "c3", "cut text")])
 
     def test_old_chillu_folded_by_the_tokenizer_is_allowed(self):
-        text = "അവന്‍ വന്നു"                   # old-style chillu n: the normalizer folds it into U+0D7B
+        text = "അവന്\u200d വന്നു"                   # old-style chillu n: the normalizer folds it into U+0D7B
         row, flagged = self.run_pack([("d1", text)], [("d1", text)], pack_id="ind-ml-test")
         self.assertEqual((row["zwj_raw"], row["zwj_shard"]), (1, 0))
         self.assertEqual(flagged, [])
