@@ -9,6 +9,8 @@ documents. Every text here is made up; none comes from a pack.
              line the search uses the lower-cased pattern on the lower-cased line instead of the (?i) pattern
   DA-D3-005  foreign-script lines (math-finemath, math-megamath): letters are counted only for lines that hold a foreign
              character, and the whole text is returned as it is when it holds none
+  DA-A8-001  words run together (both math packs): a line is tested with the regexes only if it has the shape of a glued word,
+             and a text with no ``` has no fence loop
   DA-A5-002  ligatures and fullwidth letters (both math packs): a text with no fullwidth character is returned after the
              ligature step, without counting its letters
   DA-C7-001  content lost in extraction (both math packs): the "no object" gaps are found from their punctuation, the
@@ -791,6 +793,184 @@ def test_a5_the_rule_in_clean_py_acts_only_on_the_math_packs_and_equals_the_old_
     for text in (WORDS, "the \ufb01rst " + FULL, "\u4e2d\u6587 " + FULL, ""):
         for pack in ("math-finemath", "math-megamath"):
             new = OLD_A5(text)
+            assert rule(doc(text, pack)) == (("fix" if new != text else "keep"), new)
+        for pack in ("en-dclm", "sci-finepdfs", None):
+            assert rule(doc(text, pack)) == ("keep", text)
+
+
+# =====================================================================================================================
+# DA-A8-001: words run together
+# =====================================================================================================================
+
+def a8_reference():
+    """DA-A8-001 as it was before its speed-up (clean.py 097eb0a4fd3e, specv1_1.md medicine 62): every line is tested with A8_CODE
+    and A8_GLUED. Returns the namespace so tests can reach its regexes."""
+    A8_STARTERS = frozenset((
+        "The This That These Those There Then Thus Therefore Hence When Where What Which Why How Who It If We You Your Our "
+        "For From Let Find Given Solve Show Prove Step Steps Note Example Examples Exercise Exercises Question Questions "
+        "Problem Problems Solution Solutions Answer Answers Continue Click Each Every All Here Now First Next Finally "
+        "Lesson Chapter Section Table Figure Write Calculate Determine Explain Consider Suppose Assume").split())
+    A8_GLUED = re.compile(r"(?<![A-Za-z0-9_.])([A-Z]?[a-z]{3,})(\.?)([A-Z][a-z]+)(?![A-Za-z0-9_])")
+    A8_CODE = re.compile(r"[{};]|==|=>|->|::|//|\bdef |\bfunction\b|\breturn\b")
+
+    def _a8_join(m):
+        left, dot, right = m.groups()
+        if right not in A8_STARTERS:
+            return m.group()
+        return left + dot + " " + right
+
+    def medicine_a8(text):
+        out, fence = [], False
+        for line in text.split("\n"):
+            if line.lstrip().startswith("```"):
+                fence = not fence
+            if fence or A8_CODE.search(line) or line.lstrip().startswith("```"):
+                out.append(line)
+                continue
+            out.append(A8_GLUED.sub(_a8_join, line))
+        return "\n".join(out)
+
+    return {"medicine_a8": medicine_a8, "A8_GLUED": A8_GLUED, "A8_CODE": A8_CODE, "A8_STARTERS": A8_STARTERS}
+
+
+def a8_namespace():
+    """The DA-A8-001 card of specv1_1.md run on its own."""
+    text = SHEET.read_text(encoding="utf-8")
+    body = re.search(r"^## Medicine \d+ — math / A8 / `DA-A8-001`\n(.*?)(?=^## Medicine |\Z)", text, re.S | re.M).group(1)
+    ns = {"__name__": "rules"}
+    exec(textwrap.dedent(re.search(r"^```python\n(.*?)^```", body, re.S | re.M).group(1)), ns)
+    return ns
+
+
+A8_OLD = a8_reference()
+OLD_A8 = A8_OLD["medicine_a8"]
+A8_NEW = a8_namespace()
+NEW_A8 = A8_NEW["medicine_a8"]
+
+
+def test_a8_the_patterns_are_the_old_ones():
+    assert A8_NEW["A8_STARTERS"] == A8_OLD["A8_STARTERS"]
+    for name in ("A8_GLUED", "A8_CODE"):
+        assert A8_NEW[name].pattern == A8_OLD[name].pattern and A8_NEW[name].flags == A8_OLD[name].flags, name
+
+
+A8_TEXTS = {
+    "empty": "",
+    "plain": "The proof of the lemma follows from the first term.",
+    "a glued starter": "The answer is HydrogenWhen we heat it.",
+    "a glued capitalised start": "Practice ProblemsThe first one",
+    "a glued word after a number": "Exercises: 30 minQuestions",
+    "a missing space after a full stop": "It ends here.The next part",
+    "two gaps in one line": "ProblemsThe end.The next",
+    "gaps on several lines": "ProblemsThe end.\nThe next.Then more\nplain line\nLetFind x",
+    "the right word is not a starter": "Use JavaScript, WordPress, PowerPoint, LinkedIn, YouTube and maxValue.",
+    "a brand and a starter in one line": "Use JavaScript and ProblemsThe end",
+    "the left word is shorter than three letters": "inThe end and ofThe end and xyThe end",
+    "the left word is exactly three letters": "areThe end. andThe end",
+    "a capital then three letters": "SumThe rest. ProofThe rest",
+    "a dot before the left word": "x.ProblemsThe rest",
+    "a digit before the left word": "5ProblemsThe rest and _ProblemsThe rest",
+    "a digit after the right word": "ProblemsThe5 and ProblemsThe_ and ProblemsThex",
+    "the right word ends with a capital": "ProblemsTHE and ProblemsThE",
+    "a glued word at the start of a line": "ProblemsThe\nanswersThe\n.ProblemsThe",
+    "a glued word at the end of the text": "see problemsThe",
+    "code signs": "if (x) { return sumThe; }",
+    "code with each sign": "\n".join(f"sumThe {sign} and ProblemsThe" for sign in ("{", "}", ";", "==", "=>", "->", "::", "//")),
+    "code words": "def sumThe\nfunction sumThe\nxdef sumThe\nreturn sumThe\nthe returns sumThe\nthe function sumThe",
+    "a fence": "```\nsumThe\n```\nafter the fence sumThe",
+    "an indented fence": "  ```python\nsumThe\n  ```\nsumThe",
+    "an unclosed fence": "start sumThe\n```\nsumThe\nmore sumThe",
+    "two fences": "a sumThe\n```\nb sumThe\n```\nc sumThe\n```\nd sumThe\n```\ne sumThe",
+    "backticks inside a line": "text `code` and ``` inside sumThe line",
+    "a line with a fence and a gap": "```sumThe\nnext sumThe\n```",
+    "carriage returns": "ProblemsThe end\r\nanswersThe\r\n",
+    "blank lines": "\n\nProblemsThe\n\n\nplain\n",
+    "accents next to the gap": "caf\u00e9ProblemsThe and ProblemsThe\u00e9 and \u00e9ProblemsThe",
+    "other scripts": "\u4e2d\u6587ProblemsThe and \u0430\u0431\u0432ProblemsThe",
+    "latex": "$x_{ab}$ and \\frac{a}{b}The and x^2 + yThe",
+    "a gap after a closing bracket": "(see)The end. [here]The end. (seeThe end)",
+    "a glued word inside a long word": "AdminProblemsThe",
+}
+
+
+@pytest.mark.parametrize("name", list(A8_TEXTS))
+def test_a8_hand_cases_match_old_rule(name):
+    assert NEW_A8(A8_TEXTS[name]) == OLD_A8(A8_TEXTS[name]), name
+
+
+def test_a8_the_hand_cases_change_and_keep_text_and_reach_both_paths():
+    changed = [n for n, t in A8_TEXTS.items() if NEW_A8(t) != t]
+    assert {"a glued starter", "a missing space after a full stop", "gaps on several lines"} <= set(changed)
+    assert not {"plain", "code signs", "the right word is not a starter"} & set(changed)
+    assert {"a fence", "an unclosed fence"} <= set(changed)     # only the lines outside the fence change
+    assert any("```" in t for t in A8_TEXTS.values()) and any("```" not in t for t in A8_TEXTS.values())
+
+
+def test_a8_every_match_of_the_glued_regex_holds_the_junction():
+    rng = random.Random(37)
+    pieces = ["Problems", "The", "answer", "xy", "sum", "Sum", ".", "5", "_", "e", "\u00e9", " ", "Then", "x", "ab", "Z"]
+    for _ in range(40000):
+        text = "".join(rng.choice(pieces) for _ in range(rng.randint(0, 9)))
+        if A8_OLD["A8_GLUED"].search(text):
+            assert A8_NEW["A8_JUNCTION"].search(text), repr(text)
+
+
+def test_a8_a_line_without_the_junction_does_not_reach_the_regexes():
+    class Spy:
+        def __init__(self, real): self.real, self.calls = real, 0
+        def search(self, line): self.calls += 1; return self.real.search(line)
+        def sub(self, *a): self.calls += 1; return self.real.sub(*a)
+    ns = a8_namespace()
+    ns["A8_CODE"], ns["A8_GLUED"] = Spy(ns["A8_CODE"]), Spy(ns["A8_GLUED"])
+    ns["medicine_a8"]("a plain line of words\nanother plain line.\nFind the area of x.\n")
+    assert ns["A8_CODE"].calls == 0 and ns["A8_GLUED"].calls == 0
+    ns["medicine_a8"]("a plain line\nProblemsThe line\n")
+    assert ns["A8_CODE"].calls == 1 and ns["A8_GLUED"].calls == 1
+
+
+A8_WORDS = ["proof", "area", "sum", "of", "x", "5", "Problems", "answers", "Let", "Find", "the", "a", "maxValue", "JavaScript"]
+A8_STARTS = ["The", "This", "Then", "Question", "Problem", "Solve", "Note", "Hello", "Figure", "Why"]
+A8_ODD = ["{", "}", ";", "==", "=>", "->", "::", "//", "def ", "function", "return", "```", "  ```", "\u00e9", "_", "$x_a$", ".", "\r"]
+
+
+def random_a8_text(rng):
+    lines = []
+    for _ in range(rng.randint(0, 25)):
+        parts = []
+        for _ in range(rng.randint(0, 10)):
+            kind = rng.random()
+            if kind < 0.45:
+                parts.append(rng.choice(A8_WORDS))
+            elif kind < 0.75:
+                parts.append(rng.choice(A8_WORDS) + rng.choice(["", "", ".", "5", "_"]) + rng.choice(A8_STARTS) + rng.choice(["", "", "x", "5"]))
+            elif kind < 0.9:
+                parts.append(rng.choice(A8_STARTS))
+            else:
+                parts.append(rng.choice(A8_ODD))
+        lines.append(rng.choice([" ", " ", ""]).join(parts) if rng.random() < 0.3 else " ".join(parts))
+    return "\n".join(lines)
+
+
+def test_a8_random_texts_match_old_rule_and_cover_every_branch():
+    rng = random.Random(41)
+    seen = {"changed": 0, "plain": 0, "fence_text": 0, "fence_text_changed": 0, "code_line_with_gap": 0}
+    for _ in range(12000):
+        text = random_a8_text(rng)
+        old, new = OLD_A8(text), NEW_A8(text)
+        assert new == old, repr(text)
+        seen["changed"] += new != text
+        seen["plain"] += new == text
+        seen["fence_text"] += "```" in text
+        seen["fence_text_changed"] += ("```" in text) and new != text
+        seen["code_line_with_gap"] += any(A8_OLD["A8_CODE"].search(l) and A8_OLD["A8_GLUED"].search(l) for l in text.split("\n"))
+    assert all(v > 300 for v in seen.values()), seen
+
+
+def test_a8_the_rule_in_clean_py_acts_only_on_the_math_packs_and_equals_the_old_rule():
+    rule = c._RULE["DA-A8-001"]()
+    for text in ("ProblemsThe end.The next", "plain text", "```\nsumThe\n```", ""):
+        for pack in ("math-finemath", "math-megamath"):
+            new = OLD_A8(text)
             assert rule(doc(text, pack)) == (("fix" if new != text else "keep"), new)
         for pack in ("en-dclm", "sci-finepdfs", None):
             assert rule(doc(text, pack)) == ("keep", text)

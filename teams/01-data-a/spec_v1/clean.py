@@ -3944,7 +3944,17 @@ def _math_a8_001():
         return left + dot + " " + right
 
 
+    # Speed: every match of A8_GLUED holds a lowercase letter, an optional ".", a capital and a lowercase letter. A line without
+    # that shape is returned as it is (A8_GLUED.sub would change nothing), so A8_CODE and A8_GLUED, which start with a lookbehind
+    # or \b and are tried at every position, run only for the few lines that have it. A fence can only start with "```", so a
+    # text without it has no fence and no line that starts one, and the loop below is not needed.
+    A8_JUNCTION = re.compile(r"[a-z]\.?[A-Z][a-z]")
+
+
     def medicine_a8(text):
+        if "```" not in text:
+            return "\n".join(A8_GLUED.sub(_a8_join, line) if A8_JUNCTION.search(line) and not A8_CODE.search(line) else line
+                             for line in text.split("\n"))
         out, fence = [], False
         for line in text.split("\n"):
             if line.lstrip().startswith("```"):
