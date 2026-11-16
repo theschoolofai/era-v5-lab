@@ -38,6 +38,7 @@ the benchmarks cannot. Q4_K_M is the smallest format with no significant benchma
 | `runs/manifest_<date>.json` | SHA-256 of each GGUF `quantize_eval.py` writes that day (bf16 and every quant) | beside `runs.csv`; a same-day rerun replaces that file's entry |
 | [`docs/bitwidth_vs_drop.md`](docs/bitwidth_vs_drop.md) | bits per weight against task drop, perplexity ratio and KL; which format to demo | Q4_K_M |
 | [`docs/bitwidth_proposal.md`](docs/bitwidth_proposal.md) | formats to keep, and the drop limit per task | keep through Q4_K_M when the limits hold; not Q3_K_M or Q2_K |
+| [`docs/serving_plan.md`](docs/serving_plan.md) | vLLM serving plan (Session 18): KV-cache budget, prefix caching, FP8 weights and KV cache against BF16, expert parallel | prefix caching on; FP8 KV and FP8 weights measured before shipping; no expert parallel at test sizes |
 | [`scripts/quantize_eval.py`](scripts/quantize_eval.py) | makes the GGUFs (output tensor Q8_0) and measures size, quantize time and speed; its own eval is the 25 Oct stand-in, whose scores in runs.csv were replaced by eval_mini | script docstring |
 | [`quantize/quantize_olmoe.sh`](quantize/quantize_olmoe.sh) | an alternative recipe (output BF16, down to Q3_K_M); **not** the one measured here | script header |
 | [`tools/tools.md`](tools/tools.md) | survey of quantization and serving tools: licences, MoE support | |
