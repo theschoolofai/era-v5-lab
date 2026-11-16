@@ -108,15 +108,18 @@ The Hub calls in `test_convert.py` are mocked, and `test_decontam_run.py` states
 
 TSAI decided the OCR-2 pack on 14 Nov (G10 group): C3 frozen (eos 130822), `max_sequence_tokens` 32768 provisional for SFT
 data v1, the 69,690 Codeforces rows held out of v1, the source repo and revision recorded for TACO, APPS and code_contests,
-and rows without a clear source left out. The pack v1 is built under that ruling: `results/ocr2_pack_v1.md` and
-`results/ocr2_pack_v1_manifest.json` (418,496 training rows, 8,507 held-out rows, 0 blockers in training mode). It is not
+and rows without a clear source left out. The pack v1 was built under that ruling with C3: `results/ocr2_pack_v1_c3.md` and
+`results/ocr2_pack_v1_c3_manifest.json` (418,496 training rows, 8,507 held-out rows, 0 blockers in training mode). It is not
 yet reviewed or stored by TSAI, and no model has been fine-tuned on it.
 
-- **Context limit:** 32768 is set in `manifests/ocr2_source_manifest_v1.json`. No row exceeds it (longest 29,829 C3 tokens).
+- **Context limit:** 32768 is set in `manifests/ocr2_source_manifest_v1_c3.json`. No row exceeds it (longest 29,829 C3 tokens).
 - **Source identity:** taco/apps/code_contests train are `pinned_revision` (repo and revision recorded, every file sha256 equal
   to the Hub object). They are not relabelled `verified`; `diagnostic` still never admits a row.
 - **Tokenizer:** the C3 sha256 is approved in `ocr2_policy.json`; the file itself is still not in the repo.
 - **Codeforces:** the 69,690 rows stay held under the ruling. 0 are eligible in the pack.
 - **Still open:** the quality threshold (the #391 rule, which the policy calls a proposal); the human spot check of the 14
   unclear-source TACO problems; and whether the 2% `heldout_eval_v1` split stays, which is a G10 proposal. Both of the last
-  two change the pack hashes if changed. Bytes are stored by TSAI through `../jobs/2026-11-16-ocr2-pack-v1.md`, which is not sent.
+  two change the pack hashes if changed. Bytes are stored by TSAI through `../jobs/2026-11-16-ocr2-pack-v1-c3.md`, which is not sent.
+
+This C3 section is kept as a record (TSAI, 15 Nov: C3 work stays valid as a record). SFT data v1 is now built with p1536:
+see the next section.

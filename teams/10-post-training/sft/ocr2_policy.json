@@ -6,7 +6,8 @@
   "set": "licences/licence_table.md, Stage 1 row of sft-code-opencodereasoning-2: allowed (TSAI admitted, 11 Nov 2026). prepare_ocr2.py and pack_admission.py read the table themselves and refuse a policy that says anything else.",
   "teacher": "TSAI data rule of 3 Nov: output of open-weight models under MIT or Apache-2.0 is in; DeepSeek-R1 is named.",
   "open": ["the target-quality thresholds below are the #391 rule (SFT mix v1); the policy note calls them a proposal and TSAI has not named another threshold", "open-r1/codeforces: held out of v1; the producer's revision is not established and Team 9 confirmation of the Codeforces pool is open", "max_sequence_tokens 32768 is provisional for SFT data v1", "unclear_source_rows: 14 TACO problems excluded pending a human spot check; removing an entry folds its rows back", "pack.heldout_eval_v1: 2% of problem families held out for eval_v1 task 8; fraction 0 folds them back"],
-  "pack_v1": "TSAI, 14 Nov 2026: tokenizer frozen (C3, eos id 130822); max_sequence_tokens 32768 accepted as provisional for SFT data v1; hold the 69,690 Codeforces rows out of v1; for TACO, APPS and code_contests record the source repo and revision in the manifest; any row without a clear source stays out; build by Mon 16 Nov, 11:59 PM IST."
+  "pack_v1": "TSAI, 14 Nov 2026: tokenizer frozen (C3, eos id 130822); max_sequence_tokens 32768 accepted as provisional for SFT data v1; hold the 69,690 Codeforces rows out of v1; for TACO, APPS and code_contests record the source repo and revision in the manifest; any row without a clear source stays out; build by Mon 16 Nov, 11:59 PM IST.",
+  "tokenizer_p1536": "TSAI Gate 3 notice, 15 Nov 2026 (general channel): the frozen tokenizer changes from C3 to p1536, sha256 e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b; same 356 special tokens and ids as C3, eos <|endoftext|> id 130822, vocabulary 131,072; re-pin for all new work; C3 work stays valid as a record. Instructor to G10, 16 Nov 2026: rebuild SFT data v1 with p1536, rerun the render and pack steps, re-check the effort tiers, keep the C3 pack as a record."
  },
  "ocr2": {
   "repo": "nvidia/OpenCodeReasoning-2",
@@ -85,8 +86,9 @@
  },
  "protected_family_keys": [],
  "pack": {
-  "approved_tokenizer_sha256": ["15468e66457b43af79f695cbe585c0d03e3cfe7a4a5d04d189dd3c6b9f02ddc3"],
-  "approved_tokenizer_note": "Team 3 C3, frozen; eos <|endoftext|> id 130822 (TSAI, 14 Nov 2026)",
+  "approved_tokenizer_sha256": ["e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b"],
+  "approved_tokenizer_note": "Team 3 p1536, frozen by TSAI on 15 Nov 2026 (Gate 3 notice); eos <|endoftext|> id 130822; special tokens and ids identical to C3",
+  "superseded_tokenizer_sha256": {"15468e66457b43af79f695cbe585c0d03e3cfe7a4a5d04d189dd3c6b9f02ddc3": "Team 3 C3, frozen 14 Nov 2026, superseded 15 Nov 2026. The C3 pack v1 is kept as a record (results/ocr2_pack_v1_c3_manifest.json); a new pack with C3 is refused."},
   "approved_fingerprint_set_sha256": ["2826a3b883210c653979103c09ce1c79e40fc4f7034b54027f2836482370d22a"],
   "max_sequence_tokens_ruling": "32768, provisional for SFT data v1 (TSAI, 14 Nov 2026)",
   "accepted_identity_levels": ["verified", "pinned_revision"],
