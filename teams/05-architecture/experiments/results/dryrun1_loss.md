@@ -1,8 +1,8 @@
 # Dry run 1: the loss record
 
-**Owner:** Deepjyoti Saha (G5, week-3 task 4). **Status:** DRAFT. "What ran" is filled from the job request
-([#475](https://github.com/theschoolofai/era-v5-lab/pull/475), not yet run); the rest is filled from the dry run 1
-logs when TSAI returns them. **Gate 3 evidence:** "dry run 1 ends with a stable loss curve" (Fri 20 Nov, 23:59 IST).
+**Owner:** Deepjyoti Saha (G5, week-3 task 4). **Status:** DRAFT. Dry run 1 **ran and completed on 16 Nov** (TSAI on
+[#475](https://github.com/theschoolofai/era-v5-lab/pull/475)). "What ran" is filled from the job request and TSAI's
+report; the curve, spikes and stops are filled from the per-step logs when TSAI returns them. **Gate 3 evidence:** "dry run 1 ends with a stable loss curve" (Fri 20 Nov, 23:59 IST).
 
 How the numbers are made, the two spike rules and how to rerun everything: [`dryrun1_README.md`](dryrun1_README.md).
 What this record will look like once filled: 🧪 [`dryrun1_loss_sample_attn0.md`](dryrun1_loss_sample_attn0.md), a
@@ -12,19 +12,20 @@ SAMPLE for illustration only (a week-2 log with injected spikes and stops; not d
 
 | Item | Value | Source |
 |---|---|---|
-| Job request | [`jobs/2026-11-15-dryrun1.md`](../../jobs/2026-11-15-dryrun1.md), one job, one command | [#475](https://github.com/theschoolofai/era-v5-lab/pull/475) (Shivanshu, 15 Nov; TSAI reviews and runs it) |
-| Trainer | `teams/05-architecture/harness/train_week2.py` at `71bc0fb`, with TSAI's Gate 2 speed fixes and the C3 scoring patch of [#474](https://github.com/theschoolofai/era-v5-lab/pull/474); run directly, one process | job request, "Script" and "Source and staging" |
+| Job request | [`jobs/2026-11-15-dryrun1.md`](../../jobs/2026-11-15-dryrun1.md), one job, one command | [#475](https://github.com/theschoolofai/era-v5-lab/pull/475) (Shivanshu, 15 Nov; approved and merged by TSAI, 16 Nov) |
+| Result reported by TSAI | **COMPLETED**, 1,221 of 1,221 steps. Held-out bits per byte **1.5159** (English 1.9844, code 1.8901, Indic mean 1.3289, three-group 1.7345). Final training cross-entropy 4.8906, gradient norm 0.7037. "No NaN or inf in the loss record." A final checkpoint (about 2.2 GB) kept by TSAI. Same arm with tokenizer v0 at seed 1234: 1.6443 (difference −0.1284). | TSAI's comment on [#475](https://github.com/theschoolofai/era-v5-lab/pull/475), 16 Nov 06:20 UTC |
+| Trainer | `teams/05-architecture/harness/train_week2.py` at `71bc0fb`, with TSAI's Gate 2 speed fixes and the scoring patch of [#474](https://github.com/theschoolofai/era-v5-lab/pull/474) (TSAI changed its C3 sha pin to p1536's for these runs); run directly, one process | job request; TSAI's comment on [#474](https://github.com/theschoolofai/era-v5-lab/pull/474), 16 Nov |
 | Config | `configs/arms/exp2_muon.yaml`, which carries the Gate 2 choices of `config_v1.yaml` ([#447](https://github.com/theschoolofai/era-v5-lab/pull/447)) at T2 size; the trainer cannot load `config_v1.yaml` itself | job request, "Where each setting comes from" |
 | Optimizer | Muon for the block matrices with **`muon_lr` 0.01**; `lr` 0.001 for the other parameters; gradient clip 1.0 | the instructor, 05 Architecture group (dry run 1 uses `muon_lr` 0.01); `config_v1.yaml` |
 | Model size | T2: 8 layers, width 512, 8 heads (2 key-value), 16 routed + 1 shared expert, top-2, eager attention, dense untied head, no second head (`mtp: false`) | `exp2_muon.yaml` / `t2.yaml` |
 | Steps, batch, context, seed | 1,221 steps, batch 8, context 2,048, seed 1234; 90-minute cap; bf16 on 1 GPU | job request |
-| Tokenizer | the frozen C3 tokenizer, sha256 `15468e66…`, with its raw P32 byte table (content sha256 `fc5e5f8f…`) | job request; `teams/03-tokenizer/release/` |
+| Tokenizer | **p1536**, the frozen tokenizer since TSAI's Gate 3 notice (sha256 `e6b93a93…a64b`), with its raw P32 table (sha256 `21072027…`). The job request was filed with C3 (`15468e66…`); TSAI ran p1536. | TSAI's comments on [#475](https://github.com/theschoolofai/era-v5-lab/pull/475) and [#474](https://github.com/theschoolofai/era-v5-lab/pull/474), 16 Nov; the Gate 3 notice (CAP, 16 Nov); release in [#504](https://github.com/theschoolofai/era-v5-lab/pull/504) |
 | Training data | the TSAI-staged text bundle of the week-2 jobs (`train.jsonl`, sha256 `267c33bf…`); not shards (shards are for dry run 2) | the instructor, as quoted in the job request |
 | Held-out scoring | the original `heldout_v1` (sha256 `21c6e4b2…`, 1,059 documents) and its original byte count, 3,775,551; at step 0, every 50 steps and the last step | job request, "How the run is scored and reported" |
 | Spike rules inside the job | **none.** `train_week2.py` has no loss guard and no Team 8 monitor; it stops on a NaN or infinite loss, gradient or parameter with an error, before that step's row is written. This record applies both lab rules to the returned `metrics.jsonl` and reports what each **would** have done. | `train_week2.py` |
 | Checkpoints | one, at the end; none during the run, so a stopped run starts again from step 0 (open item 3 of the request) | job request |
-| Hardware, run by, start and end | _to fill_ | returned `manifest.json`, `summary.json` |
-| Logs used | _to fill: `metrics.jsonl`, `losses.txt`, `summary.json`, `manifest.json`, with sha256_ | returned logs |
+| Hardware, run by, start and end | run by TSAI, finished 16 Nov (before 06:20 UTC); hardware and wall time _to fill_ | TSAI's comment; returned `manifest.json`, `summary.json` |
+| Logs used | _to fill: `metrics.jsonl`, `losses.txt`, `summary.json`, `manifest.json`, the console output, with sha256. Not yet returned: on 16 Nov `jobs/evidence/2026-11-15-dryrun1/` holds only the 3-step smoke of #475._ | returned logs |
 
 ## 2. The loss curve
 
