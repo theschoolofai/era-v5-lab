@@ -11,6 +11,8 @@ env_id is "<type>/<name>":
     indic/<task_id>      rl/indic/tasks/<task_id>, scored by rl/indic/indic_verifier.py (exact answer, no container)
     go/<task_id>         rl/go/tasks/<task_id>, scored by rl/go/go_verifier.py (output = the model's completion;
                          docker sandbox by default, the image is built from rl/go/go.Dockerfile)
+    agentic/<task_id>    rl/agentic/tasks/<task_id>, scored by rl/agentic/agentic_verifier.py (output = one pytest
+                         command or one diff, run in the image of a swe-envs environment; needs docker)
 
 New environment types call register("<type>", checker), where checker(name, output, **options) returns a dict
 with at least "reward" (0 or 1). An unknown env_id raises KeyError: it never scores 0 silently, because a
@@ -47,6 +49,7 @@ TASKS = HERE / "tasks"
 SWE_ENVS = HERE.parent / "swe-envs"
 INDIC_TASKS = HERE / "indic" / "tasks"
 GO_TASKS = HERE / "go" / "tasks"
+AGENTIC_TASKS = HERE / "agentic" / "tasks"
 
 _NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")  # no slashes, no "..": an env_id cannot leave its folder
 _REGISTRY: dict[str, Callable[..., dict]] = {}
@@ -167,10 +170,33 @@ def go_checker(name: str, output: str, sandbox="docker", **_) -> dict:
     return _go().reward(task_dir, output, sandbox)
 
 
+_AGENTIC_MODULE = None
+
+
+def _agentic():
+    """agentic/agentic_verifier.py, loaded by path like pool.py."""
+    global _AGENTIC_MODULE
+    if _AGENTIC_MODULE is None:
+        import importlib.util  # noqa: PLC0415
+        spec = importlib.util.spec_from_file_location("g10_rl_agentic_verifier", HERE / "agentic" / "agentic_verifier.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _AGENTIC_MODULE = module
+    return _AGENTIC_MODULE
+
+
+def agentic_checker(name: str, output: str, executor=None, **_) -> dict:
+    task_dir = AGENTIC_TASKS / name
+    if not (task_dir / "task.json").is_file():
+        raise KeyError(f"no agentic task {name!r} in {AGENTIC_TASKS}")
+    return _agentic().reward(task_dir, output, executor or _OPTIONS["swe_executor"])
+
+
 register("code", code_checker)
 register("swe", swe_checker)
 register("indic", indic_checker)
 register("go", go_checker)
+register("agentic", agentic_checker)
 
 
 def list_envs() -> list[str]:
@@ -178,6 +204,7 @@ def list_envs() -> list[str]:
     ids += [f"swe/{p.parent.name}" for p in sorted(SWE_ENVS.glob("*/env.json"))]
     ids += [f"indic/{p.parent.name}" for p in sorted(INDIC_TASKS.glob("*/task.json"))]
     ids += [f"go/{p.parent.name}" for p in sorted(GO_TASKS.glob("*/task.json"))]
+    ids += [f"agentic/{p.parent.name}" for p in sorted(AGENTIC_TASKS.glob("*/task.json"))]
     return ids
 
 
@@ -208,6 +235,8 @@ def known_outputs(env_id: str) -> tuple[str, str]:
             raise ValueError(f"go/{name}: reference.go has no one-line signature for {meta['entry_point']}")
         bad = f"```go\npackage main\n\n{sig.group(0)}\n\tpanic(\"stub\")\n}}\n```"
         return f"```go\n{ref}\n```", bad
+    if env_type == "agentic":
+        return _agentic().known_outputs(AGENTIC_TASKS / name)
     raise KeyError(f"no known outputs for {env_type!r}")
 
 

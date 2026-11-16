@@ -73,6 +73,8 @@ The Go verifier, its runner, the Docker image and the Go tasks are in [`go/`](go
 
 Indic short-answer tasks are in [`indic/`](indic/README.md): an Indic prompt, and one checkable answer in `<answer>...</answer>` (an integer in any script's digits, a word in the task's script, or a choice label). `indic/indic_verifier.py` checks the answer exactly after normalising it. It runs no code, so it needs no container. `reward.py` registers it as `indic/<task_id>`, and `python rl/reward.py --check-all --type indic` runs without docker.
 
+Agentic tasks (one pytest command or one patch, run in a SWE env image) are in [`agentic/`](agentic/README.md). `reward.py` registers them as `agentic/<task_id>`; `python rl/reward.py --check-all --type agentic` needs docker.
+
 ## Files in this folder
 
 | File | What it is |
@@ -80,6 +82,7 @@ Indic short-answer tasks are in [`indic/`](indic/README.md): an Indic prompt, an
 | `verifier.py`, `_sandbox_child.py`, `test_verifier.py` | The verifier: binary reward for one task, expected answers kept outside the sandbox. |
 | `tasks/` | The original coding tasks (see "Writing a task"). |
 | `reward.py`, `test_reward.py` | The one `reward(env_id, output)` entry point for code, SWE, Indic and Go environments. |
+| `agentic/` | The agentic verifier set: command and patch checks, its tasks and tests. |
 | `indic/` | The Indic verifier set: exact-answer reward, its tasks and tests, and the template generator. |
 | `indic_prompts_v0.md` | Indic prompt families with checkable answers, who writes them, the Team 2 check and the status. |
 | `objective_v1.py`, `objective_v1.md`, `test_objective_v1.py` | Session 18 objective: group advantage, equal-reward drop, trust-region mask. |
