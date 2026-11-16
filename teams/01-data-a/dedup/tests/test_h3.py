@@ -19,6 +19,7 @@ import pytest
 
 np = pytest.importorskip("numpy")
 pa = pytest.importorskip("pyarrow")
+torch = pytest.importorskip("torch")
 import pyarrow.parquet as pq  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -113,7 +114,7 @@ def make_sample(root, parts=SAMPLE):
 
 
 BASE = {"packs": {"ind-hi-*": "hi", "en-*": "en"}, "pairs": [["hi", "en"]], "cache": "", "min_chars": 80,
-        "min_sentences": 3, "sentence_min_chars": 20, "top_k": 2, "doc_floor": 0.5}
+        "min_sentences": 3, "sentence_min_chars": 20, "top_k": 2, "doc_floor": 0.5, "device": "cpu"}
 
 
 def make_config(root, name="h3_test.json", **over):
@@ -177,7 +178,7 @@ def test_same_url_key_is_verified_but_needs_aligned_sentences(tmp_path, monkeypa
     out, summary = run(monkeypatch, tmp_path, make_config(tmp_path))
     listed = by_doc_ids(out, out / "h3_candidates.csv")
     url_pair = listed[("e4", "h4")]                           # listed because it was found by URL
-    assert "url" in url_pair["found_by"] and url_pair["qualifies"] == "False"
+    assert "url" in url_pair["found_by"] and url_pair["qualifies"] == "false"
     assert float(url_pair["coverage"]) == 0.0
     assert summary["url"]["pairs"] == 1
     assert ("e1", "e3") not in listed and ("e3", "h1") not in match_ids(out / "h3_matches.csv")
@@ -251,6 +252,29 @@ def test_cache_skips_encoding_on_a_rerun(tmp_path, monkeypatch):
     assert all(m1[k]["coverage"] == m2[k]["coverage"] for k in m1)
 
 
+def test_batch_sizes_do_not_change_the_result(tmp_path, monkeypatch):
+    """One row per record batch, three texts per encoder call, one row per retrieval block and one pair per alignment
+    step give the same documents, candidates and matches as the defaults."""
+    out1, s1 = run(monkeypatch, tmp_path, make_config(tmp_path))
+    monkeypatch.setattr(h3, "BATCH_ROWS", 1)
+    monkeypatch.setattr(h3, "CHUNK", 3)
+    out2, s2 = run(monkeypatch, tmp_path, make_config(tmp_path, name="h3_small.json", out="out/small", block=1,
+                                                      pair_batch=1))
+    assert pq.read_table(out1 / "h3_docs.parquet").equals(pq.read_table(out2 / "h3_docs.parquet"))
+    assert set(by_doc_ids(out1, out1 / "h3_candidates.csv")) == set(by_doc_ids(out2, out2 / "h3_candidates.csv"))
+    assert (out1 / "h3_matches.csv").read_text() == (out2 / "h3_matches.csv").read_text()
+    assert s1["counts"]["rows_scanned"] == s2["counts"]["rows_scanned"] == 9
+
+
+def test_max_docs_per_pack_across_record_batches(tmp_path, monkeypatch):
+    monkeypatch.setattr(h3, "BATCH_ROWS", 2)
+    out, summary = run(monkeypatch, tmp_path, make_config(tmp_path, max_docs_per_pack=3))
+    docs = pq.read_table(out / "h3_docs.parquet").to_pylist()
+    # The first 3 long documents of each pack, parts in path order: ind-hi-x/Heldout/ (h5) before ind-hi-x/Part_1/.
+    assert sorted(d["doc_id"] for d in docs) == ["e1", "e2", "e3", "h1", "h2", "h5"]
+    assert summary["documents"]["en-x"]["encoded"] == 3 and summary["documents"]["ind-hi-x"]["encoded"] == 3
+
+
 def test_time_limit_stops_and_writes_no_results(tmp_path, monkeypatch):
     cfg = make_config(tmp_path, max_minutes=1e-9)
     monkeypatch.setattr(h3, "REPO", tmp_path)
@@ -274,6 +298,9 @@ def test_time_limit_stops_and_writes_no_results(tmp_path, monkeypatch):
     ({"coverage_threshold": 1.5}, "coverage_threshold"),
     ({"max_output_mb": 60}, "max_output_mb"),
     ({"device": "tpu"}, "device"),
+    ({"precision": "fp8"}, "precision"),
+    ({"pair_batch": 0}, "pair_batch"),
+    ({"sync_debug": 1}, "sync_debug"),
 ])
 def test_config_errors(tmp_path, monkeypatch, over, message):
     monkeypatch.setattr(h3, "REPO", tmp_path)
