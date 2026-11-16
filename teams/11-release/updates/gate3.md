@@ -29,8 +29,15 @@ The lab made the first 41 shards with the frozen tokenizer p1536, not C3.
 | The tokenizer for training | Tokenizer | The frozen tokenizer is p1536, not C3. |
 | Bit widths for the smaller versions of the model | Quantization | [waiting for TSAI] |
 | Share of Indic text in its own script, and the limit on Indic text in Latin script | Data B | The Indic share in its own script is 8% of every batch. The limit on romanised Indic text is 1% of tokens per language (a ceiling). |
+| The data mix for the first training weeks, and the translated languages in it | Data B | [waiting for TSAI] |
+| The learning rate schedule and the context length for each phase | Architecture | [waiting for TSAI] |
+| The parallel layout for the training run, and the kernel changes for dry run 2 | Infrastructure, Performance | [waiting for TSAI] |
+| The evaluation schedule for the training run | Evaluation | [waiting for TSAI] |
+| SFT data v1 and RL data v1 | Post-training | [waiting for TSAI] |
+| The public dashboard panels and their text | Monitoring, Release | [waiting for TSAI] |
+| The serving stack for the public demo | Quantization | [waiting for TSAI] |
 
-Short forms: p1536 and C3 are the names of two tokenizer candidates. Romanised Indic text is Indic text written in Latin script.
+Short forms: p1536 and C3 are the names of two tokenizer candidates. Romanised Indic text is Indic text written in Latin script. SFT means supervised fine-tuning. RL means reinforcement learning.
 
 ## Next
 
@@ -61,6 +68,13 @@ How to fill it:
 | Tokenizer for training (p1536 in place of C3) | Tokenizer | [#504](https://github.com/theschoolofai/era-v5-lab/pull/504) | TSAI words on this pull request | no |
 | Bit widths (moved from Gate 2) | Quantization | [#221](https://github.com/theschoolofai/era-v5-lab/pull/221) | no | no |
 | Indic share (from Gate 2) | Data B | [#400](https://github.com/theschoolofai/era-v5-lab/pull/400) | TSAI numbers on this pull request; Data B text to come | no |
+| Data mix and translated languages | Data B | | no | no |
+| Learning rate schedule and context length | Architecture | | no | no |
+| Parallel layout and kernel changes | Infrastructure, Performance | | no | no |
+| Evaluation schedule | Evaluation | | no | no |
+| SFT data v1 and RL data v1 | Post-training | | no | no |
+| Public dashboard panels and text | Monitoring, Release | [#495](https://github.com/theschoolofai/era-v5-lab/pull/495) | no | no |
+| Serving stack for the public demo | Quantization | | no | no |
 
 - [ ] `check_style.py` gives 0 errors
 - [ ] Every number in the text has TSAI approval
