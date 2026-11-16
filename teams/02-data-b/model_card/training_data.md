@@ -31,7 +31,7 @@ The readers found these problems:
   native Indian-language share of the mix leaves translated text out.
 - Romanised Indian-language text, an Indian language written in Latin letters, is rare in the samples. The mix caps it
   at 1% of the tokens of each language.
-- Malayalam and Odia had one reader each, so Data B could not measure their clean share.
+- Malayalam and Odia had no second reader, so Data B could not measure their clean share.
 
 Indian scripts break easily. Data B looked for invisible characters, text in the wrong script, words cut before a vowel
 sign, and lost joiner characters (ZWJ and ZWNJ). In the cleaned training shards, no joiner was lost from the text that
@@ -50,7 +50,7 @@ Text in Indian languages, in their own scripts, is 8% of every training batch.
 | Translated text rated, no language reaches the bar | `teams/02-data-b/translation/quality_v1.md`, `agreement_v1.md` (#440) |
 | Romanised text rare; cap of 1% | `romanised/romanised_policy_v1.md`, #481; TSAI approved the number for public text on #460 |
 | Joiners kept in the cleaned shards | #523 (`audit/audit_v1.csv`) |
-| 8% of every batch | TSAI in G2, 16 Nov; approved for public text on #460 |
+| 8% of every batch | TSAI's comment on #460 (16 Nov) |
 
 No other number is in the text, so no `[number: waiting for TSAI]` is needed. Problems that Data B found in the
 code-adjacent packs are not in this version: their readers add them.
