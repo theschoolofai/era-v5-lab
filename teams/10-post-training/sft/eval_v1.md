@@ -125,7 +125,11 @@ or an eval-mini run that failed or lacks a task. Limits (arguments, these are th
 - a benchmark counts as forgotten only when it falls by more than **2 x its combined stderr** and by at least **0.01** absolute. A
   benchmark without stderr is never called significant: the table says so and the change is read by hand.
 
-The limits are a proposal for Sai to confirm; they decide the verdict line only, and every number is printed.
+The bits-per-byte limit of 0.05 is confirmed for v1 (TSAI, 16 Nov). The limits decide the verdict line only, and every number is
+printed. A result within **0.01 of its limit, on either side**, is marked "(at the limit)" in the table and named in a line
+below the verdict (`--at-limit-margin`, default 0.01): for bits per byte, a rise between 0.04 and 0.06; for a benchmark, a
+drop within 0.01 of its bar (the larger of 2 x stderr and 0.01). The mark never changes the verdict. A rise of +0.0503 is
+forgetting by the limit, and at the limit.
 
 ## Every SFT run reports
 
