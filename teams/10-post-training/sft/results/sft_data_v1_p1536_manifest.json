@@ -2,9 +2,9 @@
  "budget_391": {
   "admitted_share_by_area": {
    "agentic": 0.0,
-   "code": 0.99823,
-   "general": 0.001096,
-   "indic": 0.000674,
+   "code": 0.998205,
+   "general": 0.001112,
+   "indic": 0.000683,
    "safety": 0.0,
    "tool_use": 0.0
   },
@@ -14,60 +14,60 @@
     "fill": 0.0,
     "filled_by": "B1: swe-rebench-openhands, nemotron-terminal, nemotron-cascade-swe (TSAI reserves)",
     "share": 0.25,
-    "shortfall_tokens": 1901123799,
+    "shortfall_tokens": 1874182715,
     "tokens_admitted": 0,
-    "tokens_needed_at_code_anchor": 1901123799
+    "tokens_needed_at_code_anchor": 1874182715
    },
    "code": {
     "fill": 1.0,
     "filled_by": "B1: opencodereasoning, codeforces-cots, commitpackft (TSAI reserves)",
     "share": 0.35,
     "shortfall_tokens": 0,
-    "tokens_admitted": 2661573319,
-    "tokens_needed_at_code_anchor": 2661573319
+    "tokens_admitted": 2623855801,
+    "tokens_needed_at_code_anchor": 2623855801
    },
    "general": {
-    "fill": 0.00549,
+    "fill": 0.005569,
     "filled_by": "B1: openthoughts3, openmathreasoning, openr1-math, nemotron-science, bespoke-stratos, glm51-phd, oasst2, proofs-v3-sft (TSAI reserves); B2: nemotron-if-v1/v2, science-v2 (held); B6: Proofs decontam",
     "share": 0.07,
-    "shortfall_tokens": 529392460,
+    "shortfall_tokens": 521848956,
     "tokens_admitted": 2922204,
-    "tokens_needed_at_code_anchor": 532314664
+    "tokens_needed_at_code_anchor": 524771160
    },
    "indic": {
-    "fill": 0.001574,
+    "fill": 0.001597,
     "filled_by": "B1: aya-dataset, aya-collection 10 subsets, indic-align-oasst-t (TSAI reserves); B3: templated_hindi_news",
     "share": 0.15,
-    "shortfall_tokens": 1138878346,
+    "shortfall_tokens": 1122713695,
     "tokens_admitted": 1795934,
-    "tokens_needed_at_code_anchor": 1140674280
+    "tokens_needed_at_code_anchor": 1124509629
    },
    "safety": {
     "fill": 0.0,
     "filled_by": "B7: TSAI names a safety set with chat rows, or the 0% safety / 10% general fallback",
     "share": 0.03,
-    "shortfall_tokens": 228134856,
+    "shortfall_tokens": 224901926,
     "tokens_admitted": 0,
-    "tokens_needed_at_code_anchor": 228134856
+    "tokens_needed_at_code_anchor": 224901926
    },
    "tool_use": {
     "fill": 0.0,
     "filled_by": "B1: agentic-v1, agentic-v2 tool-calling (TSAI reserves); B2: xlam-60k (held)",
     "share": 0.15,
-    "shortfall_tokens": 1140674280,
+    "shortfall_tokens": 1124509629,
     "tokens_admitted": 0,
-    "tokens_needed_at_code_anchor": 1140674280
+    "tokens_needed_at_code_anchor": 1124509629
    }
   },
-  "tokens_admitted_total": 2666291457,
-  "total_at_anchor": 7604495197
+  "tokens_admitted_total": 2628573939,
+  "total_at_anchor": 7496730860
  },
  "budget_no_safety_fallback": {
   "admitted_share_by_area": {
    "agentic": 0.0,
-   "code": 0.99823,
-   "general": 0.001096,
-   "indic": 0.000674,
+   "code": 0.998205,
+   "general": 0.001112,
+   "indic": 0.000683,
    "safety": 0.0,
    "tool_use": 0.0
   },
@@ -77,33 +77,33 @@
     "fill": 0.0,
     "filled_by": "B1: swe-rebench-openhands, nemotron-terminal, nemotron-cascade-swe (TSAI reserves)",
     "share": 0.25,
-    "shortfall_tokens": 1901123799,
+    "shortfall_tokens": 1874182715,
     "tokens_admitted": 0,
-    "tokens_needed_at_code_anchor": 1901123799
+    "tokens_needed_at_code_anchor": 1874182715
    },
    "code": {
     "fill": 1.0,
     "filled_by": "B1: opencodereasoning, codeforces-cots, commitpackft (TSAI reserves)",
     "share": 0.35,
     "shortfall_tokens": 0,
-    "tokens_admitted": 2661573319,
-    "tokens_needed_at_code_anchor": 2661573319
+    "tokens_admitted": 2623855801,
+    "tokens_needed_at_code_anchor": 2623855801
    },
    "general": {
-    "fill": 0.003843,
+    "fill": 0.003898,
     "filled_by": "B1: openthoughts3, openmathreasoning, openr1-math, nemotron-science, bespoke-stratos, glm51-phd, oasst2, proofs-v3-sft (TSAI reserves); B2: nemotron-if-v1/v2, science-v2 (held); B6: Proofs decontam",
     "share": 0.1,
-    "shortfall_tokens": 757527316,
+    "shortfall_tokens": 746750882,
     "tokens_admitted": 2922204,
-    "tokens_needed_at_code_anchor": 760449520
+    "tokens_needed_at_code_anchor": 749673086
    },
    "indic": {
-    "fill": 0.001574,
+    "fill": 0.001597,
     "filled_by": "B1: aya-dataset, aya-collection 10 subsets, indic-align-oasst-t (TSAI reserves); B3: templated_hindi_news",
     "share": 0.15,
-    "shortfall_tokens": 1138878346,
+    "shortfall_tokens": 1122713695,
     "tokens_admitted": 1795934,
-    "tokens_needed_at_code_anchor": 1140674280
+    "tokens_needed_at_code_anchor": 1124509629
    },
    "safety": {
     "fill": null,
@@ -117,13 +117,13 @@
     "fill": 0.0,
     "filled_by": "B1: agentic-v1, agentic-v2 tool-calling (TSAI reserves); B2: xlam-60k (held)",
     "share": 0.15,
-    "shortfall_tokens": 1140674280,
+    "shortfall_tokens": 1124509629,
     "tokens_admitted": 0,
-    "tokens_needed_at_code_anchor": 1140674280
+    "tokens_needed_at_code_anchor": 1124509629
    }
   },
-  "tokens_admitted_total": 2666291457,
-  "total_at_anchor": 7604495197
+  "tokens_admitted_total": 2628573939,
+  "total_at_anchor": 7496730860
  },
  "context_length": {
   "budget_by_limit": {
@@ -131,16 +131,16 @@
     "fill_at_code_anchor_391": {
      "agentic": 0.0,
      "code": 1.0,
-     "general": 0.130817,
-     "indic": 0.037985,
+     "general": 0.134708,
+     "indic": 0.039115,
      "safety": 0.0,
      "tool_use": 0.0
     },
     "fill_at_code_anchor_no_safety_fallback": {
      "agentic": 0.0,
      "code": 1.0,
-     "general": 0.091572,
-     "indic": 0.037985,
+     "general": 0.094296,
+     "indic": 0.039115,
      "safety": null,
      "tool_use": 0.0
     },
@@ -154,28 +154,28 @@
     },
     "share_by_area": {
      "agentic": 0.0,
-     "code": 0.959285,
-     "general": 0.025098,
-     "indic": 0.015617,
+     "code": 0.958125,
+     "general": 0.025813,
+     "indic": 0.016062,
      "safety": 0.0,
      "tool_use": 0.0
     },
-    "tokens_fit_total": 112275999
+    "tokens_fit_total": 109165232
    },
    "32768": {
     "fill_at_code_anchor_391": {
      "agentic": 0.0,
      "code": 1.0,
-     "general": 0.00549,
-     "indic": 0.001574,
+     "general": 0.005569,
+     "indic": 0.001597,
      "safety": 0.0,
      "tool_use": 0.0
     },
     "fill_at_code_anchor_no_safety_fallback": {
      "agentic": 0.0,
      "code": 1.0,
-     "general": 0.003843,
-     "indic": 0.001574,
+     "general": 0.003898,
+     "indic": 0.001597,
      "safety": null,
      "tool_use": 0.0
     },
@@ -189,28 +189,28 @@
     },
     "share_by_area": {
      "agentic": 0.0,
-     "code": 0.99823,
-     "general": 0.001096,
-     "indic": 0.000674,
+     "code": 0.998205,
+     "general": 0.001112,
+     "indic": 0.000683,
      "safety": 0.0,
      "tool_use": 0.0
     },
-    "tokens_fit_total": 2666291457
+    "tokens_fit_total": 2628573939
    },
    "4096": {
     "fill_at_code_anchor_391": {
      "agentic": 0.0,
      "code": 1.0,
-     "general": 0.035903,
-     "indic": 0.010383,
+     "general": 0.036831,
+     "indic": 0.010651,
      "safety": 0.0,
      "tool_use": 0.0
     },
     "fill_at_code_anchor_no_safety_fallback": {
      "agentic": 0.0,
      "code": 1.0,
-     "general": 0.025132,
-     "indic": 0.010383,
+     "general": 0.025781,
+     "indic": 0.010651,
      "safety": null,
      "tool_use": 0.0
     },
@@ -224,28 +224,28 @@
     },
     "share_by_area": {
      "agentic": 0.0,
-     "code": 0.988504,
-     "general": 0.007098,
-     "indic": 0.004399,
+     "code": 0.98821,
+     "general": 0.007279,
+     "indic": 0.004511,
      "safety": 0.0,
      "tool_use": 0.0
     },
-    "tokens_fit_total": 406737097
+    "tokens_fit_total": 396608536
    },
    "8192": {
     "fill_at_code_anchor_391": {
      "agentic": 0.0,
      "code": 1.0,
-     "general": 0.013413,
-     "indic": 0.003847,
+     "general": 0.013696,
+     "indic": 0.003928,
      "safety": 0.0,
      "tool_use": 0.0
     },
     "fill_at_code_anchor_no_safety_fallback": {
      "agentic": 0.0,
      "code": 1.0,
-     "general": 0.009389,
-     "indic": 0.003847,
+     "general": 0.009587,
+     "indic": 0.003928,
      "safety": null,
      "tool_use": 0.0
     },
@@ -259,13 +259,13 @@
     },
     "share_by_area": {
      "agentic": 0.0,
-     "code": 0.995688,
-     "general": 0.002671,
-     "indic": 0.001642,
+     "code": 0.995597,
+     "general": 0.002727,
+     "indic": 0.001676,
      "safety": 0.0,
      "tool_use": 0.0
     },
-    "tokens_fit_total": 1094076275
+    "tokens_fit_total": 1071563418
    }
   },
   "by_area": {
@@ -279,12 +279,12 @@
      "tokens_fit_share": null
     },
     "code": {
-     "rows": 418496,
-     "rows_fit": 77944,
-     "rows_fit_share": 0.186248,
-     "tokens": 2661573319,
-     "tokens_fit": 107704700,
-     "tokens_fit_share": 0.040467
+     "rows": 410538,
+     "rows_fit": 75757,
+     "rows_fit_share": 0.184531,
+     "tokens": 2623855801,
+     "tokens_fit": 104593933,
+     "tokens_fit_share": 0.039863
     },
     "general": {
      "rows": 15007,
@@ -329,11 +329,11 @@
      "tokens_fit_share": null
     },
     "code": {
-     "rows": 418496,
-     "rows_fit": 418496,
+     "rows": 410538,
+     "rows_fit": 410538,
      "rows_fit_share": 1.0,
-     "tokens": 2661573319,
-     "tokens_fit": 2661573319,
+     "tokens": 2623855801,
+     "tokens_fit": 2623855801,
      "tokens_fit_share": 1.0
     },
     "general": {
@@ -379,12 +379,12 @@
      "tokens_fit_share": null
     },
     "code": {
-     "rows": 418496,
-     "rows_fit": 176281,
-     "rows_fit_share": 0.421225,
-     "tokens": 2661573319,
-     "tokens_fit": 402061048,
-     "tokens_fit_share": 0.151061
+     "rows": 410538,
+     "rows_fit": 171753,
+     "rows_fit_share": 0.418361,
+     "tokens": 2623855801,
+     "tokens_fit": 391932487,
+     "tokens_fit_share": 0.149373
     },
     "general": {
      "rows": 15007,
@@ -429,12 +429,12 @@
      "tokens_fit_share": null
     },
     "code": {
-     "rows": 418496,
-     "rows_fit": 292513,
-     "rows_fit_share": 0.698962,
-     "tokens": 2661573319,
-     "tokens_fit": 1089358137,
-     "tokens_fit_share": 0.409291
+     "rows": 410538,
+     "rows_fit": 285860,
+     "rows_fit_share": 0.696306,
+     "tokens": 2623855801,
+     "tokens_fit": 1066845280,
+     "tokens_fit_share": 0.406594
     },
     "general": {
      "rows": 15007,
@@ -471,10 +471,10 @@
    }
   },
   "code_at_2048": {
-   "rows_fit": 77944,
-   "rows_fit_share": 0.186248,
-   "tokens_fit": 107704700,
-   "tokens_fit_share": 0.040467
+   "rows_fit": 75757,
+   "rows_fit_share": 0.184531,
+   "tokens_fit": 104593933,
+   "tokens_fit_share": 0.039863
   },
   "fit_rule": "a row fits a context of L tokens when its whole length (prompt + response + markers) is <= L; rows that do not fit are counted as lost (cutting a row removes its answer and closing <|im_end|>)",
   "per_set": {
@@ -482,52 +482,52 @@
     "area": "code",
     "by_limit": {
      "2048": {
-      "rows_fit": 77944,
-      "rows_fit_share": 0.186248,
-      "shifted_targets_fit": 88135506,
-      "tokens_fit": 107704700,
-      "tokens_fit_share": 0.040467,
-      "tokens_if_truncated": 805155196
+      "rows_fit": 75757,
+      "rows_fit_share": 0.184531,
+      "shifted_targets_fit": 85517365,
+      "tokens_fit": 104593933,
+      "tokens_fit_share": 0.039863,
+      "tokens_if_truncated": 790225421
      },
      "32768": {
-      "rows_fit": 418496,
+      "rows_fit": 410538,
       "rows_fit_share": 1.0,
-      "shifted_targets_fit": 2489211865,
-      "tokens_fit": 2661573319,
+      "shifted_targets_fit": 2453903733,
+      "tokens_fit": 2623855801,
       "tokens_fit_share": 1.0,
-      "tokens_if_truncated": 2661573319
+      "tokens_if_truncated": 2623855801
      },
      "4096": {
-      "rows_fit": 176281,
-      "rows_fit_share": 0.421225,
-      "shifted_targets_fit": 348073930,
-      "tokens_fit": 402061048,
-      "tokens_fit_share": 0.151061,
-      "tokens_if_truncated": 1394173688
+      "rows_fit": 171753,
+      "rows_fit_share": 0.418361,
+      "shifted_targets_fit": 339079464,
+      "tokens_fit": 391932487,
+      "tokens_fit_share": 0.149373,
+      "tokens_if_truncated": 1369995847
      },
      "8192": {
-      "rows_fit": 292513,
-      "rows_fit_share": 0.698962,
-      "shifted_targets_fit": 986133494,
-      "tokens_fit": 1089358137,
-      "tokens_fit_share": 0.409291,
-      "tokens_if_truncated": 2121410873
+      "rows_fit": 285860,
+      "rows_fit_share": 0.696306,
+      "shifted_targets_fit": 965478205,
+      "tokens_fit": 1066845280,
+      "tokens_fit_share": 0.406594,
+      "tokens_if_truncated": 2088207456
      }
     },
     "length": {
      "max": 29846,
-     "mean": 6359.9,
+     "mean": 6391.3,
      "min": 232,
-     "p50": 5004,
-     "p90": 13638,
-     "p99": 19108
+     "p50": 5040,
+     "p90": 13681,
+     "p99": 19153
     },
-    "rows": 418496,
+    "rows": 410538,
     "table": {
      "name": "sft_v1_lengths_p1536/sft-code-opencodereasoning-2.json",
-     "sha256": "68b2e0cc7da3e3bd5afb620e7460bce6e0f78be4ebf9e515d8436ac9ac5b9eb5"
+     "sha256": "d947f991fcaeb7404655094ecca0adef876ef7d7a3010d1879bd44097f31ac8f"
     },
-    "tokens": 2661573319
+    "tokens": 2623855801
    },
    "sft-dolly-15k": {
     "area": "general",
@@ -681,10 +681,10 @@
  "sets": {
   "sft-code-opencodereasoning-2": {
    "admission": {
-    "rows_kept": 418496,
-    "status": "admitted, pack built",
-    "tokens_kept": 2661573319,
-    "trained_tokens": 2489211865
+    "rows_kept": 410538,
+    "status": "admitted, pack built, evaluation firewall applied",
+    "tokens_kept": 2623855801,
+    "trained_tokens": 2453903733
    },
    "area": "code",
    "decontam": {
@@ -705,6 +705,28 @@
     "fingerprint_set_sha256": "2826a3b883210c653979103c09ce1c79e40fc4f7034b54027f2836482370d22a",
     "rows_canary": 0,
     "rows_flagged": 115040
+   },
+   "eval_firewall": {
+    "before": {
+     "rows": 418496,
+     "shifted_targets": 2489211865,
+     "tokens": 2661573319
+    },
+    "checks": "13 of 13",
+    "families": 250,
+    "families_in_pack": 250,
+    "families_sha256": "e8183f8ff236fc66064fcfef044ea5b9a4b6be330cdf67c0c5712315b3555cea",
+    "record": {
+     "name": "ocr2_eval_firewall_v1.json",
+     "sha256": "b9ceb5639693323144d9b0a78dd91ee43fad3725be610124a2efa59daac567c2"
+    },
+    "removed": {
+     "rows": 7958,
+     "shifted_targets": 35308132,
+     "tokens": 37717518
+    },
+    "rule": "drop every training row whose problem family key is in the list; the held-out file and every other row are unchanged; the firewalled pack is an ordered byte subsequence of the verified pack",
+    "token_share_removed": 0.014171
    },
    "generator": "DeepSeek-R1 (MIT) for the trained reasoning and solutions; QwQ-32B (Apache-2.0) critiques are a filter signal only, never a target (licence_table.md, ocr2_policy.json teacher)",
    "heldout": {
@@ -750,7 +772,7 @@
    },
    "revision": "eadf535931451525f3e5621d0f960c240bc62fd9",
    "source": "nvidia/OpenCodeReasoning-2",
-   "status": "admitted; pack final as built",
+   "status": "admitted; pack final as built + evaluation firewall",
    "tokenizer_sha256": "e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b",
    "unclear_source_left_out": {
     "keys": 14,
@@ -1025,6 +1047,7 @@
    "name": "sft_data_v1_c3_manifest.json",
    "sha256": "ec335ce64b07e701f1e6ba857a977ec194450c1dd3f7ca183fe8ba6a902e2d07"
   },
+  "firewall_note": "OCR-2 counts are after the SFT/RL evaluation firewall (lead, 16 Nov; results/ocr2_eval_firewall_v1.json). The p1536 manifest before it stays as a record: results/sft_data_v1_p1536_nofirewall_manifest.json.",
   "name": "p1536",
   "note": "every count here is p1536 (TSAI Gate 3 notice, 15 Nov 2026; instructor to G10, 16 Nov: rebuild SFT data v1 with p1536). Special tokens and ids are those of C3 (356 added, eos 130822), vocabulary 131,072. The C3 manifest stays as a record: results/sft_data_v1_c3_manifest.json. Proofs and math-v2 are listed from their C3 records and are not in the pack.",
   "sha256": "e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b"

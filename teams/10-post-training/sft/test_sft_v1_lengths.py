@@ -53,3 +53,12 @@ def test_cli_refuses_when_keep_ids_do_not_all_match(tmp_path):
                     "--tokenizer-sha256", "0" * 64, "--out", str(tmp_path / "o.json")]) == 0
     out = json.loads((tmp_path / "o.json").read_text())
     assert out["rows"] == 1 and out["by_limit"]["2048"]["rows_fit"] == 1 and "id" not in json.dumps(out["by_limit"])
+
+
+def test_rows_of_excluded_families_are_left_out(tmp_path):
+    stats = tmp_path / "rowstats.jsonl"
+    stats.write_text("".join(json.dumps(r) + "\n" for r in (
+        {"id": "x", "status": "pack", "family": "sha256:" + "a" * 64, "tokens": 3000, "targets": 900},
+        {"id": "y", "status": "pack", "family": "sha256:" + "b" * 64, "tokens": 100, "targets": 50})))
+    tok, _, _ = sl.read_lengths([stats], None, "pack", frozenset({"sha256:" + "a" * 64}))
+    assert tok.tolist() == [100]

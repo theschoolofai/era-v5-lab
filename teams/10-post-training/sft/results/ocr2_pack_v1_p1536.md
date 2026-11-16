@@ -164,3 +164,26 @@ This single matched pair does not establish a tokenizer speedup or slowdown. The
 (Team 9's pinned tools, not changed here) is most of each shard; render and pack have no hot loop to fix (batched
 `encode_batch` calls since the 14 Nov build). The 14 Nov laptop run did shard 0 in 1,235 s with 4 workers on a quieter
 host; the difference is confounded by host load and is not an isolated tokenizer effect. Not measured: a full 70-shard run on a quiet machine.
+
+## Evaluation firewall (16 Nov, after the pack stage)
+
+The lead ruled that problems used to evaluate RL or effort stay out of SFT training (RL held-out set and the effort
+suite's code prompts), the SFT held-out split stays out of the RL pool, and the training pools may overlap. The pack
+above is the verified input; `../eval_firewall.py apply` then drops the training rows of 250 problem
+families (private list, sha256 `e8183f8ff236…`) and writes `pack.firewalled.jsonl`, an ordered byte
+subsequence of `pack.jsonl`. Every per-shard hash and check above stays valid; the held-out file is not touched.
+
+All 70 shards, predicted from the per-row stats: 7,958 training rows and 37,717,518 tokens
+(1.42%) removed, 410,538 rows / 2,623,855,801 tokens left. Applied on
+the four shards whose verified packs are on hand (input sha256 checked against the manifest first):
+
+| Shard | Firewalled pack sha256 | Rows kept | Rows removed | Tokens removed | Predicted = actual |
+|---|---|---:|---:|---:|---|
+| 0 | 227d97e37ede3b20… | 7,687 | 360 | 1,615,713 | yes |
+| 1 | 8a5c19ac8c6793ee… | 7,640 | 369 | 1,607,523 | yes |
+| 2 | 0143f11095ac75a1… | 7,607 | 367 | 1,683,894 | yes |
+| 3 | c2b530f12a166cc2… | 7,681 | 371 | 1,650,555 | yes |
+
+Record: `ocr2_eval_firewall_v1.json` (13 of 13 checks). TSAI's rebuild runs the same step
+after `run_ocr2.py` (`../../jobs/2026-11-17-ocr2-pack-v1-p1536.md`).
+

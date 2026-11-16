@@ -59,7 +59,15 @@ VARIANTS = {
     "p1536": {"sha256": P1536_SHA256, "records": "sft_v1_records_p1536", "admission": "sft_v1_admission_p1536",
               "mask_dir": "sft_v1_mask_checks_p1536", "pack_manifest": "ocr2_pack_v1_p1536_manifest.json",
               "ocr2_job": "jobs/2026-11-17-ocr2-pack-v1-p1536.md", "lengths": "sft_v1_lengths_p1536",
-              "effort": "ocr2_pack_v1_p1536_effort_tiers.json", "rebuilt": ("sft-dolly-15k", "sft-indic-indic-align-dolly-t")},
+              "effort": "ocr2_pack_v1_p1536_effort_tiers.json", "rebuilt": ("sft-dolly-15k", "sft-indic-indic-align-dolly-t"),
+              "firewall": "ocr2_eval_firewall_v1.json"},
+    # the p1536 pack before the evaluation firewall (16 Nov), kept as a record like C3
+    "p1536-nofirewall": {"sha256": P1536_SHA256, "records": "sft_v1_records_p1536", "admission": "sft_v1_admission_p1536",
+                         "mask_dir": "sft_v1_mask_checks_p1536", "pack_manifest": "ocr2_pack_v1_p1536_manifest.json",
+                         "ocr2_job": "jobs/2026-11-17-ocr2-pack-v1-p1536.md", "lengths": "sft_v1_lengths_p1536",
+                         "lengths_suffix": {"sft-code-opencodereasoning-2": ".nofirewall"},
+                         "effort": "ocr2_pack_v1_p1536_effort_tiers.json",
+                         "rebuilt": ("sft-dolly-15k", "sft-indic-indic-align-dolly-t")},
     "c3": {"sha256": C3_SHA256, "records": "sft_v1_records", "admission": "sft_v1_admission",
            "mask_dir": "sft_v1_mask_checks", "pack_manifest": "ocr2_pack_v1_c3_manifest.json",
            "ocr2_job": "jobs/2026-11-16-ocr2-pack-v1-c3.md", "lengths": None, "effort": None,
@@ -153,7 +161,13 @@ def from_ocr2(results: Path, mask_dir: Path | None, v: dict | None = None) -> di
     m = load(path)
     assert m["build"]["tokenizer_sha256"] == v["sha256"], f"{path.name} is not a {v['sha256'][:8]} build"
     f = m["funnel"]
-    return {
+    rows, toks, tgts, fw = f["pack.train_rows"], f["train.tokens"], f["train.shifted_assistant_targets"], None
+    if v.get("firewall"):
+        fw = load(results / v["firewall"])
+        assert fw["applied_after"]["run_id"] == m["build"]["run_id"] and all(fw["checks"].values()), "firewall record"
+        assert fw["totals"]["before"] == {"rows": rows, "tokens": toks, "shifted_targets": tgts}, "firewall vs pack funnel"
+        rows, toks, tgts = (fw["totals"]["after"][k] for k in ("rows", "tokens", "shifted_targets"))
+    out = {
         "area": "code", "source": m["sources"]["ocr2"]["repo"], "revision": m["sources"]["ocr2"]["revision"],
         "joined_sources": {k: v["revision"] for k, v in m["sources"].items() if k.endswith("/train") and not v.get("protected")},
         "generator": "DeepSeek-R1 (MIT) for the trained reasoning and solutions; QwQ-32B (Apache-2.0) critiques are a "
@@ -170,13 +184,22 @@ def from_ocr2(results: Path, mask_dir: Path | None, v: dict | None = None) -> di
                     "id_list_sha256": m["heldout_eval_v1"]["id_list_sha256"], "salt": m["heldout_eval_v1"]["rule"]["salt"],
                     "fraction": m["heldout_eval_v1"]["rule"]["fraction"]},
         "unclear_source_left_out": {"keys": m["unclear_source"]["keys"], "rows": m["unclear_source"]["rows_excluded"]},
-        "admission": {"rows_kept": f["pack.train_rows"], "tokens_kept": f["train.tokens"],
-                      "trained_tokens": f["train.shifted_assistant_targets"], "status": "admitted, pack built"},
+        "admission": {"rows_kept": rows, "tokens_kept": toks, "trained_tokens": tgts,
+                      "status": "admitted, pack built" + (", evaluation firewall applied" if fw else "")},
         "pack": {"run_id": m["build"]["run_id"], "shards": len(m["shards"]), "manifest": {"name": path.name, "sha256": sha256_file(path)},
                  "acceptance_checks": f"{sum(m['checks'].values())} of {len(m['checks'])}"},
         "loss_mask": ocr2_mask(m, mask_dir, v),
-        "in_pack": True, "status": "admitted; pack final as built", "job_request": v["ocr2_job"],
+        "in_pack": True, "status": "admitted; pack final as built" + (" + evaluation firewall" if fw else ""),
+        "job_request": v["ocr2_job"],
     }
+    if fw:
+        out["eval_firewall"] = {
+            "record": {"name": v["firewall"], "sha256": sha256_file(results / v["firewall"])},
+            "rule": fw["rule"], "families_sha256": fw["families"]["sha256"], "families": fw["families"]["count"],
+            "families_in_pack": fw["families"]["in_pack"], "removed": fw["totals"]["removed"],
+            "token_share_removed": fw["totals"]["token_share_removed"],
+            "before": fw["totals"]["before"], "checks": f"{sum(fw['checks'].values())} of {len(fw['checks'])}"}
+    return out
 
 
 def ocr2_mask(m: dict, mask_dir: Path | None, v: dict) -> dict:
@@ -239,12 +262,13 @@ def context_lengths(sets: dict, results: Path, v: dict) -> dict:
     for k in sorted(sets):
         if not sets[k]["in_pack"]:
             continue
-        t = load(folder / f"{k}.json")
+        name = f"{k}{v.get('lengths_suffix', {}).get(k, '')}.json"
+        t = load(folder / name)
         assert t["tokenizer_sha256"] == v["sha256"] and t["rows"] == sets[k]["admission"]["rows_kept"], k
         assert t["tokens"] == sets[k]["admission"]["tokens_kept"], f"{k}: length table tokens != admitted tokens"
         per_set[k] = {"area": sets[k]["area"], "rows": t["rows"], "tokens": t["tokens"], "length": t.get("length"),
-                      "by_limit": t["by_limit"], "table": {"name": f"{v['lengths']}/{k}.json",
-                                                           "sha256": sha256_file(folder / f"{k}.json")}}
+                      "by_limit": t["by_limit"], "table": {"name": f"{v['lengths']}/{name}",
+                                                           "sha256": sha256_file(folder / name)}}
     by_area, budgets = {}, {}
     for L in LIMITS:
         areas = {a: {"rows_fit": 0, "rows": 0, "tokens_fit": 0, "tokens": 0} for a in SHARES}
@@ -289,7 +313,7 @@ def build(results: Path, mask_dir: Path | None, tokenizer: str = "c3") -> dict:
                                                          "matrix_c3_to_p1536_all_rendered", "tier_totals_rendered")} | {
             "report": {"name": v["effort"], "sha256": sha256_file(results / v["effort"])},
             "other_sets": "Dolly and dolly-t: every row is 1k under both tokenizers (no trace); 0 rows change tier"}
-    if tokenizer == "p1536":
+    if v["sha256"] == P1536_SHA256:
         tok = {"sha256": P1536_SHA256, "name": "p1536",
                "note": "every count here is p1536 (TSAI Gate 3 notice, 15 Nov 2026; instructor to G10, 16 Nov: rebuild SFT "
                        "data v1 with p1536). Special tokens and ids are those of C3 (356 added, eos 130822), vocabulary "
@@ -298,6 +322,10 @@ def build(results: Path, mask_dir: Path | None, tokenizer: str = "c3") -> dict:
                "c3_record": {"name": "sft_data_v1_c3_manifest.json",
                              "sha256": sha256_file(results / "sft_data_v1_c3_manifest.json")
                              if (results / "sft_data_v1_c3_manifest.json").is_file() else None}}
+        if v.get("firewall"):
+            tok["firewall_note"] = ("OCR-2 counts are after the SFT/RL evaluation firewall (lead, 16 Nov; "
+                                    "results/ocr2_eval_firewall_v1.json). The p1536 manifest before it stays as a record: "
+                                    "results/sft_data_v1_p1536_nofirewall_manifest.json.")
     else:
         tok = {"sha256": C3_SHA256, "name": "C3",
                "note": "every count here is C3. TSAI's Gate 3 notice (15 Nov 2026) moved new work to p1536 "

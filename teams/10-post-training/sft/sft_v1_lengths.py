@@ -31,7 +31,8 @@ def open_text(path: Path):
     return gzip.open(path, "rt", encoding="utf-8") if path.suffix == ".gz" else open(path, encoding="utf-8")
 
 
-def read_lengths(paths: list[Path], keep: set[str] | None, status: str | None) -> tuple[np.ndarray, np.ndarray, int]:
+def read_lengths(paths: list[Path], keep: set[str] | None, status: str | None,
+                 exclude_families: frozenset[str] | None = None) -> tuple[np.ndarray, np.ndarray, int]:
     toks, tgts, seen = [], [], 0
     for path in paths:
         with open_text(path) as f:
@@ -42,6 +43,8 @@ def read_lengths(paths: list[Path], keep: set[str] | None, status: str | None) -
                     continue
                 if status is not None and row.get("status") != status:
                     continue
+                if exclude_families and row.get("family") in exclude_families:
+                    continue  # e.g. the evaluation firewall (eval_firewall.py): rows dropped from SFT training
                 if "input_ids" in row:
                     toks.append(len(row["input_ids"]))
                     tgts.append(sum(row["loss_mask"][1:]))
@@ -76,6 +79,8 @@ def main(argv=None) -> int:
     ap.add_argument("--rows", type=Path, nargs="+", required=True)
     ap.add_argument("--keep-ids", type=Path)
     ap.add_argument("--status")
+    ap.add_argument("--exclude-families", type=Path, help="family-key list (eval_firewall.py format): rows of these families are left out")
+    ap.add_argument("--exclude-families-sha256", help="pinned sha256 of --exclude-families")
     ap.add_argument("--tokenizer-sha256", required=True)
     ap.add_argument("--note", default="")
     ap.add_argument("--out", type=Path, required=True)
@@ -83,11 +88,17 @@ def main(argv=None) -> int:
     keep = None
     if a.keep_ids:
         keep = {line.strip() for line in a.keep_ids.read_text(encoding="utf-8").splitlines() if line.strip()}
-    tokens, targets, seen = read_lengths(sorted(a.rows), keep, a.status)
+    excl = None
+    if a.exclude_families:
+        import eval_firewall  # noqa: PLC0415 (same folder)
+        excl = eval_firewall.load_families(a.exclude_families, a.exclude_families_sha256)
+    tokens, targets, seen = read_lengths(sorted(a.rows), keep, a.status, excl)
     if keep is not None and len(tokens) != len(keep):
         raise SystemExit(f"{len(tokens)} rows matched, but --keep-ids lists {len(keep)}")
     out = {"schema": SCHEMA, "set": a.set, "area": a.area, "tokenizer_sha256": a.tokenizer_sha256,
-           "rows_read": seen, "filter": {"keep_ids": bool(keep), "status": a.status},
+           "rows_read": seen, "filter": {"keep_ids": bool(keep), "status": a.status,
+                                          **({"exclude_families_sha256": eval_firewall.sha256_file(a.exclude_families),
+                                              "exclude_families": len(excl)} if excl else {})},
            "fit_rule": "a row fits L when its whole token count is <= L", "note": a.note, **table(tokens, targets)}
     a.out.parent.mkdir(parents=True, exist_ok=True)
     a.out.write_text(json.dumps(out, indent=1) + "\n", encoding="utf-8")

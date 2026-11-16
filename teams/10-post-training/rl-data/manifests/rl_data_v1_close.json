@@ -41,6 +41,30 @@
    "rule": "judge in ['codechef', 'hackerearth']",
    "tasks": 1545
   },
+  "rl_heldout_v1": {
+   "applied": true,
+   "by_judge": {
+    "aizu": 73,
+    "atcoder": 5,
+    "codechef": 53,
+    "hackerearth": 124
+   },
+   "definition": "the 15 Nov run's 96 held-out problems plus the 160 planned for E10 (union, 255 tasks)",
+   "ids_sha256": "0e2c6f7835d98fdef72b76320604e020e3803ad650d88fcc64885843bdc09163",
+   "in_close_pool": 252,
+   "listed": 255,
+   "outside_close_pool": 3,
+   "reverse": "a different held-out definition (for example the 96 only) is a different list file",
+   "rule": "task id in the official RL held-out list (evaluation only; also out of SFT training)"
+  },
+  "sft_heldout": {
+   "also_rl_heldout": 8,
+   "applied": true,
+   "ids_sha256": "105103bebd0ba77f93d76536f7d8924e34edf16fd3121c60711199e82c0cf160",
+   "in_close_pool": 82,
+   "listed": 82,
+   "rule": "pool task whose problem is in the SFT held-out split heldout_eval_v1 (sft/cross_stage_overlap.py, confirmed + possible tiers)"
+  },
   "statement_less": {
    "applied": true,
    "by_judge": {
@@ -84,7 +108,28 @@
    "removed_by_applied_flags": 146,
    "rows_v1": 3723,
    "set": "rl-code-code-contests-noncf",
-   "status": "allowed for RL by TSAI (6 Nov, train split only)"
+   "status": "allowed for RL by TSAI (6 Nov, train split only)",
+   "train_pool_by_judge": {
+    "aizu": 1753,
+    "atcoder": 189,
+    "codechef": 413,
+    "hackerearth": 896
+   },
+   "train_pool_ids_sha256": "94332706d5e55c2b78bdc244309c31ad8b57815482407318bb9725ec61eb065b",
+   "train_pool_note": "close pool minus the RL held-out set and the SFT held-out matches",
+   "train_pool_tasks": 3251
+  },
+  "heldout": {
+   "by_judge": {
+    "aizu": 73,
+    "atcoder": 5,
+    "codechef": 53,
+    "hackerearth": 124
+   },
+   "ids_sha256": "0e2c6f7835d98fdef72b76320604e020e3803ad650d88fcc64885843bdc09163",
+   "set": "rl-code-code-contests-noncf",
+   "status": "RL evaluation set v1: never in RL or SFT training",
+   "tasks": 255
   },
   "math": {
    "effort_suite_removed": 25,

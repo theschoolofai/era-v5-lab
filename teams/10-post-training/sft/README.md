@@ -132,8 +132,11 @@ yet reviewed or stored by TSAI, and no model has been fine-tuned on it.
   unclear-source TACO problems; and whether the 2% `heldout_eval_v1` split stays, which is a G10 proposal. Both of the last
   two change the pack hashes if changed. Bytes are stored by TSAI through `../jobs/2026-11-16-ocr2-pack-v1-c3.md`, which is not sent.
 
-This C3 section is kept as a record (TSAI, 15 Nov: C3 work stays valid as a record). SFT data v1 is now built with p1536:
-see the next section.
+This C3 section is kept as a record (TSAI, 15 Nov: C3 work stays valid as a record). SFT data v1 is now built with p1536
+(instructor, 16 Nov): `results/ocr2_pack_v1_p1536.md`, `results/sft_data_v1_p1536.md`, rebuild-and-store job
+`../jobs/2026-11-17-ocr2-pack-v1-p1536.md`. The lead's evaluation firewall (16 Nov) is applied after the pack stage by
+`eval_firewall.py` (record `results/ocr2_eval_firewall_v1.json`); the p1536 manifest before it is kept as
+`results/sft_data_v1_p1536_nofirewall_manifest.json`.
 
 > Status as of 12 Nov 2026 (kept from `main`). Where it differs from the 14 Nov section above, the 14 Nov section is current.
 

@@ -69,8 +69,11 @@ def test_the_p1536_records_give_a_consistent_manifest(tmp_path):
     s = m["sets"]
     for k in m["in_pack"]:
         assert s[k]["tokenizer_sha256"] == man.P1536_SHA256 and s[k]["decontam"]["complete"] is True
-        assert s[k]["admission"]["rows_kept"] == c3["sets"][k]["admission"]["rows_kept"]  # same rows as C3
+        removed = s[k].get("eval_firewall", {}).get("removed", {}).get("rows", 0)  # only OCR-2 has the firewall
+        assert s[k]["admission"]["rows_kept"] + removed == c3["sets"][k]["admission"]["rows_kept"]  # same rows as C3
         assert s[k]["loss_mask"]["mask_ok"] is True
+    fw = s["sft-code-opencodereasoning-2"]["eval_firewall"]
+    assert fw["checks"] == "13 of 13" and fw["removed"]["rows"] > 0 and fw["token_share_removed"] < 0.02
     assert s["sft-dolly-15k"]["admission"]["kept_ids_sha256"] == c3["sets"]["sft-dolly-15k"]["admission"]["kept_ids_sha256"]
     for k in ("sft-math-nemotron-proofs", "sft-math-nemotron-math-v2"):
         assert s[k]["in_pack"] is False
@@ -84,3 +87,13 @@ def test_the_p1536_records_give_a_consistent_manifest(tmp_path):
     out = tmp_path / "m.json"
     assert man.main(["--out", str(out)]) == 0  # p1536 is the default
     assert json.loads(out.read_text())["tokenizer"]["name"] == "p1536"
+
+
+def test_the_p1536_record_before_the_firewall_regenerates(tmp_path):
+    """The 16 Nov p1536 manifest (before the evaluation firewall) is kept as a record and still regenerates."""
+    rec = json.loads((man.RESULTS / "sft_data_v1_p1536_nofirewall_manifest.json").read_text())
+    m = json.loads(json.dumps(man.build(man.RESULTS, man.RESULTS / "sft_v1_mask_checks_p1536", "p1536-nofirewall")))
+    code = m["context_length"]["per_set"]["sft-code-opencodereasoning-2"]["table"]
+    assert code["name"].endswith(".nofirewall.json")
+    code["name"] = rec["context_length"]["per_set"]["sft-code-opencodereasoning-2"]["table"]["name"]  # renamed file
+    assert m == rec
