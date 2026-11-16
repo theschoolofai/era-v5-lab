@@ -119,7 +119,8 @@ def build_model(mcfg: dict, device: str):
 
 def build_task(tcfg: dict, tokenizer, seed: int, pool=None):
     if tcfg["kind"] == "toy":
-        return tasks.ToyTask(**{k: v for k, v in tcfg.items() if k != "kind"}, seed=seed)
+        # task.seed pins the prompts independently of the run seed (same held-out prompts for every run of a comparison)
+        return tasks.ToyTask(**{k: v for k, v in tcfg.items() if k not in ("kind", "seed")}, seed=tcfg.get("seed", seed))
     if tcfg["kind"] == "code_tasks":
         if tokenizer is None:
             raise ValueError("code_tasks needs model.kind hf (a tokenizer)")
@@ -704,6 +705,17 @@ def train(cfg: dict) -> dict:
     if sampler_kind == "vllm":  # vLLM reserves its share of the GPU first, then the training model loads
         vllm = rollout.VLLMSampler(cfg["model"]["path"], seed=seed, **t.get("vllm", {}))
     policy, tok = build_model(cfg["model"], device)
+    init_state_info = None
+    if cfg["model"].get("init_state"):  # a trained state dict (e.g. SFT output) for the same architecture
+        from safetensors.torch import load_file  # noqa: PLC0415
+        ip = Path(cfg["model"]["init_state"])
+        raw = ip.read_bytes()
+        want = cfg["model"].get("init_state_sha256")
+        got = hashlib.sha256(raw).hexdigest()
+        if want and want != got:
+            raise ValueError(f"model.init_state sha256 {got} != expected {want}")
+        policy.model.load_state_dict(load_file(str(ip)), strict=True)
+        init_state_info = {"path": str(ip), "sha256": got}
     task = build_task(cfg["task"], tok, seed) if pool is None else build_task(cfg["task"], tok, seed, pool)
 
     model = policy.model
@@ -763,6 +775,18 @@ def train(cfg: dict) -> dict:
             raise ValueError("train.autocast must be bf16 or unset")
         policy.amp_dtype = torch.bfloat16
     trainable_named = [(n, p) for n, p in model.named_parameters() if p.requires_grad]
+    kz_cfg, kz, kz_log = t.get("keep_zero"), None, {"max_deleted_nonzero": 0}
+    if kz_cfg is not None or t.get("log_zero_share"):
+        import keep_zero as keep_zero_mod  # noqa: PLC0415
+        masks = keep_zero_mod.load_masks(kz_cfg["path"]) if kz_cfg and kz_cfg.get("path") else {}
+        kz = keep_zero_mod.KeepZero(trainable_named, masks, bool(kz_cfg.get("enforce", False)) if kz_cfg else False,
+                                    float(t.get("weight_decay", 0.0)))
+        kz_log.update(masked_entries=kz.n_masked, deleted_at_start=kz.n_deleted0,
+                      deleted_share_of_masked_at_start=round(kz.n_deleted0 / max(kz.n_masked, 1), 6),
+                      deleted_nonzero_at_start=kz.deleted_nonzero(), zero_share_at_start=round(kz.zero_share(), 6),
+                      enforce=bool(kz_cfg.get("enforce", False)) if kz_cfg else None)
+        if kz_log["deleted_nonzero_at_start"]:
+            raise ValueError(f"{kz_log['deleted_nonzero_at_start']} deleted weights are nonzero before RL starts")
 
     def sync_named():  # what the sampler must hold after an update
         return dt_hard_weights(dtmask, model) if dt_cfg else trainable_named
@@ -1152,6 +1176,17 @@ def train(cfg: dict) -> dict:
                 step_top1 = routing.top1_flip_rate(idx_before, idx_after)
                 step_mass = routing.mass_shift(idx_before, idx_after)
         times["train"] = time.time() - c0
+        kz_rec = {}
+        if kz is not None:
+            if kz.n_masked:
+                dn = kz.deleted_nonzero()  # before any backstop: what the gradient mask alone achieved
+                kz_log["max_deleted_nonzero"] = max(kz_log["max_deleted_nonzero"], dn)
+                kz_rec["deleted_nonzero"] = dn
+                if kz.enforce_after_step:
+                    kz.enforce()
+                else:
+                    kz.check(f"step {step}")
+            kz_rec["zero_share"] = round(kz.zero_share(), 6)
         c0 = time.time()
         sync_bytes = 0
         if vllm is not None:
@@ -1160,7 +1195,7 @@ def train(cfg: dict) -> dict:
                 sync_bytes = vllm.sync(sync_named())
         times["sync"] = time.time() - c0
         rec = {"step": step, "train_reward": sum(rewards_all) / len(rewards_all), "groups_used": len(groups),
-               "groups_dropped": dropped, "loss": loss_val, **stats, **v1_rec,
+               "groups_dropped": dropped, "loss": loss_val, **stats, **v1_rec, **kz_rec,
                "sampled_tokens": sampled_tokens,
                "rollout_tokens_per_s": round(sampled_tokens / max(times["rollout"], 1e-9), 1),
                "times_s": {k_: round(v, 3) for k_, v in times.items()}, "step_s": round(sum(times.values()), 3),
@@ -1223,7 +1258,6 @@ def train(cfg: dict) -> dict:
         extra_eval(int(t["steps"]))
     saved_weights = None
     if t.get("save_trainable"):
-        import hashlib  # noqa: PLC0415
         path = Path(t["save_trainable"])
         path.parent.mkdir(parents=True, exist_ok=True)
         torch.save({n: p_.detach().to(torch.bfloat16).cpu() for n, p_ in trainable_named}, path)
@@ -1269,6 +1303,13 @@ def train(cfg: dict) -> dict:
                                 "group_kinds_total": {k_: sum(r["group_kinds"][k_] for r in recs)
                                                       for k_ in recs[0]["group_kinds"]} if recs else {}}
     summary["saved_trainable_weights"] = saved_weights
+    if init_state_info:
+        summary["init_state"] = init_state_info
+    if kz is not None:
+        kz_log.update(deleted_nonzero_end=kz.deleted_nonzero() if kz.n_masked else None,
+                      deleted_zero_end=kz.deleted_zero() if kz.n_masked else None,
+                      zero_share_end=round(kz.zero_share(), 6))
+        summary["keep_zero"] = kz_log
     if dt_cfg:
         summary["deletion_tuning"] = {**dt_info, "deletion_final": dtmask.deletion_stats(model),
                                       "alpha_final": dt_layer0.alpha, "optimizer_steps": dt_layer0.current_step}

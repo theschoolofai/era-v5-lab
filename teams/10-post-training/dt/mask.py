@@ -198,14 +198,29 @@ _CALIB_STATE: dict = {}
 
 
 @_no_grad()
-def apply_wanda_prior(model: nn.Module, scores: dict[str, torch.Tensor], eta: float, prior_strength: float = 3.0) -> dict:
+def apply_wanda_prior(model: nn.Module, scores: dict[str, torch.Tensor], eta: float, prior_strength: float = 3.0,
+                      unseen: str = "official") -> dict:
     """Shift each layer's logits by +-std(G)*prior_strength: down for the lowest-`eta` Wanda scores (official
-    wanda_prior_deletions + apply_wanda_prior: threshold = kthvalue(max(1, int(n * eta))), deleted = score < it)."""
+    wanda_prior_deletions + apply_wanda_prior: threshold = kthvalue(max(1, int(n * eta))), deleted = score < it).
+
+    `unseen` says what a layer that no calibration token reached gets (a routed MoE expert can be idle on the
+    calibration set; a Wanda score needs an input norm, which is then zero for every column):
+      "official"  no prior (the official code's behaviour). The logits stay N(0, 0.01^2), so about half the layer's
+                  weights start deleted under the hard mask, far above `eta`.
+      "keep"      shift the whole layer up by std(G)*prior_strength: no weight is deleted at initialisation, and the
+                  layer only deletes what its (later) gradient asks for. Measured need: capstone rehearsal, 30 of 204
+                  expert layers unseen, deletion at init 11.7% against the 5% prior."""
+    if unseen not in ("official", "keep"):
+        raise ValueError(f"unseen must be official or keep, not {unseen!r}")
     marked = 0
     total = 0
+    unseen_layers = 0
     for name, m in masked_layers(model):
         if name not in scores:
-            continue  # no calibration token reached the layer: no prior (official behaviour)
+            unseen_layers += 1
+            if unseen == "keep":
+                m.gate.add_(m.gate.std().item() * prior_strength)
+            continue  # no calibration token reached the layer: no deletion prior (official behaviour)
         flat = scores[name].reshape(-1)
         k = max(1, int(flat.numel() * eta))
         thr = flat.kthvalue(k).values.item()
@@ -214,7 +229,8 @@ def apply_wanda_prior(model: nn.Module, scores: dict[str, torch.Tensor], eta: fl
         m.gate.add_(sign * m.gate.std().item() * prior_strength)
         marked += int(deleted.sum())
         total += deleted.numel()
-    return {"eta": eta, "prior_strength": prior_strength, "prior_deleted": marked, "targeted": total}
+    return {"eta": eta, "prior_strength": prior_strength, "prior_deleted": marked, "targeted": total,
+            "layers_without_scores": unseen_layers, "unseen_policy": unseen}
 
 
 @_no_grad()

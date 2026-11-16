@@ -365,7 +365,8 @@ def run(args) -> dict:
         scores = dtmask.wanda_scores(wrapper, ({"input_ids": b.input_ids, "attention_mask": b.attention_mask}
                                                for b in cb), device)
         # scores are keyed by the wrapper's module names ("lm.blocks..."), so the prior is applied through it too
-        method_info["wanda_prior"] = dtmask.apply_wanda_prior(wrapper, scores, args.dt_eta, args.dt_prior_strength)
+        method_info["wanda_prior"] = dtmask.apply_wanda_prior(wrapper, scores, args.dt_eta, args.dt_prior_strength,
+                                                              unseen=args.dt_unseen)
         method_info["wanda_layers_without_tokens"] = len(dtmask.masked_layers(wrapper)) - len(scores)
         method_info["deletion_at_init"] = dtmask.deletion_stats(lm)
     report["method"] = method_info
@@ -442,7 +443,13 @@ def run(args) -> dict:
         report["frozen_weights_unchanged"] = {"before": frozen_before, "after": after, "pass": after == frozen_before}
     if args.method == "dt":
         method_info["deletion_final"] = dtmask.deletion_stats(lm)
-        dtmask.bake(lm)
+        keep = dtmask.bake(lm)  # {param name: bool keep mask}; RL after this SFT holds these entries at zero
+        blob, meta = dtmask.pack_masks(keep)
+        (out / "dt_keep_masks.bin").write_bytes(blob)
+        (out / "dt_keep_masks.bin.json").write_text(json.dumps(meta))
+        method_info["keep_masks"] = {"file": "dt_keep_masks.bin", "layers": meta["layers"], "bits": meta["bits"],
+                                     "sha256": hashlib.sha256(blob).hexdigest(),
+                                     "deleted_final": sum(int((~m).sum()) for m in keep.values())}
     if args.method == "lora":
         bench.merge_lora(lm)
     post = {"eval_loss": eval_loss(wrapper, eval_rows, device, args.micro_tokens)}
@@ -503,6 +510,8 @@ def parse_args(argv=None):
     p.add_argument("--dt-lambda", type=float, default=1e-5)
     p.add_argument("--dt-eta", type=float, default=0.05)
     p.add_argument("--dt-prior-strength", type=float, default=3.0)
+    p.add_argument("--dt-unseen", default="official", choices=("official", "keep"),
+                   help="logits of a masked layer no calibration token reached: official = no prior, keep = start undeleted")
     p.add_argument("--dt-calib-rows", type=int, default=64)
     p.add_argument("--rl-tasks", type=Path, help="RL data v1 stdio task file: screen before and after SFT")
     p.add_argument("--rl-ids", type=Path)

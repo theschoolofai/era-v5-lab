@@ -1118,6 +1118,20 @@ def test_sft_driver_runs_every_method_with_its_checks(fx, run_folder, tmp_path):
         if name != "full":
             assert rep["frozen_weights_unchanged"]["pass"], name
         assert rep["after"]["generation"]["prompts"] >= 1 and math.isfinite(rep["last_loss"])
+    # DT -> RL hand-over: SFT writes the baked keep masks; the saved state has exact zeros exactly where they say
+    import keep_zero  # noqa: PLC0415
+    from safetensors.torch import load_file  # noqa: PLC0415
+    rep = sft_g5.run(sft_g5.parse_args(common + ["--method", "dt", "--dt-targets", "g5_mlp", "--dt-unseen", "keep",
+                                                 "--marker-rows", "--wd", "0", "--out", str(tmp_path / "dt_keep")]))
+    assert rep["method"]["wanda_prior"]["unseen_policy"] == "keep"
+    masks = keep_zero.load_masks(tmp_path / "dt_keep" / "dt_keep_masks.bin")
+    sd = load_file(str(tmp_path / "dt_keep" / "model.safetensors"))
+    assert len(masks) == rep["method"]["keep_masks"]["layers"] > 0
+    assert sum(int((~m).sum()) for m in masks.values()) == rep["method"]["keep_masks"]["deleted_final"]
+    for name, keep in masks.items():
+        assert bool(((sd[name] == 0) | keep).all()) and bool((sd[name][~keep] == 0).all())
+    kz = keep_zero.KeepZero([(n, torch.nn.Parameter(sd[n].clone())) for n in masks], masks)
+    assert kz.deleted_nonzero() == 0
 
 
 @needs_inputs
