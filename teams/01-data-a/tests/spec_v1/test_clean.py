@@ -1,6 +1,6 @@
 """Unit tests for clean.py, the Spec v1 cleaner: its one function per disease code, the scope table at its top, and the
-build that writes it from specv1.md. Every text here is made up; none comes from a pack. Some science rules act only on
-documents the reviewers named, so those cases use the doc_id the rule lists in specv1.md (an ID, never the document's text).
+build that writes it from specv1_1.md. Every text here is made up; none comes from a pack. Some science rules act only on
+documents the reviewers named, so those cases use the doc_id the rule lists in specv1_1.md (an ID, never the document's text).
 
   python -m pytest tests/spec_v1
 
@@ -35,7 +35,7 @@ FAMILIES = {"code": {"code-cpp", "code-go", "code-java", "code-js-ts", "code-pyt
                       "ind-sa-fw2", "ind-ta-sangraha-v", "ind-te-fw2", "ind-te-sangraha-s",
                       "ind-bn-sangraha-v", "ind-hi-indiccorp", "ind-hi-sangraha-s", "ind-hi-sangraha-v", "ind-te-sangraha-v"}}
 PACKS = sorted(set().union(*FAMILIES.values()))
-SHEET = (SPEC / "sheets" / "specv1.md").read_text(encoding="utf-8")
+SHEET = (SPEC.parent / "spec_v1_1" / "sheets" / "specv1_1.md").read_text(encoding="utf-8")   # spec v1 (sheets/specv1.md) is frozen
 SECTIONS = [(family, rid) for family, rid, body in re.findall(
     r"^## Medicine \d+ — (\w+) / \w+ / `(D[AB]-[A-H]\d-\d{3})`\n(.*?)(?=^## Medicine |\Z)", SHEET, re.S | re.M)
     if '```python deferred\n' not in body]
@@ -115,6 +115,9 @@ SICK = [
     ("english", "F1", en(PARA + "\nCall me on 555-867-5309 or write to ravi.kumar" + AT + "gmail.com."), "fix",
      PARA + "\nCall me on <PHONE> or write to <EMAIL>."),  # DA-F1-005
     ("english", "F1", en(PARA + "\nI live at 42 Elm Street, Springfield, IL 62704."), "fix", PARA + "\nI live at <ADDRESS>."),
+    # spec v1.1: A8 and D7 on en-nemotroncc and en-nemotroncc-synth only
+    ("english", "A8", en("as you choose.Compose a 500-word paper", "eng"), "fix", "as you choose. Compose a 500-word paper"),
+    ("english", "D7", dict(doc("en-nemotroncc-synth", PARA, "eng"), doc_id="0f7b90400c1362df"), "drop", None),  # one of the six confirmed IDs
 
     ("math", "A3", maths("Hereâ€™s the proof.\n" + BODY), "fix", None),  # mojibake of a right single quote
     ("math", "A1", maths("Area\u200b of a circle is pi r squared.\n" + BODY), "fix", None),
@@ -131,6 +134,13 @@ SICK = [
     ("math", "A6", maths("x \uf0c5 y is the exclusive or.\n" + BODY), "fix", None),  # a Symbol-font glyph in the private use area
     ("math", "D3", maths(BODY + "Дивитися фільми онлайн\n" + BODY), "fix", None),  # a foreign-script spam line
     ("math", "F1", maths(BODY + "Home: 217-555-0123\n"), "fix", None),  # the shared F1, prose path: a private label on a made-up number
+    # spec v1.1
+    ("math", "A8", maths("Practice ProblemsThe first one\n" + BODY), "fix", None),  # two words glued
+    ("math", "C9", maths("## Find your perfect private math tutor in Forest\nLessons from $20.", "math-megamath"), "drop", None),  # a sales page
+    ("math", "D6", maths("Question?\nIn summary, the discussion is about limits.\nReply: use L'Hopital."), "fix", "Question?\nReply: use L'Hopital."),
+    ("math", "C7", maths("The number of fish in tank B =\nUse Binet's formula to show that .\nComparing , we can see that it holds.\n"
+                         "The area of the circle is\nNow find the perimeter."), "drop", None),  # four formulas missing
+    ("math", "C8", maths("m n mod m 2 3 4 5 6 7 8 9 1 1 3 1 1 2 7 7 1 2 3 4\n"), "drop", None),  # a flattened table
 
     ("sci", "B4", sci("Call FUN and <function name> in the text.\n" + SCI), "fix", None),
     ("sci", "B2", sci("The area is 4 m<sup>2</sup> at the start.\n" + SCI, "7ea84af3398cb3ed"), "fix", None),  # a reviewed ID
@@ -144,11 +154,20 @@ SICK = [
     ("sci", "D1", sci(SCI, "44f66c3734e3d5ca"), "drop", None),  # reviewed: wrong language label
     ("sci", "F1", sci(SCI, "b0d032fadb33dbf4"), "drop", None),  # DA-F1-006: a reviewed private-person record
     ("sci", "D3", sci(SCI + "Le taux est élevé.\n"), "keep", None),  # DA-D3-004 keeps mixed language: it has no sick case
+    # spec v1.1
+    ("sci", "A7", sci("the stereo- scopic glasses\n" + SCI), "fix", "the stereo-scopic glasses\n" + SCI),
+    ("sci", "A8", sci("Client:  MACEDuration:  On-goingCurrent Value:  \u00a3372,500\n" + SCI), "fix", None),
+    ("sci", "B6", sci("Name: ____________________ Phone: ____________\nAddress: ________________________"), "drop", None),  # a blank form
+    ("sci", "C9", sci("Access Free Ebook Physics Notes\nSome words."), "drop", None),  # a spinner page
+    ("sci", "C7", sci("The Anti Ragging Committee of Samata College is constituted with the following members.\n"
+                      "The committee will look into the matters regarding complaints received from the students.\n" + SCI * 3), "fix", None),
+    ("sci", "C8", sci("1. Remove the mount.\n2. Position washer.\n3. Attach tube.\n5. Tighten nut.\n4. Attach mount.\nObserve specs.\n" + SCI * 3),
+     "fix", None),  # steps out of order
 ]
 ENGLISH_SICK = [(fn, d["text"], action, after) for fam, fn, d, action, after in SICK if fam == "english"]
 CLEAN = {"code": code(GO_CODE), "english": en(PARA + "\n\n" + PARA), "english, tagged eng": en(PARA + "\n\n" + PARA, "eng"),
          "math": maths(BODY * 3), "math, display maths": maths(BODY + "Display: $$\\sum_{i=1}^n i = \\frac{n(n+1)}{2}$$ and $$a$$$$b$$ are two blocks.\n"),
-         "sci": sci(SCI * 2)}
+         "sci": sci(SCI * 4)}
 
 
 def test_every_function_is_tested_on_every_family_it_has_a_rule_for():
@@ -185,7 +204,7 @@ def test_clean_keeps_a_clean_document(kind):
     assert c.clean(CLEAN[kind]) == ("keep", CLEAN[kind]["text"])
 
 
-# 2. The scope table (SCOPE) and build/build_clean.py, which writes it from specv1.md
+# 2. The scope table (SCOPE) and build/build_clean.py, which writes it from specv1_1.md
 
 def test_every_rule_has_one_scope_entry_in_sheet_order():
     assert list(c.SCOPE) == list(c._RULE) == [rid for _, rid in SECTIONS] + ["f1_rule.py"]
@@ -246,13 +265,13 @@ def test_no_rule_runs_without_a_known_pack(pack):
 
 
 def build(tmp_path, sheet=SHEET):
-    (tmp_path / "specv1.md").write_text(sheet, encoding="utf-8", newline="\n")
-    return subprocess.run([sys.executable, "-I", str(BUILD), "--sheet", str(tmp_path / "specv1.md"), "--out", str(tmp_path / "clean.py")],
+    (tmp_path / "specv1_1.md").write_text(sheet, encoding="utf-8", newline="\n")   # the file name is written into clean.py
+    return subprocess.run([sys.executable, "-I", str(BUILD), "--sheet", str(tmp_path / "specv1_1.md"), "--out", str(tmp_path / "clean.py")],
                           capture_output=True, encoding="utf-8", errors="replace")  # the build prints UTF-8 (Indic letters), on Windows too
 
 
 def with_packs(rid, packs):
-    """specv1.md with the SPEC_PACKS line of one rule changed."""
+    """The sheet with the SPEC_PACKS line of one rule changed."""
     start = SHEET.index(f"/ `{rid}`")
     end = SHEET.index("\n## Medicine ", start)
     section = re.sub(r"^SPEC_PACKS = .*$", f"SPEC_PACKS = {packs!r}", SHEET[start:end], count=1, flags=re.M)
@@ -622,7 +641,7 @@ def test_a_code_label_keeps_the_tree_path_even_in_a_prose_pack():
 
 
 def test_clean_twice_is_clean_once_on_prose():
-    row = sci_prose(f"Jordan Sample\n12 Maple Lane\nSpringfield, IL 62701\nHome: 217-555-0123\njordan.s{AT}mailhost.net\n")
+    row = sci_prose(f"Jordan Sample\n12 Maple Lane\nSpringfield, IL 62701\nHome: 217-555-0123\njordan.s{AT}mailhost.net\n" + SCI * 3)  # 250+ characters: DA-C7-005 drops less
     a, once = c.clean(row)
     assert a == "fix"
     assert c.clean(dict(row, text=once)) == ("keep", once)

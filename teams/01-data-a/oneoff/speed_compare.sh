@@ -31,8 +31,9 @@
 #   --limit N      speed, profile and count use only the first N docs of each pack (default all; for large packs)
 #   --profile-packs "p1 p2"  packs to profile and report docs/s for     (default: the first 2 packs the rule runs on)
 #   --count-packs "p1 p2"    packs to count on                          (default: every pack the rule runs on)
-#   --sheet FILE   sheet the build step builds clean.py from, if not spec_v1/sheets/specv1.md (for example the combined
-#                  spec_v1_1/sheets/specv1_1.md); relative to the current folder, or absolute  [SHEET]
+#   --sheet FILE   sheet the build step builds clean.py from, if not spec_v1_1/sheets/specv1_1.md, the default of
+#                  build_clean.py (for example the frozen spec_v1/sheets/specv1.md); relative to the current folder, or
+#                  absolute  [SHEET]
 #   --include-all  speed also runs ind-mr-sangraha-v, which is left out by default (use with a folder of Indic packs)
 #   --expected-packs "p1 p2" exact required speed/harm inventory (default: original 13; --include-all: all registered packs)
 # Python with pyarrow: the PY environment variable (default: the era5 conda python).
@@ -112,13 +113,13 @@ EOF
 fi
 [ ${#PROFILE_PACKS[@]} -eq 0 ] && PROFILE_PACKS=(en-dclm en-fineweb-edu)
 [ ${#COUNT_PACKS[@]} -eq 0 ] && COUNT_PACKS=("${PROFILE_PACKS[@]}")
-echo "sheet for the build step: ${SHEET:-default (spec_v1/sheets/specv1.md)}"
+echo "sheet for the build step: ${SHEET:-default (spec_v1_1/sheets/specv1_1.md)}"
 echo "rules: ${RULES:-none}; before: $BEFORE; after: $AFTER; profile packs: ${PROFILE_PACKS[*]}; count packs: ${COUNT_PACKS[*]}"
 
 stage_build() {
-  say "build: clean.py is the fresh build of ${SHEET:-spec_v1/sheets/specv1.md}"
+  say "build: clean.py is the fresh build of ${SHEET:-spec_v1_1/sheets/specv1_1.md}"
   if "$PY" -I "$REPO/$TEAM/spec_v1/build/build_clean.py" "${SHEET_ARGS[@]}" --out "$WORK/fresh_clean.py" >/dev/null && cmp -s "$WORK/fresh_clean.py" "$CLEAN"; then
-    BUILD_RESULT="ok, clean.py $(sha256sum "$CLEAN" | cut -c1-12) is the fresh build of ${SHEET:-specv1.md}"
+    BUILD_RESULT="ok, clean.py $(sha256sum "$CLEAN" | cut -c1-12) is the fresh build of ${SHEET:-specv1_1.md}"
   else
     BUILD_RESULT="FAIL: clean.py differs from a fresh build. Run: python -I $TEAM/spec_v1/build/build_clean.py ${SHEET_ARGS[*]}"; FAIL=1
   fi
