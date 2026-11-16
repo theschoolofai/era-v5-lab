@@ -85,7 +85,7 @@ def main() -> None:
     ap.add_argument("--n-ctx", type=int, default=2048)
     ap.add_argument("--ngl", type=int, default=99, help="layers on the GPU (ignored by a CPU build)")
     ap.add_argument("--bos", default="<|begin_of_text|>")
-    ap.add_argument("--eos", default="<|end_of_text|>", help='the frozen tokenizer\'s is "<|endoftext|>"')
+    ap.add_argument("--eos", default="<|endoftext|>", help="the frozen tokenizer's eos (id 130822)")
     ap.add_argument("--keep", action="store_true", help="keep the GGUF files in out/_work")
     a = ap.parse_args()
 
