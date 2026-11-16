@@ -193,3 +193,74 @@ def test_a_rise_exactly_at_the_limit_is_not_forgetting():
     # 1.25 - 1.0 is exactly 0.25 in binary floating point, so this tests the boundary itself
     assert not fg.compare(report(bpb=1.0), report(bpb=1.25), max_bpb_rise=0.25)["forgetting"]
     assert fg.compare(report(bpb=1.0), report(bpb=1.5), max_bpb_rise=0.25)["forgetting"]
+
+
+@parametrize("rise, forgot, near", [
+    (0.0503, True, True),    # Anirudh's full fine-tuning runs: over the limit, and close to it
+    (0.04, False, True),     # 0.01 under the limit counts as at the limit
+    (0.06, True, True),      # 0.01 over the limit too
+    (0.0601, True, False),
+    (0.0389, False, False),
+    (0.0, False, False),
+])
+def test_bpb_within_the_margin_is_marked_at_the_limit_and_the_verdict_is_unchanged(rise, forgot, near):
+    r = fg.compare(report(bpb=1.0), report(bpb=1.0 + rise))
+    assert r["bpb"]["at_limit"] is near
+    assert r["forgetting"] is forgot
+
+
+def test_the_margin_changes_the_mark_only_never_the_verdict():
+    a, b = report(bpb=1.0, arc=0.40), report(bpb=1.052, arc=0.37)
+    wide, none = fg.compare(a, b, at_limit_margin=0.01), fg.compare(a, b, at_limit_margin=0.0)
+    assert wide["bpb"]["at_limit"] and not none["bpb"]["at_limit"]
+    assert wide["forgetting"] == none["forgetting"] and wide["reasons"] == none["reasons"]
+    assert wide["limits"]["at_limit_margin"] == 0.01
+
+
+@parametrize("drop, significant, near", [
+    (0.03, True, True),     # combined stderr 0.0141, so the bar is 2 x 0.0141 = 0.0283
+    (0.02, False, True),    # under the bar but within 0.01 of it
+    (0.015, False, False),
+    (0.05, True, False),
+])
+def test_benchmark_drop_near_its_bar_is_marked_at_the_limit(drop, significant, near):
+    r = fg.compare(report(arc=0.40), report(arc=0.40 - drop))["benchmarks"]["arc_challenge"]
+    assert r["significant_drop"] is significant
+    assert r["at_limit"] is near
+
+
+def test_a_benchmark_without_stderr_is_never_marked_at_the_limit():
+    before, after = report(arc=0.40), report(arc=0.37)
+    for rep in (before, after):
+        rep["eval_mini"]["records"][0].pop("stderr")
+    assert fg.compare(before, after)["benchmarks"]["arc_challenge"]["at_limit"] is False
+
+
+def test_markdown_marks_at_the_limit_rows_and_says_so_once_below():
+    near = fg.render_markdown(fg.compare(report(bpb=1.0, arc=0.40), report(bpb=1.0503, arc=0.38)))
+    assert "+0.0503 (at the limit) |" in near and "-0.0200 (stderr 0.0141) (at the limit) |" in near
+    assert "At the limit (within 0.01 of it" in near and "bits per byte, arc_challenge" in near
+    far = fg.render_markdown(fg.compare(report(bpb=1.0, arc=0.40), report(bpb=1.0, arc=0.40)))
+    assert "at the limit" not in far.lower()
+
+
+def test_cli_prints_the_mark_and_takes_a_margin(tmp_path):
+    base, sft = tmp_path / "b.json", tmp_path / "s.json"
+    base.write_text(json.dumps(report(bpb=1.0)))
+    sft.write_text(json.dumps(report(bpb=1.0503)))
+    out = tmp_path / "f.md"
+    assert fg.main(["--before", str(base), "--after", str(sft), "--out", str(out)]) == 1
+    assert "(at the limit)" in out.read_text()
+    assert fg.main(["--before", str(base), "--after", str(sft), "--out", str(out), "--at-limit-margin", "0"]) == 1
+    assert "at the limit" not in out.read_text().lower()
+
+
+def test_with_a_tiny_stderr_the_bar_is_the_absolute_floor():
+    # combined stderr 0.0014, so 2 x stderr = 0.0028 and the bar is the 0.01 floor
+    b, a = report(arc=0.40), report(arc=0.385)
+    for rep in (b, a):
+        rep["eval_mini"]["records"][0]["stderr"] = 0.001
+    r = fg.compare(b, a)["benchmarks"]["arc_challenge"]
+    assert r["significant_drop"] and r["at_limit"]        # 0.015 is 0.005 above the 0.01 floor
+    a["eval_mini"]["records"][0]["value"] = 0.375
+    assert not fg.compare(b, a)["benchmarks"]["arc_challenge"]["at_limit"]   # 0.025 is 0.015 above it
