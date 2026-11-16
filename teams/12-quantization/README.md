@@ -90,6 +90,16 @@ never reuses the files of an old one.
   top-1 on 16 of 16 prompts, max log-probability difference 0.032; round trip 0 of 20,400 lines with different ids
   and 16 of 129,410 single tokens wrong in the whole-vocabulary check (exit 1; C3 sample-v0 has the same kind
   of failure on 9 ids, [`results/gguf_roundtrip_frozen.md`](results/gguf_roundtrip_frozen.md)). The scores of a random model mean nothing and are
-  not in `runs.csv`. **Not yet run on a trained checkpoint or on the frozen tokenizer.**
+  not in `runs.csv`.
+- **On the frozen tokenizer (p1536, 16 Nov),** same random model and machine, default `--tokenizer-sha256`: A1 max
+  logit difference 1.9e-6 with the same top-1 on 4,096 of 4,096 positions; A3 the same top-1 on 16 of 16 prompts,
+  max log-probability difference 0.0065; bf16 and Q4_K_M built and scored. **The round trip does not pass (exit 1),**
+  [`results/gguf_roundtrip_p1536.md`](results/gguf_roundtrip_p1536.md): 3,075 of 20,400 lines get different ids.
+  3,074 of them are lines that p1536's normalizer changes (Bengali, Assamese, Punjabi, one Odia line, and the
+  ZWJ/ZWNJ, NFD and old-chillu sets); the GGUF cannot carry a normalizer, and with the normalizer applied to the text
+  first all of them match. What is left is 1 Russian line and 6 of 129,581 single tokens, from llama.cpp's
+  ASCII-only test for capital letters. So the serving app must normalize before llama.cpp, and whether that counts
+  as a pass for Gate 3 is not decided.
+- **Not yet run on a trained checkpoint.**
 - **Tests:** `python scripts/test_export_hf.py` (13 tests: every rewrite against G5's model, and that a wrong
   rewrite is caught) and `python scripts/test_quantize_eval.py`.
