@@ -1,6 +1,6 @@
 # Week 3 job request: frozen C3 tokenizer, T2 Muon
 
-Draft for G5 lead and TSAI review. One new run is requested at TSAI-confirmed seed 1235, paired with the existing Gate 2 result of 1.6601 BPB. TSAI reviews #474 on Mon 16 Nov. Results go in [frozen_tok.md](../experiments/results/frozen_tok.md), due Wed 18 Nov.
+**Historical request.** This file records the original C3-s0 request. TSAI completed the corresponding T2 Muon run at seed 1235 with p1536 and its matching raw P32 table. TSAI reported BPB for the comparison and retains the raw timing and manifest files. See the [final comparison](../experiments/results/frozen_tok.md) and the [official result on PR #474](https://github.com/theschoolofai/era-v5-lab/pull/474#issuecomment-6908490508). The command, inputs, and outputs below describe the original request.
 
 ```text
 Team:            05-architecture
@@ -25,7 +25,7 @@ Test log:        teams/05-architecture/jobs/evidence/2026-11-15-frozen-c3-muon/s
 - Start from [71bc0fb](https://github.com/theschoolofai/era-v5-lab/commit/71bc0fbb99fbe5e90d8a09055b7622010e8ab23f) and apply TSAI's Gate 2 implementation from [#441](https://github.com/theschoolofai/era-v5-lab/pull/441), followed by the [C3 scoring patch](evidence/2026-11-15-frozen-c3-muon/c3-original-byte-bpb.patch). Use the staged `runtime_fast.yaml`. Record the effective source and runtime hashes. Disable `G5_DOCUMENT_CACHE_DIR` for this comparison because the current cache assumes token bytes equal original bytes. Stage everything before running offline.
 - TSAI confirmed seed `1235` and old-tokenizer `val/bpb: 1.6601`. Use the matching manifest from the Gate 2 evidence page to verify the resolved optimizer, attention, data, and batch settings. Use `t2m1` as supplied by TSAI and record the resolved microbatch from the manifest.
 - TSAI will stage the same Gate 2 `train.jsonl` (SHA-256 starts `267c33bf`), `runtime_fast.yaml`, and the `t2m1` resolution, then apply the C3 scoring patch on top of the pinned speed fixes after reviewing #474. Verify the full staged training digest against the Gate 2 manifest. Preflight the staged inputs with the frozen tokenizer. Use the repository's original `heldout_v1` data, sources, checksum and report, and verify the old run used the same holdout hash.
-- Stage the pinned C3 tokenizer and matching raw P32 table using the hashes in [frozen_tok.md](../experiments/results/frozen_tok.md). Build the table offline with `python teams/04-ke2/src/build_tables.py --tokenizer ./inputs/tokenizer_c3.json --pos-dims 32 --out ./out/c3-tables`. Verify the embedded tokenizer and raw table content hashes. Stage the resulting raw table for the run.
+- For the original C3 setup, use tokenizer SHA-256 `15468e66457b43af79f695cbe585c0d03e3cfe7a4a5d04d189dd3c6b9f02ddc3` and raw P32 table content SHA-256 `fc5e5f8ffacbe93ecdedc276661edfd43ed9a13621eb4a68166ef80e24e88f9b`. Build the table offline with `python teams/04-ke2/src/build_tables.py --tokenizer ./inputs/tokenizer_c3.json --pos-dims 32 --out ./out/c3-tables`. Verify the embedded tokenizer and raw table content hashes. Stage the resulting raw table for the run.
 
 ## Scoring and reporting
 
@@ -37,4 +37,4 @@ After applying the C3 patch, run the targeted original-vs-encoded-byte BPB regre
 python -m unittest discover -s teams/05-architecture/tests -p test_week2_scoring.py -k test_frozen_c3_bpb_uses_original_bytes -v
 ```
 
-Report `data_load_seconds` from the run manifest. It measures construction of the training and held-out windows together, after file hashing.
+The original request included `data_load_seconds` for building the training and held-out windows after file hashing. The completed tokenizer comparison reports BPB.
