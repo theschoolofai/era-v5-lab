@@ -374,9 +374,14 @@ def _code_a6_001():
 
     MIXED = re.compile(r"\b(?=\w*[A-Za-z])(?=\w*[Ѐ-ӿ])\w+\b")
 
+    CYRILLIC = re.compile("[\u0400-\u04ff]")  # the range MIXED asks for: every match holds one of these
+
     def medicine_a6(doc):
-        t = MIXED.sub(lambda m: m.group().translate(HOMO), doc["text"])
-        return ("fix" if t != doc["text"] else "keep", t)
+        text = doc["text"]
+        if not CYRILLIC.search(text):  # no Cyrillic character, so MIXED has no match: the text is kept
+            return ("keep", text)
+        t = MIXED.sub(lambda m: m.group().translate(HOMO), text)
+        return ("fix" if t != text else "keep", t)
 
 
     def _std(out, text):
@@ -423,8 +428,11 @@ def _code_a4_002():
     LOST = re.compile(r"[ \t]*//[^\n\w]*�[^\nA-Za-z0-9]*$", re.M)
 
     def medicine_a4(doc):
-        t = LOST.sub("", doc["text"])
-        return ("fix" if t != doc["text"] else "keep", t)
+        text = doc["text"]
+        if "\ufffd" not in text:  # every match holds a U+FFFD, so a text without one is kept without running LOST
+            return ("keep", text)
+        t = LOST.sub("", text)
+        return ("fix" if t != text else "keep", t)
 
 
     def _std(out, text):
@@ -944,7 +952,9 @@ def _code_e2_001():
         if not text:
             return "keep", text
         n = len(text)
-        if sum(len(m.group()) for m in _BYTES.finditer(text)) / n >= share:
+        # _BYTES needs 24 groups that each start with "0x", so a text with fewer than 24 of them has no match (the count is
+        # exact: "0x" cannot overlap itself)
+        if text.count("0x") >= 24 and sum(len(m.group()) for m in _BYTES.finditer(text)) / n >= share:
             return "drop", text
         if sum(len(m.group()) for m in _B64.finditer(text)) / n >= b64_share:
             return "drop", text
@@ -1643,11 +1653,22 @@ def _code_e3_003():
 
     SEED = re.compile(r'(?i)((?:secret|seed|totp|otp)\w*\s*:?=\s*")[A-Z2-7]{16,}(")')
 
+    # Each group of literals is necessary for its KEYS pattern (the patterns have no (?i) flag). The text as it is at that step is
+    # tested before each substitution, so the order of the substitutions and any cascade stay as they were.
+    KEY_HINTS = (("AKIA",), ("ghp_", "gho_", "ghu_", "ghs_", "ghr_"), ("sk-",), ("xox",), ("-----BEGIN ",))
+    # SEED needs an "=", a quote and, case-insensitively, one of its four words; (?i) also matches U+017F as "s", so the word test
+    # is made on the casefolded text ("otp" is inside "totp")
+    SEED_WORDS = ("secret", "seed", "otp")
+
     def medicine_e3(doc):
         t = doc["text"]
-        for rx in KEYS:
-            t = rx.sub("EXAMPLE_SECRET", t)
-        t = SEED.sub(r"\1EXAMPLE_SECRET\2", t)
+        for rx, hints in zip(KEYS, KEY_HINTS):
+            if any(h in t for h in hints):
+                t = rx.sub("EXAMPLE_SECRET", t)
+        if "=" in t and '"' in t:
+            low = t.casefold()
+            if any(w in low for w in SEED_WORDS):
+                t = SEED.sub(r"\1EXAMPLE_SECRET\2", t)
         return ("fix" if t != doc["text"] else "keep", t)
 
 
