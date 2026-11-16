@@ -4611,8 +4611,13 @@ def _email(m, org):
 
 def medicine_f1(text):
     lines = text.split("\n")
-    org_page = bool(ORG_VOICE.search(text))
+    org_page = []  # ORG_VOICE on the whole text: searched once, and only when a contact line asks
     has_org = {}  # line number -> an organisation word on that line: searched once, and only when a contact line asks
+
+    def on_org_page():
+        if not org_page:
+            org_page.append(bool(ORG_VOICE.search(text)))
+        return org_page[0]
 
     def org_near(i):  # same answer as searching the joined 13-line window, as no match spans a newline
         for j in range(max(0, i - 6), min(len(lines), i + 7)):
@@ -4627,10 +4632,10 @@ def medicine_f1(text):
         if "@" not in line and not DIGIT.search(line):  # no EMAIL, PHONE or ADDRESS can match
             out.append(line)
             continue
-        new = EMAIL.sub(lambda m: _email(m, org_page or org_near(i) or bool(PUBLIC_ROLE.search(
+        new = EMAIL.sub(lambda m: _email(m, on_org_page() or org_near(i) or bool(PUBLIC_ROLE.search(
             "\n".join(lines[max(0, i - 2):i + 1])))), line) if "@" in line else line
         if PHONE.search(new) or ADDRESS.search(new):
-            if not (org_page or org_near(i)):
+            if not (on_org_page() or org_near(i)):
                 new = PHONE.sub(lambda m: m.group() if TOLL_FREE.match(m.group()) else "<PHONE>", new)
                 if len(line.strip()) <= CONTACT_LINE:
                     new = ADDRESS.sub("<ADDRESS>", new)
@@ -5283,17 +5288,24 @@ import re
 D3_FOREIGN = re.compile("[\u0400-\u04ff\u0900-\u0dff\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af\u0600-\u06ff]")
 
 def medicine_d3(text):
+    # Speed: a line with no D3_FOREIGN character has f == 0, so it is never removed and its letter count is never used;
+    # with no line removed foreign == 0 and the drop test cannot fire, so the letters of the whole text are counted
+    # only when something was removed. Most documents have no such character at all and are returned as they are.
+    if not D3_FOREIGN.search(text):
+        return text
     out, foreign = [], 0
     for l in text.split("\n"):
-        letters = sum(c.isalpha() for c in l)
-        f = len(D3_FOREIGN.findall(l))
-        if letters and f / letters > 0.5:      # a line that is mostly foreign script is removed
-            foreign += f
-            continue
+        if D3_FOREIGN.search(l):
+            letters = sum(c.isalpha() for c in l)
+            f = len(D3_FOREIGN.findall(l))
+            if letters and f / letters > 0.5:      # a line that is mostly foreign script is removed
+                foreign += f
+                continue
         out.append(l)
-    total = sum(c.isalpha() for c in text)
-    if total and foreign / total > 0.3:        # mostly not English: that is D1, drop
-        return ("drop", text)
+    if foreign:
+        total = sum(c.isalpha() for c in text)
+        if total and foreign / total > 0.3:        # mostly not English: that is D1, drop
+            return ("drop", text)
     return "\n".join(out)
 
 
@@ -5462,9 +5474,19 @@ C1_SITE = re.compile(
 # phpBB "Replies / <n> / Views / <n>" block, one value per line
 C1_REPLIES = re.compile(r"(?m)^Replies\n\d+\nViews\n[\d.]+K?\n?")
 
+# Speed: on a pure-ASCII line, (?i) matching C1_SITE equals matching its lower-cased pattern against the lower-cased line
+# (every escape in C1_SITE is lower-case, \d \s \w \u..., and it has no non-ASCII character, so lower() cannot change its
+# meaning). Non-ASCII lines keep the original (?i) regex.
+assert C1_SITE.pattern.startswith("(?i)")
+C1_SITE_ASCII = re.compile(C1_SITE.pattern[4:].lower())
+
+def _c1_site(l):
+    return C1_SITE_ASCII.search(l.lower()) if l.isascii() else C1_SITE.search(l)
+
 def medicine_c1(text):
+    # the length test goes first: it is cheap, and a line over 120 characters is kept whatever C1_SITE finds
     keep = [l for l in text.split("\n")
-            if not (C1_LINE.fullmatch(l) or (C1_SITE.search(l) and len(l) <= 120))]
+            if not (C1_LINE.fullmatch(l) or (len(l) <= 120 and _c1_site(l)))]
     return C1_REPLIES.sub("", "\n".join(keep))
 
 
