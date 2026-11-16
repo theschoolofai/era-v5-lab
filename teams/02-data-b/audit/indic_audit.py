@@ -41,6 +41,7 @@ ZWJ, ZWNJ = "\u200d", "\u200c"
 # The tokenizer normalizer replaces each of these with one atomic chillu (U+0D7A to U+0D7F), so one ZWJ goes away.
 OLD_CHILLU = ["ണ്\u200d", "ന്\u200d", "ര്\u200d",
               "ല്\u200d", "ള്\u200d", "ക്\u200d"]
+OLD_CHILLU_RE = "|".join(OLD_CHILLU)                   # one regex pass instead of six substring passes
 MAGIC, VERSION, HEADER_BYTES, EOS_ID = 20261025, 2, 1024, 130822
 
 
@@ -63,15 +64,16 @@ def joiners_changed(raw, shard):
     raw, shard: pyarrow string arrays of the same length, one row per kept document, in the same order.
     Allowed: the normalizer folds each OLD_CHILLU sequence into one atomic chillu, so the shard has one ZWJ fewer for
     each OLD_CHILLU found in the raw text. Any other difference in ZWJ or ZWNJ counts is a change.
-    Use count() and pc functions only: no Python loop over documents or characters.
+    Returns the mask and the four counts, so each text is scanned once per character (five passes in all).
+    Uses pc kernels only: no Python loop over documents or characters.
     """
-    chillu = count(raw, OLD_CHILLU[0])
-    for s in OLD_CHILLU[1:]:                                # 6 patterns, not a loop over documents
-        chillu = pc.add(chillu, count(raw, s))
-    zwj_expected = pc.subtract(count(raw, ZWJ), chillu)     # the normalizer removes one ZWJ per old chillu
-    zwj_changed = pc.not_equal(count(shard, ZWJ), zwj_expected)
-    zwnj_changed = pc.not_equal(count(shard, ZWNJ), count(raw, ZWNJ))
-    return pc.or_(zwj_changed, zwnj_changed)
+    n = {"zwj_raw": count(raw, ZWJ), "zwj_shard": count(shard, ZWJ),
+         "zwnj_raw": count(raw, ZWNJ), "zwnj_shard": count(shard, ZWNJ)}
+    chillu = pc.count_substring_regex(raw, OLD_CHILLU_RE)
+    zwj_expected = pc.subtract(n["zwj_raw"], chillu)       # the normalizer removes one ZWJ per old chillu
+    zwj_changed = pc.not_equal(n["zwj_shard"], zwj_expected)
+    zwnj_changed = pc.not_equal(n["zwnj_shard"], n["zwnj_raw"])
+    return pc.or_(zwj_changed, zwnj_changed), n
 
 
 def where_changed(raw, shard, tok):
@@ -118,17 +120,16 @@ def audit_pack(raw_paths, shard_paths, tok, eos_id=EOS_ID):
         shard = pa.table({"doc_id": pa.array([], pa.string()), "shard_text": pa.array([], pa.string())})
     kept = raw.join(shard, "doc_id", join_type="inner")
     raw_text, shard_text = kept.column("text").combine_chunks(), kept.column("shard_text").combine_chunks()
-    changed = joiners_changed(raw_text, shard_text)
+    changed, n = joiners_changed(raw_text, shard_text)
     total = lambda a: int(pc.sum(a).as_py() or 0)
     pack_id = pack_of(raw_paths[0])
-    flagged = [(pack_id, d, where_changed(r, s, tok)) for d, r, s in zip(
+    flagged = sorted((pack_id, d, where_changed(r, s, tok)) for d, r, s in zip(   # sorted: join order varies
         pc.filter(kept.column("doc_id"), changed).to_pylist(),
-        pc.filter(raw_text, changed).to_pylist(), pc.filter(shard_text, changed).to_pylist())]
+        pc.filter(raw_text, changed).to_pylist(), pc.filter(shard_text, changed).to_pylist()))
     row = {
         "pack_id": pack_id, "lang": pack_id.split("-")[1], "shards": len(shard_paths),
         "docs_raw": raw.num_rows, "docs_kept": kept.num_rows, "docs_dropped": raw.num_rows - kept.num_rows,
-        "zwj_raw": total(count(raw_text, ZWJ)), "zwj_shard": total(count(shard_text, ZWJ)),
-        "zwnj_raw": total(count(raw_text, ZWNJ)), "zwnj_shard": total(count(shard_text, ZWNJ)),
+        **{k: total(v) for k, v in n.items()},
         "docs_joiners_changed": len(flagged),
         "docs_joiners_changed_in_kept_text": sum(f[2] == "kept text" for f in flagged),
     }
