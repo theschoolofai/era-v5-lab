@@ -1,49 +1,32 @@
 # Week 3 frozen-tokenizer comparison
 
-**Status: old baseline confirmed. Frozen C3 run and BPB delta pending.** Due Wed 18 Nov 2026.
+**Result:** TSAI's matched T2 Muon run at seed 1235 scored **1.5381 BPB** with p1536, down from **1.6601 BPB** with tokenizer v0. The matched delta is **−0.1220 BPB**. This comparison covers one seed. [TSAI result on PR #474](https://github.com/theschoolofai/era-v5-lab/pull/474#issuecomment-6908490508)
 
-## Reference and run plan
+| Run | Seed | Completed steps | Held-out BPB |
+| --- | ---: | ---: | ---: |
+| Gate 2 tokenizer v0 | 1235 | 1,221 | 1.6601 |
+| Gate 3 frozen p1536 | 1235 | 1,221 | 1.5381 |
 
-The lead selected the Gate 2 T2 Muon arm (`exp2_muon`). TSAI reported mean held-out BPB of **1.6607** across seeds 1234, 1235 and 1236 after 1,221 steps. TSAI confirmed seed 1235 as the match and reported old-tokenizer BPB of **1.6601** at that seed (1234: 1.6443, 1236: 1.6777). The manifests are on the Gate 2 evidence page. The three-seed mean is context for the matched comparison. [EXP-2 request](https://github.com/theschoolofai/era-v5-lab/pull/354)
+The old-tokenizer results at seeds 1234 and 1236 were 1.6443 and 1.6777 BPB. The three-seed Gate 2 mean was 1.6607 BPB. The matched delta uses the seed-1235 baseline. [Gate 2 EXP-2 request](https://github.com/theschoolofai/era-v5-lab/pull/354)
 
-TSAI will stage the same Gate 2 `train.jsonl` (SHA-256 starts `267c33bf`), `runtime_fast.yaml`, and the `t2m1` resolution. TSAI will apply the C3 scoring patch on top of the speed fixes at `71bc0fb` after reviewing [#474](https://github.com/theschoolofai/era-v5-lab/pull/474) on Mon 16 Nov. Match the seed's resolved settings, raw training text, holdout, and 1,221-step budget. Verify the full training digest and resolved settings from the manifest. Keep artifact validation enabled and pass the pinned C3 tokenizer identity in the run setup. [Gate 2 trainer diff discussion](https://github.com/theschoolofai/era-v5-lab/pull/441)
+## Frozen p1536 group metrics
 
-## Verified local inputs
+| Metric | BPB |
+| --- | ---: |
+| English | 1.9849 |
+| Code | 1.9034 |
+| Indic mean | 1.3552 |
+| Three-group mean | 1.7478 |
 
-| Artifact | SHA-256 |
-| --- | --- |
-| Old tokenizer v0 | `2de039f20d17afd17615095c406c43087359673b767ed0fe2c480b995f2af8e5` |
-| Frozen C3 sample-v0 | `15468e66457b43af79f695cbe585c0d03e3cfe7a4a5d04d189dd3c6b9f02ddc3` |
-| Locally rebuilt frozen raw P32 NPZ | `f775213c8b01602ca1179cd0b40a07340220e40cafa178e6315c87ab02da9c9b` |
-| Frozen raw P32 content | `fc5e5f8ffacbe93ecdedc276661edfd43ed9a13621eb4a68166ef80e24e88f9b` |
-| Original heldout_v1 JSONL | `21c6e4b2df8dae9d69e254f4a00fc934d2a3c70f0675065a03724299d94312bb` |
+The three-group mean weights English, code, and the Indic mean equally. Whole-file BPB uses summed next-token loss divided by log(2) and by the total original UTF-8 bytes.
 
-Built the raw P32 table with G4's `src/build_tables.py` at P=32. G5 accepted the verified C3 tokenizer and table when supplied the pinned C3 checksum. The table has 131,072 rows and zero truncated entries.
+## Run and scoring provenance
 
-## Holdout preflight and scoring decision
+- TSAI ran the T2 `exp2_muon` arm on trainer `71bc0fb` with its Gate 2 speed fixes and the #474 scoring patch, updating the patch's tokenizer pin from C3-s0 to p1536. [TSAI result](https://github.com/theschoolofai/era-v5-lab/pull/474#issuecomment-6908490508) · [Gate 2 trainer diff](https://github.com/theschoolofai/era-v5-lab/pull/441#issuecomment-6880790263)
+- TSAI confirmed p1536 tokenizer hash `e6b93a93…a64b` and raw P32 table content hash prefix `21072027…`. The full tokenizer SHA-256 verified locally is `e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b`. The locally rebuilt table content SHA-256 is `21072027b19ef6f05d57ead7a2fc9fb4c52129e491186bf38d0ba079e8d5168a`. G5 preflight verified all 131,072 raw table rows with zero truncations. [Team 3 p1536 candidate](https://github.com/theschoolofai/era-v5-lab/pull/414)
+- TSAI scored all **1,059 documents** on the original `heldout_v1` text, totaling **3,775,551 UTF-8 bytes**. The local holdout SHA-256 is `21c6e4b2df8dae9d69e254f4a00fc934d2a3c70f0675065a03724299d94312bb`. Validation uses original bytes both overall and per slice. In the normalization-aware scoring path, `train/utf8_bytes` counts encoded training bytes and `val/encoded_utf8_bytes` reports encoded holdout bytes.
+- TSAI confirmed the run setup matched the Gate 2 EXP-2 Muon manifest at seed 1235, with two differences: the tokenizer and the scoring patch.
 
-Of 1,059 documents, C3's token bytes reconstructed the original text for 985. For the other 74, they reconstructed C3-normalized text exactly. For example, C3 maps Bengali U+09AF followed by U+09BC to U+09DF. Original holdout text totals 3,775,551 UTF-8 bytes. C3-normalized text totals 3,762,753 bytes. The current loader checks reconstruction against original bytes and rejects those 74 documents.
+## C3-s0 preflight record
 
-**Approved scoring policy:** TSAI directed us to use the original `heldout_v1` text and its original UTF-8 byte count for both tokenizers. C3 applies its normalizer internally. Its reconstructed bytes are checked against that normalized text, and BPB uses the original-byte denominator for the whole file and every slice. Keep all 1,059 documents and reuse the matched old Muon BPB from the original holdout. No old-model rescore on normalized text is needed.
-
-Deepjyoti confirmed the holdout builder strips leading and trailing whitespace without applying Unicode normalization. All 1,059 documents are already NFC. The 74 differences are consistent with C3's additional Bengali-script and Gurmukhi nukta recomposition rules, which go beyond NFC.
-
-The exact TSAI training file still needs a preflight. The local harness patch is based on `71bc0fb` and must be checked with TSAI's speed-fix diff and `runtime_fast.yaml` before the official run. The frozen comparison uses uncached windows because the current cache schema assumes that encoded byte lengths sum to original bytes.
-
-## Result
-
-For C3, `train/utf8_bytes` counts encoded training bytes after tokenizer normalization. `val/utf8_bytes` and per-slice validation byte counts use the original UTF-8 text. `val/encoded_utf8_bytes` records the normalized holdout byte count separately.
-
-| Run | Seed | Completed steps | Held-out BPB | Evidence |
-| --- | --- | --- | --- | --- |
-| Old tokenizer | 1235 | 1,221 | 1.6601 | TSAI confirmation. Manifest on the Gate 2 evidence page. |
-| Frozen C3 | 1235 | Pending | Pending | TSAI manifest and metrics |
-
-**BPB delta (frozen BPB minus 1.6601):** Pending. Record the scoring policy, held-out byte count, scored tokens, training bytes where available, trainer and runtime identity, and any differences in run settings.
-
-**Frozen run data-load time:** Pending. Copy `data_load_seconds` from the TSAI manifest. This times construction of the training and held-out windows together, after file hashing.
-
-## Local verification of the scoring path
-
-The frozen C3 path loaded every original holdout document and all 15 slices. The attached scoring patch includes a regression for whole-file and per-slice BPB using different original and encoded byte counts. It exercises both fixed and token-budgeted evaluation batches. A one-step CPU Muon smoke at seed 1235 with synthetic text containing decomposed Bengali nukta completed training, evaluation, and output writing in 51.40 seconds. The scorer used 72 original bytes and logged 60 encoded bytes. This is integration evidence. Full T2 quality and performance remain pending.
-The local CUDA integration smoke also completed three steps in 5.98 seconds. See the [smoke command and output](../../jobs/evidence/2026-11-15-frozen-c3-muon/smoke.md).
+The original #474 request was prepared for C3-s0. Its local preflight found 74 of 1,059 documents changed under tokenizer normalization. The tokenizer's reconstructed bytes matched the normalized text for those documents, and the full holdout contained 3,762,753 bytes after normalization. The preflight and smoke checks established the original-byte scoring path before TSAI switched the job to p1536. [C3-s0 smoke evidence](../../jobs/evidence/2026-11-15-frozen-c3-muon/smoke.md)
