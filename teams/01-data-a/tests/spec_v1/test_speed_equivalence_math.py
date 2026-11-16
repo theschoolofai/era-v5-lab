@@ -1,10 +1,14 @@
-"""Equivalence tests for the speed-up of the math rule DA-C1-001 in clean.py (results/spec_v1/speed_v1_math.md): site boilerplate
-on math-finemath. The 120-character test runs before the slow C1_SITE search, and on a pure-ASCII line the search uses the
-lower-cased pattern on the lower-cased line instead of the (?i) pattern. The rule is checked against a frozen copy of the rule
-as it was before (c1_reference, below): the same text goes through both and the results must be equal, on hand-written
-cases at the edges of the fast path and on random documents. Every text here is made up; none comes from a pack.
+"""Equivalence tests for the speed-ups of the math rules in clean.py (results/spec_v1/speed_v1_math.md). Each rule that was made
+faster is checked against a frozen copy of the rule as it was before the change (c1_reference and d3_reference, below): the same
+text goes through both and the results must be equal, on hand-written cases at the edges of the fast path and on random
+documents. Every text here is made up; none comes from a pack.
 
   python -m pytest tests/spec_v1/test_speed_equivalence_math.py
+
+  DA-C1-001  site boilerplate (math-finemath): the 120-character test runs before the slow C1_SITE search, and on a pure-ASCII
+             line the search uses the lower-cased pattern on the lower-cased line instead of the (?i) pattern
+  DA-D3-005  foreign-script lines (math-finemath, math-megamath): letters are counted only for lines that hold a foreign
+             character, and the whole text is returned as it is when it holds none
 
 The speed-up tests of the English rules are in test_speed_equivalence.py, those of the code rules in
 test_speed_equivalence_code.py and those of the F1 rule in test_speed_equivalence_f1*.py. If the rule's behaviour is ever
@@ -62,9 +66,34 @@ def c1_reference():
     return {"medicine_c1": medicine_c1, "C1_LINE": C1_LINE, "C1_SITE": C1_SITE, "C1_REPLIES": C1_REPLIES}
 
 
+def d3_reference():
+    """DA-D3-005 as it was before its speed-up (clean.py ddf379d68e29, specv1_1.md medicine 56): the old medicine_d3 and its regex."""
+    # Cyrillic, Indic, kana, CJK, Hangul, Arabic (Greek is left out: Greek letters are maths)
+    D3_FOREIGN = re.compile("[\u0400-\u04ff\u0900-\u0dff\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af\u0600-\u06ff]")
+
+    def medicine_d3(text):
+        out, foreign = [], 0
+        for l in text.split("\n"):
+            letters = sum(c.isalpha() for c in l)
+            f = len(D3_FOREIGN.findall(l))
+            if letters and f / letters > 0.5:      # a line that is mostly foreign script is removed
+                foreign += f
+                continue
+            out.append(l)
+        total = sum(c.isalpha() for c in text)
+        if total and foreign / total > 0.3:        # mostly not English: that is D1, drop
+            return ("drop", text)
+        return "\n".join(out)
+
+    return {"medicine_d3": medicine_d3, "D3_FOREIGN": D3_FOREIGN}
+
+
 REF = c1_reference()
 OLD_C1 = REF["medicine_c1"]
 NEW_C1 = c._RULE["DA-C1-001"]()
+D3_REF = d3_reference()
+OLD_D3 = D3_REF["medicine_d3"]
+NEW_D3 = c._RULE["DA-D3-005"]()
 
 
 def doc(text, pack="math-finemath", lang="en"):
@@ -275,3 +304,149 @@ def test_random_ascii_lines_match_the_old_regex_directly():
         assert bool(old) == bool(new), repr(s)
         hits += bool(old)
     assert hits > 2000
+
+
+# =====================================================================================================================
+# DA-D3-005: lines in a foreign script
+# =====================================================================================================================
+
+def expected_d3(text):
+    """What the old rule gives, in the shared (action, text) form."""
+    out = OLD_D3(text)
+    if isinstance(out, tuple):
+        return ("drop", text)
+    return ("fix" if out != text else "keep", out)
+
+
+def same_d3(text, pack="math-finemath"):
+    got = NEW_D3(doc(text, pack=pack))
+    assert got == expected_d3(text), repr(text)
+    return got[0]
+
+
+EN = "The perimeter of the square is four times its side."
+SCRIPTS = {"cyrillic": "Привет мир это тест", "devanagari": "नमस्ते दुनिया यह एक परीक्षा है", "kana": "こんにちは世界のテスト",
+           "cjk": "你好世界这是一个测试", "hangul": "안녕하세요 세계 테스트", "arabic": "مرحبا بالعالم هذا اختبار"}
+# first and last character of each range of D3_FOREIGN, and the characters just outside it
+EDGES = ["\u0400", "\u04ff", "\u0900", "\u0dff", "\u3040", "\u30ff", "\u4e00", "\u9fff", "\uac00", "\ud7af", "\u0600", "\u06ff"]
+OUTSIDE = ["\u03ff", "\u0500", "\u08ff", "\u0e00", "\u303f", "\u3100", "\u4dff", "\ua000", "\uabff", "\ud7b0", "\u05ff", "\u0700",
+           "\u03b1", "\u03a9", "\u00e9", "\u2211", "\u221e"]
+# characters inside the ranges that are not letters: the line's letter count then differs from its foreign count
+NOT_LETTERS = ["\u0964", "\u0966", "\u093e", "\u094d", "\u0660", "\u060c", "\u0483", "\u0488", "\u0e50", "\u30fb", "\u3099"]
+
+
+def test_the_foreign_ranges_used_below_are_what_the_regex_matches():
+    regex = D3_REF["D3_FOREIGN"]
+    assert all(regex.search(ch) for ch in EDGES)
+    assert not any(regex.search(ch) for ch in OUTSIDE)
+    assert any(regex.search(ch) and not ch.isalpha() for ch in NOT_LETTERS)      # the cases below do cover non-letters
+
+
+@pytest.mark.parametrize("name", sorted(SCRIPTS))
+def test_each_script_alone_in_a_line_or_inline(name):
+    line = SCRIPTS[name]
+    assert same_d3(EN + "\n" + line + "\n" + EN + " " + EN) == "fix"              # a whole foreign line is deleted
+    assert same_d3(EN + " " + line + " " + EN) == "keep"                            # a few foreign letters in an English line stay
+    assert same_d3(line) == "drop"                                                 # all foreign: drop
+    assert same_d3("\n".join([line] * 3)) == "drop"
+    for pack in ("math-finemath", "math-megamath"):
+        same_d3(EN + "\n" + line + "\n" + EN, pack)
+
+
+@pytest.mark.parametrize("ch", EDGES + OUTSIDE + NOT_LETTERS)
+def test_range_edges_and_non_letter_characters(ch):
+    for text in (ch, ch * 5, EN + "\n" + ch * 7 + "\n" + EN, EN + ch, ch + "a", "a" + ch * 3 + "b\n" + EN, ch + "1" + ch + "\n",
+                 "\n".join([ch + "ab", ch * 4, "ab" + ch + "cd"]), "a" * 40 + "\n" + ch * 60, "1 2 3 " + ch):
+        same_d3(text)
+
+
+def test_greek_is_left_alone():
+    assert same_d3("Let \u03b1 + \u03b2 = \u03b3.\n\u03b1\u03b2\u03b3\u03b4\u03b5\u03b6 \u03b7\u03b8\u03b9\u03ba") == "keep"
+
+
+def line_with(foreign, letters, foreign_char="ж"):
+    return "a" * (letters - foreign) + foreign_char * foreign
+
+
+@pytest.mark.parametrize("foreign_char", ["ж", "你", "ह", "ع"])
+def test_line_threshold_sweep(foreign_char):
+    # a line goes when MORE than half of its letters are foreign: 5 of 10 stays, 6 of 10 goes
+    for n in (1, 2, 3, 10, 11, 40):
+        for k in range(0, n + 1):
+            same_d3(EN + " " + EN + "\n" + line_with(k, n, foreign_char) + "\n" + EN)
+    assert same_d3(EN * 3 + "\n" + line_with(5, 10) + "\n" + EN * 3) == "keep"
+    assert same_d3(EN * 3 + "\n" + line_with(6, 10) + "\n" + EN * 3) == "fix"
+
+
+def test_document_threshold_sweep():
+    # the document goes when the removed lines hold MORE than 30% of all its letters: 30 of 100 is a fix, 31 of 101 a drop
+    for total in (10, 100, 101, 1000):
+        for foreign in range(1, total):
+            text = "x" * (total - foreign) + "\n" + "ж" * foreign
+            same_d3(text)
+    assert same_d3("a" * 70 + "\n" + "ж" * 30) == "fix"
+    assert same_d3("a" * 70 + "\n" + "ж" * 31) == "drop"
+    assert same_d3("a" * 70 + "\n" + "ж" * 29) == "fix"
+
+
+def test_foreign_characters_that_are_kept_never_drop_the_document():
+    # foreign letters in lines that are not removed do not count towards the drop test
+    for k in (1, 3, 9):
+        text = "\n".join([("a" * 20 + "ж" * k)] * 5)
+        assert same_d3(text) == "keep"
+    assert same_d3("\u0964\n\u0964\u0964\n" + EN) == "keep"        # lines of marks only: no letters, so kept
+
+
+def test_edge_documents_d3():
+    for text in ("", "\n", "\n\n\n", " ", "123 456", "\u0964", "ж", "ж\n", "\nж", "a\r\nж\r\nb", "ж\r\nж", "a\nж ж ж\nb\n",
+                 "a\n\nж ж ж\n\nb", EN + "\n", "\n" + EN, "ж" * 1000, ("a" * 50 + "\n") * 50 + "ж" * 5000):
+        same_d3(text)
+
+
+def test_other_packs_and_languages_are_unchanged_d3():
+    text = EN + "\n" + SCRIPTS["cyrillic"] + "\n" + EN
+    for pack in ("en-dclm", "code-python", "sci-finepdfs", "ind-hi-fw2"):
+        assert NEW_D3(doc(text, pack=pack)) == ("keep", text)
+    assert NEW_D3(doc(text, lang="hi")) == ("keep", text)
+    assert NEW_D3(doc(text, pack="math-megamath"))[0] == "fix"
+
+
+def foreign_run(rng, n):
+    return "".join(rng.choice(rng.choice(list(SCRIPTS.values())).replace(" ", "") + "".join(NOT_LETTERS + EDGES)) for _ in range(n))
+
+
+def random_d3_line(rng):
+    k = rng.random()
+    if k < 0.40:
+        return rng.choice([EN, "x = 4", "$\\int_0^1 x^2 dx$", "", "", "Step 1: add 3.", "Let \u03b1 + \u03b2 = \u03b3", " ", "12 + 7 = 19", "\u00e9\u00e8 ok"])
+    if k < 0.60:
+        return foreign_run(rng, rng.randint(1, 60))                                                  # a foreign line
+    if k < 0.85:
+        n = rng.randint(1, 40)
+        f = rng.randint(0, n)
+        letters = list("a" * (n - f)) + list(foreign_run(rng, f))
+        rng.shuffle(letters)
+        return "".join(letters)                                                                      # mixed line
+    return EN + " " + foreign_run(rng, rng.randint(1, 4)) + " " + EN                                 # a few inline
+
+
+def random_d3_doc(rng):
+    mode = rng.random()
+    if mode < 0.3:
+        lines = [rng.choice([EN, "x = 4", "", "Step 1."]) for _ in range(rng.randint(0, 20))]       # no foreign character at all
+    else:
+        lines = [random_d3_line(rng) for _ in range(rng.randint(1, 20))]
+    return rng.choice(["\n", "\n", "\r\n", "\n\n"]).join(lines)
+
+
+def test_random_documents_match_old_rule_and_cover_all_outcomes():
+    rng = random.Random(3)
+    seen = {"keep": 0, "fix": 0, "drop": 0}
+    foreign_kept = 0
+    for i in range(4000):
+        text = random_d3_doc(rng)
+        action = same_d3(text, "math-finemath" if i % 2 else "math-megamath")
+        seen[action] += 1
+        foreign_kept += action == "keep" and bool(D3_REF["D3_FOREIGN"].search(text))
+    assert seen["keep"] > 800 and seen["fix"] > 400 and seen["drop"] > 100, seen    # the draw hits all three outcomes
+    assert foreign_kept > 50       # documents with a foreign character that nothing removes: they take the slow path and are kept

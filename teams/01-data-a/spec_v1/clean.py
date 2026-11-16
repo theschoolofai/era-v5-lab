@@ -3557,17 +3557,24 @@ def _math_d3_005():
     D3_FOREIGN = re.compile("[\u0400-\u04ff\u0900-\u0dff\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af\u0600-\u06ff]")
 
     def medicine_d3(text):
+        # Speed: a line with no D3_FOREIGN character has f == 0, so it is never removed and its letter count is never used;
+        # with no line removed foreign == 0 and the drop test cannot fire, so the letters of the whole text are counted
+        # only when something was removed. Most documents have no such character at all and are returned as they are.
+        if not D3_FOREIGN.search(text):
+            return text
         out, foreign = [], 0
         for l in text.split("\n"):
-            letters = sum(c.isalpha() for c in l)
-            f = len(D3_FOREIGN.findall(l))
-            if letters and f / letters > 0.5:      # a line that is mostly foreign script is removed
-                foreign += f
-                continue
+            if D3_FOREIGN.search(l):
+                letters = sum(c.isalpha() for c in l)
+                f = len(D3_FOREIGN.findall(l))
+                if letters and f / letters > 0.5:      # a line that is mostly foreign script is removed
+                    foreign += f
+                    continue
             out.append(l)
-        total = sum(c.isalpha() for c in text)
-        if total and foreign / total > 0.3:        # mostly not English: that is D1, drop
-            return ("drop", text)
+        if foreign:
+            total = sum(c.isalpha() for c in text)
+            if total and foreign / total > 0.3:        # mostly not English: that is D1, drop
+                return ("drop", text)
         return "\n".join(out)
 
 
