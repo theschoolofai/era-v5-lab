@@ -19,7 +19,8 @@ Encode throughput for the frozen **C3 sample-v0** tokenizer vs the **p1536** can
 | p1536 | `week3data/archive/tokenizer.json` | `e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b` |
 
 - **C3:** `python teams/03-tokenizer/release/verify_release.py …` → `RESULT: PASS` (structure, roles, round trip, `eos_token_id` **130822**). Log: `release_verification.log`.
-- **p1536:** sha256 matches `week3data/archive/SHA256SUMS`. `verify_release.py` is pinned to frozen C3 and would FAIL on purpose for any other file; p1536 was checked separately for vocab 131072, 130460 merges, 356 specials, and EOS id **130822**. Special-token ids were not modified. Archives were not rewritten.
+- **p1536:** expected sha256 **`e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b`** verified against `archive/SHA256SUMS` and `train/p1536_s0_manifest.json`. Same release checks as `verify_release.py` (structure, roles, round trip, AutoTokenizer, EOS **130822**) → **`RESULT: PASS`**. Log: `p1536_verification.log`.  
+  Note: stock `release/verify_release.py` is pinned to frozen C3 (`15468e66…`), so its sha step correctly FAILs on p1536; that is not a hash mismatch for p1536 itself.
 
 ## Machine and configuration
 
@@ -41,7 +42,7 @@ Encode throughput for the frozen **C3 sample-v0** tokenizer vs the **p1536** can
 
 ## Dataset provenance and input sizes
 
-Data root: `/Users/nitinranjansharma/Documents/codes/ERA/CAP/week3data/{english,code,indic}`. Text column: `text`. Selection: sorted parquet paths, row order, stop at 1 000 000 000 UTF-8 bytes (or all available). No duplication, no rewrite of source packs.
+Data root: `$WEEK3DATA/{english,code,indic}` (local week3 cleaned packs). Text column: `text`. Selection: sorted parquet paths, row order, stop at 1 000 000 000 UTF-8 bytes (or all available). No duplication, no rewrite of source packs.
 
 | Domain | Selected records | Input UTF-8 bytes | vs 1 GB target | `benchmark_input_sha256` |
 |---|---:|---:|---|---|
@@ -139,7 +140,8 @@ On Linux, pin with `taskset -c 0` (or rely on the script’s `sched_setaffinity`
 | `results/speed_v1.md` | This report |
 | `results/speed_v1.json` | Raw runs + medians |
 | `results/dataset_manifest.json` | Dataset provenance |
-| `results/release_verification.log` | C3 + p1536 verification |
+| `results/release_verification.log` | C3 `verify_release.py` PASS + p1536 notes |
+| `results/p1536_verification.log` | p1536 sha `e6b93a93…` + full release-style checks PASS |
 | `results/benchmark_execution.log` | Execution log |
 | `results/speed_crosscheck.json` | Cross-check status (pending) |
 
