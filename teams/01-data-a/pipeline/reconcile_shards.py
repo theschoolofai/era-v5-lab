@@ -13,8 +13,10 @@ INPUT
 =====
 --ledger   ledger.py's folder: <split>/<pack>.parquet (and ledger_summary.json)
 --shards   run_shards.py's --out: shards_summary.json, <shard_id>.docs.parquet, <shard_id>.json, <shard_id>.quality_report.json
---pack     the packs the shard stage was asked for (stages.shards.packs). Default: the packs in shards_summary.json. Kept
-           documents of other packs are "not_selected", which is not an error
+--pack     the packs the shard stage was asked for (stages.shards.packs). Kept documents of other packs are
+           "not_selected", which is not an error, and a listed pack the ledger does not hold fails. Default: every pack
+           the ledger holds kept documents of. Never the packs in shards_summary.json: a pack the shard stage left out
+           entirely would then pass as not_selected; with the ledger's packs its documents are "missing", which fails
 
 EVERY KEPT DOCUMENT GETS ONE STATUS (column shard_status)
 ========================================================
@@ -23,7 +25,7 @@ EVERY KEPT DOCUMENT GETS ONE STATUS (column shard_status)
                     secret patterns), empty (no tokens), special (it holds a special token), roundtrip (decode(encode(text))
                     differs from the text)
   not_sharded       its part's status is not_sharded: a held-out part (the shard format has train and validation only)
-  not_selected      its pack is not among --pack
+  not_selected      its pack is not among --pack (only when --pack is given)
   not_reached       its part was written but cut short ("truncated": rows after rows_read did not fit in the shard). This
                     is data loss, so it fails (Vijay on #39, point 1)
   part_<status>     its part failed or was skipped by run_shards.py: fails
@@ -37,6 +39,7 @@ CHECKS (any failure: exit code 1, after writing the outputs, so they show what f
   - every document the writer left out is a kept document of that part, and none is also in a shard
   - each shard manifest's doc_count = its docs.parquet rows
   - no kept document of a selected pack is not_reached, part_failed, part_skipped or missing
+  - every pack of --pack holds kept documents in the ledger
 
 OUTPUT (in --out)
 =================
@@ -104,21 +107,25 @@ def kept_rows(path):
 
 
 def kept_parts(path):
-    """The final parts (<split>/<final_part>) that hold kept documents of one ledger file; three columns are read."""
-    t = pq.read_table(path, columns=["split", "final", "final_part"])
+    """(the final parts <split>/<final_part> that hold kept documents of one ledger file, the packs of those documents);
+    four columns are read."""
+    t = pq.read_table(path, columns=["split", "final", "final_part", "pack_id"])
     t = t.filter(pc.equal(t["final"], "kept"))
     if not t.num_rows:
-        return set()
+        return set(), set()
     u = t.group_by(["split", "final_part"]).aggregate([])
-    return set(pc.binary_join_element_wise(at.as_str(u["split"]), at.as_str(u["final_part"]), "/").to_pylist())
+    parts = set(pc.binary_join_element_wise(at.as_str(u["split"]), at.as_str(u["final_part"]), "/").to_pylist())
+    return parts, set(pc.unique(at.as_str(t["pack_id"])).to_pylist())
 
 
 def file_groups(ledger, files):
     """The ledger files in groups that share no part: the files of the packs whose documents share a part go together,
     since that part's shard holds all of them; every other file is a group of its own. Groups are in the order of their
     first part (then of their file names), so the statuses come out in (input_part, input_row) order whenever no two
-    groups' parts interleave."""
-    parts = {f: kept_parts(f) for f in files}
+    groups' parts interleave. Returns (groups, the packs of all kept documents)."""
+    found = {f: kept_parts(f) for f in files}
+    parts = {f: found[f][0] for f in files}
+    packs = set().union(*(found[f][1] for f in files)) if files else set()
     head = {f: f for f in files}
 
     def find(f):  # union-find over files that share a part
@@ -143,7 +150,7 @@ def file_groups(ledger, files):
     def order(g):
         first = min((min(parts[f]) for f in g if parts[f]), default=None)
         return (first is None, first or "", [f.relative_to(ledger).as_posix() for f in g])
-    return sorted(groups.values(), key=order)
+    return sorted(groups.values(), key=order), packs
 
 
 def shard_inputs(folder, names, parts):
@@ -259,7 +266,9 @@ def _reconcile(ledger, shards, out, packs, cache):
     summary = json.loads((shards / SUMMARY).read_text(encoding="utf-8"))
     parts = summary.get("parts", {})
     written = {name for name, e in parts.items() if e.get("status") == "written"}
-    scope = set(packs) if packs else {e.get("pack_id") for e in parts.values() if e.get("pack_id") is not None}
+    groups, ledger_packs = file_groups(ledger, ledger_files)
+    scope = set(packs) if packs else set(ledger_packs)  # never the shards' own summary: see --pack
+    absent = sorted(set(packs or ()) - set(ledger_packs))
     tally, counts, visited, shard_files = Tally(), {}, set(), [shards / SUMMARY]
     by = defaultdict(lambda: defaultdict(Counter))
     n_kept = n_rows = n_in_shards = 0
@@ -267,7 +276,7 @@ def _reconcile(ledger, shards, out, packs, cache):
     tmp_docs = out / f"reconcile_docs.parquet.{os.getpid()}.tmp"
     try:
         with pq.ParquetWriter(tmp_docs, STATUS_SCHEMA, compression="zstd") as w:
-            for group in file_groups(ledger, ledger_files):  # one pack and split at a time, unless packs share a part
+            for group in groups:  # one pack and split at a time, unless packs share a part
                 tables = []
                 for f in group:
                     kept, rows_in_file = kept_rows(f)
@@ -322,6 +331,8 @@ def _reconcile(ledger, shards, out, packs, cache):
          "detail": f"{len(bad)} shard(s) differ, e.g. {bad[0] if bad else ''}"},
         {"check": "every kept document of a selected pack is in a shard or left out for a stated reason", "ok": not failing,
          "detail": f"{failing}" if failing else "all accounted"},
+        {"check": "every selected pack holds kept documents in the ledger", "ok": not absent,
+         "detail": f"{len(absent)} pack(s) not in the ledger, e.g. {absent[0]}" if absent else "all present"},
     ]
     hashes = cache.sha256_many([*ledger_files, *shard_files])
     result = {"tool": "reconcile_shards.py", "code_sha256": code_sha256(Path(__file__), cache)[0],

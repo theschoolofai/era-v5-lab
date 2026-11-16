@@ -245,3 +245,19 @@ def test_an_out_that_overlaps_an_input_stops(run, tmp_path):
     with pytest.raises(rs.Stop, match="overlap"):
         rs.reconcile(run / "ledger", shards, shards / "rec")
     assert not (shards / "rec").exists()
+
+
+# --- Vijay's review of #47 (16 Nov): reconcile's scope is the ledger's packs, not the shards' own summary ----------------
+def test_a_pack_the_shard_stage_left_out_fails_by_default(run, tmp_path):
+    """With no pack list, a pack that has no shards at all used to pass as not_selected; now its documents are missing."""
+    shards = write_shards(run, tmp_path / "shards", packs={"code-go"})  # en-dclm left out entirely
+    with pytest.raises(rs.Stop, match="every kept document of a selected pack"):
+        rs.reconcile(run / "ledger", shards, tmp_path / "rec")
+    s = json.loads((tmp_path / "rec" / "reconcile_summary.json").read_text(encoding="utf-8"))
+    assert s["totals"]["missing"] == 2 and "not_selected" not in s["totals"] and "en-dclm" in s["packs"]
+
+
+def test_a_listed_pack_the_ledger_does_not_hold_fails(run, tmp_path):
+    shards = write_shards(run, tmp_path / "shards")
+    with pytest.raises(rs.Stop, match="every selected pack holds kept documents"):
+        rs.reconcile(run / "ledger", shards, tmp_path / "rec", packs=["code-go", "en-dclm", "math-finemath"])

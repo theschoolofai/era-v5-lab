@@ -892,3 +892,19 @@ def test_a_raw_folder_the_run_writes_is_refused(tmp_path, tsai_outputs):
     with pytest.raises(rp.Stop, match="stages.ledger.raw .* is a folder of the run itself"):
         rp.run(cfg)
     assert raw.is_dir()
+
+
+def test_run_varying_fields_of_overlap_and_dedup_summaries_do_not_change_a_digest(tmp_path):
+    """When the runner runs overlap.py and dedup.py, their summaries record wall time, peak memory and the run's own output
+    folders; two identical runs must still get the same stage digest."""
+    a, b = tmp_path / "a", tmp_path / "b"
+    for d, wall, rss, out in ((a, 71.2, 812.0, "out/pipeline/run-1/overlap"), (b, 61.8, 790.5, "out/pipeline/run-2/overlap")):
+        d.mkdir()
+        (d / "overlap_summary.json").write_text(json.dumps({
+            "documents_all": 13, "wall_seconds": wall, "peak_rss_mb": rss,
+            "config": {"out": out, "results": out, "inputs": "out/cleaned", "k": 5}}), encoding="utf-8")
+    assert rp.digest(a)[0] == rp.digest(b)[0]
+    (b / "overlap_summary.json").write_text(json.dumps({
+        "documents_all": 14, "wall_seconds": 1.0, "peak_rss_mb": 1.0,
+        "config": {"out": "x", "results": "x", "inputs": "out/cleaned", "k": 5}}), encoding="utf-8")
+    assert rp.digest(a)[0] != rp.digest(b)[0]  # a real difference still shows

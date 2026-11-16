@@ -110,7 +110,9 @@ POOL = "teams/01-data-a/pipeline/f2_pool.py"
 SPLITS = ("train", "heldout")
 RESERVED = ("deduped", "final", "report", "ledger", "shards", "reconcile", "cfg", "logs", "cache")  # folders of the run that no stage output may take
 BESIDE = (".partial", ".old", ".lock")  # what the scripts make next to a folder they write: <x>.partial, <x>.old, <x>.lock
-VOLATILE = {"seconds", "input", "path", "cleaned", "skipped"}  # JSON fields that differ between identical runs
+# JSON fields that differ between identical runs: timings, absolute or run-named paths, skip flags (and overlap.py's and
+# dedup.py's wall time, peak memory and the output folders they record when the runner runs them)
+VOLATILE = {"seconds", "input", "path", "cleaned", "skipped", "wall_seconds", "peak_rss_mb", "out", "results"}
 
 
 class Stop(Exception):
