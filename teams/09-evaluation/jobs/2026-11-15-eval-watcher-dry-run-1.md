@@ -1,45 +1,56 @@
-# eval_watcher on dry run 1: eval-mini on every checkpoint (week 3, task 1)
+# eval-mini on the dry run 1 checkpoint, and the watcher for later runs (week 3, task 1)
 
 Week-3 work order, Team 9 task 1: "Write eval_watcher.py. It scores each new checkpoint and writes the result to
 ClickHouse." Gate 3 evidence: "The watcher scores each dry run 1 checkpoint". TSAI in G9 (14 Nov): "move lm_eval_lab.py
 into the watcher PR. State the time per checkpoint in the PR. TSAI approves the slot there."
 
+Dry run 1 is finished (TSAI on #475, 16 Nov): exp2_muon at T2, seed 1234, tokenizer p1536, 1,221 of 1,221 steps, one
+final checkpoint (about 2.2 GB) kept by TSAI, no Team 7 package. So this job scores that one checkpoint, Tier A and
+Tier B, from the Team 5 run folder (`--team5-run`), and loads the rows into ClickHouse `eval_mini`. Inputs are re-pinned
+to p1536, as the Gate 3 notice asks Team 9 to do for all new work. The commit-following watchers below are for later
+runs that save through Team 7's Checkpointer.
+
 ```text
 Team:            09-evaluation
 Owner:           Team 9 lead (rahulni). Lab rule 3 (Lab 3 briefing): no person names in the lab repo.
 Lead approval:   rahulni (Team 9 lead). The GPU slot is for TSAI to approve in this PR.
-Question:        Does every dry run 1 checkpoint get its eval-mini scores in ClickHouse without a person in the loop, and how long does one checkpoint take on the eval slot?
-Script:          teams/09-evaluation/harness_lab/eval_watcher.py (this PR). For each commit it runs harness_lab/run_lab_ckpt.py --scorer lm_eval_lab:team5 in its own process, then teams/08-monitoring/clickhouse/load_jsonl.py.
-Command:         python teams/09-evaluation/harness_lab/eval_watcher.py --run-dir <dry run 1 run folder> --label tier-a --until-final --scorer lm_eval_lab:team5 --clickhouse-url <ClickHouse URL> -- --device cuda --tier A --model-config <dry run 1 arm YAML> --tokenizer ./inputs/tokenizer.json --tokenizer-sha256 15468e66457b43af79f695cbe585c0d03e3cfe7a4a5d04d189dd3c6b9f02ddc3 --byte-table ./inputs/raw_table_P32.npz --hf-home ./inputs/hf --offline
+Question:        What are the eval-mini freeze-set and diagnostic scores of the dry run 1 checkpoint, loaded into ClickHouse without a person in the loop, and how long does one checkpoint take on the eval slot?
+Script:          teams/09-evaluation/harness_lab/eval_watcher.py (this PR). It runs harness_lab/run_lab_ckpt.py --team5-run --scorer lm_eval_lab:team5 in its own process, then teams/08-monitoring/clickhouse/load_jsonl.py.
+Command:         python teams/09-evaluation/harness_lab/eval_watcher.py --team5-run ./out/dryrun1-1234 --label tier-a --scorer lm_eval_lab:team5 --clickhouse-url <ClickHouse URL> -- --device cuda --tier A --model-config ./out/dryrun1-1234/manifest.json --tokenizer ./inputs/tokenizer.json --tokenizer-sha256 e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b --byte-table teams/04-ke2/results/tables/p1536-s0/raw_table_P32.npz --hf-home ./inputs/hf --offline
+                 Then the same with --label tier-b and --tier B (the two share one slot lock; each exits 0 when its checkpoint is scored and loaded).
 Config:          teams/09-evaluation/harness_lab/eval_lab_v1.yaml; items from teams/09-evaluation/harness_code_indic/eval_mini_v0_spec.json (sha256 94de47d2…)
-Inputs:          (1) the dry run 1 run folder (commits.jsonl, latest.json, <branch>/step_<N>-e<E>/), read only, on a local or mounted path; the path and run ID come with Team 7's dry run 1 job package (jobs/dryrun1/).
-                 (2) the dry run 1 model config: the Team 5 arm YAML that run trains, or its resolved model map as JSON.
-                 (3) ./inputs/tokenizer.json, the frozen C3 sample-v0 (sha256 15468e66…02ddc3), and ./inputs/raw_table_P32.npz, Team 4's raw table for it (teams/04-ke2/src/build_tables.py; content sha256 fc5e5f8f… when built on the laptop). Use the table of the dry run 1 package if it has one.
-                 (4) ./inputs/hf: a Hugging Face cache with the datasets of the 11 tasks at the revisions below, placed by TSAI in this job's folder only and deleted after the job (eval_firewall.md section 3, rule 4). It must be writable: on the first checkpoint lm-eval's hellaswag preprocessing writes its datasets map cache there (93 MB), and later checkpoints reuse it.
-Hardware:        1 GPU with native bf16, not a training node (eval_firewall.md section 3, rule 4). Both watchers below share it through one slot lock, so only one model is loaded at a time.
+Inputs:          (1) ./out/dryrun1-1234/: TSAI's dry run 1 output folder (manifest.json, checkpoint.pt, summary.json with status COMPLETED), read only. checkpoint.pt is opened with mmap and only state["model"] is loaded; its weights hash must equal summary.json final_model_sha256.
+                 (2) The model config is that run's own manifest.json (config.model): exp2_muon at T2 (8 layers, width 512, 16 routed experts + 1 shared, top-2, ke1, P32).
+                 (3) ./inputs/tokenizer.json, the frozen p1536 (sha256 e6b93a93…25a64b, the file dry run 1 trained with), and Team 4's p1536 raw P32 table on main, teams/04-ke2/results/tables/p1536-s0/raw_table_P32.npz (file sha256 21072027…168a). The scorer refuses a tokenizer other than the manifest's artifacts.tokenizer_sha256.
+                 (4) ./inputs/hf: a Hugging Face cache with the datasets of the 11 tasks at the revisions below, placed by TSAI in this job's folder only and deleted after the job (eval_firewall.md section 3, rule 4). It must be writable: lm-eval's hellaswag preprocessing writes its datasets map cache there (93 MB) on the first run.
+Hardware:        1 GPU with native bf16, not a training node (eval_firewall.md section 3, rule 4). Tier A and Tier B share it through one slot lock, so only one model is loaded at a time.
 Packages:        torch >= 2.14.1 (run_lab_ckpt.py checks it), lm_eval 0.4.13 (the scorer stops on another version), datasets 5.1.0, tokenizers 0.23.3, safetensors, pyyaml. The env line of the test log has the versions it ran with.
-Max time:        The job runs for the length of dry run 1. Per checkpoint, Tier A (970 items, 3,880 requests): 659 s on a laptop CPU for a T1-shape model (58M parameters, fp32: export 14 s, scoring 615 s; logs/watcher_cpu_test.log; the same checkpoint took 501 to 622 s in other runs on this laptop). The GPU time for a T2-shape model (237M parameters) is being measured on Kaggle; its log comes into this PR as logs/watcher_gpu_test.log. Each scorer process is stopped after --timeout 1800 s. With --until-final each watcher exits by itself once the run's final checkpoint (Team 7's trainer commits it with reason "final") is committed and every checkpoint it owns is done. If the run ends without one, TSAI stops the watchers with SIGTERM: they save their state and exit 75, and a restart continues where they stopped.
+Max time:        30 minutes for both tiers (each scorer process is stopped after --timeout 1800 s). Per checkpoint on GPU: <TO FILL from logs/watcher_gpu_test.log: Tier A s, Tier B s, bf16, T2 shape>. CPU reference: Tier A 659 s on a laptop CPU for a T1-shape model (58M parameters, fp32: export 14 s, scoring 615 s; logs/watcher_cpu_test.log).
 Precision:       bf16 (fp32 on a GPU without native bf16, recorded in each record's format)
-Measures:        per checkpoint and task: acc and acc_norm, stderr, items scored; the pooled freeze-set accuracy (decision 3 of results/config_freeze_proposal.md); the scorer's wall time per checkpoint and the lag from commit to score
-Expected result: near chance on every task for dry run 1 checkpoints (25 for the four-option tasks, about 10 for MMLU-Pro). A score far above chance would be a bug to report. The watchers keep up if, on the one GPU, a Tier A checkpoint plus a tenth of a Tier B checkpoint takes less than the 600 s save interval.
-Outputs:         out/watcher/<run>.<label>.every<N>/: one eval-mini v1 file per checkpoint (6 KB for Tier A, 13 KB for Tier B), one log per checkpoint (12 KB for Tier A), state.json; the rows in ClickHouse eval_mini. About 21 MB for 1,000 checkpoints of Tier A and 100 of Tier B.
-Test log:        teams/09-evaluation/harness_lab/logs/watcher_cpu_test.log (this PR): the same scripts on CPU on a T1-shape Team 5 model saved through Team 7's Checkpointer, with the C3 tokenizer, --offline. GPU: to follow in this PR (Kaggle, T2-shape model).
+Measures:        per task: acc and acc_norm, stderr, items scored; the pooled freeze-set accuracy (decision 3 of results/config_freeze_proposal.md); the scorer's wall time
+Expected result: near chance on the freeze set (25 for the four-option tasks, about 10 for MMLU-Pro) or a little above: dry run 1 is a 1,221-step T2 run (val/bpb 1.5159). A score far above chance would be a bug to report.
+Outputs:         out/watcher/dryrun1-1234.<label>.every1/: one eval-mini v1 file per tier (6 KB for Tier A, 13 KB for Tier B), one log each, state.json; the rows in ClickHouse eval_mini under run_id dryrun1-1234:checkpoint.pt:<label>:<rev[:12]>.
+Test log:        teams/09-evaluation/harness_lab/logs/watcher_cpu_test.log (CPU, a T1-shape Team 5 model in Team 7's layout, C3, --offline) and logs/watcher_gpu_test.log (<TO FILL>). The --team5-run path is tested in tests/test_run_lab_ckpt_scorer.py and tests/test_eval_watcher.py.
 ```
 
-## The two watchers
+## Later runs that save through Team 7's Checkpointer
+
+Not part of this job's run. For a run whose trainer commits through Team 7's Checkpointer, Tier A follows every commit:
+
+    python teams/09-evaluation/harness_lab/eval_watcher.py --run-dir <run folder> --label tier-a --until-final --scorer lm_eval_lab:team5 --clickhouse-url <ClickHouse URL> -- --device cuda --tier A --model-config <arm YAML or manifest> --tokenizer ./inputs/tokenizer.json --tokenizer-sha256 e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b --byte-table teams/04-ke2/results/tables/p1536-s0/raw_table_P32.npz --hf-home ./inputs/hf --offline
 
 Run both on the same eval slot. They take turns on the GPU (the slot lock), and each has its own label, results,
 state and ClickHouse run_ids.
 
 | Watcher | `--label` | `--every` | `--tier` | Tasks | Items | Requests per checkpoint |
 |---|---|---|---|---|---|---|
-| Tier A (the command above) | `tier-a` | 1 | `A` | `mmlu` 0-shot, first 10 per subject; `milu_Hindi`, `milu_Telugu`, `milu_Tamil`, `milu_Bengali` 5-shot, spec items | 970 | 3,880 |
+| Tier A (the command just above) | `tier-a` | 1 | `A` | `mmlu` 0-shot, first 10 per subject; `milu_Hindi`, `milu_Telugu`, `milu_Tamil`, `milu_Bengali` 5-shot, spec items | 970 | 3,880 |
 | Tier B | `tier-b` | 10 | `B` | `arc_challenge` 0-shot first 500; `hellaswag` 0-shot first 400; `leaderboard_mmlu_pro` 5-shot, 300 spec items; `belebele_hin_Deva`, `belebele_tel_Telu`, `belebele_tam_Taml` 5-shot, 100 spec items each | 1,500 | 7,800 |
 
 Tier B is the same command with `--label tier-b --every 10` and `--tier B` (and `--until-final`). "Run Tier B on every 10th checkpoint"
 is TSAI's comment on #357, and every Tier B number carries the label "diagnostic, not cleared for contamination".
 
-Retention in dry run 1 is `--keep 9 --protect-every 15` at a 600 s interval (Team 7, `docs/checkpoint_interval.md`).
+Retention planned for dry run 1 was `--keep 9 --protect-every 15` at a 600 s interval (Team 7, `docs/checkpoint_interval.md`).
 Every 10th commit is not a protected one, so a Tier B checkpoint must be scored within about 90 minutes of its commit;
 one that retention deletes first is recorded as `gone`. Team 9 names the protected step count in `eval_schedule.md`
 (task 4).
@@ -69,6 +80,7 @@ The ones lm-eval 0.4.13 loads for the 11 tasks (from #387, Hugging Face cache, `
 
 ## Not known yet
 
-- The dry run 1 run folder, run ID and model config (Team 7's `jobs/dryrun1/`, with Team 5).
 - The ClickHouse URL of the eval slot and whether Team 8's eval tables are up (work order: D3, Tue 17).
-- The time per checkpoint on a GPU (Kaggle, T2 shape, 237M parameters: to follow) and at the dry run 1 model size.
+- The time per checkpoint on a GPU with native bf16 at the dry run 1 shape (logs/watcher_gpu_test.log, to fill).
+- Whether later runs (dry run 2, the main run) save through Team 7's Checkpointer every 600 s; dry run 1 saved one
+  checkpoint at the end (#475).

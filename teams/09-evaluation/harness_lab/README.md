@@ -41,9 +41,12 @@ python teams/09-evaluation/harness_lab/run_lab_ckpt.py --run-dir <remote_root>/<
   strict key list against it, so a wrong config stops at the export. The probe is `probe_loss` (next-token loss on a
   fixed seeded batch); the export compares it only with bits saved on the same device class (a GPU-trained checkpoint
   exported on CPU is checked by file sha256 and keys).
-- **Tokenizer:** `--tokenizer-sha256` must match the file (Team 5's `Artifacts` checks it) and, when the checkpoint's
-  `MANIFEST.json` records `env.tokenizer_sha`, that too. The byte table is Team 4's raw table for the same tokenizer
-  (`teams/04-ke2/src/build_tables.py`). C3's normalizer changes some Indic text, so a few prompts do not rebuild their
+- **Tokenizer:** `--tokenizer-sha256` must match the file (Team 5's `Artifacts` checks it) and the tokenizer the
+  checkpoint was trained with: `env.tokenizer_sha` in a Team 7 `MANIFEST.json`, `artifacts.tokenizer_sha256` in a Team 5
+  `manifest.json`. New work uses the frozen **p1536** (`e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b`,
+  TSAI Gate 3 notice of 15 Nov; dry run 1 was trained with it) and Team 4's p1536 raw table on main,
+  `teams/04-ke2/results/tables/p1536-s0/raw_table_P32.npz` (file sha256 `21072027…168a`). C3 work stays valid as a
+  record. Other tables: `teams/04-ke2/src/build_tables.py`. C3's normalizer changes some Indic text, so a few prompts do not rebuild their
   exact bytes; the scorer counts them ("encode fallbacks") and uses the tokenizer's ids, as #387 did.
 - **Speed** (course rule of 13 Nov): every distinct text is tokenized once in one batched call;
   requests with the same input tokens (the answer letters of one item) share one forward row; rows are length-sorted
@@ -99,15 +102,34 @@ python -m pytest teams/09-evaluation/harness_lab/tests -q
 | Events | `eval.scored`, `eval.loaded`, `eval.failed`, `eval.load_failed`, `eval.skipped`, `eval.store_unavailable` through Team 7's `common/events.py` when `V5_EVENTS_DIR` is set. |
 | Exit codes | 0 done, 1 a checkpoint failed `--max-attempts` times, 75 stopped, store unreadable or work left for a rerun, 78 fatal. |
 
+## Dry run 1: a Team 5 run folder (`--team5-run`)
+
+TSAI on #475 (16 Nov): dry run 1 is finished, trained with p1536, and saved **one** checkpoint at the end
+(`train_week2.py`: `checkpoint.pt`, `manifest.json`, `summary.json`; about 2.2 GB, kept by TSAI). There is no Team 7
+store for it, so `--team5-run <folder>` scores that folder in place of `--run-dir`:
+
+- It is scored only when `summary.json` says `COMPLETED` (Team 5: anything else is not a result).
+- `checkpoint.pt` is opened with `mmap=True` and only `state["model"]` is loaded (strict). The optimizer state in the
+  same file is never read into memory.
+- The weights hash (Team 5's own `train_week2.model_hash`) must equal `summary.json` `final_model_sha256`, which becomes
+  `model_revision`: the check that the weights scored are the ones the run reported, as the probe-loss check is for a
+  Team 7 export. `checkpoint`: `run` = the folder name (or `--run-name`), `branch` "main", `step` = the completed steps,
+  `epoch` and `tokens_seen` null, `path` = `<folder>/checkpoint.pt`.
+- The watcher treats the folder as one commit with reason "final": it waits for `summary.json`, scores once per label
+  (same slot lock, state, retries and exit codes), loads under run_id `<run>:checkpoint.pt:<label>:<rev[:12]>`, and
+  exits (`--team5-run` implies `--until-final`; `--every` must be 1).
+- Speed: the model's MoE uses Team 5's `dispatch: loop` (the only dispatch `week2/config.py` allows); the scorer uses
+  Team 5's model unchanged.
+
 ## What is and is not done
 
 | | State |
 |---|---|
 | Pointer, manifest, `model_revision`, `checkpoint` block, export, `check(doc, 0)` | Done, tested on the tiny MoE and on a Team 5 `LanguageModel` on CPU |
 | `--scorer smoke` (next-token accuracy on Team 5's seeded stream) | Done. It tests the pipeline. It is not an eval-mini task and says nothing about quality. Output byte-identical to before the scorer contract |
-| lm-eval tasks on a Team 5 `LanguageModel` in Team 7's layout (`lm_eval_lab:team5`) | Done, CPU end to end in `logs/watcher_cpu_test.log`. The dry run 1 model config, checkpoint path and run ID come with Team 7's dry-run-1 job package |
+| lm-eval tasks on a Team 5 `LanguageModel` in Team 7's layout (`lm_eval_lab:team5`) | Done, CPU end to end in `logs/watcher_cpu_test.log` |
 | `eval_watcher.py`: each new commit scored and loaded, restarts, retries, tiers, slot lock | Done; tests without GPU or ClickHouse. The store must be a local or mounted path, as for `run_lab_ckpt.py` |
-| Team 5 `checkpoint.pt` + `manifest.json` layout (section 6, last paragraph) | Not done here. #387 had `run_team5_runs.py` for it; only its scorer, `lm_eval_lab.py`, moved into this folder |
+| Team 5 `checkpoint.pt` + `manifest.json` layout (section 6, last paragraph): dry run 1 | Done: `--team5-run <folder>` in `run_lab_ckpt.py` and `eval_watcher.py` (below). Tested on a stub model; the real run is the job request `../jobs/2026-11-15-eval-watcher-dry-run-1.md` |
 | `--run-name` for queue jobs (`<job_run_id>/<arm>`) | Done, not tested on a real queue job |
 
 ## Schema point to confirm

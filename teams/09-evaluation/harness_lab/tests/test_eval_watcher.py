@@ -72,20 +72,32 @@ class FakeScorer:
         args = dict(zip(argv[2::2], argv[3::2]))
         self.calls.append(argv)
         log_path.write_text("fake scorer\n")
-        run_dir, step = Path(args["--run-dir"]), int(args["--step"])
-        lines = [json.loads(x) for x in (run_dir / "commits.jsonl").read_text().splitlines() if x.strip()]
-        path = [c for c in lines if c["step"] == step][-1]["path"]  # as run_lab_ckpt.read_pointer does
+        if "--team5-run" in args:  # as run_lab_ckpt.team5_facts does
+            given = args["--team5-run"]
+            run_dir = Path(given)
+            summary = json.loads((run_dir / "summary.json").read_text())
+            step, path, revision = summary["steps"], "checkpoint.pt", summary["final_model_sha256"]
+        else:
+            given = args["--run-dir"]
+            run_dir, step = Path(given), int(args["--step"])
+            lines = [json.loads(x) for x in (run_dir / "commits.jsonl").read_text().splitlines() if x.strip()]
+            path = [c for c in lines if c["step"] == step][-1]["path"]  # as run_lab_ckpt.read_pointer does
+            revision = revision_of(run_dir, path)
         if self.on_call:
             self.on_call(run_dir, path)
         code = self.codes.pop(0) if self.codes else 0
         if code == 0:
-            doc = doc_for(args["--run-dir"], step + self.wrong_step, path, revision_of(run_dir, path))
+            doc = doc_for(given, step + self.wrong_step, path, revision)
             Path(args["--out"]).write_text(json.dumps(doc))
         return code
 
     @property
     def steps(self):
-        return [int(dict(zip(a[2::2], a[3::2]))["--step"]) for a in self.calls]
+        out = []
+        for a in self.calls:
+            args = dict(zip(a[2::2], a[3::2]))
+            out.append(int(args["--step"]) if "--step" in args else "team5")
+        return out
 
 
 def run(tmp_path, run_dir, *extra, out="out"):
@@ -423,3 +435,72 @@ def test_timeout_ends_the_scorers_children_too(tmp_path):
         time.sleep(0.1)
     else:
         pytest.fail(f"child {pid} of the stopped scorer is still alive")
+
+
+# ---- --team5-run: dry run 1, a Team 5 train_week2.py run folder with one checkpoint ---------------------------------
+
+REV5 = "ab" * 32
+
+
+def make_team5_run(root: Path, status="COMPLETED", steps=1221, checkpoint=True, summary=True, name="dryrun1-1234"):
+    run = root / name
+    run.mkdir(parents=True)
+    (run / "manifest.json").write_text(json.dumps({"artifacts": {"tokenizer_sha256": "e6b9"}}))
+    if checkpoint:
+        (run / "checkpoint.pt").write_bytes(b"weights")
+    if summary:
+        (run / "summary.json").write_text(json.dumps({"status": status, "steps": steps,
+                                                      "final_model_sha256": REV5}))
+    return run
+
+
+def run5(tmp_path, run_dir, *extra, out="out"):
+    return ew.main(["--team5-run", str(run_dir), "--out-dir", str(tmp_path / out), "--once", *extra])
+
+
+def test_team5_run_scores_its_one_checkpoint_and_loads_it(tmp_path, scorer, monkeypatch):
+    rec = RecordingLoader()
+    monkeypatch.setattr(ew, "loader", lambda: rec)
+    run_dir = make_team5_run(tmp_path)
+    assert run5(tmp_path, run_dir, "--label", "tier-a") == ew.EXIT_OK
+    argv = scorer.calls[0]
+    assert argv[argv.index("--team5-run") + 1] == str(run_dir) and "--step" not in argv and "--run-dir" not in argv
+    (r,) = state(tmp_path).values()
+    assert (r["status"], r["loaded"], r["step"]) == ("scored", True, 1221)
+    assert rec.seen == [f"dryrun1-1234:checkpoint.pt:tier-a:{REV5[:12]}"]
+    assert run5(tmp_path, run_dir, "--label", "tier-a") == ew.EXIT_OK and len(scorer.calls) == 1  # done once
+
+
+def test_team5_run_waits_until_summary_is_written(tmp_path, scorer):
+    run_dir = make_team5_run(tmp_path, summary=False)
+    assert run5(tmp_path, run_dir, "--no-load") == ew.EXIT_OK  # nothing owned yet: --once has nothing to do
+    assert scorer.calls == []
+
+
+def test_team5_run_ends_by_itself_without_once(tmp_path, scorer):
+    run_dir = make_team5_run(tmp_path)
+    code = ew.main(["--team5-run", str(run_dir), "--out-dir", str(tmp_path / "out"), "--no-load", "--interval", "0.05"])
+    assert code == ew.EXIT_OK and scorer.steps == ["team5"]  # --team5-run implies --until-final
+
+
+@pytest.mark.parametrize("status", ["INCOMPLETE_NOT_A_RESULT", "SMOKE"])
+def test_team5_run_that_did_not_complete_is_fatal(tmp_path, scorer, status):
+    run_dir = make_team5_run(tmp_path, status=status)
+    with pytest.raises(SystemExit) as e:
+        run5(tmp_path, run_dir, "--no-load")
+    assert e.value.code == ew.EXIT_FATAL and scorer.calls == []
+
+
+def test_team5_run_without_checkpoint_is_gone(tmp_path, scorer):
+    run_dir = make_team5_run(tmp_path, checkpoint=False)
+    assert run5(tmp_path, run_dir, "--no-load") == ew.EXIT_OK
+    (r,) = state(tmp_path).values()
+    assert r["status"] == "gone" and scorer.calls == []
+
+
+def test_team5_run_needs_every_1_and_excludes_run_dir(tmp_path):
+    run_dir = make_team5_run(tmp_path)
+    for extra in (["--every", "10"], ["--run-dir", str(run_dir)]):
+        with pytest.raises(SystemExit) as e:
+            run5(tmp_path, run_dir, *extra)
+        assert e.value.code == 2

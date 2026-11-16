@@ -21,6 +21,14 @@ process and loads the result into Team 8's ``eval_mini`` table. Nobody has to st
     python teams/09-evaluation/harness_lab/eval_watcher.py --run-dir <remote_root>/<run_id> --label tier-b --every 10 --until-final \\
         --scorer lm_eval_lab:team5 --clickhouse-url http://<host>:8123 -- --device cuda --tier B <same inputs>
 
+    # dry run 1 (TSAI on #475: finished, p1536, one final checkpoint): a Team 5 train_week2.py run folder. Its one
+    # checkpoint is scored once summary.json says COMPLETED, then the watcher exits. Run once per tier.
+    python teams/09-evaluation/harness_lab/eval_watcher.py --team5-run ./out/dryrun1-1234 --label tier-a \\
+        --scorer lm_eval_lab:team5 --clickhouse-url http://<host>:8123 -- --device cuda --tier A \\
+        --model-config ./out/dryrun1-1234/manifest.json --tokenizer <p1536 tokenizer.json> \\
+        --tokenizer-sha256 e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b \\
+        --byte-table teams/04-ke2/results/tables/p1536-s0/raw_table_P32.npz --hf-home <HF cache> --offline
+
 Rules it keeps (results/eval_mini_v1_schema.md section 6; Team 7 docs/checkpoint_design_v0.md sections 5 and 8,
 docs/checkpoint_interval.md):
 
@@ -164,6 +172,39 @@ class CommitLog:
                 raise StoreUnavailable(f"{self.path} shrank from {len(self._commits)} to {len(commits)} lines")
             self._commits, self._sig = commits, sig
         return self._commits
+
+
+class Team5Run:
+    """A Team 5 ``train_week2.py`` run folder (dry run 1): one checkpoint, ``checkpoint.pt``, written before
+    ``summary.json``. It reads as one commit with reason "final" once ``summary.json`` says COMPLETED, so the watcher
+    loop, the slot lock, the state, the run_id rule and the exit codes stay the same as for a Team 7 store."""
+
+    CHECKPOINT = "checkpoint.pt"
+
+    def __init__(self, run_dir: Path):
+        self.run_dir = run_dir
+        self.path = run_dir / "summary.json"
+
+    def read(self) -> list[dict]:
+        try:
+            raw = self.path.read_bytes()
+            mtime = self.path.stat().st_mtime
+        except FileNotFoundError:
+            return []  # the run has not finished yet
+        except OSError as e:
+            raise StoreUnavailable(f"{self.path}: {e}") from None
+        try:
+            summary = json.loads(raw)
+        except ValueError:
+            return []  # summary.json is written in one call; a partial read is retried on the next poll
+        status, steps = summary.get("status"), summary.get("steps")
+        if status != "COMPLETED":
+            raise fatal(f"{self.path}: status {status!r}; only a COMPLETED run is scored (Team 5: anything else is "
+                        "not a result)")
+        if not isinstance(steps, int) or not isinstance(summary.get("final_model_sha256"), str):
+            raise fatal(f"{self.path}: no integer steps or no final_model_sha256")
+        return [{"step": steps, "branch": "main", "epoch": None, "path": self.CHECKPOINT, "reason": "final",
+                 "time": mtime}]
 
 
 def owned(commits: list[dict], every: int, from_step: int):
@@ -323,9 +364,10 @@ def check_output(out: Path, commit: dict) -> tuple[int, str]:
 class Watcher:
     def __init__(self, a: argparse.Namespace, stop: threading.Event):
         self.a, self.stop = a, stop
-        self.run_dir = Path(a.run_dir).resolve()
+        self.team5 = a.team5_run is not None
+        self.run_dir = Path(a.team5_run if self.team5 else a.run_dir).resolve()
         self.run_name = a.run_name or self.run_dir.name
-        self.log = CommitLog(self.run_dir)
+        self.log = Team5Run(self.run_dir) if self.team5 else CommitLog(self.run_dir)
         self.state = State(a.state, self.run_dir.as_posix(), a.label, a.every)
         self.slot = FileLock(a.slot_lock)
         self.commits: list[dict] = []    # the last commits.jsonl read that succeeded
@@ -334,8 +376,9 @@ class Watcher:
         (a.out_dir / "logs").mkdir(parents=True, exist_ok=True)
 
     def argv(self, commit: dict, out: Path) -> list[str]:
-        cmd = [self.a.python, str(RUN_LAB_CKPT), "--run-dir", self.a.run_dir, "--step", str(commit["step"]),
-               "--out", str(out), "--scorer", self.a.scorer]
+        source = (["--team5-run", self.a.team5_run] if self.team5 else
+                  ["--run-dir", self.a.run_dir, "--step", str(commit["step"])])
+        cmd = [self.a.python, str(RUN_LAB_CKPT), *source, "--out", str(out), "--scorer", self.a.scorer]
         if self.a.run_name:
             cmd += ["--run-name", self.a.run_name]
         return cmd + self.a.scorer_args
@@ -355,8 +398,9 @@ class Watcher:
         self.unavailable = why
 
     def manifest_gone(self, key: str) -> bool:
-        """True only if MANIFEST.json is missing while commits.jsonl is still readable (else the store is down)."""
-        if (self.run_dir / key / MANIFEST).exists():
+        """True only if the checkpoint (a store commit's MANIFEST.json, or a Team 5 run's checkpoint.pt) is missing
+        while commits.jsonl (summary.json) is still readable (else the store is down)."""
+        if (self.run_dir / key if self.team5 else self.run_dir / key / MANIFEST).exists():
             return False
         if not self.log.path.exists():
             raise StoreUnavailable(f"{self.log.path} vanished while {key} was checked")
@@ -524,8 +568,13 @@ class Watcher:
 def parse_args(argv=None) -> argparse.Namespace:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0], formatter_class=argparse.RawDescriptionHelpFormatter,
                                  epilog=__doc__, allow_abbrev=False)
-    ap.add_argument("--run-dir", required=True,
-                    help="<remote_root>/<run_id> on a local or mounted path: the folder with commits.jsonl")
+    source = ap.add_mutually_exclusive_group(required=True)
+    source.add_argument("--run-dir",
+                        help="<remote_root>/<run_id> on a local or mounted path: the folder with commits.jsonl")
+    source.add_argument("--team5-run",
+                        help="a Team 5 train_week2.py run folder (manifest.json, checkpoint.pt, summary.json), as dry "
+                             "run 1 left it: its one checkpoint is scored once summary.json says COMPLETED, then the "
+                             "watcher exits (implies --until-final)")
     ap.add_argument("--every", type=int, default=1,
                     help="score commit N, 2N, ... (Tier B: 10, TSAI on #357). The count Team 7 retention's "
                          "--protect-every uses; dry run 1 protects every 15th and keeps the newest 9")
@@ -562,9 +611,13 @@ def parse_args(argv=None) -> argparse.Namespace:
             ap.error(f"--{name.replace('_', '-')} must be 1 or more")
     if a.interval <= 0 or a.timeout <= 0:
         ap.error("--interval and --timeout must be above 0")
-    run_dir = Path(a.run_dir)
+    if a.team5_run is not None:
+        if a.every != 1:
+            ap.error("--team5-run has one checkpoint: --every must be 1")
+        a.until_final = True
+    run_dir = Path(a.team5_run if a.team5_run is not None else a.run_dir)
     if not run_dir.is_dir():
-        raise fatal(f"--run-dir {a.run_dir} is not a folder")
+        raise fatal(f"{'--team5-run' if a.team5_run is not None else '--run-dir'} {run_dir} is not a folder")
     if a.label is None:
         a.label = re.sub(r"[^A-Za-z0-9_.-]+", "_", a.scorer)
         if a.scorer_args:

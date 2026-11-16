@@ -372,7 +372,10 @@ class Team5Scorer:
         self.setup_s = time.perf_counter() - t0
 
     def check(self, manifest: dict) -> None:
-        saved = (manifest.get("env") or {}).get("tokenizer_sha") or "unknown"
+        """The checkpoint must have been trained with the tokenizer given: Team 7's MANIFEST.json keeps it in
+        env.tokenizer_sha, a Team 5 run's manifest.json in artifacts.tokenizer_sha256."""
+        saved = ((manifest.get("env") or {}).get("tokenizer_sha")
+                 or (manifest.get("artifacts") or {}).get("tokenizer_sha256") or "unknown")
         if saved != "unknown" and saved != self.a.tokenizer_sha256:
             raise SystemExit(f"the checkpoint was trained with tokenizer {saved[:12]}, not {self.a.tokenizer_sha256[:12]}")
 
@@ -434,8 +437,12 @@ def team5(argv: list[str]) -> Team5Scorer:
     ap.add_argument("--runtime", type=Path, help="Team 5 runtime.yaml for an arm YAML (default: Team 5's own)")
     ap.add_argument("--resolution", type=Path, help="Team 5 resolution file the run used, for an arm YAML")
     ap.add_argument("--tokenizer", type=Path, required=True, help="the frozen tokenizer.json the run trains with")
-    ap.add_argument("--tokenizer-sha256", required=True, help="its sha256 (C3 sample-v0: 15468e66...02ddc3)")
-    ap.add_argument("--byte-table", type=Path, required=True, help="Team 4's raw table for that tokenizer (.npz)")
+    ap.add_argument("--tokenizer-sha256", required=True,
+                    help="its sha256 (frozen p1536, Gate 3 notice of 15 Nov: e6b93a93...25a64b; C3 sample-v0, archived: "
+                         "15468e66...02ddc3)")
+    ap.add_argument("--byte-table", type=Path, required=True,
+                    help="Team 4's raw table for that tokenizer (.npz); p1536: "
+                         "teams/04-ke2/results/tables/p1536-s0/raw_table_P32.npz")
     ap.add_argument("--tier", choices=sorted(TIER_ROLE), default="A",
                     help="A: the freeze set (970 items); B: the labelled diagnostics (1,500 items); AB: both")
     ap.add_argument("--eval-config", type=Path, default=HERE / "eval_lab_v1.yaml", help="task list, items and seeds")
