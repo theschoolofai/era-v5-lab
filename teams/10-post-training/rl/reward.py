@@ -11,6 +11,8 @@ env_id is "<type>/<name>":
     indic/<task_id>      rl/indic/tasks/<task_id>, scored by rl/indic/indic_verifier.py (exact answer, no container)
     go/<task_id>         rl/go/tasks/<task_id>, scored by rl/go/go_verifier.py (output = the model's completion;
                          docker sandbox by default, the image is built from rl/go/go.Dockerfile)
+    math/<task_id>       rl/math/tasks/<task_id>, scored by rl/math/math_verifier.py (exact boxed answer, no container;
+                         needs the RL data v1 math pool: set G10_MATH_POOL, see rl/math/README.md)
     agentic/<task_id>    rl/agentic/tasks/<task_id>, scored by rl/agentic/agentic_verifier.py (output = one pytest
                          command or one diff, run in the image of a swe-envs environment; needs docker)
 
@@ -50,6 +52,7 @@ SWE_ENVS = HERE.parent / "swe-envs"
 INDIC_TASKS = HERE / "indic" / "tasks"
 GO_TASKS = HERE / "go" / "tasks"
 AGENTIC_TASKS = HERE / "agentic" / "tasks"
+MATH_TASKS = HERE / "math" / "tasks"
 
 _NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")  # no slashes, no "..": an env_id cannot leave its folder
 _REGISTRY: dict[str, Callable[..., dict]] = {}
@@ -192,11 +195,35 @@ def agentic_checker(name: str, output: str, executor=None, **_) -> dict:
     return _agentic().reward(task_dir, output, executor or _OPTIONS["swe_executor"])
 
 
+_MATH_MODULE = None
+
+
+def _math():
+    """math/math_verifier.py, loaded by path like pool.py."""
+    global _MATH_MODULE
+    if _MATH_MODULE is None:
+        import importlib.util  # noqa: PLC0415
+        spec = importlib.util.spec_from_file_location("g10_rl_math_verifier", HERE / "math" / "math_verifier.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _MATH_MODULE = module
+    return _MATH_MODULE
+
+
+def math_checker(name: str, output: str, pool=None, **_) -> dict:
+    """A missing pool raises RuntimeError (math_verifier.py): it is never scored 0."""
+    task_dir = MATH_TASKS / name
+    if not (task_dir / "task.json").is_file():
+        raise KeyError(f"no math task {name!r} in {MATH_TASKS}")
+    return _math().reward(task_dir, output, pool)
+
+
 register("code", code_checker)
 register("swe", swe_checker)
 register("indic", indic_checker)
 register("go", go_checker)
 register("agentic", agentic_checker)
+register("math", math_checker)
 
 
 def list_envs() -> list[str]:
@@ -205,6 +232,7 @@ def list_envs() -> list[str]:
     ids += [f"indic/{p.parent.name}" for p in sorted(INDIC_TASKS.glob("*/task.json"))]
     ids += [f"go/{p.parent.name}" for p in sorted(GO_TASKS.glob("*/task.json"))]
     ids += [f"agentic/{p.parent.name}" for p in sorted(AGENTIC_TASKS.glob("*/task.json"))]
+    ids += [f"math/{p.parent.name}" for p in sorted(MATH_TASKS.glob("*/task.json"))]
     return ids
 
 
@@ -235,6 +263,8 @@ def known_outputs(env_id: str) -> tuple[str, str]:
             raise ValueError(f"go/{name}: reference.go has no one-line signature for {meta['entry_point']}")
         bad = f"```go\npackage main\n\n{sig.group(0)}\n\tpanic(\"stub\")\n}}\n```"
         return f"```go\n{ref}\n```", bad
+    if env_type == "math":
+        return _math().known_outputs(MATH_TASKS / name)
     if env_type == "agentic":
         return _agentic().known_outputs(AGENTIC_TASKS / name)
     raise KeyError(f"no known outputs for {env_type!r}")

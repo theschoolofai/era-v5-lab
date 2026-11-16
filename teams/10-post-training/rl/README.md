@@ -75,6 +75,8 @@ Indic short-answer tasks are in [`indic/`](indic/README.md): an Indic prompt, an
 
 Agentic tasks (one pytest command or one patch, run in a SWE env image) are in [`agentic/`](agentic/README.md). `reward.py` registers them as `agentic/<task_id>`; `python rl/reward.py --check-all --type agentic` needs docker.
 
+Math tasks (an exact boxed answer from the RL data v1 math pool, pinned by SHA-256) are in [`math/`](math/README.md). `reward.py` registers them as `math/<task_id>`; they need the pool (`G10_MATH_POOL`) and `math-verify==0.9.0`. TSAI has not ruled on MATH for RL.
+
 ## Files in this folder
 
 | File | What it is |
@@ -82,6 +84,7 @@ Agentic tasks (one pytest command or one patch, run in a SWE env image) are in [
 | `verifier.py`, `_sandbox_child.py`, `test_verifier.py` | The verifier: binary reward for one task, expected answers kept outside the sandbox. |
 | `tasks/` | The original coding tasks (see "Writing a task"). |
 | `reward.py`, `test_reward.py` | The one `reward(env_id, output)` entry point for code, SWE, Indic and Go environments. |
+| `math/` | The math verifier set: boxed exact answer, pins into the RL data v1 math pool, tests. |
 | `agentic/` | The agentic verifier set: command and patch checks, its tasks and tests. |
 | `indic/` | The Indic verifier set: exact-answer reward, its tasks and tests, and the template generator. |
 | `indic_prompts_v0.md` | Indic prompt families with checkable answers, who writes them, the Team 2 check and the status. |

@@ -110,7 +110,10 @@ def test_list_envs_covers_every_shipped_task_and_env():
     assert len([i for i in ids if i.startswith("indic/")]) == len(list((HERE / "indic" / "tasks").glob("*/task.json")))
     assert len([i for i in ids if i.startswith("go/")]) == len(list((HERE / "go" / "tasks").glob("*/task.json")))
     assert len([i for i in ids if i.startswith("agentic/")]) == len(list((HERE / "agentic" / "tasks").glob("*/task.json")))
+    assert len([i for i in ids if i.startswith("math/")]) == len(list((HERE / "math" / "tasks").glob("*/task.json")))
     for i in ids:
+        if i.startswith("math/") and not os.environ.get("G10_MATH_POOL"):
+            continue  # a math task's reference answer lives in the pool (rl/math/README.md)
         good, bad = reward.known_outputs(i)
         assert good and bad and good != bad
 
