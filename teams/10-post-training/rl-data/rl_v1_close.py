@@ -95,7 +95,7 @@ def close(cc: list[dict], math: list[dict], effort: dict, keep_statement_less: b
             "outcome_drop": {"code_pool_tasks": len(pool_py2_dropped), "by_judge": by_judge(cc, pool_py2_dropped)},
             "basis": "11 Nov build: the codechef and hackerearth rows have only language-1 (Python 2) human solutions, "
                      "0 Python 3; the correct-answer check converts them with lib2to3",
-            "decision": "open: lead / TSAI", "apply": "--drop-python2"},
+            "decision": "lead: keep in v1 close pool (3,577 tasks; Python 3 candidate completions checked against I/O pairs); TSAI can reverse with --drop-python2", "apply": "--drop-python2"},
     }
     parts = {
         "code": {"set": "rl-code-code-contests-noncf", "rows_v1": len(cc), "by_judge_v1": by_judge(cc, cc_ids),

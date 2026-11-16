@@ -94,7 +94,7 @@ kept 20 tests; only the evaluation would add the unused ones. Also in `../rl-dat
 
 ## 6. Open (needs someone else)
 
-- Python-2-only references: lead default is keep in the v1 close pool (`3,577` tasks; candidate completions are Python 3 checked against I/O pairs); TSAI can reverse with `--drop-python2` (`2,058` tasks).
+- Python-2-only references: lead decision (16 Nov) is keep in the v1 close pool (`3,577` tasks; candidate completions are Python 3 checked against I/O pairs); TSAI can reverse with `--drop-python2` (`2,058` tasks).
 - The 116 statement-less tasks are flagged out by a regex; a human look at the private list may clear some.
 - Hendrycks MATH admission for RL (TSAI); the 7,209-task part is ready as is.
 - Pass-rate filtering on the real starting model (needs the checkpoint).

@@ -1,4 +1,4 @@
-# Job request (DRAFT, not sent): RL data v1 and its Team 9 pool files, rebuild and store
+# Job request: RL data v1 and its Team 9 pool files, rebuild and store
 
 Why a job request: the instructor's reply in the G10 group on 14 Nov 2026 was "do not commit large files. Commit the
 script, the manifest with sha256 and the row count, and the rebuild recipe. If TSAI needs the built file, send a job
