@@ -27,6 +27,7 @@ FROZEN_TOKENIZERS = {P1536_SHA256: "p1536", C3_SHA256: "C3"}
 F2_V2_SHA256 = "2826a3b883210c653979103c09ce1c79e40fc4f7034b54027f2836482370d22a"  # G9 fingerprints v2
 EOS_ID, VOCAB, SPECIAL_LO = 130_822, 131_072, 130_725  # SPECIAL_LO..VOCAB-1: G3's special and reserved ids
 HEADER_BYTES, MAGIC, VERSION = 1024, 20261025, 2
+CHUNK = 1 << 22  # tokens read at a time from the .bin (16 MiB)
 PASS, FAIL, NOT_CHECKED = "PASS", "FAIL", "NOT CHECKED"
 
 
@@ -161,19 +162,33 @@ def run_checks(folder, shard_id, template=TEMPLATE, clean_py=CLEAN_PY, expect_to
         check(".bin header rest is zeros", not head[3:].any(), "zeros", "zeros" if not head[3:].any() else "non-zero")
         toks = np.memmap(bp, dtype="<u4", mode="r", offset=HEADER_BYTES)
         check("tokens after the header = token_count", len(toks) == tc, tc, len(toks))
-        check("every id < vocab 131072", int(toks.max()) < VOCAB, f"< {VOCAB}", int(toks.max()))
+        # One pass in fixed-size chunks, so memory stays flat whatever the shard size: a lookup table over the
+        # vocab marks each id 0 (ordinary), 1 (special below SPECIAL_LO) or 2 (SPECIAL_LO and above, or outside
+        # the vocab), and bincount counts the marks. No copy of the tokens and no np.isin.
+        low = sorted({int(i) for i in special_ids if i < SPECIAL_LO})
+        lut = np.zeros(VOCAB, dtype=np.uint8)
+        lut[low] = 1
+        lut[SPECIAL_LO:] = 2
+        top, marks = 0, np.zeros(3, dtype=np.int64)
+        clipped = np.empty(min(CHUNK, len(toks)), dtype="<u4")
+        for start in range(0, len(toks), CHUNK):
+            chunk = toks[start:start + CHUNK]
+            top = max(top, int(chunk.max()))
+            np.minimum(chunk, VOCAB - 1, out=clipped[:len(chunk)])  # an id outside the vocab counts as mark 2
+            marks += np.bincount(lut[clipped[:len(chunk)]], minlength=3)
+        check("every id < vocab 131072", top < VOCAB, f"< {VOCAB}", top)
         if idx is not None and len(toks) == tc and int(idx[-1]) == tc:
             ends = idx[1:] - 1
-            n_eos = int((toks[ends] == EOS_ID).sum())
+            last = np.asarray(toks[ends])
+            n_eos = int((last == EOS_ID).sum())
             check("every document ends with EOS", n_eos == dc, dc, n_eos)
-            inside = np.ones(len(toks), dtype=bool)
-            inside[ends] = False  # a special id is allowed only at a document's last position, and only EOS there
-            inner = toks[inside]
-            n_inside = int((inner >= SPECIAL_LO).sum())
+            # A special id is allowed only at a document's last position, and only EOS there (checked above), so
+            # the marks inside documents are all marks minus the marks at the last positions.
+            inside = marks - np.bincount(lut[np.minimum(last, VOCAB - 1)], minlength=3)
+            n_inside = int(inside[2])
             check(f"no special id >= {SPECIAL_LO} inside a document", n_inside == 0, 0, n_inside)
-            low = [i for i in special_ids if i < SPECIAL_LO]
             if low:
-                n_low = int(np.isin(inner, np.array(low, dtype="<u4")).sum())
+                n_low = int(inside[1])
                 check(f"none of the {len(low)} special ids below {SPECIAL_LO} inside a document", n_low == 0, 0, n_low)
             else:
                 check(f"special ids below {SPECIAL_LO} inside a document", None, "", "no --specials-from tokenizer given")

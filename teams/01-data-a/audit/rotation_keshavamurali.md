@@ -21,7 +21,7 @@ Every file hash, size, header, index, token count and manifest field matches. Th
 
 - **Tokenizer:** `--expect-tokenizer p1536` requires `tokenizer_sha256` = `e6b93a93a60520d7…` (G3 #504).
 - **Special ids:** `--specials-from` reads the special ids from a `tokenizer.json`. G3 states that p1536's special tokens are byte-for-byte C3's (#504), so the frozen C3 file (sha256 `15468e66…`) was used: 9 special ids below 130,725, plus 130,725 and above. The p1536 `tokenizer.json` itself (private Kaggle dataset) was not used, so no text was decoded here. Decoding 20 documents per shard is Vijay's and Tejaskumar's task.
-- **Tests:** `tests/audit/test_check_shard.py`, 17 cases on a made-up shard.
+- **Tests:** `tests/audit/test_check_shard.py`, 22 cases on a made-up shard, including one that the results do not depend on how the `.bin` is read in chunks.
 
 Rerun, from the repository root (Python 3.12, numpy 2.5.4, pyarrow 26.0.1), with the shard files in `<dir>`:
 
@@ -31,7 +31,7 @@ python -I teams/01-data-a/audit/check_shard.py <dir> math-finemath-train-000000 
 python -m pytest teams/01-data-a/tests/audit -q
 ```
 
-Last lines: `{'PASS': 45, 'FAIL': 1, 'NOT CHECKED': 0}` for each shard (exit code 1, from the `dedup` FAIL), about 6 s and 3 s; `17 passed`.
+Last lines: `{'PASS': 45, 'FAIL': 1, 'NOT CHECKED': 0}` for each shard (exit code 1, from the `dedup` FAIL), 2.6 s and 2.0 s, under 400 MiB of memory; `22 passed`.
 
 ## Shard 1: `code-rust-train-000000`
 

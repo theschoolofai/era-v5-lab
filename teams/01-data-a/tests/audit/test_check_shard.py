@@ -83,6 +83,17 @@ def test_low_special_id_inside_a_document_fails(tmp_path):
     assert "special ids below 130725 inside a document" in by_status(unchecked, cs.NOT_CHECKED)
 
 
+@pytest.mark.parametrize("chunk", [1, 2, 3, 5, 1 << 22])
+def test_results_do_not_depend_on_the_chunk_size(tmp_path, monkeypatch, chunk):
+    write_shard(tmp_path, docs=[[11, 36, 13, cs.EOS_ID], [21, cs.EOS_ID], [130725, 32, cs.EOS_ID], [5, 6, 7, 99]])
+    monkeypatch.setattr(cs, "CHUNK", chunk)
+    rows = {r["check"]: (r["status"], r["observed"]) for r in cs.run_checks(tmp_path, SID, special_ids=LOW_SPECIALS)}
+    assert rows["every document ends with EOS"] == (cs.FAIL, "3")
+    assert rows["no special id >= 130725 inside a document"] == (cs.FAIL, "1")
+    assert rows["none of the 2 special ids below 130725 inside a document"] == (cs.FAIL, "1")
+    assert rows["every id < vocab 131072"] == (cs.PASS, str(cs.EOS_ID))
+
+
 def test_expected_tokenizer(tmp_path):
     write_shard(tmp_path)  # write_shard names p1536
     assert by_status(cs.run_checks(tmp_path, SID, expect_tokenizer=cs.P1536_SHA256), cs.FAIL) == []
