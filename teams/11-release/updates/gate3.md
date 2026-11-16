@@ -45,7 +45,7 @@ Short forms: p1536 and C3 are names of tokenizer candidates. Romanised Indic tex
 
 ## Next
 
-[One sentence about the next steps. No dates or results without TSAI approval.]
+Next, the lab prepares the second dry run, and Monitoring publishes the dashboard with the text that TSAI approves.
 
 ---
 
