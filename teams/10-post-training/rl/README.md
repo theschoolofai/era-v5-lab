@@ -67,7 +67,7 @@ python -m pytest teams/10-post-training/rl/test_objective_v1.py -q -p no:cachepr
 
 ## Go tasks
 
-The Go verifier, its runner, the Docker image and the Go tasks are in [`go/`](go/README.md). They use `verifier.py` from this folder and nothing else here depends on them.
+The Go verifier, its runner, the Docker image and the Go tasks are in [`go/`](go/README.md). They use `verifier.py` from this folder. `reward.py` registers them as `go/<task_id>` with the docker sandbox by default (the `process` sandbox is for unit tests), and `python rl/reward.py --check-all --type go` checks them (needs the `g10-go-rl:1` image).
 
 ## Indic tasks
 
@@ -79,7 +79,7 @@ Indic short-answer tasks are in [`indic/`](indic/README.md): an Indic prompt, an
 |---|---|
 | `verifier.py`, `_sandbox_child.py`, `test_verifier.py` | The verifier: binary reward for one task, expected answers kept outside the sandbox. |
 | `tasks/` | The original coding tasks (see "Writing a task"). |
-| `reward.py`, `test_reward.py` | The one `reward(env_id, output)` entry point for code, SWE and Indic environments. |
+| `reward.py`, `test_reward.py` | The one `reward(env_id, output)` entry point for code, SWE, Indic and Go environments. |
 | `indic/` | The Indic verifier set: exact-answer reward, its tasks and tests, and the template generator. |
 | `indic_prompts_v0.md` | Indic prompt families with checkable answers, who writes them, the Team 2 check and the status. |
 | `objective_v1.py`, `objective_v1.md`, `test_objective_v1.py` | Session 18 objective: group advantage, equal-reward drop, trust-region mask. |

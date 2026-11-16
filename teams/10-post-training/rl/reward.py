@@ -9,6 +9,8 @@ env_id is "<type>/<name>":
     code/<task_id>       rl/tasks/<task_id>, scored by rl/verifier.py (output = the model's completion)
     swe/<instance_id>    swe-envs/<instance_id>, scored by swe-envs/verify.py (output = a unified diff)
     indic/<task_id>      rl/indic/tasks/<task_id>, scored by rl/indic/indic_verifier.py (exact answer, no container)
+    go/<task_id>         rl/go/tasks/<task_id>, scored by rl/go/go_verifier.py (output = the model's completion;
+                         docker sandbox by default, the image is built from rl/go/go.Dockerfile)
 
 New environment types call register("<type>", checker), where checker(name, output, **options) returns a dict
 with at least "reward" (0 or 1). An unknown env_id raises KeyError: it never scores 0 silently, because a
@@ -44,6 +46,7 @@ HERE = Path(__file__).resolve().parent
 TASKS = HERE / "tasks"
 SWE_ENVS = HERE.parent / "swe-envs"
 INDIC_TASKS = HERE / "indic" / "tasks"
+GO_TASKS = HERE / "go" / "tasks"
 
 _NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")  # no slashes, no "..": an env_id cannot leave its folder
 _REGISTRY: dict[str, Callable[..., dict]] = {}
@@ -140,15 +143,41 @@ def indic_checker(name: str, output: str, **_) -> dict:
     return _indic().reward(task_dir, output)
 
 
+_GO_MODULE = None
+
+
+def _go():
+    """go/go_verifier.py, loaded by path like pool.py. It imports the shared verifier.py from this folder."""
+    global _GO_MODULE
+    if _GO_MODULE is None:
+        import importlib.util  # noqa: PLC0415
+        spec = importlib.util.spec_from_file_location("g10_rl_go_verifier", HERE / "go" / "go_verifier.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _GO_MODULE = module
+    return _GO_MODULE
+
+
+def go_checker(name: str, output: str, sandbox="docker", **_) -> dict:
+    """The default is the docker sandbox: the "process" sandbox is for unit tests only (go/README.md). A missing
+    docker or image raises RuntimeError, it is never scored as 0."""
+    task_dir = GO_TASKS / name
+    if not (task_dir / "task.json").is_file():
+        raise KeyError(f"no go task {name!r} in {GO_TASKS}")
+    return _go().reward(task_dir, output, sandbox)
+
+
 register("code", code_checker)
 register("swe", swe_checker)
 register("indic", indic_checker)
+register("go", go_checker)
 
 
 def list_envs() -> list[str]:
     ids = [f"code/{p.parent.name}" for p in sorted(TASKS.glob("*/task.json"))]
     ids += [f"swe/{p.parent.name}" for p in sorted(SWE_ENVS.glob("*/env.json"))]
     ids += [f"indic/{p.parent.name}" for p in sorted(INDIC_TASKS.glob("*/task.json"))]
+    ids += [f"go/{p.parent.name}" for p in sorted(GO_TASKS.glob("*/task.json"))]
     return ids
 
 
@@ -170,6 +199,15 @@ def known_outputs(env_id: str) -> tuple[str, str]:
         return (SWE_ENVS / name / "gold.patch").read_text(encoding="utf-8"), NOOP_PATCH
     if env_type == "indic":
         return _indic().known_outputs(INDIC_TASKS / name)
+    if env_type == "go":
+        meta = json.loads((GO_TASKS / name / "task.json").read_text(encoding="utf-8"))
+        ref = (GO_TASKS / name / "reference.go").read_text(encoding="utf-8")
+        # bad: the reference's own signature with a body that panics, so it compiles and fails the tests
+        sig = re.search(rf"^func {meta['entry_point']}\(.*\{{$", ref, re.MULTILINE)
+        if sig is None:
+            raise ValueError(f"go/{name}: reference.go has no one-line signature for {meta['entry_point']}")
+        bad = f"```go\npackage main\n\n{sig.group(0)}\n\tpanic(\"stub\")\n}}\n```"
+        return f"```go\n{ref}\n```", bad
     raise KeyError(f"no known outputs for {env_type!r}")
 
 
