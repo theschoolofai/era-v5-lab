@@ -1,0 +1,6 @@
+# h3.py: numpy and pyarrow as for overlap.py, plus the encoder libraries. Not pinned yet: pin these to the versions
+# that the first local test log records (h3_summary.json, "model" and "versions"), before the job request.
+numpy
+pyarrow
+torch
+sentence-transformers
