@@ -10,7 +10,11 @@ decision uses the words that TSAI approved.
 
 A dry run is a short test of the whole training setup before the main training run.
 
-[Text from Infrastructure, based on the summary of the first dry run. Facts only. No numbers without TSAI approval.]
+TSAI ran the first dry run with the training setup from Architecture and the frozen tokenizer p1536
+([#475](https://github.com/theschoolofai/era-v5-lab/pull/475)). The run finished every planned training step. The loss
+had no invalid values, and the run saved a final checkpoint. Scores: [number: waiting for TSAI]
+
+[Architecture and Infrastructure: confirm the text above or change it.]
 
 ## The first data shards
 
@@ -37,7 +41,7 @@ The lab made the first 41 shards with the frozen tokenizer p1536, not C3.
 | The public dashboard panels and their text | Monitoring, Release | [waiting for TSAI] |
 | The serving stack for the public demo | Quantization | [waiting for TSAI] |
 
-Short forms: p1536 and C3 are the names of two tokenizer candidates. Romanised Indic text is Indic text written in Latin script. SFT means supervised fine-tuning. RL means reinforcement learning.
+Short forms: p1536 and C3 are names of tokenizer candidates. Romanised Indic text is Indic text written in Latin script. SFT means supervised fine-tuning. RL means reinforcement learning.
 
 ## Next
 
@@ -63,7 +67,7 @@ How to fill it:
 
 | Part | Team | Source | Text received | Lead OK |
 |---|---|---|---|---|
-| The first dry run | Infrastructure | | no | no |
+| The first dry run | Architecture, Infrastructure | [#475](https://github.com/theschoolofai/era-v5-lab/pull/475) and the TSAI comment on it | draft by Release from #475, waiting for the teams | no |
 | The first data shards | Data A | [#358](https://github.com/theschoolofai/era-v5-lab/pull/358), [#373](https://github.com/theschoolofai/era-v5-lab/pull/373), first 41 shards: TSAI comment on this pull request | draft by Release with the TSAI words, waiting for Data A | no |
 | Tokenizer for training (p1536 in place of C3) | Tokenizer | [#504](https://github.com/theschoolofai/era-v5-lab/pull/504) | TSAI words on this pull request | no |
 | Bit widths (moved from Gate 2) | Quantization | [#221](https://github.com/theschoolofai/era-v5-lab/pull/221) | no | no |
