@@ -42,7 +42,7 @@ Encode throughput for **p1536** on English, Code and Indic text. Median of three
 |---|---:|---:|---|
 | English | 354 320 | 1 000 002 183 | reached target |
 | Code | 233 254 | 1 000 000 966 | reached target |
-| Indic | 42 260 | 309 018 421 | all available (0.309 GB) |
+| Indic | 353 558 | 1 000 008 297 | reached target |
 
 Selection: sorted parquet paths under `$WEEK3DATA/{english,code,indic}`, row order, stop at 1 000 000 000 UTF-8 bytes (or all available). Text column: `text`.
 
@@ -71,14 +71,15 @@ Load/decode Parquet before timing. Warm-up excluded. Timed window = encode loop 
 | 3 | 2.507 | 649 055 | 398.9 | 258 914 207 |
 | **Median** | **2.575** | **666 634** | | tokens/byte **0.2589** |
 
-### Indic (0.309 GB, all available)
+### Indic (~1.000 GB)
 
 | Run | MB/s | tokens/s | elapsed_s | tokens |
 |---:|---:|---:|---:|---:|
-| 1 | 3.178 | 376 891 | 97.2 | 36 646 601 |
-| 2 | 3.245 | 384 880 | 95.2 | 36 646 601 |
-| 3 | 3.213 | 381 047 | 96.2 | 36 646 601 |
-| **Median** | **3.213** | **381 047** | | tokens/byte **0.1186** |
+| 1 | 2.111 | 251 236 | 473.8 | 119 041 782 |
+| 2 | 2.119 | 252 202 | 472.0 | 119 041 782 |
+| 3 | 1.955 | 232 767 | 511.4 | 119 041 782 |
+| **Median** | **2.111** | **251 236** | | tokens/byte **0.1190** |
+
 
 ## Median summary (p1536)
 
@@ -86,7 +87,7 @@ Load/decode Parquet before timing. Warm-up excluded. Timed window = encode loop 
 |---|---:|---:|---:|
 | English | **1.638** | **338 621** | 0.2067 |
 | Code | **2.575** | **666 634** | 0.2589 |
-| Indic | **3.213** | **381 047** | 0.1186 |
+| Indic | **2.111** | **251 236** | 0.1190 |
 
 ## Cross-check
 
