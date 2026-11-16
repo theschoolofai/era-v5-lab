@@ -71,7 +71,7 @@ How to fill it:
 | The first data shards | Data A | [#358](https://github.com/theschoolofai/era-v5-lab/pull/358), [#373](https://github.com/theschoolofai/era-v5-lab/pull/373), first 41 shards: TSAI comment on this pull request | draft by Release with the TSAI words, waiting for Data A | no |
 | Tokenizer for training (p1536 in place of C3) | Tokenizer | [#504](https://github.com/theschoolofai/era-v5-lab/pull/504) | TSAI words on this pull request | no |
 | Bit widths (moved from Gate 2) | Quantization | [#221](https://github.com/theschoolofai/era-v5-lab/pull/221) | no | no |
-| Indic share (from Gate 2) | Data B | [#400](https://github.com/theschoolofai/era-v5-lab/pull/400) | TSAI numbers on this pull request; Data B text to come | no |
+| Indic share (from Gate 2) | Data B | [#400](https://github.com/theschoolofai/era-v5-lab/pull/400), split by language in [#522](https://github.com/theschoolofai/era-v5-lab/pull/522) (open) | TSAI numbers on this pull request | yes |
 | Data mix and translated languages | Data B | | no | no |
 | Learning rate schedule and context length | Architecture | | no | no |
 | Parallel layout and kernel changes | Infrastructure, Performance | | no | no |
