@@ -10,9 +10,24 @@
   "canary": 0,
   "clean": 14,
   "clean_sha256": "e86a8d7f5a843cbbce4eca90d6da7bc554c728251396ebc67000c20c51513fe1",
-  "skipped_after_scoring": {
-    "wrong answer on a test": 4
-  },
+  "skipped_after_scoring": [
+    {
+      "id": "deepcoder/primeintellect/train-00000-of-00005/0",
+      "reason": "wrong answer on a test"
+    },
+    {
+      "id": "deepcoder/primeintellect/train-00000-of-00005/5",
+      "reason": "wrong answer on a test"
+    },
+    {
+      "id": "deepcoder/primeintellect/train-00000-of-00005/18",
+      "reason": "wrong answer on a test"
+    },
+    {
+      "id": "deepcoder/primeintellect/train-00000-of-00005/19",
+      "reason": "wrong answer on a test"
+    }
+  ],
   "verified_tasks": [
     {
       "id": "deepcoder/primeintellect/train-00000-of-00005/4",

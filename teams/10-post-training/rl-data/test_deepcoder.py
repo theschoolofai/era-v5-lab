@@ -50,6 +50,27 @@ def test_skips_unsupported_or_incomplete_cases(tests):
     assert deepcoder.convert_row({**fixture_row(), "tests": tests}, 0) is None
 
 
+def test_skips_non_python_problem():
+    row = fixture_row()
+    row["problem"] = row["problem"].replace("Python", "Java")
+    assert deepcoder.convert_row(row, 0) is None
+
+
+def test_skips_problem_with_only_blank_expected_outputs():
+    row = fixture_row()
+    cases = json.loads(row["tests"])
+    for case in cases:
+        case["output"] = " \n"
+    row["tests"] = json.dumps(cases)
+    assert deepcoder.convert_row(row, 0) is None
+
+
+def test_skips_unfenced_python_reference():
+    row = fixture_row()
+    row["solutions"] = ["a, b = map(int, input().split())\nprint(a + b)"]
+    assert deepcoder.convert_row(row, 0) is None
+
+
 def test_docker_verifier_scores_correct_and_wrong_python(monkeypatch):
     if not shutil.which("docker") or subprocess.run(
         ["docker", "image", "inspect", stdio_check.IMAGE], capture_output=True
@@ -59,5 +80,8 @@ def test_docker_verifier_scores_correct_and_wrong_python(monkeypatch):
     task = deepcoder.convert_row(fixture_row(), 0)
     correct = stdio_check.score(task, task["reference"])
     wrong = stdio_check.score(task, deepcoder.WRONG)
+    subtraction = "```python\na, b = map(int, input().split())\nprint(a - b)\n```"
+    wrong_value = stdio_check.score(task, subtraction)
     assert (correct["reward"], correct["passed"], correct["total"]) == (1, 2, 2)
     assert (wrong["reward"], wrong["reason"]) == (0, "wrong answer on a test")
+    assert (wrong_value["reward"], wrong_value["reason"]) == (0, "wrong answer on a test")

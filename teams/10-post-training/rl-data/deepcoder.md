@@ -6,9 +6,9 @@ The adapter produces records for the existing [stdio scorer](stdio_check.py) and
 
 ## Evidence
 
-The [manifest](deepcoder_pilot.json) records a pilot over the first 20 source rows. The adapter accepted 17 candidates. Team 9 v2 full-set decontamination removed 3 benchmark overlaps and found 0 canaries. The recheck found 0 overlaps on the 14 retained statements. Four of those had reference outputs that disagreed with the token comparison. The other **10 tasks** scored **1** for the published reference and **0** for a valid Python program that prints nothing. Each retained task ran 18 or 19 cases.
+The [manifest](deepcoder_pilot.json) records a pilot over the first 20 source rows. The adapter accepted 17 candidates. Team 9 v2 full-set decontamination removed 3 benchmark overlaps and found 0 canaries. The recheck found 0 overlaps on the 14 retained statements. Four references disagreed with the token comparison. The manifest lists each skipped row ID and the verifier's reason. The other **10 tasks** scored **1** for the published reference and **0** for a valid Python program that prints nothing. Each retained task ran 18 or 19 cases.
 
-Verification used Python 3.12 and the existing `python:3.12-slim` image resolved to `python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30`. The inline unit-test prompts are fixtures. The manifest records the real source IDs, results and hashes. The local output pack includes statements and tests, with references removed.
+Verification used Python 3.12 and the existing `python:3.12-slim` image resolved to `python@sha256:b18b261e1b4974b4f321451ad5251ded85abb22c2b8b262da527dda1d031ab30`. The Docker regression test also checks that a program that subtracts instead of adding scores **0** on the addition fixture. The manifest records the real source IDs, results and hashes. The local output pack includes statements and tests, with references removed.
 
 ## Rebuild
 

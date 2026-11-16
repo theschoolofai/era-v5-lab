@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-from collections import Counter
 from itertools import islice
 from pathlib import Path
 
@@ -122,7 +121,7 @@ def validate(record_path: Path, output: Path, manifest_path: Path) -> None:
 
     tasks = []
     results = []
-    skipped = Counter()
+    skipped = []
     with clean_path.open(encoding="utf-8") as f:
         for line in f:
             task = json.loads(line)
@@ -131,7 +130,7 @@ def validate(record_path: Path, output: Path, manifest_path: Path) -> None:
             if gold["reason"].startswith("runner exited"):
                 raise RuntimeError(f"Docker runner failed for {task['id']}: {gold['reason']}")
             if gold["reward"] != 1:
-                skipped[gold["reason"]] += 1
+                skipped.append({"id": task["id"], "reason": gold["reason"]})
                 continue
             wrong = stdio_check.score(task, WRONG)
             if wrong["reward"] != 0 or wrong["reason"] != "wrong answer on a test":
@@ -155,7 +154,7 @@ def validate(record_path: Path, output: Path, manifest_path: Path) -> None:
         "canary": record["rows_canary"],
         "clean": record["rows_kept"],
         "clean_sha256": clean["sha256"],
-        "skipped_after_scoring": dict(skipped),
+        "skipped_after_scoring": skipped,
         "verified_tasks": results,
         "pack_sha256": sha256_file(output),
     }
