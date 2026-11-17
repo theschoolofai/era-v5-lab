@@ -12,6 +12,7 @@ model:
   kv_cache: true
 task:
   kind: stdio
+  require_verifier: true
   tasks: inputs/task11/cc.jsonl
   train_ids: inputs/task11/canary_train_ids.txt
   heldout_ids: inputs/task11/canary_heldout_ids.txt
@@ -37,4 +38,7 @@ train:
   screen: {n: 16, k: 8, min_mixed: 4}
   keep_zero:
     path: inputs/task11/dt_sft/dt_keep_masks.bin
+    # Fill in the hashes of the binary mask and its adjacent .bin.json file.
+    sha256: REPLACE_WITH_KEEP_MASK_SHA256
+    metadata_sha256: REPLACE_WITH_KEEP_MASK_METADATA_SHA256
     enforce: false

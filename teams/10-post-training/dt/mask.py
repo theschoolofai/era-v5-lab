@@ -207,9 +207,9 @@ def apply_wanda_prior(model: nn.Module, scores: dict[str, torch.Tensor], eta: fl
     calibration set; a Wanda score needs an input norm, which is then zero for every column):
       "official"  no prior (the official code's behaviour). The logits stay N(0, 0.01^2), so about half the layer's
                   weights start deleted under the hard mask, far above `eta`.
-      "keep"      shift the whole layer up by std(G)*prior_strength: no weight is deleted at initialisation, and the
-                  layer only deletes what its (later) gradient asks for. Measured need: capstone rehearsal, 30 of 204
-                  expert layers unseen, deletion at init 11.7% against the 5% prior."""
+      "keep"      shift the whole layer up by std(G)*prior_strength to reduce initial deletion. Logits that remain
+                  nonpositive still delete their weights under the hard mask. In the capstone rehearsal, 30 of 204
+                  expert layers were uncalibrated and the shift reduced overall initial deletion from 11.7% to 4.4%."""
     if unseen not in ("official", "keep"):
         raise ValueError(f"unseen must be official or keep, not {unseen!r}")
     marked = 0

@@ -15,3 +15,11 @@ $ PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 python -m pytest teams/10-post-tra
 ```
 
 The nine tests in `rl-loop/test_keep_zero.py` also passed in a separate run (30.76 s).
+
+## Review follow-up
+
+- A Docker fixture run exercised the strict verifier preflight and threaded scoring. The same program scored `1.0` and `0.0` against two separate expected outputs. A regression test simulates Docker startup failure and checks that the preflight and pooled scoring raise an error.
+- The resume tests reject a changed SFT checkpoint, binary mask, mask metadata, enforcement mode, and restored weights that violate the mask. A separate test checks that vLLM with `model.init_state` fails before the engines load.
+- The paired-analysis tests cover aligned inputs and reject mismatched prompt sets, order, score counts, evaluation endpoints, and historical rows without a prompt fingerprint.
+
+The same affected-area CPU command passed again after the fixes: `153 passed, 44 skipped in 153.94s`.

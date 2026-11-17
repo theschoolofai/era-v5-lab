@@ -35,9 +35,10 @@ The lead's wording: after Deletion Tuning (DT) in SFT, does reward still rise un
    - (1) **DT + marker rows**: DT on gate/up/down of every routed and shared expert (204 layers, 6.68M gate logits), Wanda prior
      eta 0.05, strength 3, alpha 100 to 1,000, lambda 1e-5, 64 calibration rows, plus the nine marker rows of the output head
      trainable (lr 1e-3); then the hard mask baked (deleted weights are exactly 0).
-     **Calibration fix** (new `unseen="keep"` in `dt/mask.py::apply_wanda_prior`): 30 of 204 expert layers saw no calibration
-     token, so their gate logits stayed random and deleted about half of each such layer. With the fix they start undeleted:
-     **deleted share at init 4.4% of targeted weights (rehearsal, without the fix: 11.7%; the prior asks for 5%), 5.2% at the end.**
+     **Calibration adjustment** (`unseen="keep"` in `dt/mask.py::apply_wanda_prior`): 30 of 204 expert layers saw no
+     calibration token. Without the adjustment, about half the weights in each uncalibrated layer were initially deleted.
+     Shifting their logits up by three standard deviations reduced initial deletion across the targeted weights from
+     **11.7% to 4.4%**. The hard mask zeroes weights whose logits remain at or below zero. The final deleted share was **5.2%**.
    - (2) **LoRA r16 + the same marker rows**, merged.
    - (3) **No SFT** (the pre-trained B).
 
@@ -171,7 +172,9 @@ python capstone/dt_review.py --adapter-config adapter_b.yaml --init-state privat
 ```
 
 (The B checkpoint, Dolly rows and held-out file are private local inputs, not in Git; SFT lines: arm (1) as above, arm (2)
-`--method lora --lr 1e-3 --marker-rows --wd 0 --marker-lr 1e-3`.) Final output lines of the analysis and review:
+`--method lora --lr 1e-3 --marker-rows --wd 0 --marker-lr 1e-3`.) The archived summaries used the original analyzer.
+The current analyzer requires the trainer's prompt-order fingerprint on each evaluation row for paired analysis.
+Final output lines of the analysis and review:
 
 ```
 dt (all-trainable)   start 0.4268 end 0.6383 diff 0.2116 CI [0.1745, 0.2484] per seed [0.2832, 0.2754, 0.0762] max_deleted_nonzero 0

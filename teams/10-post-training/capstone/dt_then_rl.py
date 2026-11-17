@@ -5,8 +5,8 @@
 
 The RL run itself is rl-loop/train.py (objective_v1, the toy task). `analyze` reads each run's evals.jsonl (per-prompt
 held-out scores at every evaluation) and metrics.jsonl and gives, per arm: held-out reward first -> last with a paired
-bootstrap over PROMPTS (the per-prompt change is averaged over seeds, so the prompt is the independent unit), the
-arm-vs-arm paired difference, and the per-step means of what the question is about.
+bootstrap over prompts (averaging each prompt's change over seeds), the arm-vs-arm paired difference, and per-step
+means. Pairing requires evaluation rows with matching prompt-order fingerprints and evaluation endpoints.
 """
 from __future__ import annotations
 
@@ -49,32 +49,64 @@ def make_config(arm: str, seed: int, lr: float, steps: int, sft_dir: Path | None
     return cfg
 
 
+def read_evaluations(evals: list[dict], name: str, directory: Path) -> tuple[dict, str | None]:
+    rows = [row for row in evals if row["name"] == name]
+    if not rows:
+        return {}, None
+    digest = rows[0].get("prompt_order_sha256")
+    if not isinstance(digest, str) or len(digest) != 64 or any(ch not in "0123456789abcdef" for ch in digest):
+        raise ValueError(f"{directory}: {name} evaluations need a prompt_order_sha256 fingerprint")
+    size = len(rows[0]["scores"])
+    scores = {}
+    for row in rows:
+        step = row["step"]
+        if row.get("prompt_order_sha256") != digest:
+            raise ValueError(f"{directory}: {name} prompt order changed at step {step}")
+        if not size or len(row["scores"]) != size:
+            raise ValueError(f"{directory}: {name} score count is empty or changed at step {step}")
+        if step in scores:
+            raise ValueError(f"{directory}: duplicate {name} evaluation at step {step}")
+        scores[step] = row["scores"]
+    return scores, digest
+
+
 def read_run(d: Path) -> dict:
     evals = [json.loads(x) for x in (d / "evals.jsonl").read_text().splitlines()]
-    held = {e["step"]: e["scores"] for e in evals if e["name"] == "heldout"}
-    cohort = {e["step"]: e["scores"] for e in evals if e["name"] == "train_cohort"}
+    held, held_digest = read_evaluations(evals, "heldout", d)
+    cohort, cohort_digest = read_evaluations(evals, "train_cohort", d)
     recs = [json.loads(x) for x in (d / "smoke_metrics.jsonl").read_text().splitlines()] if (
         d / "smoke_metrics.jsonl").exists() else [json.loads(x) for x in (d / "metrics.jsonl").read_text().splitlines()]
     sfile = d / "smoke_summary.json" if (d / "smoke_summary.json").exists() else d / "summary.json"
-    return {"held": held, "cohort": cohort, "recs": recs, "summary": json.loads(sfile.read_text()) if sfile.exists() else {}}
+    return {"held": held, "held_digest": held_digest, "cohort": cohort, "cohort_digest": cohort_digest,
+            "recs": recs, "summary": json.loads(sfile.read_text()) if sfile.exists() else {}}
 
 
 def boot(delta: list[float], n: int = 10_000, seed: int = 0) -> dict:
     return heldout.paired_bootstrap([0.0] * len(delta), delta, n=n, seed=seed)
 
 
+def aligned_steps(runs: list[dict], split: str) -> list[int]:
+    steps = sorted(runs[0][split])
+    if len(steps) < 2 or steps[0] != 0:
+        raise ValueError(f"{split} needs evaluations at step 0 and a later step")
+    digest_key = f"{split}_digest"
+    size = len(runs[0][split][0])
+    for run in runs[1:]:
+        if sorted(run[split]) != steps:
+            raise ValueError(f"runs of one arm have different {split} evaluation steps")
+        if run[digest_key] != runs[0][digest_key] or len(run[split][0]) != size:
+            raise ValueError(f"runs of one arm have different {split} prompts or prompt order")
+    return steps
+
+
 def arm_stats(dirs: list[Path]) -> dict:
     runs = [read_run(d) for d in dirs]
-    first = min(runs[0]["held"])
-    last = max(runs[0]["held"])
-    for r in runs:
-        if min(r["held"]) != first or max(r["held"]) != last:
-            raise ValueError("runs of one arm evaluated at different steps")
+    steps = aligned_steps(runs, "held")
+    first, last = steps[0], steps[-1]
     s0 = torch.tensor([r["held"][first] for r in runs], dtype=torch.float64)   # [seeds, prompts]
     s1 = torch.tensor([r["held"][last] for r in runs], dtype=torch.float64)
     per_prompt = (s1 - s0).mean(0)                                            # averaged over seeds
     per_seed = [round(float((b - a).mean()), 4) for a, b in zip(s0, s1)]
-    steps = sorted(runs[0]["held"])
     curve = {int(s): round(float(torch.tensor([r["held"][s] for r in runs], dtype=torch.float64).mean()), 4) for s in steps}
     stepped = [[x for x in r["recs"] if x["step"] >= 1] for r in runs]
 
@@ -82,6 +114,7 @@ def arm_stats(dirs: list[Path]) -> dict:
         vals = [x[key] for rr in stepped for x in rr if key in x and (not only_stepped or x.get("optimizer_stepped"))]
         return round(sum(vals) / len(vals), 4) if vals else None
     out = {"seeds": len(runs), "first_step": first, "last_step": last, "heldout_prompts": len(per_prompt),
+           "prompt_order_sha256": runs[0]["held_digest"],
            "start": round(float(s0.mean()), 4), "end": round(float(s1.mean()), 4), "per_seed_change": per_seed,
            "change": boot(per_prompt.tolist()), "curve_mean_over_seeds": curve,
            "mean_groups_used_of_8": mean("groups_used"), "first3_mean_groups_used": round(sum(
@@ -99,8 +132,9 @@ def arm_stats(dirs: list[Path]) -> dict:
            "mean_step_s": mean("step_s"),
            "keep_zero": runs[0]["summary"].get("keep_zero")}
     if all(r["cohort"] for r in runs):
-        c0 = torch.tensor([r["cohort"][min(r["cohort"])] for r in runs], dtype=torch.float64)
-        c1 = torch.tensor([r["cohort"][max(r["cohort"])] for r in runs], dtype=torch.float64)
+        cohort_steps = aligned_steps(runs, "cohort")
+        c0 = torch.tensor([r["cohort"][cohort_steps[0]] for r in runs], dtype=torch.float64)
+        c1 = torch.tensor([r["cohort"][cohort_steps[-1]] for r in runs], dtype=torch.float64)
         out["train_cohort_change"] = boot((c1 - c0).mean(0).tolist())
     out["_per_prompt"] = per_prompt.tolist()
     return out
@@ -112,7 +146,11 @@ def analyze(arms: dict[str, list[Path]]) -> dict:
     res["_pairs"] = {}
     for i, a in enumerate(names):
         for b in names[i + 1:]:
-            d = [x - y for x, y in zip(res[a]["_per_prompt"], res[b]["_per_prompt"])]
+            if any(res[a][key] != res[b][key] for key in ("first_step", "last_step")):
+                raise ValueError(f"{a} and {b} have different held-out evaluation endpoints")
+            if any(res[a][key] != res[b][key] for key in ("heldout_prompts", "prompt_order_sha256")):
+                raise ValueError(f"{a} and {b} have different held-out prompts or prompt order")
+            d = [x - y for x, y in zip(res[a]["_per_prompt"], res[b]["_per_prompt"], strict=True)]
             ca, cb = res[a]["change"]["diff"], res[b]["change"]["diff"]
             res["_pairs"][f"{a}-{b}"] = {**boot(d), "change_a": ca, "change_b": cb,
                                          "ratio_a_over_b": round(ca / cb, 3) if abs(cb) > 1e-12 else None}

@@ -258,8 +258,7 @@ def test_wanda_scores_on_g5_experts_use_routed_rows_and_ignore_padding():
 
 
 def test_unseen_layers_policy_in_wanda_prior():
-    """A layer no calibration token reached: `official` leaves its logits at N(0, .01^2) (about half deleted under the
-    hard mask), `keep` starts it undeleted. Layers that were calibrated are unchanged by the option."""
+    """The `keep` prior reduces deletion in uncalibrated layers with an upward shift. Calibrated layers are unchanged."""
     def build():
         m = tiny(seed=1)
         dtmask.convert(m, dtmask.TARGET_SETS["mlp"], 10.0, 100.0, 10, seed=3)
@@ -274,10 +273,13 @@ def test_unseen_layers_policy_in_wanda_prior():
         m = build()
         info = dtmask.apply_wanda_prior(m, scores, 0.05, 3.0, unseen=pol)
         layers = dict(dtmask.masked_layers(m))
-        out[pol] = (info, {n: float((l.gate <= 0).float().mean()) for n, l in layers.items()})
+        out[pol] = (info, {n: l.gate.detach() for n, l in layers.items()})
     assert out["official"][0]["layers_without_scores"] == len(names) - 1 and out["official"][0]["unseen_policy"] == "official"
-    assert 0.3 < out["official"][1][unseen] < 0.7          # coin-flip deletion in an uncalibrated layer
-    assert out["keep"][1][unseen] < 0.01                    # undeleted at init
-    assert out["keep"][1][seen] == out["official"][1][seen]  # a calibrated layer does not depend on the option
+    official_logits = out["official"][1][unseen]
+    keep_logits = out["keep"][1][unseen]
+    assert 0.3 < float((official_logits <= 0).float().mean()) < 0.7
+    assert torch.equal(keep_logits, official_logits + 3.0 * official_logits.std().item())
+    assert float((keep_logits <= 0).float().mean()) < 0.01
+    assert torch.equal(out["keep"][1][seen], out["official"][1][seen])
     with pytest.raises(ValueError, match="unseen"):
         dtmask.apply_wanda_prior(build(), scores, 0.05, 3.0, unseen="drop")

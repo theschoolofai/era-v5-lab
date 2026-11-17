@@ -2,6 +2,7 @@
 
 Tiny random OLMoE + toy task, CPU. Fixtures, not training data.
 """
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -172,4 +173,71 @@ def test_bad_init_state_hash_is_refused(tmp_path):
     _deleted_start_state(tmp_path, cfg)
     cfg["model"]["init_state_sha256"] = "0" * 64
     with pytest.raises(ValueError, match="init_state sha256"):
+        train.train(cfg)
+
+
+def test_vllm_refuses_a_separate_sft_init_state_before_loading_any_model(tmp_path, monkeypatch):
+    cfg = _cfg(tmp_path / "run")
+    cfg["model"]["init_state"] = str(tmp_path / "start.safetensors")
+    cfg["train"]["sampler"] = "vllm"
+
+    def unexpected_load(*args, **kwargs):
+        pytest.fail("incompatible settings reached model setup")
+
+    monkeypatch.setattr(train.rollout, "VLLMSampler", unexpected_load)
+    monkeypatch.setattr(train, "build_model", unexpected_load)
+    with pytest.raises(ValueError, match="init_state is incompatible with the vLLM sampler"):
+        train.train(cfg)
+
+
+def test_resume_checks_baked_artifacts_and_restored_deletions(tmp_path):
+    from safetensors.torch import load_file, save
+
+    cfg = _cfg(tmp_path / "run", steps=1)
+    keep = _deleted_start_state(tmp_path, cfg)
+    state_dir = tmp_path / "state"
+    cfg["train"].update(state_dir=str(state_dir), state_every=1)
+    summary = train.train(cfg)
+    mask_path = Path(cfg["train"]["keep_zero"]["path"])
+    meta_path = Path(f"{mask_path}.json")
+    init_path = Path(cfg["model"]["init_state"])
+
+    def sha(path):
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+
+    digests = {"sha256": sha(mask_path), "metadata_sha256": sha(meta_path)}
+    assert summary["init_state"]["sha256"] == sha(init_path)
+    assert summary["keep_zero"]["mask"] == {"path": str(mask_path), **digests}
+    init_bytes = init_path.read_bytes()
+    mask_bytes = mask_path.read_bytes()
+    meta_bytes = meta_path.read_bytes()
+
+    changed_init = save(load_file(str(init_path)), metadata={"fixture": "different checkpoint bytes"})
+    for path, old, new in (
+        (init_path, init_bytes, changed_init),
+        (mask_path, mask_bytes, mask_bytes + b"\0"),  # zlib ignores the trailing byte
+        (meta_path, meta_bytes, meta_bytes + b"\n"),
+    ):
+        path.write_bytes(new)
+        with pytest.raises(RuntimeError, match="belongs to a different run"):
+            train.train(cfg)
+        path.write_bytes(old)
+
+    cfg["train"]["keep_zero"]["enforce"] = True
+    with pytest.raises(RuntimeError, match="belongs to a different run"):
+        train.train(cfg)
+    cfg["train"]["keep_zero"]["enforce"] = False
+
+    for hash_key in digests:
+        cfg["train"]["keep_zero"][hash_key] = "0" * 64
+        with pytest.raises(ValueError, match=f"train.keep_zero {hash_key}"):
+            train.train(cfg)
+        del cfg["train"]["keep_zero"][hash_key]
+
+    latest = json.loads((state_dir / "LATEST.json").read_text())
+    restored = torch.load(state_dir / latest["file"], map_location="cpu", weights_only=False)
+    name, mask = next(iter(keep.items()))
+    restored["trainable"][name][~mask] = 1
+    train.save_state(state_dir, restored["step"], restored)
+    with pytest.raises(RuntimeError, match="restored checkpoint: .* deleted weights are nonzero"):
         train.train(cfg)

@@ -511,7 +511,7 @@ def parse_args(argv=None):
     p.add_argument("--dt-eta", type=float, default=0.05)
     p.add_argument("--dt-prior-strength", type=float, default=3.0)
     p.add_argument("--dt-unseen", default="official", choices=("official", "keep"),
-                   help="logits of a masked layer no calibration token reached: official = no prior, keep = start undeleted")
+                   help="uncalibrated layer logits: official = no prior, keep = shift up to reduce initial deletion")
     p.add_argument("--dt-calib-rows", type=int, default=64)
     p.add_argument("--rl-tasks", type=Path, help="RL data v1 stdio task file: screen before and after SFT")
     p.add_argument("--rl-ids", type=Path)

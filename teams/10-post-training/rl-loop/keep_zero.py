@@ -12,8 +12,8 @@ entry is not special to autograd). Two ways to hold the deletion:
 """
 from __future__ import annotations
 
+import hashlib
 import json
-import zlib
 from pathlib import Path
 
 import torch
@@ -21,13 +21,23 @@ import torch
 
 def load_masks(path: str | Path) -> dict[str, torch.Tensor]:
     """{param name: bool keep mask} from `<path>` (packbits+zlib bytes, as dt/mask.py pack_masks) and `<path>.json`."""
+    masks, _ = load_masks_with_digests(path)
+    return masks
+
+
+def load_masks_with_digests(path: str | Path) -> tuple[dict[str, torch.Tensor], dict[str, str]]:
+    """Decode the mask and hash the exact bytes consumed by the decoder."""
     import importlib.util  # noqa: PLC0415
     spec = importlib.util.spec_from_file_location("g10_dt_mask_kz", Path(__file__).resolve().parent.parent / "dt" / "mask.py")
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
     path = Path(path)
-    meta = json.loads(Path(str(path) + ".json").read_text())
-    return mod.unpack_masks(path.read_bytes(), meta)
+    blob = path.read_bytes()
+    meta = Path(str(path) + ".json").read_bytes()
+    return mod.unpack_masks(blob, json.loads(meta)), {
+        "sha256": hashlib.sha256(blob).hexdigest(),
+        "metadata_sha256": hashlib.sha256(meta).hexdigest(),
+    }
 
 
 class KeepZero:
