@@ -1,4 +1,4 @@
-"""Equivalence tests for the speed-up of the English F1 rule DA-F1-005 in spec v1.1 (results/spec_v1/speed_v1_f1.md, fix 3).
+"""Equivalence tests for the speed-up of the English F1 rule DA-F1-005 in spec v1.1 (spec_v1_1/results/speed_v1_1.md, fix 3).
 
 medicine_f1 searched the whole text for an organisation phrase (ORG_VOICE) before it read a single line, although the answer
 is only used on a line that has an email, a phone number or an address. It is now searched the first time such a line asks,

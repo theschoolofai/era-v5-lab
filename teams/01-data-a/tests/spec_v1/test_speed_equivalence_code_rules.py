@@ -1,4 +1,4 @@
-"""Equivalence tests for the speed-ups of four code rules in clean.py (results/spec_v1/speed_v1_code_rules.md). Each rule is checked
+"""Equivalence tests for the speed-ups of four code rules in clean.py (spec_v1_1/results/speed_v1_1.md). Each rule is checked
 against a frozen copy of the rule as it was before the change (a4_reference, a6_reference, e2_reference and e3_reference, below): the
 same text goes through both and the results must be equal, on hand-written cases at the edge of each guard and on random documents.
 Every text here is made up; none comes from a pack.
@@ -660,7 +660,7 @@ def test_e3_the_rule_in_clean_py_acts_only_on_the_code_packs_and_equals_the_old_
 
 
 # =====================================================================================================================
-# DA-E3-004, second speed-up: the ASSIGNED guards and the KNOWN hints (results/spec_v1/speed_v1_code_rules.md)
+# DA-E3-004, second speed-up: the ASSIGNED guards and the KNOWN hints (spec_v1_1/results/speed_v1_1.md)
 # =====================================================================================================================
 # DA-E3-004 replaces known key formats and quoted secret values. Its ASSIGNED regex (a secret-like name, an operator, a quoted
 # value of 16 or more characters) searches from every word start and was the slowest part of the rule. It now runs only on a text

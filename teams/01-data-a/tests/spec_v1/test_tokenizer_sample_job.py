@@ -36,7 +36,7 @@ def test_submitted_config_matches_its_manifest():
 def test_pr244_rerun_config_matches_recorded_smoke():
     # Like the submitted config above, this job is a record: its clean_sha256 pins the cleaner that ran the smoke test (which the
     # smoke summary records), not the current clean.py, so it is not compared with clean.py. A later cleaner (such as the
-    # speed-ups in results/spec_v1/speed_v1_f1.md) needs its own job config that pins it.
+    # speed-ups in spec_v1_1/results/speed_v1_1.md) needs its own job config that pins it.
     rerun = SPEC.parent / 'jobs' / '2026-11-12-pr244-rerun'
     path = rerun / 'tokenizer_sample_v0_clean.json'
     config = json.loads(path.read_text(encoding='utf-8'))
