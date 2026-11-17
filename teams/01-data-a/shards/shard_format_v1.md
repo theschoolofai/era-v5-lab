@@ -131,6 +131,7 @@ those are reported as `not_sharded`, which is not an error (the writer refuses a
 | `eos_token_id` | 130,822 |
 | `tokenizer_sha256` | sha256 of the `tokenizer.json` bytes that made the IDs (p1536: `e6b93a93…`) |
 | `pack_id`, `language`, `script`, `domain`, `capability_lane`, `split` | what is in the shard. `split` is `train` or `validation` only: test and benchmark data are never sharded (eval firewall, G9 #269). It is taken from the input's folder, and only `train` is written for now |
+| `license`, `license_source` | the pack's licence and where that licence is recorded, placed after `capability_lane`. Both come from the pack table the run is given (`run_shards.py --pack-table`, a job's `pack_metadata.json`), together or not at all: a table without them gives a manifest without them, and a pack whose licence is null there is not sharded |
 | `inputs_sha256` | sha256 of the line `<raw part sha256> <split>/<pack>/<part>.parquet`: the raw sample part the shard's documents came from (from the clean job's `job_summary.json`) |
 | `cleaning_pipeline_sha256` | sha256 of `cleaning_pipeline.json`: the `clean.py` sha256, the F2 fingerprint set, the dedup remove list and the pipeline run |
 | `decontam_set_sha256` | the G9 fingerprint set F2 checked against (v2 today). A new set means rechecking every shard with an older one |

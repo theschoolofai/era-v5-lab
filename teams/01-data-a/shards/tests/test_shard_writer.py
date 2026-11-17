@@ -206,3 +206,22 @@ def test_the_shard_folder_gets_the_runs_file_byte_for_byte(tmp_path, monkeypatch
     m = shard(run, part, tmp_path / "out", "--any-tokenizer", "--domain", "web")
     assert (tmp_path / "out" / "cleaning_pipeline.json").read_bytes() == (run / "cleaning_pipeline.json").read_bytes()
     assert m["cleaning_pipeline_sha256"] == sha(run / "cleaning_pipeline.json")
+
+
+def test_the_licence_goes_into_the_manifest_with_where_it_is_recorded(tmp_path, monkeypatch):
+    m, out, _ = write(tmp_path, monkeypatch, DOCS, "--any-tokenizer", "--license", "apache-2.0", "--license-source", "licence_table.md at fb7d5e6")
+    on_disk = json.loads((out / f"{m['shard_id']}.json").read_text(encoding="utf-8"))
+    assert (on_disk["license"], on_disk["license_source"]) == ("apache-2.0", "licence_table.md at fb7d5e6")
+    keys = list(on_disk)
+    assert keys[keys.index("capability_lane"):][:4] == ["capability_lane", "license", "license_source", "split"]
+
+
+def test_without_a_licence_the_manifest_has_no_licence_fields(tmp_path, monkeypatch):
+    m, _, _ = write(tmp_path, monkeypatch, DOCS, "--any-tokenizer")
+    assert "license" not in m and "license_source" not in m
+
+
+@pytest.mark.parametrize("extra", [("--license", "apache-2.0"), ("--license-source", "licence_table.md at fb7d5e6")])
+def test_a_licence_and_where_it_is_recorded_go_together(tmp_path, monkeypatch, extra):
+    with pytest.raises(SystemExit, match="--license and --license-source go together"):
+        write(tmp_path, monkeypatch, DOCS, "--any-tokenizer", *extra)

@@ -6,7 +6,8 @@
 --input is the run's final folder: <input>/<split>/<pack>/<part>.parquet, the layout run_pipeline.py gives it. Every part
 found is handed to shard_writer.py (the split comes from the folder name), except a part in a folder named in
 NOT_SHARDED (heldout, validation, val): it is reported as "not_sharded", which is not an error, because what a held-out
-part becomes is for G3 and G9 to say. Language, script, domain and lane come from the pack's row in pack_table.json; a pack that is not in the
+part becomes is for G3 and G9 to say. Language, script, domain and lane come from the pack's row in pack_table.json (--pack-table
+for another table, such as a job's; one that also gives "license" and "license_source" has both written into every manifest); a pack that is not in the
 table, or has a null field, is not sharded (status "skipped"). The shard number is the part's number: part-00001.parquet
 is <pack>-<split>-000001.
 
@@ -56,6 +57,8 @@ def write_one(path, a, row, index):
     argv = ["--input", str(path), "--manifest", str(a.manifest), "--tokenizer", str(a.tokenizer), "--out", str(a.out),
             "--language", row["language"], "--script", row["script"], "--domain", row["domain"], "--lane", row["lane"],
             "--index", str(index)]
+    if "license" in row:  # a table with licences (pack_table.LICENCE): both go into the manifest
+        argv += ["--license", row["license"], "--license-source", row["license_source"]]
     if a.tokens:
         argv += ["--tokens", str(a.tokens)]
     if a.any_tokenizer:

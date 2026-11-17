@@ -105,11 +105,15 @@ def main(argv=None):
     ap.add_argument("--script", required=True)
     ap.add_argument("--lane", required=True, help="capability_lane")
     ap.add_argument("--domain", help="default: the pack's family in clean.py")
+    ap.add_argument("--license", help="the pack's licence, written into the manifest (with --license-source)")
+    ap.add_argument("--license-source", help="where that licence is recorded (with --license)")
     ap.add_argument("--index", type=int, default=0, help="shard number within the pack and split")
     ap.add_argument("--tokens", type=int, default=2 ** 26, help="fill the shard up to this many tokens")
     ap.add_argument("--any-tokenizer", action="store_true", help="tests only: accept a tokenizer other than p1536")
     ap.add_argument("--out", type=Path, required=True)
     a = ap.parse_args(argv)
+    if bool(a.license) != bool(a.license_source):
+        sys.exit("shard_writer: --license and --license-source go together: a manifest names a licence with where it is recorded")
 
     try:
         info = provenance.load(a.input, a.manifest)
@@ -200,6 +204,7 @@ def main(argv=None):
         "doc_count": len(docs), "token_count": token_count, "eos_token_id": EOS_ID,
         "tokenizer_sha256": tok_sha,
         "pack_id": pack_id, "language": a.language, "script": a.script, "domain": domain, "capability_lane": a.lane,
+        **({"license": a.license, "license_source": a.license_source} if a.license else {}),  # from the job's pack table
         "split": split,
         "inputs_sha256": hashlib.sha256(f"{info['raw_input']['sha256']} {info['raw_input']['part']}\n".encode("utf-8")).hexdigest(),
         "cleaning_pipeline_sha256": sha(pipeline), "decontam_set_sha256": info["f2"]["set_sha256"],
