@@ -131,3 +131,15 @@ def test_vllm_objective_v1_needs_temperature_one(tmp_path):
     cfg["train"].update(sampler="vllm", temperature=0.7)
     with pytest.raises(ValueError, match="temperature 1.0"):
         train.train(cfg)
+
+
+def test_unset_autocast_preserves_pre_option_identity(tmp_path):
+    cfg = base_cfg(tmp_path, 4)
+    identity = train.state_identity(cfg, [])
+    assert "autocast" not in identity["train"]
+    cfg["train"]["autocast"] = None
+    assert train.state_identity(cfg, []) == identity
+    cfg["train"]["autocast"] = "bf16"
+    active = train.state_identity(cfg, [])
+    assert active["train"].pop("autocast") == "bf16"
+    assert active == identity

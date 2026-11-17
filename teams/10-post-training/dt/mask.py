@@ -27,6 +27,7 @@ What differs, on purpose
 from __future__ import annotations
 
 import math
+import re
 import zlib
 from typing import Iterable
 
@@ -42,7 +43,19 @@ TARGET_SETS = {
     "gate": ("gate_proj",),
     "mlp": ("gate_proj", "up_proj", "down_proj"),
     "attn": ("q_proj", "k_proj", "v_proj", "o_proj"),
+    # Team 5 LanguageModel (teams/05-architecture/harness/week2/model.py): experts are nn.ModuleList of SwiGLU with
+    # children gate/up/down (routed `moe.experts.N`, shared `moe.shared.N`); attention children q/k/v/o. Substrings
+    # would over-match ("o" is in "blocks"; ".gate" is also the optional attention gate), so these are anchored
+    # regular expressions ("re:" prefix, full-name match).
+    "g5_gate": (r"re:blocks\.\d+\.moe\.(experts|shared)\.\d+\.gate",),
+    "g5_mlp": (r"re:blocks\.\d+\.moe\.(experts|shared)\.\d+\.(gate|up|down)",),
+    "g5_attn": (r"re:blocks\.\d+\.attn\.(q|k|v|o)",),
 }
+
+
+def target_match(full: str, targets: Iterable[str]) -> bool:
+    """A target is a substring of the module name, or (prefix "re:") a regular expression matching the whole name."""
+    return any(re.fullmatch(t[3:], full) if t.startswith("re:") else t in full for t in targets)
 
 
 class MaskedLinear(nn.Module):
@@ -111,7 +124,7 @@ def convert(model: nn.Module, targets: Iterable[str], alpha_start: float = 100.0
     for parent_name, parent in list(model.named_modules()):
         for child_name, child in list(parent.named_children()):
             full = f"{parent_name}.{child_name}" if parent_name else child_name
-            if isinstance(child, nn.Linear) and any(t in full for t in targets):
+            if isinstance(child, nn.Linear) and target_match(full, targets):
                 setattr(parent, child_name, MaskedLinear(child, alpha_start, alpha_end, total_steps, gen))
                 names.append(full)
     if not names:
@@ -149,8 +162,18 @@ def wanda_scores(model: nn.Module, batches: Iterable[dict], device) -> dict[str,
 
         def hook(mod, inp, _out, name=name):
             x = inp[0].detach().float()
-            if "attn_mask" in _CALIB_STATE:  # count real tokens only (padding rows are excluded)
-                x = x[_CALIB_STATE["attn_mask"]]
+            mask = _CALIB_STATE.get("attn_mask")
+            # count real tokens only. A [B, T, d] input drops its padding positions; so does a flattened [B*T, d]
+            # input (G5's shared experts run on every flattened row and zero the padding output afterwards). A layer
+            # that receives gathered rows (a routed expert in G5's loop dispatch gets [routed tokens, d], already
+            # restricted to valid positions, so never B*T rows when padding exists) is used as is.
+            if mask is not None and x.shape[:-1] == mask.shape:
+                x = x[mask]
+            elif mask is not None and x.dim() == 2 and x.shape[0] == mask.numel():
+                x = x[mask.reshape(-1)]
+            elif mask is not None and x.dim() != 2:
+                raise ValueError(f"calibration input of {name} has shape {tuple(x.shape)}; cannot apply a "
+                                 f"{tuple(mask.shape)} padding mask")
             sq = x.pow(2).reshape(-1, x.shape[-1]).sum(0)
             norms[name] = sq if name not in norms else norms[name] + sq
         hooks.append(m.register_forward_hook(hook))
