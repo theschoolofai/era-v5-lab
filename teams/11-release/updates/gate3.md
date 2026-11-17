@@ -63,7 +63,7 @@ How to fill it:
 | Part | Team | Source | Text received | Lead OK |
 |---|---|---|---|---|
 | The first dry run | Architecture | [#475](https://github.com/theschoolofai/era-v5-lab/pull/475) and the TSAI comment on it (Infrastructure: no separate summary needed) | draft by Release from #475, confirmed by Architecture | yes |
-| The first data shards | Data A | [#358](https://github.com/theschoolofai/era-v5-lab/pull/358), [#373](https://github.com/theschoolofai/era-v5-lab/pull/373), first 41 shards: TSAI comment on this pull request | text by Data A on this pull request, edited for style | yes |
+| The first data shards | Data A | [#358](https://github.com/theschoolofai/era-v5-lab/pull/358), [#373](https://github.com/theschoolofai/era-v5-lab/pull/373), first 41 shards: TSAI comment on this pull request | text by Data A on this pull request, style edits confirmed by Data A | yes |
 | Tokenizer for training (p1536 in place of C3) | Tokenizer | [#504](https://github.com/theschoolofai/era-v5-lab/pull/504) | TSAI words on this pull request, confirmed by Tokenizer | yes |
 | Bit widths (moved from Gate 2) | Quantization | [#221](https://github.com/theschoolofai/era-v5-lab/pull/221) | no | no |
 | Indic share (from Gate 2) | Data B | [#400](https://github.com/theschoolofai/era-v5-lab/pull/400), split by language in [#522](https://github.com/theschoolofai/era-v5-lab/pull/522) | TSAI numbers on this pull request | yes |
@@ -72,7 +72,7 @@ How to fill it:
 | Parallel layout and kernel changes | Infrastructure, Performance | | no | no |
 | Evaluation schedule | Evaluation | | no | no |
 | SFT data v1 and RL data v1 | Post-training | [#524](https://github.com/theschoolofai/era-v5-lab/pull/524) | no | no |
-| Public dashboard panels and text | Monitoring, Release | [#495](https://github.com/theschoolofai/era-v5-lab/pull/495) | no | no |
+| Public dashboard panels and text | Monitoring, Release | Panels: [#495](https://github.com/theschoolofai/era-v5-lab/pull/495). Text: [#598](https://github.com/theschoolofai/era-v5-lab/pull/598) | no | no |
 | Serving stack for the public demo | Quantization | | no | no |
 
 - [ ] `check_style.py` gives 0 errors
