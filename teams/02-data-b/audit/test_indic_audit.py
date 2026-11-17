@@ -115,6 +115,31 @@ class AuditTest(unittest.TestCase):
         row, flagged = self.run_pack([("f1", "one")], [])
         self.assertEqual((row["shards"], row["docs_kept"], row["docs_dropped"]), (0, 0, 1))
 
+    def visarga(self, row):
+        return (row["visarga_raw"], row["visarga_shard"], row["docs_visarga_lost"],
+                row["visarga_words_edited_in_kept_text"])
+
+    def test_visarga_kept_is_not_counted(self):
+        docs = [("v1", "पुन\u0903 आया"), ("v2", "no visarga")]
+        row, _ = self.run_pack(docs, docs)
+        self.assertEqual(self.visarga(row), (1, 1, 0, 0))
+
+    def test_visarga_turned_into_colon_is_counted(self):            # the #566 pattern
+        row, _ = self.run_pack([("v3", "దు\u0c03ఖం వచ్చింది")], [("v3", "దు:ఖం వచ్చింది")], pack_id="ind-te-test")
+        self.assertEqual(self.visarga(row), (1, 0, 1, 1))
+
+    def test_visarga_deleted_in_a_kept_word_is_counted(self):
+        row, _ = self.run_pack([("v4", "अत\u0903 आगे")], [("v4", "अत आगे")])
+        self.assertEqual(self.visarga(row), (1, 0, 1, 1))
+
+    def test_visarga_in_text_cut_by_cleaning_is_not_an_edit(self):
+        row, _ = self.run_pack([("v5", "पहला वाक्य। हे ही वाचा\u0903 दूसरा")], [("v5", "पहला वाक्य।")])
+        self.assertEqual(self.visarga(row), (1, 0, 1, 0))
+
+    def test_tamil_aytham_turned_into_colon_is_counted(self):
+        row, _ = self.run_pack([("v6", "அ\u0b83து நல்லது")], [("v6", "அ:து நல்லது")], pack_id="ind-ta-test")
+        self.assertEqual(self.visarga(row), (1, 0, 1, 1))
+
     def test_bad_header_is_refused(self):
         write_pack(self.dir, "ind-hi-test", [("g1", "x")])
         b = write_shard(self.dir + "/shards", "ind-hi-test", [("g1", "x")], self.tok, self.eos, magic=1)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""indic_audit.py - Gate 3 check of the Indic shards: drop rate per language, and ZWJ/ZWNJ before and after.
+"""indic_audit.py - Gate 3 check of the Indic shards: drop rate per language, ZWJ/ZWNJ and visarga before and after.
 
 Week 3, tasks 4 and 6 of the Data B work order. For each Indic pack it compares the raw pack (before cleaning) with the
 token shards TSAI returns (after cleaning and tokenizing; `teams/01-data-a/shards/shard_format_v1.md`):
@@ -11,6 +11,8 @@ token shards TSAI returns (after cleaning and tokenizing; `teams/01-data-a/shard
   where       for each flagged document: "cut text" when the shard text is one unbroken piece of the raw text, so the
               joiners went out with text that cleaning removed; "kept text" when the text that stayed was changed.
               Gate 3 needs 0 documents in kept text.
+  visarga     the visarga counts of the raw and shard text, and the visargas that cleaning turned into ':' or deleted
+              inside a word it kept (Data A found visarga -> ':' in the v0-clean sample, #566). Gate 3 needs 0.
 
 Only IDs and counts are written, never document text.
 
@@ -29,6 +31,7 @@ import argparse
 import csv
 import hashlib
 import time
+from collections import Counter
 from pathlib import Path
 
 import numpy as np
@@ -42,6 +45,9 @@ ZWJ, ZWNJ = "\u200d", "\u200c"
 OLD_CHILLU = ["ണ്\u200d", "ന്\u200d", "ര്\u200d",
               "ല്\u200d", "ള്\u200d", "ക്\u200d"]
 OLD_CHILLU_RE = "|".join(OLD_CHILLU)                   # one regex pass instead of six substring passes
+# The visarga of each script; for Tamil the aytham U+0B83 (Unicode calls it TAMIL SIGN VISARGA).
+VISARGA = {"hi": "\u0903", "mr": "\u0903", "sa": "\u0903", "bn": "\u0983", "gu": "\u0a83", "or": "\u0b03",
+           "ta": "\u0b83", "te": "\u0c03", "kn": "\u0c83", "ml": "\u0d03"}
 MAGIC, VERSION, HEADER_BYTES, EOS_ID = 20261025, 2, 1024, 130822
 
 
@@ -84,6 +90,23 @@ def where_changed(raw, shard, tok):
     return "cut text" if shard in normalized else "kept text"
 
 
+def visarga_edited(raw, shard, v, normalize=lambda t: t):
+    """Visargas that cleaning turned into ':' or deleted inside a word that it kept.
+
+    Only documents whose shard text has fewer visargas than the raw text are read. In each, a word with a visarga
+    counts as edited when the shard has more copies of that word written with ':' or with no visarga than the raw text
+    has. A visarga that went out with text cleaning removed (a line, a sentence, markup) leaves no such word, so it is
+    not counted. Returns (documents that lost visargas, words edited). The loop runs over these documents only.
+    """
+    lost = pc.greater(count(raw, v), count(shard, v))
+    edited = 0
+    for r, s in zip(pc.filter(raw, lost).to_pylist(), pc.filter(shard, lost).to_pylist()):
+        raw_words, shard_words = Counter(normalize(r).split()), Counter(s.split())
+        variants = {w.replace(v, alt) for w in raw_words if v in w for alt in (":", "")}
+        edited += sum(max(0, shard_words[w] - raw_words[w]) for w in variants)
+    return int(pc.sum(lost.cast(pa.int64())).as_py() or 0), edited
+
+
 def read_shard(bin_path, tok, eos_id=EOS_ID):
     """doc_ids and decoded texts of one shard, in shard order. Checks the header, the index and the EOS ids."""
     head = np.fromfile(bin_path, dtype="<i4", count=HEADER_BYTES // 4)
@@ -123,6 +146,9 @@ def audit_pack(raw_paths, shard_paths, tok, eos_id=EOS_ID):
     changed, n = joiners_changed(raw_text, shard_text)
     total = lambda a: int(pc.sum(a).as_py() or 0)
     pack_id = pack_of(raw_paths[0])
+    visarga = VISARGA[pack_id.split("-")[1]]
+    docs_visarga_lost, visarga_edits = visarga_edited(
+        raw_text, shard_text, visarga, tok.normalizer.normalize_str if tok.normalizer else (lambda t: t))
     flagged = sorted((pack_id, d, where_changed(r, s, tok)) for d, r, s in zip(   # sorted: join order varies
         pc.filter(kept.column("doc_id"), changed).to_pylist(),
         pc.filter(raw_text, changed).to_pylist(), pc.filter(shard_text, changed).to_pylist()))
@@ -132,6 +158,8 @@ def audit_pack(raw_paths, shard_paths, tok, eos_id=EOS_ID):
         **{k: total(v) for k, v in n.items()},
         "docs_joiners_changed": len(flagged),
         "docs_joiners_changed_in_kept_text": sum(f[2] == "kept text" for f in flagged),
+        "visarga_raw": total(count(raw_text, visarga)), "visarga_shard": total(count(shard_text, visarga)),
+        "docs_visarga_lost": docs_visarga_lost, "visarga_words_edited_in_kept_text": visarga_edits,
     }
     return row, flagged
 
@@ -175,7 +203,8 @@ def main():
         print(" | ".join(str(v) for v in r.values()))
     in_kept = sum(f[2] == "kept text" for f in flagged)
     print(f"documents with a ZWJ/ZWNJ change: {len(flagged)} ({len(flagged) - in_kept} in cut text, {in_kept} in kept "
-          f"text); wall time {time.time() - start:.1f} s")
+          f"text); documents that lost visargas: {sum(r['docs_visarga_lost'] for r in rows)}, visarga words edited in "
+          f"kept text: {sum(r['visarga_words_edited_in_kept_text'] for r in rows)}; wall time {time.time() - start:.1f} s")
 
 
 if __name__ == "__main__":
