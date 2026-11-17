@@ -23,3 +23,10 @@ The nine tests in `rl-loop/test_keep_zero.py` also passed in a separate run (30.
 - The paired-analysis tests cover aligned inputs and reject mismatched prompt sets, order, score counts, evaluation endpoints, and historical rows without a prompt fingerprint.
 
 The same affected-area CPU command passed again after the fixes: `153 passed, 44 skipped in 153.94s`.
+
+Reviewer follow-up on scan timing and mask storage. The keep-zero integration test checks the per-step timing field and the persistent tensor byte count.
+
+```text
+$ PYTHONDONTWRITEBYTECODE=1 OMP_NUM_THREADS=2 python -m pytest teams/10-post-training/rl-loop/test_keep_zero.py teams/10-post-training/rl-loop/test_resume_state.py -q -p no:cacheprovider
+18 passed in 19.56s
+```

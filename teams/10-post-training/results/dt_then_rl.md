@@ -13,7 +13,7 @@ surrogate. The Task 11 code run needs its own pre-RL and post-RL scores from the
 **Scope label.** Stand-in "B" (a capstone-family model trained locally on an M1 Pro with Team 5's own code: d128, 4 layers,
 16+1 experts top-2, 24.7M parameters, 4.1M tokens), a toy reward, CPU, fp32. Three RL seeds, one SFT seed per arm. This is
 **mechanics and relative comparison at small width, not a quality claim**, not code RL, not the dry-run-1 checkpoint.
-Preregistration (written before any run, two dated amendments): a local file `PREREG.md`, not in the repository.
+The author's local experiment notes record the selection and evaluation rules. The committed evidence contains the observed results.
 Evidence: `dt_then_rl_evidence/`. Code: `capstone/dt_then_rl.py`, `capstone/dt_review.py`, `rl-loop/keep_zero.py`,
 `rl-loop/train.py` (`model.init_state`, `train.keep_zero`), `dt/mask.py` (`unseen=`). DT used as the RL method itself, on a
 7B model, is a different experiment: `dt_rl_e4_20261115.md`.
@@ -61,8 +61,8 @@ The lead's wording: after Deletion Tuning (DT) in SFT, does reward still rise un
    held-out prompts. The pilot supports that only weakly: at lr 1e-5 and 20 steps, held-out -0.016 (CI -0.059..+0.025) and
    train-cohort +0.063 (CI -0.012..+0.141), neither distinguishable from 0, so the switch to `even` rests on the argument plus
    a flat held-out, not on a demonstrated memorisation (pilot on arm (3) only, other prompts and seeds).
-   lr was chosen on a pilot of arm (3) only (4 rates x 2 seeds x 20 steps: +0.010, +0.014, +0.038, +0.092; the preregistered
-   rule picked 3e-4); no arm-(1) data was used.
+   lr was chosen on a pilot of arm (3) only (4 rates x 2 seeds x 20 steps: +0.010, +0.014, +0.038, +0.092; the pilot
+   selection rule picked 3e-4); no arm-(1) data was used.
 3. **What RL may train on the DT model (decision):** only the undeleted weights. `rl-loop/keep_zero.py` multiplies the gradient
    of every masked weight by the keep mask, so AdamW (wd 0) never moves a deleted weight; no re-zeroing backstop in the runs, so
    the per-step count `deleted_nonzero` tests the gradient mask alone. Two conditions:
@@ -124,7 +124,7 @@ takes no optimizer step, creates no optimizer state, calls no log-probability an
 
 ## Reading
 
-- **Reward still rises after DT** (preregistered rule: change positive, interval over prompts excludes 0; all three seeds
+- **Reward still rises after DT** (evaluation rule: change positive, interval over prompts excludes 0; all three seeds
   positive; both conditions). In the experts-only condition, where the only trainable weights are the ones DT pruned (5.2% of
   them deleted), the reward still rose, so the pruned network is not a dead end for the optimizer.
 - **Size relative to LoRA.** The prediction that DT would be "about as fast" (ratio in [0.7, 1.3] with a difference interval

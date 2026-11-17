@@ -139,10 +139,12 @@ def test_trainer_keeps_deleted_weights_at_zero_while_other_weights_train(tmp_pat
     assert kz["deleted_at_start"] == sum(int((~k).sum()) for k in keep.values()) > 0
     assert kz["max_deleted_nonzero"] == 0 and kz["deleted_nonzero_end"] == 0
     assert kz["deleted_zero_end"] >= kz["deleted_at_start"]
+    assert kz["persistent_mask_tensor_bytes"] == kz["masked_entries"] * 5  # bool mask and FP32 hook mask
     assert s["init_state"]["sha256"] and s["trainable_weight_change"]["share_changed"] > 0
     assert s["objective"]["steps_with_optimizer_update"] > 0
     recs = [json.loads(line) for line in (tmp_path / "run" / "metrics.jsonl").read_text().splitlines()]
     assert all(r["deleted_nonzero"] == 0 and 0 < r["zero_share"] < 1 for r in recs)
+    assert all(r["times_s"]["keep_zero_checks"] >= 0 for r in recs)
 
 
 def test_trainer_fails_loudly_when_the_gradient_mask_is_missing(tmp_path, monkeypatch):

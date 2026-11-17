@@ -1228,9 +1228,13 @@ def train(cfg: dict) -> dict:
                 step_flip = routing.flip_rate(idx_before, idx_after)[0]
                 step_top1 = routing.top1_flip_rate(idx_before, idx_after)
                 step_mass = routing.mass_shift(idx_before, idx_after)
+        if kz is not None and device.startswith("cuda"):
+            # Attribute pending optimizer work to training before timing the mask scans.
+            torch.cuda.synchronize(device)
         times["train"] = time.time() - c0
         kz_rec = {}
         if kz is not None:
+            c0 = time.perf_counter()
             if kz.n_masked:
                 dn = kz.deleted_nonzero()  # before any backstop: what the gradient mask alone achieved
                 kz_log["max_deleted_nonzero"] = max(kz_log["max_deleted_nonzero"], dn)
@@ -1240,6 +1244,7 @@ def train(cfg: dict) -> dict:
                 else:
                     kz.check(f"step {step}")
             kz_rec["zero_share"] = round(kz.zero_share(), 6)
+            times["keep_zero_checks"] = time.perf_counter() - c0
         c0 = time.time()
         sync_bytes = 0
         if vllm is not None:
@@ -1362,6 +1367,10 @@ def train(cfg: dict) -> dict:
         kz_log.update(deleted_nonzero_end=kz.deleted_nonzero() if kz.n_masked else None,
                       deleted_zero_end=kz.deleted_zero() if kz.n_masked else None,
                       zero_share_end=round(kz.zero_share(), 6))
+        kz_log["persistent_mask_tensor_bytes"] = sum(
+            mask.numel() * (mask.element_size() + kz.params[name].element_size())
+            for name, mask in kz.keep.items()
+        )
         summary["keep_zero"] = kz_log
     if dt_cfg:
         summary["deletion_tuning"] = {**dt_info, "deletion_final": dtmask.deletion_stats(model),
