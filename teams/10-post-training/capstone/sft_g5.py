@@ -338,14 +338,16 @@ def run(args) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     lm.eval()
     report["mask_checks"] = mask_checks(wrapper, sorted(train_rows, key=lambda r: r["id"])[:4], device, bundle)
-    pre = {"eval_loss": eval_loss(wrapper, eval_rows, device, args.micro_tokens)}
-    if args.heldout:
-        pre["forgetting"] = forgetting_bpb(bundle, args.heldout, args.heldout_sources, device)
-    pre["generation"], pre_recs = generate_and_judge(bundle, eval_rows, args.gen_max_new, args.gen_limit)
-    if args.rl_tasks and args.rl_ids:
-        import day_one_probe  # noqa: PLC0415
-        pre["rl_screen"] = day_one_probe.rl_screen_bundle(bundle, args.rl_tasks, args.rl_ids, args.rl_k,
-                                                          args.rl_max_new, device, args.rl_limit)
+    pre, pre_recs = None, []
+    if not args.no_before:  # --no-before: another arm of the same job already measured this base model
+        pre = {"eval_loss": eval_loss(wrapper, eval_rows, device, args.micro_tokens)}
+        if args.heldout:
+            pre["forgetting"] = forgetting_bpb(bundle, args.heldout, args.heldout_sources, device)
+        pre["generation"], pre_recs = generate_and_judge(bundle, eval_rows, args.gen_max_new, args.gen_limit)
+        if args.rl_tasks and args.rl_ids:
+            import day_one_probe  # noqa: PLC0415
+            pre["rl_screen"] = day_one_probe.rl_screen_bundle(bundle, args.rl_tasks, args.rl_ids, args.rl_k,
+                                                              args.rl_max_new, device, args.rl_limit)
     report["before"] = pre
     marker_ids = [bundle.artifacts.tokenizer.token_to_id(render.T[n]) for n in MARKER_NAMES]
     method_info = apply_method(lm, args.method, args)
@@ -509,6 +511,8 @@ def parse_args(argv=None):
     p.add_argument("--rl-k", type=int, default=8)
     p.add_argument("--rl-max-new", type=int, default=512)
     p.add_argument("--rl-limit", type=int, default=0, help="screen at most this many RL prompts (0 = all)")
+    p.add_argument("--no-before", action="store_true",
+                   help="skip the base-model evaluation (eval loss, forgetting, generation, RL screen) before training")
     p.add_argument("--max-train-seconds", type=float, default=0.0, help="stop training after this long (0 = off)")
     p.add_argument("--heldout", type=Path)
     p.add_argument("--heldout-sources", type=Path)
