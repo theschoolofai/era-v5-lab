@@ -10,7 +10,6 @@ Smoke command:   python -B teams/04-ke2/src/timing/bench_public_ke.py --device c
 Full command:    python -B teams/04-ke2/src/timing/bench_public_ke.py --device cuda --batch-size 2 --seq-len 16 --decode-queries 16 --warmup 10 --steps 100 --skip-cpu-reference --out out/g4_public_p1536_cuda.json
 Inputs:          p1536 raw P=32 table; tokenizer SHA-256 e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b; table content SHA-256 21072027b19ef6f05d57ead7a2fc9fb4c52129e491186bf38d0ba079e8d5168a
 Dependency:      Check out this G4 timing branch in the lab repository. The table is present in the branch; the script rejects a table whose content hash differs.
-Known issue:     Team 6's default tokenizer loader and default G4 table loader still use the earlier pinned tokenizer SHA. This benchmark explicitly injects the frozen p1536 table into the KE2 embedding. It does not validate Team 6's default loader with p1536 and does not fix that loader issue.
 Hardware:        1 CUDA GPU
 Max time:        10 minutes
 Precision:       fp32 training path; CPU float64 reference omitted in the CUDA job (measured separately)
