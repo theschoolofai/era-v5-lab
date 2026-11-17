@@ -81,13 +81,18 @@ class RewardEnvTask:
         self._items[key] = env_id
         return ids
 
-    def decode(self, completion: list[int]) -> str:
+    def decode(self, completion: list[int], env_id: str | None = None) -> str:
         if hasattr(self.tok, "decode_completion"):  # keeps marker text, cuts after the first stop id
             return self.tok.decode_completion(completion)
-        return self.tok.decode(completion, skip_special_tokens=True)
+        # Tool-use rewards inspect atomic marker text. Other environments retain
+        # their existing decoding, including in a mixed-environment batch.
+        ids = [env_id] if env_id is not None else self._items.values()
+        keep_markers = any(e.partition("/")[0] in {"tool_call", "tool_use"} for e in ids)
+        return self.tok.decode(completion, skip_special_tokens=not keep_markers)
 
     def reward(self, prompt: list[int], completion: list[int]) -> float:
-        score, _ = self.reward_fn(self._items[tuple(prompt)], self.decode(completion))
+        env_id = self._items[tuple(prompt)]
+        score, _ = self.reward_fn(env_id, self.decode(completion, env_id=env_id))
         return float(score)
 
 
