@@ -6,14 +6,16 @@ request and TSAI stores it." The work order also says "we give to Team 9" the RL
 job rebuilds RL data v1 from pinned bytes so that TSAI holds the files Team 9 checks. It adds no new cleaning rule:
 the decontamination is Team 9's own tool and fingerprint set, run as it was on 11 Nov.
 
-**Lead decisions (16 Nov, all closed in the lead's 16 Nov summary):**
+**Lead decisions before sending (16 Nov):**
 1. Route: approved for TSAI rebuild & storage (`Lead approval: saitej123`) so Team 9 reads deterministic files from TSAI storage (we can also supply the 8.7 MB close pool directly if requested).
 2. Pool flags: keep `python2_only` (`1,545` tasks) in the v1 close pool (`3,577` tasks) for Team 9 decontamination and TSAI admission (`stdio_check.py` scores candidate Python 3 completions against pinned I/O pairs; `drop_python2: false` remains reversible via `--drop-python2`). Keep the 116 `statement_less` tasks and 55 `effort_suite` tasks excluded; MATH (`7,209`) stays in its separate reserved part pending TSAI admission.
+
+The evaluation-firewall lists are in the merged team PR #524; the lead's explicit confirmation of the RL held-out size is pending. The job can run without them, as described under "Without the two lists" below.
 
 ```
 Team:            10-post-training
 Owner:           f20201351h-maker
-Lead approval:   saitej123 (approved 16 Nov, including the evaluation-firewall lists and the two extra pool files)
+Lead approval:   saitej123 (approved, 16 Nov; evaluation-firewall lists and the two extra pool files added afterwards, to confirm)
 Question:        Does a rebuild of RL data v1 from pinned bytes give exactly the 12 output sha256 recorded in teams/10-post-training/rl-data/rebuild_v1/pins_v1.json ("expected"), so TSAI can store the pool files for Team 9's check?
 Script:          teams/10-post-training/rl-data/rebuild_v1/rebuild_v1.py   (in this PR; it runs the four step scripts next to it and sft/decontam_run.py)
 Command:         python teams/10-post-training/rl-data/rebuild_v1/rebuild_v1.py --cc-dir ROOT/code_contests/data --math-dir ROOT/hendrycks_math --math500 ROOT/math500/test.jsonl --g9-tools ROOT/g9/teams/09-evaluation/decontam --out out/run --rl-heldout-ids ROOT/rl_heldout_v1_ids.txt --sft-heldout-match-ids ROOT/sft_heldout_match_ids.txt
