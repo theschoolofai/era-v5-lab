@@ -374,14 +374,9 @@ def _code_a6_001():
 
     MIXED = re.compile(r"\b(?=\w*[A-Za-z])(?=\w*[Ѐ-ӿ])\w+\b")
 
-    CYRILLIC = re.compile("[\u0400-\u04ff]")  # the range MIXED asks for: every match holds one of these
-
     def medicine_a6(doc):
-        text = doc["text"]
-        if not CYRILLIC.search(text):  # no Cyrillic character, so MIXED has no match: the text is kept
-            return ("keep", text)
-        t = MIXED.sub(lambda m: m.group().translate(HOMO), text)
-        return ("fix" if t != text else "keep", t)
+        t = MIXED.sub(lambda m: m.group().translate(HOMO), doc["text"])
+        return ("fix" if t != doc["text"] else "keep", t)
 
 
     def _std(out, text):
@@ -428,11 +423,8 @@ def _code_a4_002():
     LOST = re.compile(r"[ \t]*//[^\n\w]*�[^\nA-Za-z0-9]*$", re.M)
 
     def medicine_a4(doc):
-        text = doc["text"]
-        if "\ufffd" not in text:  # every match holds a U+FFFD, so a text without one is kept without running LOST
-            return ("keep", text)
-        t = LOST.sub("", text)
-        return ("fix" if t != text else "keep", t)
+        t = LOST.sub("", doc["text"])
+        return ("fix" if t != doc["text"] else "keep", t)
 
 
     def _std(out, text):
@@ -952,9 +944,7 @@ def _code_e2_001():
         if not text:
             return "keep", text
         n = len(text)
-        # _BYTES needs 24 groups that each start with "0x", so a text with fewer than 24 of them has no match (the count is
-        # exact: "0x" cannot overlap itself)
-        if text.count("0x") >= 24 and sum(len(m.group()) for m in _BYTES.finditer(text)) / n >= share:
+        if sum(len(m.group()) for m in _BYTES.finditer(text)) / n >= share:
             return "drop", text
         if sum(len(m.group()) for m in _B64.finditer(text)) / n >= b64_share:
             return "drop", text
@@ -1653,22 +1643,11 @@ def _code_e3_003():
 
     SEED = re.compile(r'(?i)((?:secret|seed|totp|otp)\w*\s*:?=\s*")[A-Z2-7]{16,}(")')
 
-    # Each group of literals is necessary for its KEYS pattern (the patterns have no (?i) flag). The text as it is at that step is
-    # tested before each substitution, so the order of the substitutions and any cascade stay as they were.
-    KEY_HINTS = (("AKIA",), ("ghp_", "gho_", "ghu_", "ghs_", "ghr_"), ("sk-",), ("xox",), ("-----BEGIN ",))
-    # SEED needs an "=", a quote and, case-insensitively, one of its four words; (?i) also matches U+017F as "s", so the word test
-    # is made on the casefolded text ("otp" is inside "totp")
-    SEED_WORDS = ("secret", "seed", "otp")
-
     def medicine_e3(doc):
         t = doc["text"]
-        for rx, hints in zip(KEYS, KEY_HINTS):
-            if any(h in t for h in hints):
-                t = rx.sub("EXAMPLE_SECRET", t)
-        if "=" in t and '"' in t:
-            low = t.casefold()
-            if any(w in low for w in SEED_WORDS):
-                t = SEED.sub(r"\1EXAMPLE_SECRET\2", t)
+        for rx in KEYS:
+            t = rx.sub("EXAMPLE_SECRET", t)
+        t = SEED.sub(r"\1EXAMPLE_SECRET\2", t)
         return ("fix" if t != doc["text"] else "keep", t)
 
 
@@ -1746,22 +1725,8 @@ def _code_e3_004():
 
     # Each literal is necessary for its KNOWN pattern. Test the current text before each
     # substitution so the original substitution order and any cascading matches remain intact.
-    KNOWN_HINTS = (("AIza",), ("AKIA",), ("ghp_", "gho_", "ghu_", "ghs_", "ghr_"), ("github_pat_",), ("sk-",), ("k_live_",), ("SG.",), ("xox",),
-                   ("eyJ",), ("-----BEGIN ",))  # a text must hold one of a pattern's literals for it to match
-
-    # ASSIGNED is tried only on a text that passes three cheap tests, each true whenever ASSIGNED could match (a match holds a name word,
-    # then an operator, then a quoted value of 16 or more characters). A text that fails one is kept as it is.
-    # 1. the text holds a name word: every ASSIGNED name holds one of these. The text is tested casefolded, since (?i) also lets
-    #    U+017F (long s) and U+212A (Kelvin sign) match s and k, and casefold() maps them to those letters.
-    ASSIGNED_WORDS = ("secret", "token", "key", "passw", "pwd")
-    # 2. the end of an operator (:= => = :), then a quoted value of 16 or more characters, then the same quote
-    VALUE_AFTER_OPERATOR = re.compile(r"""[:=>]\s*(["'`])[^"'`\s\\]{16,200}\1""")
-    # 3. a name word, then ASSIGNED's own text from the end of the name to the closing quote. ASSIGNED's name holds a word
-    #    that ends at its own tail, so this matches wherever ASSIGNED does, without ASSIGNED's search from every word start.
-    NAME_WORD_THEN_VALUE = re.compile(r"""(?ix)
-        (?:secret|token|key|passw|pwd)[\w\-]*["']?
-        (?:\s*:\s*&?(?:'\w+\s+)?[\w<>\[\]]{1,20})?
-        \s*(?::=|=>|=|:)\s*(["'`])[^"'`\s\\]{16,200}\1""")
+    KNOWN_HINTS = ("AIza", "AKIA", "gh", "github_pat_", "sk-", "k_live_", "SG.", "xox", "eyJ", "-----BEGIN ")
+    ASSIGNED_HINT = re.compile(r"secret|token|key|passw(?:or)?d|pwd", re.I)  # a superset of every ASSIGNED name, including Unicode case folds
 
     DUMMY = re.compile(r"(?i)example|sample|dummy|test|fake|mock|placeholder|changeme|change_me|your|xxxx|0000|1234|abcd|secret|password|token|<|>|\$\{|\{\{|%s")
 
@@ -1781,13 +1746,12 @@ def _code_e3_004():
 
     def medicine_e3(text):
         new = text
-        for rx, hints in zip(KNOWN, KNOWN_HINTS):
-            if any(h in new for h in hints):
+        for rx, hint in zip(KNOWN, KNOWN_HINTS):
+            if hint in new:
                 new = rx.sub(PLACEHOLDER, new)
         if "Pusher" in new:
             new = SDK_KEY.sub(lambda m: m.group("head") + PLACEHOLDER + m.group("quote"), new)
-        low = new.casefold()
-        if any(w in low for w in ASSIGNED_WORDS) and VALUE_AFTER_OPERATOR.search(new) and NAME_WORD_THEN_VALUE.search(new):
+        if ASSIGNED_HINT.search(new):
             new = ASSIGNED.sub(lambda m: m.group("head") + PLACEHOLDER + m.group("quote") if _looks_random(m.group("value")) else m.group(0), new)
         return new
 
@@ -3357,10 +3321,6 @@ def _math_a5_002():
 
     def medicine_a5(text):
         out = A5_LIG.sub(lambda m: unicodedata.normalize("NFKC", m.group()), text)      # ligature to letters
-        # Speed: with no fullwidth character the substitution below changes nothing, whatever the share of CJK letters, so the
-        # letters (a Python loop over every character) are counted only for a text that has one. Most documents have none.
-        if not A5_FULLWIDTH.search(out):
-            return out
         letters = sum(c.isalpha() for c in out) or 1
         if len(A5_CJK.findall(out)) / letters < 0.01:                                    # leave real CJK text alone
             out = A5_FULLWIDTH.sub(lambda m: chr(ord(m.group()) - 0xFEE0), out)          # fullwidth to ASCII
@@ -3980,17 +3940,7 @@ def _math_a8_001():
         return left + dot + " " + right
 
 
-    # Speed: every match of A8_GLUED holds a lowercase letter, an optional ".", a capital and a lowercase letter. A line without
-    # that shape is returned as it is (A8_GLUED.sub would change nothing), so A8_CODE and A8_GLUED, which start with a lookbehind
-    # or \b and are tried at every position, run only for the few lines that have it. A fence can only start with "```", so a
-    # text without it has no fence and no line that starts one, and the loop below is not needed.
-    A8_JUNCTION = re.compile(r"[a-z]\.?[A-Z][a-z]")
-
-
     def medicine_a8(text):
-        if "```" not in text:
-            return "\n".join(A8_GLUED.sub(_a8_join, line) if A8_JUNCTION.search(line) and not A8_CODE.search(line) else line
-                             for line in text.split("\n"))
         out, fence = [], False
         for line in text.split("\n"):
             if line.lstrip().startswith("```"):
@@ -4277,57 +4227,27 @@ def _math_c7_001():
     C7_VALUE = re.compile("^[ \t]*[-+\\d(−√$\\\\]")  # the next line starts with a value: the formula is there
     # the next line carries on: lowercase (a wrapped line or "a^2 + a = 0"), an answer option, a bullet, or a formula
     C7_CONTINUES = re.compile("^[ \t]*(?:[a-z]|\\(?[A-Da-d][).][ \t]|[-*•])|[=^]")
-    C7_NO_OBJECT_WORDS = (r"(?:is|are|as|that|of|to|by|be|get|gives?|obtain|equals?|becomes?|write|find|show|compute"
-                          r"|calculate|evaluate|simplify|solve|comparing|where|and|or|then|than|with|for)")
-    C7_NO_OBJECT = re.compile(r"\b" + C7_NO_OBJECT_WORDS + r"[ \t]+[.,;](?=[ \t]|$)", re.M | re.I)
+    C7_NO_OBJECT = re.compile(r"\b(?:is|are|as|that|of|to|by|be|get|gives?|obtain|equals?|becomes?|write|find|show|compute"
+                              r"|calculate|evaluate|simplify|solve|comparing|where|and|or|then|than|with|for)[ \t]+[.,;](?=[ \t]|$)",
+                              re.M | re.I)
     C7_OPTION = re.compile(r"^[ \t]*\(?[A-Da-d][).][ \t]*$")
     C7_QUESTION_MARK = re.compile(r"[:=][ \t]*\?[ \t]*$|(?<!\?)\?{3,}", re.M)
     C7_MIN_GAPS = 4  # the most gaps in a gold doc is 3; the reading docs it drops have 4 to over 100
-    # Speed (16 Nov, after the 14 Nov guards). The count only grows, so once it reaches C7_MIN_GAPS the answer is known.
-    # 1. len(C7_NO_OBJECT.findall(text)) is found from its punctuation: every match ends in a blank run, one of . , ; and a
-    #    blank or the end of the line, and the blank run is preceded by the whole word that must be one of the words. A
-    #    regex that starts with a charset finds the punctuation much faster than C7_NO_OBJECT, which starts with \b and is tried
-    #    at every position, and the word is checked, with the same regex, only before the few hits.
-    # 2. C7_QUESTION_MARK is two regexes, and the second (a lookbehind first) is tried at every position: it is only searched
-    #    when the text holds "???". The two never overlap (the "?" of the first is followed by blanks only), so the counts add.
-    # 3. The line loop below needs a line that ends in "=" or a dangling word, or is an answer option; such a line ends, after
-    #    its trailing blanks, in "=", a letter, ")" or ".": only those lines are tested with the three regexes. This is the
-    #    same test as one search of the three regexes joined with | over the whole text, which was slower.
-    C7_PUNCT_HIT = re.compile(r"[ \t]+[.,;](?=[ \t]|$)", re.M)
-    C7_NO_OBJECT_WORD = re.compile(C7_NO_OBJECT_WORDS, re.I)
-    C7_QUESTION_END = re.compile(r"[:=][ \t]*\?[ \t]*$", re.M)
-    C7_QUESTION_RUN = re.compile(r"(?<!\?)\?{3,}")
-
-
-    def _c7_no_object(text):
-        n = 0
-        for hit in C7_PUNCT_HIT.finditer(text):
-            end = start = hit.start()
-            while start > 0 and (text[start - 1].isalnum() or text[start - 1] == "_"):   # \w
-                start -= 1
-            if C7_NO_OBJECT_WORD.fullmatch(text, start, end):   # an empty word never matches
-                n += 1
-        return n
-
-
-    def _c7_has_candidate_line(text):
-        for line in text.split("\n"):
-            tail = line.rstrip(" \t")
-            if tail and (tail[-1] == "=" or tail[-1].isalpha() or tail[-1] in ").") and (
-                    C7_EQ_END.search(line) or C7_DANGLING.search(line) or C7_OPTION.match(line)):
-                return True
-        return False
+    # Speed (14 Nov). C7_NO_OBJECT needs a space or tab before . , or ;, and C7_QUESTION_MARK needs a "?": without them
+    # each counts 0. A line adds a gap only if it ends in "=" or a dangling word, or is an empty answer option:
+    # C7_CANDIDATE finds such a line anywhere in the text, so without one the line loop adds nothing. And the count
+    # only grows, so once it reaches C7_MIN_GAPS the answer is known.
+    C7_SPACE_PUNCT = re.compile(r"[ \t][.,;]")
+    C7_CANDIDATE = re.compile("|".join(p.pattern for p in (C7_EQ_END, C7_DANGLING, C7_OPTION)), re.I | re.M)
 
 
     def medicine_c7(text):
-        gaps = _c7_no_object(text)
+        gaps = len(C7_NO_OBJECT.findall(text)) if C7_SPACE_PUNCT.search(text) else 0
         if "?" in text:
-            gaps += len(C7_QUESTION_END.findall(text))
-            if "???" in text:
-                gaps += len(C7_QUESTION_RUN.findall(text))
+            gaps += len(C7_QUESTION_MARK.findall(text))
         if gaps >= C7_MIN_GAPS:
             return True
-        if not _c7_has_candidate_line(text):
+        if not C7_CANDIDATE.search(text):
             return False
         lines = [line for line in text.split("\n") if line.strip()]
         for k, line in enumerate(lines):
