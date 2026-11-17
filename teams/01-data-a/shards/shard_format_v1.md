@@ -34,9 +34,9 @@ has `"dedup": null` and its `inputs_sha256` uses the older line format. It is re
 
 ## Tokenizing (G3's answers)
 
-- **Tokenizer:** C3 sample-v0, frozen (#340), `tokenizer.json` sha256 `15468e66457b43af79f695cbe585c0d03e3cfe7a4a5d04d189dd3c6b9f02ddc3`
-  (`teams/03-tokenizer/release/SHA256SUMS`). The writer refuses any other file. The file (8 MB) is not in the repo: it comes
-  from G3's Kaggle dataset, or is rebuilt with `teams/03-tokenizer/train/rebuild_c3_s0.py` and checked against that sha256.
+- **Tokenizer:** p1536, frozen at Gate 3 in place of C3 (C3 was `15468e66…`, #340), `tokenizer.json` sha256 `e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b`
+  (G3 `train/p1536_s0_manifest.json`, Kaggle `sohiyiy/p1536-sample-v0`). The writer refuses any other file. The file is not in the repo: it comes
+  from G3's Kaggle dataset and is checked against that sha256.
   It is loaded with `tokenizers.Tokenizer.from_file`, not G6's `BrahmicTokenizer` (that pins the baseline).
 - **EOS:** `<|endoftext|>`, id 130,822, after every document: G10's end-of-document marker, the same id in C3, so pretraining
   and G10's `render.py` end documents the same way. Not id 36.
@@ -129,7 +129,7 @@ those are reported as `not_sharded`, which is not an error (the writer refuses a
 | `index_uri`, `index_sha256` | the `.idx.npy`: hashed separately, so a broken index is caught too |
 | `doc_count`, `token_count` | documents and tokens in the shard, EOS included |
 | `eos_token_id` | 130,822 |
-| `tokenizer_sha256` | sha256 of the `tokenizer.json` bytes that made the IDs (C3: `15468e66…`) |
+| `tokenizer_sha256` | sha256 of the `tokenizer.json` bytes that made the IDs (p1536: `e6b93a93…`) |
 | `pack_id`, `language`, `script`, `domain`, `capability_lane`, `split` | what is in the shard. `split` is `train` or `validation` only: test and benchmark data are never sharded (eval firewall, G9 #269). It is taken from the input's folder, and only `train` is written for now |
 | `inputs_sha256` | sha256 of the line `<raw part sha256> <split>/<pack>/<part>.parquet`: the raw sample part the shard's documents came from (from the clean job's `job_summary.json`) |
 | `cleaning_pipeline_sha256` | sha256 of `cleaning_pipeline.json`: the `clean.py` sha256, the F2 fingerprint set, the dedup remove list and the pipeline run |

@@ -1,7 +1,7 @@
 """Write a shard for every part in a pipeline run's final folder: shard_writer.py once per part.
 
   python -I teams/01-data-a/shards/run_shards.py --input <run>/final --manifest <run>/pipeline_manifest.json \
-      --tokenizer <c3>/tokenizer.json --out <dir> [--pack code-go ...] [--tokens N] [--any-tokenizer]
+      --tokenizer <p1536>/tokenizer.json --out <dir> [--pack code-go ...] [--tokens N] [--any-tokenizer]
 
 --input is the run's final folder: <input>/<split>/<pack>/<part>.parquet, the layout run_pipeline.py gives it. Every part
 found is handed to shard_writer.py (the split comes from the folder name), except a part in a folder named in
@@ -82,11 +82,11 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--input", type=Path, required=True, help="the run's final folder: <input>/<split>/<pack>/<part>.parquet")
     ap.add_argument("--manifest", type=Path, required=True, help="the run's pipeline_manifest.json")
-    ap.add_argument("--tokenizer", type=Path, required=True, help="G3's frozen C3 tokenizer.json")
+    ap.add_argument("--tokenizer", type=Path, required=True, help="G3's frozen p1536 tokenizer.json")
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--pack", action="append", default=[], help="only this pack (repeatable)")
     ap.add_argument("--tokens", type=int, help="fill each shard up to this many tokens (shard_writer's default: 2^26)")
-    ap.add_argument("--any-tokenizer", action="store_true", help="tests only: accept a tokenizer other than C3")
+    ap.add_argument("--any-tokenizer", action="store_true", help="tests only: accept a tokenizer other than p1536")
     ap.add_argument("--pack-table", type=Path, default=pack_table.TABLE)
     a = ap.parse_args(argv)
 
