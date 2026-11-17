@@ -1,6 +1,6 @@
 # Core shard decode check — Tejaskumar Reddy J
 
-G1 core task 6, checked on **17 November 2026** by Tejaskumar Reddy J (`TEJASKUMAR-REDDY-J`). Coverage: the **39 sample-v0** shards of TSAI’s 41-shard bundle not covered in [#541](https://github.com/theschoolofai/era-v5-lab/pull/541) (`en-dclm-train-000000`, `math-megamath-train-000000`), so the two reports together cover all 41. Repository base `70244b4547a72e81932f018a3b5c1d57af84c5d4`.
+G1 core task 6, checked on **17 November 2026** by Tejaskumar Reddy J (`TEJASKUMAR-REDDY-J`). Coverage: all **41 sample-v0** shards of TSAI’s 41-shard bundle, with documents chosen at random so they differ from the evenly spaced ones in [#541](https://github.com/theschoolofai/era-v5-lab/pull/541). Repository base `55460a23e263e48e098988dfd8176a78800fc842`.
 
 ## Result
 
@@ -18,6 +18,7 @@ G1 core task 6, checked on **17 November 2026** by Tejaskumar Reddy J (`TEJASKUM
 | `code-python-train-000001` | `code-python` | 19,116 | 21,509,045 | 20/20 PASS |
 | `code-rust-train-000000` | `code-rust` | 43,116 | 59,530,999 | 20/20 PASS |
 | `code-rust-train-000001` | `code-rust` | 15,028 | 21,040,035 | 20/20 PASS |
+| `en-dclm-train-000000` | `en-dclm` | 45,032 | 53,960,422 | 20/20 PASS |
 | `en-dclm-train-000001` | `en-dclm` | 14,735 | 17,781,210 | 20/20 PASS |
 | `en-fineweb-edu-train-000000` | `en-fineweb-edu` | 53,444 | 52,995,687 | 20/20 PASS |
 | `en-fineweb-edu-train-000001` | `en-fineweb-edu` | 17,725 | 17,662,417 | 20/20 PASS |
@@ -44,15 +45,16 @@ G1 core task 6, checked on **17 November 2026** by Tejaskumar Reddy J (`TEJASKUM
 | `ind-te-sangraha-s-train-000000` | `ind-te-sangraha-s` | 4,419 | 4,781,160 | 20/20 PASS |
 | `ind-te-sangraha-v-train-000000` | `ind-te-sangraha-v` | 8,593 | 5,326,404 | 20/20 PASS |
 | `math-finemath-train-000000` | `math-finemath` | 28,088 | 38,582,010 | 20/20 PASS |
+| `math-megamath-train-000000` | `math-megamath` | 17,232 | 33,979,879 | 20/20 PASS |
 | `sci-finepdfs-train-000000` | `sci-finepdfs` | 5,993 | 39,470,275 | 20/20 PASS |
 
-**780/780 selected documents decoded successfully**, were nonempty, already tokenizer-normalized, ended with EOS 130822 and re-encoded to exactly the original document token IDs (excluding the terminal EOS). Artifact hashes, payload headers, index boundaries and metadata token counts were verified before decoding.
+**820/820 selected documents decoded successfully**, were nonempty, already tokenizer-normalized, ended with EOS 130822 and re-encoded to exactly the original document token IDs (excluding the terminal EOS). Artifact hashes, payload headers, index boundaries and metadata token counts were verified before decoding.
 
 ## Method
 
-Same method and reproducer as #541; only the shard list differs. Actual local tokenizer bytes match frozen p1536 SHA-256 `e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b`; vocabulary 131,072; EOS `<|endoftext|>` 130822. Uses the Rust-backed `tokenizers.Tokenizer` implementation, with no substitute/test tokenizer.
+Same checks and reproducer as #541; the shard list and document selection differ. Actual local tokenizer bytes match frozen p1536 SHA-256 `e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b`; vocabulary 131,072; EOS `<|endoftext|>` 130822. Uses the Rust-backed `tokenizers.Tokenizer` implementation, with no substitute/test tokenizer.
 
-Deterministic selection: document index `i * (doc_count - 1) // 19` for `i = 0..19`, including the first and last documents and positions across the shard. Document boundaries come from the index; source part and row come from the corresponding `.docs.parquet` row. The final EOS is removed for decoding and re-encoding uses `add_special_tokens=False`.
+Seeded random selection: 20 document indices drawn without replacement with `numpy.random.default_rng(20261117 + int(sha256(shard_id)[:8], 16))`, excluding #541's evenly spaced indices `i * (doc_count - 1) // 19`, so no selected document is one #541 decodes and the draw is reproducible. Document boundaries come from the index; source part and row come from the corresponding `.docs.parquet` row. The final EOS is removed for decoding and re-encoding uses `add_special_tokens=False`.
 
 Each JSON evidence row records the document ID, source part/row, token offsets, decoded character count, SHA-256 of decoded UTF-8 and the four verification outcomes. Decoded text stays in memory and is not written to disk or Git.
 
@@ -67,13 +69,13 @@ python teams/01-data-a/audit/shard_decode_tejaskumar-reddy-j/reproduce.py \
   --out teams/01-data-a/audit/shard_decode_tejaskumar-reddy-j
 ```
 
-Exit code **0**. All 39 shards report `20/20 decoded, normalized and exact token round-trip`.
+Exit code **0**. All 41 shards report `20/20 decoded, normalized and exact token round-trip`.
 
 ## code-cpp-train-000000
 
 Evidence: [code-cpp-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/code-cpp-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 2123, 4247, 6371, 8495, 10619, 12743, 14867, 16991, 19115, 21238, 23362, 25486, 27610, 29734, 31858, 33982, 36106, 38230, 40354`.
+Selected zero-based document indices: `3533, 5994, 7052, 7309, 15761, 17329, 18298, 19640, 20153, 20604, 27415, 28902, 30379, 32068, 34069, 36167, 37082, 37642, 37736, 38136`.
 
 Source part: `code-cpp_part-00000_clean.parquet`.
 
@@ -90,7 +92,7 @@ Source part: `code-cpp_part-00000_clean.parquet`.
 
 Evidence: [code-cpp-train-000001.decode.json](shard_decode_tejaskumar-reddy-j/code-cpp-train-000001.decode.json).
 
-Selected zero-based document indices: `0, 744, 1488, 2233, 2977, 3722, 4466, 5210, 5955, 6699, 7444, 8188, 8933, 9677, 10421, 11166, 11910, 12655, 13399, 14144`.
+Selected zero-based document indices: `478, 1080, 1417, 2346, 2681, 2821, 3082, 3920, 4669, 5140, 5860, 6631, 8447, 8667, 9747, 10046, 10228, 11627, 11830, 12565`.
 
 Source part: `code-cpp_part-00001_clean.parquet`.
 
@@ -107,7 +109,7 @@ Source part: `code-cpp_part-00001_clean.parquet`.
 
 Evidence: [code-go-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/code-go-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 2978, 5956, 8934, 11913, 14891, 17869, 20847, 23826, 26804, 29782, 32760, 35739, 38717, 41695, 44673, 47652, 50630, 53608, 56587`.
+Selected zero-based document indices: `238, 1590, 3277, 8710, 11466, 15083, 16593, 17607, 19280, 19455, 19598, 22542, 31443, 33519, 42936, 46892, 49632, 51525, 51540, 56212`.
 
 Source part: `code-go_part-00000_clean.parquet`.
 
@@ -124,7 +126,7 @@ Source part: `code-go_part-00000_clean.parquet`.
 
 Evidence: [code-go-train-000001.decode.json](shard_decode_tejaskumar-reddy-j/code-go-train-000001.decode.json).
 
-Selected zero-based document indices: `0, 1063, 2127, 3191, 4255, 5318, 6382, 7446, 8510, 9574, 10637, 11701, 12765, 13829, 14893, 15956, 17020, 18084, 19148, 20212`.
+Selected zero-based document indices: `1565, 1982, 2880, 4085, 7100, 7233, 7548, 8065, 8384, 8635, 8779, 9061, 9072, 10360, 13570, 14103, 16137, 17943, 18130, 18429`.
 
 Source part: `code-go_part-00001_clean.parquet`.
 
@@ -141,7 +143,7 @@ Source part: `code-go_part-00001_clean.parquet`.
 
 Evidence: [code-java-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/code-java-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 3285, 6570, 9855, 13141, 16426, 19711, 22996, 26282, 29567, 32852, 36137, 39423, 42708, 45993, 49278, 52564, 55849, 59134, 62420`.
+Selected zero-based document indices: `1435, 4550, 5520, 6815, 15504, 18127, 18748, 19017, 25368, 32472, 34802, 39580, 42254, 45047, 49907, 53116, 54962, 55451, 57213, 62106`.
 
 Source part: `code-java_part-00000_clean.parquet`.
 
@@ -158,7 +160,7 @@ Source part: `code-java_part-00000_clean.parquet`.
 
 Evidence: [code-java-train-000001.decode.json](shard_decode_tejaskumar-reddy-j/code-java-train-000001.decode.json).
 
-Selected zero-based document indices: `0, 1169, 2339, 3509, 4679, 5849, 7019, 8188, 9358, 10528, 11698, 12868, 14038, 15207, 16377, 17547, 18717, 19887, 21057, 22227`.
+Selected zero-based document indices: `469, 2436, 2950, 4796, 5451, 5599, 5616, 6649, 8693, 8726, 8730, 13475, 15047, 16684, 18406, 18487, 19068, 20067, 21223, 21993`.
 
 Source part: `code-java_part-00001_clean.parquet`.
 
@@ -175,7 +177,7 @@ Source part: `code-java_part-00001_clean.parquet`.
 
 Evidence: [code-js-ts-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/code-js-ts-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 4500, 9000, 13501, 18001, 22501, 27002, 31502, 36002, 40503, 45003, 49504, 54004, 58504, 63005, 67505, 72005, 76506, 81006, 85507`.
+Selected zero-based document indices: `2560, 2623, 17444, 23030, 30305, 33500, 35977, 36394, 40728, 44261, 49067, 49123, 51015, 51865, 59307, 63585, 66141, 70622, 78256, 84740`.
 
 Source part: `code-js-ts_part-00000_clean.parquet`.
 
@@ -192,7 +194,7 @@ Source part: `code-js-ts_part-00000_clean.parquet`.
 
 Evidence: [code-js-ts-train-000001.decode.json](shard_decode_tejaskumar-reddy-j/code-js-ts-train-000001.decode.json).
 
-Selected zero-based document indices: `0, 1602, 3204, 4806, 6408, 8010, 9612, 11214, 12816, 14418, 16021, 17623, 19225, 20827, 22429, 24031, 25633, 27235, 28837, 30440`.
+Selected zero-based document indices: `1319, 2934, 3004, 5686, 6025, 6469, 6759, 8634, 10329, 14879, 15519, 15618, 16223, 16654, 16768, 19069, 20638, 23002, 27436, 29909`.
 
 Source part: `code-js-ts_part-00001_clean.parquet`.
 
@@ -209,7 +211,7 @@ Source part: `code-js-ts_part-00001_clean.parquet`.
 
 Evidence: [code-python-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/code-python-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 2801, 5602, 8403, 11204, 14005, 16806, 19607, 22408, 25209, 28010, 30811, 33612, 36413, 39214, 42015, 44816, 47617, 50418, 53220`.
+Selected zero-based document indices: `833, 1758, 3571, 4069, 4862, 7202, 9721, 11848, 12662, 14057, 18953, 20260, 20426, 22655, 23249, 25785, 32271, 39673, 47459, 49261`.
 
 Source part: `code-python_part-00000_clean.parquet`.
 
@@ -226,7 +228,7 @@ Source part: `code-python_part-00000_clean.parquet`.
 
 Evidence: [code-python-train-000001.decode.json](shard_decode_tejaskumar-reddy-j/code-python-train-000001.decode.json).
 
-Selected zero-based document indices: `0, 1006, 2012, 3018, 4024, 5030, 6036, 7042, 8048, 9054, 10060, 11066, 12072, 13078, 14084, 15090, 16096, 17102, 18108, 19115`.
+Selected zero-based document indices: `440, 929, 1119, 1851, 3531, 6540, 8524, 8967, 9008, 9368, 9878, 9962, 11734, 13241, 13993, 14490, 16044, 16477, 17022, 18221`.
 
 Source part: `code-python_part-00001_clean.parquet`.
 
@@ -243,7 +245,7 @@ Source part: `code-python_part-00001_clean.parquet`.
 
 Evidence: [code-rust-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/code-rust-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 2269, 4538, 6807, 9076, 11346, 13615, 15884, 18153, 20422, 22692, 24961, 27230, 29499, 31768, 34038, 36307, 38576, 40845, 43115`.
+Selected zero-based document indices: `2465, 4425, 5887, 5975, 6108, 7831, 7990, 8301, 9237, 11183, 16471, 18937, 19467, 21003, 21377, 24846, 26279, 30072, 34668, 34812`.
 
 Source part: `code-rust_part-00000_clean.parquet`.
 
@@ -260,7 +262,7 @@ Source part: `code-rust_part-00000_clean.parquet`.
 
 Evidence: [code-rust-train-000001.decode.json](shard_decode_tejaskumar-reddy-j/code-rust-train-000001.decode.json).
 
-Selected zero-based document indices: `0, 790, 1581, 2372, 3163, 3954, 4745, 5536, 6327, 7118, 7908, 8699, 9490, 10281, 11072, 11863, 12654, 13445, 14236, 15027`.
+Selected zero-based document indices: `909, 1114, 1181, 2402, 2428, 3862, 4012, 5436, 7211, 7782, 8194, 8358, 8538, 8663, 9847, 12208, 12264, 12804, 13176, 13948`.
 
 Source part: `code-rust_part-00001_clean.parquet`.
 
@@ -273,11 +275,28 @@ Source part: `code-rust_part-00001_clean.parquet`.
 | `code-rust-train-000001.quality_report.json` | `c49898d1f75759a0b4f92d6f9b81c866effdd534b6299f0c8e17cf0ea44e904d` |
 | `cleaning_pipeline.json` | `35611a83cfa6d6b510a43b07c5d356c4f6d5d908bbb7d4f3c8b9f05856046589` |
 
+## en-dclm-train-000000
+
+Evidence: [en-dclm-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/en-dclm-train-000000.decode.json).
+
+Selected zero-based document indices: `1357, 2473, 2652, 7199, 11022, 14078, 15385, 16272, 19357, 20977, 21833, 25506, 26270, 26981, 27633, 28905, 29915, 30571, 31915, 44567`.
+
+Source part: `en-dclm_part-00000_clean.parquet`.
+
+| Verified input | Recomputed SHA-256 |
+|---|---|
+| `en-dclm-train-000000.json` | `aea60298ee0c7eed31b498c49f709d7f2fb96d01896388d8af2ec28a9240331a` |
+| `en-dclm-train-000000.bin` | `1fccdcc4c15bb22ea564c8d3f1850582abd8b60e6c504386ee84308f6ee074de` |
+| `en-dclm-train-000000.idx.npy` | `2cb4f8478781d20a73c43db1dbf5426ec85a7784f1fd3e4cbb60d443bfd6891d` |
+| `en-dclm-train-000000.docs.parquet` | `3193a184ca4f89a3ef8d13ababaaa576d034fe767fed85269bd0322f5bb15bf7` |
+| `en-dclm-train-000000.quality_report.json` | `ce3729e776105cd4ab4c82496d8913fa4aef794eb8e52342e5c6d3807faa9dea` |
+| `cleaning_pipeline.json` | `35611a83cfa6d6b510a43b07c5d356c4f6d5d908bbb7d4f3c8b9f05856046589` |
+
 ## en-dclm-train-000001
 
 Evidence: [en-dclm-train-000001.decode.json](shard_decode_tejaskumar-reddy-j/en-dclm-train-000001.decode.json).
 
-Selected zero-based document indices: `0, 775, 1550, 2326, 3101, 3877, 4652, 5428, 6203, 6979, 7754, 8530, 9305, 10081, 10856, 11632, 12407, 13183, 13958, 14734`.
+Selected zero-based document indices: `148, 1609, 2250, 2684, 3735, 4944, 5382, 6309, 6591, 7951, 8243, 9353, 9964, 10409, 11915, 13326, 13829, 14196, 14237, 14480`.
 
 Source part: `en-dclm_part-00001_clean.parquet`.
 
@@ -294,7 +313,7 @@ Source part: `en-dclm_part-00001_clean.parquet`.
 
 Evidence: [en-fineweb-edu-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/en-fineweb-edu-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 2812, 5625, 8438, 11251, 14063, 16876, 19689, 22502, 25315, 28127, 30940, 33753, 36566, 39379, 42191, 45004, 47817, 50630, 53443`.
+Selected zero-based document indices: `4038, 4818, 12715, 13349, 14121, 14174, 17197, 22574, 23591, 28237, 30537, 34377, 37664, 41586, 45337, 46893, 49009, 49530, 49927, 52756`.
 
 Source part: `en-fineweb-edu_part-00000_clean.parquet`.
 
@@ -311,7 +330,7 @@ Source part: `en-fineweb-edu_part-00000_clean.parquet`.
 
 Evidence: [en-fineweb-edu-train-000001.decode.json](shard_decode_tejaskumar-reddy-j/en-fineweb-edu-train-000001.decode.json).
 
-Selected zero-based document indices: `0, 932, 1865, 2798, 3731, 4664, 5597, 6529, 7462, 8395, 9328, 10261, 11194, 12126, 13059, 13992, 14925, 15858, 16791, 17724`.
+Selected zero-based document indices: `1058, 1075, 1494, 1823, 2764, 2812, 5257, 5867, 6102, 8556, 9184, 9848, 10111, 10834, 10905, 13140, 13868, 14527, 15030, 17476`.
 
 Source part: `en-fineweb-edu_part-00001_clean.parquet`.
 
@@ -328,7 +347,7 @@ Source part: `en-fineweb-edu_part-00001_clean.parquet`.
 
 Evidence: [en-nemotroncc-synth-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/en-nemotroncc-synth-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 7725, 15450, 23175, 30900, 38625, 46350, 54075, 61800, 69525, 77251, 84976, 92701, 100426, 108151, 115876, 123601, 131326, 139051, 146777`.
+Selected zero-based document indices: `25535, 42123, 55473, 70249, 70396, 80994, 85528, 94850, 98807, 102406, 105551, 107222, 119436, 120331, 124519, 129326, 129575, 130822, 139132, 142192`.
 
 Source part: `en-nemotroncc-synth_part-00000_clean.parquet`.
 
@@ -345,7 +364,7 @@ Source part: `en-nemotroncc-synth_part-00000_clean.parquet`.
 
 Evidence: [en-nemotroncc-synth-train-000001.decode.json](shard_decode_tejaskumar-reddy-j/en-nemotroncc-synth-train-000001.decode.json).
 
-Selected zero-based document indices: `0, 2579, 5158, 7737, 10317, 12896, 15475, 18055, 20634, 23213, 25793, 28372, 30951, 33531, 36110, 38689, 41269, 43848, 46427, 49007`.
+Selected zero-based document indices: `173, 3077, 4102, 4972, 6857, 7631, 8230, 9997, 15013, 17863, 23144, 27188, 27288, 28725, 32528, 36095, 37880, 38565, 45288, 46399`.
 
 Source part: `en-nemotroncc-synth_part-00001_clean.parquet`.
 
@@ -362,7 +381,7 @@ Source part: `en-nemotroncc-synth_part-00001_clean.parquet`.
 
 Evidence: [en-nemotroncc-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/en-nemotroncc-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 3435, 6871, 10307, 13743, 17179, 20615, 24051, 27487, 30923, 34359, 37795, 41231, 44667, 48103, 51539, 54975, 58411, 61847, 65283`.
+Selected zero-based document indices: `33, 51, 631, 6403, 11916, 16007, 16251, 21603, 25394, 25646, 33528, 37116, 37671, 47533, 48217, 56208, 59725, 63161, 64707, 65073`.
 
 Source part: `en-nemotroncc_part-00000_clean.parquet`.
 
@@ -379,7 +398,7 @@ Source part: `en-nemotroncc_part-00000_clean.parquet`.
 
 Evidence: [en-nemotroncc-train-000001.decode.json](shard_decode_tejaskumar-reddy-j/en-nemotroncc-train-000001.decode.json).
 
-Selected zero-based document indices: `0, 1153, 2306, 3459, 4612, 5766, 6919, 8072, 9225, 10378, 11532, 12685, 13838, 14991, 16144, 17298, 18451, 19604, 20757, 21911`.
+Selected zero-based document indices: `2036, 3847, 6849, 7548, 9238, 9790, 10625, 10661, 10983, 11300, 11391, 14324, 14569, 14741, 15275, 15707, 17978, 20062, 20648, 21323`.
 
 Source part: `en-nemotroncc_part-00001_clean.parquet`.
 
@@ -396,7 +415,7 @@ Source part: `en-nemotroncc_part-00001_clean.parquet`.
 
 Evidence: [ind-bn-fw2-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/ind-bn-fw2-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 563, 1126, 1689, 2253, 2816, 3379, 3943, 4506, 5069, 5633, 6196, 6759, 7323, 7886, 8449, 9013, 9576, 10139, 10703`.
+Selected zero-based document indices: `757, 2046, 2305, 2932, 3665, 4450, 5171, 5488, 5609, 5704, 5870, 6502, 6536, 6789, 7660, 8127, 8521, 10111, 10270, 10679`.
 
 Source part: `ind-bn-fw2_part-00000_clean.parquet`.
 
@@ -413,7 +432,7 @@ Source part: `ind-bn-fw2_part-00000_clean.parquet`.
 
 Evidence: [ind-bn-sangraha-v-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/ind-bn-sangraha-v-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 532, 1064, 1596, 2128, 2660, 3192, 3725, 4257, 4789, 5321, 5853, 6385, 6918, 7450, 7982, 8514, 9046, 9578, 10111`.
+Selected zero-based document indices: `1366, 2757, 3110, 3488, 3783, 4334, 4436, 4571, 4594, 4643, 6458, 6509, 7949, 8104, 8713, 9259, 9287, 9297, 9851, 9961`.
 
 Source part: `ind-bn-sangraha-v_part-00000_clean.parquet`.
 
@@ -430,7 +449,7 @@ Source part: `ind-bn-sangraha-v_part-00000_clean.parquet`.
 
 Evidence: [ind-gu-fw2-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/ind-gu-fw2-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 1194, 2388, 3582, 4776, 5970, 7164, 8358, 9552, 10746, 11941, 13135, 14329, 15523, 16717, 17911, 19105, 20299, 21493, 22688`.
+Selected zero-based document indices: `2483, 3329, 3797, 5095, 5584, 6066, 7628, 7756, 8382, 9621, 10283, 12146, 14477, 15397, 16787, 17154, 19427, 21229, 21289, 22198`.
 
 Source part: `ind-gu-fw2_part-00000_clean.parquet`.
 
@@ -447,7 +466,7 @@ Source part: `ind-gu-fw2_part-00000_clean.parquet`.
 
 Evidence: [ind-hi-fw2-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/ind-hi-fw2-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 724, 1449, 2174, 2899, 3624, 4349, 5073, 5798, 6523, 7248, 7973, 8698, 9422, 10147, 10872, 11597, 12322, 13047, 13772`.
+Selected zero-based document indices: `27, 979, 1672, 1789, 3723, 4629, 6635, 6745, 6862, 7672, 8014, 8274, 8766, 8996, 9054, 9315, 10956, 12091, 12601, 13314`.
 
 Source part: `ind-hi-fw2_part-00000_clean.parquet`.
 
@@ -464,7 +483,7 @@ Source part: `ind-hi-fw2_part-00000_clean.parquet`.
 
 Evidence: [ind-hi-hplt-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/ind-hi-hplt-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 441, 882, 1323, 1765, 2206, 2647, 3089, 3530, 3971, 4413, 4854, 5295, 5737, 6178, 6619, 7061, 7502, 7943, 8385`.
+Selected zero-based document indices: `896, 976, 1241, 2019, 2093, 2350, 2520, 3202, 3478, 3499, 3630, 4128, 4594, 4695, 5620, 6582, 6963, 7488, 7671, 7804`.
 
 Source part: `ind-hi-hplt_part-00000_clean.parquet`.
 
@@ -481,7 +500,7 @@ Source part: `ind-hi-hplt_part-00000_clean.parquet`.
 
 Evidence: [ind-hi-indiccorp-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/ind-hi-indiccorp-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 5771, 11543, 17315, 23087, 28859, 34631, 40403, 46175, 51947, 57719, 63491, 69263, 75035, 80807, 86579, 92351, 98123, 103895, 109667`.
+Selected zero-based document indices: `1746, 5417, 5977, 8035, 9136, 9229, 11257, 11405, 17638, 30038, 39388, 51346, 52999, 55960, 56510, 76609, 79829, 85111, 90333, 101800`.
 
 Source part: `ind-hi-indiccorp_part-00000_clean.parquet`.
 
@@ -498,7 +517,7 @@ Source part: `ind-hi-indiccorp_part-00000_clean.parquet`.
 
 Evidence: [ind-hi-sangraha-s-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/ind-hi-sangraha-s-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 392, 785, 1178, 1571, 1964, 2357, 2750, 3143, 3536, 3929, 4322, 4715, 5108, 5501, 5894, 6287, 6680, 7073, 7466`.
+Selected zero-based document indices: `138, 357, 476, 1073, 1266, 1800, 1894, 2532, 2538, 2578, 3438, 3782, 4707, 5423, 5816, 6144, 6618, 6702, 6729, 6972`.
 
 Source part: `ind-hi-sangraha-s_part-00000_clean.parquet`.
 
@@ -515,7 +534,7 @@ Source part: `ind-hi-sangraha-s_part-00000_clean.parquet`.
 
 Evidence: [ind-hi-sangraha-v-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/ind-hi-sangraha-v-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 762, 1524, 2286, 3048, 3811, 4573, 5335, 6097, 6859, 7622, 8384, 9146, 9908, 10670, 11433, 12195, 12957, 13719, 14482`.
+Selected zero-based document indices: `504, 2853, 3814, 3844, 4858, 4925, 5369, 5630, 5991, 9338, 9558, 9630, 9756, 9932, 11462, 11585, 12065, 13327, 14058, 14277`.
 
 Source part: `ind-hi-sangraha-v_part-00000_clean.parquet`.
 
@@ -532,7 +551,7 @@ Source part: `ind-hi-sangraha-v_part-00000_clean.parquet`.
 
 Evidence: [ind-kn-fw2-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/ind-kn-fw2-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 407, 814, 1221, 1628, 2035, 2442, 2849, 3256, 3663, 4070, 4477, 4884, 5291, 5698, 6105, 6512, 6919, 7326, 7734`.
+Selected zero-based document indices: `689, 1150, 1461, 1646, 2155, 2518, 2902, 3313, 3648, 4003, 4180, 4185, 4307, 4976, 5845, 6030, 6208, 6618, 6809, 7504`.
 
 Source part: `ind-kn-fw2_part-00000_clean.parquet`.
 
@@ -549,7 +568,7 @@ Source part: `ind-kn-fw2_part-00000_clean.parquet`.
 
 Evidence: [ind-kn-sangraha-s-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/ind-kn-sangraha-s-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 272, 545, 818, 1091, 1364, 1637, 1909, 2182, 2455, 2728, 3001, 3274, 3546, 3819, 4092, 4365, 4638, 4911, 5184`.
+Selected zero-based document indices: `366, 577, 895, 930, 1400, 2408, 2454, 2602, 2791, 3035, 3150, 3310, 3311, 4157, 4198, 4344, 4424, 4553, 5052, 5171`.
 
 Source part: `ind-kn-sangraha-s_part-00000_clean.parquet`.
 
@@ -566,7 +585,7 @@ Source part: `ind-kn-sangraha-s_part-00000_clean.parquet`.
 
 Evidence: [ind-kn-sangraha-v-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/ind-kn-sangraha-v-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 439, 879, 1318, 1758, 2198, 2637, 3077, 3517, 3956, 4396, 4835, 5275, 5715, 6154, 6594, 7034, 7473, 7913, 8353`.
+Selected zero-based document indices: `206, 573, 1298, 1775, 1879, 2534, 3072, 3412, 3954, 3986, 4041, 4401, 4528, 4664, 4717, 6396, 6873, 7085, 7786, 8280`.
 
 Source part: `ind-kn-sangraha-v_part-00000_clean.parquet`.
 
@@ -583,7 +602,7 @@ Source part: `ind-kn-sangraha-v_part-00000_clean.parquet`.
 
 Evidence: [ind-mr-fw2-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/ind-mr-fw2-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 592, 1184, 1776, 2368, 2960, 3552, 4144, 4736, 5328, 5920, 6512, 7104, 7696, 8288, 8880, 9472, 10064, 10656, 11249`.
+Selected zero-based document indices: `2261, 2460, 3443, 3831, 3840, 4858, 5236, 6021, 6163, 6613, 6957, 7315, 8064, 8246, 8251, 8641, 9509, 10315, 10972, 11140`.
 
 Source part: `ind-mr-fw2_part-00000_clean.parquet`.
 
@@ -600,7 +619,7 @@ Source part: `ind-mr-fw2_part-00000_clean.parquet`.
 
 Evidence: [ind-mr-sangraha-v-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/ind-mr-sangraha-v-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 640, 1280, 1920, 2560, 3200, 3840, 4481, 5121, 5761, 6401, 7041, 7681, 8322, 8962, 9602, 10242, 10882, 11522, 12163`.
+Selected zero-based document indices: `331, 1246, 1450, 2053, 3364, 3772, 3907, 4657, 4846, 4904, 5032, 6320, 6927, 8310, 9331, 10601, 10884, 10974, 11139, 11146`.
 
 Source part: `ind-mr-sangraha-v_part-00000_clean.parquet`.
 
@@ -617,7 +636,7 @@ Source part: `ind-mr-sangraha-v_part-00000_clean.parquet`.
 
 Evidence: [ind-sa-fw2-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/ind-sa-fw2-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 298, 596, 894, 1192, 1491, 1789, 2087, 2385, 2683, 2982, 3280, 3578, 3876, 4174, 4473, 4771, 5069, 5367, 5666`.
+Selected zero-based document indices: `14, 194, 862, 980, 2118, 2262, 2752, 2832, 3199, 3510, 3662, 3722, 3809, 3920, 5066, 5318, 5508, 5546, 5580, 5661`.
 
 Source part: `ind-sa-fw2_part-00000_clean.parquet`.
 
@@ -634,7 +653,7 @@ Source part: `ind-sa-fw2_part-00000_clean.parquet`.
 
 Evidence: [ind-ta-sangraha-v-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/ind-ta-sangraha-v-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 357, 715, 1072, 1430, 1787, 2145, 2503, 2860, 3218, 3575, 3933, 4290, 4648, 5006, 5363, 5721, 6078, 6436, 6794`.
+Selected zero-based document indices: `127, 580, 777, 1167, 1208, 1536, 1862, 2507, 2827, 2857, 3254, 3362, 3648, 4194, 4211, 4445, 5646, 5813, 6190, 6218`.
 
 Source part: `ind-ta-sangraha-v_part-00000_clean.parquet`.
 
@@ -651,7 +670,7 @@ Source part: `ind-ta-sangraha-v_part-00000_clean.parquet`.
 
 Evidence: [ind-te-fw2-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/ind-te-fw2-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 298, 596, 895, 1193, 1491, 1790, 2088, 2386, 2685, 2983, 3282, 3580, 3878, 4177, 4475, 4773, 5072, 5370, 5669`.
+Selected zero-based document indices: `31, 210, 420, 524, 572, 580, 1106, 1283, 1289, 1629, 1899, 1969, 2125, 2157, 3257, 3395, 3514, 4415, 5491, 5571`.
 
 Source part: `ind-te-fw2_part-00000_clean.parquet`.
 
@@ -668,7 +687,7 @@ Source part: `ind-te-fw2_part-00000_clean.parquet`.
 
 Evidence: [ind-te-sangraha-s-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/ind-te-sangraha-s-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 232, 465, 697, 930, 1162, 1395, 1627, 1860, 2092, 2325, 2557, 2790, 3022, 3255, 3487, 3720, 3952, 4185, 4418`.
+Selected zero-based document indices: `391, 753, 910, 1254, 1436, 1616, 1837, 2003, 2588, 2682, 2807, 2808, 2914, 3035, 3353, 3451, 3510, 3621, 3704, 4024`.
 
 Source part: `ind-te-sangraha-s_part-00000_clean.parquet`.
 
@@ -685,7 +704,7 @@ Source part: `ind-te-sangraha-s_part-00000_clean.parquet`.
 
 Evidence: [ind-te-sangraha-v-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/ind-te-sangraha-v-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 452, 904, 1356, 1808, 2261, 2713, 3165, 3617, 4069, 4522, 4974, 5426, 5878, 6330, 6783, 7235, 7687, 8139, 8592`.
+Selected zero-based document indices: `123, 146, 308, 617, 794, 1288, 1475, 2381, 2476, 3847, 3888, 5191, 5474, 5804, 6298, 6308, 6851, 7967, 8043, 8116`.
 
 Source part: `ind-te-sangraha-v_part-00000_clean.parquet`.
 
@@ -702,7 +721,7 @@ Source part: `ind-te-sangraha-v_part-00000_clean.parquet`.
 
 Evidence: [math-finemath-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/math-finemath-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 1478, 2956, 4434, 5913, 7391, 8869, 10347, 11826, 13304, 14782, 16260, 17739, 19217, 20695, 22173, 23652, 25130, 26608, 28087`.
+Selected zero-based document indices: `394, 1392, 4451, 7323, 7567, 8676, 9010, 9689, 13173, 14024, 14057, 15332, 22495, 23556, 23628, 24285, 24809, 25447, 25986, 27382`.
 
 Source part: `math-finemath_part-00000_clean.parquet`.
 
@@ -715,11 +734,28 @@ Source part: `math-finemath_part-00000_clean.parquet`.
 | `math-finemath-train-000000.quality_report.json` | `7608571c0930abc22fa3232e22cefcc6abfe536840b0ce488bb846296134ce08` |
 | `cleaning_pipeline.json` | `35611a83cfa6d6b510a43b07c5d356c4f6d5d908bbb7d4f3c8b9f05856046589` |
 
+## math-megamath-train-000000
+
+Evidence: [math-megamath-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/math-megamath-train-000000.decode.json).
+
+Selected zero-based document indices: `65, 241, 351, 1141, 2466, 3840, 5302, 6054, 8586, 8908, 10673, 10902, 11657, 11767, 14705, 14789, 14952, 15904, 16106, 16254`.
+
+Source part: `math-megamath_part-00000_clean.parquet`.
+
+| Verified input | Recomputed SHA-256 |
+|---|---|
+| `math-megamath-train-000000.json` | `ccdae49682b19c7f724620406911d02c157eb94b14463b9eb2463e27b0318214` |
+| `math-megamath-train-000000.bin` | `ff5a213f47981243e42a31e3ffe6733e276181ef0e8cfb7c581f77bea6e22e57` |
+| `math-megamath-train-000000.idx.npy` | `1fbbfcfc8a8e19f160f5bbfc8b4902a017455421572232b3b55c0e6ed98fca8f` |
+| `math-megamath-train-000000.docs.parquet` | `7f11583f97a20c2904cb583a24981d04c4d4b002b3809e79447bd09bbff8e770` |
+| `math-megamath-train-000000.quality_report.json` | `538f893f47a2eb805fb27e7b11ba8d5890acd16d3359a254d00ec57b1eb6b33c` |
+| `cleaning_pipeline.json` | `35611a83cfa6d6b510a43b07c5d356c4f6d5d908bbb7d4f3c8b9f05856046589` |
+
 ## sci-finepdfs-train-000000
 
 Evidence: [sci-finepdfs-train-000000.decode.json](shard_decode_tejaskumar-reddy-j/sci-finepdfs-train-000000.decode.json).
 
-Selected zero-based document indices: `0, 315, 630, 946, 1261, 1576, 1892, 2207, 2522, 2838, 3153, 3469, 3784, 4099, 4415, 4730, 5045, 5361, 5676, 5992`.
+Selected zero-based document indices: `129, 273, 501, 583, 1585, 1961, 1970, 2575, 2645, 2650, 2822, 2839, 3621, 4028, 4765, 5506, 5665, 5790, 5831, 5981`.
 
 Source part: `sci-finepdfs_part-00000_clean.parquet`.
 
@@ -736,6 +772,6 @@ Source part: `sci-finepdfs_part-00000_clean.parquet`.
 
 Token round-trip establishes consistency of the decoded text with the selected token sequences. Comparing that text with the original cleaned documents requires upstream Parquet files. This report does not claim human semantic review, all-document decoding, a whole-bundle audit or benchmark decontamination.
 
-Decoded character count vs `.docs.parquet` `n_chars`: equal for every selected document except in `ind-bn-fw2-train-000000` (20/20), `ind-bn-sangraha-v-train-000000` (20/20), `ind-hi-indiccorp-train-000000` (4/20). `shard_writer.py` records `n_chars` as the length of the cleaned text before tokenizer normalization, and p1536 normalization changes the length of some Bengali and Hindi text (composed or decomposed nukta letters). These documents still pass all four checks, including exact token round-trip; it is a definition point for `n_chars` in shard format v1, not a decoding fault.
+Decoded character count vs `.docs.parquet` `n_chars`: equal for every selected document except in `ind-bn-fw2-train-000000` (20/20), `ind-bn-sangraha-v-train-000000` (20/20), `ind-hi-indiccorp-train-000000` (2/20). `shard_writer.py` records `n_chars` as the length of the cleaned text before tokenizer normalization, and p1536 normalization changes the length of some Bengali and Hindi text (composed or decomposed nukta letters). These documents still pass all four checks, including exact token round-trip; it is a definition point for `n_chars` in shard format v1, not a decoding fault.
 
 The shared `cleaning_pipeline.json` has `dedup: null`, tracked by [#503](https://github.com/theschoolofai/era-v5-lab/issues/503). This bundle was written before the dedup v1 job ([#547](https://github.com/theschoolofai/era-v5-lab/pull/547)); 227 of the documents that job removes are in these 41 shards. Successful decoding does not resolve that provenance finding or establish training admission. The separate Data A rotation reports contain the full-shard integrity results.

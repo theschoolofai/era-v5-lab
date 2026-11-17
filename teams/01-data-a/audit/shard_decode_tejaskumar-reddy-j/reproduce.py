@@ -1,4 +1,8 @@
-"""Decode 20 deterministic documents per assigned shard; publish hashes, never text. Same method as #541's reproducer."""
+"""Decode 20 deterministic documents per assigned shard; publish hashes, never text.
+
+Same checks as #541's reproducer. Selection differs: 20 documents drawn at random (seeded per shard, so
+reproducible) from the positions #541's evenly spaced rule does not pick, so the two reports decode different documents.
+"""
 import argparse
 import hashlib
 import json
@@ -11,8 +15,9 @@ import pyarrow
 import pyarrow.parquet as pq
 import tokenizers
 
+SEED = 20261117
 TOKENIZER_SHA = "e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b"
-SHARDS = (  # the 39 shards not in #541
+SHARDS = (  # all 41 shards of the p1536 sample-v0 bundle
     "code-cpp-train-000000",
     "code-cpp-train-000001",
     "code-go-train-000000",
@@ -25,6 +30,7 @@ SHARDS = (  # the 39 shards not in #541
     "code-python-train-000001",
     "code-rust-train-000000",
     "code-rust-train-000001",
+    "en-dclm-train-000000",
     "en-dclm-train-000001",
     "en-fineweb-edu-train-000000",
     "en-fineweb-edu-train-000001",
@@ -51,8 +57,21 @@ SHARDS = (  # the 39 shards not in #541
     "ind-te-sangraha-s-train-000000",
     "ind-te-sangraha-v-train-000000",
     "math-finemath-train-000000",
+    "math-megamath-train-000000",
     "sci-finepdfs-train-000000",
 )
+
+
+SAMPLING = ("20 document indices drawn without replacement by numpy default_rng(SEED + int(sha256(shard_id)[:8], 16)), "
+            "excluding #541's indices i * (doc_count - 1) // 19 for i=0..19; sorted")
+
+
+def select(sid, n):
+    """20 seeded random document indices, none of #541's evenly spaced ones."""
+    taken = {i * (n - 1) // 19 for i in range(20)}
+    rng = np.random.default_rng(SEED + int(hashlib.sha256(sid.encode()).hexdigest()[:8], 16))
+    pool = np.array([i for i in range(n) if i not in taken])
+    return sorted(int(i) for i in rng.choice(pool, size=20, replace=False))
 
 
 def sha(path):
@@ -81,7 +100,7 @@ def main():
     run = {
         "scope": "Core task 6: decode 20 documents per assigned p1536 sample-v0 shard",
         "tokenizer_sha256": TOKENIZER_SHA,
-        "sampling": "document index i * (doc_count - 1) // 19 for i=0..19",
+        "sampling": SAMPLING,
         "environment": {"python": platform.python_version(), "numpy": np.__version__,
                         "pyarrow": pyarrow.__version__, "tokenizers": tokenizers.__version__},
         "repository_commit": subprocess.check_output(
@@ -114,9 +133,9 @@ def main():
         docs = pq.read_table(a.input / (sid + ".docs.parquet")).to_pydict()
         require(len(docs["doc_id"]) == m["doc_count"]
                 and np.diff(idx).tolist() == docs["n_tokens"], "metadata counts")
-        require(m["doc_count"] >= 20, "fewer than 20 documents")
+        require(m["doc_count"] >= 40, "fewer than 40 documents")
         toks = np.memmap(bp, dtype="<u4", mode="r", offset=1024)
-        selected = [i * (m["doc_count"] - 1) // 19 for i in range(20)]
+        selected = select(sid, m["doc_count"])
         sample = []
         for i in selected:
             begin, end = int(idx[i]), int(idx[i + 1])
