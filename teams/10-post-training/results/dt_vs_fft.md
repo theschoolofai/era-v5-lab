@@ -71,7 +71,7 @@ Deletion Tuning freezes the pre-trained base weight $W \in \mathbb{R}^{d_{\text{
 
 ## 4. Multi-Layer & Deletion-Fraction Matrix: Task Gain vs Catastrophic Forgetting
 
-Evaluated via `teams/10-post-training/sft/dt_vs_fft.py --sweep --table` across three layer targets (**MLP gate only**, **all MLP**, and **attention**) and three target deletion fractions ($p \in \{0.20, 0.50, 0.80\}$) for 30 equal steps with learning rate $\eta = 0.2$:
+Evaluated via `teams/10-post-training/sft/dt_vs_fft.py --sweep --table` across three layer targets (**MLP gate only**, **all MLP**, and **attention**) and three target deletion fractions ($p \in \{0.20, 0.50, 0.80\}$) for 30 equal steps with learning rate $\eta = 0.2$, sharpness $\alpha$ 100 to 1000 (the reference SFT setting; earlier versions of this table used 1e3 to 1e4, which saturated the sigmoid so that no mask bit moved, see `results/dt_toy_sharpness_check_20261117.md`). One seed (0), a 4x4 toy, task loss on the toy's own training set. At this setting only some cells move: the three MLP-gate cells changed 5 hard-mask bits in total, all other DT cells changed none, so their rows are still the prior-only numbers:
 - **Task Gain:** $\Delta \mathcal{L}_{\text{task}} = \mathcal{L}_{\text{task}, 0} - \mathcal{L}_{\text{task}, 30}$ (positive indicates improved adaptation).
 - **Catastrophic Forgetting:** $\Delta \mathcal{L}_{\text{base}} = \mathcal{L}_{\text{base}, 30} - \mathcal{L}_{\text{base}, 0}$ on pre-trained distribution samples (positive indicates catastrophic loss of pre-trained knowledge).
 
@@ -79,19 +79,19 @@ Evaluated via `teams/10-post-training/sft/dt_vs_fft.py --sweep --table` across t
 |---|---|---:|---:|---:|---:|---:|---:|:---:|
 | **MLP gate only** | Full Fine-Tuning | - | 0.00 | 0.013317 | 0.002525 | **+0.010792** | **+0.005483** | **yes** |
 | **MLP gate only** | LoRA (rank 1) | - | 0.00 | 0.013317 | 0.013313 | +0.000004 | +0.000000 | no |
-| **MLP gate only** | Deletion Tuning | 0.20 | 0.19 | 0.013294 | 0.013294 | +0.000000 | **+0.000000** | **no** |
-| **MLP gate only** | Deletion Tuning | 0.50 | 0.50 | 0.017511 | 0.017511 | +0.000000 | **+0.000000** | **no** |
-| **MLP gate only** | Deletion Tuning | 0.80 | 0.81 | 0.014594 | 0.014594 | +0.000000 | **+0.000000** | **no** |
+| **MLP gate only** | Deletion Tuning | 0.20 | 0.31 | 0.013294 | 0.007691 | +0.005603 | +0.003684 | no |
+| **MLP gate only** | Deletion Tuning | 0.50 | 0.62 | 0.017511 | 0.011382 | +0.006130 | +0.004111 | no |
+| **MLP gate only** | Deletion Tuning | 0.80 | 0.75 | 0.014594 | 0.011038 | +0.003556 | -0.002551 | no |
 | **all MLP** | Full Fine-Tuning | - | 0.00 | 0.000322 | 0.000305 | **+0.000017** | +0.000000 | **yes** |
 | **all MLP** | LoRA (rank 1) | - | 0.00 | 0.000322 | 0.000322 | +0.000000 | +0.000000 | no |
-| **all MLP** | Deletion Tuning | 0.20 | 0.19 | 0.000327 | 0.000327 | +0.000000 | **+0.000000** | **no** |
-| **all MLP** | Deletion Tuning | 0.50 | 0.50 | 0.000298 | 0.000298 | +0.000000 | **+0.000000** | **no** |
-| **all MLP** | Deletion Tuning | 0.80 | 0.81 | 0.000479 | 0.000479 | +0.000000 | **+0.000000** | **no** |
+| **all MLP** | Deletion Tuning | 0.20 | 0.19 | 0.000327 | 0.000327 | +0.000000 | +0.000000 | no |
+| **all MLP** | Deletion Tuning | 0.50 | 0.50 | 0.000298 | 0.000298 | +0.000000 | +0.000000 | no |
+| **all MLP** | Deletion Tuning | 0.80 | 0.81 | 0.000479 | 0.000479 | +0.000000 | +0.000000 | no |
 | **attention** | Full Fine-Tuning | - | 0.00 | 0.001567 | 0.001112 | **+0.000455** | **+0.000031** | **yes** |
 | **attention** | LoRA (rank 1) | - | 0.00 | 0.001567 | 0.001566 | +0.000001 | +0.000000 | no |
-| **attention** | Deletion Tuning | 0.20 | 0.19 | 0.001673 | 0.001673 | +0.000000 | **+0.000000** | **no** |
-| **attention** | Deletion Tuning | 0.50 | 0.50 | 0.002662 | 0.002662 | +0.000000 | **+0.000000** | **no** |
-| **attention** | Deletion Tuning | 0.80 | 0.81 | 0.004399 | 0.004399 | +0.000000 | **+0.000000** | **no** |
+| **attention** | Deletion Tuning | 0.20 | 0.19 | 0.001673 | 0.001673 | +0.000000 | +0.000000 | no |
+| **attention** | Deletion Tuning | 0.50 | 0.50 | 0.002662 | 0.002662 | +0.000000 | +0.000000 | no |
+| **attention** | Deletion Tuning | 0.80 | 0.81 | 0.004399 | 0.004399 | +0.000000 | +0.000000 | no |
 
 ---
 
@@ -99,7 +99,7 @@ Evaluated via `teams/10-post-training/sft/dt_vs_fft.py --sweep --table` across t
 
 1. **Forgetting vs Capability Trade-off:**
    - Pure Deletion Tuning keeps held-out forgetting far lower than Full FT (`+0.0163` vs `+0.0746` at 1.7B base, $0.22\times$), and reaches `0.949×` the task cross-entropy of LoRA at 1.7B base (`0.3698` vs `0.3500`).
-   - On the synthetic multi-layer matrix, base weights remain completely unchanged, resulting in **$0.000000$ drift** on base loss distributions.
+   - On the synthetic multi-layer matrix the base weights stay frozen in every DT cell. Drift on the base loss distribution is $0.000000$ in the six all-MLP and attention cells (their masks did not move at sharpness 100 to 1000, seed 0) and `+0.0037`, `+0.0041`, `-0.0026` in the three MLP-gate cells, where the hard mask changed 5 bits. One seed, 4x4 toy.
 2. **The Chat Format Gap & Hybrid Solution:**
    - Pure DT on a base model produces $0/110$ valid chat replies because pruning alone cannot invent representations for new chat-delimiter tokens (`<|im_start|>`, `<|im_end|>`, etc.).
    - Full FT learns format quickly (81–93 valid replies).
