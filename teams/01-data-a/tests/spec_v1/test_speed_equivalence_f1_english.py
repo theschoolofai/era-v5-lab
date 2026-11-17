@@ -32,7 +32,7 @@ def namespace():
 
 
 def old_medicine_f1(text, ns):
-    """medicine_f1 of DA-F1-005 as it was before the change (spec v1.1 at ccde028): ORG_VOICE searched on every text, first.
+    """medicine_f1 of DA-F1-005 as it was before the change (spec v1.1 at 05d9c74): ORG_VOICE searched on every text, first.
     Keep this unchanged; if the rule is ever changed on purpose, update it."""
     lines = text.split("\n")
     org_page = bool(ns["ORG_VOICE"].search(text))

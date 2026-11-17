@@ -1,5 +1,7 @@
 # Code-pack speed follow-up
 
+Further code rules (`DA-A4-002`, `DA-A6-001`, `DA-E3-003`, `DA-E2-001`) were sped up later on the spec v1.1 build: see [speed_v1_code_rules.md](speed_v1_code_rules.md).
+
 Measured on 11 November 2026, after merging Smita’s PR #34. Baseline: `9299ff20afaa3f6511ad1751a42511576de95e2b`; baseline cleaner `11da63a27cca46556a5736a136cc9cd9b4af8f5e9261268ebb298bca9f1237b4`. Optimized cleaner `21d95374ca5522dfe0bd964142ab571962e4186901054e38da730d91fad5ce47`.
 
 Full input/output digests, action/error counts, all three timings, cold-pass throughput, own-pack gold sources and final rule profiles are in [speed_v1_code.json](speed_v1_code.json). No corpus text is included.
