@@ -5,6 +5,11 @@ in eval/effort_manifest.json, evaluates the effect of length penalties on reward
 distributions and group advantages under the Session 18 objective, and reports
 budget obedience, parsing, and functional success rates.
 
+Not the v1 training reward: that is `effort_reward.shape_reward` (see `effort_v1.md`, 3.1). At the default beta of
+0.001 the penalty is 0.001 at twice the budget and about 0.009 at ten times, so the group advantage it gives is about
+0.0004 against about 0.38 for the ramp. This module is for comparison only. The "median" columns of `--table` use a
+median that is the 1,024 generation cap, so they read 0 whatever the label.
+
 Usage:
     python teams/10-post-training/rl/effort_penalty.py
     python teams/10-post-training/rl/effort_penalty.py --beta 0.001 --manifest eval/effort_manifest.json

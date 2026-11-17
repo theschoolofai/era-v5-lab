@@ -57,15 +57,17 @@ Code: `teams/10-post-training/rl/effort_reward.py`, `shape_reward(reward, trace_
 - **A malformed or unclosed trace is 0.**
 - **Breaks tied groups:** Correct rollouts exceeding budget receive graded scores, providing informative policy gradients.
 
-### 3.2 Relative Budget Scaling Formulation
+### 3.2 Relative Budget Scaling Formulation (comparison only, not the v1 training reward)
 
-For exploration across wider token regimes, the relative penalty formulation (`teams/10-post-training/rl/effort_penalty.py`) normalizes excess length by the assigned budget $B$:
+The relative penalty formulation (`teams/10-post-training/rl/effort_penalty.py`) normalizes excess length by the assigned budget $B$:
 
 $$\Delta L = \max(0, L - B)$$
 $$\mathcal{P}_{\text{rel}}(L, B) = \beta \cdot \frac{\Delta L}{B}$$
 $$R_{\text{eff}} = \max\left(0, \; R_{\text{verifier}} - \mathcal{P}_{\text{rel}}(L, B)\right)$$
 
 where $\beta$ is the length penalty coefficient (default $\beta = 10^{-3}$).
+
+**Size of the signal.** At the default $\beta$ the penalty is 0.001 for a `1k` trace twice its budget (2,048 tokens) and 0.009 at ten times the budget (10,240 tokens); a penalty of 0.10 needs a trace 101 times its budget. The 3.1 ramp gives 0 at 2,048 tokens. `objective_v1` uses $r - \text{mean}(r)$ with no division by the standard deviation, so the size of the penalty is the size of the advantage (see 3.3). Use 3.1 for training; 3.2 stays for comparison, and `effort_penalty.py` is not wired into any trainer.
 
 ### 3.3 Group Advantage Calibration
 
@@ -75,8 +77,8 @@ $$A_i = R_{i, \text{eff}} - \frac{1}{G} \sum_{j=1}^G R_{j, \text{eff}}$$
 
 When two completions both solve the problem ($R_{\text{verifier}} = 1$), but completion $A$ completes within the $1\text{k}$ budget ($L_A = 900$) and completion $B$ exceeds it ($L_B = 1,800$):
 - $R_{A, \text{eff}} = 1.0$
-- $R_{B, \text{eff}} = 1.0 - \beta \frac{1800 - 1024}{1024} = 1.0 - 0.758 \beta$
-- Group advantage awards positive signal $A_A > 0$ to the concise solution and $A_B < 0$ to the over-budget rollout, driving the policy toward budget compliance.
+- $R_{B, \text{eff}} = 1.0 - \beta \frac{1800 - 1024}{1024} = 1.0 - 0.758 \beta$, which is 0.99924 at $\beta = 10^{-3}$
+- Group advantage (`objective_v1`: $r - \text{mean}$) is $+0.0004$ for the concise solution and $-0.0004$ for the over-budget rollout. The sign is right and the size is tiny. With the 3.1 ramp the same pair has $R_A = 1.0$, $R_B = 0.242$ and advantages $\pm 0.379$, about 1,000 times larger.
 
 ### 3.4 Neutralizing Length Bias via Dr. GRPO
 
@@ -97,7 +99,7 @@ The evaluation suite `eval/effort_suite.py` references `eval/effort_manifest.jso
 | **Tool / Agentic** | 20 | 0 | `pending_source` | 20 | Pending vetted human-written tool execution datasets |
 | **Indic** | 15 | 0 | `pending_source` | 15 | Pending vetted regional language reasoning tasks |
 | **General** | 10 | 0 | `pending_source` | 10 | Pending open-domain reasoning benchmarks |
-| **Total** | **100** | **55** | **Fully Audited & Verified** | **45** | Explicitly withheld from v1 per quality gates |
+| **Total** | **100** | **55** | **Manifest audited** (counts checked; the model runs below used these 55) | **45** | Explicitly withheld from v1 per quality gates |
 
 ---
 
@@ -115,6 +117,8 @@ Evaluated across the 55 resolved prompts $\times$ 4 effort labels $\times$ 2 see
 | **64k** | 65,536 | 110 | 110 | 43 | 41 (10 code / 31 math) | 37.3% | 1,024 | yes | -0.0000 | 0.3727 |
 
 *Totals: 161/440 correct (code 46/240, math 115/200), 262 censored (cap hit), 0 parse failures.*
+
+**Reading the last three columns.** Every cell was generated with a cap of 1,024 tokens, whatever the label. For the `4k`, `16k` and `64k` labels the cap is below the budget, so "Budget Obeyed: yes" is true by construction. The median is the cap itself (1,024), so the median penalty is 0 for every label, and the "Net Penalized Reward" equals the raw pass rate. These columns do not test the penalty; only the correct count and the token medians carry information.
 
 ### 5.2 OLMoE-1B-7B-0924-Instruct (110 Cells per Subgroup)
 
@@ -134,12 +138,16 @@ Evaluated across the 55 resolved prompts $\times$ 4 effort labels $\times$ 2 see
 1. **Effort Label Invariance Without RL Enforcement:**
    - Both models show near-identical median token lengths across all four effort labels (OLMoE: 411–427 tokens; Qwen: exactly 1,024 tokens).
    - In Qwen, matched prompt accuracy changes by $+8/-5$ ($4\text{k}$), $+5/-5$ ($16\text{k}$), and $+7/-5$ ($64\text{k}$) relative to $1\text{k}$, which is purely stochastic noise ($k=2$).
-   - This proves that prompting with `Reasoning effort: {label}` alone is insufficient; explicit RL penalty gradients are mandatory for test-time scaling.
+   - At a fixed 1,024-token cap the label does nothing visible, which fits the label needing training. It is not a proof: the same cap applies to every label, so these runs cannot show what the `4k`, `16k` and `64k` labels do at all.
 2. **The Truncation Bottleneck on Code:**
    - On Qwen, 195 of 240 code cells hit the 1,024 cap, and 166 cells failed with `"no code block"` because the model wrote explanations before code and was cut off.
    - For RL training, generation caps must be decoupled from the effort budget, and length penalty must operate relative to the target effort label rather than a hard cutoff.
 3. **Subgroup Reward Calibration:**
-   - Under $\beta = 10^{-3}$, minor over-generation incurs minimal penalty (preserving reward on complex solutions), while gross over-generation ($>2\times$ budget) incurs penalties of $-0.10$ to $-0.50$, effectively steering group advantages toward concise rollouts.
+   - Under $\beta = 10^{-3}$ the relative penalty is below 0.01 even at ten times the budget (see 3.2), so it does not separate a concise rollout from an over-budget one in practice. The 3.1 ramp does: it scores 0.5 at 1,536 tokens and 0 at 2,048 for a correct `1k` answer.
+
+---
+
+**Not tested yet.** Stage C (a cap equal to the label budget plus a reply allowance, 8 preregistered prompts) was not run. No model that reads the G10 chat format has been run: the `team5` backend needs a checkpoint, which needs a TSAI job request after the SFT checkpoint exists. The 45 unresolved slots are empty.
 
 ---
 
