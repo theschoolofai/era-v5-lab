@@ -156,7 +156,7 @@ def _run(tmp_path: Path, name: str):
     out.mkdir()
     argv = ["build", "--source-index", str(tmp_path / "idx.sqlite"), "--rowstats-dir", str(tmp_path / "rowstats"),
             "--rl-cc", str(tmp_path / "cc.jsonl"), "--pool-ids", str(tmp_path / "pool.txt"),
-            "--set", f"held={tmp_path / 'held.txt'}", "--effort-manifest", str(tmp_path / "effort.json"),
+            "--set", f"heldout_e1_15nov={tmp_path / 'held.txt'}", "--effort-manifest", str(tmp_path / "effort.json"),
             "--rung-ids", str(tmp_path / "rung.txt"), "--sft-manifest", str(tmp_path / "sft.json"),
             "--private-dir", str(out / "private"), "--out-json", str(out / "rec.json"), "--out-md", str(out / "rec.md")]
     assert co.main(argv) == 0
@@ -174,7 +174,7 @@ def test_record_counts_routes_and_private_split(tmp_path):
     assert pool["reached_through_code_contests_rows"] == 1 and pool["reached_only_through_taco_or_apps_rows"] == 1
     assert pool["pack"]["rows"][:2] == [5, 4] and pool["pack"]["rows_total"] == 9      # A: 3 in shard 0; B: 2 + 4
     assert pool["pack"]["tokens_total"] == (100 + 200 + 300) + (100 + 200) + (100 + 200 + 300 + 400)
-    assert rec["sets"]["held"]["found_in_pack"] == 1                                    # cc-four is unrelated; cc-two matches
+    assert rec["sets"]["heldout_e1_15nov"]["found_in_pack"] == 1                                    # cc-four is unrelated; cc-two matches
     assert rec["sets"]["effort_suite_code"]["rl_problems"] == 1                         # the math slot is not a code slot
     assert rec["pack"]["rows"] == 21 and rec["pack"]["problems"] == 4 and rec["pack"]["row_status_counts"]["heldout"] == 1
     held = rec["ocr2_heldout_vs_rl_pool"]                                               # the one held-out row is family D
@@ -232,3 +232,60 @@ def test_a_shard_in_two_row_stat_folders_is_refused(tmp_path):
     _toy(tmp_path)
     with pytest.raises(ValueError, match="two row-stat folders"):
         co.load_rowstats([str(tmp_path / "rowstats"), str(tmp_path / "rowstats")])
+
+
+def test_missing_default_set_name_is_an_error_not_a_smaller_row(tmp_path):
+    _toy(tmp_path)
+    out = tmp_path / "bad3"
+    out.mkdir()
+    argv = ["build", "--source-index", str(tmp_path / "idx.sqlite"), "--rowstats-dir", str(tmp_path / "rowstats"),
+            "--rl-cc", str(tmp_path / "cc.jsonl"), "--pool-ids", str(tmp_path / "pool.txt"),
+            "--set", f"heldout_other_name={tmp_path / 'held.txt'}", "--effort-manifest", str(tmp_path / "effort.json"),
+            "--rung-ids", str(tmp_path / "rung.txt"), "--sft-manifest", str(tmp_path / "sft.json"),
+            "--private-dir", str(out / "private"), "--out-json", str(out / "rec.json"), "--out-md", str(out / "rec.md")]
+    with pytest.raises(ValueError, match="heldout_e1_15nov"):
+        co.main(argv)
+    assert not (out / "rec.json").exists()
+
+
+def test_possible_upper_bound_covers_the_eval_sets_too(tmp_path):
+    _toy(tmp_path)
+    (tmp_path / "held.txt").write_text("cc-three\ncc-four\n")             # cc-three is a sibling of pack family C: possible only
+    rec = json.loads((_run(tmp_path, "r4") / "rec.json").read_text())
+    z = rec["sizing"]
+    assert rec["sets"]["heldout_e1_15nov"]["found_in_pack"] == 0 and rec["sets"]["heldout_e1_15nov"]["possible_only"] == 1
+    assert z["sft_drop_e1_heldout_and_effort"]["pack_problems"] == 1      # the effort slot cc-one -> family A
+    assert z["sft_drop_e1_heldout_and_effort_incl_possible_upper_bound"]["pack_problems"] == 2
+    assert z["sft_drop_eval_sets_only_incl_possible_upper_bound"]["pack_problems"] == 2
+
+
+def _ms(*pairs):
+    return [co.Match(k, t, c) for k, t, c in pairs]
+
+
+def test_sensitivity_counts_problems_near_the_confirm_level():
+    matches = {"a": _ms(("p", "possible", 0.62)),                               # just below: would flip at 0.60
+               "b": _ms(("p", "shingle", 0.67)),                                # just above: would flip at 0.70
+               "c": _ms(("p", "shingle", 0.95)),                                # far above
+               "d": _ms(("p", "key", 1.0), ("q", "shingle", 0.66)),             # the key match decides, not the level
+               "e": _ms(("p", "possible", 0.30)),
+               "f": _ms(("p", "shingle", 0.90), ("q", "shingle", 0.66))}        # best coverage 0.90
+    s = co.sensitivity(list("abcdefg"), matches)
+    assert s["possible_with_coverage_in_band_below_confirm"] == 1 and s["confirmed_with_coverage_in_band_above_confirm"] == 1
+
+
+def test_pack_manifest_hash_is_recorded_when_given(tmp_path):
+    _toy(tmp_path)
+    m = tmp_path / "manifest.json"
+    m.write_text("{}")
+    out = tmp_path / "r5"
+    out.mkdir()
+    argv = ["build", "--source-index", str(tmp_path / "idx.sqlite"), "--rowstats-dir", str(tmp_path / "rowstats"),
+            "--rl-cc", str(tmp_path / "cc.jsonl"), "--pool-ids", str(tmp_path / "pool.txt"),
+            "--set", f"heldout_e1_15nov={tmp_path / 'held.txt'}", "--effort-manifest", str(tmp_path / "effort.json"),
+            "--rung-ids", str(tmp_path / "rung.txt"), "--sft-manifest", str(tmp_path / "sft.json"), "--pack-manifest", str(m),
+            "--private-dir", str(out / "private"), "--out-json", str(out / "rec.json"), "--out-md", str(out / "rec.md")]
+    assert co.main(argv) == 0
+    rec = json.loads((out / "rec.json").read_text())
+    assert rec["inputs"]["pack_manifest_sha256"] == co.sha256_file(m)
+    assert rec["inputs"]["pack_manifest_sha256"] in (out / "rec.md").read_text()

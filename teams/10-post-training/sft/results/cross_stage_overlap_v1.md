@@ -44,9 +44,25 @@ Against the 4-shard count of 16 Nov (the G10 recipe session's measurement: 2,384
 |---|---:|---:|---:|---:|---:|---:|
 | (i) SFT drops every problem found in the RL pool | 2,958 | 76,949 | 434,334,903 | 18.4% | 16.3% | 16.3% |
 | minimum: SFT drops problems of (b1), (b2), (c) only | 247 | 7,877 | 37,254,643 | 1.9% | 1.4% | 1.4% |
+| minimum, counting the `possible` tier too (upper bound) | 250 | 7,958 | 37,717,518 | 1.9% | 1.4% | 1.4% |
 | minimum, narrower: (b1) and (c) only | 106 | 3,048 | 16,702,769 | 0.7% | 0.6% | 0.6% |
+| minimum, narrower, counting the `possible` tier too (upper bound) | 106 | 3,048 | 16,702,769 | 0.7% | 0.6% | 0.6% |
 | (i) plus the minimum | 2,986 | 77,788 | 439,005,916 | 18.6% | 16.5% | 16.5% |
 | (i) counting the `possible` tier too (upper bound) | 2,965 | 77,169 | 435,497,462 | 18.4% | 16.4% | 16.3% |
+
+Shares are of the pack's rows and of the pack's tokens (two different columns: a problem's rows are not all the same length, so the two shares differ).
+
+## Sensitivity to the confirm level
+
+The confirm level (0.65) was set after reading pairs. How many problems sit within 0.05 of it (only problems that rest on shingle coverage; key and norm matches do not depend on it):
+
+| RL-side set | `possible` with best coverage just below the level (would be confirmed at level - band) | confirmed with best coverage just above it (would drop at level + band) |
+|---|---:|---:|
+| (a) RL data v1 code pool | 2 | 1 |
+| (b1) RL held-out, 15 Nov runs (E1; includes the pilot's 48) | 0 | 0 |
+| (b2) RL held-out, E10 plan | 0 | 0 |
+| (c) effort suite, code slots | 0 | 0 |
+
 
 The other direction: the OCR-2 held-out eval split (8,507 rows, 317 problems) against the RL pool: 73 pool problems (2%) are in it, 73 held-out problems, 1,948 held-out rows (66 key / 1 norm / 6 shingle). Keeping the held-out split out of the RL training pool would drop these pool problems.
 
@@ -66,6 +82,7 @@ Rule: key (same family_sha256), norm (same lower-cased [a-z0-9] words), shingle 
 | effort_manifest_sha256 | `fb8c09a4940b800c50de5ea7eaf51eb40afd62740a1919b08282f72910e97f8b` |
 | source_index_sha256 | `285aa87484c1269f5da9c62cd031e06b19158c760f4cc8720a1d3df3e0f535bf` |
 | rowstats_sha256 | `ba824f617c7ebfdb6b867f35cf7efd0594516ba9ed297c23f012d2520d6c4d55` |
+| pack_manifest_sha256 | `fab395750fad3329c6b612493641f37c42792e46219a521fca74c30e21b7783b` |
 | rung_ids_sha256 | `95692a349358609ca52436532cd384f020dc7060ba3292a4bb7d8971ad2360e4` |
 | sft_manifest_sha256 | `ec335ce64b07e701f1e6ba857a977ec194450c1dd3f7ca183fe8ba6a902e2d07` |
 | id list rl_code_pool (3577) | `4ad35ee70378729e5a979e33efac537a41cf35e535c29ee3da620565c5abb2fe` |

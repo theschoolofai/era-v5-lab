@@ -22,6 +22,7 @@ flags only; it changes neither the pack nor the RL pool.
     python cross_stage_overlap.py build --source-index source_index.sqlite --rowstats-dir DIR [--rowstats-dir DIR]
         --rl-cc cc.jsonl --pool-ids pool.txt --set NAME=ids.txt ... --effort-manifest effort_manifest.json
         --rung-ids rung1.txt --sft-manifest sft_data_v1_manifest.json
+        [--pack-manifest ocr2_pack_v1_p1536_manifest.json]
         --private-dir PRIVATE/ --out-json cross_stage_overlap_v1.json --validation validation.json --out-md cross_stage_overlap_v1.md
 """
 
@@ -43,6 +44,9 @@ SCHEMA = "g10-cross-stage-overlap/1"
 SHINGLE_WORDS = 13
 CONFIRM = 0.65
 POSSIBLE = 0.20
+BAND = 0.05           # sensitivity window around CONFIRM
+HELDOUT_SET = "heldout_e1_15nov"
+EFFORT_SET = "effort_suite_code"
 CONFIRMED = ("key", "norm", "shingle")
 TIERS = CONFIRMED + ("possible",)
 _RANK = {"key": 0, "norm": 1, "shingle": 2, "possible": 3, "near": 4}
@@ -206,6 +210,30 @@ def per_shard_totals(fams: dict[str, dict], keys, shards: int) -> dict:
     return {"rows": rows, "tokens": tokens, "rows_total": sum(rows), "tokens_total": sum(tokens)}
 
 
+def sensitivity(rl_ids: list[str], matches: dict[str, list[Match]], confirm: float = CONFIRM, band: float = BAND) -> dict:
+    """How far the confirmed count moves if the confirm level is shifted by `band`.
+
+    Only problems whose status rests on shingle coverage count: a key or norm match does not depend on the level. For each such
+    problem the best coverage over its shingle and possible pairs decides its tier.
+    """
+    below = above = 0
+    for r in rl_ids:
+        ms = matches.get(r, [])
+        if any(m.tier in ("key", "norm") for m in ms):
+            continue
+        cov = [m.coverage for m in ms if m.tier in ("shingle", "possible")]
+        if not cov:
+            continue
+        best = max(cov)
+        if confirm - band <= best < confirm:
+            below += 1
+        elif confirm <= best < confirm + band:
+            above += 1
+    return {"band": band, "possible_with_coverage_in_band_below_confirm": below,
+            "confirmed_with_coverage_in_band_above_confirm": above,
+            "reading": "the confirmed count would rise by the first number if the level were confirm - band, and fall by the second if it were confirm + band"}
+
+
 def summarise(rl_ids: list[str], matches: dict[str, list[Match]], fams: dict[str, dict],
               nshards: int) -> tuple[dict, dict]:
     """Public counts and private key lists for one RL-side set."""
@@ -221,6 +249,7 @@ def summarise(rl_ids: list[str], matches: dict[str, list[Match]], fams: dict[str
                                            for k in confirmed_pack_keys(matches[r]))]
     pub = {
         "rl_problems": len(rl_ids),
+        "sensitivity_to_confirm": sensitivity(rl_ids, matches),
         "found_in_pack": len(found),
         "found_by_tier": dict(collections.Counter(best_tier(matches[r]) for r in found)),
         "possible_only": len(poss),
@@ -255,20 +284,31 @@ def size_choices(sets: dict[str, list[str]], private: dict[str, dict], fams: dic
                 "share_of_v1_admitted_tokens": round(t["tokens_total"] / (pack_tokens + other_area_tokens), 4),
                 "tokens_per_shard_min_max": [min(t["tokens"]), max(t["tokens"])]}
 
+    for name in ("rl_code_pool", HELDOUT_SET, EFFORT_SET):
+        if name not in private:
+            raise ValueError(f"set {name!r} is missing: the sizing needs it (got {sorted(private)}); pass --set {name}=ids.txt")
+    for name in eval_sets:
+        if name not in private:
+            raise ValueError(f"evaluation set {name!r} has no summary")
     pool_keys = set(private["rl_code_pool"]["pack_families"])
     eval_keys: set[str] = set()
+    eval_poss: set[str] = set()
     for n in eval_sets:
         eval_keys |= set(private[n]["pack_families"])
+        eval_poss |= set(private[n]["possible_pack_families"])
+    narrow_keys = set(private[HELDOUT_SET]["pack_families"]) | set(private[EFFORT_SET]["pack_families"])
+    narrow_poss = set(private[HELDOUT_SET]["possible_pack_families"]) | set(private[EFFORT_SET]["possible_pack_families"])
     found_pool = set(private["rl_code_pool"]["found"])
     rung_found = [r for r in rung if r in found_pool]
     return {
         "basis": "pack problems matched at a confirmed tier; v1 admitted tokens = pack tokens + Dolly + dolly-t (C3 counts "
-                 "from the v1 manifest, 0.2% of the mix)",
+                 "from the v1 manifest, 0.2% of the mix); the `incl_possible_upper_bound` rows add the pack problems of the `possible` tier",
         "sft_drop_pool_overlap": drop(pool_keys),
         "sft_drop_pool_overlap_incl_possible_upper_bound": drop(pool_keys | set(private["rl_code_pool"]["possible_pack_families"])),
         "sft_drop_eval_sets_only": drop(eval_keys),
-        "sft_drop_e1_heldout_and_effort": drop(set(private.get("heldout_e1_15nov", {}).get("pack_families", []))
-                                               | set(private.get("effort_suite_code", {}).get("pack_families", []))),
+        "sft_drop_eval_sets_only_incl_possible_upper_bound": drop(eval_keys | eval_poss),
+        "sft_drop_e1_heldout_and_effort": drop(narrow_keys),
+        "sft_drop_e1_heldout_and_effort_incl_possible_upper_bound": drop(narrow_keys | narrow_poss),
         "sft_drop_pool_overlap_and_eval": drop(pool_keys | eval_keys),
         "rl_drop_pool_overlap": {"pool_problems": len(sets["rl_code_pool"]), "dropped": len(found_pool),
                                  "left": len(sets["rl_code_pool"]) - len(found_pool),
@@ -357,6 +397,7 @@ def build(args) -> dict:
         "reconciliation_4_shards": shard_slice(sets["rl_code_pool"], matches, fams, range(0, 4)),
         "inputs": {"rl_cc_sha256": sha256_file(args.rl_cc), "effort_manifest_sha256": sha256_file(args.effort_manifest),
                    "source_index_sha256": sha256_file(args.source_index),
+                   "pack_manifest_sha256": sha256_file(args.pack_manifest) if args.pack_manifest else None,
                    "rowstats_files": len(row_hashes),
                    "rowstats_sha256": hashlib.sha256("\n".join(row_hashes).encode()).hexdigest(),
                    "id_lists_sha256": {n: ids_sha256(ids) for n, ids in sets.items()},
@@ -435,12 +476,25 @@ def render_md(rec: dict) -> str:
             "| Choice | Pack problems | Pack rows | Pack tokens | Share of pack rows | Share of pack tokens | Share of v1 admitted tokens |", "|---|---:|---:|---:|---:|---:|---:|"]
     for k, label in (("sft_drop_pool_overlap", "(i) SFT drops every problem found in the RL pool"),
                      ("sft_drop_eval_sets_only", "minimum: SFT drops problems of (b1), (b2), (c) only"),
+                     ("sft_drop_eval_sets_only_incl_possible_upper_bound", "minimum, counting the `possible` tier too (upper bound)"),
                      ("sft_drop_e1_heldout_and_effort", "minimum, narrower: (b1) and (c) only"),
+                     ("sft_drop_e1_heldout_and_effort_incl_possible_upper_bound", "minimum, narrower, counting the `possible` tier too (upper bound)"),
                      ("sft_drop_pool_overlap_and_eval", "(i) plus the minimum"),
                      ("sft_drop_pool_overlap_incl_possible_upper_bound", "(i) counting the `possible` tier too (upper bound)")):
         d = Z[k]
         out.append(f"| {label} | {_n(d['pack_problems'])} | {_n(d['rows'])} | {_n(d['tokens'])} | {d['share_of_pack_rows']:.1%} | "
                    f"{d['share_of_pack_tokens']:.1%} | {d['share_of_v1_admitted_tokens']:.1%} |")
+    out += ["", "Shares are of the pack's rows and of the pack's tokens (two different columns: a problem's rows are not all the same length, "
+            "so the two shares differ).", ""]
+    out += ["## Sensitivity to the confirm level", "",
+            f"The confirm level ({rec['rule']['confirm_coverage']}) was set after reading pairs. How many problems sit within "
+            f"{S['rl_code_pool']['sensitivity_to_confirm']['band']} of it (only problems that rest on shingle coverage; key and norm matches do not depend on it):", "",
+            "| RL-side set | `possible` with best coverage just below the level (would be confirmed at level - band) | confirmed with best coverage just above it (would drop at level + band) |",
+            "|---|---:|---:|"]
+    for k, label in names.items():
+        t = S[k]["sensitivity_to_confirm"]
+        out.append(f"| {label} | {t['possible_with_coverage_in_band_below_confirm']} | {t['confirmed_with_coverage_in_band_above_confirm']} |")
+    out.append("")
     d = Z["rl_drop_pool_overlap"]
     h = rec["ocr2_heldout_vs_rl_pool"]
     out += ["", f"The other direction: the OCR-2 held-out eval split ({_n(h['ocr2_heldout_rows'])} rows, {_n(h['ocr2_heldout_problems'])} problems) "
@@ -459,8 +513,10 @@ def render_md(rec: dict) -> str:
     out += ["## Rule and inputs", "", f"Rule: {rec['rule']['tiers']}. Shingles: {rec['rule']['shingle_words']} words, confirm at "
             f"{rec['rule']['confirm_coverage']}, possible from {rec['rule']['possible_coverage']}.", "", "| Input | sha256 or size |", "|---|---|"]
     i = rec["inputs"]
-    for k in ("rl_cc_sha256", "effort_manifest_sha256", "source_index_sha256", "rowstats_sha256", "rung_ids_sha256", "sft_manifest_sha256"):
-        out.append(f"| {k} | `{i[k]}` |")
+    for k in ("rl_cc_sha256", "effort_manifest_sha256", "source_index_sha256", "rowstats_sha256", "pack_manifest_sha256",
+              "rung_ids_sha256", "sft_manifest_sha256"):
+        if i.get(k):
+            out.append(f"| {k} | `{i[k]}` |")
     for n_, h in i["id_lists_sha256"].items():
         out.append(f"| id list {n_} ({i['set_sizes'][n_]}) | `{h}` |")
     out.append(f"| row-stat files | {i['rowstats_files']} |")
@@ -479,6 +535,8 @@ def main(argv=None) -> int:
     b.add_argument("--effort-manifest", required=True)
     b.add_argument("--rung-ids", required=True, help="the easiest-rung problem ids (a subset of the pool)")
     b.add_argument("--sft-manifest", required=True, help="sft_data_v1_manifest.json (tokens of the non-code sets)")
+    b.add_argument("--pack-manifest", help="ocr2_pack_v1_p1536_manifest.json: its sha256 is recorded next to the row-stat hash, "
+                                           "so the pack totals can be checked against the merged manifest")
     b.add_argument("--validation", help="counts-only JSON of the hand read (kept with the record)")
     b.add_argument("--private-dir", required=True)
     b.add_argument("--out-json", required=True)

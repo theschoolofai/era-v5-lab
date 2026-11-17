@@ -7,6 +7,7 @@
    "heldout_e1_15nov": "e05053a048c76ef87f6c55022a9211405d043bdfab386bf2bfe76cd8c7522a26",
    "rl_code_pool": "4ad35ee70378729e5a979e33efac537a41cf35e535c29ee3da620565c5abb2fe"
   },
+  "pack_manifest_sha256": "fab395750fad3329c6b612493641f37c42792e46219a521fca74c30e21b7783b",
   "rl_cc_sha256": "91ee99512f0411aea2de4ca5eaf10b87b2d8f785ca73747bf8deb45dd6ea9be0",
   "rowstats_files": 70,
   "rowstats_sha256": "ba824f617c7ebfdb6b867f35cf7efd0594516ba9ed297c23f012d2520d6c4d55",
@@ -182,7 +183,13 @@
   "reached_also_through_taco_or_apps_rows": 65,
   "reached_only_through_taco_or_apps_rows": 65,
   "reached_through_code_contests_rows": 8,
-  "rl_problems": 3577
+  "rl_problems": 3577,
+  "sensitivity_to_confirm": {
+   "band": 0.05,
+   "confirmed_with_coverage_in_band_above_confirm": 0,
+   "possible_with_coverage_in_band_below_confirm": 1,
+   "reading": "the confirmed count would rise by the first number if the level were confirm - band, and fall by the second if it were confirm + band"
+  }
  },
  "pack": {
   "per_shard": {
@@ -521,7 +528,13 @@
    "reached_also_through_taco_or_apps_rows": 19,
    "reached_only_through_taco_or_apps_rows": 19,
    "reached_through_code_contests_rows": 7,
-   "rl_problems": 30
+   "rl_problems": 30,
+   "sensitivity_to_confirm": {
+    "band": 0.05,
+    "confirmed_with_coverage_in_band_above_confirm": 0,
+    "possible_with_coverage_in_band_below_confirm": 0,
+    "reading": "the confirmed count would rise by the first number if the level were confirm - band, and fall by the second if it were confirm + band"
+   }
   },
   "heldout_e10_planned": {
    "distinct_pack_problems": 142,
@@ -682,7 +695,13 @@
    "reached_also_through_taco_or_apps_rows": 125,
    "reached_only_through_taco_or_apps_rows": 119,
    "reached_through_code_contests_rows": 14,
-   "rl_problems": 160
+   "rl_problems": 160,
+   "sensitivity_to_confirm": {
+    "band": 0.05,
+    "confirmed_with_coverage_in_band_above_confirm": 0,
+    "possible_with_coverage_in_band_below_confirm": 0,
+    "reading": "the confirmed count would rise by the first number if the level were confirm - band, and fall by the second if it were confirm + band"
+   }
   },
   "heldout_e1_15nov": {
    "distinct_pack_problems": 81,
@@ -844,7 +863,13 @@
    "reached_also_through_taco_or_apps_rows": 74,
    "reached_only_through_taco_or_apps_rows": 71,
    "reached_through_code_contests_rows": 7,
-   "rl_problems": 96
+   "rl_problems": 96,
+   "sensitivity_to_confirm": {
+    "band": 0.05,
+    "confirmed_with_coverage_in_band_above_confirm": 0,
+    "possible_with_coverage_in_band_below_confirm": 0,
+    "reading": "the confirmed count would rise by the first number if the level were confirm - band, and fall by the second if it were confirm + band"
+   }
   },
   "rl_code_pool": {
    "distinct_pack_problems": 2958,
@@ -1006,11 +1031,17 @@
    "reached_also_through_taco_or_apps_rows": 2661,
    "reached_only_through_taco_or_apps_rows": 2548,
    "reached_through_code_contests_rows": 243,
-   "rl_problems": 3577
+   "rl_problems": 3577,
+   "sensitivity_to_confirm": {
+    "band": 0.05,
+    "confirmed_with_coverage_in_band_above_confirm": 1,
+    "possible_with_coverage_in_band_below_confirm": 2,
+    "reading": "the confirmed count would rise by the first number if the level were confirm - band, and fall by the second if it were confirm + band"
+   }
   }
  },
  "sizing": {
-  "basis": "pack problems matched at a confirmed tier; v1 admitted tokens = pack tokens + Dolly + dolly-t (C3 counts from the v1 manifest, 0.2% of the mix)",
+  "basis": "pack problems matched at a confirmed tier; v1 admitted tokens = pack tokens + Dolly + dolly-t (C3 counts from the v1 manifest, 0.2% of the mix); the `incl_possible_upper_bound` rows add the pack problems of the `possible` tier",
   "eval_sets": [
    "heldout_e1_15nov",
    "heldout_e10_planned",
@@ -1036,6 +1067,18 @@
     862720
    ]
   },
+  "sft_drop_e1_heldout_and_effort_incl_possible_upper_bound": {
+   "pack_problems": 106,
+   "rows": 3048,
+   "share_of_pack_rows": 0.0073,
+   "share_of_pack_tokens": 0.0063,
+   "share_of_v1_admitted_tokens": 0.0063,
+   "tokens": 16702769,
+   "tokens_per_shard_min_max": [
+    0,
+    862720
+   ]
+  },
   "sft_drop_eval_sets_only": {
    "pack_problems": 247,
    "rows": 7877,
@@ -1046,6 +1089,18 @@
    "tokens_per_shard_min_max": [
     0,
     1705372
+   ]
+  },
+  "sft_drop_eval_sets_only_incl_possible_upper_bound": {
+   "pack_problems": 250,
+   "rows": 7958,
+   "share_of_pack_rows": 0.019,
+   "share_of_pack_tokens": 0.0142,
+   "share_of_v1_admitted_tokens": 0.0141,
+   "tokens": 37717518,
+   "tokens_per_shard_min_max": [
+    0,
+    1729863
    ]
   },
   "sft_drop_pool_overlap": {
