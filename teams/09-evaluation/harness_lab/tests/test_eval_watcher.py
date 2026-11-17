@@ -504,3 +504,46 @@ def test_team5_run_needs_every_1_and_excludes_run_dir(tmp_path):
         with pytest.raises(SystemExit) as e:
             run5(tmp_path, run_dir, *extra)
         assert e.value.code == 2
+
+
+def test_load_over_http_sends_rows_with_the_eval_mini_columns(tmp_path, scorer):
+    """Without --no-load: Team 8's real load_source over HTTP to a local stand-in for ClickHouse. Each eval_mini row
+    must have exactly the columns of schema_v1.sql (JSONEachRow refuses unknown fields), null only where Nullable."""
+    import http.server
+    import re
+
+    schema = (ew.LOAD_JSONL.parent / "schema_v1.sql").read_text(encoding="utf-8")
+    block = re.search(r"CREATE TABLE IF NOT EXISTS eval_mini\s*\((.*?)\n\)", schema, re.S).group(1)
+    cols = dict(re.findall(r"^\s*(\w+)\s+(.+?),?\s*$", block, re.M))
+    cols.pop("loaded_at")  # DEFAULT now64
+    seen = []
+
+    class FakeClickHouse(http.server.BaseHTTPRequestHandler):
+        def do_POST(self):
+            sql, _, data = self.rfile.read(int(self.headers["Content-Length"])).decode("utf-8").partition("\n")
+            seen.append((sql.strip(), data))
+            self.send_response(200)
+            self.end_headers()
+
+        def log_message(self, *a):
+            pass
+
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), FakeClickHouse)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        run_dir = make_team5_run(tmp_path)
+        url = f"http://127.0.0.1:{server.server_address[1]}"
+        assert run5(tmp_path, run_dir, "--label", "tier-a", "--clickhouse-url", url) == ew.EXIT_OK
+    finally:
+        server.shutdown()
+    (r,) = state(tmp_path).values()
+    assert r["loaded"] is True
+    data = [(q, d) for q, d in seen if q.startswith(("ALTER", "INSERT"))]
+    assert [q.split(" WHERE")[0].split(" (")[0] for q, _ in data] == [
+        "ALTER TABLE eval_mini DELETE", "ALTER TABLE ingest_manifest DELETE",
+        "INSERT INTO eval_mini FORMAT JSONEachRow", "INSERT INTO ingest_manifest"]
+    assert f"run_id = '{r['run_id']}'" in data[0][0]
+    rows = [json.loads(x) for x in data[2][1].splitlines() if x.strip()]
+    assert len(rows) == 1 and set(rows[0]) == set(cols)
+    assert all(rows[0][k] is not None or t.startswith("Nullable") for k, t in cols.items())
+    assert rows[0]["checkpoint_step"] == 1221 and rows[0]["model_revision"] == REV5

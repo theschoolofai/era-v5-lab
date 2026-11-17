@@ -28,7 +28,7 @@ dry run 1 trains. The task list, items and seeds are `eval_lab_v1.yaml`:
 | Tier | `--tier` | Tasks | Items | Requests | Use |
 |---|---|---|---|---|---|
 | A | `A` | `mmlu` 0-shot, first 10 per subject; `milu_Hindi`, `milu_Telugu`, `milu_Tamil`, `milu_Bengali` 5-shot, eval-mini spec items | 970 | 3,880 | the freeze set, every checkpoint (`results/config_freeze_proposal.md` section 6.2) |
-| B | `B` | `arc_challenge` 0-shot first 500; `hellaswag` 0-shot first 400; `leaderboard_mmlu_pro` 5-shot, 300 spec items; `belebele_hin_Deva`, `belebele_tel_Telu`, `belebele_tam_Taml` 5-shot, 100 spec items each | 1,500 | 7,800 | diagnostics, every 10th checkpoint (TSAI on #357); each number labelled "diagnostic, not cleared for contamination" |
+| B | `B` | `arc_challenge` 0-shot first 500; `hellaswag` 0-shot first 400; `leaderboard_mmlu_pro` 5-shot, 300 spec items; `belebele_hin_Deva`, `belebele_tel_Telu`, `belebele_tam_Taml` 5-shot, 100 spec items each | 1,500 | 7,617 | diagnostics, every 10th checkpoint (TSAI on #357); each number labelled "diagnostic, not cleared for contamination" |
 
 ```bash
 python teams/09-evaluation/harness_lab/run_lab_ckpt.py --run-dir <remote_root>/<run_id> --step <N> --device cuda \
@@ -54,7 +54,14 @@ python teams/09-evaluation/harness_lab/run_lab_ckpt.py --run-dir <remote_root>/<
   device-to-host copy per batch. lm-eval indexes only the task folders in `eval_lab_v1.yaml` (`lm_eval_task_dirs`),
   not its 14,000 default task files, and its per-call environment report (pip list, OS queries, git: 5 to 16 s a
   call) is skipped. The numbers equal #387's code (`tests/test_lm_eval_lab.py` keeps #387's loop as the reference);
-  the timings are in `logs/watcher_cpu_test.log`.
+  the timings are in `logs/watcher_cpu_test.log` and `logs/watcher_gpu_test.log`. At the dry run 1 shape (T2, 237M
+  parameters) on a Tesla T4 in fp32: through a Team 7 store, Tier A 95.6 s and Tier B 133.5 s per checkpoint (export
+  plus scoring); through `--team5-run` (dry run 1's path), Tier A 53.6 s and Tier B 81.4 s (the checkpoint.pt load
+  is 4.7 s). The default `--max-batch-tokens 16384` was the fastest of 16384, 32768 and 65536, with identical scores.
+  Measured on an RTX 3070 (bf16, one 8 x 2048 batch): Team 5's MoE layers (`week2/model.py`, a Python loop over the 16
+  experts with one `nonzero()` sync each, 128 per forward) take 48% of the forward time. That is Team 5's model, as dry
+  run 1 trained it, and `week2/config.py` allows only that dispatch; the scorer uses it unchanged. The scorer's own
+  per-batch uploads (4 small arrays, about 0.24 ms) are 0.04% of that forward.
 - **lm-eval version:** pinned to 0.4.13 in `eval_lab_v1.yaml` (`lm_eval_version`), the version of the lm-eval records
   in `../results/eval_mini_v1.json`; the scorer stops on another one, because prompts and default seeds can change.
 - **Firewall** (`../firewall/eval_firewall.md` section 3): with `--offline` no network; no `log_samples`; no item text
@@ -119,7 +126,8 @@ store for it, so `--team5-run <folder>` scores that folder in place of `--run-di
   (same slot lock, state, retries and exit codes), loads under run_id `<run>:checkpoint.pt:<label>:<rev[:12]>`, and
   exits (`--team5-run` implies `--until-final`; `--every` must be 1).
 - Speed: the model's MoE uses Team 5's `dispatch: loop` (the only dispatch `week2/config.py` allows); the scorer uses
-  Team 5's model unchanged.
+  Team 5's model unchanged. Measured: Tier A 53.6 s and Tier B 81.4 s per checkpoint on a Tesla T4 in fp32
+  (`logs/watcher_gpu_test.log`, section 6).
 
 ## What is and is not done
 
