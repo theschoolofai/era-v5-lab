@@ -199,8 +199,14 @@ def _run_folder(tmp_path, block=2048):
     return run
 
 
-@pytest.mark.parametrize("case", ["missing_pack", "missing_pool", "block_size", "pool_sha"])
-def test_missing_or_mismatched_input_stops_before_rows(tmp_path, monkeypatch, case):
+def test_missing_or_mismatched_input_stops_before_rows(tmp_path, monkeypatch):
+    for case in ("missing_pack", "missing_pool", "block_size", "pool_sha"):
+        d = tmp_path / case
+        d.mkdir()
+        _check_input_case(d, monkeypatch, case)
+
+
+def _check_input_case(tmp_path, monkeypatch, case):
     run = _run_folder(tmp_path, block=1024 if case == "block_size" else 2048)
     pack, pool, ids = tmp_path / "pack.jsonl", tmp_path / "cc.jsonl", tmp_path / "ids.txt"
     for f in (pack, pool, ids):
