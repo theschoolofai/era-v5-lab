@@ -1,0 +1,92 @@
+"""Validate the committed G5 context-extension measurement snapshot without a GPU."""
+from pathlib import Path
+import csv
+import hashlib
+import json
+import math
+
+TEAM = Path(__file__).resolve().parents[1]
+RESULTS = TEAM / 'results' / 'context_extension'
+
+
+def rows(name):
+    with (RESULTS / name).open(newline='', encoding='utf-8') as handle:
+        return list(csv.DictReader(handle))
+
+
+def close(actual, expected, tolerance=1e-8):
+    assert math.isfinite(actual) and abs(actual - expected) <= tolerance, (actual, expected)
+
+
+def main():
+    source = TEAM / 'notebooks' / 'context_extension.py'
+    assert hashlib.sha256(source.read_bytes()).hexdigest() == (
+        '298d8303f6ad3d4b379af9b32198d62516a32f893afc858d6e698bdd4e3adcf0'
+    ), 'Notebook differs from the executed source'
+    doc_rows = rows('document_results.csv')
+    summary = rows('summary.csv')
+    assert len(doc_rows) == 12 and len(summary) == 4
+    assert [row['Run'] for row in summary] == list('ABCD')
+    expected_context = dict(A=2048, B=4096, C=4096, D=2048)
+    means = {}
+    documents = None
+    for row in summary:
+        arm = row['Run']
+        selected = [r for r in doc_rows if r['Run'] == arm]
+        assert len(selected) == 3
+        titles = {r['Document'] for r in selected}
+        documents = documents or titles
+        assert titles == documents and len(documents) == 3
+        assert all(int(r['Context']) == expected_context[arm] for r in selected)
+        assert all(int(r['Scored tokens']) == 512 for r in selected)
+        mean = math.fsum(float(r['NLL']) for r in selected) / len(selected)
+        close(float(row['NLL']), mean)
+        close(float(row['Perplexity']), math.exp(mean), 1e-6)
+        assert int(row['Context']) == expected_context[arm]
+        assert int(row['scored_tokens']) == 1536
+        means[arm] = mean
+    manifest = json.loads((RESULTS / 'manifest.json').read_text())
+    close(means['C'] - means['B'], manifest['long_mean_nll_change'])
+    close(means['D'] - means['A'], manifest['short_mean_nll_change'])
+    close(means['C'] - means['A'], manifest['long_vs_native_nll_change'])
+    assert means['C'] < means['B'] and means['C'] > means['A']
+    assert len(manifest['checks']) == 7
+    assert all(check['Outcome'] == 'PASS' for check in manifest['checks'])
+    hashes = json.loads((RESULTS / 'input_hashes.json').read_text())
+    assert len(hashes) == 3 and {r['title'] for r in hashes} == documents
+    assert all(len(r['tokens_sha256']) == 64 for r in hashes)
+    approved = json.loads((RESULTS / 'approved_manifest.json').read_text())
+    runner = TEAM / 'harness' / 'context_extension_check.py'
+    assert hashlib.sha256(runner.read_bytes()).hexdigest() == approved['source_sha256']
+    assert approved['attention_backend'] == 'eager' and approved['full_vocabulary_head']
+    assert approved['input_sha256'] == '21c6e4b2df8dae9d69e254f4a00fc934d2a3c70f0675065a03724299d94312bb'
+    assert all(approved['checks'].values())
+    actual_docs = rows('approved_document_results.csv')
+    actual_summary = rows('approved_summary.csv')
+    assert len(actual_docs) == 12 and len(actual_summary) == 4
+    approved_means = {}
+    for row in actual_summary:
+        selected = [r for r in actual_docs if r['Run'] == row['Run']]
+        assert len(selected) == 3 and all(int(r['scored_tokens']) == 512 for r in selected)
+        assert {r['Document'] for r in selected} == {r['id'] for r in approved['documents']}
+        assert all(int(r['Context']) == expected_context[row['Run']] for r in selected)
+        mean = math.fsum(float(r['NLL']) for r in selected) / 3
+        close(float(row['NLL']), mean)
+        close(float(row['Perplexity']), math.exp(mean), 1e-6)
+        assert int(row['scored_tokens']) == 1536
+        approved_means[row['Run']] = mean
+    assert approved_means['C'] < approved_means['B']
+    assert approved_means['C'] > approved_means['A'] and approved_means['C'] > approved_means['D']
+    recorded = json.loads((RESULTS / 'file_manifest.json').read_text())
+    for relative_path, expected in recorded.items():
+        path = TEAM / relative_path
+        assert path.is_file(), relative_path
+        assert hashlib.sha256(path.read_bytes()).hexdigest() == expected, relative_path
+    print('PASS: immutable pilot notebook hash and executed eager-runner hash;')
+    print('      both studies: document rows, equal-target-count aggregates, NLL/perplexity arithmetic;')
+    print('      reported conclusions, corpus hash, check receipts, fixture hashes and file integrity.')
+    print('This validates the saved evidence, not a new GPU run or remote PR acceptance.')
+
+
+if __name__ == '__main__':
+    main()

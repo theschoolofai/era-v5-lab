@@ -1,0 +1,9 @@
+{
+  "primary_notebook_sha256": "298d8303f6ad3d4b379af9b32198d62516a32f893afc858d6e698bdd4e3adcf0",
+  "replay_notebook_sha256": "749bed645ec07debc9390a71f3e418bb1ec30b861a3c8cd1810f595692ee757d",
+  "replay_environment_marimo": "0.25.2",
+  "replay_header_addition": "marimo>=0.25.2",
+  "original_replay_receipt_hash_field": "notebook_sha256 identifies the primary source",
+  "method": "Submission preserves the primary source; replay used a temporary copy that the sandbox launcher modified only in the dependency header.",
+  "experiment_id": "exploratory_wikitext_pilot"
+}
