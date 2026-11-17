@@ -1,21 +1,23 @@
-# Job request: E9 at SmolLM2-1.7B base, can SFT make RL start (draft, not filed: waiting for the lead's OK)
+# Job request: E9 at SmolLM2-1.7B base, does RL have a signal after SFT
 
 ```
 Team:            10-post-training
 Owner:           f20201351h-maker
-Lead approval:   saitej123
-Question:        At 1.7B, after full SFT on execution-verified code (full reasoning traces vs short code-only answers), does the share of easiest-rung RL prompts with a mixed (gradient-carrying) group of 8 samples reach 10%?
-Script:          teams/10-post-training/rl-loop/pilots/recipe_e9_e10_20261116/recipe_job.py
-Command:         python teams/10-post-training/rl-loop/pilots/recipe_e9_e10_20261116/recipe_job.py --config teams/10-post-training/rl-loop/pilots/recipe_e9_e10_20261116/cfg_e9_17b.yaml
-Config:          teams/10-post-training/rl-loop/pilots/recipe_e9_e10_20261116/cfg_e9_17b.yaml
+Lead approval:   saitej123 (requested on this PR; the PR stays a draft until he confirms)
+Question:        At 1.7B, after full SFT on execution-verified code (short code-only answers vs full reasoning traces), does the share of easiest-rung RL prompts with a mixed (gradient-carrying) group of 8 samples reach 10%? (It did not at 135M and 360M: 3.1% and 6.3%.)
+Script:          teams/10-post-training/rl-loop/pilots/recipe_e9_20261116/recipe_job.py at this PR's head; it calls sft/bench/train.py, rl_screen.py and evaluate.py, rl-loop/score_pool.py, rl-data/stdio_check.py and rl/verifier.py from the same commit (all in this PR or on main)
+Command:         python teams/10-post-training/rl-loop/pilots/recipe_e9_20261116/recipe_job.py --config teams/10-post-training/rl-loop/pilots/recipe_e9_20261116/cfg_e9_17b.yaml
+Config:          teams/10-post-training/rl-loop/pilots/recipe_e9_20261116/cfg_e9_17b.yaml
+Seed:            1 (sampling and SFT row order)
 Inputs:          pinned by sha256 in the table below, placed under ./inputs/ by TSAI: HuggingFaceTB/SmolLM2-1.7B @ effd688a12921b4cc83e3312b6feb579f70f9c71 (Apache-2.0) as inputs/SmolLM2-1.7B-effd688a, and inputs/g10-e9/ (five files, 92.5 MB)
-Hardware:        1 GPU, A100 or H100 (>= 40 GB: full fine-tune of 1.7B with fp32 AdamW state needs ~27 GB + activations)
-Max time:        150   (estimate below: ~95 min, A4 arm first)
+Packages:        Python 3.12, torch (CUDA build), transformers, tokenizers, numpy, pyyaml, safetensors; Docker for the code verifier (or Linux root with `stdio_runner: local`). CPU log used the versions of the Mac environment named in the log header
+Hardware:        1 GPU, A100 or H100 with 40 GB or more (full fine-tune of 1.7B with fp32 AdamW state needs ~27 GB + activations)
+Max time:        150 minutes, enforced by TSAI's job runner (estimate below: about 95 min; the A4 arm runs first, so a timeout still returns a finished result)
 Precision:       training fp32 weights / gradients / AdamW state with bf16 autocast; sampling bf16 on the A100 (fp32 on every smaller run; fp16 is not used: it produced non-finite probabilities on the 360M checkpoint)
 Measures:        per arm: closed-turn, code-block, parses, runs, pass shares with 95% intervals over problems; failure reasons; mixed-group share; pass@8; forgetting bpb on G5 held-out v1; step time; peak memory
-Expected result: A2v2 mixed share 10-25%, pass 3-8%; A4 mixed share at least A2v2's with far fewer tokens; A4 forgetting above 0.05 (see the trend below)
-Outputs:         out/e9/{A4,A2v2}/screen/screen_report.json, train_report.json, forget.json, e9_summary.json (written after every arm: a partial report after a timeout holds the finished arms); generations.jsonl hold model text (keep private); < 50 MB without generations and model folders
-Test log:        teams/10-post-training/jobs/2026-11-17-e9-sft-before-rl-1.7b.log
+Expected result: A2v2 mixed share 10-25%, pass 3-8%; A4 mixed share at least A2v2's with far fewer tokens; A4 forgetting above 0.05 (135M and 360M values are in `results/e9_sft_before_rl.md` of PR saitej123/era-v5-lab#107)
+Outputs:         out/e9/e9_summary.json (rewritten after every finished arm: a partial report after a timeout holds the finished arms) and, per arm in out/e9/{A4,A2v2}/: train_report.json, screen/screen_report.json, forget.json; writes only under out/; under 50 MB without screen/generations.jsonl (model text, keep private) and the saved model folders (about 3.4 GB per arm: delete them, they are not results)
+Test log:        teams/10-post-training/jobs/2026-11-17-e9-sft-before-rl-1.7b.log (CPU, same script and config shape from a clean git archive of commit 0a0e0c93, which holds every script and test of this PR; the PR's later commit adds only this request and the log)
 ```
 
 Why 1.7B (results so far, SmolLM2 base, rung 1, 128 problems x 8 samples, one seed):
@@ -36,7 +38,7 @@ Time estimate (an estimate; every rate below is measured on a Kaggle T4, none on
 about 7 ms per row at a 1,500-token context in fp32 and fp16 alike). With a grouped decode attention and a loop that drops finished
 rows (`rl_screen.py`, own sampler that draws random numbers over all rows, so its sampled texts equal HF `generate`'s: 256 of 256
 rows identical on the same 32 prompts x 8, seed 1) the same screen runs at 415.6 tokens/s (3.9x), 1,036 s against 4,006 s for the
-32 prompts; details in `results/e9_sft_before_rl.md`. SmolLM2-1.7B has 32 KV heads (no grouping), so the grouped attention does
+32 prompts; full tables and paired intervals in draft PR saitej123/era-v5-lab#107 (`results/e9_sft_before_rl.md`). SmolLM2-1.7B has 32 KV heads (no grouping), so the grouped attention does
 not apply and the job keeps stock attention with the own loop. Measured directly on one T4 (SmolLM2-1.7B base, fp16, own loop,
 8 prompts x 8 samples, KV 8 GB, 16 rows per batch): 81,352 tokens in 476 s = 170.9 tokens/s, peak 7.9 GB.
 Screen size: 160 prompts (128 rung-1 + 32 rest) x 8 samples x about 1,636 new tokens (the 360M measured mean; the 1.7B SFT model's
@@ -82,5 +84,7 @@ The forgetting metric reads the held-out file that is already in the repository 
 The script runs offline (model and data staged as inputs) and writes only to `out/`. Programs run in Docker
 (`stdio_runner: docker`) or, without Docker on Linux as root, with `stdio_runner: local`; the expected outputs never reach
 the program. Training state is saved every 10 updates (`--save-every`), so a killed job resumes with the same command.
-Test log: the same script and config shape on a Mac CPU with `dry_run: true` (SmolLM2-135M, tiny sizes, arms A4 then A2v2), 74 s, exit 0;
-it proves the commands, files and resume markers, not a result.
+Test log: the same script and config shape on a Mac CPU with `dry_run: true` (SmolLM2-135M, tiny sizes, arms A4 then A2v2, fp32), 52 s, exit 0.
+It proves the commands, the files, the arm order and the summary written after each arm. It does not prove the 1.7B numbers (time, memory,
+the bf16 autocast path or the A100 sampling rate), the forgetting step (`forget` is off in a dry run) or the pass shares: only the T4
+measurements above and TSAI's run can. Tests of the touched code: `python -m pytest teams/10-post-training/sft/bench/tests` (35 passed, 2 skipped).
