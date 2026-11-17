@@ -35,6 +35,20 @@ All metrics.jsonl rows expose the legacy alarm keys: step, tokens_per_second, lo
 
 The --heldout-report JSON needs heldout_sha256, fingerprint_set_id, scope="full", matches=0 and docs_checked. This records the data owner's evidence; it does not perform the G9 check. Official results require the file named by results/heldout_v1.sha256 and retained G9 logs.
 
+## Validate run evidence
+
+Run this against the output directory after the trainer has exited.
+
+```bash
+python teams/05-architecture/harness/validate_week2_run.py /path/to/run
+python teams/05-architecture/harness/validate_week2_run.py /path/to/run --expected-steps 1000 --json > run-evidence.json
+python teams/05-architecture/harness/validate_week2_run.py /path/to/copied-run --verify-inventory run-evidence.json
+```
+
+The validator uses the resolved step budget in the manifest. Supply `--expected-steps` when you have the budget from the job request. It checks the summary status and completed steps, the evaluation row at step 0, one metrics row per completed step, and one row per completed step in each loss trace. It recomputes the manifest identity and reports SHA-256 hashes for the evidence files, including the required checkpoint for non-smoke runs. Archive the JSON report with the run to check the hashes after copying.
+
+Exit code 0 means the directory passed the evidence checks for a completed quality run. Exit code 1 covers smoke runs, incomplete runs, and evidence failures. The JSON report records the classification, row counts, checkpoint inspection status, and any errors. For a checkpoint you trust, add `--trusted-checkpoint` to verify its step and run identity against the summary and manifest. This option uses PyTorch's full checkpoint loader on CPU. Without it, the checkpoint is checked for presence and included in the hash inventory.
+
 ## Provenance and experiment selection
 
 The complete plan hash is recorded for traceability only. Editing plan prose does not block the harness. Arm shapes and rates are read directly; missing widths, invalid geometry and unsupported settings fail validation. Steps/time budgets remain harness-only defaults reviewed from the plan, and an arm can explicitly override run.steps/max_time_min. They must be reviewed if the lead changes budgets. A fixed whole-document hash is not used as enforcement.
