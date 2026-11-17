@@ -1,4 +1,4 @@
-"""Equivalence tests for the speed-ups of the math rules in clean.py (results/spec_v1/speed_v1_math.md). Each rule that was made
+"""Equivalence tests for the speed-ups of the math rules in clean.py (spec_v1_1/results/speed_v1_1.md). Each rule that was made
 faster is checked against a frozen copy of the rule as it was before the change (c1_reference and d3_reference, below): the same
 text goes through both and the results must be equal, on hand-written cases at the edges of the fast path and on random
 documents. Every text here is made up; none comes from a pack.
