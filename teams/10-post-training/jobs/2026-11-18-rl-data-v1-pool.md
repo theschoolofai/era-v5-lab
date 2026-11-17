@@ -6,14 +6,14 @@ request and TSAI stores it." The work order also says "we give to Team 9" the RL
 job rebuilds RL data v1 from pinned bytes so that TSAI holds the files Team 9 checks. It adds no new cleaning rule:
 the decontamination is Team 9's own tool and fingerprint set, run as it was on 11 Nov.
 
-**Lead decisions before sending (16 Nov):**
+**Lead decisions (16 Nov, all closed in the lead's 16 Nov summary):**
 1. Route: approved for TSAI rebuild & storage (`Lead approval: saitej123`) so Team 9 reads deterministic files from TSAI storage (we can also supply the 8.7 MB close pool directly if requested).
 2. Pool flags: keep `python2_only` (`1,545` tasks) in the v1 close pool (`3,577` tasks) for Team 9 decontamination and TSAI admission (`stdio_check.py` scores candidate Python 3 completions against pinned I/O pairs; `drop_python2: false` remains reversible via `--drop-python2`). Keep the 116 `statement_less` tasks and 55 `effort_suite` tasks excluded; MATH (`7,209`) stays in its separate reserved part pending TSAI admission.
 
 ```
 Team:            10-post-training
 Owner:           f20201351h-maker
-Lead approval:   saitej123 (approved, 16 Nov; evaluation-firewall lists and the two extra pool files added afterwards, to confirm)
+Lead approval:   saitej123 (approved 16 Nov, including the evaluation-firewall lists and the two extra pool files)
 Question:        Does a rebuild of RL data v1 from pinned bytes give exactly the 12 output sha256 recorded in teams/10-post-training/rl-data/rebuild_v1/pins_v1.json ("expected"), so TSAI can store the pool files for Team 9's check?
 Script:          teams/10-post-training/rl-data/rebuild_v1/rebuild_v1.py   (in this PR; it runs the four step scripts next to it and sft/decontam_run.py)
 Command:         python teams/10-post-training/rl-data/rebuild_v1/rebuild_v1.py --cc-dir ROOT/code_contests/data --math-dir ROOT/hendrycks_math --math500 ROOT/math500/test.jsonl --g9-tools ROOT/g9/teams/09-evaluation/decontam --out out/run --rl-heldout-ids ROOT/rl_heldout_v1_ids.txt --sft-heldout-match-ids ROOT/sft_heldout_match_ids.txt
@@ -29,8 +29,9 @@ Max time:        15 minutes
 Precision:       not used
 Measures:        sha256 and row counts of the v1 files, the decontam clean files and the four pool files (out/run/rebuild_summary.json)
 Expected result: {"outputs_checked": 14, "mismatches": {}, "ok": true, "code_pool": 3577, "math_reserved": 7209, "code_train_pool": 3251, "rl_heldout": 255}
+                 Without the two lists: omit --rl-heldout-ids and --sft-heldout-match-ids; the first 12 outputs are checked and the two new pool files are reported missing. Team 9's close pool and the probe's cc.jsonl do not need the lists.
 Outputs:         out/run/rebuild_summary.json, out/run/build_counts.json, out/run/decontam/*.record.json (under 1 MB) back to the repo. To TSAI storage for Team 9: out/run/pool/*.jsonl (6 files: the four below plus the RL training pool and the RL held-out part) and out/run/out/v1/{cc,math}.jsonl.
-Test log:        teams/10-post-training/results/rl_data_v1_close.md, section 1 (rebuild from the repo copy on an Apple M1 Pro, 16 Nov)
+Test log:        teams/10-post-training/jobs/2026-11-18-rl-data-v1-pool.log (same script, Apple M1 Pro, 16 Nov; details in teams/10-post-training/results/rl_data_v1_close.md, section 1)
 ```
 
 ## Pool files (JSONL `{id, text}`, for Team 9's `decontam_check.py --id-field id`)
