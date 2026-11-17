@@ -12,6 +12,7 @@ Run from the lab repository root:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import platform
 import sys
@@ -90,8 +91,10 @@ def run(args: argparse.Namespace) -> dict:
         attn_impl="sdpa", ce_impl="torch", tie_embeddings=False,
     )
     model = GPT(cfg, token_bytes=token_bytes).to(device)
-    x = torch.arange(args.batch_size * args.seq_len, dtype=torch.long, device=device)
-    x = x.reshape(args.batch_size, args.seq_len) % table.vocab_size
+    original_ids = np.random.default_rng(0).integers(
+        0, table.vocab_size, size=args.batch_size * args.seq_len, dtype=np.int64
+    )
+    x = torch.from_numpy(original_ids.reshape(args.batch_size, args.seq_len)).to(device)
     y = (x + 1) % table.vocab_size
     h = torch.randn(args.batch_size, args.seq_len, cfg.n_embd, device=device)
 
@@ -121,7 +124,7 @@ def run(args: argparse.Namespace) -> dict:
     full_ms = measure(train_step, device, args.warmup, args.steps)
 
     code_table = CodeTable.from_byte_table(table)
-    ids = np.linspace(0, table.vocab_size - 1, args.decode_queries, dtype=np.int64)
+    ids = np.random.default_rng(1).integers(0, table.vocab_size, size=args.decode_queries, dtype=np.int64)
     byte_rows = table.bytes[ids]
     lengths = table.lengths[ids]
     vectors = encode_f64(byte_rows, lengths, table.pos_dim)
@@ -139,6 +142,10 @@ def run(args: argparse.Namespace) -> dict:
         "device": str(device), "platform": platform.platform(), "torch": torch.__version__,
         "threads": torch.get_num_threads(), "batch_size": args.batch_size,
         "sequence_length": args.seq_len, "decode_queries": args.decode_queries,
+        "id_sampling": "uniform token IDs, NumPy default_rng seed 0",
+        "input_ids_sha256": hashlib.sha256(original_ids.astype("<i8").tobytes()).hexdigest(),
+        "input_token_length_min": int(table.lengths[original_ids].min()),
+        "input_token_length_max": int(table.lengths[original_ids].max()),
         "warmup": args.warmup, "steps": args.steps,
         "timings_ms": {
             "training_input_embedding_forward": input_ms,

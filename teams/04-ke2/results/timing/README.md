@@ -11,10 +11,14 @@ because Team 6's default table loader still points to the earlier pinned table.
 The verified p1536-s0 P=32 table has tokenizer SHA-256
 `e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b`
 and content SHA-256 `21072027b19ef6f05d57ead7a2fc9fb4c52129e491186bf38d0ba079e8d5168a`.
-The synthetic training batch is 2 × 16 token IDs, with a one-block, width-64
+The synthetic training batch is 2 × 16 token IDs, sampled uniformly from the
+full vocabulary with NumPy seed 0, with a one-block, width-64
 Team 6 GPT. The reference decoder checks 16 unprojected float64 code vectors
-against all 131,072 raw table rows. It recovered all 16 IDs. Decode is an
+sampled with seed 1 against all 131,072 raw table rows. It recovered all 16 IDs. Decode is an
 inference reference operation, outside the timed training step.
+The training input ID digest is `e8b9827ae7e3b618f1e1883f98963b2a58ac0b11b4ffef60931c9e12bd47ed2c`;
+its token lengths span 2–13 bytes. This samples vocabulary entries, not
+their corpus-frequency distribution.
 
 Exact command from the lab repository root:
 
@@ -29,13 +33,13 @@ Last output lines:
 
 ```text
 p1536 table 21072027b19ef6f05d57ead7a2fc9fb4c52129e491186bf38d0ba079e8d5168a decoded 16/16 sampled IDs
-training_input_embedding_forward: median 0.126 ms (n=100)
-training_output_head_forward: median 1.295 ms (n=100)
+training_input_embedding_forward: median 0.129 ms (n=100)
+training_output_head_forward: median 1.257 ms (n=100)
 output_token_argmax: median 0.847 ms (n=100)
-complete_training_step: median 19.731 ms (n=100)
+complete_training_step: median 19.671 ms (n=100)
 reference_code_encode_cpu_float64: median 0.058 ms (n=100)
-reference_code_decode_cpu_float64: median 114.967 ms (n=100)
-wall_seconds: 15.677
+reference_code_decode_cpu_float64: median 113.508 ms (n=100)
+wall_seconds: 15.317
 ```
 
 The JSON records the platform, PyTorch version, thread count, workload,
@@ -62,19 +66,23 @@ Last output lines:
 
 ```text
 p1536 table 21072027b19ef6f05d57ead7a2fc9fb4c52129e491186bf38d0ba079e8d5168a decoded 16/16 sampled IDs
-training_input_embedding_forward: median 0.366 ms (n=100)
-training_output_head_forward: median 2.859 ms (n=100)
-output_token_argmax: median 0.410 ms (n=100)
-complete_training_step: median 27.402 ms (n=100)
+training_input_embedding_forward: median 0.412 ms (n=100)
+training_output_head_forward: median 2.874 ms (n=100)
+output_token_argmax: median 0.407 ms (n=100)
+complete_training_step: median 27.231 ms (n=100)
 reference_code_encode_cpu_float64: median 0.058 ms (n=100)
-reference_code_decode_cpu_float64: median 113.745 ms (n=100)
-wall_seconds: 16.675
+reference_code_decode_cpu_float64: median 113.433 ms (n=100)
+wall_seconds: 17.366
 ```
 
 The MPS path uses Team 6's synchronized wall-clock timer, not CUDA events.
 The reference encode/decode measurements remain CPU float64 in both runs.
 This is a device-specific measurement, not a CPU-versus-GPU speed ratio:
 the timer mechanisms differ, and the runs were not a controlled pair.
+The input-operation spread is about 20% on both devices, and the MPS output
+head spread is 33.5%; these individual-operation medians are not precise
+enough for a 5% comparison claim. The full-step spread is 5.7% on CPU and
+5.5% on MPS. The JSON files contain p10 and p90 for each operation.
 
 For G6: on a CUDA host, run the same workload with `--device cuda` and
 write the output to an untracked job directory. The reference code encode and
