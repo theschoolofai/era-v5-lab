@@ -10,6 +10,7 @@
   - speed fixes to `DA-F1-005`, `DA-C1-001` and `DA-D3-005` in the sheet, and to the shared F1 in `spec_v1/build/f1_rule.py`, each with the same output;
   - one change of output: the shared F1 picks its path by `pack_id`, not by the language label, so it also runs on science docs labelled `en`, as in the tokenizer sample;
   - `spec_v1/build/build_clean.py` builds from `sheets/specv1_1.md` by default. It still writes `spec_v1/clean.py` by default, so give it `--out spec_v1_1/clean.py`.
+- **It includes the speed fixes of #50** (the team fork, merged as `5c4456e`) in the sheet: five code rules (`DA-A6-001`, `DA-A4-002`, `DA-E2-001`, `DA-E3-003`, `DA-E3-004`) and three math rules (`DA-A5-002`, `DA-A8-001`, `DA-C7-001`). On every run in `results/cleaner/`, its output is byte for byte that of the build before them (`ea14b0899085…`).
 
 Paths are from `teams/01-data-a`.
 
@@ -36,6 +37,15 @@ Paths are from `teams/01-data-a`.
 | [`spec_v1_1/results/cleaner/harm_tests.md`](results/cleaner/harm_tests.md) | `clean()` harm on the 500-doc sample packs of all 31 packs it has rules for |
 | [`spec_v1_1/results/cleaner/speed.md`](results/cleaner/speed.md) | Wall time on each 500-doc sample pack, spec v1 against spec v1.1 |
 | [`spec_v1_1/results/cleaner/tokenizer_sample_run.md`](results/cleaner/tokenizer_sample_run.md) | The end-to-end run on all 86 parts of the tokenizer sample v0 (a sample, not the full packs) |
+
+## Harm, in short
+
+From [`results/cleaner/harm_tests.md`](results/cleaner/harm_tests.md), on TSAI's 500-doc sample packs:
+- **27 of the 31 packs PASS.** No rule changes a doc on a pack outside its scope.
+- **4 packs FAIL:** en-nemotroncc (2 gold docs changed, limit 1), math-finemath (2, limit 1), sci-finepdfs (5, limit 2) and ind-te-sangraha-v (2, limit 1).
+- **All 11 of those gold docs are touched by spec v1.1 rules.** 10 are gold contradictions: the gold marks them clean, but each holds the disease its rule targets. The 11th is a false positive of `DA-C7-005`, within that rule's limit.
+- **Without the 10 gold contradictions, all 4 packs pass.** As `sheets/NEW_DISEASES.md` records, they are left out of the count for their rule only, and re-read at the next gold refresh.
+- **No rule is quarantined or turned off.** The rules behind the 4 FAILs run in `clean.py` as candidates, like every rule of the sheet.
 
 ## Build
 
@@ -69,7 +79,7 @@ python3 -I spec_v1_1/use_clean.py spec_v1/run_tokenizer_sample.py --config spec_
 
 ## Check the results yourself
 
-Every number in `results/cleaner/` can be made again with the steps below. They come from runs of `clean.py` `ea14b0899085…` on 17 Nov 2026, on an Apple M4 (one core) with Python 3.12.10. Every run is on samples, not on the full packs.
+Every number in `results/cleaner/` can be made again with the steps below. They come from runs of `clean.py` `6a57276c0e83…` on 17 Nov 2026, on an Apple M4 (one core) with Python 3.12.10. Every run is on samples, not on the full packs.
 
 **Set up.** Keep the outputs out of the repository: the tools write where `--out` points, and the tokenizer runner writes beneath `./out/` of the folder it runs in.
 
@@ -99,7 +109,7 @@ shasum -a 256 $W/clean_rebuilt.py
 
 - The build ends with `clean_rebuilt.py: rules 246 + shared F1 | code 24 rules on 6 packs, english 23 rules on 4 packs, math 22 rules on 2 packs, sci 24 rules on 1 packs, indic 153 rules on 18 packs | functions: 41`.
 - The `strings changed` lines before that name the multi-line strings that putting each block inside a function re-indents: docstrings and verbose regexes, where indenting changes nothing.
-- Both hashes are `ea14b0899085a98e83f2a6f58e4d44b475198e2a0e24eddcaa988a8b90c2ebf4`, the one `jobs/tokenizer_sample_v0_clean.json` pins.
+- Both hashes are `6a57276c0e83312b09facfba656cca28db0ef59ca851bcfbfa3ef63f16fdd1f2`, the one `jobs/tokenizer_sample_v0_clean.json` pins.
 
 ### 2. The unit tests
 
@@ -142,7 +152,7 @@ python3 -I $W/v1/spec_v1/run_clean.py --pack <packs>/<pack>.parquet --out $W/spe
 python3 -I $A/spec_v1_1/use_clean.py $A/spec_v1/run_clean.py --pack <packs>/<pack>.parquet --out $W/speed/v11/<run>
 ```
 
-- Each `<pack>_summary.json` gives `seconds`, the time of each rule (`rule_seconds`), and `clean_py_sha256`: `22d818c72c9f…` for spec v1, `ea14b0899085…` for spec v1.1. The table gives the best of the 3 runs.
+- Each `<pack>_summary.json` gives `seconds`, the time of each rule (`rule_seconds`), and `clean_py_sha256`: `22d818c72c9f…` for spec v1, `6a57276c0e83…` for spec v1.1. The table gives the best of the 3 runs.
 - The seconds depend on the machine, so compare the two cleaners on one machine.
 - The docs fixed and dropped (`actions`) do not depend on it, and must give the table's last column.
 
@@ -152,7 +162,7 @@ python3 -I $A/spec_v1_1/use_clean.py $A/spec_v1/run_clean.py --pack <packs>/<pac
 cd $W && python3 -I $A/spec_v1_1/use_clean.py $A/spec_v1/run_tokenizer_sample.py --config $A/spec_v1_1/jobs/tokenizer_sample_v0_clean.json --input-root <sample>
 ```
 
-- It takes about 28 minutes and writes `$W/out/tokenizer_sample_v0_clean_specv1_1/`.
+- It takes about 21 minutes and writes `$W/out/tokenizer_sample_v0_clean_specv1_1/`.
 - It stops before cleaning anything if `clean.py` is not the one the job pins, or if a part differs from the manifest.
 - Its last line holds `"actions": {"drop": 34536, "fix": 363076, "keep": 1047154}`, `"completed_parts": 86`, `"errors": 0`, `"input_rows": 1444766` and `"output_rows": 1410230`.
 
@@ -196,4 +206,4 @@ print(parts, "parts", dict(total))
 EOF
 ```
 
-It takes about 27 minutes. It gives 72 parts: 1,212,433 docs kept as is, 204 fixed and 108 dropped.
+It takes about 20 minutes. It gives 72 parts: 1,212,433 docs kept as is, 204 fixed and 108 dropped.
