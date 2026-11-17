@@ -16,13 +16,10 @@ had no invalid values, and the run saved a final checkpoint. Scores: [number: wa
 
 ## The first data shards
 
-A shard is a file that holds cleaned text as token IDs, ready for training. Data A set the format of the shards.
-Each shard keeps whole documents and marks the end of each one. Each shard comes with a manifest and a quality
-report, so the lab can check it. Data A tested the format on a sample shard
+Shards are files that store token IDs, preserve whole documents and mark each document's end. Each shard has a
+manifest and a quality report. Data A defined the shard format and tested it on a sample shard
 ([#358](https://github.com/theschoolofai/era-v5-lab/pull/358), [#373](https://github.com/theschoolofai/era-v5-lab/pull/373)).
-The lab made the first 41 shards with the frozen tokenizer p1536, not C3.
-
-[Data A: confirm the text above or send your own text.]
+The lab produced the first 41 shards from a sample of the lab's data, using the frozen tokenizer p1536, not C3.
 
 ## Decisions
 
@@ -66,7 +63,7 @@ How to fill it:
 | Part | Team | Source | Text received | Lead OK |
 |---|---|---|---|---|
 | The first dry run | Architecture | [#475](https://github.com/theschoolofai/era-v5-lab/pull/475) and the TSAI comment on it (Infrastructure: no separate summary needed) | draft by Release from #475, confirmed by Architecture | yes |
-| The first data shards | Data A | [#358](https://github.com/theschoolofai/era-v5-lab/pull/358), [#373](https://github.com/theschoolofai/era-v5-lab/pull/373), first 41 shards: TSAI comment on this pull request | draft by Release with the TSAI words, waiting for Data A | no |
+| The first data shards | Data A | [#358](https://github.com/theschoolofai/era-v5-lab/pull/358), [#373](https://github.com/theschoolofai/era-v5-lab/pull/373), first 41 shards: TSAI comment on this pull request | text by Data A on this pull request, edited for style | yes |
 | Tokenizer for training (p1536 in place of C3) | Tokenizer | [#504](https://github.com/theschoolofai/era-v5-lab/pull/504) | TSAI words on this pull request, confirmed by Tokenizer | yes |
 | Bit widths (moved from Gate 2) | Quantization | [#221](https://github.com/theschoolofai/era-v5-lab/pull/221) | no | no |
 | Indic share (from Gate 2) | Data B | [#400](https://github.com/theschoolofai/era-v5-lab/pull/400), split by language in [#522](https://github.com/theschoolofai/era-v5-lab/pull/522) | TSAI numbers on this pull request | yes |
