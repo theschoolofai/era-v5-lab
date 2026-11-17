@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
 """Reproducible code-point audit of deterministic Kannada shard samples.
 
-The reader memory-maps the shard, batch-decodes only selected documents, and
-uses Arrow kernels for joiner counts. It never iterates over shard tokens.
-No document text is printed or written.
+Shard parsing and batch decoding use ``read_shard`` from ``indic_audit.py``. Arrow kernels perform the
+joiner counts. No document text is printed or written.
+
+Requires the third-party ``regex`` package, which is not in the standard library.
+
+Run from this folder, with the shard files and tokenizer under the current directory:
+
+  uv run python rotation_uz9ai.py --shard shards/ind-kn-sangraha-v-train-000000.bin \\
+      --tokenizer p1536_tokenizer.json --days 4 5 --sample-size 50
+
+The report is written to rotation_uz9ai.md in the current directory unless --out is given.
 """
 
 from __future__ import annotations
@@ -19,16 +27,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Sequence
 
-import numpy as np
 import pyarrow as pa
 import pyarrow.compute as pc
-import pyarrow.parquet as pq
 import regex
 from tokenizers import Tokenizer
 
-MAGIC = 20261025
-VERSION = 2
-HEADER_BYTES = 1024
+from indic_audit import read_shard
+
 DEFAULT_EOS_ID = 130822
 ZWJ = "\u200d"
 ZWNJ = "\u200c"
@@ -204,48 +209,6 @@ def verify_files(shard: Path, tokenizer_path: Path) -> tuple[dict, dict[str, str
     return manifest, actual
 
 
-def read_selected_documents(
-    shard: Path, tokenizer_path: Path, selected_indices: Sequence[int], eos_id: int
-) -> tuple[list[str], list[str], int, int]:
-    """Validate the shard and batch-decode only selected document slices."""
-    header = np.memmap(shard, mode="r", dtype="<i4", shape=(HEADER_BYTES // 4,))
-    if int(header[0]) != MAGIC or int(header[1]) != VERSION:
-        raise SystemExit(
-            f"{shard}: bad shard header (magic={int(header[0])}, version={int(header[1])})"
-        )
-    token_count = int(header[2])
-    payload = np.memmap(
-        shard, mode="r", dtype="<u4", offset=HEADER_BYTES, shape=(token_count,)
-    )
-    stem = shard.with_suffix("")
-    index = np.load(stem.with_suffix(".idx.npy"), mmap_mode="r")
-    doc_ids_array = (
-        pq.read_table(stem.with_suffix(".docs.parquet"), columns=["doc_id"])
-        .column("doc_id")
-        .combine_chunks()
-    )
-    doc_count = len(doc_ids_array)
-
-    if len(index) != doc_count + 1 or int(index[0]) != 0 or int(index[-1]) != token_count:
-        raise SystemExit(f"{shard}: index does not match document and token counts")
-    if doc_count and not np.equal(payload[index[1:] - 1], eos_id).all():
-        raise SystemExit(f"{shard}: at least one document lacks EOS id {eos_id}")
-    if selected_indices and (min(selected_indices) < 0 or max(selected_indices) >= doc_count):
-        raise SystemExit("sample contains an out-of-range document index")
-
-    take_indices = pa.array(selected_indices, type=pa.int64())
-    doc_ids = pc.take(doc_ids_array, take_indices).to_pylist()
-    # One Python iteration per selected document is needed to expose disjoint
-    # mmap slices. Conversion of each slice runs in NumPy; no token is visited
-    # by Python code. Tokenizer decoding is one Rust batch operation.
-    token_batches = [
-        payload[int(index[i]) : int(index[i + 1]) - 1].tolist() for i in selected_indices
-    ]
-    tokenizer = Tokenizer.from_file(str(tokenizer_path))
-    texts = tokenizer.decode_batch(token_batches, skip_special_tokens=False)
-    return doc_ids, texts, doc_count, token_count
-
-
 def count_joiners(texts: pa.Array) -> tuple[int, int]:
     zwj = pc.sum(pc.count_substring(texts, ZWJ)).as_py() or 0
     zwnj = pc.sum(pc.count_substring(texts, ZWNJ)).as_py() or 0
@@ -289,7 +252,7 @@ def render_report(
         scope_lines = f"""- Mode: full shard (`--all`)
 - Documents checked: {len(selected_indices)}"""
         joiner_note = "The `all` row covers every document in shard order."
-        selection_note = "Every shard document is selected and batch-decoded."
+        selection_note = "Code-point checks are applied to every decoded document."
     else:
         sample_rows = [
             ["day/seed", "documents drawn", "ZWJ (U+200D)", "ZWNJ (U+200C)"],
@@ -304,7 +267,7 @@ def render_report(
 - Sample draws: {sum(len(values) for values in per_day_indices.values())}
 - Unique documents checked: {len(selected_indices)}"""
         joiner_note = "The `unique` row de-duplicates documents selected by more than one seed. Day rows represent each reproducible draw independently."
-        selection_note = "Only the deterministic sample documents are batch-decoded."
+        selection_note = "Deterministic sample selection is applied before the code-point checks."
 
     documents_checked = "\n".join(
         f"- `{row}: {doc_id}`" for row, doc_id in zip(selected_indices, selected_doc_ids, strict=True)
@@ -333,7 +296,7 @@ def render_report(
 - Offsets are zero-based Unicode code-point offsets in decoded shard text.
 - Hex dumps contain the finding and at most three code points on each side. No document text is included.
 
-The script memory-maps the shard and validates every document boundary and EOS marker with NumPy. {selection_note} Joiners are counted with PyArrow kernels. There is no Python loop over tokens.
+The script imports `read_shard()` from `indic_audit.py`, validates the shard through that reader, and batch-decodes the complete shard with the frozen tokenizer. {selection_note} Joiners are counted with PyArrow kernels. There is no Python loop over tokens.
 
 <details><summary>Documents checked (shard row: doc_id)</summary>
 
@@ -365,7 +328,7 @@ All hashes matched the shard manifest.
 
 Summary: {len(findings)} findings in {documents_with_findings} documents. {code_summary}.
 
-The cleaned shard can show joiner counts and malformed joiner positions. Establishing that a joiner was lost requires raw pre-cleaning text; the before/after comparison is covered separately by PR #523.
+The cleaned shard can show joiner counts and malformed joiner positions. Establishing that a joiner was lost requires raw pre-cleaning text; the before/after comparison is covered separately by `indic_audit.py`.
 
 ## Reproduction evidence
 
@@ -403,7 +366,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--out",
         type=Path,
-        default=Path("teams_backup/02-data-b/audit/rotation_uz9ai.md"),
+        default=Path("rotation_uz9ai.md"),
     )
     return parser.parse_args()
 
@@ -417,39 +380,41 @@ def main() -> None:
         raise SystemExit("--sample-size must be positive")
 
     manifest, hashes = verify_files(args.shard, args.tokenizer)
-    doc_count_from_manifest = int(manifest["doc_count"])
-    if not args.all and args.sample_size > doc_count_from_manifest:
+    tokenizer = Tokenizer.from_file(str(args.tokenizer))
+    all_doc_ids, all_texts = read_shard(
+        args.shard, tokenizer, int(manifest.get("eos_token_id", DEFAULT_EOS_ID))
+    )
+    doc_count = len(all_doc_ids)
+    token_count = int(manifest["token_count"])
+    if doc_count != int(manifest["doc_count"]):
+        raise SystemExit("manifest document count does not match the parsed shard")
+    if not args.all and args.sample_size > doc_count:
         raise SystemExit("--sample-size exceeds the shard document count")
 
     if args.all:
         per_day_indices: dict[int, list[int]] = {}
-        selected_indices = list(range(doc_count_from_manifest))
+        per_day_counts: dict[int, tuple[int, int]] = {}
+        selected_indices = list(range(doc_count))
+        doc_ids = all_doc_ids.to_pylist()
+        text_array = all_texts
     else:
         per_day_indices = {
-            day: random.Random(day).sample(range(doc_count_from_manifest), args.sample_size)
+            day: random.Random(day).sample(range(doc_count), args.sample_size)
             for day in args.days
         }
         selected_indices = list(
             dict.fromkeys(index for day in args.days for index in per_day_indices[day])
         )
-
-    doc_ids, texts, doc_count, token_count = read_selected_documents(
-        args.shard, args.tokenizer, selected_indices, int(manifest.get("eos_token_id", DEFAULT_EOS_ID))
-    )
-    if doc_count != doc_count_from_manifest or token_count != int(manifest["token_count"]):
-        raise SystemExit("manifest counts do not match the shard")
-
-    text_array = pa.array(texts, type=pa.string())
-    if args.all:
-        per_day_counts: dict[int, tuple[int, int]] = {}
-    else:
-        position_by_index = {index: position for position, index in enumerate(selected_indices)}
-        per_day_counts = {}
-        for day in args.days:
-            positions = pa.array(
-                [position_by_index[index] for index in per_day_indices[day]], type=pa.int64()
+        take_indices = pa.array(selected_indices, type=pa.int64())
+        doc_ids = pc.take(all_doc_ids, take_indices).to_pylist()
+        text_array = pc.take(all_texts, take_indices)
+        per_day_counts = {
+            day: count_joiners(
+                pc.take(all_texts, pa.array(per_day_indices[day], type=pa.int64()))
             )
-            per_day_counts[day] = count_joiners(pc.take(text_array, positions))
+            for day in args.days
+        }
+    texts = text_array.to_pylist()
     unique_counts = count_joiners(text_array)
 
     findings = [
@@ -465,7 +430,7 @@ def main() -> None:
     elapsed = time.perf_counter() - started
 
     command_parts = [
-        "uv", "run", "python", str(Path("teams_backup/02-data-b/audit/rotation_uz9ai.py")),
+        "uv", "run", "python", "rotation_uz9ai.py",
         "--shard", str(args.shard), "--tokenizer", str(args.tokenizer),
     ]
     if args.all:

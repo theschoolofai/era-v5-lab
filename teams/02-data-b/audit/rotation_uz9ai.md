@@ -14,7 +14,7 @@
 - Offsets are zero-based Unicode code-point offsets in decoded shard text.
 - Hex dumps contain the finding and at most three code points on each side. No document text is included.
 
-The script memory-maps the shard and validates every document boundary and EOS marker with NumPy. Only the deterministic sample documents are batch-decoded. Joiners are counted with PyArrow kernels. There is no Python loop over tokens.
+The script imports `read_shard()` from `indic_audit.py`, validates the shard through that reader, and batch-decodes the complete shard with the frozen tokenizer. Deterministic sample selection is applied before the code-point checks. Joiners are counted with PyArrow kernels. There is no Python loop over tokens.
 
 <details><summary>Documents checked (shard row: doc_id)</summary>
 
@@ -159,14 +159,14 @@ The `unique` row de-duplicates documents selected by more than one seed. Day row
 
 Summary: 9 findings in 6 documents. G1: 4, G2: 0, A1: 0, A4: 0, A6: 5.
 
-The cleaned shard can show joiner counts and malformed joiner positions. Establishing that a joiner was lost requires raw pre-cleaning text; the before/after comparison is covered separately by PR #523.
+The cleaned shard can show joiner counts and malformed joiner positions. Establishing that a joiner was lost requires raw pre-cleaning text; the before/after comparison is covered separately by `indic_audit.py`.
 
 ## Reproduction evidence
 
 Command:
 
 ```console
-uv run python teams_backup/02-data-b/audit/rotation_uz9ai.py --shard shards/ind-kn-sangraha-v-train-000000.bin --tokenizer p1536_tokenizer.json --days 4 5 --sample-size 50 --out teams_backup/02-data-b/audit/rotation_uz9ai.md
+uv run python rotation_uz9ai.py --shard shards/ind-kn-sangraha-v-train-000000.bin --tokenizer p1536_tokenizer.json --days 4 5 --sample-size 50 --out rotation_uz9ai.md
 ```
 
 Final output lines:
@@ -176,8 +176,8 @@ mode=sample sample_draws=100 unique_documents=100
 checked_zwj=0 checked_zwnj=0
 findings=9 documents_with_findings=6
 findings_by_code=G1:4,G2:0,A1:0,A4:0,A6:5
-report=teams_backup/02-data-b/audit/rotation_uz9ai.md
-audit_wall_time_seconds=0.848
+report=rotation_uz9ai.md
+audit_wall_time_seconds=2.815
 ```
 
-Audit wall time reported by the script: 0.848 seconds.
+Audit wall time reported by the script: 2.815 seconds.
