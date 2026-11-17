@@ -1,9 +1,12 @@
 # Public code timing on the p1536 raw table
 
-This is a 100-step CPU check of Team 6's `models.ke2.KE2Embedding` and Team 4's
+These are 100-step CPU and Apple M2 MPS checks of Team 6's `models.ke2.KE2Embedding` and Team 4's
 `decode_ref.py`, using Team 6's `perfkit.timer.StepTimer`. The public
 `embedding=ke2` setting computes the projected public V1 code using
 `embedding_bag`. The measurements below apply to that public implementation.
+Team 6's module takes G4's code values and raw bytes; it implements the
+projection itself. This benchmark injects the frozen p1536 table explicitly,
+because Team 6's default table loader still points to the earlier pinned table.
 
 The verified p1536-s0 P=32 table has tokenizer SHA-256
 `e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b`
@@ -43,10 +46,37 @@ The hot path uses batched tensor/NumPy operations, and CUDA event readings
 occur after timed steps. Team 6's `correctness.framework` pairs for the public
 embedding passed (`ke2.edge`, `ke2.bf16`). Its frozen p1536 input-path check
 also passed against the float64 reference, including the projection gradient.
-The run has 100 CPU samples, but Team 6's formal comparison gate requires a
-same-GPU CUDA run; no GPU timing or performance-gate verdict is claimed.
+The CPU run has 100 samples, but Team 6's formal comparison gate requires a
+same-GPU CUDA run; no CUDA timing or performance-gate verdict is claimed.
 
-For G6: on a CUDA host, run the exact command above with `--device cuda` and
+The same workload also ran on the Apple M2 GPU. Exact command:
+
+```bash
+/Users/ai/ERAV5/.eraenv/bin/python teams/04-ke2/src/timing/bench_public_ke.py \
+  --device mps --batch-size 2 --seq-len 16 --decode-queries 16 \
+  --warmup 10 --steps 100 \
+  --out teams/04-ke2/results/timing/public_ke_p1536_mps.json
+```
+
+Last output lines:
+
+```text
+p1536 table 21072027b19ef6f05d57ead7a2fc9fb4c52129e491186bf38d0ba079e8d5168a decoded 16/16 sampled IDs
+training_input_embedding_forward: median 0.366 ms (n=100)
+training_output_head_forward: median 2.859 ms (n=100)
+output_token_argmax: median 0.410 ms (n=100)
+complete_training_step: median 27.402 ms (n=100)
+reference_code_encode_cpu_float64: median 0.058 ms (n=100)
+reference_code_decode_cpu_float64: median 113.745 ms (n=100)
+wall_seconds: 16.675
+```
+
+The MPS path uses Team 6's synchronized wall-clock timer, not CUDA events.
+The reference encode/decode measurements remain CPU float64 in both runs.
+This is a device-specific measurement, not a CPU-versus-GPU speed ratio:
+the timer mechanisms differ, and the runs were not a controlled pair.
+
+For G6: on a CUDA host, run the same workload with `--device cuda` and
 write the output to an untracked job directory. The reference code encode and
 decode measurements remain CPU float64 even when the training path is CUDA.
 Report the device, command, p10/median/p90, spread and full JSON. The decoder
