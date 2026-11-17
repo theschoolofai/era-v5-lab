@@ -35,6 +35,8 @@ from models.config import ModelConfig  # noqa: E402
 from models.gpt import GPT  # noqa: E402
 from perfkit.timer import StepTimer, stats, sync  # noqa: E402
 
+FROZEN_TABLE_SHA256 = "21072027b19ef6f05d57ead7a2fc9fb4c52129e491186bf38d0ba079e8d5168a"
+
 
 def measure(fn, device: torch.device, warmup: int, steps: int) -> dict:
     """Return Team 6 timer statistics for repeated calls to ``fn``.
@@ -81,6 +83,9 @@ def run(args: argparse.Namespace) -> dict:
     )
     if table.vocab_size != 131_072 or table.n_truncated or table.n_empty_rows:
         raise ValueError("p1536 table fails the expected shape/length gate")
+    table_hash = table.sha256()
+    if table_hash != FROZEN_TABLE_SHA256:
+        raise ValueError(f"p1536 table content hash mismatch: {table_hash}")
     token_bytes = (
         torch.from_numpy(table.bytes.copy()),
         torch.from_numpy(table.lengths.astype(np.int64)),
@@ -123,22 +128,30 @@ def run(args: argparse.Namespace) -> dict:
     train_step()  # correctness and optimizer-state initialization outside timing
     full_ms = measure(train_step, device, args.warmup, args.steps)
 
-    code_table = CodeTable.from_byte_table(table)
-    ids = np.random.default_rng(1).integers(0, table.vocab_size, size=args.decode_queries, dtype=np.int64)
-    byte_rows = table.bytes[ids]
-    lengths = table.lengths[ids]
-    vectors = encode_f64(byte_rows, lengths, table.pos_dim)
-    got = decode(vectors, code_table)
-    if not np.array_equal(got.token_ids, ids):
-        raise AssertionError("public exact decoder did not recover the sampled IDs")
-    cpu = torch.device("cpu")
-    encode_ms = measure(lambda: encode_f64(byte_rows, lengths, table.pos_dim), cpu, args.warmup, args.steps)
-    decode_ms = measure(lambda: decode(vectors, code_table), cpu, args.warmup, args.steps)
+    reference_timings = {}
+    if not args.skip_cpu_reference:
+        code_table = CodeTable.from_byte_table(table)
+        ids = np.random.default_rng(1).integers(0, table.vocab_size, size=args.decode_queries, dtype=np.int64)
+        byte_rows = table.bytes[ids]
+        lengths = table.lengths[ids]
+        vectors = encode_f64(byte_rows, lengths, table.pos_dim)
+        got = decode(vectors, code_table)
+        if not np.array_equal(got.token_ids, ids):
+            raise AssertionError("public exact decoder did not recover the sampled IDs")
+        cpu = torch.device("cpu")
+        reference_timings = {
+            "reference_code_encode_cpu_float64": measure(
+                lambda: encode_f64(byte_rows, lengths, table.pos_dim), cpu, args.warmup, args.steps
+            ),
+            "reference_code_decode_cpu_float64": measure(
+                lambda: decode(vectors, code_table), cpu, args.warmup, args.steps
+            ),
+        }
 
     return {
         "contract": "public V1 code, Team 6 embedding=ke2 implementation; reference decode is separate",
         "tokenizer_sha256": FROZEN_TOKENIZER_SHA256,
-        "table_sha256": table.sha256(),
+        "table_sha256": table_hash,
         "device": str(device), "platform": platform.platform(), "torch": torch.__version__,
         "threads": torch.get_num_threads(), "batch_size": args.batch_size,
         "sequence_length": args.seq_len, "decode_queries": args.decode_queries,
@@ -146,14 +159,14 @@ def run(args: argparse.Namespace) -> dict:
         "input_ids_sha256": hashlib.sha256(original_ids.astype("<i8").tobytes()).hexdigest(),
         "input_token_length_min": int(table.lengths[original_ids].min()),
         "input_token_length_max": int(table.lengths[original_ids].max()),
+        "cpu_reference_skipped": args.skip_cpu_reference,
         "warmup": args.warmup, "steps": args.steps,
         "timings_ms": {
             "training_input_embedding_forward": input_ms,
             "training_output_head_forward": head_ms,
             "output_token_argmax": select_ms,
             "complete_training_step": full_ms,
-            "reference_code_encode_cpu_float64": encode_ms,
-            "reference_code_decode_cpu_float64": decode_ms,
+            **reference_timings,
         },
     }
 
@@ -168,6 +181,8 @@ def main() -> None:
     parser.add_argument("--warmup", type=int, default=1)
     parser.add_argument("--steps", type=int, default=3)
     parser.add_argument("--threads", type=int, default=4)
+    parser.add_argument("--skip-cpu-reference", action="store_true",
+                        help="CUDA timing job: omit the separate, already measured CPU reference decoder")
     parser.add_argument("--out", type=Path)
     args = parser.parse_args()
     started = time.perf_counter()
@@ -176,7 +191,9 @@ def main() -> None:
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
-    print(f"p1536 table {report['table_sha256']} decoded {args.decode_queries}/{args.decode_queries} sampled IDs")
+    check = ("CPU reference skipped" if args.skip_cpu_reference
+             else f"decoded {args.decode_queries}/{args.decode_queries} sampled IDs")
+    print(f"p1536 table {report['table_sha256']} {check}")
     for name, values in report["timings_ms"].items():
         print(f"{name}: median {values['median']:.3f} ms (n={values['n']})")
     print(f"wall_seconds: {report['wall_seconds']:.3f}")

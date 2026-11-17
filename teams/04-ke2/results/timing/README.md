@@ -84,9 +84,9 @@ head spread is 33.5%; these individual-operation medians are not precise
 enough for a 5% comparison claim. The full-step spread is 5.7% on CPU and
 5.5% on MPS. The JSON files contain p10 and p90 for each operation.
 
-For G6: on a CUDA host, run the same workload with `--device cuda` and
+For G6: on a CUDA host, run the same workload with `--device cuda --skip-cpu-reference` and
 write the output to an untracked job directory. The reference code encode and
-decode measurements remain CPU float64 even when the training path is CUDA.
+decode measurements above remain CPU float64 and are omitted from the CUDA job.
 Report the device, command, p10/median/p90, spread and full JSON. The decoder
 returns token IDs and raw bytes from unprojected code vectors; it is not called
 once per training step.
