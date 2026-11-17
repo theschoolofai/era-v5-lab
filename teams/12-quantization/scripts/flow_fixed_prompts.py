@@ -3,6 +3,19 @@
 
     python scripts/flow_fixed_prompts.py --checkpoint <hf dir> --tokenizer <tokenizer.json> --tokenizer-sha256 <64 hex> \\
         --llama-cpp <b11669 checkout> --llama-quantize <bin> [--formats Q4_K_M,Q8_0] [--out out] [--eos "<|endoftext|>"]
+    python scripts/flow_fixed_prompts.py --gguf-dir <quantize_eval.py --work> --formats Q8_0,Q4_K_M \\
+        --manifest teams/10-post-training/eval/effort_manifest.json \\
+        --source-dir code_contests=<dir> --source-dir hendrycks_math=<dir> [--out out]
+
+--gguf-dir skips steps 2 and 3: it runs the prompts on the GGUFs that quantize_eval.py already built in its --work folder
+(<name>-bf16.gguf and <name>-<format>.gguf), so the checkpoint is converted and quantized once. --delete-ggufs removes
+those files at the end, after their sha256s are recorded.
+
+--manifest takes the 100 prompts from Team 10's effort manifest (the fixed prompts the lead chose). Its resolved slots
+(30 code, 25 math) are read from the pinned parquet files under --source-dir and checked against the manifest's sha256s by
+Team 10's own effort_suite.py. Its unavailable slots (20 tool_agentic, 15 indic, 10 general) are filled from --prompts in id
+order: tool_agentic from tool_call then reasoning, indic one language at a time, general from english. For Team 10 items
+neither the prompt nor the generated text is written, only ids and sha256s, so no benchmark text reaches the repo.
 
 1. checks prompts/fixed_100.jsonl against prompts/fixed_100.sha256 (100 prompts, fixed ids and order);
 2. tokenizer/convert_frozen.py: checkpoint + frozen tokenizer -> bf16 GGUF (refuses a tokenizer with another sha256);
@@ -17,7 +30,7 @@ tokenizer/convert_frozen.py's own run (#467); it is not repeated here.
 """
 from __future__ import annotations
 
-import argparse, hashlib, json, platform, shutil, subprocess, sys, time
+import argparse, hashlib, importlib.util, json, platform, shutil, subprocess, sys, time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -35,6 +48,56 @@ def load_prompts(path: Path) -> list[dict]:
     return rows
 
 
+FILL = {"tool_agentic": ("tool_call", "reasoning"), "indic": ("indic",), "general": ("english",)}
+
+
+def fill_order(rows: list[dict], cats: tuple[str, ...]) -> list[dict]:
+    """Our prompts for one manifest category, in id order; indic goes one language at a time (round robin)."""
+    picked = [r for c in cats for r in sorted((r for r in rows if r["category"] == c), key=lambda r: r["id"])]
+    if cats != ("indic",):
+        return picked
+    langs: dict[str, list[dict]] = {}
+    for r in picked:
+        langs.setdefault(r["lang"], []).append(r)
+    return [q for i in range(max(map(len, langs.values()))) for q in (v[i] for v in langs.values() if i < len(v))]
+
+
+def manifest_prompts(manifest: Path, source_dirs: dict[str, Path], ours: list[dict]) -> tuple[list[dict], dict]:
+    """Team 10's 100 slots: resolved ones from their pinned files, unavailable ones from our prompts (FILL)."""
+    path = HERE.parents[1] / "10-post-training" / "eval" / "effort_suite.py"
+    spec = importlib.util.spec_from_file_location("g10_effort_suite", path)
+    es = importlib.util.module_from_spec(spec); sys.modules[spec.name] = es; spec.loader.exec_module(es)
+    m = es.load_manifest(manifest)
+    resolved = es.resolve_prompts(m, source_dirs)
+    pools = {k: fill_order(ours, v) for k, v in FILL.items()}
+    rows, used = [], {k: 0 for k in FILL}
+    for s in m["slots"]:
+        if s["slot"] in resolved:
+            p = resolved[s["slot"]]
+            rows.append({"id": s["slot"], "source": "g10", "task_id": p.task_id, "prompt": p.text, "private": True})
+        elif s["category"] in pools and used[s["category"]] < len(pools[s["category"]]):
+            q = pools[s["category"]][used[s["category"]]]; used[s["category"]] += 1
+            rows.append({"id": s["slot"], "source": "g12", "task_id": q["id"], "prompt": q["prompt"], "private": False})
+        else:
+            sys.exit(f"refusing: slot {s['slot']} ({s['category']}) is unavailable and --prompts has nothing left to fill it")
+    info = {"manifest_sha256": m["manifest_sha256"], "suite": m["suite"], "from_g10": len(resolved),
+            "filled_from_prompts": {k: v for k, v in used.items() if v}}
+    return rows, info
+
+
+def find_ggufs(work: Path, formats: list[str]) -> dict[str, Path]:
+    """quantize_eval.py's files in its --work folder: exactly one <name>-bf16.gguf, then <name>-<format>.gguf."""
+    bf16 = sorted(work.glob("*-bf16.gguf"))
+    if len(bf16) != 1:
+        sys.exit(f"refusing: expected one *-bf16.gguf in {work}, found {len(bf16)}")
+    name = bf16[0].name[: -len("-bf16.gguf")]
+    ggufs = {"bf16": bf16[0], **{f: work / f"{name}-{f}.gguf" for f in formats}}
+    missing = [str(g) for g in ggufs.values() if not g.is_file()]
+    if missing:
+        sys.exit(f"refusing: missing {', '.join(missing)}")
+    return ggufs
+
+
 def generate(gguf: Path, prompts: list[dict], max_tokens: int, n_ctx: int, ngl: int, out: Path) -> dict:
     from llama_cpp import Llama
     m = Llama(model_path=str(gguf), n_ctx=n_ctx, n_gpu_layers=ngl, seed=0, verbose=False)
@@ -50,8 +113,10 @@ def generate(gguf: Path, prompts: list[dict], max_tokens: int, n_ctx: int, ngl: 
                 break
         dt = time.time() - t0
         text = m.detokenize(ids).decode("utf-8", errors="replace")
-        rows.append({"id": p["id"], "n_prompt_tokens": len(ids_in), "output_ids": ids, "n_output_tokens": len(ids),
-                     "text_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest()[:16], "text": text,
+        rows.append({"id": p["id"], **({"source": p["source"], "task_id": p["task_id"]} if "source" in p else {}),
+                     "n_prompt_tokens": len(ids_in), "output_ids": ids, "n_output_tokens": len(ids),
+                     "text_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest()[:16],
+                     **({} if p.get("private") else {"text": text}),
                      "finish_reason": finish, "tokens_per_s": round(len(ids) / dt, 2) if dt > 0 else None})
     out.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows), encoding="utf-8")
     del m
@@ -72,11 +137,16 @@ def agreement(base: list[dict], other: list[dict]) -> dict:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--checkpoint", type=Path, required=True)
-    ap.add_argument("--tokenizer", type=Path, required=True)
-    ap.add_argument("--tokenizer-sha256", required=True)
-    ap.add_argument("--llama-cpp", type=Path, required=True, help="llama.cpp b11669 checkout (converter + gguf-py)")
-    ap.add_argument("--llama-quantize", type=Path, required=True)
+    ap.add_argument("--checkpoint", type=Path)
+    ap.add_argument("--tokenizer", type=Path)
+    ap.add_argument("--tokenizer-sha256")
+    ap.add_argument("--llama-cpp", type=Path, help="llama.cpp b11669 checkout (converter + gguf-py)")
+    ap.add_argument("--llama-quantize", type=Path)
+    ap.add_argument("--gguf-dir", type=Path, help="quantize_eval.py's --work: use its GGUFs instead of converting again")
+    ap.add_argument("--delete-ggufs", action="store_true", help="with --gguf-dir: delete the GGUF files at the end")
+    ap.add_argument("--manifest", type=Path, help="Team 10's effort_manifest.json: its 100 slots replace --prompts")
+    ap.add_argument("--source-dir", action="append", default=[], metavar="KEY=DIR",
+                    help="local copy of a manifest source (code_contests, hendrycks_math), repeatable")
     ap.add_argument("--convert-python", type=Path, help="python of the converter's venv (default: this one)")
     ap.add_argument("--formats", default="Q4_K_M", help="comma list of llama-quantize types; bf16 is always run")
     ap.add_argument("--prompts", type=Path, default=HERE.parent / "prompts" / "fixed_100.jsonl")
@@ -88,24 +158,38 @@ def main() -> None:
     ap.add_argument("--eos", default="<|endoftext|>", help="the frozen tokenizer's eos (id 130822)")
     ap.add_argument("--keep", action="store_true", help="keep the GGUF files in out/_work")
     a = ap.parse_args()
+    formats = [f for f in a.formats.split(",") if f and f != "bf16"]
+    if not a.gguf_dir and not all((a.checkpoint, a.tokenizer, a.tokenizer_sha256, a.llama_cpp, a.llama_quantize)):
+        ap.error("without --gguf-dir: --checkpoint, --tokenizer, --tokenizer-sha256, --llama-cpp and --llama-quantize are required")
 
     t0, prompts = time.time(), load_prompts(a.prompts)
-    work = a.out / "_work"; work.mkdir(parents=True, exist_ok=True)
-    bf16 = work / "model-bf16.gguf"
-    t = time.time()
-    cf.convert_frozen(a.checkpoint, a.tokenizer, a.tokenizer_sha256, a.llama_cpp, bf16, work, "bf16", a.bos, a.eos, a.convert_python)
-    summary = {"prompts_sha256": rt.sha256(a.prompts), "tokenizer_sha256": rt.sha256(a.tokenizer), "pre_tokenizer": cf.PRE,
-               "max_tokens": a.max_tokens, "n_ctx": a.n_ctx, "decoding": "greedy (temperature 0, top_k 1), seed 0",
-               "convert_s": round(time.time() - t, 1), "formats": {}}
-    ggufs = {"bf16": bf16}
-    for fmt in [f for f in a.formats.split(",") if f and f != "bf16"]:
-        t = time.time(); ggufs[fmt] = work / f"model-{fmt}.gguf"
-        subprocess.run([str(a.llama_quantize), *([] if fmt == "Q8_0" else ["--output-tensor-type", "q8_0"]),
-                        str(bf16), str(ggufs[fmt]), fmt], check=True, capture_output=True)
-        summary["formats"][fmt] = {"quantize_s": round(time.time() - t, 1)}
-    summary["formats"]["bf16"] = {}
+    summary = {"prompts_sha256": rt.sha256(a.prompts)}
+    if a.manifest:
+        dirs = dict(x.split("=", 1) for x in a.source_dir)
+        prompts, summary["manifest"] = manifest_prompts(a.manifest, {k: Path(v) for k, v in dirs.items()}, prompts)
+    summary |= {"max_tokens": a.max_tokens, "n_ctx": a.n_ctx, "decoding": "greedy (temperature 0, top_k 1), seed 0", "formats": {}}
+    work = a.out / "_work"
+    if a.gguf_dir:
+        ggufs = find_ggufs(a.gguf_dir, formats)
+        summary["gguf_dir"] = "given (quantize_eval.py --work); converted and quantized there"
+        summary["formats"] = {f: {} for f in ggufs}
+    else:
+        work.mkdir(parents=True, exist_ok=True)
+        bf16 = work / "model-bf16.gguf"
+        t = time.time()
+        cf.convert_frozen(a.checkpoint, a.tokenizer, a.tokenizer_sha256, a.llama_cpp, bf16, work, "bf16", a.bos, a.eos, a.convert_python)
+        summary |= {"tokenizer_sha256": rt.sha256(a.tokenizer), "pre_tokenizer": cf.PRE, "convert_s": round(time.time() - t, 1),
+                    "llama_convert_sha256": rt.sha256(a.llama_cpp / "convert_hf_to_gguf.py")}
+        ggufs = {"bf16": bf16}
+        for fmt in formats:
+            t = time.time(); ggufs[fmt] = work / f"model-{fmt}.gguf"
+            subprocess.run([str(a.llama_quantize), *([] if fmt == "Q8_0" else ["--output-tensor-type", "q8_0"]),
+                            str(bf16), str(ggufs[fmt]), fmt], check=True, capture_output=True)
+            summary["formats"][fmt] = {"quantize_s": round(time.time() - t, 1)}
+        summary["formats"]["bf16"] = {}
     runs = {}
-    for fmt, g in ggufs.items():
+    a.out.mkdir(parents=True, exist_ok=True)
+    for fmt, g in sorted(ggufs.items(), key=lambda kv: kv[0] != "bf16"):
         runs[fmt] = generate(g, prompts, a.max_tokens, a.n_ctx, a.ngl, a.out / f"prompts_{fmt}.jsonl")
         summary["formats"][fmt] |= {"gguf_sha256": rt.sha256(g), "size_bytes": g.stat().st_size,
                                     **{k: runs[fmt][k] for k in ("finish", "mean_tokens_per_s", "wall_s")}}
@@ -113,11 +197,13 @@ def main() -> None:
             summary["formats"][fmt]["agreement_with_bf16"] = agreement(runs["bf16"]["rows"], runs[fmt]["rows"])
     import llama_cpp
     summary |= {"total_s": round(time.time() - t0, 1), "machine": f"{platform.machine()} {platform.system()}",
-                "versions": {"Python": platform.python_version(), "llama-cpp-python": llama_cpp.__version__},
-                "llama_convert_sha256": rt.sha256(a.llama_cpp / "convert_hf_to_gguf.py")}
+                "versions": {"Python": platform.python_version(), "llama-cpp-python": llama_cpp.__version__}}
     (a.out / "summary.json").write_text(json.dumps(summary, indent=1), encoding="utf-8")
-    if not a.keep:
+    if not a.keep and not a.gguf_dir:
         shutil.rmtree(work)
+    if a.gguf_dir and a.delete_ggufs:
+        for g in ggufs.values():
+            g.unlink()
     print(json.dumps({k: v for k, v in summary.items() if k != "versions"}, indent=1))
 
 
