@@ -73,6 +73,55 @@ def test_built_input_rows_never_leave_the_job(tmp_path, monkeypatch, fail):
     assert not (tmp_path / "_inputs").exists()
 
 
+def _pins_fixture(tmp_path, recorded):
+    """A run folder whose manifest records `recorded`, plus a stand-in tokenizer file and npz table."""
+    import hashlib
+    import numpy as np
+    tok = tmp_path / "tokenizer.json"
+    tok.write_text('{"stand-in": true}')
+    table = tmp_path / "raw_table_P32.npz"
+    np.savez(table, bytes=np.zeros((2, 2), np.uint8), table_sha256=np.array("c" * 64))
+    folder = tmp_path / "run"
+    folder.mkdir()
+    real = {"tokenizer_sha256": hashlib.sha256(tok.read_bytes()).hexdigest(), "table_content_sha256": "c" * 64}
+    arts = {k: (real[k] if v == "same" else v) for k, v in recorded.items()}
+    (folder / "manifest.json").write_text(json.dumps({"artifacts": arts}))
+    return folder, tok, table, real
+
+
+def test_tokenizer_mismatch_stops_before_any_model_work(tmp_path, monkeypatch, capsys):
+    folder, tok, table, real = _pins_fixture(tmp_path, {"tokenizer_sha256": "a" * 64, "table_content_sha256": "same"})
+    out = tmp_path / "out"
+    monkeypatch.setattr(sys, "argv", ["probe", "--g5-root", "g", "--run-folder", str(folder), "--tokenizer", str(tok),
+                                      "--byte-table", str(table), "--heldout", "h", "--sft-dolly", "d.jsonl",
+                                      "--out", str(out)])
+    assert probe.main() == 1
+    printed = capsys.readouterr().out
+    assert real["tokenizer_sha256"] in printed and "a" * 64 in printed  # both hashes are printed
+    assert sorted(p.name for p in out.iterdir()) == ["pins.json", "summary.json"]  # no adapter.yaml, no rows
+    pins = json.loads((out / "pins.json").read_text())
+    assert not pins["ok"] and "tokenizer_sha256" in pins["error"]
+    assert json.loads((out / "summary.json").read_text())["failed_steps"] == ["pins"]
+
+
+def test_table_content_mismatch_is_refused(tmp_path):
+    folder, tok, table, _ = _pins_fixture(tmp_path, {"tokenizer_sha256": "same", "table_content_sha256": "b" * 64})
+    with pytest.raises(ValueError, match="table_content_sha256"):
+        probe.check_pins(folder, tok, table)
+
+
+def test_matching_pins_pass_and_unrecorded_hashes_are_reported(tmp_path):
+    folder, tok, table, real = _pins_fixture(tmp_path, {"tokenizer_sha256": "same", "table_content_sha256": "same"})
+    rep = probe.check_pins(folder, tok, table)
+    assert rep["checks"]["tokenizer_sha256"]["match"] is True
+    assert rep["checks"]["table_content_sha256"]["match"] is True
+    assert rep["not_recorded"] == ["table_file_sha256"] and rep["checks"]["table_file_sha256"]["given"]
+    (folder / "manifest.json").write_text(json.dumps({"config": {}}))  # a manifest without artifacts
+    rep = probe.check_pins(folder, tok, table)
+    assert rep["checks"]["tokenizer_sha256"] == {"given": real["tokenizer_sha256"], "run_manifest": None, "match": None}
+    assert len(rep["not_recorded"]) == 3
+
+
 TOKENIZER = os.environ.get("G10_BASELINE_TOKENIZER")
 TABLE = Path(__file__).resolve().parents[3] / "teams" / "04-ke2" / "results" / "tables" / "raw_table_P32.npz"
 

@@ -8,6 +8,9 @@
     run's own tokenizer and table (capstone/probe_inputs.py) under out/_inputs/, which is removed at exit.
 
 Steps (each writes out/<step>.json; a failed step is recorded and the rest still run):
+  pins        first, before any model work: sha256 of --tokenizer and the byte table's content hash against what the
+              run folder's manifest.json records (artifacts.*); prints both, and on a mismatch stops with exit 1.
+              A hash the manifest does not record is reported as used, not checked
   inputs      only with --sft-dolly: SFT rows from public Dolly-15k with the run's tokenizer; counts and sha256
   adapter     team5_adapter run_folder build: hashes, G5 validate, model_hash == summary.json, special ids
   forgetting  Team 5's evaluate() on the held-out file (bpb per slice), the number SFT's forgetting check compares to
@@ -24,6 +27,7 @@ its reload check). Network: none. Writes only to --out.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import shutil
 import subprocess
@@ -48,6 +52,36 @@ def step(out: Path, name: str, fn):
     (out / f"{name}.json").write_text(json.dumps(res, indent=1, default=str))
     print(json.dumps({"step": name, "ok": res["ok"], "seconds": res["seconds"]}), flush=True)
     return res
+
+
+def sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for block in iter(lambda: f.read(1 << 20), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def check_pins(run_folder: Path, tokenizer: Path, table: Path) -> dict:
+    """The tokenizer and byte table given must be the ones the run folder says it trained with (Team 5's
+    manifest.json `artifacts`, written from week2.artifacts.Artifacts.identity()). Raises on a mismatch; a hash the
+    manifest does not record is reported as used (match None). The table file hash is informational: the model saw
+    the table's content, so the content hash is the one checked."""
+    import numpy as np  # noqa: PLC0415
+    recorded = json.loads((run_folder / "manifest.json").read_text(encoding="utf-8")).get("artifacts") or {}
+    with np.load(table, allow_pickle=False) as z:
+        content = str(z["table_sha256"]) if "table_sha256" in z.files else None
+    used = {"tokenizer_sha256": sha256_file(tokenizer), "table_content_sha256": content,
+            "table_file_sha256": sha256_file(table)}
+    checks = {k: {"given": v, "run_manifest": recorded.get(k),
+                  "match": None if recorded.get(k) is None else recorded.get(k) == v} for k, v in used.items()}
+    print(json.dumps({"pins": {k: [c["given"], c["run_manifest"]] for k, c in checks.items()}}), flush=True)
+    bad = [k for k in ("tokenizer_sha256", "table_content_sha256") if checks[k]["match"] is False]
+    if bad:
+        raise ValueError(f"run folder was trained with different {', '.join(bad)}: "
+                         + "; ".join(f"{k} given {checks[k]['given']}, run manifest {checks[k]['run_manifest']}"
+                                     for k in bad))
+    return {"checks": checks, "not_recorded": [k for k, c in checks.items() if c["match"] is None]}
 
 
 def run_sft_arm(out: Path, arm: str, cmd: list[str]) -> dict:
@@ -164,11 +198,13 @@ def main() -> int:
 
 
 def run(a, out: Path) -> int:
+    results = {"pins": step(out, "pins", lambda: check_pins(a.run_folder, a.tokenizer, a.byte_table))}
+    if not results["pins"]["ok"]:
+        return finish(out, results)  # wrong tokenizer or table: no model work, no rows built
     from make_adapter_config import write_config  # noqa: PLC0415
     cfg = write_config(out / "adapter.yaml", a.g5_root, a.run_folder, a.tokenizer, a.byte_table, TEAM10, a.origin,
                        not a.no_git)
     py = sys.executable
-    results = {}
 
     def record(name, fn):
         results[name] = step(out, name, fn)
