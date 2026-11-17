@@ -10,6 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "capstone"))
 import day_one_probe as probe
 
 parametrize = pytest.mark.parametrize
+skipif = pytest.mark.skipif
 
 
 @parametrize("fail", [False, True])
@@ -76,7 +77,7 @@ TOKENIZER = os.environ.get("G10_BASELINE_TOKENIZER")
 TABLE = Path(__file__).resolve().parents[3] / "teams" / "04-ke2" / "results" / "tables" / "raw_table_P32.npz"
 
 
-@pytest.mark.skipif(not TOKENIZER or not TABLE.exists(), reason="needs G10_BASELINE_TOKENIZER (v0) and its KE2 table")
+@skipif(not TOKENIZER or not TABLE.exists(), reason="needs G10_BASELINE_TOKENIZER (v0) and its KE2 table")
 def test_dolly_rows_follow_the_converter_and_split_rules(tmp_path):
     import probe_inputs
     import sft_rows

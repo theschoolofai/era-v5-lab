@@ -1,0 +1,34 @@
+# CPU test log: G10 day-one probe, same script as this job (capstone/day_one_probe.py), 17 Nov 2026
+# Source: clean `git archive 3accc41 teams/10-post-training` (not a working tree). Hardware: Apple M1 Pro, 16 GB, CPU only.
+# Stand-in run folder: d128, 4 layers, 16+1 experts, context 256, 24,716,416 parameters, trained with Team 5's
+# train_week2.py on the p1536 tokenizer (so the inputs step used p1536 here; the job uses #475's C3 files).
+# Reduced settings vs the job: --sft-steps 30 --sft-max-train-seconds 120 --rl-limit 8 --rl-max-new 72
+# --sample-len 128 --probe-max-new 96 --device cpu. RL screen: 4 of the first 8 ids fit the stand-in's 256-token
+# context (4 skipped_too_long); verifier runner docker.
+# Command (local paths shown as <...>):
+# python teams/10-post-training/capstone/day_one_probe.py --g5-root <G5 checkout the stand-in ran from> \
+#   --run-folder <stand-in run folder> --tokenizer <p1536 tokenizer.json> --byte-table <p1536 raw_table_P32.npz> \
+#   --heldout <heldout_v1 balanced sample> --heldout-sources <its sources> --sft-dolly <databricks-dolly-15k.jsonl> \
+#   --rl-tasks <RL data v1 cc.jsonl> --rl-ids teams/10-post-training/capstone/probe_rl_easy_ids.txt --rl-limit 8 \
+#   --rl-max-new 72 --sft-steps 30 --sft-max-train-seconds 120 --sample-len 128 --probe-max-new 96 --device cpu --out <out>
+# Result checks: out/inputs.json train c273a4d7... eval f77fc96c... (5,255 / 589 rows, p1536); after exit out/ held
+# reports only (148 KB): no _inputs/, no model.safetensors, no generations.jsonl.
+export: git archive 3accc41 teams/10-post-training
+script sha256: db5b34012bb1c0a8d29d28b99b39cdd863b5447bf1660386a8db48e16d1f2319
+{"step": "inputs", "ok": true, "seconds": 4.4}
+{"step": "adapter", "ok": true, "seconds": 1.9}
+{"step": "forgetting", "ok": true, "seconds": 25.3}
+{"step": "sampling", "ok": true, "seconds": 21.6}
+{"step": "mismatch", "ok": true, "seconds": 116.1}
+{"step": "format", "ok": true, "seconds": 19.4}
+{"step": "rl_screen", "ok": true, "seconds": 7.7}
+{"step": "sft_full", "ok": true, "seconds": 125.5}
+{"step": "sft_markers", "ok": true, "seconds": 113.7}
+{"step": "sft_lora", "ok": true, "seconds": 113.9}
+{"step": "sft_lora_markers", "ok": true, "seconds": 132.0}
+{"step": "sft_dt", "ok": true, "seconds": 118.0}
+{"ok": true, "steps": 12, "failed_steps": []}
+real 800.10
+user 1142.94
+sys 574.94
+exit=0
