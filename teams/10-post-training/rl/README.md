@@ -79,6 +79,10 @@ Math tasks (an exact boxed answer from the RL data v1 math pool, pinned by SHA-2
 
 JavaScript and TypeScript tasks (Exercism exercises, hidden jest tests, docker image `g10-jsts-rl:1`) are in [`jsts/`](jsts/README.md). `reward.py` registers them as `js/<task_id>` and `ts/<task_id>`; `python rl/reward.py --check-all --type js` (or `ts`) needs docker and the image.
 
+## Tool-result tasks
+
+Tool-result tasks are in [`toolresult/`](toolresult/README.md): a transcript that ends with a tool result, and a reply that must report the tool's values exactly (no rounding, retyping or new tool call). `toolresult/toolresult_verifier.py` checks the reply for the required values as whole values and refuses listed wrong values. It runs no code, so it needs no container. `reward.py` registers it as `toolresult/<task_id>`, and `python rl/reward.py --check-all --type toolresult` runs without docker.
+
 ## Files in this folder
 
 | File | What it is |
@@ -90,6 +94,7 @@ JavaScript and TypeScript tasks (Exercism exercises, hidden jest tests, docker i
 | `math/` | The math verifier set: boxed exact answer, pins into the RL data v1 math pool, tests. |
 | `agentic/` | The agentic verifier set: command and patch checks, its tasks and tests. |
 | `indic/` | The Indic verifier set: exact-answer reward, its tasks and tests, and the template generator. |
+| `toolresult/` | The tool-result verifier set: exact tool-result text in the reply, its ten tasks and tests. |
 | `indic_prompts_v0.md` | Indic prompt families with checkable answers, who writes them, the Team 2 check and the status. |
 | `objective_v1.py`, `objective_v1.md`, `test_objective_v1.py` | Session 18 objective: group advantage, equal-reward drop, trust-region mask. |
 | `small_rl.py`, `test_small_rl.py` | Local RL loop on one code task. The result is `results/small_rl.md`. |

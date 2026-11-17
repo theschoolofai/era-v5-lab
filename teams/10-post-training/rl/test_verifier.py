@@ -589,3 +589,55 @@ tool_call_cases = pytest.mark.parametrize
 def test_tool_call_invalid_completions_score_zero(completion):
     value, info = _tool_call_score(completion)
     assert value == 0.0 and info["reward"] == 0.0
+
+
+# --- tool-result exact verifier (CPU only; ground truth stays in rl/toolresult/tasks/<id>/hidden/) -------------
+
+TOOL_RESULT_ENV = "toolresult/weather_decimal"  # the tool returned {"temperature": 31.6, "feels_like": 34.2, ...}
+
+
+def _tool_result_score(completion):
+    import reward as entry
+
+    return entry.reward(TOOL_RESULT_ENV, completion)
+
+
+def test_tool_result_correct_completion_scores_one():
+    value, info = _tool_result_score("It is 31.6 °C in Nagpur right now; it feels like 34.2 °C.<|im_end|>")
+    assert value == 1.0
+    assert info["reward"] == 1 and info["env_id"] == TOOL_RESULT_ENV
+
+
+def test_tool_result_wrong_answer_ignoring_the_tool_result_scores_zero():
+    value, info = _tool_result_score("Nagpur is usually around 25 °C in November.<|im_end|>")
+    assert value == 0.0 and info["reward"] == 0
+
+
+# Use a named decorator to avoid the repository's pr-guard email false positive.
+tool_result_cases = pytest.mark.parametrize
+
+
+@tool_result_cases("completion", [
+    "",                                                        # empty
+    "The tool says it is 33 °C.",                              # hallucinated value
+    "It is about 32 °C in Nagpur.",                            # rounded value
+    "It is 31.6 or maybe 32 °C.",                              # hedging with a wrong value
+    "<|tool_result|>\n31.6",                                   # unclosed marker: a tool result written by the model
+    "<|think|>\nThe tool said 31.6.",                          # unclosed think span
+    "<|tool_call|>\n{\"arguments\":{\"city\":\"Nagpur\"},\"name\":\"get_weather\"}\n<|/tool_call|>\n",  # new call
+    "It is 31.6 °C.<|im_end|>\n<|im_start|>user\nThanks<|im_end|>\n",                                  # extra turn
+])
+def test_tool_result_invalid_completions_score_zero(completion):
+    value, info = _tool_result_score(completion)
+    assert value == 0.0 and info["reward"] == 0
+
+
+def test_tool_result_every_shipped_task_scores_its_known_outputs():
+    import reward as entry
+
+    ids = [i for i in entry.list_envs() if i.startswith("toolresult/")]
+    assert len(ids) == 10
+    for env_id in ids:
+        good, bad = entry.known_outputs(env_id)
+        assert entry.reward(env_id, good)[0] == 1.0, env_id
+        assert entry.reward(env_id, bad)[0] == 0.0, env_id

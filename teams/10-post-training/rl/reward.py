@@ -19,6 +19,8 @@ env_id is "<type>/<name>":
     agentic/<task_id>    rl/agentic/tasks/<task_id>, scored by rl/agentic/agentic_verifier.py (output = one pytest
                          command or one diff, run in the image of a swe-envs environment; needs docker)
     tool_call/<task_id>  rl/tasks/tool_call/<task_id>, exact name/arguments JSON comparison, no execution
+    toolresult/<task_id> rl/toolresult/tasks/<task_id>, scored by rl/toolresult/toolresult_verifier.py (exact
+                         tool-result text in the reply, no execution)
 
 New environment types call register("<type>", checker), where checker(name, output, **options) returns a dict
 with at least "reward" (0 or 1). An unknown env_id raises KeyError: it never scores 0 silently, because a
@@ -61,6 +63,7 @@ MATH_TASKS = HERE / "math" / "tasks"
 JS_TASKS = HERE / "jsts" / "tasks" / "js"
 TS_TASKS = HERE / "jsts" / "tasks" / "ts"
 TOOL_CALL_TASKS = TASKS / "tool_call"
+TOOLRESULT_TASKS = HERE / "toolresult" / "tasks"
 
 _NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")  # no slashes, no "..": an env_id cannot leave its folder
 _REGISTRY: dict[str, Callable[..., dict]] = {}
@@ -273,6 +276,29 @@ def tool_call_checker(name: str, output: str, **_) -> dict:
     return _tool_call().reward(task_dir, output)
 
 
+_TOOLRESULT_MODULE = None
+
+
+def _toolresult():
+    """toolresult/toolresult_verifier.py, loaded by path like pool.py."""
+    global _TOOLRESULT_MODULE
+    if _TOOLRESULT_MODULE is None:
+        import importlib.util  # noqa: PLC0415
+        spec = importlib.util.spec_from_file_location("g10_rl_toolresult_verifier",
+                                                      HERE / "toolresult" / "toolresult_verifier.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _TOOLRESULT_MODULE = module
+    return _TOOLRESULT_MODULE
+
+
+def toolresult_checker(name: str, output: str, **_) -> dict:
+    task_dir = TOOLRESULT_TASKS / name
+    if not (task_dir / "task.json").is_file():
+        raise KeyError(f"no tool-result task {name!r} in {TOOLRESULT_TASKS}")
+    return _toolresult().reward(task_dir, output)
+
+
 register("code", code_checker)
 register("swe", swe_checker)
 register("indic", indic_checker)
@@ -282,6 +308,7 @@ register("math", math_checker)
 register("js", _jsts_checker(JS_TASKS, "js"))
 register("ts", _jsts_checker(TS_TASKS, "ts"))
 register("tool_call", tool_call_checker)
+register("toolresult", toolresult_checker)
 
 
 def list_envs() -> list[str]:
@@ -294,6 +321,7 @@ def list_envs() -> list[str]:
     ids += [f"js/{p.parent.name}" for p in sorted(JS_TASKS.glob("*/task.json"))]
     ids += [f"ts/{p.parent.name}" for p in sorted(TS_TASKS.glob("*/task.json"))]
     ids += [f"tool_call/{p.parent.name}" for p in sorted(TOOL_CALL_TASKS.glob("*/task.json"))]
+    ids += [f"toolresult/{p.parent.name}" for p in sorted(TOOLRESULT_TASKS.glob("*/task.json"))]
     return ids
 
 
@@ -317,6 +345,8 @@ def known_outputs(env_id: str) -> tuple[str, str]:
         return _indic().known_outputs(INDIC_TASKS / name)
     if env_type == "tool_call":
         return _tool_call().known_outputs(TOOL_CALL_TASKS / name)
+    if env_type == "toolresult":
+        return _toolresult().known_outputs(TOOLRESULT_TASKS / name)
     if env_type == "go":
         meta = json.loads((GO_TASKS / name / "task.json").read_text(encoding="utf-8"))
         ref = (GO_TASKS / name / "reference.go").read_text(encoding="utf-8")
