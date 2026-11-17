@@ -17,6 +17,13 @@ a ruling reverses a flag by switching it off here and re-running this script.
   math_reserved    the whole MATH part: kept as a separate, reserved part because TSAI has not admitted Hendrycks MATH
                    for RL (no licence-table row on this branch), so the code part stands alone.
 
+Evaluation firewall (lead, 16 Nov 2026), applied when the two private id lists are given; they split the close pool
+into a training pool and the RL held-out part and do not change the close pool itself (Team 9's pool check covers it):
+  rl_heldout_v1    `--rl-heldout-ids`: the official RL held-out set (evaluation only, never trained; its problems are
+                   also out of SFT training, sft/results/ocr2_eval_firewall_v1.json).
+  sft_heldout      `--sft-heldout-match-ids`: pool tasks whose problem is in the SFT held-out split (heldout_eval_v1),
+                   matched by sft/cross_stage_overlap.py; they stay out of the RL training pool.
+
 Public output: counts and hashes only. Private output (ids): `--private-dir`, never Git.
 """
 from __future__ import annotations
@@ -61,7 +68,7 @@ def by_judge(tasks, ids) -> dict:
 
 
 def close(cc: list[dict], math: list[dict], effort: dict, keep_statement_less: bool = False,
-          drop_python2: bool = False) -> tuple[dict, dict]:
+          drop_python2: bool = False, rl_heldout: set | None = None, sft_heldout_match: set | None = None) -> tuple[dict, dict]:
     cc_ids = {t["id"] for t in cc}
     math_ids = {t["id"] for t in math}
     assert len(cc_ids) == len(cc) and len(math_ids) == len(math), "duplicate task ids"
@@ -106,8 +113,32 @@ def close(cc: list[dict], math: list[dict], effort: dict, keep_statement_less: b
                  "status": "reserved: separate part, not in the RL pool until TSAI admits Hendrycks MATH for RL",
                  "reverse": "a TSAI admission (with a licence-table row) adds this part to the pool as is"},
     }
+    if rl_heldout is not None or sft_heldout_match is not None:
+        held, sft_m = set(rl_heldout or ()), set(sft_heldout_match or ())
+        if not held <= cc_ids or not sft_m <= cc_ids:
+            raise ValueError("an evaluation-firewall id is not a code task of RL data v1")
+        train = pool - held - sft_m
+        flags["rl_heldout_v1"] = {
+            "applied": True, "rule": "task id in the official RL held-out list (evaluation only; also out of SFT training)",
+            "listed": len(held), "in_close_pool": len(held & pool), "outside_close_pool": len(held - pool),
+            "ids_sha256": ids_sha(held), "by_judge": by_judge(cc, held),
+            "definition": "the 15 Nov run's 96 held-out problems plus the 160 planned for E10 (union, 255 tasks)",
+            "reverse": "a different held-out definition (for example the 96 only) is a different list file"}
+        flags["sft_heldout"] = {
+            "applied": True, "rule": "pool task whose problem is in the SFT held-out split heldout_eval_v1 "
+                                     "(sft/cross_stage_overlap.py, confirmed + possible tiers)",
+            "listed": len(sft_m), "in_close_pool": len(sft_m & pool), "also_rl_heldout": len(sft_m & held),
+            "ids_sha256": ids_sha(sft_m)}
+        parts["code"].update(train_pool_tasks=len(train), train_pool_ids_sha256=ids_sha(train),
+                             train_pool_by_judge=by_judge(cc, train),
+                             train_pool_note="close pool minus the RL held-out set and the SFT held-out matches")
+        parts["heldout"] = {"set": "rl-code-code-contests-noncf", "tasks": len(held), "ids_sha256": ids_sha(held),
+                            "by_judge": by_judge(cc, held),
+                            "status": "RL evaluation set v1: never in RL or SFT training"}
     private = {"statement_less_ids.txt": statement_less, "effort_suite_ids.txt": eff_cc | eff_math,
                "python2_only_ids.txt": py2, "code_pool_ids.txt": pool, "math_reserved_ids.txt": math_ids - eff_math}
+    if "heldout" in parts:
+        private.update({"code_train_pool_ids.txt": train, "rl_heldout_v1_ids.txt": held, "sft_heldout_match_ids.txt": sft_m})
     return {"flags": flags, "parts": parts}, private
 
 
@@ -120,6 +151,8 @@ def main(argv=None) -> int:
     ap.add_argument("--private-dir", type=Path)
     ap.add_argument("--keep-statement-less", action="store_true", help="reverse the statement_less flag")
     ap.add_argument("--drop-python2", action="store_true", help="apply the python2_only flag")
+    ap.add_argument("--rl-heldout-ids", type=Path, help="private list: the official RL held-out task ids")
+    ap.add_argument("--sft-heldout-match-ids", type=Path, help="private list: pool tasks matching the SFT held-out split")
     a = ap.parse_args(argv)
     cc_path, math_path = a.v1_dir / "cc.jsonl", a.v1_dir / "math.jsonl"
     want = {"cc": json.loads((a.manifests / "rl-code-code-contests-noncf.v1.json").read_text())["output"]["sha256"],
@@ -129,7 +162,11 @@ def main(argv=None) -> int:
         print(f"rl_v1_close: v1 files differ from the v1 manifests: {got} != {want}", file=sys.stderr)
         return 2
     effort = json.loads(a.effort_manifest.read_text())
-    body, private = close(read_jsonl(cc_path), read_jsonl(math_path), effort, a.keep_statement_less, a.drop_python2)
+    def ids_file(path):
+        return {x.strip() for x in path.read_text(encoding="utf-8").splitlines() if x.strip()} if path else None
+
+    body, private = close(read_jsonl(cc_path), read_jsonl(math_path), effort, a.keep_statement_less, a.drop_python2,
+                          ids_file(a.rl_heldout_ids), ids_file(a.sft_heldout_match_ids))
     out = {"schema": SCHEMA,
            "inputs": {"cc_sha256": got["cc"], "math_sha256": got["math"],
                       "effort_manifest": {"suite": effort["suite"], "sha256": sha256_file(a.effort_manifest)}},
@@ -145,7 +182,9 @@ def main(argv=None) -> int:
                       "effort_code": f["effort_suite"]["present_in_code"], "effort_math": f["effort_suite"]["present_in_math"],
                       "code_pool": p["code"]["pool_tasks"], "py2_in_pool": f["python2_only"]["in_pool_after_other_flags"],
                       "code_pool_if_py2_dropped": f["python2_only"]["outcome_drop"]["code_pool_tasks"],
-                      "math_reserved": p["math"]["reserved_tasks"]}))
+                      "math_reserved": p["math"]["reserved_tasks"],
+                      **({"code_train_pool": p["code"]["train_pool_tasks"], "rl_heldout": p["heldout"]["tasks"]}
+                         if "heldout" in p else {})}))
     return 0
 
 

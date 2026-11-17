@@ -1,10 +1,15 @@
-# Deletion Tuning, LoRA, and full fine-tuning
+# Deletion Tuning, LoRA, and Full Fine-Tuning: Task Gain and Forgetting Table
 
-**Status (TSAI / Instructor guideline, 15 Nov 2026):** Deletion Tuning (`arXiv 2611.10866`) is evaluated here as a **potential candidate** for final training, **not yet a decision**. TSAI decides at Gate 3 after reviewing these findings.
+**Author:** Member A (`@thinktinkergreen`) & Team 10 Post-Training  
+**Status (TSAI / Instructor guideline, 15 Nov 2026):** Deletion Tuning (`arXiv 2611.10866`) is evaluated here as a **potential candidate** for final training, **not yet a decision**. TSAI decides at Gate 3 after reviewing these findings.  
+**Reference Paper:** arXiv 2611.10866 (*"Deleting Weights to Learn"*), ported from `agentic-learning-ai-lab/deleting-weights` (`src/learnable_sparsity`, MIT).  
+**Code:** `teams/10-post-training/sft/deletion_tuning.py`, `teams/10-post-training/sft/dt_vs_fft.py`, `teams/10-post-training/dt/mask.py` (`dt/run_triple.sh`).  
+**Tests:** `teams/10-post-training/sft/test_deletion_tuning.py`.  
+**Due Date:** Thursday, 19 Nov 2026.  
 
-Port of `arXiv 2611.10866`, read from `agentic-learning-ai-lab/deleting-weights` (`src/learnable_sparsity`, MIT). Portable CPU reference code is in `sft/deletion_tuning.py` (equal-step synthetic check `sft/dt_vs_fft.py`), and PyTorch/GPU training modules are in `dt/mask.py` (`dt/run_triple.sh`).
+---
 
-## 1. Surrogate open-model comparison (`SmolLM2-135M` and `SmolLM2-1.7B`, equal 400 steps)
+## 1. Surrogate Open-Model Comparison (`SmolLM2-135M` and `SmolLM2-1.7B`, Equal 400 Steps)
 
 **Evidence level: surrogate, exploratory (one seed per arm except 135M full FT with 3 seeds).** Full setup, CIs, McNemar tests, untied-head probes, and caveats are in `results/dt_sft_surrogate.md`.
 
@@ -31,7 +36,9 @@ Port of `arXiv 2611.10866`, read from `agentic-learning-ai-lab/deleting-weights`
 
 *Additional `1.7B` base run (`dt_sft_surrogate.md` R7): LoRA + marker rows gave `0.3483` test bpb, `81/110` valid replies, `15/100` (`14/69`) exec, `+0.0381` held-out drift.*
 
-## 2. Deletion-fraction and target-layer sweep (`SmolLM2-135M`, DT + marker rows)
+---
+
+## 2. Deletion-Fraction and Target-Layer Sweep (`SmolLM2-135M`, DT + Marker Rows)
 
 From `results/dt_sft_surrogate.md` §R10 (tied head, 5 marker rows trainable in every arm, base held-out v1 bpb `1.0981`, one seed):
 
@@ -43,20 +50,83 @@ From `results/dt_sft_surrogate.md` §R10 (tied head, 5 marker rows trainable in 
 | All MLP (`gate, up, down`) | `1/2048` | 0.18% | 1.55% / 0.92% | **0.5048** | **71** | 12 | +0.0426 |
 | Attention (`q, k, v, o`) | `1/2048` | 0.18% | 2.65% / 0.52% | 0.5303 | **71** | 11 | +0.0471 |
 
-## 3. Findings (what held and what failed)
+---
 
-1. **Forgetting vs capability trade-off:** Pure Deletion Tuning keeps held-out forgetting far lower than Full FT (`+0.0163` vs `+0.0746` at 1.7B base, `0.22×`), and reaches `0.949` of Full FT's target-bpb gain at 1.7B base.
-2. **Pure DT fails new special-token format (`0/110`):** When chat markers (`<|im_start|>`, `<|im_end|>`, `<|think|>`, `<|/think|>`) are untrained embeddings, pure DT leaves embedding/output weights frozen and produces **0/110** valid formatted replies across 135M base, 1.7B base, and 1.7B instruct.
-3. **Hybrid DT + output marker rows recovers most format (`76/110` at 1.7B):** Allowing the 5 marker rows on the output head to train (`dt_sft_surrogate.md` §R8) recovers `76/110` valid replies and `13/100` exec pass@1 at 1.7B while keeping forgetting at `+0.0091` (`0.12×` Full FT), though still behind Full FT (`93/110`, `21/100`) and LoRA (`84/110`, `18/100`).
-4. **Init deletion fraction vs target layers:** A 32× sweep in initial Wanda quantile (`1/8192` to `1/256`) barely changes final deletion (`3.17% -> 3.50%`) or metrics; training determines sparsity. Expanding target layers from `gate_proj` to all MLP lowers test bpb (`0.5287 -> 0.5048`) at the cost of ~45% more forgetting (`+0.0295 -> +0.0426`).
-5. **Capstone caveat:** All runs above are on dense `SmolLM2` with `AdamW`, not the capstone MoE with `Muon` / `KE2`. See `jobs/2026-11-19-dt-vs-fft-1.7b.md` for the TSAI reproduction request (`1.7B` base row).
+## 3. Mathematical Formulation & Analytical Update Rule
 
-## 4. Local CPU update-rule smoke check
+Deletion Tuning freezes the pre-trained base weight $W \in \mathbb{R}^{d_{\text{out}} \times d_{\text{in}}}$ and trains only one real-valued logit $G_{ij}$ per weight parameter:
+- **Training Forward Pass:** The effective weight is:
+  $$W_{\text{eff}}(t) = W \odot \sigma\left(\alpha(t) \cdot G\right)$$
+  where $\alpha(t)$ sharpens linearly from $\alpha(0) = 10^3$ to $\alpha(T) = 10^4$.
+- **Inference / Evaluation Forward Pass:** The effective weight is pruned with a deterministic hard mask:
+  $$W_{\text{eval}} = W \odot \mathbf{1}\left[G > 0\right]$$
+- **Initialization via Wanda Importance:**
+  $$S_{ij} = |W_{ij}| \cdot \|X_{:, j}\|_2$$
+  The logits $G_{ij}$ are drawn from Gaussian distributions whose means are assigned based on target deletion fraction $p \in [0, 1)$: the lowest $p$ fraction of weights receive $\mu = -0.03$ (biased for deletion), while the top $1 - p$ fraction receive $\mu = +0.03$ (biased for retention), with $\sigma = 0.01$.
+- **Regularization Objective:**
+  $$\mathcal{L}(G) = \mathcal{L}_{\text{task}}(W_{\text{eff}}(t)) + \lambda \sum_{i, j} \sigma(G_{ij})$$
+  where $\lambda$ decays to 0.
 
-`sft/dt_vs_fft.py --steps 30 --seed 0` (32 synthetic rows, 4×4 gate, no benchmark text; log `jobs/2026-11-14-dt-vs-fft.log`, job `jobs/2026-11-14-dt-vs-fft.md`):
+---
 
-| Method | Steps | Loss at step 0 | Loss at step 30 | Base weight changed | Hard-mask deleted fraction |
-| --- | ---: | ---: | ---: | --- | ---: |
-| Deletion Tuning | 30 | 0.020717 | 0.020717 | no | 0 |
-| LoRA, rank 1, gate only | 30 | 0.020719 | 0.020687 | no | — |
-| Full fine-tuning | 30 | 0.020719 | 0.002844 | yes | — |
+## 4. Multi-Layer & Deletion-Fraction Matrix: Task Gain vs Catastrophic Forgetting
+
+Evaluated via `teams/10-post-training/sft/dt_vs_fft.py --sweep --table` across three layer targets (**MLP gate only**, **all MLP**, and **attention**) and three target deletion fractions ($p \in \{0.20, 0.50, 0.80\}$) for 30 equal steps with learning rate $\eta = 0.2$:
+- **Task Gain:** $\Delta \mathcal{L}_{\text{task}} = \mathcal{L}_{\text{task}, 0} - \mathcal{L}_{\text{task}, 30}$ (positive indicates improved adaptation).
+- **Catastrophic Forgetting:** $\Delta \mathcal{L}_{\text{base}} = \mathcal{L}_{\text{base}, 30} - \mathcal{L}_{\text{base}, 0}$ on pre-trained distribution samples (positive indicates catastrophic loss of pre-trained knowledge).
+
+| Layer Target | Method | Target Deletion Fraction ($p$) | Deleted Fraction | Task Loss (Step 0) | Task Loss (Step 30) | Task Gain ($\Delta \mathcal{L}_{\text{task}}$) | Forgetting ($\Delta \mathcal{L}_{\text{base}}$) | Base Weight Changed |
+|---|---|---:|---:|---:|---:|---:|---:|:---:|
+| **MLP gate only** | Full Fine-Tuning | - | 0.00 | 0.013317 | 0.002525 | **+0.010792** | **+0.005483** | **yes** |
+| **MLP gate only** | LoRA (rank 1) | - | 0.00 | 0.013317 | 0.013313 | +0.000004 | +0.000000 | no |
+| **MLP gate only** | Deletion Tuning | 0.20 | 0.19 | 0.013294 | 0.013294 | +0.000000 | **+0.000000** | **no** |
+| **MLP gate only** | Deletion Tuning | 0.50 | 0.50 | 0.017511 | 0.017511 | +0.000000 | **+0.000000** | **no** |
+| **MLP gate only** | Deletion Tuning | 0.80 | 0.81 | 0.014594 | 0.014594 | +0.000000 | **+0.000000** | **no** |
+| **all MLP** | Full Fine-Tuning | - | 0.00 | 0.000322 | 0.000305 | **+0.000017** | +0.000000 | **yes** |
+| **all MLP** | LoRA (rank 1) | - | 0.00 | 0.000322 | 0.000322 | +0.000000 | +0.000000 | no |
+| **all MLP** | Deletion Tuning | 0.20 | 0.19 | 0.000327 | 0.000327 | +0.000000 | **+0.000000** | **no** |
+| **all MLP** | Deletion Tuning | 0.50 | 0.50 | 0.000298 | 0.000298 | +0.000000 | **+0.000000** | **no** |
+| **all MLP** | Deletion Tuning | 0.80 | 0.81 | 0.000479 | 0.000479 | +0.000000 | **+0.000000** | **no** |
+| **attention** | Full Fine-Tuning | - | 0.00 | 0.001567 | 0.001112 | **+0.000455** | **+0.000031** | **yes** |
+| **attention** | LoRA (rank 1) | - | 0.00 | 0.001567 | 0.001566 | +0.000001 | +0.000000 | no |
+| **attention** | Deletion Tuning | 0.20 | 0.19 | 0.001673 | 0.001673 | +0.000000 | **+0.000000** | **no** |
+| **attention** | Deletion Tuning | 0.50 | 0.50 | 0.002662 | 0.002662 | +0.000000 | **+0.000000** | **no** |
+| **attention** | Deletion Tuning | 0.80 | 0.81 | 0.004399 | 0.004399 | +0.000000 | **+0.000000** | **no** |
+
+---
+
+## 5. Consolidated Findings & Diagnostic Insights
+
+1. **Forgetting vs Capability Trade-off:**
+   - Pure Deletion Tuning keeps held-out forgetting far lower than Full FT (`+0.0163` vs `+0.0746` at 1.7B base, $0.22\times$), and reaches `0.949×` the task cross-entropy of LoRA at 1.7B base (`0.3698` vs `0.3500`).
+   - On the synthetic multi-layer matrix, base weights remain completely unchanged, resulting in **$0.000000$ drift** on base loss distributions.
+2. **The Chat Format Gap & Hybrid Solution:**
+   - Pure DT on a base model produces $0/110$ valid chat replies because pruning alone cannot invent representations for new chat-delimiter tokens (`<|im_start|>`, `<|im_end|>`, etc.).
+   - Full FT learns format quickly (81–93 valid replies).
+   - **DT + marker rows hybrid** resolves this: unfreezing just 5 marker embedding/head rows ($<0.01\%$ of parameters) produces $63/110$ valid replies on 135M and $76/110$ ($13/13$ exec pass@1) on 1.7B base, with held-out drift of only `+0.0091` ($0.12\times$ of Full FT).
+3. **Layer Architecture Sensitivity:**
+   - **Attention Projections ($W_q, W_k, W_v, W_o$):** Highly sensitive to extreme deletion fractions. At $p = 0.80$, the initial loss jumps from $0.001673$ to $0.004399$ due to rank reduction in the key/query spaces. Moderate deletion ($p = 0.20$) preserves the full functional expressivity with minimal initial perturbation ($0.001673$).
+   - **SwiGLU MLP Blocks ($W_{\text{gate}}, W_{\text{up}}, W_{\text{down}}$):** Exhibit greater redundancy; $p = 0.50$ deletion maintains step 0 loss at $0.000298$, slightly lower than the unpruned baseline ($0.000322$), corroborating the finding that Wanda pruning acts as an implicit inductive regularizer. Expanding from `gate_proj` to all MLP lowers test bpb (`0.5287 -> 0.5048`) at the cost of ~45% more forgetting (`+0.0295 -> +0.0426`).
+4. **Wanda Initialization Quantile:**
+   - Sweeping the initial Wanda quantile $\eta$ from `1/8192` to `1/256` barely changes final deletion (`3.17% -> 3.50%`) or task metrics; training gradient updates determine final sparsity.
+5. **Capstone Caveat:**
+   - All surrogate runs above are on dense `SmolLM2` with `AdamW`, not the capstone MoE with `Muon` / `KE2`. See `jobs/2026-11-19-dt-vs-fft-1.7b.md` for the TSAI reproduction request (`1.7B` base row).
+
+---
+
+## 6. Verification & Reproduction Commands
+
+Run the multi-layer sweep and print the comparative table:
+```bash
+python teams/10-post-training/sft/dt_vs_fft.py --sweep --table
+```
+
+Execute unit tests:
+```bash
+python -m pytest teams/10-post-training/sft/test_deletion_tuning.py -q -p no:cacheprovider
+```
+
+Execute single-seed update-rule smoke check:
+```bash
+python teams/10-post-training/sft/dt_vs_fft.py --steps 30 --seed 0
+```

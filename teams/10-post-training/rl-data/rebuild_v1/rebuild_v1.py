@@ -12,6 +12,9 @@ produced the recorded hashes; `pins_v1.json` holds their sha256 and this driver 
   3. writes the pool files ({id, text}, for Team 9's `decontam_check.py --id-field id`): the full v1 pools and the
      close pools (`rl_v1_close.py` flags: code pool, MATH reserved part);
   4. compares every output with `expected` in `pins_v1.json` and exits 1 on any difference.
+With the evaluation-firewall lists (`--rl-heldout-ids`, `--sft-heldout-match-ids`; private, pinned by sha256 under
+`firewall` in `pins_v1.json`) step 3 also writes the RL training pool and the RL held-out part (lead, 16 Nov 2026); the
+close pool file is unchanged. Without them those two outputs are reported missing.
 CPU only; network is never used. Measured: about 90 s on an Apple M1 Pro. Outputs hold dataset text: keep them out of Git.
 """
 from __future__ import annotations
@@ -63,8 +66,9 @@ def stage(pins: dict, cc_dir: Path, math_dir: Path, out: Path) -> tuple[Path, Pa
     return m_path, p_path
 
 
-def write_pools(out: Path, effort_manifest: Path) -> dict:
-    """Pool files {id, text}: v1 pools (text rows of the v1 ids) and close pools (rl_v1_close flags)."""
+def write_pools(out: Path, effort_manifest: Path, rl_heldout: set | None = None, sft_heldout_match: set | None = None) -> dict:
+    """Pool files {id, text}: v1 pools (text rows of the v1 ids), close pools (rl_v1_close flags) and, with the firewall
+    lists, the training pool and the held-out part."""
     sys.path.insert(0, str(RLDATA))
     import rl_v1_close  # noqa: PLC0415
 
@@ -72,13 +76,17 @@ def write_pools(out: Path, effort_manifest: Path) -> dict:
         return [json.loads(x) for x in open(p, encoding="utf-8") if x.strip()]
 
     cc, math = rows(out / "out/v1/cc.jsonl"), rows(out / "out/v1/math.jsonl")
-    body, private = rl_v1_close.close(cc, math, json.loads(effort_manifest.read_text()))
+    body, private = rl_v1_close.close(cc, math, json.loads(effort_manifest.read_text()),
+                                      rl_heldout=rl_heldout, sft_heldout_match=sft_heldout_match)
     pool = out / "pool"
     pool.mkdir(exist_ok=True)
     plan = {"rl-code-code-contests-noncf.v1.pool.jsonl": ("out/cc_text.jsonl", {t["id"] for t in cc}),
             "rl-math-hendrycks-math-train.v1.pool.jsonl": ("out/math_text.jsonl", {t["id"] for t in math}),
             "rl-code-v1-close.pool.jsonl": ("out/cc_text.jsonl", private["code_pool_ids.txt"]),
             "rl-math-v1-reserved.pool.jsonl": ("out/math_text.jsonl", private["math_reserved_ids.txt"])}
+    if "code_train_pool_ids.txt" in private:
+        plan["rl-code-v1-train.pool.jsonl"] = ("out/cc_text.jsonl", private["code_train_pool_ids.txt"])
+        plan["rl-code-v1-heldout.pool.jsonl"] = ("out/cc_text.jsonl", private["rl_heldout_v1_ids.txt"])
     for name, (src, keep) in plan.items():
         lines = [x for x in open(out / src, encoding="utf-8") if json.loads(x)["id"] in keep]
         assert len(lines) == len(keep), (name, len(lines), len(keep))
@@ -107,6 +115,8 @@ def main(argv=None) -> int:
     ap.add_argument("--g9-tools", type=Path, required=True, help="Team 9 teams/09-evaluation/decontam at b470b4c0")
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--python", default=sys.executable)
+    ap.add_argument("--rl-heldout-ids", type=Path, help="private: the official RL held-out task ids (pinned in pins_v1.json)")
+    ap.add_argument("--sft-heldout-match-ids", type=Path, help="private: pool tasks matching the SFT held-out split (pinned)")
     a = ap.parse_args(argv)
     pins = json.loads(PINS.read_text(encoding="utf-8"))
     bad = check_steps(pins)
@@ -116,6 +126,15 @@ def main(argv=None) -> int:
     if sha256_file(a.math500) != pins["math500"]["sha256"]:
         print("rebuild_v1: the MATH-500 file differs from its pin", file=sys.stderr)
         return 2
+    lists = {}
+    for key, path in (("rl_heldout_ids", a.rl_heldout_ids), ("sft_heldout_match_ids", a.sft_heldout_match_ids)):
+        if path is None:
+            continue
+        want = (pins.get("firewall") or {}).get(key, {}).get("sha256")
+        if sha256_file(path) != want:
+            print(f"rebuild_v1: {path.name} is not the pinned {key} list", file=sys.stderr)
+            return 2
+        lists[key] = {x.strip() for x in path.read_text(encoding="utf-8").splitlines() if x.strip()}
     out = a.out.resolve()
     m_path, p_path = stage(pins, a.cc_dir, a.math_dir, out)
     (out / "logs").mkdir(exist_ok=True)
@@ -135,10 +154,12 @@ def main(argv=None) -> int:
         out, out / "logs/math500_guard.log")
     run([py, "-I", "-B", HERE / "assemble_v1.py"], out, out / "logs/assemble.log")
     times["assemble"] = time.monotonic() - t0
-    body = write_pools(out, TEAM / "eval/effort_manifest.json")
+    body = write_pools(out, TEAM / "eval/effort_manifest.json", lists.get("rl_heldout_ids"), lists.get("sft_heldout_match_ids"))
     diff = compare(pins["expected"], out)
     summary = {"outputs_checked": len(pins["expected"]), "mismatches": diff, "ok": not diff,
                "code_pool": body["parts"]["code"]["pool_tasks"], "math_reserved": body["parts"]["math"]["reserved_tasks"],
+               **({"code_train_pool": body["parts"]["code"]["train_pool_tasks"], "rl_heldout": body["parts"]["heldout"]["tasks"]}
+                  if "heldout" in body["parts"] else {}),
                "seconds": {k: round(v, 1) for k, v in times.items()} | {"total": round(time.monotonic() - t0, 1)}}
     (out / "rebuild_summary.json").write_text(json.dumps(summary, indent=1) + "\n", encoding="utf-8")
     print(json.dumps(summary))

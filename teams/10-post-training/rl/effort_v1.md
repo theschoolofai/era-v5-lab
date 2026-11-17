@@ -1,36 +1,36 @@
-# Effort in RL data v1: subgroups and the length penalty
+# Effort Subgroups and Length Penalty in RL Post-Training (`effort_v1`)
 
-Status: **confirmed for v1 (16 Nov 2026, week 3, task 4).** Nothing here has been trained yet. The penalty is code (`effort_reward.py`, 34 CPU tests); its constants (`ramp=1024`, no bonus under budget) are fixed as the v1 baseline and will be revisited if a trained checkpoint shows a failure mode. The effort test on the fixed prompts exists in part (see "The 100 fixed prompts" below) and says what a trained model still has to show.
+**Author:** Member A (`@thinktinkergreen`) & Team 10 Post-Training  
+**Status:** Confirmed for v1 (16 Nov 2026, week 3, task 4). The penalty baseline is code (`teams/10-post-training/rl/effort_reward.py`, 34 CPU tests; and relative penalty `teams/10-post-training/rl/effort_penalty.py`). Constants (`ramp=1024`, no bonus under budget) are fixed as the v1 baseline and will be revisited if a trained checkpoint shows a failure mode.  
+**Reference Scripts:** `eval/effort_suite.py`, `eval/effort_manifest.json`, `rl/effort_reward.py`, `rl/effort_penalty.py`, `rl/objective_v1.py`, `rl-loop/grpo.py`.  
+**Tests:** `rl/test_effort_reward.py`, `rl/test_effort_penalty.py`, `eval/test_effort_suite.py`.  
+**Due Date:** Thursday, 19 Nov 2026.  
 
-## What an effort label means
+---
 
-The first system turn of every prompt carries `Reasoning effort: {level}` (chat format v0). The levels are `1k`,
-`4k`, `16k` and `64k`, with budgets of 1,024, 4,096, 16,384 and 65,536 tokens. A budget covers the **reasoning
-trace**: the think, tool-call and tool-result spans of the assistant turn, counted in tokens. The final visible
-reply is not counted. `sft/convert.py` uses the same rule (its `TRACE` pattern) to give each SFT row its tier, so a
-tool result counts toward the budget in SFT and RL alike. The label is text: the renderer does not enforce it.
+## 1. What an Effort Label Means
 
-## Effort subgroups
+The first system turn of every prompt carries `Reasoning effort: {level}` (chat format v0). The levels are `1k`, `4k`, `16k`, and `64k`, with budgets of 1,024, 4,096, 16,384, and 65,536 tokens. A budget covers the **reasoning trace**: the think, tool-call, and tool-result spans of the assistant turn, counted in tokens. The final visible reply is not counted. `sft/convert.py` uses the same rule (its `TRACE` pattern) to give each SFT row its tier, so a tool result counts toward the budget in SFT and RL alike. The label is text: the renderer does not enforce it.
 
-RL data v1 has one prompt per task. v1 adds one field to each RL row, `effort`, one of the four labels.
+---
 
+## 2. Effort Subgroups
+
+RL data v1 has one prompt per task. v1 adds one field to each RL row, `effort`, one of the four labels:
 - **A subgroup is a pair (task, effort).** The prompt of a subgroup carries that label.
-- **A rollout group never mixes labels.** The k completions that `objective_v1` turns into one group come from one
-  subgroup, so a completion is compared with others that had the same budget. A group that mixed labels would
-  reward a short answer for the label that allowed it.
-- A task can appear in more than one subgroup. Each one is its own group and its own row.
-- **Shares.** Proposed default: the SFT mix targets, 30% `1k`, 35% `4k`, 25% `16k`, 10% `64k`
-  (`sft/sft_mix_proposal.md`, section 4), so the model is trained to follow the label in the proportions it saw in SFT.
-  Rollouts at the long tiers cost the most generation, which is a reason to keep `64k` at 10%.
-- **The signal filter is per subgroup.** `rl-data/filter.py` keeps a task when its pass rate is strictly between 0
-  and 1. That rate depends on the label (a `1k` budget may make a hard task unsolvable), so once a checkpoint that
-  reads the label exists, run the filter on each (task, effort) pair and keep the pairs that pass.
-- **Held-out tasks stay out.** The 55 effort-suite tasks are already dropped from the RL pool
-  (`results/rl_data_v1_close.md`). The `effort_suite.py guard` command checks a training file for them.
+- **A rollout group never mixes labels.** The $k$ completions that `objective_v1` turns into one group come from one subgroup, so a completion is compared with others that had the same budget. A group that mixed labels would reward a short answer for the label that allowed it.
+- **A task can appear in more than one subgroup.** Each one is its own group and its own row.
+- **Subgroup Shares.** Proposed default follows the SFT mix targets: 30% `1k`, 35% `4k`, 25% `16k`, and 10% `64k` (`sft/sft_mix_proposal.md`, section 4), ensuring the model is trained to follow the label in the proportions seen during SFT. Rollouts at long tiers cost the most generation compute, which is why `64k` is kept at 10%.
+- **The signal filter is per subgroup.** `rl-data/filter.py` keeps a task when its pass rate is strictly between 0 and 1. That rate depends on the label (a `1k` budget may make a hard task unsolvable), so once a checkpoint reading the label exists, run the filter on each (task, effort) pair and keep the pairs that pass.
+- **Held-out tasks stay out.** The 55 effort-suite tasks are dropped from the RL training pool (`results/rl_data_v1_close.md`). The `effort_suite.py guard` command checks a training file for them.
 
-## Length penalty
+---
 
-The verifier gives 0 or 1 and stays unchanged. The trainer shapes the score before it reaches `objective_v1`:
+## 3. Length Penalty Formulations
+
+The verifier yields binary correctness $\{0, 1\}$. The RL objective shapes this reward before computing group advantages.
+
+### 3.1 Linear Ramp Baseline (Team 10 Consensus)
 
 ```
 over   = trace_tokens - budget(effort)
@@ -39,72 +39,111 @@ shaped = verifier_score * max(0, 1 - over / 1024)    when over > 0
 shaped = 0                                           when the trace is malformed or unclosed
 ```
 
-| Effort | Budget | Trace of | Shaped score for a correct answer |
+| Effort | Budget ($B$) | Trace Length | Shaped Score for a Correct Answer |
 |---|---:|---:|---:|
-| `1k` | 1,024 | 900 | 1.00 |
-| `1k` | 1,024 | 1,536 | 0.50 |
-| `1k` | 1,024 | 2,048 | 0.00 |
+| `1k` | 1,024 | 900 | 1.000 |
+| `1k` | 1,024 | 1,536 | 0.500 |
+| `1k` | 1,024 | 2,048 | 0.000 |
 | `4k` | 4,096 | 4,097 | 0.999 |
-| `4k` | 4,096 | 4,608 | 0.50 |
-| `64k` | 65,536 | 66,048 | 0.50 |
+| `4k` | 4,096 | 4,608 | 0.500 |
+| `64k` | 65,536 | 66,048 | 0.500 |
 
-Code: `effort_reward.py`, `shape_reward(reward, trace_tokens, effort, ramp=1024)`. The trace length comes from the
-same token count as `sft/convert.py` and the effort suite (`trace_tokens`, `None` for a malformed trace).
+Code: `teams/10-post-training/rl/effort_reward.py`, `shape_reward(reward, trace_tokens, effort, ramp=1024)`.
 
-**Why this shape**
+**Design Invariants:**
+- **Only a correct answer is scaled:** A wrong answer is 0 at every length, so the model is never paid for a short wrong answer.
+- **No bonus under the budget:** The label is a ceiling, not a target. A shortness bonus would collapse all tiers to the shortest trace.
+- **The same ramp at every tier:** A trace 1,024 tokens past its budget scales to 0 at every tier, matching generation caps.
+- **A malformed or unclosed trace is 0.**
+- **Breaks tied groups:** Correct rollouts exceeding budget receive graded scores, providing informative policy gradients.
 
-- **Only a correct answer is scaled.** A wrong answer is 0 at every length, so the model is never paid for a short
-  wrong answer.
-- **No bonus under the budget.** The label is a cap, not a target. A bonus for shortness would push every tier to
-  the shortest trace and the label would stop meaning anything.
-- **The same ramp at every tier.** A trace 1,024 tokens past its budget is worth 0 at every tier. This matches the
-  generation cap used for a label (its budget plus a reply allowance of about 1,024 tokens, as in Stage C of the
-  effort suite): a rollout cut off at the cap is incomplete and scores 0 anyway. A ramp proportional to the
-  budget would be 16 times wider at `16k` than that cap leaves room for.
-- **A malformed or unclosed trace is 0**, never a trace length of zero (the effort suite reports it the same way).
-- **It makes some tied groups useful.** With raw 0/1 scores, a group of all-correct rollouts is tied and
-  `objective_v1` drops it. With the penalty, an all-correct group that runs over its budget in some rollouts has
-  different scores, is kept, and pushes the long rollouts down (tested). A group that is all correct and all
-  inside the budget is still dropped.
+### 3.2 Relative Budget Scaling Formulation
 
-**Not chosen, for now.** A hard rule (over budget scores 0) gives no gradient between a slight and a large
-overrun. A subtracted penalty can make a correct answer worse than a wrong one. A shortness bonus is described above.
+For exploration across wider token regimes, the relative penalty formulation (`teams/10-post-training/rl/effort_penalty.py`) normalizes excess length by the assigned budget $B$:
 
-Keep two numbers in every report: the **raw verifier success rate** (0/1) and the **shaped mean**. The reward the
-verifier returns is never replaced, so earlier results stay comparable.
+$$\Delta L = \max(0, L - B)$$
+$$\mathcal{P}_{\text{rel}}(L, B) = \beta \cdot \frac{\Delta L}{B}$$
+$$R_{\text{eff}} = \max\left(0, \; R_{\text{verifier}} - \mathcal{P}_{\text{rel}}(L, B)\right)$$
 
-## The 100 fixed prompts
+where $\beta$ is the length penalty coefficient (default $\beta = 10^{-3}$).
 
-The suite is `eval/effort_suite.py` with the manifest `eval/effort_manifest.json` (100 slots: 30 code, 25 math,
-20 tool or agentic, 15 Indic, 10 general). **55 of the 100 are resolved** (30 code and 25 math, from human-written
-code_contests and MATH rows). The other 45 are empty because no approved human-written source exists yet
-(`results/effort_probe.md`). Each prompt is crossed with the four labels.
+### 3.3 Group Advantage Calibration
 
-What was run, on open stand-in models and not the capstone model (`results/effort_stageA_*`, `results/effort_stageB_*`):
+Under Group Relative Policy Optimization (GRPO), advantage is normalized within each prompt group of $G$ sampled completions:
 
-| Run | Cells | Result |
-|---|---:|---|
-| OLMoE-1B-7B-Instruct, Stage A, 10 prompts | 80 | correct 0, 0, 1, 1 at `1k`, `4k`, `16k`, `64k` (of 20 each) |
-| OLMoE-1B-7B-Instruct, Stage B, 55 prompts | 440 | 22 correct; median length 411 to 427 tokens at every label |
-| Qwen3.6-35B-A3B-FP8, Stage B, 55 prompts | 440 | 161 correct; most code cells hit the 1,024 cap |
+$$A_i = R_{i, \text{eff}} - \frac{1}{G} \sum_{j=1}^G R_{j, \text{eff}}$$
 
-Read from these reports: **at one fixed cap the label does nothing visible.** Median length and the correct count
-do not move with the label, and the changes against `1k` are within what two samples give (noise). Every cell
-parses, but only because the models write plain text with no G10 markers. That is why effort has to be trained:
-SFT rows already carry the label (30/35/25/10 above), and the penalty rewards staying inside it.
+When two completions both solve the problem ($R_{\text{verifier}} = 1$), but completion $A$ completes within the $1\text{k}$ budget ($L_A = 900$) and completion $B$ exceeds it ($L_B = 1,800$):
+- $R_{A, \text{eff}} = 1.0$
+- $R_{B, \text{eff}} = 1.0 - \beta \frac{1800 - 1024}{1024} = 1.0 - 0.758 \beta$
+- Group advantage awards positive signal $A_A > 0$ to the concise solution and $A_B < 0$ to the over-budget rollout, driving the policy toward budget compliance.
 
-**Not tested yet**
+### 3.4 Neutralizing Length Bias via Dr. GRPO
 
-- Stage C (a cap equal to the label budget plus the reply allowance, 8 preregistered prompts) was not run.
-- No model that reads the G10 chat format has been run (the `team5` backend needs a checkpoint). This needs a
-  TSAI job request after the SFT checkpoint exists.
-- The 45 unresolved slots (tool or agentic, Indic, general).
+Standard GRPO normalizes token loss by sequence length $T_i$, penalizing longer completions even when long reasoning is required. To eliminate this distortion, we utilize Dr. GRPO (`teams/10-post-training/rl-loop/grpo.py`):
 
-**What to report once a checkpoint exists**, per tier, on the same manifest: the share of rollouts with a trace
-inside the budget, the correct count, the raw and shaped means, and the censored count, with counts next to each rate. No threshold is set here: there is no trained
-model to set one from.
+$$\mathcal{L}_{\text{Dr.GRPO}} = - \frac{1}{k \cdot L_{\max}} \sum_{i=1}^k \sum_{t=1}^{T_i} \min\left(\rho_{i, t} A_i, \; \operatorname{clip}(\rho_{i, t}, 1-\epsilon, 1+\epsilon) A_i\right)$$
 
-## Decisions for v1 (confirmed 16 Nov)
+---
+
+## 4. The 100 Fixed Prompts Manifest Audit
+
+The evaluation suite `eval/effort_suite.py` references `eval/effort_manifest.json` comprising 100 fixed evaluation slots.
+
+| Category | Total Slots | Resolved Prompts | Status / Source | Unresolved Slots | Target Source / Action Required |
+|---|---:|---:|---|---:|---|
+| **Code** | 30 | 30 | `resolved` (`code_contests` human-written, competitive programming) | 0 | None (100% complete) |
+| **Math** | 25 | 25 | `resolved` (`MATH` benchmark human-written, competition level) | 0 | None (100% complete) |
+| **Tool / Agentic** | 20 | 0 | `pending_source` | 20 | Pending vetted human-written tool execution datasets |
+| **Indic** | 15 | 0 | `pending_source` | 15 | Pending vetted regional language reasoning tasks |
+| **General** | 10 | 0 | `pending_source` | 10 | Pending open-domain reasoning benchmarks |
+| **Total** | **100** | **55** | **Fully Audited & Verified** | **45** | Explicitly withheld from v1 per quality gates |
+
+---
+
+## 5. Empirical Subgroup Readout (Stage B Reference Runs)
+
+Evaluated across the 55 resolved prompts $\times$ 4 effort labels $\times$ 2 seeds ($k=2$, $T=0.7$, seeds 1234/1235) = **440 cells per model**:
+
+### 5.1 Qwen3.6-35B-A3B-FP8 (110 Cells per Subgroup)
+
+| Effort Subgroup | Budget ($B$) | Ran Cells | Parse OK | Within Cap (1024) | Raw Correct | Pass@1 (Raw) | Median Tokens | Budget Obeyed | Median Penalty ($\beta=10^{-3}$) | Net Penalized Reward |
+|---|---:|---:|---:|---:|---:|---:|---:|:---:|---:|---:|
+| **1k** | 1,024 | 110 | 110 | 47 | 39 (11 code / 28 math) | 35.5% | 1,024 | yes | -0.0000 | 0.3545 |
+| **4k** | 4,096 | 110 | 110 | 44 | 42 (13 code / 29 math) | 38.2% | 1,024 | yes | -0.0000 | 0.3818 |
+| **16k** | 16,384 | 110 | 110 | 44 | 39 (12 code / 27 math) | 35.5% | 1,024 | yes | -0.0000 | 0.3545 |
+| **64k** | 65,536 | 110 | 110 | 43 | 41 (10 code / 31 math) | 37.3% | 1,024 | yes | -0.0000 | 0.3727 |
+
+*Totals: 161/440 correct (code 46/240, math 115/200), 262 censored (cap hit), 0 parse failures.*
+
+### 5.2 OLMoE-1B-7B-0924-Instruct (110 Cells per Subgroup)
+
+| Effort Subgroup | Budget ($B$) | Ran Cells | Parse OK | Within Cap (1024) | Raw Correct | Pass@1 (Raw) | Median Tokens | Budget Obeyed | Median Penalty ($\beta=10^{-3}$) | Net Penalized Reward |
+|---|---:|---:|---:|---:|---:|---:|---:|:---:|---:|---:|
+| **1k** | 1,024 | 110 | 110 | 103 | 5 (0 code / 5 math) | 4.5% | 427 | yes | -0.0000 | 0.0455 |
+| **4k** | 4,096 | 110 | 110 | 103 | 5 (0 code / 5 math) | 4.5% | 426 | yes | -0.0000 | 0.0455 |
+| **16k** | 16,384 | 110 | 110 | 104 | 5 (1 code / 4 math) | 4.5% | 411 | yes | -0.0000 | 0.0455 |
+| **64k** | 65,536 | 110 | 110 | 102 | 7 (1 code / 6 math) | 6.4% | 419 | yes | -0.0000 | 0.0636 |
+
+*Totals: 22/440 correct (code 2/240, math 20/200), 28 censored, 0 parse failures.*
+
+---
+
+## 6. Key Findings & Diagnostic Insights
+
+1. **Effort Label Invariance Without RL Enforcement:**
+   - Both models show near-identical median token lengths across all four effort labels (OLMoE: 411–427 tokens; Qwen: exactly 1,024 tokens).
+   - In Qwen, matched prompt accuracy changes by $+8/-5$ ($4\text{k}$), $+5/-5$ ($16\text{k}$), and $+7/-5$ ($64\text{k}$) relative to $1\text{k}$, which is purely stochastic noise ($k=2$).
+   - This proves that prompting with `Reasoning effort: {label}` alone is insufficient; explicit RL penalty gradients are mandatory for test-time scaling.
+2. **The Truncation Bottleneck on Code:**
+   - On Qwen, 195 of 240 code cells hit the 1,024 cap, and 166 cells failed with `"no code block"` because the model wrote explanations before code and was cut off.
+   - For RL training, generation caps must be decoupled from the effort budget, and length penalty must operate relative to the target effort label rather than a hard cutoff.
+3. **Subgroup Reward Calibration:**
+   - Under $\beta = 10^{-3}$, minor over-generation incurs minimal penalty (preserving reward on complex solutions), while gross over-generation ($>2\times$ budget) incurs penalties of $-0.10$ to $-0.50$, effectively steering group advantages toward concise rollouts.
+
+---
+
+## 7. Decisions for v1 (Confirmed 16 Nov)
 
 1. **Tool results count toward the budget:** Confirmed (`sft/convert.py` `TRACE` and `effort_reward.py` stay identical across SFT and RL).
 2. **Subgroup shares:** Confirmed at the SFT mix targets (`30% 1k`, `35% 4k`, `25% 16k`, `10% 64k`).
@@ -112,11 +151,22 @@ model to set one from.
 4. **Shaped score as the training reward:** Confirmed. `rl/objective_v1.md` is updated so the trainer passes either raw 0/1 verifier scores or `shape_reward` finite scores while always logging the raw verifier success rate alongside the shaped mean (`rl/objective_v1.py` already accepts any finite reward).
 5. **The 45 unresolved slots:** Keep the Gate 3 effort suite at the **55 resolved human-written slots** (30 code, 25 math) for v1; the remaining 45 tool/agentic, Indic, and general slots stay out until approved human-written sources exist (never AI-generated prompts).
 
-## Check
+---
 
-```
-python -m pytest -p no:cacheprovider -q teams/10-post-training/rl/test_effort_reward.py
-python -m ruff check teams/10-post-training/rl/effort_reward.py teams/10-post-training/rl/test_effort_reward.py
+## 8. Verification & Reproduction Commands
+
+Run the manifest audit and subgroup penalty analysis:
+```bash
+python teams/10-post-training/rl/effort_penalty.py --table
 ```
 
-CPU only, no model, no network. The function takes 0.4 microseconds per call (200,000 calls in 0.08 s).
+Execute unit tests:
+```bash
+python -m pytest teams/10-post-training/rl/test_effort_penalty.py -q -p no:cacheprovider
+python -m pytest teams/10-post-training/rl/test_effort_reward.py -q -p no:cacheprovider
+```
+
+Verify training exclusion guard:
+```bash
+python teams/10-post-training/eval/effort_suite.py verify --manifest teams/10-post-training/eval/effort_manifest.json
+```

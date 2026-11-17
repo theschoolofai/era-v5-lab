@@ -14,6 +14,9 @@ Per shard it runs five stages and reuses the existing tools unchanged:
 and one run-wide stage, `indexed` (source_index.py). Paths, hashes and ids come from the source manifest
 (`conversion.tokenizer`, `screening.tools_dir`, `screening.set_sha256`); an unset one stops the run. No
 benchmark or tag filter, no --no-recheck, no --drop-clean and no empty expected hash is ever passed.
+The tokenizer file must hash to the manifest's pin, and an admission run stops at once when that pin is not the
+frozen tokenizer the policy approves (p1536 since 15 Nov 2026). The run id names the tokenizer:
+`<mode>-tok<sha256[:8]>-<config sha256[:12]>`.
 
 A stage writes into `<stage>.tmp/`, syncs it, renames it, and only then publishes
 `state/<stage>.complete.json` (also by rename). An exit code is not a completion marker. On --resume a
@@ -136,6 +139,14 @@ def _quarantine(root: Path, victims: list[Path]) -> list[str]:
 
 # --- configuration -----------------------------------------------------------------------------
 
+def run_id(mode: str, tokenizer_sha256: str, config_sha256: str) -> str:
+    """`<mode>-tok<first 8 of the tokenizer sha256>-<first 12 of the config sha256>`.
+
+    The config hash already covers the tokenizer; the explicit prefix lets a reader tell a C3 run from a p1536 run
+    by its id alone (C3 runs before 16 Nov 2026 have the older `<mode>-<config12>` form)."""
+    return f"{mode}-tok{tokenizer_sha256[:8]}-{config_sha256[:12]}"
+
+
 def load_config(manifest_path, policy_path, out_dir, mode: str) -> dict:
     """Resolve every path and hash of a run from the manifest and the policy. Unset means stop."""
     manifest_path, policy_path, out_dir = Path(manifest_path).resolve(), Path(policy_path).resolve(), Path(out_dir).resolve()
@@ -154,6 +165,11 @@ def load_config(manifest_path, policy_path, out_dir, mode: str) -> dict:
     tokenizer_path = at(tokenizer["path"])
     if not tokenizer_path.is_file() or si.sha256_file(tokenizer_path) != tokenizer["sha256"]:
         raise RunError(f"{tokenizer_path} is missing or is not the pinned tokenizer {tokenizer['sha256'][:12]}...")
+    approved = (policy.get("pack") or {}).get("approved_tokenizer_sha256", [])
+    if mode == "admission" and not fixture and tokenizer["sha256"] not in approved:
+        # pack_admission.py would refuse at the last stage; stop before any shard work instead
+        raise RunError(f"tokenizer {tokenizer['sha256'][:12]}... is not the frozen tokenizer the policy approves "
+                       f"({', '.join(s[:12] + '...' for s in approved) or 'none'})")
     limit = (manifest.get("conversion") or {}).get("max_sequence_tokens")
 
     screening = manifest.get("screening") or {}
@@ -184,7 +200,7 @@ def load_config(manifest_path, policy_path, out_dir, mode: str) -> dict:
     config_sha = si.sha256_json(tuple_)
     return {
         "mode": mode, "test_fixture": fixture, "tuple": tuple_, "config_sha256": config_sha,
-        "run_id": f"{mode}-{config_sha[:12]}", "manifest_path": str(manifest_path), "policy_path": str(policy_path),
+        "run_id": run_id(mode, tokenizer["sha256"], config_sha), "manifest_path": str(manifest_path), "policy_path": str(policy_path),
         "out_dir": str(out_dir), "index_path": str(out_dir / "index" / "source_index.sqlite"),
         "tokenizer_path": str(tokenizer_path), "tools": str(tools), "expect_sha": expect,
         "fingerprints": str(at(fingerprints)) if fingerprints else None, "max_sequence_tokens": limit,

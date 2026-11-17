@@ -18,6 +18,7 @@ env_id is "<type>/<name>":
                          needs the RL data v1 math pool: set G10_MATH_POOL, see rl/math/README.md)
     agentic/<task_id>    rl/agentic/tasks/<task_id>, scored by rl/agentic/agentic_verifier.py (output = one pytest
                          command or one diff, run in the image of a swe-envs environment; needs docker)
+    tool_call/<task_id>  rl/tasks/tool_call/<task_id>, exact name/arguments JSON comparison, no execution
 
 New environment types call register("<type>", checker), where checker(name, output, **options) returns a dict
 with at least "reward" (0 or 1). An unknown env_id raises KeyError: it never scores 0 silently, because a
@@ -59,6 +60,7 @@ AGENTIC_TASKS = HERE / "agentic" / "tasks"
 MATH_TASKS = HERE / "math" / "tasks"
 JS_TASKS = HERE / "jsts" / "tasks" / "js"
 TS_TASKS = HERE / "jsts" / "tasks" / "ts"
+TOOL_CALL_TASKS = TASKS / "tool_call"
 
 _NAME = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")  # no slashes, no "..": an env_id cannot leave its folder
 _REGISTRY: dict[str, Callable[..., dict]] = {}
@@ -249,6 +251,28 @@ def _jsts_checker(folder: Path, kind: str):
     return checker
 
 
+_TOOL_CALL_MODULE = None
+
+
+def _tool_call():
+    """Load the data-only tool-call verifier from any working directory."""
+    global _TOOL_CALL_MODULE
+    if _TOOL_CALL_MODULE is None:
+        import importlib.util  # noqa: PLC0415
+        spec = importlib.util.spec_from_file_location("g10_rl_tool_call_verifier", HERE / "tool_call_verifier.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _TOOL_CALL_MODULE = module
+    return _TOOL_CALL_MODULE
+
+
+def tool_call_checker(name: str, output: str, **_) -> dict:
+    task_dir = TOOL_CALL_TASKS / name
+    if not (task_dir / "task.json").is_file():
+        raise KeyError(f"no tool-call task {name!r} in {TOOL_CALL_TASKS}")
+    return _tool_call().reward(task_dir, output)
+
+
 register("code", code_checker)
 register("swe", swe_checker)
 register("indic", indic_checker)
@@ -257,6 +281,7 @@ register("agentic", agentic_checker)
 register("math", math_checker)
 register("js", _jsts_checker(JS_TASKS, "js"))
 register("ts", _jsts_checker(TS_TASKS, "ts"))
+register("tool_call", tool_call_checker)
 
 
 def list_envs() -> list[str]:
@@ -268,6 +293,7 @@ def list_envs() -> list[str]:
     ids += [f"math/{p.parent.name}" for p in sorted(MATH_TASKS.glob("*/task.json"))]
     ids += [f"js/{p.parent.name}" for p in sorted(JS_TASKS.glob("*/task.json"))]
     ids += [f"ts/{p.parent.name}" for p in sorted(TS_TASKS.glob("*/task.json"))]
+    ids += [f"tool_call/{p.parent.name}" for p in sorted(TOOL_CALL_TASKS.glob("*/task.json"))]
     return ids
 
 
@@ -289,6 +315,8 @@ def known_outputs(env_id: str) -> tuple[str, str]:
         return (SWE_ENVS / name / "gold.patch").read_text(encoding="utf-8"), NOOP_PATCH
     if env_type == "indic":
         return _indic().known_outputs(INDIC_TASKS / name)
+    if env_type == "tool_call":
+        return _tool_call().known_outputs(TOOL_CALL_TASKS / name)
     if env_type == "go":
         meta = json.loads((GO_TASKS / name / "task.json").read_text(encoding="utf-8"))
         ref = (GO_TASKS / name / "reference.go").read_text(encoding="utf-8")

@@ -586,10 +586,12 @@ def test_a_bad_heldout_rule_is_refused(tmp_path, heldout):
 
 
 def test_the_real_policy_carries_the_14_nov_pack_ruling():
-    """The committed policy says what TSAI ruled on 14 Nov 2026, and nothing looser."""
+    """The committed policy says what TSAI ruled on 14 Nov 2026 (tokenizer: the 15 Nov p1536 notice), and nothing looser."""
     policy, _ = join.load_policy(HERE / "ocr2_policy.json")
     pack = policy["pack"]
-    assert pack["approved_tokenizer_sha256"] == ["15468e66457b43af79f695cbe585c0d03e3cfe7a4a5d04d189dd3c6b9f02ddc3"]
+    # p1536 only: C3 (15468e66...) is kept as a superseded record and no longer approves a pack
+    assert pack["approved_tokenizer_sha256"] == ["e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b"]
+    assert list(pack["superseded_tokenizer_sha256"]) == ["15468e66457b43af79f695cbe585c0d03e3cfe7a4a5d04d189dd3c6b9f02ddc3"]
     assert join.accepted_identity_levels(policy) == ("verified", "pinned_revision")
     assert policy["sources"]["open-r1/codeforces"]["training_approved"] is False
     for name in ("taco", "apps", "code_contests"):

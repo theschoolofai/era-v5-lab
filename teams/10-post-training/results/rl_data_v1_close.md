@@ -99,3 +99,22 @@ kept 20 tests; only the evaluation would add the unused ones. Also in `../rl-dat
 - Hendrycks MATH admission for RL (TSAI); the 7,209-task part is ready as is.
 - Pass-rate filtering on the real starting model (needs the checkpoint).
 - `rl/go/test_go_verifier.py::test_lint_accepts_a_prompt_that_only_shows_visible_calls` fails on a machine without Go (it calls `go` with no skip guard). It passes with Go installed. That file is another member's, left unchanged.
+
+## Evaluation firewall (16 Nov)
+
+Lead's ruling (G10 group, 16 Nov): problems used to evaluate RL or effort stay out of SFT training, the SFT held-out
+split (`heldout_eval_v1`) stays out of the RL training pool, and the training pools may overlap. Recorded in
+`../rl-data/manifests/rl_data_v1_close.json` as two applied flags that split the close pool without changing it:
+
+| | Tasks | Note |
+|---|---:|---|
+| Close pool (Team 9's check, unchanged) | 3,577 | ids sha256 unchanged |
+| RL held-out set v1 (`rl_heldout_v1`) | 255 | the 15 Nov run's 96 + the 160 planned for E10 (one shared task); 252 in the close pool, 1 effort-suite and 2 statement-less tasks outside it; list sha256 `0e2c6f78…` (private) |
+| Pool tasks in the SFT held-out split (`sft_heldout`) | 82 | 73 confirmed + 9 possible matches (`sft/cross_stage_overlap.py`); 8 are also RL held-out; list sha256 `105103be…` (private) |
+| **RL training pool** | **3,251** | ids sha256 `94332706…` |
+
+The SFT side of the same ruling is `../sft/results/ocr2_eval_firewall_v1.json`. The rebuild kit writes the training pool and
+the held-out part as two more pool files when given the two lists (`../jobs/2026-11-18-rl-data-v1-pool.md`); a local
+rebuild from scratch gives 14 of 14 expected outputs in 90.7 s. Two E1 held-out tasks are statement-less (finding R6: they
+score 0 for every policy); they stay in the held-out list as used on 15 Nov, and the report counts them.
+

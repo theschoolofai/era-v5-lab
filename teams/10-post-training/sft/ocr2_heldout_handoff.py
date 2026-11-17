@@ -102,13 +102,14 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--ids", required=True, type=Path, help="private held-out id list (heldout_eval_v1_ids.PRIVATE.jsonl)")
     ap.add_argument("--policy", type=Path, default=HERE / "ocr2_policy.json")
-    ap.add_argument("--manifest", type=Path, default=HERE / "results" / "ocr2_pack_v1_manifest.json")
+    ap.add_argument("--manifest", type=Path, default=HERE / "results" / "ocr2_pack_v1_p1536_manifest.json",
+                    help="pack manifest (p1536 since 16 Nov 2026; the C3 record is ocr2_pack_v1_c3_manifest.json)")
     ap.add_argument("--bundle-dir", type=Path, help="private output folder (not in Git)")
     ap.add_argument("--summary", type=Path, help="public summary JSON (counts and hashes only)")
     a = ap.parse_args(argv)
     summary, rows = verify(a.ids, json.loads(a.policy.read_text(encoding="utf-8")),
                            json.loads(a.manifest.read_text(encoding="utf-8")))
-    summary["pack_manifest"]["sha256"] = sha256_file(a.manifest)
+    summary["pack_manifest"] = {"name": a.manifest.name, "sha256": sha256_file(a.manifest)}
     bad = [k for k, v in summary["checks"].items() if not v]
     print(f"held-out rows {summary['rows']} families {summary['families']} by source {summary['rows_by_source']} "
           f"not held under rule {summary['families_not_held_under_rule']} -> {'OK' if not bad else 'FAILED: ' + ', '.join(bad)}")

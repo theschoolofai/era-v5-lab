@@ -22,12 +22,15 @@ Model kinds (config `model.kind`):
                  strict checkpoint/KE2/tokenizer checks, G10 chat codec, router and trainable sets from the adapter.
                  Exits 3 with out_dir/status.json = WAITING_FOR_G5_ARTIFACT until the checkpoint exists. A fixture
                  adapter config needs model.allow_fixture_smoke: true and writes smoke_summary.json, never summary.json.
+                 model.kv_cache: true samples through rl-loop/g5_decode.py (KV cache built from G5's own modules).
 Task kinds (config `task.kind`): toy (see tasks.py), code_tasks (rl/tasks via rl/reward.py; needs an hf tokenizer).
 
 GPU-run options (config `train.*`, all optional):
     sampler        policy | hf_batch | vllm (rollout.py). Default hf_batch for HF models, policy otherwise.
     vllm           kwargs for the colocated engine, e.g. {gpu_memory_utilization: 0.3, max_model_len: 2048}
     fp32_master    default true: trainable weights in fp32 under bf16 autocast (policy.use_fp32_master)
+    autocast       bf16 | unset (default): force bf16 autocast for the policy's forward. Needed for a G5 checkpoint,
+                   which is stored in fp32 (fp32_master then converts nothing and the run would be all-fp32)
     tis_clip       truncated importance sampling for the vLLM/trainer gap (grpo.tis_weights), e.g. 2.0
     routing_log    expert load and top-k flip rates (routing.py); routing_probe = held-out prompts in the probe
     kl_to_start    K3 KL(current || step 0) on held-out completions at every eval
@@ -109,7 +112,8 @@ def build_model(mcfg: dict, device: str):
     if kind == "team5_adapter":
         import team5_adapter  # noqa: PLC0415
         return team5_adapter.build_policy_and_codec(mcfg["adapter_config"], device, mcfg.get("effort", "4k"),
-                                                    bool(mcfg.get("allow_fixture_smoke", False)))
+                                                    bool(mcfg.get("allow_fixture_smoke", False)),
+                                                    bool(mcfg.get("kv_cache", False)))
     raise ValueError(f"unknown model.kind {kind!r}")
 
 
@@ -261,6 +265,8 @@ def state_identity(cfg: dict, trainable_named) -> dict:
     t = cfg["train"]
     keys = ("algo", "k", "max_new", "temperature", "lr", "prompts_per_step", "ppo_epochs", "trainable", "tr_epsilon",
             "micro_rows", "weight_decay", "fp32_master", "sampler", "clip_eps", "kl_coef", "grad_clip", "screen")
+    if t.get("autocast") is not None:  # preserve identities of runs saved before this option existed
+        keys += ("autocast",)
     if t.get("dt"):  # only present for Deletion Tuning runs, so states saved before train.dt existed stay valid
         keys += ("dt",)
     names = "\n".join(f"{n}:{tuple(p_.shape)}" for n, p_ in trainable_named)
@@ -749,6 +755,13 @@ def train(cfg: dict) -> dict:
         model.eval()
     n_trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
     n_fp32 = use_fp32_master(policy) if t.get("fp32_master", True) and not dt_cfg else 0
+    if t.get("autocast") is not None:
+        # Explicit compute dtype. A G5 checkpoint is stored in fp32 (train_week2 keeps fp32 weights under CUDA bf16
+        # autocast), so use_fp32_master converts nothing and, without this, the policy runs entirely in fp32. G5's KE2
+        # projection also returns fp32 by design, so bf16-stored G5 weights only run under autocast.
+        if t["autocast"] != "bf16":
+            raise ValueError("train.autocast must be bf16 or unset")
+        policy.amp_dtype = torch.bfloat16
     trainable_named = [(n, p) for n, p in model.named_parameters() if p.requires_grad]
 
     def sync_named():  # what the sampler must hold after an update
@@ -781,7 +794,8 @@ def train(cfg: dict) -> dict:
     fixture_smoke = adapter is not None and adapter.status != "READY"
     metrics_path = out / ("smoke_metrics.jsonl" if fixture_smoke else "metrics.jsonl")
     if fixture_smoke:
-        (out / "FIXTURE_SMOKE_NOT_A_RESULT").write_text("Built from a fixture adapter config; not a G5 result.\n")
+        (out / "FIXTURE_SMOKE_NOT_A_RESULT").write_text(f"Built from a {adapter.status} adapter config "
+                                                        f"(mode {adapter.mode}); not a G5 result.\n")
     gen_cohort = torch.Generator(device=gen_device).manual_seed(seed + 3)  # train-cohort evaluation stream
     gen_extra = torch.Generator(device=gen_device).manual_seed(seed + 1)  # own stream: training stays as without it
     gens = {"gen": gen, "gen_extra": gen_extra, "gen_cohort": gen_cohort}

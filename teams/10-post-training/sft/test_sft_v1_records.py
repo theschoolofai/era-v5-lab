@@ -284,6 +284,31 @@ def test_only_the_c3_tokenizer_is_accepted(tmp_path):
     records.require_c3(str(other), allow_other=True)
 
 
+def test_the_default_pin_is_p1536_and_c3_needs_its_label(tmp_path):
+    """New records use p1536 (TSAI froze it on 15 Nov 2026); a C3 file is refused unless C3 is asked for by name."""
+    import argparse
+
+    tok = tmp_path / "tok.json"
+    tok.write_text("{}", encoding="utf-8")
+    assert records.FROZEN_TOKENIZERS["p1536"] == "e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b"
+    assert records.DEFAULT_TOKENIZER == "p1536"
+    with pytest.raises(SystemExit, match="pinned p1536 tokenizer"):
+        records.require_tokenizer(str(tok))
+    with pytest.raises(SystemExit, match="unknown tokenizer label"):
+        records.require_tokenizer(str(tok), "c4")
+    real = records.sha256_file(tok)
+    pins = dict(records.FROZEN_TOKENIZERS)
+    try:
+        records.FROZEN_TOKENIZERS["c3"] = real  # stand-in: this file plays C3
+        with pytest.raises(SystemExit):
+            records.require_tokenizer(str(tok))  # still not p1536
+        ns = argparse.Namespace(tokenizer=str(tok), tokenizer_label="c3", allow_other_tokenizer=False)
+        assert records._tok_label(ns) == "C3"
+    finally:
+        records.FROZEN_TOKENIZERS.clear()
+        records.FROZEN_TOKENIZERS.update(pins)
+
+
 def test_global_budget_refuses_a_start_that_would_pass_it(tmp_path):
     import argparse
 

@@ -45,3 +45,19 @@ def test_ids_never_reach_the_public_body():
     out, _ = rc.close(CC, MATH, EFFORT)
     text = repr(out)
     assert not any(t["id"] in text for t in CC) and "math-toy" not in text
+
+
+def test_the_evaluation_firewall_splits_the_close_pool_without_changing_it():
+    base, base_private = rc.close(CC, MATH, EFFORT)
+    out, private = rc.close(CC, MATH, EFFORT, rl_heldout={"cc-aizu-1", "cc-atcoder-6"}, sft_heldout_match={"cc-codechef-3", "cc-aizu-1"})
+    code = out["parts"]["code"]
+    assert code["pool_tasks"] == base["parts"]["code"]["pool_tasks"] and private["code_pool_ids.txt"] == base_private["code_pool_ids.txt"]
+    assert private["code_train_pool_ids.txt"] == base_private["code_pool_ids.txt"] - {"cc-aizu-1", "cc-codechef-3"}
+    assert code["train_pool_tasks"] == code["pool_tasks"] - 2
+    h = out["flags"]["rl_heldout_v1"]
+    assert (h["listed"], h["in_close_pool"], h["outside_close_pool"]) == (2, 1, 1)  # cc-atcoder-6 is an effort-suite task
+    assert out["flags"]["sft_heldout"]["also_rl_heldout"] == 1 and out["parts"]["heldout"]["tasks"] == 2
+    assert "cc-aizu-1" not in str(out)  # ids stay private
+    import pytest
+    with pytest.raises(ValueError):
+        rc.close(CC, MATH, EFFORT, rl_heldout={"cc-nowhere-9"})

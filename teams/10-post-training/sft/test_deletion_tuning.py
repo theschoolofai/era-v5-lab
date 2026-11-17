@@ -54,3 +54,21 @@ def test_three_methods_take_equal_steps_and_only_fft_changes_the_base():
     assert methods["lora"]["base_changed"] is False
     assert methods["fft"]["base_changed"] is True
     assert methods["fft"]["loss_end"] < methods["fft"]["loss_start"]
+
+
+def test_sweep_covers_all_three_layer_targets_and_deletion_fractions():
+    report = compare_mod.compare_sweep(steps=2, seed=0)
+    assert report["layer_targets"] == ["mlp_gate", "all_mlp", "attention"]
+    assert report["deletion_fractions"] == [0.20, 0.50, 0.80]
+    # 3 layers x (1 FFT + 1 LoRA + 3 DT) = 15 records
+    assert len(report["records"]) == 15
+    for r in report["records"]:
+        if r["method"] == "dt":
+            assert r["base_changed"] is False
+            assert r["forgetting"] == 0.0
+            assert 0.0 < r["deleted_fraction"] < 1.0
+        elif r["method"] == "lora":
+            assert r["base_changed"] is False
+        elif r["method"] == "fft":
+            assert r["base_changed"] is True
+

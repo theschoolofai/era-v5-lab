@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""C3 token records for one SFT set: run `convert.py`, check the output, write a record (WP14).
+"""Token records for one SFT set with a pinned frozen tokenizer (p1536 by default, C3 for the earlier records): run `convert.py`, check the output, write a record (WP14).
 
     python sft_v1_records.py run --set sft-dolly-15k --rows 1000 --tokenizer tokenizer.json \
         --revisions-json hf_pins.json --out-dir private/p1 --record-dir records
@@ -49,16 +49,35 @@ import numpy as np
 HERE = Path(__file__).resolve().parent
 TEAM = HERE.parent
 MAX_LEN = 32768  # max_sequence_tokens, provisional for SFT data v1 (TSAI 14 Nov 2026)
-C3_SHA256 = "15468e66457b43af79f695cbe585c0d03e3cfe7a4a5d04d189dd3c6b9f02ddc3"  # C3 sample-v0 tokenizer.json
+C3_SHA256 = "15468e66457b43af79f695cbe585c0d03e3cfe7a4a5d04d189dd3c6b9f02ddc3"  # C3 sample-v0 tokenizer.json (14 Nov)
+P1536_SHA256 = "e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b"  # p1536, TSAI Gate 3 notice (15 Nov)
+# Frozen tokenizers by label. p1536 is the one for new work; C3 stays only to reproduce the C3 records.
+FROZEN_TOKENIZERS = {"p1536": P1536_SHA256, "c3": C3_SHA256}
+DEFAULT_TOKENIZER = "p1536"
+
+
+def require_tokenizer(path: str, label: str = DEFAULT_TOKENIZER, allow_other: bool = False) -> str:
+    """Refuse a tokenizer file whose sha256 is not the pinned one for `label` (a record from another tokenizer
+    would be mislabelled). Returns the label written into the record's scope."""
+    if label not in FROZEN_TOKENIZERS:
+        raise SystemExit(f"unknown tokenizer label {label!r}; known: {sorted(FROZEN_TOKENIZERS)}")
+    if allow_other:
+        return label
+    got, want = sha256_file(Path(path)), FROZEN_TOKENIZERS[label]
+    if got != want:
+        raise SystemExit(f"{path} has sha256 {got}, not the pinned {label} tokenizer {want}")
+    return label
 
 
 def require_c3(path: str, allow_other: bool = False) -> None:
-    """Refuse a tokenizer file other than C3 (records from another tokenizer would be mislabelled)."""
-    if allow_other:
-        return
-    got = sha256_file(Path(path))
-    if got != C3_SHA256:
-        raise SystemExit(f"{path} has sha256 {got}, not the C3 tokenizer {C3_SHA256}")
+    """The C3 pin (kept for the C3 records of 14-16 Nov)."""
+    require_tokenizer(path, "c3", allow_other)
+
+
+def _tok_label(a) -> str:
+    """Check `--tokenizer` against `--tokenizer-label`'s pin; the name used in record scopes ("p1536" or "C3")."""
+    label = require_tokenizer(a.tokenizer, getattr(a, "tokenizer_label", DEFAULT_TOKENIZER), a.allow_other_tokenizer)
+    return "C3" if label == "c3" else label
 
 
 def _load(name: str, path: Path):
@@ -322,7 +341,7 @@ def run_convert(a, out: Path, progress: Path) -> dict:
 
 def cmd_run(a) -> int:
     os.environ.setdefault("RAYON_NUM_THREADS", "2")  # the check pass runs in this process; keep it off the other slot's cores
-    require_c3(a.tokenizer, a.allow_other_tokenizer)
+    label = _tok_label(a)
     out_dir = Path(a.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     out = out_dir / f"{a.set}.first{a.rows}.jsonl"
@@ -334,8 +353,8 @@ def cmd_run(a) -> int:
     checks = check_files([out], a.tokenizer)
     check_s = time.monotonic() - t0
     record = {
-        "set": a.set, "scope": (f"first {a.source_rows} source rows (an equal share of each subset), C3" if getattr(a, "source_rows", None)
-                  else f"first {a.rows} selected rows, source order, C3"), "tokenizer_sha256": sha256_file(Path(a.tokenizer)),
+        "set": a.set, "scope": (f"first {a.source_rows} source rows (an equal share of each subset), {label}" if getattr(a, "source_rows", None)
+                  else f"first {a.rows} selected rows, source order, {label}"), "tokenizer_sha256": sha256_file(Path(a.tokenizer)),
         "decision": man["decision"], "generator_model": man["generator_model"], "licence": man["licence"], "source": man["source"],
         "hub_revision": man.get("hub_revision"), "input": man["input"], "selection": man["selection"],
         "rows_scanned": man["rows_scanned"], "rows_in": man["rows_in"], "rows_out": man["rows"], "skipped": man["skipped"],
@@ -404,7 +423,7 @@ def cmd_full(a) -> int:
     import shutil
 
     os.environ.setdefault("RAYON_NUM_THREADS", str(a.threads))  # the check pass runs in this process
-    require_c3(a.tokenizer, a.allow_other_tokenizer)
+    label = _tok_label(a)
 
     out_dir = Path(a.out_dir) / a.set
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -478,7 +497,7 @@ def cmd_full(a) -> int:
     plain = sum(p["plain_bytes"] for p in parts)
     gz = sum(p["gz_bytes"] for p in parts)
     record = {
-        "set": a.set, "scope": "full set as selected by the adapter, source order, C3", "status": a.status,
+        "set": a.set, "scope": f"full set as selected by the adapter, source order, {label}", "status": a.status,
         "tokenizer_sha256": sha256_file(Path(a.tokenizer)), "decision": manifest["decision"], "generator_model": manifest["generator_model"],
         "licence": manifest["licence"], "source": manifest["source"], "hub_revision": manifest.get("hub_revision"),
         "input": manifest["input"], "selection": manifest["selection"], "rows_scanned": manifest["rows_scanned"],
@@ -571,7 +590,7 @@ def cmd_check_parts(a) -> int:
     """Check the finished parts of a running conversion, one part at a time, and store each result next to its gz sha256.
 
     Run it while `full` is still converting; `finalize` reuses every stored result that is still valid and checks the rest."""
-    require_c3(a.tokenizer, a.allow_other_tokenizer)
+    _tok_label(a)
     set_dir = Path(a.out_dir) / a.set
     tok, tsha = load_tok(a.tokenizer), sha256_file(Path(a.tokenizer))
     deadline = time.monotonic() + a.max_seconds if a.max_seconds else None
@@ -599,7 +618,7 @@ def cmd_finalize(a) -> int:
 
     Every check `full` makes is made here, from the files on disk:
       * the manifest exists, names exactly the parts on disk (no extra, partial or uncompressed part), and its Hub revision,
-        tokenizer hash and decision agree with the pin file, the C3 hash and the licence table;
+        tokenizer hash and decision agree with the pin file, the pinned tokenizer hash and the licence table;
       * each part decompresses to the end (gzip CRC) and its plain bytes are hashed; the hash of all plain bytes in order
         equals the manifest's `content_sha256`; the line count equals the manifest's row count;
       * every row check of `check_files` (parse round trip, ids, decode, masks, spans, tool blocks, EOS, length, unique ids),
@@ -607,7 +626,7 @@ def cmd_finalize(a) -> int:
       * the first rows are converted again from the pinned source and their hash equals the first lines of the output.
     What the original run measured and this one cannot (convert wall time, CPU time, peak RSS, rows per second, Hub bytes)
     is written as null with the reason. The record is written once, atomically, after every check has passed."""
-    require_c3(a.tokenizer, a.allow_other_tokenizer)
+    label = _tok_label(a)
     os.environ.setdefault("RAYON_NUM_THREADS", str(a.threads))
     out_dir = Path(a.out_dir) / a.set
     prefix = out_dir / a.set
@@ -634,7 +653,7 @@ def cmd_finalize(a) -> int:
     if manifest.get("hub_revision") != pins.get(meta["source"], {}).get("sha"):
         problems.append(f"manifest hub_revision {manifest.get('hub_revision')} is not the pinned {pins.get(meta['source'], {}).get('sha')}")
     if f"tokenizer sha256 {tsha}" != manifest.get("effort_counter"):
-        problems.append("manifest effort_counter does not name the C3 tokenizer hash")
+        problems.append(f"manifest effort_counter does not name the {label} tokenizer hash")
     for key in ("decision", "generator_model", "licence", "source"):
         if manifest.get(key) != meta[key]:
             problems.append(f"manifest {key} differs from the licence table now")
@@ -693,7 +712,7 @@ def cmd_finalize(a) -> int:
     plain, gz_total = sum(p["plain_bytes"] for p in parts), sum(p["gz_bytes"] for p in parts)
     unknown = "unknown: the converter was not run by this command, and the original driver did not record it"
     record = {
-        "set": a.set, "scope": "full set as selected by the adapter, source order, C3", "status": a.status,
+        "set": a.set, "scope": f"full set as selected by the adapter, source order, {label}", "status": a.status,
         "tokenizer_sha256": tsha, "decision": manifest["decision"], "generator_model": manifest["generator_model"],
         "licence": manifest["licence"], "source": manifest["source"], "hub_revision": manifest.get("hub_revision"),
         "input": manifest["input"], "selection": manifest["selection"], "rows_scanned": manifest["rows_scanned"],
@@ -771,7 +790,9 @@ def main() -> int:
     r.add_argument("--set", required=True)
     r.add_argument("--rows", type=int, default=1000)
     r.add_argument("--tokenizer", required=True)
-    r.add_argument("--allow-other-tokenizer", action="store_true", help="skip the C3 sha256 check (tests only)")
+    r.add_argument("--tokenizer-label", choices=sorted(FROZEN_TOKENIZERS), default=DEFAULT_TOKENIZER,
+                    help="which pinned tokenizer --tokenizer must be (default p1536, frozen 15 Nov 2026)")
+    r.add_argument("--allow-other-tokenizer", action="store_true", help="skip the pinned-tokenizer sha256 check (tests only)")
     r.add_argument("--revisions-json")
     r.add_argument("--file-spec")
     r.add_argument("--source-rows", type=int, help="read exactly this many source rows instead of --rows selected rows")
@@ -782,7 +803,9 @@ def main() -> int:
     f = sub.add_parser("full")
     f.add_argument("--set", required=True)
     f.add_argument("--tokenizer", required=True)
-    f.add_argument("--allow-other-tokenizer", action="store_true", help="skip the C3 sha256 check (tests only)")
+    f.add_argument("--tokenizer-label", choices=sorted(FROZEN_TOKENIZERS), default=DEFAULT_TOKENIZER,
+                    help="which pinned tokenizer --tokenizer must be (default p1536, frozen 15 Nov 2026)")
+    f.add_argument("--allow-other-tokenizer", action="store_true", help="skip the pinned-tokenizer sha256 check (tests only)")
     f.add_argument("--revisions-json")
     f.add_argument("--out-dir", required=True)
     f.add_argument("--record-dir", required=True)
@@ -800,6 +823,8 @@ def main() -> int:
     cp = sub.add_parser("check-parts", help="check the finished parts of a running conversion and store each result")
     cp.add_argument("--set", required=True)
     cp.add_argument("--tokenizer", required=True)
+    cp.add_argument("--tokenizer-label", choices=sorted(FROZEN_TOKENIZERS), default=DEFAULT_TOKENIZER,
+                    help="which pinned tokenizer --tokenizer must be (default p1536, frozen 15 Nov 2026)")
     cp.add_argument("--out-dir", required=True)
     cp.add_argument("--partials-dir", required=True, type=Path)
     cp.add_argument("--max-seconds", type=float, help="stop starting new parts after this long")
@@ -809,6 +834,8 @@ def main() -> int:
     fz = sub.add_parser("finalize", help="finish a conversion from its files on disk and write the full record")
     fz.add_argument("--set", required=True)
     fz.add_argument("--tokenizer", required=True)
+    fz.add_argument("--tokenizer-label", choices=sorted(FROZEN_TOKENIZERS), default=DEFAULT_TOKENIZER,
+                    help="which pinned tokenizer --tokenizer must be (default p1536, frozen 15 Nov 2026)")
     fz.add_argument("--revisions-json", required=True)
     fz.add_argument("--out-dir", required=True)
     fz.add_argument("--record-dir", required=True)
