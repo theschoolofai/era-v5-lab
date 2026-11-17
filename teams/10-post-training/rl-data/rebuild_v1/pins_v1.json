@@ -429,7 +429,22 @@
   "pool/rl-code-code-contests-noncf.v1.pool.jsonl": "84b0a645882fd3c518eb543432f3758bbde564e9aab3dca99e534834abc2b5f1",
   "pool/rl-math-hendrycks-math-train.v1.pool.jsonl": "5148ce7a52f8767755957d8981bc9db3a62d8049fcc3369835223762d8180de4",
   "pool/rl-code-v1-close.pool.jsonl": "71e000f4a34081a8b9d45e9558747fa69de44c1c6a0770ad2d2a6e3b0b3efbfc",
-  "pool/rl-math-v1-reserved.pool.jsonl": "f90a7b1fe5a6b1c946151a2bf69fe85b605c7ce7d487a5c26776fd8523f3c25a"
+  "pool/rl-math-v1-reserved.pool.jsonl": "f90a7b1fe5a6b1c946151a2bf69fe85b605c7ce7d487a5c26776fd8523f3c25a",
+  "pool/rl-code-v1-train.pool.jsonl": "cd1aa76ef1216f6fc6fdcf63fc0b69c98fa6a5d58a510f28be9050fecbedcce1",
+  "pool/rl-code-v1-heldout.pool.jsonl": "935857bb0246172aa0439445dd54ef9bbbe282ad2b5ea87ddd100429c9e31ae5"
  },
- "expected_note": "the first 8 equal the 11 Nov record and the 15 and 16 Nov rebuilds; the v1 pools equal the v1 manifests' prompt_pool; the close pools equal rl_data_v1_close.json's flags (16 Nov)"
+ "expected_note": "the first 8 equal the 11 Nov record and the 15 and 16 Nov rebuilds; the v1 pools equal the v1 manifests' prompt_pool; the close pools equal rl_data_v1_close.json's flags (16 Nov); the last two (training pool, held-out part) are written only with the firewall lists (16 Nov)",
+ "firewall": {
+  "note": "evaluation firewall (G10 lead, 16 Nov 2026): private id lists, sent with the job request, never in Git",
+  "rl_heldout_ids": {
+   "name": "rl_heldout_v1_ids.txt",
+   "rows": 255,
+   "sha256": "0e2c6f7835d98fdef72b76320604e020e3803ad650d88fcc64885843bdc09163"
+  },
+  "sft_heldout_match_ids": {
+   "name": "sft_heldout_match_ids.txt",
+   "rows": 82,
+   "sha256": "105103bebd0ba77f93d76536f7d8924e34edf16fd3121c60711199e82c0cf160"
+  }
+ }
 }

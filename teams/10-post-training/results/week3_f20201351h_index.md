@@ -4,7 +4,7 @@ One consolidated draft PR targets `saitej123:g10-week3-post-training`. Original 
 
 | Component | Report / entry point | Verified scope | Remaining gates |
 |---|---|---|---|
-| OCR-2 pack (former #79) | `../sft/results/ocr2_pack_v1.md`, `../sft/results/ocr2_pack_v1_manifest.json` | 70 shards; 418,496 train rows; 8,507 held-out; hashes/reconciliation | 14 source spot checks; full private split-seed/row-ID manifest handoff; other stated admission conditions |
+| OCR-2 pack (former #79), C3 record | `../sft/results/ocr2_pack_v1_c3.md`, `../sft/results/ocr2_pack_v1_c3_manifest.json` | 70 shards; 418,496 train rows; 8,507 held-out; hashes/reconciliation | 14 source spot checks; full private split-seed/row-ID manifest handoff; other stated admission conditions |
 | SFT/format bench (former #81) | `small_sft.md`, `../sft/bench/` | Surrogate training/evaluation harness and measured full-FT/LoRA results | Exploratory data/protocol limits; no capstone improvement claim |
 | DT comparison (former #85) | `dt_sft_surrogate.md`, `../dt/` | SmolLM2-135M and 1.7B base/instruct comparisons, marker hybrid and small fresh supplement | Additional seeds, deletion/layer sweeps, capstone test and DT-then-RL remain unrun |
 | C3 SFT measurements (former #86) | `../sft/results/sft_v1_token_records.md` | 23 prefixes + 3 full sets; full Proofs 920,881 unique rows / 10,383,997,134 tokens; all 26 records checked | Further full-mix builds; reserved/held-source rulings; decontamination, held-out exclusions and length dropping before packing |
