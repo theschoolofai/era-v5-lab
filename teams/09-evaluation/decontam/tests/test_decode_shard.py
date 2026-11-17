@@ -3,10 +3,11 @@
     pytest teams/09-evaluation/decontam/tests/test_decode_shard.py -q
 
 The unit tests build tiny shards in shard format v1 with a small word-level tokenizer, so they need numpy, pyarrow and
-tokenizers but not the C3 tokenizer.json (8 MB, not in the repo). They are skipped without those packages.
+tokenizers but not a frozen tokenizer.json (8 MB, not in the repo). They are skipped without those packages.
 
 One more test runs on a real shard when ERA_SHARD (a <shard_id>.bin with its .idx.npy, .docs.parquet and .json next to
-it) and ERA_C3_TOKENIZER (the frozen C3 tokenizer.json) are set; ERA_SHARD_CLEAN (the run_clean.py *_clean.parquet it
+it) and ERA_TOKENIZER (the frozen tokenizer.json the shard was written with: p1536, or C3 for Data A's sample shard;
+the old name ERA_C3_TOKENIZER also works) are set; ERA_SHARD_CLEAN (the run_clean.py *_clean.parquet it
 came from) adds the round-trip check. Data A's sample shard (teams/01-data-a/shards/sample/README.md) can be rebuilt
 for this with the two commands in its README.
 """
@@ -28,7 +29,8 @@ import decode_shard as ds  # noqa: E402
 from decontam_check import read_docs  # noqa: E402
 
 EOS, SPECIAL = 9, 9  # toy vocab: id 9 is the EOS and the first special id
-VOCAB = {"[UNK]": 0, "hello": 1, "world": 2, "foo": 3, "bar": 4, "baz": 5, "<x>": 8, "<eos>": 9}
+# ids 0-9 with no gaps, so tokens a test adds get fresh ids (10, 11, ...), as in p1536 and C3
+VOCAB = {"[UNK]": 0, "hello": 1, "world": 2, "foo": 3, "bar": 4, "baz": 5, "qux": 6, "quux": 7, "<x>": 8, "<eos>": 9}
 DOCS = {"d1": "hello world", "d2": "foo bar baz", "d3": "world"}  # d1: 0-2, d2: 3-6, d3: 7-8 (EOS last)
 
 
@@ -196,9 +198,40 @@ def test_cli_writes_one_file_per_shard(tmp_path, toy_tokenizer, capsys):
     assert "decoded 2 of 2 shard(s)" in capsys.readouterr().err
 
 
-def test_refuses_a_tokenizer_that_is_not_c3(toy_tokenizer):
-    with pytest.raises(ds.ShardError, match="not the frozen C3"):
+def test_refuses_a_tokenizer_that_is_not_frozen(toy_tokenizer):
+    with pytest.raises(ds.ShardError, match="is not a frozen tokenizer"):
         ds.load_tokenizer(toy_tokenizer)
+
+
+def test_frozen_set_is_p1536_and_c3():
+    """The two sha256 from TSAI's Gate 3 notice (p1536, 15 Nov) and the G3 freeze (C3, #340)."""
+    assert ds.FROZEN_TOKENIZERS == {
+        "e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b": "p1536",
+        "15468e66457b43af79f695cbe585c0d03e3cfe7a4a5d04d189dd3c6b9f02ddc3": "C3"}
+
+
+def test_both_frozen_tokenizers_load_and_others_are_refused(tmp_path, monkeypatch):
+    """Two toy tokenizers stand in for p1536 and C3 (same vocab, EOS and specials, different sha256)."""
+    p1536, c3, other = _toy(tmp_path, ["<a>"]), _toy(tmp_path, ["<a>", "<b>"]), _toy(tmp_path, ["<a>", "<b>", "<c>"])
+    monkeypatch.setattr(ds, "FROZEN_TOKENIZERS", {_sha(p1536): "p1536", _sha(c3): "C3"})
+    for path in (p1536, c3, other):
+        assert ds.Tokenizer.from_file(str(path)).id_to_token(EOS) == "<eos>"  # added tokens did not take id 9
+    monkeypatch.setattr(ds, "EOS_ID", EOS)
+    monkeypatch.setattr(ds, "EOS", "<eos>")
+    for path in (p1536, c3):
+        monkeypatch.setattr(ds, "VOCAB", ds.vocab_end(ds.Tokenizer.from_file(str(path))))
+        assert ds.load_tokenizer(path)[1] == _sha(path)
+    with pytest.raises(ds.ShardError, match=r"is not a frozen tokenizer \(p1536 .*, C3 .*\)"):
+        ds.load_tokenizer(other)
+
+
+def test_shard_from_one_frozen_tokenizer_is_refused_with_the_other(tmp_path, toy_tokenizer):
+    """The manifest names the tokenizer the shard was written with; decoding with another one is refused."""
+    files = write_shard(tmp_path, toy_tokenizer)
+    other = _toy(tmp_path, ["<a>"])
+    tok, sha = ds.load_tokenizer(other, any_tokenizer=True)
+    with pytest.raises(ds.ShardError, match="tokenizer_sha256"):
+        ds.decode_shard(files["bin"], tok, sha, eos_id=EOS, special_from=SPECIAL)
 
 
 # --- shards that must be refused ----------------------------------------------------------------------------------
@@ -213,7 +246,8 @@ def test_refuses_a_tokenizer_that_is_not_c3(toy_tokenizer):
     (_docs(doc_id=["d1", "d2", "d3"]), "no n_tokens column"),
     (_docs(doc_id=["d1", "d1", "d3"], n_tokens=[3, 4, 2]), "not unique"),
     (_docs(doc_id=["d1", None, "d3"], n_tokens=[3, 4, 2]), "null or empty"),
-    (_docs(doc_id=["d3", "d1", "d2"], n_tokens=[2, 3, 4]), r"row 0 \(d3\) n_tokens 2, the index gives 3"),  # rows shifted
+    # rows shifted by one: every doc_id would point at another document's text
+    (_docs(doc_id=["d3", "d1", "d2"], n_tokens=[2, 3, 4]), r"row 0 \(d3\) n_tokens 2, the index gives 3"),
     (_set_token(1, EOS), "special id 9 inside document d1"),            # an EOS inside a document
     (_set_token(4, 8), "special id 8 inside document d2"),              # a reserved special id inside a document
     (_set_token(4, 200_000), "token id 200000 at position 4 is not below the vocab size 10"),
@@ -236,7 +270,7 @@ def test_merged_documents_are_refused(tmp_path, toy_tokenizer):
 
 
 def test_added_special_token_below_the_reserved_block_is_refused(tmp_path):
-    """C3 has added special tokens below 130,725 (e.g. 36, 129994); they count as special too."""
+    """p1536 and C3 have added special tokens below 130,725 (e.g. 36, 129994); they count as special too."""
     path = _toy(tmp_path, specials=["<sp>"])
     from tokenizers import Tokenizer
     sp_id = Tokenizer.from_file(str(path)).token_to_id("<sp>")
@@ -380,13 +414,14 @@ def test_check_text_with_several_shards_is_refused(tmp_path, toy_tokenizer, caps
 
 # --- a real shard (optional) --------------------------------------------------------------------------------------
 
-real = pytest.mark.skipif(not (os.environ.get("ERA_SHARD") and os.environ.get("ERA_C3_TOKENIZER")),
-                          reason="set ERA_SHARD and ERA_C3_TOKENIZER to test a real shard")
+REAL_TOKENIZER = os.environ.get("ERA_TOKENIZER") or os.environ.get("ERA_C3_TOKENIZER")
+real = pytest.mark.skipif(not (os.environ.get("ERA_SHARD") and REAL_TOKENIZER),
+                          reason="set ERA_SHARD and ERA_TOKENIZER to test a real shard")
 
 
 @real
 def test_real_shard_decodes():
-    tok, sha = ds.load_tokenizer(os.environ["ERA_C3_TOKENIZER"])
+    tok, sha = ds.load_tokenizer(REAL_TOKENIZER)
     table = ds.decode_shard(os.environ["ERA_SHARD"], tok, sha)
     docs = pq.read_table(ds.shard_files(os.environ["ERA_SHARD"])["docs"])
     assert table.column("doc_id").to_pylist() == [str(d) for d in docs.column("doc_id").to_pylist()]
