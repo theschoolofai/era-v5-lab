@@ -30,6 +30,8 @@ records the time to alert. Add one row per rule you test, plus a short "How to r
 | @pyru | `throughput_drop` (warn) | synthetic 400-step stream, `MetricsWriter` + `AlarmMonitor`, default settings | 200 | 299 (jsonl: 300) | 99 (jsonl: 100) | 0.082 | 3.577 | PASS |
 | @sohamniyogi | `val_regression` (warn) | synthetic 300-step stream, `MetricsWriter` + `AlarmMonitor`, `val_regression_frac=0.02`, validation every 25 steps | 275 | 275 (jsonl: 280) | 0 (jsonl: 5) | 0.022 | 0.513 | PASS |
 | @sohamniyogi | `spike_score` (page) after a checkpoint restore | synthetic 300-step stream, `MetricsWriter` + `AlarmMonitor`; checkpoint at 200, crash at 207, resume with `load_state_dict()` | 201 | 201 (jsonl: 210) | 0 (jsonl: 9) | 0.021 | 0.768 | PASS |
+| @pratik-2025 | `step_continuity` (page) | synthetic 200-step stream, `MetricsWriter` + `ContinuityMonitor` (new rule, `continuity_rules.py`) | 185 | 186 (jsonl: 190) | 1 (jsonl: 5) | 0.011 | 1.620 | PASS |
+| @pratik-2025 | `loader_stall` (warn) | synthetic 200-step stream, `MetricsWriter` + `ContinuityMonitor` (new rule), 1.0 s for 20 steps | 120 | 139 (jsonl: 140) | 19 (jsonl: 20) | 0.007 | 30.300 | PASS |
 
 ## @raghavTayal: `non_finite` and `spike_score` (Issue #19)
 
@@ -156,6 +158,7 @@ python teams/08-monitoring/alarms/test_alert_injection_swatibansal.py           
 The test needs only `pytest` (no NumPy or torch). It checks the rule, severity and alert step in-harness, the
 `metrics.jsonl` flush lag (5 for `static_bound`, 1 for `throughput_drop`, whose alert step 249 is one short of the
 step-250 flush), no false alarms, non-negative timings, and the three findings above.
+
 ## @pyru: `static_bound` and `throughput_drop`
 
 **Setup.** [`alarms/test_alert_injection_pyru.py`](../alarms/test_alert_injection_pyru.py) runs a 400-step
@@ -267,3 +270,28 @@ The test needs only `pytest` (no NumPy or torch). It checks:
 - the `metrics.jsonl` flush lag (5 for `val_regression`, 9 for the spike after the restart) and the lost rows;
 - no false alarms, and non-negative timings;
 - the four findings above.
+## @pratik-2025: `step_continuity` and `loader_stall` (Issue #24)
+
+**Setup.** Both rules are new, in [`alarms/continuity_rules.py`](../alarms/continuity_rules.py), because the six rules
+in `alarms.py` were already covered. [`alarms/test_alert_injection_pratik.py`](../alarms/test_alert_injection_pratik.py)
+runs a 200-step synthetic stream (seed 24) through `MetricsWriter` (`flush_every = 10`) and checks it in-harness and
+from `metrics.jsonl`, as above.
+
+**Faults.**
+- `step_continuity`: the row for step 185 is never written. The gap shows when step 186 arrives.
+- `loader_stall`: `loader_wait_time` is 2.0 s (normal 0.05 s) on steps 120 to 159; the rule needs 20 steps above 1.0 s.
+
+**Results.** Both fire once with the expected severity, with no other alarms on either path.
+
+**Finding: a restore can lose metric rows for good.** A trainer killed with SIGKILL loses the rows still in the
+writer's memory. If the restored checkpoint is newer than the last flush, the steps between the flush and the
+checkpoint are never written again (in the test: checkpoint 135, last flush 130, rows 131 to 135 lost, `missing` page
+at 136). Flushing `metrics.jsonl` when a checkpoint is saved keeps every row. Details in
+[`alarms/rotation_pratik-2025.md`](../alarms/rotation_pratik-2025.md).
+
+**How to reproduce.**
+
+```bash
+python -m pytest teams/08-monitoring/alarms/test_alert_injection_pratik.py -q   # 9 tests
+python teams/08-monitoring/alarms/test_alert_injection_pratik.py                 # prints the two table rows
+```
