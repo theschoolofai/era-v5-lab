@@ -4,7 +4,11 @@
         --tokenizer tokenizer.json --byte-table raw_table_P32.npz --heldout H.jsonl --heldout-sources S.jsonl \
         --sft-eval dolly_eval.jsonl [--rl-tasks cc.jsonl --rl-ids easy_rung_ids.txt] --device cuda --out out/
 
+    --sft-dolly databricks-dolly-15k.jsonl replaces --sft-train/--sft-eval: the SFT rows are built at start with the
+    run's own tokenizer and table (capstone/probe_inputs.py) under out/_inputs/, which is removed at exit.
+
 Steps (each writes out/<step>.json; a failed step is recorded and the rest still run):
+  inputs      only with --sft-dolly: SFT rows from public Dolly-15k with the run's tokenizer; counts and sha256
   adapter     team5_adapter run_folder build: hashes, G5 validate, model_hash == summary.json, special ids
   forgetting  Team 5's evaluate() on the held-out file (bpb per slice), the number SFT's forgetting check compares to
   sampling    tokens/s of the native sampler: last-position head vs KV cache (capstone/bench_sampling_g5.py)
@@ -21,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 import subprocess
 import sys
 import time
@@ -128,7 +133,10 @@ def main() -> int:
     ap.add_argument("--byte-table", type=Path, required=True)
     ap.add_argument("--heldout", type=Path, required=True)
     ap.add_argument("--heldout-sources", type=Path)
-    ap.add_argument("--sft-eval", type=Path, required=True)
+    ap.add_argument("--sft-eval", type=Path, help="eval rows (or build them with --sft-dolly)")
+    ap.add_argument("--sft-dolly", type=Path, help="databricks-dolly-15k.jsonl: build SFT train/eval rows with the "
+                    "run's tokenizer (implies the SFT arms)")
+    ap.add_argument("--sft-max-tokens", type=int, default=256, help="row length cap for --sft-dolly (rows dropped, not cut)")
     ap.add_argument("--rl-tasks", type=Path)
     ap.add_argument("--rl-ids", type=Path)
     ap.add_argument("--rl-k", type=int, default=8)
@@ -145,8 +153,17 @@ def main() -> int:
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--out", type=Path, required=True)
     a = ap.parse_args()
+    if not (a.sft_eval or a.sft_dolly):
+        ap.error("give --sft-eval or --sft-dolly")
     out = a.out.resolve()
     out.mkdir(parents=True, exist_ok=True)
+    try:
+        return run(a, out)
+    finally:
+        shutil.rmtree(out / "_inputs", ignore_errors=True)  # built rows never leave the job
+
+
+def run(a, out: Path) -> int:
     from make_adapter_config import write_config  # noqa: PLC0415
     cfg = write_config(out / "adapter.yaml", a.g5_root, a.run_folder, a.tokenizer, a.byte_table, TEAM10, a.origin,
                        not a.no_git)
@@ -186,6 +203,13 @@ def main() -> int:
         summary, _ = sft_g5.generate_and_judge(b, rows, 64, 64)
         return summary
 
+    if a.sft_dolly:
+        def inputs():
+            import probe_inputs  # noqa: PLC0415
+            return probe_inputs.build_dolly(a.sft_dolly, a.tokenizer, a.byte_table, a.sft_max_tokens, out / "_inputs")
+        if not record("inputs", inputs)["ok"]:
+            return finish(out, results)  # every later step reads these rows
+        a.sft_train, a.sft_eval = out / "_inputs" / "sft_train.jsonl", out / "_inputs" / "sft_eval.jsonl"
     record("adapter", adapter)
     record("forgetting", forgetting)
     record("sampling", sub("sampling", [py, str(HERE / "bench_sampling_g5.py"), "--adapter-config", str(cfg),
