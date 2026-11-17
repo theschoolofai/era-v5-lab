@@ -84,11 +84,15 @@ def check_pins(run_folder: Path, tokenizer: Path, table: Path) -> dict:
     return {"checks": checks, "not_recorded": [k for k, c in checks.items() if c["match"] is None]}
 
 
-def run_sft_arm(out: Path, arm: str, cmd: list[str]) -> dict:
-    """Keep reports but remove model text/weights even when an arm fails."""
+def run_sft_arm(out: Path, arm: str, cmd: list[str], timeout: float | None = None) -> dict:
+    """Keep reports but remove model text/weights even when an arm fails. `timeout` (seconds): the arm's process is
+    killed at that point and the arm fails with a deadline message (weights and generations are still removed)."""
     arm_out = out / f"sft_{arm}"
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True)
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            raise RuntimeError(f"arm {arm} stopped at the job's own deadline ({timeout:.0f} s left when it started)") from None
         if r.returncode:
             raise RuntimeError(r.stderr[-1500:])
         rep = json.loads((arm_out / "sft_report.json").read_text())

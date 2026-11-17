@@ -26,7 +26,8 @@ Steps (each writes out/<step>.json; summary.json last; exit 1 if any step failed
               pass rate and mixed groups, with the decision rule of the job request applied. With --rl-seconds and
               --gen-seconds each screen stops starting new prompts at its budget; A2 and A4 are compared on the
               prompts both screens reached (same ids, same order), and the base on the same ids
-Outputs are aggregates only: each arm's weights and generations are deleted after its reload check (day_one_probe
+With --deadline-minutes the job ends by itself at that wall-clock time: an arm still running is killed, its weights
+are removed, and summary.json names the step that stopped. Outputs are aggregates only: each arm's weights and generations are deleted after its reload check (day_one_probe
 run_sft_arm), the rows at exit. Network: none. Writes only to --out. Resumable state is not saved (see the request).
 """
 from __future__ import annotations
@@ -35,6 +36,7 @@ import argparse
 import json
 import shutil
 import sys
+import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -138,9 +140,11 @@ def sft_cmd(a, cfg: Path, rows: Path, dev: Path, arm_out: Path, steps: int, no_b
             *(["--no-before"] if no_before else []), "--out", str(arm_out)]
 
 
-def run_arm(out: Path, arm: str, cmd: list[str]) -> dict:
+def run_arm(out: Path, arm: str, cmd: list[str], timeout: float | None = None) -> dict:
     """day_one_probe.run_sft_arm (weights and generations removed even on failure) plus the optimizer steps done."""
-    res = probe.run_sft_arm(out, arm, cmd)
+    if timeout is not None and timeout <= 0:
+        raise RuntimeError(f"arm {arm} not started: the job's own deadline has passed")
+    res = probe.run_sft_arm(out, arm, cmd, timeout)
     res["steps_completed"] = len(json.loads((out / f"sft_{arm}" / "sft_report.json").read_text()).get("log", []))
     return res
 
@@ -168,6 +172,11 @@ def check_run_and_inputs(a) -> dict:
 
 
 def run(a, out: Path) -> int:
+    t_end = time.monotonic() + a.deadline_minutes * 60 if a.deadline_minutes else None
+
+    def left() -> float | None:
+        return None if t_end is None else t_end - time.monotonic()
+
     results = {"pins": probe.step(out, "pins", lambda: {**probe.check_pins(a.run_folder, a.tokenizer, a.byte_table),
                                                         **check_run_and_inputs(a)})}
     if not results["pins"]["ok"]:
@@ -186,12 +195,12 @@ def run(a, out: Path) -> int:
         return probe.finish(out, results)
     dev = inp / "dev.jsonl"
     results["sft_a2"] = probe.step(out, "sft_a2", lambda: run_arm(
-        out, "a2", sft_cmd(a, cfg, inp / "a2_train.jsonl", dev, out / "sft_a2", a.steps, False)))
+        out, "a2", sft_cmd(a, cfg, inp / "a2_train.jsonl", dev, out / "sft_a2", a.steps, False), left()))
     a2 = results["sft_a2"]
     steps_a4 = a2.get("steps_completed") or a.steps
     before = a2.get("before") if a2["ok"] else None
     results["sft_a4"] = probe.step(out, "sft_a4", lambda: run_arm(
-        out, "a4", sft_cmd(a, cfg, inp / "a4_train.jsonl", dev, out / "sft_a4", steps_a4, before is not None)))
+        out, "a4", sft_cmd(a, cfg, inp / "a4_train.jsonl", dev, out / "sft_a4", steps_a4, before is not None), left()))
 
     def compare():
         reps = {arm: json.loads((out / f"sft_{arm}" / "sft_report.json").read_text())
@@ -239,6 +248,9 @@ def parse_args(argv=None):
     ap.add_argument("--steps", type=int, default=300)
     ap.add_argument("--batch", type=int, default=16)
     ap.add_argument("--max-train-seconds", type=float, default=1200.0, help="training cap of the A2 arm")
+    ap.add_argument("--deadline-minutes", type=float, default=0.0,
+                    help="wall-clock cap of the whole job from its start: an arm still running then is killed and "
+                         "reported as stopped at the deadline (0 = off)")
     ap.add_argument("--gen-limit", type=int, default=32)
     ap.add_argument("--gen-max-new", type=int, default=1536)
     ap.add_argument("--gen-seconds", type=float, default=0.0, help="time budget per greedy format screen")

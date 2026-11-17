@@ -153,7 +153,7 @@ def test_a4_runs_a2s_completed_steps_without_base_eval_and_rows_are_removed(tmp_
             (out / n).write_text("rows")
         return {"train_rows": 1}
 
-    def fake_arm(out, arm, cmd):
+    def fake_arm(out, arm, cmd, timeout=None):
         calls.append((arm, cmd))
         (out / f"sft_{arm}").mkdir(exist_ok=True)
         rep = {"log": [{}] * (7 if arm == "a2" else int(cmd[cmd.index("--steps") + 1])),
@@ -296,3 +296,15 @@ def test_rl_screen_stops_at_budget(tmp_path):
     assert [x[0] for x in r["per_prompt"]] == [f"x{i}" for i in range(r["prompts"])]
     full = job.probe.rl_screen_bundle(Bundle(), tasks, ids, 2, 32, "cpu", 3)
     assert full["prompts"] == 3 and not full["stopped_at_budget"]
+
+
+def test_arm_killed_at_deadline_and_weights_removed(tmp_path):
+    arm_out = tmp_path / "sft_a2"
+    arm_out.mkdir()
+    (arm_out / "model.safetensors").write_bytes(b"w")
+    cmd = [sys.executable, "-c", "import time; time.sleep(30)"]
+    with pytest.raises(RuntimeError, match="deadline"):
+        job.probe.run_sft_arm(tmp_path, "a2", cmd, timeout=0.5)
+    assert not (arm_out / "model.safetensors").exists()
+    with pytest.raises(RuntimeError, match="not started"):
+        job.run_arm(tmp_path, "a4", cmd, timeout=0)
