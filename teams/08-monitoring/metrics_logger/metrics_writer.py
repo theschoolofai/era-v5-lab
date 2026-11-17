@@ -506,11 +506,14 @@ def step_with_update_weight_ratio(optimizer, step, every_n_steps=FLUSH_EVERY):
 
 
 class MetricsWriter:
-    def __init__(self, path, flush_every=FLUSH_EVERY):
+    def __init__(self, path, flush_every=FLUSH_EVERY, *, run_id=None):
         if flush_every < 1:
             raise ValueError("flush_every must be >= 1")
         self.path = path
+        if run_id is not None and (not isinstance(run_id, str) or not run_id.strip()):
+            raise ValueError("run_id must be a nonempty string")
         self.flush_every = flush_every
+        self.run_id = run_id
         self._buffer = []
         self._warned = set()
         directory = os.path.dirname(os.path.abspath(path))
@@ -584,6 +587,8 @@ class MetricsWriter:
             if imbalance is not None:
                 metrics["expert_load_imbalance"] = imbalance
         row = {"step": step, "time": time.time()}
+        if self.run_id is not None:
+            row["run_id"] = self.run_id
         nonfinite = False
         for name, value in metrics.items():
             # Plain JSON has no NaN/Infinity; store null and flush now.
