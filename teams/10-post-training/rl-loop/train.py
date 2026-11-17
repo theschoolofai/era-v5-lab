@@ -119,7 +119,8 @@ def build_model(mcfg: dict, device: str):
 
 def build_task(tcfg: dict, tokenizer, seed: int, pool=None):
     if tcfg["kind"] == "toy":
-        return tasks.ToyTask(**{k: v for k, v in tcfg.items() if k != "kind"}, seed=seed)
+        # task.seed pins the prompts independently of the run seed (same held-out prompts for every run of a comparison)
+        return tasks.ToyTask(**{k: v for k, v in tcfg.items() if k not in ("kind", "seed")}, seed=tcfg.get("seed", seed))
     if tcfg["kind"] == "code_tasks":
         if tokenizer is None:
             raise ValueError("code_tasks needs model.kind hf (a tokenizer)")
@@ -173,6 +174,7 @@ def stdio_task(tcfg: dict, tokenizer, pool=None):
     rl-data/stdio_check.py (Docker, or G10_STDIO_RUNNER=local where Docker is absent, e.g. Modal).
 
     task: {kind: stdio, tasks: <jsonl>, train_ids: <file>, heldout_ids: <file>}
+    require_verifier runs known-answer checks and treats runner failures as errors for the job.
     The prompt is the record's human-written statement as the user message. No instruction text is added: the team
     has not written one, and assistant-written text may not become RL prompts (TSAI 3 Nov rule).
     """
@@ -196,12 +198,31 @@ def stdio_task(tcfg: dict, tokenizer, pool=None):
         return [(i, by_id[i]["statement"]) for i in ids]
 
     reasons, lock = collections.Counter(), threading.Lock()
+    require_verifier = bool(tcfg.get("require_verifier", False))
+
+    def score_stdio(samples):
+        results = pool.score(samples) if pool is not None else [sc.score(record, text) for record, text in samples]
+        buckets = [reason_bucket(result) for result in results]
+        if require_verifier:
+            for result, bucket in zip(results, buckets):
+                # "timeout on a test" is a candidate timeout; "timeout" is the outer runner deadline.
+                if bucket == "runner_failure" or result.get("reason") == "timeout":
+                    raise RuntimeError(f"stdio verifier runner failed: {result.get('reason', 'unknown reason')}")
+        return results, buckets
+
+    if require_verifier:
+        probe = {"id": "stdio-preflight", "tests": [{"input": "7\n", "output": "8\n"}]}
+        correct = "```python\nprint(int(input()) + 1)\n```"
+        wrong = "```python\nprint(int(input()) - 1)\n```"
+        _, buckets = score_stdio([(probe, correct), (probe, wrong)])
+        if buckets != ["pass", "wrong_answer"]:
+            raise RuntimeError(f"stdio verifier preflight expected a pass and a wrong answer, got {buckets}")
 
     def reward_fn(env_id: str, text: str):
-        r = sc.score(by_id[env_id], text)
+        results, buckets = score_stdio([(by_id[env_id], text)])
         with lock:
-            reasons[reason_bucket(r)] += 1
-        return float(r["reward"]), r
+            reasons.update(buckets)
+        return float(results[0]["reward"]), results[0]
 
     task = tasks.RewardEnvTask(tokenizer, items(tcfg["train_ids"]), items(tcfg["heldout_ids"]), reward_fn)
     task.reason_counts, task.reason_lock = reasons, lock
@@ -209,10 +230,9 @@ def stdio_task(tcfg: dict, tokenizer, pool=None):
     task.subgroup_of = lambda prompt: str(by_id[task._items[tuple(prompt)]].get(sub_key, "unknown"))
     if pool is not None:  # score in the small worker processes (score_pool.py), same score() and same order
         def batch_reward(pairs):
-            res = pool.score([(by_id[task._items[tuple(p)]], task.decode(c)) for p, c in pairs])
+            res, buckets = score_stdio([(by_id[task._items[tuple(p)]], task.decode(c)) for p, c in pairs])
             with lock:
-                for r in res:
-                    reasons[reason_bucket(r)] += 1
+                reasons.update(buckets)
             return [float(r["reward"]) for r in res]
         task.batch_reward = batch_reward
     return task
@@ -245,6 +265,13 @@ def pop_reasons(task) -> dict | None:
     return out
 
 
+def prompt_order_sha256(task, prompts: list[list[int]]) -> str:
+    """Identify a score vector's ordered prompt tokens and environment IDs without logging either."""
+    env_ids = getattr(task, "_items", {})
+    ordered = [(env_ids.get(tuple(tokens)), tokens) for tokens in prompts]
+    return hashlib.sha256(json.dumps(ordered, separators=(",", ":")).encode()).hexdigest()
+
+
 # --- durable state ---------------------------------------------------------------------------------
 # A run with train.state_dir keeps everything needed to continue after a kill: fp32 trainable weights, optimizer
 # moments, every random stream, the screened cohort and the step. Files are written to a temporary name and renamed,
@@ -260,7 +287,8 @@ def _file_or_value(v):
     return v
 
 
-def state_identity(cfg: dict, trainable_named) -> dict:
+def state_identity(cfg: dict, trainable_named, *, init_state_sha256: str | None = None,
+                   keep_zero_identity: dict | None = None) -> dict:
     """What must match for a saved state to be continued. `steps`, deadlines and paths may differ between calls."""
     t = cfg["train"]
     keys = ("algo", "k", "max_new", "temperature", "lr", "prompts_per_step", "ppo_epochs", "trainable", "tr_epsilon",
@@ -269,11 +297,16 @@ def state_identity(cfg: dict, trainable_named) -> dict:
         keys += ("autocast",)
     if t.get("dt"):  # only present for Deletion Tuning runs, so states saved before train.dt existed stay valid
         keys += ("dt",)
+    model = {k_: cfg["model"].get(k_) for k_ in ("kind", "path", "dtype", "config")}
+    if init_state_sha256 is not None:
+        model["init_state_sha256"] = init_state_sha256
+    train = {k_: t.get(k_) for k_ in keys}
+    if keep_zero_identity is not None:
+        train["keep_zero"] = keep_zero_identity
     names = "\n".join(f"{n}:{tuple(p_.shape)}" for n, p_ in trainable_named)
-    return {"version": STATE_VERSION, "seed": int(cfg.get("seed", 1234)),
-            "model": {k_: cfg["model"].get(k_) for k_ in ("kind", "path", "dtype", "config")},
+    return {"version": STATE_VERSION, "seed": int(cfg.get("seed", 1234)), "model": model,
             "task": {k_: _file_or_value(v) for k_, v in sorted(cfg["task"].items())},
-            "train": {k_: t.get(k_) for k_ in keys},
+            "train": train,
             "trainable_sha256": hashlib.sha256(names.encode()).hexdigest()}
 
 
@@ -688,6 +721,8 @@ def train(cfg: dict) -> dict:
     call_steps = int(t["max_steps_this_call"]) if t.get("max_steps_this_call") else None
     max_train_s = float(t["max_train_seconds"]) if t.get("max_train_seconds") is not None else None
     sampler_kind = t.get("sampler") or ("hf_batch" if cfg["model"]["kind"] in ("hf", "tiny_olmoe") else "policy")
+    if sampler_kind == "vllm" and cfg["model"].get("init_state"):
+        raise ValueError("model.init_state is incompatible with the vLLM sampler; use a sampler backed by the trainer")
     if v1 and sampler_kind == "vllm" and temperature != 1.0:
         # vLLM reports log-probabilities of the raw model distribution; they equal the sampling distribution only at
         # temperature 1 without truncation (rollout.py), and objective_v1 uses them as the ratio denominator.
@@ -704,6 +739,18 @@ def train(cfg: dict) -> dict:
     if sampler_kind == "vllm":  # vLLM reserves its share of the GPU first, then the training model loads
         vllm = rollout.VLLMSampler(cfg["model"]["path"], seed=seed, **t.get("vllm", {}))
     policy, tok = build_model(cfg["model"], device)
+    init_state_info = None
+    if cfg["model"].get("init_state"):  # a trained state dict (e.g. SFT output) for the same architecture
+        from safetensors.torch import load  # noqa: PLC0415
+        ip = Path(cfg["model"]["init_state"])
+        raw = ip.read_bytes()
+        want = cfg["model"].get("init_state_sha256")
+        got = hashlib.sha256(raw).hexdigest()
+        if want and want != got:
+            raise ValueError(f"model.init_state sha256 {got} != expected {want}")
+        policy.model.load_state_dict(load(raw), strict=True)
+        del raw
+        init_state_info = {"path": str(ip), "sha256": got}
     task = build_task(cfg["task"], tok, seed) if pool is None else build_task(cfg["task"], tok, seed, pool)
 
     model = policy.model
@@ -763,6 +810,29 @@ def train(cfg: dict) -> dict:
             raise ValueError("train.autocast must be bf16 or unset")
         policy.amp_dtype = torch.bfloat16
     trainable_named = [(n, p) for n, p in model.named_parameters() if p.requires_grad]
+    kz_cfg, kz, kz_log = t.get("keep_zero"), None, {"max_deleted_nonzero": 0}
+    kz_identity = None
+    if kz_cfg is not None or t.get("log_zero_share"):
+        import keep_zero as keep_zero_mod  # noqa: PLC0415
+        masks, enforce = {}, False
+        if kz_cfg is not None:
+            if not kz_cfg.get("path"):
+                raise ValueError("train.keep_zero.path must name the baked keep mask")
+            masks, digests = keep_zero_mod.load_masks_with_digests(kz_cfg["path"])
+            for key, digest in digests.items():
+                expected = kz_cfg.get(key)
+                if expected is not None and expected != digest:
+                    raise ValueError(f"train.keep_zero {key} {digest} != expected {expected}")
+            enforce = bool(kz_cfg.get("enforce", False))
+            kz_identity = {**digests, "enforce": enforce}
+            kz_log["mask"] = {"path": str(kz_cfg["path"]), **digests}
+        kz = keep_zero_mod.KeepZero(trainable_named, masks, enforce, float(t.get("weight_decay", 0.0)))
+        kz_log.update(masked_entries=kz.n_masked, deleted_at_start=kz.n_deleted0,
+                      deleted_share_of_masked_at_start=round(kz.n_deleted0 / max(kz.n_masked, 1), 6),
+                      deleted_nonzero_at_start=kz.deleted_nonzero(), zero_share_at_start=round(kz.zero_share(), 6),
+                      enforce=enforce if kz_cfg is not None else None)
+        if kz_log["deleted_nonzero_at_start"]:
+            raise ValueError(f"{kz_log['deleted_nonzero_at_start']} deleted weights are nonzero before RL starts")
 
     def sync_named():  # what the sampler must hold after an update
         return dt_hard_weights(dtmask, model) if dt_cfg else trainable_named
@@ -801,13 +871,18 @@ def train(cfg: dict) -> dict:
     gens = {"gen": gen, "gen_extra": gen_extra, "gen_cohort": gen_cohort}
     evals_path = out / "evals.jsonl"
     resumed, start_step, prior_s, cohort_ids = None, 0, 0.0, None
-    identity = state_identity(cfg, trainable_named) if state_dir is not None else None
     if state_dir is not None:
+        identity = state_identity(
+            cfg, trainable_named, init_state_sha256=init_state_info["sha256"] if init_state_info else None,
+            keep_zero_identity=kz_identity,
+        )
         resumed = load_state(state_dir, identity)
     if resumed is not None:
         with torch.no_grad():
             for n_, p_ in trainable_named:
                 p_.copy_(resumed["trainable"][n_].to(p_.device, p_.dtype))
+        if kz is not None:
+            kz.check("restored checkpoint")
         opt.load_state_dict(resumed["opt"])
         random.setstate(resumed["py_random"])
         torch.set_rng_state(resumed["torch_rng"])
@@ -857,6 +932,7 @@ def train(cfg: dict) -> dict:
         scores, rolls = evaluate(sampler, task, task.train, cohort_k, max_new, temperature, gen_cohort, reward_workers)
         cohort_scores[step] = scores
         rec_ = {"name": "train_cohort", "step": step, "k": cohort_k, "problems": len(scores),
+                "prompt_order_sha256": prompt_order_sha256(task, task.train),
                 "pass": sum(scores) / len(scores), "scores": scores, **length_stats(rolls, max_new, policy.eos_id),
                 "reasons": pop_reasons(task), "seconds": round(time.time() - c0_, 1)}
         append_jsonl(evals_path, rec_)
@@ -883,6 +959,7 @@ def train(cfg: dict) -> dict:
         heldout_scores[step] = scores
         extra = dict(length_stats(rolls, max_new, policy.eos_id))
         append_jsonl(evals_path, {"name": "heldout", "step": step, "k": eval_k, "problems": len(scores), "pass": r,
+                                  "prompt_order_sha256": prompt_order_sha256(task, task.heldout),
                                   "scores": scores, **extra, "reasons": pop_reasons(task),
                                   "seconds": round(time.time() - c0_, 1)})
         if t.get("kl_to_start"):
@@ -1151,7 +1228,23 @@ def train(cfg: dict) -> dict:
                 step_flip = routing.flip_rate(idx_before, idx_after)[0]
                 step_top1 = routing.top1_flip_rate(idx_before, idx_after)
                 step_mass = routing.mass_shift(idx_before, idx_after)
+        if kz is not None and device.startswith("cuda"):
+            # Attribute pending optimizer work to training before timing the mask scans.
+            torch.cuda.synchronize(device)
         times["train"] = time.time() - c0
+        kz_rec = {}
+        if kz is not None:
+            c0 = time.perf_counter()
+            if kz.n_masked:
+                dn = kz.deleted_nonzero()  # before any backstop: what the gradient mask alone achieved
+                kz_log["max_deleted_nonzero"] = max(kz_log["max_deleted_nonzero"], dn)
+                kz_rec["deleted_nonzero"] = dn
+                if kz.enforce_after_step:
+                    kz.enforce()
+                else:
+                    kz.check(f"step {step}")
+            kz_rec["zero_share"] = round(kz.zero_share(), 6)
+            times["keep_zero_checks"] = time.perf_counter() - c0
         c0 = time.time()
         sync_bytes = 0
         if vllm is not None:
@@ -1160,7 +1253,7 @@ def train(cfg: dict) -> dict:
                 sync_bytes = vllm.sync(sync_named())
         times["sync"] = time.time() - c0
         rec = {"step": step, "train_reward": sum(rewards_all) / len(rewards_all), "groups_used": len(groups),
-               "groups_dropped": dropped, "loss": loss_val, **stats, **v1_rec,
+               "groups_dropped": dropped, "loss": loss_val, **stats, **v1_rec, **kz_rec,
                "sampled_tokens": sampled_tokens,
                "rollout_tokens_per_s": round(sampled_tokens / max(times["rollout"], 1e-9), 1),
                "times_s": {k_: round(v, 3) for k_, v in times.items()}, "step_s": round(sum(times.values()), 3),
@@ -1223,7 +1316,6 @@ def train(cfg: dict) -> dict:
         extra_eval(int(t["steps"]))
     saved_weights = None
     if t.get("save_trainable"):
-        import hashlib  # noqa: PLC0415
         path = Path(t["save_trainable"])
         path.parent.mkdir(parents=True, exist_ok=True)
         torch.save({n: p_.detach().to(torch.bfloat16).cpu() for n, p_ in trainable_named}, path)
@@ -1269,6 +1361,17 @@ def train(cfg: dict) -> dict:
                                 "group_kinds_total": {k_: sum(r["group_kinds"][k_] for r in recs)
                                                       for k_ in recs[0]["group_kinds"]} if recs else {}}
     summary["saved_trainable_weights"] = saved_weights
+    if init_state_info:
+        summary["init_state"] = init_state_info
+    if kz is not None:
+        kz_log.update(deleted_nonzero_end=kz.deleted_nonzero() if kz.n_masked else None,
+                      deleted_zero_end=kz.deleted_zero() if kz.n_masked else None,
+                      zero_share_end=round(kz.zero_share(), 6))
+        kz_log["persistent_mask_tensor_bytes"] = sum(
+            mask.numel() * (mask.element_size() + kz.params[name].element_size())
+            for name, mask in kz.keep.items()
+        )
+        summary["keep_zero"] = kz_log
     if dt_cfg:
         summary["deletion_tuning"] = {**dt_info, "deletion_final": dtmask.deletion_stats(model),
                                       "alpha_final": dt_layer0.alpha, "optimizer_steps": dt_layer0.current_step}

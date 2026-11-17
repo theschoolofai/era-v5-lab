@@ -348,6 +348,9 @@ def test_screen_keeps_mixed_train_prompts_and_stops_on_no_go(tmp_path):
     assert sc["n"] == 32 and sc["mixed"] >= 1 and sum(sc["histogram"].values()) == 32
     assert sc["mixed"] == sum(v for k_, v in sc["histogram"].items() if k_ not in ("0", "8"))
     assert "status" not in s and s["steps"] == 2
+    evals = [json.loads(line) for line in (tmp_path / "go" / "evals.jsonl").read_text().splitlines()]
+    fingerprints = {row["prompt_order_sha256"] for row in evals if row["name"] == "heldout"}
+    assert len(fingerprints) == 1 and len(fingerprints.pop()) == 64
     s = train.train(_toy_cfg(tmp_path, "nogo", screen={"n": 32, "k": 8, "min_mixed": 33}))
     assert s["status"] == "NO_GO_MIXED_BAND" and (tmp_path / "nogo" / "metrics.jsonl").read_text() == ""
 
@@ -371,12 +374,30 @@ def test_stdio_task_scores_a_program_with_the_rl_data_checker(tmp_path, monkeypa
 
         def decode(self, ids, skip_special_tokens=True):
             return "".join(chr(i) for i in ids)
-    task = train.stdio_task({"tasks": str(tmp_path / "t.jsonl"), "train_ids": str(tmp_path / "tr.txt"),
-                             "heldout_ids": str(tmp_path / "ho.txt")}, Tok())
+    config = {"tasks": str(tmp_path / "t.jsonl"), "train_ids": str(tmp_path / "tr.txt"),
+              "heldout_ids": str(tmp_path / "ho.txt"), "require_verifier": True}
+    task = train.stdio_task(config, Tok())
     good = "```python\na, b = map(int, input().split())\nprint(a + b)\n```"
     bad = good.replace("a + b", "a - b")
     p = task.train[0]
     assert task.reward(p, [ord(c) for c in good]) == 1.0 and task.reward(p, [ord(c) for c in bad]) == 0.0
+
+    class Pool:
+        startup_fails = False
+
+        def score(self, samples):
+            if len(samples) == 2 and not self.startup_fails:
+                assert all(record["id"] == "stdio-preflight" for record, _ in samples)
+                return [{"reward": 1}, {"reward": 0, "reason": "wrong answer on a test"}]
+            return [{"reward": 0, "reason": "runner exited with 125"} for _ in samples]
+
+    pool = Pool()
+    pooled_task = train.stdio_task(config, Tok(), pool)
+    with pytest.raises(RuntimeError, match="stdio verifier runner failed: runner exited with 125"):
+        train.score_completions(pooled_task, [(p, [ord(c) for c in good])])
+    pool.startup_fails = True
+    with pytest.raises(RuntimeError, match="stdio verifier runner failed: runner exited with 125"):
+        train.stdio_task(config, Tok(), pool)
 
 
 def test_dense_qwen2_model_trains_attention_only_with_objective_v1(tmp_path, monkeypatch):
