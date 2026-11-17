@@ -119,6 +119,10 @@ The Marathi spelling in `parcel_city_joiner` still has to be confirmed by a nati
 
 ## Decontamination
 
-Not run yet. Before the tasks are used, check `messages.json` and `hidden/expected.json` of every task with
-`teams/09-evaluation/decontam/decontam_check.py` (fingerprints v2, full set) and `canary_scan.py`, as `../indic/README.md`
-did.
+Run on 17 Nov 2026 with `teams/09-evaluation/decontam/decontam_check.py` and `canary_scan.py` from course `main` at
+`5aed520`, fingerprints v2 full set (`set_sha256` `2826a3b883210c653979103c09ce1c79e40fc4f7034b54027f2836482370d22a`),
+on 20 documents: the rendered prompt (`prompt_text()`) and `hidden/expected.json` of each task, one JSONL line each
+(`doc_id`, `text`). Result: **0 flagged, 0 canary hits** (canaries era-v5-lab, gpqa_diamond, hle, terminal_bench_2).
+Input file sha256: `245d0229f86490bb6a814ba4bb755bc22104db62ac705c5401141e11b10992d2`, written outside the
+repository. To repeat it, write the same lines (`doc_id` `toolresult/<task_id>/prompt` and `.../expected`) and run
+both scripts on them.
