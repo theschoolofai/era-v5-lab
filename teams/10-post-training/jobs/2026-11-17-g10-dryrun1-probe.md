@@ -25,7 +25,7 @@ Precision:       weights as stored (fp32); the mismatch step also measures bf16 
 Measures:        pins (tokenizer and table content hash against the run manifest, checked first); adapter status and hashes; held-out bpb per slice; native sampler tokens/s (last-position head vs KV cache, identical tokens); share of tokens outside objective_v1's trust region from numerics alone and expert-set flips (1 row vs 8, fp32 vs bf16) on CUDA; base format screen (64 prompts); RL screen (48 prompts x 8 samples: pass rate, mixed groups, failure reasons); per SFT arm: closed <|im_end|> on 64 eval prompts, eval NLL, forgetting (held-out bpb before/after), step-1 writeback (fp32 vs what bf16 storage would keep), frozen-weight and reload checks, RL screen after full and LoRA + markers
 Expected result: pins: both hashes match the run manifest; inputs: 5,255 train / 589 eval rows with the sha256 below; base: 0 closed turns, RL pass 0 with "no code block"; full and LoRA + marker rows close most turns, LoRA and DT alone close none (seen on the d128 stand-in, 2 seeds); RL screen after SFT still 0 (Dolly has no code); mismatch below 0.5% (stand-in: 0.11-0.17% bf16 vs fp32 on MPS/CPU); total 30-55 min (ESTIMATE, basis under "Time")
 Outputs:         out/*.json, out/sft_*/sft_report.json, out/adapter.yaml (paths and hashes); no rows, generations or weights on ordinary exit; under 2 MB
-Test log:        teams/10-post-training/jobs/2026-11-17-g10-dryrun1-probe.log (CPU, same script from a clean git archive of commit 3accc41, d128 stand-in, reduced steps)
+Test log:        teams/10-post-training/jobs/2026-11-17-g10-dryrun1-probe.log (CPU, same script from a clean git archive of commit 82c4bc5, d128 stand-in trained on p1536, reduced steps)
 ```
 
 ## Inputs and pins
@@ -72,10 +72,11 @@ that does not is counted as `skipped_too_long`, not dropped silently.
 
 ## Time
 
-Measured (CPU log attached, clean export of commit 3accc41, Apple M1 Pro, d128 stand-in with 24.7M parameters,
-reduced settings): all 12 steps ok in 800 s wall. Inputs 4.4 s, adapter 1.9 s, forgetting 25.3 s, sampling 21.6 s,
-mismatch 116.1 s, format 19.4 s, RL screen 7.7 s (4 prompts), SFT arms 113.7-132.0 s each, of which training was
-14.4-22.2 s (30 steps) and the rest was evaluation, generation, forgetting and the reload check.
+Measured (CPU log attached, clean export of commit 82c4bc5, Apple M1 Pro, d128 stand-in with 24.7M parameters
+trained on p1536, reduced settings): all 13 steps ok in 771 s wall. Pins 0.0 s, inputs 4.0 s, adapter 1.8 s,
+forgetting 24.7 s, sampling 20.6 s, mismatch 108.1 s, format 19.2 s, RL screen 7.6 s (4 prompts), SFT arms
+105.0-131.6 s each (30 steps), most of it evaluation, generation, forgetting and the reload check. These are CPU
+times on a 24.7M stand-in; they show the steps run, not how long they take on the T2 checkpoint.
 
 Estimated for the job (not measured; no GPU run of this script on the T2 checkpoint exists):
 
@@ -83,7 +84,7 @@ Estimated for the job (not measured; no GPU run of this script on the T2 checkpo
 | :--- | :--- | :--- |
 | Five SFT arms, training | at most 40 min (5 x 480 s cap) | 300 steps of 16 rows of at most 256 tokens is about a quarter of a T2 pre-training step's tokens per step; the cap stops an arm that is slower |
 | Evaluation, generation, forgetting, three RL screens, mismatch | about 10-15 min | three screens of 48 prompts x 8 samples x up to 512 new tokens with the KV-cache sampler; the base and Dolly-trained models are expected to write no code block, so the verifier mostly returns at once |
-| Loading, inputs, adapter | under 1 min | 6.3 s on the CPU log |
+| Pins, loading, inputs, adapter | under 1 min | 5.8 s on the CPU log; the pins step only hashes two files |
 
 So 30-55 minutes, inside the 60-minute limit even if every arm hits its cap. If the runner stops the job at 60
 minutes, the step files already written are valid and `summary.json` is missing; the arms run in the order full,
