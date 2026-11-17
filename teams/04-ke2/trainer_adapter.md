@@ -78,3 +78,5 @@ python -m pytest teams/05-architecture/tests/test_week2_tokenizer_release.py -q
    (C3 and p1536), as #474's C3 patch did at run time. Until it is merged the trainer on main accepts v0 only.
 3. A KE2 output head is not chosen. The cosine decoder (`src/decode_ref.py`) is an evaluation tool only, and tau is
    decided by TSAI at Gate 3.
+4. Parked (lead, 17 Nov): the cosine decode of predicted vectors and the tau rerun on real vectors. With the head dense,
+   the decoder is an inspection tool; risk 2 of `decision_input.md` stays open until a run's saved vectors exist.
