@@ -11,7 +11,7 @@ part's folder: train. A held-out part is refused until G3 and G9 say what happen
 validation only). --domain defaults to clean.py's family of the pack. Docs are taken in order until the next one would
 pass --tokens; a doc is never split.
 
-Tokenizer (G3): the frozen C3 sample-v0 tokenizer.json, sha256 C3_SHA256 below (teams/03-tokenizer/release/SHA256SUMS).
+Tokenizer (G3): the frozen p1536 tokenizer.json (Gate 3, in place of C3), sha256 TOKENIZER_SHA256 below (G3 train/p1536_s0_manifest.json).
 Any other file is refused, except with --any-tokenizer (tests only: the shard is marked dataset_version "test").
 Docs are encoded with encode_batch(add_special_tokens=False); each doc ends with one EOS, <|endoftext|> id 130822 (G3, G10).
 No BOS and no language tag. The normalizer is inside tokenizer.json, so no normalizer is applied here.
@@ -51,7 +51,7 @@ import provenance  # noqa: E402
 from dataio.loader import HEADER_BYTES, open_shard  # noqa: E402
 from dataio.prepare_fineweb import write_shard  # noqa: E402
 
-C3_SHA256 = "15468e66457b43af79f695cbe585c0d03e3cfe7a4a5d04d189dd3c6b9f02ddc3"  # G3 freeze, #340
+TOKENIZER_SHA256 = "e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b"  # G3 Gate 3 freeze, p1536 (was C3 15468e66..., #340)
 VOCAB = 131_072
 EOS_ID, EOS = 130_822, "<|endoftext|>"
 SPECIAL_BLOCK = range(130_725, VOCAB)  # G3: named specials and reserved slots; plus every added token marked special
@@ -70,12 +70,12 @@ def sha(path):
 
 
 def load_tokenizer(path, any_tokenizer):
-    """(tokenizer, sha256, special ids). Refuses anything but C3 unless any_tokenizer."""
+    """(tokenizer, sha256, special ids). Refuses anything but p1536 unless any_tokenizer."""
     got = sha(path)
     tok = Tokenizer.from_file(str(path))
     if not any_tokenizer:
-        if got != C3_SHA256:
-            sys.exit(f"{path}: sha256 {got}, not the frozen C3 {C3_SHA256}. --any-tokenizer is for tests only.")
+        if got != TOKENIZER_SHA256:
+            sys.exit(f"{path}: sha256 {got}, not the frozen p1536 {TOKENIZER_SHA256}. --any-tokenizer is for tests only.")
         if tok.id_to_token(EOS_ID) != EOS:
             sys.exit(f"{path}: id {EOS_ID} is {tok.id_to_token(EOS_ID)!r}, not {EOS}")
     if tok.get_vocab_size(with_added_tokens=True) != VOCAB:
@@ -98,16 +98,16 @@ def pack_family(pack_id):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--input", type=Path, required=True, help="a part of the pipeline's final folder: <run>/final/<split>/<pack>/<part>.parquet")
-    ap.add_argument("--manifest", type=Path, required=True, help="the run's pipeline_manifest.json")
-    ap.add_argument("--tokenizer", type=Path, required=True, help="G3's frozen C3 tokenizer.json")
+    ap.add_argument("--clean", type=Path, required=True, help="a *_clean.parquet from run_clean.py --f2")
+    ap.add_argument("--summary", type=Path, required=True, help="its *_summary.json")
+    ap.add_argument("--tokenizer", type=Path, required=True, help="G3's frozen p1536 tokenizer.json")
     ap.add_argument("--language", required=True)
     ap.add_argument("--script", required=True)
     ap.add_argument("--lane", required=True, help="capability_lane")
     ap.add_argument("--domain", help="default: the pack's family in clean.py")
     ap.add_argument("--index", type=int, default=0, help="shard number within the pack and split")
     ap.add_argument("--tokens", type=int, default=2 ** 26, help="fill the shard up to this many tokens")
-    ap.add_argument("--any-tokenizer", action="store_true", help="tests only: accept a tokenizer other than C3")
+    ap.add_argument("--any-tokenizer", action="store_true", help="tests only: accept a tokenizer other than p1536")
     ap.add_argument("--out", type=Path, required=True)
     a = ap.parse_args(argv)
 
@@ -226,10 +226,10 @@ def main(argv=None):
     header = np.fromfile(bin_path, dtype="<i4", count=3)
     n, lo = meta.num_rows, {k: len(v) for k, v in left_out.items()}
     lines = [f"# Shard `{shard_id}`\n\n",
-             f"Written by `shard_writer.py` from `{part_path}`, after `clean.py`, dedup ({info['counts']['removed_by_dedup']:,} of this "
+             f"Written by `shard_writer.py` from `{s['pack']}` of `{pack_id}`, after `clean.py` and F2 (fingerprints "
              f"part's {info['counts']['cleaned']:,} docs removed) and F2 ({info['counts']['dropped_by_f2']:,} dropped; fingerprints "
-             f"`{info['f2']['set_sha256'][:12]}`): the first {n:,} docs that fit in {a.tokens:,} tokens, of {seen:,} rows read.\n\n",
-             f"Tokenizer `{tok_sha[:12]}`" + (" (**not C3: test only**)" if tok_sha != C3_SHA256 else " (C3, frozen)") +
+             f"`{s['f2']['set_sha256'][:12]}`): the first {n:,} docs that fit in {a.tokens:,} tokens, of {seen:,} rows read.\n\n",
+             f"Tokenizer `{tok_sha[:12]}`" + (" (**not p1536: test only**)" if tok_sha != TOKENIZER_SHA256 else " (p1536, frozen)") +
              f"; EOS `{EOS}` id {EOS_ID} after each doc; no BOS, no language tag.\n\n",
              f"Left out: {lo['secret']} secret-like, {lo['empty']} empty, {lo['special']} with a special id inside, "
              f"{lo['roundtrip']} not round-tripping (doc_ids in `{shard_id}.quality_report.json`).\n\n",

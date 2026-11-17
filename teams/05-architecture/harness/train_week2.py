@@ -39,6 +39,13 @@ class JsonWriter:
         self.file.close()
 
 
+def scored_ntp_loss(model, ids, targets):
+    """Sum next-token NLL without materializing logits for ignored positions."""
+    scored = targets != -100
+    hidden = model.hidden(ids, scored)
+    return token_nll(model.head(hidden[scored]), targets[scored]).sum()
+
+
 def model_hash(model):
     h = hashlib.sha256()
     for name, value in sorted(model.state_dict().items()):
@@ -98,6 +105,14 @@ def resolve_run_config(cfg, resolution_path, smoke):
             )
         return merge(cfg, {})
     return apply_resolution(cfg, load(resolution_path))
+
+
+_evaluate_orig = evaluate
+
+
+def evaluate(*a, **k):  # execution-only (TSAI): release cached GPU memory before each evaluation
+    torch.cuda.empty_cache()
+    return _evaluate_orig(*a, **k)
 
 
 def main():
@@ -391,6 +406,8 @@ def main():
             )
             rows.append(row)
             log(row)
+            if device.type == "cuda":
+                torch.cuda.empty_cache()  # execution-only (TSAI)
         steps = cfg["run"]["steps"]
         if args.stop_after is not None:
             steps = min(steps, args.stop_after)
@@ -417,10 +434,12 @@ def main():
                 tx, ty = x[start : start + micro], y[start : start + micro]
                 # Normalize each microbatch by the full batch target count.
                 with amp():
-                    logits, mtp_logits = model(tx, ty != -100, return_mtp=True)
-                    ntp = token_nll(logits, ty).sum() / count
                     mtp = None
-                    if mtp_logits is not None:
+                    if model.mtp_head is None:
+                        ntp = scored_ntp_loss(model, tx, ty) / count
+                    else:
+                        logits, mtp_logits = model(tx, ty != -100, return_mtp=True)
+                        ntp = token_nll(logits, ty).sum() / count
                         targets = torch.full_like(ty, -100)
                         targets[:, :-1] = ty[:, 1:]
                         mtp = token_nll(mtp_logits, targets).sum() / max(mtp_count, 1)
@@ -438,14 +457,18 @@ def main():
                 ntp_value += float(ntp.detach())
                 if mtp is not None:
                     mtp_value += float(mtp.detach())
-            for name, param in model.named_parameters():
-                if param.grad is not None and not torch.isfinite(param.grad).all():
-                    raise ValueError("Nonfinite gradient: " + name)
+            # Execution-only (TSAI): one fused finite check instead of one host sync per parameter.
+            _grads = [q.grad for q in model.parameters() if q.grad is not None]
+            if _grads and not bool(torch.isfinite(torch.stack(torch._foreach_norm(_grads))).all()):
+                for name, param in model.named_parameters():
+                    if param.grad is not None and not torch.isfinite(param.grad).all():
+                        raise ValueError("Nonfinite gradient: " + name)
+                raise ValueError("Nonfinite gradient")
             norm = torch.nn.utils.clip_grad_norm_(
                 model.parameters(), cfg["run"]["grad_clip"], error_if_nonfinite=True
             )
             optimizer.step()
-            if any(not torch.isfinite(v).all() for v in model.parameters()):
+            if not bool(torch.isfinite(torch.stack(torch._foreach_norm([q.detach() for q in model.parameters()]))).all()):
                 raise ValueError("Nonfinite parameter")
             if device.type == "cuda":
                 torch.cuda.synchronize()
@@ -484,6 +507,8 @@ def main():
                         model, val, 1, device, amp, max_batch_tokens=EVAL_BATCH_TOKENS
                     )
                 )
+                if device.type == "cuda":
+                    torch.cuda.empty_cache()  # execution-only (TSAI): free the eval cache so training does not thrash
             if cfg["optim"]["name"] == "muon":
                 row["muon_lr"] = cfg["optim"]["muon_lr"]
             rows.append(row)

@@ -17,7 +17,7 @@ TEAM = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TEAM / "harness"))
 from week2.model import KE2, codec, GQA, MoE, LanguageModel, SwiGLU
 from week2.config import load, load_runtime, merge, validate
-from train_week2 import apply_resolution
+from train_week2 import apply_resolution, scored_ntp_loss
 
 
 def fixture(mtp=False):
@@ -77,6 +77,38 @@ class CodecTests(unittest.TestCase):
         torch.testing.assert_close(
             a.projection.weight.grad, b.projection.weight.grad, rtol=3e-5, atol=3e-5
         )
+
+
+class ScoredTrainingLossTests(unittest.TestCase):
+    def test_padding_does_not_change_loss_or_gradients(self):
+        torch.manual_seed(1234)
+        cfg, rows, lengths = fixture()
+        ids = torch.randint(0, 31, (2, 8))
+        targets = torch.randint(0, 31, (2, 8))
+        targets[0, 4:] = -100
+        targets[1, :] = -100
+
+        for batch in (slice(None), slice(1, None)):
+            with self.subTest(batch=batch):
+                dense = LanguageModel(cfg["model"], rows, lengths)
+                packed = copy.deepcopy(dense)
+                x, y = ids[batch], targets[batch]
+                expected = F.cross_entropy(
+                    dense(x, y != -100).flatten(0, 1), y.flatten(), reduction="sum"
+                )
+                actual = scored_ntp_loss(packed, x, y)
+                torch.testing.assert_close(actual, expected)
+                expected.backward()
+                actual.backward()
+                for (name, reference), parameter in zip(
+                    dense.named_parameters(), packed.parameters()
+                ):
+                    if reference.grad is None:
+                        self.assertIsNone(parameter.grad, name)
+                    else:
+                        torch.testing.assert_close(
+                            parameter.grad, reference.grad, rtol=3e-5, atol=3e-6, msg=name
+                        )
 
 
 class BackboneTests(unittest.TestCase):
@@ -232,10 +264,11 @@ class ConfigTests(unittest.TestCase):
         self.assertEqual(c["optim"]["lr"], 0.001)
         self.assertFalse(any("MTP" in e for e in validate(c)))
 
-    def test_muon_rate_and_comparison_remain_pending(self):
+    def test_exp2_rates_are_set_and_comparisons_remain_provisional(self):
         c = load_runtime(TEAM / "configs/arms/exp2_muon.yaml")
-        self.assertIsNone(c["optim"]["muon_lr"])
-        self.assertIsNone(c["optim"]["lr"])
+        self.assertGreater(c["optim"]["muon_lr"], 0)
+        self.assertGreater(c["optim"]["lr"], 0)
+        self.assertIs(c["intended"]["comparison_final"], False)
         a = load_runtime(TEAM / "configs/arms/exp2_adamw.yaml")
         self.assertIs(a["intended"]["comparison_final"], False)
 
@@ -287,10 +320,12 @@ class ConfigTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             apply_resolution(self.resolved(), {"model": {"n_embd": 128}})
 
-    def test_muon_not_silently_adamw(self):
+    def test_muon_requires_an_explicit_rate(self):
         c = self.resolved("exp2_muon.yaml")
         self.assertEqual(c["optim"]["name"], "muon")
-        self.assertTrue(any("Muon" in e for e in validate(c)))
+        self.assertEqual(validate(c), [])
+        c["optim"]["muon_lr"] = None
+        self.assertTrue(any("muon_lr" in error for error in validate(c)))
 
     def test_instructor_dimensions_and_lead_budgets(self):
         for name, w, l, h, kv, e, ffn, ctx, steps in [
