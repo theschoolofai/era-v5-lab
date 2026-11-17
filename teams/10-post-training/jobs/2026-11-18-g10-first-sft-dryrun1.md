@@ -23,18 +23,18 @@ Owner:           f20201351h-maker
 Lead approval:   saitej123 (asked TSAI in the G10 group on 17 Nov to approve and process this request)
 Question:        On the dry-run-1 checkpoint, which shape of the same OCR-2 SFT rows (those that fit 2,048 tokens) gives more RL-usable output on the easiest RL prompts, full reasoning traces (A2) or the same rows with the reasoning deleted (A4), and does either stay within +0.05 bits per byte of forgetting?
 Script:          teams/10-post-training/capstone/sft_job_v1.py at this PR's head commit; it calls capstone/sft_slice_v1.py, sft_g5.py, day_one_probe.py (pins, arm cleanup, RL screen), rl-loop/team5_adapter.py and rl-data/stdio_check.py from the same commit
-Command:         G10_STDIO_RUNNER=docker python teams/10-post-training/capstone/sft_job_v1.py --g5-root <G5> --run-folder <RUN> --tokenizer <TOKENIZER> --byte-table <TABLE> --heldout <HELDOUT> --heldout-sources <HELDOUT_SOURCES> --packs <PACK>/shard-00000/pack.firewalled.jsonl <PACK>/shard-00001/pack.firewalled.jsonl <PACK>/shard-00002/pack.firewalled.jsonl <PACK>/shard-00003/pack.firewalled.jsonl --rl-tasks <POOL>/out/v1/cc.jsonl --rl-ids teams/10-post-training/capstone/probe_rl_easy_ids.txt --rl-limit 48 --rl-seconds 420 --rl-max-new 1536 --method full --lr 1e-4 --steps 243 --batch 16 --max-train-seconds 1500 --gen-limit 8 --gen-seconds 90 --gen-max-new 1536 --seed 1 --device cuda --out out/
+Command:         G10_STDIO_RUNNER=docker python teams/10-post-training/capstone/sft_job_v1.py --g5-root <G5> --run-folder <RUN> --tokenizer <TOKENIZER> --byte-table <TABLE> --heldout <HELDOUT> --heldout-sources <HELDOUT_SOURCES> --packs <PACK>/shard-00000/pack.firewalled.jsonl <PACK>/shard-00001/pack.firewalled.jsonl <PACK>/shard-00002/pack.firewalled.jsonl <PACK>/shard-00003/pack.firewalled.jsonl --rl-tasks <POOL>/out/v1/cc.jsonl --rl-ids teams/10-post-training/capstone/probe_rl_easy_ids.txt --rl-limit 48 --rl-seconds 420 --rl-max-new 1536 --method full --lr 1e-4 --steps 243 --batch 16 --max-train-seconds 1500 --deadline-minutes 85 --gen-limit 8 --gen-seconds 90 --gen-max-new 1536 --seed 1 --device cuda --out out/
 Config:          none: every setting is on the command line above
 Seed:            1 (row order, sampling, LoRA init); the run folder's own seed 1234 is not used
 Inputs:          see "Inputs and pins" (public, TSAI-staged, or stored by an earlier G10 job; sha256 for each)
 Packages:        Python 3.12, torch (CUDA build), numpy, tokenizers, pyyaml, safetensors; Docker for the code verifier. CPU log used torch 2.14.1, numpy 2.5.4, tokenizers 0.23.3, pyyaml 6.0.3, safetensors 0.8.0
 Hardware:        1 GPU
-Max time:        90 minutes (the T2 cap), enforced by TSAI's job runner on the whole process group (partial step files are valid on timeout). Estimate 65-80 minutes; basis under "Time"
+Max time:        90 minutes (the T2 cap). The script stops itself at 85 minutes (--deadline-minutes 85: an arm still running is killed, its weights removed, summary.json names it); the runner's own limit is the backstop. Estimate 60-80 minutes, an estimate; basis under "Time"
 Precision:       weights as stored (fp32), AdamW state fp32; the step-1 writeback check reports what bf16 storage would have kept
 Measures:        pins (tokenizer and table against the run manifest; every input present; run block size 2,048; RL pool sha256); slice: rows read, dropped by reason, kept per length bucket and effort tier, sha256 of each built file; per arm: dev NLL, forgetting (held-out bpb before and after, per group), greedy format screen on 16 dev prompts (closed turn, validity, hit budget), RL screen on the easy prompts (k 8, temperature 1, 420 s budget per screen: code-fence share, programs that run, pass rate, mixed groups, reasons, prompts reached), step-1 writeback, frozen-weight and reload checks, steps done and training seconds; compare.json with the decision rule applied
-Expected result: pins match; slice exactly as in the table below (3,903 train rows, 147 dev rows); base: no closed turns, RL pass 0; A2: closes some turns, many samples hit the 1,536-token budget, few programs run; A4: most samples close with a code fence and more programs run than A2, pass near 0; forgetting within +0.05 for A2, A4 unsure (E9 135M: +0.070 with repeated short rows; here A4 sees each row as often as A2); mixed groups 0-2 in both arms (E9: 0-3% below 1B parameters); A2 stops at the 1,500 s training cap after about 40-120 of its 243 steps; total 65-80 min (basis under "Time")
+Expected result: pins match; slice exactly as in the table below (3,903 train rows, 147 dev rows); base: no closed turns, RL pass 0; A2: closes some turns, many samples hit the 1,536-token budget, few programs run; A4: most samples close with a code fence and more programs run than A2, pass near 0; forgetting within +0.05 for A2, A4 unsure (E9 135M: +0.070 with repeated short rows; here A4 sees each row as often as A2); mixed groups 0-2 in both arms (E9: 0-3% below 1B parameters); A2 stops at the 1,500 s training cap after about 40-175 of its 243 steps; total 60-80 min, an estimate (basis under "Time"); the script's own 85-minute deadline caps it
 Outputs:         out/*.json, out/sft_a2/sft_report.json, out/sft_a4/sft_report.json, out/adapter.yaml (paths and hashes); no rows, generations or weights on ordinary exit; under 2 MB
-Test log:        teams/10-post-training/jobs/2026-11-18-g10-first-sft-dryrun1.log (CPU, same script from a clean git archive of commit 41b4c417, context-2,048 stand-in trained on p1536, the same four pack shards, reduced steps and budgets)
+Test log:        teams/10-post-training/jobs/2026-11-18-g10-first-sft-dryrun1.log (CPU, same script from a clean git archive of commit e113f299, context-2,048 stand-in trained on p1536, the same four pack shards, reduced steps and budgets)
 ```
 
 ## Design (one question, one change between arms)
@@ -81,7 +81,7 @@ Test log:        teams/10-post-training/jobs/2026-11-18-g10-first-sft-dryrun1.lo
 | Method, learning rate | `full`, `1e-4` (AdamW 0.9/0.95, the `sft_g5.py` defaults) | G10's SmolLM2 bench on code rows with reasoning blocks (`results/small_sft.md`): full FT at 1e-4 closed 74-79% of turns over 3 seeds with forgetting +0.0503 to +0.0515 bpb; LoRA r=4 at 1e-3 forgot only +0.0384 but closed 0 of 110 turns (it emitted `<|im_end|>` first). An arm that closes no turn gives the RL screen nothing to score, so full FT is the method that can answer the question; its forgetting is reported against the +0.05 limit, not assumed. E9 used the same 1e-4. The probe's own full arm uses 3e-4 on short Dolly rows; these rows are about six times longer per step, so the bench value is kept (one change at a time). |
 | Optimizer | AdamW, not Muon | TSAI's Gate 3 learning-rate recheck (muon_lr 0.005 with lr 0.001 beat dry run 1's 0.01 on seeds 1234 and 1235) is about pre-training from scratch. Fine-tuning a trained checkpoint with Muon is not tested anywhere in G10 or G5, and the bench, E9 and the probe all use AdamW; changing the optimizer would add a second change to a one-question job. |
 | Precision | fp32 weights and AdamW state | step-1 writeback on the CPU log: bf16 storage would keep about 8% of the first update, fp32 keeps all of it |
-| Steps, training cap | `--steps 243` (one pass over the 3,903 rows, no row twice), `--max-train-seconds 1500` | E9: repeating short rows made A4 forget more (+0.070), so no row repeats. The cap is expected to stop A2 first, after about 40-120 steps (Time); A4 then runs exactly A2's completed steps |
+| Steps, training cap | `--steps 243` (one pass over the 3,903 rows, no row twice), `--max-train-seconds 1500` | E9: repeating short rows made A4 forget more (+0.070), so no row repeats. The cap is expected to stop A2 first, after about 40-175 steps (Time); A4 then runs exactly A2's completed steps |
 | RL screen | 48 easy ids (the probe's), k 8, up to 1,536 new tokens, `--rl-seconds 420` per screen | 1,536 new tokens is what a 2,048 context leaves after the prompt, and running out of budget is the effect under test (E9), so it is not shortened. The Mac GPU decodes the dry-run-1 shape at 98 ms per step (Time), about 150 s per prompt when every sample runs to the budget, so the screen is budgeted instead of counted |
 | Format screen | 8 dev prompts, greedy, up to 1,536 tokens, `--gen-seconds 90` | secondary to the RL screen; budgeted for the same reason |
 | Block size | 2,048 | dry run 1's config (`exp2_muon.yaml` inherits `t2.yaml`, `block_size: 2048`; #475). The job now checks the run folder's own `manifest.json` and stops if it differs |
@@ -149,15 +149,18 @@ need the two private id lists (#564 says the same for the probe's copy).
 ## Time
 
 Measured on the CPU log (attached, clean export, Apple M1 Pro, context-2,048 stand-in with 10,611,008 parameters,
-reduced settings): all 5 steps ok in 295 s wall. Pins 0.1 s, slice 20.9 s, A2 208.5 s (10 steps of 16 rows: 77.0 s training, the rest evaluation, generation, forgetting and two RL screens), A4 65.2 s (the same 10 steps: 6.5 s training; no base evaluation), compare 0.0 s; each RL screen stopped at its 3 s budget after 3 of 6 prompts, as set. These show the steps run on rows of the real length; they are not T2 timings.
+reduced settings): all 5 steps ok in 289 s wall. Pins 0.1 s, slice 21.3 s, A2 203.5 s (10 steps of 16 rows: 76.9 s training, the rest evaluation, generation, forgetting and two RL screens), A4 64.4 s (the same 10 steps: 6.2 s training; no base evaluation), compare 0.0 s; each RL screen stopped at its 3 s budget after 3 of 6 prompts, as set. These show the steps run on rows of the real length; they are not T2 timings.
 
 No timing of this script on dry run 1 exists, so the estimate is built from three measurements, each labelled:
 
-1. **Training rate, TSAI's GPU (measured by TSAI).** Dry run 1 trained 1,221 steps x 8 x 2,048 = 20,004,864 tokens and
-   finished inside its 90-minute Max time in bf16 (#475): at least 3,705 tokens/s, evaluations included. The first T2
-   run, before TSAI's speed fixes, measured 12.7 s per 16,384-token step (the Instructor's message to Team 5 in the G5 group): 1,290
-   tokens/s. Assumption, not measured: this job's fp32 halves both, giving 645 to 1,850 tokens/s for a training step and
-   about three times that for forward-only evaluation.
+1. **Training rate, TSAI's GPU (measured by TSAI, pre-training shape).** Team 7's restore drill on dry run 1 (#573,
+   job B): load, steps 611 to 1,221 and the save took about 30 min 39 s on one GPU, so at most 3.0 s per step of
+   8 x 2,048 = 16,384 tokens, at least 5,440 tokens/s in bf16 with Muon. Dry run 1 itself (1,221 steps inside its
+   90-minute cap, #475) gives at least 3,705 tokens/s. The first T2 run, before TSAI's speed fixes, measured 12.7 s per
+   step (the Instructor's message to Team 5 in the G5 group): 1,290 tokens/s, the slow end. These are pre-training
+   steps: batch 8 full 2,048-token windows, bf16, Muon. This job's steps are 16 rows of 1,457 tokens on average, fp32,
+   AdamW, through G10's SFT loop. Assumption, not measured: fp32 halves the rate, giving 645 to 2,720 tokens/s for a
+   training step and about three times that for forward-only evaluation.
 2. **Decode rate, the dry-run-1 shape on a Mac GPU (measured here).** A stand-in with dry run 1's config (8 layers,
    width 512, 8 heads, 2 KV heads, 16+1 experts top-2, expert FFN 768, context 2,048; 237,052,416 parameters, a
    2.16 GB checkpoint against dry run 1's "about 2.2 GB"; random weights) through `capstone/bench_sampling_g5.py --paths
@@ -172,19 +175,21 @@ No timing of this script on dry run 1 exists, so the estimate is built from thre
 | :--- | :--- | :--- |
 | Pins and slice | under 1 min | CPU log: slice 20-23 s for 2.4 GB of packs |
 | Loading, reload checks | about 3 min | two model loads and two save/reload parity checks of a ~1 GB model |
-| Three evaluations (base, after A2, after A4) | 7-20 min | 3 x 760,000 tokens at 1,935-5,550 tokens/s (item 1) |
-| A2 training | 25 min (cap) | 12.6-36 s per step: 41-119 of 243 steps fit in 1,500 s; the cap is checked between steps |
+| Three evaluations (base, after A2, after A4) | 5-20 min | 3 x 760,000 tokens at 1,935-8,160 tokens/s (item 1) |
+| A2 training | 25 min (cap) | 8.6-36 s per step: 41-174 of 243 steps fit in 1,500 s; the cap is checked between steps |
 | A4 training | under 7 min | A2's steps at a quarter of the tokens per step |
 | Six screens (RL 420 s and format 90 s, x 3) | 25.5 min | the budgets; a screen finishes the prompt it is on, which adds at most one prompt each (about 2.5 min per RL prompt at the Mac rate of item 2, less on a faster GPU) |
-| Total | about 65-80 min | Max time 90 |
+| Total | about 60-80 min (estimate) | the script stops itself at 85 min; Max time 90 |
 
 What the budgets mean for the result: at the Mac decode rate an RL screen reaches only about three prompts when every
 sample runs to 1,536 tokens, and more when samples close early (A4) or the GPU is faster. `compare.json` records how
 many prompts both arms reached, and the decision rule needs two mixed groups among them; a comparison on very few
 prompts reads "no RL signal" and says so.
 
-If the runner stops the job at Max time, the step files already written are valid; A2 runs first, so a timeout loses A4
-and the comparison, not A2.
+Max time does not rest on this estimate: the script ends itself at 85 minutes (`--deadline-minutes 85`). An arm still
+running then is killed, its weights are removed, and `summary.json` names it. The step files already written are valid;
+A2 runs first, so a deadline loses A4 and the comparison, not A2. A verifier container started just before the kill
+ends at its own per-test timeout.
 
 ## Saving and resuming
 
@@ -197,9 +202,9 @@ at most one re-run of the job. A later SFT job whose weights are kept for RL or 
 ## Execution limits and failure reporting
 
 The `--max-train-seconds` cap covers A2's training loop only, checked between optimizer steps; A4 runs A2's completed
-step count. Loading, evaluation, generation and verification add time; the Python entry point does not enforce a global
-deadline, so TSAI enforces `Max time` on the process group. Each RL and format screen starts no new prompt after its
-budget (`--rl-seconds`, `--gen-seconds`). On ordinary success or failure each arm removes its weights
+step count. Loading, evaluation, generation and verification add time; the whole job is bounded by `--deadline-minutes 85`,
+which kills an arm still running at that time; TSAI's `Max time` on the process group is the backstop. Each RL and format screen starts no new prompt after its budget (`--rl-seconds`,
+`--gen-seconds`). On ordinary success or failure each arm removes its weights
 and generations and the job removes `out/_inputs/`; an abrupt kill needs the runner's cleanup of `out/_inputs/` and
 `out/sft_*/model.safetensors`. If `pins` fails nothing else runs (exit 1): a tokenizer or table the run did not train
 with, a run folder without `checkpoint.pt` or `manifest.json` or with a block size other than 2,048, a missing pack
@@ -212,7 +217,7 @@ root) is the fallback. No CUDA or full-width performance claim is made from CPU 
 
 ## Run-gate evidence (speed and executability)
 
-- Runs end to end: the attached CPU log of commit 41b4c417 from a clean `git archive`: exit 0, `{"ok": true, "steps": 5, "failed_steps": []}`, `pins` passed with the new input and block-size checks (block_size 2048, RL pool sha256 the pinned file), built files with exactly the sha256 above, A4 ran A2's 10 steps, mask checks and reload parity pass in both arms, each RL screen stopped at its budget and `compare.json` compared the arms on the 3 prompts both reached, 52 KB of output with rows and weights removed. Tests: `pytest rl-loop/test_sft_job_v1.py rl-loop/test_day_one_probe.py`: 28 passed, 1 skipped (a tokenizer test that needs a local file); they cover a missing pack, a missing pool, a wrong block size and a wrong pool hash each stopping before any row is built, the screen budget, and the common-prompt comparison.
+- Runs end to end: the attached CPU log of commit e113f299 from a clean `git archive`: exit 0, `{"ok": true, "steps": 5, "failed_steps": []}`, `pins` passed with the new input and block-size checks (block_size 2048, RL pool sha256 the pinned file), built files with exactly the sha256 above, A4 ran A2's 10 steps, mask checks and reload parity pass in both arms, each RL screen stopped at its budget and `compare.json` compared the arms on the 3 prompts both reached, 52 KB of output with rows and weights removed. Tests: `pytest rl-loop/test_sft_job_v1.py rl-loop/test_day_one_probe.py`: 29 passed, 1 skipped (a tokenizer test that needs a local file); they cover a missing pack, a missing pool, a wrong block size and a wrong pool hash each stopping before any row is built, the screen budget, the common-prompt comparison, and an arm killed at the job deadline with its weights removed.
 - Hot path added by this job: the slice builder. Counting ids from the raw line and parsing only the rows that fit
   (about one in seven) instead of parsing every 600 MB shard: 23.05 s before, 3.94 s after (3.96 s on a repeat) over the
   same four shards on the Mac CPU, the same 4,050 rows kept (row-id list sha256 `97655a80...`), identical output files
