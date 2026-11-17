@@ -1746,8 +1746,22 @@ def _code_e3_004():
 
     # Each literal is necessary for its KNOWN pattern. Test the current text before each
     # substitution so the original substitution order and any cascading matches remain intact.
-    KNOWN_HINTS = ("AIza", "AKIA", "gh", "github_pat_", "sk-", "k_live_", "SG.", "xox", "eyJ", "-----BEGIN ")
-    ASSIGNED_HINT = re.compile(r"secret|token|key|passw(?:or)?d|pwd", re.I)  # a superset of every ASSIGNED name, including Unicode case folds
+    KNOWN_HINTS = (("AIza",), ("AKIA",), ("ghp_", "gho_", "ghu_", "ghs_", "ghr_"), ("github_pat_",), ("sk-",), ("k_live_",), ("SG.",), ("xox",),
+                   ("eyJ",), ("-----BEGIN ",))  # a text must hold one of a pattern's literals for it to match
+
+    # ASSIGNED is tried only on a text that passes three cheap tests, each true whenever ASSIGNED could match (a match holds a name word,
+    # then an operator, then a quoted value of 16 or more characters). A text that fails one is kept as it is.
+    # 1. the text holds a name word: every ASSIGNED name holds one of these. The text is tested casefolded, since (?i) also lets
+    #    U+017F (long s) and U+212A (Kelvin sign) match s and k, and casefold() maps them to those letters.
+    ASSIGNED_WORDS = ("secret", "token", "key", "passw", "pwd")
+    # 2. the end of an operator (:= => = :), then a quoted value of 16 or more characters, then the same quote
+    VALUE_AFTER_OPERATOR = re.compile(r"""[:=>]\s*(["'`])[^"'`\s\\]{16,200}\1""")
+    # 3. a name word, then ASSIGNED's own text from the end of the name to the closing quote. ASSIGNED's name holds a word
+    #    that ends at its own tail, so this matches wherever ASSIGNED does, without ASSIGNED's search from every word start.
+    NAME_WORD_THEN_VALUE = re.compile(r"""(?ix)
+        (?:secret|token|key|passw|pwd)[\w\-]*["']?
+        (?:\s*:\s*&?(?:'\w+\s+)?[\w<>\[\]]{1,20})?
+        \s*(?::=|=>|=|:)\s*(["'`])[^"'`\s\\]{16,200}\1""")
 
     DUMMY = re.compile(r"(?i)example|sample|dummy|test|fake|mock|placeholder|changeme|change_me|your|xxxx|0000|1234|abcd|secret|password|token|<|>|\$\{|\{\{|%s")
 
@@ -1767,12 +1781,13 @@ def _code_e3_004():
 
     def medicine_e3(text):
         new = text
-        for rx, hint in zip(KNOWN, KNOWN_HINTS):
-            if hint in new:
+        for rx, hints in zip(KNOWN, KNOWN_HINTS):
+            if any(h in new for h in hints):
                 new = rx.sub(PLACEHOLDER, new)
         if "Pusher" in new:
             new = SDK_KEY.sub(lambda m: m.group("head") + PLACEHOLDER + m.group("quote"), new)
-        if ASSIGNED_HINT.search(new):
+        low = new.casefold()
+        if any(w in low for w in ASSIGNED_WORDS) and VALUE_AFTER_OPERATOR.search(new) and NAME_WORD_THEN_VALUE.search(new):
             new = ASSIGNED.sub(lambda m: m.group("head") + PLACEHOLDER + m.group("quote") if _looks_random(m.group("value")) else m.group(0), new)
         return new
 

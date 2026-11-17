@@ -11,9 +11,10 @@ Every text here is made up; none comes from a pack.
   DA-E2-001  byte-array and base64 drop (six code packs): the byte-array regex runs only when the text holds 24 or more "0x"
   DA-E3-003  known keys and base32 seeds (six code packs): each KEYS pattern runs only when a literal it needs is in the text, and
              SEED runs only when the text has "=", a quote and one of its words (tested on the casefolded text)
+  DA-E3-004  second speed-up (last section): ASSIGNED runs only on a text that passes three tests, and the gh hint is tightened
 
-The rules in the sheet are read from specv1_1.md (the namespace of each card is run on its own). The speed-up tests of the code
-rules DA-E3-004 and the shared F1 are in test_speed_equivalence_code.py. If a rule's behaviour is ever changed on purpose, update
+The rules in the sheet are read from specv1_1.md (the namespace of each card is run on its own). The first speed-up of DA-E3-004
+and the one of the shared F1 are in test_speed_equivalence_code.py. If a rule's behaviour is ever changed on purpose, update
 or delete its frozen copy.
 """
 import random
@@ -28,6 +29,8 @@ SPEC = Path(__file__).resolve().parents[2] / "spec_v1"
 SHEET = Path(__file__).resolve().parents[2] / "spec_v1_1" / "sheets" / "specv1_1.md"
 sys.path.insert(0, str(SPEC))
 import clean as c
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from code_speed_reference import e3_reference as e4_reference
 
 CODE_PACKS = ("code-cpp", "code-go", "code-java", "code-js-ts", "code-python", "code-rust")
 
@@ -654,3 +657,370 @@ def test_e3_the_rule_in_clean_py_acts_only_on_the_code_packs_and_equals_the_old_
             assert rule(doc(text, pack)) == E3_OLD["medicine_e3"](doc(text))
         for pack in ("en-dclm", "math-finemath", "sci-finepdfs", None):
             assert rule(doc(text, pack, lang="en")) == ("keep", text)
+
+
+# =====================================================================================================================
+# DA-E3-004, second speed-up: the ASSIGNED guards and the KNOWN hints (results/spec_v1/speed_v1_code_rules.md)
+# =====================================================================================================================
+# DA-E3-004 replaces known key formats and quoted secret values. Its ASSIGNED regex (a secret-like name, an operator, a quoted
+# value of 16 or more characters) searches from every word start and was the slowest part of the rule. It now runs only on a text
+# that passes three tests, each true whenever ASSIGNED could match; the gh hint of the KNOWN keys is also tightened:
+#
+#   1. the casefolded text holds one of ASSIGNED_WORDS (secret token key passw pwd)
+#   2. VALUE_AFTER_OPERATOR: an operator end (: = >), a quote, 16 to 200 value characters and the same quote
+#   3. NAME_WORD_THEN_VALUE: a name word, then the tail of ASSIGNED up to the closing quote
+#   gh: the gh pattern needs ghp_ gho_ ghu_ ghs_ or ghr_ (the hint was "gh")
+#
+# The rule is compared with code_speed_reference.e3_reference, DA-E3-004 as it was in spec v1. Names of this section start with
+# e4_ / E4_. The key-shaped strings are joined at run time so that no key-shaped text is in this file.
+
+
+E4_OLD = e4_reference()
+E4_VALUE = "A7b2C9d3E5f8G1h4"            # 16 characters, mixed letters and digits: looks random
+E4_DUMMY = "your_api_key_here_1234"
+E4_KELVIN, E4_LONG_S = chr(0x212A), chr(0x17F)
+
+
+def e4_doc(text, pack="code-python", lang="python"):
+    return {"doc_id": "x", "text": text, "url": "", "lang_label": lang, "pack_id": pack}
+
+
+def e4_namespace():
+    """The DA-E3-004 card run on its own: a fresh copy each time, so a test can wrap its regexes."""
+    text = SHEET.read_text(encoding="utf-8")
+    body = re.search(r"^## Medicine \d+ — code / E3 / `DA-E3-004`\n(.*?)(?=^## Medicine |\Z)", text, re.S | re.M).group(1)
+    ns = {"__name__": "rules"}
+    exec(textwrap.dedent(re.search(r"^```python\n(.*?)^```", body, re.S | re.M).group(1)), ns)
+    return ns
+
+
+
+E4_NEW = e4_namespace()
+
+
+def e4_same(text, pack="code-python", lang="python"):
+    """The rule in the sheet and the old rule give the same result on this text; the result."""
+    new = E4_NEW["medicine"](e4_doc(text, pack, lang))
+    assert new == E4_OLD(e4_doc(text, pack, lang)), text[:200]
+    return new
+
+
+# =====================================================================================================================
+# The three tests are necessary: what they rest on
+# =====================================================================================================================
+
+def test_e4_the_assigned_pattern_is_the_old_one():
+    old_src = (Path(__file__).resolve().parent / "code_speed_reference.py").read_text(encoding="utf-8")
+    compact = lambda s: re.sub(r"\s+", "", s)
+    pattern = re.search(r'ASSIGNED = re\.compile\(\s*r"""(.*?)"""', old_src, re.S).group(1)
+    assert compact(E4_NEW["ASSIGNED"].pattern) == compact(pattern)
+
+
+def test_e4_every_name_of_assigned_holds_a_word_of_the_first_test():
+    names = re.search(r"\(\?:(secret\|token\|.*?\|\\bkey)\)", E4_NEW["ASSIGNED"].pattern).group(1).split("|")
+    assert len(names) == 11
+    for alt in names:
+        for sep in ("", "_", "-"):
+            for tail in ("or", ""):
+                name = alt.replace("[_\\-]?", sep).replace("(?:or)?", tail).replace("\\b", "")
+                assert any(w in name for w in E4_NEW["ASSIGNED_WORDS"]), name
+
+
+def test_e4_the_name_word_pattern_has_the_tail_of_assigned():
+    tail = ['["\']?', "(?:\\s*:\\s*&?(?:'\\w+\\s+)?[\\w<>\\[\\]]{1,20})?", "\\s*(?::=|=>|=|:)\\s*", "[^\"'`\\s\\\\]{16,200}"]
+    compact = lambda s: re.sub(r"\s+", "", s)
+    for part in tail:
+        assert compact(part) in compact(E4_NEW["ASSIGNED"].pattern)
+        assert compact(part) in compact(E4_NEW["NAME_WORD_THEN_VALUE"].pattern)
+    assert E4_NEW["NAME_WORD_THEN_VALUE"].flags == E4_NEW["ASSIGNED"].flags
+
+
+def test_e4_the_operator_class_holds_the_last_character_of_every_operator():
+    cls = E4_NEW["VALUE_AFTER_OPERATOR"].pattern.split("\\s")[0]           # "[:=>]"
+    assert cls.startswith("[") and cls.endswith("]")
+    for operator in (":=", "=>", "=", ":"):
+        assert re.fullmatch(cls, operator[-1]), operator
+    assert set(re.findall(r"[^\[\]]", cls)) == {":", "=", ">"}
+
+
+def test_e4_every_character_the_unicode_flag_lets_match_a_letter_of_a_word_keeps_that_letter_under_casefold():
+    """re.I lets other characters match a letter (U+017F for s, U+212A for k). The first test casefolds the text, so such a
+    character must come out as the letter itself: checked for every code point, for every letter of ASSIGNED_WORDS."""
+    everything = "".join(map(chr, range(0x110000)))
+    letters = sorted(set("".join(E4_NEW["ASSIGNED_WORDS"])))
+    extra = {}
+    for letter in letters:
+        found = [m.group() for m in re.finditer(letter, everything, re.I)]
+        assert letter in found and letter.upper() in found
+        for ch in found:
+            assert ch.casefold() == letter, (hex(ord(ch)), letter)
+        extra[letter] = [hex(ord(ch)) for ch in found if ch not in (letter, letter.upper())]
+    assert extra["s"] == ["0x17f"] and extra["k"] == ["0x212a"]      # the only two, so U+017F and U+212A are tested below
+    assert all(not v for ltr, v in extra.items() if ltr not in "sk")
+
+
+# =====================================================================================================================
+# Hand cases
+# =====================================================================================================================
+
+E4_OPERATORS = ["=", ":", ":=", "=>", " = ", " : ", " := ", " => ", "=\n", "\n=", "\n = \n", ":\t", "= =", ":=>", "=:"]
+E4_NAMES = ["secret", "token", "api_key", "api-key", "apikey", "app_key", "app-key", "auth_key", "access_key", "client_key",
+         "private_key", "password", "passwd", "pwd", "key", "SECRET", "Token", "API_KEY", "ApiKey", "monkey", "my-secret-key",
+         "keyboard", "tokenizer", "mySecretValue", "password_hash", "secret-id", "token-value", "key-name", "pwd-hash", "password-x", "PASSWORD", "x-key", "-key", "_key", "key_",
+         "ſecret", E4_KELVIN + "ey", "to" + E4_KELVIN + "en", "pa" + E4_LONG_S + "sword", "pa" + E4_LONG_S + "swd", "ǝ", "prıvate_Key", "name", "id",
+         "plain", "data", "value", "pass", "pas", "pw", "ke", "toke", "secre"]
+
+
+@pytest.mark.parametrize("name", E4_NAMES)
+@pytest.mark.parametrize("operator", E4_OPERATORS)
+def test_e4_names_and_operators_match_old_rule(name, operator):
+    for quote in ('"', "'", "`"):
+        e4_same(name + operator + quote + E4_VALUE + quote)
+
+
+def test_e4_the_hand_cases_reach_every_outcome():
+    fixed = kept_dummy = kept_nothing = 0
+    for name in E4_NAMES:
+        for operator in E4_OPERATORS:
+            text = name + operator + '"' + E4_VALUE + '"'
+            action = e4_same(text)[0]
+            fixed += action == "fix"
+            kept_dummy += action == "keep" and e4_same(name + operator + '"' + E4_DUMMY + '"')[0] == "keep"
+            kept_nothing += action == "keep"
+    assert fixed > 100 and kept_dummy > 50 and kept_nothing > 100
+
+
+@pytest.mark.parametrize("n", [1, 14, 15, 16, 17, 100, 199, 200, 201, 202, 300])
+@pytest.mark.parametrize("quote", ['"', "'", "`"])
+def test_e4_value_length_edges_match_old_rule(n, quote):
+    value = (E4_VALUE * 20)[:n]
+    e4_same("key = " + quote + value + quote)
+    e4_same("key = " + quote + value)                                   # no closing quote
+    e4_same("key = " + quote + value + {'"': "'", "'": "`", "`": '"'}[quote])  # another closing quote
+
+
+def test_e4_the_value_must_be_16_to_200_characters_and_have_the_same_closing_quote():
+    assert e4_same('key = "' + (E4_VALUE * 20)[:15] + '"')[0] == "keep"
+    assert e4_same('key = "' + (E4_VALUE * 20)[:16] + '"')[0] == "fix"
+    assert e4_same('key = "' + (E4_VALUE * 20)[:200] + '"')[0] == "fix"
+    assert e4_same('key = "' + (E4_VALUE * 20)[:201] + '"')[0] == "keep"
+    assert e4_same('key = "' + E4_VALUE + "'")[0] == "keep"
+
+
+E4_STRUCTURE = {
+    "empty": "",
+    "no word": 'x = "' + E4_VALUE + '"\n',
+    "word, no operator": 'the key ' + '"' + E4_VALUE + '"',
+    "word and value far apart": "key\n\n\n\n" + 'x = "' + E4_VALUE + '"',
+    "value, then the word": 'x = "' + E4_VALUE + '"\nkey',
+    "value, then the word, then another assignment": 'x = "' + E4_VALUE + '"\nkey = 1\ny = "short"\n',
+    "word inside an earlier name": "monkey_patch_secret_thing = " + '"' + E4_VALUE + '"',
+    "json style": '{"api_key": "' + E4_VALUE + '", "name": "x"}',
+    "json style with spaces": '{ "api_key" : "' + E4_VALUE + '" }',
+    "single quote name": "{'secret': '" + E4_VALUE + "'}",
+    "rust type": "const SECRET: &'static str = \"" + E4_VALUE + '";',
+    "rust type, no static": 'const KEY: String = "' + E4_VALUE + '";',
+    "typescript type": 'const token: string = "' + E4_VALUE + '";',
+    "typescript long type": 'const token: Array<Record<string>> = "' + E4_VALUE + '";',
+    "type too long": 'const token: ' + "T" * 21 + ' = "' + E4_VALUE + '";',
+    "go walrus": 'token := "' + E4_VALUE + '"',
+    "arrow": 'token => "' + E4_VALUE + '"',
+    "name then newline": "api_key\n= " + '"' + E4_VALUE + '"',
+    "operator then newline": 'api_key =\n"' + E4_VALUE + '"',
+    "backslash in value": 'key = "' + E4_VALUE[:8] + "\\" + E4_VALUE[8:] + '"',
+    "space in value": 'key = "' + E4_VALUE[:8] + " " + E4_VALUE[8:] + '"',
+    "dot in value": 'key = "' + E4_VALUE[:8] + "." + E4_VALUE[8:] + '"',
+    "a quote inside the value": 'key = "' + E4_VALUE[:8] + "'" + E4_VALUE[8:] + '"',
+    "dummy value": 'key = "' + E4_DUMMY + '"',
+    "word hyphen name": "my-key = " + '"' + E4_VALUE + '"',
+    "hyphen after the word": "token-value = " + '"' + E4_VALUE + '"',
+    "hyphens on both sides": "my-secret-id = " + '"' + E4_VALUE + '"',
+    "unicode name around": "é" + "key" + "é = " + '"' + E4_VALUE + '"',
+    "two assignments": 'key = "' + E4_VALUE + '"\npassword = "' + E4_VALUE[::-1] + '"\n',
+    "second one only": 'key = "short"\npassword = "' + E4_VALUE[::-1] + '"\n',
+    "the word in a comment": '# key = "' + E4_VALUE + '"',
+    "a keyword after a known key": "AKIA" + "A" * 16 + ' and key = "' + E4_VALUE + '"',
+    "placeholder makes the word": "AKIA" + "A" * 16 + ' = "' + E4_VALUE + '"',
+    "crlf": 'key = "' + E4_VALUE + '"\r\nx = 1\r\n',
+    "long file with a late match": "x = 1\n" * 3000 + 'api_key = "' + E4_VALUE + '"\n',
+    "long identifier": "a" * 500 + 'key = "' + E4_VALUE + '"',
+    "long identifier with no value": "a" * 500 + "key = 1",
+}
+
+
+@pytest.mark.parametrize("name", list(E4_STRUCTURE))
+def test_e4_structure_cases_match_old_rule(name):
+    e4_same(E4_STRUCTURE[name])
+    e4_same(E4_STRUCTURE[name], pack="code-go", lang="go")
+
+
+def test_e4_the_dotless_and_kelvin_spellings_are_found_through_the_casefold():
+    for name in ("ſecret", E4_KELVIN + "ey", "to" + E4_KELVIN + "en", "pa" + E4_LONG_S + "sword"):
+        text = name + ' = "' + E4_VALUE + '"'
+        assert e4_same(text)[0] == "fix", name
+        assert any(w in text.casefold() for w in E4_NEW["ASSIGNED_WORDS"])
+
+
+# =====================================================================================================================
+# The KNOWN keys
+# =====================================================================================================================
+
+E4_KNOWN_EXAMPLES = [("AIza" + "A" * 35, 0), ("AKIA" + "A" * 16, 1), ("gh" + "p_" + "a" * 30, 2), ("gh" + "o_" + "a" * 30, 2),
+                  ("gh" + "u_" + "a" * 30, 2), ("gh" + "s_" + "a" * 30, 2), ("gh" + "r_" + "a" * 30, 2),
+                  ("github_" + "pat_" + "a" * 40, 3), ("s" + "k-" + "a" * 20, 4), ("r" + "k_" + "live_" + "a" * 16, 5),
+                  ("s" + "k_" + "live_" + "a" * 16, 5), ("SG." + "a" * 16 + "." + "b" * 16, 6), ("xox" + "b-" + "a" * 10, 7),
+                  ("eyJ" + "a" * 10 + ".eyJ" + "b" * 10 + "." + "c" * 10, 8),
+                  ("-----BEGIN " + "PRIVATE KEY-----\nx\n-----END " + "PRIVATE KEY-----", 9),
+                  ("-----BEGIN " + "RSA PRIVATE KEY-----\nx\n-----END " + "RSA PRIVATE KEY-----", 9)]
+
+
+@pytest.mark.parametrize("example,i", E4_KNOWN_EXAMPLES)
+def test_e4_every_known_key_holds_one_of_the_hints_of_its_pattern_and_is_replaced(example, i):
+    assert E4_NEW["KNOWN"][i].search(example)
+    assert any(h in example for h in E4_NEW["KNOWN_HINTS"][i])
+    for text in (example, "x = " + example + "\n", "a " + example + " b " + example):
+        assert e4_same(text)[0] == "fix"
+    e4_same("é" + example + "é")                                       # no word boundary before the key: both rules keep it
+
+
+def test_e4_known_hints_cover_the_patterns():
+    assert len(E4_NEW["KNOWN"]) == len(E4_NEW["KNOWN_HINTS"]) == 10
+    assert E4_NEW["KNOWN_HINTS"][2] == ("ghp_", "gho_", "ghu_", "ghs_", "ghr_")
+
+
+@pytest.mark.parametrize("letter", list("abcdefghijklmnopqrstuvwxyz0_-"))
+def test_e4_gh_followed_by_any_other_character_matches_old_rule(letter):
+    for text in ("gh" + letter + "_" + "a" * 30, "gh" + letter + "a" * 31, "high gh" + letter + " right " + "a" * 40,
+                 "gh" + letter + "_" + "a" * 29):
+        e4_same(text)
+
+
+@pytest.mark.parametrize("n", [28, 29, 30, 31])
+@pytest.mark.parametrize("letter", list("pousr"))
+def test_e4_gh_token_length_edges_match_old_rule(letter, n):
+    e4_same("gh" + letter + "_" + "a" * n)
+    e4_same("x gh" + letter + "_" + "a" * n + "_ y")
+
+
+# =====================================================================================================================
+# The guards skip ASSIGNED, and run it when they pass
+# =====================================================================================================================
+
+def e4_run_with_spies(text):
+    ns = e4_namespace()
+    spies = {n: Spy(ns[n], m) for n, m in (("ASSIGNED", "sub"), ("VALUE_AFTER_OPERATOR", "search"), ("NAME_WORD_THEN_VALUE", "search"))}
+    ns.update(spies)
+    result = ns["medicine"](e4_doc(text))
+    return result, {n: s.calls for n, s in spies.items()}
+
+
+def test_e4_a_text_without_a_name_word_runs_no_regex_of_assigned():
+    for text in ('x = "' + E4_VALUE + '"\n' * 50, "", "plain text\n" * 100, 'a = "' + "z" * 100 + '"'):
+        _, calls = e4_run_with_spies(text)
+        assert calls == {"ASSIGNED": 0, "VALUE_AFTER_OPERATOR": 0, "NAME_WORD_THEN_VALUE": 0}, text[:40]
+
+
+def test_e4_a_text_with_a_word_and_no_value_after_an_operator_runs_only_the_second_test():
+    for text in ("the key is here\n" * 50, 'key = 12345\npassword = "short"', 'secret\n"' + E4_VALUE + '"',
+                 'key = "' + E4_VALUE[:15] + '"',                                  # 15 characters: one short
+                 'key = "' + E4_VALUE[:8] + "\\" + E4_VALUE[8:] + '"',                  # a backslash cuts the run
+                 'key = "' + E4_VALUE[:8] + " " + E4_VALUE[8:] + '"', "key = " + '"' + E4_VALUE + "'"):
+        _, calls = e4_run_with_spies(text)
+        assert calls == {"ASSIGNED": 0, "VALUE_AFTER_OPERATOR": 1, "NAME_WORD_THEN_VALUE": 0}, text[:40]
+
+
+def test_e4_a_text_with_a_word_and_a_value_but_not_together_stops_at_the_third_test():
+    for text in ('x = "' + E4_VALUE + '"\nkey\n', 'key\nx = "' + E4_VALUE + '"', 'y = "' + E4_VALUE + '" # token'):
+        _, calls = e4_run_with_spies(text)
+        assert calls == {"ASSIGNED": 0, "VALUE_AFTER_OPERATOR": 1, "NAME_WORD_THEN_VALUE": 1}, text[:40]
+
+
+def test_e4_a_text_that_passes_all_three_runs_assigned_once():
+    for text in ('key = "' + E4_VALUE + '"', 'key = "' + E4_DUMMY + '"', "const SECRET: &'static str = \"" + E4_VALUE + '";'):
+        _, calls = e4_run_with_spies(text)
+        assert calls == {"ASSIGNED": 1, "VALUE_AFTER_OPERATOR": 1, "NAME_WORD_THEN_VALUE": 1}, text[:40]
+
+
+def test_e4_a_known_key_text_without_a_hint_runs_no_known_pattern():
+    ns = e4_namespace()
+    spies = [Spy(rx, "sub") for rx in ns["KNOWN"]]
+    ns["KNOWN"] = spies
+    ns["medicine"](e4_doc("high right light weigh ghost gh_ sk_ xo " * 20))
+    assert [s.calls for s in spies] == [0] * 10
+    ns["medicine"](e4_doc("a " + "gh" + "p_" + "a" * 30))
+    assert [s.calls for s in spies] == [0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
+
+
+# =====================================================================================================================
+# Random documents
+# =====================================================================================================================
+
+E4_VALUES = [E4_VALUE, "Zx9Qw7Er5Ty3Ui1Op0", "k3J9s8D7f6G5h4J3k2L1", "0123456789abcdef0123456789abcdef", E4_DUMMY, "x" * 16, "a" * 40,
+          "user_profile_settings_v2", "https://example.org/api/v1/x", "a1.b2.c3.d4.e5.f6.g7h8", E4_VALUE[:15], (E4_VALUE * 20)[:200],
+          (E4_VALUE * 20)[:201], E4_VALUE[:8] + " " + E4_VALUE[8:], E4_VALUE[:8] + "\\" + E4_VALUE[8:], E4_VALUE[:8] + "'" + E4_VALUE[8:], "AbCdEf123456789012"]
+E4_QUOTES = ['"', '"', "'", "`"]
+E4_FILLER = ["x = 1", "def f(a, b):", "    return a + b", "// comment", "# comment", "const y = compute(3);", "fn main() {}",
+          "import os", "key", "token", "the key to it", "A = 'short'", "name = " + '"' + "n" * 30 + '"', "url = 'http://a.b/c/d/e/f'", "}", "", "tokens",
+          "password", "keys: [1, 2]", "monkey", "secrets", "ſ", E4_KELVIN]
+E4_TYPES = ["", "", "", ": &'static str", ": String", ": string", ": Array<number>", ": " + "T" * 21]
+E4_SEPS = ["\n", "\n", " ", "; ", "\r\n", "\n\n"]
+
+
+def e4_piece(rng):
+    if rng.random() < 0.55:
+        return rng.choice(E4_FILLER)
+    q = rng.choice(E4_QUOTES)
+    close = q if rng.random() < 0.9 else rng.choice(E4_QUOTES)
+    return (rng.choice(E4_NAMES) + rng.choice(["", "", '"', "'"]) + rng.choice(E4_TYPES) + rng.choice(E4_OPERATORS)
+            + q + rng.choice(E4_VALUES) + close + rng.choice(["", ";", ","]))
+
+
+def e4_random_text(rng):
+    return rng.choice(E4_SEPS).join(e4_piece(rng) for _ in range(rng.randint(0, 8)))
+
+
+def test_e4_random_texts_match_old_rule_and_cover_every_outcome():
+    rng = random.Random(404)
+    ns = E4_NEW
+    stage = {"no word": 0, "no value after operator": 0, "no word then value": 0, "assigned ran": 0, "assigned matched": 0,
+             "fix": 0, "keep": 0, "assigned matched but kept": 0}
+    for _ in range(25000):
+        text = e4_random_text(rng)
+        new = e4_same(text)
+        stage[new[0]] += 1
+        low = text.casefold()
+        if not any(w in low for w in ns["ASSIGNED_WORDS"]):
+            stage["no word"] += 1
+        elif not ns["VALUE_AFTER_OPERATOR"].search(text):
+            stage["no value after operator"] += 1
+        elif not ns["NAME_WORD_THEN_VALUE"].search(text):
+            stage["no word then value"] += 1
+        else:
+            stage["assigned ran"] += 1
+            if ns["ASSIGNED"].search(text):
+                stage["assigned matched"] += 1
+                stage["assigned matched but kept"] += new[0] == "keep"
+        # whenever ASSIGNED matches, all three tests pass: the tests are necessary on every one of these texts
+        if ns["ASSIGNED"].search(text):
+            assert any(w in low for w in ns["ASSIGNED_WORDS"]) and ns["VALUE_AFTER_OPERATOR"].search(text) \
+                and ns["NAME_WORD_THEN_VALUE"].search(text), text[:200]
+    assert all(v > 150 for v in stage.values()), stage
+
+
+def test_e4_random_texts_with_a_known_key_match_old_rule():
+    rng = random.Random(405)
+    keys = [k for k, _ in E4_KNOWN_EXAMPLES] + ["gh" + "p_" + "a" * 29, "AKIA" + "A" * 15, "gh" + "x_" + "a" * 40, "ghp" + "a" * 40]
+    fixed = 0
+    for _ in range(6000):
+        parts = [rng.choice(keys) if rng.random() < 0.5 else e4_piece(rng) for _ in range(rng.randint(1, 6))]
+        fixed += e4_same(rng.choice(E4_SEPS).join(parts))[0] == "fix"
+    assert fixed > 3000
+
+
+def test_e4_the_rule_in_clean_py_acts_only_on_the_code_packs_and_equals_the_old_rule():
+    new_rule = c._RULE["DA-E3-004"]()
+    text = 'key = "' + E4_VALUE + '"\n'
+    for pack in CODE_PACKS:
+        assert new_rule(e4_doc(text, pack=pack)) == E4_OLD(e4_doc(text, pack=pack)) == ("fix", 'key = "EXAMPLE_SECRET"\n')
+    for pack in ("en-dclm", "math-finemath", "ind-hi-fw2", None):
+        assert new_rule(e4_doc(text, pack=pack)) == E4_OLD(e4_doc(text, pack=pack)) == ("keep", text)
