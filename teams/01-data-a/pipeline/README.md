@@ -15,7 +15,7 @@ The **Clean → Dedup → F2** pipeline of Data A, as one command. It chains the
 | **Order** | clean → overlap → dedup → **apply the remove list** → **F2** → **survivor loss** → **ledger** → **shards** → **reconcile** (the last two optional) |
 | **In** | the cleaned parts (`train/`, `heldout/`) and the outputs of overlap and dedup |
 | **Out** | filtered Parquet in the same layout, same schema, unchanged text · `pipeline_manifest.json` · the ledger, one row per document · shards (optional) |
-| **New here** | `apply_dedup.py` · `survivor_loss.py` · `ledger.py` · `f2_pool.py` · `reconcile_shards.py` · `hashing.py` · `arrowtools.py` · `runlock.py` · `run_pipeline.py` · `pipeline.json` · `stage_args.py` · `local_trial/` · 302 tests |
+| **New here** | `apply_dedup.py` · `survivor_loss.py` · `ledger.py` · `f2_pool.py` · `reconcile_shards.py` · `inventory_check.py` · `hashing.py` · `arrowtools.py` · `runlock.py` · `run_pipeline.py` · `pipeline.json` · `stage_args.py` · `local_trial/` · 445 tests |
 | **Reused, never copied** | `spec_v1/run_clean.py` (#244) · `dedup/overlap.py`, `dedup/dedup.py` (#255) · `spec_v1/run_f2.py` (#35, on this branch since #40) |
 | **Needs** | Python 3.11+ (tested on 3.13) with `pyarrow` for the pipeline; `numpy` and `tokenizers` for the shard stage; `numpy`, `scipy` and `pygments` to run overlap and dedup locally; `pytest` for the tests. Install them into the environment itself: the scripts run with `python -I` |
 
@@ -53,6 +53,7 @@ python -I teams/01-data-a/pipeline/ledger.py        --cleaned <cleaned> --remove
                                                     --log <dedup_log.jsonl> --f2 <final> --out <ledger> [--raw <raw>]
 python -I teams/01-data-a/pipeline/f2_pool.py      --inputs <deduped>/train --out <final>/train --workers 16
 python -I teams/01-data-a/pipeline/reconcile_shards.py --ledger <run>/ledger --shards <run>/shards --out <run>/reconcile
+python -I teams/01-data-a/pipeline/inventory_check.py  --inventory <expected_inventory.json> --ledger <run>/ledger --shards <run>/shards
 ```
 
 Exit code `0`: every check passed. Exit code `1`: a check failed, and the message names it and where. Each script's output streams to `<run>/logs/<stage>.log`.
@@ -71,7 +72,7 @@ What runs after what, who runs it, and which folder each job reads and writes. E
 | 02 | **overlap** | TSAI, from a job request | `dedup/overlap.py` (#255, pin 7526194) | `cleaned/` | `overlap_summary.json`, `overlap_matches.csv`, `overlap_docs.parquet` | accepted on 14 Nov; results go on #255 |
 | 03 | **dedup** | TSAI, from a job request | `dedup/dedup.py` (#255); H3 joins here if #44 is agreed | `overlap/`, and `cleaned/` for URLs | `remove_list.csv`, `dedup_groups.csv`, `dedup_log.jsonl`, `dedup_summary.json` | after 02 |
 | 04 | **pipeline** | TSAI or the team, from one run config | `run_pipeline.py`: apply → F2 → survivor loss → ledger | `cleaned/`, `dedup/` | `deduped/`, `final/`, `report/`, `ledger/`, `pipeline_manifest.json` | ready; goes into the lead's job request (week 3, task 4) |
-| 05 | **shards** | the same run, with `stages.shards` | `shards/run_shards.py` → `shard_writer.py` (#39) | `final/`, the manifest, G3's C3 tokenizer | `shards/` | #39: the writer's open points |
+| 05 | **shards** | the same run, with `stages.shards` | `shards/run_shards.py` → `shard_writer.py` (#39) | `final/`, the manifest, G3's frozen tokenizer (p1536) | `shards/` | #39: the writer's open points |
 | 06 | **reconcile** | the same run, with `stages.reconcile` | `reconcile_shards.py` | `ledger/`, `shards/` | `reconcile/` | ready for the first real shards |
 
 **How the jobs hand over.** TSAI runs 01 to 03 as separate jobs, so the pipeline's run config adopts the folders they return, `{"mode": "adopt", "output": "<folder>"}`, and the runner checks each one before going on:
@@ -80,6 +81,8 @@ What runs after what, who runs it, and which folder each job reads and writes. E
 - the remove list matches dedup's summary.
 
 One config can also run 01 to 03 itself (`"mode": "run"` with a settings file), as `local_trial/` does on six parts.
+
+**What the job must hold.** The checks above link each job to the one before it; none of them knows which packs and parts there should be. The job's run config names an [expected inventory](#expected-inventory) made from the approved input manifest (`"inventory"`), and the run stops when a listed pack or part is missing from the ledger or the shards, or one appears that is not listed.
 
 **Removal happens in two places, in this order.**
 1. **Dedup and apply** (03, then 04): dedup decides what goes and apply carries it out, so a removed copy never reaches F2.
@@ -242,6 +245,9 @@ The manifest's `totals` carry the headline: `cleaned → removed_by_dedup → dr
 | The whole config before the first stage | runner | `config: stages.dedup.output is missing` · `f2 script … not found` |
 | A run stage's settings file exists and matches its pin; its output is below `out/`, not a folder of the run, not another stage's | runner (config) | `config: overlap: … pins …` · `… named subfolder …` · `… is a folder of the run itself` · `stages.clean.output and stages.overlap.output overlap` |
 | Shards: no part failed or was skipped, `run_shards.py` exited 0, at least one shard written, the summary is this run's | runner | `shards: no part failed or was skipped` · `shards: the summary is this run's, made with this run's cleaning_pipeline.json` |
+| With `inventory`: the ledger and `shards_summary.json` hold exactly the parts the input manifest lists, each with its listed raw sha256, raw rows and shard status; every listed pack is in the ledger and no other pack has kept documents; the clean job read the inventory's input manifest | runner (before the shard stage, and after reconcile) · `inventory_check.py` | `inventory: the ledger holds exactly the listed parts` · `inventory: every part ended in a listed status` |
+| A run with `inventory` has `stages.ledger.raw`, `stages.shards` and `stages.reconcile`, ends at reconcile, and its `stages.shards.packs` are the inventory's packs | runner (config) | `config: "inventory" needs stages.ledger.raw …` · `config: "inventory" needs a run that ends at reconcile …` · `config: stages.shards.packs and the inventory's packs differ` |
+| Every top-level key of the config is a run parameter and every key under `stages` is a stage (or a `_…` comment), so a mistyped `inventory` or `intermediates` is not silently ignored | runner (config) | `config: unknown key 'Inventory' …` · `config: stages.inventory is not a stage …` |
 
 </details>
 
@@ -342,6 +348,7 @@ t.filter(pc.equal(t["final"], "dropped_by_f2")).select(["pack_id", "doc_id", "f2
   "run_id": "sample-v0",                 // outputs go to <out>/<run_id>/; --run-id replaces it per job
   "out": "out/pipeline",                 // git-ignored, like every out/ folder
   "intermediates": "keep",               // or "drop": once reconcile has passed, delete the deduped and final Parquet of the parts the shard stage accounts for
+  "inventory": "teams/01-data-a/jobs/<job>/expected_inventory.json",  // optional: the parts and packs the run must hold, from the input manifest
   "stages": {
     "clean":   { "mode": "run", "settings": "teams/01-data-a/spec_v1/clean.json", "input": "inputs/tokenizer_sample_v0",
                  "manifest_sha256": "7fd647c8…", "expected_parts": { "train": 48, "heldout": 38 } },
@@ -350,7 +357,7 @@ t.filter(pc.equal(t["final"], "dropped_by_f2")).select(["pack_id", "doc_id", "f2
     "apply":   { "link": true, "workers": 4 },   // hard-link untouched parts; 4 parts at a time
     "f2":      { "script": "teams/01-data-a/spec_v1/run_f2.py", "workers": 4, "pool": true },  // pool: the set loaded once
     "ledger":  { "raw": "out/tokenizer_sample_v0_raw" },  // optional: mode B
-    "shards":  { "tokenizer": "<c3>/tokenizer.json" },  // optional: leave it out and the run stops after the ledger
+    "shards":  { "tokenizer": "<p1536>/tokenizer.json" },  // optional: leave it out and the run stops after the ledger
     "reconcile": {}                                    // optional, needs shards: every kept doc in a shard or left out for a reason
   }
 }
@@ -372,7 +379,7 @@ t.filter(pc.equal(t["final"], "dropped_by_f2")).select(["pack_id", "doc_id", "f2
 | `stages.f2.workers` | whole number ≥ 1 (default 1) | **1**: one `run_f2.py` per split. **N > 1**: up to N processes at once, one per pack folder, with one log per pack |
 | `stages.f2.pool` | `false` (default) · `true` | **true**: one `f2_pool.py` per split. It loads G9's set **once** and shares the split's parts out to `workers` processes: on Linux they share the loaded set (about 1.1 GB in all), elsewhere each worker loads it. The output is byte for byte what `run_f2.py` writes |
 | `stages.reconcile` | `{}` | optional, after `shards`: `reconcile_shards.py` checks that every kept document of the ledger is in exactly one shard at its ledger position, or left out by the writer for a stated reason (secret, empty, special token, round-trip), or in a part that is not sharded (held-out). A dropped document in a shard, a document in two shards, or a kept one missing or cut off (truncated) stops the run |
-| `stages.shards.tokenizer` | file | G3's C3 `tokenizer.json`. Setting `stages.shards` adds the shard stage after survivor loss; without it the run stops there |
+| `stages.shards.tokenizer` | file | G3's frozen `tokenizer.json` (p1536). Setting `stages.shards` adds the shard stage after survivor loss; without it the run stops there |
 | `stages.shards.out` | folder (default `<run>/shards`) | where the shards, `cleaning_pipeline.json` and `shards_summary.json` go |
 | `stages.shards.tokens` · `.packs` · `.pack_table` | optional | passed to `run_shards.py`: token limit per shard, only these packs, a pack table other than `shards/pack_table.json` |
 | `stages.shards.script` · `.any_tokenizer` | optional | `run_shards.py` (default `teams/01-data-a/shards/run_shards.py`); `any_tokenizer: true` accepts another tokenizer (tests only) |
@@ -380,7 +387,8 @@ t.filter(pc.equal(t["final"], "dropped_by_f2")).select(["pack_id", "doc_id", "f2
 | `stages.apply.workers` | whole number ≥ 1 (default 4) | parts checked and written at once; each holds one batch and one output row group in memory |
 | `hash_cache` | `true` (default) · `false` | **true**: every sha256 is computed once and kept in `<run>/cache/sha256.json`, keyed on each file's device, inode, size, mtime and change time (ctime on Linux, NTFS's ChangeTime on Windows), so the digests reuse apply's hashes and a resumed run hashes nothing it has hashed already. **false**: hash everything again, for an audit |
 | `intermediates` | `keep` (default) · `drop` | **keep**: every stage's Parquet stays on disk (the cleaner audit reads the parts before and after `clean.py`). **drop**: once reconcile has passed, the run deletes, from `deduped/` and `final/`, the Parquet of every part whose kept documents are all in shards or left out by the shard writer for a stated reason; held-out parts, parts of packs the shard stage was not asked for, and the cleaned folder stay. Needs a run that ends at reconcile. See [Intermediate Parquet](#intermediate-parquet-keep-or-drop) |
-| `stages.ledger.raw` | folder (optional) | the raw parts the cleaner read, as `<raw>/<split>/<pack>/<file>` or `<raw>/<pack>/<split>/<file>` (found by the sha256 in the cleaning report, else by name): the ledger runs in **mode B** (keep / fix / drop per document). Without it, **mode C** |
+| `inventory` | file (optional) | the **expected inventory**: every part of the approved input manifest with its raw sha256, raw rows and the status its shards must end in. The run stops when the ledger or `shards_summary.json` lacks a listed part, holds one that is not listed, or a part has another raw file, row count or status than listed. A run with an inventory needs `stages.ledger.raw`, `stages.shards` and `stages.reconcile`, and must end at reconcile. Without the key none of this is checked or required, and `--plan` and the manifest say so (`inventory: none`). See [Expected inventory](#expected-inventory) |
+| `stages.ledger.raw` | folder (optional; **required with `inventory`**) | the raw parts the cleaner read, as `<raw>/<split>/<pack>/<file>` or `<raw>/<pack>/<split>/<file>` (found by the sha256 in the cleaning report, else by name): the ledger runs in **mode B** (keep / fix / drop per document). Without it, **mode C** |
 
 **One file per run.** Everything that defines a run is a key in the config file, and `--config <file>` is all a TSAI job's `Command:` needs. The committed `pipeline.json` is the generic template (no dates, no returned folders); for a job, copy it to `jobs/<date>-<name>/run.json` and edit that copy:
 
@@ -474,6 +482,7 @@ out/pipeline/<run_id>/
 │   ├── train/<pack>.parquet, heldout/<pack>.parquet
 │   ├── ledger_summary.json
 │   └── ledger_sample.csv
+├── inventory_check.json               with "inventory": the report of the last inventory check point, with every difference
 ├── cleaning_pipeline.json             08 shards, first: clean.py sha256, F2 set, dedup remove list (what every shard of the run says)
 ├── shards/                            08 shards: <pack>-<split>-NNNNNN.{bin,idx.npy,docs.parquet,json,quality_report.json,dump.md},
 │   ├── cleaning_pipeline.json         a copy of the run's file, and shards_summary.json
@@ -508,6 +517,9 @@ With `"intermediates": "drop"`, the `part-NNNNN.parquet` files of the parts the 
   ],
   "checks": [ { "stage": "dedup", "check": "dedup used this overlap run", "ok": true, "detail": "…" }, … ],
   "totals": { "cleaned": …, "removed_by_dedup": …, "dropped_by_f2": …, "final": …, "shards_written": … },  // mode B adds "raw", "dropped_by_clean"
+  "inventory": { "file": "…/expected_inventory.json", "sha256": "…", "input_manifest_sha256": "…", "packs": 38, "parts": 86,
+                 "expected": { "not_sharded": 38, "written": 48 }, "checked": { "ledger": "…", "reconcile": "…" },
+                 "report": "inventory_check.json" },   // null without "inventory"; "checked": the sha256 of the inventory each check point passed with
   "intermediates": { "mode": "keep" },   // after a drop: "state": "done", "parts": { "dropped": …, "left": … }, "folders": { "final": { "stage": "f2", "parquet_files": …, "bytes": …, "hard_links": … }, … }
   "by_pack": {                                                                          // from the ledger
     "sci-finepdfs": { "train":   { "cleaned": 6011, "removed_by_dedup": 2, "dropped_by_f2": 14, "final": 5995 },
@@ -536,7 +548,7 @@ python -I teams/01-data-a/shards/shard_writer.py --input <run>/final/train/<pack
 |---|---|
 | `--input` | a part under `<run>/final/<split>/<pack>/`; only `train` parts are sharded for now |
 | `--manifest` | the run's `pipeline_manifest.json`; `cleaning_pipeline.json` must sit next to it (the shard stage writes it, or `python -I teams/01-data-a/shards/provenance.py --manifest <run>/pipeline_manifest.json --write-record`) |
-| `--tokenizer` | G3's frozen C3 `tokenizer.json` (`--any-tokenizer` accepts another one, for tests only) |
+| `--tokenizer` | G3's frozen `tokenizer.json`, p1536 (`--any-tokenizer` accepts another one, for tests only) |
 | `--language`, `--script`, `--lane` | recorded in the shard's manifest |
 | `--domain` | optional; default: the pack's family in `clean.py` |
 | `--index`, `--tokens` | shard number (default 0) and token limit (default 2^26) |
@@ -611,6 +623,64 @@ A part that apply hard-linked from the cleaned folder loses only its name in `de
 
 **What this switch is not.** It does not change how the stages pass data to each other: each stage is still the team's own script reading and writing Parquet, so a run with `drop` uses the same disk at its peak as one with `keep`, and its cleaned folder stays. It decides what is left of `deduped/` and `final/` when the run is over.
 
+### Expected inventory
+
+Every check above compares one output of the run with another. None of them can say that a pack or a part **never reached the run**: a part that was not in the cleaned folder is in no ledger, no shard summary and no reconciliation, and all of them still agree. The expected inventory closes that gap. It is written **before the run, from the approved input manifest**, and reads nothing the run writes.
+
+```jsonc
+// expected_inventory.json
+{ "input_manifest_sha256": "7fd647c8…",          // the input manifest it was made from
+  "packs": ["code-go", "en-dclm", …],
+  "parts": [
+    { "split": "train",   "pack_id": "code-go", "part": "train/code-go/part-00000.parquet",
+      "raw_sha256": "…", "raw_rows": 61393, "expected": "written" },
+    { "split": "heldout", "pack_id": "code-go", "part": "heldout/code-go/part-00000.parquet",
+      "raw_sha256": "…", "raw_rows": 872,   "expected": "not_sharded" } ] }
+```
+
+| Field | Meaning |
+|---|---|
+| `input_manifest_sha256` | the sha256 of the input manifest the inventory was made from; compared with the `manifest_sha256` in the clean job's `job_summary.json` |
+| `packs` | every pack of the input manifest; each must have at least one part |
+| `parts[].part` | `<split>/<pack>/<file>.parquet`, split `train` or `heldout`: the name the part has in the cleaned folder, the ledger and `shards_summary.json` |
+| `parts[].expected` | the status the part must have in `shards_summary.json`: `"written"`, `"not_sharded"`, or a **list** of acceptable statuses (a status the shard writer gets later, such as one for a part with no document left, needs only the inventory to list it). `failed` and `skipped` are refused. A status is any text, so a mistyped one (`"writen"`) fails only when the statuses are compared, after reconcile: the `inventory:` line of `--plan` counts the parts per expected status, which is where it shows beforehand |
+| `parts[].raw_sha256` · `.raw_rows` | the raw part's sha256 and rows, both required: every part is compared on both |
+| `parts[].pack_id` · `.split` | optional; when given they must be the pack and the split in `part` |
+
+Every field is spelled as above. A key that is none of these is refused, at the top and in a part (keys starting with `_` are comments), so a hash under another name, such as the input manifest's own `sha256` and `rows`, cannot go uncompared.
+
+Set `"inventory": "<file>"` in the run config. **A run with an inventory is the production run**, and the config is refused, before anything runs, when it has
+
+- no `stages.ledger.raw`: the ledger must account for every raw document (mode B), and the raw rows and hashes can only be checked there;
+- no `stages.shards` or no `stages.reconcile`, or a `"to"` earlier than reconcile: such a run would end without one or both of the check points below;
+- a `stages.shards.packs` that is not the inventory's `packs` (leave the key out and the shard stage takes every pack);
+- a clean stage in `"mode": "run"` whose `manifest_sha256` is not the inventory's `input_manifest_sha256`, or an adopted cleaned folder (one that is there already) whose `job_summary.json` names another input manifest or none, is missing, or cannot be read as a JSON object;
+- an inventory that is malformed: a part listed twice, a part of a pack that `packs` does not list, a pack without a part, a missing, unknown or wrong-typed field.
+
+A config without the key runs as before: nothing is compared with an input manifest and the raw ledger is not required. `--plan` then prints `inventory: none … not a production run`, and the manifest has `"inventory": null`. A mistyped key cannot cause that by accident: a top-level key that is not a run parameter, a key under `stages` that is not a stage, and `inventory` or `intermediates` inside a stage's settings are refused.
+
+**When it is checked.**
+
+| When | What | Why there |
+|---|---|---|
+| on entry to the **shard stage**, in sequence or with `"from": "shards"` | the clean job's `job_summary.json` names the inventory's input manifest (no summary, or one that names none, fails) · the ledger is mode B · it holds exactly the listed parts · every listed pack is in it, and no other pack has kept documents · each part's raw file is the listed one (the sha256 `ledger.py` recorded for the raw file it read) · each part's raw rows are the listed ones (the part's rows in the ledger) | a part that is missing or not listed stops the run **before anything is sharded**. The ledger stage is already recorded, so after a mistake in the inventory file alone the corrected file resumes with `"from": "shards"`; the ledger is not built again |
+| after **reconcile** | all of the above again · `shards_summary.json` holds exactly the listed parts · every part has a listed status · every part is of its listed pack (the `pack_id` the summary gives the part; an entry without one fails). The documents' own `pack_id` is not compared part by part: a raw file in another pack's folder fails the raw sha256 check, and a kept document of a pack that is not listed fails the ledger's pack check | the statuses exist only now; the ledger side is repeated because a run resumed with `"from": "reconcile"` skips the first check point and may have another inventory than the one it saw |
+
+Packs are compared by the documents' `pack_id`. A listed pack must be in the ledger unless all its parts list 0 raw rows. A raw part of a listed pack may hold a document with another `pack_id`: when the cleaner dropped it, or dedup or F2 took it out, nothing of that pack goes on and the check passes, naming the pack in its detail; when such a document was **kept**, the check fails, since a pack the input manifest does not list would reach the shards.
+
+Every check of a check point runs before the run stops, and the report goes to `<run>/inventory_check.json` first: under `differences` it lists every part and pack behind a failed check with both values (the ledger's and the listed one). Each check point writes the file over the one before it, and every run removes an earlier report when it starts, so the file is always the last check point's of the latest invocation (`checked_after`); a check point that cannot read an input writes `"ok": false` with the reason under `error`. A check point writes its report and never the manifest: stage records change only when a stage finishes, so a resumed run that a check point stops leaves the manifest, with the records of the stages after it, as it was. The stage records carry the checks (`inventory: …`, in the shards and reconcile records) and the sha256 of the inventory they passed with (`inventory_sha256`). The manifest names the inventory file, its sha256 and counts, where the report goes, and under `checked` the sha256 each check point passed with. `checked` is read from those two stage records: it is `null` until the stage is recorded (the shard stage for `ledger`, reconcile for `reconcile`), and holds two different values when a run was resumed with another inventory file. Paths in the report are shown as in the manifest, relative to the repository when inside it.
+
+**After a job**, the same check runs on the returned files, without the pipeline:
+
+```bash
+python -I teams/01-data-a/pipeline/inventory_check.py --inventory <expected_inventory.json> \
+    --ledger <run>/ledger --shards <run>/shards [--cleaned <cleaned>] [--out report.json]      # exit 0, or 1 with every difference
+```
+
+Only the sides that are given are checked: without `--cleaned` the input manifest is not compared.
+
+It reads the two summaries and two columns of the ledger's Parquet (`split`, `part`); no raw or final part is opened and nothing is hashed again. On the shard side it depends on three things in `shards_summary.json`: `parts` is an object keyed by `<split>/<pack>/<file>.parquet`, with one entry per input part (held-out parts too), and each entry has `status` and `pack_id`. The report holds IDs, counts, hashes and the paths it was given, no document text.
+
 <br>
 
 ## Data handling
@@ -681,7 +751,7 @@ The old apply varied most (25 to 121 s over 3 runs; writing thousands of 128-row
 ## Tests
 
 ```bash
-python -m pytest teams/01-data-a/pipeline/tests -q      # 302 passed
+python -m pytest teams/01-data-a/pipeline/tests -q      # 445 passed
 ```
 
 | File | Tests | Covers |
@@ -690,11 +760,12 @@ python -m pytest teams/01-data-a/pipeline/tests -q      # 302 passed
 | `test_survivor_loss.py` | 11 | lost · partly hit · untouched · without survivor · split + part + doc_id matching · F2 errors count as dropped · no drops · an uncovered part · mixed fingerprint sets · CLI · the row order (G9 before G10, the CSV's order within a group) · a doc both dropped and an error counts once, as the error |
 | `test_local_trial.py` (not in the repo yet) | 10 | the trial configs agree with each other and with the tracked sample manifest (pin, parts, run ids, steps) and each has its command in the trial README · `show.py` prints a run and flags a failed check |
 | `test_stage_args.py` | 19 | the command each stage script gets: a generated config for clean, overlap and dedup (path keys filled in, other settings kept) · `only` · the settings pin · outputs outside `out/` or the repository refused |
-| `test_run_pipeline.py` | 114 | the full chain (13 → 11 → 9) · parallel F2 gives the same result as one process · a crashed pack is named and a rerun recovers · bad `workers` values · identical runs give identical digests · `--from` keeps earlier checks · a changed adopted folder · dedup from another overlap run · overlap of other parts · count mismatch · held-out removed · F2 errors · F2 that read other files · stale F2 output · train-only · `run` mode success and failure · a bad config stopped before anything runs · CLI · the ledger in the full chain and with parallel F2 · mode B adds the cleaner's drops to the totals · `"from": "ledger"` · a `raw` that is not a folder · the per-pack table, its checks against apply, a pack the cleaner emptied (mode B), and the table printed by the CLI · F2 through `f2_pool.py` gives the same run · the reconcile stage after shards, and a failed reconciliation · CSV records, not lines · the new config keys · a resumed run reuses the hash cache · the same digests without it · an input in a folder the run writes (`ledger.partial`, `ledger.old`, `deduped.lock`, `ledger`) is refused before any stage · a `raw` folder there too · run-varying fields of overlap and dedup summaries leave the digest unchanged · `intermediates`: kept by default · `drop` deletes, from `deduped/` and `final/`, only the parts whose kept documents are all in shards or left out for a stated reason (held-out and unselected parts stay byte for byte), leaves the cleaned folder alone even when the run wrote it, and keeps the checked digests · one document with any other status (not selected, not sharded, missing, none) keeps its part, and so does a part the shard stage did not write · with nothing to drop the run stays resumable · a name that is not `<split>/<pack>/<file>.parquet` is refused · a part already missing is skipped · a folder that cannot be written stops the drop first · it needs a run that ends at reconcile · a failed reconciliation drops nothing · a finished run resumed at reconcile drops · `started` is in the manifest before the first file goes · a first deletion that fails leaves the run whole and resumable, a later one leaves it marked · a dropped or half-dropped run cannot be resumed · a read-only part stops the drop first (Windows) · the shards or an input inside `deduped/` or `final/` is refused · a pack, split or stage folder that is a link elsewhere, outside or inside the run folder, stops the drop |
+| `test_run_pipeline.py` | 173 | the full chain (13 → 11 → 9) · parallel F2 gives the same result as one process · a crashed pack is named and a rerun recovers · bad `workers` values · identical runs give identical digests · `--from` keeps earlier checks · a changed adopted folder · dedup from another overlap run · overlap of other parts · count mismatch · held-out removed · F2 errors · F2 that read other files · stale F2 output · train-only · `run` mode success and failure · a bad config stopped before anything runs · CLI · the ledger in the full chain and with parallel F2 · mode B adds the cleaner's drops to the totals · `"from": "ledger"` · a `raw` that is not a folder · the per-pack table, its checks against apply, a pack the cleaner emptied (mode B), and the table printed by the CLI · F2 through `f2_pool.py` gives the same run · the reconcile stage after shards, and a failed reconciliation · CSV records, not lines · the new config keys · a resumed run reuses the hash cache · the same digests without it · an input in a folder the run writes (`ledger.partial`, `ledger.old`, `deduped.lock`, `ledger`) is refused before any stage · a `raw` folder there too · run-varying fields of overlap and dedup summaries leave the digest unchanged · `intermediates`: kept by default · `drop` deletes, from `deduped/` and `final/`, only the parts whose kept documents are all in shards or left out for a stated reason (held-out and unselected parts stay byte for byte), leaves the cleaned folder alone even when the run wrote it, and keeps the checked digests · one document with any other status (not selected, not sharded, missing, none) keeps its part, and so does a part the shard stage did not write · with nothing to drop the run stays resumable · a name that is not `<split>/<pack>/<file>.parquet` is refused · a part already missing is skipped · a folder that cannot be written stops the drop first · it needs a run that ends at reconcile · a failed reconciliation drops nothing · a finished run resumed at reconcile drops · `started` is in the manifest before the first file goes · a first deletion that fails leaves the run whole and resumable, a later one leaves it marked · a dropped or half-dropped run cannot be resumed · a read-only part stops the drop first (Windows) · the shards or an input inside `deduped/` or `final/` is refused · a pack, split or stage folder that is a link elsewhere, outside or inside the run folder, stops the drop · `inventory`: a run that matches passes, and the manifest names the inventory, the report and the sha256 each check point passed with · the report shows paths as the manifest does · without the key the plan and the manifest say `inventory: none` and nothing is checked · the plan line, with the parts per expected status · an unknown top-level key (`Inventory`, `production`, …) and a key under `stages` that is not a stage are refused, comment keys are not · refused before anything runs without `stages.ledger.raw`, without shards or reconcile, with a `"to"` earlier than reconcile, with other `stages.shards.packs`, with another pinned input manifest, with an adopted clean job that read another input manifest or names none, or with a missing or malformed inventory (a part without its raw rows, a hash under another name) · without `stages.shards.packs` the stand-in shard script takes every pack, and the inventory is checked against the summary it writes, through the runner's own shard stage · a clean job without a summary fails the input-manifest check before the shard stage · a listed part the ledger lacks, a ledger part that is not listed, other raw rows and another raw file each stop the run before the shard stage, with the ledger stage recorded and the difference in the report · a corrected inventory resumes with `"from": "shards"` without the ledger being built again · a run resumed at the shard stage is checked before anything is sharded, also over a ledger built without the raw parts · a document of an unlisted pack: dropped by the cleaner it passes, kept it stops the run · another status than listed, a part in the shard summary that is not listed, and an entry without its pack stop it after reconcile · a list of acceptable statuses · a run resumed at reconcile is checked against the inventory as it is now, and `checked` shows a check point that passed with another file · a check point that cannot finish leaves no earlier report behind · a failed inventory check drops nothing, and the corrected run then drops · an inventory together with `drop` |
 | `test_ledger.py` | 47 | each document's row in mode C (removed copy with its H1 match, survivor dropped by F2, kept with its final row) · `final_row` points into the final parts · mode B keep / fix / drop, with both raw layouts · a raw file found by sha256 under another name, and a same-named one from another run refused · cleaning reports agree, or stop · raw from another run · a missing raw part · a list naming another doc_id or a row past the end · groups disagreeing with the list · a row in two groups · a log row naming a survivor · an unknown part · a final part out of order · a missing F2 report · F2 naming a removed doc · F2 errors as their own status · no log · byte-identical reruns · stale ledger files · a stopped rebuild leaves no summary · no text in the sample or summary · CLI · two builds into one folder · an --out that is not a ledger folder · a rerun replaces the ledger whole · a stopped rebuild leaves the previous one whole · the streamed text compare = the in-memory one · a cleaned part out of raw order · a pack folder named unlike its pack_id · 60 parts keep their own dedup rows · mode B without a text column · large documents compared in small batches · a refused swap keeps both ledgers · a refused rename is retried · a run killed between the renames gets the previous ledger back · an input at `<out>.partial` or `<out>.old` is never touched · an --out inside an input · a folder by those names the ledger did not make is never deleted · a staging folder a killed run left is cleared · an old ledger only partly deleted is cleared next time · the same long text repeated in mode B |
 | `test_f2_pool.py` | 14 | the pool writes the same bytes as run_f2.py part by part (spawn, and fork where the machine has it) · in-process · resume · a broken part or a dying worker fails only its part · a broken set stops before any worker · relative inputs reported as given · the summary names this run's script |
 | `test_hashing_and_lock.py` | 24 | a file hashed once · a rewritten file and an in-place edit hashed again · a hard link has its source's hash · the cache on disk · a broken, old or bad cache never trusted · many files in parallel, in order · audit mode · one writer per folder · a killed holder releases the lock · an in-place edit that puts mtime back · a link recorded without reading it · the code hash covers the helper modules · only a lock someone holds is busy: a file system without locks warns and goes on, an I/O error is raised (7 cases) |
 | `test_arrowtools.py` | 5 | `by_part` cuts at every key change in sorted order · rows with a null key stay together · `batch_rows` from the widest row group · `iter_sized` gives every row once, in order, through small rows, repeated long text and distinct long rows · an empty file and one big row group |
+| `test_inventory_check.py` | 84 | a run that matches its inventory · one side alone · the inventory's shape, its optional `split` and `pack_id`, comment keys · the file is read once and the sha256 is of what was parsed · 13 malformed inventories and 30 malformed parts refused (a part listed twice, a pack without a part, `failed` or `skipped` expected, a bad or missing sha256 or row count, an unknown key at the top or in a part, a `pack_id` or `split` that is not the part's, …) · a listed part the ledger lacks and a ledger part that is not listed, each named · a listed pack missing from the ledger · a pack that is not listed fails only with kept documents · another raw file or row count, with both values · a raw file without a recorded hash differs · a raw part without rows is still a part · a pack whose parts all list 0 rows · a ledger without the raw parts (mode C) fails · `\` in the ledger's part names · a folder that is not a ledger · 7 ledger summaries that are not what `ledger.py` writes stop with a message · the same for the shard summary: missing and unlisted parts, 5 other statuses, a list of acceptable statuses, another pack and an entry without one, `\` in part names, a summary that is not an object · the input manifest: equal, another, and a clean job that names none or has no summary (a failed check, never left out) · CLI: the report, exit 0 and 1, `--cleaned`, nothing to check against, an unreadable or malformed input without a traceback |
 | `test_reconcile_shards.py` | 20 | every kept document accounted for (in a shard, left out with each of the writer's four reasons, not sharded) · a document both left out and in a shard · a dropped document in a shard · a row past the part · a document in two shards · a truncated part (not_reached) · a silently missing document · a left-out document that is not kept · a manifest count mismatch · packs not selected · a written part without its files · CLI · a shard no ledger file claims · two runs into one folder · a part holding two packs · statuses in input_part order whatever the case of the pack names · an --out that overlaps an input · a pack the shard stage left out fails by default · a listed pack the ledger does not hold fails |
 
 The data is made up inside the tests (`conftest.py`), in dedup's real formats (`G000001` group ids, rule numbers 0–4). The runner's tests use `tests/fake_run_f2.py`, a stand-in with `run_f2.py`'s command line, its output files and its exit codes. The real F2 needs G9's full set (about 1.1 GB) and is tested in its own PR, and on real data above.
@@ -726,6 +797,7 @@ The data is made up inside the tests (`conftest.py`), in dedup's real formats (`
 | **Ledger in its own folder (`ledger/`)** | If it lived inside `report/`, writing it would change survivor loss's digest and make `"from": "ledger"` refuse to start. |
 | **Ledger files per pack and split** | At 1.4M documents one file is unwieldy; per pack, anyone can open the pack they own. |
 | **Intermediate Parquet is kept unless the config says `drop`; a drop is per part, after reconcile, and never the cleaned folder** | Deleting is the one thing a run cannot undo, so it is never the default. A part goes only when the reconciliation shows all its kept documents in shards or left out by the writer for a stated reason, which leaves the held-out set and unselected packs in place. The cleaned folder stays because other runs adopt it. |
+| **The expected inventory comes from the input manifest, and a run with one must be whole** | The ledger, the shard summary and the reconciliation all describe what the run made, so a pack or part that never reached it is missing from all of them and they still agree. Only a list made before the run, from the approved manifest, can fail on it. Such a run is the production run, so it must also account for every raw document (`stages.ledger.raw`) and end at reconcile: no `"to"` lets it finish without its checks. The ledger side is checked on entry to the shard stage, also on a resume there, so a missing part stops the run before anything is sharded and with the ledger stage recorded; it is checked again at the end, with the statuses. The inventory is strict on purpose: every field is required and unknown keys are refused, because a field that is absent or misnamed would otherwise be a comparison that silently does not happen. |
 | **Mode B compares text, mode A will name rules** | Comparing raw with cleaned works today with no change to the cleaning job; rule ids need the job to write them. |
 
 <br>
@@ -757,6 +829,15 @@ The data is made up inside the tests (`conftest.py`), in dedup's real formats (`
 | `reconcile: … not_reached` | a part did not fit in one shard and was cut short | the shard writer must continue into another shard (#39); until then, a smaller part or a larger `stages.shards.tokens` |
 | `reconcile: … missing` · `… at no kept ledger position` | the shards do not match this run's ledger | shard this run's `final/` again (`"from": "shards"`), and look at `reconcile/reconcile_docs.parquet` |
 | `ledger: … cleaned doc(s) are not in the raw part` | `stages.ledger.raw` is not the raw input of this cleaning run | point it at the raw parts the cleaner read, or drop it (mode C) |
+| `config: "inventory" needs stages.ledger.raw` | a run with an expected inventory must account for every raw document | set `stages.ledger.raw` to the raw parts the clean job read |
+| `config: "inventory" needs a run that ends at reconcile` | `"to"` (or a missing reconcile stage) would end the run before the inventory's checks | leave `"to"` out; for a partial run, take `"inventory"` out of the config |
+| `config: unknown key '…'` · `config: stages.… is not a stage` | a key that is not a run parameter: mistyped, or in the wrong place (`inventory` is a top-level key) | correct the name; a comment key starts with `_` |
+| `config: inventory: … unknown key '…'` · `… raw_rows is missing` | the inventory has a field under another name, or lacks one | write every part with `part`, `expected`, `raw_sha256` and `raw_rows`, and the file with `input_manifest_sha256`, `packs` and `parts` |
+| `inventory: made from the input manifest the clean job read` failed, or `config: the inventory was made from input manifest …` | the clean job read another input manifest than the inventory was made from, or its `job_summary.json` does not say which | rebuild the inventory from the manifest the clean job read (`manifest_sha256` in its `job_summary.json`) |
+| `inventory: every listed pack is in the ledger, and no other pack has kept documents` failed | a listed pack has no document in the ledger, or a kept document carries a `pack_id` the input manifest does not list | see `differences.ledger_packs_missing` and `ledger_packs_unlisted` in the report |
+| `shards: no part failed or was skipped` failed in a run with `inventory` | with an inventory the shard stage takes every pack of it (`stages.shards.packs` is all of them, or left out), so the pack table must hold a full row for every one; a pack with an empty field is skipped, and that stops the run | give `stages.shards.pack_table` a table with every pack filled in, then resume with `"from": "shards"` and a new `stages.shards.out` (the shard stage refuses a folder that already holds shards) |
+| `inventory: the ledger holds exactly the listed parts` failed | a part of the input manifest never reached the run, or the run holds a part the manifest does not list | open `<run>/inventory_check.json` (`differences`): adopt the cleaned folder of the approved manifest, or rebuild the inventory from the manifest the clean job read; then resume with `"from": "shards"` (the ledger stage is recorded) |
+| `inventory: every part ended in a listed status` failed | a part's status in `shards_summary.json` is not the one the inventory expects | see `differences.status` in the report; fix the shard stage, or list the status in the part's `expected` if it is acceptable and resume with `"from": "reconcile"` |
 | `ledger: … does not hold the ledger's … kept documents in order` | a final part was changed or replaced after F2 wrote it | rerun with `"from": "f2"` |
 
 <br>

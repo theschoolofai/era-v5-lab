@@ -1267,3 +1267,675 @@ def test_a_part_that_is_already_missing_is_skipped_and_a_folder_that_cannot_be_w
     monkeypatch.setattr(rp.os, "access", lambda p, mode: False if Path(p).is_dir() else access(p, mode))
     with pytest.raises(rp.Stop, match="cannot be deleted .read-only.; nothing was deleted"):
         r.drop_files(SHARDED)
+
+
+# --- gate 12 of the shard job request: the expected inventory, "inventory" in the config (16 Nov) -------------------------
+# A run with an inventory is the production run: stages.ledger.raw (mode B), a shard stage for every pack, reconcile, and
+# no earlier "to". The raw parts here are the cleaned parts plus one document each that the cleaner "dropped", so a part's
+# raw rows are not its cleaned rows. The inventory is made from the raw parts alone, as the real one is made from the input
+# manifest, and the adopted clean job's job_summary.json names that manifest.
+ALL_PACKS = ["code-go", "en-dclm"]
+INPUT_MANIFEST = "ab" * 32
+PACKS_CHECK = "inventory: every listed pack is in the ledger, and no other pack has kept documents"
+ON_LEDGER = ["inventory: made from the input manifest the clean job read", "inventory: the ledger accounts for every raw document (mode B)",
+             "inventory: the ledger holds exactly the listed parts", PACKS_CHECK,
+             "inventory: each part's raw file is the listed one (sha256)", "inventory: each part's raw rows are the listed ones"]
+ON_SHARDS = ["inventory: the shard summary holds exactly the listed parts", "inventory: every part ended in a listed status",
+             "inventory: every part is of its listed pack"]
+INVENTORY_SHARD_COUNTS = {"written": 3, "failed": 0, "skipped": 0, "not_sharded": 1, "truncated": 0, "parts": 4}
+
+
+def write_inventory(tmp_path, change=None):
+    """expected_inventory.json from the raw parts under tmp_path/raw; change(inventory) edits it before it is written."""
+    raw, parts = tmp_path / "raw", []
+    for f in sorted(raw.rglob("*.parquet")):
+        rel = f.relative_to(raw).as_posix()
+        split, pack, _ = rel.split("/")
+        parts.append({"split": split, "pack_id": pack, "part": rel, "raw_sha256": sha(f), "raw_rows": pq.read_metadata(f).num_rows,
+                      "expected": "written" if split == "train" else "not_sharded"})
+    inv = {"_comment": "made up", "input_manifest_sha256": INPUT_MANIFEST, "packs": list(ALL_PACKS), "parts": parts}
+    if change:
+        change(inv)
+    path = tmp_path / "expected_inventory.json"
+    path.write_text(json.dumps(inv), encoding="utf-8")
+    return path
+
+
+def clean_job_names(cleaned, manifest_sha256):
+    """Set (or with None remove) the input manifest the adopted clean job's job_summary.json names."""
+    f = cleaned / "job_summary.json"
+    s = json.loads(f.read_text(encoding="utf-8"))
+    s.pop("manifest_sha256", None)
+    if manifest_sha256 is not None:
+        s["manifest_sha256"] = manifest_sha256
+    f.write_text(json.dumps(s), encoding="utf-8")
+
+
+def with_inventory(path, tmp_path, monkeypatch, change=None, after_shards=None, raw_extra=None, script=False):
+    """Give the config at `path` (shard_config) what a run with an inventory needs: a clean job summary that names its
+    input manifest, the raw parts for the ledger, a shard stage for every pack, reconcile, and the inventory.
+    The shard stage writes shards in the writer's format from the run's final parts (after_shards(run) is called once
+    they are written); with script=True it is the runner's own stage_shards with the stand-in run_shards.py, and
+    reconcile is replaced, since the stand-in writes no documents to reconcile. raw_extra: {part: [document]} added to
+    a raw part only (documents the cleaner dropped). Returns the config path."""
+    from test_reconcile_shards import write_shards
+    cfg = json.loads(path.read_text(encoding="utf-8"))
+    cleaned, raw = Path(cfg["stages"]["clean"]["output"]), tmp_path / "raw"
+    clean_job_names(cleaned, INPUT_MANIFEST)
+    for f in sorted(cleaned.rglob("*.parquet")):
+        dst = raw / f.relative_to(cleaned)
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        t = pq.read_table(f)
+        gone = t.slice(0, 1).to_pylist()
+        gone[0]["doc_id"] = "x-" + gone[0]["doc_id"]
+        gone += (raw_extra or {}).get(f.relative_to(cleaned).as_posix(), [])
+        pq.write_table(pa_concat(t, gone), dst)
+
+    def fake_shards(self):
+        write_shards(self.dir, self.output("shards"))
+        if after_shards:
+            after_shards(self)
+        return {"mode": "run", "command": ["fake"], "code_sha256": None, "output": "shards", "counts": dict(INVENTORY_SHARD_COUNTS)}
+
+    def fake_reconcile(ledger, shards, out, packs):
+        out.mkdir(parents=True, exist_ok=True)
+        (out / "reconcile_summary.json").write_text(json.dumps({"ok": True}), encoding="utf-8")
+        return {"checks": [{"check": "made up", "ok": True, "detail": ""}], "code_sha256": None, "kept": 9, "in_shards": 8, "totals": {}}
+    if script:
+        import reconcile_shards
+        monkeypatch.setattr(reconcile_shards, "reconcile", fake_reconcile)
+    else:
+        monkeypatch.setattr(rp.Run, "stage_shards", fake_shards)
+    cfg["stages"]["ledger"] = {"raw": str(raw)}
+    cfg["stages"]["shards"]["packs"] = list(ALL_PACKS)
+    cfg["stages"]["reconcile"] = {}
+    cfg["inventory"] = str(write_inventory(tmp_path, change))
+    path.write_text(json.dumps(cfg), encoding="utf-8")
+    return path
+
+
+def edit_stages(path, change):
+    cfg = json.loads(path.read_text(encoding="utf-8"))
+    change(cfg["stages"])
+    path.write_text(json.dumps(cfg), encoding="utf-8")
+
+
+def inventory_report(run):
+    return json.loads((run / "inventory_check.json").read_text(encoding="utf-8"))
+
+
+def inventory_checks(m, stage):
+    return [c["check"] for s in m["stages"] if s["stage"] == stage for c in s["checks"] if c["check"].startswith("inventory: ")]
+
+
+def stage_record(m, stage):
+    return next(s for s in m["stages"] if s["stage"] == stage)
+
+
+def part_of(inv, name):
+    return next(p for p in inv["parts"] if p["part"] == name)
+
+
+def test_a_run_that_matches_its_inventory_passes_and_says_which_inventory(tmp_path, shard_config, monkeypatch):
+    m = rp.run(with_inventory(shard_config, tmp_path, monkeypatch))
+    run, file = tmp_path / "runs" / "test-run", tmp_path / "expected_inventory.json"
+    assert m["stages"][-1]["stage"] == "reconcile" and all(c["ok"] for c in m["checks"])
+    assert m["stages"][-1]["counts"] == {"kept": 9, "in_shards": 8, "in_shard": 8, "not_sharded": 1}
+    assert m["totals"]["raw"] == 17 and m["totals"]["dropped_by_clean"] == 4
+    assert m["inventory"] == {"file": file.resolve().as_posix(), "sha256": sha(file), "input_manifest_sha256": INPUT_MANIFEST,
+                              "packs": 2, "parts": 4, "expected": {"not_sharded": 1, "written": 3},
+                              "checked": {"ledger": sha(file), "reconcile": sha(file)}, "report": "inventory_check.json"}
+    # the ledger side is checked on entry to the shard stage (the ledger stage is recorded by then), and again at the end
+    assert inventory_checks(m, "ledger") == [] and inventory_checks(m, "shards") == ON_LEDGER
+    assert inventory_checks(m, "reconcile") == ON_LEDGER + ON_SHARDS
+    assert [s["stage"] for s in m["stages"] if "inventory_sha256" in s] == ["shards", "reconcile"]
+    assert stage_record(m, "shards")["inventory_sha256"] == stage_record(m, "reconcile")["inventory_sha256"] == sha(file)
+    report = inventory_report(run)
+    assert report["ok"] is True and report["checked_after"] == "reconcile" and report["run_id"] == "test-run"
+    assert [c["check"] for c in report["checks"]] == ON_LEDGER + ON_SHARDS and report["inventory"]["sha256"] == sha(file)
+    assert report["ledger"]["rows"] == 17 and report["shards"]["statuses"] == {"not_sharded": 1, "written": 3}
+    assert manifest_of(run)["inventory"] == m["inventory"] and "synthetic text" not in (run / "inventory_check.json").read_text(encoding="utf-8")
+
+
+def test_the_report_names_paths_as_the_manifest_does(tmp_path, shard_config, monkeypatch):
+    """Inside the repository a path is shown relative to it, in the report as in the manifest: no absolute path, no user name."""
+    with_inventory(shard_config, tmp_path, monkeypatch)
+    monkeypatch.setattr(rp, "REPO", tmp_path)
+    m = rp.run(shard_config)
+    text = (tmp_path / "runs" / "test-run" / "inventory_check.json").read_text(encoding="utf-8")
+    report = json.loads(text)
+    assert report["inventory"]["file"] == m["inventory"]["file"] == "expected_inventory.json"
+    assert report["ledger"]["folder"] == "runs/test-run/ledger" and report["shards"]["folder"] == "runs/test-run/shards"
+    assert tmp_path.name not in text and tmp_path.resolve().as_posix() not in text
+
+
+def test_without_an_inventory_the_run_says_so_and_checks_nothing(tmp_path, shard_config, monkeypatch):
+    with_inventory(shard_config, tmp_path, monkeypatch)
+    cfg = json.loads(shard_config.read_text(encoding="utf-8"))
+    del cfg["inventory"], cfg["stages"]["ledger"]  # and without the raw parts: nothing asks for them
+    shard_config.write_text(json.dumps(cfg), encoding="utf-8")
+    line = next(ln for ln in rp.plan(shard_config).splitlines() if ln.startswith("inventory: "))
+    assert line.startswith("inventory: none   the run's parts and packs are not checked against an input manifest") and "not a production run" in line
+    m = rp.run(shard_config)
+    run = tmp_path / "runs" / "test-run"
+    assert m["inventory"] is None and manifest_of(run)["inventory"] is None and "inventory" in manifest_of(run)
+    assert not (run / "inventory_check.json").exists() and not any("inventory_sha256" in s for s in m["stages"])
+    assert not [c for c in m["checks"] if c["check"].startswith("inventory")] and m["stages"][-1]["stage"] == "reconcile"
+    edit_config(shard_config, inventory=None)  # null is "none" too
+    assert "\ninventory: none " in rp.plan(shard_config)
+
+
+def test_the_plan_names_the_inventory_and_where_it_is_checked(tmp_path, shard_config, monkeypatch):
+    with_inventory(shard_config, tmp_path, monkeypatch)
+    file = tmp_path / "expected_inventory.json"
+    line = next(ln for ln in rp.plan(shard_config).splitlines() if ln.startswith("inventory: "))
+    assert line == (f"inventory: {file.resolve().as_posix()} (sha256 {sha(file)[:12]}…)   2 pack(s), 4 part(s), expected "
+                    f"not_sharded 1, written 3; checked before the shard stage and after reconcile; report "
+                    f"{(tmp_path / 'runs' / 'test-run' / 'inventory_check.json').resolve().as_posix()}")
+    write_inventory(tmp_path, lambda inv: inv["parts"][-1].update(expected="writen"))  # a mistyped status shows in the counts
+    assert "expected not_sharded 1, writen 1, written 2;" in rp.plan(shard_config)
+    assert not (tmp_path / "runs").exists()
+
+
+@pytest.mark.parametrize("key", ["Inventory", "inventory_file", "production", "intermediate", "From"])
+def test_an_unknown_key_in_the_config_is_refused(tmp_path, config, key):
+    """A mistyped run parameter would otherwise be ignored: "Inventory" would give a run without any inventory check."""
+    edit_config(config, **{key: "x"})
+    for go in (rp.run, rp.plan):
+        with pytest.raises(rp.Stop, match=f"config: unknown key '{key}'; the run parameters are run_id, out, stages, from, to, "
+                                          "hash_cache, intermediates, inventory"):
+            go(config)
+    assert not (tmp_path / "runs").exists()
+
+
+def test_a_comment_key_is_not_a_run_parameter_and_a_key_under_stages_must_be_a_stage(tmp_path, config):
+    edit_config(config, _note="a comment", _inventory="how to set it")
+    assert "\ninventory: none " in rp.plan(config)
+    cfg = json.loads(config.read_text(encoding="utf-8"))
+    cfg["stages"]["_shards_example"] = {"tokenizer": "x"}
+    config.write_text(json.dumps(cfg), encoding="utf-8")
+    assert rp.plan(config)
+    cfg["stages"]["inventory"] = "expected_inventory.json"  # the right key in the wrong place
+    config.write_text(json.dumps(cfg), encoding="utf-8")
+    for go in (rp.run, rp.plan):
+        with pytest.raises(rp.Stop, match="config: stages.inventory is not a stage; the stages are clean, overlap, dedup"):
+            go(config)
+    del cfg["stages"]["inventory"]
+    for stage, key in (("ledger", "inventory"), ("f2", "intermediates")):  # and one level deeper, inside a stage's settings
+        nested = json.loads(json.dumps(cfg))
+        nested["stages"].setdefault(stage, {})[key] = "x"
+        config.write_text(json.dumps(nested), encoding="utf-8")
+        for go in (rp.run, rp.plan):
+            with pytest.raises(rp.Stop, match=f"config: stages.{stage}.{key}: \"{key}\" is a run parameter, not a stage setting"):
+                go(config)
+    config.write_text(json.dumps(dict(cfg, stages=["clean"])), encoding="utf-8")
+    with pytest.raises(rp.Stop, match="config: stages must be an object"):
+        rp.plan(config)
+    config.write_text(json.dumps([cfg]), encoding="utf-8")
+    with pytest.raises(rp.Stop, match="expected a JSON object"):
+        rp.plan(config)
+    assert not (tmp_path / "runs").exists()
+
+
+def no_raw(stages):
+    stages["ledger"] = {}
+
+
+def no_ledger(stages):
+    del stages["ledger"]
+
+
+def no_reconcile(stages):
+    del stages["reconcile"]
+
+
+def no_shards(stages):
+    del stages["reconcile"], stages["shards"]
+
+
+def fewer_packs(stages):
+    stages["shards"]["packs"] = ["code-go"]
+
+
+def other_packs(stages):
+    stages["shards"]["packs"] = ["code-go", "en-dclm", "sci-x"]
+
+
+@pytest.mark.parametrize("change, message", [
+    (no_raw, "\"inventory\" needs stages.ledger.raw"), (no_ledger, "\"inventory\" needs stages.ledger.raw"),
+    (no_reconcile, "\"inventory\" needs stages.shards and stages.reconcile"), (no_shards, "\"inventory\" needs stages.shards and stages.reconcile"),
+    (fewer_packs, r"stages.shards.packs and the inventory's packs differ: 1 inventory pack\(s\) not in stages.shards.packs, e.g. en-dclm; 0 of"),
+    (other_packs, r"0 inventory pack\(s\) not in stages.shards.packs; 1 of stages.shards.packs not in the inventory, e.g. sci-x")])
+def test_a_run_with_an_inventory_is_the_production_run(tmp_path, shard_config, monkeypatch, change, message):
+    """It is refused, before anything runs, without the raw parts for the ledger, without the shard and reconcile stages,
+    or with a shard stage asked for other packs than the inventory lists."""
+    edit_stages(with_inventory(shard_config, tmp_path, monkeypatch), change)
+    for go in (rp.run, rp.plan):
+        with pytest.raises(rp.Stop, match=message):
+            go(shard_config)
+    assert not (tmp_path / "runs").exists()
+
+
+@pytest.mark.parametrize("to", ["clean", "apply", "ledger", "shards"])
+def test_a_run_with_an_inventory_must_end_at_reconcile(tmp_path, shard_config, monkeypatch, to):
+    """An earlier "to" would let the run finish without one or both check points: the config's "to", the argument and
+    --plan are all refused, before anything runs."""
+    with_inventory(shard_config, tmp_path, monkeypatch)
+    message = f"\"inventory\" needs a run that ends at reconcile, and \"to\" is {to}"
+    for go in (lambda c: rp.run(c, to=to), lambda c: rp.plan(c, to=to), lambda c: rp.run(c, start="clean", to=to)):
+        with pytest.raises(rp.Stop, match=message):
+            go(shard_config)
+    edit_config(shard_config, to=to)
+    for go in (rp.run, rp.plan):
+        with pytest.raises(rp.Stop, match=message):
+            go(shard_config)
+    assert not (tmp_path / "runs").exists()
+    edit_config(shard_config, to="reconcile")  # said outright, it is the same run
+    assert "\ninventory: " in rp.plan(shard_config)
+
+
+def test_without_stages_shards_packs_the_shard_stage_takes_every_pack(tmp_path, shard_config, monkeypatch):
+    """The stand-in run_shards.py runs here through the runner's own shard stage: it gets no --pack, shards every pack,
+    and its shards_summary.json is what the inventory is checked against."""
+    edit_stages(with_inventory(shard_config, tmp_path, monkeypatch, script=True), lambda stages: stages["shards"].pop("packs"))
+    m = rp.run(shard_config)
+    run = tmp_path / "runs" / "test-run"
+    assert json.loads((run / "shards" / "args.json").read_text(encoding="utf-8"))["packs"] == []
+    assert stage_record(m, "shards")["counts"] == INVENTORY_SHARD_COUNTS and inventory_checks(m, "reconcile") == ON_LEDGER + ON_SHARDS
+    assert inventory_report(run)["shards"] == {"folder": (run / "shards").resolve().as_posix(), "parts": 4,
+                                               "statuses": {"not_sharded": 1, "written": 3}}
+
+
+def test_the_inventory_is_checked_against_the_summary_the_shard_script_writes(tmp_path, shard_config, monkeypatch):
+    """Through the runner's own shard stage (not a replaced one): a part the script wrote and the inventory lists as
+    not_sharded stops the run after reconcile; with the inventory corrected, "from": "reconcile" finishes it."""
+    name = "train/en-dclm/part-00000.parquet"
+    with_inventory(shard_config, tmp_path, monkeypatch, script=True, change=lambda inv: part_of(inv, name).update(expected="not_sharded"))
+    with pytest.raises(rp.Stop, match=f"inventory: every part ended in a listed status: 1 of 4 .*{name}: status 'written', listed not_sharded"):
+        rp.run(shard_config)
+    run = tmp_path / "runs" / "test-run"
+    assert json.loads((run / "shards" / "shards_summary.json").read_text(encoding="utf-8"))["parts"][name]["shard_id"] == "en-dclm-train-000000"
+    write_inventory(tmp_path)
+    m = rp.run(shard_config, start="reconcile")
+    assert all(c["ok"] for c in m["checks"]) and inventory_report(run)["ok"] is True
+
+
+def twice(inv):
+    inv["parts"].append(dict(inv["parts"][0]))
+
+
+def expects_failed(inv):
+    inv["parts"][0]["expected"] = "failed"
+
+
+def pack_without_part(inv):
+    inv["packs"].append("sci-x")
+
+
+def no_raw_rows(inv):
+    del part_of(inv, SHARDED[1])["raw_rows"]
+
+
+def hash_under_another_name(inv):
+    for p in inv["parts"]:
+        p["sha256"] = p.pop("raw_sha256")
+
+
+def no_input_manifest(inv):
+    del inv["input_manifest_sha256"]
+
+
+def manifest_under_another_name(inv):
+    inv["manifest_sha256"] = inv["input_manifest_sha256"]
+
+
+@pytest.mark.parametrize("value, message", [(7, "inventory must be the path"), ("", "inventory must be the path"),
+                                            ("{tmp}/no-such-inventory.json", "config: inventory: .*no-such-inventory.json is not a file"),
+                                            ("{tmp}/runs/test-run/ledger/expected_inventory.json", "is in a folder of the run itself"),
+                                            (twice, "config: inventory: .* is listed twice"),
+                                            (expects_failed, "config: inventory: .*no run may expect"),
+                                            (pack_without_part, "config: inventory: .*pack 'sci-x' is in \"packs\" but no part is of it"),
+                                            (no_raw_rows, "config: inventory: .*part-00001.parquet: raw_rows is missing"),
+                                            (hash_under_another_name, "config: inventory: .*unknown key 'sha256'; a part has part, expected, raw_sha256"),
+                                            (no_input_manifest, "config: inventory: .*input_manifest_sha256 is missing"),
+                                            (manifest_under_another_name, "config: inventory: .*unknown key 'manifest_sha256'; an inventory has")])
+def test_a_missing_or_malformed_inventory_stops_before_anything_runs(tmp_path, shard_config, monkeypatch, value, message):
+    """Also an inventory that would compare nothing: a part without its raw rows, or with its hash under another name."""
+    with_inventory(shard_config, tmp_path, monkeypatch, change=value if callable(value) else None)
+    if not callable(value):
+        edit_config(shard_config, inventory=value.replace("{tmp}", tmp_path.as_posix()) if isinstance(value, str) else value)
+    for go in (rp.run, rp.plan):
+        with pytest.raises(rp.Stop, match=message):
+            go(shard_config)
+    assert not (tmp_path / "runs").exists()
+
+
+def test_the_inventory_must_be_of_the_input_manifest_the_clean_stage_pins(tmp_path, staged):
+    path, repo = staged
+    cfg = json.loads(path.read_text(encoding="utf-8"))
+    tokenizer, raw, file = tmp_path / "tokenizer.json", tmp_path / "raw", tmp_path / "expected_inventory.json"
+    tokenizer.write_text("{}", encoding="utf-8")
+    raw.mkdir()
+    cfg["stages"].update(shards={"script": str(FAKE_SHARDS), "tokenizer": str(tokenizer)}, reconcile={}, ledger={"raw": str(raw)})
+    cfg["inventory"] = str(file)
+    path.write_text(json.dumps(cfg), encoding="utf-8")
+    inv = {"input_manifest_sha256": INPUT_MANIFEST, "packs": ["code-go"],
+           "parts": [{"part": "train/code-go/part-00000.parquet", "expected": "written", "raw_sha256": "0" * 64, "raw_rows": 5}]}
+    file.write_text(json.dumps(inv), encoding="utf-8")
+    pinned = cfg["stages"]["clean"]["manifest_sha256"]
+    for go in (rp.plan, rp.run):
+        with pytest.raises(rp.Stop, match=f"the inventory was made from input manifest abababababab…, and stages.clean.manifest_sha256 is {pinned[:12]}…"):
+            go(path)
+    assert not (repo / "out" / "runs").exists()  # the clean stage did not start
+    file.write_text(json.dumps(dict(inv, input_manifest_sha256=pinned)), encoding="utf-8")
+    assert "\ninventory: " in rp.plan(path)
+
+
+def test_the_inventory_must_be_of_the_input_manifest_the_adopted_clean_job_read(tmp_path, shard_config, tsai_outputs, monkeypatch):
+    """The adopted folder is there before the run, so this is known, and refused, before anything runs."""
+    with_inventory(shard_config, tmp_path, monkeypatch)
+    clean_job_names(tsai_outputs["cleaned"], "cd" * 32)
+    for go in (rp.run, rp.plan):
+        with pytest.raises(rp.Stop, match="config: the inventory was made from input manifest abababababab…, and the adopted clean job read cdcdcdcdcdcd…"):
+            go(shard_config)
+    clean_job_names(tsai_outputs["cleaned"], None)
+    for go in (rp.run, rp.plan):
+        with pytest.raises(rp.Stop, match="job_summary.json of the adopted clean job records no manifest_sha256"):
+            go(shard_config)
+    assert not (tmp_path / "runs").exists()
+    clean_job_names(tsai_outputs["cleaned"], "cd" * 32)
+    write_inventory(tmp_path, lambda inv: inv.update(input_manifest_sha256="cd" * 32))
+    m = rp.run(shard_config)
+    assert inventory_checks(m, "shards") == ON_LEDGER and all(c["ok"] for c in m["checks"])
+
+
+@pytest.mark.parametrize("damage, message", [
+    (lambda f: f.unlink(), r"job_summary.json of the adopted clean job cannot be read \(FileNotFoundError\)"),
+    (lambda f: f.write_text("{not json", encoding="utf-8"), r"job_summary.json of the adopted clean job cannot be read \(JSONDecodeError\)"),
+    (lambda f: f.write_bytes(b"\xff\xfe\xff"), r"job_summary.json of the adopted clean job cannot be read \(UnicodeDecodeError\)"),
+    (lambda f: f.write_text("[]", encoding="utf-8"), "job_summary.json of the adopted clean job is not a JSON object")])
+def test_an_adopted_clean_job_without_a_readable_summary_is_refused_before_anything_runs(tmp_path, shard_config, tsai_outputs, monkeypatch,
+                                                                                         damage, message):
+    """The adopted folder is there, so its summary can be read now: the run does not go through seven stages to find
+    out that nothing says which input manifest the clean job read."""
+    with_inventory(shard_config, tmp_path, monkeypatch)
+    damage(tsai_outputs["cleaned"] / "job_summary.json")
+    for go in (rp.run, rp.plan):
+        with pytest.raises(rp.Stop, match="config: .*" + message + ", so the inventory cannot be tied to the input manifest"):
+            go(shard_config)
+    assert not (tmp_path / "runs").exists()
+
+
+def test_a_clean_job_whose_summary_is_gone_fails_the_input_manifest_check(tmp_path, shard_config, tsai_outputs, monkeypatch):
+    """The summary goes while the run is under way: nothing says which input manifest the clean job read, and the check
+    is not left out, it fails."""
+    with_inventory(shard_config, tmp_path, monkeypatch, after_shards=lambda self: (tsai_outputs["cleaned"] / "job_summary.json").unlink())
+    with pytest.raises(rp.Stop, match="check failed: inventory: made from the input manifest the clean job read: the cleaned folder has no job_summary.json"):
+        rp.run(shard_config)
+    run = tmp_path / "runs" / "test-run"
+    assert [s["stage"] for s in manifest_of(run)["stages"]] == list(rp.STAGES[:-1]) and inventory_report(run)["checked_after"] == "reconcile"
+    assert inventory_report(run)["differences"]["input_manifest_sha256"] == [{"clean_job": None, "listed": INPUT_MANIFEST}]
+
+
+def extra_part(inv):
+    inv["parts"].append({"part": "train/code-go/part-00007.parquet", "raw_sha256": "0" * 64, "raw_rows": 3, "expected": "written"})
+
+
+def one_part_less(inv):
+    inv["parts"] = [p for p in inv["parts"] if p["part"] != SHARDED[1]]
+
+
+def other_rows(inv):
+    part_of(inv, SHARDED[0])["raw_rows"] += 1
+
+
+def other_file(inv):
+    part_of(inv, "heldout/code-go/part-00000.parquet")["raw_sha256"] = "0" * 64
+
+
+@pytest.mark.parametrize("change, message, difference", [
+    (extra_part, r"the ledger holds exactly the listed parts: 1 listed part\(s\) not in the ledger, e.g. train/code-go/part-00007.parquet; 0 ledger",
+     ("ledger_parts_missing", ["train/code-go/part-00007.parquet"])),
+    (one_part_less, r"the ledger holds exactly the listed parts: 0 listed part\(s\) not in the ledger; 1 ledger part\(s\) not listed, e.g. train/code-go/part-00001.parquet",
+     ("ledger_parts_unlisted", [SHARDED[1]])),
+    (other_rows, r"each part's raw rows are the listed ones: 1 of 4 part\(s\) differ, e.g. train/code-go/part-00000.parquet: ledger 6, listed 7",
+     ("raw_rows", [{"part": SHARDED[0], "ledger": 6, "listed": 7}])),
+    (other_file, r"each part's raw file is the listed one \(sha256\): 1 of 4 part\(s\) differ, e.g. heldout/code-go/part-00000.parquet: ledger read .*, listed 000000000000…",
+     None)])
+def test_a_ledger_that_differs_from_the_inventory_stops_the_run_before_the_shard_stage(tmp_path, shard_config, monkeypatch, change, message, difference):
+    """With the ledger stage recorded: the ledger is whole, it is the inventory (or the input) that has to be put right."""
+    ran = []
+    with_inventory(shard_config, tmp_path, monkeypatch, change=change, after_shards=ran.append)
+    with pytest.raises(rp.Stop, match="check failed: inventory: " + message + ".*; see inventory_check.json in the run folder"):
+        rp.run(shard_config)
+    run = tmp_path / "runs" / "test-run"
+    assert not ran and not (run / "shards").exists()
+    m = manifest_of(run)
+    assert [s["stage"] for s in m["stages"]] == list(THROUGH_LEDGER) and not any("inventory_sha256" in s for s in m["stages"])
+    assert m["inventory"]["checked"] == {"ledger": None, "reconcile": None} and m["inventory"]["report"] == "inventory_check.json"
+    report = inventory_report(run)
+    assert report["ok"] is False and report["checked_after"] == "ledger" and [c["check"] for c in report["checks"]] == ON_LEDGER
+    assert sum(not c["ok"] for c in report["checks"]) == 1
+    if difference:
+        assert report["differences"][difference[0]] == difference[1]
+
+
+def test_a_corrected_inventory_resumes_at_the_shard_stage(tmp_path, shard_config, monkeypatch):
+    """The ledger is not built again for a mistake in the inventory file: "from": "shards" picks the run up."""
+    ran = []
+    with_inventory(shard_config, tmp_path, monkeypatch, change=other_rows, after_shards=ran.append)
+    with pytest.raises(rp.Stop, match="each part's raw rows are the listed ones"):
+        rp.run(shard_config)
+    run = tmp_path / "runs" / "test-run"
+    ledger = stage_record(manifest_of(run), "ledger")
+    monkeypatch.setattr(rp.Run, "stage_ledger", lambda self: pytest.fail("the ledger stage ran again"))
+    write_inventory(tmp_path)
+    m = rp.run(shard_config, start="shards")
+    assert len(ran) == 1 and stage_record(m, "ledger") == ledger and m["stages"][-1]["stage"] == "reconcile"
+    assert all(c["ok"] for c in m["checks"]) and m["inventory"]["checked"]["ledger"] == sha(tmp_path / "expected_inventory.json")
+
+
+def test_a_run_resumed_at_the_shard_stage_is_checked_before_anything_is_sharded(tmp_path, shard_config, monkeypatch):
+    """"from": "shards" skips the ledger stage, not the check of the ledger: a listed part the ledger lacks stops the
+    resumed run before the shard stage, as it stops a run from the start."""
+    ran = []
+    rp.run(with_inventory(shard_config, tmp_path, monkeypatch, after_shards=ran.append))
+    run = tmp_path / "runs" / "test-run"
+    write_inventory(tmp_path, extra_part)
+    with pytest.raises(rp.Stop, match=r"inventory: the ledger holds exactly the listed parts: 1 listed part\(s\) not in the ledger"):
+        rp.run(shard_config, start="shards")
+    assert len(ran) == 1 and inventory_report(run)["checked_after"] == "ledger"  # the shard stage did not run a second time
+    # The check point writes its report, not the manifest: the records of the stages it stopped before are still the
+    # finished run's, so with the inventory put right the run resumes at reconcile without sharding again.
+    assert [s["stage"] for s in manifest_of(run)["stages"]] == list(rp.STAGES)
+    write_inventory(tmp_path)
+    m = rp.run(shard_config, start="reconcile")
+    assert len(ran) == 1 and m["stages"][-1]["stage"] == "reconcile" and inventory_report(run)["ok"] is True
+
+
+def test_a_ledger_built_without_the_raw_parts_stops_a_resumed_run_before_the_shard_stage(tmp_path, shard_config, monkeypatch):
+    """A run to the ledger without an inventory and without stages.ledger.raw (mode C), then resumed at the shard stage
+    with both: the inventory is not passed on the config's word, the ledger on disk is checked."""
+    ran = []
+    with_inventory(shard_config, tmp_path, monkeypatch, after_shards=ran.append)
+    full = json.loads(shard_config.read_text(encoding="utf-8"))
+    early = json.loads(json.dumps(full))
+    del early["inventory"], early["stages"]["ledger"]
+    shard_config.write_text(json.dumps(dict(early, to="ledger")), encoding="utf-8")
+    assert stage_record(rp.run(shard_config), "ledger")["clean_mode"] == "C"
+    shard_config.write_text(json.dumps(full), encoding="utf-8")
+    with pytest.raises(rp.Stop, match=r"inventory: the ledger accounts for every raw document \(mode B\): ledger clean_mode 'C'"):
+        rp.run(shard_config, start="shards")
+    assert not ran and not (tmp_path / "runs" / "test-run" / "shards").exists()
+
+
+def ghost(doc_id):
+    return {"doc_id": doc_id, "text": f"synthetic text of {doc_id}", "url": "", "lang_label": "en", "pack_id": "ghost-pack"}
+
+
+def test_a_document_of_an_unlisted_pack_that_the_cleaner_dropped_does_not_stop_the_run(tmp_path, shard_config, monkeypatch):
+    """A raw part of a listed pack may hold a document with another pack_id. Dropped by the cleaner, nothing of that
+    pack goes on, and the inventory cannot list a pack that has no part: the run passes and the check says what it saw."""
+    with_inventory(shard_config, tmp_path, monkeypatch, raw_extra={"train/en-dclm/part-00000.parquet": [ghost("ghost-1")]})
+    m = rp.run(shard_config)
+    assert m["by_pack"]["ghost-pack"]["train"]["raw"] == 1 and m["by_pack"]["ghost-pack"]["train"]["final"] == 0
+    detail = next(c["detail"] for c in m["checks"] if c["check"] == PACKS_CHECK)
+    assert detail == "all 2 listed packs; 1 other pack id(s) among the documents, none kept, e.g. ghost-pack"
+
+
+def test_a_kept_document_of_an_unlisted_pack_stops_the_run_before_the_shard_stage(tmp_path, shard_config, tsai_outputs, monkeypatch):
+    """The same document kept by the cleaner (it is in the cleaned part, and neither dedup nor F2 takes it out) would
+    reach the shards under a pack the input manifest does not list."""
+    f = tsai_outputs["cleaned"] / "train" / "en-dclm" / "part-00000.parquet"
+    t = pq.read_table(f)
+    rows = t.to_pylist()
+    rows[1]["pack_id"] = "ghost-pack"  # e1: not on the remove list, not dropped by F2
+    pq.write_table(pa_concat(t.slice(0, 0), rows), f)
+    ran = []
+    with_inventory(shard_config, tmp_path, monkeypatch, after_shards=ran.append)
+    with pytest.raises(rp.Stop, match=r"no other pack has kept documents: 0 listed pack\(s\) not in the ledger; 1 pack\(s\) that are "
+                                      r"not listed have kept documents, e.g. ghost-pack \(1 kept\)"):
+        rp.run(shard_config)
+    run = tmp_path / "runs" / "test-run"
+    assert not ran and inventory_report(run)["differences"]["ledger_packs_unlisted"] == [{"pack": "ghost-pack", "kept": 1}]
+
+
+def test_a_part_that_ends_in_another_status_than_listed_stops_the_run_after_reconcile(tmp_path, shard_config, monkeypatch):
+    name = "train/en-dclm/part-00000.parquet"
+    with_inventory(shard_config, tmp_path, monkeypatch, change=lambda inv: part_of(inv, name).update(expected="not_sharded"))
+    with pytest.raises(rp.Stop, match=r"inventory: every part ended in a listed status: 1 of 4 part\(s\) differ, e.g. "
+                                      f"{name}: status 'written', listed not_sharded; see inventory_check.json"):
+        rp.run(shard_config)
+    run, file = tmp_path / "runs" / "test-run", tmp_path / "expected_inventory.json"
+    m = manifest_of(run)
+    assert [s["stage"] for s in m["stages"]] == list(rp.STAGES[:-1]) and inventory_checks(m, "shards") == ON_LEDGER
+    assert m["inventory"]["checked"] == {"ledger": sha(file), "reconcile": None} and m["inventory"]["report"] == "inventory_check.json"
+    report = inventory_report(run)
+    assert report["checked_after"] == "reconcile" and report["differences"]["status"] == [
+        {"part": name, "status": "written", "listed": ["not_sharded"]}]
+    assert (run / "reconcile" / "reconcile_summary.json").is_file()  # reconcile itself passed and wrote its outputs
+
+
+def test_a_part_in_the_shard_summary_that_is_not_listed_stops_the_run(tmp_path, shard_config, monkeypatch):
+    other = "train/code-go/part-00009.parquet"
+
+    def one_more(self):
+        f = self.output("shards") / "shards_summary.json"
+        s = json.loads(f.read_text(encoding="utf-8"))
+        s["parts"][other] = {"pack_id": "code-go", "status": "not_sharded"}
+        f.write_text(json.dumps(s), encoding="utf-8")
+    with_inventory(shard_config, tmp_path, monkeypatch, after_shards=one_more)
+    with pytest.raises(rp.Stop, match=r"inventory: the shard summary holds exactly the listed parts: 0 listed part\(s\) not in "
+                                      rf"shards_summary.json; 1 part\(s\) in it not listed, e.g. {other}"):
+        rp.run(shard_config)
+    assert inventory_report(tmp_path / "runs" / "test-run")["differences"]["shard_parts_unlisted"] == [other]
+
+
+def test_a_shard_summary_entry_without_its_pack_stops_the_run(tmp_path, shard_config, monkeypatch):
+    def no_pack(self):
+        f = self.output("shards") / "shards_summary.json"
+        s = json.loads(f.read_text(encoding="utf-8"))
+        del s["parts"][SHARDED[0]]["pack_id"]
+        f.write_text(json.dumps(s), encoding="utf-8")
+    with_inventory(shard_config, tmp_path, monkeypatch, after_shards=no_pack)
+    with pytest.raises(rp.Stop, match=f"inventory: every part is of its listed pack: 1 of 4 .*{SHARDED[0]}: pack_id None, listed 'code-go'"):
+        rp.run(shard_config)
+
+
+def test_a_status_the_inventory_lists_as_acceptable_passes(tmp_path, shard_config, monkeypatch):
+    name = "train/en-dclm/part-00000.parquet"
+    with_inventory(shard_config, tmp_path, monkeypatch, change=lambda inv: part_of(inv, name).update(expected=["empty", "written"]))
+    m = rp.run(shard_config)
+    assert m["inventory"]["expected"] == {"empty|written": 1, "not_sharded": 1, "written": 2} and all(c["ok"] for c in m["checks"])
+
+
+def test_a_resumed_run_is_checked_against_the_inventory_as_it_is_now(tmp_path, shard_config, monkeypatch):
+    """"from": "reconcile" skips the shard stage and its check point, so the reconcile stage checks the ledger side
+    again: an inventory that changed since is not passed on the earlier check's word, and the manifest says which
+    inventory each check point passed with."""
+    rp.run(with_inventory(shard_config, tmp_path, monkeypatch))
+    run, first = tmp_path / "runs" / "test-run", sha(tmp_path / "expected_inventory.json")
+    write_inventory(tmp_path, other_rows)
+    changed = sha(tmp_path / "expected_inventory.json")
+    with pytest.raises(rp.Stop, match="inventory: each part's raw rows are the listed ones: 1 of 4"):
+        rp.run(shard_config, start="reconcile")
+    assert inventory_report(run)["ok"] is False and inventory_report(run)["inventory"]["sha256"] == changed
+    m = manifest_of(run)  # still the finished run's: a stage that did not finish again changes no record
+    assert [s["stage"] for s in m["stages"]] == list(rp.STAGES) and m["inventory"]["sha256"] == first
+    assert m["inventory"]["checked"] == {"ledger": first, "reconcile": first}
+    write_inventory(tmp_path, lambda inv: inv.update(_comment="the same parts, written again"))
+    second = sha(tmp_path / "expected_inventory.json")
+    m = rp.run(shard_config, start="reconcile")
+    assert second != first and m["inventory"]["sha256"] == second and inventory_report(run)["ok"] is True
+    assert m["inventory"]["checked"] == {"ledger": first, "reconcile": second}  # the first check point saw another file
+    assert inventory_checks(m, "shards") == ON_LEDGER and inventory_checks(m, "reconcile") == ON_LEDGER + ON_SHARDS
+
+
+def test_a_check_point_that_cannot_make_its_checks_says_so_in_its_report(tmp_path, shard_config, tsai_outputs, monkeypatch):
+    """The first check point passes and writes its report. Then the clean job's summary stops being a JSON object, so
+    the second cannot make its checks: the run stops with a message, and the report is the second's, saying why, not
+    the passing one of the first."""
+    seen = []
+
+    def break_summary(self):
+        seen.append(inventory_report(self.dir)["ok"])
+        (tsai_outputs["cleaned"] / "job_summary.json").write_text("[]", encoding="utf-8")
+    with_inventory(shard_config, tmp_path, monkeypatch, after_shards=break_summary)
+    with pytest.raises(rp.Stop, match="^inventory: the clean job's summary .*job_summary.json is not a JSON object"):
+        rp.run(shard_config)
+    run, file = tmp_path / "runs" / "test-run", tmp_path / "expected_inventory.json"
+    report = inventory_report(run)
+    assert seen == [True] and report["ok"] is False and report["checked_after"] == "reconcile" and "checks" not in report
+    assert "is not a JSON object" in report["error"] and report["inventory"]["sha256"] == sha(file)
+    m = manifest_of(run)
+    assert [s["stage"] for s in m["stages"]] == list(rp.STAGES[:-1]) and m["inventory"]["checked"] == {"ledger": sha(file), "reconcile": None}
+
+
+def test_a_report_that_cannot_be_written_stops_the_run_and_leaves_no_earlier_one(tmp_path, shard_config, monkeypatch):
+    """The first check point writes its report; at the second the disk is full. The run stops with a message, not a
+    traceback, and the first report is not left to be read as the second's."""
+    def no_space(report, out):
+        raise OSError(28, "No space left on device")
+    with_inventory(shard_config, tmp_path, monkeypatch,
+                   after_shards=lambda self: monkeypatch.setattr(rp.inventory_check, "write_report", no_space))
+    with pytest.raises(rp.Stop, match=r"^inventory: the report .*inventory_check.json could not be written \(OSError\)"):
+        rp.run(shard_config)
+    run = tmp_path / "runs" / "test-run"
+    assert not (run / "inventory_check.json").exists() and [s["stage"] for s in manifest_of(run)["stages"]] == list(rp.STAGES[:-1])
+
+
+def test_a_report_of_an_earlier_invocation_does_not_stay(tmp_path, shard_config, monkeypatch):
+    """A run that passed its inventory, then reconciled again without one: the passing report is not left in the run
+    folder as if it were of the run as it is now."""
+    rp.run(with_inventory(shard_config, tmp_path, monkeypatch))
+    run = tmp_path / "runs" / "test-run"
+    assert inventory_report(run)["ok"] is True
+    cfg = json.loads(shard_config.read_text(encoding="utf-8"))
+    del cfg["inventory"]
+    shard_config.write_text(json.dumps(cfg), encoding="utf-8")
+    m = rp.run(shard_config, start="reconcile")
+    assert m["inventory"] is None and not (run / "inventory_check.json").exists()
+
+
+def test_a_failed_inventory_check_drops_nothing(tmp_path, shard_config, monkeypatch):
+    """"intermediates": "drop" deletes only after every check of the run has passed, the inventory's among them."""
+    name = "train/en-dclm/part-00000.parquet"
+    with_inventory(shard_config, tmp_path, monkeypatch, change=lambda inv: part_of(inv, name).update(expected="not_sharded"))
+    edit_config(shard_config, intermediates="drop")
+    with pytest.raises(rp.Stop, match="inventory: every part ended in a listed status"):
+        rp.run(shard_config)
+    run = tmp_path / "runs" / "test-run"
+    assert len(parquet_under(run / "final")) == len(parquet_under(run / "deduped")) == 4
+    assert manifest_of(run)["intermediates"] == {"mode": "drop"}
+    write_inventory(tmp_path)
+    m = rp.run(shard_config, start="reconcile")  # nothing was dropped, so the run can be resumed, and now it drops
+    assert m["intermediates"]["state"] == "done" and parquet_under(run / "final") == ["heldout/code-go/part-00000.parquet"]
+
+
+def test_an_inventory_and_a_drop_go_together(tmp_path, shard_config, monkeypatch):
+    with_inventory(shard_config, tmp_path, monkeypatch)
+    edit_config(shard_config, intermediates="drop")
+    m = rp.run(shard_config)
+    run = tmp_path / "runs" / "test-run"
+    assert m["intermediates"]["state"] == "done" and m["intermediates"]["parts"] == {"dropped": 3, "left": 1}
+    assert inventory_report(run)["ok"] is True and parquet_under(run / "final") == ["heldout/code-go/part-00000.parquet"]

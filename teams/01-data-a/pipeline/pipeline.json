@@ -8,6 +8,7 @@
   "_from": "optional: resume at this stage; the earlier stages must be recorded in the manifest",
   "intermediates": "keep",
   "_intermediates": "keep: every stage's Parquet stays on disk (the cleaner audit reads the parts before and after clean.py). drop: once reconcile has passed, the run deletes, from deduped/ and final/, the Parquet of every part whose kept documents are all in shards or left out by the shard writer for a stated reason; held-out parts, parts of packs the shard stage was not asked for and the cleaned folder stay, as do reports, summaries, the ledger, the manifest and the shards. drop needs stages.shards and stages.reconcile, and the run cannot be resumed afterwards",
+  "_inventory": "optional: set \"inventory\" to an expected-inventory JSON made from the approved input manifest: input_manifest_sha256, packs, and per part: part, raw_sha256, raw_rows and expected (the status its shards must end in: written, not_sharded, or a list of acceptable statuses); split and pack_id may be given and must be those in the part's name. Any other key in the file is refused. The run then stops, before the shard stage, when the ledger lacks a listed part, holds one that is not listed, a part has another raw file or row count, a listed pack is missing, a pack that is not listed has kept documents, or the clean job read another input manifest; and after reconcile, when shards_summary.json lacks a listed part, holds one that is not listed, or a part has another status. The report is <run>/inventory_check.json. A run with an inventory needs stages.ledger.raw, stages.shards and stages.reconcile, must end at reconcile (no earlier \"to\"), and stages.shards.packs, if given, must be the inventory's packs. Without the key nothing of this is checked (--plan says \"inventory: none\"). After a job: inventory_check.py --inventory <file> --ledger <run>/ledger --shards <run>/shards --cleaned <cleaned>",
   "stages": {
     "clean": {
       "mode": "run",
@@ -45,14 +46,14 @@
       "_workers": "parts checked and written at once (one row group in memory each)"
     },
     "ledger": {
-      "_raw": "optional: the raw parts the cleaner read (<raw>/<split>/<pack>/part-*.parquet). Set \"raw\" for mode B (keep / fix / drop per document); without it the ledger is mode C (clean_action unknown)"
+      "_raw": "optional, and required with \"inventory\": the raw parts the cleaner read (<raw>/<split>/<pack>/part-*.parquet). Set \"raw\" for mode B (keep / fix / drop per document); without it the ledger is mode C (clean_action unknown)"
     },
     "_shards_example": {
-      "tokenizer": "<C3 tokenizer.json>",
+      "tokenizer": "<frozen p1536 tokenizer.json>",
       "packs": [
         "code-go"
       ],
-      "_note": "rename to 'shards' to add the shard stage after the ledger; 'packs' limits it to packs with a lane in shards/pack_table.json"
+      "_note": "rename to 'shards' to add the shard stage after the ledger; 'packs' limits it to packs with a lane in shards/pack_table.json. With \"inventory\" the packs must be all the inventory's packs (or the key left out), so the pack table (stages.shards.pack_table) must hold a full row for every one of them: a pack with an empty field is skipped, and that stops the run at the shard stage"
     }
   }
 }
