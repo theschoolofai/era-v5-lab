@@ -2,14 +2,13 @@
 
 Status: implemented and validated on 17 November 2026, IST (UTC+05:30).
 
-Branch: `g10-tool-call-robustness-LokeshJatangi`, based on commit `1c47932`
-from [PR #109](https://github.com/saitej123/era-v5-lab/pull/109).
-PR #109 remains open. Submit this follow-up as a dependent draft against
-`saitej123/era-v5-lab:g10-week3-post-training`; merge #109 first, then compare
-against the updated base and resolve any drift before marking the follow-up
-ready. Until then, the team-base diff also includes the core verifier changes.
-The follow-up-only changes relative to `1c47932` are this note and the robustness
-test file.
+Branch: `g10-tool-call-robustness-LokeshJatangi`, rebased onto team Week 3
+commit `d8d00b1` after [PR #109](https://github.com/saitej123/era-v5-lab/pull/109)
+merged on 17 November 2026 (merge commit `434f3ea`). The core verifier is now
+part of `saitej123/era-v5-lab:g10-week3-post-training`.
+
+The PR diff contains only `rl/test_tool_call_robustness.py` and this handoff.
+There is no outstanding merge dependency on #109.
 
 ## Changes
 
@@ -33,11 +32,13 @@ fail the harness; they do not count as successful detection.
 
 ## Verified results
 
-- Focused verifier, hardening, robustness and decoder suites: **100 passed,
-  50 deselected in 0.79 seconds**; no focused tests skipped.
+- Selected verifier, hardening, robustness and decoder cases: **101 passed,
+  60 deselected in 1.04 seconds** after rebasing; no selected tests skipped.
+  This includes the 39 core cases, 61 new cases and one existing tool-result
+  parameter case whose ID matches the filter.
 - Reward self-check: correct completion **1.0**, incorrect completion **0.0**;
   **2 checked, 0 wrong**.
-- Shared reward/SFT regressions: **172 passed, 6 skipped in 1.19 seconds**.
+- Shared reward/SFT regressions: **172 passed, 6 skipped in 1.50 seconds**.
   The skips require Docker or images: one Go, four code-pool and one SWE case.
   They are unrelated to the new tool-call tests and are not counted as passes.
 - All four targeted mutations detected:
@@ -75,5 +76,5 @@ PYTHONDONTWRITEBYTECODE=1 python3 -m pytest \
 ```
 
 Broader multi-turn/clarification v2 contracts are excluded. README and unrelated
-workspace files remain unchanged. The remaining work is the merge dependency
-and review, not additional model evaluation or training.
+workspace files remain unchanged. The remaining step is review; no additional model evaluation or training is
+required.
