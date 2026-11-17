@@ -169,3 +169,18 @@ def test_a_script_override_is_used(repo, folders):
     settings(repo, "overlap", OVERLAP)
     command = sa.build("overlap", {"settings": "overlap.json", "script": "other/overlap.py"}, folders, repo / "cfg", repo)["command"]
     assert command[0] == "other/overlap.py"
+
+
+def test_a_script_given_as_a_list_puts_its_arguments_before_the_config(repo, folders):
+    """A cleaner run through a wrapper: the wrapper is the script, the tool it runs is its first argument."""
+    settings(repo, "overlap", OVERLAP)
+    wrapped = ["spec_v1_1/use_clean.py", "spec_v1/run_tokenizer_sample.py"]
+    built = sa.build("overlap", {"settings": "overlap.json", "script": wrapped}, folders, repo / "cfg", repo)
+    assert built["command"][:3] == [*wrapped, "--config"] and built["command"][3] == built["config"] and len(built["command"]) == 4
+
+
+@pytest.mark.parametrize("script", [[], [""], ["a.py", 3], {"a": 1}, 7, ""])
+def test_a_script_that_is_neither_a_path_nor_a_list_of_strings_is_refused(repo, folders, script):
+    settings(repo, "overlap", OVERLAP)
+    with pytest.raises(sa.ConfigError, match="stages.overlap.script must be a script's path, or a list"):
+        sa.build("overlap", {"settings": "overlap.json", "script": script}, folders, repo / "cfg", repo)

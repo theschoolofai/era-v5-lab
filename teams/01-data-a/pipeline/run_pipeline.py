@@ -29,7 +29,7 @@ A run stage names a "settings" file (settings only, no paths) and the runner wor
 gets a copy of its settings with the path keys filled in (clean: input_root from "input", output_root, and the input set's
 description from the stage: manifest, manifest_sha256, expected_parts, sample; overlap: inputs, out; dedup: results, inputs,
 out), written to <run>/cfg/<stage>.json and passed with --config. The clean stage's manifest defaults to sample_manifest.json in
-its input folder, and its sha256 must equal manifest_sha256 (checked just before the job starts, not by --plan). "script" replaces the default script; "settings_sha256" pins the settings file
+its input folder, and its sha256 must equal manifest_sha256 (checked just before the job starts, not by --plan). "script" replaces the default script, and may be a list (the script, then the arguments that go before --config: a cleaner run through a wrapper, such as spec_v1_1/use_clean.py with spec_v1/run_tokenizer_sample.py; the manifest then records the sha256 of both); "settings_sha256" pins the settings file
 (checked, and the manifest records the file's sha256 either way). Escape hatch: "command" (the script and its arguments, run
 with this Python from the repository root) with "output" (where that script writes) skips all of this.
 --plan checks the config and prints each stage's folder and command, without running or writing anything. It is the only
@@ -369,8 +369,10 @@ class Run:
                 if cmd and not path(cmd[0]).is_file():
                     raise Stop(f"config: stages.{stage}.command script {cmd[0]} not found")
                 script = spec.get("script", stage_args.DEFAULT_SCRIPT.get(stage))
-                if not cmd and script and not path(script).is_file():
-                    raise Stop(f"config: stages.{stage} script {script} not found")
+                given = [script] if isinstance(script, str) else script if isinstance(script, list) else []
+                for n, s in enumerate([] if cmd else given):  # a list: the script, then what goes before --config
+                    if isinstance(s, str) and s and (n == 0 or s.endswith(".py")) and not path(s).is_file():
+                        raise Stop(f"config: stages.{stage} script {s} not found")
                 self.stage_command(stage, write=False)
         for stage, default in (("f2", 1), ("apply", 4)):
             workers = self.stages.get(stage, {}).get("workers", default)
@@ -641,6 +643,9 @@ class Run:
         counts = getattr(self, f"counts_{stage}")(out)
         rec = {"mode": mode, "command": command, "code_sha256": sha256(path(command[0])) if command else None,
                "output": self.shown(out), "counts": counts}
+        tools = {a: sha256(path(a)) for a in (command or [])[1:] if a.endswith(".py") and path(a).is_file()}
+        if tools:  # a script run through a wrapper ("script" as a list): the scripts the wrapper was given
+            rec["tools_sha256"] = tools
         if self.only and stage == "clean":
             rec["only"] = self.only
         if built and built["settings"]:  # a stage run from a settings file: which file, and the config it was run with

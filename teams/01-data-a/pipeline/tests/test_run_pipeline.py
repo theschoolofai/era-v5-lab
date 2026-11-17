@@ -457,6 +457,35 @@ def test_stages_run_from_settings_into_the_run_folder(tmp_path, staged):
     assert json.loads((run / "logs" / "dedup.log").read_text(encoding="utf-8").splitlines()[-1])["keys"]["results"] == "out/runs/test-run/overlap"
 
 
+def test_a_stage_script_given_as_a_list_runs_the_tool_through_its_wrapper(tmp_path, staged):
+    """A cleaner that is run through a wrapper (spec v1.1: use_clean.py <tool> --config ...): "script" as a list names
+    the wrapper and the tool, the tool goes before --config, and the stage record keeps the sha256 of both."""
+    path, repo = staged
+    wrapper = tmp_path / "wrapper.py"
+    wrapper.write_text("import runpy, sys\nsys.argv = sys.argv[1:]\nrunpy.run_path(sys.argv[0], run_name='__main__')\n", encoding="utf-8")
+    edit_stage(path, "clean", script=[str(wrapper), str(FAKE_STAGE)])
+    assert f"{wrapper} {FAKE_STAGE} --config" in rp.plan(path)
+    m = rp.run(path)
+    recs = {s["stage"]: s for s in m["stages"]}
+    assert recs["clean"]["command"][:3] == [str(wrapper), str(FAKE_STAGE), "--config"] and all(c["ok"] for c in m["checks"])
+    assert recs["clean"]["code_sha256"] == sha(wrapper) and recs["clean"]["tools_sha256"] == {str(FAKE_STAGE): sha(FAKE_STAGE)}
+    assert "tools_sha256" not in recs["overlap"] and m["totals"]["cleaned"] == 13
+
+
+@pytest.mark.parametrize("script, message", [
+    (["{wrapper}", "{missing}"], "config: stages.clean script .*no_such_tool.py not found"),
+    (["{missing}", "{tool}"], "config: stages.clean script .*no_such_tool.py not found"),
+    ([], "stages.clean.script must be a script's path, or a list")])
+def test_a_script_list_that_names_a_missing_script_stops_before_anything_runs(tmp_path, staged, script, message):
+    path, repo = staged
+    names = {"wrapper": str(FAKE_STAGE), "tool": str(FAKE_STAGE), "missing": str(tmp_path / "no_such_tool.py")}
+    edit_stage(path, "clean", script=[s.format(**names) for s in script])
+    for go in (rp.plan, rp.run):
+        with pytest.raises(rp.Stop, match=message):
+            go(path)
+    assert not (repo / "out" / "runs").exists()
+
+
 def test_a_settings_pin_that_does_not_match_stops_before_anything_runs(staged):
     path, repo = staged
     edit_stage(path, "overlap", settings_sha256="0" * 64)
