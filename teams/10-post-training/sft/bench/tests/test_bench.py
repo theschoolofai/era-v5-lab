@@ -492,3 +492,25 @@ def test_format_judge():
     assert evaluate.judge(t, prompt, [6] + gen[:-2])["reason"] == "foreign_special_token"
     no_reply = t.encode("<jupyter_script>\nx\n<empty_output>\n<|im_end|>", add_special_tokens=False).ids
     assert evaluate.judge(t, prompt, no_reply)["reason"] == "empty_visible_reply"
+
+
+def test_crash_and_resume_equals_uninterrupted(tiny_setup, monkeypatch):
+    whole = _run_extra(tiny_setup, "whole", ["--save-every", "2"], method="full", steps=7)
+    real = train.accumulate
+    calls = {"n": 0}
+
+    def dying(*a, **kw):
+        calls["n"] += 1
+        if calls["n"] == 6:  # killed during update 6, after the state of update 4 was saved
+            raise KeyboardInterrupt("simulated crash")
+        return real(*a, **kw)
+
+    monkeypatch.setattr(train, "accumulate", dying)
+    with pytest.raises(KeyboardInterrupt):
+        _run_extra(tiny_setup, "crashed", ["--save-every", "2"], method="full", steps=7)
+    monkeypatch.setattr(train, "accumulate", real)
+    assert (tiny_setup / "crashed" / "train_state.pt").exists()
+    done = _run_extra(tiny_setup, "crashed", ["--save-every", "2"], method="full", steps=7)
+    assert [r["loss"] for r in done["log"]] == [r["loss"] for r in whole["log"]]
+    assert done["saved_state_sha256"] == whole["saved_state_sha256"] and done["checks"]["writeback_step1"]["pass"]
+    assert not (tiny_setup / "crashed" / "train_state.pt").exists()
