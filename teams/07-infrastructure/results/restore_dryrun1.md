@@ -1,67 +1,84 @@
-# Restore drill in dry run 1
+# Restore drill on dry run 1
 
 Week 3, core task 5: **do one restore drill in dry run 1: stop, restore, continue. Compare the loss.**
 
 Gate 3 evidence for Team 07: *dry run 1 ends with no lost steps and only COMPLETE checkpoint restarts.*
 
-**Status: plan.** The results tables below are filled in from the logs that TSAI returns for dry run 1.
+**Status: plan and job requests.** The results tables in section 5 are filled in from the logs that TSAI returns.
 
-## 1. What the drill does
+## 1. What dry run 1 was
 
-Dry run 1 saves a checkpoint every 10 minutes (`INTERVAL_S=600`, [checkpoint_interval.md](../docs/checkpoint_interval.md)).
+TSAI ran dry run 1 on 16 Nov (#475): Team 05's `train_week2.py`, `exp2_muon.yaml` at T2 size, seed 1234,
+tokenizer p1536, 1,221 of 1,221 steps, status COMPLETED, no NaN or inf in the loss record.
 
-1. Dry run 1 runs under `ckpt/supervisor.py`, as in the restart test ([jobs/restart_test/](../jobs/restart_test/README.md)).
-2. About **25 minutes** in, after the 20-minute checkpoint is COMPLETE and before the 30-minute save starts, the
-   trainer is killed with **SIGKILL**: no warning and no last save, like a lost node.
-3. The supervisor sees the crash and starts the same command again.
-4. `Checkpointer.restore()` loads the newest COMPLETE checkpoint (the 20-minute one) and training continues.
-5. The steps between that checkpoint and the kill (about 5 minutes of training) are trained a second time.
-   These **redone steps** are the comparison: the first pass and the second pass must give the same loss and the
-   same data.
+- It ran as **one process**, **without** the Team 07 supervisor (`ckpt/supervisor.py`) and **without** the
+  `Checkpointer` (`ckpt/ckpt.py`).
+- It had **zero restarts**.
+- It saved **one checkpoint**, `checkpoint.pt` (about 2.2 GB), at the last step. TSAI keeps it.
 
-No second, unstopped run is needed. The run compares with itself on the redone steps.
+So the restore drill cannot be a stop in the middle of dry run 1 itself. It is done on the saved checkpoint, as TSAI
+asked in the Team 07 group on 16 Nov.
 
-**Why SIGKILL and not a clean stop.** On a clean stop (exit 75) the trainer saves first, so nothing is redone and
-the restore is only half tested. A kill tests the harder case: the restore must skip anything not COMPLETE and go
-back to the last COMPLETE checkpoint.
+## 2. The drill: two jobs
 
-**If full-width dry run 1 is not ready on the day**, TSAI runs the same code at small width, and the same checks apply.
+`train_week2.py` already has the two options needed: `--stop-after N` (stop after step N and save `checkpoint.pt`)
+and `--resume PATH` (load a checkpoint and carry on). On resume it refuses a checkpoint whose identity hash (code,
+config, data, device, software) differs from the current run, so a passing resume also proves that nothing changed.
 
-## 2. Checks
+| Job | What it does | Request |
+|---|---|---|
+| **A. Restore** (required) | Load dry run 1's final checkpoint (step 1,221) into a fresh output folder with the same command. | [2026-11-17-restore-final-ckpt.md](../jobs/2026-11-17-restore-final-ckpt.md) |
+| **B. Stop, restore, continue** (optional, if TSAI agrees) | Run the same command to step 610 and stop. Resume from that checkpoint to step 1,221. Compare with dry run 1. | [2026-11-17-stop-resume.md](../jobs/2026-11-17-stop-resume.md) |
 
-| # | Check | Pass if | Where it is read |
-|---|---|---|---|
-| C1 | One restart | The supervisor log shows one crash (exit -9), one restart, then a normal exit | `logs/supervisor.jsonl` |
-| C2 | COMPLETE-only restore | The restore loads a checkpoint with `MANIFEST.json` written and listed in `commits.jsonl`. No partial checkpoint is loaded | `logs/events.jsonl` (`restore.*`), `ckpt/commits.jsonl` |
-| C3 | Right restart step | The first step after the restart is the checkpoint step + 1 | per-step rows, attempt 1 |
-| C4 | No lost steps | Every step from 1 to the last step appears; after the restart there is no gap | per-step rows |
-| C5 | Same loss | On every redone step, `loss_ntp` and `loss_mtp` of the second pass equal the first pass (tolerance in section 4) | per-step rows, attempt 0 vs attempt 1 |
-| C6 | Same data | On every redone step, the batch data ID (global batch position + sha256 of the batch tokens) is the same | per-step rows |
-| C7 | Alarms carry on (if the alarms are on in dry run 1) | The Team 08 alarm state is restored with the checkpoint (`load_state_dict`), so no alarm warm-up gap after the restart | alarm log after the restart |
+**A** proves the saved checkpoint loads and gives back the same model. It does not train any step again, because
+training cannot go past the last step without changing the step count, and that fails the identity check.
 
-## 3. Numbers to record
+**B** is the full "stop, restore, continue" of the work order. It costs about one more dry run of compute, so TSAI
+decides whether to run it.
 
-| Number | Value |
+## 3. Checks
+
+| # | Check | Job | Pass if | Read from |
+|---|---|---|---|---|
+| C1 | The checkpoint loads | A, B | Exit code 0, no identity error | job log |
+| C2 | Right step | A, B | `summary.json` `steps` = 1,221 and `status` = COMPLETED | `summary.json` |
+| C3 | Same model | A, B | `final_model_sha256` equals dry run 1's | `summary.json` vs #475 |
+| C4 | Same loss | A, B | `losses.txt` equals dry run 1's, line for line (bit for bit, hex floats) | `losses.txt` vs #475 |
+| C5 | No lost steps | B | `losses.txt` has 1,221 lines; `metrics.jsonl` has every step from 0 to 1,221 once | `losses.txt`, `metrics.jsonl` |
+| C6 | Stop run matches before the stop | B | Lines 1 to 610 of the stop run's `losses.txt` equal lines 1 to 610 of dry run 1's | stop run `losses.txt` |
+
+**How to read B if C4 fails.** C6 tells the two causes apart. If C6 also fails, two runs of the same command already
+differ on the GPU before any restore, so the difference is run-to-run noise, not the restore. If C6 passes and C4
+fails, the restore changed something. Either way the largest difference is recorded.
+
+## 4. What this gives Gate 3
+
+| Gate 3 line | Evidence |
 |---|---|
-| Run ID | *from the dry run 1 package* |
-| Width (full or small) | |
-| Killed after step | |
-| Restored from checkpoint step | |
-| Steps redone | |
-| Restore time (crash to first step after restart) | |
-| Largest loss difference on redone steps | |
-| Steps compared | |
-| Result (PASS / FAIL) | |
+| No lost steps | Dry run 1: 1,221 of 1,221 steps, COMPLETED (#475). Job B, check C5, if run. |
+| Only COMPLETE checkpoint restarts | Dry run 1 had no restart, so it shows nothing here. The COMPLETE-only restart evidence stays the Team 07 restart test: [restart_cpu.txt](restart_cpu.txt) and [restart_node.txt](restart_node.txt) (SIGKILL after step 140, restart from the COMPLETE checkpoint at step 125, 200/200 steps bit-equal). |
 
-## 4. Open points
+**Risk for the main run (week 5).** `train_week2.py` writes `checkpoint.pt` once, at the end, straight to its final
+name with `torch.save`. It has no COMPLETE marker and no write-then-rename, so a kill during that save leaves a
+broken file under the real name. The Team 07 `Checkpointer` exists for this. Before the main run, the trainer should
+save through the `Checkpointer` and run under the supervisor.
 
-1. **Bit-equal or a tolerance.** The restart test was bit-equal on 1 GPU. Across many GPUs, small rounding
-   differences can appear. To be agreed with the Team 07 lead before the run: bit-equal, or a fixed tolerance.
-2. **Redone steps in the metrics.** The redone steps write their metrics twice. Team 08 checks "no missing steps"
-   on the same run, so Team 08 needs to know which row counts (Team 07 proposes: the row after the restart).
-3. **Rotation members** who watch dry run 1 (R1/R2) will see this restart in the logs. It is planned, and it is
-   logged here.
+A related finding from Team 08 (#512): metrics are written to disk every 10 steps, so after a kill and restore the
+rows between the last flush and a newer checkpoint are never written again. Flushing `metrics.jsonl` at each
+checkpoint save fixes it.
 
 ## 5. Results
 
 *Filled in from the returned logs.*
+
+| Number | Job A | Job B |
+|---|---|---|
+| Exit code | | |
+| `steps` / `status` | | |
+| `final_model_sha256` equal to dry run 1 (C3) | | |
+| `losses.txt` equal to dry run 1 (C4) | | |
+| Largest loss difference, if not equal | | |
+| Every step present (C5) | n/a | |
+| Stop run equal to dry run 1 up to step 610 (C6) | n/a | |
+| Restore time (job start to first step, or to exit for A) | | |
+| Result (PASS / FAIL) | | |
