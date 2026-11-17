@@ -51,14 +51,15 @@ files, so these rotators do not download any benchmark for this task.
 
 | Handle |
 |---|
-| `avnishbm` (to confirm) |
+| `avnishbm` |
+| `dhruv369` |
 | `rajiviyer` |
-| `ranjani-cse` (to confirm) |
+| `ranjani-cse` |
 | `sourav-dhar` |
 | `truesrini` |
 | `tanmays369` |
 | `TEJASKUMAR-REDDY-J` |
-| `vedapragna-cs` |
+| `vedapragna-cs` (not in the G9 group; no shards assigned) |
 | `patilvijay23` |
 
 ## 4. Accepted reads outside Team 9
