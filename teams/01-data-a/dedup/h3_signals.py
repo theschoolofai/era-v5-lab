@@ -273,7 +273,7 @@ def url_keys(urls):
     n = len(u)
     m = pc.extract_regex(u, pattern=_URL_RE2)
     ok = _bools(pc.is_valid(m))   # the fields of a non-URL row are not used: ok masks them at the end
-    host =pc.replace_substring_regex(pc.fill_null(m.field("auth"), ""), pattern="(?s)^.*@", replacement="")
+    host = pc.replace_substring_regex(pc.fill_null(m.field("auth"), ""), pattern="(?s)^.*@", replacement="")
     host = pc.utf8_lower(pc.replace_substring_regex(host, pattern="(?s):.*$", replacement=""))
     ok &= (pc.utf8_length(host).to_numpy() > 0) & ~_bools(pc.starts_with(host, pattern="["))
     big = np.iinfo(np.int64).max

@@ -80,7 +80,8 @@ def align_batch(E, start, count, A, B, threshold, width):
     """align() for a batch of pairs at once.
 
     E: the sentence vectors of all documents, unit rows, document d's count[d] sentences (at most width) in the rows
-    from start[d]. A, B: the two documents of each pair. All tensors on one device. Each pair's sentences are gathered
+    from start[d]. A, B: the two documents of each pair. threshold: one cosine for every pair, or a tensor with one per
+    pair (the threshold of each pair's language pair). All tensors on one device. Each pair's sentences are gathered
     into padded (pairs x width x dim) tensors, compared in one bmm and matched by argmax both ways. Returns (aligned
     sentence pairs, their mean cosine) per pair, as tensors on that device."""
     P, dev = len(A), E.device
@@ -98,6 +99,8 @@ def align_batch(E, start, count, A, B, threshold, width):
     M = M.masked_fill(~(va[:, :, None] & vb[:, None, :]), float("-inf"))
     best_b, best_a = M.argmax(2), M.argmax(1)
     cos = M.gather(2, best_b[..., None]).squeeze(2)
+    if torch.is_tensor(threshold):
+        threshold = threshold.to(device=dev, dtype=cos.dtype)[:, None]   # pairs x 1, against each pair's sentences
     ok = (best_a.gather(1, best_b) == s) & va & (cos >= threshold)
     n = ok.sum(1)
     mean = torch.where(ok, cos, torch.zeros_like(cos)).sum(1) / n.clamp_min(1)

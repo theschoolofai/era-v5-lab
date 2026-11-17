@@ -11,8 +11,10 @@ is read from or written to the real inputs or out/.
 """
 import csv
 import hashlib
+import importlib.util
 import json
 import sys
+from collections import Counter
 from pathlib import Path
 
 import pytest
@@ -184,6 +186,38 @@ def test_same_url_key_is_verified_but_needs_aligned_sentences(tmp_path, monkeypa
     assert ("e1", "e3") not in listed and ("e3", "h1") not in match_ids(out / "h3_matches.csv")
 
 
+def test_sentence_threshold_per_language_pair(tmp_path, monkeypatch):
+    """A {language pair: threshold} map applies to its pair, named in either order. At 0 for hi-en, the e4/h4 URL pair
+    (other content, 0 aligned at the default 0.7) aligns sentences."""
+    out1, s1 = run(monkeypatch, tmp_path, make_config(tmp_path))
+    out2, s2 = run(monkeypatch, tmp_path, make_config(tmp_path, name="h3_map.json", out="out/map",
+                                                      sentence_threshold={"en-hi": 0.0}))
+    assert int(by_doc_ids(out1, out1 / "h3_candidates.csv")[("e4", "h4")]["aligned"]) == 0
+    assert int(by_doc_ids(out2, out2 / "h3_candidates.csv")[("e4", "h4")]["aligned"]) > 0
+    assert s1["rule"]["sentence_threshold"] == {"hi-en": 0.7} and s2["rule"]["sentence_threshold"] == {"hi-en": 0.0}
+
+
+def test_sentence_threshold_map_gives_unnamed_pairs_the_default(tmp_path, monkeypatch):
+    monkeypatch.setattr(h3, "REPO", tmp_path)
+    cfg = h3.load_config(make_config(tmp_path, packs={"ind-hi-*": "hi", "ind-sa-*": "sa", "en-*": "en"},
+                                     pairs=[["hi", "en"], ["sa", "en"], ["sa", "hi"]],
+                                     sentence_threshold={"en-sa": 0.55, "sa-hi": 0.6}))
+    assert h3.sentence_thresholds(cfg) == {"hi-en": 0.7, "sa-en": 0.55, "sa-hi": 0.6}
+
+
+def test_imports_and_runs_without_the_resource_module(tmp_path, monkeypatch):
+    """resource is Unix only. Without it (Windows), h3.py still imports, and a run reports peak_rss_mb as null."""
+    spec = importlib.util.spec_from_file_location("h3_without_resource", h3.__file__)
+    module = importlib.util.module_from_spec(spec)
+    with monkeypatch.context() as m:
+        m.setitem(sys.modules, "resource", None)                 # import resource now raises ImportError
+        spec.loader.exec_module(module)
+    assert module.resource is None and module.peak_rss_mb() is None
+    monkeypatch.setattr(h3, "resource", None)
+    _, summary = run(monkeypatch, tmp_path, make_config(tmp_path))
+    assert summary["status"] == "complete" and summary["peak_rss_mb"] is None
+
+
 def test_reads_only_configured_packs_and_skips_short_documents(tmp_path, monkeypatch):
     out, summary = run(monkeypatch, tmp_path, make_config(tmp_path))
     docs = pq.read_table(out / "h3_docs.parquet").to_pylist()
@@ -266,6 +300,26 @@ def test_batch_sizes_do_not_change_the_result(tmp_path, monkeypatch):
     assert s1["counts"]["rows_scanned"] == s2["counts"]["rows_scanned"] == 9
 
 
+def test_encode_sends_texts_longest_first_and_keeps_their_order(monkeypatch):
+    """encode() gives the encoder the texts longest first, CHUNK at a time, and puts each row back in its text's
+    place: the same vectors as encoding every text in order."""
+    class Recording(FakeEncoder):
+        def __init__(self):
+            super().__init__()
+            self.lengths = []
+
+        def encode(self, texts):
+            self.lengths += [len(t) for t in texts]
+            return super().encode(texts)
+
+    monkeypatch.setattr(h3, "CHUNK", 2)
+    texts = pa.array([en_doc(list(range(n))) for n in (6, 30, 12, 24, 18)])
+    encoder, stats = Recording(), Counter()
+    V = h3.encode(encoder, texts, h3.Clock(60), stats, "texts", "cpu", torch.float32)
+    assert encoder.lengths == sorted(encoder.lengths, reverse=True) and stats["texts"] == 5
+    assert torch.allclose(V, h3.unit(torch.as_tensor(FakeEncoder().encode(texts.to_pylist()))), atol=1e-6)
+
+
 def test_max_docs_per_pack_across_record_batches(tmp_path, monkeypatch):
     monkeypatch.setattr(h3, "BATCH_ROWS", 2)
     out, summary = run(monkeypatch, tmp_path, make_config(tmp_path, max_docs_per_pack=3))
@@ -296,6 +350,10 @@ def test_time_limit_stops_and_writes_no_results(tmp_path, monkeypatch):
     ({"top_k": 0}, "top_k must be"),
     ({"head_sentences": 20, "max_sentences": 16}, "head_sentences"),
     ({"coverage_threshold": 1.5}, "coverage_threshold"),
+    ({"sentence_threshold": {"hi-sa": 0.5}}, "sentence_threshold keys"),
+    ({"sentence_threshold": {"hi-en": 0.5, "en-hi": 0.6}}, "sentence_threshold keys"),
+    ({"sentence_threshold": {"hi-en": 1.5}}, "sentence_threshold must be"),
+    ({"sentence_threshold": "0.7"}, "sentence_threshold must be"),
     ({"max_output_mb": 60}, "max_output_mb"),
     ({"device": "tpu"}, "device"),
     ({"precision": "fp8"}, "precision"),
