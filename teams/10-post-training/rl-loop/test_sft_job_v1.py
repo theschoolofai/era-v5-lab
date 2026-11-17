@@ -163,6 +163,7 @@ def test_a4_runs_a2s_completed_steps_without_base_eval_and_rows_are_removed(tmp_
         return {"before": rep["before"], "after": rep["after"]}
 
     monkeypatch.setattr(job.probe, "check_pins", lambda *a: {"checks": {}})
+    monkeypatch.setattr(job, "check_run_and_inputs", lambda a: {"block_size": 2048})
     monkeypatch.setattr(job.probe, "run_sft_arm", fake_arm)
     monkeypatch.setattr(sl, "build", fake_build)
     import make_adapter_config
@@ -190,7 +191,102 @@ def test_pin_mismatch_builds_no_rows(tmp_path, monkeypatch):
     assert json.loads((tmp_path / "summary.json").read_text())["failed_steps"] == ["pins"]
 
 
+def _run_folder(tmp_path, block=2048):
+    run = tmp_path / "run"
+    run.mkdir()
+    (run / "checkpoint.pt").write_bytes(b"x")
+    (run / "manifest.json").write_text(json.dumps({"config": {"model": {"block_size": block}}}))
+    return run
+
+
+@pytest.mark.parametrize("case", ["missing_pack", "missing_pool", "block_size", "pool_sha"])
+def test_missing_or_mismatched_input_stops_before_rows(tmp_path, monkeypatch, case):
+    run = _run_folder(tmp_path, block=1024 if case == "block_size" else 2048)
+    pack, pool, ids = tmp_path / "pack.jsonl", tmp_path / "cc.jsonl", tmp_path / "ids.txt"
+    for f in (pack, pool, ids):
+        f.write_text("x")
+    {"missing_pack": pack, "missing_pool": pool}.get(case, tmp_path / "none").unlink(missing_ok=True)
+    monkeypatch.setattr(job.probe, "check_pins", lambda *a: {"checks": {}})
+    monkeypatch.setattr(sl, "build", lambda *a, **k: pytest.fail("rows built after a failed input check"))
+    out = tmp_path / "out"
+    args = ["--g5-root", "g", "--run-folder", str(run), "--tokenizer", "t", "--byte-table", "b", "--heldout", "h",
+            "--packs", str(pack), "--rl-tasks", str(pool), "--rl-ids", str(ids), "--out", str(out)]
+    assert job.main(args) == 1
+    err = json.loads((out / "pins.json").read_text())["error"]
+    want = {"missing_pack": "#565", "missing_pool": "#564", "block_size": "block_size 1024", "pool_sha": "not the pinned"}
+    assert want[case] in err
+
+
+def test_inputs_present_and_pinned_pass(tmp_path, monkeypatch):
+    run = _run_folder(tmp_path)
+    pack, pool = tmp_path / "pack.jsonl", tmp_path / "cc.jsonl"
+    pack.write_text("x")
+    pool.write_text("x")
+    monkeypatch.setattr(job, "RL_POOL_SHA256", job.probe.sha256_file(pool))
+    a = job.parse_args(["--g5-root", "g", "--run-folder", str(run), "--tokenizer", "t", "--byte-table", "b",
+                        "--heldout", "h", "--packs", str(pack), "--rl-tasks", str(pool), "--out", "o"])
+    r = job.check_run_and_inputs(a)
+    assert r["block_size"] == 2048 and r["rl_pool_sha256"] == job.RL_POOL_SHA256
+
+
 def test_sft_g5_accepts_no_before():
     a = sft_g5.parse_args(["--adapter-config", "c", "--train", "t", "--eval", "e", "--method", "full", "--out", "o",
                            "--no-before"])
     assert a.no_before
+
+
+def test_arms_compared_on_prompts_both_screens_reached():
+    k = 8
+    a2 = {"k": k, "prompts": 3, "skipped_too_long": 0, "per_prompt": [["t1", 0, 0, 0], ["t2", 3, 4, 8], ["t3", 0, 1, 8]]}
+    a4 = {"k": k, "prompts": 5, "skipped_too_long": 0,
+          "per_prompt": [["t1", 2, 8, 8], ["t2", 8, 8, 8], ["t3", 1, 2, 8], ["t4", 4, 8, 8], ["t5", 5, 8, 8]]}
+    ids = job.common_prefix([a2, a4], "per_prompt")
+    assert ids == ["t1", "t2", "t3"]
+    m4 = job.screen_metrics(None, a4, None, ids)
+    assert m4["rl_prompts"] == 3 and m4["rl_mixed_groups"] == 2 and m4["rl_screened_before_budget"] == 5
+    assert abs(m4["rl_runs_share"] - 18 / 24) < 1e-12
+    m2 = job.screen_metrics(None, a2, None, ids)
+    assert m2["rl_mixed_groups"] == 1 and abs(m2["rl_pass_rate"] - 3 / 24) < 1e-12
+    g2 = {"per_row": [["r1", 1, 1, 0, 300], ["r2", 0, 0, 1, 1536]]}
+    g4 = {"per_row": [["r1", 1, 1, 0, 200], ["r2", 1, 1, 0, 250], ["r3", 1, 1, 0, 100]]}
+    gids = job.common_prefix([g2, g4], "per_row")
+    assert gids == ["r1", "r2"] and job.screen_metrics(g4, None, gids, None)["format_prompts"] == 2
+
+
+def test_common_prefix_refuses_different_orders():
+    with pytest.raises(RuntimeError):
+        job.common_prefix([{"per_prompt": [["a", 0, 0, 0]]}, {"per_prompt": [["b", 0, 0, 0]]}], "per_prompt")
+    assert job.common_prefix([{"prompts": 1}, {"per_prompt": []}], "per_prompt") is None
+
+
+def test_rl_screen_stops_at_budget(tmp_path):
+    import time as _t
+    import torch
+
+    class Codec:
+        def encode_prompt(self, s):
+            return [1, 2, 3]
+
+        def decode_completion(self, ids):
+            return "no code here"
+
+    class Bundle:
+        kv_cache = False
+        spec = {"block_size": 64}
+
+        def codec(self):
+            return Codec()
+
+        def sample(self, prompt, k, mn, temp, gen):
+            _t.sleep(0.05)
+            return torch.zeros(k, len(prompt) + 4, dtype=torch.long), torch.ones(k, 4, dtype=torch.bool), None
+
+    tasks = tmp_path / "t.jsonl"
+    tasks.write_text("".join(json.dumps({"id": f"x{i}", "statement": "s", "tests": []}) + "\n" for i in range(10)))
+    ids = tmp_path / "ids.txt"
+    ids.write_text("\n".join(f"x{i}" for i in range(10)))
+    r = job.probe.rl_screen_bundle(Bundle(), tasks, ids, 2, 32, "cpu", 0, seconds=0.12)
+    assert r["stopped_at_budget"] and 1 <= r["prompts"] < 10
+    assert [x[0] for x in r["per_prompt"]] == [f"x{i}" for i in range(r["prompts"])]
+    full = job.probe.rl_screen_bundle(Bundle(), tasks, ids, 2, 32, "cpu", 3)
+    assert full["prompts"] == 3 and not full["stopped_at_budget"]

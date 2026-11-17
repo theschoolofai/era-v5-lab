@@ -10,8 +10,10 @@ context, full reasoning traces (A2) or the same rows with the reasoning deleted 
 what forgetting cost?
 
 Steps (each writes out/<step>.json; summary.json last; exit 1 if any step failed):
-  pins        tokenizer sha256 and byte-table content hash against the run manifest (day_one_probe.check_pins); a
-              mismatch stops the job before any rows are built
+  pins        tokenizer sha256 and byte-table content hash against the run manifest (day_one_probe.check_pins), then
+              every input present (run folder checkpoint and manifest, the four pack shards, the RL pool and ids), the
+              run's block size equal to --max-tokens, and the RL pool's sha256; any failure stops the job before any
+              rows are built, with a message naming the missing or mismatched input
   inputs      capstone/sft_slice_v1.py: firewalled pack shards (sha256-checked against the committed firewall record),
               rows <= the model's block size, re-tokenised and checked against the pack ids, dev split by statement,
               A2 and A4 forms of the same rows. Rows live in out/_inputs/ and are deleted at exit
@@ -21,7 +23,9 @@ Steps (each writes out/<step>.json; summary.json last; exit 1 if any step failed
   sft_a4      the same on the A4 rows, run for exactly the optimizer steps sft_a2 completed (so a training-time cap
               cannot make the arms unequal) and with --no-before (the base was measured in sft_a2)
   compare     per arm: change in forgetting bpb, format validity, closed turns, code-fence share, programs that run,
-              pass rate and mixed groups, with the decision rule of the job request applied
+              pass rate and mixed groups, with the decision rule of the job request applied. With --rl-seconds and
+              --gen-seconds each screen stops starting new prompts at its budget; A2 and A4 are compared on the
+              prompts both screens reached (same ids, same order), and the base on the same ids
 Outputs are aggregates only: each arm's weights and generations are deleted after its reload check (day_one_probe
 run_sft_arm), the rows at exit. Network: none. Writes only to --out. Resumable state is not saved (see the request).
 """
@@ -40,11 +44,57 @@ sys.path.insert(0, str(HERE))
 
 import day_one_probe as probe  # noqa: E402
 
+RL_POOL_SHA256 = "91ee99512f0411aea2de4ca5eaf10b87b2d8f785ca73747bf8deb45dd6ea9be0"  # out/v1/cc.jsonl, RL data v1
 FORGET_LIMIT_BPB = 0.05  # the team's forgetting limit (E9 RESULTS, PREREG)
 MIXED_MIN = 2            # decision rule: an arm "gives RL signal" with at least this many mixed groups
 
 
-def arm_metrics(rep: dict, before: dict | None) -> dict:
+def common_prefix(screens: list[dict | None], key: str) -> list[str] | None:
+    """Ids every given screen reached. Screens walk the same ids in the same order and stop at a time budget, so the
+    common set is the shortest screen's prefix; None when a screen has no per-item record (older report)."""
+    if not screens or any(not s or key not in s for s in screens):
+        return None
+    lists = [[x[0] for x in s[key]] for s in screens]
+    n = min(len(x) for x in lists)
+    if any(x[:n] != lists[0][:n] for x in lists):
+        raise RuntimeError(f"screens did not walk the same {key} order")
+    return lists[0][:n]
+
+
+def screen_metrics(g: dict | None, rl: dict | None, gen_ids: list[str] | None, rl_ids: list[str] | None) -> dict:
+    """Format and RL-screen numbers, restricted to the given ids when per-item records exist (else the aggregates)."""
+    out: dict = {}
+    g = g or {}
+    if gen_ids is not None and "per_row" in g:
+        keep = set(gen_ids)
+        rows = [r for r in g["per_row"] if r[0] in keep]
+        n = max(len(rows), 1)
+        out.update({"format_prompts": len(rows), "format_validity": sum(r[1] for r in rows) / n,
+                    "closed_im_end": sum(r[2] for r in rows) / n, "hit_budget": sum(r[3] for r in rows) / n,
+                    "mean_gen_tokens": sum(r[4] for r in rows) / n})
+    else:
+        out.update({k: g.get(k) for k in ("format_validity", "closed_im_end", "hit_budget", "mean_gen_tokens")})
+    if rl:
+        if rl_ids is not None and "per_prompt" in rl:
+            keep = set(rl_ids)
+            pp = [x for x in rl["per_prompt"] if x[0] in keep]
+            k, n = rl["k"], len(pp)
+            ns = max(n * rl["k"], 1)
+            out.update({"rl_prompts": n, "rl_pass_rate": sum(x[1] for x in pp) / ns,
+                        "rl_mixed_groups": sum(0 < x[1] < k for x in pp), "rl_code_fence_share": sum(x[3] for x in pp) / ns,
+                        "rl_runs_share": sum(x[2] for x in pp) / ns, "rl_skipped_too_long": rl["skipped_too_long"],
+                        "rl_screened_before_budget": rl["prompts"]})
+        else:
+            n = max(rl["prompts"] * rl["k"], 1)
+            reasons = rl.get("reasons", {})
+            runs = reasons.get("pass", 0) + reasons.get("wrong answer on a test", 0)
+            out.update({"rl_prompts": rl["prompts"], "rl_pass_rate": rl["pass_rate"], "rl_mixed_groups": rl["groups"]["mixed"],
+                        "rl_code_fence_share": rl["samples_with_code_fence"] / n, "rl_runs_share": runs / n,
+                        "rl_skipped_too_long": rl["skipped_too_long"]})
+    return out
+
+
+def arm_metrics(rep: dict, before: dict | None, gen_ids: list[str] | None = None, rl_ids: list[str] | None = None) -> dict:
     """Deltas and RL-usable counts from one arm's sft_report-derived result (run_sft_arm output)."""
     after = rep.get("after") or {}
     out: dict = {"steps": len(rep.get("log") or []) or None, "stopped_early": rep.get("stopped_early"),
@@ -54,16 +104,7 @@ def arm_metrics(rep: dict, before: dict | None) -> dict:
         out["forgetting_delta_bpb"] = a["val/bpb"] - b["val/bpb"] if "val/bpb" in a and "val/bpb" in b else None
         out["forgetting_delta_by_group"] = {k.split("/")[-1]: a[k] - b[k] for k in a
                                             if k.startswith("val/groups/") and k in b}
-    g = after.get("generation") or {}
-    out.update({k: g.get(k) for k in ("format_validity", "closed_im_end", "hit_budget", "mean_gen_tokens")})
-    rl = after.get("rl_screen")
-    if rl:
-        n = max(rl["prompts"] * rl["k"], 1)
-        reasons = rl.get("reasons", {})
-        runs = reasons.get("pass", 0) + reasons.get("wrong answer on a test", 0)
-        out.update({"rl_prompts": rl["prompts"], "rl_pass_rate": rl["pass_rate"], "rl_mixed_groups": rl["groups"]["mixed"],
-                    "rl_code_fence_share": rl["samples_with_code_fence"] / n, "rl_runs_share": runs / n,
-                    "rl_skipped_too_long": rl["skipped_too_long"]})
+    out.update(screen_metrics(after.get("generation"), after.get("rl_screen"), gen_ids, rl_ids))
     return out
 
 
@@ -88,10 +129,12 @@ def sft_cmd(a, cfg: Path, rows: Path, dev: Path, arm_out: Path, steps: int, no_b
     return [sys.executable, str(HERE / "sft_g5.py"), "--adapter-config", str(cfg), "--train", str(rows),
             "--eval", str(dev), *method, "--steps", str(steps), "--batch", str(a.batch),
             "--max-train-seconds", str(a.max_train_seconds), "--device", a.device, "--seed", str(a.seed),
-            "--gen-limit", str(a.gen_limit), "--gen-max-new", str(a.gen_max_new), "--heldout", str(a.heldout),
+            "--gen-limit", str(a.gen_limit), "--gen-max-new", str(a.gen_max_new), "--gen-seconds", str(a.gen_seconds),
+            "--heldout", str(a.heldout),
             *(["--heldout-sources", str(a.heldout_sources)] if a.heldout_sources else []),
             *(["--rl-tasks", str(a.rl_tasks), "--rl-ids", str(a.rl_ids), "--rl-max-new", str(a.rl_max_new),
-               "--rl-limit", str(a.rl_limit), "--rl-k", str(a.rl_k)] if a.rl_tasks and a.rl_ids else []),
+               "--rl-limit", str(a.rl_limit), "--rl-k", str(a.rl_k),
+               "--rl-seconds", str(a.rl_seconds)] if a.rl_tasks and a.rl_ids else []),
             *(["--no-before"] if no_before else []), "--out", str(arm_out)]
 
 
@@ -102,8 +145,31 @@ def run_arm(out: Path, arm: str, cmd: list[str]) -> dict:
     return res
 
 
+def check_run_and_inputs(a) -> dict:
+    """Before any row is built: every input file present, the run folder's block size equal to the slice limit (the
+    slice hashes in the request are for 2,048), and the RL pool the pinned file. Raises with the input named."""
+    need = {"run folder checkpoint.pt": a.run_folder / "checkpoint.pt", "run folder manifest.json": a.run_folder / "manifest.json",
+            **{f"pack shard {i} (OCR-2 pack job #565, out/firewalled)": p for i, p in enumerate(a.packs)}}
+    if a.rl_tasks:
+        need["RL pool cc.jsonl (RL data v1 pool job #564, out/run/out/v1)"] = a.rl_tasks
+    if a.rl_ids:
+        need["RL ids"] = a.rl_ids
+    missing = [f"{k}: {v}" for k, v in need.items() if not Path(v).is_file()]
+    if missing:
+        raise FileNotFoundError("input missing, nothing was built; run the job that stores it first: " + "; ".join(missing))
+    block = json.loads((a.run_folder / "manifest.json").read_text(encoding="utf-8"))["config"]["model"]["block_size"]
+    if block != a.max_tokens:
+        raise ValueError(f"run folder block_size {block} != --max-tokens {a.max_tokens}: the slice (and its sha256 in the "
+                         "request) is defined for the run's context; check the run folder or rebuild the slice table")
+    rl_sha = probe.sha256_file(a.rl_tasks) if a.rl_tasks else None
+    if rl_sha is not None and rl_sha != RL_POOL_SHA256 and not a.no_pack_check:
+        raise ValueError(f"RL pool sha256 {rl_sha} is not the pinned RL data v1 cc.jsonl {RL_POOL_SHA256}")
+    return {"block_size": block, "rl_pool_sha256": rl_sha, "inputs_present": sorted(need)}
+
+
 def run(a, out: Path) -> int:
-    results = {"pins": probe.step(out, "pins", lambda: probe.check_pins(a.run_folder, a.tokenizer, a.byte_table))}
+    results = {"pins": probe.step(out, "pins", lambda: {**probe.check_pins(a.run_folder, a.tokenizer, a.byte_table),
+                                                        **check_run_and_inputs(a)})}
     if not results["pins"]["ok"]:
         return probe.finish(out, results)
     from make_adapter_config import write_config  # noqa: PLC0415
@@ -128,16 +194,21 @@ def run(a, out: Path) -> int:
         out, "a4", sft_cmd(a, cfg, inp / "a4_train.jsonl", dev, out / "sft_a4", steps_a4, before is not None)))
 
     def compare():
-        m = {}
-        for arm in ("a2", "a4"):
-            r = results[f"sft_{arm}"]
-            if r["ok"]:
-                rep = json.loads((out / f"sft_{arm}" / "sft_report.json").read_text())
-                m[arm.upper()] = arm_metrics(rep, before or rep.get("before"))
-        if len(m) < 2:
-            raise RuntimeError(f"only {sorted(m)} finished: no comparison")
+        reps = {arm: json.loads((out / f"sft_{arm}" / "sft_report.json").read_text())
+                for arm in ("a2", "a4") if results[f"sft_{arm}"]["ok"]}
+        if len(reps) < 2:
+            raise RuntimeError(f"only {sorted(reps)} finished: no comparison")
+        afters = [reps[x].get("after") or {} for x in ("a2", "a4")]
+        # arms are compared on the prompts both screens reached within their time budgets (same ids, same order)
+        gen_ids = common_prefix([x.get("generation") for x in afters], "per_row")
+        rl_ids = common_prefix([x.get("rl_screen") for x in afters], "per_prompt")
+        m = {arm.upper(): arm_metrics(rep, before or rep.get("before"), gen_ids, rl_ids) for arm, rep in reps.items()}
+        base = before or reps["a2"].get("before") or {}
         return {"arms": m, "steps_matched": m["A2"]["steps"] == m["A4"]["steps"], "decision": decide(m["A2"], m["A4"]),
-                "base": {k: (before or {}).get(k) for k in ("forgetting", "generation", "rl_screen")}}
+                "compared_on": {"format_rows": None if gen_ids is None else len(gen_ids),
+                                "rl_prompts": None if rl_ids is None else len(rl_ids)},
+                "base": {"forgetting": base.get("forgetting"),
+                         **screen_metrics(base.get("generation"), base.get("rl_screen"), gen_ids, rl_ids)}}
     results["compare"] = probe.step(out, "compare", compare)
     return probe.finish(out, results)
 
@@ -151,7 +222,7 @@ def parse_args(argv=None):
     ap.add_argument("--heldout", type=Path, required=True)
     ap.add_argument("--heldout-sources", type=Path)
     ap.add_argument("--packs", type=Path, nargs="+", required=True, help="firewalled OCR-2 pack shards (sha256-checked)")
-    ap.add_argument("--no-pack-check", action="store_true", help="tests only: accept packs not in the firewall record")
+    ap.add_argument("--no-pack-check", action="store_true", help="tests only: accept packs not in the firewall record and an RL pool other than the pin")
     ap.add_argument("--max-tokens", type=int, default=2048, help="row length limit (dropped, never cut); = block size")
     ap.add_argument("--dev-rows", type=int, default=256)
     ap.add_argument("--rl-tasks", type=Path)
@@ -159,6 +230,8 @@ def parse_args(argv=None):
     ap.add_argument("--rl-k", type=int, default=8)
     ap.add_argument("--rl-max-new", type=int, default=1536)
     ap.add_argument("--rl-limit", type=int, default=48)
+    ap.add_argument("--rl-seconds", type=float, default=0.0,
+                    help="time budget per RL screen (base, A2, A4); arms are compared on the prompts both reached")
     ap.add_argument("--method", choices=("full", "lora_markers"), default="full",
                     help="lora_markers = LoRA plus the nine marker rows of the untied output head")
     ap.add_argument("--lr", type=float, default=1e-4)
@@ -168,6 +241,7 @@ def parse_args(argv=None):
     ap.add_argument("--max-train-seconds", type=float, default=1200.0, help="training cap of the A2 arm")
     ap.add_argument("--gen-limit", type=int, default=32)
     ap.add_argument("--gen-max-new", type=int, default=1536)
+    ap.add_argument("--gen-seconds", type=float, default=0.0, help="time budget per greedy format screen")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--no-git", action="store_true")
     ap.add_argument("--origin", default="g10_rehearsal", choices=("g10_rehearsal", "g5_delivery"))
