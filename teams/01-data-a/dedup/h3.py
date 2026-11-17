@@ -38,10 +38,12 @@ SPEED (TSAI rule, 14 Nov: batched operations, no Python loops over tokens, no av
 Text is processed as whole pyarrow record batches (the batch functions of h3_signals.py) and indices as numpy arrays:
 no Python loop runs over rows, documents, sentences, tokens or pairs. Vectors stay on the encoder's device: retrieval
 is a blocked matmul with topk and alignment one bmm per batch of pairs (h3_align.py), and each stage's result is copied
-to the host once. precision "auto" is fp16 on CUDA, with TF32 matmuls, and fp32 elsewhere. With sync_debug on CUDA,
-torch warns at every host-device sync after the read stage. Python loops remain over parts, record batches, encoder
-chunks, row blocks, pair batches, the configured packs and language pairs, the distinct sizes of URL groups and the
-distinct non-ASCII digits in numbers. The cache copies each part's head vectors to the host, once per part.
+to the host once. The encoder runs the model's preprocessing and forward pass itself, on texts sorted by length so
+that batches pad little; on CUDA each token batch and index array goes to the device from pinned memory without
+blocking. precision "auto" is fp16 on CUDA, with TF32 matmuls, and fp32 elsewhere. With sync_debug on CUDA, torch
+warns at every host-device sync after the read stage. Python loops remain over parts, record batches, encoder chunks
+and batches, row blocks, pair batches, the configured packs and language pairs, the distinct sizes of URL groups and
+the distinct non-ASCII digits in numbers. The cache copies each part's head vectors to the host, once per part.
 
 TIME
 ====
@@ -65,7 +67,9 @@ CONFIG (JSON; keys starting with "_" are comments)
   sentence_min_chars, head_sentences, max_sentences  sentence length; sentences in the document vector; sentences kept
   top_k, doc_floor, mutual                           neighbours per document, lowest cosine kept, both lists required
   max_length_ratio                                   longer/shorter characters allowed (URL pairs are kept regardless)
-  sentence_threshold, coverage_threshold, report_floor   aligned sentence cosine, H3 coverage, lowest coverage listed
+  sentence_threshold, coverage_threshold, report_floor   aligned sentence cosine, H3 coverage, lowest coverage listed;
+                                                     sentence_threshold is one value, or {"sa-en": 0.55} per
+                                                     language pair (either order; a pair not named gets 0.7)
   max_verify, url_group_max, block (rows per retrieval step), pair_batch (pairs per alignment step),
   max_docs_per_pack (0: all), max_minutes, max_output_mb, sync_debug (true: torch warns at host-device syncs on CUDA)
 
@@ -86,10 +90,15 @@ by (pack_id, split, part, row_in_part) and checks its doc_id, so H3 and overlap 
 import sys
 sys.dont_write_bytecode = True   # write only to ./out/: no __pycache__ beside the scripts
 
-import argparse, fnmatch, hashlib, json, math, os, platform, resource, time  # noqa: E402,E401
+import argparse, fnmatch, hashlib, json, math, os, platform, time  # noqa: E402,E401
 from collections import Counter, defaultdict  # noqa: E402
 from contextlib import contextmanager  # noqa: E402
 from pathlib import Path  # noqa: E402
+
+try:
+    import resource   # Unix only: without it (Windows), peak_rss_mb is null
+except ImportError:
+    resource = None
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -107,11 +116,12 @@ except ImportError:   # main() says what to install
     np = None
 
 REPO = Path(__file__).resolve().parents[3]   # teams/01-data-a/dedup/h3.py -> the repository root
+SENTENCE_THRESHOLD = 0.7   # the default, and a language pair's when a sentence_threshold map does not name it
 DEFAULTS = {"inputs": "out/tokenizer_sample_v0_clean", "out": "out/h3", "cache": "out/h3_cache",
             "packs": {}, "pairs": [], "model_path": "", "device": "auto", "precision": "auto", "batch_size": 64,
             "max_seq_length": 128, "min_chars": 200, "min_sentences": 3, "sentence_min_chars": 20, "head_sentences": 4,
             "max_sentences": 16, "top_k": 3, "doc_floor": 0.5, "mutual": True, "max_length_ratio": 4.0,
-            "sentence_threshold": 0.7, "coverage_threshold": 0.6, "report_floor": 0.3,
+            "sentence_threshold": SENTENCE_THRESHOLD, "coverage_threshold": 0.6, "report_floor": 0.3,
             "max_verify": 10000, "url_group_max": 20, "block": 512, "pair_batch": 1024, "max_docs_per_pack": 0,
             "max_minutes": 60, "max_output_mb": 50, "sync_debug": False}
 POSITIVE = ("batch_size", "max_seq_length", "head_sentences", "max_sentences", "top_k", "max_verify", "url_group_max",
@@ -187,9 +197,18 @@ def load_config(path):
     number = lambda x: isinstance(x, (int, float)) and not isinstance(x, bool)
     if not number(cfg["doc_floor"]) or not -1 <= cfg["doc_floor"] <= 1:
         sys.exit("ERROR: doc_floor must be a cosine between -1 and 1")
-    for name in ("sentence_threshold", "coverage_threshold", "report_floor"):
+    for name in ("coverage_threshold", "report_floor"):
         if not number(cfg[name]) or not 0 <= cfg[name] <= 1:
             sys.exit(f"ERROR: {name} must be between 0 and 1")
+    st = cfg["sentence_threshold"]
+    if isinstance(st, dict):                                     # {"la-lb": value}, either order of a pair's name
+        names = {**{f"{b}-{a}": f"{a}-{b}" for a, b in pairs}, **{f"{a}-{b}": f"{a}-{b}" for a, b in pairs}}
+        named = [names.get(k) for k in st]
+        if None in named or len(set(named)) < len(named):
+            sys.exit(f"ERROR: sentence_threshold keys must each name a different language pair of pairs: "
+                     f"{sorted(set(names.values()))} (either order)")
+    if not all(number(v) and 0 <= v <= 1 for v in (st.values() if isinstance(st, dict) else [st])):
+        sys.exit("ERROR: sentence_threshold must be between 0 and 1: one value, or a {language pair: value} map")
     if not number(cfg["max_length_ratio"]) or cfg["max_length_ratio"] < 1:
         sys.exit("ERROR: max_length_ratio must be at least 1")
     if not number(cfg["max_minutes"]) or cfg["max_minutes"] <= 0:
@@ -212,6 +231,15 @@ def lang_of(pack, packs):
         if fnmatch.fnmatchcase(pack, pattern):
             return lang
     return None
+
+
+def sentence_thresholds(cfg):
+    """The sentence threshold of each configured language pair, by its name "la-lb" as in pairs: sentence_threshold
+    when it is one value; from a map, the pair's value under either order of its name, or SENTENCE_THRESHOLD."""
+    st = cfg["sentence_threshold"]
+    if not isinstance(st, dict):
+        return {f"{a}-{b}": float(st) for a, b in cfg["pairs"]}
+    return {f"{a}-{b}": float(st.get(f"{a}-{b}", st.get(f"{b}-{a}", SENTENCE_THRESHOLD))) for a, b in cfg["pairs"]}
 
 
 def find_parts(inputs):
@@ -243,6 +271,9 @@ def sha256_file(path):
 
 
 def peak_rss_mb():
+    """The peak resident memory of this process in MiB; None without the resource module (Windows)."""
+    if resource is None:
+        return None
     r = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss   # bytes on macOS, KiB on Linux
     return round(r / (1 << 20) if sys.platform == "darwin" else r / 1024, 1)
 
@@ -269,9 +300,19 @@ def bools(x):
     return np.asarray(x.to_numpy(zero_copy_only=False), dtype=bool)
 
 
-def to_device(a, device):
-    """An index array as a torch tensor on device."""
-    return torch.from_numpy(np.ascontiguousarray(a, dtype=np.int64)).to(device)
+def move(t, device):
+    """A tensor on device: on CUDA a CPU tensor is copied from pinned memory without blocking the host, so the copy
+    is no host-device sync. Values that are not tensors are returned as they are."""
+    if not isinstance(t, torch.Tensor):
+        return t
+    if torch.device(device).type == "cuda" and t.device.type == "cpu":
+        return t.pin_memory().to(device, non_blocking=True)
+    return t.to(device)
+
+
+def to_device(a, device, dtype=None):
+    """A numpy array (int64 unless dtype is given) as a torch tensor on device, through move()."""
+    return move(torch.from_numpy(np.ascontiguousarray(a, dtype=dtype or np.int64)), device)
 
 
 def string_column(col, path, name):
@@ -300,8 +341,8 @@ def resolve_dtype(precision, device):
 
 
 class Encoder:
-    """The sentence-transformers model in model_path, loaded offline, on device in dtype. encode() returns unit rows as
-    a tensor on the device."""
+    """The sentence-transformers model in model_path, loaded offline, on device in dtype. encode() runs the model's own
+    preprocessing and forward pass in batches and returns its rows as one tensor on the device."""
 
     def __init__(self, cfg, device, dtype):
         os.environ["HF_HUB_OFFLINE"] = "1"         # never download: the model must already be in model_path
@@ -318,35 +359,54 @@ class Encoder:
         self.model = SentenceTransformer(str(path), device=device)
         if dtype != torch.float32:
             self.model = self.model.to(dtype)
+        self.model.eval()
         self.model.max_seq_length = cfg["max_seq_length"]
-        self.batch_size = cfg["batch_size"]
+        self.batch_size, self.device, self.dtype = cfg["batch_size"], torch.device(device), dtype
+        name = self.model.default_prompt_name
+        self.prompt = self.model.prompts.get(name) if name else None   # the prompt encode() would add; LaBSE has none
         weights = {p.relative_to(path).as_posix(): {"bytes": p.stat().st_size, "sha256": sha256_file(p)}
                    for p in sorted(path.rglob("*")) if p.is_file() and p.suffix in (".safetensors", ".bin")
                    and ".cache" not in p.relative_to(path).parts}
         config_sha = sha256_file(path / "config.json") if (path / "config.json").is_file() else ""
         dim = getattr(self.model, "get_embedding_dimension", None) or self.model.get_sentence_embedding_dimension
+        self.dim = dim()
         self.info = {"path": cfg["model_path"], "name": path.name, "device": device, "dtype": str(dtype),
-                     "max_seq_length": cfg["max_seq_length"], "dim": dim(),
+                     "max_seq_length": cfg["max_seq_length"], "dim": self.dim,
                      "config_sha256": config_sha, "weights": weights,
                      "sentence_transformers": sentence_transformers.__version__}
         self.id = hashlib.sha256(json.dumps([config_sha, weights, cfg["max_seq_length"], str(dtype)],
                                             sort_keys=True).encode()).hexdigest()
 
     def encode(self, texts):
-        return self.model.encode(texts, batch_size=self.batch_size, convert_to_tensor=True,
-                                 normalize_embeddings=True, show_progress_bar=False)
+        """The sentence embedding of each text of a list, in order, as one tensor on the device. batch_size texts per
+        forward pass: each batch is tokenized at once and copied to the device with move(), so on CUDA the host
+        prepares the next batch while the device runs this one, and the batch's rows are written into the output in
+        one step. SentenceTransformer.encode() is not used: it splits every batch into rows in Python, stacks them
+        again, and copies each batch to the device with a host-device sync."""
+        out = torch.empty((len(texts), self.dim), device=self.device, dtype=self.dtype)
+        for lo in range(0, len(texts), self.batch_size):           # batches of texts: one forward pass each
+            features = self.model.preprocess(texts[lo:lo + self.batch_size], prompt=self.prompt)
+            features = {k: move(v, self.device) for k, v in features.items()}
+            out[lo:lo + self.batch_size] = self.model(features)["sentence_embedding"]
+        return out
 
 
 def encode(encoder, texts, clock, stats, counter, device, dtype):
-    """Unit vectors of a string array of texts, on device in dtype: one encoder call per CHUNK texts, the time limit
-    checked before each."""
-    out = []
+    """Unit vectors of a string array of texts, on device in dtype, in the texts' order. The texts go to the encoder
+    longest first, so each batch pads little: one encoder call per CHUNK texts, the time limit checked before each,
+    and each call's rows written into their places in one output tensor on the device."""
+    order = np.asarray(pc.array_sort_indices(pc.utf8_length(texts), order="descending"), dtype=np.int64)
+    out = torch.zeros((len(texts), 0), device=device, dtype=dtype)
     for lo in range(0, len(texts), CHUNK):                       # chunks of texts: one encoder call each
         clock.check()
-        chunk = texts[lo:lo + CHUNK].to_pylist()                  # the tokenizer takes Python strings
-        out.append(unit(torch.as_tensor(encoder.encode(chunk), device=device)).to(dtype))
+        ix = order[lo:lo + CHUNK]
+        chunk = texts.take(pa.array(ix)).to_pylist()              # the tokenizer takes Python strings
+        v = unit(torch.as_tensor(encoder.encode(chunk), device=device)).to(dtype)
+        if lo == 0:
+            out = torch.empty((len(texts), v.shape[1]), device=device, dtype=dtype)
+        out.index_copy_(0, to_device(ix, device), v)
         stats[counter] += len(chunk)
-    return torch.cat(out) if out else torch.zeros((0, 0), device=device, dtype=dtype)
+    return out
 
 
 def encode_heads(encoder, heads, rows, path, cfg, cache, clock, stats, device, dtype):
@@ -576,9 +636,13 @@ def run(cfg, encoder, device, dtype, clock, stats, summary):
     chars, nsent, lang_ix = cat("chars"), cat("sentences"), pack_lang[cat("pack")]
     doc_id, url = pa.concat_arrays(cols["doc_id"]), pa.concat_arrays(cols["url"])
     V = torch.cat(vectors)
+    thresholds = sentence_thresholds(cfg)
     allowed = np.zeros((len(langs), len(langs)), bool)
+    threshold = np.zeros((len(langs), len(langs)), np.float32)    # the sentence threshold of each language pair
     for la, lb in cfg["pairs"]:                                   # the configured language pairs
-        allowed[langs.index(la), langs.index(lb)] = allowed[langs.index(lb), langs.index(la)] = True
+        x, y = langs.index(la), langs.index(lb)
+        allowed[x, y] = allowed[y, x] = True
+        threshold[x, y] = threshold[y, x] = thresholds[f"{la}-{lb}"]
     if cfg["sync_debug"] and device == "cuda":
         torch.cuda.set_sync_debug_mode("warn")
 
@@ -638,11 +702,11 @@ def run(cfg, encoder, device, dtype, clock, stats, summary):
         E = encode(encoder, sents, clock, stats, "encoded_sentences", device, dtype)
         la, lb = np.searchsorted(U, va), np.searchsorted(U, vb)
         st, ct, ta, tb = (to_device(x, device) for x in (start, count, la, lb))
+        tt = to_device(threshold[lang_ix[va], lang_ix[vb]], device, np.float32)   # each pair's sentence threshold
         step, n_al, means = cfg["pair_batch"], [], []
         for lo in range(0, len(va), step):                        # batches of pairs: one bmm each
             clock.check()
-            n, m = align_batch(E, st, ct, ta[lo:lo + step], tb[lo:lo + step], cfg["sentence_threshold"],
-                               cfg["max_sentences"])
+            n, m = align_batch(E, st, ct, ta[lo:lo + step], tb[lo:lo + step], tt[lo:lo + step], cfg["max_sentences"])
             n_al.append(n)
             means.append(m)
         aligned = torch.cat(n_al).cpu().numpy() if n_al else np.zeros(0, np.int64)    # the stage's copy to the host
@@ -728,8 +792,9 @@ def run(cfg, encoder, device, dtype, clock, stats, summary):
         "qualifying_by_language_pair": {f"{langs[k // nl]}-{langs[k % nl]}": int(c)
                                         for k, c in zip(lk.tolist(), ln.tolist())},
         "rule": {"h3": f"aligned sentences / sentences of the shorter document >= {cfg['coverage_threshold']}; "
-                       f"a sentence pair aligns when each is the other's best match with cosine >= "
-                       f"{cfg['sentence_threshold']}",
+                       "a sentence pair aligns when each is the other's best match with cosine >= the language "
+                       "pair's sentence threshold",
+                 "sentence_threshold": thresholds,
                  "thresholds": "provisional: set by E5's sweep and hand review"},
         "counts": dict(stats),
         "stages_seconds": dict(clock.stages),

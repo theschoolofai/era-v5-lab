@@ -92,6 +92,24 @@ def test_align_batch_matches_align():
             assert int(n[p]) == want_n and float(mean[p]) == pytest.approx(want_mean, abs=1e-6), (a, b, threshold)
 
 
+def test_align_batch_threshold_per_pair():
+    """A tensor with one threshold per pair gives each pair align() at its own threshold."""
+    base = random_unit(5, 8, 10)
+    noisy = unit(base + 0.3 * np.random.default_rng(11).standard_normal((5, 8))).numpy()
+    docs = [base, noisy, random_unit(4, 8, 16)]
+    count = np.array([len(d) for d in docs])
+    start = np.concatenate(([0], np.cumsum(count)[:-1]))
+    E = torch.as_tensor(np.concatenate(docs))
+    A, B = np.array([0, 0, 0, 1, 2]), np.array([1, 1, 2, 2, 0])
+    thresholds = np.array([0.5, 0.95, 0.0, 0.7, 0.3], np.float32)
+    t = lambda x: torch.as_tensor(np.asarray(x, dtype=np.int64))
+    n, mean = align_batch(E, t(start), t(count), t(A), t(B), torch.from_numpy(thresholds), int(count.max()))
+    for p, (a, b) in enumerate(zip(A.tolist(), B.tolist())):
+        want_n, want_mean = align(docs[a], docs[b], thresholds[p])
+        assert int(n[p]) == want_n and float(mean[p]) == pytest.approx(want_mean, abs=1e-6), (a, b, thresholds[p])
+    assert int(n[0]) > int(n[1])                             # the same two documents at 0.5 and at 0.95
+
+
 def test_align_batch_no_pairs_or_no_sentences():
     t = lambda x: torch.as_tensor(np.asarray(x, dtype=np.int64))
     n, mean = align_batch(torch.zeros((0, 4)), t([0, 0]), t([0, 0]), t([0]), t([1]), 0.5, 4)

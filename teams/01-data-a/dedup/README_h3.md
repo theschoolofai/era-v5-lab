@@ -37,8 +37,9 @@ finds each H3 document in the overlap run of the same cleaned parts.
 coverage = aligned sentence pairs / sentences of the shorter document >= coverage_threshold (0.6)
 ```
 
-Two sentences align when each is the other's best match (mutual best, one to one) with cosine ≥ `sentence_threshold`
-(0.7). Both thresholds are provisional until E5's sweep and hand review. Candidates come from two sources:
+Two sentences align when each is the other's best match (mutual best, one to one) with cosine ≥ the language pair's
+`sentence_threshold` (0.7 unless set for the pair, e.g. `{"sa-en": 0.55}`). Both thresholds are provisional until
+E5's sweep and hand review. Candidates come from two sources:
 
 - **Retrieval:** each document's `top_k` nearest documents in the other language by the cosine of its first
   `head_sentences` sentences, with cosine ≥ `doc_floor`, in both lists when `mutual`.
@@ -47,6 +48,8 @@ Two sentences align when each is the other's best match (mutual best, one to one
 Pairs whose lengths differ by more than `max_length_ratio` are not verified, except URL pairs. At most `max_verify`
 pairs are verified: URL pairs first, then by cosine. Documents shorter than `min_chars` or with fewer than
 `min_sentences` sentences of at least `sentence_min_chars` characters are counted and never encoded.
+
+Parallel packs (H3-d: Pralekha, BPCC) are handled in `h3_join.py` (`parallel_packs`), not in `h3.py`.
 
 ## Outputs
 
@@ -80,7 +83,7 @@ with `_` are comments.
 | `head_sentences`, `max_sentences` | Sentences in the document vector; sentences kept per document | 4, 16 |
 | `top_k`, `doc_floor`, `mutual` | Neighbours per document; lowest cosine kept; both lists required | 3, 0.5, true |
 | `max_length_ratio` | Longer / shorter characters allowed | 4.0 |
-| `sentence_threshold`, `coverage_threshold`, `report_floor` | Aligned sentence cosine; H3 coverage; lowest coverage listed | 0.7, 0.6, 0.3 |
+| `sentence_threshold`, `coverage_threshold`, `report_floor` | Aligned sentence cosine: one value, or `{"sa-en": 0.55}` per language pair in either order (a pair not named: 0.7); H3 coverage; lowest coverage listed | 0.7, 0.6, 0.3 |
 | `max_verify`, `url_group_max` | Pairs verified; largest URL group paired | 10000, 20 |
 | `block`, `pair_batch` | Rows per retrieval step; pairs per alignment step | 512, 1024 |
 | `max_docs_per_pack`, `max_minutes`, `max_output_mb` | Documents per pack (0: all); time limit; output cap | 0, 60, 50 |
@@ -93,29 +96,34 @@ sample v0 in `../Cap1-packs`, pairs sa–en, sa–hi and hi–en.
 
 `h3.py`, `h3_signals.py` and `h3_align.py` are batched. Text is processed as pyarrow record batches, vectors stay in
 torch on the encoder's device, retrieval is a blocked matmul with `topk`, and sentence alignment is one `bmm` per batch
-of pairs. No Python loop runs over rows, documents, sentences, tokens or pairs.
+of pairs. The encoder runs the model's preprocessing and forward pass in batches of texts sorted by length, instead of
+`SentenceTransformer.encode()`, which loops over every row in Python and copies each batch to the device with a
+host-device sync; on CUDA, token batches and index arrays go to the device from pinned memory without blocking. No
+Python loop runs over rows, documents, sentences, tokens or pairs.
 
 - Hardware: Apple Silicon, MPS backend, fp32 (`precision` `"auto"` is fp16 on CUDA, with TF32 matmuls)
-- Wall time: **510.0 s** for 6,000 documents (`h3_local.json`), peak RSS 876 MB
+- Wall time: **305.0 s** for 6,000 documents (`h3_local.json`), from a cold start (no cache), peak RSS 845 MB
 - Model: LaBSE, `model.safetensors` sha256 `deaceb20157886981bdedad1da11f39687e2343e978abc10e909939fb95d40c5`
 - Versions: Python 3.12.10, numpy 2.4.3, pyarrow 23.0.1, torch 2.13.0, sentence-transformers 6.3.0
 
 | Stage | Seconds | Rate |
 |---|---|---|
-| load_model | 10.6 | |
-| read | 13.5 | 37,472 rows |
-| encode | 264.7 | 22.7 document heads/s |
+| load_model | 11.5 | |
+| read | 8.6 | 37,472 rows |
+| encode | 158.3 | 37.9 document heads/s |
 | url | 0.0 | |
 | retrieve | 0.1 | 3 language pairs of 2,000 × 2,000 |
-| verify_read | 0.2 | |
-| verify | 215.5 | 63.1 sentences/s (13,601 sentences, 738 pairs) |
+| verify_read | 0.3 | |
+| verify | 126.0 | 108.0 sentences/s (13,601 sentences, 738 pairs) |
 
-- Estimate for all documents of the three packs (72,665 en, 14,220 hi, 5,956 sa) at these rates: 84.9 min; suggested Max
-  time 128 min
+- Estimate for all documents of the three packs (72,665 en, 14,220 hi, 5,956 sa) at these rates: 50.8 min; suggested Max
+  time 77 min
+- Encoder: `Encoder.encode` and `SentenceTransformer.encode` on the same 587 head texts, one after the other: 18.0 s and
+  20.7 s; the unit vectors differ by at most 1.5e-08
 - Sync check: TODO on CUDA. MPS has no sync debug mode; run with `"sync_debug": true` on CUDA.
 - No Python loops over tokens, documents, sentences or pairs: yes. Loops remain over parts, record batches, encoder chunks
-  of 2,048 texts, retrieval row blocks, pair batches, the configured packs and language pairs, the distinct sizes of URL
-  groups and the distinct non-ASCII digits in numbers.
+  of 2,048 texts and batches of `batch_size`, retrieval row blocks, pair batches, the configured packs and language
+  pairs, the distinct sizes of URL groups and the distinct non-ASCII digits in numbers.
 - Host copies: one per stage result, and one per part for the embedding cache. Encoder chunks go to the tokenizer as
   Python strings.
 - Result: 902 candidates, 738 verified, 0 at coverage ≥ 0.6
@@ -123,7 +131,7 @@ of pairs. No Python loop runs over rows, documents, sentences, tokens or pairs.
 Command:
 
 ```sh
-python3 teams/01-data-a/dedup/h3.py --config teams/01-data-a/dedup/h3_local.json 2>&1 | tee out/h3_local.log
+rm -rf out/h3_cache out/h3_local && python3 teams/01-data-a/dedup/h3.py --config teams/01-data-a/dedup/h3_local.json 2>&1 | tee out/h3_local.log
 ```
 
 Last lines of output:
@@ -135,26 +143,26 @@ Last lines of output:
       "sa": 5956
     },
     "seconds": {
-      "load_model": 10.6,
-      "read": 33.5,
-      "encode": 4096.1,
-      "retrieve": 14.5,
-      "verify": 939.5
+      "load_model": 11.5,
+      "read": 21.3,
+      "encode": 2449.9,
+      "retrieve": 17.1,
+      "verify": 549.9
     },
-    "minutes_total": 84.9,
+    "minutes_total": 50.8,
     "every_stage_measured": true,
-    "suggested_max_time_minutes": 128,
+    "suggested_max_time_minutes": 77,
     "basis": "this run's rates; read scales with rows, encode with documents, retrieve with the product of the two languages' documents, verify with the smaller language's documents (at most max_verify)"
   },
-  "wall_seconds": 510.0,
-  "peak_rss_mb": 875.5
+  "wall_seconds": 305.0,
+  "peak_rss_mb": 845.2
 }
 
 Wrote h3_docs.parquet, h3_candidates.csv, h3_matches.csv, h3_by_pack.csv, h3_histogram.csv and h3_summary.json to out/h3_local
 ```
 
-The full console log is `teams/01-data-a/jobs/logs/2026-11-16-h3-local.txt` and the run's summary
-`teams/01-data-a/jobs/logs/2026-11-16-h3-local/h3_summary.json`.
+The full console log is `teams/01-data-a/jobs/logs/2026-11-17-h3-local.txt` and the run's summary
+`teams/01-data-a/jobs/logs/2026-11-17-h3-local/h3_summary.json`.
 
 ## Tests
 
@@ -163,11 +171,13 @@ python3 -B -m pytest teams/01-data-a/dedup/tests/test_h3.py teams/01-data-a/dedu
 ```
 
 ```text
-..............................................................           [100%]
-62 passed in 2.77s
+.......................................................................  [100%]
+71 passed in 2.27s
 ```
 
-They check each batch function of `h3_signals.py` against its per-document reference, `align_batch` against `align`,
-`cross_topk` against a brute force of every pair, batch sizes of 1 against the defaults, the 13-column
-`h3_matches.csv` keys against `h3_docs.parquet`, the train/heldout layout, the time limit, the cache and the config
-checks. A fake encoder stands in for the model, so the tests need no model or network.
+They check each batch function of `h3_signals.py` against its per-document reference, `align_batch` against `align`
+(one threshold, and one per pair), `cross_topk` against a brute force of every pair, batch sizes of 1 against the
+defaults, the 13-column `h3_matches.csv` keys against `h3_docs.parquet`, the train/heldout layout, the sentence
+threshold per language pair, the time limit, the cache, the config checks, and a run without the Unix-only `resource`
+module (Windows), where `peak_rss_mb` is null. A fake encoder stands in for the model, so the tests need no model or
+network.
