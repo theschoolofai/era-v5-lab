@@ -1,5 +1,15 @@
 # Deletion Tuning, then the small RL test (week-3 task 11), 16-17 Nov 2026
 
+**Task 11 status.** Anirudh Narla ran the CPU rehearsal below. Mean held-out toy reward rose from
+0.4268 to 0.6383 with all adapter-selected non-router weights trainable, and from 0.4268 to 0.5013 when
+only the pruned expert layers could train. The 348,469 deleted weights stayed zero across all 180 optimizer
+steps in the six DT runs. The [validation log](dt_then_rl_evidence/validation.md) checks the recorded evidence
+and the current branch's trainer tests.
+
+**Code-verifier result pending.** The [Task 6 report](small_rl.md) records 0.151 to 0.251 on a Qwen 7B
+surrogate. The Task 11 code run needs its own pre-RL and post-RL scores from the DT SFT checkpoint. The
+[canary request draft](../jobs/2026-11-17-dt-then-rl-code.md) records the remaining inputs and checks.
+
 **Scope label.** Stand-in "B" (a capstone-family model trained locally on an M1 Pro with Team 5's own code: d128, 4 layers,
 16+1 experts top-2, 24.7M parameters, 4.1M tokens), a toy reward, CPU, fp32. Three RL seeds, one SFT seed per arm. This is
 **mechanics and relative comparison at small width, not a quality claim**, not code RL, not the dry-run-1 checkpoint.
@@ -143,8 +153,7 @@ takes no optimizer step, creates no optimizer state, calls no log-probability an
 - Whether the trainer's gradient mask carries over to bf16-stored weights or packed `[E, ...]` expert tensors (G6's layout); only per-expert `nn.Linear`
   (loop dispatch) was exercised.
 
-If the claim has to be made on real code prompts, it needs a GPU run on the delivered checkpoint after SFT data v1 gates close;
-a request draft is `../jobs/2026-11-17-dt-then-rl-code.md` (not sent, not run).
+Code-verifier evaluation needs the delivered checkpoint and the DT SFT state and mask produced from the approved SFT slice.
 
 ## Reproduction (this Mac: Apple M1 Pro, 16 GB, CPU only, two processes at a time, torch 2.14.1, `OMP_NUM_THREADS=4`)
 
