@@ -50,29 +50,39 @@ GPU timings include forward execution and tail cross-entropy. They exclude model
 
 This is an inference-only positional retrofit evaluated on three older English Wikipedia articles. It supports a candidate extension proposal and a controlled follow-up on the team checkpoint. Retrieval, multilingual evaluation and any continued-training budget remain follow-up work. TSAI selects the production context schedule.
 
+## Readability revision and fresh execution
+
+The standard Jupyter notebook now starts with the assignment, explains the
+method choices and defines the A/B/C/D comparisons before the code. The
+selection and tail-scoring implementations retain their executable ASTs, with
+only docstrings and comments added. The repeated timing loop is extracted into
+one readable helper; other local names and presentation cells are clarified.
+
+All **16 code cells** completed in a fresh kernel on the authorized GPU
+sandbox, finishing at `2026-11-18T07:27:09.670544+00:00`. There were no error outputs and all seven
+correctness checks passed. Maximum mean-NLL drift from the original BF16 pilot
+was `0` nats/token. Original measurement CSVs remain historical;
+fresh execution counts, tables, PNG charts and manifest are saved inside the
+notebook. The new per-article results, input hashes, software versions, checks
+and notebook/code hashes are in [readability_rerun.json](readability_rerun.json).
+Fresh timing samples belong to this rerun and are not silently substituted for
+the original timing tables.
+
 ## Reproduce
 
-The current submission provides `notebooks/context_extension.ipynb`, a standard
-Jupyter conversion of the reviewed export. See `notebooks/context_extension_README.md` for the
-pinned core dependencies and CUDA Run All instructions. Fresh outputs are
-written below the kernel working directory in `out/context_extension_pilot/`;
-committed result files are not overwritten.
-
-The conversion preserves the scoring and document-selection functions, model
-and dataset revisions, four conditions, BF16/FP32 checks and timing calculations.
-It replaces presentation widgets with ordinary notebook displays and static PNG
-charts. The notebook includes a labelled historical snapshot; all code-cell
-execution counts remain empty because the sandbox connection was unavailable
-for a fresh GPU run during conversion. Schema, syntax, numerical snapshot and
-source-preservation checks passed locally.
+See `notebooks/context_extension_README.md` for dependencies and CUDA Run All
+instructions. Fresh files are written to `out/context_extension_pilot/` below
+the kernel working directory. The recorded snapshot at the top of the notebook
+stays explicitly separate from fresh code-cell outputs.
 
 The exact originally executed source remains in Git commit
 `9539c7be6263b3fe429a5096dac8c77ed1428f63` at
-`teams/05-architecture/notebooks/context_extension.py`. Its recorded isolated
-replay added a launcher dependency header only. Original primary/replay hashes
-are retained in `source_provenance.json`; the original replay receipt's
-`notebook_sha256` field identifies the primary source. The complete supporting
-download retains historical replay logs, exact token IDs and per-token losses.
+`teams/05-architecture/notebooks/context_extension.py`. Original primary/replay
+hashes remain historical identifiers in `source_provenance.json`; the original
+replay receipt's `notebook_sha256` field identifies the primary source. The
+complete supporting download retains the historical replay, while the
+readability rerun has its own complete evidence archive with exact IDs, losses,
+charts and metadata.
 
 ## Sources
 
@@ -97,7 +107,7 @@ The experiment was executed with assistant help in the authorized personal Molab
 python teams/05-architecture/tests/verify_context_extension.py
 ```
 
-This checks the current notebook and both saved measurement snapshots without
+This checks the current notebook and both original measurement snapshots and the readability rerun without
 running a new GPU experiment. No team-code speed change is proposed here.
 Any later speed-only integration must satisfy the Lab 3 requirement for
 byte-identical output. The pilot's BF16 SDPA/eager tolerance check is not that proof.
