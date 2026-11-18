@@ -72,7 +72,8 @@ DOCKER_FLAGS = ["--network=none", "--read-only", "--cap-drop", "ALL", "--securit
 #           uid isolation protects only files whose mode excludes "other", so the caller must name every file or
 #           folder holding expected outputs in G10_STDIO_SECRET_PATHS (os.pathsep-separated) and make them unreachable
 #           for other uids (0600 under 0700 folders, or chmod 0700 /kaggle where the task file is a read-only mount);
-#           preflight_isolation() proves it with a probe as a sandbox uid and refuses to score otherwise. The same
+#           preflight_isolation() proves it with a probe as a sandbox uid and refuses to score otherwise; a named path
+#           must exist, and a named folder must not be enterable by other uids. The same
 #           preflight probes the network: sandboxed programs get a seccomp filter that allows AF_UNIX sockets only, and
 #           scoring refuses if a sandbox uid can still open an IP connection (Modal: block_network=True also holds).
 #   local_unisolated  the old plain-subprocess runner, kept only for tests on trusted programs; never for rewards.
@@ -227,9 +228,16 @@ def preflight_isolation() -> None:
     paths = [p for p in os.environ.get("G10_STDIO_SECRET_PATHS", "").split(os.pathsep) if p]
     if not paths:
         raise RuntimeError("G10_STDIO_RUNNER=local refused: set G10_STDIO_SECRET_PATHS to every file holding expected outputs")
+    for p in paths:  # a typo must not read as "unreadable": exists() follows symlinks, so a dangling link refuses too
+        if not os.path.exists(p):
+            raise RuntimeError(f"G10_STDIO_RUNNER=local refused: G10_STDIO_SECRET_PATHS names a path that does not exist: {p}")
     _seccomp_fprog()  # build once in the parent: the forked sandbox start-up then only installs it
     uid = _next_uid()
-    probe = "import os,sys\nfor p in sys.argv[1:]:\n    try:\n        (os.listdir(p) if os.path.isdir(p) else open(p,'rb').read(1)); print(p); break\n    except OSError: pass\n"
+    # a file must not be readable; a folder must be neither listable nor enterable (a 0711 folder hides its names but
+    # a file with a known name inside it can still be opened)
+    probe = ("import os,sys\nfor p in sys.argv[1:]:\n    try:\n        if os.path.isdir(p):\n            os.listdir(p); print(p); break\n"
+             "        open(p,'rb').read(1); print(p); break\n    except OSError: pass\n"
+             "    if os.path.isdir(p):\n        try:\n            os.chdir(p); print(p); break\n        except OSError: pass\n")
     r = subprocess.run([sys.executable, "-S", "-c", probe, *paths], user=uid, group=uid, extra_groups=[],
                        capture_output=True, text=True, timeout=30, env={}, cwd="/")
     if r.stdout.strip():
