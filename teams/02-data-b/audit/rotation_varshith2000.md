@@ -56,7 +56,8 @@ IDs, codes, offsets and hex dumps only (the finding and two or three code points
 
 ## Summary — to date (R1 reading continues)
 
-- Documents checked by code points: 50 of 50. Documents read so far: 3 of 50 (continuing 19 Nov).
+- Documents checked by code points: 50 of 50. Documents read so far: 25 of 50 (continuing
+  19–20 Nov); no further findings recorded from the documents read so far beyond those below.
 - Findings so far: G1 3 rows + 6–8 same-signature instances pending offsets (1 document); A6 1;
   D3 5 (1 document); G2 0; A1 0; A4 0.
 - Dominant reader pattern so far: `U+0020` inserted inside words after a matra — invisible to the
@@ -66,5 +67,6 @@ IDs, codes, offsets and hex dumps only (the finding and two or three code points
 
 ## Status
 
-R1 reading in progress; remaining document rows, the pending offsets for `0cce98c8136212f3`,
-reader confirmation of the three scan rows, and the final summary will be added by Fri 20 Nov.
+R1 reading halfway (25 of 50). To come by Fri 20 Nov: the remaining 25 documents' rows, the
+pending offsets for `0cce98c8136212f3`, reader confirmation of the three scan rows, and the final
+summary.
