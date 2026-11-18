@@ -72,7 +72,7 @@ How to fill it:
 | Parallel layout and kernel changes | Infrastructure, Performance | | no | no |
 | Evaluation schedule | Evaluation | | no | no |
 | SFT data v1 and RL data v1 | Post-training | [#524](https://github.com/theschoolofai/era-v5-lab/pull/524) | no | no |
-| Public dashboard panels and text | Monitoring, Release | Panels: [#495](https://github.com/theschoolofai/era-v5-lab/pull/495). Text: [#598](https://github.com/theschoolofai/era-v5-lab/pull/598) | no | no |
+| Public dashboard panels and text | Monitoring, Release | Panels: [#495](https://github.com/theschoolofai/era-v5-lab/pull/495). Text: [#598](https://github.com/theschoolofai/era-v5-lab/pull/598). Monitoring applied the text: [#629](https://github.com/theschoolofai/era-v5-lab/pull/629) | text by Release, merged by TSAI in #598 | no |
 | Serving stack for the public demo | Quantization | | no | no |
 
 - [ ] `check_style.py` gives 0 errors
@@ -80,6 +80,6 @@ How to fill it:
 - [ ] The text names teams only, and no person
 - [ ] Nothing from the internal list in `public_internal.md`
 - [ ] No `[waiting for TSAI]` left in the text
-- [ ] A team member commented on this pull request
+- [x] A team member commented on this pull request
 - [ ] TSAI approved on: [DD Mon YYYY]
 - [ ] Merged after TSAI approved
