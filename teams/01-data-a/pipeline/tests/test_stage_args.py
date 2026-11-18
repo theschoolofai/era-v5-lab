@@ -8,6 +8,7 @@ import json
 import pytest
 
 import stage_args as sa
+from conftest import made_up_manifest
 
 OVERLAP = {"_comment": "settings only", "inputs": "old/clean", "splits": ["train", "heldout"], "out": "old/overlap", "floor": 0.5, "k": 5,
            "expected_packs": ["code-go"]}
@@ -28,7 +29,7 @@ def folders(repo):
 
 def clean_spec(repo, **over):
     """A clean stage entry with its input set described: a made-up manifest in the repository and its pin."""
-    (repo / "manifest.json").write_text('{"shards": []}', encoding="utf-8")
+    (repo / "manifest.json").write_text(made_up_manifest({"train": 1, "heldout": 1}), encoding="utf-8")
     spec = {"settings": "job.json", "input": "inputs/sample", "manifest": "manifest.json", "manifest_sha256": sa.sha256(repo / "manifest.json"),
             "expected_parts": {"train": 1, "heldout": 1}, "sample": "made up"}
     return {**spec, **over}
@@ -53,6 +54,33 @@ def test_clean_gets_a_generated_config_with_the_input_and_its_description(repo, 
     assert r["settings_sha256"] == sa.sha256(s) and r["config_sha256"] == sa.sha256(cfg / "clean.json")
 
 
+def test_the_default_clean_script_is_the_spec_v1_1_runner():
+    assert sa.DEFAULT_SCRIPT["clean"] == "teams/01-data-a/pipeline/clean_job.py"
+
+
+def test_resume_goes_into_the_generated_clean_config_only_when_it_is_true(repo, folders):
+    settings(repo, "job", {"clean_sha256": "c" * 64})
+    for spec, written in ((clean_spec(repo, resume=True), True), (clean_spec(repo, resume=False), False), (clean_spec(repo), False)):
+        sa.build("clean", spec, folders, repo / "cfg", repo)
+        made = json.loads((repo / "cfg" / "clean.json").read_text(encoding="utf-8"))
+        assert ("resume" in made) is written and (made.get("resume") is True) is written
+    assert sa.generated_values("clean", folders, repo, clean_spec(repo, resume=True))["resume"] is True
+
+
+@pytest.mark.parametrize("value", ["yes", 1, None, "true"])
+def test_resume_must_be_true_or_false(repo, folders, value):
+    settings(repo, "job", {})
+    with pytest.raises(sa.ConfigError, match="stages.clean.resume is .*, expected true or false"):
+        sa.build("clean", clean_spec(repo, resume=value), folders, repo / "cfg", repo)
+
+
+@pytest.mark.parametrize("stage", ["overlap", "dedup"])
+def test_only_the_clean_job_can_be_resumed(repo, folders, stage):
+    settings(repo, stage, OVERLAP)
+    with pytest.raises(sa.ConfigError, match=f"stages.{stage}.resume: only the clean job can be resumed"):
+        sa.build(stage, {"settings": f"{stage}.json", "resume": True}, folders, repo / "cfg", repo)
+
+
 @pytest.mark.parametrize("missing", ["input", "manifest_sha256", "expected_parts"])
 def test_clean_needs_its_input_and_the_description_of_it(repo, folders, missing):
     settings(repo, "job", {})
@@ -72,15 +100,30 @@ def test_the_manifest_defaults_to_the_one_in_the_input_folder(repo, folders):
     assert json.loads((repo / "cfg" / "clean.json").read_text(encoding="utf-8"))["manifest"] == "inputs/sample/sample_manifest.json"
 
 
-def test_a_missing_or_changed_manifest_stops_a_run_but_not_a_plan(repo, folders):
+@pytest.mark.parametrize("write", [True, False])  # a run and a plan
+def test_a_missing_or_changed_manifest_stops_a_run_and_a_plan(repo, folders, write):
     settings(repo, "job", {})
     spec = clean_spec(repo, manifest="nowhere.json")
-    sa.build("clean", spec, folders, repo / "cfg", repo, write=False)  # a plan does not look for the file
     with pytest.raises(sa.ConfigError, match="sample manifest .*nowhere.json is not there"):
-        sa.build("clean", spec, folders, repo / "cfg", repo)
+        sa.build("clean", spec, folders, repo / "cfg", repo, write=write)
     (repo / "manifest.json").write_text('{"shards": [1]}', encoding="utf-8")  # changed after it was pinned
-    with pytest.raises(sa.ConfigError, match="manifest_sha256 pins"):
-        sa.build("clean", {**spec, "manifest": "manifest.json"}, folders, repo / "cfg", repo)
+    with pytest.raises(sa.ConfigError, match="stages.clean: .*manifest.json has sha256 .*, the pin is"):
+        sa.build("clean", {**spec, "manifest": "manifest.json"}, folders, repo / "cfg", repo, write=write)
+
+
+def test_a_manifest_that_does_not_match_expected_parts_stops_a_plan_too(repo, folders):
+    settings(repo, "job", {})
+    spec = clean_spec(repo, expected_parts={"train": 2, "heldout": 1})  # the manifest has one train part
+    with pytest.raises(sa.ConfigError, match=r"stages.clean: the manifest has parts \{'train': 1, 'heldout': 1\}, stages.clean.expected_parts says"):
+        sa.build("clean", spec, folders, repo / "cfg", repo, write=False)
+
+
+def test_a_missing_default_manifest_says_where_it_looked(repo, folders):
+    settings(repo, "job", {})
+    spec = clean_spec(repo)
+    del spec["manifest"]
+    with pytest.raises(sa.ConfigError, match="not there .without stages.clean.manifest it is sample_manifest.json in the input folder"):
+        sa.build("clean", spec, folders, repo / "cfg", repo, write=False)
 
 
 def test_only_adds_one_flag_per_part_to_clean_and_clears_overlaps_expected_packs(repo, folders):
