@@ -210,6 +210,19 @@ def test_a_good_run_is_verified(run, tmp_path, table):
     assert code == 0 and s["verified"] is True and s["problems"] == []
 
 
+def test_no_verify_writes_the_shards_and_checks_nothing(run, tmp_path, table, monkeypatch):
+    def not_called(*args, **kwargs):
+        raise AssertionError("verify_shards.verify ran with --no-verify")
+    monkeypatch.setattr(rs.verify_shards, "verify", not_called)
+    code, out, s = go(run, tmp_path, table, "--pack", "pk-a", "--pack", "pk-b", "--no-verify")
+    assert code == 0 and s["verified"] is None and s["problems"] == [] and s["counts"]["written"] == 3
+
+
+def test_no_verify_does_not_hide_a_part_the_writer_itself_failed(run, tmp_path, table):
+    code, out, s = go(run, tmp_path, table, "--no-verify")  # pk-nolane has no lane in the table: skipped
+    assert code == 1 and s["verified"] is None and s["parts"]["train/pk-nolane/part-00000.parquet"]["status"] == "skipped"
+
+
 def test_a_shard_that_fails_verification_fails_its_part_alone(run, tmp_path, table, monkeypatch):
     break_after_writing(monkeypatch, flip_a_token_byte)
     code, out, s = go(run, tmp_path, table, "--pack", "pk-a", "--pack", "pk-b")
