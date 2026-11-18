@@ -242,8 +242,14 @@ root) is the fallback. No CUDA or full-width performance claim is made from CPU 
   built, with exit 1, `failed_steps ["pins"]`, each differing file listed with the run manifest's hash and the `<G5>`
   hash, and the remedy (point `--g5-root` at a checkout with the manifest's hashes). A manifest with no `sources` is
   refused the same way. Nothing is relaxed: a matching pair runs as before, and the adapter's own check still runs later.
-- Open question for TSAI: which checkout was dry run 1's checkpoint trained from? Its manifest is not in the repo (the
-  committed dry run 1 manifest under `teams/05-architecture/jobs/evidence/2026-11-15-dryrun1/` is G5's CPU smoke, whose
-  `train_week2.py`, `artifacts.py`, `evaluation.py` and `data.py` hashes match no committed blob). The sha256 of those
-  four files in the real run's `manifest.json["sources"]` is enough: we can then name the checkout, or the request can
-  say which one to pass.
+- Ask for TSAI: please pass as `--g5-root` the same harness tree you used for G7's restore jobs A and B (#573). Its
+  result note (`teams/07-infrastructure/results/restore_dryrun1.md`, section 5) says you ran both on the real dry run 1
+  checkpoint on 17 Nov, "the same setup as #475", exit 0 with no identity error, `final_model_sha256` equal to dry run 1;
+  section 2 says `train_week2.py`'s `--resume` refuses a checkpoint whose identity hash differs from the current run. So a
+  tree that matches the real checkpoint exists on your side. With any other tree this job now stops in seconds and prints
+  both hashes. Current `main` drifts further from that tree (open G5 drafts #606 and #607 change `train_week2.py` and
+  `week2/model.py` again), which is why the early stop matters.
+- What we cannot see: the real run's `manifest.json["sources"]` is not in the repo (the committed dry run 1 manifest under
+  `teams/05-architecture/jobs/evidence/2026-11-15-dryrun1/` is G5's CPU smoke, whose `train_week2.py`, `artifacts.py`,
+  `evaluation.py` and `data.py` hashes match no committed blob), and the G7 job outputs were not added to the repository.
+  So we do not know which commit that tree is; the sha256 of the four files in the real manifest would let us name it.
