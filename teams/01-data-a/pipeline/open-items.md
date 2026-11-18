@@ -37,7 +37,7 @@ Target stated by the reviewer: **final Parquet (clean + dedup + decontam) -> dir
 
 | # | Comment | Status | What it means for the code |
 |---|---|---|---|
-| 1 | Prevent data loss at the token limit: continue into additional shards until every selected row is processed; `truncated > 0` is not success. | [ ] open | Writer rolls over to the next shard instead of stopping (this is the multi-shard item of decision 3). |
+| 1 | Prevent data loss at the token limit: continue into additional shards until every selected row is processed; `truncated > 0` is not success. | [x] done (rollover) | The writer rolls over to the next shard; shard numbers run on across a pack's parts; `shards_summary.json` maps each part to its shards; a doc longer than a shard is left out as `oversize`. Real-writer forced-rollover tests in `test_shard_writer.py` and `test_run_shards.py`. |
 | 2 | Verify the actual shard artifacts before recording success: payload, index and metadata exist; hashes, format, document and token counts match. Not just `shards_summary.json`. | [ ] open | New check in the shard stage that reopens every shard it lists. |
 | 3 | Verify complete input coverage from the verified final-Parquet inventory: detect missing, nested or unexpected parts. Allocate shard IDs independently of part basenames. Preflight required pack metadata (lane, domain) before writing. | [ ] open | Inventory vs parts on disk; unique shard-ID allocation; the lane check moves before any write (ties to decision 1). |
 | 4 | Empty parts (emptied by F2, or fully excluded during tokenization) get explicit outcomes and reconciled counts, not a pack-ID mismatch or "no document fits". | [ ] open | New per-part outcome (for example `empty`) in the summary and the reconciliation. |

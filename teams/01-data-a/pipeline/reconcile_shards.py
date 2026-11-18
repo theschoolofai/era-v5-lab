@@ -23,11 +23,12 @@ EVERY KEPT DOCUMENT GETS ONE STATUS (column shard_status)
   in_shard          in <shard_id>.docs.parquet at its ledger position (input_part, input_row), with its doc_id
   left_out:<why>    the writer left it out and says why in the quality report: secret (it matches pr-guard's email or
                     secret patterns), empty (no tokens), special (it holds a special token), roundtrip (decode(encode(text))
-                    differs from the text)
-  not_sharded       its part's status is not_sharded: a held-out part (the shard format has train and validation only)
+                    differs from the text), oversize (alone it is more than a shard's --tokens; a doc is never split)
+  not_sharded      its part's status is not_sharded: a held-out part (the shard format has train and validation only)
   not_selected      its pack is not among --pack (only when --pack is given)
-  not_reached       its part was written but cut short ("truncated": rows after rows_read did not fit in the shard). This
-                    is data loss, so it fails (Vijay on #39, point 1)
+  not_reached       its part was written but cut short ("truncated": rows at or after the part's rows_read are in no
+                    shard). The writer rolls over into more shards, so this should not happen; it is data loss, so it
+                    fails (patilvijay23 on #39, point 1)
   part_<status>     its part failed or was skipped by run_shards.py: fails
   missing           none of the above: its part was written and reached its row, but it is in no shard: fails
 
@@ -79,7 +80,7 @@ import pyarrow.compute as pc  # noqa: E402
 import pyarrow.parquet as pq  # noqa: E402
 
 SUMMARY = "shards_summary.json"
-REASONS = ("secret", "empty", "special", "roundtrip")  # shard_writer.py's left_out keys
+REASONS = ("secret", "empty", "special", "roundtrip", "oversize")  # shard_writer.py's left_out keys (LEFT_OUT)
 FAILING = ("not_reached", "part_failed", "part_skipped", "missing")
 STATUS_SCHEMA = pa.schema([("pack_id", pa.string()), ("split", pa.string()), ("input_part", pa.string()),
                            ("input_row", pa.int64()), ("doc_id", pa.string()), ("shard_id", pa.string()),
@@ -153,13 +154,21 @@ def file_groups(ledger, files):
     return sorted(groups.values(), key=order), packs
 
 
+def shard_ids(entry):
+    """The shard_ids of a part's summary entry: its "shards" map (run_shards.py, one or more a part), or the single
+    "shard_id" of a summary written before rollover."""
+    if "shards" in entry:
+        return [s["shard_id"] for s in entry["shards"]]
+    return [entry["shard_id"]] if entry.get("shard_id") else []
+
+
 def shard_inputs(folder, names, parts):
     """For these written parts: their shard rows (doc_id, input_part, input_row, shard_id), their left-out documents
     (input_part, doc_id, reason), {shard_id: (manifest doc_count, docs.parquet rows)} and the files read."""
     docs, left, counts, files = [], [], {}, []
-    for name in names:
-        e = parts[name]
-        sid = e["shard_id"]
+    for name, sid in ((n, s) for n in names for s in shard_ids(parts[n]) or [None]):
+        if sid is None:
+            raise Stop(f"{name}: written, but shards_summary.json names no shard for it")
         meta, man, rep = (folder / f"{sid}{x}" for x in (".docs.parquet", ".json", ".quality_report.json"))
         for f in (meta, man, rep):
             if not f.is_file():

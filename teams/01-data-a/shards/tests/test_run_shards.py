@@ -60,7 +60,8 @@ def test_every_part_gets_its_shard_and_the_table_row(run, tmp_path, table):
     code, out, s = go(run, tmp_path, table, "--pack", "pk-a", "--pack", "pk-b")
     written = {k: v for k, v in s["parts"].items() if v["status"] == "written"}
     assert sorted(written) == ["train/pk-a/part-00000.parquet", "train/pk-a/part-00001.parquet", "train/pk-b/part-00000.parquet"]
-    assert [written[k]["shard_id"] for k in sorted(written)] == ["pk-a-train-000000", "pk-a-train-000001", "pk-b-train-000000"]
+    assert [[x["shard_id"] for x in written[k]["shards"]] for k in sorted(written)] == \
+        [["pk-a-train-000000"], ["pk-a-train-000001"], ["pk-b-train-000000"]]
     m = json.loads((out / "pk-b-train-000000.json").read_text(encoding="utf-8"))
     assert (m["language"], m["script"], m["domain"], m["capability_lane"]) == ("en", "Latn", "english", "general")
     assert all(v["docs"] == 3 and not v["truncated"] and v["rows_read"] == v["rows_in_part"] == 3 for v in written.values())
@@ -75,7 +76,7 @@ def test_a_pack_without_a_lane_or_row_is_skipped_and_the_rest_written(run, tmp_p
     assert s["parts"]["train/pk-nolane/part-00000.parquet"]["status"] == "skipped"
     assert "no lane" in s["parts"]["train/pk-nolane/part-00000.parquet"]["reason"]
     assert s["parts"]["train/pk-b/part-00000.parquet"]["status"] == "written"
-    assert s["counts"] == {"written": 1, "failed": 0, "skipped": 1, "not_sharded": 0, "truncated": 0}
+    assert s["counts"] == {"written": 1, "failed": 0, "skipped": 1, "not_sharded": 0, "truncated": 0, "shards": 1}
     assert not list(out.glob("pk-nolane*"))
     table.write_text(json.dumps({"packs": {}}), encoding="utf-8")
     code, _, s = go(run, tmp_path, table, "--pack", "pk-b", out="shards2")
@@ -87,7 +88,7 @@ def test_a_held_out_part_is_not_sharded_and_is_not_an_error(run, tmp_path, table
     assert code == 0
     held = s["parts"]["heldout/pk-a/part-00000.parquet"]
     assert held["status"] == "not_sharded" and "G3 and G9" in held["reason"] and "shard_id" not in held
-    assert s["counts"] == {"written": 2, "failed": 0, "skipped": 0, "not_sharded": 1, "truncated": 0}
+    assert s["counts"] == {"written": 2, "failed": 0, "skipped": 0, "not_sharded": 1, "truncated": 0, "shards": 2}
     assert not list(out.glob("*heldout*"))
 
 
@@ -136,7 +137,7 @@ def test_an_existing_shard_stops_the_run_before_anything_is_written(run, tmp_pat
 def test_a_second_run_for_other_packs_adds_to_the_summary(run, tmp_path, table):
     go(run, tmp_path, table, "--pack", "pk-b")
     code, out, s = go(run, tmp_path, table, "--pack", "pk-a")
-    assert sorted(v["shard_id"] for v in s["parts"].values() if v["status"] == "written") == \
+    assert sorted(x["shard_id"] for v in s["parts"].values() if v["status"] == "written" for x in v["shards"]) == \
         ["pk-a-train-000000", "pk-a-train-000001", "pk-b-train-000000"]
     assert code == 0 and s["counts"]["not_sharded"] == 1
 
@@ -166,18 +167,15 @@ def test_other_processing_into_the_same_out_fails_part_by_part_and_keeps_the_ear
     assert s["parts"]["train/pk-b/part-00000.parquet"]["status"] == "written"
 
 
-def test_a_part_that_does_not_fit_is_flagged_truncated(run, tmp_path, table):
-    code, out, s = go(run, tmp_path, table, "--pack", "pk-b", "--tokens", "40")
-    e = s["parts"]["train/pk-b/part-00000.parquet"]
-    assert e["truncated"] is True and e["rows_read"] < e["rows_in_part"] == 3 and e["docs"] < 3
-    assert s["counts"]["truncated"] == 1 and code == 0  # truncated is a warning: the part was written
-
-
-def test_a_part_not_named_part_number_fails(run, tmp_path, table):
-    odd = run / "final" / "train" / "pk-b" / "other.parquet"
-    (run / "final" / "train" / "pk-b" / "part-00000.parquet").rename(odd)
-    code, out, s = go(run, tmp_path, table, "--pack", "pk-b")
-    assert code == 1 and "not named part-<number>.parquet" in s["parts"]["train/pk-b/other.parquet"]["reason"]
+def test_forced_rollover_numbers_shards_on_across_a_packs_parts_and_maps_every_row(run, tmp_path, table):
+    code, out, s = go(run, tmp_path, table, "--pack", "pk-a", "--tokens", "40")
+    a0, a1 = (s["parts"][f"train/pk-a/part-0000{k}.parquet"] for k in (0, 1))
+    ids = [x["shard_id"] for e in (a0, a1) for x in e["shards"]]
+    assert code == 0 and len(a0["shards"]) > 1 and ids == [f"pk-a-train-{k:06d}" for k in range(len(ids))]
+    assert s["counts"]["truncated"] == 0 and s["counts"]["shards"] == len(ids)
+    for e in (a0, a1):
+        rows = [r["input_row"] for x in e["shards"] for r in pq.read_table(out / f"{x['shard_id']}.docs.parquet").to_pylist()]
+        assert rows == [0, 1, 2] and e["rows_read"] == 3 and e["docs"] == sum(x["docs"] for x in e["shards"])
 
 
 def test_no_parts_is_an_error(run, tmp_path, table):

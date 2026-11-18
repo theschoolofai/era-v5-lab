@@ -983,11 +983,10 @@ class Run:
         self.check("shards: run_shards.py exited 0", rc == 0, f"exit code {rc}; see logs/shards.log")
         self.check("shards: at least one shard written", counts["written"] > 0, f"{counts}")
         cut = sorted(name for name, e in s["parts"].items() if e.get("truncated"))
-        self.check("shards: no part was cut short (every kept document of a written part fits in its shard)",
+        self.check("shards: no part was cut short (every row of a written part was read into its shards)",
                    counts.get("truncated", 0) == 0 and not cut,
-                   f"{len(cut) or counts.get('truncated')} part(s) did not fit in stages.shards.tokens, e.g. {cut[:3]}: the "
-                   "writer fills one shard a part and drops the rest. Raise tokens or split the parts; reconcile would "
-                   "report those documents as not_reached")
+                   f"{len(cut) or counts.get('truncated')} part(s) cut short, e.g. {cut[:3]}: the writer rolls over into "
+                   "more shards, so rows it never read point to a writer fault; reconcile reports them as not_reached")
         self.check("shards: the summary is this run's, made with this run's cleaning_pipeline.json",
                    s.get("run_id") == self.cfg["run_id"] and s.get("cleaning_pipeline_sha256") == record_sha,
                    f"summary run_id {s.get('run_id')}, cleaning_pipeline_sha256 {str(s.get('cleaning_pipeline_sha256'))[:12]}…")
@@ -1090,12 +1089,15 @@ class Run:
         problems, checked = [], 0
         for name in parts:
             e = entries.get(name) or {}
-            sid = e.get("shard_id")  # run_shards.py writes one shard a part
-            if not isinstance(sid, str) or not sid:
+            # run_shards.py lists a part's shards (one or more, after rollover) with each one's docs and tokens
+            shards = e.get("shards") if isinstance(e.get("shards"), list) else [e] if e.get("shard_id") else []
+            sids = [s.get("shard_id") if isinstance(s, dict) else None for s in shards]
+            if not sids or not all(isinstance(sid, str) and sid for sid in sids):
                 problems.append(f"{name}: shards_summary.json names no shard for it")
                 continue
-            checked += 1
-            problems += [f"{name} → {sid}: {p}" for p in shard_problems(out, sid, e, self.cache)]
+            for sid, s in zip(sids, shards):
+                checked += 1
+                problems += [f"{name} → {sid}: {p}" for p in shard_problems(out, sid, s, self.cache)]
         self.cache.save()  # what was hashed is kept, whether the check passes or not
         if problems:
             more = f" (and {len(problems) - 3} more)" if len(problems) > 3 else ""

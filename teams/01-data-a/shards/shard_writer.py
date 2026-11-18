@@ -8,8 +8,12 @@ Input: one part of the pipeline's final folder (run_pipeline.py: clean, dedup, t
 provenance.py checks the part's chain back to the raw sample part (F2 report, apply, remove list, clean job) and stops
 when a link breaks; what it returns checks cleaning_pipeline.json and goes into the quality report. The split comes from the
 part's folder: train. A held-out part is refused until G3 and G9 say what happens to it (the format has train and
-validation only). --domain defaults to clean.py's family of the pack. Docs are taken in order until the next one would
-pass --tokens; a doc is never split.
+validation only). --domain defaults to clean.py's family of the pack.
+
+Rollover: docs are taken in order into shard <pack>-<split>-<--index>; when the next doc would pass --tokens, that shard is
+written and the doc opens the next one (--index + 1, ...), until every row of the part is read. A doc is never split, so
+none is lost, repeated or cut. Shard k holds rows first_row..rows_read-1 of the part (its quality report gives both).
+main() returns the manifests in shard order; run_shards.py numbers the shards of a pack across its parts.
 
 Tokenizer (G3): the frozen p1536 tokenizer.json (Gate 3, in place of C3), sha256 TOKENIZER_SHA256 below (G3 train/p1536_s0_manifest.json).
 Any other file is refused, except with --any-tokenizer (tests only: the shard is marked dataset_version "test").
@@ -21,10 +25,12 @@ A doc is left out, counted, and listed by doc_id in the quality report when:
   - secret:     its text looks like it holds an email address or a secret (pr-guard's patterns);
   - empty:      it encodes to no tokens;
   - special:    a special id appears inside it (tokenizers turns a literal "<|im_start|>" in the text into a special id);
-  - roundtrip:  decode(ids) is not the tokenizer-normalized text.
+  - roundtrip:  decode(ids) is not the tokenizer-normalized text;
+  - oversize:   it alone (with its EOS) is more than --tokens, so it fits in no shard (listed with its n_tokens).
+A left-out doc is in the report of the shard whose rows it is in. A part with no doc to write stops the writer.
 Checks after writing: G6's open_shard reads the .bin, sizes and index match the manifest, every id < 131,072, and the only
 special ids in the shard are the EOS at the end of each doc.
-Writes <dir>/<shard_id>.{bin,idx.npy,docs.parquet,json}, cleaning_pipeline.json, <shard_id>.quality_report.json and <shard_id>.dump.md
+Writes, for each shard, <dir>/<shard_id>.{bin,idx.npy,docs.parquet,json}, cleaning_pipeline.json, <shard_id>.quality_report.json and <shard_id>.dump.md
 (IDs and counts only, never text). cleaning_pipeline.json describes the processing (clean.py, F2 set, remove list): run_pipeline.py's shard stage writes it
 next to the manifest, and the writer checks it against what provenance.py derives and copies it, so every shard of one
 run gets the same file; a --out that already holds one from other processing is refused. The quality report's
@@ -57,6 +63,7 @@ VOCAB = 131_072
 EOS_ID, EOS = 130_822, "<|endoftext|>"
 SPECIAL_BLOCK = range(130_725, VOCAB)  # G3: named specials and reserved slots; plus every added token marked special
 BATCH = 256
+LEFT_OUT = ("secret", "empty", "special", "roundtrip", "oversize")  # the reasons a doc is left out
 # pr-guard's secret and email patterns (.github/workflows/pr-guard.yml)
 SECRET = re.compile("|".join([
     r"AKIA[0-9A-Z]{16}", r"-----BEGIN [A-Z ]*PRIVATE KEY-----", r"gh[pousr]_[A-Za-z0-9]{30,}", r"\bsk-[A-Za-z0-9_-]{20,}",
@@ -118,8 +125,8 @@ def main(argv=None):
     ap.add_argument("--domain", help="default: the pack's family in clean.py")
     ap.add_argument("--license", help="the pack's licence, written into the manifest (with --license-source)")
     ap.add_argument("--license-source", help="where that licence is recorded (with --license)")
-    ap.add_argument("--index", type=int, default=0, help="shard number within the pack and split")
-    ap.add_argument("--tokens", type=int, default=2 ** 26, help="fill the shard up to this many tokens")
+    ap.add_argument("--index", type=int, default=0, help="number of the part's first shard within the pack and split")
+    ap.add_argument("--tokens", type=int, default=2 ** 26, help="fill each shard up to this many tokens, then roll over")
     ap.add_argument("--any-tokenizer", action="store_true", help="tests only: accept a tokenizer other than p1536")
     ap.add_argument("--dataset-version", help="the manifest's dataset_version (e.g. sample, corpus-v1); required unless --any-tokenizer")
     ap.add_argument("--out", type=Path, required=True)
@@ -143,7 +150,6 @@ def main(argv=None):
     domain = a.domain or pack_family(pack_id)
     tok, tok_sha, specials = load_tokenizer(a.tokenizer, a.any_tokenizer)
     norm = tok.normalizer.normalize_str if tok.normalizer is not None else (lambda t: t)  # a Sequence normalizer has len 0, so it is falsy
-    shard_id = f"{pack_id}-{split}-{a.index:06d}"
     pipeline = a.out / "cleaning_pipeline.json"
     run_file = a.manifest.resolve().parent / "cleaning_pipeline.json"  # written by run_pipeline.py's shard stage
     if not run_file.is_file():
@@ -155,16 +161,20 @@ def main(argv=None):
     if pipeline.is_file() and pipeline.read_bytes() != run_file.read_bytes():
         sys.exit(f"shard_writer: {pipeline} describes other processing than {run_file} (another clean.py, F2 set or remove list); use a new --out")
     a.out.mkdir(parents=True, exist_ok=True)
+    commit = subprocess.run(["git", "-C", str(REPO), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    ctx = {"info": info, "tok_sha": tok_sha, "specials": specials, "run_file": run_file, "pipeline": pipeline,
+           "part_path": part_path, "pack_id": pack_id, "split": split, "domain": domain, "commit": commit}
 
     table = pq.read_table(a.input, columns=["doc_id", "text", "lang_label"])
     ids_col, text_col, lang_col = (table.column(c).to_pylist() for c in ("doc_id", "text", "lang_label"))
-    docs, rows, total, full, seen = [], [], 0, False, len(text_col)
-    left_out = {"secret": [], "empty": [], "special": [], "roundtrip": []}
+    del table
+    manifests, index = [], a.index
+    cur = new_shard(0)
     for b in range(0, len(text_col), BATCH):
         texts = text_col[b:b + BATCH]
         for k, enc in enumerate(tok.encode_batch_fast(texts, add_special_tokens=False)):
             row, text, ids = b + k, texts[k], enc.ids
-            doc_id = ids_col[row]
+            doc_id, left_out = ids_col[row], cur["left_out"]
             if SECRET.search(text):
                 left_out["secret"].append(doc_id)
                 continue
@@ -178,55 +188,70 @@ def main(argv=None):
             if tok.decode(ids, skip_special_tokens=False) != norm(text):
                 left_out["roundtrip"].append(doc_id)
                 continue
-            if total + len(ids) + 1 > a.tokens:
-                full, seen = True, row  # rows read before the first doc that did not fit
-                break
-            docs.append(ids + [EOS_ID])
-            rows.append({"doc_id": doc_id, "input_part": part_path, "input_row": row, "n_tokens": len(ids) + 1,
-                         "n_chars": len(text), "lang_label": lang_col[row]})
-            total += len(ids) + 1
-        if full:
-            break
-    if not docs:
-        sys.exit("no document fits in --tokens")
+            n = len(ids) + 1
+            if n > a.tokens:  # alone it would pass --tokens, and a doc is never split
+                left_out["oversize"].append({"doc_id": doc_id, "n_tokens": n})
+                continue
+            if cur["total"] + n > a.tokens:  # roll over: this shard is full, the doc opens the next one
+                manifests.append(finish(a, ctx, f"{pack_id}-{split}-{index:06d}", cur, rows_end=row))
+                index += 1
+                cur = new_shard(row)
+            cur["docs"].append(ids + [EOS_ID])
+            cur["rows"].append({"doc_id": doc_id, "input_part": part_path, "input_row": row, "n_tokens": n,
+                                "n_chars": len(text), "lang_label": lang_col[row]})
+            cur["total"] += n
+    if not cur["docs"]:  # rollover only opens a shard with a doc in it, so this part has no doc to write at all
+        sys.exit("shard_writer: no document of this part can go into a shard")
+    manifests.append(finish(a, ctx, f"{pack_id}-{split}-{index:06d}", cur, rows_end=len(text_col)))
+    return manifests
 
+
+def new_shard(first_row):
+    """An empty shard that starts at this row of the part. Left-out docs are reported by the shard whose rows they are in."""
+    return {"docs": [], "rows": [], "total": 0, "first_row": first_row, "left_out": {k: [] for k in LEFT_OUT}}
+
+
+def finish(a, ctx, shard_id, cur, rows_end):
+    """Write one shard (rows first_row..rows_end-1 of the part), its report, manifest and dump; check it; return the manifest."""
+    info, specials, pipeline, part_path = ctx["info"], ctx["specials"], ctx["pipeline"], ctx["part_path"]
+    docs, rows, left_out = cur["docs"], cur["rows"], cur["left_out"]
     starts = np.cumsum([0] + [r["n_tokens"] for r in rows]).astype("<i8")  # doc_count + 1 entries; the last is token_count
     bin_path, idx_path, meta_path = (a.out / f"{shard_id}{x}" for x in (".bin", ".idx.npy", ".docs.parquet"))
     write_shard(bin_path, [t for d in docs for t in d])
     np.save(idx_path, starts)
     pq.write_table(pa.Table.from_pylist(rows), meta_path)
-    shutil.copyfile(run_file, pipeline)  # the run's file, byte for byte: its sha256 is the manifest's cleaning_pipeline_sha256
+    shutil.copyfile(ctx["run_file"], pipeline)  # the run's file, byte for byte: its sha256 is the manifest's cleaning_pipeline_sha256
     tpc = np.array([r["n_tokens"] / max(r["n_chars"], 1) for r in rows])
     worst = sorted(rows, key=lambda r: -r["n_tokens"] / max(r["n_chars"], 1))[:5]
+    lo = {k: len(v) for k, v in left_out.items()}
     report = a.out / f"{shard_id}.quality_report.json"
     report.write_text(json.dumps({
-        "shard_id": shard_id, "rows_read": seen, "docs_in_shard": len(docs),
-        "left_out": {k: len(v) for k, v in left_out.items()}, "left_out_docs": left_out,
+        "shard_id": shard_id, "first_row": cur["first_row"], "rows_read": rows_end, "docs_in_shard": len(docs),
+        "left_out": lo, "left_out_docs": left_out,
         "tokens_per_char": {"min": round(float(tpc.min()), 3), "median": round(float(np.median(tpc)), 3),
                             "p99": round(float(np.percentile(tpc, 99)), 3), "max": round(float(tpc.max()), 3)},
         "most_tokens_per_char": [{"doc_id": r["doc_id"], "n_tokens": r["n_tokens"], "n_chars": r["n_chars"]} for r in worst],
         "upstream": {"input_part": part_path, "raw_input_sha256": info["raw_input"]["sha256"], "final_sha256": info["final"]["sha256"],
                      "run_id": info["pipeline"]["run_id"], "counts": info["counts"], "removed_by_dedup": info["dedup"]["removed"],
-                     "dropped_by_f2": info["f2"]["dropped"]},  # the whole input part, whether or not all its rows fit in the shard
+                     "dropped_by_f2": info["f2"]["dropped"]},  # the whole input part, whichever of its shards this is
     }, indent=2) + "\n", encoding="utf-8", newline="\n")
 
     token_count = int(starts[-1])
-    commit = subprocess.run(["git", "-C", str(REPO), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     manifest = {
         "schema_version": "shard-v1", "dataset_version": a.dataset_version, "shard_id": shard_id,
         "format": "brahmic_u32_v2+doc_index", "token_dtype": "uint32",
         "payload_uri": bin_path.name, "payload_sha256": sha(bin_path), "payload_bytes": bin_path.stat().st_size,
         "index_uri": idx_path.name, "index_sha256": sha(idx_path),
         "doc_count": len(docs), "token_count": token_count, "eos_token_id": EOS_ID,
-        "tokenizer_sha256": tok_sha,
-        "pack_id": pack_id, "language": a.language, "script": a.script, "domain": domain, "capability_lane": a.lane,
+        "tokenizer_sha256": ctx["tok_sha"],
+        "pack_id": ctx["pack_id"], "language": a.language, "script": a.script, "domain": ctx["domain"], "capability_lane": a.lane,
         **({"license": a.license, "license_source": a.license_source} if a.license else {}),  # from the job's pack table
-        "split": split,
+        "split": ctx["split"],
         "inputs_sha256": hashlib.sha256(f"{info['raw_input']['sha256']} {info['raw_input']['part']}\n".encode("utf-8")).hexdigest(),
         "cleaning_pipeline_sha256": sha(pipeline), "decontam_set_sha256": info["f2"]["set_sha256"],
         "sample_metadata_uri": meta_path.name, "sample_metadata_sha256": sha(meta_path),
         "quality_report_uri": report.name, "quality_report_sha256": sha(report),
-        "created_by": commit,
+        "created_by": ctx["commit"],
     }
     (a.out / f"{shard_id}.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8", newline="\n")
 
@@ -243,17 +268,20 @@ def main(argv=None):
     assert (tokens[idx[1:] - 1] == EOS_ID).all()
     for k, d in enumerate(docs):
         assert tokens[idx[k]:idx[k + 1]].tolist() == d
+    del tokens
 
     header = np.fromfile(bin_path, dtype="<i4", count=3)
-    n, lo = meta.num_rows, {k: len(v) for k, v in left_out.items()}
+    n, tok_sha = meta.num_rows, ctx["tok_sha"]
     lines = [f"# Shard `{shard_id}`\n\n",
              f"Written by `shard_writer.py` from `{part_path}`, after `clean.py`, dedup ({info['counts']['removed_by_dedup']:,} of this "
              f"part's {info['counts']['cleaned']:,} docs removed) and F2 ({info['counts']['dropped_by_f2']:,} dropped; fingerprints "
-             f"`{info['f2']['set_sha256'][:12]}`): the first {n:,} docs that fit in {a.tokens:,} tokens, of {seen:,} rows read.\n\n",
+             f"`{info['f2']['set_sha256'][:12]}`): {n:,} docs from rows {cur['first_row']:,} to {rows_end - 1:,} of the part, "
+             f"up to {a.tokens:,} tokens a shard.\n\n",
              f"Tokenizer `{tok_sha[:12]}`" + (" (**not p1536: test only**)" if tok_sha != TOKENIZER_SHA256 else " (p1536, frozen)") +
              f"; EOS `{EOS}` id {EOS_ID} after each doc; no BOS, no language tag.\n\n",
              f"Left out: {lo['secret']} secret-like, {lo['empty']} empty, {lo['special']} with a special id inside, "
-             f"{lo['roundtrip']} not round-tripping (doc_ids in `{shard_id}.quality_report.json`).\n\n",
+             f"{lo['roundtrip']} not round-tripping, {lo['oversize']} longer than a shard "
+             f"(doc_ids in `{shard_id}.quality_report.json`).\n\n",
              "| file | bytes | sha256 |\n|---|---:|---|\n",
              *(f"| `{p.name}` | {p.stat().st_size:,} | `{sha(p)[:16]}…` |\n" for p in (bin_path, idx_path, meta_path, pipeline, report)),
              f"\n## `{bin_path.name}`\n\n- header, {HEADER_BYTES:,} bytes = 256 little-endian int32: `{header[0]}` (magic), "
@@ -267,8 +295,8 @@ def main(argv=None):
              *(f"| `{r['doc_id']}` | `{r['input_part']}` | {r['input_row']:,} | {r['n_tokens']:,} | {r['n_chars']:,} | "
                f"{r['lang_label']} |\n" for r in rows[:5])]
     (a.out / f"{shard_id}.dump.md").write_text("".join(lines), encoding="utf-8", newline="\n")
-    print(json.dumps({"shard_id": shard_id, "docs": n, "tokens": token_count, "rows_read": seen, "left_out": lo,
-                      "tokens_per_char_median": round(float(np.median(tpc)), 3), "tokenizer": tok_sha[:12]}))
+    print(json.dumps({"shard_id": shard_id, "docs": n, "tokens": token_count, "first_row": cur["first_row"], "rows_read": rows_end,
+                      "left_out": lo, "tokens_per_char_median": round(float(np.median(tpc)), 3), "tokenizer": tok_sha[:12]}))
     return manifest
 
 

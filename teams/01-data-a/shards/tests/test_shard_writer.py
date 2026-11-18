@@ -47,10 +47,17 @@ def run_of(folder, monkeypatch, docs, pack="x-pack", removed_rows=(), f2_drop=()
     return make_run(folder, monkeypatch, {("train", part): rows_of(docs, pack)}, removed=removed, f2_drop=f2_drop), part
 
 
-def shard(run, part, out, *extra, tokenizer=BASE, split="train"):
+def shards(run, part, out, *extra, tokenizer=BASE, split="train"):
+    """Every manifest the writer returns, in shard order (it rolls over at --tokens)."""
     return sw.main(["--input", str(run / "final" / split / part), "--manifest", str(run / "pipeline_manifest.json"),
                     "--tokenizer", str(tokenizer), "--language", "mixed", "--script", "mixed", "--lane", "test",
                     "--out", str(out), *extra])
+
+
+def shard(run, part, out, *extra, tokenizer=BASE, split="train"):
+    """The manifest of a part that fits in one shard."""
+    (m,) = shards(run, part, out, *extra, tokenizer=tokenizer, split=split)
+    return m
 
 
 def write(tmp_path, monkeypatch, docs, *extra, tokenizer=BASE):
@@ -63,7 +70,7 @@ def write(tmp_path, monkeypatch, docs, *extra, tokenizer=BASE):
 def test_a_shard_of_five_languages_is_written_and_checked(tmp_path, monkeypatch):
     m, out, q = write(tmp_path, monkeypatch, DOCS, "--any-tokenizer")
     assert m["dataset_version"] == "test" and m["eos_token_id"] == 130822 and m["doc_count"] == 5
-    assert q["left_out"] == {"secret": 0, "empty": 0, "special": 0, "roundtrip": 0}
+    assert q["left_out"] == {"secret": 0, "empty": 0, "special": 0, "roundtrip": 0, "oversize": 0}
     tokens, idx = open_shard(out / m["payload_uri"]), np.load(out / m["index_uri"])
     assert len(tokens) == m["token_count"] == idx[-1] and len(idx) == 6
     assert (tokens == 130822).sum() == 5 and (tokens[idx[1:] - 1] == 130822).all()
@@ -88,11 +95,25 @@ def test_secret_like_and_empty_docs_are_left_out(tmp_path, monkeypatch):
     assert q["left_out_docs"]["secret"] == ["mail"] and q["left_out_docs"]["empty"] == ["empty"] and m["doc_count"] == 1
 
 
-def test_a_doc_is_never_split_and_the_shard_stops_at_the_limit(tmp_path, monkeypatch):
+def test_rollover_loses_repeats_and_splits_no_doc_and_leaves_out_one_longer_than_a_shard(tmp_path, monkeypatch):
     tok = sw.Tokenizer.from_file(str(BASE))
-    first_two = sum(len(tok.encode(t, add_special_tokens=False).ids) + 1 for _, t, _ in DOCS[:2])
-    m, out, q = write(tmp_path, monkeypatch, DOCS, "--any-tokenizer", "--tokens", str(first_two + 1))
-    assert m["doc_count"] == 2 and m["token_count"] == first_two and q["rows_read"] == 2
+    n = {d: len(tok.encode(t, add_special_tokens=False).ids) + 1 for d, t, _ in DOCS}
+    big = max(n, key=n.get)
+    limit = max(v for d, v in n.items() if d != big)  # every doc fits alone except the longest
+    run, part = run_of(tmp_path / "pipeline", monkeypatch, DOCS)
+    out = tmp_path / "out"
+    ms = shards(run, part, out, "--domain", "web", "--any-tokenizer", "--tokens", str(limit), "--index", "7")
+    assert len(ms) > 1 and [m["shard_id"] for m in ms] == [f"x-pack-train-{k:06d}" for k in range(7, 7 + len(ms))]
+    reports = [json.loads((out / m["quality_report_uri"]).read_text(encoding="utf-8")) for m in ms]
+    placed = []
+    for m in ms:
+        meta = pq.read_table(out / m["sample_metadata_uri"]).to_pylist()
+        idx = np.load(out / m["index_uri"])
+        assert m["token_count"] <= limit and np.diff(idx).tolist() == [n[r["doc_id"]] for r in meta]  # each doc whole
+        placed += [r["doc_id"] for r in meta]
+    assert placed == [d for d, _, _ in DOCS if d != big]  # every other row once, in order
+    assert [x for q in reports for x in q["left_out_docs"]["oversize"]] == [{"doc_id": big, "n_tokens": n[big]}]
+    assert [q["first_row"] for q in reports] == [0] + [q["rows_read"] for q in reports[:-1]] and reports[-1]["rows_read"] == len(DOCS)
 
 
 def test_the_round_trip_compares_with_the_normalized_text(tmp_path, monkeypatch):

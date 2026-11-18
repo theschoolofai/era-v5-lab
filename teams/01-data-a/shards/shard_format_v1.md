@@ -110,12 +110,16 @@ those are reported as `not_sharded`, which is not an error (the writer refuses a
 - **Pack metadata:** `pack_table.json` has a `language`, `script`, `domain` and `lane` for each of the 38 week-2 packs. A pack
   that is not in it, or has a null field, is skipped, not guessed: a manifest never changes. `language` is the programming
   language for `code-*` packs and the pack's `lang_label` otherwise; `lane` is null for every non-code pack until the training plan names the lanes.
-- **Shard id:** `<pack>-<split>-<part number>`, so `part-00001.parquet` is `<pack>-train-000001`. The files are written flat in `--out`.
-- **Safety:** if any shard it would write is already in `--out`, nothing is written. A part that fails is recorded and the run
+- **Rollover and shard id:** `<pack>-<split>-<number>`. The writer fills a shard up to `--tokens` (default 2^26), then
+  writes it and opens the next number with the doc that did not fit, until every row of the part is read. A doc is never
+  split; one that alone is longer than `--tokens` is left out as `oversize`. Numbers run on across a pack's parts in part
+  order, so without a rollover `part-00001.parquet` is still `<pack>-train-000001`. The files are written flat in `--out`.
+- **Safety:** if `--out` already holds a shard of a pack it would write, nothing is written. A part that fails is recorded and the run
   goes on; the exit code is 1 unless every part was written or `not_sharded`.
-- **`shards_summary.json`:** per part, `status` (written, failed, skipped, not_sharded), `shard_id`, docs, tokens, `rows_read` of
-  `rows_in_part`, `truncated` and the docs left out. A part is truncated when its rows did not all fit in `--tokens`:
-  the writer makes one shard per part and drops the rest. A second run into the same `--out` (with `--pack`) adds to the
+- **`shards_summary.json`:** per part, `status` (written, failed, skipped, not_sharded); for a written part `shards`, the
+  part-to-shards map (each `shard_id` with its docs, tokens and the rows `first_row`..`rows_read`-1 of the part it holds), the
+  docs and tokens summed, `rows_read` of `rows_in_part`, `truncated` (rows never read: a writer fault, which reconcile fails
+  as `not_reached`) and the docs left out per reason. Each shard's quality report lists the docs left out in its rows. A second run into the same `--out` (with `--pack`) adds to the
   summary; one made for another `run_id` is refused. The summary also records the `run_id` and the sha256 of `cleaning_pipeline.json`.
 
 ## Manifest fields
@@ -186,7 +190,6 @@ corpus-v1/
 
 ## Not done yet
 
-- Several shards per part: `run_shards.py` flags a part that does not fit in one shard (`truncated`) but does not split it.
 - Names for the `capability_lane` values (null in `pack_table.json` for the 32 non-code packs).
 - What a held-out part becomes (G3, G9).
 - The release's `SHA256SUMS` and `admission.jsonl`, and the release folder layout (`<pack>/<split>/`; shards are written flat for now).
