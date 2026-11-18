@@ -191,7 +191,7 @@ rm -rf out/pipeline/trial-full out/pipeline/trial-stop-clean out/pipeline/trial-
 | `stages.clean.manifest` | not set: `sample_manifest.json` in the input folder | leave it out if TSAI's staged folder holds `sample_manifest.json`; otherwise set it to a tracked copy, such as `teams/01-data-a/jobs/2026-11-02-tokenizer-sample-v0-clean/tokenizer_sample_v0_manifest.json` |
 | `stages.<clean · overlap · dedup>` with `"mode": "adopt"` | only scenario 4 | to start from a folder an earlier TSAI job returned, `{"mode": "adopt", "output": "out/<folder on TSAI's machine>"}`; the rest of the stages run |
 | `to`, `from` | scenarios 2 and 3 | `to` for a job that stops early (a clean-only job: `"to": "clean"`); delete both for the whole chain. Resuming with `from` needs the run's manifest, which a new TSAI run does not have |
-| `stages.shards` | `any_tokenizer: true`, `tokens`, `packs: ["code-rust"]`, the trial tokenizer | G3's C3 `tokenizer.json` (repo-relative path on TSAI's machine), no `any_tokenizer`, no `tokens` (the default is 2^26 per shard); `packs` only lists packs that have a lane in `shards/pack_table.json`, which is the code packs for now. Delete the whole key if the job needs no shards: a run with shards stops when no shard could be written |
+| `stages.shards` | `any_tokenizer: true`, `tokens`, `packs: ["code-rust"]`, the trial tokenizer | G3's frozen p1536 `tokenizer.json` (repo-relative path on TSAI's machine), no `any_tokenizer`, no `tokens` (the default is 2^26 per shard); `packs` only lists packs that have a lane in `shards/pack_table.json`, which is the code packs for now. Delete the whole key if the job needs no shards: a run with shards stops when no shard could be written |
 | `stages.f2.workers` | `2` | each worker needs about 1.1 GB, plus the documents in flight: size it to the request's RAM (8 GiB: at most 4) |
 | `stages.<…>.settings` | the committed settings files | the same files; to try other settings, copy one into the job folder, edit the copy and point `settings` at it |
 | `out` | `out/pipeline` | keep `out/pipeline`: a job writes only under `./out/` |
@@ -200,7 +200,7 @@ Run `--plan` on the final file (section 2) and paste that output into the reques
 
 ## Not tested here
 
-- G3's C3 tokenizer: the trial's shards use any tokenizer and are marked `test`.
+- G3's frozen p1536 tokenizer: the trial's shards use any tokenizer and are marked `test`.
 - The full sample (86 parts), and TSAI's machine and staging.
 - Packs outside the six: the trial covers one train code pack, four held-out packs and one pack without cleaning rules.
 

@@ -28,6 +28,31 @@ def run(tmp_path, config):
     return tmp_path / "runs" / "test-run"
 
 
+def write_payload(out, sid, n_docs, per_doc=2):
+    """<sid>.bin and <sid>.idx.npy in shard format v1: header (magic, version, token count) + uint32 tokens, each document
+    `per_doc` tokens ending in EOS 130822; the index is the documents' start offsets and the total. Returns the tokens."""
+    import numpy as np
+    tokens = n_docs * per_doc
+    header = np.zeros(256, dtype="<i4")
+    header[:3] = [20261025, 2, tokens]
+    ids = np.tile(np.array([7] * (per_doc - 1) + [130822], dtype="<u4"), n_docs)
+    with open(out / f"{sid}.bin", "wb") as f:
+        header.tofile(f)
+        ids.tofile(f)
+    np.save(out / f"{sid}.idx.npy", np.arange(0, tokens + 1, per_doc, dtype=np.int64))
+    return tokens
+
+
+def files_of_shard(out, sid, tokens):
+    """The manifest's file fields of shard sid, as shard_writer.py writes them (file names, sha256, payload bytes)."""
+    import hashlib
+    sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()  # noqa: E731
+    names = {"payload": f"{sid}.bin", "index": f"{sid}.idx.npy", "sample_metadata": f"{sid}.docs.parquet",
+             "quality_report": f"{sid}.quality_report.json"}
+    m = {f"{k}_uri": v for k, v in names.items()} | {f"{k}_sha256": sha(out / v) for k, v in names.items()}
+    return m | {"token_count": tokens, "payload_bytes": (out / names["payload"]).stat().st_size}
+
+
 def write_shards(run, out, drop=(), extra=(), left_out=None, rows_read=None, doc_count=None, packs=None):
     """A shards folder as run_shards.py writes it, from run/final. drop: (input_part, row) to leave out of docs.parquet;
     extra: (shard input_part, doc_id, input_row) rows to add; left_out: {input_part: {reason: [doc_id]}};
@@ -51,13 +76,15 @@ def write_shards(run, out, drop=(), extra=(), left_out=None, rows_read=None, doc
         rows += [{"doc_id": d, "input_part": p, "input_row": r} for p, d, r in extra if p == name]
         pq.write_table(pa.Table.from_pylist(rows, schema=pa.schema([("doc_id", pa.string()), ("input_part", pa.string()),
                                                                      ("input_row", pa.int64())])), out / f"{sid}.docs.parquet")
-        (out / f"{sid}.json").write_text(json.dumps({"shard_id": sid, "doc_count": (doc_count or {}).get(name, len(rows))}),
-                                         encoding="utf-8")
         (out / f"{sid}.quality_report.json").write_text(json.dumps({
             "shard_id": sid, "rows_read": rr, "left_out_docs": (left_out or {}).get(name, {}),
             "upstream": {"input_part": name}}), encoding="utf-8")
+        docs = (doc_count or {}).get(name, len(rows))
+        tokens = write_payload(out, sid, len(rows))
+        (out / f"{sid}.json").write_text(json.dumps({"shard_id": sid, "doc_count": docs, **files_of_shard(out, sid, tokens)}),
+                                         encoding="utf-8")
         parts[name] = {"pack_id": pack, "status": "written", "shard_id": sid, "rows_read": rr, "rows_in_part": len(ids),
-                       "truncated": rr < len(ids)}
+                       "truncated": rr < len(ids), "docs": docs, "tokens": tokens}
     (out / "shards_summary.json").write_text(json.dumps({"run_id": "test-run", "parts": parts}), encoding="utf-8")
     return out
 
@@ -163,3 +190,101 @@ def test_a_document_both_left_out_and_in_a_shard_fails(run, tmp_path):
                           extra=[("train/en-dclm/part-00000.parquet", "e0", 0)])
     with pytest.raises(rs.Stop, match="both left out and in a shard"):
         rs.reconcile(run / "ledger", shards, tmp_path / "rec")
+
+
+def test_a_shard_no_ledger_file_claims_fails(run, tmp_path):
+    shards = write_shards(run, tmp_path / "shards")
+    s = json.loads((shards / "shards_summary.json").read_text(encoding="utf-8"))
+    s["parts"]["train/ghost/part-00000.parquet"] = {"pack_id": "ghost", "status": "written", "shard_id": "ghost-train-000000",
+                                                    "rows_read": 1, "rows_in_part": 1, "truncated": False}
+    (shards / "shards_summary.json").write_text(json.dumps(s), encoding="utf-8")
+    pq.write_table(pa.table({"doc_id": ["z"], "input_part": ["train/ghost/part-00000.parquet"], "input_row": [0]}),
+                   shards / "ghost-train-000000.docs.parquet")
+    (shards / "ghost-train-000000.json").write_text(json.dumps({"doc_count": 1}), encoding="utf-8")
+    (shards / "ghost-train-000000.quality_report.json").write_text(json.dumps({"left_out_docs": {}}), encoding="utf-8")
+    with pytest.raises(rs.Stop, match=r"1 shard row\(s\) at no kept ledger position, 0 with another doc_id, e.g. ghost"):
+        rs.reconcile(run / "ledger", shards, tmp_path / "rec")
+
+
+def test_two_reconciliations_into_one_folder_are_refused(run, tmp_path):
+    import runlock
+    shards = write_shards(run, tmp_path / "shards")
+    with runlock.exclusive(tmp_path / "rec"):
+        with pytest.raises(rs.Stop, match="another process is writing"):
+            rs.reconcile(run / "ledger", shards, tmp_path / "rec")
+
+
+# --- the review of the scale pass (14 Nov) ---------------------------------------------------------------------------
+def shard_files(sh, sid, name, docs, rows):
+    pq.write_table(pa.table({"doc_id": docs, "input_part": [name] * len(docs), "input_row": rows}), sh / f"{sid}.docs.parquet")
+    (sh / f"{sid}.json").write_text(json.dumps({"doc_count": len(docs)}), encoding="utf-8")
+    (sh / f"{sid}.quality_report.json").write_text(json.dumps({"left_out_docs": {}, "upstream": {"input_part": name}}),
+                                                   encoding="utf-8")
+
+
+def ledger_file(root, pack, docs, part, rows):
+    f = root / "ledger" / "train" / f"{pack}.parquet"
+    f.parent.mkdir(parents=True, exist_ok=True)
+    pq.write_table(pa.table({"pack_id": [pack] * len(docs), "split": ["train"] * len(docs), "doc_id": docs,
+                             "final": ["kept"] * len(docs), "final_part": [part] * len(docs), "final_row": rows}), f)
+
+
+def test_a_part_holding_two_packs_is_checked_against_its_shard_once(tmp_path):
+    """The ledger writes one file per pack, so a part with documents of two packs is in two ledger files; its shard holds
+    all of them. Both files are checked against the shard together."""
+    part, name = "packA/part-00000.parquet", "train/packA/part-00000.parquet"
+    docs = [f"d{i}" for i in range(6)]
+    for k, pack in enumerate(("packA", "packB")):
+        ledger_file(tmp_path, pack, docs[k::2], part, list(range(6))[k::2])
+    sh = tmp_path / "shards"
+    sh.mkdir()
+    shard_files(sh, "packA-train-000000", name, docs, list(range(6)))
+    (sh / "shards_summary.json").write_text(json.dumps({"parts": {name: {
+        "pack_id": "packA", "status": "written", "shard_id": "packA-train-000000", "rows_read": 6}}}), encoding="utf-8")
+    r = rs.reconcile(tmp_path / "ledger", sh, tmp_path / "rec", ["packA", "packB"])
+    assert r["ok"] and r["kept"] == 6 and r["in_shards"] == 6 and r["totals"] == {"in_shard": 6}
+    assert r["by_pack"] == {"packA": {"train": {"in_shard": 3}}, "packB": {"train": {"in_shard": 3}}}
+    assert pq.read_table(tmp_path / "rec" / "reconcile_docs.parquet")["input_row"].to_pylist() == list(range(6))
+
+
+def test_statuses_come_in_input_part_order_whatever_the_case_of_the_pack_names(tmp_path):
+    """Ledger files are taken by their exact names (Windows sorts paths ignoring case), so the statuses are in
+    (input_part, input_row) order, as one sort of the whole table gives."""
+    sh = tmp_path / "shards"
+    sh.mkdir()
+    parts = {}
+    for k, pack in enumerate(("alpha", "Zeta", "beta-2", "Beta")):
+        part = f"{pack}/part-00000.parquet"
+        docs = [f"{pack}-{i}" for i in range(3)]
+        ledger_file(tmp_path, pack, docs, part, [0, 1, 2])
+        shard_files(sh, f"s{k}", f"train/{part}", docs, [0, 1, 2])
+        parts[f"train/{part}"] = {"pack_id": pack, "status": "written", "shard_id": f"s{k}", "rows_read": 3}
+    (sh / "shards_summary.json").write_text(json.dumps({"parts": parts}), encoding="utf-8")
+    assert rs.reconcile(tmp_path / "ledger", sh, tmp_path / "rec")["ok"]
+    t = pq.read_table(tmp_path / "rec" / "reconcile_docs.parquet")
+    assert t.equals(t.sort_by([("input_part", "ascending"), ("input_row", "ascending")]))
+    assert t["pack_id"].to_pylist()[::3] == ["Beta", "Zeta", "alpha", "beta-2"]
+
+
+# --- Vijay's review of PR #46 (15 Nov) -------------------------------------------------------------------------------
+def test_an_out_that_overlaps_an_input_stops(run, tmp_path):
+    shards = write_shards(run, tmp_path / "shards")
+    with pytest.raises(rs.Stop, match="overlap"):
+        rs.reconcile(run / "ledger", shards, shards / "rec")
+    assert not (shards / "rec").exists()
+
+
+# --- Vijay's review of #47 (16 Nov): reconcile's scope is the ledger's packs, not the shards' own summary ----------------
+def test_a_pack_the_shard_stage_left_out_fails_by_default(run, tmp_path):
+    """With no pack list, a pack that has no shards at all used to pass as not_selected; now its documents are missing."""
+    shards = write_shards(run, tmp_path / "shards", packs={"code-go"})  # en-dclm left out entirely
+    with pytest.raises(rs.Stop, match="every kept document of a selected pack"):
+        rs.reconcile(run / "ledger", shards, tmp_path / "rec")
+    s = json.loads((tmp_path / "rec" / "reconcile_summary.json").read_text(encoding="utf-8"))
+    assert s["totals"]["missing"] == 2 and "not_selected" not in s["totals"] and "en-dclm" in s["packs"]
+
+
+def test_a_listed_pack_the_ledger_does_not_hold_fails(run, tmp_path):
+    shards = write_shards(run, tmp_path / "shards")
+    with pytest.raises(rs.Stop, match="every selected pack holds kept documents"):
+        rs.reconcile(run / "ledger", shards, tmp_path / "rec", packs=["code-go", "en-dclm", "math-finemath"])

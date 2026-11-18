@@ -13,6 +13,10 @@ scripts require), and is run with --config on that copy:
 The settings file holds settings only (k, floor, pack order, pins); it is never edited. Its sha256 and the generated copy's are
 returned so the manifest can record them, and a "settings_sha256" in the stage's run config is checked when present.
 
+"script" in the stage's run config replaces the default script. It may also be a list: the script, then the arguments
+that go before --config. That is how a cleaner that is run through a wrapper is named, e.g. the spec v1.1 cleaner:
+  "script": ["teams/01-data-a/spec_v1_1/use_clean.py", "teams/01-data-a/spec_v1/run_tokenizer_sample.py"]
+
   build("overlap", spec, folders=..., cfg_dir=..., repo=...) -> {"command", "settings", "settings_sha256", "config", "config_sha256"}
 """
 import hashlib
@@ -118,6 +122,10 @@ def build(stage, spec, folders, cfg_dir, repo, write=True, only=()):
         raise ConfigError(f"stages.{stage}.settings {spec['settings']} has sha256 {settings_sha[:12]}…, the run config pins "
                           f"{spec['settings_sha256'][:12]}…")
     script = spec.get("script", DEFAULT_SCRIPT[stage])
+    script = [script] if isinstance(script, str) else script  # a list: the script, then the arguments before --config
+    if not isinstance(script, list) or not script or not all(isinstance(s, str) and s for s in script):
+        raise ConfigError(f"stages.{stage}.script must be a script's path, or a list of the script and the arguments that go "
+                          "before --config")
     under_out(folders[stage], repo, stage)
     if stage == "clean":
         for key, what in (("input", "the folder with the raw sample parts"), ("manifest_sha256", "the pin of the sample manifest"),
@@ -127,7 +135,7 @@ def build(stage, spec, folders, cfg_dir, repo, write=True, only=()):
         if write:
             check_manifest(spec, repo)
     config = generated_config(stage, settings, folders, cfg_dir, repo, write, PARTIAL.get(stage) if only else None, spec)
-    command = [script, "--config", config.as_posix()]  # / on every OS, like the "config" field
+    command = [*script, "--config", config.as_posix()]  # / on every OS, like the "config" field
     if stage == "clean":
         for part in only:
             command += ["--only", part]

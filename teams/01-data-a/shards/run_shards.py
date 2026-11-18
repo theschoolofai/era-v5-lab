@@ -1,12 +1,14 @@
 """Write a shard for every part in a pipeline run's final folder: shard_writer.py once per part.
 
   python -I teams/01-data-a/shards/run_shards.py --input <run>/final --manifest <run>/pipeline_manifest.json \
-      --tokenizer <c3>/tokenizer.json --out <dir> [--pack code-go ...] [--tokens N] [--any-tokenizer]
+      --tokenizer <p1536>/tokenizer.json --dataset-version corpus-v1 --out <dir> [--pack code-go ...] [--tokens N]
+      [--any-tokenizer]
 
 --input is the run's final folder: <input>/<split>/<pack>/<part>.parquet, the layout run_pipeline.py gives it. Every part
 found is handed to shard_writer.py (the split comes from the folder name), except a part in a folder named in
 NOT_SHARDED (heldout, validation, val): it is reported as "not_sharded", which is not an error, because what a held-out
-part becomes is for G3 and G9 to say. Language, script, domain and lane come from the pack's row in pack_table.json; a pack that is not in the
+part becomes is for G3 and G9 to say. Language, script, domain and lane come from the pack's row in pack_table.json (--pack-table
+for another table, such as a job's; one that also gives "license" and "license_source" has both written into every manifest); a pack that is not in the
 table, or has a null field, is not sharded (status "skipped"). The shard number is the part's number: part-00001.parquet
 is <pack>-<split>-000001.
 
@@ -56,10 +58,14 @@ def write_one(path, a, row, index):
     argv = ["--input", str(path), "--manifest", str(a.manifest), "--tokenizer", str(a.tokenizer), "--out", str(a.out),
             "--language", row["language"], "--script", row["script"], "--domain", row["domain"], "--lane", row["lane"],
             "--index", str(index)]
+    if "license" in row:  # a table with licences (pack_table.LICENCE): both go into the manifest
+        argv += ["--license", row["license"], "--license-source", row["license_source"]]
     if a.tokens:
         argv += ["--tokens", str(a.tokens)]
     if a.any_tokenizer:
         argv.append("--any-tokenizer")
+    if a.dataset_version:
+        argv += ["--dataset-version", a.dataset_version]
     try:
         with contextlib.redirect_stdout(io.StringIO()):  # the writer prints a JSON line per shard; the summary has it
             return shard_writer.main(argv), None
@@ -82,13 +88,17 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--input", type=Path, required=True, help="the run's final folder: <input>/<split>/<pack>/<part>.parquet")
     ap.add_argument("--manifest", type=Path, required=True, help="the run's pipeline_manifest.json")
-    ap.add_argument("--tokenizer", type=Path, required=True, help="G3's frozen C3 tokenizer.json")
+    ap.add_argument("--tokenizer", type=Path, required=True, help="G3's frozen p1536 tokenizer.json")
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--pack", action="append", default=[], help="only this pack (repeatable)")
     ap.add_argument("--tokens", type=int, help="fill each shard up to this many tokens (shard_writer's default: 2^26)")
-    ap.add_argument("--any-tokenizer", action="store_true", help="tests only: accept a tokenizer other than C3")
+    ap.add_argument("--any-tokenizer", action="store_true", help="tests only: accept a tokenizer other than p1536")
+    ap.add_argument("--dataset-version", help="every manifest's dataset_version (e.g. sample, corpus-v1); required unless --any-tokenizer")
     ap.add_argument("--pack-table", type=Path, default=pack_table.TABLE)
     a = ap.parse_args(argv)
+    problem = shard_writer.dataset_version_problem(a.dataset_version, a.any_tokenizer)
+    if problem:  # before anything is read or written: every part would fail on it
+        sys.exit(f"run_shards: {problem}")
 
     table = pack_table.load(a.pack_table)
     parts = find_parts(a.input, a.pack)

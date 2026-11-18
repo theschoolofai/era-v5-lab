@@ -140,3 +140,33 @@ def test_cli(tmp_path, groups, final):
                         "--f2", str(final()), "--out", str(tmp_path / "report")], capture_output=True, text=True)
     assert p.returncode == 0, p.stderr
     assert json.loads(p.stdout)["lost"] == 1
+
+
+# --- the review of the scale pass (14 Nov) ---------------------------------------------------------------------------
+def loss_rows(out):
+    with (out / "survivor_loss.csv").open(encoding="utf-8", newline="") as f:
+        return list(csv.DictReader(f))
+
+
+def test_rows_follow_the_length_of_group_id_then_the_csv_order(tmp_path, groups, final):
+    """The order before the scale pass: groups by (len(group_id), group_id), so G9 comes before G10, and a group's rows
+    in the order of dedup_groups.csv."""
+    part = "code-go/part-00000.parquet"
+    rows = [["G10", 2, 4, "survivor", "code-go", "train", part, 2, "c"],
+            ["G10", 2, 4, "survivor", "code-go", "train", part, 0, "a"],
+            ["G9", 2, 4, "survivor", "code-go", "train", part, 1, "b"],
+            ["G2", 2, 4, "survivor", "code-go", "train", part, 3, "d"]]
+    reports = {("train", part): [{"doc_id": d, "items": ["x:1"], "offset": 0} for d in "abcd"]}
+    sl.report(groups(rows), final(reports), tmp_path / "report")
+    assert [(r["group_id"], r["doc_id"]) for r in loss_rows(tmp_path / "report")] == [
+        ("G2", "d"), ("G9", "b"), ("G10", "c"), ("G10", "a")]
+
+
+def test_a_doc_both_dropped_and_an_error_counts_once_as_the_error(tmp_path, groups):
+    path = tmp_path / "final" / "train" / "code-go" / "part-00000.parquet.f2.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps({"set_sha256": SET, "rows": 3, "errors": [["a", "timeout"]],
+                                "dropped": [{"doc_id": "a", "items": ["gsm8k:12"], "offset": 40}]}), encoding="utf-8")
+    s = sl.report(groups(GROUPS[:2]), tmp_path / "final", tmp_path / "report")
+    assert s["survivors_dropped_by_f2"] == 1
+    assert [(r["doc_id"], r["f2_items"], r["offset"]) for r in loss_rows(tmp_path / "report")] == [("a", "error:timeout", "")]

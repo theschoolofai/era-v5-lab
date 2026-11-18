@@ -1,7 +1,7 @@
 """Write one shard in the v1 format (shard_format_v1.md) from one cleaned pack part, check it, and describe it.
 
   python teams/01-data-a/shards/shard_writer.py --input <run>/final/train/code-go/part-00000.parquet \
-      --manifest <run>/pipeline_manifest.json --tokenizer <c3>/tokenizer.json \
+      --manifest <run>/pipeline_manifest.json --tokenizer <p1536>/tokenizer.json \
       --language go --script Latn --lane code --out <dir>
 
 Input: one part of the pipeline's final folder (run_pipeline.py: clean, dedup, then F2), and the run's pipeline_manifest.json.
@@ -13,6 +13,7 @@ pass --tokens; a doc is never split.
 
 Tokenizer (G3): the frozen p1536 tokenizer.json (Gate 3, in place of C3), sha256 TOKENIZER_SHA256 below (G3 train/p1536_s0_manifest.json).
 Any other file is refused, except with --any-tokenizer (tests only: the shard is marked dataset_version "test").
+--dataset-version (the corpus release in the manifest, e.g. sample or corpus-v1) is required otherwise: it is never guessed.
 Docs are encoded with encode_batch(add_special_tokens=False); each doc ends with one EOS, <|endoftext|> id 130822 (G3, G10).
 No BOS and no language tag. The normalizer is inside tokenizer.json, so no normalizer is applied here.
 
@@ -69,6 +70,16 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def dataset_version_problem(version, any_tokenizer):
+    """Why this --dataset-version cannot go into a manifest, or None. --any-tokenizer shards are always "test"; any other
+    run must name its corpus release (e.g. sample, corpus-v1), and never "test"."""
+    if any_tokenizer:
+        return None if version in (None, "test") else '--any-tokenizer shards are dataset_version "test"; leave out --dataset-version'
+    if not version or version == "test":
+        return '--dataset-version is required (e.g. sample, corpus-v1); "test" is only for --any-tokenizer'
+    return None
+
+
 def load_tokenizer(path, any_tokenizer):
     """(tokenizer, sha256, special ids). Refuses anything but p1536 unless any_tokenizer."""
     got = sha(path)
@@ -98,18 +109,27 @@ def pack_family(pack_id):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--clean", type=Path, required=True, help="a *_clean.parquet from run_clean.py --f2")
-    ap.add_argument("--summary", type=Path, required=True, help="its *_summary.json")
+    ap.add_argument("--input", type=Path, required=True, help="a part of the pipeline's final folder: <run>/final/<split>/<pack>/<part>.parquet")
+    ap.add_argument("--manifest", type=Path, required=True, help="the run's pipeline_manifest.json")
     ap.add_argument("--tokenizer", type=Path, required=True, help="G3's frozen p1536 tokenizer.json")
     ap.add_argument("--language", required=True)
     ap.add_argument("--script", required=True)
     ap.add_argument("--lane", required=True, help="capability_lane")
     ap.add_argument("--domain", help="default: the pack's family in clean.py")
+    ap.add_argument("--license", help="the pack's licence, written into the manifest (with --license-source)")
+    ap.add_argument("--license-source", help="where that licence is recorded (with --license)")
     ap.add_argument("--index", type=int, default=0, help="shard number within the pack and split")
     ap.add_argument("--tokens", type=int, default=2 ** 26, help="fill the shard up to this many tokens")
     ap.add_argument("--any-tokenizer", action="store_true", help="tests only: accept a tokenizer other than p1536")
+    ap.add_argument("--dataset-version", help="the manifest's dataset_version (e.g. sample, corpus-v1); required unless --any-tokenizer")
     ap.add_argument("--out", type=Path, required=True)
     a = ap.parse_args(argv)
+    if bool(a.license) != bool(a.license_source):
+        sys.exit("shard_writer: --license and --license-source go together: a manifest names a licence with where it is recorded")
+    problem = dataset_version_problem(a.dataset_version, a.any_tokenizer)
+    if problem:
+        sys.exit(f"shard_writer: {problem}")
+    a.dataset_version = a.dataset_version or "test"
 
     try:
         info = provenance.load(a.input, a.manifest)
@@ -193,13 +213,14 @@ def main(argv=None):
     token_count = int(starts[-1])
     commit = subprocess.run(["git", "-C", str(REPO), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     manifest = {
-        "schema_version": "shard-v1", "dataset_version": "test" if a.any_tokenizer else "sample", "shard_id": shard_id,
+        "schema_version": "shard-v1", "dataset_version": a.dataset_version, "shard_id": shard_id,
         "format": "brahmic_u32_v2+doc_index", "token_dtype": "uint32",
         "payload_uri": bin_path.name, "payload_sha256": sha(bin_path), "payload_bytes": bin_path.stat().st_size,
         "index_uri": idx_path.name, "index_sha256": sha(idx_path),
         "doc_count": len(docs), "token_count": token_count, "eos_token_id": EOS_ID,
         "tokenizer_sha256": tok_sha,
         "pack_id": pack_id, "language": a.language, "script": a.script, "domain": domain, "capability_lane": a.lane,
+        **({"license": a.license, "license_source": a.license_source} if a.license else {}),  # from the job's pack table
         "split": split,
         "inputs_sha256": hashlib.sha256(f"{info['raw_input']['sha256']} {info['raw_input']['part']}\n".encode("utf-8")).hexdigest(),
         "cleaning_pipeline_sha256": sha(pipeline), "decontam_set_sha256": info["f2"]["set_sha256"],
@@ -226,9 +247,9 @@ def main(argv=None):
     header = np.fromfile(bin_path, dtype="<i4", count=3)
     n, lo = meta.num_rows, {k: len(v) for k, v in left_out.items()}
     lines = [f"# Shard `{shard_id}`\n\n",
-             f"Written by `shard_writer.py` from `{s['pack']}` of `{pack_id}`, after `clean.py` and F2 (fingerprints "
+             f"Written by `shard_writer.py` from `{part_path}`, after `clean.py`, dedup ({info['counts']['removed_by_dedup']:,} of this "
              f"part's {info['counts']['cleaned']:,} docs removed) and F2 ({info['counts']['dropped_by_f2']:,} dropped; fingerprints "
-             f"`{s['f2']['set_sha256'][:12]}`): the first {n:,} docs that fit in {a.tokens:,} tokens, of {seen:,} rows read.\n\n",
+             f"`{info['f2']['set_sha256'][:12]}`): the first {n:,} docs that fit in {a.tokens:,} tokens, of {seen:,} rows read.\n\n",
              f"Tokenizer `{tok_sha[:12]}`" + (" (**not p1536: test only**)" if tok_sha != TOKENIZER_SHA256 else " (p1536, frozen)") +
              f"; EOS `{EOS}` id {EOS_ID} after each doc; no BOS, no language tag.\n\n",
              f"Left out: {lo['secret']} secret-like, {lo['empty']} empty, {lo['special']} with a special id inside, "

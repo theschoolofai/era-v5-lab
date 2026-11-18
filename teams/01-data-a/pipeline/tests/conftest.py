@@ -14,6 +14,7 @@ pa = pytest.importorskip("pyarrow")
 import pyarrow.parquet as pq
 
 PIPELINE = Path(__file__).resolve().parents[1]
+sys.dont_write_bytecode = True  # no __pycache__ in the pipeline folder
 sys.path.insert(0, str(PIPELINE))
 
 HEADER = ["pack_id", "split", "part", "row_in_part", "doc_id"]

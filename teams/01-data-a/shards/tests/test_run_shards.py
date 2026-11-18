@@ -183,3 +183,50 @@ def test_a_part_not_named_part_number_fails(run, tmp_path, table):
 def test_no_parts_is_an_error(run, tmp_path, table):
     with pytest.raises(SystemExit, match="no <split>/<pack>/<part>.parquet"):
         go(run, tmp_path, table, "--pack", "nothing")
+
+
+def licensed(tmp_path, change=None):
+    """The table of these tests with a licence and its source in every row, as the shard job's pack table has."""
+    packs = {p: {**r, "license": f"licence-of-{p}", "license_source": "licence_table.md at fb7d5e6"} for p, r in TABLE["packs"].items()}
+    if change:
+        change(packs)
+    path = tmp_path / "pack_metadata.json"
+    path.write_text(json.dumps({"_comment": "the job's pack table", "packs": packs}), encoding="utf-8")
+    return path
+
+
+def test_a_table_with_licences_puts_them_in_every_manifest(run, tmp_path):
+    code, out, s = go(run, tmp_path, licensed(tmp_path), "--pack", "pk-a", "--pack", "pk-b")
+    assert code == 0 and sum(v["status"] == "written" for v in s["parts"].values()) == 3
+    for shard_id, pack in (("pk-a-train-000000", "pk-a"), ("pk-a-train-000001", "pk-a"), ("pk-b-train-000000", "pk-b")):
+        m = json.loads((out / f"{shard_id}.json").read_text(encoding="utf-8"))
+        assert (m["license"], m["license_source"]) == (f"licence-of-{pack}", "licence_table.md at fb7d5e6")
+        keys = list(m)
+        assert keys[keys.index("capability_lane"):][:4] == ["capability_lane", "license", "license_source", "split"]
+
+
+def test_a_pack_without_a_licence_is_skipped_like_one_without_a_lane(run, tmp_path):
+    code, out, s = go(run, tmp_path, licensed(tmp_path, lambda packs: packs["pk-b"].update(license=None)), "--pack", "pk-a", "--pack", "pk-b")
+    entry = s["parts"]["train/pk-b/part-00000.parquet"]
+    assert code == 1 and entry["status"] == "skipped" and "pk-b has no license" in entry["reason"]
+    assert s["parts"]["train/pk-a/part-00000.parquet"]["status"] == "written" and not (out / "pk-b-train-000000.json").exists()
+
+
+def test_without_licences_in_the_table_the_manifest_has_none(run, tmp_path, table):
+    code, out, s = go(run, tmp_path, table, "--pack", "pk-b")
+    m = json.loads((out / "pk-b-train-000000.json").read_text(encoding="utf-8"))
+    assert code == 0 and "license" not in m and "license_source" not in m
+
+
+def test_the_dataset_version_is_checked_before_any_part_is_read(run, tmp_path, table):
+    """run_shards.py passes --dataset-version to every shard_writer.py, and refuses a missing or wrong one at once (every
+    part would fail on it): nothing is written."""
+    base = ["--input", str(run / "final"), "--manifest", str(run / "pipeline_manifest.json"), "--tokenizer", str(BASE),
+            "--pack-table", str(table)]
+    for i, (extra, message) in enumerate((((), "--dataset-version is required"),
+                                          (("--dataset-version", "test"), "--dataset-version is required"),
+                                          (("--any-tokenizer", "--dataset-version", "corpus-v1"), "--any-tokenizer shards are"))):
+        out = tmp_path / f"out{i}"
+        with pytest.raises(SystemExit, match="run_shards: " + message):
+            rs.main([*base, "--out", str(out), *extra])
+        assert not out.exists()
