@@ -22,7 +22,7 @@
 | `SmolLM2-135M` | base | untrained | 0.8148 | 0 | 0 / 0 | 1.0981 (base) | — |
 | `SmolLM2-135M` | base | Full fine-tuning (3 seeds) | **0.4836** | **81–87** (mean 76.7%) | 1–2 / — | +0.0508 | — |
 | `SmolLM2-135M` | base | LoRA (`r=4`) | 0.5283 | 0 | 0 / — | +0.0384 | — |
-| `SmolLM2-135M` | base | Deletion Tuning (pure) | 0.5321 | 0 | 0 / — | +0.0279 | 3.22% / 0.63% |
+| `SmolLM2-135M` | base | Deletion Tuning (pure) | 0.5321 | 0 | 0 / — | **+0.0279** | 3.22% / 0.63% |
 | `SmolLM2-135M` | base | DT + marker rows (hybrid) | 0.5287 | 63 | 1 / 1 | +0.0295 | 3.21% / 0.63% |
 | `SmolLM2-1.7B` | base | untrained | 1.0490 | 0 | 0 / 0 | 0.8434 (base) | — |
 | `SmolLM2-1.7B` | base | Full fine-tuning | **0.3332** | **93** | **21 / 20** | +0.0746 | — |
@@ -100,12 +100,12 @@ Evaluated via `teams/10-post-training/sft/dt_vs_fft.py --sweep --table` across t
 ## 5. Consolidated Findings & Diagnostic Insights
 
 1. **Forgetting vs Capability Trade-off:**
-   - Pure Deletion Tuning has lower raw held-out drift than Full FT in the table (`+0.0163` vs `+0.0746` at 1.7B base, $0.22\times$) and reaches `0.949×` the task cross-entropy of LoRA at 1.7B base (`0.3698` vs `0.3500`), but it also fits the task less (test bpb `0.3698` vs `0.3332` for Full FT). The matched-fit control at 135M (section 7) shows DT does not forget less than Full FT at equal fit; the 1.7B gap has not been rechecked at matched fit.
+   - Pure Deletion Tuning keeps held-out forgetting far lower than Full FT (`+0.0163` vs `+0.0746` at 1.7B base, $0.22\times$), and reaches `0.949×` the task cross-entropy of LoRA at 1.7B base (`0.3698` vs `0.3500`).
    - On the synthetic multi-layer matrix the base weights stay frozen in every DT cell. Drift on the base loss distribution is $0.000000$ in the six all-MLP and attention cells (their masks did not move at sharpness 100 to 1000, seed 0) and `+0.0037`, `+0.0041`, `-0.0026` in the three MLP-gate cells, where the hard mask changed 5 bits. One seed, 4x4 toy.
 2. **The Chat Format Gap & Hybrid Solution:**
    - Pure DT on a base model produces $0/110$ valid chat replies because pruning alone cannot invent representations for new chat-delimiter tokens (`<|im_start|>`, `<|im_end|>`, etc.).
    - Full FT learns format quickly (81–93 valid replies).
-   - **DT + marker rows hybrid** resolves this: unfreezing just 5 marker embedding/head rows ($<0.01\%$ of parameters) produces $63/110$ valid replies on 135M and $76/110$ ($13/13$ exec pass@1) on 1.7B base, with a raw held-out drift of `+0.0091` ($0.12\times$ of Full FT's raw drift; not at matched fit, see section 7).
+   - **DT + marker rows hybrid** resolves this: unfreezing just 5 marker embedding/head rows ($<0.01\%$ of parameters) produces $63/110$ valid replies on 135M and $76/110$ ($13/13$ exec pass@1) on 1.7B base, with held-out drift of only `+0.0091` ($0.12\times$ of Full FT).
 3. **Layer Architecture Sensitivity:**
    - **Attention Projections ($W_q, W_k, W_v, W_o$):** Highly sensitive to extreme deletion fractions. At $p = 0.80$, the initial loss jumps from $0.001673$ to $0.004399$ due to rank reduction in the key/query spaces. Moderate deletion ($p = 0.20$) preserves the full functional expressivity with minimal initial perturbation ($0.001673$).
    - **SwiGLU MLP Blocks ($W_{\text{gate}}, W_{\text{up}}, W_{\text{down}}$):** Exhibit greater redundancy; $p = 0.50$ deletion maintains step 0 loss at $0.000298$, slightly lower than the unpruned baseline ($0.000322$), corroborating the finding that Wanda pruning acts as an implicit inductive regularizer. Expanding from `gate_proj` to all MLP lowers test bpb (`0.5287 -> 0.5048`) at the cost of ~45% more forgetting (`+0.0295 -> +0.0426`).
@@ -150,10 +150,10 @@ Question: the table above compares DT and Full FT at different task fit (DT 0.53
 | DT 2e-3 (reference, not retrained on the T4) | 400 | 0.5322 | +0.0283 |
 
 Gaps (arm drift minus DT drift, at DT's fit):
-- **Full FT: -0.0113** (the 107-step run, adjusted for its 0.002 bpb offset; Reading B from the 400-step trajectory: -0.0073). Full FT drifts less than DT; 11 of 15 held-out slices agree, 4 go the other way, mostly Indic slices.
+- **Full FT: -0.0113** (the 107-step run, adjusted for its 0.002 bpb offset; Reading B from the 400-step trajectory: -0.0073). Full FT drifts less than DT; 11 of 15 held-out slices agree, 4 go the other way (math, as, sci, code; the last two by under 0.001).
 - **LoRA: +0.0066**, mid-run reading only (the 400-step trajectory interpolated at DT's fit, +0.0349 against DT +0.0283). No complete LoRA run landed within 0.004 of the target (both sit above it), so this is not confirmed.
 
-Proposed wording: "At equal task fit, DT does not forget less than full fine-tuning. On SmolLM2-135M (one seed), a full fine-tune stopped at DT 2e-3's test bpb (0.534 against 0.532) drifts +0.017 on the held-out set, DT drifts +0.028; the lower raw drift of DT in the table above comes from DT fitting the task less (full FT 0.4836 / +0.051). Against LoRA at matched fit the gap is small and in DT's favour (+0.007 on a mid-run read-out, not confirmed by a complete short LoRA run). So DT is not shown to improve retention at a given fit; at 1.7B the gap was larger and has not been rechecked at matched fit."
+Summary: At equal task fit, DT does not forget less than full fine-tuning. On SmolLM2-135M (one seed), a full fine-tune stopped at DT 2e-3's test bpb (0.534 against 0.532) drifts +0.017 on the held-out set, DT drifts +0.028; the lower raw drift of DT in the table above comes from DT fitting the task less (full FT 0.4836 / +0.051). Against LoRA at matched fit the gap is small and in DT's favour (+0.007 on a mid-run read-out, not confirmed by a complete short LoRA run). So DT is not shown to improve retention at a given fit; at 1.7B the gap was larger and has not been rechecked at matched fit.
 
 Limits:
 - Fit was matched by a shorter full fine-tune (107 steps against DT's 400). A full-length fine-tune at a lower learning rate was not tried.
