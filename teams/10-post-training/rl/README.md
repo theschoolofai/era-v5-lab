@@ -85,6 +85,10 @@ JavaScript and TypeScript tasks (Exercism exercises, hidden jest tests, docker i
 
 Tool-result tasks are in [`toolresult/`](toolresult/README.md): a transcript that ends with a tool result, and a reply that must report the tool's values exactly (no rounding, retyping or new tool call). `toolresult/toolresult_verifier.py` checks the reply for the required values as whole values and refuses listed wrong values. It runs no code, so it needs no container. `reward.py` registers it as `toolresult/<task_id>`, and `python rl/reward.py --check-all --type toolresult` runs without docker.
 
+## JavaScript tasks
+
+The JavaScript verifier, its runner, the Docker image and the JavaScript tasks are in [`js/`](js/README.md). They use `verifier.py` from this folder via `js_verifier.py`. `reward.py` registers them as `js/<task_id>` with the docker sandbox by default (the `process` sandbox is for unit tests), and `python rl/reward.py --check-all --type js` checks them (needs the `g10-js-rl:1` image). Node.js 26 or later is required.
+
 ## Files in this folder
 
 | File | What it is |
@@ -97,6 +101,7 @@ Tool-result tasks are in [`toolresult/`](toolresult/README.md): a transcript tha
 | `agentic/` | The agentic verifier set: command and patch checks, its tasks and tests. |
 | `indic/` | The Indic verifier set: exact-answer reward, its tasks and tests, and the template generator. |
 | `toolresult/` | The tool-result verifier set: exact tool-result text in the reply, its ten tasks and tests. |
+| `js/` | The JavaScript verifier set: Node.js 26, sandboxed execution, its tasks and tests. |
 | `indic_prompts_v0.md` | Indic prompt families with checkable answers, who writes them, the Team 2 check and the status. |
 | `objective_v1.py`, `objective_v1.md`, `test_objective_v1.py` | Session 18 objective: group advantage, equal-reward drop, trust-region mask. |
 | `small_rl.py`, `test_small_rl.py` | Local RL loop on one code task. The result is `results/small_rl.md`. |

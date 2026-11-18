@@ -785,7 +785,7 @@ def train(cfg: dict) -> dict:
         dtmask = load_dt()
         dt_total = int(dt_cfg.get("alpha_steps", int(t["steps"]) * int(t.get("ppo_epochs", 1))))
         dt_names = dtmask.convert(model, dtmask.TARGET_SETS[dt_cfg.get("targets", "gate")],
-                                  float(dt_cfg.get("alpha_start", 1000.0)), float(dt_cfg.get("alpha_end", 10000.0)),
+                                  float(dt_cfg.get("alpha_start", 100.0)), float(dt_cfg.get("alpha_end", 1000.0)),
                                   dt_total, seed=seed)
         n_cal = int(dt_cfg.get("calib_prompts", 64))
         cal = ({"input_ids": torch.tensor([p_], dtype=torch.long), "attention_mask": torch.ones(1, len(p_), dtype=torch.long)}
@@ -793,11 +793,12 @@ def train(cfg: dict) -> dict:
         with policy.autocast():
             scores = dtmask.wanda_scores(model, cal, device)
         dt_info = {"targets": dt_cfg.get("targets", "gate"), "masked_layers": len(dt_names), "alpha_steps": dt_total,
-                   "alpha": [float(dt_cfg.get("alpha_start", 1000.0)), float(dt_cfg.get("alpha_end", 10000.0))],
+                   "alpha": [float(dt_cfg.get("alpha_start", 100.0)), float(dt_cfg.get("alpha_end", 1000.0))],
                    "lambda": float(dt_cfg.get("lambda", 1e-5)), "calib_prompts": min(n_cal, len(task.train)),
                    "wanda_prior": dtmask.apply_wanda_prior(model, scores, float(dt_cfg.get("eta", 1 / 2048)),
                                                            float(dt_cfg.get("prior_strength", 3.0))),
-                   "deletion_at_init": dtmask.deletion_stats(model), "official": dtmask.OFFICIAL}
+                   "deletion_at_init": dtmask.deletion_stats(model), "band_at_init": dtmask.band_stats(model),
+                   "official": dtmask.OFFICIAL}
         del scores
         model.eval()
     n_trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)

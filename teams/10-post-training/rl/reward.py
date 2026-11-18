@@ -57,11 +57,13 @@ HERE = Path(__file__).resolve().parent
 TASKS = HERE / "tasks"
 SWE_ENVS = HERE.parent / "swe-envs"
 INDIC_TASKS = HERE / "indic" / "tasks"
+MATH_TASKS = HERE / "math" / "tasks"
 GO_TASKS = HERE / "go" / "tasks"
 AGENTIC_TASKS = HERE / "agentic" / "tasks"
 MATH_POOL_TASKS = HERE / "math_pool" / "tasks"
 JS_TASKS = HERE / "jsts" / "tasks" / "js"
 TS_TASKS = HERE / "jsts" / "tasks" / "ts"
+JS_RL_TASKS = HERE / "js" / "tasks"  # AjaySnl set (rl/js); shares the env type "js" with the Exercism set
 TOOL_CALL_TASKS = TASKS / "tool_call"
 TOOLRESULT_TASKS = HERE / "toolresult" / "tasks"
 
@@ -160,6 +162,29 @@ def indic_checker(name: str, output: str, **_) -> dict:
     return _indic().reward(task_dir, output)
 
 
+
+_MATH_MODULE = None
+
+
+def _math():
+    """math/math_verifier.py, loaded by path like indic_verifier.py."""
+    global _MATH_MODULE
+    if _MATH_MODULE is None:
+        import importlib.util  # noqa: PLC0415
+        spec = importlib.util.spec_from_file_location(
+            "g10_rl_math_verifier", HERE / "math" / "math_verifier.py"
+        )
+        _MATH_MODULE = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(_MATH_MODULE)
+    return _MATH_MODULE
+
+
+def math_checker(name: str, output: str, **_) -> dict:
+    task_dir = MATH_TASKS / name
+    if not (task_dir / "task.json").is_file():
+        raise KeyError(f"no math task {name!r} in {MATH_TASKS}")
+    return _math().reward(task_dir, output)
+
 _GO_MODULE = None
 
 
@@ -254,6 +279,28 @@ def _jsts_checker(folder: Path, kind: str):
     return checker
 
 
+_JS_MODULE = None
+
+
+def _js():
+    """js/js_verifier.py, loaded by path like pool.py. It imports the shared verifier.py from this folder."""
+    global _JS_MODULE
+    if _JS_MODULE is None:
+        import importlib.util  # noqa: PLC0415
+        spec = importlib.util.spec_from_file_location("g10_rl_js_verifier", HERE / "js" / "js_verifier.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _JS_MODULE = module
+    return _JS_MODULE
+
+
+def js_checker(name: str, output: str, sandbox="docker", executor=None, **_) -> dict:
+    """One env type "js", two task folders: rl/js/tasks (JS verifier, node worker) and rl/jsts/tasks/js (Exercism)."""
+    if (JS_RL_TASKS / name / "task.json").is_file():
+        return _js().reward(JS_RL_TASKS / name, output, sandbox)
+    return _jsts_checker(JS_TASKS, "js")(name, output, executor=executor)
+
+
 _TOOL_CALL_MODULE = None
 
 
@@ -302,10 +349,11 @@ def toolresult_checker(name: str, output: str, **_) -> dict:
 register("code", code_checker)
 register("swe", swe_checker)
 register("indic", indic_checker)
+register("math", math_checker)
 register("go", go_checker)
 register("agentic", agentic_checker)
 register("math_pool", math_pool_checker)
-register("js", _jsts_checker(JS_TASKS, "js"))
+register("js", js_checker)
 register("ts", _jsts_checker(TS_TASKS, "ts"))
 register("tool_call", tool_call_checker)
 register("toolresult", toolresult_checker)
@@ -315,10 +363,12 @@ def list_envs() -> list[str]:
     ids = [f"code/{p.parent.name}" for p in sorted(TASKS.glob("*/task.json"))]
     ids += [f"swe/{p.parent.name}" for p in sorted(SWE_ENVS.glob("*/env.json"))]
     ids += [f"indic/{p.parent.name}" for p in sorted(INDIC_TASKS.glob("*/task.json"))]
+    ids += [f"math/{p.parent.name}" for p in sorted(MATH_TASKS.glob("*/task.json"))]
     ids += [f"go/{p.parent.name}" for p in sorted(GO_TASKS.glob("*/task.json"))]
     ids += [f"agentic/{p.parent.name}" for p in sorted(AGENTIC_TASKS.glob("*/task.json"))]
     ids += [f"math_pool/{p.parent.name}" for p in sorted(MATH_POOL_TASKS.glob("*/task.json"))]
     ids += [f"js/{p.parent.name}" for p in sorted(JS_TASKS.glob("*/task.json"))]
+    ids += [f"js/{p.parent.name}" for p in sorted(JS_RL_TASKS.glob("*/task.json"))]
     ids += [f"ts/{p.parent.name}" for p in sorted(TS_TASKS.glob("*/task.json"))]
     ids += [f"tool_call/{p.parent.name}" for p in sorted(TOOL_CALL_TASKS.glob("*/task.json"))]
     ids += [f"toolresult/{p.parent.name}" for p in sorted(TOOLRESULT_TASKS.glob("*/task.json"))]
@@ -343,6 +393,8 @@ def known_outputs(env_id: str) -> tuple[str, str]:
         return (SWE_ENVS / name / "gold.patch").read_text(encoding="utf-8"), NOOP_PATCH
     if env_type == "indic":
         return _indic().known_outputs(INDIC_TASKS / name)
+    if env_type == "math":
+        return _math().known_outputs(MATH_TASKS / name)
     if env_type == "tool_call":
         return _tool_call().known_outputs(TOOL_CALL_TASKS / name)
     if env_type == "toolresult":
@@ -356,6 +408,11 @@ def known_outputs(env_id: str) -> tuple[str, str]:
             raise ValueError(f"go/{name}: reference.go has no one-line signature for {meta['entry_point']}")
         bad = f"```go\npackage main\n\n{sig.group(0)}\n\tpanic(\"stub\")\n}}\n```"
         return f"```go\n{ref}\n```", bad
+    if env_type == "js" and (JS_RL_TASKS / name / "task.json").is_file():
+        meta = json.loads((JS_RL_TASKS / name / "task.json").read_text(encoding="utf-8"))
+        ref = (JS_RL_TASKS / name / "reference.js").read_text(encoding="utf-8")
+        bad = f"```javascript\nfunction {meta['entry_point']}() {{ return undefined; }}\n```"
+        return f"```javascript\n{ref}\n```", bad
     if env_type in ("js", "ts"):
         return _jsts().known_outputs((JS_TASKS if env_type == "js" else TS_TASKS) / name)
     if env_type == "math_pool":
