@@ -11,6 +11,7 @@ import importlib
 import json
 from pathlib import Path
 import random
+import re
 import time
 from uuid import uuid4
 import numpy as np
@@ -166,6 +167,9 @@ def main():
     p.add_argument(
         "--logger-factory",
         help="module:function returning writer(out_dir) with write/flush/close",
+    )
+    p.add_argument(
+        "--run-id", help="Shared job run ID (letters, digits, dots, dashes, underscores)"
     )
     p.add_argument("--stop-after", type=int)
     p.add_argument(
@@ -335,17 +339,21 @@ def main():
         json.dumps(identity, sort_keys=True).encode()
     ).hexdigest()
     checkpoint = None
+    run_id = args.run_id
     if args.resume:
         checkpoint = torch.load(args.resume, map_location=device, weights_only=False)
         if checkpoint["identity_sha256"] != identity_hash:
             p.error("Resume code/config/artifact/data/device/software identity changed")
-        run_id = checkpoint.get("run_id")
-        if run_id is None:
-            run_id = sha256(args.resume)
-        if not isinstance(run_id, str) or not run_id.strip():
-            p.error("Checkpoint run_id must be a nonempty string")
-    else:
+        saved_run_id = checkpoint.get("run_id")
+        if saved_run_id is None:
+            saved_run_id = sha256(args.resume)
+        if run_id is not None and run_id != saved_run_id:
+            p.error("--run-id does not match the checkpoint run ID")
+        run_id = saved_run_id
+    if run_id is None:
         run_id = uuid4().hex
+    if not isinstance(run_id, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", run_id):
+        p.error("Run ID must begin with a letter or digit and use only letters, digits, dots, dashes and underscores")
 
     args.out.mkdir(parents=True, exist_ok=True)
     manifest = {

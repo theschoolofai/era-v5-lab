@@ -58,8 +58,15 @@ class G8LoggerTests(unittest.TestCase):
                 patch.object(train_week2, "Artifacts", return_value=artifacts),
                 patch.object(sys, "path", [str(logger_dir), *sys.path]),
             ):
-                first = run("first", "--stop-after", "1")
+                first = run("first", "--run-id", "job-42.g5", "--stop-after", "1")
                 resumed = run("resumed", "--resume", str(first / "checkpoint.pt"))
+                explicit_resume = run(
+                    "explicit-resume", "--resume", str(first / "checkpoint.pt"), "--run-id", "job-42.g5"
+                )
+                with self.assertRaises(SystemExit) as mismatch:
+                    run("mismatch", "--resume", str(first / "checkpoint.pt"), "--run-id", "other-job")
+                self.assertEqual(mismatch.exception.code, 2)
+                self.assertFalse((root / "mismatch" / "manifest.json").exists())
                 independent = run("independent", "--no-checkpoint")
                 legacy_state = torch.load(
                     first / "checkpoint.pt", map_location="cpu", weights_only=False
@@ -74,7 +81,9 @@ class G8LoggerTests(unittest.TestCase):
 
             run_id = manifest(first)["run_id"]
             self.assertEqual(manifest(resumed)["run_id"], run_id)
-            self.assertNotEqual(manifest(independent)["run_id"], run_id)
+            self.assertEqual(run_id, "job-42.g5")
+            self.assertEqual(manifest(explicit_resume)["run_id"], run_id)
+            self.assertRegex(manifest(independent)["run_id"], r"^[0-9a-f]{32}$")
             self.assertEqual(manifest(first)["identity_sha256"], manifest(independent)["identity_sha256"])
             self.assertEqual(manifest(legacy)["run_id"], train_week2.sha256(legacy_checkpoint))
             self.assertEqual((resumed / "losses.txt").read_bytes(), (independent / "losses.txt").read_bytes())

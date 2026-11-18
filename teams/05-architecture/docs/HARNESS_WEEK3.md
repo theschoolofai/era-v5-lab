@@ -2,7 +2,7 @@
 
 ## G8 live metrics
 
-A fresh invocation assigns a run ID and records it in `manifest.json`, `summary.json`, and the checkpoint when one is written. A resume keeps the checkpoint's run ID and uses a fresh output directory. For a compatible checkpoint without an ID, the trainer uses the checkpoint file's SHA-256 as the run ID. The existing resume identity check still applies.
+Pass the job package's run ID as `--run-id "$RUN_ID"` to use the same identity in G5 and G8. IDs begin with a letter or digit and may also contain dots, dashes, and underscores. A fresh invocation without the flag generates an ID. The trainer records it in `manifest.json`, `summary.json`, and the native checkpoint. Resume uses a fresh output directory and recovers the checkpoint ID if the flag is omitted. If supplied, the ID must match the checkpoint. For a compatible legacy checkpoint without an ID, the checkpoint file's SHA-256 is its ID. The resume identity check still applies.
 
 To enable the G8 adapter, put `teams/08-monitoring/metrics_logger` on `PYTHONPATH` and pass `--logger-factory g5_adapter:make_writer`. The trainer writes the manifest before calling the factory once with the output directory. The returned writer receives `write(row)` in step order, including the initial evaluation at step 0 and the saved history on resume. The trainer calls `flush()` before writing final artifacts and `close()` on exit. A logger error fails the invocation.
 
