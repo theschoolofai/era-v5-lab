@@ -1010,9 +1010,11 @@ class Run:
         # Not the summary's word: the shards as they are on disk (files, sha256, format, counts, pack table, first and last document)
         table = path(spec["pack_table"]) if spec.get("pack_table") else verify_shards.pack_table.TABLE
         try:
-            problems, self.known = verify_shards.verify(out, self.manifest_path, path(spec["tokenizer"]), table, s)
+            problems, hashed = verify_shards.verify(out, self.manifest_path, path(spec["tokenizer"]), table, s)
         except Exception as e:  # an unreadable tokenizer, manifest or pack table: not a traceback
             raise Stop(f"shards: the shards could not be verified: {type(e).__name__}: {e}")
+        for name, sha in hashed.items():  # the big files verification just read: the stage's digest takes these, not a second read
+            self.cache.remember(out / name, sha)
         self.check("shards: the shard files on disk verify (files, sha256, format, counts, pack table, first and last document)",
                    not problems, f"{len(problems)} problem(s), first: {problems[0] if problems else ''}")
         return {"mode": "run", "command": [script, "--input", "<run>/final", "--manifest", "<run>/pipeline_manifest.json", "--out", "<out>"],

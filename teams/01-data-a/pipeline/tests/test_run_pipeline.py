@@ -961,13 +961,29 @@ def test_a_stage_digest_may_reuse_hashes_a_stage_computed(tmp_path):
     (tmp_path / "a.bin").write_bytes(b"x" * 100)
     (tmp_path / "b.json").write_text(json.dumps({"seconds": 1, "k": 2}), encoding="utf-8")
     plain = rp.digest(tmp_path)
-    assert rp.digest(tmp_path, {"a.bin": rp.sha256(tmp_path / "a.bin")}) == plain  # the same value, one read less
-    assert rp.digest(tmp_path, {"a.bin": "0" * 64})[0] != plain[0]  # proves the given hash is the one used
+    cache = rp.HashCache()
+    cache.remember(tmp_path / "a.bin", rp.sha256(tmp_path / "a.bin"))
+    assert rp.digest(tmp_path, cache) == plain  # the same value, one read less
+    other = rp.HashCache()
+    other.remember(tmp_path / "a.bin", "0" * 64)
+    assert rp.digest(tmp_path, other)[0] != plain[0]  # proves the given hash is the one used
+
+
+def test_the_hashes_verification_read_go_to_the_hash_cache_not_a_second_read(shard_config, monkeypatch):
+    import verify_shards
+    monkeypatch.setattr(verify_shards, "verify", lambda *args, **kwargs: ([], {"pk-a-train-000000.bin": "ab" * 32}))
+    remembered = []
+    monkeypatch.setattr(rp.HashCache, "remember", lambda self, path, digest: remembered.append((Path(path).name, digest)))
+    rp.run(shard_config)
+    assert [r for r in remembered if r[0].endswith(".bin")] == [("pk-a-train-000000.bin", "ab" * 32)]  # apply also remembers its hard links
 
 
 def test_a_failed_part_stops_the_run_and_names_the_reason(tmp_path, shard_config, monkeypatch):
     monkeypatch.setenv("FAKE_SHARDS_FAIL", "1")
     with pytest.raises(rp.Stop, match="no part failed or was skipped.*first: train/code-go/part-00000.parquet: made up"):
+        rp.run(shard_config)
+
+
 # --- scale and robustness (the scale audit, 14 Nov) -----------------------------------------------------------------
 def test_records_are_counted_not_lines(tmp_path):
     f = tmp_path / "list.csv"

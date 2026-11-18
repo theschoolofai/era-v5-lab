@@ -95,6 +95,9 @@ def check_shard(out, sid, m, ctx, bad, hashes):
         for field, key in (("language", "language"), ("script", "script"), ("domain", "domain"), ("capability_lane", "lane")):
             if m[field] != row[key]:
                 bad(sid, f"{field} is {m[field]!r}, pack_table.json says {row[key]!r} for {m['pack_id']}")
+        for field in pack_table.LICENCE:  # both in the manifest when the table gives them, neither when it does not
+            if m.get(field) != row.get(field):
+                bad(sid, f"{field} is {m.get(field)!r}, the pack table says {row.get(field)!r} for {m['pack_id']}")
     if m["tokenizer_sha256"] != ctx["tok_sha"]:
         bad(sid, f"tokenizer_sha256 {m['tokenizer_sha256'][:12]}…, the tokenizer given has {ctx['tok_sha'][:12]}…")
     if ctx["f2_set"] and m["decontam_set_sha256"] != ctx["f2_set"]:
@@ -209,7 +212,8 @@ def verify(out, manifest, tokenizer, table=pack_table.TABLE, summary=None):
     special = np.zeros(VOCAB, dtype=bool)
     special[sorted(i for i in special_ids(tok) if i < VOCAB)] = True
     record = out / RECORD
-    ctx = {"keys": set(json.loads(TEMPLATE.read_text(encoding="utf-8"))), "table": pack_table.load(table), "tok": tok,
+    ctx = {"keys": set(json.loads(TEMPLATE.read_text(encoding="utf-8"))) - set(pack_table.LICENCE),  # the licence fields are optional
+           "table": pack_table.load(table), "tok": tok,
            "tok_sha": sha256(tokenizer), "special": special, "final": run / "final",
            "norm": tok.normalizer.normalize_str if tok.normalizer is not None else (lambda t: t),
            "f2_set": next((s.get("set_sha256") for s in pm.get("stages", []) if s.get("stage") == "f2"), None),
