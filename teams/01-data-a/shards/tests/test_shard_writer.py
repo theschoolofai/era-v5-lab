@@ -1,6 +1,6 @@
 """Tests for shard_writer.py on made-up docs (English, Hindi, Malayalam, Tamil, code), put through a synthetic pipeline run
 (synthetic_run.py) so the writer reads what run_pipeline.py writes. They use the baseline BrahmicTokenizer-131K that G6 pins
-(fetched once by G6's tokenizer.py) with --any-tokenizer, since C3's tokenizer.json is not in the repo; with C3 the same
+(fetched once by G6's tokenizer.py) with --any-tokenizer, since p1536's tokenizer.json is not in the repo; with p1536 the same
 checks run on the real file.
 
   python -m pytest teams/01-data-a/shards/tests/test_shard_writer.py
@@ -108,12 +108,35 @@ def test_the_round_trip_compares_with_the_normalized_text(tmp_path, monkeypatch)
 
 
 def test_any_tokenizer_but_c3_is_refused(tmp_path, monkeypatch):
-    with pytest.raises(SystemExit, match="not the frozen C3"):
-        write(tmp_path, monkeypatch, DOCS)
+    with pytest.raises(SystemExit, match="not the frozen p1536"):
+        write(tmp_path, monkeypatch, DOCS, "--dataset-version", "sample")
+
+
+def test_dataset_version_is_required_and_test_runs_stay_test(tmp_path, monkeypatch):
+    """The manifest's dataset_version comes from --dataset-version (as on main, theschoolofai/era-v5-lab#621): never
+    guessed, never "test" for a real run, always "test" for an --any-tokenizer one. Each refusal comes before anything
+    is written."""
+    for i, (extra, message) in enumerate((((), "--dataset-version is required"),
+                                          (("--dataset-version", "test"), "only for --any-tokenizer"),
+                                          (("--any-tokenizer", "--dataset-version", "corpus-v1"), "leave out --dataset-version"))):
+        with pytest.raises(SystemExit, match=message):
+            write(tmp_path / f"case{i}", monkeypatch, DOCS, *extra)
+        assert not (tmp_path / f"case{i}" / "out").exists()
+    m, _, _ = write(tmp_path / "t", monkeypatch, DOCS, "--any-tokenizer", "--dataset-version", "test")
+    assert m["dataset_version"] == "test"
+
+
+def test_the_dataset_version_given_is_the_manifests(tmp_path, monkeypatch):
+    """A real run (no --any-tokenizer) writes the release it is given. p1536's tokenizer.json is not in the repo, so the
+    tokenizer check alone is relaxed here: G6's baseline is loaded as --any-tokenizer would load it."""
+    real = sw.load_tokenizer
+    monkeypatch.setattr(sw, "load_tokenizer", lambda path, any_tokenizer: real(path, True))
+    m, _, _ = write(tmp_path, monkeypatch, DOCS, "--dataset-version", "corpus-v1")
+    assert m["dataset_version"] == "corpus-v1"
 
 
 def test_the_c3_pin_matches_g3s_release():
-    assert sw.C3_SHA256.startswith("15468e66") and sw.EOS_ID == 130822 and sys.modules["dataio.loader"].HEADER_BYTES == 1024
+    assert sw.TOKENIZER_SHA256.startswith("e6b93a93") and sw.EOS_ID == 130822 and sys.modules["dataio.loader"].HEADER_BYTES == 1024
 
 
 def test_the_manifest_records_the_pipeline_run(tmp_path, monkeypatch):
@@ -206,3 +229,22 @@ def test_the_shard_folder_gets_the_runs_file_byte_for_byte(tmp_path, monkeypatch
     m = shard(run, part, tmp_path / "out", "--any-tokenizer", "--domain", "web")
     assert (tmp_path / "out" / "cleaning_pipeline.json").read_bytes() == (run / "cleaning_pipeline.json").read_bytes()
     assert m["cleaning_pipeline_sha256"] == sha(run / "cleaning_pipeline.json")
+
+
+def test_the_licence_goes_into_the_manifest_with_where_it_is_recorded(tmp_path, monkeypatch):
+    m, out, _ = write(tmp_path, monkeypatch, DOCS, "--any-tokenizer", "--license", "apache-2.0", "--license-source", "licence_table.md at fb7d5e6")
+    on_disk = json.loads((out / f"{m['shard_id']}.json").read_text(encoding="utf-8"))
+    assert (on_disk["license"], on_disk["license_source"]) == ("apache-2.0", "licence_table.md at fb7d5e6")
+    keys = list(on_disk)
+    assert keys[keys.index("capability_lane"):][:4] == ["capability_lane", "license", "license_source", "split"]
+
+
+def test_without_a_licence_the_manifest_has_no_licence_fields(tmp_path, monkeypatch):
+    m, _, _ = write(tmp_path, monkeypatch, DOCS, "--any-tokenizer")
+    assert "license" not in m and "license_source" not in m
+
+
+@pytest.mark.parametrize("extra", [("--license", "apache-2.0"), ("--license-source", "licence_table.md at fb7d5e6")])
+def test_a_licence_and_where_it_is_recorded_go_together(tmp_path, monkeypatch, extra):
+    with pytest.raises(SystemExit, match="--license and --license-source go together"):
+        write(tmp_path, monkeypatch, DOCS, "--any-tokenizer", *extra)

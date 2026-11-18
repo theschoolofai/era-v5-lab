@@ -81,3 +81,38 @@ def test_a_malformed_row_is_refused(tmp_path, bad, message):
     path.write_text(json.dumps({"packs": {"code-go": bad}}), encoding="utf-8")
     with pytest.raises(pack_table.PackTableError, match=message):
         pack_table.load(path)
+
+
+LICENSED = {"language": "go", "script": "Latn", "domain": "code", "lane": "code",
+            "license": "apache-2.0", "license_source": "licence_table.md at fb7d5e6"}
+
+
+def table_of(tmp_path, rows):
+    path = tmp_path / "t.json"
+    path.write_text(json.dumps({"_comment": "a job's pack table", "packs": rows}), encoding="utf-8")
+    return pack_table.load(path)
+
+
+def test_a_table_with_licences_gives_them_in_the_row(tmp_path):
+    """The shard job's table: a row also names the pack's licence and where that licence is recorded."""
+    table = table_of(tmp_path, {"code-go": LICENSED, "en-dclm": {k: LICENSED[k] for k in pack_table.FIELDS}})
+    assert pack_table.row("code-go", table) == LICENSED
+    assert set(pack_table.row("en-dclm", table)) == set(pack_table.FIELDS)  # a row without them stays as it was
+
+
+@pytest.mark.parametrize("field", ["license", "license_source", "lane"])
+def test_a_null_licence_is_refused_like_a_null_lane(tmp_path, field):
+    table = table_of(tmp_path, {"code-go": {**LICENSED, field: None}})
+    with pytest.raises(pack_table.PackTableError, match=f"code-go has no {field} in pack_table.json"):
+        pack_table.row("code-go", table)
+
+
+@pytest.mark.parametrize("drop", ["license", "license_source"])
+def test_a_licence_without_where_it_is_recorded_is_refused(tmp_path, drop):
+    with pytest.raises(pack_table.PackTableError, match="has fields .*with or without license and license_source"):
+        table_of(tmp_path, {"code-go": {k: v for k, v in LICENSED.items() if k != drop}})
+
+
+def test_a_row_that_is_not_an_object_is_refused(tmp_path):
+    with pytest.raises(pack_table.PackTableError, match="code-go has fields str"):
+        table_of(tmp_path, {"code-go": "go"})

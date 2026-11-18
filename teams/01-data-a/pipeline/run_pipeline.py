@@ -29,7 +29,7 @@ A run stage names a "settings" file (settings only, no paths) and the runner wor
 gets a copy of its settings with the path keys filled in (clean: input_root from "input", output_root, and the input set's
 description from the stage: manifest, manifest_sha256, expected_parts, sample; overlap: inputs, out; dedup: results, inputs,
 out), written to <run>/cfg/<stage>.json and passed with --config. The clean stage's manifest defaults to sample_manifest.json in
-its input folder, and its sha256 must equal manifest_sha256 (checked just before the job starts, not by --plan). "script" replaces the default script; "settings_sha256" pins the settings file
+its input folder, and its sha256 must equal manifest_sha256 (checked just before the job starts, not by --plan). "script" replaces the default script, and may be a list (the script, then the arguments that go before --config: a cleaner run through a wrapper, such as spec_v1_1/use_clean.py with spec_v1/run_tokenizer_sample.py; the manifest then records the sha256 of both); "settings_sha256" pins the settings file
 (checked, and the manifest records the file's sha256 either way). Escape hatch: "command" (the script and its arguments, run
 with this Python from the repository root) with "output" (where that script writes) skips all of this.
 --plan checks the config and prints each stage's folder and command, without running or writing anything. It is the only
@@ -42,11 +42,35 @@ RUN PARAMETERS (all in the config file; the manifest embeds the whole config)
   to                     stop after this stage; only the stages up to it are checked
   from                   resume at this stage: the earlier stages must be recorded in the manifest with unchanged digests
   stages.clean.only      run the clean job on these sample parts only (a list, for trials); overlap then expects no packs
+  intermediates          "keep" (default): every stage's Parquet stays on disk, e.g. for the audit of the cleaner, which
+                         reads the parts before and after clean.py. "drop": once reconcile has passed, the run deletes,
+                         from <run>/deduped and <run>/final, the Parquet of every part whose kept documents are all in
+                         shards (or left out by the shard writer for a stated reason), after checking every one of those
+                         shards on disk against its manifest (files, sha256, header, size, index, rows: shard_problems;
+                         one that fails stops the drop before anything is deleted). A held-out part, a part of a pack
+                         the shard stage was not asked for and a part without kept documents stay, in both folders. The
+                         cleaned folder is never touched (other runs adopt it), nor the raw input, the reports, summaries,
+                         ledger, manifest and shards. It needs a run that ends at reconcile, and such a run cannot be
+                         resumed or rerun in place afterwards (new run_id)
+  inventory              optional: the expected inventory of the run (inventory_check.py): every part of the approved
+                         input manifest with its pack, raw sha256, raw rows and the status its shards must end in. It is
+                         written before the run, from the manifest, so it can say what the run's own outputs cannot:
+                         that a pack or part never reached the run. A run with an inventory is the production run: it
+                         needs stages.ledger.raw (every raw document accounted for, mode B), stages.shards and
+                         stages.reconcile, it must end at reconcile (no earlier "to"), and stages.shards.packs, if
+                         given, must be the inventory's packs. Without the key nothing of this is checked or required:
+                         --plan and the manifest then say "inventory: none"
+A top-level key that is none of these and does not start with "_" (a comment) is refused; so are a key under "stages"
+that is not a stage, and "inventory" or "intermediates" inside a stage's settings. A mistyped or misplaced one of the
+two is therefore not silently ignored.
 apply, f2, survivor_loss and ledger always run. f2 takes "script" (default teams/01-data-a/spec_v1/run_f2.py) and "workers"
 (default 1; each run_f2.py process loads G9's full set, about 1.1 GB of memory, so N workers need about N × 1.1 GB plus the
-documents in flight). shards takes "tokenizer" (required: G3's C3 tokenizer.json), and optionally "script" (default
+documents in flight). shards takes "tokenizer" (required: G3's frozen tokenizer.json, p1536), "dataset_version" (required: the
+corpus release written into every shard manifest, e.g. "corpus-v1" for the first training shards or "sample"; with
+"any_tokenizer" it is "test" and may be left out), and optionally "script" (default
 teams/01-data-a/shards/run_shards.py), "out" (default <run>/shards), "tokens", "packs" (only these packs), "pack_table" and
-"any_tokenizer" (tests only). apply takes "link" (default true: untouched parts are hard-linked, not copied). ledger takes "raw"
+"any_tokenizer" (tests only). apply takes "link" (default true: untouched parts are hard-linked, not copied) and "workers"
+(default 4: parts checked and written at once, one row group in memory each). ledger takes "raw"
 (optional: the raw parts the cleaner read; with it the ledger says keep / fix / drop per document, mode B, else the
 cleaner's decision is "unknown", mode C); it reads dedup_log.jsonl when the dedup folder has one. Scripts run with
 python -I, which ignores user site-packages and PYTHONPATH: install pyarrow and the rest into the environment itself.
@@ -56,6 +80,9 @@ Without stages.shards the run stops after the ledger, and "to": "shards" is an e
 CONFIG (JSON; keys starting with "_" are comments; paths relative to the repository root, or absolute)
 =====================================================================================================
   run_id   name of this run;   out   folder for runs (default out/pipeline);   stages   as above
+  hash_cache   true (default): every sha256 is computed once and kept in <run>/cache/sha256.json, keyed on each file's
+               (device, inode, size, mtime, change time), so the digests reuse apply's hashes and a resumed run hashes
+               nothing it has already hashed (hashing.py). false: hash everything again, for an audit
 The whole config is checked before the first stage runs.
 
 CHECKS (any failure stops the run; exit code 1)
@@ -75,6 +102,14 @@ CHECKS (any failure stops the run; exit code 1)
             index, special ids, metadata, pack table row, tokenizer, F2 set, and the first and last document of every shard
             against the final part
   from      every earlier stage's output still has the digest the manifest recorded for it
+  inventory (only with "inventory") before the shard stage does anything, also when the run resumes there: the
+            ledger is mode B and holds exactly the listed parts, each with its listed raw sha256 and raw rows; every
+            listed pack is in it and no other pack has kept documents; the clean job's job_summary.json names the
+            inventory's input manifest (a summary that names none fails). After reconcile: the same again, and
+            shards_summary.json holds exactly the listed parts, each with a listed status and its listed pack. Every
+            difference is written to <run>/inventory_check.json before the run stops. The ledger stage is already
+            recorded when the first check point stops the run, so a corrected inventory resumes with "from": "shards".
+            A check point writes its report and never the manifest: a resumed run it stops leaves the manifest as it was
 
 MANIFEST
 ========
@@ -84,18 +119,29 @@ by clean when the ledger ran in mode B, cleaned, removed by dedup, dropped by F2
 stage ran), and by_pack: the same chain for every pack and split, from the ledger. At the end of a run the per-pack
 table is also printed to stderr. A digest is the sha256 over the sorted relative path and sha256 of every file in the folder;
 JSON summaries are hashed without the fields that change between identical runs (timings, absolute paths, skip flags), so two
-runs on the same inputs give the same digests. IDs, counts and hashes only.
+runs on the same inputs give the same digests. The files are hashed in parallel threads, through the run's hash cache.
+"intermediates" holds the mode and, after a drop, how many parts went and how many were left, how many shards were checked
+on disk (shards_verified), and per folder the Parquet
+files and bytes deleted; the stage digests stay those of the folders as they were checked, before the drop.
+"inventory" is null without one. With one it names the inventory file, its sha256 and its counts of packs and parts,
+under "checked" the sha256 of the inventory each check point passed with (ledger: before the shard stage; reconcile:
+after it), and under "report" where the check points write. "checked" is read from the shards and reconcile stage
+records, which carry that sha256 as inventory_sha256: it is null until the stage is recorded.
+IDs, counts and hashes only.
 """
 import sys
 sys.dont_write_bytecode = True
 
-import argparse, hashlib, json, platform, subprocess, time
+import argparse, hashlib, json, os, platform, subprocess, time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[2]
 sys.path.insert(0, str(HERE))
+import inventory_check  # noqa: E402  (the expected inventory: "inventory" in the config)
 import stage_args  # noqa: E402  (how clean, overlap and dedup get their paths)
+from hashing import HashCache, code_sha256  # noqa: E402  (every sha256 once, in parallel)
 STAGES = ("clean", "overlap", "dedup", "apply", "f2", "survivor_loss", "ledger", "shards", "reconcile")
 OPTIONAL = ("shards", "reconcile")  # run only when configured (reconcile also needs shards)
 EXTERNAL = ("clean", "overlap", "dedup")
@@ -105,20 +151,25 @@ DEFAULT_F2 = "teams/01-data-a/spec_v1/run_f2.py"
 DEFAULT_SHARDS = "teams/01-data-a/shards/run_shards.py"
 POOL = "teams/01-data-a/pipeline/f2_pool.py"
 SPLITS = ("train", "heldout")
-RESERVED = ("deduped", "final", "report", "ledger", "shards", "reconcile", "cfg", "logs")  # folders of the run that no stage output may take
-VOLATILE = {"seconds", "input", "path", "cleaned", "skipped"}  # JSON fields that differ between identical runs
+RESERVED = ("deduped", "final", "report", "ledger", "shards", "reconcile", "cfg", "logs", "cache")  # folders of the run that no stage output may take
+BESIDE = (".partial", ".old", ".lock")  # what the scripts make next to a folder they write: <x>.partial, <x>.old, <x>.lock
+INTERMEDIATES = ("keep", "drop")  # the run's own Parquet between the input and the shards: left on disk, or deleted at the end
+KEYS = ("run_id", "out", "stages", "from", "to", "hash_cache", "intermediates", "inventory")  # every top-level key of a run config
+# JSON fields that differ between identical runs: timings, absolute or run-named paths, skip flags (and overlap.py's and
+# dedup.py's wall time, peak memory and the output folders they record when the runner runs them)
+VOLATILE = {"seconds", "input", "path", "cleaned", "skipped", "wall_seconds", "peak_rss_mb", "out", "results"}
 
 
 class Stop(Exception):
     """A check failed: the message says which and where."""
 
 
+_CACHE = HashCache()  # in memory, for digest() called without the run's cache
+FOOTER_WORKERS = 16  # threads reading Parquet footers
+
+
 def sha256(path):
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        for block in iter(lambda: f.read(1 << 20), b""):
-            h.update(block)
-    return h.hexdigest()
+    return _CACHE.sha256(path)
 
 
 def stable(obj):
@@ -129,27 +180,34 @@ def stable(obj):
     return obj
 
 
-def file_hash(p):
+def json_hash(p):
+    """sha256 of a JSON file's content without the volatile fields, or None when it is not valid JSON."""
+    try:
+        data = json.loads(p.read_text(encoding="utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return None
+    return hashlib.sha256(json.dumps(stable(data), sort_keys=True).encode("utf-8")).hexdigest()
+
+
+def file_hash(p, cache=None):
     """sha256 of a file; for JSON, of its content without the volatile fields."""
     if p.suffix == ".json":
-        try:
-            data = json.loads(p.read_text(encoding="utf-8"))
-            return hashlib.sha256(json.dumps(stable(data), sort_keys=True).encode("utf-8")).hexdigest()
-        except (ValueError, UnicodeDecodeError):
-            pass
-    return sha256(p)
+        h = json_hash(p)
+        if h is not None:
+            return h
+    return (cache or _CACHE).sha256(p)
 
 
-def digest(folder, known=None):
-    """(digest over every file's relative path and hash, file count). known: {relative path: sha256} of files a stage has just
-    hashed (the shard stage's verification), so a big file is not read again; only for files that are not JSON, where
-    file_hash is the plain sha256."""
-    folder, known = Path(folder), known or {}
+def digest(folder, cache=None):
+    """(digest over every file's relative path and hash, file count). The data files are hashed through `cache`, in
+    parallel threads, so a file another stage already hashed (or a hard link to it) is not read again."""
+    folder, cache = Path(folder), cache or _CACHE
     files = sorted(p for p in folder.rglob("*") if p.is_file() and not p.name.endswith(".tmp"))
+    hashes = {p: json_hash(p) for p in files if p.suffix == ".json"}
+    hashes.update(cache.sha256_many([p for p in files if hashes.get(p) is None]))
     h = hashlib.sha256()
     for p in files:
-        rel = p.relative_to(folder).as_posix()
-        h.update(f"{rel}\t{known.get(rel) or file_hash(p)}\n".encode("utf-8"))
+        h.update(f"{p.relative_to(folder).as_posix()}\t{hashes[p]}\n".encode("utf-8"))
     return h.hexdigest(), len(files)
 
 
@@ -178,25 +236,118 @@ def tail(log, n=5):
 def parquet_rows(folder):
     """{"rows", "by_split", "by_part" ({"<split>/<part>": rows})} from the Parquet footers."""
     import pyarrow.parquet as pq
+    files = [(split, f) for split in SPLITS if (folder / split).is_dir() for f in sorted((folder / split).rglob("*.parquet"))]
+
+    def rows(item):
+        split, f = item
+        try:
+            return pq.read_metadata(f).num_rows
+        except Exception as e:  # not Parquet, truncated, unreadable
+            raise Stop(f"clean: {split}/{f.relative_to(folder / split).as_posix()} cannot be read as Parquet ({type(e).__name__})")
+
+    with ThreadPoolExecutor(max_workers=max(1, min(FOOTER_WORKERS, len(files)))) as pool:  # thousands of footers
+        counts = list(pool.map(rows, files))
     by_split, by_part = {}, {}
-    for split in SPLITS:
-        if (folder / split).is_dir():
-            for f in sorted((folder / split).rglob("*.parquet")):
-                n = pq.ParquetFile(f).metadata.num_rows
-                by_part[f"{split}/{f.relative_to(folder / split).as_posix()}"] = n
-                by_split[split] = by_split.get(split, 0) + n
+    for (split, f), n in zip(files, counts):
+        by_part[f"{split}/{f.relative_to(folder / split).as_posix()}"] = n
+        by_split[split] = by_split.get(split, 0) + n
     if not by_split:
         raise Stop(f"clean: {folder} has no Parquet parts under train/ or heldout/")
     return {"rows": sum(by_split.values()), "by_split": by_split, "by_part": by_part}
 
 
+def csv_column(file, column):
+    """One column of a CSV, every value a string, read by pyarrow (a remove list can hold millions of rows)."""
+    import pyarrow as pa, pyarrow.csv as pcsv
+    try:
+        return pcsv.read_csv(file, parse_options=pcsv.ParseOptions(newlines_in_values=True),
+                             convert_options=pcsv.ConvertOptions(include_columns=[column], column_types={column: pa.string()},
+                                                                 strings_can_be_null=False)).column(column)
+    except (pa.ArrowInvalid, KeyError) as e:
+        raise Stop(f"{file}: cannot be read as CSV with a {column} column ({e})")
+
+
 def csv_rows(file):
+    """Records of a CSV, without the header (a quoted value may hold a newline, so lines are not records)."""
     with open(file, encoding="utf-8", newline="") as f:
-        return max(sum(1 for _ in f) - 1, 0)
+        first = f.readline().rstrip("\r\n").split(",")[0]
+    return len(csv_column(file, first)) if first else 0
 
 
 def load_json(file):
     return json.loads(Path(file).read_text(encoding="utf-8"))
+
+
+SHARD_MAGIC, SHARD_VERSION, SHARD_HEADER_BYTES = 20261025, 2, 1024  # shard format v1 (shards/shard_format_v1.md, G9's decoder)
+SHARD_FILES = (("payload_uri", "payload_sha256"), ("index_uri", "index_sha256"),
+               ("sample_metadata_uri", "sample_metadata_sha256"), ("quality_report_uri", "quality_report_sha256"))
+SHARD_SUFFIXES = (".bin", ".idx.npy", ".docs.parquet", ".quality_report.json")  # <shard_id><suffix>, as shard_writer.py names them
+
+
+def shard_problems(folder, shard_id, entry, cache):
+    """What is wrong with one written shard on disk, checked against its own manifest (<folder>/<shard_id>.json) and its
+    entry in shards_summary.json: [] when nothing is. Every file the manifest names has the writer's name
+    (<shard_id>.bin, .idx.npy, .docs.parquet, .quality_report.json), is a file in the folder (not a link) and has the
+    sha256 the manifest gives (a file that does not is not read further); the .bin has the format's header (magic, version, token count) and is exactly header +
+    4 bytes a token; the index is int64, starts at 0, rises, and ends at the token count, one entry more than documents; the
+    .docs.parquet has one row a document; and the summary's docs and tokens are the manifest's. A shard that passes
+    holds what reconcile counted, so the Parquet it came from may go."""
+    import numpy as np
+    import pyarrow.parquet as pq
+    mfile = folder / f"{shard_id}.json"
+    try:
+        m = load_json(mfile)
+    except (OSError, ValueError) as e:
+        return [f"{mfile.name}: cannot be read ({type(e).__name__})"]
+    if not isinstance(m, dict) or m.get("shard_id") != shard_id:
+        return [f"{mfile.name}: not the manifest of {shard_id}"]
+    files, problems = {}, []
+    for (uri, _), suffix in zip(SHARD_FILES, SHARD_SUFFIXES):
+        name, want = m.get(uri), f"{shard_id}{suffix}"
+        if name != want:  # the writer's names (shard_writer.py): never another shard's file, nor one elsewhere
+            problems.append(f"{mfile.name}: {uri} is {name!r}, expected {want!r}")
+        elif (folder / name).is_symlink() or not (folder / name).is_file():
+            problems.append(f"{name}: missing" if not (folder / name).is_symlink() else f"{name}: a link, not the file")
+        else:
+            files[uri] = folder / name
+    if problems:
+        return problems
+    shas = cache.sha256_many(files.values())
+    problems = [f"{files[uri].name}: sha256 {shas[files[uri]][:12]}…, the manifest has {str(m.get(key))[:12]}…"
+                for uri, key in SHARD_FILES if shas[files[uri]] != m.get(key)]
+    if problems:  # a file that is not the one the writer recorded: what it holds no longer matters
+        return problems
+    tokens, docs = m.get("token_count"), m.get("doc_count")
+    if not all(isinstance(v, int) and not isinstance(v, bool) and v >= 0 for v in (tokens, docs)):
+        return [f"{mfile.name}: token_count {tokens!r}, doc_count {docs!r}"]
+    payload = files["payload_uri"]
+    size = payload.stat().st_size
+    head = np.fromfile(payload, dtype="<i4", count=3) if size >= 12 else np.zeros(0, dtype="<i4")
+    if len(head) != 3 or (int(head[0]), int(head[1]), int(head[2])) != (SHARD_MAGIC, SHARD_VERSION, tokens):
+        problems.append(f"{payload.name}: header {head.tolist()}, expected [{SHARD_MAGIC}, {SHARD_VERSION}, {tokens}]")
+    if size != SHARD_HEADER_BYTES + 4 * tokens or m.get("payload_bytes") != size:
+        problems.append(f"{payload.name}: {size:,} bytes, expected {SHARD_HEADER_BYTES + 4 * tokens:,} "
+                        f"(manifest payload_bytes {m.get('payload_bytes')})")
+    try:
+        idx = np.load(files["index_uri"], mmap_mode="r", allow_pickle=False)
+        ok = (isinstance(idx, np.ndarray) and idx.dtype == np.dtype("<i8") and idx.ndim == 1 and len(idx) == docs + 1
+              and int(idx[0]) == 0 and int(idx[-1]) == tokens and bool((np.diff(idx) > 0).all()))
+        why = "" if isinstance(idx, np.ndarray) and idx.dtype == np.dtype("<i8") else f" ({getattr(idx, 'dtype', type(idx).__name__)})"
+    except Exception as e:  # a cut or foreign file: EOFError, BadZipFile, ValueError, ...
+        ok, why = False, f" (cannot be read: {type(e).__name__})"
+    if not ok:
+        problems.append(f"{files['index_uri'].name}: not {docs + 1} rising int64 offsets from 0 to {tokens}{why}")
+    try:
+        rows = pq.read_metadata(files["sample_metadata_uri"]).num_rows
+    except Exception as e:
+        rows = None
+        problems.append(f"{files['sample_metadata_uri'].name}: cannot be read ({type(e).__name__})")
+    if rows is not None and rows != docs:
+        problems.append(f"{files['sample_metadata_uri'].name}: {rows} rows, the manifest has {docs} documents")
+    for key, want in (("docs", docs), ("tokens", tokens)):
+        if key in entry and entry[key] != want:
+            problems.append(f"shards_summary.json: {key} {entry[key]} for {shard_id}, the manifest has {want}")
+    return problems
 
 
 class Run:
@@ -205,16 +356,38 @@ class Run:
         optional "from", "to" and stages.clean.only (see the docstring)."""
         self.cfg_path = Path(cfg_path)
         self.cfg = load_json(self.cfg_path)
+        if not isinstance(self.cfg, dict):
+            raise Stop(f"{cfg_path}: expected a JSON object")
         if not self.cfg.get("run_id"):
             raise Stop(f"{cfg_path}: run_id is missing")
+        unknown = sorted(k for k in self.cfg if not k.startswith("_") and k not in KEYS)
+        if unknown:  # a mistyped key would otherwise be ignored: "Inventory" would run without any inventory check
+            raise Stop(f"config: unknown key {unknown[0]!r}; the run parameters are {', '.join(KEYS)} (a key starting with "
+                       "\"_\" is a comment)")
         self.stages = self.cfg.setdefault("stages", {})
+        if not isinstance(self.stages, dict):
+            raise Stop("config: stages must be an object of stage settings")
+        unknown = sorted(k for k in self.stages if not k.startswith("_") and k not in STAGES)
+        if unknown:  # "inventory" under "stages" would be ignored in the same way
+            raise Stop(f"config: stages.{unknown[0]} is not a stage; the stages are {', '.join(STAGES)} (a key starting with "
+                       "\"_\" is a comment)")
+        for name, spec in self.stages.items():  # and one level deeper: no stage has a setting by these names
+            for key in ("inventory", "intermediates"):
+                if isinstance(spec, dict) and key in spec:
+                    raise Stop(f"config: stages.{name}.{key}: \"{key}\" is a run parameter, not a stage setting; set it at the "
+                               "top level of the config")
         clean = self.stages.get("clean")
         self.only = (clean.get("only") or []) if isinstance(clean, dict) else []
         if not isinstance(self.only, list) or not all(isinstance(p, str) for p in self.only):
             raise Stop("config: stages.clean.only must be a list of sample parts, e.g. [\"train/code-go/part-00000.parquet\"]")
         self.dir = path(self.cfg.get("out", "out/pipeline")) / self.cfg["run_id"]
         self.manifest_path = self.dir / "pipeline_manifest.json"
-        self.done, self.checks = {}, []
+        if not isinstance(self.cfg.get("hash_cache", True), bool):
+            raise Stop("config: hash_cache must be true or false")
+        self.cache = HashCache(self.dir / "cache" / "sha256.json", enabled=self.cfg.get("hash_cache", True))
+        self.done, self.checks, self.dropped = {}, [], None
+        self.inventory = None  # the expected inventory, once validate() has read it
+        self.checked = None  # the sha256 of the inventory the stage being run has passed a check point with
 
     def output(self, stage):
         if stage in EXTERNAL:
@@ -277,12 +450,15 @@ class Run:
                 if cmd and not path(cmd[0]).is_file():
                     raise Stop(f"config: stages.{stage}.command script {cmd[0]} not found")
                 script = spec.get("script", stage_args.DEFAULT_SCRIPT.get(stage))
-                if not cmd and script and not path(script).is_file():
-                    raise Stop(f"config: stages.{stage} script {script} not found")
+                given = [script] if isinstance(script, str) else script if isinstance(script, list) else []
+                for n, s in enumerate([] if cmd else given):  # a list: the script, then what goes before --config
+                    if isinstance(s, str) and s and (n == 0 or s.endswith(".py")) and not path(s).is_file():
+                        raise Stop(f"config: stages.{stage} script {s} not found")
                 self.stage_command(stage, write=False)
-        workers = self.stages.get("f2", {}).get("workers", 1)
-        if not isinstance(workers, int) or isinstance(workers, bool) or workers < 1:
-            raise Stop(f"config: stages.f2.workers is {workers!r}, expected a whole number >= 1")
+        for stage, default in (("f2", 1), ("apply", 4)):
+            workers = self.stages.get(stage, {}).get("workers", default)
+            if not isinstance(workers, int) or isinstance(workers, bool) or workers < 1:
+                raise Stop(f"config: stages.{stage}.workers is {workers!r}, expected a whole number >= 1")
         if not isinstance(self.stages.get("f2", {}).get("pool", False), bool):
             raise Stop("config: stages.f2.pool must be true or false")
         if "reconcile" in self.stages and "shards" not in self.stages:
@@ -303,11 +479,156 @@ class Run:
         for stage, o in outs.items():
             if o == r or o in r.parents:
                 raise Stop(f"config: stages.{stage}.output and the run folder {self.dir} overlap")
-            if r in o.parents and o.relative_to(r).parts[0] in RESERVED:
-                raise Stop(f"config: stages.{stage}.output {o} is a folder of the run itself ({', '.join(RESERVED)})")
+            if self.owned(o):
+                raise Stop(f"config: stages.{stage}.output {o} is a folder of the run itself ({', '.join(RESERVED)}, "
+                           f"or one of them with {', '.join(BESIDE)})")
+        raw_dir = self.stages.get("ledger", {}).get("raw")
+        if raw_dir is not None and STAGES.index(upto) >= STAGES.index("ledger") and self.owned(path(raw_dir).resolve()):
+            raise Stop(f"config: stages.ledger.raw {raw_dir} is a folder of the run itself")
         for a, b in [(a, b) for i, a in enumerate(active) for b in active[i + 1:]]:
             if outs[a] == outs[b] or outs[a] in outs[b].parents or outs[b] in outs[a].parents:
                 raise Stop(f"config: stages.{a}.output and stages.{b}.output overlap")
+        mode = self.cfg.get("intermediates", "keep")
+        if mode not in INTERMEDIATES:
+            raise Stop(f"config: intermediates is {mode!r}, expected keep or drop")
+        if mode == "drop":
+            self.validate_drop(upto)
+        self.inventory = self.validate_inventory(upto) if self.cfg.get("inventory") is not None else None
+
+    def validate_inventory(self, upto):
+        """"inventory": the expected parts and packs of the run (inventory_check.py), read and checked here. A run with
+        one is the production run: it must account for every raw document (stages.ledger.raw, so the ledger runs in
+        mode B and the inventory's raw rows and raw sha256 can be checked), it must have the shard and reconcile
+        stages, and it must end at reconcile, so that no such run finishes without both check points (the ledger
+        side before the shard stage, each part's status after reconcile). Returns the inventory."""
+        name = self.cfg["inventory"]
+        if not isinstance(name, str) or not name:
+            raise Stop("config: inventory must be the path of an expected-inventory JSON file")
+        if self.owned(path(name).resolve()):
+            raise Stop(f"config: inventory {name} is in a folder of the run itself")
+        try:
+            inv = inventory_check.load(path(name))
+        except inventory_check.Stop as e:
+            raise Stop(f"config: inventory: {e}")
+        ledger, shards = self.stages.get("ledger"), self.stages.get("shards")
+        if not isinstance(ledger, dict) or ledger.get("raw") is None:
+            raise Stop("config: \"inventory\" needs stages.ledger.raw (the raw parts the cleaner read): a run with an expected "
+                       "inventory must account for every raw document, and the inventory's raw rows and raw sha256 are "
+                       "checked against the ledger in mode B")
+        if "shards" not in self.stages or "reconcile" not in self.stages:
+            raise Stop("config: \"inventory\" needs stages.shards and stages.reconcile: each part's expected shard status "
+                       "is checked after reconcile")
+        if upto != "reconcile":
+            raise Stop(f"config: \"inventory\" needs a run that ends at reconcile, and \"to\" is {upto}: the ledger is checked "
+                       "against the inventory before the shard stage and each part's status after reconcile, and a run "
+                       "that stops earlier would end without those checks (leave \"to\" out, or run without \"inventory\")")
+        packs = shards.get("packs") if isinstance(shards, dict) else None
+        if packs and isinstance(packs, list) and set(map(str, packs)) != set(inv["packs"]):
+            extra, absent = sorted(set(map(str, packs)) - set(inv["packs"])), sorted(set(inv["packs"]) - set(map(str, packs)))
+            raise Stop(f"config: stages.shards.packs and the inventory's packs differ: {len(absent)} inventory pack(s) not in "
+                       f"stages.shards.packs{inventory_check.eg(absent)}; {len(extra)} of stages.shards.packs not in the "
+                       f"inventory{inventory_check.eg(extra)}")
+        clean, want = self.stages.get("clean"), inv["input_manifest_sha256"]
+        mode = clean.get("mode", "adopt") if isinstance(clean, dict) else None
+        pinned = clean.get("manifest_sha256") if mode == "run" else None
+        if pinned and pinned != want:
+            raise Stop(f"config: the inventory was made from input manifest {want[:12]}…, and "
+                       f"stages.clean.manifest_sha256 is {str(pinned)[:12]}…")
+        if mode == "adopt" and clean.get("output") and path(clean["output"]).is_dir():
+            # An adopted folder that is there already: what its clean job read is known now, so a wrong or unreadable
+            # summary stops here and not after the ledger. (A folder that is not there yet is the clean stage's to refuse.)
+            summary = path(clean["output"]) / "job_summary.json"
+            tied = "so the inventory cannot be tied to the input manifest that job read"
+            try:
+                adopted = load_json(summary)
+            except (OSError, ValueError) as e:
+                raise Stop(f"config: {self.shown(summary)} of the adopted clean job cannot be read ({type(e).__name__}), {tied}")
+            got = adopted.get("manifest_sha256") if isinstance(adopted, dict) else None
+            if not isinstance(adopted, dict) or not got:
+                raise Stop(f"config: {self.shown(summary)} of the adopted clean job "
+                           + ("records no manifest_sha256" if isinstance(adopted, dict) else "is not a JSON object") + f", {tied}")
+            if got != want:
+                raise Stop(f"config: the inventory was made from input manifest {want[:12]}…, and the adopted clean job "
+                           f"read {str(got)[:12]}… ({self.shown(summary)})")
+        return inv
+
+    def check_inventory(self, after):
+        """The expected inventory against what the run has made (inventory_check.py). after = "ledger": on entry to the
+        shard stage, in sequence or on a resume there: the ledger's parts, packs, raw rows and raw sha256, and the input
+        manifest the clean job read, so a missing or unlisted part stops the run before anything is sharded, with the
+        ledger stage already recorded. after = "reconcile": those again (a resumed run may have another inventory than
+        the one the earlier check point saw) and each part's status and pack in shards_summary.json. Every check point
+        writes <run>/inventory_check.json over the one before it, with every difference and with paths as the manifest
+        shows them; one that cannot make its checks (an input it cannot read) writes a report that says so, so no
+        report of an earlier check point is left as this one's. Then the first failed check stops the run. The manifest
+        is not written here: stage records change only when a stage finishes, so a check point that stops a resumed run
+        leaves the records of the stages after it as they were. When all pass, the stage record gets the inventory's
+        sha256 (inventory_sha256)."""
+        if self.inventory is None:
+            return
+        head = {"run_id": self.cfg["run_id"], "checked_after": after}
+        try:
+            report = inventory_check.check(self.inventory, ledger=self.output("ledger"), cleaned=self.output("clean"),
+                                           shards=self.output("shards") if after == "reconcile" else None)
+        except inventory_check.Stop as e:
+            named = {**inventory_check.described(self.inventory), "file": self.shown(self.inventory["path"])}
+            try:
+                self.report_inventory({**head, "tool": "inventory_check.py", "inventory": named, "ok": False, "error": str(e)})
+            except Stop:
+                pass  # the reason the check point stopped is the one to give
+            raise Stop(f"inventory: {e}")
+        report["inventory"]["file"] = self.shown(self.inventory["path"])
+        for side in ("ledger", "shards"):
+            if side in report:
+                report[side]["folder"] = self.shown(self.output(side))
+        self.report_inventory({**head, **report})
+        for c in report["checks"]:
+            self.check(c["check"], c["ok"], c["detail"] + ("" if c["ok"] else "; see inventory_check.json in the run folder"))
+        self.checked = self.inventory["sha256"]
+
+    def report_inventory(self, report):
+        """<run>/inventory_check.json. When it cannot be written, the one before it is removed (it would read as this
+        check point's) and the run stops with a message."""
+        file = self.dir / "inventory_check.json"
+        try:
+            inventory_check.write_report(report, file)
+        except OSError as e:
+            try:
+                file.unlink(missing_ok=True)
+            except OSError:
+                pass
+            raise Stop(f"inventory: the report {self.shown(file)} could not be written ({type(e).__name__})")
+
+    def drop_folders(self):
+        """{stage: folder} a drop deletes Parquet parts from: apply's and F2's, the two folders every run writes itself.
+        Never the cleaned folder: it is an input when adopted, and when this run wrote it another run may have adopted it."""
+        return {"apply": self.output("apply"), "f2": self.output("f2")}
+
+    def validate_drop(self, upto):
+        """"intermediates": "drop" deletes Parquet, so: only in a run that ends at reconcile (the kept documents of a part
+        are then known to be in the shards), and nothing the run reads or keeps may lie in a folder it deletes from."""
+        if upto != "reconcile":
+            raise Stop("config: \"intermediates\": \"drop\" needs a run that ends at reconcile (stages.shards and "
+                       "stages.reconcile, and no earlier \"to\"): a part's Parquet is deleted only once its kept documents "
+                       "are accounted for in the shards")
+        kept = {"stages.shards.out": self.output("shards")}  # (validate() refuses stages.ledger.raw there for every run)
+        if (self.stages.get("clean") or {}).get("input") is not None:
+            kept["stages.clean.input"] = path(self.stages["clean"]["input"])
+        for folder in self.drop_folders().values():
+            d = folder.resolve()
+            for name, p in kept.items():
+                if p.resolve() == d or d in p.resolve().parents:
+                    raise Stop(f"config: \"intermediates\": \"drop\" deletes Parquet under {self.shown(d)}, and {name} "
+                               f"({self.shown(p)}) lies in it")
+
+    def owned(self, p):
+        """Is p (resolved) in a folder the run writes, swaps or deletes: deduped/, ledger/, ... or ledger.partial,
+        ledger.old, deduped.lock and the like next to them?"""
+        r = self.dir.resolve()
+        if r not in p.parents:
+            return False
+        first = p.relative_to(r).parts[0]
+        return first in RESERVED or any(first == name + end for name in RESERVED for end in BESIDE)
 
     def validate_shards(self, upto):
         spec = self.stages.get("shards")
@@ -328,6 +649,13 @@ class Run:
             raise Stop("config: stages.shards.packs must be a list of pack ids")
         if spec.get("pack_table") and not path(spec["pack_table"]).is_file():
             raise Stop(f"config: stages.shards.pack_table {spec['pack_table']} not found")
+        version = spec.get("dataset_version")
+        if spec.get("any_tokenizer"):
+            if version not in (None, "test"):
+                raise Stop(f'config: stages.shards.dataset_version is {version!r}, but any_tokenizer shards are "test" (leave it out)')
+        elif not isinstance(version, str) or not version.strip() or version == "test":
+            raise Stop(f'config: stages.shards.dataset_version is {version!r}: name the corpus release every shard manifest '
+                       'records (e.g. "corpus-v1", "sample"); "test" is only for any_tokenizer')
 
     def plan(self, to=None):
         """What a run would do, as text: each stage's mode, output folder and command, with every path resolved. The config is
@@ -359,9 +687,26 @@ class Run:
                 lines.append(f"{n:02d} {stage:13} run    {out}   {how}, workers {f2.get('workers', 1)}")
             elif stage == "shards":
                 spec = self.stages["shards"]
-                lines.append(f"{n:02d} {stage:13} run    {out}   {spec.get('script', DEFAULT_SHARDS)}, tokenizer {spec['tokenizer']}")
+                lines.append(f"{n:02d} {stage:13} run    {out}   {spec.get('script', DEFAULT_SHARDS)}, tokenizer {spec['tokenizer']}, "
+                             f"dataset_version {'test' if spec.get('any_tokenizer') else spec.get('dataset_version')}")
             else:
                 lines.append(f"{n:02d} {stage:13} run    {out}")
+        if self.cfg.get("intermediates", "keep") == "drop":
+            lines.append("intermediates: drop   after reconcile passes, the Parquet of every part whose kept documents are all "
+                         "in shards (or left out by the shard writer for a stated reason) is deleted from "
+                         + " and ".join(self.shown(f) for f in self.drop_folders().values())
+                         + "; held-out and unselected parts, the cleaned folder, reports, the ledger and the shards stay")
+        else:
+            lines.append("intermediates: keep   every stage's Parquet stays on disk")
+        if self.inventory is not None:  # validated: the run ends at reconcile, so both check points are reached
+            d = inventory_check.described(self.inventory)
+            lines.append(f"inventory: {self.shown(self.inventory['path'])} (sha256 {d['sha256'][:12]}…)   {d['packs']} pack(s), "
+                         f"{d['parts']} part(s), expected " + ", ".join(f"{k} {v}" for k, v in d["expected"].items())
+                         + "; checked before the shard stage and after reconcile"
+                         + f"; report {self.shown(self.dir / 'inventory_check.json')}")
+        else:
+            lines.append("inventory: none   the run's parts and packs are not checked against an input manifest, and the raw "
+                         "ledger is not required: not a production run (set \"inventory\" for one)")
         return "\n".join(lines)
 
     def check(self, name, ok, detail):
@@ -387,6 +732,9 @@ class Run:
         counts = getattr(self, f"counts_{stage}")(out)
         rec = {"mode": mode, "command": command, "code_sha256": sha256(path(command[0])) if command else None,
                "output": self.shown(out), "counts": counts}
+        tools = {a: sha256(path(a)) for a in (command or [])[1:] if a.endswith(".py") and path(a).is_file()}
+        if tools:  # a script run through a wrapper ("script" as a list): the scripts the wrapper was given
+            rec["tools_sha256"] = tools
         if self.only and stage == "clean":
             rec["only"] = self.only
         if built and built["settings"]:  # a stage run from a settings file: which file, and the config it was run with
@@ -420,12 +768,10 @@ class Run:
     def counts_dedup(self, out):
         s = load_json(out / "dedup_summary.json")
         ov = self.done["overlap"]["counts"]
-        groups = set()
-        with open(out / "dedup_groups.csv", encoding="utf-8", newline="") as f:
-            next(f, None)
-            groups = {line.split(",", 1)[0] for line in f if line.strip()}
+        import pyarrow.compute as pc
+        groups = pc.count_distinct(csv_column(out / "dedup_groups.csv", "group_id")).as_py()
         counts = {"remove_list_rows": csv_rows(out / "remove_list.csv"), "removed": s.get("removed"),
-                  "heldout_removed": s.get("heldout_removed"), "groups": len(groups)}
+                  "heldout_removed": s.get("heldout_removed"), "groups": groups}
         self.check("dedup finished", s.get("status") == "complete", f"status {s.get('status')!r}")
         checked = s.get("overlap_run", {}).get("checked_sha256", {})
         self.check("dedup used this overlap run", checked == ov["files_sha256"],
@@ -445,7 +791,9 @@ class Run:
         try:
             s = apply_dedup.apply(self.output("clean"), self.output("dedup") / "remove_list.csv", out,
                                   splits=tuple(sp for sp in SPLITS if sp in clean["by_split"]),
-                                  link=bool(self.stages.get("apply", {}).get("link", True)))
+                                  link=bool(self.stages.get("apply", {}).get("link", True)),
+                                  workers=self.stages.get("apply", {}).get("workers", apply_dedup.DEFAULT_WORKERS),
+                                  cache=self.cache)
         except apply_dedup.Stop as e:
             raise Stop(f"apply: {e}")
         counts = dict(s["totals"])
@@ -625,6 +973,8 @@ class Run:
             args += ["--pack-table", path(spec["pack_table"])]
         if spec.get("any_tokenizer"):
             args.append("--any-tokenizer")
+        else:
+            args += ["--dataset-version", spec["dataset_version"]]
         log = self.dir / "logs" / "shards.log"
         rc = run_script(script, args, "shards", log)
         summary_path = out / "shards_summary.json"
@@ -637,6 +987,12 @@ class Run:
                    f"{counts}; first: {first}; see logs/shards.log")
         self.check("shards: run_shards.py exited 0", rc == 0, f"exit code {rc}: {tail(log)}")
         self.check("shards: at least one shard written", counts["written"] > 0, f"{counts}")
+        cut = sorted(name for name, e in s["parts"].items() if e.get("truncated"))
+        self.check("shards: no part was cut short (every kept document of a written part fits in its shard)",
+                   counts.get("truncated", 0) == 0 and not cut,
+                   f"{len(cut) or counts.get('truncated')} part(s) did not fit in stages.shards.tokens, e.g. {cut[:3]}: the "
+                   "writer fills one shard a part and drops the rest. Raise tokens or split the parts; reconcile would "
+                   "report those documents as not_reached")
         self.check("shards: the summary is this run's, made with this run's cleaning_pipeline.json",
                    s.get("run_id") == self.cfg["run_id"] and s.get("cleaning_pipeline_sha256") == record_sha,
                    f"summary run_id {s.get('run_id')}, cleaning_pipeline_sha256 {str(s.get('cleaning_pipeline_sha256'))[:12]}…")
@@ -662,6 +1018,7 @@ class Run:
             raise Stop(f"reconcile: {e}. See {self.shown(out)}/reconcile_summary.json and reconcile_docs.parquet (shard_status)")
         for c in r["checks"]:
             self.check(f"reconcile: {c['check']}", c["ok"], c["detail"])
+        self.check_inventory("reconcile")
         return {"mode": "run", "command": ["teams/01-data-a/pipeline/reconcile_shards.py"], "code_sha256": r["code_sha256"],
                 "output": "reconcile", "counts": {"kept": r["kept"], "in_shards": r["in_shards"], **r["totals"]}}
 
@@ -675,28 +1032,155 @@ class Run:
         if STAGES.index(start) > STAGES.index(to):
             raise Stop(f"\"from\": {start} comes after \"to\": {to}")
         self.validate(to)
-        old = {s["stage"]: s for s in load_json(self.manifest_path)["stages"]} if self.manifest_path.is_file() else {}
+        prior = load_json(self.manifest_path) if self.manifest_path.is_file() else {}
+        state = (prior.get("intermediates") or {}).get("state")
+        if state:  # a drop began in this run folder: parts of deduped/ and final/ may be gone
+            raise Stop(f"{self.manifest_path} records that this run dropped its intermediate Parquet (\"intermediates\": "
+                       f"\"drop\", {state}): it cannot be resumed or rerun in place; start a new run with a new run_id")
+        old = {s["stage"]: s for s in prior.get("stages", [])}
+        try:  # an inventory report of an earlier invocation is not this one's: its check points write their own
+            (self.dir / "inventory_check.json").unlink(missing_ok=True)
+        except OSError as e:
+            raise Stop(f"inventory: the earlier report {self.shown(self.dir / 'inventory_check.json')} could not be removed "
+                       f"({type(e).__name__})")
         sys.path.insert(0, str(HERE))
         for stage in STAGES[: STAGES.index(to) + 1]:
             out = self.output(stage)
             if STAGES.index(stage) < STAGES.index(start):
                 if stage not in old:
                     raise Stop(f"\"from\": {start}: stage {stage} has no record in {self.manifest_path}; run it first")
-                if not out.exists() or digest(out)[0] != old[stage]["digest"]:
+                if not out.exists() or digest(out, self.cache)[0] != old[stage]["digest"]:
                     raise Stop(f"{stage}: {out} changed after the manifest recorded it; rerun from {stage}")
                 self.done[stage] = old[stage]
                 continue
-            t0, self.checks, self.known = time.time(), [], {}
+            t0, self.checks, self.checked = time.time(), [], None
+            if stage == "shards":  # the ledger is recorded by now, whether it ran in this invocation or an earlier one
+                self.check_inventory("ledger")  # before anything is sharded: a part the input manifest lists and the ledger lacks stops here
             rec = self.stage_external(stage) if stage in EXTERNAL else getattr(self, f"stage_{stage}")()
-            rec["digest"], rec["files"] = digest(out, self.known)  # self.known: hashes the stage has just computed
+            rec["digest"], rec["files"] = digest(out, self.cache)
+            if self.checked:  # which inventory this stage's "inventory: ..." checks passed with
+                rec["inventory_sha256"] = self.checked
             self.done[stage] = {"stage": stage, **rec, "checks": self.checks, "seconds": round(time.time() - t0, 1)}
             self.write()
+            self.cache.save()  # a resumed run reuses every hash so far
             print(f"{stage}: {json.dumps({k: v for k, v in self.done[stage]['counts'].items() if k != 'by_part'})}",
                   file=sys.stderr, flush=True)
         m = self.write()
+        if self.cfg.get("intermediates", "keep") == "drop":  # validated: the run ended at reconcile, and every check passed
+            m = self.drop()
         table = pack_table(m.get("by_pack") or {})
         if table:
             print(table, file=sys.stderr, flush=True)
+        return m
+
+    def droppable_parts(self):
+        """(the parts <split>/<pack>/<file> whose Parquet a drop deletes, how many parts with kept documents it leaves).
+        A part goes only when reconcile_docs.parquet shows every kept document of it in a shard, or left out by the shard
+        writer for a stated reason, and the shard stage reports the part as written. So a held-out part (not_sharded), a
+        part of a pack the shard stage was not asked for (not_selected) and a part without kept documents all stay.
+        Read a batch at a time: two columns of one row per kept document."""
+        import pyarrow as pa, pyarrow.parquet as pq
+        from collections import Counter
+        written = {name for name, e in load_json(self.output("shards") / "shards_summary.json").get("parts", {}).items()
+                   if e.get("status") == "written"}
+        ok, other = Counter(), Counter()
+        with pq.ParquetFile(self.output("reconcile") / "reconcile_docs.parquet") as docs:
+            for batch in docs.iter_batches(columns=["input_part", "shard_status"]):
+                groups = pa.Table.from_batches([batch]).group_by(["input_part", "shard_status"]).aggregate([([], "count_all")])
+                for g in groups.to_pylist():
+                    status = g["shard_status"] or ""
+                    (ok if status == "in_shard" or status.startswith("left_out:") else other)[g["input_part"]] += g["count_all"]
+        parts = sorted(p for p in ok if p not in other and p in written)
+        return parts, len(set(ok) | set(other)) - len(parts)
+
+    def check_shards_for_drop(self, parts):
+        """Stop, with nothing deleted, unless every shard the parts to drop went into is on disk as its manifest says
+        (shard_problems: files, sha256, header, size, index, document rows, summary counts). The summary and reconcile
+        only say what the shard writer reported; this looks at the shards themselves, since after a drop they are the
+        only copy of those documents. Returns how many shards were checked."""
+        out = self.output("shards")
+        entries = load_json(out / "shards_summary.json").get("parts", {})
+        problems, checked = [], 0
+        for name in parts:
+            e = entries.get(name) or {}
+            sid = e.get("shard_id")  # run_shards.py writes one shard a part
+            if not isinstance(sid, str) or not sid:
+                problems.append(f"{name}: shards_summary.json names no shard for it")
+                continue
+            checked += 1
+            problems += [f"{name} → {sid}: {p}" for p in shard_problems(out, sid, e, self.cache)]
+        self.cache.save()  # what was hashed is kept, whether the check passes or not
+        if problems:
+            more = f" (and {len(problems) - 3} more)" if len(problems) > 3 else ""
+            raise Stop(f"intermediates: a shard is not on disk as its manifest says, so its Parquet stays: "
+                       f"{'; '.join(problems[:3])}{more}. Nothing was deleted")
+        return checked
+
+    def drop_files(self, parts):
+        """[(folder name, file)]: the Parquet of these parts under deduped/ and final/. Every check is made here, before
+        the first file goes: the name is <split>/<pack>/<file>.parquet and nothing else; the folder and the part's own
+        folder are where they should be in the run folder once links are resolved (a folder that is a link to somewhere
+        else stops the drop); and the file can be deleted (on Windows a read-only file cannot, and its attribute is not
+        changed here, since a hard-linked part shares it with the adopted file)."""
+        root, files = self.dir.resolve(), []
+        for folder in self.drop_folders().values():
+            real = folder.resolve()
+            if real != root / folder.name:
+                raise Stop(f"intermediates: {folder} is a link to somewhere else; nothing was deleted")
+            for name in parts:
+                bits = name.split("/")
+                if (len(bits) != 3 or bits[0] not in SPLITS or not bits[2].endswith(".parquet")
+                        or any(b in ("", ".", "..") or Path(b).name != b for b in bits)):
+                    raise Stop(f"intermediates: {name!r} is not a part name (<split>/<pack>/<file>.parquet); nothing was deleted")
+                f = folder.joinpath(*bits)
+                if not f.is_file():
+                    continue
+                if f.parent.resolve() != real.joinpath(*bits[:2]):
+                    raise Stop(f"intermediates: {f.parent} is a link to somewhere else; nothing was deleted")
+                if not os.access(f.parent, os.W_OK) or (os.name == "nt" and not os.access(f, os.W_OK)):
+                    raise Stop(f"intermediates: {f} cannot be deleted (read-only); nothing was deleted")
+                files.append((folder.name, f))
+        return files
+
+    def drop(self):
+        """Delete, from deduped/ and final/, the Parquet of every part whose kept documents are all in shards or left out by
+        the shard writer for a stated reason (see droppable_parts and drop_files; nothing else is deleted). The manifest
+        says "started" before the first file goes and "done" with the counts afterwards: "parts" counts parts, "folders"
+        the files deleted. If the very first deletion fails the mark is taken back, since the run folder is then whole;
+        with nothing to delete there is no mark at all, and the run stays resumable. A hard-linked part loses only this
+        name. Returns the manifest."""
+        parts, left = self.droppable_parts()
+        files = self.drop_files(parts)
+        verified = self.check_shards_for_drop(parts) if files else 0  # before the first file goes
+        folders = {f.name: {"stage": stage, "parquet_files": 0, "bytes": 0, "hard_links": 0}
+                   for stage, f in self.drop_folders().items()}
+        if not files:  # no part is wholly in shards (or its Parquet is not there): nothing changes on disk
+            self.dropped = {"mode": "drop", "parts": {"dropped": 0, "left": left + len(parts)}, "folders": folders}
+            print("intermediates: nothing to drop (no part has all its kept documents in shards)", file=sys.stderr, flush=True)
+            return self.write()
+        self.dropped = {"mode": "drop", "state": "started"}
+        self.write()  # on disk before the first file goes: a run stopped halfway through the drop says so
+        gone = 0
+        for name, f in files:
+            try:
+                st = f.stat()
+                f.unlink()
+            except OSError as e:
+                if gone:
+                    raise Stop(f"intermediates: could not delete {f} ({e}) after {gone} file(s) were deleted; the manifest "
+                               "records the drop as started")
+                self.dropped = None
+                self.write()
+                raise Stop(f"intermediates: could not delete {f} ({e}); nothing was deleted")
+            gone += 1
+            c = folders[name]
+            c["parquet_files"], c["bytes"], c["hard_links"] = c["parquet_files"] + 1, c["bytes"] + st.st_size, c["hard_links"] + (st.st_nlink > 1)
+        self.dropped = {"mode": "drop", "state": "done", "parts": {"dropped": len(parts), "left": left},
+                        "shards_verified": verified, "folders": folders}
+        m = self.write()
+        print(f"intermediates: dropped {len(parts)} part(s), left {left}: " + ", ".join(
+            f"{name} {c['parquet_files']} Parquet file(s), {c['bytes']:,} bytes" for name, c in folders.items()),
+            file=sys.stderr, flush=True)
         return m
 
     def write(self):
@@ -716,11 +1200,23 @@ class Run:
         stages = [self.done[s] for s in STAGES if s in self.done]
         by_pack = self.done.get("ledger", {}).get("by_pack")
         manifest = {"tool": "run_pipeline.py", "run_id": self.cfg["run_id"], "config": self.cfg,
-                    "code_sha256": sha256(Path(__file__)), "git_commit": git_commit(),
+                    "code_sha256": code_sha256(Path(__file__), _CACHE, ("stage_args.py", "inventory_check.py"))[0], "git_commit": git_commit(),
                     "python": platform.python_version(), "pyarrow": pyarrow_version(), "stages": stages,
-                    "checks": [dict(ch, stage=s["stage"]) for s in stages for ch in s.get("checks", [])], "totals": totals}
+                    "checks": [dict(ch, stage=s["stage"]) for s in stages for ch in s.get("checks", [])], "totals": totals,
+                    "intermediates": self.dropped or {"mode": self.cfg.get("intermediates", "keep")}}
         if by_pack:
             manifest["by_pack"] = by_pack
+        manifest["inventory"] = None  # a run without an expected inventory says so
+        if self.inventory is not None:
+            # The inventory this invocation was given, and under "checked" the sha256 of the inventory each check point
+            # passed with. It is read from the records of the shard and reconcile stages, so it is null until that stage
+            # is recorded, and after a resume it shows a check point that passed with another file. "report" is where
+            # the check points write, from the shard stage on.
+            manifest["inventory"] = {
+                **inventory_check.described(self.inventory), "file": self.shown(self.inventory["path"]),
+                "checked": {"ledger": self.done.get("shards", {}).get("inventory_sha256"),
+                            "reconcile": self.done.get("reconcile", {}).get("inventory_sha256")},
+                "report": "inventory_check.json"}
         self.dir.mkdir(parents=True, exist_ok=True)
         tmp = self.manifest_path.with_name(self.manifest_path.name + ".tmp")
         tmp.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8", newline="\n")
