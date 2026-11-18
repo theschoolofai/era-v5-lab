@@ -109,7 +109,8 @@ Evaluated via `teams/10-post-training/sft/dt_vs_fft.py --sweep --table` across t
    - **SwiGLU MLP Blocks ($W_{\text{gate}}, W_{\text{up}}, W_{\text{down}}$):** Exhibit greater redundancy; $p = 0.50$ deletion maintains step 0 loss at $0.000298$, slightly lower than the unpruned baseline ($0.000322$), corroborating the finding that Wanda pruning acts as an implicit inductive regularizer. Expanding from `gate_proj` to all MLP lowers test bpb (`0.5287 -> 0.5048`) at the cost of ~45% more forgetting (`+0.0295 -> +0.0426`).
 4. **Wanda Initialization Quantile:**
    - Sweeping the initial Wanda quantile $\eta$ from `1/8192` to `1/256` barely changes final deletion (`3.17% -> 3.50%`) or task metrics; training gradient updates determine final sparsity.
-5. **Capstone Caveat:**
+5. **Learning-rate check (18 Nov, one seed):** the pure-DT arm above uses lr `2e-3`; the official script uses `5e-4`. Re-run at `5e-4` (same data, steps, alpha, seed; Mac fp32, CPU evaluation): test bpb `0.5484` (worse than `2e-3`'s `0.5323`, still above LoRA `0.5283` and Full FT `0.4836`), held-out drift `+0.0207` (below `2e-3`'s `+0.0287` and Full FT's `+0.0508`). The forgetting claim holds at the official lr, and the task ordering is unchanged. Details and checks: `results/dt_lr_check_20261118.md`.
+6. **Capstone Caveat:**
    - All surrogate runs above are on dense `SmolLM2` with `AdamW`, not the capstone MoE with `Muon` / `KE2`. See `jobs/2026-11-19-dt-vs-fft-1.7b.md` for the TSAI reproduction request (`1.7B` base row).
 
 ---
