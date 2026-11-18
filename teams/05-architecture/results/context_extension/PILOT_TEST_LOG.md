@@ -53,7 +53,7 @@ This is an inference-only positional retrofit evaluated on three older English W
 ## Reproduce
 
 The current submission provides `notebooks/context_extension.ipynb`, a standard
-Jupyter conversion of the reviewed export. See `notebooks/README.md` for the
+Jupyter conversion of the reviewed export. See `notebooks/context_extension_README.md` for the
 pinned core dependencies and CUDA Run All instructions. Fresh outputs are
 written below the kernel working directory in `out/context_extension_pilot/`;
 committed result files are not overwritten.
