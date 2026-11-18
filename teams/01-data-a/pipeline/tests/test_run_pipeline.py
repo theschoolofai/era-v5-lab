@@ -317,6 +317,9 @@ def shard_config(tmp_path, tsai_outputs, config, monkeypatch):
     """A config with stages.shards, and the clean job's job_summary.json the shard stage needs. Returns the config path."""
     for k in ("FAKE_SHARDS_FAIL", "FAKE_SHARDS_NONE", "FAKE_SHARDS_BAD_RUN", "FAKE_SHARDS_TRUNCATE"):
         monkeypatch.delenv(k, raising=False)
+    sys.path.insert(0, str(FAKE_SHARDS.parents[2] / "shards"))
+    import verify_shards  # the stand-in writes dummy .bin files: the real verification is tested in shards/tests
+    monkeypatch.setattr(verify_shards, "verify", lambda *args, **kwargs: ([], {}))
     (tsai_outputs["cleaned"] / "job_summary.json").write_text(json.dumps({"clean_sha256": "c" * 64, "parts": []}), encoding="utf-8")
     tokenizer = tmp_path / "tokenizer.json"
     tokenizer.write_text("{}", encoding="utf-8")
@@ -868,6 +871,41 @@ def test_a_failed_reconciliation_stops_the_run(tmp_path, shard_config, monkeypat
         rp.run(shard_config)
 
 
+def test_the_shards_on_disk_are_verified_and_the_check_is_in_the_manifest(shard_config):
+    m = rp.run(shard_config)
+    assert [c for c in m["checks"] if c["check"].startswith("shards: the shard files on disk verify") and c["ok"]]
+
+
+def test_shards_that_do_not_verify_stop_the_run_before_the_stage_is_recorded(tmp_path, shard_config, monkeypatch):
+    import verify_shards
+    monkeypatch.setattr(verify_shards, "verify", lambda *args, **kwargs: (["pk-a-train-000000: pk-a-train-000000.bin: sha256 1234abcd…, the manifest says 0000…"], {}))
+    with pytest.raises(rp.Stop, match="the shard files on disk verify.*1 problem.*first: pk-a-train-000000"):
+        rp.run(shard_config)
+    stages = [s["stage"] for s in json.loads((tmp_path / "runs" / "test-run" / "pipeline_manifest.json").read_text(encoding="utf-8"))["stages"]]
+    assert stages[-1] == "ledger"
+
+
+def test_a_verification_that_cannot_run_is_a_stop_not_a_traceback(shard_config, monkeypatch):
+    import verify_shards
+
+    def broken(*args, **kwargs):
+        raise ValueError("expected value at line 1")
+    monkeypatch.setattr(verify_shards, "verify", broken)
+    with pytest.raises(rp.Stop, match="could not be verified: ValueError"):
+        rp.run(shard_config)
+
+
+def test_a_stage_digest_may_reuse_hashes_a_stage_computed(tmp_path):
+    (tmp_path / "a.bin").write_bytes(b"x" * 100)
+    (tmp_path / "b.json").write_text(json.dumps({"seconds": 1, "k": 2}), encoding="utf-8")
+    plain = rp.digest(tmp_path)
+    assert rp.digest(tmp_path, {"a.bin": rp.sha256(tmp_path / "a.bin")}) == plain  # the same value, one read less
+    assert rp.digest(tmp_path, {"a.bin": "0" * 64})[0] != plain[0]  # proves the given hash is the one used
+
+
+def test_a_failed_part_stops_the_run_and_names_the_reason(tmp_path, shard_config, monkeypatch):
+    monkeypatch.setenv("FAKE_SHARDS_FAIL", "1")
+    with pytest.raises(rp.Stop, match="no part failed or was skipped.*first: train/code-go/part-00000.parquet: made up"):
 # --- scale and robustness (the scale audit, 14 Nov) -----------------------------------------------------------------
 def test_records_are_counted_not_lines(tmp_path):
     f = tmp_path / "list.csv"

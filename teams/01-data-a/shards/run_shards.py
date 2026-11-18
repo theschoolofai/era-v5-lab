@@ -16,6 +16,12 @@ Before anything is written it checks that none of the shards it would write is a
 A part the writer stops on (a broken link in its chain, ...) is recorded as "failed" and the run goes on.
 It exits 1 unless every part was written or not_sharded.
 
+When it is done it checks the shards that are in --out (verify_shards.py: files, hashes, format, counts, pack table, and the first
+and last document of each shard against the final part), not only what it just wrote. A part whose shard fails a check becomes
+"failed" with the reason; a problem that belongs to no part (cleaning_pipeline.json missing, a shard no part accounts for) goes
+to "problems" in the summary; any problem makes the exit code 1. "verified" is true when the checks found nothing, false when
+they did, and null when there was no shard to check.
+
 Writes <out>/shards_summary.json: for each part its status, shard_id, docs, tokens, rows read of the rows in the part,
 "truncated" (the writer fills a shard up to --tokens and drops the rest of the part; several shards per part are not
 written yet), and the docs left out, with the run_id and the sha256 of cleaning_pipeline.json. A second run into the same --out
@@ -32,6 +38,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import pack_table  # noqa: E402
 import shard_writer  # noqa: E402
+import verify_shards  # noqa: E402
 
 SUMMARY = "shards_summary.json"
 NOT_SHARDED = ("heldout", "validation", "val")  # split folders that are left alone (shard_writer.py also refuses a non-train part)
@@ -84,6 +91,38 @@ def entry_of(shard_id, manifest, out):
             "left_out": report["left_out"]}
 
 
+def count(summary):
+    """{status: number of parts} for every status, and how many parts are truncated."""
+    entries = summary["parts"].values()
+    counts = {s: sum(e["status"] == s for e in entries) for s in ("written", "failed", "skipped", "not_sharded")}
+    counts["truncated"] = sum(bool(e.get("truncated")) for e in entries)
+    return counts
+
+
+def verify_written(a, summary):
+    """Check the shards in a.out against their files (verify_shards.py), for every part the summary calls written. A problem
+    that names a shard fails that part; the others go to summary["problems"]. Sets summary["verified"]; returns the problems."""
+    summary["verified"], summary["problems"] = None, []
+    written = {e["shard_id"]: name for name, e in summary["parts"].items() if e["status"] == "written"}
+    if not written:
+        return []
+    problems, _ = verify_shards.verify(a.out, a.manifest, a.tokenizer, a.pack_table, summary)
+    by_part = {}
+    for problem in problems:
+        name = next((n for sid, n in written.items() if problem.startswith(sid + ": ")), None)
+        if name is None:
+            summary["problems"].append(problem)
+        else:
+            by_part.setdefault(name, []).append(problem)
+    for name, found in by_part.items():
+        entry = summary["parts"][name]
+        more = f" (and {len(found) - 3} more)" if len(found) > 3 else ""
+        summary["parts"][name] = {"pack_id": entry["pack_id"], "shard_id": entry["shard_id"], "status": "failed",
+                                  "reason": "verify_shards: " + "; ".join(found[:3]) + more}
+    summary["verified"] = not problems
+    return problems
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--input", type=Path, required=True, help="the run's final folder: <input>/<split>/<pack>/<part>.parquet")
@@ -115,7 +154,7 @@ def main(argv=None):
     if taken:
         sys.exit(f"run_shards: already in {a.out}: {', '.join(taken)}. Nothing was written; use a new --out, or --pack for the rest")
 
-    this_run = []
+    this_run = []  # the names of the parts this run handled
     for split, pack, path in parts:
         name, sid = f"{split}/{pack}/{path.name}", shard_id_of(split, pack, path)
         if split in NOT_SHARDED:
@@ -133,7 +172,7 @@ def main(argv=None):
                     manifest, why = write_one(path, a, row, int(sid.rsplit("-", 1)[1]))
                     entry.update(status="failed", reason=why) if why else entry.update(entry_of(sid, manifest, a.out))
         summary["parts"][name] = entry
-        this_run.append(entry["status"])
+        this_run.append(name)
         note = f"{entry['docs']} docs, {entry['tokens']} tokens" + (" TRUNCATED" if entry["truncated"] else "") \
             if entry["status"] == "written" else entry["reason"]
         print(f"{entry['status']:8} {name}: {note}", file=sys.stderr if entry["status"] in ("failed", "skipped") else sys.stdout)
@@ -141,13 +180,19 @@ def main(argv=None):
     pipeline = a.out / "cleaning_pipeline.json"  # written by the writer with the run's first shard
     summary = {"run_id": run_id, "cleaning_pipeline_sha256": hashlib.sha256(pipeline.read_bytes()).hexdigest() if pipeline.is_file() else None,
                "parts": summary["parts"]}
-    entries = summary["parts"].values()
-    summary["counts"] = {s: sum(e["status"] == s for e in entries) for s in ("written", "failed", "skipped", "not_sharded")}
-    summary["counts"]["truncated"] = sum(bool(e.get("truncated")) for e in entries)
+    summary["counts"] = count(summary)
+    problems = verify_written(a, summary)
+    for name, e in summary["parts"].items():
+        if e["status"] == "failed" and e["reason"].startswith("verify_shards: "):
+            print(f"failed   {name}: {e['reason']}", file=sys.stderr)
+    for problem in summary["problems"]:
+        print(f"problem  {problem}", file=sys.stderr)
+    summary["counts"] = count(summary)
     a.out.mkdir(parents=True, exist_ok=True)
     summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(json.dumps(summary["counts"]))
-    return 0 if set(this_run) <= {"written", "not_sharded"} else 1  # this run's parts, not those an earlier run left in the summary
+    statuses = {summary["parts"][n]["status"] for n in this_run}  # this run's parts, not those an earlier run left in the summary
+    return 0 if statuses <= {"written", "not_sharded"} and not problems else 1
 
 
 if __name__ == "__main__":
