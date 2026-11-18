@@ -10,8 +10,6 @@
 - Fingerprints: v2, full set, normalizer g9-v2.
 - set_sha256: `2826a3b883210c653979103c09ce1c79e40fc4f7034b54027f2836482370d22a`.
 
-Note: `results/decontam_shards.md` remains the main report for all 41 shards.
-
 ## R1 — shard checks
 
 | Shard ID | Payload SHA256 | Docs decoded | Docs scanned | Docs flagged | Canary hits |
