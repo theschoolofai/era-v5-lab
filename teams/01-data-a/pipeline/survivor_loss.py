@@ -19,6 +19,8 @@ A GROUP IS
   partly_hit    F2 dropped some of its survivors, not all (a group with several held-out survivors)
   untouched     F2 dropped none of its survivors
   (without_survivor: dedup kept no copy, as with no usable licence; F2 cannot change it)
+  (with_several_survivors: dedup kept more than one copy, every held-out copy by rule 0; counted for the runner, which
+  checks it, with total and without_survivor, against dedup_summary.json)
 
 CHECKS (exit code 1 on failure)
 ===============================
@@ -130,8 +132,8 @@ def report(groups_csv, final, out):
     hit = hit.append_column("_hit", pc.is_valid(hit["f2_items"]))
     per_group = hit.group_by("group_id").aggregate([([], "count_all"), ("_hit", "sum")]) if hit.num_rows else None
     all_groups = pc.count_distinct(groups["group_id"]).as_py() if groups.num_rows else 0
-    counts = {"total": all_groups, "with_survivor": 0, "without_survivor": all_groups, "lost": 0, "partly_hit": 0,
-              "untouched": 0}
+    counts = {"total": all_groups, "with_survivor": 0, "without_survivor": all_groups, "with_several_survivors": 0,
+              "lost": 0, "partly_hit": 0, "untouched": 0}
     rows = pa.table({c: pa.array([], pa.string()) for c in OUT_COLUMNS})
     by_pack = {}
     if per_group is not None:
@@ -140,6 +142,7 @@ def report(groups_csv, final, out):
         per_group = per_group.append_column("status", status)
         counts["with_survivor"] = per_group.num_rows
         counts["without_survivor"] = all_groups - per_group.num_rows
+        counts["with_several_survivors"] = at.count(pc.greater(n_surv, 1))
         for s in ("lost", "partly_hit", "untouched"):
             counts[s] = at.count(pc.equal(status, s))
         dropped = hit.filter(hit["_hit"]).join(per_group.select(["group_id", "status"]), "group_id")
