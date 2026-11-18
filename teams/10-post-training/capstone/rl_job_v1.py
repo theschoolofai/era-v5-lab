@@ -278,8 +278,21 @@ def check_inputs(a) -> dict:
             "start_weights_sha256": probe.sha256_file(a.start_weights) if a.start_weights else None}
 
 
+def adapter_probe(a) -> dict | None:
+    """The probe block of the adapter config. Origin g5_delivery: the adapter refuses a delivered run folder without Team 5's
+    probe (ids and expected mean NLL), so the job stops in pins, before the pool and the scorer, when --probe-file is missing."""
+    from make_adapter_config import load_probe  # noqa: PLC0415
+    if a.probe_file:
+        return load_probe(a.probe_file)
+    if a.origin == "g5_delivery":
+        raise ValueError("--origin g5_delivery needs --probe-file (json {ids, expected_mean_nll[, atol]} supplied with Team 5's checkpoint); "
+                         "team5_adapter refuses a delivered run folder without it")
+    return None
+
+
 def pins(a, out: Path) -> dict:
     import sft_job_v1 as sj  # noqa: PLC0415
+    adapter_probe(a)  # raises before the pool and the scorer if a delivered run folder comes without its probe
     return {**probe.check_pins(a.run_folder, a.tokenizer, a.byte_table), **check_inputs(a), **sj.check_g5_sources(a)}
 
 
@@ -327,7 +340,7 @@ def sft_rebuild(a, out: Path) -> dict:
     import sft_slice_v1  # noqa: PLC0415
     from make_adapter_config import write_config  # noqa: PLC0415
     work = out / "_work"
-    cfg = write_config(out / "adapter.yaml", a.g5_root, a.run_folder, a.tokenizer, a.byte_table, TEAM10, a.origin, not a.no_git)
+    cfg = write_config(out / "adapter.yaml", a.g5_root, a.run_folder, a.tokenizer, a.byte_table, TEAM10, a.origin, not a.no_git, probe=adapter_probe(a))
     sl = sft_slice_v1.build(a.packs, a.tokenizer, a.byte_table, a.max_tokens, work / "_inputs", a.dev_rows, check_hashes=not a.no_pack_check)
     rows = work / "_inputs" / f"{a.sft_arm}_train.jsonl"
     ns = argparse.Namespace(method="full", lr=a.sft_lr, marker_lr=1e-3, batch=a.sft_batch, max_train_seconds=a.sft_max_train_seconds,
@@ -556,7 +569,7 @@ def run(a, out: Path) -> int:
     if a.start_weights:
         init_state, init_sha = a.start_weights, probe.sha256_file(a.start_weights)
         from make_adapter_config import write_config  # noqa: PLC0415
-        write_config(out / "adapter.yaml", a.g5_root, a.run_folder, a.tokenizer, a.byte_table, TEAM10, a.origin, not a.no_git)
+        write_config(out / "adapter.yaml", a.g5_root, a.run_folder, a.tokenizer, a.byte_table, TEAM10, a.origin, not a.no_git, probe=adapter_probe(a))
     elif a.sft_arm != "none":
         results["sft"] = probe.step(out, "sft", lambda: sft_rebuild(a, out))
         if not results["sft"]["ok"]:
@@ -566,7 +579,7 @@ def run(a, out: Path) -> int:
         sft_s = results["sft"]["seconds"]
     else:
         from make_adapter_config import write_config  # noqa: PLC0415
-        write_config(out / "adapter.yaml", a.g5_root, a.run_folder, a.tokenizer, a.byte_table, TEAM10, a.origin, not a.no_git)
+        write_config(out / "adapter.yaml", a.g5_root, a.run_folder, a.tokenizer, a.byte_table, TEAM10, a.origin, not a.no_git, probe=adapter_probe(a))
 
     if rate is None:  # raw checkpoint or --start-weights without a given rate: measure it before choosing sizes
         results["rate"] = probe.step(out, "rate", lambda: rate_probe(a, out, init_state))
@@ -644,6 +657,7 @@ def parse_args(argv=None):
     ap.add_argument("--no-git", action="store_true")
     ap.add_argument("--origin", default="g5_delivery", choices=("g10_rehearsal", "g5_delivery"),
                     help="g5_delivery: Team 5's delivered run folder (non-smoke manifest); g10_rehearsal is a stand-in and train.py refuses it without --allow-fixture-smoke")
+    ap.add_argument("--probe-file", type=Path, help="json {ids, expected_mean_nll[, atol]} supplied with Team 5's checkpoint; required for --origin g5_delivery")
     ap.add_argument("--allow-fixture-smoke", action="store_true", help="DRY RUN ONLY: let train.py load a rehearsal adapter; its output is never a result")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--device", default="cuda")

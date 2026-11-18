@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import sys
 import time
@@ -204,3 +205,99 @@ def test_a_rehearsal_origin_is_refused_before_any_work_unless_it_is_a_dry_run(tm
     a.rl_tasks, a.train_pool, a.heldout_pool = tmp_path / "c", tmp_path / "tp", tmp_path / "hp"
     with pytest.raises(ValueError, match="rehearsal adapter"):
         job.check_inputs(a)
+
+
+# ---------------------------------------------------------------- origin g5_delivery (the real command's branch)
+
+def _probe_file(tmp_path, **kw):
+    p = tmp_path / "probe.json"
+    p.write_text(json.dumps({"ids": [5, 6, 7, 8], "expected_mean_nll": 2.5, **kw}))
+    return p
+
+
+def test_a_delivered_run_folder_needs_teams_probe_and_the_probe_file_is_validated(tmp_path):
+    """team5_adapter refuses origin g5_delivery without probe.ids and probe.expected_mean_nll; the job must carry them
+    into adapter.yaml (before this was added the config had no probe block and the real command died in the adapter)."""
+    import make_adapter_config as mac  # noqa: PLC0415
+    base = ["--g5-root", "g", "--run-folder", "r", "--tokenizer", "t", "--byte-table", "b", "--rl-tasks", "c",
+            "--train-pool", "tp", "--heldout-pool", "hp", "--out", str(tmp_path)]
+    with pytest.raises(ValueError, match="needs --probe-file"):
+        job.adapter_probe(job.parse_args(base + ["--origin", "g5_delivery"]))
+    assert job.adapter_probe(job.parse_args(base + ["--origin", "g10_rehearsal"])) is None
+    a = job.parse_args(base + ["--origin", "g5_delivery", "--probe-file", str(_probe_file(tmp_path, atol=1e-5))])
+    assert job.adapter_probe(a) == {"ids": [5, 6, 7, 8], "expected_mean_nll": 2.5, "atol": 1e-5}
+    for bad in ({"expected_mean_nll": None}, {"expected_mean_nll": float("nan")}, {"ids": [1]}, {"ids": [1, "x"]}):
+        with pytest.raises(ValueError, match="probe file"):
+            mac.load_probe(_probe_file(tmp_path, **bad))
+
+
+_STANDIN = Path(__file__).resolve().parents[6] / "work"
+STANDIN_RUN = Path(os.environ.get("G10_STANDIN_RUN_FOLDER", _STANDIN / "pr587-main-check-2026-11-18/private/runs/post521"))
+STANDIN_ART = Path(os.environ.get("G10_STANDIN_ARTIFACTS", _STANDIN / "capstone-rehearsal-2026-11-16/artifacts"))
+needs_standin = pytest.mark.skipif(not (STANDIN_RUN / "checkpoint.pt").is_file() or not (STANDIN_ART / "tokenizer_p1536.json").is_file(),
+                                   reason="set G10_STANDIN_RUN_FOLDER (a CPU run folder trained with this tree's Team 5 code) and G10_STANDIN_ARTIFACTS")
+
+
+def _delivery(tmp_path):
+    """A tmp copy of a tiny real G5 run folder (random-init, 20 CPU steps) whose manifest is relabelled the way Team 5's
+    non-smoke delivery is labelled (status AGREED_BASELINE_RUN, smoke false). The weights, tokenizer and KE2 table are real
+    files; only the label differs, which is exactly what origin g5_delivery checks."""
+    import shutil  # noqa: PLC0415
+    rf = tmp_path / "delivery"
+    shutil.copytree(STANDIN_RUN, rf)
+    m = json.loads((rf / "manifest.json").read_text())
+    m["status"], m["smoke"] = "AGREED_BASELINE_RUN", False
+    (rf / "manifest.json").write_text(json.dumps(m, indent=2))
+    return rf
+
+
+@needs_standin
+def test_g5_delivery_origin_runs_pins_and_the_trainers_adapter_load_on_cpu(tmp_path):
+    import make_adapter_config as mac  # noqa: PLC0415
+    rl = Path(__file__).resolve().parents[1] / "rl-loop"
+    sys.path.insert(0, str(rl))
+    import team5_adapter as ta  # noqa: PLC0415
+    repo = Path(__file__).resolve().parents[3]
+    rf, tok, tab = _delivery(tmp_path), STANDIN_ART / "tokenizer_p1536.json", STANDIN_ART / "ke2_p1536" / "raw_table_P32.npz"
+    stub = {n: tmp_path / n for n in ("cc.jsonl", "tp", "hp")}
+    for p in stub.values():
+        p.write_text("x")
+    argv = ["--g5-root", str(repo), "--run-folder", str(rf), "--tokenizer", str(tok), "--byte-table", str(tab),
+            "--rl-tasks", str(stub["cc.jsonl"]), "--train-pool", str(stub["tp"]), "--heldout-pool", str(stub["hp"]),
+            "--device", "cpu", "--out", str(tmp_path / "out"), "--no-pack-check", "--no-git"]
+    (tmp_path / "out").mkdir()
+    # Team 5 would ship the expected NLL; the stand-in takes it from the rehearsal-origin build of the same weights.
+    ids = [5, 6, 7, 8, 9, 10]
+    cfg0 = mac.write_config(tmp_path / "rehearsal.yaml", repo, rf, tok, tab, Path(job.TEAM10), "g10_rehearsal", False,
+                            probe={"ids": ids})
+    nll = ta.build(yaml.safe_load(cfg0.read_text())).manifest["probe"]["mean_nll"]
+    probe = _probe_file(tmp_path, ids=ids, expected_mean_nll=nll, atol=1e-4)
+
+    # 1. without the probe file the job stops in pins, before pool or scorer
+    a = job.parse_args(argv + ["--origin", "g5_delivery"])
+    with pytest.raises(ValueError, match="needs --probe-file"):
+        job.pins(a, tmp_path / "out")
+    # 2. pins step passes on a non-smoke manifest and does not need --allow-fixture-smoke
+    a = job.parse_args(argv + ["--origin", "g5_delivery", "--probe-file", str(probe)])
+    res = job.pins(a, tmp_path / "out")
+    assert res["block_size"] == a.max_tokens and "g5_sources" in res
+    # 3. the trainer's adapter load (allow_fixture False): READY, learning report allowed, probe verified
+    cfg = mac.write_config(tmp_path / "out" / "adapter.yaml", repo, rf, tok, tab, Path(job.TEAM10), a.origin, False,
+                           probe=job.adapter_probe(a))
+    policy, codec = ta.build_policy_and_codec(cfg, device="cpu", allow_fixture=False)
+    man = codec.adapter_result.manifest
+    assert codec.adapter_result.status == ta.READY and man["origin"] == "g5_delivery" and man["learning_report_allowed"] is True
+    assert man["probe"]["verified_against"] == nll
+    # 4. corrupted on purpose: a rehearsal label with a delivery origin, a wrong probe value, a smoke manifest
+    m = json.loads((rf / "manifest.json").read_text())
+    m["status"], m["smoke"] = "SMOKE_NOT_A_QUALITY_RESULT", True
+    (rf / "manifest.json").write_text(json.dumps(m))
+    bad = mac.write_config(tmp_path / "bad.yaml", repo, rf, tok, tab, Path(job.TEAM10), "g5_delivery", False, probe=job.adapter_probe(a))
+    with pytest.raises(ta.ArtifactError, match="non-smoke AGREED_BASELINE_RUN"):
+        ta.build_policy_and_codec(bad, device="cpu")
+    m["status"], m["smoke"] = "AGREED_BASELINE_RUN", False
+    (rf / "manifest.json").write_text(json.dumps(m))
+    wrong = mac.write_config(tmp_path / "wrong.yaml", repo, rf, tok, tab, Path(job.TEAM10), "g5_delivery", False,
+                             probe={"ids": ids, "expected_mean_nll": nll + 0.5})
+    with pytest.raises(ta.ArtifactError, match="probe mean NLL"):
+        ta.build_policy_and_codec(wrong, device="cpu")
