@@ -45,7 +45,9 @@ RUN PARAMETERS (all in the config file; the manifest embeds the whole config)
   intermediates          "keep" (default): every stage's Parquet stays on disk, e.g. for the audit of the cleaner, which
                          reads the parts before and after clean.py. "drop": once reconcile has passed, the run deletes,
                          from <run>/deduped and <run>/final, the Parquet of every part whose kept documents are all in
-                         shards (or left out by the shard writer for a stated reason). A held-out part, a part of a pack
+                         shards (or left out by the shard writer for a stated reason), after checking every one of those
+                         shards on disk against its manifest (files, sha256, header, size, index, rows: shard_problems;
+                         one that fails stops the drop before anything is deleted). A held-out part, a part of a pack
                          the shard stage was not asked for and a part without kept documents stay, in both folders. The
                          cleaned folder is never touched (other runs adopt it), nor the raw input, the reports, summaries,
                          ledger, manifest and shards. It needs a run that ends at reconcile, and such a run cannot be
@@ -112,7 +114,8 @@ stage ran), and by_pack: the same chain for every pack and split, from the ledge
 table is also printed to stderr. A digest is the sha256 over the sorted relative path and sha256 of every file in the folder;
 JSON summaries are hashed without the fields that change between identical runs (timings, absolute paths, skip flags), so two
 runs on the same inputs give the same digests. The files are hashed in parallel threads, through the run's hash cache.
-"intermediates" holds the mode and, after a drop, how many parts went and how many were left, and per folder the Parquet
+"intermediates" holds the mode and, after a drop, how many parts went and how many were left, how many shards were checked
+on disk (shards_verified), and per folder the Parquet
 files and bytes deleted; the stage digests stay those of the folders as they were checked, before the drop.
 "inventory" is null without one. With one it names the inventory file, its sha256 and its counts of packs and parts,
 under "checked" the sha256 of the inventory each check point passed with (ledger: before the shard stage; reconcile:
@@ -267,6 +270,78 @@ def csv_rows(file):
 
 def load_json(file):
     return json.loads(Path(file).read_text(encoding="utf-8"))
+
+
+SHARD_MAGIC, SHARD_VERSION, SHARD_HEADER_BYTES = 20261025, 2, 1024  # shard format v1 (shards/shard_format_v1.md, G9's decoder)
+SHARD_FILES = (("payload_uri", "payload_sha256"), ("index_uri", "index_sha256"),
+               ("sample_metadata_uri", "sample_metadata_sha256"), ("quality_report_uri", "quality_report_sha256"))
+SHARD_SUFFIXES = (".bin", ".idx.npy", ".docs.parquet", ".quality_report.json")  # <shard_id><suffix>, as shard_writer.py names them
+
+
+def shard_problems(folder, shard_id, entry, cache):
+    """What is wrong with one written shard on disk, checked against its own manifest (<folder>/<shard_id>.json) and its
+    entry in shards_summary.json: [] when nothing is. Every file the manifest names has the writer's name
+    (<shard_id>.bin, .idx.npy, .docs.parquet, .quality_report.json), is a file in the folder (not a link) and has the
+    sha256 the manifest gives (a file that does not is not read further); the .bin has the format's header (magic, version, token count) and is exactly header +
+    4 bytes a token; the index is int64, starts at 0, rises, and ends at the token count, one entry more than documents; the
+    .docs.parquet has one row a document; and the summary's docs and tokens are the manifest's. A shard that passes
+    holds what reconcile counted, so the Parquet it came from may go."""
+    import numpy as np
+    import pyarrow.parquet as pq
+    mfile = folder / f"{shard_id}.json"
+    try:
+        m = load_json(mfile)
+    except (OSError, ValueError) as e:
+        return [f"{mfile.name}: cannot be read ({type(e).__name__})"]
+    if not isinstance(m, dict) or m.get("shard_id") != shard_id:
+        return [f"{mfile.name}: not the manifest of {shard_id}"]
+    files, problems = {}, []
+    for (uri, _), suffix in zip(SHARD_FILES, SHARD_SUFFIXES):
+        name, want = m.get(uri), f"{shard_id}{suffix}"
+        if name != want:  # the writer's names (shard_writer.py): never another shard's file, nor one elsewhere
+            problems.append(f"{mfile.name}: {uri} is {name!r}, expected {want!r}")
+        elif (folder / name).is_symlink() or not (folder / name).is_file():
+            problems.append(f"{name}: missing" if not (folder / name).is_symlink() else f"{name}: a link, not the file")
+        else:
+            files[uri] = folder / name
+    if problems:
+        return problems
+    shas = cache.sha256_many(files.values())
+    problems = [f"{files[uri].name}: sha256 {shas[files[uri]][:12]}…, the manifest has {str(m.get(key))[:12]}…"
+                for uri, key in SHARD_FILES if shas[files[uri]] != m.get(key)]
+    if problems:  # a file that is not the one the writer recorded: what it holds no longer matters
+        return problems
+    tokens, docs = m.get("token_count"), m.get("doc_count")
+    if not all(isinstance(v, int) and not isinstance(v, bool) and v >= 0 for v in (tokens, docs)):
+        return [f"{mfile.name}: token_count {tokens!r}, doc_count {docs!r}"]
+    payload = files["payload_uri"]
+    size = payload.stat().st_size
+    head = np.fromfile(payload, dtype="<i4", count=3) if size >= 12 else np.zeros(0, dtype="<i4")
+    if len(head) != 3 or (int(head[0]), int(head[1]), int(head[2])) != (SHARD_MAGIC, SHARD_VERSION, tokens):
+        problems.append(f"{payload.name}: header {head.tolist()}, expected [{SHARD_MAGIC}, {SHARD_VERSION}, {tokens}]")
+    if size != SHARD_HEADER_BYTES + 4 * tokens or m.get("payload_bytes") != size:
+        problems.append(f"{payload.name}: {size:,} bytes, expected {SHARD_HEADER_BYTES + 4 * tokens:,} "
+                        f"(manifest payload_bytes {m.get('payload_bytes')})")
+    try:
+        idx = np.load(files["index_uri"], mmap_mode="r", allow_pickle=False)
+        ok = (isinstance(idx, np.ndarray) and idx.dtype == np.dtype("<i8") and idx.ndim == 1 and len(idx) == docs + 1
+              and int(idx[0]) == 0 and int(idx[-1]) == tokens and bool((np.diff(idx) > 0).all()))
+        why = "" if isinstance(idx, np.ndarray) and idx.dtype == np.dtype("<i8") else f" ({getattr(idx, 'dtype', type(idx).__name__)})"
+    except Exception as e:  # a cut or foreign file: EOFError, BadZipFile, ValueError, ...
+        ok, why = False, f" (cannot be read: {type(e).__name__})"
+    if not ok:
+        problems.append(f"{files['index_uri'].name}: not {docs + 1} rising int64 offsets from 0 to {tokens}{why}")
+    try:
+        rows = pq.read_metadata(files["sample_metadata_uri"]).num_rows
+    except Exception as e:
+        rows = None
+        problems.append(f"{files['sample_metadata_uri'].name}: cannot be read ({type(e).__name__})")
+    if rows is not None and rows != docs:
+        problems.append(f"{files['sample_metadata_uri'].name}: {rows} rows, the manifest has {docs} documents")
+    for key, want in (("docs", docs), ("tokens", tokens)):
+        if key in entry and entry[key] != want:
+            problems.append(f"shards_summary.json: {key} {entry[key]} for {shard_id}, the manifest has {want}")
+    return problems
 
 
 class Run:
@@ -987,6 +1062,29 @@ class Run:
         parts = sorted(p for p in ok if p not in other and p in written)
         return parts, len(set(ok) | set(other)) - len(parts)
 
+    def check_shards_for_drop(self, parts):
+        """Stop, with nothing deleted, unless every shard the parts to drop went into is on disk as its manifest says
+        (shard_problems: files, sha256, header, size, index, document rows, summary counts). The summary and reconcile
+        only say what the shard writer reported; this looks at the shards themselves, since after a drop they are the
+        only copy of those documents. Returns how many shards were checked."""
+        out = self.output("shards")
+        entries = load_json(out / "shards_summary.json").get("parts", {})
+        problems, checked = [], 0
+        for name in parts:
+            e = entries.get(name) or {}
+            sid = e.get("shard_id")  # run_shards.py writes one shard a part
+            if not isinstance(sid, str) or not sid:
+                problems.append(f"{name}: shards_summary.json names no shard for it")
+                continue
+            checked += 1
+            problems += [f"{name} → {sid}: {p}" for p in shard_problems(out, sid, e, self.cache)]
+        self.cache.save()  # what was hashed is kept, whether the check passes or not
+        if problems:
+            more = f" (and {len(problems) - 3} more)" if len(problems) > 3 else ""
+            raise Stop(f"intermediates: a shard is not on disk as its manifest says, so its Parquet stays: "
+                       f"{'; '.join(problems[:3])}{more}. Nothing was deleted")
+        return checked
+
     def drop_files(self, parts):
         """[(folder name, file)]: the Parquet of these parts under deduped/ and final/. Every check is made here, before
         the first file goes: the name is <split>/<pack>/<file>.parquet and nothing else; the folder and the part's own
@@ -1022,6 +1120,7 @@ class Run:
         name. Returns the manifest."""
         parts, left = self.droppable_parts()
         files = self.drop_files(parts)
+        verified = self.check_shards_for_drop(parts) if files else 0  # before the first file goes
         folders = {f.name: {"stage": stage, "parquet_files": 0, "bytes": 0, "hard_links": 0}
                    for stage, f in self.drop_folders().items()}
         if not files:  # no part is wholly in shards (or its Parquet is not there): nothing changes on disk
@@ -1045,7 +1144,8 @@ class Run:
             gone += 1
             c = folders[name]
             c["parquet_files"], c["bytes"], c["hard_links"] = c["parquet_files"] + 1, c["bytes"] + st.st_size, c["hard_links"] + (st.st_nlink > 1)
-        self.dropped = {"mode": "drop", "state": "done", "parts": {"dropped": len(parts), "left": left}, "folders": folders}
+        self.dropped = {"mode": "drop", "state": "done", "parts": {"dropped": len(parts), "left": left},
+                        "shards_verified": verified, "folders": folders}
         m = self.write()
         print(f"intermediates: dropped {len(parts)} part(s), left {left}: " + ", ".join(
             f"{name} {c['parquet_files']} Parquet file(s), {c['bytes']:,} bytes" for name, c in folders.items()),

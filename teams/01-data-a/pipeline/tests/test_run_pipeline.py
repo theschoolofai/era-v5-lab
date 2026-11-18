@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 import pytest
+import pyarrow as pa
 import pyarrow.parquet as pq
 
 from conftest import HEADER, PARTS, PIPELINE
@@ -1968,3 +1969,150 @@ def test_an_inventory_and_a_drop_go_together(tmp_path, shard_config, monkeypatch
     run = tmp_path / "runs" / "test-run"
     assert m["intermediates"]["state"] == "done" and m["intermediates"]["parts"] == {"dropped": 3, "left": 1}
     assert inventory_report(run)["ok"] is True and parquet_under(run / "final") == ["heldout/code-go/part-00000.parquet"]
+
+
+
+# --- Vijay's review of PR #46 (17 Nov): a drop checks the shards on disk first -------------------------------------
+def remove_payload_and_index(out):
+    for f in list(out.glob("*.bin")) + list(out.glob("*.idx.npy")):
+        f.unlink()
+
+
+def flip_a_payload_byte(out):
+    f = sorted(out.glob("*.bin"))[0]
+    b = bytearray(f.read_bytes())
+    b[-1] ^= 0xFF
+    f.write_bytes(bytes(b))
+
+
+def cut_the_payload(out):
+    f = sorted(out.glob("*.bin"))[0]
+    f.write_bytes(f.read_bytes()[:-4])
+
+
+def remove_the_index(out):  # (a docs.parquet that lost a row is already stopped by reconcile)
+    sorted(out.glob("*.idx.npy"))[0].unlink()
+
+
+def bad_header(out):
+    f = sorted(out.glob("*.bin"))[0]
+    b = bytearray(f.read_bytes())
+    b[0:4] = (12345).to_bytes(4, "little")
+    f.write_bytes(bytes(b))
+
+
+@pytest.mark.parametrize("damage, message", [
+    (remove_payload_and_index, r"\.bin: missing"),  # Vijay's reproduction: metadata fine, .bin and .idx.npy gone
+    (flip_a_payload_byte, r"\.bin: sha256 .*, the manifest has"),
+    (cut_the_payload, r"\.bin: sha256"),
+    (remove_the_index, r"\.idx\.npy: missing"),
+    (bad_header, r"\.bin: sha256")])
+def test_a_drop_checks_the_shards_on_disk_and_deletes_nothing_when_one_is_not_as_its_manifest_says(
+        tmp_path, shard_config, monkeypatch, damage, message):
+    """The summary and reconcile say the parts are in shards, but the shard files are not what the manifests say: the
+    drop stops before the first file goes, leaves no mark, and the run stays whole and resumable."""
+    with_reconcile(shard_config, monkeypatch, intermediates="drop", after_shards=lambda self: damage(self.output("shards")))
+    with pytest.raises(rp.Stop, match="intermediates: a shard is not on disk as its manifest says, so its Parquet stays: "
+                                      + ".*" + message + ".*Nothing was deleted"):
+        rp.run(shard_config)
+    run = tmp_path / "runs" / "test-run"
+    assert len(parquet_under(run / "deduped")) == 4 and len(parquet_under(run / "final")) == 4  # every part still there
+    m = manifest_of(run)
+    assert m["intermediates"] == {"mode": "drop"} and m["stages"][-1]["stage"] == "reconcile"  # no mark: resumable
+
+
+def shard_on_disk(out, n=3):
+    """One whole shard "s" of n documents (2 tokens each) in `out`, as the writer leaves it. Returns its manifest."""
+    from test_reconcile_shards import write_payload, files_of_shard
+    out.mkdir(exist_ok=True)
+    pq.write_table(pa.table({"doc_id": [f"d{i}" for i in range(n)]}), out / "s.docs.parquet")
+    (out / "s.quality_report.json").write_text("{}", encoding="utf-8")
+    m = {"shard_id": "s", "doc_count": n, **files_of_shard(out, "s", write_payload(out, "s", n))}
+    (out / "s.json").write_text(json.dumps(m), encoding="utf-8")
+    return m
+
+
+def rewritten(out, name, data, **manifest):
+    """Replace a shard file and record its new sha256 in the manifest (so only the check under test can see it)."""
+    import hashing
+    (out / name).write_bytes(data)
+    m = json.loads((out / "s.json").read_text(encoding="utf-8"))
+    key = {"bin": "payload", "npy": "index", "parquet": "sample_metadata", "json": "quality_report"}[name.rsplit(".", 1)[1]]
+    (out / "s.json").write_text(json.dumps({**m, f"{key}_sha256": hashing.file_sha256(out / name), **manifest}),
+                                encoding="utf-8")
+
+
+def npy_bytes(arr):
+    import io
+    import numpy as np
+    b = io.BytesIO()
+    np.save(b, arr)
+    return b.getvalue()
+
+
+def test_shard_problems_names_each_defect(tmp_path):
+    """shard_problems on its own: a whole shard passes, and each defect is named by the check that finds it, the sha256
+    written to the manifest after the damage so that only that check can see it (header, size, index, rows, counts)."""
+    import io
+    import numpy as np
+    out = tmp_path / "shards"
+
+    def problems(entry=None):
+        return rp.shard_problems(out, "s", entry or {}, rp.HashCache())
+    m = shard_on_disk(out)
+    assert problems({"docs": 3, "tokens": 6}) == []
+    assert problems({"tokens": 7}) == ["shards_summary.json: tokens 7 for s, the manifest has 6"]
+    payload = (out / "s.bin").read_bytes()
+    rewritten(out, "s.bin", (12345).to_bytes(4, "little") + payload[4:])  # magic
+    assert problems() == ["s.bin: header [12345, 2, 6], expected [20261025, 2, 6]"]
+    shard_on_disk(out)
+    rewritten(out, "s.bin", payload + bytes(4), payload_bytes=len(payload) + 4)  # a token more than the header says
+    assert problems() == [f"s.bin: {len(payload) + 4:,} bytes, expected {len(payload):,} (manifest payload_bytes {len(payload) + 4})"]
+    shard_on_disk(out)
+    rewritten(out, "s.bin", payload, payload_bytes=len(payload) - 4)  # the manifest's size is not the file's
+    assert problems() == [f"s.bin: {len(payload):,} bytes, expected {len(payload):,} (manifest payload_bytes {len(payload) - 4})"]
+    for arr, why in ((np.array([0, 4, 2, 6]), ""), (np.array([0, 4, 2, 6], dtype=np.uint64), " (uint64)"),
+                     (np.array([0, 2, 4, 6], dtype=np.int32), " (int32)"), (np.array([0, 2, 4]), ""),
+                     (np.array([1, 2, 4, 6]), "")):
+        shard_on_disk(out)
+        rewritten(out, "s.idx.npy", npy_bytes(arr))  # falling, wraps in uint64, not int64, a document short, not from 0
+        assert problems() == [f"s.idx.npy: not 4 rising int64 offsets from 0 to 6{why}"], arr
+    for data, error in ((b"", "EOFError"), (b"PK\x03\x04" + bytes(40), "BadZipFile")):  # a copy cut to nothing, another format
+        shard_on_disk(out)
+        rewritten(out, "s.idx.npy", data)
+        assert problems() == [f"s.idx.npy: not 4 rising int64 offsets from 0 to 6 (cannot be read: {error})"]
+    shard_on_disk(out)
+    z = io.BytesIO()
+    np.savez(z, idx=np.array([0, 2, 4, 6]))
+    rewritten(out, "s.idx.npy", z.getvalue())
+    assert problems() == ["s.idx.npy: not 4 rising int64 offsets from 0 to 6 (NpzFile)"]
+    shard_on_disk(out)
+    b = io.BytesIO()
+    pq.write_table(pa.table({"doc_id": ["d0", "d1"]}), b)
+    rewritten(out, "s.docs.parquet", b.getvalue())  # a document short
+    assert problems() == ["s.docs.parquet: 2 rows, the manifest has 3 documents"]
+    rewritten(out, "s.docs.parquet", b"not parquet")
+    assert problems() == ["s.docs.parquet: cannot be read (ArrowInvalid)"]
+    # the files the manifest names: the writer's names in the folder, and nothing else
+    m = shard_on_disk(out)
+    for name in ("../s.bin", "t.bin", "s.bin.old", None):
+        (out / "s.json").write_text(json.dumps({**m, "payload_uri": name}), encoding="utf-8")
+        assert problems() == [f"s.json: payload_uri is {name!r}, expected 's.bin'"]
+    (out / "s.json").write_text("{not json", encoding="utf-8")
+    assert problems() == ["s.json: cannot be read (JSONDecodeError)"]
+    (out / "s.json").write_text(json.dumps({**m, "shard_id": "other"}), encoding="utf-8")
+    assert problems() == ["s.json: not the manifest of s"]
+
+
+def test_shard_problems_refuses_a_shard_file_that_is_a_link(tmp_path):
+    """A .bin that is a link to a file elsewhere (with the right bytes) is not in the shard folder: after a drop it would
+    be the only copy of those documents, outside the run."""
+    out = tmp_path / "shards"
+    shard_on_disk(out)
+    elsewhere = tmp_path / "elsewhere.bin"
+    (out / "s.bin").replace(elsewhere)
+    try:
+        (out / "s.bin").symlink_to(elsewhere)
+    except OSError:
+        pytest.skip("this system does not let the tests make a symbolic link")
+    assert rp.shard_problems(out, "s", {}, rp.HashCache()) == ["s.bin: a link, not the file"]

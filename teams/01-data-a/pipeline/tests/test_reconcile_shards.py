@@ -28,6 +28,31 @@ def run(tmp_path, config):
     return tmp_path / "runs" / "test-run"
 
 
+def write_payload(out, sid, n_docs, per_doc=2):
+    """<sid>.bin and <sid>.idx.npy in shard format v1: header (magic, version, token count) + uint32 tokens, each document
+    `per_doc` tokens ending in EOS 130822; the index is the documents' start offsets and the total. Returns the tokens."""
+    import numpy as np
+    tokens = n_docs * per_doc
+    header = np.zeros(256, dtype="<i4")
+    header[:3] = [20261025, 2, tokens]
+    ids = np.tile(np.array([7] * (per_doc - 1) + [130822], dtype="<u4"), n_docs)
+    with open(out / f"{sid}.bin", "wb") as f:
+        header.tofile(f)
+        ids.tofile(f)
+    np.save(out / f"{sid}.idx.npy", np.arange(0, tokens + 1, per_doc, dtype=np.int64))
+    return tokens
+
+
+def files_of_shard(out, sid, tokens):
+    """The manifest's file fields of shard sid, as shard_writer.py writes them (file names, sha256, payload bytes)."""
+    import hashlib
+    sha = lambda p: hashlib.sha256(p.read_bytes()).hexdigest()  # noqa: E731
+    names = {"payload": f"{sid}.bin", "index": f"{sid}.idx.npy", "sample_metadata": f"{sid}.docs.parquet",
+             "quality_report": f"{sid}.quality_report.json"}
+    m = {f"{k}_uri": v for k, v in names.items()} | {f"{k}_sha256": sha(out / v) for k, v in names.items()}
+    return m | {"token_count": tokens, "payload_bytes": (out / names["payload"]).stat().st_size}
+
+
 def write_shards(run, out, drop=(), extra=(), left_out=None, rows_read=None, doc_count=None, packs=None):
     """A shards folder as run_shards.py writes it, from run/final. drop: (input_part, row) to leave out of docs.parquet;
     extra: (shard input_part, doc_id, input_row) rows to add; left_out: {input_part: {reason: [doc_id]}};
@@ -51,13 +76,15 @@ def write_shards(run, out, drop=(), extra=(), left_out=None, rows_read=None, doc
         rows += [{"doc_id": d, "input_part": p, "input_row": r} for p, d, r in extra if p == name]
         pq.write_table(pa.Table.from_pylist(rows, schema=pa.schema([("doc_id", pa.string()), ("input_part", pa.string()),
                                                                      ("input_row", pa.int64())])), out / f"{sid}.docs.parquet")
-        (out / f"{sid}.json").write_text(json.dumps({"shard_id": sid, "doc_count": (doc_count or {}).get(name, len(rows))}),
-                                         encoding="utf-8")
         (out / f"{sid}.quality_report.json").write_text(json.dumps({
             "shard_id": sid, "rows_read": rr, "left_out_docs": (left_out or {}).get(name, {}),
             "upstream": {"input_part": name}}), encoding="utf-8")
+        docs = (doc_count or {}).get(name, len(rows))
+        tokens = write_payload(out, sid, len(rows))
+        (out / f"{sid}.json").write_text(json.dumps({"shard_id": sid, "doc_count": docs, **files_of_shard(out, sid, tokens)}),
+                                         encoding="utf-8")
         parts[name] = {"pack_id": pack, "status": "written", "shard_id": sid, "rows_read": rr, "rows_in_part": len(ids),
-                       "truncated": rr < len(ids)}
+                       "truncated": rr < len(ids), "docs": docs, "tokens": tokens}
     (out / "shards_summary.json").write_text(json.dumps({"run_id": "test-run", "parts": parts}), encoding="utf-8")
     return out
 
