@@ -9,7 +9,8 @@ pass --tokens; a doc is never split.
 
 Tokenizer (G3): the frozen p1536 tokenizer.json (Gate 3, in place of C3), sha256 TOKENIZER_SHA256 below (G3 train/p1536_s0_manifest.json).
 Any other file is refused, except with --any-tokenizer (tests only: the shard is marked dataset_version "test").
-Docs are encoded with encode_batch(add_special_tokens=False); each doc ends with one EOS, <|endoftext|> id 130822 (G3, G10).
+Docs are encoded with encode_batch_fast(add_special_tokens=False), 256 per batch (no character offsets: only the IDs are
+used); each doc ends with one EOS, <|endoftext|> id 130822 (G3, G10).
 No BOS and no language tag. The normalizer is inside tokenizer.json, so no normalizer is applied here.
 
 A doc is left out, counted, and listed by doc_id in the quality report when:
@@ -102,7 +103,7 @@ def main(argv=None):
     left_out = {"secret": [], "empty": [], "special": [], "roundtrip": []}
     for b in range(0, len(text_col), BATCH):
         texts = text_col[b:b + BATCH]
-        for k, enc in enumerate(tok.encode_batch(texts, add_special_tokens=False)):
+        for k, enc in enumerate(tok.encode_batch_fast(texts, add_special_tokens=False)):
             row, text, ids = b + k, texts[k], enc.ids
             doc_id = ids_col[row]
             if SECRET.search(text):
