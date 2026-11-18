@@ -14,6 +14,7 @@ import argparse
 import hashlib
 import json
 import platform
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -34,6 +35,24 @@ from perfkit.metrics import git_state  # noqa: E402
 from perfkit.timer import StepTimer, stats, sync  # noqa: E402
 
 FROZEN_TABLE_SHA256 = "21072027b19ef6f05d57ead7a2fc9fb4c52129e491186bf38d0ba079e8d5168a"
+
+
+def relevant_sources_dirty() -> bool | None:
+    """Whether the benchmark, embedding code, timer, or pinned table differs from HEAD."""
+    paths = (
+        "teams/04-ke2/src",
+        "teams/04-ke2/results/tables/p1536-s0/raw_table_P32.npz",
+        "teams/06-performance/models",
+        "teams/06-performance/perfkit",
+    )
+    try:
+        result = subprocess.run(
+            ["git", "status", "--porcelain", "--untracked-files=all", "--", *paths],
+            cwd=LAB, capture_output=True, text=True, timeout=10, check=True,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return bool(result.stdout.strip())
 
 
 def measure(fn, device: torch.device, warmup: int, steps: int) -> dict:
@@ -66,8 +85,8 @@ def run(args: argparse.Namespace) -> dict:
     Returns:
         Serializable provenance and the isolated input-embedding timing.
     """
-    if min(args.batch_size, args.seq_len, args.steps) < 1 or args.warmup < 0:
-        raise ValueError("batch size, sequence length and steps must be positive")
+    if min(args.batch_size, args.seq_len, args.steps, args.threads) < 1 or args.warmup < 0:
+        raise ValueError("batch size, sequence length, steps and threads must be positive")
     torch.set_num_threads(args.threads)
     torch.manual_seed(0)
     device = torch.device(args.device)
@@ -75,7 +94,10 @@ def run(args: argparse.Namespace) -> dict:
         raise RuntimeError("CUDA requested but unavailable")
     if device.type == "mps" and not torch.backends.mps.is_available():
         raise RuntimeError("MPS requested but unavailable")
-    commit_sha, dirty = git_state()
+    commit_sha, _ = git_state()
+    dirty = relevant_sources_dirty()
+    if device.type == "cuda" and (commit_sha is None or dirty is not False):
+        raise RuntimeError("CUDA timing requires a clean Git checkout with a commit SHA")
 
     table = ByteTable.load(
         FROZEN_TABLES_DIR / "raw_table_P32.npz", tokenizer_sha256=FROZEN_TOKENIZER_SHA256
@@ -120,7 +142,7 @@ def run(args: argparse.Namespace) -> dict:
         "input_ids_sha256": hashlib.sha256(original_ids.astype("<i8").tobytes()).hexdigest(),
         "input_token_length_min": int(table.lengths[original_ids].min()),
         "input_token_length_max": int(table.lengths[original_ids].max()),
-        "warmup": args.warmup, "steps": args.steps,
+        "shape_check_calls": 1, "warmup": args.warmup, "steps": args.steps,
         "timings_ms": {"model.tok(x)_eval_no_grad": input_ms},
     }
 
