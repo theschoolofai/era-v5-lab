@@ -82,17 +82,18 @@ A stock parser therefore either refuses to load, binds silently to `<|unk|>`, or
 
 ## Findings
 
-| # | Finding | Effect | Proposed action | Owner |
-|---|---|---|---|---|
-| 1 | No stock vLLM parser uses the G10 markers (B5). Several bind to the baseline specials `<think>` 128512, `</think>` 128601, `<tool_call>` 130174, `</tool_call>` 130226 | With `--reasoning-parser deepseek_r1` or a stock tool parser, reasoning and tool calls are not extracted, and no error is raised | Write a G10 reasoning parser and tool parser on ids 130823/130824 and 130773/130825, with `skip_special_tokens=False`. B6 shows the id-level split works. Do not use stock parsers | G12 (serving), with G10 |
-| 2 | `<\|im_end\|>` 130816 is not eos (B3) | Generation runs past the end of the assistant turn | Serve with `stop_token_ids=[130816, 130822]`, or ship a `generation_config.json` with `eos_token_id: [130816, 130822]` | G12; G3 if added to `release/` |
-| 3 | `chat_template.jinja` passes a marker typed in user content through as a real marker (A6) | A user can close a turn or fake a role | The serving app rejects or escapes marker strings in user content, as `render.py` does | G12, with G10 |
-| 4 | 130827 / 130828 are still `<\|g10_slot_05\|>` / `<\|g10_slot_06\|>`; G10's spec lists `<\|subagent_call\|>` / `<\|subagent_return\|>` (A7) | Not used by chat format v0. Renaming later keeps the ids (README rule) | G10 confirms whether they are needed; if so, G3 renames them | G10, G3 |
-| 5 | `release/tokenizer_config.json` has no `chat_template` | Every server must pass `--chat-template` by hand | Add G10's template to `tokenizer_config.json`, or keep `--chat-template` and document it | G3, with G10 and G12 |
+| # | Finding | Effect | Action | Owner | Status (16 Nov) |
+|---|---|---|---|---|---|
+| 1 | No stock vLLM parser uses the G10 markers (B5). Several bind to the baseline specials `<think>` 128512, `</think>` 128601, `<tool_call>` 130174, `</tool_call>` 130226 | With `--reasoning-parser deepseek_r1` or a stock tool parser, reasoning and tool calls are not extracted, and no error is raised | Use G10 reasoning and tool-call parsers on ids 130823/130824 and 130773/130825, with `skip_special_tokens=False`; never the stock parsers. B6 shows the id-level split works | G12 | **Done**: G12's `g10` reasoning and tool parsers (`teams/12-quantization/serving/g10_parsers.py`, from G12 PR SreekanthZipsy/era-v5-lab#15, on `main` via #538) read the G10 markers, with `skip_special_tokens: false`. 64 unit tests; serve check 100/100 HTTP 200 on vLLM 0.33.0 (stand-in model) |
+| 2 | `<\|im_end\|>` 130816 is not eos (B3) | Generation runs past the end of the assistant turn | Serve with `stop_token_ids=[130816, 130822]`, and add `generation_config.json` with `eos_token_id: [130816, 130822]` to `release/` | G12 (serving); G3 (`generation_config.json`) | Open: G10 and G12 confirm. G12 #15 lists 130816 and 130822 as eos for `export_hf.py`'s `generation_config.json`; not yet set in serving or `release/` |
+| 3 | `chat_template.jinja` passes a marker typed in user content through as a real marker (A6) | A user can close a turn or fake a role | The API gateway or serving layer rejects or sanitises marker strings in user content before the template; `render.py` already rejects them at training intake | G12 | Open: G10 and G12 confirm; not in G12 #15 |
+| 4 | 130827 / 130828 are still `<\|g10_slot_05\|>` / `<\|g10_slot_06\|>`; G10's spec lists `<\|subagent_call\|>` / `<\|subagent_return\|>` (A7) | None: chat format v0 and SFT/RL data v1 use only the 9 assigned markers | No rename for v0 | G10 | **Closed**: G10 confirms the slots stay as they are |
+| 5 | `release/tokenizer_config.json` has no `chat_template` | Every server must pass `--chat-template` by hand | Embed G10's template in `release/tokenizer_config.json` once G10's week-3 template is on `main`, then re-run this check | G3, after G10 | G10 agrees; waits for G10's week-3 PR |
 
 ## Scope and limits
 
 - **Tokenizer level.** No model was served. Nothing here shows that a running `vllm serve` applies the template, stops on time or returns `reasoning_content` / `tool_calls`; that needs findings 1 and 2 first, and a model.
+- **Template version.** This run tested `chat_template.jinja` at 128405b, confirmed by G10 as the version on `main`. G10's week-3 update (Tools schema in the system turn, OpenAI-shaped tool calls in history; byte-identical to `render.py` per G10's `tests/test_chat_template_parity.py`) lands on `main` with G10's week-3 PR. The script reads the template at run time, so re-run it then.
 - **A2 compares the chat format, not JSON formatting.** Tool calls are passed to the template as `render.py`'s JSON string. A real OpenAI-format request (`tool_calls` as objects, reasoning as `reasoning_content`) and `transformers`' `apply_chat_template` were not tested.
 - **Streaming** parser behaviour was not tested; B6 splits a complete turn.
 - **Indic text** is G3's one-line samples and forms derived from them, not a corpus.
@@ -105,5 +106,5 @@ A stock parser therefore either refuses to load, binds silently to `<|unk|>`, or
 
 ## Confirmed by
 
-- Team 10 (chat format, findings 3 and 4): pending
-- Team 12 (vLLM, findings 1, 2 and 3): pending
+- Team 10 (chat format, all 5 findings): confirmed on 16 Nov 2026. Tested versions are current on `main`; findings 1–3 confirmed; finding 4 closed (no rename for v0); finding 5 agreed once the week-3 template lands.
+- Team 12 (vLLM, findings 1, 2 and 3): confirmed on 18 Nov 2026. Finding 1 is fixed by G12's `g10` parsers (SreekanthZipsy/era-v5-lab#15, merged to `main` in #538).
