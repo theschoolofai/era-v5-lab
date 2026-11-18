@@ -83,4 +83,84 @@ def test_iter_sized_on_an_empty_file_and_a_single_row_group(tmp_path):
     with at.opened(one) as pf:
         batches = list(at.iter_sized(pf, 1 << 20, 1024))
     assert rows_of(batches) == [f"t{i}" for i in range(5000)] and max(b.num_rows for b in batches) <= 1024
-    assert batches[0].num_rows == 16  # the first read is small: decoded sizes are not known before it
+    # 5000 rows of short text: more than 1 MiB by the footer's bound, so the first read is small (decoded sizes are
+    # not known before it): as many rows as the bound allows, at least 16
+    assert 16 <= batches[0].num_rows < 1024 and batches[0].nbytes <= 1 << 20
+
+
+# --- Vijay's review of PR #46 (17 Nov) -------------------------------------------------------------------------------
+def mixed_sizes(path):
+    """Vijay's case: one 128-row group of short text, then 600 copies of one ~200 KB text in the next row group
+    (dictionary-encoded: about 1.5 KB a row in the footer)."""
+    big = "abcdefgh" * 25_000
+    with pq.ParquetWriter(path, pa.schema([("doc_id", pa.string()), ("text", pa.string())])) as w:
+        w.write_table(pa.table({"doc_id": [f"s{i}" for i in range(128)], "text": [f"short {i}" for i in range(128)]}),
+                      row_group_size=128)
+        w.write_table(pa.table({"doc_id": [f"b{i}" for i in range(600)], "text": [big] * 600}), row_group_size=600)
+    return big
+
+
+def test_iter_sized_probes_every_row_group_so_a_jump_in_size_stays_small(tmp_path):
+    f = tmp_path / "mixed.parquet"
+    big = mixed_sizes(f)
+    target = 16 << 20
+    with at.opened(f) as pf:
+        assert pf.metadata.num_row_groups == 2
+        batches = list(at.iter_sized(pf, target, 1024))
+    assert [i for b in batches for i in b.column(0).to_pylist()] == [f"s{i}" for i in range(128)] + [f"b{i}" for i in range(600)]
+    # was one 114 MiB batch. The 200 KB row group is read in as many rows as its footer proves fit (about 80), so no
+    # batch passes the target at all
+    assert max(b.nbytes for b in batches) <= target
+    first_big = next(b for b in batches if b.column(0)[0].as_py().startswith("b"))
+    assert first_big.column(0)[0].as_py() == "b0" and first_big.nbytes <= target  # the row group starts on its own
+
+
+def test_iter_sized_keeps_large_batches_for_uniform_short_rows(tmp_path):
+    """Row groups the footer cannot prove small cost one small first read each; the rest is read at full size."""
+    f = tmp_path / "short.parquet"
+    pq.write_table(pa.table({"text": [f"t{i}" for i in range(20_000)]}), f, row_group_size=5000)
+    with at.opened(f) as pf:
+        sizes = [b.num_rows for b in at.iter_sized(pf, 1 << 20, 1024)]
+    assert sum(sizes) == 20_000 and max(sizes) == 1024 and len(sizes) <= 4 * 6  # a first read, then 1024s, a part
+
+
+def test_iter_sized_reads_row_groups_the_footer_proves_small_together(tmp_path):
+    """The cleaner's 128-row groups of short text: the footer proves each whole row group fits, so one reader takes
+    them all in full-size batches across row groups (a reader per row group costs time on thousands of them)."""
+    f = tmp_path / "small_groups.parquet"
+    pq.write_table(pa.table({"text": [f"t{i}" for i in range(128 * 40)]}), f, row_group_size=128)
+    with at.opened(f) as pf:
+        batches = list(at.iter_sized(pf, 16 << 20, 1024))  # apply's and the ledger's 16 MiB
+    assert rows_of(batches) == [f"t{i}" for i in range(128 * 40)] and [b.num_rows for b in batches] == [1024] * 5
+
+
+def test_iter_sized_bound_ignores_nested_columns(tmp_path):
+    """A list column can repeat a value without storing it again, so the footer proves nothing: first reads stay small."""
+    f = tmp_path / "nested.parquet"
+    pq.write_table(pa.table({"tags": [["x" * 1000] * 50 for _ in range(512)]}), f, row_group_size=128)
+    with at.opened(f) as pf:
+        assert at._safe_rows(pf.metadata, 0, None, 1 << 20) == 0
+        batches = list(at.iter_sized(pf, 1 << 20, 1024))
+    assert sum(b.num_rows for b in batches) == 512 and max(b.nbytes for b in batches) <= (1 << 20) + 50 * 1000 * 16
+
+
+def test_apply_reads_mixed_sizes_in_small_batches_and_memory_stays_bounded(tmp_path, monkeypatch):
+    """apply_dedup's filter on Vijay's file: no batch near the 114 MiB he measured, and the Arrow memory the process
+    holds while filtering (sampled at every batch) stays far below his 230 MiB."""
+    import apply_dedup
+    seen, held = [], []
+    real = at.iter_sized
+    base = pa.total_allocated_bytes()
+
+    def spy(*a, **k):
+        for b in real(*a, **k):
+            seen.append(b.nbytes)
+            held.append(pa.total_allocated_bytes() - base)
+            yield b
+    monkeypatch.setattr(at, "iter_sized", spy)
+    src, out = tmp_path / "in.parquet", tmp_path / "out.parquet"
+    big = mixed_sizes(src)
+    kept = apply_dedup.filter_part(src, out, pa.array([3, 200], pa.int64()))
+    assert kept == 726 and pq.read_metadata(out).num_rows == 726
+    assert max(seen) <= apply_dedup.BATCH_BYTES + 2 * len(big)
+    assert max(held) <= apply_dedup.BATCH_BYTES + apply_dedup.ROW_GROUP_BYTES + (16 << 20), max(held) >> 20

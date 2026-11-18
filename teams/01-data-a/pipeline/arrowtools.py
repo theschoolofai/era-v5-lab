@@ -85,50 +85,86 @@ def batch_rows(pf, target_bytes, most, columns=None):
     return most if widest <= 0 else int(max(1, min(most, target_bytes // widest)))
 
 
+def _safe_rows(md, g, idx, target_bytes):
+    """Rows of row group g that cannot decode to more than target_bytes, whatever they hold: no decoded value is longer
+    than its column chunk uncompressed (a plain value is in the data pages, a dictionary one in the dictionary page, a
+    delta-encoded one is made of bytes stored before it), plus 16 bytes a value for offsets, validity and fixed-width
+    types. 0 when that proves nothing useful: a nested column (a list can repeat a value without storing it again)."""
+    rg = md.row_group(g)
+    cols = range(md.num_columns) if idx is None else idx
+    if any(md.schema.column(j).max_repetition_level for j in cols):
+        return 0
+    worst = sum(rg.column(j).total_uncompressed_size + 16 for j in cols)
+    return target_bytes // worst if worst else 0
+
+
 def iter_sized(pf, target_bytes, most, columns=None, first=16):
     """pf's rows in file order, in batches of about target_bytes of decoded data, at most `most` rows each.
 
-    The footer alone cannot size a read: a dictionary-encoded column of repeated text decodes far larger than it is
-    stored (600 copies of one 200 KB text are stored in about 1.5 KB a row). So the first read is `first` rows, and
-    every later one is sized from the most decoded bytes per row seen so far (or the footer's, if larger). One reader
-    runs across row groups, and is replaced only when that size changes by more than half: after the first read, and
-    when rows grow (the rest is then read from the row group it reached, skipping what was already given out). So a
-    jump in row size costs at most one oversized read (at most `most` rows) before reads shrink."""
-    import bisect
+    The footer cannot size a read from what it stores: a dictionary-encoded column of repeated text decodes far larger
+    (600 copies of one 200 KB text are stored in about 1.5 KB a row), and a row group of short text says nothing about
+    the one after it. It does give a bound (_safe_rows): no row decodes to more than its row group's uncompressed
+    column chunks. So:
+      - a run of row groups that the bound proves small (each whole, or `most` rows of it, fits in target_bytes) is
+        read by one reader, in batches of as many rows as the bound allows (at most `most`), across row groups;
+      - any other row group is read on its own. Its first read is as many rows as the bound allows, and at least
+        `first` (a probe), never more than the decoded size seen so far allows. Later reads are sized from the most
+        decoded bytes per row seen so far in the file (or the footer's stored figure, if larger). The reader is
+        replaced (the row group read again from its start, skipping what was given out) when that size falls below
+        half the read and the read is more than the bound allows, or rises above twice the read while more of the
+        row group is left than one read takes.
+    A batch is therefore at most target_bytes when the bound allows its rows; otherwise a change of row size costs at
+    most `first` rows between row groups, and at most one read at the old size inside one."""
     md = pf.metadata
-    n_groups = md.num_row_groups
     idx = _column_indices(md, columns)
-    starts, total = [], 0
-    for i in range(n_groups):
-        starts.append(total)
-        total += md.row_group(i).num_rows
-    stored = max((_stored_per_row(md.row_group(i), idx) for i in range(n_groups)), default=0.0)
-    pos, seen = 0, 0.0  # rows given out; the most decoded bytes per row so far
+    seen = 0.0  # the most decoded bytes per row so far, in any row group
 
     def size(per_row):
         return most if per_row <= 0 else int(max(1, min(most, target_bytes // per_row)))
 
-    while pos < total:
-        b = min(size(max(seen, stored)), first) if seen == 0 else size(max(seen, stored))
-        g = bisect.bisect_right(starts, pos) - 1
-        skip, cut = pos - starts[g], False
-        for batch in pf.iter_batches(batch_size=b, row_groups=list(range(g, n_groups)), columns=columns):
-            if skip:  # rows of this row group already given out before the reader was replaced
-                if skip >= batch.num_rows:
-                    skip -= batch.num_rows
+    def note(batch):
+        nonlocal seen
+        seen = max(seen, batch.nbytes / batch.num_rows)
+
+    n, g = md.num_row_groups, 0
+    while g < n:
+        rows, safe = md.row_group(g).num_rows, _safe_rows(md, g, idx, target_bytes)
+        if safe >= min(rows, most) or rows == 0:  # a run of row groups the footer proves small
+            run, k = [], most
+            while g < n:
+                r, s = md.row_group(g).num_rows, _safe_rows(md, g, idx, target_bytes)
+                if r and s < min(r, most):
+                    break
+                run.append(g)
+                k = min(k, s) if r else k
+                g += 1
+            for batch in pf.iter_batches(batch_size=max(1, k), row_groups=run, columns=columns):
+                if batch.num_rows:
+                    note(batch)
+                    yield batch
+            continue
+        stored = _stored_per_row(md.row_group(g), idx)
+        b, given = min(size(max(seen, stored)), max(first, safe)), 0
+        while given < rows:
+            skip, cut = given, False
+            for batch in pf.iter_batches(batch_size=b, row_groups=[g], columns=columns):
+                if skip:  # rows of this row group already given out before the reader was replaced
+                    if skip >= batch.num_rows:
+                        skip -= batch.num_rows
+                        continue
+                    batch, skip = batch.slice(skip), 0
+                if not batch.num_rows:
                     continue
-                batch, skip = batch.slice(skip), 0
-            if not batch.num_rows:
-                continue
-            seen = max(seen, batch.nbytes / batch.num_rows)
-            pos += batch.num_rows
-            yield batch
-            want = size(max(seen, stored))
-            if want < b / 2 or want > 2 * b:
-                cut = True  # read the rest at the size the data showed
+                note(batch)
+                given += batch.num_rows
+                yield batch
+                want = size(max(seen, stored))
+                if given < rows and ((want < b / 2 and b > safe) or (want > 2 * b and rows - given > b)):
+                    b, cut = want, True  # read the rest of the row group at the size the data showed
+                    break
+            if not cut:
                 break
-        if not cut:
-            break
+        g += 1
 
 
 def read_columns(path, columns, error=ValueError):
