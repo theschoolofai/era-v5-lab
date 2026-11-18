@@ -29,6 +29,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -121,6 +122,11 @@ def rl_screen_bundle(bundle, tasks: Path, ids: Path, k: int, max_new: int, devic
     spec = importlib.util.spec_from_file_location("g10_stdio_check", TEAM10 / "rl-data" / "stdio_check.py")
     sc = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(sc)
+    # two sft_g5 processes (one per GPU) share a machine: each needs its own sandbox uid slice, because a uid's
+    # cleanup kills every process of that uid (GPU 0 -> 61000+1000, GPU 1 -> 62000+1000)
+    gpu = os.environ.get("CUDA_VISIBLE_DEVICES", "")
+    if gpu.isdigit() and int(gpu) < 4:
+        sc.set_uid_range(61000 + 1000 * int(gpu), 1000)
     kv = bundle.kv_cache
     bundle.kv_cache = True
     codec = bundle.codec()
