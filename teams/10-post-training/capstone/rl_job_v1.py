@@ -293,14 +293,14 @@ def pool_step(a, out: Path) -> dict:
 
 
 def tricks_step(a, out: Path) -> dict:
-    """The no-skill programs on the first 128 screen candidates and the held-out subset; CPU, before the model loads."""
+    """The no-skill programs on the first --tricks-limit (128) screen candidates and the held-out subset; CPU, before the model loads."""
     import score_pool  # noqa: PLC0415
     by_id = {}
     for line in a.rl_tasks.read_text(encoding="utf-8").splitlines():
         if line.strip():
             r = json.loads(line)
             by_id[r["id"]] = r
-    tr = [x for x in (out / "train_ids.txt").read_text().split()][:128]
+    tr = (out / "train_ids.txt").read_text().split()[:a.tricks_limit]
     ho = (out / "heldout_ids.txt").read_text().split()
     pool = score_pool.ScorePool(max(1, a.reward_pool))
     try:
@@ -453,7 +453,10 @@ def rl_step(a, out: Path, init_state, init_sha, deadline_unix, screen_n) -> dict
     lit_rep = [{"step": f["step"], **l, "literal_share_of_passes": (l["literal"] / l["pass"]) if l["pass"] else 0.0}
                for f, l in zip(fc, lit)]
     wrong = [f["reasons"].get("wrong_answer", 0) for f in fc]
-    metrics = [json.loads(x) for x in (rl_out / "metrics.jsonl").read_text().splitlines() if x.strip()]
+    mf = rl_out / "metrics.jsonl"
+    if not mf.is_file():
+        mf = rl_out / "smoke_metrics.jsonl"  # a rehearsal adapter under --allow-fixture-smoke (dry run)
+    metrics = [json.loads(x) for x in mf.read_text().splitlines() if x.strip()]
     res.update(heldout_change=summary["heldout_change"], heldout_curve=summary["heldout_curve"], evaluations=fc,
                literal_sample=lit_rep, groups_used_per_step=[m.get("groups_used") for m in metrics],
                group_kinds_total=(summary.get("objective") or {}).get("group_kinds_total"),
@@ -590,6 +593,7 @@ def parse_args(argv=None):
     ap.add_argument("--screen-n", default="auto", help="auto = largest of 64/128/256 that fits 10 minutes, or a fixed number")
     ap.add_argument("--heldout-n", type=int, default=0, help="first N held-out pool ids in file order (0 = all 255)")
     ap.add_argument("--eval-k", type=int, default=4)
+    ap.add_argument("--tricks-limit", type=int, default=128, help="screen candidates the no-skill programs are scored on")
     ap.add_argument("--reward-pool", type=int, default=16, help="scorer worker processes (score_pool); must be > 0")
     ap.add_argument("--state-every", type=int, default=5)
     ap.add_argument("--max-steps-this-call", type=int, default=0, help="dry run: pause after this many updates, rerun to resume")
