@@ -564,3 +564,48 @@ def test_mode_b_with_the_same_long_text_repeated_reads_small_batches(tmp_path, m
     assert got.to_pylist() == [True] * 300
     probes = [n for n in seen if n > 2 * (1 << 20)]
     assert len(probes) <= 2 and max(seen) <= 16 * 200_016  # one 16-row first read per file, then sized from it
+
+
+# --- Vijay's review of PR #46 (17 Nov) -------------------------------------------------------------------------------
+@pytest.mark.parametrize("fails", ["folder", "file"])
+def test_a_backup_that_could_not_be_deleted_keeps_its_marker_and_is_cleared_next_time(chain, monkeypatch, fails):
+    """Deleting a child of <out>.old fails for a moment (Windows: a file still open). The marker stays with what is
+    left, so the next run knows the folder is the ledger's and deletes it, instead of refusing to touch it."""
+    ledger.build(**chain)
+    out = chain["out"]
+    old = out.with_name("ledger.old")
+    (out / "notes.txt").write_text("a file of the ledger folder", encoding="utf-8")  # a file child as well as folders
+    failed = []
+    real_rmtree, real_unlink = ledger.shutil.rmtree, Path.unlink
+
+    def rmtree(path, *a, **k):
+        if fails == "folder" and Path(path).parent == old and not failed:
+            failed.append(Path(path).name)
+            raise PermissionError(13, "in use", str(path))
+        return real_rmtree(path, *a, **k)
+
+    def unlink(self, *a, **k):
+        if fails == "file" and self.parent == old and self.name == "notes.txt" and not failed:
+            failed.append(self.name)
+            raise PermissionError(13, "in use", str(self))
+        return real_unlink(self, *a, **k)
+    monkeypatch.setattr(ledger.shutil, "rmtree", rmtree)
+    monkeypatch.setattr(Path, "unlink", unlink)
+    ledger.build(**chain)  # the new ledger is published; the previous one could only be partly deleted
+    assert failed and old.is_dir() and (old / ledger.OLD_MARK).is_file()
+    assert any(child.name != ledger.OLD_MARK for child in old.iterdir())
+    assert (out / "ledger_summary.json").is_file()
+    s = ledger.build(**chain)  # the delete works again: the leftover is the ledger's, so it goes
+    assert s["totals"]["kept"] == 9 and not old.exists() and (out / "ledger_summary.json").is_file()
+
+
+def test_remove_marked_reports_what_it_could_not_delete(tmp_path, monkeypatch):
+    folder = tmp_path / "x.old"
+    (folder / "sub").mkdir(parents=True)
+    (folder / ledger.OLD_MARK).write_text("x", encoding="utf-8")
+    (folder / "sub" / "a.parquet").write_bytes(b"a")
+    monkeypatch.setattr(ledger.shutil, "rmtree", lambda p, *a, **k: (_ for _ in ()).throw(PermissionError(13, "in use")))
+    assert ledger.remove_marked(folder, ledger.OLD_MARK) is False and (folder / ledger.OLD_MARK).is_file()
+    monkeypatch.undo()
+    assert ledger.remove_marked(folder, ledger.OLD_MARK) is True and not folder.exists()
+    assert ledger.remove_marked(folder, ledger.OLD_MARK) is True  # nothing there: nothing to do

@@ -567,10 +567,11 @@ def publish(stage, out):
 
 
 def remove_marked(folder, mark):
-    """Delete a folder the ledger made, its marker file last: whatever a failed delete leaves (Windows: a file still open)
-    still says it is the ledger's, so the next run deletes it instead of stopping."""
+    """Delete a folder the ledger made, its marker file last, and only once nothing else is left in it: whatever a failed
+    delete leaves (Windows: a file still open) still carries the marker, so the next run knows the folder is the
+    ledger's and deletes it instead of stopping. Returns True when the folder is gone."""
     if not folder.is_dir():
-        return
+        return True
     for child in folder.iterdir():
         if child.name == mark:
             continue
@@ -582,10 +583,13 @@ def remove_marked(folder, mark):
         except OSError:
             pass
     try:
+        if any(child.name != mark for child in folder.iterdir()):
+            return False  # something could not be deleted: the marker stays with it
         (folder / mark).unlink(missing_ok=True)
         folder.rmdir()
+        return True
     except OSError:
-        pass
+        return False
 
 
 def _build(cleaned, remove_list, groups_csv, f2, out, log=None, raw=None):
