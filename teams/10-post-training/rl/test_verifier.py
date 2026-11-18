@@ -641,6 +641,7 @@ def test_tool_result_every_shipped_task_scores_its_known_outputs():
         good, bad = entry.known_outputs(env_id)
         assert entry.reward(env_id, good)[0] == 1.0, env_id
         assert entry.reward(env_id, bad)[0] == 0.0, env_id
+<<<<<<< HEAD
 
 
 # --- JavaScript exact verifier integration tests -----------------------------------------------
@@ -700,3 +701,5 @@ def test_js_invalid_completions_score_zero(completion):
 
     score, info = entry.reward(JS_ENV, completion, sandbox="process")
     assert score == 0.0 and info["reward"] == 0.0
+=======
+>>>>>>> upstream/main

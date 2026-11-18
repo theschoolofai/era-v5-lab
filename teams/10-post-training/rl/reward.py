@@ -272,7 +272,10 @@ register("math", math_checker)
 register("go", go_checker)
 register("tool_call", tool_call_checker)
 register("toolresult", toolresult_checker)
+<<<<<<< HEAD
 register("js", js_checker)
+=======
+>>>>>>> upstream/main
 
 
 def list_envs() -> list[str]:
