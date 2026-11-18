@@ -17,7 +17,8 @@ or --scores (quantize_eval.py's --scores-out, if that is not in its --work folde
 (30 code, 25 math) are read from the pinned parquet files under --source-dir and checked against the manifest's sha256s by
 Team 10's own effort_suite.py. Its unavailable slots (20 tool_agentic, 15 indic, 10 general) are filled from --prompts in id
 order: tool_agentic from tool_call then reasoning, indic one language at a time, general from english. For Team 10 items
-neither the prompt nor the generated text is written, only ids and sha256s, so no benchmark text reaches the repo.
+neither the prompt nor the generated text nor its token ids are written, only ids and sha256s (output_ids_sha256 in place of
+output_ids), so no benchmark text or answer reaches the repo. The comparison with bf16 uses the ids in memory.
 
 1. checks prompts/fixed_100.jsonl against prompts/fixed_100.sha256 (100 prompts, fixed ids and order);
 2. tokenizer/convert_frozen.py: checkpoint + frozen tokenizer -> bf16 GGUF (refuses a tokenizer with another sha256);
@@ -114,6 +115,15 @@ def find_ggufs(work: Path, formats: list[str]) -> dict[str, Path]:
     return ggufs
 
 
+def public_row(r: dict) -> dict:
+    """What is written for one prompt: a Team 10 row keeps only a sha256 of its output ids, never the ids themselves."""
+    r = dict(r)
+    if not r.pop("private"):
+        return r
+    ids = r.pop("output_ids")
+    return r | {"output_ids_sha256": hashlib.sha256(json.dumps(ids).encode()).hexdigest()}
+
+
 def generate(gguf: Path, prompts: list[dict], max_tokens: int, n_ctx: int, ngl: int, out: Path) -> dict:
     from llama_cpp import Llama
     m = Llama(model_path=str(gguf), n_ctx=n_ctx, n_gpu_layers=ngl, seed=0, verbose=False)
@@ -130,11 +140,12 @@ def generate(gguf: Path, prompts: list[dict], max_tokens: int, n_ctx: int, ngl: 
         dt = time.time() - t0
         text = m.detokenize(ids).decode("utf-8", errors="replace")
         rows.append({"id": p["id"], **({"source": p["source"], "task_id": p["task_id"]} if "source" in p else {}),
+                     "private": bool(p.get("private")),
                      "n_prompt_tokens": len(ids_in), "output_ids": ids, "n_output_tokens": len(ids),
                      "text_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest()[:16],
                      **({} if p.get("private") else {"text": text}),
                      "finish_reason": finish, "tokens_per_s": round(len(ids) / dt, 2) if dt > 0 else None})
-    out.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows), encoding="utf-8")
+    out.write_text("".join(json.dumps(public_row(r), ensure_ascii=False) + "\n" for r in rows), encoding="utf-8")
     del m
     fin = {k: sum(r["finish_reason"] == k for r in rows) for k in ("stop", "length")}
     return {"rows": rows, "finish": fin, "wall_s": round(time.time() - t_all, 1),

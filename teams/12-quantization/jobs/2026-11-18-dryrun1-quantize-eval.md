@@ -10,7 +10,7 @@ Owner:           Rahul Bhati (therahulbhati), Shubham Saxena (s9k96)
 Lead approval:   SreekanthZipsy
 Question:        Does the G12 flow take the dry run 1 checkpoint to bf16, Q8_0 and Q4_K_M GGUF files with no manual step, and how far do Q8_0 and Q4_K_M move from bf16 in score and on 100 fixed prompts?
 Script:          teams/12-quantization/scripts/quantize_eval.py, then teams/12-quantization/scripts/flow_fixed_prompts.py (with export_hf.py, check_gguf_logits.py, tokenizer/gguf_roundtrip.py and Team 10's eval/effort_suite.py)
-Command:         python teams/12-quantization/scripts/quantize_eval.py --checkpoint inputs/dryrun1-1234 --tokenizer inputs/tokenizer.json --tokenizer-sha256 e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b --formats bf16,Q8_0,Q4_K_M --roundtrip --work out/work --runs-csv out/runs.csv --scores-out out/scores.json && python teams/12-quantization/scripts/flow_fixed_prompts.py --gguf-dir out/work --formats Q8_0,Q4_K_M --manifest teams/10-post-training/eval/effort_manifest.json --source-dir code_contests=inputs/code_contests --source-dir hendrycks_math=inputs/hendrycks_math --out out/prompts --delete-ggufs
+Command:         python teams/12-quantization/scripts/quantize_eval.py --checkpoint inputs/dryrun1-1234 --tokenizer inputs/tokenizer.json --tokenizer-sha256 e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b --formats bf16,Q8_0,Q4_K_M --roundtrip --work out/work --runs-csv out/runs.csv --scores-out out/scores.json && python teams/12-quantization/scripts/flow_fixed_prompts.py --gguf-dir out/work --formats Q8_0,Q4_K_M --manifest teams/10-post-training/eval/effort_manifest.json --source-dir code_contests=inputs/code_contests --source-dir hendrycks_math=inputs/hendrycks_math --scores out/scores.json --out out/prompts --delete-ggufs
 Config:          none (every setting is on the command line)
 Inputs:          see "Inputs and pins" below
 Hardware:        1 GPU
@@ -18,7 +18,7 @@ Max time:        60 minutes (ESTIMATE: the random 10M-parameter test took 6.5 mi
 Precision:       bf16 (baseline), Q8_0 and Q4_K_M weights; router F32, output Q8_0
 Measures:        A1 (export logits vs G5's model), A3 (llama.cpp vs G5), round-trip exit code; per format: size, bpw, router/output type, score, eval time, tok/s; on the 100 prompts per format: finish reasons, tok/s, outputs identical to bf16, mean shared prefix with bf16
 Expected result: A1 and A3 PASS; round trip exit 1 or 2 (known limits of the GGUF tokenizer, #467); Q8_0 within noise of bf16 and close to bf16 on the prompts; Q4_K_M within about 2 points. No score level is assumed for a 1,221-step model.
-Outputs:         out/runs.csv, out/scores.json, out/work/*-roundtrip/*.md, out/work/*.json, out/prompts/summary.json, out/prompts/prompts_<format>.jsonl (ids, output token ids, sha256s; text only for our own prompts), logs. GGUF files deleted at the end.
+Outputs:         out/runs.csv, out/scores.json, out/work/*-roundtrip/*.md, out/work/*.json, out/prompts/summary.json, out/prompts/prompts_<format>.jsonl (ids and sha256s; output token ids and text only for our own prompts), logs. GGUF files deleted at the end.
 Test log:        teams/12-quantization/jobs/2026-11-15-flow-random-checkpoint.log (own machine, random G5 checkpoint, public BrahmicTokenizer-131K)
 ```
 
@@ -33,7 +33,7 @@ Test log:        teams/12-quantization/jobs/2026-11-15-flow-random-checkpoint.lo
 | 100 prompts | Team 10's `eval/effort_manifest.json` (in the repo): 30 code and 25 math slots from the files above; its 45 unavailable slots (20 tool, 15 Indic, 10 general) filled from our `prompts/fixed_100.jsonl` | manifest `d6190b2d…`, `fixed_100.sha256` |
 | llama.cpp | b11669 binaries (`llama-quantize`, `llama-server`) | build number checked by the script |
 
-Team 10's prompt texts and the model's answers to them are not written to `out/`, only ids and sha256s.
+Team 10's prompt texts and the model's answers to them (as text or token ids) are not written to `out/`, only ids and sha256s.
 
 ## Test run (15 Nov, Apple M1 8 GB, Metal, llama.cpp b11669)
 

@@ -38,5 +38,20 @@ class TokenizerShaTests(unittest.TestCase):
         self.assertIsNone(sha); self.assertIn("no tokenizer_sha256", why)
 
 
+class PublicRowTests(unittest.TestCase):
+    def row(self, private):
+        return {"id": "s", "private": private, "output_ids": [5, 6, 7], "text_sha256": "x"}
+
+    def test_team10_row_keeps_only_a_sha256_of_its_ids(self):
+        out = f.public_row(self.row(True))
+        self.assertNotIn("output_ids", out); self.assertNotIn("private", out)
+        self.assertEqual(len(out["output_ids_sha256"]), 64)
+
+    def test_our_row_keeps_its_ids_and_the_input_is_not_changed(self):
+        r = self.row(False)
+        self.assertEqual(f.public_row(r)["output_ids"], [5, 6, 7])
+        f.public_row(self.row(True)); self.assertIn("private", r)
+
+
 if __name__ == "__main__":
     unittest.main()
