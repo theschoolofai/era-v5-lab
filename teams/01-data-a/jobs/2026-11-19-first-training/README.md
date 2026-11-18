@@ -1,0 +1,61 @@
+# First-training input preparation
+
+`approved_inputs.json` allows the 38 unique sample-v0 pack IDs, with their pinned
+dedup policy, source restrictions and licence provenance. Scope assumption until
+TSAI says otherwise: additional production Parquets use these same sources and
+`<raw>/<train|heldout>/<pack_id>/part-<number>.parquet` layout. Sample-v0's 86 parts
+are a reference, not the production part count.
+
+Use the recorded subsets: MegaMath is `megamath-web`; code retains per-file
+licensing and attribution; notebook, Stack Exchange and Nemotron configs must
+match `subset_requirements`. Other pack IDs are rejected.
+
+## Prepare the manifest and inventory
+
+Stage the complete selected raw-file set, with at least one train and one heldout
+part per allowed pack. Numeric part indices must be unique within a pack/split.
+Record upstream revisions/configs and verify the fetch against its source catalog.
+With PyArrow installed, run from the repository root:
+
+```bash
+python -I teams/01-data-a/jobs/2026-11-19-first-training/build_inventory.py --input-root /path/to/raw --out out/first-training-inputs
+```
+
+The output folder must be new. The builder reads all staged Parquets, checks the
+allowlist, schema columns and file identities, and publishes:
+
+- `input_manifest.json`: actual paths, raw rows/bytes/SHA256, source metadata and
+  the approved-scope hash.
+- `expected_inventory.json`: all parts with raw SHA256/rows and expected status,
+  bound to the exact input manifest's SHA256.
+
+These files are generated before cleaning. The builder cannot verify upstream
+subset identity or discover files omitted from the fetch; check those against the
+source catalog. The clean preflight validates row values and per-part doc_id
+uniqueness.
+
+## Pipeline settings
+
+| Setting | Value |
+|---|---|
+| `inventory` | Generated `expected_inventory.json` |
+| `stages.clean.manifest` | Generated `input_manifest.json` |
+| `stages.clean.manifest_sha256` | Inventory's `input_manifest_sha256` |
+| `stages.clean.input` / `stages.ledger.raw` | Same staged raw root |
+| `stages.clean.expected_parts` | Actual generated train/heldout counts |
+| `stages.shards.packs` | All allowed IDs, or omit to select all |
+| `stages.shards.dataset_version` | Production release ID |
+| `stages.reconcile` | Enabled |
+
+Process both splits through clean, overlap, dedup/apply, F2 and the raw ledger.
+Dedup protects heldout rows; F2 may remove fingerprint matches from either split.
+The existing shard runner receives the complete `final/` root, writes train only,
+and records heldout as `not_sharded`. The inventory enforces `written` for train
+and `not_sharded` for heldout. Use a pack table with lane and licence metadata for
+all allowed packs.
+
+## Tests
+
+```bash
+python -m pytest -q teams/01-data-a/jobs/2026-11-19-first-training/tests
+```
