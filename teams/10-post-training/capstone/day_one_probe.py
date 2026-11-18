@@ -4,7 +4,14 @@
         --tokenizer tokenizer.json --byte-table raw_table_P32.npz --heldout H.jsonl --heldout-sources S.jsonl \
         --sft-eval dolly_eval.jsonl [--rl-tasks cc.jsonl --rl-ids easy_rung_ids.txt] --device cuda --out out/
 
+    --sft-dolly databricks-dolly-15k.jsonl replaces --sft-train/--sft-eval: the SFT rows are built at start with the
+    run's own tokenizer and table (capstone/probe_inputs.py) under out/_inputs/, which is removed at exit.
+
 Steps (each writes out/<step>.json; a failed step is recorded and the rest still run):
+  pins        first, before any model work: sha256 of --tokenizer and the byte table's content hash against what the
+              run folder's manifest.json records (artifacts.*); prints both, and on a mismatch stops with exit 1.
+              A hash the manifest does not record is reported as used, not checked
+  inputs      only with --sft-dolly: SFT rows from public Dolly-15k with the run's tokenizer; counts and sha256
   adapter     team5_adapter run_folder build: hashes, G5 validate, model_hash == summary.json, special ids
   forgetting  Team 5's evaluate() on the held-out file (bpb per slice), the number SFT's forgetting check compares to
   sampling    tokens/s of the native sampler: last-position head vs KV cache (capstone/bench_sampling_g5.py)
@@ -20,7 +27,10 @@ its reload check). Network: none. Writes only to --out.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import os
+import shutil
 import subprocess
 import sys
 import time
@@ -45,11 +55,45 @@ def step(out: Path, name: str, fn):
     return res
 
 
-def run_sft_arm(out: Path, arm: str, cmd: list[str]) -> dict:
-    """Keep reports but remove model text/weights even when an arm fails."""
+def sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for block in iter(lambda: f.read(1 << 20), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def check_pins(run_folder: Path, tokenizer: Path, table: Path) -> dict:
+    """The tokenizer and byte table given must be the ones the run folder says it trained with (Team 5's
+    manifest.json `artifacts`, written from week2.artifacts.Artifacts.identity()). Raises on a mismatch; a hash the
+    manifest does not record is reported as used (match None). The table file hash is informational: the model saw
+    the table's content, so the content hash is the one checked."""
+    import numpy as np  # noqa: PLC0415
+    recorded = json.loads((run_folder / "manifest.json").read_text(encoding="utf-8")).get("artifacts") or {}
+    with np.load(table, allow_pickle=False) as z:
+        content = str(z["table_sha256"]) if "table_sha256" in z.files else None
+    used = {"tokenizer_sha256": sha256_file(tokenizer), "table_content_sha256": content,
+            "table_file_sha256": sha256_file(table)}
+    checks = {k: {"given": v, "run_manifest": recorded.get(k),
+                  "match": None if recorded.get(k) is None else recorded.get(k) == v} for k, v in used.items()}
+    print(json.dumps({"pins": {k: [c["given"], c["run_manifest"]] for k, c in checks.items()}}), flush=True)
+    bad = [k for k in ("tokenizer_sha256", "table_content_sha256") if checks[k]["match"] is False]
+    if bad:
+        raise ValueError(f"run folder was trained with different {', '.join(bad)}: "
+                         + "; ".join(f"{k} given {checks[k]['given']}, run manifest {checks[k]['run_manifest']}"
+                                     for k in bad))
+    return {"checks": checks, "not_recorded": [k for k, c in checks.items() if c["match"] is None]}
+
+
+def run_sft_arm(out: Path, arm: str, cmd: list[str], timeout: float | None = None) -> dict:
+    """Keep reports but remove model text/weights even when an arm fails. `timeout` (seconds): the arm's process is
+    killed at that point and the arm fails with a deadline message (weights and generations are still removed)."""
     arm_out = out / f"sft_{arm}"
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True)
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            raise RuntimeError(f"arm {arm} stopped at the job's own deadline ({timeout:.0f} s left when it started)") from None
         if r.returncode:
             raise RuntimeError(r.stderr[-1500:])
         rep = json.loads((arm_out / "sft_report.json").read_text())
@@ -75,13 +119,22 @@ def rl_screen(adapter_cfg: Path, tasks: Path, ids: Path, k: int, max_new: int, d
     return rl_screen_bundle(ta.build(adapter_cfg, device=device).require_bundle(), tasks, ids, k, max_new, device, limit)
 
 
-def rl_screen_bundle(bundle, tasks: Path, ids: Path, k: int, max_new: int, device: str, limit: int = 0) -> dict:
-    """k samples (temperature 1, KV cache) per prompt scored by rl-data/stdio_check.py; aggregates only."""
+def rl_screen_bundle(bundle, tasks: Path, ids: Path, k: int, max_new: int, device: str, limit: int = 0,
+                     seconds: float = 0.0) -> dict:
+    """k samples (temperature 1, KV cache) per prompt scored by rl-data/stdio_check.py; aggregates and per-prompt
+    counts only (id, passes, programs that ran, samples with a code fence). `seconds` > 0: no new prompt is started
+    once the screen has run that long, so callers can compare screens on the ids both reached (the id file's order)."""
+    import time  # noqa: PLC0415
     import importlib.util  # noqa: PLC0415
     import torch  # noqa: PLC0415
     spec = importlib.util.spec_from_file_location("g10_stdio_check", TEAM10 / "rl-data" / "stdio_check.py")
     sc = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(sc)
+    # two sft_g5 processes (one per GPU) share a machine: each needs its own sandbox uid slice, because a uid's
+    # cleanup kills every process of that uid (GPU 0 -> 61000+1000, GPU 1 -> 62000+1000)
+    gpu = os.environ.get("CUDA_VISIBLE_DEVICES", "")
+    if gpu.isdigit() and int(gpu) < 4:
+        sc.set_uid_range(61000 + 1000 * int(gpu), 1000)
     kv = bundle.kv_cache
     bundle.kv_cache = True
     codec = bundle.codec()
@@ -95,29 +148,36 @@ def rl_screen_bundle(bundle, tasks: Path, ids: Path, k: int, max_new: int, devic
         want = want[:limit]  # the id file's own order (sorted ids): a fixed, reproducible subset
     gen = torch.Generator(device=device).manual_seed(0)
     reasons, groups, passes, skipped = {}, {"all_fail": 0, "mixed": 0, "all_pass": 0}, 0, 0
-    has_code = 0
+    has_code, per_prompt, t0, stopped = 0, [], time.perf_counter(), False
     for tid in want:
+        if seconds and time.perf_counter() - t0 > seconds:
+            stopped = True
+            break
         prompt = codec.encode_prompt(by_id[tid]["statement"])
         mn = min(max_new, bundle.spec["block_size"] - len(prompt))
         if mn < 16:
             skipped += 1
             continue
         seq, cmask, _ = bundle.sample(prompt, k, mn, 1.0, gen)
-        p = 0
+        p = runs = fence = 0
         for r in range(k):
             text = codec.decode_completion(seq[r, len(prompt):][cmask[r]].tolist())
-            has_code += "```" in text
+            fence += "```" in text
             res = sc.score(by_id[tid], text)
             key = "pass" if res["reward"] >= 1.0 else str(res.get("reason", "fail")).split(" on ")[0]
             reasons[key] = reasons.get(key, 0) + 1
             p += res["reward"] >= 1.0
+            runs += key in ("pass", "wrong answer on a test")
+        has_code += fence
+        per_prompt.append([tid, int(p), int(runs), int(fence)])
         passes += p
         groups["all_fail" if p == 0 else ("all_pass" if p == k else "mixed")] += 1
     bundle.kv_cache = kv
     n = sum(groups.values())
     return {"prompts": n, "skipped_too_long": skipped, "k": k, "max_new": max_new, "pass_rate": passes / max(n * k, 1),
             "groups": groups, "reasons": dict(sorted(reasons.items())), "samples_with_code_fence": has_code,
-            "runner": sc.RUNNER_KIND}
+            "runner": sc.RUNNER_KIND, "per_prompt": per_prompt, "budget_seconds": seconds, "stopped_at_budget": stopped,
+            "seconds": round(time.perf_counter() - t0, 1)}
 
 
 def main() -> int:
@@ -128,7 +188,10 @@ def main() -> int:
     ap.add_argument("--byte-table", type=Path, required=True)
     ap.add_argument("--heldout", type=Path, required=True)
     ap.add_argument("--heldout-sources", type=Path)
-    ap.add_argument("--sft-eval", type=Path, required=True)
+    ap.add_argument("--sft-eval", type=Path, help="eval rows (or build them with --sft-dolly)")
+    ap.add_argument("--sft-dolly", type=Path, help="databricks-dolly-15k.jsonl: build SFT train/eval rows with the "
+                    "run's tokenizer (implies the SFT arms)")
+    ap.add_argument("--sft-max-tokens", type=int, default=256, help="row length cap for --sft-dolly (rows dropped, not cut)")
     ap.add_argument("--rl-tasks", type=Path)
     ap.add_argument("--rl-ids", type=Path)
     ap.add_argument("--rl-k", type=int, default=8)
@@ -145,13 +208,24 @@ def main() -> int:
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--out", type=Path, required=True)
     a = ap.parse_args()
+    if not (a.sft_eval or a.sft_dolly):
+        ap.error("give --sft-eval or --sft-dolly")
     out = a.out.resolve()
     out.mkdir(parents=True, exist_ok=True)
+    try:
+        return run(a, out)
+    finally:
+        shutil.rmtree(out / "_inputs", ignore_errors=True)  # built rows never leave the job
+
+
+def run(a, out: Path) -> int:
+    results = {"pins": step(out, "pins", lambda: check_pins(a.run_folder, a.tokenizer, a.byte_table))}
+    if not results["pins"]["ok"]:
+        return finish(out, results)  # wrong tokenizer or table: no model work, no rows built
     from make_adapter_config import write_config  # noqa: PLC0415
     cfg = write_config(out / "adapter.yaml", a.g5_root, a.run_folder, a.tokenizer, a.byte_table, TEAM10, a.origin,
                        not a.no_git)
     py = sys.executable
-    results = {}
 
     def record(name, fn):
         results[name] = step(out, name, fn)
@@ -186,6 +260,13 @@ def main() -> int:
         summary, _ = sft_g5.generate_and_judge(b, rows, 64, 64)
         return summary
 
+    if a.sft_dolly:
+        def inputs():
+            import probe_inputs  # noqa: PLC0415
+            return probe_inputs.build_dolly(a.sft_dolly, a.tokenizer, a.byte_table, a.sft_max_tokens, out / "_inputs")
+        if not record("inputs", inputs)["ok"]:
+            return finish(out, results)  # every later step reads these rows
+        a.sft_train, a.sft_eval = out / "_inputs" / "sft_train.jsonl", out / "_inputs" / "sft_eval.jsonl"
     record("adapter", adapter)
     record("forgetting", forgetting)
     record("sampling", sub("sampling", [py, str(HERE / "bench_sampling_g5.py"), "--adapter-config", str(cfg),

@@ -5,6 +5,11 @@ ToyTask       Pure token arithmetic for smoke tests (no text, no data): the prom
                   A random model starts near 1/vocab, so the loop must learn a real mapping. For small vocabs.
               rule "parity": reward 1 if the first completion token has the same parity as the last prompt token.
                   A random model starts near 0.5, so every step has signal even with a 50k vocab (GPU measurement).
+              rule "even": reward 1 if the first completion token id is even, whatever the prompt. Parity of the last
+                  prompt token is an arbitrary function of a token id (a model with no per-id input rows, as in G5's
+                  KE2 byte-code input, cannot generalise it to unseen prompts), so "parity" can only be memorised
+                  on the training prompts; "even" is a prompt-independent output preference that held-out prompts
+                  share. Starts near 0.5 for a model with a near-uniform first-token distribution.
               It proves the loop learns; it is not training data for any real model.
 RewardEnvTask Real environments through one reward function `reward_fn(env_id, text) -> (score, info)`, by default
               rl/reward.py (code tasks and SWE envs). Prompts are rendered with the tokenizer's chat template.
@@ -23,7 +28,7 @@ RL_DIR = Path(__file__).resolve().parents[1] / "rl"
 class ToyTask:
     def __init__(self, vocab: int, prompt_len: int = 4, offset: int = 3, n_train: int = 256, n_heldout: int = 64,
                  seed: int = 0, low: int = 0, rule: str = "exact"):
-        if rule not in ("exact", "parity"):
+        if rule not in ("exact", "parity", "even"):
             raise ValueError(f"unknown toy rule {rule!r}")
         self.rule = rule
         rng = random.Random(seed)
@@ -42,6 +47,8 @@ class ToyTask:
             return 0.0
         if self.rule == "parity":
             return float(completion[0] % 2 == prompt[-1] % 2)
+        if self.rule == "even":
+            return float(completion[0] % 2 == 0)
         return float(completion[0] == self.target(prompt))
 
 
