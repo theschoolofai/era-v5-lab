@@ -10,6 +10,8 @@
 --gguf-dir skips steps 2 and 3: it runs the prompts on the GGUFs that quantize_eval.py already built in its --work folder
 (<name>-bf16.gguf and <name>-<format>.gguf), so the checkpoint is converted and quantized once. --delete-ggufs removes
 those files at the end, after their sha256s are recorded.
+summary.json records the tokenizer sha256 that quantize_eval.py wrote to its scores.json: the one *-scores.json in --gguf-dir,
+or --scores (quantize_eval.py's --scores-out, if that is not in its --work folder). If none is found it is null, with a note.
 
 --manifest takes the 100 prompts from Team 10's effort manifest (the fixed prompts the lead chose). Its resolved slots
 (30 code, 25 math) are read from the pinned parquet files under --source-dir and checked against the manifest's sha256s by
@@ -85,6 +87,20 @@ def manifest_prompts(manifest: Path, source_dirs: dict[str, Path], ours: list[di
     return rows, info
 
 
+def tokenizer_sha_from_scores(gguf_dir: Path, scores: Path | None) -> tuple[str | None, str | None]:
+    """(sha256, None) of the tokenizer quantize_eval.py put into the GGUFs, read from its scores.json; (None, why) if not found.
+    --scores, else the one *-scores.json in the --gguf-dir (quantize_eval.py's default place for --scores-out)."""
+    if scores is None:
+        found = sorted(gguf_dir.glob("*-scores.json"))
+        if len(found) != 1:
+            return None, (f"no *-scores.json in {gguf_dir}" if not found else f"{len(found)} *-scores.json in {gguf_dir}") + "; pass --scores"
+        scores = found[0]
+    sha = json.loads(scores.read_text(encoding="utf-8")).get("tokenizer_sha256")
+    if not (isinstance(sha, str) and len(sha) == 64):
+        return None, f"{scores.name} has no tokenizer_sha256 (a run without --tokenizer)"
+    return sha, None
+
+
 def find_ggufs(work: Path, formats: list[str]) -> dict[str, Path]:
     """quantize_eval.py's files in its --work folder: exactly one <name>-bf16.gguf, then <name>-<format>.gguf."""
     bf16 = sorted(work.glob("*-bf16.gguf"))
@@ -143,6 +159,8 @@ def main() -> None:
     ap.add_argument("--llama-cpp", type=Path, help="llama.cpp b11669 checkout (converter + gguf-py)")
     ap.add_argument("--llama-quantize", type=Path)
     ap.add_argument("--gguf-dir", type=Path, help="quantize_eval.py's --work: use its GGUFs instead of converting again")
+    ap.add_argument("--scores", type=Path, help="with --gguf-dir: quantize_eval.py's --scores-out, for the tokenizer sha256 in "
+                    "the summary (default: the *-scores.json in --gguf-dir)")
     ap.add_argument("--delete-ggufs", action="store_true", help="with --gguf-dir: delete the GGUF files at the end")
     ap.add_argument("--manifest", type=Path, help="Team 10's effort_manifest.json: its 100 slots replace --prompts")
     ap.add_argument("--source-dir", action="append", default=[], metavar="KEY=DIR",
@@ -172,6 +190,11 @@ def main() -> None:
     if a.gguf_dir:
         ggufs = find_ggufs(a.gguf_dir, formats)
         summary["gguf_dir"] = "given (quantize_eval.py --work); converted and quantized there"
+        sha, why = tokenizer_sha_from_scores(a.gguf_dir, a.scores)
+        summary["tokenizer_sha256"] = sha
+        if why:
+            summary["tokenizer_sha256_note"] = why
+            print(f"warning: tokenizer sha256 not recorded: {why}", file=sys.stderr)
         summary["formats"] = {f: {} for f in ggufs}
     else:
         work.mkdir(parents=True, exist_ok=True)
