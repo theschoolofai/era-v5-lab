@@ -21,7 +21,7 @@ STAGES
                  list, overlap run and dedup settings: the processing behind the shards), then shards/run_shards.py on <run>/final   -> <run>/shards (or "out")
                  It runs after the manifest holds every earlier stage, which is what the shard writer reads; its own record is
                  added to the manifest afterwards. The stage stops the run if a part failed or was skipped, if no shard was
-                 written, or if the summary is not this run's. "from": "shards" runs only this stage, into an out folder without shards.
+                 written, if the summary is not this run's, or if the shards on disk do not verify (verify_shards.py). "from": "shards" runs only this stage, into an out folder without shards.
 
 clean, overlap and dedup take "mode": "adopt" (TSAI ran the job; "output" names the folder it returned) or "mode": "run".
 A run stage names a "settings" file (settings only, no paths) and the runner works out the rest: its folder is <run>/<stage>
@@ -97,6 +97,10 @@ CHECKS (any failure stops the run; exit code 1)
   ledger    its cleaned rows = the cleaned rows; removed_by_dedup = apply's removed; dropped_by_f2, f2_error and kept =
             F2's; one fingerprint set, F2's (ledger.py also checks every final part holds the ledger's kept docs in order);
             per pack and split, its cleaned rows and removed_by_dedup = apply_dedup_summary.json's by_pack
+  shards    no part failed or was skipped; run_shards.py exited 0; at least one shard written; the summary is this run's;
+            the shards on disk verify (verify_shards.py, independent of the summary): files and sha256, .bin header and size,
+            index, special ids, metadata, pack table row, tokenizer, F2 set, and the first and last document of every shard
+            against the final part
   from      every earlier stage's output still has the digest the manifest recorded for it
   inventory (only with "inventory") before the shard stage does anything, also when the run resumes there: the
             ledger is mode B and holds exactly the listed parts, each with its listed raw sha256 and raw rows; every
@@ -955,7 +959,7 @@ class Run:
         spec = self.stages["shards"]
         script, out = spec.get("script", DEFAULT_SHARDS), self.output("shards")
         sys.path.insert(0, str(HERE.parent / "shards"))
-        import provenance
+        import provenance, verify_shards
         try:
             record_path, record = provenance.write_record(self.manifest_path, REPO)
         except provenance.Stop as e:
@@ -978,9 +982,10 @@ class Run:
             raise Stop(f"shards: {Path(script).name} failed with exit code {rc} and wrote no shards_summary.json: {tail(log)}")
         s = load_json(summary_path)
         counts, record_sha = s["counts"], sha256(record_path)
+        first = next((f"{n}: {e.get('reason')}" for n, e in s["parts"].items() if e["status"] in ("failed", "skipped")), "")
         self.check("shards: no part failed or was skipped", counts["failed"] == 0 and counts["skipped"] == 0,
-                   f"{counts}; see logs/shards.log")
-        self.check("shards: run_shards.py exited 0", rc == 0, f"exit code {rc}; see logs/shards.log")
+                   f"{counts}; first: {first}; see logs/shards.log")
+        self.check("shards: run_shards.py exited 0", rc == 0, f"exit code {rc}: {tail(log)}")
         self.check("shards: at least one shard written", counts["written"] > 0, f"{counts}")
         cut = sorted(name for name, e in s["parts"].items() if e.get("truncated"))
         self.check("shards: no part was cut short (every row of a written part was read into its shards)",
@@ -990,6 +995,16 @@ class Run:
         self.check("shards: the summary is this run's, made with this run's cleaning_pipeline.json",
                    s.get("run_id") == self.cfg["run_id"] and s.get("cleaning_pipeline_sha256") == record_sha,
                    f"summary run_id {s.get('run_id')}, cleaning_pipeline_sha256 {str(s.get('cleaning_pipeline_sha256'))[:12]}…")
+        # Not the summary's word: the shards as they are on disk (files, sha256, format, counts, pack table, first and last document)
+        table = path(spec["pack_table"]) if spec.get("pack_table") else verify_shards.pack_table.TABLE
+        try:
+            problems, known = verify_shards.verify(out, self.manifest_path, path(spec["tokenizer"]), table, s)
+        except Exception as e:  # an unreadable tokenizer, manifest or pack table: not a traceback
+            raise Stop(f"shards: the shards could not be verified: {type(e).__name__}: {e}")
+        for name, h in known.items():  # the stage digest then reuses them: each shard file is read once
+            self.cache.remember(out / name, h)
+        self.check("shards: the shard files on disk verify (files, sha256, format, counts, pack table, first and last document)",
+                   not problems, f"{len(problems)} problem(s), first: {problems[0] if problems else ''}")
         return {"mode": "run", "command": [script, "--input", "<run>/final", "--manifest", "<run>/pipeline_manifest.json", "--out", "<out>"],
                 "code_sha256": sha256(path(script)), "output": spec.get("out") or "shards", "cleaning_pipeline_sha256": record_sha,
                 "counts": {**counts, "parts": len(s["parts"])}}

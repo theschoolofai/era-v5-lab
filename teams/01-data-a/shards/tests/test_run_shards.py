@@ -76,7 +76,7 @@ def test_a_pack_without_a_lane_or_row_is_skipped_and_the_rest_written(run, tmp_p
     assert s["parts"]["train/pk-nolane/part-00000.parquet"]["status"] == "skipped"
     assert "no lane" in s["parts"]["train/pk-nolane/part-00000.parquet"]["reason"]
     assert s["parts"]["train/pk-b/part-00000.parquet"]["status"] == "written"
-    assert s["counts"] == {"written": 1, "failed": 0, "skipped": 1, "not_sharded": 0, "truncated": 0, "shards": 1}
+    assert s["counts"] == {"written": 1, "empty": 0, "all_left_out": 0, "failed": 0, "skipped": 1, "not_sharded": 0, "truncated": 0, "shards": 1}
     assert not list(out.glob("pk-nolane*"))
     table.write_text(json.dumps({"packs": {}}), encoding="utf-8")
     code, _, s = go(run, tmp_path, table, "--pack", "pk-b", out="shards2")
@@ -88,7 +88,7 @@ def test_a_held_out_part_is_not_sharded_and_is_not_an_error(run, tmp_path, table
     assert code == 0
     held = s["parts"]["heldout/pk-a/part-00000.parquet"]
     assert held["status"] == "not_sharded" and "G3 and G9" in held["reason"] and "shard_id" not in held
-    assert s["counts"] == {"written": 2, "failed": 0, "skipped": 0, "not_sharded": 1, "truncated": 0, "shards": 2}
+    assert s["counts"] == {"written": 2, "empty": 0, "all_left_out": 0, "failed": 0, "skipped": 0, "not_sharded": 1, "truncated": 0, "shards": 2}
     assert not list(out.glob("*heldout*"))
 
 
@@ -114,6 +114,7 @@ def test_held_out_parts_alone_are_a_clean_run_and_do_not_block_a_rerun(run, tmp_
         part.unlink()
     code, out, s = go(run, tmp_path, table, "--pack", "pk-a")
     assert code == 0 and s["counts"]["written"] == 0 and s["counts"]["not_sharded"] == 1
+    assert s["verified"] is None and s["problems"] == []  # no shard, nothing to check
 
 
 def test_a_part_whose_file_changed_after_f2_fails_alone(run, tmp_path, table):
@@ -125,9 +126,10 @@ def test_a_part_whose_file_changed_after_f2_fails_alone(run, tmp_path, table):
     assert not (out / "pk-a-train-000001.json").exists()
 
 
-def test_an_existing_shard_stops_the_run_before_anything_is_written(run, tmp_path, table):
+def test_shards_without_a_summary_stop_the_run_before_anything_is_written(run, tmp_path, table):
     go(run, tmp_path, table, "--pack", "pk-b")
     out = tmp_path / "shards"
+    (out / "shards_summary.json").unlink()  # with no summary, nothing says these shards are this run's
     before = sorted(p.name for p in out.iterdir())
     with pytest.raises(SystemExit, match="already in .*pk-b-train-000000.json"):
         go(run, tmp_path, table, "--pack", "pk-a", "--pack", "pk-b")
@@ -183,6 +185,67 @@ def test_no_parts_is_an_error(run, tmp_path, table):
         go(run, tmp_path, table, "--pack", "nothing")
 
 
+def break_after_writing(monkeypatch, breaker):
+    """Run shard_writer as usual, then let breaker(out folder, manifest) damage what it wrote."""
+    real = rs.shard_writer.main
+
+    def main(argv):
+        manifests = real(argv)
+        for manifest in manifests:  # one or more shards a part (rollover)
+            breaker(Path(argv[argv.index("--out") + 1]), manifest)
+        return manifests
+    monkeypatch.setattr(rs.shard_writer, "main", main)
+
+
+def flip_a_token_byte(out, m):
+    if m["pack_id"] == "pk-b":
+        p = out / m["payload_uri"]
+        data = bytearray(p.read_bytes())
+        data[1030] ^= 1
+        p.write_bytes(bytes(data))
+
+
+def test_a_good_run_is_verified(run, tmp_path, table):
+    code, out, s = go(run, tmp_path, table, "--pack", "pk-a", "--pack", "pk-b")
+    assert code == 0 and s["verified"] is True and s["problems"] == []
+
+
+def test_a_shard_that_fails_verification_fails_its_part_alone(run, tmp_path, table, monkeypatch):
+    break_after_writing(monkeypatch, flip_a_token_byte)
+    code, out, s = go(run, tmp_path, table, "--pack", "pk-a", "--pack", "pk-b")
+    e = s["parts"]["train/pk-b/part-00000.parquet"]
+    assert code == 1 and e["status"] == "failed" and e["shards"][0]["shard_id"] == "pk-b-train-000000"
+    assert e["reason"].startswith("verify_shards: pk-b-train-000000: pk-b-train-000000.bin: sha256")
+    assert s["parts"]["train/pk-a/part-00000.parquet"]["status"] == "written" and s["verified"] is False
+    assert s["counts"]["written"] == 2 and s["counts"]["failed"] == 1 and s["problems"] == []
+
+
+def test_a_problem_that_belongs_to_no_part_goes_to_the_summary_and_fails_the_run(run, tmp_path, table, monkeypatch):
+    break_after_writing(monkeypatch, lambda out, m: (out / "cleaning_pipeline.json").unlink() if m["pack_id"] == "pk-b" else None)
+    code, out, s = go(run, tmp_path, table, "--pack", "pk-a", "--pack", "pk-b")
+    assert code == 1 and s["verified"] is False and s["counts"]["written"] == 3
+    assert any("cleaning_pipeline.json is missing" in p for p in s["problems"])
+
+
+def test_a_rerun_checks_the_shards_an_earlier_run_wrote(run, tmp_path, table):
+    go(run, tmp_path, table, "--pack", "pk-b")
+    (tmp_path / "shards" / "pk-b-train-000000.idx.npy").unlink()  # damaged between the runs
+    code, out, s = go(run, tmp_path, table, "--pack", "pk-a")
+    e = s["parts"]["train/pk-b/part-00000.parquet"]
+    assert code == 1 and e["status"] == "failed" and "pk-b-train-000000.idx.npy is missing" in e["reason"]
+    assert s["parts"]["train/pk-a/part-00000.parquet"]["status"] == "written"
+
+
+def test_a_long_list_of_problems_is_cut_in_the_reason(run, tmp_path, table, monkeypatch):
+    def damage(out, m):
+        if m["pack_id"] == "pk-b":
+            flip_a_token_byte(out, m)
+            for ext in (".idx.npy", ".docs.parquet", ".dump.md"):
+                (out / f"{m['shard_id']}{ext}").unlink()
+    break_after_writing(monkeypatch, damage)
+    code, out, s = go(run, tmp_path, table, "--pack", "pk-b")
+    reason = s["parts"]["train/pk-b/part-00000.parquet"]["reason"]
+    assert reason.count("; ") == 2 and "(and 1 more)" in reason  # four problems: three are shown
 def licensed(tmp_path, change=None):
     """The table of these tests with a licence and its source in every row, as the shard job's pack table has."""
     packs = {p: {**r, "license": f"licence-of-{p}", "license_source": "licence_table.md at fb7d5e6"} for p, r in TABLE["packs"].items()}
@@ -228,3 +291,70 @@ def test_the_dataset_version_is_checked_before_any_part_is_read(run, tmp_path, t
         with pytest.raises(SystemExit, match="run_shards: " + message):
             rs.main([*base, "--out", str(out), *extra])
         assert not out.exists()
+
+
+# --- A04: parts with no document to write; A03: a run stopped part-way, run again -------------------------------------
+def test_an_emptied_part_and_a_part_left_out_whole_get_their_own_status_and_no_shard(tmp_path, monkeypatch, table):
+    mail = "someone.name" + "@" + "gmail.com"  # built at run time: pr-guard scans added lines for addresses
+    parts = {("train", "pk-a/part-00000.parquet"): rows("pk-a", "a0_"),
+             ("train", "pk-b/part-00000.parquet"): [{"doc_id": f"b0_{k}", "text": f"write to {mail}\n", "url": "", "lang_label": "en",
+                                                     "pack_id": "pk-b"} for k in range(2)]}
+    run = make_run(tmp_path / "pipeline", monkeypatch, parts, f2_drop=["a0_0", "a0_1", "a0_2"])
+    code, out, s = go(run, tmp_path, table, "--pack", "pk-a", "--pack", "pk-b")
+    a, b = s["parts"]["train/pk-a/part-00000.parquet"], s["parts"]["train/pk-b/part-00000.parquet"]
+    assert code == 0 and a["status"] == "empty" and a["rows_in_part"] == 0 and a["shards"] == []
+    assert b["status"] == "all_left_out" and b["left_out_docs"]["secret"] == ["b0_0", "b0_1"] and b["shards"] == []
+    assert s["counts"]["empty"] == s["counts"]["all_left_out"] == 1 and s["counts"]["shards"] == 0 and not list(out.glob("*.bin"))
+
+
+def stop_at(monkeypatch, where, n):
+    """Make the n-th shard stop part-way, like a killed process: while its payload is written, or just before its manifest
+    is published."""
+    calls = []
+    if where == "payload":
+        real = rs.shard_writer.write_shard
+
+        def write_shard(path, tokens):
+            calls.append(path)
+            if len(calls) == n:
+                Path(path).write_bytes(b"cut")
+                raise KeyboardInterrupt
+            return real(path, tokens)
+        monkeypatch.setattr(rs.shard_writer, "write_shard", write_shard)
+    else:
+        real = rs.shard_writer.os.replace
+
+        def replace(src, dst):
+            if Path(dst).name.startswith("pk-") and Path(dst).suffix == ".json":  # shard manifests, not the summary
+                calls.append(dst)
+                if len(calls) == n:
+                    raise KeyboardInterrupt
+            return real(src, dst)
+        monkeypatch.setattr(rs.shard_writer.os, "replace", replace)
+
+
+@pytest.mark.parametrize("where", ["payload", "publish"])
+def test_a_run_stopped_part_way_and_run_again_ends_as_one_clean_run(run, tmp_path, table, monkeypatch, where):
+    """Forced rollover (3 shards a part): stop in the 4th shard, the first of pk-a's second part. The rerun keeps part 0's
+    shards as they are and writes the rest; the outcome is the clean run's, file for file."""
+    args = ("--pack", "pk-a", "--tokens", "40")
+    _, clean, want = go(run, tmp_path, table, *args, out="clean")
+    with monkeypatch.context() as m:
+        stop_at(m, where, 4)
+        with pytest.raises(KeyboardInterrupt):
+            go(run, tmp_path, table, *args, out="again")
+    out = tmp_path / "again"
+    kept = {p.name: p.stat().st_mtime_ns for p in out.glob("pk-a-train-00000[0-2].bin")}
+    code, out, got = go(run, tmp_path, table, *args, out="again")
+    assert code == 0 and got["parts"] == want["parts"] and got["counts"] == want["counts"]
+    assert {p.name: p.stat().st_mtime_ns for p in out.glob("pk-a-train-00000[0-2].bin")} == kept and len(kept) == 3
+    names = lambda d: sorted(p.name for p in d.iterdir() if p.suffix != ".md" and p.name != "shards_summary.json")
+    assert names(out) == names(clean) and not list(out.glob("*.tmp"))
+    for f in clean.glob("*.bin"):
+        assert (out / f.name).read_bytes() == f.read_bytes()
+
+
+def test_a_rerun_with_other_settings_is_refused(run, tmp_path, table):
+    go(run, tmp_path, table, "--pack", "pk-a", "--tokens", "40")
+    with pytest.raises(SystemExit, match="was made with"):
+        go(run, tmp_path, table, "--pack", "pk-a", "--tokens", "80")

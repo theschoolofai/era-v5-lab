@@ -27,7 +27,8 @@ A doc is left out, counted, and listed by doc_id in the quality report when:
   - special:    a special id appears inside it (tokenizers turns a literal "<|im_start|>" in the text into a special id);
   - roundtrip:  decode(ids) is not the tokenizer-normalized text;
   - oversize:   it alone (with its EOS) is more than --tokens, so it fits in no shard (listed with its n_tokens).
-A left-out doc is in the report of the shard whose rows it is in. A part with no doc to write stops the writer.
+A left-out doc is in the report of the shard whose rows it is in. A part with no doc to write (empty, or every row
+left out) gets no shard: main() raises NoShard with its row count and left-out doc_ids.
 Checks after writing: G6's open_shard reads the .bin, sizes and index match the manifest, every id < 131,072, and the only
 special ids in the shard are the EOS at the end of each doc.
 Writes, for each shard, <dir>/<shard_id>.{bin,idx.npy,docs.parquet,json}, cleaning_pipeline.json, <shard_id>.quality_report.json and <shard_id>.dump.md
@@ -40,6 +41,7 @@ offsets). Needs numpy, pyarrow, tokenizers and torch (G6's dataio imports torch)
 import argparse
 import hashlib
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -55,6 +57,7 @@ REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO / "teams" / "06-performance"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import provenance  # noqa: E402
+from verify_shards import EOS, EOS_ID, VOCAB, special_ids  # noqa: E402  (the shard constants live there, with the checks of a finished shard)
 from dataio.loader import HEADER_BYTES, open_shard  # noqa: E402
 from dataio.prepare_fineweb import write_shard  # noqa: E402
 
@@ -98,8 +101,7 @@ def load_tokenizer(path, any_tokenizer):
             sys.exit(f"{path}: id {EOS_ID} is {tok.id_to_token(EOS_ID)!r}, not {EOS}")
     if tok.get_vocab_size(with_added_tokens=True) != VOCAB:
         sys.exit(f"{path}: vocab {tok.get_vocab_size(with_added_tokens=True)}, not {VOCAB}")
-    specials = {i for i, t in tok.get_added_tokens_decoder().items() if t.special} | set(SPECIAL_BLOCK)
-    return tok, got, specials
+    return tok, got, special_ids(tok)
 
 
 def pack_family(pack_id):
@@ -201,9 +203,19 @@ def main(argv=None):
                                 "n_chars": len(text), "lang_label": lang_col[row]})
             cur["total"] += n
     if not cur["docs"]:  # rollover only opens a shard with a doc in it, so this part has no doc to write at all
-        sys.exit("shard_writer: no document of this part can go into a shard")
+        raise NoShard(len(text_col), cur["left_out"])
     manifests.append(finish(a, ctx, f"{pack_id}-{split}-{index:06d}", cur, rows_end=len(text_col)))
     return manifests
+
+
+class NoShard(Exception):
+    """A part with no document to write: empty (0 rows, e.g. emptied by dedup or F2) or every row left out. No shard (and no
+    zero-token shard) is written; rows and left_out (the doc_ids per reason) say why, for run_shards.py's summary."""
+
+    def __init__(self, rows, left_out):
+        super().__init__(f"no document of this part goes into a shard: {rows} row(s), "
+                         f"{sum(len(v) for v in left_out.values())} left out")
+        self.rows, self.left_out = rows, left_out
 
 
 def new_shard(first_row):
@@ -237,10 +249,11 @@ def finish(a, ctx, shard_id, cur, rows_end):
     }, indent=2) + "\n", encoding="utf-8", newline="\n")
 
     token_count = int(starts[-1])
+    payload_sha = sha(bin_path)  # once: it goes into the manifest and into the dump below
     manifest = {
         "schema_version": "shard-v1", "dataset_version": a.dataset_version, "shard_id": shard_id,
         "format": "brahmic_u32_v2+doc_index", "token_dtype": "uint32",
-        "payload_uri": bin_path.name, "payload_sha256": sha(bin_path), "payload_bytes": bin_path.stat().st_size,
+        "payload_uri": bin_path.name, "payload_sha256": payload_sha, "payload_bytes": bin_path.stat().st_size,
         "index_uri": idx_path.name, "index_sha256": sha(idx_path),
         "doc_count": len(docs), "token_count": token_count, "eos_token_id": EOS_ID,
         "tokenizer_sha256": ctx["tok_sha"],
@@ -253,9 +266,7 @@ def finish(a, ctx, shard_id, cur, rows_end):
         "quality_report_uri": report.name, "quality_report_sha256": sha(report),
         "created_by": ctx["commit"],
     }
-    (a.out / f"{shard_id}.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8", newline="\n")
-
-    # Check the shard against its manifest, reading the .bin the way G6's loader does.
+    # Check the shard against its manifest, reading the .bin the way G6's loader does, before the manifest is published.
     tokens = open_shard(bin_path)
     idx = np.load(idx_path)
     meta = pq.read_table(meta_path)
@@ -283,7 +294,7 @@ def finish(a, ctx, shard_id, cur, rows_end):
              f"{lo['roundtrip']} not round-tripping, {lo['oversize']} longer than a shard "
              f"(doc_ids in `{shard_id}.quality_report.json`).\n\n",
              "| file | bytes | sha256 |\n|---|---:|---|\n",
-             *(f"| `{p.name}` | {p.stat().st_size:,} | `{sha(p)[:16]}…` |\n" for p in (bin_path, idx_path, meta_path, pipeline, report)),
+             *(f"| `{p.name}` | {p.stat().st_size:,} | `{(payload_sha if p == bin_path else sha(p))[:16]}…` |\n" for p in (bin_path, idx_path, meta_path, pipeline, report)),
              f"\n## `{bin_path.name}`\n\n- header, {HEADER_BYTES:,} bytes = 256 little-endian int32: `{header[0]}` (magic), "
              f"`{header[1]}` (version), `{header[2]:,}` (token count), then zeros\n"
              f"- then {token_count:,} little-endian uint32 token IDs; every doc ends with {EOS_ID}, and no other special id occurs\n"
@@ -295,10 +306,18 @@ def finish(a, ctx, shard_id, cur, rows_end):
              *(f"| `{r['doc_id']}` | `{r['input_part']}` | {r['input_row']:,} | {r['n_tokens']:,} | {r['n_chars']:,} | "
                f"{r['lang_label']} |\n" for r in rows[:5])]
     (a.out / f"{shard_id}.dump.md").write_text("".join(lines), encoding="utf-8", newline="\n")
+    # The manifest is the shard's completion mark: written last, to a .tmp and renamed, so a shard without one (a run
+    # stopped part-way) is incomplete, and run_shards.py writes it again.
+    tmp = a.out / f"{shard_id}.json.tmp"
+    tmp.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8", newline="\n")
+    os.replace(tmp, a.out / f"{shard_id}.json")
     print(json.dumps({"shard_id": shard_id, "docs": n, "tokens": token_count, "first_row": cur["first_row"], "rows_read": rows_end,
                       "left_out": lo, "tokens_per_char_median": round(float(np.median(tpc)), 3), "tokenizer": tok_sha[:12]}))
     return manifest
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except NoShard as e:
+        print(json.dumps({"no_shard": str(e), "rows": e.rows, "left_out": {k: len(v) for k, v in e.left_out.items()}}))

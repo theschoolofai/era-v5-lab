@@ -157,6 +157,20 @@ def test_a_part_rolled_over_into_two_shards_is_accounted_for_from_both(run, tmp_
     assert {x["shard_id"] for x in pq.read_table(tmp_path / "rec" / "reconcile_docs.parquet").to_pylist()} >= {sid, second}
 
 
+def test_a_part_left_out_whole_is_accounted_for_from_its_summary_entry(run, tmp_path):
+    """all_left_out (run_shards.py): no shard, the left-out doc_ids in the part's summary entry."""
+    name, sid = "train/en-dclm/part-00000.parquet", "en-dclm-train-000000"
+    shards = write_shards(run, tmp_path / "shards")
+    ids = pq.read_table(shards / f"{sid}.docs.parquet")["doc_id"].to_pylist()
+    for f in shards.glob(f"{sid}.*"):
+        f.unlink()
+    summary = json.loads((shards / "shards_summary.json").read_text(encoding="utf-8"))
+    summary["parts"][name] = {"pack_id": "en-dclm", "status": "all_left_out", "shards": [], "left_out_docs": {"secret": ids}}
+    (shards / "shards_summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    r = rs.reconcile(run / "ledger", shards, tmp_path / "rec")
+    assert r["ok"] and r["by_pack"]["en-dclm"]["train"] == {"left_out:secret": len(ids)}
+
+
 def test_a_silently_missing_document_fails(run, tmp_path):
     shards = write_shards(run, tmp_path / "shards", drop={("train/code-go/part-00001.parquet", 1)})
     with pytest.raises(rs.Stop, match="'missing': 1"):

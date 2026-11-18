@@ -29,7 +29,8 @@ EVERY KEPT DOCUMENT GETS ONE STATUS (column shard_status)
   not_reached       its part was written but cut short ("truncated": rows at or after the part's rows_read are in no
                     shard). The writer rolls over into more shards, so this should not happen; it is data loss, so it
                     fails (patilvijay23 on #39, point 1)
-  part_<status>     its part failed or was skipped by run_shards.py: fails
+  part_<status>     its part failed or was skipped by run_shards.py: fails (a part the writer left every row of out is
+                    "all_left_out": its documents are left_out:<why> from the summary entry, not part_<status>)
   missing           none of the above: its part was written and reached its row, but it is in no shard: fails
 
 CHECKS (any failure: exit code 1, after writing the outputs, so they show what failed)
@@ -163,9 +164,22 @@ def shard_ids(entry):
 
 
 def shard_inputs(folder, names, parts):
-    """For these written parts: their shard rows (doc_id, input_part, input_row, shard_id), their left-out documents
-    (input_part, doc_id, reason), {shard_id: (manifest doc_count, docs.parquet rows)} and the files read."""
+    """For these written (or all_left_out) parts: their shard rows (doc_id, input_part, input_row, shard_id), their left-out
+    documents (input_part, doc_id, reason), {shard_id: (manifest doc_count, docs.parquet rows)} and the files read. The
+    left-out lists come from each shard's quality report, or, for a part with no shard (all_left_out), its summary entry."""
     docs, left, counts, files = [], [], {}, []
+
+    def add_left(part, lists):
+        for why in REASONS:  # the left-out lists are short (documents the writer refused)
+            ids = [d["doc_id"] if isinstance(d, dict) else d for d in lists.get(why, [])]
+            if ids:
+                left.append(pa.table({"input_part": const(part, len(ids), pa.string()), "doc_id": pa.array(ids, pa.string()),
+                                      "reason": const(why, len(ids), pa.string())}))
+
+    for name in names:
+        if parts[name].get("status") == "all_left_out":
+            add_left(name, parts[name].get("left_out_docs", {}))
+    names = [n for n in names if parts[n].get("status") != "all_left_out"]
     for name, sid in ((n, s) for n in names for s in shard_ids(parts[n]) or [None]):
         if sid is None:
             raise Stop(f"{name}: written, but shards_summary.json names no shard for it")
@@ -180,12 +194,7 @@ def shard_inputs(folder, names, parts):
                               "shard_id": const(sid, t.num_rows, pa.string())}))
         counts[sid] = (json.loads(man.read_text(encoding="utf-8")).get("doc_count"), t.num_rows)
         r = json.loads(rep.read_text(encoding="utf-8"))
-        part = r.get("upstream", {}).get("input_part", name)
-        for why in REASONS:  # the left-out lists are per shard and short (documents the writer refused)
-            ids = [d["doc_id"] if isinstance(d, dict) else d for d in r.get("left_out_docs", {}).get(why, [])]
-            if ids:
-                left.append(pa.table({"input_part": const(part, len(ids), pa.string()), "doc_id": pa.array(ids, pa.string()),
-                                      "reason": const(why, len(ids), pa.string())}))
+        add_left(r.get("upstream", {}).get("input_part", name), r.get("left_out_docs", {}))
     docs_t = pa.concat_tables(docs) if docs else DOCS_SCHEMA.empty_table()
     left_t = pa.concat_tables(left) if left else LEFT_SCHEMA.empty_table()
     return docs_t, left_t, counts, files
@@ -274,7 +283,7 @@ def _reconcile(ledger, shards, out, packs, cache):
         raise Stop(f"--shards {shards}: no {SUMMARY}")
     summary = json.loads((shards / SUMMARY).read_text(encoding="utf-8"))
     parts = summary.get("parts", {})
-    written = {name for name, e in parts.items() if e.get("status") == "written"}
+    written = {name for name, e in parts.items() if e.get("status") in ("written", "all_left_out")}  # parts with documents placed
     groups, ledger_packs = file_groups(ledger, ledger_files)
     scope = set(packs) if packs else set(ledger_packs)  # never the shards' own summary: see --pack
     absent = sorted(set(packs or ()) - set(ledger_packs))

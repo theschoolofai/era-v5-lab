@@ -15,9 +15,24 @@ Shard numbers run across the parts of a pack and split, in part order: the write
 over into the next number, so a part gets one shard or several, and the next part starts at the number after its last.
 Without a rollover, part-00000 gets <pack>-<split>-000000, part-00001 gets 000001, and so on.
 
-Before anything is written it checks that --out holds no shard of a pack it would write, and stops if it does.
-A part the writer stops on (a broken link in its chain, ...) is recorded as "failed" and the run goes on.
-It exits 1 unless every part was written or not_sharded.
+A part with no document to write gets no shard (never a zero-token one) and an explicit status: "empty" when it has no
+rows (dedup or F2 removed them all), "all_left_out" when the writer left out every row; the doc_ids it left out are in
+the part's entry ("left_out_docs"), where reconcile_shards.py finds them. A part the writer stops on (a broken link in
+its chain, ...) is recorded as "failed" and the run goes on. It exits 1 unless every part was written, not_sharded,
+empty or all_left_out.
+
+Restart: the writer publishes each shard's manifest last (written to .tmp and renamed), and the summary is saved after
+every part, so a run that stops part-way can be run again with the same arguments into the same --out. Parts the summary
+holds as done, whose shards are the next numbers of their pack and whose files have the sha256 their manifests give,
+are kept as they are; the first part that is not is written again, after every file of its pack numbered from there on
+(and any .tmp) is removed. A rerun with other settings (--tokens, --dataset-version, tokenizer) is refused, as is a
+--out that holds shards of a pack but no summary.
+
+When it is done it checks the shards that are in --out (verify_shards.py: files, hashes, format, counts, pack table, and the first
+and last document of each shard against the final part), not only what it just wrote. A part whose shard fails a check becomes
+"failed" with the reason; a problem that belongs to no part (cleaning_pipeline.json missing, a shard no part accounts for) goes
+to "problems" in the summary; any problem makes the exit code 1. "verified" is true when the checks found nothing, false when
+they did, and null when there was no shard to check.
 
 Writes <out>/shards_summary.json: for each part its status; for a written part its shards (the part-to-shards map: each
 shard_id with its docs, tokens and the rows first_row..rows_read-1 of the part it covers), the docs, tokens and rows read
@@ -29,13 +44,14 @@ Needs what shard_writer.py needs.
 import sys
 sys.dont_write_bytecode = True
 
-import argparse, contextlib, hashlib, io, json, re
+import argparse, contextlib, hashlib, io, json, os, re
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import pack_table  # noqa: E402
 import shard_writer  # noqa: E402
+import verify_shards  # noqa: E402
 
 SUMMARY = "shards_summary.json"
 NOT_SHARDED = ("heldout", "validation", "val")  # split folders that are left alone (shard_writer.py also refuses a non-train part)
@@ -57,8 +73,62 @@ def shards_of(out, split, pack):
                   if re.fullmatch(rf"{re.escape(pack)}-{re.escape(split)}-\d{{6}}\.json", p.name))
 
 
+DONE = ("written", "empty", "all_left_out")  # a part with one of these needs nothing more
+FILE = re.compile(r"(?P<pack>.+)-(?P<split>[^-]+)-(?P<n>\d{6})\.(bin|idx\.npy|docs\.parquet|json|quality_report\.json|dump\.md)(\.tmp)?")
+
+
+def settings_of(a):
+    """What every shard of one --out must share; a rerun with other settings is refused."""
+    return {"tokens": a.tokens or 2 ** 26, "dataset_version": a.dataset_version or "test",
+            "tokenizer_sha256": shard_writer.sha(a.tokenizer)}
+
+
+def save(path, summary):
+    """Write the summary to a .tmp and rename it: a run stopped while saving leaves the previous one."""
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n")
+    os.replace(tmp, path)
+
+
+def reusable(out, split, pack, entry, index):
+    """True when entry (a part the summary holds) is done and its shards are <pack>-<split>-<index>, <index + 1>, ... with
+    files whose sha256 is what their manifests give."""
+    if not entry or entry.get("status") not in DONE:
+        return False
+    ids = [x["shard_id"] for x in entry.get("shards", [])]
+    if ids != [f"{pack}-{split}-{k:06d}" for k in range(index, index + len(ids))]:
+        return False
+    for sid in ids:
+        mfile = out / f"{sid}.json"
+        if not mfile.is_file():
+            return False
+        m = json.loads(mfile.read_text(encoding="utf-8"))
+        # ponytail: hashes each kept shard once more here (verify_written hashes them again); fine at 2^26-token shards
+        for uri, key in (("payload_uri", "payload_sha256"), ("index_uri", "index_sha256"), ("sample_metadata_uri", "sample_metadata_sha256")):
+            f = out / m.get(uri, "")
+            if not f.is_file() or shard_writer.sha(f) != m.get(key):
+                return False
+    return True
+
+
+def clear_from(out, split, pack, index):
+    """Remove every file of pack's shards numbered index or more, and its .tmp files: what a stopped run left part-way."""
+    for f in Path(out).glob(f"{pack}-{split}-*"):
+        m = FILE.fullmatch(f.name)
+        if m and m["pack"] == pack and m["split"] == split and (int(m["n"]) >= index or f.name.endswith(".tmp")):
+            f.unlink()
+
+
+def no_shard_entry(e):
+    """The summary entry of a part the writer found nothing to write in (shard_writer.NoShard)."""
+    return {"status": "empty" if e.rows == 0 else "all_left_out", "shards": [], "docs": 0, "tokens": 0, "rows_read": e.rows,
+            "rows_in_part": e.rows, "truncated": False, "left_out": {k: len(v) for k, v in e.left_out.items()},
+            "left_out_docs": e.left_out}
+
+
 def write_one(path, a, row, index):
-    """Run shard_writer on one part, its first shard numbered index. Returns ([manifest, ...], None) or (None, why it stopped)."""
+    """Run shard_writer on one part, its first shard numbered index. Returns ([manifest, ...], None), (NoShard, None) or
+    (None, why it stopped)."""
     argv = ["--input", str(path), "--manifest", str(a.manifest), "--tokenizer", str(a.tokenizer), "--out", str(a.out),
             "--language", row["language"], "--script", row["script"], "--domain", row["domain"], "--lane", row["lane"],
             "--index", str(index)]
@@ -73,6 +143,8 @@ def write_one(path, a, row, index):
     try:
         with contextlib.redirect_stdout(io.StringIO()):  # the writer prints a JSON line per shard; the summary has it
             return shard_writer.main(argv), None
+    except shard_writer.NoShard as e:
+        return e, None
     except SystemExit as e:
         return None, str(e.code)
     except Exception as e:  # one bad part must not stop the others
@@ -92,6 +164,39 @@ def entry_of(manifests, out):
     return {"status": "written", "shards": shards, "docs": sum(x["docs"] for x in shards), "tokens": sum(x["tokens"] for x in shards),
             "rows_read": shards[-1]["rows_read"], "rows_in_part": rows_in_part, "truncated": shards[-1]["rows_read"] < rows_in_part,
             "left_out": left_out}
+
+
+def count(summary):
+    """{status: number of parts} for every status, and how many parts are truncated."""
+    entries = summary["parts"].values()
+    counts = {s: sum(e["status"] == s for e in entries) for s in ("written", "empty", "all_left_out", "failed", "skipped", "not_sharded")}
+    counts["truncated"] = sum(bool(e.get("truncated")) for e in entries)
+    counts["shards"] = sum(len(e.get("shards", [])) for e in entries if e["status"] == "written")
+    return counts
+
+
+def verify_written(a, summary):
+    """Check the shards in a.out against their files (verify_shards.py), for every part the summary calls written. A problem
+    that names a shard fails that part; the others go to summary["problems"]. Sets summary["verified"]; returns the problems."""
+    summary["verified"], summary["problems"] = None, []
+    written = {x["shard_id"]: name for name, e in summary["parts"].items() if e["status"] == "written" for x in e["shards"]}
+    if not written:
+        return []
+    problems, _ = verify_shards.verify(a.out, a.manifest, a.tokenizer, a.pack_table, summary)
+    by_part = {}
+    for problem in problems:
+        name = next((n for sid, n in written.items() if problem.startswith(sid + ": ")), None)
+        if name is None:
+            summary["problems"].append(problem)
+        else:
+            by_part.setdefault(name, []).append(problem)
+    for name, found in by_part.items():
+        entry = summary["parts"][name]
+        more = f" (and {len(found) - 3} more)" if len(found) > 3 else ""
+        summary["parts"][name] = {"pack_id": entry["pack_id"], "shards": entry["shards"], "status": "failed",
+                                  "reason": "verify_shards: " + "; ".join(found[:3]) + more}
+    summary["verified"] = not problems
+    return problems
 
 
 def main(argv=None):
@@ -117,18 +222,25 @@ def main(argv=None):
     run_id = json.loads(a.manifest.read_text(encoding="utf-8")).get("run_id")
     summary_path = a.out / SUMMARY
     summary = {"parts": {}}
+    settings = settings_of(a)
     if summary_path.is_file():
         summary = json.loads(summary_path.read_text(encoding="utf-8"))
         if summary["run_id"] != run_id:
             sys.exit(f"run_shards: {summary_path} is from another pipeline run ({summary['run_id']}) than {a.manifest} ({run_id}); use a new --out")
-    taken = [n for split, pack in sorted({(s, p) for s, p, _ in parts if s not in NOT_SHARDED}) for n in shards_of(a.out, split, pack)]
-    if taken:
-        sys.exit(f"run_shards: already in {a.out}: {', '.join(taken[:5])}{' ...' if len(taken) > 5 else ''}. Nothing was written; "
-                 "use a new --out, or --pack for the other packs")
+        if summary.get("settings", settings) != settings:
+            sys.exit(f"run_shards: {summary_path} was made with {summary['settings']}, this run has {settings}. Nothing was "
+                     "written; use a new --out")
+    else:
+        taken = [n for split, pack in sorted({(s, p) for s, p, _ in parts if s not in NOT_SHARDED}) for n in shards_of(a.out, split, pack)]
+        if taken:
+            sys.exit(f"run_shards: already in {a.out}, with no {SUMMARY}: {', '.join(taken[:5])}{' ...' if len(taken) > 5 else ''}. "
+                     "Nothing was written; use a new --out")
+    summary["run_id"], summary["settings"] = run_id, settings
+    a.out.mkdir(parents=True, exist_ok=True)
 
-    this_run, next_index = [], {}  # (split, pack) -> the number of its next shard
+    this_run, next_index = [], {}  # the names of the parts this run handled; (split, pack) -> the number of its next shard
     for split, pack, path in parts:
-        name = f"{split}/{pack}/{path.name}"
+        name, kept = f"{split}/{pack}/{path.name}", False
         if split in NOT_SHARDED:
             entry = {"pack_id": pack, "status": "not_sharded", "reason": f"{split} is not sharded (held-out data: G3 and G9 decide)"}
         else:
@@ -139,29 +251,42 @@ def main(argv=None):
                 entry.update(status="skipped", reason=str(e))
             else:
                 index = next_index.get((split, pack), 0)
-                manifests, why = write_one(path, a, row, index)
-                if why:
-                    entry.update(status="failed", reason=why)
+                if reusable(a.out, split, pack, summary["parts"].get(name), index):
+                    entry, kept = summary["parts"][name], True  # done by an earlier run that stopped later
                 else:
-                    entry.update(entry_of(manifests, a.out))
-                    next_index[(split, pack)] = index + len(manifests)
+                    clear_from(a.out, split, pack, index)
+                    manifests, why = write_one(path, a, row, index)
+                    if why:
+                        entry.update(status="failed", reason=why)
+                    elif isinstance(manifests, shard_writer.NoShard):
+                        entry.update(no_shard_entry(manifests))
+                    else:
+                        entry.update(entry_of(manifests, a.out))
+                next_index[(split, pack)] = index + len(entry.get("shards", []))
         summary["parts"][name] = entry
-        this_run.append(entry["status"])
-        note = f"{len(entry['shards'])} shard(s), {entry['docs']} docs, {entry['tokens']} tokens" + (" TRUNCATED" if entry["truncated"] else "") \
-            if entry["status"] == "written" else entry["reason"]
+        save(summary_path, summary)  # after every part: a rerun picks up from here
+        this_run.append(name)
+        note = (f"{len(entry['shards'])} shard(s), {entry['docs']} docs, {entry['tokens']} tokens" + (" TRUNCATED" if entry["truncated"] else "")
+                + (" (kept from an earlier run)" if entry["status"] == "written" and kept else "")
+                if entry["status"] in DONE else entry["reason"])
         print(f"{entry['status']:8} {name}: {note}", file=sys.stderr if entry["status"] in ("failed", "skipped") else sys.stdout)
 
     pipeline = a.out / "cleaning_pipeline.json"  # written by the writer with the run's first shard
-    summary = {"run_id": run_id, "cleaning_pipeline_sha256": hashlib.sha256(pipeline.read_bytes()).hexdigest() if pipeline.is_file() else None,
+    summary = {"run_id": run_id, "settings": settings,
+               "cleaning_pipeline_sha256": hashlib.sha256(pipeline.read_bytes()).hexdigest() if pipeline.is_file() else None,
                "parts": summary["parts"]}
-    entries = summary["parts"].values()
-    summary["counts"] = {s: sum(e["status"] == s for e in entries) for s in ("written", "failed", "skipped", "not_sharded")}
-    summary["counts"]["truncated"] = sum(bool(e.get("truncated")) for e in entries)
-    summary["counts"]["shards"] = sum(len(e.get("shards", [])) for e in entries)
-    a.out.mkdir(parents=True, exist_ok=True)
-    summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n")
+    summary["counts"] = count(summary)
+    problems = verify_written(a, summary)
+    for name, e in summary["parts"].items():
+        if e["status"] == "failed" and e["reason"].startswith("verify_shards: "):
+            print(f"failed   {name}: {e['reason']}", file=sys.stderr)
+    for problem in summary["problems"]:
+        print(f"problem  {problem}", file=sys.stderr)
+    summary["counts"] = count(summary)
+    save(summary_path, summary)
     print(json.dumps(summary["counts"]))
-    return 0 if set(this_run) <= {"written", "not_sharded"} else 1  # this run's parts, not those an earlier run left in the summary
+    statuses = {summary["parts"][n]["status"] for n in this_run}  # this run's parts, not those an earlier run left in the summary
+    return 0 if statuses <= {*DONE, "not_sharded"} and not problems else 1
 
 
 if __name__ == "__main__":

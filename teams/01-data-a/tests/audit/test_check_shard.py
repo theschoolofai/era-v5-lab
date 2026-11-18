@@ -45,7 +45,7 @@ def write_shard(d, docs=DOCS, dedup="dedup-v1"):
     man = json.loads(cs.TEMPLATE.read_text())
     man.update({
         "dataset_version": "test", "shard_id": SID, "tokenizer_sha256": cs.P1536_SHA256, "pack_id": "code-go", "language": "go", "domain": "code",
-        "capability_lane": "code", "split": "train",
+        "capability_lane": "code", "license": "test-licence", "license_source": "test", "split": "train",
         "payload_uri": f"{SID}.bin", "payload_sha256": _sha(d / f"{SID}.bin"),
         "payload_bytes": cs.HEADER_BYTES + 4 * len(toks),
         "index_uri": f"{SID}.idx.npy", "index_sha256": _sha(d / f"{SID}.idx.npy"),
