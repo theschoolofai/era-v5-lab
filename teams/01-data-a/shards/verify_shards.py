@@ -59,8 +59,9 @@ def special_ids(tok):
 
 
 def summary_shards(summary):
-    """{shard_id: its summary entry} of the parts the summary calls written. The only place that knows the summary's layout."""
-    return {e["shard_id"]: e for e in summary.get("parts", {}).values() if e.get("status") == "written"}
+    """{shard_id: its entry in its part's "shards" list (docs, tokens, rows)} of the parts the summary calls written; a part
+    has one shard or several (rollover). The only place that knows the summary's layout."""
+    return {x["shard_id"]: x for e in summary.get("parts", {}).values() if e.get("status") == "written" for x in e.get("shards", [])}
 
 
 def read_row(path, row):
@@ -78,9 +79,12 @@ def read_row(path, row):
 
 def check_shard(out, sid, m, ctx, bad, hashes):
     """The checks of one shard (see the docstring). bad(sid, message) records a problem; hashes gets {file name: sha256}."""
-    lacking = sorted(ctx["keys"] - set(m))
+    optional = {"license", "license_source"}  # a pack table may give neither (pack_table.py); then the manifest has neither
+    lacking = sorted(ctx["keys"] - optional - set(m))
     if lacking:
         return bad(sid, f"the manifest lacks {', '.join(lacking)}")
+    if ("license" in m) != ("license_source" in m):
+        bad(sid, "the manifest has one of license and license_source without the other")
     for field, want in (("shard_id", sid), ("schema_version", "shard-v1"), ("format", "brahmic_u32_v2+doc_index"),
                         ("token_dtype", "uint32"), ("eos_token_id", EOS_ID)):
         if m[field] != want:
@@ -253,8 +257,9 @@ def verify(out, manifest, tokenizer, table=pack_table.TABLE, summary=None):
             for key, field in (("docs", "doc_count"), ("tokens", "token_count")):
                 if listed[sid].get(key) != manifests[sid].get(field):
                     bad(sid, f"the summary says {key} {listed[sid].get(key)}, the manifest {field} {manifests[sid].get(field)}")
-        if summary.get("counts", {}).get("written") != len(listed):
-            bad(None, f"the summary counts {summary.get('counts', {}).get('written')} written parts, and lists {len(listed)}")
+        parts = sum(e.get("status") == "written" for e in summary.get("parts", {}).values())
+        if summary.get("counts", {}).get("written") != parts:
+            bad(None, f"the summary counts {summary.get('counts', {}).get('written')} written parts, and lists {parts}")
     return problems, hashes
 
 

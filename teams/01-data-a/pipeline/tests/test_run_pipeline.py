@@ -333,7 +333,7 @@ def test_shards_run_after_f2_and_are_recorded(tmp_path, shard_config):
     run = tmp_path / "runs" / "test-run"
     assert [s["stage"] for s in m["stages"]] == list(rp.STAGES[: rp.STAGES.index("shards") + 1])
     s = m["stages"][-1]
-    assert s["counts"] == {"written": 2, "failed": 0, "skipped": 0, "not_sharded": 1, "truncated": 0, "parts": 3}
+    assert s["counts"] == {"written": 2, "failed": 0, "skipped": 0, "not_sharded": 1, "truncated": 0, "shards": 2, "parts": 3}
     assert m["totals"]["shards_written"] == 2 and all(ch["ok"] for ch in m["checks"])
     record = json.loads((run / "cleaning_pipeline.json").read_text(encoding="utf-8"))
     assert sorted(record) == ["clean_py_sha256", "dedup", "f2_set_sha256"] and record["clean_py_sha256"] == "c" * 64
@@ -1038,14 +1038,28 @@ def test_a_verification_that_cannot_run_is_a_stop_not_a_traceback(shard_config, 
 
 def test_a_stage_digest_may_reuse_hashes_a_stage_computed(tmp_path):
     (tmp_path / "a.bin").write_bytes(b"x" * 100)
-    (tmp_path / "b.json").write_text(json.dumps({"seconds": 1, "k": 2}), encoding="utf-8")
+    (tmp_path / "b.json").write_text(
+        json.dumps({"seconds": 1, "k": 2}),
+        encoding="utf-8",
+    )
+
     plain = rp.digest(tmp_path)
+
+    for given, same in (
+        (rp.sha256(tmp_path / "a.bin"), True),
+        ("0" * 64, False),
+    ):
+        cache = rp.HashCache()
+        cache.remember(tmp_path / "a.bin", given)
+        assert (rp.digest(tmp_path, cache)[0] == plain[0]) is same
+
     cache = rp.HashCache()
     cache.remember(tmp_path / "a.bin", rp.sha256(tmp_path / "a.bin"))
-    assert rp.digest(tmp_path, cache) == plain  # the same value, one read less
+    assert rp.digest(tmp_path, cache) == plain
+
     other = rp.HashCache()
     other.remember(tmp_path / "a.bin", "0" * 64)
-    assert rp.digest(tmp_path, other)[0] != plain[0]  # proves the given hash is the one used
+    assert rp.digest(tmp_path, other)[0] != plain[0]
 
 
 def test_the_hashes_verification_read_go_to_the_hash_cache_not_a_second_read(shard_config, monkeypatch):
@@ -1104,7 +1118,7 @@ def test_without_the_hash_cache_the_digests_are_the_same(tmp_path, config, tsai_
     assert not (tmp_path / "runs" / "nocache" / "cache").exists()
 
 
-# --- Vijay's review of PR #46 (15 Nov) -------------------------------------------------------------------------------
+# --- patilvijay23's review of PR #46 (15 Nov) -------------------------------------------------------------------------------
 @pytest.mark.parametrize("name", ["ledger.partial", "ledger.old", "deduped.lock", "ledger"])
 def test_an_input_in_a_folder_the_run_writes_is_refused(tmp_path, tsai_outputs, name):
     """stages.clean.output at <run>/ledger.partial passed validation, and the ledger then deleted the cleaned parts. The
@@ -1523,7 +1537,7 @@ ON_LEDGER = ["inventory: made from the input manifest the clean job read", "inve
              "inventory: each part's raw file is the listed one (sha256)", "inventory: each part's raw rows are the listed ones"]
 ON_SHARDS = ["inventory: the shard summary holds exactly the listed parts", "inventory: every part ended in a listed status",
              "inventory: every part is of its listed pack"]
-INVENTORY_SHARD_COUNTS = {"written": 3, "failed": 0, "skipped": 0, "not_sharded": 1, "truncated": 0, "parts": 4}
+INVENTORY_SHARD_COUNTS = {"written": 3, "failed": 0, "skipped": 0, "not_sharded": 1, "truncated": 0, "shards": 3, "parts": 4}
 
 
 def write_inventory(tmp_path, change=None):
@@ -1796,7 +1810,7 @@ def test_the_inventory_is_checked_against_the_summary_the_shard_script_writes(tm
     with pytest.raises(rp.Stop, match=f"inventory: every part ended in a listed status: 1 of 4 .*{name}: status 'written', listed not_sharded"):
         rp.run(shard_config)
     run = tmp_path / "runs" / "test-run"
-    assert json.loads((run / "shards" / "shards_summary.json").read_text(encoding="utf-8"))["parts"][name]["shard_id"] == "en-dclm-train-000000"
+    assert json.loads((run / "shards" / "shards_summary.json").read_text(encoding="utf-8"))["parts"][name]["shards"][0]["shard_id"] == "en-dclm-train-000000"
     write_inventory(tmp_path)
     m = rp.run(shard_config, start="reconcile")
     assert all(c["ok"] for c in m["checks"]) and inventory_report(run)["ok"] is True
@@ -2185,7 +2199,7 @@ def test_an_inventory_and_a_drop_go_together(tmp_path, shard_config, monkeypatch
 
 
 
-# --- Vijay's review of PR #46 (17 Nov): a drop checks the shards on disk first -------------------------------------
+# --- patilvijay23's review of PR #46 (17 Nov): a drop checks the shards on disk first -------------------------------------
 def remove_payload_and_index(out):
     for f in list(out.glob("*.bin")) + list(out.glob("*.idx.npy")):
         f.unlink()
@@ -2215,7 +2229,7 @@ def bad_header(out):
 
 
 @pytest.mark.parametrize("damage, message", [
-    (remove_payload_and_index, r"\.bin: missing"),  # Vijay's reproduction: metadata fine, .bin and .idx.npy gone
+    (remove_payload_and_index, r"\.bin: missing"),  # patilvijay23's reproduction: metadata fine, .bin and .idx.npy gone
     (flip_a_payload_byte, r"\.bin: sha256 .*, the manifest has"),
     (cut_the_payload, r"\.bin: sha256"),
     (remove_the_index, r"\.idx\.npy: missing"),
@@ -2332,7 +2346,7 @@ def test_shard_problems_refuses_a_shard_file_that_is_a_link(tmp_path):
     assert rp.shard_problems(out, "s", {}, rp.HashCache()) == ["s.bin: a link, not the file"]
 
 
-# --- Tejaskumar's review of PR #46 (18 Nov): dataset_version, truncated parts ----------------------------------------
+# --- TEJASKUMAR-REDDY-J's review of PR #46 (18 Nov): dataset_version, truncated parts ----------------------------------------
 def test_the_shard_stage_passes_the_dataset_version_and_any_tokenizer_runs_stay_test(tmp_path, shard_config):
     """stages.shards.dataset_version goes to run_shards.py as --dataset-version (shard_writer writes it into every
     manifest); an any_tokenizer run passes none, so its shards are "test". --plan names the version."""
@@ -2354,6 +2368,6 @@ def test_a_part_cut_short_by_the_shard_writer_stops_the_shard_stage(tmp_path, sh
     """A part whose kept documents did not all fit in stages.shards.tokens stops the run at the shard stage, with the
     parts named, instead of later in reconcile as not_reached."""
     monkeypatch.setenv("FAKE_SHARDS_TRUNCATE", "1")
-    with pytest.raises(rp.Stop, match=r"no part was cut short.*1 part\(s\) did not fit in stages.shards.tokens, e.g. "
+    with pytest.raises(rp.Stop, match=r"no part was cut short.*1 part\(s\) cut short, e.g. "
                                       r"\['train/code-go/part-00000.parquet'\]"):
         rp.run(shard_config)

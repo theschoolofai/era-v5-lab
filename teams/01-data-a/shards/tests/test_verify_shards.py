@@ -202,7 +202,7 @@ def test_a_stray_shard_manifest_is_caught(made):
 
 def test_a_summary_that_lists_a_shard_that_is_not_there_is_caught(made):
     s = json.loads((made.out / "shards_summary.json").read_text(encoding="utf-8"))
-    s["parts"]["train/pk-a/part-00000.parquet"]["shard_id"] = "pk-a-train-000009"
+    s["parts"]["train/pk-a/part-00000.parquet"]["shards"][0]["shard_id"] = "pk-a-train-000009"
     problems = made.check(summary=s)[0]
     assert any("pk-a-train-000009: the summary lists it as written, but there is no shard manifest" in x for x in problems)
     assert any(f"{SID}: there is a shard manifest for it, but the summary does not list it" in x for x in problems)
@@ -210,7 +210,7 @@ def test_a_summary_that_lists_a_shard_that_is_not_there_is_caught(made):
 
 def test_a_summary_with_other_counts_is_caught(made):
     s = json.loads((made.out / "shards_summary.json").read_text(encoding="utf-8"))
-    s["parts"]["train/pk-b/part-00000.parquet"]["tokens"] += 1
+    s["parts"]["train/pk-b/part-00000.parquet"]["shards"][0]["tokens"] += 1
     s["counts"]["written"] += 1
     problems = made.check(summary=s)[0]
     assert any("the summary says tokens" in x for x in problems) and any("counts 4 written parts, and lists 3" in x for x in problems)
