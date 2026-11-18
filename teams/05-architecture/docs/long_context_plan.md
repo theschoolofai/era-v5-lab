@@ -106,7 +106,7 @@ All four inputs reached the model at their stated lengths and produced finite lo
 
 ## Exploratory WikiText pilot: separate evidence
 
-The earlier reviewed notebook tested three WikiText-103 articles with SDPA/BF16. Its NLLs were A=2.470164, B=6.693264, C=2.482160 and D=2.470355. C - B was -4.211104; C - D was +0.011805. FP32 sensitivity preserved that pilot's broad conclusion, and its fresh marimo replay reproduced its four BF16 means exactly. These checks concern the WikiText pilot, not a FP32 or marimo rerun of the G5 corpus result. Its external corpus, different backend and different domains are not pooled with the primary measurements. [Pilot notebook](../notebooks/context_extension.py) | [Pilot log](../results/context_extension/PILOT_TEST_LOG.md) | [WikiText source][S6]
+The earlier reviewed notebook tested three WikiText-103 articles with SDPA/BF16. Its NLLs were A=2.470164, B=6.693264, C=2.482160 and D=2.470355. C - B was -4.211104; C - D was +0.011805. FP32 sensitivity preserved that pilot's broad conclusion, and its original isolated replay reproduced its four BF16 means exactly. These checks concern the WikiText pilot, not an FP32 or isolated rerun of the G5 corpus result. Its external corpus, different backend and different domains are not pooled with the primary measurements. [Pilot notebook](../notebooks/context_extension.ipynb) | [Pilot log](../results/context_extension/PILOT_TEST_LOG.md) | [WikiText source][S6]
 
 Neither small study demonstrates useful distant-fact retrieval, a multilingual outcome, a production training schedule, or a generally safe short-context trade-off.
 
@@ -134,7 +134,7 @@ python teams/05-architecture/harness/context_extension_check.py --heldout teams/
 python teams/05-architecture/tests/verify_context_extension.py
 ```
 
-The offline verifier checks both saved studies, numerical conclusions, exact source hashes and file integrity without executing a GPU job. Fresh outputs are in `out/`; the committed measurement snapshot is not overwritten. Do not compare these subset token perplexities with published full-corpus BPB numbers or across tokenizers.
+The offline verifier checks both saved studies, numerical conclusions, the executed primary-runner hash, notebook structure and file integrity without executing a GPU job. Fresh outputs are in `out/`; the committed measurement snapshot is not overwritten. Do not compare these subset token perplexities with published full-corpus BPB numbers or across tokenizers.
 
 | Reproducibility identifier | Value |
 |---|---|
@@ -145,7 +145,7 @@ The offline verifier checks both saved studies, numerical conclusions, exact sou
 | Primary execution | 2026-11-17T21:50:08.066045+00:00 (UTC), 18 November IST |
 | Document IDs and hashes | [approved_manifest.json](../results/context_extension/approved_manifest.json) |
 
-The original marimo notebook remains an immutable exploratory artifact. To replay it, install marimo 0.25.2, verify the snapshot, copy the notebook to a temporary directory and export the copy: the sandbox launcher may add a dependency to its header in place. Its command and the distinction between primary/replay source hashes are in the pilot log. The full download contains both studies' raw losses, exact selected IDs and execution logs, outside the public repository overlay. Required design/result claims can be inspected from the PR without a private ChatGPT link.
+The exploratory pilot is supplied as a standard Jupyter notebook with a labelled snapshot of the original results and embedded charts. Its calculations are preserved from the reviewed export; this presentation conversion passed schema, syntax and scoring-function checks but has not been freshly GPU-executed. Follow the adjacent notebook README to run it on CUDA; new outputs go to `out/context_extension_pilot/`. Original executed source and replay hashes remain in `source_provenance.json`, and the exact original source is preserved in Git commit `9539c7be6263b3fe429a5096dac8c77ed1428f63`. The complete supporting-evidence download retains both studies' raw losses, exact selected IDs and historical execution logs. Required design/result claims can be inspected from the PR without a private ChatGPT link.
 
 ## Proposed team-checkpoint follow-up
 

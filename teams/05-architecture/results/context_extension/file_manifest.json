@@ -3,10 +3,12 @@
   "docs/context_extension_figures/batch_scaling.png": "27b8bf0a3aad9c2204a22ab316f3bf934c5ca7f990c7f68a852f5fc26956d0f6",
   "docs/context_extension_figures/matched_targets.png": "d1773d14b4cdd4e13d11986ba7688352aedddb7dd7672f992cb2e97cd84666e6",
   "docs/context_extension_figures/quality_results.png": "12bd28f88d0a50ba1225ffffa5d1a9a5e5c83886ba51aceb026a5c69d00168cd",
-  "docs/long_context_plan.md": "0e45a59c8da2c116718f839f9304ff56b505c26f05c87eefcc3da00cbe3cea1e",
+  "docs/long_context_plan.md": "d939c3a763618d10b2cf013e228e981d792c48c0800266a065b46b3467345483",
   "harness/context_extension_check.py": "41a8b4b0870d465071fa6cb09e332e5e214e99d8790f46934fe40a3e8e9f3e00",
-  "notebooks/context_extension.py": "298d8303f6ad3d4b379af9b32198d62516a32f893afc858d6e698bdd4e3adcf0",
-  "results/context_extension/PILOT_TEST_LOG.md": "1089e257a7efa5da9a0f57eac964079250d763aa2b1aa8c7dd14920ce23a32e5",
+  "notebooks/README.md": "4378d587c8dca5c3ccf50836ceca0f825a472788c9fc77a15176142247ab352c",
+  "notebooks/context_extension.ipynb": "0bbecb1c67252ac111f3899daff92181714d11d4a57786c6aedd5840a1b5660d",
+  "notebooks/requirements-context-extension.txt": "3b2e42a9916aa20e8133b716f520af93dd2425d2439fb30c86179a19047fe048",
+  "results/context_extension/PILOT_TEST_LOG.md": "3fe7c2530e7d84d7e05faa43099a4e60f376440f918088275baef13a6b744380",
   "results/context_extension/TEST_LOG.md": "bbefdb0afbc02b43d308383f1d222c652a76d26e29e5a04b5f4aa05f8e5d878e",
   "results/context_extension/approved_document_results.csv": "5add43c87cfdb2ec5ffca1c345c06a765a18319ec6bab067e16333bdb8261535",
   "results/context_extension/approved_manifest.json": "4c0befca7269a2c9708c29af568f814152fbd9046bb5a55d5c777a30795c4446",
@@ -17,8 +19,8 @@
   "results/context_extension/input_hashes.json": "606743b4adb570498097520beb2db2fc06f122361934513aaeadf7b7054f7ac0",
   "results/context_extension/manifest.json": "6e7c075d3b3ad62a2ced6b45544e603c4fa29ee0fa252831bf378ca4e2acfff6",
   "results/context_extension/paired_changes.csv": "4915ec495107ada5631668dc9d34dc455f946f9563b2314503987d93fa3e5d1c",
-  "results/context_extension/source_provenance.json": "a3866a3c648ad3dc3ede91f7157419ac7f1bd5bcd51b8572792966d0f7525b98",
+  "results/context_extension/source_provenance.json": "29fe8b295aa2908ba906f1efff42d7a69d773c98417d32b89d1ba6e3835b1139",
   "results/context_extension/summary.csv": "c280231864931b4015fc20594231fb54e1960a7f23524e129d1b74dea6c72f44",
   "results/context_extension/timings.csv": "81e5ca5e4f8c43025095bf567c1b99a033bded33a4fc730bbe5183c648f6d81b",
-  "tests/verify_context_extension.py": "d699fedd8a4dad1ca9dfb41d8b14b7a42b258e37a6f323d565d2b9932ea00394"
+  "tests/verify_context_extension.py": "17e960864a30bf21e2442610a32c7a350cae4c522d7eec86b55eec75ceba2d6c"
 }

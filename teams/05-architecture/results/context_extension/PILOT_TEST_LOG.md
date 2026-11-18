@@ -52,11 +52,27 @@ This is an inference-only positional retrofit evaluated on three older English W
 
 ## Reproduce
 
-`marimo export html --sandbox /marimo/g5_context/.replay/notebook.py -o /marimo/g5_context/.replay/report.html`
+The current submission provides `notebooks/context_extension.ipynb`, a standard
+Jupyter conversion of the reviewed export. See `notebooks/README.md` for the
+pinned core dependencies and CUDA Run All instructions. Fresh outputs are
+written below the kernel working directory in `out/context_extension_pilot/`;
+committed result files are not overwritten.
 
-This is the recorded fresh-replay command in Molab. The submitted notebook is byte-identical to the primary executed source. The separate replay copy has the launcher-added dependency `marimo>=0.25.2` in its PEP 723 header; that lower bound is not an exact pin. The recorded replay environment used marimo 0.25.2. From the repository root, use the temporary-copy procedure in `docs/long_context_plan.md` so the sandbox launcher's header update cannot modify the submitted notebook.
+The conversion preserves the scoring and document-selection functions, model
+and dataset revisions, four conditions, BF16/FP32 checks and timing calculations.
+It replaces presentation widgets with ordinary notebook displays and static PNG
+charts. The notebook includes a labelled historical snapshot; all code-cell
+execution counts remain empty because the sandbox connection was unavailable
+for a fresh GPU run during conversion. Schema, syntax, numerical snapshot and
+source-preservation checks passed locally.
 
-Use a CUDA machine with a compatible recent driver. The notebook pins its evaluation dependencies, model revision and dataset revision; invoke the marimo 0.25.2 launcher explicitly. CUDA model evaluation is required. The adjacent committed CSV/JSON files contain the environment/configuration, input hashes, document-level results, FP32 checks and timing measurements. Exact token IDs, per-token losses and original replay logs are in the separate complete supporting-evidence download. The two source hashes are identified separately in `source_provenance.json`; the original replay receipt's `notebook_sha256` field identifies the primary source, not the launcher-modified replay copy.
+The exact originally executed source remains in Git commit
+`9539c7be6263b3fe429a5096dac8c77ed1428f63` at
+`teams/05-architecture/notebooks/context_extension.py`. Its recorded isolated
+replay added a launcher dependency header only. Original primary/replay hashes
+are retained in `source_provenance.json`; the original replay receipt's
+`notebook_sha256` field identifies the primary source. The complete supporting
+download retains historical replay logs, exact token IDs and per-token losses.
 
 ## Sources
 
@@ -69,20 +85,19 @@ WikiText derives from Wikipedia. Preserve the dataset attribution and applicable
 
 ## Fresh-environment verification
 
-The saved notebook was executed from scratch in an isolated marimo sandbox. All four mean NLLs reproduced exactly. See the complete download under `supporting_evidence/Replay/` and `supporting_evidence/notebook_report.html`. Performance timings remain those of the primary run because replay timing is sensitive to concurrent GPU activity.
+The original source was executed from scratch in an isolated sandbox before the Jupyter conversion. All four mean NLLs reproduced exactly. See the complete download under `supporting_evidence/Replay/` and `supporting_evidence/notebook_report.html`. Performance timings remain those of the primary run because replay timing is sensitive to concurrent GPU activity.
 
 ## Provenance and scope
 
 The experiment was executed with assistant help in the authorized personal Molab session; the notebook was reviewed before this submission was prepared. This is a surrogate fixed-weight evaluation, not an official TSAI team-model run. The native-2K SDPA/eager check is a limited engineering screen. The signed baseline remains eager, and production sequence length remains open.
 
-## Immutable notebook replay from the repository root
+## Offline verification from the repository root
 
 ```bash
 python teams/05-architecture/tests/verify_context_extension.py
-g5_replay_dir=$(mktemp -d)
-cp teams/05-architecture/notebooks/context_extension.py "$g5_replay_dir/context_extension.py"
-marimo export html --sandbox "$g5_replay_dir/context_extension.py" -o "$g5_replay_dir/report.html"
-python teams/05-architecture/tests/verify_context_extension.py
 ```
 
-Use marimo 0.25.2. New outputs are under `$g5_replay_dir/g5_context/artifacts/`. The original remains byte-identical.
+This checks the current notebook and both saved measurement snapshots without
+running a new GPU experiment. No team-code speed change is proposed here.
+Any later speed-only integration must satisfy the Lab 3 requirement for
+byte-identical output. The pilot's BF16 SDPA/eager tolerance check is not that proof.

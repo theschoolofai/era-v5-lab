@@ -4,6 +4,7 @@ import csv
 import hashlib
 import json
 import math
+import ast
 
 TEAM = Path(__file__).resolve().parents[1]
 RESULTS = TEAM / 'results' / 'context_extension'
@@ -19,10 +20,25 @@ def close(actual, expected, tolerance=1e-8):
 
 
 def main():
-    source = TEAM / 'notebooks' / 'context_extension.py'
-    assert hashlib.sha256(source.read_bytes()).hexdigest() == (
-        '298d8303f6ad3d4b379af9b32198d62516a32f893afc858d6e698bdd4e3adcf0'
-    ), 'Notebook differs from the executed source'
+    source = TEAM / 'notebooks' / 'context_extension.ipynb'
+    notebook = json.loads(source.read_text())
+    assert notebook['nbformat'] == 4
+    assert notebook['metadata']['kernelspec']['name'] == 'python3'
+    assert 'marimo' not in source.read_text().lower(), 'Presentation-framework reference remains'
+    code_cells = [cell for cell in notebook['cells'] if cell['cell_type'] == 'code']
+    assert len(code_cells) == 14
+    source_texts = [''.join(cell['source']) for cell in code_cells]
+    for index, (cell, code) in enumerate(zip(code_cells, source_texts)):
+        compile(code, f'notebook-cell-{index}', 'exec')
+        assert cell['execution_count'] is None and cell['outputs'] == []
+    code = '\n\n'.join(source_texts)
+    assert 'mo.' not in code
+    assert hashlib.sha256(code.encode()).hexdigest() == notebook['metadata']['experiment']['source_code_sha256']
+    provenance = json.loads((RESULTS / 'source_provenance.json').read_text())
+    preserved = provenance['current_jupyter']['preserved_function_ast_sha256']
+    functions = {node.name: node for node in ast.walk(ast.parse(code)) if isinstance(node, ast.FunctionDef)}
+    for name, expected in preserved.items():
+        assert hashlib.sha256(ast.dump(functions[name], include_attributes=False).encode()).hexdigest() == expected
     doc_rows = rows('document_results.csv')
     summary = rows('summary.csv')
     assert len(doc_rows) == 12 and len(summary) == 4
@@ -82,7 +98,8 @@ def main():
         path = TEAM / relative_path
         assert path.is_file(), relative_path
         assert hashlib.sha256(path.read_bytes()).hexdigest() == expected, relative_path
-    print('PASS: immutable pilot notebook hash and executed eager-runner hash;')
+    print('PASS: standard Jupyter structure, syntax, code hash, preserved scoring/selection functions;')
+    print('      executed eager-runner hash;')
     print('      both studies: document rows, equal-target-count aggregates, NLL/perplexity arithmetic;')
     print('      reported conclusions, corpus hash, check receipts, fixture hashes and file integrity.')
     print('This validates the saved evidence, not a new GPU run or remote PR acceptance.')
