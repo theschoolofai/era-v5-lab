@@ -380,6 +380,7 @@ def run(args) -> dict:
                                                               unseen=args.dt_unseen)
         method_info["wanda_layers_without_tokens"] = len(dtmask.masked_layers(wrapper)) - len(scores)
         method_info["deletion_at_init"] = dtmask.deletion_stats(lm)
+        method_info["band_at_init"] = dtmask.band_stats(lm)
     report["method"] = method_info
     frozen_before = bench.frozen_sha256(lm, marker_ids if marker_param is not None else None) \
         if args.method != "full" else None
