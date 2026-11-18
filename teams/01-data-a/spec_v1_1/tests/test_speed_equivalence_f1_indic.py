@@ -10,7 +10,7 @@ Each guard must give the same text as before. A frozen copy of the old _f1_indic
 regexes of clean.py) and the new rule get the same text and the results must be equal, on hand-written cases at the edge of each
 guard and on random documents. Every text here is made up; none comes from a pack.
 
-  python -m pytest tests/spec_v1/test_speed_equivalence_f1_indic.py
+  python -m pytest spec_v1_1/tests/test_speed_equivalence_f1_indic.py
 """
 import random
 import re
@@ -21,7 +21,7 @@ import pytest
 
 AT = "@"   # emails are joined at run time: the PR guard reads added lines for email addresses
 
-SPEC = Path(__file__).resolve().parents[2] / "spec_v1"
+SPEC = Path(__file__).resolve().parents[2] / "spec_v1_1"
 sys.path.insert(0, str(SPEC))
 import clean as c
 

@@ -7,9 +7,9 @@
 - **Packs with no rules** pass through unchanged: cadj-commits, cadj-notebooks, cadj-stackexchange, ind-ml-fw2, ind-or-fw2, ind-ta-fw2 and ind-ta-sangraha-s.
 - **It is generated:** don't edit it. Change the sheet, then rebuild.
 - **It includes the fixes of #49** (the team fork, merged as `34bc882`):
-  - speed fixes to `DA-F1-005`, `DA-C1-001` and `DA-D3-005` in the sheet, and to the shared F1 in `spec_v1/build/f1_rule.py`, each with the same output;
-  - one change of output: the shared F1 picks its path by `pack_id`, not by the language label, so it also runs on science docs labelled `en`, as in the tokenizer sample;
-  - `spec_v1/build/build_clean.py` builds from `sheets/specv1_1.md` by default. It still writes `spec_v1/clean.py` by default, so give it `--out spec_v1_1/clean.py`.
+  - speed fixes to `DA-F1-005`, `DA-C1-001` and `DA-D3-005` in the sheet, and to the shared F1 in `build/f1_rule.py`, each with the same output;
+  - one change of output: the shared F1 picks its path by `pack_id`, not by the language label, so it also runs on science docs labelled `en`, as in the tokenizer sample.
+- **The build is in `build/`:** `build_clean.py` and `f1_rule.py` are spec v1's, with the changes of #49. By default they build `sheets/specv1_1.md` into `spec_v1_1/clean.py`. No file in `spec_v1/` or `tests/spec_v1/` changes: they are as on TSAI main.
 - **It includes the speed fixes of #50** (the team fork, merged as `5c4456e`) in the sheet: five code rules (`DA-A6-001`, `DA-A4-002`, `DA-E2-001`, `DA-E3-003`, `DA-E3-004`) and three math rules (`DA-A5-002`, `DA-A8-001`, `DA-C7-001`). On every run in `results/cleaner/`, its output is byte for byte that of the build before them (`ea14b0899085…`).
 
 Paths are from `teams/01-data-a`.
@@ -17,9 +17,9 @@ Paths are from `teams/01-data-a`.
 ## What decides the cleaning
 
 - **The tools are spec v1's, unchanged:** `spec_v1/run_clean.py`, `spec_v1/run_tokenizer_sample.py` and `spec_v1/validate/make_harm_tests.py`. Each does `import clean`. `use_clean.py` loads `spec_v1_1/clean.py` as `clean` first, then runs the tool, so the tool cleans with spec v1.1.
-- **`clean.py` holds two things,** both put in by `spec_v1/build/build_clean.py`:
+- **`clean.py` holds two things,** both put in by `build/build_clean.py`:
   - the rules of `sheets/specv1_1.md`, each block's code as the sheet has it, except for its pack lines (below) and two edits by the build: it drops the `AUTHOR` line, and stops `DA-B4-009` from rewriting the `<EMAIL>` tag;
-  - the shared F1, from `spec_v1/build/f1_rule.py`. It runs after the rules on the code, math, sci and Indic packs. English runs its own F1 rule, `DA-F1-005`, instead.
+  - the shared F1, from `build/f1_rule.py`. It runs after the rules on the code, math, sci and Indic packs. English runs its own F1 rule, `DA-F1-005`, instead.
 - **The packs a rule runs on are in `SCOPE`,** the table at the top of `clean.py`: 247 entries, one per rule and one for the shared F1.
   - In the sheet, each block names its packs in `SPEC_PACKS`. A block that also guards on its own `ORIGIN` packs (`PACKS` or `_PACKS`) runs only where both allow.
   - The build writes that set once, into `SCOPE`, and points the block's `SPEC_PACKS`, `PACKS` and `_PACKS` at its `SCOPE` entry.
@@ -32,7 +32,10 @@ Paths are from `teams/01-data-a`.
 |---|---|
 | [`spec_v1_1/clean.py`](clean.py) | The cleaner (generated) |
 | [`spec_v1_1/use_clean.py`](use_clean.py) | Runs a spec v1 tool, unchanged, on `spec_v1_1/clean.py`: `use_clean.py <tool.py> [the tool's arguments]` |
+| [`spec_v1_1/build/build_clean.py`](build/build_clean.py), [`spec_v1_1/build/f1_rule.py`](build/f1_rule.py) | The build of `clean.py`, and the shared F1 it puts in |
 | [`spec_v1_1/tests/test_clean.py`](tests/test_clean.py) | Unit tests of `clean.py` and `use_clean.py` |
+| [`spec_v1_1/tests/test_speed_equivalence_*.py`](tests/) | Each speed fix of #49 and #50 against a frozen copy of the rule before it (5 files, pytest) |
+| [`spec_v1_1/results/speed_v1_1.md`](results/speed_v1_1.md) | The speed logs of each fix, rule by rule (#55) |
 | [`spec_v1_1/jobs/tokenizer_sample_v0_clean.json`](jobs/tokenizer_sample_v0_clean.json) | The tokenizer-sample job config, pinned to this `clean.py` |
 | [`spec_v1_1/results/cleaner/harm_tests.md`](results/cleaner/harm_tests.md) | `clean()` harm on the 500-doc sample packs of all 31 packs it has rules for |
 | [`spec_v1_1/results/cleaner/speed.md`](results/cleaner/speed.md) | Wall time on each 500-doc sample pack, spec v1 against spec v1.1 |
@@ -50,7 +53,7 @@ From [`results/cleaner/harm_tests.md`](results/cleaner/harm_tests.md), on TSAI's
 ## Build
 
 ```
-python3 -I spec_v1/build/build_clean.py --sheet spec_v1_1/sheets/specv1_1.md --out spec_v1_1/clean.py
+python3 -I spec_v1_1/build/build_clean.py --sheet spec_v1_1/sheets/specv1_1.md --out spec_v1_1/clean.py
 ```
 
 `tests/test_clean.py` fails if `clean.py` differs from a fresh build.
@@ -59,7 +62,10 @@ python3 -I spec_v1/build/build_clean.py --sheet spec_v1_1/sheets/specv1_1.md --o
 
 ```
 python3 -m unittest discover -s spec_v1_1/tests
+python3 -m pytest spec_v1_1/tests/test_speed_equivalence_*.py
 ```
+
+The speed tests are pytest tests, so `unittest` does not run them.
 
 ## Run
 
@@ -103,7 +109,7 @@ cp <checkout>/teams/02-data-b/gold/ind-*_gold.csv <checkout>/teams/01-data-a/gol
 
 ```bash
 shasum -a 256 $A/spec_v1_1/clean.py
-python3 -I $A/spec_v1/build/build_clean.py --sheet $A/spec_v1_1/sheets/specv1_1.md --out $W/clean_rebuilt.py
+python3 -I $A/spec_v1_1/build/build_clean.py --sheet $A/spec_v1_1/sheets/specv1_1.md --out $W/clean_rebuilt.py
 shasum -a 256 $W/clean_rebuilt.py
 ```
 
@@ -124,6 +130,12 @@ It ends in `OK`. `tests/test_clean.py` checks what this README says about `clean
 - each family runs its spec v1 rules first, then its spec v1.1 rules, and English ends with `DA-F1-005`;
 - a spec v1 tool run through `use_clean.py` gets `spec_v1_1/clean.py`.
 
+```bash
+cd $A && python3 -m pytest -q spec_v1_1/tests/test_speed_equivalence_*.py
+```
+
+It ends in `1677 passed`. Each test gives the same texts to a rule after its speed fix and to a frozen copy of it from before, and checks that the results are equal.
+
 ### 3. Harm ([`results/cleaner/harm_tests.md`](results/cleaner/harm_tests.md))
 
 ```bash
@@ -133,22 +145,14 @@ python3 -I $A/spec_v1_1/use_clean.py $A/spec_v1/validate/make_harm_tests.py <che
 - It takes about 2 minutes and exits with 1, because of the gold contradictions.
 - The gold docs `clean()` changed or dropped, in `$W/harm/harm_tests.md`, must match `results/cleaner/harm_tests.md` on all 31 packs. Only 4 packs FAIL: en-nemotroncc 2, math-finemath 2, sci-finepdfs 5 and ind-te-sangraha-v 2. Their 11 doc_ids, in the `clean` entry (`changed_ids`, `dropped_ids`) of `$W/harm/specv1_<pack>_harm.json`, are the ones `results/cleaner/harm_tests.md` lists.
 - `pack_sha256` in each `$W/harm/specv1_<pack>_harm.json` must equal the one in `results/spec_v1/cleaner/specv1_<pack>_harm.json`. That shows your packs are the files tested here.
-- `rules_file_sha256` in those files is the hash of `spec_v1/clean.py`, the file next to the tool, not of the cleaner that ran. The last test of step 2 shows which one runs.
+- `rules_file_sha256` in those files is the hash of `spec_v1/clean.py` (spec v1, `22d818c72c9f…`), the file next to the tool, not of the cleaner that ran. The last test of step 2 shows which one runs.
 
 ### 4. Speed ([`results/cleaner/speed.md`](results/cleaner/speed.md))
 
-Spec v1 there is TSAI main's cleaner (`22d818c72c9f…`). On this branch `spec_v1/clean.py` is a spec v1.1 build, so put TSAI main's next to a copy of `run_clean.py`:
+Spec v1 there is `spec_v1/clean.py`, as on TSAI main (`22d818c72c9f…`). For each pack, and for runs 1, 2 and 3:
 
 ```bash
-mkdir -p $W/v1/spec_v1
-cp $A/spec_v1/run_clean.py $W/v1/spec_v1/
-git -C $A show ae4c03d:teams/01-data-a/spec_v1/clean.py > $W/v1/spec_v1/clean.py
-```
-
-Then, for each pack, and for runs 1, 2 and 3:
-
-```bash
-python3 -I $W/v1/spec_v1/run_clean.py --pack <packs>/<pack>.parquet --out $W/speed/v1/<run>
+python3 -I $A/spec_v1/run_clean.py --pack <packs>/<pack>.parquet --out $W/speed/v1/<run>
 python3 -I $A/spec_v1_1/use_clean.py $A/spec_v1/run_clean.py --pack <packs>/<pack>.parquet --out $W/speed/v11/<run>
 ```
 

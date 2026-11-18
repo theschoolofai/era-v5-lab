@@ -9,7 +9,7 @@ changed). A frozen copy of the old medicine_f1 (below, it uses the regexes and h
 as the new one and the results must be equal, on hand-written cases at the edge of the change and on random documents. Every
 text here is made up; none comes from a pack.
 
-  python -m pytest tests/spec_v1/test_speed_equivalence_f1_english.py
+  python -m pytest spec_v1_1/tests/test_speed_equivalence_f1_english.py
 """
 import random
 import re

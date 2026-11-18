@@ -17,7 +17,7 @@ SPEC = DATA_A / "spec_v1_1"
 CLEAN = SPEC / "clean.py"
 SHEET = SPEC / "sheets" / "specv1_1.md"
 ADDITIONS = SPEC / "sheets" / "specv1_1_additions.md"
-BUILD = DATA_A / "spec_v1" / "build" / "build_clean.py"
+BUILD = SPEC / "build" / "build_clean.py"
 
 _spec = importlib.util.spec_from_file_location("clean_v1_1", CLEAN)
 c = importlib.util.module_from_spec(_spec)

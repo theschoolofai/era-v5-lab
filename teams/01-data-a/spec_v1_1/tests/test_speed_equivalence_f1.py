@@ -1,6 +1,6 @@
 """Equivalence tests for the speed-up of the shared F1 rule on prose (the math and science packs).
 
-The prose path of spec_v1/build/f1_rule.py (_f1_prose) got three guards that skip a regex pass when the text cannot match it:
+The prose path of spec_v1_1/build/f1_rule.py (_f1_prose) got three guards that skip a regex pass when the text cannot match it:
   - the email pass runs only when the text holds an "@";
   - the "name at host" pass runs only when the text holds " at <host>.<tld>";
   - the phone pass uses the North American form alone when the text holds no "+" (the international form starts with "+").
@@ -8,7 +8,7 @@ Each guard must give the same text as before. A frozen copy of the old _f1_prose
 through the old and the new rule and the results must be equal, on hand-written cases at the edge of each guard and on random
 documents. Every text here is made up; none comes from a pack.
 
-  python -m pytest tests/spec_v1/test_speed_equivalence_f1.py
+  python -m pytest spec_v1_1/tests/test_speed_equivalence_f1.py
 """
 import random
 import re
@@ -19,7 +19,7 @@ import pytest
 
 AT = "@"   # emails are joined at run time: the PR guard reads added lines for email addresses
 
-SPEC = Path(__file__).resolve().parents[2] / "spec_v1"
+SPEC = Path(__file__).resolve().parents[2] / "spec_v1_1"
 sys.path.insert(0, str(SPEC))
 import clean as c
 

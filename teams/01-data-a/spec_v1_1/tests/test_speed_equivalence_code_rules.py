@@ -3,7 +3,7 @@ against a frozen copy of the rule as it was before the change (a4_reference, a6_
 same text goes through both and the results must be equal, on hand-written cases at the edge of each guard and on random documents.
 Every text here is made up; none comes from a pack.
 
-  python -m pytest tests/spec_v1/test_speed_equivalence_code_rules.py
+  python -m pytest spec_v1_1/tests/test_speed_equivalence_code_rules.py
 
   DA-A4-002  replacement-character comment lines (six code packs): a text with no U+FFFD is kept without running LOST
   DA-A6-001  Cyrillic look-alike letters (six code packs): a text with no Cyrillic character (U+0400 to U+04FF) is kept without
@@ -25,11 +25,12 @@ from pathlib import Path
 
 import pytest
 
-SPEC = Path(__file__).resolve().parents[2] / "spec_v1"
+SPEC = Path(__file__).resolve().parents[2] / "spec_v1_1"
 SHEET = Path(__file__).resolve().parents[2] / "spec_v1_1" / "sheets" / "specv1_1.md"
 sys.path.insert(0, str(SPEC))
 import clean as c
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+REF_DIR = Path(__file__).resolve().parents[2] / "tests" / "spec_v1"   # code_speed_reference.py, as on TSAI main
+sys.path.insert(0, str(REF_DIR))
 from code_speed_reference import e3_reference as e4_reference
 
 CODE_PACKS = ("code-cpp", "code-go", "code-java", "code-js-ts", "code-python", "code-rust")
@@ -710,7 +711,7 @@ def e4_same(text, pack="code-python", lang="python"):
 # =====================================================================================================================
 
 def test_e4_the_assigned_pattern_is_the_old_one():
-    old_src = (Path(__file__).resolve().parent / "code_speed_reference.py").read_text(encoding="utf-8")
+    old_src = (REF_DIR / "code_speed_reference.py").read_text(encoding="utf-8")
     compact = lambda s: re.sub(r"\s+", "", s)
     pattern = re.search(r'ASSIGNED = re\.compile\(\s*r"""(.*?)"""', old_src, re.S).group(1)
     assert compact(E4_NEW["ASSIGNED"].pattern) == compact(pattern)

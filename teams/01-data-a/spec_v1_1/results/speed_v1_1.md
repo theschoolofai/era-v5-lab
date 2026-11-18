@@ -25,7 +25,7 @@ Every fix passes three checks before it is logged:
 | code | `DA-A4-002`, `DA-A6-001`, `DA-E3-003`, `DA-E2-001` | one necessary-condition guard each (round 1, together) | 1.28x to 1.70x | `a92ccb6` |
 | code | `DA-E3-004` | guards before `ASSIGNED`, tighter `gh` hint (round 2) | 1.22x to 1.61x | `605f513` |
 
-The gain of the whole `clean()` loop is smaller than that of the rule, because the rest of `clean()` is unchanged; the sections below give both. The tests of each fix are in `tests/spec_v1/test_speed_equivalence*.py`, each against a frozen copy of the old rule (section 5).
+The gain of the whole `clean()` loop is smaller than that of the rule, because the rest of `clean()` is unchanged; the sections below give both. The tests of each fix are in `spec_v1_1/tests/test_speed_equivalence_*.py`, each against a frozen copy of the old rule (section 5).
 
 ## 2. The F1 rule
 
@@ -98,7 +98,7 @@ These seven can only be tested once they get rules in `clean.py` and a gold set.
 
 ### 2.3 What each fix did
 
-Each fix skips a pass when the text cannot match it, using a condition every match must satisfy, so the output is unchanged. Tests: [test_speed_equivalence_f1.py](../../tests/spec_v1/test_speed_equivalence_f1.py) (fix 1, 121 tests), [test_speed_equivalence_f1_indic.py](../../tests/spec_v1/test_speed_equivalence_f1_indic.py) (fix 2, 97) and [test_speed_equivalence_f1_english.py](../../tests/spec_v1/test_speed_equivalence_f1_english.py) (fix 3, 29), each against a frozen copy of the old rule.
+Each fix skips a pass when the text cannot match it, using a condition every match must satisfy, so the output is unchanged. Tests: [test_speed_equivalence_f1.py](../tests/test_speed_equivalence_f1.py) (fix 1, 121 tests), [test_speed_equivalence_f1_indic.py](../tests/test_speed_equivalence_f1_indic.py) (fix 2, 97) and [test_speed_equivalence_f1_english.py](../tests/test_speed_equivalence_f1_english.py) (fix 3, 29), each against a frozen copy of the old rule.
 
 1. **Prose path of the shared F1 (`_f1_prose`, math and science).** Six regex passes ran on every text; three are now skipped when they cannot match:
    - **Email:** runs only when the text has an `@` (1.73 to 0.67 ms/doc on `sci-finepdfs`).
@@ -111,7 +111,7 @@ Each fix skips a pass when the text cannot match it, using a condition every mat
    - **Email** runs only when the text has an `@`.
 3. **English `DA-F1-005`.** The rule searched the whole text for an organisation phrase ("call us", "our team", "we provide" and so on) before reading the first line, but the answer is only used on a line with an email, a phone number or an address, which is in 3% to 6% of documents (en-dclm 32 of 500, en-fineweb-edu 18, en-nemotroncc 30, en-nemotroncc-synth 13). That search was about 70% of the rule (0.31 of 0.46 ms/doc on en-dclm). It now runs the first time such a line asks, and the answer is kept for that text.
 
-Fixes 1 and 2 are in `spec_v1/build/f1_rule.py`, the source `build_clean.py` pastes into `clean.py`; they are not part of any sheet and apply to any build, including one from the v1.1 sheet. Fix 3 is in the `DA-F1-005` card of `spec_v1_1/sheets/specv1_1.md`.
+Fixes 1 and 2 are in `spec_v1_1/build/f1_rule.py`, the source `build_clean.py` pastes into `clean.py`; they are not part of any sheet. Fix 3 is in the `DA-F1-005` card of `spec_v1_1/sheets/specv1_1.md`.
 
 ### 2.4 Note: what the Indic-digit guard saves, and where it does not
 
@@ -193,7 +193,7 @@ In fix 2 the rule itself is 11x faster on both packs, but it was a small share o
 
 5. **`DA-A8-001`, words run together (both math packs).** The rule puts back the space in `ProblemsThe` and `here.The` when the second word is a sentence opener (`The`, `Find`, `Question` and about 80 others), unless the line is code or inside a fence. It tested every line with `A8_CODE` and `A8_GLUED`, which both start with a lookbehind or `\b` and are tried at every position, although only 7% of documents change. Now a line is tested only if it holds the shape every match must have: a lowercase letter, an optional `.`, a capital and a lowercase letter. Other lines are returned as they are. A text with no three backticks has no fence, so the fence loop is skipped for it; a text with them uses the original loop. The result is the same for every text.
 
-The edits are to the `DA-C1-001`, `DA-D3-005`, `DA-C7-001`, `DA-A5-002` and `DA-A8-001` cards of `specv1_1.md`; the `medicine_<family>.md` files are not read by the build and are not changed. Tests: [test_speed_equivalence_math.py](../../tests/spec_v1/test_speed_equivalence_math.py) (126 tests for fix 1, 57 for fix 2, 76 for fix 3, 24 for fix 4 and 41 for fix 5), against frozen copies of the old rules (`c1_reference`, `d3_reference`, `c7_reference`, `a5_reference` and `a8_reference`, inside the test file; the tests of fixes 3 to 5 read the new rule from `specv1_1.md`).
+The edits are to the `DA-C1-001`, `DA-D3-005`, `DA-C7-001`, `DA-A5-002` and `DA-A8-001` cards of `specv1_1.md`; the `medicine_<family>.md` files are not read by the build and are not changed. Tests: [test_speed_equivalence_math.py](../tests/test_speed_equivalence_math.py) (126 tests for fix 1, 57 for fix 2, 76 for fix 3, 24 for fix 4 and 41 for fix 5), against frozen copies of the old rules (`c1_reference`, `d3_reference`, `c7_reference`, `a5_reference` and `a8_reference`, inside the test file; the tests of fixes 3 to 5 read the new rule from `specv1_1.md`).
 
 ## 4. The code rules
 
@@ -237,7 +237,7 @@ The fixes were made in two rounds, each measured with its own `speed_compare` ru
 | 5 | `DA-E3-004` | the same on 31 of 31 packs | unchanged on 31 of 31 packs, all result files identical | 4067 passed | java 1, js-ts 2, rust 1 fixed (4 of 3,000) | `d932badc1fc5` | `6a57276c0e83` | `605f513` |
 
 - **Baseline:** `clean.py` `716c9a90093f`, the build from `specv1_1.md` in commit `9c7d3c2` (after the math fixes); round 2 starts from `d932badc1fc5`, the build of round 1.
-- **Pytest:** the whole suite (`teams/01-data-a/tests` and `spec_v1_1/tests`), 1 test skipped, 51 subtests passed. Round 1: 3120 passed, 159 of them new. Round 2: 4067 passed, 947 new, all in `tests/spec_v1/test_speed_equivalence_code_rules.py` (1106 tests in that file).
+- **Pytest:** the whole suite (`teams/01-data-a/tests` and `spec_v1_1/tests`), 1 test skipped, 51 subtests passed. Round 1: 3120 passed, 159 of them new. Round 2: 4067 passed, 947 new, all in `spec_v1_1/tests/test_speed_equivalence_code_rules.py` (1106 tests in that file).
 - **Harm tests:** all 31 packs, the Indic gold copied into both trees (section 6). Result: unchanged, all result files identical before and after (every gold changed/dropped count and PASS). The `speed_compare` run reported `RESULT: PASS`, for both rounds.
 - **Documents changed or dropped by the four rules of round 1** (the 500-doc sample of each code pack, 3,000 documents in all; counts from the after tree, and the output sha256 is the same as before, so the before tree gives the same):
 
@@ -269,7 +269,7 @@ Each fix is a necessary-condition guard: a cheap test that is true whenever the 
 
 The round 1 edits are to the `DA-A4-002`, `DA-A6-001`, `DA-E3-003` and `DA-E2-001` cards of `specv1_1.md`; round 2 is to the `DA-E3-004` card; the `medicine_<family>.md` files are not read by the build and are not changed.
 
-**Tests:** [test_speed_equivalence_code_rules.py](../../tests/spec_v1/test_speed_equivalence_code_rules.py), against frozen copies of the old rules (`a4_reference`, `a6_reference`, `e2_reference` and `e3_reference`, inside the test file; the new rules are read from `specv1_1.md`).
+**Tests:** [test_speed_equivalence_code_rules.py](../tests/test_speed_equivalence_code_rules.py), against frozen copies of the old rules (`a4_reference`, `a6_reference`, `e2_reference` and `e3_reference`, inside the test file; the new rules are read from `specv1_1.md`).
 
 - *Round 1 (159 tests).* Hand cases at the edge of every guard (23 and 24 `0x`, the first and last character of the Cyrillic range, each key shape and its too-short form, each seed word in each case), a sweep of the 10% share of `DA-E2-001` across its threshold, 10,000 or more random texts per rule with coverage assertions for every outcome, spies showing each regex is skipped when its guard fails and run when it holds, and the pack scope in `clean.py`. 19 hand-made mutations of the guards (a wrong literal, range edge, threshold, missing hint, `lower()` for `casefold()`, a guard removed) were all caught.
 - *Round 2 (947 tests, last section of the same file, helper names start with `e4_`),* against `code_speed_reference.e3_reference` (`DA-E3-004` as in spec v1): the `ASSIGNED` pattern is the old one; every name of `ASSIGNED` holds a word of test 1; the operator class holds the last character of every operator; the casefold test over every code point; 53 names x 15 operator spellings x 3 quotes, value lengths from 1 to 300 (15, 16, 200 and 201 at the edges) with a missing or different closing quote, 37 structure cases (JSON, Rust and TypeScript types, `:=`, `=>`, a newline between name and operator, a long identifier, a long file with a late match, a dotted or dummy value), each known key shape and its edges, the five `gh` letters and every other character after `gh`; spies showing which of the three tests stops a text; 25,000 random texts with an assertion that whenever `ASSIGNED` matches, all three tests pass, and coverage for every outcome. 36 hand-made mutations (a dropped name word, an operator character, a length edge, `lower()` for `casefold()`, a changed tail, a test removed, a wrong hint) were all caught.
@@ -278,11 +278,11 @@ The round 1 edits are to the `DA-A4-002`, `DA-A6-001`, `DA-E3-003` and `DA-E2-00
 
 | fix | test file | tests |
 |---|---|---|
-| shared F1, prose path | [test_speed_equivalence_f1.py](../../tests/spec_v1/test_speed_equivalence_f1.py) | 121 |
-| shared F1, Indic path | [test_speed_equivalence_f1_indic.py](../../tests/spec_v1/test_speed_equivalence_f1_indic.py) | 97 |
-| `DA-F1-005` | [test_speed_equivalence_f1_english.py](../../tests/spec_v1/test_speed_equivalence_f1_english.py) | 29 |
-| math rules 1 to 5 | [test_speed_equivalence_math.py](../../tests/spec_v1/test_speed_equivalence_math.py) | 126 + 57 + 76 + 24 + 41 |
-| code rules, rounds 1 and 2 | [test_speed_equivalence_code_rules.py](../../tests/spec_v1/test_speed_equivalence_code_rules.py) | 159 + 947 |
+| shared F1, prose path | [test_speed_equivalence_f1.py](../tests/test_speed_equivalence_f1.py) | 121 |
+| shared F1, Indic path | [test_speed_equivalence_f1_indic.py](../tests/test_speed_equivalence_f1_indic.py) | 97 |
+| `DA-F1-005` | [test_speed_equivalence_f1_english.py](../tests/test_speed_equivalence_f1_english.py) | 29 |
+| math rules 1 to 5 | [test_speed_equivalence_math.py](../tests/test_speed_equivalence_math.py) | 126 + 57 + 76 + 24 + 41 |
+| code rules, rounds 1 and 2 | [test_speed_equivalence_code_rules.py](../tests/test_speed_equivalence_code_rules.py) | 159 + 947 |
 
 Each test file holds a frozen copy of the old rule and compares the new one with it on hand cases, random texts and the pack scope; the code-rule tests also run a set of hand-made mutations of the guards (all caught).
 

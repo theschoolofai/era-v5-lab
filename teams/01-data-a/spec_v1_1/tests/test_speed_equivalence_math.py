@@ -3,7 +3,7 @@ faster is checked against a frozen copy of the rule as it was before the change 
 text goes through both and the results must be equal, on hand-written cases at the edges of the fast path and on random
 documents. Every text here is made up; none comes from a pack.
 
-  python -m pytest tests/spec_v1/test_speed_equivalence_math.py
+  python -m pytest spec_v1_1/tests/test_speed_equivalence_math.py
 
   DA-C1-001  site boilerplate (math-finemath): the 120-character test runs before the slow C1_SITE search, and on a pure-ASCII
              line the search uses the lower-cased pattern on the lower-cased line instead of the (?i) pattern
@@ -28,7 +28,7 @@ from pathlib import Path
 
 import pytest
 
-SPEC = Path(__file__).resolve().parents[2] / "spec_v1"
+SPEC = Path(__file__).resolve().parents[2] / "spec_v1_1"
 sys.path.insert(0, str(SPEC))
 import clean as c
 

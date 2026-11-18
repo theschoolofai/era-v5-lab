@@ -1,14 +1,12 @@
-"""Write ../clean.py from ../../spec_v1_1/sheets/specv1_1.md: one function per disease code, each rule's code unchanged, and one
+"""Write ../clean.py from ../sheets/specv1.md: one function per disease code, each rule's code unchanged, and one
 scope table at the top that says which packs each rule applies to.
 
-  python -I build_clean.py [--sheet ../../spec_v1_1/sheets/specv1_1.md] [--out ../clean.py]
-
-The default sheet is the spec v1.1 sheet; spec v1 (../sheets/specv1.md) is frozen, and builds from it with --sheet.
+  python -I build_clean.py [--sheet ../sheets/specv1.md] [--out ../clean.py]
 
 DA- and DB- rule IDs are accepted. DEFERRED cards use non-executable `python deferred` fences and are inventoried
 in DEFERRED_RULES, not emitted as active rules. Indic _PACKS guards are intersected with SPEC_PACKS as well.
 
-The sheet has one "## Medicine N — <family> / <code> / `<ID>`" section per rule, each with one python block. A block names
+specv1.md has one "## Medicine N — <family> / <code> / `<ID>`" section per rule, each with one python block. A block names
 its packs in SPEC_PACKS, and a math block checks its ORIGIN packs too (PACKS); the scope is what both allow. The build
 moves those pack IDs into SCOPE and points SPEC_PACKS and PACKS at it, so pack IDs are written once. A document goes to the
 family of its pack_id and runs that family's rules in sheet order; a missing or unknown pack_id passes unchanged.
@@ -187,7 +185,7 @@ def build(sheet, dest):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--sheet", type=Path, default=SPEC.parent / "spec_v1_1" / "sheets" / "specv1_1.md")
+    ap.add_argument("--sheet", type=Path, default=SPEC / "sheets" / "specv1.md")
     ap.add_argument("--out", type=Path, default=SPEC / "clean.py")
     args = ap.parse_args()
     build(args.sheet, args.out)
