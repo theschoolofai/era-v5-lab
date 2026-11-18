@@ -16,7 +16,7 @@ import pytest
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from conftest import HEADER, PARTS, PIPELINE
+from conftest import HEADER, PARTS, PIPELINE, made_up_manifest
 import run_pipeline as rp
 
 FAKE_F2 = Path(__file__).resolve().parent / "fake_run_f2.py"
@@ -418,7 +418,7 @@ def staged(tmp_path, tsai_outputs, monkeypatch):
     monkeypatch.setenv("FAKE_F2_DROP", "g0,h1")
 
     manifest = tmp_path / "sample_manifest.json"
-    manifest.write_text('{"shards": []}', encoding="utf-8")
+    manifest.write_text(made_up_manifest({"train": 9, "heldout": 2}), encoding="utf-8")
 
     def settings(name, fixture, **extra):
         p = tmp_path / f"{name}_settings.json"
@@ -465,6 +465,50 @@ def test_stages_run_from_settings_into_the_run_folder(tmp_path, staged):
     assert json.loads((run / "logs" / "dedup.log").read_text(encoding="utf-8").splitlines()[-1])["keys"]["results"] == "out/runs/test-run/overlap"
 
 
+def test_clean_resume_reaches_the_job_the_record_and_the_plan(staged):
+    path, repo = staged
+    edit_stage(path, "clean", resume=True)
+    assert "resume = True" in rp.plan(path)
+    m = rp.run(path, to="clean")
+    run = repo / "out" / "runs" / "test-run"
+    assert json.loads((run / "cfg" / "clean.json").read_text(encoding="utf-8"))["resume"] is True
+    assert m["stages"][0]["stage"] == "clean" and m["stages"][0]["resume"] is True
+    edit_stage(path, "clean", resume=False)
+    assert "resume = True" not in rp.plan(path)
+
+
+def test_a_run_without_resume_does_not_tell_the_job_so(staged):
+    path, repo = staged
+    m = rp.run(path, to="clean")
+    assert "resume" not in m["stages"][0]
+    assert "resume" not in json.loads((repo / "out" / "runs" / "test-run" / "cfg" / "clean.json").read_text(encoding="utf-8"))
+
+
+def test_a_resumed_clean_stage_adds_to_its_log_and_a_stage_without_resume_starts_it_again(staged):
+    path, repo = staged
+    log = repo / "out" / "runs" / "test-run" / "logs" / "clean.log"
+    rp.run(path, to="clean")
+    first = log.read_text(encoding="utf-8")
+    assert first.count("$ ") == 1
+    with pytest.raises(rp.Stop, match="clean: .*failed"):  # the stand-in refuses a folder that is there, as the job does without resume
+        rp.run(path, to="clean")
+    assert log.read_text(encoding="utf-8").count("$ ") == 1 and log.read_text(encoding="utf-8") != first  # rewritten: the failed attempt's
+    edit_stage(path, "clean", resume=True)
+    with pytest.raises(rp.Stop, match="clean: .*failed"):
+        rp.run(path, to="clean")
+    after = log.read_text(encoding="utf-8")
+    assert after.count("$ ") == 2 and "\n\n$ " in after  # the attempt before it is kept, a blank line between
+
+
+def test_resume_is_refused_for_a_stage_that_is_not_clean(staged):
+    path, repo = staged
+    edit_stage(path, "overlap", resume=True)
+    for go in (rp.plan, rp.run):
+        with pytest.raises(rp.Stop, match="overlap.resume: only the clean job can be resumed"):
+            go(path)
+    assert not (repo / "out" / "runs").exists()
+
+
 def test_a_stage_script_given_as_a_list_runs_the_tool_through_its_wrapper(tmp_path, staged):
     """A cleaner that is run through a wrapper (spec v1.1: use_clean.py <tool> --config ...): "script" as a list names
     the wrapper and the tool, the tool goes before --config, and the stage record keeps the sha256 of both."""
@@ -478,6 +522,24 @@ def test_a_stage_script_given_as_a_list_runs_the_tool_through_its_wrapper(tmp_pa
     assert recs["clean"]["command"][:3] == [str(wrapper), str(FAKE_STAGE), "--config"] and all(c["ok"] for c in m["checks"])
     assert recs["clean"]["code_sha256"] == sha(wrapper) and recs["clean"]["tools_sha256"] == {str(FAKE_STAGE): sha(FAKE_STAGE)}
     assert "tools_sha256" not in recs["overlap"] and m["totals"]["cleaned"] == 13
+
+
+def test_the_clean_record_keeps_the_sha256_of_the_cleaner_the_settings_name(tmp_path, staged):
+    """clean_job.py loads the cleaner named by "clean" in the settings file and checks its pin; the stage record keeps that
+    file's sha256 (and clean_manifest.py's, which the job shares with --plan) next to the job script's."""
+    path, repo = staged
+    cfg = json.loads(path.read_text(encoding="utf-8"))
+    cleaner = tmp_path / "some_clean.py"
+    cleaner.write_text("# a cleaner\n", encoding="utf-8")
+    named = tmp_path / "clean_names_cleaner.json"
+    named.write_text(json.dumps({**json.loads(Path(cfg["stages"]["clean"]["settings"]).read_text(encoding="utf-8")), "clean": str(cleaner)}),
+                     encoding="utf-8")
+    edit_stage(path, "clean", settings=str(named))
+    recs = {s["stage"]: s for s in rp.run(path)["stages"]}
+    assert recs["clean"]["tools_sha256"] == {str(cleaner): sha(cleaner),
+                                             str(PIPELINE / "clean_manifest.py"): sha(PIPELINE / "clean_manifest.py")}
+    assert recs["clean"]["code_sha256"] == sha(FAKE_STAGE)  # the job script itself, as before
+    assert "tools_sha256" not in recs["overlap"]
 
 
 @pytest.mark.parametrize("script, message", [

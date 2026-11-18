@@ -1,4 +1,4 @@
-"""Stand-in for run_tokenizer_sample.py, overlap.py and dedup.py in the runner's tests.
+"""Stand-in for clean_job.py, overlap.py and dedup.py in the runner's tests.
 
 It takes the command line the runner gives them (--config, and for clean one --only per part), copies the folder named by
 "fixture" in the config to the output folder, and prints what it was given (the runner's log keeps it). The output folder is

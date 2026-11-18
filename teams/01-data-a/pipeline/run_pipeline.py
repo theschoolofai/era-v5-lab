@@ -29,7 +29,7 @@ A run stage names a "settings" file (settings only, no paths) and the runner wor
 gets a copy of its settings with the path keys filled in (clean: input_root from "input", output_root, and the input set's
 description from the stage: manifest, manifest_sha256, expected_parts, sample; overlap: inputs, out; dedup: results, inputs,
 out), written to <run>/cfg/<stage>.json and passed with --config. The clean stage's manifest defaults to sample_manifest.json in
-its input folder, and its sha256 must equal manifest_sha256 (checked just before the job starts, not by --plan). "script" replaces the default script, and may be a list (the script, then the arguments that go before --config: a cleaner run through a wrapper, such as spec_v1_1/use_clean.py with spec_v1/run_tokenizer_sample.py; the manifest then records the sha256 of both); "settings_sha256" pins the settings file
+its input folder, and its sha256 must equal manifest_sha256; its parts must match expected_parts and add up to its total_docs (clean_manifest.py: --plan checks it, and the job again when it starts). "script" replaces the default script (for clean: pipeline/clean_job.py, which loads the cleaner its settings file names and pins), and may be a list (the script, then the arguments that go before --config: a script run through a wrapper; the manifest then records the sha256 of both); clean also takes "resume": true, to continue an interrupted clean job in its folder (the job verifies the parts it finished; logs/clean.log is appended to); "settings_sha256" pins the settings file
 (checked, and the manifest records the file's sha256 either way). Escape hatch: "command" (the script and its arguments, run
 with this Python from the repository root) with "output" (where that script writes) skips all of this.
 --plan checks the config and prints each stage's folder and command, without running or writing anything. It is the only
@@ -212,11 +212,14 @@ def path(p):
     return p if p.is_absolute() else REPO / p
 
 
-def run_script(script, args, stage, log):
-    """Run a script with this Python from the repository root, its output streamed to log. Returns the exit code."""
+def run_script(script, args, stage, log, append=False):
+    """Run a script with this Python from the repository root, its output streamed to log. Returns the exit code.
+    append: add to the log (a resumed stage keeps the log of the attempt before it), with a blank line between."""
     log.parent.mkdir(parents=True, exist_ok=True)
     cmd = [sys.executable, "-I", str(path(script)), *map(str, args)]
-    with open(log, "w", encoding="utf-8", errors="replace") as f:
+    with open(log, "a" if append else "w", encoding="utf-8", errors="replace") as f:
+        if append and f.tell():
+            f.write("\n")
         f.write("$ " + " ".join(cmd) + "\n")
         f.flush()
         return subprocess.run(cmd, cwd=REPO, stdout=f, stderr=subprocess.STDOUT).returncode
@@ -675,7 +678,7 @@ class Run:
                 if built["config"]:
                     lines.append(f"     generated config {self.shown(built['config'])}: " + ", ".join(
                         f"{k} = {v}" for k, v in stage_args.generated_values(stage, {s: self.output(s) for s in EXTERNAL}, REPO, self.stages[stage]).items()
-                        if k in stage_args.PATH_KEYS))
+                        if k in stage_args.PATH_KEYS or k == "resume"))
             elif stage == "f2":
                 f2 = self.stages.get("f2", {})
                 how = (f"{POOL} (the set loaded once) calling {f2.get('script', DEFAULT_F2)}" if f2.get("pool")
@@ -718,7 +721,7 @@ class Run:
         command = built["command"] if built else None
         if command:
             log = self.dir / "logs" / f"{stage}.log"
-            rc = run_script(command[0], command[1:], stage, log)
+            rc = run_script(command[0], command[1:], stage, log, append=spec.get("resume") is True)
             if rc != 0:
                 raise Stop(f"{stage}: {Path(command[0]).name} failed with exit code {rc}: {tail(log)}")
         out = self.output(stage)
@@ -729,10 +732,18 @@ class Run:
         rec = {"mode": mode, "command": command, "code_sha256": sha256(path(command[0])) if command else None,
                "output": self.shown(out), "counts": counts}
         tools = {a: sha256(path(a)) for a in (command or [])[1:] if a.endswith(".py") and path(a).is_file()}
-        if tools:  # a script run through a wrapper ("script" as a list): the scripts the wrapper was given
+        if stage == "clean" and built and built["config"]:
+            # the cleaner the job was told to load (the job checked it against the pin in the same settings file) and the
+            # manifest check it shares with --plan: what the job ran besides its own script
+            cleaner = load_json(built["config"]).get("clean")
+            if cleaner and path(cleaner).is_file():
+                tools.update({cleaner: sha256(path(cleaner)), self.shown(HERE / "clean_manifest.py"): sha256(HERE / "clean_manifest.py")})
+        if tools:  # the scripts a wrapper was given ("script" as a list), and the cleaner clean_job.py loads
             rec["tools_sha256"] = tools
         if self.only and stage == "clean":
             rec["only"] = self.only
+        if stage == "clean" and command and spec.get("resume") is True:
+            rec["resume"] = True  # the job was told it may continue an interrupted folder (a fresh folder starts fresh)
         if built and built["settings"]:  # a stage run from a settings file: which file, and the config it was run with
             rec.update(settings=built["settings"], settings_sha256=built["settings_sha256"],
                        config=Path(built["config"]).relative_to(self.dir).as_posix() if built["config"] else None,
@@ -1187,7 +1198,7 @@ class Run:
         stages = [self.done[s] for s in STAGES if s in self.done]
         by_pack = self.done.get("ledger", {}).get("by_pack")
         manifest = {"tool": "run_pipeline.py", "run_id": self.cfg["run_id"], "config": self.cfg,
-                    "code_sha256": code_sha256(Path(__file__), _CACHE, ("stage_args.py", "inventory_check.py"))[0], "git_commit": git_commit(),
+                    "code_sha256": code_sha256(Path(__file__), _CACHE, ("stage_args.py", "clean_manifest.py", "inventory_check.py"))[0], "git_commit": git_commit(),
                     "python": platform.python_version(), "pyarrow": pyarrow_version(), "stages": stages,
                     "checks": [dict(ch, stage=s["stage"]) for s in stages for ch in s.get("checks", [])], "totals": totals,
                     "intermediates": self.dropped or {"mode": self.cfg.get("intermediates", "keep")}}
