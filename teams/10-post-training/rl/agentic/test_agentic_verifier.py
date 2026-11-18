@@ -282,6 +282,35 @@ def test_patch_that_edits_a_test_file_scores_zero():
     assert out["reward"] == 0 and "test files" in out["reason"]
 
 
+# Attack fixtures from the independent attack test of 18 Nov 2026 (job W): source patches that rewrite pytest's own
+# reports from inside the test process. They are FIXTURES (each starts "ATTACK FIXTURE, never training data"), not data.
+FIXTURES = HERE / "attack_fixtures"
+
+
+@needs_docker
+@parametrize("label,fixture,control", [
+    ("P1 rewrites TestReport, spares the old sentinel by its name pattern", "P1_report_rewrite.patch", False),
+    ("P1b spares the tests defined in the untracked file named on the command line", "P1b_adaptive.patch", False),
+    ("P1c control: P1 without sparing, caught by the sentinel check", "P1_report_rewrite.patch", True),
+])
+def test_report_forging_patches_score_zero(label, fixture, control):
+    text = (FIXTURES / fixture).read_text(encoding="utf-8")
+    if control:
+        text = text.replace("if not _sent.search(item.name):", "if True:")
+        assert "if True:" in text
+    out = score("patch_tomlkit-236", _diff(text))
+    assert out["reward"] == 0, (label, out)
+    assert "sentinel" in out["reason"] or "report integrity" in out["reason"], (label, out)
+
+
+@parametrize("path", ["pytest.py", "_pytest/__init__.py", "sitecustomize.py", "x.pth", "json.py"])
+def test_a_patch_that_shadows_the_test_runner_scores_zero_before_docker(path):
+    patch = (f"diff --git a/{path} b/{path}\nnew file mode 100644\nindex 0000000..e69de29\n--- /dev/null\n+++ b/{path}\n"
+             "@@ -0,0 +1 @@\n+x = 1\n")
+    out = score("patch_tomlkit-236", _diff(GOLD + patch))
+    assert out["reward"] == 0 and "shadows the test runner" in out["reason"], out
+
+
 def test_patch_that_is_not_a_diff_scores_zero_without_docker_when_unfenced():
     assert score("patch_tomlkit-236", GOLD)["reward"] == 0
 

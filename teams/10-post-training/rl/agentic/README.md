@@ -26,7 +26,7 @@ command. This set can.
   command reproduces the bug). The whole suite, a subset, the wrong file and a command that runs nothing all score 0;
   `pytest tests/x.py`, `python -m pytest -q tests/x.py` and `-v` all score 1 (a behavioural check, not string equality).
 - **patch mode (a thin wrapper, no new signal).** One ```` ```diff ```` block, scored by `swe-envs/verify.py` `reward()`.
-  It only adds the one-block output rule and the action-type check. `task.json` carries `pool_overlap: swe/<id>`:
+  It only adds the one-block output rule and the action-type check. Command mode also gets the hidden test patch inside its script (stdin), like patch mode. `task.json` carries `pool_overlap: swe/<id>`:
   do not put a patch task and its `swe/<id>` twin into one RL pool.
 
 Output rules (both modes): text up to the last `<|/think|>` is ignored, an unclosed `<|think|>` has no answer, and the
@@ -66,6 +66,7 @@ RL pool; a pool needs many more tasks built with `build_tasks.py`.
 
 ## Limits
 
+- Patch mode runs the candidate's code in pytest's process. The earlier claim that beating the report checks needs faked terminal output was wrong: attacks P1 and P1b rewrote `TestReport` and scored 1 (independent attack test, 18 Nov 2026). They now score 0 (`attack_fixtures/`, `test_agentic_verifier.py`), see `swe-envs/README.md`, "Known limits", for the residual and the shared-file change.
 - A policy can score by matching words of the issue to a file name in the listing; that is the intended skill, but an
   easy issue can be solved by lexical overlap alone. Tasks are few (4 command, 1 patch).
 - One test command family (pytest) and Python envs only.

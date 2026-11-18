@@ -17,7 +17,7 @@ command mode  (the part `swe/<id>` cannot score)
     score 0, while every spelling of the right command (`-q`, `-v`, `python -m pytest`, `pytest`) scores 1.
 patch mode  (a thin wrapper, not new signal)
     ONE fenced diff block, scored by swe-envs/verify.py reward(): the same hidden tests, the same refusal of test-file
-    edits, symlinks, binaries and forged reports. The wrapper only adds the one-block output rule and the check that
+    edits, symlinks, binaries, runner-shadowing paths and (as far as an in-process check can) forged reports. The wrapper only adds the one-block output rule and the check that
     the action type matches the task. The env is also available as swe/<id>; do not put both in one RL pool.
 
 Output rules for both modes: everything up to the last `<|/think|>` is ignored and an unclosed `<|think|>` has no
@@ -143,7 +143,8 @@ def parse_command(block: str) -> tuple[list[str] | None, str]:
 
 # --- running -----------------------------------------------------------------------------------
 
-def command_script(env: dict, args: list[str], token: str) -> str:
+def command_script(env: dict, args: list[str], token: str, test_patch: str | None = None) -> str:
+    """Run on stdin (`bash -s`); test_patch (text) is delivered inside the script, see swe-envs/verify.py."""
     report = f"/tmp/g10_{token}.xml"
     restore = " ".join(shlex.quote(f) for f in env["test_files"])
     argv = " ".join(shlex.quote(a) for a in ["python", "-m", "pytest", "-p", "no:cacheprovider", "-o", "addopts=",
@@ -153,8 +154,8 @@ def command_script(env: dict, args: list[str], token: str) -> str:
         "cd /repo",
         f"for f in {restore}; do if git cat-file -e HEAD:\"$f\" 2>/dev/null; then git checkout -q HEAD -- \"$f\"; "
         "else rm -f \"$f\"; fi; done",
-        f"if ! git apply --whitespace=nowarn /patches/test.patch; then echo {v.TEST_PATCH_FAIL}; exit 0; fi",
-        f"timeout {int(env.get('timeout_s', 300))} {argv} > /tmp/g10_test.log 2>&1; echo \"@@G10_EXIT $?@@\"",
+        *v.apply_test_patch(test_patch, token),
+        f"timeout {int(env.get('timeout_s', 300))} {argv} > /tmp/g10_test.log 2>&1 < /dev/null; echo \"@@G10_EXIT $?@@\"",
         f"echo {v.REPORT_START}; cat {report} 2>/dev/null; echo {v.REPORT_END}",
         "tail -c 1500 /tmp/g10_test.log 2>/dev/null",
     ])
@@ -164,10 +165,10 @@ def run_command(env_dir: Path, env: dict, args: list[str], executor=None) -> dic
     """Run the parsed pytest arguments once in the env image. {"ran": {id: passed}} or {"error": reason}."""
     v = swe_verify()
     token = uuid.uuid4().hex[:12]
-    files = {"test.patch": (env_dir / "test.patch").read_bytes()}
+    test_patch = (env_dir / "test.patch").read_bytes().decode("utf-8")
     started = time.monotonic()
     try:
-        stdout, stderr = (executor or v.docker_run)(env, command_script(env, args, token), files,
+        stdout, stderr = (executor or v.docker_run)(env, command_script(env, args, token, test_patch), {},
                                                     int(env.get("timeout_s", 300)) + 60)
     except TimeoutError:
         return {"error": "timeout"}
