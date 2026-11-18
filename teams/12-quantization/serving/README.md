@@ -86,8 +86,7 @@ The first full run used G10's original template and exposed two gaps. Both are f
 1. **`tools` were not rendered.** A served model never saw the tool schemas. The merged template writes
    `\n\nTools:\n` and a JSON array of the function schemas (sorted keys) at the end of the first system turn, the
    way `sft/convert.py` writes SFT data. `serve_check` therefore no longer adds the schemas itself
-   (`--tools-in-system auto` sees that the template mentions `tools`). The results below were produced with the
-   old template and the harness workaround.
+   (`--tools-in-system auto` sees that the template mentions `tools`). The 18 Nov run below used it that way.
 2. **Tool calls did not match training byte for byte.** `render.py` writes them compact with sorted keys; the old
    template used `| tojson` defaults, and OpenAI-form history calls (`{"id","type","function":{…}}`) were written
    unchanged. Now both shapes render as `{"arguments":{…},"id":"…","name":"…"}`, with `id` only when it is a string.
@@ -101,20 +100,25 @@ generates past the end of the turn.
 
 ## Status
 
-- **Kaggle, 15 Nov 2026, original G10 template** ([`results/serve_check.md`](../results/serve_check.md)):
-  Qwen3-4B-Instruct-2507 (stand-in), vLLM 0.33.0, T4 x2, fp16.
-  - **Fields: PASS.** 100/100 HTTP 200. 98/100 answers are clean; the other 2 are the model writing its think block
-    after the answer, which the replay confirms. 0 parser faults.
+- **Kaggle, 18 Nov 2026, merged G10 template** ([`results/serve_check.md`](../results/serve_check.md)):
+  Qwen3-4B-Instruct-2507 (stand-in), vLLM 0.33.0, T4 x2, fp16, repo commit `131cb0b`.
+  The template is `tokenizer/chat_template.jinja`, a copy of lab main's. It renders the tool schemas itself, so the
+  harness adds none.
+  - **Fields: PASS.** 100/100 HTTP 200 and 100/100 answers with no chat marker in `content`, `reasoning` or tool
+    arguments. 0 layout breaks by the model, 0 parser faults.
   - **Fields filled:** reasoning in `message.reasoning` on 25/25 reason prompts; tool calls in `message.tool_calls`
-    on 28/30 tool prompts; no call on 20/20 prompts that need none.
-  - **Streaming:** 19/20 match. In the one miss the model's reasoning wording changed between the two runs
-    (fp16, batched vs. alone); the answer is identical.
-  - **Time:** 165 s server start, 97 s for the 100 prompts (200 tokens/s), 0.17 GPU-hours, $0 on Kaggle.
-  - **Earlier run:** the first full run failed the old marker check on 6 answers. All 6 were the model breaking the
-    layout, 2 of them invited by a format hint that taught tool calls on prompts with no tools. That run led to the
-    replay and to the hint change.
+    on 29/30 tool prompts (the miss, tool-15: the model answered a World Cup question directly, saying no tool was
+    needed); no call on 20/20 prompts that need none.
+  - **Streaming:** 18/20 match. Both misses are the model wording a sentence differently deep into the text
+    (character 105 and 633). fp16 outputs vary between the batched and the single run. No marker leaked and the
+    finish reasons match.
+  - **Time:** 175 s server start, 97 s for the 100 prompts (199 tokens/s), 0.18 GPU-hours, $0 on Kaggle.
+  - **Tests on the same run:** 66 passed, 1 skipped (G12 copy == G10 master, until this branch has G10's template).
+- **First run, 15 Nov 2026, original G10 template.** Fields PASS with 2 layout breaks by the model (a think block
+  after the answer); tool calls 28/30; 19/20 streams. It used the harness workaround for tool schemas. Its first
+  attempt failed the old marker check on 6 answers, which led to the replay and to the hint change.
 - **Known difference, cosmetic:** on requests without tools, streamed `content` can keep the whitespace that follows
   `<|/think|>`. After reasoning ends, vLLM passes deltas through without the tool parser. The non-streamed content
   is stripped. The check compares stripped text.
-- **Our checkpoint:** waits for the dry-run-1 checkpoint (G7, D4) and `export_hf.py`. Then the same notebook runs
-  with `MODEL` set to the export and `FORMAT_HINT = "off"`.
+- **Our checkpoint:** waits for the dry-run-1 checkpoint (G7) and `export_hf.py` (Member D). Then the same notebook
+  runs with `MODEL` set to the export and `FORMAT_HINT = "off"`.
