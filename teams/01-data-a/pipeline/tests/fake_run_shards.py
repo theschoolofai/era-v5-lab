@@ -31,7 +31,7 @@ if not record.is_file():
 if a.out.is_dir() and list(a.out.glob("*.bin")):
     sys.exit("already in the out folder")
 a.out.mkdir(parents=True, exist_ok=True)
-parts, counts = {}, {"written": 0, "failed": 0, "skipped": 0, "not_sharded": 0, "truncated": 0}
+parts, counts = {}, {"written": 0, "failed": 0, "skipped": 0, "not_sharded": 0, "truncated": 0, "shards": 0}
 for f in sorted(a.input.glob("*/*/*.parquet")):
     split, pack = f.parent.parent.name, f.parent.name
     if a.pack and pack not in a.pack:
@@ -47,8 +47,9 @@ for f in sorted(a.input.glob("*/*/*.parquet")):
         sid = f"{pack}-{split}-{int(f.stem.split('-')[1]):06d}"
         (a.out / f"{sid}.bin").write_bytes(b"shard")
         cut = bool(os.environ.get("FAKE_SHARDS_TRUNCATE")) and not counts["truncated"]
-        parts[name] = {"pack_id": pack, "shard_id": sid, "status": "written", "truncated": cut}
+        parts[name] = {"pack_id": pack, "status": "written", "shards": [{"shard_id": sid}], "truncated": cut}
         counts["written"] += 1
+        counts["shards"] += 1
         counts["truncated"] += cut
 manifest = json.loads(a.manifest.read_text(encoding="utf-8"))
 (a.out / "args.json").write_text(json.dumps({"tokens": a.tokens, "packs": a.pack, "any_tokenizer": a.any_tokenizer, "dataset_version": a.dataset_version,

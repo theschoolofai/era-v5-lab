@@ -29,7 +29,7 @@ A run stage names a "settings" file (settings only, no paths) and the runner wor
 gets a copy of its settings with the path keys filled in (clean: input_root from "input", output_root, and the input set's
 description from the stage: manifest, manifest_sha256, expected_parts, sample; overlap: inputs, out; dedup: results, inputs,
 out), written to <run>/cfg/<stage>.json and passed with --config. The clean stage's manifest defaults to sample_manifest.json in
-its input folder, and its sha256 must equal manifest_sha256 (checked just before the job starts, not by --plan). "script" replaces the default script, and may be a list (the script, then the arguments that go before --config: a cleaner run through a wrapper, such as spec_v1_1/use_clean.py with spec_v1/run_tokenizer_sample.py; the manifest then records the sha256 of both); "settings_sha256" pins the settings file
+its input folder, and its sha256 must equal manifest_sha256; its parts must match expected_parts and add up to its total_docs (clean_manifest.py: --plan checks it, and the job again when it starts). "script" replaces the default script (for clean: pipeline/clean_job.py, which loads the cleaner its settings file names and pins), and may be a list (the script, then the arguments that go before --config: a script run through a wrapper; the manifest then records the sha256 of both); clean also takes "resume": true, to continue an interrupted clean job in its folder (the job verifies the parts it finished; logs/clean.log is appended to); "settings_sha256" pins the settings file
 (checked, and the manifest records the file's sha256 either way). Escape hatch: "command" (the script and its arguments, run
 with this Python from the repository root) with "output" (where that script writes) skips all of this.
 --plan checks the config and prints each stage's folder and command, without running or writing anything. It is the only
@@ -87,6 +87,11 @@ The whole config is checked before the first stage runs.
 
 CHECKS (any failure stops the run; exit code 1)
 ==============================================
+  clean     (a stage run from settings; an adopted folder only when it has a job_summary.json in the clean job's format, else
+            the record says "job_summary_checked": false) the job's job_summary.json against the folder: no errors; the parts
+            it did = the parts the run expects (stages.clean.expected_parts, or the --only parts), each with a report; it read
+            this run's manifest_sha256; input rows = output rows + dropped, and the output rows = the Parquet footers'; the
+            parts on disk are the parts it lists, with their rows; each part's sha256 is the one it recorded
   overlap   status complete; documents_all = the cleaned rows; for every part it lists, its documents = that cleaned part's rows
   dedup     status complete; the overlap_matches.csv and overlap_docs.parquet it checked (overlap_run.checked_sha256) are
             the adopted overlap's files; documents_all = overlap's; removed = remove_list.csv rows; heldout_removed = 0
@@ -101,9 +106,10 @@ CHECKS (any failure stops the run; exit code 1)
             per pack and split, its cleaned rows and removed_by_dedup = apply_dedup_summary.json's by_pack; the dedup
             survivors F2 dropped, in total and per pack = survivor_loss_summary.json's
   shards    no part failed or was skipped; run_shards.py exited 0; at least one shard written; the summary is this run's;
-            the shards on disk verify (verify_shards.py, independent of the summary): files and sha256, .bin header and size,
-            index, special ids, metadata, pack table row, tokenizer, F2 set, and the first and last document of every shard
-            against the final part
+            the shards on disk verify (verify_shards.py, independent of the summary and of the shard script): files and
+            sha256, .bin header and size, index, special ids, metadata, pack table row, tokenizer, F2 set, and the first and
+            last document of every shard against the final part. This is the one verification of a pipeline run: the default
+            run_shards.py is told --no-verify, so a shard is read once (its hashes go to the hash cache for the digest)
   from      every earlier stage's output still has the digest the manifest recorded for it
   inventory (only with "inventory") before the shard stage does anything, also when the run resumes there: the
             ledger is mode B and holds exactly the listed parts, each with its listed raw sha256 and raw rows; every
@@ -148,7 +154,8 @@ from hashing import HashCache, code_sha256  # noqa: E402  (every sha256 once, in
 STAGES = ("clean", "overlap", "dedup", "apply", "f2", "survivor_loss", "ledger", "shards", "reconcile")
 OPTIONAL = ("shards", "reconcile")  # run only when configured (reconcile also needs shards)
 EXTERNAL = ("clean", "overlap", "dedup")
-NEEDED = {"overlap": ("overlap_summary.json", "overlap_matches.csv", "overlap_docs.parquet"),
+CLEAN_SUMMARY = ("completed_parts", "expected_parts", "input_rows", "output_rows", "actions", "errors", "parts")  # a clean job's job_summary.json
+NEEDED = {"overlap":("overlap_summary.json", "overlap_matches.csv", "overlap_docs.parquet"),
           "dedup": ("remove_list.csv", "dedup_groups.csv", "dedup_summary.json")}
 DEFAULT_F2 = "teams/01-data-a/spec_v1/run_f2.py"
 DEFAULT_SHARDS = "teams/01-data-a/shards/run_shards.py"
@@ -219,11 +226,14 @@ def path(p):
     return p if p.is_absolute() else REPO / p
 
 
-def run_script(script, args, stage, log):
-    """Run a script with this Python from the repository root, its output streamed to log. Returns the exit code."""
+def run_script(script, args, stage, log, append=False):
+    """Run a script with this Python from the repository root, its output streamed to log. Returns the exit code.
+    append: add to the log (a resumed stage keeps the log of the attempt before it), with a blank line between."""
     log.parent.mkdir(parents=True, exist_ok=True)
     cmd = [sys.executable, "-I", str(path(script)), *map(str, args)]
-    with open(log, "w", encoding="utf-8", errors="replace") as f:
+    with open(log, "a" if append else "w", encoding="utf-8", errors="replace") as f:
+        if append and f.tell():
+            f.write("\n")
         f.write("$ " + " ".join(cmd) + "\n")
         f.flush()
         return subprocess.run(cmd, cwd=REPO, stdout=f, stderr=subprocess.STDOUT).returncode
@@ -682,7 +692,7 @@ class Run:
                 if built["config"]:
                     lines.append(f"     generated config {self.shown(built['config'])}: " + ", ".join(
                         f"{k} = {v}" for k, v in stage_args.generated_values(stage, {s: self.output(s) for s in EXTERNAL}, REPO, self.stages[stage]).items()
-                        if k in stage_args.PATH_KEYS))
+                        if k in stage_args.PATH_KEYS or k == "resume"))
             elif stage == "f2":
                 f2 = self.stages.get("f2", {})
                 how = (f"{POOL} (the set loaded once) calling {f2.get('script', DEFAULT_F2)}" if f2.get("pool")
@@ -725,7 +735,7 @@ class Run:
         command = built["command"] if built else None
         if command:
             log = self.dir / "logs" / f"{stage}.log"
-            rc = run_script(command[0], command[1:], stage, log)
+            rc = run_script(command[0], command[1:], stage, log, append=spec.get("resume") is True)
             if rc != 0:
                 raise Stop(f"{stage}: {Path(command[0]).name} failed with exit code {rc}: {tail(log)}")
         out = self.output(stage)
@@ -736,10 +746,20 @@ class Run:
         rec = {"mode": mode, "command": command, "code_sha256": sha256(path(command[0])) if command else None,
                "output": self.shown(out), "counts": counts}
         tools = {a: sha256(path(a)) for a in (command or [])[1:] if a.endswith(".py") and path(a).is_file()}
-        if tools:  # a script run through a wrapper ("script" as a list): the scripts the wrapper was given
+        if stage == "clean" and built and built["config"]:
+            # the cleaner the job was told to load (the job checked it against the pin in the same settings file) and the
+            # manifest check it shares with --plan: what the job ran besides its own script
+            cleaner = load_json(built["config"]).get("clean")
+            if cleaner and path(cleaner).is_file():
+                tools.update({cleaner: sha256(path(cleaner)), self.shown(HERE / "clean_manifest.py"): sha256(HERE / "clean_manifest.py")})
+        if tools:  # the scripts a wrapper was given ("script" as a list), and the cleaner clean_job.py loads
             rec["tools_sha256"] = tools
+        if stage == "clean":
+            rec["job_summary_checked"] = self.clean_summary_checked  # False: an adopted folder with no clean-job summary to check
         if self.only and stage == "clean":
             rec["only"] = self.only
+        if stage == "clean" and command and spec.get("resume") is True:
+            rec["resume"] = True  # the job was told it may continue an interrupted folder (a fresh folder starts fresh)
         if built and built["settings"]:  # a stage run from a settings file: which file, and the config it was run with
             rec.update(settings=built["settings"], settings_sha256=built["settings_sha256"],
                        config=Path(built["config"]).relative_to(self.dir).as_posix() if built["config"] else None,
@@ -747,7 +767,62 @@ class Run:
         return rec
 
     def counts_clean(self, out):
-        return parquet_rows(out)
+        counts = parquet_rows(out)
+        self.clean_summary_checked = self.check_clean_summary(out, counts)
+        return counts
+
+    def check_clean_summary(self, out, counts):
+        """The clean job's account of its work (job_summary.json, as clean_job.py and TSAI's run_tokenizer_sample.py write it)
+        against the folder. True when it was checked. A stage run from settings must have one. An adopted folder without a
+        summary in the job's format (an older local output) is not checked: False, and the stage record says so. A custom
+        "command" is not checked either: nothing is known about what it writes."""
+        spec = self.stages["clean"]
+        if spec.get("command"):
+            return False
+        run = spec.get("mode", "adopt") == "run"
+        try:
+            s = load_json(out / "job_summary.json")
+        except (OSError, ValueError):
+            s = None
+        if not (isinstance(s, dict) and all(k in s for k in CLEAN_SUMMARY) and isinstance(s["parts"], list)
+                and all(isinstance(p, dict) for p in s["parts"]) and isinstance(s["actions"], dict)
+                and all(type(s[k]) is int for k in ("completed_parts", "expected_parts", "input_rows", "output_rows", "errors"))):
+            if run:
+                raise Stop(f"clean: {self.shown(out / 'job_summary.json')} is missing or is not a clean job's summary "
+                           f"({', '.join(CLEAN_SUMMARY)}): the job did not finish; see logs/clean.log")
+            return False
+        listed = {p.get("part"): p for p in s["parts"]}
+        self.check("clean: the job reported no errors", s["errors"] == 0, f"job_summary.json: {s['errors']} error(s)")
+        partial = bool(self.only) or str(s.get("scope", "")).startswith("partial")
+        if run:
+            want = len(self.only) if self.only else sum(spec["expected_parts"].values())
+        else:
+            want = len(listed) if partial else s["expected_parts"]
+        self.check("clean: the job cleaned the parts the run expects, each with a report",
+                   s["completed_parts"] == len(s["parts"]) == len(listed) == want and (not run or self.only or s["expected_parts"] == want),
+                   f"job_summary.json: completed_parts {s['completed_parts']}, expected_parts {s['expected_parts']}, "
+                   f"{len(s['parts'])} part report(s) for {len(listed)} part(s); the run expects {want}")
+        if run:
+            self.check("clean: the job read this run's input manifest", s.get("manifest_sha256") == spec["manifest_sha256"],
+                       f"job_summary.json manifest_sha256 {str(s.get('manifest_sha256'))[:12]}…, stages.clean.manifest_sha256 "
+                       f"{str(spec['manifest_sha256'])[:12]}…")
+        drops, rows = s["actions"].get("drop", 0), sum(p.get("output_rows") or 0 for p in listed.values())
+        self.check("clean: input rows = output rows + dropped, and the output rows are those on disk",
+                   s["input_rows"] == s["output_rows"] + drops and s["output_rows"] == rows == counts["rows"],
+                   f"job_summary.json input_rows {s['input_rows']}, output_rows {s['output_rows']}, dropped {drops}; "
+                   f"its part reports add up to {rows}; the Parquet footers to {counts['rows']}")
+        disk = counts["by_part"]
+        missing, extra = sorted(set(listed) - set(disk)), sorted(set(disk) - set(listed))
+        wrong = sorted(n for n in set(listed) & set(disk) if listed[n].get("output_rows") != disk[n])
+        self.check("clean: the parts on disk are the parts the job reports, with their rows", not (missing or extra or wrong),
+                   f"{len(missing)} reported but not on disk (e.g. {missing[:2]}), {len(extra)} on disk but not reported "
+                   f"(e.g. {extra[:2]}), {len(wrong)} with other rows (e.g. {wrong[:2]})")
+        names = sorted(listed)
+        shas = self.cache.sha256_many([out / n for n in names])  # the stage digest reuses these: no second read
+        bad = [n for n in names if shas[out / n] != listed[n].get("output_sha256")]
+        self.check("clean: each part's sha256 is the one the job recorded", not bad,
+                   f"{len(bad)} of {len(names)} part(s) differ from job_summary.json, e.g. {bad[:3]}")
+        return True
 
     def counts_overlap(self, out):
         s = load_json(out / "overlap_summary.json")
@@ -1004,6 +1079,11 @@ class Run:
             args.append("--any-tokenizer")
         else:
             args += ["--dataset-version", spec["dataset_version"]]
+        # The verification below is the run's one (it hashes every shard once and hands the hashes to the cache), so the default
+        # run_shards.py is told not to repeat it. Another script gets no flag it may not know, and is verified here all the same.
+        skip_own = script == DEFAULT_SHARDS
+        if skip_own:
+            args.append("--no-verify")
         log = self.dir / "logs" / "shards.log"
         rc = run_script(script, args, "shards", log)
         summary_path = out / "shards_summary.json"
@@ -1017,23 +1097,25 @@ class Run:
         self.check("shards: run_shards.py exited 0", rc == 0, f"exit code {rc}: {tail(log)}")
         self.check("shards: at least one shard written", counts["written"] > 0, f"{counts}")
         cut = sorted(name for name, e in s["parts"].items() if e.get("truncated"))
-        self.check("shards: no part was cut short (every kept document of a written part fits in its shard)",
+        self.check("shards: no part was cut short (every row of a written part was read into its shards)",
                    counts.get("truncated", 0) == 0 and not cut,
-                   f"{len(cut) or counts.get('truncated')} part(s) did not fit in stages.shards.tokens, e.g. {cut[:3]}: the "
-                   "writer fills one shard a part and drops the rest. Raise tokens or split the parts; reconcile would "
-                   "report those documents as not_reached")
+                   f"{len(cut) or counts.get('truncated')} part(s) cut short, e.g. {cut[:3]}: the writer rolls over into "
+                   "more shards, so rows it never read point to a writer fault; reconcile reports them as not_reached")
         self.check("shards: the summary is this run's, made with this run's cleaning_pipeline.json",
                    s.get("run_id") == self.cfg["run_id"] and s.get("cleaning_pipeline_sha256") == record_sha,
                    f"summary run_id {s.get('run_id')}, cleaning_pipeline_sha256 {str(s.get('cleaning_pipeline_sha256'))[:12]}…")
         # Not the summary's word: the shards as they are on disk (files, sha256, format, counts, pack table, first and last document)
         table = path(spec["pack_table"]) if spec.get("pack_table") else verify_shards.pack_table.TABLE
         try:
-            problems, self.known = verify_shards.verify(out, self.manifest_path, path(spec["tokenizer"]), table, s)
+            problems, known = verify_shards.verify(out, self.manifest_path, path(spec["tokenizer"]), table, s)
         except Exception as e:  # an unreadable tokenizer, manifest or pack table: not a traceback
             raise Stop(f"shards: the shards could not be verified: {type(e).__name__}: {e}")
+        for name, h in known.items():  # the stage digest then reuses them: each shard file is read once
+            self.cache.remember(out / name, h)
         self.check("shards: the shard files on disk verify (files, sha256, format, counts, pack table, first and last document)",
-                   not problems, f"{len(problems)} problem(s), first: {problems[0] if problems else ''}")
-        return {"mode": "run", "command": [script, "--input", "<run>/final", "--manifest", "<run>/pipeline_manifest.json", "--out", "<out>"],
+                   not problems, f"{len(problems)} problem(s), the first {min(3, len(problems))}: {'; '.join(problems[:3])}")
+        return {"mode": "run", "command": [script, "--input", "<run>/final", "--manifest", "<run>/pipeline_manifest.json", "--out", "<out>",
+                                           *(["--no-verify"] if skip_own else [])],
                 "code_sha256": sha256(path(script)), "output": spec.get("out") or "shards", "cleaning_pipeline_sha256": record_sha,
                 "counts": {**counts, "parts": len(s["parts"])}}
 
@@ -1132,12 +1214,15 @@ class Run:
         problems, checked = [], 0
         for name in parts:
             e = entries.get(name) or {}
-            sid = e.get("shard_id")  # run_shards.py writes one shard a part
-            if not isinstance(sid, str) or not sid:
+            # run_shards.py lists a part's shards (one or more, after rollover) with each one's docs and tokens
+            shards = e.get("shards") if isinstance(e.get("shards"), list) else [e] if e.get("shard_id") else []
+            sids = [s.get("shard_id") if isinstance(s, dict) else None for s in shards]
+            if not sids or not all(isinstance(sid, str) and sid for sid in sids):
                 problems.append(f"{name}: shards_summary.json names no shard for it")
                 continue
-            checked += 1
-            problems += [f"{name} → {sid}: {p}" for p in shard_problems(out, sid, e, self.cache)]
+            for sid, s in zip(sids, shards):
+                checked += 1
+                problems += [f"{name} → {sid}: {p}" for p in shard_problems(out, sid, s, self.cache)]
         self.cache.save()  # what was hashed is kept, whether the check passes or not
         if problems:
             more = f" (and {len(problems) - 3} more)" if len(problems) > 3 else ""
@@ -1229,7 +1314,7 @@ class Run:
         stages = [self.done[s] for s in STAGES if s in self.done]
         by_pack = self.done.get("ledger", {}).get("by_pack")
         manifest = {"tool": "run_pipeline.py", "run_id": self.cfg["run_id"], "config": self.cfg,
-                    "code_sha256": code_sha256(Path(__file__), _CACHE, ("stage_args.py", "inventory_check.py"))[0], "git_commit": git_commit(),
+                    "code_sha256": code_sha256(Path(__file__), _CACHE, ("stage_args.py", "clean_manifest.py", "inventory_check.py"))[0], "git_commit": git_commit(),
                     "python": platform.python_version(), "pyarrow": pyarrow_version(), "stages": stages,
                     "checks": [dict(ch, stage=s["stage"]) for s in stages for ch in s.get("checks", [])], "totals": totals,
                     "intermediates": self.dropped or {"mode": self.cfg.get("intermediates", "keep")}}

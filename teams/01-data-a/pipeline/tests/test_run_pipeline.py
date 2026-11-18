@@ -16,7 +16,7 @@ import pytest
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from conftest import HEADER, PARTS, PIPELINE
+from conftest import HEADER, PARTS, PIPELINE, made_up_manifest
 import run_pipeline as rp
 
 FAKE_F2 = Path(__file__).resolve().parent / "fake_run_f2.py"
@@ -398,7 +398,7 @@ def test_shards_run_after_f2_and_are_recorded(tmp_path, shard_config):
     run = tmp_path / "runs" / "test-run"
     assert [s["stage"] for s in m["stages"]] == list(rp.STAGES[: rp.STAGES.index("shards") + 1])
     s = m["stages"][-1]
-    assert s["counts"] == {"written": 2, "failed": 0, "skipped": 0, "not_sharded": 1, "truncated": 0, "parts": 3}
+    assert s["counts"] == {"written": 2, "failed": 0, "skipped": 0, "not_sharded": 1, "truncated": 0, "shards": 2, "parts": 3}
     assert m["totals"]["shards_written"] == 2 and all(ch["ok"] for ch in m["checks"])
     record = json.loads((run / "cleaning_pipeline.json").read_text(encoding="utf-8"))
     assert sorted(record) == ["clean_py_sha256", "dedup", "f2_set_sha256"] and record["clean_py_sha256"] == "c" * 64
@@ -486,7 +486,7 @@ def staged(tmp_path, tsai_outputs, monkeypatch):
     monkeypatch.setenv("FAKE_F2_DROP", "g0,h1")
 
     manifest = tmp_path / "sample_manifest.json"
-    manifest.write_text('{"shards": []}', encoding="utf-8")
+    manifest.write_text(made_up_manifest({"train": 3, "heldout": 1}), encoding="utf-8")
 
     def settings(name, fixture, **extra):
         p = tmp_path / f"{name}_settings.json"
@@ -495,7 +495,7 @@ def staged(tmp_path, tsai_outputs, monkeypatch):
 
     cfg = {"run_id": "test-run", "out": str(repo / "out" / "runs"), "stages": {
         "clean": {"mode": "run", "script": str(FAKE_STAGE), "settings": settings("clean", tsai_outputs["cleaned"]), "input": "raw/sample",
-                  "manifest": str(manifest), "manifest_sha256": sha(manifest), "expected_parts": {"train": 9, "heldout": 2}, "sample": "made up"},
+                  "manifest": str(manifest), "manifest_sha256": sha(manifest), "expected_parts": {"train": 3, "heldout": 1}, "sample": "made up"},
         "overlap": {"mode": "run", "script": str(FAKE_STAGE), "settings": settings("overlap", tsai_outputs["overlap"], k=5, floor=0.5, inputs="x", out="y")},
         "dedup": {"mode": "run", "script": str(FAKE_STAGE), "settings": settings("dedup", tsai_outputs["dedup"], cross_pack=True, results="x", inputs="x", out="y")},
         "f2": {"script": str(FAKE_F2)}}}
@@ -521,7 +521,7 @@ def test_stages_run_from_settings_into_the_run_folder(tmp_path, staged):
     # every stage gets the settings with the path keys filled in, repo-relative; every other setting is kept
     cl = json.loads((run / "cfg" / "clean.json").read_text(encoding="utf-8"))
     assert (cl["input_root"], cl["output_root"]) == ("raw/sample", "out/runs/test-run/clean") and recs["clean"]["command"][-2:] == ["--config", (run / "cfg" / "clean.json").as_posix()]
-    assert (cl["manifest_sha256"], cl["expected_parts"], cl["sample"]) == (sha(cl["manifest"]), {"train": 9, "heldout": 2}, "made up")
+    assert (cl["manifest_sha256"], cl["expected_parts"], cl["sample"]) == (sha(cl["manifest"]), {"train": 3, "heldout": 1}, "made up")
     ov = json.loads((run / "cfg" / "overlap.json").read_text(encoding="utf-8"))
     dd = json.loads((run / "cfg" / "dedup.json").read_text(encoding="utf-8"))
     assert (ov["inputs"], ov["out"], ov["k"], ov["floor"]) == ("out/runs/test-run/clean", "out/runs/test-run/overlap", 5, 0.5)
@@ -531,6 +531,128 @@ def test_stages_run_from_settings_into_the_run_folder(tmp_path, staged):
     assert recs["overlap"]["settings_sha256"] == sha(json.loads(path.read_text(encoding="utf-8"))["stages"]["overlap"]["settings"])
     assert json.loads((run / "logs" / "clean.log").read_text(encoding="utf-8").splitlines()[-1])["input_root"] == "raw/sample"
     assert json.loads((run / "logs" / "dedup.log").read_text(encoding="utf-8").splitlines()[-1])["keys"]["results"] == "out/runs/test-run/overlap"
+
+
+def test_clean_resume_reaches_the_job_the_record_and_the_plan(staged):
+    path, repo = staged
+    edit_stage(path, "clean", resume=True)
+    assert "resume = True" in rp.plan(path)
+    m = rp.run(path, to="clean")
+    run = repo / "out" / "runs" / "test-run"
+    assert json.loads((run / "cfg" / "clean.json").read_text(encoding="utf-8"))["resume"] is True
+    assert m["stages"][0]["stage"] == "clean" and m["stages"][0]["resume"] is True
+    edit_stage(path, "clean", resume=False)
+    assert "resume = True" not in rp.plan(path)
+
+
+def test_a_run_without_resume_does_not_tell_the_job_so(staged):
+    path, repo = staged
+    m = rp.run(path, to="clean")
+    assert "resume" not in m["stages"][0]
+    assert "resume" not in json.loads((repo / "out" / "runs" / "test-run" / "cfg" / "clean.json").read_text(encoding="utf-8"))
+
+
+def test_a_resumed_clean_stage_adds_to_its_log_and_a_stage_without_resume_starts_it_again(staged):
+    path, repo = staged
+    log = repo / "out" / "runs" / "test-run" / "logs" / "clean.log"
+    rp.run(path, to="clean")
+    first = log.read_text(encoding="utf-8")
+    assert first.count("$ ") == 1
+    with pytest.raises(rp.Stop, match="clean: .*failed"):  # the stand-in refuses a folder that is there, as the job does without resume
+        rp.run(path, to="clean")
+    assert log.read_text(encoding="utf-8").count("$ ") == 1 and log.read_text(encoding="utf-8") != first  # rewritten: the failed attempt's
+    edit_stage(path, "clean", resume=True)
+    with pytest.raises(rp.Stop, match="clean: .*failed"):
+        rp.run(path, to="clean")
+    after = log.read_text(encoding="utf-8")
+    assert after.count("$ ") == 2 and "\n\n$ " in after  # the attempt before it is kept, a blank line between
+
+
+def test_resume_is_refused_for_a_stage_that_is_not_clean(staged):
+    path, repo = staged
+    edit_stage(path, "overlap", resume=True)
+    for go in (rp.plan, rp.run):
+        with pytest.raises(rp.Stop, match="overlap.resume: only the clean job can be resumed"):
+            go(path)
+    assert not (repo / "out" / "runs").exists()
+
+
+def clean_checks(m):
+    return [c for c in m["checks"] if c["check"].startswith("clean: ")]
+
+
+def test_the_clean_summary_is_checked_against_the_folder_and_the_record_says_so(staged):
+    path, repo = staged
+    m = rp.run(path, to="clean")
+    assert m["stages"][0]["job_summary_checked"] is True
+    assert [c["check"].removeprefix("clean: ") for c in clean_checks(m)] == [
+        "the job reported no errors", "the job cleaned the parts the run expects, each with a report",
+        "the job read this run's input manifest", "input rows = output rows + dropped, and the output rows are those on disk",
+        "the parts on disk are the parts the job reports, with their rows", "each part's sha256 is the one the job recorded"]
+    assert all(c["ok"] for c in clean_checks(m))
+
+
+@pytest.mark.parametrize("damage, message", [
+    ("errors", "the job reported no errors.*2 error"),
+    ("parts", "the run expects.*completed_parts 3, expected_parts 4, 4 part report.*the run expects 4"),
+    ("manifest", "the job read this run's input manifest.*ffffffffffff"),
+    ("rows", r"input rows = output rows \+ dropped.*input_rows 13, output_rows 14"),
+    ("renamed", "the parts on disk are the parts the job reports.*1 reported but not on disk.*1 on disk but not reported"),
+    ("sha", "each part's sha256 is the one the job recorded.*1 of 4 part"),
+    ("none", "job_summary.json is missing or is not a clean job's summary")])
+def test_a_clean_job_whose_summary_disagrees_with_its_folder_stops_the_run(staged, monkeypatch, damage, message):
+    path, repo = staged
+    monkeypatch.setenv("FAKE_CLEAN_DAMAGE", damage)
+    with pytest.raises(rp.Stop, match=message):
+        rp.run(path, to="clean")
+
+
+def write_clean_summary(folder, **change):
+    """The job_summary.json of a clean job that made `folder`, as clean_job.py writes it (the keys the runner reads)."""
+    parts = [{"part": f.relative_to(folder).as_posix(), "output_rows": pq.read_metadata(f).num_rows, "output_sha256": sha(f)}
+             for f in sorted(folder.rglob("*.parquet"))]
+    rows = sum(p["output_rows"] for p in parts)
+    summary = {"completed_parts": len(parts), "expected_parts": len(parts), "input_rows": rows, "output_rows": rows,
+               "actions": {"keep": rows}, "errors": 0, "scope": "full manifest", "parts": parts, **change}
+    (folder / "job_summary.json").write_text(json.dumps(summary), encoding="utf-8")
+
+
+def test_an_adopted_folder_without_a_clean_job_summary_is_not_checked_and_the_record_says_so(config):
+    m = rp.run(config, to="clean")
+    assert m["stages"][0]["job_summary_checked"] is False and clean_checks(m) == []
+
+
+def test_an_adopted_folder_with_a_clean_job_summary_is_checked_without_the_run_config(config, tsai_outputs):
+    write_clean_summary(tsai_outputs["cleaned"])
+    m = rp.run(config, to="clean")
+    assert m["stages"][0]["job_summary_checked"] is True
+    assert "the job read this run's input manifest" not in [c["check"].removeprefix("clean: ") for c in clean_checks(m)]  # needs stages.clean's pin
+    assert len(clean_checks(m)) == 5 and all(c["ok"] for c in clean_checks(m))
+
+
+@pytest.mark.parametrize("change, message", [({"errors": 1}, "the job reported no errors"),
+                                             ({"output_rows": 99}, "input rows = output rows"),
+                                             ({"completed_parts": 3}, "the job cleaned the parts the run expects")])
+def test_an_adopted_clean_summary_that_disagrees_with_its_folder_stops_the_run(config, tsai_outputs, change, message):
+    write_clean_summary(tsai_outputs["cleaned"], **change)
+    with pytest.raises(rp.Stop, match=message):
+        rp.run(config, to="clean")
+
+
+def test_a_summary_in_another_format_is_not_a_clean_job_summary_even_when_adopted(config, tsai_outputs):
+    (tsai_outputs["cleaned"] / "job_summary.json").write_text(json.dumps({"clean_sha256": "c" * 64, "parts": []}), encoding="utf-8")
+    assert rp.run(config, to="clean")["stages"][0]["job_summary_checked"] is False
+
+
+def test_the_default_shard_script_is_told_not_to_verify_and_another_script_is_not(shard_config, monkeypatch):
+    seen, real = [], rp.run_script
+    monkeypatch.setattr(rp, "run_script", lambda script, args, stage, log, append=False:
+                        (seen.append(list(map(str, args))) or 0) if stage == "shards" else real(script, args, stage, log, append))
+    for script in (rp.DEFAULT_SHARDS, str(FAKE_SHARDS)):  # no summary is written: the stage stops, after the command was built
+        edit_stage(shard_config, "shards", script=script)
+        with pytest.raises(rp.Stop, match="wrote no shards_summary.json"):
+            rp.run(shard_config)
+    assert "--no-verify" in seen[0] and "--no-verify" not in seen[1]
 
 
 def test_a_stage_script_given_as_a_list_runs_the_tool_through_its_wrapper(tmp_path, staged):
@@ -546,6 +668,24 @@ def test_a_stage_script_given_as_a_list_runs_the_tool_through_its_wrapper(tmp_pa
     assert recs["clean"]["command"][:3] == [str(wrapper), str(FAKE_STAGE), "--config"] and all(c["ok"] for c in m["checks"])
     assert recs["clean"]["code_sha256"] == sha(wrapper) and recs["clean"]["tools_sha256"] == {str(FAKE_STAGE): sha(FAKE_STAGE)}
     assert "tools_sha256" not in recs["overlap"] and m["totals"]["cleaned"] == 13
+
+
+def test_the_clean_record_keeps_the_sha256_of_the_cleaner_the_settings_name(tmp_path, staged):
+    """clean_job.py loads the cleaner named by "clean" in the settings file and checks its pin; the stage record keeps that
+    file's sha256 (and clean_manifest.py's, which the job shares with --plan) next to the job script's."""
+    path, repo = staged
+    cfg = json.loads(path.read_text(encoding="utf-8"))
+    cleaner = tmp_path / "some_clean.py"
+    cleaner.write_text("# a cleaner\n", encoding="utf-8")
+    named = tmp_path / "clean_names_cleaner.json"
+    named.write_text(json.dumps({**json.loads(Path(cfg["stages"]["clean"]["settings"]).read_text(encoding="utf-8")), "clean": str(cleaner)}),
+                     encoding="utf-8")
+    edit_stage(path, "clean", settings=str(named))
+    recs = {s["stage"]: s for s in rp.run(path)["stages"]}
+    assert recs["clean"]["tools_sha256"] == {str(cleaner): sha(cleaner),
+                                             str(PIPELINE / "clean_manifest.py"): sha(PIPELINE / "clean_manifest.py")}
+    assert recs["clean"]["code_sha256"] == sha(FAKE_STAGE)  # the job script itself, as before
+    assert "tools_sha256" not in recs["overlap"]
 
 
 @pytest.mark.parametrize("script, message", [
@@ -681,8 +821,9 @@ def test_an_adopted_stage_in_the_config_uses_the_folder_instead_of_running(tmp_p
     assert m["totals"]["final"] == 9
 
 
-def test_clean_only_in_the_config_limits_the_clean_job_and_lets_overlap_expect_fewer_packs(staged):
+def test_clean_only_in_the_config_limits_the_clean_job_and_lets_overlap_expect_fewer_packs(staged, monkeypatch):
     path, repo = staged
+    monkeypatch.setattr(rp.Run, "check_clean_summary", lambda self, out, counts: False)  # the stand-in copies every part whatever --only says
     part = "train/code-go/part-00000.parquet"
     cfg = json.loads(path.read_text(encoding="utf-8"))
     cfg["stages"]["clean"]["only"] = [part]
@@ -944,7 +1085,7 @@ def test_the_shards_on_disk_are_verified_and_the_check_is_in_the_manifest(shard_
 def test_shards_that_do_not_verify_stop_the_run_before_the_stage_is_recorded(tmp_path, shard_config, monkeypatch):
     import verify_shards
     monkeypatch.setattr(verify_shards, "verify", lambda *args, **kwargs: (["pk-a-train-000000: pk-a-train-000000.bin: sha256 1234abcd…, the manifest says 0000…"], {}))
-    with pytest.raises(rp.Stop, match="the shard files on disk verify.*1 problem.*first: pk-a-train-000000"):
+    with pytest.raises(rp.Stop, match="the shard files on disk verify.*1 problem.*the first 1: pk-a-train-000000"):
         rp.run(shard_config)
     stages = [s["stage"] for s in json.loads((tmp_path / "runs" / "test-run" / "pipeline_manifest.json").read_text(encoding="utf-8"))["stages"]]
     assert stages[-1] == "ledger"
@@ -962,15 +1103,45 @@ def test_a_verification_that_cannot_run_is_a_stop_not_a_traceback(shard_config, 
 
 def test_a_stage_digest_may_reuse_hashes_a_stage_computed(tmp_path):
     (tmp_path / "a.bin").write_bytes(b"x" * 100)
-    (tmp_path / "b.json").write_text(json.dumps({"seconds": 1, "k": 2}), encoding="utf-8")
+    (tmp_path / "b.json").write_text(
+        json.dumps({"seconds": 1, "k": 2}),
+        encoding="utf-8",
+    )
+
     plain = rp.digest(tmp_path)
-    assert rp.digest(tmp_path, {"a.bin": rp.sha256(tmp_path / "a.bin")}) == plain  # the same value, one read less
-    assert rp.digest(tmp_path, {"a.bin": "0" * 64})[0] != plain[0]  # proves the given hash is the one used
+
+    for given, same in (
+        (rp.sha256(tmp_path / "a.bin"), True),
+        ("0" * 64, False),
+    ):
+        cache = rp.HashCache()
+        cache.remember(tmp_path / "a.bin", given)
+        assert (rp.digest(tmp_path, cache)[0] == plain[0]) is same
+
+    cache = rp.HashCache()
+    cache.remember(tmp_path / "a.bin", rp.sha256(tmp_path / "a.bin"))
+    assert rp.digest(tmp_path, cache) == plain
+
+    other = rp.HashCache()
+    other.remember(tmp_path / "a.bin", "0" * 64)
+    assert rp.digest(tmp_path, other)[0] != plain[0]
+
+
+def test_the_hashes_verification_read_go_to_the_hash_cache_not_a_second_read(shard_config, monkeypatch):
+    import verify_shards
+    monkeypatch.setattr(verify_shards, "verify", lambda *args, **kwargs: ([], {"pk-a-train-000000.bin": "ab" * 32}))
+    remembered = []
+    monkeypatch.setattr(rp.HashCache, "remember", lambda self, path, digest: remembered.append((Path(path).name, digest)))
+    rp.run(shard_config)
+    assert [r for r in remembered if r[0].endswith(".bin")] == [("pk-a-train-000000.bin", "ab" * 32)]  # apply also remembers its hard links
 
 
 def test_a_failed_part_stops_the_run_and_names_the_reason(tmp_path, shard_config, monkeypatch):
     monkeypatch.setenv("FAKE_SHARDS_FAIL", "1")
     with pytest.raises(rp.Stop, match="no part failed or was skipped.*first: train/code-go/part-00000.parquet: made up"):
+        rp.run(shard_config)
+
+
 # --- scale and robustness (the scale audit, 14 Nov) -----------------------------------------------------------------
 def test_records_are_counted_not_lines(tmp_path):
     f = tmp_path / "list.csv"
@@ -1012,7 +1183,7 @@ def test_without_the_hash_cache_the_digests_are_the_same(tmp_path, config, tsai_
     assert not (tmp_path / "runs" / "nocache" / "cache").exists()
 
 
-# --- Vijay's review of PR #46 (15 Nov) -------------------------------------------------------------------------------
+# --- patilvijay23's review of PR #46 (15 Nov) -------------------------------------------------------------------------------
 @pytest.mark.parametrize("name", ["ledger.partial", "ledger.old", "deduped.lock", "ledger"])
 def test_an_input_in_a_folder_the_run_writes_is_refused(tmp_path, tsai_outputs, name):
     """stages.clean.output at <run>/ledger.partial passed validation, and the ledger then deleted the cleaned parts. The
@@ -1193,8 +1364,9 @@ def test_drop_never_touches_the_cleaned_folder_not_even_one_this_run_wrote(tmp_p
     run = repo / "out" / "runs" / "test-run"
     assert m["stages"][0]["mode"] == "run" and sorted(m["intermediates"]["folders"]) == ["deduped", "final"]
     assert parquet_under(run / "deduped") == NOT_IN_SHARDS and parquet_under(run / "final") == NOT_IN_SHARDS
-    # another run may have adopted <run>/clean, so it stays whole: the same files the clean job wrote
-    assert snapshot(run / "clean") == snapshot(tsai_outputs["cleaned"]) and len(parquet_under(run / "clean")) == 4
+    # another run may have adopted <run>/clean, so it stays whole: the same files the clean job wrote (the stand-in adds its job_summary.json)
+    kept = snapshot(run / "clean")
+    assert kept.pop("job_summary.json") and kept == snapshot(tsai_outputs["cleaned"]) and len(parquet_under(run / "clean")) == 4
 
 
 @pytest.mark.parametrize("reconcile, to", [(False, None), (True, "ledger"), (True, "shards")])
@@ -1430,7 +1602,7 @@ ON_LEDGER = ["inventory: made from the input manifest the clean job read", "inve
              "inventory: each part's raw file is the listed one (sha256)", "inventory: each part's raw rows are the listed ones"]
 ON_SHARDS = ["inventory: the shard summary holds exactly the listed parts", "inventory: every part ended in a listed status",
              "inventory: every part is of its listed pack"]
-INVENTORY_SHARD_COUNTS = {"written": 3, "failed": 0, "skipped": 0, "not_sharded": 1, "truncated": 0, "parts": 4}
+INVENTORY_SHARD_COUNTS = {"written": 3, "failed": 0, "skipped": 0, "not_sharded": 1, "truncated": 0, "shards": 3, "parts": 4}
 
 
 def write_inventory(tmp_path, change=None):
@@ -1703,7 +1875,7 @@ def test_the_inventory_is_checked_against_the_summary_the_shard_script_writes(tm
     with pytest.raises(rp.Stop, match=f"inventory: every part ended in a listed status: 1 of 4 .*{name}: status 'written', listed not_sharded"):
         rp.run(shard_config)
     run = tmp_path / "runs" / "test-run"
-    assert json.loads((run / "shards" / "shards_summary.json").read_text(encoding="utf-8"))["parts"][name]["shard_id"] == "en-dclm-train-000000"
+    assert json.loads((run / "shards" / "shards_summary.json").read_text(encoding="utf-8"))["parts"][name]["shards"][0]["shard_id"] == "en-dclm-train-000000"
     write_inventory(tmp_path)
     m = rp.run(shard_config, start="reconcile")
     assert all(c["ok"] for c in m["checks"]) and inventory_report(run)["ok"] is True
@@ -2092,7 +2264,7 @@ def test_an_inventory_and_a_drop_go_together(tmp_path, shard_config, monkeypatch
 
 
 
-# --- Vijay's review of PR #46 (17 Nov): a drop checks the shards on disk first -------------------------------------
+# --- patilvijay23's review of PR #46 (17 Nov): a drop checks the shards on disk first -------------------------------------
 def remove_payload_and_index(out):
     for f in list(out.glob("*.bin")) + list(out.glob("*.idx.npy")):
         f.unlink()
@@ -2122,7 +2294,7 @@ def bad_header(out):
 
 
 @pytest.mark.parametrize("damage, message", [
-    (remove_payload_and_index, r"\.bin: missing"),  # Vijay's reproduction: metadata fine, .bin and .idx.npy gone
+    (remove_payload_and_index, r"\.bin: missing"),  # patilvijay23's reproduction: metadata fine, .bin and .idx.npy gone
     (flip_a_payload_byte, r"\.bin: sha256 .*, the manifest has"),
     (cut_the_payload, r"\.bin: sha256"),
     (remove_the_index, r"\.idx\.npy: missing"),
@@ -2239,7 +2411,7 @@ def test_shard_problems_refuses_a_shard_file_that_is_a_link(tmp_path):
     assert rp.shard_problems(out, "s", {}, rp.HashCache()) == ["s.bin: a link, not the file"]
 
 
-# --- Tejaskumar's review of PR #46 (18 Nov): dataset_version, truncated parts ----------------------------------------
+# --- TEJASKUMAR-REDDY-J's review of PR #46 (18 Nov): dataset_version, truncated parts ----------------------------------------
 def test_the_shard_stage_passes_the_dataset_version_and_any_tokenizer_runs_stay_test(tmp_path, shard_config):
     """stages.shards.dataset_version goes to run_shards.py as --dataset-version (shard_writer writes it into every
     manifest); an any_tokenizer run passes none, so its shards are "test". --plan names the version."""
@@ -2261,6 +2433,6 @@ def test_a_part_cut_short_by_the_shard_writer_stops_the_shard_stage(tmp_path, sh
     """A part whose kept documents did not all fit in stages.shards.tokens stops the run at the shard stage, with the
     parts named, instead of later in reconcile as not_reached."""
     monkeypatch.setenv("FAKE_SHARDS_TRUNCATE", "1")
-    with pytest.raises(rp.Stop, match=r"no part was cut short.*1 part\(s\) did not fit in stages.shards.tokens, e.g. "
+    with pytest.raises(rp.Stop, match=r"no part was cut short.*1 part\(s\) cut short, e.g. "
                                       r"\['train/code-go/part-00000.parquet'\]"):
         rp.run(shard_config)

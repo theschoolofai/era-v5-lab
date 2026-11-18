@@ -137,6 +137,40 @@ def test_a_truncated_part_fails_as_not_reached(run, tmp_path):
     assert s[("train/code-go/part-00000.parquet", "g3")] == "not_reached" and s[("train/code-go/part-00000.parquet", "g2")] == "in_shard"
 
 
+def test_a_part_rolled_over_into_two_shards_is_accounted_for_from_both(run, tmp_path):
+    """The summary's "shards" map: rows of one part in two shards, a left-out doc in the second shard's report."""
+    name, sid, second = "train/code-go/part-00000.parquet", "code-go-train-000000", "code-go-train-000001b"
+    shards = write_shards(run, tmp_path / "shards", left_out={name: {"secret": ["g3"]}})
+    rows = pq.read_table(shards / f"{sid}.docs.parquet")
+    for s, t in ((sid, rows.slice(0, 1)), (second, rows.slice(1))):
+        pq.write_table(t, shards / f"{s}.docs.parquet")
+        (shards / f"{s}.quality_report.json").write_text(json.dumps({"shard_id": s, "upstream": {"input_part": name},
+            "left_out_docs": {"secret": ["g3"]} if s == second else {}}), encoding="utf-8")
+        (shards / f"{s}.json").write_text(json.dumps({"shard_id": s, "doc_count": t.num_rows}), encoding="utf-8")
+    summary = json.loads((shards / "shards_summary.json").read_text(encoding="utf-8"))
+    entry = summary["parts"][name]
+    entry["shards"] = [{"shard_id": s} for s in (sid, second)]
+    del entry["shard_id"]
+    (shards / "shards_summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    r = rs.reconcile(run / "ledger", shards, tmp_path / "rec")
+    assert r["ok"] and r["by_pack"]["code-go"]["train"] == {"in_shard": 5, "left_out:secret": 1}
+    assert {x["shard_id"] for x in pq.read_table(tmp_path / "rec" / "reconcile_docs.parquet").to_pylist()} >= {sid, second}
+
+
+def test_a_part_left_out_whole_is_accounted_for_from_its_summary_entry(run, tmp_path):
+    """all_left_out (run_shards.py): no shard, the left-out doc_ids in the part's summary entry."""
+    name, sid = "train/en-dclm/part-00000.parquet", "en-dclm-train-000000"
+    shards = write_shards(run, tmp_path / "shards")
+    ids = pq.read_table(shards / f"{sid}.docs.parquet")["doc_id"].to_pylist()
+    for f in shards.glob(f"{sid}.*"):
+        f.unlink()
+    summary = json.loads((shards / "shards_summary.json").read_text(encoding="utf-8"))
+    summary["parts"][name] = {"pack_id": "en-dclm", "status": "all_left_out", "shards": [], "left_out_docs": {"secret": ids}}
+    (shards / "shards_summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    r = rs.reconcile(run / "ledger", shards, tmp_path / "rec")
+    assert r["ok"] and r["by_pack"]["en-dclm"]["train"] == {"left_out:secret": len(ids)}
+
+
 def test_a_silently_missing_document_fails(run, tmp_path):
     shards = write_shards(run, tmp_path / "shards", drop={("train/code-go/part-00001.parquet", 1)})
     with pytest.raises(rs.Stop, match="'missing': 1"):
@@ -266,7 +300,7 @@ def test_statuses_come_in_input_part_order_whatever_the_case_of_the_pack_names(t
     assert t["pack_id"].to_pylist()[::3] == ["Beta", "Zeta", "alpha", "beta-2"]
 
 
-# --- Vijay's review of PR #46 (15 Nov) -------------------------------------------------------------------------------
+# --- patilvijay23's review of PR #46 (15 Nov) -------------------------------------------------------------------------------
 def test_an_out_that_overlaps_an_input_stops(run, tmp_path):
     shards = write_shards(run, tmp_path / "shards")
     with pytest.raises(rs.Stop, match="overlap"):
@@ -274,7 +308,7 @@ def test_an_out_that_overlaps_an_input_stops(run, tmp_path):
     assert not (shards / "rec").exists()
 
 
-# --- Vijay's review of #47 (16 Nov): reconcile's scope is the ledger's packs, not the shards' own summary ----------------
+# --- patilvijay23's review of #47 (16 Nov): reconcile's scope is the ledger's packs, not the shards' own summary ----------------
 def test_a_pack_the_shard_stage_left_out_fails_by_default(run, tmp_path):
     """With no pack list, a pack that has no shards at all used to pass as not_selected; now its documents are missing."""
     shards = write_shards(run, tmp_path / "shards", packs={"code-go"})  # en-dclm left out entirely
