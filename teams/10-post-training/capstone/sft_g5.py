@@ -192,13 +192,18 @@ def judge(bundle, prompt_ids: list[int], gen_ids: list[int]) -> dict:
     return rec
 
 
-def generate_and_judge(bundle, rows: list[dict], max_new: int, limit: int) -> tuple[dict, list[dict]]:
-    """Greedy, one prompt at a time, through the G10 KV-cached decoder (Team 5's model itself has no cache)."""
+def generate_and_judge(bundle, rows: list[dict], max_new: int, limit: int,
+                       seconds: float = 0.0) -> tuple[dict, list[dict]]:
+    """Greedy, one prompt at a time, through the G10 KV-cached decoder (Team 5's model itself has no cache).
+    `seconds` > 0: no new prompt is started after that long; `per_row` keeps flags only (no text), in row-id order."""
     prompts = sorted(rows, key=lambda r: r["id"])[:limit]
-    recs, t0, gen_tokens = [], time.perf_counter(), 0
+    recs, t0, gen_tokens, stopped = [], time.perf_counter(), 0, False
     kv = bundle.kv_cache
     bundle.kv_cache = True  # rl-loop/g5_decode.py: same tokens as the re-forward path (test_team5_adapter parity test)
     for r in prompts:
+        if seconds and time.perf_counter() - t0 > seconds:
+            stopped = True
+            break
         prompt = r["input_ids"][: r["prompt_len"]]
         mn = min(max_new, bundle.spec["block_size"] - len(prompt))
         if mn <= 0:
@@ -222,7 +227,9 @@ def generate_and_judge(bundle, rows: list[dict], max_new: int, limit: int) -> tu
             "closed_im_end": sum(x["closed_im_end"] for x in recs) / n, "hit_budget": sum(x["hit_budget"] for x in recs) / n,
             "rows_emitting_marker": markers, "mean_gen_tokens": gen_tokens / n, "reasons": dict(sorted(reasons.items())),
             "decoding": "greedy, KV cache (g5_decode)", "max_new": max_new, "seconds": round(secs, 1),
-            "gen_tokens_per_s": round(gen_tokens / max(secs, 1e-9), 1)}, recs
+            "gen_tokens_per_s": round(gen_tokens / max(secs, 1e-9), 1), "budget_seconds": seconds,
+            "stopped_at_budget": stopped, "per_row": [[x["row_id"], int(bool(x["valid"])), int(bool(x["closed_im_end"])),
+                                                   int(bool(x["hit_budget"])), int(x["gen_tokens"])] for x in recs]}, recs
 
 
 def eval_loss(wrapper: G5ForBench, rows: list[dict], device: str, micro_tokens: int) -> dict:
@@ -338,14 +345,18 @@ def run(args) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     lm.eval()
     report["mask_checks"] = mask_checks(wrapper, sorted(train_rows, key=lambda r: r["id"])[:4], device, bundle)
-    pre = {"eval_loss": eval_loss(wrapper, eval_rows, device, args.micro_tokens)}
-    if args.heldout:
-        pre["forgetting"] = forgetting_bpb(bundle, args.heldout, args.heldout_sources, device)
-    pre["generation"], pre_recs = generate_and_judge(bundle, eval_rows, args.gen_max_new, args.gen_limit)
-    if args.rl_tasks and args.rl_ids:
-        import day_one_probe  # noqa: PLC0415
-        pre["rl_screen"] = day_one_probe.rl_screen_bundle(bundle, args.rl_tasks, args.rl_ids, args.rl_k,
-                                                          args.rl_max_new, device, args.rl_limit)
+    pre, pre_recs = None, []
+    if not args.no_before:  # --no-before: another arm of the same job already measured this base model
+        pre = {"eval_loss": eval_loss(wrapper, eval_rows, device, args.micro_tokens)}
+        if args.heldout:
+            pre["forgetting"] = forgetting_bpb(bundle, args.heldout, args.heldout_sources, device)
+        pre["generation"], pre_recs = generate_and_judge(bundle, eval_rows, args.gen_max_new, args.gen_limit,
+                                                         args.gen_seconds)
+        if args.rl_tasks and args.rl_ids:
+            import day_one_probe  # noqa: PLC0415
+            pre["rl_screen"] = day_one_probe.rl_screen_bundle(bundle, args.rl_tasks, args.rl_ids, args.rl_k,
+                                                              args.rl_max_new, device, args.rl_limit,
+                                                              args.rl_seconds)
     report["before"] = pre
     marker_ids = [bundle.artifacts.tokenizer.token_to_id(render.T[n]) for n in MARKER_NAMES]
     method_info = apply_method(lm, args.method, args)
@@ -365,7 +376,8 @@ def run(args) -> dict:
         scores = dtmask.wanda_scores(wrapper, ({"input_ids": b.input_ids, "attention_mask": b.attention_mask}
                                                for b in cb), device)
         # scores are keyed by the wrapper's module names ("lm.blocks..."), so the prior is applied through it too
-        method_info["wanda_prior"] = dtmask.apply_wanda_prior(wrapper, scores, args.dt_eta, args.dt_prior_strength)
+        method_info["wanda_prior"] = dtmask.apply_wanda_prior(wrapper, scores, args.dt_eta, args.dt_prior_strength,
+                                                              unseen=args.dt_unseen)
         method_info["wanda_layers_without_tokens"] = len(dtmask.masked_layers(wrapper)) - len(scores)
         method_info["deletion_at_init"] = dtmask.deletion_stats(lm)
     report["method"] = method_info
@@ -442,17 +454,25 @@ def run(args) -> dict:
         report["frozen_weights_unchanged"] = {"before": frozen_before, "after": after, "pass": after == frozen_before}
     if args.method == "dt":
         method_info["deletion_final"] = dtmask.deletion_stats(lm)
-        dtmask.bake(lm)
+        keep = dtmask.bake(lm)  # {param name: bool keep mask}; RL after this SFT holds these entries at zero
+        blob, meta = dtmask.pack_masks(keep)
+        (out / "dt_keep_masks.bin").write_bytes(blob)
+        (out / "dt_keep_masks.bin.json").write_text(json.dumps(meta))
+        method_info["keep_masks"] = {"file": "dt_keep_masks.bin", "layers": meta["layers"], "bits": meta["bits"],
+                                     "sha256": hashlib.sha256(blob).hexdigest(),
+                                     "deleted_final": sum(int((~m).sum()) for m in keep.values())}
     if args.method == "lora":
         bench.merge_lora(lm)
     post = {"eval_loss": eval_loss(wrapper, eval_rows, device, args.micro_tokens)}
     if args.heldout:
         post["forgetting"] = forgetting_bpb(bundle, args.heldout, args.heldout_sources, device)
-    post["generation"], post_recs = generate_and_judge(bundle, eval_rows, args.gen_max_new, args.gen_limit)
+    post["generation"], post_recs = generate_and_judge(bundle, eval_rows, args.gen_max_new, args.gen_limit,
+                                                         args.gen_seconds)
     if args.rl_tasks and args.rl_ids:  # does SFT give the RL prompts any signal? base vs trained, same prompts
         import day_one_probe  # noqa: PLC0415
         post["rl_screen"] = day_one_probe.rl_screen_bundle(bundle, args.rl_tasks, args.rl_ids, args.rl_k,
-                                                           args.rl_max_new, device, args.rl_limit)
+                                                           args.rl_max_new, device, args.rl_limit,
+                                                              args.rl_seconds)
     report["after"] = post
     # save as a plain G5 state dict and reload into a fresh LanguageModel
     sha = save_state(lm, out / "model.safetensors", {"g10": "capstone sft " + args.method,
@@ -503,12 +523,18 @@ def parse_args(argv=None):
     p.add_argument("--dt-lambda", type=float, default=1e-5)
     p.add_argument("--dt-eta", type=float, default=0.05)
     p.add_argument("--dt-prior-strength", type=float, default=3.0)
+    p.add_argument("--dt-unseen", default="official", choices=("official", "keep"),
+                   help="uncalibrated layer logits: official = no prior, keep = shift up to reduce initial deletion")
     p.add_argument("--dt-calib-rows", type=int, default=64)
     p.add_argument("--rl-tasks", type=Path, help="RL data v1 stdio task file: screen before and after SFT")
     p.add_argument("--rl-ids", type=Path)
     p.add_argument("--rl-k", type=int, default=8)
     p.add_argument("--rl-max-new", type=int, default=512)
     p.add_argument("--rl-limit", type=int, default=0, help="screen at most this many RL prompts (0 = all)")
+    p.add_argument("--rl-seconds", type=float, default=0.0, help="time budget per RL screen; no new prompt after it (0 = off)")
+    p.add_argument("--gen-seconds", type=float, default=0.0, help="time budget per greedy format screen (0 = off)")
+    p.add_argument("--no-before", action="store_true",
+                   help="skip the base-model evaluation (eval loss, forgetting, generation, RL screen) before training")
     p.add_argument("--max-train-seconds", type=float, default=0.0, help="stop training after this long (0 = off)")
     p.add_argument("--heldout", type=Path)
     p.add_argument("--heldout-sources", type=Path)

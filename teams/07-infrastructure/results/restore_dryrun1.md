@@ -4,7 +4,7 @@ Week 3, core task 5: **do one restore drill in dry run 1: stop, restore, continu
 
 Gate 3 evidence for Team 07: *dry run 1 ends with no lost steps and only COMPLETE checkpoint restarts.*
 
-**Status: plan and job requests.** The results tables in section 5 are filled in from the logs that TSAI returns.
+**Status: done. PASS on every check (C1 to C6).** TSAI ran both jobs on 17 Nov; the results are in section 5.
 
 ## 1. What dry run 1 was
 
@@ -55,7 +55,7 @@ fails, the restore changed something. Either way the largest difference is recor
 
 | Gate 3 line | Evidence |
 |---|---|
-| No lost steps | Dry run 1: 1,221 of 1,221 steps, COMPLETED (#475). Job B, check C5, if run. |
+| No lost steps | Dry run 1: 1,221 of 1,221 steps, COMPLETED (#475). Job B: after a stop at step 610 and a restore, every step from 1 to 1,221 is present (C5 PASS) and every loss is bit-equal to dry run 1 (C4 PASS). |
 | Only COMPLETE checkpoint restarts | Dry run 1 had no restart, so it shows nothing here. The COMPLETE-only restart evidence stays the Team 07 restart test: [restart_cpu.txt](restart_cpu.txt) and [restart_node.txt](restart_node.txt) (SIGKILL after step 140, restart from the COMPLETE checkpoint at step 125, 200/200 steps bit-equal). |
 
 **Risk for the main run (week 5).** `train_week2.py` writes `checkpoint.pt` once, at the end, straight to its final
@@ -69,16 +69,26 @@ checkpoint save fixes it.
 
 ## 5. Results
 
-*Filled in from the returned logs.*
+TSAI ran both jobs on 17 Nov, single GPU, the same setup as #475. The numbers below are from TSAI's result note to
+Team 07 (17 Nov). The job outputs were not added to the repository.
 
-| Number | Job A | Job B |
+| Number | Job A (restore the final checkpoint) | Job B (stop at 610, restore, continue) |
 |---|---|---|
-| Exit code | | |
-| `steps` / `status` | | |
-| `final_model_sha256` equal to dry run 1 (C3) | | |
-| `losses.txt` equal to dry run 1 (C4) | | |
-| Largest loss difference, if not equal | | |
-| Every step present (C5) | n/a | |
-| Stop run equal to dry run 1 up to step 610 (C6) | n/a | |
-| Restore time (job start to first step, or to exit for A) | | |
-| Result (PASS / FAIL) | | |
+| Exit code | 0, no identity error (C1) | run 1 (stop): stopped as expected; run 2 (resume): 0, no identity error (C1) |
+| `steps` / `status` | 1,221 / COMPLETED (C2) | run 1: 610 / INCOMPLETE_NOT_A_RESULT; run 2: 1,221 / COMPLETED (C2) |
+| `final_model_sha256` equal to dry run 1 (C3) | Yes | Yes (run 2) |
+| `losses.txt` equal to dry run 1 (C4) | Yes, 1,221 of 1,221 lines | Yes, 1,221 of 1,221 lines (run 2) |
+| Largest loss difference | 0 (bit-equal) | 0 (bit-equal) |
+| Every step present (C5) | n/a | Yes, steps 1 to 1,221 |
+| Stop run equal to dry run 1 up to step 610 (C6) | n/a | Yes, lines 1 to 610 identical: no run-to-run noise |
+| Restore time (job start to exit) | about 6 min 8 s (the 2.2 GB load and the write-out) | about 30 min 39 s (load, the 611 training steps 611 to 1,221, and the save) |
+| Result | **PASS** | **PASS** |
+
+**What this shows.** Dry run 1's checkpoint loads and gives back the same model. A run stopped halfway and restored
+from its checkpoint finishes bit-for-bit the same as the run that was never stopped: same loss at every one of the
+1,221 steps and the same final model. On a single GPU the run is fully repeatable, so the open point in section 4
+(bit-equal or a tolerance) was answered with bit-equal.
+
+**What it does not show.** Both jobs used `train_week2.py`'s own `checkpoint.pt`, saved after a clean stop, not a
+kill. The COMPLETE-only restart after a kill is shown by the Team 07 restart test (section 4). TSAI agrees with the
+risk in section 4: before the week-5 main run, the trainer should save through the Team 07 `Checkpointer`.
