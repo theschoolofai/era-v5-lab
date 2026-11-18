@@ -1,6 +1,6 @@
 # DT learning rate check: official 5e-4 against our 2e-3 (`SmolLM2-135M`, 18 Nov 2026)
 
-**Verdict (one seed): at the official lr 5e-4, DT still forgets less than full fine-tuning (+0.0207 against +0.0508) and is still worse than LoRA and full FT on task bpb. The section 1 conclusion of `dt_vs_fft.md` is unchanged.**
+**Verdict (one seed): at the official lr 5e-4, DT has lower raw drift than full fine-tuning (+0.0207 against +0.0508) but also fits the task less (test bpb 0.5484 against 0.4836), and is worse than LoRA and full FT on task bpb. These rows are not at equal fit; for the equal-fit comparison see section 7 of `dt_vs_fft.md`, which finds that DT does not forget less than full FT.**
 
 Question from the 17 Nov port check: SFT DT used lr 2e-3, the official `deleting-weights` script uses 5e-4 (constant lr, AdamW, 400 steps, alpha 100 to 1000, lambda 1e-5). Does the lr change the DT row of section 1?
 
@@ -19,7 +19,7 @@ Command shape: `python sft/bench/train.py --method dt --steps 400 --lr <lr> --se
 | LoRA r=4 (section 1) | 1e-3 | 0.5283 | +0.0384 | - |
 Dev bpb is the earlier A10 sweep (not re-measured): 3e-4 0.5728, 5e-4 0.5545, 1e-3 0.5413, 2e-3 0.5386 (full FT 0.4913, LoRA 0.5355).
 
-- Drift at 5e-4 is 0.030 below full FT's; test bpb at 5e-4 is 0.020 above LoRA's and 0.065 above full FT's.
+- Raw drift at 5e-4 is 0.030 below full FT's (not at equal fit); test bpb at 5e-4 is 0.020 above LoRA's and 0.065 above full FT's.
 - 5e-4 against 2e-3 on the same machine: test bpb 0.0161 worse, drift 0.0080 smaller, 1.2 points less of the gate weights deleted: a trade-off along lr, not a change of ordering.
 
 ## Checks
