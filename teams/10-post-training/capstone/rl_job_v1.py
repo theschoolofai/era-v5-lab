@@ -259,6 +259,9 @@ def check_inputs(a) -> dict:
     miss = [f"{k}: {v}" for k, v in need.items() if not Path(v).is_file()]
     if miss:
         raise FileNotFoundError("input missing, nothing was built: " + "; ".join(miss))
+    if a.origin != "g5_delivery" and not a.allow_fixture_smoke:  # fail before the rebuild, not after it
+        raise ValueError(f"--origin {a.origin} gives a rehearsal adapter that rl-loop/train.py refuses; use --origin g5_delivery for "
+                         "Team 5's delivered run folder (dry run only: --allow-fixture-smoke, output is never a result)")
     block = json.loads((a.run_folder / "manifest.json").read_text(encoding="utf-8"))["config"]["model"]["block_size"]
     if block != a.max_tokens:
         raise ValueError(f"run folder block_size {block} != --max-tokens {a.max_tokens}")
@@ -362,6 +365,7 @@ def write_train_config(a, out: Path, init_state: Path | None, init_sha: str | No
     import yaml  # noqa: PLC0415
     cfg = {"seed": a.seed, "device": a.device, "out_dir": str(out / "rl"),
            "model": {"kind": "team5_adapter", "adapter_config": str(out / "adapter.yaml"), "kv_cache": True,
+                     **({"allow_fixture_smoke": True} if a.allow_fixture_smoke else {}),
                      **({"init_state": str(init_state), "init_state_sha256": init_sha} if init_state else {})},
            "task": {"kind": "stdio", "require_verifier": True, "tasks": str(a.rl_tasks),
                     "train_ids": str(out / "train_ids.txt"), "heldout_ids": str(out / "heldout_ids.txt")},
@@ -598,7 +602,9 @@ def parse_args(argv=None):
     ap.add_argument("--stand-in-reward", type=float, help="DRY RUN ONLY: replace every reward by a seeded coin with this probability")
     ap.add_argument("--no-pack-check", action="store_true", help="tests only: accept pool files and packs other than the pins")
     ap.add_argument("--no-git", action="store_true")
-    ap.add_argument("--origin", default="g10_rehearsal", choices=("g10_rehearsal", "g5_delivery"))
+    ap.add_argument("--origin", default="g5_delivery", choices=("g10_rehearsal", "g5_delivery"),
+                    help="g5_delivery: Team 5's delivered run folder (non-smoke manifest); g10_rehearsal is a stand-in and train.py refuses it without --allow-fixture-smoke")
+    ap.add_argument("--allow-fixture-smoke", action="store_true", help="DRY RUN ONLY: let train.py load a rehearsal adapter; its output is never a result")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--out", type=Path, required=True)
@@ -623,7 +629,7 @@ def main(argv=None) -> int:
     finally:
         shutil.rmtree(out / "_work", ignore_errors=True)  # SFT weights and built rows never leave the job
         status = None
-        for f in (out / "rl" / "summary.json", out / "rl" / "status.json"):  # a finished summary wins over an old pause note
+        for f in (out / "rl" / "summary.json", out / "rl" / "smoke_summary.json", out / "rl" / "status.json"):  # a finished summary wins over an old pause note
             if f.is_file():
                 status = json.loads(f.read_text()).get("status") or "COMPLETE"
                 break

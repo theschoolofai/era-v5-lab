@@ -188,3 +188,16 @@ def test_detector_counts_literal_prints_only_in_heldout_evaluations(tmp_path):
     assert log[0]["literal"] == 2 and log[0]["literal_by"] == {"no_stdin": 2}   # print(7) and print(1+1); input() reader is fine
     mod.evaluate(None, task, [[1]])                                     # not the held-out list: not counted
     assert len(log) == 1
+
+
+def test_a_rehearsal_origin_is_refused_before_any_work_unless_it_is_a_dry_run(tmp_path):
+    base = ["--g5-root", "g", "--run-folder", str(tmp_path), "--tokenizer", "t", "--byte-table", "b", "--rl-tasks", "c",
+            "--train-pool", "tp", "--heldout-pool", "hp", "--out", str(tmp_path)]
+    (tmp_path / "checkpoint.pt").write_text("x")
+    (tmp_path / "manifest.json").write_text("{}")
+    for n in ("c", "tp", "hp"):
+        (tmp_path / n).write_text("x")
+    a = job.parse_args(base + ["--origin", "g10_rehearsal"])
+    a.rl_tasks, a.train_pool, a.heldout_pool = tmp_path / "c", tmp_path / "tp", tmp_path / "hp"
+    with pytest.raises(ValueError, match="rehearsal adapter"):
+        job.check_inputs(a)
