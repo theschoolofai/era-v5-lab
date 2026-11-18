@@ -487,6 +487,22 @@ def rl_step(a, out: Path, init_state, init_sha, deadline_unix, screen_n) -> dict
     return res
 
 
+def rate_probe(a, out: Path, init_state) -> dict:
+    """Seconds to decode one prompt's k samples at max_new on these weights, from the first easy prompts of the trained pool
+    (a short, time-budgeted screen). Used when no rebuild measured it and none was given."""
+    import team5_adapter as ta  # noqa: PLC0415
+    from safetensors.torch import load_file  # noqa: PLC0415
+    ids = (out / "train_ids.txt").read_text().split()[:a.rate_probe_prompts]
+    ids_file = out / "rate_ids.txt"
+    ids_file.write_text("\n".join(ids) + "\n")
+    bundle = ta.build(out / "adapter.yaml", device=a.device).require_bundle()
+    if init_state:
+        bundle.model.load_state_dict(load_file(str(init_state)), strict=True)
+    rep = probe.rl_screen_bundle(bundle, a.rl_tasks, ids_file, a.k, a.max_new, a.device, 0, a.rate_probe_seconds)
+    return {"decode_seconds_per_prompt": rep["seconds"] / rep["prompts"] if rep["prompts"] else None, "prompts": rep["prompts"],
+            "seconds": rep["seconds"], "stopped_at_budget": rep["stopped_at_budget"]}
+
+
 def screen_only(a, out: Path, init_state, screen_n: int, seconds: float) -> dict:
     """Not enough time left for screen + 3 updates + the last evaluation: run the screen (time-budgeted), save the survey, stop."""
     import team5_adapter as ta  # noqa: PLC0415
@@ -552,6 +568,10 @@ def run(a, out: Path) -> int:
         from make_adapter_config import write_config  # noqa: PLC0415
         write_config(out / "adapter.yaml", a.g5_root, a.run_folder, a.tokenizer, a.byte_table, TEAM10, a.origin, not a.no_git)
 
+    if rate is None:  # raw checkpoint or --start-weights without a given rate: measure it before choosing sizes
+        results["rate"] = probe.step(out, "rate", lambda: rate_probe(a, out, init_state))
+        rate = results["rate"].get("decode_seconds_per_prompt") if results["rate"]["ok"] else None
+
     def plan():
         r = rate if rate else a.max_new * a.ms_per_decode_step / 1000.0
         basis = "measured" if rate else f"worst case: every sample runs to {a.max_new} tokens at {a.ms_per_decode_step} ms per step"
@@ -607,7 +627,7 @@ def parse_args(argv=None):
     ap.add_argument("--tr-epsilon", type=float, default=0.2)
     ap.add_argument("--min-mixed", type=int, default=MIN_MIXED)
     ap.add_argument("--screen-n", default="auto", help="auto = largest of 64/128/256 that fits 10 minutes, or a fixed number")
-    ap.add_argument("--heldout-n", type=int, default=0, help="first N held-out pool ids in file order (0 = all 255)")
+    ap.add_argument("--heldout-n", type=int, default=64, help="first N held-out pool ids in file order, unfiltered (0 = all 255); Amendment 2")
     ap.add_argument("--eval-k", type=int, default=4)
     ap.add_argument("--tricks-limit", type=int, default=128, help="screen candidates the no-skill programs are scored on")
     ap.add_argument("--reward-pool", type=int, default=16, help="scorer worker processes (score_pool); must be > 0")
