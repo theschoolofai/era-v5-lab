@@ -68,6 +68,47 @@ def test_preflight_passes_when_the_parent_folder_is_0700(monkeypatch, open_dir):
     assert stdio_check._PREFLIGHT_OK == [True]
 
 
+@needs_root_linux
+def test_preflight_refuses_a_secret_path_that_does_not_exist(monkeypatch, open_dir):
+    monkeypatch.setenv("G10_STDIO_SECRET_PATHS", str(open_dir / "rl_task.jsonl"))  # a typo for rl_tasks.jsonl
+    with pytest.raises(RuntimeError, match="names a path that does not exist"):
+        stdio_check.preflight_isolation()
+    assert stdio_check._PREFLIGHT_OK == []
+
+
+@needs_root_linux
+def test_preflight_refuses_a_dangling_symlink(monkeypatch, open_dir):
+    link = open_dir / "rl_tasks.jsonl"
+    link.symlink_to(open_dir / "gone.jsonl")
+    monkeypatch.setenv("G10_STDIO_SECRET_PATHS", str(link))
+    with pytest.raises(RuntimeError, match="does not exist"):
+        stdio_check.preflight_isolation()
+
+
+@needs_root_linux
+def test_preflight_refuses_a_0711_folder_that_holds_a_readable_file(monkeypatch, open_dir):
+    folder = open_dir / "bundle"
+    folder.mkdir()
+    (folder / "rl_tasks.jsonl").write_text("FIXTURE\n")
+    os.chmod(folder / "rl_tasks.jsonl", 0o644)
+    os.chmod(folder, 0o711)  # cannot be listed, but can be entered
+    monkeypatch.setenv("G10_STDIO_SECRET_PATHS", str(folder))
+    with pytest.raises(RuntimeError, match="a sandbox uid can read"):
+        stdio_check.preflight_isolation()
+    assert stdio_check._PREFLIGHT_OK == []
+
+
+@needs_root_linux
+def test_preflight_passes_for_a_0700_folder_named_as_a_secret(monkeypatch, open_dir):
+    folder = open_dir / "bundle"
+    folder.mkdir()
+    (folder / "rl_tasks.jsonl").write_text("FIXTURE\n")
+    os.chmod(folder, 0o700)
+    monkeypatch.setenv("G10_STDIO_SECRET_PATHS", str(folder))
+    stdio_check.preflight_isolation()
+    assert stdio_check._PREFLIGHT_OK == [True]
+
+
 def test_socket_filter_is_well_formed_on_known_arches(monkeypatch):
     import platform
     for arch, n_ins in (("x86_64", 12), ("aarch64", 11)):
