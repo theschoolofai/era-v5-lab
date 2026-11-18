@@ -10,7 +10,7 @@
 
 | Task | Assignment | Status |
 |---|---|---|
-| R1 | Offline review, Dry Run 1 steps 1–305 | Evidence analyzed; official G8 script run to be confirmed locally |
+| R1 | Offline review, Dry Run 1 steps 1–305 | PASS — full-run evidence and G8 CLI verified |
 | R2 | Failure, restart and restore evidence audit | TSAI restore-drill results documented |
 | Gate 3 | Evidence due 20 November 2026 | Follow-up review pending |
 
@@ -28,7 +28,7 @@ Dry Run 1 completed on 16 November 2026 under G5 PR #475. Pradeep confirmed that
 - Range: all training rows where `1 <= step <= 305`; excludes the separate validation row at step 0
 - Analysis date: 18 November 2026
 
-**Important:** These are actual full-run TSAI records from #620, not the earlier three-step smoke evidence. The alarm findings below are from checking the published default rule logic against the retrieved data. A direct local execution of Team 8's Python CLI is still recommended for a reproducible evidence log; do not describe that CLI as already executed.
+**Important:** These are actual full-run TSAI records from #620, not the earlier three-step smoke evidence. The alarm findings below are from checking the published default rule logic against the retrieved data. The official Team 8 `alarms.py` CLI was executed locally on 18 November 2026 against the TSAI full-run training records for steps 1–305. Execution completed with exit code 0, processing 305 steps and reporting 0 alarms. MoE routing health remains unverified because `expert_load` was not recorded.
 
 ### R1 checks and findings
 
@@ -40,7 +40,7 @@ Dry Run 1 completed on 16 November 2026 under G5 PR #475. Pradeep confirmed that
 | Gradient norm | Median 1.1366; highest 4.6942 at step 173, then 4.6378 at step 239 | Elevated points; no non-finite values |
 | Non-finite values | None found among the numeric R1 metrics | PASS |
 | Throughput | Median 8,645.5 tokens/s; first step is slower (3,698.1 tokens/s); max 9,914.6 at step 96 | No sustained drop |
-| G8 default rules | Equivalent evaluation of published `AlarmMonitor` defaults on steps 1–305 produced 0 alarms; longest throughput-drop streak was 2, below the required 100 | No default alarms; CLI confirmation pending |
+| G8 default rules | Equivalent evaluation of published `AlarmMonitor` defaults on steps 1–305 produced 0 alarms; longest throughput-drop streak was 2, below the required 100 | PASS — official CLI: exit 0, 305 steps, 0 alarms |
 | MoE routing alarm | No `expert_load` field is present in these rows | Cannot evaluate routing health |
 
 ### Loss details
@@ -89,7 +89,7 @@ The initial training step is slower than the typical step. Other temporary throu
 
 The published Team 8 `AlarmMonitor` defaults are: non-finite check; 7-sigma spike score with minimum 100 prior values; throughput below 90% of a trailing 100-step mean for 100 consecutive steps; optional EMA/static-bound rules disabled; and MoE routing requiring an `expert_load` field.
 
-Applying this default rule logic to the extracted 305 training rows produced **0 alarms**, including **0** `non_finite`, **0** `spike_score`, and **0** `throughput_drop`. This was a rule-level evaluation of the source logic, **not a direct execution of `alarms.py`**. Confirm with the exact offline CLI before calling the official script run completed.
+Applying this default rule logic to the extracted 305 training rows produced **0 alarms**, including **0** `non_finite`, **0** `spike_score`, and **0** `throughput_drop`. The official Team 8 `alarms.py` CLI was executed locally on 18 November 2026 against the TSAI full-run training records for steps 1–305. Execution completed with exit code 0, processing 305 steps and reporting 0 alarms. MoE routing health remains unverified because `expert_load` was not recorded.
 
 To reproduce against the merged full-run evidence from the repository root:
 
@@ -118,7 +118,7 @@ The CLI defaults may differ from G8's written alarm rule table; conclusions abov
 
 ### R1 conclusion
 
-**Steps 1–305 are contiguous and complete in the released log.** Loss is lower at step 305 than at step 1 despite short-term fluctuations. Numeric records are finite, and there is no sustained throughput-drop alarm under the implemented defaults. Gradient peaks at steps 173 and 239 merit mention but do not meet the default 7-sigma rule. Direct execution and capture of the official Team 8 CLI remains an optional evidence-strengthening follow-up.
+**Steps 1–305 are contiguous and complete in the released log.** Loss is lower at step 305 than at step 1 despite short-term fluctuations. Numeric records are finite, and there is no sustained throughput-drop alarm under the implemented defaults. Gradient peaks at steps 173 and 239 merit mention but do not meet the default 7-sigma rule. The official Team 8 CLI completed successfully with 0 alarms.
 
 ## R2 — Failure and Restart Audit
 
@@ -157,7 +157,7 @@ TSAI reported checks **C1–C6 PASS** on one GPU. For Job B, the step-by-step co
 - [x] Verify R1 step continuity for steps 1–305.
 - [x] Analyze losses, gradient norm and throughput for steps 1–305.
 - [x] Evaluate the published Team 8 default alarm logic for the assigned range.
-- [ ] Execute Team 8's actual Python CLI locally and attach its output if required by reviewers.
+- [x] Execute Team 8's official Python CLI locally (exit 0, 305 steps, 0 alarms).
 - [x] Record TSAI restore drill results, with Job B comparison-file clarification.
 - [ ] Submit this follow-up for G7 Gate 3 review.
 
@@ -170,6 +170,6 @@ TSAI reported checks **C1–C6 PASS** on one GPU. For Job B, the step-by-step co
 
 ## Conclusion
 
-Merged PR #620 makes actual per-step R1 verification possible. In Siva's assigned steps **1–305**, all steps are present exactly once, the loss declines overall, all inspected numeric values are finite, and the implemented G8 default rules yield no alarms in a source-logic evaluation. The only outstanding reproducibility item is running the official `alarms.py` CLI against the filtered actual log and attaching its output, if required.
+Merged PR #620 makes actual per-step R1 verification possible. In Siva's assigned steps **1–305**, all steps are present exactly once, the loss declines overall, all inspected numeric values are finite, and the implemented G8 default rules yield no alarms in a source-logic evaluation. The official Team 8 CLI was executed successfully against the filtered full-run metrics: 305 steps processed, 0 alarms.
 
 The separate R2 restore drill passed all instructor-reported checks, but it does not constitute an original-run failure or COMPLETE-only checkpoint restart.
