@@ -25,9 +25,14 @@ last such block counts). In a fresh container (network off, 1 GB, 2 CPUs, 256 pi
 non-root) the module is placed next to the hidden spec file and jest runs it. Reward 1 only if every hidden test
 passes. The reply never contains test names or expected values, only a reason and a pass count.
 
-Report integrity. The candidate module is loaded by the spec, so it runs inside a jest worker, and the jest sandbox is
-not a security boundary (a module can reach the real `Object` and `process` through `expect.constructor`). So the
-checks do not rely on the sandbox:
+Report integrity. An independent attack test (18 Nov 2026) showed that a candidate loaded in the spec's own jest realm can
+edit the test registry before the run starts (attack J1: every test's body set to a no-op, the canaries spared by name or
+by shape), and no check made inside that realm sees it. So the candidate is no longer loaded there: root compiles it with
+babel before jest starts, and the solution file the spec requires is a one-line loader (`membrane.cjs`) that runs the
+compiled code in its own V8 context (no `process`, no `require`, no string eval, a no-op `console`) and passes values back
+through a copying membrane: primitives, arrays, plain objects, Map, Set and Date are copied into the test realm; functions,
+classes and instances are wrapped; thrown values are rebuilt as test-realm errors. Arguments into the candidate are rebuilt
+in its realm. The remaining checks do not rely on the sandbox, so they stay as defence in depth:
 
 - The container starts as root with only SETUID, SETGID, CHOWN and DAC_OVERRIDE. Jest runs with workers (not
   `--runInBand`); a setup file drops every worker to the `runner` user before the candidate is loaded (after that the
@@ -43,7 +48,7 @@ checks do not rely on the sandbox:
   fail. An empty module, a syntax error, a throw or `process.exit(0)` at import, an endless loop and a candidate that
   replaces `expect`, `test` and `describe` all score 0 (`test_jsts_verifier.py`).
 
-### Attacks tried (`attacks.py`, `test_jsts_forgery.py`; 18 Nov 2026, image `g10-jsts-rl:1`, task `js/binary`)
+### Attacks tried (`attacks.py`, `test_jsts_forgery.py`; 18 Nov 2026, image `g10-jsts-rl:1`; the first group on task `js/binary`, the second group (`TASK_ATTACKS`, files in `attack_fixtures/`) on its own tasks)
 
 Written after RaviNaik's review of this PR (point 3). Each is a candidate module; "first runner" is the version of
 `jsts_verifier.py` before this change (jest `--runInBand`, report written by jest to a path in `/tmp`, readable and
@@ -62,9 +67,20 @@ writable by the candidate). Results are the reward returned by the real sandbox.
 | reaches the real `Object` through `expect.constructor` and sets `Object.is` to always true | **1** | 0 (canary) |
 | the same, but passes only when the values are below 1e8, trying to skip the canaries | **1** | 0 (canary) |
 
+Second group (independent attack test, 18 Nov 2026; against the PR as pushed before this change; files in `attack_fixtures/`,
+each starts "ATTACK FIXTURE, never training data"). These act in the spec's own jest realm before the run starts:
+
+| Attack | Before the membrane | Now |
+|---|---|---|
+| J1 (js, ts): finds jest-circus state through `Symbol(JEST_STATE_SYMBOL)` and sets every test's body to a no-op, sparing the canaries by name | **1** (wrong solution, all checks pass) | 0 |
+| J1b: reads the hidden spec from disk, spares the appended `expect(<literal>)` tests by shape, no name pattern | **1** | 0 |
+| J1c: J1 without sparing (control) | 0 (canary fires) | 0 |
+| J5: realm-escape probe (callsites, `.caller`, constructor chains) | 0 (nothing to escape to) | 0 (no test passes, no escape) |
+
 On the first runner five of these scored 1 without solving the task. The matcher tricks need no sentinel token and no
 report path, only the export names that the prompt shows. One verification costs about 0.15 to 0.25 s more than before
-(worker start-up and the guard); timings are in the PR.
+(worker start-up and the guard); the membrane adds about 0.15 s (js/matrix reference 0.97 s to 1.16 s, ts/word-count 1.06 s to
+1.20 s, same Mac and image, mean of 3); timings are in the PR.
 
 ## Data
 
@@ -97,7 +113,11 @@ python teams/10-post-training/rl/jsts/build_tasks.py --track javascript --clone 
 
 ## Limits
 
-- The candidate runs in a jest worker, so it can read the hidden spec file in its own container and could, in
+- Node documents `vm` as not a security boundary. The membrane stops every attack tried (J1, J1b, J1c, J5, a realm-escape
+  probe through callsites, `.caller` and constructor chains), but that is not a proof. A task whose tests pass callbacks
+  or foreign objects into the candidate (a function argument, for example) throws TypeError at the membrane, so such a
+  task needs the membrane extended; its reference check fails until then, and `jsts_verifier.py --check-all` shows it.
+- The candidate runs in the container, so it can read the hidden spec file there and could, in
   principle, learn what the tests expect. The sentinel, the canaries and the count checks stop a forged report and
   tampered matchers, not reading the spec. The same limit is stated for SWE environments in `swe-envs/README.md`.
 - The canaries have random values, but a candidate that parses the spec file at run time, finds them and special-cases

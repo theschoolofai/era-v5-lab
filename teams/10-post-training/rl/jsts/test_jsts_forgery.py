@@ -52,9 +52,31 @@ def test_attack_scores_zero(label):
 
 
 @needs_image
-def test_the_canary_catches_a_jest_realm_escape():
+@parametrize("label", sorted(attacks.TASK_ATTACKS))
+def test_realm_attack_scores_zero(label):
+    """Attacks that edit the spec's jest realm before the run (J1, J1b, J5) or tamper unselectively (J1c): the candidate
+    is loaded in its own V8 context behind a copying membrane (membrane.cjs), so none of them reaches the test registry."""
+    task, fence, _, fname = attacks.TASK_ATTACKS[label]
+    code = (HERE / "attack_fixtures" / fname).read_text()
+    out = v.reward(v.TASKS / task, f"```{fence}\n{code}\n```")
+    assert out["reward"] == 0, (label, out)
+
+
+@needs_image
+def test_every_reference_scores_one_and_every_stub_zero_behind_the_membrane():
+    """The membrane must not change what a correct solution scores: all references 1, all stubs 0."""
+    for meta in sorted(v.TASKS.glob("*/*/task.json")):
+        good, bad = v.known_outputs(meta.parent)
+        assert v.reward(meta.parent, good)["reward"] == 1, (meta.parent.name, "reference")
+        assert v.reward(meta.parent, bad)["reward"] == 0, (meta.parent.name, "stub")
+
+
+@needs_image
+def test_a_jest_realm_escape_does_not_get_out_of_the_candidate_context():
+    """Before the membrane (job T) the canary caught this (reason "canary"); now the candidate context has no `expect`
+    to reach through, so the load fails and every test fails. Either way the reward is 0 and no test passes."""
     out = _score(attacks.ATTACKS["tamper_object_is_outer_realm"][1])
-    assert out["reward"] == 0 and "canary" in out["reason"], out
+    assert out["reward"] == 0 and "did not pass" in out["reason"], out
 
 
 @needs_image

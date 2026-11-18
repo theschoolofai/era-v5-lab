@@ -8,8 +8,15 @@ solution and tests are all human-written upstream, see task.json for the commit)
 js/ts block counts). The hidden spec file replaces nothing the model can see: it is copied next to the candidate in a
 fresh container with the network off, and jest runs it. Reward 1 only if every hidden test passes.
 
-Report integrity. The candidate is loaded by the spec, so it runs inside a jest worker; the report is written by the
-jest parent, which is a different user:
+Report integrity. The candidate is NOT loaded in the spec's jest realm: root compiles it with babel before jest starts, and
+the solution file the spec requires is a one-liner that loads the compiled code in its own V8 context (membrane.cjs:
+no process, no require, no string eval, only a no-op console) and hands values back through a copying membrane (primitives,
+arrays, plain objects, Map, Set, Date are copied; functions, classes and instances are wrapped; thrown values are rebuilt
+as test-realm errors). Arguments into the candidate are rebuilt in its realm; a function or foreign object passed in
+throws TypeError (a task whose tests pass callbacks needs the membrane extended; its reference check fails until then,
+which jsts_verifier.py --check-all shows). So a candidate cannot edit the test registry (attacks J1, J1b, J5 in
+attacks.py). Node documents `vm` as not a security boundary, so the checks below stay as defence in depth. The report is
+written by the jest parent, which is a different user:
   * the container starts as root with only CAP_SETUID/CAP_SETGID; jest runs with workers (not --runInBand), and a
     setup file (GUARD_JS) drops every worker to the `runner` user before the candidate is loaded, then freezes the
     matcher table (no expect.extend, no custom equality testers). The jest parent stays root and writes the report to
@@ -23,7 +30,7 @@ jest parent, which is a different user:
     expected count measured on the reference when the task was built (a skipped test, a crash at import or a
     process.exit(0) therefore score 0);
   * the report must hold no failed test other than the sentinel.
-A candidate can still read the spec file in its own container; see README.md, "Limits".
+A candidate can still read the spec file in its own container, and a `vm` escape is not ruled out; see README.md, "Limits".
 
 The hidden spec of an Exercism exercise enables only its first test by default (`xtest`); build_tasks.py rewrites
 xtest/xit/xdescribe to test/it/describe so every upstream test counts.
@@ -71,6 +78,7 @@ for (const name of ['extend', 'addEqualityTesters']) {
 }
 Object.freeze(globalThis.expect);
 """
+MEMBRANE_JS = (HERE / "membrane.cjs").read_text()
 MAX_CODE_CHARS = 40_000
 TIMEOUT_S = 60
 THINK_START, THINK_END = "<|think|>", "<|/think|>"
@@ -125,7 +133,14 @@ def container_script(meta: dict, token: str) -> str:
         "export G10_RUNNER_UID=$(id -u runner)",
         "cat > /work/guard.cjs <<'G10_GUARD_EOF'", GUARD_JS.strip(), "G10_GUARD_EOF",
         "cd /work/run",
-        f"cp /patches/candidate.{ext} ./{meta['solution_file']}",
+        "mkdir -p /work/cand", f"cp /patches/candidate.{ext} /work/cand/src.{ext}",
+        "cat > /work/membrane.cjs <<'G10_MEMBRANE_EOF'", MEMBRANE_JS.strip(), "G10_MEMBRANE_EOF",
+        # compiled by root, outside jest; a syntax error leaves no file and the load fails (score 0)
+        "node -e 'const b=require(\"/work/node_modules/@babel/core\");const fs=require(\"fs\");"
+        "const [s,o]=process.argv.slice(1);fs.writeFileSync(o,b.transformSync(fs.readFileSync(s,\"utf8\"),"
+        "{filename:s,configFile:\"/work/babel.config.cjs\",babelrc:false}).code)' "
+        f"/work/cand/src.{ext} /work/cand/cand.cjs 2>/dev/null; chmod 644 /work/cand/cand.cjs 2>/dev/null",
+        f"echo \"module.exports = require('/work/membrane.cjs').load('/work/cand/cand.cjs');\" > ./{meta['solution_file']}",
         f"cp /patches/spec ./{meta['spec_file']}",
         f"cp /patches/sentinel ./z{token}.{spec_ext}",
         "chown -R runner /work/run",
