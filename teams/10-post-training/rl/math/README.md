@@ -62,3 +62,9 @@ fixtures and kept out of any pool); the tests on the real task ids are skipped a
 - math-verify decides equivalence: a unit written after the number or `x=` before it passes, a thousands separator
   is read as a separator.
 - Eight tasks, one reference answer each, one seed of selection.
+- A reply with several different boxed answers scores 0, so a correct solution that boxes an intermediate value and then
+  the final answer loses its reward. This is a design choice (it stops "4 or 5" from scoring). The result already has a
+  distinct reason, `several different boxed answers`; in the first real run, count how often it fires and read some of
+  those replies before deciding whether to relax the rule (for example, score only the last box).
+- The tasks come from the MATH ruling that is still open, and the pool may have been seen by a base model. Not measured
+  here; the base model's pass rate on the pool, taken before RL, is where it would show.

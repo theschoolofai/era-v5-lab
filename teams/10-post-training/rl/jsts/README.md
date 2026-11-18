@@ -12,6 +12,8 @@ rl/jsts/
   jsts.Dockerfile            the sandbox image (node 22, jest 29, babel; network off at run time)
   babel.config.cjs, jest.config.cjs
   test_jsts_verifier.py      reference and wrong answer per task, cheating candidates, lint
+  attacks.py                 attack fixtures (candidates that try to forge a report or tamper with the matchers)
+  test_jsts_forgery.py       every attack must score 0 in the real sandbox
   tasks/js/<id>/, tasks/ts/<id>/   task.json, prompt.md, stub/<file>, hidden/<spec file>, hidden/<reference file>
 ```
 
@@ -23,10 +25,46 @@ last such block counts). In a fresh container (network off, 1 GB, 2 CPUs, 256 pi
 non-root) the module is placed next to the hidden spec file and jest runs it. Reward 1 only if every hidden test
 passes. The reply never contains test names or expected values, only a reason and a pass count.
 
-Report integrity: a sentinel test with a random name is added and must be reported as failed, jest must exit with
-code 1 and write a readable JSON report, the passed tests must equal the count measured on the reference when the task
-was built, and no other test may fail. An empty module, a syntax error, a throw or `process.exit(0)` at import, an
-endless loop and a candidate that replaces `expect`, `test` and `describe` all score 0 (`test_jsts_verifier.py`).
+Report integrity. The candidate module is loaded by the spec, so it runs inside a jest worker, and the jest sandbox is
+not a security boundary (a module can reach the real `Object` and `process` through `expect.constructor`). So the
+checks do not rely on the sandbox:
+
+- The container starts as root with only SETUID, SETGID, CHOWN and DAC_OVERRIDE. Jest runs with workers (not
+  `--runInBand`); a setup file drops every worker to the `runner` user before the candidate is loaded (after that the
+  worker has no capabilities) and freezes the matcher table (`expect.extend` and `addEqualityTesters` throw).
+- The jest parent stays root and prints the JSON report to a root-owned file. The candidate (user `runner`) cannot
+  overwrite or race that file, cannot write to the parent's stdout, and cannot signal or trace the parent. The outer
+  script reads the report only after jest has exited.
+- A sentinel test with a random name, in its own file, must be reported as failed and jest must exit with code 1.
+- Four canary tests (random values; `toBe`, `toEqual`, `toStrictEqual`, `toThrow`; each false by construction) are
+  appended to the hidden spec, so they run in the same realm as the candidate and must all be reported as failed. A
+  candidate that patches matchers or `Object.is` from inside jest makes a canary pass and scores 0.
+- The passed tests must equal the count measured on the reference when the task was built, and no other test may
+  fail. An empty module, a syntax error, a throw or `process.exit(0)` at import, an endless loop and a candidate that
+  replaces `expect`, `test` and `describe` all score 0 (`test_jsts_verifier.py`).
+
+### Attacks tried (`attacks.py`, `test_jsts_forgery.py`; 18 Nov 2026, image `g10-jsts-rl:1`, task `js/binary`)
+
+Written after RaviNaik's review of this PR (point 3). Each is a candidate module; "first runner" is the version of
+`jsts_verifier.py` before this change (jest `--runInBand`, report written by jest to a path in `/tmp`, readable and
+writable by the candidate). Results are the reward returned by the real sandbox.
+
+| Attack | First runner | Now |
+|---|---|---|
+| lists the cwd, takes the token from `z<token>.spec.js`, writes a forged report in `process.on('exit')` | 0 (the handler never fires inside jest's process copy) | 0 |
+| same forged report from `afterAll`, from a timer, by wrapping `process.exit`, by patching the shared `fs.writeFileSync` | 0 (jest writes the true report afterwards, or the sandbox copy of `process` is inert) | 0 |
+| detached process that keeps overwriting the report file after jest exits | **1** | 0 (the report is a root-owned file) |
+| appends a forged report to the parent's stdout, the log files and the old report path, then stops the parent | 0 (timeout) | 0 |
+| `process.setuid(0)` | 0 (already non-root) | 0 (setuid is refused after the drop) |
+| `expect.extend` with always-pass matchers | **1** | 0 |
+| `expect.addEqualityTesters([() => true])` | **1** | 0 |
+| `global.expect = ...` (the spec imports `expect`, so inert) | 0 | 0 |
+| reaches the real `Object` through `expect.constructor` and sets `Object.is` to always true | **1** | 0 (canary) |
+| the same, but passes only when the values are below 1e8, trying to skip the canaries | **1** | 0 (canary) |
+
+On the first runner five of these scored 1 without solving the task. The matcher tricks need no sentinel token and no
+report path, only the export names that the prompt shows. One verification costs about 0.15 to 0.25 s more than before
+(worker start-up and the guard); timings are in the PR.
 
 ## Data
 
@@ -59,8 +97,15 @@ python teams/10-post-training/rl/jsts/build_tasks.py --track javascript --clone 
 
 ## Limits
 
-- The candidate runs in the same process as jest, so it can read the hidden spec file in its own container and could,
-  in principle, learn what the tests expect. The sentinel and the count checks stop a forged report, not reading the
-  spec. The same limit is stated for SWE environments in `swe-envs/README.md`.
+- The candidate runs in a jest worker, so it can read the hidden spec file in its own container and could, in
+  principle, learn what the tests expect. The sentinel, the canaries and the count checks stop a forged report and
+  tampered matchers, not reading the spec. The same limit is stated for SWE environments in `swe-envs/README.md`.
+- The canaries have random values, but a candidate that parses the spec file at run time, finds them and special-cases
+  them would pass them; no attack of that kind was tried. The report itself cannot be forged by the candidate user,
+  and every attack above scores 0, but "scores 0 on these attacks" is not a proof that no other attack exists. In the
+  first real run, a pass-rate far above the reference's expectation on a task is a signal to read those replies.
+- Exercism exercises are public and may have been seen by the base model. This was not measured. Where it would show
+  is the pass rate of the base model on these tasks before RL use: a rate near the ceiling on unseen-style tasks would
+  point to memorisation.
 - TypeScript is stripped by babel and not type-checked: a type error scores like valid code.
 - One test framework (jest) and one source (Exercism); a few tasks per language.

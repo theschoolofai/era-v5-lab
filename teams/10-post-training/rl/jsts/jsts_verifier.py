@@ -8,8 +8,17 @@ solution and tests are all human-written upstream, see task.json for the commit)
 js/ts block counts). The hidden spec file replaces nothing the model can see: it is copied next to the candidate in a
 fresh container with the network off, and jest runs it. Reward 1 only if every hidden test passes.
 
-Report integrity (the candidate runs in the same process as jest, the same limit as swe-envs/verify.py):
-  * a sentinel test with a random name is added and must be reported as failed;
+Report integrity. The candidate is loaded by the spec, so it runs inside a jest worker; the report is written by the
+jest parent, which is a different user:
+  * the container starts as root with only CAP_SETUID/CAP_SETGID; jest runs with workers (not --runInBand), and a
+    setup file (GUARD_JS) drops every worker to the `runner` user before the candidate is loaded, then freezes the
+    matcher table (no expect.extend, no custom equality testers). The jest parent stays root and writes the report to
+    a root-owned file (stdout of jest), so the candidate cannot overwrite, race or pre-create the report, and it
+    cannot signal or trace the parent;
+  * a sentinel test with a random name is added in its own file and must be reported as failed;
+  * four canary tests (random name and random values; toBe, toEqual, toStrictEqual, toThrow, each asserting something
+    false) are appended to the spec itself, so they run in the same jest realm as the candidate and must all be
+    reported as failed: a candidate that patches the matchers or Object.is from inside jest makes a canary pass;
   * jest must exit with code 1 (the sentinel fails), print a readable JSON report, and the passed tests must equal the
     expected count measured on the reference when the task was built (a skipped test, a crash at import or a
     process.exit(0) therefore score 0);
@@ -28,6 +37,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import random
 import re
 import subprocess
 import sys
@@ -40,8 +50,27 @@ TASKS = HERE / "tasks"
 IMAGE = "g10-jsts-rl:1"
 LANGS = {"js": {"ext": "js", "fences": ("js", "javascript", "mjs", "")},
          "ts": {"ext": "ts", "fences": ("ts", "typescript", "")}}
-DOCKER_LIMITS = ["--network=none", "--memory=1g", "--cpus=2", "--pids-limit=256", "--cap-drop=ALL",
+# The container starts as root so that the jest parent can keep the report out of reach. Capabilities kept: SETUID and
+# SETGID (the guard drops each worker to `runner`), CHOWN and DAC_OVERRIDE (the root script hands /work/run to
+# `runner`). A worker loses all of them when it drops to `runner`, before the candidate module is loaded.
+DOCKER_LIMITS = ["--network=none", "--memory=1g", "--cpus=2", "--pids-limit=256", "--user=0:0", "--cap-drop=ALL",
+                 "--cap-add=SETUID", "--cap-add=SETGID", "--cap-add=CHOWN", "--cap-add=DAC_OVERRIDE",
                  "--security-opt=no-new-privileges"]
+# Runs in every jest worker before the candidate module is loaded. Failing here fails the suite, so the score is 0.
+GUARD_JS = r"""
+const uid = Number(process.env.G10_RUNNER_UID);
+process.setgid(uid);
+process.setuid(uid);
+if (process.getuid() === 0 || process.geteuid() === 0) throw new Error('guard: still root');
+const state = globalThis[Symbol.for('$$jest-matchers-object')];
+Object.freeze(state.matchers);
+Object.freeze(state.customEqualityTesters);
+const refuse = () => { throw new Error('guard: matchers cannot be changed'); };
+for (const name of ['extend', 'addEqualityTesters']) {
+  Object.defineProperty(globalThis.expect, name, { value: refuse, writable: false, configurable: false });
+}
+Object.freeze(globalThis.expect);
+"""
 MAX_CODE_CHARS = 40_000
 TIMEOUT_S = 60
 THINK_START, THINK_END = "<|think|>", "<|/think|>"
@@ -73,8 +102,11 @@ def extract_code(completion: str, language: str) -> tuple[str | None, str]:
 def docker_run(script: str, files: dict[str, bytes], timeout_s: float) -> tuple[str, str]:
     """A fresh `docker run --rm` with `files` mounted read-only at /patches. Raises TimeoutError."""
     with tempfile.TemporaryDirectory(prefix="g10jsts-") as tmp:
+        # root in the container has no DAC_OVERRIDE, so the mounted files must be world-readable
+        Path(tmp).chmod(0o755)
         for name, data in files.items():
             (Path(tmp) / name).write_bytes(data)
+            (Path(tmp) / name).chmod(0o644)
         name = f"g10jsts-{uuid.uuid4().hex[:12]}"
         cmd = ["docker", "run", "--rm", "--name", name, *DOCKER_LIMITS, "-v", f"{tmp}:/patches:ro", IMAGE,
                "bash", "-c", script]
@@ -88,15 +120,22 @@ def docker_run(script: str, files: dict[str, bytes], timeout_s: float) -> tuple[
 
 def container_script(meta: dict, token: str) -> str:
     ext, spec_ext = LANGS[meta["language"]]["ext"], ("spec.js" if meta["language"] == "js" else "test.ts")
-    report = f"/tmp/g10_{token}.json"
     return "\n".join([
+        "mkdir -p /tmp/jc && chmod 1777 /tmp/jc",  # per-run transform cache for the workers (fresh container)
+        "export G10_RUNNER_UID=$(id -u runner)",
+        "cat > /work/guard.cjs <<'G10_GUARD_EOF'", GUARD_JS.strip(), "G10_GUARD_EOF",
         "cd /work/run",
         f"cp /patches/candidate.{ext} ./{meta['solution_file']}",
         f"cp /patches/spec ./{meta['spec_file']}",
         f"cp /patches/sentinel ./z{token}.{spec_ext}",
-        f"timeout {TIMEOUT_S} /work/node_modules/.bin/jest --ci --runInBand --config /work/jest.config.cjs --json "
-        f"--outputFile={report} > /tmp/g10_log 2>&1; echo \"@@G10_EXIT $?@@\"",
-        f"echo {REPORT_START}; cat {report} 2>/dev/null; echo {REPORT_END}",
+        "chown -R runner /work/run",
+        # The jest parent (root) prints the JSON report to /tmp/g10_out, a root-owned file that the redirect creates
+        # before `umask 000` applies (the umask only lets the workers, which run as `runner`, write the jest cache).
+        f"(umask 000; timeout {TIMEOUT_S} /work/node_modules/.bin/jest --ci --maxWorkers=2 --config /work/jest.config.cjs "
+        "--cacheDirectory=/tmp/jc --setupFilesAfterEnv /work/guard.cjs --json) > /tmp/g10_out 2> /tmp/g10_log; "
+        "echo \"@@G10_EXIT $?@@\"",
+        # the report is read by this root script after jest has exited, never by the candidate
+        f"echo {REPORT_START}; cat /tmp/g10_out 2>/dev/null; echo {REPORT_END}",
         "tail -c 1200 /tmp/g10_log 2>/dev/null",
     ])
 
@@ -105,11 +144,24 @@ def sentinel_spec(token: str) -> str:
     return f"test('z{token}', () => {{ expect(1).toBe(2); }});\n"
 
 
+def canary_tests(token: str) -> str:
+    """Assertions that are false by construction, appended to the hidden spec. Random values, so a candidate cannot
+    special-case them without parsing the spec at run time; each uses a different matcher."""
+    rnd = random.SystemRandom()
+    a, b, c, d = (rnd.randrange(10**8, 10**9) for _ in range(4))
+    return "\n".join([
+        f"test('z{token}c0', () => {{ expect({a}).toBe({b}); }});",
+        f"test('z{token}c1', () => {{ expect({{k: [{a}]}}).toEqual({{k: [{c}]}}); }});",
+        f"test('z{token}c2', () => {{ expect({{k: '{d}'}}).toStrictEqual({{k: '{a}'}}); }});",
+        f"test('z{token}c3', () => {{ expect(() => {{ return {b}; }}).toThrow(); }});",
+        ""])
+
+
 def run_candidate(task_dir: Path, meta: dict, code: str, executor=None) -> dict:
     """{"passed": n, "failed": [names]} or {"error": reason}."""
     token = uuid.uuid4().hex[:12]
     files = {"candidate." + LANGS[meta["language"]]["ext"]: code.encode("utf-8"),
-             "spec": (task_dir / "hidden" / meta["spec_file"]).read_bytes(),
+             "spec": (task_dir / "hidden" / meta["spec_file"]).read_bytes() + b"\n" + canary_tests(token).encode("utf-8"),
              "sentinel": sentinel_spec(token).encode("utf-8")}
     try:
         stdout, stderr = (executor or docker_run)(container_script(meta, token), files, TIMEOUT_S + 60)
@@ -132,7 +184,11 @@ def run_candidate(task_dir: Path, meta: dict, code: str, executor=None) -> dict:
         return {"error": "report integrity: the sentinel test is missing or not reported as failed"}
     if exit_code != 1:
         return {"error": f"report integrity: jest exit code {exit_code}, expected 1 (the sentinel fails)"}
-    real = [(n, s) for n, s in results if n != f"z{token}"]
+    canaries = [(n, s) for n, s in results if n.startswith(f"z{token}c")]
+    real = [(n, s) for n, s in results if n != f"z{token}" and not n.startswith(f"z{token}c")]
+    canary_ok = sorted(n for n, _ in canaries) == [f"z{token}c{i}" for i in range(4)] and all(s == "failed" for _, s in canaries)
+    if not canary_ok and (real or canaries):  # no results at all is a module that failed to load: the ordinary reason below
+        return {"error": "report integrity: a canary assertion was missing or did not fail (matchers were tampered with)"}
     return {"passed": sum(s == "passed" for _, s in real), "failed": [n for n, s in real if s != "passed"]}
 
 
