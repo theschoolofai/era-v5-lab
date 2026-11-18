@@ -74,6 +74,23 @@ The script's stand-in set (standin-v0: mmlu100+gsm8k100, seed 0) and its seeded 
 My suggestion (not a team decision): score a format on the whole set, not on a 16-item sample, when a GPU is
 available, since it costs minutes. Saving each item's answer would let `paired.py` test the differences.
 
+## Eval 3: the paired check on eval_mini (follow-up)
+
+To test the GSM8K signal above, the same bf16, Q6_K, Q5_K_M and Q4_K_M files were scored on the full eval_mini
+profile (1,870 items) with `eval_mini/` and compared item by item with `paired.py`. Results, logs and per-item rows:
+`eval_mini/results/qwen2.5-1.5b/`.
+
+| Format | ARC-C | HellaSwag | MMLU | GSM8K | TruthfulQA-mc2 | Inside every limit of `bitwidth_proposal.md` |
+|---|---:|---:|---:|---:|---:|---|
+| Q6_K | +1.0 | -1.2 | +0.7 | +2.5 | +0.4 | yes |
+| Q5_K_M | +1.0 | -1.2 | +0.2 | +0.5 | +0.1 | yes |
+| Q4_K_M | -0.8 | -0.8 | -0.7 | **-5.0** (p 0.174) | -0.6 | no: GSM8K, limit -4 |
+
+- The GSM8K drop is real in direction but about half the stand-in estimate: -5.0 points (95% CI -11.5 to +1.5),
+  not a significant loss (McNemar p 0.174). The proposal's rule still fails Q4_K_M on the point estimate.
+- **Q5_K_M is the smallest format inside every limit for this model.**
+- Wall clock on the Apple GPU: 1066 s (bf16), 689 s (Q6_K), 745 s (Q5_K_M), 635 s (Q4_K_M). No paid cost.
+
 ## Time and cost
 
 | What | Value |

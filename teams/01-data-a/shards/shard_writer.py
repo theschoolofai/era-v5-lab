@@ -162,7 +162,7 @@ def main(argv=None):
     left_out = {"secret": [], "empty": [], "special": [], "roundtrip": []}
     for b in range(0, len(text_col), BATCH):
         texts = text_col[b:b + BATCH]
-        for k, enc in enumerate(tok.encode_batch(texts, add_special_tokens=False)):
+        for k, enc in enumerate(tok.encode_batch_fast(texts, add_special_tokens=False)):
             row, text, ids = b + k, texts[k], enc.ids
             doc_id = ids_col[row]
             if SECRET.search(text):

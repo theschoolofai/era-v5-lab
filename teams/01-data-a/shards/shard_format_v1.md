@@ -43,7 +43,8 @@ has `"dedup": null` and its `inputs_sha256` uses the older line format. It is re
 - **No BOS and no language tag** for now (the `lang_slot` ids are not named).
 - **Normalizer:** inside `tokenizer.json` (NFC, Malayalam chillu, Bengali/Punjabi nukta). No normalizer of our own, and no
   NFKC in cleaning (`clean.py` uses NFC; NFKC only folds the Latin ligatures U+FB00–FB06 in English packs).
-- **Encoding:** `encode_batch(texts, add_special_tokens=False)`, one process per pack part.
+- **Encoding:** `encode_batch_fast(texts, add_special_tokens=False)`, 256 documents per batch, one process per pack part.
+  It skips character offsets, which the writer does not use (it reads only the IDs); the IDs are the same as `encode_batch`.
 
 A document is left out, counted, and listed by doc_id in the shard's quality report when:
 
