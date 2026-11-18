@@ -51,6 +51,7 @@ SWE_ENVS = HERE.parent / "swe-envs"
 INDIC_TASKS = HERE / "indic" / "tasks"
 MATH_TASKS = HERE / "math" / "tasks"
 GO_TASKS = HERE / "go" / "tasks"
+JS_TASKS = HERE / "js" / "tasks"
 TOOL_CALL_TASKS = TASKS / "tool_call"
 TOOLRESULT_TASKS = HERE / "toolresult" / "tasks"
 
@@ -196,6 +197,29 @@ def go_checker(name: str, output: str, sandbox="docker", **_) -> dict:
     return _go().reward(task_dir, output, sandbox)
 
 
+_JS_MODULE = None
+
+
+def _js():
+    """js/js_verifier.py, loaded by path like pool.py. It imports the shared verifier.py from this folder."""
+    global _JS_MODULE
+    if _JS_MODULE is None:
+        import importlib.util  # noqa: PLC0415
+        spec = importlib.util.spec_from_file_location("g10_rl_js_verifier", HERE / "js" / "js_verifier.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        _JS_MODULE = module
+    return _JS_MODULE
+
+
+def js_checker(name: str, output: str, sandbox="docker", **_) -> dict:
+    """The default is the docker sandbox. A missing docker or image raises RuntimeError."""
+    task_dir = JS_TASKS / name
+    if not (task_dir / "task.json").is_file():
+        raise KeyError(f"no js task {name!r} in {JS_TASKS}")
+    return _js().reward(task_dir, output, sandbox)
+
+
 _TOOL_CALL_MODULE = None
 
 
@@ -248,6 +272,7 @@ register("math", math_checker)
 register("go", go_checker)
 register("tool_call", tool_call_checker)
 register("toolresult", toolresult_checker)
+register("js", js_checker)
 
 
 def list_envs() -> list[str]:
@@ -256,6 +281,7 @@ def list_envs() -> list[str]:
     ids += [f"indic/{p.parent.name}" for p in sorted(INDIC_TASKS.glob("*/task.json"))]
     ids += [f"math/{p.parent.name}" for p in sorted(MATH_TASKS.glob("*/task.json"))]
     ids += [f"go/{p.parent.name}" for p in sorted(GO_TASKS.glob("*/task.json"))]
+    ids += [f"js/{p.parent.name}" for p in sorted(JS_TASKS.glob("*/task.json"))]
     ids += [f"tool_call/{p.parent.name}" for p in sorted(TOOL_CALL_TASKS.glob("*/task.json"))]
     ids += [f"toolresult/{p.parent.name}" for p in sorted(TOOLRESULT_TASKS.glob("*/task.json"))]
     return ids
@@ -294,6 +320,11 @@ def known_outputs(env_id: str) -> tuple[str, str]:
             raise ValueError(f"go/{name}: reference.go has no one-line signature for {meta['entry_point']}")
         bad = f"```go\npackage main\n\n{sig.group(0)}\n\tpanic(\"stub\")\n}}\n```"
         return f"```go\n{ref}\n```", bad
+    if env_type == "js":
+        meta = json.loads((JS_TASKS / name / "task.json").read_text(encoding="utf-8"))
+        ref = (JS_TASKS / name / "reference.js").read_text(encoding="utf-8")
+        bad = f"```javascript\nfunction {meta['entry_point']}() {{ return undefined; }}\n```"
+        return f"```javascript\n{ref}\n```", bad
     raise KeyError(f"no known outputs for {env_type!r}")
 
 
