@@ -49,6 +49,7 @@ HERE = Path(__file__).resolve().parent
 TASKS = HERE / "tasks"
 SWE_ENVS = HERE.parent / "swe-envs"
 INDIC_TASKS = HERE / "indic" / "tasks"
+MATH_TASKS = HERE / "math" / "tasks"
 GO_TASKS = HERE / "go" / "tasks"
 TOOL_CALL_TASKS = TASKS / "tool_call"
 TOOLRESULT_TASKS = HERE / "toolresult" / "tasks"
@@ -148,6 +149,29 @@ def indic_checker(name: str, output: str, **_) -> dict:
     return _indic().reward(task_dir, output)
 
 
+
+_MATH_MODULE = None
+
+
+def _math():
+    """math/math_verifier.py, loaded by path like indic_verifier.py."""
+    global _MATH_MODULE
+    if _MATH_MODULE is None:
+        import importlib.util  # noqa: PLC0415
+        spec = importlib.util.spec_from_file_location(
+            "g10_rl_math_verifier", HERE / "math" / "math_verifier.py"
+        )
+        _MATH_MODULE = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(_MATH_MODULE)
+    return _MATH_MODULE
+
+
+def math_checker(name: str, output: str, **_) -> dict:
+    task_dir = MATH_TASKS / name
+    if not (task_dir / "task.json").is_file():
+        raise KeyError(f"no math task {name!r} in {MATH_TASKS}")
+    return _math().reward(task_dir, output)
+
 _GO_MODULE = None
 
 
@@ -220,6 +244,7 @@ def toolresult_checker(name: str, output: str, **_) -> dict:
 register("code", code_checker)
 register("swe", swe_checker)
 register("indic", indic_checker)
+register("math", math_checker)
 register("go", go_checker)
 register("tool_call", tool_call_checker)
 register("toolresult", toolresult_checker)
@@ -229,6 +254,7 @@ def list_envs() -> list[str]:
     ids = [f"code/{p.parent.name}" for p in sorted(TASKS.glob("*/task.json"))]
     ids += [f"swe/{p.parent.name}" for p in sorted(SWE_ENVS.glob("*/env.json"))]
     ids += [f"indic/{p.parent.name}" for p in sorted(INDIC_TASKS.glob("*/task.json"))]
+    ids += [f"math/{p.parent.name}" for p in sorted(MATH_TASKS.glob("*/task.json"))]
     ids += [f"go/{p.parent.name}" for p in sorted(GO_TASKS.glob("*/task.json"))]
     ids += [f"tool_call/{p.parent.name}" for p in sorted(TOOL_CALL_TASKS.glob("*/task.json"))]
     ids += [f"toolresult/{p.parent.name}" for p in sorted(TOOLRESULT_TASKS.glob("*/task.json"))]
@@ -253,6 +279,8 @@ def known_outputs(env_id: str) -> tuple[str, str]:
         return (SWE_ENVS / name / "gold.patch").read_text(encoding="utf-8"), NOOP_PATCH
     if env_type == "indic":
         return _indic().known_outputs(INDIC_TASKS / name)
+    if env_type == "math":
+        return _math().known_outputs(MATH_TASKS / name)
     if env_type == "tool_call":
         return _tool_call().known_outputs(TOOL_CALL_TASKS / name)
     if env_type == "toolresult":
