@@ -32,3 +32,5 @@ AdamW (the reference optimiser; it rescales tiny gradients and could move bits a
 
 ## Does not transfer
 4x4 matrices, 32 samples, plain SGD on the logits, 30 steps, no tokens. Says nothing about `dt/mask.py` (which already uses 100 to 1000), the 135M or 1.7B runs, or the capstone MoE.
+
+Update, 19 Nov: the lead's commit 537e4167 changed the `rl-loop/train.py` alpha fallback from 1000 -> 10000 to 100 -> 1000. This check covers the toy only and is unaffected; it does not say whether the earlier RL pilots at 1e3 -> 1e4 had a saturated mask.
