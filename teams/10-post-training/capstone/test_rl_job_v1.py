@@ -180,11 +180,14 @@ def test_detector_counts_literal_prints_only_in_heldout_evaluations(tmp_path):
     mod.evaluate = evaluate
     tasks = {"a": {"tests": [{"input": "3 4\n", "output": "7\n"}]}, "b": {"tests": [{"input": "5\n", "output": "5\n"}]}}
     log: list = []
-    job.install_detector(mod, tasks, log, None, 1)
+    ev, per = tmp_path / "evals.jsonl", tmp_path / "lit.jsonl"
+    ev.write_text(json.dumps({"name": "heldout", "step": 0}) + "\n")   # step 0 already measured before a restart
+    job.install_detector(mod, tasks, log, None, 1, ev, per)
     mod.score_completions(task, [([9], "```python\nprint(7)\n```")])    # a training call: not counted, log still empty
     assert log == []
     mod.evaluate(None, task, task.heldout)
     assert len(log) == 1 and log[0]["samples"] == 4 and log[0]["pass"] == 3
+    assert log[0]["eval_index"] == 1 and json.loads(per.read_text())["eval_index"] == 1   # persisted, keyed to evals.jsonl
     assert log[0]["literal"] == 2 and log[0]["literal_by"] == {"no_stdin": 2}   # print(7) and print(1+1); input() reader is fine
     mod.evaluate(None, task, [[1]])                                     # not the held-out list: not counted
     assert len(log) == 1

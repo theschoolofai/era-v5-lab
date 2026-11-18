@@ -384,7 +384,8 @@ def write_train_config(a, out: Path, init_state: Path | None, init_sha: str | No
     return p
 
 
-def install_detector(train, tasks_by_id: dict, log: list, stand_in_reward: float | None, seed: int):
+def install_detector(train, tasks_by_id: dict, log: list, stand_in_reward: float | None, seed: int,
+                     evals_path: Path | None = None, persist_path: Path | None = None):
     """Patch train.evaluate / train.score_completions in this process (train.py itself is unchanged): count, per held-out
     evaluation, the passing samples and those the literal-sample detector flags. With stand_in_reward p, every reward is
     replaced by a seeded coin (a dry-run stand-in that exercises rollout -> advantage -> step -> save -> resume -> evaluation
@@ -411,11 +412,19 @@ def install_detector(train, tasks_by_id: dict, log: list, stand_in_reward: float
         return flat
 
     def evaluate(sampler, task, prompts, *args, **kw):
-        if prompts is task.heldout:
-            log.append({"samples": 0, "pass": 0, "literal": 0, "literal_by": {}})
+        counted = prompts is task.heldout
+        if counted:  # eval_index = held-out evaluations already in evals.jsonl: stable across a pause and a resume
+            done = 0
+            if evals_path is not None and Path(evals_path).is_file():
+                done = sum('"name": "heldout"' in x for x in Path(evals_path).read_text().splitlines())
+            log.append({"eval_index": done, "samples": 0, "pass": 0, "literal": 0, "literal_by": {}})
             state["on"] = True
         try:
-            return orig_eval(sampler, task, prompts, *args, **kw)
+            res = orig_eval(sampler, task, prompts, *args, **kw)
+            if counted and persist_path is not None:  # an evaluation killed half way leaves no record
+                with open(persist_path, "a") as f:
+                    f.write(json.dumps(log[-1]) + "\n")
+            return res
         finally:
             state["on"] = False
     train.score_completions, train.evaluate = score, evaluate
@@ -438,7 +447,8 @@ def rl_step(a, out: Path, init_state, init_sha, deadline_unix, screen_n) -> dict
             r = json.loads(line)
             by_id[r["id"]] = r
     lit: list = []
-    install_detector(train, by_id, lit, a.stand_in_reward, a.seed)
+    persist = out / "literal_sample.jsonl"
+    install_detector(train, by_id, lit, a.stand_in_reward, a.seed, out / "rl" / "evals.jsonl", persist)
     summary = train.train(cfg)
     rl_out = out / "rl"
     res: dict = {"status": summary.get("status"), "train_summary_file": str(rl_out / "summary.json")}
@@ -450,8 +460,14 @@ def rl_step(a, out: Path, init_state, init_sha, deadline_unix, screen_n) -> dict
         return res
     evals = [json.loads(x) for x in (rl_out / "evals.jsonl").read_text().splitlines() if x.strip()]
     fc = failure_counts(evals)
-    lit_rep = [{"step": f["step"], **l, "literal_share_of_passes": (l["literal"] / l["pass"]) if l["pass"] else 0.0}
-               for f, l in zip(fc, lit)]
+    by_index = {}
+    for x in persist.read_text().splitlines() if persist.is_file() else []:
+        r_ = json.loads(x)
+        by_index[r_["eval_index"]] = r_            # the last record of an index wins (a re-measured evaluation)
+    lit_rep = [{"step": f["step"], **by_index[i], "literal_share_of_passes": (by_index[i]["literal"] / by_index[i]["pass"]) if by_index[i]["pass"] else 0.0}
+               for i, f in enumerate(fc) if i in by_index]
+    if len(lit_rep) != len(fc):
+        raise RuntimeError(f"literal-sample records for {len(lit_rep)} of {len(fc)} held-out evaluations")
     wrong = [f["reasons"].get("wrong_answer", 0) for f in fc]
     mf = rl_out / "metrics.jsonl"
     if not mf.is_file():
