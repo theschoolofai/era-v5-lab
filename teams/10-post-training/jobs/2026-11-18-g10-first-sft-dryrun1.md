@@ -231,3 +231,19 @@ root) is the fallback. No CUDA or full-width performance claim is made from CPU 
 - What the CPU log does not prove: any timing, memory or learning on dry run 1, and the quality of either arm. Memory
   (estimate, not measured): fp32 AdamW full fine-tuning of 237M parameters is about 3.8 GB plus one 2,048-token
   microbatch with 32,768-entry logits, within one 24 GB GPU.
+
+## Update 18 Nov: what `<G5>` must be, and a wrong one now stops in seconds
+
+- `<G5>` must be a lab checkout whose four Team 5 files (`harness/train_week2.py`, `week2/model.py`, `week2/config.py`,
+  `week2/artifacts.py`) have the same sha256 as the `sources` recorded in `<RUN>/manifest.json`. The adapter has always
+  refused any other pair; before this update that showed up only after the slice was built (about 48 s on the CPU
+  stand-in, minutes at full size) and the message named no remedy.
+- The same comparison now also runs in the `pins` step. A mismatched pair stops the job in about 5 s, before any row is
+  built, with exit 1, `failed_steps ["pins"]`, each differing file listed with the run manifest's hash and the `<G5>`
+  hash, and the remedy (point `--g5-root` at a checkout with the manifest's hashes). A manifest with no `sources` is
+  refused the same way. Nothing is relaxed: a matching pair runs as before, and the adapter's own check still runs later.
+- Open question for TSAI: which checkout was dry run 1's checkpoint trained from? Its manifest is not in the repo (the
+  committed dry run 1 manifest under `teams/05-architecture/jobs/evidence/2026-11-15-dryrun1/` is G5's CPU smoke, whose
+  `train_week2.py`, `artifacts.py`, `evaluation.py` and `data.py` hashes match no committed blob). The sha256 of those
+  four files in the real run's `manifest.json["sources"]` is enough: we can then name the checkout, or the request can
+  say which one to pass.
