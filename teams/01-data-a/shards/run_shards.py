@@ -20,7 +20,9 @@ When it is done it checks the shards that are in --out (verify_shards.py: files,
 and last document of each shard against the final part), not only what it just wrote. A part whose shard fails a check becomes
 "failed" with the reason; a problem that belongs to no part (cleaning_pipeline.json missing, a shard no part accounts for) goes
 to "problems" in the summary; any problem makes the exit code 1. "verified" is true when the checks found nothing, false when
-they did, and null when there was no shard to check.
+they did, and null when there was no shard to check, or when --no-verify was given: then nothing is checked here and no part is
+marked failed for its files. run_pipeline.py gives it to this script because the pipeline runs the same checks itself, once,
+after it (the shard files are then read once, and the pipeline keeps their hashes); on its own, leave the flag out.
 
 Writes <out>/shards_summary.json: for each part its status, shard_id, docs, tokens, rows read of the rows in the part,
 "truncated" (the writer fills a shard up to --tokens and drops the rest of the part; several shards per part are not
@@ -134,6 +136,9 @@ def main(argv=None):
     ap.add_argument("--any-tokenizer", action="store_true", help="tests only: accept a tokenizer other than p1536")
     ap.add_argument("--dataset-version", help="every manifest's dataset_version (e.g. sample, corpus-v1); required unless --any-tokenizer")
     ap.add_argument("--pack-table", type=Path, default=pack_table.TABLE)
+    ap.add_argument("--no-verify", action="store_true",
+                    help="do not check the shards when done (verify_shards.py): the caller does, as run_pipeline.py does; "
+                         "'verified' in the summary is then null")
     a = ap.parse_args(argv)
     problem = shard_writer.dataset_version_problem(a.dataset_version, a.any_tokenizer)
     if problem:  # before anything is read or written: every part would fail on it
@@ -181,7 +186,10 @@ def main(argv=None):
     summary = {"run_id": run_id, "cleaning_pipeline_sha256": hashlib.sha256(pipeline.read_bytes()).hexdigest() if pipeline.is_file() else None,
                "parts": summary["parts"]}
     summary["counts"] = count(summary)
-    problems = verify_written(a, summary)
+    if a.no_verify:
+        summary["verified"], summary["problems"], problems = None, [], []
+    else:
+        problems = verify_written(a, summary)
     for name, e in summary["parts"].items():
         if e["status"] == "failed" and e["reason"].startswith("verify_shards: "):
             print(f"failed   {name}: {e['reason']}", file=sys.stderr)
