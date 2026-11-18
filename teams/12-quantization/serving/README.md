@@ -77,24 +77,32 @@ to `--out`.
 - **Time and cost.** Server start, wall time for the 100 prompts, tokens/s, GPU-hours, and cost at
   `--usd-per-gpu-hour` (0 on Kaggle).
 
-## Findings for G10 and the export
+## Template findings (fixed in G10's PR #94, merged to lab main)
 
-1. **The template drops the request's `tools`.** `chat_template.jinja` never renders `tools`, so a model served
-   with it never sees the tool schemas. `chat_format_v0.md` mentions "injected tool schemas" (Tier 1) but fixes no
-   format. Until G10 decides, serve_check writes the schemas into the system message (`--tools-in-system auto`).
-2. **History tool calls in OpenAI form render in the wrong shape.** A client sends
-   `{"id", "type", "function": {"name", "arguments"}}`, and the template's `call | tojson` writes it unchanged.
-   Training data has `{"arguments", "name"}`. Proposed fix: render `call.function` when it is present. The parser
-   reads both shapes.
+The first full run used G10's original template and exposed two gaps. Both are fixed upstream. The template here,
+[`../tokenizer/chat_template.jinja`](../tokenizer/chat_template.jinja), is a copy of the merged one, and G10's
+`test_team12_template_sync` checks that the two stay identical.
+
+1. **`tools` were not rendered.** A served model never saw the tool schemas. The merged template writes
+   `\n\nTools:\n` and a JSON array of the function schemas (sorted keys) at the end of the first system turn, the
+   way `sft/convert.py` writes SFT data. `serve_check` therefore no longer adds the schemas itself
+   (`--tools-in-system auto` sees that the template mentions `tools`). The results below were produced with the
+   old template and the harness workaround.
+2. **Tool calls did not match training byte for byte.** `render.py` writes them compact with sorted keys; the old
+   template used `| tojson` defaults, and OpenAI-form history calls (`{"id","type","function":{…}}`) were written
+   unchanged. Now both shapes render as `{"arguments":{…},"id":"…","name":"…"}`, with `id` only when it is a string.
 3. **Reasoning from earlier turns** is rendered only from a `think` key. OpenAI clients send `reasoning`, so earlier
-   reasoning is dropped. That is usually what we want; noted only.
-4. **Export (`export_hf.py`).** `generation_config.json` must list `<|im_end|>` (130816) and `<|endoftext|>` (130822)
-   as `eos_token_id`, or vLLM generates past the end of the turn.
+   reasoning is dropped, which is intended.
+
+## For the export (`export_hf.py`)
+
+`generation_config.json` must list `<|im_end|>` (130816) and `<|endoftext|>` (130822) as `eos_token_id`, or vLLM
+generates past the end of the turn.
 
 ## Status
 
-- **Kaggle, 15 Nov 2026** ([`results/serve_check.md`](../results/serve_check.md)): Qwen3-4B-Instruct-2507 (stand-in),
-  vLLM 0.33.0, T4 x2, fp16.
+- **Kaggle, 15 Nov 2026, original G10 template** ([`results/serve_check.md`](../results/serve_check.md)):
+  Qwen3-4B-Instruct-2507 (stand-in), vLLM 0.33.0, T4 x2, fp16.
   - **Fields: PASS.** 100/100 HTTP 200. 98/100 answers are clean; the other 2 are the model writing its think block
     after the answer, which the replay confirms. 0 parser faults.
   - **Fields filled:** reasoning in `message.reasoning` on 25/25 reason prompts; tool calls in `message.tool_calls`
