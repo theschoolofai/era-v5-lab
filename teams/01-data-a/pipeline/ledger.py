@@ -12,7 +12,8 @@ INPUT
 --cleaned   the cleaned parts: <cleaned>/<split>/<part>, as overlap.py and apply_dedup.py read them
 --raw       (optional) the raw parts the cleaner read. With the cleaning job's report for a part, the raw file is the one
             whose sha256 is the report's input_sha256, under <raw>/<split>/<pack>/ or <raw>/<pack>/<split>/ (any file
-            name, as run_tokenizer_sample.py finds it); without a report, the file of the same name there
+            name, as run_tokenizer_sample.py finds it). Every cleaned part needs that report in mode B: without it
+            the ledger stops rather than match a raw file by name and skip the check of the cleaner's drops
 --remove-list, --groups, --log   dedup.py's remove_list.csv, dedup_groups.csv and dedup_log.jsonl (the log is optional)
 --f2        F2's output folder: <final>/<split>/<part> and <final>/<split>/<part>.f2.json
 
@@ -22,8 +23,9 @@ THE CLEANER'S DECISION (clean_action), by what is available
           duplicates). Not in the cleaned part: drop. In it with other text: fix. Same text: keep. No rule ids.
   mode C  no --raw: the ledger starts at the cleaned documents and clean_action is "unknown".
   (mode A, a per-document decisions file from the cleaning job with rule ids, is not available yet: clean_rules stays empty.)
-When the cleaning job's per-part reports are there (<cleaned>/reports/<split>/<part>.json with "actions"), mode B checks
-its drops against them, and both modes record the reported counts.
+The cleaning job's per-part reports (<cleaned>/reports/<split>/<part>.json with "input_rows", "actions" and
+"input_sha256") are required in mode B, which checks its drops and rows against them; mode C records their counts
+when they are there.
 
 COLUMNS (IDs, codes and counts only, never text)
 ================================================
@@ -628,6 +630,11 @@ def _build(cleaned, remove_list, groups_csv, f2, out, log=None, raw=None):
             rep = clean_report(cleaned, split, part)
             raw_file = None
             if raw is not None:
+                if rep is None or not rep.get("input_sha256"):  # mode B needs it: the raw file by sha256, the drops to check
+                    raise Stop(f"--raw: {split}/{part} has no cleaning report with input_rows, actions and input_sha256 "
+                               f"(<cleaned>/reports/{split}/{part}.json), so the ledger can neither be sure which raw file "
+                               "the cleaner read nor check the cleaner's drops. A clean step must write these reports for "
+                               "mode B (run_tokenizer_sample.py does); without them leave out --raw (mode C)")
                 raw_file, raw_sha = find_raw(raw, split, part, rep, hashes)
                 raw_files.append({"part": f"{split}/{part}", "file": raw_file.relative_to(raw).as_posix(), "sha256": raw_sha})
             t, set_sha = part_ledger(path, raw_file, split, part, removes, groups, logs, f2)

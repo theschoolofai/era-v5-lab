@@ -65,7 +65,9 @@ that is not a stage, and "inventory" or "intermediates" inside a stage's setting
 two is therefore not silently ignored.
 apply, f2, survivor_loss and ledger always run. f2 takes "script" (default teams/01-data-a/spec_v1/run_f2.py) and "workers"
 (default 1; each run_f2.py process loads G9's full set, about 1.1 GB of memory, so N workers need about N × 1.1 GB plus the
-documents in flight). shards takes "tokenizer" (required: G3's frozen tokenizer.json, p1536), and optionally "script" (default
+documents in flight). shards takes "tokenizer" (required: G3's frozen tokenizer.json, p1536), "dataset_version" (required: the
+corpus release written into every shard manifest, e.g. "corpus-v1" for the first training shards or "sample"; with
+"any_tokenizer" it is "test" and may be left out), and optionally "script" (default
 teams/01-data-a/shards/run_shards.py), "out" (default <run>/shards), "tokens", "packs" (only these packs), "pack_table" and
 "any_tokenizer" (tests only). apply takes "link" (default true: untouched parts are hard-linked, not copied) and "workers"
 (default 4: parts checked and written at once, one row group in memory each). ledger takes "raw"
@@ -643,6 +645,13 @@ class Run:
             raise Stop("config: stages.shards.packs must be a list of pack ids")
         if spec.get("pack_table") and not path(spec["pack_table"]).is_file():
             raise Stop(f"config: stages.shards.pack_table {spec['pack_table']} not found")
+        version = spec.get("dataset_version")
+        if spec.get("any_tokenizer"):
+            if version not in (None, "test"):
+                raise Stop(f'config: stages.shards.dataset_version is {version!r}, but any_tokenizer shards are "test" (leave it out)')
+        elif not isinstance(version, str) or not version.strip() or version == "test":
+            raise Stop(f'config: stages.shards.dataset_version is {version!r}: name the corpus release every shard manifest '
+                       'records (e.g. "corpus-v1", "sample"); "test" is only for any_tokenizer')
 
     def plan(self, to=None):
         """What a run would do, as text: each stage's mode, output folder and command, with every path resolved. The config is
@@ -674,7 +683,8 @@ class Run:
                 lines.append(f"{n:02d} {stage:13} run    {out}   {how}, workers {f2.get('workers', 1)}")
             elif stage == "shards":
                 spec = self.stages["shards"]
-                lines.append(f"{n:02d} {stage:13} run    {out}   {spec.get('script', DEFAULT_SHARDS)}, tokenizer {spec['tokenizer']}")
+                lines.append(f"{n:02d} {stage:13} run    {out}   {spec.get('script', DEFAULT_SHARDS)}, tokenizer {spec['tokenizer']}, "
+                             f"dataset_version {'test' if spec.get('any_tokenizer') else spec.get('dataset_version')}")
             else:
                 lines.append(f"{n:02d} {stage:13} run    {out}")
         if self.cfg.get("intermediates", "keep") == "drop":
@@ -959,6 +969,8 @@ class Run:
             args += ["--pack-table", path(spec["pack_table"])]
         if spec.get("any_tokenizer"):
             args.append("--any-tokenizer")
+        else:
+            args += ["--dataset-version", spec["dataset_version"]]
         log = self.dir / "logs" / "shards.log"
         rc = run_script(script, args, "shards", log)
         summary_path = out / "shards_summary.json"
@@ -970,6 +982,12 @@ class Run:
                    f"{counts}; see logs/shards.log")
         self.check("shards: run_shards.py exited 0", rc == 0, f"exit code {rc}; see logs/shards.log")
         self.check("shards: at least one shard written", counts["written"] > 0, f"{counts}")
+        cut = sorted(name for name, e in s["parts"].items() if e.get("truncated"))
+        self.check("shards: no part was cut short (every kept document of a written part fits in its shard)",
+                   counts.get("truncated", 0) == 0 and not cut,
+                   f"{len(cut) or counts.get('truncated')} part(s) did not fit in stages.shards.tokens, e.g. {cut[:3]}: the "
+                   "writer fills one shard a part and drops the rest. Raise tokens or split the parts; reconcile would "
+                   "report those documents as not_reached")
         self.check("shards: the summary is this run's, made with this run's cleaning_pipeline.json",
                    s.get("run_id") == self.cfg["run_id"] and s.get("cleaning_pipeline_sha256") == record_sha,
                    f"summary run_id {s.get('run_id')}, cleaning_pipeline_sha256 {str(s.get('cleaning_pipeline_sha256'))[:12]}…")

@@ -216,3 +216,17 @@ def test_without_licences_in_the_table_the_manifest_has_none(run, tmp_path, tabl
     code, out, s = go(run, tmp_path, table, "--pack", "pk-b")
     m = json.loads((out / "pk-b-train-000000.json").read_text(encoding="utf-8"))
     assert code == 0 and "license" not in m and "license_source" not in m
+
+
+def test_the_dataset_version_is_checked_before_any_part_is_read(run, tmp_path, table):
+    """run_shards.py passes --dataset-version to every shard_writer.py, and refuses a missing or wrong one at once (every
+    part would fail on it): nothing is written."""
+    base = ["--input", str(run / "final"), "--manifest", str(run / "pipeline_manifest.json"), "--tokenizer", str(BASE),
+            "--pack-table", str(table)]
+    for i, (extra, message) in enumerate((((), "--dataset-version is required"),
+                                          (("--dataset-version", "test"), "--dataset-version is required"),
+                                          (("--any-tokenizer", "--dataset-version", "corpus-v1"), "--any-tokenizer shards are"))):
+        out = tmp_path / f"out{i}"
+        with pytest.raises(SystemExit, match="run_shards: " + message):
+            rs.main([*base, "--out", str(out), *extra])
+        assert not out.exists()

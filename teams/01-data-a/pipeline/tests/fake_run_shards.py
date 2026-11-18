@@ -5,6 +5,7 @@ It needs <manifest folder>/cleaning_pipeline.json (written by the runner's shard
 train part (of the --pack packs, if given) with a dummy .bin, counts the other splits as not_sharded, and refuses an --out
 that already holds a .bin, like the real one (exit 1, summary untouched). Environment switches for the tests:
   FAKE_SHARDS_FAIL     any value: mark the first train part failed (exit 1)
+  FAKE_SHARDS_TRUNCATE any value: mark the first written part truncated (cut short; exit 0, like the real one)
   FAKE_SHARDS_NONE     any value: write nothing and exit 2 (a crashed process)
   FAKE_SHARDS_BAD_RUN  any value: write another run_id in the summary
 """
@@ -20,6 +21,7 @@ ap.add_argument("--pack", action="append", default=[])
 ap.add_argument("--tokens", type=int)
 ap.add_argument("--pack-table", type=Path)
 ap.add_argument("--any-tokenizer", action="store_true")
+ap.add_argument("--dataset-version")
 a = ap.parse_args()
 if os.environ.get("FAKE_SHARDS_NONE"):
     sys.exit(2)
@@ -44,10 +46,12 @@ for f in sorted(a.input.glob("*/*/*.parquet")):
     else:
         sid = f"{pack}-{split}-{int(f.stem.split('-')[1]):06d}"
         (a.out / f"{sid}.bin").write_bytes(b"shard")
-        parts[name] = {"pack_id": pack, "shard_id": sid, "status": "written"}
+        cut = bool(os.environ.get("FAKE_SHARDS_TRUNCATE")) and not counts["truncated"]
+        parts[name] = {"pack_id": pack, "shard_id": sid, "status": "written", "truncated": cut}
         counts["written"] += 1
+        counts["truncated"] += cut
 manifest = json.loads(a.manifest.read_text(encoding="utf-8"))
-(a.out / "args.json").write_text(json.dumps({"tokens": a.tokens, "packs": a.pack, "any_tokenizer": a.any_tokenizer,
+(a.out / "args.json").write_text(json.dumps({"tokens": a.tokens, "packs": a.pack, "any_tokenizer": a.any_tokenizer, "dataset_version": a.dataset_version,
                                              "pack_table": str(a.pack_table)}), encoding="utf-8")
 (a.out / "shards_summary.json").write_text(json.dumps({
     "run_id": "another-run" if os.environ.get("FAKE_SHARDS_BAD_RUN") else manifest["run_id"],

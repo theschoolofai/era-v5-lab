@@ -109,7 +109,30 @@ def test_the_round_trip_compares_with_the_normalized_text(tmp_path, monkeypatch)
 
 def test_any_tokenizer_but_c3_is_refused(tmp_path, monkeypatch):
     with pytest.raises(SystemExit, match="not the frozen p1536"):
-        write(tmp_path, monkeypatch, DOCS)
+        write(tmp_path, monkeypatch, DOCS, "--dataset-version", "sample")
+
+
+def test_dataset_version_is_required_and_test_runs_stay_test(tmp_path, monkeypatch):
+    """The manifest's dataset_version comes from --dataset-version (as on main, theschoolofai/era-v5-lab#621): never
+    guessed, never "test" for a real run, always "test" for an --any-tokenizer one. Each refusal comes before anything
+    is written."""
+    for i, (extra, message) in enumerate((((), "--dataset-version is required"),
+                                          (("--dataset-version", "test"), "only for --any-tokenizer"),
+                                          (("--any-tokenizer", "--dataset-version", "corpus-v1"), "leave out --dataset-version"))):
+        with pytest.raises(SystemExit, match=message):
+            write(tmp_path / f"case{i}", monkeypatch, DOCS, *extra)
+        assert not (tmp_path / f"case{i}" / "out").exists()
+    m, _, _ = write(tmp_path / "t", monkeypatch, DOCS, "--any-tokenizer", "--dataset-version", "test")
+    assert m["dataset_version"] == "test"
+
+
+def test_the_dataset_version_given_is_the_manifests(tmp_path, monkeypatch):
+    """A real run (no --any-tokenizer) writes the release it is given. p1536's tokenizer.json is not in the repo, so the
+    tokenizer check alone is relaxed here: G6's baseline is loaded as --any-tokenizer would load it."""
+    real = sw.load_tokenizer
+    monkeypatch.setattr(sw, "load_tokenizer", lambda path, any_tokenizer: real(path, True))
+    m, _, _ = write(tmp_path, monkeypatch, DOCS, "--dataset-version", "corpus-v1")
+    assert m["dataset_version"] == "corpus-v1"
 
 
 def test_the_c3_pin_matches_g3s_release():

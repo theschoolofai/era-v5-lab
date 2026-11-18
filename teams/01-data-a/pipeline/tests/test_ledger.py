@@ -111,6 +111,26 @@ def make_raw(cleaned, raw, layout="split"):
         dst = raw / rel if layout == "split" else raw / pack / split / name
         dst.parent.mkdir(parents=True, exist_ok=True)
         pq.write_table(pa.Table.from_pylist(t), dst)
+    return write_reports(cleaned, raw)
+
+
+def write_reports(cleaned, raw):
+    """The cleaning job's report for every cleaned part, as run_tokenizer_sample.py writes it, from the raw part as it is
+    now: input_sha256, input_rows, and keep / fix / drop. Mode B needs them; call again after changing a raw part."""
+    for f in cleaned.glob("*/*/*.parquet"):
+        split, pack, name = f.relative_to(cleaned).parts
+        src = next((p for p in (raw / split / pack / name, raw / pack / split / name) if p.is_file()), None)
+        if src is None:
+            continue
+        r, c = pq.read_table(src), {d["doc_id"]: d.get("text") for d in pq.read_table(f).to_pylist()}
+        texts = r.column("text").to_pylist() if "text" in r.column_names else [None] * r.num_rows
+        ids = r.column("doc_id").to_pylist()
+        drop = sum(d not in c for d in ids)
+        fix = sum(d in c and t is not None and c[d] != t for d, t in zip(ids, texts))
+        rep = cleaned / "reports" / split / pack / f"{name}.json"
+        rep.parent.mkdir(parents=True, exist_ok=True)
+        rep.write_text(json.dumps({"input_sha256": sha(src), "input_rows": r.num_rows, "output_rows": r.num_rows - drop,
+                                   "actions": {"keep": r.num_rows - drop - fix, "fix": fix, "drop": drop}}), encoding="utf-8")
     return raw
 
 
@@ -133,11 +153,11 @@ def test_mode_b_keep_fix_drop(chain, tmp_path, layout):
 def test_mode_b_checks_the_cleaning_reports(chain, tmp_path):
     raw = make_raw(chain["cleaned"], tmp_path / "raw")
     rep = chain["cleaned"] / "reports" / "train" / "en-dclm" / "part-00000.parquet.json"
-    rep.parent.mkdir(parents=True)
-    rep.write_text(json.dumps({"input_rows": 4, "output_rows": 3, "actions": {"keep": 2, "fix": 1, "drop": 1}}), encoding="utf-8")
     s = ledger.build(**chain, raw=raw)
-    assert s["clean_reports"] == {"parts": 1, "input_rows": 4, "drop": 1, "fix": 1, "keep": 2}
-    rep.write_text(json.dumps({"input_rows": 4, "output_rows": 2, "actions": {"keep": 2, "drop": 2}}), encoding="utf-8")
+    assert s["clean_reports"] == {"parts": 4, "input_rows": 17, "drop": 4, "fix": 1, "keep": 12}
+    good = json.loads(rep.read_text(encoding="utf-8"))
+    assert (good["input_rows"], good["actions"]) == (4, {"keep": 2, "fix": 1, "drop": 1})
+    rep.write_text(json.dumps({**good, "output_rows": 2, "actions": {"keep": 2, "drop": 2}}), encoding="utf-8")
     with pytest.raises(ledger.Stop, match="cleaning report"):
         ledger.build(**{**chain, "out": tmp_path / "l2"}, raw=raw)
 
@@ -147,6 +167,7 @@ def test_mode_b_raw_from_another_run_stops(chain, tmp_path):
     f = raw / "train" / "en-dclm" / "part-00000.parquet"
     t = pq.read_table(f).to_pylist()
     pq.write_table(pa.Table.from_pylist([r for r in t if r["doc_id"] != "e1"]), f)
+    write_reports(chain["cleaned"], raw)
     with pytest.raises(ledger.Stop, match="not in the raw part"):
         ledger.build(**chain, raw=raw)
 
@@ -154,7 +175,7 @@ def test_mode_b_raw_from_another_run_stops(chain, tmp_path):
 def test_mode_b_missing_raw_part_stops(chain, tmp_path):
     raw = make_raw(chain["cleaned"], tmp_path / "raw")
     (raw / "heldout" / "code-go" / "part-00000.parquet").unlink()
-    with pytest.raises(ledger.Stop, match="no raw part for heldout/code-go"):
+    with pytest.raises(ledger.Stop, match="no raw part has the sha256 the cleaning report names for heldout/code-go"):
         ledger.build(**chain, raw=raw)
 
 
@@ -285,7 +306,6 @@ def test_mode_b_finds_the_raw_part_by_sha256_under_any_name(chain, tmp_path):
     renamed = src.with_name("part-00000 (7).parquet")
     src.rename(renamed)
     rep = chain["cleaned"] / "reports" / "train" / "en-dclm" / "part-00000.parquet.json"
-    rep.parent.mkdir(parents=True)
     rep.write_text(json.dumps({"input_sha256": sha(renamed), "input_rows": 4, "actions": {"keep": 2, "fix": 1, "drop": 1}}),
                    encoding="utf-8")
     s = ledger.build(**chain, raw=raw)
@@ -298,7 +318,6 @@ def test_mode_b_finds_the_raw_part_by_sha256_under_any_name(chain, tmp_path):
 def test_mode_b_same_name_but_another_raw_file_stops(chain, tmp_path):
     raw = make_raw(chain["cleaned"], tmp_path / "raw")
     rep = chain["cleaned"] / "reports" / "train" / "en-dclm" / "part-00000.parquet.json"
-    rep.parent.mkdir(parents=True)
     rep.write_text(json.dumps({"input_sha256": "0" * 64, "input_rows": 4, "actions": {"keep": 2, "fix": 1, "drop": 1}}),
                    encoding="utf-8")
     with pytest.raises(ledger.Stop, match="no raw part has the sha256"):
@@ -357,6 +376,7 @@ def test_mode_b_with_a_cleaned_part_out_of_raw_order(chain, tmp_path):
     rf = raw / "train" / "code-go" / "part-00000.parquet"
     t = pq.read_table(rf)
     pq.write_table(t.take(list(reversed(range(t.num_rows)))), rf)  # raw order reversed: the cleaned part is out of order
+    write_reports(chain["cleaned"], raw)
     s = ledger.build(**chain, raw=raw)
     assert s["totals"]["dropped_by_clean"] == 4 and s["totals"]["kept"] == 9
     r = rows(chain["out"])
@@ -422,6 +442,7 @@ def test_mode_b_without_a_text_column_stops(chain, tmp_path):
     raw = make_raw(chain["cleaned"], tmp_path / "raw")
     f = raw / "train" / "en-dclm" / "part-00000.parquet"
     pq.write_table(pq.read_table(f).drop_columns(["text"]), f)
+    write_reports(chain["cleaned"], raw)
     with pytest.raises(ledger.Stop, match="no text column"):
         ledger.build(**chain, raw=raw)
 
@@ -609,3 +630,23 @@ def test_remove_marked_reports_what_it_could_not_delete(tmp_path, monkeypatch):
     monkeypatch.undo()
     assert ledger.remove_marked(folder, ledger.OLD_MARK) is True and not folder.exists()
     assert ledger.remove_marked(folder, ledger.OLD_MARK) is True  # nothing there: nothing to do
+
+
+# --- Tejaskumar's review of PR #46 (18 Nov) -------------------------------------------------------------------------
+@pytest.mark.parametrize("report", ["none", "no input_sha256", "no input_rows"])
+def test_mode_b_stops_on_a_part_without_a_cleaning_report(chain, tmp_path, report):
+    """Mode B needs every cleaned part's report: without one (a clean step that writes none, such as a bare
+    run_clean.py) it would match a raw file by name and skip the check of the cleaner's drops, silently. It stops."""
+    raw = make_raw(chain["cleaned"], tmp_path / "raw")
+    rep = chain["cleaned"] / "reports" / "train" / "en-dclm" / "part-00000.parquet.json"
+    if report == "none":
+        rep.unlink()
+    else:
+        r = json.loads(rep.read_text(encoding="utf-8"))
+        r.pop(report.split()[-1])
+        rep.write_text(json.dumps(r), encoding="utf-8")
+    with pytest.raises(ledger.Stop, match=r"--raw: train/en-dclm/part-00000.parquet has no cleaning report with input_rows, "
+                                          r"actions and input_sha256.*leave out --raw \(mode C\)"):
+        ledger.build(**chain, raw=raw)
+    assert not chain["out"].exists()
+    ledger.build(**chain)  # mode C needs no report

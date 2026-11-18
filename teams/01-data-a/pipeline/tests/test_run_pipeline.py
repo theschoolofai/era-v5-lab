@@ -315,13 +315,14 @@ def test_cli(tmp_path, config):
 @pytest.fixture
 def shard_config(tmp_path, tsai_outputs, config, monkeypatch):
     """A config with stages.shards, and the clean job's job_summary.json the shard stage needs. Returns the config path."""
-    for k in ("FAKE_SHARDS_FAIL", "FAKE_SHARDS_NONE", "FAKE_SHARDS_BAD_RUN"):
+    for k in ("FAKE_SHARDS_FAIL", "FAKE_SHARDS_NONE", "FAKE_SHARDS_BAD_RUN", "FAKE_SHARDS_TRUNCATE"):
         monkeypatch.delenv(k, raising=False)
     (tsai_outputs["cleaned"] / "job_summary.json").write_text(json.dumps({"clean_sha256": "c" * 64, "parts": []}), encoding="utf-8")
     tokenizer = tmp_path / "tokenizer.json"
     tokenizer.write_text("{}", encoding="utf-8")
     return write_config(tmp_path / "pipeline.json", tsai_outputs,
-                        shards={"script": str(FAKE_SHARDS), "tokenizer": str(tokenizer), "packs": ["code-go"], "tokens": 100})
+                        shards={"script": str(FAKE_SHARDS), "tokenizer": str(tokenizer), "packs": ["code-go"], "tokens": 100,
+                                "dataset_version": "sample"})
 
 
 def test_shards_run_after_f2_and_are_recorded(tmp_path, shard_config):
@@ -337,6 +338,7 @@ def test_shards_run_after_f2_and_are_recorded(tmp_path, shard_config):
     assert json.loads((run / "pipeline_manifest.json").read_text(encoding="utf-8"))["stages"][-1]["stage"] == "shards"
     assert json.loads((run / "shards" / "args.json").read_text(encoding="utf-8"))["packs"] == ["code-go"]
     assert json.loads((run / "shards" / "args.json").read_text(encoding="utf-8"))["tokens"] == 100
+    assert json.loads((run / "shards" / "args.json").read_text(encoding="utf-8"))["dataset_version"] == "sample"
     assert (run / "logs" / "shards.log").is_file() and s["digest"] and s["code_sha256"]
 
 
@@ -388,7 +390,12 @@ def test_no_clean_job_summary_means_no_shard_stage(tmp_path, shard_config, tsai_
 
 @pytest.mark.parametrize("change, message", [({"tokenizer": "/no/such/tokenizer.json"}, "stages.shards.tokenizer"),
                                              ({"tokens": 0}, "stages.shards.tokens"), ({"packs": "code-go"}, "stages.shards.packs"),
-                                             ({"script": "/no/such/run_shards.py"}, "shards script")])
+                                             ({"script": "/no/such/run_shards.py"}, "shards script"),
+                                             ({"dataset_version": None}, "dataset_version is None: name the corpus release"),
+                                             ({"dataset_version": ""}, "dataset_version is '': name the corpus release"),
+                                             ({"dataset_version": "test"}, '"test" is only for any_tokenizer'),
+                                             ({"any_tokenizer": True, "dataset_version": "corpus-v1"},
+                                              'any_tokenizer shards are "test"')])
 def test_the_shards_config_is_checked_before_anything_runs(tmp_path, shard_config, change, message):
     cfg = json.loads(shard_config.read_text(encoding="utf-8"))
     cfg["stages"]["shards"].update(change)
@@ -716,6 +723,7 @@ def test_ledger_mode_b_adds_the_cleaners_drops(tmp_path, config, cleaned):
         extra = t.slice(0, 1).to_pylist()
         extra[0]["doc_id"] = "x-" + extra[0]["doc_id"]
         pq.write_table(pa_concat(t, extra), dst)
+    write_reports(cleaned, raw)  # mode B needs the cleaning job's report of every part
     cfg = json.loads(config.read_text(encoding="utf-8"))
     cfg["stages"]["ledger"] = {"raw": str(raw)}
     config.write_text(json.dumps(cfg), encoding="utf-8")
@@ -740,6 +748,7 @@ def test_ledger_mode_b_with_a_pack_the_cleaner_emptied(tmp_path, config, cleaned
             ghost = dict(t.slice(0, 1).to_pylist()[0], doc_id="ghost-1", pack_id="ghost-pack")
             t = pa.concat_tables([t, pa.Table.from_pylist([ghost], schema=t.schema)])
         pq.write_table(t, dst)
+    write_reports(cleaned, raw)
     cfg = json.loads(config.read_text(encoding="utf-8"))
     cfg["stages"]["ledger"] = {"raw": str(raw)}
     config.write_text(json.dumps(cfg), encoding="utf-8")
@@ -979,6 +988,12 @@ def snapshot(folder):
     return {p.relative_to(folder).as_posix(): sha(p) for p in sorted(Path(folder).rglob("*")) if p.is_file()}
 
 
+def write_reports(cleaned, raw):
+    """The cleaning job's per-part reports for mode B (test_ledger.write_reports)."""
+    from test_ledger import write_reports as w
+    return w(cleaned, raw)
+
+
 def manifest_of(run):
     return json.loads((run / "pipeline_manifest.json").read_text(encoding="utf-8"))
 
@@ -1069,7 +1084,7 @@ def test_drop_never_touches_the_cleaned_folder_not_even_one_this_run_wrote(tmp_p
     path, repo = staged
     tokenizer = tmp_path / "tokenizer.json"
     tokenizer.write_text("{}", encoding="utf-8")
-    set_stage(path, "shards", {"script": str(FAKE_SHARDS), "tokenizer": str(tokenizer), "packs": ["code-go"]})
+    set_stage(path, "shards", {"script": str(FAKE_SHARDS), "tokenizer": str(tokenizer), "packs": ["code-go"], "dataset_version": "sample"})
     with_reconcile(path, monkeypatch, intermediates="drop")
     m = rp.run(path)
     run = repo / "out" / "runs" / "test-run"
@@ -1218,7 +1233,7 @@ def test_drop_refuses_the_shards_or_an_input_inside_a_folder_it_deletes_from(tmp
     run = repo / "out" / "runs" / "test-run"
     tokenizer = tmp_path / "tokenizer.json"
     tokenizer.write_text("{}", encoding="utf-8")
-    shards = {"script": str(FAKE_SHARDS), "tokenizer": str(tokenizer), "packs": ["code-go"]}
+    shards = {"script": str(FAKE_SHARDS), "tokenizer": str(tokenizer), "packs": ["code-go"], "dataset_version": "sample"}
     set_stage(path, "shards", {**shards, "out": str(run / "final" / "train" / "shards")})
     with_reconcile(path, monkeypatch, intermediates="drop")
     with pytest.raises(rp.Stop, match="stages.shards.out .* lies in it"):
@@ -1360,6 +1375,7 @@ def with_inventory(path, tmp_path, monkeypatch, change=None, after_shards=None, 
         gone[0]["doc_id"] = "x-" + gone[0]["doc_id"]
         gone += (raw_extra or {}).get(f.relative_to(cleaned).as_posix(), [])
         pq.write_table(pa_concat(t, gone), dst)
+    write_reports(cleaned, raw)
 
     def fake_shards(self):
         write_shards(self.dir, self.output("shards"))
@@ -1646,7 +1662,8 @@ def test_the_inventory_must_be_of_the_input_manifest_the_clean_stage_pins(tmp_pa
     tokenizer, raw, file = tmp_path / "tokenizer.json", tmp_path / "raw", tmp_path / "expected_inventory.json"
     tokenizer.write_text("{}", encoding="utf-8")
     raw.mkdir()
-    cfg["stages"].update(shards={"script": str(FAKE_SHARDS), "tokenizer": str(tokenizer)}, reconcile={}, ledger={"raw": str(raw)})
+    cfg["stages"].update(shards={"script": str(FAKE_SHARDS), "tokenizer": str(tokenizer), "dataset_version": "sample"}, reconcile={},
+                         ledger={"raw": str(raw)})
     cfg["inventory"] = str(file)
     path.write_text(json.dumps(cfg), encoding="utf-8")
     inv = {"input_manifest_sha256": INPUT_MANIFEST, "packs": ["code-go"],
@@ -2071,9 +2088,10 @@ def test_shard_problems_names_each_defect(tmp_path):
     shard_on_disk(out)
     rewritten(out, "s.bin", payload, payload_bytes=len(payload) - 4)  # the manifest's size is not the file's
     assert problems() == [f"s.bin: {len(payload):,} bytes, expected {len(payload):,} (manifest payload_bytes {len(payload) - 4})"]
-    for arr, why in ((np.array([0, 4, 2, 6]), ""), (np.array([0, 4, 2, 6], dtype=np.uint64), " (uint64)"),
-                     (np.array([0, 2, 4, 6], dtype=np.int32), " (int32)"), (np.array([0, 2, 4]), ""),
-                     (np.array([1, 2, 4, 6]), "")):
+    i8 = np.int64  # pinned: NumPy < 2 on Windows makes a plain np.array of ints int32
+    for arr, why in ((np.array([0, 4, 2, 6], dtype=i8), ""), (np.array([0, 4, 2, 6], dtype=np.uint64), " (uint64)"),
+                     (np.array([0, 2, 4, 6], dtype=np.int32), " (int32)"), (np.array([0, 2, 4], dtype=i8), ""),
+                     (np.array([1, 2, 4, 6], dtype=i8), "")):
         shard_on_disk(out)
         rewritten(out, "s.idx.npy", npy_bytes(arr))  # falling, wraps in uint64, not int64, a document short, not from 0
         assert problems() == [f"s.idx.npy: not 4 rising int64 offsets from 0 to 6{why}"], arr
@@ -2083,7 +2101,7 @@ def test_shard_problems_names_each_defect(tmp_path):
         assert problems() == [f"s.idx.npy: not 4 rising int64 offsets from 0 to 6 (cannot be read: {error})"]
     shard_on_disk(out)
     z = io.BytesIO()
-    np.savez(z, idx=np.array([0, 2, 4, 6]))
+    np.savez(z, idx=np.array([0, 2, 4, 6], dtype=np.int64))
     rewritten(out, "s.idx.npy", z.getvalue())
     assert problems() == ["s.idx.npy: not 4 rising int64 offsets from 0 to 6 (NpzFile)"]
     shard_on_disk(out)
@@ -2116,3 +2134,30 @@ def test_shard_problems_refuses_a_shard_file_that_is_a_link(tmp_path):
     except OSError:
         pytest.skip("this system does not let the tests make a symbolic link")
     assert rp.shard_problems(out, "s", {}, rp.HashCache()) == ["s.bin: a link, not the file"]
+
+
+# --- Tejaskumar's review of PR #46 (18 Nov): dataset_version, truncated parts ----------------------------------------
+def test_the_shard_stage_passes_the_dataset_version_and_any_tokenizer_runs_stay_test(tmp_path, shard_config):
+    """stages.shards.dataset_version goes to run_shards.py as --dataset-version (shard_writer writes it into every
+    manifest); an any_tokenizer run passes none, so its shards are "test". --plan names the version."""
+    assert 'dataset_version sample' in rp.plan(shard_config)
+    rp.run(shard_config)
+    args = json.loads((tmp_path / "runs" / "test-run" / "shards" / "args.json").read_text(encoding="utf-8"))
+    assert args["dataset_version"] == "sample" and args["any_tokenizer"] is False
+    cfg = json.loads(shard_config.read_text(encoding="utf-8"))
+    cfg["run_id"] = "test-run-2"
+    cfg["stages"]["shards"] = {**{k: v for k, v in cfg["stages"]["shards"].items() if k != "dataset_version"}, "any_tokenizer": True}
+    shard_config.write_text(json.dumps(cfg), encoding="utf-8")
+    assert 'dataset_version test' in rp.plan(shard_config)
+    rp.run(shard_config)
+    args = json.loads((tmp_path / "runs" / "test-run-2" / "shards" / "args.json").read_text(encoding="utf-8"))
+    assert args["dataset_version"] is None and args["any_tokenizer"] is True
+
+
+def test_a_part_cut_short_by_the_shard_writer_stops_the_shard_stage(tmp_path, shard_config, monkeypatch):
+    """A part whose kept documents did not all fit in stages.shards.tokens stops the run at the shard stage, with the
+    parts named, instead of later in reconcile as not_reached."""
+    monkeypatch.setenv("FAKE_SHARDS_TRUNCATE", "1")
+    with pytest.raises(rp.Stop, match=r"no part was cut short.*1 part\(s\) did not fit in stages.shards.tokens, e.g. "
+                                      r"\['train/code-go/part-00000.parquet'\]"):
+        rp.run(shard_config)
