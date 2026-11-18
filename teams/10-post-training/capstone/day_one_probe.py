@@ -84,11 +84,15 @@ def check_pins(run_folder: Path, tokenizer: Path, table: Path) -> dict:
     return {"checks": checks, "not_recorded": [k for k, c in checks.items() if c["match"] is None]}
 
 
-def run_sft_arm(out: Path, arm: str, cmd: list[str]) -> dict:
-    """Keep reports but remove model text/weights even when an arm fails."""
+def run_sft_arm(out: Path, arm: str, cmd: list[str], timeout: float | None = None) -> dict:
+    """Keep reports but remove model text/weights even when an arm fails. `timeout` (seconds): the arm's process is
+    killed at that point and the arm fails with a deadline message (weights and generations are still removed)."""
     arm_out = out / f"sft_{arm}"
     try:
-        r = subprocess.run(cmd, capture_output=True, text=True)
+        try:
+            r = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            raise RuntimeError(f"arm {arm} stopped at the job's own deadline ({timeout:.0f} s left when it started)") from None
         if r.returncode:
             raise RuntimeError(r.stderr[-1500:])
         rep = json.loads((arm_out / "sft_report.json").read_text())
@@ -114,8 +118,12 @@ def rl_screen(adapter_cfg: Path, tasks: Path, ids: Path, k: int, max_new: int, d
     return rl_screen_bundle(ta.build(adapter_cfg, device=device).require_bundle(), tasks, ids, k, max_new, device, limit)
 
 
-def rl_screen_bundle(bundle, tasks: Path, ids: Path, k: int, max_new: int, device: str, limit: int = 0) -> dict:
-    """k samples (temperature 1, KV cache) per prompt scored by rl-data/stdio_check.py; aggregates only."""
+def rl_screen_bundle(bundle, tasks: Path, ids: Path, k: int, max_new: int, device: str, limit: int = 0,
+                     seconds: float = 0.0) -> dict:
+    """k samples (temperature 1, KV cache) per prompt scored by rl-data/stdio_check.py; aggregates and per-prompt
+    counts only (id, passes, programs that ran, samples with a code fence). `seconds` > 0: no new prompt is started
+    once the screen has run that long, so callers can compare screens on the ids both reached (the id file's order)."""
+    import time  # noqa: PLC0415
     import importlib.util  # noqa: PLC0415
     import torch  # noqa: PLC0415
     spec = importlib.util.spec_from_file_location("g10_stdio_check", TEAM10 / "rl-data" / "stdio_check.py")
@@ -134,29 +142,36 @@ def rl_screen_bundle(bundle, tasks: Path, ids: Path, k: int, max_new: int, devic
         want = want[:limit]  # the id file's own order (sorted ids): a fixed, reproducible subset
     gen = torch.Generator(device=device).manual_seed(0)
     reasons, groups, passes, skipped = {}, {"all_fail": 0, "mixed": 0, "all_pass": 0}, 0, 0
-    has_code = 0
+    has_code, per_prompt, t0, stopped = 0, [], time.perf_counter(), False
     for tid in want:
+        if seconds and time.perf_counter() - t0 > seconds:
+            stopped = True
+            break
         prompt = codec.encode_prompt(by_id[tid]["statement"])
         mn = min(max_new, bundle.spec["block_size"] - len(prompt))
         if mn < 16:
             skipped += 1
             continue
         seq, cmask, _ = bundle.sample(prompt, k, mn, 1.0, gen)
-        p = 0
+        p = runs = fence = 0
         for r in range(k):
             text = codec.decode_completion(seq[r, len(prompt):][cmask[r]].tolist())
-            has_code += "```" in text
+            fence += "```" in text
             res = sc.score(by_id[tid], text)
             key = "pass" if res["reward"] >= 1.0 else str(res.get("reason", "fail")).split(" on ")[0]
             reasons[key] = reasons.get(key, 0) + 1
             p += res["reward"] >= 1.0
+            runs += key in ("pass", "wrong answer on a test")
+        has_code += fence
+        per_prompt.append([tid, int(p), int(runs), int(fence)])
         passes += p
         groups["all_fail" if p == 0 else ("all_pass" if p == k else "mixed")] += 1
     bundle.kv_cache = kv
     n = sum(groups.values())
     return {"prompts": n, "skipped_too_long": skipped, "k": k, "max_new": max_new, "pass_rate": passes / max(n * k, 1),
             "groups": groups, "reasons": dict(sorted(reasons.items())), "samples_with_code_fence": has_code,
-            "runner": sc.RUNNER_KIND}
+            "runner": sc.RUNNER_KIND, "per_prompt": per_prompt, "budget_seconds": seconds, "stopped_at_budget": stopped,
+            "seconds": round(time.perf_counter() - t0, 1)}
 
 
 def main() -> int:
