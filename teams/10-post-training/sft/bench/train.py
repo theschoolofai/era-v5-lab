@@ -418,6 +418,7 @@ def train(args) -> dict:
         method_info["wanda_prior"]["calibration_seconds"] = round(time.perf_counter() - t_cal, 2)
         method_info["wanda_prior"]["calibration_tokens"] = int(sum(int(b.attention_mask.sum()) for b in cbatches))
         method_info["deletion_at_init"] = dtmask.deletion_stats(model)
+        method_info["band_at_init"] = dtmask.band_stats(model)
         del scores
     frozen_before = frozen_sha256(model, marker_ids) if args.method != "full" else None
     if args.grad_checkpointing:

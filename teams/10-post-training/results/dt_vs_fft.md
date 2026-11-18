@@ -57,7 +57,7 @@ From `results/dt_sft_surrogate.md` §R10 (tied head, 5 marker rows trainable in 
 Deletion Tuning freezes the pre-trained base weight $W \in \mathbb{R}^{d_{\text{out}} \times d_{\text{in}}}$ and trains only one real-valued logit $G_{ij}$ per weight parameter:
 - **Training Forward Pass:** The effective weight is:
   $$W_{\text{eff}}(t) = W \odot \sigma\left(\alpha(t) \cdot G\right)$$
-  where $\alpha(t)$ sharpens linearly from $\alpha(0) = 10^3$ to $\alpha(T) = 10^4$.
+  where $\alpha(t)$ sharpens linearly from $\alpha(0) = 100$ to $\alpha(T) = 1000$ in the main SFT port (`dt/mask.py`, matching the paper repo; note that `sft/deletion_tuning.py` and the `cfg_e4_dt.yaml` RL pilots used `10^3 -> 10^4`, tracked in the 17 Nov port check).
 - **Inference / Evaluation Forward Pass:** The effective weight is pruned with a deterministic hard mask:
   $$W_{\text{eval}} = W \odot \mathbf{1}\left[G > 0\right]$$
 - **Initialization via Wanda Importance:**
