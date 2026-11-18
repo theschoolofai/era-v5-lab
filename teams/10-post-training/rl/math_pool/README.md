@@ -1,11 +1,11 @@
 # Math tasks for RL data v1 (`math_verifier.py`, `tasks/`)
 
 Gate 3 deliverable "one math verifier set: exact answer, one correct answer, one wrong answer" (work order, 14 Nov).
-Registered as `math/<task_id>` in `../reward.py`. The reward is an exact check of one boxed final answer; no candidate
+Registered as `math_pool/<task_id>` in `../reward.py`. The type is `math_pool` and not `math` because `rl/math` (a separate PR) is the self-contained math set with its answers in the repository; this one is pinned into the RL data v1 pool and needs it. The reward is an exact check of one boxed final answer; no candidate
 code runs, so no container is needed.
 
 ```text
-rl/math/
+rl/math_pool/
   README.md                this file
   math_verifier.py         reward(), check_task() and the command line
   build_tasks.py           writes task folders from records of the RL data v1 math pool
@@ -48,10 +48,10 @@ Stricter than `rl-data/math_check.score` (which also accepts a bare last express
 
 ```bash
 export G10_MATH_POOL=<path to the RL data v1 math.jsonl>
-python teams/10-post-training/rl/math/math_verifier.py --check-all
-python teams/10-post-training/rl/math/math_verifier.py --check-task teams/10-post-training/rl/math/tasks/<task_id>
-python teams/10-post-training/rl/math/math_verifier.py --reward teams/10-post-training/rl/math/tasks/<task_id> completion.txt
-python -m pytest teams/10-post-training/rl/math/test_math_verifier.py -q -p no:cacheprovider
+python teams/10-post-training/rl/math_pool/math_verifier.py --check-all
+python teams/10-post-training/rl/math_pool/math_verifier.py --check-task teams/10-post-training/rl/math_pool/tasks/<task_id>
+python teams/10-post-training/rl/math_pool/math_verifier.py --reward teams/10-post-training/rl/math_pool/tasks/<task_id> completion.txt
+python -m pytest teams/10-post-training/rl/math_pool/test_math_verifier.py -q -p no:cacheprovider
 ```
 
 Needs `pip install math-verify==0.9.0`. Without the pool the unit tests still run (fixture records, labelled as

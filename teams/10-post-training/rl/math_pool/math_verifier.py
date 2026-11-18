@@ -2,7 +2,7 @@
 
     reward(task_dir, completion, pool=None) -> {"reward": 0 | 1, "reason": str, "task_id": str}
 
-A task folder `rl/math/tasks/<task_id>/task.json` holds only the id of one record of the RL data v1 math pool
+A task folder `rl/math_pool/tasks/<task_id>/task.json` holds only the id of one record of the RL data v1 math pool
 (`rl-data/build_math.py`: hendrycks MATH train split, MIT, human-written, decontaminated) and two SHA-256 pins, one of the
 problem and one of the answer. The problem text and the reference answer stay in the pool, which is data and stays out of
 the repository. `pool` is the pool JSONL (default: the environment variable G10_MATH_POOL). A missing pool, a missing

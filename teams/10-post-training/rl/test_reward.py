@@ -112,10 +112,10 @@ def test_list_envs_covers_every_shipped_task_and_env():
     assert len([i for i in ids if i.startswith("agentic/")]) == len(list((HERE / "agentic" / "tasks").glob("*/task.json")))
     assert len([i for i in ids if i.startswith("js/")]) == len(list((HERE / "jsts" / "tasks" / "js").glob("*/task.json")))
     assert len([i for i in ids if i.startswith("ts/")]) == len(list((HERE / "jsts" / "tasks" / "ts").glob("*/task.json")))
-    assert len([i for i in ids if i.startswith("math/")]) == len(list((HERE / "math" / "tasks").glob("*/task.json")))
+    assert len([i for i in ids if i.startswith("math_pool/")]) == len(list((HERE / "math_pool" / "tasks").glob("*/task.json")))
     for i in ids:
-        if i.startswith("math/") and not os.environ.get("G10_MATH_POOL"):
-            continue  # a math task's reference answer lives in the pool (rl/math/README.md)
+        if i.startswith("math_pool/") and not os.environ.get("G10_MATH_POOL"):
+            continue  # a math task's reference answer lives in the pool (rl/math_pool/README.md)
         good, bad = reward.known_outputs(i)
         assert good and bad and good != bad
 
@@ -342,15 +342,15 @@ def test_pool_module_loads_once_and_whole_when_many_threads_ask_at_once():
     assert all(whole for _, whole in got)  # no thread was handed a half-run module
 
 
-def test_check_all_skips_math_without_pool(monkeypatch, capsys):
+def test_check_all_skips_math_pool_without_pool(monkeypatch, capsys):
     """A plain clone has no math pool: math ids are reported as skipped and the other sets are still checked."""
     monkeypatch.delenv("G10_MATH_POOL", raising=False)
-    math_ids = [i for i in reward.list_envs() if i.startswith("math/")]
+    math_ids = [i for i in reward.list_envs() if i.startswith("math_pool/")]
     indic_ids = [i for i in reward.list_envs() if i.startswith("indic/")][:1]
     assert math_ids and indic_ids
     rows = reward.check_all(workers=2, ids=math_ids[:1] + indic_ids)
     by_type = {r["env_id"].split("/")[0]: r for r in rows}
-    assert by_type["math"]["skipped"] is True and by_type["math"]["score"] is None
+    assert by_type["math_pool"]["skipped"] is True and by_type["math_pool"]["score"] is None
     assert all(r["ok"] for r in rows) and not by_type["indic"].get("skipped")
-    assert reward.main(["--check-all", "--type", "math"]) == 2
+    assert reward.main(["--check-all", "--type", "math_pool"]) == 2
     assert '"skipped": %d' % (2 * len(math_ids)) in capsys.readouterr().out

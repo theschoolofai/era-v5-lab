@@ -75,7 +75,9 @@ Indic short-answer tasks are in [`indic/`](indic/README.md): an Indic prompt, an
 
 Agentic tasks (one pytest command or one patch, run in a SWE env image) are in [`agentic/`](agentic/README.md). `reward.py` registers them as `agentic/<task_id>`; `python rl/reward.py --check-all --type agentic` needs docker.
 
-Math tasks (an exact boxed answer from the RL data v1 math pool, pinned by SHA-256) are in [`math/`](math/README.md). `reward.py` registers them as `math/<task_id>`; they need the pool (`G10_MATH_POOL`) and `math-verify==0.9.0`. TSAI has not ruled on MATH for RL.
+Math tasks (an exact boxed answer from the RL data v1 math pool, pinned by SHA-256) are in [`math_pool/`](math_pool/README.md). `reward.py` registers them as `math_pool/<task_id>`; they need the pool (`G10_MATH_POOL`) and `math-verify==0.9.0`. TSAI has not ruled on MATH for RL.
+
+There are two math env types on purpose: `math_pool` (this set) checks one boxed answer against a record pinned in the RL data v1 pool, so it scales to thousands of problems but needs the pool; `math` (the owner's `rl/math`, a separate PR) holds small self-contained tasks with their answers in the repository and an `<answer>` tag.
 
 JavaScript and TypeScript tasks (Exercism exercises, hidden jest tests, docker image `g10-jsts-rl:1`) are in [`jsts/`](jsts/README.md). `reward.py` registers them as `js/<task_id>` and `ts/<task_id>`; `python rl/reward.py --check-all --type js` (or `ts`) needs docker and the image.
 
@@ -91,7 +93,7 @@ Tool-result tasks are in [`toolresult/`](toolresult/README.md): a transcript tha
 | `tasks/` | The original coding tasks (see "Writing a task"). |
 | `reward.py`, `test_reward.py` | The one `reward(env_id, output)` entry point for code, SWE, Indic and Go environments. |
 | `jsts/` | The JavaScript and TypeScript verifier set: hidden jest tests in a docker image, Exercism tasks, tests. |
-| `math/` | The math verifier set: boxed exact answer, pins into the RL data v1 math pool, tests. |
+| `math_pool/` | The pool-pinned math verifier set: boxed exact answer, pins into the RL data v1 math pool, tests. |
 | `agentic/` | The agentic verifier set: command and patch checks, its tasks and tests. |
 | `indic/` | The Indic verifier set: exact-answer reward, its tasks and tests, and the template generator. |
 | `toolresult/` | The tool-result verifier set: exact tool-result text in the reply, its ten tasks and tests. |

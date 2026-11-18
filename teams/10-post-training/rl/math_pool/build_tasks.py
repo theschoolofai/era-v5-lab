@@ -1,7 +1,7 @@
 """Write math task folders (task.json with pins only) from records of the RL data v1 math pool.
 
-    python rl/math/build_tasks.py --pool math.jsonl --ids math-algebra-1717,math-geometry-249
-    python rl/math/build_tasks.py --pool math.jsonl --pick 8 --seed 17
+    python rl/math_pool/build_tasks.py --pool math.jsonl --ids math-algebra-1717,math-geometry-249
+    python rl/math_pool/build_tasks.py --pool math.jsonl --pick 8 --seed 17
 
 --pick takes one random record per subject (seeded; answer of at most 24 characters, no \\text, level 2 to 4), then
 fills up with random algebra records. Nothing about a problem's text is read to choose it. A task folder holds

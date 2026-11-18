@@ -1,6 +1,6 @@
 """Tests for math_verifier.py: one correct and one wrong answer per task, the adversarial cases, the pool pins.
 
-Run:  python -m pytest teams/10-post-training/rl/math/test_math_verifier.py -q -p no:cacheprovider
+Run:  python -m pytest teams/10-post-training/rl/math_pool/test_math_verifier.py -q -p no:cacheprovider
 Needs `math-verify==0.9.0` for the scoring tests. The unit tests use FIXTURE records written below (a made-up pool,
 labelled as fixtures, never part of any RL pool). The tests on the real task ids run only when G10_MATH_POOL points to
 the RL data v1 math.jsonl, and say so in their skip reason.
@@ -254,19 +254,19 @@ def _reward_module():
 def test_reward_py_lists_the_math_ids_and_a_missing_pool_raises(monkeypatch):
     r = _reward_module()
     ids = r.list_envs()
-    assert {f"math/{d.name}" for d in TASK_DIRS} <= set(ids)
+    assert {f"math_pool/{d.name}" for d in TASK_DIRS} <= set(ids)
     monkeypatch.delenv("G10_MATH_POOL", raising=False)
     with pytest.raises(RuntimeError, match="math pool missing"):
-        r.reward(f"math/{TASK_DIRS[0].name}", "\\boxed{1}")
+        r.reward(f"math_pool/{TASK_DIRS[0].name}", "\\boxed{1}")
     with pytest.raises(KeyError):
-        r.reward("math/no_such_task", "\\boxed{1}")
+        r.reward("math_pool/no_such_task", "\\boxed{1}")
 
 
 @needs_mv
 @needs_pool
 def test_reward_py_scores_a_real_task_through_the_one_entry_point():
     r = _reward_module()
-    env_id = f"math/{TASK_DIRS[0].name}"
+    env_id = f"math_pool/{TASK_DIRS[0].name}"
     good, bad = r.known_outputs(env_id)
     assert r.reward(env_id, good, pool=REAL_POOL)[0] == 1.0
     assert r.reward(env_id, bad, pool=REAL_POOL)[0] == 0.0
