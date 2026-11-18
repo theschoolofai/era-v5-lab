@@ -117,6 +117,14 @@ those are reported as `not_sharded`, which is not an error (the writer refuses a
   `rows_in_part`, `truncated` and the docs left out. A part is truncated when its rows did not all fit in `--tokens`:
   the writer makes one shard per part and drops the rest. A second run into the same `--out` (with `--pack`) adds to the
   summary; one made for another `run_id` is refused. The summary also records the `run_id` and the sha256 of `cleaning_pipeline.json`.
+- **Verification:** when the parts are done, `run_shards.py` checks the shards in `--out` against their files with
+  `verify_shards.py`, not only what it just wrote: the five files and `cleaning_pipeline.json` exist with the manifest's sha256;
+  the `.bin` header and size, the index, the special ids and the metadata agree with the manifest; `language`, `script`, `domain`
+  and `capability_lane` are the pack's row in `pack_table.json`; the tokenizer and F2 set are the run's; and the first and last
+  document of each shard, read from the final part, encode to the tokens in the `.bin` and decode to their normalized text. A shard
+  that fails makes its part `failed` (with the reason); a problem that belongs to no part goes to `problems`; the summary's
+  `verified` is true, false, or null when there was no shard. `python teams/01-data-a/shards/verify_shards.py --out <dir> --manifest
+  <run>/pipeline_manifest.json --tokenizer <tokenizer.json>` runs the same checks by hand.
 
 ## Manifest fields
 

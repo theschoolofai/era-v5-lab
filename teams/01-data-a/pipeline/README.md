@@ -351,7 +351,31 @@ The runner never reimplements these. In **adopt** mode it checks the returned fo
 
 `stages.clean.only` runs the clean job on some sample parts only (one `--only <part>` each), for trials; overlap's generated config then gets `"expected_packs": []`. The escape hatch `"command"` runs a script and its arguments as they are, with `"output"` naming where it writes.
 
-### Apply the remove list
+| Check | Runs in | Message |
+|---|---|---|
+| Header is exactly `pack_id,split,part,row_in_part,doc_id` | apply | `header is …, expected dedup.py's …` |
+| A `(split, part, row)` is listed once; `row_in_part` is a whole number ≥ 0 | apply | `… is listed twice` · `… is not a whole number >= 0` |
+| No `heldout` row in the remove list (rule 0) | apply | `a held-out row … this remove list is broken` |
+| Every listed part exists and every listed row is inside it | apply | `… not found under --cleaned` · `row 99 is listed, but the part has 5 rows` |
+| The doc_id **and** pack_id at that row are the listed ones | apply | `doc_id is 'A', the remove list says 'B'. The list was made from another cleaning run` |
+| Every part opens as Parquet with `doc_id` and `pack_id` (footer only) | apply | `… cannot be read as Parquet` · `… no pack_id column` |
+| No Parquet under the output that isn't a current part | apply · f2 | `… left by an earlier run` · `no stale F2 output in final/train` |
+| Output never inside input, nor input inside output | apply · f2 · config | `… overlap: the output would be read as input` |
+| Overlap is complete and read these cleaned parts | runner | `overlap read every cleaned row` · `overlap read these cleaned parts` |
+| Dedup is complete, used **this** overlap run, agrees with its list, removed no held-out | runner | `dedup used this overlap run` · `dedup summary matches its remove list` |
+| F2 read every row, read what apply wrote, adds up, no errors, one set | runner | `F2 read what apply wrote in train` · `F2 reported no errors on train` |
+| Survivor loss saw every dedup group; F2 covered every part holding a survivor | runner · survivor | `survivor loss saw every dedup group` · `… F2 did not cover them` |
+| Every row the remove list, groups or log names is a row of its cleaned part, with that doc_id | ledger | `… name another doc_id than the cleaned part holds at that row` |
+| No row named twice; the groups' removed rows and the log's rows are exactly the remove list's rows | ledger | `… names 1 row(s) of this part more than once` · `… in one of remove_list.csv and dedup_log.jsonl but not the other` |
+| doc_id is unique within each part; mode B: the raw file has the reported sha256, and every cleaned doc is in it | ledger | `a doc_id appears twice in the part` · `no raw part has the sha256 the cleaning report names` · `… cleaned doc(s) are not in the raw part` |
+| Every F2 report covers its part; each final part holds exactly the ledger's kept docs, in order | ledger | `no F2 report` · `the final part … does not hold the ledger's … kept documents in order` |
+| Mode B with cleaning reports: drops and input rows per part agree | ledger | `… the cleaning report …` |
+| Ledger totals = apply's and F2's counts | runner | `ledger kept = F2's kept` · `ledger removed_by_dedup = apply's removed` |
+| With `from`, earlier outputs still match their recorded digest | runner | `… changed after the manifest recorded it; rerun from …` |
+| The whole config before the first stage | runner | `config: stages.dedup.output is missing` · `f2 script … not found` |
+| A run stage's settings file exists and matches its pin; its output is below `out/`, not a folder of the run, not another stage's | runner (config) | `config: overlap: … pins …` · `… named subfolder …` · `… is a folder of the run itself` · `stages.clean.output and stages.overlap.output overlap` |
+| Shards: no part failed or was skipped, `run_shards.py` exited 0, at least one shard written, the summary is this run's | runner | `shards: no part failed or was skipped` · `shards: the summary is this run's, made with this run's cleaning_pipeline.json` |
+| Shards on disk: files and sha256, `.bin` header and size, index, special ids, metadata, pack table row, tokenizer, F2 set, first and last document of every shard against `final/` (checked by `run_shards.py` and again by the runner, not from the summary) | runner | `shards: the shard files on disk verify …` · `verify_shards: … sha256 …` |
 
 `apply_dedup.py` copies the cleaned parts without the rows dedup's `remove_list.csv` names, everything else unchanged. It runs **all** of its checks before it writes anything (see [Guards](#guards)). A part with nothing to remove is hard-linked (or byte-copied with `--copy` or `"link": false`), so its sha256 proves it is untouched. A filtered part keeps its codec, rows and row order; its row groups hold up to 64k rows or 32 MiB. A rerun with the same remove list and code skips each part whose input and output still have the recorded sha256.
 
@@ -845,6 +869,9 @@ One process at a time may write apply's, the ledger's or reconcile's output fold
 | A run with `inventory` has `stages.ledger.raw`, `stages.shards` and `stages.reconcile`, ends at reconcile, and its `stages.shards.packs` are the inventory's packs | runner (config) | `config: "inventory" needs stages.ledger.raw …` · `config: "inventory" needs stages.shards and stages.reconcile …` · `config: "inventory" needs a run that ends at reconcile …` · `config: stages.shards.packs and the inventory's packs differ` |
 | Every top-level key of the config is a run parameter and every key under `stages` is a stage (or a `_…` comment), so a mistyped `inventory` or `intermediates` is not silently ignored | runner (config) | `config: unknown key 'Inventory' …` · `config: stages.inventory is not a stage …` |
 
+When the parts are done, `run_shards.py` checks the shards in `--out` against their files (`shards/verify_shards.py`; `shards/shard_format_v1.md`, "Verification"), and the runner's shard stage checks them again on its own, not from `shards_summary.json`: the five files and `cleaning_pipeline.json` exist with the manifest's sha256, the `.bin` header and size, the index, the special ids and the metadata agree with the manifest, `language`, `script`, `domain` and `lane` are the pack's row in `pack_table.json`, and the first and last document of each shard, read from `final/`, encode to the tokens in the `.bin` and decode to their normalized text. The hashes the runner computes for this are reused for the stage's digest, so each `.bin` is read once there. By hand: `python -I teams/01-data-a/shards/verify_shards.py --out <dir> --manifest <run>/pipeline_manifest.json --tokenizer <tokenizer.json>`.
+
+Language, script, domain and lane come from the pack's row in `shards/pack_table.json`; a pack that is not in the table, or has a null field, is skipped. The shard number is the part's number (`part-00001.parquet` becomes `<pack>-train-000001`). Nothing is written if one of the shards is already in `--out`. A part the writer stops on is recorded and the run goes on; the exit code is 1 unless every part was written or `not_sharded`. `<out>/shards_summary.json` lists each part with its status, shard id, docs, tokens, rows read of the rows in the part, and `truncated` (the writer fills one shard per part up to `--tokens` and drops the rest).
 </details>
 
 <br>

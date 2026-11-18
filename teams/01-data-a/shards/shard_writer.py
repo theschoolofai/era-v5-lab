@@ -49,6 +49,7 @@ REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO / "teams" / "06-performance"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import provenance  # noqa: E402
+from verify_shards import EOS, EOS_ID, VOCAB, special_ids  # noqa: E402  (the shard constants live there, with the checks of a finished shard)
 from dataio.loader import HEADER_BYTES, open_shard  # noqa: E402
 from dataio.prepare_fineweb import write_shard  # noqa: E402
 
@@ -91,8 +92,7 @@ def load_tokenizer(path, any_tokenizer):
             sys.exit(f"{path}: id {EOS_ID} is {tok.id_to_token(EOS_ID)!r}, not {EOS}")
     if tok.get_vocab_size(with_added_tokens=True) != VOCAB:
         sys.exit(f"{path}: vocab {tok.get_vocab_size(with_added_tokens=True)}, not {VOCAB}")
-    specials = {i for i, t in tok.get_added_tokens_decoder().items() if t.special} | set(SPECIAL_BLOCK)
-    return tok, got, specials
+    return tok, got, special_ids(tok)
 
 
 def pack_family(pack_id):
@@ -212,10 +212,11 @@ def main(argv=None):
 
     token_count = int(starts[-1])
     commit = subprocess.run(["git", "-C", str(REPO), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+    payload_sha = sha(bin_path)  # once: it goes into the manifest and into the dump below
     manifest = {
         "schema_version": "shard-v1", "dataset_version": a.dataset_version, "shard_id": shard_id,
         "format": "brahmic_u32_v2+doc_index", "token_dtype": "uint32",
-        "payload_uri": bin_path.name, "payload_sha256": sha(bin_path), "payload_bytes": bin_path.stat().st_size,
+        "payload_uri": bin_path.name, "payload_sha256": payload_sha, "payload_bytes": bin_path.stat().st_size,
         "index_uri": idx_path.name, "index_sha256": sha(idx_path),
         "doc_count": len(docs), "token_count": token_count, "eos_token_id": EOS_ID,
         "tokenizer_sha256": tok_sha,
@@ -255,7 +256,7 @@ def main(argv=None):
              f"Left out: {lo['secret']} secret-like, {lo['empty']} empty, {lo['special']} with a special id inside, "
              f"{lo['roundtrip']} not round-tripping (doc_ids in `{shard_id}.quality_report.json`).\n\n",
              "| file | bytes | sha256 |\n|---|---:|---|\n",
-             *(f"| `{p.name}` | {p.stat().st_size:,} | `{sha(p)[:16]}…` |\n" for p in (bin_path, idx_path, meta_path, pipeline, report)),
+             *(f"| `{p.name}` | {p.stat().st_size:,} | `{(payload_sha if p == bin_path else sha(p))[:16]}…` |\n" for p in (bin_path, idx_path, meta_path, pipeline, report)),
              f"\n## `{bin_path.name}`\n\n- header, {HEADER_BYTES:,} bytes = 256 little-endian int32: `{header[0]}` (magic), "
              f"`{header[1]}` (version), `{header[2]:,}` (token count), then zeros\n"
              f"- then {token_count:,} little-endian uint32 token IDs; every doc ends with {EOS_ID}, and no other special id occurs\n"

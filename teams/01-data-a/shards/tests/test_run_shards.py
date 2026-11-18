@@ -113,6 +113,7 @@ def test_held_out_parts_alone_are_a_clean_run_and_do_not_block_a_rerun(run, tmp_
         part.unlink()
     code, out, s = go(run, tmp_path, table, "--pack", "pk-a")
     assert code == 0 and s["counts"]["written"] == 0 and s["counts"]["not_sharded"] == 1
+    assert s["verified"] is None and s["problems"] == []  # no shard, nothing to check
 
 
 def test_a_part_whose_file_changed_after_f2_fails_alone(run, tmp_path, table):
@@ -185,6 +186,66 @@ def test_no_parts_is_an_error(run, tmp_path, table):
         go(run, tmp_path, table, "--pack", "nothing")
 
 
+def break_after_writing(monkeypatch, breaker):
+    """Run shard_writer as usual, then let breaker(out folder, manifest) damage what it wrote."""
+    real = rs.shard_writer.main
+
+    def main(argv):
+        manifest = real(argv)
+        breaker(Path(argv[argv.index("--out") + 1]), manifest)
+        return manifest
+    monkeypatch.setattr(rs.shard_writer, "main", main)
+
+
+def flip_a_token_byte(out, m):
+    if m["pack_id"] == "pk-b":
+        p = out / m["payload_uri"]
+        data = bytearray(p.read_bytes())
+        data[1030] ^= 1
+        p.write_bytes(bytes(data))
+
+
+def test_a_good_run_is_verified(run, tmp_path, table):
+    code, out, s = go(run, tmp_path, table, "--pack", "pk-a", "--pack", "pk-b")
+    assert code == 0 and s["verified"] is True and s["problems"] == []
+
+
+def test_a_shard_that_fails_verification_fails_its_part_alone(run, tmp_path, table, monkeypatch):
+    break_after_writing(monkeypatch, flip_a_token_byte)
+    code, out, s = go(run, tmp_path, table, "--pack", "pk-a", "--pack", "pk-b")
+    e = s["parts"]["train/pk-b/part-00000.parquet"]
+    assert code == 1 and e["status"] == "failed" and e["shard_id"] == "pk-b-train-000000"
+    assert e["reason"].startswith("verify_shards: pk-b-train-000000: pk-b-train-000000.bin: sha256")
+    assert s["parts"]["train/pk-a/part-00000.parquet"]["status"] == "written" and s["verified"] is False
+    assert s["counts"]["written"] == 2 and s["counts"]["failed"] == 1 and s["problems"] == []
+
+
+def test_a_problem_that_belongs_to_no_part_goes_to_the_summary_and_fails_the_run(run, tmp_path, table, monkeypatch):
+    break_after_writing(monkeypatch, lambda out, m: (out / "cleaning_pipeline.json").unlink() if m["pack_id"] == "pk-b" else None)
+    code, out, s = go(run, tmp_path, table, "--pack", "pk-a", "--pack", "pk-b")
+    assert code == 1 and s["verified"] is False and s["counts"]["written"] == 3
+    assert any("cleaning_pipeline.json is missing" in p for p in s["problems"])
+
+
+def test_a_rerun_checks_the_shards_an_earlier_run_wrote(run, tmp_path, table):
+    go(run, tmp_path, table, "--pack", "pk-b")
+    (tmp_path / "shards" / "pk-b-train-000000.idx.npy").unlink()  # damaged between the runs
+    code, out, s = go(run, tmp_path, table, "--pack", "pk-a")
+    e = s["parts"]["train/pk-b/part-00000.parquet"]
+    assert code == 1 and e["status"] == "failed" and "pk-b-train-000000.idx.npy is missing" in e["reason"]
+    assert s["parts"]["train/pk-a/part-00000.parquet"]["status"] == "written"
+
+
+def test_a_long_list_of_problems_is_cut_in_the_reason(run, tmp_path, table, monkeypatch):
+    def damage(out, m):
+        if m["pack_id"] == "pk-b":
+            flip_a_token_byte(out, m)
+            for ext in (".idx.npy", ".docs.parquet", ".dump.md"):
+                (out / f"{m['shard_id']}{ext}").unlink()
+    break_after_writing(monkeypatch, damage)
+    code, out, s = go(run, tmp_path, table, "--pack", "pk-b")
+    reason = s["parts"]["train/pk-b/part-00000.parquet"]["reason"]
+    assert reason.count("; ") == 2 and "(and 1 more)" in reason  # four problems: three are shown
 def licensed(tmp_path, change=None):
     """The table of these tests with a licence and its source in every row, as the shard job's pack table has."""
     packs = {p: {**r, "license": f"licence-of-{p}", "license_source": "licence_table.md at fb7d5e6"} for p, r in TABLE["packs"].items()}
