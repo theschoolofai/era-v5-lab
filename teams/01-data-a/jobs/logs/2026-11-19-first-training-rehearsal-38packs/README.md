@@ -38,6 +38,17 @@ exit code 0, 2 h 35 min (11:37 to 14:12 UTC).
 1,083 groups, 1,339 removed, rule 0: 28, rule 2: 21, rule 3: 749, rule 4: 285. The per-pack counts are at the end of
 [`logs/run-38pack/stderr.log`](logs/run-38pack/stderr.log).
 
+**Files for a recount** ([`files/`](files/)): [`dedup_groups.csv`](files/dedup_groups.csv) (2,422 rows, every member of the 1,083 groups),
+[`survivor_loss.csv`](files/survivor_loss.csv) (the 1 lost group: G000986, code-go `part-00001` row 6117, doc_id `d3295bf2adf32b51`,
+dropped by F2 for G5's held-out `vault-go-test-000041/42`), and
+[`ledger_code-go_train_groups_and_f2.csv`](files/ledger_code-go_train_groups_and_f2.csv) (the 101 code-go train ledger rows that are in
+a dedup group or dropped by F2). The ledger itself is Parquet (pr-guard refuses data files) and 11 MB as CSV for code-go alone.
+
+**Left out as secret:** the shard writer reuses pr-guard's patterns. In `cadj-commits`, 4,311 of 73,835 kept train documents (5.8%): 4,308 match the
+email pattern and 3 the AWS-key pattern; the first address is in a `Signed-off-by:` line in 1,092, in an author, co-author or
+reviewed-by style line in 1,304, and elsewhere in 1,912. `code-python` 39 (0.1%) and `en-dclm` 408 (0.7%) are also nearly all email.
+(Counts only, from the shards' quality reports and `final/`.)
+
 **The shards, checked afterwards:**
 - `shards/verify_shards.py`: 0 problems ([`logs/verify_shards_38pack.txt`](logs/verify_shards_38pack.txt)).
 - `audit/check_shard.py` of #60 (`585447e`) in folder mode with `--expect-tokenizer p1536 --expect-dataset-version rehearsal-p1536 --specials-from <tokenizer.json>`: 2,721 PASS, 0 FAIL, 1 NOT CHECKED ("run_shards verified the folder": `shards_summary.json` has `verified` null, because in a pipeline run the runner verifies the shards, not `run_shards.py`) ([`logs/check_shard_38pack.txt`](logs/check_shard_38pack.txt)).
