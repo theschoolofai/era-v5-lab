@@ -10,8 +10,8 @@ Team:            10-post-training
 Owner:           10-post-training (lead saitej123)
 Lead approval:   pending (saitej123)
 Question:        Does the SFT arm chosen by the #587 decision rule, rerun with its weights kept, reproduce its #587 held-out numbers and leave one checked safetensors file in TSAI storage?
-Script:          NOT YET IN REPO. teams/10-post-training/sft/bench/train.py and teams/10-post-training/capstone/sft_g5.py have no save path that calls teams/07-infrastructure/ckpt (Checkpointer.save, export_safetensors). A code PR is required first.
-Command:         TBD after the code PR (no save flag exists yet)
+Script:          teams/10-post-training/capstone/sft_g5.py (`--team7-ckpt-remote` calls `teams/07-infrastructure/ckpt/ckpt.py` `Checkpointer.save` + `export_safetensors`, verified locally on single-process PyTorch in `capstone/test_team7_ckpt_save.py`). `capstone/sft_job_v1.py` still deletes weights by default until a keep-weights flag is wired.
+Command:         python teams/10-post-training/capstone/sft_g5.py --adapter-config <CFG> --train <ARM_ROWS> --eval <DEV_ROWS> --method full --team7-ckpt-remote <REMOTE_ROOT> --team7-run-id <RUN_ID> --out out/ (exact arm TBD after #587)
 Config:          the #587 settings (block size 2,048, seed 1, AdamW, full method, the same pins). Arm: A2 or A4, whichever #587's decision rule picks (see #587 "Decision rule").
 Inputs:          the same as #587: the firewalled OCR-2 pack shards 0-3 (TSAI-stored, #565), the RL pool files (#564), and the dry run 1 run folder (#475). Nothing new.
 Hardware:        1 GPU
@@ -26,9 +26,7 @@ Test log:        REQUIRED before sending. Not yet attached. Run the save and rel
 ## Blocked by
 
 1. **#587 results.** The arm is picked by #587's decision rule. Until TSAI returns #587, the arm is unknown.
-2. **Code PR for the save step.** Neither training script calls Team 7's `Checkpointer` or `export_safetensors`. The
-   `export_safetensors(remote_run, model_factory, probe_fn, out_path, step)` signature needs a run that Team 7's
-   checkpointer wrote. Whether that works for our non-DeepSpeed run is open. Team 7 must confirm.
+2. **Code PR for the save step (partially done).** `capstone/sft_g5.py` now supports `--team7-ckpt-remote` (calling Team 7 `Checkpointer.save` + `export_safetensors` on single-process non-DeepSpeed PyTorch; verified in `capstone/test_team7_ckpt_save.py` with exact `float_bits` probe parity and `logits_max_abs_diff == 0.0`). Still open: wire a pass-through flag into `sft_job_v1.py` if run via the two-arm wrapper, and confirm Team 7 remote store credentials/URL.
 3. **Route decision (lead).** Two options:
    - (a) Team 7's `Checkpointer` and `export_safetensors`, as the instructor's `#587` note asks for later SFT jobs that keep weights.
    - (b) TSAI stores the exported safetensors file with its sha256, on the same route as the OCR-2 pack (#565) and the RL pool (#564).

@@ -598,3 +598,35 @@ def test_flagged_envs_match_the_review():
                if json.loads((d / "env.json").read_text(encoding="utf-8"))["quality_verdict"] == "keep-flagged"}
     assert flagged == {"python-poetry__tomlkit-221", "python-poetry__tomlkit-236", "python-validators__validators-191",
                        "scrapy__w3lib-136", "scrapy__w3lib-196"}
+
+
+def test_docker_build_retries_without_progress_on_legacy_builder(monkeypatch):
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        if "--progress=plain" in cmd:
+            return verify.subprocess.CompletedProcess(cmd, 125, "", "unknown flag: --progress\n")
+        return verify.subprocess.CompletedProcess(cmd, 0, "Successfully built abc123\n", "")
+
+    monkeypatch.setattr(verify.subprocess, "run", fake_run)
+    proc = verify._docker_build(["-t", "g10-swe/test:v1", "/tmp/ctx"])
+    assert proc.returncode == 0
+    assert calls == [
+        ["docker", "build", "--progress=plain", "-t", "g10-swe/test:v1", "/tmp/ctx"],
+        ["docker", "build", "-t", "g10-swe/test:v1", "/tmp/ctx"],
+    ]
+
+
+def test_docker_build_does_not_retry_on_real_build_error(monkeypatch):
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        return verify.subprocess.CompletedProcess(cmd, 1, "", "failed to solve: syntax error\n")
+
+    monkeypatch.setattr(verify.subprocess, "run", fake_run)
+    proc = verify._docker_build(["-t", "g10-swe/test:v1", "/tmp/ctx"])
+    assert proc.returncode == 1
+    assert len(calls) == 1
+
