@@ -3,8 +3,8 @@ child names; the merge and bake functions are the ones sft_g5.py calls, no new m
 
     python -m pytest capstone/test_keep_weights_adapters.py -q
 
-Not covered: a LoRA or DT arm on the real Team 5 LanguageModel (its fused expert path needs saitej123/era-v5-lab#127,
-which this worktree does not contain). Full fine-tuning merges nothing and is the same code path as the tiny-MoE test.
+The real Team 5 LanguageModel class is covered in test_keep_weights_real_model.py. Full fine-tuning merges nothing and is the same code
+path as the tiny-MoE test.
 """
 from __future__ import annotations
 
