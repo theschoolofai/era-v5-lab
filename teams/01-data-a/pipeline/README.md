@@ -920,13 +920,13 @@ One process at a time may write apply's, the ledger's or reconcile's output fold
 
 ## Measured on real data
 
-### The first-training job, run locally on 5 packs (19 Nov)
+### The first-training rehearsal on all 38 packs (19 Nov)
 
-`teams/01-data-a/jobs/logs/2026-11-19-first-training-local-5packs/README.md` (aneeshads, at `9965416` with the `4dd2802` fix): the job's own script on 13 raw parts of sample v0 (8 train, 5 held-out) of `ind-sa-fw2`, `ind-hi-fw2`, `en-fineweb-edu`, `code-go` and `code-rust`, with H3 on LaBSE (2,000 documents a pack). Every stage from clean to reconcile ran: **118 checks, 0 failed**; 237,898 raw → 228,313 cleaned → 227,984 kept (dedup 83, F2 246); 8 train parts → **63 shards** (`tokens` 2^22, so that parts roll over), 0 truncated, verified on disk; reconcile: 225,471 in shards + 199 left out (secret) + 2,314 held-out. Not a production run: no inventory, a test tokenizer (`dataset_version` `test`), and not all 38 packs.
+[Rehearsal evidence](../jobs/logs/2026-11-19-first-training-rehearsal-38packs/README.md) (sourav-dhar): all 86 raw parts of sample v0, with the frozen p1536 tokenizer, H3 report-only, and the pinned Linux environment. The inventory-enabled run at `2691c44` passed **74/74 pipeline checks** and **9/9 inventory checks**. It wrote **48 train shards**, recorded 38 heldout parts as unsharded, and reconciled all 1,407,358 kept documents: 1,385,709 in shards, 7,575 left out with reasons, and 14,074 heldout. All 144 shard data files matched the earlier full rehearsal. This is the job request's primary local execution evidence; production input selection remains subject to TSAI approval.
 
 ### The rehearsal from raw (16 Nov)
 
-The full chain from the raw parts, on a laptop: code-go, 3 parts of tokenizer sample v0 (2 train, 1 held-out); runner at `bd09924` (before the commits listed in the [Reviewer's guide](#reviewers-guide)); the **real** `overlap.py` and `dedup.py`; shards with p1536's `tokenizer.json` through `"any_tokenizer": true` (at `bd09924` the writer still pinned C3; the p1536 pin is `66eead1`), so the rehearsal's shards are marked `dataset_version: "test"`. **40 of 40 checks passed, in 41 minutes.** This is development evidence, not the job's: it predates the changes listed in the [Reviewer's guide](#reviewers-guide) and ran on sample v0. The job's own rehearsal is still to be run (see the open items under [At a glance](#at-a-glance)).
+The full chain from the raw parts, on a laptop: code-go, 3 parts of tokenizer sample v0 (2 train, 1 held-out); runner at `bd09924` (before the commits listed in the [Reviewer's guide](#reviewers-guide)); the **real** `overlap.py` and `dedup.py`; shards with p1536's `tokenizer.json` through `"any_tokenizer": true` (at `bd09924` the writer still pinned C3; the p1536 pin is `66eead1`), so the rehearsal's shards are marked `dataset_version: "test"`. **40 of 40 checks passed, in 41 minutes.** This is development evidence, not the job's: it predates the changes listed in the [Reviewer's guide](#reviewers-guide) and ran on sample v0. The job request's 19 Nov rehearsal evidence is linked above.
 
 | Step | Train | Held-out |
 |---|---:|---:|

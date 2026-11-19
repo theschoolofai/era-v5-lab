@@ -15,7 +15,7 @@ Precision:       H3 fp16 on CUDA (precision auto); shard token IDs are integers
 Measures:        Raw/cleaned/dedup/F2/final counts, H3 matches, train shards and tokens, heldout not_sharded, per-part reconciliation and SHA-256 checks
 Expected result: Every listed raw part reaches the ledger; each train part is written or has a justified empty/all_left_out status; heldout parts are not sharded; all checks pass; H3 removes zero documents
 Outputs:         out/first-training-inputs/{input_manifest.json,expected_inventory.json,pack_metadata.json,run.json}; out/pipeline/<run_id>/{clean,overlap,h3,dedup,deduped,final,report,ledger,shards,reconcile}/ and pipeline_manifest.json
-Test log:        teams/01-data-a/jobs/logs/2026-11-19-first-training-rehearsal-38packs/ (all 86 parts of sample v0, 38 packs, frozen p1536, Linux + pinned env: 59/59 checks; with the inventory, prepare_run's run.json at 2691c44: 74/74); teams/01-data-a/jobs/logs/2026-11-19-first-training-local-5packs/ (5 packs, 118/118)
+Test log:        teams/01-data-a/jobs/logs/2026-11-19-first-training-rehearsal-38packs/ (all 86 parts of sample v0, 38 packs, frozen p1536, Linux + pinned env: 59/59 checks; with the inventory, prepare_run's run.json at 2691c44: 74/74)
 ```
 
 ## Scope and prerequisites
