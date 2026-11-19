@@ -1,0 +1,19 @@
+date: 2026-11-19T03:34:42Z
+commit: 9965416
+cpu: Apple M4
+cores: 10
+memory_gb: 16
+macos: 26.4.1
+python: Python 3.12.10
+ftfy==6.3.1
+numpy==2.4.3
+pandas==3.0.1
+pyarrow==23.0.1
+Pygments==2.21.0
+scipy==1.18.1
+sentence-transformers==6.3.0
+tokenizers==0.23.1
+torch==2.13.0
+transformers==5.23.0
+tree-sitter==0.26.0
+tree-sitter-language-pack==1.22.1

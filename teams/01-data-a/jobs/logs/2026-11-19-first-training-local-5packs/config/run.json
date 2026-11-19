@@ -1,0 +1,63 @@
+{
+  "_comment": "LOCAL 5-pack end-to-end trial on g1-pipeline 9965416 (not a production run: no inventory). Sample-v0 raw parts of ind-sa-fw2, ind-hi-fw2, en-fineweb-edu (H3's three packs) and code-go, code-rust, picked with 'only' from the full 86-part sample manifest. H3 capped at 2,000 docs per pack (out/local-5pack/h3.json). Shards use the public test tokenizer (any_tokenizer: true, so they are 'test') and a local pack table with lane 'local-trial' for the three non-code packs; tokens 2^22 so large parts roll over into several shards.",
+  "run_id": "local-5pack-2026-11-19",
+  "from": "h3",
+  "out": "out/pipeline",
+  "intermediates": "keep",
+  "stages": {
+    "clean": {
+      "mode": "run",
+      "settings": "teams/01-data-a/pipeline/clean.json",
+      "input": "inputs/first-training-local",
+      "manifest_sha256": "7fd647c8d4662d17e2310efbcc20981d70656fdad2fabb7663c266a2153a1b7e",
+      "expected_parts": {
+        "train": 48,
+        "heldout": 38
+      },
+      "only": [
+        "heldout/code-go/part-00000.parquet",
+        "heldout/code-rust/part-00000.parquet",
+        "heldout/en-fineweb-edu/part-00000.parquet",
+        "heldout/ind-hi-fw2/part-00000.parquet",
+        "heldout/ind-sa-fw2/part-00000.parquet",
+        "train/code-go/part-00000.parquet",
+        "train/code-go/part-00001.parquet",
+        "train/code-rust/part-00000.parquet",
+        "train/code-rust/part-00001.parquet",
+        "train/en-fineweb-edu/part-00000.parquet",
+        "train/en-fineweb-edu/part-00001.parquet",
+        "train/ind-hi-fw2/part-00000.parquet",
+        "train/ind-sa-fw2/part-00000.parquet"
+      ]
+    },
+    "overlap": {
+      "mode": "run",
+      "settings": "teams/01-data-a/dedup/overlap.json"
+    },
+    "h3": {
+      "mode": "run",
+      "settings": "out/local-5pack/h3.json"
+    },
+    "dedup": {
+      "mode": "run",
+      "settings": "teams/01-data-a/dedup/dedup.json"
+    },
+    "apply": {
+      "link": true
+    },
+    "f2": {
+      "pool": true,
+      "workers": 4
+    },
+    "ledger": {
+      "raw": "inputs/first-training-local"
+    },
+    "shards": {
+      "tokenizer": "inputs/first-training-local/tokenizer.json",
+      "any_tokenizer": true,
+      "tokens": 4194304,
+      "pack_table": "out/local-5pack/pack_table.json"
+    },
+    "reconcile": {}
+  }
+}

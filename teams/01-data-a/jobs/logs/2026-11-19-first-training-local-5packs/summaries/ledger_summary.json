@@ -1,0 +1,272 @@
+{
+  "tool": "ledger.py",
+  "code_sha256": "4021460974d0d0c3228409cf89096750f31dfe2c6321141f0dc9f370233b6fe1",
+  "clean_mode": "B",
+  "inputs": {
+    "raw": {
+      "path": "/Users/aneeshadas/ERA5/Capstone/Week2-G1-work/pipeline-review/era-v5-lab/inputs/first-training-local",
+      "files": [
+        {
+          "part": "train/code-go/part-00000.parquet",
+          "file": "train/code-go/part-00000.parquet",
+          "sha256": "6b7b52e854df0456e3a9867b32f5217b54995faa30dbd6b8b94e23eab6db8eb1"
+        },
+        {
+          "part": "train/code-go/part-00001.parquet",
+          "file": "train/code-go/part-00001.parquet",
+          "sha256": "40aedd68c4ec949eb825edc68896ae4518cf6c3283027d9ba1430ee66ee247fc"
+        },
+        {
+          "part": "train/code-rust/part-00000.parquet",
+          "file": "train/code-rust/part-00000.parquet",
+          "sha256": "f1632a12383e1efb9eee68bf8b57566291ea64801146cf144dfba9c363f32e21"
+        },
+        {
+          "part": "train/code-rust/part-00001.parquet",
+          "file": "train/code-rust/part-00001.parquet",
+          "sha256": "9dab607bd3c9464536bed594b77b5cd8edef6e731c5320f0c50d1017ebf59513"
+        },
+        {
+          "part": "train/en-fineweb-edu/part-00000.parquet",
+          "file": "train/en-fineweb-edu/part-00000.parquet",
+          "sha256": "53cbbf7a77b84e46108836c889e6cb83e6fcdc048c316fbf699586a7fef1dbe2"
+        },
+        {
+          "part": "train/en-fineweb-edu/part-00001.parquet",
+          "file": "train/en-fineweb-edu/part-00001.parquet",
+          "sha256": "bdd5d5b4f7aa8ec00e17865b5ebe13344728569aa7ffff7f37ba942b6fe42229"
+        },
+        {
+          "part": "train/ind-hi-fw2/part-00000.parquet",
+          "file": "train/ind-hi-fw2/part-00000.parquet",
+          "sha256": "28f77743e293573f70554bdc8f3d3b29764f5e5154ed53ee4fb61c951604c4e3"
+        },
+        {
+          "part": "train/ind-sa-fw2/part-00000.parquet",
+          "file": "train/ind-sa-fw2/part-00000.parquet",
+          "sha256": "1238fde5e67f36130972e3aa0df015450d6352e979dcbc0a852f9133fb17e0ee"
+        },
+        {
+          "part": "heldout/code-go/part-00000.parquet",
+          "file": "heldout/code-go/part-00000.parquet",
+          "sha256": "be4917c1049d1e1a22286d2822c96c47f688bcf2bb9bdafba9511ae350728745"
+        },
+        {
+          "part": "heldout/code-rust/part-00000.parquet",
+          "file": "heldout/code-rust/part-00000.parquet",
+          "sha256": "7879813e212722e3540dde0340c2f9d3dbe2e74112a6121c9c36ad81bf9669ec"
+        },
+        {
+          "part": "heldout/en-fineweb-edu/part-00000.parquet",
+          "file": "heldout/en-fineweb-edu/part-00000.parquet",
+          "sha256": "727ee3f5ee0ef235fdd5839e516130e3b3fbb4a95345bfc827175f69ecd2647a"
+        },
+        {
+          "part": "heldout/ind-hi-fw2/part-00000.parquet",
+          "file": "heldout/ind-hi-fw2/part-00000.parquet",
+          "sha256": "149346eb3cda65d2fa47891fb5f277e1755445d9e46bfac8c7840d677347d732"
+        },
+        {
+          "part": "heldout/ind-sa-fw2/part-00000.parquet",
+          "file": "heldout/ind-sa-fw2/part-00000.parquet",
+          "sha256": "eaa16f46dbc391efe6f172545c000c64794b9d505b97069b6c41e11f06f19d8d"
+        }
+      ]
+    },
+    "remove_list": {
+      "path": "/Users/aneeshadas/ERA5/Capstone/Week2-G1-work/pipeline-review/era-v5-lab/out/pipeline/local-5pack-2026-11-19/dedup/remove_list.csv",
+      "sha256": "31aec5e2206f3e3b6a5a9c141fc1421891299bf3bd5bfc7224ef3c3f3a1b6fb8",
+      "rows": 83
+    },
+    "groups": {
+      "path": "/Users/aneeshadas/ERA5/Capstone/Week2-G1-work/pipeline-review/era-v5-lab/out/pipeline/local-5pack-2026-11-19/dedup/dedup_groups.csv",
+      "sha256": "309f6cc8648bd6d42cf3acbc00cc402a9e64f12df38c918b4f31ad128e246653",
+      "rows": 115,
+      "removed_rows": 83
+    },
+    "log": {
+      "path": "/Users/aneeshadas/ERA5/Capstone/Week2-G1-work/pipeline-review/era-v5-lab/out/pipeline/local-5pack-2026-11-19/dedup/dedup_log.jsonl",
+      "sha256": "2cf597f63b85a715b6771dcee19dec241c5c060f010efca76d4b0872bb629bce",
+      "rows": 83
+    },
+    "set_sha256": "2826a3b883210c653979103c09ce1c79e40fc4f7034b54027f2836482370d22a"
+  },
+  "parts": 13,
+  "totals": {
+    "rows": 237898,
+    "rows_cleaned": 228313,
+    "kept": 227984,
+    "dropped_by_clean": 9585,
+    "removed_by_dedup": 83,
+    "dropped_by_f2": 246,
+    "f2_error": 0,
+    "clean_fix_by_text": 83018
+  },
+  "survivors_dropped_by_f2": {
+    "total": 1,
+    "by_pack": {
+      "code-go": 1
+    }
+  },
+  "clean_reports": {
+    "parts": 13,
+    "input_rows": 237898,
+    "drop": 9585,
+    "fix": 83018,
+    "keep": 145295
+  },
+  "by_pack": {
+    "code-go": {
+      "train": {
+        "rows": 83267,
+        "rows_cleaned": 76955,
+        "kept": 76853,
+        "dropped_by_clean": 6312,
+        "removed_by_dedup": 6,
+        "dropped_by_f2": 96,
+        "f2_error": 0
+      },
+      "heldout": {
+        "rows": 872,
+        "rows_cleaned": 810,
+        "kept": 808,
+        "dropped_by_clean": 62,
+        "removed_by_dedup": 0,
+        "dropped_by_f2": 2,
+        "f2_error": 0
+      }
+    },
+    "code-rust": {
+      "train": {
+        "rows": 60126,
+        "rows_cleaned": 58200,
+        "kept": 58106,
+        "dropped_by_clean": 1926,
+        "removed_by_dedup": 58,
+        "dropped_by_f2": 36,
+        "f2_error": 0
+      },
+      "heldout": {
+        "rows": 612,
+        "rows_cleaned": 595,
+        "kept": 595,
+        "dropped_by_clean": 17,
+        "removed_by_dedup": 0,
+        "dropped_by_f2": 0,
+        "f2_error": 0
+      }
+    },
+    "en-fineweb-edu": {
+      "train": {
+        "rows": 71933,
+        "rows_cleaned": 71374,
+        "kept": 71283,
+        "dropped_by_clean": 559,
+        "removed_by_dedup": 7,
+        "dropped_by_f2": 84,
+        "f2_error": 0
+      },
+      "heldout": {
+        "rows": 732,
+        "rows_cleaned": 726,
+        "kept": 726,
+        "dropped_by_clean": 6,
+        "removed_by_dedup": 0,
+        "dropped_by_f2": 0,
+        "f2_error": 0
+      }
+    },
+    "ind-hi-fw2": {
+      "train": {
+        "rows": 14261,
+        "rows_cleaned": 13801,
+        "kept": 13773,
+        "dropped_by_clean": 460,
+        "removed_by_dedup": 0,
+        "dropped_by_f2": 28,
+        "f2_error": 0
+      },
+      "heldout": {
+        "rows": 132,
+        "rows_cleaned": 131,
+        "kept": 131,
+        "dropped_by_clean": 1,
+        "removed_by_dedup": 0,
+        "dropped_by_f2": 0,
+        "f2_error": 0
+      }
+    },
+    "ind-sa-fw2": {
+      "train": {
+        "rows": 5908,
+        "rows_cleaned": 5667,
+        "kept": 5655,
+        "dropped_by_clean": 241,
+        "removed_by_dedup": 12,
+        "dropped_by_f2": 0,
+        "f2_error": 0
+      },
+      "heldout": {
+        "rows": 55,
+        "rows_cleaned": 54,
+        "kept": 54,
+        "dropped_by_clean": 1,
+        "removed_by_dedup": 0,
+        "dropped_by_f2": 0,
+        "f2_error": 0
+      }
+    }
+  },
+  "files": [
+    {
+      "file": "heldout/code-go.parquet",
+      "rows": 872,
+      "sha256": "70ff748038104ee47627afc6e39aa272f16ce39e70bd5d17e79f25e85eef0074"
+    },
+    {
+      "file": "heldout/code-rust.parquet",
+      "rows": 612,
+      "sha256": "c9f6f3eac04fe90598e50eb0edb7e95e98227838d515aee518ea67e974c07b02"
+    },
+    {
+      "file": "heldout/en-fineweb-edu.parquet",
+      "rows": 732,
+      "sha256": "564e094dca6e120376c9bcd6ec4467aba1189be92514f7d285bc25d3c52b4892"
+    },
+    {
+      "file": "heldout/ind-hi-fw2.parquet",
+      "rows": 132,
+      "sha256": "60c33920c6ca9ac015407c51cd5ee9c1507951f8ae3ea400b7a7d99ad7dd48af"
+    },
+    {
+      "file": "heldout/ind-sa-fw2.parquet",
+      "rows": 55,
+      "sha256": "f750fb2f11975a2b9c2a74c0f1d97af8ea0f4ca74ec0f96025b59d99c03a59f7"
+    },
+    {
+      "file": "train/code-go.parquet",
+      "rows": 83267,
+      "sha256": "baeb18e57878b1275f594af599414bb7b668a3729f952d47f1fb75febe2cbd0d"
+    },
+    {
+      "file": "train/code-rust.parquet",
+      "rows": 60126,
+      "sha256": "84ece9861083db240a8c8207d79a39277006480399980188c95a12e654bb1d98"
+    },
+    {
+      "file": "train/en-fineweb-edu.parquet",
+      "rows": 71933,
+      "sha256": "4f9bc3f3bf8453d2f369045ae39113f247b9caf1d254b81bf20f90c2c3003304"
+    },
+    {
+      "file": "train/ind-hi-fw2.parquet",
+      "rows": 14261,
+      "sha256": "dc0db44567a16870582227f904e3497136fb14b8cd9ddca796085bc677c5ea33"
+    },
+    {
+      "file": "train/ind-sa-fw2.parquet",
+      "rows": 5908,
+      "sha256": "51a32cc9be706d7bb96c876689c72acfd31d8bb728aa8199913bec2c064de4ac"
+    }
+  ]
+}

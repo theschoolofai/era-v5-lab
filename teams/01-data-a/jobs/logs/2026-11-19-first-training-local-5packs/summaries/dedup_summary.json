@@ -1,0 +1,240 @@
+{
+  "status": "complete",
+  "config": {
+    "results": "out/pipeline/local-5pack-2026-11-19/overlap",
+    "inputs": "out/pipeline/local-5pack-2026-11-19/clean",
+    "out": "out/pipeline/local-5pack-2026-11-19/dedup",
+    "cross_pack": true,
+    "pack_order": [
+      "code-go",
+      "code-js-ts",
+      "code-java",
+      "code-cpp",
+      "code-rust",
+      "code-python",
+      "en-fineweb-edu",
+      "en-dclm",
+      "en-nemotroncc-synth",
+      "en-nemotroncc",
+      "math-megamath",
+      "math-finemath",
+      "sci-finepdfs",
+      "cadj-commits",
+      "cadj-notebooks",
+      "cadj-stackexchange",
+      "ind-bn-fw2",
+      "ind-bn-sangraha-v",
+      "ind-gu-fw2",
+      "ind-hi-fw2",
+      "ind-hi-hplt",
+      "ind-hi-indiccorp",
+      "ind-hi-sangraha-s",
+      "ind-hi-sangraha-v",
+      "ind-kn-fw2",
+      "ind-kn-sangraha-s",
+      "ind-kn-sangraha-v",
+      "ind-ml-fw2",
+      "ind-mr-fw2",
+      "ind-mr-sangraha-v",
+      "ind-or-fw2",
+      "ind-sa-fw2",
+      "ind-ta-fw2",
+      "ind-ta-sangraha-s",
+      "ind-ta-sangraha-v",
+      "ind-te-fw2",
+      "ind-te-sangraha-s",
+      "ind-te-sangraha-v"
+    ],
+    "licence_usable": {
+      "code-go": true,
+      "code-js-ts": true,
+      "code-java": true,
+      "code-cpp": true,
+      "code-rust": true,
+      "code-python": true,
+      "en-fineweb-edu": true,
+      "en-dclm": true,
+      "en-nemotroncc-synth": true,
+      "en-nemotroncc": true,
+      "math-megamath": true,
+      "math-finemath": true,
+      "sci-finepdfs": true,
+      "cadj-commits": true,
+      "cadj-notebooks": true,
+      "cadj-stackexchange": true,
+      "ind-bn-fw2": true,
+      "ind-bn-sangraha-v": true,
+      "ind-gu-fw2": true,
+      "ind-hi-fw2": true,
+      "ind-hi-hplt": true,
+      "ind-hi-indiccorp": true,
+      "ind-hi-sangraha-s": true,
+      "ind-hi-sangraha-v": true,
+      "ind-kn-fw2": true,
+      "ind-kn-sangraha-s": true,
+      "ind-kn-sangraha-v": true,
+      "ind-ml-fw2": true,
+      "ind-mr-fw2": true,
+      "ind-mr-sangraha-v": true,
+      "ind-or-fw2": true,
+      "ind-sa-fw2": true,
+      "ind-ta-fw2": true,
+      "ind-ta-sangraha-s": true,
+      "ind-ta-sangraha-v": true,
+      "ind-te-fw2": true,
+      "ind-te-sangraha-s": true,
+      "ind-te-sangraha-v": true
+    },
+    "default_licence_usable": false,
+    "gold_dirs": [
+      "teams/01-data-a/gold",
+      "teams/02-data-b/gold"
+    ],
+    "h3": {
+      "matches": "out/pipeline/local-5pack-2026-11-19/h3/h3_matches.csv",
+      "remove": false,
+      "parallel_packs": []
+    }
+  },
+  "overlap_run": {
+    "commit_note": "see overlap_summary.json",
+    "documents_all": 228313,
+    "checked_sha256": {
+      "overlap_matches.csv": "e2727787750dcd5343efec5e306922a04416b695f1946f42f68628b4300d8bb1",
+      "overlap_docs.parquet": "47c086de4ff1b24a94a7df5d5cc70f2d06b566966f893024e7358055890b7493"
+    }
+  },
+  "matches_used": 556,
+  "cross_pack_matches_dropped": 0,
+  "empty_documents": 0,
+  "empty_document_matches_set_aside": 0,
+  "clusters": 32,
+  "clusters_decided_by_rule": {
+    "3": 25,
+    "4": 7
+  },
+  "groups_without_survivor": 0,
+  "groups_with_several_survivors": 0,
+  "documents_all": 228313,
+  "removed": 83,
+  "removed_share": 0.000364,
+  "removed_by_rule": {
+    "H2": 78,
+    "H1": 5
+  },
+  "removed_by_stage": {
+    "within_pack": 83
+  },
+  "heldout_removed": 0,
+  "heldout_heldout_pairs_reported": 0,
+  "url_known": true,
+  "rule_2_note": null,
+  "licence_default_used_for": [],
+  "h3": {
+    "matches": {
+      "path": "out/pipeline/local-5pack-2026-11-19/h3/h3_matches.csv",
+      "sha256": "016a67b1d66802e35c60fab919afe732316a01abcbdece0ada8baad283f07eda",
+      "pairs": 0
+    },
+    "remove": false,
+    "parallel_packs": [],
+    "outcomes": {
+      "removed": 0,
+      "would_remove": 0,
+      "reported_train_train": 0,
+      "reported_heldout_heldout": 0,
+      "same_group": 0,
+      "parallel_pack": 0
+    },
+    "removed": 0,
+    "groups_survivor_removed": 0
+  },
+  "harm_check": {
+    "status": "not_testable",
+    "gold_ids_in_input": 0,
+    "gold_ids_in_input_by_pack": {
+      "code-go": 0,
+      "code-rust": 0,
+      "en-fineweb-edu": 0,
+      "ind-hi-fw2": 0,
+      "ind-sa-fw2": 0
+    },
+    "gold_removed": 0,
+    "gold_removed_ids": [],
+    "note": "not_testable means no gold ID is in this input, so the check tested nothing (dedup_design_v1.md, Validation): run it on the diagnosis packs"
+  },
+  "by_pack": {
+    "code-go": {
+      "documents_in": 77765,
+      "removed": 6,
+      "removed_H1": 0,
+      "removed_H2": 6,
+      "removed_cross_pack": 0,
+      "removed_H3": 0,
+      "documents_out": 77759
+    },
+    "code-rust": {
+      "documents_in": 58795,
+      "removed": 58,
+      "removed_H1": 1,
+      "removed_H2": 57,
+      "removed_cross_pack": 0,
+      "removed_H3": 0,
+      "documents_out": 58737
+    },
+    "en-fineweb-edu": {
+      "documents_in": 72100,
+      "removed": 7,
+      "removed_H1": 0,
+      "removed_H2": 7,
+      "removed_cross_pack": 0,
+      "removed_H3": 0,
+      "documents_out": 72093
+    },
+    "ind-hi-fw2": {
+      "documents_in": 13932,
+      "removed": 0,
+      "removed_H1": 0,
+      "removed_H2": 0,
+      "removed_cross_pack": 0,
+      "removed_H3": 0,
+      "documents_out": 13932
+    },
+    "ind-sa-fw2": {
+      "documents_in": 5721,
+      "removed": 12,
+      "removed_H1": 4,
+      "removed_H2": 8,
+      "removed_cross_pack": 0,
+      "removed_H3": 0,
+      "documents_out": 5709
+    }
+  },
+  "outputs": {
+    "remove_list.csv": {
+      "bytes": 5788,
+      "sha256": "31aec5e2206f3e3b6a5a9c141fc1421891299bf3bd5bfc7224ef3c3f3a1b6fb8"
+    },
+    "dedup_log.jsonl": {
+      "bytes": 35204,
+      "sha256": "2cf597f63b85a715b6771dcee19dec241c5c060f010efca76d4b0872bb629bce"
+    },
+    "heldout_duplicates.csv": {
+      "bytes": 63,
+      "sha256": "bda0cd4afca13791f8e5a7e615d5d26d50f096012dc0ddc6065cfedfef9ebab9"
+    },
+    "empty_documents.csv": {
+      "bytes": 39,
+      "sha256": "dd97cbf75c673cc42741eac42515de34b17bae043d5f09ad29353329b5f1f9b0"
+    },
+    "dedup_groups.csv": {
+      "bytes": 10467,
+      "sha256": "309f6cc8648bd6d42cf3acbc00cc402a9e64f12df38c918b4f31ad128e246653"
+    },
+    "h3_pairs.csv": {
+      "bytes": 144,
+      "sha256": "bd57d69c3cdd9867e2015c339a2bd1805683a7f0e2b7f2d3ec75ddfc9306721c"
+    }
+  },
+  "seconds": 1.0
+}
