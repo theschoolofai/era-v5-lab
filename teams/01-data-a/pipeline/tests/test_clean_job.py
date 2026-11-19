@@ -8,6 +8,7 @@ job is run again with "resume": true.
 """
 import csv
 import json
+import zlib
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -47,7 +48,7 @@ def sample(tmp_path, monkeypatch):
     shards = [write_part(tmp_path / "input", *part) for part in PARTS]
     config = dict(clean=str(CLEAN), clean_sha256=PIN, manifest=str(tmp_path / "manifest.json"),
                   manifest_sha256=write_manifest(tmp_path / "manifest.json", shards), expected_parts={"train": 3, "heldout": 1},
-                  batch_size=2, unsupported_policy="passthrough_with_explicit_status", input_root="input", output_root="out/job")
+                  batch_size=2, unsupported_policy="passthrough_with_explicit_status", audit_samples=5, input_root="input", output_root="out/job")
 
     def run(out="out/job", resume=False, only=(), drop=(), **extra):
         data = {k: v for k, v in dict(config, output_root=out, **({"resume": resume} if resume is not False else {}), **extra).items()
@@ -63,10 +64,10 @@ def sample(tmp_path, monkeypatch):
 def fail_on(monkeypatch, part):
     real = job.process_part
 
-    def flaky(source, shard, output, batch_size):
+    def flaky(source, shard, output, batch_size, **more):
         if shard["path"] == part:
             raise job.JobError("injected failure: " + part)
-        return real(source, shard, output, batch_size)
+        return real(source, shard, output, batch_size, **more)
 
     monkeypatch.setattr(job, "process_part", flaky)
 
@@ -157,7 +158,7 @@ def test_only_runs_those_parts_and_says_the_run_is_partial(sample):
     assert json.loads((tmp / "out/job/cleaned_manifest.json").read_text())["complete_sample"] is False
 
 
-@pytest.mark.parametrize("key", ["clean", "clean_sha256", "manifest", "manifest_sha256", "expected_parts", "batch_size", "unsupported_policy"])
+@pytest.mark.parametrize("key", ["clean", "clean_sha256", "manifest", "manifest_sha256", "expected_parts", "batch_size", "unsupported_policy", "audit_samples"])
 def test_a_config_without_a_required_key_names_it(sample, key):
     tmp, shards, run = sample
     with pytest.raises(job.JobError, match=f"the config lacks .*{key}"):
@@ -177,7 +178,10 @@ def test_a_config_without_folders_needs_them_on_the_command_line(sample):
                                         (dict(unsupported_policy="drop"), "unsupported pack policy must be explicit"),
                                         (dict(batch_size=0), "batch_size must be a positive integer"),
                                         (dict(batch_size="2"), "batch_size must be a positive integer"),
-                                        (dict(batch_size=True), "batch_size must be a positive integer")])
+                                        (dict(batch_size=True), "batch_size must be a positive integer"),
+                                        (dict(audit_samples=-1), "audit_samples must be a whole number"),
+                                        (dict(audit_samples="5"), "audit_samples must be a whole number"),
+                                        (dict(audit_samples=True), "audit_samples must be a whole number")])
 def test_settings_the_job_does_not_accept_are_refused(sample, extra, why):
     tmp, shards, run = sample
     with pytest.raises(job.JobError, match=why):
@@ -315,6 +319,70 @@ def test_aggregate_includes_zero_rules_and_explicit_partial_manifest(tmp_path):
     assert all(row["invocations"] == "0" for row in counts)
 
 
+def two_parts(tmp_path, audit_samples):
+    """Parts 0 and 1 of one pack, cleaned with audit_samples; (output folder, their reports)."""
+    out, reports = tmp_path / "out", []
+    for n in (0, 1):
+        shard = write_part(tmp_path / "input", "train", "en-dclm", n)
+        reports.append(job.process_part(tmp_path / "input" / shard["path"], shard, out, 2, audit_samples))
+    return out, reports
+
+
+def test_rule_examples_hold_the_lowest_keys_over_all_parts_of_a_pack(tmp_path):
+    out, reports = two_parts(tmp_path, audit_samples=1)
+    job.write_aggregate(out, reports, {"sample": "synthetic"}, 86, audit_samples=1)
+    rows = list(csv.DictReader((out / "rule_examples.csv").open()))
+    assert [row["pack_id"] for row in rows] == ["en-dclm"] * len(job.applicable_rules("en-dclm"))
+    assert [row["rule_id"] for row in rows] == job.applicable_rules("en-dclm")  # the cleaner's order, one row per rule
+    fixed = next(row for row in rows if row["rule_id"] == "DA-A1-004")
+    # the fix happened once per part: the example is the one with the lower key, the totals count both
+    key = lambda part: zlib.crc32(f"DA-A1-004\0train-en-dclm-{part}-d1".encode())
+    lower = min((0, 1), key=key)
+    assert fixed["doc_id"] == f"train-en-dclm-{lower}-d1" and fixed["part"] == f"train/en-dclm/part-0000{lower}.parquet"
+    assert (fixed["rank"], fixed["split"], fixed["action"], fixed["pack_fixes"]) == ("1", "train", "fix", "2")
+    never = next(row for row in rows if row["pack_fixes"] == "0" and row["pack_drops"] == "0")  # fired in no part
+    assert never["doc_id"] == never["rank"] == ""
+
+
+def test_rule_examples_keep_at_most_audit_samples_per_rule(tmp_path):
+    out, reports = two_parts(tmp_path, audit_samples=2)
+    job.write_aggregate(out, reports, {"sample": "synthetic"}, 86, audit_samples=2)
+    rows = [row for row in csv.DictReader((out / "rule_examples.csv").open()) if row["rule_id"] == "DA-A1-004"]
+    assert [row["rank"] for row in rows] == ["1", "2"] and len({row["doc_id"] for row in rows}) == 2
+    assert {row["pack_fixes"] for row in rows} == {"2"}
+
+
+def test_without_audit_samples_there_is_no_audit_folder_and_no_examples_file(tmp_path):
+    out, reports = two_parts(tmp_path, audit_samples=0)
+    job.write_aggregate(out, reports, {"sample": "synthetic"}, 86)
+    assert not (out / "audit").exists() and not (out / "rule_examples.csv").exists()
+
+
+def test_a_missing_audit_file_stops_the_aggregate_naming_the_part(tmp_path):
+    out, reports = two_parts(tmp_path, audit_samples=1)
+    (out / "audit/train/en-dclm/part-00001.parquet.json").unlink()
+    with pytest.raises(job.JobError, match="audit file of train/en-dclm/part-00001.parquet is missing"):
+        job.write_aggregate(out, reports, {"sample": "synthetic"}, 86, audit_samples=1)
+
+
+def test_a_finished_part_without_its_audit_file_is_named_when_resuming(sample, monkeypatch):
+    tmp, shards, run = sample
+    interrupted(monkeypatch, run)
+    out = tmp / "out/job"
+    (out / "audit/train/en-dclm/part-00000.parquet.json").unlink()
+    with pytest.raises(job.JobError, match=r"train/en-dclm/part-00000.parquet: its audit file audit/train/en-dclm/part-00000.parquet.json is missing"):
+        run(resume=True)
+
+
+def test_a_job_with_audit_samples_writes_one_audit_file_per_part_and_the_examples(sample):
+    tmp, shards, run = sample
+    assert run() == 0
+    out = tmp / "out/job"
+    assert all((out / "audit" / (s["path"] + ".json")).is_file() for s in shards)
+    assert (out / "rule_examples.csv").is_file()
+    assert json.loads((out / "job_summary.json").read_text())["audit_samples"] == 5
+
+
 # --- resume --------------------------------------------------------------------------------------------------------------
 def test_a_fresh_job_writes_its_state_and_one_attempt(sample):
     tmp, shards, run = sample
@@ -322,7 +390,7 @@ def test_a_fresh_job_writes_its_state_and_one_attempt(sample):
     out = tmp / "out/job"
     state = json.loads((out / "job_state.json").read_text())
     assert [a["status"] for a in state["attempts"]] == ["complete"] and state["attempts"][0]["resumed"] is False
-    assert sorted(state["fingerprint"]) == ["clean_sha256", "manifest_sha256", "runner_sha256", "selected_parts"]
+    assert sorted(state["fingerprint"]) == ["audit_samples", "clean_sha256", "manifest_sha256", "runner_sha256", "selected_parts"]
     summary = json.loads((out / "job_summary.json").read_text())
     assert summary["resumed_parts"] == 0 and summary["completed_parts"] == 4 and summary["attempts"] == state["attempts"]
 
@@ -446,7 +514,7 @@ def test_a_report_without_its_part_is_named(sample, monkeypatch):
         run(resume=True)
 
 
-@pytest.mark.parametrize("key", ["clean_sha256", "runner_sha256", "manifest_sha256", "selected_parts"])
+@pytest.mark.parametrize("key", ["clean_sha256", "runner_sha256", "manifest_sha256", "selected_parts", "audit_samples"])
 def test_a_job_started_with_something_else_is_not_resumed(sample, monkeypatch, key):
     tmp, shards, run = sample
     interrupted(monkeypatch, run)

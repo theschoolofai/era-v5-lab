@@ -23,6 +23,7 @@ import sys
 sys.dont_write_bytecode = True
 
 import argparse
+import bisect
 from collections import Counter, defaultdict
 from contextlib import contextmanager
 import csv
@@ -38,6 +39,7 @@ except ImportError:  # Windows: the run works, peak memory is not recorded
     resource = None
 import time
 import types
+import zlib
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -47,7 +49,7 @@ REPO = HERE.parents[2]
 sys.path.insert(0, str(HERE))  # python -I does not put the script's folder on sys.path
 import clean_manifest
 
-REQUIRED = ('clean', 'clean_sha256', 'manifest', 'manifest_sha256', 'expected_parts', 'batch_size', 'unsupported_policy')
+REQUIRED = ('clean', 'clean_sha256', 'manifest', 'manifest_sha256', 'expected_parts', 'batch_size', 'unsupported_policy', 'audit_samples')
 clean = None  # the cleaner module, set by load_clean()
 
 
@@ -169,7 +171,7 @@ def open_output(output, fingerprint, resume):
     return state, True
 
 
-def verify_part(output, shard, supported):
+def verify_part(output, shard, supported, audit_samples=0):
     """Why a finished part (its part and its report both exist) does not verify, or None. Cheap checks first, then the
     sha256 of the part, which the report recorded when the part was published."""
     relative = shard['path']
@@ -195,6 +197,8 @@ def verify_part(output, shard, supported):
         return f'the part cannot be read as Parquet ({type(exc).__name__})', None
     if rows != report['output_rows']:
         return f'the part has {rows} rows, its report says {report["output_rows"]}', None
+    if audit_samples and not (output / 'audit' / (relative + '.json')).is_file():
+        return f'its audit file audit/{relative}.json is missing', None
     if digest(destination) != report.get('output_sha256'):
         return 'the part has another sha256 than its report records', None
     return None, report
@@ -208,7 +212,7 @@ def shown(path):
         return str(path)
 
 
-def plan_resume(output, shards):
+def plan_resume(output, shards, audit_samples=0):
     """({part path: its report} for the parts to keep, [paths to delete before redoing the others]).
 
     Every part is looked at before anything is changed, and a finished part that does not verify stops the job
@@ -220,7 +224,7 @@ def plan_resume(output, shards):
         leftovers = [destination.with_name(destination.name + '.tmp'), report_path.with_name(report_path.name + '.tmp')]
         cleanup += [p for p in leftovers if p.exists()]
         if destination.is_file() and report_path.is_file():
-            why, report = verify_part(output, shard, shard['pack_id'] in clean._FAMILY)
+            why, report = verify_part(output, shard, shard['pack_id'] in clean._FAMILY, audit_samples)
             if why:
                 problems.append(f'{relative}: {why} (delete {shown(destination)} and '
                                 f'{shown(report_path)} to redo it)')
@@ -237,8 +241,20 @@ def plan_resume(output, shards):
 
 
 class RuleCounter:
-    def __init__(self):
+    def __init__(self, audit_samples=0):
         self.counts = defaultdict(Counter)
+        self.audit_samples = audit_samples  # documents to remember per rule; 0 remembers none
+        self.samples = defaultdict(list)  # rule id -> up to audit_samples (key, doc_id, action, chars_before, chars_after)
+
+    def note(self, rid, doc, action, text):
+        """Remember a document this rule fixed or dropped, if it is among the audit_samples lowest keys so far. The key is a
+        hash of rule id and doc_id, so the same documents are picked whatever the order of rows or parts, and after a resume."""
+        doc_id = doc.get('doc_id')
+        key = zlib.crc32(f'{rid}\0{doc_id}'.encode())
+        picked = self.samples[rid]
+        if len(picked) < self.audit_samples or key < picked[-1][0]:
+            bisect.insort(picked, (key, doc_id, action, len(doc['text']), None if action == 'drop' else len(text)))
+            del picked[self.audit_samples:]
 
     @contextmanager
     def instrument(self):
@@ -261,6 +277,8 @@ class RuleCounter:
                         self.counts[rid]['error'] += 1
                         raise
                     self.counts[rid][result[0]] += 1
+                    if result[0] != 'keep' and self.audit_samples:  # the keep path, nearly all calls, does nothing extra
+                        self.note(rid, doc, *result)
                     return result
                 return counted
             return factory
@@ -286,7 +304,7 @@ def applicable_rules(pack):
     return [rid for rid in clean._RULE if pack in clean.SCOPE[rid]]
 
 
-def process_part(source, shard, output, batch_size):
+def process_part(source, shard, output, batch_size, audit_samples=0):
     started = time.monotonic()
     relative, pack = shard['path'], shard['pack_id']
     destination = output / relative
@@ -300,7 +318,7 @@ def process_part(source, shard, output, batch_size):
         raise JobError('input row count differs from sample manifest: ' + relative)
     if not {'doc_id', 'text', 'pack_id', 'lang_label'}.issubset(source_file.schema_arrow.names):
         raise JobError('missing required input columns: ' + relative)
-    counter, actions, rows, tags, seen = RuleCounter(), Counter(), 0, set(), set()
+    counter, actions, rows, tags, seen = RuleCounter(audit_samples), Counter(), 0, set(), set()
     supported = pack in clean._FAMILY
     try:
         with counter.instrument(), pq.ParquetWriter(temporary, source_file.schema_arrow, compression='zstd') as writer:
@@ -350,12 +368,47 @@ def process_part(source, shard, output, batch_size):
               'actions': dict(actions), 'errors': 0, 'rule_counts': per_rule,
               'language_tags': sorted(tags, key=str), 'seconds': round(time.monotonic()-started, 3)}
     assert sum(actions.values()) == rows and kept_count + actions['drop'] == rows
+    if audit_samples:  # before the report: the report is what marks the part as finished
+        write_json(output / 'audit' / (relative + '.json'),
+                   {'part': relative, 'pack_id': pack, 'samples_per_rule': audit_samples,
+                    'rules': {rid: [dict(zip(('key', 'doc_id', 'action', 'chars_before', 'chars_after'), s)) for s in picked]
+                              for rid, picked in sorted(counter.samples.items())}})
     write_json(report_path, result)
     print(json.dumps({k: result[k] for k in ('part', 'status', 'input_rows', 'output_rows', 'actions', 'errors', 'seconds')}, sort_keys=True), flush=True)
     return result
 
 
-def write_aggregate(output, reports, provenance, expected_count):
+EXAMPLE_COLUMNS = ['pack_id', 'rule_id', 'rank', 'doc_id', 'split', 'part', 'action', 'chars_before', 'chars_after',
+                   'pack_fixes', 'pack_drops']
+
+
+def write_examples(output, reports, audit_samples):
+    """rule_examples.csv: for every rule that applies to a pack, the audit_samples documents with the lowest keys over all the
+    pack's parts (every part uses the same key, so these are the lowest of the parts' lowest), and the rule's fix and drop
+    counts in the pack. A rule that changed nothing in the pack has one row with no document: it never fired."""
+    picked, totals = defaultdict(list), defaultdict(Counter)
+    for report in reports:
+        pack, sidecar = report['pack_id'], output / 'audit' / (report['part'] + '.json')
+        if not sidecar.is_file():
+            raise JobError(f"the audit file of {report['part']} is missing: delete its part and report to redo it")
+        for rid, counts in report['rule_counts'].items():
+            totals[pack, rid].update(fix=counts['fix'], drop=counts['drop'])
+        for rid, docs in read_json(sidecar)['rules'].items():
+            picked[pack, rid] += [dict(doc, part=report['part'], split=report['split']) for doc in docs]
+    order = {rid: n for n, rid in enumerate(clean._RULE)}
+    with (output / 'rule_examples.csv').open('w', newline='', encoding='utf-8') as stream:
+        writer = csv.DictWriter(stream, fieldnames=EXAMPLE_COLUMNS)
+        writer.writeheader()
+        for pack, rid in sorted(totals, key=lambda k: (k[0], order[k[1]])):
+            base = dict(pack_id=pack, rule_id=rid, pack_fixes=totals[pack, rid]['fix'], pack_drops=totals[pack, rid]['drop'])
+            docs = sorted(picked[pack, rid], key=lambda d: d['key'])[:audit_samples]
+            if not docs:
+                writer.writerow(base)
+            for rank, doc in enumerate(docs, 1):
+                writer.writerow(dict(base, rank=rank, **{k: doc[k] for k in EXAMPLE_COLUMNS[3:9]}))
+
+
+def write_aggregate(output, reports, provenance, expected_count, audit_samples=0):
     aggregate = {rid: Counter() for rid in clean._RULE}
     for report in reports:
         for rid, counts in report['rule_counts'].items():
@@ -366,6 +419,8 @@ def write_aggregate(output, reports, provenance, expected_count):
         writer.writeheader()
         for rid, counts in aggregate.items():
             writer.writerow(dict(rule_id=rid, **{key:counts[key] for key in columns[1:]}))
+    if audit_samples:
+        write_examples(output, reports, audit_samples)
     summary = dict(provenance, completed_parts=len(reports), expected_parts=expected_count,
                    input_rows=sum(r['input_rows'] for r in reports), output_rows=sum(r['output_rows'] for r in reports),
                    actions=dict(sum((Counter(r['actions']) for r in reports), Counter())),
@@ -400,6 +455,8 @@ def main(argv=None):
         raise JobError('unsupported pack policy must be explicit')
     if type(config['batch_size']) is not int or config['batch_size'] < 1:
         raise JobError('batch_size must be a positive integer')
+    if type(config['audit_samples']) is not int or config['audit_samples'] < 0:
+        raise JobError('audit_samples must be a whole number, 0 or more (0 writes no audit samples)')
     if not isinstance(config.get('resume', False), bool):
         raise JobError('resume must be true or false')
     resume = config.get('resume', False) or args.resume
@@ -408,10 +465,11 @@ def main(argv=None):
     shards = [s for s in data['shards'] if not args.only or s['path'] in args.only]
     output = output_folder(args.out or config['output_root'])
     fingerprint = {'clean_sha256': config['clean_sha256'], 'runner_sha256': digest(Path(__file__)),
-                   'manifest_sha256': config['manifest_sha256'], 'selected_parts': sorted(s['path'] for s in shards)}
+                   'manifest_sha256': config['manifest_sha256'], 'selected_parts': sorted(s['path'] for s in shards),
+                   'audit_samples': config['audit_samples']}
     state, resumed = open_output(output, fingerprint, resume)
     # A resumed job looks at every finished part before it changes anything, and keeps those that verify.
-    kept, cleanup = plan_resume(output, shards) if resumed else ({}, [])
+    kept, cleanup = plan_resume(output, shards, config['audit_samples']) if resumed else ({}, [])
     todo = [s for s in shards if s['path'] not in kept]
     input_root = (args.input_root or Path(config['input_root'])).resolve()
     # All inputs still to be cleaned are checksummed before creating or changing outputs (a kept part's input was
@@ -436,7 +494,7 @@ def main(argv=None):
     write_json(output / STATE, state)
     provenance = {'sample':config.get('sample') or data.get('name'), 'manifest_sha256':config['manifest_sha256'],
                   'clean_sha256':fingerprint['clean_sha256'], 'runner_sha256':fingerprint['runner_sha256'],
-                  'clean_path':config['clean'], 'config_sha256':digest(args.config),
+                  'clean_path':config['clean'], 'config_sha256':digest(args.config), 'audit_samples':config['audit_samples'],
                   'scope':'partial (--only)' if args.only else 'full manifest',
                   'optional_f2':False, 'python':sys.version.split()[0],
                   'packages':packages,
@@ -454,7 +512,8 @@ def main(argv=None):
                 print(json.dumps({**{k: report[k] for k in ('part', 'status', 'input_rows', 'output_rows', 'actions', 'errors', 'seconds')},
                                   'resumed': True}, sort_keys=True), flush=True)
             else:
-                reports.append(process_part(resolved[shard['path']], shard, output, config['batch_size']))
+                reports.append(process_part(resolved[shard['path']], shard, output, config['batch_size'],
+                                            audit_samples=config['audit_samples']))
     except JobError as exc:
         attempt.update(status='failed', error=str(exc), ended=now())
         write_json(output / STATE, state)
@@ -462,7 +521,7 @@ def main(argv=None):
     attempt.update(status='complete', ended=now())
     provenance.update(wall_seconds=round(time.monotonic()-started,3),
                       peak_rss_mib=peak_rss_mib(), resumed_parts=len(kept), attempts=state['attempts'])
-    summary = write_aggregate(output, reports, provenance, len(data['shards']))
+    summary = write_aggregate(output, reports, provenance, len(data['shards']), config['audit_samples'])
     write_json(output / STATE, state)
     print(json.dumps({'event':'complete', **{key:summary[key] for key in ('completed_parts','input_rows','output_rows','errors','actions','wall_seconds','peak_rss_mib')}}, sort_keys=True), flush=True)
     return 0
