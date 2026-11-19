@@ -1,21 +1,29 @@
-"""How run_pipeline.py hands paths to the three stage scripts it can run (clean, overlap, dedup).
+"""How run_pipeline.py hands paths to the four stage scripts it can run (clean, overlap, H3, dedup).
 
 A stage's folders are decided once, in the run config, and never typed again: a stage reads the previous stage's folder and
-writes its own. This module turns that into the command each script needs. All three scripts read their paths from a JSON
+writes its own. This module turns that into the command each script needs. All four scripts read their paths from a JSON
 config, so each gets a copy of its settings file at <cfg_dir>/<stage>.json with the path keys filled in (repo-relative, as the
 scripts require), and is run with --config on that copy:
   clean     input_root = the stage's "input", output_root = <clean folder>, and the input set's description from the stage:
             manifest (default: sample_manifest.json in the input folder), manifest_sha256, expected_parts, sample.
-            run_tokenizer_sample.py also takes one --only <part> per part of the stage's "only" list (a trial on some parts)
+            clean_job.py also takes one --only <part> per part of the stage's "only" list (a trial on some parts)
   overlap   inputs = <clean folder>, out = <overlap folder>
+  h3        inputs = <clean folder>, out = <h3 folder>, cache = <run>/h3_cache
   dedup     results = <overlap folder>, inputs = <clean folder>, out = <dedup folder>
+            and, when H3 is configured, h3.matches = <h3 folder>/h3_matches.csv with remove: false
 
 The settings file holds settings only (k, floor, pack order, pins); it is never edited. Its sha256 and the generated copy's are
 returned so the manifest can record them, and a "settings_sha256" in the stage's run config is checked when present.
 
 "script" in the stage's run config replaces the default script. It may also be a list: the script, then the arguments
-that go before --config. That is how a cleaner that is run through a wrapper is named, e.g. the spec v1.1 cleaner:
-  "script": ["teams/01-data-a/spec_v1_1/use_clean.py", "teams/01-data-a/spec_v1/run_tokenizer_sample.py"]
+that go before --config. That is how a script that is run through a wrapper is named, e.g. a cleaner run through
+spec_v1_1/use_clean.py:
+  "script": ["teams/01-data-a/spec_v1_1/use_clean.py", "<the tool to run>"]
+The default clean script is pipeline/clean_job.py. Its settings file (pipeline/clean.json) names the cleaner ("clean", e.g.
+spec_v1_1/clean.py) and pins its sha256; the job loads that file, so no wrapper is needed.
+
+"resume": true in stages.clean continues an interrupted clean job in its own folder (the job keeps the parts it finished and
+verifies them); it is written into the generated config for the job to read, and no other stage has it.
 
   build("overlap", spec, folders=..., cfg_dir=..., repo=...) -> {"command", "settings", "settings_sha256", "config", "config_sha256"}
 """
@@ -23,12 +31,16 @@ import hashlib
 import json
 from pathlib import Path
 
-DEFAULT_SCRIPT = {"clean": "teams/01-data-a/spec_v1/run_tokenizer_sample.py",
+import clean_manifest
+
+DEFAULT_SCRIPT = {"clean": "teams/01-data-a/pipeline/clean_job.py",
                   "overlap": "teams/01-data-a/dedup/overlap.py",
+                  "h3": "teams/01-data-a/dedup/h3.py",
                   "dedup": "teams/01-data-a/dedup/dedup.py"}
 STAGES = {  # {config key: the stage whose folder it names}
     "clean": {"keys": {"output_root": "clean"}},
     "overlap": {"keys": {"inputs": "clean", "out": "overlap"}},
+    "h3": {"keys": {"inputs": "clean", "out": "h3"}},
     "dedup": {"keys": {"results": "overlap", "inputs": "clean", "out": "dedup"}},
 }
 
@@ -71,15 +83,16 @@ def manifest_path(spec):
 
 
 def check_manifest(spec, repo):
-    """Before the clean job starts: the manifest is there and is the pinned file (the job checks too; this fails earlier)."""
+    """The sample manifest is there, is the pinned file and describes a consistent input set: clean_manifest.validate, the
+    same check the clean job runs when it starts. --plan runs it too."""
     p = Path(manifest_path(spec))
     p = p if p.is_absolute() else Path(repo) / p
-    if not p.is_file():
-        raise ConfigError(f"stages.clean: the sample manifest {p} is not there (without stages.clean.manifest it is "
-                          "sample_manifest.json in the input folder)")
-    if sha256(p) != spec["manifest_sha256"]:
-        raise ConfigError(f"stages.clean: the sample manifest {p} has sha256 {sha256(p)[:12]}…, stages.clean.manifest_sha256 pins "
-                          f"{spec['manifest_sha256'][:12]}…")
+    try:
+        clean_manifest.validate(p, spec["manifest_sha256"], spec["expected_parts"])
+    except clean_manifest.ManifestError as exc:
+        hint = (" (without stages.clean.manifest it is sample_manifest.json in the input folder)"
+                if not p.is_file() and not spec.get("manifest") else "")
+        raise ConfigError(f"stages.clean: {exc}{hint}") from None
 
 
 def generated_values(stage, folders, repo, spec=None):
@@ -89,7 +102,14 @@ def generated_values(stage, folders, repo, spec=None):
     if stage == "clean" and (spec or {}).get("input"):  # build() requires it
         values = {"input_root": str(spec["input"]), "manifest": manifest_path(spec), "manifest_sha256": spec["manifest_sha256"],
                   "expected_parts": spec["expected_parts"], **({"sample": spec["sample"]} if spec.get("sample") else {})}
+    if stage == "clean" and (spec or {}).get("resume") is True:
+        values["resume"] = True
     values.update({key: relative(folders[owner], repo) for key, owner in STAGES[stage]["keys"].items()})
+    if stage == "h3":
+        values["cache"] = relative(folders["h3"].parent / "h3_cache", repo)
+    if stage == "dedup":
+        values["h3"] = ({"matches": relative(folders["h3"] / "h3_matches.csv", repo),
+                         "remove": False, "parallel_packs": []} if "h3" in folders else None)
     return values
 
 
@@ -127,14 +147,18 @@ def build(stage, spec, folders, cfg_dir, repo, write=True, only=()):
         raise ConfigError(f"stages.{stage}.script must be a script's path, or a list of the script and the arguments that go "
                           "before --config")
     under_out(folders[stage], repo, stage)
+    if "resume" in spec:
+        if stage != "clean":
+            raise ConfigError(f"stages.{stage}.resume: only the clean job can be resumed")
+        if not isinstance(spec["resume"], bool):
+            raise ConfigError(f"stages.clean.resume is {spec['resume']!r}, expected true or false")
     if stage == "clean":
         for key, what in (("input", "the folder with the raw sample parts"), ("manifest_sha256", "the pin of the sample manifest"),
                           ("expected_parts", "the part counts per split")):
             if not spec.get(key):
                 raise ConfigError(f"stages.clean.{key} ({what}) is missing: it describes the input set, which the settings file does not")
-        if write:
-            check_manifest(spec, repo)
-    config = generated_config(stage, settings, folders, cfg_dir, repo, write, PARTIAL.get(stage) if only else None, spec)
+        check_manifest(spec, repo)
+    config =generated_config(stage, settings, folders, cfg_dir, repo, write, PARTIAL.get(stage) if only else None, spec)
     command = [*script, "--config", config.as_posix()]  # / on every OS, like the "config" field
     if stage == "clean":
         for part in only:

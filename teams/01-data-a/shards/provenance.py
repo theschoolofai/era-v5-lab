@@ -196,7 +196,7 @@ def load(input_part, manifest, repo=REPO):
 
     # the final part and its F2 report
     packs, rows = pack_ids_and_rows(input_part)
-    if packs != {pack_id}:
+    if packs != {pack_id} and (packs or rows):  # an empty part (dedup or F2 removed every row) has no pack_id to hold
         raise Stop(f"{split}/{part}: its pack_id column holds {sorted(packs)}, the part sits in pack {pack_id}")
     final_sha = sha256(input_part)
     f2 = read_json(input_part.with_name(input_part.name + ".f2.json"), f"the F2 report of {split}/{part}")

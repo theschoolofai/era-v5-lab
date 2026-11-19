@@ -1,5 +1,7 @@
 # Data A pipeline: open items for the team
 
+> Historical 14 Nov snapshot. Its stage counts, branch names and unchecked boxes do not describe the current `g1-pipeline` branch. Use the first-training job request and PR #599 for the current execution plan.
+
 Branch `g1-pipeline-runthrough`, folder `teams/01-data-a`. Last updated 2026-11-14 (PR review comments added as section 3). Not committed (kept outside the repo).
 The full chronological log is in `open-items-data-a-pipeline.full-log-2026-11-14.md` (same folder).
 
@@ -37,11 +39,11 @@ Target stated by the reviewer: **final Parquet (clean + dedup + decontam) -> dir
 
 | # | Comment | Status | What it means for the code |
 |---|---|---|---|
-| 1 | Prevent data loss at the token limit: continue into additional shards until every selected row is processed; `truncated > 0` is not success. | [ ] open | Writer rolls over to the next shard instead of stopping (this is the multi-shard item of decision 3). |
+| 1 | Prevent data loss at the token limit: continue into additional shards until every selected row is processed; `truncated > 0` is not success. | [x] done (rollover) | The writer rolls over to the next shard; shard numbers run on across a pack's parts; `shards_summary.json` maps each part to its shards; a doc longer than a shard is left out as `oversize`. Real-writer forced-rollover tests in `test_shard_writer.py` and `test_run_shards.py`. |
 | 2 | Verify the actual shard artifacts before recording success: payload, index and metadata exist; hashes, format, document and token counts match. Not just `shards_summary.json`. | [ ] open | New check in the shard stage that reopens every shard it lists. |
 | 3 | Verify complete input coverage from the verified final-Parquet inventory: detect missing, nested or unexpected parts. Allocate shard IDs independently of part basenames. Preflight required pack metadata (lane, domain) before writing. | [ ] open | Inventory vs parts on disk; unique shard-ID allocation; the lane check moves before any write (ties to decision 1). |
-| 4 | Empty parts (emptied by F2, or fully excluded during tokenization) get explicit outcomes and reconciled counts, not a pack-ID mismatch or "no document fits". | [ ] open | New per-part outcome (for example `empty`) in the summary and the reconciliation. |
-| 5 | Safe resume: write temporary artifacts, publish completion last; on rerun verify and reuse completed shards, continue unfinished work, never overwrite incompatible output. | [ ] open | Replaces today's "stops if a shard exists"; covers the existing rerun and `--skip-existing` items for the shard owner. |
+| 4 | Empty parts (emptied by F2, or fully excluded during tokenization) get explicit outcomes and reconciled counts, not a pack-ID mismatch or "no document fits". | [x] done | `empty` / `all_left_out` per part, no shard; reconcile reads the left-out doc_ids from the summary. Was: new per-part outcome (for example `empty`) in the summary and the reconciliation. |
+| 5 | Safe resume: write temporary artifacts, publish completion last; on rerun verify and reuse completed shards, continue unfinished work, never overwrite incompatible output. | [x] done | Manifest published last (.tmp + rename), summary saved per part, rerun keeps verified parts and rewrites from the first incomplete one; other settings refused. Was: Replaces today's "stops if a shard exists"; covers the existing rerun and `--skip-existing` items for the shard owner. |
 | 6 | Regression tests for these cases, including real-writer multi-shard rollover and interruption/restart. | [ ] open | Needs tests that run the real `shard_writer`, not stand-ins. |
 
 **Other comments**

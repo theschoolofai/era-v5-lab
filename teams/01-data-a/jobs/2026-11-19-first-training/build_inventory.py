@@ -50,9 +50,9 @@ def build(root, out, scope_file):
     if scope['split_policy']['shard_splits'] != ['train']:
         raise ValueError('only train may be sharded')
     if (set(scope['splits']) != {'train', 'heldout'}
-            or scope['splits']['train']['expected'] != 'written'
+            or scope['splits']['train']['expected'] != ['written', 'empty', 'all_left_out']
             or scope['splits']['heldout']['expected'] != 'not_sharded'):
-        raise ValueError('inventory must expect train written and heldout not_sharded')
+        raise ValueError('inventory must expect train written/empty/all_left_out and heldout not_sharded')
     if dedup['default_licence_usable'] is not False:
         raise ValueError('unknown packs must remain unusable by default')
     for pack in ids:

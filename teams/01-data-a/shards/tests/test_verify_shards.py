@@ -202,7 +202,7 @@ def test_a_stray_shard_manifest_is_caught(made):
 
 def test_a_summary_that_lists_a_shard_that_is_not_there_is_caught(made):
     s = json.loads((made.out / "shards_summary.json").read_text(encoding="utf-8"))
-    s["parts"]["train/pk-a/part-00000.parquet"]["shard_id"] = "pk-a-train-000009"
+    s["parts"]["train/pk-a/part-00000.parquet"]["shards"][0]["shard_id"] = "pk-a-train-000009"
     problems = made.check(summary=s)[0]
     assert any("pk-a-train-000009: the summary lists it as written, but there is no shard manifest" in x for x in problems)
     assert any(f"{SID}: there is a shard manifest for it, but the summary does not list it" in x for x in problems)
@@ -210,7 +210,7 @@ def test_a_summary_that_lists_a_shard_that_is_not_there_is_caught(made):
 
 def test_a_summary_with_other_counts_is_caught(made):
     s = json.loads((made.out / "shards_summary.json").read_text(encoding="utf-8"))
-    s["parts"]["train/pk-b/part-00000.parquet"]["tokens"] += 1
+    s["parts"]["train/pk-b/part-00000.parquet"]["shards"][0]["tokens"] += 1
     s["counts"]["written"] += 1
     problems = made.check(summary=s)[0]
     assert any("the summary says tokens" in x for x in problems) and any("counts 4 written parts, and lists 3" in x for x in problems)
@@ -243,6 +243,21 @@ def test_a_manifest_that_disagrees_with_the_pack_table_is_caught(made):
     problems = made.check()[0]
     assert any("language is 'go', pack_table.json says 'rust' for pk-a" in x for x in problems)
     assert any("capability_lane is 'general', pack_table.json says 'other' for pk-b" in x for x in problems)
+
+
+def test_a_licence_the_table_does_not_give_is_caught_in_the_manifest(made):
+    edit_manifest(made, license="made up", license_source="nowhere")
+    assert any("pk-a-train-000000: license is 'made up', the pack table says None for pk-a" in x for x in made.check()[0])
+
+
+def test_a_licence_the_table_gives_must_be_in_the_manifest(made):
+    table = json.loads(made.table.read_text(encoding="utf-8"))
+    table["packs"]["pk-a"].update(license="a licence", license_source="a table")
+    made.table.write_text(json.dumps(table), encoding="utf-8")
+    problems = made.check()[0]
+    assert any("pk-a-train-000000: license is None, the pack table says 'a licence' for pk-a" in x for x in problems)
+    assert any("pk-a-train-000001: license_source is None, the pack table says 'a table' for pk-a" in x for x in problems)
+    assert not any("pk-b" in x for x in problems)  # a pack the table gives no licence stays valid without one
 
 
 def test_a_pack_that_is_not_in_the_table_is_caught(made):

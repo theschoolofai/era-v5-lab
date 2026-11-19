@@ -2,7 +2,7 @@
   "_comment": "Generic run config for run_pipeline.py: nothing here is specific to one run. Paths are relative to the repository root. Everything that defines a run is a key in this file, and the command is only --config <file>: for a job, copy this file to jobs/<date>-<name>/run.json and edit the copy. run_id names the run and its folders (out/pipeline/<run_id>/). The clean stage also names the input set (input folder, manifest_sha256, expected_parts); a new input set means new values here. Each of clean, overlap and dedup runs from a settings file (settings only, no paths; the runner fills the paths into <run>/cfg/<stage>.json), or is adopted: {\"mode\": \"adopt\", \"output\": \"<folder TSAI returned>\"}. Optional keys: \"to\" (stop after this stage, only the stages up to it are checked), \"from\" (resume at this stage), stages.clean.only (a list of sample parts, for trials). 'run_pipeline.py --config <file> --plan' prints every folder and command and runs nothing.",
   "run_id": "sample-v0",
   "out": "out/pipeline",
-  "_to": "optional: clean, overlap, dedup, apply, f2, survivor_loss, ledger, shards or reconcile",
+  "_to": "optional: clean, overlap, h3 (when configured), dedup, apply, f2, survivor_loss, ledger, shards or reconcile",
   "hash_cache": true,
   "_hash_cache": "true: every sha256 computed once, kept in <run>/cache/sha256.json (a resumed run hashes nothing again); false: hash everything again, for an audit",
   "_from": "optional: resume at this stage; the earlier stages must be recorded in the manifest",
@@ -12,14 +12,14 @@
   "stages": {
     "clean": {
       "mode": "run",
-      "settings": "teams/01-data-a/spec_v1/clean.json",
+      "settings": "teams/01-data-a/pipeline/clean.json",
       "input": "inputs/tokenizer_sample_v0",
       "manifest_sha256": "7fd647c8d4662d17e2310efbcc20981d70656fdad2fabb7663c266a2153a1b7e",
       "expected_parts": {
         "train": 48,
         "heldout": 38
       },
-      "_manifest": "the input set's description. Default: sample_manifest.json in the input folder (TSAI ships it with the sample); set 'manifest' to use another file. manifest_sha256 pins it and is checked before the clean job starts",
+      "_manifest": "the input set's description. Default: sample_manifest.json in the input folder (TSAI ships it with the sample); set 'manifest' to use another file. manifest_sha256 pins it; --plan checks it (with expected_parts) and so does the clean job when it starts",
       "_only": [
         "train/code-go/part-00000.parquet"
       ],
@@ -28,6 +28,11 @@
     "overlap": {
       "mode": "run",
       "settings": "teams/01-data-a/dedup/overlap.json"
+    },
+    "_h3_example": {
+      "mode": "run",
+      "settings": "teams/01-data-a/jobs/2026-11-19-first-training/h3.json",
+      "_note": "rename to h3 to run report-only H3 after overlap; stage the offline LaBSE model named in h3.json"
     },
     "dedup": {
       "mode": "run",

@@ -34,6 +34,16 @@ subset identity or discover files omitted from the fetch; check those against th
 source catalog. The clean preflight validates row values and per-part doc_id
 uniqueness.
 
+After TSAI stages the offline LaBSE model and supplies a complete approved pack
+table, generate the pinned run config without hand-copying hashes or part counts:
+
+```bash
+python -I teams/01-data-a/jobs/2026-11-19-first-training/prepare_run.py --bundle out/first-training-inputs --input-root /path/to/raw --tokenizer /path/to/p1536/tokenizer.json --pack-table /path/to/approved-pack-table.json --run-id first-training-v1
+```
+
+Use one Python 3.12 environment with `requirements_pipeline.txt`; the overlap
+and H3 requirements agree on NumPy 2.4.3 and PyArrow 23.0.1.
+
 ## Pipeline settings
 
 | Setting | Value |
@@ -48,9 +58,18 @@ uniqueness.
 | `stages.reconcile` | Enabled |
 
 Process both splits through clean, overlap, dedup/apply, F2 and the raw ledger.
+For H3, add `"h3": {"mode": "run", "settings":
+"teams/01-data-a/jobs/2026-11-19-first-training/h3.json"}` to `stages`.
+The runner runs H3 after overlap on the same cleaned parts, verifies its completed
+summary and match-file hash, then supplies that match file to dedup. Dedup uses
+`remove: false`: H3 reports translation matches but does not remove documents.
+Stage the offline LaBSE model at the `model_path` in `h3.json` and install
+`dedup/requirements_h3.txt` in the job environment. This setting currently
+measures the Sanskrit, Hindi and English packs named in `h3.json`; expand the
+pack/language-pair scope only after reviewing thresholds and compute cost.
 Dedup protects heldout rows; F2 may remove fingerprint matches from either split.
 The existing shard runner receives the complete `final/` root, writes train only,
-and records heldout as `not_sharded`. The inventory enforces `written` for train
+and records heldout as `not_sharded`. The inventory permits `written`, `empty` or `all_left_out` for train
 and `not_sharded` for heldout. Use a pack table with lane and licence metadata for
 all allowed packs.
 

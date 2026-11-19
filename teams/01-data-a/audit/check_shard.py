@@ -146,8 +146,10 @@ def run_checks(folder, shard_id, template=TEMPLATE, clean_py=CLEAN_PY, expect_to
         lists = {k: len(v) for k, v in q.get("left_out_docs", {}).items()}
         check("quality report shard_id", q.get("shard_id") == shard_id, shard_id, q.get("shard_id"))
         check("quality report docs_in_shard = doc_count", q.get("docs_in_shard") == dc, dc, q.get("docs_in_shard"))
-        check("rows_read = docs_in_shard + left out", q.get("rows_read") == q.get("docs_in_shard", 0) + sum(left.values()),
-              q.get("docs_in_shard", 0) + sum(left.values()), q.get("rows_read"))
+        first = q.get("first_row", 0)  # a part's later shards (rollover) start past row 0; older reports have no first_row
+        check("rows_read - first_row = docs_in_shard + left out",
+              q.get("rows_read", 0) - first == q.get("docs_in_shard", 0) + sum(left.values()),
+              first + q.get("docs_in_shard", 0) + sum(left.values()), q.get("rows_read"))
         check("left_out counts = left_out_docs lists", lists == left, left, lists)
 
     # 4. The .bin itself

@@ -29,7 +29,7 @@
   "splits": {
     "train": {
       "minimum_parts_per_pack": 1,
-      "expected": "written"
+      "expected": ["written", "empty", "all_left_out"]
     },
     "heldout": {
       "minimum_parts_per_pack": 1,

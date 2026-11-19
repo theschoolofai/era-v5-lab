@@ -248,6 +248,22 @@ def test_f2_errors_are_their_own_status(chain):
     assert (s["totals"]["f2_error"], s["totals"]["kept"]) == (1, 8)
 
 
+def test_survivors_dropped_by_f2_are_counted(chain):
+    """F2 drops g0 (G000001's survivor) and h1 (one of G000002's held-out survivors); the removed copy of g0 never
+    reaches F2. An F2 error on a survivor (h0 here) counts too, as survivor_loss.py counts it."""
+    s = ledger.build(**chain)
+    assert s["survivors_dropped_by_f2"] == {"total": 2, "by_pack": {"code-go": 2}}
+    rep = chain["f2"] / "heldout" / "code-go" / "part-00000.parquet.f2.json"
+    r = json.loads(rep.read_text(encoding="utf-8"))
+    r["errors"] = [["h0", "ValueError"]]
+    rep.write_text(json.dumps(r), encoding="utf-8")
+    f = chain["f2"] / "heldout" / "code-go" / "part-00000.parquet"
+    t = pq.read_table(f)
+    pq.write_table(t.filter(pa.array([d != "h0" for d in t.column("doc_id").to_pylist()])), f)
+    s = ledger.build(**chain)  # into the same --out: a rebuild replaces the ledger whole
+    assert s["survivors_dropped_by_f2"] == {"total": 3, "by_pack": {"code-go": 3}}
+
+
 def test_an_out_that_is_not_a_ledger_folder_stops_untouched(chain):
     other = chain["out"] / "notes.txt"
     other.parent.mkdir(parents=True)
