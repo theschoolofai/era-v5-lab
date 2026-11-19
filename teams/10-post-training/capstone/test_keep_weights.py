@@ -110,3 +110,12 @@ def test_probe_constants_equal_team9s():
     src = (TEAMS / "09-evaluation" / "harness_lab" / "lm_eval_lab.py").read_text(encoding="utf-8")
     m = re.search(r"^PROBE_SHAPE, PROBE_SEED = (\(.*?\)), (\d+)$", src, re.M)
     assert m and (eval(m.group(1)), int(m.group(2))) == (kw.PROBE_SHAPE, kw.PROBE_SEED)
+
+
+def test_only_weights_are_saved_and_grad_flags_come_back(saved):
+    """No optimizer moments (they would triple the bytes) and the model's requires_grad flags are as they were."""
+    step_dir = next((Path(saved["info"]["run_dir"]) / "main").iterdir())
+    size = sum(p.stat().st_size for p in step_dir.glob("*.distcp"))
+    weights = sum(p.numel() * p.element_size() for p in saved["model"].state_dict().values())
+    assert weights <= size < 1.2 * weights
+    assert all(p.requires_grad for p in saved["model"].parameters())

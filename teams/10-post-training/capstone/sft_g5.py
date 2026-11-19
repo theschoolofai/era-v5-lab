@@ -488,6 +488,10 @@ def run(args) -> dict:
     with torch.no_grad():
         diff = float((fresh(probe_ids, v) - lm(probe_ids, v)).abs().max())
     report["reload_parity"] = {"state_sha256": sha, "logits_max_abs_diff": diff, "pass": diff == 0.0}
+    if args.keep_weights_dir:  # default off: save this arm's plain weights as a Team 7 run folder for Team 9's reader
+        import keep_weights  # noqa: PLC0415
+        report["kept_weights"] = keep_weights.save_run_folder(lm, args.keep_weights_dir, args.keep_run_id, step=len(log),
+                                                              probe_fn=keep_weights.team5_probe)
     report["log"] = log
     report["first_loss"], report["last_loss"] = log[0]["loss"], log[-1]["loss"]
     (out / "sft_report.json").write_text(json.dumps(report, indent=1, default=str), encoding="utf-8")
@@ -544,6 +548,9 @@ def parse_args(argv=None):
     p.add_argument("--device", default="cpu")
     p.add_argument("--seed", type=int, default=1)
     p.add_argument("--log-every", type=int, default=20)
+    p.add_argument("--keep-weights-dir", type=Path,
+                   help="default off: also save the final plain weights as a Team 7 run folder <dir>/<keep-run-id>")
+    p.add_argument("--keep-run-id", default="g10-sft", help="run id (folder name) of the kept weights")
     p.add_argument("--out", type=Path, required=True)
     return p.parse_args(argv)
 

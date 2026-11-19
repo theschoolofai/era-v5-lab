@@ -392,6 +392,8 @@ def write_train_config(a, out: Path, init_state: Path | None, init_sha: str | No
                      **({"max_steps_this_call": a.max_steps_this_call} if a.max_steps_this_call else {})}}
     if cfg["train"]["autocast"] is None:
         del cfg["train"]["autocast"]
+    if getattr(a, "keep_weights_dir", None):  # default off: train.py writes its trainable tensors here (bf16), keep_final_weights completes them
+        cfg["train"]["save_trainable"] = str(out / "_work" / "rl_trainable.pt")
     p = out / "rl_config.yaml"
     p.write_text(yaml.safe_dump(cfg, sort_keys=False))
     return p
@@ -449,6 +451,28 @@ def failure_counts(evals: list[dict]) -> list[dict]:
              "cut_off_share": e.get("truncated"), "mean_tokens": e.get("mean_tokens")} for e in evals if e.get("name") == "heldout"]
 
 
+def keep_final_weights(a, out: Path, init_state, step: int, model=None) -> dict:
+    """--keep-weights-dir: the final RL weights as a Team 7 run folder (<dir>/g10-rl-final). rl-loop/train.py (unchanged) saves
+    only the trainable tensors, in bf16 (train.save_trainable); they are laid over the start weights (the arm or the raw
+    checkpoint) in a fresh model, which is then saved whole. Not bit-identical to the trainer's fp32 master copy: the
+    trainable tensors are bf16-rounded, as the policy is when it samples under bf16 autocast."""
+    import torch  # noqa: PLC0415
+    import keep_weights  # noqa: PLC0415
+    trainable = torch.load(out / "_work" / "rl_trainable.pt", map_location="cpu", weights_only=True)
+    if model is None:
+        import team5_adapter as ta  # noqa: PLC0415
+        from safetensors.torch import load_file  # noqa: PLC0415
+        model = ta.build(out / "adapter.yaml", device="cpu").require_bundle().model
+        if init_state:
+            model.load_state_dict(load_file(str(init_state)), strict=True)
+    unknown = sorted(set(trainable) - set(model.state_dict()))
+    if unknown:
+        raise RuntimeError(f"trained tensors without a place in the model: {unknown[:3]}")
+    model.load_state_dict(trainable, strict=False)
+    info = keep_weights.save_run_folder(model, a.keep_weights_dir, "g10-rl-final", step, keep_weights.team5_probe)
+    return {**info, "trainable_tensors": len(trainable), "trainable_dtype": "bfloat16"}
+
+
 def rl_step(a, out: Path, init_state, init_sha, deadline_unix, screen_n) -> dict:
     cfg_path = write_train_config(a, out, init_state, init_sha, deadline_unix, screen_n)
     import yaml  # noqa: PLC0415
@@ -465,6 +489,8 @@ def rl_step(a, out: Path, init_state, init_sha, deadline_unix, screen_n) -> dict
     summary = train.train(cfg)
     rl_out = out / "rl"
     res: dict = {"status": summary.get("status"), "train_summary_file": str(rl_out / "summary.json")}
+    if getattr(a, "keep_weights_dir", None) and summary.get("status") not in ("NO_GO_MIXED_BAND", "PAUSED_AT_DEADLINE"):
+        res["kept_weights"] = keep_final_weights(a, out, init_state, int(summary["steps"]))
     if (rl_out / "screen.json").is_file():
         screen = json.loads((rl_out / "screen.json").read_text())
         res["screen_survey"] = screen_survey(screen)
@@ -661,6 +687,9 @@ def parse_args(argv=None):
     ap.add_argument("--allow-fixture-smoke", action="store_true", help="DRY RUN ONLY: let train.py load a rehearsal adapter; its output is never a result")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--device", default="cuda")
+    ap.add_argument("--keep-weights-dir", type=Path,
+                    help="default off: also keep the FINAL RL weights as a Team 7 run folder <dir>/g10-rl-final (Team 9's run_lab_ckpt.py "
+                         "--run-dir); the trainable tensors are bf16 (see keep_final_weights); everything else is deleted as before")
     ap.add_argument("--out", type=Path, required=True)
     a = ap.parse_args(argv)
     if not 1 <= a.updates <= MAX_UPDATES:

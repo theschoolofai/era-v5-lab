@@ -99,7 +99,8 @@ def run_sft_arm(out: Path, arm: str, cmd: list[str], timeout: float | None = Non
         rep = json.loads((arm_out / "sft_report.json").read_text())
         keep = ("method", "train_seconds", "stopped_early", "mask_checks", "writeback_step1",
                 "frozen_weights_unchanged", "reload_parity", "first_loss", "last_loss")
-        return {**{k: rep.get(k) for k in keep}, "before": rep["before"], "after": rep["after"]}
+        kept = {"kept_weights": rep["kept_weights"]} if rep.get("kept_weights") else {}  # only when --keep-weights-dir was given
+        return {**{k: rep.get(k) for k in keep}, "before": rep["before"], "after": rep["after"], **kept}
     finally:
         # A process-level kill still requires the job runner's cleanup; finally covers ordinary failures.
         (arm_out / "generations.jsonl").unlink(missing_ok=True)
@@ -109,6 +110,9 @@ def run_sft_arm(out: Path, arm: str, cmd: list[str], timeout: float | None = Non
 def finish(out: Path, results: dict) -> int:
     failed = [name for name, result in results.items() if not result["ok"]]
     summary = {"ok": not failed, "steps": len(results), "failed_steps": failed}
+    kept = {n: r["kept_weights"] for n, r in results.items() if r.get("kept_weights")}
+    if kept:  # only when --keep-weights-dir was given: where the run folder is, its manifest sha256 and the saved step
+        summary["kept_weights"] = kept
     (out / "summary.json").write_text(json.dumps(summary, indent=1))
     print(json.dumps(summary), flush=True)
     return int(bool(failed))

@@ -70,13 +70,21 @@ def save_run_folder(model, remote_root, run_id: str, step: int, probe_fn, tokens
     remote_root.mkdir(parents=True, exist_ok=True)
     local = tempfile.mkdtemp(prefix="kw_local_")
     model.eval()
+    flags = []
     try:
-        optim = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad] or list(model.parameters()), lr=0.0)
+        # Weights only: Team 7's save asks the optimizer for its state and makes zero moments for every parameter that
+        # requires grad (3x the bytes). With the flags off for the duration of the save there are none; they are restored.
+        flags = [(p, p.requires_grad) for p in model.parameters()]
+        for p, _ in flags:
+            p.requires_grad_(False)
+        optim = torch.optim.AdamW(list(model.parameters()), lr=0.0)
         ck = Checkpointer(run_id, local, str(remote_root), seed=seed, code_paths=(str(Path(__file__).resolve()),))
         saved = ck.save(step, model, optim, SyntheticLoader(0, 2, 0, 1), probe_fn, tokens=tokens, reason="keep-weights")
         if not (saved and ck.wait()):
             raise RuntimeError(f"keep-weights: the checkpoint for {run_id} step {step} was not committed")
     finally:
+        for p, flag in flags:
+            p.requires_grad_(flag)
         shutil.rmtree(local, ignore_errors=True)
     run_dir = remote_root / run_id
     pointer = json.loads((run_dir / "latest.json").read_text(encoding="utf-8"))
