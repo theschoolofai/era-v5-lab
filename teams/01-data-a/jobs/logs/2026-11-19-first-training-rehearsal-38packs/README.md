@@ -1,9 +1,11 @@
 # Rehearsal: first-training pipeline on all 38 packs (19 Nov 2026)
 
 The same scripts as `jobs/2026-11-19-first-training.md`, run end to end on **all 86 raw parts of tokenizer sample v0
-(38 packs)** with the frozen p1536 tokenizer, on Linux in the job's pinned environment (JOB_REQUEST.md rule 2). It is a
-rehearsal, not the production run: the run has no inventory, and its pack table and `dataset_version` are the
-rehearsal's (see [Differences from the job](#differences-from-the-job)).
+(38 packs)** with the frozen p1536 tokenizer, on Linux in the job's pinned environment (JOB_REQUEST.md rule 2), twice:
+- **the first run** (`4dd2802`, 59/59 checks): no inventory, a rehearsal pack table and `dataset_version` (below);
+- **the run with the inventory** (`2691c44`, 74/74 checks): `prepare_run.py`'s own `run.json`, F2 at 30 workers instead of 1 ([below](#the-run-with-the-inventory-prepare_runpys-config-at-2691c44)).
+
+Both are rehearsals on sample v0, not the production run (see [Differences from the job](#differences-from-the-job)).
 
 | | |
 |---|---|
@@ -65,6 +67,16 @@ Run on the same 86 raw parts ([`logs/build_inventory.log`](logs/build_inventory.
   - `--ledger` and `--shards`: **8 checks, 0 failed**, 86 parts, 38 packs: the ledger accounts for every raw document, holds exactly the listed parts and packs, each raw file's sha256 and rows are the listed ones, and the shard summary holds exactly the listed parts, each in its listed status ([`logs/inventory_check_38pack.json`](logs/inventory_check_38pack.json)).
   - adding `--cleaned`: 9 checks, **1 failed, as expected**: "made from the input manifest the clean job read". This run's clean read the tracked sample manifest (`7fd647c8…`), not the input manifest `build_inventory.py` wrote (`575fdde2…`), so only a run started from `prepare_run.py`'s `run.json` can pass it ([`logs/inventory_check_38pack_with_cleaned.json`](logs/inventory_check_38pack_with_cleaned.json)).
 
+## The run with the inventory: `prepare_run.py`'s config, at `2691c44`
+
+The chain the job runs, end to end on the same 86 raw parts and the same pod: `build_inventory.py` → `prepare_run.py` →
+`run_pipeline.py --config` on the `run.json` it wrote, at `g1-pipeline` `2691c44` (#61 and #663 merged). Files: [`inventory-run/`](inventory-run/).
+
+- **Config:** [`inventory-run/config/run.json`](inventory-run/config/run.json) is [`config/prepare_run_output_run.json`](config/prepare_run_output_run.json) with **one change, F2 `"workers": 30` instead of 1**, so that it ends in time. Inventory on, the input manifest `575fdde2…`, `dataset_version` `first-training-v1`, the job-shaped pack table (approved licences, #47's six lanes), the job's `h3.json`.
+- **Result: 74 checks, 0 failed, exit 0**, 2 h 34 min (14:31 to 17:05 UTC) ([`inventory-run/summaries/pipeline_manifest.json`](inventory-run/summaries/pipeline_manifest.json)). The runner ran the inventory checks itself: 6 on entry to the shard stage and 9 after reconcile, all passing, including "made from the input manifest the clean job read"; its report is [`inventory-run/summaries/inventory_check.json`](inventory-run/summaries/inventory_check.json).
+- **The same counts as the first run** at every stage: 1,410,230 cleaned, 1,083 groups and 1,339 removed (0 held-out), H3 0 qualifying, 1,533 dropped by F2, 1 lost survivor, 1,407,358 kept = 1,385,709 in 48 shards + 7,575 left out + 14,074 held-out. Overlap's `overlap_matches.csv` has the same sha256 (`b2eabd2e…`), and **all 144 `.bin`, `.idx.npy` and `.docs.parquet` files are byte-identical** to the first run's. The 48 shard manifests differ in the pack-table and version fields (`capability_lane` in 36, `license`, `license_source`, `dataset_version`) and in what names the run (`created_by`, the commit; `cleaning_pipeline_sha256`; `quality_report_sha256`, whose report differs only in `upstream.run_id`) ([`inventory-run/logs/compare_shards_two_runs.txt`](inventory-run/logs/compare_shards_two_runs.txt)).
+- **Checked afterwards:** `inventory_check.py --ledger --shards --cleaned`: 9 checks, 0 failed ([`inventory-run/logs/inventory_check_invrun_with_cleaned.json`](inventory-run/logs/inventory_check_invrun_with_cleaned.json)); `verify_shards.py`: 0 problems; `check_shard.py` of #60 (`d4173ed`) with `--expect-dataset-version first-training-v1`: 2,721 PASS, 0 FAIL, 1 NOT CHECKED (the same `verified` null as above).
+
 ## Shard drills (3-pack run on the same pod)
 
 A first run on 5 raw parts (code-go ×3, `ind-bn-fw2`, `ind-bn-sangraha-v`; [`config/run_3pack.json`](config/run_3pack.json)),
@@ -101,7 +113,7 @@ size), so a short peak between two samples is missed; where a stage reports its 
 
 ## Differences from the job
 
-- **No `inventory`:** the run read the tracked sample manifest (all 86 parts), not `prepare_run.py`'s `run.json`, which adds the inventory checks, the new input manifest and `"workers": 1`. Those inputs were built and checked separately (above), not run through the pipeline.
+- **No `inventory` in the first run:** it read the tracked sample manifest (all 86 parts), not `prepare_run.py`'s `run.json`. The second run (above) is that `run.json`, with F2 at 30 workers instead of 1.
 - **Pack table and `dataset_version`:** placeholder lanes and licences (`lane` `rehearsal` where the repo table is null) and `rehearsal-p1536`; the job uses the approved pack table and `first-training-v1`.
 - **Inputs:** sample v0, not the TSAI-staged production parts.
 - **Hardware:** a rented GPU pod, not TSAI's machine; times will differ.
@@ -109,6 +121,7 @@ size), so a short peak between two samples is missed; where a stage reports its 
 ## Not covered
 
 - The production pack table and the TSAI-staged inputs.
-- The pipeline run with `inventory` (the run `prepare_run.py` writes), with the checks made by the runner itself before the shard stage and after reconcile: running at `2691c44` on the same pod, to be added here.
+- F2 with one worker, as `prepare_run.py` writes it (both runs used 30).
+- `shards/pack_table.json` after #63 (merged after these runs); its lanes are the ones the job-shaped table used.
 - H3 removal (`h3.remove`), which stays off for this job (TSAI on #625).
 - The `empty` part status (no such part in sample v0) and #61's first-part restart case.
