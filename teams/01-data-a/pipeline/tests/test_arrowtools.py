@@ -47,7 +47,7 @@ def test_batch_rows_is_sized_by_the_widest_row_group(tmp_path):
         assert at.batch_rows(pf, 1 << 20, 8192) == 8192
 
 
-# --- Vijay's review of PR #46 (15 Nov) -------------------------------------------------------------------------------
+# --- review of PR #46 (patilvijay23, 15 Nov) -------------------------------------------------------------------------
 def rows_of(batches):
     return [r for b in batches for r in b.column(0).to_pylist()]
 
@@ -88,9 +88,9 @@ def test_iter_sized_on_an_empty_file_and_a_single_row_group(tmp_path):
     assert 16 <= batches[0].num_rows < 1024 and batches[0].nbytes <= 1 << 20
 
 
-# --- Vijay's review of PR #46 (17 Nov) -------------------------------------------------------------------------------
+# --- review of PR #46 (patilvijay23, 17 Nov) -------------------------------------------------------------------------
 def mixed_sizes(path):
-    """Vijay's case: one 128-row group of short text, then 600 copies of one ~200 KB text in the next row group
+    """The case from the review of PR #46: one 128-row group of short text, then 600 copies of one ~200 KB text in the next row group
     (dictionary-encoded: about 1.5 KB a row in the footer)."""
     big = "abcdefgh" * 25_000
     with pq.ParquetWriter(path, pa.schema([("doc_id", pa.string()), ("text", pa.string())])) as w:
@@ -145,7 +145,7 @@ def test_iter_sized_bound_ignores_nested_columns(tmp_path):
 
 
 def test_apply_reads_mixed_sizes_in_small_batches_and_memory_stays_bounded(tmp_path, monkeypatch):
-    """apply_dedup's filter on Vijay's file: no batch near the 114 MiB he measured, and the Arrow memory the process
+    """apply_dedup's filter on that file: no batch near the 114 MiB he measured, and the Arrow memory the process
     holds while filtering (sampled at every batch) stays far below his 230 MiB."""
     import apply_dedup
     seen, held = [], []

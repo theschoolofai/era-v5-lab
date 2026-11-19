@@ -434,7 +434,7 @@ def test_a_part_name_with_glob_characters(tmp_path, write_remove_list):
     assert not stale.exists() and ids(out / "train" / "p" / "part[1].parquet") == ["d0", "d2"]
 
 
-# --- Vijay's review of PR #46 (15 Nov) -------------------------------------------------------------------------------
+# --- review of PR #46 (patilvijay23, 15 Nov) -------------------------------------------------------------------------
 def test_the_same_long_text_repeated_is_read_in_small_batches(tmp_path, write_remove_list, monkeypatch):
     """600 rows of one 200 KB text in 128-row groups: dictionary-encoded, about 1.5 KB a row stored, 200 KB decoded.
     Reads are sized from the decoded bytes, and no output row group passes its limit."""
