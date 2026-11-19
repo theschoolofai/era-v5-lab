@@ -45,7 +45,7 @@ the *kept path* (for each step, the last attempt that ran it). The shaded spans 
 is the first attempt's values, abandoned by the rollback. Dashed lines mark spike steps, numbered as in the spike
 table and coloured by the rule that caught them; ✕ marks a stop.
 
-Along the kept path (for each step, the last attempt that ran it): the first step, every 50 steps and the last step. loss_ntp is one batch, so it is noisy; the 50-step moving average shows the trend. Spike steps are in the next table.
+Along the kept path (for each step, the last attempt that ran it): the first step, every 50 steps, every held-out evaluation step and the last step. loss_ntp is one batch, so it is noisy; the 50-step moving average shows the trend. Spike steps are in the next table.
 
 | step | loss_ntp | 50-step average | loss_mtp | gradient_norm | lr | tokens/s | held-out bpb |
 |---:|---:|---:|---:|---:|---:|---:|---:|

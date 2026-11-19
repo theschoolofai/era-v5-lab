@@ -238,6 +238,13 @@ def write_loss_svg(path, segs_train, kept, numbered, stop_marks, title):
              ("line", RULE_COLOUR["t8"], "4 3", "spike: Team 8 only"),
              ("line", RULE_COLOUR["both"], "4 3", "spike: both rules"),
              ("cross", "#000", "", "stop (exit 78)")]
+    rules = {rule for _, _, _, rule in numbered}
+    rolled = any(st.get("resume") is not None for st in stop_marks)
+    keep = {"steps later run again after a rollback": rolled, "span run again after a rollback": rolled,
+            "stop (exit 78)": bool(stop_marks),
+            "spike: Team 7 only (#n as in the spike table)": "t7" in rules, "spike: Team 8 only": "t8" in rules,
+            "spike: both rules": "both" in rules}
+    items = [it for it in items if keep.get(it[3], True)]
     g.append(f'<rect x="{lx - 8}" y="{ly - 12}" width="330" height="{16 * len(items) + 6}" fill="white" opacity="0.92" stroke="#ddd"/>')
     for k, (kind, c, d, txt) in enumerate(items):
         y = ly + 16 * k
@@ -357,12 +364,13 @@ def main():
 
     every = max(1, len(path) // a.rows)
     vsteps = sorted(k for k in val if k > 0)
-    if len(vsteps) > 1:  # land the rows on held-out evaluation steps, so every row has a held-out score
-        d = vsteps[1] - vsteps[0]
-        every = max(d, round(every / d) * d)
+    if len(vsteps) > 1:  # land the rows on held-out evaluation steps, so every row has a held-out score,
+        d = vsteps[1] - vsteps[0]  # but only when evaluations are frequent enough to give about --rows rows
+        if d <= 2 * every:
+            every = max(d, round(every / d) * d)
     spike_keys = {(e["seg"], e["step"]) for e in t7} | {(x["seg"], x["step"]) for x in t8_spikes}
     spike_steps = {s for _, s in spike_keys}
-    curve = [r for i, r in enumerate(path) if i == 0 or r["step"] % every == 0 or i == len(path) - 1]
+    curve = [r for i, r in enumerate(path) if i == 0 or r["step"] % every == 0 or r["step"] in val or i == len(path) - 1]
 
     sha = [hashlib.sha256(Path(p).read_bytes()).hexdigest() for p in a.jsonl]
     names = ", ".join(f"{Path(p).name} (sha256 {h})" for p, h in zip(a.jsonl, sha))
@@ -371,7 +379,7 @@ def main():
 
     # ---- the curve
     out += ["### The loss curve", "",
-            f"Along the kept path (for each step, the last attempt that ran it): the first step, every {every} steps and the last step."
+            f"Along the kept path (for each step, the last attempt that ran it): the first step, every {every} steps, every held-out evaluation step and the last step."
             f" loss_ntp is one batch, so it is noisy; the {MA}-step moving average shows the trend. Spike steps are in the next table.", "",
             f"| step | loss_ntp | {MA}-step average | loss_mtp | gradient_norm | lr | tokens/s | held-out bpb |",
             "|---:|---:|---:|---:|---:|---:|---:|---:|"]

@@ -34,6 +34,10 @@ section 4), so the record reports both, one column each.
 | `non_finite` | Team 8, same file | any metric | NaN or infinity | stop |
 | loss guard | Team 7, [`teams/07-infrastructure/support/simulation/trainer/train.py`](../../../07-infrastructure/support/simulation/trainer/train.py) ("loss-spike guard", ADR 0001 §6) | `loss_ntp` | above 1.5 × the median of the last 100 clean losses (active once 50 are in the window); a spike step is not added; 3 in a row, or a NaN | stops the run: no save, exit 78, the job is held until a person rolls back ([`USER_GUIDE.md`](../../../07-infrastructure/USER_GUIDE.md) §1.5, §5.4) |
 
+Team 8's `alarms_dryrun1.md` describes `spike_score` as a "trailing 100-step z-score"; the code it runs,
+`AlarmMonitor()` with its defaults, uses a 1,000-step window that becomes active after 100 steps. This record follows the
+code.
+
 The script imports Team 8's `AlarmMonitor` unchanged and copies Team 7's guard with its defaults
 (`--spike-ratio 1.5`, `--spike-window 100`, `--spike-steps 3`), so both rules are exactly the ones the lab runs.
 Both run inside the trainer, so both start empty after every restart; the script does the same.
@@ -135,14 +139,13 @@ What the sample found:
 For dry run 1 the same script runs on its own logs; the parts added by hand are "who was paged and what they did"
 (Team 8's alarm output, the shift log) and the job-log rows of the stops table.
 
-## 5. What is still open
+## 5. Where the dry run 1 numbers come from
 
-- **Job request: filed** as [#475](https://github.com/theschoolofai/era-v5-lab/pull/475) (Shivanshu, 15 Nov):
-  `exp2_muon.yaml` at T2, `muon_lr` 0.01, frozen C3 tokenizer, 1,221 steps, seed 1234, `train_week2.py` with the C3
-  scoring patch of [#474](https://github.com/theschoolofai/era-v5-lab/pull/474) (TSAI reviews it Mon 16 Nov).
-  "What ran" in `dryrun1_loss.md` is filled from it.
-- **Where the returned logs go:** #475 already uses `teams/05-architecture/jobs/evidence/2026-11-15-dryrun1/` for its
-  smoke; the record will link to the returned files there, or wherever TSAI puts them.
-- **Returned files:** #475 lists `manifest.json`, `summary.json`, `metrics.jsonl`, `losses.txt`, `total_losses.txt`.
-  The run's console output is also needed: a NaN stops the trainer with an error that is not in `metrics.jsonl`.
-- The logs themselves (TSAI, Tue 17 to Thu 19 Nov).
+- **Job request:** [#475](https://github.com/theschoolofai/era-v5-lab/pull/475) (Shivanshu, merged 16 Nov). Its evidence
+  folder `jobs/evidence/2026-11-15-dryrun1/` holds only the 3-step smoke run filed with the request.
+- **The full run:** [#620](https://github.com/theschoolofai/era-v5-lab/pull/620) (TSAI, 18 Nov) added
+  `jobs/evidence/2026-11-15-dryrun1-full/`: `metrics.jsonl` (one row per step, 0 to 1221), `losses.txt`,
+  `total_losses.txt`, `summary.json` (COMPLETED, 1,221 steps) and `manifest.json` (p1536, `muon_lr` 0.01, seed 1234).
+  `dryrun1_loss.md` is filled from these files with the command in its Sources section.
+- Held-out bits per byte was scored at steps 0, 611 and 1221 only (`eval_every_steps` 611 in the run's runtime file),
+  so the held-out column has three values.
