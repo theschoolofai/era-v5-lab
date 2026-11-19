@@ -391,7 +391,8 @@ def load_dt():
 def dt_hard_weights(dtmask, model) -> list[tuple[str, torch.Tensor]]:
     """What a Deletion Tuning policy samples with: W * 1[G > 0] for every masked layer, under its Hugging Face
     weight name. The sampler must hold these, never the soft-masked training weights."""
-    return [(f"{name}.weight", m.weight * (m.gate > 0).to(m.weight.dtype)) for name, m in dtmask.masked_layers(model)]
+    return [(f"{name}.weight", m.base_weight * (m.gate > 0).to(m.base_weight.dtype))
+            for name, m in dtmask.masked_layers(model)]
 
 
 def score_completions(task, pairs: list[tuple[list[int], list[int]]], workers: int = 1) -> list[float]:
