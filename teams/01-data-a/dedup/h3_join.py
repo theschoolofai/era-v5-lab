@@ -6,12 +6,15 @@ THE RULES (dedup v2 proposal, H3-a to H3-d; h3_design_v1.md)
 - H3 never chooses a survivor. The H1/H2 groups and their survivors are decided first (source_priority_v1.md, rules 0-4).
   An H3 match is then an edge between two "sides": the H1/H2 group of each document, or the document alone if it is in
   no group. Rules 1-4 never see H3 edges (rule 3, "the longer copy", does not compare across scripts).
-- Rule 0 only. When one side holds a held-out document and the other side holds none, the other side is a train
-  translation of a held-out document. With "remove": true its surviving train copies are removed (rule H3,
-  stage cross_language, priority_rule 0); with "remove": false (the default, until TSAI rules on H3) they are only
-  reported as "would_remove". A held-out document is never removed.
-- Every other H3 edge is reported, never removed: train <-> train (a translation pair inside the training data) and
-  held-out <-> held-out.
+- Rule 0 only, direct edges only (TSAI, #625, 19 Nov: "only direct edges remove; no transitive chain removal"). When
+  an H3 match joins a held-out document to a train document, that train document is a translation of held-out
+  content. With "remove": true it is removed (rule H3, stage cross_language, priority_rule 0); with "remove": false
+  (the default, until E5c and the harm check pass) it is only reported as "would_remove". Only the matched train
+  document goes: the other copies in its H1/H2 group stay. If H1/H2 already removed it, the edge is "already_removed"
+  and removes nothing. A held-out document is never removed.
+- Every other H3 edge is reported, never removed: held-out <-> held-out; train <-> train, as "reported_indirect" when
+  a side's H1/H2 group holds a held-out copy (removing would follow a chain: held-out = copy ~ translation), else as
+  "reported_train_train" (a translation pair inside the training data).
 - Parallel packs: an edge between two documents of the same pack listed in "parallel_packs" (for example Pralekha,
   BPCC: translations on purpose) is skipped and counted.
 - Edges whose two documents are already in one H1/H2 group are counted as "same_group" and change nothing.
@@ -27,8 +30,8 @@ an H3 run on other cleaned parts than the overlap run stops dedup.py.
 OUTPUT: h3_pairs.csv
 ====================
 One row per H3 edge: both documents (pack_id, split, part, row_in_part, doc_id), lang_a, lang_b, coverage, the H1/H2
-group_id of each side ("" for a document in no group), and the outcome: removed, would_remove, reported_train_train,
-reported_heldout_heldout, same_group or parallel_pack. dedup_groups.csv keeps the H1/H2 groups only: a train survivor
+group_id of each side ("" for a document in no group), and the outcome: removed, would_remove, already_removed,
+reported_indirect, reported_train_train, reported_heldout_heldout, same_group or parallel_pack. dedup_groups.csv keeps the H1/H2 groups only: a train survivor
 removed by H3 is written there as "removed", so the group ends with no survivor, as a rule-1 group can.
 """
 import csv
@@ -37,7 +40,8 @@ from pathlib import Path
 H3_HEADER = ["pack_id_a", "split_a", "part_a", "row_in_part_a", "doc_id_a",
              "pack_id_b", "split_b", "part_b", "row_in_part_b", "doc_id_b", "lang_a", "lang_b", "coverage"]
 H3_DEFAULTS = {"matches": None, "remove": False, "parallel_packs": []}
-OUTCOMES = ("removed", "would_remove", "reported_train_train", "reported_heldout_heldout", "same_group", "parallel_pack")
+OUTCOMES = ("removed", "would_remove", "already_removed", "reported_indirect", "reported_train_train",
+            "reported_heldout_heldout", "same_group", "parallel_pack")
 
 
 def check_config(h3, fatal):
@@ -107,31 +111,39 @@ def lookup(results, matches, fatal):
 
 def join(matches, by_key, groups, parallel_packs, remove):
     """Apply the rules above. groups: {row: (group_id, train_survivors, heldout_survivors)} for every row of an H1/H2
-    group. Returns (pairs, removals): pairs for h3_pairs.csv; removals [(row, ref_row, coverage)], a train row to remove
-    and the held-out row it translates, each row at most once."""
+    group. Returns (pairs, removals): pairs for h3_pairs.csv, each with "target", the train row the edge would remove
+    (None if none); removals [(row, ref_row, coverage)], a train row to remove and the held-out row it translates, each
+    row at most once, and only with remove=True."""
     parallel = set(parallel_packs)
     pairs, removals, removed = [], [], set()
     for ka, _, kb, _, la, lb, cov in matches:
         da, db = by_key[ka], by_key[kb]
-        (gid_a, train_a, held_a), (gid_b, train_b, held_b) = _side(da, groups), _side(db, groups)
-        rec = {"a": da, "b": db, "lang_a": la, "lang_b": lb, "coverage": cov, "group_a": gid_a, "group_b": gid_b}
+        (gid_a, _, held_a), (gid_b, _, held_b) = _side(da, groups), _side(db, groups)
+        rec = {"a": da, "b": db, "lang_a": la, "lang_b": lb, "coverage": cov, "group_a": gid_a, "group_b": gid_b,
+               "target": None}
+        ha, hb = da["split"] == "heldout", db["split"] == "heldout"
         if da["pack"] == db["pack"] and da["pack"] in parallel:
             rec["outcome"] = "parallel_pack"
         elif gid_a and gid_a == gid_b:
             rec["outcome"] = "same_group"
-        elif held_a and held_b:
+        elif ha and hb:
             rec["outcome"] = "reported_heldout_heldout"
-        elif not held_a and not held_b:
-            rec["outcome"] = "reported_train_train"
+        elif not ha and not hb:
+            # a train <-> train edge; if a side's H1/H2 group holds a held-out copy, removing the other document would
+            # follow a chain (held-out = copy ~ translation): TSAI, #625, 19 Nov: only direct edges remove
+            rec["outcome"] = "reported_indirect" if (held_a or held_b) else "reported_train_train"
         else:
-            (train, end, held) = (train_b, da, held_a) if held_a else (train_a, db, held_b)
-            ref_row = end["row"] if end["split"] == "heldout" else held[0]
-            rec["outcome"] = "removed" if remove else "would_remove"
-            if remove:
-                for r in train:
-                    if r not in removed:
-                        removed.add(r)
-                        removals.append((r, ref_row, cov))
+            # a direct held-out <-> train edge: only the matched train document can go, and only if it is still kept;
+            # the other copies in its H1/H2 group stay (no transitive removal, TSAI, #625, 19 Nov)
+            (t, h) = (db, da) if ha else (da, db)
+            if t["row"] in groups and t["row"] not in groups[t["row"]][1]:
+                rec["outcome"] = "already_removed"   # removed by H1/H2 (a copy of another document, or rule 0)
+            else:
+                rec["target"] = t["row"]
+                rec["outcome"] = "removed" if remove else "would_remove"
+                if remove and t["row"] not in removed:
+                    removed.add(t["row"])
+                    removals.append((t["row"], h["row"], cov))
         pairs.append(rec)
     return pairs, removals
 

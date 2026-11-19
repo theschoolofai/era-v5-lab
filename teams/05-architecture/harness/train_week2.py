@@ -11,10 +11,12 @@ import importlib
 import json
 from pathlib import Path
 import random
+import re
 import time
+from uuid import uuid4
 import numpy as np
 import torch
-from week2.artifacts import Artifacts, sha256
+from week2.artifacts import Artifacts, TOKENIZER_RELEASES, sha256
 from week2.config import load, load_runtime, merge, validate
 from week2.data import DocumentWindows, BatchStream
 from week2.model import LanguageModel
@@ -152,6 +154,10 @@ def main():
         type=float,
         help="Explicit LR override, recorded in manifest; no optimizer default",
     )
+    p.add_argument(
+        "--tokenizer-release", choices=sorted(TOKENIZER_RELEASES), default="v0",
+        help="Select the pinned tokenizer hash and byte-reconstruction policy",
+    )
     p.add_argument("--seed", type=int)
     p.add_argument("--device", choices=["cpu", "cuda"], default="cpu")
     p.add_argument(
@@ -165,6 +171,9 @@ def main():
     p.add_argument(
         "--logger-factory",
         help="module:function returning writer(out_dir) with write/flush/close",
+    )
+    p.add_argument(
+        "--run-id", help="Shared job run ID (letters, digits, dots, dashes, underscores)"
     )
     p.add_argument("--stop-after", type=int)
     p.add_argument(
@@ -238,7 +247,10 @@ def main():
     torch.backends.cudnn.deterministic = True
     torch.backends.cuda.matmul.allow_tf32 = False
     torch.backends.cudnn.allow_tf32 = False
-    artifacts = Artifacts(args.tokenizer, args.byte_table)
+    artifacts = Artifacts(
+        args.tokenizer, args.byte_table,
+        expected_tokenizer_sha=TOKENIZER_RELEASES[args.tokenizer_release],
+    )
     if len(artifacts.lengths) != cfg["model"]["vocab_size"]:
         p.error("Model/tokenizer vocabulary mismatch")
     if artifacts.pos_dim != cfg["model"]["ke_max_pos"]:
@@ -247,6 +259,7 @@ def main():
     heldout_hash = sha256(args.heldout_data)
     if train_hash == heldout_hash:
         p.error("Training and holdout files are identical")
+    data_load_started = time.perf_counter() if artifacts.normalize_input else None
     train = DocumentWindows(args.train_data, artifacts, cfg["model"]["block_size"])
     val = DocumentWindows(
         args.heldout_data,
@@ -255,6 +268,8 @@ def main():
         require_ids=not args.smoke,
         sources_path=args.heldout_sources,
     )
+    if data_load_started is not None:
+        data_load_seconds = time.perf_counter() - data_load_started
     if train.document_hashes & val.document_hashes:
         p.error("Exact document overlap between train and holdout")
     if args.heldout_sha256:
@@ -329,13 +344,35 @@ def main():
         "torch": torch.__version__,
         "smoke": args.smoke,
     }
+    if artifacts.normalize_input:
+        identity["bpb_policy"] = (
+            f"original UTF-8 bytes, with {args.tokenizer_release} tokenizer normalization"
+        )
     # Resume checks bind the checkpoint to the resolved inputs and source hashes.
     identity_hash = hashlib.sha256(
         json.dumps(identity, sort_keys=True).encode()
     ).hexdigest()
+    checkpoint = None
+    run_id = args.run_id
+    if args.resume:
+        checkpoint = torch.load(args.resume, map_location=device, weights_only=False)
+        if checkpoint["identity_sha256"] != identity_hash:
+            p.error("Resume code/config/artifact/data/device/software identity changed")
+        saved_run_id = checkpoint.get("run_id")
+        if saved_run_id is None:
+            saved_run_id = sha256(args.resume)
+        if run_id is not None and run_id != saved_run_id:
+            p.error("--run-id does not match the checkpoint run ID")
+        run_id = saved_run_id
+    if run_id is None:
+        run_id = uuid4().hex
+    if not isinstance(run_id, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", run_id):
+        p.error("Run ID must begin with a letter or digit and use only letters, digits, dots, dashes and underscores")
+
     args.out.mkdir(parents=True, exist_ok=True)
     manifest = {
         **identity,
+        "run_id": run_id,
         "identity_sha256": identity_hash,
         "baseline_commit": cfg["provenance"]["lead_snapshot"],
         "parameters": model.parameter_count(),
@@ -348,23 +385,18 @@ def main():
         "train_documents": train.document_count,
         "heldout_documents": val.document_count,
     }
+    if data_load_started is not None:
+        manifest["data_load_seconds"] = data_load_seconds
     (args.out / "manifest.json").write_text(
         json.dumps(manifest, indent=2), encoding="utf8"
     )
     external = None
-    if args.logger_factory:
-        module, name = args.logger_factory.split(":", 1)
-        external = getattr(importlib.import_module(module), name)(args.out)
-    writer = JsonWriter(args.out, cfg["run"]["flush_every_steps"])
     rows = []
     trace = []
     ntp_trace = []
     completed = 0
     resumed_seconds = 0.0
-    if args.resume:
-        checkpoint = torch.load(args.resume, map_location=device, weights_only=False)
-        if checkpoint["identity_sha256"] != identity_hash:
-            p.error("Resume code/config/artifact/data/device/software identity changed")
+    if checkpoint is not None:
         model.load_state_dict(checkpoint["model"])
         optimizer.load_state_dict(checkpoint["optimizer"])
         stream.load_state_dict(checkpoint["stream"])
@@ -391,10 +423,14 @@ def main():
         ]:
             row.setdefault(key, float(cfg["optim"]["lr"]) if key == "lr" else 0.0)
         writer.write(row)
-        if external:
+        if external is not None:
             external.write(row)
 
+    writer = JsonWriter(args.out, cfg["run"]["flush_every_steps"])
     try:
+        if args.logger_factory:
+            module, name = args.logger_factory.split(":", 1)
+            external = getattr(importlib.import_module(module), name)(args.out)
         for row in rows:
             log(row)
         if not rows:
@@ -515,7 +551,7 @@ def main():
             log(row)
         # Interrupted segments must not introduce extra validation events into resume history.
         writer.flush()
-        if external:
+        if external is not None:
             external.flush()
         wall = resumed_seconds + time.perf_counter() - started
         if not args.no_checkpoint:
@@ -534,6 +570,7 @@ def main():
                     "numpy_rng": np.random.get_state(),
                     "step": completed,
                     "identity_sha256": identity_hash,
+                    "run_id": run_id,
                     "trace": trace,
                     "ntp_trace": ntp_trace,
                     "rows": rows,
@@ -556,6 +593,7 @@ def main():
                         if args.smoke
                         else ("COMPLETED" if full else "INCOMPLETE_NOT_A_RESULT")
                     ),
+                    "run_id": run_id,
                     "steps": completed,
                     "wall_seconds": wall,
                     "timed_out": timed_out,
@@ -569,9 +607,11 @@ def main():
             encoding="utf8",
         )
     finally:
-        writer.close()
-        if external:
-            external.close()
+        try:
+            writer.close()
+        finally:
+            if external is not None:
+                external.close()
 
 
 if __name__ == "__main__":

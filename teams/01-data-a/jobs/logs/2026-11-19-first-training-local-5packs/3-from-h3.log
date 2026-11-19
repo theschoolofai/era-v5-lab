@@ -1,0 +1,39 @@
+h3: {"matches": 0, "matches_sha256": "016a67b1d66802e35c60fab919afe732316a01abcbdece0ada8baad283f07eda"}
+dedup: {"remove_list_rows": 83, "removed": 83, "heldout_removed": 0, "groups": 32}
+apply: {"rows": 228313, "removed": 83, "kept": 228230, "kept_by_split": {"train": 225914, "heldout": 2316}}
+f2: {"rows": 228230, "kept": 227984, "dropped_by_f2": 246, "errors": 0, "by_split": {"train": {"rows": 225914, "kept": 225670, "dropped_by_f2": 244, "errors": 0}, "heldout": {"rows": 2316, "kept": 2314, "dropped_by_f2": 2, "errors": 0}}}
+survivor_loss: {"total": 32, "with_survivor": 32, "without_survivor": 0, "with_several_survivors": 0, "lost": 1, "partly_hit": 0, "untouched": 31, "survivors_dropped_by_f2": 1}
+ledger: {"rows": 237898, "rows_cleaned": 228313, "kept": 227984, "dropped_by_clean": 9585, "removed_by_dedup": 83, "dropped_by_f2": 246, "f2_error": 0, "clean_fix_by_text": 83018}
+shards: {"written": 8, "empty": 0, "all_left_out": 0, "failed": 0, "skipped": 0, "not_sharded": 5, "truncated": 0, "shards": 63, "parts": 13}
+reconcile: {"kept": 227984, "in_shards": 225471, "in_shard": 225471, "left_out:secret": 199, "not_sharded": 2314}
+pack            split        raw  -clean  cleaned  -dedup  -f2    final
+code-go         train     83,267   6,312   76,955       6   96   76,853
+code-go         heldout      872      62      810       0    2      808
+code-rust       train     60,126   1,926   58,200      58   36   58,106
+code-rust       heldout      612      17      595       0    0      595
+en-fineweb-edu  train     71,933     559   71,374       7   84   71,283
+en-fineweb-edu  heldout      732       6      726       0    0      726
+ind-hi-fw2      train     14,261     460   13,801       0   28   13,773
+ind-hi-fw2      heldout      132       1      131       0    0      131
+ind-sa-fw2      train      5,908     241    5,667      12    0    5,655
+ind-sa-fw2      heldout       55       1       54       0    0       54
+total                    237,898   9,585  228,313      83  246  227,984
+{"raw": 237898, "dropped_by_clean": 9585, "cleaned": 228313, "removed_by_dedup": 83, "dropped_by_f2": 246, "final": 227984, "shards_written": 8}
+     1053.57 real      2889.38 user        86.00 sys
+          2030321664  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             4095615  page reclaims
+              133019  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+               21758  voluntary context switches
+             1765906  involuntary context switches
+        139914319711  instructions retired
+         47586190224  cycles elapsed
+           605619520  peak memory footprint

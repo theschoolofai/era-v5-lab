@@ -39,7 +39,6 @@ REPO = Path(__file__).resolve().parents[3]
 TEMPLATE = REPO / "teams/01-data-a/shards/shard_manifest_v1.template.json"
 CLEAN_PYS = (REPO / "teams/01-data-a/spec_v1_1/clean.py", REPO / "teams/01-data-a/spec_v1/clean.py")  # v1.1 (#595), v1
 SUMMARY, RECORD = "shards_summary.json", "cleaning_pipeline.json"
-PAIRED = ("license", "license_source")  # optional in the template: both or neither (#56)
 DEDUP_FIELDS = ("remove_list_sha256", "remove_list_rows", "overlap", "settings")  # cleaning_pipeline.json "dedup" (#56)
 P1536_SHA256 = "e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b"  # Gate 3 freeze, #504
 C3_SHA256 = "15468e66457b43af79f695cbe585c0d03e3cfe7a4a5d04d189dd3c6b9f02ddc3"  # earlier freeze, #340 (sample shard)
@@ -91,12 +90,10 @@ def run_checks(folder, shard_id, template=TEMPLATE, clean_pys=CLEAN_PYS, expect_
     # 1. Manifest fields
     if Path(template).exists():
         tmpl = json.loads(Path(template).read_text())
-        missing, extra = sorted(set(tmpl) - set(m) - set(PAIRED)), sorted(set(m) - set(tmpl))
+        licence = {"license", "license_source"}  # optional, both or neither: a pack table row may give neither (pack_table.py)
+        missing = sorted(set(tmpl) - set(m) - (set() if licence & set(m) else licence))
+        extra = sorted(set(m) - set(tmpl))
         check("all template fields present", not missing, "none missing", missing or "none missing")
-        pair = [k for k in PAIRED if k in tmpl and k in m]
-        if any(k in tmpl for k in PAIRED):  # the writer adds both when the job's pack table gives a licence, else neither
-            check("license and license_source: both or neither", len(pair) in (0, len(PAIRED)), "both or neither",
-                  pair or "neither")
         check("no fields outside the template", not extra, "none extra", extra or "none extra")
     empty = [k for k, v in m.items() if v in ("", None) or (isinstance(v, str) and v.startswith("<"))]
     check("no empty or placeholder values", not empty, "none", empty or "none")

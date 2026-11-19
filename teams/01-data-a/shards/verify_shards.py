@@ -79,12 +79,9 @@ def read_row(path, row):
 
 def check_shard(out, sid, m, ctx, bad, hashes):
     """The checks of one shard (see the docstring). bad(sid, message) records a problem; hashes gets {file name: sha256}."""
-    optional = {"license", "license_source"}  # a pack table may give neither (pack_table.py); then the manifest has neither
-    lacking = sorted(ctx["keys"] - optional - set(m))
+    lacking = sorted(ctx["keys"] - set(m))  # without the licence fields: they are checked against the pack table below
     if lacking:
         return bad(sid, f"the manifest lacks {', '.join(lacking)}")
-    if ("license" in m) != ("license_source" in m):
-        bad(sid, "the manifest has one of license and license_source without the other")
     for field, want in (("shard_id", sid), ("schema_version", "shard-v1"), ("format", "brahmic_u32_v2+doc_index"),
                         ("token_dtype", "uint32"), ("eos_token_id", EOS_ID)):
         if m[field] != want:

@@ -216,18 +216,6 @@ def test_clean_py_must_be_one_of_the_checkouts(tmp_path):
         "cleaning_pipeline clean.py is a clean.py in this checkout"]
 
 
-@pytest.mark.parametrize("drop,fails", [((), False), (("license", "license_source"), False), (("license",), True)])
-def test_licence_fields_both_or_neither(tmp_path, drop, fails):
-    man_path = write_shard(tmp_path)
-    man = json.loads(man_path.read_text())
-    for k in drop:
-        del man[k]
-    man_path.write_text(json.dumps(man))
-    failed = by_status(cs.run_checks(tmp_path, SID), cs.FAIL)
-    assert ("license and license_source: both or neither" in failed) == fails
-    assert "all template fields present" not in failed
-
-
 def test_rows_outside_the_shards_range_or_from_two_parts_fail(tmp_path):
     write_shard(tmp_path, first_row=10, rows=[10, 11, 13])  # rows_read is 13, so row 13 is outside
     assert "docs.parquet input_row increasing, inside first_row..rows_read-1" in by_status(cs.run_checks(tmp_path, SID), cs.FAIL)
@@ -364,3 +352,11 @@ def test_a_real_rollover_run_passes(tmp_path, monkeypatch):
     expected = {"tokenizer_sha256 is a frozen tokenizer (p1536 or C3)", "cleaning_pipeline clean.py is a clean.py in this checkout"}
     for sid in cs.shard_ids_in(out):
         assert set(by_status(cs.run_checks(out, sid, expect_dataset_version="test"), cs.FAIL)) == expected
+@pytest.mark.parametrize("drop,fails", [(("license", "license_source"), False), (("license_source",), True)])
+def test_the_licence_fields_are_both_or_neither(tmp_path, drop, fails):
+    man_path = write_shard(tmp_path)
+    man = json.loads(man_path.read_text())
+    for field in drop:
+        del man[field]
+    man_path.write_text(json.dumps(man))
+    assert ("all template fields present" in by_status(cs.run_checks(tmp_path, SID), cs.FAIL)) == fails

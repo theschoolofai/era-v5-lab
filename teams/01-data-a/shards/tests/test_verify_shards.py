@@ -260,6 +260,18 @@ def test_a_licence_the_table_gives_must_be_in_the_manifest(made):
     assert not any("pk-b" in x for x in problems)  # a pack the table gives no licence stays valid without one
 
 
+def test_a_licence_other_than_the_tables_is_caught(made):
+    table = json.loads(made.table.read_text(encoding="utf-8"))
+    table["packs"]["pk-a"].update(license="a licence", license_source="a table")
+    made.table.write_text(json.dumps(table), encoding="utf-8")
+    edit_manifest(made, license="a licence", license_source="a table")
+    assert not [x for x in made.check()[0] if x.startswith(SID + ": licen")]
+    edit_manifest(made, license="another licence")
+    assert any(f"{SID}: license is 'another licence', the pack table says 'a licence' for pk-a" in x for x in made.check()[0])
+    edit_manifest(made, license="a licence", license_source=None)
+    assert any(f"{SID}: license_source is None, the pack table says 'a table' for pk-a" in x for x in made.check()[0])
+
+
 def test_a_pack_that_is_not_in_the_table_is_caught(made):
     made.table.write_text(json.dumps({"packs": {"pk-b": TABLE["packs"]["pk-b"]}}), encoding="utf-8")
     assert any("pk-a is not in pack_table.json" in x for x in made.check()[0])

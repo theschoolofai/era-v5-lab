@@ -21,9 +21,9 @@ the part's entry ("left_out_docs"), where reconcile_shards.py finds them. A part
 its chain, ...) is recorded as "failed" and the run goes on. It exits 1 unless every part was written, not_sharded,
 empty or all_left_out.
 
-Restart: the writer publishes each shard's manifest last (written to .tmp and renamed), and the summary is saved after
-every part, so a run that stops part-way can be run again with the same arguments into the same --out. Parts the summary
-holds as done, whose shards are the next numbers of their pack and whose files have the sha256 their manifests give,
+Restart: the writer publishes each shard's manifest last (written to .tmp and renamed), and the summary is saved before
+the first shard and after every part, so a run that stops part-way can be run again with the same arguments into the
+same --out. Parts the summary holds as done, whose shards are the next numbers of their pack and whose files have the sha256 their manifests give,
 are kept as they are; the first part that is not is written again, after every file of its pack numbered from there on
 (and any .tmp) is removed. A rerun with other settings (--tokens, --dataset-version, tokenizer) is refused, as is a
 --out that holds shards of a pack but no summary.
@@ -242,6 +242,7 @@ def main(argv=None):
                      "Nothing was written; use a new --out")
     summary["run_id"], summary["settings"] = run_id, settings
     a.out.mkdir(parents=True, exist_ok=True)
+    save(summary_path, summary)  # before the first shard: a run stopped in its first part can be run again too
 
     this_run, next_index = [], {}  # the names of the parts this run handled; (split, pack) -> the number of its next shard
     for split, pack, path in parts:
