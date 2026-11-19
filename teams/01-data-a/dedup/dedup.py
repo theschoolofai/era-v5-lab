@@ -469,6 +469,7 @@ def run(cfg):
                    "remove": h3["remove"], "parallel_packs": h3["parallel_packs"],
                    "outcomes": {o: sum(p["outcome"] == o for p in h3_pairs) for o in h3_join.OUTCOMES},
                    "removed": len(h3_removals),
+                   "train_docs_targeted": len({p["target"] for p in h3_pairs if p["target"] is not None}),
                    "groups_survivor_removed": len({groups[r][0] for r, _, _ in h3_removals if r in groups})}}
            if h3 else {}),
         "harm_check": harm,
