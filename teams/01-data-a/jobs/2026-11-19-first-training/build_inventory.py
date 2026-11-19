@@ -113,7 +113,8 @@ def build(root, out, scope_file):
         'total_docs': sum(p['rows'] for p in shards),
         'total_file_bytes': sum(p['bytes'] for p in shards),
         'packs': [{k: p[k] for k in ('pack_id', 'group', 'lang_label', 'source',
-                                   'source_revision', 'license', 'license_source', 'subset_requirements')} for p in packs],
+                                   'source_revision', 'license', 'license_source', 'subset_requirements',
+                                   'language', 'script', 'domain', 'lane')} for p in packs],
         'shards': shards,
     }
     manifest_bytes = encoded(manifest)

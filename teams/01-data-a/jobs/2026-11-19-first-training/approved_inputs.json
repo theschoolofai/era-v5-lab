@@ -29,7 +29,11 @@
   "splits": {
     "train": {
       "minimum_parts_per_pack": 1,
-      "expected": ["written", "empty", "all_left_out"]
+      "expected": [
+        "written",
+        "empty",
+        "all_left_out"
+      ]
     },
     "heldout": {
       "minimum_parts_per_pack": 1,
@@ -63,7 +67,11 @@
           "requirement": "Preserve and verify per-file upstream licensing and attribution; the pack-level true value does not license every upstream file.",
           "authority": "main Stage 0 licence rows"
         }
-      ]
+      ],
+      "language": "go",
+      "script": "Latn",
+      "domain": "code",
+      "lane": "code"
     },
     {
       "pack_id": "code-js-ts",
@@ -84,7 +92,11 @@
           "requirement": "Preserve and verify per-file upstream licensing and attribution; the pack-level true value does not license every upstream file.",
           "authority": "main Stage 0 licence rows"
         }
-      ]
+      ],
+      "language": "js-ts",
+      "script": "Latn",
+      "domain": "code",
+      "lane": "code"
     },
     {
       "pack_id": "code-java",
@@ -105,7 +117,11 @@
           "requirement": "Preserve and verify per-file upstream licensing and attribution; the pack-level true value does not license every upstream file.",
           "authority": "main Stage 0 licence rows"
         }
-      ]
+      ],
+      "language": "java",
+      "script": "Latn",
+      "domain": "code",
+      "lane": "code"
     },
     {
       "pack_id": "code-cpp",
@@ -126,7 +142,11 @@
           "requirement": "Preserve and verify per-file upstream licensing and attribution; the pack-level true value does not license every upstream file.",
           "authority": "main Stage 0 licence rows"
         }
-      ]
+      ],
+      "language": "cpp",
+      "script": "Latn",
+      "domain": "code",
+      "lane": "code"
     },
     {
       "pack_id": "code-rust",
@@ -147,7 +167,11 @@
           "requirement": "Preserve and verify per-file upstream licensing and attribution; the pack-level true value does not license every upstream file.",
           "authority": "main Stage 0 licence rows"
         }
-      ]
+      ],
+      "language": "rust",
+      "script": "Latn",
+      "domain": "code",
+      "lane": "code"
     },
     {
       "pack_id": "code-python",
@@ -168,7 +192,11 @@
           "requirement": "Preserve and verify per-file upstream licensing and attribution; the pack-level true value does not license every upstream file.",
           "authority": "main Stage 0 licence rows"
         }
-      ]
+      ],
+      "language": "python",
+      "script": "Latn",
+      "domain": "code",
+      "lane": "code"
     },
     {
       "pack_id": "en-fineweb-edu",
@@ -184,7 +212,11 @@
       },
       "license": "ODC-By v1.0 (commercial use permitted with attribution)",
       "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
-      "subset_requirements": []
+      "subset_requirements": [],
+      "language": "en",
+      "script": "Latn",
+      "domain": "english",
+      "lane": "english"
     },
     {
       "pack_id": "en-dclm",
@@ -200,7 +232,11 @@
       },
       "license": "CC-BY-4.0 (DCLM packaging, rev `817d675276`; Common Crawl terms; card's \"intended/designed for research purposes only\" under Uses/Bias is a statement of intent/fitness disclaimer, not a licence term, same as Dolci; fastText filter only, no generated text)",
       "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
-      "subset_requirements": []
+      "subset_requirements": [],
+      "language": "en",
+      "script": "Latn",
+      "domain": "english",
+      "lane": "english"
     },
     {
       "pack_id": "en-nemotroncc-synth",
@@ -221,7 +257,11 @@
           "requirement": "Pin v1 and exact real/synthetic subsets; preserve synthetic-generator and Wikipedia attribution details.",
           "authority": "sample source labels; main Stage 0 licence rows; PR #626 draft licence note"
         }
-      ]
+      ],
+      "language": "en",
+      "script": "Latn",
+      "domain": "english",
+      "lane": "english"
     },
     {
       "pack_id": "en-nemotroncc",
@@ -242,7 +282,11 @@
           "requirement": "Pin v1 and exact real/synthetic subsets; preserve synthetic-generator and Wikipedia attribution details.",
           "authority": "sample source labels; main Stage 0 licence rows; PR #626 draft licence note"
         }
-      ]
+      ],
+      "language": "en",
+      "script": "Latn",
+      "domain": "english",
+      "lane": "english"
     },
     {
       "pack_id": "math-megamath",
@@ -263,7 +307,11 @@
           "requirement": "Use the megamath-web subset; the dataset name alone is too broad.",
           "authority": "main Stage 0 licence row"
         }
-      ]
+      ],
+      "language": "en",
+      "script": "Latn",
+      "domain": "math",
+      "lane": "math"
     },
     {
       "pack_id": "math-finemath",
@@ -279,7 +327,11 @@
       },
       "license": "ODC-By v1.0 (commercial use permitted with attribution)",
       "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
-      "subset_requirements": []
+      "subset_requirements": [],
+      "language": "en",
+      "script": "Latn",
+      "domain": "math",
+      "lane": "math"
     },
     {
       "pack_id": "sci-finepdfs",
@@ -295,7 +347,11 @@
       },
       "license": "ODC-By v1.0 (commercial use permitted with attribution)",
       "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
-      "subset_requirements": []
+      "subset_requirements": [],
+      "language": "en",
+      "script": "Latn",
+      "domain": "sci",
+      "lane": "science"
     },
     {
       "pack_id": "cadj-commits",
@@ -316,7 +372,11 @@
           "requirement": "Preserve repository/commit/notebook/post identifiers and attribution in the raw fetch metadata.",
           "authority": "main Stage 0 licence rows; PR #626 draft licence note"
         }
-      ]
+      ],
+      "language": "code",
+      "script": "Latn",
+      "domain": "code-adjacent",
+      "lane": "code-adjacent"
     },
     {
       "pack_id": "cadj-notebooks",
@@ -341,7 +401,11 @@
           "requirement": "Pin and verify Kaggle config rather than issues config.",
           "authority": "PR #626 draft licence_status_before_scale_v1.md; main Data B model-card source description"
         }
-      ]
+      ],
+      "language": "code",
+      "script": "Latn",
+      "domain": "code-adjacent",
+      "lane": "code-adjacent"
     },
     {
       "pack_id": "cadj-stackexchange",
@@ -366,7 +430,11 @@
           "requirement": "Pin and verify the stackoverflow subset.",
           "authority": "PR #626 draft licence_status_before_scale_v1.md"
         }
-      ]
+      ],
+      "language": "en",
+      "script": "Latn",
+      "domain": "code-adjacent",
+      "lane": "code-adjacent"
     },
     {
       "pack_id": "ind-bn-fw2",
@@ -382,7 +450,11 @@
       },
       "license": "ODC-By v1.0 (commercial use permitted with attribution)",
       "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
-      "subset_requirements": []
+      "subset_requirements": [],
+      "language": "bn",
+      "script": "Beng",
+      "domain": "indic",
+      "lane": "indic"
     },
     {
       "pack_id": "ind-bn-sangraha-v",
@@ -398,7 +470,11 @@
       },
       "license": "CC-BY-4.0 (commercial use permitted with attribution)",
       "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
-      "subset_requirements": []
+      "subset_requirements": [],
+      "language": "bn",
+      "script": "Beng",
+      "domain": "indic",
+      "lane": "indic"
     },
     {
       "pack_id": "ind-gu-fw2",
@@ -414,7 +490,11 @@
       },
       "license": "ODC-By v1.0 (commercial use permitted with attribution)",
       "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
-      "subset_requirements": []
+      "subset_requirements": [],
+      "language": "gu",
+      "script": "Gujr",
+      "domain": "indic",
+      "lane": "indic"
     },
     {
       "pack_id": "ind-hi-fw2",
@@ -430,7 +510,11 @@
       },
       "license": "ODC-By v1.0 (commercial use permitted with attribution)",
       "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
-      "subset_requirements": []
+      "subset_requirements": [],
+      "language": "hi",
+      "script": "Deva",
+      "domain": "indic",
+      "lane": "indic"
     },
     {
       "pack_id": "ind-hi-hplt",
@@ -446,7 +530,11 @@
       },
       "license": "CC0-1.0 (packaging) / Web terms",
       "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
-      "subset_requirements": []
+      "subset_requirements": [],
+      "language": "hi",
+      "script": "Deva",
+      "domain": "indic",
+      "lane": "indic"
     },
     {
       "pack_id": "ind-hi-indiccorp",
@@ -462,7 +550,11 @@
       },
       "license": "CC-BY-4.0 (commercial use permitted with attribution)",
       "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
-      "subset_requirements": []
+      "subset_requirements": [],
+      "language": "hi",
+      "script": "Deva",
+      "domain": "indic",
+      "lane": "indic"
     },
     {
       "pack_id": "ind-hi-sangraha-s",
@@ -483,7 +575,11 @@
           "requirement": "Keep source eligibility separate from the proposed translated-text mixture exclusion; the current 38-pack scope is unchanged.",
           "authority": "main Data B native_indic_share_v1.md is a proposal; current dedup map remains true"
         }
-      ]
+      ],
+      "language": "hi",
+      "script": "Deva",
+      "domain": "indic",
+      "lane": "indic"
     },
     {
       "pack_id": "ind-hi-sangraha-v",
@@ -499,7 +595,11 @@
       },
       "license": "CC-BY-4.0 (commercial use permitted with attribution)",
       "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
-      "subset_requirements": []
+      "subset_requirements": [],
+      "language": "hi",
+      "script": "Deva",
+      "domain": "indic",
+      "lane": "indic"
     },
     {
       "pack_id": "ind-kn-fw2",
@@ -515,7 +615,11 @@
       },
       "license": "ODC-By v1.0 (commercial use permitted with attribution)",
       "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
-      "subset_requirements": []
+      "subset_requirements": [],
+      "language": "kn",
+      "script": "Knda",
+      "domain": "indic",
+      "lane": "indic"
     },
     {
       "pack_id": "ind-kn-sangraha-s",
@@ -536,7 +640,11 @@
           "requirement": "Keep source eligibility separate from the proposed translated-text mixture exclusion; the current 38-pack scope is unchanged.",
           "authority": "main Data B native_indic_share_v1.md is a proposal; current dedup map remains true"
         }
-      ]
+      ],
+      "language": "kn",
+      "script": "Knda",
+      "domain": "indic",
+      "lane": "indic"
     },
     {
       "pack_id": "ind-kn-sangraha-v",
@@ -552,7 +660,11 @@
       },
       "license": "CC-BY-4.0 (commercial use permitted with attribution)",
       "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
-      "subset_requirements": []
+      "subset_requirements": [],
+      "language": "kn",
+      "script": "Knda",
+      "domain": "indic",
+      "lane": "indic"
     },
     {
       "pack_id": "ind-ml-fw2",
@@ -568,7 +680,11 @@
       },
       "license": "ODC-By v1.0 (commercial use permitted with attribution)",
       "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
-      "subset_requirements": []
+      "subset_requirements": [],
+      "language": "ml",
+      "script": "Mlym",
+      "domain": "indic",
+      "lane": "indic"
     },
     {
       "pack_id": "ind-mr-fw2",
@@ -584,7 +700,11 @@
       },
       "license": "ODC-By v1.0 (commercial use permitted with attribution)",
       "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
-      "subset_requirements": []
+      "subset_requirements": [],
+      "language": "mr",
+      "script": "Deva",
+      "domain": "indic",
+      "lane": "indic"
     },
     {
       "pack_id": "ind-mr-sangraha-v",
@@ -600,7 +720,11 @@
       },
       "license": "CC-BY-4.0 (commercial use permitted with attribution)",
       "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
-      "subset_requirements": []
+      "subset_requirements": [],
+      "language": "mr",
+      "script": "Deva",
+      "domain": "indic",
+      "lane": "indic"
     },
     {
       "pack_id": "ind-or-fw2",
@@ -616,7 +740,11 @@
       },
       "license": "ODC-By v1.0 (commercial use permitted with attribution)",
       "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
-      "subset_requirements": []
+      "subset_requirements": [],
+      "language": "or",
+      "script": "Orya",
+      "domain": "indic",
+      "lane": "indic"
     },
     {
       "pack_id": "ind-sa-fw2",
@@ -632,7 +760,11 @@
       },
       "license": "ODC-By v1.0 (commercial use permitted with attribution)",
       "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
-      "subset_requirements": []
+      "subset_requirements": [],
+      "language": "sa",
+      "script": "Deva",
+      "domain": "indic",
+      "lane": "indic"
     },
     {
       "pack_id": "ind-ta-fw2",
@@ -648,7 +780,11 @@
       },
       "license": "ODC-By v1.0 (commercial use permitted with attribution)",
       "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
-      "subset_requirements": []
+      "subset_requirements": [],
+      "language": "ta",
+      "script": "Taml",
+      "domain": "indic",
+      "lane": "indic"
     },
     {
       "pack_id": "ind-ta-sangraha-s",
@@ -669,7 +805,11 @@
           "requirement": "Keep source eligibility separate from the proposed translated-text mixture exclusion; the current 38-pack scope is unchanged.",
           "authority": "main Data B native_indic_share_v1.md is a proposal; current dedup map remains true"
         }
-      ]
+      ],
+      "language": "ta",
+      "script": "Taml",
+      "domain": "indic",
+      "lane": "indic"
     },
     {
       "pack_id": "ind-ta-sangraha-v",
@@ -685,7 +825,11 @@
       },
       "license": "CC-BY-4.0 (commercial use permitted with attribution)",
       "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
-      "subset_requirements": []
+      "subset_requirements": [],
+      "language": "ta",
+      "script": "Taml",
+      "domain": "indic",
+      "lane": "indic"
     },
     {
       "pack_id": "ind-te-fw2",
@@ -701,7 +845,11 @@
       },
       "license": "ODC-By v1.0 (commercial use permitted with attribution)",
       "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
-      "subset_requirements": []
+      "subset_requirements": [],
+      "language": "te",
+      "script": "Telu",
+      "domain": "indic",
+      "lane": "indic"
     },
     {
       "pack_id": "ind-te-sangraha-s",
@@ -722,7 +870,11 @@
           "requirement": "Keep source eligibility separate from the proposed translated-text mixture exclusion; the current 38-pack scope is unchanged.",
           "authority": "main Data B native_indic_share_v1.md is a proposal; current dedup map remains true"
         }
-      ]
+      ],
+      "language": "te",
+      "script": "Telu",
+      "domain": "indic",
+      "lane": "indic"
     },
     {
       "pack_id": "ind-te-sangraha-v",
@@ -738,7 +890,11 @@
       },
       "license": "CC-BY-4.0 (commercial use permitted with attribution)",
       "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
-      "subset_requirements": []
+      "subset_requirements": [],
+      "language": "te",
+      "script": "Telu",
+      "domain": "indic",
+      "lane": "indic"
     }
   ],
   "allowed_train_packs": [

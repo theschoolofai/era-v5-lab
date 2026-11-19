@@ -8,8 +8,9 @@ Options: --expect-tokenizer p1536, --expect-dataset-version corpus-v1, --special
 --summary <shards_summary.json> (default: the one in <folder>), --subset (the folder holds only some of the run's
 shards), --json <out.json>, --verbose.
 
-<folder> holds <shard_id>.json and whichever of the shard's files you have. A file that is not there (for example the
-.bin and .docs.parquet of the sample shard, which pr-guard keeps out of git) is reported NOT CHECKED, never PASS.
+<folder> holds <shard_id>.json and whichever of the shard's files you have. In single-shard mode, an omitted file
+(for example a sample bundle without payloads) is reported NOT CHECKED. Folder mode requires all files that each
+present manifest names: a missing file is FAIL, including with --subset (which permits missing whole shards).
 With the .bin it also checks the header, the size, every id below the vocab, an EOS at the end of every document and no
 other special id.
 
@@ -65,12 +66,13 @@ def special_ids_from(tokenizer_json):
 
 
 def run_checks(folder, shard_id, template=TEMPLATE, clean_pys=CLEAN_PYS, expect_tokenizer=None, special_ids=(),
-               expect_dataset_version=None):
+               expect_dataset_version=None, require_files=False):
     """Return a list of {check, status, expected, observed}.
 
     expect_tokenizer: a tokenizer sha256 the shard must name (default: either frozen tokenizer).
     special_ids: extra special ids (below 130,725) that must not occur inside a document, from special_ids_from().
     expect_dataset_version: the manifest's dataset_version must be this (e.g. corpus-v1); default: only reported.
+    require_files: folder audits require every manifest-listed file; single-shard partial bundles may omit them.
     """
     folder = Path(folder)
     rows = []
@@ -134,7 +136,7 @@ def run_checks(folder, shard_id, template=TEMPLATE, clean_pys=CLEAN_PYS, expect_
             got = sha(p)
             check(f"{sha_key} ({p.name})", got == m[sha_key], short(m[sha_key]), short(got))
         else:
-            check(f"{sha_key} ({p.name})", None, short(m[sha_key]), "file not present")
+            check(f"{sha_key} ({p.name})", False if require_files else None, short(m[sha_key]), "file not present")
     cp = folder / "cleaning_pipeline.json"
     if cp.exists():
         got = sha(cp)
@@ -157,13 +159,22 @@ def run_checks(folder, shard_id, template=TEMPLATE, clean_pys=CLEAN_PYS, expect_
             check("cleaning_pipeline clean.py is a clean.py in this checkout", got in known, " or ".join(known.values()),
                   f"{known.get(got, 'none of them')} {short(got)}")
     else:
-        check("cleaning_pipeline_sha256", None, short(m["cleaning_pipeline_sha256"]), "file not present")
+        check("cleaning_pipeline_sha256", False if require_files else None, short(m["cleaning_pipeline_sha256"]), "file not present")
 
     # 3. Index and token counts
     idx = None
     ip = folder / Path(m["index_uri"]).name
     if ip.exists():
-        idx = np.load(ip, allow_pickle=False)
+        try:
+            idx = np.load(ip, allow_pickle=False)
+        except (ValueError, EOFError, OSError) as exc:
+            check("index can be read", False, "readable .npy", f"{type(exc).__name__}: {exc}")
+    if idx is not None:
+        valid = isinstance(idx, np.ndarray) and idx.ndim == 1 and idx.dtype == np.int64
+        check("index is a one-dimensional int64 array", valid, "1D int64", f"shape={getattr(idx, 'shape', None)}, dtype={getattr(idx, 'dtype', None)}")
+        if not valid:
+            idx = None
+    if idx is not None:
         lens = np.diff(idx)
         check("index dtype int64", idx.dtype == np.int64, "int64", idx.dtype)
         check("index length = doc_count + 1", len(idx) == dc + 1, dc + 1, len(idx))
@@ -173,7 +184,7 @@ def run_checks(folder, shard_id, template=TEMPLATE, clean_pys=CLEAN_PYS, expect_
               int(lens.min()) if len(lens) else "no docs")
         check("document lengths sum to token_count", int(lens.sum()) == tc, tc, int(lens.sum()))
         check("shard within 2^26 tokens, or one document", tc <= 2**26 or dc == 1, "<= 67108864", tc)
-    else:
+    elif not ip.exists():
         check("index checks", None, "", "index not present")
 
     qp = folder / Path(m["quality_report_uri"]).name
@@ -216,7 +227,8 @@ def run_checks(folder, shard_id, template=TEMPLATE, clean_pys=CLEAN_PYS, expect_
             np.minimum(chunk, VOCAB - 1, out=clipped[:len(chunk)])  # an id outside the vocab counts as mark 2
             marks += np.bincount(lut[clipped[:len(chunk)]], minlength=3)
         check("every id < vocab 131072", top < VOCAB, f"< {VOCAB}", top)
-        if idx is not None and len(toks) == tc and int(idx[-1]) == tc:
+        if (idx is not None and len(idx) > 1 and len(toks) == tc and int(idx[-1]) == tc
+                and bool((idx[1:] > 0).all()) and bool((idx[1:] <= len(toks)).all())):
             ends = idx[1:] - 1
             last = np.asarray(toks[ends])
             n_eos = int((last == EOS_ID).sum())
@@ -421,7 +433,7 @@ def main(argv=None):
         return 1
     result, total = {"shards": {}, "map": None}, {PASS: 0, FAIL: 0, NOT_CHECKED: 0}
     for sid in ids:
-        rows = run_checks(a.folder, sid, **kw)
+        rows = run_checks(a.folder, sid, require_files=True, **kw)
         counts = tally(rows)
         result["shards"][sid] = {"checks": rows, "counts": counts}
         print(f"{sid}: {counts[PASS]} PASS, {counts[FAIL]} FAIL, {counts[NOT_CHECKED]} NOT CHECKED")

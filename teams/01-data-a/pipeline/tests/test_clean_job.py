@@ -419,6 +419,16 @@ def test_without_audit_samples_there_is_no_audit_folder_and_no_examples_file(tmp
     assert not (out / "audit").exists() and not (out / "rule_examples.csv").exists()
 
 
+def test_audit_sampling_preserves_cleaned_parquet_and_rule_counts(tmp_path):
+    plain, plain_reports = two_parts(tmp_path / 'plain', audit_samples=0)
+    audit, audit_reports = two_parts(tmp_path / 'audit', audit_samples=5)
+    for before, after in zip(plain_reports, audit_reports):
+        part = before['part']
+        assert (plain / part).read_bytes() == (audit / part).read_bytes()
+        assert before['actions'] == after['actions']
+        assert before['rule_counts'] == after['rule_counts']
+
+
 def test_a_missing_audit_file_stops_the_aggregate_naming_the_part(tmp_path):
     out, reports = two_parts(tmp_path, audit_samples=1)
     (out / "audit/train/en-dclm/part-00001.parquet.json").unlink()
