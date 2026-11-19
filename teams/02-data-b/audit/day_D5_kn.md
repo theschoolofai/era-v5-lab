@@ -51,6 +51,7 @@ Issue #528. Documents drawn with `random.Random(5).sample(range(n), 25)` from ea
 | `5915342d3d8acd19` | `ind-kn-sangraha-v-train-000000` | finding | A6 | 7419 | Latin t inside a Kannada word |
 | `5915342d3d8acd19` | `ind-kn-sangraha-v-train-000000` | finding | D1 | 4741 | long English translation blocks, ~30% of letters |
 | `5915342d3d8acd19` | `ind-kn-sangraha-v-train-000000` | finding | G3 | 0 | Abrupt start from middle |
+| `5915342d3d8acd19` | `ind-kn-sangraha-v-train-000000` | finding | A6 | 2514 | Latin ss for avagraha, missed by clean |
 | `e43f1cfd70645433` | `ind-kn-sangraha-v-train-000000` | finding | C1 | 0 | hashtag tag glued to the headline |
 | `af47c6e98691b3f5` | `ind-kn-sangraha-v-train-000000` | ok |  |  | clean removed follow-us line at end, correct |
 | `7d352831fe613649` | `ind-kn-sangraha-v-train-000000` | ok |  |  |  |
@@ -66,4 +67,4 @@ Issue #528. Documents drawn with `random.Random(5).sample(range(n), 25)` from ea
 - Documents read: 50
 - ok: 36
 - With a finding: 14
-- Codes found: A6 (2), C1 (13), D1 (1), G1 (2), G3 (2)
+- Codes found: A6 (3), C1 (13), D1 (1), G1 (2), G3 (2)
