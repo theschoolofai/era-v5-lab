@@ -40,3 +40,15 @@ Test log:        REQUIRED before sending. Not yet attached. Run the save and rel
 
 - One job answers one question. The eval-mini scoring is a separate request, so the two can be sent apart.
 - No benchmark item text goes into any file in this request.
+
+## Update 19 Nov 2026 (f20201351h-maker)
+
+Code and a test log for the save step now exist on a local branch (not pushed, no PR yet); nothing above was edited.
+- Blocked by 2 (code PR for the save step): covered by `teams/10-post-training/capstone/keep_weights.py` (saves one finished model
+  through Team 7's `Checkpointer`, weights only), the `--keep-weights-dir` and `--keep-arm` flags on `capstone/sft_job_v1.py` and
+  `capstone/sft_g5.py`, and `--keep-weights-dir` on `capstone/rl_job_v1.py`. Team 7's `export_safetensors` and Team 9's
+  `run_lab_ckpt.py --run-dir` both accept the folder on the CPU stand-in. Not shown: a GPU run or the real checkpoint.
+- Blocked by 5 (test log): `capstone/test_keep_weights.py`, `test_keep_weights_adapters.py`, `test_keep_weights_wiring.py`
+  and the end-to-end log of the job script itself (see the PR body of this branch).
+- Still open: 1 (#587 results), 3 (route decision, lead), 4 (Team 9's confirmation of which format their watcher reads), 6 (lead approval).
+- Measured, not estimated: the #587 model (Team 5 `configs/arms/t2.yaml`, built on CPU) has 237,052,416 parameters, which matches the line above.

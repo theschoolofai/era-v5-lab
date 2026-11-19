@@ -97,6 +97,8 @@ def test_dt_arm_is_saved_baked_and_plain(tmp_path):
     dtmask.convert(m, ("gate", "down"), 100.0, 1000.0, 10, seed=0)
     m.eval()
     x = torch.randn(3, 8, generator=torch.Generator().manual_seed(2))
+    with pytest.raises(ValueError, match="not plain weights"):  # an unbaked DT model has no mask-named key: the class check catches it
+        kw.save_run_folder(m, tmp_path / "k0", "unbaked", step=1, probe_fn=probe)
     with torch.no_grad():
         dtmask.bake(m)
         want = m(x)

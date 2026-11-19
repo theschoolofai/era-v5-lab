@@ -63,6 +63,7 @@ def save_run_folder(model, remote_root, run_id: str, step: int, probe_fn, tokens
     from trainer.tiny import SyntheticLoader
 
     bad = [k for k in model.state_dict() if "lora_" in k or k.endswith(".mask") or "keep_mask" in k]
+    bad += [f"<module {n}: {type(m).__name__}>" for n, m in model.named_modules() if type(m).__name__ in ("LoRALinear", "MaskedLinear")]
     if bad:
         raise ValueError(f"not plain weights (adapter or mask keys present, merge or bake first): {bad[:3]}")
     os.environ.setdefault("V5_EVENTS_DIR", tempfile.mkdtemp(prefix="kw_events_"))
