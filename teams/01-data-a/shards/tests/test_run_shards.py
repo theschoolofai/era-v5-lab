@@ -24,7 +24,7 @@ TEXTS = ["The water cycle moves water between the sea, the air and the land.\n",
          "पानी समुद्र, हवा और ज़मीन के बीच घूमता है।\n"]
 TABLE = {"packs": {
     "pk-a": {"language": "go", "script": "Latn", "domain": "code", "lane": "code"},
-    "pk-b": {"language": "en", "script": "Latn", "domain": "english", "lane": "general"},
+    "pk-b": {"language": "en", "script": "Latn", "domain": "english", "lane": "english"},
     "pk-nolane": {"language": "en", "script": "Latn", "domain": "english", "lane": None},
 }}
 
@@ -63,7 +63,7 @@ def test_every_part_gets_its_shard_and_the_table_row(run, tmp_path, table):
     assert [[x["shard_id"] for x in written[k]["shards"]] for k in sorted(written)] == \
         [["pk-a-train-000000"], ["pk-a-train-000001"], ["pk-b-train-000000"]]
     m = json.loads((out / "pk-b-train-000000.json").read_text(encoding="utf-8"))
-    assert (m["language"], m["script"], m["domain"], m["capability_lane"]) == ("en", "Latn", "english", "general")
+    assert (m["language"], m["script"], m["domain"], m["capability_lane"]) == ("en", "Latn", "english", "english")
     assert all(v["docs"] == 3 and not v["truncated"] and v["rows_read"] == v["rows_in_part"] == 3 for v in written.values())
     assert sorted(p.name for p in out.glob("*.bin")) == ["pk-a-train-000000.bin", "pk-a-train-000001.bin", "pk-b-train-000000.bin"]
     assert len(set((out / n).read_bytes() for n in ("pk-a-train-000000.json", "pk-a-train-000001.json"))) == 2
@@ -361,6 +361,20 @@ def test_a_run_stopped_part_way_and_run_again_ends_as_one_clean_run(run, tmp_pat
     code, out, got = go(run, tmp_path, table, *args, out="again")
     assert code == 0 and got["parts"] == want["parts"] and got["counts"] == want["counts"]
     assert {p.name: p.stat().st_mtime_ns for p in out.glob("pk-a-train-00000[0-2].bin")} == kept and len(kept) == 3
+
+
+def test_a_run_stopped_in_its_first_part_can_be_run_again(run, tmp_path, table, monkeypatch):
+    """Stopped before any part is in the summary (pk-b has no held-out part, which would be saved first; a kill in code-go's
+    first part on real data left shards and no summary): the rerun is not refused, and ends as the clean run, file for file."""
+    args = ("--pack", "pk-b", "--tokens", "40")
+    _, clean, want = go(run, tmp_path, table, *args, out="clean")
+    with monkeypatch.context() as m:
+        stop_at(m, "publish", 2)
+        with pytest.raises(KeyboardInterrupt):
+            go(run, tmp_path, table, *args, out="again")
+    code, out, got = go(run, tmp_path, table, *args, out="again")
+    assert code == 0 and got["parts"] == want["parts"] and got["counts"] == want["counts"]
+    assert {p.name: p.read_bytes() for p in out.glob("pk-b-*.bin")} == {p.name: p.read_bytes() for p in clean.glob("pk-b-*.bin")} != {}
     names = lambda d: sorted(p.name for p in d.iterdir() if p.suffix != ".md" and p.name != "shards_summary.json")
     assert names(out) == names(clean) and not list(out.glob("*.tmp"))
     for f in clean.glob("*.bin"):

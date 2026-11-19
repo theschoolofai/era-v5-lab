@@ -109,7 +109,8 @@ those are reported as `not_sharded`, which is not an error (the writer refuses a
 
 - **Pack metadata:** `pack_table.json` has a `language`, `script`, `domain` and `lane` for each of the 38 week-2 packs. A pack
   that is not in it, or has a null field, is skipped, not guessed: a manifest never changes. `language` is the programming
-  language for `code-*` packs and the pack's `lang_label` otherwise; `lane` is null for every non-code pack until the training plan names the lanes.
+  language for `code-*` packs and the pack's `lang_label` otherwise; `lane` is one of the six capability lanes (next item), in every pack table (`pack_table.py` refuses any other value).
+- **Capability lanes** (`capability_lane`; names accepted by TSAI, 16 Nov 2026, job request PR #47): `code` (6 packs: the `code-*` packs), `code-adjacent` (3: `cadj-*`), `english` (4: `en-*`), `indic` (22: `ind-*`), `math` (2: `math-*`) and `science` (1: `sci-finepdfs`). A pack has exactly one lane. The values are `LANES` in `pack_table.py`.
 - **Rollover and shard id:** `<pack>-<split>-<number>`. The writer fills a shard up to `--tokens` (default 2^26), then
   writes it and opens the next number with the doc that did not fit, until every row of the part is read. A doc is never
   split; one that alone is longer than `--tokens` is left out as `oversize`. Numbers run on across a pack's parts in part
@@ -117,7 +118,7 @@ those are reported as `not_sharded`, which is not an error (the writer refuses a
 - **No document to write:** a part with no rows (dedup or F2 removed them all) is `empty`; one whose every row the writer
   left out is `all_left_out`, with the doc_ids per reason in its summary entry (`left_out_docs`). Neither gets a shard, so
   there is never a zero-token shard.
-- **Restart:** each shard's manifest is written last (to `.tmp`, then renamed) and the summary is saved after every part.
+- **Restart:** each shard's manifest is written last (to `.tmp`, then renamed) and the summary is saved before the first shard and after every part.
   The same command run again into the same `--out` keeps every part already done whose shards have the sha256 their
   manifests give, removes what a stopped run left of the next one (its pack's files from that number on, and `.tmp`), and
   writes the rest. Other settings (`--tokens`, `--dataset-version`, tokenizer) are refused, as is an `--out` holding shards
@@ -205,7 +206,6 @@ corpus-v1/
 
 ## Not done yet
 
-- Names for the `capability_lane` values (null in `pack_table.json` for the 32 non-code packs).
 - What a held-out part becomes (G3, G9).
 - The release's `SHA256SUMS` and `admission.jsonl`, and the release folder layout (`<pack>/<split>/`; shards are written flat for now).
 - The loader and its run of `ckpt/loader_contract.py`.

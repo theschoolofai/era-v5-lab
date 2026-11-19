@@ -27,7 +27,7 @@ TEXTS = ["The water cycle moves water between the sea, the air and the land.\n",
          "package main\n\nfunc area(r float64) float64 {\n\treturn 3.14159 * r * r\n}\n",
          "पानी समुद्र, हवा और ज़मीन के बीच घूमता है।\n"]
 TABLE = {"packs": {"pk-a": {"language": "go", "script": "Latn", "domain": "code", "lane": "code"},
-                   "pk-b": {"language": "en", "script": "Latn", "domain": "english", "lane": "general"}}}
+                   "pk-b": {"language": "en", "script": "Latn", "domain": "english", "lane": "english"}}}
 SID = "pk-a-train-000000"
 
 
@@ -238,11 +238,11 @@ def test_a_missing_cleaning_pipeline_file_is_caught(made):
 def test_a_manifest_that_disagrees_with_the_pack_table_is_caught(made):
     TABLE_B = json.loads(made.table.read_text(encoding="utf-8"))
     TABLE_B["packs"]["pk-a"]["language"] = "rust"
-    TABLE_B["packs"]["pk-b"]["lane"] = "other"
+    TABLE_B["packs"]["pk-b"]["lane"] = "math"
     made.table.write_text(json.dumps(TABLE_B), encoding="utf-8")
     problems = made.check()[0]
     assert any("language is 'go', pack_table.json says 'rust' for pk-a" in x for x in problems)
-    assert any("capability_lane is 'general', pack_table.json says 'other' for pk-b" in x for x in problems)
+    assert any("capability_lane is 'english', pack_table.json says 'math' for pk-b" in x for x in problems)
 
 
 def test_a_licence_the_table_does_not_give_is_caught_in_the_manifest(made):
@@ -258,6 +258,18 @@ def test_a_licence_the_table_gives_must_be_in_the_manifest(made):
     assert any("pk-a-train-000000: license is None, the pack table says 'a licence' for pk-a" in x for x in problems)
     assert any("pk-a-train-000001: license_source is None, the pack table says 'a table' for pk-a" in x for x in problems)
     assert not any("pk-b" in x for x in problems)  # a pack the table gives no licence stays valid without one
+
+
+def test_a_licence_other_than_the_tables_is_caught(made):
+    table = json.loads(made.table.read_text(encoding="utf-8"))
+    table["packs"]["pk-a"].update(license="a licence", license_source="a table")
+    made.table.write_text(json.dumps(table), encoding="utf-8")
+    edit_manifest(made, license="a licence", license_source="a table")
+    assert not [x for x in made.check()[0] if x.startswith(SID + ": licen")]
+    edit_manifest(made, license="another licence")
+    assert any(f"{SID}: license is 'another licence', the pack table says 'a licence' for pk-a" in x for x in made.check()[0])
+    edit_manifest(made, license="a licence", license_source=None)
+    assert any(f"{SID}: license_source is None, the pack table says 'a table' for pk-a" in x for x in made.check()[0])
 
 
 def test_a_pack_that_is_not_in_the_table_is_caught(made):
