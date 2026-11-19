@@ -94,6 +94,44 @@ def test_good_shard_passes_every_check(tmp_path):
     assert "every document ends with EOS" in by_status(rows, cs.PASS)
 
 
+def test_a_truncated_index_fails_and_folder_audit_continues(tmp_path, capsys):
+    make_run(tmp_path)
+    index = tmp_path / 'code-go-train-000000.idx.npy'
+    index.write_bytes(index.read_bytes()[:-8])
+    report = tmp_path / 'audit.json'
+    assert cs.main([str(tmp_path), '--json', str(report)]) == 1
+    result = json.loads(report.read_text())
+    assert 'index can be read' in by_status(result['shards']['code-go-train-000000']['checks'], cs.FAIL)
+    assert len(result['shards']) == 4
+    assert result['shards']['code-go-train-000003']['counts'][cs.FAIL] == 0
+
+
+@pytest.mark.parametrize('suffix', ['.docs.parquet', '.bin', '.idx.npy', '.quality_report.json'])
+def test_missing_manifest_listed_file_fails_a_full_folder_audit(tmp_path, suffix):
+    make_run(tmp_path)
+    (tmp_path / ('code-go-train-000000' + suffix)).unlink()
+    report = tmp_path / 'audit.json'
+    assert cs.main([str(tmp_path), '--json', str(report)]) == 1
+    rows = json.loads(report.read_text())['shards']['code-go-train-000000']['checks']
+    assert any(r['status'] == cs.FAIL and r['observed'] == 'file not present' for r in rows)
+
+
+def test_missing_files_in_a_single_shard_partial_bundle_are_not_checked(tmp_path):
+    write_shard(tmp_path)
+    (tmp_path / f'{SID}.docs.parquet').unlink()
+    rows = cs.run_checks(tmp_path, SID)
+    assert by_status(rows, cs.FAIL) == []
+    assert '.docs.parquet checks' in by_status(rows, cs.NOT_CHECKED)
+
+
+@pytest.mark.parametrize('index', [np.array([], dtype=np.int64), np.array([[0, 9]], dtype=np.int64),
+                                  np.array([0., 9.]), np.array([0, -1, 9], dtype=np.int64)])
+def test_malformed_index_reports_failures_without_crashing(tmp_path, index):
+    write_shard(tmp_path)
+    np.save(tmp_path / f'{SID}.idx.npy', index)
+    assert by_status(cs.run_checks(tmp_path, SID), cs.FAIL)
+
+
 def test_low_special_id_inside_a_document_fails(tmp_path):
     write_shard(tmp_path, docs=[[11, 36, 13, cs.EOS_ID], [21, cs.EOS_ID]])
     rows = cs.run_checks(tmp_path, SID, special_ids=LOW_SPECIALS)
