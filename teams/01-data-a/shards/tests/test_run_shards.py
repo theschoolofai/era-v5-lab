@@ -24,7 +24,7 @@ TEXTS = ["The water cycle moves water between the sea, the air and the land.\n",
          "पानी समुद्र, हवा और ज़मीन के बीच घूमता है।\n"]
 TABLE = {"packs": {
     "pk-a": {"language": "go", "script": "Latn", "domain": "code", "lane": "code"},
-    "pk-b": {"language": "en", "script": "Latn", "domain": "english", "lane": "general"},
+    "pk-b": {"language": "en", "script": "Latn", "domain": "english", "lane": "english"},
     "pk-nolane": {"language": "en", "script": "Latn", "domain": "english", "lane": None},
 }}
 
@@ -63,7 +63,7 @@ def test_every_part_gets_its_shard_and_the_table_row(run, tmp_path, table):
     assert [[x["shard_id"] for x in written[k]["shards"]] for k in sorted(written)] == \
         [["pk-a-train-000000"], ["pk-a-train-000001"], ["pk-b-train-000000"]]
     m = json.loads((out / "pk-b-train-000000.json").read_text(encoding="utf-8"))
-    assert (m["language"], m["script"], m["domain"], m["capability_lane"]) == ("en", "Latn", "english", "general")
+    assert (m["language"], m["script"], m["domain"], m["capability_lane"]) == ("en", "Latn", "english", "english")
     assert all(v["docs"] == 3 and not v["truncated"] and v["rows_read"] == v["rows_in_part"] == 3 for v in written.values())
     assert sorted(p.name for p in out.glob("*.bin")) == ["pk-a-train-000000.bin", "pk-a-train-000001.bin", "pk-b-train-000000.bin"]
     assert len(set((out / n).read_bytes() for n in ("pk-a-train-000000.json", "pk-a-train-000001.json"))) == 2

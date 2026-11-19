@@ -17,7 +17,7 @@
   "language": "en",
   "script": "Latn",
   "domain": "web",
-  "capability_lane": "general_language",
+  "capability_lane": "english",
   "license": "<the pack's licence, when the run's pack table gives one>",
   "license_source": "<where that licence is recorded; with license, or neither>",
   "split": "train",

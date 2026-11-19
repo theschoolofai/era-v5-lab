@@ -54,10 +54,29 @@ def test_row_matches_the_committed_sample():
                                            ("lane", "capability_lane"))}
 
 
-def test_a_null_lane_is_refused(table):
-    assert table["en-dclm"]["lane"] is None  # until the training plan names the lanes
+def test_every_pack_has_a_lane_from_the_agreed_six(table):
+    assert pack_table.LANES == ("code", "code-adjacent", "english", "indic", "math", "science")
+    assert {pack: r["lane"] for pack, r in table.items() if r["lane"] not in pack_table.LANES} == {}
+
+
+def test_lane_counts_and_rule(table):
+    lane_of = {"cadj": "code-adjacent", "code": "code", "en": "english", "ind": "indic", "math": "math", "sci": "science"}
+    for pack, r in table.items():
+        assert r["lane"] == lane_of[pack.split("-")[0]], pack
+    counts = {lane: sum(r["lane"] == lane for r in table.values()) for lane in pack_table.LANES}
+    assert counts == {"code": 6, "code-adjacent": 3, "english": 4, "indic": 22, "math": 2, "science": 1}
+
+
+def test_a_null_lane_is_refused(tmp_path):
+    table = table_of(tmp_path, {"en-dclm": {**LICENSED, "lane": None}})
     with pytest.raises(pack_table.PackTableError, match="en-dclm has no lane"):
         pack_table.row("en-dclm", table)
+
+
+@pytest.mark.parametrize("lane", ["general_language", "code_adjacent", "indic_hi", "general", "test", "Code"])
+def test_a_lane_outside_the_agreed_six_is_refused_in_every_table(tmp_path, lane):
+    with pytest.raises(pack_table.PackTableError, match="en-dclm.lane is .* expected one of code, code-adjacent"):
+        table_of(tmp_path, {"en-dclm": {**LICENSED, "lane": lane}})
 
 
 def test_an_unknown_pack_is_refused(table):
