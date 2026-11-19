@@ -144,7 +144,7 @@ IDs, counts and hashes only.
 import sys
 sys.dont_write_bytecode = True
 
-import argparse, hashlib, json, os, platform, subprocess, time
+import argparse, csv, hashlib, json, os, platform, subprocess, time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -285,9 +285,12 @@ def csv_column(file, column):
 
 
 def csv_rows(file):
-    """Records of a CSV, without the header (a quoted value may hold a newline, so lines are not records)."""
+    """Records of a CSV, without the header (a quoted value may hold a newline, so lines are not records). The header is
+    read as CSV, so a quoted column name ("pack_id_a", as pyarrow's write_csv in h3.py writes it) is the name pyarrow
+    reads back."""
     with open(file, encoding="utf-8", newline="") as f:
-        first = f.readline().rstrip("\r\n").split(",")[0]
+        row = next(csv.reader([f.readline()]), [])
+    first = row[0] if row else ""
     return len(csv_column(file, first)) if first else 0
 
 

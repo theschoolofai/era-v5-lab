@@ -1204,6 +1204,19 @@ def test_records_are_counted_not_lines(tmp_path):
     assert rp.csv_rows(f) == 2 and len(f.read_text(encoding="utf-8").splitlines()) == 4
 
 
+def test_records_of_a_csv_whose_header_names_are_quoted(tmp_path):
+    """h3.py writes h3_matches.csv with pyarrow's write_csv, which quotes every header name ("pack_id_a"). Before this,
+    csv_rows asked pyarrow for a column named with the quotes, and every run with stages.h3 stopped after H3."""
+    import pyarrow.csv as pacsv
+    f = tmp_path / "h3_matches.csv"
+    pacsv.write_csv(pa.table({"pack_id_a": ["a", "b"], "coverage": [0.7, 0.9]}), f,
+                    write_options=pacsv.WriteOptions(quoting_style="needed"))
+    assert f.read_text(encoding="utf-8").startswith('"pack_id_a"') and rp.csv_rows(f) == 2
+    empty = tmp_path / "no_matches.csv"  # h3.py's output when nothing qualifies: the header alone
+    pacsv.write_csv(pa.table({"pack_id_a": pa.array([], pa.string())}), empty)
+    assert rp.csv_rows(empty) == 0
+
+
 @pytest.mark.parametrize("key, value, message", [("hash_cache", "yes", "hash_cache"), ("apply_workers", 0, "stages.apply.workers")])
 def test_new_config_keys_are_checked(tmp_path, config, key, value, message):
     cfg = json.loads(config.read_text(encoding="utf-8"))
