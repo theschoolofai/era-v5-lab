@@ -118,7 +118,8 @@ parts than the overlap run.
 
 H1/H2 groups and their survivors are decided first (`source_priority_v1.md`, rules 0–4). An H3 match is then an edge
 between two sides: the H1/H2 group of each document, or the document alone. Rules 1–4 never see H3 edges; rule 3 ("the
-longer copy") does not compare across scripts.
+longer copy") does not compare across scripts. Only direct edges remove (TSAI, #625, 19 Nov): a held-out ↔ train match
+removes only that train document, if H1/H2 kept it; the other copies in its H1/H2 group stay.
 
 ```mermaid
 flowchart TD
@@ -126,12 +127,16 @@ flowchart TD
     P -- yes --> PP["parallel_pack: skipped"]
     P -- no --> G{"Same H1/H2 group?"}
     G -- yes --> SG["same_group: no change"]
-    G -- no --> HH{"Which sides hold a held-out document?"}
+    G -- no --> HH{"Which of a and b is held-out?"}
     HH -- both --> RHH["reported_heldout_heldout"]
-    HH -- neither --> RTT["reported_train_train"]
-    HH -- one --> RM{"h3.remove"}
+    HH -- neither --> IN{"Does the H1/H2 group of a or b hold a held-out copy?"}
+    IN -- yes --> RI["reported_indirect: a chain (held-out = copy ~ translation), reported, never removed"]
+    IN -- no --> RTT["reported_train_train"]
+    HH -- one --> K{"Did H1/H2 keep the train document?"}
+    K -- "no, H1/H2 removed it" --> AR["already_removed: nothing more is removed"]
+    K -- yes --> RM{"h3.remove"}
     RM -- "false (default)" --> WR["would_remove: reported"]
-    RM -- true --> RD["removed: the other side's train survivors (rule H3, priority_rule 0)"]
+    RM -- true --> RD["removed: only that train document (rule H3, priority_rule 0). The other copies in its H1/H2 group stay"]
 ```
 
 | Output | H3's part |
