@@ -7,3 +7,17 @@ Pass the job package's run ID as `--run-id "$RUN_ID"` to use the same identity i
 To enable the G8 adapter, put `teams/08-monitoring/metrics_logger` on `PYTHONPATH` and pass `--logger-factory g5_adapter:make_writer`. The trainer writes the manifest before calling the factory once with the output directory. The returned writer receives `write(row)` in step order, including the initial evaluation at step 0 and the saved history on resume. The trainer calls `flush()` before writing final artifacts and `close()` on exit. A logger error fails the invocation.
 
 The adapter writes `g8/metrics.jsonl` with `run_id`, `step`, `time`, and the existing G8 metrics. It flushes at step 0, every 10 steps, on a nonfinite metric, and on close. Replayed rows retain their step and run ID and receive timestamps when written. Use the newest segment's G8 file for ingestion because it includes the checkpoint's history. The ClickHouse loader reads the embedded run ID. The trainer also writes its native `metrics.jsonl`.
+
+## Team 7 periodic checkpoints
+
+Quality runs require Team 7's committed checkpoint store and the shared job run ID. Add `teams/07-infrastructure` to `PYTHONPATH` and pass:
+
+```bash
+--run-id "$RUN_ID" --checkpoint-store /shared/ckpt --checkpoint-interval-s 600
+```
+
+The CLI interval overrides `INTERVAL_S` and defaults to 600 seconds. At a completed step after the interval, G5 flushes both metric writers and calls Team 7's asynchronous save. Team 7 handles backpressure if an earlier upload is still running. G5 waits for the Team 7 commit before reporting completion. A successful run records the committed path in its summary and publishes the compatibility `checkpoint.pt` atomically. The Team 7 commit is the recovery source for quality runs. Local smoke runs can still use the native format.
+
+To continue a quality run, pass `--resume-committed`, the same `--run-id` and store, and a fresh `--out` directory. The restore verifies the G5 identity and can fall back to an earlier verified commit. G5 keeps metrics and loss history in the checksummed loader payload. The native smoke resume remains available with `--resume checkpoint.pt` for trusted local artifacts.
+
+With Team 7 enabled, SIGTERM and SIGUSR1 where supported request a save at the next step boundary and exit 75. A failed final commit also exits 75. Fencing, nonfinite training state, and checkpoint restore errors exit 78. For Gate 4, `--checkpoint-at-start` commits step 0 before the first optimizer update on a fresh invocation. Native and committed resumes skip this option. The initial optimizer state travels in G5's checksummed history so a step-0 restore preserves the first real update despite DCP's lazy-state initialization. This is a normal Team 7 commit and can be pinned with `ckpt.py pin --run <run_id> --step 0`.
