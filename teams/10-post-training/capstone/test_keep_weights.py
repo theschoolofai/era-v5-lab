@@ -35,6 +35,8 @@ STEPS = 20
 @pytest.fixture()
 def saved(tmp_path, monkeypatch):
     monkeypatch.setenv("V5_EVENTS_DIR", str(tmp_path / "events"))
+    sys.modules.pop("train", None)  # rl-loop/train.py may be imported by another test file: Team 5's must win here
+    monkeypatch.syspath_prepend(str(rl.HARNESS05))
     torch.use_deterministic_algorithms(True)
     torch.set_num_threads(1)
     cfg = rl.tiny_cfg(rl.CONFIGS05 / "config_v0.yaml", rl.CONFIGS05 / "small" / "tiny_moe.yaml", STEPS)
@@ -44,7 +46,8 @@ def saved(tmp_path, monkeypatch):
         for p in model.parameters():
             p.add_(0.01 * torch.randn_like(p, generator=torch.Generator().manual_seed(3)))
     info = kw.save_run_folder(model, tmp_path / "keep", "kw-tiny", step=7, probe_fn=probe, tokens=99)
-    return {"model": model, "factory": factory, "probe": probe, "cfg": cfg, "info": info, "tmp": tmp_path}
+    yield {"model": model, "factory": factory, "probe": probe, "cfg": cfg, "info": info, "tmp": tmp_path}
+    sys.modules.pop("train", None)  # Team 5's harness/train.py must not shadow rl-loop/train.py in later test files
 
 
 def test_2a_export_safetensors_succeeds_on_the_folder(saved):
