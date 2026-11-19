@@ -29,7 +29,7 @@ def rows(pack, tag):
 
 def test_the_pipeline_runs_through_the_shard_stage(tmp_path, monkeypatch):
     table = tmp_path / "pack_table.json"
-    table.write_text(json.dumps({"packs": {"pk-a": {"language": "en", "script": "Latn", "domain": "web", "lane": "test"}}}), encoding="utf-8")
+    table.write_text(json.dumps({"packs": {"pk-a": {"language": "en", "script": "Latn", "domain": "web", "lane": "english"}}}), encoding="utf-8")
     parts = {("train", "pk-a/part-00000.parquet"): rows("pk-a", "a_"), ("heldout", "pk-a/part-00000.parquet"): rows("pk-a", "h_")}
     run = make_run(tmp_path / "pipeline", monkeypatch, parts,
                    shards={"tokenizer": str(BASE), "any_tokenizer": True, "pack_table": str(table)})
@@ -51,7 +51,7 @@ def test_the_pipeline_runs_through_the_shard_stage(tmp_path, monkeypatch):
 def test_shards_damaged_after_run_shards_finished_stop_the_pipeline(tmp_path, monkeypatch):
     """run_shards.py verified its own output and found it good; the runner checks again, on its own."""
     table = tmp_path / "pack_table.json"
-    table.write_text(json.dumps({"packs": {"pk-a": {"language": "en", "script": "Latn", "domain": "web", "lane": "test"}}}), encoding="utf-8")
+    table.write_text(json.dumps({"packs": {"pk-a": {"language": "en", "script": "Latn", "domain": "web", "lane": "english"}}}), encoding="utf-8")
     parts = {("train", "pk-a/part-00000.parquet"): rows("pk-a", "a_")}
     real = rp.run_script
 

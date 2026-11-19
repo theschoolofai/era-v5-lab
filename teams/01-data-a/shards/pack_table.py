@@ -4,8 +4,8 @@ them the pack's licence and where that licence is recorded, from pack_table.json
   row("code-go")  ->  {"language": "go", "script": "Latn", "domain": "code", "lane": "code"}
   row("code-go", load(<job's table>))  ->  the same, with "license" and "license_source"
 
-A pack that is not in the table, or has a null field (the lane is null until the training plan names it; so is a licence
-that is not settled), is an error: nothing is guessed, because a manifest never changes after it is written.
+A pack that is not in the table, or has a null field (a licence that is not settled is null), is an error: nothing is
+guessed, because a manifest never changes after it is written. The lane is one of LANES, in every table.
 """
 import json
 from pathlib import Path
@@ -13,6 +13,7 @@ from pathlib import Path
 TABLE = Path(__file__).with_name("pack_table.json")
 FIELDS = ("language", "script", "domain", "lane")
 LICENCE = ("license", "license_source")  # optional: a row has both or neither (the shard job's table has both)
+LANES = ("code", "code-adjacent", "english", "indic", "math", "science")  # TSAI, 16 Nov 2026 (job request PR #47)
 
 
 class PackTableError(Exception):
@@ -31,6 +32,8 @@ def load(path=TABLE):
         for field, value in r.items():
             if value is not None and not (isinstance(value, str) and value):
                 raise PackTableError(f"{path}: {pack}.{field} must be a non-empty string or null, not {value!r}")
+        if r["lane"] is not None and r["lane"] not in LANES:
+            raise PackTableError(f"{path}: {pack}.lane is {r['lane']!r}, expected one of {', '.join(LANES)} or null")
     return packs
 
 
