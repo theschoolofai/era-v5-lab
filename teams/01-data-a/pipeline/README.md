@@ -387,6 +387,20 @@ The runner never reimplements these. In **adopt** mode it checks the returned fo
 > [!IMPORTANT]
 > **`doc_id` alone is not a key.** In cleaned sample v0 (86 files, 1,432,552 rows), 22,773 doc_ids appear in two parts of the same pack and split. A document is found by **split + part + row** (apply) or **split + part + doc_id** (survivor loss), never by doc_id alone.
 
+### Audit examples from the clean job
+
+The readers who sign off a pack need, for each rule, a few documents it acted on, before and after. The clean job keeps the list without slowing the run; a separate script builds the before and after.
+
+**In the job.** `audit_samples` in `clean.json` (5) is how many documents per rule the job keeps; 0 switches the audit off. When a rule fixes or drops a document, the job gives that (rule, document) pair a key, `crc32(rule id + doc_id)`, and each part remembers the `audit_samples` lowest keys per rule. The hash picks the same documents whatever the order of rows or parts, and after a resume; a `keep` costs nothing extra. Each part gets `audit/<split>/<pack>/<part>.json` (doc_id, action, characters before and after; no text), written before its report. At the end the job merges them into `rule_examples.csv`: for every rule that applies to a pack, the `audit_samples` lowest keys over all the pack's parts, and the rule's fix and drop counts in the pack. A rule that never fired has one row with no document. `audit_samples` is part of the job's fingerprint: a resume with another value is refused, and a finished part without its audit file stops the resume.
+
+**Replay.** Rules run in sequence, so one document can be changed by several of them. `audit/audit_replay.py` runs the sampled documents again, and only those, through the cleaner the job used (path and pin from `job_summary.json`) and records every rule that acted on each:
+
+```bash
+python -I teams/01-data-a/audit/audit_replay.py --job <run>/clean --input-root <raw parts> --out <folder> [--pack en-dclm]
+```
+
+It writes, per pack, `<folder>/<pack>/docs.csv` (the rules each document was sampled for, every rule that acted on it, the final action), `trace.jsonl` (one line per step, with the text before and after), `raw.parquet`, `cleaned.parquet` and `ids.txt`. Each replay is checked against the job's own output (action and text, a drop absent from the part): a document that differs is marked `replay_ok=False` and the exit code is 1. Only fixes and drops are sampled, and a dropped document has a raw row and its steps but no cleaned row. The files hold document text: `--out` must be outside the job folder (the script refuses otherwise), and keep it out of the repository. Tests: `tests/audit/test_audit_replay.py`, and the sampling tests in `pipeline/tests/test_clean_job.py`.
+
 ### F2
 
 One `run_f2.py` per split by default. With `stages.f2.workers` N > 1, up to N processes at once, one per pack folder (each loads G9's set, about 1.1 GB). With `"pool": true`, one `f2_pool.py` per split: it loads the set once, checks its pin before any worker starts, and shares the split's parts out to `workers` processes, largest first (on Linux they share the loaded set). Its parts, `.f2.json` reports and `f2_summary.json` are byte for byte what `run_f2.py` writes, apart from the `seconds` fields. A unit that fails without a summary stops the run; a rerun with `"from": "f2"` skips finished files.
@@ -749,7 +763,7 @@ out/pipeline/<run_id>/
 ├── cache/sha256.json                  the hash cache (hashing.py): a shortcut, never trusted over a file that changed
 ├── cfg/clean.json, overlap.json, …    run mode: the generated config each stage script got
 ├── logs/                              one log per script run as a process: clean.log, f2_train.log or f2_train_<pack>.log, shards.log, …
-├── clean/, overlap/, dedup/           run mode, unless "output" says otherwise (clean/ also holds reports/ and job_summary.json)
+├── clean/, overlap/, dedup/           run mode, unless "output" says otherwise (clean/ also holds reports/, audit/, rule_examples.csv and job_summary.json)
 ├── deduped/                           04 apply
 │   ├── train/<pack>/part-NNNNN.parquet
 │   ├── heldout/<pack>/part-NNNNN.parquet      hard links: dedup never removes held-out
