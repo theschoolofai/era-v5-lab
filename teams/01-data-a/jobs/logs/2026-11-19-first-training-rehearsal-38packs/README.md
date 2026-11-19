@@ -49,7 +49,10 @@ Run on the same 86 raw parts ([`logs/build_inventory.log`](logs/build_inventory.
 
 - `build_inventory.py --input-root <raw>`: 38 packs, 86 parts, 1,444,766 raw rows; `input_manifest_sha256` `575fdde2…` ([`inputs/`](inputs/)).
 - `prepare_run.py` with the rehearsal's placeholder licences: **refused** ("pack table licence differs from approved inputs for code-go", exit 1, nothing written), as it should ([`logs/prepare_run_placeholder_refused.log`](logs/prepare_run_placeholder_refused.log)).
-- `prepare_run.py` with [`config/pack_table_job_shaped.json`](config/pack_table_job_shaped.json) (the licence fields copied from `approved_inputs.json`, which has them for all 38 packs, and lanes from the domain with #47's six lane names): passed and wrote [`config/prepare_run_output_run.json`](config/prepare_run_output_run.json). That file was **not** run (see below).
+- `prepare_run.py` with [`config/pack_table_job_shaped.json`](config/pack_table_job_shaped.json) (the licence fields copied from `approved_inputs.json`, which has them for all 38 packs, and lanes from the domain with #47's six lane names): passed and wrote [`config/prepare_run_output_run.json`](config/prepare_run_output_run.json). That file was **not** run here (see below).
+- `pipeline/inventory_check.py` (at `2691c44`) with that `expected_inventory.json`, on this run's folders afterwards:
+  - `--ledger` and `--shards`: **8 checks, 0 failed**, 86 parts, 38 packs: the ledger accounts for every raw document, holds exactly the listed parts and packs, each raw file's sha256 and rows are the listed ones, and the shard summary holds exactly the listed parts, each in its listed status ([`logs/inventory_check_38pack.json`](logs/inventory_check_38pack.json)).
+  - adding `--cleaned`: 9 checks, **1 failed, as expected**: "made from the input manifest the clean job read". This run's clean read the tracked sample manifest (`7fd647c8…`), not the input manifest `build_inventory.py` wrote (`575fdde2…`), so only a run started from `prepare_run.py`'s `run.json` can pass it ([`logs/inventory_check_38pack_with_cleaned.json`](logs/inventory_check_38pack_with_cleaned.json)).
 
 ## Shard drills (3-pack run on the same pod)
 
@@ -95,6 +98,6 @@ size), so a short peak between two samples is missed; where a stage reports its 
 ## Not covered
 
 - The production pack table and the TSAI-staged inputs.
-- The pipeline run with `inventory` (the run `prepare_run.py` writes).
+- The pipeline run with `inventory` (the run `prepare_run.py` writes), with the checks made by the runner itself before the shard stage and after reconcile: running at `2691c44` on the same pod, to be added here.
 - H3 removal (`h3.remove`), which stays off for this job (TSAI on #625).
 - The `empty` part status (no such part in sample v0) and #61's first-part restart case.
