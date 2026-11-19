@@ -9,6 +9,12 @@ from pathlib import Path
 import re
 
 
+EVIDENCE_SCOPE = (
+    "PASS means the run completed with internally consistent evidence. "
+    "This check provides neither a BPB result nor a winning configuration."
+)
+
+
 IDENTITY_FIELDS = (
     "config", "artifacts", "train_sha256", "heldout_sha256",
     "heldout_sources_sha256", "heldout_checksum_sha256", "sources",
@@ -103,6 +109,7 @@ def validate(run, *, trusted_checkpoint=False, expected_steps=None, verify_inven
     errors = []
     result = {
         "classification": "unknown",
+        "evidence_scope": EVIDENCE_SCOPE,
         "expected_steps": expected_steps,
         "completed_steps": None,
         "row_counts": {},
@@ -130,6 +137,8 @@ def validate(run, *, trusted_checkpoint=False, expected_steps=None, verify_inven
     identity = None
     try:
         fields = {key: manifest[key] for key in IDENTITY_FIELDS}
+        if "bpb_policy" in manifest:
+            fields["bpb_policy"] = manifest["bpb_policy"]
         identity = hashlib.sha256(json.dumps(fields, sort_keys=True).encode()).hexdigest()
         if manifest.get("identity_sha256") != identity:
             errors.append("manifest.json: identity_sha256 differs from recorded inputs")
@@ -184,6 +193,11 @@ def validate(run, *, trusted_checkpoint=False, expected_steps=None, verify_inven
         def inspect_checkpoint(path):
             if trusted_checkpoint:
                 result["checkpoint_checked"] = check_checkpoint(path, identity, completed, errors)
+            elif result["classification"] == "quality":
+                errors.append(
+                    "checkpoint.pt: quality PASS requires identity and step verification. "
+                    "Use --trusted-checkpoint only for a checkpoint you trust."
+                )
 
         read_evidence("checkpoint.pt", inspect_checkpoint)
     if verify_inventory is not None:
@@ -198,7 +212,10 @@ def validate(run, *, trusted_checkpoint=False, expected_steps=None, verify_inven
         except (KeyError, OSError, ValueError) as exc:
             errors.append(f"Reference inventory: {exc}")
     result["valid"] = not errors
-    result["quality_ready"] = result["valid"] and result["classification"] == "quality"
+    result["quality_ready"] = (
+        result["valid"] and result["classification"] == "quality" and result["checkpoint_checked"]
+    )
+    result["verdict"] = "PASS" if result["quality_ready"] else "FAIL"
     return result
 
 
@@ -222,7 +239,8 @@ def main():
     if args.json:
         print(json.dumps(result, indent=2, sort_keys=True))
     else:
-        print(f"{'PASS' if result['quality_ready'] else 'FAIL'}: {result['classification']} run")
+        print(f"{result['verdict']}: {result['classification']} run")
+        print(result["evidence_scope"])
         print(f"Completed steps: {result['completed_steps']} / {result['expected_steps']}")
         for name, count in result["row_counts"].items():
             print(f"  {name}: {count} rows")

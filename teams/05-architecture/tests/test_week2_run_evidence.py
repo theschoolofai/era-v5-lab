@@ -8,6 +8,8 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
+import torch
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "harness"))
 from validate_week2_run import main, validate
 
@@ -53,7 +55,7 @@ class RunEvidenceTests(unittest.TestCase):
         if smoke:
             checkpoint.unlink(missing_ok=True)
         else:
-            checkpoint.write_bytes(b"checkpoint fixture")
+            torch.save({"identity_sha256": self.identity, "step": completed}, checkpoint)
 
     def write_metrics(self, steps):
         (self.run_dir / "metrics.jsonl").write_text(
@@ -62,7 +64,7 @@ class RunEvidenceTests(unittest.TestCase):
 
     def test_complete_run_and_json_cli(self):
         output = io.StringIO()
-        with patch.object(sys, "argv", ["validator", str(self.run_dir), "--json"]):
+        with patch.object(sys, "argv", ["validator", str(self.run_dir), "--json", "--trusted-checkpoint"]):
             with contextlib.redirect_stdout(output):
                 self.assertEqual(main(), 0)
         result = json.loads(output.getvalue())
@@ -71,7 +73,23 @@ class RunEvidenceTests(unittest.TestCase):
             "metrics.jsonl": 4, "losses.txt": 3, "total_losses.txt": 3,
         })
         self.assertEqual(len(result["sha256"]), 6)
-        self.assertFalse(result["checkpoint_checked"])
+        self.assertTrue(result["checkpoint_checked"])
+        self.assertEqual(result["verdict"], "PASS")
+        self.assertIn("internally consistent evidence", result["evidence_scope"])
+        self.assertIn("BPB result", result["evidence_scope"])
+
+    def test_quality_requires_trust_before_loading_checkpoint(self):
+        output = io.StringIO()
+        with (
+            patch.object(torch, "load") as load,
+            patch.object(sys, "argv", ["validator", str(self.run_dir)]),
+            contextlib.redirect_stdout(output),
+        ):
+            self.assertEqual(main(), 1)
+        load.assert_not_called()
+        self.assertIn("FAIL: quality run", output.getvalue())
+        self.assertIn("Use --trusted-checkpoint", output.getvalue())
+        self.assertIn("winning configuration", output.getvalue())
 
     def test_smoke_and_incomplete_are_ineligible(self):
         for status, completed, smoke, classification in (
@@ -100,6 +118,17 @@ class RunEvidenceTests(unittest.TestCase):
         self.assertIn("completed 3 steps against a budget of 4", errors)
         self.assertIn("checkpoint.pt: missing", errors)
 
+    def test_normalized_tokenizer_identity_from_current_trainer(self):
+        manifest = json.loads((self.run_dir / "manifest.json").read_text(encoding="utf8"))
+        manifest["bpb_policy"] = "original UTF-8 bytes, with p1536 tokenizer normalization"
+        identity = {key: value for key, value in manifest.items() if key not in ("identity_sha256", "status")}
+        digest = hashlib.sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()
+        manifest["identity_sha256"] = digest
+        self.write_json("manifest.json", manifest)
+        torch.save({"identity_sha256": digest, "step": 3}, self.run_dir / "checkpoint.pt")
+        result = validate(self.run_dir, trusted_checkpoint=True)
+        self.assertTrue(result["quality_ready"], result["errors"])
+
     def test_manifest_identity_is_recomputed(self):
         manifest = json.loads((self.run_dir / "manifest.json").read_text(encoding="utf8"))
         manifest["device"] = "cuda"
@@ -110,8 +139,6 @@ class RunEvidenceTests(unittest.TestCase):
         )
 
     def test_explicit_checkpoint_check(self):
-        import torch
-
         checkpoint = self.run_dir / "checkpoint.pt"
         state = {"identity_sha256": self.identity, "step": 3}
         torch.save(state, checkpoint)
@@ -123,11 +150,32 @@ class RunEvidenceTests(unittest.TestCase):
         result = validate(self.run_dir, trusted_checkpoint=True)
         self.assertIn("checkpoint.pt: identity_sha256 differs from manifest", result["errors"])
         self.assertIn("checkpoint.pt: step differs from summary", result["errors"])
+        self.assertFalse(result["quality_ready"])
+
+    def test_unreadable_checkpoint_cannot_pass(self):
+        (self.run_dir / "checkpoint.pt").write_bytes(b"invalid checkpoint")
+        result = validate(self.run_dir, trusted_checkpoint=True)
+        self.assertFalse(result["checkpoint_checked"])
+        self.assertEqual(result["verdict"], "FAIL")
+
+    def test_each_quality_artifact_is_required(self):
+        for name in (
+            "manifest.json", "summary.json", "metrics.jsonl",
+            "losses.txt", "total_losses.txt", "checkpoint.pt",
+        ):
+            with self.subTest(name=name):
+                self.write_run()
+                (self.run_dir / name).unlink()
+                result = validate(self.run_dir, trusted_checkpoint=True)
+                self.assertEqual(result["verdict"], "FAIL")
+                self.assertIn(f"{name}: missing or empty evidence file", result["errors"])
 
     def test_inventory_detects_changed_bytes(self):
         self.write_json("inventory.json", validate(self.run_dir))
         reference = self.run_dir / "inventory.json"
-        self.assertTrue(validate(self.run_dir, verify_inventory=reference)["quality_ready"])
+        self.assertTrue(validate(
+            self.run_dir, trusted_checkpoint=True, verify_inventory=reference
+        )["quality_ready"])
         with (self.run_dir / "checkpoint.pt").open("ab") as stream:
             stream.write(b"changed")
         result = validate(self.run_dir, verify_inventory=reference)
