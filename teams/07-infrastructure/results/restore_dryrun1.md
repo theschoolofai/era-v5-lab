@@ -69,9 +69,11 @@ checkpoint save fixes it.
 
 ## 5. Results
 
-TSAI ran both jobs on 17 Nov, single GPU, the same setup as #475. The numbers below are from TSAI's result note to
-Team 07 (17 Nov), with the C5 detail added by TSAI on 18 Nov, both in the Team 07 group chat. The job outputs were not
-added to the repository. The dry run 1 files they were compared with are on main since #620:
+TSAI ran both jobs on 17 Nov, single GPU, the same setup as #475. The numbers below are from TSAI's result note of
+17 Nov, which went to the Team 06 group chat by mistake (TSAI confirmed this in the Team 07 group on 17 Nov), and from
+TSAI's answer on C5, given in the Team 07 group on 18 Nov. Neither is on GitHub yet: the request on #573 has no reply.
+@theschoolofai, please post the job A and job B results as a comment on #633; this section will link to it once it is
+there. The job outputs were not added to the repository. The dry run 1 files they were compared with are on main since #620:
 [`2026-11-15-dryrun1-full/`](../../05-architecture/jobs/evidence/2026-11-15-dryrun1-full/) (`summary.json`: COMPLETED, 1,221 steps, `final_model_sha256` `93e5f454…1981`).
 
 | Number | Job A (restore the final checkpoint) | Job B (stop at 610, restore, continue) |
@@ -83,13 +85,13 @@ added to the repository. The dry run 1 files they were compared with are on main
 | Largest loss difference | 0 (bit-equal) | 0 (bit-equal) |
 | Every step present (C5) | n/a | Yes in `losses.txt`: all 1,221 lines compared line for line with dry run 1's. `metrics.jsonl` was returned but not compared (TSAI, 18 Nov), so C5 is met for `losses.txt` only |
 | Stop run equal to dry run 1 up to step 610 (C6) | n/a | Yes, lines 1 to 610 identical: no run-to-run noise |
-| Job duration (start to exit) | about 6 min 8 s: almost all of it is the restore itself (the 2.2 GB load and the write-out) | about 30 min 39 s: mostly the 611 training steps 611 to 1,221; not a restore time |
+| Job duration (start to exit) | about 6 min 8 s start to exit: start-up, the 2.2 GB load and the write-out; not split by phase. For reference, CK-13's LOW threshold is 600 s (job start to first productive step, not the same measure) | about 30 min 39 s: mostly the 611 training steps 611 to 1,221; not a restore time |
 | Result | **PASS** | **PASS** |
 
 **What this shows.** Dry run 1's checkpoint loads and gives back the same model. For job A, a matching `losses.txt` means the loss history stored in the checkpoint came back intact; job A trains no step, so it is not a second reproduction of the losses. Job B is the reproduction: a run stopped halfway and restored
 from its checkpoint finishes bit-for-bit the same as the run that was never stopped: same loss at every one of the
-1,221 steps and the same final model. On a single GPU the run is fully repeatable, so the open point in section 4
-(bit-equal or a tolerance) was answered with bit-equal.
+1,221 steps and the same final model. On a single GPU the run is fully repeatable, so the open question in the #491 plan (bit-equal, or only
+close because of run-to-run noise on the GPU: section 3 and job request B) was answered with bit-equal.
 
 **What it does not show.** Both jobs used `train_week2.py`'s own `checkpoint.pt`, saved after a clean stop, not a
 kill. The COMPLETE-only restart after a kill is shown by the Team 07 restart test (section 4). TSAI agrees with the
