@@ -124,8 +124,14 @@ def test_list_envs_covers_every_shipped_task_and_env():
     assert len([i for i in ids if i.startswith("swe/")]) == len(list((HERE.parent / "swe-envs").glob("*/env.json")))
     assert len([i for i in ids if i.startswith("indic/")]) == len(list((HERE / "indic" / "tasks").glob("*/task.json")))
     assert len([i for i in ids if i.startswith("go/")]) == len(list((HERE / "go" / "tasks").glob("*/task.json")))
-    assert len([i for i in ids if i.startswith("js/")]) == len(list((HERE / "js" / "tasks").glob("*/task.json")))
+    assert len([i for i in ids if i.startswith("agentic/")]) == len(list((HERE / "agentic" / "tasks").glob("*/task.json")))
+    assert len([i for i in ids if i.startswith("js/")]) == (len(list((HERE / "jsts" / "tasks" / "js").glob("*/task.json")))
+                                                           + len(list((HERE / "js" / "tasks").glob("*/task.json"))))
+    assert len([i for i in ids if i.startswith("ts/")]) == len(list((HERE / "jsts" / "tasks" / "ts").glob("*/task.json")))
+    assert len([i for i in ids if i.startswith("math_pool/")]) == len(list((HERE / "math_pool" / "tasks").glob("*/task.json")))
     for i in ids:
+        if i.startswith("math_pool/") and not os.environ.get("G10_MATH_POOL"):
+            continue  # a math task's reference answer lives in the pool (rl/math_pool/README.md)
         good, bad = reward.known_outputs(i)
         assert good and bad and good != bad
 
@@ -352,6 +358,20 @@ def test_pool_module_loads_once_and_whole_when_many_threads_ask_at_once():
     assert all(whole for _, whole in got)  # no thread was handed a half-run module
 
 
+def test_check_all_skips_math_pool_without_pool(monkeypatch, capsys):
+    """A plain clone has no math pool: math ids are reported as skipped and the other sets are still checked."""
+    monkeypatch.delenv("G10_MATH_POOL", raising=False)
+    math_ids = [i for i in reward.list_envs() if i.startswith("math_pool/")]
+    indic_ids = [i for i in reward.list_envs() if i.startswith("indic/")][:1]
+    assert math_ids and indic_ids
+    rows = reward.check_all(workers=2, ids=math_ids[:1] + indic_ids)
+    by_type = {r["env_id"].split("/")[0]: r for r in rows}
+    assert by_type["math_pool"]["skipped"] is True and by_type["math_pool"]["score"] is None
+    assert all(r["ok"] for r in rows) and not by_type["indic"].get("skipped")
+    assert reward.main(["--check-all", "--type", "math_pool"]) == 2
+    assert '"skipped": %d' % (2 * len(math_ids)) in capsys.readouterr().out
+
+
 # --- JS environments ----------------------------------------------------------------------------
 
 def test_js_is_registered_and_an_unknown_js_task_is_a_key_error():
@@ -366,7 +386,7 @@ def test_js_is_registered_and_an_unknown_js_task_is_a_key_error():
 def test_js_checker_passes_the_sandbox_through_and_defaults_to_docker(monkeypatch):
     seen = []
     monkeypatch.setattr(reward._js(), "reward", lambda task_dir, out, sandbox: seen.append(sandbox) or {"reward": 1})
-    name = next(i for i in reward.list_envs() if i.startswith("js/"))
+    name = "js/camel_to_snake"  # an rl/js task; the Exercism js ids are listed first once both sets share the type
     assert reward.reward(name, "x")[0] == 1.0
     runner = lambda work, t: None  # noqa: E731
     reward.reward(name, "x", sandbox=runner)
