@@ -1,8 +1,8 @@
 # G10 job request (DRAFT, not sent): keep one SFT arm's weights for Team 9
 
 Same job as #587 with two extra flags. It runs the A2 and A4 arms as before and, for the one arm named by `--keep-arm`, also
-writes its final plain weights through Team 7's Checkpointer, so Team 9's `run_lab_ckpt.py --run-dir <kept dir>/g10-sft-a2` can read
-and export them (RL model scores, forgetting check).
+writes its final plain weights through Team 7's Checkpointer as a run folder, the layout Team 9's `run_lab_ckpt.py --run-dir
+<kept dir>/g10-sft-a2` takes (RL model scores, forgetting check). What was and was not read back is in the test log paragraph below.
 
 ```bash
 python capstone/sft_job_v1.py --g5-root <lab checkout> --run-folder <dir with manifest.json/checkpoint.pt/summary.json> \

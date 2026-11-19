@@ -46,8 +46,11 @@ Test log:        REQUIRED before sending. Not yet attached. Run the save and rel
 Code and a test log for the save step now exist on a local branch (not pushed, no PR yet); nothing above was edited.
 - Blocked by 2 (code PR for the save step): covered by `teams/10-post-training/capstone/keep_weights.py` (saves one finished model
   through Team 7's `Checkpointer`, weights only), the `--keep-weights-dir` and `--keep-arm` flags on `capstone/sft_job_v1.py` and
-  `capstone/sft_g5.py`, and `--keep-weights-dir` on `capstone/rl_job_v1.py`. Team 7's `export_safetensors` and Team 9's
-  `run_lab_ckpt.py --run-dir` both accept the folder on the CPU stand-in. Not shown: a GPU run or the real checkpoint.
+  `capstone/sft_g5.py`, and `--keep-weights-dir` on `capstone/rl_job_v1.py`. On the CPU stand-in, Team 7's
+  `export_safetensors`, fed Team 9's own model builder and probe (`lm_eval_lab.build_model`, `probe_loss`), reads the folder and the
+  exported file loads `strict=True`. Team 9's `run_lab_ckpt.py --run-dir` with its default smoke scorer does not read a folder that
+  holds Team 5's `LanguageModel` (it builds the tiny MoE, so the keys differ), and its real scorer needs `lm_eval`, which was not
+  installed here, so no benchmark scoring of a kept folder was run. That is part of item 4. Not shown: a GPU run or the real checkpoint.
 - Blocked by 5 (test log): `capstone/test_keep_weights.py`, `test_keep_weights_adapters.py`, `test_keep_weights_wiring.py`
   and the end-to-end log of the job script itself (see the PR body of this branch).
 - Still open: 1 (#587 results), 3 (route decision, lead), 4 (Team 9's confirmation of which format their watcher reads), 6 (lead approval).
