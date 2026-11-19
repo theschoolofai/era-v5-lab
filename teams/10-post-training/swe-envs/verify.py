@@ -447,14 +447,20 @@ def load_env(env_dir: Path) -> dict:
     return json.loads((env_dir / "env.json").read_text(encoding="utf-8"))
 
 
+def _docker_build(args: list[str]) -> subprocess.CompletedProcess:
+    """Run `docker build` with `--progress=plain`, retrying without it on legacy builders that reject `--progress`."""
+    proc = subprocess.run(["docker", "build", "--progress=plain", *args], capture_output=True, text=True)
+    if proc.returncode != 0 and "unknown flag: --progress" in (proc.stderr or ""):
+        proc = subprocess.run(["docker", "build", *args], capture_output=True, text=True)
+    return proc
+
+
 def ensure_image(env_dir: Path, env: dict) -> str:
     """Build the env image if it is not present. Returns the image id."""
     ref = image_ref(env)
     have = subprocess.run(["docker", "image", "inspect", "-f", "{{.Id}}", ref], capture_output=True, text=True)
     if have.returncode != 0:
-        build = subprocess.run(["docker", "build", "--progress=plain",
-                                *(["--platform", PLATFORM] if PLATFORM else []), "-t", ref, str(env_dir)],
-                               capture_output=True, text=True)
+        build = _docker_build([*(["--platform", PLATFORM] if PLATFORM else []), "-t", ref, str(env_dir)])
         if build.returncode != 0:
             raise RuntimeError(f"docker build failed for {ref}:\n{build.stderr[-2000:]}")
         have = subprocess.run(["docker", "image", "inspect", "-f", "{{.Id}}", ref],
