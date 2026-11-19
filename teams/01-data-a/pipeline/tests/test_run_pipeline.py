@@ -141,6 +141,48 @@ def test_full_chain(tmp_path, config):
     assert on_disk["totals"] == m["totals"] and "synthetic text" not in json.dumps(on_disk)
 
 
+def test_h3_match_file_is_linked_to_this_run_and_dedup(tmp_path, config, tsai_outputs, monkeypatch):
+    out = tmp_path / "h3"
+    cfg = json.loads(config.read_text(encoding="utf-8"))
+    cfg["stages"]["h3"] = {"mode": "run", "command": [str(FAKE_STAGE)], "output": str(out)}
+    config.write_text(json.dumps(cfg), encoding="utf-8")
+    original = rp.run_script
+
+    def h3_stage(script, args, stage, log, **kwargs):
+        if stage != "h3":
+            return original(script, args, stage, log, **kwargs)
+        out.mkdir()
+        write_csv(out / "h3_matches.csv", ["pack_id_a", "split_a", "part_a", "row_in_part_a", "doc_id_a",
+                                            "pack_id_b", "split_b", "part_b", "row_in_part_b", "doc_id_b",
+                                            "lang_a", "lang_b", "coverage"], [])
+        (out / "h3_summary.json").write_text(json.dumps({
+            "status": "complete", "inputs": {"root": str(tsai_outputs["cleaned"])}, "qualifying": 0,
+            "outputs": {"h3_matches.csv": {"sha256": sha(out / "h3_matches.csv")}}}), encoding="utf-8")
+        return 0
+
+    monkeypatch.setattr(rp, "run_script", h3_stage)
+    summary = tsai_outputs["dedup"] / "dedup_summary.json"
+    d = json.loads(summary.read_text(encoding="utf-8"))
+    # The fake H3 command writes an empty match file, whose digest is fixed by its header.
+    header = "pack_id_a,split_a,part_a,row_in_part_a,doc_id_a,pack_id_b,split_b,part_b,row_in_part_b,doc_id_b,lang_a,lang_b,coverage\r\n"
+    d["h3"] = {"matches": {"sha256": hashlib.sha256(header.encode()).hexdigest(), "pairs": 0}, "remove": False}
+    summary.write_text(json.dumps(d), encoding="utf-8")
+    m = rp.run(config, to="dedup")
+    assert [s["stage"] for s in m["stages"]] == ["clean", "overlap", "h3", "dedup"]
+    assert any(c["check"] == "dedup used this run's H3 matches" and c["ok"] for c in m["checks"])
+    d["h3"]["matches"]["sha256"] = "0" * 64
+    summary.write_text(json.dumps(d), encoding="utf-8")
+    with pytest.raises(rp.Stop, match="dedup used this run's H3 matches"):
+        rp.run(config, start="dedup", to="dedup")
+
+
+def test_h3_cannot_be_selected_without_a_stage(config):
+    with pytest.raises(rp.Stop, match="needs stages.h3"):
+        rp.plan(config, to="h3")
+    with pytest.raises(rp.Stop, match="needs stages.h3"):
+        rp.run(config, to="h3")
+
+
 def test_digests_repeat_across_identical_runs(tmp_path, config, tsai_outputs):
     a = rp.run(config)
     b = rp.run(write_config(tmp_path / "again.json", tsai_outputs, run_id="test-run-2"))
@@ -396,7 +438,7 @@ def shard_config(tmp_path, tsai_outputs, config, monkeypatch):
 def test_shards_run_after_f2_and_are_recorded(tmp_path, shard_config):
     m = rp.run(shard_config)
     run = tmp_path / "runs" / "test-run"
-    assert [s["stage"] for s in m["stages"]] == list(rp.STAGES[: rp.STAGES.index("shards") + 1])
+    assert [s["stage"] for s in m["stages"]] == [s for s in rp.STAGES[: rp.STAGES.index("shards") + 1] if s != "h3"]
     s = m["stages"][-1]
     assert s["counts"] == {"written": 2, "failed": 0, "skipped": 0, "not_sharded": 1, "truncated": 0, "shards": 2, "parts": 3}
     assert m["totals"]["shards_written"] == 2 and all(ch["ok"] for ch in m["checks"])
@@ -421,7 +463,7 @@ def test_without_stages_shards_the_run_stops_after_the_ledger(tmp_path, config):
 def test_from_shards_adds_the_stage_to_a_finished_run(tmp_path, shard_config):
     rp.run(shard_config, to="ledger")
     m = rp.run(shard_config, start="shards")
-    assert [s["stage"] for s in m["stages"]] == list(rp.STAGES[: rp.STAGES.index("shards") + 1]) and m["totals"]["final"] == 9 and m["totals"]["shards_written"] == 2
+    assert [s["stage"] for s in m["stages"]] == [s for s in rp.STAGES[: rp.STAGES.index("shards") + 1] if s != "h3"] and m["totals"]["final"] == 9 and m["totals"]["shards_written"] == 2
 
 
 def test_a_second_shard_run_into_the_same_out_stops(shard_config):
@@ -1057,7 +1099,7 @@ def test_reconcile_runs_after_the_shards(tmp_path, shard_config, monkeypatch):
     shard_config.write_text(json.dumps(cfg), encoding="utf-8")
     m = rp.run(shard_config)
     rec = m["stages"][-1]
-    assert rec["stage"] == "reconcile" and [s["stage"] for s in m["stages"]] == list(rp.STAGES)
+    assert rec["stage"] == "reconcile" and [s["stage"] for s in m["stages"]] == [s for s in rp.STAGES if s != "h3"]
     assert rec["counts"] == {"kept": 9, "in_shards": 6, "in_shard": 6, "not_selected": 2, "not_sharded": 1}
     assert "reconcile: no document is in two shards" in {c["check"] for c in m["checks"]}
 
@@ -1228,7 +1270,7 @@ def test_run_varying_fields_of_overlap_and_dedup_summaries_do_not_change_a_diges
 # puts in shards; train en-dclm/part-00000 (e0, e1), a pack the shard stage is not asked for (not_selected); heldout
 # code-go/part-00000 (h0), not_sharded. So a drop takes the two code-go train parts and leaves the other two.
 SHARD_COUNTS = {"written": 2, "failed": 0, "skipped": 0, "not_sharded": 1, "truncated": 0, "parts": 3}
-THROUGH_LEDGER = rp.STAGES[: rp.STAGES.index("ledger") + 1]
+THROUGH_LEDGER = tuple(s for s in rp.STAGES[: rp.STAGES.index("ledger") + 1] if s != "h3")
 SHARDED = ["train/code-go/part-00000.parquet", "train/code-go/part-00001.parquet"]
 NOT_IN_SHARDS = ["heldout/code-go/part-00000.parquet", "train/en-dclm/part-00000.parquet"]
 
@@ -1407,7 +1449,7 @@ def test_a_finished_run_can_be_resumed_at_reconcile_to_drop(tmp_path, shard_conf
     edit_config(shard_config, intermediates="drop")
     m = rp.run(shard_config, start="reconcile")
     assert m["intermediates"]["state"] == "done" and parquet_under(run / "final") == NOT_IN_SHARDS
-    assert [s["stage"] for s in m["stages"]] == list(rp.STAGES)
+    assert [s["stage"] for s in m["stages"]] == [s for s in rp.STAGES if s != "h3"]
 
 
 @pytest.mark.parametrize("state", ["done", "started"])
@@ -1779,7 +1821,7 @@ def test_a_comment_key_is_not_a_run_parameter_and_a_key_under_stages_must_be_a_s
     cfg["stages"]["inventory"] = "expected_inventory.json"  # the right key in the wrong place
     config.write_text(json.dumps(cfg), encoding="utf-8")
     for go in (rp.run, rp.plan):
-        with pytest.raises(rp.Stop, match="config: stages.inventory is not a stage; the stages are clean, overlap, dedup"):
+        with pytest.raises(rp.Stop, match="config: stages.inventory is not a stage; the stages are clean, overlap, h3, dedup"):
             go(config)
     del cfg["stages"]["inventory"]
     for stage, key in (("ledger", "inventory"), ("f2", "intermediates")):  # and one level deeper, inside a stage's settings
@@ -1995,7 +2037,7 @@ def test_a_clean_job_whose_summary_is_gone_fails_the_input_manifest_check(tmp_pa
     with pytest.raises(rp.Stop, match="check failed: inventory: made from the input manifest the clean job read: the cleaned folder has no job_summary.json"):
         rp.run(shard_config)
     run = tmp_path / "runs" / "test-run"
-    assert [s["stage"] for s in manifest_of(run)["stages"]] == list(rp.STAGES[:-1]) and inventory_report(run)["checked_after"] == "reconcile"
+    assert [s["stage"] for s in manifest_of(run)["stages"]] == [s for s in rp.STAGES[:-1] if s != "h3"] and inventory_report(run)["checked_after"] == "reconcile"
     assert inventory_report(run)["differences"]["input_manifest_sha256"] == [{"clean_job": None, "listed": INPUT_MANIFEST}]
 
 
@@ -2069,7 +2111,7 @@ def test_a_run_resumed_at_the_shard_stage_is_checked_before_anything_is_sharded(
     assert len(ran) == 1 and inventory_report(run)["checked_after"] == "ledger"  # the shard stage did not run a second time
     # The check point writes its report, not the manifest: the records of the stages it stopped before are still the
     # finished run's, so with the inventory put right the run resumes at reconcile without sharding again.
-    assert [s["stage"] for s in manifest_of(run)["stages"]] == list(rp.STAGES)
+    assert [s["stage"] for s in manifest_of(run)["stages"]] == [s for s in rp.STAGES if s != "h3"]
     write_inventory(tmp_path)
     m = rp.run(shard_config, start="reconcile")
     assert len(ran) == 1 and m["stages"][-1]["stage"] == "reconcile" and inventory_report(run)["ok"] is True
@@ -2130,7 +2172,7 @@ def test_a_part_that_ends_in_another_status_than_listed_stops_the_run_after_reco
         rp.run(shard_config)
     run, file = tmp_path / "runs" / "test-run", tmp_path / "expected_inventory.json"
     m = manifest_of(run)
-    assert [s["stage"] for s in m["stages"]] == list(rp.STAGES[:-1]) and inventory_checks(m, "shards") == ON_LEDGER
+    assert [s["stage"] for s in m["stages"]] == [s for s in rp.STAGES[:-1] if s != "h3"] and inventory_checks(m, "shards") == ON_LEDGER
     assert m["inventory"]["checked"] == {"ledger": sha(file), "reconcile": None} and m["inventory"]["report"] == "inventory_check.json"
     report = inventory_report(run)
     assert report["checked_after"] == "reconcile" and report["differences"]["status"] == [
@@ -2183,7 +2225,7 @@ def test_a_resumed_run_is_checked_against_the_inventory_as_it_is_now(tmp_path, s
         rp.run(shard_config, start="reconcile")
     assert inventory_report(run)["ok"] is False and inventory_report(run)["inventory"]["sha256"] == changed
     m = manifest_of(run)  # still the finished run's: a stage that did not finish again changes no record
-    assert [s["stage"] for s in m["stages"]] == list(rp.STAGES) and m["inventory"]["sha256"] == first
+    assert [s["stage"] for s in m["stages"]] == [s for s in rp.STAGES if s != "h3"] and m["inventory"]["sha256"] == first
     assert m["inventory"]["checked"] == {"ledger": first, "reconcile": first}
     write_inventory(tmp_path, lambda inv: inv.update(_comment="the same parts, written again"))
     second = sha(tmp_path / "expected_inventory.json")
@@ -2210,7 +2252,7 @@ def test_a_check_point_that_cannot_make_its_checks_says_so_in_its_report(tmp_pat
     assert seen == [True] and report["ok"] is False and report["checked_after"] == "reconcile" and "checks" not in report
     assert "is not a JSON object" in report["error"] and report["inventory"]["sha256"] == sha(file)
     m = manifest_of(run)
-    assert [s["stage"] for s in m["stages"]] == list(rp.STAGES[:-1]) and m["inventory"]["checked"] == {"ledger": sha(file), "reconcile": None}
+    assert [s["stage"] for s in m["stages"]] == [s for s in rp.STAGES[:-1] if s != "h3"] and m["inventory"]["checked"] == {"ledger": sha(file), "reconcile": None}
 
 
 def test_a_report_that_cannot_be_written_stops_the_run_and_leaves_no_earlier_one(tmp_path, shard_config, monkeypatch):
@@ -2223,7 +2265,7 @@ def test_a_report_that_cannot_be_written_stops_the_run_and_leaves_no_earlier_one
     with pytest.raises(rp.Stop, match=r"^inventory: the report .*inventory_check.json could not be written \(OSError\)"):
         rp.run(shard_config)
     run = tmp_path / "runs" / "test-run"
-    assert not (run / "inventory_check.json").exists() and [s["stage"] for s in manifest_of(run)["stages"]] == list(rp.STAGES[:-1])
+    assert not (run / "inventory_check.json").exists() and [s["stage"] for s in manifest_of(run)["stages"]] == [s for s in rp.STAGES[:-1] if s != "h3"]
 
 
 def test_a_report_of_an_earlier_invocation_does_not_stay(tmp_path, shard_config, monkeypatch):

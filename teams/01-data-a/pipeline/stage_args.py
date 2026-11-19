@@ -1,14 +1,16 @@
-"""How run_pipeline.py hands paths to the three stage scripts it can run (clean, overlap, dedup).
+"""How run_pipeline.py hands paths to the four stage scripts it can run (clean, overlap, H3, dedup).
 
 A stage's folders are decided once, in the run config, and never typed again: a stage reads the previous stage's folder and
-writes its own. This module turns that into the command each script needs. All three scripts read their paths from a JSON
+writes its own. This module turns that into the command each script needs. All four scripts read their paths from a JSON
 config, so each gets a copy of its settings file at <cfg_dir>/<stage>.json with the path keys filled in (repo-relative, as the
 scripts require), and is run with --config on that copy:
   clean     input_root = the stage's "input", output_root = <clean folder>, and the input set's description from the stage:
             manifest (default: sample_manifest.json in the input folder), manifest_sha256, expected_parts, sample.
             clean_job.py also takes one --only <part> per part of the stage's "only" list (a trial on some parts)
   overlap   inputs = <clean folder>, out = <overlap folder>
+  h3        inputs = <clean folder>, out = <h3 folder>, cache = <run>/h3_cache
   dedup     results = <overlap folder>, inputs = <clean folder>, out = <dedup folder>
+            and, when H3 is configured, h3.matches = <h3 folder>/h3_matches.csv with remove: false
 
 The settings file holds settings only (k, floor, pack order, pins); it is never edited. Its sha256 and the generated copy's are
 returned so the manifest can record them, and a "settings_sha256" in the stage's run config is checked when present.
@@ -33,10 +35,12 @@ import clean_manifest
 
 DEFAULT_SCRIPT = {"clean": "teams/01-data-a/pipeline/clean_job.py",
                   "overlap": "teams/01-data-a/dedup/overlap.py",
+                  "h3": "teams/01-data-a/dedup/h3.py",
                   "dedup": "teams/01-data-a/dedup/dedup.py"}
 STAGES = {  # {config key: the stage whose folder it names}
     "clean": {"keys": {"output_root": "clean"}},
     "overlap": {"keys": {"inputs": "clean", "out": "overlap"}},
+    "h3": {"keys": {"inputs": "clean", "out": "h3"}},
     "dedup": {"keys": {"results": "overlap", "inputs": "clean", "out": "dedup"}},
 }
 
@@ -101,6 +105,11 @@ def generated_values(stage, folders, repo, spec=None):
     if stage == "clean" and (spec or {}).get("resume") is True:
         values["resume"] = True
     values.update({key: relative(folders[owner], repo) for key, owner in STAGES[stage]["keys"].items()})
+    if stage == "h3":
+        values["cache"] = relative(folders["h3"].parent / "h3_cache", repo)
+    if stage == "dedup":
+        values["h3"] = ({"matches": relative(folders["h3"] / "h3_matches.csv", repo),
+                         "remove": False, "parallel_packs": []} if "h3" in folders else None)
     return values
 
 

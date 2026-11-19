@@ -151,11 +151,27 @@ def test_overlap_config_gets_the_paths_and_keeps_every_setting(repo, folders):
 
 
 def test_dedup_config_names_the_overlap_folder_as_results(repo, folders):
-    settings(repo, "dedup", DEDUP)
+    settings(repo, "dedup", {**DEDUP, "h3": {"matches": "old/h3_matches.csv", "remove": True}})
     r = sa.build("dedup", {"settings": "dedup.json"}, folders, repo / "cfg", repo)
     made = json.loads((repo / "cfg" / "dedup.json").read_text(encoding="utf-8"))
     assert (made["results"], made["inputs"], made["out"]) == ("out/run1/overlap", "out/run1/clean", "out/run1/dedup")
-    assert made["pack_order"] == DEDUP["pack_order"] and made["gold_dirs"] == [] and r["command"][1] == "--config"
+    assert made["pack_order"] == DEDUP["pack_order"] and made["gold_dirs"] == [] and made["h3"] is None
+    assert r["command"][1] == "--config"
+
+
+def test_h3_reads_cleaned_parts_and_dedup_uses_its_matches_report_only(repo, folders):
+    folders["h3"] = repo / "out/run1/h3"
+    settings(repo, "h3", {"packs": {"ind-hi-fw2": "hi", "en-fineweb-edu": "en"},
+                           "pairs": [["hi", "en"]], "model_path": "../models/LaBSE"})
+    settings(repo, "dedup", DEDUP)
+    sa.build("h3", {"settings": "h3.json"}, folders, repo / "out/run1/cfg", repo)
+    sa.build("dedup", {"settings": "dedup.json"}, folders, repo / "out/run1/cfg", repo)
+    h3 = json.loads((repo / "out/run1/cfg/h3.json").read_text())
+    dedup = json.loads((repo / "out/run1/cfg/dedup.json").read_text())
+    assert (h3["inputs"], h3["out"], h3["cache"]) == (
+        "out/run1/clean", "out/run1/h3", "out/run1/h3_cache")
+    assert dedup["h3"] == {"matches": "out/run1/h3/h3_matches.csv",
+                           "remove": False, "parallel_packs": []}
 
 
 def test_the_settings_file_is_not_touched_and_the_result_repeats(repo, folders):

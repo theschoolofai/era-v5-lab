@@ -8,13 +8,13 @@
 
 <br>
 
-Data A's pipeline, as one command: `run_pipeline.py --config <file>`. It runs (or adopts) the team's cleaning, overlap and dedup jobs, applies dedup's remove list, runs F2 decontamination, counts the duplicate groups F2 emptied, writes a **ledger** of every document's decision at every stage, writes **token shards**, and **reconciles** the shards with the ledger. Between every pair of stages it checks, by counts and sha256, that each document is accounted for. Every run ends with `pipeline_manifest.json`, the record TSAI can verify.
+Data A's pipeline, as one command: `run_pipeline.py --config <file>`. It runs (or adopts) the team's cleaning, overlap and dedup jobs, optionally measures H3 translation matches on the cleaned parts, applies dedup's remove list, runs F2 decontamination, counts the duplicate groups F2 emptied, writes a **ledger** of every document's decision at every stage, writes **token shards**, and **reconciles** the shards with the ledger. Between every pair of stages it checks, by counts and sha256, that each document is accounted for. Every run ends with `pipeline_manifest.json`, the record TSAI can verify.
 
 ## At a glance
 
 | | |
 |---|---|
-| **Order** | clean → overlap → dedup → **apply the remove list** → **F2** → **survivor loss** → **ledger** → **shards** → **reconcile** |
+| **Order** | clean → overlap → H3 (when configured) → dedup → **apply the remove list** → **F2** → **survivor loss** → **ledger** → **shards** → **reconcile** |
 | **Shards and reconcile** | Run only when the config has `stages.shards` (and `stages.reconcile`); without them the run ends at the ledger. **The production job configures both**, and a run with an [expected inventory](#expected-inventory) is refused without them |
 | **In** | the raw parts and their input manifest (clean in `"mode": "run"`), or the folders TSAI's clean, overlap and dedup jobs returned (`"mode": "adopt"`) |
 | **Out** | token shards (G3's frozen p1536 tokenizer) · `pipeline_manifest.json` · the ledger, one row per document · the reconciliation, one status per kept document · filtered Parquet (`deduped/`, `final/`), kept or dropped at the end (`"intermediates"`) |
@@ -203,7 +203,8 @@ What runs after what, and which folder each job reads and writes. Every hand-ove
 |:-:|---|---|---|---|---|
 | 01 | **clean** | `pipeline/clean_job.py`, which loads `spec_v1_1/clean.py` (#52) | raw parts, the input manifest | `cleaned/train/`, `cleaned/heldout/`, `reports/`, `job_summary.json` | run, from the raw parts |
 | 02 | **overlap** | `dedup/overlap.py` (#255) | `cleaned/` | `overlap_summary.json`, `overlap_matches.csv`, `overlap_docs.parquet` | run |
-| 03 | **dedup** | `dedup/dedup.py` (#255); H3 joins here if #44 is agreed | `overlap/`, and `cleaned/` for URLs | `remove_list.csv`, `dedup_groups.csv`, `dedup_log.jsonl`, `dedup_summary.json` | run |
+| 02a | **H3** | `dedup/h3.py` | `cleaned/` | `h3_matches.csv`, `h3_summary.json` and reports | run when configured; report only |
+| 03 | **dedup** | `dedup/dedup.py` (#255) | `overlap/`, `cleaned/` for URLs, and H3 matches when configured | `remove_list.csv`, `dedup_groups.csv`, `dedup_log.jsonl`, `dedup_summary.json` | run |
 | 04 | **pipeline** | `run_pipeline.py`: apply → F2 → survivor loss → ledger | `cleaned/`, `dedup/` | `deduped/`, `final/`, `report/`, `ledger/`, `pipeline_manifest.json` | always run |
 | 05 | **shards** | `shards/run_shards.py` → `shard_writer.py` (#39), p1536 | `final/`, the manifest, the tokenizer, the job's pack table | `cleaning_pipeline.json`, `shards/` | `stages.shards`: required |
 | 06 | **reconcile** | `reconcile_shards.py` | `ledger/`, `shards/` | `reconcile/` | `stages.reconcile`: required |
@@ -651,6 +652,8 @@ The run config is JSON. Paths are relative to the repository root, or absolute; 
 | `inventory` | file (optional) | the [expected inventory](#expected-inventory); makes the run a production run, which needs `stages.ledger.raw`, `stages.shards` and `stages.reconcile` and must end at reconcile. Without it (or `null`), nothing is compared with an input manifest |
 
 **Clean, overlap and dedup** (`stages.clean`, `stages.overlap`, `stages.dedup`):
+
+**H3** (`stages.h3`) is optional. Set `{"mode": "run", "settings": "teams/01-data-a/jobs/2026-11-19-first-training/h3.json"}` to measure translation matches after overlap. The runner sets H3's input to this run's cleaned folder and passes its `h3_matches.csv` to dedup with `remove: false`. It checks the match count and SHA256 against H3's summary, then checks dedup used that file. H3 needs a local offline LaBSE model and the packages in `dedup/requirements_h3.txt`.
 
 | Key | Values | Meaning |
 |---|---|---|

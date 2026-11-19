@@ -48,6 +48,15 @@ uniqueness.
 | `stages.reconcile` | Enabled |
 
 Process both splits through clean, overlap, dedup/apply, F2 and the raw ledger.
+For H3, add `"h3": {"mode": "run", "settings":
+"teams/01-data-a/jobs/2026-11-19-first-training/h3.json"}` to `stages`.
+The runner runs H3 after overlap on the same cleaned parts, verifies its completed
+summary and match-file hash, then supplies that match file to dedup. Dedup uses
+`remove: false`: H3 reports translation matches but does not remove documents.
+Stage the offline LaBSE model at the `model_path` in `h3.json` and install
+`dedup/requirements_h3.txt` in the job environment. This setting currently
+measures the Sanskrit, Hindi and English packs named in `h3.json`; expand the
+pack/language-pair scope only after reviewing thresholds and compute cost.
 Dedup protects heldout rows; F2 may remove fingerprint matches from either split.
 The existing shard runner receives the complete `final/` root, writes train only,
 and records heldout as `not_sharded`. The inventory enforces `written` for train

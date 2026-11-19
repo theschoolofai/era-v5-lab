@@ -1,4 +1,4 @@
-"""One command for Data A's pipeline: clean -> overlap -> dedup -> apply the remove list -> F2 -> survivor loss -> ledger -> shards.
+"""One command for Data A's pipeline: clean -> overlap -> optional H3 -> dedup -> apply -> F2 -> survivor loss -> ledger -> shards.
 
   python -I teams/01-data-a/pipeline/run_pipeline.py --config teams/01-data-a/pipeline/pipeline.json [--plan]
 
@@ -11,6 +11,7 @@ STAGES
 ======
   clean          cleaned parts: <output>/train/**.parquet and/or <output>/heldout/**.parquet              (TSAI job, #244)
   overlap        overlap_summary.json, overlap_matches.csv, overlap_docs.parquet                          (TSAI job, #255)
+  h3             optional, report-only translation matches from the same cleaned parts; requires stages.h3 (TSAI job)
   dedup          remove_list.csv, dedup_groups.csv, dedup_summary.json                                    (TSAI job, #255)
   apply          apply_dedup.py on clean's output with dedup's remove list  -> <run>/deduped
   f2             run_f2.py on <run>/deduped/<split>                           -> <run>/final/<split>
@@ -24,10 +25,12 @@ STAGES
                  written, if the summary is not this run's, or if the shards on disk do not verify (verify_shards.py). "from": "shards" runs only this stage, into an out folder without shards.
 
 clean, overlap and dedup take "mode": "adopt" (TSAI ran the job; "output" names the folder it returned) or "mode": "run".
+H3 runs only when stages.h3 is configured, and must use "mode": "run" on this job's cleaned parts. Its matches are
+passed to dedup with remove: false; the runner verifies H3's summary, match-file hash and dedup's recorded hash.
 A run stage names a "settings" file (settings only, no paths) and the runner works out the rest: its folder is <run>/<stage>
 (or "output", below ./out), it reads the previous stage's folder, and stage_args.py turns that into the script's command. clean
 gets a copy of its settings with the path keys filled in (clean: input_root from "input", output_root, and the input set's
-description from the stage: manifest, manifest_sha256, expected_parts, sample; overlap: inputs, out; dedup: results, inputs,
+description from the stage: manifest, manifest_sha256, expected_parts, sample; overlap/H3: inputs, out; dedup: results, inputs,
 out), written to <run>/cfg/<stage>.json and passed with --config. The clean stage's manifest defaults to sample_manifest.json in
 its input folder, and its sha256 must equal manifest_sha256; its parts must match expected_parts and add up to its total_docs (clean_manifest.py: --plan checks it, and the job again when it starts). "script" replaces the default script (for clean: pipeline/clean_job.py, which loads the cleaner its settings file names and pins), and may be a list (the script, then the arguments that go before --config: a script run through a wrapper; the manifest then records the sha256 of both); clean also takes "resume": true, to continue an interrupted clean job in its folder (the job verifies the parts it finished; logs/clean.log is appended to); "settings_sha256" pins the settings file
 (checked, and the manifest records the file's sha256 either way). Escape hatch: "command" (the script and its arguments, run
@@ -151,17 +154,18 @@ sys.path.insert(0, str(HERE))
 import inventory_check  # noqa: E402  (the expected inventory: "inventory" in the config)
 import stage_args  # noqa: E402  (how clean, overlap and dedup get their paths)
 from hashing import HashCache, code_sha256  # noqa: E402  (every sha256 once, in parallel)
-STAGES = ("clean", "overlap", "dedup", "apply", "f2", "survivor_loss", "ledger", "shards", "reconcile")
-OPTIONAL = ("shards", "reconcile")  # run only when configured (reconcile also needs shards)
-EXTERNAL = ("clean", "overlap", "dedup")
+STAGES = ("clean", "overlap", "h3", "dedup", "apply", "f2", "survivor_loss", "ledger", "shards", "reconcile")
+OPTIONAL = ("h3", "shards", "reconcile")  # run only when configured
+EXTERNAL = ("clean", "overlap", "h3", "dedup")
 CLEAN_SUMMARY = ("completed_parts", "expected_parts", "input_rows", "output_rows", "actions", "errors", "parts")  # a clean job's job_summary.json
 NEEDED = {"overlap":("overlap_summary.json", "overlap_matches.csv", "overlap_docs.parquet"),
+          "h3": ("h3_summary.json", "h3_matches.csv"),
           "dedup": ("remove_list.csv", "dedup_groups.csv", "dedup_summary.json")}
 DEFAULT_F2 = "teams/01-data-a/spec_v1/run_f2.py"
 DEFAULT_SHARDS = "teams/01-data-a/shards/run_shards.py"
 POOL = "teams/01-data-a/pipeline/f2_pool.py"
 SPLITS = ("train", "heldout")
-RESERVED = ("deduped", "final", "report", "ledger", "shards", "reconcile", "cfg", "logs", "cache")  # folders of the run that no stage output may take
+RESERVED = ("deduped", "final", "report", "ledger", "shards", "reconcile", "cfg", "logs", "cache", "h3_cache")  # folders of the run that no stage output may take
 BESIDE = (".partial", ".old", ".lock")  # what the scripts make next to a folder they write: <x>.partial, <x>.old, <x>.lock
 INTERMEDIATES = ("keep", "drop")  # the run's own Parquet between the input and the shards: left on disk, or deleted at the end
 KEYS = ("run_id", "out", "stages", "from", "to", "hash_cache", "intermediates", "inventory")  # every top-level key of a run config
@@ -434,13 +438,15 @@ class Run:
         if spec.get("command"):
             return {"command": spec["command"], "settings": None, "settings_sha256": None, "config": None, "config_sha256": None}
         try:
-            return stage_args.build(stage, spec, {s: self.output(s) for s in EXTERNAL}, self.dir / "cfg", REPO, write, self.only)
+            return stage_args.build(stage, spec, {s: self.output(s) for s in EXTERNAL if s != "h3" or s in self.stages}, self.dir / "cfg", REPO, write, self.only)
         except stage_args.ConfigError as e:
             raise Stop(f"config: {stage}: {e}")
 
     def validate(self, upto):
         """The config of every stage up to `upto`, before anything runs."""
-        active = [s for s in EXTERNAL if STAGES.index(s) <= STAGES.index(upto)]
+        active = [s for s in EXTERNAL if STAGES.index(s) <= STAGES.index(upto) and (s != "h3" or s in self.stages)]
+        if "h3" in active and isinstance(self.stages["h3"], dict) and self.stages["h3"].get("mode") != "run":
+            raise Stop("config: stages.h3 must run on this job's cleaned parts")
         if self.only:
             clean = self.stages.get("clean") or {}
             if clean.get("mode", "adopt") != "run" or clean.get("command"):
@@ -676,9 +682,12 @@ class Run:
         to = to or self.cfg.get("to") or self.last_stage()
         if to not in STAGES:
             raise Stop(f"unknown stage {to!r}; stages are {', '.join(STAGES)}")
+        if to == "h3" and "h3" not in self.stages:
+            raise Stop('"to": "h3" needs stages.h3')
         self.validate(to)
         lines = [f"run folder: {self.shown(self.dir)}   manifest: {self.shown(self.manifest_path)}"]
-        for n, stage in enumerate(STAGES[: STAGES.index(to) + 1], start=1):
+        planned = [s for s in STAGES[: STAGES.index(to) + 1] if s != "h3" or s in self.stages]
+        for n, stage in enumerate(planned, start=1):
             out = self.shown(self.output(stage))
             if stage in EXTERNAL:
                 built = self.stage_command(stage, write=False)
@@ -691,7 +700,7 @@ class Run:
                     lines.append(f"     settings {built['settings']} (sha256 {built['settings_sha256'][:12]}…)")
                 if built["config"]:
                     lines.append(f"     generated config {self.shown(built['config'])}: " + ", ".join(
-                        f"{k} = {v}" for k, v in stage_args.generated_values(stage, {s: self.output(s) for s in EXTERNAL}, REPO, self.stages[stage]).items()
+                        f"{k} = {v}" for k, v in stage_args.generated_values(stage, {s: self.output(s) for s in EXTERNAL if s != "h3" or s in self.stages}, REPO, self.stages[stage]).items()
                         if k in stage_args.PATH_KEYS or k == "resume"))
             elif stage == "f2":
                 f2 = self.stages.get("f2", {})
@@ -843,6 +852,21 @@ class Run:
                 self.check(f"{name} matches overlap's summary", files[name] == want, f"{files[name][:12]}… vs {want[:12]}…")
         return {"documents_all": s.get("documents_all"), "parts": len(listed), "files_sha256": files}
 
+    def counts_h3(self, out):
+        s = load_json(out / "h3_summary.json")
+        self.check("H3 finished", s.get("status") == "complete", f"status {s.get('status')!r}")
+        listed = s.get("outputs", {}).get("h3_matches.csv", {}).get("sha256")
+        actual = sha256(out / "h3_matches.csv")
+        self.check("H3 matches match its summary", listed == actual,
+                   f"summary {str(listed)[:12]}…, file {actual[:12]}…")
+        rows = csv_rows(out / "h3_matches.csv")
+        self.check("H3 match count matches its summary", s.get("qualifying") == rows,
+                   f"summary {s.get('qualifying')}, file {rows}")
+        self.check("H3 read this run's cleaned folder",
+                   s.get("inputs", {}).get("root") == self.shown(self.output("clean")),
+                   f"H3 inputs {s.get('inputs', {}).get('root')!r}")
+        return {"matches": s.get("qualifying"), "matches_sha256": actual}
+
     def counts_dedup(self, out):
         s = load_json(out / "dedup_summary.json")
         ov = self.done["overlap"]["counts"]
@@ -857,6 +881,14 @@ class Run:
                    f"the adopted overlap has {sorted((k, v[:12]) for k, v in ov['files_sha256'].items())}")
         self.check("dedup saw overlap's documents", s.get("documents_all") == ov["documents_all"],
                    f"dedup documents_all {s.get('documents_all')}, overlap {ov['documents_all']}")
+        if "h3" in self.stages:
+            evidence = self.done["h3"]["counts"]
+            used = s.get("h3", {})
+            self.check("dedup used this run's H3 matches",
+                       used.get("matches", {}).get("sha256") == evidence["matches_sha256"]
+                       and used.get("matches", {}).get("pairs") == evidence["matches"]
+                       and used.get("remove") is False,
+                       f"H3 summary {evidence}, dedup H3 {used}")
         self.check("dedup summary matches its remove list", counts["removed"] == counts["remove_list_rows"],
                    f"summary removed {counts['removed']}, remove_list.csv rows {counts['remove_list_rows']}")
         self.check("dedup removed no held-out doc", counts["heldout_removed"] == 0,
@@ -1140,6 +1172,8 @@ class Run:
         for s in (start, to):
             if s not in STAGES:
                 raise Stop(f"unknown stage {s!r}; stages are {', '.join(STAGES)}")
+        if "h3" not in self.stages and (start == "h3" or to == "h3"):
+            raise Stop('"from" or "to": "h3" needs stages.h3')
         if STAGES.index(start) > STAGES.index(to):
             raise Stop(f"\"from\": {start} comes after \"to\": {to}")
         self.validate(to)
@@ -1156,6 +1190,8 @@ class Run:
                        f"({type(e).__name__})")
         sys.path.insert(0, str(HERE))
         for stage in STAGES[: STAGES.index(to) + 1]:
+            if stage == "h3" and stage not in self.stages:
+                continue
             out = self.output(stage)
             if STAGES.index(stage) < STAGES.index(start):
                 if stage not in old:
