@@ -69,7 +69,9 @@ def run_checks(folder, shard_id, template=TEMPLATE, clean_py=CLEAN_PY, expect_to
     # 1. Manifest fields
     if Path(template).exists():
         tmpl = json.loads(Path(template).read_text())
-        missing, extra = sorted(set(tmpl) - set(m)), sorted(set(m) - set(tmpl))
+        licence = {"license", "license_source"}  # optional, both or neither: a pack table row may give neither (pack_table.py)
+        missing = sorted(set(tmpl) - set(m) - (set() if licence & set(m) else licence))
+        extra = sorted(set(m) - set(tmpl))
         check("all template fields present", not missing, "none missing", missing or "none missing")
         check("no fields outside the template", not extra, "none extra", extra or "none extra")
     empty = [k for k, v in m.items() if v in ("", None) or (isinstance(v, str) and v.startswith("<"))]

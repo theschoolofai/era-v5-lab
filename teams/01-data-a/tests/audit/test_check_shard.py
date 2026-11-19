@@ -172,3 +172,13 @@ def test_missing_field_fails(tmp_path):
     del man["created_by"]
     man_path.write_text(json.dumps(man))
     assert "all template fields present" in by_status(cs.run_checks(tmp_path, SID), cs.FAIL)
+
+
+@pytest.mark.parametrize("drop,fails", [(("license", "license_source"), False), (("license_source",), True)])
+def test_the_licence_fields_are_both_or_neither(tmp_path, drop, fails):
+    man_path = write_shard(tmp_path)
+    man = json.loads(man_path.read_text())
+    for field in drop:
+        del man[field]
+    man_path.write_text(json.dumps(man))
+    assert ("all template fields present" in by_status(cs.run_checks(tmp_path, SID), cs.FAIL)) == fails
