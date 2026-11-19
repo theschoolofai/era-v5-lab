@@ -68,7 +68,8 @@ def final(tmp_path):
 
 def test_lost_partly_hit_and_untouched(tmp_path, groups, final):
     s = sl.report(groups(), final(), tmp_path / "report")
-    assert s["groups"] == {"total": 4, "with_survivor": 3, "without_survivor": 1, "lost": 1, "partly_hit": 1, "untouched": 1}
+    assert s["groups"] == {"total": 4, "with_survivor": 3, "without_survivor": 1, "with_several_survivors": 1,
+                           "lost": 1, "partly_hit": 1, "untouched": 1}
     assert s["survivors_dropped_by_f2"] == 2
     assert s["set_sha256"] == SET
     with (tmp_path / "report" / "survivor_loss.csv").open(encoding="utf-8") as f:
@@ -140,6 +141,24 @@ def test_cli(tmp_path, groups, final):
                         "--f2", str(final()), "--out", str(tmp_path / "report")], capture_output=True, text=True)
     assert p.returncode == 0, p.stderr
     assert json.loads(p.stdout)["lost"] == 1
+
+
+def test_cli_exits_1_on_a_failed_check(tmp_path, final):
+    bad = tmp_path / "dedup_groups.csv"
+    bad.write_text("group_id,doc_id\nG000001,a\n", encoding="utf-8")
+    p = subprocess.run([sys.executable, "-I", str(PIPELINE / "survivor_loss.py"), "--groups", str(bad),
+                        "--f2", str(final()), "--out", str(tmp_path / "report")], capture_output=True, text=True)
+    assert p.returncode == 1 and p.stderr.startswith("survivor_loss: ") and "header" in p.stderr
+    assert not (tmp_path / "report" / "survivor_loss_summary.json").exists()
+
+
+def test_no_groups(tmp_path, groups, final):
+    """Dedup found no duplicates: every count is 0 and the CSV holds only its header."""
+    s = sl.report(groups([]), final(), tmp_path / "report")
+    assert s["groups"] == {"total": 0, "with_survivor": 0, "without_survivor": 0, "with_several_survivors": 0,
+                           "lost": 0, "partly_hit": 0, "untouched": 0}
+    assert s["survivors_dropped_by_f2"] == 0 and s["survivor_rows_by_pack"] == {}
+    assert loss_rows(tmp_path / "report") == []
 
 
 # --- the review of the scale pass (14 Nov) ---------------------------------------------------------------------------

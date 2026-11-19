@@ -98,10 +98,13 @@ CHECKS (any failure stops the run; exit code 1)
   apply     rows = the cleaned rows; removed = the remove list (apply_dedup.py also checks every listed row)
   f2        per split: its rows = apply's kept rows; every part's report names, as input_sha256, the sha256 apply wrote;
             one fingerprint set; kept + dropped + errors = rows; no errors; no stale Parquet under final/<split>
-  survivor  groups = the groups in dedup_groups.csv
+  survivor  the groups in dedup_groups.csv = dedup_summary.json's clusters; groups without a survivor and groups with
+            several = its groups_without_survivor and groups_with_several_survivors (with H3, up to
+            h3.groups_survivor_removed more groups without one, and no more with several)
   ledger    its cleaned rows = the cleaned rows; removed_by_dedup = apply's removed; dropped_by_f2, f2_error and kept =
             F2's; one fingerprint set, F2's (ledger.py also checks every final part holds the ledger's kept docs in order);
-            per pack and split, its cleaned rows and removed_by_dedup = apply_dedup_summary.json's by_pack
+            per pack and split, its cleaned rows and removed_by_dedup = apply_dedup_summary.json's by_pack; the dedup
+            survivors F2 dropped, in total and per pack = survivor_loss_summary.json's
   shards    no part failed or was skipped; run_shards.py exited 0; at least one shard written; the summary is this run's;
             the shards on disk verify (verify_shards.py, independent of the summary and of the shard script): files and
             sha256, .bin header and size, index, special ids, metadata, pack table row, tokenizer, F2 set, and the first and
@@ -975,8 +978,24 @@ class Run:
             s = survivor_loss.report(self.output("dedup") / "dedup_groups.csv", self.output("f2"), out)
         except survivor_loss.Stop as e:
             raise Stop(f"survivor_loss: {e}")
-        self.check("survivor loss saw every dedup group", s["groups"]["total"] == self.done["dedup"]["counts"]["groups"],
-                   f"report {s['groups']['total']}, dedup_groups.csv {self.done['dedup']['counts']['groups']}")
+        # the groups in dedup_groups.csv against what dedup.py decided (its summary), not against the same file again
+        g, d = s["groups"], load_json(self.output("dedup") / "dedup_summary.json")
+        want = {k: d.get(k) for k in ("clusters", "groups_without_survivor", "groups_with_several_survivors")}
+        self.check("dedup's summary counts its groups", all(type(v) is int and v >= 0 for v in want.values()),
+                   f"dedup_summary.json gives {want}")
+        self.check("survivor loss saw every dedup group", g["total"] == want["clusters"],
+                   f"dedup_groups.csv {g['total']} group(s), dedup_summary.json clusters {want['clusters']}")
+        # dedup.py counts the groups without a survivor before H3 turns survivors into removed copies: with H3, up to
+        # h3.groups_survivor_removed more groups have none, and none has more survivors than before
+        h3 = (d.get("h3") or {}).get("groups_survivor_removed") or 0
+        self.check("survivor loss's groups without a survivor = dedup's",
+                   want["groups_without_survivor"] <= g["without_survivor"] <= want["groups_without_survivor"] + h3,
+                   f"dedup_groups.csv {g['without_survivor']}, dedup_summary.json {want['groups_without_survivor']}"
+                   + (f" (+ up to {h3} whose survivors H3 removed)" if h3 else ""))
+        several = want["groups_with_several_survivors"]
+        self.check("survivor loss's groups with several survivors = dedup's",
+                   g["with_several_survivors"] <= several if h3 else g["with_several_survivors"] == several,
+                   f"dedup_groups.csv {g['with_several_survivors']}, dedup_summary.json {several}")
         return {"mode": "run", "command": ["teams/01-data-a/pipeline/survivor_loss.py"], "code_sha256": s["code_sha256"],
                 "output": "report", "counts": {**s["groups"], "survivors_dropped_by_f2": s["survivors_dropped_by_f2"]}}
 
@@ -1024,6 +1043,16 @@ class Run:
         stage = {"cleaned": c["clean"]["rows"], "removed_by_dedup": c["apply"]["removed"],
                  "dropped_by_f2": c["f2"]["dropped_by_f2"], "final": c["f2"]["kept"]}
         self.check("per-pack table adds up to the stages' counts", sums == stage, f"table {sums}, stages {stage}")
+        # each dedup survivor F2 dropped, counted twice and independently: by the ledger, from every document's row, and
+        # by survivor_loss.py, from the groups and F2's reports
+        mine, loss = s["survivors_dropped_by_f2"], load_json(self.output("survivor_loss") / "survivor_loss_summary.json")
+        self.check("ledger's survivors dropped by F2 = survivor loss's", mine["total"] == loss.get("survivors_dropped_by_f2"),
+                   f"ledger {mine['total']}, survivor_loss_summary.json {loss.get('survivors_dropped_by_f2')}")
+        theirs = {p: sum(v.values()) for p, v in (loss.get("survivor_rows_by_pack") or {}).items()}
+        diff = sorted(p for p in set(mine["by_pack"]) | set(theirs) if mine["by_pack"].get(p, 0) != theirs.get(p, 0))
+        self.check("ledger's survivors dropped by F2 per pack = survivor loss's", not diff,
+                   f"{len(diff)} pack(s) differ, e.g. "
+                   f"{diff[0] + ': ledger ' + str(mine['by_pack'].get(diff[0], 0)) + ', survivor loss ' + str(theirs.get(diff[0], 0)) if diff else ''}")
         return {"mode": "run", "command": ["teams/01-data-a/pipeline/ledger.py"], "code_sha256": s["code_sha256"],
                 "output": "ledger", "clean_mode": s["clean_mode"],
                 "counts": {k: v for k, v in t.items() if v is not None}, "by_pack": by_pack}

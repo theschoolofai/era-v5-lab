@@ -72,6 +72,7 @@ def dedup_folder(folder, overlap, removed=2, heldout_removed=0):
     (folder / "dedup_summary.json").write_text(json.dumps({
         "status": "complete", "overlap_run": {"documents_all": 13, "checked_sha256": checked}, "documents_all": 13,
         "removed": removed, "heldout_removed": heldout_removed,
+        "clusters": 2, "groups_without_survivor": 0, "groups_with_several_survivors": 1,
         "config": {"cross_pack": True, "pack_order": ["code-go", "en-dclm"], "licence_usable": {}, "default_licence_usable": True,
                    "gold_dirs": []}}), encoding="utf-8")
     return folder
@@ -130,7 +131,10 @@ def test_full_chain(tmp_path, config):
         "heldout/code-go.parquet", "train/code-go.parquet", "train/en-dclm.parquet"]
     names = {ch["check"] for ch in m["checks"]}
     assert {"overlap read these cleaned parts", "dedup used this overlap run", "F2 read what apply wrote in train",
-            "survivor loss saw every dedup group", "ledger kept = F2's kept"} <= names and all(ch["ok"] for ch in m["checks"])
+            "survivor loss saw every dedup group", "survivor loss's groups without a survivor = dedup's",
+            "survivor loss's groups with several survivors = dedup's", "ledger kept = F2's kept",
+            "ledger's survivors dropped by F2 = survivor loss's",
+            "ledger's survivors dropped by F2 per pack = survivor loss's"} <= names and all(ch["ok"] for ch in m["checks"])
     assert final_ids(run) == sorted(["g1", "g2", "g3", "g4", "g5", "g6", "e0", "e1", "h0"])
     assert (run / "logs" / "f2_train.log").is_file()
     on_disk = json.loads((run / "pipeline_manifest.json").read_text(encoding="utf-8"))
@@ -220,7 +224,7 @@ def test_train_only_run(tmp_path, cleaned, monkeypatch):
     rows = list(csv.reader((dedup / "dedup_groups.csv").open(encoding="utf-8")))
     write_csv(dedup / "dedup_groups.csv", rows[0], [r for r in rows[1:] if r[5] == "train"])
     s = json.loads((dedup / "dedup_summary.json").read_text(encoding="utf-8"))
-    s.update(documents_all=11)
+    s.update(documents_all=11, groups_without_survivor=1, groups_with_several_survivors=0)  # G000002 kept only held-out copies
     (dedup / "dedup_summary.json").write_text(json.dumps(s), encoding="utf-8")
     monkeypatch.setenv("FAKE_F2_DROP", "g0")
     cfg = write_config(tmp_path / "p1.json", {"cleaned": cleaned, "overlap": overlap, "dedup": dedup}, run_id="train-only")
@@ -296,6 +300,67 @@ def test_parallel_f2_crash_names_the_pack_and_rerun_recovers(config, monkeypatch
 def test_bad_workers_stop(config, workers):
     set_f2(config, workers=workers)
     with pytest.raises(rp.Stop, match="workers"):
+        rp.run(config)
+
+
+# --- survivor loss against dedup's summary and the ledger (step 17) --------------------------------------------------
+def edit_dedup_summary(tsai_outputs, **changes):
+    path = tsai_outputs["dedup"] / "dedup_summary.json"
+    s = json.loads(path.read_text(encoding="utf-8"))
+    for k, v in changes.items():
+        if v is None:
+            s.pop(k, None)
+        else:
+            s[k] = v
+    path.write_text(json.dumps(s), encoding="utf-8")
+
+
+@pytest.mark.parametrize("key, value, message", [
+    ("clusters", 3, "survivor loss saw every dedup group"),
+    ("groups_without_survivor", 1, "groups without a survivor"),
+    ("groups_with_several_survivors", 0, "groups with several survivors"),
+    ("clusters", None, "dedup's summary counts its groups")])
+def test_survivor_loss_disagreeing_with_dedups_summary_stops(config, tsai_outputs, key, value, message):
+    """dedup_groups.csv is checked against what dedup.py decided, not against itself."""
+    edit_dedup_summary(tsai_outputs, **{key: value})
+    with pytest.raises(rp.Stop, match=message):
+        rp.run(config)
+
+
+@pytest.mark.parametrize("h3, stops", [(None, True), ({"groups_survivor_removed": 1}, False)])
+def test_h3_may_leave_a_group_without_survivor(config, tsai_outputs, h3, stops):
+    """H3 turns survivors into removed copies after dedup.py counted groups_without_survivor: with h3 in the summary, up
+    to h3.groups_survivor_removed more groups may have none."""
+    path = tsai_outputs["dedup"] / "dedup_groups.csv"
+    rows = list(csv.reader(path.open(encoding="utf-8")))
+    write_csv(path, rows[0], [r[:3] + ["removed"] + r[4:] if r[0] == "G000001" else r for r in rows[1:]])
+    edit_dedup_summary(tsai_outputs, h3=h3)
+    if stops:
+        with pytest.raises(rp.Stop, match="groups without a survivor"):
+            rp.run(config, to="survivor_loss")
+    else:
+        c = {s["stage"]: s["counts"] for s in rp.run(config, to="survivor_loss")["stages"]}
+        assert (c["survivor_loss"]["without_survivor"], c["survivor_loss"]["lost"]) == (1, 0)
+
+
+@pytest.mark.parametrize("shift, message", [
+    ({"code-go": 1}, "ledger's survivors dropped by F2 = survivor loss's"),
+    ({"code-go": -1, "en-dclm": 1}, "ledger's survivors dropped by F2 per pack = survivor loss's")])
+def test_ledger_disagreeing_with_survivor_loss_stops(config, monkeypatch, shift, message):
+    """The ledger counts the survivors F2 dropped from every document's row; survivor_loss.py from the groups and F2's
+    reports. A difference in total or per pack stops the run."""
+    import ledger
+    real = ledger.build
+
+    def build(*args, **kwargs):
+        s = real(*args, **kwargs)
+        by_pack = s["survivors_dropped_by_f2"]["by_pack"]
+        for pack, n in shift.items():
+            by_pack[pack] = by_pack.get(pack, 0) + n
+        s["survivors_dropped_by_f2"]["total"] += sum(shift.values())
+        return s
+    monkeypatch.setattr(ledger, "build", build)
+    with pytest.raises(rp.Stop, match=message):
         rp.run(config)
 
 

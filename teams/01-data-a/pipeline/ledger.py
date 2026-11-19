@@ -57,7 +57,9 @@ CHECKS (any failure stops the run; exit code 1)
 OUTPUT (in --out)
 =================
   <split>/<pack>.parquet   the ledger, one file per pack and split (zstd)
-  ledger_summary.json      clean mode, inputs (sha256), totals and counts per pack and split by final status, files
+  ledger_summary.json      clean mode, inputs (sha256), totals and counts per pack and split by final status, files,
+                           and survivors_dropped_by_f2: the dedup survivors whose final is dropped_by_f2 or f2_error,
+                           in total and per pack (the runner checks them against survivor_loss.py's report)
   ledger_sample.csv        to read by eye: per pack and split, up to 5 rows of each final status
 The ledger is built in <out>.partial and swapped in for <out> only when it is complete, so --out never mixes two runs
 and a run that stops leaves the previous ledger whole. The swap renames --out to <out>.old, <out>.partial to --out, and
@@ -620,6 +622,8 @@ def _build(cleaned, remove_list, groups_csv, f2, out, log=None, raw=None):
     out.mkdir(parents=True, exist_ok=True)  # the staging folder: empty, ours
     writers, written, sets, hashes, raw_files = {}, {}, set(), {}, []
     counts = defaultdict(lambda: defaultdict(Counter))  # pack -> split -> status / rows
+    survivors = Counter()  # pack -> dedup survivors F2 dropped (or errored on)
+    gone_by_f2 = pa.array(["dropped_by_f2", "f2_error"])
     sample = defaultdict(list)
     need = defaultdict(lambda: SAMPLE_PER_STATUS)
     reports = {"parts": 0, "input_rows": 0, "drop": 0, "fix": 0, "keep": 0}
@@ -654,6 +658,9 @@ def _build(cleaned, remove_list, groups_csv, f2, out, log=None, raw=None):
             for g in t.group_by(["pack_id"]).aggregate([("row_in_part", "count"), ("doc_id", "count")]).to_pylist():
                 counts[g["pack_id"]][split]["rows"] += g["doc_id_count"]
                 counts[g["pack_id"]][split]["rows_cleaned"] += g["row_in_part_count"]
+            hit = t.filter(pc.and_(pc.equal(t.column("dedup_role"), "survivor"), pc.is_in(t.column("final"), value_set=gone_by_f2)))
+            for g in hit.group_by(["pack_id"]).aggregate([("doc_id", "count")]).to_pylist():  # one row per pack
+                survivors[g["pack_id"]] += g["doc_id_count"]
             packs = pc.unique(t.column("pack_id")).to_pylist()
             for pack in packs:
                 tp = t if len(packs) == 1 else t.filter(pc.equal(t.column("pack_id"), pack))
@@ -711,6 +718,7 @@ def _build(cleaned, remove_list, groups_csv, f2, out, log=None, raw=None):
         "parts": len(parts),
         "totals": {"rows": totals["rows"], "rows_cleaned": totals["rows_cleaned"], **{s: totals[s] for s in FINAL},
                    "clean_fix_by_text": fix_by_text if raw is not None else None},
+        "survivors_dropped_by_f2": {"total": sum(survivors.values()), "by_pack": {p: survivors[p] for p in sorted(survivors)}},
         "clean_reports": reports if reports["parts"] else None,
         "by_pack": {pack: {split: {"rows": c["rows"], "rows_cleaned": c["rows_cleaned"], **{s: c[s] for s in FINAL}}
                            for split, c in sorted(counts[pack].items(), key=lambda kv: SPLITS.index(kv[0]))}
