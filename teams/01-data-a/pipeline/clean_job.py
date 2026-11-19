@@ -171,7 +171,7 @@ def open_output(output, fingerprint, resume):
     return state, True
 
 
-def verify_part(output, shard, supported):
+def verify_part(output, shard, supported, audit_samples=0):
     """Why a finished part (its part and its report both exist) does not verify, or None. Cheap checks first, then the
     sha256 of the part, which the report recorded when the part was published."""
     relative = shard['path']
@@ -197,6 +197,8 @@ def verify_part(output, shard, supported):
         return f'the part cannot be read as Parquet ({type(exc).__name__})', None
     if rows != report['output_rows']:
         return f'the part has {rows} rows, its report says {report["output_rows"]}', None
+    if audit_samples and not (output / 'audit' / (relative + '.json')).is_file():
+        return f'its audit file audit/{relative}.json is missing', None
     if digest(destination) != report.get('output_sha256'):
         return 'the part has another sha256 than its report records', None
     return None, report
@@ -210,7 +212,7 @@ def shown(path):
         return str(path)
 
 
-def plan_resume(output, shards):
+def plan_resume(output, shards, audit_samples=0):
     """({part path: its report} for the parts to keep, [paths to delete before redoing the others]).
 
     Every part is looked at before anything is changed, and a finished part that does not verify stops the job
@@ -222,7 +224,7 @@ def plan_resume(output, shards):
         leftovers = [destination.with_name(destination.name + '.tmp'), report_path.with_name(report_path.name + '.tmp')]
         cleanup += [p for p in leftovers if p.exists()]
         if destination.is_file() and report_path.is_file():
-            why, report = verify_part(output, shard, shard['pack_id'] in clean._FAMILY)
+            why, report = verify_part(output, shard, shard['pack_id'] in clean._FAMILY, audit_samples)
             if why:
                 problems.append(f'{relative}: {why} (delete {shown(destination)} and '
                                 f'{shown(report_path)} to redo it)')
@@ -376,7 +378,37 @@ def process_part(source, shard, output, batch_size, audit_samples=0):
     return result
 
 
-def write_aggregate(output, reports, provenance, expected_count):
+EXAMPLE_COLUMNS = ['pack_id', 'rule_id', 'rank', 'doc_id', 'split', 'part', 'action', 'chars_before', 'chars_after',
+                   'pack_fixes', 'pack_drops']
+
+
+def write_examples(output, reports, audit_samples):
+    """rule_examples.csv: for every rule that applies to a pack, the audit_samples documents with the lowest keys over all the
+    pack's parts (every part uses the same key, so these are the lowest of the parts' lowest), and the rule's fix and drop
+    counts in the pack. A rule that changed nothing in the pack has one row with no document: it never fired."""
+    picked, totals = defaultdict(list), defaultdict(Counter)
+    for report in reports:
+        pack, sidecar = report['pack_id'], output / 'audit' / (report['part'] + '.json')
+        if not sidecar.is_file():
+            raise JobError(f"the audit file of {report['part']} is missing: delete its part and report to redo it")
+        for rid, counts in report['rule_counts'].items():
+            totals[pack, rid].update(fix=counts['fix'], drop=counts['drop'])
+        for rid, docs in read_json(sidecar)['rules'].items():
+            picked[pack, rid] += [dict(doc, part=report['part'], split=report['split']) for doc in docs]
+    order = {rid: n for n, rid in enumerate(clean._RULE)}
+    with (output / 'rule_examples.csv').open('w', newline='', encoding='utf-8') as stream:
+        writer = csv.DictWriter(stream, fieldnames=EXAMPLE_COLUMNS)
+        writer.writeheader()
+        for pack, rid in sorted(totals, key=lambda k: (k[0], order[k[1]])):
+            base = dict(pack_id=pack, rule_id=rid, pack_fixes=totals[pack, rid]['fix'], pack_drops=totals[pack, rid]['drop'])
+            docs = sorted(picked[pack, rid], key=lambda d: d['key'])[:audit_samples]
+            if not docs:
+                writer.writerow(base)
+            for rank, doc in enumerate(docs, 1):
+                writer.writerow(dict(base, rank=rank, **{k: doc[k] for k in EXAMPLE_COLUMNS[3:9]}))
+
+
+def write_aggregate(output, reports, provenance, expected_count, audit_samples=0):
     aggregate = {rid: Counter() for rid in clean._RULE}
     for report in reports:
         for rid, counts in report['rule_counts'].items():
@@ -387,6 +419,8 @@ def write_aggregate(output, reports, provenance, expected_count):
         writer.writeheader()
         for rid, counts in aggregate.items():
             writer.writerow(dict(rule_id=rid, **{key:counts[key] for key in columns[1:]}))
+    if audit_samples:
+        write_examples(output, reports, audit_samples)
     summary = dict(provenance, completed_parts=len(reports), expected_parts=expected_count,
                    input_rows=sum(r['input_rows'] for r in reports), output_rows=sum(r['output_rows'] for r in reports),
                    actions=dict(sum((Counter(r['actions']) for r in reports), Counter())),
@@ -431,10 +465,11 @@ def main(argv=None):
     shards = [s for s in data['shards'] if not args.only or s['path'] in args.only]
     output = output_folder(args.out or config['output_root'])
     fingerprint = {'clean_sha256': config['clean_sha256'], 'runner_sha256': digest(Path(__file__)),
-                   'manifest_sha256': config['manifest_sha256'], 'selected_parts': sorted(s['path'] for s in shards)}
+                   'manifest_sha256': config['manifest_sha256'], 'selected_parts': sorted(s['path'] for s in shards),
+                   'audit_samples': config['audit_samples']}
     state, resumed = open_output(output, fingerprint, resume)
     # A resumed job looks at every finished part before it changes anything, and keeps those that verify.
-    kept, cleanup = plan_resume(output, shards) if resumed else ({}, [])
+    kept, cleanup = plan_resume(output, shards, config['audit_samples']) if resumed else ({}, [])
     todo = [s for s in shards if s['path'] not in kept]
     input_root = (args.input_root or Path(config['input_root'])).resolve()
     # All inputs still to be cleaned are checksummed before creating or changing outputs (a kept part's input was
@@ -459,7 +494,7 @@ def main(argv=None):
     write_json(output / STATE, state)
     provenance = {'sample':config.get('sample') or data.get('name'), 'manifest_sha256':config['manifest_sha256'],
                   'clean_sha256':fingerprint['clean_sha256'], 'runner_sha256':fingerprint['runner_sha256'],
-                  'clean_path':config['clean'], 'config_sha256':digest(args.config),
+                  'clean_path':config['clean'], 'config_sha256':digest(args.config), 'audit_samples':config['audit_samples'],
                   'scope':'partial (--only)' if args.only else 'full manifest',
                   'optional_f2':False, 'python':sys.version.split()[0],
                   'packages':packages,
@@ -486,7 +521,7 @@ def main(argv=None):
     attempt.update(status='complete', ended=now())
     provenance.update(wall_seconds=round(time.monotonic()-started,3),
                       peak_rss_mib=peak_rss_mib(), resumed_parts=len(kept), attempts=state['attempts'])
-    summary = write_aggregate(output, reports, provenance, len(data['shards']))
+    summary = write_aggregate(output, reports, provenance, len(data['shards']), config['audit_samples'])
     write_json(output / STATE, state)
     print(json.dumps({'event':'complete', **{key:summary[key] for key in ('completed_parts','input_rows','output_rows','errors','actions','wall_seconds','peak_rss_mib')}}, sort_keys=True), flush=True)
     return 0
