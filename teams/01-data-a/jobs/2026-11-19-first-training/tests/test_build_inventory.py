@@ -15,6 +15,9 @@ REPO = JOB.parents[3]
 spec = importlib.util.spec_from_file_location('first_training_inputs', JOB / 'build_inventory.py')
 builder = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(builder)
+run_spec = importlib.util.spec_from_file_location('first_training_prepare', JOB / 'prepare_run.py')
+prepare_run = importlib.util.module_from_spec(run_spec)
+run_spec.loader.exec_module(prepare_run)
 sys.path.insert(0, str(REPO / 'teams/01-data-a/pipeline'))
 import inventory_check
 
@@ -70,7 +73,7 @@ def test_expanded_inputs_preserve_both_splits_but_only_train_expects_shards(raw,
     for name, entry in inventory['parts'].items():
         assert entry['raw_sha256'] == hashlib.sha256((raw / name).read_bytes()).hexdigest()
         assert entry['raw_rows'] == pq.ParquetFile(raw / name).metadata.num_rows
-        assert entry['expected'] == (['written'] if entry['split'] == 'train' else ['not_sharded'])
+        assert entry['expected'] == (['all_left_out', 'empty', 'written'] if entry['split'] == 'train' else ['not_sharded'])
     assert all(p['license_source'] and p['license'] for p in manifest['packs'])
     assert len([p for p in inventory['parts'].values() if p['split'] == 'heldout']) == 38
     shards = tmp_path / 'shards'
@@ -82,6 +85,34 @@ def test_expanded_inputs_preserve_both_splits_but_only_train_expects_shards(raw,
     entries['heldout/code-go/part-00000.parquet']['status'] = 'written'
     (shards / 'shards_summary.json').write_text(json.dumps({'parts': entries}))
     assert not inventory_check.check(inventory, shards=shards)['ok']
+
+
+def test_prepare_run_pins_the_actual_inventory_and_refuses_incomplete_pack_metadata(raw, tmp_path, scope, monkeypatch):
+    out = tmp_path / 'out' / 'inputs'
+    run(raw, out)
+    monkeypatch.setattr(prepare_run, 'REPO', tmp_path)
+    tokenizer = tmp_path / 'tokenizer.json'
+    tokenizer.write_text('{}', encoding='utf-8')
+    monkeypatch.setattr(prepare_run, 'TOKENIZER_SHA256', prepare_run.sha256(tokenizer))
+    model = tmp_path / 'model'
+    model.mkdir()
+    base = json.loads((REPO / 'teams/01-data-a/shards/pack_table.json').read_text())['packs']
+    table = {'packs': {p['pack_id']: {**base[p['pack_id']], 'lane': base[p['pack_id']]['lane'] or 'test',
+                                     'license': p['license'], 'license_source': p['license_source']}
+                       for p in scope['packs']}}
+    table_path = tmp_path / 'pack_table.json'
+    table_path.write_text(json.dumps(table), encoding='utf-8')
+    table['packs']['ind-sa-fw2']['lane'] = None
+    table_path.write_text(json.dumps(table), encoding='utf-8')
+    with pytest.raises(ValueError, match='incomplete metadata for ind-sa-fw2'):
+        prepare_run.prepare(out, raw, tokenizer, table_path, 'first-training-v1', model)
+    table['packs']['ind-sa-fw2']['lane'] = 'test'
+    table_path.write_text(json.dumps(table), encoding='utf-8')
+    cfg = json.loads(prepare_run.prepare(out, raw, tokenizer, table_path, 'first-training-v1', model).read_text())
+    assert cfg['inventory'] == 'out/inputs/expected_inventory.json'
+    assert cfg['stages']['clean']['expected_parts'] == {'train': 38, 'heldout': 38}
+    assert cfg['stages']['shards']['dataset_version'] == 'first-training-v1'
+    assert cfg['intermediates'] == 'keep' and cfg['stages']['h3']['mode'] == 'run'
 
 
 def test_identical_staging_produces_identical_frozen_files(raw, tmp_path):

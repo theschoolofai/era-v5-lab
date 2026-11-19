@@ -5,7 +5,7 @@ Team:            01-data-a
 Owner:           patilvijay23
 Lead approval:   patilvijay23 (pending review of this request)
 Question:        Do the approved raw parts produce an exact inventory, auditable cleaned Parquets, and reconciled p1536 train shards in one pipeline run?
-Script:          teams/01-data-a/jobs/2026-11-19-first-training/build_inventory.py, then teams/01-data-a/pipeline/run_pipeline.py
+Script:          teams/01-data-a/jobs/2026-11-19-first-training/build_inventory.py, prepare_run.py, then teams/01-data-a/pipeline/run_pipeline.py
 Command:         python -I teams/01-data-a/pipeline/run_pipeline.py --config out/first-training-inputs/run.json
 Config:          out/first-training-inputs/run.json (materialized from the template below after inventory build)
 Inputs:          TSAI-staged approved train and heldout parts for the 38 packs in approved_inputs.json; frozen p1536 tokenizer; offline LaBSE model; approved pack table; G9 F2 v2 fingerprints
@@ -13,7 +13,7 @@ Hardware:        1 GPU for H3; CPU workers for the remaining stages
 Max time:        720 minutes for the combined job (H3's own limit is 180 minutes)
 Precision:       H3 auto (bf16 on supported CUDA); shard token IDs are integers
 Measures:        Raw/cleaned/dedup/F2/final counts, H3 matches, train shards and tokens, heldout not_sharded, per-part reconciliation and SHA-256 checks
-Expected result: Every listed raw part reaches the ledger; every train part is written as the current expected inventory requires; heldout parts are not sharded; all checks pass; H3 removes zero documents
+Expected result: Every listed raw part reaches the ledger; each train part is written or has a justified empty/all_left_out status; heldout parts are not sharded; all checks pass; H3 removes zero documents
 Outputs:         out/first-training-inputs/{input_manifest.json,expected_inventory.json,run.json}; out/pipeline/<run_id>/{clean,overlap,h3,dedup,deduped,final,report,ledger,shards,reconcile}/ and pipeline_manifest.json
 Test log:        Pending same-script local sample run; attach before TSAI submission (JOB_REQUEST.md rule 2)
 ```
@@ -28,7 +28,7 @@ The job must be staged with these inputs before `--plan` or execution:
 - The frozen p1536 `tokenizer.json` (SHA-256 `e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b`).
 - An offline LaBSE model at the `model_path` in `2026-11-19-first-training/h3.json`, with `dedup/requirements_h3.txt` installed. H3 measures `ind-sa-fw2`, `ind-hi-fw2` and `en-fineweb-edu` in report-only mode.
 - A job pack table with a non-null `language`, `script`, `domain`, `lane`, `license` and `license_source` for every approved pack. The generic `shards/pack_table.json` has null lanes and no licences and cannot serve as the production table.
-- The pinned G9 F2 v2 fingerprint set and the pipeline's Python dependencies in one environment. No network access or keys at runtime.
+- The pinned G9 F2 v2 fingerprint set and the packages in `2026-11-19-first-training/requirements_pipeline.txt` in one Python 3.12 environment. No network access or keys at runtime.
 
 ## Run from the repository root
 
@@ -38,11 +38,17 @@ The job must be staged with these inputs before `--plan` or execution:
    python -I teams/01-data-a/jobs/2026-11-19-first-training/build_inventory.py --input-root <raw-root> --out out/first-training-inputs
    ```
 
-2. Create `out/first-training-inputs/run.json` from the following JSON template. Replace the angle-bracket values with the staged paths and the inventory builder's actual counts/hash. `run_id` and `dataset_version` must be fixed release identifiers. Keep `intermediates` as `keep` so the cleaned, deduped and F2 Parquets remain available for audit.
+2. Generate `out/first-training-inputs/run.json` from the frozen inventory. The command checks the p1536 tokenizer SHA256, exact pack set, licences and all six required pack-table fields before writing the run config. It pins `dataset_version` to `first-training-v1` and keeps cleaned, deduped and F2 Parquets for audit.
+
+   ```bash
+   python -I teams/01-data-a/jobs/2026-11-19-first-training/prepare_run.py --bundle out/first-training-inputs --input-root <raw-root> --tokenizer <p1536-tokenizer.json> --pack-table <approved-job-pack-table.json> --run-id first-training-v1
+   ```
+
+   The generated file has this structure; its input counts and SHA256 come from the inventory rather than manual transcription:
 
    ```json
    {
-     "run_id": "<unique-run-id>",
+     "run_id": "first-training-v1",
      "out": "out/pipeline",
      "inventory": "out/first-training-inputs/expected_inventory.json",
      "intermediates": "keep",
@@ -52,8 +58,8 @@ The job must be staged with these inputs before `--plan` or execution:
          "settings": "teams/01-data-a/pipeline/clean.json",
          "input": "<raw-root>",
          "manifest": "out/first-training-inputs/input_manifest.json",
-         "manifest_sha256": "<input_manifest_sha256 from expected_inventory.json>",
-         "expected_parts": {"train": 0, "heldout": 0}
+         "manifest_sha256": "<generated input_manifest_sha256>",
+         "expected_parts": {"train": "<generated count>", "heldout": "<generated count>"}
        },
        "overlap": {"mode": "run", "settings": "teams/01-data-a/dedup/overlap.json"},
        "h3": {"mode": "run", "settings": "teams/01-data-a/jobs/2026-11-19-first-training/h3.json"},
@@ -62,7 +68,7 @@ The job must be staged with these inputs before `--plan` or execution:
        "ledger": {"raw": "<raw-root>"},
        "shards": {
          "tokenizer": "<p1536-tokenizer.json>",
-         "dataset_version": "<release-id>",
+         "dataset_version": "first-training-v1",
          "pack_table": "<approved-job-pack-table.json>"
        },
        "reconcile": {}
@@ -70,7 +76,7 @@ The job must be staged with these inputs before `--plan` or execution:
    }
    ```
 
-   Replace both `expected_parts` zeroes with the manifest's actual train and heldout part counts. Do not reuse sample-v0's 48/38 counts for production. The builder requires all 38 packs in both splits and rejects unknown packs, invalid part names, missing columns, changed files and duplicate numeric part indices.
+   The builder requires all 38 packs in both splits and rejects unknown packs, invalid part names, missing columns, changed files and duplicate numeric part indices. The generator refuses an incomplete pack table or an unfrozen tokenizer.
 
 3. Check the generated config, then run the same file. Both commands use the same checkout and working directory:
 
@@ -125,7 +131,7 @@ out/pipeline/first-training-v1/
   inventory_check.json
 ```
 
-Shard files are **flat under `shards/`**, not nested by split or pack. Numbering runs across a pack's train parts and may roll over to several shards for one part. Heldout parts remain as Parquet in `clean/`, `deduped/` and `final/`; `shards_summary.json` records them as `not_sharded`. A train part with no tokens can be `empty` or `all_left_out`, but the current inventory expects `written` and will stop the job; review that part and approve any inventory exception before rerunning. `intermediates: keep` retains the clean output in all cases.
+Shard files are **flat under `shards/`**, not nested by split or pack. Numbering runs across a pack's train parts and may roll over to several shards for one part. Heldout parts remain as Parquet in `clean/`, `deduped/` and `final/`; `shards_summary.json` records them as `not_sharded`. A train part with no tokens can be `empty` or `all_left_out`; the inventory permits these explicit statuses and reconciliation checks their document accounting. `intermediates: keep` retains the clean output in all cases.
 
 ## Return and acceptance
 

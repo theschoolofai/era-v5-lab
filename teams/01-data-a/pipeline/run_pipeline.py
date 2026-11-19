@@ -844,6 +844,12 @@ class Run:
             diff = sorted(p for p in set(listed) | set(clean["by_part"]) if listed.get(p) != clean["by_part"].get(p))
             self.check("overlap read these cleaned parts", not diff,
                        f"{len(diff)} part(s) differ in name or row count, e.g. {diff[0] if diff else ''}")
+        recorded = {p["part"].replace("\\", "/"): p.get("sha256") for p in s.get("inputs", {}).get("parts", [])}
+        actual = self.cache.sha256_many([self.output("clean") / name for name in clean["by_part"]])
+        bad = sorted(name for name in clean["by_part"]
+                     if recorded.get(name) != actual[self.output("clean") / name])
+        self.check("overlap read these cleaned bytes", not bad,
+                   f"{len(bad)} part(s) differ or have no input sha256, e.g. {bad[:3]}")
         files = {}
         for name in ("overlap_matches.csv", "overlap_docs.parquet"):
             files[name] = sha256(out / name)

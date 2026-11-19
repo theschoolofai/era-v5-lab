@@ -1,5 +1,7 @@
 # Data A pipeline: open items for the team
 
+> Historical 14 Nov snapshot. Its stage counts, branch names and unchecked boxes do not describe the current `g1-pipeline` branch. Use the first-training job request and PR #599 for the current execution plan.
+
 Branch `g1-pipeline-runthrough`, folder `teams/01-data-a`. Last updated 2026-11-14 (PR review comments added as section 3). Not committed (kept outside the repo).
 The full chronological log is in `open-items-data-a-pipeline.full-log-2026-11-14.md` (same folder).
 

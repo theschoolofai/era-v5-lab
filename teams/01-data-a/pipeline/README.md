@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/hero.svg" width="100%" alt="Data A Pipeline: raw training Parquet in, token shards out. Nine stages on one line: clean, overlap and dedup (TSAI jobs, adopted or run), apply, f2, survivor loss and ledger (always run), shards and reconcile (run when configured, and configured in the production job), with the expected-inventory check points before shards and after reconcile">
+  <img src="assets/hero.svg" width="100%" alt="Data A pipeline: raw training Parquet in, token shards out; clean, overlap, optional H3, dedup, apply, F2, survivor loss, ledger, shards and reconcile">
 </p>
 
 <p align="center">
@@ -18,8 +18,8 @@ Data A's pipeline, as one command: `run_pipeline.py --config <file>`. It runs (o
 | **Shards and reconcile** | Run only when the config has `stages.shards` (and `stages.reconcile`); without them the run ends at the ledger. **The production job configures both**, and a run with an [expected inventory](#expected-inventory) is refused without them |
 | **In** | the raw parts and their input manifest (clean in `"mode": "run"`), or the folders TSAI's clean, overlap and dedup jobs returned (`"mode": "adopt"`) |
 | **Out** | token shards (G3's frozen p1536 tokenizer) · `pipeline_manifest.json` · the ledger, one row per document · the reconciliation, one status per kept document · filtered Parquet (`deduped/`, `final/`), kept or dropped at the end (`"intermediates"`) |
-| **New in this folder** | `run_pipeline.py` · `stage_args.py` · `apply_dedup.py` · `f2_pool.py` · `survivor_loss.py` · `ledger.py` · `reconcile_shards.py` · `inventory_check.py` · `hashing.py` · `arrowtools.py` · `runlock.py` · `pipeline.json` · `local_trial/` · **496 tests** |
-| **Reused, never copied** | `spec_v1/run_tokenizer_sample.py` and `clean.py` (#244); for the job, the spec v1.1 cleaner through `spec_v1_1/use_clean.py` (#52, not on this branch) · `dedup/overlap.py`, `dedup/dedup.py` (#255, not on this branch) · `spec_v1/run_f2.py` (#35, on this branch since #40) · `shards/run_shards.py`, `shard_writer.py`, `provenance.py`, `pack_table.py` (#39, **92 tests**) |
+| **New in this folder** | `run_pipeline.py` · `stage_args.py` · `apply_dedup.py` · `f2_pool.py` · `survivor_loss.py` · `ledger.py` · `reconcile_shards.py` · `inventory_check.py` · `hashing.py` · `arrowtools.py` · `runlock.py` · `pipeline.json` · `local_trial/` · focused tests |
+| **Reused, never copied** | `spec_v1/run_tokenizer_sample.py` and `clean.py` (#244); the job uses `spec_v1_1/clean.py` through `pipeline/clean_job.py` · `dedup/overlap.py`, `dedup/h3.py`, `dedup/dedup.py` · `spec_v1/run_f2.py` · `shards/run_shards.py`, `shard_writer.py`, `provenance.py`, `pack_table.py` |
 | **Needs** | Python 3.11+ (tested on 3.13) with `pyarrow`; for the shard stage `numpy`, `tokenizers` and `torch` (`shard_writer.py` imports G6's `dataio`, which imports torch); `ftfy`, `tree-sitter` and `tree-sitter-language-pack` for the clean job (`spec_v1/requirements.txt`); `numpy`, `scipy` and `pygments` to run overlap and dedup locally; `pytest` for the tests. Install them into the environment itself: every script runs with `python -I` |
 | **Measured** | rehearsal from raw (code-go, 3 parts of tokenizer sample v0): **40 of 40 checks**, 84,139 raw → 77,661 kept → 76,795 in 2 shards, every document accounted for ([details](#measured-on-real-data)) |
 
@@ -36,7 +36,7 @@ Data A's pipeline, as one command: `run_pipeline.py --config <file>`. It runs (o
 
 ## Reviewer's guide
 
-<p align="center"><img src="assets/review-map.svg" width="100%" alt="Review split of PR #46 as bars over the nine stages: smitasasindran reviews the clean, overlap and dedup run steps; kunal2016 dedup and apply; TEJASKUMAR-REDDY-J the ledger; patilvijay23 F2 and survivor loss; patilvijay23 and TEJASKUMAR-REDDY-J shards and reconcile, which are required for the job. A bottom row marks what changed since bd09924: a stage script given as a list (clean), the expected inventory (ledger to reconcile), and the p1536 pin and licence fields (shards)"></p>
+<p align="center"><img src="assets/review-map.svg" width="100%" alt="Review split for PR #599: clean, overlap, dedup, apply, F2, survivor loss, ledger, shards and reconcile"></p>
 
 One row per stage, in patilvijay23's split. Function names are in the module named in the row. Run one file's tests with `python -m pytest teams/01-data-a/pipeline/tests/<file> -q`; the shard tests need an environment with torch (`python -m pytest teams/01-data-a/shards/tests -q`).
 
@@ -69,8 +69,8 @@ One row per stage, in patilvijay23's split. Function names are in the module nam
 
 ```bash
 # tests: synthetic data only
-python -m pytest teams/01-data-a/pipeline/tests -q                      # 602 tests
-python -m pytest teams/01-data-a/shards/tests -q                        # 131 tests (needs torch)
+python -m pytest teams/01-data-a/pipeline/tests -q
+python -m pytest teams/01-data-a/shards/tests -q                        # needs torch
 
 # what a run would do: checks the config, prints every stage's folder and command; runs and writes nothing
 python -I teams/01-data-a/pipeline/run_pipeline.py --config teams/01-data-a/pipeline/pipeline.json --plan
@@ -113,9 +113,9 @@ One run of `run_pipeline.py`, from the raw training parts to reconciled shards. 
 > [!NOTE]
 > **The clean stage is `pipeline/clean_job.py`, not TSAI's `run_tokenizer_sample.py`.** It takes any input manifest that is the pinned file, whose parts match `expected_parts` and add up to its `total_docs`, not only the 86 parts of tokenizer sample v0; `--plan` runs the same manifest check (`clean_manifest.py`), so a manifest that would stop the job stops the plan. Only `train` and `heldout` parts are accepted. It writes what the runner, the ledger and the inventory check read (`job_summary.json` with `manifest_sha256` and each part's input and output sha256, and `reports/`). The other open items are listed under [At a glance](#at-a-glance).
 
-**1. One checkout with everything the run calls.** `pipeline/`, `shards/`, `dedup/` (#255) for overlap and dedup, `spec_v1_1/clean.py` (#52) for the cleaner (the file `pipeline/clean.json` names and pins) and `spec_v1/run_f2.py` for F2. `--plan` stops with `… script … not found` or `… settings … not found` when one is missing, and with the manifest's own message when the input manifest is missing, is not the pinned file or does not match `expected_parts`.
+**1. One checkout with everything the run calls.** `pipeline/`, `shards/`, `dedup/` for overlap, H3 and dedup, `spec_v1_1/clean.py` for the cleaner (the file `pipeline/clean.json` names and pins) and `spec_v1/run_f2.py` for F2. `--plan` stops with `… script … not found` or `… settings … not found` when one is missing, and with the manifest's own message when the input manifest is missing, is not the pinned file or does not match `expected_parts`.
 
-**2. Make the input manifest and the expected inventory** with `teams/01-data-a/jobs/2026-11-19-first-training/build_inventory.py` from the staged raw parts (see its README). The inventory has one entry per part, with its raw sha256, raw rows and the status its shards must end in (`"written"` for train parts, `"not_sharded"` for held-out). The format is under [Expected inventory](#expected-inventory).
+**2. Make the input manifest and the expected inventory** with `teams/01-data-a/jobs/2026-11-19-first-training/build_inventory.py` from the staged raw parts (see its README). The inventory has one entry per part, with its raw sha256, raw rows and allowed final statuses (`"written"`, `"empty"` or `"all_left_out"` for train; `"not_sharded"` for held-out). The format is under [Expected inventory](#expected-inventory).
 
 **3. Write the job's pack table** (`stages.shards.pack_table`): every pack of the inventory with `language`, `script`, `domain`, `lane`, and `license` with `license_source`. A row may leave out both licence fields, and its shards then carry no licence: nothing refuses that, so check every row (gate 5). The committed `shards/pack_table.json` has no licences and leaves the lane null for 32 of its 38 packs; a pack with a null field is skipped, and a skipped part stops the run.
 
@@ -136,6 +136,7 @@ One run of `run_pipeline.py`, from the raw training parts to reconciled shards. 
                  "expected_parts": { "train": <n>, "heldout": <n> },
                  "sample": "<label of the input set>" },                // optional: written into cfg/clean.json; the job summary uses it, else the manifest's "name"
     "overlap": { "mode": "run", "settings": "teams/01-data-a/dedup/overlap.json" },
+    "h3":      { "mode": "run", "settings": "teams/01-data-a/jobs/2026-11-19-first-training/h3.json" },
     "dedup":   { "mode": "run", "settings": "teams/01-data-a/dedup/dedup.json" },
     "f2":      { "pool": true, "workers": <cores> },
     "ledger":  { "raw": "<folder of the raw training parts>" },          // mode B: required with "inventory"
@@ -201,7 +202,7 @@ What runs after what, and which folder each job reads and writes. Every hand-ove
 
 | # | Job | Code | Reads | Writes | In the production job |
 |:-:|---|---|---|---|---|
-| 01 | **clean** | `pipeline/clean_job.py`, which loads `spec_v1_1/clean.py` (#52) | raw parts, the input manifest | `cleaned/train/`, `cleaned/heldout/`, `reports/`, `job_summary.json` | run, from the raw parts |
+| 01 | **clean** | `pipeline/clean_job.py`, which loads `spec_v1_1/clean.py` | raw parts, the input manifest | `cleaned/train/`, `cleaned/heldout/`, `reports/`, `job_summary.json` | run, from the raw parts |
 | 02 | **overlap** | `dedup/overlap.py` (#255) | `cleaned/` | `overlap_summary.json`, `overlap_matches.csv`, `overlap_docs.parquet` | run |
 | 02a | **H3** | `dedup/h3.py` | `cleaned/` | `h3_matches.csv`, `h3_summary.json` and reports | run when configured; report only |
 | 03 | **dedup** | `dedup/dedup.py` (#255) | `overlap/`, `cleaned/` for URLs, and H3 matches when configured | `remove_list.csv`, `dedup_groups.csv`, `dedup_log.jsonl`, `dedup_summary.json` | run |
@@ -234,7 +235,7 @@ H1/H2 (same language) and, if agreed, H3 (another language, #44) all go through 
 
 | | Stage | Script | From | Reads | Writes |
 |:-:|---|---|---|---|---|
-| 01 | **clean** | `pipeline/clean_job.py --config <run>/cfg/clean.json` (calls `clean.clean()` of `spec_v1_1/clean.py`) | #52 | raw parts | `train/**.parquet`, `heldout/**.parquet`, `reports/`, `job_summary.json` |
+| 01 | **clean** | `pipeline/clean_job.py --config <run>/cfg/clean.json` (calls `clean.clean()` of `spec_v1_1/clean.py`) | spec v1.1 | raw parts | `train/**.parquet`, `heldout/**.parquet`, `reports/`, `job_summary.json` |
 | 02 | **overlap** | `dedup/overlap.py --config <run>/cfg/overlap.json` | #255 | cleaned parts | `overlap_summary.json`, `overlap_matches.csv`, `overlap_docs.parquet` |
 | 03 | **dedup** | `dedup/dedup.py --config <run>/cfg/dedup.json` | #255 | overlap outputs | `remove_list.csv`, `dedup_groups.csv`, `dedup_summary.json` (and `dedup_log.jsonl`) |
 | 04 | **apply** | `pipeline/apply_dedup.py` | new | cleaned parts + `remove_list.csv` | `deduped/<split>/<part>`, `apply_dedup_summary.json` |
@@ -976,8 +977,8 @@ The old apply varied most (25 to 121 s over 3 runs; writing thousands of 128-row
 ## Tests
 
 ```bash
-python -m pytest teams/01-data-a/pipeline/tests -q      # 602 tests
-python -m pytest teams/01-data-a/shards/tests -q        # 131 tests; shard_writer.py needs torch (G6's dataio)
+python -m pytest teams/01-data-a/pipeline/tests -q
+python -m pytest teams/01-data-a/shards/tests -q        # shard_writer.py needs torch (G6's dataio)
 ```
 
 | File | Tests | Covers |
@@ -1052,7 +1053,7 @@ The data is made up inside the tests (`conftest.py`), in dedup's real formats (`
 | `intermediates: a shard is not on disk as its manifest says, so its Parquet stays: …` | a shard the drop would rely on is missing a file, or a file differs from its manifest (sha256, header, size, index, rows) | nothing was deleted and the run is resumable: find out why the shard is broken (a copy that did not finish, a disk problem), write the shards again into a new `stages.shards.out` with `"from": "shards"`, and drop then |
 | `F2 reported no errors on train` failed | some documents raised during the F2 check | see `logs/f2_train.log` and the `errors` in the `.f2.json` files |
 | `f2 script … not found` | the branch has no `spec_v1/run_f2.py` (it came with #40) | update the branch, or set `stages.f2.script` to where `run_f2.py` is |
-| `config: stages.<stage> script … not found` · `config: <stage>: stages.<stage>.settings … not found` | a script (or a script of a script list) or a settings file is not in this checkout: `spec_v1_1/clean.py` (named by `clean` in `pipeline/clean.json`) comes with #52, `dedup/` (scripts and `overlap.json`, `dedup.json`) with #255 | check out a branch that has them, or correct the path |
+| `config: stages.<stage> script … not found` · `config: <stage>: stages.<stage>.settings … not found` | a script or settings file named by the config is absent from this checkout | check out a branch that has it, or correct the path |
 | `config: clean: stages.clean: the sample manifest … is not there` · `… has sha256 …, the pin is …` · `… the manifest has parts {…}, stages.clean.expected_parts says …` | the input manifest is missing (without `stages.clean.manifest` it is `sample_manifest.json` in the input folder), is not the file `manifest_sha256` pins, or has other part counts per split than `expected_parts` (also a duplicate part, an entry that disagrees with its path, or rows that do not add up to `total_docs`) | correct `manifest`, `manifest_sha256` or `expected_parts`; `--plan` shows the same message |
 | `clean.py differs from the pin` (in `logs/clean.log`) | the file `clean` names in `pipeline/clean.json` has another sha256 than `clean_sha256` | update the pin after a reviewed change of the cleaner, or point `clean` at the right file |
 | `check failed: clean: …` | the clean job's `job_summary.json` disagrees with its folder: errors reported, another number of parts than the run expects, another manifest, rows that do not add up, a part that is missing, extra or has other rows, or a part whose sha256 is not the recorded one | the message names which; the output folder was changed after the job or the job did not finish: see `logs/clean.log`, and run again into a new `run_id` (or with `"resume": true` for an interrupted job) |

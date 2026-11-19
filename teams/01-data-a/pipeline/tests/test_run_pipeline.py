@@ -43,7 +43,10 @@ def overlap_folder(folder, cleaned_parts=PARTS, docs_all=13):
     (folder / "overlap_matches.csv").write_text("row_a,row_b\n0,1\n", encoding="utf-8")
     (folder / "overlap_docs.parquet").write_bytes(b"stand-in for overlap_docs.parquet")
     summary = {"status": "complete", "documents_all": docs_all, "config": {"k": 5, "floor": 0.5, "inputs": "made up"},
-               "inputs": {"parts": [{"part": f"{s}/{p}", "documents": len(rows)} for (s, p), rows in cleaned_parts.items()]},
+               "inputs": {"parts": [{"part": f"{s}/{p}", "documents": len(rows),
+                                      "sha256": sha(folder.parent / "cleaned" / s / p)
+                                      if (folder.parent / "cleaned" / s / p).is_file() else "0" * 64}
+                                     for (s, p), rows in cleaned_parts.items()]},
                "outputs": {n: {"sha256": sha(folder / n)} for n in ("overlap_matches.csv", "overlap_docs.parquet")}}
     (folder / "overlap_summary.json").write_text(json.dumps(summary), encoding="utf-8")
     return folder
@@ -223,6 +226,16 @@ def test_overlap_of_other_parts_stops(tmp_path, config, tsai_outputs):
     overlap_folder(tsai_outputs["overlap"], parts)
     dedup_folder(tsai_outputs["dedup"], tsai_outputs["overlap"])
     with pytest.raises(rp.Stop, match="overlap read these cleaned parts"):
+        rp.run(config)
+
+
+def test_overlap_of_changed_cleaned_bytes_stops(config, tsai_outputs):
+    part = next((tsai_outputs["cleaned"] / "train").rglob("*.parquet"))
+    table = pq.read_table(part)
+    rows = table.to_pylist()
+    rows[0]["text"] += " changed after overlap"
+    pq.write_table(pa.Table.from_pylist(rows, schema=table.schema), part)
+    with pytest.raises(rp.Stop, match="overlap read these cleaned bytes"):
         rp.run(config)
 
 
@@ -2155,6 +2168,7 @@ def test_a_kept_document_of_an_unlisted_pack_stops_the_run_before_the_shard_stag
     rows = t.to_pylist()
     rows[1]["pack_id"] = "ghost-pack"  # e1: not on the remove list, not dropped by F2
     pq.write_table(pa_concat(t.slice(0, 0), rows), f)
+    overlap_folder(tsai_outputs["overlap"])  # model a fresh overlap run on the changed cleaned bytes
     ran = []
     with_inventory(shard_config, tmp_path, monkeypatch, after_shards=ran.append)
     with pytest.raises(rp.Stop, match=r"no other pack has kept documents: 0 listed pack\(s\) not in the ledger; 1 pack\(s\) that are "
