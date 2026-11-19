@@ -1,19 +1,24 @@
 """Decode training shards (Data A shard format v1) back to text for the decontamination check (G9).
 
-    python decode_shard.py <shard.bin | folder> --tokenizer <c3>/tokenizer.json --out <dir>
+    python decode_shard.py <shard.bin | folder> --tokenizer <p1536>/tokenizer.json --out <dir>
     python decontam_check.py <dir>/<shard_id>.text.parquet          # full set: no --benchmarks, --tags or --exclude
 
 A shard (teams/01-data-a/shards/shard_format_v1.md) holds token IDs, not text:
-  <shard_id>.bin           1,024-byte header (256 little-endian int32: magic 20261025, version 2, token count), then uint32 ids
+  <shard_id>.bin           1,024-byte header (256 little-endian int32: magic 20261025, version 2, token count),
+                           then the uint32 ids
   <shard_id>.idx.npy       int64 start of each document, then the token count
   <shard_id>.docs.parquet  doc_id and n_tokens per document, in shard order (IDs and counts only)
   <shard_id>.json          the manifest (shard_id, file names, sha256 of each file, counts, EOS id, tokenizer sha256)
 
 This script checks a shard against its manifest and against the rules shard_writer.py asserts, then writes
 <out>/<shard_id>.text.parquet with the columns doc_id, text, shard_id, n_tokens, payload_sha256, dataset_version and
-split. decontam_check.py and canary_scan.py read that file as it is (doc_id and text columns). Each document is its tokens minus the final EOS (<|endoftext|> id
-130822), decoded with the frozen C3 tokenizer (sha256 C3_SHA256; TSAI allowed it for decoding in week 3). The text is the
-tokenizer-normalized text the model trains on.
+split. decontam_check.py and canary_scan.py read that file as it is (doc_id and text columns).
+
+Each document is its tokens minus the final EOS (<|endoftext|> id 130822), decoded with a frozen tokenizer:
+  - p1536: frozen at Gate 3 (sha256 P1536_SHA256); the first training shards use it;
+  - C3: the earlier freeze (sha256 C3_SHA256); Data A's sample shard and earlier work use it.
+Any other tokenizer is refused, and the shard's manifest must name the same tokenizer sha256. The two have the same
+vocab (131,072), EOS and special ids. The text is the tokenizer-normalized text the model trains on.
 
 Checks. A shard that fails one is reported and skipped: any old output for it is removed and nothing new is written. The
 other shards still run, and the exit code is 1 if any shard failed.
@@ -23,21 +28,22 @@ other shards still run, and the exit code is 1 if any shard failed.
   - manifest: schema_version shard-v1, token_dtype uint32, shard_id and the three file names (the last part of each
     *_uri, which may be a full store path) match the files; payload,
     index and docs sha256, doc_count, token_count, eos_token_id and tokenizer_sha256 match;
-  - every token id is below the vocab size (131,072 for C3);
+  - every token id is below the vocab size (131,072 for p1536 and C3);
   - every document ends with EOS, and no special id occurs inside a document, EOS included. Special ids are the
-    tokenizer's added tokens marked special (C3 has 9 below 130,725, e.g. 36 <|end_of_text|> and 129994 <|im_start|>)
+    tokenizer's added tokens marked special (p1536 and C3 have 9 below 130,725, e.g. 36 <|end_of_text|> and 129994
+    <|im_start|>)
     plus 130,725 to the end of the vocab: the same set shard_writer.py refuses.
 With --check-text <clean.parquet> (the run_clean.py output one shard was written from; one shard per run), each decoded
 document must equal the tokenizer-normalized source text of the same doc_id: a round-trip test of the decoder.
 
-In a folder, a .bin counts as a shard when any of its .idx.npy, .docs.parquet or .json is next to it; a shard with a file
-missing (e.g. an incomplete download) fails. A .bin with none of them (e.g. a model file) is listed and ignored.
+In a folder, a .bin counts as a shard when any of its .idx.npy, .docs.parquet or .json is next to it; a shard with a
+file missing (e.g. an incomplete download) fails. A .bin with none of them (e.g. a model file) is listed and ignored.
 The printed summary and the output's columns name the shard's payload_sha256, dataset_version and split, so the result
 can be tied to the exact shard bytes. Memory: about 20 bytes per token at peak (measured 1.8 GB for a 67M-token shard),
 fine for the 2^26-token shards of the format; a single oversized document in its own shard needs memory in proportion.
 
-The output holds document text. Do not commit it or paste it anywhere (pr-guard refuses .parquet anyway); the report gives
-only IDs, items, coverage and offsets. Needs numpy, pyarrow and tokenizers (no torch).
+The output holds document text. Do not commit it or paste it anywhere (pr-guard refuses .parquet anyway); the report
+gives only IDs, items, coverage and offsets. Needs numpy, pyarrow and tokenizers (no torch).
 """
 
 import argparse
@@ -52,8 +58,11 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from tokenizers import Tokenizer
 
-C3_SHA256 = "15468e66457b43af79f695cbe585c0d03e3cfe7a4a5d04d189dd3c6b9f02ddc3"  # G3 freeze, #340
-C3_VOCAB = 131_072
+# p1536: Gate 3 freeze (TSAI notice, 15 Nov; #414). C3: earlier freeze (G3, #340); Data A's sample shard #373 uses it.
+P1536_SHA256 = "e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b"
+C3_SHA256 = "15468e66457b43af79f695cbe585c0d03e3cfe7a4a5d04d189dd3c6b9f02ddc3"
+FROZEN_TOKENIZERS = {P1536_SHA256: "p1536", C3_SHA256: "C3"}
+VOCAB = 131_072  # both frozen tokenizers
 MAGIC, VERSION, HEADER_BYTES = 20261025, 2, 1024
 EOS_ID, EOS = 130_822, "<|endoftext|>"
 SPECIAL_FROM = 130_725  # G3: named specials and reserved slots run from here to the end of the vocab
@@ -78,14 +87,16 @@ def vocab_end(tok):
 
 
 def load_tokenizer(path, any_tokenizer=False):
-    """(tokenizer, sha256). Only the frozen C3 tokenizer, unless any_tokenizer (tests)."""
+    """(tokenizer, sha256). Only a frozen tokenizer (FROZEN_TOKENIZERS: p1536 or C3), unless any_tokenizer (tests)."""
     got = sha256(path)
     tok = Tokenizer.from_file(str(path))
     if not any_tokenizer:
-        if got != C3_SHA256:
-            raise ShardError(f"{path}: sha256 {got}, not the frozen C3 {C3_SHA256}")
-        if vocab_end(tok) != C3_VOCAB or tok.id_to_token(EOS_ID) != EOS:
-            raise ShardError(f"{path}: C3 sha256 but vocab {vocab_end(tok)} or EOS {tok.id_to_token(EOS_ID)!r} is wrong")
+        if got not in FROZEN_TOKENIZERS:
+            frozen = ", ".join(f"{name} {sha[:12]}…" for sha, name in FROZEN_TOKENIZERS.items())
+            raise ShardError(f"{path}: sha256 {got} is not a frozen tokenizer ({frozen})")
+        if vocab_end(tok) != VOCAB or tok.id_to_token(EOS_ID) != EOS:
+            raise ShardError(f"{path}: frozen {FROZEN_TOKENIZERS[got]} sha256 but vocab {vocab_end(tok)} or EOS "
+                             f"{tok.id_to_token(EOS_ID)!r} is wrong")
     return tok, got
 
 
@@ -152,11 +163,13 @@ def read_shard(bin_path, tokenizer_sha, specials, vocab, eos_id=None):
 
     if m.get("shard_id") != f["shard_id"]:
         raise ShardError(f"{f['manifest'].name}: shard_id is {m.get('shard_id')!r}, the shard gives {f['shard_id']!r}")
-    for key, name in (("payload_uri", f["bin"].name), ("index_uri", f["idx"].name), ("sample_metadata_uri", f["docs"].name)):
+    uris = (("payload_uri", f["bin"].name), ("index_uri", f["idx"].name), ("sample_metadata_uri", f["docs"].name))
+    for key, name in uris:
         uri = m.get(key)
         if not isinstance(uri, str) or PurePosixPath(uri).name != name:  # a *_uri may be a full store path
             raise ShardError(f"{f['manifest'].name}: {key} is {uri!r}, the file is {name!r}")
-    want = {"schema_version": "shard-v1", "token_dtype": "uint32", "shard_id": f["shard_id"], "payload_bytes": size, "payload_sha256": sha256(f["bin"]), "index_sha256": sha256(f["idx"]),
+    want = {"schema_version": "shard-v1", "token_dtype": "uint32", "shard_id": f["shard_id"], "payload_bytes": size,
+            "payload_sha256": sha256(f["bin"]), "index_sha256": sha256(f["idx"]),
             "sample_metadata_sha256": sha256(f["docs"]), "doc_count": n_docs, "token_count": n_tok,
             "eos_token_id": eos_id, "tokenizer_sha256": tokenizer_sha}
     for key, value in want.items():
@@ -165,7 +178,8 @@ def read_shard(bin_path, tokenizer_sha, specials, vocab, eos_id=None):
 
     if int(tokens.max()) >= vocab:
         pos = int(np.flatnonzero(tokens >= vocab)[0])
-        raise ShardError(f"{f['shard_id']}: token id {int(tokens[pos])} at position {pos} is not below the vocab size {vocab}")
+        raise ShardError(f"{f['shard_id']}: token id {int(tokens[pos])} at position {pos} "
+                         f"is not below the vocab size {vocab}")
     ends = starts[1:] - 1
     if np.any(tokens[ends] != eos_id):
         bad = int(np.flatnonzero(tokens[ends] != eos_id)[0])
@@ -181,7 +195,8 @@ def read_shard(bin_path, tokenizer_sha, specials, vocab, eos_id=None):
 
 
 def decode_shard(bin_path, tok, tokenizer_sha, eos_id=None, special_from=None):
-    """Return a pyarrow table: doc_id, text, shard_id, n_tokens (with the final EOS), payload_sha256, dataset_version, split."""
+    """Return a pyarrow table: doc_id, text, shard_id, n_tokens (with the final EOS), payload_sha256,
+    dataset_version, split."""
     eos_id = EOS_ID if eos_id is None else eos_id
     shard_id, tokens, starts, doc_ids, m = read_shard(bin_path, tokenizer_sha, special_ids(tok, special_from),
                                                       vocab_end(tok), eos_id)
@@ -228,10 +243,12 @@ def find_shards(path):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("shards", help="a <shard_id>.bin file or a folder searched for *.bin")
-    ap.add_argument("--tokenizer", type=Path, required=True, help="the frozen C3 tokenizer.json (sha256 C3_SHA256)")
-    ap.add_argument("--out", type=Path, required=True, help="folder for <shard_id>.text.parquet (holds text: never commit)")
+    ap.add_argument("--tokenizer", type=Path, required=True,
+                    help="a frozen tokenizer.json: p1536 (the first training shards) or C3 (the sample shard)")
+    ap.add_argument("--out", type=Path, required=True,
+                    help="folder for <shard_id>.text.parquet (holds text: never commit)")
     ap.add_argument("--check-text", type=Path, help="run_clean.py *_clean.parquet one shard came from: round-trip test")
-    ap.add_argument("--any-tokenizer", action="store_true", help="tests only: accept a tokenizer other than C3")
+    ap.add_argument("--any-tokenizer", action="store_true", help="tests only: accept a tokenizer that is not frozen")
     a = ap.parse_args(argv)
 
     try:
@@ -250,7 +267,8 @@ def main(argv=None):
         print(f"decode_shard: no shards under {a.shards}", file=sys.stderr)
         return 1
     if a.check_text and len(shards) > 1:
-        print("decode_shard: --check-text takes one shard (the one the clean parquet was written into)", file=sys.stderr)
+        print("decode_shard: --check-text takes one shard (the one the clean parquet was written into)",
+              file=sys.stderr)
         return 1
     failed, seen = 0, set()
     for path in shards:
@@ -265,7 +283,8 @@ def main(argv=None):
             summary = {"shard_id": shard_id, "payload_sha256": table.column("payload_sha256")[0].as_py(),
                        "dataset_version": table.column("dataset_version")[0].as_py(),
                        "split": table.column("split")[0].as_py(), "docs": table.num_rows,
-                       "tokens": int(sum(table.column("n_tokens").to_pylist())), "tokenizer": tok_sha[:12]}
+                       "tokens": int(sum(table.column("n_tokens").to_pylist())),
+                       "tokenizer": f"{FROZEN_TOKENIZERS.get(tok_sha, 'not frozen')} {tok_sha[:12]}"}
             if a.check_text:
                 checked, bad = check_text(table, a.check_text, tok)
                 summary["round_trip"] = f"{checked - len(bad)}/{checked} match"
@@ -279,8 +298,8 @@ def main(argv=None):
             print(json.dumps(summary))
         except Exception as e:  # one bad shard (bad JSON, bad Parquet, failed check) must not stop the others
             failed += 1
-            print(f"decode_shard: {e}" if isinstance(e, ShardError) else f"decode_shard: {path}: {type(e).__name__}: {e}",
-                  file=sys.stderr)
+            msg = str(e) if isinstance(e, ShardError) else f"{path}: {type(e).__name__}: {e}"
+            print(f"decode_shard: {msg}", file=sys.stderr)
     print(f"decoded {len(shards) - failed} of {len(shards)} shard(s)", file=sys.stderr)
     return 1 if failed else 0
 

@@ -2,14 +2,16 @@
 
   python teams/01-data-a/shards/shard_writer.py --clean <out>/code-go_part-00001_clean.parquet \
       --summary <out>/code-go_part-00001_summary.json --tokenizer <c3>/tokenizer.json \
-      --language go --script Latn --lane code --out <dir>
+      --language go --script Latn --lane code --dataset-version corpus-v1 --out <dir>
 
 Input: run_clean.py --f2 output (docs clean.py kept and F2 did not drop). Docs are taken in order until the next one would
 pass --tokens; a doc is never split.
 
-Tokenizer (G3): the frozen C3 sample-v0 tokenizer.json, sha256 C3_SHA256 below (teams/03-tokenizer/release/SHA256SUMS).
+Tokenizer (G3): the frozen p1536 tokenizer.json (Gate 3, in place of C3), sha256 TOKENIZER_SHA256 below (G3 train/p1536_s0_manifest.json).
 Any other file is refused, except with --any-tokenizer (tests only: the shard is marked dataset_version "test").
-Docs are encoded with encode_batch(add_special_tokens=False); each doc ends with one EOS, <|endoftext|> id 130822 (G3, G10).
+--dataset-version (the corpus release in the manifest, e.g. sample or corpus-v1) is required otherwise: it is never guessed.
+Docs are encoded with encode_batch_fast(add_special_tokens=False), 256 per batch (no character offsets: only the IDs are
+used); each doc ends with one EOS, <|endoftext|> id 130822 (G3, G10).
 No BOS and no language tag. The normalizer is inside tokenizer.json, so no normalizer is applied here.
 
 A doc is left out, counted, and listed by doc_id in the quality report when:
@@ -40,7 +42,7 @@ sys.path.insert(0, str(REPO / "teams" / "06-performance"))
 from dataio.loader import HEADER_BYTES, open_shard  # noqa: E402
 from dataio.prepare_fineweb import write_shard  # noqa: E402
 
-C3_SHA256 = "15468e66457b43af79f695cbe585c0d03e3cfe7a4a5d04d189dd3c6b9f02ddc3"  # G3 freeze, #340
+TOKENIZER_SHA256 = "e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b"  # G3 Gate 3 freeze, p1536 (was C3 15468e66..., #340)
 VOCAB = 131_072
 EOS_ID, EOS = 130_822, "<|endoftext|>"
 SPECIAL_BLOCK = range(130_725, VOCAB)  # G3: named specials and reserved slots; plus every added token marked special
@@ -59,12 +61,12 @@ def sha(path):
 
 
 def load_tokenizer(path, any_tokenizer):
-    """(tokenizer, sha256, special ids). Refuses anything but C3 unless any_tokenizer."""
+    """(tokenizer, sha256, special ids). Refuses anything but p1536 unless any_tokenizer."""
     got = sha(path)
     tok = Tokenizer.from_file(str(path))
     if not any_tokenizer:
-        if got != C3_SHA256:
-            sys.exit(f"{path}: sha256 {got}, not the frozen C3 {C3_SHA256}. --any-tokenizer is for tests only.")
+        if got != TOKENIZER_SHA256:
+            sys.exit(f"{path}: sha256 {got}, not the frozen p1536 {TOKENIZER_SHA256}. --any-tokenizer is for tests only.")
         if tok.id_to_token(EOS_ID) != EOS:
             sys.exit(f"{path}: id {EOS_ID} is {tok.id_to_token(EOS_ID)!r}, not {EOS}")
     if tok.get_vocab_size(with_added_tokens=True) != VOCAB:
@@ -77,16 +79,23 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--clean", type=Path, required=True, help="a *_clean.parquet from run_clean.py --f2")
     ap.add_argument("--summary", type=Path, required=True, help="its *_summary.json")
-    ap.add_argument("--tokenizer", type=Path, required=True, help="G3's frozen C3 tokenizer.json")
+    ap.add_argument("--tokenizer", type=Path, required=True, help="G3's frozen p1536 tokenizer.json")
     ap.add_argument("--language", required=True)
     ap.add_argument("--script", required=True)
     ap.add_argument("--lane", required=True, help="capability_lane")
     ap.add_argument("--split", default="train", choices=["train", "validation"])
     ap.add_argument("--index", type=int, default=0, help="shard number within the pack and split")
     ap.add_argument("--tokens", type=int, default=2 ** 26, help="fill the shard up to this many tokens")
-    ap.add_argument("--any-tokenizer", action="store_true", help="tests only: accept a tokenizer other than C3")
+    ap.add_argument("--any-tokenizer", action="store_true", help="tests only: accept a tokenizer other than p1536")
+    ap.add_argument("--dataset-version", help="the manifest's dataset_version (e.g. sample, corpus-v1); required unless --any-tokenizer")
     ap.add_argument("--out", type=Path, required=True)
     a = ap.parse_args(argv)
+    if a.any_tokenizer:
+        if a.dataset_version not in (None, "test"):
+            sys.exit("--any-tokenizer shards are dataset_version \"test\"; leave out --dataset-version")
+        a.dataset_version = "test"
+    elif not a.dataset_version or a.dataset_version == "test":
+        sys.exit("--dataset-version is required (e.g. sample, corpus-v1); \"test\" is only for --any-tokenizer")
     a.out.mkdir(parents=True, exist_ok=True)
 
     s = json.loads(a.summary.read_text(encoding="utf-8"))
@@ -102,7 +111,7 @@ def main(argv=None):
     left_out = {"secret": [], "empty": [], "special": [], "roundtrip": []}
     for b in range(0, len(text_col), BATCH):
         texts = text_col[b:b + BATCH]
-        for k, enc in enumerate(tok.encode_batch(texts, add_special_tokens=False)):
+        for k, enc in enumerate(tok.encode_batch_fast(texts, add_special_tokens=False)):
             row, text, ids = b + k, texts[k], enc.ids
             doc_id = ids_col[row]
             if SECRET.search(text):
@@ -152,7 +161,7 @@ def main(argv=None):
     token_count = int(starts[-1])
     commit = subprocess.run(["git", "-C", str(REPO), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     manifest = {
-        "schema_version": "shard-v1", "dataset_version": "test" if a.any_tokenizer else "sample", "shard_id": shard_id,
+        "schema_version": "shard-v1", "dataset_version": a.dataset_version, "shard_id": shard_id,
         "format": "brahmic_u32_v2+doc_index", "token_dtype": "uint32",
         "payload_uri": bin_path.name, "payload_sha256": sha(bin_path), "payload_bytes": bin_path.stat().st_size,
         "index_uri": idx_path.name, "index_sha256": sha(idx_path),
@@ -187,7 +196,7 @@ def main(argv=None):
     lines = [f"# Shard `{shard_id}`\n\n",
              f"Written by `shard_writer.py` from `{s['pack']}` of `{pack_id}`, after `clean.py` and F2 (fingerprints "
              f"`{s['f2']['set_sha256'][:12]}`): the first {n:,} docs that fit in {a.tokens:,} tokens, of {seen:,} rows read.\n\n",
-             f"Tokenizer `{tok_sha[:12]}`" + (" (**not C3: test only**)" if tok_sha != C3_SHA256 else " (C3, frozen)") +
+             f"Tokenizer `{tok_sha[:12]}`" + (" (**not p1536: test only**)" if tok_sha != TOKENIZER_SHA256 else " (p1536, frozen)") +
              f"; EOS `{EOS}` id {EOS_ID} after each doc; no BOS, no language tag.\n\n",
              f"Left out: {lo['secret']} secret-like, {lo['empty']} empty, {lo['special']} with a special id inside, "
              f"{lo['roundtrip']} not round-tripping (doc_ids in `{shard_id}.quality_report.json`).\n\n",
