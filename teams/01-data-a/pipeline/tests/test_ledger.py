@@ -530,7 +530,7 @@ def test_a_run_killed_between_the_two_renames_gets_the_previous_ledger_back(chai
     assert files_of(out) == before and not out.with_name("ledger.old").exists()
 
 
-# --- Vijay's review of PR #46 (15 Nov) -------------------------------------------------------------------------------
+# --- review of PR #46 (patilvijay23, 15 Nov) -------------------------------------------------------------------------
 @pytest.mark.parametrize("name", ["ledger.partial", "ledger.old"])
 def test_an_input_in_a_folder_the_ledger_deletes_is_never_touched(chain, name):
     """The cleaned parts at <out>.partial or <out>.old: the ledger deleted them. It now stops before touching anything."""
@@ -603,7 +603,7 @@ def test_mode_b_with_the_same_long_text_repeated_reads_small_batches(tmp_path, m
     assert len(probes) <= 2 and max(seen) <= 16 * 200_016  # one 16-row first read per file, then sized from it
 
 
-# --- Vijay's review of PR #46 (17 Nov) -------------------------------------------------------------------------------
+# --- review of PR #46 (patilvijay23, 17 Nov) -------------------------------------------------------------------------
 @pytest.mark.parametrize("fails", ["folder", "file"])
 def test_a_backup_that_could_not_be_deleted_keeps_its_marker_and_is_cleared_next_time(chain, monkeypatch, fails):
     """Deleting a child of <out>.old fails for a moment (Windows: a file still open). The marker stays with what is
@@ -648,7 +648,7 @@ def test_remove_marked_reports_what_it_could_not_delete(tmp_path, monkeypatch):
     assert ledger.remove_marked(folder, ledger.OLD_MARK) is True  # nothing there: nothing to do
 
 
-# --- Tejaskumar's review of PR #46 (18 Nov) -------------------------------------------------------------------------
+# --- review of PR #46 (TEJASKUMAR-REDDY-J, 18 Nov) ------------------------------------------------------------------
 @pytest.mark.parametrize("report", ["none", "no input_sha256", "no input_rows"])
 def test_mode_b_stops_on_a_part_without_a_cleaning_report(chain, tmp_path, report):
     """Mode B needs every cleaned part's report: without one (a clean step that writes none, such as a bare
