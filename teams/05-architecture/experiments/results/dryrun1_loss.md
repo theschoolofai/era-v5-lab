@@ -1,7 +1,7 @@
 # Dry run 1: the loss record
 
-**Owner:** Deepjyoti Saha (G5, week-3 task 4). **Status:** filled from the full dry run 1 log (TSAI, [#620](https://github.com/theschoolofai/era-v5-lab/pull/620));
-the stability paragraph waits for the owner's approval. **Gate 3 evidence:** "dry run 1 ends with a stable loss curve" (Fri 20 Nov, 23:59 IST).
+**Owner:** Deepjyoti Saha (G5, week-3 task 4). **Status:** complete, filled from the full dry run 1 log (TSAI,
+[#620](https://github.com/theschoolofai/era-v5-lab/pull/620)); ready for the lead's review. **Gate 3 evidence:** "dry run 1 ends with a stable loss curve" (Fri 20 Nov, 23:59 IST).
 
 How the numbers are made, the two spike rules and how to rerun everything: [`dryrun1_README.md`](dryrun1_README.md).
 A filled example with injected events, for illustration only: 🧪 [`dryrun1_loss_sample_attn0.md`](dryrun1_loss_sample_attn0.md).
@@ -90,7 +90,7 @@ None. `summary.json`: status COMPLETED, 1,221 steps, not timed out; `metrics.jso
 
 ## 5. Is the curve stable?
 
-_DRAFT for the owner's approval._ The loss falls steadily: the 50-step average of `loss_ntp` goes from 8.95 at step 50 to 6.06 at step 611 and 5.42 at step 1221, and held-out bits per byte falls from 2.51 before training to 1.62 at step 611 and 1.5159 at the end. Team 7's loss guard finds no spike, so it would never have stopped the run. Team 8's rule would have paged three times, all on the gradient norm (steps 468, 505 and 841, 7 to 8σ); each was clipped to 1.0, the loss stayed in its normal range, and the norm was back under 0.85 at the next step. Gradient clipping was active on 457 of 1,221 steps, falling from 335 in the first half to 122 in the second. There were no stops, restarts, gaps or non-finite values, and nothing is unexplained. This reports what the log shows; the Gate 3 judgement is TSAI's.
+The loss falls steadily: the 50-step average of `loss_ntp` goes from 8.95 at step 50 to 6.06 at step 611 and 5.42 at step 1221, and held-out bits per byte falls from 2.51 before training to 1.62 at step 611 and 1.5159 at the end. Team 7's loss guard finds no spike, so it would never have stopped the run. Team 8's rule would have paged three times, all on the gradient norm (steps 468, 505 and 841, 7 to 8σ); each was clipped to 1.0, the loss stayed in its normal range, and the norm was back under 0.85 at the next step. Gradient clipping was active on 457 of 1,221 steps, falling from 335 in the first half to 122 in the second. There were no stops, restarts, gaps or non-finite values, and nothing is unexplained. This reports what the log shows; the Gate 3 judgement is TSAI's.
 
 ### The script's summary
 
