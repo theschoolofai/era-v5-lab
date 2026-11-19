@@ -96,6 +96,13 @@ def test_prepare_run_pins_the_actual_inventory_and_refuses_incomplete_pack_metad
     monkeypatch.setattr(prepare_run, 'TOKENIZER_SHA256', prepare_run.sha256(tokenizer))
     model = tmp_path / 'model'
     model.mkdir()
+    pins = {}
+    for name in prepare_run.MODEL_FILES:
+        file = model / name
+        file.parent.mkdir(parents=True, exist_ok=True)
+        file.write_bytes(name.encode())
+        pins[name] = (file.stat().st_size, prepare_run.sha256(file))
+    monkeypatch.setattr(prepare_run, 'MODEL_FILES', pins)
     base = json.loads((REPO / 'teams/01-data-a/shards/pack_table.json').read_text())['packs']
     table = {'packs': {p['pack_id']: {**base[p['pack_id']], 'lane': base[p['pack_id']]['lane'] or 'test',
                                      'license': p['license'], 'license_source': p['license_source']}
@@ -108,11 +115,52 @@ def test_prepare_run_pins_the_actual_inventory_and_refuses_incomplete_pack_metad
         prepare_run.prepare(out, raw, tokenizer, table_path, 'first-training-v1', model)
     table['packs']['ind-sa-fw2']['lane'] = 'test'
     table_path.write_text(json.dumps(table), encoding='utf-8')
-    cfg = json.loads(prepare_run.prepare(out, raw, tokenizer, table_path, 'first-training-v1', model).read_text())
+    (model / 'config.json').write_bytes(b'changed')
+    with pytest.raises(ValueError, match='offline H3 model differs'):
+        prepare_run.prepare(out, raw, tokenizer, table_path, 'first-training-v1', model)
+    assert not (out / 'run.json').exists()
+    (model / 'config.json').write_bytes(b'config.json')
+    cfg = json.loads(prepare_run.prepare(out, raw, tokenizer, table_path, 'first-training-v1', model,
+                                        f2_workers=30).read_text())
     assert cfg['inventory'] == 'out/inputs/expected_inventory.json'
     assert cfg['stages']['clean']['expected_parts'] == {'train': 38, 'heldout': 38}
     assert cfg['stages']['shards']['dataset_version'] == 'first-training-v1'
     assert cfg['intermediates'] == 'keep' and cfg['stages']['h3']['mode'] == 'run'
+    assert cfg['stages']['f2'] == {'pool': True, 'workers': 30}
+    (out / 'run.json').unlink()
+    cfg = json.loads(prepare_run.prepare(out, raw, tokenizer, None, 'first-training-v1', model).read_text())
+    generated = json.loads((out / 'pack_metadata.json').read_text())['packs']
+    assert cfg['stages']['f2']['workers'] == 1
+    assert cfg['stages']['shards']['pack_table'] == 'out/inputs/pack_metadata.json'
+    assert generated['ind-sa-fw2']['lane'] == 'indic'
+    assert generated['code-go']['license'] == next(p['license'] for p in scope['packs'] if p['pack_id'] == 'code-go')
+
+
+@pytest.mark.parametrize('workers', [0, -1, True, '30'])
+def test_prepare_run_rejects_invalid_worker_counts(tmp_path, workers):
+    with pytest.raises(ValueError, match='f2_workers must be a positive integer'):
+        prepare_run.prepare(tmp_path, tmp_path, tmp_path, tmp_path, 'run', f2_workers=workers)
+
+
+def test_approved_scope_contains_production_shard_metadata():
+    here = REPO / 'teams/01-data-a/jobs/2026-11-19-first-training'
+    packs = json.loads((here / 'approved_inputs.json').read_text())['packs']
+    metadata = json.loads((REPO / 'teams/01-data-a/shards/pack_table.json').read_text())['packs']
+    for p in packs:
+        assert all(isinstance(p[k], str) and p[k] for k in
+                   ('language', 'script', 'domain', 'lane', 'license', 'license_source'))
+        assert all(p[k] == metadata[p['pack_id']][k] for k in ('language', 'script', 'domain', 'lane'))
+
+
+def test_submission_preserves_rehearsed_h3_settings_and_shard_metadata():
+    here = REPO / 'teams/01-data-a/jobs/2026-11-19-first-training'
+    evidence = here.parent / 'logs/2026-11-19-first-training-rehearsal-38packs'
+    assert json.loads((here / 'h3.json').read_text()) == json.loads((evidence / 'config/h3.json').read_text())
+    scope = json.loads((here / 'approved_inputs.json').read_text())
+    fields = ('language', 'script', 'domain', 'lane', 'license', 'license_source')
+    generated = {p['pack_id']: {k: p[k] for k in fields} for p in scope['packs']}
+    rehearsed = json.loads((evidence / 'config/pack_table_job_shaped.json').read_text())['packs']
+    assert generated == rehearsed
 
 
 def test_identical_staging_produces_identical_frozen_files(raw, tmp_path):
@@ -121,6 +169,23 @@ def test_identical_staging_produces_identical_frozen_files(raw, tmp_path):
     run(raw, second)
     for name in ('input_manifest.json', 'expected_inventory.json'):
         assert (first / name).read_bytes() == (second / name).read_bytes()
+
+
+def test_prepare_run_refuses_an_inventory_from_another_approved_scope(raw, tmp_path, monkeypatch):
+    out = tmp_path / 'out' / 'inputs'
+    run(raw, out)
+    monkeypatch.setattr(prepare_run, 'REPO', tmp_path)
+    manifest = out / 'input_manifest.json'
+    data = json.loads(manifest.read_text())
+    data['approved_inputs_sha256'] = '0' * 64
+    manifest.write_text(json.dumps(data))
+    inventory = out / 'expected_inventory.json'
+    data = json.loads(inventory.read_text())
+    data['input_manifest_sha256'] = prepare_run.sha256(manifest)
+    inventory.write_text(json.dumps(data))
+    with pytest.raises(ValueError, match='another approved_inputs.json'):
+        prepare_run.prepare(out, raw, tmp_path / 'tokenizer.json', None, 'first-training-v1')
+    assert not (out / 'run.json').exists() and not (out / 'pack_metadata.json').exists()
 
 
 @pytest.mark.parametrize('name,message', [

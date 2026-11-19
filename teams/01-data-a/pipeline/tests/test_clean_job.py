@@ -328,6 +328,67 @@ def two_parts(tmp_path, audit_samples):
     return out, reports
 
 
+def fires(counter, rid, doc_ids, action="fix"):
+    for doc_id in doc_ids:
+        counter.note(rid, {"doc_id": doc_id, "text": "abcdef"}, action, "abc")
+
+
+def test_the_documents_a_rule_keeps_do_not_depend_on_the_order_of_the_rows():
+    ids = [f"d{n}" for n in range(200)]
+    forward, backward = job.RuleCounter(5), job.RuleCounter(5)
+    fires(forward, "R", ids)
+    fires(backward, "R", ids[::-1])
+    assert forward.samples["R"] == backward.samples["R"]
+    assert [s[0] for s in forward.samples["R"]] == sorted(zlib.crc32(f"R\0{d}".encode()) for d in ids)[:5]  # the 5 lowest keys
+
+
+def test_a_rule_keeps_at_most_audit_samples_documents_and_all_of_them_when_it_fired_less_often():
+    counter = job.RuleCounter(3)
+    fires(counter, "A", ["a1", "a2"])
+    fires(counter, "B", [f"b{n}" for n in range(50)])
+    assert len(counter.samples["A"]) == 2 and len(counter.samples["B"]) == 3
+
+
+def test_different_rules_pick_different_documents():
+    ids = [f"d{n}" for n in range(200)]
+    counter = job.RuleCounter(5)
+    fires(counter, "R1", ids)
+    fires(counter, "R2", ids)
+    assert {s[1] for s in counter.samples["R1"]} != {s[1] for s in counter.samples["R2"]}
+
+
+def test_only_fixes_and_drops_are_remembered_and_a_drop_has_no_length_after():
+    rows = [dict(doc_id=f"d{n}", text=text, pack_id="en-dclm", lang_label="en", url="") for n, text in enumerate(TEXTS)]
+    counter = job.RuleCounter(5)
+    with counter.instrument():
+        for row in rows:
+            job.clean.clean(row)
+    assert [s[1:] for s in counter.samples["DA-A1-004"]] == [("d1", "fix", 19, 18)]
+    assert [s[1:] for s in counter.samples["DA-C1-006"]] == [("d2", "drop", 28, None)]
+    assert all(s[1] != "d0" for picked in counter.samples.values() for s in picked)  # d0 is a keep
+
+
+def test_with_audit_samples_zero_the_rules_are_counted_but_nothing_is_remembered():
+    rows = [dict(doc_id=f"d{n}", text=text, pack_id="en-dclm", lang_label="en", url="") for n, text in enumerate(TEXTS)]
+    counter = job.RuleCounter()
+    with counter.instrument():
+        for row in rows:
+            job.clean.clean(row)
+    assert counter.counts["DA-A1-004"]["fix"] == 1 and not counter.samples
+
+
+def test_the_audit_file_of_a_part_holds_ids_and_lengths_but_no_text(tmp_path):
+    path, shard, rows = part(tmp_path)
+    out = tmp_path / "out"
+    job.process_part(path, shard, out, 2, audit_samples=5)
+    written = (out / "audit" / (shard["path"] + ".json")).read_text(encoding="utf-8")
+    data = json.loads(written)
+    assert data["part"] == shard["path"] and data["pack_id"] == "en-dclm" and data["samples_per_rule"] == 5
+    assert set(data["rules"]) == {"DA-A1-004", "DA-C1-006"}
+    assert all(set(s) == {"key", "doc_id", "action", "chars_before", "chars_after"} for docs in data["rules"].values() for s in docs)
+    assert not any(text.strip() in written for text in TEXTS)
+
+
 def test_rule_examples_hold_the_lowest_keys_over_all_parts_of_a_pack(tmp_path):
     out, reports = two_parts(tmp_path, audit_samples=1)
     job.write_aggregate(out, reports, {"sample": "synthetic"}, 86, audit_samples=1)
@@ -356,6 +417,16 @@ def test_without_audit_samples_there_is_no_audit_folder_and_no_examples_file(tmp
     out, reports = two_parts(tmp_path, audit_samples=0)
     job.write_aggregate(out, reports, {"sample": "synthetic"}, 86)
     assert not (out / "audit").exists() and not (out / "rule_examples.csv").exists()
+
+
+def test_audit_sampling_preserves_cleaned_parquet_and_rule_counts(tmp_path):
+    plain, plain_reports = two_parts(tmp_path / 'plain', audit_samples=0)
+    audit, audit_reports = two_parts(tmp_path / 'audit', audit_samples=5)
+    for before, after in zip(plain_reports, audit_reports):
+        part = before['part']
+        assert (plain / part).read_bytes() == (audit / part).read_bytes()
+        assert before['actions'] == after['actions']
+        assert before['rule_counts'] == after['rule_counts']
 
 
 def test_a_missing_audit_file_stops_the_aggregate_naming_the_part(tmp_path):

@@ -18,7 +18,7 @@ Data A's pipeline, as one command: `run_pipeline.py --config <file>`. It runs (o
 | **Shards and reconcile** | Run only when the config has `stages.shards` (and `stages.reconcile`); without them the run ends at the ledger. **The production job configures both**, and a run with an [expected inventory](#expected-inventory) is refused without them |
 | **In** | the raw parts and their input manifest (clean in `"mode": "run"`), or the folders TSAI's clean, overlap and dedup jobs returned (`"mode": "adopt"`) |
 | **Out** | token shards (G3's frozen p1536 tokenizer) · `pipeline_manifest.json` · the ledger, one row per document · the reconciliation, one status per kept document · filtered Parquet (`deduped/`, `final/`), kept or dropped at the end (`"intermediates"`) |
-| **New in this folder** | `run_pipeline.py` · `stage_args.py` · `apply_dedup.py` · `f2_pool.py` · `survivor_loss.py` · `ledger.py` · `reconcile_shards.py` · `inventory_check.py` · `hashing.py` · `arrowtools.py` · `runlock.py` · `clean_job.py` · `clean_manifest.py` · `clean.json` · `pipeline.json` · `local_trial/` · **641 tests** |
+| **New in this folder** | `run_pipeline.py` · `stage_args.py` · `apply_dedup.py` · `f2_pool.py` · `survivor_loss.py` · `ledger.py` · `reconcile_shards.py` · `inventory_check.py` · `hashing.py` · `arrowtools.py` · `runlock.py` · `clean_job.py` · `clean_manifest.py` · `clean.json` · `pipeline.json` · `local_trial/` · **648 tests** |
 | **Reused, never copied** | `spec_v1/run_tokenizer_sample.py` and `clean.py` (#244); the job uses `spec_v1_1/clean.py` through `pipeline/clean_job.py` · `dedup/overlap.py`, `dedup/h3.py`, `dedup/dedup.py` · `spec_v1/run_f2.py` · `shards/run_shards.py`, `shard_writer.py`, `provenance.py`, `pack_table.py`, `verify_shards.py` (**144 tests**) |
 | **Needs** | Python 3.11+ (tested on 3.13) with `pyarrow`; for the shard stage `numpy`, `tokenizers` and `torch` (`shard_writer.py` imports G6's `dataio`, which imports torch); `ftfy`, `tree-sitter` and `tree-sitter-language-pack` for the clean job (`spec_v1/requirements.txt`); `numpy`, `scipy` and `pygments` to run overlap and dedup locally; `pytest` for the tests. Install them into the environment itself: every script runs with `python -I`. The job pins one environment for every stage, H3's packages included (Python 3.12, PyArrow 23.0.1): `jobs/2026-11-19-first-training/requirements_pipeline.txt`; H3 also needs an offline LaBSE model |
 | **Measured** | rehearsal from raw (code-go, 3 parts of tokenizer sample v0): **40 of 40 checks**, 84,139 raw → 77,661 kept → 76,795 in 2 shards, every document accounted for ([details](#measured-on-real-data)) |
@@ -28,10 +28,10 @@ Data A's pipeline, as one command: `run_pipeline.py --config <file>`. It runs (o
 
 > [!WARNING]
 > **Open before the production job can run** (none of these is visible to `--plan`):
-> 1. **The job's pack table.** It needs `language`, `script`, `domain`, `lane`, `license` and `license_source` for every approved pack. The committed `shards/pack_table.json` gives the six agreed lanes for all 38 packs (#63) but no licences; `jobs/2026-11-19-first-training/approved_inputs.json` and #47's `pack_metadata.json` carry different licence text, so which one is current is for G10 to confirm (#63). `jobs/2026-11-19-first-training/prepare_run.py` refuses an incomplete table and checks the licences against `approved_inputs.json`.
+> 1. **The job's pack table.** It needs `language`, `script`, `domain`, `lane`, `license` and `license_source` for every approved pack. The committed `shards/pack_table.json` gives the six agreed lanes for all 38 packs (#63) but no licences; `jobs/2026-11-19-first-training/approved_inputs.json` and #47's `pack_metadata.json` carry different licence text, so which one is current is for G10 to confirm (#63). `jobs/2026-11-19-first-training/prepare_run.py` now writes the job's pack table from `approved_inputs.json` (lanes and licences) unless `--pack-table` is given, refuses an incomplete table, and checks the licences against `approved_inputs.json`.
 > 2. **The approved inputs, staged.** TSAI's raw train and held-out parts of the 38 packs in `jobs/2026-11-19-first-training/approved_inputs.json`. The input manifest and the expected inventory are made from them by `build_inventory.py` (its README lists the settings that go with them).
-> 3. **An offline LaBSE model for H3**, at the `model_path` in `jobs/2026-11-19-first-training/h3.json`; `prepare_run.py` refuses a missing model folder. H3 is report only: it measures translation matches and removes nothing.
-> 4. **The job's own rehearsal.** Done on sample v0 at `4dd2802`: all 86 raw parts (38 packs), the frozen p1536, H3, the job's pinned environment on Linux, 59 of 59 checks; and on 5 of those parts, a forced rollover, an interrupted shard stage, damaged shards and a part left out whole (`jobs/logs/2026-11-19-first-training-rehearsal-38packs/`, #62, the job request's test log). The same chain with `inventory`, from `prepare_run.py`'s own `run.json` at `2691c44` (F2 at 30 workers): 74/74, the same counts and shard data. Still open for the job: F2 `workers`, which `prepare_run.py` writes as 1 (about 3.1 h on sample v0 against 12 min with 30).
+> 3. **An offline LaBSE model for H3**, at the `model_path` in `jobs/2026-11-19-first-training/h3.json`; `prepare_run.py` refuses a missing model folder and one whose `model.safetensors`, `2_Dense/model.safetensors` or `config.json` differs (size or sha256) from LaBSE revision `836121a0533e5664b21c7aacc5d22951f2b8b25b`. H3 is report only: it measures translation matches and removes nothing.
+> 4. **The job's own rehearsal.** Done on sample v0 at `4dd2802`: all 86 raw parts (38 packs), the frozen p1536, H3, the job's pinned environment on Linux, 59 of 59 checks; and on 5 of those parts, a forced rollover, an interrupted shard stage, damaged shards and a part left out whole (`jobs/logs/2026-11-19-first-training-rehearsal-38packs/`, #62, the job request's test log). The same chain with `inventory`, from `prepare_run.py`'s own `run.json` at `2691c44` (F2 at 30 workers): 74/74, the same counts and shard data. For the job: `prepare_run.py --f2-workers N` sets F2's workers (default 1; about 3.1 h on sample v0 with 1, against 12 min with 30), so set it for the host.
 >
 > Every shard run also needs `stages.shards.dataset_version` (`"first-training-v1"` for the first training shards, as `prepare_run.py` sets it): `--plan` and the run stop without it; `any_tokenizer` shards stay `"test"`.
 
@@ -92,6 +92,8 @@ Then, on `g1-pipeline`:
 | `98970f0`, `a247b31` (#64) | the clean job keeps, per rule, the `audit_samples` documents (5 in `clean.json`) it fixed or dropped with the lowest hash of rule id and doc_id: doc_ids and sizes only, in `audit/<part>.json`, and per pack in `rule_examples.csv` with each rule's fix and drop counts (a rule that never fired has one row with no document) |
 | #60 | `audit/check_shard.py` (an audit tool, not run by the pipeline) checks a whole shard folder: every shard, the part-to-shards map in `shards_summary.json`, and an expected `dataset_version` |
 | #62 | the 38-pack rehearsal of the first-training job: `jobs/logs/2026-11-19-first-training-rehearsal-38packs/` (all 86 parts of sample v0; 59/59 checks, and 74/74 from `prepare_run.py`'s `run.json` with the inventory) |
+| #65 | `audit/audit_replay.py` runs a clean job's sampled documents again, rule by rule, through the pinned cleaner, and checks each against the job's own output (see [Audit examples from the clean job](#audit-examples-from-the-clean-job)) |
+| `c7c07b8` | `prepare_run.py`: `--f2-workers`, the LaBSE pin (revision, sizes, sha256), and the job's pack table written from `approved_inputs.json` (which now carries the lanes); the input manifest must come from the same `approved_inputs.json` |
 
 <br>
 
@@ -99,7 +101,7 @@ Then, on `g1-pipeline`:
 
 ```bash
 # tests: synthetic data only
-python -m pytest teams/01-data-a/pipeline/tests -q                      # 641 tests
+python -m pytest teams/01-data-a/pipeline/tests -q                      # 648 tests
 python -m pytest teams/01-data-a/shards/tests -q                        # 144 tests (needs torch)
 
 # what a run would do: checks the config, prints every stage's folder and command; runs and writes nothing
@@ -391,6 +393,20 @@ The runner never reimplements these. In **adopt** mode it checks the returned fo
 
 > [!IMPORTANT]
 > **`doc_id` alone is not a key.** In cleaned sample v0 (86 files, 1,432,552 rows), 22,773 doc_ids appear in two parts of the same pack and split. A document is found by **split + part + row** (apply) or **split + part + doc_id** (survivor loss), never by doc_id alone.
+
+### Audit examples from the clean job
+
+The readers who sign off a pack need, for each rule, a few documents it acted on, before and after. The clean job keeps the list without slowing the run; a separate script builds the before and after.
+
+**In the job.** `audit_samples` in `clean.json` (5) is how many documents per rule the job keeps; 0 switches the audit off. When a rule fixes or drops a document, the job gives that (rule, document) pair a key, `crc32(rule id + doc_id)`, and each part remembers the `audit_samples` lowest keys per rule. The hash picks the same documents whatever the order of rows or parts, and after a resume; a `keep` costs nothing extra. Each part gets `audit/<split>/<pack>/<part>.json` (doc_id, action, characters before and after; no text), written before its report. At the end the job merges them into `rule_examples.csv`: for every rule that applies to a pack, the `audit_samples` lowest keys over all the pack's parts, and the rule's fix and drop counts in the pack. A rule that never fired has one row with no document. `audit_samples` is part of the job's fingerprint: a resume with another value is refused, and a finished part without its audit file stops the resume.
+
+**Replay.** Rules run in sequence, so one document can be changed by several of them. `audit/audit_replay.py` runs the sampled documents again, and only those, through the cleaner the job used (path and pin from `job_summary.json`) and records every rule that acted on each:
+
+```bash
+python -I teams/01-data-a/audit/audit_replay.py --job <run>/clean --input-root <raw parts> --out <folder> [--pack en-dclm]
+```
+
+It writes, per pack, `<folder>/<pack>/docs.csv` (the rules each document was sampled for, every rule that acted on it, the final action), `trace.jsonl` (one line per step, with the text before and after), `raw.parquet`, `cleaned.parquet` and `ids.txt`. Each replay is checked against the job's own output (action and text, a drop absent from the part): a document that differs is marked `replay_ok=False` and the exit code is 1. Only fixes and drops are sampled, and a dropped document has a raw row and its steps but no cleaned row. The files hold document text: `--out` must be outside the job folder (the script refuses otherwise), and keep it out of the repository. Tests: `tests/audit/test_audit_replay.py`, and the sampling tests in `pipeline/tests/test_clean_job.py`.
 
 ### F2
 
@@ -758,7 +774,7 @@ out/pipeline/<run_id>/
 ├── cache/sha256.json                  the hash cache (hashing.py): a shortcut, never trusted over a file that changed
 ├── cfg/clean.json, overlap.json, …    run mode: the generated config each stage script got
 ├── logs/                              one log per script run as a process: clean.log, f2_train.log or f2_train_<pack>.log, shards.log, …
-├── clean/, overlap/, dedup/           run mode, unless "output" says otherwise (clean/ also holds reports/ and job_summary.json)
+├── clean/, overlap/, dedup/           run mode, unless "output" says otherwise (clean/ also holds reports/, audit/, rule_examples.csv and job_summary.json)
 ├── deduped/                           04 apply
 │   ├── train/<pack>/part-NNNNN.parquet
 │   ├── heldout/<pack>/part-NNNNN.parquet      hard links: dedup never removes held-out
@@ -988,7 +1004,7 @@ The old apply varied most (25 to 121 s over 3 runs; writing thousands of 128-row
 ## Tests
 
 ```bash
-python -m pytest teams/01-data-a/pipeline/tests -q      # 641 tests
+python -m pytest teams/01-data-a/pipeline/tests -q      # 648 tests
 python -m pytest teams/01-data-a/shards/tests -q        # 144 tests; shard_writer.py needs torch (G6's dataio)
 ```
 
@@ -1004,10 +1020,10 @@ python -m pytest teams/01-data-a/shards/tests -q        # 144 tests; shard_write
 | `test_arrowtools.py` | 10 | `by_part` cuts at every key change in sorted order · rows with a null key stay together · `batch_rows` from the widest row group · `iter_sized` gives every row once, in order, through small rows, repeated long text and distinct long rows · an empty file and one big row group · patilvijay23's 128 short rows then 600 × 200 KB: every batch under 16 MiB, and apply's memory stays bounded · row groups the footer proves small are read together in full batches · uniform short rows in big row groups still read in full-size batches · a list column proves nothing |
 | `test_inventory_check.py` | 84 | a run that matches its inventory · one side alone · the inventory's shape, its optional `split` and `pack_id`, comment keys · the file is read once and the sha256 is of what was parsed · 13 malformed inventories and 30 malformed parts refused (a part listed twice, a pack without a part, `failed` or `skipped` expected, a bad or missing sha256 or row count, an unknown key at the top or in a part, a `pack_id` or `split` that is not the part's, …) · a listed part the ledger lacks and a ledger part that is not listed, each named · a listed pack missing from the ledger · a pack that is not listed fails only with kept documents · another raw file or row count, with both values · a raw file without a recorded hash differs · a raw part without rows is still a part · a pack whose parts all list 0 rows · a ledger without the raw parts (mode C) fails · `\` in the ledger's part names · a folder that is not a ledger · 10 ledger summaries that are not what `ledger.py` writes stop with a message · the same for the shard summary: missing and unlisted parts, 5 other statuses, a list of acceptable statuses, another pack and an entry without one, `\` in part names, a summary that is not an object · the input manifest: equal, another, and a clean job that names none or has no summary (a failed check, never left out) · CLI: the report, exit 0 and 1, `--cleaned`, nothing to check against, an unreadable or malformed input without a traceback |
 | `test_reconcile_shards.py` | 22 | every kept document accounted for (in a shard, left out with each of the writer's four reasons, not sharded) · a document both left out and in a shard · a dropped document in a shard · a row past the part · a document in two shards · a truncated part (not_reached) · a silently missing document · a left-out document that is not kept · a manifest count mismatch · packs not selected · a written part without its files · CLI · a shard no ledger file claims · two runs into one folder · a part holding two packs · statuses in input_part order whatever the case of the pack names · an --out that overlaps an input · a pack the shard stage left out fails by default · a listed pack the ledger does not hold fails · a part rolled over into two shards · a part left out whole, from its summary entry |
-| `test_clean_job.py` | 69 | the cleaner is the file the config names, run only with the pinned sha256 · any manifest the config allows, and one that is not the pinned file or does not match `expected_parts` stops the job · `only` · the same results as the cleaner run directly, streamed, with its rule counts · held-out and train outputs apart · errors counted and partial output not published · a part with every row dropped still has a valid schema · resume: an interrupted job continues only with `resume`, ends as a job that was never interrupted, redoes a part without its report and a `.tmp`, stops on a finished part that does not verify (naming the files to delete), never resumes a job started with something else or a finished one · the audit samples: one audit file per part, at most `audit_samples` documents per rule, the lowest keys over all parts of a pack in `rule_examples.csv`, no audit folder or file without `audit_samples`, a missing audit file named (also when resuming) |
+| `test_clean_job.py` | 76 | the cleaner is the file the config names, run only with the pinned sha256 · any manifest the config allows, and one that is not the pinned file or does not match `expected_parts` stops the job · `only` · the same results as the cleaner run directly, streamed, with its rule counts · held-out and train outputs apart · errors counted and partial output not published · a part with every row dropped still has a valid schema · resume: an interrupted job continues only with `resume`, ends as a job that was never interrupted, redoes a part without its report and a `.tmp`, stops on a finished part that does not verify (naming the files to delete), never resumes a job started with something else or a finished one · the audit samples: one audit file per part, at most `audit_samples` documents per rule, the lowest keys over all parts of a pack in `rule_examples.csv`, no audit folder or file without `audit_samples`, a missing audit file named (also when resuming) · the documents a rule keeps do not depend on the order of the rows, differ between rules, and are only fixes and drops (ids and lengths, no text) · audit sampling leaves the cleaned Parquet and the rule counts unchanged |
 | `test_clean_manifest.py` | 27 | a consistent pinned manifest · any part count the run config allows · a missing manifest, another file than the pin, no `shards` or `total_docs` · per-split counts against `expected_parts` · a split other than train and held-out, a malformed part path, a duplicate part, an entry that disagrees with its path or lacks rows, bytes or sha256 · parts that do not add up to `total_docs` · a requested part not in the manifest |
 | `test_local_trial.py` | 10 | the trial has the configs its README names, each explaining itself · paths relative to the repository · the steps share one run and follow each other · the adopt config takes the steps' clean folder · the error configs match what they test · the cleanup removes every run · `show.py` prints the totals and flags a failed check |
-| **pipeline total** | **641** | |
+| **pipeline total** | **648** | |
 
 The shard stage's own tests, in `teams/01-data-a/shards/tests` (144):
 
