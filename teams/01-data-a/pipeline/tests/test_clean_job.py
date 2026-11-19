@@ -47,7 +47,7 @@ def sample(tmp_path, monkeypatch):
     shards = [write_part(tmp_path / "input", *part) for part in PARTS]
     config = dict(clean=str(CLEAN), clean_sha256=PIN, manifest=str(tmp_path / "manifest.json"),
                   manifest_sha256=write_manifest(tmp_path / "manifest.json", shards), expected_parts={"train": 3, "heldout": 1},
-                  batch_size=2, unsupported_policy="passthrough_with_explicit_status", input_root="input", output_root="out/job")
+                  batch_size=2, unsupported_policy="passthrough_with_explicit_status", audit_samples=5, input_root="input", output_root="out/job")
 
     def run(out="out/job", resume=False, only=(), drop=(), **extra):
         data = {k: v for k, v in dict(config, output_root=out, **({"resume": resume} if resume is not False else {}), **extra).items()
@@ -63,10 +63,10 @@ def sample(tmp_path, monkeypatch):
 def fail_on(monkeypatch, part):
     real = job.process_part
 
-    def flaky(source, shard, output, batch_size):
+    def flaky(source, shard, output, batch_size, **more):
         if shard["path"] == part:
             raise job.JobError("injected failure: " + part)
-        return real(source, shard, output, batch_size)
+        return real(source, shard, output, batch_size, **more)
 
     monkeypatch.setattr(job, "process_part", flaky)
 
@@ -157,7 +157,7 @@ def test_only_runs_those_parts_and_says_the_run_is_partial(sample):
     assert json.loads((tmp / "out/job/cleaned_manifest.json").read_text())["complete_sample"] is False
 
 
-@pytest.mark.parametrize("key", ["clean", "clean_sha256", "manifest", "manifest_sha256", "expected_parts", "batch_size", "unsupported_policy"])
+@pytest.mark.parametrize("key", ["clean", "clean_sha256", "manifest", "manifest_sha256", "expected_parts", "batch_size", "unsupported_policy", "audit_samples"])
 def test_a_config_without_a_required_key_names_it(sample, key):
     tmp, shards, run = sample
     with pytest.raises(job.JobError, match=f"the config lacks .*{key}"):
@@ -177,7 +177,10 @@ def test_a_config_without_folders_needs_them_on_the_command_line(sample):
                                         (dict(unsupported_policy="drop"), "unsupported pack policy must be explicit"),
                                         (dict(batch_size=0), "batch_size must be a positive integer"),
                                         (dict(batch_size="2"), "batch_size must be a positive integer"),
-                                        (dict(batch_size=True), "batch_size must be a positive integer")])
+                                        (dict(batch_size=True), "batch_size must be a positive integer"),
+                                        (dict(audit_samples=-1), "audit_samples must be a whole number"),
+                                        (dict(audit_samples="5"), "audit_samples must be a whole number"),
+                                        (dict(audit_samples=True), "audit_samples must be a whole number")])
 def test_settings_the_job_does_not_accept_are_refused(sample, extra, why):
     tmp, shards, run = sample
     with pytest.raises(job.JobError, match=why):
