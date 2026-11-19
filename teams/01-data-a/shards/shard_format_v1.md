@@ -117,7 +117,7 @@ those are reported as `not_sharded`, which is not an error (the writer refuses a
 - **No document to write:** a part with no rows (dedup or F2 removed them all) is `empty`; one whose every row the writer
   left out is `all_left_out`, with the doc_ids per reason in its summary entry (`left_out_docs`). Neither gets a shard, so
   there is never a zero-token shard.
-- **Restart:** each shard's manifest is written last (to `.tmp`, then renamed) and the summary is saved after every part.
+- **Restart:** each shard's manifest is written last (to `.tmp`, then renamed) and the summary is saved before the first shard and after every part.
   The same command run again into the same `--out` keeps every part already done whose shards have the sha256 their
   manifests give, removes what a stopped run left of the next one (its pack's files from that number on, and `.tmp`), and
   writes the rest. Other settings (`--tokens`, `--dataset-version`, tokenizer) are refused, as is an `--out` holding shards
