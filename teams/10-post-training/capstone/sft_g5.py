@@ -512,6 +512,10 @@ def run(args) -> dict:
             seed=args.seed,
             reason=f"sft_{args.method}",
         )
+    if args.keep_weights_dir:  # default off: save this arm's plain weights as a Team 7 run folder for Team 9's reader
+        import keep_weights  # noqa: PLC0415
+        report["kept_weights"] = keep_weights.save_run_folder(lm, args.keep_weights_dir, args.keep_run_id, step=len(log),
+                                                              probe_fn=keep_weights.team5_probe)
     report["log"] = log
     report["first_loss"], report["last_loss"] = log[0]["loss"], log[-1]["loss"]
     (out / "sft_report.json").write_text(json.dumps(report, indent=1, default=str), encoding="utf-8")
@@ -659,6 +663,9 @@ def parse_args(argv=None):
     p.add_argument("--team7-run-id", type=str, default=None, help="run_id for Team 7 Checkpointer (default: --out folder name)")
     p.add_argument("--team7-local-root", type=Path, default=None, help="local staging dir for Team 7 Checkpointer")
     p.add_argument("--team7-export-path", type=Path, default=None, help="output path for Team 7 export_safetensors")
+    p.add_argument("--keep-weights-dir", type=Path,
+                   help="default off: also save the final plain weights as a Team 7 run folder <dir>/<keep-run-id>")
+    p.add_argument("--keep-run-id", default="g10-sft", help="run id (folder name) of the kept weights")
     p.add_argument("--out", type=Path, required=True)
     return p.parse_args(argv)
 

@@ -38,3 +38,22 @@ Test log:        REQUIRED before sending. Not yet attached. Run the save and rel
 
 - One job answers one question. The eval-mini scoring is a separate request, so the two can be sent apart.
 - No benchmark item text goes into any file in this request.
+
+## Update 19 Nov 2026 (f20201351h-maker), PR saitej123/era-v5-lab#126
+
+Written the same evening the lead added `--team7-ckpt-remote` to `capstone/sft_g5.py` (c7c7324d). Nothing above was edited, and that
+flag and its test are unchanged by PR 126. What PR 126 adds next to it:
+- The pass-through that item 2 lists as still open: `--keep-weights-dir` and `--keep-arm {a2,a4}` on `capstone/sft_job_v1.py`. Today
+  they call PR 126's own save (`capstone/keep_weights.py`, reached through `--keep-weights-dir` on `sft_g5.py`: weights only, no
+  optimizer state, probe function equal to Team 9's `lm_eval_lab.probe_loss`), not `--team7-ckpt-remote`. The two saves are
+  independent and both default off. Which one the wrapper should call is the lead's choice; switching it is a small change.
+- `--keep-weights-dir` on `capstone/rl_job_v1.py` (the final RL weights).
+- Read-back on the CPU stand-in: Team 7's `export_safetensors`, fed Team 9's own model builder and probe (`lm_eval_lab.build_model`,
+  `probe_loss`), reads the kept folder and the exported file loads `strict=True`. Team 9's `run_lab_ckpt.py --run-dir` with its
+  default smoke scorer does not read a folder that holds Team 5's `LanguageModel` (it builds the tiny MoE, so the keys differ), and
+  its real scorer needs `lm_eval`, which was not installed here, so no benchmark scoring of a kept folder was run. That is part of
+  item 4. Not shown: a GPU run or the real checkpoint.
+- Item 5 (test log): `capstone/test_keep_weights.py`, `test_keep_weights_adapters.py`, `test_keep_weights_wiring.py`,
+  `test_keep_weights_real_model.py`, and the end-to-end log of `sft_job_v1.py` with the two flags (PR 126 body).
+- Still open: 1 (#587 results), 3 (route decision, lead), 4 (Team 9's confirmation of which format their watcher reads), 6 (lead approval).
+- Measured, not estimated: the #587 model (Team 5 `configs/arms/t2.yaml`, built on CPU) has 237,052,416 parameters, which matches the line above.
