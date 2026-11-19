@@ -4,17 +4,18 @@
 
 **Assignment.** Run the T2 arm `exp3-experts-32` (`configs/arms/exp3_experts_32.yaml`, 32 routed experts in place of 16) again at a new seed, 1243. Report its bits per byte next to the seeds already run. The job request is pull request 466 (`jobs/2026-11-14-rotation-experts32-seed1243.md`), approved by the lead and TSAI and merged on 16 Nov 2026. As Team 05 set out, one new seed names no winner and does not change config v1. The T2 reference was not run again.
 
-**Status: result pending.** TSAI has not posted the result of pull request 466 yet. It was asked for on pull request 466 and in the Team 05 group on 19 Nov 2026. This file states the R2 rule now, so the verdict follows from the number alone. The number goes in the same day it comes.
+**Status: done.** TSAI posted the result on pull request 466 on 19 Nov 2026 (15:10 IST): status COMPLETED, 1,221 of 1,221 steps. The R2 rule below was fixed in pull request 659 before the result came.
 
 ## R1: the run
 
 | Held-out bits per byte at step 1,221 | exp3-experts-32, seed 1243 |
 |---|---|
-| Steps finished | pending (of 1,221) |
-| val/bpb (whole held-out file) | pending |
-| English | pending |
-| Code | pending |
-| Indic (mean of slices) | pending |
+| Steps finished | 1,221 of 1,221 (COMPLETED) |
+| val/bpb (whole held-out file) | 1.7697 |
+| English | 2.0795 |
+| Code | 2.1002 |
+| Indic (mean of slices) | 1.6216 |
+| three_group_bpb | 1.9338 |
 
 Lower is better. The run is pinned to trainer `71bc0fb` with `runtime_fast.yaml` and the TSAI speed fixes, the same setup as the week 2 T2 runs.
 
@@ -34,7 +35,11 @@ The SD is the sample standard deviation of the four reference seeds.
 - **If it lies outside**, this file gives how far outside, and the gap to the reference mean against the SD.
 - Either way, one seed names no winner, and config v1 is unchanged.
 
-**Verdict:** pending the TSAI result.
+**Verdict: the result holds.** Seed 1243 gives val/bpb 1.7697. That is inside the reference range (1.7542 to 1.7796), 0.0004 below the reference mean of 1.7701, which is 0.03 SD. At this size, 32 routed experts cannot be told apart from 16 on one seed. There is no winner, and config v1 is unchanged.
+
+With the arm's two earlier seeds (mean 1.7716, TSAI T2 table of 13 Nov), the three-seed mean of exp3-experts-32 is 1.7710, 0.0009 above the reference mean.
+
+**TSAI's reading on pull request 466** compares this run with 16+1 experts at 1.7542 and 8 experts (seed 1242) at 1.7631, and calls it "worse than both". Both of those are single-seed values. 1.7542 is the reference at seed 1237, the lowest of its four seeds. Against the four-seed range fixed above, the gap is inside the seed spread. Both readings lead to the same decision: keep 16+1, and config v1 is unchanged.
 
 ## Limits
 
@@ -46,4 +51,5 @@ The SD is the sample standard deviation of the four reference seeds.
 
 - Job request and CPU smoke log: `jobs/2026-11-14-rotation-experts32-seed1243.md` and `jobs/evidence/2026-11-14-rotation-experts32-seed1243/` (pull request 466).
 - Reference numbers: the TSAI comment on pull request 462, 15 Nov 2026.
-- Result: pending, expected as a TSAI comment on pull request 466.
+- Result: the TSAI comment on pull request 466, 19 Nov 2026 (15:10 IST).
+- R2 rule, fixed before the result: pull request 659 (merged 19 Nov 2026).
