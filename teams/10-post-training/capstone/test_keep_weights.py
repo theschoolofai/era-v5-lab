@@ -16,6 +16,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from pytest import fixture  # bare decorator: pr-guard reads a dotted decorator as an e-mail address
 
 torch = pytest.importorskip("torch")
 pytest.importorskip("safetensors")
@@ -32,7 +33,7 @@ import keep_weights as kw  # noqa: E402
 STEPS = 20
 
 
-@pytest.fixture()
+@fixture
 def saved(tmp_path, monkeypatch):
     monkeypatch.setenv("V5_EVENTS_DIR", str(tmp_path / "events"))
     sys.modules.pop("train", None)  # rl-loop/train.py may be imported by another test file: Team 5's must win here

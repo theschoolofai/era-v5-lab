@@ -12,6 +12,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from pytest import fixture  # bare decorator: pr-guard reads a dotted decorator as an e-mail address
 
 torch = pytest.importorskip("torch")
 pytest.importorskip("safetensors")
@@ -65,7 +66,7 @@ def _reload(tmp_path, model):
     return plain.eval()
 
 
-@pytest.fixture(autouse=True)
+@fixture(autouse=True)
 def _events(tmp_path, monkeypatch):
     monkeypatch.setenv("V5_EVENTS_DIR", str(tmp_path / "ev"))
     torch.use_deterministic_algorithms(True)
