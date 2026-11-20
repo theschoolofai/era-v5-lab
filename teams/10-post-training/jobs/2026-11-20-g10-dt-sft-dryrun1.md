@@ -24,7 +24,7 @@ Test log:        CPU, stand-in model, from the job script itself: exit 0, 5 of 5
 ## Blocked by
 
 1. **The #587 result.** It decides the arm (A2 or A4) and the rows.
-2. **DT settings.** The values of the DT flags for the real model are the lead's and the Task 11 owner's choice; the defaults above are only what the stand-in used.
+2. **DT settings.** The values of the DT flags for the real model are the lead's and the Task 11 owner's choice; the defaults above are only what the stand-in used. That includes the learning rate: with the #587 arguments unchanged the DT arm runs at the job's `--lr 1e-4` (marker rows at `--marker-lr 1e-3`, weight decay 0). Our only DT learning-rate measurements are on `SmolLM2-135M` at 5e-4 and 2e-3 (`results/dt_lr_check_20261118.md`, one seed); nothing has been measured at 1e-4 or on this model.
 3. **A probe expectation for the #475 checkpoint,** computed by Team 5's own loading path (see `2026-11-19-g10-rl-dryrun1.md`, "Questions for TSAI", item 4), because the adapter refuses a delivered run folder without it.
 4. **Lead approval** and the mask file size on the real shape (stand-in: 81 KB for 1.67 million targeted weights; the real size is not measured).
 

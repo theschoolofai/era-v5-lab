@@ -100,7 +100,11 @@ def copy_canary_state(arm_out: Path, dest: Path) -> dict:
     sums = {}
     for n in CANARY_FILES:
         shutil.copyfile(arm_out / n, dest / n)
-        sums[n] = hashlib.sha256((dest / n).read_bytes()).hexdigest()
+        h = hashlib.sha256()
+        with (dest / n).open("rb") as f:  # hashed in 1 MiB chunks: the weights file is about 1 GB on the real model
+            for chunk in iter(lambda: f.read(1 << 20), b""):
+                h.update(chunk)
+        sums[n] = h.hexdigest()
     (dest / "SHA256SUMS").write_text("".join(f"{v}  {k}\n" for k, v in sums.items()))
     return {"dir": str(dest), "sha256": sums}
 
