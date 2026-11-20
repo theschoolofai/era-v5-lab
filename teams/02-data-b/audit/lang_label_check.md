@@ -16,8 +16,8 @@ re-runs unchanged on the full corpus.
 
 - **The labels hold.** Of 206,571 documents judged in the 10 packs, 205,244 (99.36%) agree with their pack's language.
   2 are flagged as another language, both in `ind-bn-sangraha-v`, where the marker words name Sanskrit in Bengali
-  script. 114 are uncertain; no pack has more than 0.3% uncertain. What the flagged and uncertain documents really are
-  is for the readers to say (section 3.3).
+  script; a Sanskrit reader confirms both (section 3.3). 114 are uncertain; no pack has more than 0.3% uncertain. Of 7
+  uncertain ones where IndicLID said Sanskrit, both Sanskrit readers find none Sanskrit alone (mixed pages or Hindi).
 - **No filter drops over 20%.** clean.py does not record which filter dropped a document, so the lead's shard audit
   (#523, `audit_v1.csv`) gives drop rates per pack. The highest is 9.82% (`ind-hi-sangraha-s`), so no single filter in
   any pack can be over 20%. Four packs have no shard (ml, or, ta-fw2, ta-sangraha-s); they were not cleaned, so their
@@ -134,25 +134,33 @@ ones, then `uncertain` ones spread over the packs. The `reader` column says who 
 Sanskrit is the pack's or the found language, otherwise the pack's language): 9 Sanskrit, 4 Marathi, 4 Hindi, 3 Bengali.
 Readers fill `reader_says_lang` and `reader_note`. This section is updated as they come back.
 
-**Sanskrit rows (20 Nov).** Read by @keshavamurali, who wrote this tool, from a sheet that showed only the doc ID and
-text (no pack, no verdicts). Answers are copied word for word from the reader.
+**Sanskrit rows (20 Nov), two readers.** Reader 1 is @keshavamurali, who wrote this tool, reading from a sheet that
+showed only the doc ID and text (no pack, no verdicts). Reader 2 is @riteshverma, who used an AI first pass to draft his
+lines and then checked them against the text himself. Answers are copied word for word into
+`lang_label_review_sample.csv` (`reader_*` and `reader2_*` columns).
 
-| doc_id | pack | tool verdict | tool found | markers | reader says | reader note |
-|---|---|---|---|---|---|---|
-| `142fb046694e60a8` | ind-bn-sangraha-v | mislabelled | sa_Beng | sa_Beng | not read | reader does not read Bengali script |
-| `f16cdf5da3420ff9` | ind-bn-sangraha-v | mislabelled | sa_Beng | sa_Beng | not read | reader does not read Bengali script |
-| `1b10d275569b1b07` | ind-hi-fw2 | uncertain | sa | hi | mixed | Sanskrit with Hindi translation |
-| `5d72213f39cd2ebf` | ind-hi-sangraha-s | uncertain | sa | unknown | hi | mostly meaningless. Just group of words. |
-| `bacb55d31f5b0653` | ind-hi-sangraha-v | uncertain | sa | hi | mixed | Mix of Sanskrit, Prakrit and Hindi |
-| `13b7aafd962fdc0d` | ind-hi-sangraha-v | uncertain | sa | hi | mixed | Hindi, Sanskrit and Prakrit |
-| `9f2118ef7416b3b3` | ind-hi-sangraha-s | uncertain | sa | unknown | hi | Hindi |
-| `012f90897ae4728a` | ind-hi-sangraha-v | uncertain | sa | hi | mixed | Hindi with Apabhramsha bhasha |
-| `cce99d56f83fa14d` | ind-mr-sangraha-v | uncertain | sa | mr | mixed | Mix of Sanskrit, Prakrit or Apabhamsha and Hindi |
+| doc_id | pack | tool verdict | tool found | markers | reader 1 | reader 1 note | reader 2 | reader 2 note |
+|---|---|---|---|---|---|---|---|---|
+| `142fb046694e60a8` | ind-bn-sangraha-v | mislabelled | sa_Beng | sa_Beng | not read | reader does not read Bengali script | sa | Sanskrit in Bengali script: Varaha Purana ch. 7-8 verses, OCR noise, no Bengali prose |
+| `f16cdf5da3420ff9` | ind-bn-sangraha-v | mislabelled | sa_Beng | sa_Beng | not read | reader does not read Bengali script | sa | Sanskrit in Bengali script: Sanskrit dictionary entries (Shabdakalpadruma style), a few vernacular glosses, OCR noise |
+| `1b10d275569b1b07` | ind-hi-fw2 | uncertain | sa | hi | mixed | Sanskrit with Hindi translation | mixed | sa+hi: news article, each paragraph in Sanskrit then its Hindi original, about half each |
+| `5d72213f39cd2ebf` | ind-hi-sangraha-s | uncertain | sa | unknown | hi | mostly meaningless. Just group of words. | hi | broken machine-translated Hindi dictionary etymology, no Sanskrit, very short |
+| `bacb55d31f5b0653` | ind-hi-sangraha-v | uncertain | sa | hi | mixed | Mix of Sanskrit, Prakrit and Hindi | mixed | hi+sa+Prakrit: Hindi commentary on Jain karma theory with Sanskrit and Prakrit quotations |
+| `13b7aafd962fdc0d` | ind-hi-sangraha-v | uncertain | sa | hi | mixed | Hindi, Sanskrit and Prakrit | mixed | sa+hi+Prakrit: Prakrit gathas with Sanskrit chhaya and commentary, then Hindi translation |
+| `9f2118ef7416b3b3` | ind-hi-sangraha-s | uncertain | sa | unknown | hi | Hindi | hi | machine-translated Hindi title of a US court case, no Sanskrit, very short |
+| `012f90897ae4728a` | ind-hi-sangraha-v | uncertain | sa | hi | mixed | Hindi with Apabhramsha bhasha | mixed | hi+Apabhramsha+sa: Hindi prose on poet Pushpadanta, long Apabhramsha footnotes, a few Sanskrit lines |
+| `cce99d56f83fa14d` | ind-mr-sangraha-v | uncertain | sa | mr | mixed | Mix of Sanskrit, Prakrit or Apabhamsha and Hindi | mr | Marathi notes on Sanskrit metres, many Sanskrit metre names and quoted sutras |
 
-- 7 of 9 read: 5 `mixed`, 2 `hi`, none Sanskrit alone. All 7 are `uncertain`, not flagged, so the tool flagged none of
-  them wrongly; where the tool found Sanskrit (from IndicLID), the reader found Sanskrit mixed with Hindi, or Hindi.
-- 4 of the 5 mixed documents include Prakrit or Apabhramsha, which IndicLID has no class for (see section 5).
-- The 2 `mislabelled` flags (Bengali script) are still unread and need a reader of Sanskrit in Bengali script.
+- **The 2 flags:** reader 2 reads both as Sanskrit in Bengali script, as the tool found (`sa_Beng`). Reader 1 does not
+  read Bengali script. So both flags are confirmed by one reader.
+- **The 7 uncertain documents:** both readers read all 7 and agree on 6. They differ on `cce99d56f83fa14d`
+  (reader 1 `mixed`, reader 2 `mr`). Neither reader calls any of the 7 Sanskrit alone, though IndicLID's vote said
+  Sanskrit for all 7; the tool flagged none of them, because the marker words did not agree.
+- Reader 2's notes: the IndicLID-Sanskrit documents in the Hindi packs are mostly mixed pages or broken
+  machine-translated Hindi, not Sanskrit labelled as Hindi. Two (`5d72213f39cd2ebf`, `9f2118ef7416b3b3`) are short
+  garbled Hindi that IndicLID called Sanskrit with a full vote. Requiring the marker words to agree kept them out of
+  the flags.
+- Both readers name Prakrit or Apabhramsha in Jain texts, which IndicLID has no class for (section 5).
 - The Marathi, Hindi and Bengali rows are still with their readers.
 
 ## 4. Filters that drop over 20%
@@ -179,7 +187,8 @@ drop.
 
 ## 5. Limits
 
-- **IndicLID's label list** has no class for Kumaoni or other Pahari languages, nor for Sanskrit outside Devanagari.
+- **IndicLID's label list** has no class for Kumaoni or other Pahari languages, nor for Sanskrit outside Devanagari, nor for
+  Prakrit or Apabhramsha (found by both Sanskrit readers in Jain texts, section 3.3).
   Hindi against its dialects (Maithili, Bhojpuri, Awadhi, Kumaoni) cannot be checked with it.
 - **Short documents:** IndicLID is unreliable under about 100 letters. These are `short_disagree`, not flags.
 - **Mixed documents** get one label per document; paragraph votes make them `uncertain`, not split.
