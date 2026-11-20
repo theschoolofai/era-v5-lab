@@ -9,6 +9,7 @@ from contextlib import nullcontext
 import hashlib
 import importlib
 import json
+import math
 from pathlib import Path
 import random
 import re
@@ -179,6 +180,10 @@ def main():
     p.add_argument(
         "--run-id", help="Shared job run ID (letters, digits, dots, dashes, underscores)"
     )
+    p.add_argument(
+        "--watchdog-s", type=float, default=os.environ.get("WATCHDOG_S", "0"),
+        help="Step progress timeout in seconds (defaults to WATCHDOG_S or 0, which disables)",
+    )
     p.add_argument("--stop-after", type=int)
     p.add_argument(
         "--no-checkpoint",
@@ -191,6 +196,15 @@ def main():
     args = p.parse_args()
     if args.expert_load_every < 0:
         p.error("--expert-load-every must be nonnegative")
+    if not math.isfinite(args.watchdog_s) or args.watchdog_s < 0:
+        p.error("--watchdog-s must be a finite nonnegative number")
+    if args.watchdog_s:
+        try:
+            from week2.watchdog import StepWatchdog
+        except ModuleNotFoundError as error:
+            if error.name not in ("common", "common.events", "common.reasons"):
+                raise
+            p.error("Add teams/07-infrastructure to PYTHONPATH to use --watchdog-s")
     started = time.perf_counter()
     if args.out.exists() and any(args.out.iterdir()):
         p.error("Use a fresh output directory")
@@ -394,6 +408,8 @@ def main():
     }
     if data_load_started is not None:
         manifest["data_load_seconds"] = data_load_seconds
+    if args.watchdog_s:
+        manifest["watchdog_s"] = args.watchdog_s
     (args.out / "manifest.json").write_text(
         json.dumps(manifest, indent=2), encoding="utf8"
     )
@@ -434,12 +450,15 @@ def main():
             external.write(row)
 
     writer = JsonWriter(args.out, cfg["run"]["flush_every_steps"])
+    watchdog = StepWatchdog(args.watchdog_s) if args.watchdog_s else None
     try:
         if args.logger_factory:
             module, name = args.logger_factory.split(":", 1)
             external = getattr(importlib.import_module(module), name)(args.out)
         for row in rows:
             log(row)
+        if watchdog is not None:
+            watchdog.arm(completed)
         if not rows:
             row = dict(
                 step=0,
@@ -462,6 +481,8 @@ def main():
             ):
                 timed_out = True
                 break
+            if watchdog is not None:
+                watchdog.arm(completed)
             if device.type == "cuda":
                 torch.cuda.synchronize()
             tick = time.perf_counter()
@@ -522,6 +543,8 @@ def main():
             trace.append(total)
             ntp_trace.append(ntp_value)
             completed = step
+            if watchdog is not None:
+                watchdog.arm(completed)
             row = {
                 "step": step,
                 "train/ce_loss": ntp_value,
@@ -561,6 +584,8 @@ def main():
                 row["muon_lr"] = cfg["optim"]["muon_lr"]
             rows.append(row)
             log(row)
+        if watchdog is not None:
+            watchdog.disarm()
         # Interrupted segments must not introduce extra validation events into resume history.
         writer.flush()
         if external is not None:
@@ -619,6 +644,8 @@ def main():
             encoding="utf8",
         )
     finally:
+        if watchdog is not None:
+            watchdog.close()
         try:
             writer.close()
         finally:
