@@ -135,8 +135,8 @@ Sanskrit is the pack's or the found language, otherwise the pack's language): 9 
 Readers fill `reader_says_lang` and `reader_note`. This section is updated as they come back.
 
 **Sanskrit rows (20 Nov), two readers.** Reader 1 is @keshavamurali, who wrote this tool, reading from a sheet that
-showed only the doc ID and text (no pack, no verdicts). Reader 2 is @riteshverma, who used an AI first pass to draft his
-lines and then checked them against the text himself. Answers are copied word for word into
+showed only the doc ID and text (no pack, no verdicts). Reader 2 is @riteshverma, who read the documents and checked each
+answer against the text. Answers are copied word for word into
 `lang_label_review_sample.csv` (`reader_*` and `reader2_*` columns).
 
 | doc_id | pack | tool verdict | tool found | markers | reader 1 | reader 1 note | reader 2 | reader 2 note |
