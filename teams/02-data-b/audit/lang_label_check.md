@@ -1,7 +1,7 @@
 # Language labels of script-sharing packs (Week-3 task 5)
 
-**Status: draft, 17 Nov. The numbers are preliminary** until the Marathi and Sanskrit readers check the 20 documents in
-`lang_label_review_sample.csv`.
+**Status: 20 Nov.** The Sanskrit reader check is done (9 rows, two readers; both flags confirmed, section 3.3).
+**Pending:** the Marathi (4), Hindi (4) and Bengali (3) rows of `lang_label_review_sample.csv`, with their readers.
 
 Task (Week-3 work order, task 5): "Check the language labels of script-sharing pairs (Hindi and Marathi, for example).
 Flag each filter that drops over 20%." Owner: @keshavamurali. Scope as agreed with the lead (16 Nov): labels that are
@@ -161,7 +161,7 @@ answer against the text. Answers are copied word for word into
   garbled Hindi that IndicLID called Sanskrit with a full vote. Requiring the marker words to agree kept them out of
   the flags.
 - Both readers name Prakrit or Apabhramsha in Jain texts, which IndicLID has no class for (section 5).
-- The Marathi, Hindi and Bengali rows are still with their readers.
+- **Pending:** the Marathi (4), Hindi (4) and Bengali (3) rows of `lang_label_review_sample.csv`, with their readers.
 
 ## 4. Filters that drop over 20%
 
@@ -202,7 +202,8 @@ drop.
   and Sanskrit readers would make the marker signal theirs.
 - **The same-script rule** (90% in the pack's script) counts documents a reader may have marked D1 for another reason.
   A D1 sub-code for "same script, other language" in the readers' labels would replace it.
-- **Few positives:** 6 same-script documents by the rule. Recall is unknown until the reader check (section 3.3).
+- **Few positives:** 6 same-script documents by the rule. Recall is unknown.
+  **Pending:** the Marathi, Hindi and Bengali reader rows (section 3.3).
 - The CAP-1 run includes the Heldout parts (about 1% of each pack); the shard audit's counts are Part_1 only.
 
 ## 6. How to run it
