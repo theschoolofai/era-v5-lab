@@ -14,8 +14,14 @@ re-runs unchanged on the full corpus.
 
 ## In short
 
-- **The labels hold.** Of 206,571 documents judged in the 10 packs, 205,244 (99.36%) agree with their pack's language.
-  2 are flagged as another language, both in `ind-bn-sangraha-v`, where the marker words name Sanskrit in Bengali
+- **No disagreement detected; this does not prove the labels are right.** 205,244 documents agree with their pack's
+  language: 99.36% of the 206,571 judged documents, 97.77% of all 209,926. Not judged: 3,138 `short` and 217
+  `other_script`. The marker words are consulted only when IndicLID disagrees with the pack, so a language that IndicLID
+  absorbs into Hindi or Bengali cannot be flagged. The check catches 0 of the 6 same-script documents readers marked D1,
+  and in `ind-sa-fw2` the 6 rows where IndicLID says Sanskrit but the marker words say Hindi (4) or Marathi (2) all
+  come out `agree`. Of the judged documents that do not agree: 1,211 are `short_disagree` (too short to trust
+  IndicLID, so unresolved), 114 uncertain, 2 flagged.
+  The 2 flagged are marked as another language, both in `ind-bn-sangraha-v`, where the marker words name Sanskrit in Bengali
   script; a Sanskrit reader confirms both (section 3.3). 114 are uncertain; no pack has more than 0.3% uncertain. Of 7
   uncertain ones where IndicLID said Sanskrit, both Sanskrit readers find none Sanskrit alone (mixed pages or Hindi).
 - **No filter drops over 20%.** clean.py does not record which filter dropped a document, so the lead's shard audit
