@@ -46,3 +46,20 @@ No gate is named in these files. The suite is development evidence for the effor
 - [results/effort_stageB_qwen_2026-11-12/report.md](../results/effort_stageB_qwen_2026-11-12/report.md)
 - [results/effort_stageB_olmoe_2026-11-12/report.md](../results/effort_stageB_olmoe_2026-11-12/report.md)
 - [results/attainability_survey_code2048.md](../results/attainability_survey_code2048.md)
+\n
+## Proposed v2 manifest (20 Nov 2026, f20201351h-maker)
+
+`effort_manifest_v2_proposed.json` (suite `g10-effort-dev-v2-proposed`) is a proposal. `effort_manifest.json` (v1) is byte-identical to before and stays the suite. v2 keeps v1's 55 resolved code and math slots as equal objects, resolves the 30 slots that v1 marked unavailable for tool use and general (20 API-Bank calls, 10 QASC questions) and leaves the 15 Indic slots unavailable with v1's reason. It becomes the suite only when the lead signs the two new rows in `licences/licence_table.md` and accepts it. This README states no rule for amending a frozen manifest; the proposal therefore changes no v1 file and carries its own `manifest_sha256`, computed by the same rule (`manifest_digest`).
+
+- Slot choice: v1's rule and seed (`selection_seed` g10-effort-dev-v1): lowest sha256(seed:id); one slot per distinct QASC question; at most one API-Bank call per dialogue file.
+- Prompt text comes from the pinned sets only. A QASC prompt is the set's `formatted_question`. An API-Bank prompt is the set's API descriptions for every API in the dialogue, then the dialogue up to the gold call, in the rendering of the set's own `evaluator.py`. Harness instructions (`DEFAULT_INSTRUCTIONS` in `effort_suite.py`) live in code and are not in any hash.
+- Checkers: `answer_key` (one letter A to H; rules in the docstring of `extract_answer_key`) and `api_call` (one bracket call, API name and every parameter equal to gold, extra or missing parameters fail). The set's own evaluator executes the call and tolerates per-API differences; this one is stricter.
+
+```bash
+python teams/10-post-training/eval/effort_suite.py build-v2-manifest --pins PINS.json --qasc-dir DIR/qasc --qasc-revision a34ba204eb9a33b919c10cc08f4f1c8dae5ec070 --apibank-dir DIR/api-bank --apibank-revision f30ccf22b4e2617fab32958d4c03f5c1f2e7dfcf --out teams/10-post-training/eval/effort_manifest_v2_proposed.json
+EFFORT_V2_DATA=DIR python -m pytest teams/10-post-training/eval/test_effort_suite_v2.py -q -p no:cacheprovider
+```
+
+`DIR` holds `qasc/` and `api-bank/` in the layout of their upstream repositories; `PINS.json` maps each downloaded file's relative path to its sha256. Without `EFFORT_V2_DATA` the tests that read the pinned files are skipped.
+
+Not checked: no model has been run on the 30 slots; the exact-match API checker has not been compared with the set's own executing evaluator; no human has read the 30 prompts for ambiguity (QASC distractors can be valid); overlap with the SFT and RL training data is recorded in the pull request, not here; the licence rows are unsigned.
