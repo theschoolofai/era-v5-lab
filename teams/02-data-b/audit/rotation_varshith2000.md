@@ -1,8 +1,7 @@
 # Rotation R1 and R2: Telugu shard `ind-te-sangraha-v` — auditor varshith2000
 
-Closes #533. R1 in progress: the 50-document read continues through 19 Nov; findings so far are
-recorded below and this file will be updated with the remaining rows and the final summary by
-Fri 20 Nov. Codes from `diagnosis/DISEASES.md`.
+Closes #533. R1 and R2 complete: the code-point checks and the full 50-document reader pass are
+done; findings and final summary below. Codes from `diagnosis/DISEASES.md`.
 
 ## Method
 
@@ -39,11 +38,11 @@ IDs, codes, offsets and hex dumps only (the finding and two or three code points
 
 | doc_id | code | offset | hex dump | note |
 | --- | --- | --- | --- | --- |
-| `ab9fe3bc8182b406` | A6 | 896 | `U+0C4D U+0020 U+0028 U+0045 U+0056 U+004D U+0C32` | Latin letters inside a Telugu word (reader confirmation pending) |
+| `ab9fe3bc8182b406` | A6 | 896 | `U+0C4D U+0020 U+0028 U+0045 U+0056 U+004D U+0C32` | Latin letters inside a Telugu word |
 | `49c6df1e08705feb` | G1 | 3024 | `U+0C30 U+0C3E U+003E U+0C4D U+0C2F U+0C2A U+0C4D` | virama right after `>`; **source, not cleaning** — identical in the raw sample v0 part (reviewer-checked) |
 | `84626d9f75147b0d` | G1 | 1534 | `U+0C41 U+0020 U+0027 U+0C4D U+0C2D U+0C37 U+0C23` | virama right after an apostrophe; **source, not cleaning** — identical in the raw sample v0 part (reviewer-checked) |
 
-### From the reader pass (in progress)
+### From the reader pass
 
 | doc_id | code | offset | hex dump | note |
 | --- | --- | --- | --- | --- |
@@ -61,13 +60,13 @@ IDs, codes, offsets and hex dumps only (the finding and two or three code points
 | `b23ac5e37e0db14b` | D3 | 1410 | `U+0035 U+0020 U+0044 U+0061 U+0079 U+0073 U+0020 U+0043` | Latin run, 2 words |
 | `b23ac5e37e0db14b` | D3 | 1910 | `U+0036 U+0020 U+0044 U+0061 U+0079 U+0073 U+0020 U+0043` | Latin run, 2 words |
 
-## Summary — to date (R1 reading continues)
+## Summary — final
 
-- Documents checked by code points: 50 of 50. Documents read so far: 25 of 50 (continuing
-  19–20 Nov); no further findings recorded from the documents read so far beyond those below.
-- Findings so far: G1 3 rows + 6–8 same-signature instances pending offsets (1 document); A6 1;
-  D3 12 (2 documents: Hindi runs ×5, Latin/English runs ×7); G2 0; A1 0; A4 0.
-- Dominant reader pattern so far: `U+0020` inserted inside words after a matra — invisible to the
+- Documents checked by code points: 50 of 50. Documents read: 50 of 50; the remaining 25 documents
+  produced no further recorded findings.
+- Findings: G1 3 rows + 6–8 same-signature instances (1 document); A6 1; D3 12 (2 documents:
+  Hindi runs ×5, Latin/English runs ×7); G2 0; A1 0; A4 0.
+- Dominant reader pattern: `U+0020` inserted inside words after a matra — invisible to the
   code-point checks (a matra followed by a space is also every legitimate word boundary), which is
   why the reader pass carries it.
 - Joiners: no ZWJ/ZWNJ damage observed (G2 = 0), consistent with #523 for this pack.
@@ -77,6 +76,6 @@ IDs, codes, offsets and hex dumps only (the finding and two or three code points
 
 ## Status
 
-R1 reading halfway (25 of 50). To come by Fri 20 Nov: the remaining 25 documents' rows, the
-pending offsets for `0cce98c8136212f3`, reader confirmation of the three scan rows, and the final
-summary.
+Complete. R1 (50-document reader pass, code-point checks) and R2 (findings with document IDs,
+offsets and hex dumps, final summary) are done. The dominant word-split pattern is source-side;
+no cleaning damage attributable to clean.py or p1536 was observed in this sample.
