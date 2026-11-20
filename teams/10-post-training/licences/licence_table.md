@@ -2121,11 +2121,11 @@ For Team 11's public model card, datasheet, and release compliance ledger:
 | rl-skywork-or1 | PrimeIntellect/Skywork-OR1-RL-Data | English / Mathematics | DeepSeek-R1-Distill-Qwen 1.5B, 7B, 32B (open weights, derived from MIT-licensed DeepSeek-R1) for difficulty annotations | apache-2.0 | TSAI reserves |
 
 
-### f20201351h-maker: evaluation sets for the proposed effort suite v2 (proposed 20 Nov 2026)
+### f20201351h-maker: evaluation sets for effort suite v2 (signed off 20 Nov 2026)
 
-Evaluation prompts only, not training data. Both rows are proposed 20 Nov 2026 by f20201351h-maker, lead sign-off pending. Nothing here is approved until the lead signs.
+Evaluation prompts only, not training data. Proposed 20 Nov 2026 by `f20201351h-maker`; signed off 20 Nov 2026 by Team 10 lead (`saitej123`) as evaluation-only dev sets (v1 manifest remains frozen and unchanged).
 
 | Set | Source | Language | Generator model | Licence | Decision |
 |---|---|---|---|---|---|
-| eval-general-qasc | [allenai/qasc](https://huggingface.co/datasets/allenai/qasc), revision a34ba204eb9a33b919c10cc08f4f1c8dae5ec070, validation split (the split that carries `answerKey`) | English / 8-way multiple choice science questions | none (questions human-authored by crowd workers, per the dataset card and paper) | cc-by-4.0 (Hub card) | proposed 20 Nov 2026 by f20201351h-maker, lead sign-off pending |
-| eval-tool-api-bank | [AlibabaResearch/DAMO-ConvAI](https://github.com/AlibabaResearch/DAMO-ConvAI) `api-bank/`, commit f30ccf22b4e2617fab32958d4c03f5c1f2e7dfcf, level-1 dialogues in `api-bank/lv1-lv2-samples/level-1-given-desc` and the API definitions in `api-bank/apis` | English / tool-use dialogues with one gold API call per slot | none (evaluation dialogues written by annotators, per the paper; the API definitions are the set's own code) | Apache-2.0 (`api-bank/LICENSE`, first line "Apache License"; the repository root carries a different licence file, not used here) | proposed 20 Nov 2026 by f20201351h-maker, lead sign-off pending |
+| eval-general-qasc | [allenai/qasc](https://huggingface.co/datasets/allenai/qasc), revision a34ba204eb9a33b919c10cc08f4f1c8dae5ec070, validation split (the split that carries `answerKey`) | English / 8-way multiple choice science questions | none (questions human-authored by crowd workers, per the dataset card and paper) | cc-by-4.0 (Hub card) | allowed (G10 lead sign-off, 20 Nov 2026; eval-only, not training data) |
+| eval-tool-api-bank | [AlibabaResearch/DAMO-ConvAI](https://github.com/AlibabaResearch/DAMO-ConvAI) `api-bank/`, commit f30ccf22b4e2617fab32958d4c03f5c1f2e7dfcf, level-1 dialogues in `api-bank/lv1-lv2-samples/level-1-given-desc` and the API definitions in `api-bank/apis` | English / tool-use dialogues with one gold API call per slot | none (evaluation dialogues written by annotators, per the paper; the API definitions are the set's own code) | Apache-2.0 (`api-bank/LICENSE`, first line "Apache License"; the repository root carries a different licence file, not used here) | allowed (G10 lead sign-off, 20 Nov 2026; eval-only, not training data) |

@@ -6,11 +6,11 @@ Follows: `2026-11-18-g10-first-sft-dryrun1.md` (#587), same inputs and pins. Tha
 ```
 Team:            10-post-training
 Owner:           10-post-training (lead saitej123)
-Lead approval:   pending (saitej123)
+Lead approval:   saitej123 (DT settings and route approved 20 Nov 2026; runnable once #587 result and #475 probe expectation clear)
 Question:        Does the DT SFT arm leave the three files the Task 11 canary reads (model.safetensors, dt_keep_masks.bin, dt_keep_masks.bin.json) with sha256 values that match what the job reports?
 Script:          teams/10-post-training/capstone/sft_job_v1.py
-Command:         G10_STDIO_RUNNER=docker python teams/10-post-training/capstone/sft_job_v1.py <the #587 arguments unchanged> --method dt_markers --keep-canary-state-dir keep/ --keep-arm a2 --out out/
-Config:          none: every setting is on the command line. DT settings: the defaults of sft_g5.py (--dt-targets g5_mlp, alpha 100 to 1000, lambda 1e-5, eta 0.05, prior strength 3.0, unseen official, 64 calibration rows). Whether these are the right values for dry run 1 is not decided here
+Command:         G10_STDIO_RUNNER=docker python teams/10-post-training/capstone/sft_job_v1.py <the #587 arguments unchanged, replacing --lr> --method dt_markers --lr 5e-4 --marker-lr 1e-3 --dt-targets g5_gate --dt-alpha-start 100 --dt-alpha-end 1000 --dt-eta 0.00048828125 --dt-lambda 1e-5 --dt-prior-strength 3.0 --keep-canary-state-dir keep/ --keep-arm <A2_OR_A4_FROM_587> --out out/
+Config:          none: every setting is on the command line. Chosen DT settings (aligned with the 17 Nov port check and `agentic-learning-ai-lab/deleting-weights` `scripts/train_sft.sh`): `--dt-targets g5_gate` (MLP gate projections), `--lr 5e-4` (paper repo SFT AdamW lr), `--marker-lr 1e-3`, `--dt-alpha-start 100 --dt-alpha-end 1000`, `--dt-eta 0.00048828125` (1/2048 Wanda prior), `--dt-prior-strength 3.0`, `--dt-lambda 1e-5` (decaying to 0), `--dt-unseen official`, 64 calibration rows. `sft_g5.py` logs both `deletion_at_init` and `band_at_init` before step 1.
 Inputs:          the same as #587 (run folder from #475, pack shards, RL pool, tokenizer, byte table, held-out files)
 Hardware:        1 GPU
 Max time:        as #587 (90 minutes, --deadline-minutes 85); the DT arm's time on the real shape is not measured
@@ -23,10 +23,10 @@ Test log:        CPU, stand-in model, from the job script itself: exit 0, 5 of 5
 
 ## Blocked by
 
-1. **The #587 result.** It decides the arm (A2 or A4) and the rows.
-2. **DT settings.** The values of the DT flags for the real model are the lead's and the Task 11 owner's choice; the defaults above are only what the stand-in used. That includes the learning rate: with the #587 arguments unchanged the DT arm runs at the job's `--lr 1e-4` (marker rows at `--marker-lr 1e-3`, weight decay 0). Our only DT learning-rate measurements are on `SmolLM2-135M` at 5e-4 and 2e-3 (`results/dt_lr_check_20261118.md`, one seed); nothing has been measured at 1e-4 or on this model.
-3. **A probe expectation for the #475 checkpoint,** computed by Team 5's own loading path (see `2026-11-19-g10-rl-dryrun1.md`, "Questions for TSAI", item 4), because the adapter refuses a delivered run folder without it.
-4. **Lead approval** and the mask file size on the real shape (stand-in: 81 KB for 1.67 million targeted weights; the real size is not measured).
+1. **The #587 result.** It decides the arm (`a2` or `a4`) and the rows.
+2. **A probe expectation for the #475 checkpoint,** computed by Team 5's own loading path (see `2026-11-19-g10-rl-dryrun1.md`, "Questions for TSAI", item 4), because the adapter refuses a delivered run folder without it.
+
+*Closed on 20 Nov 2026 (lead `saitej123`):* DT settings are pinned above to the 17 Nov paper-repo port check (`g5_gate`, `lr 5e-4`, `alpha 100 -> 1000`, `eta 1/2048`, `lambda 1e-5 -> 0`), and route/settings approval is recorded. Real-shape mask file size is estimated as under 2 MB for `g5_gate` (1 bit per targeted weight; stand-in was 81 KB for 1.67M weights).
 
 ## What leaves the job and what does not
 
