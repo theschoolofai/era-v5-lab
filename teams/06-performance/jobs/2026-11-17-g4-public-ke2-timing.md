@@ -9,7 +9,7 @@ Script:          teams/04-ke2/src/timing/bench_public_ke.py
 Smoke command:   python -B teams/04-ke2/src/timing/bench_public_ke.py --device cuda --batch-size 2 --seq-len 16 --warmup 1 --steps 3 --out out/g4_public_p1536_cuda_smoke.json
 Full command:    python -B teams/04-ke2/src/timing/bench_public_ke.py --device cuda --batch-size 2 --seq-len 16 --warmup 10 --steps 100 --out out/g4_public_p1536_cuda.json
 Inputs:          p1536 raw P=32 table; tokenizer SHA-256 e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b; table content SHA-256 21072027b19ef6f05d57ead7a2fc9fb4c52129e491186bf38d0ba079e8d5168a
-Dependency:      PR #588 merged at d3be6e60b8f7309b69b8b8e3ada966a6f774c84e. After this scope-correction follow-up merges, pin the new exact class-main merge SHA before running. The table content hash is checked.
+Dependency:      Class main contains the isolated diagnostic from PR #624 at merge SHA 17fd544c57e207aebe6ee692444338c9e18753ea. Check out that commit or a later class-main commit containing it; record the exact checkout SHA in the CUDA JSON/stdout. The table content hash is checked.
 Hardware:        1 CUDA GPU
 Max time:        10 minutes
 Precision:       fp32 inference embedding call; no grad

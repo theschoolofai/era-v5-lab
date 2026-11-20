@@ -58,17 +58,56 @@ def test_train_translation_of_heldout_is_removed_when_allowed(repo):
     assert pairs[0]["outcome"] == "removed"
 
 
-def test_group_survivor_goes_when_a_removed_copy_translates_heldout(repo):
-    # a and b are H2 copies (b survives, rule 3); the H3 match is from a, already removed, to held-out h:
-    # b is a copy of a translation of h, so it goes too, and the group ends with no survivor
+def _roles(repo):
+    return {r["doc_id"]: r["role"] for r in csv.DictReader((repo / "out/dedup/dedup_groups.csv").open(encoding="utf-8"))}
+
+
+def _removed(repo):
+    return sorted(r["doc_id"] for r in csv.DictReader((repo / "out/dedup/remove_list.csv").open(encoding="utf-8")))
+
+
+@pytest.mark.parametrize("remove", [False, True])
+def test_only_direct_edges_remove_group_survivor_stays(repo, remove):
+    # TSAI, #625, 19 Nov: only direct edges remove. a and b are H2 copies (b survives, rule 3); H3 matches a, already
+    # removed by H2, with held-out h. b was never matched with h, so it stays, in both modes
     docs = [("a", "en-a", "train", 100), ("b", "en-a", "train", 120), ("h", "ind-x-fw2", "heldout", 100)]
     make_run(repo, docs, [(0, 1, "H2", 0.9, "")])
-    s, log, _ = run(repo, h3={"matches": write_h3(repo, docs, [(0, 2, 0.75)]), "remove": True})
-    assert log["a"]["rule"] == "H2" and log["b"]["rule"] == "H3" and log["b"]["kept_id"] == "h"
-    roles = {r["doc_id"]: r["role"] for r in csv.DictReader((repo / "out/dedup/dedup_groups.csv").open(encoding="utf-8"))}
-    assert roles == {"a": "removed", "b": "removed"} and s["h3"]["groups_survivor_removed"] == 1
-    removed = [r["doc_id"] for r in csv.DictReader((repo / "out/dedup/remove_list.csv").open(encoding="utf-8"))]
-    assert sorted(removed) == ["a", "b"]
+    s, log, pairs = run(repo, h3={"matches": write_h3(repo, docs, [(0, 2, 0.75)]), "remove": remove})
+    assert set(log) == {"a"} and log["a"]["rule"] == "H2"
+    assert pairs[0]["outcome"] == "already_removed"
+    assert _roles(repo) == {"a": "removed", "b": "survivor"} and _removed(repo) == ["a"]
+    assert s["h3"]["removed"] == 0 and s["h3"]["train_docs_targeted"] == 0 and s["h3"]["groups_survivor_removed"] == 0
+
+
+def test_direct_edge_to_group_survivor_removes_only_it(repo):
+    # H3 matches b, the survivor of H2 group {a, b}, with held-out h: b goes, a was already removed by H2
+    docs = [("a", "en-a", "train", 100), ("b", "en-a", "train", 120), ("h", "ind-x-fw2", "heldout", 100)]
+    make_run(repo, docs, [(0, 1, "H2", 0.9, "")])
+    s, log, pairs = run(repo, h3={"matches": write_h3(repo, docs, [(1, 2, 0.75)]), "remove": True})
+    assert log["b"]["rule"] == "H3" and log["b"]["kept_id"] == "h" and pairs[0]["outcome"] == "removed"
+    assert _roles(repo) == {"a": "removed", "b": "removed"} and s["h3"]["groups_survivor_removed"] == 1
+    assert _removed(repo) == ["a", "b"] and s["h3"]["train_docs_targeted"] == 1
+
+
+def test_chain_through_heldout_copy_is_reported_not_removed(repo):
+    # c is an H1 copy of held-out h (h survives, rule 0); H3 matches c with train t. t was never matched with h
+    # itself, so it stays: reported_indirect
+    docs = [("h", "ind-x-fw2", "heldout", 100), ("c", "ind-x-fw2", "train", 100), ("t", "en-a", "train", 100)]
+    make_run(repo, docs, [(0, 1, "H1", 1.0, "")])
+    s, log, pairs = run(repo, h3={"matches": write_h3(repo, docs, [(1, 2, 0.8)]), "remove": True})
+    assert set(log) == {"c"} and pairs[0]["outcome"] == "reported_indirect" and s["h3"]["removed"] == 0
+
+
+def test_report_only_counts_match_remove_mode(repo):
+    # would_remove and removed pick the same edges; two edges to one train doc count it once
+    docs = [("h1", "ind-x-fw2", "heldout", 100), ("h2", "ind-x-fw2", "heldout", 110), ("t", "en-a", "train", 100)]
+    make_run(repo, docs, [])
+    edges = [(0, 2, 0.8), (1, 2, 0.7)]
+    s0, _, p0 = run(repo, h3={"matches": write_h3(repo, docs, edges)})
+    s1, log, p1 = run(repo, h3={"matches": write_h3(repo, docs, edges), "remove": True})
+    assert [p["outcome"] for p in p0] == ["would_remove"] * 2 and [p["outcome"] for p in p1] == ["removed"] * 2
+    assert s0["h3"]["train_docs_targeted"] == s1["h3"]["train_docs_targeted"] == s1["h3"]["removed"] == 1
+    assert set(log) == {"t"}
 
 
 def test_heldout_heldout_and_train_train_are_reported_not_removed(repo):
