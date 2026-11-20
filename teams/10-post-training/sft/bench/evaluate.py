@@ -317,7 +317,7 @@ def forgetting_bpb(model, tok, heldout: Path, sources: Path, device: str, window
         counts = sel.sum(dim=1).tolist()
         sums = torch.split(per, counts)
         for j, i in enumerate(idx):
-            nats[wslice[i]] = nats.get(wslice[i], 0.0) + float(sums[j].double().sum())
+            nats[wslice[i]] = nats.get(wslice[i], 0.0) + float(sums[j].cpu().double().sum())
         n_tok += int(sel.sum())
     per_slice = {k: nats[k] / LN2 / slice_bytes[k] for k in nats}
     groups = scoring.group_metrics(per_slice)
