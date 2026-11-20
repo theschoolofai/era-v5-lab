@@ -162,6 +162,11 @@ drop.
   Hindi against its dialects (Maithili, Bhojpuri, Awadhi, Kumaoni) cannot be checked with it.
 - **Short documents:** IndicLID is unreliable under about 100 letters. These are `short_disagree`, not flags.
 - **Mixed documents** get one label per document; paragraph votes make them `uncertain`, not split.
+- **Packs outside the 10 are not checked.** The Telugu reader in #618 (`rotation_varshith2000.md`) found Hindi
+  (Devanagari) runs in `85c371eab86e00d1`, labelled `te`, in shard `ind-te-sangraha-v-train-000000`: five D3 rows,
+  which the reader puts at about 15% of the document. This is mixing across scripts, not a script-sharing pair, so
+  it is outside this check and the tool has not judged it. It shows that mixed-language documents reach the shards
+  with a single label; a cross-script check per paragraph would be the follow-up.
 - **The marker lists are ours**, written for this check and not yet validated by readers of each language. The Sanskrit
   list has whole words only since v2, so inflected Sanskrit has few of them. Lists of frequent forms from the Marathi
   and Sanskrit readers would make the marker signal theirs.
