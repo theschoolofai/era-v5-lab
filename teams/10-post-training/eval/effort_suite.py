@@ -985,7 +985,7 @@ def build_manifest(args) -> dict:
 def build_v2_manifest(args) -> dict:
     """The proposed v2 manifest: v1 unchanged, plus 20 API-Bank call slots (tool_agentic) and 10 QASC slots
     (general), picked with v1's rule: lowest sha256(selection_seed:id), one slot per distinct question (QASC) or per
-    dialogue file (API-Bank). The 15 indic slots stay unavailable."""
+    dialogue file and per API name (API-Bank). The 15 indic slots stay unavailable."""
     v1 = json.loads(Path(args.v1).read_text(encoding="utf-8"))
     seed = v1["selection_seed"]
     pins = json.loads(Path(args.pins).read_text(encoding="utf-8"))
@@ -1010,11 +1010,15 @@ def build_v2_manifest(args) -> dict:
         rows = [json.loads(x) for x in f.read_text(encoding="utf-8").splitlines() if x.strip()]
         cand += [{"id": f"apibank/{f.name}#{i}", "file": f.name, "row_index": i, "rows": rows}
                  for i, r in enumerate(rows) if r["role"] == "API"]
-    used, apick = set(), []
+    used, used_apis, apick = set(), set(), []
     for r in sorted(cand, key=lambda r: _rank(seed, r["id"])):
-        if r["file"] in used:
+        api = r["rows"][r["row_index"]]["api_name"]
+        # one call per dialogue file and per API: the set has several near-identical dialogues for one API
+        # (same gold call), which would count one item twice
+        if r["file"] in used or api in used_apis:
             continue
         used.add(r["file"])
+        used_apis.add(api)
         apick.append(r)
         if len(apick) == COMPOSITION["tool_agentic"]:
             break
@@ -1056,7 +1060,7 @@ def build_v2_manifest(args) -> dict:
         "rule": "lowest sha256(selection_seed:id) over every candidate; QASC: one slot per distinct question text "
                 "(validation split, 926 rows, 902 distinct questions), id = the row id; API-Bank: every API call in "
                 "the level-1 dialogue files (lv1-lv2-samples/level-1-given-desc, files named *-level-1-*), at most "
-                "one call per dialogue file, id = apibank/<file>#<line index>",
+                "one call per dialogue file and at most one call per API name, id = apibank/<file>#<line index>",
         "qasc_candidates": len(qrows), "apibank_candidates": len(cand), "apibank_files": len({c['file'] for c in cand})}
     out["sources"]["qasc"] = {"dataset": "allenai/qasc", "revision": q_rev, "split": "validation",
                               "licence": "CC-BY-4.0"}

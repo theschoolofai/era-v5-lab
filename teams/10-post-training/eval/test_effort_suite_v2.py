@@ -149,6 +149,8 @@ def test_v2_every_gold_passes_its_own_checker_and_hashes_verify():
     wanted = [s["slot"] for s in v2["slots"] if s["category"] in ("tool_agentic", "general")]
     prompts = es.resolve_prompts(v2, dirs, slots=wanted)
     assert len(prompts) == 30
+    calls = [p.task["api_name"] for p in prompts.values() if p.checker == "api_call"]
+    assert len(calls) == 20 == len(set(calls))  # one slot per API name
     for p in prompts.values():
         if p.checker == "answer_key":
             assert es.score_answer_key(p.task, p.task["answer"])["reward"] == 1
