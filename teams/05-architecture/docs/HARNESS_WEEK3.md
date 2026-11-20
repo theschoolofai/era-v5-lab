@@ -23,3 +23,13 @@ The validator uses the resolved step budget in the manifest. Supply `--expected-
 A quality PASS requires `smoke=false`, a `COMPLETED` summary, the exact configured or expected step count, all six evidence files, and matching checkpoint identity and step. Run with `--trusted-checkpoint` only on trusted outputs because PyTorch uses its full checkpoint loader. The validator reports a failure for a quality candidate when checkpoint inspection cannot be performed.
 
 Exit code 0 means the run completed with internally consistent evidence. This validation provides neither a BPB result nor a winning configuration. Exit code 1 covers smoke runs, incomplete runs, and evidence failures. The JSON report includes the verdict, evidence scope, row counts, checkpoint inspection status, and errors.
+
+## Optimizer-step watchdog
+
+Add `teams/07-infrastructure` to `PYTHONPATH`. `--watchdog-s SECONDS` overrides `WATCHDOG_S`; when neither is supplied the watchdog is off. Explicit `--watchdog-s 0` disables it for local smoke runs even if the environment supplies a value. Team 7's production guidance is the greater of 600 seconds and five times the p99 step duration.
+
+The timer starts before the initial evaluation and resets at each optimizer step and after each completed update. It covers data loading, device synchronization, in-loop evaluation, and periodic checkpoint saves when integrated with #608. It is disarmed after the optimizer loop before final artifacts are written.
+
+On timeout the trainer dumps all Python thread stacks, emits `train.watchdog` with the last completed step, writes the `hang_watchdog` exit note, and exits 75. Set `V5_EVENTS_DIR`, `V5_RUNS_DIR`, and `RUN_ID` for Team 7's job runner. `os._exit` drops metrics still in memory; #608 replays history retained in the last committed checkpoint. Two watchdog restarts in an hour page under H-14; three crashes in 30 minutes become a hold with exit 78 under Team 7's supervisor.
+
+For Dry Run 2, use a job wrapper with G5's input arguments and checkpoint flags. Team 7's reference `mainrun.sbatch` supplies simulation-trainer flags such as `--remote-root` and `--step-sleep`; the G5 trainer does not accept that command unchanged.
