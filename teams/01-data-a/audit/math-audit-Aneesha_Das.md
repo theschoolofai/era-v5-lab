@@ -64,7 +64,7 @@ This audits the `tokenizer_sample_v0_clean` copy named in the audit instructions
 | E2 data blob (raw PDF bytes) | 0 | 1 | 1 |
 | Content removed by cleaning (no code fits; in the note) | 1 | 3 | 4 |
 
-A doc can have several diseases, so the counts overlap. C1 and C2 are each found more than five times, so they need a medicine sheet (DISEASES.md section 4).
+A doc can have several diseases, so the counts overlap. C1 and C2 are each found more than five times, so each has a medicine, in [Medicines](#medicines) (DISEASES.md section 4).
 
 ## Content removed by cleaning (4 docs)
 
@@ -82,7 +82,7 @@ A doc can have several diseases, so the counts overlap. C1 and C2 are each found
 
 **What to do.** Run the current `clean.py` on these docs to find the rule that deleted each line. Then:
 - Exempt reference lists from the rule that removes author lists.
-- Limit the repeated-line rule to boilerplate-like lines (short, no math symbols), or to lines repeated next to each other.
+- Limit the repeated-line rule to boilerplate-like lines (short, no math symbols), or to lines repeated next to each other. Medicine 2 (`DA-C2-007`) keeps every copy of a line with a math sign.
 - Make the email pattern stop at word boundaries.
 
 ## Personal data left in (F1) (3 docs)
@@ -113,7 +113,7 @@ A doc can have several diseases, so the counts overlap. C1 and C2 are each found
 
 Junk that appears only once is not touched: `Join BYJU'S Learning Program`, `Post a followup to this message`, `Moderators: …`, wiki `[edit]` labels, and journal labels such as `Received / Accepted / Published`.
 
-**What to do.** When a line is judged boilerplate, remove every copy, not all but one. Add patterns for the site chrome above. Since C1 is found in 26 docs, write a medicine sheet for it.
+**What to do.** When a line is judged boilerplate, remove every copy, not all but one. Add patterns for the site chrome above. Medicine 1 (`DA-C1-012`) does both.
 
 ## Spam and non-math pages kept (7 docs)
 
@@ -218,10 +218,275 @@ All three are Course Hero paywall previews. The drop is right. They are labelled
 
 The full note for each doc is in the label CSVs.
 
+## Medicines
+
+C1 and C2 are the two diseases this audit found in more than five docs, so each has a medicine (DISEASES.md section 4). The cards follow the form of `spec_v1_1/sheets/specv1_1.md`.
+
+- **Rule form.** `doc = {doc_id, text, url, lang_label, pack_id}`, and `medicine(doc)` returns `(action, text)`. Both math packs carry the `en` tag, so each rule also checks `pack_id`.
+- **Run order.** Both rules run after the math family's spec v1.1 rules, because this audit read text that spec v1 had cleaned. Both are stage 30, C1 first.
+- **Limit.** Gold docs changed plus dropped: at most `max(1, 1%)` = 1 doc on each pack (finemath 86 gold docs, megamath 26).
+- **IDs.** `DA-C1-012` and `DA-C2-007` are the next numbers unused by any Data A rule on main, g1-specv1, g1-spec-v1-1 and the sheets.
+
+| # | ID | disease | action | stage | finemath | megamath | audit docs treated |
+|---|---|---|---|---|---|---|---|
+| 1 | `DA-C1-012` | C1 boilerplate | fix | 30 | 0.00% (0/86) PASS | 0.00% (0/26) PASS | 12 / 23 |
+| 2 | `DA-C2-007` | C2 repeated lines | fix | 30 | 0.00% (0/86) PASS | 0.00% (0/26) PASS | 3 / 6 |
+
+Both rules in order: finemath 0.00% (0/86) PASS, megamath 0.00% (0/26) PASS. Code sha256 `d4a121e924393611dacbd82c0858eb5b0846194216ab3e0bac9b7542ea5e8ecb`. "Audit docs treated" counts the docs labelled with the code that the rule changes, out of those still in the cleaned files (the cleaner dropped 3 of the C1 docs). Neither rule changes an audit doc that is not labelled with its code.
+
+**Speed.** Neither rule loops in Python over a doc's lines or passages. They were timed on every doc of math-finemath and math-megamath (Part_1, Heldout and the diagnosis packs: 48,250 docs, 303.4 M characters), on an Apple M4 CPU with Python 3.12.10, one process, from a cold start (42.9 s for the whole run). Each output was compared with a version of the same rule with no gates and with Python loops over lines and passages: 0 docs differ. A second run on each output changes 0 docs, so both rules are idempotent on these packs.
+
+| file (docs) | `DA-C1-012` without gates → this version | `DA-C2-007` loop version → this version | both, in order |
+|---|---|---|---|
+| finemath Part_1 (29,122) | 6.13 → 1.67 s (3.7x) | 2.79 → 2.58 s (1.1x) | 4.60 s |
+| megamath Part_1 (17,647) | 6.01 → 1.60 s (3.8x) | 2.47 → 2.48 s (1.0x) | 4.07 s |
+| finemath Heldout (312) | 0.06 → 0.02 s | 0.03 → 0.02 s | 0.07 s |
+| megamath Heldout (169) | 0.05 → 0.01 s | 0.02 → 0.01 s | 0.06 s |
+
+`DA-C1-012` gains from running its `[edit]` regex only on docs with that literal. `DA-C2-007` is about as fast as the loop version: the loops only did work on the few lines that repeat, and its time is in splitting and counting lines and passages, which runs in C (1.0x to 1.1x on the full packs). There is no GPU code, so there is no sync check.
+
+**Checks and logs.**
+- Script: [`medicine_math_checks.py`](medicine_math_checks.py), next to this report. It holds the frozen copies of both rules from before the speed-up, and two checks:
+  - `speed`: timing, same output and idempotence on full packs. Log: [`2026-11-21-math-audit-medicines-local.txt`](../jobs/logs/2026-11-21-math-audit-medicines-local.txt), numbers in [`…-summary-local.json`](../jobs/logs/2026-11-21-math-audit-medicines-summary-local.json).
+  - `treated`: audit docs treated, on the cleaned packs. Log: [`…-treated-local.txt`](../jobs/logs/2026-11-21-math-audit-medicines-treated-local.txt).
+- Tests: [`tests/audit/test_medicine_math_checks.py`](../tests/audit/test_medicine_math_checks.py), made-up texts only: what each rule does, its pack scope, idempotence, and each card against its frozen copy on edge cases and 4,000 random texts. `python -m pytest teams/01-data-a/tests/audit -q`: 67 passed, 45 of them in this file.
+- Harm test: `harmtest/harm_test.py --rules teams/01-data-a/audit/math-audit-Aneesha_Das.md --rule all`, on each pack's gold set. Log: [`…-harm-local.txt`](../jobs/logs/2026-11-21-math-audit-medicines-harm-local.txt).
+
+## Medicine 1 — math / C1 / `DA-C1-012`
+
+**Consolidation:** Source: this audit (assignment 11, 35 docs); identity `DA-C1-012`, new. Counts are this audit's label counts: one reader, with the second-reader check still to do.
+
+1. **Disease:** C1, 26 docs: finemath 16, megamath 10. Examples: `caec68d5a4dc4373` (`Homework Helper`, 1 of 11 copies left; `Gold Member` x20; `2022 Award` x7), `b1efb7907a0c8cbb` (`Please Log in or Create an account to join the conversation.`, 1 of 10 copies left), `32ce96905cc39b34` (9 wiki `[edit]` labels). Site chrome is left in the cleaned text. Where a chrome line repeats, one copy is left. By its code, that is `DA-C2-001`: a line of 15+ characters seen 5+ times keeps its first copy. Chrome seen once is not touched.
+
+<!-- CARD EVIDENCE -->
+**Current gold harm:** math-finemath: 0 changed / 0 dropped of 86 (PASS); math-megamath: 0 changed / 0 dropped of 26 (PASS).
+
+**Examples:** the doc_ids and short quotes in item 1. Exact source characters are not published here, because pack text stays out of the public repo.
+<!-- END CARD EVIDENCE -->
+
+2. **Medicine:**
+   - **What it fixes.** It deletes every copy of a whole line that is site chrome this audit found: forum badges and prompts (`Homework Helper`, `Gold Member`, `2022 Award`, `Last edited: …`, the sign-in prompt, `Moderators: …`, `Time to create page: …`), homework-site and Q&A buttons (`Answer This Question`, `Related Questions`, `Post a New Question`), BYJU'S and answers.com UI, the comp.compilers footer, bare journal page labels (`Received`, `Accepted`, `Published`, `Affiliations`, `Corresponding author`) and `darkmode`. It also cuts a wiki `[edit]` label at the end of a line, and Course Hero's `{[ promptMessage ]}` slot.
+   - **Why only whole lines.** A chrome phrase inside a sentence can be real text (`He was a Homework Helper for years.`), so a line goes only when the chrome is all of it, with spaces at either end allowed.
+   - **What it leaves alone.** A journal label with its date on the same line, and any line with other text on it.
+   - **What it can't fix.** Chrome of sites this audit did not see: other forums' badges, signatures and game UI (`411aeec06d260b92`).
+
+```python
+RULE_ID = "DA-C1-012"
+# site chrome left after spec v1, found by the math audit (assignment 11)
+CODE = "C1"
+ACTION = "fix"
+STAGE = "30"
+STATUS = "CANDIDATE"
+LANGS = {'en'}
+ORIGIN = "math-finemath, math-megamath"  # packs it runs on: the disease was found in both
+PACKS = set(ORIGIN.split(", "))  # the math packs share the "en" tag, so the pack is checked too
+SOURCE = "math-finemath, math-megamath"  # packs whose audit found it (Aneesha Das, assignment 11)
+AUTHOR = "aneeshads"
+import re
+
+# a whole line that is site chrome: every copy goes, with its line break
+C1_CHROME = re.compile(
+    r"(?m)^[ \t]*(?:"
+    r"Homework Helper|Gold Member|Staff Emeritus|Science Advisor|(?:19|20)\d\d Award|"
+    r"Last edited(?: by [^:\n]{1,40})?:.{0,40}|"
+    r"Please Log in or Create an account to join the conversation\.|"
+    r"Moderators: .{1,80}|Time to create page: \d+(?:\.\d+)? seconds|"
+    r"Quick Reference:|Message Log|Canvas \(your drawing will display here\)|"
+    r"Answer This Question|First Name:.{0,60}|School Subject:.{0,40}|(?:More )?Related Questions|Post a New Question|"
+    r"Join BYJU['’]S Learning Program|You visited us \d+ times?! Enjoying our articles\? Unlock Full Access!|"
+    r"Suggest Corrections(?: \d+)?|Watch in App|Open in App|"
+    r"Still have questions\?|Earn \+\d+ pts|Continue Learning about .{1,80}|Updated: \d{1,2}/\d{1,2}/\d{4}|\d+y ago|"
+    r"Post a followup to this message.{0,200}|"
+    r"Author information|Affiliations|Corresponding author|Received|Accepted|Published|darkmode"
+    r")[ \t]*$\n?")
+# a wiki section's [edit] label, one or more, at the line end
+C1_EDIT = re.compile(r"(?m)(?:[ \t]*\[edit\])+[ \t]*$")
+
+
+# The inline chrome goes first, so a line such as "Published [edit]" is whole-line chrome when C1_CHROME sees it, and a
+# second run changes nothing.
+# Speed: str.replace and `in` are C scans. C1_EDIT starts with [ \t]*, so the engine has no literal to search for and tries a
+# match at every character; a doc without "[edit]" skips it.
+def medicine_c1(text):
+    text = text.replace("{[ promptMessage ]}", "")
+    if "[edit]" in text:
+        text = C1_EDIT.sub("", text)
+    return C1_CHROME.sub("", text)
+
+
+def _std(out, text):
+    # the result in the shared form: str -> fix/keep, ("drop", ...), None or True -> drop
+    if out is None or out is True: return ("drop", text)
+    if out is False: return ("keep", text)
+    if isinstance(out, tuple) and out and out[0] == "drop": return ("drop", text)
+    return ("fix" if out != text else "keep", out)
+
+
+def medicine(doc):
+    if doc.get("lang_label") not in LANGS or doc.get("pack_id") not in PACKS:
+        return ("keep", doc["text"])
+    return _std(medicine_c1(doc["text"]), doc["text"])
+
+_spec_source_medicine = medicine
+
+SPEC_PACKS = {'math-finemath', 'math-megamath'}
+
+def medicine(doc):
+    if doc.get("pack_id") not in SPEC_PACKS:
+        return ("keep", doc["text"])
+    out = _spec_source_medicine(doc)
+    return out
+```
+
+3. **Action:** fix. **Runs on:** finemath, megamath. **Audit docs it treats:** 12 of the 23 C1 docs still in the cleaned files (the cleaner dropped the other 3). Of the 11 it leaves, 5 are docs this audit drops. The other 6 are fix docs whose chrome is not on its list: forum signatures (`c87c76a202bf9370`, `31c47797e0ec552c`), game UI (`411aeec06d260b92`), a related-questions list (`a878064814cc3108`), forum pagination (`c2014b24148deb41`) and a wiki diff header (`32d96679ed59c9d5`).
+4. **Harm test:** finemath 0.00% (0/86) PASS; megamath 0.00% (0/26) PASS.
+5. **Side effects:**
+   - A real page with one of these words alone on a line loses that line: a lesson heading `Related Questions`, or a journal page whose `Received` and `Published` labels sit alone above their dates (the dates stay, without their labels).
+   - It only knows the sites this audit saw.
+6. **Spec v1.1:** status CANDIDATE, reviewer pending. Source: this audit. New rule, not in spec v1.1.
+
+---
+
+
+## Medicine 2 — math / C2 / `DA-C2-007`
+
+**Consolidation:** Source: this audit (assignment 11, 35 docs); identity `DA-C2-007`, new. It takes both parts of `DA-C2-001` (SomaKorada07, theschoolofai/era-v5-lab#61): its passage rule as part (c), rewritten without loops but with the same output, and its repeated-line rule as part (a), with a math and speaker-turn guard. Counts are this audit's label counts: one reader, with the second-reader check still to do.
+
+1. **Disease:** C2, 6 docs: finemath 1, megamath 5. Examples: `21bfa34841bcc936` (`Figure 4.4 Small-scale eddies...` and two more figure lines still appear twice), `c2014b24148deb41` (every post appears twice, with 26 `Quote from`; nested quotes repeat the list `An input relation R with 3 attributes...` 8 times), `32d96679ed59c9d5` (a second copy of the Corollary proof in the diff header). `DA-C2-001` is the math C2 rule, and it runs on finemath only. It leaves these repeats, and it also deletes real math. In `89dc8e7278ce1f4b`, `P(E) = n(E)/ n(S)` (17 characters, 5 copies) keeps only its first copy, so solutions Q12 to Q15 jump from `n(E)` to the answer.
+
+<!-- CARD EVIDENCE -->
+**Current gold harm:** math-finemath: 0 changed / 0 dropped of 86 (PASS); math-megamath: 0 changed / 0 dropped of 26 (PASS).
+
+**Examples:** the doc_ids and short quotes in item 1. Exact source characters are not published here, because pack text stays out of the public repo.
+<!-- END CARD EVIDENCE -->
+
+2. **Medicine:**
+   - **What it fixes.** (a) A line of 15+ characters seen 5+ times keeps its first copy. (b) A figure or table caption line (`Figure 4.4 …`, `Fig. 2 …`, `Table 3 …`) seen twice or more keeps its first copy. (c) A passage (blank-line block) of 150+ characters seen more than once keeps its first copy (ruling 13, as in `DA-C2-001`), now on megamath too.
+   - **Why not every repeated line.** A repeated formula is math, not junk: a worked solution restates it each time. A transcript's speaker turn (`MALE SPEAKER: [INAUDIBLE]`) is a separate turn each time.
+   - **What it leaves alone.** Code lines, lines with a math sign (`= ^ $ \ < > ± × ÷ ≤ ≥ ∑ ∫ √ ∞`, or an operator between two digits), speaker turns (an upper-case name and a colon at the line start), bullet lists, and lists of answer options.
+   - **What it can't fix.** Repeats that are not whole lines or whole passages: a Blogger comment that starts with a cut-off copy of itself (`0ef68457f8488afa`), or sentences repeated inside one long line (`41f03ba56962c1e9`). Both docs are drops anyway. A copy in another markup, such as a MediaWiki diff header that repeats the page in wiki markup (`32d96679ed59c9d5`), is also left. That copy goes only with the whole header, which is a C1 or B2 medicine, not a C2 one.
+   - **It replaces `DA-C2-001`.** While `DA-C2-001` runs first, the formula lines are already gone. Retiring `DA-C2-001` is a change to spec v1.1, for the team to decide.
+
+```python
+RULE_ID = "DA-C2-007"
+# repeated lines and passages left after spec v1, found by the math audit (assignment 11); replaces DA-C2-001
+CODE = "C2"
+ACTION = "fix"
+STAGE = "30"
+STATUS = "CANDIDATE"
+LANGS = {'en'}
+ORIGIN = "math-finemath, math-megamath"  # packs it runs on: the disease was found in both
+PACKS = set(ORIGIN.split(", "))  # the math packs share the "en" tag, so the pack is checked too
+SOURCE = "math-finemath, math-megamath"  # packs whose audit found it (Aneesha Das, assignment 11)
+AUTHOR = "aneeshads"
+import re
+from collections import Counter
+from itertools import compress
+
+C2_CODE = re.compile(r"[;{}]\s*$|^\s*(?:for|if|while|return|def|class)\b")  # as DA-C2-001
+# a line with one of these is math, and keeps every copy
+C2_MATH = re.compile(r"[=^$\\<>±×÷≤≥∑∫√∞]|\d\s*[-+*/]\s*\d")
+# a transcript's speaker turn ("MALE SPEAKER: ...", "PROFESSOR: ..."): each copy is a separate turn, so all are kept
+C2_TURN = re.compile(r"[A-Z][A-Z .'\-]{1,40}:(?:\s|$)")
+C2_CAPTION = re.compile(r"(?:Figure|Fig\.|Table)\s+\d+(?:\.\d+)*\b")
+C2_PARA_SPLIT = re.compile(r"(\n\s*\n)")
+C2_OPTION = re.compile(r"\s*(?:[A-E1-5][.)]|\(?[a-e]\))\s")
+C2_BULLET = re.compile(r"\s*[•*-] ")
+C2_CODE_END = re.compile(r"[;{}]\s*$")
+
+
+# Speed: no Python loop over a doc's lines or passages. Counter, map and compress run in C and leave only the distinct
+# strings seen twice or more; a doc has few of those, and most docs have none, so they skip all the work.
+def _repeated(counts, min_len):
+    # the distinct strings of min_len+ characters seen 2+ times
+    rep = compress(counts.keys(), map((2).__le__, counts.values()))
+    return [s for s in rep if len(s) >= min_len]
+
+
+def _drop_later_copies(text, s):
+    # keep the first line whose stripped text is s; remove every later one with the line break before it
+    # ([^\S\n] is the whitespace that str.strip removes, less the line break)
+    body = re.escape(s)
+    end = re.search(r"(?m)^[^\S\n]*" + body + r"[^\S\n]*$", text).end()
+    return text[:end] + re.sub(r"\n[^\S\n]*" + body + r"[^\S\n]*(?=\n|\Z)", "", text[end:])
+
+
+def _passage_kept(q):
+    # ruling 13 keeps a bullet list, a list of answer options, and code
+    if C2_BULLET.match(q):
+        return True
+    ql = list(filter(str.strip, q.splitlines()))
+    options = sum(map(bool, map(C2_OPTION.match, ql))) >= max(2, len(ql) // 2)
+    code = sum(map(bool, map(C2_CODE_END.search, ql))) >= max(1, len(ql) // 3)
+    return options or code
+
+
+def _c2_dedupe_passages(text):
+    # ruling 13: a passage (150+ chars) repeated even once loses its later copies, each with the blank-line
+    # separator before it; option lists and code are kept
+    parts = C2_PARA_SPLIT.split(text)      # passage j is parts[2j], and parts[2j - 1] is the separator before it
+    paras = list(map(str.strip, parts[::2]))
+    counts = Counter(paras)
+    keep, changed = bytearray(b"\x01") * len(parts), False
+    for q in _repeated(counts, 150):
+        if _passage_kept(q):
+            continue
+        j = paras.index(q)                  # the first copy stays
+        for _ in range(counts[q] - 1):
+            j = paras.index(q, j + 1)
+            keep[2 * j] = keep[2 * j - 1] = 0
+        changed = True
+    return "".join(compress(parts, keep)) if changed else text
+
+
+def medicine_c2(text):
+    counts = Counter(map(str.strip, text.split("\n")))
+    # the lines that keep only their first copy
+    for s in _repeated(counts, 15):
+        if C2_CODE.search(s):
+            continue
+        if (counts[s] >= 5 and not C2_MATH.search(s) and not C2_TURN.match(s)) or C2_CAPTION.match(s):
+            text = _drop_later_copies(text, s)
+    return _c2_dedupe_passages(text)
+
+
+def _std(out, text):
+    # the result in the shared form: str -> fix/keep, ("drop", ...), None or True -> drop
+    if out is None or out is True: return ("drop", text)
+    if out is False: return ("keep", text)
+    if isinstance(out, tuple) and out and out[0] == "drop": return ("drop", text)
+    return ("fix" if out != text else "keep", out)
+
+
+def medicine(doc):
+    if doc.get("lang_label") not in LANGS or doc.get("pack_id") not in PACKS:
+        return ("keep", doc["text"])
+    return _std(medicine_c2(doc["text"]), doc["text"])
+
+_spec_source_medicine = medicine
+
+SPEC_PACKS = {'math-finemath', 'math-megamath'}
+
+def medicine(doc):
+    if doc.get("pack_id") not in SPEC_PACKS:
+        return ("keep", doc["text"])
+    out = _spec_source_medicine(doc)
+    return out
+```
+
+3. **Action:** fix. **Runs on:** finemath, megamath. **Audit docs it treats:** 3 of 6: `21bfa34841bcc936`, `c2014b24148deb41`, and `4258f5c9fbf14805` (a doc this audit drops). It leaves `0ef68457f8488afa` and `41f03ba56962c1e9`, as item 2 says. It also leaves `32d96679ed59c9d5`, one of the examples in item 1. Its copy of the proof sits in the MediaWiki diff header (the 938 characters before `## Revision as of`). There it is in wiki markup (`<math>` tags, `'''Proof'''`) and split across 44 diff-table rows (`− | |||`), while the body has `$…$` and `**Proof**`. With the markup mapped to the body's form, 189 characters match the body exactly. But no line or blank-line passage is the same in both places, so none of parts (a) to (c) sees it.
+4. **Harm test:** finemath 0.00% (0/86) PASS; megamath 0.00% (0/26) PASS. Before the speaker-turn guard, megamath was 1 of 26 changed (3.85%, PASS at the 1-doc limit), and that change was harm. `ad62378f3ebf63f1` is a lecture transcript. Part (a) kept the first of its 22 `MALE SPEAKER: [INAUDIBLE]` lines and deleted the other 21 (546 characters), so the lecturer's replies lost the questions they answer.
+5. **Side effects:**
+   - A prose line repeated 5+ times on purpose (the same sentence closing each worked solution) keeps only its first copy, as with `DA-C2-001`.
+   - A repeated math line that really is junk (a formula banner on every page) is kept, because the math guard wins.
+   - The speaker-turn guard was added after one megamath gold doc, so it is fitted to that doc. A repeated line that starts with an upper-case word and a colon is always kept, even when it is junk (`NOTE: …` on every page).
+   - A figure shown twice with its caption loses the second caption.
+6. **Spec v1.1:** status CANDIDATE, reviewer pending. Source: this audit, and `DA-C2-001` for parts (a) and (c). New rule, not in spec v1.1.
+
 ## Follow-up
 
-1. Run the current `clean.py` on the 4 over-cleaned docs and name the rule behind each deletion (author-list removal, repeated-line removal, email masking).
+1. Run the current `clean.py` on the 4 over-cleaned docs and name the rule behind each deletion. By its code, the repeated-line deletions match `DA-C2-001`. The author-list removal and the email masking are still to name.
 2. Spot-check the 755 finemath docs where a repeated formula-like line was deleted, to see how many lost real math.
 3. Check the F1, C1 and over-cleaning findings against the p1536 shard output before proposing changes to the frozen spec.
-4. Write medicine sheets for C1 (26 docs) and C2 (6 docs), with the gold-set harm test. A medicine that changes or drops more than 1% of the gold set fails.
+4. Decide whether `DA-C2-007` replaces `DA-C2-001` in spec v1.1 (Medicine 2).
 5. Arrange the second-reader check of 10% of these docs (4 of 35).
