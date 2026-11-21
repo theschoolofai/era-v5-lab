@@ -95,7 +95,11 @@ def load_runtime(arm_path, runtime_path=None):
         "runtime.model",
     )
     _unknown(runtime["model"]["moe"], ["bias", "bias_gamma"], "runtime.model.moe")
-    _unknown(runtime["optim"], ["betas", "eps", "schedule"], "runtime.optim")
+    _unknown(
+        runtime["optim"],
+        ["betas", "eps", "schedule", "warmup_frac", "decay_frac", "final_lr_frac"],
+        "runtime.optim",
+    )
     _unknown(
         runtime["run"],
         ["micro_batch_size", "eval_every_steps", "compile", "flush_every_steps"],
@@ -195,6 +199,9 @@ def load_runtime(arm_path, runtime_path=None):
             "muon_lr",
             "router_on_muon",
             "schedule",
+            "warmup_frac",
+            "decay_frac",
+            "final_lr_frac",
             "warmup_steps",
             "betas",
             "eps",
@@ -288,7 +295,7 @@ def load_runtime(arm_path, runtime_path=None):
     model["moe"]["ffn_hidden"] = width
     optim = merge(runtime["optim"], declared["optim"])
     if optim.get("warmup_steps", 0) != 0:
-        raise ValueError("Warmup schedule not implemented; do not ignore it")
+        raise ValueError("warmup_steps is not used; set schedule: wsd with warmup_frac instead")
     optim.pop("warmup_steps", None)
     run = merge(runtime["run"], runtime["budgets"][profile])
     run = merge(run, declared["run"])
@@ -447,8 +454,26 @@ def validate(c):
         errors.append("optim.router_on_muon must be true or false")
     if o.get("name") == "adamw" and o.get("router_on_muon"):
         errors.append("router_on_muon set on an AdamW arm would be ignored")
-    if o.get("schedule") != "constant":
-        errors.append("Only lead's constant schedule supported")
+    schedule = o.get("schedule")
+    wsd = {k: o.get(k) for k in ("warmup_frac", "decay_frac", "final_lr_frac")}
+    if schedule not in ["constant", "wsd"]:
+        errors.append("optim.schedule must be constant or wsd")
+    elif schedule == "constant" and any(v is not None for v in wsd.values()):
+        errors.append("warmup_frac, decay_frac or final_lr_frac set on a constant schedule would be ignored")
+    elif schedule == "wsd":
+        missing = [k for k, v in wsd.items() if not number(v)]
+        if missing:
+            errors.append("wsd schedule needs explicit " + ", ".join(missing) + "; no default is assumed")
+        elif not (
+            0 <= wsd["warmup_frac"] < 1
+            and 0 < wsd["decay_frac"] <= 1
+            and wsd["warmup_frac"] + wsd["decay_frac"] <= 1
+            and 0 <= wsd["final_lr_frac"] <= 1
+        ):
+            errors.append(
+                "wsd needs 0 <= warmup_frac < 1, 0 < decay_frac <= 1, warmup_frac + decay_frac <= 1, "
+                "0 <= final_lr_frac <= 1"
+            )
     if not number(o.get("lr")) or o["lr"] <= 0:
         errors.append("Explicit finite positive arm LR required")
     betas = o.get("betas")

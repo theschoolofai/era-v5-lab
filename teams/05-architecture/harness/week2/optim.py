@@ -129,6 +129,42 @@ def uses_muon(name, p, router_on_muon=False):
     )
 
 
+WSD_KEYS = ("warmup_frac", "decay_frac", "final_lr_frac")
+
+
+def lr_scale(step, total, o):
+    """Learning-rate multiplier at 1-based step `step` of a `total`-step run (TSAI's recipe, 21 Nov: WSD).
+
+    constant: 1.0 at every step. wsd ("warmup, stable, decay"): linear warmup from 0 over the first
+    round(warmup_frac * total) steps, flat at 1.0, then linear decay over the last round(decay_frac * total) steps,
+    ending at final_lr_frac on the last step. The same multiplier scales every optimizer's own peak rate
+    (Muon's muon_lr and AdamW's lr), as TSAI described ("same WSD shape as AdamW"). It depends only on the step,
+    so a resumed run continues the same curve without saving any schedule state.
+    """
+    if o.get("schedule", "constant") == "constant":
+        return 1.0
+    warm = round(o["warmup_frac"] * total)
+    decay = round(o["decay_frac"] * total)
+    if warm and step <= warm:
+        return step / warm
+    start = total - decay
+    if decay and step > start:
+        return 1.0 - (1.0 - o["final_lr_frac"]) * (step - start) / decay
+    return 1.0
+
+
+def set_lr_scale(optimizer, scale):
+    """Set every parameter group's rate to its peak rate times `scale`; works for AdamW alone and for Optimizers.
+
+    The peak rate is kept in the group as base_lr, so it travels with the optimizer state through checkpoints.
+    """
+    inner = [o for _, o in optimizer.named] if isinstance(optimizer, Optimizers) else [optimizer]
+    for opt in inner:
+        for group in opt.param_groups:
+            group.setdefault("base_lr", group["lr"])
+            group["lr"] = group["base_lr"] * scale
+
+
 def build_optimizer(model, o):
     adamw = lambda params: torch.optim.AdamW(
         params,
