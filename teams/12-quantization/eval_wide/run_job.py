@@ -46,11 +46,16 @@ def main() -> None:
     ap.add_argument("--work", required=True, type=Path)
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--cap", type=int, help="items per task (MMLU: per subject); default full splits")
+    ap.add_argument("--tasks", nargs="+", help="subset of run_wide_gguf.WIDE (default: all), e.g. mmlu arc_challenge")
     ap.add_argument("--n-ctx", type=int, default=4096)
     ap.add_argument("--model", required=True)
     ap.add_argument("--revision", required=True)
     ap.add_argument("--print-only", action="store_true", help="print the commands, run nothing")
     args = ap.parse_args()
+    sys.path.insert(0, str(HERE))
+    from run_wide_gguf import WIDE   # stdlib-only module top: no lm_eval import here
+    if args.tasks and set(args.tasks) - set(WIDE):
+        sys.exit(f"unknown tasks {sorted(set(args.tasks) - set(WIDE))}; choose from {sorted(WIDE)}")
     if args.formats[0] != "bf16":
         sys.exit("--formats must start with bf16: it is the base of the paired comparison and the source of the quants")
 
@@ -62,6 +67,7 @@ def main() -> None:
     bf16 = args.work / f"{name}-bf16.gguf"
     logs = args.out / "logs"
     job = {"model": args.model, "revision": args.revision, "formats": args.formats, "cap": args.cap,
+           "tasks": args.tasks or list(WIDE),
            "n_ctx": args.n_ctx, "started": datetime.datetime.now().isoformat(timespec="seconds"), "steps": {}}
 
     def run(label: str, cmd: list[str]) -> None:
@@ -106,7 +112,7 @@ def main() -> None:
         run(f"run_{fmt}", [py, str(HERE / "run_wide_gguf.py"), "--gguf", str(gguf), "--format", fmt,
                            "--out", str(runs), "--g9-dir", str(args.g9_dir), "--model", args.model,
                            "--revision", args.revision, "--n-ctx", str(args.n_ctx)]
-            + (["--cap", str(args.cap)] if args.cap else []))
+            + (["--cap", str(args.cap)] if args.cap else []) + (["--tasks", *args.tasks] if args.tasks else []))
         if not args.print_only:
             job.setdefault("gguf", {})[fmt] = {"file": gguf.name, "bytes": gguf.stat().st_size, "sha256": sha256(gguf)}
             save()

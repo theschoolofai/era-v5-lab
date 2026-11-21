@@ -28,7 +28,10 @@ Q3_K_M flips more items (MMLU 11.6%), so it needs more still. Method: n = (2.576
 
 GSM8K is left out: sarvam-1 answers about 3% at bf16, so there is no room to fall.
 
-**Models:** sarvam-1 (Indic, 8k context) and Granite 3.0 MoE. **Formats:** bf16, Q8_0, Q4_K_M, Q3_K_M. Q3_K_M is
+**Models:** sarvam-1 (Indic, 8k context) and Granite 3.0 3B-A800M MoE (`ibm-granite/granite-3.0-3b-a800m-base` @
+`142d2c8e3f7f`, 40 experts top-8, English tasks only). The 1B-A400M Granite of #643 scored 27.1% on MMLU (1,140 items,
+bf16, timing run), 2 points above the 25% chance line, so its items flip at random and MMLU cannot show its drift; the
+3B-A800M is the same family and architecture (`granitemoe`). **Formats:** bf16, Q8_0, Q4_K_M, Q3_K_M. Q3_K_M is
 included because that is where OLMoE's first benchmark loss appears. Every file keeps `output.weight` at Q8_0 and the
 router at F32, as in the rest of G12.
 

@@ -99,4 +99,4 @@ The 20-item scores are not a result. Kannada's 2 of 20 is below the 25% chance l
 2. **Gated inputs.** Can TSAI stage MILU and sarvam-1 with an account that accepted their terms? The job itself needs no token.
 3. **Tools.** Are llama.cpp b11669 (`llama-quantize`) and a Python with llama-cpp-python 0.3.36 (CUDA), lm_eval 0.4.13 and datasets 5.1.0, without torch, available, and can `./work/` be prepared with network once?
 4. **Work folder.** The rule is that a job writes only to `./out/`. The bf16 GGUF (5.05 GB) and one quantized file at a time go to `./work/`, outside `./out/`, as in our dry run 1 request (#508). If it must be under `./out/`, tell me which path is left out of the 50 MB count.
-5. **Granite 3.0 MoE.** A second request, same command with Granite's model and revision, follows once the team confirms the revision used in #643. One job, one question.
+5. **Granite 3.0 MoE.** A second request follows: `ibm-granite/granite-3.0-3b-a800m-base` @ `142d2c8e3f7f`, MMLU and ARC-C only. Not the 1B-A400M of #643: it scored 27.1% on MMLU in our timing run, too close to chance to show drift. One job, one question.
