@@ -34,9 +34,10 @@ Status as of Fri 20 Nov 2026 (Gate 3 evidence due 20 Nov 23:59 IST; TSAI decisio
 | Partner Team | Deliverable | Status | Reference |
 |---|---|---|---|
 | **Team 1 (Data A)** | Licence sign-off for H3 dedup encoders (`LaBSE` Apache-2.0, `BGE-M3` MIT) | **Done on `main`** | `licences/licence_table.md` |
-| **Team 3 (Tokenizer)** | Chat format & vLLM marker round-trip on frozen p1536 | **Done on `main`** | `teams/03-tokenizer/results/chat_format_check.md` (PR #642) |
+| **Team 3 (Tokenizer)** | Chat format & vLLM marker round-trip on frozen p1536; embedded template & eos config | **Done on `main` + PR #686** | `teams/03-tokenizer/results/chat_format_check.md` (PR #642); Team 3 PR #686 embeds byte-identical `chat_template.jinja` (`b00137fe…`) in `release/tokenizer_config.json` and adds `release/generation_config.json` (`eos_token_id: [130816, 130822]`) |
+| **Team 5 (Architecture)** | Dry-run-1 `#475` probe expectation clarification | **Confirmed (21 Nov)** | Dry run 1 was not saved via Team 7 Checkpointer (`#475` weights are with TSAI); dry run 2 (`#608`) integrates Team 7 Checkpointer and writes `probe_loss` automatically |
 | **Team 7 (Infrastructure)** | `Checkpointer.save` + `export_safetensors` wiring for kept SFT/RL weights | **Done on `main`** | `capstone/sft_g5.py`, `capstone/keep_weights.py`, `capstone/test_team7_ckpt_save.py` |
-| **Team 9 (Evaluation)** | RL pool decontamination (6/6 files, 0 flagged) & `eval_schedule.md` alignment | **Done on `main`** | `teams/09-evaluation/results/decontam_rl_pool.md` (#661), `eval_schedule.md` (#662) |
+| **Team 9 (Evaluation)** | RL pool decontamination (6/6 files, 0 flagged), `eval_schedule.md` alignment, bf16 & firewall | **Done on `main` + PR #681** | `teams/09-evaluation/results/decontam_rl_pool.md` (#661), `eval_schedule.md` (#662). Agreed 21 Nov: Team 9 watcher scores base + after-SFT checkpoints in bf16 autocast (fractions `value/100`, `stderr/100`); `jobs/2026-11-18-g10-eval-mini-forgetting.md` withdrawn for firewall compliance; `sft/bench/evaluate.py --dtype {float32,bfloat16,auto}` matches watcher dtype (`compute_dtype: bfloat16`). Team 9 asked TSAI to add `#565`'s Codeforces decontamination read to the access list. |
 | **Team 12 (Quantization & Serving)** | Chat template serving parity & G12 dry-run-1 split | **Done on `main`** | PR #646 merged; G12 dry-run-1 split in PR #669 |
 
 ## 4. Open Decisions for TSAI (Sat 21 Nov)
