@@ -85,11 +85,11 @@ Kaggle, 2 × Tesla T4, 21 Nov, through `eval_wide/eval_wide.ipynb`. That noteboo
 | MILU Tamil | 20 | 30.0 | 0.58 |
 | MILU Bengali | 20 | 30.0 | 0.51 |
 
-From these times: bf16 about 8.0 h on a T4. The quantized files scored faster in the week 3 sarvam-1 run (#643: Q8_0 0.67×, Q4_K_M 0.53×, Q3_K_M 0.56× bf16's eval time), so about 22 h for the four formats, plus about 30 minutes to convert and quantize. A faster GPU should cut this, but llama-cpp-python scores one request at a time, so the speedup is less than the GPU's.
+From these times: bf16 about 8.0 h on a T4. The quantized files scored faster in the week 3 sarvam-1 run (#643: Q8_0 0.67×, Q4_K_M 0.53×, Q3_K_M 0.56× bf16's eval time), so about 22 h for the four formats, plus about 10 minutes to convert and quantize (Q4_K_M took 116 s in the smoke). A faster GPU should cut this, but llama-cpp-python scores one request at a time, so the speedup is less than the GPU's.
 
 Files: [environment.json](evidence/2026-11-22-wide-bench-sarvam1/environment.json), [summary.json](evidence/2026-11-22-wide-bench-sarvam1/summary.json), [scores_long.csv](evidence/2026-11-22-wide-bench-sarvam1/scores_long.csv), [logs/](evidence/2026-11-22-wide-bench-sarvam1/logs/).
 
-**Not covered by that run:** `run_job.py` itself (the notebook calls the same scripts in the same order), and `prepare_inputs.py` with the offline check. Their smoke log is [smoke_run_job.md](evidence/2026-11-22-wide-bench-sarvam1/smoke_run_job.md).
+**The job command itself:** [smoke_run_job.md](evidence/2026-11-22-wide-bench-sarvam1/smoke_run_job.md), Kaggle, 21 Nov. `prepare_inputs.py` staged all 56,592 items and its offline check (no token, offline flags) PASSED. Then `run_job.py`, the command above with `--formats bf16 Q4_K_M --cap 2`: every step exit 0, Q4_K_M quantized in 116 s, and both GGUF files are byte-identical to the week 3 sarvam-1 files of #643 (bf16 `cfc747d2…`, Q4_K_M `21f41881…`). The smoke log says what that run did not cover.
 
 The 20-item scores are not a result. Kannada's 2 of 20 is below the 25% chance line; at chance, 2 or fewer of 20 happens about 9% of the time, so the full split is needed to tell.
 

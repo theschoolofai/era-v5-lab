@@ -54,7 +54,8 @@ def main() -> None:
     if args.formats[0] != "bf16":
         sys.exit("--formats must start with bf16: it is the base of the paired comparison and the source of the quants")
 
-    env = {**os.environ, "HF_HOME": str(args.hf_home.resolve()), "HF_HUB_OFFLINE": "1", "HF_DATASETS_OFFLINE": "1"}
+    env = {**os.environ, "HF_HOME": str(args.hf_home.resolve()), "HF_HUB_OFFLINE": "1", "HF_DATASETS_OFFLINE": "1",
+           "PYTHONUNBUFFERED": "1"}   # child output streams line by line into the log and the job's stdout
     env.pop("PYTHONPATH", None)
     py = sys.executable
     name = args.model.split("/")[-1]
@@ -88,13 +89,19 @@ def main() -> None:
     runs = args.out / "runs"
 
     if not bf16.exists():
+        part = bf16.with_name(bf16.name + ".part")
         run("convert", [args.convert_python, str(args.llama_dir / "convert_hf_to_gguf.py"), str(args.model_dir),
-                        "--outtype", "bf16", "--outfile", str(bf16)])
+                        "--outtype", "bf16", "--outfile", str(part)])
+        if not args.print_only:
+            part.rename(bf16)
     for fmt in args.formats:
         gguf = bf16 if fmt == "bf16" else args.work / f"{name}-{fmt}.gguf"
         if fmt != "bf16" and not gguf.exists():
             extra = [] if fmt == "Q8_0" else ["--output-tensor-type", "q8_0"]
-            run(f"quantize_{fmt}", [args.quantize, *extra, str(bf16), str(gguf), fmt])
+            part = gguf.with_name(gguf.name + ".part")   # renamed only on success: a stopped job leaves no file to reuse
+            run(f"quantize_{fmt}", [args.quantize, *extra, str(bf16), str(part), fmt])
+            if not args.print_only:
+                part.rename(gguf)
         run(f"test_llamacpp_lm_{fmt}", [py, str(MINI / "test_llamacpp_lm.py"), str(gguf)])
         run(f"run_{fmt}", [py, str(HERE / "run_wide_gguf.py"), "--gguf", str(gguf), "--format", fmt,
                            "--out", str(runs), "--g9-dir", str(args.g9_dir), "--model", args.model,
