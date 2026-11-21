@@ -23,9 +23,25 @@ The first issue is the smallest group in the sample and it changes what the code
 
 **What it is.** `dabdf7ec` is a test fixture for a Go linter that flags non-ASCII identifiers. Before cleaning it declares `type TеstStruct struct{}` with a Cyrillic `е` (U+0435). Cleaning changed it to a Latin `e`. The comment on the same line still says the identifier "contain non-ASCII character: U+0435", so the cleaned file now contradicts itself, and the test no longer tests anything. This is damage from cleaning: G4, over-normalised.
 
-**How big it is.** The rule is DA-A6-001 in `spec_v1/clean.py`. It rewrites any word that mixes Latin and Cyrillic letters, in code, strings and comments alike. Across the whole code-go pack (83,267 docs before cleaning) it changed 11 docs. 9 of them look like accidental look-alike letters in ordinary code (for example `retriеve`, `AcсBandwidth`, `PVСReport`), where the change is right. The other 2 are test files with deliberate Cyrillic: this doc and `c95ad16bf96bf0d6` (Part_2, a test of a symbol-cleaning function whose input `оjо` is Cyrillic on purpose). The second one was found by searching the pack and is not in the audit sample.
+**How big it is.** The rule is DA-A6-001 in `spec_v1/clean.py`. It rewrites any word that mixes Latin and Cyrillic letters, in code, strings and comments alike. Across the whole code-go pack (83,267 docs before cleaning) it changed the 11 docs below. "Test file" means the Go file's path (the `url` column) is under `testdata/` or ends in `_test.go`. Two of the 11 are test files with deliberate Cyrillic, so the change is wrong there: `dabdf7ecc74cd614` (in the audit sample) and `c95ad16bf96bf0d6` (found by searching the pack; its test input `оjо` is Cyrillic on purpose). The other 9 look like accidental look-alike letters, where the change is right.
 
-**What to do.** Skip DA-A6-001 for files that are tests or test data (a `testdata/` folder or a `_test.go` name; the path is in the `url` column). Check that the 9 good changes still happen and that the gold set still changes under 1%.
+| Pack | doc_id | File | Where the mixed word is | Change right? |
+|---|---|---|---|---|
+| code-go / Part_1 | `dabdf7ecc74cd614` | `testdata/struct_name.go` | identifier in a linter test fixture | no |
+| code-go / Part_2 | `c95ad16bf96bf0d6` | `symbols_test.go` | test input and expected output strings | no |
+| code-go / Part_1 | `21157a287d0d7f6d` | `fs.go` | an obfuscated address in a copyright comment (the header is removed by E4 anyway) | yes |
+| code-go / Part_1 | `74bfb60c19c028e0` | `host-zone.go` | same comment as above (the header is removed by E4 anyway) | yes |
+| code-go / Part_1 | `46b904f2ef8e5319` | `ts_schema_manager.go` | error message string (`retriеve`) | yes |
+| code-go / Part_1 | `f9eaf956f28fcb71` | `cluster.go` | type name `PVСReport` | yes |
+| code-go / Part_1 | `48ba5986aedab756` | `config.go` | name in a comment (`EnableH2С`) | yes |
+| code-go / Part_1 | `c93f242e8a9a6222` | `followerList.go` | variable name `followersListСollectioName` | yes |
+| code-go / Part_1 | `bec15fe3f9cbb8c8` | `rpc.go` | type name `AcсBandwidth` | yes |
+| code-go / Part_2 | `0735eb1ab62fe34f` | `upload.go` | function name `сheckLength` | yes |
+| code-go / Part_2 | `c19c5ba211d773b2` | `gzip.go` | variable name `сType` | yes |
+
+For these 9, the Cyrillic letter looks like a typo for a Latin one, and the rule changes every use of the same word, so the names stay consistent. I did not compile them.
+
+**What to do.** Skip DA-A6-001 for test files (path under `testdata/` or ending in `_test.go`). Check that the 9 good changes still happen and that the gold set still changes under 1%.
 
 | Pack | doc_id | Verdict |
 |---|---|---|
