@@ -1,6 +1,6 @@
 # en-nemotroncc-synth audit and medicine follow-ups
 
-Reviewer: `patilvijay23`. Review recorded 21 Nov 2026, completing the Week 3 audit assignment. The CSVs contain **48 full reads: Part_1 28 and Part_2 20**, exceeding the original 25 + 10 allocation. These counts describe the supplied labels, not an estimate of whole-pack quality.
+Reviewer: `patilvijay23`. Review recorded 21 Nov 2026, completing the Week 3 audit assignment. The CSVs contain **76 unique reviewed documents: 48 full reads (Part_1 28, Part_2 20) and 28 additional partial reads (Part_2)**. Full reads exceed the original 25 + 10 allocation. The additional review inspected every observed phone mask in Part_2, not every document in full. These counts describe the supplied labels, not an estimate of whole-pack quality.
 
 ## Inputs and replay
 
@@ -15,17 +15,15 @@ Local evidence:
 
 The normalized label CSVs are included next to this report. Validation results and input hashes are recorded below. Raw/cleaned Parquets, local backups, temporary validation scripts and run logs are outside this minimal submission.
 
-## Reconciled labels
+## Final labels
 
-| Part | Full reads | clean | fix | drop |
-|---|---:|---:|---:|---:|
-| Part_1 | 28 | 21 | 7 | 0 |
-| Part_2 | 20 | 14 | 5 | 1 |
-| **Total** | **48** | **35** | **12** | **1** |
+| Part | Full reads | Partial reads | Unique docs | clean | fix | drop |
+|---|---:|---:|---:|---:|---:|---:|
+| Part_1 | 28 | 0 | 28 | 21 | 7 | 0 |
+| Part_2 | 20 | 28 | 48 | 16 | 31 | 1 |
+| **Total** | **48** | **28** | **76** | **37** | **38** | **1** |
 
-`clean` preserves the reviewer's no-issue verdict unless a note or the focused replay established a contradiction. `fix` includes confirmed residual disease, incorrect transformations, and two explicitly identified cases awaiting judgment on content loss. `drop` is the reviewer's recommendation for an output that was retained; it does not mean that the cleaner already dropped it.
-
-Fourteen rows were reconciled. Two `clean` verdicts became `fix`: the wrongly dropped history article and an additional replay-confirmed Topic heading removal. The electrician Q&A question was resolved as intended cleanup, retaining `clean`. Prose mistakenly entered in `hex` was moved to `note`; evidence/hex are empty consistently with Narasimha's CSV instructions. Document IDs, part membership and `read` values are unchanged.
+`fix` includes confirmed residual disease, incorrect transformations, two mixed-content cases awaiting judgment, and five phone-contact ownership review flags. Those five are explicitly marked REVIEW REQUIRED; they are not counted as confirmed phone-masking errors. `clean` on a partial read clears only the inspected phone mask, not the entire document. `drop` is the reviewer's recommendation for an output that was retained; it does not mean that the cleaner already dropped it.
 
 The three residual-boilerplate rows carry C1. Incorrect removal/masking of otherwise valid English text is recorded by rule and effect in `note`, with an empty disease field where no source-disease code fits. In particular, valid titles are not labelled C5 spam, binary digits are not labelled F1 personal data, and the Indic-specific G codes are not forced onto English damage.
 
@@ -38,7 +36,7 @@ All medicines below are **proposed updates or decisions**, not approved replacem
 | Valid Topic heading removed | `a9092dc10e8938a1`, `d1f7ebf967426312`, `9e9afb31ec4eecd5`, `b3b84f2e80df609c` | `DA-C5-005` | M1: distinguish a single subject heading from a keyword/tag list. |
 | Site chrome partially retained | `8c0b0e0c559afe0b`, `0297eb260363a338`, `b57a2a8fbf16fdc6` | `DA-C1-006`; `DA-C2-003` removes repeat copies but leaves one | M2: targeted C1 patterns and metadata handling, preserving article/comment content. |
 | Substantive article wrongly dropped | `5b4d0f975990e808` | `DA-C3-003` | M3: replace the terminal-word-only truncation decision. |
-| Binary illustration falsely masked | `24e830d71e5bc566` | `DA-F1-005` | M4: contextual handling of binary/numeric technical examples with privacy regression tests. |
+| Incorrect phone masks in Part_2 | 22 documents / 25 masks; five additional documents need ownership review | `DA-F1-005` | M4: protect technical values and evidenced public contacts; keep ambiguous ownership cases masked. See phone-mask review below. |
 | Repeated record values deleted | `7523ebd6d772fada` | `DA-C2-003` | M5: preserve fields belonging to separate records; do not globally deduplicate them. |
 | Mixed factual/meta bullet removed | `f8027db45cfbebb2`, `93bf1542853fd276` | `DA-B4-007` | M6: review clause/sentence-level removal; preserve useful assertions. Final scope needs review. |
 | Low-information synthetic task summary retained | `780f33d558dd9f87` | `DA-B4-007` removes a meta line but leaves the task summary | M7: decide the admissible-quality/drop policy; do not infer a general drop rule from one example. |
@@ -67,13 +65,15 @@ All medicines below are **proposed updates or decisions**, not approved replacem
 
 **Regression/harm requirements.** Preserve this article and grammatical sentences ending with prepositions. Include genuinely truncated short fragments, bracketed truncation markers and otherwise complete documents with appended answers. Record recovered good documents as intended fixes, not gold harm. Run applicable gold and performance checks before adoption.
 
-### M4 Update F1 handling of technical numeric examples
+### M4 Update F1 handling of technical values and public contacts
 
-**Cause.** A 12-bit illustration is changed to `<PHONE>` in computing prose (`24e830d71e5bc566`, raw offset 49). The numeric shape matches the phone regex without sufficient semantic context.
+**Cause.** All **33 `<PHONE>` placeholders across 29 Part_2 documents** were compared to raw text. The numeric regex mistakes grit sequences, binary digits, gaming friend codes and parts of IP examples for phones. It can cross two adjacent IP examples inside shell code. The organisation-context vocabulary/window also misses clearly identified public service contacts, sometimes masking only one of repeated occurrences.
 
-**Proposed medicine.** Add a narrow contextual exemption for clear binary/bit examples, rather than exempting all numbers made of zeroes and ones or all long numeric strings. This is a separate problem from inconsistent occurrence masking addressed by `DA-F1-007` in fork #75; reusing that proposal does not automatically fix this case.
+**Assessment.** **25 masks across 22 documents** are assessed as incorrect: 11 non-phone masks in nine documents and 14 masks in 13 public-contact/historical-example documents. **Six masks in five documents** require ownership/policy review; they remain masked in the proposal. **Two masks in two documents** appear appropriate and are retained as controls. These are judgments from the supplied text, not independently verified phone ownership.
 
-**Regression/harm requirements.** Preserve this technical example and variants with bit/base labels. Continue masking real phone numbers, including ones composed mostly of zeroes/ones and those repeated in mixed contexts. Review privacy false negatives as well as gold text changes. Gold and full-data results are recorded below; the privacy trade-off still requires review.
+**Proposed medicine.** Extend the scoped DA-F1-008 replacement to preserve contextual binary, grit and friend-code examples, protect whole IP examples including adjacent code values, and recognize the evidenced public roles/providers without an ID/number allowlist. Keep private-contact and ambiguous ownership cases masked. Preserve email/address behavior. The historical PE6-5000 example is retained as instructional content. This does not establish a universal consistency policy for numbers in mixed contexts; coordinate with fork #75.
+
+**Regression/harm requirements.** Restore all 25 assessed incorrect masks, retain all eight reviewed ambiguous/private masks, test real phone-shaped strings inside technical prose, IP punctuation/cross-value boundaries, explicit private-contact cues and other-pack no-op scope. Run synth gold, all supplied training parts and held-out data again for the expanded executable block. Earlier binary-only figures must not be presented as validation of this revision.
 
 ### M5 Update DA-C2-003 for structured records
 
@@ -305,10 +305,10 @@ def medicine(doc):
 6. **Integration:** reviewer pending. Apply only after spec approval, rebuild and pin the cleaner, and rerun affected pipeline/shard checks. Never run the old destructive rule first and attempt to repair its output afterward.
 
 
-### Medicine 4 DA-F1-008 F1 technical binary examples
+### Medicine 4 DA-F1-008 F1 technical values and public contacts
 
 1. **Disease:** F1; observed source disease or false-positive behavior of the corresponding rule, as distinguished in the finding table above. **Replaces:** `DA-F1-005` on en-nemotroncc-synth only. **Status:** PROPOSAL.
-2. **Medicine:** Retain 8–64 character zero/one illustrations only with nearby binary/bit/base-2 context and no explicit phone/contact cue on the line. Preserve the existing F1 behavior for other numbers, addresses and emails.
+2. **Medicine:** Protect contextual binary, sandpaper-grit and 3DS friend-code examples; protect IP examples including matches crossing adjacent code values. Extend phone-only recognition of evidenced public service/provider contacts and the historical phoneword example. Ambiguous ownership cases keep baseline masking. Email/address behavior remains unchanged. No document-ID or phone-number allowlist is used.
 
 ```python
 SCOPE = {"DA-F1-005": frozenset({"en-nemotroncc-synth"})}
@@ -389,13 +389,67 @@ def _email(m, org):
 BINARY_CONTEXT = re.compile(r"\b(?:binary|bits?|base[ -]?2)\b", re.I)
 PHONE_CONTEXT = re.compile(r"\b(?:phone|telephone|tel|mobile|call|contact)\b", re.I)
 BINARY_DIGITS = re.compile(r"[01 ]{8,64}")
+IP_EXAMPLE = re.compile(r"(?<![\w.])[0-9Oo]{1,3}(?:\.[0-9Oo]{1,3}){3}(?!\w|\.\w)")
+IP_CONTEXT = re.compile(r"\b(?:ip|subnet|broadcast|net\s*mask)\b", re.I)
+GRIT_CONTEXT = re.compile(r"\b(?:sand(?:ing|paper)?|grits?)\b", re.I)
+FRIEND_CONTEXT = re.compile(r"\b(?:3DS|friend\s*code|Pok[eé]mon)\b", re.I)
+PRIVATE_CUE = re.compile(r"\b(?:my (?:personal |private |home )?(?:phone|number)|personal (?:phone|number)|private (?:phone|number)|contact me|call me|mobile)\b", re.I)
+PUBLIC_INSTITUTION = re.compile(r"\b(?:charities|youth bureau|citizens for|schools|heating\s*(?:&|and)\s*air conditioning)\b", re.I)
+PUBLIC_CONTACT = re.compile(r"\b(?:contact|call|registration|waitlist|inquiries|sponsors?|booking)\b", re.I)
 
-def _technical_binary(line, match):
+def _technical_number(line, match, previous):
     value = match.group().strip()
-    return (BINARY_DIGITS.fullmatch(value) is not None
+    # Protect complete IP examples before phone matching, including a match that
+    # crosses adjacent IP examples. Keep invalid examples unchanged, not repaired.
+    if IP_CONTEXT.search(line):
+        spans = [m.span() for m in IP_EXAMPLE.finditer(line)]
+        if spans and all(line[p].isspace() or any(a <= p < b for a, b in spans)
+                         for p in range(match.start(), match.end())):
+            return True
+    if PHONE_CONTEXT.search(line):
+        return False
+    if (BINARY_DIGITS.fullmatch(value) is not None
             and len(value.replace(" ", "")) >= 8
-            and BINARY_CONTEXT.search(line[max(0, match.start() - 80):match.start()]) is not None
-            and PHONE_CONTEXT.search(line) is None)
+            and BINARY_CONTEXT.search(line[max(0, match.start() - 80):match.start()])):
+        return True
+    if re.fullmatch(r"\d{2,4}-\d{2,4}-\d{2,4}", value):
+        grits = [int(v) for v in value.split("-")]
+        if (16 <= grits[0] < grits[1] < grits[2] <= 3000
+                and GRIT_CONTEXT.search(previous[-200:] + line[:match.start()])):
+            return True
+    return (re.fullmatch(r"\d{4}-\d{4}-\d{4}", value) is not None
+            and re.search(r"\bFC\s*$", line[:match.start()], re.I) is not None
+            and FRIEND_CONTEXT.search(previous[-200:] + line) is not None)
+
+def _public_phone(text, lines, i, match):
+    line = lines[i]
+    if PRIVATE_CUE.search(line):
+        return False
+    previous = "\n".join(lines[max(0, i - 2):i])
+    if (PUBLIC_INSTITUTION.search(line)
+            or (i > 0 and PUBLIC_INSTITUTION.search(lines[i - 1])
+                and len(lines[i - 1]) < 160)):
+        return True
+    if re.search(r"\bEducation Director\b", line, re.I):
+        return True
+    if (re.search(r"\bDirector of Guidance and Testing for .{1,80}\bSchools\b", previous, re.I)
+            and re.search(r"inquiries regarding .{1,100}Assessment.*contact Mr\.", line, re.I)):
+        return True
+    if re.search(r"supported by .{1,80}\bResearch\b.*sponsors", line, re.I):
+        return True
+    if re.search(r"Checking Voter Registration Status", previous, re.I) and PUBLIC_CONTACT.search(line):
+        return True
+    if (PUBLIC_CONTACT.search(line)
+            and re.search(r"\bMuseum\b", text)
+            and re.search(r"\b(?:program|session)\b", line, re.I)):
+        return True
+    if (PUBLIC_CONTACT.search(line)
+            and re.search(r"(?:\b[\w.+-]+@[\w.-]+\.edu\b|\b(?:info|registration|bookings)@[\w.-]+\b)", line, re.I)):
+        return True
+    if re.search(r"^Provider:\s*\S", previous, re.M) and re.match(r"Contact:", line, re.I):
+        return True
+    return ("Oldest Continuously Operating Phone Number" in text
+            and "PE6-5000" in text and "number can be dialed as" in line)
 
 def medicine_f1(text):
     lines = text.split("\n")
@@ -424,7 +478,7 @@ def medicine_f1(text):
             "\n".join(lines[max(0, i - 2):i + 1])))), line) if "@" in line else line
         if PHONE.search(new) or ADDRESS.search(new):
             if not (on_org_page() or org_near(i)):
-                new = PHONE.sub(lambda m: m.group() if TOLL_FREE.match(m.group()) or _technical_binary(new, m) else "<PHONE>", new)
+                new = PHONE.sub(lambda m: m.group() if TOLL_FREE.match(m.group()) or _technical_number(new, m, "\n".join(lines[max(0, i - 2):i])) or _public_phone(text, lines, i, m) else "<PHONE>", new)
                 if len(line.strip()) <= CONTACT_LINE:
                     new = ADDRESS.sub("<ADDRESS>", new)
         out.append(new)
@@ -461,7 +515,7 @@ def medicine(doc):
 
 3. **Action:** preserve the original rule's fix/drop contract, with the scoped change above. Run at the original rule's pipeline position; leave other packs on their existing rules.
 4. **Harm and full-pack tests:** results are reported in the validation section below; a passing gold result is separate from rule adoption.
-5. **Side effects:** A real phone number embedded in binary prose without a contact cue could be retained. Explicit contact cues defeat the exemption. This does not incorporate the independent per-number masking proposal in fork #75; compose only after joint validation.
+5. **Side effects:** Technical-context and public-role heuristics can retain private numbers if their surrounding prose is misleading. Explicit phone/contact cues defeat the grit/binary/friend-code exemption; private-contact cues defeat the added public-contact exemption. Existing baseline organisation exemptions remain unchanged. Sparse/ambiguous ownership cases are not automatically unmasked. This does not implement a universal per-number consistency policy; coordinate with fork #75. IP examples are preserved, not fact-corrected.
 6. **Integration:** reviewer pending. Apply only after spec approval, rebuild and pin the cleaner, and rerun affected pipeline/shard checks. Never run the old destructive rule first and attempt to repair its output afterward.
 
 
@@ -642,7 +696,7 @@ def medicine(doc):
 
 ## All audited documents
 
-The labels are judgments on the supplied original cleaned output, not on candidate outputs.
+`full` and `partial` describe reading coverage, not confidence in the whole pack. The existing full read of `24e830d71e5bc566` is retained; its additional phone-context review does not create a duplicate row. All 28 newly added IDs are `partial`, with blank evidence/hex and blank disease codes for masking damage or ownership questions rather than source F1 personal-data disease.
 
 | Part | doc_id | Read | Verdict | Diseases | Note |
 |---|---|---|---|---|---|
@@ -678,7 +732,7 @@ The labels are judgments on the supplied original cleaned output, not on candida
 | 2 | `e46c58b45d4011ce` | full | clean | — | No issue reported in the manual review. |
 | 2 | `8a6a1d17705d675c` | full | clean | — | No issue reported in the manual review. |
 | 2 | `c74967ec522fd90c` | full | clean | — | No issue reported in the manual review. |
-| 2 | `24e830d71e5bc566` | full | fix | — | False-positive masking by DA-F1-005: a 12-bit binary illustration at raw offset 49 becomes <PHONE>. This is mathematical/computing content, not a personal phone number; add a narrow contextual exemption with privacy regression tests. |
+| 2 | `24e830d71e5bc566` | full | fix | — | Confirmed false-positive phone masking by DA-F1-005. A 12-bit binary illustration is incorrectly replaced by `<PHONE>`. Additional partial phone-context review of raw versus supplied post; 1 observed mask(s). |
 | 2 | `063e8bbd4f779a03` | full | clean | — | No issue reported in the manual review. |
 | 2 | `780f33d558dd9f87` | full | drop | — | Reviewer recommends dropping this low-information synthetic task summary: it describes a request for a webinar email while the necessary webinar content is missing. DA-B4-007 removes one meta line but retains the task summary. Quality-policy decision pending; no unsupported disease code assigned. |
 | 2 | `9e9afb31ec4eecd5` | full | fix | — | DA-C5-005 removes Topic: Japanese Used Cars at raw offset 0. This is a single subject heading; the rule does not distinguish it from a tag/keyword list. |
@@ -694,20 +748,48 @@ The labels are judgments on the supplied original cleaned output, not on candida
 | 2 | `055ecf0228699d9e` | full | clean | — | No issue reported in the manual review. |
 | 2 | `de5b3e2dd5b7fbb0` | full | clean | — | No issue reported in the manual review. |
 | 2 | `93bf1542853fd276` | full | fix | — | Potential content loss: DA-B4-007 deletes the complete final bullet under Extended family relationships because it contains a source-availability caveat, leaving a heading without its explanation. Review at sentence/clause level before changing the medicine. |
+| 2 | `e8f908a42871e4b6` | partial | fix | — | Confirmed false-positive phone masking by DA-F1-005. Sandpaper grit sequences 80-120-180 and 100-150-220 are incorrectly replaced by two `<PHONE>` tokens. Partial phone-context review of raw versus supplied post; 2 observed mask(s). |
+| 2 | `4bc070c79215632d` | partial | fix | — | Incorrect masking under the F1 keep-organisations/public-contact policy: WNCCEIB organisation contact. Partial phone-context review of raw versus supplied post; 1 observed mask(s). |
+| 2 | `1f472835ef145fb9` | partial | fix | — | Confirmed false-positive phone masking by DA-F1-005. A Nintendo 3DS friend code (FC) is incorrectly replaced by `<PHONE>`; it is not a telephone number. Partial phone-context review of raw versus supplied post; 1 observed mask(s). |
+| 2 | `fa933cc36ed916ff` | partial | fix | — | Incorrect masking under the F1 keep-organisations/public-contact policy: Gee & Missler Heating & Air Conditioning business contact. Partial phone-context review of raw versus supplied post; 1 observed mask(s). |
+| 2 | `c27ffe1aed1ee536` | partial | fix | — | Incorrect masking under the F1 keep-organisations/public-contact policy: school assessment director official inquiry contact. Partial phone-context review of raw versus supplied post; 1 observed mask(s). |
+| 2 | `17003ddc9fb7a9d6` | partial | fix | — | Incorrect masking under the F1 keep-organisations/public-contact policy: Catholic Charities and City-County Youth Bureau contacts (two masks; the second source number is incomplete, which is not a reason to relabel it private). Partial phone-context review of raw versus supplied post; 2 observed mask(s). |
+| 2 | `020037fc56eaceee` | partial | fix | — | Confirmed false-positive phone masking by DA-F1-005. The first three octets of broadcast address 255.255.255.254 are replaced, leaving `<PHONE>`.254. Partial phone-context review of raw versus supplied post; 1 observed mask(s). |
+| 2 | `364298590b01a61e` | partial | fix | — | Incorrect masking under the F1 keep-organisations/public-contact policy: Burraja cultural-program contact. Partial phone-context review of raw versus supplied post; 1 observed mask(s). |
+| 2 | `452886dff1756ff9` | partial | fix | — | Incorrect masking under the F1 keep-organisations/public-contact policy: university tournament sponsorship contact. Partial phone-context review of raw versus supplied post; 1 observed mask(s). |
+| 2 | `8aecb4bed3222e59` | partial | fix | — | Incorrect masking under the F1 keep-organisations/public-contact policy: public voter-registration status service; repeated occurrences are treated inconsistently. Partial phone-context review of raw versus supplied post; 1 observed mask(s). |
+| 2 | `487169495fd63645` | partial | fix | — | REVIEW REQUIRED; not a confirmed false positive. Named volunteer coordinator in an institutional setting; public versus personal line is not established. Retain existing masking until resolved. Partial phone-context review of raw versus supplied post; 1 observed mask(s). |
+| 2 | `417036b98dd9380a` | partial | fix | — | Incorrect masking under the F1 keep-organisations/public-contact policy: museum-program registration/waitlist; repeated occurrences are treated inconsistently. Partial phone-context review of raw versus supplied post; 1 observed mask(s). |
+| 2 | `1643b537b787cb99` | partial | fix | — | Confirmed false-positive phone masking by DA-F1-005. Two subnet-mask examples lose their first three octets, leaving `<PHONE>`.0. Preserve numeric examples; the questionable 225-prefixed source example is a separate factual issue. Partial phone-context review of raw versus supplied post; 2 observed mask(s). |
+| 2 | `0fdc213d4606fc4f` | partial | fix | — | Incorrect masking under the F1 keep-organisations/public-contact policy: Penn LPS Online course registration. Partial phone-context review of raw versus supplied post; 1 observed mask(s). |
+| 2 | `b00929f7a291d0c8` | partial | fix | — | Incorrect masking under the F1 keep-organisations/public-contact policy: Education Director booking contact with extension. Partial phone-context review of raw versus supplied post; 1 observed mask(s). |
+| 2 | `23111b1b824081cd` | partial | fix | — | REVIEW REQUIRED; not a confirmed false positive. Unattributed number above a health article; organisation ownership is not established. Retain existing masking until resolved. Partial phone-context review of raw versus supplied post; 1 observed mask(s). |
+| 2 | `07c8d8752910472e` | partial | fix | — | Incorrect masking under the F1 keep-organisations/public-contact policy: Get Trainee training-provider contact. Partial phone-context review of raw versus supplied post; 1 observed mask(s). |
+| 2 | `53b84b1caa2f39f1` | partial | fix | — | REVIEW REQUIRED; not a confirmed false positive. Two named church-program contacts; personal versus institutional ownership is not established. Retain existing masking until resolved. Partial phone-context review of raw versus supplied post; 2 observed mask(s). |
+| 2 | `d6f8a9fc304391e3` | partial | clean | — | Direct personal contact: the observed phone mask appears appropriate. Other occurrences/formats were not certified; this is a masking-review control, not a full-document clearance. Partial phone-context review of raw versus supplied post; 1 observed mask(s). |
+| 2 | `9c8ae5f6ab4bbca8` | partial | fix | — | Incorrect masking under the F1 keep-organisations/public-contact policy: Paleorama workshop registration. Partial phone-context review of raw versus supplied post; 1 observed mask(s). |
+| 2 | `4ee1673075b7d128` | partial | fix | — | Confirmed false-positive phone masking by DA-F1-005. The phone regex crosses two adjacent IP test values in shell code, consuming the end of one and start of the next. Preserve the original code, including intentionally invalid IP test cases. Partial phone-context review of raw versus supplied post; 1 observed mask(s). |
+| 2 | `ba1bae6cb7f032c5` | partial | fix | — | Incorrect masking under the F1 keep-organisations/public-contact policy: historical phone-number/phoneword explanation (PE6-5000), with no private person identified. Partial phone-context review of raw versus supplied post; 1 observed mask(s). |
+| 2 | `05d5bae84c860471` | partial | fix | — | Confirmed false-positive phone masking by DA-F1-005. The last three octets of illustrative IP address 162.69.239.132 are replaced, leaving 162.`<PHONE>`. Partial phone-context review of raw versus supplied post; 1 observed mask(s). |
+| 2 | `6f6a0e1ab208e97b` | partial | fix | — | Confirmed false-positive phone masking by DA-F1-005. The last three octets of a server IP address are incorrectly replaced, leaving 139.`<PHONE>`. Partial phone-context review of raw versus supplied post; 1 observed mask(s). |
+| 2 | `8988e16c5bbdda86` | partial | clean | — | Personal-record listing: the observed phone mask appears appropriate. Whole-document drop eligibility and other privacy fields were not reviewed; this is not a full-document clearance. Partial phone-context review of raw versus supplied post; 1 observed mask(s). |
+| 2 | `cef3cbc54c914320` | partial | fix | — | REVIEW REQUIRED; not a confirmed false positive. Event-registration number with no organisation identified. Retain existing masking until resolved. Partial phone-context review of raw versus supplied post; 1 observed mask(s). |
+| 2 | `d6e8da1b50823198` | partial | fix | — | REVIEW REQUIRED; not a confirmed false positive. Advertised professional contact for a named practitioner; sole-practitioner policy needs confirmation. Retain existing masking until resolved. Partial phone-context review of raw versus supplied post; 1 observed mask(s). |
+| 2 | `af4fc4c9232d331d` | partial | fix | — | Confirmed false-positive phone masking by DA-F1-005. A subnet mask is partially replaced, leaving `<PHONE>`.0. Partial phone-context review of raw versus supplied post; 1 observed mask(s). |
 
 ## Validation results
 
-The executable medicine blocks above were tested, not a separate handwritten implementation. Code-block SHA-256: `9b087a5613def19db9cf18a564f612b01d551176b35fc438554e3e7558cd41ca`. The approved cleaner remains unchanged. Candidate code was inserted at each replaced rule's original position for this pack only; other packs retain the baseline pipeline. The complete supplied training parts were processed without a document cap. No candidate Parquets or token shards were published.
+The executable medicine blocks above were tested, not a separate handwritten implementation. Code-block SHA-256: `2a05cd19d01d2fa2583236eec70aee8836be3a6f9c3803525bbe1fcd8c231391`. The approved cleaner remains unchanged. Candidate code was inserted at each replaced rule's original position for this pack only; other packs retain the baseline pipeline. The complete supplied training parts were processed without a document cap. No candidate Parquets or token shards were published.
 
 ### Complete training parts
 
 | Part | Raw docs | Baseline drops | Candidate drops | Recovered | Newly dropped | Different final outputs | Baseline/post mismatches | Candidate second-pass changes |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| 1 | 147,754 | 160 | 122 | 38 | 0 | 404 | 4 | 3 |
-| 2 | 49,365 | 58 | 39 | 19 | 0 | 136 | 2 | 1 |
-| **Total** | **197,119** | **218** | **161** | **57** | **0** | **540** | **6** | **4** |
+| 1 | 147,754 | 160 | 122 | 38 | 0 | 416 | 4 | 3 |
+| 2 | 49,365 | 58 | 39 | 19 | 0 | 157 | 2 | 1 |
+| **Total** | **197,119** | **218** | **161** | **57** | **0** | **573** | **6** | **4** |
 
-Recovery means a document dropped by the baseline is kept by the candidate pipeline. These are intended candidates for review, not proof every recovered fragment is desirable. A second-pass change is reported rather than silently excluded from the idempotence result.
+Recovery means a document dropped by the baseline is kept by the candidate pipeline. These are intended candidates for review, not proof every recovered fragment is desirable. A second-pass change is reported rather than silently excluded from the idempotence result. All four second-pass failures also occur with the unchanged baseline: DA-B4-010 and DA-B1-002 remove more text, while DA-C3-001 drops two documents. No newly observed candidate second-pass failures were found. The six training baseline/post mismatches are the unchanged DA-D7-001 confirmed-error drop-list IDs retained in the supplied post data; reconcile its version/provenance.
 
 ### Per-medicine comparisons
 
@@ -718,7 +800,7 @@ Each candidate was compared to its original rule at the exact text that rule saw
 | `DA-C5-007` | `DA-C5-005` | 196,917 | 271 | 0 | 0 / 0 of 326, PASS |
 | `DA-C1-013` | `DA-C1-006` | 196,917 | 50 | 0 | 0 / 0 of 326, PASS |
 | `DA-C3-008` | `DA-C3-003` | 197,058 | 57 | 0 | 0 / 0 of 326, PASS |
-| `DA-F1-008` | `DA-F1-005` | 196,901 | 1 | 0 | 0 / 0 of 326, PASS |
+| `DA-F1-008` | `DA-F1-005` | 196,901 | 34 | 0 | 0 / 0 of 326, PASS |
 | `DA-C2-008` | `DA-C2-003` | 196,917 | 76 | 0 | 0 / 0 of 326, PASS |
 | `DA-B4-015` | `DA-B4-007` | 196,916 | 86 | 0 | 0 / 0 of 326, PASS |
 
@@ -736,7 +818,9 @@ The official harm loader reports **0 changed / 0 dropped** on all **326 synth go
 | `7523ebd6d772fada` | fix → keep; final output differs | Repeated values belonging to separate spell records are preserved. |
 | `93bf1542853fd276` | fix → keep; final output differs | Ambiguous mixed-inference sentence is retained unchanged; requires the stated policy review. |
 
-All **48** audit IDs were found. Candidate output differs on **12/48** audited docs; **0** of those were manually labelled `clean` on the original output. The submitted audit labels still describe the original post data.
+All **76 unique audit IDs** were found. Candidate output differs on **33/76**: 12 of the original full reads and 21 new partial reads. None of the 37 `clean` labels changes. The five partial ownership-review cases and two partial private-contact controls retain the observed masking. The submitted labels describe the supplied post data, not the proposed output.
+
+For the 29-document Part_2 phone review specifically, the revised candidate restores **all 25 assessed incorrect masks in 22 documents** and retains **all eight ambiguous/private masks in seven documents**. The existing binary full read is included in those 22; it is not counted again as a partial row.
 
 ### Held-out reference discrepancy
 
@@ -746,15 +830,15 @@ On this held-out part the candidate pipeline changes 58, drops 3, recovers 2 rel
 
 ### Runtime and input identities
 
-Intel Core Ultra 5 226V, WSL2 Linux, four visible CPUs, one process per run; Python 3.12.12, PyArrow 25.0.0, pytest 9.2.0 and ftfy 6.3.1. The complete-parts run interleaves baseline, isolated-card checks, combined pipeline and second-pass checks. The timings below measure only the first baseline/candidate pipeline call per document, excluding I/O, hashing and the other validations. They are one full-data pass, not a best-of-three microbenchmark; small differences should not be overinterpreted.
+Intel Core Ultra 5 226V, WSL2 Linux, four visible CPUs, one process per run; Python 3.12.12, PyArrow 25.0.0, pytest 9.2.0 and ftfy 6.3.1. The expanded-F1 rerun processes the two training parts in separate, overlapping processes, comparing baseline, combined pipeline, second pass and isolated revised F1. The other five unchanged cards retain their earlier isolated-rule evidence. The timings below measure only the first baseline/candidate pipeline call per document, excluding I/O, hashing and the other validations. They are one full-data pass, not a best-of-three microbenchmark; small differences should not be overinterpreted.
 
 | Part | Baseline seconds | Candidate seconds | Baseline docs/s | Candidate docs/s |
 |---|---:|---:|---:|---:|
-| 1 | 69.95 | 71.36 | 2,112 | 2,071 |
-| 2 | 23.12 | 23.67 | 2,135 | 2,086 |
-| **Total** | **93.07** | **95.02** | **2,118** | **2,074** |
+| 1 | 61.83 | 67.89 | 2,390 | 2,176 |
+| 2 | 16.46 | 17.86 | 2,998 | 2,765 |
+| **Total** | **78.29** | **85.75** | **2,518** | **2,299** |
 
-The combined candidate throughput is **0.98× baseline**. Full validation wall time: **447.5 seconds**. A candidate slowdown is a review item, not hidden by isolated-rule timing.
+The measured candidate throughput is **0.91× baseline**. Validation scan wall times: Part_1 **270.6 s**, Part_2 **71.5 s**; these overlap and are not additive. Process contention and a single pass limit performance conclusions.
 
 | Input | Raw SHA-256 | Post SHA-256 |
 |---|---|---|
@@ -764,7 +848,7 @@ The combined candidate throughput is **0.98× baseline**. Full validation wall t
 
 ### Validation record and gold-check reproduction
 
-The tables above retain the results of the local full-data validation. The temporary full-data harness, focused tests and machine-generated logs are omitted from this minimal submission. **53 focused tests passed** locally, covering scope, positive/negative examples, privacy guards, synthetic idempotence and replacement/restoration at pipeline positions. Repeating the full-data experiment requires recreating that harness and using the pinned cleaner and input hashes above.
+The tables above retain the results of the local full-data validation. The temporary full-data harness, focused tests and machine-generated logs are omitted from this minimal submission. **53 focused tests passed on the initial binary-only revision**. For this expanded F1 revision, **six focused check groups passed**, covering all 29 reviewed documents, seven technical examples, seven phone/privacy-counterexamples, other-pack no-op scope, unchanged email/address behavior and all 326 gold documents through the real pipeline. The official harm loader also passes all six current cards individually and together with zero changed/dropped gold documents. Earlier test counts are not presented as a rerun of the removed test suite. Repeating the full-data experiment requires recreating that harness and using the pinned cleaner and input hashes above.
 
 The repository's existing harm-test loader can rerun the executable cards directly from this report:
 
@@ -776,4 +860,4 @@ The executable-block hash above identifies the six tested candidates. The approv
 
 ### Adoption gate
 
-These are validated proposal artifacts, not an enabled cleaner release. Before adoption, review nongold changes and recovered documents, any idempotence failures and runtime regression, the F1 privacy trade-off, and the ambiguous M6/M7 policy cases. Confirm rule IDs and interactions with fork #75, then approve the spec replacement, rebuild/pin the cleaner and rerun affected pipeline/shard checks. The full run does not substitute for a second human reader or production/corpus-v1 verification.
+These are validated proposal artifacts, not an enabled cleaner release. Before adoption, review nongold changes and recovered documents, any idempotence failures and runtime regression, the F1 privacy trade-off, and the five unresolved public/private ownership cases and ambiguous M6/M7 policy cases. Confirm rule IDs and interactions with fork #75, then approve the spec replacement, rebuild/pin the cleaner and rerun affected pipeline/shard checks. The full run does not substitute for a second human reader or production/corpus-v1 verification.
