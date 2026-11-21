@@ -193,6 +193,7 @@ def load_runtime(arm_path, runtime_path=None):
             "lr",
             "weight_decay",
             "muon_lr",
+            "router_on_muon",
             "schedule",
             "warmup_steps",
             "betas",
@@ -442,6 +443,10 @@ def validate(c):
         errors.append("Explicit finite positive Muon LR (muon_lr) required")
     if o.get("name") == "adamw" and o.get("muon_lr") is not None:
         errors.append("muon_lr set on an AdamW arm would be ignored")
+    if "router_on_muon" in o and type(o["router_on_muon"]) is not bool:
+        errors.append("optim.router_on_muon must be true or false")
+    if o.get("name") == "adamw" and o.get("router_on_muon"):
+        errors.append("router_on_muon set on an AdamW arm would be ignored")
     if o.get("schedule") != "constant":
         errors.append("Only lead's constant schedule supported")
     if not number(o.get("lr")) or o["lr"] <= 0:

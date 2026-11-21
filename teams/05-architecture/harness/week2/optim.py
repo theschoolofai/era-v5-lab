@@ -117,14 +117,15 @@ class Optimizers:
 
 
 # Muon handles the selected block matrices. AdamW handles the remaining parameters.
-def uses_muon(name, p):
+def uses_muon(name, p, router_on_muon=False):
     """Attention and expert matrices inside the blocks. The MoE router, embedding projection, heads and norm gains stay
-    on AdamW. Router on AdamW: TSAI and KE2, 21 Nov (small and sensitive, like a head; to be tested, not settled)."""
+    on AdamW. Router on AdamW: TSAI and KE2, 21 Nov (small and sensitive, like a head; to be tested, not settled).
+    optim.router_on_muon: true puts the router back on Muon, for the router comparison run only."""
     return (
         p.ndim == 2
         and name.startswith("blocks.")
         and name.endswith(".weight")
-        and ".moe.router." not in name
+        and (router_on_muon or ".moe.router." not in name)
     )
 
 
@@ -143,8 +144,9 @@ def build_optimizer(model, o):
             "Unknown optimizer " + repr(o["name"]) + "; never replaced silently"
         )
     named = list(model.named_parameters())
-    muon = [p for n, p in named if uses_muon(n, p)]
-    rest = [p for n, p in named if not uses_muon(n, p)]
+    rom = bool(o.get("router_on_muon", False))
+    muon = [p for n, p in named if uses_muon(n, p, rom)]
+    rest = [p for n, p in named if not uses_muon(n, p, rom)]
     if not muon or not rest:
         raise ValueError("Muon needs block matrices and AdamW parameters")
     return Optimizers(
@@ -163,6 +165,7 @@ def describe(model, o):
     if o["name"] == "adamw":
         return {"name": "adamw", "lr": o["lr"], "parameters": model.parameter_count()}
     named = list(model.named_parameters())
+    rom = bool(o.get("router_on_muon", False))
     return {
         "name": "muon",
         "source": "teams/06-performance/models/optim.py@0968eb8 (loop path)",
@@ -170,6 +173,7 @@ def describe(model, o):
         "adamw_lr": o["lr"],
         **MUON,
         "ns_coefficients": list(NS_COEFFS),
-        "muon_parameters": sum(p.numel() for n, p in named if uses_muon(n, p)),
-        "adamw_parameters": sum(p.numel() for n, p in named if not uses_muon(n, p)),
+        "router_on_muon": rom,
+        "muon_parameters": sum(p.numel() for n, p in named if uses_muon(n, p, rom)),
+        "adamw_parameters": sum(p.numel() for n, p in named if not uses_muon(n, p, rom)),
     }
