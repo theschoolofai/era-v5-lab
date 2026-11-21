@@ -29,9 +29,9 @@ class G8LoggerTests(unittest.TestCase):
             pos_dim=byte_rows.shape[1],
             bos_id=0,
             pad_id=1,
+            normalize_input=False,
             encode=lambda text: [ord(char) - ord("a") + 2 for char in text],
             identity=lambda: {},
-            normalize_input=False,
         )
         logger_dir = TEAM.parent / "08-monitoring" / "metrics_logger"
         with TemporaryDirectory() as temp:

@@ -9,7 +9,7 @@ import sys
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import numpy as np
 import torch
@@ -19,6 +19,68 @@ import train_week2
 
 
 class Team7CheckpointTests(unittest.TestCase):
+    def test_nonfinite_step_exits_78_before_update_or_checkpoint(self):
+        team7 = TEAM.parent / "07-infrastructure"
+        score = train_week2.scored_ntp_loss
+        build = train_week2.build_optimizer
+        for flags in ([], ["--no-consolidate-step-checks"]):
+            for fault in ("loss", "gradient"):
+                with self.subTest(flags=flags, fault=fault), TemporaryDirectory() as temp:
+                    root = Path(temp)
+                    cfg, byte_rows, _ = fixture()
+                    cfg["model"]["ke_max_pos"] = byte_rows.shape[1]
+                    artifacts = SimpleNamespace(
+                        bytes=byte_rows, lengths=np.ones(len(byte_rows), dtype=np.int16),
+                        pos_dim=byte_rows.shape[1], bos_id=0, pad_id=1,
+                        encode=lambda text: [ord(char) - ord("a") + 2 for char in text],
+                        identity=lambda: {}, normalize_input=False,
+                    )
+                    train, val = root / "train.jsonl", root / "val.jsonl"
+                    train.write_text('{"text":"aaaa"}\n', encoding="utf8")
+                    val.write_text('{"text":"bbbb"}\n', encoding="utf8")
+                    args = [
+                        "trainer", "--config", "fixture.yaml", "--tokenizer", "fixture.json",
+                        "--byte-table", "fixture.npz", "--train-data", str(train),
+                        "--heldout-data", str(val), "--out", str(root / "out"),
+                        "--smoke", "--smoke-steps", "1", "--smoke-batch-size", "1",
+                        "--checkpoint-store", str(root / "store"), "--run-id", "nonfinite", *flags,
+                    ]
+                    updates = []
+
+                    def tracked_optimizer(*args, **kwargs):
+                        optimizer = build(*args, **kwargs)
+                        optimizer.step = Mock(wraps=optimizer.step)
+                        updates.append(optimizer.step)
+                        return optimizer
+
+                    def faulty_score(model, *args, **kwargs):
+                        value = score(model, *args, **kwargs)
+                        if model.training:
+                            if fault == "loss":
+                                value = value * float("nan")
+                            else:
+                                value.register_hook(lambda grad: grad * float("nan"))
+                        return value
+
+                    with (
+                        patch.object(sys, "argv", args),
+                        patch.object(sys, "path", [str(team7), *sys.path]),
+                        patch.object(train_week2, "load_runtime", return_value=cfg),
+                        patch.object(train_week2, "Artifacts", return_value=artifacts),
+                        patch.object(train_week2, "scored_ntp_loss", faulty_score),
+                        patch.object(train_week2, "build_optimizer", tracked_optimizer),
+                        patch.dict(os.environ, {"V5_RUNS_DIR": str(root / "notes")}),
+                    ):
+                        from ckpt.ckpt import Checkpointer
+                        with patch.object(Checkpointer, "save") as save, self.assertRaises(SystemExit) as failure:
+                            train_week2.main()
+                        self.assertEqual(failure.exception.code, 78)
+                        save.assert_not_called()
+                    self.assertEqual(len(updates), 1)
+                    updates[0].assert_not_called()
+                    self.assertFalse((root / "out" / "checkpoint.pt").exists())
+                    self.assertFalse((root / "out" / "summary.json").exists())
+
     def test_wall_clock_commits_and_bit_equal_resume(self):
         for optimizer, mtp in (("adamw", False), ("muon", False), ("adamw", True)):
             with self.subTest(optimizer=optimizer, inactive_mtp=mtp):
