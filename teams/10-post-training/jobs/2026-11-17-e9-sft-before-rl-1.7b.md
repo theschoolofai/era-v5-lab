@@ -3,7 +3,7 @@
 ```
 Team:            10-post-training
 Owner:           f20201351h-maker
-Lead approval:   saitej123 (requested on this PR; the PR stays a draft until he confirms)
+Lead approval:   saitej123 (confirmed, 21 Nov 2026; merged via #681)
 Question:        At 1.7B, after full SFT on execution-verified code (short code-only answers vs full reasoning traces), does the share of easiest-rung RL prompts with a mixed (gradient-carrying) group of 8 samples reach 10%? (It did not at 135M and 360M: 3.1% and 6.3%.)
 Script:          teams/10-post-training/rl-loop/pilots/recipe_e9_20261116/recipe_job.py at this PR's head; it calls sft/bench/train.py, rl_screen.py and evaluate.py, rl-loop/score_pool.py, rl-data/stdio_check.py and rl/verifier.py from the same commit (all in this PR or on main)
 Command:         python teams/10-post-training/rl-loop/pilots/recipe_e9_20261116/recipe_job.py --config teams/10-post-training/rl-loop/pilots/recipe_e9_20261116/cfg_e9_17b.yaml
