@@ -676,9 +676,9 @@ def main():
             optimizer.zero_grad(set_to_none=True)
             # TSAI recipe (21 Nov), unconfirmed on KE2: bag training (TST) for the first tst_frac of the steps.
             tst_on = tst_mod.active(step, cfg["run"]["steps"], cfg["run"])
-            count = (
-                tst_mod.scored_bags(y, cfg["run"]["tst_bag"]) if tst_on else int((y != -100).sum())
-            )
+            count = int((y != -100).sum())  # real scored tokens: logged, and the normal-training normaliser
+            # TST normalises by scored bags instead; the logged token count stays the real one (Team 8's tokens per byte).
+            bag_count = tst_mod.scored_bags(y, cfg["run"]["tst_bag"]) if tst_on else 0
             mtp_count = int((y[:, 1:] != -100).sum())
             total = 0.0
             ntp_value = 0.0
@@ -694,7 +694,7 @@ def main():
                 with amp():
                     mtp = None
                     if tst_on:
-                        ntp = tst_mod.tst_loss(model, tx, ty, cfg["run"]["tst_bag"]) / max(count, 1)
+                        ntp = tst_mod.tst_loss(model, tx, ty, cfg["run"]["tst_bag"]) / max(bag_count, 1)
                     elif model.mtp_head is None:
                         ntp = scored_ntp_loss(model, tx, ty) / count
                     else:
