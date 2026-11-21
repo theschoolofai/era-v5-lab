@@ -221,6 +221,9 @@ def load_runtime(arm_path, runtime_path=None):
             "compile",
             "steps",
             "max_time_min",
+            "tst",
+            "tst_bag",
+            "tst_frac",
         ],
         "lead run",
     )
@@ -457,6 +460,18 @@ def validate(c):
         errors.append("optim.router_on_muon must be true or false")
     if o.get("name") == "adamw" and o.get("router_on_muon"):
         errors.append("router_on_muon set on an AdamW arm would be ignored")
+    tst = r.get("tst")
+    if tst is not None and type(tst) is not bool:
+        errors.append("run.tst must be true or false")
+    elif tst:
+        if type(r.get("tst_bag")) is not int or r["tst_bag"] < 2:
+            errors.append("tst needs an explicit integer tst_bag >= 2 (TSAI: 6)")
+        if not number(r.get("tst_frac")) or not 0 < r["tst_frac"] < 1:
+            errors.append("tst needs an explicit tst_frac in (0, 1) (TSAI: 0.3)")
+        if type(r.get("tst_bag")) is int and r["tst_bag"] >= 2 and m.get("block_size", 0) < 2 * r["tst_bag"]:
+            errors.append("tst needs block_size of at least two bags")
+    elif r.get("tst_bag") is not None or r.get("tst_frac") is not None:
+        errors.append("tst_bag or tst_frac set while tst is off would be ignored")
     head_sgd = o.get("head_sgd")
     if head_sgd is not None and type(head_sgd) is not bool:
         errors.append("optim.head_sgd must be true or false")

@@ -27,6 +27,7 @@ from week2.data import DocumentWindows, BatchStream
 from week2.model import LanguageModel
 from week2.evaluation import EVAL_BATCH_TOKENS, evaluate, token_nll
 from week2.optim import Optimizers, build_optimizer, describe, lr_scale, set_lr_scale
+from week2 import tst as tst_mod
 from week2.team7_checkpoints import CheckpointProgress, write_native_checkpoint
 
 
@@ -673,7 +674,11 @@ def main():
             tick = time.perf_counter()
             x, y, lengths = stream.next(device)
             optimizer.zero_grad(set_to_none=True)
-            count = int((y != -100).sum())
+            # TSAI recipe (21 Nov), unconfirmed on KE2: bag training (TST) for the first tst_frac of the steps.
+            tst_on = tst_mod.active(step, cfg["run"]["steps"], cfg["run"])
+            count = (
+                tst_mod.scored_bags(y, cfg["run"]["tst_bag"]) if tst_on else int((y != -100).sum())
+            )
             mtp_count = int((y[:, 1:] != -100).sum())
             total = 0.0
             ntp_value = 0.0
@@ -688,7 +693,9 @@ def main():
                 # Normalize each microbatch by the full batch target count.
                 with amp():
                     mtp = None
-                    if model.mtp_head is None:
+                    if tst_on:
+                        ntp = tst_mod.tst_loss(model, tx, ty, cfg["run"]["tst_bag"]) / max(count, 1)
+                    elif model.mtp_head is None:
                         ntp = scored_ntp_loss(model, tx, ty) / count
                     else:
                         logits, mtp_logits = model(tx, ty != -100, return_mtp=True)
