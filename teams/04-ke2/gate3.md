@@ -92,8 +92,9 @@ tests do not have to run inside dry run 1, and that a merged PR with the full ru
 - the GPU name and the commit;
 - measured in Team 6's harness.
 
-Encode is already timed there as the `embed.ke` region. Decode is not part of a training step, because the head is
-dense. It is a separate region that runs only behind a flag.
+Encode is already timed there as the `embed.ke` region. Decode is not part of a dry run 1 training step, because that
+run's head is dense. It is a separate region that runs only behind a flag. The capstone's KAS head (TSAI, 21 Nov) is
+a different case: it reads the byte codes at every step, and its timing follows Team 5's integration.
 
 **Merged so far** (`results/timing/README.md`):
 - #588: `src/timing/bench_public_ke.py` and exploratory CPU and MPS runs on the p1536 table
@@ -128,17 +129,17 @@ and the size after the fold. G12's `scripts/export_hf.py` already folds this way
 **Open:** the check on a trained checkpoint. It runs inside G12's export job (#508) with
 `fold_check.py --checkpoint`, because dry-run checkpoints stay on TSAI's machines.
 
-## 6. Open risks from `decision_input.md`, rechecked 17 Nov
+## 6. Open risks from `decision_input.md`, rechecked 17 Nov (risks 2, 4 and 7 updated 21 Nov)
 
 | # | Gate 2 status | Now | Why |
 |---|---|---|---|
 | 1 | closed with caveats | unchanged | CUDA determinism. #499 adds every-ID fp32 and bf16 round trips on one more GPU run; the caveats (one GPU class, batches up to 4,096) stand |
-| 2 | open | **open** | No predicted KE2 code vectors exist. Team 5's `save_hidden_vectors.py` (#473, #501) saves the `n_embd`-wide hidden states that feed the dense head, not vectors in the 8,192-wide code space, and states that it applies no projection into code space. With no KE2 output head there is nothing for `tau_sweep.py --vectors` to measure. tau = 0.3 stays a proposal from synthetic vectors, and TSAI decides tau at Gate 3. Parked by the lead, 17 Nov |
+| 2 | open | **parked** | No predicted KE2 code vectors exist. Team 5's `save_hidden_vectors.py` (#473, #501) saves the `n_embd`-wide hidden states that feed the dense head, not vectors in the 8,192-wide code space, and states that it applies no projection into code space. With no KE2 output head there is nothing for `tau_sweep.py --vectors` to measure. tau = 0.3 stays a proposal from synthetic vectors, and TSAI decides tau at Gate 3. Parked by the lead, 17 Nov. TSAI's final KAS head decision (21 Nov) asks for nothing further to test or prove from Team 4's side, so it stays parked |
 | 3 | open | unchanged | E4 to E8 are still single-seed |
-| 4 | open (lab decision) | unchanged | per-token frequency prior. It matters only for a KE2 output head, and none is chosen |
+| 4 | open (lab decision) | **decided** | per-token frequency prior. TSAI, 21 Nov (final): the KAS output head carries a unigram log-prior scalar and a rank-64 per-token correction |
 | 5 | closed for C3-s0 | **closed for p1536** | longest token 32 bytes, 0 raw collisions, 0 truncated (#498, `decision_input.md` section 7) |
 | 6 | role mapping closed; proof integration pending | role mapping closed; proof integration pending | p1536 keeps the C3-s0 special IDs and roles. The proof checks were not rerun on p1536; #499's every-ID tests cover the decode properties on it |
-| 7 | partially closed | partially closed | the cosine-decoder requirements apply only when a decoder runs on predicted vectors. The decoder is an inspection tool while the head is dense |
+| 7 | partially closed | **superseded** | the cosine-decoder requirements apply only when a decoder runs on predicted vectors. The capstone's KAS head (TSAI, 21 Nov, final) scores tokens from their byte codes directly, the cosine decoder stays an inspection tool, and TSAI asks for nothing further to test |
 | 8 | fix proposed upstream | unchanged | Team 3 verifier display counts; use `added_tokens.special` |
 
 ## What Gate 3 can quote
