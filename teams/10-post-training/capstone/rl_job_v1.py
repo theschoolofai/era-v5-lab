@@ -5,7 +5,7 @@
         --rl-tasks <POOL>/out/v1/cc.jsonl --train-pool rl-code-v1-train.pool.jsonl --heldout-pool rl-code-v1-heldout.pool.jsonl \
         --sft-arm a4 --packs <shard-0000N>/pack.firewalled.jsonl ... --heldout H.jsonl --device cuda --out out/
 
-One question: do a bounded number of objective_v1 RL updates, on the code pool minus the 23 free-reward and 55 effort-suite
+One question: do a bounded number of objective_v1 RL updates, on the code pool minus the 66 free-reward and 55 effort-suite
 ids, raise the pass rate on unfiltered RL held-out problems, and is the gain more than a format gain? (work/rl-real-job-
 request PREREG and its amendments; the request is jobs/2026-11-19-g10-rl-dryrun1.md.)
 
@@ -49,7 +49,9 @@ import day_one_probe as probe  # noqa: E402
 TRAIN_POOL_SHA256 = "cd1aa76ef1216f6fc6fdcf63fc0b69c98fa6a5d58a510f28be9050fecbedcce1"  # rl-code-v1-train.pool.jsonl (#564), 3,251 ids
 HELDOUT_POOL_SHA256 = "935857bb0246172aa0439445dd54ef9bbbe282ad2b5ea87ddd100429c9e31ae5"  # rl-code-v1-heldout.pool.jsonl (#564), 255 ids
 EASY_IDS_SHA256 = "452178c10e7325bc1cea62b0ad567a68dc32f6596f273b97dc8a36728f985c6f"  # capstone/probe_rl_easy_ids.txt (#587's screen ids)
-FREE_IDS_SHA256 = "3709f52b460a361b33f97da03e9a4bb8895d61df752ef4c5c14224e9aa5664c7"  # capstone/rl_exclusions_v1/free_reward_ids.txt (23)
+FREE_IDS_SHA256 = "c97568952d2374be473e747184ea2b23098601797c936aad35363d8e0539aa2e"  # capstone/rl_exclusions_v1/free_reward_ids.txt (66)
+# 66 = the 23 of the 18 Nov verifier audit (first 23 lines, unchanged) + 43 found from the kept tests alone by
+# rl-data/free_reward_ids.py (one fixed output, or one fixed token per case, passes every scored test); was 3709f52b... (23)
 EFFORT_MANIFEST = TEAM10 / "eval" / "effort_manifest.json"  # training_exclusion.task_ids (55)
 FREE_IDS = HERE / "rl_exclusions_v1" / "free_reward_ids.txt"
 EASY_IDS = HERE / "probe_rl_easy_ids.txt"
@@ -61,7 +63,7 @@ MIN_UPDATES_TO_START = 3  # Amendment 1: fewer than screen + 3 updates + last ev
 STDIN_MARKERS = ("input(", "sys.stdin", "open(0", "fileinput", "readline", "os.read(0")
 
 # the no-skill programs of the 18 Nov verifier audit (work/verifier-audit-code-2026-11-18/RESULTS.md); sample-hardcode is
-# not rebuilt here: its 13 tasks are among the 23 free-reward ids, which are out of training
+# not rebuilt here: its 13 tasks are among the 66 free-reward ids, which are out of training
 TRICKS = {"prints_nothing": "pass", "echo_stdin": "import sys\nsys.stdout.write(sys.stdin.read())", "zero": "print(0)",
           "one": "print(1)", "minus_one": "print(-1)", "YES": "print('YES')", "NO": "print('NO')",
           "Yes": "print('Yes')", "No": "print('No')"}

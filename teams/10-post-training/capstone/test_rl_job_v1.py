@@ -30,7 +30,12 @@ def test_read_ids_splits_on_tab_and_skips_comments(tmp_path):
 
 def test_committed_exclusion_lists_are_the_pinned_ones():
     free, eff = job.read_ids(job.FREE_IDS), job.effort_ids()
-    assert len(free) == 23 and len(set(free)) == 23
+    assert len(free) == 66 and len(set(free)) == 66   # 23 (18 Nov audit) + 43 constant-output / per-case-constant
+    lines = [x for x in job.FREE_IDS.read_text(encoding="utf-8").splitlines() if x.strip()]
+    import hashlib  # noqa: PLC0415
+    old23 = "".join(x + "\n" for x in lines[:23]).encode()
+    assert hashlib.sha256(old23).hexdigest() == "3709f52b460a361b33f97da03e9a4bb8895d61df752ef4c5c14224e9aa5664c7"  # 18 Nov list unchanged
+    assert {x.split("\t")[1] for x in lines[23:]} <= {"constant-output", "per-case-constant"}
     assert len(eff) == 55 and len(set(eff)) == 55
     assert job.probe.sha256_file(job.FREE_IDS) == job.FREE_IDS_SHA256
     assert job.probe.sha256_file(job.EASY_IDS) == job.EASY_IDS_SHA256
