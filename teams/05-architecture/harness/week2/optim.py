@@ -3,7 +3,8 @@
 Muon is the plain loop path of teams/06-performance/models/optim.py (commit 0968eb8): momentum 0.95
 with Nesterov, five Newton-Schulz steps with coefficients (3.4445, -4.7750, 2.0315), and the update
 scaled by sqrt(max(1, rows/cols)). Timing regions, the batched path and polar_muon_adamw are not ported.
-Muon takes optim.muon_lr; AdamW keeps optim.lr, betas, eps and weight_decay from the arm chain.
+Muon takes optim.muon_lr and no weight decay (TSAI, 21 Nov); AdamW keeps optim.lr, betas, eps and weight_decay from
+the arm chain.
 """
 
 from __future__ import annotations
@@ -117,8 +118,14 @@ class Optimizers:
 
 # Muon handles the selected block matrices. AdamW handles the remaining parameters.
 def uses_muon(name, p):
-    """Attention, router and expert matrices inside the blocks. Embedding projection, heads and norm gains stay on AdamW."""
-    return p.ndim == 2 and name.startswith("blocks.") and name.endswith(".weight")
+    """Attention and expert matrices inside the blocks. The MoE router, embedding projection, heads and norm gains stay
+    on AdamW. Router on AdamW: TSAI and KE2, 21 Nov (small and sensitive, like a head; to be tested, not settled)."""
+    return (
+        p.ndim == 2
+        and name.startswith("blocks.")
+        and name.endswith(".weight")
+        and ".moe.router." not in name
+    )
 
 
 def build_optimizer(model, o):
@@ -144,7 +151,7 @@ def build_optimizer(model, o):
         [
             (
                 "muon",
-                Muon(muon, lr=o["muon_lr"], weight_decay=o["weight_decay"], **MUON),
+                Muon(muon, lr=o["muon_lr"], weight_decay=0.0, **MUON),
             ),
             ("adamw", adamw(rest)),
         ]

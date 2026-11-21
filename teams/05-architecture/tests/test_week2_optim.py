@@ -65,11 +65,11 @@ class SplitTests(unittest.TestCase):
         for expected in [
             "blocks.0.attn.q.weight",
             "blocks.0.attn.o.weight",
-            "blocks.0.moe.router.weight",
             "blocks.0.moe.experts.0.gate.weight",
             "blocks.0.moe.shared.0.down.weight",
         ]:
             self.assertIn(expected, names)
+        self.assertNotIn("blocks.0.moe.router.weight", names)
         for n, p in m.named_parameters():
             if (
                 n.startswith("embedding.")
