@@ -54,5 +54,5 @@ These choices have approved, public evidence.
 ## Update after the review
 
 21 Nov 2026: TSAI chose the KE2 output head in place of the dense untied head
-([#691](https://github.com/theschoolofai/era-v5-lab/pull/691)). Claim 9 now has a TSAI decision. The KE2 row of the
+(`teams/04-ke2/gate3.md`, [#694](https://github.com/theschoolofai/era-v5-lab/pull/694)). Claim 9 now has a TSAI decision. The KE2 row of the
 model card outline covers the output head, in general terms.

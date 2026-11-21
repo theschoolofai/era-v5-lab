@@ -54,7 +54,7 @@ This confirms the outline only. TSAI still approves the final text.
 ## Changes to this outline
 
 - 21 Nov 2026: TSAI chose the KE2 output head in place of the dense untied head
-  ([#691](https://github.com/theschoolofai/era-v5-lab/pull/691)). The KE2 section now covers the output head too, in
+  (`teams/04-ke2/gate3.md`, [#694](https://github.com/theschoolofai/era-v5-lab/pull/694)). The KE2 section now covers the output head too, in
   general terms. The KE2 lead confirms the new scope in the Lead OK column. The Gate 3 update records the decision.
 
 ## Rules for every section
