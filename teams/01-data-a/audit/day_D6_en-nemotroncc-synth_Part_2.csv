@@ -1,0 +1,21 @@
+doc_id,read,verdict,diseases,evidence,hex,note
+d511dd903a4a067c,full,clean,,,,
+e46c58b45d4011ce,full,clean,,,,
+8a6a1d17705d675c,full,clean,,,,
+c74967ec522fd90c,full,clean,,,,
+24e830d71e5bc566,full,fix,,,,"False-positive masking by DA-F1-005: a 12-bit binary illustration at raw offset 49 becomes <PHONE>. This is mathematical/computing content, not a personal phone number; add a narrow contextual exemption with privacy regression tests."
+063e8bbd4f779a03,full,clean,,,,
+780f33d558dd9f87,full,drop,,,,Reviewer recommends dropping this low-information synthetic task summary: it describes a request for a webinar email while the necessary webinar content is missing. DA-B4-007 removes one meta line but retains the task summary. Quality-policy decision pending; no unsupported disease code assigned.
+9e9afb31ec4eecd5,full,fix,,,,DA-C5-005 removes Topic: Japanese Used Cars at raw offset 0. This is a single subject heading; the rule does not distinguish it from a tag/keyword list.
+282a9f774a954f79,full,clean,,,,
+7523ebd6d772fada,full,fix,,,,"DA-C2-003 removes repeated Cost, Element, Range and Cool-Down fields across different spell records, including the field near raw offset 400. These repetitions express independent record values; preserve structured records rather than deduplicating lines globally."
+9b60a97bd619362d,full,clean,,,,
+96a659fe3e369e94,full,clean,,,,
+7566e41e459e6255,full,clean,,,,
+dded0be038079859,full,clean,,,,
+b415a2af9acab8c0,full,clean,,,,
+79034f4823c0a497,full,clean,,,,
+b3b84f2e80df609c,full,fix,,,,DA-C5-005 removes the single Topic heading at raw offset 0 describing governments and banks during financial globalization. Preserve informative subject headings.
+055ecf0228699d9e,full,clean,,,,
+de5b3e2dd5b7fbb0,full,clean,,,,
+93bf1542853fd276,full,fix,,,,"Potential content loss: DA-B4-007 deletes the complete final bullet under Extended family relationships because it contains a source-availability caveat, leaving a heading without its explanation. Review at sentence/clause level before changing the medicine."
