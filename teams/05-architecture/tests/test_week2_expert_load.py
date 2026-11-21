@@ -114,15 +114,23 @@ class ExpertLoadTests(unittest.TestCase):
                 ):
                     plain = run("plain")
                 sampled = run("sampled", "--expert-load-every", "2")
+                sampled_baseline = run(
+                    "sampled-baseline", "--expert-load-every", "2", "--no-consolidate-step-checks"
+                )
 
             plain_rows = read_rows(plain / "metrics.jsonl")
             sampled_rows = read_rows(sampled / "metrics.jsonl")
+            baseline_rows = read_rows(sampled_baseline / "metrics.jsonl")
             g8_rows = read_rows(sampled / "g8" / "metrics.jsonl")
             self.assertTrue(all("expert_load" not in row for row in plain_rows))
             self.assertEqual(json.loads((plain / "manifest.json").read_text())["expert_load_every"], 0)
             for rows in (sampled_rows, g8_rows):
                 self.assertEqual([row["step"] for row in rows], [0, 1, 2, 3, 4])
                 self.assertEqual([row["step"] for row in rows if "expert_load" in row], [2, 4])
+            self.assertEqual(
+                [(row["step"], row.get("expert_load")) for row in baseline_rows],
+                [(row["step"], row.get("expert_load")) for row in sampled_rows],
+            )
             g8_by_step = {row["step"]: row for row in g8_rows}
             for row in sampled_rows:
                 if "expert_load" not in row:
@@ -137,10 +145,13 @@ class ExpertLoadTests(unittest.TestCase):
                 self.assertEqual(g8_by_step[row["step"]]["expert_load"], loads)
                 self.assertIn("expert_load_imbalance", g8_by_step[row["step"]])
             self.assertEqual((sampled / "losses.txt").read_bytes(), (plain / "losses.txt").read_bytes())
+            self.assertEqual((sampled_baseline / "losses.txt").read_bytes(), (plain / "losses.txt").read_bytes())
             summaries = [
-                json.loads((out / "summary.json").read_text(encoding="utf8")) for out in (plain, sampled)
+                json.loads((out / "summary.json").read_text(encoding="utf8"))
+                for out in (plain, sampled, sampled_baseline)
             ]
             self.assertEqual(summaries[0]["final_model_sha256"], summaries[1]["final_model_sha256"])
+            self.assertEqual(summaries[0]["final_model_sha256"], summaries[2]["final_model_sha256"])
 
 
 if __name__ == "__main__":
