@@ -31,13 +31,16 @@ The lab produced the first 41 shards from a sample of the lab's data, using the 
 | The learning rate | Architecture | The learning rate of 1e-3 is now final. The learning rate for the Muon optimizer is [number: waiting for TSAI]. |
 | Model layout and size | Architecture | Architecture sets the exact model size once the lab knows the real token count of its first full corpus. |
 | Attention and experts | Architecture | Keep the v0 attention, and 16 routed experts plus 1 shared expert, top-2. A test with more experts did worse. |
+| The output head | KE2 | The model uses the KE2 output head, not the dense untied head that the first dry run used. This replaces the earlier choice of the dense untied head. |
 | Public dashboard panels and monitoring | Monitoring | TSAI accepted the public dashboard panels and the monitoring. |
 
 Short forms: p1536 and C3 are names of tokenizer candidates. Romanised Indic text is Indic text written in Latin script.
+KE2 is the lab team that tests its embedding method on the lab's tokenizer. The output head is the last part of the
+model, which scores each token as the next token. A dense untied head is a standard output head with its own weights.
 
 ## Next
 
-Next, the lab prepares the second dry run. TSAI decides the evaluation schedule, the tuning method after the main
+Next, the lab prepares the second dry run, and Architecture adds the KE2 output head to the training code. TSAI decides the evaluation schedule, the tuning method after the main
 training, and serving and quantization at a later gate.
 
 ---
@@ -68,6 +71,7 @@ How to fill it:
 | Decision: learning rate | Architecture | [#447](https://github.com/theschoolofai/era-v5-lab/pull/447), Gate 2 update [#443](https://github.com/theschoolofai/era-v5-lab/pull/443) | TSAI decision at Gate 3 | no |
 | Decision: model layout and size | Architecture | | TSAI decision at Gate 3 | no |
 | Decision: attention and experts | Architecture | [#447](https://github.com/theschoolofai/era-v5-lab/pull/447), Gate 2 update [#443](https://github.com/theschoolofai/era-v5-lab/pull/443), test with more experts: [#659](https://github.com/theschoolofai/era-v5-lab/pull/659), [#668](https://github.com/theschoolofai/era-v5-lab/pull/668) | TSAI decision at Gate 3 | no |
+| Decision: output head | KE2, Architecture | TSAI decision: [#691](https://github.com/theschoolofai/era-v5-lab/pull/691). Handoff to Architecture: [#694](https://github.com/theschoolofai/era-v5-lab/pull/694) | TSAI decision, 21 Nov | no |
 | Decision: public dashboard panels and monitoring | Monitoring, Release | Panels: [#495](https://github.com/theschoolofai/era-v5-lab/pull/495). Text: [#598](https://github.com/theschoolofai/era-v5-lab/pull/598). Monitoring applied the text, merged: [#629](https://github.com/theschoolofai/era-v5-lab/pull/629) | text by Release, merged by TSAI in #598 | Monitoring: yes, [approval on #629](https://github.com/theschoolofai/era-v5-lab/pull/629#pullrequestreview-5967977324) |
 
 Open at Gate 3, for the next gate update: evaluation schedule ([#662](https://github.com/theschoolofai/era-v5-lab/pull/662)), tuning method after the main training
