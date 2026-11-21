@@ -58,9 +58,9 @@ Files: [timing/](evidence/2026-11-22-wide-bench-granite30-3b/timing/) (`environm
 
 **Guard test change.** Granite's tokenizer splits " Paris" into " Par" + "is", so `test_llamacpp_lm.py` now checks the first token of the answer under the model's own tokenizer. For OLMoE and sarvam-1 " Paris" is one token, so their check is unchanged. Granite 3B, PASS: log p(' Par') −0.930 in scoring, −0.938 in generation, off-by-one value −13.59.
 
-**Prefix cache on this MoE.** The guard's check 3 (scoring with the prefix cache against scoring from scratch) moved a score by 0.043 nats on Granite 3B, close to its 0.05 limit; sarvam-1 (dense) moved 0.0001. A plausible cause is the MoE router: a different batch shape changes the GPU arithmetic slightly, and a near-tie between experts can flip. Scores are computed in the same order for every format, so the paired comparison is like for like, but a quantized file could cross 0.05 and stop the job at its guard test. The smoke below runs the guard on Q4_K_M.
+**Prefix cache on this MoE.** The guard's check 3 (scoring with the prefix cache against scoring from scratch) moved a score by 0.043 nats on Granite 3B, close to its 0.05 limit; sarvam-1 (dense) moved 0.0001. A plausible cause is the MoE router: a different batch shape changes the GPU arithmetic slightly, and a near-tie between experts can flip. Scores are computed in the same order for every format, so the paired comparison is like for like, but a quantized file could cross 0.05 and stop the job at its guard test. In the smoke below the guard passed on Q4_K_M as well.
 
-**Smoke of this command** (`--cap 2`, `--tasks mmlu arc_challenge`, offline): [smoke_run_job.md](evidence/2026-11-22-wide-bench-granite30-3b/smoke_run_job.md).
+**Smoke of this command** (`--formats bf16 Q4_K_M --cap 2 --tasks mmlu arc_challenge`, offline, empty work folder): PASS, every step exit 0 in 7 minutes, the convert step included (110.7 s) and Q4_K_M quantized in 156.9 s. Details: [smoke_run_job.md](evidence/2026-11-22-wide-bench-granite30-3b/smoke_run_job.md).
 
 ## Open items for TSAI
 
