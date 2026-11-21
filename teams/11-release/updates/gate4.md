@@ -26,8 +26,7 @@ head, which TSAI chose at Gate 3 in place of the dense untied head.
 | The launch announcement | Release | [waiting for TSAI] |
 
 Short forms: KE2 is the lab team that tests its embedding method on the lab's tokenizer. The output head is the last
-part of the model, which scores each token as the next token. A dense untied head is a standard output head with its
-own weights.
+part of the model, which scores each token as the next token. A dense untied head is the standard output head.
 
 ## Next
 
@@ -57,7 +56,7 @@ How to fill it:
 |---|---|---|---|---|
 | The second dry run | Architecture, Infrastructure | [link: waiting for the dry run 2 pull request] | no | no |
 | Model card sections each have an owner and a status | Release | `model_card/model_card_outline.md` | yes | yes |
-| The KE2 output head in the model card | KE2 | TSAI decision: [#691](https://github.com/theschoolofai/era-v5-lab/pull/691). Gate 3 update: [#701](https://github.com/theschoolofai/era-v5-lab/pull/701). Model card outline: [link: waiting for the pull request] | yes | no |
+| The KE2 output head in the model card | KE2 | TSAI decision in `teams/04-ke2/gate3.md`, merged in [#694](https://github.com/theschoolofai/era-v5-lab/pull/694). Gate 3 update: [#701](https://github.com/theschoolofai/era-v5-lab/pull/701). Model card outline: [link: waiting for the pull request] | yes | no |
 | Decision: the second dry run | Architecture, Infrastructure | TSAI decision at Gate 4 | no | no |
 | Decision: the main training run | Architecture, Infrastructure | TSAI decision at Gate 4 | no | no |
 | Decision: the launch announcement | Release | `launch/launch_announcement_v0.md`, [#600](https://github.com/theschoolofai/era-v5-lab/pull/600), [#603](https://github.com/theschoolofai/era-v5-lab/pull/603) | yes | no |
