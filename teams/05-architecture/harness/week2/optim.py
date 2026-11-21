@@ -165,6 +165,12 @@ def set_lr_scale(optimizer, scale):
             group["lr"] = group["base_lr"] * scale
 
 
+def uses_head_sgd(name, o):
+    """The whole output head group (TSAI, 21 Nov: "the whole head group together ... don't split it"), when
+    optim.head_sgd is on. All output-head parameters live under head.* (Udit's convention, TSAI-approved)."""
+    return bool(o.get("head_sgd", False)) and name.startswith("head.")
+
+
 def build_optimizer(model, o):
     adamw = lambda params: torch.optim.AdamW(
         params,
@@ -173,16 +179,27 @@ def build_optimizer(model, o):
         eps=o["eps"],
         weight_decay=o["weight_decay"],
     )
-    if o["name"] == "adamw":
-        return adamw(model.parameters())
-    if o["name"] != "muon":
+    if o["name"] not in ["adamw", "muon"]:
         raise ValueError(
             "Unknown optimizer " + repr(o["name"]) + "; never replaced silently"
         )
     named = list(model.named_parameters())
+    # Optional (TSAI recipe, 21 Nov): plain SGD with momentum on the head group only, off by default.
+    head = [p for n, p in named if uses_head_sgd(n, o)]
+    if o.get("head_sgd") and not head:
+        raise ValueError("head_sgd is on but the model has no head.* parameters")
+    sgd = (
+        [("sgd", torch.optim.SGD(head, lr=o["head_sgd_lr"], momentum=o["head_sgd_momentum"]))]
+        if head
+        else []
+    )
+    if o["name"] == "adamw":
+        if not sgd:
+            return adamw(model.parameters())
+        return Optimizers([("adamw", adamw([p for n, p in named if not uses_head_sgd(n, o)]))] + sgd)
     rom = bool(o.get("router_on_muon", False))
     muon = [p for n, p in named if uses_muon(n, p, rom)]
-    rest = [p for n, p in named if not uses_muon(n, p, rom)]
+    rest = [p for n, p in named if not uses_muon(n, p, rom) and not uses_head_sgd(n, o)]
     if not muon or not rest:
         raise ValueError("Muon needs block matrices and AdamW parameters")
     return Optimizers(
@@ -193,14 +210,25 @@ def build_optimizer(model, o):
             ),
             ("adamw", adamw(rest)),
         ]
+        + sgd
     )
 
 
 def describe(model, o):
     """What the run really used, for the manifest."""
-    if o["name"] == "adamw":
-        return {"name": "adamw", "lr": o["lr"], "parameters": model.parameter_count()}
     named = list(model.named_parameters())
+    head_sgd = (
+        {
+            "head_sgd": True,
+            "head_sgd_lr": o["head_sgd_lr"],
+            "head_sgd_momentum": o["head_sgd_momentum"],
+            "head_sgd_parameters": sum(p.numel() for n, p in named if uses_head_sgd(n, o)),
+        }
+        if o.get("head_sgd")
+        else {"head_sgd": False}
+    )
+    if o["name"] == "adamw":
+        return {"name": "adamw", "lr": o["lr"], "parameters": model.parameter_count(), **head_sgd}
     rom = bool(o.get("router_on_muon", False))
     return {
         "name": "muon",
@@ -211,5 +239,8 @@ def describe(model, o):
         "ns_coefficients": list(NS_COEFFS),
         "router_on_muon": rom,
         "muon_parameters": sum(p.numel() for n, p in named if uses_muon(n, p, rom)),
-        "adamw_parameters": sum(p.numel() for n, p in named if not uses_muon(n, p, rom)),
+        "adamw_parameters": sum(
+            p.numel() for n, p in named if not uses_muon(n, p, rom) and not uses_head_sgd(n, o)
+        ),
+        **head_sgd,
     }

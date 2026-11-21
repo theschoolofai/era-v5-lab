@@ -202,6 +202,9 @@ def load_runtime(arm_path, runtime_path=None):
             "warmup_frac",
             "decay_frac",
             "final_lr_frac",
+            "head_sgd",
+            "head_sgd_lr",
+            "head_sgd_momentum",
             "warmup_steps",
             "betas",
             "eps",
@@ -454,6 +457,16 @@ def validate(c):
         errors.append("optim.router_on_muon must be true or false")
     if o.get("name") == "adamw" and o.get("router_on_muon"):
         errors.append("router_on_muon set on an AdamW arm would be ignored")
+    head_sgd = o.get("head_sgd")
+    if head_sgd is not None and type(head_sgd) is not bool:
+        errors.append("optim.head_sgd must be true or false")
+    elif head_sgd:
+        if not number(o.get("head_sgd_lr")) or o["head_sgd_lr"] <= 0:
+            errors.append("head_sgd needs an explicit positive head_sgd_lr; no default is assumed")
+        if not number(o.get("head_sgd_momentum")) or not 0 <= o["head_sgd_momentum"] < 1:
+            errors.append("head_sgd needs an explicit head_sgd_momentum in [0, 1) (TSAI: 0.99)")
+    elif o.get("head_sgd_lr") is not None or o.get("head_sgd_momentum") is not None:
+        errors.append("head_sgd_lr or head_sgd_momentum set while head_sgd is off would be ignored")
     schedule = o.get("schedule")
     wsd = {k: o.get(k) for k in ("warmup_frac", "decay_frac", "final_lr_frac")}
     if schedule not in ["constant", "wsd"]:
