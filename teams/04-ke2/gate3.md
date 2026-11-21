@@ -11,7 +11,7 @@ merge. Paths are relative to `teams/04-ke2/` unless stated otherwise.
 
 | # | Task | PR | State | Evidence |
 |---|---|---|---|---|
-| 1 | The chosen path in the trainer, with Team 5 | #515 (open) | measured | dry run 1 COMPLETED on p1536 with the KE2 input path (#475); `trainer_adapter.md` |
+| 1 | The chosen path in the trainer, with Team 5 | #515 (merged) | measured | dry run 1 COMPLETED on p1536 with the KE2 input path (#475); `trainer_adapter.md` |
 | 2 | bf16 code table for the frozen tokenizer, 0 special-token collisions | team fork #6 (open) | measured | `results/bf16/bf16_collisions_P32.md`: 0 special-token collisions, 0 duplicate rows |
 | 3 | Correctness tests on every token ID, with Team 6 | #499 (merged) | **done** | `tests/test_every_id.py`, `results/every_id/every_id_P32.md`: 20 of 20 pass |
 | 4 | Encode and decode time per step in Team 6's harness | #588, #624 (merged) | **open** | `results/timing/README.md`: CPU and MPS exploratory runs and a CPU smoke of the isolated `model.tok(x)` benchmark; the CUDA run and Team 6's in-step `embed.ke` region are pending |
@@ -58,7 +58,7 @@ Three differences between the reference and the lab path that Team 5 should sett
    input projection (`model.py`, `tied_weight=`). `a10_kas_tokdrop` is untied, and `runs/final/long_k64d05.json` records
    a separate 1.57M-parameter input projection. The tied rank-64 configuration named in the decision needs that one-line
    tie and its run record. Team 4 is confirming the source of the tying result with TSAI.
-3. **Vocabulary.** The reference runs on GPT-2 (50,377 tokens). The lab uses p1536 (131,072 tokens, 356 special IDs,
+3. **Vocabulary.** The reference runs on GPT-2 (50,257 tokens). The lab uses p1536 (131,072 tokens, 356 special IDs,
    longest token 32 bytes), so `L_max = 32` already fits. The unigram log-prior needs p1536 token counts from the
    training corpus, and the `tok_u` table and vocabulary dropout are sized by V. The open ke2-head PR #2 (Brahmic
    vocabulary ingestion) is the first non-GPT-2 path and the closest worked example.
@@ -74,6 +74,7 @@ Team 4's call.
 - #472 accepts `embedding: ke2`, and `ke1` stays as the older name for the same path.
 - `trainer_adapter.md` is the contract between the two teams. It fixes the path, the tokenizer, the table hashes,
   the numerics and the optimizer group.
+- p1536 support in the trainer is on main (#515, merged). The default stays v0, so running jobs are unchanged.
 
 **Measured:**
 - Dry run 1 (#475, `exp2_muon` at T2, seed 1234, TSAI run): 1,221 steps, COMPLETED, no NaN or inf, val/bpb
@@ -87,7 +88,6 @@ Team 4's call.
   path `embedding: ke1`, the older name for the same KE2 input path (#472).
 
 **Open:**
-- p1536 support in the trainer on main lands with #515. The default stays v0, so running jobs are unchanged.
 - Points 4 and 5 of the task (the cosine decode of predicted vectors and the tau rerun) are parked by the lead
   (17 Nov). See risk 2 below.
 
@@ -131,9 +131,9 @@ tests do not have to run inside dry run 1, and that a merged PR with the full ru
 
 Encode is already timed there as the `embed.ke` region. Until 21 Nov decode was not part of a training step, because
 the head was dense, and it ran as a separate region behind a flag. With the KE2/KAS head chosen, the head's forward and
-argmax become in-step costs. The team fork's #9 times the KAS head forward, argmax, an input/output microstep and the
-byte decoder with Team 6's `StepTimer` (CPU and Apple MPS done; the CUDA run and a same-GPU dense-tied baseline are
-requested in its job file).
+argmax become in-step costs. PR #9 in the private team repository `theschoolofai/era-v5-ke2` times the KAS head
+forward, argmax, an input/output microstep and the byte decoder with Team 6's `StepTimer` (CPU and Apple MPS done;
+the CUDA run and a same-GPU dense-tied baseline are requested in its job file).
 
 **Merged so far** (`results/timing/README.md`):
 - #588: `src/timing/bench_public_ke.py` and exploratory CPU and MPS runs on the p1536 table
