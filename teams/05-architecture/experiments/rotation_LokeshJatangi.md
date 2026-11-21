@@ -33,7 +33,7 @@ Reading rule: if seed 1241 sits inside the reference range (1.7542 to 1.7796) an
 ## Limits
 
 - One new seed; the seed also changes training data order.
-- Old tokenizer v0 and trainer 71bc0fb, like the week 2 EXP-3 runs. Not comparable with week 3 p1536 numbers (dry run 1: 1.5159).
+- Old tokenizer v0, like the week 2 EXP-3 runs. Trainer on main with the #521 speed fixes (the earlier seeds ran at 71bc0fb with the same fixes applied by TSAI). Not comparable with week 3 p1536 numbers (dry run 1: 1.5159).
 - No winner is named and config v1 is unchanged.
 
 ## Evidence

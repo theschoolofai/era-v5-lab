@@ -89,14 +89,14 @@
         },
         {
           "path": "configs/arms/t2.yaml",
-          "sha256": "a7e2974f45534be119054238d194507a06750eac061bbe47516d3235dd76edf2"
+          "sha256": "76849b12db618aa695055c52dda66e2e3eaf8f57749c501075ff1813ee120b86"
         }
       ],
       "runtime_sha256": "cee02ccadbad0ac39866ce227f06ba5194249ed56144249fc368dfa173481244",
       "plan_sha256": "b9edabe7696d5e33ed1e885bcba02d5cb2db61724007306e63966c8d11a3f0c5",
       "plan_hash_normalization": "UTF-8 with LF newlines",
       "lead_snapshot": "3a2f898b990d253d8422419f31e147ae65ec1747",
-      "expert_width_source": "intended.instructor_expert_ffn",
+      "expert_width_source": "model.moe.ffn_hidden",
       "lead_explicit_choices": {
         "model.reversible": false,
         "model.mtp": false
@@ -118,20 +118,24 @@
   "heldout_sources_sha256": null,
   "heldout_checksum_sha256": null,
   "sources": {
-    "train_week2.py": "5d2b92ff9ca5177078732a8493825f3f522a983755c323717202dc2d1b53b98e",
-    "config.py": "4f4236524d1af2bec10e1f6455d63621a30f5863c87a362d64d5288cdeb55b77",
+    "train_week2.py": "ab211932306383ca1dbb33261532d6d4439b1db462f23306aa50abfbd4e8edcf",
+    "config.py": "ef7fa77490217a8f019fff20f9b8b560d3241be068b0cd5f5ad44a60f10c186a",
+    "watchdog.py": "1bfa1b4eaa18eed7dd551112b81f65544c0ccca4a151658c0a0ad706b7979b0a",
     "scoring.py": "009f0b9a16c15f46603265e73085003ab985211ae2e944fe01cf4bd81b4803c7",
-    "evaluation.py": "89a1a0c7d8b94e40d56193c5b9a74dbe55436d72be92046443e6868455465f74",
+    "evaluation.py": "126620af86fe02b96c0932fca95dcaf8696b995d58d4530eb240fea34580ce6e",
     "__init__.py": "efb6f85c6ea25364a24baddf112017ba5522f0006376f91f78ff3ea4c472a8a4",
-    "model.py": "0dd834590a728da14d0104a3b1caabdd95c011b2a6583bbd640b9cd6a1738e7e",
-    "artifacts.py": "f332df9e4b5e75a1db84fdebe7f9ac13d3f90bf4ccbfe322015804174706425f",
-    "optim.py": "7db330dab81b7e7259ebed97f103a3c4dd2e004b66a346c537a812b8276b5e5d",
-    "data.py": "0bff11279729d373a10d1e43e5830029caac95cf4602d9f41de3f9e3bc0dd862"
+    "model.py": "9d3826793f5e32439fb7d2f67f5e91e14ce7a6bc0b2c03851f833031884a7fb2",
+    "artifacts.py": "1fb80b0bb9bcfea10c795c7a5583981dcbc8fe8a7e298b3509ee0ba32934457d",
+    "optim.py": "e7dcf458e45d04f13d16ba7d3171cec5949215966b36735f200cf9fbc6ba7b7d",
+    "data.py": "e5c9e15e35e4361e3038daa8d4b85c79f769ef12a62db26c76acb007e40a4535",
+    "team7_checkpoints.py": "8842f0fbb0c8c96a871207361e51f5d93da246eddceb21db6ffcec1ddbf46aff"
   },
   "device": "cpu",
   "torch": "2.5.1",
   "smoke": true,
-  "identity_sha256": "aedce0644c03ba63e6fa8eccb470ed7abc420a66d0739094066503ffa300fb8a",
+  "consolidate_step_checks": true,
+  "run_id": "993be12c3e0f4ce28264f9a064d3b016",
+  "identity_sha256": "4284a8c6c493028401aa17ee013d6ce2c62c9577d728dfa61d268323313a2063",
   "baseline_commit": "3a2f898b990d253d8422419f31e147ae65ec1747",
   "parameters": 227615232,
   "optimizer": {
