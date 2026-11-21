@@ -49,6 +49,17 @@ def scored_ntp_loss(model, ids, targets):
     return token_nll(model.head(hidden[scored]), targets[scored]).sum()
 
 
+def checked_step_losses(micro_losses, grad_norm):
+    """Read microbatch losses and the pre-clip norm together before updating."""
+    values = torch.cat((torch.stack(micro_losses).flatten(), grad_norm.reshape(1)))
+    *losses, norm = values.tolist()
+    if not all(map(math.isfinite, losses)):
+        raise ValueError("Nonfinite training objective or MTP component")
+    if not math.isfinite(norm):
+        raise ValueError("Nonfinite gradient norm")
+    return tuple(sum(losses[i::3]) for i in range(3))
+
+
 def model_hash(model):
     h = hashlib.sha256()
     for name, value in sorted(model.state_dict().items()):
@@ -161,6 +172,12 @@ def main():
     )
     p.add_argument("--seed", type=int)
     p.add_argument("--device", choices=["cpu", "cuda"], default="cpu")
+    p.add_argument(
+        "--consolidate-step-checks",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Check microbatch losses and pre-clip norm together; disable for baseline A/B",
+    )
     p.add_argument(
         "--smoke",
         action="store_true",
@@ -357,6 +374,7 @@ def main():
         "device": str(device),
         "torch": torch.__version__,
         "smoke": args.smoke,
+        "consolidate_step_checks": args.consolidate_step_checks,
     }
     if artifacts.normalize_input:
         identity["bpb_policy"] = (
@@ -486,6 +504,7 @@ def main():
             total = 0.0
             ntp_value = 0.0
             mtp_value = 0.0
+            micro_losses = []
             micro = cfg["run"]["micro_batch_size"]
             for start in range(0, len(x), micro):
                 tx, ty = x[start : start + micro], y[start : start + micro]
@@ -505,25 +524,35 @@ def main():
                         if mtp is None or cfg["model"]["mtp_weight"] == 0
                         else ntp + cfg["model"]["mtp_weight"] * mtp
                     )
-                if not torch.isfinite(loss):
-                    raise ValueError("Nonfinite training objective")
-                if mtp is not None and not torch.isfinite(mtp):
-                    raise ValueError("Nonfinite MTP component")
-                loss.backward()
-                total += float(loss.detach())
-                ntp_value += float(ntp.detach())
-                if mtp is not None:
-                    mtp_value += float(mtp.detach())
-            # Execution-only (TSAI): one fused finite check instead of one host sync per parameter.
-            _grads = [q.grad for q in model.parameters() if q.grad is not None]
-            if _grads and not bool(torch.isfinite(torch.stack(torch._foreach_norm(_grads))).all()):
-                for name, param in model.named_parameters():
-                    if param.grad is not None and not torch.isfinite(param.grad).all():
-                        raise ValueError("Nonfinite gradient: " + name)
-                raise ValueError("Nonfinite gradient")
+                if args.consolidate_step_checks:
+                    mtp_log = mtp.detach() if mtp is not None else ntp.new_zeros(())
+                    micro_losses.append(
+                        torch.stack((loss.detach(), ntp.detach(), mtp_log))
+                    )
+                    loss.backward()
+                else:
+                    if not torch.isfinite(loss):
+                        raise ValueError("Nonfinite training objective")
+                    if mtp is not None and not torch.isfinite(mtp):
+                        raise ValueError("Nonfinite MTP component")
+                    loss.backward()
+                    total += float(loss.detach())
+                    ntp_value += float(ntp.detach())
+                    if mtp is not None:
+                        mtp_value += float(mtp.detach())
+            if not args.consolidate_step_checks:
+                grads = [q.grad for q in model.parameters() if q.grad is not None]
+                if grads and not bool(torch.isfinite(torch.stack(torch._foreach_norm(grads))).all()):
+                    for name, param in model.named_parameters():
+                        if param.grad is not None and not torch.isfinite(param.grad).all():
+                            raise ValueError("Nonfinite gradient: " + name)
+                    raise ValueError("Nonfinite gradient")
             norm = torch.nn.utils.clip_grad_norm_(
-                model.parameters(), cfg["run"]["grad_clip"], error_if_nonfinite=True
+                model.parameters(), cfg["run"]["grad_clip"],
+                error_if_nonfinite=not args.consolidate_step_checks,
             )
+            if args.consolidate_step_checks:
+                total, ntp_value, mtp_value = checked_step_losses(micro_losses, norm)
             optimizer.step()
             if not bool(torch.isfinite(torch.stack(torch._foreach_norm([q.detach() for q in model.parameters()]))).all()):
                 raise ValueError("Nonfinite parameter")
