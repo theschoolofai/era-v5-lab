@@ -142,8 +142,18 @@ def apply_method(lm: nn.Module, method: str, args) -> dict:
 
 
 def enable_head_rows(lm: nn.Module, ids: list[int]) -> nn.Parameter:
-    """Train only head.weight rows `ids`: a gradient hook zeroes every other row (with wd 0 AdamW leaves them exact)."""
-    w = lm.head.weight
+    """Train only rows `ids` of the output head's per-token matrix (dense `head.weight` or KE2/KAS `head.tok_u`)."""
+    head = lm.head
+    max_id = max(ids)
+    if hasattr(head, "weight") and isinstance(head.weight, nn.Parameter) and head.weight.ndim == 2 and head.weight.shape[0] > max_id:
+        w = head.weight
+    elif hasattr(head, "tok_u") and isinstance(head.tok_u, nn.Parameter) and head.tok_u.ndim == 2 and head.tok_u.shape[0] > max_id:
+        w = head.tok_u
+    else:
+        raise ValueError(
+            f"--marker-rows requires a 2-D per-token parameter on lm.head (`weight` or KE2/KAS `tok_u`) "
+            f"with rows > {max_id}; got {type(head).__name__}"
+        )
     rowmask = torch.zeros(w.shape[0], 1, dtype=w.dtype, device=w.device)
     rowmask[ids] = 1
     w.requires_grad_(True)
