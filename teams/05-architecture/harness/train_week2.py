@@ -200,6 +200,10 @@ def main():
         help="module:function returning writer(out_dir) with write/flush/close",
     )
     p.add_argument(
+        "--expert-load-every", type=int, default=0, metavar="STEPS",
+        help="Record MoE routing picks every STEPS training steps (0 disables collection)",
+    )
+    p.add_argument(
         "--run-id", help="Shared job run ID (letters, digits, dots, dashes, underscores)"
     )
     p.add_argument(
@@ -229,6 +233,8 @@ def main():
         "--resume-committed", action="store_true", help="Restore from the trusted Team 7 checkpoint store"
     )
     args = p.parse_args()
+    if args.expert_load_every < 0:
+        p.error("--expert-load-every must be nonnegative")
     if not args.smoke:
         if not args.checkpoint_store:
             p.error("Quality runs require --checkpoint-store and --run-id for Team 7 commits")
@@ -452,6 +458,7 @@ def main():
         "status": "SMOKE_NOT_A_QUALITY_RESULT" if args.smoke else "AGREED_BASELINE_RUN",
         "heldout_provenance": report,
         "g8_external_writer": bool(args.logger_factory),
+        "expert_load_every": args.expert_load_every,
         "token_budget_note": "Input positions include right padding; scored tokens/bytes reported separately",
         "train_documents": train.document_count,
         "heldout_documents": val.document_count,
@@ -672,6 +679,9 @@ def main():
             ntp_value = 0.0
             mtp_value = 0.0
             micro_losses = []
+            sample_expert_load = args.expert_load_every and step % args.expert_load_every == 0
+            if sample_expert_load:
+                model.start_expert_load()
             micro = cfg["run"]["micro_batch_size"]
             for start in range(0, len(x), micro):
                 tx, ty = x[start : start + micro], y[start : start + micro]
@@ -754,6 +764,8 @@ def main():
                     else 0.0
                 ),
             }
+            if sample_expert_load:
+                row["expert_load"] = model.finish_expert_load()
             if (
                 step % cfg["run"]["eval_every_steps"] == 0
                 or step == cfg["run"]["steps"]
