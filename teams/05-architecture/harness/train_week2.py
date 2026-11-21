@@ -5,6 +5,7 @@ import os
 
 os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
 import argparse
+import copy
 from contextlib import nullcontext
 import hashlib
 import importlib
@@ -13,7 +14,10 @@ import math
 from pathlib import Path
 import random
 import re
+import signal
+import sys
 import time
+from time import monotonic as checkpoint_clock
 from uuid import uuid4
 import numpy as np
 import torch
@@ -22,7 +26,8 @@ from week2.config import load, load_runtime, merge, validate
 from week2.data import DocumentWindows, BatchStream
 from week2.model import LanguageModel
 from week2.evaluation import EVAL_BATCH_TOKENS, evaluate, token_nll
-from week2.optim import build_optimizer, describe
+from week2.optim import Optimizers, build_optimizer, describe
+from week2.team7_checkpoints import CheckpointProgress, write_native_checkpoint
 
 
 class JsonWriter:
@@ -54,9 +59,9 @@ def checked_step_losses(micro_losses, grad_norm):
     values = torch.cat((torch.stack(micro_losses).flatten(), grad_norm.reshape(1)))
     *losses, norm = values.tolist()
     if not all(map(math.isfinite, losses)):
-        raise ValueError("Nonfinite training objective or MTP component")
+        raise NonfiniteTrainingError("Nonfinite training objective or MTP component")
     if not math.isfinite(norm):
-        raise ValueError("Nonfinite gradient norm")
+        raise NonfiniteTrainingError("Nonfinite gradient norm")
     return tuple(sum(losses[i::3]) for i in range(3))
 
 
@@ -127,6 +132,10 @@ _evaluate_orig = evaluate
 def evaluate(*a, **k):  # execution-only (TSAI): release cached GPU memory before each evaluation
     torch.cuda.empty_cache()
     return _evaluate_orig(*a, **k)
+
+
+class NonfiniteTrainingError(ValueError):
+    pass
 
 
 def main():
@@ -207,12 +216,42 @@ def main():
         action="store_true",
         help="Smoke checks only: omit large checkpoint output",
     )
+    p.add_argument("--checkpoint-store", help="Team 7 shared checkpoint root (directory or s3:// URI)")
     p.add_argument(
+        "--checkpoint-interval-s", type=float,
+        help="Wall-clock interval between saves (defaults to INTERVAL_S or 600)",
+    )
+    p.add_argument(
+        "--checkpoint-at-start", action="store_true",
+        help="Commit resumable step-0 state on a fresh run before training",
+    )
+    resume = p.add_mutually_exclusive_group()
+    resume.add_argument(
         "--resume", type=Path, help="Only load your own trusted harness checkpoint"
+    )
+    resume.add_argument(
+        "--resume-committed", action="store_true", help="Restore from the trusted Team 7 checkpoint store"
     )
     args = p.parse_args()
     if args.expert_load_every < 0:
         p.error("--expert-load-every must be nonnegative")
+    if not args.smoke:
+        if not args.checkpoint_store:
+            p.error("Quality runs require --checkpoint-store and --run-id for Team 7 commits")
+        if args.resume is not None:
+            p.error("Quality runs resume through --resume-committed")
+    if args.checkpoint_store is not None:
+        if not args.checkpoint_store or not args.run_id or args.no_checkpoint:
+            p.error("Team 7 checkpoints require a nonempty store and --run-id, and cannot use --no-checkpoint")
+        if args.checkpoint_interval_s is None:
+            try:
+                args.checkpoint_interval_s = float(os.environ.get("INTERVAL_S", "600"))
+            except ValueError:
+                p.error("INTERVAL_S must be a finite positive number")
+        if not math.isfinite(args.checkpoint_interval_s) or args.checkpoint_interval_s <= 0:
+            p.error("Checkpoint interval must be a finite positive number")
+    elif args.resume_committed or args.checkpoint_interval_s is not None or args.checkpoint_at_start:
+        p.error("Committed resume, interval and start checkpoint options require --checkpoint-store")
     if not math.isfinite(args.watchdog_s) or args.watchdog_s < 0:
         p.error("--watchdog-s must be a finite nonnegative number")
     if args.watchdog_s:
@@ -426,6 +465,44 @@ def main():
     }
     if data_load_started is not None:
         manifest["data_load_seconds"] = data_load_seconds
+    checkpointer = None
+    checkpoint_errors = (NonfiniteTrainingError,)
+    if args.checkpoint_store:
+        try:
+            from ckpt.ckpt import CheckpointError, Checkpointer
+            from common.reasons import EXIT_FATAL, EXIT_RETRY, write_exit_note
+        except ModuleNotFoundError as error:
+            if error.name not in ("ckpt", "ckpt.ckpt"):
+                raise
+            p.error("Add teams/07-infrastructure to PYTHONPATH to use Team 7 checkpoints")
+
+        checkpoint_errors += (CheckpointError,)
+        probe_x, probe_y, _ = val.batch([0], device)
+
+        @torch.no_grad()
+        def probe(probe_model):
+            training = probe_model.training
+            try:
+                probe_model.eval()
+                with amp():
+                    return float(scored_ntp_loss(probe_model, probe_x, probe_y))
+            finally:
+                probe_model.train(training)
+
+        checkpointer = Checkpointer(
+            run_id, str(args.out / "checkpoint-cache"), args.checkpoint_store,
+            config_path=str(args.config), seed=seed,
+            frozen_keys=("embedding.rows", "embedding.lengths"), code_paths=source_files,
+        )
+        if not args.resume_committed and checkpointer.store.exists("latest.json"):
+            p.error("Team 7 run ID already exists. Use --resume-committed or a fresh run ID")
+        optimizers = tuple(o for _, o in optimizer.named) if isinstance(optimizer, Optimizers) else optimizer
+        progress = CheckpointProgress(stream, identity_hash, run_id)
+        manifest["team7_checkpoint"] = {
+            "store": args.checkpoint_store,
+            "run_id": run_id,
+            "interval_s": args.checkpoint_interval_s,
+        }
     if args.watchdog_s:
         manifest["watchdog_s"] = args.watchdog_s
     (args.out / "manifest.json").write_text(
@@ -437,6 +514,16 @@ def main():
     ntp_trace = []
     completed = 0
     resumed_seconds = 0.0
+    committed_path = None
+    restored_step = None
+    last_requested_step = None
+    tokens = 0
+
+    def checkpoint_exit(code, cause, detail):
+        print(detail, file=sys.stderr)
+        write_exit_note(code, cause, completed, detail)
+        raise SystemExit(code)
+
     if checkpoint is not None:
         model.load_state_dict(checkpoint["model"])
         optimizer.load_state_dict(checkpoint["optimizer"])
@@ -451,6 +538,65 @@ def main():
         ntp_trace = checkpoint["ntp_trace"]
         rows = checkpoint["rows"]
         resumed_seconds = checkpoint["wall_seconds"]
+    elif args.resume_committed:
+        inactive_mtp = model.mtp_head is not None and cfg["model"]["mtp_weight"] == 0
+        if inactive_mtp:
+            # DCP initializes state for trainable parameters when preparing a restore.
+            # This head did not contribute to the objective and has no optimizer state.
+            model.mtp_head.requires_grad_(False)
+        try:
+            info = checkpointer.restore(model, optimizers, progress, probe)
+            if info is None:
+                checkpoint_exit(EXIT_FATAL, "CheckpointError", "No committed Team 7 checkpoint for this run ID")
+        except CheckpointError as error:
+            checkpoint_exit(EXIT_FATAL, type(error).__name__, str(error))
+        finally:
+            if inactive_mtp:
+                model.mtp_head.requires_grad_(True)
+        completed = info["step"]
+        restored_step = completed
+        tokens = info["tokens"]
+        committed_path = info["from_path"]
+        history = progress.history
+        if completed == 0:
+            optimizer.load_state_dict(history["initial_optimizer"])
+        trace = history["trace"]
+        ntp_trace = history["ntp_trace"]
+        rows = history["rows"]
+        resumed_seconds = history["wall_seconds"]
+
+    if checkpoint is not None:
+        tokens = sum(row.get("train/scored_tokens", 0) for row in rows)
+
+    def save_committed(reason):
+        nonlocal last_requested_step
+        writer.flush()
+        if external is not None:
+            external.flush()
+        progress.history = {
+            "trace": trace, "ntp_trace": ntp_trace, "rows": rows,
+            "wall_seconds": resumed_seconds + time.perf_counter() - started,
+        }
+        initial_optimizer = copy.deepcopy(optimizer.state_dict()) if reason == "start" else None
+        inactive_mtp = reason == "start" and model.mtp_head is not None and cfg["model"]["mtp_weight"] == 0
+        if initial_optimizer is not None:
+            # DCP materializes lazy optimizer state when taking the initial snapshot.
+            # Retain the original state for the first real update, also after restore.
+            progress.history["initial_optimizer"] = initial_optimizer
+        if inactive_mtp:
+            model.mtp_head.requires_grad_(False)
+        try:
+            saved = checkpointer.save(
+                completed, model, optimizers, progress, probe, tokens=tokens, reason=reason
+            )
+        finally:
+            if inactive_mtp:
+                model.mtp_head.requires_grad_(True)
+            if initial_optimizer is not None:
+                optimizer.load_state_dict(initial_optimizer)
+        if saved:
+            last_requested_step = completed
+        return saved
 
     def log(row):
         for key in [
@@ -468,8 +614,19 @@ def main():
             external.write(row)
 
     writer = JsonWriter(args.out, cfg["run"]["flush_every_steps"])
+    stop_signal = None
+    signal_handlers = {}
+
+    def request_stop(signum, _frame):
+        nonlocal stop_signal
+        stop_signal = signal.Signals(signum).name
+
     watchdog = StepWatchdog(args.watchdog_s) if args.watchdog_s else None
     try:
+        if checkpointer is not None:
+            for signum in (signal.SIGTERM, getattr(signal, "SIGUSR1", None)):
+                if signum is not None:
+                    signal_handlers[signum] = signal.signal(signum, request_stop)
         if args.logger_factory:
             module, name = args.logger_factory.split(":", 1)
             external = getattr(importlib.import_module(module), name)(args.out)
@@ -488,11 +645,21 @@ def main():
             log(row)
             if device.type == "cuda":
                 torch.cuda.empty_cache()  # execution-only (TSAI)
+        if args.checkpoint_at_start and not args.resume and not args.resume_committed:
+            if not save_committed("start"):
+                checkpoint_exit(EXIT_RETRY, "crash", "Step-0 Team 7 checkpoint was skipped")
         steps = cfg["run"]["steps"]
         if args.stop_after is not None:
             steps = min(steps, args.stop_after)
         timed_out = False
+        checkpoint_deadline = (
+            checkpoint_clock() + args.checkpoint_interval_s if checkpointer is not None else None
+        )
         for step in range(completed + 1, steps + 1):
+            if stop_signal is not None:
+                break
+            if checkpointer is not None and checkpointer.fenced:
+                checkpoint_exit(EXIT_FATAL, "FencedError", "A newer attempt owns the checkpoint run")
             if (
                 resumed_seconds + time.perf_counter() - started
                 >= cfg["run"]["max_time_min"] * 60
@@ -542,9 +709,9 @@ def main():
                     loss.backward()
                 else:
                     if not torch.isfinite(loss):
-                        raise ValueError("Nonfinite training objective")
+                        raise NonfiniteTrainingError("Nonfinite training objective")
                     if mtp is not None and not torch.isfinite(mtp):
-                        raise ValueError("Nonfinite MTP component")
+                        raise NonfiniteTrainingError("Nonfinite MTP component")
                     loss.backward()
                     total += float(loss.detach())
                     ntp_value += float(ntp.detach())
@@ -555,8 +722,8 @@ def main():
                 if grads and not bool(torch.isfinite(torch.stack(torch._foreach_norm(grads))).all()):
                     for name, param in model.named_parameters():
                         if param.grad is not None and not torch.isfinite(param.grad).all():
-                            raise ValueError("Nonfinite gradient: " + name)
-                    raise ValueError("Nonfinite gradient")
+                            raise NonfiniteTrainingError("Nonfinite gradient: " + name)
+                    raise NonfiniteTrainingError("Nonfinite gradient")
             norm = torch.nn.utils.clip_grad_norm_(
                 model.parameters(), cfg["run"]["grad_clip"],
                 error_if_nonfinite=not args.consolidate_step_checks,
@@ -565,13 +732,14 @@ def main():
                 total, ntp_value, mtp_value = checked_step_losses(micro_losses, norm)
             optimizer.step()
             if not bool(torch.isfinite(torch.stack(torch._foreach_norm([q.detach() for q in model.parameters()]))).all()):
-                raise ValueError("Nonfinite parameter")
+                raise NonfiniteTrainingError("Nonfinite parameter")
             if device.type == "cuda":
                 torch.cuda.synchronize()
             ms = (time.perf_counter() - tick) * 1000
             trace.append(total)
             ntp_trace.append(ntp_value)
             completed = step
+            tokens += count
             if watchdog is not None:
                 watchdog.arm(completed)
             row = {
@@ -613,15 +781,39 @@ def main():
                 row["muon_lr"] = cfg["optim"]["muon_lr"]
             rows.append(row)
             log(row)
+            if stop_signal is not None:
+                break
+            if checkpoint_deadline is not None and step < steps and checkpoint_clock() >= checkpoint_deadline:
+                save_committed("interval")
+                checkpoint_deadline = checkpoint_clock() + args.checkpoint_interval_s
         if watchdog is not None:
             watchdog.disarm()
         # Interrupted segments must not introduce extra validation events into resume history.
         writer.flush()
         if external is not None:
             external.flush()
+        if checkpointer is not None:
+            if completed and completed not in (last_requested_step, restored_step):
+                requested = save_committed("signal" if stop_signal else "final")
+            else:
+                requested = True
+            committed = checkpointer.wait()
+            if checkpointer.any_fenced():
+                checkpoint_exit(EXIT_FATAL, "FencedError", "A newer attempt owns the checkpoint run")
+            if stop_signal is not None:
+                cause = "saved_and_stopped" if requested and committed else "crash"
+                checkpoint_exit(EXIT_RETRY, cause, f"Stopped on {stop_signal} after step {completed}")
+            if not requested or not committed or (
+                completed == 0 and last_requested_step != 0 and restored_step != 0
+            ):
+                checkpoint_exit(EXIT_RETRY, "crash", "Final Team 7 checkpoint did not commit")
+            if last_requested_step == completed:
+                if checkpointer.last_commit_step != completed:
+                    checkpoint_exit(EXIT_RETRY, "crash", "Final Team 7 checkpoint did not commit")
+                committed_path = checkpointer.step_rel(checkpointer.branch, completed)
         wall = resumed_seconds + time.perf_counter() - started
         if not args.no_checkpoint:
-            torch.save(
+            write_native_checkpoint(
                 {
                     "model": model.state_dict(),
                     "optimizer": optimizer.state_dict(),
@@ -663,6 +855,7 @@ def main():
                     "steps": completed,
                     "wall_seconds": wall,
                     "timed_out": timed_out,
+                    **({"team7_checkpoint_path": committed_path} if committed_path else {}),
                     "first_ce": ntp_trace[0] if ntp_trace else None,
                     "last_ce": ntp_trace[-1] if ntp_trace else None,
                     "final_model_sha256": model_hash(model),
@@ -672,9 +865,15 @@ def main():
             ),
             encoding="utf8",
         )
+    except checkpoint_errors as error:
+        if checkpointer is None:
+            raise
+        checkpoint_exit(EXIT_FATAL, type(error).__name__, str(error))
     finally:
         if watchdog is not None:
             watchdog.close()
+        for signum, handler in signal_handlers.items():
+            signal.signal(signum, handler)
         try:
             writer.close()
         finally:

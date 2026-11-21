@@ -99,14 +99,17 @@ class ExpertLoadTests(unittest.TestCase):
 
             def run(name, *args):
                 out = root / name
-                with patch.object(sys, "argv", [*common, "--out", str(out), *args]):
+                run_args = [*common, "--out", str(out), *args]
+                if "--checkpoint-store" in args:
+                    run_args.remove("--no-checkpoint")
+                with patch.object(sys, "argv", run_args):
                     train_week2.main()
                 return out
 
             with (
                 patch.object(train_week2, "load_runtime", return_value=cfg),
                 patch.object(train_week2, "Artifacts", return_value=artifacts),
-                patch.object(sys, "path", [str(logger_dir), *sys.path]),
+                patch.object(sys, "path", [str(logger_dir), str(TEAM.parent / "07-infrastructure"), *sys.path]),
             ):
                 with patch.object(
                     LanguageModel, "start_expert_load",
@@ -117,11 +120,23 @@ class ExpertLoadTests(unittest.TestCase):
                 sampled_baseline = run(
                     "sampled-baseline", "--expert-load-every", "2", "--no-consolidate-step-checks"
                 )
+                committed = [
+                    "--checkpoint-store", str(root / "store"), "--run-id", "g5-telemetry-resume",
+                    "--expert-load-every", "2", "--checkpoint-at-start",
+                ]
+                run("segment", *committed, "--stop-after", "2")
+                resumed = run("resumed", *committed, "--resume-committed")
 
             plain_rows = read_rows(plain / "metrics.jsonl")
             sampled_rows = read_rows(sampled / "metrics.jsonl")
             baseline_rows = read_rows(sampled_baseline / "metrics.jsonl")
             g8_rows = read_rows(sampled / "g8" / "metrics.jsonl")
+            for path in (resumed / "metrics.jsonl", resumed / "g8" / "metrics.jsonl"):
+                replayed = read_rows(path)
+                self.assertEqual(
+                    [(row["step"], row.get("expert_load")) for row in replayed],
+                    [(row["step"], row.get("expert_load")) for row in sampled_rows],
+                )
             self.assertTrue(all("expert_load" not in row for row in plain_rows))
             self.assertEqual(json.loads((plain / "manifest.json").read_text())["expert_load_every"], 0)
             for rows in (sampled_rows, g8_rows):
@@ -146,12 +161,14 @@ class ExpertLoadTests(unittest.TestCase):
                 self.assertIn("expert_load_imbalance", g8_by_step[row["step"]])
             self.assertEqual((sampled / "losses.txt").read_bytes(), (plain / "losses.txt").read_bytes())
             self.assertEqual((sampled_baseline / "losses.txt").read_bytes(), (plain / "losses.txt").read_bytes())
+            self.assertEqual((resumed / "losses.txt").read_bytes(), (plain / "losses.txt").read_bytes())
             summaries = [
                 json.loads((out / "summary.json").read_text(encoding="utf8"))
-                for out in (plain, sampled, sampled_baseline)
+                for out in (plain, sampled, sampled_baseline, resumed)
             ]
             self.assertEqual(summaries[0]["final_model_sha256"], summaries[1]["final_model_sha256"])
             self.assertEqual(summaries[0]["final_model_sha256"], summaries[2]["final_model_sha256"])
+            self.assertEqual(summaries[0]["final_model_sha256"], summaries[3]["final_model_sha256"])
 
 
 if __name__ == "__main__":
