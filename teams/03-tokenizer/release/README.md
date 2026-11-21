@@ -31,11 +31,21 @@ What changes from C3:
 
 ## 1. Get it
 
-Download `tokenizer.json` from the Kaggle dataset [`sohiyiy/p1536-sample-v0`](https://www.kaggle.com/datasets/sohiyiy/p1536-sample-v0) and put it at `teams/03-tokenizer/release/tokenizer.json`. The dataset is private; ask G3 for access. It also holds the build manifest and its own `SHA256SUMS`.
+Download `tokenizer.json` (6.0 MB) from Google Drive, open to anyone with the link, no sign-in: [tokenizer.json](https://drive.google.com/file/d/1CoAWJ18ujjnDY3_wdQNO1-2fB_9jUCbI/view?usp=sharing). Put it at `teams/03-tokenizer/release/tokenizer.json`.
+
+From a terminal or a job host:
+
+```
+curl -L -o teams/03-tokenizer/release/tokenizer.json 'https://drive.usercontent.google.com/download?id=1CoAWJ18ujjnDY3_wdQNO1-2fB_9jUCbI&export=download&confirm=t'
+```
+
+The same file is also in the private Kaggle dataset [`sohiyiy/p1536-sample-v0`](https://www.kaggle.com/datasets/sohiyiy/p1536-sample-v0) (ask G3 for access), with the build manifest and its own `SHA256SUMS`:
 
 ```
 kaggle datasets download -p teams/03-tokenizer/release --unzip sohiyiy/p1536-sample-v0
 ```
+
+Whichever copy you use, check its sha256 (below) before using it.
 
 ## 2. Check it
 
