@@ -26,7 +26,8 @@ from week2.config import load, load_runtime, merge, validate
 from week2.data import DocumentWindows, BatchStream
 from week2.model import LanguageModel
 from week2.evaluation import EVAL_BATCH_TOKENS, evaluate, token_nll
-from week2.optim import Optimizers, build_optimizer, describe
+from week2.optim import Optimizers, build_optimizer, describe, lr_scale, set_lr_scale
+from week2 import tst as tst_mod
 from week2.team7_checkpoints import CheckpointProgress, write_native_checkpoint
 
 
@@ -673,7 +674,11 @@ def main():
             tick = time.perf_counter()
             x, y, lengths = stream.next(device)
             optimizer.zero_grad(set_to_none=True)
-            count = int((y != -100).sum())
+            # TSAI recipe (21 Nov), unconfirmed on KE2: bag training (TST) for the first tst_frac of the steps.
+            tst_on = tst_mod.active(step, cfg["run"]["steps"], cfg["run"])
+            count = int((y != -100).sum())  # real scored tokens: logged, and the normal-training normaliser
+            # TST normalises by scored bags instead; the logged token count stays the real one (Team 8's tokens per byte).
+            bag_count = tst_mod.scored_bags(y, cfg["run"]["tst_bag"]) if tst_on else 0
             mtp_count = int((y[:, 1:] != -100).sum())
             total = 0.0
             ntp_value = 0.0
@@ -688,7 +693,9 @@ def main():
                 # Normalize each microbatch by the full batch target count.
                 with amp():
                     mtp = None
-                    if model.mtp_head is None:
+                    if tst_on:
+                        ntp = tst_mod.tst_loss(model, tx, ty, cfg["run"]["tst_bag"]) / max(bag_count, 1)
+                    elif model.mtp_head is None:
                         ntp = scored_ntp_loss(model, tx, ty) / count
                     else:
                         logits, mtp_logits = model(tx, ty != -100, return_mtp=True)
@@ -730,6 +737,9 @@ def main():
             )
             if args.consolidate_step_checks:
                 total, ntp_value, mtp_value = checked_step_losses(micro_losses, norm)
+            # TSAI recipe (21 Nov): WSD scales both optimizers' peak rates; constant leaves them unchanged.
+            scale = lr_scale(step, cfg["run"]["steps"], cfg["optim"])
+            set_lr_scale(optimizer, scale)
             optimizer.step()
             if not bool(torch.isfinite(torch.stack(torch._foreach_norm([q.detach() for q in model.parameters()]))).all()):
                 raise NonfiniteTrainingError("Nonfinite parameter")
@@ -750,7 +760,7 @@ def main():
                 "loss_mtp": mtp_value if cfg["model"]["mtp"] else 0.0,
                 "mtp_weight": cfg["model"]["mtp_weight"],
                 "loss": ntp_value,
-                "lr": cfg["optim"]["lr"],
+                "lr": cfg["optim"]["lr"] * scale,
                 "gradient_norm": float(norm),
                 "gradient_clipping_applied": float(norm) > cfg["run"]["grad_clip"],
                 "train/scored_tokens": count,
@@ -778,7 +788,7 @@ def main():
                 if device.type == "cuda":
                     torch.cuda.empty_cache()  # execution-only (TSAI): free the eval cache so training does not thrash
             if cfg["optim"]["name"] == "muon":
-                row["muon_lr"] = cfg["optim"]["muon_lr"]
+                row["muon_lr"] = cfg["optim"]["muon_lr"] * scale
             rows.append(row)
             log(row)
             if stop_signal is not None:

@@ -9,7 +9,7 @@ and 4 change with the integration PR (`gate3.md`, handoff section).
 | Item | Value | Source |
 |---|---|---|
 | Input embedding | KE2: fixed Kronecker byte code, then one learned `Linear(8192, d_model, bias=False)` | Gate 2 |
-| Output head | Dense untied `nn.Linear(d_model, 131072, bias=False)`. No KE2 output head. **Superseded 21 Nov** (TSAI, #691): the capstone output head is the KE2/KAS head; this row changes with the integration PR (`gate3.md`, handoff section) | TSAI, 15 Nov; `HARNESS_WEEK2.md` |
+| Output head | Dense untied `nn.Linear(d_model, 131072, bias=False)`. No KE2 output head. **Superseded 21 Nov** (TSAI; corrected in #702): the capstone output head is the KE2/KAS head, untied, with its own output projection; this row changes with the integration PR (`gate3.md`, handoff section) | TSAI, 15 Nov; `HARNESS_WEEK2.md` |
 | Trainer class | `KE2` in `teams/05-architecture/harness/week2/model.py` | Team 5, 16 Nov |
 | Arm setting | `embedding: ke2`; `ke1` stays accepted as the older name for the same path | #472 |
 | Tokenizer | p1536, `tokenizer.json` sha256 `e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b`, V = 131,072 | TSAI Gate 3 notice; `teams/03-tokenizer/release/` |
@@ -78,7 +78,8 @@ python -m pytest teams/05-architecture/tests/test_week2_tokenizer_release.py -q
 2. Done: trainer support for p1536 merged with this note (#515): `--tokenizer-release frozen-p1536` in
    `train_week2.py` and `check_week2.py`, the pin in `artifacts.py`, and original-byte BPB for the normalizing releases
    (C3 and p1536). The default stays v0.
-3. Superseded 21 Nov (TSAI, #691): the capstone output head is the KE2/KAS head; see `gate3.md`, handoff section.
+3. Superseded 21 Nov (TSAI; corrected in #702): the capstone output head is the KE2/KAS head, untied; see `gate3.md`,
+   handoff section.
    The 16 Nov text follows. A KE2 output head is not chosen. The cosine decoder (`src/decode_ref.py`) is an evaluation tool only, and tau is
    decided by TSAI at Gate 3.
 4. Parked (lead, 17 Nov): the cosine decode of predicted vectors and the tau rerun on real vectors. With the head dense,

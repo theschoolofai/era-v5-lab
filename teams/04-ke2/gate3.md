@@ -48,16 +48,18 @@ integrating it into the trainer.
 | Trained weights | GitHub release `v1-checkpoints`, file `ke2_k64_drop05_100m.pt` (GPT-2 vocabulary; evaluation only, no optimizer state) |
 | Questions | Team 4 answers in the 05 Architecture group; code differences and bugs as issues on the repository |
 
-Three differences between the reference and the lab path that Team 5 should settle first. Team 4 helps with each:
+Three differences between the reference and the lab path. Team 5 should settle the codec width and the vocabulary
+first; weight tying is settled (TSAI, #702). Team 4 helps with each:
 
 1. **Codec width.** The reference codec is Hadamard-coded and 2,048 wide (`d_c = 64` by `L_max = 32`). The lab's KE2
    input path (`trainer_adapter.md`) uses the raw P = 32 table at D = 8,192. The KAS head scores bytes through the same
    codec as its input embedding, so the trainer needs one codec on both sides: either Team 5's input path moves to the
    reference codec, or the head is built on the 8,192-wide table. This also decides whether `Linear(8192, d_model)` stays.
-2. **Weight tying.** On the pinned commit only arms `a3_kronf_kas_tied` and `a5_kas_tied_unigram` tie the head to the
-   input projection (`model.py`, `tied_weight=`). `a10_kas_tokdrop` is untied, and `runs/final/long_k64d05.json` records
-   a separate 1.57M-parameter input projection. The tied rank-64 configuration named in the decision needs that one-line
-   tie and its run record. Team 4 is confirming the source of the tying result with TSAI.
+2. **Weight tying: settled, untied (TSAI, #702).** On the pinned commit only arms `a3_kronf_kas_tied` and
+   `a5_kas_tied_unigram` tie the head to the input projection (`model.py`, `tied_weight=`). The chosen arm
+   `a10_kas_tokdrop` is untied: its head has its own output projection, and `runs/final/long_k64d05.json` records a
+   separate 1.57M-parameter input projection. TSAI confirmed this and withdrew the tying claim: there is no tested
+   evidence for tying this arm and no parameter saving to claim.
 3. **Vocabulary.** The reference runs on GPT-2 (50,257 tokens). The lab uses p1536 (131,072 tokens, 356 special IDs,
    longest token 32 bytes), so `L_max = 32` already fits. The unigram log-prior needs p1536 token counts from the
    training corpus, and the `tok_u` table and vocabulary dropout are sized by V. The open ke2-head PR #2 (Brahmic
@@ -191,7 +193,8 @@ and the size after the fold. G12's `scripts/export_hf.py` already folds this way
 - The KE2 input folds into a normal embedding table for serving, reproducing the trainer bit for bit on 16,384 sampled
   IDs and matching float64 on all 131,072 (task 5).
 - Dry run 1's manifest records the chosen table, content sha256 `21072027…168a` (#620).
-- Output head decided 21 Nov: the KE2/KAS decodable head. Reference `The-School-of-AI/ke2-head` at `81cf1c0`; the
-  handoff table and the three integration questions are in the handoff section above.
-- Still open: the CUDA encode and decode timing (task 4; the benchmark is merged in #588 and #624), risk 2, and the
-  three integration questions (codec width, weight tying, p1536 vocabulary).
+- Output head decided 21 Nov: the KE2/KAS decodable head, untied (corrected in #702). Reference
+  `The-School-of-AI/ke2-head` at `81cf1c0`; the handoff table and the integration questions are in the handoff section
+  above.
+- Still open: the CUDA encode and decode timing (task 4; the benchmark is merged in #588 and #624), risk 2, and two
+  integration questions (codec width, p1536 vocabulary). Weight tying is settled: the chosen head is untied (#702).
