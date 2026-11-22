@@ -75,10 +75,10 @@ KE2's size does not depend on V, so adding special-token slots does not change i
 ## Output side
 
 Decided 21 Nov, final (TSAI): the capstone output head is the KE2/KAS head, with a unigram log-prior scalar and a
-rank-64 per-token correction, tied to the input embedding in TSAI's decision. It reads raw tokenizer bytes with a
-32-byte limit. The handoff, and the three questions Team 5 settles first (codec width, weight tying on the pinned
-reference commit, vocabulary), are in `gate3.md`, section "Handoff of the reference implementation to Team 5". The
-codec question may also change the input path described above.
+rank-64 per-token correction. It has its own separate output projection and is not tied to the input embedding
+(TSAI's correction, #702). It reads raw tokenizer bytes with a 32-byte limit. The handoff, and the questions Team 5
+settles first (codec width and vocabulary; weight tying is settled as untied), are in `gate3.md`, section "Handoff of
+the reference implementation to Team 5". The codec question may also change the input path described above.
 
 Dry run 1 and the week-2 trainer used a dense untied head, `nn.Linear(d_model, 131072, bias=False)` (TSAI, 15 Nov),
 with KE2 on the input only. The export notes below were written for that run. With the KAS head, the export of the
