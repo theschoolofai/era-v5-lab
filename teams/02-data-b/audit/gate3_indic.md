@@ -101,8 +101,34 @@ Languages with no reader are reported as not read, not as passed.
 
 ## 4. Language labels of script-sharing pairs
 
-Task 5 (`audit/lang_label_check.md`): Hindi, Marathi and Sanskrit in Devanagari, and Assamese in the Bengali packs.
-[to add, Thu 19]
+Task 5 (`audit/lang_label_check.md`; #622, corrected in #673; #531): Hindi, Marathi and Sanskrit in Devanagari, and
+Assamese in the Bengali packs. Each document gets two signals, IndicLID-FTN (a paragraph vote) and marker words, and is
+flagged only when both name the same other language. The check runs on the 10 CAP-1 packs that are the raw input of the
+hi, mr, sa and bn shards (the same files, by sha256).
+
+| Documents in the 10 packs | Count |
+|---|---:|
+| All | 209,926 |
+| Judged | 206,571 |
+| Agree with the pack's language | 205,244 (99.36% of judged, 97.77% of all) |
+| Flagged as another language | 2 |
+| Uncertain | 114 |
+| Disagree but too short to trust IndicLID (`short_disagree`) | 1,211 |
+| Not judged: too short (3,138) or another script (217) | 3,355 |
+
+- **No disagreement detected; this does not prove the labels are right.** The marker words are consulted only when
+  IndicLID disagrees with the pack, so a language that IndicLID reads as Hindi or Bengali cannot be flagged. The check
+  catches 0 of the 6 same-script documents readers marked D1 (IndicLID has no Kumaoni class and reads Vedic Sanskrit as
+  Hindi).
+- **The 2 flags are right.** Both are Sanskrit in Bengali script in `ind-bn-sangraha-v`; a Sanskrit reader confirms both.
+- **Reader check of the uncertain ones (Sanskrit, 9 documents, two readers):** none of the 7 uncertain documents where
+  IndicLID said Sanskrit is Sanskrit alone. They are mixed pages (Sanskrit or Prakrit with Hindi) or Hindi, so
+  `uncertain` is the right verdict.
+- **No false flags** on 1,590 gold documents or 4,987 reader-labelled documents without D1.
+- **Pending:** the Marathi (4), Hindi (4) and Bengali (3) reader rows of `audit/lang_label_review_sample.csv`.
+- **Not covered:** same-script languages IndicLID has no class for (Kumaoni and other Pahari languages, Prakrit,
+  Apabhramsha); packs outside hi, mr, sa and bn; and mixing across scripts, such as Hindi runs in a Telugu document
+  (`85c371eab86e00d1`, found by the Telugu reader in #618).
 
 ## 5. Result
 
