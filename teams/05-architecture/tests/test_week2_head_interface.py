@@ -20,7 +20,7 @@ from week2.optim import Optimizers, build_optimizer
 class HeadInterfaceTests(unittest.TestCase):
     def test_every_actual_head_and_input_parameter_is_only_on_adamw(self):
         cfg, rows, lengths = fixture()
-        cfg["optim"].update(name="muon", muon_lr=0.003)
+        cfg["optim"].update(name="muon", muon_lr=0.006)
         model = LanguageModel(cfg["model"], rows, lengths)
         optimizer = build_optimizer(model, cfg["optim"])
         self.assertIsInstance(optimizer, Optimizers)
@@ -42,6 +42,42 @@ class HeadInterfaceTests(unittest.TestCase):
         head_storage = {p.untyped_storage().data_ptr() for p in model.head.parameters()}
         input_storage = {p.untyped_storage().data_ptr() for p in model.embedding.parameters()}
         self.assertTrue(head_storage.isdisjoint(input_storage), "independent parameters must not alias storage")
+
+    def test_merged_recipe_optional_sgd_owns_every_actual_head_parameter(self):
+        cfg, rows, lengths = fixture()
+        cfg["optim"].update(name="muon", muon_lr=0.006, head_sgd=True,
+                            head_sgd_lr=0.01, head_sgd_momentum=0.99)
+        model = LanguageModel(cfg["model"], rows, lengths)
+        optimizer = build_optimizer(model, cfg["optim"])
+        owners = {}
+        for name, item in optimizer.named:
+            for group in item.param_groups:
+                for parameter in group["params"]:
+                    owners.setdefault(id(parameter), []).append(name)
+        self.assertEqual(set(owners), {id(p) for p in model.parameters()})
+        self.assertTrue(all(len(groups) == 1 for groups in owners.values()))
+        for name, parameter in model.named_parameters():
+            if name.startswith("head."):
+                self.assertEqual(owners[id(parameter)], ["sgd"], name)
+            elif name.startswith("embedding."):
+                self.assertEqual(owners[id(parameter)], ["adamw"], name)
+
+    def test_merged_tst_backpropagates_through_input_and_head(self):
+        from week2.tst import tst_loss
+
+        cfg, rows, lengths = fixture()
+        model = LanguageModel(cfg["model"], rows, lengths)
+        ids = torch.arange(24).reshape(1, 24) % cfg["model"]["vocab_size"]
+        targets = torch.roll(ids, shifts=-1, dims=1)
+        targets[:, -1] = -100
+        loss = tst_loss(model, ids, targets, 6)
+        self.assertTrue(torch.isfinite(loss))
+        loss.backward()
+        for name, parameter in model.named_parameters():
+            if name.startswith(("head.", "embedding.")):
+                self.assertIsNotNone(parameter.grad, name)
+                self.assertTrue(torch.isfinite(parameter.grad).all(), name)
+                self.assertTrue(torch.any(parameter.grad != 0), name)
 
     def test_p1536_sized_constructor_and_strict_weight_reload_preserve_scoring(self):
         cfg, _, _ = fixture()
