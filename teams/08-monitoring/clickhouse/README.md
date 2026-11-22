@@ -198,3 +198,11 @@ PYTHONPATH=teams/08-monitoring pytest teams/08-monitoring/clickhouse/tests/test_
 
 The offline tests use a fake ClickHouse: half-written lines, restarts, resumed runs, broken and truncated files, a crash between the two inserts, and a dead server. `test_live_dryrun1_catch_up_load` loads the full dry run 1 file into the ClickHouse on `CLICKHOUSE_URL` and deletes its rows afterwards. It **fails** when no server is running, so a green run always includes the live check.
 
+
+## 8. Live latency test (`replay_jsonl.py`, `replay_latency.py`, Issue #27)
+
+`replay_jsonl.py` writes a finished `metrics.jsonl` at its real pace, flushing like `MetricsWriter`, and logs each step's write time. Run `watch_jsonl.py` on its `--out`, then `replay_latency.py` matches each logged step to the `ingest_batches` row that loaded it and prints p50 / p95 / max of the lag. The commands and the dry run 1 result are in `../alarms_dryrun1.md` section 5.
+
+```bash
+PYTHONPATH=teams/08-monitoring pytest teams/08-monitoring/clickhouse/tests/test_replay_jsonl.py teams/08-monitoring/clickhouse/tests/test_replay_latency.py -q
+```
