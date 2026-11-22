@@ -6,11 +6,11 @@ This is our own check on a cloud VM, not a TSAI job. `h3.py` is not changed, and
 
 ```text
 Owner:    Smita Sasindran
-Code:     teams/01-data-a/dedup/h3.py (with h3_align.py, h3_signals.py), commit <fill in: git rev-parse HEAD on the VM>
+Code:     teams/01-data-a/dedup/h3.py (with h3_align.py, h3_signals.py), commit ff7b5791 (branch g1-w4-h3-sync-debug)
 Config:   teams/01-data-a/jobs/2026-11-21-h3-sync-check/h3.json
 Inputs:   the same 7 parts as the rehearsal, from week-2-cleaned (TSAI's 5 Nov cleaning of sample v0, not the rehearsal's spec v1.1 cleaning; see "Inputs"), under out/h3_sync_check/clean/{train,heldout}/<pack>/part-NNNNN.parquet
 Model:    sentence-transformers/LaBSE revision 836121a0533e5664b21c7aacc5d22951f2b8b25b in ../models/LaBSE
-Hardware: <fill in: GPU, driver, torch and CUDA versions>
+Hardware: Runpod pod, 1 x NVIDIA A100-SXM4-80GB, driver 595.112.07; Python 3.12.3, torch 2.13.0+cu130 (CUDA 13.0), transformers 5.23.0, sentence-transformers 6.3.0
 ```
 
 ## What it checks
@@ -66,22 +66,48 @@ Expected from reading the code (to be confirmed by the log): the stage results c
 - lines in `torch` or `transformers` files, with about one warning per encoder batch: a sync inside the model's forward
   pass, not in our code (note it, see the next section).
 
-## Result
+## Result (run of 21 Nov 2026)
 
-<fill in after the run: number of warnings, the lines they come from, pass or fail>
+**Pass for our code; one sync per encoder batch in `transformers`, not ours.**
 
-Also check `h3_summary.json`: `device` cuda, `precision` fp16, `sync_debug` true, `model.safetensors` `77d8e1f2…`, and the
-counts of #599 for comparison only (91,559 documents encoded, 9,343 verified, 0 qualifying; 205.7 s there). The inputs are
-not the rehearsal's: only the two train/en-fineweb-edu parts are byte-identical to its cleaned parts (same sha256). The
-heldout parts are the uncleaned raw parts (their sha256 equals the rehearsal's cleaner input), and train/ind-hi-fw2 has
-14,125 rows against 13,801 there. Totals: en 72,106 rows (72,100), hi 14,257 (13,932), sa 5,722 (5,721), so the counts
-will be close but not equal.
+Run: `status` complete, `device` cuda, `precision` fp16, `sync_debug` true, `model.safetensors` `77d8e1f2…`; 94.2 s wall, peak
+RSS 2,976 MB. Evidence in `jobs/logs/2026-11-21-h3-sync-check/`: `h3_sync_check.log`, `h3_summary.json`, `environment.txt`.
+
+2,688 warnings in the log:
+
+| Source | Count | What it is |
+|---|---:|---|
+| `dedup/h3_align.py:50` | 15 | `cross_topk`'s copy of its result to the host: 5 per language pair, 3 pairs |
+| `dedup/h3.py:712`, `:713` | 1 + 1 | `aligned` and `mean_cos`, the copies at the end of verify |
+| `transformers/masking_utils.py:369` | 2,671 | `padding_mask.all()` in the model's forward pass |
+
+- **Our code.** The 17 warnings are the expected ones: one copy per stage result, as the code reads. None is in a loop. The
+  retrieval loop has 12 to 28 row blocks per language pair and verify has 10 pair batches, and the counts are 5 per pair
+  and 2, so they do not grow with the number of batches. The optional `pair_batch` run was not needed and was not done.
+- **The library.** 2,671 is one warning per encoder batch of the verify stage (170,935 sentences encoded, chunks of 2,048,
+  batches of 64). It is in the attention-mask code of `transformers` 5.23.0, outside `h3.py`, and nothing was changed.
+  Its cost was not measured on its own: verify took 37.0 s here against 35.8 s in #599 for a similar number of pairs,
+  and encode, which runs before the switch, took 28.4 s in both.
+- **Limits.** Torch says its sync debug mode "does not yet detect all synchronizing operations", so the check shows no
+  detected sync in our loops, not proof of none. The document-head encoding is before the switch and was not checked;
+  it runs the same model, so the library sync probably occurs there too.
+
+Counts, for comparison with #599 only (the inputs are not the rehearsal's: only the two train/en-fineweb-edu parts are
+byte-identical to its cleaned parts, the heldout parts are the uncleaned raw parts, and train/ind-hi-fw2 has 14,125 rows
+against 13,801; totals en 72,106 rows (72,100), hi 14,257 (13,932), sa 5,722 (5,721)):
+
+| | This run | #599 |
+|---|---:|---:|
+| Documents encoded | 91,882 | 91,559 |
+| Candidates / verified pairs | 12,405 / 9,403 | 12,310 / 9,343 |
+| Qualifying pairs | 1, an en–hi pair; 0 held-out ↔ train | 0 |
+| Wall time | 94.2 s | 205.7 s (model load 103.9 s, here 6.8 s) |
 
 ## Not covered
 
 - The encoding of the document heads, which comes before the switch.
 - The URL-pair path with pairs in it: the 3 packs give 34 URL groups and 0 pairs across the configured language pairs.
-- The `max_verify` cut-off: 9,343 pairs are verified, under 10,000.
+- The `max_verify` cut-off: 9,403 pairs are verified, under 10,000.
 - The or–en pair of E5c's scope.
 
 ## If the log shows warnings
