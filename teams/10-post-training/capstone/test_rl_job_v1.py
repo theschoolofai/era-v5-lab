@@ -163,6 +163,18 @@ def test_config_names_every_setting_and_caps_updates(tmp_path):
         _full_args(tmp_path, reward_pool=0)
 
 
+def test_logprob_gate_on_by_default_and_update_mode_switch(tmp_path):
+    t = yaml.safe_load(job.write_train_config(_full_args(tmp_path), tmp_path, None, None, 1234.0, 64).read_text())["train"]
+    assert t["logprob_gate"] is True and "update_mode" not in t  # default: gate on, trainer mode unchanged
+    a = job.parse_args(["--g5-root", "g", "--run-folder", "r", "--tokenizer", "t", "--byte-table", "b", "--rl-tasks", "cc.jsonl",
+                        "--train-pool", "tp", "--heldout-pool", "hp", "--device", "cpu", "--out", str(tmp_path),
+                        "--no-logprob-gate", "--update-mode", "eval"])
+    t = yaml.safe_load(job.write_train_config(a, tmp_path, None, None, 1234.0, 64).read_text())["train"]
+    assert "logprob_gate" not in t and t["update_mode"] == "eval"
+    with pytest.raises(SystemExit):
+        _full_args(tmp_path, update_mode="inference")
+
+
 def test_detector_counts_literal_prints_only_in_heldout_evaluations(tmp_path):
     """train.evaluate / train.score_completions are patched in place; train.py is unchanged. Stand-in module, no model."""
     class Task:
