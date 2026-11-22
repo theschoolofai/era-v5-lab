@@ -59,7 +59,7 @@ not fixed yet (section 3), so a rule in commits stays right when the interval ch
   when the model size and the GPU count are fixed", which "gives 10 min at 64 to 256 GPUs and up to 30 min on a single
   8-GPU node" ([`../07-infrastructure/docs/checkpoint_interval.md`](../07-infrastructure/docs/checkpoint_interval.md),
   the summary at the top and section 4). It names no interval for dry run 2. Team 5's dry run 2 job request (#720,
-  open) sets `--checkpoint-interval-s 600`.
+  merged 22 Nov) sets `--checkpoint-interval-s 600`.
 - Measured time per checkpoint at the dry run 1 shape (T2, 237M parameters). TSAI ran the dry run 1 job "on a GPU
   eval slot (not a training node), bf16, offline, `--team5-run`": "Tier A 168.8 s, Tier B 112.3 s" (TSAI's result
   comment on #549, 20 Nov). The Tesla T4 rows (fp32, no native bf16) are from the job file above ("Max time") and the
@@ -137,9 +137,9 @@ every 100 min, and 1.5 times the protected storage of 15. Team 7 agreed in the 0
 
 **Proposal (D8):** a normal, resumable Checkpointer commit at step 0 on a fresh run (skipped on resume), pinned by
 Team 7. Evaluation needs only the weights, but a normal commit means the watcher, `run_lab_ckpt.py`, the pin and
-retention all work unchanged, with no second path to build or test. **Open:** the dry run 2 job to run with
-`--checkpoint-at-start`. Team 5's dry run 2 job request passes it (#720, open, 22 Nov). Without it, dry run 2 has no
-step 0 to score.
+retention all work unchanged, with no second path to build or test. Team 5's dry run 2 job request passes
+`--checkpoint-at-start` (#720, merged 22 Nov): it "commits step 0 before the first optimizer update and is skipped on
+resume" (the job file, `../05-architecture/jobs/2026-11-22-dryrun2.md`).
 
 ### 5.2 Near random at step 0
 
@@ -333,10 +333,10 @@ briefing, section 4). It is not built yet.
   TSAI (`embedding.ke2_output_dim` is empty), and dry run 1 used the dense untied head. The capstone output head is now
   the KE2/KAS head ([`../04-ke2/output_shape.md`](../04-ke2/output_shape.md): "Decided 21 Nov, final (TSAI)", on
   `main` through #694). TSAI plans dry run 2 with it (10 Post-training group, 21 Nov); Team 5's dry run 2 job request
-  adds it to the arm once Team 5's head integration is on `main` (#720, open). Main still records the head as tied to
-  the input embedding; #702 and #715 (both open) correct Team 4's docs to untied: "its own separate 2048-wide
-  projection, NOT tied" (#702). **Open:** Team 9 tests the scorer on Team 5's head PR, and changes it first if
-  needed, before it scores a run with that head (Team 5 builds the head into the trainer, due Wed 25 Nov).
+  adds it to the arm once Team 5's head integration is on `main` (#720, merged 22 Nov). Team 4's docs on `main` say
+  untied since #702 and #715 (both merged 22 Nov): "its own separate 2048-wide projection, NOT tied" (#702).
+  **Open:** Team 9 tests the scorer on Team 5's head PR, and changes it first if needed, before it scores a run with
+  that head (Team 5 builds the head into the trainer, due Wed 25 Nov).
 - **Storage:** Team 8's `eval_mini` table in ClickHouse database `default`
   ([`../08-monitoring/clickhouse/schema_v1.sql`](../08-monitoring/clickhouse/schema_v1.sql)), one `run_id` per checkpoint
   and tier: `<run>:<commit path>:<label>:<model_revision[:12]>`. Panel 28 of the private dashboard plots it. Records
@@ -370,7 +370,7 @@ Compute rule: "You get no keys and no machine access. Send a job request." Each 
 | # | Job | State |
 |---|---|---|
 | 1 | Dry run 1 checkpoint, Tier A and Tier B | [`jobs/2026-11-15-eval-watcher-dry-run-1.md`](jobs/2026-11-15-eval-watcher-dry-run-1.md), on `main` (#549). Ran 20 Nov on the eval slot: Tier A and Tier B scored and loaded into `eval_mini`, 0 canary hits (TSAI's result comment on #549); times in section 3. Gate 3 evidence |
-| 2 | Dry run 2 watcher: Tier A every commit, Tier B every 10th, step 0 and the restored checkpoint | [`jobs/2026-11-21-eval-watcher-dry-run-2.md`](jobs/2026-11-21-eval-watcher-dry-run-2.md), on `main` (#707, merged 22 Nov). Its run ID, store, model config and save interval are placeholders, to fill from Team 5's dry run 2 job request (#720, open: run ID `dryrun2-1234`, `--checkpoint-interval-s 600`) |
+| 2 | Dry run 2 watcher: Tier A every commit, Tier B every 10th, step 0 and the restored checkpoint | [`jobs/2026-11-21-eval-watcher-dry-run-2.md`](jobs/2026-11-21-eval-watcher-dry-run-2.md), on `main` (#707, merged 22 Nov). Its run ID, store, model config and save interval are placeholders, to fill from Team 5's dry run 2 job request (#720, merged 22 Nov: run ID `dryrun2-1234`, `--checkpoint-interval-s 600`) |
 | 3 | Main-run watcher | to file after Gate 4 (Sat 28 Nov), with the time per checkpoint at the main-run size |
 | 4 | Post-training evaluation (section 8 wave 1, the forgetting check, section 9) | after an SFT or RL job keeps weights |
 
@@ -387,10 +387,10 @@ Compute rule: "You get no keys and no machine access. Send a job request." Each 
 | # | Item | Owner | When |
 |---|---|---|---|
 | 1 | Closed 20 Nov: #549 ran on the eval slot and loaded its rows into `eval_mini`; its times are in section 3 | TSAI | done |
-| 2 | Step-0 commit in dry run 2: #608 (`--checkpoint-at-start`) merged 21 Nov; Team 5's dry run 2 job request passes the flag (#720, open) | Team 5, TSAI | Tue 24 Nov |
+| 2 | Step-0 commit in dry run 2: #608 (`--checkpoint-at-start`) merged 21 Nov; Team 5's dry run 2 job request passes the flag (#720, merged 22 Nov) | Team 5, TSAI | Tue 24 Nov |
 | 3 | `--protect-every 10` in `checkpoint_interval.md` section 5 (asked 19 Nov and again 21 Nov; not on `main` yet; Team 7 offered a PR, 22 Nov) | Team 7 | before 24 Nov |
 | 4 | Eval-lag alarm on `eval_mini` (week-4 work orders: Team 8 task 1, Team 9 task 2) | Team 8, Team 9 | Tue 24 Nov |
-| 5 | Main-run size: Gate 3 set the range, 30B to 120B; Gate 4 sets the exact point. Head: KE2/KAS (`../04-ke2/output_shape.md`, #694; untied per #702 and #715, open). Still open: the exact size, sequence and context length per phase, precision | TSAI (Gate 4), Team 5 | Sat 28 Nov |
+| 5 | Main-run size: Gate 3 set the range, 30B to 120B; Gate 4 sets the exact point. Head: KE2/KAS (`../04-ke2/output_shape.md`, #694; untied per #702 and #715, both merged 22 Nov). Still open: the exact size, sequence and context length per phase, precision | TSAI (Gate 4), Team 5 | Sat 28 Nov |
 | 6 | Time per checkpoint at the main-run size on the eval slot; slot size | Team 9, TSAI | after Gate 4 (Sat 28 Nov) |
 | 7 | Which SFT and RL checkpoints come to Team 9, and when. TSAI confirmed (21 Nov) that Team 9 scores ARC and HellaSwag on base and after-SFT (section 8) | TSAI, Team 10 | before 27 Nov |
 | 8 | Fingerprint the six missing benchmarks (D6) | TSAI decides | before the main-run data check |
