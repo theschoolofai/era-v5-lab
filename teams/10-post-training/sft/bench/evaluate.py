@@ -376,7 +376,8 @@ def eval_mini(model_dir: str, python: str, runs_dir: Path, device: str, tasks: l
     t0 = time.perf_counter()
     env = {**os.environ, "HF_HUB_DISABLE_PROGRESS_BARS": "1"}
     proc = subprocess.run(cmd, capture_output=True, text=True, env=env)
-    out = {"command": " ".join(cmd[1:]), "returncode": proc.returncode, "seconds": round(time.perf_counter() - t0, 1)}
+    out = {"command": " ".join(cmd[1:]), "dtype": dtype, "returncode": proc.returncode,
+           "seconds": round(time.perf_counter() - t0, 1)}
     summaries = sorted(runs_dir.rglob("summary.json"))
     if proc.returncode != 0 or not summaries:
         out["error_tail"] = [l for l in proc.stderr.splitlines() if "Error" in l or "error" in l][-3:]
