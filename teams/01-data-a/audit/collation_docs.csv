@@ -306,9 +306,9 @@ code-js-ts,2232f4168faea1e8,#78,clean,,fix,DA-B3-001 fix -15
 code-js-ts,9284f8854d607462,#78,clean,,fix,DA-E4-007 fix -611
 code-js-ts,944d73013d8f4771,#78,clean,,fix,DA-B3-001 fix -77
 code-js-ts,2129559a2cd06c3a,#78,drop,E1,drop,DA-E1-008 drop
-sci-finepdfs,c31993065f746189,#79,fix,,fix,DA-C1-007 fix -1129
-sci-finepdfs,c52dd9e603defa7d,#79,fix,,fix,DA-A1-006 fix -6; DA-C8-004 fix +0
-sci-finepdfs,079ce87c3d323ea7,#79,fix,,fix,DA-A1-006 fix -14; DA-C8-004 fix +0
-sci-finepdfs,335a56d0e87a73a9,#79,fix,,fix,DA-C2-004 fix -273
-sci-finepdfs,f5332b3e8dc5894a,#79,drop,,fix,DA-A1-006 fix -4
-sci-finepdfs,29c7e818ebe025b0,#79,drop,,fix,DA-C2-004 fix -237
+sci-finepdfs,c31993065f746189,#79,fix,C1,fix,DA-C1-007 fix -1129
+sci-finepdfs,c52dd9e603defa7d,#79,fix,C1,fix,DA-A1-006 fix -6; DA-C8-004 fix +0
+sci-finepdfs,079ce87c3d323ea7,#79,fix,A1;C1,fix,DA-A1-006 fix -14; DA-C8-004 fix +0
+sci-finepdfs,335a56d0e87a73a9,#79,fix,C2,fix,DA-C2-004 fix -273
+sci-finepdfs,f5332b3e8dc5894a,#79,drop,C1,fix,DA-A1-006 fix -4
+sci-finepdfs,29c7e818ebe025b0,#79,drop,D1,fix,DA-C2-004 fix -237
