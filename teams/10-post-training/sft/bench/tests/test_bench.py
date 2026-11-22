@@ -522,11 +522,20 @@ def test_resolve_compute_dtype_matches_team9_watcher(monkeypatch):
     assert evaluate.resolve_compute_dtype("cpu", "auto") == ("float32 (TF32 off)", False)
     assert evaluate.resolve_compute_dtype("cpu", "bfloat16") == ("bfloat16", True)
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
-    monkeypatch.setattr(torch.cuda, "is_bf16_supported", lambda: True)
+    monkeypatch.setattr(torch.cuda, "is_bf16_supported", lambda including_emulation=True: True)
     assert evaluate.resolve_compute_dtype("cuda", "auto") == ("bfloat16", True)
     assert evaluate.resolve_compute_dtype("cuda", "bfloat16") == ("bfloat16", True)
     assert evaluate.resolve_compute_dtype("cuda", "float32") == ("float32 (TF32 off)", False)
-    monkeypatch.setattr(torch.cuda, "is_bf16_supported", lambda: False)
+    monkeypatch.setattr(torch.cuda, "is_bf16_supported", lambda including_emulation=True: False)
+    assert evaluate.resolve_compute_dtype("cuda", "auto") == ("float32 (TF32 off)", False)
+    with pytest.raises(RuntimeError, match="native bf16"):
+        evaluate.resolve_compute_dtype("cuda", "bfloat16")
+
+
+def test_emulated_bf16_gpu_scores_in_fp32_like_the_watcher(monkeypatch):
+    """T4/V100: torch says bf16 is supported only when emulation counts. Team 9 (lm_eval_lab.py) says no, so must we."""
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "is_bf16_supported", lambda including_emulation=True: bool(including_emulation))
     assert evaluate.resolve_compute_dtype("cuda", "auto") == ("float32 (TF32 off)", False)
     with pytest.raises(RuntimeError, match="native bf16"):
         evaluate.resolve_compute_dtype("cuda", "bfloat16")
