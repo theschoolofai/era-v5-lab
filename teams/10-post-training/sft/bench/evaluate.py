@@ -60,7 +60,7 @@ retok = _load("g10_bench_retok", HERE / "retok.py")
 render = retok.render
 T = render.T
 SPECIAL_TO_G10 = {sid: T[name] for name, (_, sid) in retok.MARKER_MAP.items()}
-N_SPECIAL = len(retok.SURROGATE_SPECIALS)
+SPECIAL_IDS = retok.SPECIAL_IDS  # ids of every surrogate special (profile-dependent; SmolLM2: 0..16)
 
 
 # ---------------------------------------------------------------- inputs
@@ -148,7 +148,7 @@ def ids_to_g10(tok, ids: list[int]) -> tuple[str, str | None]:
 
     problem = None
     for t in ids:
-        if t < N_SPECIAL:
+        if t in SPECIAL_IDS:
             piece = flush()
             if any(s in piece for s in retok.SURROGATE_SPECIALS) and problem is None:
                 problem = "special_surface_as_plain_text"
@@ -329,7 +329,7 @@ def forgetting_bpb(model, tok, heldout: Path, sources: Path, device: str, window
         ids = enc.ids
         for start in range(0, len(ids), window):
             target = ids[start : start + window]
-            prev = retok.EOS_ID if start == 0 else ids[start - 1]  # SmolLM2 bos = <|endoftext|> = 0
+            prev = retok.EOS_ID if start == 0 else ids[start - 1]  # document separator: <|endoftext|> (SmolLM2 bos, id 0; Qwen3 has no bos)
             windows.append(([prev] + target[:-1], target))
             wslice.append(name)
     nats: dict[str, float] = {}
