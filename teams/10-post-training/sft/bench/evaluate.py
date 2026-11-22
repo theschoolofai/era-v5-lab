@@ -277,6 +277,14 @@ def score_exec(generations: Path, tasks_path: Path, limit: int, workers: int) ->
 # ---------------------------------------------------------------- (d) forgetting
 
 
+def _native_bf16() -> bool:
+    """Native bf16 only, as Team 9's lm_eval_lab.py asks (including_emulation=False). torch's default (True) also says yes
+    for a GPU that emulates bf16 (T4, V100), where the watcher scores in fp32 and the two rows would not be comparable."""
+    import torch
+
+    return bool(torch.cuda.is_bf16_supported(including_emulation=False))
+
+
 def resolve_compute_dtype(device: str, dtype_arg: str = "float32") -> tuple[str, bool]:
     """Match Team 9's eval watcher dtype rule: bf16 autocast on native-bf16 CUDA GPUs, float32 elsewhere.
 
@@ -286,7 +294,7 @@ def resolve_compute_dtype(device: str, dtype_arg: str = "float32") -> tuple[str,
 
     if dtype_arg == "float32":
         return "float32 (TF32 off)", False
-    has_cuda_bf16 = device.startswith("cuda") and torch.cuda.is_available() and torch.cuda.is_bf16_supported()
+    has_cuda_bf16 = device.startswith("cuda") and torch.cuda.is_available() and _native_bf16()
     if dtype_arg == "auto":
         return ("bfloat16", True) if has_cuda_bf16 else ("float32 (TF32 off)", False)
     if dtype_arg == "bfloat16":
