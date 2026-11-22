@@ -339,6 +339,41 @@ def _select(model, moe_cls, tcfg: dict) -> dict:
 
 # --- the bundle ---------------------------------------------------------------------------------------
 
+# --- output head access: the one place that knows what LanguageModel.head may be ---------------------------------
+
+def head_access(model) -> dict:
+    """What G10 code needs from G5's output head. Two kinds are known; anything else raises ArtifactError.
+
+    dense: dry run 1's untied `nn.Linear(n_embd, V)`; per-token matrix `head.weight` [V, n_embd].
+    kas:   Team 5's KE2/KAS untied head (#694/#702/#706), recognised by a 2-D Parameter `head.tok_u` [V, r] (the
+           rank-r per-token correction). Before Team 5's code lands this rests on two assumptions: `head(h)` maps
+           hidden states [..., n_embd] to logits [..., V] (Team 5's own trainer calls it that way), and the
+           correction is named `tok_u`.
+    Returns {"kind", "vocab_size", "per_token" (Parameter whose row i belongs to token i), "per_token_name", "tied"};
+    "tied" is True when any head tensor shares storage with the input embedding.
+    """
+    head = getattr(model, "head", None)
+    if isinstance(head, torch.nn.Linear):
+        kind, per_token, name, vocab = "dense", head.weight, "head.weight", int(head.out_features)
+    elif (isinstance(head, torch.nn.Module) and isinstance(getattr(head, "tok_u", None), torch.nn.Parameter)
+          and head.tok_u.ndim == 2):
+        kind, per_token, name, vocab = "kas", head.tok_u, "head.tok_u", int(head.tok_u.shape[0])
+    else:
+        mats = (sorted(n for n, q in head.named_parameters() if q.ndim == 2) if isinstance(head, torch.nn.Module)
+                else [])
+        raise ArtifactError(f"unknown G5 output head {type(head).__name__}: G10 handles a dense nn.Linear or a "
+                            f"KE2/KAS head with a 2-D `tok_u` [V, r]; its 2-D parameters: {mats}")
+    emb = getattr(model, "embedding", None)
+    emb_ptrs = {q.data_ptr() for q in emb.parameters()} if isinstance(emb, torch.nn.Module) else set()
+    tied = any(q.data_ptr() in emb_ptrs for q in head.parameters())
+    return {"kind": kind, "vocab_size": vocab, "per_token": per_token, "per_token_name": name, "tied": tied}
+
+
+def head_logits(model, h: torch.Tensor) -> torch.Tensor:
+    """Logits [..., V] from final hidden states [..., n_embd]: G5's own `head(h)` call, for either known kind."""
+    return model.head(h)
+
+
 @dataclass
 class Bundle:
     mode: str
@@ -475,7 +510,7 @@ class Bundle:
             self.check_batch(seq, valid)
             # only the last position is sampled: project it alone through the 131,072-row head (same values as
             # forward()[:, -1]; the full-sequence head was L times the work and memory at every step)
-            logits = self.model.head(self.model.hidden(seq, valid)[:, -1]).float()
+            logits = head_logits(self.model, self.model.hidden(seq, valid)[:, -1]).float()
             if temperature <= 0:
                 nxt = logits.argmax(-1)
             else:
@@ -697,7 +732,7 @@ def _finish(mode, cfg, g5src, spec, tok, art, special, sd, is_fixture_ckpt, ck_e
     ref = model.state_dict()
     bad = [(k, tuple(sd[k].shape), tuple(ref[k].shape)) for k in sorted(want) if tuple(sd[k].shape) != tuple(ref[k].shape)]
     if bad:
-        if any(k == "head.weight" or k.startswith("embedding.") for k, _, _ in bad):
+        if any(k.startswith(("head.", "embedding.")) for k, _, _ in bad):
             raise ArtifactError(f"vocabulary/KE2 shape mismatch in checkpoint: {bad[:3]}")
         raise ArtifactError(f"checkpoint tensor shapes differ from the G5 model: {bad[:3]}")
     # The KE2 code table is a buffer of the checkpoint; it must be exactly the validated table.
@@ -709,8 +744,11 @@ def _finish(mode, cfg, g5src, spec, tok, art, special, sd, is_fixture_ckpt, ck_e
         if sd[k].dtype != ref[k].dtype:
             raise ArtifactError(f"dtype of {k} is {sd[k].dtype}, G5 model stores {ref[k].dtype}")
     model.load_state_dict(sd, strict=True)
-    if model.head.weight.data_ptr() == model.embedding.projection.weight.data_ptr():
+    head = head_access(model)  # raises on a head of unknown kind
+    if head["tied"]:
         raise ArtifactError("output head unexpectedly tied to the KE2 projection")
+    if head["vocab_size"] != spec["vocab_size"]:
+        raise ArtifactError(f"output head vocabulary {head['vocab_size']} != model spec {spec['vocab_size']}")
     if (model.mtp_head is not None) != bool(spec.get("mtp")):
         raise ArtifactError("MTP head presence disagrees with the resolved spec")
     model.requires_grad_(True)
@@ -729,7 +767,8 @@ def _finish(mode, cfg, g5src, spec, tok, art, special, sd, is_fixture_ckpt, ck_e
         "n_parameters": sum(p.numel() for p in model.parameters()),
         "model_hash_g5": mods["train_week2"].model_hash(model),
         "selection": selection,
-        "head": {"tied": False, "mtp_head": model.mtp_head is not None, "forward_returns": "main head logits"},
+        "head": {"kind": head["kind"], "tied": False, "mtp_head": model.mtp_head is not None,
+                 "forward_returns": "main head logits"},
     })
     template = _load_render(Path(__file__).resolve().parents[1])
     bundle = Bundle(mode, model, spec, art, special, selection, manifest, tok["template_path"], template)
