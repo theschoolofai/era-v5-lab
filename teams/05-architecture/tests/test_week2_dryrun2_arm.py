@@ -1,4 +1,4 @@
-"""The dry run 2 arm carries TSAI's 22 Nov recipe values: WSD on, TST and head SGD off, router on AdamW."""
+"""The dry run 2 arm carries TSAI's 22 Nov values: Muon 0.006, WSD on, TST and head SGD off, router on AdamW."""
 
 from pathlib import Path
 import sys
@@ -24,7 +24,7 @@ class DryRun2ArmTests(unittest.TestCase):
     def test_recipe_values(self):
         o, r = self.c["optim"], self.c["run"]
         self.assertEqual(o["name"], "muon")
-        self.assertEqual((o["muon_lr"], o["lr"]), (0.003, 0.001))
+        self.assertEqual((o["muon_lr"], o["lr"]), (0.006, 0.001))
         self.assertEqual(
             (o["schedule"], o["warmup_frac"], o["decay_frac"], o["final_lr_frac"]), ("wsd", 0.05, 0.1, 0.0)
         )
