@@ -273,7 +273,15 @@ class LanguageModel(nn.Module):
         self.head = nn.Linear(m["n_embd"], m["vocab_size"], bias=False)
 
     def hidden(self, ids, valid):
-        x = self.embedding(ids)
+        return self.hidden_from_embeddings(self.embedding(ids), valid)
+
+    def hidden_from_embeddings(self, x, valid):
+        """Run the normal stack on caller-supplied [B, T, n_embd] inputs.
+
+        Recipe code owns any embedding aggregation and its validity mask. This
+        path applies no additional embedding lookup or aggregation. Positions
+        retain the stack's existing RoPE treatment at the supplied sequence length.
+        """
         for block in self.blocks:
             x = block(x, valid)
         return self.norm(x)
