@@ -541,3 +541,18 @@ def test_autocast_ctx_leaves_fp32_weights_uncast():
     assert layer.weight.dtype == torch.float32
     assert y.dtype == torch.bfloat16
 
+
+
+def test_eval_mini_block_names_the_dtype_it_ran_in(tmp_path, monkeypatch):
+    """forgetting.py refuses benchmark rows whose dtype differs from the bits-per-byte dtype, so the block must carry it."""
+    import subprocess
+    runs = tmp_path / "runs"
+    (runs / "r1").mkdir(parents=True)
+    (runs / "r1" / "summary.json").write_text(json.dumps({
+        "records": [{"task": "arc_challenge", "metric": "acc_norm", "filter": "none", "value": 0.3, "stderr": 0.01,
+                     "n_items": 5, "num_fewshot": 0, "primary": True}],
+        "run_meta": {"versions": {"torch": "x"}}}), encoding="utf-8")
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 0, "", ""))
+    for dtype in ("float32", "bfloat16"):
+        out = evaluate.eval_mini("m", "python", runs, "cpu", ["arc_challenge"], dtype=dtype)
+        assert out["dtype"] == dtype and out["returncode"] == 0 and out["records"][0]["task"] == "arc_challenge"
