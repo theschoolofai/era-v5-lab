@@ -64,6 +64,22 @@ class KeepZero:
         self.n_deleted0 = sum(int((~k).sum()) for k in self.keep.values())
         self.n_total = sum(p.numel() for p in self.all_params)
 
+    def check_optimizer(self, opt) -> None:
+        """Refuse an optimizer the gradient mask cannot protect. A zero gradient leaves an entry at 0 only under an
+        elementwise optimizer with weight decay 0 (Adam/AdamW). An orthogonalizing update such as Team 5's Muon mixes
+        the whole matrix: in the DR2 probe (23 Nov, main f360a794 build_optimizer, CPU fp32) one Muon step made 26.48M
+        of 26.74M elementwise-deleted entries nonzero; AdamW wd 0 kept all at 0. enforce: true re-zeroes after each step."""
+        if self.enforce_after_step:
+            return
+        if not isinstance(opt, (torch.optim.Adam, torch.optim.AdamW)):
+            raise ValueError(f"keep_zero gradient mask needs Adam/AdamW with weight decay 0, got {type(opt).__name__} "
+                             "(an orthogonalizing optimizer such as Muon fills the deleted entries); set enforce: true")
+        masked = {id(p) for p in self.params.values()}
+        for g in opt.param_groups:
+            if g.get("weight_decay", 0.0) != 0.0 and any(id(p) in masked for p in g["params"]):
+                raise ValueError("keep_zero gradient mask: a param group holding a masked parameter has weight decay "
+                                 f"{g['weight_decay']}; use 0 or enforce: true")
+
     @torch.no_grad()
     def deleted_nonzero(self) -> int:
         """Deleted entries (mask False) that are not exactly 0 now."""

@@ -77,6 +77,22 @@ def test_weight_decay_needs_enforce_and_bad_masks_are_refused():
     assert keep_zero.KeepZero([("w", w2)], {"w": keep}).deleted_nonzero() == int((~keep).sum())
 
 
+def test_an_optimizer_the_gradient_mask_cannot_protect_is_refused_unless_enforce():
+    class Muonish(torch.optim.Optimizer):  # stands in for Team 5's Muon / Optimizers wrapper
+        def __init__(self, params):
+            super().__init__(params, {"lr": 0.01})
+    w, free, keep = _toy_params()
+    kz = keep_zero.KeepZero([("w", w), ("free", free)], {"w": keep})
+    kz.check_optimizer(torch.optim.AdamW([w, free], lr=0.05, weight_decay=0.0))
+    kz.check_optimizer(torch.optim.AdamW([{"params": [w], "weight_decay": 0.0},
+                                          {"params": [free], "weight_decay": 0.1}], lr=0.05))
+    with pytest.raises(ValueError, match="needs Adam/AdamW"):
+        kz.check_optimizer(Muonish([w, free]))
+    with pytest.raises(ValueError, match="weight decay 0.1"):
+        kz.check_optimizer(torch.optim.AdamW([{"params": [w], "weight_decay": 0.1}, {"params": [free]}], lr=0.05))
+    keep_zero.KeepZero([("w", w), ("free", free)], {"w": keep}, enforce=True).check_optimizer(Muonish([w, free]))
+
+
 def test_packed_mask_roundtrip(tmp_path):
     import importlib.util
     spec = importlib.util.spec_from_file_location("dtm", HERE.parent / "dt" / "mask.py")
