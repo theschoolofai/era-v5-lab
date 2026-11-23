@@ -24,7 +24,7 @@ This revises the request of #599 now that TSAI has confirmed the input manifest.
 
 - **Dataset version:** `prepare_run.py` generated `dataset_version` `first-training-v1`; it now generates `corpus-v1`. The `run_id` argument is unchanged and is only the output folder name.
 - **Pinned code:** `main` at `421f8497ddb1585666e8f5a274c524e4462402cc` (merge of #716), plus this update, which touches only `prepare_run.py` (the constant), its test, and these docs. Run from `main` once this update is merged.
-- **Pinned cleaner:** `teams/01-data-a/spec_v1_1/clean.py`, SHA-256 `ce131217cd5247a3019fa00b6d040a3fd41726874714750b3580c89117c63f83`, which equals `clean_sha256` in `teams/01-data-a/pipeline/clean.json`; the clean stage refuses any other file.
+- **Pinned cleaner:** `teams/01-data-a/spec_v1_1/clean.py`, SHA-256 `6de8b6e850926df4a426837ee5de6217987e2c80f54547e6414a7d2404b1f537`, which equals `clean_sha256` in `teams/01-data-a/pipeline/clean.json`; the clean stage refuses any other file.
 - **Pinned scope:** `approved_inputs.json`, SHA-256 `10f313750235902d401cfb1023555b37e575fc8a11a5adccceeab84af7515f5f` (the confirmed version). The input manifest records this hash and `prepare_run.py` refuses a manifest built from any other version.
 - **Checks:** `pytest` of the command under "Scope and prerequisites" passes (146 tests) on this branch.
 

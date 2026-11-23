@@ -4,7 +4,7 @@
 - **What it holds:** 246 rules and the shared F1: code 24, English 23, math 22, sci 24, Indic 153.
 - **How it runs:** `clean(doc)` takes `{doc_id, text, url, lang_label, pack_id}` and returns `(action, text)`, the action being `keep`, `fix` or `drop`. It picks the pack's family by `pack_id`, runs that family's rules in sheet order, then the shared F1.
 - **Run order:** each family's spec v1 rules first, then its spec v1.1 rules. In English, `DA-F1-005` is last.
-- **Packs with no rules** pass through unchanged: cadj-commits, cadj-notebooks, cadj-stackexchange, ind-ml-fw2, ind-or-fw2, ind-ta-fw2 and ind-ta-sangraha-s.
+- **Packs with no rules** pass through unchanged: cadj-stackexchange, ind-ml-fw2, ind-or-fw2, ind-ta-fw2 and ind-ta-sangraha-s. cadj-commits and cadj-notebooks have no rules of their own either, but get the shared F1 for e-mail addresses only (family `code-adjacent`).
 - **It is generated:** don't edit it. Change the sheet, then rebuild.
 - **It includes the fixes of #49** (the team fork, merged as `34bc882`):
   - speed fixes to `DA-F1-005`, `DA-C1-001` and `DA-D3-005` in the sheet, and to the shared F1 in `build/f1_rule.py`, each with the same output;
@@ -19,7 +19,7 @@ Paths are from `teams/01-data-a`.
 - **The tools are spec v1's, unchanged:** `spec_v1/run_clean.py`, `spec_v1/run_tokenizer_sample.py` and `spec_v1/validate/make_harm_tests.py`. Each does `import clean`. `use_clean.py` loads `spec_v1_1/clean.py` as `clean` first, then runs the tool, so the tool cleans with spec v1.1.
 - **`clean.py` holds two things,** both put in by `build/build_clean.py`:
   - the rules of `sheets/specv1_1.md`, each block's code as the sheet has it, except for its pack lines (below) and two edits by the build: it drops the `AUTHOR` line, and stops `DA-B4-009` from rewriting the `<EMAIL>` tag;
-  - the shared F1, from `build/f1_rule.py`. It runs after the rules on the code, math, sci and Indic packs. English runs its own F1 rule, `DA-F1-005`, instead.
+  - the shared F1, from `build/f1_rule.py`. It runs after the rules on the code, math, sci and Indic packs, and on cadj-commits and cadj-notebooks for e-mail addresses only (their phone-like numbers are IP addresses, part numbers and data). English runs its own F1 rule, `DA-F1-005`, instead.
 - **The packs a rule runs on are in `SCOPE`,** the table at the top of `clean.py`: 247 entries, one per rule and one for the shared F1.
   - In the sheet, each block names its packs in `SPEC_PACKS`. A block that also guards on its own `ORIGIN` packs (`PACKS` or `_PACKS`) runs only where both allow.
   - The build writes that set once, into `SCOPE`, and points the block's `SPEC_PACKS`, `PACKS` and `_PACKS` at its `SCOPE` entry.

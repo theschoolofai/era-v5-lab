@@ -256,7 +256,7 @@ SCOPE = {
     "DB-B4-007": frozenset({"ind-ta-sangraha-v"}),  # indic B4, medicine 340
     "DB-B4-006": frozenset({"ind-te-fw2", "ind-te-sangraha-s", "ind-te-sangraha-v"}),  # indic B4, medicine 342
     "DB-C6-001": frozenset({"ind-te-sangraha-v"}),  # indic C6, medicine 364
-    "f1_rule.py": frozenset({"code-cpp", "code-go", "code-java", "code-js-ts", "code-python", "code-rust", "ind-bn-fw2", "ind-bn-sangraha-v", "ind-gu-fw2", "ind-hi-fw2", "ind-hi-hplt", "ind-hi-indiccorp", "ind-hi-sangraha-s", "ind-hi-sangraha-v", "ind-kn-fw2", "ind-kn-sangraha-s", "ind-kn-sangraha-v", "ind-mr-fw2", "ind-mr-sangraha-v", "ind-sa-fw2", "ind-ta-sangraha-v", "ind-te-fw2", "ind-te-sangraha-s", "ind-te-sangraha-v", "math-finemath", "math-megamath", "sci-finepdfs"}),  # the shared F1, spec_v1/tools/f1_rule.py: code, math, sci, indic packs, last
+    "f1_rule.py": frozenset({"cadj-commits", "cadj-notebooks", "code-cpp", "code-go", "code-java", "code-js-ts", "code-python", "code-rust", "ind-bn-fw2", "ind-bn-sangraha-v", "ind-gu-fw2", "ind-hi-fw2", "ind-hi-hplt", "ind-hi-indiccorp", "ind-hi-sangraha-s", "ind-hi-sangraha-v", "ind-kn-fw2", "ind-kn-sangraha-s", "ind-kn-sangraha-v", "ind-mr-fw2", "ind-mr-sangraha-v", "ind-sa-fw2", "ind-ta-sangraha-v", "ind-te-fw2", "ind-te-sangraha-s", "ind-te-sangraha-v", "math-finemath", "math-megamath", "sci-finepdfs"}),  # the shared F1, spec_v1/tools/f1_rule.py: code, math, sci, indic packs, and e-mail addresses only on the code-adjacent packs, last
 }
 
 
@@ -13448,6 +13448,17 @@ _F1_LANGS = set(_F1_TREE)  # families with a harm test so far. Prose families go
 # own F1 rule, and the label for one pack differs between the week-1 sample packs ("eng_Latn" for science) and the week-2 data
 # ("en"). A doc without a pack_id never takes this path.
 _F1_PROSE = ("math-", "sci-")
+# Code-adjacent packs mix prose, code and data in one text, with no single parser for it. In commits and notebooks only e-mail
+# addresses are masked, never a phone or an address and never a drop: on the sample, the phone and address patterns hit IP
+# addresses, part numbers, colour values and pixel arrays. cadj-stackexchange gets no F1: its e-mail-like strings are ssh and
+# git logins, URLs with a user name, systemd units, message IDs and code, and none of the sampled ones was a person's address
+# (24 Nov 2026). As in the cadj-commits medicine (diagnosis/submissions/cadj-commits/kunal2016/medicine.md, medicine 1), made-up
+# addresses at test domains stay, and a LinkedIn profile URL becomes the medicine's placeholder URL.
+_F1_EMAIL_ONLY = ("cadj-commits", "cadj-notebooks")
+_F1_CADJ_SAFE = re.compile(r"(?i)(^|\.)(test\.com|domain\.com|email\.com|noreply\.github\.com)$")
+_F1_CADJ_ROLE = re.compile(r"(?i)^mail$")
+_F1_PROFILE = re.compile(r"(?i)https?://(?:www\.)?linkedin\.com/in/[A-Za-z0-9_-]+/?")
+_F1_PROFILE_PLACEHOLDER = "https://www.linkedin.com/in/example"
 _F1_EMAIL = re.compile(r"(?<![\w.+%-])([A-Za-z0-9._%+-]+)@([A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,})(?![\w-])")
 _F1_ROLE = re.compile(r"(?i)^(info|contact|contacts|support|help|helpdesk|admin|administrator|sales|office|press|media|hello|enquiries|inquiries|"
                       r"webmaster|postmaster|noreply|no-reply|donotreply|service|services|customerservice|billing|careers|jobs|hr|legal|security|abuse|team|git|root)$")
@@ -13488,10 +13499,33 @@ def _f1_is_phone(m, line):
     return bool(re.fullmatch(r"\(?\d{3}\)?[ -]\d{3}-\d{4}", m.group()))  # the plain US form; digit groups alone are too common in data
 
 
+def _f1_emails(line):
+    """(start, end, "<EMAIL>") of each private e-mail address on one line: not a role mailbox, an example domain or a file name."""
+    return [(m.start(), m.end(), "<EMAIL>") for m in _F1_EMAIL.finditer(line)
+            if not (_F1_ROLE.match(m.group(1)) or _F1_SAFE_DOMAIN.search(m.group(2)) or _F1_FILE_END.search(m.group(2)))] if "@" in line else []
+
+
+def _f1_emails_only(text):
+    """The text with each private e-mail address replaced by <EMAIL>, and each LinkedIn profile URL by a placeholder URL
+    (the code-adjacent packs)."""
+    if "linkedin.com/in/" in text.lower():
+        text = _F1_PROFILE.sub(_F1_PROFILE_PLACEHOLDER, text)
+    if "@" not in text:
+        return text
+    out = []
+    for line in text.split("\n"):
+        for s, e, tag in reversed(_f1_emails(line)):
+            m = _F1_EMAIL.match(line, s)
+            if _F1_CADJ_SAFE.search(m.group(2)) or _F1_CADJ_ROLE.match(m.group(1)):
+                continue
+            line = line[:s] + tag + line[e:]
+        out.append(line)
+    return "\n".join(out)
+
+
 def _f1_hits(line, previous):
     """(start, end, tag) of a private person's details on one line. An organisation on this line or the one above keeps its phone and address."""
-    out = [(m.start(), m.end(), "<EMAIL>") for m in _F1_EMAIL.finditer(line)
-           if not (_F1_ROLE.match(m.group(1)) or _F1_SAFE_DOMAIN.search(m.group(2)) or _F1_FILE_END.search(m.group(2)))] if "@" in line else []
+    out = _f1_emails(line)
     if not _F1_DIGIT.search(line):
         return out  # email finditer already orders the spans; no phone/address can match
     org = None
@@ -13815,6 +13849,9 @@ def f1(doc):
     # Keep an explicit language tag (notably JavaScript versus TypeScript) when supplied.
     if lang == "code":
         lang = _F1_CODE_PACKS.get(pack, lang)
+    if pack.startswith(_F1_EMAIL_ONLY):         # code-adjacent packs: e-mail addresses only, never a drop
+        new = _f1_emails_only(text)
+        return ("fix" if new != text else "keep", new)
     if pack.startswith("ind-"):                 # Indic packs: any language tag
         new = _f1_indic(text)
         return ("fix" if new != text else "keep", new)
@@ -14299,9 +14336,11 @@ _PIPELINES = {
     "indic": (_indic_db_a1_001, _indic_db_a1_002, _indic_db_a2_001, _indic_db_a3_001, _indic_db_a3_007, _indic_db_a3_002, _indic_db_a3_005, _indic_db_a3_006, _indic_db_a5_001, _indic_db_a5_003, _indic_db_a5_009, _indic_db_a5_006, _indic_db_a5_007, _indic_db_a6_001, _indic_db_a6_020, _indic_db_a6_003, _indic_db_a6_017, _indic_db_a6_006, _indic_db_a6_007, _indic_db_a6_008, _indic_db_a6_021, _indic_db_a6_013, _indic_db_g1_001, _indic_db_g1_015, _indic_db_g1_003, _indic_db_g1_016, _indic_db_g1_006, _indic_db_g1_007, _indic_db_g1_013, _indic_db_g1_010, _indic_db_g1_014, _indic_db_g2_003, _indic_db_g4_006, _indic_db_g4_007, _indic_db_g4_002, _indic_db_g4_003, _indic_db_g4_004, _indic_db_b2_001, _indic_db_b2_002, _indic_db_b2_008, _indic_db_b2_003, _indic_db_b2_004, _indic_db_b2_007, _indic_db_b3_001, _indic_db_a3_004, _indic_db_a4_001, _indic_db_a6_019, _indic_db_b4_008, _indic_db_c3_001, _indic_db_c3_002, _indic_db_c3_025, _indic_db_c3_004, _indic_db_c3_020, _indic_db_c4_001, _indic_db_c4_002, _indic_db_c4_003, _indic_db_c4_005, _indic_db_c4_006, _indic_db_c5_021, _indic_db_c5_016, _indic_db_c5_001, _indic_db_c5_003, _indic_db_c5_004, _indic_db_c5_017, _indic_db_c5_006, _indic_db_c5_018, _indic_db_d4_001, _indic_db_d4_003, _indic_db_d4_013, _indic_db_d4_005, _indic_db_d4_018, _indic_db_d4_007, _indic_db_d4_008, _indic_db_d4_009, _indic_db_d4_012, _indic_db_d4_016, _indic_db_d5_001, _indic_db_d5_004, _indic_db_f3_001, _indic_db_f3_004, _indic_db_f3_005, _indic_db_f3_003, _indic_db_g1_012, _indic_db_g1_011, _indic_db_g3_003, _indic_db_c1_001, _indic_db_c1_003, _indic_db_c1_005, _indic_db_c1_006, _indic_db_c1_018, _indic_db_c1_010, _indic_db_c1_019, _indic_db_c1_012, _indic_db_c1_013, _indic_db_c1_021, _indic_db_c1_016, _indic_db_c1_022, _indic_db_c2_001, _indic_db_c2_023, _indic_db_c2_003, _indic_db_c2_014, _indic_db_c2_021, _indic_db_c2_008, _indic_db_c2_015, _indic_db_c2_010, _indic_db_c2_016, _indic_db_c2_013, _indic_db_c2_017, _indic_db_c2_018, _indic_db_c3_006, _indic_db_c3_023, _indic_db_c3_017, _indic_db_c3_024, _indic_db_c3_010, _indic_db_c3_021, _indic_db_c4_015, _indic_db_c4_007, _indic_db_c4_009, _indic_db_c4_010, _indic_db_c4_013, _indic_db_c4_014, _indic_db_c5_007, _indic_db_c5_009, _indic_db_c5_014, _indic_db_d2_003, _indic_db_d2_002, _indic_db_d3_001, _indic_db_d3_021, _indic_db_d3_003, _indic_db_d3_005, _indic_db_d3_020, _indic_db_d3_008, _indic_db_d3_016, _indic_db_d3_017, _indic_db_d3_022, _indic_db_d3_012, _indic_db_d3_018, _indic_db_d3_014, _indic_db_d3_019, _indic_db_d4_014, _indic_db_d4_017, _indic_db_d5_003, _indic_db_d5_002, _indic_db_h3_001, _indic_db_b4_009, _indic_db_b4_001, _indic_db_b4_002, _indic_db_b4_011, _indic_db_b4_003, _indic_db_b4_004, _indic_db_b4_007, _indic_db_b4_006, _indic_db_c6_001,),
 }
 _FAMILY = {pack: family for family, rules in _PIPELINES.items() for make in rules for pack in SCOPE[_ID[make]]}  # pack_id -> family
+_FAMILY.update({'cadj-commits': 'code-adjacent', 'cadj-notebooks': 'code-adjacent'})  # no rules of their own: only the shared F1 (e-mail addresses)
 
 
 def clean(doc):
-    """The whole pipeline for one document: its pack's family in sheet order, then the shared F1 (code, math, sci and Indic packs).
+    """The whole pipeline for one document: its pack's family in sheet order, then the shared F1 (code, math, sci and Indic packs;
+    e-mail addresses only on the code-adjacent packs).
     A missing or unknown pack_id passes unchanged; such a document is not eligible for release."""
     return _run(doc, *_PIPELINES.get(_FAMILY.get(doc.get("pack_id")), ()), _shared_f1_rule)

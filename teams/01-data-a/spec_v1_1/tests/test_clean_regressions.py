@@ -75,3 +75,57 @@ def test_sanskrit_b4_preserves_numbers_and_removes_wiki_markup(cleaner, text):
     assert rule(row) == ('keep', text)
     marked = "{{template}}'''[[लेखः|" + text + "]]'''↩"
     assert rule(dict(row, text=marked)) == ('fix', text)
+
+
+# ---------------------------------------------------------------- code-adjacent packs: e-mail addresses only
+CADJ = [('cadj-commits', 'code'), ('cadj-notebooks', 'code')]
+
+
+@pytest.mark.parametrize('pack, lang', CADJ)
+def test_code_adjacent_packs_mask_private_emails_and_nothing_else(cleaner, pack, lang):
+    c = cleaner
+    private = 'jordan.lee' + '@' + 'mail.io'
+    text = ('Fix the parser\n\nSigned-off-by: Jordan Lee <' + private + '>\n'
+            'support' + '@' + 'acme.io, dev' + '@' + 'example.com, someone' + '@' + 'users.noreply.github.com, logo' + '@' + '2x.png\n'
+            'ping 192.168.127.12 or call +1 (555) 010-0199; part 307-355-022; rgb 255 239 213\n'
+            '42 Wallaby Way, Sydney\n')
+    action, out = c.clean(document(pack, text, lang))
+    assert (action, out) == ('fix', text.replace(private, '<EMAIL>'))
+    assert c.clean(document(pack, out, lang)) == ('keep', out)
+
+
+@pytest.mark.parametrize('pack, lang', CADJ)
+def test_code_adjacent_packs_never_drop(cleaner, pack, lang):
+    c = cleaner
+    card = ''.join(f'user{i}' + '@' + 'mail.io\n' for i in range(8))
+    action, out = c.clean(document(pack, card, lang))
+    assert action == 'fix' and out == '<EMAIL>\n' * 8
+    assert c.clean(document(pack, 'no address here\n', lang)) == ('keep', 'no address here\n')
+
+
+def test_code_adjacent_packs_are_a_family_with_only_the_shared_f1(cleaner):
+    c = cleaner
+    for pack, _ in CADJ:
+        assert c._FAMILY[pack] == 'code-adjacent' and pack in c.SCOPE['f1_rule.py']
+        assert not [rid for rid, packs in c.SCOPE.items() if pack in packs and rid != 'f1_rule.py']
+
+
+def test_stackexchange_keeps_its_email_like_strings(cleaner):
+    # ssh and git logins, URLs with a user name and systemd units there are not a person's address
+    c = cleaner
+    text = 'try `ssh pi' + '@' + 'raspberrypi.com` or git clone https://me' + '@' + 'bitbucket.org/x.git\n'
+    assert c.clean(document('cadj-stackexchange', text, 'en')) == ('keep', text)
+    assert 'cadj-stackexchange' not in c._FAMILY and 'cadj-stackexchange' not in c.SCOPE['f1_rule.py']
+
+
+@pytest.mark.parametrize('pack, lang', CADJ)
+def test_code_adjacent_packs_follow_the_cadj_commits_medicine(cleaner, pack, lang):
+    # diagnosis/submissions/cadj-commits/kunal2016/medicine.md, medicine 1: test domains and mail@ stay, LinkedIn profiles go
+    c = cleaner
+    profile, short = 'https://www.linkedin.com/in/jane-doe-123/', 'http://linkedin.com/in/jdoe'
+    text = ('fake = "jane' + '@' + 'test.com"; mail' + '@' + 'acme.io; x' + '@' + 'domain.com\n'
+            'see ' + profile + ' and ' + short + '\n')
+    action, out = c.clean(document(pack, text, lang))
+    placeholder = 'https://www.linkedin.com/in/example'
+    assert (action, out) == ('fix', text.replace(profile, placeholder).replace(short, placeholder))
+    assert c.clean(document(pack, out, lang)) == ('keep', out)
