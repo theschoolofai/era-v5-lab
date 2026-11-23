@@ -6,12 +6,24 @@ machine"; the weights are committed to the Team 7 store (`--checkpoint-store`, `
 (`team5_adapter.py` run_folder mode, `make_probe_file.py`, `day_one_probe.py`, `sft_job_v1.py`, `rl_job_v1.py`,
 `dryrun2_dt_compare.py`) reads `checkpoint.pt` beside the manifest, so they all refuse that delivery as it is.
 
-This script reads the committed step with Team 7's own `ckpt.ckpt.export_safetensors` (file sha256, strict keys and,
-on the same device class, the saved probe-loss bits are checked there), loads it strictly into Team 5's
-`LanguageModel`, and refuses unless Team 5's `model_hash` of the loaded weights equals `summary.json`
-`final_model_sha256`. Only then it writes `<out>/checkpoint.pt` = {"model", "step", "identity_sha256", "run_id"} (the
-keys G10 reads; no optimizer or RNG state, so it cannot resume Team 5's run) plus copies of the delivered files.
-No check downstream changes: the adapter still pins the Team 5 sources, the manifest hash, and the model hash.
+This script reads the committed step with Team 7's own `ckpt.ckpt.export_safetensors` (file sha256 and strict keys
+are checked there), loads it strictly into Team 5's `LanguageModel`, and refuses unless Team 5's `model_hash` of the
+loaded weights equals `summary.json` `final_model_sha256`. Only then it writes `<out>/checkpoint.pt` = {"model", "step",
+"identity_sha256", "run_id"} (the keys G10 reads; no optimizer or RNG state, so it cannot resume Team 5's run) plus copies
+of the delivered files. No check downstream changes: the adapter still pins the Team 5 sources, the manifest hash, and
+the model hash.
+
+`G10_FROM_STORE.json` also records:
+- `manifest_sha256`: sha256 of the step's `MANIFEST.json` bytes, which Team 9's reader reports as `model_revision` for a
+  lab checkpoint (teams/09-evaluation/results/eval_mini_v1_schema.md). It is the manifest the export read: its
+  `state_digest` must equal the one Team 7 wrote into the exported file.
+- `probe`: `probe_bits` "compared" or "skipped". Team 7 compares the probe-loss bits only when the store saved bits for
+  the device class the export runs on (`ckpt.device_class`: "cpu", or "cuda:<GPU name>"). Dry run 2 trains on a GPU
+  under bf16 autocast and this script defaults to `--device cpu` (fp32), so there the bits are skipped and the record
+  says why; the binding check is then the model hash. Pass `--device cuda` on the same GPU model to have them compared.
+
+Any failure after `<out>` is created removes `<out>`, so a rerun starts clean; an `<out>` that already exists is refused
+and left as it is.
 
     PYTHONPATH=<lab>/teams/07-infrastructure python teams/10-post-training/capstone/run_folder_from_store.py \
         --g5-root <lab checkout> --run-folder <delivered out/dryrun2-1234> --store <store root> \
@@ -61,6 +73,24 @@ def delivery_facts(rf: Path) -> tuple[dict, dict, dict, int, str]:
     return manifest, summary, t7, step, path
 
 
+def probe_record(saved: dict, here: str, run_dtype: str) -> dict:
+    """Whether Team 7's export compared the probe-loss bits (it does only when the store saved bits for this device class)
+    and, if not, why. `saved`: the manifest's probe_loss {device_class: bits}; `here`: device class of the export."""
+    def precision(dc: str) -> str:  # the probe's amp rule (train_week2.py, and probe() below)
+        return "bf16 autocast" if dc.startswith("cuda") and run_dtype == "bf16" else "fp32"
+    rec = {"device_class": here, "precision": precision(here), "saved_device_classes": sorted(saved)}
+    if here in saved:
+        return {"probe_bits": "compared", **rec, "saved_bits": saved[here]}
+    if not saved:
+        why = "the store saved no probe-loss bits for this step"
+    else:
+        others = ", ".join(f"{d} ({precision(d)})" for d in sorted(saved))
+        diff = "device class" + (" and precision" if all(precision(d) != precision(here) for d in saved) else "")
+        why = (f"{diff} differ: the store saved bits on {others}, this export ran on {here} ({precision(here)}); "
+               f"Team 7 compares bits only on the device class that saved them")
+    return {"probe_bits": "skipped", **rec, "reason": why}
+
+
 def build(a) -> dict:
     rf = a.run_folder
     manifest, summary, t7, step, path = delivery_facts(rf)
@@ -70,7 +100,9 @@ def build(a) -> dict:
         if str(p) not in sys.path:
             sys.path.insert(0, str(p))
     import torch  # noqa: PLC0415
-    from ckpt.ckpt import export_safetensors  # noqa: PLC0415  Team 7, unmodified
+    from ckpt.ckpt import device_class, export_safetensors  # noqa: PLC0415  Team 7, unmodified
+    from ckpt.store import join, open_store  # noqa: PLC0415
+    from safetensors import safe_open  # noqa: PLC0415
     from safetensors.torch import load_file  # noqa: PLC0415
     from train_week2 import model_hash, scored_ntp_loss  # noqa: PLC0415  Team 5, unmodified
     from week2.artifacts import Artifacts  # noqa: PLC0415
@@ -100,31 +132,46 @@ def build(a) -> dict:
             return float(scored_ntp_loss(m, probe_x, probe_y))
 
     os.environ.setdefault("V5_EVENTS_DIR", tempfile.mkdtemp(prefix="g10_store_events_"))
-    a.out.mkdir(parents=True, exist_ok=False)
-    tmp = a.out / ".export.safetensors"
-    info = export_safetensors(f"{store.rstrip('/')}/{t7['run_id']}", factory, probe, str(tmp), step=step)
-    model = factory()
-    model.load_state_dict(load_file(str(tmp)), strict=True)
-    tmp.unlink()
-    got = model_hash(model)
-    if got != summary.get("final_model_sha256"):
-        shutil.rmtree(a.out)
-        raise ValueError(f"store step {step} weights hash {got} != summary.json final_model_sha256 "
-                         f"{summary.get('final_model_sha256')}")
-    for name in DELIVERED:
-        if (rf / name).is_file():
-            shutil.copy2(rf / name, a.out / name)
-    torch.save({"model": model.state_dict(), "step": step, "identity_sha256": manifest["identity_sha256"],
-                "run_id": t7["run_id"]}, a.out / "checkpoint.pt")
-    record = {
-        "made_by": "teams/10-post-training/capstone/run_folder_from_store.py",
-        "delivered_folder": str(rf), "store": store, "run_id": t7["run_id"], "step": step,
-        "team7_checkpoint_path": path, "export": {k: info[k] for k in ("step", "probe_bits")},
-        "model_hash_g5": got, "matches_summary_final_model_sha256": True,
-        "delivered_sha256": {n: sha256_file(rf / n) for n in DELIVERED if (rf / n).is_file()},
-        "checkpoint_sha256": sha256_file(a.out / "checkpoint.pt"), "device": a.device, "torch": torch.__version__,
-    }
-    (a.out / "G10_FROM_STORE.json").write_text(json.dumps(record, indent=2), encoding="utf8")
+    a.out.mkdir(parents=True, exist_ok=False)  # outside the try: an existing folder is refused and never removed
+    try:
+        tmp = a.out / ".export.safetensors"
+        info = export_safetensors(f"{store.rstrip('/')}/{t7['run_id']}", factory, probe, str(tmp), step=step)
+        with safe_open(str(tmp), framework="pt") as f_:
+            exported_digest = (f_.metadata() or {}).get("state_digest")
+        man_tmp = a.out / ".MANIFEST.json"
+        man_sha, _ = open_store(store).get_file(join(t7["run_id"], path, "MANIFEST.json"), str(man_tmp))
+        step_man = json.loads(man_tmp.read_text(encoding="utf8"))
+        man_tmp.unlink()
+        if step_man.get("state_digest") != exported_digest or step_man.get("step") != info["step"]:
+            raise ValueError(f"{path}/MANIFEST.json (step {step_man.get('step')}, state_digest "
+                             f"{step_man.get('state_digest')}) is not the manifest the export read (step {info['step']}, "
+                             f"state_digest {exported_digest})")
+        model = factory()
+        model.load_state_dict(load_file(str(tmp)), strict=True)
+        tmp.unlink()
+        got = model_hash(model)
+        if got != summary.get("final_model_sha256"):
+            raise ValueError(f"store step {step} weights hash {got} != summary.json final_model_sha256 "
+                             f"{summary.get('final_model_sha256')}")
+        probe_rec = probe_record(step_man.get("probe_loss") or {}, device_class(model), cfg["run"].get("dtype"))
+        for name in DELIVERED:
+            if (rf / name).is_file():
+                shutil.copy2(rf / name, a.out / name)
+        torch.save({"model": model.state_dict(), "step": step, "identity_sha256": manifest["identity_sha256"],
+                    "run_id": t7["run_id"]}, a.out / "checkpoint.pt")
+        record = {
+            "made_by": "teams/10-post-training/capstone/run_folder_from_store.py",
+            "delivered_folder": str(rf), "store": store, "run_id": t7["run_id"], "step": step,
+            "team7_checkpoint_path": path, "export": {k: info[k] for k in ("step", "probe_bits")},
+            "manifest_sha256": man_sha, "state_digest": exported_digest, "probe": probe_rec,
+            "model_hash_g5": got, "matches_summary_final_model_sha256": True,
+            "delivered_sha256": {n: sha256_file(rf / n) for n in DELIVERED if (rf / n).is_file()},
+            "checkpoint_sha256": sha256_file(a.out / "checkpoint.pt"), "device": a.device, "torch": torch.__version__,
+        }
+        (a.out / "G10_FROM_STORE.json").write_text(json.dumps(record, indent=2), encoding="utf8")
+    except BaseException:
+        shutil.rmtree(a.out, ignore_errors=True)
+        raise
     return record
 
 
@@ -141,7 +188,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--out", type=Path, required=True)
     a = ap.parse_args(argv)
     rec = build(a)
-    print(json.dumps({k: rec[k] for k in ("run_id", "step", "model_hash_g5", "export", "checkpoint_sha256")}))
+    print(json.dumps({k: rec[k] for k in ("run_id", "step", "model_hash_g5", "manifest_sha256", "export", "checkpoint_sha256")}
+                     | {"probe_bits": rec["probe"]["probe_bits"], **({"probe_reason": rec["probe"]["reason"]}
+                                                                      if "reason" in rec["probe"] else {})}))
     return 0
 
 
