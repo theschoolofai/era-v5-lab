@@ -217,6 +217,16 @@ class MoE(nn.Module):
             SwiGLU(w, h, cfg["bias"]) for _ in range(cfg["num_shared"])
         )
 
+    def _load_from_state_dict(self, state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs):
+        # A checkpoint from before this buffer has no router_bias. Zeros are the
+        # starting value, and gamma 0 never reads the bias, so the old run stays exact.
+        key = prefix + "router_bias"
+        if key not in state_dict:
+            state_dict[key] = self.router_bias.detach().clone().zero_()
+        super()._load_from_state_dict(
+            state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs
+        )
+
     def forward(self, x, valid):
         shape = x.shape
         flat = x.reshape(-1, shape[-1])
