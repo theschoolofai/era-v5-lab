@@ -20,7 +20,7 @@ this file. When Monitoring adds a panel to `public_v1.json`, the same pull reque
 |---|---|
 | Dataset and Shard Composition | This panel shows each pack of text by subject and language, with its token count and the share of its documents that cleaning removed. |
 | Eval-Mini Scores Alongside Training Loss | This panel shows the model's scores on a small set of benchmark questions at each checkpoint, next to the training loss. |
-| Training Pace | This panel shows how many tokens the run processes each second, how long each training step takes, and the context length. |
+| Training Pace | This panel shows how many tokens the run processes each second and how long each training step takes. |
 | Open Infrastructure Health | This panel counts the restarts of the training run, the alarms that fired and the checkpoints that the run saved. |
 | What This Shows and What It Doesn't | This panel explains what the dashboard shows and what it does not show. |
 
@@ -41,8 +41,7 @@ runs on.
 
 ## New terms for the glossary
 
-This pull request also adds these terms to `glossary.md`: pack, checkpoint, benchmark, context length, restart and
-alarm.
+This pull request also adds these terms to `glossary.md`: pack, checkpoint, benchmark, restart and alarm.
 
 ---
 
@@ -68,7 +67,7 @@ How to fill it:
 |---|---|---|
 | Dataset and Shard Composition | Monitoring list, section 2.3 (Data A) | Monitoring: no; Data A: no |
 | Eval-Mini Scores Alongside Training Loss | Monitoring list, section 2.4 (Evaluation) | Monitoring: no; Evaluation: no |
-| Training Pace | Monitoring list, sections 2.1 and 2.2 (Architecture, Performance) | Monitoring: no; Architecture: no; Performance: no |
+| Training Pace | Monitoring list, sections 2.1 and 2.2 (Architecture, Performance). Architecture sent this sentence: the run does not log context length ([comment on #760](https://github.com/theschoolofai/era-v5-lab/pull/760#issuecomment-7109890552)) | Monitoring: no; Architecture: yes; Performance: no |
 | Open Infrastructure Health | Monitoring list, section 3 | Monitoring: no |
 | What This Shows and What It Doesn't | Monitoring list, section 3 | Monitoring: no; TSAI: no |
 | New glossary terms | `glossary.md` | Monitoring: no |
