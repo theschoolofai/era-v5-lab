@@ -157,6 +157,43 @@ python teams/09-evaluation/decontam/canary_scan.py <dir>/<shard_id>.text.parquet
   Set `ERA_SHARD`, `ERA_TOKENIZER` (the shard's frozen tokenizer; the old name `ERA_C3_TOKENIZER` also works) and
   optionally `ERA_SHARD_CLEAN` to also test a real shard.
 
+## Many shards in one command (`fetch_shards.py`, `check_shards.py`)
+
+Two steps. Only the first one uses the network, so the second can run as a TSAI job (no network, reads only its
+inputs, writes only to `./out/`: JOB_REQUEST.md rule 1).
+
+```bash
+# 1. download (network): manifest first, then each file checked against the sha256 in the manifest
+python teams/09-evaluation/decontam/fetch_shards.py shard_links.tsv --out <shards>
+# 2. check (no network): on a job host use --work ./out
+python teams/09-evaluation/decontam/check_shards.py <shards> --tokenizer <p1536>/tokenizer.json --work <dir> \
+    --compare teams/09-evaluation/results/decontam_shards.md
+```
+
+`check_shards.py` runs the chain above on every shard in the folder: `decode_shard.py` → `decontam_check.py` (full
+set) and `canary_scan.py`. It calls the three scripts unchanged, so the result is the same as running them by hand.
+
+- **Speed:** all steps share one pool of `--jobs` worker processes (default: the number of cores, at most one per
+  2.5 GB of memory). The biggest shards start first. A decoded shard is cut into parts of about `--part-tokens`
+  tokens (default 16M, whole documents), and `decontam_check.py` runs on each part in its own process. Each document is
+  checked alone, so the parts give the same result as one run; the flagged count is the sum over the parts.
+- **Resume:** each shard's result goes to `<work>/results/<shard_id>.json` only when all steps finish. A second run
+  skips those shards, unless the manifest's payload changed (`--force` checks them again). A shard with a file missing
+  fails and is named.
+- **Compare:** `--compare <markdown>` checks payload_sha256, docs and tokens against the first table row of each shard
+  (rows with or without a `#` column).
+- **Output:** a table in the format of `results/decontam_shards.md`, plus the set_sha256, the canary count and the
+  tokenizer sha256. Exit code 0 only when every shard passed, with 0 flagged, 0 canary hits and no mismatch. The
+  decoded text is deleted after the checks (`--keep-text` keeps it). Never commit `<work>`.
+- **Tested** on 7 of the 41 sample-v0 shards (`code-cpp-train-000000`, `code-go-train-000000`,
+  `code-rust-train-000001`, `ind-gu-fw2-train-000000`, `ind-hi-sangraha-v-train-000000`,
+  `ind-kn-sangraha-v-train-000000`, `ind-mr-sangraha-v-train-000000`; 181,994,759 tokens): all 7 match
+  `results/decontam_shards.md` on payload_sha256, docs and tokens, 0 flagged, 0 canary hits. Laptop CPU (14 cores,
+  24 GB), `--jobs 10`: 98 s. With 3 shards at a time, in name order and with no parts: 219 s. The biggest single
+  process used about 1.8 GB.
+- **Tests:** `pytest teams/09-evaluation/decontam/tests/test_check_shards.py -q` (no shard, tokenizer or network
+  needed).
+
 ## Normalize
 
 Before the cut into runs, the text of an item and of a document is normalized, so that
