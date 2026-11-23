@@ -4,8 +4,9 @@ After SFT with Deletion Tuning the mask is baked: a deleted weight is exactly 0.
 LanguageModel. Any later optimizer step could make such a weight nonzero again (a nonzero gradient reaches it: the
 entry is not special to autograd). Two ways to hold the deletion:
   gradient mask (default): a hook multiplies the gradient of every masked parameter by the keep mask, so a deleted
-      entry never sees a gradient. With weight decay 0 AdamW then leaves it exactly where it was (zero gradient,
-      zero moments, zero step). Only undeleted weights train.
+      entry never sees a gradient. Adam/AdamW then leave an exact 0 exactly where it was, with or without weight
+      decay (zero gradient, zero moments, zero step; decay of 0 is 0). Only undeleted weights train. An
+      orthogonalizing optimizer such as Muon does not: `check_optimizer` refuses it unless enforce.
   enforce: additionally set the deleted entries back to 0 after each step (a backstop; off by default so that the
       gradient mask alone is what the integrity check tests).
 `deleted_nonzero()` counts the deleted entries that are not exactly 0 right now; `check()` raises when it is not 0.
@@ -40,11 +41,13 @@ def load_masks_with_digests(path: str | Path) -> tuple[dict[str, torch.Tensor], 
     }
 
 
+_ELEMENTWISE = (torch.optim.Adam, torch.optim.AdamW)  # bound at import: a later patch of torch.optim cannot widen it
+
+
 class KeepZero:
     def __init__(self, named_params: list[tuple[str, torch.nn.Parameter]], keep: dict[str, torch.Tensor],
                  enforce: bool = False, weight_decay: float = 0.0):
-        if weight_decay != 0.0 and not enforce:
-            raise ValueError("a gradient mask only holds a deleted weight at 0 when weight decay is 0 (or enforce: true)")
+        # weight_decay is accepted and no longer refused: an exact 0 stays 0 under Adam/AdamW decay (see check_optimizer)
         by_name = dict(named_params)
         missing = [n for n in keep if n not in by_name]
         if missing:
@@ -73,7 +76,7 @@ class KeepZero:
         nonzero. enforce: true re-zeroes after each step and is allowed with any optimizer."""
         if self.enforce_after_step:
             return
-        if not isinstance(opt, (torch.optim.Adam, torch.optim.AdamW)):
+        if not isinstance(opt, _ELEMENTWISE):
             raise ValueError(f"keep_zero gradient mask needs Adam/AdamW, got {type(opt).__name__} "
                              "(an orthogonalizing optimizer such as Muon fills the deleted entries); set enforce: true")
 
