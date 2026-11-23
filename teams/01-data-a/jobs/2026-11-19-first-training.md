@@ -9,7 +9,7 @@ Script:          teams/01-data-a/jobs/2026-11-19-first-training/build_inventory.
 Command:         python -I teams/01-data-a/pipeline/run_pipeline.py --config out/first-training-inputs/run.json
 Config:          out/first-training-inputs/run.json (materialized from the template below after inventory build)
 Inputs:          TSAI-staged approved train and heldout parts for the 38 packs in approved_inputs.json; frozen p1536 tokenizer; offline LaBSE model; approved pack table; G9 F2 v2 fingerprints
-Hardware:        1 CUDA GPU (16 GiB VRAM or more), 32 vCPU, 64 GiB RAM; F2 uses 30 workers (see resource limits below)
+Hardware:        1 CUDA GPU (16 GiB VRAM or more), 32 vCPU, 64 GiB RAM, sized on the sample (size RAM and time from the staged rows; see sizing below); F2 uses 30 workers
 Max time:        720 minutes for the combined job (H3's own limit is 180 minutes)
 Precision:       H3 fp16 on CUDA (precision auto); shard token IDs are integers
 Measures:        Raw/cleaned/dedup/F2/final counts, H3 matches, train shards and tokens, heldout not_sharded, per-part reconciliation and SHA-256 checks
@@ -18,9 +18,19 @@ Outputs:         out/first-training-inputs/{input_manifest.json,expected_invento
 Test log:        teams/01-data-a/jobs/logs/2026-11-19-first-training-rehearsal-38packs/ (all 86 parts of sample v0, 38 packs, frozen p1536, Linux + pinned env: 59/59 checks; with the inventory, prepare_run's run.json at 2691c44: 74/74)
 ```
 
+## Update of 22 Nov 2026 for corpus-v1
+
+This revises the request of #599 now that TSAI has confirmed the input manifest. Nothing else in the pipeline changes.
+
+- **Dataset version:** `prepare_run.py` generated `dataset_version` `first-training-v1`; it now generates `corpus-v1`. The `run_id` argument is unchanged and is only the output folder name.
+- **Pinned code:** `main` at `421f8497ddb1585666e8f5a274c524e4462402cc` (merge of #716), plus this update, which touches only `prepare_run.py` (the constant), its test, and these docs. Run from `main` once this update is merged.
+- **Pinned cleaner:** `teams/01-data-a/spec_v1_1/clean.py`, SHA-256 `6a57276c0e83312b09facfba656cca28db0ef59ca851bcfbfa3ef63f16fdd1f2`, which equals `clean_sha256` in `teams/01-data-a/pipeline/clean.json`; the clean stage refuses any other file.
+- **Pinned scope:** `approved_inputs.json`, SHA-256 `10f313750235902d401cfb1023555b37e575fc8a11a5adccceeab84af7515f5f` (the confirmed version). The input manifest records this hash and `prepare_run.py` refuses a manifest built from any other version.
+- **Checks:** `pytest` of the command under "Scope and prerequisites" passes (146 tests) on this branch.
+
 ## Scope and prerequisites
 
-This is an integration request. TSAI stages the approved raw inputs and applies the approved spec v1.1 cleaning rules as part of the agreed pipeline execution. Confirm that this combined run is acceptable under `JOB_REQUEST.md` rule 6, which reserves full-data cleaning for TSAI. The source-scope assumption is recorded in `2026-11-19-first-training/approved_inputs.json`: the 38 sample-v0 pack IDs are the complete admissible source set; production may have more parts per pack, with the same split/pack layout. Verify the fetched source revisions and subset restrictions against TSAI's source catalog before starting.
+This is an integration request. TSAI stages the approved raw inputs and applies the approved spec v1.1 cleaning rules as part of the agreed pipeline execution. Confirm that this combined run is acceptable under `JOB_REQUEST.md` rule 6, which reserves full-data cleaning for TSAI. TSAI confirmed the source scope on 22 Nov 2026 (`2026-11-19-first-training/approved_inputs.json`, merged in #716): the 38 sample-v0 pack IDs are the final admissible source set for corpus-v1, with no further packs without a separate ruling; production may have more parts per pack, with the same split/pack layout. Verify the fetched source revisions and subset restrictions against TSAI's source catalog before starting.
 
 The job must be staged with these inputs before `--plan` or execution:
 
@@ -65,7 +75,23 @@ Keep the snapshot's module and tokenizer files too. After setup, the processing 
 
 The sample rehearsal used 30 F2 workers on 32 vCPU. Peak RSS was 14.0 GB for overlap, 18.8 GB for sharding, and about 1.3 GB per F2 worker; the output folder reached 10.4 GB with intermediates kept. The requested 64 GiB RAM provides headroom for that sample workload. Production inputs may be larger: confirm input size and provision disk/RAM before starting; the sample does not establish a production-scale upper bound. Allocate space for the raw inputs, model, all intermediate Parquets and shards. Set `--f2-workers` to fit the allocated cores and memory (30 for the hardware above). The generator defaults to 1 if omitted; the rehearsal's per-part F2 times sum to about 3.1 h at one worker, compared with 12 min for the 30-worker stage.
 
-The committed 74-check run is the primary end-to-end execution evidence for this request. The submission retains its H3 settings (including sentence threshold 0.7), report-only H3 policy, cleaner rules, overlap/dedup/F2 logic, p1536 tokenizer, dataset version and 30 F2 workers. Final changes add input/model preflight checks, generate the same shard metadata from the approved scope, and improve the independent auditor. Cleaner audit sampling adds reports without changing the cleaned data. Focused equivalence and regression tests supplement the rehearsal; recorded run IDs, hashes and counts continue to describe that original run. Generated inventory and provenance hashes for the submission will differ because metadata and audit reports have been added.
+**Size RAM and time from the staged row count before starting.** After `build_inventory.py`, read the total `raw_rows` that it prints (also `total_docs` in `input_manifest.json`; sample v0: 1,444,766 raw rows, 1,410,230 cleaned, about 97.6%). Overlap runs on one core and holds all cleaned documents in memory; on the sample it peaked at 14.0 GB and took 84 min.
+
+Overlap does not scale linearly with documents. It compares every pair of documents: a word 5-gram pass over all N(N-1)/2 pairs (about 9.9 x 10^11 on the sample, done as a sparse product that costs one step per pair of documents sharing a 5-gram, 14.9 billion steps), and a separate code-token pass over the code documents (467,786 on the sample). On the sample, reading and shingling took about 13 min, the word pass about 3 min, and the rest, about 68 min, the shingle index, the H1/H2 rules and the code-token pass. The work of a sparse product grows with the number of document pairs that share a shingle, so doubling the documents can more than double it, for example when boilerplate is shared by more documents. One run at 1x cannot show how much more. The figures below are therefore linear extrapolations and a lower bound for the time, not an estimate:
+
+| Rows vs sample | Overlap peak RSS (linear) | Overlap time (at least) | Whole run (at least; sample: 2 h 35 min) |
+|---|---:|---:|---:|
+| 1x (1.41 M) | 14.0 GB | 84 min | 2 h 35 min |
+| 2x | about 28 GB | 3 h or more | 5 h or more |
+| 5x | about 70 GB | 7 h or more | 13 h or more |
+
+The 64 GiB and 720 minutes requested were sized on the 1x run. Neither is shown to cover more than that. For staged rows above the sample, provision RAM and time with margin over the linear figures, and agree the plan with the team before starting. **If the estimate exceeds the allocated RAM or time, do not start the run.** Provision a larger host, or return the request to the team to raise Max time. Peak memory and per-stage runtime are required in the returned log, so the real scaling can be checked afterwards.
+
+Overlap also stops when its outputs exceed `max_output_mb`, which the script limits to 50. The sample's outputs were 43.6 MiB, 32.7 MiB of them `overlap_docs.parquet` (one row per document). If the outputs grow with the documents, they reach 50 MiB at about 1.15x the sample, and the job fails when it has written them, at the end of overlap.
+
+**If a stage fails, the run continues; it does not start over.** The runner records each stage in `pipeline_manifest.json` when it finishes. Set `"from": "<stage>"` in the run config (for example `"from": "overlap"`) and run the same command: the runner checks that every earlier stage's output still has its recorded digest and continues at that stage, so a failed overlap does not repeat cleaning. An interrupted clean job also continues its own folder. A single stage has no checkpoint inside it, so a failed overlap reruns from its beginning (84 min on the sample).
+
+The committed 74-check run is the primary end-to-end execution evidence for this request. The submission retains its H3 settings (including sentence threshold 0.7), report-only H3 policy, cleaner rules, overlap/dedup/F2 logic, p1536 tokenizer and 30 F2 workers. The one deliberate change is the shard `dataset_version`, now `corpus-v1` (the rehearsal wrote `first-training-v1`). Final changes add input/model preflight checks, generate the same shard metadata from the approved scope, and improve the independent auditor. Cleaner audit sampling adds reports without changing the cleaned data. Focused equivalence and regression tests supplement the rehearsal; recorded run IDs, hashes and counts continue to describe that original run. Generated inventory and provenance hashes for the submission will differ because metadata and audit reports have been added.
 
 Final local verification on 19 Nov: the audit, job-preparation and cleaner suites passed 140 tests. These include exact equality of the submitted H3 config and generated pack metadata with the rehearsal, and byte-identical cleaned Parquets with audit sampling enabled/disabled on a synthetic fixture. The setup wrapper passed `bash -n`; the conditional network download was not executed during this verification.
 
@@ -81,7 +107,7 @@ python -m pytest teams/01-data-a/tests/audit/test_check_shard.py teams/01-data-a
    python -I teams/01-data-a/jobs/2026-11-19-first-training/build_inventory.py --input-root <raw-root> --out out/first-training-inputs
    ```
 
-2. Generate `out/first-training-inputs/run.json` from the frozen inventory. The command checks the p1536 tokenizer SHA256, model pins, exact pack set and shard metadata, then generates the sharder table and run config from the same approved scope used by the inventory. It pins `dataset_version` to `first-training-v1` and keeps cleaned, deduped and F2 Parquets for audit.
+2. Generate `out/first-training-inputs/run.json` from the frozen inventory. The command checks the p1536 tokenizer SHA256, model pins, exact pack set and shard metadata, then generates the sharder table and run config from the same approved scope used by the inventory. It pins `dataset_version` to `corpus-v1` (independent of `--run-id`) and keeps cleaned, deduped and F2 Parquets for audit.
 
    ```bash
    python -I teams/01-data-a/jobs/2026-11-19-first-training/prepare_run.py --bundle out/first-training-inputs --input-root <raw-root> --tokenizer <p1536-tokenizer.json> --f2-workers 30 --run-id first-training-v1
@@ -111,7 +137,7 @@ python -m pytest teams/01-data-a/tests/audit/test_check_shard.py teams/01-data-a
        "ledger": {"raw": "<raw-root>"},
        "shards": {
          "tokenizer": "<p1536-tokenizer.json>",
-         "dataset_version": "first-training-v1",
+         "dataset_version": "corpus-v1",
          "pack_table": "out/first-training-inputs/pack_metadata.json"
        },
        "reconcile": {}
@@ -128,7 +154,7 @@ python -m pytest teams/01-data-a/tests/audit/test_check_shard.py teams/01-data-a
    python -I teams/01-data-a/pipeline/run_pipeline.py --config out/first-training-inputs/run.json
    ```
 
-The runner runs clean → overlap → H3 → dedup → apply → F2 → survivor loss → raw ledger → shards → reconcile. It verifies each handoff and the inventory at the ledger/shard and reconciliation checkpoints. H3 feeds its matches to dedup with `remove: false`.
+The runner runs clean → overlap → H3 → dedup → apply → F2 → survivor loss → raw ledger → shards → reconcile. It verifies each handoff and the inventory at the ledger/shard and reconciliation checkpoints. H3 feeds its matches to dedup with `remove: false`. H3 stays report-only: the runner hardcodes `remove: false` for this hand-off, fails the run if dedup recorded anything else, and acceptance requires H3 `removed: 0`.
 
 ## Folder layout and audit artifacts
 
