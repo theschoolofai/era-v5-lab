@@ -688,6 +688,7 @@ def main():
             if sample_expert_load:
                 model.start_expert_load()
             micro = cfg["run"]["micro_batch_size"]
+            model.clear_router_bias_load()
             for start in range(0, len(x), micro):
                 tx, ty = x[start : start + micro], y[start : start + micro]
                 # Normalize each microbatch by the full batch target count.
@@ -724,6 +725,7 @@ def main():
                     ntp_value += float(ntp.detach())
                     if mtp is not None:
                         mtp_value += float(mtp.detach())
+            model.update_router_bias()
             if not args.consolidate_step_checks:
                 grads = [q.grad for q in model.parameters() if q.grad is not None]
                 if grads and not bool(torch.isfinite(torch.stack(torch._foreach_norm(grads))).all()):

@@ -204,6 +204,11 @@ class MoE(nn.Module):
         cfg = m["moe"]
         self.topk = cfg["top_k"]
         self.expert_load = None
+        self.balance_gamma = float(cfg.get("bias_gamma") or 0.0)
+        self._balance_load = None
+        # Loss-free balancer (Session 14). A buffer, not a parameter: it is added only when choosing
+        # the experts. It is not part of the gate that multiplies the expert output.
+        self.register_buffer("router_bias", torch.zeros(cfg["num_experts"]))
         self.router = nn.Linear(w, cfg["num_experts"], bias=False)
         self.experts = nn.ModuleList(
             SwiGLU(w, h, cfg["bias"]) for _ in range(cfg["num_experts"])
@@ -218,7 +223,17 @@ class MoE(nn.Module):
         active = valid.reshape(-1)
         with torch.autocast(device_type=x.device.type, enabled=False):
             scores = F.linear(flat.float(), self.router.weight.float()).softmax(-1)
-        gates, choice = scores.topk(self.topk, dim=-1)
+        if self.balance_gamma != 0.0:
+            # Bias changes which experts are chosen. The gate values stay the unbiased softmax.
+            choice = (scores.detach() + self.router_bias.to(scores.dtype)).topk(self.topk, dim=-1).indices
+            gates = scores.gather(-1, choice)
+        else:
+            gates, choice = scores.topk(self.topk, dim=-1)
+        if self.balance_gamma != 0.0 and self.training:
+            selected = torch.zeros_like(scores, dtype=torch.bool)
+            selected.scatter_(-1, choice, True)
+            counts = (selected & active[:, None]).sum(dim=0)
+            self._balance_load = counts if self._balance_load is None else self._balance_load + counts
         if self.expert_load is not None and self.training:
             selected = torch.zeros_like(scores, dtype=torch.bool)
             selected.scatter_(-1, choice, True)
@@ -243,6 +258,14 @@ class MoE(nn.Module):
         for expert in self.shared:
             output = output + expert(flat) * active[:, None]
         return output.reshape(shape)
+
+    def apply_balance_update(self):
+        load = self._balance_load
+        self._balance_load = None
+        if load is None or self.balance_gamma == 0.0:
+            return
+        load = load.float()
+        self.router_bias.add_(self.balance_gamma * torch.sign(load.mean() - load))
 
 
 class Block(nn.Module):
@@ -298,6 +321,15 @@ class LanguageModel(nn.Module):
             counts.append(block.moe.expert_load)
             block.moe.expert_load = None
         return torch.stack(counts).tolist()
+
+    def clear_router_bias_load(self):
+        for block in self.blocks:
+            block.moe._balance_load = None
+
+    def update_router_bias(self):
+        """One whole-batch update after the step's forwards. Not once per microbatch."""
+        for block in self.blocks:
+            block.moe.apply_balance_update()
 
     def parameter_count(self):
         return sum(p.numel() for p in self.parameters())

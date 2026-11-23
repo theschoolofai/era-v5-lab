@@ -31,6 +31,8 @@ class DryRun2ArmTests(unittest.TestCase):
         self.assertFalse(o.get("head_sgd", False))
         self.assertFalse(o.get("router_on_muon", False))
         self.assertFalse(r.get("tst", False))
+        self.assertFalse(self.c["model"]["moe"]["bias"])
+        self.assertEqual(self.c["model"]["moe"]["bias_gamma"], 0.001)
 
     def test_schedule_at_dry_run_1_length(self):
         """At 1,221 steps: 61 warmup steps, flat, 122 decay steps ending at 0."""

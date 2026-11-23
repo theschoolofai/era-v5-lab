@@ -66,6 +66,9 @@ settings:
   - key: moe.top_k
     value: 2
     source: "Gate 2, 14 Nov 2026. Top-2."
+  - key: moe.bias_gamma
+    value: 0.001
+    source: "TSAI, Session general, 23 Nov 2026. Loss-free load balancing is in the training plan. Session 14: the bias is added only for the expert choice, then b moves by gamma times the sign of mean load minus load. Gamma 0.001 is that note. Expert Linear bias stays off."
   - key: loss.train_on
     value: ntp
     source: "The logged training loss is next-token loss. A second head is trained on t+2 and logged as loss_mtp."
