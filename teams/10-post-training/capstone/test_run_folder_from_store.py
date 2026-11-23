@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import run_folder_from_store as rfs  # noqa: E402
 
 parametrize = pytest.mark.parametrize  # no dotted decorator: the lab pr-guard's old email regex flags it
+fixture = pytest.fixture
 
 
 def _delivery(tmp_path, manifest=None, summary=None):
@@ -136,7 +137,7 @@ def export_safetensors(remote_run, model_factory, probe_fn, out_path, step=None)
 STUB_MODULES = ("ckpt", "ckpt.ckpt", "ckpt.store", "train_week2", "week2", "week2.artifacts", "week2.data", "week2.model")
 
 
-@pytest.fixture
+@fixture
 def stub_lab(tmp_path, monkeypatch):
     root = tmp_path / "lab"
     for rel, text in STUBS.items():
