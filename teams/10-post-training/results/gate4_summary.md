@@ -26,7 +26,7 @@ Per TSAI rulings (21 Nov 2026), closing Gate 3 item 7 requires **both** results 
 
 | Partner Team | Item | Status (23 Nov) | Next Step |
 |---|---|---|---|
-| **Team 5 (Architecture)** | Dry run 2 checkpoint (`#720`, `corpus-v1`, KE2/KAS `#717`, Team 7 Checkpointer `#608`) | `#717` open; dry run 2 runs Tue 24 – Thu 26 Nov | Re-test adapter + `dryrun2_dt_compare.py` once `#717` merges; launch both Gate 4 jobs on Thu 26 Nov checkpoint. |
+| **Team 5 (Architecture)** | Dry run 2 checkpoint (`#720`, `corpus-v1`, KE2/KAS `#717`, Team 7 Checkpointer `#608`) | **Confirmed 23 Nov:** `#717` is still a draft; dry run 2 (`#720`) uses `#608` store/run-id/interval already on `main` with **no new manifest field**; **blocked until `corpus-v1` shards exist** | Re-test adapter + `dryrun2_dt_compare.py` once `#717` merges; launch both Gate 4 jobs once `corpus-v1` shards unblock dry run 2 and checkpoint delivers. |
 | **Team 7 (Infrastructure)** | Checkpointer wiring (both ways, due Tue 24 Nov) | **Ready** (`#608` store read verified in `#136`/`#143`; write/export verified in `keep_weights.py` & `sft_g5.py`) | Final smoke check against actual dry run 2 `#608` store format when dry run 2 starts. |
 | **Team 9 (Evaluation)** | `eval_schedule.md` item #7 (which SFT/RL checkpoints go to Team 9, and when) | **Aligned** (`watcher_rows_to_report.py` `#147` + dtype guard `#138`) | Hand over kept dry-run-2 Team 7 run folders (`keep_t7/g10-dr2-{full,lora,dt}/` and `g10-rl-final`) on Thu 26 / Fri 27 Nov for bf16 Tier B scoring. |
 | **Team 2 (Data B)** | Native-reader review of human-written Indic RL templates | Team 2 committed to 1-day turnaround | Pending G10 human templates in `rl/indic/templates/indic_templates.yaml` (0 templates authored yet). |

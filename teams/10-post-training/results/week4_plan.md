@@ -25,7 +25,7 @@ Per TSAI rulings (21 Nov 2026), closing **Gate 3 item 7 (SFT/RL method)** requir
 | D2 | Mon 23 Nov | Audit Team 5's KE2/KAS `model.py` integration (`#694`/`#702`/`#706`) against `team5_adapter.py`, `sft_g5.py`, `dt/mask.py`, `keep_weights.py`, `make_probe_file.py`; begin Indic human templates with Team 2. |
 | D3 | Tue 24 Nov | **Dry run 2 starts.** Complete **Team 7 Checkpointer wiring verification (both ways)** against `#608` (`team7_checkpoints.py`) + Team 9 `run_lab_ckpt.py`. |
 | D4 | Wed 25 Nov | Attach local CPU stand-in logs for `jobs/2026-11-26-g10-dryrun2-dt-vs-fft.md` and `jobs/2026-11-17-dt-then-rl-code.md` on Team 5's KE2/KAS model class; review `#587` & `#133` (E9 1.7B) results if returned. |
-| D5 | Thu 26 Nov | **Dry run 2 ends.** Receive checkpoint from Team 5; submit dry-run-2 DT vs LoRA vs Full FT job immediately, then DT-then-RL canary on `keep_canary/dt/`. Deliver Team 9 `eval_schedule.md` item #7 checkpoint schedule. |
+| D5 | Thu 26 Nov | **Dry run 2 ends (blocked until `corpus-v1` shards exist per Team 5, 23 Nov).** Receive checkpoint from Team 5 (`#608` store, no new manifest field); submit dry-run-2 DT vs LoRA vs Full FT job immediately, then DT-then-RL canary on `keep_canary/dt/`. Deliver Team 9 `eval_schedule.md` item #7 checkpoint schedule. |
 | D6 | Fri 27 Nov | Record dry-run-2 DT vs LoRA vs Full FT (`results/dt_vs_fft.md`) and DT-then-RL (`results/dt_then_rl.md`) + `results/gate4_summary.md`. **Gate 4 evidence due 11:59 PM IST.** |
 | D7 | Sat 28 Nov | Gate 4: Go or no-go on the main training run. |
 
