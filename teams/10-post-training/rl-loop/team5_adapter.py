@@ -561,6 +561,26 @@ class Bundle:
         self.model.train(was)
         return seq, cmask, reason
 
+    @torch.no_grad()
+    def sample_many(self, prompts: list[list[int]], k: int, max_new: int, temperature: float,
+                    generator: torch.Generator | None, stop_ids: list[int] | None = None):
+        """k completions of every prompt in one KV-cached decode (rl-loop/g5_decode.sample_many); same checks and
+        per-prompt return contract as sample()."""
+        stop = list(self.special["stop_ids"] if stop_ids is None else stop_ids)
+        if not prompts or any(not p for p in prompts) or k <= 0 or max_new <= 0:
+            raise ValueError("need non-empty prompts, k > 0 and max_new > 0")
+        longest = max(len(p) for p in prompts)
+        if longest + max_new > self.spec["block_size"]:
+            raise ValueError(f"prompt {longest} + max_new {max_new} exceeds block_size {self.spec['block_size']}")
+        if temperature > 0:
+            if generator is None:
+                raise ValueError("sampling with temperature > 0 needs an explicit generator")
+            if torch.device(generator.device).type != torch.device(self.device).type:
+                raise ValueError(f"generator on {generator.device}, model on {self.device}")
+        import g5_decode  # noqa: PLC0415  rl-loop/g5_decode.py
+        return g5_decode.sample_many(self.model, [list(p) for p in prompts], k, max_new, temperature, generator, stop,
+                                     self.special["pad_id"], self.device)
+
     def policy(self):
         """A rl-loop Policy whose forward is the checked bundle.forward and whose sampling stops at every stop id."""
         from policy import Policy  # noqa: PLC0415  rl-loop/policy.py, unchanged
@@ -577,6 +597,12 @@ class Bundle:
                 with self.autocast():
                     seq, cmask, _ = bundle.sample(prompt, k, max_new, temperature, generator)
                 return seq, cmask
+
+            @torch.no_grad()
+            def sample_many(self, prompts, k, max_new, temperature=1.0, generator=None):
+                with self.autocast():  # same compute dtype as sample() and the trainer
+                    rolls = bundle.sample_many(prompts, k, max_new, temperature, generator)
+                return [(seq, cmask) for seq, cmask, _ in rolls]
 
         return Team5Policy(self.model, lambda m, ids, mask: bundle.forward(ids, mask),
                            self.special["tokens"]["end_of_turn"]["id"], self.device)

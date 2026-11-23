@@ -26,7 +26,9 @@ Model kinds (config `model.kind`):
 Task kinds (config `task.kind`): toy (see tasks.py), code_tasks (rl/tasks via rl/reward.py; needs an hf tokenizer).
 
 GPU-run options (config `train.*`, all optional):
-    sampler        policy | hf_batch | vllm (rollout.py). Default hf_batch for HF models, policy otherwise.
+    sampler        policy | g5_batch | hf_batch | vllm (rollout.py). Default hf_batch for HF models, policy otherwise.
+                   g5_batch (G5 only): every prompt of a step in one KV-cached decode; sampler_max_rows (default 128)
+                   caps the rows decoded together.
     vllm           kwargs for the colocated engine, e.g. {gpu_memory_utilization: 0.3, max_model_len: 2048}
     fp32_master    default true: trainable weights in fp32 under bf16 autocast (policy.use_fp32_master)
     autocast       bf16 | unset (default): force bf16 autocast for the policy's forward. Needed for a G5 checkpoint,
@@ -301,6 +303,8 @@ def state_identity(cfg: dict, trainable_named, *, init_state_sha256: str | None 
             "micro_rows", "weight_decay", "fp32_master", "sampler", "clip_eps", "kl_coef", "grad_clip", "screen")
     if t.get("autocast") is not None:  # preserve identities of runs saved before this option existed
         keys += ("autocast",)
+    if t.get("sampler_max_rows") is not None:  # chunking changes which random draws each row gets
+        keys += ("sampler_max_rows",)
     if t.get("dt"):  # only present for Deletion Tuning runs, so states saved before train.dt existed stay valid
         keys += ("dt",)
     if t.get("update_mode", "train") != "train":  # default runs keep the identities they had
@@ -800,8 +804,10 @@ def train(cfg: dict) -> dict:
         # vLLM reports log-probabilities of the raw model distribution; they equal the sampling distribution only at
         # temperature 1 without truncation (rollout.py), and objective_v1 uses them as the ratio denominator.
         raise ValueError("objective_v1 with the vllm sampler needs temperature 1.0 (sampler ratio contract)")
-    if cfg["model"]["kind"] == "team5_adapter" and sampler_kind != "policy":
-        raise ValueError(f"sampler {sampler_kind} is not available for the G5 LanguageModel; use sampler: policy")
+    if cfg["model"]["kind"] == "team5_adapter" and sampler_kind not in ("policy", "g5_batch"):
+        raise ValueError(f"sampler {sampler_kind} is not available for the G5 LanguageModel; use sampler: policy or g5_batch")
+    if sampler_kind == "g5_batch" and cfg["model"]["kind"] != "team5_adapter":
+        raise ValueError("sampler g5_batch is for the G5 LanguageModel (model.kind team5_adapter)")
     pool = None
     if int(t.get("reward_pool", 0)) > 0:  # before any model loads: the workers must be forked from a small process
         if cfg["task"]["kind"] != "stdio":
@@ -911,7 +917,8 @@ def train(cfg: dict) -> dict:
     def sync_named():  # what the sampler must hold after an update
         return dt_hard_weights(dtmask, model) if dt_cfg else trainable_named
     pad_id = tok.pad_token_id if tok is not None and tok.pad_token_id is not None else None
-    sampler = rollout.make_sampler(sampler_kind, policy, vllm, pad_id)
+    sampler = rollout.make_sampler(sampler_kind, policy, vllm, pad_id,
+                                   **({"max_rows": int(t.get("sampler_max_rows", 128))} if sampler_kind == "g5_batch" else {}))
     ref = None
     if float(t.get("kl_coef", 0)) > 0:
         ref = copy.deepcopy(policy)
@@ -934,7 +941,7 @@ def train(cfg: dict) -> dict:
     log_routing = bool(t.get("routing_log", False)) and bool(routing.router_modules(model))
     n_experts = getattr(getattr(model, "config", None), "num_experts", None)
     # Native sampling draws on the model's device, so its generator lives there; HF/vLLM keep host-side generators.
-    gen_device = device if sampler_kind == "policy" and not isinstance(policy, HFPolicy) else "cpu"
+    gen_device = device if sampler_kind in ("policy", "g5_batch") and not isinstance(policy, HFPolicy) else "cpu"
     gen = torch.Generator(device=gen_device).manual_seed(seed)
     order = list(range(len(task.train)))
     fixture_smoke = adapter is not None and adapter.status != "READY"
