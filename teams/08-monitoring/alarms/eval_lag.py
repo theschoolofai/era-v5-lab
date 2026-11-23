@@ -144,12 +144,16 @@ def _sql_list(values: Iterable[str]) -> str:
     return "(" + ", ".join(sql_str(v) for v in sorted(set(values))) + ")"
 
 
+_TSV_ESCAPE = re.compile(r"\\(.)")
 _TSV_ESCAPES = {"b": "\b", "f": "\f", "r": "\r", "n": "\n", "t": "\t", "0": "\0"}
 
 
 def tsv_fields(line: str) -> list[str]:
     """One line of ClickHouse's TabSeparated output as values: it escapes \\, ', tab, newline and the like."""
-    return [re.sub(r"\\(.)", lambda m: _TSV_ESCAPES.get(m.group(1), m.group(1)), field) for field in line.split("\t")]
+    fields = line.split("\t")
+    if "\\" not in line:  # nearly every line: numbers and plain run ids
+        return fields
+    return [_TSV_ESCAPE.sub(lambda m: _TSV_ESCAPES.get(m.group(1), m.group(1)), field) for field in fields]
 
 
 class RunCheck(NamedTuple):
