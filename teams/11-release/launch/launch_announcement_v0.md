@@ -61,8 +61,8 @@ How to fill it:
 | Data B | `updates/2026-10-31_week1.md`, `updates/gate2.md`, `updates/gate3.md` (data mix and Indic share: checked, the line does not change) | no |
 | Tokenizer | `model_card/model_card_outline.md` (Tokenizer row), `updates/gate3.md` (the frozen tokenizer p1536: checked, the line does not change) | no |
 | KE2 | `updates/gate2.md` (short forms), `updates/gate3.md` (the output head), [#704](https://github.com/theschoolofai/era-v5-lab/pull/704) | no |
-| Architecture | `updates/2026-10-31_week1.md`, `model_card/model_card_outline.md`, `updates/gate3.md` (checked, the line does not change) | no |
-| The KE2 output head is in the training code | Architecture confirms this before the text is published. The Gate 3 update says that Architecture adds the head to the training code | no |
+| Architecture | `updates/2026-10-31_week1.md`, `model_card/model_card_outline.md`, `updates/gate3.md` (checked, the line does not change) | yes ([comment on #753](https://github.com/theschoolofai/era-v5-lab/pull/753#issuecomment-7109891336)) |
+| The KE2 output head is in the training code | Architecture confirms this before the text is published. The Gate 3 update says that Architecture adds the head to the training code. Not yet: [#717](https://github.com/theschoolofai/era-v5-lab/pull/717) is still a draft ([comment on #753](https://github.com/theschoolofai/era-v5-lab/pull/753#issuecomment-7109891336)) | no |
 | Performance | `updates/2026-10-31_week1.md` | no |
 | Infrastructure | `updates/2026-10-31_week1.md`, `model_card/model_card_outline.md`, `updates/gate3.md` (the first dry run: checked, the line does not change) | no |
 | Monitoring | `updates/2026-10-31_week1.md`, `updates/week2.md`, `dashboard/dashboard_text.md` ([#598](https://github.com/theschoolofai/era-v5-lab/pull/598)), public panels with the approved text ([#629](https://github.com/theschoolofai/era-v5-lab/pull/629)) | no |
