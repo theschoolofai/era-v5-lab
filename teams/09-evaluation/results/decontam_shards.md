@@ -95,7 +95,7 @@ A zero result is only useful if the chain would have found a leak. Four checks:
 
 ## Second check of the last 5 shards (week 4, task 3)
 
-The 5 shards that no rotator had checked, from the Team 9 lead's week-4 post (G9, 21 Nov). Run by `Sagar063` on
+The 5 shards that no rotator had checked, from the Team 9 lead's week-4 post (G9, 21 Nov). Run by Team 9 on
 23 Nov 2026, 19:52–20:10 IST, at main `e5544324`, with the same chain as above: `decode_shard.py` (frozen p1536,
 sha256 `e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b`) → `decontam_check.py` (fingerprints v2,
 `set_sha256 2826a3b883210c653979103c09ce1c79e40fc4f7034b54027f2836482370d22a`, full set) → `canary_scan.py`
@@ -115,15 +115,16 @@ All 5 have the same `payload_sha256`, documents and tokens as the per-shard tabl
 `flagged 0 (0.00%) by benchmark {}` and `canary_scan.py` printed `with_canary 0 hits 0` for each, so there are no hits
 to report.
 
-**Payload hash and token count for two rotation rows.** `rotation_ranjani-cse.md` gives only document counts for these
-two. Same run and chain:
+**Payload hash and token count for two rotation rows.** `rotation_ranjani-cse.md` has the documents scanned, 0 flagged,
+the `set_sha256` and 0 canary hits for these two; it lacks only the `payload_sha256` and the token count. Same run
+and chain:
 
 | shard_id | payload_sha256 | docs | tokens | flagged | canary hits |
 |---|---|---:|---:|---:|---:|
 | `code-go-train-000000` | `b68bf390d5800853f476ede764289f045993384fd6c771db0739b74adcc5b500` | 56,588 | 56,698,571 | 0 | 0 |
 | `ind-hi-sangraha-v-train-000000` | `78aca29173b76840de617be0b1335b9417a340adce7b0b0564b23e195b919ab1` | 14,483 | 9,254,413 | 0 | 0 |
 
-Both match the per-shard table above and Ranjani's document counts.
+Both match the per-shard table above and the document counts in `rotation_ranjani-cse.md`.
 
 `pytest teams/09-evaluation/decontam/tests` at `e5544324`: 152 passed, 2 skipped. All exit codes were 0.
 Environment: Windows, Python 3.14.4, tokenizers 0.23.3, pyarrow 26.0.0, numpy 2.5.4. Decoded `.text.parquet` files stay local.
