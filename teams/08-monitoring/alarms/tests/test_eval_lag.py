@@ -101,10 +101,11 @@ class FakeClickHouse:
         raise AssertionError(f"unexpected SQL: {sql}")
 
     def _newest_batches(self, sql):
-        m = re.search(r"WHERE run_id IN \(([^)]*)\)", sql)
+        assert "FROM ingest_batches WHERE lines > 0" in sql, sql
+        m = re.search(r"AND run_id IN \(([^)]*)\)", sql)
         newest: dict[str, tuple[int, int]] = {}
         for b in self.visible(self.batches, "seen_ms"):
-            if m is None or b["run_id"] in quoted(m.group(1)):
+            if b["lines"] > 0 and (m is None or b["run_id"] in quoted(m.group(1))):
                 key = (b["seen_ms"], b["last_step"])
                 newest[b["run_id"]] = max(newest.get(b["run_id"], key), key)
         return "".join(f"{run}\t{seen}\t{step}\n" for run, (seen, step) in sorted(newest.items()))
@@ -120,13 +121,14 @@ class FakeClickHouse:
         return "".join(f"{run}\t{step}\t{loaded}\n" for run, (step, loaded) in sorted(best.items()))
 
     def _batches(self, sql):
-        assert sql.endswith(" ORDER BY seen_at, start_offset FORMAT TabSeparated"), sql
+        assert " WHERE lines > 0 AND (" in sql, sql
+        assert sql.endswith(" ORDER BY seen_at, source_file, start_offset FORMAT TabSeparated"), sql
         clauses = [(quoted(runs), int(low))
                    for runs, low in re.findall(r"\(run_id IN \(([^)]*)\) AND last_step >= (\d+)\)", sql)]
         assert clauses, sql
-        rows = sorted((b for b in self.visible(self.batches, "seen_ms")
-                       if any(b["run_id"] in runs and b["last_step"] >= low for runs, low in clauses)),
-                      key=lambda b: (b["seen_ms"], b["start_offset"]))
+        rows = sorted((b for b in self.visible(self.batches, "seen_ms") if b["lines"] > 0
+                       and any(b["run_id"] in runs and b["last_step"] >= low for runs, low in clauses)),
+                      key=lambda b: (b["seen_ms"], b["source_file"], b["start_offset"]))
         return "".join(f"{b['run_id']}\t{b['seen_ms']}\t{b['first_step']}\t{b['last_step']}\n" for b in rows)
 
 
@@ -228,7 +230,7 @@ def test_lag_runs_from_the_batch_that_reached_the_scored_step():
     assert active_lag_ms([], None, 300_000) == 0
 
 
-def test_lag_counts_only_the_newest_pass_after_a_restore():
+def test_a_restore_drops_the_lost_steps_and_the_downtime():
     first = [Batch(0, 1, 10), Batch(20_000, 11, 20), Batch(40_000, 21, 30)]
     redo = [Batch(400_000, 11, 20), Batch(420_000, 21, 25)]  # restored to step 10 after a 360 s stop
     assert active_lag_ms(first + redo, 15, 300_000) == 20_000  # from the redo batch, not from 20 s
@@ -240,6 +242,18 @@ def test_lag_caps_each_pause():
     batches = [Batch(0, 1, 10), Batch(20_000, 11, 20), Batch(1_000_000, 21, 30)]
     assert active_lag_ms(batches, 15, 300_000) == 300_000
     assert active_lag_ms(batches, None, 300_000) == 320_000
+
+
+def test_a_restore_keeps_the_lag_built_up_before_its_restore_point():
+    before = [Batch(0, 1, 10), Batch(20_000, 11, 20), Batch(40_000, 21, 30)]
+    # Scored step 15; restored to step 25 after a 360 s stop: 15..25 still counts (20 s), the stop doesn't, +20 s.
+    assert active_lag_ms(before + [Batch(400_000, 26, 30), Batch(420_000, 31, 40)], 15, 300_000) == 40_000
+    # Restored to step 22, inside the batch 21..30: that batch is cut at 22. A scored step 25 was lost, so the lag
+    # runs from the redo batch that reaches 25 again; a scored step 22 was kept, so it runs from the cut batch.
+    after_22 = [Batch(400_000, 23, 30), Batch(420_000, 31, 40)]
+    assert active_lag_ms(before + after_22, 25, 300_000) == 20_000
+    assert active_lag_ms(before + after_22, 22, 300_000) == 20_000
+    assert active_lag_ms(before + after_22, None, 300_000) == 60_000  # 0..40 s, nothing for the stop, then 20 s
 
 
 def test_lag_is_the_same_on_the_batches_the_alarm_reads():
@@ -330,6 +344,32 @@ def test_the_planned_failure_does_not_page(resume_run):
     assert max(other_lag(ch, now, runs={RUN, RESUME}, restores=False) for now, _ in results) > LIMIT_MS
 
 
+@pytest.mark.parametrize("dies_after_s, pages_before_kill", [(300, True), (1_500, False)])
+def test_a_restore_does_not_hide_a_dead_watcher(dies_after_s, pages_before_kill):
+    ch = FakeClickHouse()
+    run = Run(ch).train(1, 546, commit_first=True, killed=True)  # kill (a), 594 s after the commit at step 411
+    kill = run.t
+    run.pause(300).train(412, 1221, RESUME)
+    run.score(skip=lambda s: s > T0 / 1000 + dies_after_s)  # the Tier A watcher dies and never comes back
+    got = pages(sweep(monitor(ch, runs={RUN: RUN, RESUME: RUN}), ch, T0, ms(run.t) + 60_000))
+    assert len(got) == 1  # one outage, one page: the restore doesn't re-arm it
+    now, page = got[0]
+    assert LIMIT_MS < page.lag_ms <= LIMIT_MS + BATCH_MS
+    assert (now < ms(kill)) == pages_before_kill
+    assert now < ms(kill + 300) + LIMIT_MS  # a count started afresh at the restore would page only after this
+
+
+def test_a_batch_of_blank_lines_changes_nothing():
+    ch = FakeClickHouse()
+    run = Run(ch).train(1, 1221, commit_first=True).score()
+    clean = sweep(monitor(ch, runs={RUN: RUN}), ch, T0, ms(run.t))
+    for b in ch.batches[::20]:  # watch_jsonl.py stores a batch of blank lines as steps 0..0
+        ch.batches.append({**b, "first_step": 0, "last_step": 0, "lines": 0, "seen_ms": b["seen_ms"] + 500,
+                           "start_offset": b["start_offset"] + 10**6})
+    noisy = sweep(monitor(ch, runs={RUN: RUN}), ch, T0, ms(run.t))
+    assert [(c.train_step, c.lag_ms) for _, c in noisy] == [(c.train_step, c.lag_ms) for _, c in clean]
+
+
 def test_an_unmapped_resume_segment_looks_like_a_stopped_run():
     ch = FakeClickHouse()
     run = Run(ch).train(1, 546, commit_first=True, killed=True)
@@ -401,6 +441,24 @@ def test_rows_match_the_table_and_mark_the_page():
     page_row = next(row for row in ch.checks if row["paged"])
     assert page_row["over_limit"] == 1 and page_row["train_runs"] == [RUN] and "behind" in page_row["detail"]
     assert all(row["detail"] == "" for row in ch.checks if not row["over_limit"])
+
+
+def test_a_page_row_that_failed_to_save_is_written_next_time():
+    ch = FakeClickHouse()
+    Run(ch).train(1, 1221, commit_first=True).score(skip=lambda s: s > T0 / 1000 + 300)
+    mon = monitor(ch, runs={RUN: RUN})
+    ch.now_ms = T0 + 1_400_000
+    checks = mon.check(ch.now_ms)
+    assert [c.paged for c in checks] == [True]
+    ch.error = TimeoutError("insert timed out")
+    with pytest.raises(TimeoutError):
+        mon.save(checks, ch.now_ms)
+    ch.error, ch.now_ms = None, ch.now_ms + 60_000
+    later = mon.check(ch.now_ms)
+    assert [c.paged for c in later] == [False]  # the page fires once ...
+    assert mon.save(later, ch.now_ms) == 2  # ... so its row goes with the next save, at its own time
+    assert [(row["paged"], to_ms(row["checked_at"])) for row in ch.checks] == [(1, T0 + 1_400_000),
+                                                                             (0, T0 + 1_460_000)]
 
 
 def test_no_write_only_reads():
@@ -573,7 +631,7 @@ def test_cli_startup_line_gives_the_settings_without_the_password(capsys):
     main(argv, exec_fn=FakeClickHouse(), now_ms=lambda: T0)
     first = capsys.readouterr().err.splitlines()[0]
     assert first.startswith(_format_utc(datetime.fromtimestamp(T0 / 1000, tz=timezone.utc)) + " eval_lag: ")
-    assert "http://alarm:***@ch.example:8123" in first and "hunter2" not in first
+    assert "eval_lag: http://ch.example:8123, limit" in first and "hunter2" not in first
     assert f"limit 1,200 s (2 x 600 s), label tier-a, runs {RUN}={RUN}, {RESUME}={RUN}," in first
     assert first.endswith("eval_lag_checks off, once")
 
@@ -638,15 +696,20 @@ def test_grafana_panels_read_only_eval_lag_checks_columns():
             a0, b0, a1, b1 = box(other)
             assert other is new or x1 <= a0 or a1 <= x0 or y1 <= b0 or b1 <= y0, (new["id"], other["id"])
 
+    # Their own run list: $eval_run comes from eval_mini, so it lacks a run whose watcher never started.
+    variables = {v["name"]: v for v in dashboard["templating"]["list"]}
+    assert variables["lag_run"]["query"] == "SELECT DISTINCT run_id FROM eval_lag_checks ORDER BY run_id"
+    assert variables["lag_run"]["multi"] and variables["lag_run"]["includeAll"]
+
     columns = set(re.findall(r"^\s+([a-z_]+)\s+[A-Z]", TABLE_SQL.read_text(encoding="utf-8"), flags=re.M))
-    allowed = columns | {"eval_lag_checks", "eval_run", "time", "series", "value", "concat", "count", "max"}
+    allowed = columns | {"eval_lag_checks", "lag_run", "time", "series", "value", "concat", "count", "max"}
     source = {"type": "grafana-clickhouse-datasource", "uid": "${ds}"}
     for p in panels.values():
         assert p["datasource"] == source
         for target in p["targets"]:
             sql = target["rawSql"]
             assert target["datasource"] == source
-            assert re.search(r"FROM eval_lag_checks WHERE (paged = 1 AND )?run_id IN \(\$eval_run\)", sql), sql
+            assert re.search(r"FROM eval_lag_checks WHERE (paged = 1 AND )?run_id IN \(\$lag_run\)", sql), sql
             assert ("$__timeFilter(checked_at)" in sql) == (p["id"] != 31)  # the stat looks at the newest row only
             words = set(re.findall(r"\b[a-z][a-z_]*\b", re.sub(r"'[^']*'", "", sql)))
             assert words <= allowed, words - allowed  # a misspelt column fails here, before any Grafana sees it
@@ -655,8 +718,8 @@ def test_grafana_panels_read_only_eval_lag_checks_columns():
 # --- live ClickHouse (CI: GitHub Actions with clickhouse-server 24.8) -----------------------------------------------
 
 def grafana_sql(sql, runs, start_ms, end_ms):
-    """A panel's rawSql with Grafana's $eval_run and $__timeFilter(checked_at) filled in."""
-    return (sql.replace("$eval_run", ", ".join(f"'{r}'" for r in runs))
+    """A panel's rawSql with Grafana's $lag_run and $__timeFilter(checked_at) filled in."""
+    return (sql.replace("$lag_run", ", ".join(f"'{r}'" for r in runs))
                .replace("$__timeFilter(checked_at)", f"checked_at >= toDateTime({start_ms // 1000}) "
                                                      f"AND checked_at <= toDateTime({end_ms // 1000 + 1})"))
 

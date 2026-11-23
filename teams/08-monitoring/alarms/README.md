@@ -93,9 +93,10 @@ python -m pytest teams/08-monitoring/alarms/tests/test_eval_lag.py -q
 |---|---|
 | Normal | Lag = training time from the batch that reached the newest Tier A step to the newest batch. Worst case about 1,000 s: up to 600 s to the next commit, then Tier B and Tier A on the shared slot, then the load. |
 | Watcher stopped or slow | `rule: eval_lag`, `severity: page` once the lag passes the limit. One page per episode; it re-arms when the lag drops back. |
-| Planned failure (kill and restore) | A batch that starts at or below the previous batch's last step starts a new pass. Only the newest pass counts, so downtime and redone steps don't page. While training is behind the newest Tier A step, the lag is 0. |
+| Planned failure (kill and restore) | A batch that starts at or below the last step before it is a restore to step R. The training after R was lost: it and the downtime don't count, so the planned failure doesn't page. The training up to R still counts, so a restore doesn't wipe out a lag that was building: a dead watcher still pages on time, and only once. While training is behind the newest Tier A step, the lag is 0. |
 | Trainer pause | A gap between two batches counts as at most `--pause-s` (default: half an interval). |
-| No Tier A row yet | The lag runs from the first batch. With `--run`, a run whose watcher never started pages at the limit. |
+| No Tier A row yet | The lag runs from the run's first batch. With `--run`, a run whose watcher never started pages at the limit. |
+| Blank lines in `metrics.jsonl` | Ignored: `watch_jsonl.py` stores such a batch as steps 0..0, which would look like a restore to step 0. |
 | Run finished or died | Not checked once its newest batch is older than `--live-s` (default: the limit). |
 | Tier A on every k-th commit only | Pass `--intervals k+1`. |
 
@@ -105,25 +106,27 @@ page. `--interval-s` has no default: the main run's interval is not dry run 2's.
 **Output.** A page is one JSON line on stdout with the keys of `alarms.py` events (`step`, `metric`, `rule`, `severity`,
 `detail`, plus `run_id`, `eval_step`, `lag_s`, `threshold_s`). Each check prints a status line per run on stderr and
 writes one row per run to `eval_lag_checks` (`clickhouse/eval_lag_checks.sql`, created on start; `--no-write` skips
-it). `--once` exits 1 on a page and 2 on a ClickHouse error.
+it). A page row that fails to write is written with the next check, so Grafana never misses a page. `--once` exits 1
+on a page and 2 on any error (never 1 for an error).
 
 **Grafana.** TSAI returns job logs only after a job ends, so `eval_lag_checks` is how the lag shows during a run.
-`grafana/private_v1.json` has three panels for it, below panel 28 and filtered by `$eval_run`:
+`grafana/private_v1.json` has three panels for it, below panel 28. They use their own variable, `$lag_run` (the runs in
+`eval_lag_checks`), because `$eval_run` comes from `eval_mini` and so lacks a run whose watcher never started:
 
 | Panel | Shows |
 |---|---|
 | 29, Eval-watcher lag | lag and limit per run, over time |
 | 30, Lag alarm pages | each page, newest first |
-| 31, Lag alarm: seconds since last check | red after 300 s: while a run trains, the alarm writes a row every poll, so a growing number means the alarm stopped |
+| 31, Lag alarm: seconds since last check | red after 300 s (5 polls). The alarm writes a row every poll only while a run trains, so during training a growing number or "no check yet" means the alarm is not running |
 
-**Running it.** Run one alarm per ClickHouse, for as long as training runs; it needs CPU only and the ClickHouse HTTP URL
-with insert rights on `eval_lag_checks`. Each stderr line starts with the UTC time, and the first gives the settings
-(no password). An error never stops `--poll`: a ClickHouse error is one line, anything else is logged with its
-traceback, and the alarm tries again at the next poll. Each check reads only the batches since the newest Tier A step
-(one batch per 10-step flush, so a few dozen rows); while a page is unresolved that grows by 80 to 200 rows per hour
-of training (4.4 s or 1.9 s per step). Clock skew
-between the `watch_jsonl.py` host and the alarm host only shifts when a run counts as training: the lag itself uses
-`seen_at` alone.
+**Running it.** Run one alarm per ClickHouse, for as long as training runs. It needs CPU only and the ClickHouse HTTP
+URL with insert rights on `eval_lag_checks`; like `load_jsonl.py`, it sends no login, so the URL must not need one.
+Each stderr line starts with the UTC time, and the first gives the settings. An error never stops `--poll`: a
+ClickHouse error is one line, anything else is logged with its traceback, and the alarm tries again at the next poll.
+A check reads the batches since the newest Tier A step (one batch per 10-step flush: a few dozen rows); before a
+run's first Tier A row, and while a page is unresolved, that grows by 80 to 200 rows per hour of training (4.4 s or
+1.9 s per step). Clock skew between the `watch_jsonl.py` host and the alarm host only shifts when a run counts as
+training: the lag itself uses `seen_at` alone.
 
 **Results** (`tests/test_eval_lag.py`, offline; checks every 30 s, every 60 s in the replay):
 
@@ -134,12 +137,15 @@ between the `watch_jsonl.py` host and the alarm host only shifts when a run coun
 | Watcher stops twice | 2, at lag 1,232 s each | - |
 | Only Tier B and Tier C rows | 1 | - |
 | Kill 594 s after a commit, 300 s down, resumed under a new or the same run id | 0 | 792 s (1,642 s if each step were timed when first reached, as `metrics_raw` keeps it) |
+| Tier A dies, then the same kill and restore (before or after the page) | 1, on time; the restore doesn't re-arm it | - |
+| Blank-line batches (steps 0..0) mixed in | same checks as without them | - |
 | 15-minute trainer pause | 0 | 884 s (1,296 s counting the pause in full) |
 | No Tier A row, with `--run` | 1, at lag 1,232 s | - |
 | Real dry run 1 log at real pace through `watch_jsonl.Watcher`, killed at step 926, resumed from 612 into a new folder | 0 | 757 s |
 | Same, Tier A stops after step 0 | 1, at lag 1,230 s | - |
 
 **Limits.** Needs `watch_jsonl.py` streaming the run into the same ClickHouse. A run that ends with its last commit
-unscored is not paged; the eval watcher's exit code covers that. The tests use a fake ClickHouse, so the three
-queries (core functions only: `argMax`, `position`, `toUnixTimestamp64Milli`) and the table have not yet run on a
-live ClickHouse; a `replay_jsonl.py` + `watch_jsonl.py` run with Team 9's eval rows is the next check.
+unscored is not paged; the eval watcher's exit code covers that. The offline tests use a fake ClickHouse;
+`test_live_clickhouse_end_to_end` runs the real loaders, the alarm, its table, the CLI and the panel queries on a real
+ClickHouse when `CLICKHOUSE_URL` is set (`CLICKHOUSE_URL=http://127.0.0.1:8123 python -m pytest
+teams/08-monitoring/alarms/tests/test_eval_lag.py -rs`, with ClickHouse as in `clickhouse/README.md` section 1).

@@ -25,13 +25,15 @@ Where the numbers come from
 
 How the lag is measured
 - The lag is the training time from the batch that reached the newest Tier A step to the newest batch.
-- Restore: a batch whose first step is at or below the previous batch's last step starts a new pass (the trainer
-  went back to a commit). Only the newest pass counts, so the downtime and the redone steps of a planned failure
-  don't page. While training is still behind the newest Tier A step (restored further back), the lag is 0.
+- Restore: a batch whose first step is at or below the last step before it means the trainer went back to its
+  commit at step R. The training after R was lost: it and the downtime don't count, so a planned failure doesn't
+  page. The training up to R still counts, so a restore doesn't wipe out a lag that was building: a dead watcher
+  still pages on time, and only once. While training is behind the newest Tier A step, the lag is 0.
 - Pause: a gap between two batches counts as at most --pause-s (default: half an interval), so a stalled trainer
   is not reported as an eval problem (`continuity_rules.py` loader_stall covers stalls).
-- No Tier A row yet: the lag runs from the first batch of the pass, so with --run, a run whose watcher never
-  started pages 2 intervals in.
+- No Tier A row yet: the lag runs from the run's first batch, so with --run, a run whose watcher never started pages
+  2 intervals in.
+- Batches of blank lines (stored as steps 0..0) are ignored.
 
 When it pages
 - Only while the run trains: its newest batch is at most --live-s old (default: the limit). A run that finished or
@@ -57,6 +59,7 @@ from __future__ import annotations
 
 import argparse
 from datetime import datetime, timezone
+import http.client
 import json
 import math
 from pathlib import Path
@@ -75,8 +78,9 @@ TABLE = "eval_lag_checks"
 TABLE_SQL = CLICKHOUSE_DIR / f"{TABLE}.sql"
 RULE = "eval_lag"
 EXIT_OK, EXIT_PAGE, EXIT_ERROR = 0, 1, 2
-# A failed check: ClickHouse down, timeout, rejected SQL (RuntimeError, incl. EvalLagError) or an unexpected answer.
-CHECK_ERRORS = STOP_ERRORS + (OSError, ValueError)
+# A failed check: ClickHouse down, timeout, a bad URL, rejected SQL (RuntimeError, incl. EvalLagError) or an
+# unexpected answer. Anything else is a bug and is logged with its traceback.
+CHECK_ERRORS = STOP_ERRORS + (OSError, ValueError, http.client.HTTPException)
 MISSING_TABLE_HINTS = (
     ("ingest_batches", "is clickhouse/watch_jsonl.py streaming the run into this ClickHouse?"),
     ("eval_mini", "is clickhouse/schema_v1.sql applied (load_jsonl.py creates it)?"),
@@ -98,29 +102,33 @@ class Batch(NamedTuple):
 
 
 def active_lag_ms(batches: Sequence[Batch], eval_step: int | None, pause_ms: int) -> int:
-    """Training time in ms from the batch that reached `eval_step` (the newest Tier A step) to the newest batch.
+    """Training time in ms, not lost to a restore, from the batch that reached `eval_step` to the newest batch.
 
-    `batches` are one run's batches in `seen_at` order. Only the newest pass counts (a pass ends where a batch starts
-    at or below the previous batch's last step). Each gap between two batches counts as at most `pause_ms`. With no
-    Tier A step, the lag runs from the start of the pass; while training is behind `eval_step`, it is 0.
+    `batches` are one run's batches in training order. A batch that starts at or below the last step before it is a
+    restore to step R = its first step - 1: the steps after R were lost, so the batches after R are dropped (one that
+    straddles R is cut at R), and the gap across the restore (the downtime) counts 0. Every other gap between two
+    batches counts as at most `pause_ms`. So a restore neither adds to the lag nor wipes out what built up before R.
+    `eval_step` None (no Tier A row yet) measures from the first batch; training behind `eval_step` gives 0.
 
     Batches with `last_step < eval_step` may be left out, as the alarm does, if the newest batch is kept: within a
-    pass steps only grow, and after a restore the first kept batch starts at or below `eval_step`, which is at or
-    below the last step of every kept batch before it, so the same pass start and the same lag are found.
+    pass steps only grow, so the batches left out come before the one that reached `eval_step`; and after a restore,
+    the first batch kept starts at or below `eval_step`, so it is seen as a restore too and cuts the same batches, or
+    ones that are cut below `eval_step` and so never start the lag.
     """
-    if not batches:
-        return 0
-    start = 0
-    for i in range(1, len(batches)):
-        if batches[i].first_step <= batches[i - 1].last_step:
-            start = i  # the trainer went back to a commit: a new pass starts here
-    if eval_step is not None:
-        if batches[-1].last_step < eval_step:
-            return 0  # restored to before the newest scored step: nothing new to score yet
-        while batches[start].last_step < eval_step:
-            start += 1  # stops at the newest batch at the latest
-    return sum(min(max(batches[i].seen_ms - batches[i - 1].seen_ms, 0), pause_ms)
-               for i in range(start + 1, len(batches)))
+    kept: list[tuple[Batch, bool]] = []  # (batch, first batch after a restore)
+    for batch in batches:
+        restored = bool(kept) and batch.first_step <= kept[-1][0].last_step
+        if restored:
+            while kept and kept[-1][0].first_step >= batch.first_step:
+                kept.pop()  # lost: the trainer redoes these steps after the restore
+            if kept and kept[-1][0].last_step >= batch.first_step:
+                kept[-1] = (kept[-1][0]._replace(last_step=batch.first_step - 1), kept[-1][1])
+        kept.append((batch, restored))
+    if not kept or (eval_step is not None and kept[-1][0].last_step < eval_step):
+        return 0  # nothing yet, or restored to before the newest scored step: nothing new to score
+    start = 0 if eval_step is None else next(i for i, (b, _) in enumerate(kept) if b.last_step >= eval_step)
+    return sum(0 if restored else min(max(batch.seen_ms - kept[i - 1][0].seen_ms, 0), pause_ms)
+               for i, (batch, restored) in enumerate(kept[start + 1:], start + 1))
 
 
 def _seconds(ms: int | None) -> float | None:
@@ -229,6 +237,7 @@ class EvalLagMonitor:
         self.waiting: tuple[str, ...] = ()  # eval runs named by `runs` with no ingest_batches row yet
         self._fired: set[str] = set()
         self._table_ready = False
+        self._unsaved_pages: list[dict] = []  # page rows a failed save could not write
 
     def check(self, now_ms: int) -> list[RunCheck]:
         """One check of every run. Raises on a ClickHouse error, before any page state changes."""
@@ -268,15 +277,24 @@ class EvalLagMonitor:
         return checks
 
     def save(self, checks: Sequence[RunCheck], now_ms: int) -> int:
-        """Write one `eval_lag_checks` row per live check; creates the table first. Returns the rows written."""
+        """Write one `eval_lag_checks` row per live check; creates the table first. Returns the rows written.
+
+        A page row that could not be written is kept and sent with the next save: the page fires only once, so
+        without it Grafana would never show that page.
+        """
         if not self.write:
             return 0
-        if not self._table_ready:
-            self._create_table()
-        rows = [c.row(now_ms) for c in checks if c.live]
-        if rows:
-            body = "".join(json.dumps(r, separators=(",", ":")) + "\n" for r in rows).encode("utf-8")
-            self._exec(f"INSERT INTO {TABLE} FORMAT JSONEachRow", data=body)
+        rows = self._unsaved_pages + [c.row(now_ms) for c in checks if c.live]
+        try:
+            if not self._table_ready:
+                self._create_table()
+            if rows:
+                body = "".join(json.dumps(r, separators=(",", ":")) + "\n" for r in rows).encode("utf-8")
+                self._exec(f"INSERT INTO {TABLE} FORMAT JSONEachRow", data=body)
+        except BaseException:
+            self._unsaved_pages = [r for r in rows if r["paged"]]
+            raise
+        self._unsaved_pages = []
         return len(rows)
 
     def _create_table(self) -> None:
@@ -310,10 +328,14 @@ class EvalLagMonitor:
         return [line.split("\t") for line in out.splitlines() if line]
 
     def _newest_batches(self) -> dict[str, tuple[int, int]]:
-        """Training run id -> (newest seen_at in ms, the last step of that batch)."""
-        where = f" WHERE run_id IN {_sql_list(self.runs)}" if self.runs else ""
+        """Training run id -> (newest seen_at in ms, the last step of that batch).
+
+        `lines > 0` here and in `_batches`: a batch of blank lines is stored with steps 0..0, which would read as a
+        restore to step 0.
+        """
+        where = f" AND run_id IN {_sql_list(self.runs)}" if self.runs else ""
         rows = self._select("SELECT run_id, toUnixTimestamp64Milli(max(seen_at)), argMax(last_step, seen_at) "
-                            f"FROM ingest_batches{where} GROUP BY run_id")
+                            f"FROM ingest_batches WHERE lines > 0{where} GROUP BY run_id")
         return {run: (int(ms), int(step)) for run, ms, step in rows}
 
     def _newest_scores(self) -> dict[str, tuple[int, int]]:
@@ -332,7 +354,8 @@ class EvalLagMonitor:
         where = " OR ".join(f"(run_id IN {_sql_list(members)} AND last_step >= {int(low)})"
                             for members, low in to_read.values())
         rows = self._select("SELECT run_id, toUnixTimestamp64Milli(seen_at), first_step, last_step "
-                            f"FROM ingest_batches WHERE {where} ORDER BY seen_at, start_offset")
+                            f"FROM ingest_batches WHERE lines > 0 AND ({where}) "
+                            "ORDER BY seen_at, source_file, start_offset")
         owner = {member: run for run, (members, _) in to_read.items() for member in members}
         out: dict[str, list[Batch]] = {run: [] for run in to_read}
         for train, ms, first, last in rows:
@@ -353,13 +376,11 @@ def _describe(exc: BaseException) -> str:
 
 
 def _safe_url(url: str) -> str:
-    """The URL without a password, for the log."""
+    """The URL without a user or password, for the log (`ch_Exec` sends no login, so none should be there)."""
     parts = urllib.parse.urlsplit(url)
-    if parts.password is None:
+    if "@" not in parts.netloc:
         return url
-    host = parts.hostname or ""
-    netloc = f"{parts.username}:***@{host}" + (f":{parts.port}" if parts.port else "")
-    return urllib.parse.urlunsplit(parts._replace(netloc=netloc))
+    return urllib.parse.urlunsplit(parts._replace(netloc=parts.netloc.rsplit("@", 1)[1]))
 
 
 def run_check(monitor: EvalLagMonitor, now_ms: int) -> tuple[bool, str | None]:
