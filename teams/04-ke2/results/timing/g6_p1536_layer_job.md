@@ -12,14 +12,15 @@ Stage the frozen p1536 `tokenizer.json` at `/inputs/p1536/tokenizer.json`
 and the original G6-pinned tokenizer at `/inputs/g6-baseline/tokenizer.json`
 (SHA-256 `01d968a7970b029c071b29f060abf6104b66168dedf2ff3b1a0290a545739fff`).
 The public p1536 P=32 table is in `teams/04-ke2/results/tables/p1536-s0/`.
-Run from the class repository root; capture the public checkout SHA and GPU name.
+Run `cd teams/06-performance` first, then use the commands below from that
+directory. Capture the public checkout SHA and GPU name.
 
 ## Smoke
 
 ```sh
-ERA_PERF_CACHE=/outputs/g6-cache python -B teams/04-ke2/src/timing/g6_p1536_bench.py --tokenizer /inputs/p1536/tokenizer.json --table teams/04-ke2/results/tables/p1536-s0/raw_table_P32.npz --g6-root teams/06-performance --arm ke2 --device cuda --tag g4_p1536_ke2_smoke --out-dir /outputs/g6 --warmup 1 --steps 3 --trace
-ERA_PERF_CACHE=/outputs/g6-cache python -B teams/04-ke2/src/timing/g6_p1536_bench.py --tokenizer /inputs/p1536/tokenizer.json --table teams/04-ke2/results/tables/p1536-s0/raw_table_P32.npz --g6-root teams/06-performance --arm dense-tied --device cuda --tag g4_p1536_dense_smoke --out-dir /outputs/g6 --warmup 1 --steps 3 --trace
-ERA_PERF_CACHE=/outputs/g6-cache PYTHONPATH=teams/06-performance python -B -m perfkit.bench --config teams/06-performance/configs/base.yaml --modes clean,layer,trace --level 3 --warmup 1 --steps 3 --tag g4_old_dense_smoke run.device=cuda run.dtype=fp32 run.batch_size=2 data.source=synthetic data.tokenizer_path=/inputs/g6-baseline/tokenizer.json model.embedding=table model.tie_embeddings=true model.block_size=16 model.n_layer=1 model.n_head=4 model.n_kv_head=4 model.n_embd=64 model.reversible=false optim.name=adamw model.ffn=mlp model.ce_impl=torch bench.out_dir=/outputs/g6
+ERA_PERF_CACHE=/outputs/g6-cache python -B ../04-ke2/src/timing/g6_p1536_bench.py --tokenizer /inputs/p1536/tokenizer.json --table ../04-ke2/results/tables/p1536-s0/raw_table_P32.npz --g6-root . --arm ke2 --device cuda --tag g4_p1536_ke2_smoke --out-dir /outputs/g6 --warmup 1 --steps 3 --trace
+ERA_PERF_CACHE=/outputs/g6-cache python -B ../04-ke2/src/timing/g6_p1536_bench.py --tokenizer /inputs/p1536/tokenizer.json --table ../04-ke2/results/tables/p1536-s0/raw_table_P32.npz --g6-root . --arm dense-tied --device cuda --tag g4_p1536_dense_smoke --out-dir /outputs/g6 --warmup 1 --steps 3 --trace
+ERA_PERF_CACHE=/outputs/g6-cache python -B -m perfkit.bench --config configs/base.yaml --modes clean,layer,trace --level 3 --warmup 1 --steps 3 --tag g4_old_dense_smoke run.device=cuda run.dtype=fp32 run.batch_size=2 data.source=synthetic data.tokenizer_path=/inputs/g6-baseline/tokenizer.json model.embedding=table model.tie_embeddings=true model.block_size=16 model.n_layer=1 model.n_head=4 model.n_kv_head=4 model.n_embd=64 model.reversible=false optim.name=adamw model.ffn=mlp model.ce_impl=torch bench.out_dir=/outputs/g6
 ```
 
 Proceed only if all three exit 0 and their JSON metadata reports the intended
@@ -30,9 +31,9 @@ adapter also verifies the table content SHA-256
 ## Measurement
 
 ```sh
-ERA_PERF_CACHE=/outputs/g6-cache python -B teams/04-ke2/src/timing/g6_p1536_bench.py --tokenizer /inputs/p1536/tokenizer.json --table teams/04-ke2/results/tables/p1536-s0/raw_table_P32.npz --g6-root teams/06-performance --arm ke2 --device cuda --tag g4_p1536_ke2_full --out-dir /outputs/g6 --warmup 10 --steps 100 --trace
-ERA_PERF_CACHE=/outputs/g6-cache python -B teams/04-ke2/src/timing/g6_p1536_bench.py --tokenizer /inputs/p1536/tokenizer.json --table teams/04-ke2/results/tables/p1536-s0/raw_table_P32.npz --g6-root teams/06-performance --arm dense-tied --device cuda --tag g4_p1536_dense_full --out-dir /outputs/g6 --warmup 10 --steps 100 --trace
-ERA_PERF_CACHE=/outputs/g6-cache PYTHONPATH=teams/06-performance python -B -m perfkit.bench --config teams/06-performance/configs/base.yaml --modes clean,layer,trace --level 3 --warmup 10 --steps 100 --tag g4_old_dense_full run.device=cuda run.dtype=fp32 run.batch_size=2 data.source=synthetic data.tokenizer_path=/inputs/g6-baseline/tokenizer.json model.embedding=table model.tie_embeddings=true model.block_size=16 model.n_layer=1 model.n_head=4 model.n_kv_head=4 model.n_embd=64 model.reversible=false optim.name=adamw model.ffn=mlp model.ce_impl=torch bench.out_dir=/outputs/g6
+ERA_PERF_CACHE=/outputs/g6-cache python -B ../04-ke2/src/timing/g6_p1536_bench.py --tokenizer /inputs/p1536/tokenizer.json --table ../04-ke2/results/tables/p1536-s0/raw_table_P32.npz --g6-root . --arm ke2 --device cuda --tag g4_p1536_ke2_full --out-dir /outputs/g6 --warmup 10 --steps 100 --trace
+ERA_PERF_CACHE=/outputs/g6-cache python -B ../04-ke2/src/timing/g6_p1536_bench.py --tokenizer /inputs/p1536/tokenizer.json --table ../04-ke2/results/tables/p1536-s0/raw_table_P32.npz --g6-root . --arm dense-tied --device cuda --tag g4_p1536_dense_full --out-dir /outputs/g6 --warmup 10 --steps 100 --trace
+ERA_PERF_CACHE=/outputs/g6-cache python -B -m perfkit.bench --config configs/base.yaml --modes clean,layer,trace --level 3 --warmup 10 --steps 100 --tag g4_old_dense_full run.device=cuda run.dtype=fp32 run.batch_size=2 data.source=synthetic data.tokenizer_path=/inputs/g6-baseline/tokenizer.json model.embedding=table model.tie_embeddings=true model.block_size=16 model.n_layer=1 model.n_head=4 model.n_kv_head=4 model.n_embd=64 model.reversible=false optim.name=adamw model.ffn=mlp model.ce_impl=torch bench.out_dir=/outputs/g6
 ```
 
 Report `clean.step_ms`, `metrics.tokens_per_s`,
