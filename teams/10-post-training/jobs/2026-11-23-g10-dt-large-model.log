@@ -29,3 +29,23 @@ Final line: {"summary": ".../out/ladder_summary.json", "complete": true, "not_ok
 
 Exec scoring path (after the job): G10_SURROGATE_PROFILE=qwen3 python sft/bench/evaluate.py --score-exec --generations <8b/dtm/test.gens.jsonl> --exec-tasks <slice-v1 test.exec.jsonl> --exec-limit 3 --out exec.json
 -> exec: problems 3, passed 0, reasons {'no code block': 3}, runner docker (random-model text has no code block; the sandbox itself was exercised by the 1.7B table)
+
+== Kaggle T4 measurement (23 Nov 2026, kernel dtl-t4-measure-t4, 1 Tesla T4, 6,558 s) ==
+torch 2.11.0+cu130, transformers 5.20.2, Python 3.13. run_ladder.py with the same train.py/evaluate.py, profile qwen3.
+Qwen3-0.6B-Base @ da87bfb608c1 (dt, dtm, lora, full), Qwen3-1.7B-Base @ ea980cb0a6c2 (base, lora, dt); steps 20, batch 8,
+micro_tokens 2048, autocast bf16, grad checkpointing; eval bpb (300 rows) + format (16 prompts), token_budget 8192, dtype auto -> float32.
+
+| arm | status | train s (20 steps) | peak alloc MiB | peak reserved MiB | checks | test bpb | format |
+|---|---|---|---|---|---|---|---|
+| 0.6b/dt | ok | 519.7 | 7082.2 | 10606.0 | writeback_step1, frozen_weights_unchanged, bake_parity, reload_parity = True | 0.4099 | 0/16 (no_im_end) |
+| 0.6b/dtm | ok | 542.3 | 8867.7 | 10608.0 | same, all True | 0.4077 | 0/16 |
+| 0.6b/lora | ok | 558.6 | 5763.9 | 14684.0 | writeback_step1, frozen_weights_unchanged, reload_parity = True | 0.4128 | 0/16 |
+| 0.6b/full | ok | 604.0 | 12944.8 | 14728.0 | writeback_step1, reload_parity = True | 0.4145 | 0/16 |
+| 1.7b/lora | failed_eval | 1277.8 | 10587.6 | 14758.0 | writeback_step1, frozen_weights_unchanged, reload_parity = True | OOM in bpb pass (fp32) | |
+| 1.7b/dt | failed_train | | | | CUDA OOM in backward (memory model predicted 16.7 GB) | | |
+| 1.7b/base | failed_eval | | | | OOM in bpb pass (fp32) | | |
+
+0.6b/dt deletion: 0.82% of gate_proj weights (0.18% at init); mask artifact 1.04 MB compressed.
+Memory model at micro 2048 (decimal GB, predicted / measured): 0.6b full 13.1/13.57, lora 6.0/6.04, dt 7.4/7.43, dtm 9.2/9.30; 1.7b lora 11.0/11.10.
+Final line: {"summary": "/kaggle/working/out/ladder_summary.json", "complete": false, "not_ok": ["1.7b/base", "1.7b/lora", "1.7b/dt"]}
+Generations were returned privately and are not in Git. 20 steps: no number here is a result.

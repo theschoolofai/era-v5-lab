@@ -11,7 +11,7 @@ Config:          teams/10-post-training/dt/ladder_qwen3.yaml
 Seed:            1 (row order, LoRA init)
 Inputs:          pinned by sha256 in the table below, under ./inputs/: Qwen/Qwen3-8B-Base @ 49e3418f and Qwen/Qwen3-4B-Base @ 906bfd4b (Apache-2.0, public), and inputs/g10-dtl/slice-v1-qwen3/ (two files, 62 MB, private bundle)
 Packages:        Python 3.12, torch (CUDA build), transformers with Qwen3 support (CPU log: 5.22.1), tokenizers, numpy, pyyaml, safetensors
-Hardware:        1 GPU, NVIDIA H200 (141 GB), the GPU of TSAI's returned Team 5 runs. Full fine-tuning of 8B with FP32 AdamW needs about 141 GB by our memory model, so an 80 GB A100/H100 cannot run the two 8B full arms or 8B DT+m (99 GB); every 4B arm and 8B LoRA/DT fit 80 GB
+Hardware:        1 GPU, NVIDIA H200 (141 GB), the GPU of TSAI's returned Team 5 runs. Full fine-tuning of 8B with FP32 AdamW needs about 141 GB by our memory model, so an 80 GB A100/H100 cannot run the two 8B full arms or 8B DT+m (99 GB); every 4B arm and 8B LoRA/DT fit 80 GB. The 8B full arms are tight even on the H200 (margin a few GB at most); if one runs out of memory it is recorded and the ladder goes on
 Max time:        540 minutes (estimate below: about 7.8 h; 8B runs first, so a time limit still returns the 8B arms)
 Precision:       training FP32 weights / gradients / AdamW state with BF16 autocast (as the 1.7B table); evaluation BF16 autocast (evaluate.py --dtype auto)
 Measures:        per arm: format validity on 110 held-out prompts with failure reasons, test target bits per byte, forgetting (bits per byte on G5 held-out v1), DT deletion fraction, step time, peak memory; writeback / frozen-weight / bake / reload checks
@@ -51,8 +51,10 @@ rule, what does not transfer) was written before any Qwen3 run and is summarised
 
 ## Time and memory estimate (estimates; the basis is stated for each number)
 
-Memory (GB, by the bench runner's model: FP32 storage of every weight, AdamW FP32 moments; calibrated on the measured 1.7B L40S
-peaks, where it over-predicts by 1 to 3 GB; DT arms include the regulariser step, which keeps three FP32 temporaries per gate weight):
+Memory (GB, by the bench runner's model: FP32 storage of every weight, AdamW FP32 moments; DT arms include the regulariser step,
+which keeps three FP32 temporaries per gate weight). Checked on Qwen3 itself on the Kaggle T4 (section below): measured peak allocated
+memory was within 0.5 GB of the prediction for all five arms that ran (the model was low by up to 3.6%, on full FT), and the 1.7B DT
+arm it predicted over the T4 ran out of memory. On SmolLM2-1.7B (L40S) it over-predicted by 1 to 3 GB.
 
 | model | full | LoRA | DT | DT+m |
 |---|---|---|---|---|
@@ -72,6 +74,29 @@ way from the measured 1.7B times (bpb 60 s, format 495 s, forgetting 306 s), plu
 
 About 7.8 h in all. If TSAI prefers shorter jobs, `--sizes 8b` (about 4.8 h) and `--sizes 4b,4b-steps` (about 3.1 h) run the same
 config as two jobs with one output folder.
+
+## Kaggle T4 measurement (free, 23 Nov; this job's code path on CUDA, not a result)
+
+The same `run_ladder.py`, `train.py` and `evaluate.py` on Qwen3-0.6B-Base @ da87bfb6 (dt, dtm, lora, full) and Qwen3-1.7B-Base
+@ ea980cb0 (base, lora, dt): 20 steps x 8 rows, micro_tokens 2048, BF16 autocast, gradient checkpointing, evaluation bpb on 300 test
+rows and format on 16 prompts (token_budget 8192). 1 Tesla T4 used, 109 min.
+
+| arm | status | step time (s) | peak allocated (GB) | predicted (GB) | checks |
+|---|---|---|---|---|---|
+| 0.6b/dt | ok | 26.0 | 7.43 | 7.4 | writeback, frozen weights, bake, reload pass |
+| 0.6b/dtm | ok | 27.1 | 9.30 | 9.2 | writeback, frozen weights, bake, reload pass |
+| 0.6b/lora | ok | 27.9 | 6.04 | 6.0 | writeback, frozen weights, reload pass |
+| 0.6b/full | ok | 30.2 | 13.57 | 13.1 | writeback, reload pass |
+| 1.7b/lora | trained, eval out of memory | 63.9 | 11.10 | 11.0 | writeback, frozen weights, reload pass |
+| 1.7b/dt | train out of memory (predicted 16.7) | | | 16.7 | |
+| 1.7b/base | eval out of memory | | | | |
+
+What it shows: every arm type runs end to end on CUDA with the Qwen3 marker profile, all checks pass, the summary records failed
+arms and the ladder goes on, and the memory model holds on Qwen3. The 1.7B evaluations ran out of memory in the bits-per-byte pass
+because the T4 has no native BF16, so `--dtype auto` evaluates in FP32 (FP32 1.7B weights plus 151,936-wide FP32 logits over 15 GB).
+On the H200 evaluation runs under BF16 autocast with FP32 8B weights (33 GB) and logits of at most 16,384 target positions
+(10 GB in FP32), well under 141 GB; this was estimated, not measured. What it does not show: T4 step times say nothing about H200
+time (BF16 autocast is not native on a T4), and the 20-step format counts (0/16 in every arm) and bits per byte are not results.
 
 ## Stop conditions and recovery
 - An arm that fails (non-zero exit, out of memory, non-finite loss, a failed check) is recorded in `ladder_summary.json` with the

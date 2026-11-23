@@ -105,7 +105,10 @@ def main(argv=None) -> int:
     out = Path(cfg["out"]).resolve()
     out.mkdir(parents=True, exist_ok=True)
     slice_dir = Path(cfg["slice_dir"]).resolve()
-    env = {**os.environ, "G10_SURROGATE_PROFILE": cfg["profile"], "PYTHONUNBUFFERED": "1"}
+    # expandable segments: on the T4 measurement reserved memory ran up to 2.4x the allocated peak (fragmentation), and the
+    # 8B full arm is predicted within a few GB of the H200 capacity
+    env = {**os.environ, "G10_SURROGATE_PROFILE": cfg["profile"], "PYTHONUNBUFFERED": "1",
+           "PYTORCH_CUDA_ALLOC_CONF": os.environ.get("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")}
     py = sys.executable
     sizes = cfg["sizes"]
     if args.sizes:
