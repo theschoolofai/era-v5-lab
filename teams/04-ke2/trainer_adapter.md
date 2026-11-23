@@ -4,22 +4,6 @@ The contract between Team 4 (KE2) and Team 5 (Architecture) for the KE2 path in 
 file. Status: 16 Nov 2026, after dry run 1 (#475). Open items 1 and 2 updated 21 Nov; the output head row and items 3
 and 4 change with the integration PR (`gate3.md`, handoff section).
 
-## Approved integration target (23 Nov 2026)
-
-TSAI approved moving the input to the same 2,048-wide fixed codec used by the output head:
-`d_c = 64`, `L_max = 32`, `D = 2048`. The input projection becomes
-`Linear(2048, d_model, bias=False)`. Input and output keep independent learned projections.
-The shared codec operates on the existing raw token bytes and lengths.
-
-G5 #717 contains the confirmed mean-centered add-one unigram initialization and training-only
-5% row dropout for the rank-64 token correction. The full codec/head adapter is pending its
-supported public integration contract. The implemented trainer still uses the dry run 1 path below.
-
-The integration preserves `LanguageModel(m, rows, lengths)`, `head(hidden)` returning full-vocabulary
-logits, `head.out_features = 131072`, and output trainable parameters under `head.*`. Input parameters
-stay separate. A KAS checkpoint must identify the codec/head version and prior policy so the trainer,
-Team 9 evaluator and downstream callers construct the same model before strict loading.
-
 ## The chosen path
 
 | Item | Value | Source |

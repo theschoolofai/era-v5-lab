@@ -6,18 +6,6 @@ Both P values are supported; P = 32 is recommended and is the path dry run 1 tra
 The capstone output head is the KE2/KAS head (TSAI, 21 Nov, final); see [Output side](#output-side).
 For export and serving (Team 12), see [Export: fold into a normal embedding table](#export-fold-into-a-normal-embedding-table-for-g12).
 
-## Approved 2,048-wide migration (23 Nov 2026)
-
-TSAI approved `d_c = 64`, `L_max = 32`, `D = 2048` for the fixed codec shared by the input and
-KAS output paths. The input code has shape `(B, T, 2048)` and feeds an independent
-`Linear(2048, d_model, bias=False)`. The output head has its own learned projection and returns
-`(B, T, 131072)` logits, or `(N, 131072)` for selected hidden rows. The learned input/output
-projections are untied. Raw byte-table storage remains `(131072, 32)` plus token lengths.
-
-The codec/head integration is pending in G5 #717. The shape and fold sections below describe the
-implemented dry run 1 codec. A V2 fold/export must be validated against the integrated codec/head
-before Team 12 uses it; the existing V1 fold evidence does not establish V2 export correctness.
-
 ## Shape
 
 KE2 replaces the token-embedding table. Each token ID becomes a fixed vector (no learned
