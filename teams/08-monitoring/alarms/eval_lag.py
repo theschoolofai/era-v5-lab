@@ -177,8 +177,8 @@ class RunCheck(NamedTuple):
     def detail(self) -> str:
         lag, limit = _seconds(self.lag_ms) or 0.0, _seconds(self.threshold_ms)
         if self.eval_step is None:
-            return (f"no {self.label} score yet for {self.run_id} after {lag:,.0f} s of training since it started or "
-                    f"restarted (limit {limit:,.0f} s): is the {self.label} eval watcher running?")
+            return (f"no {self.label} score yet for {self.run_id} after {lag:,.0f} s of training (limit "
+                    f"{limit:,.0f} s): is the {self.label} eval watcher running?")
         return (f"{self.label} for {self.run_id} is {lag:,.0f} s of training behind (limit {limit:,.0f} s): newest "
                 f"scored step {self.eval_step}, newest training step {self.train_step}. Is the {self.label} eval "
                 f"watcher running?")
@@ -455,7 +455,7 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
                     help="count a gap between two batches as at most this long (default: half an interval)")
     ap.add_argument("--no-write", action="store_true", help=f"don't create or write {TABLE}")
     mode = ap.add_mutually_exclusive_group()
-    mode.add_argument("--once", action="store_true", help="check once; exit 1 on a page, 2 on a ClickHouse error")
+    mode.add_argument("--once", action="store_true", help="check once; exit 0, 1 on a page, 2 on an error")
     mode.add_argument("--poll", type=_positive, default=60.0, help="seconds between checks (default 60)")
     a = ap.parse_args(argv)
     if not a.label or ":" in a.label:
