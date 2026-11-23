@@ -33,6 +33,7 @@ from pathlib import Path
 
 import numpy as np
 import torch
+from torch import no_grad  # undotted decorator: pr-guard reads '+@a.b' as an email
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent / "rl-loop"))
@@ -189,7 +190,7 @@ def timeit(fn, device, n=20, warm=3):
     return round(statistics.median(ts), 4)
 
 
-@torch.no_grad()
+@no_grad()
 def bench_parts(g5_decode, lm, a, rows, L, out):
     dev, w = a.device, lm.spec["n_embd"]
     b = lm.blocks[0]

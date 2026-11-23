@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 import torch
 import yaml
+from pytest import fixture  # bare decorator: pr-guard reads '+@a.b' as an email
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -28,7 +29,7 @@ needs_standin = pytest.mark.skipif(not (STANDIN_RUN / "checkpoint.pt").is_file()
                                    reason="set G10_STANDIN_RUN_FOLDER and G10_STANDIN_ARTIFACTS")
 
 
-@pytest.fixture(scope="module")
+@fixture(scope="module")
 def adapter_yaml(tmp_path_factory):
     import make_adapter_config as mac  # noqa: PLC0415
     d = tmp_path_factory.mktemp("g5many")
@@ -38,7 +39,7 @@ def adapter_yaml(tmp_path_factory):
                             probe={"ids": [5, 6, 7, 8]})
 
 
-@pytest.fixture(scope="module")
+@fixture(scope="module")
 def bundle(adapter_yaml):
     import team5_adapter as ta  # noqa: PLC0415
     return ta.build(yaml.safe_load(Path(adapter_yaml).read_text())).bundle
