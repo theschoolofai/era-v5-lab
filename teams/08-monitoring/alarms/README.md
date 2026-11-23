@@ -107,18 +107,23 @@ page. `--interval-s` has no default: the main run's interval is not dry run 2's.
 writes one row per run to `eval_lag_checks` (`clickhouse/eval_lag_checks.sql`, created on start; `--no-write` skips
 it). `--once` exits 1 on a page and 2 on a ClickHouse error.
 
-**Grafana.** TSAI returns job logs only after a job ends, so the table is how the lag shows during a run. Panels for
-`private_v1.json` (not added in this PR; `$eval_run` already exists):
+**Grafana.** TSAI returns job logs only after a job ends, so `eval_lag_checks` is how the lag shows during a run.
+`grafana/private_v1.json` has three panels for it, below panel 28 and filtered by `$eval_run`:
 
-```sql
--- Time series: lag and limit per run
-SELECT checked_at AS time, concat(run_id, ' lag (s)') AS series, lag_s AS value FROM eval_lag_checks WHERE run_id IN ($eval_run) AND $__timeFilter(checked_at) ORDER BY time
-SELECT checked_at AS time, concat(run_id, ' limit (s)') AS series, threshold_s AS value FROM eval_lag_checks WHERE run_id IN ($eval_run) AND $__timeFilter(checked_at) ORDER BY time
--- Table: pages
-SELECT checked_at, run_id, train_step, eval_step, lag_s, detail FROM eval_lag_checks WHERE paged = 1 AND run_id IN ($eval_run) AND $__timeFilter(checked_at) ORDER BY checked_at DESC
--- Stat: seconds since the last check of a training run (keeps growing if the alarm stops)
-SELECT dateDiff('second', max(checked_at), now64(3)) AS value FROM eval_lag_checks WHERE run_id IN ($eval_run)
-```
+| Panel | Shows |
+|---|---|
+| 29, Eval-watcher lag | lag and limit per run, over time |
+| 30, Lag alarm pages | each page, newest first |
+| 31, Lag alarm: seconds since last check | red after 300 s: while a run trains, the alarm writes a row every poll, so a growing number means the alarm stopped |
+
+**Running it.** Run one alarm per ClickHouse, for as long as training runs; it needs CPU only and the ClickHouse HTTP URL
+with insert rights on `eval_lag_checks`. Each stderr line starts with the UTC time, and the first gives the settings
+(no password). An error never stops `--poll`: a ClickHouse error is one line, anything else is logged with its
+traceback, and the alarm tries again at the next poll. Each check reads only the batches since the newest Tier A step
+(one batch per 10-step flush, so a few dozen rows); while a page is unresolved that grows by 80 to 200 rows per hour
+of training (4.4 s or 1.9 s per step). Clock skew
+between the `watch_jsonl.py` host and the alarm host only shifts when a run counts as training: the lag itself uses
+`seen_at` alone.
 
 **Results** (`tests/test_eval_lag.py`, offline; checks every 30 s, every 60 s in the replay):
 

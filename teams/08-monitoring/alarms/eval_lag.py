@@ -43,11 +43,12 @@ When it pages
 
 Output
 - A page: one JSON line on stdout, in the event shape of `alarms.py` (step, metric, rule, severity, detail).
-- Each check: one status line per run on stderr, and one row per training run in `eval_lag_checks`
-  (`clickhouse/eval_lag_checks.sql`, created on start; --no-write skips it). Grafana draws the lag from that table
-  during the run (README); a `checked_at` that stops moving while training goes on means the alarm stopped.
-- --once exits 0 (no page), 1 (page) or 2 (ClickHouse error and no page). --poll keeps going after an error and
-  says how long it has gone without a complete check.
+- Each check: one status line per run on stderr, and one row per run in `eval_lag_checks`
+  (`clickhouse/eval_lag_checks.sql`, created on start; --no-write skips it). Grafana shows that table during the run
+  (`grafana/private_v1.json` panels 29 to 31); a `checked_at` that stops moving while training goes on means the
+  alarm stopped. Each stderr line starts with the UTC time; the first one gives the settings (no password).
+- --once exits 0 (no page), 1 (page) or 2 (any error, and no page). --poll keeps going after any error (one that is
+  not a ClickHouse error is logged with its traceback) and says how long it has gone without a complete check.
 
 Needs `watch_jsonl.py` streaming the run into the same ClickHouse; without it the run is never seen training.
 """
@@ -61,7 +62,9 @@ import math
 from pathlib import Path
 import sys
 import time
+import traceback
 from typing import Callable, Iterable, NamedTuple, Sequence
+import urllib.parse
 
 CLICKHOUSE_DIR = Path(__file__).resolve().parents[1] / "clickhouse"
 sys.path.insert(0, str(CLICKHOUSE_DIR))
@@ -337,26 +340,50 @@ class EvalLagMonitor:
         return out
 
 
+def _log(now_ms: int, text: str) -> None:
+    print(f"{_utc(now_ms)} {text}", file=sys.stderr, flush=True)
+
+
+def _describe(exc: BaseException) -> str:
+    """One line for an expected ClickHouse error; the traceback for anything else (a bug to report)."""
+    if isinstance(exc, CHECK_ERRORS):
+        return f"{type(exc).__name__}: {exc}"
+    trace = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__)).rstrip()
+    return f"unexpected {type(exc).__name__}: {exc}\n{trace}"
+
+
+def _safe_url(url: str) -> str:
+    """The URL without a password, for the log."""
+    parts = urllib.parse.urlsplit(url)
+    if parts.password is None:
+        return url
+    host = parts.hostname or ""
+    netloc = f"{parts.username}:***@{host}" + (f":{parts.port}" if parts.port else "")
+    return urllib.parse.urlunsplit(parts._replace(netloc=netloc))
+
+
 def run_check(monitor: EvalLagMonitor, now_ms: int) -> tuple[bool, str | None]:
-    """One check: page events on stdout, status on stderr, rows to ClickHouse. Returns (paged, error or None)."""
+    """One check: page events on stdout, status on stderr, rows to ClickHouse. Returns (paged, error or None).
+
+    It never raises: a crash would end a long-running alarm, and `--once` must not exit 1 (a page) on a bug.
+    """
     try:
         checks = monitor.check(now_ms)
-    except CHECK_ERRORS as exc:
-        return False, f"{type(exc).__name__}: {exc}"
-    for c in checks:
-        if c.paged:
-            print(json.dumps(c.event()), flush=True)
-    for c in checks:
-        print(c.status(now_ms), file=sys.stderr, flush=True)
-    for run in monitor.waiting:
-        trains = sorted(t for t, r in (monitor.runs or {}).items() if r == run)
-        print(f"eval_lag {run}: no ingest_batches rows yet for {', '.join(trains)}: not checked", file=sys.stderr,
-              flush=True)
+    except Exception as exc:  # noqa: BLE001 - see the docstring
+        return False, _describe(exc)
     paged = any(c.paged for c in checks)
     try:
+        for c in checks:
+            if c.paged:
+                print(json.dumps(c.event()), flush=True)
+        for c in checks:
+            _log(now_ms, c.status(now_ms))
+        for run in monitor.waiting:
+            trains = sorted(t for t, r in (monitor.runs or {}).items() if r == run)
+            _log(now_ms, f"eval_lag {run}: no ingest_batches rows yet for {', '.join(trains)}: not checked")
         monitor.save(checks, now_ms)
-    except CHECK_ERRORS as exc:
-        return paged, f"writing {TABLE} failed: {type(exc).__name__}: {exc}"
+    except Exception as exc:  # noqa: BLE001 - see the docstring
+        return paged, f"writing {TABLE} failed: {_describe(exc)}"
     return paged, None
 
 
@@ -423,21 +450,30 @@ def main(
     clock = now_ms or (lambda: int(time.time() * 1000))
     monitor = EvalLagMonitor(exec_fn, interval_s=a.interval_s, intervals=a.intervals, label=a.label, runs=a.runs,
                              live_s=a.live_s, pause_s=a.pause_s, write=not a.no_write)
+    started = clock()
+    runs = ", ".join(f"{t}={r}" for t, r in sorted(a.runs.items())) if a.runs else f"every run with {a.label} rows"
+    _log(started, f"eval_lag: {_safe_url(a.url)}, limit {monitor.threshold_ms / 1000:,.0f} s ({a.intervals:g} x "
+                  f"{a.interval_s:g} s), label {a.label}, runs {runs}, live {monitor.live_ms / 1000:,.0f} s, "
+                  f"pause {monitor.pause_ms / 1000:,.0f} s, {TABLE} {'on' if monitor.write else 'off'}, "
+                  f"{'once' if a.once else f'every {a.poll:g} s'}")
     if a.once:
-        paged, error = run_check(monitor, clock())
+        paged, error = run_check(monitor, started)
         if error:
-            print(f"eval_lag: {error}", file=sys.stderr, flush=True)
+            _log(started, f"eval_lag: check failed: {error}")
         return EXIT_PAGE if paged else EXIT_ERROR if error else EXIT_OK
-    last_complete = clock()
+    last_complete: int | None = None
     try:
         while True:
             now = clock()
             _, error = run_check(monitor, now)
-            if error:
-                print(f"eval_lag: {error} ({(now - last_complete) / 1000:,.0f} s since the last complete check)",
-                      file=sys.stderr, flush=True)
-            else:
+            if error is None:
                 last_complete = now
+            else:
+                if last_complete is None:
+                    since = f"no complete check in the {(now - started) / 1000:,.0f} s since start"
+                else:
+                    since = f"{(now - last_complete) / 1000:,.0f} s since the last complete check"
+                _log(now, f"eval_lag: check failed ({since}): {error}")
             sleep(a.poll)
     except KeyboardInterrupt:
         return EXIT_OK

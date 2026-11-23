@@ -8,12 +8,16 @@ the future, so the alarm can then be checked at any moment. No ClickHouse, no to
 
 from __future__ import annotations
 
+import contextlib
 from datetime import datetime, timezone
 import json
+import os
 from pathlib import Path
 import random
 import re
+import subprocess
 import sys
+import time
 import urllib.error
 
 import pytest
@@ -22,12 +26,16 @@ ALARMS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ALARMS))
 sys.path.insert(0, str(ALARMS.parent / "clickhouse"))
 from eval_lag import TABLE_SQL, Batch, EvalLagMonitor, active_lag_ms, main  # noqa: E402
-from load_jsonl import REPO_ROOT, _format_utc, _parse_jsonl_content  # noqa: E402
-from watch_jsonl import Watcher  # noqa: E402
+from load_jsonl import REPO_ROOT, _format_utc, _parse_jsonl_content, ch_Exec, load_source  # noqa: E402
+from watch_jsonl import Watcher, prepare_schema  # noqa: E402
 
 DRYRUN1 = REPO_ROOT / "teams/05-architecture/jobs/evidence/2026-11-15-dryrun1-full/metrics.jsonl"
+DASHBOARD = REPO_ROOT / "teams/08-monitoring/grafana/private_v1.json"
+EVAL_TEMPLATE = REPO_ROOT / "teams/09-evaluation/results/eval_mini_v1.json"
+LIVE_URL = os.environ.get("CLICKHOUSE_URL")
 RUN = "dryrun2-1234"
 RESUME = "dryrun2-1234-resume-a"  # the kill drill's run 2 writes to ./out/dryrun2-1234-resume-a
+OTHER = "dryrun2-5678"  # a second, separate run
 T0 = 1_795_000_000_000  # a fixed start time, UTC ms (Nov 2026)
 INTERVAL_S = 600.0
 LIMIT_MS = 1_200_000  # 2 x 600 s
@@ -156,12 +164,12 @@ class Run:
         self.t += seconds
         return self
 
-    def score(self, label="tier-a", *, delay_s=230.0, tier_b_s=159.0, skip=lambda loaded_s: False):
+    def score(self, label="tier-a", *, eval_run=RUN, delay_s=230.0, tier_b_s=159.0, skip=lambda loaded_s: False):
         for i, (step, t) in enumerate(self.commits):
             loaded = t + delay_s + (tier_b_s if i % 10 == 9 else 0.0)
             if not skip(loaded):
-                self.ch.evals.append({"run_id": f"{RUN}:step-{step:08d}:{label}:0123456789ab", "checkpoint_run": RUN,
-                                      "checkpoint_step": step, "loaded_ms": ms(loaded)})
+                self.ch.evals.append({"run_id": f"{eval_run}:step-{step:08d}:{label}:0123456789ab",
+                                      "checkpoint_run": eval_run, "checkpoint_step": step, "loaded_ms": ms(loaded)})
         return self
 
     def _batch(self, train_run, steps):
@@ -365,6 +373,19 @@ def test_training_restored_behind_the_scored_step_has_no_lag():
     assert pages(results) == []
 
 
+def test_two_separate_runs_are_checked_on_their_own():
+    ch = FakeClickHouse()
+    healthy = Run(ch).train(1, 1221, commit_first=True).score()
+    stopped = Run(ch).train(1, 1221, OTHER, commit_first=True).score(eval_run=OTHER, skip=lambda s: s > T0 / 1000 + 300)
+    end = ms(max(healthy.t, stopped.t))
+    for runs in ({RUN: RUN, OTHER: OTHER}, None):  # named with --run, and found by their Tier A rows
+        ch.checks.clear()
+        results = sweep(monitor(ch, runs=runs), ch, T0, end)
+        assert [c.run_id for _, c in pages(results)] == [OTHER]
+        assert {c.run_id for _, c in results} == {row["run_id"] for row in ch.checks} == {RUN, OTHER}
+        assert max_lag([(now, c) for now, c in results if c.run_id == RUN]) < LIMIT_MS
+
+
 # --- what it writes -------------------------------------------------------------------------------------------------
 
 def test_rows_match_the_table_and_mark_the_page():
@@ -518,6 +539,45 @@ def test_cli_names_a_missing_table(capsys):
     assert "table ingest_batches is missing" in err and "watch_jsonl.py" in err
 
 
+def test_cli_once_exits_2_not_1_on_an_unexpected_error(capsys):
+    ch = FakeClickHouse()
+    ch.error = KeyError("boom")  # a bug, not a ClickHouse error: exit 1 would read as a page
+    assert main(["--interval-s", "600", "--once"], exec_fn=ch, now_ms=lambda: T0) == 2
+    err = capsys.readouterr().err
+    assert "unexpected KeyError" in err and "Traceback (most recent call last)" in err
+
+
+def test_cli_poll_survives_an_unexpected_error(capsys):
+    ch = FakeClickHouse()
+    Run(ch).train(1, 300, commit_first=True).score()
+    ch.now_ms = T0 + 600_000
+    ch.error = KeyError("boom")
+    naps = []
+
+    def sleep(seconds):
+        naps.append(seconds)
+        if len(naps) == 2:
+            raise KeyboardInterrupt
+        ch.error = None
+
+    assert main(["--interval-s", "600", "--run", RUN, "--poll", "5"], exec_fn=ch, now_ms=lambda: ch.now_ms,
+                sleep=sleep) == 0
+    err = capsys.readouterr().err
+    assert "check failed (no complete check in the 0 s since start): unexpected KeyError" in err
+    assert len(ch.checks) == 1  # the next check ran and wrote its row
+
+
+def test_cli_startup_line_gives_the_settings_without_the_password(capsys):
+    argv = ["--interval-s", "600", "--run", RUN, "--run", f"{RESUME}={RUN}", "--once", "--no-write",
+            "--url", "http://alarm:hunter2@ch.example:8123"]
+    main(argv, exec_fn=FakeClickHouse(), now_ms=lambda: T0)
+    first = capsys.readouterr().err.splitlines()[0]
+    assert first.startswith(_format_utc(datetime.fromtimestamp(T0 / 1000, tz=timezone.utc)) + " eval_lag: ")
+    assert "http://alarm:***@ch.example:8123" in first and "hunter2" not in first
+    assert f"limit 1,200 s (2 x 600 s), label tier-a, runs {RUN}={RUN}, {RESUME}={RUN}," in first
+    assert first.endswith("eval_lag_checks off, once")
+
+
 def test_cli_poll_reports_errors_and_keeps_going(capsys):
     ch = FakeClickHouse()
     Run(ch).train(1, 300, commit_first=True).score()
@@ -552,3 +612,144 @@ def test_cli_rejects_bad_arguments(argv):
     with pytest.raises(SystemExit) as exc:
         main(argv, exec_fn=FakeClickHouse())
     assert exc.value.code == 2
+
+
+# --- Grafana panels 29 to 31 -----------------------------------------------------------------------------------------
+
+def lag_panels():
+    dashboard = json.loads(DASHBOARD.read_text(encoding="utf-8"))
+    return dashboard, {p["id"]: p for p in dashboard["panels"] if p["id"] in (29, 30, 31)}
+
+
+def test_grafana_panels_read_only_eval_lag_checks_columns():
+    dashboard, panels = lag_panels()
+    ids = [p["id"] for p in dashboard["panels"]]
+    assert len(ids) == len(set(ids)) and sorted(panels) == [29, 30, 31]
+    assert [panels[i]["type"] for i in (29, 30, 31)] == ["timeseries", "table", "stat"]
+
+    def box(p):
+        g = p["gridPos"]
+        return g["x"], g["y"], g["x"] + g["w"], g["y"] + g["h"]
+
+    for new in panels.values():
+        x0, y0, x1, y1 = box(new)
+        assert x1 <= 24
+        for other in dashboard["panels"]:
+            a0, b0, a1, b1 = box(other)
+            assert other is new or x1 <= a0 or a1 <= x0 or y1 <= b0 or b1 <= y0, (new["id"], other["id"])
+
+    columns = set(re.findall(r"^\s+([a-z_]+)\s+[A-Z]", TABLE_SQL.read_text(encoding="utf-8"), flags=re.M))
+    allowed = columns | {"eval_lag_checks", "eval_run", "time", "series", "value", "concat", "count", "max"}
+    source = {"type": "grafana-clickhouse-datasource", "uid": "${ds}"}
+    for p in panels.values():
+        assert p["datasource"] == source
+        for target in p["targets"]:
+            sql = target["rawSql"]
+            assert target["datasource"] == source
+            assert re.search(r"FROM eval_lag_checks WHERE (paged = 1 AND )?run_id IN \(\$eval_run\)", sql), sql
+            assert ("$__timeFilter(checked_at)" in sql) == (p["id"] != 31)  # the stat looks at the newest row only
+            words = set(re.findall(r"\b[a-z][a-z_]*\b", re.sub(r"'[^']*'", "", sql)))
+            assert words <= allowed, words - allowed  # a misspelt column fails here, before any Grafana sees it
+
+
+# --- live ClickHouse (CI: GitHub Actions with clickhouse-server 24.8) -----------------------------------------------
+
+def grafana_sql(sql, runs, start_ms, end_ms):
+    """A panel's rawSql with Grafana's $eval_run and $__timeFilter(checked_at) filled in."""
+    return (sql.replace("$eval_run", ", ".join(f"'{r}'" for r in runs))
+               .replace("$__timeFilter(checked_at)", f"checked_at >= toDateTime({start_ms // 1000}) "
+                                                     f"AND checked_at <= toDateTime({end_ms // 1000 + 1})"))
+
+
+@pytest.mark.skipif(not LIVE_URL, reason="set CLICKHOUSE_URL to run the live ClickHouse test (it fails if that "
+                                         "server is down)")
+def test_live_clickhouse_end_to_end(tmp_path):
+    """The real loaders, the alarm's SQL and table, the CLI and the Grafana panels' SQL on a real ClickHouse.
+
+    Run A trains steps 0..400, is killed, and resumes from its commit at step 300 under a second run id (as the
+    kill drill's fresh --out does); Tier A keeps up. Run B trains with Tier A stopped after step 0. Interval 300 s,
+    so the limit is 600 s. Both runs end 29 s before now, so they count as training. Every row uses a
+    `pytest_evallag_<pid>` prefix and is deleted at the end.
+    """
+    prefix = f"pytest_evallag_{os.getpid()}"
+    run_a, resume_a, run_b = f"{prefix}_a", f"{prefix}_a-resume-a", f"{prefix}_b"
+
+    def exec_live(sql, data=None):
+        return ch_Exec(sql, data=data, url=LIVE_URL)
+
+    def rows(sql):
+        return [line.split("\t") for line in exec_live(f"{sql} FORMAT TabSeparated").splitlines() if line]
+
+    lines = [ln for ln in DRYRUN1.read_text(encoding="utf-8").splitlines() if ln.strip()]
+    template = json.loads(EVAL_TEMPLATE.read_text(encoding="utf-8"))["records"][0]
+    now = int(time.time() * 1000)
+    t0 = now - 1_530_000
+    clock = [t0]
+
+    def train(train_run, first, last, start_ms):
+        """Steps first..last of the dry run 1 log, 2 s each, flushed every 10 steps, loaded by a real Watcher."""
+        path = tmp_path / train_run / "metrics.jsonl"
+        path.parent.mkdir()
+        watcher = Watcher(path, exec_fn=exec_live,
+                          clock=lambda: _format_utc(datetime.fromtimestamp(clock[0] / 1000, tz=timezone.utc)))
+        for start in range(first, last + 1, 10):
+            chunk = lines[start:min(start + 10, last + 1)]
+            with path.open("ab") as f:
+                f.write("".join(ln + "\n" for ln in chunk).encode("utf-8"))
+            clock[0] = start_ms + (start - first + len(chunk)) * 2_000 + 1_000
+            assert watcher.poll_once() is not None
+
+    def tier_a(eval_run, step):
+        record = dict(template, hardware="ci", checkpoint={"run": eval_run, "branch": "main", "step": step,
+                                                           "epoch": None, "tokens_seen": None,
+                                                           "path": f"step-{step:08d}"})
+        path = tmp_path / f"{eval_run}.step-{step}.json"
+        path.write_text(json.dumps({"schema_version": "eval_mini_v1", "records": [record]}), encoding="utf-8")
+        load_source(str(path), run_id_override=f"{eval_run}:step-{step:08d}:tier-a:0123456789ab", url=LIVE_URL)
+
+    prepare_schema(url=LIVE_URL)
+    try:
+        train(run_a, 0, 400, t0)  # commits at steps 0, 150 and 300 (every 300 s)
+        train(resume_a, 301, 600, t0 + 900_000)  # killed at 400, 100 s down, restored from 300
+        train(run_b, 0, 750, t0)
+        for step in (0, 150, 300, 450):  # 450: the first commit after the restore, scored 60 s after it
+            tier_a(run_a, step)
+        tier_a(run_b, 0)
+        assert rows(f"SELECT min(first_step) FROM ingest_batches WHERE run_id = '{resume_a}'") == [["301"]]
+
+        mon = EvalLagMonitor(exec_live, interval_s=300, runs={run_a: run_a, resume_a: run_a, run_b: run_b})
+        checks = {c.run_id: c for c in mon.check(now)}
+        a, b = checks[run_a], checks[run_b]
+        # A: from the resumed batch that reached step 450 (t0+1,201 s) to its newest (t0+1,501 s).
+        assert (a.train_runs, a.train_step, a.eval_step, a.lag_ms, a.paged) == ((run_a, resume_a), 600, 450,
+                                                                                  300_000, False)
+        # B: from its first batch (t0+21 s) to its newest (step 750, t0+1,503 s).
+        assert (b.train_step, b.eval_step, b.lag_ms, b.paged) == (750, 0, 1_482_000, True)
+        assert mon.save(list(checks.values()), now) == 2
+        nullable_time = "Nullable(DateTime64(3, 'UTC'))"
+        assert rows(f"SELECT run_id, train_runs, train_step, eval_step, lag_s, threshold_s, over_limit, paged, "
+                    f"toTypeName(eval_loaded_at) FROM eval_lag_checks WHERE startsWith(run_id, '{prefix}') "
+                    f"ORDER BY run_id") == [
+            [run_a, f"['{run_a}','{resume_a}']", "600", "450", "300", "600", "0", "0", nullable_time],
+            [run_b, f"['{run_b}']", "750", "0", "1482", "600", "1", "1", nullable_time],
+        ]
+
+        _, panels = lag_panels()
+        sql = {(i, t["refId"]): grafana_sql(t["rawSql"], (run_a, run_b), t0, now)
+               for i, p in panels.items() for t in p["targets"]}
+        assert sorted(r[1] for r in rows(sql[29, "A"])) == [f"{run_a} lag", f"{run_b} lag"]
+        assert sorted(r[2] for r in rows(sql[29, "B"])) == ["600", "600"]
+        assert [r[1:5] for r in rows(sql[30, "A"])] == [[run_b, "750", "0", "1482"]]
+        assert 0 <= int(rows(sql[31, "A"])[0][0]) < 600
+
+        cli = subprocess.run(
+            [sys.executable, "-B", str(ALARMS / "eval_lag.py"), "--once", "--no-write", "--url", LIVE_URL,
+             "--interval-s", "300", "--run", run_a, "--run", f"{resume_a}={run_a}", "--run", run_b],
+            capture_output=True, text=True, timeout=120)
+        assert cli.returncode == 1, cli.stderr
+        assert [json.loads(line)["run_id"] for line in cli.stdout.splitlines()] == [run_b]
+    finally:
+        for table in ("metrics_raw", "ingest_batches", "eval_mini", "ingest_manifest", "eval_lag_checks"):
+            with contextlib.suppress(Exception):  # a table the failed test never created
+                exec_live(f"ALTER TABLE {table} DELETE WHERE startsWith(run_id, '{prefix}') "
+                          "SETTINGS mutations_sync = 2")
