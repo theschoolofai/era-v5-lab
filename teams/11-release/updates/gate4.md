@@ -54,9 +54,9 @@ How to fill it:
 
 | Fact | Team | Source | Text received | Lead OK |
 |---|---|---|---|---|
-| The second dry run | Architecture, Infrastructure | [link: waiting for the dry run 2 pull request] | no | no |
+| The second dry run | Architecture, Infrastructure | Job request: [#720](https://github.com/theschoolofai/era-v5-lab/pull/720). Result: [link: waiting for the dry run 2 result] | no | no |
 | Model card sections each have an owner and a status | Release | `model_card/model_card_outline.md` | yes | yes |
-| The KE2 output head in the model card | KE2 | TSAI decision in `teams/04-ke2/gate3.md`, merged in [#694](https://github.com/theschoolofai/era-v5-lab/pull/694). Gate 3 update: [#701](https://github.com/theschoolofai/era-v5-lab/pull/701). Model card outline: [#704](https://github.com/theschoolofai/era-v5-lab/pull/704) | yes | no |
+| The KE2 output head in the model card | KE2 | TSAI decision in `teams/04-ke2/gate3.md`, merged in [#694](https://github.com/theschoolofai/era-v5-lab/pull/694), corrected in [#702](https://github.com/theschoolofai/era-v5-lab/pull/702). Gate 3 update: [#701](https://github.com/theschoolofai/era-v5-lab/pull/701). Model card outline: [#704](https://github.com/theschoolofai/era-v5-lab/pull/704) | yes | no |
 | Decision: the second dry run | Architecture, Infrastructure | TSAI decision at Gate 4 | no | no |
 | Decision: the main training run | Architecture, Infrastructure | TSAI decision at Gate 4 | no | no |
 | Decision: the launch announcement | Release | `launch/launch_announcement_v0.md`, [#600](https://github.com/theschoolofai/era-v5-lab/pull/600), [#603](https://github.com/theschoolofai/era-v5-lab/pull/603) | yes | no |
