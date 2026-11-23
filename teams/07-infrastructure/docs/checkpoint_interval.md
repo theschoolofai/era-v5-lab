@@ -154,12 +154,14 @@ minutes stays the same:
 | Interval | `--keep` | `--protect-every` | Reach | Protected |
 |---:|---:|---:|---|---|
 | 30 min (before) | 3 | 5 | last 90 min | every 2.5 h |
-| **10 min** | **9** | **15** | last 90 min | every 2.5 h |
+| **10 min** | **9** | **10** | last 90 min | every 100 min |
 
 The cost: the store holds 9 recent checkpoints instead of 3, so recent-checkpoint storage triples (7B at 12 bytes
-per parameter: 756 GB instead of 252 GB). Protected storage per month does not change, because the spacing is the
-same. If the store cannot take it, `--keep 6` (last 60 min, 504 GB at 7B) is the fallback. Team 9 sets the protected
-cadence; this keeps their 2.5 h spacing until they name a step count.
+per parameter: 756 GB instead of 252 GB). Protected storage per month is 1.5 times the 30-min setting, because a
+protected checkpoint now comes every 100 min instead of every 2.5 h. If the store cannot take it, `--keep 6` (last
+60 min, 504 GB at 7B) is the fallback. Team 9 sets the protected cadence and named 10 on 21 Nov: their Tier B watcher
+scores lines 10, 20, 30 … of `commits.jsonl`, the same count retention uses, so no Tier B checkpoint is deleted
+before it is scored.
 
 ## 6. Open items
 
