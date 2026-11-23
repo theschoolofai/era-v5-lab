@@ -395,6 +395,7 @@ def write_train_config(a, out: Path, init_state: Path | None, init_sha: str | No
                      "screen": {"n": screen_n, "k": a.k, "min_mixed": a.min_mixed},
                      "state_dir": str(out / "rl_state"), "state_every": a.state_every, "deadline_unix": deadline_unix,
                      **({"max_steps_this_call": a.max_steps_this_call} if a.max_steps_this_call else {}),
+                     **({"sampler_max_rows": a.sampler_max_rows} if a.sampler == "g5_batch" else {}),
                      # identical-weights check before the first update (rl-loop/train.py logprob_gate); stops the job
                      # if the update forward does not reproduce the sampler's log-probs (work/lpgate-2026-11-23)
                      **({"logprob_gate": True} if getattr(a, "logprob_gate", True) else {}),

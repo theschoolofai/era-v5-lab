@@ -70,6 +70,11 @@ def test_expanded_inputs_preserve_both_splits_but_only_train_expects_shards(raw,
     assert summary['parts'] == len(inventory['parts']) == 96  # production is not limited to 86
     assert inventory['input_manifest_sha256'] == hashlib.sha256(manifest_bytes).hexdigest()
     assert manifest['total_docs'] == 154
+    scope = json.loads((JOB / 'approved_inputs.json').read_bytes())
+    raw_inventory = json.loads((out / 'expected_inventory.json').read_text())
+    assert raw_inventory['_approval'] == scope['tsai_manifest_approval']  # copied from the approved scope
+    assert raw_inventory['_approval'].startswith('confirmed_22_nov_2026')
+    assert 'assumption' not in raw_inventory['_approval'] and 'assumption' not in manifest['_scope']
     for name, entry in inventory['parts'].items():
         assert entry['raw_sha256'] == hashlib.sha256((raw / name).read_bytes()).hexdigest()
         assert entry['raw_rows'] == pq.ParquetFile(raw / name).metadata.num_rows
@@ -124,7 +129,8 @@ def test_prepare_run_pins_the_actual_inventory_and_refuses_incomplete_pack_metad
                                         f2_workers=30).read_text())
     assert cfg['inventory'] == 'out/inputs/expected_inventory.json'
     assert cfg['stages']['clean']['expected_parts'] == {'train': 38, 'heldout': 38}
-    assert cfg['stages']['shards']['dataset_version'] == 'first-training-v1'
+    assert cfg['run_id'] == 'first-training-v1'
+    assert cfg['stages']['shards']['dataset_version'] == 'corpus-v1'  # not derived from run_id
     assert cfg['intermediates'] == 'keep' and cfg['stages']['h3']['mode'] == 'run'
     assert cfg['stages']['f2'] == {'pool': True, 'workers': 30}
     (out / 'run.json').unlink()
@@ -240,3 +246,12 @@ def test_scope_cannot_enable_heldout_sharding(raw, tmp_path, scope):
     file.write_text(json.dumps(scope))
     with pytest.raises(ValueError, match='only train may be sharded'):
         run(raw, tmp_path / 'wrong_split', file)
+
+
+def test_scope_without_a_recorded_tsai_approval_is_rejected(raw, tmp_path, scope):
+    del scope['tsai_manifest_approval']
+    file = tmp_path / 'unconfirmed_scope.json'
+    file.write_text(json.dumps(scope))
+    with pytest.raises(ValueError, match='no tsai_manifest_approval'):
+        run(raw, tmp_path / 'unconfirmed', file)
+    assert not (tmp_path / 'unconfirmed').exists()

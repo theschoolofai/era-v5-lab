@@ -361,3 +361,26 @@ def test_g5_delivery_origin_runs_pins_and_the_trainers_adapter_load_on_cpu(tmp_p
                              probe={"ids": ids, "expected_mean_nll": nll + 0.5})
     with pytest.raises(ta.ArtifactError, match="probe mean NLL"):
         ta.build_policy_and_codec(wrong, device="cpu")
+
+
+def test_sampler_flag_defaults_to_policy_and_writes_g5_batch_config(tmp_path):
+    import yaml
+
+    base_argv = ["--g5-root", "g", "--run-folder", "r", "--tokenizer", "t", "--byte-table", "b",
+                 "--rl-tasks", "tasks.jsonl", "--train-pool", "tp.jsonl", "--heldout-pool", "hp.jsonl",
+                 "--sft-arm", "none", "--device", "cpu", "--out", str(tmp_path / "out")]
+    a_default = job.parse_args(base_argv)
+    assert a_default.sampler == "policy"
+    out_def = tmp_path / "def"
+    out_def.mkdir()
+    cfg_def = yaml.safe_load(job.write_train_config(a_default, out_def, None, None, 1000.0, 64).read_text())
+    assert cfg_def["train"]["sampler"] == "policy"
+    assert "sampler_max_rows" not in cfg_def["train"]
+
+    a_batch = job.parse_args(base_argv + ["--sampler", "g5_batch", "--sampler-max-rows", "64"])
+    out_b = tmp_path / "batch"
+    out_b.mkdir()
+    cfg_b = yaml.safe_load(job.write_train_config(a_batch, out_b, None, None, 1000.0, 64).read_text())
+    assert cfg_b["train"]["sampler"] == "g5_batch"
+    assert cfg_b["train"]["sampler_max_rows"] == 64
+

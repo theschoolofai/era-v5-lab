@@ -6,7 +6,9 @@ Index of the files in this folder. Each entry says what produced it and what it 
 
 | File | What it is | Limits |
 |---|---|---|
+| `gate4_summary.md` | Live Gate 4 evidence summary (23 Nov): dry run 2 DT vs LoRA vs Full FT & DT-then-RL readiness, `#135`–`#147` Week 4 evidence, cross-team handoffs, and remaining open items. | Index only; dry run 2 GPU numbers land after D5 (Thu 26 Nov). |
 | `week4_plan.md` | Week 4 execution plan & Gate 4 tracker (dry run 2 KE2/KAS head DT vs LoRA vs full FT + DT-then-RL, Team 7 Checkpointer, 21 Nov TSAI rulings). | Plan and tracker; dry run 2 numbers land after D5 (Thu 26 Nov). |
+| `b5_sampler_2026-11-23.md`, `b5_sampler_2026-11-23/` | Batched G5 RL sampler (`g5_batch`) throughput & memory study: 12.8x speedup on T4 (`44.3 s -> 3.45 s` per prompt at RL job settings). | T4 fp16 throughput/memory stand-in on random-init T2/T3 weights; not a quality number. |
 | `gate3_summary.md` | Gate 3 evidence checklist, Week 3 Tasks 1–11 status, cross-team handoffs, and open TSAI decisions (20 Nov). | Index only; numbers live in the linked reports. |
 | `rl_data_v1_close.md`, `rl_data_v1_closure.md` | RL data v1 rebuild kit, pool flags (`3,577` code close pool, `7,209` reserved MATH), verifier two-test evidence, and Team 9 handoff. | Pool bytes stay outside Git (rebuilt by TSAI in #564; checked 6/6 by Team 9 in #661). |
 | `objective_v1_trainer.md` | Session 18 objective (`rl/objective_v1.py`) integration in `rl-loop/train.py`. | Mechanics verification; not a capstone quality claim. |
