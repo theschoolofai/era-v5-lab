@@ -1,0 +1,87 @@
+{
+  "status": "ok",
+  "threshold": 0.6,
+  "failures": [],
+  "pairs": {
+    "hi-en": {
+      "candidates": 20,
+      "translations": 20,
+      "controls": 10,
+      "bands": {
+        "0.75-1.00": {
+          "items": 20,
+          "translations": 20
+        }
+      },
+      "both_sides_of_threshold": false,
+      "translations_below_threshold": 0,
+      "non_translations_at_or_above_threshold": 0
+    },
+    "or-en": {
+      "candidates": 20,
+      "translations": 20,
+      "controls": 10,
+      "bands": {
+        "0.75-1.00": {
+          "items": 20,
+          "translations": 20
+        }
+      },
+      "both_sides_of_threshold": false,
+      "translations_below_threshold": 0,
+      "non_translations_at_or_above_threshold": 0
+    },
+    "sa-en": {
+      "candidates": 67,
+      "translations": 67,
+      "controls": 10,
+      "bands": {
+        "0.60-0.75": {
+          "items": 20,
+          "translations": 20
+        },
+        "0.75-1.00": {
+          "items": 20,
+          "translations": 20
+        },
+        "0.45-0.60": {
+          "items": 15,
+          "translations": 15
+        },
+        "0.30-0.45": {
+          "items": 12,
+          "translations": 12
+        }
+      },
+      "both_sides_of_threshold": true,
+      "translations_below_threshold": 27,
+      "non_translations_at_or_above_threshold": 0
+    },
+    "sa-hi": {
+      "candidates": 70,
+      "translations": 70,
+      "controls": 10,
+      "bands": {
+        "0.75-1.00": {
+          "items": 12,
+          "translations": 12
+        },
+        "0.60-0.75": {
+          "items": 20,
+          "translations": 20
+        },
+        "0.30-0.45": {
+          "items": 20,
+          "translations": 20
+        },
+        "0.45-0.60": {
+          "items": 18,
+          "translations": 18
+        }
+      },
+      "both_sides_of_threshold": true,
+      "translations_below_threshold": 38,
+      "non_translations_at_or_above_threshold": 0
+    }
+  }
+}

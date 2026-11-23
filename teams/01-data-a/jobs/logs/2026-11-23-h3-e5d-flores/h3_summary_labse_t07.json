@@ -1,0 +1,217 @@
+{
+  "status": "complete",
+  "config": {
+    "inputs": "out/e5d_flores/inputs",
+    "out": "out/e5d_flores/h3_labse_t07",
+    "cache": "out/e5d_flores/h3_cache_labse_t07",
+    "packs": {
+      "flores-sa": "sa",
+      "flores-hi": "hi",
+      "flores-en": "en"
+    },
+    "pairs": [
+      [
+        "sa",
+        "en"
+      ],
+      [
+        "sa",
+        "hi"
+      ]
+    ],
+    "model_path": "../models/LaBSE-hub-836121a",
+    "device": "auto",
+    "precision": "auto",
+    "batch_size": 64,
+    "max_seq_length": 128,
+    "min_chars": 200,
+    "min_sentences": 3,
+    "sentence_min_chars": 20,
+    "head_sentences": 4,
+    "max_sentences": 16,
+    "top_k": 3,
+    "doc_floor": 0.5,
+    "mutual": true,
+    "max_length_ratio": 4.0,
+    "sentence_threshold": 0.7,
+    "coverage_threshold": 0.6,
+    "report_floor": 0.3,
+    "max_verify": 10000,
+    "url_group_max": 20,
+    "block": 512,
+    "pair_batch": 1024,
+    "max_docs_per_pack": 0,
+    "max_minutes": 30,
+    "max_output_mb": 50,
+    "sync_debug": false
+  },
+  "device": "mps",
+  "precision": "fp32",
+  "model": {
+    "path": "../models/LaBSE-hub-836121a",
+    "name": "LaBSE-hub-836121a",
+    "device": "mps",
+    "dtype": "torch.float32",
+    "max_seq_length": 128,
+    "dim": 768,
+    "config_sha256": "b6bd83d561db8d2ccb7f44dafcd945e39bea16dc2819072ffb10adb45608b029",
+    "weights": {
+      "2_Dense/model.safetensors": {
+        "bytes": 2362528,
+        "sha256": "f866c945fa2147ce4940c8ead0b4b20af4217e0f4664bd35f41c2a0967c4fe77"
+      },
+      "model.safetensors": {
+        "bytes": 1883734344,
+        "sha256": "77d8e1f2dbab6eb5d3c261ce9d3dbf1e3c69e02938c95f934f94f42c22dfa31f"
+      }
+    },
+    "sentence_transformers": "6.3.0"
+  },
+  "inputs": {
+    "root": "out/e5d_flores/inputs",
+    "parts_found": 5,
+    "parts_selected": 4,
+    "parts": [
+      "heldout/flores-en/Heldout/part-00000.parquet",
+      "train/flores-en/Part_1/part-00000.parquet",
+      "train/flores-hi/Part_1/part-00000.parquet",
+      "train/flores-sa/Part_1/part-00000.parquet"
+    ]
+  },
+  "documents": {
+    "flores-en": {
+      "lang": "en",
+      "rows_in_parts": 126,
+      "read": 126,
+      "too_short": 0,
+      "encoded": 126
+    },
+    "flores-hi": {
+      "lang": "hi",
+      "rows_in_parts": 126,
+      "read": 126,
+      "too_short": 0,
+      "encoded": 126
+    },
+    "flores-sa": {
+      "lang": "sa",
+      "rows_in_parts": 126,
+      "read": 126,
+      "too_short": 0,
+      "encoded": 126
+    }
+  },
+  "documents_compared": 378,
+  "url": {
+    "groups_with_2_or_more": 0,
+    "groups_over_url_group_max": 0,
+    "pairs": 0
+  },
+  "retrieved": {
+    "sa-en": {
+      "documents_a": 126,
+      "documents_b": 126,
+      "pairs_in_top_k": 539,
+      "kept": 104
+    },
+    "sa-hi": {
+      "documents_a": 126,
+      "documents_b": 126,
+      "pairs_in_top_k": 545,
+      "kept": 103
+    }
+  },
+  "candidates": 207,
+  "rejected_length_ratio": 0,
+  "not_verified_over_max_verify": 0,
+  "verified": 207,
+  "listed": 132,
+  "qualifying": 50,
+  "qualifying_heldout_train": 8,
+  "qualifying_by_language_pair": {
+    "en-sa": 30,
+    "hi-sa": 20
+  },
+  "rule": {
+    "h3": "aligned sentences / sentences of the shorter document >= 0.6; a sentence pair aligns when each is the other's best match with cosine >= the language pair's sentence threshold",
+    "sentence_threshold": {
+      "sa-en": 0.7,
+      "sa-hi": 0.7
+    },
+    "thresholds": "provisional: set by E5's sweep and hand review"
+  },
+  "counts": {
+    "rows_scanned": 378,
+    "encoded_heads": 378,
+    "encoded_sentences": 2893
+  },
+  "stages_seconds": {
+    "load_model": 10.565,
+    "read": 0.103,
+    "cache": 0.006,
+    "encode": 10.999,
+    "url": 0.002,
+    "retrieve": 0.045,
+    "verify_read": 0.009,
+    "verify": 32.46
+  },
+  "rates": {
+    "heads_per_second": 34.4,
+    "sentences_per_second": 89.1
+  },
+  "estimate_all_documents": {
+    "documents_encoded": {
+      "en": 126,
+      "hi": 126,
+      "sa": 126
+    },
+    "documents_full": {
+      "en": 126,
+      "hi": 126,
+      "sa": 126
+    },
+    "seconds": {
+      "load_model": 10.6,
+      "read": 0.1,
+      "encode": 11.0,
+      "retrieve": 0.0,
+      "verify": 32.5
+    },
+    "minutes_total": 0.9,
+    "every_stage_measured": true,
+    "suggested_max_time_minutes": 2,
+    "basis": "this run's rates; read scales with rows, encode with documents, retrieve with the product of the two languages' documents, verify with the smaller language's documents (at most max_verify)"
+  },
+  "wall_seconds": 54.2,
+  "peak_rss_mb": 871.5,
+  "versions": {
+    "python": "3.12.10",
+    "numpy": "2.4.3",
+    "pyarrow": "23.0.1",
+    "torch": "2.13.0",
+    "platform": "macOS-26.4.1-arm64-arm-64bit"
+  },
+  "outputs": {
+    "h3_docs.parquet": {
+      "bytes": 7563,
+      "sha256": "de4462c3c4ccfb63df8ad7e92a44319f34179b591ded7dcd5aac329d651fe7e0"
+    },
+    "h3_candidates.csv": {
+      "bytes": 21355,
+      "sha256": "868d831cbc5ed714c194a8d43d6e7af5c1e2de3f4842cc2597f8115159ec21ad"
+    },
+    "h3_matches.csv": {
+      "bytes": 8325,
+      "sha256": "8646a56deb8f659a811b0dbb15c6c7aa668c6edd16f9344331db9d8885ae9f74"
+    },
+    "h3_by_pack.csv": {
+      "bytes": 149,
+      "sha256": "9215a43c4e84649279ebbf55d3c9c7fb3f1b79b9ed8a66131a817fdbfc401417"
+    },
+    "h3_histogram.csv": {
+      "bytes": 1901,
+      "sha256": "f34f4ed50bcb99f2f80befef6c11e358253b43c7cdb011dfa5f82900e8a0d400"
+    }
+  },
+  "output_mb": 0.04
+}

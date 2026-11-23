@@ -1,0 +1,14 @@
+{
+  "_comment": "E5d test data: the Sanskrit pairs of h3_e5d_flores.json scored again at sentence threshold 0.7. It stands in for the second encoder (BGE-M3, theschoolofai/era-v5-lab#666), so that h3_e5d_sheets.py's pooling of two runs is tested on real h3.py output.",
+  "inputs": "out/e5d_flores/inputs",
+  "out": "out/e5d_flores/h3_labse_t07",
+  "cache": "out/e5d_flores/h3_cache_labse_t07",
+  "model_path": "../models/LaBSE-hub-836121a",
+  "device": "auto",
+  "packs": {"flores-sa": "sa", "flores-hi": "hi", "flores-en": "en"},
+  "pairs": [["sa", "en"], ["sa", "hi"]],
+  "sentence_threshold": 0.7,
+  "coverage_threshold": 0.6,
+  "report_floor": 0.3,
+  "max_minutes": 30
+}

@@ -1,0 +1,407 @@
+{
+  "status": "complete",
+  "config": {
+    "runs": {
+      "labse": "out/e5d_flores/h3_labse",
+      "labse-t07": "out/e5d_flores/h3_labse_t07"
+    },
+    "inputs": "out/e5d_flores/inputs",
+    "controls": "out/e5d_flores/controls.parquet",
+    "out": "out/e5d_flores/sheets",
+    "pairs": [
+      [
+        "sa",
+        "en"
+      ],
+      [
+        "sa",
+        "hi"
+      ],
+      [
+        "hi",
+        "en"
+      ],
+      [
+        "or",
+        "en"
+      ]
+    ],
+    "bands": [
+      0.3,
+      0.45,
+      0.6,
+      0.75,
+      1.0
+    ],
+    "per_band": 20,
+    "n_controls": 10,
+    "readers": 2,
+    "seed": 20261122,
+    "sentence_min_chars": 20,
+    "max_sentences": 16
+  },
+  "runs": {
+    "labse": {
+      "folder": "out/e5d_flores/h3_labse",
+      "sha256": {
+        "h3_candidates.csv": "781c3effb9d8526819b2980caec10b04284a1cd014da60c3829394893fa4d9b4",
+        "h3_docs.parquet": "3562ae46e0b21df9fe5cd727c71469da8fc672c1993f3d2437726625ebdaa0fa"
+      },
+      "pairs_listed": {
+        "sa-en": 103,
+        "sa-hi": 101,
+        "hi-en": 126,
+        "or-en": 126
+      },
+      "other_language_pairs_dropped": 0
+    },
+    "labse-t07": {
+      "folder": "out/e5d_flores/h3_labse_t07",
+      "sha256": {
+        "h3_candidates.csv": "868d831cbc5ed714c194a8d43d6e7af5c1e2de3f4842cc2597f8115159ec21ad",
+        "h3_docs.parquet": "de4462c3c4ccfb63df8ad7e92a44319f34179b591ded7dcd5aac329d651fe7e0"
+      },
+      "pairs_listed": {
+        "sa-en": 81,
+        "sa-hi": 51,
+        "hi-en": 0,
+        "or-en": 0
+      },
+      "other_language_pairs_dropped": 0
+    }
+  },
+  "strata": [
+    {
+      "pair": "sa-en",
+      "band": "0.30-0.45",
+      "encoder": "labse",
+      "in_band": 2,
+      "drawn": 2,
+      "wanted": 10
+    },
+    {
+      "pair": "sa-en",
+      "band": "0.30-0.45",
+      "encoder": "labse-t07",
+      "in_band": 27,
+      "drawn": 10,
+      "wanted": 10
+    },
+    {
+      "pair": "sa-en",
+      "band": "0.45-0.60",
+      "encoder": "labse",
+      "in_band": 8,
+      "drawn": 5,
+      "wanted": 10
+    },
+    {
+      "pair": "sa-en",
+      "band": "0.45-0.60",
+      "encoder": "labse-t07",
+      "in_band": 24,
+      "drawn": 10,
+      "wanted": 10
+    },
+    {
+      "pair": "sa-en",
+      "band": "0.60-0.75",
+      "encoder": "labse",
+      "in_band": 25,
+      "drawn": 10,
+      "wanted": 10
+    },
+    {
+      "pair": "sa-en",
+      "band": "0.60-0.75",
+      "encoder": "labse-t07",
+      "in_band": 16,
+      "drawn": 10,
+      "wanted": 10
+    },
+    {
+      "pair": "sa-en",
+      "band": "0.75-1.00",
+      "encoder": "labse",
+      "in_band": 68,
+      "drawn": 10,
+      "wanted": 10
+    },
+    {
+      "pair": "sa-en",
+      "band": "0.75-1.00",
+      "encoder": "labse-t07",
+      "in_band": 14,
+      "drawn": 10,
+      "wanted": 10
+    },
+    {
+      "pair": "sa-hi",
+      "band": "0.30-0.45",
+      "encoder": "labse",
+      "in_band": 10,
+      "drawn": 10,
+      "wanted": 10
+    },
+    {
+      "pair": "sa-hi",
+      "band": "0.30-0.45",
+      "encoder": "labse-t07",
+      "in_band": 23,
+      "drawn": 10,
+      "wanted": 10
+    },
+    {
+      "pair": "sa-hi",
+      "band": "0.45-0.60",
+      "encoder": "labse",
+      "in_band": 20,
+      "drawn": 10,
+      "wanted": 10
+    },
+    {
+      "pair": "sa-hi",
+      "band": "0.45-0.60",
+      "encoder": "labse-t07",
+      "in_band": 8,
+      "drawn": 8,
+      "wanted": 10
+    },
+    {
+      "pair": "sa-hi",
+      "band": "0.60-0.75",
+      "encoder": "labse",
+      "in_band": 25,
+      "drawn": 10,
+      "wanted": 10
+    },
+    {
+      "pair": "sa-hi",
+      "band": "0.60-0.75",
+      "encoder": "labse-t07",
+      "in_band": 13,
+      "drawn": 10,
+      "wanted": 10
+    },
+    {
+      "pair": "sa-hi",
+      "band": "0.75-1.00",
+      "encoder": "labse",
+      "in_band": 46,
+      "drawn": 10,
+      "wanted": 10
+    },
+    {
+      "pair": "sa-hi",
+      "band": "0.75-1.00",
+      "encoder": "labse-t07",
+      "in_band": 7,
+      "drawn": 2,
+      "wanted": 10
+    },
+    {
+      "pair": "hi-en",
+      "band": "0.30-0.45",
+      "encoder": "labse",
+      "in_band": 0,
+      "drawn": 0,
+      "wanted": 20
+    },
+    {
+      "pair": "hi-en",
+      "band": "0.45-0.60",
+      "encoder": "labse",
+      "in_band": 0,
+      "drawn": 0,
+      "wanted": 20
+    },
+    {
+      "pair": "hi-en",
+      "band": "0.60-0.75",
+      "encoder": "labse",
+      "in_band": 0,
+      "drawn": 0,
+      "wanted": 20
+    },
+    {
+      "pair": "hi-en",
+      "band": "0.75-1.00",
+      "encoder": "labse",
+      "in_band": 126,
+      "drawn": 20,
+      "wanted": 20
+    },
+    {
+      "pair": "or-en",
+      "band": "0.30-0.45",
+      "encoder": "labse",
+      "in_band": 0,
+      "drawn": 0,
+      "wanted": 20
+    },
+    {
+      "pair": "or-en",
+      "band": "0.45-0.60",
+      "encoder": "labse",
+      "in_band": 0,
+      "drawn": 0,
+      "wanted": 20
+    },
+    {
+      "pair": "or-en",
+      "band": "0.60-0.75",
+      "encoder": "labse",
+      "in_band": 0,
+      "drawn": 0,
+      "wanted": 20
+    },
+    {
+      "pair": "or-en",
+      "band": "0.75-1.00",
+      "encoder": "labse",
+      "in_band": 126,
+      "drawn": 20,
+      "wanted": 20
+    }
+  ],
+  "shortfalls": [
+    {
+      "pair": "sa-en",
+      "band": "0.30-0.45",
+      "encoder": "labse",
+      "in_band": 2,
+      "drawn": 2,
+      "wanted": 10
+    },
+    {
+      "pair": "sa-en",
+      "band": "0.45-0.60",
+      "encoder": "labse",
+      "in_band": 8,
+      "drawn": 5,
+      "wanted": 10
+    },
+    {
+      "pair": "sa-hi",
+      "band": "0.45-0.60",
+      "encoder": "labse-t07",
+      "in_band": 8,
+      "drawn": 8,
+      "wanted": 10
+    },
+    {
+      "pair": "sa-hi",
+      "band": "0.75-1.00",
+      "encoder": "labse-t07",
+      "in_band": 7,
+      "drawn": 2,
+      "wanted": 10
+    },
+    {
+      "pair": "hi-en",
+      "band": "0.30-0.45",
+      "encoder": "labse",
+      "in_band": 0,
+      "drawn": 0,
+      "wanted": 20
+    },
+    {
+      "pair": "hi-en",
+      "band": "0.45-0.60",
+      "encoder": "labse",
+      "in_band": 0,
+      "drawn": 0,
+      "wanted": 20
+    },
+    {
+      "pair": "hi-en",
+      "band": "0.60-0.75",
+      "encoder": "labse",
+      "in_band": 0,
+      "drawn": 0,
+      "wanted": 20
+    },
+    {
+      "pair": "or-en",
+      "band": "0.30-0.45",
+      "encoder": "labse",
+      "in_band": 0,
+      "drawn": 0,
+      "wanted": 20
+    },
+    {
+      "pair": "or-en",
+      "band": "0.45-0.60",
+      "encoder": "labse",
+      "in_band": 0,
+      "drawn": 0,
+      "wanted": 20
+    },
+    {
+      "pair": "or-en",
+      "band": "0.60-0.75",
+      "encoder": "labse",
+      "in_band": 0,
+      "drawn": 0,
+      "wanted": 20
+    }
+  ],
+  "controls": {
+    "sa-en": {
+      "available": 126,
+      "drawn": 10,
+      "wanted": 10
+    },
+    "sa-hi": {
+      "available": 126,
+      "drawn": 10,
+      "wanted": 10
+    },
+    "hi-en": {
+      "available": 126,
+      "drawn": 10,
+      "wanted": 10
+    },
+    "or-en": {
+      "available": 126,
+      "drawn": 10,
+      "wanted": 10
+    }
+  },
+  "controls_sha256": "744345538ce6505df23ef3c031fe97f3c4c27633ed9296eb2785b326032cdaec",
+  "items": {
+    "sa-en": 77,
+    "sa-hi": 80,
+    "hi-en": 30,
+    "or-en": 30
+  },
+  "readers": 2,
+  "outputs": {
+    "key/hi-en_key.csv": "8887c26ce40e28b5c0475c17803a3a564d925b7937ebcee32f91a7a72b361b28",
+    "key/or-en_key.csv": "68b5edc04c947c634d632631475779c3239cba323a77f080c2e7b3c6955f7142",
+    "key/sa-en_key.csv": "62c4b96aec7d18c309296a1b3cdd92968f878642076cc9e7975a29c354533923",
+    "key/sa-hi_key.csv": "f491b5e0d365e443f1d7f320d7ff40bc5b5ceb28a2848b6a5f9e4953368b6747",
+    "key/sentences.parquet": "85dba9f5872315c6565d7cc810983db5bc26a03aa3890a24d202db3261bb6a00",
+    "readers_guide.md": "79025bc467d3d4396489f6965f3c5ff039532e64b88f2d03c4f20d29b8c2fabd",
+    "sheets/hi-en_reader1.csv": "b6883a4da529ae577753b6bba16c0653d65bb80ce284e52904912e91a9d1f061",
+    "sheets/hi-en_reader2.csv": "ab8d14457f9a09683e731976603efb473834468a2750749361ccd649ada0baad",
+    "sheets/or-en_reader1.csv": "ffbbee9648cd9ae102549e82188422f77f4165ee9bfe8546682914da87fd937b",
+    "sheets/or-en_reader2.csv": "4e1c5c3e903913e476267415e3fd92a07a0b2e5b3db264ca7d354c76e21ee381",
+    "sheets/sa-en_reader1.csv": "5597a7b1f4d9e5f6b26414bc94eaa671a38d41524c11e03c2a088986d91d73ab",
+    "sheets/sa-en_reader2.csv": "d3acff03aa66f55e46b5cdb89412697ba5540ab7f32336078a5324e0e7263975",
+    "sheets/sa-hi_reader1.csv": "76eda38f71fba038db09183ad8314c453ac046309b967972ca857f717ce66694",
+    "sheets/sa-hi_reader2.csv": "4e9df23fae0ade86e302b792d9aeaa79f88d4c681626f58d687365fa93cdb051"
+  },
+  "stages_seconds": {
+    "load": 0.06,
+    "sample": 0.0,
+    "texts": 0.04,
+    "write": 0.01
+  },
+  "wall_seconds": 0.12,
+  "versions": {
+    "python": "3.12.10",
+    "numpy": "2.4.3",
+    "pyarrow": "23.0.1"
+  }
+}

@@ -164,6 +164,91 @@ Wrote h3_docs.parquet, h3_candidates.csv, h3_matches.csv, h3_by_pack.csv, h3_his
 The full console log is `teams/01-data-a/jobs/logs/2026-11-17-h3-local.txt` and the run's summary
 `teams/01-data-a/jobs/logs/2026-11-17-h3-local/h3_summary.json`.
 
+## E5d reader sheets
+
+`h3_e5d_sheets.py` turns finished `h3.py` runs into blind sheets for bilingual readers, who label each pair a
+translation or not. For each language pair it draws pairs from every coverage band on both sides of the 0.6 threshold.
+For the Sanskrit pairs it pools the LaBSE and BGE-M3 candidates (theschoolofai/era-v5-lab#666; TSAI on
+theschoolofai/era-v5-lab#626), so a pair is read once and the key holds both encoders' scores. It mixes in controls of
+known answer. A sheet shows only the item and the two texts, as the sentences `h3.py` scored, with the sides swapped at
+random and each reader's items in their own order. Scores, encoders, packs and doc_ids are only in the key. The sheets
+hold document text and stay in `out/`.
+
+`h3_e5d_flores.py` tests the sheets on FLORES-200 (FLORES+ devtest, revision `e707e62e`, the files and sha256 of G9's
+`teams/09-evaluation/fingerprints/v1/flores200/MANIFEST.json`): blocks of 8 sentences in en, hi, sa and or, where a
+block against the same block in another language is a translation and against another block is not. Its `check` scores
+the sheets against those answers and checks that they are blind and match the key.
+
+### Speed and end-to-end check on FLORES
+
+- Hardware: Apple M4, `h3.py` on MPS, fp32; the sheet scripts on the CPU
+- Wall time: **140 s** from a cold start (`out/e5d_flores` removed)
+- Model: LaBSE at revision `836121a`, `model.safetensors` sha256 `77d8e1f2dbab6eb5d3c261ce9d3dbf1e3c69e02938c95f934f94f42c22dfa31f`
+  (the value E5c expects)
+- Versions: Python 3.12.10, numpy 2.4.3, pyarrow 23.0.1, torch 2.13.0
+
+| Stage | Seconds | What |
+|---|---|---|
+| build | 1 | 126 blocks of 8 sentences in 4 languages; 126 controls per language pair |
+| `h3.py`, `h3_e5d_flores.json` | 79 | LaBSE at E5c's settings (0.55 for the Sanskrit pairs), 4 language pairs: 490 pairs verified, 416 qualifying |
+| `h3.py`, `h3_e5d_flores_t07.json` | 57 | the Sanskrit pairs at sentence threshold 0.7, in a second encoder's place: 207 verified, 50 qualifying |
+| `h3_e5d_sheets.py` | 2 | 217 items, 2 sheets per language pair |
+| `h3_e5d_flores.py check` | 1 | status ok |
+
+| Language pair | Candidates drawn | Translations among them | Translations below 0.6 | Non-translations at or above 0.6 | Controls |
+|---|---|---|---|---|---|
+| sa–en | 67 (27 for LaBSE, 40 for the 0.7 run) | 67 | 27 | 0 | 10 |
+| sa–hi | 70 (40 and 30) | 70 | 38 | 0 | 10 |
+| hi–en | 20 | 20 | 0 | 0 | 10 |
+| or–en | 20 | 20 | 0 | 0 | 10 |
+
+- On FLORES, every Hindi and Odia translation has coverage ≥ 0.75 and no other block pair is listed, so those sheets
+  draw from the top band only; their non-translations are the controls. The bands left short are in `e5d_summary.json`
+- Sync check: not applicable to `h3_e5d_sheets.py` and `h3_e5d_flores.py`, which use no torch. `h3.py`'s is TODO on
+  CUDA, as above
+- No Python loops over tokens, documents, sentences or pairs: yes. Loops remain over the runs, language pairs, bands
+  and encoders (the strata), the readers, the parts read and the files written
+
+Command:
+
+```sh
+rm -rf out/e5d_flores && mkdir -p out && {
+echo "start $(date -u +%Y-%m-%dT%H:%M:%SZ) commit $(git rev-parse --short HEAD) $(uname -m) $(python3 --version)"
+T0=$(date +%s)
+step() { local s=$(date +%s); echo "== $*"; "$@" || { echo "FAILED: $*"; return 1; }; echo "-- $(( $(date +%s) - s )) s"; }
+step python3 -B teams/01-data-a/dedup/h3_e5d_flores.py build --flores-dir ../flores_plus --out out/e5d_flores &&
+step python3 -B teams/01-data-a/dedup/h3.py --config teams/01-data-a/dedup/h3_e5d_flores.json &&
+step python3 -B teams/01-data-a/dedup/h3.py --config teams/01-data-a/dedup/h3_e5d_flores_t07.json &&
+step python3 -B teams/01-data-a/dedup/h3_e5d_sheets.py --config teams/01-data-a/dedup/h3_e5d_flores_sheets.json &&
+step python3 -B teams/01-data-a/dedup/h3_e5d_flores.py check --sheets out/e5d_flores/sheets --out out/e5d_flores
+echo "exit $? wall $(( $(date +%s) - T0 )) s end $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+} 2>&1 | tee out/e5d_flores_run.log
+```
+
+Last lines of output:
+
+```text
+== python3 -B teams/01-data-a/dedup/h3_e5d_sheets.py --config teams/01-data-a/dedup/h3_e5d_flores_sheets.json
+sa-en: 67 candidates and 10 controls -> 77 items, 2 sheets
+sa-hi: 70 candidates and 10 controls -> 80 items, 2 sheets
+hi-en: 20 candidates and 10 controls -> 30 items, 2 sheets
+or-en: 20 candidates and 10 controls -> 30 items, 2 sheets
+e5d sheets: 217 items, 10 strata short (0.12 s); out/e5d_flores/sheets
+-- 2 s
+== python3 -B teams/01-data-a/dedup/h3_e5d_flores.py check --sheets out/e5d_flores/sheets --out out/e5d_flores
+hi-en: 20 candidates (20 translations), 10 controls; below 0.6: 0 translations; at or above: 0 non-translations
+or-en: 20 candidates (20 translations), 10 controls; below 0.6: 0 translations; at or above: 0 non-translations
+sa-en: 67 candidates (67 translations), 10 controls; below 0.6: 27 translations; at or above: 0 non-translations
+sa-hi: 70 candidates (70 translations), 10 controls; below 0.6: 38 translations; at or above: 0 non-translations
+flores check: ok
+-- 1 s
+exit 0 wall 140 s end 2026-11-23T00:54:58Z
+```
+
+The full console log is `teams/01-data-a/jobs/logs/2026-11-23-h3-e5d-flores.txt`. The folder
+`teams/01-data-a/jobs/logs/2026-11-23-h3-e5d-flores/` holds the summaries of the build, both `h3.py` runs, the sheets and
+the check, and `flores_truth.csv` (each item's answer). They hold IDs and counts only, no FLORES text.
+
 ## Tests
 
 ```sh
@@ -181,3 +266,29 @@ defaults, the 13-column `h3_matches.csv` keys against `h3_docs.parquet`, the tra
 threshold per language pair, the time limit, the cache, the config checks, and a run without the Unix-only `resource`
 module (Windows), where `peak_rss_mb` is null. A fake encoder stands in for the model, so the tests need no model or
 network.
+
+The E5d sheets:
+
+```sh
+python3 -B -m pytest teams/01-data-a/dedup/tests/test_h3_e5d_sheets.py teams/01-data-a/dedup/tests/test_h3_e5d_flores.py -q -rs -p no:cacheprovider
+```
+
+```text
+...........................                                              [100%]
+27 passed in 8.16s
+```
+
+They check that a sheet has only its five columns and no doc_id, pack or score. They also check:
+
+- every reader gets every item, in their own order;
+- pairs are drawn from bands on both sides of the threshold;
+- a pair both encoders listed is read once with both scores, even when the runs list its sides in the other order;
+- side a is in the pair's first language;
+- the texts are the sentences `h3.py` scored, on the sides the key names;
+- the controls are mixed in, and the seed fixes the sheets;
+- a document changed since the run, an incomplete run and bad configs are refused;
+- the FLORES packs, the controls and the FLORES+ `.jsonl` input are built as described;
+- the check catches a sheet that is not blind or not the key's;
+- the generator and the check work end to end without a model.
+
+Every text in them is made up.
