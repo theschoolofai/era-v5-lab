@@ -22,7 +22,9 @@ Steps (each writes out/<step>.json; summary.json last; exit 1 if a step failed; 
   plan     time table; screen size = largest of 64/128/256 that fits 10 minutes at the measured decode rate;
            if the time left cannot hold screen + 3 updates + the last evaluation: screen only, then stop
   rl       rl-loop/train.py (objective_v1, screen, resumable state, deadline) with a literal-sample detector on the
-           held-out evaluations; report.json applies the decision rule
+           held-out evaluations; report.json applies the decision rule. Before the first update the log-prob gate checks
+           that the update forward reproduces the sampler's log-probs at identical weights (--no-logprob-gate skips it;
+           --update-mode eval is the switch it asks for when a train-only layer such as head dropout breaks it)
 Weights, built rows and resumable state are deleted at exit (state only when the run is complete or stopped at the screen).
 """
 from __future__ import annotations
@@ -391,7 +393,11 @@ def write_train_config(a, out: Path, init_state: Path | None, init_sha: str | No
                      "reward_workers": 4, "reward_pool": a.reward_pool,
                      "screen": {"n": screen_n, "k": a.k, "min_mixed": a.min_mixed},
                      "state_dir": str(out / "rl_state"), "state_every": a.state_every, "deadline_unix": deadline_unix,
-                     **({"max_steps_this_call": a.max_steps_this_call} if a.max_steps_this_call else {})}}
+                     **({"max_steps_this_call": a.max_steps_this_call} if a.max_steps_this_call else {}),
+                     # identical-weights check before the first update (rl-loop/train.py logprob_gate); stops the job
+                     # if the update forward does not reproduce the sampler's log-probs (work/lpgate-2026-11-23)
+                     **({"logprob_gate": True} if getattr(a, "logprob_gate", True) else {}),
+                     **({"update_mode": a.update_mode} if getattr(a, "update_mode", "train") != "train" else {})}}
     if cfg["train"]["autocast"] is None:
         del cfg["train"]["autocast"]
     if getattr(a, "keep_weights_dir", None):  # default off: train.py writes its trainable tensors here (bf16), keep_final_weights completes them
@@ -520,6 +526,7 @@ def rl_step(a, out: Path, init_state, init_sha, deadline_unix, screen_n) -> dict
                optimizer_steps=(summary.get("objective") or {}).get("steps_with_optimizer_update"),
                time_split_s_per_step=summary.get("mean_times_s_after_step1"), step1_s=summary.get("step1_s"),
                trainable_weight_change=summary.get("trainable_weight_change"), router_unchanged=summary.get("router_unchanged"),
+               logprob_gate=summary.get("logprob_gate"), update_mode=summary.get("update_mode", "train"),
                decision=decide_rl(summary["heldout_change"], wrong[0] if wrong else None, wrong[-1] if wrong else None,
                                   lit_rep[0]["literal_share_of_passes"] if lit_rep else None,
                                   lit_rep[-1]["literal_share_of_passes"] if lit_rep else None),
@@ -672,6 +679,11 @@ def parse_args(argv=None):
     ap.add_argument("--eval-k", type=int, default=4)
     ap.add_argument("--tricks-limit", type=int, default=128, help="screen candidates the no-skill programs are scored on")
     ap.add_argument("--reward-pool", type=int, default=16, help="scorer worker processes (score_pool); must be > 0")
+    ap.add_argument("--no-logprob-gate", dest="logprob_gate", action="store_false",
+                    help="skip the identical-weights log-prob check before the first update (on by default)")
+    ap.add_argument("--update-mode", choices=("train", "eval"), default="train",
+                    help="module mode of old_lp and the update forward (rl-loop/train.py update_mode); eval when the "
+                         "checkpoint has a train-only layer such as a head's vocabulary dropout (the gate says so)")
     ap.add_argument("--state-every", type=int, default=5)
     ap.add_argument("--max-steps-this-call", type=int, default=0, help="dry run: pause after this many updates, rerun to resume")
     ap.add_argument("--deadline-minutes", type=float, default=85.0)
