@@ -22,6 +22,7 @@ run:
   # TST ("Secret Sauce"): off for dry run 2 (TSAI 22 Nov: unconfirmed on KE2; keep the head integration test clean).
   tst: false
 model:
+  head_mode: kas_v2
   moe:
     # Loss-free balancer. Session 14, and TSAI in Session general on 23 Nov: the bias is added only
     # for the expert choice. Expert Linear bias stays false (runtime moe.bias).
