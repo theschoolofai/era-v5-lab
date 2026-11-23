@@ -370,7 +370,7 @@ Compute rule: "You get no keys and no machine access. Send a job request." Each 
 | # | Job | State |
 |---|---|---|
 | 1 | Dry run 1 checkpoint, Tier A and Tier B | [`jobs/2026-11-15-eval-watcher-dry-run-1.md`](jobs/2026-11-15-eval-watcher-dry-run-1.md), on `main` (#549). Ran 20 Nov on the eval slot: Tier A and Tier B scored and loaded into `eval_mini`, 0 canary hits (TSAI's result comment on #549); times in section 3. Gate 3 evidence |
-| 2 | Dry run 2 watcher: Tier A every commit, Tier B every 10th, step 0 and the restored checkpoint | [`jobs/2026-11-21-eval-watcher-dry-run-2.md`](jobs/2026-11-21-eval-watcher-dry-run-2.md), on `main` (#707, merged 22 Nov). Its run ID, store, model config and save interval are placeholders, to fill from Team 5's dry run 2 job request (#720, merged 22 Nov: run ID `dryrun2-1234`, `--checkpoint-interval-s 600`) |
+| 2 | Dry run 2 watcher: Tier A every commit, Tier B every 10th, step 0 and the restored checkpoint | [`jobs/2026-11-21-eval-watcher-dry-run-2.md`](jobs/2026-11-21-eval-watcher-dry-run-2.md), on `main` (#707, merged 22 Nov). Its run details come from Team 5's dry run 2 job request (#720, merged 22 Nov: run ID `dryrun2-1234`, store `/shared/ckpt`, `--checkpoint-interval-s 600`) |
 | 3 | Main-run watcher | to file after Gate 4 (Sat 28 Nov), with the time per checkpoint at the main-run size |
 | 4 | Post-training evaluation (section 8 wave 1, the forgetting check, section 9) | after an SFT or RL job keeps weights |
 
