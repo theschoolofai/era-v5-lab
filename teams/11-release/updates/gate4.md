@@ -25,6 +25,7 @@ The KE2 section now covers the KE2 output head, which TSAI chose at Gate 3 in pl
 | The second dry run | Architecture, Infrastructure | [waiting for TSAI] |
 | The main training run | Architecture, Infrastructure | Go or no-go: [waiting for TSAI] |
 | The launch announcement | Release | [waiting for TSAI] |
+| The learning rate for the Muon optimizer | Architecture | TSAI set the learning rate for the Muon optimizer to 0.006. The second dry run uses this rate. |
 
 Short forms: KE2 is the lab team that tests its embedding method on the lab's tokenizer. The output head is the last
 part of the model, which scores each token as the next token. A dense untied head is the standard output head.
@@ -66,7 +67,7 @@ How to fill it:
 | Open from Gate 3: the evaluation schedule | Evaluation | [#662](https://github.com/theschoolofai/era-v5-lab/pull/662) | no | no |
 | Open from Gate 3: the tuning method after the main training | Post-training | [#524](https://github.com/theschoolofai/era-v5-lab/pull/524), [#593](https://github.com/theschoolofai/era-v5-lab/pull/593), [#634](https://github.com/theschoolofai/era-v5-lab/pull/634) | no | no |
 | Open from Gate 3: serving and quantization | Quantization | [#538](https://github.com/theschoolofai/era-v5-lab/pull/538) | no | no |
-| Open from Gate 3: the learning rate for the Muon optimizer | Architecture | `updates/gate3.md` (the learning rate) | no | no |
+| Decision: the learning rate for the Muon optimizer (open from Gate 3) | Architecture | `updates/gate3.md` (the learning rate). Decided: TSAI's correction in [#725](https://github.com/theschoolofai/era-v5-lab/pull/725), which sets the rate in config v1 and in the second dry run | yes | no |
 | Open from Gate 3: the exact model size | Architecture | `updates/gate3.md` (model layout and size) | no | no |
 
 - [ ] `check_style.py` gives 0 errors
