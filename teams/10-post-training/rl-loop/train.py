@@ -46,6 +46,9 @@ GPU-run options (config `train.*`, all optional):
                    before the screen and the first update, sample k completions of the first train prompt(s) with an own
                    generator, score them as the update will and compare with the behaviour log-probs at identical
                    weights; stop with an error above the tolerance; logprob_gate.json and summary["logprob_gate"]. Not with dt
+    time_sync      default false: on CUDA, synchronize before each phase clock read so times_s splits a step exactly
+                   (sampling = rollout, scoring = reward, update = old_logprobs + train); rows then carry times_synced.
+                   Off, the clocks read host time only and queued GPU work can land in a later phase
 metrics.jsonl adds per-step timings (rollout, reward, old_logprobs, train, sync), sampled tokens and tokens/s,
 GPU memory, and the sampler/trainer mismatch. summary.json adds the paired-bootstrap CI of the held-out change,
 the trainable-weight change, and the library versions.
@@ -458,6 +461,18 @@ def length_stats(rolls, max_new: int, eos_id) -> dict:
     return {"truncated": round(cut / max(n, 1), 4), "mean_tokens": round(toks / max(n, 1), 1)}
 
 
+def phase_clock(sync_device: str | None):
+    """Clock for the per-step phase times. With a CUDA device, wait for the queued GPU work before reading the time, so
+    each phase owns its kernels (train.time_sync); without one, plain host time (the default, no added synchronization)."""
+    if sync_device is None:
+        return time.time
+
+    def clock() -> float:
+        torch.cuda.synchronize(sync_device)
+        return time.time()
+    return clock
+
+
 def gpu_memory() -> dict:
     if not torch.cuda.is_available():
         return {}
@@ -797,6 +812,8 @@ def train(cfg: dict) -> dict:
     cohort_k = int(t.get("cohort_eval_k", 0))
     call_steps = int(t["max_steps_this_call"]) if t.get("max_steps_this_call") else None
     max_train_s = float(t["max_train_seconds"]) if t.get("max_train_seconds") is not None else None
+    time_sync = bool(t.get("time_sync", False)) and str(device).startswith("cuda")
+    clock = phase_clock(device if time_sync else None)
     sampler_kind = t.get("sampler") or ("hf_batch" if cfg["model"]["kind"] in ("hf", "tiny_olmoe") else "policy")
     if sampler_kind == "vllm" and cfg["model"].get("init_state"):
         raise ValueError("model.init_state is incompatible with the vLLM sampler; use a sampler backed by the trainer")
@@ -1173,11 +1190,11 @@ def train(cfg: dict) -> dict:
         times = {}
         random.shuffle(order)
         batch = [task.train[i] for i in order[: int(t["prompts_per_step"])]]
-        c0 = time.time()
+        c0 = clock()
         rolls = sampler.sample(batch, k, max_new, temperature, gen)
-        times["rollout"] = time.time() - c0
+        times["rollout"] = clock() - c0
         sampled_tokens = int(sum(int(r.cmask.sum()) for r in rolls))
-        c0 = time.time()
+        c0 = clock()
         groups, rewards_all, dropped, mism = [], [], 0, []
         scored = []
         sub_fn, subgroups = getattr(task, "subgroup_of", None), {}
@@ -1211,9 +1228,9 @@ def train(cfg: dict) -> dict:
                 rl_ = rewards.tolist()
                 kinds["singleton" if len(rl_) < 2 else "mixed" if max(rl_) != min(rl_) else
                       "all_one" if rl_[0] == 1.0 else "all_zero" if rl_[0] == 0.0 else "tied_other"] += 1
-        times["reward"] = time.time() - c0
+        times["reward"] = clock() - c0
         step_reasons = pop_reasons(task)
-        c0 = time.time()
+        c0 = clock()
         if dt_cfg:
             model.eval()  # hard mask: the engine-mismatch metric compares the same policy in both engines
         if update_mode == "eval":
@@ -1237,7 +1254,7 @@ def train(cfg: dict) -> dict:
                 groups.append((r.seq, r.cmask, adv.to(device), sampler_lp, old_lp if dt_cfg else None, len(p), None))
                 continue
             groups.append((r.seq, r.cmask, adv.to(device), old_lp, ref_lp, len(p), isw))
-        times["old_logprobs"] = time.time() - c0
+        times["old_logprobs"] = clock() - c0
         stats = {"clip_frac": 0.0, "ratio_mean": 1.0, "kl": 0.0}
         loss_val = 0.0
         step_flip = step_top1 = step_mass = None
@@ -1252,7 +1269,7 @@ def train(cfg: dict) -> dict:
             v1_rec = {"tr_epsilon": tr_eps, "group_kinds": dict(kinds), "tokens": n_tok,
                       "passes": int(sum(1 for x in rewards_all if x == 1.0)), "rollouts": len(rewards_all),
                       "ratio_source": ratio_src if groups else None, "optimizer_stepped": False}
-        c0 = time.time()
+        c0 = clock()
         if v1 and groups and n_tok > 0:
             if vllm is not None:
                 vllm.sleep()
@@ -1338,7 +1355,7 @@ def train(cfg: dict) -> dict:
         if kz is not None and device.startswith("cuda"):
             # Attribute pending optimizer work to training before timing the mask scans.
             torch.cuda.synchronize(device)
-        times["train"] = time.time() - c0
+        times["train"] = clock() - c0
         kz_rec = {}
         if kz is not None:
             c0 = time.perf_counter()
@@ -1352,19 +1369,19 @@ def train(cfg: dict) -> dict:
                     kz.check(f"step {step}")
             kz_rec["zero_share"] = round(kz.zero_share(), 6)
             times["keep_zero_checks"] = time.perf_counter() - c0
-        c0 = time.time()
+        c0 = clock()
         sync_bytes = 0
         if vllm is not None:
             vllm.wake_up()
             if groups:
                 sync_bytes = vllm.sync(sync_named())
-        times["sync"] = time.time() - c0
+        times["sync"] = clock() - c0
         rec = {"step": step, "train_reward": sum(rewards_all) / len(rewards_all), "groups_used": len(groups),
                "groups_dropped": dropped, "loss": loss_val, **stats, **v1_rec, **kz_rec,
                "sampled_tokens": sampled_tokens,
                "rollout_tokens_per_s": round(sampled_tokens / max(times["rollout"], 1e-9), 1),
                "times_s": {k_: round(v, 3) for k_, v in times.items()}, "step_s": round(sum(times.values()), 3),
-               "sync_mb": round(sync_bytes / 2**20, 1), **gpu_memory(),
+               "sync_mb": round(sync_bytes / 2**20, 1), **gpu_memory(), **({"times_synced": True} if time_sync else {}),
                "seconds": round(prior_s + time.time() - start, 1)}
         if step_reasons is not None:
             rec["reasons"] = step_reasons

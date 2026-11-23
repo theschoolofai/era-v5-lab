@@ -387,7 +387,7 @@ def write_train_config(a, out: Path, init_state: Path | None, init_sha: str | No
                      **({"init_state": str(init_state), "init_state_sha256": init_sha} if init_state else {})},
            "task": {"kind": "stdio", "require_verifier": True, "tasks": str(a.rl_tasks),
                     "train_ids": str(out / "train_ids.txt"), "heldout_ids": str(out / "heldout_ids.txt")},
-           "train": {"algo": "objective_v1", "sampler": a.sampler, "steps": a.updates, "prompts_per_step": a.prompts_per_step,
+           "train": {"algo": "objective_v1", "sampler": getattr(a, "sampler", "policy"), "steps": a.updates, "prompts_per_step": a.prompts_per_step,
                      "k": a.k, "max_new": a.max_new, "temperature": 1.0, "lr": a.lr, "ppo_epochs": 1, "kl_coef": 0.0,
                      "grad_clip": 1.0, "weight_decay": 0.0, "tr_epsilon": a.tr_epsilon, "fp32_master": True,
                      "autocast": "bf16" if a.device.startswith("cuda") else None, "eval_every": a.updates, "eval_k": a.eval_k,
@@ -395,11 +395,13 @@ def write_train_config(a, out: Path, init_state: Path | None, init_sha: str | No
                      "screen": {"n": screen_n, "k": a.k, "min_mixed": a.min_mixed},
                      "state_dir": str(out / "rl_state"), "state_every": a.state_every, "deadline_unix": deadline_unix,
                      **({"max_steps_this_call": a.max_steps_this_call} if a.max_steps_this_call else {}),
-                     **({"sampler_max_rows": a.sampler_max_rows} if a.sampler == "g5_batch" else {}),
+                     **({"sampler_max_rows": a.sampler_max_rows} if getattr(a, "sampler", "policy") == "g5_batch" else {}),
                      # identical-weights check before the first update (rl-loop/train.py logprob_gate); stops the job
                      # if the update forward does not reproduce the sampler's log-probs (work/lpgate-2026-11-23)
                      **({"logprob_gate": True} if getattr(a, "logprob_gate", True) else {}),
-                     **({"update_mode": a.update_mode} if getattr(a, "update_mode", "train") != "train" else {})}}
+                     **({"update_mode": a.update_mode} if getattr(a, "update_mode", "train") != "train" else {}),
+                     # per-step seconds in rl/metrics.jsonl times_s; this makes the CUDA split exact (train.py time_sync)
+                     **({"time_sync": True} if getattr(a, "time_sync", False) else {})}}
     if cfg["train"]["autocast"] is None:
         del cfg["train"]["autocast"]
     if getattr(a, "keep_weights_dir", None):  # default off: train.py writes its trainable tensors here (bf16), keep_final_weights completes them
@@ -548,7 +550,7 @@ def rate_probe(a, out: Path, init_state) -> dict:
     bundle = ta.build(out / "adapter.yaml", device=a.device).require_bundle()
     if init_state:
         bundle.model.load_state_dict(load_file(str(init_state)), strict=True)
-    if a.sampler == "g5_batch":
+    if getattr(a, "sampler", "policy") == "g5_batch":
         return batched_rate(a, bundle, ids)
     rep = probe.rl_screen_bundle(bundle, a.rl_tasks, ids_file, a.k, a.max_new, a.device, 0, a.rate_probe_seconds)
     return {"decode_seconds_per_prompt": rep["seconds"] / rep["prompts"] if rep["prompts"] else None, "prompts": rep["prompts"],
@@ -641,7 +643,7 @@ def run(a, out: Path) -> int:
         if not results["sft"]["ok"]:
             return probe.finish(out, results)
         init_state, init_sha = Path(results["sft"]["weights"]), results["sft"]["weights_sha256"]
-        if a.sampler != "g5_batch":  # the rebuild's rate is per prompt; g5_batch measures its own batched rate below
+        if getattr(a, "sampler", "policy") != "g5_batch":  # the rebuild's rate is per prompt; g5_batch measures its own batched rate below
             rate = rate or results["sft"].get("decode_seconds_per_prompt")
         sft_s = results["sft"]["seconds"]
     else:
@@ -734,6 +736,9 @@ def parse_args(argv=None):
     ap.add_argument("--sampler", choices=("policy", "g5_batch"), default="policy",
                     help="policy: one decode per prompt; g5_batch: every prompt of a step in one decode (B5, 23 Nov: 12.8x on a T4)")
     ap.add_argument("--sampler-max-rows", type=int, default=128, help="g5_batch: rows decoded together at most")
+    ap.add_argument("--time-sync", action="store_true",
+                    help="synchronize CUDA at each phase boundary so rl/metrics.jsonl times_s splits sampling (rollout), "
+                         "scoring (reward) and the update (old_logprobs + train) exactly; off by default")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--keep-weights-dir", type=Path,
