@@ -920,6 +920,8 @@ def train(cfg: dict) -> dict:
     start_w = StartWeights(model)  # CPU copy of the trainable weights: weight-change check, and KL to start
     opt = torch.optim.AdamW([p for _, p in trainable_named], lr=float(t["lr"]),
                             weight_decay=float(t.get("weight_decay", 0.0)))
+    if kz is not None:
+        kz.check_optimizer(opt)
     tis_clip = float(t["tis_clip"]) if t.get("tis_clip") else None
     micro_rows = int(t["micro_rows"]) if t.get("micro_rows") else None
     probe_w = UpdateProbe(trainable_named) if v1 else None
@@ -1122,7 +1124,7 @@ def train(cfg: dict) -> dict:
         (out / "screen.json").write_text(json.dumps(rec_s, indent=1))
         print(json.dumps({"screen": {k_: v for k_, v in rec_s.items() if k_ not in ("per_task", "mixed_ids")}}),
               flush=True)
-        if len(mixed) < need:
+        if len(mixed) < max(need, 1):  # min_mixed 0 with no mixed prompt would train on an empty list
             metrics_f.close()
             summary = {"status": "NO_GO_MIXED_BAND", "algo": algo, "screen": {k_: v for k_, v in rec_s.items()
                                                                               if k_ != "per_task"},
