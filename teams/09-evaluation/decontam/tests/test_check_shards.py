@@ -436,3 +436,19 @@ def test_code_files_are_the_local_imports():
                 [node.module] if isinstance(node, ast.ImportFrom) and node.module else [])
             todo += [n.split(".")[0] for n in names if n.split(".")[0] in local]
     assert seen <= {Path(n).stem for n in cs.CODE_FILES}
+
+
+def test_text_written_late_by_a_crashed_run_is_deleted_at_the_end(tmp_path, monkeypatch):
+    """A step of a crashed run can go on and write text after this run started: the end of this run deletes it,
+    and --keep-text keeps the text."""
+    folder, tok = make_shards(tmp_path, {"a-train-000000": 1})
+
+    def fake(shard_id, a, tok_sha, pool):
+        (a.work / "text" / "other-train-000000.text.parquet").write_text("text from a step of a crashed run")
+        return result(shard_id)
+
+    monkeypatch.setattr(cs, "check_one", fake)
+    assert run_main(tmp_path, folder, tok, "w") == 0
+    assert list((tmp_path / "w" / "text").iterdir()) == []
+    assert run_main(tmp_path, folder, tok, "k", "--keep-text") == 0
+    assert [p.name for p in (tmp_path / "k" / "text").iterdir()] == ["other-train-000000.text.parquet"]

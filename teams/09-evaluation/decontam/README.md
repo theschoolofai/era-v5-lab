@@ -183,7 +183,10 @@ set) and `canary_scan.py`. It calls the three scripts unchanged, so the result i
   (`--force` checks them again). A shard with a file missing fails and is named. A result with another set_sha256
   than the set of the run fails the run.
 - **One run per work folder:** a lock on `<work>` stops a second run on the same folder at once, so it cannot delete
-  the first run's files. The operating system releases the lock when a run ends, also after a crash.
+  the first run's files. The operating system releases the lock when a run ends, also after a crash. Use a local
+  `--work` folder: the lock is not reliable on a network drive.
+- **Decoded text:** deleted after each shard, and in `<work>/text` at the start and at the end of each run (also text
+  that a step of a crashed run wrote late). `--keep-text` keeps it until the next run on the folder.
 - **Compare:** `--compare <markdown>` checks payload_sha256, docs and tokens against the first table row of each shard
   (rows with or without a `#` column).
 - **Output:** a table in the format of `results/decontam_shards.md`, plus the set_sha256, the canary count and the

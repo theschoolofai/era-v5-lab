@@ -23,13 +23,14 @@ fingerprint set, about 1.4 GB). Peak disk use is about two decoded copies of --j
              match its first row there; a mismatch or a missing row is reported and makes the exit code 1.
 
 A .bin in the folder without its three other shard files counts as an incomplete download and fails the run, so keep
-only shards in the folder. Decoded text left in <work>/text by a stopped run is deleted at the start.
+only shards in the folder. Decoded text in <work>/text from an earlier or stopped run is deleted at the start, and at
+the end unless --keep-text is given (--keep-text keeps it until the next run on the folder).
 
 Results go to <work>/results/<shard_id>.json, one file per shard, written only when all steps finish. A second run
 skips a shard that already has a result for the same tokenizer, fingerprint set (set_sha256), check code (code_sha256:
 the scripts and the tokenizers version) and shard payload (resume after a stop). One run at a time can use a --work
-folder: a second run stops with an error. Use --force to check again. The decoded text is deleted after the checks unless --keep-text
-is given.
+folder: a second run stops with an error. Use a local --work folder: the lock is not reliable on a network drive. Use
+--force to check again. The decoded text is deleted after the checks unless --keep-text is given.
 
 At the end it prints a markdown table in the format of results/decontam_shards.md, plus the fingerprint set_sha256
 and the canary count. Exit code: 0 when every shard passed with 0 flagged and 0 canary hits and matched --compare;
@@ -311,7 +312,8 @@ def main(argv=None):
     ap.add_argument("--part-tokens", type=int, default=16_000_000,
                     help="tokens per decontam_check.py part (default 16,000,000)")
     ap.add_argument("--compare", type=Path, help="markdown shard table to check payload_sha256, docs and tokens")
-    ap.add_argument("--keep-text", action="store_true", help="keep <work>/text/<shard_id>.text.parquet")
+    ap.add_argument("--keep-text", action="store_true",
+                    help="keep <work>/text/<shard_id>.text.parquet until the next run on this --work folder")
     ap.add_argument("--force", action="store_true", help="check again shards that already have a result")
     a = ap.parse_args(argv)
 
@@ -337,12 +339,20 @@ def main(argv=None):
     try:
         return run_checks(a, tok_sha, set_sha, code_sha256(), ap)
     finally:
+        if not a.keep_text:
+            clean_text(a.work)  # also text a step of a crashed earlier run wrote after this run started
         work_lock.close()
 
 
+def clean_text(work):
+    """Delete decoded text in <work>/text. Called while this run holds the lock, so no other run uses the folder:
+    a file there is this run's, or from a stopped run (also from a step of a crashed run that went on after it)."""
+    for old in (work / "text").glob("*.text.parquet*"):
+        old.unlink(missing_ok=True)
+
+
 def run_checks(a, tok_sha, set_sha, code_sha, ap):
-    for old in (a.work / "text").glob("*.text.parquet*"):  # left by a stopped run: text, never a valid input
-        old.unlink()
+    clean_text(a.work)  # text from an earlier run is never a valid input
     a.split_lock = threading.Semaphore(SPLITS_AT_ONCE)
 
     ids, incomplete = find_shards(a.shards)
