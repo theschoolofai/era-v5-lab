@@ -5,7 +5,7 @@
 Monitoring plans new panels for the public dashboard. Its list is in
 `teams/08-monitoring/docs/dashboard_content_decisions_w4.md` ([#732](https://github.com/theschoolofai/era-v5-lab/pull/732)).
 This file has one plain sentence for each new panel, and the text for the panel that explains the dashboard. The
-words follow the public glossary in `glossary.md`.
+words follow the public glossary in `glossary.md`. Benchmark scores follow `score_text_format.md`.
 
 ## Why this is a separate file
 
