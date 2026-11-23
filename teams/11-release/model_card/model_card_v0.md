@@ -7,6 +7,8 @@
 The ERA V5 lab of The School of AI (TSAI) builds and trains its own language model. Students of the lab work in
 teams, and each team owns one part of the work. The work is in a public repository, so anyone can follow it.
 
+[text: waiting for Release, what the model is]
+
 ## Intended use
 
 [text: waiting for Post-training and Release]
@@ -47,6 +49,8 @@ The readers found these problems:
 - Romanised Indian-language text, an Indian language written in Latin letters, is rare in the samples. The mix caps it
   at 1% of the tokens of each language.
 - Malayalam and Odia had no second reader, so Data B could not measure their clean share.
+
+[text: waiting for Data B, the problems in the code-adjacent text]
 
 Indian scripts break easily. Data B looked for invisible characters, text in the wrong script, words cut before a vowel
 sign, and lost joiner characters (ZWJ and ZWNJ). In the cleaned training shards, no joiner was lost from the text that
@@ -161,8 +165,8 @@ How to fill it:
 
 | Section | Owner team | Text in this draft | Source | Lead OK |
 |---|---|---|---|---|
-| Overview | Release | yes | `launch/launch_announcement_v0.md` ([#600](https://github.com/theschoolofai/era-v5-lab/pull/600), [#603](https://github.com/theschoolofai/era-v5-lab/pull/603)) | yes (the Release lead wrote this draft) |
-| Training data: the Indian-language and code-adjacent text | Data B | yes, with no edit | `teams/02-data-b/model_card/training_data.md` ([#525](https://github.com/theschoolofai/era-v5-lab/pull/525)). Its source table gives the TSAI approval of each number | Data B: no |
+| Overview | Release | who made the model: yes. What the model is: no | `launch/launch_announcement_v0.md` ([#600](https://github.com/theschoolofai/era-v5-lab/pull/600), [#603](https://github.com/theschoolofai/era-v5-lab/pull/603)) | yes (the Release lead wrote this draft) |
+| Training data: the Indian-language and code-adjacent text | Data B | yes, with no edit. The problems in the code-adjacent text: no, Data B adds them later | `teams/02-data-b/model_card/training_data.md` ([#525](https://github.com/theschoolofai/era-v5-lab/pull/525)). Its source table gives the TSAI approval of each number | Data B: no |
 | Training data: the general text and code | Data A | no | waiting for Data A | Data A: no |
 | Licence and attribution | Post-training, Data A, Data B | no | waiting for the Post-training text. Facts so far: `teams/10-post-training/licences/licence_table.md` | no |
 | Evaluation | Evaluation | no | waiting for the Evaluation text. Plan so far: `teams/09-evaluation/eval_schedule.md` | no |
