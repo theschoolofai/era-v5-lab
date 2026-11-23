@@ -49,3 +49,17 @@ micro_tokens 2048, autocast bf16, grad checkpointing; eval bpb (300 rows) + form
 Memory model at micro 2048 (decimal GB, predicted / measured): 0.6b full 13.1/13.57, lora 6.0/6.04, dt 7.4/7.43, dtm 9.2/9.30; 1.7b lora 11.0/11.10.
 Final line: {"summary": "/kaggle/working/out/ladder_summary.json", "complete": false, "not_ok": ["1.7b/base", "1.7b/lora", "1.7b/dt"]}
 Generations were returned privately and are not in Git. 20 steps: no number here is a result.
+
+== 8B full FT memory fix (23 Nov 2026 06:09 IST) ==
+torch 2.14.1 AdamW default on CUDA is foreach (optimizer._default_to_fused_or_foreach). Instrumented step on CPU, 10M params:
+new foreach-list bytes per parameter byte: foreach=True 1.0, foreach=False 0.0, fused=True 0.0. At 8B full FT: 16 B x 8.19B
+(weights, grads, Adam) + 4 B x 8.19B (that temporary) = 164 GB at the step, over one H200. Config: 8b/full and 8b/full_lo get
+adam_fused: true (train.py --adam-fused). CPU dry run, tiny random Qwen3 8B-shaped model, both arms, fused:
+8b/full ok fused micro 2048 checks writeback_step1=True reload_parity=True first/last loss 11.943700790405273 / 11.939133644104004
+8b/full_lo ok fused micro 2048 checks writeback_step1=True reload_parity=True 11.943700790405273 / 11.940035820007324
+(default implementation in the earlier dry run: the same first/last losses to every printed digit)
+OOM retry (micro_tokens 4096 -> 2048): train.py full, tiny model, 2 steps x 8 rows, CPU:
+4096: step 1 loss 11.939970016479492 grad_norm 0.6101834774 targets 8454 microbatches 4; step 2 loss 11.942950248 grad_norm 0.5412933826
+2048: step 1 loss 11.939970016479492 grad_norm 0.6101835370 targets 8454 microbatches 7; step 2 loss 11.942950248 grad_norm 0.5412934422
+max |w4096 - w2048| after 2 steps 4.6e-08 (largest update 1.5e-05). Longest training row 1,945 tokens (none over 2,048).
+Activation term at 8B (memory model): 10.38 GB at micro 4096, 5.19 GB at 2048.

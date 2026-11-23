@@ -10,7 +10,9 @@ Order and recovery: sizes and arms run in config order. After every arm `<out>/l
 (`complete: false` until the last arm), so a time limit still returns the finished arms. An arm with
 `<out>/<size>/<arm>/DONE` is skipped on a rerun; train.py's own `--save-every` state resumes full/LoRA arms mid-run
 (train.py does not implement it for DT, which restarts). A failed arm (non-zero exit, out of memory, failed check) is
-recorded with the tail of its log and the ladder goes on. With `keep_models: false` the saved model folder of an arm
+recorded with the tail of its log and the ladder goes on. With `oom_retry: true` a training arm that fails with CUDA
+out of memory is retried once at half `micro_tokens` (recorded as `train.oom_retry` in the summary): the same rows per
+step and the same gradient, split into more micro-batches; DT's Wanda calibration batches are re-planned the same way. With `keep_models: false` the saved model folder of an arm
 is deleted after its evaluation succeeded (8B in FP32 is 33 GB per arm); the DT mask files are kept.
 
 `dry_run: true` builds a tiny random model with the same architecture class and the real tokenizer (CPU), and shrinks
@@ -82,6 +84,22 @@ def tail(path: Path, n: int = 15) -> list[str]:
         return []
 
 
+OOM_MARKERS = ("torch.OutOfMemoryError", "CUDA out of memory", "torch.cuda.OutOfMemoryError")
+
+
+def is_oom(text: str) -> bool:
+    return any(m in text for m in OOM_MARKERS)
+
+
+def read_from(path: Path, offset: int) -> str:
+    try:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            fh.seek(offset)
+            return fh.read()
+    except FileNotFoundError:
+        return ""
+
+
 def flags(d: dict) -> list[str]:
     out = []
     for k, v in d.items():
@@ -141,16 +159,34 @@ def main(argv=None) -> int:
             eval_model = model_dir
             if arm.get("method", "base") != "base":
                 tr = {**cfg["train_common"], **size.get("train", {}), **arm.get("train", {})}
-                cmd = [py, "sft/bench/train.py", "--train", str(slice_dir / "train.tok.jsonl"), "--model", str(model_dir),
-                       "--revision", "none", "--tokenizer-dir", str(model_dir), "--method", arm["method"],
-                       "--out", str(adir / "train"), *flags(tr)]
-                rc, secs = run(cmd, log, env)
+
+                def train_cmd(t):
+                    return [py, "sft/bench/train.py", "--train", str(slice_dir / "train.tok.jsonl"), "--model", str(model_dir),
+                            "--revision", "none", "--tokenizer-dir", str(model_dir), "--method", arm["method"],
+                            "--out", str(adir / "train"), *flags(t)]
+
+                start = log.stat().st_size if log.exists() else 0
+                rc, secs = run(train_cmd(tr), log, env)
+                retry = None
+                # one retry at half micro_tokens after a CUDA out-of-memory: same rows per step and the same gradient
+                # (sum of NLL over all micro-batches / global target count), only split into more micro-batches
+                if rc != 0 and cfg.get("oom_retry", False) and is_oom(read_from(log, start)):
+                    first_mt = int(tr.get("micro_tokens", 4096))
+                    tr = {**tr, "micro_tokens": first_mt // 2}
+                    shutil.rmtree(adir / "train", ignore_errors=True)  # no partial state from the failed attempt
+                    with open(log, "a", encoding="utf-8") as fh:
+                        fh.write(f"# ladder: CUDA out of memory at micro_tokens {first_mt}; retrying once at {first_mt // 2}\n")
+                    rc, secs2 = run(train_cmd(tr), log, env)
+                    retry = {"reason": "cuda_oom", "first_micro_tokens": first_mt, "micro_tokens": first_mt // 2,
+                             "first_attempt_wall_s": round(secs, 1)}
+                    secs = secs2
                 rep_path = adir / "train" / "train_report.json"
                 rep = json.loads(rep_path.read_text()) if rep_path.exists() else {}
-                rec["train"] = {"returncode": rc, "wall_s": round(secs, 1),
+                rec["train"] = {"returncode": rc, "wall_s": round(secs, 1), "micro_tokens": tr.get("micro_tokens"),
+                                **({"oom_retry": retry} if retry else {}),
                                 **{k: rep.get(k) for k in ("train_seconds", "seconds_per_100_steps", "first_loss", "last_loss",
                                                             "mean_loss_first_20", "mean_loss_last_20", "cuda_peak_allocated_mb",
-                                                            "cuda_peak_reserved_mb", "peak_rss_mb", "hardware", "rows")}}
+                                                            "cuda_peak_reserved_mb", "peak_rss_mb", "hardware", "rows", "adam_impl")}}
                 if arm["method"] == "dt":
                     mi = rep.get("method") if isinstance(rep.get("method"), dict) else {}
                     rec["train"]["dt"] = {k: mi.get(k) for k in ("deletion_final", "deletion_at_init", "mask_artifact")}

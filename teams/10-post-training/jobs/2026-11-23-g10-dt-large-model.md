@@ -11,7 +11,7 @@ Config:          teams/10-post-training/dt/ladder_qwen3.yaml
 Seed:            1 (row order, LoRA init)
 Inputs:          pinned by sha256 in the table below, under ./inputs/: Qwen/Qwen3-8B-Base @ 49e3418f and Qwen/Qwen3-4B-Base @ 906bfd4b (Apache-2.0, public), and inputs/g10-dtl/slice-v1-qwen3/ (two files, 62 MB, private bundle)
 Packages:        Python 3.12, torch (CUDA build), transformers with Qwen3 support (CPU log: 5.22.1), tokenizers, numpy, pyyaml, safetensors
-Hardware:        1 GPU, NVIDIA H200 (141 GB), the GPU of TSAI's returned Team 5 runs. Full fine-tuning of 8B with FP32 AdamW needs about 141 GB by our memory model, so an 80 GB A100/H100 cannot run the two 8B full arms or 8B DT+m (99 GB); every 4B arm and 8B LoRA/DT fit 80 GB. The 8B full arms are tight even on the H200 (margin a few GB at most); if one runs out of memory it is recorded and the ladder goes on
+Hardware:        1 GPU, NVIDIA H200 (141 GB), the GPU of TSAI's returned Team 5 runs. Full fine-tuning of 8B with FP32 AdamW needs about 141 GB by our memory model, so an 80 GB A100/H100 cannot run the two 8B full arms or 8B DT+m (99 GB); 8B LoRA/DT and the 4B LoRA/DT arms fit 80 GB, 4B full (about 80 GB at the optimizer step) does not reliably. The two 8B full arms use the fused AdamW kernel (`adam_fused: true`): torch's default AdamW on CUDA (foreach) holds one more FP32 copy of all trainable weights during the step, 20 B x 8.19B = 164 GB, over the H200; fused keeps it at about 141 GB, still tight. A training arm that runs out of CUDA memory is retried once at micro_tokens 2048 (saves about 5 GB at 8B), recorded in the summary
 Max time:        540 minutes (estimate below: about 7.8 h; 8B runs first, so a time limit still returns the 8B arms)
 Precision:       training FP32 weights / gradients / AdamW state with BF16 autocast (as the 1.7B table); evaluation BF16 autocast (evaluate.py --dtype auto)
 Measures:        per arm: format validity on 110 held-out prompts with failure reasons, test target bits per byte, forgetting (bits per byte on G5 held-out v1), DT deletion fraction, step time, peak memory; writeback / frozen-weight / bake / reload checks
@@ -58,7 +58,7 @@ arm it predicted over the T4 ran out of memory. On SmolLM2-1.7B (L40S) it over-p
 
 | model | full | LoRA | DT | DT+m |
 |---|---|---|---|---|
-| Qwen3-8B-Base | 141 | 43 | 84 | 98 |
+| Qwen3-8B-Base | 141 (fused AdamW; 164 with torch's default foreach AdamW) | 43 | 84 | 98 |
 | Qwen3-4B-Base | 73 | 25 | 41 | 46 |
 
 Time. Training times are scaled from the measured 1.7B L40S runs (400 steps: full 848 s, LoRA 875 s, DT 734 s). The scaling uses the
@@ -99,8 +99,12 @@ On the H200 evaluation runs under BF16 autocast with FP32 8B weights (33 GB) and
 time (BF16 autocast is not native on a T4), and the 20-step format counts (0/16 in every arm) and bits per byte are not results.
 
 ## Stop conditions and recovery
-- An arm that fails (non-zero exit, out of memory, non-finite loss, a failed check) is recorded in `ladder_summary.json` with the
-  tail of its log, and the next arm starts.
+- A training arm that fails with CUDA out of memory is retried once with micro_tokens halved (4096 to 2048), from scratch; the
+  summary records `train.oom_retry` and the micro_tokens used. Same rows per step and the same gradient (the loss is summed over
+  all micro-batches and divided by the step's target count; checked on CPU: identical loss, weights within 5e-8 after 2 steps).
+  The longest training row is 1,945 tokens, so every micro-batch then holds at most 2,048 padded tokens; the saving is the
+  activation half, about 5 GB of the 141 GB at 8B full FT. Steps are somewhat slower (about twice as many micro-batches).
+- Any other failure, or a second out-of-memory, is recorded in `ladder_summary.json` with the tail of its log, and the next arm starts.
 - `<out>/<size>/<arm>/DONE` marks a finished arm, so a rerun with the same command continues from the first unfinished arm.
   Mid-arm resume is not used: at 8B one FP32 resume state is 98 GB, and train.py does not implement it for DT.
 - If the untrained base already scores above 50/110 on format, the summary shows it and the DT comparison is read with that flag.

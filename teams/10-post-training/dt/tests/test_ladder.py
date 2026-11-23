@@ -90,3 +90,78 @@ def test_job_config_matches_the_preregistered_arms():
     assert arms["4b-steps/dtm_800"]["train"]["steps"] == 800
     methods = {a["method"] for a in arms.values()}
     assert methods <= {"base", "full", "lora", "dt"}
+
+
+def _fake_ladder(tmp_path, monkeypatch, train_outcomes, oom_retry=True):
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    """Stand-in for train.py / evaluate.py: train_outcomes[i] is 'oom', 'fail' or 'ok' for the i-th train call."""
+    import json
+
+    calls = []
+
+    def fake_run(cmd, log, env):
+        calls.append(cmd)
+        with open(log, "a", encoding="utf-8") as fh:
+            fh.write("$ " + " ".join(cmd) + "\n")
+            if cmd[1].endswith("train.py"):
+                what = train_outcomes[sum(1 for c in calls if c[1].endswith("train.py")) - 1]
+                out = Path(cmd[cmd.index("--out") + 1])
+                if what == "oom":
+                    fh.write("torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.00 GiB.\n")
+                    out.mkdir(parents=True, exist_ok=True)
+                    (out / "partial.bin").write_text("x")
+                    return 1, 1.0
+                if what == "fail":
+                    fh.write("ValueError: non-finite loss\n")
+                    return 1, 1.0
+                (out / "model").mkdir(parents=True, exist_ok=True)
+                (out / "model" / "config.json").write_text("{}")
+                (out / "train_report.json").write_text(json.dumps({"checks": {"writeback_step1": {"pass": True}}}))
+                return 0, 2.0
+            Path(cmd[cmd.index("--out") + 1]).write_text(json.dumps({"format": {"valid": 0, "prompts": 3}}))
+            return 0, 1.0
+
+    cfg = tmp_path / "cfg.yaml"
+    cfg.write_text(
+        f"profile: qwen3\nslice_dir: {tmp_path}/slice\nout: {tmp_path}/out\nkeep_models: true\n"
+        f"oom_retry: {str(oom_retry).lower()}\n"
+        "train_common: {steps: 2, micro_tokens: 4096}\neval_common: {metrics: format}\n"
+        f"sizes:\n  - name: s\n    model_dir: {tmp_path}/model\n    arms:\n      - {{name: full, method: full, train: {{lr: 1.0e-4}}}}\n",
+        encoding="utf-8")
+    monkeypatch.setattr(ladder, "run", fake_run)
+    rc = ladder.main(["--config", str(cfg)])
+    summary = json.loads((tmp_path / "out" / "ladder_summary.json").read_text())
+    trains = [c for c in calls if c[1].endswith("train.py")]
+    return rc, summary["arms"]["s/full"], [c[c.index("--micro-tokens") + 1] for c in trains]
+
+
+def test_oom_arm_is_retried_once_at_half_micro_tokens(tmp_path, monkeypatch):
+    rc, rec, mts = _fake_ladder(tmp_path, monkeypatch, ["oom", "ok"])
+    assert rc == 0 and rec["status"] == "ok"
+    assert mts == ["4096", "2048"]
+    assert rec["train"]["micro_tokens"] == 2048
+    assert rec["train"]["oom_retry"] == {"reason": "cuda_oom", "first_micro_tokens": 4096, "micro_tokens": 2048,
+                                         "first_attempt_wall_s": 1.0}
+    assert not (tmp_path / "out" / "s" / "full" / "train" / "partial.bin").exists()  # failed attempt's files removed
+    assert "retrying once at 2048" in (tmp_path / "out" / "s" / "full" / "log.txt").read_text()
+
+
+def test_second_oom_is_recorded_not_retried_again(tmp_path, monkeypatch):
+    rc, rec, mts = _fake_ladder(tmp_path, monkeypatch, ["oom", "oom", "ok"])
+    assert rc == 1 and rec["status"] == "failed_train" and mts == ["4096", "2048"]
+    assert rec["train"]["oom_retry"]["micro_tokens"] == 2048
+
+
+def test_non_oom_failure_and_disabled_retry_do_not_retry(tmp_path, monkeypatch):
+    rc, rec, mts = _fake_ladder(tmp_path / "a", monkeypatch, ["fail", "ok"])
+    assert rc == 1 and rec["status"] == "failed_train" and mts == ["4096"] and "oom_retry" not in rec["train"]
+    rc, rec, mts = _fake_ladder(tmp_path / "b", monkeypatch, ["oom", "ok"], oom_retry=False)
+    assert rc == 1 and rec["status"] == "failed_train" and mts == ["4096"]
+
+
+def test_job_config_8b_full_arms_use_fused_adamw_and_retry_is_on():
+    cfg = ladder.load_config(str(PKG / "dt/ladder_qwen3.yaml"))
+    assert cfg["oom_retry"] is True
+    arms = {f"{s['name']}/{a['name']}": a for s in cfg["sizes"] for a in s["arms"]}
+    fused = sorted(k for k, a in arms.items() if a.get("train", {}).get("adam_fused"))
+    assert fused == ["8b/full", "8b/full_lo"]
