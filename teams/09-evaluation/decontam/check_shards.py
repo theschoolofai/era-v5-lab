@@ -26,8 +26,9 @@ A .bin in the folder without its three other shard files counts as an incomplete
 only shards in the folder. Decoded text left in <work>/text by a stopped run is deleted at the start.
 
 Results go to <work>/results/<shard_id>.json, one file per shard, written only when all steps finish. A second run
-skips a shard that already has a result for the same tokenizer and shard payload (resume after a stop). Use --force to
-check again. The decoded text is deleted after the checks unless --keep-text is given.
+skips a shard that already has a result for the same tokenizer, fingerprint set (set_sha256) and shard payload
+(resume after a stop). Use --force to check again. The decoded text is deleted after the checks unless --keep-text
+is given.
 
 At the end it prints a markdown table in the format of results/decontam_shards.md, plus the fingerprint set_sha256
 and the canary count. Exit code: 0 when every shard passed with 0 flagged and 0 canary hits and matched --compare;
@@ -71,6 +72,26 @@ def default_jobs():
     except (ValueError, OSError, AttributeError):  # no sysconf (Windows): use the core count with a safe cap
         return max(1, min(cores, 4))
     return max(1, min(cores, int(mem_gb // GB_PER_JOB)))
+
+
+def fingerprint_set_sha(folder):
+    """set_sha256 from a fingerprint set's MANIFEST.json (decontam_check.py checks it against SHA256SUMS)."""
+    try:
+        sha = json.loads((Path(folder) / "MANIFEST.json").read_text(encoding="utf-8"))["set_sha256"]
+    except (OSError, ValueError, KeyError) as e:
+        raise CheckError(f"{folder}: no fingerprint set with a set_sha256 ({type(e).__name__}: {e})") from None
+    if not re.fullmatch(r"[0-9a-f]{64}", str(sha)):
+        raise CheckError(f"{folder}: set_sha256 {sha!r} is not a sha256")
+    return sha
+
+
+def default_fingerprints():
+    """The set decontam_check.py and canary_scan.py use without --fingerprints (fpset.VERSION)."""
+    if str(HERE) not in sys.path:  # python -I leaves the script's folder out of sys.path
+        sys.path.insert(0, str(HERE))
+    from fpset import VERSION
+
+    return HERE.parent / "fingerprints" / VERSION
 
 
 def sha256_file(path):
@@ -259,6 +280,10 @@ def main(argv=None):
     if not a.shards.is_dir():
         ap.error(f"{a.shards} is not a folder")
     tok_sha = sha256_file(a.tokenizer)
+    try:
+        set_sha = fingerprint_set_sha(a.fingerprints or default_fingerprints())
+    except CheckError as e:
+        ap.error(str(e))
     for sub in ("text", "results"):
         (a.work / sub).mkdir(parents=True, exist_ok=True)
     for old in (a.work / "text").glob("*.text.parquet*"):  # left by a stopped run: text, never a valid input
@@ -284,7 +309,8 @@ def main(argv=None):
         if rp.exists() and not a.force:
             old = json.loads(rp.read_text())
             manifest = json.loads((a.shards / f"{shard_id}.json").read_text())
-            if old.get("tokenizer_sha256") == tok_sha and old.get("payload_sha256") == manifest.get("payload_sha256"):
+            if (old.get("tokenizer_sha256") == tok_sha and old.get("set_sha256") == set_sha
+                    and old.get("payload_sha256") == manifest.get("payload_sha256")):
                 with lock:
                     print(f"{shard_id}: result kept from an earlier run (use --force to check again)", file=sys.stderr)
                 return old
@@ -324,7 +350,10 @@ def main(argv=None):
     print(f"checked {len(results)} of {len(ids) + len(incomplete)} shard(s) in {time.time() - t0:.0f} s with "
           f"--jobs {a.jobs}" + (f"; FAILED: {' '.join(failed)}" if failed else ""), file=sys.stderr)
 
-    bad = bool(failed) or len(sets) > 1
+    other_set = sorted(r["shard_id"] for r in results if r["set_sha256"] != set_sha)
+    if other_set:
+        print(f"set_sha256 is not {set_sha} for: {' '.join(other_set)}", file=sys.stderr)
+    bad = bool(failed) or len(sets) > 1 or bool(other_set)
     bad |= any(r["flagged"] or r["canary_hits"] for r in results)
     bad |= ref is not None and any(compare(r, ref) for r in results)
     return 1 if bad else 0
