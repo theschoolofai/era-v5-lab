@@ -63,6 +63,7 @@ import http.client
 import json
 import math
 from pathlib import Path
+import re
 import sys
 import time
 import traceback
@@ -141,6 +142,14 @@ def _utc(ms: int | None) -> str | None:
 
 def _sql_list(values: Iterable[str]) -> str:
     return "(" + ", ".join(sql_str(v) for v in sorted(set(values))) + ")"
+
+
+_TSV_ESCAPES = {"b": "\b", "f": "\f", "r": "\r", "n": "\n", "t": "\t", "0": "\0"}
+
+
+def tsv_fields(line: str) -> list[str]:
+    """One line of ClickHouse's TabSeparated output as values: it escapes \\, ', tab, newline and the like."""
+    return [re.sub(r"\\(.)", lambda m: _TSV_ESCAPES.get(m.group(1), m.group(1)), field) for field in line.split("\t")]
 
 
 class RunCheck(NamedTuple):
@@ -325,7 +334,7 @@ class EvalLagMonitor:
                     if table in message:
                         raise EvalLagError(f"table {table} is missing: {hint} ({message})") from exc
             raise EvalLagError(message) from exc
-        return [line.split("\t") for line in out.splitlines() if line]
+        return [tsv_fields(line) for line in out.splitlines() if line]
 
     def _newest_batches(self) -> dict[str, tuple[int, int]]:
         """Training run id -> (newest seen_at in ms, the last step of that batch).
@@ -421,8 +430,8 @@ def _positive(text: str) -> float:
 def _run_pair(text: str) -> tuple[str, str]:
     train, sep, run = (part.strip() for part in text.partition("="))
     run = run if sep else train
-    # A tab, newline or backslash comes back escaped in ClickHouse's TSV output, so such an id could never match.
-    if not train or not run or any(ch in text for ch in "\t\n\\"):
+    # A tab or newline in a run id would split the one-line status and log output.
+    if not train or not run or any(ch in text for ch in "\t\n"):
         raise argparse.ArgumentTypeError(f"use TRAIN_RUN or TRAIN_RUN=EVAL_RUN, got {text!r}")
     return train, run
 

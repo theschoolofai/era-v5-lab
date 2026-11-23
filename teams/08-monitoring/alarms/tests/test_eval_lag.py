@@ -25,7 +25,7 @@ import pytest
 ALARMS = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ALARMS))
 sys.path.insert(0, str(ALARMS.parent / "clickhouse"))
-from eval_lag import TABLE_SQL, Batch, EvalLagMonitor, active_lag_ms, main  # noqa: E402
+from eval_lag import TABLE_SQL, Batch, EvalLagMonitor, active_lag_ms, main, tsv_fields  # noqa: E402
 from load_jsonl import REPO_ROOT, _format_utc, _parse_jsonl_content, ch_Exec, load_source  # noqa: E402
 from watch_jsonl import Watcher, prepare_schema  # noqa: E402
 
@@ -461,6 +461,14 @@ def test_a_page_row_that_failed_to_save_is_written_next_time():
                                                                              (0, T0 + 1_460_000)]
 
 
+def test_tsv_answers_are_unescaped():
+    """ClickHouse's TabSeparated output escapes ' and \\ (seen on 24.8): a run id must come back as written."""
+    assert tsv_fields("it\\'s\tback\\\\slash\ttab\\there\tplain") == ["it's", "back\\slash", "tab\there", "plain"]
+    answer = "dryrun2-o\\'neil\t1795000000000\t7\n"
+    mon = EvalLagMonitor(lambda sql, data=None: answer, interval_s=600, runs={"dryrun2-o'neil": "dryrun2-o'neil"})
+    assert mon._newest_batches() == {"dryrun2-o'neil": (1_795_000_000_000, 7)}
+
+
 def test_no_write_only_reads():
     ch = FakeClickHouse()
     Run(ch).train(1, 300, commit_first=True).score()
@@ -741,7 +749,7 @@ def test_live_clickhouse_end_to_end(tmp_path):
         return ch_Exec(sql, data=data, url=LIVE_URL)
 
     def rows(sql):
-        return [line.split("\t") for line in exec_live(f"{sql} FORMAT TabSeparated").splitlines() if line]
+        return [tsv_fields(line) for line in exec_live(f"{sql} FORMAT TabSeparated").splitlines() if line]
 
     lines = [ln for ln in DRYRUN1.read_text(encoding="utf-8").splitlines() if ln.strip()]
     template = json.loads(EVAL_TEMPLATE.read_text(encoding="utf-8"))["records"][0]
