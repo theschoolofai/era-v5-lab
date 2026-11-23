@@ -385,8 +385,11 @@ def validate(c):
         errors.append(
             "Only explicit bias-free expert implementation is supported; pending/bias=true must not be ignored"
         )
-    if e.get("dispatch") != "loop" or e.get("bias_gamma") != 0.0:
-        errors.append("Only loop dispatch without dynamic router bias is supported")
+    if e.get("dispatch") != "loop":
+        errors.append("Only loop dispatch is supported")
+    gamma = e.get("bias_gamma")
+    if type(gamma) not in (int, float) or isinstance(gamma, bool) or not math.isfinite(gamma) or gamma < 0:
+        errors.append("bias_gamma must be 0 or a positive finite number")
     if m.get("activation") != "swiglu" or m.get("position") != "rope":
         errors.append("Week2 requires SwiGLU/RoPE")
     if not number(m.get("rope_theta")) or m["rope_theta"] <= 0:
