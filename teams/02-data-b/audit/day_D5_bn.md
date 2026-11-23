@@ -25,7 +25,7 @@ Refs #568. 25 documents drawn with `random.Random(5).sample(range(n), 25)` from 
 | `d690f90a5f282228` | `ind-bn-fw2-train-000000` | finding | C1 | 965 | `source`: channel subscribe prompt |
 | `d690f90a5f282228` | `ind-bn-fw2-train-000000` | finding | C1 | 3557 | `source`: download link line |
 | `d690f90a5f282228` | `ind-bn-fw2-train-000000` | finding | D3 | 4378 | `source`: English lists of tutorial chapters and features (also at 4613) |
-| `d690f90a5f282228` | `ind-bn-fw2-train-000000` | finding | G3 | 4547 | `cleaning`: 12 English items removed from the middle of the tutorial list; the rest of the list and all Bengali text stay |
+| `d690f90a5f282228` | `ind-bn-fw2-train-000000` | finding | G3 | 4547 | `cleaning`: 12 English items removed from the middle of the tutorial list by `DB-C5-007`, which reads 5 or more bullet lines of 4 or more words as a related-news ticker; the short items and all Bengali text stay |
 | `991d80e21be4e22b` | `ind-bn-fw2-train-000000` | finding | C1 | 369 | `source`: service sign-off and a call to ask questions at the end |
 | `9c77c62c8579e02b` | `ind-bn-fw2-train-000000` | finding | A6 | 1051 | `source`: two vowel signs on one letter, out of order |
 | `2106d42688525ff8` | `ind-bn-fw2-train-000000` | ok |  |  | writer's typos, source |
@@ -85,6 +85,6 @@ Refs #568. 25 documents drawn with `random.Random(5).sample(range(n), 25)` from 
 - codes found: C1 (31), A6 (10), G3 (8), C2 (2), D3 (2), OCR (2), C3 (1) (OCR is not a DISEASES code)
 - source: 55 findings; cleaning: 1
 - G1 0, G2 0, G4 0: no word split at a vowel sign, no ZWJ or ZWNJ lost, and no Bengali digit turned Latin in cleaning.
-- What cleaning changed in these 50: it removed tweet credit lines and a time trailer line, turned two old-font carets into the right conjunct sign (`37c62c2940bd2f55`), removed one of two doubled vowel signs in a word already broken in the raw text (`3bd68e38da22121f`), and removed 12 English items from the middle of an English list (`d690f90a5f282228`, the one `cleaning` row).
+- What cleaning changed in these 50: it removed tweet credit lines and a time trailer line, turned two old-font carets into the right conjunct sign (`37c62c2940bd2f55`), removed one of two doubled vowel signs in a word already broken in the raw text (`3bd68e38da22121f`), and removed 12 English items from the middle of an English list (`d690f90a5f282228`, the one `cleaning` row, by `DB-C5-007`).
 - The old-font caret fix acted in `37c62c2940bd2f55` but not in `26148947ea191737`, where three carets stay.
 - Writer's typos in the source, no code, in documents that also have a finding (count per document): `c8d51abfa5c58853` (1); `2d3b2c3e7eb833aa` (1); `fbaad0dac9ef9c64` (9); `02449e173cbf0097` (3); `26148947ea191737` (8); `8fe679ebbb597a4d` (4); `8dba28b4b0fee3d6` (1); `1aab882c64427bb0` (10); `d690f90a5f282228` (5); `991d80e21be4e22b` (5); `9c77c62c8579e02b` (4); `7098673dc20741c9` (2); `caa78963825d43bc` (2); `06cab795ba1ba87b` (9); `384f07e8199c8102` (1); `2f0cc289240cebf8` (10); `edabb95ae375495a` (4); `b8b3a0b29bd829dc` (4); `88ccecc5245db76b` (8); `1645acfb631e14de` (2); `6363075579dcc4c2` (11); `6bd99efd3937b74d` (4); `7ff26f377079e2c3` (3); `37c62c2940bd2f55` (8); `76a8dc8c3b2606d6` (1).
