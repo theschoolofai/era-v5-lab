@@ -368,3 +368,71 @@ def test_runs_as_a_script_in_isolated_mode(tmp_path):
     p = subprocess.run([sys.executable, "-I", str(Path(cs.__file__)), str(tmp_path / "shards"), "--tokenizer",
                         str(tok), "--work", str(tmp_path / "w")], capture_output=True, text=True)
     assert p.returncode == 2 and "no shards to check" in p.stderr and "Traceback" not in p.stderr
+
+
+# ---- one run per work folder, and the check code ----
+def test_a_second_run_on_the_same_work_folder_stops(tmp_path, monkeypatch):
+    folder, tok = make_shards(tmp_path, {"a-train-000000": 1})
+    monkeypatch.setattr(cs, "check_one", lambda s, a, t, p: result(s))
+    work = tmp_path / "w"
+    work.mkdir()
+    (work / "text").mkdir()
+    (work / "text" / "a-train-000000.text.parquet").write_text("text of the first run")
+    held = cs.lock_work(work)  # a first run that is still working
+    with pytest.raises(SystemExit) as e:
+        run_main(tmp_path, folder, tok, "w")
+    assert e.value.code == 2
+    assert (work / "text" / "a-train-000000.text.parquet").exists()  # the first run's files are not touched
+    held.close()
+    assert run_main(tmp_path, folder, tok, "w") == 0  # free again after the first run ends
+
+
+def test_resume_checks_again_when_the_check_code_changes(tmp_path, monkeypatch):
+    folder, tok = make_shards(tmp_path, {"a-train-000000": 1})
+    calls = []
+
+    def fake(shard_id, a, tok_sha, pool):
+        calls.append(shard_id)
+        r = result(shard_id)
+        r["tokenizer_sha256"] = tok_sha
+        return r
+
+    monkeypatch.setattr(cs, "check_one", fake)
+    assert run_main(tmp_path, folder, tok, "w") == 0
+    assert run_main(tmp_path, folder, tok, "w") == 0
+    assert calls == ["a-train-000000"]
+    monkeypatch.setattr(cs, "code_sha256", lambda: "c" * 64)  # as after a change in normalize.py
+    assert run_main(tmp_path, folder, tok, "w") == 0
+    assert calls == ["a-train-000000", "a-train-000000"]
+    saved = json.loads((tmp_path / "w" / "results" / "a-train-000000.json").read_text())
+    assert saved["code_sha256"] == "c" * 64
+
+
+def test_code_sha256_covers_each_file_and_ignores_line_ends(tmp_path, monkeypatch):
+    for name in cs.CODE_FILES:
+        (tmp_path / name).write_bytes(b"line one\nline two\n")
+    monkeypatch.setattr(cs, "HERE", tmp_path)
+    base = cs.code_sha256()
+    (tmp_path / "normalize.py").write_bytes(b"line one\r\nline two\r\n")  # a Windows checkout
+    assert cs.code_sha256() == base
+    (tmp_path / "normalize.py").write_bytes(b"line one\nline 2\n")
+    assert cs.code_sha256() != base
+
+
+def test_code_files_are_the_local_imports():
+    """CODE_FILES must name every module of this folder that the checks import."""
+    import ast
+
+    here = Path(cs.__file__).resolve().parent
+    local = {p.stem for p in here.glob("*.py")}
+    todo, seen = ["check_shards", "decode_shard", "decontam_check", "canary_scan"], set()
+    while todo:
+        mod = todo.pop()
+        if mod in seen:
+            continue
+        seen.add(mod)
+        for node in ast.walk(ast.parse((here / f"{mod}.py").read_text(encoding="utf-8"))):
+            names = [a.name for a in node.names] if isinstance(node, ast.Import) else (
+                [node.module] if isinstance(node, ast.ImportFrom) and node.module else [])
+            todo += [n.split(".")[0] for n in names if n.split(".")[0] in local]
+    assert seen <= {Path(n).stem for n in cs.CODE_FILES}

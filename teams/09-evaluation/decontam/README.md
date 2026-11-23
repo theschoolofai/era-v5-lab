@@ -178,9 +178,12 @@ set) and `canary_scan.py`. It calls the three scripts unchanged, so the result i
   tokens (default 16M, whole documents), and `decontam_check.py` runs on each part in its own process. Each document is
   checked alone, so the parts give the same result as one run; the flagged count is the sum over the parts.
 - **Resume:** each shard's result goes to `<work>/results/<shard_id>.json` only when all steps finish. A second run
-  skips those shards, unless the tokenizer, the fingerprint set (set_sha256) or the manifest's payload changed
+  skips those shards, unless the tokenizer, the fingerprint set (set_sha256), the check code (code_sha256: the
+  runner, the three scripts, the modules they import and the tokenizers version) or the manifest's payload changed
   (`--force` checks them again). A shard with a file missing fails and is named. A result with another set_sha256
   than the set of the run fails the run.
+- **One run per work folder:** a lock on `<work>` stops a second run on the same folder at once, so it cannot delete
+  the first run's files. The operating system releases the lock when a run ends, also after a crash.
 - **Compare:** `--compare <markdown>` checks payload_sha256, docs and tokens against the first table row of each shard
   (rows with or without a `#` column).
 - **Output:** a table in the format of `results/decontam_shards.md`, plus the set_sha256, the canary count and the

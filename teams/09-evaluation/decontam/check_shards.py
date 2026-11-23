@@ -26,8 +26,9 @@ A .bin in the folder without its three other shard files counts as an incomplete
 only shards in the folder. Decoded text left in <work>/text by a stopped run is deleted at the start.
 
 Results go to <work>/results/<shard_id>.json, one file per shard, written only when all steps finish. A second run
-skips a shard that already has a result for the same tokenizer, fingerprint set (set_sha256) and shard payload
-(resume after a stop). Use --force to check again. The decoded text is deleted after the checks unless --keep-text
+skips a shard that already has a result for the same tokenizer, fingerprint set (set_sha256), check code (code_sha256:
+the scripts and the tokenizers version) and shard payload (resume after a stop). One run at a time can use a --work
+folder: a second run stops with an error. Use --force to check again. The decoded text is deleted after the checks unless --keep-text
 is given.
 
 At the end it prints a markdown table in the format of results/decontam_shards.md, plus the fingerprint set_sha256
@@ -51,6 +52,11 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 SHARD_EXTS = (".bin", ".idx.npy", ".docs.parquet", ".json")
 GB_PER_JOB = 2.5
+# The code a result depends on: this runner, the three scripts and the modules they import. Its sha256 (with the
+# tokenizers version, which the decode uses) is stored in each result, so a code change checks the shards again.
+CODE_FILES = ("check_shards.py", "decode_shard.py", "decontam_check.py", "canary_scan.py", "fpset.py", "normalize.py",
+              "lab_canary.py", "g1_spec_v1_normalize.py")
+LOCK_NAME = ".check_shards.lock"
 SPLITS_AT_ONCE = 2  # a split holds one decoded shard in this process: limit how many at a time
 SET_LINE = re.compile(r"^fingerprints (\S+) set_sha256 ([0-9a-f]{64}) \((.+)\)$", re.M)
 DECONTAM_LINE = re.compile(r"^docs (\d+) flagged (\d+) ", re.M)
@@ -92,6 +98,44 @@ def default_fingerprints():
     from fpset import VERSION
 
     return HERE.parent / "fingerprints" / VERSION
+
+
+def code_sha256():
+    """sha256 of CODE_FILES (line ends read as LF, so a Windows checkout gives the same value) and the tokenizers
+    version."""
+    h = hashlib.sha256()
+    for name in CODE_FILES:
+        data = (HERE / name).read_bytes().replace(b"\r\n", b"\n")
+        h.update(f"{name} {hashlib.sha256(data).hexdigest()}\n".encode())
+    try:
+        from importlib.metadata import version
+
+        tok_version = version("tokenizers")
+    except Exception:  # not installed: the decode step reports it
+        tok_version = "unknown"
+    h.update(f"tokenizers {tok_version}\n".encode())
+    return h.hexdigest()
+
+
+def lock_work(work):
+    """Hold a lock on <work> for this run, so a second run on the same folder stops at once instead of deleting the
+    first run's files. The operating system releases the lock when the process ends, also after a crash."""
+    f = open(work / LOCK_NAME, "a+")
+    try:
+        if os.name == "nt":
+            import msvcrt
+
+            f.seek(0)
+            msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        f.close()
+        raise CheckError(f"another check_shards.py run uses {work}: wait for it, or use another --work "
+                         "folder") from None
+    return f
 
 
 def sha256_file(path):
@@ -286,6 +330,17 @@ def main(argv=None):
         ap.error(str(e))
     for sub in ("text", "results"):
         (a.work / sub).mkdir(parents=True, exist_ok=True)
+    try:
+        work_lock = lock_work(a.work)  # before the cleanup below, which deletes text another run can still use
+    except CheckError as e:
+        ap.error(str(e))
+    try:
+        return run_checks(a, tok_sha, set_sha, code_sha256(), ap)
+    finally:
+        work_lock.close()
+
+
+def run_checks(a, tok_sha, set_sha, code_sha, ap):
     for old in (a.work / "text").glob("*.text.parquet*"):  # left by a stopped run: text, never a valid input
         old.unlink()
     a.split_lock = threading.Semaphore(SPLITS_AT_ONCE)
@@ -310,12 +365,14 @@ def main(argv=None):
             old = json.loads(rp.read_text())
             manifest = json.loads((a.shards / f"{shard_id}.json").read_text())
             if (old.get("tokenizer_sha256") == tok_sha and old.get("set_sha256") == set_sha
+                    and old.get("code_sha256") == code_sha
                     and old.get("payload_sha256") == manifest.get("payload_sha256")):
                 with lock:
                     print(f"{shard_id}: result kept from an earlier run (use --force to check again)", file=sys.stderr)
                 return old
         try:
             r = check_one(shard_id, a, tok_sha, pool)
+            r["code_sha256"] = code_sha
         except Exception as e:  # one bad shard must not stop the others
             with lock:
                 print(f"{shard_id}: FAILED: {e}", file=sys.stderr)
