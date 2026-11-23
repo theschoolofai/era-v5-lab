@@ -1,4 +1,4 @@
-"""The dry run 2 arm carries TSAI's 22 Nov values: Muon 0.006, WSD on, TST and head SGD off, router on AdamW."""
+"""The dry run 2 arm carries TSAI's 22 Nov values: Muon 0.006, WSD on, TST and head SGD off, router on Muon (23 Nov default)."""
 
 from pathlib import Path
 import sys
@@ -29,7 +29,7 @@ class DryRun2ArmTests(unittest.TestCase):
             (o["schedule"], o["warmup_frac"], o["decay_frac"], o["final_lr_frac"]), ("wsd", 0.05, 0.1, 0.0)
         )
         self.assertFalse(o.get("head_sgd", False))
-        self.assertFalse(o.get("router_on_muon", False))
+        self.assertTrue(o.get("router_on_muon", True))
         self.assertFalse(r.get("tst", False))
 
     def test_schedule_at_dry_run_1_length(self):
