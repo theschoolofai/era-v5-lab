@@ -369,6 +369,39 @@ def head_access(model) -> dict:
     return {"kind": kind, "vocab_size": vocab, "per_token": per_token, "per_token_name": name, "tied": tied}
 
 
+INPUT_CODES = {256: "ke2_raw_table", 64: "ke2_code_2048"}  # per-position code width -> input kind
+
+
+def input_access(model, pos_dim: int) -> dict:
+    """What G10 checks of G5's input layer, detected by name and shape (never by assuming 8,192).
+
+    ke2_raw_table: main's dry run 2 KE2, `embedding.projection.weight` [n_embd, 256 * P] (P = 32: 8,192).
+    ke2_code_2048: the TSAI ruling of 23 Nov (G4 chat): Linear(2048, d_model) over a fixed code, d_c = 64 per byte
+                   position, L_max = P = 32. Not in Team 5's code yet (#717 at 319f2dd7 still has 8,192).
+    Both need the byte table buffers `embedding.rows` uint8 [V, P] and `embedding.lengths` [V], which G10 compares
+    with the validated KE2 table. Anything else raises ArtifactError instead of being read as one of these.
+    """
+    emb = getattr(model, "embedding", None)
+    if not isinstance(emb, torch.nn.Module):
+        raise ArtifactError(f"G5 model has no `embedding` module (got {type(emb).__name__})")
+    found = {f"embedding.{n}": tuple(t.shape) for n, t in [*emb.named_buffers(), *emb.named_parameters()]}
+    rows, lengths = getattr(emb, "rows", None), getattr(emb, "lengths", None)
+    if not (isinstance(rows, torch.Tensor) and rows.ndim == 2 and rows.shape[1] == pos_dim
+            and isinstance(lengths, torch.Tensor) and tuple(lengths.shape) == (rows.shape[0],)):
+        raise ArtifactError(f"G5 input layer has no KE2 byte table buffers embedding.rows [V, {pos_dim}] and "
+                            f"embedding.lengths [V]: G10 cannot check it against the validated table; found {found}")
+    proj = getattr(getattr(emb, "projection", None), "weight", None)
+    if not (isinstance(proj, torch.Tensor) and proj.ndim == 2):
+        raise ArtifactError(f"G5 input layer has no 2-D embedding.projection.weight; found {found}")
+    width = int(proj.shape[1])
+    per_pos = width // pos_dim
+    if width % pos_dim or per_pos not in INPUT_CODES:
+        raise ArtifactError(f"G5 input projection width {width} is neither 256 x {pos_dim} (raw KE2 table) nor "
+                            f"64 x {pos_dim} (the 2,048 code); found {found}")
+    return {"kind": INPUT_CODES[per_pos], "width": width, "per_position": per_pos, "n_embd": int(proj.shape[0]),
+            "tensors": found}
+
+
 def head_logits(model, h: torch.Tensor) -> torch.Tensor:
     """Logits [..., V] from final hidden states [..., n_embd]: G5's own `head(h)` call, for either known kind."""
     return model.head(h)
@@ -735,6 +768,7 @@ def _finish(mode, cfg, g5src, spec, tok, art, special, sd, is_fixture_ckpt, ck_e
         if any(k.startswith(("head.", "embedding.")) for k, _, _ in bad):
             raise ArtifactError(f"vocabulary/KE2 shape mismatch in checkpoint: {bad[:3]}")
         raise ArtifactError(f"checkpoint tensor shapes differ from the G5 model: {bad[:3]}")
+    inp = input_access(model, art.pos_dim)  # refuses an input layer G10 cannot check (by name and shape)
     # The KE2 code table is a buffer of the checkpoint; it must be exactly the validated table.
     if not torch.equal(sd["embedding.rows"].to(torch.uint8), torch.as_tensor(art.bytes)):
         raise ArtifactError("checkpoint KE2 rows differ from the validated KE2 table")
@@ -769,6 +803,7 @@ def _finish(mode, cfg, g5src, spec, tok, art, special, sd, is_fixture_ckpt, ck_e
         "selection": selection,
         "head": {"kind": head["kind"], "tied": False, "mtp_head": model.mtp_head is not None,
                  "forward_returns": "main head logits"},
+        "input": {k: v for k, v in inp.items() if k != "tensors"},
     })
     template = _load_render(Path(__file__).resolve().parents[1])
     bundle = Bundle(mode, model, spec, art, special, selection, manifest, tok["template_path"], template)
