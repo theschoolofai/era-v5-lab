@@ -31,6 +31,7 @@ from __future__ import annotations
 
 import argparse
 import collections
+import contextlib
 import hashlib
 import json
 import os
@@ -386,7 +387,7 @@ def write_train_config(a, out: Path, init_state: Path | None, init_sha: str | No
                      **({"init_state": str(init_state), "init_state_sha256": init_sha} if init_state else {})},
            "task": {"kind": "stdio", "require_verifier": True, "tasks": str(a.rl_tasks),
                     "train_ids": str(out / "train_ids.txt"), "heldout_ids": str(out / "heldout_ids.txt")},
-           "train": {"algo": "objective_v1", "sampler": "policy", "steps": a.updates, "prompts_per_step": a.prompts_per_step,
+           "train": {"algo": "objective_v1", "sampler": a.sampler, "steps": a.updates, "prompts_per_step": a.prompts_per_step,
                      "k": a.k, "max_new": a.max_new, "temperature": 1.0, "lr": a.lr, "ppo_epochs": 1, "kl_coef": 0.0,
                      "grad_clip": 1.0, "weight_decay": 0.0, "tr_epsilon": a.tr_epsilon, "fp32_master": True,
                      "autocast": "bf16" if a.device.startswith("cuda") else None, "eval_every": a.updates, "eval_k": a.eval_k,
@@ -394,6 +395,7 @@ def write_train_config(a, out: Path, init_state: Path | None, init_sha: str | No
                      "screen": {"n": screen_n, "k": a.k, "min_mixed": a.min_mixed},
                      "state_dir": str(out / "rl_state"), "state_every": a.state_every, "deadline_unix": deadline_unix,
                      **({"max_steps_this_call": a.max_steps_this_call} if a.max_steps_this_call else {}),
+                     **({"sampler_max_rows": a.sampler_max_rows} if a.sampler == "g5_batch" else {}),
                      # identical-weights check before the first update (rl-loop/train.py logprob_gate); stops the job
                      # if the update forward does not reproduce the sampler's log-probs (work/lpgate-2026-11-23)
                      **({"logprob_gate": True} if getattr(a, "logprob_gate", True) else {}),
@@ -546,9 +548,38 @@ def rate_probe(a, out: Path, init_state) -> dict:
     bundle = ta.build(out / "adapter.yaml", device=a.device).require_bundle()
     if init_state:
         bundle.model.load_state_dict(load_file(str(init_state)), strict=True)
+    if a.sampler == "g5_batch":
+        return batched_rate(a, bundle, ids)
     rep = probe.rl_screen_bundle(bundle, a.rl_tasks, ids_file, a.k, a.max_new, a.device, 0, a.rate_probe_seconds)
     return {"decode_seconds_per_prompt": rep["seconds"] / rep["prompts"] if rep["prompts"] else None, "prompts": rep["prompts"],
             "seconds": rep["seconds"], "stopped_at_budget": rep["stopped_at_budget"]}
+
+
+def batched_rate(a, bundle, ids: list[str]) -> dict:
+    """r for sampler g5_batch: one bundle.sample_many over the rate-probe prompts (real stops, bf16 autocast on cuda as the
+    trainer samples), seconds divided by the number of prompts. Fewer rows than a 16-prompt step, so it overstates r."""
+    import torch  # noqa: PLC0415
+    by_id = {}
+    for line in a.rl_tasks.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            t = json.loads(line)
+            by_id[t["id"]] = t
+    codec = bundle.codec()
+    block = bundle.spec["block_size"]
+    prompts = [p for p in (codec.encode_prompt(by_id[i]["statement"]) for i in ids if i in by_id) if block - len(p) >= 16]
+    if not prompts:
+        return {"decode_seconds_per_prompt": None, "prompts": 0, "seconds": 0.0, "sampler": "g5_batch"}
+    mn = min(a.max_new, block - max(len(p) for p in prompts))
+    gen = torch.Generator(device=a.device).manual_seed(0)
+    amp = torch.autocast("cuda", dtype=torch.bfloat16) if a.device.startswith("cuda") else contextlib.nullcontext()
+    t0 = time.perf_counter()
+    with amp:
+        bundle.sample_many(prompts, a.k, mn, 1.0, gen)
+    if a.device.startswith("cuda"):
+        torch.cuda.synchronize()
+    dt = time.perf_counter() - t0
+    return {"decode_seconds_per_prompt": dt / len(prompts), "prompts": len(prompts), "seconds": round(dt, 2),
+            "max_new": mn, "sampler": "g5_batch", "stopped_at_budget": False}
 
 
 def screen_only(a, out: Path, init_state, screen_n: int, seconds: float) -> dict:
@@ -610,7 +641,8 @@ def run(a, out: Path) -> int:
         if not results["sft"]["ok"]:
             return probe.finish(out, results)
         init_state, init_sha = Path(results["sft"]["weights"]), results["sft"]["weights_sha256"]
-        rate = rate or results["sft"].get("decode_seconds_per_prompt")
+        if a.sampler != "g5_batch":  # the rebuild's rate is per prompt; g5_batch measures its own batched rate below
+            rate = rate or results["sft"].get("decode_seconds_per_prompt")
         sft_s = results["sft"]["seconds"]
     else:
         from make_adapter_config import write_config  # noqa: PLC0415
@@ -699,6 +731,9 @@ def parse_args(argv=None):
                     help="g5_delivery: Team 5's delivered run folder (non-smoke manifest); g10_rehearsal is a stand-in and train.py refuses it without --allow-fixture-smoke")
     ap.add_argument("--probe-file", type=Path, help="json {ids, expected_mean_nll[, atol]} supplied with Team 5's checkpoint; required for --origin g5_delivery")
     ap.add_argument("--allow-fixture-smoke", action="store_true", help="DRY RUN ONLY: let train.py load a rehearsal adapter; its output is never a result")
+    ap.add_argument("--sampler", choices=("policy", "g5_batch"), default="policy",
+                    help="policy: one decode per prompt; g5_batch: every prompt of a step in one decode (B5, 23 Nov: 12.8x on a T4)")
+    ap.add_argument("--sampler-max-rows", type=int, default=128, help="g5_batch: rows decoded together at most")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--keep-weights-dir", type=Path,

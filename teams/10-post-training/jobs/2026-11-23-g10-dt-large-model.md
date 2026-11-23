@@ -3,7 +3,7 @@
 ```
 Team:            10-post-training
 Owner:           f20201351h-maker
-Lead approval:   saitej123 (asked for "deletion tuning on large model" in the G10 chat, 23 Nov; approval of this request pending)
+Lead approval:   saitej123 (approved, 23 Nov 2026)
 Question:        On our SFT bench task, does pure Deletion Tuning (or DT with trained chat-marker rows) reach full fine-tuning at 8B and 4B, where our 1.7B result (pure DT 0/110 valid replies, DT+marker rows 76/110, full FT 93/110) says it does not?
 Script:          teams/10-post-training/dt/run_ladder.py (this PR); it calls sft/bench/train.py and sft/bench/evaluate.py from the same commit
 Command:         python teams/10-post-training/dt/run_ladder.py --config teams/10-post-training/dt/ladder_qwen3.yaml
