@@ -64,3 +64,77 @@ The synthetic stream generates 3,000 steps of `loss_ntp`, `loss_mtp`, `gradient_
 | 11 | 11 | 0 | 0 |
 
 Tested on Team 5's `teams/05-architecture/experiments/evidence/run_a/metrics.jsonl` (40 steps): 0 false alarms (step 0 setup slowdown is ignored).
+
+## 3. Eval-watcher lag alarm (`eval_lag.py`)
+
+Week 4, task 1 (with Team 9). It pages when Team 9's Tier A eval scores fall behind training: the run's newest Tier A
+score in `eval_mini` is for a step more than 2 checkpoint intervals of training older than its newest training step
+(`teams/09-evaluation/eval_schedule.md` section 6). At dry run 2's 600 s interval the limit is 1,200 s. It runs beside
+`clickhouse/watch_jsonl.py`, not in the trainer, and needs only the standard library.
+
+```bash
+# Dry run 2. The kill drill restarts the trainer with a fresh --out, so map those run ids to the run Team 9 scores.
+python -I teams/08-monitoring/alarms/eval_lag.py --interval-s 600 --run dryrun2-1234 \
+    --run dryrun2-1234-resume-a=dryrun2-1234 --run dryrun2-1234-resume-b=dryrun2-1234 --poll 60
+python -I teams/08-monitoring/alarms/eval_lag.py --interval-s 600 --once --no-write   # one read-only check
+python -m pytest teams/08-monitoring/alarms/tests/test_eval_lag.py -q
+```
+
+**Inputs.**
+- Training: `ingest_batches` (`seen_at`, `first_step`, `last_step`), which `watch_jsonl.py` writes for every batch it
+  reads. Not `metrics_raw.time`: Team 5's trainer writes no time field, so `load_jsonl.py` stores an invented time
+  (28 Oct 2026 plus 1 s per line).
+- Eval: `eval_mini` rows with `:tier-a:` in `run_id`, per `checkpoint_run` (the trainer's `--run-id`, #606). Tier B
+  and Tier C rows don't count.
+
+**Rules.**
+
+| Case | What the alarm does |
+|---|---|
+| Normal | Lag = training time from the batch that reached the newest Tier A step to the newest batch. Worst case about 1,000 s: up to 600 s to the next commit, then Tier B and Tier A on the shared slot, then the load. |
+| Watcher stopped or slow | `rule: eval_lag`, `severity: page` once the lag passes the limit. One page per episode; it re-arms when the lag drops back. |
+| Planned failure (kill and restore) | A batch that starts at or below the previous batch's last step starts a new pass. Only the newest pass counts, so downtime and redone steps don't page. While training is behind the newest Tier A step, the lag is 0. |
+| Trainer pause | A gap between two batches counts as at most `--pause-s` (default: half an interval). |
+| No Tier A row yet | The lag runs from the first batch. With `--run`, a run whose watcher never started pages at the limit. |
+| Run finished or died | Not checked once its newest batch is older than `--live-s` (default: the limit). |
+| Tier A on every k-th commit only | Pass `--intervals k+1`. |
+
+Without `--run`, only training runs that have Tier A rows under the same run id are checked, so other streams never
+page. `--interval-s` has no default: the main run's interval is not dry run 2's.
+
+**Output.** A page is one JSON line on stdout with the keys of `alarms.py` events (`step`, `metric`, `rule`, `severity`,
+`detail`, plus `run_id`, `eval_step`, `lag_s`, `threshold_s`). Each check prints a status line per run on stderr and
+writes one row per run to `eval_lag_checks` (`clickhouse/eval_lag_checks.sql`, created on start; `--no-write` skips
+it). `--once` exits 1 on a page and 2 on a ClickHouse error.
+
+**Grafana.** TSAI returns job logs only after a job ends, so the table is how the lag shows during a run. Panels for
+`private_v1.json` (not added in this PR; `$eval_run` already exists):
+
+```sql
+-- Time series: lag and limit per run
+SELECT checked_at AS time, concat(run_id, ' lag (s)') AS series, lag_s AS value FROM eval_lag_checks WHERE run_id IN ($eval_run) AND $__timeFilter(checked_at) ORDER BY time
+SELECT checked_at AS time, concat(run_id, ' limit (s)') AS series, threshold_s AS value FROM eval_lag_checks WHERE run_id IN ($eval_run) AND $__timeFilter(checked_at) ORDER BY time
+-- Table: pages
+SELECT checked_at, run_id, train_step, eval_step, lag_s, detail FROM eval_lag_checks WHERE paged = 1 AND run_id IN ($eval_run) AND $__timeFilter(checked_at) ORDER BY checked_at DESC
+-- Stat: seconds since the last check of a training run (keeps growing if the alarm stops)
+SELECT dateDiff('second', max(checked_at), now64(3)) AS value FROM eval_lag_checks WHERE run_id IN ($eval_run)
+```
+
+**Results** (`tests/test_eval_lag.py`, offline; checks every 30 s, every 60 s in the replay):
+
+| Scenario | Pages | Largest lag (limit 1,200 s) |
+|---|---|---|
+| Dry run 2 shape: 1,221 steps at 4.4 s, watcher keeps up | 0 | 792 s |
+| 6 hours, including the 10th commits (Tier B first) | 0 | 924 s |
+| Watcher stops twice | 2, at lag 1,232 s each | - |
+| Only Tier B and Tier C rows | 1 | - |
+| Kill 594 s after a commit, 300 s down, resumed under a new or the same run id | 0 | 792 s (1,642 s if each step were timed when first reached, as `metrics_raw` keeps it) |
+| 15-minute trainer pause | 0 | 884 s (1,296 s counting the pause in full) |
+| No Tier A row, with `--run` | 1, at lag 1,232 s | - |
+| Real dry run 1 log at real pace through `watch_jsonl.Watcher`, killed at step 926, resumed from 612 into a new folder | 0 | 757 s |
+| Same, Tier A stops after step 0 | 1, at lag 1,230 s | - |
+
+**Limits.** Needs `watch_jsonl.py` streaming the run into the same ClickHouse. A run that ends with its last commit
+unscored is not paged; the eval watcher's exit code covers that. The tests use a fake ClickHouse, so the three
+queries (core functions only: `argMax`, `position`, `toUnixTimestamp64Milli`) and the table have not yet run on a
+live ClickHouse; a `replay_jsonl.py` + `watch_jsonl.py` run with Team 9's eval rows is the next check.
