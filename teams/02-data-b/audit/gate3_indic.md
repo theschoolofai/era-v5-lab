@@ -1,8 +1,7 @@
 # Gate 3: the Indic shards (Data B summary)
 
-Week 3, task 6 of the Data B work order. Draft of Tue 17 Nov 2026; the final version is due Fri 20 Nov, 11:59 PM IST.
-Sections 3 and 4 are filled in when the readers' day files (task 3), the rotation files (R1, R2) and the language
-label check (task 5) are in.
+Week 3, task 6 of the Data B work order, finished as week 4, task 4. Updated Mon 23 Nov 2026; due Tue 24 Nov.
+Two readers' files are still to come (section 3): Bengali (#568) and the Tamil second reader, both due Tue 24.
 
 Gate 3 asks: "Indic shards keep ZWJ and ZWNJ, pass the reader audit and stay inside approved drop rates."
 
@@ -24,7 +23,9 @@ decoded with the frozen tokenizer. The tokenizer's own chillu fold (Malayalam) i
 - **ZWJ: no joiner was lost from text that cleaning kept.** The 40 missing ZWJ are in 26 `ind-hi-indiccorp` documents.
   In each of them, cleaning cut a trailing "Also Read" link line, and the ZWJ were in that line (38 of the 40 in half
   forms, virama + ZWJ + consonant). The shard text of each of these documents is one unbroken piece of the raw text.
-- Task 4 (`audit/zwj_counts.csv`, a second count made independently): [to add, Thu 19].
+- **A second count, made independently, agrees exactly** (task 4, `audit/zwj_counts.py` and `audit/zwj_counts.csv`,
+  #653): over the same 273,114 kept documents, ZWJ 11,179 raw and 11,139 shard, ZWNJ 619 and 619, and 26 documents
+  changed, all in `ind-hi-indiccorp`.
 
 ### Visarga
 
@@ -78,26 +79,78 @@ native Indic share of the mix (`mix/indic_share_v1.md`, #522).
 
 ## 3. Reader audit
 
-Task 3: each reader reads 50 cleaned documents of their language each day, Wed 18 to Fri 20 (`audit/day_D4.md` to
-`audit/day_D6.md`). R1 and R2: rotation members check one shard each for script damage and lost joiners
-(`audit/rotation_<handle>.md`).
+Task 3: each reader reads 50 cleaned documents of their language each day, Wed 18 to Fri 20
+(`audit/day_D4_<lang>.md` to `audit/day_D6_<lang>.md`). A second reader on the same documents, reading on their own,
+gives a reader agreement. Week 4, task 2 added Sanskrit (#711, 25 documents). R1 and R2: rotation members check one
+shard each for script damage and lost joiners (`audit/rotation_<handle>.md`).
 
-| Language | Reader (task 3) | Documents read | Findings | Rotation check (R1, R2) |
-|---|---|---:|---|---|
-| te | #527 | [to add] | [to add] | `ind-te-sangraha-v` (#533) [to add] |
-| kn | #528, and a second reader on the same documents (#569) | [to add] | [to add] | `ind-kn-sangraha-v` (#550): 100 documents, G1 4 in 3, A6 5 in 4, 0 ZWJ/ZWNJ |
-| ta | #529 | [to add] | [to add] | |
-| bn | #568 | [to add] | [to add] | |
-| hi | none in the core team | | | `ind-hi-fw2` (#560): 50 documents, G1 2 in 1, A5 4 in 2 (source spelling), 0 ZWJ/ZWNJ |
-| gu | none in Data B | | | `ind-gu-fw2` by code point (#570) [to add] |
-| mr, sa | none in Data B | | | |
+| Language | Reader files | Documents read | With a finding | Second reader | Rotation check (R1, R2) |
+|---|---|---:|---:|---|---|
+| te | D4 (#527) | 50: 25 `fw2`, 25 `sangraha-v` | 27 | none | `ind-te-sangraha-v` (#533, final in #672): 50 documents, G1 3 rows in 1, A6 1, D3 12 in 2, 0 ZWJ/ZWNJ damage |
+| kn | D4 to D6 (#528) | 150: 75 `fw2`, 75 `sangraha-v` | 38 | #569, same 150: 34 with a finding. Same verdict on 130 of 150 (86.7%), κ 0.63 | `ind-kn-sangraha-v` (#550): 100 documents, G1 4 in 3, A6 5 in 4, 0 ZWJ/ZWNJ |
+| ta | D4 to D6 (#529) | 150 `sangraha-v` | 84 | D4: due Tue 24 | `ind-ta-sangraha-v` (#619): 50 documents, A6 5, 0 ZWJ/ZWNJ in the sample or the shard |
+| sa | D4 (#711) | 25 `fw2` | 11 | Same 25: 8 with a finding. Same verdict on 22 of 25, κ 0.75 (21 of 24, κ 0.73, without `4f7a6a85a601d7bf`, see below) | |
+| bn | D4 to D6 (#568) | due Tue 24 | | | |
+| hi | none in the core team | | | | `ind-hi-fw2` (#560): 50 documents, G1 2 in 1, A5 4 in 2 (source spelling), 0 ZWJ/ZWNJ |
+| gu | none in Data B | | | | `ind-gu-fw2` (#570), by code point only: 50 documents, G1 1, A6 14 runs in 7, 0 ZWJ/ZWNJ in the sample |
+| mr | none in Data B | | | | |
 
-The two rotation checks so far find no damage from `clean.py` or p1536. The G1 and A5 cases are spellings in the
-source, and the Kannada A6 and G1 cases (Latin letters inside Kannada words) wait for a Kannada reader. Both reports
-were checked against the shards: every finding is at its offset, and a recount on the same documents gives the same
-numbers.
+"Same verdict" counts documents both readers marked `ok`, or both marked with a finding; κ is Cohen's kappa on that
+verdict. In Sanskrit, all 3 disagreements are documents the first reader flagged and the second marked `ok`: two
+scanned commentary pages and one document with a repeated line and lost word spaces.
 
-Languages with no reader are reported as not read, not as passed.
+**Damage from cleaning.** Every damage row (G1 to G4) in the reader files on main and the rotation files was
+compared with the raw part (`audit/source_check.py`): a row is `source` when the document is unchanged by cleaning,
+or when the 12 characters on each side of its offset are also in the raw text (for a cut start or end: the raw text
+starts or ends the same way).
+
+| Files | Damage rows | Also in the raw text (`source`) | From cleaning |
+|---|---|---:|---:|
+| te D4 | G1 4 | 4 | 0 |
+| kn D4 to D6, both readers | G1 5, G3 5 | 10 | 0 |
+| ta D4 to D6 | G3 23, G4 47 | 70 | 0 |
+| sa D4, both readers | G3 7, G4 2 | 7 | 2 |
+| rotations: kn, gu, hi, ta | G1 7, G3 5 | 12 | 0 |
+| **all** | **105** | **103** | **2** |
+
+- **The 2 rows from cleaning are one finding**, read by both Sanskrit readers: `DB-B4-004` in `4f7a6a85a601d7bf`
+  (below).
+- **No reader found a lost ZWJ or ZWNJ (G2) in any file.**
+- The 47 Tamil G4 rows are the aytham ஃ written for a colon, from a legacy font converter (#619). The aytham count is
+  the same in the raw text and the shard (7,369, section 1), so cleaning did not add them. #619 suggests a source
+  medicine for later, after a harm test.
+- The Telugu rotation's 3 G1 rows (#672, not yet on main) were checked against the raw part in its review (`source`).
+- Other changes by cleaning that readers noted are intended: F1 put `<PHONE>` in place of an author's phone number
+  (`476ebc3ae4e21d16`, `ind-te-fw2`); cleaning removed site headers, link lists and a Hindi line from Sanskrit pages.
+
+**The one row from cleaning: `DB-B4-004` (#734).** In `4f7a6a85a601d7bf`, cleaning removed the verse numbers १०० to
+१२० after `॥` (1 to 99 are kept). The rule is Data B's Sanskrit medicine `DB-B4-004` in
+`teams/01-data-a/spec_v1_1/clean.py`: Python's `\d{3,}` also matches Devanagari digits, so it deletes verse numbers
+from 100 up and numbers written next to a word, such as years. In the `ind-sa-fw2` shard that is 491 Devanagari
+numbers in 97 of 5,667 documents (#734). Data A's week-4 pipeline branch (`g1-w4-pipeline`, commit `fb5f38f0`, with
+tests) removes the two number lines and keeps the wiki-markup removal, which moves the `clean.py` pin from
+`6a57276c…` to `ce131217…`. Corpus-v1's clean stage needs the new pin. The second reader's file was committed after
+this finding was posted on #733, so the Sanskrit agreement is also given without this document (table above).
+
+How (`audit/source_check.py`, with the raw parts of `audit/raw_parts_SHA256SUMS`, all hashes checked):
+
+```
+python -I source_check.py --shards shards-p1536 --raw raw --tokenizer p1536_tokenizer.json \
+    day_D4_te.md day_D4_kn.md day_D5_kn.md day_D6_kn.md day_D4_kn_r2.md day_D5_kn_r2.md day_D6_kn_r2.md \
+    day_D4_ta.md day_D5_ta.md day_D6_ta.md day_D4_sa.md day_D4_sa_r2.md \
+    rotation_uz9ai.md:ind-kn-sangraha-v-train-000000 rotation_AjaySnl.md:ind-gu-fw2-train-000000 \
+    rotation_rjvim.md:ind-hi-fw2-train-000000 rotation_abinesh1.md:ind-ta-sangraha-v-train-000000
+all {'G1 source': 16, 'G3 CHECK': 2, 'G3 source': 38, 'G4 source': 49}
+rows to check by hand: 2
+  day_D4_sa.md 4f7a6a85a601d7bf G3 8753
+  day_D4_sa_r2.md 4f7a6a85a601d7bf G3 8753
+wall 9.3 s
+```
+
+Languages with no reader are reported as not read, not as passed. 8 of the 18 shards have a reader or rotation file
+(`te-fw2`, `te-sangraha-v`, `kn-fw2`, `kn-sangraha-v`, `ta-sangraha-v`, `sa-fw2`, `hi-fw2`, `gu-fw2`); Bengali adds
+`bn-fw2` and `bn-sangraha-v` on Tue 24. Not read: `hi-hplt`, `hi-indiccorp`, `hi-sangraha-v`, `mr-fw2`,
+`mr-sangraha-v`, and the three `sangraha-s` (machine-translated) shards.
 
 ## 4. Language labels of script-sharing pairs
 
@@ -136,8 +189,8 @@ hi, mr, sa and bn shards (the same files, by sha256).
 |---|---|
 | Indic shards keep ZWJ and ZWNJ | **Yes** for the 18 shards: 0 documents with a joiner changed in kept text (section 1) |
 | (and the visarga, #566) | **Yes** for the 18 shards: 0 words with a visarga turned into `:` or deleted in kept text (section 1) |
-| Pass the reader audit | [to add, Fri 20] |
+| Pass the reader audit | **Yes, with one fix**, for the 8 shards read: of 105 damage rows, 103 are in the raw text and 0 are lost joiners. The other 2 are one finding from cleaning, `DB-B4-004` (#734), fixed in Data A's week-4 pipeline branch, not yet on main (section 3). Bengali: due Tue 24 |
 | Inside approved drop rates | No pack drops over 20%; highest 9.82% (`ind-hi-sangraha-s`); all packs 2.03% (section 2) |
 
-Not covered: Malayalam, Odia and two Tamil packs have no shard; Bengali, Marathi, Gujarati and Sanskrit have no Data B
-reader.
+Not covered: Malayalam, Odia and two Tamil packs have no shard. 10 of the 18 shards have no reader file (section 3);
+Marathi has no reader at all, and Gujarati was checked by code point only.
