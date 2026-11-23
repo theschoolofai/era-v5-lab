@@ -58,12 +58,13 @@ How to fill it:
 |---|---|---|
 | Goal of the lab, and what the lab does | `updates/2026-10-31_week1.md`, `model_card/model_card_outline.md`, `report/report_outline.md` | TSAI: no |
 | Data A | `updates/2026-10-31_week1.md`, `updates/week2.md`, `updates/gate2.md`. Files for training (shards): [#358](https://github.com/theschoolofai/era-v5-lab/pull/358), [#373](https://github.com/theschoolofai/era-v5-lab/pull/373), and the Data A text on [#460](https://github.com/theschoolofai/era-v5-lab/pull/460#issuecomment-6962086936) | no |
-| Data B | `updates/2026-10-31_week1.md`, `updates/gate2.md`, `updates/gate3.md` (data mix and Indic share) | no |
-| Tokenizer | `model_card/model_card_outline.md` (Tokenizer row), `updates/gate3.md` (the frozen tokenizer p1536) | no |
+| Data B | `updates/2026-10-31_week1.md`, `updates/gate2.md`, `updates/gate3.md` (data mix and Indic share: checked, the line does not change) | no |
+| Tokenizer | `model_card/model_card_outline.md` (Tokenizer row), `updates/gate3.md` (the frozen tokenizer p1536: checked, the line does not change) | no |
 | KE2 | `updates/gate2.md` (short forms), `updates/gate3.md` (the output head), [#704](https://github.com/theschoolofai/era-v5-lab/pull/704) | no |
-| Architecture | `updates/2026-10-31_week1.md`, `model_card/model_card_outline.md`, `updates/gate3.md` | no |
+| Architecture | `updates/2026-10-31_week1.md`, `model_card/model_card_outline.md`, `updates/gate3.md` (checked, the line does not change) | no |
+| The KE2 output head is in the training code | Architecture confirms this before the text is published. The Gate 3 update says that Architecture adds the head to the training code | no |
 | Performance | `updates/2026-10-31_week1.md` | no |
-| Infrastructure | `updates/2026-10-31_week1.md`, `model_card/model_card_outline.md`, `updates/gate3.md` (the first dry run) | no |
+| Infrastructure | `updates/2026-10-31_week1.md`, `model_card/model_card_outline.md`, `updates/gate3.md` (the first dry run: checked, the line does not change) | no |
 | Monitoring | `updates/2026-10-31_week1.md`, `updates/week2.md`, `dashboard/dashboard_text.md` ([#598](https://github.com/theschoolofai/era-v5-lab/pull/598)), public panels with the approved text ([#629](https://github.com/theschoolofai/era-v5-lab/pull/629)) | no |
 | Evaluation | `updates/2026-10-31_week1.md` | no |
 | Post-training | `updates/2026-10-31_week1.md`, `updates/week2.md` | no |
