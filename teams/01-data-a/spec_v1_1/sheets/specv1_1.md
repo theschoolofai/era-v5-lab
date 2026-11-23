@@ -4580,8 +4580,10 @@ def medicine(doc):
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
 <!-- END CARD EVIDENCE -->
 
-2. **Medicine:** Replace each phone number, personal email address and street-level address of a private person with a typed placeholder: `<PHONE>`, `<EMAIL>`, `<ADDRESS>` (instructor, 31 Oct). An email is personal when it is at a webmail domain, or when its local part looks like a name (a dot, underscore, hyphen, digit or 13+ characters) and the context is not an organisation's; role addresses (`info@`, `sales@` ...) never are. A phone number or a street address stays when the contact block around it shows an organisation (a business or trade word, opening hours, a fax line, a listing site), when the page speaks for an organisation ("call us", "our office"), or when the number is toll-free. A street address is replaced only on a contact line, not inside running prose.
+2. **Medicine:** Replace each phone number, personal email address and street-level address of a private person with a typed placeholder: `<PHONE>`, `<EMAIL>`, `<ADDRESS>` (instructor, 31 Oct). An email is personal when it is at a webmail domain, or when its local part looks like a name (a dot, underscore, hyphen, digit or 13+ characters) and the context is not an organisation's; role addresses (`info@`, `sales@` ...) never are. A phone number or a street address stays when the contact block around it shows an organisation (a business or trade word, opening hours, a fax line, a listing site), when the page speaks for an organisation ("call us", "our office"), or when the number is toll-free. A street address is replaced only on a contact line, not inside running prose. Narrow binary correction (TSAI, 22 Nov): preserve a whitespace-separated 0/1 value immediately introduced as a binary number/value/literal/pattern/representation or bit pattern/string. Unlabelled digit groups and explicit phone contacts retain the existing masking policy; other phone matches on the same line are still processed.
 
+
+**Binary correction validation (23 Nov):** 27 synthetic regression cases cover all four English packs, explicit phone context, same-line contacts, toll-free contacts and idempotence. The final targeted run (including English F1 equivalence and cleaner rebuild checks) passed 70 tests. Gold harm for this amendment is **PENDING COLLATION**: run the harm test after completing collation. The inherited harm figures above do not validate this amendment.
 ```python
 RULE_ID = "DA-F1-005"
 SOURCE_RULE_ID = "DA-F1-005"
@@ -4610,6 +4612,23 @@ ROLE_LOCAL = re.compile(r"^(?:info|contact|contactus|enquir(?:y|ies)|inquir(?:y|
 NOT_REAL = re.compile(r"@(?:example|test|domain|email)\.(?:com|org|net)$", re.I)
 
 PHONE = re.compile(r"(?<![\w-])(?:\+\d{1,3}[\s.\-‐‑–]?)?(?:\(\d{2,4}\)[\s.\-‐‑–]?|\d{2,4}[\s.\-‐‑–])\d{3,4}[\s.\-‐‑–]\d{3,4}(?![\w-])")
+
+# Binary digits explicitly introduced as a binary value are technical content, not a phone.
+# Keep this local to the matched span: a phone elsewhere on the same line still gets masked.
+BINARY_LABEL = re.compile(r"(?i)\b(?:binary(?:[ \t]+(?:number|value|literal|pattern|representation))?|bit[ \t]+(?:pattern|string))"
+                          r"[ \t]*(?:is[ \t]+|[:=][ \t]*)?[`\"']?[ \t]*$")
+BINARY_DIGITS = re.compile(r"[01]+(?:[ \t]+[01]+)+")
+BINARY_PHONE_CONTEXT = re.compile(r"(?i)\b(?:phone|telephone|tel|mobile|cell|fax|whatsapp|contact)\b")
+
+
+def _phone(m):
+    value = m.group()
+    before = m.string[max(0, m.start() - 64):m.start()]
+    if (BINARY_DIGITS.fullmatch(value) and BINARY_LABEL.search(before) and not BINARY_PHONE_CONTEXT.search(before)
+            and not re.match(r"[ \t]+[0-9]", m.string[m.end():])):
+        return value
+    return value if TOLL_FREE.match(value) else "<PHONE>"
+
 
 TOLL_FREE = re.compile(r"^(?:\+?1[\s.-]?)?\(?8(?:00|88|77|66|55|44|33)\)?")
 
@@ -4684,7 +4703,7 @@ def medicine_f1(text):
             "\n".join(lines[max(0, i - 2):i + 1])))), line) if "@" in line else line
         if PHONE.search(new) or ADDRESS.search(new):
             if not (on_org_page() or org_near(i)):
-                new = PHONE.sub(lambda m: m.group() if TOLL_FREE.match(m.group()) else "<PHONE>", new)
+                new = PHONE.sub(_phone, new)
                 if len(line.strip()) <= CONTACT_LINE:
                     new = ADDRESS.sub("<ADDRESS>", new)
         out.append(new)

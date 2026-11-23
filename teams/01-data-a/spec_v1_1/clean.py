@@ -3075,6 +3075,23 @@ def _english_f1_005():
 
     PHONE = re.compile(r"(?<![\w-])(?:\+\d{1,3}[\s.\-‐‑–]?)?(?:\(\d{2,4}\)[\s.\-‐‑–]?|\d{2,4}[\s.\-‐‑–])\d{3,4}[\s.\-‐‑–]\d{3,4}(?![\w-])")
 
+    # Binary digits explicitly introduced as a binary value are technical content, not a phone.
+    # Keep this local to the matched span: a phone elsewhere on the same line still gets masked.
+    BINARY_LABEL = re.compile(r"(?i)\b(?:binary(?:[ \t]+(?:number|value|literal|pattern|representation))?|bit[ \t]+(?:pattern|string))"
+                              r"[ \t]*(?:is[ \t]+|[:=][ \t]*)?[`\"']?[ \t]*$")
+    BINARY_DIGITS = re.compile(r"[01]+(?:[ \t]+[01]+)+")
+    BINARY_PHONE_CONTEXT = re.compile(r"(?i)\b(?:phone|telephone|tel|mobile|cell|fax|whatsapp|contact)\b")
+
+
+    def _phone(m):
+        value = m.group()
+        before = m.string[max(0, m.start() - 64):m.start()]
+        if (BINARY_DIGITS.fullmatch(value) and BINARY_LABEL.search(before) and not BINARY_PHONE_CONTEXT.search(before)
+                and not re.match(r"[ \t]+[0-9]", m.string[m.end():])):
+            return value
+        return value if TOLL_FREE.match(value) else "<PHONE>"
+
+
     TOLL_FREE = re.compile(r"^(?:\+?1[\s.-]?)?\(?8(?:00|88|77|66|55|44|33)\)?")
 
     STREET = (r"(?:Street|St|Avenue|Ave|Road|Rd|Lane|Ln|Boulevard|Blvd|Drive|Dr|Court|Ct|Way|Place|Pl|Terrace|Ter|Close|"
@@ -3148,7 +3165,7 @@ def _english_f1_005():
                 "\n".join(lines[max(0, i - 2):i + 1])))), line) if "@" in line else line
             if PHONE.search(new) or ADDRESS.search(new):
                 if not (on_org_page() or org_near(i)):
-                    new = PHONE.sub(lambda m: m.group() if TOLL_FREE.match(m.group()) else "<PHONE>", new)
+                    new = PHONE.sub(_phone, new)
                     if len(line.strip()) <= CONTACT_LINE:
                         new = ADDRESS.sub("<ADDRESS>", new)
             out.append(new)
