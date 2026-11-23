@@ -77,11 +77,26 @@ def prepare(bundle, raw, tokenizer, pack_table, run_id, model_path=None, f2_work
     if manifest.get("approved_inputs_sha256") != sha256(HERE / "approved_inputs.json"):
         raise ValueError("input manifest was built from another approved_inputs.json; rebuild the inventory")
     packs = [p["pack_id"] for p in scope["packs"]]
+    selection = manifest.get("pack_selection")
+    if selection is not None:
+        selected = selection.get("selected_packs") if isinstance(selection, dict) else None
+        if (not isinstance(selected, list) or len(selected) != 33
+                or not all(isinstance(p, str) for p in selected)
+                or len(set(selected)) != 33 or selected != [p for p in packs if p in selected]
+                or selection.get("deferred_packs") != [p for p in packs if p not in selected]
+                or not selection.get("approval")):
+            raise ValueError("invalid 33-pack selection in input manifest")
+        scope["packs"] = [p for p in scope["packs"] if p["pack_id"] in selected]
+        packs = selected
     if inventory.get("packs") != packs:
         raise ValueError("inventory does not list every approved pack in order")
     parts = manifest.get("shards") or []
     if {p["path"] for p in parts} != {p["part"] for p in inventory["parts"]}:
         raise ValueError("manifest and inventory list different parts")
+    if ({p["pack_id"] for p in manifest["packs"]} != set(packs)
+            or {(p["pack_id"], p["split"]) for p in parts}
+            != {(pack, split) for pack in packs for split in ("train", "heldout")}):
+        raise ValueError("manifest must contain both splits for exactly the selected packs")
     counts = {split: sum(p["split"] == split for p in parts) for split in ("train", "heldout")}
     if not all(counts.values()):
         raise ValueError("both train and heldout must have parts")
@@ -117,7 +132,9 @@ def prepare(bundle, raw, tokenizer, pack_table, run_id, model_path=None, f2_work
             "clean": {"mode": "run", "settings": "teams/01-data-a/pipeline/clean.json",
                       "input": relative_or_absolute(raw), "manifest": relative_or_absolute(manifest_path),
                       "manifest_sha256": inventory["input_manifest_sha256"], "expected_parts": counts},
-            "overlap": {"mode": "run", "settings": "teams/01-data-a/dedup/overlap.json"},
+            "overlap": {"mode": "run", "script": "teams/01-data-a/dedup/minhash_overlap.py",
+                        "settings": "teams/01-data-a/dedup/minhash_overlap_partial.json" if selection is not None
+                        else "teams/01-data-a/dedup/minhash_overlap.json"},
             "h3": {"mode": "run", "settings": "teams/01-data-a/jobs/2026-11-19-first-training/h3.json"},
             "dedup": {"mode": "run", "settings": "teams/01-data-a/dedup/dedup.json"},
             "f2": {"pool": True, "workers": f2_workers},

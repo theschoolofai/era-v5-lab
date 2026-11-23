@@ -18,6 +18,25 @@ Outputs:         out/first-training-inputs/{input_manifest.json,expected_invento
 Test log:        teams/01-data-a/jobs/logs/2026-11-19-first-training-rehearsal-38packs/ (all 86 parts of sample v0, 38 packs, frozen p1536, Linux + pinned env: 59/59 checks; with the inventory, prepare_run's run.json at 2691c44: 74/74)
 ```
 
+## Update of 23 Nov 2026: staged 33-pack run and MinHash
+
+For the partial run, add `--packs-file <staged-packs.json>` to the inventory
+command below. Supply an explicit JSON array of the 33 approved pack IDs
+confirmed by TSAI as staged; the exact list is a staging input, not guessed
+from missing files. Stage only those packs under the input root. Each still
+requires train and heldout parts. The frozen manifest records the selected
+packs and the five deferred source-resolution blockers, preserving the full
+approved-source policy and hash. The inventory and generated pack table cover
+exactly that selection. Without this option all 38 packs remain required.
+
+The generated job now explicitly selects `minhash_overlap.py`: the partial
+MinHash config for the 33-pack selection, the full MinHash config otherwise.
+The exact-overlap timings and sizing discussion below describe the historical
+rehearsal, not the new production algorithm. Before execution, attach 1x/2x/4x
+staged-data MinHash sizing and validate the final worker budget and integration
+run. This update does not claim that those measurements have been completed.
+See `2026-11-19-first-training/README.md` for selection details.
+
 ## Update of 22 Nov 2026 for corpus-v1
 
 This revises the request of #599 now that TSAI has confirmed the input manifest. Nothing else in the pipeline changes.
@@ -34,7 +53,7 @@ This is an integration request. TSAI stages the approved raw inputs and applies 
 
 The job must be staged with these inputs before `--plan` or execution:
 
-- All approved raw parts, at least one in each split for every pack, under `<raw>/train/<pack>/part-<number>.parquet` and `<raw>/heldout/<pack>/part-<number>.parquet`.
+- All selected approved raw parts, at least one in each split for every selected pack, under `<raw>/train/<pack>/part-<number>.parquet` and `<raw>/heldout/<pack>/part-<number>.parquet`.
 - The frozen p1536 `tokenizer.json` (SHA-256 `e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b`).
 - The published `sentence-transformers/LaBSE` revision `836121a0533e5664b21c7aacc5d22951f2b8b25b`, staged offline at `../models/LaBSE` relative to the repository root; see the pinned files below. The job uses a CUDA host; H3 retains the rehearsed `device: auto` setting and measures `ind-sa-fw2`, `ind-hi-fw2` and `en-fineweb-edu` in report-only mode. All sentence thresholds remain at the rehearsed default 0.7. E5c's provisional Sanskrit 0.55 is a separate measurement configuration; threshold changes are deferred beyond this submission.
 - The committed `2026-11-19-first-training/approved_inputs.json`: all 38 packs, TSAI-accepted shard metadata/lanes, and pinned licence text/provenance. The generator materializes these fields as `out/first-training-inputs/pack_metadata.json` for the sharder. The generic `shards/pack_table.json` has the accepted lanes but omits licences.
@@ -131,7 +150,7 @@ python -m pytest teams/01-data-a/tests/audit/test_check_shard.py teams/01-data-a
          "manifest_sha256": "<generated input_manifest_sha256>",
          "expected_parts": {"train": "<generated count>", "heldout": "<generated count>"}
        },
-       "overlap": {"mode": "run", "settings": "teams/01-data-a/dedup/overlap.json"},
+       "overlap": {"mode": "run", "script": "teams/01-data-a/dedup/minhash_overlap.py", "settings": "teams/01-data-a/dedup/minhash_overlap_partial.json"},
        "h3": {"mode": "run", "settings": "teams/01-data-a/jobs/2026-11-19-first-training/h3.json"},
        "dedup": {"mode": "run", "settings": "teams/01-data-a/dedup/dedup.json"},
        "f2": {"pool": true, "workers": 30},
@@ -146,7 +165,7 @@ python -m pytest teams/01-data-a/tests/audit/test_check_shard.py teams/01-data-a
    }
    ```
 
-   The builder requires all 38 packs in both splits and rejects unknown packs, invalid part names, missing columns, changed files and duplicate numeric part indices. The generator refuses an incomplete pack table or an unfrozen tokenizer.
+   The builder requires all selected packs in both splits and rejects unknown packs, invalid part names, missing columns, changed files and duplicate numeric part indices. The generator refuses an incomplete pack table or an unfrozen tokenizer.
 
 3. Check the generated config, then run the same file. Both commands use the same checkout and working directory:
 
