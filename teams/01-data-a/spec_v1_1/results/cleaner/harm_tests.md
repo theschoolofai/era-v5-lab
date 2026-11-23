@@ -1,5 +1,67 @@
 # clean() harm tests: spec v1.1
 
+## Fresh validation: 23 Nov 2026
+
+Rebuilt `spec_v1_1/clean.py` from `sheets/specv1_1.md` and `build/f1_rule.py`.
+The rebuild is byte-identical to the input cleaner: SHA-256
+`4b5e46ba1d1d347d3650e3a060abc8b95e1dd9ec67970b2704c2c50ac0678755`.
+
+The run used the 38 original pack Parquets provided locally, Data A gold in
+`teams/01-data-a/gold`, and Data B gold in `teams/02-data-b/gold`. Each applicable
+rule was tested alone, followed by the full `clean()` pipeline, on each pack's
+own gold set using `harmtest/harm_test.py`'s APIs. Data B packs also used
+`tools/harm_test_indic.py`'s execution, verdict and Unicode-audit APIs, preserving
+pack/language/URL metadata through the adapter. No gold IDs were excluded.
+This run does not repeat the historical whole-pack out-of-scope checks.
+
+- **4,768 gold documents across 33 testable packs.** Of the 31 supported packs,
+  **27 PASS and 4 FAIL**. Two other testable packs, `cadj-commits` and
+  `ind-ta-fw2`, pass through unchanged and have no cleaning rules; their PASS
+  is not evidence of implemented cleaning coverage.
+- **Five NOT TESTABLE:** gold CSVs are missing for `cadj-notebooks`,
+  `cadj-stackexchange`, `ind-ml-fw2`, `ind-or-fw2`, `ind-ta-sangraha-s`.
+- No rule execution errors, Indic joiner-count violations or Unicode normal-form
+  violations were observed.
+- The amended English `DA-F1-005` on all four English packs, shared F1 on all
+  six code packs, and Sanskrit `DB-B4-004` each **PASS with zero gold documents
+  changed or dropped**.
+- Cleaner unit/regression suite: **1,915 passed, 9 subtests passed**.
+
+| Pack failing the raw full-pipeline harm limit | Gold | Changed | Dropped |
+|---|---:|---:|---:|
+| en-nemotroncc | 129 | 2 | 0 |
+| math-finemath | 86 | 1 | 1 |
+| sci-finepdfs | 202 | 4 | 1 |
+| ind-te-sangraha-v | 80 | 2 | 0 |
+
+The 11 affected IDs are exactly those listed in the historical report below.
+That historical report classifies ten as gold contradictions and one as a
+short-document false positive. This run reproduces their identities; it does
+not constitute a fresh human adjudication or waive the four raw failures.
+The changed Bengali gold set has 145 documents, compared with 137 in the
+historical report; per-input hashes are recorded for the fresh run.
+
+`run_harm_suite.py` was attempted but cannot run: it requires the absent legacy
+`teams/01-data-a/spec/spec_v1.md` inventory, not the current executable sheet.
+The current cleaner was tested through the APIs above instead. These results
+cover the current cleaner, not activation of #86's separate proposal cards,
+production-scale throughput, or a full MinHash/sharding integration run.
+
+To reproduce the API-based run from the repository root (writes to a new
+output folder; exits nonzero for failures or untestable packs):
+
+```bash
+python teams/01-data-a/spec_v1_1/results/cleaner/harm_2026_11_23/run_current_harm.py --packs <original-packs-folder> --out out/harm-rerun
+```
+
+Evidence (IDs, counts and hashes only): [summary CSV](harm_2026_11_23/summary.csv),
+[provenance and coverage](harm_2026_11_23/summary.json),
+[per-pack/per-rule reports](harm_2026_11_23/reports.json),
+[run log](harm_2026_11_23/run.log), [rebuild log](harm_2026_11_23/rebuild.log),
+[legacy-runner limitation](harm_2026_11_23/legacy-suite.log).
+
+## Historical validation: 17 Nov 2026
+
 `spec_v1_1/clean.py` (sha256 `6a57276c0e83…`, built from `sheets/specv1_1.md`) on TSAI's 500-doc sample packs, one for each pack it has rules for, 17 Nov 2026. It was run on the samples only, not on the full packs.
 - **The tool:** `spec_v1/validate/make_harm_tests.py`, run through `use_clean.py`, with `harmtest/harm_test.py` run as it is. On each pack it runs:
   - `clean()` on the gold docs;

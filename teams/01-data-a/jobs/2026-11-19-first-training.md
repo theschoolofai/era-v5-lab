@@ -18,6 +18,24 @@ Outputs:         out/first-training-inputs/{input_manifest.json,expected_invento
 Test log:        teams/01-data-a/jobs/logs/2026-11-19-first-training-rehearsal-38packs/ (all 86 parts of sample v0, 38 packs, frozen p1536, Linux + pinned env: 59/59 checks; with the inventory, prepare_run's run.json at 2691c44: 74/74)
 ```
 
+## Cleaner validation update: 23 Nov 2026
+
+Fresh harm tests on the rebuilt `4b5e46ba…` cleaner are recorded in
+[the cleaner harm report](../spec_v1_1/results/cleaner/harm_tests.md).
+Of 31 supported packs, 27 PASS and four FAIL on the same 11 gold IDs documented
+historically. Two unsupported packs pass through; five lack gold files. The
+amended English F1, code shared F1 and Sanskrit `DB-B4-004` each PASS with zero
+gold changes/drops. There are no execution errors or Indic Unicode-audit
+violations. The cleaner suite passes 1,915 tests and nine subtests.
+The raw failures remain visible; no gold exclusions or release waiver were
+applied. The legacy registry-suite inventory is absent, so current cleaner
+validation uses the existing Data A and Data B harm-test APIs.
+
+The active cleaner hash below is refreshed to the tested bytes. The historical
+22 Nov code pin and rehearsal remain historical evidence; finalize the release
+commit, staged production selection, sizing and integration evidence before
+execution. This sample harm run does not establish production readiness.
+
 ## Update of 23 Nov 2026: staged 33-pack run and MinHash
 
 For the partial run, add `--packs-file <staged-packs.json>` to the inventory
@@ -43,7 +61,7 @@ This revises the request of #599 now that TSAI has confirmed the input manifest.
 
 - **Dataset version:** `prepare_run.py` generated `dataset_version` `first-training-v1`; it now generates `corpus-v1`. The `run_id` argument is unchanged and is only the output folder name.
 - **Pinned code:** `main` at `421f8497ddb1585666e8f5a274c524e4462402cc` (merge of #716), plus this update, which touches only `prepare_run.py` (the constant), its test, and these docs. Run from `main` once this update is merged.
-- **Pinned cleaner:** `teams/01-data-a/spec_v1_1/clean.py`, SHA-256 `ce131217cd5247a3019fa00b6d040a3fd41726874714750b3580c89117c63f83`, which equals `clean_sha256` in `teams/01-data-a/pipeline/clean.json`; the clean stage refuses any other file.
+- **Pinned cleaner:** `teams/01-data-a/spec_v1_1/clean.py`, SHA-256 `4b5e46ba1d1d347d3650e3a060abc8b95e1dd9ec67970b2704c2c50ac0678755`, which equals `clean_sha256` in `teams/01-data-a/pipeline/clean.json`; the clean stage refuses any other file.
 - **Pinned scope:** `approved_inputs.json`, SHA-256 `10f313750235902d401cfb1023555b37e575fc8a11a5adccceeab84af7515f5f` (the confirmed version). The input manifest records this hash and `prepare_run.py` refuses a manifest built from any other version.
 - **Checks:** `pytest` of the command under "Scope and prerequisites" passes (146 tests) on this branch.
 
