@@ -67,7 +67,7 @@ How to fill it:
 | Infrastructure | `updates/2026-10-31_week1.md`, `model_card/model_card_outline.md`, `updates/gate3.md` (the first dry run: checked, the line does not change) | no |
 | Monitoring | `updates/2026-10-31_week1.md`, `updates/week2.md`, `dashboard/dashboard_text.md` ([#598](https://github.com/theschoolofai/era-v5-lab/pull/598)), public panels with the approved text ([#629](https://github.com/theschoolofai/era-v5-lab/pull/629)) | no |
 | Evaluation | `updates/2026-10-31_week1.md` | no |
-| Post-training | `updates/2026-10-31_week1.md`, `updates/week2.md` | no |
+| Post-training | `updates/2026-10-31_week1.md`, `updates/week2.md` | yes ([comment on #753](https://github.com/theschoolofai/era-v5-lab/pull/753#issuecomment-7107195973)) |
 | Quantization | `updates/2026-10-31_week1.md`, `model_card/model_card_outline.md` (Serving row) | no |
 | Release | `public_internal.md` (Rule 3) | yes (the Release lead wrote this draft) |
 | Dashboard link | Monitoring, after TSAI approves the dashboard | no |
