@@ -19,7 +19,7 @@ Precision:       fp32 weights and AdamW state (same as `#587`; forgetting bpb co
 Measures:        per arm (base, full, lora, dt): matched optimizer steps, eval NLL, held-out forgetting Δbpb (`0.05` limit, `0.01` at-limit mark), chat-format validity, closed turns, RL screen mixed groups / pass rate, DT `band_at_init` and `deletion_final`, reload parity, and SHA-256 of kept DT canary & Team 7 run folders.
 Expected result: unknown on KE2/KAS head; surrogate baseline is `results/dt_vs_fft.md` (`SmolLM2-135M`/`1.7B`).
 Outputs:         out/*.json and out/compare.md (under 5 MB) back to the repo. `keep_canary/dt/` (3 files + SHA256SUMS for Task 11 DT-then-RL) and `keep_t7/g10-dr2-{full,lora,dt}/` (Team 7 Checkpointer run folders for Team 9 watcher) to TSAI storage. No weights, training rows, or generations in Git.
-Test log:        REQUIRED before sending. Offline unit tests pass (`capstone/test_dryrun2_dt_compare.py`); attach a staged CPU stand-in log on Team 5's merged KE2/KAS `LanguageModel` once Team 5 lands dry run 2's `model.py`.
+Test log:        REQUIRED before sending. Offline unit tests pass (`capstone/test_dryrun2_dt_compare.py`). Attached so far: `2026-11-26-g10-dryrun2-dt-vs-fft.log` = the wrapper end to end, exit 0, all three arms + screens + both keep dirs, on the DENSE head, Mac CPU, a 20-step stand-in run folder, `--origin g10_rehearsal`. It is NOT the KE2/KAS head and NOT `g5_delivery`. Still to attach: a staged CPU stand-in log on Team 5's merged KE2/KAS `LanguageModel` once Team 5 lands dry run 2's `model.py`.
 ```
 
 ## Blocked by

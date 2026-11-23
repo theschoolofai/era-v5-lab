@@ -155,9 +155,9 @@ def run(a, out: Path) -> int:
     if not results["pins"]["ok"]:
         return probe.finish(out, results)
 
-    from make_adapter_config import write_config  # noqa: PLC0415
+    from make_adapter_config import load_probe, write_config  # noqa: PLC0415
     cfg = write_config(out / "adapter.yaml", a.g5_root, a.run_folder, a.tokenizer, a.byte_table,
-                       TEAM10, a.origin, not a.no_git, probe_file=a.probe_file)
+                       TEAM10, a.origin, not a.no_git, probe=load_probe(a.probe_file) if a.probe_file else None)
     inp = out / "_inputs"
 
     def inputs():

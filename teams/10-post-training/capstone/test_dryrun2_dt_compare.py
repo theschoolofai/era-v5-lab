@@ -87,13 +87,26 @@ def test_run_matches_steps_across_all_three_arms_and_writes_compare_md(tmp_path,
     monkeypatch.setattr(cmp.job, "check_g5_sources", lambda a: {})
     monkeypatch.setattr(cmp.job, "run_arm", fake_run_arm)
     monkeypatch.setattr(sl, "build", fake_build)
-    monkeypatch.setattr(make_adapter_config, "write_config", lambda out, *a, **kw: out)
+    import inspect  # noqa: PLC0415
+    real_sig = inspect.signature(make_adapter_config.write_config)
+    configs = []
+
+    def checked_write_config(*a, **kw):  # the real signature must accept the call (a stray kwarg used to crash every run)
+        bound = real_sig.bind(*a, **kw)
+        configs.append(bound.arguments)
+        return bound.arguments["out"]
+
+    monkeypatch.setattr(make_adapter_config, "write_config", checked_write_config)
 
     out = tmp_path / "run_out"
     canary = tmp_path / "canary_keep"
-    args = cmp.parse_args([*BASE, "--keep-canary-state-dir", str(canary), "--out", str(out)])
+    probe_file = tmp_path / "probe.json"
+    probe_file.write_text(json.dumps({"ids": [5, 6, 7], "expected_mean_nll": 2.5, "atol": 1e-4}), encoding="utf-8")
+    args = cmp.parse_args([*BASE, "--keep-canary-state-dir", str(canary), "--probe-file", str(probe_file),
+                           "--out", str(out)])
     rc = cmp.run(args, out)
     assert rc == 0
+    assert configs[0]["probe"] == {"ids": [5, 6, 7], "expected_mean_nll": 2.5, "atol": 1e-4}
     # Full completed 42 steps; LoRA and DT must be locked to 42 steps too.
     assert seen_cmds["lora"][seen_cmds["lora"].index("--steps") + 1] == "42"
     assert seen_cmds["dt"][seen_cmds["dt"].index("--steps") + 1] == "42"
