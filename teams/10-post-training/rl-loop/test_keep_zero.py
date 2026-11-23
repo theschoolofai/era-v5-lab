@@ -84,13 +84,23 @@ def test_an_optimizer_the_gradient_mask_cannot_protect_is_refused_unless_enforce
     w, free, keep = _toy_params()
     kz = keep_zero.KeepZero([("w", w), ("free", free)], {"w": keep})
     kz.check_optimizer(torch.optim.AdamW([w, free], lr=0.05, weight_decay=0.0))
-    kz.check_optimizer(torch.optim.AdamW([{"params": [w], "weight_decay": 0.0},
-                                          {"params": [free], "weight_decay": 0.1}], lr=0.05))
     with pytest.raises(ValueError, match="needs Adam/AdamW"):
         kz.check_optimizer(Muonish([w, free]))
-    with pytest.raises(ValueError, match="weight decay 0.1"):
-        kz.check_optimizer(torch.optim.AdamW([{"params": [w], "weight_decay": 0.1}, {"params": [free]}], lr=0.05))
     keep_zero.KeepZero([("w", w), ("free", free)], {"w": keep}, enforce=True).check_optimizer(Muonish([w, free]))
+
+
+def test_adamw_with_weight_decay_passes_the_check_and_keeps_deleted_weights_at_zero():
+    w, free, keep = _toy_params()
+    kz = keep_zero.KeepZero([("w", w), ("free", free)], {"w": keep})
+    opt = torch.optim.AdamW([w, free], lr=0.05, weight_decay=0.1)
+    kz.check_optimizer(opt)
+    kept_before = w.detach()[keep].clone()
+    for _ in range(5):
+        opt.zero_grad()
+        _loss(w, free).backward()
+        opt.step()
+        assert kz.check("toy wd 0.1") == 0  # decoupled decay of an exact 0 is 0
+    assert (w.detach()[~keep] == 0).all() and not torch.equal(w.detach()[keep], kept_before)
 
 
 def test_packed_mask_roundtrip(tmp_path):
