@@ -24,5 +24,5 @@
 | Checkpoint | A saved copy of the model at one training step. |
 | Benchmark | A public set of test questions with known answers, used to score a model. |
 | Context length | The number of tokens that the model reads at once. |
-| Restart | The training run starts again from its last checkpoint, for example after a crash. |
+| Restart | A new start of the training run from its last checkpoint, for example after a crash. |
 | Alarm | A warning that Monitoring raises when a measure of the training run looks wrong. |

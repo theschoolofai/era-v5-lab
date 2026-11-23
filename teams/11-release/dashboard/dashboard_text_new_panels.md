@@ -29,8 +29,9 @@ this file. When Monitoring adds a panel to `public_v1.json`, the same pull reque
 **What this dashboard shows**
 
 This dashboard shows one training run of the ERA V5 lab as it happens. The run on the dashboard now is
-[run name: waiting for TSAI]. The panels show how well the model predicts text, how fast the run goes and which text
-it trains on. They also count every restart and every alarm. All times are in IST.
+[run: waiting for TSAI, the kind of run and its name]. The panels show how well the model predicts text, its
+benchmark scores, how fast the run goes and which text it trains on. They also count every restart and every alarm.
+All times are in IST (India Standard Time).
 
 **What this dashboard does not show**
 
@@ -55,9 +56,13 @@ How to fill it:
 1. The lead of each team in the Source column gives an OK on the sentences in a pull request comment
    (`OK @handle`), or sends a new sentence.
 2. Edit each new sentence only for style, and send the edit back to the writer.
-3. TSAI names the run for the explaining panel.
-4. Run `python teams/11-release/style/check_style.py <this file> --numbers` and clear every error.
-5. TSAI approves this pull request before the G11 lead merges it.
+3. TSAI names the run for the explaining panel and says what kind of run it is. For example: "the second dry run,
+   a short test of the whole training setup before the main training run".
+4. If Monitoring builds one of these panels as several panels, write one `This panel ...` sentence for each panel
+   title.
+5. If a final panel title uses a term that is not in `glossary.md`, such as Eval-Mini, add the term to the glossary.
+6. Run `python teams/11-release/style/check_style.py <this file> --numbers` and clear every error.
+7. TSAI approves this pull request before the G11 lead merges it.
 
 | Panel | Source | Lead OK |
 |---|---|---|
