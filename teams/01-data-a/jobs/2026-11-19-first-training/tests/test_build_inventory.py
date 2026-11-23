@@ -1,9 +1,12 @@
 """Input coverage and train/heldout contract checks using real synthetic Parquets."""
+import ast
 import hashlib
 import importlib.util
 import json
 from pathlib import Path
+import re
 import sys
+import types
 
 import pytest
 
@@ -255,3 +258,30 @@ def test_scope_without_a_recorded_tsai_approval_is_rejected(raw, tmp_path, scope
     with pytest.raises(ValueError, match='no tsai_manifest_approval'):
         run(raw, tmp_path / 'unconfirmed', file)
     assert not (tmp_path / 'unconfirmed').exists()
+
+
+def test_prepare_run_refuses_to_start_without_the_f1_grammars(monkeypatch):
+    fake = types.ModuleType('tree_sitter_language_pack')
+    fake.downloaded_languages = lambda: ['cpp', 'go']
+    monkeypatch.setitem(sys.modules, 'tree_sitter_language_pack', fake)
+    with pytest.raises(ValueError, match='java, javascript, python, rust, typescript; run the setup step'):
+        prepare_run.check_f1_parsers()
+    fake.downloaded_languages = lambda: list(prepare_run.F1_PARSERS)
+    prepare_run.check_f1_parsers()
+
+
+def test_prepare_run_checks_the_grammars_before_anything_else(monkeypatch, tmp_path):
+    def missing():
+        raise ValueError('tree-sitter grammars for F1 are not downloaded: go; run the setup step')
+    monkeypatch.setattr(prepare_run, 'check_f1_parsers', missing)
+    monkeypatch.setattr(prepare_run, 'prepare', lambda *a, **k: pytest.fail('prepare ran without the grammars'))
+    monkeypatch.setattr(sys, 'argv', ['prepare_run.py', '--bundle', str(tmp_path), '--input-root', str(tmp_path),
+                                      '--tokenizer', str(tmp_path), '--run-id', 'run'])
+    with pytest.raises(SystemExit) as stop:
+        prepare_run.main()
+    assert stop.value.code == 1
+
+
+def test_f1_grammars_match_the_cleaner():
+    rule = (REPO / 'teams/01-data-a/spec_v1_1/build/f1_rule.py').read_text(encoding='utf-8')
+    assert ast.literal_eval(re.search(r'^_F1_TREE = (\{[^}]*\})', rule, re.M).group(1)) == set(prepare_run.F1_PARSERS)

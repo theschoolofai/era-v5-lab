@@ -24,7 +24,7 @@ This revises the request of #599 now that TSAI has confirmed the input manifest.
 
 - **Dataset version:** `prepare_run.py` generated `dataset_version` `first-training-v1`; it now generates `corpus-v1`. The `run_id` argument is unchanged and is only the output folder name.
 - **Pinned code:** `main` at `421f8497ddb1585666e8f5a274c524e4462402cc` (merge of #716), plus this update, which touches only `prepare_run.py` (the constant), its test, and these docs. Run from `main` once this update is merged.
-- **Pinned cleaner:** `teams/01-data-a/spec_v1_1/clean.py`, SHA-256 `6a57276c0e83312b09facfba656cca28db0ef59ca851bcfbfa3ef63f16fdd1f2`, which equals `clean_sha256` in `teams/01-data-a/pipeline/clean.json`; the clean stage refuses any other file.
+- **Pinned cleaner:** `teams/01-data-a/spec_v1_1/clean.py`, SHA-256 `ce131217cd5247a3019fa00b6d040a3fd41726874714750b3580c89117c63f83`, which equals `clean_sha256` in `teams/01-data-a/pipeline/clean.json`; the clean stage refuses any other file.
 - **Pinned scope:** `approved_inputs.json`, SHA-256 `10f313750235902d401cfb1023555b37e575fc8a11a5adccceeab84af7515f5f` (the confirmed version). The input manifest records this hash and `prepare_run.py` refuses a manifest built from any other version.
 - **Checks:** `pytest` of the command under "Scope and prerequisites" passes (146 tests) on this branch.
 
@@ -42,7 +42,7 @@ The job must be staged with these inputs before `--plan` or execution:
 
 ## Model staging and resource limits
 
-Run this setup wrapper from the repository root before inventory/config preparation. If the required local model files are missing, it downloads the exact published snapshot. Setup needs network access only for that download; the `hf` CLI is supplied by `huggingface_hub` in the environment. TSAI may pre-stage the same snapshot to skip the download. A complete folder with incorrect weights is rejected by the hash checks; it is not silently accepted.
+Run this setup wrapper from the repository root before inventory/config preparation. If the required local model files are missing, it downloads the exact published snapshot. It also downloads the seven tree-sitter grammars the cleaner's F1 uses to find comments and strings in code: tree-sitter-language-pack 1.22.1 does not ship them and fetches each one on first use, which the job cannot do without network. Setup needs network access only for these downloads; the `hf` CLI is supplied by `huggingface_hub` in the environment. TSAI may pre-stage the same snapshot to skip the download. A complete folder with incorrect weights is rejected by the hash checks; it is not silently accepted.
 
 ```bash
 set -euo pipefail
@@ -60,10 +60,11 @@ f866c945fa2147ce4940c8ead0b4b20af4217e0f4664bd35f41c2a0967c4fe77  2_Dense/model.
 b6bd83d561db8d2ccb7f44dafcd945e39bea16dc2819072ffb10adb45608b029  config.json
 LABSE_HASHES
 )
+python -I -c "import tree_sitter_language_pack as t; langs = ['cpp', 'go', 'java', 'javascript', 'python', 'rust', 'typescript']; t.download(langs); missing = set(langs) - set(t.downloaded_languages()); assert not missing, f'tree-sitter grammars missing: {sorted(missing)}'"
 python -I -c "import torch; assert torch.cuda.is_available(), 'CUDA GPU required for this job'; print(torch.cuda.get_device_name(0))"
 ```
 
-`prepare_run.py` checks these files before publishing `run.json`:
+`prepare_run.py` refuses to publish `run.json` unless the seven F1 grammars are in tree-sitter-language-pack's cache, and checks these files:
 
 | File under `../models/LaBSE/` | Bytes | SHA256 |
 |---|---:|---|

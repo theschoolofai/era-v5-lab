@@ -19,6 +19,10 @@ MODEL_FILES = {
     "2_Dense/model.safetensors": (2362528, "f866c945fa2147ce4940c8ead0b4b20af4217e0f4664bd35f41c2a0967c4fe77"),
     "config.json": (804, "b6bd83d561db8d2ccb7f44dafcd945e39bea16dc2819072ffb10adb45608b029"),
 }
+# The cleaner's F1 finds comments and strings in code with these tree-sitter grammars (_F1_TREE in
+# teams/01-data-a/spec_v1_1/build/f1_rule.py). tree-sitter-language-pack 1.22.1 does not ship them: it downloads each
+# one on first use, which the job cannot do without network, so the setup step downloads them.
+F1_PARSERS = ("cpp", "go", "java", "javascript", "python", "rust", "typescript")
 
 
 def sha256(path):
@@ -35,6 +39,18 @@ def relative_or_absolute(path):
         return path.relative_to(REPO).as_posix()
     except ValueError:
         return path.as_posix()
+
+
+def check_f1_parsers():
+    """Refuse to start unless every grammar F1 may need is already in tree-sitter-language-pack's cache: without one,
+    F1 raises on the first code document with an email or phone in a comment, and the clean stage stops."""
+    try:
+        import tree_sitter_language_pack as tslp
+    except ImportError:
+        raise ValueError("tree-sitter-language-pack is not installed (see requirements_pipeline.txt)") from None
+    missing = sorted(set(F1_PARSERS) - set(tslp.downloaded_languages()))
+    if missing:
+        raise ValueError(f"tree-sitter grammars for F1 are not downloaded: {', '.join(missing)}; run the setup step")
 
 
 def prepare(bundle, raw, tokenizer, pack_table, run_id, model_path=None, f2_workers=1):
@@ -129,6 +145,7 @@ def main():
     ap.add_argument("--run-id", required=True)
     args = ap.parse_args()
     try:
+        check_f1_parsers()
         print(prepare(args.bundle, args.input_root, args.tokenizer, args.pack_table, args.run_id,
                       f2_workers=args.f2_workers))
     except (OSError, ValueError, KeyError, TypeError) as exc:
