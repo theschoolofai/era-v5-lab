@@ -41,7 +41,18 @@ Paths are from `teams/01-data-a`.
 | [`spec_v1_1/results/cleaner/speed.md`](results/cleaner/speed.md) | Wall time on each 500-doc sample pack, spec v1 against spec v1.1 |
 | [`spec_v1_1/results/cleaner/tokenizer_sample_run.md`](results/cleaner/tokenizer_sample_run.md) | The end-to-end run on all 86 parts of the tokenizer sample v0 (a sample, not the full packs) |
 
-## Harm, in short
+## Current harm validation (23 Nov 2026)
+
+The rebuilt cleaner remains `4b5e46ba…`. Fresh tests on 4,768 gold documents give
+27 supported packs PASS and four FAIL; their 11 affected IDs match the historical
+report. Two unsupported packs pass through; five lack gold and are not testable.
+The amended English F1, code shared F1 and Sanskrit `DB-B4-004` rules each change
+or drop zero gold documents. No Indic joiner/normal-form violations were found.
+The cleaner suite passes 1,915 tests and nine subtests.
+See [the fresh harm report](results/cleaner/harm_tests.md) for exact scope,
+raw failures, missing gold, hashes and the legacy-runner limitation.
+
+## Historical harm summary (17 Nov 2026)
 
 From [`results/cleaner/harm_tests.md`](results/cleaner/harm_tests.md), on TSAI's 500-doc sample packs:
 - **27 of the 31 packs PASS.** No rule changes a doc on a pack outside its scope.

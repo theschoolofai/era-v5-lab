@@ -14,13 +14,20 @@ not change.
    their signature. Each part's result goes to `work/` with the part's input sha256 and the settings; a rerun reuses
    every unchanged part, so a stopped job continues where it stopped.
 2. **H1 first.** Documents with the same H1 sha256 are exact copies (rule H1), written as star edges to the group's first
-   row. `dedup.py` forms groups by connected components, so the groups are the same as with all pairs.
+   row. `dedup.py` forms groups by connected components, so the groups are the same as with all pairs. Word banding
+   uses one representative per H1 group: members have the same key, hence the same shingles and the same signature,
+   so they fall in exactly the same buckets, and each representative pair is expanded to every member pair after
+   verification. The candidate pairs are the same as banding every document, without the copy-to-copy pairs in the
+   buckets. Code banding keeps every code document (code tokens come from the raw text, which can differ inside an
+   H1 group).
 3. **LSH across all packs and both splits.** 32 bands of 4 values. Two documents agreeing in any band are a candidate.
    Bands are processed one at a time from memory-mapped signature files, so memory is about the band table, not the
-   signatures. A bucket larger than `max_bucket` (2,000) gives star edges to its first member and is counted in the
-   summary. Code documents with at least 20 nonblank lines are banded on their code signatures the same way.
+   signatures (signatures are stored hash-major, so a band is one contiguous block, and the maps are reopened per
+   band). A bucket larger than `max_bucket` (2,000) gives star edges to its first member and is counted in the
+   summary (`star_buckets`). Code documents with at least 20 nonblank lines are banded on their code signatures the same way.
 4. **Exact decision.** Every candidate is scored with the exact Jaccard of its shingle sets (only candidate documents
-   are re-read), and `overlap.py`'s rules decide: prose >= 0.80 and both >= 50 words; math >= 0.90 and identical
+   are re-read; workers write their shingles to files the main process memory-maps; code tokens are memory-mapped
+   from step 1's files), and `overlap.py`'s rules decide: prose >= 0.80 and both >= 50 words; math >= 0.90 and identical
    numbers; code >= 0.85 token Jaccard and both >= 20 lines; mixed domains pass both. MinHash only picks candidates.
 
 ## Against TSAI's bar (23 Nov)
@@ -54,6 +61,13 @@ on the same files (every document's shingle count identical):
 | `dedup.py` `remove_list.csv` | 1,317 rows | **1,317 rows, byte-identical** (sha256 `8461bf1b…`) |
 | H1 rows in `overlap_matches.csv` | 97 (all pairs) | 78 (star edges; same groups) |
 
+**Held-out ↔ train** (`heldout_check.json`): the 47 train parts plus the 38 held-out parts (14,459 held-out
+documents). The local held-out files are not the 5 Nov run's, so the reference is computed directly and exactly, without
+MinHash: every held-out document against every document sharing a 5-gram with it (`heldout_reference.py`). All 66
+held-out ↔ train pairs at word Jaccard >= 0.80 are MinHash candidates (0 missed); there are no held-out ↔ held-out
+pairs, and no held-out ↔ train code pairs at token Jaccard >= 0.85 in the sample (so the code side of this check has no
+case to test).
+
 Measured on a 2-core, 7 GB cloud workspace, `workers` 2:
 
 | Stage | Seconds |
@@ -66,9 +80,34 @@ Measured on a 2-core, 7 GB cloud workspace, `workers` 2:
 | Outputs | 2.1 |
 | **Wall** | **2,375 (39.6 min)** |
 
-Peak RSS 4.2 GB in the main process and 3.2 GB in the largest worker (exact overlap on the 38-pack rehearsal: 14.0 GB,
-84 min). Returned files 0.49 MB (exact: 43.6 MB). The signature step is per part and CPU-bound (about 16 ms per code
+Peak RSS with the final code (step 1 reused from `work/`; the later stages rerun): **2.0 GB in the main process and
+1.5 GB in the largest worker** (exact overlap on the 38-pack rehearsal: 14.0 GB, 84 min). The first version peaked at
+4.2 and 3.2 GB; the changes since (code tokens and candidate shingles memory-mapped per part, signatures stored
+hash-major, one representative per H1 group in word banding) give byte-identical `overlap_matches.csv` and
+`overlap_docs.parquet`. `peak_rss_mb_after_stage` in the summary shows where the memory is. Returned files 0.49 MB (exact: 43.6 MB). The signature step is per part and CPU-bound (about 16 ms per code
 document, mostly Pygments), so it divides by the workers: at 30 workers it is about 2 minutes for the sample.
+
+## Why 32 × 4 and not FineWeb's 14 × 8
+
+FineWeb uses 112 hashes in 14 bands of 8 and removes on the MinHash estimate at about 0.8. Here the rule removes on the
+exact Jaccard at 0.80, so the candidate step must catch pairs just above 0.80. On the full-sample signatures (the
+first 112 values), for the 1,985 word H2 pairs of the exact method:
+
+| Bands × rows | Hashes | Word H2 pairs found |
+|---|---:|---:|
+| 14 × 8 (FineWeb) | 112 | 1,942 (43 missed, 38 of them below Jaccard 0.85) |
+| 28 × 4 | 112 | 1,985 |
+| **32 × 4 (this stage)** | 128 | **1,985** (and all 2,550 H2 pairs, word and code) |
+
+With r rows per band and b bands, a pair at Jaccard s is a candidate with probability 1 − (1 − sʳ)ᵇ: at s = 0.80 that is
+0.924 for 14 × 8 and 1 − 4.6 × 10⁻⁸ for 32 × 4.
+
+## What a bucket cap can and cannot lose
+
+Only all pairs of a bucket are lossless. A bucket over `max_bucket` gives star edges, which can miss a pair of two
+members that are duplicates of each other but not of the first member. On the sample the largest bucket was 507
+documents and no bucket reached the cap, so nothing was lost. If `star_buckets` is above 0 in a run's summary, rerun
+with a higher `max_bucket` (the cost of a bucket of n documents is n(n − 1)/2 exact checks).
 
 ## Running it
 

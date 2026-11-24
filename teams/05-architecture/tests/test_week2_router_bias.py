@@ -82,6 +82,39 @@ class RouterBiasTests(unittest.TestCase):
         c["model"]["moe"]["bias"] = True
         self.assertTrue(any("bias-free" in err for err in validate(c)))
 
+    def test_old_checkpoint_fills_missing_router_bias_with_zeros(self):
+        class Stack(torch.nn.Module):
+            def __init__(self):
+                super().__init__()
+                self.a = MoE(moe_cfg(0.0, experts=4, top_k=2))
+                self.b = MoE(moe_cfg(0.0, experts=4, top_k=2))
+
+        model = Stack()
+        state = model.state_dict()
+        del state["a.router_bias"]
+        del state["b.router_bias"]
+        with torch.no_grad():
+            model.a.router_bias.fill_(1.0)
+            model.b.router_bias.fill_(1.0)
+        model.load_state_dict(state, strict=True)
+        self.assertTrue(torch.equal(model.a.router_bias, torch.zeros(4)))
+        self.assertTrue(torch.equal(model.b.router_bias, torch.zeros(4)))
+
+    def test_saved_router_bias_is_kept(self):
+        moe = MoE(moe_cfg(0.001, experts=4, top_k=2))
+        with torch.no_grad():
+            moe.router_bias.copy_(torch.tensor([0.1, -0.2, 0.3, 0.0]))
+        fresh = MoE(moe_cfg(0.001, experts=4, top_k=2))
+        fresh.load_state_dict(moe.state_dict(), strict=True)
+        torch.testing.assert_close(fresh.router_bias, moe.router_bias)
+
+    def test_a_real_missing_weight_still_fails(self):
+        moe = MoE(moe_cfg(0.0))
+        state = moe.state_dict()
+        del state["router.weight"]
+        with self.assertRaises(RuntimeError):
+            moe.load_state_dict(state, strict=True)
+
 
 if __name__ == "__main__":
     unittest.main()

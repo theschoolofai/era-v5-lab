@@ -95,9 +95,16 @@ def test_expanded_inputs_preserve_both_splits_but_only_train_expects_shards(raw,
     assert not inventory_check.check(inventory, shards=shards)['ok']
 
 
-def test_prepare_run_pins_the_actual_inventory_and_refuses_incomplete_pack_metadata(raw, tmp_path, scope, monkeypatch):
+@pytest.mark.parametrize("partial", [False, True])
+def test_prepare_run_pins_the_actual_inventory_and_refuses_incomplete_pack_metadata(raw, tmp_path, scope, monkeypatch, partial):
     out = tmp_path / 'out' / 'inputs'
-    run(raw, out)
+    selected = json.loads((JOB / 'staged_packs_33.json').read_text()) if partial else None
+    if partial:
+        for pack in set(scope['allowed_train_packs']) - set(selected):
+            for split in ('train', 'heldout'):
+                (raw / split / pack / 'part-00000.parquet').unlink()
+        scope['packs'] = [p for p in scope['packs'] if p['pack_id'] in selected]
+    builder.build(raw, out, JOB / 'approved_inputs.json', selected)
     monkeypatch.setattr(prepare_run, 'REPO', tmp_path)
     tokenizer = tmp_path / 'tokenizer.json'
     tokenizer.write_text('{}', encoding='utf-8')
@@ -131,7 +138,9 @@ def test_prepare_run_pins_the_actual_inventory_and_refuses_incomplete_pack_metad
     cfg = json.loads(prepare_run.prepare(out, raw, tokenizer, table_path, 'first-training-v1', model,
                                         f2_workers=30).read_text())
     assert cfg['inventory'] == 'out/inputs/expected_inventory.json'
-    assert cfg['stages']['clean']['expected_parts'] == {'train': 38, 'heldout': 38}
+    assert cfg['stages']['clean']['expected_parts'] == {'train': 33 if partial else 38, 'heldout': 33 if partial else 38}
+    assert cfg['stages']['overlap']['script'].endswith('/minhash_overlap.py')
+    assert cfg['stages']['overlap']['settings'].endswith('/minhash_overlap_partial.json' if partial else '/minhash_overlap.json')
     assert cfg['run_id'] == 'first-training-v1'
     assert cfg['stages']['shards']['dataset_version'] == 'corpus-v1'  # not derived from run_id
     assert cfg['intermediates'] == 'keep' and cfg['stages']['h3']['mode'] == 'run'
@@ -141,6 +150,7 @@ def test_prepare_run_pins_the_actual_inventory_and_refuses_incomplete_pack_metad
     generated = json.loads((out / 'pack_metadata.json').read_text())['packs']
     assert cfg['stages']['f2']['workers'] == 1
     assert cfg['stages']['shards']['pack_table'] == 'out/inputs/pack_metadata.json'
+    assert len(generated) == (33 if partial else 38)
     assert generated['ind-sa-fw2']['lane'] == 'indic'
     assert generated['code-go']['license'] == next(p['license'] for p in scope['packs'] if p['pack_id'] == 'code-go')
 
@@ -285,3 +295,70 @@ def test_prepare_run_checks_the_grammars_before_anything_else(monkeypatch, tmp_p
 def test_f1_grammars_match_the_cleaner():
     rule = (REPO / 'teams/01-data-a/spec_v1_1/build/f1_rule.py').read_text(encoding='utf-8')
     assert ast.literal_eval(re.search(r'^_F1_TREE = (\{[^}]*\})', rule, re.M).group(1)) == set(prepare_run.F1_PARSERS)
+
+
+def test_partial_inventory_freezes_selected_and_deferred_packs(raw, tmp_path, scope):
+    selected = [p for p in scope['allowed_train_packs'] if p in json.loads((JOB / 'staged_packs_33.json').read_text())]
+    deferred = [p for p in scope['allowed_train_packs'] if p not in selected]
+    for pack in deferred:
+        for split in ('train', 'heldout'):
+            (raw / split / pack / 'part-00000.parquet').unlink()
+    out = tmp_path / 'partial'
+    summary = builder.build(raw, out, JOB / 'approved_inputs.json', list(reversed(selected)))
+    manifest = json.loads((out / 'input_manifest.json').read_text())
+    inventory = inventory_check.load(out / 'expected_inventory.json')
+    assert summary['packs'] == 33 and summary['parts'] == 66
+    assert set(inventory['packs']) == set(selected)
+    assert manifest['pack_selection']['selected_packs'] == selected
+    assert manifest['pack_selection']['deferred_packs'] == deferred
+    assert {p['pack_id'] for p in manifest['packs']} == set(selected)
+    # A missing split for a selected pack must never become another implicit exclusion.
+    (raw / 'heldout' / selected[0] / 'part-00000.parquet').unlink()
+    with pytest.raises(ValueError, match='missing required pack/split'):
+        builder.build(raw, tmp_path / 'missing-selected', JOB / 'approved_inputs.json', selected)
+
+
+@pytest.mark.parametrize('kind', ['short', 'duplicate', 'unknown', 'not-list'])
+def test_invalid_partial_selection_is_rejected(raw, tmp_path, scope, kind):
+    selected = scope['allowed_train_packs'][:33]
+    if kind == 'short':
+        selected.pop()
+    elif kind == 'duplicate':
+        selected[-1] = selected[0]
+    elif kind == 'unknown':
+        selected[-1] = 'not-approved'
+    else:
+        selected = {'packs': selected}
+    with pytest.raises(ValueError, match='33 distinct approved'):
+        builder.build(raw, tmp_path / 'bad-selection', JOB / 'approved_inputs.json', selected)
+
+
+def test_partial_selection_rejects_staged_files_outside_selection(raw, tmp_path, scope):
+    with pytest.raises(ValueError, match='unapproved pack or split'):
+        builder.build(raw, tmp_path / 'unexpected', JOB / 'approved_inputs.json', scope['allowed_train_packs'][:33])
+
+
+def test_prepare_rejects_inconsistent_partial_selection(raw, tmp_path, scope, monkeypatch):
+    out = tmp_path / 'out' / 'inputs'
+    run(raw, out)
+    monkeypatch.setattr(prepare_run, 'REPO', tmp_path)
+    manifest_path = out / 'input_manifest.json'
+    manifest = json.loads(manifest_path.read_text())
+    manifest['pack_selection'] = {'selected_packs': scope['allowed_train_packs'][:33],
+                                  'deferred_packs': [], 'approval': 'partial run'}
+    manifest_path.write_text(json.dumps(manifest))
+    inventory_path = out / 'expected_inventory.json'
+    inventory = json.loads(inventory_path.read_text())
+    inventory['input_manifest_sha256'] = prepare_run.sha256(manifest_path)
+    inventory_path.write_text(json.dumps(inventory))
+    with pytest.raises(ValueError, match='invalid 33-pack selection'):
+        prepare_run.prepare(out, raw, tmp_path / 'tokenizer.json', None, 'partial-run')
+    assert not (out / 'run.json').exists()
+
+
+def test_confirmed_staged_selection_matches_tsai_exclusions(scope):
+    selected = json.loads((JOB / 'staged_packs_33.json').read_text())
+    assert len(selected) == len(set(selected)) == 33
+    assert set(scope['allowed_train_packs']) - set(selected) == {
+        'en-dclm', 'en-nemotroncc', 'en-nemotroncc-synth', 'math-finemath', 'ind-hi-hplt'}
+    assert set(selected) <= set(scope['allowed_train_packs'])

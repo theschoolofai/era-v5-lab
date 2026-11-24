@@ -24,7 +24,11 @@ from scipy.sparse.csgraph import connected_components  # noqa: E402
 DEDUP = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(DEDUP))
 import minhash_overlap as mh  # noqa: E402
-import overlap as ov  # noqa: E402
+try:   # overlap.py (the exact method) imports resource, which Windows does not have
+    import overlap as ov  # noqa: E402
+except ImportError:
+    ov = None
+needs_v1 = pytest.mark.skipif(ov is None, reason="overlap.py needs the resource module (not on Windows)")
 
 WORDS = ("river stone bridge garden market window letter silver forest engine harbour lantern meadow pencil orchard "
          "valley thunder candle mirror basket ladder copper island marble needle saddle temple violin whistle yellow "
@@ -112,15 +116,15 @@ def groups(out):
 
 
 @pytest.fixture
-def both(tmp_path, monkeypatch):
+def mh_run(tmp_path, monkeypatch):
     write(tmp_path, sample())
+    return run_mh(monkeypatch, tmp_path, config(tmp_path, "mh", "out/mh", workers=1))
+
+
+@needs_v1
+def test_same_documents_and_duplicate_groups_as_overlap_py(tmp_path, monkeypatch, mh_run):
+    out, _ = mh_run
     v1 = run_v1(monkeypatch, tmp_path, config(tmp_path, "v1", "out/v1"))
-    out, summary = run_mh(monkeypatch, tmp_path, config(tmp_path, "mh", "out/mh", workers=1))
-    return v1, out, summary
-
-
-def test_same_documents_and_duplicate_groups_as_overlap_py(both):
-    v1, out, _ = both
     g1, r1, d1 = groups(v1)
     g2, r2, d2 = groups(out)
     assert d1.equals(d2)
@@ -130,8 +134,8 @@ def test_same_documents_and_duplicate_groups_as_overlap_py(both):
     assert {p for p, r in r1.items() if r == "H2"} == {p for p, r in r2.items() if r == "H2"}
 
 
-def test_planted_copies_are_found_with_v1_rules(both):
-    _, out, _ = both
+def test_planted_copies_are_found_with_v1_rules(mh_run):
+    out, _ = mh_run
     g, rules, _ = groups(out)
     flat = {d for grp in g for d in grp}
     assert ("en-a-a1", "en-b-b1") in rules and rules["en-a-a1", "en-b-b1"] == "H1"      # case only: H1
@@ -142,8 +146,8 @@ def test_planted_copies_are_found_with_v1_rules(both):
     assert "en-a-a5" not in flat
 
 
-def test_writes_what_dedup_and_the_runner_read_and_no_all_pairs_outputs(both):
-    _, out, s = both
+def test_writes_what_dedup_and_the_runner_read_and_no_all_pairs_outputs(mh_run):
+    out, s = mh_run
     for name in ("overlap_summary.json", "overlap_matches.csv", "overlap_docs.parquet"):
         assert (out / name).is_file()
     assert not (out / "overlap_matrix.npz").exists() and not (out / "overlap_histogram.csv").exists()

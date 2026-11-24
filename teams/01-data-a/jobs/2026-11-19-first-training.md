@@ -8,7 +8,7 @@ Question:        Do the approved raw parts produce an exact inventory, auditable
 Script:          teams/01-data-a/jobs/2026-11-19-first-training/build_inventory.py, prepare_run.py, then teams/01-data-a/pipeline/run_pipeline.py
 Command:         python -I teams/01-data-a/pipeline/run_pipeline.py --config out/first-training-inputs/run.json
 Config:          out/first-training-inputs/run.json (materialized from the template below after inventory build)
-Inputs:          TSAI-staged approved train and heldout parts for the 38 packs in approved_inputs.json; frozen p1536 tokenizer; offline LaBSE model; approved pack table; G9 F2 v2 fingerprints
+Inputs:          TSAI-staged approved train and heldout parts for the 33 packs in staged_packs_33.json (subset of approved_inputs.json); frozen p1536 tokenizer; offline LaBSE model; approved pack table; G9 F2 v2 fingerprints
 Hardware:        1 CUDA GPU (16 GiB VRAM or more), 32 vCPU, 64 GiB RAM, sized on the sample (size RAM and time from the staged rows; see sizing below); F2 uses 30 workers
 Max time:        720 minutes for the combined job (H3's own limit is 180 minutes)
 Precision:       H3 fp16 on CUDA (precision auto); shard token IDs are integers
@@ -17,6 +17,101 @@ Expected result: Every listed raw part reaches the ledger; each train part is wr
 Outputs:         out/first-training-inputs/{input_manifest.json,expected_inventory.json,pack_metadata.json,run.json}; out/pipeline/<run_id>/{clean,overlap,h3,dedup,deduped,final,report,ledger,shards,reconcile}/ and pipeline_manifest.json
 Test log:        teams/01-data-a/jobs/logs/2026-11-19-first-training-rehearsal-38packs/ (all 86 parts of sample v0, 38 packs, frozen p1536, Linux + pinned env: 59/59 checks; with the inventory, prepare_run's run.json at 2691c44: 74/74)
 ```
+
+## Cleaner validation update: 23 Nov 2026
+
+Fresh harm tests on the rebuilt `4b5e46ba…` cleaner are recorded in
+[the cleaner harm report](../spec_v1_1/results/cleaner/harm_tests.md).
+Of 31 supported packs, 27 PASS and four FAIL on the same 11 gold IDs documented
+historically. Two unsupported packs pass through; five lack gold files. The
+amended English F1, code shared F1 and Sanskrit `DB-B4-004` each PASS with zero
+gold changes/drops. There are no execution errors or Indic Unicode-audit
+violations. The cleaner suite passes 1,915 tests and nine subtests.
+The raw failures remain visible; no gold exclusions or release waiver were
+applied. The legacy registry-suite inventory is absent, so current cleaner
+validation uses the existing Data A and Data B harm-test APIs.
+
+The active cleaner hash below is refreshed to the tested bytes. The historical
+22 Nov code pin and rehearsal remain historical evidence; finalize the release
+commit, staged-file provenance, sizing and integration evidence before
+execution. This sample harm run does not establish production readiness.
+
+## Update of 23 Nov 2026: staged 33-pack run and MinHash
+
+TSAI confirmed the exact selection in G1 at **24 Nov 2026, 08:23:26 IST**.
+The committed [`staged_packs_33.json`](2026-11-19-first-training/staged_packs_33.json) contains that list.
+The five blocked packs are **en-dclm, en-nemotroncc, en-nemotroncc-synth,
+math-finemath and ind-hi-hplt**; exclude their files from this run's raw root.
+This selects a subset of the approved 38-source universe, without changing
+`approved_inputs.json` or its policy hash. Local audit-pack availability does
+not change the confirmed production selection. To prepare all 38 for a separate
+rehearsal, omit `--packs-file`.
+
+For the partial run, add `--packs-file teams/01-data-a/jobs/2026-11-19-first-training/staged_packs_33.json` to the inventory
+command below. Supply an explicit JSON array of the 33 approved pack IDs
+confirmed by TSAI as staged, as recorded in the committed selection file. Stage only those packs under the input root. Each still
+requires train and heldout parts. The frozen manifest records the selected
+packs and the five deferred source-resolution blockers, preserving the full
+approved-source policy and hash. The inventory and generated pack table cover
+exactly that selection. Without this option all 38 packs remain required.
+
+The generated job now explicitly selects `minhash_overlap.py`: the partial
+MinHash config for the 33-pack selection, the full MinHash config otherwise.
+The exact-overlap timings and sizing discussion below describe the historical
+rehearsal, not the new production algorithm. Before execution, attach 1x/2x/4x
+staged-data MinHash sizing and validate the final worker budget and integration
+run. This update does not claim that those measurements have been completed.
+See `2026-11-19-first-training/README.md` for selection details.
+
+### MinHash overlap sizing (measured at 1x on the sample)
+
+From the stage's own runs (`jobs/logs/2026-11-23-minhash-overlap-sample/`, #744 and #758), on the sample's 47 train
+parts (1,395,320 documents) on 2 cores: 39.6 min, of which 38.7 min is the per-part signature step (about 16 ms per
+code document, mostly Pygments) and 46 s the rest; peak RSS 2.0 GB in the main process and 1.5 GB in the largest
+worker; `work/` 3.7 GB on disk; files returned to the repository 0.49 MB. Same duplicate groups as TSAI's 5 Nov exact
+run, and a byte-identical `dedup.py` remove list.
+
+Both MinHash configs set `workers` to 16, so the workers stay under about 24 GB. Estimates from the 1x run, not
+measured at scale (the signature step divides by the workers; the rest is about linear in documents):
+
+| Rows vs sample | Overlap time, 16 workers | Main process RSS | Workers' RSS (16) | `work/` on disk |
+|---|---:|---:|---:|---:|
+| 1x | about 6 min | about 2 GB | up to about 24 GB | about 3.7 GB |
+| 2x | about 12 min | about 4 GB | up to about 24 GB | about 7.5 GB |
+| 4x | about 25 min | about 8 GB | up to about 24 GB | about 15 GB |
+
+`dedup/minhash_sizing.py --inputs <staged cleaned folder> --factors 1 2 4` measures these on the staged data, each
+run from scratch in a new folder, and writes `sizing.csv` and `sizing.json` there; the gate below says when to go on.
+`jobs/2026-11-19-first-training/check_overlap_stage.py` checks the generated overlap stage and runs the tests.
+
+### Staged-data sizing gate, before overlap
+
+TSAI's bar (23 Nov) asks for time and RAM measured at 1x, 2x and 4x on the staged data before the production run. The
+job measures them on its own cleaned parts, so the staged data is cleaned once. A run with an inventory must end at
+reconcile, so the clean pass is its own run, and the production run adopts its folder (the pattern of
+`pipeline/local_trial/configs/2-stop-at-clean.json` and `4-adopt-clean.json`):
+
+1. **Prepare** `out/first-training-inputs/run.json` with `build_inventory.py` (with `--packs-file` for the 33 staged
+   packs) and `prepare_run.py`, as in "Run from the repository root" below.
+2. **Clean only.** Copy `run.json` to `run_clean.json`; in the copy set `"run_id"` to `"first-training-v1-clean"`, add
+   `"to": "clean"`, and remove `"inventory"` (a run with an inventory must end at reconcile). Run
+   `python -I teams/01-data-a/pipeline/run_pipeline.py --config out/first-training-inputs/run_clean.json`.
+   The cleaned parts are in `out/pipeline/first-training-v1-clean/clean/`.
+3. **Size** on those parts, with the 16 workers of the MinHash config:
+   `python -I teams/01-data-a/dedup/minhash_sizing.py --inputs out/pipeline/first-training-v1-clean/clean --factors 1 2 4 --out out/minhash_sizing/corpus-v1`.
+   It takes about 45 minutes and about 26 GB of scratch disk for the three `work/` folders (1x + 2x + 4x).
+4. **Gate.** Go on only if all of these hold, and otherwise stop and return `out/minhash_sizing/corpus-v1/`:
+   - the sizing command exited 0 (every factor complete, no reused parts);
+   - in `sizing.json`, the largest factor's `peak_rss_total_gb` (main process plus all workers together) is at most
+     48 GB. If the 4x row is `undersized`, fewer than 4x the sample is staged; its `actual_factor` is what was measured;
+   - `projection_whole_staged_inputs.hours_linear` (overlap on every staged document), plus the rest of the
+     pipeline, fits the Max time left after the clean run.
+5. **Production run.** In `run.json` (with its inventory), replace `stages.clean` with
+   `{"mode": "adopt", "output": "out/pipeline/first-training-v1-clean/clean"}`. Check it with `--plan`, then run it,
+   with the commands under "Run from the repository root". The runner checks that the adopted folder's
+   `job_summary.json` names the inventory's input manifest; nothing is cleaned again.
+6. **Return** `sizing.csv`, `sizing.json`, and each factor's `config.json` and `overlap/overlap_summary.json` under
+   `teams/01-data-a/jobs/results/2026-11-19-first-training/minhash_sizing/` (IDs and counts only).
 
 ## Update of 22 Nov 2026 for corpus-v1
 
@@ -34,7 +129,7 @@ This is an integration request. TSAI stages the approved raw inputs and applies 
 
 The job must be staged with these inputs before `--plan` or execution:
 
-- All approved raw parts, at least one in each split for every pack, under `<raw>/train/<pack>/part-<number>.parquet` and `<raw>/heldout/<pack>/part-<number>.parquet`.
+- All selected approved raw parts, at least one in each split for every selected pack, under `<raw>/train/<pack>/part-<number>.parquet` and `<raw>/heldout/<pack>/part-<number>.parquet`.
 - The frozen p1536 `tokenizer.json` (SHA-256 `e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b`).
 - The published `sentence-transformers/LaBSE` revision `836121a0533e5664b21c7aacc5d22951f2b8b25b`, staged offline at `../models/LaBSE` relative to the repository root; see the pinned files below. The job uses a CUDA host; H3 retains the rehearsed `device: auto` setting and measures `ind-sa-fw2`, `ind-hi-fw2` and `en-fineweb-edu` in report-only mode. All sentence thresholds remain at the rehearsed default 0.7. E5c's provisional Sanskrit 0.55 is a separate measurement configuration; threshold changes are deferred beyond this submission.
 - The committed `2026-11-19-first-training/approved_inputs.json`: all 38 packs, TSAI-accepted shard metadata/lanes, and pinned licence text/provenance. The generator materializes these fields as `out/first-training-inputs/pack_metadata.json` for the sharder. The generic `shards/pack_table.json` has the accepted lanes but omits licences.
@@ -105,7 +200,7 @@ python -m pytest teams/01-data-a/tests/audit/test_check_shard.py teams/01-data-a
 1. Stage and verify the entire selected raw file set. Generate the manifest and expected inventory **before** cleaning. Use a new output folder:
 
    ```bash
-   python -I teams/01-data-a/jobs/2026-11-19-first-training/build_inventory.py --input-root <raw-root> --out out/first-training-inputs
+   python -I teams/01-data-a/jobs/2026-11-19-first-training/build_inventory.py --input-root <raw-root> --out out/first-training-inputs --packs-file teams/01-data-a/jobs/2026-11-19-first-training/staged_packs_33.json
    ```
 
 2. Generate `out/first-training-inputs/run.json` from the frozen inventory. The command checks the p1536 tokenizer SHA256, model pins, exact pack set and shard metadata, then generates the sharder table and run config from the same approved scope used by the inventory. It pins `dataset_version` to `corpus-v1` (independent of `--run-id`) and keeps cleaned, deduped and F2 Parquets for audit.
@@ -131,7 +226,7 @@ python -m pytest teams/01-data-a/tests/audit/test_check_shard.py teams/01-data-a
          "manifest_sha256": "<generated input_manifest_sha256>",
          "expected_parts": {"train": "<generated count>", "heldout": "<generated count>"}
        },
-       "overlap": {"mode": "run", "settings": "teams/01-data-a/dedup/overlap.json"},
+       "overlap": {"mode": "run", "script": "teams/01-data-a/dedup/minhash_overlap.py", "settings": "teams/01-data-a/dedup/minhash_overlap_partial.json"},
        "h3": {"mode": "run", "settings": "teams/01-data-a/jobs/2026-11-19-first-training/h3.json"},
        "dedup": {"mode": "run", "settings": "teams/01-data-a/dedup/dedup.json"},
        "f2": {"pool": true, "workers": 30},
@@ -146,7 +241,7 @@ python -m pytest teams/01-data-a/tests/audit/test_check_shard.py teams/01-data-a
    }
    ```
 
-   The builder requires all 38 packs in both splits and rejects unknown packs, invalid part names, missing columns, changed files and duplicate numeric part indices. The generator refuses an incomplete pack table or an unfrozen tokenizer.
+   The builder requires all selected packs in both splits and rejects unknown packs, invalid part names, missing columns, changed files and duplicate numeric part indices. The generator refuses an incomplete pack table or an unfrozen tokenizer.
 
 3. Check the generated config, then run the same file. Both commands use the same checkout and working directory:
 
