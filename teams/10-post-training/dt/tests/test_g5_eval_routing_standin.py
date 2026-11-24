@@ -7,6 +7,12 @@ head is skipped). The per-expert counts must equal what `g5_expert_choice` gives
 `expert_load` counter, which counts only in train mode, this sees an eval-mode rule change (for example a bias used only
 while training). Checked once with the stand-in's own balancer setting and once with bias_gamma 0.
 
+Scope: the LAST block only (nothing after it mixes positions, so a perturbation there is read cleanly). Earlier blocks
+choose through the same `g5_expert_choice` call, but this test does not run them; do not read it as a per-layer check.
+
+Where it runs: CI skips it (no stand-in there). G10 runs it with the stand-in variables set before merging any change to
+`dt/mask.py` routing or to Team 5's MoE routing, and it can run on the job machine against the delivered run folder.
+
 Needs a CPU run folder trained with this tree's Team 5 code (job ADP's KAS stand-in has a non-zero router_bias):
 
     G10_STANDIN_RUN_FOLDER=<run folder> G10_STANDIN_ARTIFACTS=<artifacts> python -m pytest dt/tests/test_g5_eval_routing_standin.py -q
@@ -86,11 +92,17 @@ def test_calibration_expert_choice_equals_team5s_eval_forward_on_the_standin(tmp
         for expert in moe.experts:
             w = expert.down.weight
             keep = w.detach().clone()
-            with torch.no_grad():
-                w.add_(1.0)
-            counts.append(int(((forward() != base).any(-1) & valid).sum()))
-            with torch.no_grad():
-                w.copy_(keep)
+            try:
+                with torch.no_grad():
+                    w.add_(1.0)
+                # Exact `!=`: a routed position changes by gate * sum(hidden) in every output channel. If that were exactly 0,
+                # or absorbed by float32, the position would be missed; a miss can only LOWER a count (nothing unrouted can
+                # change), and the total check below then fails, so the test cannot pass wrongly. On the ADP stand-in the
+                # smallest change at a routed position was 0.0040, about 28,000 float32 ulps of that output.
+                counts.append(int(((forward() != base).any(-1) & valid).sum()))
+            finally:
+                with torch.no_grad():
+                    w.copy_(keep)
         forward()  # leave `seen` on the unperturbed inputs
         return counts
 
@@ -106,7 +118,8 @@ def test_calibration_expert_choice_equals_team5s_eval_forward_on_the_standin(tmp
     try:
         assert not any(m.training for m in lm.modules())
         biased = model_counts()
-        assert sum(biased) == int(valid.sum()) * moe.topk
+        assert sum(biased) == int(valid.sum()) * moe.topk, (
+            "a routed position did not change under the perturbation (exact != missed it): the reference undercounts")
         assert our_counts() == biased, "calibration's expert choice differs from Team 5's eval-mode forward"
         has_bias = bool(moe.balance_gamma) and bool(moe.router_bias.ne(0).any())
         for b in lm.blocks:
