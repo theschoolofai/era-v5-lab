@@ -75,3 +75,57 @@ def test_sanskrit_b4_preserves_numbers_and_removes_wiki_markup(cleaner, text):
     assert rule(row) == ('keep', text)
     marked = "{{template}}'''[[लेखः|" + text + "]]'''↩"
     assert rule(dict(row, text=marked)) == ('fix', text)
+
+
+# ---------------------------------------------------------------- cadj-commits: e-mail addresses only
+def test_cadj_commits_masks_private_emails_and_nothing_else(cleaner):
+    c = cleaner
+    private = 'jordan.lee' + '@' + 'mail.io'
+    text = ('Fix the parser\n\nSigned-off-by: Jordan Lee <' + private + '>\n'
+            'support' + '@' + 'acme.io, dev' + '@' + 'example.com, someone' + '@' + 'users.noreply.github.com, logo' + '@' + '2x.png\n'
+            'ping 192.168.127.12 or call +1 (555) 010-0199; part 307-355-022; rgb 255 239 213\n'
+            '42 Wallaby Way, Sydney\n')
+    action, out = c.clean(document('cadj-commits', text, 'code'))
+    assert (action, out) == ('fix', text.replace(private, '<EMAIL>'))
+    assert c.clean(document('cadj-commits', out, 'code')) == ('keep', out)
+
+
+def test_cadj_commits_never_drops(cleaner):
+    c = cleaner
+    card = ''.join(f'user{i}' + '@' + 'mail.io\n' for i in range(8))
+    action, out = c.clean(document('cadj-commits', card, 'code'))
+    assert action == 'fix' and out == '<EMAIL>\n' * 8
+    assert c.clean(document('cadj-commits', 'no address here\n', 'code')) == ('keep', 'no address here\n')
+
+
+def test_cadj_commits_keeps_test_domains_mail_and_profile_urls(cleaner):
+    # diagnosis/submissions/cadj-commits/kunal2016/medicine.md, medicine 1: test domains and mail@ stay.
+    # Its LinkedIn profile URLs are deferred, so they stay too.
+    c = cleaner
+    text = ('fake = "jane' + '@' + 'test.com"; mail' + '@' + 'acme.io; x' + '@' + 'domain.com\n'
+            'see https://www.linkedin.com/in/jane-doe-123/ and http://linkedin.com/in/jdoe\n')
+    assert c.clean(document('cadj-commits', text, 'code')) == ('keep', text)
+
+
+def test_every_family_has_a_pipeline(cleaner):
+    # a harm adapter runs _PIPELINES[_FAMILY[pack]]: every family needs an entry, code-adjacent an empty one
+    c = cleaner
+    assert set(c._FAMILY.values()) <= set(c._PIPELINES)
+    assert c._PIPELINES['code-adjacent'] == ()
+    assert [p for p, f in c._FAMILY.items() if f == 'code-adjacent'] == ['cadj-commits']
+    assert 'cadj-commits' in c.SCOPE['f1_rule.py']
+    assert not [rid for rid, packs in c.SCOPE.items() if 'cadj-commits' in packs and rid != 'f1_rule.py']
+    text = 'Signed-off-by: Jordan Lee <jordan.lee' + '@' + 'mail.io>\n'
+    row = document('cadj-commits', text, 'code')
+    family = c._PIPELINES[c._FAMILY['cadj-commits']]
+    assert c._run(row, *family, c._shared_f1_rule) == c.clean(row) == ('fix', 'Signed-off-by: Jordan Lee <<EMAIL>>\n')
+
+
+@pytest.mark.parametrize('pack, lang', [('cadj-notebooks', 'code'), ('cadj-stackexchange', 'en')])
+def test_deferred_code_adjacent_packs_pass_through(cleaner, pack, lang):
+    # no gold set yet; stackexchange's e-mail-like strings are mostly ssh and git logins and URLs with a user name
+    c = cleaner
+    text = ('by jordan.lee' + '@' + 'mail.io; try `ssh pi' + '@' + 'raspberrypi.com` or git clone https://me' + '@' + 'bitbucket.org/x.git\n'
+            'see https://www.linkedin.com/in/jane-doe-123/\n')
+    assert c.clean(document(pack, text, lang)) == ('keep', text)
+    assert pack not in c._FAMILY and pack not in c.SCOPE['f1_rule.py']

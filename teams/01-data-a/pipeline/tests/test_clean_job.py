@@ -243,7 +243,7 @@ def test_streaming_output_and_rule_counts_match_cleaner(tmp_path):
 
 
 def test_unknown_pack_is_explicit_passthrough(tmp_path):
-    path, shard, rows = part(tmp_path, "cadj-commits")
+    path, shard, rows = part(tmp_path, "cadj-stackexchange")
     out = tmp_path / "out"
     result = job.process_part(path, shard, out, 2)
     assert result["status"] == "unsupported_passthrough"
@@ -315,7 +315,7 @@ def test_all_dropped_part_still_has_a_valid_parquet_schema(tmp_path):
 
 
 def test_aggregate_includes_zero_rules_and_explicit_partial_manifest(tmp_path):
-    path, shard, _ = part(tmp_path, "cadj-commits")
+    path, shard, _ = part(tmp_path, "cadj-stackexchange")
     out = tmp_path / "out"
     report = job.process_part(path, shard, out, 2)
     summary = job.write_aggregate(out, [report], {"sample": "synthetic"}, 86)
