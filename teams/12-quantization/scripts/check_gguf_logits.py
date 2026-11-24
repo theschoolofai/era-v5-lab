@@ -47,7 +47,7 @@ def check(checkpoint: Path, gguf: Path, server: Path, spec_path: Path | None = N
     if export_hf.is_kas(state):   # the folded head, without the output bias that the GGUF cannot hold
         head_w = bf16(export_hf.fold_kas_head(state)[0])
         ref.head.forward = lambda h: torch.nn.functional.linear(h, head_w)
-    length = min(length, spec['block_size'] or length)
+    length = min(length, (spec['block_size'] or length + 1) - 1)   # the server caps its context at the trained one and needs room for the next token
     s = socket.socket(); s.bind(('127.0.0.1', 0)); port = s.getsockname()[1]; s.close()
     srv = subprocess.Popen([str(server), '-m', str(gguf), '--port', str(port), '-ngl', '0', '-c', str(2 * length),
                             '--no-webui', '-np', '1'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
