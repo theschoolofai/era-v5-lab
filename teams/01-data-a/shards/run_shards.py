@@ -42,11 +42,25 @@ summed over them, rows_in_part, "truncated" (rows_read < rows_in_part: never, no
 check) and the docs left out per reason, with the run_id and the sha256 of cleaning_pipeline.json. A second run into the same --out
 with --pack adds to the summary; one made for another run_id is refused, and the writer refuses other processing part by part.
 Needs what shard_writer.py needs.
+
+One process per part: each part is written by a fresh process that ends when the part is done. It is started with spawn, as
+clean_job.py does (this process holds threads from torch and pyarrow, which makes fork unsafe), so each part pays the imports,
+about 4 s. Run in one process, the writer's memory grew from part to part (3.4 GB at the first part
+to about 20 GB at the 48th in the 19 Nov rehearsal) because what a part used was never given back. A writer process that dies
+(killed, out of memory) fails its part and the run goes on. --in-process keeps the old behaviour, for the tests that break the
+writer from inside.
+
+Time and memory per part: every entry of a part that was written, left empty, left out whole or failed has "seconds" (wall
+time of the part) and "peak_rss_mb" (the highest resident memory of the process that wrote it; null where the platform
+cannot say). With --in-process the process is this one, so the figure only grows. A part kept from an earlier run keeps its
+earlier figures.
 """
 import sys
 sys.dont_write_bytecode = True
 
-import argparse, contextlib, hashlib, io, json, os, re
+import argparse, contextlib, hashlib, io, json, multiprocessing as mp, os, re, time
+from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures.process import BrokenProcessPool
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -128,9 +142,44 @@ def no_shard_entry(e):
             "left_out_docs": e.left_out}
 
 
+def peak_rss_mb():
+    """Highest resident memory of this process so far, in MiB; None where the platform has no resource module (Windows)."""
+    try:
+        import resource
+    except ImportError:
+        return None
+    return round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / ((1 << 20) if sys.platform == "darwin" else 1024), 1)
+
+
+def run_writer(argv):
+    """shard_writer.main(argv) in this process. Returns ("written", [manifest, ...]), ("no_shard", rows, left_out) or
+    ("failed", why it stopped); plain values, so a child process can send it back."""
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):  # the writer prints a JSON line per shard; the summary has it
+            return "written", shard_writer.main(argv)
+    except shard_writer.NoShard as e:
+        return "no_shard", e.rows, e.left_out
+    except SystemExit as e:
+        return "failed", str(e.code)
+    except Exception as e:  # one bad part must not stop the others
+        return "failed", f"{type(e).__name__}: {e}"
+
+
+def run_writer_in_child(argv):
+    """What the child process runs: the writer, and the peak memory of the process that did it."""
+    return run_writer(argv), peak_rss_mb()
+
+
+START_METHOD = "spawn"  # not fork: this process holds native threads from torch and pyarrow (the tests set fork, for speed)
+
+
+def child_context():
+    return mp.get_context(START_METHOD)
+
+
 def write_one(path, a, row, index):
-    """Run shard_writer on one part, its first shard numbered index. Returns ([manifest, ...], None), (NoShard, None) or
-    (None, why it stopped)."""
+    """Run shard_writer on one part, its first shard numbered index, in a process of its own (in this one with
+    a.in_process). Returns ([manifest, ...], None, peak MiB), (NoShard, None, peak MiB) or (None, why it stopped, peak MiB)."""
     argv = ["--input", str(path), "--manifest", str(a.manifest), "--tokenizer", str(a.tokenizer), "--out", str(a.out),
             "--language", row["language"], "--script", row["script"], "--domain", row["domain"], "--lane", row["lane"],
             "--index", str(index)]
@@ -142,15 +191,19 @@ def write_one(path, a, row, index):
         argv.append("--any-tokenizer")
     if a.dataset_version:
         argv += ["--dataset-version", a.dataset_version]
-    try:
-        with contextlib.redirect_stdout(io.StringIO()):  # the writer prints a JSON line per shard; the summary has it
-            return shard_writer.main(argv), None
-    except shard_writer.NoShard as e:
-        return e, None
-    except SystemExit as e:
-        return None, str(e.code)
-    except Exception as e:  # one bad part must not stop the others
-        return None, f"{type(e).__name__}: {e}"
+    if a.in_process:
+        result, rss = run_writer(argv), peak_rss_mb()
+    else:
+        try:
+            with ProcessPoolExecutor(max_workers=1, mp_context=child_context()) as pool:
+                result, rss = pool.submit(run_writer_in_child, argv).result()
+        except BrokenProcessPool:  # killed, or out of memory: this part fails, the others go on
+            result, rss = ("failed", "the writer process died (killed or out of memory?) before it finished the part"), None
+    if result[0] == "written":
+        return result[1], None, rss
+    if result[0] == "no_shard":
+        return shard_writer.NoShard(result[1], result[2]), None, rss
+    return None, result[1], rss
 
 
 def entry_of(manifests, out):
@@ -212,6 +265,9 @@ def main(argv=None):
     ap.add_argument("--any-tokenizer", action="store_true", help="tests only: accept a tokenizer other than p1536")
     ap.add_argument("--dataset-version", help="every manifest's dataset_version (e.g. sample, corpus-v1); required unless --any-tokenizer")
     ap.add_argument("--pack-table", type=Path, default=pack_table.TABLE)
+    ap.add_argument("--in-process", action="store_true",
+                    help="write every part in this process instead of one process per part (the tests that break the writer from "
+                         "inside; memory then grows from part to part)")
     ap.add_argument("--no-verify", action="store_true",
                     help="do not check the shards when done (verify_shards.py): the caller does, as run_pipeline.py does; "
                          "'verified' in the summary is then null")
@@ -261,18 +317,22 @@ def main(argv=None):
                     entry, kept = summary["parts"][name], True  # done by an earlier run that stopped later
                 else:
                     clear_from(a.out, split, pack, index)
-                    manifests, why = write_one(path, a, row, index)
+                    began = time.monotonic()
+                    manifests, why, rss = write_one(path, a, row, index)
+                    spent = {"seconds": round(time.monotonic() - began, 1), "peak_rss_mb": rss}
                     if why:
                         entry.update(status="failed", reason=why)
                     elif isinstance(manifests, shard_writer.NoShard):
                         entry.update(no_shard_entry(manifests))
                     else:
                         entry.update(entry_of(manifests, a.out))
+                    entry.update(spent)
                 next_index[(split, pack)] = index + len(entry.get("shards", []))
         summary["parts"][name] = entry
         save(summary_path, summary)  # after every part: a rerun picks up from here
         this_run.append(name)
         note = (f"{len(entry['shards'])} shard(s), {entry['docs']} docs, {entry['tokens']} tokens" + (" TRUNCATED" if entry["truncated"] else "")
+                + (f", {entry['seconds']} s, {entry['peak_rss_mb']} MiB peak" if entry.get("seconds") is not None and not kept else "")
                 + (" (kept from an earlier run)" if entry["status"] == "written" and kept else "")
                 if entry["status"] in DONE else entry["reason"])
         print(f"{entry['status']:8} {name}: {note}", file=sys.stderr if entry["status"] in ("failed", "skipped") else sys.stdout)
