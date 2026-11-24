@@ -108,7 +108,18 @@ Text in Indian languages, in their own scripts, is 8% of every training batch.
 
 ## Evaluation
 
-[text: waiting for Evaluation]
+Evaluation tests the model on public benchmarks, and keeps benchmark items out of the training text. During
+training, Evaluation scores each checkpoint, a saved copy of the model, on a small set of benchmark questions. These
+scores do not come from the full benchmarks.
+
+[text: waiting for Evaluation, the benchmarks and what each one tests]
+
+| Benchmark | What it tests | Score | Score of a random guess | Training step |
+|---|---|---|---|---|
+| [benchmark: waiting for Evaluation] | [text: waiting for Evaluation] | [number: waiting for TSAI] | [number: waiting for TSAI] | [number: waiting for TSAI] |
+
+Each score is in points out of 100. [text: waiting for Evaluation, the benchmarks that the check of the training text
+does not cover]
 
 ## Limitations and risks
 
@@ -169,7 +180,7 @@ How to fill it:
 | Training data: the Indian-language and code-adjacent text | Data B | yes, with no edit. The problems in the code-adjacent text: no, Data B adds them later | `teams/02-data-b/model_card/training_data.md` ([#525](https://github.com/theschoolofai/era-v5-lab/pull/525)). Its source table gives the TSAI approval of each number | Data B: yes ([comment on #759](https://github.com/theschoolofai/era-v5-lab/pull/759#issuecomment-7108567909)) |
 | Training data: the general text and code | Data A | no | waiting for Data A | Data A: no |
 | Licence and attribution | Post-training, Data A, Data B | no | waiting for the Post-training text. Facts so far: `teams/10-post-training/licences/licence_table.md` | no |
-| Evaluation | Evaluation | no | waiting for the Evaluation text. Plan so far: `teams/09-evaluation/eval_schedule.md` | no |
+| Evaluation | Evaluation | what Evaluation does: yes, from text that TSAI approved. The benchmarks, the scores and the benchmarks with no check: no, Evaluation sends the benchmark names on 26 Nov, and TSAI approves each score | the Evaluation line of `launch/launch_announcement_v0.md` ([#753](https://github.com/theschoolofai/era-v5-lab/pull/753)); the Eval-Mini panel text in `dashboard/dashboard_text_new_panels.md` and the format in `dashboard/score_text_format.md` ([#760](https://github.com/theschoolofai/era-v5-lab/pull/760)). Plan so far: `teams/09-evaluation/eval_schedule.md` | Evaluation: no |
 | Contributors | Release | yes | `launch/launch_announcement_v0.md` ([#600](https://github.com/theschoolofai/era-v5-lab/pull/600), [#603](https://github.com/theschoolofai/era-v5-lab/pull/603)) | yes (the Release lead wrote this draft) |
 | How to find more | Release | yes | the public lab repository | yes (the Release lead wrote this draft) |
 | Every other section | the owner team in `model_card_outline.md` | no | waiting for the owner team | no |
