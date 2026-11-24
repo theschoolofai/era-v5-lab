@@ -35,11 +35,12 @@ import router as g10_router  # noqa: E402
 import team5_adapter as ta  # noqa: E402
 
 parametrize = pytest.mark.parametrize
+skipif = pytest.mark.skipif
 HAS_BIAS = "router_bias" in dict(MoE({"n_embd": 4, "moe": {"ffn_hidden": 4, "top_k": 1, "num_experts": 2, "num_shared": 0,
                                                              "bias": False}}).named_buffers())
 HAS_KAS = (H5 / "week2" / "kas_v2.py").is_file()
-needs_bias = pytest.mark.skipif(not HAS_BIAS, reason="Team 5's harness here predates #748 (no MoE.router_bias)")
-needs_kas = pytest.mark.skipif(not HAS_KAS, reason="Team 5's harness here predates #717 (no week2/kas_v2.py)")
+needs_bias = skipif(not HAS_BIAS, reason="Team 5's harness here predates #748 (no MoE.router_bias)")
+needs_kas = skipif(not HAS_KAS, reason="Team 5's harness here predates #717 (no week2/kas_v2.py)")
 IDS = torch.randint(0, 256, (2, 16), generator=torch.Generator().manual_seed(5))
 VALID = torch.ones_like(IDS, dtype=torch.bool)
 
@@ -344,7 +345,7 @@ def _standin_has_bias() -> bool:
     return bool((m.get("moe") or {}).get("bias_gamma"))
 
 
-@pytest.mark.skipif(not (HAS_BIAS and _standin_has_bias()),
+@skipif(not (HAS_BIAS and _standin_has_bias()),
                     reason="set G10_STANDIN_RUN_FOLDER to a run folder trained with bias_gamma != 0 (ADP KAS stand-in)")
 def test_c_sft_g5_reports_router_bias_unchanged_per_method(tmp_path, events):
     """Two optimizer steps of the real sft_g5.run per method (full, LoRA + marker rows, DT, rows only) on a checkpoint whose

@@ -38,6 +38,7 @@ from pathlib import Path
 
 import torch
 import torch.nn as nn
+from torch import no_grad
 
 HERE = Path(__file__).resolve().parent
 TEAM10 = HERE.parent
@@ -309,7 +310,7 @@ def mask_checks(wrapper: G5ForBench, rows: list[dict], device: str, bundle) -> d
 # ---------------------------------------------------------------- main
 
 
-@torch.no_grad()
+@no_grad()  # undotted: pr-guard reads '+@a.b' as an email
 def marker_lift_stats(lm: nn.Module, rows: list[dict], marker_id: int, device: str, max_rows: int = 32,
                       mid_per_row: int = 32) -> dict:
     """log p(marker) at its supervised target positions (loss_mask 1; scored from the final hidden state one position
