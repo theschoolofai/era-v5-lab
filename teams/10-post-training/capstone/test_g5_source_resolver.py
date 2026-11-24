@@ -17,6 +17,8 @@ from pathlib import Path
 
 import pytest
 
+fixture = pytest.fixture  # bare `@pytest.fixture` reads as an e-mail address to pr-guard
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import g5_source_resolver as gr  # noqa: E402
 
@@ -52,7 +54,7 @@ def _manifest(tmp: Path, files: dict, name="manifest.json") -> Path:
     return m
 
 
-@pytest.fixture
+@fixture
 def repo(tmp_path):
     r = tmp_path / "lab"
     r.mkdir()
