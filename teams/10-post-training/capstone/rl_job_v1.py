@@ -672,6 +672,17 @@ def screen_only(a, out: Path, init_state, screen_n: int, seconds: float) -> dict
 
 # ---------------------------------------------------------------------------- driver
 
+def g5_source_step(a, out: Path) -> dict:
+    """Team 5's code for this run (capstone/g5_source_resolver.py): when --g5-root's Team 5 files differ from the run
+    folder's recorded sources, use a detached worktree of the commit that has exactly those files (under out/_work, so
+    it is deleted at exit). The adapter's pin still checks it; no match or no git checkout stops the job here."""
+    import g5_source_resolver as gr  # noqa: PLC0415
+    root = gr.resolve(a.g5_root, a.run_folder / "manifest.json", out / "_work" / "g5_source")
+    rec = json.loads((out / "_work" / "g5_source" / "g5_source_resolve.json").read_text(encoding="utf-8"))
+    a.g5_root_requested, a.g5_root = a.g5_root, root
+    return {k: rec.get(k) for k in ("action", "resolved_root", "commit", "commit_subject", "mismatched", "seconds")}
+
+
 def run(a, out: Path) -> int:
     t0 = time.time()
     deadline_unix = t0 + a.deadline_minutes * 60
@@ -694,6 +705,9 @@ def run(a, out: Path) -> int:
     if not results["guard"]["ok"]:
         print(json.dumps({"guard": "refused", "model_loaded": False, "seconds": results["guard"]["seconds"],
                           "error": results["guard"]["error"]}), flush=True)
+        return probe.finish(out, results)
+    results["g5_source"] = probe.step(out, "g5_source", lambda: g5_source_step(a, out))
+    if not results["g5_source"]["ok"]:
         return probe.finish(out, results)
     for name, fn in (("pins", pins), ("pool", pool_step), ("tricks", tricks_step)):
         results[name] = probe.step(out, name, lambda fn=fn: fn(a, out))
@@ -847,6 +861,9 @@ def main(argv=None) -> int:
         return rc
     finally:
         shutil.rmtree(out / "_work", ignore_errors=True)  # SFT weights and built rows never leave the job
+        if (out / "g5_source.json").is_file():  # a resolved Team 5 worktree lived under _work: drop its git record
+            import subprocess  # noqa: PLC0415
+            subprocess.run(["git", "-C", str(getattr(a, "g5_root_requested", a.g5_root)), "worktree", "prune"], capture_output=True)
         status = None
         for f in (out / "rl" / "summary.json", out / "rl" / "smoke_summary.json", out / "rl" / "status.json"):  # a finished summary wins over an old pause note
             if f.is_file():
