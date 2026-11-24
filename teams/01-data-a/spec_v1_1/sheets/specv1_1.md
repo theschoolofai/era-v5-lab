@@ -1,13 +1,38 @@
 # Medicine sheet: Data A — spec v1.1, combined (spec v1 + Spec v1.1, contributors retained per rule)
 
+## Scoped #86 preservation amendments (23 Nov 2026)
+
+Five scoped preservation amendments were extracted from
+[#86](https://github.com/patilvijay23/era-v5-lab/pull/86), source commit
+`d9b2efe8689fee5abdc26a523d847018a732d344`, into the existing spec v1.1 rules:
+
+| Active rule | Extracted change | Source card |
+|---|---|---|
+| `DA-A6-001` | Preserve consecutive Cyrillic runs and Go test/testdata URLs | `DA-A6-004` |
+| `DA-C2-004` | Require a line-start repeated lead; cut partial copies only at blank-line boundaries | `DA-C2-011` |
+| `DA-C2-003` | Exclude fenced Markdown code from repeated-line removal | `DA-C2-009/010`, fence subset |
+| `DA-C3-003` | Recognize closing `”`, `’`, `»` as end punctuation | `DA-C3-009`, punctuation subset |
+| `DA-F1-005` | Preserve digits within a DOI; retain the existing binary-value guard | `DA-F1-007/009`, DOI subset |
+
+Rule IDs, rule order, pack scopes and shared F1 are unchanged. Closing punctuation
+uses the existing four-English-pack scope consistently with straight quotes;
+the source card's long-prose trimming is not adopted. Numeric-table heuristics,
+year-run exemptions, broader phone/contact policy, licence removal and the
+remaining proposal cards are deferred. #86 is not merged by this extraction.
+
+Fresh per-rule and full-pipeline gold results replace the previous run in
+[`../results/cleaner/harm_tests.md`](../results/cleaner/harm_tests.md).
+The source execution excerpts below predate these guards; in particular,
+`code-cpp/782bc9665f0acdf7` and `code-go/48b3b124a7aaa5fc` are now preserved by A6.
+
 Status: FINAL SUBMISSION for TSAI's Gate 2 decision (14 Nov 2026): spec v1 and spec v1.1 become one spec v1.1, and theschoolofai/era-v5-lab#435 is that spec. This sheet holds both, in run order: 364 rules (340 from spec v1 and 24 from Spec v1.1). No rule is approved by this document.
 
 ## How this sheet is made
 
-`spec_v1_1/scripts/combine_spec.py` writes it from `spec_v1/sheets/specv1.md` and `sheets/specv1_1_additions.md` (the Spec v1.1 medicines on their own). Change those, not this file.
+`spec_v1_1/scripts/combine_spec.py` originally combined `spec_v1/sheets/specv1.md` and `sheets/specv1_1_additions.md` (the Spec v1.1 medicines on their own). This combined sheet now holds the subsequent v1.1 amendments and is the source for `build/build_clean.py`; rebuilding it from the original sheets alone would lose those amendments. Spec v1 remains frozen.
 - **Run order is sheet order.** `spec_v1/build/build_clean.py` runs each family's rules in sheet order, then the shared F1. So each family has its spec v1 rules first, then its v1.1 rules, because the readers found the new diseases in text spec v1 had cleaned. English is the exception: its v1.1 rules come before `DA-F1-005`, the instructor's F1 rule, which stays the family's last.
 - **Rules per family (spec v1 + v1.1):** code 24 + 0; english 20 + 3; math 14 + 8; sci 12 + 12; indic 270 + 1.
-- **Spec v1's cards** are copied unchanged, python blocks included. Only relative links are rewritten, so they still reach the same files from this folder.
+- **Spec v1's cards** were initially copied unchanged, with relative links rewritten. Subsequent v1.1 amendments are documented here and do not change the frozen spec v1 files.
 - **Each v1.1 block** gets spec v1's wrapper: `SPEC_PACKS`, from the block's `ORIGIN`, guards the source medicine, as in `specv1.md`. So every block has the form `build_clean.py` reads.
 
 ## Combined validation (15 Nov 2026)
@@ -875,7 +900,7 @@ def medicine(doc):
 - `48b3b124a7aaa5fc` (code-go), original offset 53: `"<evorui \u0430t gm\u0430il d\u03bft c\u03bfm>, All r"` (fix).
 <!-- END CARD EVIDENCE -->
 
-2. **Medicine:** Cyrillic look-alike letters inside words that also have Latin letters become Latin.
+2. **Medicine:** Cyrillic look-alikes inside Latin words become Latin only when there is no consecutive Cyrillic run. Preserve URLs under `testdata/` or ending `_test.go`. Scoped amendment from #86 `DA-A6-004` (F18); the active ID stays `DA-A6-001`.
 
 ```python
 RULE_ID = "DA-A6-001"
@@ -893,7 +918,9 @@ import re
 
 HOMO = str.maketrans("аеорсухіјѕАВЕКМНОРСТХІЈЅ", "aeopcyxijsABEKMHOPCTXIJS")
 
-MIXED = re.compile(r"\b(?=\w*[A-Za-z])(?=\w*[Ѐ-ӿ])\w+\b")
+TEST_FILE = re.compile(r"(?:^|/)testdata/|_test\.go$")
+
+MIXED = re.compile(r"\b(?=\w*[A-Za-z])(?=\w*[Ѐ-ӿ])(?!\w*[Ѐ-ӿ]{2})\w+\b")
 
 CYRILLIC = re.compile("[\u0400-\u04ff]")  # the range MIXED asks for: every match holds one of these
 
@@ -917,6 +944,8 @@ def _std(out, text):
 
 def medicine(doc):
     if doc.get("lang_label") not in LANGS and doc.get("pack_id") not in PACKS:
+        return ("keep", doc["text"])
+    if TEST_FILE.search(doc.get("url") or ""):
         return ("keep", doc["text"])
     return _std(medicine_a6(doc), doc["text"])
 
@@ -3280,7 +3309,7 @@ def medicine(doc):
 - `8262087c39b0c8c5` (en-fineweb-edu), original offset 0: `"The Truth About\nNikola Tesla became aware early in the 20th cent"` (drop).
 <!-- END CARD EVIDENCE -->
 
-2. **Medicine:** Drop the document when it ends in an excerpt marker, or when the last word is a function word that cannot end an English sentence. Truncation cannot be repaired, and the tail is the only place it can be detected without guessing.
+2. **Medicine:** Drop the document when it ends in an excerpt marker, or when the last word is a function word that cannot end an English sentence. Within the existing four-pack scope, closing `”`, `’` and `»` count as end punctuation (#86 `DA-C3-009`, punctuation subset only). No trimming or last-word-test withdrawal is adopted. Truncation cannot be repaired, and the tail is the only place it can be detected without guessing.
 
 ```python
 RULE_ID = "DA-C3-003"
@@ -3312,6 +3341,9 @@ def medicine_c3(text):
     if tail.endswith("]") and _MARKER.search(tail):  # the marker ends the text, so the text must end in "]"
         return ("drop", "")
     if tail.endswith((".", "!", "?", '"', "'", ")", ":", "…")):
+        return text
+    # #86 DA-C3-009: only closing punctuation; retain the existing rule scope.
+    if tail.endswith(("”", "’", "»")):
         return text
     # The last token is the final run of [A-Za-z0-9'] characters. It is read backwards from the end: the regex that found it,
     # ([A-Za-z0-9']+)[^A-Za-z0-9']*$, searched the whole text from the start, which cost far more than the answer needs.
@@ -3637,11 +3669,20 @@ def _merge(spans):
 C2_MIN_REPEAT, C2_MIN_CHARS = 3, 10
 
 def c2_spans(text):
-    """C2: later copies of a line repeated C2_MIN_REPEAT or more times in the document."""
-    seen, lines, pos = {}, [], 0
+    """C2: later copies of a prose line repeated C2_MIN_REPEAT or more times; preserve Markdown fences."""
+    # #86 DA-C2-009/010: protect fenced code only; no code/config heuristics.
+    seen, lines, pos, fence = {}, [], 0, None
     for line in text.split("\n"):
         key = " ".join(line.split())
-        if len(key) >= C2_MIN_CHARS:
+        marker = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
+        protected = fence is not None or marker is not None
+        if marker:
+            run, suffix = marker.groups()
+            if fence is None:
+                fence = (run[0], len(run))
+            elif run[0] == fence[0] and len(run) >= fence[1] and not suffix.strip():
+                fence = None
+        if len(key) >= C2_MIN_CHARS and not protected:
             lines.append((pos, pos + len(line), key))
             seen[key] = seen.get(key, 0) + 1
         pos += len(line) + 1
@@ -4621,8 +4662,14 @@ BINARY_DIGITS = re.compile(r"[01]+(?:[ \t]+[01]+)+")
 BINARY_PHONE_CONTEXT = re.compile(r"(?i)\b(?:phone|telephone|tel|mobile|cell|fax|whatsapp|contact)\b")
 
 
+# #86 DA-F1-007/009 (F39): DOI digits are citation content, not phones.
+DOI_BEFORE = re.compile(r"\b10\.\d{4,9}/\S*$")
+
+
 def _phone(m):
     value = m.group()
+    if DOI_BEFORE.search(m.string, max(0, m.start() - 80), m.start()):
+        return value
     before = m.string[max(0, m.start() - 64):m.start()]
     if (BINARY_DIGITS.fullmatch(value) and BINARY_LABEL.search(before) and not BINARY_PHONE_CONTEXT.search(before)
             and not re.match(r"[ \t]+[0-9]", m.string[m.end():])):
@@ -7115,7 +7162,7 @@ def medicine(doc):
 - `f5faeb5d20b73087` (sci-finepdfs), original offset 7929: `"bject.\n\nI have a friend who has "` (fix).
 <!-- END CARD EVIDENCE -->
 
-2. **Medicine:** Combine exact opening-lead detection with repeated long-paragraph removal only on currently C2-labeled files.
+2. **Medicine:** Combine exact opening-lead detection with repeated long-paragraph removal only on currently C2-labeled files. The repeated lead must start on a new line; a partial copy is cut only through its last blank-line boundary. Scoped amendment from #86 `DA-C2-011` (F25); the labelled paragraph path is unchanged.
 
 ```python
 RULE_ID = "DA-C2-004"
@@ -7129,15 +7176,21 @@ def _sci_c2_prefix(text):
         return text
     seed = text[:seed_len]
     second = text.find(seed, seed_len, min(len(text), search_limit))
-    if second < 0:
+    if second < 0 or text[second - 1] != "\n":
         return text
     matched = 0
     max_match = min(second, len(text) - second)
     while matched < max_match and text[matched] == text[second + matched]:
         matched += 1
-    if matched < min_repeat:
+    end = second + matched
+    if end < len(text) and text[end - 2:end] != "\n\n":
+        boundary = text.rfind("\n\n", second, end)
+        if boundary < 0:
+            return text
+        end = boundary + 2
+    if end - second < min_repeat:
         return text
-    return text[:second] + text[second + matched:]
+    return text[:second] + text[end:]
 
 import re
 

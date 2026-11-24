@@ -3,8 +3,27 @@
 ## Fresh validation: 23 Nov 2026
 
 Rebuilt `spec_v1_1/clean.py` from `sheets/specv1_1.md` and `build/f1_rule.py`.
-The rebuild is byte-identical to the input cleaner: SHA-256
-`4b5e46ba1d1d347d3650e3a060abc8b95e1dd9ec67970b2704c2c50ac0678755`.
+This replaces the previous fresh validation after the scoped #86 amendments.
+The generated cleaner SHA-256 is `aa1f8e534820e5218f74c9bdec4ada217002ff467ee00256113ba59978e2b393`; the build-agreement test passes.
+
+Five scoped preservation amendments were extracted from
+[#86](https://github.com/patilvijay23/era-v5-lab/pull/86), source commit
+`d9b2efe8689fee5abdc26a523d847018a732d344`, into the existing spec v1.1 rules:
+
+| Active rule | Extracted change | Source card |
+|---|---|---|
+| `DA-A6-001` | Preserve consecutive Cyrillic runs and Go test/testdata URLs | `DA-A6-004` |
+| `DA-C2-004` | Require a line-start repeated lead; cut partial copies only at blank-line boundaries | `DA-C2-011` |
+| `DA-C2-003` | Exclude fenced Markdown code from repeated-line removal | `DA-C2-009/010`, fence subset |
+| `DA-C3-003` | Recognize closing `”`, `’`, `»` as end punctuation | `DA-C3-009`, punctuation subset |
+| `DA-F1-005` | Preserve digits within a DOI; retain the existing binary-value guard | `DA-F1-007/009`, DOI subset |
+
+Rule IDs, rule order, pack scopes and shared F1 are unchanged. Closing punctuation
+uses the existing four-English-pack scope consistently with straight quotes;
+the source card's long-prose trimming is not adopted. Numeric-table heuristics,
+year-run exemptions, broader phone/contact policy, licence removal and the
+remaining proposal cards are deferred. #86 is not merged by this extraction.
+
 
 The run used the 38 original pack Parquets provided locally, Data A gold in
 `teams/01-data-a/gold`, and Data B gold in `teams/02-data-b/gold`. Each applicable
@@ -12,7 +31,9 @@ rule was tested alone, followed by the full `clean()` pipeline, on each pack's
 own gold set using `harmtest/harm_test.py`'s APIs. Data B packs also used
 `tools/harm_test_indic.py`'s execution, verdict and Unicode-audit APIs, preserving
 pack/language/URL metadata through the adapter. No gold IDs were excluded.
-This run does not repeat the historical whole-pack out-of-scope checks.
+The amended rules were also checked outside their scopes on all 19,000
+documents in the 38 sample packs: zero violations. This is not a repeat of the
+historical out-of-scope checks for every unmodified rule.
 
 - **4,768 gold documents across 33 testable packs.** Of the 31 supported packs,
   **27 PASS and 4 FAIL**. Two other testable packs, `cadj-commits` and
@@ -25,7 +46,8 @@ This run does not repeat the historical whole-pack out-of-scope checks.
 - The amended English `DA-F1-005` on all four English packs, shared F1 on all
   six code packs, and Sanskrit `DB-B4-004` each **PASS with zero gold documents
   changed or dropped**.
-- Cleaner unit/regression suite: **1,915 passed, 9 subtests passed**.
+- All five amended rules **PASS with zero gold changes or drops**.
+- Cleaner unit/regression suite: **1,946 passed, 9 subtests passed**.
 
 | Pack failing the raw full-pipeline harm limit | Gold | Changed | Dropped |
 |---|---:|---:|---:|
@@ -44,21 +66,33 @@ historical report; per-input hashes are recorded for the fresh run.
 `run_harm_suite.py` was attempted but cannot run: it requires the absent legacy
 `teams/01-data-a/spec/spec_v1.md` inventory, not the current executable sheet.
 The current cleaner was tested through the APIs above instead. These results
-cover the current cleaner, not activation of #86's separate proposal cards,
-production-scale throughput, or a full MinHash/sharding integration run.
+cover the five subsets above in the current cleaner; they do not validate the
+remaining #86 proposal cards, production-scale throughput, or a full MinHash/sharding integration run.
 
 To reproduce the API-based run from the repository root (writes to a new
 output folder; exits nonzero for failures or untestable packs):
 
 ```bash
-python teams/01-data-a/spec_v1_1/results/cleaner/harm_2026_11_23/run_current_harm.py --packs <original-packs-folder> --out out/harm-rerun
+python teams/01-data-a/spec_v1_1/scripts/run_current_harm.py --packs <original-packs-folder> --out out/harm-rerun
 ```
+
+The full-pipeline comparison against cleaner `4b5e46ba…` covers all 38 sample
+packs (19,000 documents). Outputs differ for two non-gold documents:
+`code-cpp/782bc9665f0acdf7` (genuine Cyrillic retained) and
+`en-nemotroncc-synth/ac2d7bac43b4a937` (fenced repeated lines retained).
+The A6 rule alone also preserves `code-go/48b3b124a7aaa5fc` (testdata), which
+is dropped later by the existing pipeline. No new drops or new idempotence
+failures were found. These are sample checks, not a fresh human audit.
+Clean-job and production-preparation tests: **125 PASS**.
 
 Evidence (IDs, counts and hashes only): [summary CSV](harm_2026_11_23/summary.csv),
 [provenance and coverage](harm_2026_11_23/summary.json),
 [per-pack/per-rule reports](harm_2026_11_23/reports.json),
-[run log](harm_2026_11_23/run.log), [rebuild log](harm_2026_11_23/rebuild.log),
-[legacy-runner limitation](harm_2026_11_23/legacy-suite.log).
+[run log](harm_2026_11_23/run.txt), [rebuild log](harm_2026_11_23/rebuild.txt),
+[legacy-runner limitation](harm_2026_11_23/legacy-suite.txt),
+[sample comparison](harm_2026_11_23/comparison.json),
+[cleaner tests](harm_2026_11_23/cleaner-tests.txt),
+[job tests](harm_2026_11_23/job-tests.txt).
 
 ## Historical validation: 17 Nov 2026
 
