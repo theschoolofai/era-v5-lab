@@ -7,7 +7,10 @@
 The ERA V5 lab of The School of AI (TSAI) builds and trains its own language model. Students of the lab work in
 teams, and each team owns one part of the work. The work is in a public repository, so anyone can follow it.
 
-[text: waiting for Release, what the model is]
+The model is a mixture-of-experts language model. It has many small parts, called experts, and uses only a few of
+them for each token. Each token goes to two of its 16 routed experts, and to one shared expert. The last part of the
+model is the KE2 output head, which scores each token as the next token. Architecture sets the exact size of the
+model once the lab knows the real token count of its first full corpus.
 
 ## Intended use
 
@@ -193,7 +196,7 @@ How to fill it:
 
 | Section | Owner team | Text in this draft | Source | Lead OK |
 |---|---|---|---|---|
-| Overview | Release | who made the model: yes. What the model is: no | `launch/launch_announcement_v0.md` ([#600](https://github.com/theschoolofai/era-v5-lab/pull/600), [#603](https://github.com/theschoolofai/era-v5-lab/pull/603)) | yes (the Release lead wrote this draft) |
+| Overview | Release | who made the model: yes. What the model is: yes, from the Gate 2 and Gate 3 updates and the launch announcement | `launch/launch_announcement_v0.md` ([#600](https://github.com/theschoolofai/era-v5-lab/pull/600), [#603](https://github.com/theschoolofai/era-v5-lab/pull/603), [#753](https://github.com/theschoolofai/era-v5-lab/pull/753)). What the model is: `updates/gate2.md` (first model configuration), `updates/gate3.md` (attention and experts, model layout and size, the output head) | Release: yes (the Release lead wrote this draft); Architecture: no |
 | Training data: the Indian-language and code-adjacent text | Data B | yes, with no edit, and the problems in the code-adjacent text, with no edit. One open point waits for TSAI: whether the notebooks and the posts are cleaned before training | `teams/02-data-b/model_card/training_data.md` ([#525](https://github.com/theschoolofai/era-v5-lab/pull/525); the code-adjacent problems: [#782](https://github.com/theschoolofai/era-v5-lab/pull/782), from the Data B lead). Its source table gives the TSAI approval of each number and the source of each problem | Data B: yes ([comment on #759](https://github.com/theschoolofai/era-v5-lab/pull/759#issuecomment-7108567909)) |
 | Training data: the general text and code | Data A | no | waiting for Data A | Data A: no |
 | Licence and attribution | Post-training, Data A, Data B | no | waiting for the Post-training text. Facts so far: `teams/10-post-training/licences/licence_table.md`. MILU is under CC BY 4.0, so this section credits its authors ([comment on #770](https://github.com/theschoolofai/era-v5-lab/pull/770#issuecomment-7123142597)) | no |
