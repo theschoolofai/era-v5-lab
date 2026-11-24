@@ -2239,6 +2239,164 @@
         }
       ],
       "type": "trend"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "description": "Eval-watcher lag alarm (alarms/eval_lag.py): the training time from the newest Tier A step in eval_mini to the newest training step, and the page limit (2 checkpoint intervals). Empty until the alarm runs.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "lineWidth": 2
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 125
+      },
+      "id": 29,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "queryType": "timeseries",
+          "rawSql": "SELECT checked_at AS time, concat(run_id, ' lag') AS series, lag_s AS value FROM eval_lag_checks WHERE run_id IN ($lag_run) AND $__timeFilter(checked_at) ORDER BY checked_at",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "editorType": "sql",
+          "format": 0,
+          "queryType": "timeseries",
+          "rawSql": "SELECT checked_at AS time, concat(run_id, ' limit') AS series, threshold_s AS value FROM eval_lag_checks WHERE run_id IN ($lag_run) AND $__timeFilter(checked_at) ORDER BY checked_at",
+          "refId": "B"
+        }
+      ],
+      "title": "Eval-watcher lag (eval_lag_checks)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "description": "Each page of the eval-watcher lag alarm, newest first. A page means Tier A scores stopped keeping up with training: check that the Tier A eval watcher is running.",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 12,
+        "y": 125
+      },
+      "id": 30,
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "queryType": "table",
+          "rawSql": "SELECT checked_at AS time, run_id, train_step, eval_step, lag_s, threshold_s, detail FROM eval_lag_checks WHERE paged = 1 AND run_id IN ($lag_run) AND $__timeFilter(checked_at) ORDER BY checked_at DESC",
+          "refId": "A"
+        }
+      ],
+      "title": "Lag alarm pages",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "description": "Seconds since the lag alarm last checked these runs. It writes a row every poll (60 s) only while a run trains, so during training a number that keeps growing, or 'no check yet', means the alarm is not running. Red after 300 s (5 polls). After a run ends the number grows by design.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "no check yet",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 300
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 4,
+        "x": 20,
+        "y": 125
+      },
+      "id": 31,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "value"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "queryType": "table",
+          "rawSql": "SELECT dateDiff('second', max(checked_at), now64(3)) AS value FROM eval_lag_checks WHERE run_id IN ($lag_run) HAVING count() > 0",
+          "refId": "A"
+        }
+      ],
+      "title": "Lag alarm: seconds since last check",
+      "type": "stat"
     }
   ],
   "refresh": "10s",
@@ -2336,6 +2494,24 @@
         "multi": true,
         "name": "eval_task",
         "query": "SELECT DISTINCT task FROM eval_mini WHERE primary = 1 AND checkpoint_step IS NOT NULL AND checkpoint_run IN ($eval_run) ORDER BY task",
+        "refresh": 2,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": null,
+        "current": {},
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "${ds}"
+        },
+        "definition": "SELECT DISTINCT run_id FROM eval_lag_checks ORDER BY run_id",
+        "description": "Runs the eval-watcher lag alarm has checked (panels 29 to 31), including runs with no eval_mini row yet.",
+        "includeAll": true,
+        "label": "lag alarm run",
+        "multi": true,
+        "name": "lag_run",
+        "query": "SELECT DISTINCT run_id FROM eval_lag_checks ORDER BY run_id",
         "refresh": 2,
         "sort": 1,
         "type": "query"
