@@ -139,6 +139,9 @@ class SaveHiddenVectorsTests(unittest.TestCase):
         helper = kas_fixture.ModelIntegration()
         self.addCleanup(helper.doCleanups)
         cfg, byte_rows, lengths, model = helper.model()
+        # Artifacts and DocumentWindows are mocked below; p1536.json is never opened.
+        # The real release hash is only a saved-manifest identity to forward to the
+        # loader. The synthetic 31-token model does not validate the p1536 tokenizer.
         recorded = {"tokenizer_sha256": "e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b"}
         artifacts = SimpleNamespace(bytes=byte_rows, lengths=lengths, pos_dim=32,
                                     tokenizer_sha=recorded["tokenizer_sha256"], table_content_sha="b" * 64,
