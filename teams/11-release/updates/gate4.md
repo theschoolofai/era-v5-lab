@@ -10,12 +10,18 @@ the words that TSAI approved.
 
 A dry run is a short test of the whole training setup before the main training run.
 
+The second dry run tests the training settings for the main run on a small model, including the KE2 output head. It
+checks that the run finishes all its planned steps, and that the loss stays a valid number. During the run,
+Infrastructure stops it on purpose and restarts it from the last saved checkpoint. Evaluation scores each saved
+checkpoint as the run goes, and checks that the first scores are near those of a random guess.
+
 [text: waiting for the result of the second dry run]
 
 ## The model card
 
-Release wrote the first draft of the model card, and TSAI approved it on 24 Nov. It has the Data B part of the
-training data section, and text from Release for the overview, the contributors and where to find more. The other sections wait for their owner teams.
+Release wrote the first draft of the model card, and TSAI approved it on 24 Nov. It now has the Data B part of the
+training data section, and the Evaluation section, which names the benchmarks. Release wrote the overview, the
+contributors and where to find more. The other sections wait for their owner teams.
 The KE2 section now covers the KE2 output head, which TSAI chose at Gate 3 in place of the dense untied head.
 Architecture added this head to the training code on 24 Nov.
 
@@ -59,14 +65,14 @@ How to fill it:
 
 | Fact | Team | Source | Text received | Lead OK |
 |---|---|---|---|---|
-| The second dry run | Architecture, Infrastructure | Job request: [#720](https://github.com/theschoolofai/era-v5-lab/pull/720). Result: [link: waiting for the dry run 2 result] | no | no |
-| The first draft of the model card | Release, Data B | `model_card/model_card_v0.md`, [#759](https://github.com/theschoolofai/era-v5-lab/pull/759), approved and merged by TSAI on 24 Nov. Owner and status of each section: `model_card/model_card_outline.md` | yes | Release: yes; Data B: yes ([comment on #759](https://github.com/theschoolofai/era-v5-lab/pull/759#issuecomment-7108567909)) |
+| The second dry run | Architecture, Infrastructure, Evaluation | Plan: job request [#720](https://github.com/theschoolofai/era-v5-lab/pull/720) (Architecture), with the KE2 output head in its settings ([#717](https://github.com/theschoolofai/era-v5-lab/pull/717)). The planned stop and restart: [#738](https://github.com/theschoolofai/era-v5-lab/pull/738) and [#743](https://github.com/theschoolofai/era-v5-lab/pull/743) (Infrastructure). The checkpoint scores: [#707](https://github.com/theschoolofai/era-v5-lab/pull/707) (Evaluation). Result: [link: waiting for the dry run 2 result] | plan: yes, from the job requests. Result: no | Architecture: no; Infrastructure: no; Evaluation: no |
+| The first draft of the model card | Release, Data B | `model_card/model_card_v0.md`, [#759](https://github.com/theschoolofai/era-v5-lab/pull/759), approved and merged by TSAI on 24 Nov. Evaluation section: [#770](https://github.com/theschoolofai/era-v5-lab/pull/770), [#784](https://github.com/theschoolofai/era-v5-lab/pull/784). Data B problems in the code-adjacent text: [#782](https://github.com/theschoolofai/era-v5-lab/pull/782), [#791](https://github.com/theschoolofai/era-v5-lab/pull/791). Owner and status of each section: `model_card/model_card_outline.md` | yes | Release: yes; Data B: yes ([comment on #759](https://github.com/theschoolofai/era-v5-lab/pull/759#issuecomment-7108567909)); Evaluation: yes ([comment on #784](https://github.com/theschoolofai/era-v5-lab/pull/784#issuecomment-7129730898)) |
 | The KE2 output head in the model card | KE2 | TSAI decision in `teams/04-ke2/gate3.md`, merged in [#694](https://github.com/theschoolofai/era-v5-lab/pull/694), corrected in [#702](https://github.com/theschoolofai/era-v5-lab/pull/702). Gate 3 update: [#701](https://github.com/theschoolofai/era-v5-lab/pull/701). Model card outline: [#704](https://github.com/theschoolofai/era-v5-lab/pull/704) | yes | no |
 | The KE2 output head in the training code | Architecture | [#717](https://github.com/theschoolofai/era-v5-lab/pull/717), merged by TSAI on 24 Nov. The Gate 3 update said that Architecture adds the head to the training code | yes | Architecture: no |
 | Decision: the second dry run | Architecture, Infrastructure | TSAI decision at Gate 4 | no | no |
 | Decision: the main training run | Architecture, Infrastructure | TSAI decision at Gate 4 | no | no |
 | Decision: the launch announcement | Release | `launch/launch_announcement_v0.md`, [#600](https://github.com/theschoolofai/era-v5-lab/pull/600), [#603](https://github.com/theschoolofai/era-v5-lab/pull/603). Week 4 draft: [#753](https://github.com/theschoolofai/era-v5-lab/pull/753), approved and merged by TSAI on 24 Nov | yes | Release: yes |
-| Open from Gate 3: the evaluation schedule | Evaluation | [#662](https://github.com/theschoolofai/era-v5-lab/pull/662) | no | no |
+| Open from Gate 3: the evaluation schedule | Evaluation | [#662](https://github.com/theschoolofai/era-v5-lab/pull/662). Version 1.2 of the schedule: [#722](https://github.com/theschoolofai/era-v5-lab/pull/722) | no | no |
 | Open from Gate 3: the tuning method after the main training | Post-training | [#524](https://github.com/theschoolofai/era-v5-lab/pull/524), [#593](https://github.com/theschoolofai/era-v5-lab/pull/593), [#634](https://github.com/theschoolofai/era-v5-lab/pull/634) | no | no |
 | Open from Gate 3: serving and quantization | Quantization | [#538](https://github.com/theschoolofai/era-v5-lab/pull/538) | no | no |
 | Decision: the learning rate for the Muon optimizer (open from Gate 3) | Architecture | `updates/gate3.md` (the learning rate). Decided: TSAI's correction in [#725](https://github.com/theschoolofai/era-v5-lab/pull/725), which sets the rate in config v1 and in the second dry run | yes | no |
