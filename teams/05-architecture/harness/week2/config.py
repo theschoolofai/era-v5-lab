@@ -174,6 +174,8 @@ def load_runtime(arm_path, runtime_path=None):
             "attn_gate_input",
             "attn_gate_bias",
             "attn_gate_init",
+            "head_mode",
+            "kas_prior",
         ],
         "lead model",
     )
@@ -274,6 +276,8 @@ def load_runtime(arm_path, runtime_path=None):
         "attn_gate_input",
         "attn_gate_bias",
         "attn_gate_init",
+            "head_mode",
+            "kas_prior",
     ]:
         if key in src:
             model[key] = (
@@ -444,8 +448,12 @@ def validate(c):
         errors.append("MTP off requires weight 0")
     if m.get("ce_impl") != "torch" or m.get("attn_impl") != "eager":
         errors.append("Only eager attention/torch CE implemented")
-    if "head_mode" in m or "tie_embeddings" in m:
-        errors.append("Output head is fixed dense untied; head switches are removed")
+    if "tie_embeddings" in m or ("head_mode" in m and m["head_mode"] != "kas_v2"):
+        errors.append("Output head must be legacy dense untied or explicit kas_v2; tying is unsupported")
+    if "kas_prior" in m and (m.get("head_mode") != "kas_v2" or not isinstance(m["kas_prior"], dict)):
+        errors.append("kas_prior requires kas_v2 and a mapping")
+    if m.get("head_mode") == "kas_v2" and m.get("ke_max_pos") != 32:
+        errors.append("kas_v2 requires ke_max_pos 32")
     if m.get("embedding") not in KE2_EMBEDDING_NAMES:
         errors.append(
             "Arm embedding must be ke2, or the older name ke1: "

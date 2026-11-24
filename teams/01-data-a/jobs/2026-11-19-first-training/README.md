@@ -17,10 +17,19 @@ Record upstream revisions/configs and verify the fetch against its source catalo
 With PyArrow installed, run from the repository root:
 
 ```bash
-python -I teams/01-data-a/jobs/2026-11-19-first-training/build_inventory.py --input-root /path/to/raw --out out/first-training-inputs
+python -I teams/01-data-a/jobs/2026-11-19-first-training/build_inventory.py --input-root /path/to/raw --out out/first-training-inputs --packs-file teams/01-data-a/jobs/2026-11-19-first-training/staged_packs_33.json
 ```
 
-For TSAI's 23 Nov partial run, supply `--packs-file <staged-packs.json>` to
+TSAI confirmed the exact selection in G1 at **24 Nov 2026, 08:23:26 IST**.
+The committed [`staged_packs_33.json`](staged_packs_33.json) contains that list.
+The five blocked packs are **en-dclm, en-nemotroncc, en-nemotroncc-synth,
+math-finemath and ind-hi-hplt**; exclude their files from this run's raw root.
+This selects a subset of the approved 38-source universe, without changing
+`approved_inputs.json` or its policy hash. Local audit-pack availability does
+not change the confirmed production selection. To prepare all 38 for a separate
+rehearsal, omit `--packs-file`.
+
+For a partial run, supply `--packs-file staged_packs_33.json` to
 `build_inventory.py`. That file must be a JSON array naming exactly 33 distinct
 IDs from `approved_inputs.json`, confirmed against TSAI's staged source catalog.
 Do not infer the list from an incomplete download. Stage only those selected

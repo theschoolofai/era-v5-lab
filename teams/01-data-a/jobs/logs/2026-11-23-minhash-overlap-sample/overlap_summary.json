@@ -423,12 +423,14 @@
     "bands": 32,
     "rows_per_band": 4,
     "seed": 20261122,
-    "parts_reused": 0,
+    "parts_reused": 47,
     "word": {
-      "buckets_2_or_more": 64303,
-      "largest_bucket": 509,
+      "buckets_2_or_more": 62544,
+      "largest_bucket": 507,
       "star_buckets": 0,
-      "pairs_before_dedup": 869203,
+      "pairs_before_dedup": 865154,
+      "representatives_banded": 1395241,
+      "candidate_pairs_representatives": 645520,
       "candidate_pairs": 646651
     },
     "code": {
@@ -509,18 +511,40 @@
     "sci-finepdfs": "prose"
   },
   "stage_seconds": {
-    "signatures": 2324.0,
-    "h1": 0.9,
-    "lsh": 15.5,
-    "verify_words": 23.1,
-    "rules": 4.9,
-    "outputs": 2.1
+    "signatures": 2.1,
+    "h1": 0.8,
+    "lsh": 13.7,
+    "verify_words": 26.8,
+    "rules": 5.9,
+    "outputs": 2.5
   },
-  "wall_seconds": 2374.5,
+  "peak_rss_mb_after_stage": {
+    "signatures": {
+      "main": 109.3,
+      "largest_worker": 63.8
+    },
+    "table": {
+      "main": 912.6,
+      "largest_worker": 63.8
+    },
+    "lsh": {
+      "main": 1378.7,
+      "largest_worker": 63.8
+    },
+    "verify_words": {
+      "main": 1378.7,
+      "largest_worker": 1471.5
+    },
+    "rules": {
+      "main": 1696.0,
+      "largest_worker": 1485.0
+    }
+  },
+  "wall_seconds": 53.7,
   "workers": 2,
   "peak_rss_mb": {
-    "main": 4240.9,
-    "largest_worker": 3223.4
+    "main": 1969.1,
+    "largest_worker": 1485.0
   },
   "versions": {
     "python": "3.13.18",
