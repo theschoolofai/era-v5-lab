@@ -167,23 +167,30 @@ def main(argv=None):
     ctx = {"info": info, "tok_sha": tok_sha, "specials": specials, "run_file": run_file, "pipeline": pipeline,
            "part_path": part_path, "pack_id": pack_id, "split": split, "domain": domain, "commit": commit}
 
-    table = pq.read_table(a.input, columns=["doc_id", "text", "lang_label"])
-    ids_col, text_col, lang_col = (table.column(c).to_pylist() for c in ("doc_id", "text", "lang_label"))
-    del table
+    # The part is read BATCH rows at a time, and a doc's token ids are kept as a uint32 array (4 bytes a token, with the EOS
+    # at its end), not a Python list of ints (about 36 bytes a token): a full shard held 2.4 GB of ints, plus the part's text.
+    pf = pq.ParquetFile(a.input)
+    n_rows = pf.metadata.num_rows
+    special_ids_sorted = np.array(sorted(specials), dtype=np.uint32)
     manifests, index = [], a.index
     cur = new_shard(0)
-    for b in range(0, len(text_col), BATCH):
-        texts = text_col[b:b + BATCH]
+    first_of_batch = 0
+    for batch in pf.iter_batches(batch_size=BATCH, columns=["doc_id", "text", "lang_label"]):
+        ids_col, texts, lang_col = (batch.column(i).to_pylist() for i in range(3))
+        del batch
         for k, enc in enumerate(tok.encode_batch_fast(texts, add_special_tokens=False)):
-            row, text, ids = b + k, texts[k], enc.ids
-            doc_id, left_out = ids_col[row], cur["left_out"]
+            row, text, ids = first_of_batch + k, texts[k], enc.ids
+            doc_id, left_out = ids_col[k], cur["left_out"]
             if SECRET.search(text):
                 left_out["secret"].append(doc_id)
                 continue
             if not ids:
                 left_out["empty"].append(doc_id)
                 continue
-            inside = sorted(set(ids) & specials)
+            doc = np.empty(len(ids) + 1, dtype=np.uint32)  # the doc's ids, then its EOS
+            doc[:-1] = ids
+            doc[-1] = EOS_ID
+            inside = sorted(set(doc[:-1][np.isin(doc[:-1], special_ids_sorted)].tolist()))
             if inside:
                 left_out["special"].append({"doc_id": doc_id, "ids": inside})
                 continue
@@ -198,13 +205,16 @@ def main(argv=None):
                 manifests.append(finish(a, ctx, f"{pack_id}-{split}-{index:06d}", cur, rows_end=row))
                 index += 1
                 cur = new_shard(row)
-            cur["docs"].append(ids + [EOS_ID])
+            cur["docs"].append(doc)
             cur["rows"].append({"doc_id": doc_id, "input_part": part_path, "input_row": row, "n_tokens": n,
-                                "n_chars": len(text), "lang_label": lang_col[row]})
+                                "n_chars": len(text), "lang_label": lang_col[k]})
             cur["total"] += n
+        first_of_batch += len(texts)
+    if first_of_batch != n_rows:
+        sys.exit(f"shard_writer: {a.input} gave {first_of_batch} rows, its footer says {n_rows}")
     if not cur["docs"]:  # rollover only opens a shard with a doc in it, so this part has no doc to write at all
-        raise NoShard(len(text_col), cur["left_out"])
-    manifests.append(finish(a, ctx, f"{pack_id}-{split}-{index:06d}", cur, rows_end=len(text_col)))
+        raise NoShard(n_rows, cur["left_out"])
+    manifests.append(finish(a, ctx, f"{pack_id}-{split}-{index:06d}", cur, rows_end=n_rows))
     return manifests
 
 
@@ -229,7 +239,7 @@ def finish(a, ctx, shard_id, cur, rows_end):
     docs, rows, left_out = cur["docs"], cur["rows"], cur["left_out"]
     starts = np.cumsum([0] + [r["n_tokens"] for r in rows]).astype("<i8")  # doc_count + 1 entries; the last is token_count
     bin_path, idx_path, meta_path = (a.out / f"{shard_id}{x}" for x in (".bin", ".idx.npy", ".docs.parquet"))
-    write_shard(bin_path, [t for d in docs for t in d])
+    write_shard(bin_path, np.concatenate(docs))
     np.save(idx_path, starts)
     pq.write_table(pa.Table.from_pylist(rows), meta_path)
     shutil.copyfile(ctx["run_file"], pipeline)  # the run's file, byte for byte: its sha256 is the manifest's cleaning_pipeline_sha256
@@ -278,7 +288,7 @@ def finish(a, ctx, shard_id, cur, rows_end):
     assert special_at.tolist() == (idx[1:] - 1).tolist(), "a special id other than the final EOS of a doc"
     assert (tokens[idx[1:] - 1] == EOS_ID).all()
     for k, d in enumerate(docs):
-        assert tokens[idx[k]:idx[k + 1]].tolist() == d
+        assert np.array_equal(tokens[idx[k]:idx[k + 1]], d)
     del tokens
 
     header = np.fromfile(bin_path, dtype="<i4", count=3)
