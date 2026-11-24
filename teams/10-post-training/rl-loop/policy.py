@@ -17,9 +17,16 @@ from torch import nn
 
 
 class Policy:
-    def __init__(self, model: nn.Module, forward: Callable, eos_id: int | None = None, device: str = "cpu"):
+    def __init__(self, model: nn.Module, forward: Callable, eos_id: int | None = None, device: str = "cpu",
+                 hidden: Callable | None = None, head: Callable | None = None):
+        """hidden(model, ids, mask) -> final hidden states [B, T, d] and head(model, h) -> logits [..., V], given together
+        only when forward(model, ids, mask) == head(model, hidden(model, ids, mask)) and the head maps each position on
+        its own (Team 5's LanguageModel). Then the update runs the head on the completion positions only."""
+        if (hidden is None) != (head is None):
+            raise ValueError("give hidden and head together, or neither")
         self.model = model.to(device)
         self._forward = forward
+        self._hidden, self._head = hidden, head
         self.eos_id = eos_id
         self.device = device
         self.amp_dtype: torch.dtype | None = None  # set by use_fp32_master(); None = no autocast
@@ -35,6 +42,16 @@ class Policy:
             mask = torch.ones_like(ids, dtype=torch.bool)
         with self.autocast():
             return self._forward(self.model, ids, mask)
+
+    def completion_logits(self, seq: torch.Tensor, prompt_len: int) -> torch.Tensor:
+        """Logits [B, T - prompt_len, V] at the positions that predict seq[:, prompt_len:]. With hidden/head the output
+        head runs on those positions only (the prompt's share of the [T, V] logits is never built); otherwise the full
+        forward is sliced."""
+        mask = torch.ones_like(seq, dtype=torch.bool)
+        with self.autocast():
+            if self._hidden is None:
+                return self._forward(self.model, seq, mask)[:, prompt_len - 1:-1, :]
+            return self._head(self.model, self._hidden(self.model, seq, mask)[:, prompt_len - 1:-1, :])
 
     @torch.no_grad()
     def sample(self, prompt: list[int], k: int, max_new: int, temperature: float = 1.0,
@@ -63,10 +80,14 @@ class Policy:
         return seq, cmask
 
 
+def token_logprobs(logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+    """log p(target) from logits [..., V] fp32 and targets [...]."""
+    return torch.log_softmax(logits, -1).gather(-1, targets[..., None]).squeeze(-1)
+
+
 def completion_logprobs(policy: Policy, seq: torch.Tensor, prompt_len: int) -> torch.Tensor:
     """Log-probability of each completion token under the policy: [k, T_completion]."""
-    logits = policy.logits(seq)[:, prompt_len - 1:-1, :].float()
-    return torch.log_softmax(logits, -1).gather(-1, seq[:, prompt_len:, None]).squeeze(-1)
+    return token_logprobs(policy.completion_logits(seq, prompt_len).float(), seq[:, prompt_len:])
 
 
 class HFPolicy(Policy):
@@ -120,6 +141,11 @@ def hf_policy(model: nn.Module, eos_id: int | None = None, device: str = "cpu") 
     return HFPolicy(model, lambda m, ids, mask: m(input_ids=ids, attention_mask=mask.long()).logits, eos_id, device)
 
 
-def module_policy(model: nn.Module, eos_id: int | None = None, device: str = "cpu") -> Policy:
-    """For models called as model(ids, valid) -> logits, like Team 5's LanguageModel."""
-    return Policy(model, lambda m, ids, mask: m(ids, mask), eos_id, device)
+def module_policy(model: nn.Module, eos_id: int | None = None, device: str = "cpu", split_head: bool = False) -> Policy:
+    """For models called as model(ids, valid) -> logits, like Team 5's LanguageModel. split_head=True only for a model
+    whose forward is head(hidden(ids, valid)) with a per-position head (Team 5's LanguageModel): the update then runs
+    the head on the completion positions only."""
+    if not split_head:
+        return Policy(model, lambda m, ids, mask: m(ids, mask), eos_id, device)
+    return Policy(model, lambda m, ids, mask: m(ids, mask), eos_id, device,
+                  hidden=lambda m, ids, mask: m.hidden(ids, mask), head=lambda m, h: m.head(h))

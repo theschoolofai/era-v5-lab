@@ -123,7 +123,7 @@ def build_model(mcfg: dict, device: str):
         rng = np.random.default_rng(mcfg.get("ke2_seed", 7))  # stand-in KE2 code table until Team 5's model lands
         rows = rng.integers(0, 256, (spec["vocab_size"], 4), dtype=np.uint8)
         lengths = rng.integers(1, 5, spec["vocab_size"], dtype=np.int16)
-        return module_policy(LanguageModel(spec, rows, lengths), None, device), None
+        return module_policy(LanguageModel(spec, rows, lengths), None, device, split_head=True), None
     if kind == "team5_adapter":
         import team5_adapter  # noqa: PLC0415
         return team5_adapter.build_policy_and_codec(mcfg["adapter_config"], device, mcfg.get("effort", "4k"),
