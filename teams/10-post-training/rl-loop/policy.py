@@ -28,6 +28,9 @@ class Policy:
         self.model = model.to(device)
         self._forward = forward
         self._hidden, self._head = hidden, head
+        # memory mode (train.head_checkpoint, rl_job_v1 --head-checkpoint): under autograd run the head in checkpointed
+        # chunks of HEAD_CHUNK tokens. Off by default: one head call is faster when the row fits (job RLM2).
+        self.head_checkpoint = False
         self.eos_id = eos_id
         self.device = device
         self.amp_dtype: torch.dtype | None = None  # set by use_fp32_master(); None = no autocast
@@ -86,7 +89,8 @@ def token_logprobs(logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
     return torch.log_softmax(logits, -1).gather(-1, targets[..., None]).squeeze(-1)
 
 
-HEAD_CHUNK = 512  # completion tokens per head call when the policy gives hidden/head (all rows flattened)
+HEAD_CHUNK = 512  # completion tokens per head call in the chunked paths (all rows flattened)
+NOGRAD_CHUNKS = True  # no_grad scoring in chunks of HEAD_CHUNK (set from the RLM2 T4 timing; see completion_logprobs)
 
 
 def _head_logprobs(policy: Policy, h: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
@@ -98,22 +102,25 @@ def _head_logprobs(policy: Policy, h: torch.Tensor, targets: torch.Tensor) -> to
 def completion_logprobs(policy: Policy, seq: torch.Tensor, prompt_len: int) -> torch.Tensor:
     """Log-probability of each completion token under the policy: [k, T_completion].
 
-    With hidden/head (Team 5's policy) the trunk runs once over the whole sequence and the head + log-prob run over the
-    completion positions in chunks of HEAD_CHUNK tokens. Under autograd each chunk is checkpointed: its [n, V] logits
-    and the head's own [n, V] intermediates (Team 5's KAS head builds about four) are rebuilt in backward instead of
-    kept, so they never exist for more than one chunk at a time. The cost is one extra head forward per chunk. The head
-    maps each position on its own, so chunking changes no value beyond float rounding."""
+    With hidden/head (Team 5's policy) the trunk runs once over the whole sequence and the head only on the completion
+    positions. Under autograd that is one head call, unless policy.head_checkpoint is on: then the head + log-prob run in
+    chunks of HEAD_CHUNK tokens, each checkpointed, so the head's [n, V] tensors (Team 5's KAS head builds about four)
+    exist for one chunk at a time and are rebuilt in backward (one extra head forward per chunk; job RLM: -41% per-row
+    peak on a T4). NOGRAD_CHUNKS decides the no_grad path (old_lp, the gate, kl_to_start), where chunks cost no extra
+    forward. The head maps each position on its own, so chunking changes no value beyond float rounding."""
     if policy._hidden is None:
         return token_logprobs(policy.completion_logits(seq, prompt_len).float(), seq[:, prompt_len:])
     mask = torch.ones_like(seq, dtype=torch.bool)
     with policy.autocast():
         h = policy._hidden(policy.model, seq, mask)[:, prompt_len - 1:-1, :]
     targets = seq[:, prompt_len:]
+    grad = torch.is_grad_enabled() and h.requires_grad
+    if (grad and not policy.head_checkpoint) or (not grad and not NOGRAD_CHUNKS):
+        return _head_logprobs(policy, h, targets)
     hf, tf = h.reshape(-1, h.shape[-1]), targets.reshape(-1)
-    keep_graph = torch.is_grad_enabled() and hf.requires_grad
     parts = []
     for i in range(0, hf.shape[0], HEAD_CHUNK):
-        if keep_graph:
+        if grad:
             parts.append(checkpoint(_head_logprobs, policy, hf[i:i + HEAD_CHUNK], tf[i:i + HEAD_CHUNK],
                                     use_reentrant=False))
         else:

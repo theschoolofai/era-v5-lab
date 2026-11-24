@@ -310,6 +310,8 @@ def state_identity(cfg: dict, trainable_named, *, init_state_sha256: str | None 
             "micro_rows", "weight_decay", "fp32_master", "sampler", "clip_eps", "kl_coef", "grad_clip", "screen")
     if t.get("autocast") is not None:  # preserve identities of runs saved before this option existed
         keys += ("autocast",)
+    if t.get("head_checkpoint"):  # changes rounding only, but say so in the identity; absent = off (older states)
+        keys += ("head_checkpoint",)
     if t.get("sampler_max_rows") is not None:  # chunking changes which random draws each row gets
         keys += ("sampler_max_rows",)
     if t.get("dt"):  # only present for Deletion Tuning runs, so states saved before train.dt existed stay valid
@@ -540,6 +542,16 @@ def kl_to_start(policy, start: StartWeights, rolls, prompts) -> float:
         num += float(((torch.exp(d) - d - 1) * m).sum())
         den += float(m.sum())
     return num / max(den, 1.0)
+
+
+def set_head_checkpoint(policy, t: dict) -> bool:
+    """train.head_checkpoint (default off): run the head in checkpointed chunks under autograd (policy.py
+    completion_logprobs). Only policies that give hidden/head (Team 5's) can; asking for it elsewhere is an error."""
+    on = bool(t.get("head_checkpoint", False))
+    if on and getattr(policy, "_hidden", None) is None:
+        raise ValueError("train.head_checkpoint needs a policy with hidden/head (Team 5's model); this one has none")
+    policy.head_checkpoint = on
+    return on
 
 
 def chunked_logprobs(policy, seq: torch.Tensor, plen: int, micro_rows: int | None) -> torch.Tensor:
@@ -991,6 +1003,7 @@ def train(cfg: dict) -> dict:
         kz.check_optimizer(opt)
     tis_clip = float(t["tis_clip"]) if t.get("tis_clip") else None
     micro_rows = int(t["micro_rows"]) if t.get("micro_rows") else None
+    set_head_checkpoint(policy, t)
     probe_w = UpdateProbe(trainable_named) if v1 else None
     dt_layer0 = dtmask.masked_layers(model)[0][1] if dt_cfg else None
     # DT logits far from zero are saturated (gradient far below Adam's eps), so most of them rightly do not move:

@@ -124,11 +124,13 @@ def test_policy_needs_hidden_and_head_together():
         P.Policy(nn.Linear(2, 2), lambda m, i, k: m(i), hidden=lambda m, i, k: i)
 
 
+@needs_standin
 def test_head_chunks_are_checkpointed_and_change_nothing(bundle, monkeypatch):
     """Chunked + checkpointed head (change 2) vs one head call: same log-probs and gradients; under autograd the
     head runs twice per chunk (forward, then the rebuild in backward), under no_grad once, and no call is larger
     than HEAD_CHUNK tokens. Fails if chunks are not checkpointed (one call per chunk under autograd)."""
     pol = bundle.policy()
+    pol.head_checkpoint = True  # the memory mode (train.head_checkpoint / rl_job_v1 --head-checkpoint)
     plen, new = 5, 13
     seq = _seq(bundle.spec["vocab_size"], 2, plen, new, seed=6)
     params = [p for p in bundle.model.parameters() if p.requires_grad]
@@ -154,3 +156,55 @@ def test_head_chunks_are_checkpointed_and_change_nothing(bundle, monkeypatch):
     assert (lp0 - lp1).abs().max() < 1e-5
     gmax = max(float(a.abs().max()) for a in g0 if a is not None)
     assert max(float((a - b).abs().max()) for a, b in zip(g0, g1) if a is not None) < 1e-5 * gmax
+
+
+@needs_standin
+def test_default_is_one_head_call_without_checkpoint_and_bit_identical(bundle, monkeypatch):
+    """Default (head_checkpoint off, job RLM2): under autograd ONE head call over all completion tokens, no checkpoint,
+    log-probs bit-identical to the old full forward and gradients equal. Fails if the default checkpoints."""
+    pol = bundle.policy()
+    assert pol.head_checkpoint is False
+    monkeypatch.setattr(P, "HEAD_CHUNK", 4)  # chunks would be visible if the default used them
+    n_ckpt = []
+    real = P.checkpoint
+    monkeypatch.setattr(P, "checkpoint", lambda *a, **k: (n_ckpt.append(1), real(*a, **k))[1])
+    plen, new = 5, 13
+    seq = _seq(bundle.spec["vocab_size"], 2, plen, new, seed=7)
+    params = [p for p in bundle.model.parameters() if p.requires_grad]
+    w = torch.linspace(-1, 1, 2 * new).reshape(2, new)
+    res = []
+    for fn in (_old_lp, P.completion_logprobs):
+        bundle.model.zero_grad(set_to_none=True)
+        spy = _HeadSpy(bundle.model)
+        try:
+            lp = fn(pol, seq, plen)
+            (lp * w).sum().backward()
+        finally:
+            spy.close()
+        res.append((lp.detach(), [None if p.grad is None else p.grad.clone() for p in params], list(spy.calls)))
+    (lp0, g0, c0), (lp1, g1, c1) = res
+    assert not n_ckpt and c1 == [2 * new] and c0 == [2 * (plen + new)]
+    assert torch.equal(lp0, lp1)
+    # gradients are not bit-identical: the head's weight gradient sums over fewer positions (the prompt rows of the old
+    # path contribute exact zeros) in a different order. Measured 1.8e-6 of the max on the CPU stand-in, 3.9e-7 on a T4.
+    gmax = max(float(a.abs().max()) for a in g0 if a is not None)
+    assert max(float((a - b).abs().max()) for a, b in zip(g0, g1) if a is not None) <= 1e-5 * gmax
+
+
+def test_set_head_checkpoint_reads_the_train_config_and_refuses_policies_without_a_split_head():
+    import pytest
+    pol = P.module_policy(nn.Linear(2, 2), split_head=False)
+    assert train.set_head_checkpoint(pol, {}) is False and pol.head_checkpoint is False
+    with pytest.raises(ValueError, match="hidden/head"):
+        train.set_head_checkpoint(pol, {"head_checkpoint": True})
+
+    class M(nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.head = nn.Linear(2, 3)
+
+        def hidden(self, ids, valid):
+            return torch.zeros(*ids.shape, 2)
+    split = P.module_policy(M(), split_head=True)
+    assert train.set_head_checkpoint(split, {"head_checkpoint": True}) is True and split.head_checkpoint is True
+    assert train.set_head_checkpoint(split, {"head_checkpoint": False}) is False and split.head_checkpoint is False
