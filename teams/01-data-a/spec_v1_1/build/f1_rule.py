@@ -15,17 +15,15 @@ _F1_LANGS = set(_F1_TREE)  # families with a harm test so far. Prose families go
 # own F1 rule, and the label for one pack differs between the week-1 sample packs ("eng_Latn" for science) and the week-2 data
 # ("en"). A doc without a pack_id never takes this path.
 _F1_PROSE = ("math-", "sci-")
-# Code-adjacent packs mix prose, code and data in one text, with no single parser for it. In commits and notebooks only e-mail
-# addresses are masked, never a phone or an address and never a drop: on the sample, the phone and address patterns hit IP
-# addresses, part numbers, colour values and pixel arrays. cadj-stackexchange gets no F1: its e-mail-like strings are ssh and
-# git logins, URLs with a user name, systemd units, message IDs and code, and none of the sampled ones was a person's address
-# (24 Nov 2026). As in the cadj-commits medicine (diagnosis/submissions/cadj-commits/kunal2016/medicine.md, medicine 1), made-up
-# addresses at test domains stay, and a LinkedIn profile URL becomes the medicine's placeholder URL.
-_F1_EMAIL_ONLY = ("cadj-commits", "cadj-notebooks")
+# Code-adjacent packs mix prose, code and data in one text, with no single parser for it. In cadj-commits only e-mail addresses
+# are masked, never a phone or an address and never a drop: on the sample, the phone and address patterns hit IP addresses,
+# part numbers, colour values and pixel arrays. As in the cadj-commits medicine (diagnosis/submissions/cadj-commits/kunal2016/
+# medicine.md, medicine 1), made-up addresses at test domains and mail@ stay. Deferred (24 Nov 2026): cadj-notebooks and
+# cadj-stackexchange (no gold set; on the sample, stackexchange's e-mail-like strings are ssh and git logins, URLs with a user
+# name, systemd units and code), and the medicine's LinkedIn profile URLs.
+_F1_EMAIL_ONLY = ("cadj-commits",)
 _F1_CADJ_SAFE = re.compile(r"(?i)(^|\.)(test\.com|domain\.com|email\.com|noreply\.github\.com)$")
 _F1_CADJ_ROLE = re.compile(r"(?i)^mail$")
-_F1_PROFILE = re.compile(r"(?i)https?://(?:www\.)?linkedin\.com/in/[A-Za-z0-9_-]+/?")
-_F1_PROFILE_PLACEHOLDER = "https://www.linkedin.com/in/example"
 _F1_EMAIL = re.compile(r"(?<![\w.+%-])([A-Za-z0-9._%+-]+)@([A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,})(?![\w-])")
 _F1_ROLE = re.compile(r"(?i)^(info|contact|contacts|support|help|helpdesk|admin|administrator|sales|office|press|media|hello|enquiries|inquiries|"
                       r"webmaster|postmaster|noreply|no-reply|donotreply|service|services|customerservice|billing|careers|jobs|hr|legal|security|abuse|team|git|root)$")
@@ -73,10 +71,7 @@ def _f1_emails(line):
 
 
 def _f1_emails_only(text):
-    """The text with each private e-mail address replaced by <EMAIL>, and each LinkedIn profile URL by a placeholder URL
-    (the code-adjacent packs)."""
-    if "linkedin.com/in/" in text.lower():
-        text = _F1_PROFILE.sub(_F1_PROFILE_PLACEHOLDER, text)
+    """The text with each private e-mail address replaced by <EMAIL> (cadj-commits)."""
     if "@" not in text:
         return text
     out = []
@@ -416,7 +411,7 @@ def f1(doc):
     # Keep an explicit language tag (notably JavaScript versus TypeScript) when supplied.
     if lang == "code":
         lang = _F1_CODE_PACKS.get(pack, lang)
-    if pack.startswith(_F1_EMAIL_ONLY):         # code-adjacent packs: e-mail addresses only, never a drop
+    if pack in _F1_EMAIL_ONLY:                  # cadj-commits: e-mail addresses only, never a drop
         new = _f1_emails_only(text)
         return ("fix" if new != text else "keep", new)
     if pack.startswith("ind-"):                 # Indic packs: any language tag

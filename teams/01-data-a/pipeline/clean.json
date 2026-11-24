@@ -2,7 +2,7 @@
   "schema_version": 1,
   "_comment": "Settings of the clean stage (stages.clean.settings): which cleaner the pipeline runs and how. Paths and the input set come from the run config.",
   "clean": "teams/01-data-a/spec_v1_1/clean.py",
-  "clean_sha256": "6de8b6e850926df4a426837ee5de6217987e2c80f54547e6414a7d2404b1f537",
+  "clean_sha256": "5551c04d01b3577bad84790b0853bd31cd2300c8d19d9f53447b4d6f26d2c5da",
   "batch_size": 128,
   "workers": 4,
   "_workers": "parts cleaned at once, one process each (default 1 when the key is missing); the output is the same for any number. About 250 MB of memory per worker (measured on 38 real parts).",

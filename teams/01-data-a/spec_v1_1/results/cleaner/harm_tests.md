@@ -1,5 +1,26 @@
 # clean() harm tests: spec v1.1
 
+## cadj-commits e-mail F1 (#88): 24 Nov 2026
+
+Cleaner SHA-256 `5551c04d01b3577bad84790b0853bd31cd2300c8d19d9f53447b4d6f26d2c5da`, rebuilt byte for byte from
+`sheets/specv1_1.md` and `build/f1_rule.py`. The only change from the `4b5e46ba…` cleaner tested below: the shared F1
+masks private e-mail addresses on cadj-commits (family `code-adjacent`, an empty pipeline), as in the cadj-commits
+medicine 1, with test domains and `mail@` kept. No phone or address masking, never a drop. cadj-notebooks,
+cadj-stackexchange and the medicine's LinkedIn profile URLs are deferred; those packs still pass through unchanged.
+
+- **cadj-commits gold** (`teams/02-data-b/gold`, week-1 pack): **0 of 413 changed or dropped, PASS** (limit 4).
+- **Week-1 packs:** cadj-commits 40 of 500 changed, each only by `<EMAIL>`, 0 drops, a second pass changes nothing;
+  cadj-notebooks 0 of 500. It fixes 40 of the 45 documents the cadj-commits readers labelled F1; the other 5 are not
+  e-mail cases.
+- **Every other pack is unchanged:** on the first 1,000 documents of each of the 37 packs of sample v0, the output equals
+  the `4b5e46ba…` cleaner's on all 36 packs other than cadj-commits (36,000 documents); on cadj-commits 60 differ, each only
+  by `<EMAIL>`. So the 23 Nov results below hold for every other pack.
+- **cadj-commits, whole sample v0:** 4,529 of 74,753 documents changed, 7,954 addresses masked, 0 drops, no other change.
+- Cleaner suite: 1,921 passed, 9 subtests passed.
+
+Evidence (IDs and counts only): [summary](harm_2026_11_24_cadj_commits/summary.json), made by
+[check_cadj_commits.py](harm_2026_11_24_cadj_commits/check_cadj_commits.py).
+
 ## Fresh validation: 23 Nov 2026
 
 Rebuilt `spec_v1_1/clean.py` from `sheets/specv1_1.md` and `build/f1_rule.py`.
