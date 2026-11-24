@@ -102,10 +102,17 @@ reconcile, so the clean pass is its own run, and the production run adopts its f
    It takes about 45 minutes and about 26 GB of scratch disk for the three `work/` folders (1x + 2x + 4x).
 4. **Gate.** Go on only if all of these hold, and otherwise stop and return `out/minhash_sizing/corpus-v1/`:
    - the sizing command exited 0 (every factor complete, no reused parts);
-   - in `sizing.json`, the largest factor's `peak_rss_total_gb` (main process plus all workers together) is at most
-     48 GB. If the 4x row is `undersized`, fewer than 4x the sample is staged; its `actual_factor` is what was measured;
-   - `projection_whole_staged_inputs.hours_linear` (overlap on every staged document), plus the rest of the
-     pipeline, fits the Max time left after the clean run.
+   - in `sizing.json`, every factor in `results` has `status` `complete` and a measured `peak_rss_total_gb` (main
+     process plus all workers together), and the largest of them, `max(peak_rss_total_gb)` over all factors, is at
+     most 48 GB. A smaller factor can peak higher than a larger one, so every row counts, not only the largest
+     factor. If the 4x row is `undersized`, fewer than 4x the sample is staged; its `actual_factor` is what was
+     measured;
+   - the whole job fits the 720 minutes of Max time:
+     `elapsed job time + projected production overlap + remaining stages + margin <= 720 minutes`.
+     Elapsed job time is measured from the start of the job, so it includes the clean run and the sizing (about 45
+     minutes). Projected production overlap is `projection_whole_staged_inputs.hours_linear` × 60 (overlap on every
+     staged document). Remaining stages are H3, dedup, apply, F2, survivor loss, raw ledger, shards and reconcile.
+     Record the figures used for each term, and the margin, in the returned log.
 5. **Production run** with `run_production.json`, also written by `prepare_run.py`: `run.json` with its inventory and
    `stages.clean` set to `{"mode": "adopt", "output": "out/pipeline/first-training-v1-clean/clean"}`. Check it with
    `--plan`, then run it (step 3 of "Run from the repository root"). Before anything runs, the runner checks that the
@@ -250,7 +257,8 @@ python -m pytest teams/01-data-a/tests/audit/test_check_shard.py teams/01-data-a
    ```bash
    python -I teams/01-data-a/pipeline/run_pipeline.py --config out/first-training-inputs/run_clean.json
    python -I teams/01-data-a/dedup/minhash_sizing.py --inputs out/pipeline/first-training-v1-clean/clean --factors 1 2 4 --out out/minhash_sizing/corpus-v1
-   # go on only if the gate passes (sizing exit 0; largest factor peak_rss_total_gb <= 48 GB; projected time fits)
+   # go on only if the gate passes (sizing exit 0; every factor complete with max(peak_rss_total_gb) <= 48 GB;
+   # elapsed job time + projected production overlap + remaining stages + margin <= 720 minutes)
    python -I teams/01-data-a/pipeline/run_pipeline.py --config out/first-training-inputs/run_production.json --plan
    python -I teams/01-data-a/pipeline/run_pipeline.py --config out/first-training-inputs/run_production.json
    ```
