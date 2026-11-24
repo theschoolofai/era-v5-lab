@@ -271,3 +271,29 @@ def test_an_untrained_kas_tok_u_hides_the_dropout_noise_from_the_gate(monkeypatc
     g = _gate_file(tmp_path, "small")
     print(json.dumps({"kas_like_tok_u_std_0.0025_train_mode_gate": {k_: g[k_] for k_ in ("mean_abs", "max_abs", "outside_frac")}}))
     assert g["ok"] and g["mean_abs"] < 0.01 and g["update_mode"] == "train"
+
+
+def test_a_router_bias_change_is_recorded_after_the_outputs_not_raised(monkeypatch, tmp_path):
+    """C1 fix 2: a run whose router_bias moved (something called update_router_bias) still returns and writes its summary;
+    the summary carries the failure, router_bias_unchanged False, and train.py's CLI exits non-zero. Nothing is lost."""
+    scripts = {MIXED: [0, 1, 0, 1], MIXED_B: [1, 1, 0, 0]}
+    real = train.build_model
+
+    def build(mcfg, device):
+        pol, tok = real(mcfg, device)
+        pol.model.model.layers[0].mlp.register_buffer("router_bias", torch.zeros(4))
+        return pol, tok
+
+    monkeypatch.setattr(train, "build_model", build)
+    real_bg = train.backward_objective_v1
+
+    def bg(pol, *a, **kw):  # a trainer that moves the balancer bias, which G10 never does
+        pol.model.model.layers[0].mlp.router_bias.add_(0.001)
+        return real_bg(pol, *a, **kw)
+
+    monkeypatch.setattr(train, "backward_objective_v1", bg)
+    s, _, recs, _ = _run_v1(monkeypatch, tmp_path, "bias", dict(scripts))
+    assert recs[0]["optimizer_stepped"] and s["router_bias_unchanged"] is False and s["router_bias_checksum"]
+    assert any("router_bias changed" in f for f in s["failures"])
+    on_disk = json.loads((tmp_path / "bias" / "summary.json").read_text())
+    assert on_disk["router_bias_unchanged"] is False and on_disk["failures"] == s["failures"]

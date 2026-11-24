@@ -147,7 +147,9 @@ def _train_steps(model, steps: int = 3):
 
 @needs_bias
 @parametrize("method", ["full", "lora", "dt"])
-def test_c_dt_lora_and_full_ft_leave_router_bias_bit_identical_and_say_so(method, monkeypatch):
+def test_c_method_wrappers_and_adamw_leave_router_bias_bit_identical(method, monkeypatch):
+    """apply_method's wrappers plus AdamW steps in train mode (this test's own loop). The trainers' report field is
+    asserted end to end on a real sft_g5 run in test_c_sft_g5_reports_router_bias_unchanged_per_method."""
     model = _routing_bias(_make(), 0.3)
     args = types.SimpleNamespace(seed=1, lora_r=4, lora_alpha=8.0, dt_targets="g5_mlp", dt_alpha_start=100.0,
                                  dt_alpha_end=1000.0, steps=3, dt_lambda=0.0, dt_eta=0.0)
@@ -323,3 +325,58 @@ def test_h_router_state_refuses_a_nonzero_bias_with_gamma_0_and_records_it_other
     assert rec["bias_updated_by_g10"] is False
     src = (TEAMS / "10-post-training" / "rl-loop" / "team5_adapter.py").read_text()
     assert src.index("router = router_state(model") < src.index("head = head_access(model)")  # every mode, after load
+
+
+# ---------------------------------------------------------------- (c) end to end: sft_g5's report, every method, KAS stand-in
+
+import os  # noqa: E402
+
+_WORK = Path(__file__).resolve().parents[6] / "work"
+STANDIN_RUN = Path(os.environ.get("G10_STANDIN_RUN_FOLDER", _WORK / "adp-2026-11-24" / "rebuilt"))
+STANDIN_ART = Path(os.environ.get("G10_STANDIN_ARTIFACTS", _WORK / "capstone-rehearsal-2026-11-16" / "artifacts"))
+TABLE = TEAMS / "04-ke2" / "results" / "tables" / "p1536-s0" / "raw_table_P32.npz"
+
+
+def _standin_has_bias() -> bool:
+    if not ((STANDIN_RUN / "checkpoint.pt").is_file() and (STANDIN_ART / "tokenizer_p1536.json").is_file() and TABLE.is_file()):
+        return False
+    m = json.loads((STANDIN_RUN / "manifest.json").read_text())["config"]["model"]
+    return bool((m.get("moe") or {}).get("bias_gamma"))
+
+
+@pytest.mark.skipif(not (HAS_BIAS and _standin_has_bias()),
+                    reason="set G10_STANDIN_RUN_FOLDER to a run folder trained with bias_gamma != 0 (ADP KAS stand-in)")
+def test_c_sft_g5_reports_router_bias_unchanged_per_method(tmp_path, events):
+    """Two optimizer steps of the real sft_g5.run per method (full, LoRA + marker rows, DT, rows only) on a checkpoint whose
+    router_bias is non-zero: each report says router_bias_unchanged.pass, with a non-empty checksum, and logs im_end at its
+    target positions before and after (with RMS(h) and sum|z| on the KAS head)."""
+    import make_adapter_config as mac
+    import sft_rows
+    rt = sft_rows.Retok(STANDIN_ART / "tokenizer_p1536.json", TABLE)
+    rows = []
+    for i in range(10):  # test fixtures only: not training data
+        text = sft_g5.render.render([{"role": "user", "content": f"q{i}"}, {"role": "assistant", "content": f"a{i} b"}])
+        row, why = rt.row({"id": f"t/{i}", "text": text, "train_spans": rt.convert.train_spans(text)})
+        assert why == "ok"
+        row["split"] = "train" if i < 6 else "eval"
+        rows.append(row)
+    tr, ev = tmp_path / "train.jsonl", tmp_path / "eval.jsonl"
+    tr.write_text("".join(json.dumps(r) + "\n" for r in rows if r["split"] == "train"))
+    ev.write_text("".join(json.dumps(r) + "\n" for r in rows if r["split"] == "eval"))
+    cfg = mac.write_config(tmp_path / "adapter.yaml", TEAMS.parent, STANDIN_RUN, STANDIN_ART / "tokenizer_p1536.json", TABLE,
+                           TEAMS / "10-post-training", "g10_rehearsal", False)
+    common = ["--adapter-config", str(cfg), "--train", str(tr), "--eval", str(ev), "--steps", "2", "--batch", "3",
+              "--device", "cpu", "--gen-limit", "1", "--gen-max-new", "2", "--dt-calib-rows", "3", "--no-before"]
+    for name, extra in {"full": ["--method", "full"], "lora_markers": ["--method", "lora", "--marker-rows", "--wd", "0"],
+                        "dt": ["--method", "dt", "--dt-targets", "g5_gate"],
+                        "markers": ["--method", "markers", "--marker-rows", "--wd", "0", "--marker-lr", "1e-2"]}.items():
+        rep = sft_g5.run(sft_g5.parse_args(common + extra + ["--out", str(tmp_path / name)]))
+        rb = rep["router_bias_unchanged"]
+        assert rb["pass"] and rb["before"] and rb["before"] == rb["after"], name
+        im = rep["im_end_at_targets"]
+        assert im["before"]["positions"] > 0 and im["after"]["positions"] == im["before"]["positions"], name
+        assert im["before"]["sum_abs_z"] > 0 and im["before"]["rms_h"] > 0, name  # KAS head: z = h @ tok_c.T
+        b = im["before"]
+        assert b["mid_positions"] > 0 and abs(b["end_minus_mid"] - (b["mean_logprob"] - b["mid_logprob"])) < 1e-9, name
+        on_disk = json.loads((tmp_path / name / "sft_report.json").read_text())
+        assert on_disk["router_bias_unchanged"]["pass"], name

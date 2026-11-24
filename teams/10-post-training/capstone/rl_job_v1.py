@@ -509,6 +509,9 @@ def rl_step(a, out: Path, init_state, init_sha, deadline_unix, screen_n) -> dict
         screen = json.loads((rl_out / "screen.json").read_text())
         res["screen_survey"] = screen_survey(screen)
         (out / "screen_survey.json").write_text(json.dumps(res["screen_survey"], indent=1))
+    if summary.get("router_bias_unchanged") is False:  # after the kept weights: the step fails, nothing is lost
+        res.update(ok=False, error="router_bias changed during RL (summary.failures); outputs kept",
+                   router_bias_unchanged=False)
     if summary.get("status") in ("NO_GO_MIXED_BAND", "PAUSED_AT_DEADLINE"):
         return res
     evals = [json.loads(x) for x in (rl_out / "evals.jsonl").read_text().splitlines() if x.strip()]
@@ -532,6 +535,7 @@ def rl_step(a, out: Path, init_state, init_sha, deadline_unix, screen_n) -> dict
                optimizer_steps=(summary.get("objective") or {}).get("steps_with_optimizer_update"),
                time_split_s_per_step=summary.get("mean_times_s_after_step1"), step1_s=summary.get("step1_s"),
                trainable_weight_change=summary.get("trainable_weight_change"), router_unchanged=summary.get("router_unchanged"),
+               router_bias_unchanged=summary.get("router_bias_unchanged"),
                logprob_gate=summary.get("logprob_gate"), update_mode=summary.get("update_mode", "train"),
                update_mode_resolution=summary.get("update_mode_resolution"),
                decision=decide_rl(summary["heldout_change"], wrong[0] if wrong else None, wrong[-1] if wrong else None,

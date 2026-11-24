@@ -1536,6 +1536,9 @@ def train(cfg: dict) -> dict:
     if update_mode != "train":
         summary["update_mode"] = update_mode
     summary["update_mode_resolution"] = mode_rec
+    if not summary["router_bias_unchanged"]:  # recorded with every output; the callers fail the run after writing them
+        summary.setdefault("failures", []).append(
+            "router_bias changed during RL: something called update_router_bias(); the bias stays as delivered")
     if gate_cfg not in (None, False):
         summary["logprob_gate"] = gate_rec
     if init_state_info:
@@ -1597,8 +1600,7 @@ def train(cfg: dict) -> dict:
         (out / "summary.json").write_text(json.dumps(summary, indent=1))
     if not summary["router_unchanged"] and not router_trainable:
         raise RuntimeError("router checksum changed during RL")
-    if not summary["router_bias_unchanged"]:
-        raise RuntimeError("router_bias changed during RL: something called update_router_bias(); the bias stays as delivered")
+
     return summary
 
 
@@ -1631,7 +1633,7 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps({"status": e.result.status, "reasons": e.result.reasons}))
         return 3
     print(json.dumps({k: v for k, v in s.items() if k != "heldout_curve"}))
-    return 0
+    return 4 if s.get("failures") else 0
 
 
 if __name__ == "__main__":
