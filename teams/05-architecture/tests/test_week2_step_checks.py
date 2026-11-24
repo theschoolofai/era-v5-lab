@@ -17,7 +17,7 @@ from test_week2_model import fixture
 
 
 class ConsolidatedChecksTests(unittest.TestCase):
-    def run_injected_failure(self, *, after_update):
+    def run_injected_failure(self, *, after_update, device="cpu"):
         cfg, byte_rows, _ = fixture()
         cfg["model"]["ke_max_pos"] = byte_rows.shape[1]
         artifacts = SimpleNamespace(
@@ -52,7 +52,7 @@ class ConsolidatedChecksTests(unittest.TestCase):
                 patch.object(sys, "argv", ["train_week2.py", "--config", "fixture.yaml",
                     "--tokenizer", "fixture.json", "--byte-table", "fixture.npz",
                     "--train-data", str(train), "--heldout-data", str(heldout),
-                    "--smoke", "--smoke-steps", "1", "--no-checkpoint", "--out", str(root / "out")]),
+                    "--smoke", "--smoke-steps", "1", "--device", device, "--no-checkpoint", "--out", str(root / "out")]),
                 patch.object(train_week2, "load_runtime", return_value=deepcopy(cfg)),
                 patch.object(train_week2, "Artifacts", return_value=artifacts),
                 patch.object(train_week2, "build_optimizer", side_effect=build),
@@ -72,6 +72,23 @@ class ConsolidatedChecksTests(unittest.TestCase):
         self.assertIn("after clipping", message)
         self.assertIn("embedding.projection.weight", message)
         self.assertEqual(steps, 0)
+
+    @unittest.skipUnless(torch.cuda.is_available(), "CUDA required")
+    def test_cuda_trainer_failure_diagnostics(self):
+        for after_update in (False, True):
+            with self.subTest(after_update=after_update):
+                message, steps = self.run_injected_failure(after_update=after_update, device="cuda")
+                self.assertIn("embedding.projection.weight", message)
+                self.assertEqual(steps, int(after_update))
+                self.assertIn("after optimizer step" if after_update else "after clipping", message)
+
+    def test_norm_overflow_does_not_invent_a_nonfinite_tensor(self):
+        model = torch.nn.Linear(2, 1)
+        model.weight.grad = torch.full_like(model.weight, 1e30)
+        model.bias.grad = None
+        norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1., error_if_nonfinite=False)
+        with self.assertRaisesRegex(train_week2.NonfiniteTrainingError, "no nonfinite tensors found"):
+            checked_step_losses([torch.tensor([1., 1., 0.])], norm, model)
 
     def test_finite_step_does_not_inspect_tensors(self):
         with patch.object(train_week2, "nonfinite_tensor_detail", side_effect=AssertionError("unexpected scan")):
