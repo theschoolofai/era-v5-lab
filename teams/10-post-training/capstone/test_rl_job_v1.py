@@ -384,3 +384,14 @@ def test_sampler_flag_defaults_to_policy_and_writes_g5_batch_config(tmp_path):
     assert cfg_b["train"]["sampler"] == "g5_batch"
     assert cfg_b["train"]["sampler_max_rows"] == 64
 
+
+
+def test_micro_rows_defaults_to_1_and_0_means_the_whole_group(tmp_path):
+    """Job RLG: the update of a whole group of 8 x 2,048 tokens does not fit (10.2 GiB for one row on a T4), so the
+    config carries micro_rows 1 unless the job says otherwise; 0 leaves the key out (train.py: the whole group)."""
+    t = yaml.safe_load(job.write_train_config(_full_args(tmp_path), tmp_path, None, None, 1234.0, 64).read_text())["train"]
+    assert t["micro_rows"] == 1
+    t = yaml.safe_load(job.write_train_config(_full_args(tmp_path, micro_rows=2), tmp_path, None, None, 1234.0, 64).read_text())["train"]
+    assert t["micro_rows"] == 2
+    t = yaml.safe_load(job.write_train_config(_full_args(tmp_path, micro_rows=0), tmp_path, None, None, 1234.0, 64).read_text())["train"]
+    assert "micro_rows" not in t

@@ -392,6 +392,10 @@ def write_train_config(a, out: Path, init_state: Path | None, init_sha: str | No
                      "grad_clip": 1.0, "weight_decay": 0.0, "tr_epsilon": a.tr_epsilon, "fp32_master": True,
                      "autocast": "bf16" if a.device.startswith("cuda") else None, "eval_every": a.updates, "eval_k": a.eval_k,
                      "reward_workers": 4, "reward_pool": a.reward_pool,
+                     # rows per forward in old_lp and the update (train.py chunked_logprobs / backward_objective_v1).
+                     # Whole groups of 8 x 2,048 do not fit: job RLG measured 10.2 GiB for ONE row on a T4 (KAS V2,
+                     # bf16 autocast over fp32 weights, AdamW state held) and an OOM at 2; 8 rows extrapolate to 37-62 GiB
+                     **({"micro_rows": getattr(a, "micro_rows", 1)} if getattr(a, "micro_rows", 1) else {}),
                      "screen": {"n": screen_n, "k": a.k, "min_mixed": a.min_mixed},
                      "state_dir": str(out / "rl_state"), "state_every": a.state_every, "deadline_unix": deadline_unix,
                      **({"max_steps_this_call": a.max_steps_this_call} if a.max_steps_this_call else {}),
@@ -743,6 +747,9 @@ def parse_args(argv=None):
     ap.add_argument("--sampler", choices=("policy", "g5_batch"), default="policy",
                     help="policy: one decode per prompt; g5_batch: every prompt of a step in one decode (B5, 23 Nov: 12.8x on a T4)")
     ap.add_argument("--sampler-max-rows", type=int, default=128, help="g5_batch: rows decoded together at most")
+    ap.add_argument("--micro-rows", type=int, default=1,
+                    help="rows per forward in old_lp and the update (0 = the whole group of k). Default 1: a group of 8 at "
+                         "2,048 tokens peaked at 10.9 GiB with 1 on a T4 and ran out of memory with 2 and 4 (job RLG)")
     ap.add_argument("--time-sync", action="store_true",
                     help="synchronize CUDA at each phase boundary so rl/metrics.jsonl times_s splits sampling (rollout), "
                          "scoring (reward) and the update (old_logprobs + train) exactly; off by default")
