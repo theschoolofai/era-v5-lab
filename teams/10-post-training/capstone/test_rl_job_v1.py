@@ -529,3 +529,15 @@ def test_dt_report_keeps_mask_integrity_and_fails_invalid_deletion_summary(tmp_p
         summary["keep_zero"] = bad
         result = job.rl_step(a, tmp_path, weights, sums[weights.name], 1234.0, 64)
         assert result["ok"] is False and "deletion integrity" in result["error"]
+
+
+def test_head_checkpoint_is_off_unless_the_job_asks(tmp_path):
+    """Job RLM2: the checkpointed head chunks cost update time, so the config carries head_checkpoint only with
+    --head-checkpoint."""
+    t = yaml.safe_load(job.write_train_config(_full_args(tmp_path), tmp_path, None, None, 1234.0, 64).read_text())["train"]
+    assert "head_checkpoint" not in t
+    a = job.parse_args(["--g5-root", "g", "--run-folder", "r", "--tokenizer", "t", "--byte-table", "b", "--rl-tasks",
+                        "cc.jsonl", "--train-pool", "tp", "--heldout-pool", "hp", "--device", "cpu", "--out", str(tmp_path),
+                        "--head-checkpoint"])
+    t = yaml.safe_load(job.write_train_config(a, tmp_path, None, None, 1234.0, 64).read_text())["train"]
+    assert t["head_checkpoint"] is True
