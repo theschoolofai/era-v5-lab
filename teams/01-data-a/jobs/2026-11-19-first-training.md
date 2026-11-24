@@ -63,6 +63,19 @@ staged-data MinHash sizing and validate the final worker budget and integration
 run. This update does not claim that those measurements have been completed.
 See `2026-11-19-first-training/README.md` for selection details.
 
+### Scoped cleaner preservation amendments (23 Nov 2026)
+
+The active cleaner includes five subsets extracted from fork #86: A6 test-fixture/
+Cyrillic protection, scientific C2 paragraph boundaries, English C2 fenced-code
+protection, C3 closing curly quotes, and English F1 DOI protection. The existing
+binary-value guard, rule IDs/scopes/order and report-only H3 policy are retained.
+Fresh harm remains 27/31 supported packs PASS and four raw FAIL, with exactly
+the previous affected IDs; the five amended rules touch zero gold documents.
+Cleaner tests: 1,946 PASS and nine subtests; clean-job/preparation: 125 PASS.
+See `../spec_v1_1/results/cleaner/harm_tests.md` for replaced evidence and limits.
+The tokenizer-sample job config now pins this cleaner too; historical rehearsal
+timings and hashes below remain historical and are not evidence for this build.
+
 ### MinHash overlap sizing (measured at 1x on the sample)
 
 From the stage's own runs (`jobs/logs/2026-11-23-minhash-overlap-sample/`, #744 and #758), on the sample's 47 train
@@ -127,7 +140,7 @@ This revises the request of #599 now that TSAI has confirmed the input manifest.
 
 - **Dataset version:** `prepare_run.py` generated `dataset_version` `first-training-v1`; it now generates `corpus-v1`. The `run_id` argument is unchanged and is only the output folder name.
 - **Pinned code:** `main` at `421f8497ddb1585666e8f5a274c524e4462402cc` (merge of #716), plus this update, which touches only `prepare_run.py` (the constant), its test, and these docs. Run from `main` once this update is merged.
-- **Pinned cleaner:** `teams/01-data-a/spec_v1_1/clean.py`, SHA-256 `4b5e46ba1d1d347d3650e3a060abc8b95e1dd9ec67970b2704c2c50ac0678755`, which equals `clean_sha256` in `teams/01-data-a/pipeline/clean.json`; the clean stage refuses any other file.
+- **Pinned cleaner:** `teams/01-data-a/spec_v1_1/clean.py`, SHA-256 `aa1f8e534820e5218f74c9bdec4ada217002ff467ee00256113ba59978e2b393`, which equals `clean_sha256` in `teams/01-data-a/pipeline/clean.json`; the clean stage refuses any other file.
 - **Pinned scope:** `approved_inputs.json`, SHA-256 `10f313750235902d401cfb1023555b37e575fc8a11a5adccceeab84af7515f5f` (the confirmed version). The input manifest records this hash and `prepare_run.py` refuses a manifest built from any other version.
 - **Checks:** `pytest` of the command under "Scope and prerequisites" passes (146 tests) on this branch.
 

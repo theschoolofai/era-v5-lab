@@ -10,7 +10,7 @@
   - speed fixes to `DA-F1-005`, `DA-C1-001` and `DA-D3-005` in the sheet, and to the shared F1 in `build/f1_rule.py`, each with the same output;
   - one change of output: the shared F1 picks its path by `pack_id`, not by the language label, so it also runs on science docs labelled `en`, as in the tokenizer sample.
 - **The build is in `build/`:** `build_clean.py` and `f1_rule.py` are spec v1's, with the changes of #49. By default they build `sheets/specv1_1.md` into `spec_v1_1/clean.py`. No file in `spec_v1/` or `tests/spec_v1/` changes: they are as on TSAI main.
-- **It includes the speed fixes of #50** (the team fork, merged as `5c4456e`) in the sheet: five code rules (`DA-A6-001`, `DA-A4-002`, `DA-E2-001`, `DA-E3-003`, `DA-E3-004`) and three math rules (`DA-A5-002`, `DA-A8-001`, `DA-C7-001`). On every run in `results/cleaner/`, its output is byte for byte that of the build before them (`ea14b0899085…`).
+- **It includes the speed fixes of #50** (the team fork, merged as `5c4456e`) in the sheet: five code rules (`DA-A6-001`, `DA-A4-002`, `DA-E2-001`, `DA-E3-003`, `DA-E3-004`) and three math rules (`DA-A5-002`, `DA-A8-001`, `DA-C7-001`). On the historical speed runs in `results/cleaner/`, its output was byte for byte that of the build before them (`ea14b0899085…`).
 
 Paths are from `teams/01-data-a`.
 
@@ -43,14 +43,24 @@ Paths are from `teams/01-data-a`.
 
 ## Current harm validation (23 Nov 2026)
 
-The rebuilt cleaner remains `4b5e46ba…`. Fresh tests on 4,768 gold documents give
-27 supported packs PASS and four FAIL; their 11 affected IDs match the historical
-report. Two unsupported packs pass through; five lack gold and are not testable.
-The amended English F1, code shared F1 and Sanskrit `DB-B4-004` rules each change
-or drop zero gold documents. No Indic joiner/normal-form violations were found.
-The cleaner suite passes 1,915 tests and nine subtests.
-See [the fresh harm report](results/cleaner/harm_tests.md) for exact scope,
-raw failures, missing gold, hashes and the legacy-runner limitation.
+The rebuilt cleaner is `aa1f8e534820e5218f74c9bdec4ada217002ff467ee00256113ba59978e2b393` after five scoped
+preservation amendments extracted from #86: Cyrillic/test fixtures, scientific
+paragraph boundaries, fenced code, closing curly quotes and DOI digits.
+Existing rule IDs, scopes and order are unchanged; shared F1 is unchanged.
+
+Fresh tests on 4,768 gold documents give 27 supported packs PASS and four FAIL;
+their 11 affected IDs and every per-rule result match the previous fresh run.
+All five amended rules change or drop zero gold documents. Two unsupported
+packs pass through; five lack gold. No execution or Indic Unicode-audit errors.
+The cleaner suite passes **1,946 tests and nine subtests**; clean-job and
+job-preparation checks pass **125 tests**. On all 19,000 sample documents,
+two pipeline outputs differ, with no new drops, new idempotence failures or
+scope violations by the amended rules.
+
+See [the replaced harm report](results/cleaner/harm_tests.md) for the exact
+subsets, evidence, raw failures and missing-gold limitations. Reproduce it with
+`scripts/run_current_harm.py --packs <original-packs-folder> --out <output>`.
+The active pipeline and tokenizer-sample job configs pin the new cleaner.
 
 ## Historical harm summary (17 Nov 2026)
 
