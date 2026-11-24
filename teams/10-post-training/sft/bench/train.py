@@ -145,7 +145,12 @@ def target_nll_sum(model: nn.Module, batch: probe.Batch) -> tuple[torch.Tensor, 
     return masked_nll_sum(logits[None], batch.labels[sel][None])
 
 
-AUTOCAST = {"dtype": None, "device": "cuda"}  # "device": a test seam (the CPU tests run the bf16 path on CPU autocast)
+# "device": a test seam (the CPU tests run the bf16 path on CPU autocast).
+# "cache": torch.autocast keeps the BF16 cast of every FP32 weight that requires grad until the context exits. With
+# gradient checkpointing nothing else holds those casts, so by the end of a microbatch's forward a BF16 copy of every
+# trainable Linear weight is resident (2 B per weight: 14.1 GiB at Qwen3-8B, what put 8B full FT over an H200). Off,
+# each matmul casts its weight when it runs: the same rounding, so the same numbers (bit-identical on CPU).
+AUTOCAST = {"dtype": None, "device": "cuda", "cache": False}
 
 
 def autocast_ctx(device: str):
@@ -153,7 +158,7 @@ def autocast_ctx(device: str):
 
     if AUTOCAST["dtype"] is None:
         return contextlib.nullcontext()
-    return torch.autocast(device_type=AUTOCAST["device"], dtype=AUTOCAST["dtype"])
+    return torch.autocast(device_type=AUTOCAST["device"], dtype=AUTOCAST["dtype"], cache_enabled=AUTOCAST["cache"])
 
 
 def accumulate(model: nn.Module, mbs: list[probe.Batch], device) -> tuple[float, int]:
