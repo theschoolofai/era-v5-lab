@@ -94,13 +94,13 @@ def test_times_shown_in_ist():
 
 
 def test_training_pace_queries_cover_harness_and_public_names():
-    panels = {p['title']: p for p in _load()['panels']}
+    panels = {p["title"]: p for p in _load()["panels"]}
     for title, names, unit in (
-        ('Training Pace: Tokens per Second', ('tokens_per_second', 'tokens_per_s'), 'none'),
-        ('Training Pace: Step Time', ('perf/step_ms', 'step_time_ms'), 'ms'),
+        ("Training Pace: Tokens per Second", ("tokens_per_second", "tokens_per_s"), "short"),
+        ("Training Pace: Step Time", ("perf/step_ms", "step_time_ms"), "ms"),
     ):
         panel = panels[title]
-        sql = panel['targets'][0]['rawSql']
+        sql = panel["targets"][0]["rawSql"]
         assert all("'" + name + "'" in sql for name in names)
-        assert 'run_id IN ($run)' in sql and 'value IS NOT NULL' in sql
-        assert panel['fieldConfig']['defaults']['unit'] == unit
+        assert "run_id IN ($run)" in sql and "value IS NOT NULL" in sql
+        assert panel["fieldConfig"]["defaults"]["unit"] == unit

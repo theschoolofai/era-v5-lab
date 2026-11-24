@@ -733,7 +733,7 @@
             "lineWidth": 2,
             "showPoints": "auto"
           },
-          "unit": "none",
+          "unit": "short",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -772,7 +772,7 @@
           "editorType": "sql",
           "format": 1,
           "queryType": "table",
-          "rawSql": "SELECT step, run_id, pace_value AS value FROM (SELECT step, run_id, coalesce(anyIf(value, name = 'tokens_per_second'), anyIf(value, name = 'tokens_per_s')) AS pace_value FROM metrics_raw WHERE name IN ('tokens_per_second', 'tokens_per_s') AND run_id IN ($run) AND value IS NOT NULL GROUP BY run_id, step, rank ORDER BY step) ORDER BY step",
+          "rawSql": "SELECT step, run_id, pace_value AS value FROM (SELECT step, run_id, coalesce(anyIf(value, name = 'tokens_per_second'), anyIf(value, name = 'tokens_per_s')) AS pace_value FROM metrics_raw WHERE name IN ('tokens_per_second', 'tokens_per_s') AND run_id IN ($run) AND value IS NOT NULL GROUP BY run_id, step, rank) ORDER BY step",
           "refId": "A"
         }
       ],
@@ -850,7 +850,7 @@
           "editorType": "sql",
           "format": 1,
           "queryType": "table",
-          "rawSql": "SELECT step, run_id, pace_value AS value FROM (SELECT step, run_id, coalesce(anyIf(value, name = 'perf/step_ms'), anyIf(value, name = 'step_time_ms')) AS pace_value FROM metrics_raw WHERE name IN ('perf/step_ms', 'step_time_ms') AND run_id IN ($run) AND value IS NOT NULL GROUP BY run_id, step, rank ORDER BY step) ORDER BY step",
+          "rawSql": "SELECT step, run_id, pace_value AS value FROM (SELECT step, run_id, coalesce(anyIf(value, name = 'perf/step_ms'), anyIf(value, name = 'step_time_ms')) AS pace_value FROM metrics_raw WHERE name IN ('perf/step_ms', 'step_time_ms') AND run_id IN ($run) AND value IS NOT NULL GROUP BY run_id, step, rank) ORDER BY step",
           "refId": "A"
         }
       ],
