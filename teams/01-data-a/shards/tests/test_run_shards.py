@@ -482,3 +482,85 @@ def test_a_spawned_writers_peak_memory_is_its_own_not_its_parents(monkeypatch):
         child = pool.submit(rs.peak_rss_mb).result()
     assert parent > 1500 and 0 < child < parent - 1000
 
+
+# --- several packs at once (--workers) ---------------------------------------------------------------------------------------
+
+TABLE4 = {"packs": {**TABLE["packs"],
+                    "pk-c": {"language": "hi", "script": "Deva", "domain": "indic", "lane": "indic"},
+                    "pk-d": {"language": "en", "script": "Latn", "domain": "math", "lane": "math"}}}
+
+
+@pytest.fixture
+def run4(tmp_path, monkeypatch):
+    """Four packs of two train parts each (three docs a part), and a held-out part."""
+    parts = {("train", f"{pack}/part-0000{k}.parquet"): rows(pack, f"{pack[-1]}{k}_") for pack in ("pk-a", "pk-b", "pk-c", "pk-d") for k in (0, 1)}
+    parts[("heldout", "pk-a/part-00000.parquet")] = rows("pk-a", "h0_")
+    return make_run(tmp_path / "pipeline", monkeypatch, parts)
+
+
+@pytest.fixture
+def table4(tmp_path):
+    path = tmp_path / "pack_table4.json"
+    path.write_text(json.dumps(TABLE4), encoding="utf-8")
+    return path
+
+
+def same_files(a_out, b_out):
+    names = sorted(p.name for p in a_out.iterdir() if not p.name.startswith("shards_summary"))
+    assert names == sorted(p.name for p in b_out.iterdir() if not p.name.startswith("shards_summary"))
+    for name in names:
+        assert (a_out / name).read_bytes() == (b_out / name).read_bytes(), name
+    return names
+
+
+def test_several_packs_at_once_give_the_same_summary_and_files_as_one_at_a_time(run4, tmp_path, table4, monkeypatch):
+    args = ("--tokens", "40")  # forced rollover: several shards a part, so the numbers across a pack's parts are tested too
+    _, seq_out, seq = go(run4, tmp_path, table4, *args, out="seq")
+    monkeypatch.setattr(rs, "START_METHOD", "spawn")   # real processes, started from the worker threads
+    code, par_out, par = go(run4, tmp_path, table4, *args, "--workers", "3", out="par")
+    assert code == 0 and seq["counts"]["written"] == 8 and seq["counts"]["shards"] > 8
+    assert without_times(par["parts"]) == without_times(seq["parts"]) and par["counts"] == seq["counts"]
+    assert list(par["parts"]) == list(seq["parts"])          # the same part order, whichever pack finished first
+    assert len(same_files(seq_out, par_out)) > 30 and par["verified"] is True
+
+
+def test_workers_with_in_process_is_refused_and_so_is_zero(run4, tmp_path, table4):
+    for extra in (("--workers", "2", "--in-process"), ("--workers", "0")):
+        with pytest.raises(SystemExit, match="--workers|--in-process"):
+            go(run4, tmp_path, table4, *extra)
+    assert not (tmp_path / "shards").exists()
+
+
+def test_a_pack_that_fails_stops_no_other_pack(run4, tmp_path, table4, monkeypatch):
+    pq.write_table(pa.Table.from_pylist(rows("pk-b", "x_")), run4 / "final" / "train" / "pk-b" / "part-00000.parquet")  # changed after F2
+    monkeypatch.setattr(rs, "START_METHOD", "spawn")
+    code, out, s = go(run4, tmp_path, table4, "--workers", "4")
+    assert code == 1 and s["parts"]["train/pk-b/part-00000.parquet"]["status"] == "failed"
+    assert {n: e["status"] for n, e in s["parts"].items() if e["pack_id"] != "pk-b" and e["status"] != "not_sharded"} == \
+        {f"train/{p}/part-0000{k}.parquet": "written" for p in ("pk-a", "pk-c", "pk-d") for k in (0, 1)}
+
+
+def test_a_second_run_with_workers_keeps_the_packs_of_the_first_and_ends_as_a_clean_run(run4, tmp_path, table4, monkeypatch):
+    monkeypatch.setattr(rs, "START_METHOD", "spawn")
+    _, clean_out, want = go(run4, tmp_path, table4, "--workers", "2", out="clean")
+    go(run4, tmp_path, table4, "--pack", "pk-a", "--pack", "pk-c", "--workers", "2", out="again")
+    kept = {p.name: p.stat().st_mtime_ns for p in (tmp_path / "again").glob("pk-[ac]-train-*.bin")}
+    code, out, got = go(run4, tmp_path, table4, "--workers", "2", out="again")
+    assert code == 0 and without_times(got["parts"]) == without_times(want["parts"]) and got["counts"] == want["counts"]
+    now = {p.name: p.stat().st_mtime_ns for p in out.glob("pk-[ac]-train-*.bin")}
+    assert len(kept) == 4 and {n: now[n] for n in kept} == kept   # the first run's shards were not written again
+    same_files(clean_out, out)
+
+
+def test_the_run_record_is_copied_once_and_never_half_written(tmp_path):
+    record = tmp_path / "record.json"
+    record.write_text('{"run": 1}\n', encoding="utf-8")
+    out = tmp_path / "shards"
+    out.mkdir()
+    target = out / "cleaning_pipeline.json"
+    rs.shard_writer.publish_pipeline_record(record, target)
+    assert target.read_bytes() == record.read_bytes()
+    before = target.stat().st_mtime_ns
+    rs.shard_writer.publish_pipeline_record(record, target)     # already there: left alone
+    assert target.stat().st_mtime_ns == before and [p.name for p in out.iterdir()] == ["cleaning_pipeline.json"]
+

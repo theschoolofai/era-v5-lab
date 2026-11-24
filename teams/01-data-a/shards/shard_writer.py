@@ -233,6 +233,17 @@ def new_shard(first_row):
     return {"docs": [], "rows": [], "total": 0, "first_row": first_row, "left_out": {k: [] for k in LEFT_OUT}}
 
 
+def publish_pipeline_record(run_file, pipeline):
+    """The run's cleaning_pipeline.json in the shard folder, byte for byte. Writers of several packs run at once (run_shards.py
+    --workers), each reads the file at its start and each would copy it: it is copied to a .tmp and renamed, so no reader
+    ever sees a half-written file, and it is left alone when it is already there."""
+    if pipeline.is_file() and pipeline.read_bytes() == Path(run_file).read_bytes():
+        return
+    tmp = pipeline.with_name(f".{pipeline.name}.{os.getpid()}.tmp")
+    shutil.copyfile(run_file, tmp)
+    os.replace(tmp, pipeline)
+
+
 def finish(a, ctx, shard_id, cur, rows_end):
     """Write one shard (rows first_row..rows_end-1 of the part), its report, manifest and dump; check it; return the manifest."""
     info, specials, pipeline, part_path = ctx["info"], ctx["specials"], ctx["pipeline"], ctx["part_path"]
@@ -242,7 +253,7 @@ def finish(a, ctx, shard_id, cur, rows_end):
     write_shard(bin_path, np.concatenate(docs))
     np.save(idx_path, starts)
     pq.write_table(pa.Table.from_pylist(rows), meta_path)
-    shutil.copyfile(ctx["run_file"], pipeline)  # the run's file, byte for byte: its sha256 is the manifest's cleaning_pipeline_sha256
+    publish_pipeline_record(ctx["run_file"], pipeline)  # the run's file, byte for byte: its sha256 is the manifest's cleaning_pipeline_sha256
     tpc = np.array([r["n_tokens"] / max(r["n_chars"], 1) for r in rows])
     worst = sorted(rows, key=lambda r: -r["n_tokens"] / max(r["n_chars"], 1))[:5]
     lo = {k: len(v) for k, v in left_out.items()}

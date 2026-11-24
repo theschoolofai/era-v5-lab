@@ -50,6 +50,14 @@ to about 20 GB at the 48th in the 19 Nov rehearsal) because what a part used was
 (killed, out of memory) fails its part and the run goes on. --in-process keeps the old behaviour, for the tests that break the
 writer from inside.
 
+Several packs at once: --workers N (default 1) writes N packs at the same time. The unit is a pack with its parts in order,
+because a pack's shard numbers continue from part to part; packs do not depend on each other. Each part is still written by a
+process of its own, so N writers are alive at most, each peaking at 1 to 4 GB on the sample's parts. The largest pack sets the
+shortest possible time, and the packs with the most data start first. The summary is saved by this process only, after
+every part, in the same part order and with the same content whatever N is (apart from "seconds" and "peak_rss_mb"); a stopped
+run is run again as before, each pack from its first part that is not complete. A part failing, or a writer dying, stops no other pack.
+With N above 1 the tokenizer's own threads are limited to cores / N (RAYON_NUM_THREADS), unless that is set already.
+
 Time and memory per part: every entry of a part that was written, left empty, left out whole or failed has "seconds" (wall
 time of the part) and "peak_rss_mb" (the highest resident memory of the process that wrote it, that process alone; null where
 the platform cannot say). With --in-process the process is this one, so the figure only grows. A part kept from an earlier run keeps its
@@ -58,8 +66,8 @@ earlier figures.
 import sys
 sys.dont_write_bytecode = True
 
-import argparse, contextlib, hashlib, io, json, multiprocessing as mp, os, re, time
-from concurrent.futures import ProcessPoolExecutor
+import argparse, contextlib, hashlib, io, itertools, json, multiprocessing as mp, os, re, threading, time
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
 from concurrent.futures.process import BrokenProcessPool
 from pathlib import Path
 
@@ -274,6 +282,8 @@ def main(argv=None):
     ap.add_argument("--any-tokenizer", action="store_true", help="tests only: accept a tokenizer other than p1536")
     ap.add_argument("--dataset-version", help="every manifest's dataset_version (e.g. sample, corpus-v1); required unless --any-tokenizer")
     ap.add_argument("--pack-table", type=Path, default=pack_table.TABLE)
+    ap.add_argument("--workers", type=int, default=1,
+                    help="packs written at the same time (default 1); each pack's parts stay in order, each part has a process of its own")
     ap.add_argument("--in-process", action="store_true",
                     help="write every part in this process instead of one process per part (the tests that break the writer from "
                          "inside; memory then grows from part to part)")
@@ -281,6 +291,10 @@ def main(argv=None):
                     help="do not check the shards when done (verify_shards.py): the caller does, as run_pipeline.py does; "
                          "'verified' in the summary is then null")
     a = ap.parse_args(argv)
+    if a.workers < 1:
+        sys.exit("run_shards: --workers must be a whole number >= 1")
+    if a.workers > 1 and a.in_process:
+        sys.exit("run_shards: --in-process writes in this process, one part at a time: it cannot go with --workers above 1")
     problem = shard_writer.dataset_version_problem(a.dataset_version, a.any_tokenizer)
     if problem:  # before anything is read or written: every part would fail on it
         sys.exit(f"run_shards: {problem}")
@@ -309,42 +323,76 @@ def main(argv=None):
     a.out.mkdir(parents=True, exist_ok=True)
     save(summary_path, summary)  # before the first shard: a run stopped in its first part can be run again too
 
-    this_run, next_index = [], {}  # the names of the parts this run handled; (split, pack) -> the number of its next shard
-    for split, pack, path in parts:
-        name, kept = f"{split}/{pack}/{path.name}", False
-        if split in NOT_SHARDED:
-            entry = {"pack_id": pack, "status": "not_sharded", "reason": f"{split} is not sharded (held-out data: G3 and G9 decide)"}
-        else:
+    names = [f"{split}/{pack}/{path.name}" for split, pack, path in parts]
+    earlier = dict(summary["parts"])  # what earlier runs into this --out left: kept when it is complete and in place
+    order = list(earlier) + [n for n in names if n not in earlier]  # the summary's part order, whatever order the parts finish in
+    this_run, lock, stop = [], threading.Lock(), threading.Event()  # the parts this run handled; one writer at a time saves the summary
+
+    def record(name, entry, kept):
+        with lock:
+            summary["parts"][name] = entry
+            summary["parts"] = {n: summary["parts"][n] for n in order if n in summary["parts"]}
+            save(summary_path, summary)  # after every part: a rerun picks up from here
+            this_run.append(name)
+            note = (f"{len(entry['shards'])} shard(s), {entry['docs']} docs, {entry['tokens']} tokens" + (" TRUNCATED" if entry["truncated"] else "")
+                    + (f", {entry['seconds']} s, {entry['peak_rss_mb']} MiB peak" if entry.get("seconds") is not None and not kept else "")
+                    + (" (kept from an earlier run)" if entry["status"] == "written" and kept else "")
+                    if entry["status"] in DONE else entry["reason"])
+            print(f"{entry['status']:8} {name}: {note}", file=sys.stderr if entry["status"] in ("failed", "skipped") else sys.stdout, flush=True)
+
+    def write_pack(split, pack, pack_parts, row):
+        """The parts of one pack, in order: the shard numbers continue across them."""
+        index = 0  # the number of the pack's next shard
+        for name, path in pack_parts:
+            if stop.is_set():  # another pack's writer raised: do not start more
+                return
+            kept = False
             entry = {"pack_id": pack}
-            try:
-                row = pack_table.row(pack, table)
-            except pack_table.PackTableError as e:
-                entry.update(status="skipped", reason=str(e))
+            if reusable(a.out, split, pack, earlier.get(name), index):
+                entry, kept = earlier[name], True  # done by an earlier run that stopped later
             else:
-                index = next_index.get((split, pack), 0)
-                if reusable(a.out, split, pack, summary["parts"].get(name), index):
-                    entry, kept = summary["parts"][name], True  # done by an earlier run that stopped later
+                clear_from(a.out, split, pack, index)
+                began = time.monotonic()
+                manifests, why, rss = write_one(path, a, row, index)
+                spent = {"seconds": round(time.monotonic() - began, 1), "peak_rss_mb": rss}
+                if why:
+                    entry.update(status="failed", reason=why)
+                elif isinstance(manifests, shard_writer.NoShard):
+                    entry.update(no_shard_entry(manifests))
                 else:
-                    clear_from(a.out, split, pack, index)
-                    began = time.monotonic()
-                    manifests, why, rss = write_one(path, a, row, index)
-                    spent = {"seconds": round(time.monotonic() - began, 1), "peak_rss_mb": rss}
-                    if why:
-                        entry.update(status="failed", reason=why)
-                    elif isinstance(manifests, shard_writer.NoShard):
-                        entry.update(no_shard_entry(manifests))
-                    else:
-                        entry.update(entry_of(manifests, a.out))
-                    entry.update(spent)
-                next_index[(split, pack)] = index + len(entry.get("shards", []))
-        summary["parts"][name] = entry
-        save(summary_path, summary)  # after every part: a rerun picks up from here
-        this_run.append(name)
-        note = (f"{len(entry['shards'])} shard(s), {entry['docs']} docs, {entry['tokens']} tokens" + (" TRUNCATED" if entry["truncated"] else "")
-                + (f", {entry['seconds']} s, {entry['peak_rss_mb']} MiB peak" if entry.get("seconds") is not None and not kept else "")
-                + (" (kept from an earlier run)" if entry["status"] == "written" and kept else "")
-                if entry["status"] in DONE else entry["reason"])
-        print(f"{entry['status']:8} {name}: {note}", file=sys.stderr if entry["status"] in ("failed", "skipped") else sys.stdout)
+                    entry.update(entry_of(manifests, a.out))
+                entry.update(spent)
+            index += len(entry.get("shards", []))
+            record(name, entry, kept)
+
+    jobs = []  # (split, pack, [(name, path)], pack table row): what has a writer to run
+    for (split, pack), group in itertools.groupby(zip(names, parts), key=lambda x: (x[1][0], x[1][1])):
+        group = [(name, path) for name, (_, _, path) in group]
+        if split in NOT_SHARDED:
+            for name, _ in group:
+                record(name, {"pack_id": pack, "status": "not_sharded", "reason": f"{split} is not sharded (held-out data: G3 and G9 decide)"}, False)
+            continue
+        try:
+            row = pack_table.row(pack, table)
+        except pack_table.PackTableError as e:
+            for name, _ in group:
+                record(name, {"pack_id": pack, "status": "skipped", "reason": str(e)}, False)
+            continue
+        jobs.append((split, pack, group, row))
+    if a.workers == 1:
+        for job in jobs:
+            write_pack(*job)
+    else:
+        os.environ.setdefault("RAYON_NUM_THREADS", str(max(1, len(getattr(os, "sched_getaffinity", lambda _: range(os.cpu_count() or 1))(0)) // a.workers)))
+        jobs.sort(key=lambda j: -sum(p.stat().st_size for _, p in j[2]))  # the biggest pack first: it ends the run
+        with ThreadPoolExecutor(max_workers=a.workers) as pool:
+            futures = [pool.submit(write_pack, *job) for job in jobs]
+            try:
+                for f in futures:
+                    f.result()
+            except BaseException:
+                stop.set()  # the packs under way finish their part, no pack starts another
+                raise
 
     pipeline = a.out / "cleaning_pipeline.json"  # written by the writer with the run's first shard
     summary = {"run_id": run_id, "settings": settings,
