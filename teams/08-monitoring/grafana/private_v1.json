@@ -2397,6 +2397,143 @@
       ],
       "title": "Lag alarm: seconds since last check",
       "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "description": "Open infrastructure health per run, counted from stored rows in run_events (so the numbers do not reset on refresh): restarts (restore.done, a new process restored a committed checkpoint), failed restores, committed and failed checkpoints (Team 07 v5-event lines), and alarm hits by severity (alarms.py output). Loaded by clickhouse/load_run_events.py. A blank cell means that input was never loaded for the run (no Team 07 events, or alarms not run), not zero; a 0 means it was loaded and nothing happened.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          },
+          "unit": "short",
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 133
+      },
+      "id": 32,
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "queryType": "table",
+          "rawSql": "SELECT run_id, if(countIf(event = 'events.loaded') = 0, NULL, countIf(kind = 'restart')) AS restarts, if(countIf(event = 'events.loaded') = 0, NULL, countIf(kind = 'restart_failed')) AS failed_restores, if(countIf(event = 'events.loaded') = 0, NULL, countIf(kind = 'checkpoint')) AS checkpoints, if(countIf(event = 'events.loaded') = 0, NULL, countIf(kind = 'checkpoint_failed')) AS failed_checkpoints, if(countIf(event = 'alarms.loaded') = 0, NULL, countIf(kind = 'alarm' AND severity = 'stop')) AS alarm_stop, if(countIf(event = 'alarms.loaded') = 0, NULL, countIf(kind = 'alarm' AND severity = 'page')) AS alarm_page, if(countIf(event = 'alarms.loaded') = 0, NULL, countIf(kind = 'alarm' AND severity = 'warn')) AS alarm_warn, maxIf(step, kind != 'coverage') AS last_event_step FROM run_events FINAL WHERE run_id IN ($event_run) GROUP BY run_id ORDER BY run_id",
+          "refId": "A"
+        }
+      ],
+      "title": "Open infrastructure health per run (run_events)",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "description": "Cumulative count of each kind of run event against the training step, one line per run and kind: restart, restart_failed, checkpoint, checkpoint_failed, alarm. A step where a line rises is where the event happened. Events with no step are left out. From run_events (clickhouse/load_run_events.py).",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "axisLabel": "events so far",
+            "lineWidth": 2,
+            "showPoints": "auto"
+          },
+          "decimals": 0,
+          "min": 0,
+          "unit": "short",
+          "displayName": "${__field.labels.series}"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "step"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "step"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 141
+      },
+      "id": 33,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        },
+        "xField": "step"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "queryType": "table",
+          "refId": "A",
+          "rawSql": "SELECT step, concat(run_id, ' ', kind) AS series, count() OVER (PARTITION BY run_id, kind ORDER BY step, event_key ROWS UNBOUNDED PRECEDING) AS value FROM run_events FINAL WHERE run_id IN ($event_run) AND step IS NOT NULL AND kind IN ('restart', 'restart_failed', 'checkpoint', 'checkpoint_failed', 'alarm') ORDER BY step"
+        }
+      ],
+      "title": "Restarts, checkpoints and alarm hits by step (run_events)",
+      "transformations": [
+        {
+          "id": "partitionByValues",
+          "options": {
+            "fields": [
+              "series"
+            ],
+            "naming": {
+              "asLabels": true
+            }
+          }
+        },
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "step",
+            "mode": "outer"
+          }
+        }
+      ],
+      "type": "trend"
     }
   ],
   "refresh": "10s",
@@ -2512,6 +2649,23 @@
         "multi": true,
         "name": "lag_run",
         "query": "SELECT DISTINCT run_id FROM eval_lag_checks ORDER BY run_id",
+        "refresh": 2,
+        "sort": 1,
+        "type": "query"
+      },
+      {
+        "allValue": null,
+        "current": {},
+        "datasource": {
+          "type": "grafana-clickhouse-datasource",
+          "uid": "${ds}"
+        },
+        "definition": "SELECT DISTINCT run_id FROM run_events ORDER BY run_id",
+        "includeAll": true,
+        "label": "event run",
+        "multi": true,
+        "name": "event_run",
+        "query": "SELECT DISTINCT run_id FROM run_events ORDER BY run_id",
         "refresh": 2,
         "sort": 1,
         "type": "query"
