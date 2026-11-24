@@ -104,3 +104,6 @@ def test_training_pace_queries_cover_harness_and_public_names():
         assert all("'" + name + "'" in sql for name in names)
         assert "run_id IN ($run)" in sql and "value IS NOT NULL" in sql
         assert panel["fieldConfig"]["defaults"]["unit"] == unit
+        step = next(o for o in panel["fieldConfig"]["overrides"] if o["matcher"]["options"] == "step")
+        props = {p["id"]: p["value"] for p in step["properties"]}
+        assert props == {"unit": "short", "custom.axisLabel": "step"}
