@@ -23,11 +23,14 @@ fingerprint set, about 1.4 GB). Peak disk use is about two decoded copies of --j
              match its first row there; a mismatch or a missing row is reported and makes the exit code 1.
 
 A .bin in the folder without its three other shard files counts as an incomplete download and fails the run, so keep
-only shards in the folder. Decoded text left in <work>/text by a stopped run is deleted at the start.
+only shards in the folder. Decoded text in <work>/text from an earlier or stopped run is deleted at the start, and at
+the end unless --keep-text is given (--keep-text keeps it until the next run on the folder).
 
 Results go to <work>/results/<shard_id>.json, one file per shard, written only when all steps finish. A second run
-skips a shard that already has a result for the same tokenizer and shard payload (resume after a stop). Use --force to
-check again. The decoded text is deleted after the checks unless --keep-text is given.
+skips a shard that already has a result for the same tokenizer, fingerprint set (set_sha256), check code (code_sha256:
+the scripts and the tokenizers version) and shard payload (resume after a stop). One run at a time can use a --work
+folder: a second run stops with an error. Use a local --work folder: the lock is not reliable on a network drive. Use
+--force to check again. The decoded text is deleted after the checks unless --keep-text is given.
 
 At the end it prints a markdown table in the format of results/decontam_shards.md, plus the fingerprint set_sha256
 and the canary count. Exit code: 0 when every shard passed with 0 flagged and 0 canary hits and matched --compare;
@@ -50,6 +53,11 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 SHARD_EXTS = (".bin", ".idx.npy", ".docs.parquet", ".json")
 GB_PER_JOB = 2.5
+# The code a result depends on: this runner, the three scripts and the modules they import. Its sha256 (with the
+# tokenizers version, which the decode uses) is stored in each result, so a code change checks the shards again.
+CODE_FILES = ("check_shards.py", "decode_shard.py", "decontam_check.py", "canary_scan.py", "fpset.py", "normalize.py",
+              "lab_canary.py", "g1_spec_v1_normalize.py")
+LOCK_NAME = ".check_shards.lock"
 SPLITS_AT_ONCE = 2  # a split holds one decoded shard in this process: limit how many at a time
 SET_LINE = re.compile(r"^fingerprints (\S+) set_sha256 ([0-9a-f]{64}) \((.+)\)$", re.M)
 DECONTAM_LINE = re.compile(r"^docs (\d+) flagged (\d+) ", re.M)
@@ -71,6 +79,64 @@ def default_jobs():
     except (ValueError, OSError, AttributeError):  # no sysconf (Windows): use the core count with a safe cap
         return max(1, min(cores, 4))
     return max(1, min(cores, int(mem_gb // GB_PER_JOB)))
+
+
+def fingerprint_set_sha(folder):
+    """set_sha256 from a fingerprint set's MANIFEST.json (decontam_check.py checks it against SHA256SUMS)."""
+    try:
+        sha = json.loads((Path(folder) / "MANIFEST.json").read_text(encoding="utf-8"))["set_sha256"]
+    except (OSError, ValueError, KeyError) as e:
+        raise CheckError(f"{folder}: no fingerprint set with a set_sha256 ({type(e).__name__}: {e})") from None
+    if not re.fullmatch(r"[0-9a-f]{64}", str(sha)):
+        raise CheckError(f"{folder}: set_sha256 {sha!r} is not a sha256")
+    return sha
+
+
+def default_fingerprints():
+    """The set decontam_check.py and canary_scan.py use without --fingerprints (fpset.VERSION)."""
+    if str(HERE) not in sys.path:  # python -I leaves the script's folder out of sys.path
+        sys.path.insert(0, str(HERE))
+    from fpset import VERSION
+
+    return HERE.parent / "fingerprints" / VERSION
+
+
+def code_sha256():
+    """sha256 of CODE_FILES (line ends read as LF, so a Windows checkout gives the same value) and the tokenizers
+    version."""
+    h = hashlib.sha256()
+    for name in CODE_FILES:
+        data = (HERE / name).read_bytes().replace(b"\r\n", b"\n")
+        h.update(f"{name} {hashlib.sha256(data).hexdigest()}\n".encode())
+    try:
+        from importlib.metadata import version
+
+        tok_version = version("tokenizers")
+    except Exception:  # not installed: the decode step reports it
+        tok_version = "unknown"
+    h.update(f"tokenizers {tok_version}\n".encode())
+    return h.hexdigest()
+
+
+def lock_work(work):
+    """Hold a lock on <work> for this run, so a second run on the same folder stops at once instead of deleting the
+    first run's files. The operating system releases the lock when the process ends, also after a crash."""
+    f = open(work / LOCK_NAME, "a+")
+    try:
+        if os.name == "nt":
+            import msvcrt
+
+            f.seek(0)
+            msvcrt.locking(f.fileno(), msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(f.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        f.close()
+        raise CheckError(f"another check_shards.py run uses {work}: wait for it, or use another --work "
+                         "folder") from None
+    return f
 
 
 def sha256_file(path):
@@ -246,7 +312,8 @@ def main(argv=None):
     ap.add_argument("--part-tokens", type=int, default=16_000_000,
                     help="tokens per decontam_check.py part (default 16,000,000)")
     ap.add_argument("--compare", type=Path, help="markdown shard table to check payload_sha256, docs and tokens")
-    ap.add_argument("--keep-text", action="store_true", help="keep <work>/text/<shard_id>.text.parquet")
+    ap.add_argument("--keep-text", action="store_true",
+                    help="keep <work>/text/<shard_id>.text.parquet until the next run on this --work folder")
     ap.add_argument("--force", action="store_true", help="check again shards that already have a result")
     a = ap.parse_args(argv)
 
@@ -259,10 +326,33 @@ def main(argv=None):
     if not a.shards.is_dir():
         ap.error(f"{a.shards} is not a folder")
     tok_sha = sha256_file(a.tokenizer)
+    try:
+        set_sha = fingerprint_set_sha(a.fingerprints or default_fingerprints())
+    except CheckError as e:
+        ap.error(str(e))
     for sub in ("text", "results"):
         (a.work / sub).mkdir(parents=True, exist_ok=True)
-    for old in (a.work / "text").glob("*.text.parquet*"):  # left by a stopped run: text, never a valid input
-        old.unlink()
+    try:
+        work_lock = lock_work(a.work)  # before the cleanup below, which deletes text another run can still use
+    except CheckError as e:
+        ap.error(str(e))
+    try:
+        return run_checks(a, tok_sha, set_sha, code_sha256(), ap)
+    finally:
+        if not a.keep_text:
+            clean_text(a.work)  # also text a step of a crashed earlier run wrote after this run started
+        work_lock.close()
+
+
+def clean_text(work):
+    """Delete decoded text in <work>/text. Called while this run holds the lock, so no other run uses the folder:
+    a file there is this run's, or from a stopped run (also from a step of a crashed run that went on after it)."""
+    for old in (work / "text").glob("*.text.parquet*"):
+        old.unlink(missing_ok=True)
+
+
+def run_checks(a, tok_sha, set_sha, code_sha, ap):
+    clean_text(a.work)  # text from an earlier run is never a valid input
     a.split_lock = threading.Semaphore(SPLITS_AT_ONCE)
 
     ids, incomplete = find_shards(a.shards)
@@ -284,12 +374,15 @@ def main(argv=None):
         if rp.exists() and not a.force:
             old = json.loads(rp.read_text())
             manifest = json.loads((a.shards / f"{shard_id}.json").read_text())
-            if old.get("tokenizer_sha256") == tok_sha and old.get("payload_sha256") == manifest.get("payload_sha256"):
+            if (old.get("tokenizer_sha256") == tok_sha and old.get("set_sha256") == set_sha
+                    and old.get("code_sha256") == code_sha
+                    and old.get("payload_sha256") == manifest.get("payload_sha256")):
                 with lock:
                     print(f"{shard_id}: result kept from an earlier run (use --force to check again)", file=sys.stderr)
                 return old
         try:
             r = check_one(shard_id, a, tok_sha, pool)
+            r["code_sha256"] = code_sha
         except Exception as e:  # one bad shard must not stop the others
             with lock:
                 print(f"{shard_id}: FAILED: {e}", file=sys.stderr)
@@ -324,7 +417,10 @@ def main(argv=None):
     print(f"checked {len(results)} of {len(ids) + len(incomplete)} shard(s) in {time.time() - t0:.0f} s with "
           f"--jobs {a.jobs}" + (f"; FAILED: {' '.join(failed)}" if failed else ""), file=sys.stderr)
 
-    bad = bool(failed) or len(sets) > 1
+    other_set = sorted(r["shard_id"] for r in results if r["set_sha256"] != set_sha)
+    if other_set:
+        print(f"set_sha256 is not {set_sha} for: {' '.join(other_set)}", file=sys.stderr)
+    bad = bool(failed) or len(sets) > 1 or bool(other_set)
     bad |= any(r["flagged"] or r["canary_hits"] for r in results)
     bad |= ref is not None and any(compare(r, ref) for r in results)
     return 1 if bad else 0

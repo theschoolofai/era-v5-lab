@@ -27,7 +27,7 @@ SHA_B = "b" * 64
 
 def result(shard_id, sha=SHA_A, docs=10, tokens=100, flagged=0, canary_hits=0):
     return {"shard_id": shard_id, "payload_sha256": sha, "docs": docs, "tokens": tokens, "dataset_version": "v0",
-            "split": "train", "tokenizer_sha256": "t" * 64, "fingerprints_version": "v2", "set_sha256": "s" * 64,
+            "split": "train", "tokenizer_sha256": "t" * 64, "fingerprints_version": "v2", "set_sha256": "5" * 64,
             "scope": "full set", "flagged": flagged, "flagged_doc_ids": [], "canaries_checked": 4,
             "canary_hits": canary_hits, "canary_hit_list": [], "parts": 1, "seconds": 0.1}
 
@@ -101,8 +101,18 @@ def test_split_parts_keeps_every_document_once_in_order(tmp_path):
             p.unlink()
 
 
+def fake_set(tmp_path, sha="5" * 64, name="fp"):
+    """A folder with only the MANIFEST.json that check_shards.py reads set_sha256 from (the stubs never load it)."""
+    d = tmp_path / name
+    d.mkdir(exist_ok=True)
+    (d / "MANIFEST.json").write_text(json.dumps({"version": "v2", "set_sha256": sha}))
+    return d
+
+
 def run_main(tmp_path, folder, tok, work, *extra):
-    return cs.main([str(folder), "--tokenizer", str(tok), "--work", str(tmp_path / work), "--jobs", "2", *extra])
+    fp = [] if "--fingerprints" in extra else ["--fingerprints", str(fake_set(tmp_path))]
+    return cs.main([str(folder), "--tokenizer", str(tok), "--work", str(tmp_path / work), "--jobs", "2", *fp,
+                    *extra])
 
 
 def test_resume_skips_done_shard_and_force_reruns(tmp_path, monkeypatch):
@@ -265,3 +275,180 @@ def test_no_text_is_left_when_a_step_fails(tmp_path, monkeypatch):
     monkeypatch.setattr(cs, "split_parts", bad_split)
     assert run_main(tmp_path, folder, tok, "w") == 1
     assert list((work / "text").iterdir()) == []
+
+
+# ---- the fingerprint set ----
+def test_resume_checks_again_when_the_fingerprint_set_changes(tmp_path, monkeypatch):
+    folder, tok = make_shards(tmp_path, {"a-train-000000": 1})
+    calls = []
+
+    def fake(shard_id, a, tok_sha, pool):
+        calls.append(shard_id)
+        r = result(shard_id)
+        r["tokenizer_sha256"] = tok_sha
+        r["set_sha256"] = json.loads((a.fingerprints / "MANIFEST.json").read_text())["set_sha256"]
+        return r
+
+    monkeypatch.setattr(cs, "check_one", fake)
+    set_1, set_2 = fake_set(tmp_path, "1" * 64, "set1"), fake_set(tmp_path, "2" * 64, "set2")
+    assert run_main(tmp_path, folder, tok, "w", "--fingerprints", str(set_1)) == 0
+    assert run_main(tmp_path, folder, tok, "w", "--fingerprints", str(set_1)) == 0
+    assert calls == ["a-train-000000"]  # same set: the result is kept
+    assert run_main(tmp_path, folder, tok, "w", "--fingerprints", str(set_2)) == 0
+    assert calls == ["a-train-000000", "a-train-000000"]  # another set: checked again
+    saved = json.loads((tmp_path / "w" / "results" / "a-train-000000.json").read_text())
+    assert saved["set_sha256"] == "2" * 64
+
+
+def test_a_result_from_another_set_fails_the_run(tmp_path, monkeypatch):
+    folder, tok = make_shards(tmp_path, {"a-train-000000": 1})
+    monkeypatch.setattr(cs, "check_one", lambda s, a, t, p: result(s))  # set_sha256 "5" * 64
+    assert run_main(tmp_path, folder, tok, "w", "--fingerprints", str(fake_set(tmp_path, "9" * 64, "x"))) == 1
+
+
+def test_a_folder_without_a_set_is_a_usage_error(tmp_path):
+    folder, tok = make_shards(tmp_path, {"a-train-000000": 1})
+    (tmp_path / "empty").mkdir()
+    with pytest.raises(SystemExit) as e:
+        run_main(tmp_path, folder, tok, "w", "--fingerprints", str(tmp_path / "empty"))
+    assert e.value.code == 2
+
+
+def test_planted_leaks_are_caught_through_the_parts(tmp_path, monkeypatch):
+    """The real decontam_check.py and canary_scan.py on a small set: a benchmark text and the lab canary planted in
+    documents of different parts are found, with their doc_id, and nothing else (check 3 of decontam_shards.md).
+    Only the decode is replaced, because a real decode needs a real shard and the frozen tokenizer."""
+    import fpset
+    from lab_canary import LAB_CANARY
+
+    item = ("the old stone bridge over the quiet river was built by farmers who carried every rock "
+            "from the hills above the village")
+    fp_dir = tmp_path / "set"
+    fpset.write_benchmark(fp_dir, "bench", [("bench:test:0", {"prose": [item]})], {"prose": 13, "code": 20},
+                          {"name": "Bench", "tags": ["english"]})
+    fpset.write_index(fp_dir)
+
+    filler = "numbers letters and other plain words in a clean training document number"
+    texts = [f"{filler} {i}" for i in range(12)]
+    texts[5] = f"{filler} five. A story: {item}. The end."
+    texts[10] = f"{filler} ten {LAB_CANARY} more words"
+    shard_id = "a-train-000000"
+    folder, tok = make_shards(tmp_path, {shard_id: 1})
+    real_run = cs.run
+
+    def run(cmd):
+        if not cmd[1].endswith("decode_shard.py"):
+            return real_run(cmd)
+        out = Path(cmd[cmd.index("--out") + 1])
+        out.mkdir(parents=True, exist_ok=True)
+        path = out / f"{shard_id}.text.parquet"
+        pq.write_table(pa.table({"doc_id": [f"d{i}" for i in range(12)], "text": texts, "n_tokens": [10] * 12}), path)
+        return 0, json.dumps({"out": str(path), "payload_sha256": SHA_A, "docs": 12, "tokens": 120,
+                              "dataset_version": "test", "split": "train"}), ""
+
+    monkeypatch.setattr(cs, "run", run)
+    code = run_main(tmp_path, folder, tok, "w", "--fingerprints", str(fp_dir), "--part-tokens", "40")
+    assert code == 1  # hits make the exit code 1
+    r = json.loads((tmp_path / "w" / "results" / f"{shard_id}.json").read_text())
+    assert r["parts"] == 3 and r["docs"] == 12
+    assert r["flagged"] == 2 and sorted(r["flagged_doc_ids"]) == ["d10", "d5"]
+    assert r["canary_hits"] == 1 and r["canary_hit_list"][0]["doc_id"] == "d10"
+    assert r["set_sha256"] == json.loads((fp_dir / "MANIFEST.json").read_text())["set_sha256"]
+    assert list((tmp_path / "w" / "text").iterdir()) == []
+
+
+def test_runs_as_a_script_in_isolated_mode(tmp_path):
+    """python -I leaves the script's folder out of sys.path: the default fingerprint set must still be found."""
+    import subprocess
+    import sys
+
+    (tmp_path / "shards").mkdir()
+    tok = tmp_path / "tokenizer.json"
+    tok.write_text("{}")
+    p = subprocess.run([sys.executable, "-I", str(Path(cs.__file__)), str(tmp_path / "shards"), "--tokenizer",
+                        str(tok), "--work", str(tmp_path / "w")], capture_output=True, text=True)
+    assert p.returncode == 2 and "no shards to check" in p.stderr and "Traceback" not in p.stderr
+
+
+# ---- one run per work folder, and the check code ----
+def test_a_second_run_on_the_same_work_folder_stops(tmp_path, monkeypatch):
+    folder, tok = make_shards(tmp_path, {"a-train-000000": 1})
+    monkeypatch.setattr(cs, "check_one", lambda s, a, t, p: result(s))
+    work = tmp_path / "w"
+    work.mkdir()
+    (work / "text").mkdir()
+    (work / "text" / "a-train-000000.text.parquet").write_text("text of the first run")
+    held = cs.lock_work(work)  # a first run that is still working
+    with pytest.raises(SystemExit) as e:
+        run_main(tmp_path, folder, tok, "w")
+    assert e.value.code == 2
+    assert (work / "text" / "a-train-000000.text.parquet").exists()  # the first run's files are not touched
+    held.close()
+    assert run_main(tmp_path, folder, tok, "w") == 0  # free again after the first run ends
+
+
+def test_resume_checks_again_when_the_check_code_changes(tmp_path, monkeypatch):
+    folder, tok = make_shards(tmp_path, {"a-train-000000": 1})
+    calls = []
+
+    def fake(shard_id, a, tok_sha, pool):
+        calls.append(shard_id)
+        r = result(shard_id)
+        r["tokenizer_sha256"] = tok_sha
+        return r
+
+    monkeypatch.setattr(cs, "check_one", fake)
+    assert run_main(tmp_path, folder, tok, "w") == 0
+    assert run_main(tmp_path, folder, tok, "w") == 0
+    assert calls == ["a-train-000000"]
+    monkeypatch.setattr(cs, "code_sha256", lambda: "c" * 64)  # as after a change in normalize.py
+    assert run_main(tmp_path, folder, tok, "w") == 0
+    assert calls == ["a-train-000000", "a-train-000000"]
+    saved = json.loads((tmp_path / "w" / "results" / "a-train-000000.json").read_text())
+    assert saved["code_sha256"] == "c" * 64
+
+
+def test_code_sha256_covers_each_file_and_ignores_line_ends(tmp_path, monkeypatch):
+    for name in cs.CODE_FILES:
+        (tmp_path / name).write_bytes(b"line one\nline two\n")
+    monkeypatch.setattr(cs, "HERE", tmp_path)
+    base = cs.code_sha256()
+    (tmp_path / "normalize.py").write_bytes(b"line one\r\nline two\r\n")  # a Windows checkout
+    assert cs.code_sha256() == base
+    (tmp_path / "normalize.py").write_bytes(b"line one\nline 2\n")
+    assert cs.code_sha256() != base
+
+
+def test_code_files_are_the_local_imports():
+    """CODE_FILES must name every module of this folder that the checks import."""
+    import ast
+
+    here = Path(cs.__file__).resolve().parent
+    local = {p.stem for p in here.glob("*.py")}
+    todo, seen = ["check_shards", "decode_shard", "decontam_check", "canary_scan"], set()
+    while todo:
+        mod = todo.pop()
+        if mod in seen:
+            continue
+        seen.add(mod)
+        for node in ast.walk(ast.parse((here / f"{mod}.py").read_text(encoding="utf-8"))):
+            names = [a.name for a in node.names] if isinstance(node, ast.Import) else (
+                [node.module] if isinstance(node, ast.ImportFrom) and node.module else [])
+            todo += [n.split(".")[0] for n in names if n.split(".")[0] in local]
+    assert seen <= {Path(n).stem for n in cs.CODE_FILES}
+
+
+def test_text_written_late_by_a_crashed_run_is_deleted_at_the_end(tmp_path, monkeypatch):
+    """A step of a crashed run can go on and write text after this run started: the end of this run deletes it,
+    and --keep-text keeps the text."""
+    folder, tok = make_shards(tmp_path, {"a-train-000000": 1})
+
+    def fake(shard_id, a, tok_sha, pool):
+        (a.work / "text" / "other-train-000000.text.parquet").write_text("text from a step of a crashed run")
+        return result(shard_id)
+
+    monkeypatch.setattr(cs, "check_one", fake)
+    assert run_main(tmp_path, folder, tok, "w") == 0
+    assert list((tmp_path / "w" / "text").iterdir()) == []
+    assert run_main(tmp_path, folder, tok, "k", "--keep-text") == 0
+    assert [p.name for p in (tmp_path / "k" / "text").iterdir()] == ["other-train-000000.text.parquet"]

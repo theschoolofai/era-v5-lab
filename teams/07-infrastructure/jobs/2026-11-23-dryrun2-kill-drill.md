@@ -47,7 +47,7 @@ The save interval is 600 s and step 0 is committed at the start, so a new commit
 
 ## Pins and retention
 
-- Pradeep (Team 7 task 4) pins step 0 and the step that run 2 restores from: `ckpt.py pin --run dryrun2-1234 --step N`. Team 9 asked for the restored-from step in CAP, so they can score it.
+- Pin steps: see #743. Pradeep (Team 7 task 4) pins step 0 and the step that run 2 restores from, right after this drill's restore: `ckpt.py pin --run /shared/ckpt/dryrun2-1234 --step N`. `--run` takes the full store path; the run id alone fails (Pradeep, on #738). Team 9 asked for the restored-from step in CAP, so they can score it.
 - Any retention run during the drill uses `--protect-every 10` (Team 9, 21 Nov).
 
 ## Pass checks (go into results/restore_dryrun2.md)
