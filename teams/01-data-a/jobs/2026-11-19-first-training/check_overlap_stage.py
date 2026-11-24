@@ -33,7 +33,7 @@ SCRIPT = "teams/01-data-a/dedup/minhash_overlap.py"
 SETTINGS = {"33-pack selection": "teams/01-data-a/dedup/minhash_overlap_partial.json",
             "all 38 packs": "teams/01-data-a/dedup/minhash_overlap.json"}
 TESTS = ["teams/01-data-a/pipeline/tests", "teams/01-data-a/jobs/2026-11-19-first-training/tests",
-         "teams/01-data-a/dedup/tests/test_minhash_overlap.py"]
+         "teams/01-data-a/dedup/tests/test_minhash_overlap.py", "teams/01-data-a/dedup/tests/test_minhash_sizing.py"]
 
 
 def main():

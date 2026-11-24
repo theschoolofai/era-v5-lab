@@ -9,8 +9,13 @@ the largest worker, the peak of the summed RSS of the main process and every wor
 
     python teams/01-data-a/dedup/minhash_sizing.py --inputs out/<staged cleaned folder> --factors 1 2 4
 
-Writes out/minhash_sizing/sizing.csv and sizing.json, and prints the extrapolated hours and GB for the whole staged
-inputs (linear in documents, from the largest measured factor).
+Every run measures from scratch: it writes into a new folder (--out, default out/minhash_sizing/<UTC time>) and refuses
+one that exists, so no factor can reuse signatures from an earlier run's work/; a factor whose summary reports reused
+parts fails. Each row records the requested and the actual scale: requested_documents (factor x the sample),
+documents and actual_factor (what the staged parts gave), and undersized (true when fewer documents were staged than
+the factor asks for: such a row is not a measurement at that factor). Writes sizing.csv and sizing.json in that folder
+(also when a factor fails, with its status and exit code) and prints the projection to all staged documents (linear,
+from the largest complete factor). Exit code 0 only when every factor completed; 1 otherwise.
 """
 import sys
 sys.dont_write_bytecode = True
@@ -90,6 +95,8 @@ def main():
     ap.add_argument("--factors", type=float, nargs="+", default=[1, 2, 4])
     ap.add_argument("--workers", type=int, default=None, help="override the settings' workers (default: keep them)")
     ap.add_argument("--settings", default="teams/01-data-a/dedup/minhash_overlap_partial.json")
+    ap.add_argument("--out", help="new folder for this run's measurements, relative to the repo "
+                                  "(default out/minhash_sizing/<UTC time>); refused if it exists")
     a = ap.parse_args()
     inputs = REPO / a.inputs
     parts = [(split, p.relative_to(inputs / split).as_posix(), p, part_rows(p))
@@ -97,10 +104,17 @@ def main():
              for p in sorted((inputs / split).rglob("*.parquet"))]
     staged = sum(p[3] for p in parts)
     base = json.loads((REPO / a.settings).read_text(encoding="utf-8"))
-    root = REPO / "out" / "minhash_sizing"
+    root = REPO / (a.out or f"out/minhash_sizing/{time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())}")
+    if not root.resolve().is_relative_to((REPO / "out").resolve()):
+        sys.exit(f"ERROR: --out must be inside out/ in the repository root, not {a.out}")
+    if root.exists():
+        sys.exit(f"ERROR: {root.relative_to(REPO)} exists; sizing measures from scratch, give a new --out")
+    root.mkdir(parents=True)
+    print(f"measurements in {root.relative_to(REPO).as_posix()}", flush=True)
     results = []
     for f in a.factors:
-        chosen, rows = pick(parts, f * SAMPLE_DOCS)
+        requested = int(round(f * SAMPLE_DOCS))
+        chosen, rows = pick(parts, requested)
         name = f"x{f:g}"
         folder = root / name / "inputs"
         for split, rel, path, _ in chosen:
@@ -121,9 +135,17 @@ def main():
         cfg_path.write_text(json.dumps(cfg, indent=2), encoding="utf-8")
         t = time.time()
         code, total = run_measured([sys.executable, str(HERE / "minhash_overlap.py"), "--config", str(cfg_path)], REPO)
-        s = json.loads((root / name / "overlap" / "overlap_summary.json").read_text(encoding="utf-8")) if code == 0 else {}
+        summary_path = root / name / "overlap" / "overlap_summary.json"
+        s = json.loads(summary_path.read_text(encoding="utf-8")) if summary_path.is_file() else {}
+        reused = (s.get("minhash") or {}).get("parts_reused")
+        status = s.get("status") if code == 0 else f"failed (exit {code}, summary status {s.get('status')!r})"
+        if status == "complete" and reused:
+            status = f"failed ({reused} parts reused from an earlier work/ folder)"
         rss = s.get("peak_rss_mb", {})
-        results.append({"factor": f, "parts": len(chosen), "documents": rows, "status": s.get("status", "failed"),
+        results.append({"factor": f, "requested_documents": requested, "documents": rows,
+                        "actual_factor": round(rows / SAMPLE_DOCS, 3), "undersized": rows < requested,
+                        "parts": len(chosen), "status": status or "failed (no summary)", "exit_code": code,
+                        "parts_reused": reused,
                         "wall_minutes": round((time.time() - t) / 60, 1),
                         "peak_rss_main_gb": round((rss.get("main") or 0) / 1024, 2),
                         "peak_rss_worker_gb": round((rss.get("largest_worker") or 0) / 1024, 2),
@@ -133,7 +155,8 @@ def main():
         print(json.dumps(results[-1]), flush=True)
     root.mkdir(parents=True, exist_ok=True)
     with open(root / "sizing.csv", "w", newline="", encoding="utf-8") as fh:
-        w = csv.DictWriter(fh, ["factor", "parts", "documents", "status", "wall_minutes", "peak_rss_main_gb",
+        w = csv.DictWriter(fh, ["factor", "requested_documents", "documents", "actual_factor", "undersized", "parts",
+                                "status", "exit_code", "parts_reused", "wall_minutes", "peak_rss_main_gb",
                                 "peak_rss_worker_gb", "peak_rss_total_gb", "workers", "candidates"], extrasaction="ignore")
         w.writeheader(); w.writerows(results)
     ok = [r for r in results if r["status"] == "complete"]
@@ -141,15 +164,26 @@ def main():
     if ok:
         big = max(ok, key=lambda r: r["documents"])
         k = staged / big["documents"]
-        proj = {"staged_documents": staged, "from_factor": big["factor"],
+        proj = {"staged_documents": staged, "from_factor": big["factor"], "from_documents": big["documents"],
+                "from_factor_undersized": big["undersized"],
                 "hours_linear": round(big["wall_minutes"] * k / 60, 2),
                 "peak_rss_main_gb_linear": round(big["peak_rss_main_gb"] * k, 1),
                 "peak_rss_total_gb_at_largest_factor": big["peak_rss_total_gb"],
                 "note": "each factor's row is measured; this projection to all staged documents is linear, not measured"}
-    (root / "sizing.json").write_text(json.dumps({"results": results, "projection_whole_staged_inputs": proj}, indent=2),
-                                      encoding="utf-8")
+    (root / "sizing.json").write_text(json.dumps({"inputs": a.inputs, "settings": a.settings,
+                                                  "sample_documents": SAMPLE_DOCS, "staged_documents": staged,
+                                                  "results": results, "projection_whole_staged_inputs": proj},
+                                                 indent=2), encoding="utf-8")
     print(json.dumps(proj))
+    failed = [r["factor"] for r in results if r["status"] != "complete"]
+    short = [r["factor"] for r in results if r["undersized"]]
+    if short:
+        print(f"UNDERSIZED: factor(s) {short} had fewer staged documents than requested; see actual_factor", flush=True)
+    if failed:
+        print(f"FAILED: factor(s) {failed}; reports kept in {root.relative_to(REPO).as_posix()}", flush=True)
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

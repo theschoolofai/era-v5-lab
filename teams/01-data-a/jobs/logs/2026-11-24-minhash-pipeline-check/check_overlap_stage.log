@@ -15,6 +15,6 @@ PASS  all 38 packs: 128 hashes in 32 bands: 128 x 32
 PASS  all 38 packs: required packs: 38
 PASS  all 38 packs: minhash_overlap.py accepts the generated config
 note  test_f2_pool.py left out: lab_canary (G9) is not importable from here
-$ python3 -B -m pytest -q -p no:warnings teams/01-data-a/pipeline/tests teams/01-data-a/jobs/2026-11-19-first-training/tests teams/01-data-a/dedup/tests/test_minhash_overlap.py --ignore=teams/01-data-a/pipeline/tests/test_f2_pool.py
-PASS  pytest: 701 passed, 2 skipped in 186.22s (0:03:06)
+$ python3 -B -m pytest -q -p no:warnings teams/01-data-a/pipeline/tests teams/01-data-a/jobs/2026-11-19-first-training/tests teams/01-data-a/dedup/tests/test_minhash_overlap.py teams/01-data-a/dedup/tests/test_minhash_sizing.py --ignore=teams/01-data-a/pipeline/tests/test_f2_pool.py
+PASS  pytest: 706 passed, 2 skipped in 194.83s (0:03:14)
 ALL CHECKS PASSED
