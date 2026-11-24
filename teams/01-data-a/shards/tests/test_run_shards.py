@@ -413,6 +413,11 @@ def test_every_written_part_records_its_time_and_memory(run, tmp_path, table):
         {k: (e["seconds"], e["peak_rss_mb"]) for k, e in s["parts"].items() if e["status"] == "written"}
 
 
+needs_fork = pytest.mark.skipif("fork" not in rs.mp.get_all_start_methods(),
+                                reason="the monkeypatch has to reach the child process, which only a forked one inherits")
+
+
+@needs_fork
 def test_each_part_is_written_by_a_process_of_its_own(run, tmp_path, table, monkeypatch):
     seen = tmp_path / "pids.txt"
     real = rs.run_writer
@@ -440,6 +445,7 @@ def test_a_child_process_gives_the_same_shards_as_writing_in_this_one(run, tmp_p
         assert f.read_bytes() == (b_out / f.name).read_bytes()
 
 
+@needs_fork
 def test_a_writer_process_that_dies_fails_its_part_and_the_run_goes_on(run, tmp_path, table, monkeypatch):
     real = rs.run_writer
 
@@ -460,5 +466,19 @@ def test_the_real_start_method_writes_the_same_shards(run, tmp_path, table, monk
     assert rs.START_METHOD == "spawn" and rs.child_context().get_start_method() == "spawn"
     _, s_out, s = go(run, tmp_path, table, "--pack", "pk-b", out="spawned")
     _, i_out, i = go(run, tmp_path, table, "--pack", "pk-b", out="inside", in_process=True)
-    assert without_times(s["parts"]) == without_times(i["parts"]) and s["parts"]["train/pk-b/part-00000.parquet"]["peak_rss_mb"] > 0
+    peak = s["parts"]["train/pk-b/part-00000.parquet"]["peak_rss_mb"]
+    assert without_times(s["parts"]) == without_times(i["parts"]) and (peak is None or peak > 0)   # None where there is no /proc or resource
     assert (s_out / "pk-b-train-000000.bin").read_bytes() == (i_out / "pk-b-train-000000.bin").read_bytes()
+
+
+@pytest.mark.skipif(not Path("/proc/self/status").is_file(), reason="VmHWM is read from /proc (Linux)")
+def test_a_spawned_writers_peak_memory_is_its_own_not_its_parents(monkeypatch):
+    """ru_maxrss is carried over exec, so a spawned child reports at least what its parent peaked at; VmHWM is the child's own."""
+    import numpy as np
+    from concurrent.futures import ProcessPoolExecutor
+    np.ones(1500 * 2 ** 20 // 8)                      # this process peaks 1.5 GB higher, then frees it
+    parent = rs.peak_rss_mb()
+    with ProcessPoolExecutor(max_workers=1, mp_context=rs.mp.get_context("spawn")) as pool:
+        child = pool.submit(rs.peak_rss_mb).result()
+    assert parent > 1500 and 0 < child < parent - 1000
+

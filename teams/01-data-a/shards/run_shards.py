@@ -51,8 +51,8 @@ to about 20 GB at the 48th in the 19 Nov rehearsal) because what a part used was
 writer from inside.
 
 Time and memory per part: every entry of a part that was written, left empty, left out whole or failed has "seconds" (wall
-time of the part) and "peak_rss_mb" (the highest resident memory of the process that wrote it; null where the platform
-cannot say). With --in-process the process is this one, so the figure only grows. A part kept from an earlier run keeps its
+time of the part) and "peak_rss_mb" (the highest resident memory of the process that wrote it, that process alone; null where
+the platform cannot say). With --in-process the process is this one, so the figure only grows. A part kept from an earlier run keeps its
 earlier figures.
 """
 import sys
@@ -143,7 +143,16 @@ def no_shard_entry(e):
 
 
 def peak_rss_mb():
-    """Highest resident memory of this process so far, in MiB; None where the platform has no resource module (Windows)."""
+    """Highest resident memory of this process so far, in MiB. Linux: VmHWM of /proc/self/status, the peak of this process
+    alone: ru_maxrss is carried over exec, so a spawned child would report at least its parent's peak. Elsewhere ru_maxrss;
+    None where the platform has neither (Windows)."""
+    try:
+        with open("/proc/self/status", encoding="ascii") as f:
+            for line in f:
+                if line.startswith("VmHWM:"):
+                    return round(int(line.split()[1]) / 1024, 1)
+    except (OSError, ValueError, IndexError):
+        pass
     try:
         import resource
     except ImportError:
