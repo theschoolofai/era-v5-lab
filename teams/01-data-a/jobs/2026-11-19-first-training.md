@@ -63,6 +63,56 @@ staged-data MinHash sizing and validate the final worker budget and integration
 run. This update does not claim that those measurements have been completed.
 See `2026-11-19-first-training/README.md` for selection details.
 
+### MinHash overlap sizing (measured at 1x on the sample)
+
+From the stage's own runs (`jobs/logs/2026-11-23-minhash-overlap-sample/`, #744 and #758), on the sample's 47 train
+parts (1,395,320 documents) on 2 cores: 39.6 min, of which 38.7 min is the per-part signature step (about 16 ms per
+code document, mostly Pygments) and 46 s the rest; peak RSS 2.0 GB in the main process and 1.5 GB in the largest
+worker; `work/` 3.7 GB on disk; files returned to the repository 0.49 MB. Same duplicate groups as TSAI's 5 Nov exact
+run, and a byte-identical `dedup.py` remove list.
+
+Both MinHash configs set `workers` to 16, so the workers stay under about 24 GB. Estimates from the 1x run, not
+measured at scale (the signature step divides by the workers; the rest is about linear in documents):
+
+| Rows vs sample | Overlap time, 16 workers | Main process RSS | Workers' RSS (16) | `work/` on disk |
+|---|---:|---:|---:|---:|
+| 1x | about 6 min | about 2 GB | up to about 24 GB | about 3.7 GB |
+| 2x | about 12 min | about 4 GB | up to about 24 GB | about 7.5 GB |
+| 4x | about 25 min | about 8 GB | up to about 24 GB | about 15 GB |
+
+`dedup/minhash_sizing.py --inputs <staged cleaned folder> --factors 1 2 4` measures these on the staged data, each
+run from scratch in a new folder, and writes `sizing.csv` and `sizing.json` there; the gate below says when to go on.
+`jobs/2026-11-19-first-training/check_overlap_stage.py` checks the generated overlap stage and runs the tests.
+
+### Staged-data sizing gate, before overlap
+
+TSAI's bar (23 Nov) asks for time and RAM measured at 1x, 2x and 4x on the staged data before the production run. The
+job measures them on its own cleaned parts, so the staged data is cleaned once. A run with an inventory must end at
+reconcile, so the clean pass is its own run, and the production run adopts its folder (the pattern of
+`pipeline/local_trial/configs/2-stop-at-clean.json` and `4-adopt-clean.json`):
+
+1. **Prepare** `out/first-training-inputs/run.json` with `build_inventory.py` (with `--packs-file` for the 33 staged
+   packs) and `prepare_run.py`, as in "Run from the repository root" below.
+2. **Clean only.** Copy `run.json` to `run_clean.json`; in the copy set `"run_id"` to `"first-training-v1-clean"`, add
+   `"to": "clean"`, and remove `"inventory"` (a run with an inventory must end at reconcile). Run
+   `python -I teams/01-data-a/pipeline/run_pipeline.py --config out/first-training-inputs/run_clean.json`.
+   The cleaned parts are in `out/pipeline/first-training-v1-clean/clean/`.
+3. **Size** on those parts, with the 16 workers of the MinHash config:
+   `python -I teams/01-data-a/dedup/minhash_sizing.py --inputs out/pipeline/first-training-v1-clean/clean --factors 1 2 4 --out out/minhash_sizing/corpus-v1`.
+   It takes about 45 minutes and about 26 GB of scratch disk for the three `work/` folders (1x + 2x + 4x).
+4. **Gate.** Go on only if all of these hold, and otherwise stop and return `out/minhash_sizing/corpus-v1/`:
+   - the sizing command exited 0 (every factor complete, no reused parts);
+   - in `sizing.json`, the largest factor's `peak_rss_total_gb` (main process plus all workers together) is at most
+     48 GB. If the 4x row is `undersized`, fewer than 4x the sample is staged; its `actual_factor` is what was measured;
+   - `projection_whole_staged_inputs.hours_linear` (overlap on every staged document), plus the rest of the
+     pipeline, fits the Max time left after the clean run.
+5. **Production run.** In `run.json` (with its inventory), replace `stages.clean` with
+   `{"mode": "adopt", "output": "out/pipeline/first-training-v1-clean/clean"}`. Check it with `--plan`, then run it,
+   with the commands under "Run from the repository root". The runner checks that the adopted folder's
+   `job_summary.json` names the inventory's input manifest; nothing is cleaned again.
+6. **Return** `sizing.csv`, `sizing.json`, and each factor's `config.json` and `overlap/overlap_summary.json` under
+   `teams/01-data-a/jobs/results/2026-11-19-first-training/minhash_sizing/` (IDs and counts only).
+
 ## Update of 22 Nov 2026 for corpus-v1
 
 This revises the request of #599 now that TSAI has confirmed the input manifest. Nothing else in the pipeline changes.
