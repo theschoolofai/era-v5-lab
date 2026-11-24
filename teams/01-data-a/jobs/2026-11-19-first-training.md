@@ -55,6 +55,27 @@ staged-data MinHash sizing and validate the final worker budget and integration
 run. This update does not claim that those measurements have been completed.
 See `2026-11-19-first-training/README.md` for selection details.
 
+### MinHash overlap sizing (measured at 1x on the sample)
+
+From the stage's own runs (`jobs/logs/2026-11-23-minhash-overlap-sample/`, #744 and #758), on the sample's 47 train
+parts (1,395,320 documents) on 2 cores: 39.6 min, of which 38.7 min is the per-part signature step (about 16 ms per
+code document, mostly Pygments) and 46 s the rest; peak RSS 2.0 GB in the main process and 1.5 GB in the largest
+worker; `work/` 3.7 GB on disk; files returned to the repository 0.49 MB. Same duplicate groups as TSAI's 5 Nov exact
+run, and a byte-identical `dedup.py` remove list.
+
+Both MinHash configs set `workers` to 16, so the workers stay under about 24 GB. Estimates from the 1x run, not
+measured at scale (the signature step divides by the workers; the rest is about linear in documents):
+
+| Rows vs sample | Overlap time, 16 workers | Main process RSS | Workers' RSS (16) | `work/` on disk |
+|---|---:|---:|---:|---:|
+| 1x | about 6 min | about 2 GB | up to about 24 GB | about 3.7 GB |
+| 2x | about 12 min | about 4 GB | up to about 24 GB | about 7.5 GB |
+| 4x | about 25 min | about 8 GB | up to about 24 GB | about 15 GB |
+
+`dedup/minhash_sizing.py --inputs <staged cleaned folder> --factors 1 2 4` measures these on the staged data and
+writes `out/minhash_sizing/sizing.csv`; if the measured figures exceed the host, lower `workers` or provision more.
+`jobs/2026-11-19-first-training/check_overlap_stage.py` checks the generated overlap stage and runs the tests.
+
 ## Update of 22 Nov 2026 for corpus-v1
 
 This revises the request of #599 now that TSAI has confirmed the input manifest. Nothing else in the pipeline changes.
