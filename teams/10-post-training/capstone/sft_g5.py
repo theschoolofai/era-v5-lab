@@ -359,6 +359,26 @@ def marker_lift_stats(lm: nn.Module, rows: list[dict], marker_id: int, device: s
     return out
 
 
+# work/adp-2026-11-24/PREREG_marker_lr.md, Amendment A1: the marker rows must cover 1.3 x (prior floor 18.79 + 3.0) nats.
+MARKER_DEFICIT_NATS = 18.79 + 3.0
+MARKER_MARGIN = 1.3
+
+
+def marker_budget(marker_lr: float, multipliers: list[float], stats: dict) -> dict | None:
+    """The lift the marker rows could reach on the logged run: marker_lr x S x sum|z| x c, with S the sum of the completed
+    steps' schedule multipliers and c = sum|mean z| / sum|z| at im_end's targets (before training). `under_margin` says
+    the frozen arms' chat column is budget-limited, not method-limited. None without a KAS head (no z)."""
+    if not stats or not stats.get("sum_abs_z"):
+        return None
+    S = float(sum(multipliers))
+    c = stats["sum_abs_mean_z"] / stats["sum_abs_z"]
+    budget = marker_lr * S * stats["sum_abs_z"] * c
+    need = MARKER_MARGIN * MARKER_DEFICIT_NATS
+    return {"marker_lr": marker_lr, "steps": len(multipliers), "S": S, "sum_abs_z": stats["sum_abs_z"], "coherence": c,
+            "budget_nats": budget, "required_nats": need, "under_margin": budget < need,
+            "flag": "marker budget under the preregistered margin" if budget < need else None}
+
+
 def read_rows(path: Path, split: str) -> list[dict]:
     rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
     bad = [r["id"] for r in rows if r.get("split") != split]
@@ -532,6 +552,9 @@ def run(args) -> dict:
     if args.method == "lora":
         bench.merge_lora(lm)
     report["im_end_at_targets"]["after"] = marker_lift_stats(lm, eval_rows, im_end_id, device)
+    if marker_param is not None:
+        report["marker_budget"] = marker_budget(args.marker_lr, [r["lr"] / args.lr for r in log],
+                                                report["im_end_at_targets"]["before"])
     post = {"eval_loss": eval_loss(wrapper, eval_rows, device, args.micro_tokens)}
     if args.heldout:
         post["forgetting"] = forgetting_bpb(bundle, args.heldout, args.heldout_sources, device)

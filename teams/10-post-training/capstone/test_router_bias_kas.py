@@ -379,5 +379,23 @@ def test_c_sft_g5_reports_router_bias_unchanged_per_method(tmp_path, events):
         assert im["before"]["sum_abs_z"] > 0 and im["before"]["rms_h"] > 0, name  # KAS head: z = h @ tok_c.T
         b = im["before"]
         assert b["mid_positions"] > 0 and abs(b["end_minus_mid"] - (b["mean_logprob"] - b["mid_logprob"])) < 1e-9, name
+        mb = rep.get("marker_budget")
+        assert (mb is None) == ("--marker-rows" not in extra), name
+        if mb:  # 2 steps at warmup 10: S = 0.1 + 0.2; far under the 28.3-nat margin, so the flag must be set
+            assert mb["steps"] == 2 and abs(mb["S"] - 0.3) < 1e-9 and mb["under_margin"] and mb["flag"], name
         on_disk = json.loads((tmp_path / name / "sft_report.json").read_text())
         assert on_disk["router_bias_unchanged"]["pass"], name
+
+
+def test_marker_budget_reproduces_the_preregistered_rule():
+    """A1 numbers: 1e-2 x S x 59.0 x 0.682 against 1.3 x 21.79 = 28.33. 243 scheduled steps (S 134.1) pass with margin; the
+    compressed 126-step schedule (S 69.8) is under it."""
+    import math
+    def mult(n):
+        return [(s + 1) / 10 if s < 10 else 0.1 + 0.9 * 0.5 * (1 + math.cos(math.pi * (s - 10) / (n - 10))) for s in range(n)]
+    st = {"sum_abs_z": 59.0, "sum_abs_mean_z": 59.0 * 0.682}
+    full = sft_g5.marker_budget(1e-2, mult(243), st)
+    assert abs(full["S"] - 134.1) < 0.05 and abs(full["budget_nats"] - 53.96) < 0.05 and not full["under_margin"]
+    short = sft_g5.marker_budget(1e-2, mult(126), st)
+    assert short["under_margin"] and short["flag"] == "marker budget under the preregistered margin"
+    assert sft_g5.marker_budget(1e-2, mult(10), {"rms_h": 1.0}) is None  # dense head: no z, no budget

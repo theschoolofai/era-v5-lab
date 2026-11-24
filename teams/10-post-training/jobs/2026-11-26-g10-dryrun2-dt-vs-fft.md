@@ -38,7 +38,51 @@ Test log:        REQUIRED before sending. Offline unit tests pass (`capstone/tes
 
 ## Time with the KAS head
 
-G6 measured the dry run 2 pretraining step at 1,378 ms with kas_v2 against 687 ms dense (A100-80GB, T2, 8 x 2048, bf16; vaibh27/era-v5-lab PR 97, results/speed_dryrun2.md): 2.0x. Training per arm is capped by the wrapper's `--max-train-seconds` (default 1,200 s), so 115 minutes still holds; what the 2.0x can cost is completed steps. Dry run 1's A2 measured 8.6-36 s per step at about 23,300 tokens; A4 (about 5,650 tokens) at 2.0x gives about 4.4-18 s per step, so Full FT completes 66-243 steps inside the cap, and LoRA and DT run the same number (the wrapper's rule). Evaluations and screens also run the KAS head; the wrapper stops a later arm at its deadline and names it. Not measured: the T2 SFT step on the job GPU with our path, and only one base-trunk proxy model for the coherence c.
+The estimate rests on our own matched measurement of this job's path, not on G6's figure.
+Colab Tesla T4, T2 from main's dryrun2.yaml (kas_v2) against the same model with `head_mode` removed (so the input layer
+also changes: whole model against whole model), random-init weights, random ids, two runs in opposite orders:
+- SFT step through `sft_g5`'s own path, fp32 (no autocast, as the job), 16 rows x 2,048 tokens, micro_tokens 2048:
+  dense 12.74 s, KAS 13.88 s, **1.09x** (1.07 and 1.12 by order; the card slowed during the session).
+  Peak 10.02 GiB dense, 9.45 GiB KAS.
+- `sample_many` at the RL shape 16 x 8 x 1,536 under fp16 autocast (the KAS head runs fp32 inside it):
+  52.2 s dense, 70.3 s KAS, **1.35x**. Peak 2.15 GiB dense, 1.95 GiB KAS.
+- work/adp-2026-11-24/colab_t4/RESULT.md.
+
+G6's 2.0x (1,378 ms against 687 ms, A100-80GB, 8 x 2048, bf16; vaibh27/era-v5-lab PR 97) is the whole dry run 2
+pretraining step, with main's other changes between the two configs included (Muon lr, router on Muon, loss-free
+balancing); it is not used here.
+
+Training per arm is capped by the wrapper's `--max-train-seconds` (default 1,200 s), so 115 minutes holds. At 1.09x,
+the A4 steps (about 5,650 tokens; dry run 1's A2 measured 8.6-36 s per step at about 23,300 tokens) take about 2.3-9.5 s,
+so Full FT completes 126-243 steps in the cap and LoRA and DT run the same number. Evaluations and screens sample with the
+KAS head: plan 1.35x for them. Not measured: the job GPU itself, bf16 (T4 has none), and only one base-trunk proxy model
+for the coherence c.
+
+## If the training cap bites
+
+- Schedules are not matched then:
+  - Full FT gets `--steps 243` (`capstone/dryrun2_dt_compare.py:177`) and lays its warmup + cosine over 243 steps
+    (`sft/bench/train.py:405-410`, called at `capstone/sft_g5.py:497`). The clock stops it between steps
+    (`sft_g5.py:529`), still at a high lr if it is cut early.
+  - LoRA and DT get the completed count N as `--steps` (`dryrun2_dt_compare.py:179,184,190`), so their lr schedule, DT's
+    alpha ramp (`sft_g5.py:137-138`) and DT's lambda schedule (`sft_g5.py:505`) are compressed to N and fully decayed.
+  - So below 243 completed steps the three arms differ in schedule as well as method.
+  - Smallest fix, not built (it needs the lead's yes because it touches his wrapper): a `--schedule-steps` option in
+    sft_g5 (default `--steps`, so nothing changes) used by lr_at and the DT schedules, and the wrapper passing
+    `--schedule-steps <steps>` to LoRA and DT. Every arm then keeps the 243-step schedule and stops at step N.
+- Marker rows when N < 243: the preregistered rule needs S >= 70.4.
+  - That holds for N >= 128 with the compressed schedule (as the wrapper is now), and for N >= 80 with the fix above.
+  - Below that, 1e-2 stays (3e-2 risks early closes) and each frozen arm's report sets
+    `marker_budget.flag = "marker budget under the preregistered margin"`, from the logged schedule, sum|z| and sum|mean z|.
+  - Read that arm's chat column as budget-limited, not method-limited.
+- How likely the cap is to bite:
+  - The 2.3-9.5 s per step range above is dry run 1's assumption (TSAI's pretraining rate halved for fp32,
+    645-2,720 tokens/s, `jobs/2026-11-18-g10-first-sft-dryrun1.md` Time item 1).
+  - Our T4 run measured our fp32 SFT path at about 2,580 tokens/s dense (32,768 tokens in 12.7 s), so an A4 step with the
+    KAS head is about 2.4 s on a T4. 243 steps then take about 10 minutes per arm, inside the 1,200 s cap, and the job's
+    40 GB card is faster than a T4.
+  - Raising `--max-train-seconds` to fit 243 steps at the old slow end (9.5 s) would need about 39 minutes per arm, about
+    116 minutes for three arms before any evaluation: that does not fit `--deadline-minutes 115`. So keep 1,200 s.
 
 ## Blocked by
 
