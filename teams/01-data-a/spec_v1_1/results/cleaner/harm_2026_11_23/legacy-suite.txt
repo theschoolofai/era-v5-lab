@@ -1,1 +1,0 @@
-error: invalid G1 inputs: [Errno 2] No such file or directory: '/home/vijay/projects/erav5/era-v5-lab/teams/01-data-a/spec/spec_v1.md'
