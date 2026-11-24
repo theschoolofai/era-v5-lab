@@ -1,0 +1,122 @@
+"""DT calibration's expert choice against Team 5's own forward in EVAL mode, on a real G5 stand-in, with no copy of the rule.
+
+Calibration (dt/mask.py wanda_scores) runs the model in eval mode and picks each routed expert's rows with
+`g5_expert_choice`. The reference here is read from the model itself: in the last block, perturbing one expert's down weight
+changes exactly the positions Team 5's forward routes to that expert (nothing after the last block mixes positions, so the
+head is skipped). The per-expert counts must equal what `g5_expert_choice` gives on the same MoE inputs. Unlike Team 5's
+`expert_load` counter, which counts only in train mode, this sees an eval-mode rule change (for example a bias used only
+while training). Checked once with the stand-in's own balancer setting and once with bias_gamma 0.
+
+Needs a CPU run folder trained with this tree's Team 5 code (job ADP's KAS stand-in has a non-zero router_bias):
+
+    G10_STANDIN_RUN_FOLDER=<run folder> G10_STANDIN_ARTIFACTS=<artifacts> python -m pytest dt/tests/test_g5_eval_routing_standin.py -q
+"""
+import importlib.util
+import os
+import random
+import sys
+from pathlib import Path
+
+import pytest
+
+torch = pytest.importorskip("torch")
+import torch.nn.functional as F  # noqa: E402
+
+HERE = Path(__file__).resolve().parent
+T10 = HERE.parents[1]
+spec = importlib.util.spec_from_file_location("g10_dt_mask_eval_routing", HERE.parent / "mask.py")
+dtmask = importlib.util.module_from_spec(spec)
+sys.modules["g10_dt_mask_eval_routing"] = dtmask
+spec.loader.exec_module(dtmask)
+
+
+class _Stop(Exception):
+    pass
+
+
+def _standin():
+    run, art = os.environ.get("G10_STANDIN_RUN_FOLDER"), os.environ.get("G10_STANDIN_ARTIFACTS")
+    if not run or not art:
+        pytest.skip("set G10_STANDIN_RUN_FOLDER and G10_STANDIN_ARTIFACTS (a CPU run folder trained with this tree's Team 5 code)")
+    sys.path[:0] = [str(T10 / "capstone"), str(T10 / "rl-loop")]
+    import make_adapter_config as mac  # noqa: PLC0415
+    import sft_g5  # noqa: PLC0415
+    import team5_adapter as ta  # noqa: PLC0415
+    return Path(run), Path(art), mac, sft_g5, ta
+
+
+def test_calibration_expert_choice_equals_team5s_eval_forward_on_the_standin(tmp_path):
+    run, art, mac, sft_g5, ta = _standin()
+    table = T10.parent / "04-ke2" / "results" / "tables" / "p1536-s0" / "raw_table_P32.npz"
+    cfg = mac.write_config(tmp_path / "adapter.yaml", T10.parents[1], run, art / "tokenizer_p1536.json", table, T10,
+                           "g10_rehearsal", False)
+    bundle = ta.build(cfg, device="cpu").require_bundle()
+    lm = bundle.model.eval()
+    wrapper = sft_g5.G5ForBench(lm)
+    moe = lm.blocks[-1].moe
+    # 4 rows of token ids, drawn from the checkpoint's own vocabulary range (fixtures, not training data)
+    gen = random.Random(10_001)
+    lengths = [37, 64, 21, 50]
+    rows = [{"id": f"t/{i}", "input_ids": [gen.randrange(1000, bundle.spec["vocab_size"]) for _ in range(n)],
+             "loss_mask": [1] * n, "split": "train"} for i, n in enumerate(lengths)]
+    batch = sft_g5.bench.collate(rows, 0)
+    valid = batch.attention_mask.bool()
+    seen = {}
+
+    def pre(mod, a, kw):
+        seen["x"], seen["valid"] = a[0].detach().clone(), a[1].detach().clone()
+
+    def stop(mod, a, out):
+        seen["out"] = (out if torch.is_tensor(out) else out[0]).detach().clone()
+        raise _Stop
+
+    hooks = [moe.register_forward_pre_hook(pre, with_kwargs=True), lm.blocks[-1].register_forward_hook(stop)]
+
+    def forward():
+        with torch.no_grad():
+            try:
+                wrapper(input_ids=batch.input_ids, attention_mask=batch.attention_mask)
+            except _Stop:
+                pass
+        return seen["out"]
+
+    def model_counts():
+        base = forward()
+        counts = []
+        for expert in moe.experts:
+            w = expert.down.weight
+            keep = w.detach().clone()
+            with torch.no_grad():
+                w.add_(1.0)
+            counts.append(int(((forward() != base).any(-1) & valid).sum()))
+            with torch.no_grad():
+                w.copy_(keep)
+        forward()  # leave `seen` on the unperturbed inputs
+        return counts
+
+    def our_counts():
+        flat = seen["x"].reshape(-1, seen["x"].shape[-1])
+        active = seen["valid"].reshape(-1).bool()
+        scores = F.linear(flat.float(), moe.router.weight.float()).softmax(-1)
+        choice = dtmask.g5_expert_choice(moe, scores)
+        sel = torch.zeros_like(scores, dtype=torch.bool).scatter_(-1, choice, True) & active[:, None]
+        return sel.sum(0).tolist()
+
+    gammas = [b.moe.balance_gamma for b in lm.blocks]
+    try:
+        assert not any(m.training for m in lm.modules())
+        biased = model_counts()
+        assert sum(biased) == int(valid.sum()) * moe.topk
+        assert our_counts() == biased, "calibration's expert choice differs from Team 5's eval-mode forward"
+        has_bias = bool(moe.balance_gamma) and bool(moe.router_bias.ne(0).any())
+        for b in lm.blocks:
+            b.moe.balance_gamma = 0.0  # gamma 0: Team 5 ignores the buffer; so must we
+        plain = model_counts()
+        assert our_counts() == plain, "with bias_gamma 0 calibration must use the plain top-k, as Team 5 does"
+        if has_bias:
+            assert plain != biased, "the stand-in's router_bias no longer changes any choice: this test has lost its power"
+    finally:
+        for b, g in zip(lm.blocks, gammas):
+            b.moe.balance_gamma = g
+        for h in hooks:
+            h.remove()
