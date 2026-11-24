@@ -1,0 +1,22 @@
+........................................................................ [ 57%]
+.....................................................                    [100%]
+=============================== warnings summary ===============================
+../../../envs/llm/lib/python3.12/site-packages/anyio/pytest_plugin.py:14
+  /home/vijay/envs/llm/lib/python3.12/site-packages/anyio/pytest_plugin.py:14: PytestRemovedIn10Warning: _pytest.python.CallSpec2 has been renamed to CallSpec.
+  The CallSpec2 alias will be removed in pytest 10.
+  Update imports to use CallSpec instead.
+  See https://docs.pytest.org/en/stable/deprecations.html#callspec2-renamed
+    from _pytest.python import CallSpec2
+
+teams/01-data-a/pipeline/tests/test_clean_job.py::test_a_failure_with_workers_stops_the_job_and_a_resume_with_another_number_finishes_it
+teams/01-data-a/pipeline/tests/test_clean_job.py::test_a_failure_with_workers_stops_the_job_and_a_resume_with_another_number_finishes_it
+teams/01-data-a/pipeline/tests/test_clean_job.py::test_a_cleaner_error_in_workers_leaves_the_record_of_the_failure_the_job_reports
+teams/01-data-a/pipeline/tests/test_clean_job.py::test_a_cleaner_error_in_workers_leaves_the_record_of_the_failure_the_job_reports
+teams/01-data-a/pipeline/tests/test_clean_job.py::test_a_cleaner_error_in_workers_leaves_the_record_of_the_failure_the_job_reports
+teams/01-data-a/pipeline/tests/test_clean_job.py::test_a_worker_that_dies_is_named_and_the_job_can_be_resumed
+teams/01-data-a/pipeline/tests/test_clean_job.py::test_a_worker_that_dies_is_named_and_the_job_can_be_resumed
+  /home/vijay/.local/share/uv/python/cpython-3.12.12-linux-x86_64-gnu/lib/python3.12/multiprocessing/popen_fork.py:66: DeprecationWarning: This process (pid=3) is multi-threaded, use of fork() may lead to deadlocks in the child.
+    self.pid = os.fork()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+125 passed, 8 warnings in 14.23s
