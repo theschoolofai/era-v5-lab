@@ -39,9 +39,12 @@ def check(checkpoint: Path, gguf: Path, server: Path, spec_path: Path | None = N
     # The reference uses the weights the GGUF holds: every matrix rounded to bf16, and the folded embedding table
     # in place of KE2. What is left is the runtime's own arithmetic, so a small tolerance is a real test.
     bf16 = lambda t: t.to(torch.bfloat16).float() if t.is_floating_point() and t.ndim > 1 else t
-    export_hf.load_reference(ref, {k: bf16(v) for k, v in state.items()})
+    export_hf.load_reference(ref, {k: v if k.startswith('codec.') else bf16(v) for k, v in state.items()})
     table = bf16(export_hf.fold_ke2(state, spec['n_embd']))
     ref.embedding.forward = lambda ids: table[ids]
+    if export_hf.is_kas(state):   # the folded head, without the output bias that the GGUF cannot hold
+        head_w = bf16(export_hf.fold_kas_head(state)[0])
+        ref.head.forward = lambda h: torch.nn.functional.linear(h, head_w)
     length = min(length, spec['block_size'] or length)
     s = socket.socket(); s.bind(('127.0.0.1', 0)); port = s.getsockname()[1]; s.close()
     srv = subprocess.Popen([str(server), '-m', str(gguf), '--port', str(port), '-ngl', '0', '-c', str(2 * length),
