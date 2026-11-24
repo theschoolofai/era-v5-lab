@@ -395,3 +395,15 @@ def test_micro_rows_defaults_to_1_and_0_means_the_whole_group(tmp_path):
     assert t["micro_rows"] == 2
     t = yaml.safe_load(job.write_train_config(_full_args(tmp_path, micro_rows=0), tmp_path, None, None, 1234.0, 64).read_text())["train"]
     assert "micro_rows" not in t
+
+
+def test_head_checkpoint_is_off_unless_the_job_asks(tmp_path):
+    """Job RLM2: the checkpointed head chunks cost update time, so the config carries head_checkpoint only with
+    --head-checkpoint."""
+    t = yaml.safe_load(job.write_train_config(_full_args(tmp_path), tmp_path, None, None, 1234.0, 64).read_text())["train"]
+    assert "head_checkpoint" not in t
+    a = job.parse_args(["--g5-root", "g", "--run-folder", "r", "--tokenizer", "t", "--byte-table", "b", "--rl-tasks",
+                        "cc.jsonl", "--train-pool", "tp", "--heldout-pool", "hp", "--device", "cpu", "--out", str(tmp_path),
+                        "--head-checkpoint"])
+    t = yaml.safe_load(job.write_train_config(a, tmp_path, None, None, 1234.0, 64).read_text())["train"]
+    assert t["head_checkpoint"] is True

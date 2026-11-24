@@ -396,6 +396,8 @@ def write_train_config(a, out: Path, init_state: Path | None, init_sha: str | No
                      # Whole groups of 8 x 2,048 do not fit: job RLG measured 10.2 GiB for ONE row on a T4 (KAS V2,
                      # bf16 autocast over fp32 weights, AdamW state held) and an OOM at 2; 8 rows extrapolate to 37-62 GiB
                      **({"micro_rows": getattr(a, "micro_rows", 1)} if getattr(a, "micro_rows", 1) else {}),
+                     # head in checkpointed chunks under autograd (policy.py); off unless a row does not fit (job RLM2)
+                     **({"head_checkpoint": True} if getattr(a, "head_checkpoint", False) else {}),
                      "screen": {"n": screen_n, "k": a.k, "min_mixed": a.min_mixed},
                      "state_dir": str(out / "rl_state"), "state_every": a.state_every, "deadline_unix": deadline_unix,
                      **({"max_steps_this_call": a.max_steps_this_call} if a.max_steps_this_call else {}),
@@ -750,6 +752,10 @@ def parse_args(argv=None):
     ap.add_argument("--micro-rows", type=int, default=1,
                     help="rows per forward in old_lp and the update (0 = the whole group of k). Default 1: a group of 8 at "
                          "2,048 tokens peaked at 10.9 GiB with 1 on a T4 and ran out of memory with 2 and 4 (job RLG)")
+    ap.add_argument("--head-checkpoint", action="store_true",
+                    help="memory mode for the update: run Team 5's head in checkpointed chunks of 512 tokens. Turn it on only "
+                         "when one row does not fit: on a T4 (KAS micro1, 512 + 1,536 tokens) it cut the per-row peak by 41%% "
+                         "(7.4 -> 4.4 GiB above static) for about 5 to 10%% more update time (jobs RLM, RLM2)")
     ap.add_argument("--time-sync", action="store_true",
                     help="synchronize CUDA at each phase boundary so rl/metrics.jsonl times_s splits sampling (rollout), "
                          "scoring (reward) and the update (old_logprobs + train) exactly; off by default")
