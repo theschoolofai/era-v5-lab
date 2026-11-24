@@ -18,30 +18,24 @@ Outputs:         out/first-training-inputs/{input_manifest.json,expected_invento
 Test log:        teams/01-data-a/jobs/logs/2026-11-19-first-training-rehearsal-38packs/ (all 86 parts of sample v0, 38 packs, frozen p1536, Linux + pinned env: 59/59 checks; with the inventory, prepare_run's run.json at 2691c44: 74/74)
 ```
 
-## Cleaner validation update: 23 Nov 2026
+## Current cleaner validation: full rerun after merged #88
 
-Fresh harm tests on the rebuilt `4b5e46ba…` cleaner are recorded in
-[the cleaner harm report](../spec_v1_1/results/cleaner/harm_tests.md).
-Of 31 supported packs, 27 PASS and four FAIL on the same 11 gold IDs documented
-historically. Two unsupported packs pass through; five lack gold files. The
-amended English F1, code shared F1 and Sanskrit `DB-B4-004` each PASS with zero
-gold changes/drops. There are no execution errors or Indic Unicode-audit
-violations. The cleaner suite passes 1,915 tests and nine subtests.
-The raw failures remain visible; no gold exclusions or release waiver were
-applied. The legacy registry-suite inventory is absent, so current cleaner
-validation uses the existing Data A and Data B harm-test APIs.
+The rebuilt cleaner is byte-identical to merged #88, SHA-256
+`d275556ee87a259b05ac5e474ed40b569c2e821aaaffa99d5d07035e40948989`; both active cleaner job configs already pin these bytes.
+Fresh harm across all original packs and both teams' gold folders covers
+4,768 gold documents: **28 of 32 supported packs PASS, four raw FAIL** on the
+same 11 affected IDs. `cadj-commits` is now supported, with zero of 413 gold
+documents changed or dropped. `ind-ta-fw2` is the sole testable passthrough pack;
+five packs still lack gold. No execution or Indic Unicode-audit errors.
 
-The active cleaner hash below is refreshed to the tested bytes. The historical
-22 Nov code pin and rehearsal remain historical evidence; finalize the release
-commit, staged-file provenance, sizing and integration evidence before
-execution. This sample harm run does not establish production readiness.
-
-## Cleaner update: 24 Nov 2026
-
-The shared F1 now masks private e-mail addresses on cadj-commits (#88), so the pinned cleaner below is `d275556e…`. On the
-first 1,000 documents of every other pack its output equals the tested `aa1f8e53…` cleaner's, so the 23 Nov results hold for
-them; cadj-commits gold: 0 of 413 changed. Evidence:
-[the cleaner harm report](../spec_v1_1/results/cleaner/harm_tests.md).
+The commits pack has 40 email-only changes across 500 documents, zero drops and
+no second-pass changes; notebooks and Stack Exchange remain unchanged.
+Cleaner tests: **1,952 PASS and nine subtests**. Clean-job/preparation tests:
+**125 PASS**. No gold exclusions or release waiver were applied; the legacy
+registry inventory is still absent, so the existing Data A/B harm APIs were used.
+See [the replaced current harm report](../spec_v1_1/results/cleaner/harm_tests.md).
+Historical rehearsal timings and comparisons remain historical; staged-data
+sizing, integration evidence and the final release commit pin are still needed.
 
 ## Update of 23 Nov 2026: staged 33-pack run and MinHash
 
@@ -76,9 +70,9 @@ The active cleaner includes five subsets extracted from fork #86: A6 test-fixtur
 Cyrillic protection, scientific C2 paragraph boundaries, English C2 fenced-code
 protection, C3 closing curly quotes, and English F1 DOI protection. The existing
 binary-value guard, rule IDs/scopes/order and report-only H3 policy are retained.
-Fresh harm remains 27/31 supported packs PASS and four raw FAIL, with exactly
-the previous affected IDs; the five amended rules touch zero gold documents.
-Cleaner tests: 1,946 PASS and nine subtests; clean-job/preparation: 125 PASS.
+The post-#88 full-gold rerun gives 28/32 supported packs PASS and four raw FAIL,
+with the same affected IDs; the five amended rules touch zero gold documents.
+Cleaner tests: 1,952 PASS and nine subtests; clean-job/preparation: 125 PASS.
 See `../spec_v1_1/results/cleaner/harm_tests.md` for replaced evidence and limits.
 The tokenizer-sample job config now pins this cleaner too; historical rehearsal
 timings and hashes below remain historical and are not evidence for this build.

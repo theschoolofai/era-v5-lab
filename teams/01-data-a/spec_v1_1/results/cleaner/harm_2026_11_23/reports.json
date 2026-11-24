@@ -9122,13 +9122,27 @@
   "cadj-commits": {
     "pack": "cadj-commits",
     "team": "02-data-b",
-    "supported": false,
+    "supported": true,
     "gold": "teams/02-data-b/gold/cadj-commits_gold.csv",
     "pack_sha256": "ce7aba1b82f49c7ea8b96f76f4b021b5b7619240e93c63f3cab1ed4e616fd7be",
     "status": "PASS",
     "gold_sha256": "ba4da5c2233e5ef68a906eca4293e1f076eb68b41e1e421c0c88b5861ea589ed",
     "gold_count": 413,
-    "rules_alone": [],
+    "rules_alone": [
+      {
+        "rule": "f1_rule.py",
+        "changed": 0,
+        "dropped": 0,
+        "affected_unique": 0,
+        "errors": 0,
+        "error_types": [],
+        "percent": "0.000000",
+        "result": "PASS",
+        "changed_ids": [],
+        "dropped_ids": [],
+        "affected_ids": []
+      }
+    ],
     "pipeline": {
       "rule": "clean()",
       "changed": 0,
@@ -9142,7 +9156,17 @@
       "dropped_ids": [],
       "affected_ids": []
     },
-    "indic_rules": [],
+    "indic_rules": [
+      {
+        "rule": "f1_rule.py",
+        "result": "PASS",
+        "changed": [],
+        "dropped": [],
+        "errors": [],
+        "joiners": [],
+        "form": []
+      }
+    ],
     "indic_pipeline": {
       "rule": "clean()",
       "result": "PASS",

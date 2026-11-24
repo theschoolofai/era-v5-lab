@@ -1,7 +1,7 @@
 {
-  "cleaner_sha256": "aa1f8e534820e5218f74c9bdec4ada217002ff467ee00256113ba59978e2b393",
+  "cleaner_sha256": "d275556ee87a259b05ac5e474ed40b569c2e821aaaffa99d5d07035e40948989",
   "sheet_sha256": "8b5835ef9b97a627965f4b0fca5ce55ec3d7c2dac863c714cac8e90b87aab770",
-  "shared_f1_sha256": "7bac52691d8912ee762e42eda56f84f4b4682e9e37b721230048c31449a1bf82",
+  "shared_f1_sha256": "4a210f8cf557c871d0d4a2c4501d33b3d50c19431b3dc46de4ae213fe99cbab9",
   "adapter_sha256": "634a4e805d840dc476e9e7f6921f07a11ee787b7847a77c616888158e94c661d",
   "data_a_harm_sha256": "4dcc04bf8ac553c9c0b39c8812bd7275aee9c8727b80a7a5a026d0e3f7bbafd2",
   "data_b_harm_sha256": "22d3064adf58478ec7c9677e8f5dd8fafd5455ca7ead9b16288493f1f22d10bb",
@@ -143,7 +143,7 @@
     {
       "pack": "cadj-commits",
       "team": "02-data-b",
-      "supported": false,
+      "supported": true,
       "gold": "teams/02-data-b/gold/cadj-commits_gold.csv",
       "pack_sha256": "ce7aba1b82f49c7ea8b96f76f4b021b5b7619240e93c63f3cab1ed4e616fd7be",
       "status": "PASS",
@@ -386,24 +386,32 @@
       "gold_count": 80
     }
   ],
-  "run_date": "2026-11-23",
-  "git_commit": "0fe8efa474dbe66e7c04c15a92129e3a1026a00f",
+  "run_label": "post-#88 full gold rerun",
+  "run_utc": "2026-11-24T05:02:51.665168+00:00",
+  "git_commit": "31015c56a9b0b07666693f74d8212e7271981fd7",
   "status_counts": {
     "PASS": 29,
     "FAIL": 4,
     "NOT_TESTABLE": 5
   },
   "supported_status_counts": {
-    "PASS": 27,
+    "PASS": 28,
     "FAIL": 4
   },
   "gold_documents": 4768,
+  "previous_pipeline_gold_results_identical": true,
+  "existing_rule_gold_results_identical": true,
   "historical_failed_ids_match": true,
   "cleaner_tests": {
-    "passed": 1946,
+    "passed": 1952,
     "subtests_passed": 9
   },
+  "job_tests": {
+    "passed": 125
+  },
   "rebuild_identical": true,
+  "cleaner_differs_from_merged_pr_88": false,
+  "sample_comparison_note": "comparison.json is historical pre-#88 evidence for cleaner aa1f8e53; not rerun here",
   "indic_audit_counts": {
     "errors": 0,
     "joiners": 0,
@@ -586,6 +594,13 @@
       "dropped": 0
     },
     {
+      "pack": "cadj-commits",
+      "rule": "f1_rule.py",
+      "result": "PASS",
+      "changed": 0,
+      "dropped": 0
+    },
+    {
       "pack": "ind-sa-fw2",
       "rule": "DB-B4-004",
       "result": "PASS",
@@ -593,19 +608,69 @@
       "dropped": 0
     }
   ],
-  "worktree_modified": true,
-  "source_pr_86_commit": "d9b2efe8689fee5abdc26a523d847018a732d344",
-  "job_tests": {
-    "passed": 125
+  "cadj_week1_checks": {
+    "cadj-commits": {
+      "documents": 500,
+      "changed_ids": [
+        "e0c1e30626b9b1ff",
+        "6454d40260da86f0",
+        "49b151d5092e2af4",
+        "1a04398a8eb0d640",
+        "ad8d26fb7fc543f0",
+        "657218c9c3ab3831",
+        "19c86ce5aabab9b7",
+        "a2a76259799729fa",
+        "59db3993ab02a2c9",
+        "e7c1647714ab6ee6",
+        "d8136c75de468ac6",
+        "f9b766f8d70fd170",
+        "a74ed5caf45ae502",
+        "e79c7bd2ebb438da",
+        "d903e4efac48eab8",
+        "4d5a5879fa9978bd",
+        "50b4d4f01a80e8b5",
+        "97182afd7192fe66",
+        "8ae8af60edff9ffb",
+        "e2347a156b344836",
+        "014b5b2147006b90",
+        "abd2e71e0f18d22a",
+        "b3d1223883e251b4",
+        "13208b2f948e8596",
+        "2e67b64a19631ac7",
+        "9c5459fa4064712d",
+        "bce6aea34c38b7d7",
+        "5cd576385b620016",
+        "4c25f9f3425b8be1",
+        "75b7f3f5f2d69c0a",
+        "3f4afa6706cfd149",
+        "e48466dfa7cb6431",
+        "dc30900570719dd8",
+        "50ef1e872544de9c",
+        "721a163bb2f6f55a",
+        "3b6ff81414d752f8",
+        "a4ffb844ba967bbd",
+        "223a8ae8ceabbf16",
+        "b7a6d322bb43620d",
+        "433ee82463d071b0"
+      ],
+      "dropped_ids": [],
+      "non_email_changes": [],
+      "non_idempotent_ids": []
+    },
+    "cadj-notebooks": {
+      "documents": 500,
+      "changed_ids": [],
+      "dropped_ids": [],
+      "non_email_changes": [],
+      "non_idempotent_ids": []
+    },
+    "cadj-stackexchange": {
+      "documents": 500,
+      "changed_ids": [],
+      "dropped_ids": [],
+      "non_email_changes": [],
+      "non_idempotent_ids": []
+    }
   },
-  "previous_gold_results_identical": true,
-  "sample_comparison": {
-    "documents": 19000,
-    "packs": 38,
-    "scope_and_rule_order_unchanged": true,
-    "pipeline_outputs_differ": 2,
-    "new_drops": 0,
-    "new_idempotence_failures": 0,
-    "amended_rules_out_of_scope_violations": 0
-  }
+  "cadj_week1_changed_ids_match_pr88_evidence": true
 }

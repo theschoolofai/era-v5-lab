@@ -12,7 +12,7 @@ en-nemotroncc,FAIL,True,129,2,0,0,,
 math-megamath,PASS,True,26,0,0,0,,
 math-finemath,FAIL,True,86,1,1,0,,
 sci-finepdfs,FAIL,True,202,4,1,0,DA-C7-004,
-cadj-commits,PASS,False,413,0,0,0,,
+cadj-commits,PASS,True,413,0,0,0,,
 cadj-notebooks,NOT_TESTABLE,False,,,,,,gold file missing
 cadj-stackexchange,NOT_TESTABLE,False,,,,,,gold file missing
 ind-bn-fw2,PASS,True,227,1,1,0,,

@@ -37,34 +37,30 @@ Paths are from `teams/01-data-a`.
 | [`spec_v1_1/tests/test_speed_equivalence_*.py`](tests/) | Each speed fix of #49 and #50 against a frozen copy of the rule before it (5 files, pytest) |
 | [`spec_v1_1/results/speed_v1_1.md`](results/speed_v1_1.md) | The speed logs of each fix, rule by rule (#55) |
 | [`spec_v1_1/jobs/tokenizer_sample_v0_clean.json`](jobs/tokenizer_sample_v0_clean.json) | The tokenizer-sample job config, pinned to this `clean.py` |
-| [`spec_v1_1/results/cleaner/harm_tests.md`](results/cleaner/harm_tests.md) | `clean()` harm on the 500-doc sample packs of all 31 packs it has rules for |
+| [`spec_v1_1/results/cleaner/harm_tests.md`](results/cleaner/harm_tests.md) | Current `clean()` gold harm, including cadj-commits email-only coverage |
 | [`spec_v1_1/results/cleaner/speed.md`](results/cleaner/speed.md) | Wall time on each 500-doc sample pack, spec v1 against spec v1.1 |
 | [`spec_v1_1/results/cleaner/tokenizer_sample_run.md`](results/cleaner/tokenizer_sample_run.md) | The end-to-end run on all 86 parts of the tokenizer sample v0 (a sample, not the full packs) |
 
-## Current harm validation (23 Nov 2026)
+## Current harm validation (after merged #88)
 
-The rebuilt cleaner is `aa1f8e534820e5218f74c9bdec4ada217002ff467ee00256113ba59978e2b393` after five scoped
-preservation amendments extracted from #86: Cyrillic/test fixtures, scientific
-paragraph boundaries, fenced code, closing curly quotes and DOI digits.
-Existing rule IDs, scopes and order are unchanged; shared F1 is unchanged.
+The cleaner rebuild is byte-identical to merged #88:
+`d275556ee87a259b05ac5e474ed40b569c2e821aaaffa99d5d07035e40948989`. It retains the five scoped #86 preservation guards and adds
+email-only shared F1 on `cadj-commits` with an empty `code-adjacent` pipeline.
+Both active job configs pin this cleaner.
 
-24 Nov 2026 (#88): the shared F1 also masks private e-mail addresses on cadj-commits; the cleaner is
-`d275556ee87a259b05ac5e474ed40b569c2e821aaaffa99d5d07035e40948989`. Every other pack's output is unchanged
-(see the harm report).
+Fresh full-gold harm: **4,768 documents, 33 testable packs; 28 of 32 supported
+packs PASS, four FAIL**. `cadj-commits` now has cleaning coverage and passes all
+413 gold documents with zero changes or drops. Every full-pipeline outcome and
+affected ID matches the previous run. Only `ind-ta-fw2` remains testable but
+unsupported; five packs lack gold. No execution or Indic Unicode-audit errors.
 
-Fresh tests on 4,768 gold documents give 27 supported packs PASS and four FAIL;
-their 11 affected IDs and every per-rule result match the previous fresh run.
-All five amended rules change or drop zero gold documents. Two unsupported
-packs pass through; five lack gold. No execution or Indic Unicode-audit errors.
-The cleaner suite passes **1,946 tests and nine subtests**; clean-job and
-job-preparation checks pass **125 tests**. On all 19,000 sample documents,
-two pipeline outputs differ, with no new drops, new idempotence failures or
-scope violations by the amended rules.
-
-See [the replaced harm report](results/cleaner/harm_tests.md) for the exact
-subsets, evidence, raw failures and missing-gold limitations. Reproduce it with
+The full 500-document `cadj-commits` pack has 40 email-only changes, zero drops
+and no second-pass changes; the other two code-adjacent packs pass through.
+**1,952 cleaner tests and nine subtests PASS; 125 job/preparation tests PASS.**
+See [the replaced current harm report](results/cleaner/harm_tests.md) for fresh
+evidence, raw failures, missing gold and clearly labelled historical comparisons.
+Reproduce the gold run with
 `scripts/run_current_harm.py --packs <original-packs-folder> --out <output>`.
-The active pipeline and tokenizer-sample job configs pin the new cleaner.
 
 ## Historical harm summary (17 Nov 2026)
 
