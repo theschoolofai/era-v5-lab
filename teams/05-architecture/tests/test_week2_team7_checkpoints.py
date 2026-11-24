@@ -81,6 +81,7 @@ class Team7CheckpointTests(unittest.TestCase):
                     note = json.loads(notes[0].read_text())
                     self.assertEqual(note["code"], 78)
                     self.assertEqual(note["cause"], "NonfiniteTrainingError")
+                    self.assertLessEqual(len(note["detail"]), 400)
                     if fault == "gradient" and not flags:
                         self.assertIn("after clipping", note["detail"])
                         self.assertIn("tensors:", note["detail"])

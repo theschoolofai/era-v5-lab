@@ -55,23 +55,41 @@ def scored_ntp_loss(model, ids, targets):
     return token_nll(model.head(hidden[scored]), targets[scored]).sum()
 
 
-def nonfinite_tensor_detail(model, *, gradients=False, limit=8):
+# G7 exit-note detail is capped at 500 characters. Keep the complete G5 error
+# below that boundary, with 100 characters of headroom; no G7 contract change.
+NONFINITE_MESSAGE_LIMIT = 400
+NONFINITE_NAME_LIMIT = 64
+
+
+def nonfinite_tensor_detail(model, *, gradients=False, limit=3):
     """Bounded, best-effort tensor names; called only after a numerical failure."""
     try:
         names = []
         for name, parameter in model.named_parameters():
             value = parameter.grad if gradients else parameter
             if value is not None and not bool(torch.isfinite(value.detach()).all()):
+                if len(name) > NONFINITE_NAME_LIMIT:
+                    name = name[:30] + "..." + name[-31:]
                 names.append(name)
                 if len(names) > limit:
                     break
         if not names:
             return "; no nonfinite tensors found in the inspected state"
-        suffix = ", ..." if len(names) > limit else ""
+        suffix = ", ... further tensors not listed" if len(names) > limit else ""
         return "; tensors: " + ", ".join(names[:limit]) + suffix
     except Exception as error:
         # A diagnostic (including a CUDA failure) must not replace the original cause.
-        return "; tensor inspection unavailable (" + type(error).__name__ + ")"
+        return "; tensor inspection unavailable (" + type(error).__name__[:NONFINITE_NAME_LIMIT] + ")"
+
+
+def nonfinite_error_message(prefix, model, *, gradients=False):
+    """Cap the complete diagnostic, including prefix and the post-clip caveat."""
+    caveat = " (gradients inspected after clipping; nonfinites may have propagated)" if gradients else ""
+    message = prefix + caveat + nonfinite_tensor_detail(model, gradients=gradients)
+    if len(message) > NONFINITE_MESSAGE_LIMIT:
+        suffix = "... [truncated]"
+        return message[:NONFINITE_MESSAGE_LIMIT - len(suffix)] + suffix
+    return message
 
 
 def checked_step_losses(micro_losses, grad_norm, model=None):
@@ -81,11 +99,10 @@ def checked_step_losses(micro_losses, grad_norm, model=None):
     if not all(map(math.isfinite, losses)):
         raise NonfiniteTrainingError("Nonfinite training objective or MTP component")
     if not math.isfinite(norm):
-        detail = ""
+        message = "Nonfinite gradient norm"
         if model is not None:
-            detail = " (gradients inspected after clipping; nonfinites may have propagated)"
-            detail += nonfinite_tensor_detail(model, gradients=True)
-        raise NonfiniteTrainingError("Nonfinite gradient norm" + detail)
+            message = nonfinite_error_message(message, model, gradients=True)
+        raise NonfiniteTrainingError(message)
     return tuple(sum(losses[i::3]) for i in range(3))
 
 
@@ -773,7 +790,7 @@ def main():
             set_lr_scale(optimizer, scale)
             optimizer.step()
             if not bool(torch.isfinite(torch.stack(torch._foreach_norm([q.detach() for q in model.parameters()]))).all()):
-                raise NonfiniteTrainingError("Nonfinite parameter after optimizer step" + nonfinite_tensor_detail(model))
+                raise NonfiniteTrainingError(nonfinite_error_message("Nonfinite parameter after optimizer step", model))
             if device.type == "cuda":
                 torch.cuda.synchronize()
             ms = (time.perf_counter() - tick) * 1000

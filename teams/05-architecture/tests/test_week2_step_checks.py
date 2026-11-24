@@ -100,9 +100,9 @@ class ConsolidatedChecksTests(unittest.TestCase):
             parameter.grad = torch.full_like(parameter, float("nan"))
         detail = train_week2.nonfinite_tensor_detail(model, gradients=True)
         self.assertIn("weight_0", detail)
-        self.assertIn("weight_7", detail)
-        self.assertNotIn("weight_8", detail)
-        self.assertTrue(detail.endswith("..."))
+        self.assertIn("weight_2", detail)
+        self.assertNotIn("weight_3", detail)
+        self.assertTrue(detail.endswith("... further tensors not listed"))
         self.assertIn("no nonfinite tensors", train_week2.nonfinite_tensor_detail(model))
 
     def test_nonfinite_norm_reports_postclip_state_without_claiming_original_source(self):
@@ -112,6 +112,36 @@ class ConsolidatedChecksTests(unittest.TestCase):
         norm = torch.nn.utils.clip_grad_norm_(model.parameters(), 1., error_if_nonfinite=False)
         with self.assertRaisesRegex(train_week2.NonfiniteTrainingError, "after clipping.*propagated.*weight"):
             checked_step_losses([torch.tensor([1., 1., 0.])], norm, model)
+
+    def test_complete_errors_bound_long_names_and_preserve_context(self):
+        parameter = torch.nn.Parameter(torch.tensor([float("nan")]))
+        parameter.grad = torch.tensor([float("inf")])
+        names = [("blocks." + "very_long_component." * 80 + str(i) + ".weight", parameter) for i in range(10)]
+        model = SimpleNamespace(named_parameters=lambda: iter(names))
+        for gradients, prefix in ((True, "Nonfinite gradient norm"), (False, "Nonfinite parameter after optimizer step")):
+            message = train_week2.nonfinite_error_message(prefix, model, gradients=gradients)
+            self.assertLessEqual(len(message), 400)
+            self.assertTrue(message.startswith(prefix))
+            self.assertIn("... further tensors not listed", message)
+            self.assertIn("0.weight", message)
+            self.assertIn("2.weight", message)
+            self.assertNotIn("3.weight", message)
+            if gradients:
+                self.assertIn("after clipping; nonfinites may have propagated", message)
+
+    def test_complete_message_has_explicit_character_truncation(self):
+        model = SimpleNamespace(named_parameters=lambda: iter(()))
+        message = train_week2.nonfinite_error_message("x" * 500, model)
+        self.assertEqual(len(message), 400)
+        self.assertTrue(message.endswith("... [truncated]"))
+
+    def test_long_inspection_exception_type_is_bounded(self):
+        error = type("Diagnostic" + "x" * 500, (RuntimeError,), {})
+        model = SimpleNamespace(named_parameters=lambda: (_ for _ in ()).throw(error()))
+        message = train_week2.nonfinite_error_message("Nonfinite gradient norm", model, gradients=True)
+        self.assertLessEqual(len(message), 400)
+        self.assertIn("inspection unavailable", message)
+        self.assertNotIn("x" * 65, message)
 
     def test_parameter_inspection_names_only_affected_parameters(self):
         model = torch.nn.Linear(2, 1)
