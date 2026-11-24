@@ -50,7 +50,17 @@ The readers found these problems:
   at 1% of the tokens of each language.
 - Malayalam and Odia had no second reader, so Data B could not measure their clean share.
 
-[text: waiting for Data B, the problems in the code-adjacent text]
+In the code-adjacent text, the readers found these problems:
+
+- Commit messages are mostly clean. Their main problem is personal data: the e-mail addresses of the people who
+  wrote the commits, in author and sign-off lines. Cleaning replaces these addresses with a placeholder. Long licence
+  headers also repeat in many commits.
+- Many notebooks have text around the code that is not part of the work, such as headers and links, and leftover
+  template text.
+- Every question-and-answer post has format markers left in its text. Some posts also contain HTML tags, carry a
+  thread from another question, or repeat in other posts.
+- Only the commit messages have a gold set, so no cleaning rule was tested on the notebooks and the posts.
+  [text: waiting for TSAI, whether the notebooks and the posts are cleaned before training]
 
 Indian scripts break easily. Data B looked for invisible characters, text in the wrong script, words cut before a vowel
 sign, and lost joiner characters (ZWJ and ZWNJ). In the cleaned training shards, no joiner was lost from the text that
@@ -184,10 +194,10 @@ How to fill it:
 | Section | Owner team | Text in this draft | Source | Lead OK |
 |---|---|---|---|---|
 | Overview | Release | who made the model: yes. What the model is: no | `launch/launch_announcement_v0.md` ([#600](https://github.com/theschoolofai/era-v5-lab/pull/600), [#603](https://github.com/theschoolofai/era-v5-lab/pull/603)) | yes (the Release lead wrote this draft) |
-| Training data: the Indian-language and code-adjacent text | Data B | yes, with no edit. The problems in the code-adjacent text: no, Data B adds them later | `teams/02-data-b/model_card/training_data.md` ([#525](https://github.com/theschoolofai/era-v5-lab/pull/525)). Its source table gives the TSAI approval of each number | Data B: yes ([comment on #759](https://github.com/theschoolofai/era-v5-lab/pull/759#issuecomment-7108567909)) |
+| Training data: the Indian-language and code-adjacent text | Data B | yes, with no edit, and the problems in the code-adjacent text, with no edit. One open point waits for TSAI: whether the notebooks and the posts are cleaned before training | `teams/02-data-b/model_card/training_data.md` ([#525](https://github.com/theschoolofai/era-v5-lab/pull/525); the code-adjacent problems: [#782](https://github.com/theschoolofai/era-v5-lab/pull/782), from the Data B lead). Its source table gives the TSAI approval of each number and the source of each problem | Data B: yes ([comment on #759](https://github.com/theschoolofai/era-v5-lab/pull/759#issuecomment-7108567909)) |
 | Training data: the general text and code | Data A | no | waiting for Data A | Data A: no |
 | Licence and attribution | Post-training, Data A, Data B | no | waiting for the Post-training text. Facts so far: `teams/10-post-training/licences/licence_table.md`. MILU is under CC BY 4.0, so this section credits its authors ([comment on #770](https://github.com/theschoolofai/era-v5-lab/pull/770#issuecomment-7123142597)) | no |
-| Evaluation | Evaluation | what Evaluation does: yes, from text that TSAI approved. The benchmarks, the table rows and the check of the training text: yes, from the Evaluation lead, with no edit. The scores: no, TSAI approves each score. Before a score from an early step goes in, check with Evaluation, because early scores can be above a random guess without any learning | the Evaluation line of `launch/launch_announcement_v0.md` ([#753](https://github.com/theschoolofai/era-v5-lab/pull/753)); the Eval-Mini panel text in `dashboard/dashboard_text_new_panels.md` and the format in `dashboard/score_text_format.md` ([#760](https://github.com/theschoolofai/era-v5-lab/pull/760)). Benchmarks and table rows: [comment on #770](https://github.com/theschoolofai/era-v5-lab/pull/770#issuecomment-7123142597). Plan: `teams/09-evaluation/eval_schedule.md` | Evaluation: yes ([comment on #770](https://github.com/theschoolofai/era-v5-lab/pull/770#issuecomment-7121407240)); the Evaluation lead sent the benchmark text |
+| Evaluation | Evaluation | what Evaluation does: yes, from text that TSAI approved. The benchmarks, the table rows and the check of the training text: yes, from the Evaluation lead, with no edit. The scores: no, TSAI approves each score. Before a score from an early step goes in, check with Evaluation, because early scores can be above a random guess without any learning | the Evaluation line of `launch/launch_announcement_v0.md` ([#753](https://github.com/theschoolofai/era-v5-lab/pull/753)); the Eval-Mini panel text in `dashboard/dashboard_text_new_panels.md` and the format in `dashboard/score_text_format.md` ([#760](https://github.com/theschoolofai/era-v5-lab/pull/760)). Benchmarks and table rows: [comment on #770](https://github.com/theschoolofai/era-v5-lab/pull/770#issuecomment-7123142597). Plan: `teams/09-evaluation/eval_schedule.md` | Evaluation: yes ([comment on #770](https://github.com/theschoolofai/era-v5-lab/pull/770#issuecomment-7121407240)); the Evaluation lead sent the benchmark text and confirmed the paste ([comment on #784](https://github.com/theschoolofai/era-v5-lab/pull/784#issuecomment-7129730898)) |
 | Contributors | Release | yes | `launch/launch_announcement_v0.md` ([#600](https://github.com/theschoolofai/era-v5-lab/pull/600), [#603](https://github.com/theschoolofai/era-v5-lab/pull/603)) | yes (the Release lead wrote this draft) |
 | How to find more | Release | yes | the public lab repository | yes (the Release lead wrote this draft) |
 | Every other section | the owner team in `model_card_outline.md` | no | waiting for the owner team | no |
