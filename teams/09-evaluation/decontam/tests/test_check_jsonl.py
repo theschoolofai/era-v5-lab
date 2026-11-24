@@ -172,3 +172,53 @@ def test_runs_as_a_script_in_isolated_mode(tmp_path, fp_dir):
                         "--fingerprints", str(fp_dir), "--part-bytes", "800"], capture_output=True, text=True)
     assert p.returncode == 1, p.stderr
     assert "| 1 | `train.jsonl` |" in p.stdout and "3 flagged, 1 canary hits" in p.stdout
+
+
+def test_default_part_size_is_one_part_per_worker_up_to_the_cap():
+    assert cj.auto_part_bytes(100, 10) == 10
+    assert cj.auto_part_bytes(101, 10) == 11
+    assert cj.auto_part_bytes(5, 10) == 1
+    assert cj.auto_part_bytes(10 ** 10, 10) == cj.MAX_PART_BYTES
+
+
+def test_by_default_a_small_file_uses_every_worker(tmp_path, fp_dir):
+    src = write_jsonl(tmp_path / "train.jsonl", planted())
+    assert run_main(tmp_path, [src], "w", "--fingerprints", str(fp_dir), "--jobs", "4") == 1
+    r = json.loads((tmp_path / "w" / "results" / "train.jsonl.json").read_text())
+    assert r["parts"] in (4, 5)  # whole lines: the last part can hold the rest of a cut
+    assert sorted(r["flagged_doc_ids"]) == ["d20", "d5", "train.jsonl:30"]
+
+
+@pytest.mark.parametrize("data", [b"", b"\n\n  \n", b"\r\n"])
+def test_a_file_with_no_documents_fails(tmp_path, fp_dir, capsys, data):
+    src = tmp_path / "train.jsonl"
+    src.write_bytes(data)
+    assert run_main(tmp_path, [src], "w", "--fingerprints", str(fp_dir)) == 1
+    assert "train.jsonl: FAILED: the file has no documents" in capsys.readouterr().err
+    assert list((tmp_path / "w" / "text").iterdir()) == []
+
+
+def test_invalid_utf8_fails_the_file(tmp_path, fp_dir, capsys):
+    src = tmp_path / "train.jsonl"
+    src.write_bytes(b'{"id": "a", "text": "fine"}\n{"id": "b", "text": "bad \xff byte"}\n')
+    assert run_main(tmp_path, [src], "w", "--fingerprints", str(fp_dir)) == 1
+    assert "train.jsonl: FAILED" in capsys.readouterr().err
+    assert list((tmp_path / "w" / "text").iterdir()) == []
+
+
+def test_many_files_with_few_workers(tmp_path, fp_dir, capsys):
+    files = [write_jsonl(tmp_path / f"t{i}.jsonl", [{"id": f"{i}-{j}", "text": f"{FILLER} {j}"} for j in range(3)])
+             for i in range(12)]
+    files[7] = write_jsonl(tmp_path / "t7.jsonl", [{"text": f"x {ITEM}"}, {"id": "ok", "text": FILLER}])
+    assert run_main(tmp_path, files, "w", "--fingerprints", str(fp_dir), "--jobs", "2") == 1
+    rs = {p.name: json.loads(p.read_text()) for p in (tmp_path / "w" / "results").glob("*.json")}
+    assert len(rs) == 12 and sum(r["flagged"] for r in rs.values()) == 1
+    assert rs["t7.jsonl.json"]["flagged_doc_ids"] == ["t7.jsonl:0"]
+    assert "Total: 12 file(s), 35 docs" in capsys.readouterr().out
+
+
+def test_ids_map_back_past_9999_parts():
+    first = {("f000-train.jsonl", 10000): 123}
+    assert cj.global_id("f000-train.jsonl.part10000.jsonl:4", first, "train.jsonl") == "train.jsonl:127"
+    assert cj.global_id("/w/text/f000-train.jsonl.part10000.jsonl:4", first, "train.jsonl") == "train.jsonl:127"
+    assert cj.global_id("real-id-7", first, "train.jsonl") == "real-id-7"

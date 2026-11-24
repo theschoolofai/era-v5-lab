@@ -8,9 +8,11 @@ optional "id"), not as token shards. For each file this runs decontam_check.py (
 --exclude) and canary_scan.py, with the scripts unchanged. It needs no network and no tokenizer, so it can run as a job
 that reads only its inputs.
 
-Speed. The file is cut into parts of about --part-bytes bytes (whole lines, in file order; the lines are copied as
-they are, never parsed or changed), and decontam_check.py runs on each part in its own process, in one pool of --jobs
-worker processes. A document is checked alone, so the parts give the same result as one run on the file. canary_scan.py
+Speed. The file is cut into parts of whole lines, in file order (the lines are copied as they are, never parsed or
+changed), and decontam_check.py runs on each part in its own process, in one pool of --jobs worker processes. By
+default a part is the total size of the files divided by --jobs, at most 64 MB: so a small file still uses every
+worker, and each process loads the fingerprint set (about 2 s) as few times as possible. --part-bytes sets a fixed
+size. A document is checked alone, so the parts give the same result as one run on the file. canary_scan.py
 reads all parts of a file in one process. --jobs defaults as in check_shards.py (one decontam_check.py holds the
 fingerprint set, about 1.4 GB). Peak disk use is one copy of the files being checked, in <work>/text.
 
@@ -41,14 +43,25 @@ if str(HERE) not in sys.path:  # python -I leaves the script's folder out of sys
 from check_shards import (CANARY_COUNT, CANARY_LINE, DECONTAM_LINE, GB_PER_JOB, SET_LINE, CheckError,  # noqa: E402
                           default_fingerprints, default_jobs, fingerprint_set_sha, lock_work, run)
 
-PART_NAME = re.compile(r"^(?:.*[\\/])?(.+)\.part(\d{4})\.jsonl:(\d+)$")
+PART_NAME = re.compile(r"^(?:.*[\\/])?(.+)\.part(\d{4,})\.jsonl:(\d+)$")  # 5+ digits past 9,999 parts
+MAX_PART_BYTES = 64_000_000
 CHUNK = 1 << 24  # bytes read at a time while cutting a file into parts
 # A blank line, as the scripts skip it (line.strip() is empty). Other Unicode spaces make the counts differ: a loud failure.
 BLANK = re.compile(rb"(?m)^[ \t\r\f\v]*\n")
 
 
+def auto_part_bytes(total_bytes, jobs):
+    """The default part size: one part per worker, at most MAX_PART_BYTES. Measured on sample text: 100 MB with
+    --jobs 10 takes 7 s in 10 parts, 23 s in 2 parts (64 MB), and more parts than workers are slower again."""
+    return max(1, min(MAX_PART_BYTES, -(-total_bytes // jobs)))
+
+
+def part_stem(n, name):
+    return f"f{n:03d}-{name}"
+
+
 def part_path(text_dir, n, name, k):
-    return text_dir / f"f{n:03d}-{name}.part{k:04d}.jsonl"
+    return text_dir / f"{part_stem(n, name)}.part{k:04d}.jsonl"
 
 
 def split_jsonl(path, n, part_bytes, text_dir):
@@ -117,7 +130,7 @@ def check_one(n, path, a, pool):
             sha, size, docs, parts = split_jsonl(path, n, a.part_bytes, text_dir)
         if not parts or docs == 0:
             raise CheckError("the file has no documents")
-        first_lines = {(p.name[: -len(".partNNNN.jsonl")], k): first for k, (p, first) in enumerate(parts)}
+        first_lines = {(part_stem(n, path.name), k): first for k, (_, first) in enumerate(parts)}
         fields = ["--id-field", a.id_field, "--text-field", a.text_field]
         fp = ["--fingerprints", str(a.fingerprints)] if a.fingerprints else []
         f_dec = [pool.submit(run, [sys.executable, str(HERE / "decontam_check.py"), str(p)] + fields + fp)
@@ -193,13 +206,14 @@ def main(argv=None):
     ap.add_argument("--jobs", type=int, default=default_jobs(),
                     help=f"worker processes (default {default_jobs()} here: cores, at most one per "
                          f"{GB_PER_JOB} GB of memory)")
-    ap.add_argument("--part-bytes", type=int, default=64_000_000,
-                    help="bytes per decontam_check.py part (default 64,000,000)")
+    ap.add_argument("--part-bytes", type=int,
+                    help=f"bytes per decontam_check.py part (default: the files' total bytes / --jobs, at most "
+                         f"{MAX_PART_BYTES:,})")
     a = ap.parse_args(argv)
 
     if a.jobs < 1:
         ap.error("--jobs must be 1 or more")
-    if a.part_bytes < 1:
+    if a.part_bytes is not None and a.part_bytes < 1:
         ap.error("--part-bytes must be 1 or more")
     for p in a.files:
         if not p.is_file():
@@ -208,6 +222,8 @@ def main(argv=None):
             ap.error(f"{p}: not a .jsonl file")
     if len({p.name for p in a.files}) != len(a.files):
         ap.error("two files have the same name: results are kept by file name")
+    if a.part_bytes is None:
+        a.part_bytes = auto_part_bytes(sum(p.stat().st_size for p in a.files), a.jobs)
     try:
         set_sha = fingerprint_set_sha(a.fingerprints or default_fingerprints())
     except CheckError as e:
@@ -248,7 +264,7 @@ def run_checks(a, set_sha):
 
     t0 = time.time()
     files = sorted(enumerate(a.files), key=lambda x: -x[1].stat().st_size)  # biggest first
-    with ThreadPoolExecutor(a.jobs) as pool, ThreadPoolExecutor(len(files)) as file_pool:
+    with ThreadPoolExecutor(a.jobs) as pool, ThreadPoolExecutor(min(len(files), a.jobs)) as file_pool:
         out = list(file_pool.map(lambda x: task(x[0], x[1], pool), files))
     results = sorted((r for r in out if r is not None), key=lambda r: r["file"])
     failed = sorted(p.name for (_, p), r in zip(files, out) if r is None)
