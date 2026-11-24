@@ -44,6 +44,45 @@ from pathlib import Path
 
 DELIVERED = ("manifest.json", "summary.json", "metrics.jsonl", "losses.txt", "total_losses.txt")
 
+# Team 5's Team 7 probe (train_week2.py, the `probe` closure passed to Checkpointer) as this script mirrors it. Team 7's
+# export recomputes the probe with OUR closure and raises RestoreCheckError when the bits differ from the ones the run
+# saved for the same device class, so a closure that drifts from Team 5's breaks the first command of the TSAI job.
+# Known closures (sha256 of the dedented text, see team5_probe_closure): before #717 (scored_ntp_loss on held-out window
+# 0) and #717 (61f0a3ae: `checkpoint_probe` when model.head_mode is kas_v2). test_run_folder_from_store pins the G5
+# root's closure to this set, so an upstream edit fails a test instead of the job.
+TEAM5_PROBE_CLOSURES = {
+    "PRE717": "scored_ntp_loss on held-out window 0 under amp()",
+    "KAS717": "kas_v2: week2.kas_v2.checkpoint_probe(model); else scored_ntp_loss on held-out window 0; under amp()",
+}
+TEAM5_PROBE_CLOSURE_SHA256 = {
+    "PRE717": "db809250dc549b7be8533ee5a448fbb28428cfec9b2186878547620f3b8f1718",  # train_week2.py at 00e10c6b (d2d7a21e)
+    "KAS717": "c37ac45b199b026cfa5efaa5b48efc1e5bbeb5e064fbc57e4bc55858a3128ddb",  # train_week2.py at 61f0a3ae / eef1834d
+}
+
+
+def team5_probe_closure(train_week2_path: Path) -> str:
+    """The text of train_week2.py's `def probe(probe_model):` closure (up to `checkpointer = Checkpointer(`), dedented."""
+    lines = Path(train_week2_path).read_text(encoding="utf8").splitlines()
+    start = next((i for i, ln in enumerate(lines) if ln.strip() == "def probe(probe_model):"), None)
+    if start is None:
+        raise ValueError(f"{train_week2_path}: no `def probe(probe_model):` closure (Team 5 changed its Team 7 probe)")
+    end = next((i for i in range(start, len(lines)) if lines[i].strip().startswith("checkpointer = Checkpointer(")), None)
+    if end is None:
+        raise ValueError(f"{train_week2_path}: the probe closure is not followed by `checkpointer = Checkpointer(`")
+    block = [ln for ln in lines[start:end] if ln.strip()]
+    indent = min(len(ln) - len(ln.lstrip()) for ln in block)
+    return "\n".join(ln[indent:] for ln in block) + "\n"
+
+
+def team5_probe_kind(train_week2_path: Path) -> str:
+    """'PRE717' or 'KAS717' when Team 5's closure is one this script mirrors, else 'UNKNOWN:<why>'. Recorded, never
+    refused: Team 7's export is the binding probe check and raises on its own when the bits differ."""
+    try:
+        sha = hashlib.sha256(team5_probe_closure(train_week2_path).encode()).hexdigest()
+    except (OSError, ValueError) as e:
+        return f"UNKNOWN:{e}"
+    return next((k for k, v in TEAM5_PROBE_CLOSURE_SHA256.items() if v == sha), f"UNKNOWN:{sha}")
+
 
 def sha256_file(path: Path) -> str:
     h = hashlib.sha256()
@@ -123,12 +162,18 @@ def build(a) -> dict:
     def factory():
         return LanguageModel(cfg["model"], artifacts.bytes, artifacts.lengths).to(dev)
 
+    probe_kind = team5_probe_kind(harness / "train_week2.py")
+    kas = cfg["model"].get("head_mode") == "kas_v2"
+
     @torch.no_grad()
-    def probe(m):  # train_week2.py's Team 7 probe: held-out window 0, eval mode, its amp() rule
+    def probe(m):  # train_week2.py's Team 7 probe, branch for branch (TEAM5_PROBE_CLOSURES): eval mode, its amp() rule
         amp = (torch.autocast(device_type="cuda", dtype=torch.bfloat16)
                if dev.type == "cuda" and cfg["run"]["dtype"] == "bf16" else nullcontext())
         m.eval()
         with amp:
+            if kas:  # #717: a kas_v2 run saves the bits of Team 5's seeded checkpoint_probe, not the held-out window
+                from week2.kas_v2 import checkpoint_probe  # noqa: PLC0415  Team 5, unmodified
+                return checkpoint_probe(m)
             return float(scored_ntp_loss(m, probe_x, probe_y))
 
     os.environ.setdefault("V5_EVENTS_DIR", tempfile.mkdtemp(prefix="g10_store_events_"))
@@ -154,6 +199,8 @@ def build(a) -> dict:
             raise ValueError(f"store step {step} weights hash {got} != summary.json final_model_sha256 "
                              f"{summary.get('final_model_sha256')}")
         probe_rec = probe_record(step_man.get("probe_loss") or {}, device_class(model), cfg["run"].get("dtype"))
+        probe_rec.update({"probe_fn": "kas_v2.checkpoint_probe" if kas else "scored_ntp_loss(heldout window 0)",
+                          "team5_probe_closure": probe_kind})
         for name in DELIVERED:
             if (rf / name).is_file():
                 shutil.copy2(rf / name, a.out / name)

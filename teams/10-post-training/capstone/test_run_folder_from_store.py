@@ -119,6 +119,10 @@ def model_hash(m):
 def scored_ntp_loss(m, x, y):
     return float(m.w.sum())
 """,
+    "teams/05-architecture/harness/week2/kas_v2.py": """
+def checkpoint_probe(m):  # stands for #717's seeded mean-NLL probe: any value scored_ntp_loss cannot give here
+    return 123.0
+""",
     "teams/07-infrastructure/ckpt/__init__.py": "",
     "teams/07-infrastructure/ckpt/ckpt.py": """
 import os
@@ -129,12 +133,15 @@ def export_safetensors(remote_run, model_factory, probe_fn, out_path, step=None)
     if os.environ.get("G10_STUB_EXPORT") == "raise":
         raise RuntimeError("store unreachable")
     m = model_factory()
+    want = os.environ.get("G10_STUB_PROBE_SAVED")  # Team 7: saved bits for this device class must equal probe_fn's
+    if want is not None and float(probe_fn(m)) != float(want):
+        raise RuntimeError(f"export probe loss bits differ: saved={want} exported={probe_fn(m)}")
     save_file({k: v.contiguous() for k, v in m.state_dict().items()}, out_path,
               metadata={"run_id": "dryrun2-1234", "step": str(step), "state_digest": "digest-1"})
     return {"step": step, "path": out_path, "probe_bits": "40b0002760000000"}
 """,
 }
-STUB_MODULES = ("ckpt", "ckpt.ckpt", "ckpt.store", "train_week2", "week2", "week2.artifacts", "week2.data", "week2.model")
+STUB_MODULES = ("ckpt", "ckpt.ckpt", "ckpt.store", "train_week2", "week2", "week2.artifacts", "week2.data", "week2.model", "week2.kas_v2")
 
 
 @fixture
@@ -154,13 +161,13 @@ def stub_lab(tmp_path, monkeypatch):
     sys.modules.update(saved)
 
 
-def _store_delivery(tmp_path, probe_loss, state_digest="digest-1"):
+def _store_delivery(tmp_path, probe_loss, state_digest="digest-1", model_extra=None):
     store = tmp_path / "store"
     step_dir = store / "dryrun2-1234" / "main" / "step_00001221-e1"
     step_dir.mkdir(parents=True)
     (step_dir / "MANIFEST.json").write_text(json.dumps({"run_id": "dryrun2-1234", "step": 1221, "state_digest": state_digest,
                                                         "probe_loss": probe_loss}, indent=1))
-    rf = _delivery(tmp_path, manifest={"config": {"model": {"block_size": 8}, "run": {"dtype": "bf16"}},
+    rf = _delivery(tmp_path, manifest={"config": {"model": {"block_size": 8, **(model_extra or {})}, "run": {"dtype": "bf16"}},
                                        "artifacts": {"tokenizer_sha256": "t" * 64, "vocab_size": 4},
                                        "identity_sha256": "i" * 64, "smoke": True},
                    summary={"final_model_sha256": "f" * 64})
@@ -222,3 +229,47 @@ def test_an_existing_out_folder_is_refused_and_left_untouched(tmp_path, stub_lab
     with pytest.raises(FileExistsError):
         rfs.build(_args(stub_lab, rf, store, out))
     assert (out / "keep.txt").read_text() == "someone's file"
+
+
+# ---------------------------------------------------------------- the Team 7 probe must be Team 5's probe, branch for branch
+# Team 7's export recomputes the probe with our closure and raises when the bits differ from the ones the run saved on the
+# same device class. #717 made a kas_v2 run save the bits of week2.kas_v2.checkpoint_probe (seeded random ids), not
+# scored_ntp_loss on held-out window 0, so a held-out probe breaks the first command of the dry run 2 job.
+
+def _stub_dense_probe_value() -> float:
+    import torch  # noqa: PLC0415
+    return float(torch.randn(2, 2, generator=torch.Generator().manual_seed(0)).sum())  # the stub model's w.sum()
+
+
+@parametrize("model_extra,fn", [({"head_mode": "kas_v2"}, "kas_v2.checkpoint_probe"),
+                                ({}, "scored_ntp_loss(heldout window 0)")])
+def test_the_store_probe_is_the_one_team5_saved_for_this_head(tmp_path, stub_lab, monkeypatch, model_extra, fn):
+    store, rf, _ = _store_delivery(tmp_path, {"cpu": "40b0002760000000"}, model_extra=model_extra)
+    saved = 123.0 if model_extra else _stub_dense_probe_value()
+    monkeypatch.setenv("G10_STUB_PROBE_SAVED", repr(saved))
+    rec = rfs.build(_args(stub_lab, rf, store, tmp_path / "rebuilt"))
+    assert rec["probe"]["probe_fn"] == fn and rec["probe"]["team5_probe_closure"].startswith("UNKNOWN:")  # stub harness
+
+
+def test_team5s_probe_closure_is_one_this_script_mirrors():
+    """Drift pin: fails when Team 5 edits the probe closure of the train_week2.py we run against (G10_G5_ROOT, default
+    this checkout), so the mirror in run_folder_from_store.build() is updated before the job, not after it fails."""
+    root = Path(os.environ.get("G10_G5_ROOT") or Path(__file__).resolve().parents[3])
+    tw = root / "teams" / "05-architecture" / "harness" / "train_week2.py"
+    kind = rfs.team5_probe_kind(tw)
+    assert kind in rfs.TEAM5_PROBE_CLOSURE_SHA256, (
+        f"Team 5's Team 7 probe in {tw} is not one run_folder_from_store mirrors ({kind}); read its closure and update "
+        f"build().probe and TEAM5_PROBE_CLOSURE_SHA256:\n{rfs.team5_probe_closure(tw)}")
+
+
+def test_the_closure_hash_ignores_only_indentation_and_blank_lines(tmp_path):
+    body = ("def probe(probe_model):\n    training = probe_model.training\n    try:\n        probe_model.eval()\n"
+            "        with amp():\n            return float(scored_ntp_loss(probe_model, probe_x, probe_y))\n"
+            "    finally:\n        probe_model.train(training)\n")
+    f = tmp_path / "tw.py"
+    f.write_text("def main():\n" + "".join("        " + ln + "\n" for ln in body.splitlines()) + "\n        checkpointer = Checkpointer(\n")
+    assert rfs.team5_probe_kind(f) == "PRE717"
+    f.write_text(f.read_text().replace("probe_x, probe_y", "probe_x[:1], probe_y[:1]"))
+    assert rfs.team5_probe_kind(f).startswith("UNKNOWN:")
+    f.write_text("def main():\n    pass\n")
+    assert rfs.team5_probe_kind(f).startswith("UNKNOWN:") and "no `def probe" in rfs.team5_probe_kind(f)
