@@ -538,9 +538,9 @@ def train(args) -> dict:
         reg_val = None
         if args.method == "dt" and args.dt_lambda > 0:
             lam = dtmask.lambda_at(step, args.steps, args.dt_lambda)
-            reg = dtmask.regulariser(model)
-            (-lam * reg).backward()  # once per optimizer step: the official per-microbatch term averaged over accumulation
-            reg_val = float(reg.detach())
+            # once per optimizer step (the official per-microbatch term averaged over accumulation); same gradient as
+            # (-lam * regulariser(model)).backward() bit for bit, without holding 8 B per masked weight for it
+            reg_val = dtmask.regulariser_backward_(model, lam)
         gn = torch.nn.utils.clip_grad_norm_(params, args.clip)
         if step == 0:
             sel = (lambda t: t[marker_ids]) if args.method == "markers" else (lambda t: t)  # only these rows train

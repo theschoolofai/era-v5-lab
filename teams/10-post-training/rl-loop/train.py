@@ -1333,8 +1333,8 @@ def train(cfg: dict) -> dict:
                 if dt_cfg and dt_info["lambda"] > 0:  # official regulariser, once per optimizer step
                     lam_t = dtmask.lambda_at(min(dt_layer0.current_step, dt_info["alpha_steps"]), dt_info["alpha_steps"],
                                              dt_info["lambda"])
-                    if lam_t > 0:
-                        (-lam_t * dtmask.regulariser(model)).backward()
+                    if lam_t > 0:  # same gradient as (-lam_t * regulariser).backward(), no graph (12 B/weight, bf16 W)
+                        dtmask.regulariser_backward_(model, lam_t)
                 grad_norm = float(torch.nn.utils.clip_grad_norm_([p for _, p in trainable_named],
                                                                  float(t.get("grad_clip", 1.0))))
                 probe_w.before()
