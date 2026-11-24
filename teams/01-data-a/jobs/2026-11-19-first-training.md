@@ -5,16 +5,16 @@ Team:            01-data-a
 Owner:           patilvijay23
 Lead approval:   patilvijay23
 Question:        Do the approved raw parts produce an exact inventory, auditable cleaned Parquets, and reconciled p1536 train shards in one pipeline run?
-Script:          teams/01-data-a/jobs/2026-11-19-first-training/build_inventory.py, prepare_run.py, then teams/01-data-a/pipeline/run_pipeline.py
-Command:         python -I teams/01-data-a/pipeline/run_pipeline.py --config out/first-training-inputs/run.json
-Config:          out/first-training-inputs/run.json (materialized from the template below after inventory build)
+Script:          teams/01-data-a/jobs/2026-11-19-first-training/build_inventory.py, prepare_run.py, then teams/01-data-a/pipeline/run_pipeline.py (clean only), teams/01-data-a/dedup/minhash_sizing.py (sizing gate), run_pipeline.py (production run)
+Command:         gated, in order (see "Staged-data sizing gate"): run_pipeline.py --config out/first-training-inputs/run_clean.json; minhash_sizing.py --inputs out/pipeline/first-training-v1-clean/clean --factors 1 2 4 --out out/minhash_sizing/corpus-v1; if the gate passes, run_pipeline.py --config out/first-training-inputs/run_production.json
+Config:          out/first-training-inputs/run_clean.json and run_production.json (prepare_run.py writes both beside run.json, derived from it)
 Inputs:          TSAI-staged approved train and heldout parts for the 33 packs in staged_packs_33.json (subset of approved_inputs.json); frozen p1536 tokenizer; offline LaBSE model; approved pack table; G9 F2 v2 fingerprints
 Hardware:        1 CUDA GPU (16 GiB VRAM or more), 32 vCPU, 64 GiB RAM, sized on the sample (size RAM and time from the staged rows; see sizing below); F2 uses 30 workers
 Max time:        720 minutes for the combined job (H3's own limit is 180 minutes)
 Precision:       H3 fp16 on CUDA (precision auto); shard token IDs are integers
 Measures:        Raw/cleaned/dedup/F2/final counts, H3 matches, train shards and tokens, heldout not_sharded, per-part reconciliation and SHA-256 checks
 Expected result: Every listed raw part reaches the ledger; each train part is written or has a justified empty/all_left_out status; heldout parts are not sharded; all checks pass; H3 removes zero documents
-Outputs:         out/first-training-inputs/{input_manifest.json,expected_inventory.json,pack_metadata.json,run.json}; out/pipeline/<run_id>/{clean,overlap,h3,dedup,deduped,final,report,ledger,shards,reconcile}/ and pipeline_manifest.json
+Outputs:         out/first-training-inputs/{input_manifest.json,expected_inventory.json,pack_metadata.json,run.json,run_clean.json,run_production.json}; out/pipeline/<run_id>-clean/clean/ (the clean run); out/minhash_sizing/corpus-v1/ (sizing.csv, sizing.json, x1/x2/x4); out/pipeline/<run_id>/{overlap,h3,dedup,deduped,final,report,ledger,shards,reconcile}/ and pipeline_manifest.json
 Test log:        teams/01-data-a/jobs/logs/2026-11-19-first-training-rehearsal-38packs/ (all 86 parts of sample v0, 38 packs, frozen p1536, Linux + pinned env: 59/59 checks; with the inventory, prepare_run's run.json at 2691c44: 74/74)
 ```
 
@@ -93,8 +93,8 @@ reconcile, so the clean pass is its own run, and the production run adopts its f
 
 1. **Prepare** `out/first-training-inputs/run.json` with `build_inventory.py` (with `--packs-file` for the 33 staged
    packs) and `prepare_run.py`, as in "Run from the repository root" below.
-2. **Clean only.** Copy `run.json` to `run_clean.json`; in the copy set `"run_id"` to `"first-training-v1-clean"`, add
-   `"to": "clean"`, and remove `"inventory"` (a run with an inventory must end at reconcile). Run
+2. **Clean only** with `run_clean.json`, which `prepare_run.py` writes beside `run.json`: the same stages, `"run_id"`
+   `"first-training-v1-clean"`, `"to": "clean"` and no `"inventory"` (a run with an inventory must end at reconcile):
    `python -I teams/01-data-a/pipeline/run_pipeline.py --config out/first-training-inputs/run_clean.json`.
    The cleaned parts are in `out/pipeline/first-training-v1-clean/clean/`.
 3. **Size** on those parts, with the 16 workers of the MinHash config:
@@ -106,10 +106,11 @@ reconcile, so the clean pass is its own run, and the production run adopts its f
      48 GB. If the 4x row is `undersized`, fewer than 4x the sample is staged; its `actual_factor` is what was measured;
    - `projection_whole_staged_inputs.hours_linear` (overlap on every staged document), plus the rest of the
      pipeline, fits the Max time left after the clean run.
-5. **Production run.** In `run.json` (with its inventory), replace `stages.clean` with
-   `{"mode": "adopt", "output": "out/pipeline/first-training-v1-clean/clean"}`. Check it with `--plan`, then run it,
-   with the commands under "Run from the repository root". The runner checks that the adopted folder's
-   `job_summary.json` names the inventory's input manifest; nothing is cleaned again.
+5. **Production run** with `run_production.json`, also written by `prepare_run.py`: `run.json` with its inventory and
+   `stages.clean` set to `{"mode": "adopt", "output": "out/pipeline/first-training-v1-clean/clean"}`. Check it with
+   `--plan`, then run it (step 3 of "Run from the repository root"). Before anything runs, the runner checks that the
+   adopted clean job's `job_summary.json` read the inventory's input manifest, and it then checks the adopted
+   folder's parts and rows as after its own clean stage; nothing is cleaned again.
 6. **Return** `sizing.csv`, `sizing.json`, and each factor's `config.json` and `overlap/overlap_summary.json` under
    `teams/01-data-a/jobs/results/2026-11-19-first-training/minhash_sizing/` (IDs and counts only).
 
@@ -243,12 +244,18 @@ python -m pytest teams/01-data-a/tests/audit/test_check_shard.py teams/01-data-a
 
    The builder requires all selected packs in both splits and rejects unknown packs, invalid part names, missing columns, changed files and duplicate numeric part indices. The generator refuses an incomplete pack table or an unfrozen tokenizer.
 
-3. Check the generated config, then run the same file. Both commands use the same checkout and working directory:
+3. Run the staged-data sizing gate (above): the clean run, the sizing and the gate, then check and run the production
+   config. All commands use the same checkout and working directory:
 
    ```bash
-   python -I teams/01-data-a/pipeline/run_pipeline.py --config out/first-training-inputs/run.json --plan
-   python -I teams/01-data-a/pipeline/run_pipeline.py --config out/first-training-inputs/run.json
+   python -I teams/01-data-a/pipeline/run_pipeline.py --config out/first-training-inputs/run_clean.json
+   python -I teams/01-data-a/dedup/minhash_sizing.py --inputs out/pipeline/first-training-v1-clean/clean --factors 1 2 4 --out out/minhash_sizing/corpus-v1
+   # go on only if the gate passes (sizing exit 0; largest factor peak_rss_total_gb <= 48 GB; projected time fits)
+   python -I teams/01-data-a/pipeline/run_pipeline.py --config out/first-training-inputs/run_production.json --plan
+   python -I teams/01-data-a/pipeline/run_pipeline.py --config out/first-training-inputs/run_production.json
    ```
+
+   `run.json` is the same run in one go, without the gate; the job uses the two gate configs.
 
 The runner runs clean → overlap → H3 → dedup → apply → F2 → survivor loss → raw ledger → shards → reconcile. It verifies each handoff and the inventory at the ledger/shard and reconciliation checkpoints. H3 feeds its matches to dedup with `remove: false`. H3 stays report-only: the runner hardcodes `remove: false` for this hand-off, fails the run if dedup recorded anything else, and acceptance requires H3 `removed: 0`.
 
@@ -307,6 +314,6 @@ The clean settings enable `audit_samples: 5`. Each part has an audit sidecar; `r
 
 ## Return and acceptance
 
-Return the console log, `pipeline_manifest.json`, `inventory_check.json`, clean `job_summary.json`, `cleaned_manifest.json`, `rule_counts.csv` and `rule_examples.csv`, H3 summary and match counts, `shards_summary.json`, and `reconcile_summary.json` under `teams/01-data-a/jobs/results/2026-11-19-first-training/`. Limit repository-returned logs/reports to 50 MiB total. Keep audit sidecars, Parquet, token binaries and document text in TSAI's job storage; report their paths and hashes without committing their content.
+Return the console log, `pipeline_manifest.json`, `inventory_check.json`, clean `job_summary.json`, `cleaned_manifest.json`, `rule_counts.csv` and `rule_examples.csv`, H3 summary and match counts, `shards_summary.json`, and `reconcile_summary.json` under `teams/01-data-a/jobs/results/2026-11-19-first-training/`. Limit repository-returned logs/reports to 50 MiB total. Keep audit sidecars, Parquet, token binaries and document text in TSAI's job storage; report their paths and hashes without committing their content. With them, return the sizing gate's `out/minhash_sizing/corpus-v1/sizing.csv` and `sizing.json`, and each factor's `config.json` and `overlap/overlap_summary.json`, under `teams/01-data-a/jobs/results/2026-11-19-first-training/minhash_sizing/`, also when the gate stops the job; the clean run's `pipeline_manifest.json` and `logs/clean.log` go with the clean `job_summary.json`.
 
 Acceptance requires exit code 0, inventory report `ok: true`, no missing or unlisted input part, zero heldout shards, H3 `removed: 0`, shard files verified on disk, and reconciliation of every kept train document. Include the runtime, peak memory, H3 model hash and package versions, shard/token counts, and any empty or all-left-out train parts in the returned log.

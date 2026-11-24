@@ -2,8 +2,16 @@
 
 Run after build_inventory.py. All generated files stay under out/; the raw parts,
 tokenizer, model and approved pack table are read only.
+
+Besides run.json (the whole run in one go) it writes the two configs of the staged-data sizing gate
+(2026-11-19-first-training.md, "Staged-data sizing gate"), both derived from run.json:
+  run_clean.json       the clean stage only: run_id <run_id>-clean, "to": "clean", no inventory (a run with an
+                       inventory must end at reconcile)
+  run_production.json  run.json with stages.clean adopting that run's cleaned folder, so nothing is cleaned again;
+                       the runner checks that the adopted clean job read the inventory's input manifest
 """
 import argparse
+import copy
 import hashlib
 import json
 from pathlib import Path
@@ -23,6 +31,19 @@ MODEL_FILES = {
 # teams/01-data-a/spec_v1_1/build/f1_rule.py). tree-sitter-language-pack 1.22.1 does not ship them: it downloads each
 # one on first use, which the job cannot do without network, so the setup step downloads them.
 F1_PARSERS = ("cpp", "go", "java", "javascript", "python", "rust", "typescript")
+GATE_CONFIGS = ("run_clean.json", "run_production.json")   # the staged-data sizing gate, derived from run.json
+
+
+def gate_configs(cfg):
+    """(run_clean, run_production) from run.json's config: a clean-only run without the inventory, and the full
+    run adopting that run's cleaned folder."""
+    clean = copy.deepcopy(cfg)
+    clean["run_id"] = f"{cfg['run_id']}-clean"
+    clean["to"] = "clean"
+    clean.pop("inventory", None)
+    production = copy.deepcopy(cfg)
+    production["stages"]["clean"] = {"mode": "adopt", "output": f"{cfg['out']}/{clean['run_id']}/clean"}
+    return clean, production
 
 
 def sha256(path):
@@ -66,8 +87,9 @@ def prepare(bundle, raw, tokenizer, pack_table, run_id, model_path=None, f2_work
     if not run_id or "/" in run_id or "\\" in run_id or run_id in (".", ".."):
         raise ValueError("run_id must be one safe folder name")
     output = bundle / "run.json"
-    if output.exists():
-        raise ValueError(f"run config already exists: {output}; use a new bundle or run_id")
+    for existing in (output, *(bundle / name for name in GATE_CONFIGS)):
+        if existing.exists():
+            raise ValueError(f"run config already exists: {existing}; use a new bundle or run_id")
     manifest_path, inventory_path = bundle / "input_manifest.json", bundle / "expected_inventory.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     inventory = json.loads(inventory_path.read_text(encoding="utf-8"))
@@ -147,6 +169,8 @@ def prepare(bundle, raw, tokenizer, pack_table, run_id, model_path=None, f2_work
     if make_table:
         pack_table.write_text(json.dumps({"packs": table}, indent=2) + "\n", encoding="utf-8", newline="\n")
     output.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8", newline="\n")
+    for name, gate in zip(GATE_CONFIGS, gate_configs(cfg)):
+        (bundle / name).write_text(json.dumps(gate, indent=2) + "\n", encoding="utf-8", newline="\n")
     return output
 
 
