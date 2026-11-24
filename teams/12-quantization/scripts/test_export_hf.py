@@ -162,9 +162,9 @@ class RouterBiasTests(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
-    def run_folder(self, gamma=0.001, bias=None, old=False):
+    def run_folder(self, gamma=0.001, bias=None, old=False):  # gamma None: the manifest has no bias_gamma
         """bias: value added to the experts of every layer, as [0, x, 0, ...]. old: the state has no router_bias (before #748)."""
-        m = spec(moe=dict(bias_gamma=gamma))
+        m = spec(moe={} if gamma is None else dict(bias_gamma=gamma))
         model = random_model(m)
         state = model.state_dict()
         keys = [k for k in state if k.endswith('.router_bias')]
@@ -210,6 +210,10 @@ class RouterBiasTests(unittest.TestCase):
     def test_nonzero_bias_with_gamma_zero_never_routed_so_it_is_dropped(self):
         r = self.export(self.run_folder(gamma=0.0, bias=0.5))
         self.assertTrue(r['verify']['passed']); self.assertIn('bias_gamma is 0', r['router_bias']['action'])
+
+    def test_nonzero_bias_without_bias_gamma_never_routed_so_it_is_dropped(self):
+        r = self.export(self.run_folder(gamma=None, bias=0.5))
+        self.assertTrue(r['verify']['passed']); self.assertIn('bias_gamma is 0 or not set', r['router_bias']['action'])
 
     def test_a_really_missing_weight_still_fails(self):
         m = spec(); model = random_model(m); state = model.state_dict()

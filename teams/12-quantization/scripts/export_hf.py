@@ -63,7 +63,7 @@ def router_bias_report(state: dict, spec: dict) -> dict:
     layer = max(worst, key=worst.get) if worst else None
     gamma = spec['moe'].get('bias_gamma')
     return dict(present=bool(keys), max_abs=worst[layer] if layer else 0.0, layer=layer, bias_gamma=gamma,
-                active=bool(layer and worst[layer] > 0 and gamma != 0))
+                active=bool(layer and worst[layer] > 0 and gamma))  # G5 reads a missing bias_gamma as 0
 
 
 def file_sha256(path) -> str:
@@ -300,7 +300,7 @@ def export(checkpoint: Path, out: Path, spec_path: Path | None = None, tokenizer
                   token_ids=ids)
     report['router_bias'] = dict(
         rb, action=('absent from the checkpoint' if not rb['present'] else 'dropped with --drop-router-bias' if rb['active']
-                    else 'dropped: all zero' if rb['max_abs'] == 0 else 'dropped: bias_gamma is 0, so it never picked an expert'),
+                    else 'dropped: all zero' if rb['max_abs'] == 0 else 'dropped: bias_gamma is 0 or not set, so it never picked an expert'),
         **({'warning': f'routing differs from the checkpoint: {rb["layer"]} has max |router_bias| {rb["max_abs"]:.3g} (bias_gamma '
                        f'{rb["bias_gamma"]}), which GraniteMoeShared cannot represent. Read A1 and A3 with that in mind.'}
            if rb['active'] else {}))
