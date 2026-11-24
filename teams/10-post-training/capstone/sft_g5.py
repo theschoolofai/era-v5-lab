@@ -535,8 +535,8 @@ def run(args) -> dict:
     lm.eval()
     g10_router.clear_router_bias_load(lm)  # train-mode load counts: only update_router_bias() reads them; G10 never calls it
     bias_after = g10_router.router_bias_checksum(lm)
-    report["router_bias_unchanged"] = {"before": bias_before, "after": bias_after, "pass": bias_before == bias_after,
-                                       "rule": "the bias stays as delivered; update_router_bias() is never called"}
+    # pass False also when the arm's config says a bias exists but no router_bias buffer is found (job BNP)
+    report["router_bias_unchanged"] = g10_router.router_bias_record(lm, bias_before, bias_after, bundle.spec)
     if frozen_before is not None:
         after = bench.frozen_sha256(lm, marker_ids if marker_param is not None else None)
         report["frozen_weights_unchanged"] = {"before": frozen_before, "after": after, "pass": after == frozen_before}

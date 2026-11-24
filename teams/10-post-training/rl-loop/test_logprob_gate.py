@@ -297,3 +297,28 @@ def test_a_router_bias_change_is_recorded_after_the_outputs_not_raised(monkeypat
     assert any("router_bias changed" in f for f in s["failures"])
     on_disk = json.loads((tmp_path / "bias" / "summary.json").read_text())
     assert on_disk["router_bias_unchanged"] is False and on_disk["failures"] == s["failures"]
+
+
+def test_bnp_c_trainer_fails_the_bias_check_when_the_arm_expects_a_bias_but_none_is_registered(monkeypatch, tmp_path):
+    """Job BNP: a model whose config says MoE experts with bias_gamma > 0 but that registers no router_bias buffer used to
+    report None == None as unchanged. Now the summary says router_bias_unchanged False with the reason, after the outputs,
+    as for a moved bias. The same tiny model without such a config (dense control) still passes."""
+    scripts = {MIXED: [0, 1, 0, 1], MIXED_B: [1, 1, 0, 0]}
+    real = train.build_model
+
+    def build(mcfg, device):
+        pol, tok = real(mcfg, device)
+        pol.model.spec = {"moe": {"num_experts": 4, "bias_gamma": 0.001}}  # the arm's config; no buffer anywhere
+        return pol, tok
+
+    monkeypatch.setattr(train, "build_model", build)
+    s, _, recs, _ = _run_v1(monkeypatch, tmp_path, "nobias", dict(scripts))
+    assert recs[0]["optimizer_stepped"] and s["router_bias_unchanged"] is False
+    chk = s["router_bias_check"]
+    assert chk["expected"] and chk["buffers"] == 0 and chk["before"] is None and chk["after"] is None
+    assert any("router_bias check failed" in f for f in s["failures"])
+    on_disk = json.loads((tmp_path / "nobias" / "summary.json").read_text())
+    assert on_disk["router_bias_unchanged"] is False and on_disk["failures"] == s["failures"]
+    monkeypatch.setattr(train, "build_model", real)
+    d, _, _, _ = _run_v1(monkeypatch, tmp_path, "dense", dict(scripts))
+    assert d["router_bias_unchanged"] is True and d["router_bias_check"]["expected"] is False and not d.get("failures")

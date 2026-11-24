@@ -510,8 +510,8 @@ def rl_step(a, out: Path, init_state, init_sha, deadline_unix, screen_n) -> dict
         res["screen_survey"] = screen_survey(screen)
         (out / "screen_survey.json").write_text(json.dumps(res["screen_survey"], indent=1))
     if summary.get("router_bias_unchanged") is False:  # after the kept weights: the step fails, nothing is lost
-        res.update(ok=False, error="router_bias changed during RL (summary.failures); outputs kept",
-                   router_bias_unchanged=False)
+        why = (summary.get("router_bias_check") or {}).get("reason") or "router_bias changed during RL"
+        res.update(ok=False, error=f"{why} (summary.failures); outputs kept", router_bias_unchanged=False)
     if summary.get("status") in ("NO_GO_MIXED_BAND", "PAUSED_AT_DEADLINE"):
         return res
     evals = [json.loads(x) for x in (rl_out / "evals.jsonl").read_text().splitlines() if x.strip()]

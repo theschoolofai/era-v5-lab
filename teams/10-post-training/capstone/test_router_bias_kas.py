@@ -387,6 +387,84 @@ def test_c_sft_g5_reports_router_bias_unchanged_per_method(tmp_path, events):
         assert on_disk["router_bias_unchanged"]["pass"], name
 
 
+
+def _unregister_router_bias(model):
+    """Job BNP broken input: every MoE keeps its bias as a plain attribute (forward still reads it) but no buffer is named
+    `router_bias`, as after a rename in Team 5's code or a module that forgets register_buffer (nothing saves it either)."""
+    n = 0
+    for mod in model.modules():
+        if "router_bias" in mod._buffers:
+            t = mod._buffers.pop("router_bias")
+            mod.router_bias = t  # not a buffer any more: Module.__setattr__ stores a plain attribute
+            n += 1
+    return n
+
+
+@needs_bias
+def test_bnp_a_missing_router_bias_buffer_fails_when_the_arm_says_a_bias_exists():
+    """None == None must not pass when the arm has MoE experts and bias_gamma > 0. Dense or gamma 0 stays a pass."""
+    m = _make(0.001)
+    assert _unregister_router_bias(m) == 2
+    m.eval()
+    with torch.no_grad():
+        m(IDS, VALID)  # the model still runs: nothing else would have noticed
+    ck = g10_router.router_bias_checksum(m)
+    assert ck is None
+    rec = g10_router.router_bias_record(m, ck, ck)
+    assert rec["expected"] and rec["buffers"] == 0 and rec["pass"] is False and "router_bias" in rec["reason"]
+    g0 = _make(0.0)  # gamma 0: the buffer exists but is never read
+    ok = g10_router.router_bias_record(g0, g10_router.router_bias_checksum(g0), g10_router.router_bias_checksum(g0))
+    assert ok["pass"] and not ok["expected"] and ok["buffers"] == 2
+    assert _unregister_router_bias(g0) == 2
+    assert g10_router.router_bias_record(g0, None, None)["pass"]  # gamma 0 expects no bias
+    dense = {"n_embd": 4}  # no moe block
+    assert not g10_router.router_bias_expected(dense) and not g10_router.router_bias_expected(None)
+    assert g10_router.router_bias_record(nn_dense(), None, None, dense)["pass"]
+    good = _make(0.001)
+    rec = g10_router.router_bias_record(good, g10_router.router_bias_checksum(good), g10_router.router_bias_checksum(good))
+    assert rec["pass"] and rec["expected"] and rec["buffers"] == 2
+
+
+def nn_dense():
+    return torch.nn.Linear(2, 2)
+
+
+@skipif(not (HAS_BIAS and _standin_has_bias()),
+                    reason="set G10_STANDIN_RUN_FOLDER to a run folder trained with bias_gamma != 0 (ADP KAS stand-in)")
+def test_bnp_b_sft_g5_fails_the_bias_check_when_the_buffer_is_not_registered(tmp_path, events, monkeypatch):
+    """End to end on the KAS stand-in (bias_gamma 0.001): the same run with the router_bias buffers unregistered after the
+    build reports pass False with the reason, on disk too, so the job chain's arm check fails that arm."""
+    import make_adapter_config as mac
+    import sft_rows
+    rt = sft_rows.Retok(STANDIN_ART / "tokenizer_p1536.json", TABLE)
+    rows = []
+    for i in range(8):  # test fixtures only: not training data
+        text = sft_g5.render.render([{"role": "user", "content": f"q{i}"}, {"role": "assistant", "content": f"a{i} b"}])
+        row, why = rt.row({"id": f"t/{i}", "text": text, "train_spans": rt.convert.train_spans(text)})
+        assert why == "ok"
+        row["split"] = "train" if i < 5 else "eval"
+        rows.append(row)
+    tr, ev = tmp_path / "train.jsonl", tmp_path / "eval.jsonl"
+    tr.write_text("".join(json.dumps(r) + "\n" for r in rows[:5]))
+    ev.write_text("".join(json.dumps(r) + "\n" for r in rows[5:]))
+    cfg = mac.write_config(tmp_path / "adapter.yaml", TEAMS.parent, STANDIN_RUN, STANDIN_ART / "tokenizer_p1536.json", TABLE,
+                           TEAMS / "10-post-training", "g10_rehearsal", False)
+    real = ta.build
+
+    def build(*a, **k):
+        res = real(*a, **k)
+        assert _unregister_router_bias(res.require_bundle().model) > 0
+        return res
+
+    monkeypatch.setattr(ta, "build", build)
+    rep = sft_g5.run(sft_g5.parse_args(["--adapter-config", str(cfg), "--train", str(tr), "--eval", str(ev), "--steps", "1",
+                                        "--batch", "2", "--device", "cpu", "--gen-limit", "1", "--gen-max-new", "2",
+                                        "--no-before", "--method", "full", "--out", str(tmp_path / "full")]))
+    rb = rep["router_bias_unchanged"]
+    assert rb["pass"] is False and rb["expected"] and rb["buffers"] == 0 and rb["before"] is None and rb["reason"]
+    on_disk = json.loads((tmp_path / "full" / "sft_report.json").read_text())["router_bias_unchanged"]
+    assert on_disk["pass"] is False
+
 def test_marker_budget_reproduces_the_preregistered_rule():
     """A1 numbers: 1e-2 x S x 59.0 x 0.682 against 1.3 x 21.79 = 28.33. 243 scheduled steps (S 134.1) pass with margin; the
     compressed 126-step schedule (S 69.8) is under it."""

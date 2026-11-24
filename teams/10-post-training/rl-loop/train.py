@@ -1494,6 +1494,9 @@ def train(cfg: dict) -> dict:
     checksum_after = "dense model: no router" if dense else router.router_checksum(model, patterns)
     router.clear_router_bias_load(model)
     bias_after = router.router_bias_checksum(model)
+    # pass False also when the arm's config says a bias exists but no router_bias buffer is found (job BNP)
+    bias_rec = router.router_bias_record(model, bias_before, bias_after,
+                                         adapter.bundle.spec if adapter is not None else None)
     recs = [json.loads(line) for line in metrics_path.read_text().splitlines()]
     later = recs[1:] or recs  # step 1 includes warm-up (compilation, caches); report it separately
     last = max(heldout_scores)
@@ -1502,7 +1505,8 @@ def train(cfg: dict) -> dict:
                "fp32_master_params": n_fp32, "tis_clip": tis_clip,
                "router_params_frozen": frozen, "router_checksum_before": checksum_before,
                "router_checksum_after": checksum_after, "router_unchanged": checksum_before == checksum_after,
-               "router_bias_checksum": bias_after, "router_bias_unchanged": bias_before == bias_after,
+               "router_bias_checksum": bias_after, "router_bias_unchanged": bias_rec["pass"],
+               "router_bias_check": bias_rec,
                "heldout_reward_start": h0, "heldout_reward_end": heldout_curve[-1][1], "heldout_curve": heldout_curve,
                "heldout_change": heldout.paired_bootstrap(heldout_scores[0], heldout_scores[last], seed=seed),
                "groups_used_total": sum(r["groups_used"] for r in recs),
@@ -1538,6 +1542,7 @@ def train(cfg: dict) -> dict:
     summary["update_mode_resolution"] = mode_rec
     if not summary["router_bias_unchanged"]:  # recorded with every output; the callers fail the run after writing them
         summary.setdefault("failures", []).append(
+            f"router_bias check failed: {bias_rec['reason']}" if bias_rec["expected"] and not bias_rec["buffers"] else
             "router_bias changed during RL: something called update_router_bias(); the bias stays as delivered")
     if gate_cfg not in (None, False):
         summary["logprob_gate"] = gate_rec
