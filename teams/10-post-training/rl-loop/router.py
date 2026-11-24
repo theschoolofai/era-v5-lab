@@ -44,6 +44,29 @@ def router_checksum(model: nn.Module, patterns=ROUTER_PATTERNS) -> str:
     return h.hexdigest()
 
 
+def router_bias_checksum(model: nn.Module) -> str | None:
+    """SHA-256 over every `*.router_bias` buffer (Team 5's loss-free balancer, #748): never a parameter, so neither the
+    trainable set nor router_checksum covers it, yet it changes which experts fire. None when the model has none.
+    G10's trainers never call model.update_router_bias(); the owner's rule (23 Nov): the bias stays as delivered."""
+    found = sorted((n, b) for n, b in model.named_buffers() if n.endswith("router_bias"))
+    if not found:
+        return None
+    h = hashlib.sha256()
+    for name, b in found:
+        t = b.detach().to("cpu").contiguous()
+        h.update(f"{name}|{tuple(t.shape)}|{t.dtype}|".encode())
+        h.update(t.view(torch.uint8).numpy().tobytes())
+    return h.hexdigest()
+
+
+def clear_router_bias_load(model: nn.Module) -> None:
+    """Drop Team 5's per-layer train-mode load counts (`_balance_load`, not a buffer, so `.to()` does not move it) before a
+    save or a device move. They only matter to update_router_bias(), which G10 never calls."""
+    fn = getattr(model, "clear_router_bias_load", None)
+    if callable(fn):
+        fn()
+
+
 def assert_router_frozen(model: nn.Module, patterns=ROUTER_PATTERNS) -> None:
     """Fails if any router weight is trainable."""
     trainable = [n for n, p in router_params(model, patterns) if p.requires_grad]

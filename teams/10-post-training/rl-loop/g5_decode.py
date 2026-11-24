@@ -180,7 +180,7 @@ def parity_many(lm, rows: list[list[int]], steps: int) -> float:
     one prefill of every row's prompt (all but its last `steps` tokens; rows may differ in length), then `steps`
     one-token steps. Covers every prompt position and every stepped position."""
     check_supported(lm)
-    dev = lm.head.weight.device
+    dev = next(lm.parameters()).device  # not lm.head.weight: a KAS V2 head (#717) has no .weight
     lens = [len(r) - steps for r in rows]
     if min(lens) < 1:
         raise ValueError("every row needs at least one prompt token")

@@ -393,6 +393,8 @@ def run(args) -> dict:
     report["method"] = method_info
     frozen_before = bench.frozen_sha256(lm, marker_ids if marker_param is not None else None) \
         if args.method != "full" else None
+    import router as g10_router  # noqa: PLC0415  rl-loop/router.py
+    bias_before = g10_router.router_bias_checksum(lm)  # every method, full FT included: the bias is a buffer
     params = [p for p in lm.parameters() if p.requires_grad]
     groups = [{"params": [p for p in params if p is not marker_param], "base_lr": args.lr}]
     groups = [g for g in groups if g["params"]]
@@ -459,6 +461,10 @@ def run(args) -> dict:
     bench.sync(device)
     report["train_seconds"] = round(time.perf_counter() - t0, 1)
     lm.eval()
+    g10_router.clear_router_bias_load(lm)  # train-mode load counts: only update_router_bias() reads them; G10 never calls it
+    bias_after = g10_router.router_bias_checksum(lm)
+    report["router_bias_unchanged"] = {"before": bias_before, "after": bias_after, "pass": bias_before == bias_after,
+                                       "rule": "the bias stays as delivered; update_router_bias() is never called"}
     if frozen_before is not None:
         after = bench.frozen_sha256(lm, marker_ids if marker_param is not None else None)
         report["frozen_weights_unchanged"] = {"before": frozen_before, "after": after, "pass": after == frozen_before}

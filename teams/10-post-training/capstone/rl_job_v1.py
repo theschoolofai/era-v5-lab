@@ -399,7 +399,9 @@ def write_train_config(a, out: Path, init_state: Path | None, init_sha: str | No
                      # identical-weights check before the first update (rl-loop/train.py logprob_gate); stops the job
                      # if the update forward does not reproduce the sampler's log-probs (work/lpgate-2026-11-23)
                      **({"logprob_gate": True} if getattr(a, "logprob_gate", True) else {}),
-                     **({"update_mode": a.update_mode} if getattr(a, "update_mode", "train") != "train" else {}),
+                     # auto: rl-loop/train.py resolve_update_mode picks eval (train_quiet with DT) when the model has
+                     # train-mode randomness, e.g. the KAS head's tok_u dropout; train otherwise
+                     **({"update_mode": a.update_mode} if getattr(a, "update_mode", "auto") not in ("auto", None) else {}),
                      # per-step seconds in rl/metrics.jsonl times_s; this makes the CUDA split exact (train.py time_sync)
                      **({"time_sync": True} if getattr(a, "time_sync", False) else {})}}
     if cfg["train"]["autocast"] is None:
@@ -531,6 +533,7 @@ def rl_step(a, out: Path, init_state, init_sha, deadline_unix, screen_n) -> dict
                time_split_s_per_step=summary.get("mean_times_s_after_step1"), step1_s=summary.get("step1_s"),
                trainable_weight_change=summary.get("trainable_weight_change"), router_unchanged=summary.get("router_unchanged"),
                logprob_gate=summary.get("logprob_gate"), update_mode=summary.get("update_mode", "train"),
+               update_mode_resolution=summary.get("update_mode_resolution"),
                decision=decide_rl(summary["heldout_change"], wrong[0] if wrong else None, wrong[-1] if wrong else None,
                                   lit_rep[0]["literal_share_of_passes"] if lit_rep else None,
                                   lit_rep[-1]["literal_share_of_passes"] if lit_rep else None),
@@ -715,9 +718,9 @@ def parse_args(argv=None):
     ap.add_argument("--reward-pool", type=int, default=16, help="scorer worker processes (score_pool); must be > 0")
     ap.add_argument("--no-logprob-gate", dest="logprob_gate", action="store_false",
                     help="skip the identical-weights log-prob check before the first update (on by default)")
-    ap.add_argument("--update-mode", choices=("train", "eval"), default="train",
-                    help="module mode of old_lp and the update forward (rl-loop/train.py update_mode); eval when the "
-                         "checkpoint has a train-only layer such as a head's vocabulary dropout (the gate says so)")
+    ap.add_argument("--update-mode", choices=("auto", "train", "eval", "train_quiet"), default="auto",
+                    help="module mode of old_lp and the update forward (rl-loop/train.py update_mode). auto: eval when the "
+                         "model has train-mode randomness (a KAS head's tok_u dropout), train otherwise; recorded in the report")
     ap.add_argument("--state-every", type=int, default=5)
     ap.add_argument("--max-steps-this-call", type=int, default=0, help="dry run: pause after this many updates, rerun to resume")
     ap.add_argument("--deadline-minutes", type=float, default=85.0)
