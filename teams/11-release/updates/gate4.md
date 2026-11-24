@@ -14,8 +14,8 @@ A dry run is a short test of the whole training setup before the main training r
 
 ## The model card
 
-Release wrote the first draft of the model card. It has the Data B part of the training data section, and text from
-Release for the overview, the contributors and where to find more. The other sections wait for their owner teams.
+Release wrote the first draft of the model card, and TSAI approved it on 24 Nov. It has the Data B part of the
+training data section, and text from Release for the overview, the contributors and where to find more. The other sections wait for their owner teams.
 The KE2 section now covers the KE2 output head, which TSAI chose at Gate 3 in place of the dense untied head.
 
 ## Decisions
@@ -24,7 +24,7 @@ The KE2 section now covers the KE2 output head, which TSAI chose at Gate 3 in pl
 |---|---|---|
 | The second dry run | Architecture, Infrastructure | [waiting for TSAI] |
 | The main training run | Architecture, Infrastructure | Go or no-go: [waiting for TSAI] |
-| The launch announcement | Release | [waiting for TSAI] |
+| The launch announcement | Release | TSAI approved the draft of the launch announcement on 24 Nov. The date and the link to the public dashboard come before it is published. |
 | The learning rate for the Muon optimizer | Architecture | TSAI set the learning rate for the Muon optimizer to 0.006. The second dry run uses this rate. |
 
 Short forms: KE2 is the lab team that tests its embedding method on the lab's tokenizer. The output head is the last
@@ -59,11 +59,11 @@ How to fill it:
 | Fact | Team | Source | Text received | Lead OK |
 |---|---|---|---|---|
 | The second dry run | Architecture, Infrastructure | Job request: [#720](https://github.com/theschoolofai/era-v5-lab/pull/720). Result: [link: waiting for the dry run 2 result] | no | no |
-| The first draft of the model card | Release, Data B | `model_card/model_card_v0.md`, [#759](https://github.com/theschoolofai/era-v5-lab/pull/759), which merges before this update. Owner and status of each section: `model_card/model_card_outline.md` | yes | Release: yes; Data B: yes ([comment on #759](https://github.com/theschoolofai/era-v5-lab/pull/759#issuecomment-7108567909)) |
+| The first draft of the model card | Release, Data B | `model_card/model_card_v0.md`, [#759](https://github.com/theschoolofai/era-v5-lab/pull/759), approved and merged by TSAI on 24 Nov. Owner and status of each section: `model_card/model_card_outline.md` | yes | Release: yes; Data B: yes ([comment on #759](https://github.com/theschoolofai/era-v5-lab/pull/759#issuecomment-7108567909)) |
 | The KE2 output head in the model card | KE2 | TSAI decision in `teams/04-ke2/gate3.md`, merged in [#694](https://github.com/theschoolofai/era-v5-lab/pull/694), corrected in [#702](https://github.com/theschoolofai/era-v5-lab/pull/702). Gate 3 update: [#701](https://github.com/theschoolofai/era-v5-lab/pull/701). Model card outline: [#704](https://github.com/theschoolofai/era-v5-lab/pull/704) | yes | no |
 | Decision: the second dry run | Architecture, Infrastructure | TSAI decision at Gate 4 | no | no |
 | Decision: the main training run | Architecture, Infrastructure | TSAI decision at Gate 4 | no | no |
-| Decision: the launch announcement | Release | `launch/launch_announcement_v0.md`, [#600](https://github.com/theschoolofai/era-v5-lab/pull/600), [#603](https://github.com/theschoolofai/era-v5-lab/pull/603). Week 4 draft: [#753](https://github.com/theschoolofai/era-v5-lab/pull/753) | yes | no |
+| Decision: the launch announcement | Release | `launch/launch_announcement_v0.md`, [#600](https://github.com/theschoolofai/era-v5-lab/pull/600), [#603](https://github.com/theschoolofai/era-v5-lab/pull/603). Week 4 draft: [#753](https://github.com/theschoolofai/era-v5-lab/pull/753), approved and merged by TSAI on 24 Nov | yes | Release: yes |
 | Open from Gate 3: the evaluation schedule | Evaluation | [#662](https://github.com/theschoolofai/era-v5-lab/pull/662) | no | no |
 | Open from Gate 3: the tuning method after the main training | Post-training | [#524](https://github.com/theschoolofai/era-v5-lab/pull/524), [#593](https://github.com/theschoolofai/era-v5-lab/pull/593), [#634](https://github.com/theschoolofai/era-v5-lab/pull/634) | no | no |
 | Open from Gate 3: serving and quantization | Quantization | [#538](https://github.com/theschoolofai/era-v5-lab/pull/538) | no | no |
