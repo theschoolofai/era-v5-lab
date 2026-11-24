@@ -145,7 +145,21 @@ def test_prepare_run_pins_the_actual_inventory_and_refuses_incomplete_pack_metad
     assert cfg['stages']['shards']['dataset_version'] == 'corpus-v1'  # not derived from run_id
     assert cfg['intermediates'] == 'keep' and cfg['stages']['h3']['mode'] == 'run'
     assert cfg['stages']['f2'] == {'pool': True, 'workers': 30}
+    # the staged-data sizing gate: a clean-only run without the inventory, and the full run adopting its folder
+    clean = json.loads((out / 'run_clean.json').read_text())
+    production = json.loads((out / 'run_production.json').read_text())
+    assert clean['run_id'] == 'first-training-v1-clean' and clean['to'] == 'clean' and 'inventory' not in clean
+    assert clean['stages'] == cfg['stages']
+    assert production['stages']['clean'] == {'mode': 'adopt', 'output': 'out/pipeline/first-training-v1-clean/clean'}
+    assert production['inventory'] == cfg['inventory'] and production['run_id'] == cfg['run_id'] and 'to' not in production
+    assert {k: v for k, v in production['stages'].items() if k != 'clean'} == {k: v for k, v in cfg['stages'].items() if k != 'clean'}
+    with pytest.raises(ValueError, match='run config already exists'):
+        prepare_run.prepare(out, raw, tokenizer, table_path, 'first-training-v1', model)
     (out / 'run.json').unlink()
+    with pytest.raises(ValueError, match='run_clean.json'):          # a gate config left behind is refused too
+        prepare_run.prepare(out, raw, tokenizer, table_path, 'first-training-v1', model)
+    for name in prepare_run.GATE_CONFIGS:
+        (out / name).unlink()
     cfg = json.loads(prepare_run.prepare(out, raw, tokenizer, None, 'first-training-v1', model).read_text())
     generated = json.loads((out / 'pack_metadata.json').read_text())['packs']
     assert cfg['stages']['f2']['workers'] == 1
