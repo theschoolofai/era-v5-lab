@@ -8,7 +8,7 @@ Question:        Do the approved raw parts produce an exact inventory, auditable
 Script:          teams/01-data-a/jobs/2026-11-19-first-training/build_inventory.py, prepare_run.py, then teams/01-data-a/pipeline/run_pipeline.py
 Command:         python -I teams/01-data-a/pipeline/run_pipeline.py --config out/first-training-inputs/run.json
 Config:          out/first-training-inputs/run.json (materialized from the template below after inventory build)
-Inputs:          TSAI-staged approved train and heldout parts for the 38 packs in approved_inputs.json; frozen p1536 tokenizer; offline LaBSE model; approved pack table; G9 F2 v2 fingerprints
+Inputs:          TSAI-staged approved train and heldout parts for the 33 packs in staged_packs_33.json (subset of approved_inputs.json); frozen p1536 tokenizer; offline LaBSE model; approved pack table; G9 F2 v2 fingerprints
 Hardware:        1 CUDA GPU (16 GiB VRAM or more), 32 vCPU, 64 GiB RAM, sized on the sample (size RAM and time from the staged rows; see sizing below); F2 uses 30 workers
 Max time:        720 minutes for the combined job (H3's own limit is 180 minutes)
 Precision:       H3 fp16 on CUDA (precision auto); shard token IDs are integers
@@ -33,15 +33,23 @@ validation uses the existing Data A and Data B harm-test APIs.
 
 The active cleaner hash below is refreshed to the tested bytes. The historical
 22 Nov code pin and rehearsal remain historical evidence; finalize the release
-commit, staged production selection, sizing and integration evidence before
+commit, staged-file provenance, sizing and integration evidence before
 execution. This sample harm run does not establish production readiness.
 
 ## Update of 23 Nov 2026: staged 33-pack run and MinHash
 
-For the partial run, add `--packs-file <staged-packs.json>` to the inventory
+TSAI confirmed the exact selection in G1 at **24 Nov 2026, 08:23:26 IST**.
+The committed [`staged_packs_33.json`](2026-11-19-first-training/staged_packs_33.json) contains that list.
+The five blocked packs are **en-dclm, en-nemotroncc, en-nemotroncc-synth,
+math-finemath and ind-hi-hplt**; exclude their files from this run's raw root.
+This selects a subset of the approved 38-source universe, without changing
+`approved_inputs.json` or its policy hash. Local audit-pack availability does
+not change the confirmed production selection. To prepare all 38 for a separate
+rehearsal, omit `--packs-file`.
+
+For the partial run, add `--packs-file teams/01-data-a/jobs/2026-11-19-first-training/staged_packs_33.json` to the inventory
 command below. Supply an explicit JSON array of the 33 approved pack IDs
-confirmed by TSAI as staged; the exact list is a staging input, not guessed
-from missing files. Stage only those packs under the input root. Each still
+confirmed by TSAI as staged, as recorded in the committed selection file. Stage only those packs under the input root. Each still
 requires train and heldout parts. The frozen manifest records the selected
 packs and the five deferred source-resolution blockers, preserving the full
 approved-source policy and hash. The inventory and generated pack table cover
@@ -142,7 +150,7 @@ python -m pytest teams/01-data-a/tests/audit/test_check_shard.py teams/01-data-a
 1. Stage and verify the entire selected raw file set. Generate the manifest and expected inventory **before** cleaning. Use a new output folder:
 
    ```bash
-   python -I teams/01-data-a/jobs/2026-11-19-first-training/build_inventory.py --input-root <raw-root> --out out/first-training-inputs
+   python -I teams/01-data-a/jobs/2026-11-19-first-training/build_inventory.py --input-root <raw-root> --out out/first-training-inputs --packs-file teams/01-data-a/jobs/2026-11-19-first-training/staged_packs_33.json
    ```
 
 2. Generate `out/first-training-inputs/run.json` from the frozen inventory. The command checks the p1536 tokenizer SHA256, model pins, exact pack set and shard metadata, then generates the sharder table and run config from the same approved scope used by the inventory. It pins `dataset_version` to `corpus-v1` (independent of `--run-id`) and keeps cleaned, deduped and F2 Parquets for audit.

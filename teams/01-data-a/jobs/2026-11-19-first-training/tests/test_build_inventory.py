@@ -98,12 +98,12 @@ def test_expanded_inputs_preserve_both_splits_but_only_train_expects_shards(raw,
 @pytest.mark.parametrize("partial", [False, True])
 def test_prepare_run_pins_the_actual_inventory_and_refuses_incomplete_pack_metadata(raw, tmp_path, scope, monkeypatch, partial):
     out = tmp_path / 'out' / 'inputs'
-    selected = scope['allowed_train_packs'][:33] if partial else None
+    selected = json.loads((JOB / 'staged_packs_33.json').read_text()) if partial else None
     if partial:
-        for pack in scope['allowed_train_packs'][33:]:
+        for pack in set(scope['allowed_train_packs']) - set(selected):
             for split in ('train', 'heldout'):
                 (raw / split / pack / 'part-00000.parquet').unlink()
-        scope['packs'] = scope['packs'][:33]
+        scope['packs'] = [p for p in scope['packs'] if p['pack_id'] in selected]
     builder.build(raw, out, JOB / 'approved_inputs.json', selected)
     monkeypatch.setattr(prepare_run, 'REPO', tmp_path)
     tokenizer = tmp_path / 'tokenizer.json'
@@ -298,8 +298,9 @@ def test_f1_grammars_match_the_cleaner():
 
 
 def test_partial_inventory_freezes_selected_and_deferred_packs(raw, tmp_path, scope):
-    selected = scope['allowed_train_packs'][:33]
-    for pack in scope['allowed_train_packs'][33:]:
+    selected = [p for p in scope['allowed_train_packs'] if p in json.loads((JOB / 'staged_packs_33.json').read_text())]
+    deferred = [p for p in scope['allowed_train_packs'] if p not in selected]
+    for pack in deferred:
         for split in ('train', 'heldout'):
             (raw / split / pack / 'part-00000.parquet').unlink()
     out = tmp_path / 'partial'
@@ -309,7 +310,7 @@ def test_partial_inventory_freezes_selected_and_deferred_packs(raw, tmp_path, sc
     assert summary['packs'] == 33 and summary['parts'] == 66
     assert set(inventory['packs']) == set(selected)
     assert manifest['pack_selection']['selected_packs'] == selected
-    assert manifest['pack_selection']['deferred_packs'] == scope['allowed_train_packs'][33:]
+    assert manifest['pack_selection']['deferred_packs'] == deferred
     assert {p['pack_id'] for p in manifest['packs']} == set(selected)
     # A missing split for a selected pack must never become another implicit exclusion.
     (raw / 'heldout' / selected[0] / 'part-00000.parquet').unlink()
@@ -353,3 +354,11 @@ def test_prepare_rejects_inconsistent_partial_selection(raw, tmp_path, scope, mo
     with pytest.raises(ValueError, match='invalid 33-pack selection'):
         prepare_run.prepare(out, raw, tmp_path / 'tokenizer.json', None, 'partial-run')
     assert not (out / 'run.json').exists()
+
+
+def test_confirmed_staged_selection_matches_tsai_exclusions(scope):
+    selected = json.loads((JOB / 'staged_packs_33.json').read_text())
+    assert len(selected) == len(set(selected)) == 33
+    assert set(scope['allowed_train_packs']) - set(selected) == {
+        'en-dclm', 'en-nemotroncc', 'en-nemotroncc-synth', 'math-finemath', 'ind-hi-hplt'}
+    assert set(selected) <= set(scope['allowed_train_packs'])
