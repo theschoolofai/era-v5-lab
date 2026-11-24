@@ -508,7 +508,8 @@ def main():
         a3_path = work / f'{name}-a3.json'
         if not a3_path.exists():
             subprocess.run([str(py), str(CHECK_GGUF), '--checkpoint', str(Path(args.checkpoint).expanduser()), '--gguf', str(bf16),
-                            '--llama-server', sbin, '--out', str(a3_path), *(['--spec', args.spec] if args.spec else [])])
+                            '--llama-server', sbin, '--out', str(a3_path), *(['--spec', args.spec] if args.spec else []),
+                            *(['--drop-router-bias'] if args.drop_router_bias else [])])
         if not a3_path.exists(): sys.exit('test A3 did not run (see the error above); --no-a3 skips it')
         a3 = json.loads(a3_path.read_text(encoding='utf-8'))
         if not a3['passed']:  # reported, not fatal: the limit is not calibrated on a trained checkpoint yet
