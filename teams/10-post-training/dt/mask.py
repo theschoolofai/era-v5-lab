@@ -301,9 +301,9 @@ def deletion_stats(model: nn.Module) -> dict:
         targeted += m.gate.numel()
         per_layer[name] = d / m.gate.numel()
     seen, total = set(), 0
-    for p in model.parameters():
-        if p.data_ptr() in seen:
-            continue  # tied embeddings counted once
+    for n, p in model.named_parameters():
+        if p.data_ptr() in seen or n.endswith(".marker_rows"):
+            continue  # tied embeddings counted once; the bench's marker rows are rows of the embedding / LM head
         seen.add(p.data_ptr())
         total += p.numel()
     total -= sum(m.gate.numel() for _, m in masked_layers(model))  # logits are not model weights
