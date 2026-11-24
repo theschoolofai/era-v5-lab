@@ -26,6 +26,24 @@ contributors and where to find more. The other sections wait for their owner tea
 The KE2 section now covers the KE2 output head, which TSAI chose at Gate 3 in place of the dense untied head.
 Architecture added this head to the training code on 24 Nov.
 
+## Gate 4 evidence from the teams
+
+Each team showed its work for Gate 4 in public pull requests.
+
+- **Tokenizer:** The frozen tokenizer p1536 turns the tokens in the training files back into the original text,
+  with no change. Its files include the lab's chat format. A public link lets Evaluation download it without
+  signing in. Tokenizer also gave Architecture the token counts of the training text, with their sources.
+- **Data A:** [text: waiting for Data A]
+- **Data B:** [text: waiting for Data B]
+- **KE2:** [text: waiting for KE2]
+- **Architecture:** [text: waiting for Architecture]
+- **Performance:** [text: waiting for Performance]
+- **Infrastructure:** [text: waiting for Infrastructure]
+- **Monitoring:** [text: waiting for Monitoring]
+- **Evaluation:** [text: waiting for Evaluation]
+- **Post-training:** [text: waiting for Post-training]
+- **Quantization:** [text: waiting for Quantization]
+
 ## Decisions
 
 | Decision | Team that proposed it | Decision text |
@@ -51,7 +69,9 @@ public pull requests. Never link to the CAP chat. Chat links are internal.
 
 How to fill it:
 
-1. Infrastructure sends the summary of the second dry run, or names the pull request that has it.
+1. Infrastructure sends the summary of the second dry run, or names the pull request that has it. Each lead links
+   the Gate 4 evidence of their team in a comment on this pull request. Write one plain line for each team, and
+   remove the line of a team that sends no evidence by Sat 28.
 2. Paste each text above. Edit it only for style, and send the edit back to the writer.
 3. After TSAI decides, write each decision in the words that TSAI approves. Remove a row if TSAI does not decide it
    at this gate, and add a row for each other decision that TSAI makes. If TSAI does not decide go or no-go at this
@@ -78,6 +98,7 @@ How to fill it:
 | Open from Gate 3: serving and quantization | Quantization | [#538](https://github.com/theschoolofai/era-v5-lab/pull/538) | no | no |
 | Decision: the learning rate for the Muon optimizer (open from Gate 3) | Architecture | `updates/gate3.md` (the learning rate). Decided: TSAI's correction in [#725](https://github.com/theschoolofai/era-v5-lab/pull/725), which sets the rate in config v1 and in the second dry run | yes | Architecture: yes, 0.006 is the current estimate ([comment on #705](https://github.com/theschoolofai/era-v5-lab/pull/705#issuecomment-7135446665)) |
 | Open from Gate 3: the exact model size | Architecture | `updates/gate3.md` (model layout and size) | no | no |
+| Gate 4 evidence: Tokenizer | Tokenizer | Round trip on the p1536 shards: [#658](https://github.com/theschoolofai/era-v5-lab/pull/658). Chat format: [#642](https://github.com/theschoolofai/era-v5-lab/pull/642), [#686](https://github.com/theschoolofai/era-v5-lab/pull/686). Public download link: [#700](https://github.com/theschoolofai/era-v5-lab/pull/700). Token counts for Architecture: [#719](https://github.com/theschoolofai/era-v5-lab/pull/719). Links from the Tokenizer lead ([comment on #705](https://github.com/theschoolofai/era-v5-lab/pull/705#issuecomment-7139242515)) | yes | Tokenizer: no |
 
 - [ ] `check_style.py` gives 0 errors
 - [ ] Every number in the text has TSAI approval
