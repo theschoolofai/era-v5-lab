@@ -372,7 +372,9 @@ def _code_a6_001():
 
     HOMO = str.maketrans("аеорсухіјѕАВЕКМНОРСТХІЈЅ", "aeopcyxijsABEKMHOPCTXIJS")
 
-    MIXED = re.compile(r"\b(?=\w*[A-Za-z])(?=\w*[Ѐ-ӿ])\w+\b")
+    TEST_FILE = re.compile(r"(?:^|/)testdata/|_test\.go$")
+
+    MIXED = re.compile(r"\b(?=\w*[A-Za-z])(?=\w*[Ѐ-ӿ])(?!\w*[Ѐ-ӿ]{2})\w+\b")
 
     CYRILLIC = re.compile("[\u0400-\u04ff]")  # the range MIXED asks for: every match holds one of these
 
@@ -396,6 +398,8 @@ def _code_a6_001():
 
     def medicine(doc):
         if doc.get("lang_label") not in LANGS and doc.get("pack_id") not in PACKS:
+            return ("keep", doc["text"])
+        if TEST_FILE.search(doc.get("url") or ""):
             return ("keep", doc["text"])
         return _std(medicine_a6(doc), doc["text"])
 
@@ -2157,6 +2161,9 @@ def _english_c3_003():
             return ("drop", "")
         if tail.endswith((".", "!", "?", '"', "'", ")", ":", "…")):
             return text
+        # #86 DA-C3-009: only closing punctuation; retain the existing rule scope.
+        if tail.endswith(("”", "’", "»")):
+            return text
         # The last token is the final run of [A-Za-z0-9'] characters. It is read backwards from the end: the regex that found it,
         # ([A-Za-z0-9']+)[^A-Za-z0-9']*$, searched the whole text from the start, which cost far more than the answer needs.
         end = len(tail)
@@ -2393,11 +2400,20 @@ def _english_c2_003():
     C2_MIN_REPEAT, C2_MIN_CHARS = 3, 10
 
     def c2_spans(text):
-        """C2: later copies of a line repeated C2_MIN_REPEAT or more times in the document."""
-        seen, lines, pos = {}, [], 0
+        """C2: later copies of a prose line repeated C2_MIN_REPEAT or more times; preserve Markdown fences."""
+        # #86 DA-C2-009/010: protect fenced code only; no code/config heuristics.
+        seen, lines, pos, fence = {}, [], 0, None
         for line in text.split("\n"):
             key = " ".join(line.split())
-            if len(key) >= C2_MIN_CHARS:
+            marker = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
+            protected = fence is not None or marker is not None
+            if marker:
+                run, suffix = marker.groups()
+                if fence is None:
+                    fence = (run[0], len(run))
+                elif run[0] == fence[0] and len(run) >= fence[1] and not suffix.strip():
+                    fence = None
+            if len(key) >= C2_MIN_CHARS and not protected:
                 lines.append((pos, pos + len(line), key))
                 seen[key] = seen.get(key, 0) + 1
             pos += len(line) + 1
@@ -3083,8 +3099,14 @@ def _english_f1_005():
     BINARY_PHONE_CONTEXT = re.compile(r"(?i)\b(?:phone|telephone|tel|mobile|cell|fax|whatsapp|contact)\b")
 
 
+    # #86 DA-F1-007/009 (F39): DOI digits are citation content, not phones.
+    DOI_BEFORE = re.compile(r"\b10\.\d{4,9}/\S*$")
+
+
     def _phone(m):
         value = m.group()
+        if DOI_BEFORE.search(m.string, max(0, m.start() - 80), m.start()):
+            return value
         before = m.string[max(0, m.start() - 64):m.start()]
         if (BINARY_DIGITS.fullmatch(value) and BINARY_LABEL.search(before) and not BINARY_PHONE_CONTEXT.search(before)
                 and not re.match(r"[ \t]+[0-9]", m.string[m.end():])):
@@ -4847,15 +4869,21 @@ def _sci_c2_004():
             return text
         seed = text[:seed_len]
         second = text.find(seed, seed_len, min(len(text), search_limit))
-        if second < 0:
+        if second < 0 or text[second - 1] != "\n":
             return text
         matched = 0
         max_match = min(second, len(text) - second)
         while matched < max_match and text[matched] == text[second + matched]:
             matched += 1
-        if matched < min_repeat:
+        end = second + matched
+        if end < len(text) and text[end - 2:end] != "\n\n":
+            boundary = text.rfind("\n\n", second, end)
+            if boundary < 0:
+                return text
+            end = boundary + 2
+        if end - second < min_repeat:
             return text
-        return text[:second] + text[second + matched:]
+        return text[:second] + text[end:]
 
     import re
 

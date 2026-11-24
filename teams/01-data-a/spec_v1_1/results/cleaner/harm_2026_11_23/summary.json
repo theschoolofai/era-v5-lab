@@ -1,7 +1,8 @@
 {
-  "cleaner_sha256": "4b5e46ba1d1d347d3650e3a060abc8b95e1dd9ec67970b2704c2c50ac0678755",
-  "sheet_sha256": "3fd4f90310e4c467de8286e0f2b906094fb2a2f90b43d4bf62a914f16117324b",
+  "cleaner_sha256": "aa1f8e534820e5218f74c9bdec4ada217002ff467ee00256113ba59978e2b393",
+  "sheet_sha256": "8b5835ef9b97a627965f4b0fca5ce55ec3d7c2dac863c714cac8e90b87aab770",
   "shared_f1_sha256": "7bac52691d8912ee762e42eda56f84f4b4682e9e37b721230048c31449a1bf82",
+  "adapter_sha256": "634a4e805d840dc476e9e7f6921f07a11ee787b7847a77c616888158e94c661d",
   "data_a_harm_sha256": "4dcc04bf8ac553c9c0b39c8812bd7275aee9c8727b80a7a5a026d0e3f7bbafd2",
   "data_b_harm_sha256": "22d3064adf58478ec7c9677e8f5dd8fafd5455ca7ead9b16288493f1f22d10bb",
   "packs_root": "/mnt/c/Users/heman/Documents/vijay/erav5-lab-other-files/packs",
@@ -386,7 +387,7 @@
     }
   ],
   "run_date": "2026-11-23",
-  "git_commit": "c54cda3911dd22d9010b3aa81bac5700d0248b58",
+  "git_commit": "0fe8efa474dbe66e7c04c15a92129e3a1026a00f",
   "status_counts": {
     "PASS": 29,
     "FAIL": 4,
@@ -399,7 +400,7 @@
   "gold_documents": 4768,
   "historical_failed_ids_match": true,
   "cleaner_tests": {
-    "passed": 1915,
+    "passed": 1946,
     "subtests_passed": 9
   },
   "rebuild_identical": true,
@@ -411,7 +412,21 @@
   "targeted_amendments": [
     {
       "pack": "code-go",
+      "rule": "DA-A6-001",
+      "result": "PASS",
+      "changed": 0,
+      "dropped": 0
+    },
+    {
+      "pack": "code-go",
       "rule": "f1_rule.py",
+      "result": "PASS",
+      "changed": 0,
+      "dropped": 0
+    },
+    {
+      "pack": "code-js-ts",
+      "rule": "DA-A6-001",
       "result": "PASS",
       "changed": 0,
       "dropped": 0
@@ -425,7 +440,21 @@
     },
     {
       "pack": "code-java",
+      "rule": "DA-A6-001",
+      "result": "PASS",
+      "changed": 0,
+      "dropped": 0
+    },
+    {
+      "pack": "code-java",
       "rule": "f1_rule.py",
+      "result": "PASS",
+      "changed": 0,
+      "dropped": 0
+    },
+    {
+      "pack": "code-cpp",
+      "rule": "DA-A6-001",
       "result": "PASS",
       "changed": 0,
       "dropped": 0
@@ -439,7 +468,21 @@
     },
     {
       "pack": "code-rust",
+      "rule": "DA-A6-001",
+      "result": "PASS",
+      "changed": 0,
+      "dropped": 0
+    },
+    {
+      "pack": "code-rust",
       "rule": "f1_rule.py",
+      "result": "PASS",
+      "changed": 0,
+      "dropped": 0
+    },
+    {
+      "pack": "code-python",
+      "rule": "DA-A6-001",
       "result": "PASS",
       "changed": 0,
       "dropped": 0
@@ -453,7 +496,35 @@
     },
     {
       "pack": "en-fineweb-edu",
+      "rule": "DA-C3-003",
+      "result": "PASS",
+      "changed": 0,
+      "dropped": 0
+    },
+    {
+      "pack": "en-fineweb-edu",
+      "rule": "DA-C2-003",
+      "result": "PASS",
+      "changed": 0,
+      "dropped": 0
+    },
+    {
+      "pack": "en-fineweb-edu",
       "rule": "DA-F1-005",
+      "result": "PASS",
+      "changed": 0,
+      "dropped": 0
+    },
+    {
+      "pack": "en-dclm",
+      "rule": "DA-C3-003",
+      "result": "PASS",
+      "changed": 0,
+      "dropped": 0
+    },
+    {
+      "pack": "en-dclm",
+      "rule": "DA-C2-003",
       "result": "PASS",
       "changed": 0,
       "dropped": 0
@@ -467,7 +538,35 @@
     },
     {
       "pack": "en-nemotroncc-synth",
+      "rule": "DA-C3-003",
+      "result": "PASS",
+      "changed": 0,
+      "dropped": 0
+    },
+    {
+      "pack": "en-nemotroncc-synth",
+      "rule": "DA-C2-003",
+      "result": "PASS",
+      "changed": 0,
+      "dropped": 0
+    },
+    {
+      "pack": "en-nemotroncc-synth",
       "rule": "DA-F1-005",
+      "result": "PASS",
+      "changed": 0,
+      "dropped": 0
+    },
+    {
+      "pack": "en-nemotroncc",
+      "rule": "DA-C3-003",
+      "result": "PASS",
+      "changed": 0,
+      "dropped": 0
+    },
+    {
+      "pack": "en-nemotroncc",
+      "rule": "DA-C2-003",
       "result": "PASS",
       "changed": 0,
       "dropped": 0
@@ -480,11 +579,33 @@
       "dropped": 0
     },
     {
+      "pack": "sci-finepdfs",
+      "rule": "DA-C2-004",
+      "result": "PASS",
+      "changed": 0,
+      "dropped": 0
+    },
+    {
       "pack": "ind-sa-fw2",
       "rule": "DB-B4-004",
       "result": "PASS",
       "changed": 0,
       "dropped": 0
     }
-  ]
+  ],
+  "worktree_modified": true,
+  "source_pr_86_commit": "d9b2efe8689fee5abdc26a523d847018a732d344",
+  "job_tests": {
+    "passed": 125
+  },
+  "previous_gold_results_identical": true,
+  "sample_comparison": {
+    "documents": 19000,
+    "packs": 38,
+    "scope_and_rule_order_unchanged": true,
+    "pipeline_outputs_differ": 2,
+    "new_drops": 0,
+    "new_idempotence_failures": 0,
+    "amended_rules_out_of_scope_violations": 0
+  }
 }

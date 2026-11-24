@@ -38,8 +38,8 @@ execution. This sample harm run does not establish production readiness.
 
 ## Cleaner update: 24 Nov 2026
 
-The shared F1 now masks private e-mail addresses on cadj-commits (#88), so the pinned cleaner below is `5551c04d…`. On the
-first 1,000 documents of every other pack its output equals the tested `4b5e46ba…` cleaner's, so the 23 Nov results hold for
+The shared F1 now masks private e-mail addresses on cadj-commits (#88), so the pinned cleaner below is `d275556e…`. On the
+first 1,000 documents of every other pack its output equals the tested `aa1f8e53…` cleaner's, so the 23 Nov results hold for
 them; cadj-commits gold: 0 of 413 changed. Evidence:
 [the cleaner harm report](../spec_v1_1/results/cleaner/harm_tests.md).
 
@@ -69,6 +69,19 @@ rehearsal, not the new production algorithm. Before execution, attach 1x/2x/4x
 staged-data MinHash sizing and validate the final worker budget and integration
 run. This update does not claim that those measurements have been completed.
 See `2026-11-19-first-training/README.md` for selection details.
+
+### Scoped cleaner preservation amendments (23 Nov 2026)
+
+The active cleaner includes five subsets extracted from fork #86: A6 test-fixture/
+Cyrillic protection, scientific C2 paragraph boundaries, English C2 fenced-code
+protection, C3 closing curly quotes, and English F1 DOI protection. The existing
+binary-value guard, rule IDs/scopes/order and report-only H3 policy are retained.
+Fresh harm remains 27/31 supported packs PASS and four raw FAIL, with exactly
+the previous affected IDs; the five amended rules touch zero gold documents.
+Cleaner tests: 1,946 PASS and nine subtests; clean-job/preparation: 125 PASS.
+See `../spec_v1_1/results/cleaner/harm_tests.md` for replaced evidence and limits.
+The tokenizer-sample job config now pins this cleaner too; historical rehearsal
+timings and hashes below remain historical and are not evidence for this build.
 
 ### MinHash overlap sizing (measured at 1x on the sample)
 
@@ -126,7 +139,7 @@ This revises the request of #599 now that TSAI has confirmed the input manifest.
 
 - **Dataset version:** `prepare_run.py` generated `dataset_version` `first-training-v1`; it now generates `corpus-v1`. The `run_id` argument is unchanged and is only the output folder name.
 - **Pinned code:** `main` at `421f8497ddb1585666e8f5a274c524e4462402cc` (merge of #716), plus this update, which touches only `prepare_run.py` (the constant), its test, and these docs. Run from `main` once this update is merged.
-- **Pinned cleaner:** `teams/01-data-a/spec_v1_1/clean.py`, SHA-256 `5551c04d01b3577bad84790b0853bd31cd2300c8d19d9f53447b4d6f26d2c5da`, which equals `clean_sha256` in `teams/01-data-a/pipeline/clean.json`; the clean stage refuses any other file.
+- **Pinned cleaner:** `teams/01-data-a/spec_v1_1/clean.py`, SHA-256 `d275556ee87a259b05ac5e474ed40b569c2e821aaaffa99d5d07035e40948989`, which equals `clean_sha256` in `teams/01-data-a/pipeline/clean.json`; the clean stage refuses any other file.
 - **Pinned scope:** `approved_inputs.json`, SHA-256 `10f313750235902d401cfb1023555b37e575fc8a11a5adccceeab84af7515f5f` (the confirmed version). The input manifest records this hash and `prepare_run.py` refuses a manifest built from any other version.
 - **Checks:** `pytest` of the command under "Scope and prerequisites" passes (146 tests) on this branch.
 
