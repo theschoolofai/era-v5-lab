@@ -104,8 +104,8 @@ if triton is not None:
             w = tl.load(W + col, col < N, 0., eviction_policy="evict_last").to(tl.float32)
         acc_w = tl.full((BLOCK,), 0., tl.float32)
         acc_b = tl.full((BLOCK,), 0., tl.float32)
-        stride = GROUPS.to(tl.int64) * ROWS
-        for tile in range(tl.cdiv(M.to(tl.int64), stride)):
+        stride = tl.cast(GROUPS, tl.int64) * ROWS   # tl.cast: GROUPS is a plain int in torch.compile's kernel analysis
+        for tile in range(tl.cdiv(tl.cast(M, tl.int64), stride)):
             row = group * ROWS + tile.to(tl.int64) * stride + offsets
             mask = (row[:, None] < M) & (col[None, :] < N)
             dy = tl.load(DY + _offset(row[:, None], col[None, :], N), mask, 0.,
@@ -241,13 +241,14 @@ def layer_norm_triton(x: torch.Tensor, weight: torch.Tensor, bias: torch.Tensor,
 
 def layer_norm_backend_report(model: nn.Module) -> list[dict]:
     """Resolve backends at setup, without a forward call or module mutation."""
+    from models.norm import RMSNorm      # LayerNorm and RMSNorm (model.norm) share ln_impl
     entries = []
     for name, module in model.named_modules():
-        if isinstance(module, nn.LayerNorm):
+        if isinstance(module, (nn.LayerNorm, RMSNorm)):
             param = next(module.parameters(), None)
             if param is None:
                 param = next(model.parameters(), torch.empty(0))
-            info = module.backend_info(param.device, param.dtype) if isinstance(module, TritonLayerNorm) else {
+            info = module.backend_info(param.device, param.dtype) if hasattr(module, "backend_info") else {
                 "backend": "torch_ln", "reason": None}
             entries.append({"module": name, **info})
     return entries

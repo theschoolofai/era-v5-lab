@@ -149,7 +149,7 @@ Three stages. Sets marked `excluded` stay in the table with the reason and are n
 | sft-indic-tamil-open-instruct | [Hemanth-thunder/tamil-open-instruct-v1](https://huggingface.co/datasets/Hemanth-thunder/tamil-open-instruct-v1) | Tamil | Unknown (card says only "an amalgamation of different datasets"; no source sets, translation system or model named) | apache-2.0 (Hub tag) | excluded |
 | sft-indic-tamil-alpaca-orca | [abhinand/tamil-alpaca-orca](https://huggingface.co/datasets/abhinand/tamil-alpaca-orca) | Tamil (translated) | text-davinci-003 (OpenAI, closed) writes Alpaca; GPT-4 / GPT-3.5 (OpenAI, closed) write OpenOrca; translation system not named | gpl-3.0 (Hub tag; copyleft) | excluded |
 | sft-indic-aya-tamil | [Cognitive-Lab/Aya_Tamil](https://huggingface.co/datasets/Cognitive-Lab/Aya_Tamil) | Tamil | Same rows as the Tamil part of `CohereLabs/aya_collection`: templated subsets (none) and translated subsets (NLLB-3.3B, CC-BY-NC-4.0); card does not split them | apache-2.0 (Hub tag; gated) | excluded |
-| sft-indic-nemotron-personas-india | [nvidia/Nemotron-Personas-India](https://huggingface.co/datasets/nvidia/Nemotron-Personas-India) | English, Hindi (Devanagari and Latin); personas from all states, incl. Tamil first-language speakers, but no Tamil-script text | GPT-OSS-120B (Apache-2.0) via NeMo Data Designer; an unnamed LLM helps map broad to detailed occupations | cc-by-4.0 (Hub tag; attribution needed) | needs TSAI decision |
+| sft-indic-nemotron-personas-india | [nvidia/Nemotron-Personas-India](https://huggingface.co/datasets/nvidia/Nemotron-Personas-India) | English, Hindi (Devanagari and Latin); personas from all states, incl. Tamil first-language speakers, but no Tamil-script text | GPT-OSS-120B (Apache-2.0) via NeMo Data Designer; an unnamed LLM helps map broad to detailed occupations | cc-by-4.0 (Hub tag; attribution needed) | excluded |
 | sft-reasoning-mixture-of-thoughts | [open-r1/Mixture-of-Thoughts](https://huggingface.co/datasets/open-r1/Mixture-of-Thoughts) | English / Math, Code, Science | DeepSeek-R1 (MIT, open weights); science prompts from `nvidia/Llama-Nemotron-Post-Training-Dataset` | none stated (no Hub tag, no licence text on the card) | excluded |
 | sft-science-openscience-reasoning-2 | [nvidia/OpenScienceReasoning-2](https://huggingface.co/datasets/nvidia/OpenScienceReasoning-2) | English / STEM, law, economics, humanities | DeepSeek-R1-0528 (MIT, open weights) writes new questions and all solutions; earlier questions come from `nvidia/OpenScience` (generator not stated on this card) | cc-by-4.0 (Hub tag; commercial use stated on the card) | TSAI reserves |
 
@@ -208,10 +208,19 @@ Three stages. Sets marked `excluded` stay in the table with the reason and are n
 | rl-tool-hammerbench | [MadeAgents/HammerBench](https://huggingface.co/datasets/MadeAgents/HammerBench) | English and Chinese / Tool use (mobile-app function calling, multi-turn) | Unnamed "open-source models" generate queries and dialogues from app functions and anonymized user logs (arXiv 2412.16516, §4); the paper does not name them | apache-2.0 (Hub tag); eval only, not training data | excluded |
 | rl-math-rlvr-gsm | [allenai/RLVR-GSM](https://huggingface.co/datasets/allenai/RLVR-GSM) | English / Mathematics (GSM8k, train split only) | none (GSM8k problems and answers, reformatted; no model writes new text) | mit | TSAI reserves |
 | rl-agentic-afm-webagent | [PersonalAILab/AFM-WebAgent-RL-Dataset](https://huggingface.co/datasets/PersonalAILab/AFM-WebAgent-RL-Dataset) | English / Web agent | not named; the card does not say which model wrote the trajectories | apache-2.0 | excluded |
-| rl-math-hendrycks | [EleutherAI/hendrycks_math](https://huggingface.co/datasets/EleutherAI/hendrycks_math) (train split only) | English / Mathematics | none (human AMC, AIME and other contest problems with human step-by-step solutions) | mit (Hub tag and GitHub MIT licence) | TSAI reserves |
+| rl-math-hendrycks | [EleutherAI/hendrycks_math](https://huggingface.co/datasets/EleutherAI/hendrycks_math) (train split only) | English / Mathematics | none (human AMC, AIME and other contest problems with human step-by-step solutions) | mit (Hub tag and GitHub MIT licence) | excluded |
 | rl-code-apps | [codeparrot/apps](https://huggingface.co/datasets/codeparrot/apps) (train split only) | English / Code (Python) | none (human contest problems and human solutions) | mit (Hub tag and GitHub MIT licence) | TSAI reserves |
 | rl-code-taco | [BAAI/TACO](https://huggingface.co/datasets/BAAI/TACO) (train split; HackerRank and LeetCode rows left out) | English / Code (Python) | none (contest problems and verified Python solutions; no model generator named) | apache-2.0 (Hub tag; card also names MIT and CC-BY-4.0 on parts; HackerRank licence unknown on the card) | TSAI reserves |
 | rl-math-omni-math | [KbsdJames/Omni-MATH](https://huggingface.co/datasets/KbsdJames/Omni-MATH) | English / Mathematics (Olympiad) | none for problems and solutions (human contest and AoPS text); GPT-4o (OpenAI, closed) only writes some difficulty scores and the domain labels | apache-2.0 (Hub tag) | needs TSAI decision |
+
+### Models used by the data pipeline (not training data)
+
+These models run inside a data job and are never trained on, fine-tuned or used to write text. Data A's H3 step (`teams/01-data-a/dedup/h3_design_v1.md`) uses them to find the same content in two languages. Their output is vectors and scores, never text, so nothing they produce enters a training mix. The weights are staged outside the repository and never committed; the repository records only their SHA-256. TSAI ([#625](https://github.com/theschoolofai/era-v5-lab/pull/625), 19 Nov 2026): G10 gives the formal licence sign-off.
+
+| Set | Source | Used for | Licence | Decision |
+| --- | --- | --- | --- | --- |
+| model-labse | [sentence-transformers/LaBSE](https://huggingface.co/sentence-transformers/LaBSE) | Data A H3 (`h3.py`): finds translations, Indic ↔ English and Sanskrit ↔ Hindi | apache-2.0 (Hub tag, rev `836121a053`; Google's original LaBSE on Kaggle: Apache 2.0) | allowed (G10 sign-off) |
+| model-bge-m3 | [BAAI/bge-m3](https://huggingface.co/BAAI/bge-m3) | Data A H3: second encoder for Sanskrit (sa ↔ en, sa ↔ hi), report-only, in job [#666](https://github.com/theschoolofai/era-v5-lab/pull/666) | mit (Hub tag, rev `5617a9f61b`; FlagEmbedding code: MIT) | allowed (G10 sign-off) |
 
 ---
 
@@ -1261,7 +1270,7 @@ Fifty-six sets in the two stage tables are `excluded` (37 in Stage 1, 19 in Stag
 - **Source:** [`nvidia/Nemotron-Personas-India`](https://huggingface.co/datasets/nvidia/Nemotron-Personas-India) (card revision `adefeef`, 16 Dec 2025)
 - **Licence:** `cc-by-4.0` — Hugging Face tag and card text read on 15 Nov 2026: "This dataset is licensed under the Creative Commons Attribution 4.0 International License (CC BY 4.0)." and "This dataset is ready for commercial use." Attribution needed. A tag is not legal clearance.
 - **Generator model:** GPT-OSS-120B (Apache-2.0): produced with NeMo Data Designer "along with an Apache-2.0-licensed GPT-OSS-120B model". Seeds: 2011 Census of India, parsed Indian electoral rolls (names), National Classification of Occupations-2004. One unnamed model: "The statistics for transitioning from the broad categories to detailed occupations is done with the aid of an LLM."
-- **Decision:** `needs TSAI decision` — the persona text is gpt-oss output (in), but the occupation mapping used an unnamed LLM. As with the gemini filter in `rl-math-deepscaler`, that model shaped statistics, not the released text, as far as the card says. TSAI should rule whether that is acceptable.
+- **Decision:** `excluded` — TSAI Gate 3 ruling (21 Nov 2026): untraceable generator model used (the occupation mapping used an unnamed LLM).
 - **Our opinion:** use as seeds if TSAI accepts it. It gives India-grounded variety (region, caste-neutral names, occupations) for writing Indic SFT prompts with gpt-oss; for Tamil, the seed would be the persona and the generator would write the Tamil.
 - **Added by:** truesrini (Week 2 rotation, 15 Nov 2026). Hugging Face cards read on 15 Nov 2026. A tag is not legal clearance.
 
@@ -1999,7 +2008,7 @@ Verifiable-answer and test-based sets for RL (math, code, SWE tasks). Each entry
 - **Source:** [`EleutherAI/hendrycks_math`](https://huggingface.co/datasets/EleutherAI/hendrycks_math) (card revision `21a5633873b6a120296cce3e2df9d5550074f4a3`, the snapshot named in `results/effort_probe.md`); GitHub [`hendrycks/math`](https://github.com/hendrycks/math); paper [arXiv 2103.03874](https://arxiv.org/abs/2103.03874)
 - **Licence:** `mit` — Hugging Face tag read on 14 Nov 2026, and the GitHub LICENSE (MIT, copyright 2021 Dan Hendrycks) read the same day. Permissive: in under the data licence rule. A tag is not legal clearance.
 - **Generator model:** None. The paper (§3.1) collects 12,500 competition problems (AMC 10, AMC 12, AIME and others) from AoPS, each with a human step-by-step solution. This release is that set: 7,500 train and 5,000 test, across algebra, counting and probability, geometry, intermediate algebra, number theory, prealgebra and precalculus. It does not include the AMPS pretraining corpus (Khan Academy and Mathematica).
-- **Decision:** `TSAI reserves` — permissive licence, human-written problems and solutions, no generator model. Train split only.
+- **Decision:** `excluded` — TSAI Gate 3 ruling (21 Nov 2026): MATH is benchmark data, and the lab rule is that benchmark data never trains the model, reserved or not. Stays out of RL v1 training.
 - **Our opinion:** use the train split (7,500 problems) for RL, or for short SFT on the human solutions. The 5,000-problem test split is the MATH benchmark: do not train on it.
 - **For Team 9:** decontaminate the train split against MATH, MATH-500, AIME and any other contest eval that shares these problems. The test split stays an eval hold-out.
 - **Added by:** SreekanthZipsy (Week 10 rotation 13 Nov 2026). Card, GitHub licence and paper read on 14 Nov 2026. A tag is not legal clearance.
@@ -2043,6 +2052,34 @@ Verifiable-answer and test-based sets for RL (math, code, SWE tasks). Each entry
 - **For Team 9:** if this set is approved for training, Omni-MATH cannot also be a reported benchmark. The difficulty and domain columns stay out either way.
 - **Added by:** SreekanthZipsy (Week 10 rotation 13 Nov 2026). Card and paper read on 14 Nov 2026. A tag is not legal clearance.
 
+## Models used by the data pipeline
+
+### `model-labse` — LaBSE
+
+- **Model:** `model-labse`
+- **Stage:** data pipeline (Data A dedup, H3). Not training data.
+- **Source:** [sentence-transformers/LaBSE](https://huggingface.co/sentence-transformers/LaBSE), revision `836121a0533e5664b21c7aacc5d22951f2b8b25b`. It is a PyTorch port of Google's LaBSE ([kaggle.com/models/google/labse](https://www.kaggle.com/models/google/labse), formerly `tfhub.dev/google/LaBSE`).
+- **Licence:** `apache-2.0` (Hub tag). Google's Kaggle page for the original model: Apache 2.0. Both read on 20 Nov 2026.
+- **Weights used:** the files of revision `836121a`, which TSAI stages directly ([#625](https://github.com/theschoolofai/era-v5-lab/pull/625), 20 Nov 2026): `model.safetensors` (1,883,734,344 bytes) SHA-256 `77d8e1f2dbab6eb5d3c261ce9d3dbf1e3c69e02938c95f934f94f42c22dfa31f`; `2_Dense/model.safetensors` `f866c945fa2147ce4940c8ead0b4b20af4217e0f4664bd35f41c2a0967c4fe77`; `config.json` `b6bd83d561db8d2ccb7f44dafcd945e39bea16dc2819072ffb10adb45608b029`. Each run of `h3.py` records the weights' SHA-256 in its `h3_summary.json`.
+- **What it does:** `teams/01-data-a/dedup/h3.py` encodes each document's first sentences and then its sentences, to find the same content in two languages. Its outputs are cosines and coverage scores (`h3_*.csv`), never text. With `h3.remove: true` (only after E5c and the harm check pass, TSAI [#625](https://github.com/theschoolofai/era-v5-lab/pull/625)), it decides which train documents are removed as translations of held-out documents. It adds nothing to the data.
+- **Generator model:** none. It writes no text.
+- **Redistribution:** none. TSAI stages the weights at `../models/LaBSE`, outside the repository.
+- **Decision:** `allowed (G10 sign-off)`
+- **Added by:** Aneesha Das (aneeshads), Data A, 20 Nov 2026. A tag is not legal clearance.
+
+### `model-bge-m3` — BGE-M3
+
+- **Model:** `model-bge-m3`
+- **Stage:** data pipeline (Data A dedup, H3). Not training data.
+- **Source:** [BAAI/bge-m3](https://huggingface.co/BAAI/bge-m3), revision `5617a9f61b028005a4858fdac845db406aefb181`. Code: [FlagOpen/FlagEmbedding](https://github.com/FlagOpen/FlagEmbedding).
+- **Licence:** `mit` (Hub tag). FlagEmbedding's `LICENSE`: MIT. Both read on 20 Nov 2026.
+- **Weights used:** the files of revision `5617a9f`, as pinned in job [#666](https://github.com/theschoolofai/era-v5-lab/pull/666): `pytorch_model.bin` (2,271,145,830 bytes) SHA-256 `b5e0ce3470abf5ef3831aa1bd5553b486803e83251590ab7ff35a117cf6aad38`; `config.json` `26159e7ad065073448460117eb24b7a4572f6f4e78eadff65dc0a11c052449fa`. Each run of `h3.py` records the weights' SHA-256 in its `h3_summary.json`.
+- **What it does:** the second encoder in E5a′ (`teams/01-data-a/dedup/h3_bge_m3_check_results_v1.md`): on FLORES-200 it finds Sanskrit translations that LaBSE misses at the same threshold. TSAI ([#625](https://github.com/theschoolofai/era-v5-lab/pull/625)) asked for this comparison before a Sanskrit encoder is chosen. Job [#666](https://github.com/theschoolofai/era-v5-lab/pull/666) (merged 20 Nov 2026) runs it on E5c's Sanskrit pairs (sa ↔ en, sa ↔ hi), report-only. If chosen, it would run in `h3.py` in LaBSE's place, with the same outputs (scores, never text).
+- **Generator model:** none. It writes no text.
+- **Redistribution:** none. TSAI stages the weights at `../models/bge-m3`, outside the repository.
+- **Decision:** `allowed (G10 sign-off)`
+- **Added by:** Aneesha Das (aneeshads), Data A, 20 Nov 2026. A tag is not legal clearance.
+
 ## Strategy v0
 
 - **Commercial-use data only:** Any dataset or file whose licence is missing or restricts commercial use is excluded.
@@ -2083,3 +2120,13 @@ For Team 11's public model card, datasheet, and release compliance ledger:
 |---|---|---|---|---|---|
 | rl-synthetic2 | PrimeIntellect/SYNTHETIC-2-RL | English / Math, Code, Reasoning | DeepSeek-R1-0528 (MIT, open weights) for reasoning traces; Qwen3-32B, Qwen3-4B and DeepSeek-R1-0528-Qwen3-8B (Apache-2.0/MIT) for difficulty annotations | apache-2.0 | TSAI reserves |
 | rl-skywork-or1 | PrimeIntellect/Skywork-OR1-RL-Data | English / Mathematics | DeepSeek-R1-Distill-Qwen 1.5B, 7B, 32B (open weights, derived from MIT-licensed DeepSeek-R1) for difficulty annotations | apache-2.0 | TSAI reserves |
+
+
+### f20201351h-maker: evaluation sets for effort suite v2 (signed off 20 Nov 2026)
+
+Evaluation prompts only, not training data. Proposed 20 Nov 2026 by `f20201351h-maker`; signed off 20 Nov 2026 by Team 10 lead (`saitej123`) as evaluation-only dev sets (v1 manifest remains frozen and unchanged).
+
+| Set | Source | Language | Generator model | Licence | Decision |
+|---|---|---|---|---|---|
+| eval-general-qasc | [allenai/qasc](https://huggingface.co/datasets/allenai/qasc), revision a34ba204eb9a33b919c10cc08f4f1c8dae5ec070, validation split (the split that carries `answerKey`) | English / 8-way multiple choice science questions | none (questions human-authored by crowd workers, per the dataset card and paper) | cc-by-4.0 (Hub card) | allowed (G10 lead sign-off, 20 Nov 2026; eval-only, not training data) |
+| eval-tool-api-bank | [AlibabaResearch/DAMO-ConvAI](https://github.com/AlibabaResearch/DAMO-ConvAI) `api-bank/`, commit f30ccf22b4e2617fab32958d4c03f5c1f2e7dfcf, level-1 dialogues in `api-bank/lv1-lv2-samples/level-1-given-desc` and the API definitions in `api-bank/apis` | English / tool-use dialogues with one gold API call per slot | none (evaluation dialogues written by annotators, per the paper; the API definitions are the set's own code) | Apache-2.0 (`api-bank/LICENSE`, first line "Apache License"; the repository root carries a different licence file, not used here) | allowed (G10 lead sign-off, 20 Nov 2026; eval-only, not training data) |

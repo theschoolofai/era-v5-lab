@@ -1,4 +1,4 @@
-# Small SFT on the bench: SmolLM2-135M, OCR-2 slice (14 Nov 2026; forgetting verdict and data status updated 16 Nov)
+# Small SFT on the bench: SmolLM2-135M, OCR-2 slice (14 Nov 2026; forgetting verdict and data status updated 16 Nov; verdict re-run with `forgetting.py` 18 Nov)
 
 **Evidence level: surrogate.** This tests the harness and shows what a small dense model does on this slice. The numbers do
 not transfer to the capstone model. **Data provenance:** rows come from the OCR-2 pack v1 built with the C3 tokenizer (PR #79,
@@ -72,15 +72,31 @@ limit, on either side, is "at the limit". The limits set the verdict only; the n
 | full FT 1e-4, seed 3 | +0.0507 | over by 0.0007, **at the limit** | +0.012 | +0.0025 | **FORGETTING** (bits per byte) |
 | LoRA r=4 1e-3, seed 1 | +0.0384 | under by 0.0116, not at the limit | +0.002 | +0.005 | No forgetting |
 
-- **Benchmarks:** none fell, so neither benchmark counts as forgotten for any run. The drop bar for each is at least 0.01 and
-  about 2 x 0.028 (ARC-C) and 2 x 0.035 (HellaSwag) from the stderrs of about 0.020 and 0.025 given above; every change is a rise.
+- **Benchmarks:** none fell, so neither benchmark counts as forgotten for any run. The drop bar for each is the larger of 0.01
+  and 2 x the combined stderr, which `forgetting.py` reads from the reports: 0.0284 for ARC-C (bar 0.057) and 0.0351 for
+  HellaSwag (bar 0.070); every change is a rise. No benchmark is marked "at the limit" either.
 - **Full FT is a close call.** All three seeds exceed the limit by 0.0003-0.0015, a spread smaller than the seed-to-seed
   spread of the change (0.0012). Read it as "about at the limit", not as a clear breach. The bits-per-byte rise is in every
   group (English, code, Indic).
-- **How this was computed.** By hand from the table's rounded values with the rules above. `forgetting.py` was **not** run on these
-  runs: the `bench/evaluate.py` report files (schema `g10-bench-eval/1`) are not in Git, and the benchmark stderrs here are the
-  rounded "about" values. Re-run `forgetting.py --before base.json --after <run>.json` on the original reports to confirm;
-  differences in the 4th decimal could move a run across the limit.
+- **How this was computed.** The verdicts were first written by hand from the table's rounded values (PR #105). On 18 Nov
+  `forgetting.py` was run on the original `bench/evaluate.py` reports (schema `g10-bench-eval/1`, merged to the Week 3 branch in
+  PR #117, `results/small_sft_evidence/`). It gives the same verdict for all four runs, and its bits-per-byte changes round to
+  the table values: +0.0503, +0.0515, +0.0507 and +0.0384 (exact: +0.050315, +0.051493, +0.050677, +0.038351). Its output files
+  are in `results/small_sft_evidence/forgetting_check/` (one `.md` and one `.json` per run). The script exits 1 for the three
+  full FT runs (verdict "forgetting") and 0 for LoRA. Command, from the repository root, with the `-test.json` file first on
+  both sides so that the merged `device` matches (see the evidence README):
+
+  ```
+  E=teams/10-post-training/results/small_sft_evidence
+  python3 teams/10-post-training/sft/tests/forgetting.py \
+    --before $E/base-test.json $E/base-evalmini.json \
+    --after  $E/<run>-test.json $E/<run>-evalmini.json \
+    --out <run>.md --out-json <run>.json          # <run>: full-lr1e-4-s1, -s2, -s3, lora-lr1e-3-s1
+  ```
+
+  The three full FT runs are over the limit by only 0.0003, 0.0015 and 0.0007, so a re-run on a different held-out file or tokenizer
+  (for example after a p1536 rebuild of the slice) could change the verdict. All reports record the same held-out sha256
+  (`21c6e4b2...`) and tokenizer sha256 (`9ca9acdd...`); `forgetting.py` refuses to compare reports that differ in either.
 
 **What held:** test target bpb fell from 0.815 to 0.484 in all three seeds. Format validity rose from 0% to 74-79%. Every
 valid reply has a think block and a fenced code block. The other 21-27% ran to the 2,048-token budget without closing the
@@ -133,6 +149,27 @@ or the same arm on SmolLM2-135M-Instruct, whose chat markers are trained.
 Modal spend for WP3: about **$2.21 estimated** (6,295 container-seconds at list price: A10 $0.000306/s + 2 cores + 8 GiB),
 not read from billing.
 
+## Week 4 re-check of the forgetting route (22 Nov 2026, CPU)
+
+This re-runs the held-out bits-per-byte half and `forgetting.py` on the current lab `main`, with `bench/evaluate.py --dtype auto` as the
+handoff with Team 9 describes (Team 10 runs `--metrics forget` only and never reads benchmark items). It is a check of the tools, not a new
+model result.
+
+| Check | Command (from the repository root) | Result |
+|---|---|---|
+| Base bits per byte, CPU | `python teams/10-post-training/sft/bench/evaluate.py --model <SmolLM2-135M @ 93efa2f0 folder> --metrics forget --dtype auto --device cpu --heldout teams/05-architecture/heldout_v1/data/heldout_v1.jsonl --heldout-sources teams/05-architecture/heldout_v1/data/heldout_v1_sources.jsonl --out base_forget.json` | `compute_dtype` "float32 (TF32 off)", torch 2.14.1+cpu; 1,059 documents, 2,331,761 tokens, 1,910 windows, held-out sha256 `21c6e4b2...`; **bpb_all 1.0980975** against 1.0981069 recorded on the A10 (difference 9.4e-6, as expected for fp32 on another device); 55 min wall on 18 cores |
+| `forgetting.py` on the recorded base and LoRA r=4 reports | see "Forgetting verdict" above | JSON identical to `small_sft_evidence/forgetting_check/lora-lr1e-3-s1.json`; verdict "No forgetting", exit 0 |
+| New CPU base against a recorded CUDA report | same | refused: `before and after ran on a different device: cpu vs cuda` (the guard works; the before and after reports must come from the same device and dtype) |
+| Benchmark rows in points, as `results/eval_mini_v1.json` writes them (47.35, 1.46) | same | refused: `value 47.35 is outside [0, 1] (pass fractions 0..1, not points 0..100)` |
+| The same two rows divided by 100 | same | accepted; table and verdict printed (plumbing check only: the rows are from `eval_mini_v1.json`, not from these checkpoints, and before and after were the same report, so all deltas are 0 and this is not a result) |
+
+What this does not show: a real after-SFT checkpoint scored by Team 9's watcher (this check did not use the lab checkpoint store; dry run 2 hands over
+an after-SFT checkpoint on 26 Nov), and any GPU run of `evaluate.py --dtype auto` (the T4 rule is checked in PR #136). `forgetting.py` compares `device` and
+`compute_dtype` of the two bits-per-byte reports, but not the dtype of the benchmark rows against them: Team 9's v1 rows carry
+`dtype` and `format`; the records in the `eval_mini` block that `forgetting.py` reads do not (the dtype appears only inside the free-text
+`command` string), so a bf16 benchmark row beside an fp32 bits-per-byte report
+passes unnoticed.
+
 ## Not measured / gaps
 - The Mac did not complete 400 steps. The 400-step runs are on Modal A10 (controller-authorised change). There is no matched
   MPS-versus-CUDA comparison, and no claim of cross-device bit identity.
@@ -140,6 +177,6 @@ not read from billing.
 - Bench tests: 18 pass on CPU. Existing `sft/verify.sh` completed with `verify: OK`; its final reused-tools suite reports 104 passes (not the combined total). The bench tests are not yet wired into `verify.sh`.
 - Format validity uses one greedy sample per problem, n=110. A 95% interval for 77% is about ±8 pp.
 - LR optimum may lie above 1e-4 (full) and 1e-3 (LoRA).
-- The forgetting verdict is not yet a `forgetting.py` output (reports not in Git, see above).
+- The forgetting verdict is a `forgetting.py` output (18 Nov), but of one LoRA seed and three full FT seeds on a slice built from the C3 pack; it was not re-run on a p1536 rebuild.
 - The slice is from the C3 pack. The lead's decisions on the held-out split and the 14 unclear-source rows are now confirmed, but the p1536
   rebuild (PR #103) has not been compared with this slice; if the rebuilt pack changes the rows that fit 2,048 tokens, rebuild the slice.

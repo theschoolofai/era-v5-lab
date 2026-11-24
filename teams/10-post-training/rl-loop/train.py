@@ -26,7 +26,9 @@ Model kinds (config `model.kind`):
 Task kinds (config `task.kind`): toy (see tasks.py), code_tasks (rl/tasks via rl/reward.py; needs an hf tokenizer).
 
 GPU-run options (config `train.*`, all optional):
-    sampler        policy | hf_batch | vllm (rollout.py). Default hf_batch for HF models, policy otherwise.
+    sampler        policy | g5_batch | hf_batch | vllm (rollout.py). Default hf_batch for HF models, policy otherwise.
+                   g5_batch (G5 only): every prompt of a step in one KV-cached decode; sampler_max_rows (default 128)
+                   caps the rows decoded together.
     vllm           kwargs for the colocated engine, e.g. {gpu_memory_utilization: 0.3, max_model_len: 2048}
     fp32_master    default true: trainable weights in fp32 under bf16 autocast (policy.use_fp32_master)
     autocast       bf16 | unset (default): force bf16 autocast for the policy's forward. Needed for a G5 checkpoint,
@@ -38,6 +40,12 @@ GPU-run options (config `train.*`, all optional):
     fail_on_lost_update  objective_v1 only, default true: raise when, of the probed trainable entries that had a
                    nonzero gradient, fewer than min_stored_update_ratio (default 0.5) changed in storage after the
                    optimizer step (a small update rounded away in bf16); false = warn and log only
+    update_mode    train (default, unchanged) | eval: old_lp and the update forward run in eval mode, the samplers' mode,
+                   so a train-only layer (an output head's vocabulary dropout) cannot put noise into the ratio. Not with dt
+    logprob_gate   opt-in (true, or {mean_abs_tol: 0.01, outside_frac_tol: 0.005, eps, prompts: 1, max_new: 256}):
+                   before the screen and the first update, sample k completions of the first train prompt(s) with an own
+                   generator, score them as the update will and compare with the behaviour log-probs at identical
+                   weights; stop with an error above the tolerance; logprob_gate.json and summary["logprob_gate"]. Not with dt
 metrics.jsonl adds per-step timings (rollout, reward, old_logprobs, train, sync), sampled tokens and tokens/s,
 GPU memory, and the sampler/trainer mismatch. summary.json adds the paired-bootstrap CI of the held-out change,
 the trainable-weight change, and the library versions.
@@ -119,7 +127,8 @@ def build_model(mcfg: dict, device: str):
 
 def build_task(tcfg: dict, tokenizer, seed: int, pool=None):
     if tcfg["kind"] == "toy":
-        return tasks.ToyTask(**{k: v for k, v in tcfg.items() if k != "kind"}, seed=seed)
+        # task.seed pins the prompts independently of the run seed (same held-out prompts for every run of a comparison)
+        return tasks.ToyTask(**{k: v for k, v in tcfg.items() if k not in ("kind", "seed")}, seed=tcfg.get("seed", seed))
     if tcfg["kind"] == "code_tasks":
         if tokenizer is None:
             raise ValueError("code_tasks needs model.kind hf (a tokenizer)")
@@ -173,6 +182,7 @@ def stdio_task(tcfg: dict, tokenizer, pool=None):
     rl-data/stdio_check.py (Docker, or G10_STDIO_RUNNER=local where Docker is absent, e.g. Modal).
 
     task: {kind: stdio, tasks: <jsonl>, train_ids: <file>, heldout_ids: <file>}
+    require_verifier runs known-answer checks and treats runner failures as errors for the job.
     The prompt is the record's human-written statement as the user message. No instruction text is added: the team
     has not written one, and assistant-written text may not become RL prompts (TSAI 3 Nov rule).
     """
@@ -196,12 +206,31 @@ def stdio_task(tcfg: dict, tokenizer, pool=None):
         return [(i, by_id[i]["statement"]) for i in ids]
 
     reasons, lock = collections.Counter(), threading.Lock()
+    require_verifier = bool(tcfg.get("require_verifier", False))
+
+    def score_stdio(samples):
+        results = pool.score(samples) if pool is not None else [sc.score(record, text) for record, text in samples]
+        buckets = [reason_bucket(result) for result in results]
+        if require_verifier:
+            for result, bucket in zip(results, buckets):
+                # "timeout on a test" is a candidate timeout; "timeout" is the outer runner deadline.
+                if bucket == "runner_failure" or result.get("reason") == "timeout":
+                    raise RuntimeError(f"stdio verifier runner failed: {result.get('reason', 'unknown reason')}")
+        return results, buckets
+
+    if require_verifier:
+        probe = {"id": "stdio-preflight", "tests": [{"input": "7\n", "output": "8\n"}]}
+        correct = "```python\nprint(int(input()) + 1)\n```"
+        wrong = "```python\nprint(int(input()) - 1)\n```"
+        _, buckets = score_stdio([(probe, correct), (probe, wrong)])
+        if buckets != ["pass", "wrong_answer"]:
+            raise RuntimeError(f"stdio verifier preflight expected a pass and a wrong answer, got {buckets}")
 
     def reward_fn(env_id: str, text: str):
-        r = sc.score(by_id[env_id], text)
+        results, buckets = score_stdio([(by_id[env_id], text)])
         with lock:
-            reasons[reason_bucket(r)] += 1
-        return float(r["reward"]), r
+            reasons.update(buckets)
+        return float(results[0]["reward"]), results[0]
 
     task = tasks.RewardEnvTask(tokenizer, items(tcfg["train_ids"]), items(tcfg["heldout_ids"]), reward_fn)
     task.reason_counts, task.reason_lock = reasons, lock
@@ -209,10 +238,9 @@ def stdio_task(tcfg: dict, tokenizer, pool=None):
     task.subgroup_of = lambda prompt: str(by_id[task._items[tuple(prompt)]].get(sub_key, "unknown"))
     if pool is not None:  # score in the small worker processes (score_pool.py), same score() and same order
         def batch_reward(pairs):
-            res = pool.score([(by_id[task._items[tuple(p)]], task.decode(c)) for p, c in pairs])
+            res, buckets = score_stdio([(by_id[task._items[tuple(p)]], task.decode(c)) for p, c in pairs])
             with lock:
-                for r in res:
-                    reasons[reason_bucket(r)] += 1
+                reasons.update(buckets)
             return [float(r["reward"]) for r in res]
         task.batch_reward = batch_reward
     return task
@@ -245,6 +273,13 @@ def pop_reasons(task) -> dict | None:
     return out
 
 
+def prompt_order_sha256(task, prompts: list[list[int]]) -> str:
+    """Identify a score vector's ordered prompt tokens and environment IDs without logging either."""
+    env_ids = getattr(task, "_items", {})
+    ordered = [(env_ids.get(tuple(tokens)), tokens) for tokens in prompts]
+    return hashlib.sha256(json.dumps(ordered, separators=(",", ":")).encode()).hexdigest()
+
+
 # --- durable state ---------------------------------------------------------------------------------
 # A run with train.state_dir keeps everything needed to continue after a kill: fp32 trainable weights, optimizer
 # moments, every random stream, the screened cohort and the step. Files are written to a temporary name and renamed,
@@ -260,20 +295,30 @@ def _file_or_value(v):
     return v
 
 
-def state_identity(cfg: dict, trainable_named) -> dict:
+def state_identity(cfg: dict, trainable_named, *, init_state_sha256: str | None = None,
+                   keep_zero_identity: dict | None = None) -> dict:
     """What must match for a saved state to be continued. `steps`, deadlines and paths may differ between calls."""
     t = cfg["train"]
     keys = ("algo", "k", "max_new", "temperature", "lr", "prompts_per_step", "ppo_epochs", "trainable", "tr_epsilon",
             "micro_rows", "weight_decay", "fp32_master", "sampler", "clip_eps", "kl_coef", "grad_clip", "screen")
     if t.get("autocast") is not None:  # preserve identities of runs saved before this option existed
         keys += ("autocast",)
+    if t.get("sampler_max_rows") is not None:  # chunking changes which random draws each row gets
+        keys += ("sampler_max_rows",)
     if t.get("dt"):  # only present for Deletion Tuning runs, so states saved before train.dt existed stay valid
         keys += ("dt",)
+    if t.get("update_mode", "train") != "train":  # default runs keep the identities they had
+        keys += ("update_mode",)
+    model = {k_: cfg["model"].get(k_) for k_ in ("kind", "path", "dtype", "config")}
+    if init_state_sha256 is not None:
+        model["init_state_sha256"] = init_state_sha256
+    train = {k_: t.get(k_) for k_ in keys}
+    if keep_zero_identity is not None:
+        train["keep_zero"] = keep_zero_identity
     names = "\n".join(f"{n}:{tuple(p_.shape)}" for n, p_ in trainable_named)
-    return {"version": STATE_VERSION, "seed": int(cfg.get("seed", 1234)),
-            "model": {k_: cfg["model"].get(k_) for k_ in ("kind", "path", "dtype", "config")},
+    return {"version": STATE_VERSION, "seed": int(cfg.get("seed", 1234)), "model": model,
             "task": {k_: _file_or_value(v) for k_, v in sorted(cfg["task"].items())},
-            "train": {k_: t.get(k_) for k_ in keys},
+            "train": train,
             "trainable_sha256": hashlib.sha256(names.encode()).hexdigest()}
 
 
@@ -358,7 +403,8 @@ def load_dt():
 def dt_hard_weights(dtmask, model) -> list[tuple[str, torch.Tensor]]:
     """What a Deletion Tuning policy samples with: W * 1[G > 0] for every masked layer, under its Hugging Face
     weight name. The sampler must hold these, never the soft-masked training weights."""
-    return [(f"{name}.weight", m.weight * (m.gate > 0).to(m.weight.dtype)) for name, m in dtmask.masked_layers(model)]
+    return [(f"{name}.weight", m.base_weight * (m.gate > 0).to(m.base_weight.dtype))
+            for name, m in dtmask.masked_layers(model)]
 
 
 def score_completions(task, pairs: list[tuple[list[int], list[int]]], workers: int = 1) -> list[float]:
@@ -484,6 +530,57 @@ def chunked_logprobs(policy, seq: torch.Tensor, plen: int, micro_rows: int | Non
         return completion_logprobs(policy, seq, plen)
     return torch.cat([completion_logprobs(policy, seq[i:i + micro_rows], plen)
                       for i in range(0, seq.shape[0], micro_rows)], 0)
+
+
+UPDATE_MODES = ("train", "eval")
+GATE_MEAN_ABS_TOL = 0.01      # nats; work/lpgate-2026-11-23/PREREG.md (fixed before any run)
+GATE_OUTSIDE_FRAC_TOL = 0.005  # share of real tokens whose equal-weights ratio leaves [1 - eps, 1 + eps]
+
+
+def update_forward_mode(model, update_mode: str) -> None:
+    """Module mode of the forwards that feed the ratio. "train" (default) is the trainer's historical behaviour: the update
+    runs after model.train(), and old_lp in whatever mode the model is in (eval at step 1, train mode after). "eval" runs
+    old_lp and the update in eval mode, the mode every sampler here uses, so train-only layers (dropout, e.g. an output
+    head's vocabulary dropout) cannot put noise into ratio = exp(new_lp - old_lp). Gradients flow the same in eval mode."""
+    model.train(update_mode == "train")
+
+
+def logprob_gate(policy, model, items, update_mode: str, eps: float, micro_rows: int | None,
+                 mean_abs_tol: float = GATE_MEAN_ABS_TOL, outside_frac_tol: float = GATE_OUTSIDE_FRAC_TOL) -> dict:
+    """Identical-weights check before the first update: score sampled tokens with the training forward exactly as the
+    update will (module mode `update_mode`, same autocast, same row chunks) and compare with the behaviour policy.
+
+    items: (seq [k, P+T], cmask [k, T], plen, behaviour_lp [k, T] or None). The behaviour log-probs are the sampler's
+    own (vLLM rollout_lp) when it reports them; otherwise the eval-mode full forward under the same autocast, i.e. the
+    sampler's mode and dtype without its KV cache (the cache's own gap is measured offline, work/lpgate-2026-11-23).
+    One extra forward when the reference is given; two when it is not. One host sync. Never changes the weights."""
+    was = model.training
+    gaps, refs = [], []
+    with torch.no_grad():
+        for seq, cmask, plen, ref in items:
+            if ref is None:
+                model.eval()
+                ref = chunked_logprobs(policy, seq, plen, micro_rows)
+                refs.append("eval_forward")
+            else:
+                refs.append("rollout_lp")
+            update_forward_mode(model, update_mode)
+            cur = chunked_logprobs(policy, seq, plen, micro_rows)
+            gaps.append((cur.double() - ref.double())[cmask])
+    model.train(was)
+    d = torch.cat(gaps) if gaps else torch.zeros(0, dtype=torch.float64)
+    n = int(d.numel())
+    if n == 0:
+        return {"ok": True, "tokens": 0, "note": "no real tokens"}
+    a = d.abs()
+    r = torch.exp(d)
+    vals = torch.stack([a.max(), a.mean(), ((r < 1 - eps) | (r > 1 + eps)).double().mean(),
+                        torch.isfinite(d).all().double()]).tolist()  # one host sync
+    rec = {"tokens": n, "max_abs": float(f"{vals[0]:.4g}"), "mean_abs": float(f"{vals[1]:.4g}"),
+           "outside_frac": round(vals[2], 6), "finite": bool(vals[3]), "eps": eps, "update_mode": update_mode,
+           "reference": sorted(set(refs)), "mean_abs_tol": mean_abs_tol, "outside_frac_tol": outside_frac_tol}
+    rec["ok"] = rec["finite"] and vals[1] <= mean_abs_tol and vals[2] <= outside_frac_tol
+    return rec
 
 
 def backward_group(policy, group, algo: str, clip_eps: float, kl_coef: float, n_groups: int,
@@ -681,6 +778,19 @@ def train(cfg: dict) -> dict:
         if t.get("tis_clip"):
             raise ValueError("objective_v1 uses the sampler ratio only as a mask; tis_clip would add IS weighting")
     tr_eps = float(t.get("tr_epsilon", grpo.TR_EPSILON))
+    update_mode = t.get("update_mode", "train")  # default: unchanged behaviour (see update_forward_mode)
+    if update_mode not in UPDATE_MODES:
+        raise ValueError(f"train.update_mode must be one of {UPDATE_MODES}")
+    if update_mode == "eval" and t.get("dt"):
+        raise ValueError("train.update_mode eval is not for Deletion Tuning: its mask layers are soft only in train mode")
+    gate_cfg = t.get("logprob_gate")  # opt-in identical-weights check before the first update (logprob_gate)
+    if gate_cfg is True:
+        gate_cfg = {}
+    if gate_cfg not in (None, False) and not isinstance(gate_cfg, dict):
+        raise ValueError("train.logprob_gate must be true or a mapping {mean_abs_tol, outside_frac_tol, eps, prompts, max_new}")
+    if isinstance(gate_cfg, dict) and t.get("dt"):
+        raise ValueError("train.logprob_gate is not for Deletion Tuning: its soft (train) and hard (eval) masks differ by design")
+    gate_rec = None
     state_dir = Path(t["state_dir"]) if t.get("state_dir") else None
     state_every = int(t.get("state_every", t.get("eval_every", 10)))
     deadline = float(t["deadline_unix"]) if t.get("deadline_unix") is not None else None
@@ -688,12 +798,16 @@ def train(cfg: dict) -> dict:
     call_steps = int(t["max_steps_this_call"]) if t.get("max_steps_this_call") else None
     max_train_s = float(t["max_train_seconds"]) if t.get("max_train_seconds") is not None else None
     sampler_kind = t.get("sampler") or ("hf_batch" if cfg["model"]["kind"] in ("hf", "tiny_olmoe") else "policy")
+    if sampler_kind == "vllm" and cfg["model"].get("init_state"):
+        raise ValueError("model.init_state is incompatible with the vLLM sampler; use a sampler backed by the trainer")
     if v1 and sampler_kind == "vllm" and temperature != 1.0:
         # vLLM reports log-probabilities of the raw model distribution; they equal the sampling distribution only at
         # temperature 1 without truncation (rollout.py), and objective_v1 uses them as the ratio denominator.
         raise ValueError("objective_v1 with the vllm sampler needs temperature 1.0 (sampler ratio contract)")
-    if cfg["model"]["kind"] == "team5_adapter" and sampler_kind != "policy":
-        raise ValueError(f"sampler {sampler_kind} is not available for the G5 LanguageModel; use sampler: policy")
+    if cfg["model"]["kind"] == "team5_adapter" and sampler_kind not in ("policy", "g5_batch"):
+        raise ValueError(f"sampler {sampler_kind} is not available for the G5 LanguageModel; use sampler: policy or g5_batch")
+    if sampler_kind == "g5_batch" and cfg["model"]["kind"] != "team5_adapter":
+        raise ValueError("sampler g5_batch is for the G5 LanguageModel (model.kind team5_adapter)")
     pool = None
     if int(t.get("reward_pool", 0)) > 0:  # before any model loads: the workers must be forked from a small process
         if cfg["task"]["kind"] != "stdio":
@@ -704,6 +818,18 @@ def train(cfg: dict) -> dict:
     if sampler_kind == "vllm":  # vLLM reserves its share of the GPU first, then the training model loads
         vllm = rollout.VLLMSampler(cfg["model"]["path"], seed=seed, **t.get("vllm", {}))
     policy, tok = build_model(cfg["model"], device)
+    init_state_info = None
+    if cfg["model"].get("init_state"):  # a trained state dict (e.g. SFT output) for the same architecture
+        from safetensors.torch import load  # noqa: PLC0415
+        ip = Path(cfg["model"]["init_state"])
+        raw = ip.read_bytes()
+        want = cfg["model"].get("init_state_sha256")
+        got = hashlib.sha256(raw).hexdigest()
+        if want and want != got:
+            raise ValueError(f"model.init_state sha256 {got} != expected {want}")
+        policy.model.load_state_dict(load(raw), strict=True)
+        del raw
+        init_state_info = {"path": str(ip), "sha256": got}
     task = build_task(cfg["task"], tok, seed) if pool is None else build_task(cfg["task"], tok, seed, pool)
 
     model = policy.model
@@ -738,7 +864,7 @@ def train(cfg: dict) -> dict:
         dtmask = load_dt()
         dt_total = int(dt_cfg.get("alpha_steps", int(t["steps"]) * int(t.get("ppo_epochs", 1))))
         dt_names = dtmask.convert(model, dtmask.TARGET_SETS[dt_cfg.get("targets", "gate")],
-                                  float(dt_cfg.get("alpha_start", 1000.0)), float(dt_cfg.get("alpha_end", 10000.0)),
+                                  float(dt_cfg.get("alpha_start", 100.0)), float(dt_cfg.get("alpha_end", 1000.0)),
                                   dt_total, seed=seed)
         n_cal = int(dt_cfg.get("calib_prompts", 64))
         cal = ({"input_ids": torch.tensor([p_], dtype=torch.long), "attention_mask": torch.ones(1, len(p_), dtype=torch.long)}
@@ -746,11 +872,12 @@ def train(cfg: dict) -> dict:
         with policy.autocast():
             scores = dtmask.wanda_scores(model, cal, device)
         dt_info = {"targets": dt_cfg.get("targets", "gate"), "masked_layers": len(dt_names), "alpha_steps": dt_total,
-                   "alpha": [float(dt_cfg.get("alpha_start", 1000.0)), float(dt_cfg.get("alpha_end", 10000.0))],
+                   "alpha": [float(dt_cfg.get("alpha_start", 100.0)), float(dt_cfg.get("alpha_end", 1000.0))],
                    "lambda": float(dt_cfg.get("lambda", 1e-5)), "calib_prompts": min(n_cal, len(task.train)),
                    "wanda_prior": dtmask.apply_wanda_prior(model, scores, float(dt_cfg.get("eta", 1 / 2048)),
                                                            float(dt_cfg.get("prior_strength", 3.0))),
-                   "deletion_at_init": dtmask.deletion_stats(model), "official": dtmask.OFFICIAL}
+                   "deletion_at_init": dtmask.deletion_stats(model), "band_at_init": dtmask.band_stats(model),
+                   "official": dtmask.OFFICIAL}
         del scores
         model.eval()
     n_trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -763,11 +890,35 @@ def train(cfg: dict) -> dict:
             raise ValueError("train.autocast must be bf16 or unset")
         policy.amp_dtype = torch.bfloat16
     trainable_named = [(n, p) for n, p in model.named_parameters() if p.requires_grad]
+    kz_cfg, kz, kz_log = t.get("keep_zero"), None, {"max_deleted_nonzero": 0}
+    kz_identity = None
+    if kz_cfg is not None or t.get("log_zero_share"):
+        import keep_zero as keep_zero_mod  # noqa: PLC0415
+        masks, enforce = {}, False
+        if kz_cfg is not None:
+            if not kz_cfg.get("path"):
+                raise ValueError("train.keep_zero.path must name the baked keep mask")
+            masks, digests = keep_zero_mod.load_masks_with_digests(kz_cfg["path"])
+            for key, digest in digests.items():
+                expected = kz_cfg.get(key)
+                if expected is not None and expected != digest:
+                    raise ValueError(f"train.keep_zero {key} {digest} != expected {expected}")
+            enforce = bool(kz_cfg.get("enforce", False))
+            kz_identity = {**digests, "enforce": enforce}
+            kz_log["mask"] = {"path": str(kz_cfg["path"]), **digests}
+        kz = keep_zero_mod.KeepZero(trainable_named, masks, enforce, float(t.get("weight_decay", 0.0)))
+        kz_log.update(masked_entries=kz.n_masked, deleted_at_start=kz.n_deleted0,
+                      deleted_share_of_masked_at_start=round(kz.n_deleted0 / max(kz.n_masked, 1), 6),
+                      deleted_nonzero_at_start=kz.deleted_nonzero(), zero_share_at_start=round(kz.zero_share(), 6),
+                      enforce=enforce if kz_cfg is not None else None)
+        if kz_log["deleted_nonzero_at_start"]:
+            raise ValueError(f"{kz_log['deleted_nonzero_at_start']} deleted weights are nonzero before RL starts")
 
     def sync_named():  # what the sampler must hold after an update
         return dt_hard_weights(dtmask, model) if dt_cfg else trainable_named
     pad_id = tok.pad_token_id if tok is not None and tok.pad_token_id is not None else None
-    sampler = rollout.make_sampler(sampler_kind, policy, vllm, pad_id)
+    sampler = rollout.make_sampler(sampler_kind, policy, vllm, pad_id,
+                                   **({"max_rows": int(t.get("sampler_max_rows", 128))} if sampler_kind == "g5_batch" else {}))
     ref = None
     if float(t.get("kl_coef", 0)) > 0:
         ref = copy.deepcopy(policy)
@@ -776,6 +927,8 @@ def train(cfg: dict) -> dict:
     start_w = StartWeights(model)  # CPU copy of the trainable weights: weight-change check, and KL to start
     opt = torch.optim.AdamW([p for _, p in trainable_named], lr=float(t["lr"]),
                             weight_decay=float(t.get("weight_decay", 0.0)))
+    if kz is not None:
+        kz.check_optimizer(opt)
     tis_clip = float(t["tis_clip"]) if t.get("tis_clip") else None
     micro_rows = int(t["micro_rows"]) if t.get("micro_rows") else None
     probe_w = UpdateProbe(trainable_named) if v1 else None
@@ -788,7 +941,7 @@ def train(cfg: dict) -> dict:
     log_routing = bool(t.get("routing_log", False)) and bool(routing.router_modules(model))
     n_experts = getattr(getattr(model, "config", None), "num_experts", None)
     # Native sampling draws on the model's device, so its generator lives there; HF/vLLM keep host-side generators.
-    gen_device = device if sampler_kind == "policy" and not isinstance(policy, HFPolicy) else "cpu"
+    gen_device = device if sampler_kind in ("policy", "g5_batch") and not isinstance(policy, HFPolicy) else "cpu"
     gen = torch.Generator(device=gen_device).manual_seed(seed)
     order = list(range(len(task.train)))
     fixture_smoke = adapter is not None and adapter.status != "READY"
@@ -801,13 +954,18 @@ def train(cfg: dict) -> dict:
     gens = {"gen": gen, "gen_extra": gen_extra, "gen_cohort": gen_cohort}
     evals_path = out / "evals.jsonl"
     resumed, start_step, prior_s, cohort_ids = None, 0, 0.0, None
-    identity = state_identity(cfg, trainable_named) if state_dir is not None else None
     if state_dir is not None:
+        identity = state_identity(
+            cfg, trainable_named, init_state_sha256=init_state_info["sha256"] if init_state_info else None,
+            keep_zero_identity=kz_identity,
+        )
         resumed = load_state(state_dir, identity)
     if resumed is not None:
         with torch.no_grad():
             for n_, p_ in trainable_named:
                 p_.copy_(resumed["trainable"][n_].to(p_.device, p_.dtype))
+        if kz is not None:
+            kz.check("restored checkpoint")
         opt.load_state_dict(resumed["opt"])
         random.setstate(resumed["py_random"])
         torch.set_rng_state(resumed["torch_rng"])
@@ -857,6 +1015,7 @@ def train(cfg: dict) -> dict:
         scores, rolls = evaluate(sampler, task, task.train, cohort_k, max_new, temperature, gen_cohort, reward_workers)
         cohort_scores[step] = scores
         rec_ = {"name": "train_cohort", "step": step, "k": cohort_k, "problems": len(scores),
+                "prompt_order_sha256": prompt_order_sha256(task, task.train),
                 "pass": sum(scores) / len(scores), "scores": scores, **length_stats(rolls, max_new, policy.eos_id),
                 "reasons": pop_reasons(task), "seconds": round(time.time() - c0_, 1)}
         append_jsonl(evals_path, rec_)
@@ -883,6 +1042,7 @@ def train(cfg: dict) -> dict:
         heldout_scores[step] = scores
         extra = dict(length_stats(rolls, max_new, policy.eos_id))
         append_jsonl(evals_path, {"name": "heldout", "step": step, "k": eval_k, "problems": len(scores), "pass": r,
+                                  "prompt_order_sha256": prompt_order_sha256(task, task.heldout),
                                   "scores": scores, **extra, "reasons": pop_reasons(task),
                                   "seconds": round(time.time() - c0_, 1)})
         if t.get("kl_to_start"):
@@ -915,6 +1075,28 @@ def train(cfg: dict) -> dict:
         (out / "vllm_sync_check.json").write_text(json.dumps(sync_check, indent=1))
         if sync_check.get("ok") is False:
             raise RuntimeError(f"vLLM weight sync does not work: {sync_check}")
+    if isinstance(gate_cfg, dict):
+        # Before the screen, so a failure costs no screen and no evaluation. Its own generator: the run's generators
+        # (gen, gen_cohort, gen_extra) are untouched. Runs again on a resume (any weights are identical to themselves).
+        c0 = time.time()
+        g_prompts = task.train[:int(gate_cfg.get("prompts", 1))]
+        g_new = min(max_new, int(gate_cfg.get("max_new", 256)))
+        g_rolls = sampler.sample(g_prompts, k, g_new, temperature, torch.Generator(device=gen_device).manual_seed(seed + 4))
+        gate_rec = logprob_gate(policy, model, [(r_.seq, r_.cmask, len(p_), r_.rollout_lp) for p_, r_ in zip(g_prompts, g_rolls)],
+                                update_mode, float(gate_cfg.get("eps", tr_eps)), micro_rows,
+                                float(gate_cfg.get("mean_abs_tol", GATE_MEAN_ABS_TOL)),
+                                float(gate_cfg.get("outside_frac_tol", GATE_OUTSIDE_FRAC_TOL)))
+        gate_rec.update(prompts=len(g_prompts), k=k, max_new=g_new, seconds=round(time.time() - c0, 3))
+        (out / "logprob_gate.json").write_text(json.dumps(gate_rec, indent=1))
+        print(json.dumps({"logprob_gate": gate_rec}), flush=True)
+        if not gate_rec["ok"]:
+            metrics_f.close()
+            raise RuntimeError(
+                f"logprob gate: at identical weights the update forward (mode {update_mode}) differs from the behaviour "
+                f"log-probs by mean {gate_rec['mean_abs']} nats (max {gate_rec['max_abs']}); {gate_rec['outside_frac']:.4g} "
+                f"of tokens leave the trust region (tolerances {gate_rec['mean_abs_tol']}, {gate_rec['outside_frac_tol']}). "
+                f"A train-only layer such as dropout is the usual cause: set train.update_mode: eval "
+                f"(rl_job_v1: --update-mode eval).")
     screen = t.get("screen")  # mixed-band selection on TRAIN prompts only; the held-out set is never filtered
     if resumed is not None and cohort_ids is not None:  # the cohort screened before the restart, in its saved order
         by_env = {env: list(key) for key, env in task._items.items()}
@@ -949,7 +1131,7 @@ def train(cfg: dict) -> dict:
         (out / "screen.json").write_text(json.dumps(rec_s, indent=1))
         print(json.dumps({"screen": {k_: v for k_, v in rec_s.items() if k_ not in ("per_task", "mixed_ids")}}),
               flush=True)
-        if len(mixed) < need:
+        if len(mixed) < max(need, 1):  # min_mixed 0 with no mixed prompt would train on an empty list
             metrics_f.close()
             summary = {"status": "NO_GO_MIXED_BAND", "algo": algo, "screen": {k_: v for k_, v in rec_s.items()
                                                                               if k_ != "per_task"},
@@ -1034,6 +1216,8 @@ def train(cfg: dict) -> dict:
         c0 = time.time()
         if dt_cfg:
             model.eval()  # hard mask: the engine-mismatch metric compares the same policy in both engines
+        if update_mode == "eval":
+            update_forward_mode(model, update_mode)  # old_lp in the same mode as the update and the sampler
         for p, r, adv in scored:
             if adv is None:
                 dropped += 1
@@ -1072,7 +1256,7 @@ def train(cfg: dict) -> dict:
         if v1 and groups and n_tok > 0:
             if vllm is not None:
                 vllm.sleep()
-            model.train()
+            update_forward_mode(model, update_mode)  # default "train": model.train(), as before
             epochs = []
             for _ in range(int(t.get("ppo_epochs", 1))):
                 opt.zero_grad()
@@ -1136,7 +1320,7 @@ def train(cfg: dict) -> dict:
                 idx_before = routing.routing(policy, g[0], fmask)
             if vllm is not None:
                 vllm.sleep()
-            model.train()
+            update_forward_mode(model, update_mode)  # default "train": model.train(), as before
             for _ in range(int(t.get("ppo_epochs", 1))):
                 opt.zero_grad()
                 for g_ in groups:
@@ -1151,7 +1335,23 @@ def train(cfg: dict) -> dict:
                 step_flip = routing.flip_rate(idx_before, idx_after)[0]
                 step_top1 = routing.top1_flip_rate(idx_before, idx_after)
                 step_mass = routing.mass_shift(idx_before, idx_after)
+        if kz is not None and device.startswith("cuda"):
+            # Attribute pending optimizer work to training before timing the mask scans.
+            torch.cuda.synchronize(device)
         times["train"] = time.time() - c0
+        kz_rec = {}
+        if kz is not None:
+            c0 = time.perf_counter()
+            if kz.n_masked:
+                dn = kz.deleted_nonzero()  # before any backstop: what the gradient mask alone achieved
+                kz_log["max_deleted_nonzero"] = max(kz_log["max_deleted_nonzero"], dn)
+                kz_rec["deleted_nonzero"] = dn
+                if kz.enforce_after_step:
+                    kz.enforce()
+                else:
+                    kz.check(f"step {step}")
+            kz_rec["zero_share"] = round(kz.zero_share(), 6)
+            times["keep_zero_checks"] = time.perf_counter() - c0
         c0 = time.time()
         sync_bytes = 0
         if vllm is not None:
@@ -1160,7 +1360,7 @@ def train(cfg: dict) -> dict:
                 sync_bytes = vllm.sync(sync_named())
         times["sync"] = time.time() - c0
         rec = {"step": step, "train_reward": sum(rewards_all) / len(rewards_all), "groups_used": len(groups),
-               "groups_dropped": dropped, "loss": loss_val, **stats, **v1_rec,
+               "groups_dropped": dropped, "loss": loss_val, **stats, **v1_rec, **kz_rec,
                "sampled_tokens": sampled_tokens,
                "rollout_tokens_per_s": round(sampled_tokens / max(times["rollout"], 1e-9), 1),
                "times_s": {k_: round(v, 3) for k_, v in times.items()}, "step_s": round(sum(times.values()), 3),
@@ -1223,7 +1423,6 @@ def train(cfg: dict) -> dict:
         extra_eval(int(t["steps"]))
     saved_weights = None
     if t.get("save_trainable"):
-        import hashlib  # noqa: PLC0415
         path = Path(t["save_trainable"])
         path.parent.mkdir(parents=True, exist_ok=True)
         torch.save({n: p_.detach().to(torch.bfloat16).cpu() for n, p_ in trainable_named}, path)
@@ -1269,6 +1468,21 @@ def train(cfg: dict) -> dict:
                                 "group_kinds_total": {k_: sum(r["group_kinds"][k_] for r in recs)
                                                       for k_ in recs[0]["group_kinds"]} if recs else {}}
     summary["saved_trainable_weights"] = saved_weights
+    if update_mode != "train":
+        summary["update_mode"] = update_mode
+    if gate_cfg not in (None, False):
+        summary["logprob_gate"] = gate_rec
+    if init_state_info:
+        summary["init_state"] = init_state_info
+    if kz is not None:
+        kz_log.update(deleted_nonzero_end=kz.deleted_nonzero() if kz.n_masked else None,
+                      deleted_zero_end=kz.deleted_zero() if kz.n_masked else None,
+                      zero_share_end=round(kz.zero_share(), 6))
+        kz_log["persistent_mask_tensor_bytes"] = sum(
+            mask.numel() * (mask.element_size() + kz.params[name].element_size())
+            for name, mask in kz.keep.items()
+        )
+        summary["keep_zero"] = kz_log
     if dt_cfg:
         summary["deletion_tuning"] = {**dt_info, "deletion_final": dtmask.deletion_stats(model),
                                       "alpha_final": dt_layer0.alpha, "optimizer_steps": dt_layer0.current_step}

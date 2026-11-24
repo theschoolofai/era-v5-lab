@@ -124,8 +124,8 @@ def apply_method(lm: nn.Module, method: str, args) -> dict:
         gen = torch.Generator().manual_seed(args.seed)
         wrapped = []
         for name, module in list(lm.named_modules()):
-            if name.endswith(".router") or name == "head":
-                continue
+            if name.endswith(".router") or name == "head" or name.startswith("head."):
+                continue  # the output head (dense or KE2/KAS, with any inner Linears) is never LoRA-wrapped
             for child_name, child in list(module.named_children()):
                 if child_name in G5_LORA_TARGETS and isinstance(child, nn.Linear):
                     setattr(module, child_name, bench.LoRALinear(child, args.lora_r, args.lora_alpha, gen))
@@ -142,8 +142,17 @@ def apply_method(lm: nn.Module, method: str, args) -> dict:
 
 
 def enable_head_rows(lm: nn.Module, ids: list[int]) -> nn.Parameter:
-    """Train only head.weight rows `ids`: a gradient hook zeroes every other row (with wd 0 AdamW leaves them exact)."""
-    w = lm.head.weight
+    """Train only rows `ids` of the output head's per-token matrix (dense `head.weight` or KE2/KAS `head.tok_u`,
+    resolved by team5_adapter.head_access, which raises on a head of unknown kind)."""
+    import team5_adapter as ta  # noqa: PLC0415  rl-loop/team5_adapter.py
+
+    try:
+        info = ta.head_access(lm)
+    except ta.ArtifactError as e:
+        raise ValueError(f"--marker-rows: {e}") from None
+    w = info["per_token"]
+    if max(ids) >= w.shape[0]:
+        raise ValueError(f"--marker-rows: marker id {max(ids)} outside {info['per_token_name']} rows {w.shape[0]}")
     rowmask = torch.zeros(w.shape[0], 1, dtype=w.dtype, device=w.device)
     rowmask[ids] = 1
     w.requires_grad_(True)
@@ -192,13 +201,18 @@ def judge(bundle, prompt_ids: list[int], gen_ids: list[int]) -> dict:
     return rec
 
 
-def generate_and_judge(bundle, rows: list[dict], max_new: int, limit: int) -> tuple[dict, list[dict]]:
-    """Greedy, one prompt at a time, through the G10 KV-cached decoder (Team 5's model itself has no cache)."""
+def generate_and_judge(bundle, rows: list[dict], max_new: int, limit: int,
+                       seconds: float = 0.0) -> tuple[dict, list[dict]]:
+    """Greedy, one prompt at a time, through the G10 KV-cached decoder (Team 5's model itself has no cache).
+    `seconds` > 0: no new prompt is started after that long; `per_row` keeps flags only (no text), in row-id order."""
     prompts = sorted(rows, key=lambda r: r["id"])[:limit]
-    recs, t0, gen_tokens = [], time.perf_counter(), 0
+    recs, t0, gen_tokens, stopped = [], time.perf_counter(), 0, False
     kv = bundle.kv_cache
     bundle.kv_cache = True  # rl-loop/g5_decode.py: same tokens as the re-forward path (test_team5_adapter parity test)
     for r in prompts:
+        if seconds and time.perf_counter() - t0 > seconds:
+            stopped = True
+            break
         prompt = r["input_ids"][: r["prompt_len"]]
         mn = min(max_new, bundle.spec["block_size"] - len(prompt))
         if mn <= 0:
@@ -222,7 +236,9 @@ def generate_and_judge(bundle, rows: list[dict], max_new: int, limit: int) -> tu
             "closed_im_end": sum(x["closed_im_end"] for x in recs) / n, "hit_budget": sum(x["hit_budget"] for x in recs) / n,
             "rows_emitting_marker": markers, "mean_gen_tokens": gen_tokens / n, "reasons": dict(sorted(reasons.items())),
             "decoding": "greedy, KV cache (g5_decode)", "max_new": max_new, "seconds": round(secs, 1),
-            "gen_tokens_per_s": round(gen_tokens / max(secs, 1e-9), 1)}, recs
+            "gen_tokens_per_s": round(gen_tokens / max(secs, 1e-9), 1), "budget_seconds": seconds,
+            "stopped_at_budget": stopped, "per_row": [[x["row_id"], int(bool(x["valid"])), int(bool(x["closed_im_end"])),
+                                                   int(bool(x["hit_budget"])), int(x["gen_tokens"])] for x in recs]}, recs
 
 
 def eval_loss(wrapper: G5ForBench, rows: list[dict], device: str, micro_tokens: int) -> dict:
@@ -338,14 +354,18 @@ def run(args) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     lm.eval()
     report["mask_checks"] = mask_checks(wrapper, sorted(train_rows, key=lambda r: r["id"])[:4], device, bundle)
-    pre = {"eval_loss": eval_loss(wrapper, eval_rows, device, args.micro_tokens)}
-    if args.heldout:
-        pre["forgetting"] = forgetting_bpb(bundle, args.heldout, args.heldout_sources, device)
-    pre["generation"], pre_recs = generate_and_judge(bundle, eval_rows, args.gen_max_new, args.gen_limit)
-    if args.rl_tasks and args.rl_ids:
-        import day_one_probe  # noqa: PLC0415
-        pre["rl_screen"] = day_one_probe.rl_screen_bundle(bundle, args.rl_tasks, args.rl_ids, args.rl_k,
-                                                          args.rl_max_new, device, args.rl_limit)
+    pre, pre_recs = None, []
+    if not args.no_before:  # --no-before: another arm of the same job already measured this base model
+        pre = {"eval_loss": eval_loss(wrapper, eval_rows, device, args.micro_tokens)}
+        if args.heldout:
+            pre["forgetting"] = forgetting_bpb(bundle, args.heldout, args.heldout_sources, device)
+        pre["generation"], pre_recs = generate_and_judge(bundle, eval_rows, args.gen_max_new, args.gen_limit,
+                                                         args.gen_seconds)
+        if args.rl_tasks and args.rl_ids:
+            import day_one_probe  # noqa: PLC0415
+            pre["rl_screen"] = day_one_probe.rl_screen_bundle(bundle, args.rl_tasks, args.rl_ids, args.rl_k,
+                                                              args.rl_max_new, device, args.rl_limit,
+                                                              args.rl_seconds)
     report["before"] = pre
     marker_ids = [bundle.artifacts.tokenizer.token_to_id(render.T[n]) for n in MARKER_NAMES]
     method_info = apply_method(lm, args.method, args)
@@ -365,9 +385,11 @@ def run(args) -> dict:
         scores = dtmask.wanda_scores(wrapper, ({"input_ids": b.input_ids, "attention_mask": b.attention_mask}
                                                for b in cb), device)
         # scores are keyed by the wrapper's module names ("lm.blocks..."), so the prior is applied through it too
-        method_info["wanda_prior"] = dtmask.apply_wanda_prior(wrapper, scores, args.dt_eta, args.dt_prior_strength)
+        method_info["wanda_prior"] = dtmask.apply_wanda_prior(wrapper, scores, args.dt_eta, args.dt_prior_strength,
+                                                              unseen=args.dt_unseen)
         method_info["wanda_layers_without_tokens"] = len(dtmask.masked_layers(wrapper)) - len(scores)
         method_info["deletion_at_init"] = dtmask.deletion_stats(lm)
+        method_info["band_at_init"] = dtmask.band_stats(lm)
     report["method"] = method_info
     frozen_before = bench.frozen_sha256(lm, marker_ids if marker_param is not None else None) \
         if args.method != "full" else None
@@ -383,7 +405,7 @@ def run(args) -> dict:
     elif args.method == "lora":
         watch_name, watch = "blocks.0.attn.q.lora_B", lm.blocks[0].attn.q.lora_B
     elif args.method == "markers":
-        watch_name, watch = "head.weight (marker rows)", marker_param
+        watch_name, watch = f"{ta.head_access(lm)['per_token_name']} (marker rows)", marker_param
     else:
         watch_name, watch = "blocks.0.attn.q.weight", lm.blocks[0].attn.q.weight
     lm.train()
@@ -442,17 +464,25 @@ def run(args) -> dict:
         report["frozen_weights_unchanged"] = {"before": frozen_before, "after": after, "pass": after == frozen_before}
     if args.method == "dt":
         method_info["deletion_final"] = dtmask.deletion_stats(lm)
-        dtmask.bake(lm)
+        keep = dtmask.bake(lm)  # {param name: bool keep mask}; RL after this SFT holds these entries at zero
+        blob, meta = dtmask.pack_masks(keep)
+        (out / "dt_keep_masks.bin").write_bytes(blob)
+        (out / "dt_keep_masks.bin.json").write_text(json.dumps(meta))
+        method_info["keep_masks"] = {"file": "dt_keep_masks.bin", "layers": meta["layers"], "bits": meta["bits"],
+                                     "sha256": hashlib.sha256(blob).hexdigest(),
+                                     "deleted_final": sum(int((~m).sum()) for m in keep.values())}
     if args.method == "lora":
         bench.merge_lora(lm)
     post = {"eval_loss": eval_loss(wrapper, eval_rows, device, args.micro_tokens)}
     if args.heldout:
         post["forgetting"] = forgetting_bpb(bundle, args.heldout, args.heldout_sources, device)
-    post["generation"], post_recs = generate_and_judge(bundle, eval_rows, args.gen_max_new, args.gen_limit)
+    post["generation"], post_recs = generate_and_judge(bundle, eval_rows, args.gen_max_new, args.gen_limit,
+                                                         args.gen_seconds)
     if args.rl_tasks and args.rl_ids:  # does SFT give the RL prompts any signal? base vs trained, same prompts
         import day_one_probe  # noqa: PLC0415
         post["rl_screen"] = day_one_probe.rl_screen_bundle(bundle, args.rl_tasks, args.rl_ids, args.rl_k,
-                                                           args.rl_max_new, device, args.rl_limit)
+                                                           args.rl_max_new, device, args.rl_limit,
+                                                              args.rl_seconds)
     report["after"] = post
     # save as a plain G5 state dict and reload into a fresh LanguageModel
     sha = save_state(lm, out / "model.safetensors", {"g10": "capstone sft " + args.method,
@@ -467,6 +497,34 @@ def run(args) -> dict:
     with torch.no_grad():
         diff = float((fresh(probe_ids, v) - lm(probe_ids, v)).abs().max())
     report["reload_parity"] = {"state_sha256": sha, "logits_max_abs_diff": diff, "pass": diff == 0.0}
+    if args.team7_ckpt_remote:
+        def _t7_probe(m):
+            with torch.no_grad():
+                logits = m(probe_ids, v).float()
+                return torch.nn.functional.cross_entropy(logits[:, :-1].reshape(-1, logits.size(-1)),
+                                                         probe_ids[:, 1:].reshape(-1))
+
+        t7_local = args.team7_local_root or (out / "_team7_local")
+        t7_export = args.team7_export_path or (out / "team7_exported_model.safetensors")
+        t7_run_id = args.team7_run_id or out.name
+        report["team7_checkpoint"] = save_and_export_team7(
+            lm,
+            opt,
+            model_factory=lambda: type(lm)(bundle.spec, bundle.artifacts.bytes, bundle.artifacts.lengths).to(device).eval(),
+            probe_fn=_t7_probe,
+            step=len(log),
+            tokens=sum(r["targets"] for r in log),
+            run_id=t7_run_id,
+            local_root=t7_local,
+            remote_root=args.team7_ckpt_remote,
+            export_path=t7_export,
+            seed=args.seed,
+            reason=f"sft_{args.method}",
+        )
+    if args.keep_weights_dir:  # default off: save this arm's plain weights as a Team 7 run folder for Team 9's reader
+        import keep_weights  # noqa: PLC0415
+        report["kept_weights"] = keep_weights.save_run_folder(lm, args.keep_weights_dir, args.keep_run_id, step=len(log),
+                                                              probe_fn=keep_weights.team5_probe)
     report["log"] = log
     report["first_loss"], report["last_loss"] = log[0]["loss"], log[-1]["loss"]
     (out / "sft_report.json").write_text(json.dumps(report, indent=1, default=str), encoding="utf-8")
@@ -476,6 +534,92 @@ def run(args) -> dict:
             for x in recs:
                 f.write(json.dumps({"when": when, **x}) + "\n")
     return report
+
+
+class _SftLoaderState:
+    """Minimal loader state for Team 7 Checkpointer.save on single-process G10 SFT runs."""
+
+    def __init__(self, step: int, rows_seen: int):
+        self._step = int(step)
+        self._rows_seen = int(rows_seen)
+
+    def state_dict(self) -> dict:
+        return {"step": self._step, "rows_seen": self._rows_seen}
+
+    def next_batch_id(self) -> int:
+        return self._step
+
+
+def _load_team7_ckpt():
+    """Load teams/07-infrastructure/ckpt/ckpt.py from the repo root without touching Team 7 files."""
+    ckpt_file = TEAM10.parent / "07-infrastructure" / "ckpt" / "ckpt.py"
+    if not ckpt_file.is_file():
+        raise FileNotFoundError(f"Team 7 checkpointer not found at {ckpt_file}")
+    return _load("g10_team7_ckpt", ckpt_file)
+
+
+def _optim_matches_model(lm: nn.Module, optim) -> bool:
+    if optim is None:
+        return False
+    model_ids = {id(p) for p in lm.parameters()}
+    opt_ids = {id(p) for g in optim.param_groups for p in g["params"]}
+    return bool(opt_ids) and opt_ids.issubset(model_ids)
+
+
+def save_and_export_team7(
+    lm: nn.Module,
+    optim,
+    *,
+    model_factory,
+    probe_fn,
+    step: int,
+    tokens: int,
+    run_id: str,
+    local_root: Path,
+    remote_root: str | Path,
+    export_path: Path,
+    seed: int = 1,
+    reason: str = "sft_final",
+    code_paths: tuple[str, ...] = (),
+) -> dict:
+    """Commit a single-process G10 SFT checkpoint through Team 7 Checkpointer and export verified safetensors."""
+    ckpt = _load_team7_ckpt()
+    save_opt = optim if _optim_matches_model(lm, optim) else torch.optim.SGD(lm.parameters(), lr=0.0)
+    local_root = Path(local_root)
+    local_root.mkdir(parents=True, exist_ok=True)
+    export_path = Path(export_path)
+    export_path.parent.mkdir(parents=True, exist_ok=True)
+    ck = ckpt.Checkpointer(
+        run_id=run_id,
+        local_root=str(local_root),
+        remote_root=str(remote_root),
+        seed=seed,
+        verify_mode="full",
+        code_paths=code_paths or (str(Path(__file__).resolve()),),
+    )
+    loader = _SftLoaderState(step=step, rows_seen=tokens)
+    saved = ck.save(step=step, model=lm, optim=save_opt, loader=loader, probe_fn=probe_fn,
+                    tokens=tokens, reason=reason)
+    if not saved:
+        raise RuntimeError("Team 7 Checkpointer.save skipped saving (insufficient disk headroom)")
+    if not ck.wait():
+        raise RuntimeError(f"Team 7 Checkpointer upload/commit failed for run_id={run_id} step={step}")
+    exp = ckpt.export_safetensors(
+        remote_run=ck.remote_url,
+        model_factory=model_factory,
+        probe_fn=probe_fn,
+        out_path=str(export_path),
+        step=step,
+    )
+    return {
+        "run_id": run_id,
+        "step": exp["step"],
+        "remote_url": ck.remote_url,
+        "export_path": str(export_path),
+        "export_sha256": hashlib.sha256(export_path.read_bytes()).hexdigest(),
+        "probe_bits": exp["probe_bits"],
+        "used_live_optim": save_opt is optim,
+    }
 
 
 def parse_args(argv=None):
@@ -503,12 +647,18 @@ def parse_args(argv=None):
     p.add_argument("--dt-lambda", type=float, default=1e-5)
     p.add_argument("--dt-eta", type=float, default=0.05)
     p.add_argument("--dt-prior-strength", type=float, default=3.0)
+    p.add_argument("--dt-unseen", default="official", choices=("official", "keep"),
+                   help="uncalibrated layer logits: official = no prior, keep = shift up to reduce initial deletion")
     p.add_argument("--dt-calib-rows", type=int, default=64)
     p.add_argument("--rl-tasks", type=Path, help="RL data v1 stdio task file: screen before and after SFT")
     p.add_argument("--rl-ids", type=Path)
     p.add_argument("--rl-k", type=int, default=8)
     p.add_argument("--rl-max-new", type=int, default=512)
     p.add_argument("--rl-limit", type=int, default=0, help="screen at most this many RL prompts (0 = all)")
+    p.add_argument("--rl-seconds", type=float, default=0.0, help="time budget per RL screen; no new prompt after it (0 = off)")
+    p.add_argument("--gen-seconds", type=float, default=0.0, help="time budget per greedy format screen (0 = off)")
+    p.add_argument("--no-before", action="store_true",
+                   help="skip the base-model evaluation (eval loss, forgetting, generation, RL screen) before training")
     p.add_argument("--max-train-seconds", type=float, default=0.0, help="stop training after this long (0 = off)")
     p.add_argument("--heldout", type=Path)
     p.add_argument("--heldout-sources", type=Path)
@@ -517,6 +667,15 @@ def parse_args(argv=None):
     p.add_argument("--device", default="cpu")
     p.add_argument("--seed", type=int, default=1)
     p.add_argument("--log-every", type=int, default=20)
+    p.add_argument("--team7-ckpt-remote", type=str, default=None,
+                   help="optional Team 7 Checkpointer remote root (dir or s3://...); saves DCP checkpoint and exports verified safetensors")
+    p.add_argument("--team7-run-id", type=str, default=None, help="run_id for Team 7 Checkpointer (default: --out folder name)")
+    p.add_argument("--team7-local-root", type=Path, default=None, help="local staging dir for Team 7 Checkpointer")
+    p.add_argument("--team7-export-path", type=Path, default=None, help="output path for Team 7 export_safetensors")
+    p.add_argument("--keep-weights-dir", type=Path,
+                   help="default off: also save the final plain weights as a Team 7 run folder <dir>/<keep-run-id>")
+    p.add_argument("--keep-run-id", "--keep-weights-id", dest="keep_run_id", default="g10-sft",
+                   help="run id (folder name) of the kept weights; --keep-weights-id is the spelling dryrun2_dt_compare.py passes")
     p.add_argument("--out", type=Path, required=True)
     return p.parse_args(argv)
 

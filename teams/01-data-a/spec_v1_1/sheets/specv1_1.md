@@ -1,13 +1,38 @@
 # Medicine sheet: Data A — spec v1.1, combined (spec v1 + Spec v1.1, contributors retained per rule)
 
+## Scoped #86 preservation amendments (23 Nov 2026)
+
+Five scoped preservation amendments were extracted from
+[#86](https://github.com/patilvijay23/era-v5-lab/pull/86), source commit
+`d9b2efe8689fee5abdc26a523d847018a732d344`, into the existing spec v1.1 rules:
+
+| Active rule | Extracted change | Source card |
+|---|---|---|
+| `DA-A6-001` | Preserve consecutive Cyrillic runs and Go test/testdata URLs | `DA-A6-004` |
+| `DA-C2-004` | Require a line-start repeated lead; cut partial copies only at blank-line boundaries | `DA-C2-011` |
+| `DA-C2-003` | Exclude fenced Markdown code from repeated-line removal | `DA-C2-009/010`, fence subset |
+| `DA-C3-003` | Recognize closing `”`, `’`, `»` as end punctuation | `DA-C3-009`, punctuation subset |
+| `DA-F1-005` | Preserve digits within a DOI; retain the existing binary-value guard | `DA-F1-007/009`, DOI subset |
+
+Rule IDs, rule order, pack scopes and shared F1 are unchanged. Closing punctuation
+uses the existing four-English-pack scope consistently with straight quotes;
+the source card's long-prose trimming is not adopted. Numeric-table heuristics,
+year-run exemptions, broader phone/contact policy, licence removal and the
+remaining proposal cards are deferred. #86 is not merged by this extraction.
+
+Fresh per-rule and full-pipeline gold results replace the previous run in
+[`../results/cleaner/harm_tests.md`](../results/cleaner/harm_tests.md).
+The source execution excerpts below predate these guards; in particular,
+`code-cpp/782bc9665f0acdf7` and `code-go/48b3b124a7aaa5fc` are now preserved by A6.
+
 Status: FINAL SUBMISSION for TSAI's Gate 2 decision (14 Nov 2026): spec v1 and spec v1.1 become one spec v1.1, and theschoolofai/era-v5-lab#435 is that spec. This sheet holds both, in run order: 364 rules (340 from spec v1 and 24 from Spec v1.1). No rule is approved by this document.
 
 ## How this sheet is made
 
-`spec_v1_1/scripts/combine_spec.py` writes it from `spec_v1/sheets/specv1.md` and `sheets/specv1_1_additions.md` (the Spec v1.1 medicines on their own). Change those, not this file.
+`spec_v1_1/scripts/combine_spec.py` originally combined `spec_v1/sheets/specv1.md` and `sheets/specv1_1_additions.md` (the Spec v1.1 medicines on their own). This combined sheet now holds the subsequent v1.1 amendments and is the source for `build/build_clean.py`; rebuilding it from the original sheets alone would lose those amendments. Spec v1 remains frozen.
 - **Run order is sheet order.** `spec_v1/build/build_clean.py` runs each family's rules in sheet order, then the shared F1. So each family has its spec v1 rules first, then its v1.1 rules, because the readers found the new diseases in text spec v1 had cleaned. English is the exception: its v1.1 rules come before `DA-F1-005`, the instructor's F1 rule, which stays the family's last.
 - **Rules per family (spec v1 + v1.1):** code 24 + 0; english 20 + 3; math 14 + 8; sci 12 + 12; indic 270 + 1.
-- **Spec v1's cards** are copied unchanged, python blocks included. Only relative links are rewritten, so they still reach the same files from this folder.
+- **Spec v1's cards** were initially copied unchanged, with relative links rewritten. Subsequent v1.1 amendments are documented here and do not change the frozen spec v1 files.
 - **Each v1.1 block** gets spec v1's wrapper: `SPEC_PACKS`, from the block's `ORIGIN`, guards the source medicine, as in `specv1.md`. So every block has the form `build_clean.py` reads.
 
 ## Combined validation (15 Nov 2026)
@@ -87,6 +112,18 @@ A gold document is changed only if a surviving output differs from original text
 The five source sheets do not consistently contain three exact `(doc_id, characters)` quotations per medicine. Math cards generally contain no document examples; many code/English cards list IDs only; science uses descriptions and intentionally withholds private values. **Fresh exact-character execution excerpts are added per card below; cards with fewer than three publishable examples remain incomplete.** Do not fabricate snippets, and do not publish private spans to satisfy the template. Supply reviewed non-private exact characters or an access-controlled privacy evidence record before freeze. The historical science sources disagree on labels and the old 40-document gold snapshot (`eee25e81417bc1b7`). The supplied latest science gold has 198 rows and zero measured harm; its digest is recorded below. Inherited science measurements describe the old snapshot; 1/40 (2.50%) passes under the minimum-one exception, while gold eligibility remains a separate review issue. Gold must be adjudicated independently, never edited merely to pass a test.
 
 Source code remains CANDIDATE even after a measured pass. Semantic side effects, reviewer approval, missing examples, F1 coverage and provisional registry IDs remain release gates. Rules for <=5 observations and preservation-only science D3 are supplementary cards.
+
+### Cleaner corrections (23 Nov 2026)
+
+The shared F1 resolves a generic `lang_label="code"` using `pack_id`: `code-cpp` → `cpp`,
+`code-go` → `go`, `code-java` → `java`, `code-js-ts` → `typescript`, `code-python` → `python`,
+and `code-rust` → `rust`. Explicit language labels retain their parser. Row metadata is unchanged;
+masking remains limited to comments and strings. Its build source is
+[`build/f1_rule.py`](../build/f1_rule.py), included by the v1.1 cleaner builder.
+
+Shankar's #734 correction to `DB-B4-004` is in its executable card below: remove wiki markup,
+preserve verse numbers and years, including Devanagari digits. These corrections apply to v1.1.
+Build `clean.py` with `spec_v1_1/build/build_clean.py`; do not edit generated cleaner code directly.
 
 <!-- MERGED PIPELINE DECISIONS -->
 ### Merged PR decisions and optional F2 stage
@@ -863,7 +900,7 @@ def medicine(doc):
 - `48b3b124a7aaa5fc` (code-go), original offset 53: `"<evorui \u0430t gm\u0430il d\u03bft c\u03bfm>, All r"` (fix).
 <!-- END CARD EVIDENCE -->
 
-2. **Medicine:** Cyrillic look-alike letters inside words that also have Latin letters become Latin.
+2. **Medicine:** Cyrillic look-alikes inside Latin words become Latin only when there is no consecutive Cyrillic run. Preserve URLs under `testdata/` or ending `_test.go`. Scoped amendment from #86 `DA-A6-004` (F18); the active ID stays `DA-A6-001`.
 
 ```python
 RULE_ID = "DA-A6-001"
@@ -881,11 +918,18 @@ import re
 
 HOMO = str.maketrans("аеорсухіјѕАВЕКМНОРСТХІЈЅ", "aeopcyxijsABEKMHOPCTXIJS")
 
-MIXED = re.compile(r"\b(?=\w*[A-Za-z])(?=\w*[Ѐ-ӿ])\w+\b")
+TEST_FILE = re.compile(r"(?:^|/)testdata/|_test\.go$")
+
+MIXED = re.compile(r"\b(?=\w*[A-Za-z])(?=\w*[Ѐ-ӿ])(?!\w*[Ѐ-ӿ]{2})\w+\b")
+
+CYRILLIC = re.compile("[\u0400-\u04ff]")  # the range MIXED asks for: every match holds one of these
 
 def medicine_a6(doc):
-    t = MIXED.sub(lambda m: m.group().translate(HOMO), doc["text"])
-    return ("fix" if t != doc["text"] else "keep", t)
+    text = doc["text"]
+    if not CYRILLIC.search(text):  # no Cyrillic character, so MIXED has no match: the text is kept
+        return ("keep", text)
+    t = MIXED.sub(lambda m: m.group().translate(HOMO), text)
+    return ("fix" if t != text else "keep", t)
 
 
 def _std(out, text):
@@ -900,6 +944,8 @@ def _std(out, text):
 
 def medicine(doc):
     if doc.get("lang_label") not in LANGS and doc.get("pack_id") not in PACKS:
+        return ("keep", doc["text"])
+    if TEST_FILE.search(doc.get("url") or ""):
         return ("keep", doc["text"])
     return _std(medicine_a6(doc), doc["text"])
 
@@ -954,8 +1000,11 @@ import re
 LOST = re.compile(r"[ \t]*//[^\n\w]*�[^\nA-Za-z0-9]*$", re.M)
 
 def medicine_a4(doc):
-    t = LOST.sub("", doc["text"])
-    return ("fix" if t != doc["text"] else "keep", t)
+    text = doc["text"]
+    if "\ufffd" not in text:  # every match holds a U+FFFD, so a text without one is kept without running LOST
+        return ("keep", text)
+    t = LOST.sub("", text)
+    return ("fix" if t != text else "keep", t)
 
 
 def _std(out, text):
@@ -1674,7 +1723,9 @@ def drop_blob(text: str, share: float = 0.10, b64_share: float = 0.4):
     if not text:
         return "keep", text
     n = len(text)
-    if sum(len(m.group()) for m in _BYTES.finditer(text)) / n >= share:
+    # _BYTES needs 24 groups that each start with "0x", so a text with fewer than 24 of them has no match (the count is
+    # exact: "0x" cannot overlap itself)
+    if text.count("0x") >= 24 and sum(len(m.group()) for m in _BYTES.finditer(text)) / n >= share:
         return "drop", text
     if sum(len(m.group()) for m in _B64.finditer(text)) / n >= b64_share:
         return "drop", text
@@ -2591,11 +2642,22 @@ KEYS = [re.compile(p) for p in (r"AKIA[0-9A-Z]{16}", r"gh[pousr]_[A-Za-z0-9]{30,
 
 SEED = re.compile(r'(?i)((?:secret|seed|totp|otp)\w*\s*:?=\s*")[A-Z2-7]{16,}(")')
 
+# Each group of literals is necessary for its KEYS pattern (the patterns have no (?i) flag). The text as it is at that step is
+# tested before each substitution, so the order of the substitutions and any cascade stay as they were.
+KEY_HINTS = (("AKIA",), ("ghp_", "gho_", "ghu_", "ghs_", "ghr_"), ("sk-",), ("xox",), ("-----BEGIN ",))
+# SEED needs an "=", a quote and, case-insensitively, one of its four words; (?i) also matches U+017F as "s", so the word test
+# is made on the casefolded text ("otp" is inside "totp")
+SEED_WORDS = ("secret", "seed", "otp")
+
 def medicine_e3(doc):
     t = doc["text"]
-    for rx in KEYS:
-        t = rx.sub("EXAMPLE_SECRET", t)
-    t = SEED.sub(r"\1EXAMPLE_SECRET\2", t)
+    for rx, hints in zip(KEYS, KEY_HINTS):
+        if any(h in t for h in hints):
+            t = rx.sub("EXAMPLE_SECRET", t)
+    if "=" in t and '"' in t:
+        low = t.casefold()
+        if any(w in low for w in SEED_WORDS):
+            t = SEED.sub(r"\1EXAMPLE_SECRET\2", t)
     return ("fix" if t != doc["text"] else "keep", t)
 
 
@@ -2692,8 +2754,22 @@ SDK_KEY = re.compile(r"""(?P<head>\bnew\s+Pusher\(\s*(?P<quote>["'`]))[0-9a-fA-F
 
 # Each literal is necessary for its KNOWN pattern. Test the current text before each
 # substitution so the original substitution order and any cascading matches remain intact.
-KNOWN_HINTS = ("AIza", "AKIA", "gh", "github_pat_", "sk-", "k_live_", "SG.", "xox", "eyJ", "-----BEGIN ")
-ASSIGNED_HINT = re.compile(r"secret|token|key|passw(?:or)?d|pwd", re.I)  # a superset of every ASSIGNED name, including Unicode case folds
+KNOWN_HINTS = (("AIza",), ("AKIA",), ("ghp_", "gho_", "ghu_", "ghs_", "ghr_"), ("github_pat_",), ("sk-",), ("k_live_",), ("SG.",), ("xox",),
+               ("eyJ",), ("-----BEGIN ",))  # a text must hold one of a pattern's literals for it to match
+
+# ASSIGNED is tried only on a text that passes three cheap tests, each true whenever ASSIGNED could match (a match holds a name word,
+# then an operator, then a quoted value of 16 or more characters). A text that fails one is kept as it is.
+# 1. the text holds a name word: every ASSIGNED name holds one of these. The text is tested casefolded, since (?i) also lets
+#    U+017F (long s) and U+212A (Kelvin sign) match s and k, and casefold() maps them to those letters.
+ASSIGNED_WORDS = ("secret", "token", "key", "passw", "pwd")
+# 2. the end of an operator (:= => = :), then a quoted value of 16 or more characters, then the same quote
+VALUE_AFTER_OPERATOR = re.compile(r"""[:=>]\s*(["'`])[^"'`\s\\]{16,200}\1""")
+# 3. a name word, then ASSIGNED's own text from the end of the name to the closing quote. ASSIGNED's name holds a word
+#    that ends at its own tail, so this matches wherever ASSIGNED does, without ASSIGNED's search from every word start.
+NAME_WORD_THEN_VALUE = re.compile(r"""(?ix)
+    (?:secret|token|key|passw|pwd)[\w\-]*["']?
+    (?:\s*:\s*&?(?:'\w+\s+)?[\w<>\[\]]{1,20})?
+    \s*(?::=|=>|=|:)\s*(["'`])[^"'`\s\\]{16,200}\1""")
 
 DUMMY = re.compile(r"(?i)example|sample|dummy|test|fake|mock|placeholder|changeme|change_me|your|xxxx|0000|1234|abcd|secret|password|token|<|>|\$\{|\{\{|%s")
 
@@ -2713,12 +2789,13 @@ def _looks_random(v):
 
 def medicine_e3(text):
     new = text
-    for rx, hint in zip(KNOWN, KNOWN_HINTS):
-        if hint in new:
+    for rx, hints in zip(KNOWN, KNOWN_HINTS):
+        if any(h in new for h in hints):
             new = rx.sub(PLACEHOLDER, new)
     if "Pusher" in new:
         new = SDK_KEY.sub(lambda m: m.group("head") + PLACEHOLDER + m.group("quote"), new)
-    if ASSIGNED_HINT.search(new):
+    low = new.casefold()
+    if any(w in low for w in ASSIGNED_WORDS) and VALUE_AFTER_OPERATOR.search(new) and NAME_WORD_THEN_VALUE.search(new):
         new = ASSIGNED.sub(lambda m: m.group("head") + PLACEHOLDER + m.group("quote") if _looks_random(m.group("value")) else m.group(0), new)
     return new
 
@@ -3232,7 +3309,7 @@ def medicine(doc):
 - `8262087c39b0c8c5` (en-fineweb-edu), original offset 0: `"The Truth About\nNikola Tesla became aware early in the 20th cent"` (drop).
 <!-- END CARD EVIDENCE -->
 
-2. **Medicine:** Drop the document when it ends in an excerpt marker, or when the last word is a function word that cannot end an English sentence. Truncation cannot be repaired, and the tail is the only place it can be detected without guessing.
+2. **Medicine:** Drop the document when it ends in an excerpt marker, or when the last word is a function word that cannot end an English sentence. Within the existing four-pack scope, closing `”`, `’` and `»` count as end punctuation (#86 `DA-C3-009`, punctuation subset only). No trimming or last-word-test withdrawal is adopted. Truncation cannot be repaired, and the tail is the only place it can be detected without guessing.
 
 ```python
 RULE_ID = "DA-C3-003"
@@ -3264,6 +3341,9 @@ def medicine_c3(text):
     if tail.endswith("]") and _MARKER.search(tail):  # the marker ends the text, so the text must end in "]"
         return ("drop", "")
     if tail.endswith((".", "!", "?", '"', "'", ")", ":", "…")):
+        return text
+    # #86 DA-C3-009: only closing punctuation; retain the existing rule scope.
+    if tail.endswith(("”", "’", "»")):
         return text
     # The last token is the final run of [A-Za-z0-9'] characters. It is read backwards from the end: the regex that found it,
     # ([A-Za-z0-9']+)[^A-Za-z0-9']*$, searched the whole text from the start, which cost far more than the answer needs.
@@ -3589,11 +3669,20 @@ def _merge(spans):
 C2_MIN_REPEAT, C2_MIN_CHARS = 3, 10
 
 def c2_spans(text):
-    """C2: later copies of a line repeated C2_MIN_REPEAT or more times in the document."""
-    seen, lines, pos = {}, [], 0
+    """C2: later copies of a prose line repeated C2_MIN_REPEAT or more times; preserve Markdown fences."""
+    # #86 DA-C2-009/010: protect fenced code only; no code/config heuristics.
+    seen, lines, pos, fence = {}, [], 0, None
     for line in text.split("\n"):
         key = " ".join(line.split())
-        if len(key) >= C2_MIN_CHARS:
+        marker = re.match(r"^ {0,3}(`{3,}|~{3,})(.*)$", line)
+        protected = fence is not None or marker is not None
+        if marker:
+            run, suffix = marker.groups()
+            if fence is None:
+                fence = (run[0], len(run))
+            elif run[0] == fence[0] and len(run) >= fence[1] and not suffix.strip():
+                fence = None
+        if len(key) >= C2_MIN_CHARS and not protected:
             lines.append((pos, pos + len(line), key))
             seen[key] = seen.get(key, 0) + 1
         pos += len(line) + 1
@@ -4532,8 +4621,10 @@ def medicine(doc):
 **Example gap:** 0/3 publishable execution excerpts; private/credential spans are withheld and fewer than three affected records may exist. Complete reviewed evidence before freeze.
 <!-- END CARD EVIDENCE -->
 
-2. **Medicine:** Replace each phone number, personal email address and street-level address of a private person with a typed placeholder: `<PHONE>`, `<EMAIL>`, `<ADDRESS>` (instructor, 31 Oct). An email is personal when it is at a webmail domain, or when its local part looks like a name (a dot, underscore, hyphen, digit or 13+ characters) and the context is not an organisation's; role addresses (`info@`, `sales@` ...) never are. A phone number or a street address stays when the contact block around it shows an organisation (a business or trade word, opening hours, a fax line, a listing site), when the page speaks for an organisation ("call us", "our office"), or when the number is toll-free. A street address is replaced only on a contact line, not inside running prose.
+2. **Medicine:** Replace each phone number, personal email address and street-level address of a private person with a typed placeholder: `<PHONE>`, `<EMAIL>`, `<ADDRESS>` (instructor, 31 Oct). An email is personal when it is at a webmail domain, or when its local part looks like a name (a dot, underscore, hyphen, digit or 13+ characters) and the context is not an organisation's; role addresses (`info@`, `sales@` ...) never are. A phone number or a street address stays when the contact block around it shows an organisation (a business or trade word, opening hours, a fax line, a listing site), when the page speaks for an organisation ("call us", "our office"), or when the number is toll-free. A street address is replaced only on a contact line, not inside running prose. Narrow binary correction (TSAI, 22 Nov): preserve a whitespace-separated 0/1 value immediately introduced as a binary number/value/literal/pattern/representation or bit pattern/string. Unlabelled digit groups and explicit phone contacts retain the existing masking policy; other phone matches on the same line are still processed.
 
+
+**Binary correction validation (23 Nov):** 27 synthetic regression cases cover all four English packs, explicit phone context, same-line contacts, toll-free contacts and idempotence. The final targeted run (including English F1 equivalence and cleaner rebuild checks) passed 70 tests. Gold harm for this amendment is **PENDING COLLATION**: run the harm test after completing collation. The inherited harm figures above do not validate this amendment.
 ```python
 RULE_ID = "DA-F1-005"
 SOURCE_RULE_ID = "DA-F1-005"
@@ -4562,6 +4653,29 @@ ROLE_LOCAL = re.compile(r"^(?:info|contact|contactus|enquir(?:y|ies)|inquir(?:y|
 NOT_REAL = re.compile(r"@(?:example|test|domain|email)\.(?:com|org|net)$", re.I)
 
 PHONE = re.compile(r"(?<![\w-])(?:\+\d{1,3}[\s.\-‐‑–]?)?(?:\(\d{2,4}\)[\s.\-‐‑–]?|\d{2,4}[\s.\-‐‑–])\d{3,4}[\s.\-‐‑–]\d{3,4}(?![\w-])")
+
+# Binary digits explicitly introduced as a binary value are technical content, not a phone.
+# Keep this local to the matched span: a phone elsewhere on the same line still gets masked.
+BINARY_LABEL = re.compile(r"(?i)\b(?:binary(?:[ \t]+(?:number|value|literal|pattern|representation))?|bit[ \t]+(?:pattern|string))"
+                          r"[ \t]*(?:is[ \t]+|[:=][ \t]*)?[`\"']?[ \t]*$")
+BINARY_DIGITS = re.compile(r"[01]+(?:[ \t]+[01]+)+")
+BINARY_PHONE_CONTEXT = re.compile(r"(?i)\b(?:phone|telephone|tel|mobile|cell|fax|whatsapp|contact)\b")
+
+
+# #86 DA-F1-007/009 (F39): DOI digits are citation content, not phones.
+DOI_BEFORE = re.compile(r"\b10\.\d{4,9}/\S*$")
+
+
+def _phone(m):
+    value = m.group()
+    if DOI_BEFORE.search(m.string, max(0, m.start() - 80), m.start()):
+        return value
+    before = m.string[max(0, m.start() - 64):m.start()]
+    if (BINARY_DIGITS.fullmatch(value) and BINARY_LABEL.search(before) and not BINARY_PHONE_CONTEXT.search(before)
+            and not re.match(r"[ \t]+[0-9]", m.string[m.end():])):
+        return value
+    return value if TOLL_FREE.match(value) else "<PHONE>"
+
 
 TOLL_FREE = re.compile(r"^(?:\+?1[\s.-]?)?\(?8(?:00|88|77|66|55|44|33)\)?")
 
@@ -4611,8 +4725,13 @@ def _email(m, org):
 
 def medicine_f1(text):
     lines = text.split("\n")
-    org_page = bool(ORG_VOICE.search(text))
+    org_page = []  # ORG_VOICE on the whole text: searched once, and only when a contact line asks
     has_org = {}  # line number -> an organisation word on that line: searched once, and only when a contact line asks
+
+    def on_org_page():
+        if not org_page:
+            org_page.append(bool(ORG_VOICE.search(text)))
+        return org_page[0]
 
     def org_near(i):  # same answer as searching the joined 13-line window, as no match spans a newline
         for j in range(max(0, i - 6), min(len(lines), i + 7)):
@@ -4627,11 +4746,11 @@ def medicine_f1(text):
         if "@" not in line and not DIGIT.search(line):  # no EMAIL, PHONE or ADDRESS can match
             out.append(line)
             continue
-        new = EMAIL.sub(lambda m: _email(m, org_page or org_near(i) or bool(PUBLIC_ROLE.search(
+        new = EMAIL.sub(lambda m: _email(m, on_org_page() or org_near(i) or bool(PUBLIC_ROLE.search(
             "\n".join(lines[max(0, i - 2):i + 1])))), line) if "@" in line else line
         if PHONE.search(new) or ADDRESS.search(new):
-            if not (org_page or org_near(i)):
-                new = PHONE.sub(lambda m: m.group() if TOLL_FREE.match(m.group()) else "<PHONE>", new)
+            if not (on_org_page() or org_near(i)):
+                new = PHONE.sub(_phone, new)
                 if len(line.strip()) <= CONTACT_LINE:
                     new = ADDRESS.sub("<ADDRESS>", new)
         out.append(new)
@@ -4932,6 +5051,10 @@ A5_CJK = re.compile("[\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af]")
 
 def medicine_a5(text):
     out = A5_LIG.sub(lambda m: unicodedata.normalize("NFKC", m.group()), text)      # ligature to letters
+    # Speed: with no fullwidth character the substitution below changes nothing, whatever the share of CJK letters, so the
+    # letters (a Python loop over every character) are counted only for a text that has one. Most documents have none.
+    if not A5_FULLWIDTH.search(out):
+        return out
     letters = sum(c.isalpha() for c in out) or 1
     if len(A5_CJK.findall(out)) / letters < 0.01:                                    # leave real CJK text alone
         out = A5_FULLWIDTH.sub(lambda m: chr(ord(m.group()) - 0xFEE0), out)          # fullwidth to ASCII
@@ -5283,17 +5406,24 @@ import re
 D3_FOREIGN = re.compile("[\u0400-\u04ff\u0900-\u0dff\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af\u0600-\u06ff]")
 
 def medicine_d3(text):
+    # Speed: a line with no D3_FOREIGN character has f == 0, so it is never removed and its letter count is never used;
+    # with no line removed foreign == 0 and the drop test cannot fire, so the letters of the whole text are counted
+    # only when something was removed. Most documents have no such character at all and are returned as they are.
+    if not D3_FOREIGN.search(text):
+        return text
     out, foreign = [], 0
     for l in text.split("\n"):
-        letters = sum(c.isalpha() for c in l)
-        f = len(D3_FOREIGN.findall(l))
-        if letters and f / letters > 0.5:      # a line that is mostly foreign script is removed
-            foreign += f
-            continue
+        if D3_FOREIGN.search(l):
+            letters = sum(c.isalpha() for c in l)
+            f = len(D3_FOREIGN.findall(l))
+            if letters and f / letters > 0.5:      # a line that is mostly foreign script is removed
+                foreign += f
+                continue
         out.append(l)
-    total = sum(c.isalpha() for c in text)
-    if total and foreign / total > 0.3:        # mostly not English: that is D1, drop
-        return ("drop", text)
+    if foreign:
+        total = sum(c.isalpha() for c in text)
+        if total and foreign / total > 0.3:        # mostly not English: that is D1, drop
+            return ("drop", text)
     return "\n".join(out)
 
 
@@ -5462,9 +5592,19 @@ C1_SITE = re.compile(
 # phpBB "Replies / <n> / Views / <n>" block, one value per line
 C1_REPLIES = re.compile(r"(?m)^Replies\n\d+\nViews\n[\d.]+K?\n?")
 
+# Speed: on a pure-ASCII line, (?i) matching C1_SITE equals matching its lower-cased pattern against the lower-cased line
+# (every escape in C1_SITE is lower-case, \d \s \w \u..., and it has no non-ASCII character, so lower() cannot change its
+# meaning). Non-ASCII lines keep the original (?i) regex.
+assert C1_SITE.pattern.startswith("(?i)")
+C1_SITE_ASCII = re.compile(C1_SITE.pattern[4:].lower())
+
+def _c1_site(l):
+    return C1_SITE_ASCII.search(l.lower()) if l.isascii() else C1_SITE.search(l)
+
 def medicine_c1(text):
+    # the length test goes first: it is cheap, and a line over 120 characters is kept whatever C1_SITE finds
     keep = [l for l in text.split("\n")
-            if not (C1_LINE.fullmatch(l) or (C1_SITE.search(l) and len(l) <= 120))]
+            if not (C1_LINE.fullmatch(l) or (len(l) <= 120 and _c1_site(l)))]
     return C1_REPLIES.sub("", "\n".join(keep))
 
 
@@ -5788,7 +5928,17 @@ def _a8_join(m):
     return left + dot + " " + right
 
 
+# Speed: every match of A8_GLUED holds a lowercase letter, an optional ".", a capital and a lowercase letter. A line without
+# that shape is returned as it is (A8_GLUED.sub would change nothing), so A8_CODE and A8_GLUED, which start with a lookbehind
+# or \b and are tried at every position, run only for the few lines that have it. A fence can only start with "```", so a
+# text without it has no fence and no line that starts one, and the loop below is not needed.
+A8_JUNCTION = re.compile(r"[a-z]\.?[A-Z][a-z]")
+
+
 def medicine_a8(text):
+    if "```" not in text:
+        return "\n".join(A8_GLUED.sub(_a8_join, line) if A8_JUNCTION.search(line) and not A8_CODE.search(line) else line
+                         for line in text.split("\n"))
     out, fence = [], False
     for line in text.split("\n"):
         if line.lstrip().startswith("```"):
@@ -6197,27 +6347,57 @@ C7_DANGLING = re.compile(r"\b(?:is|are|was|of|that|by|be|as|equals|gives|get|obt
 C7_VALUE = re.compile("^[ \t]*[-+\\d(−√$\\\\]")  # the next line starts with a value: the formula is there
 # the next line carries on: lowercase (a wrapped line or "a^2 + a = 0"), an answer option, a bullet, or a formula
 C7_CONTINUES = re.compile("^[ \t]*(?:[a-z]|\\(?[A-Da-d][).][ \t]|[-*•])|[=^]")
-C7_NO_OBJECT = re.compile(r"\b(?:is|are|as|that|of|to|by|be|get|gives?|obtain|equals?|becomes?|write|find|show|compute"
-                          r"|calculate|evaluate|simplify|solve|comparing|where|and|or|then|than|with|for)[ \t]+[.,;](?=[ \t]|$)",
-                          re.M | re.I)
+C7_NO_OBJECT_WORDS = (r"(?:is|are|as|that|of|to|by|be|get|gives?|obtain|equals?|becomes?|write|find|show|compute"
+                      r"|calculate|evaluate|simplify|solve|comparing|where|and|or|then|than|with|for)")
+C7_NO_OBJECT = re.compile(r"\b" + C7_NO_OBJECT_WORDS + r"[ \t]+[.,;](?=[ \t]|$)", re.M | re.I)
 C7_OPTION = re.compile(r"^[ \t]*\(?[A-Da-d][).][ \t]*$")
 C7_QUESTION_MARK = re.compile(r"[:=][ \t]*\?[ \t]*$|(?<!\?)\?{3,}", re.M)
 C7_MIN_GAPS = 4  # the most gaps in a gold doc is 3; the reading docs it drops have 4 to over 100
-# Speed (14 Nov). C7_NO_OBJECT needs a space or tab before . , or ;, and C7_QUESTION_MARK needs a "?": without them
-# each counts 0. A line adds a gap only if it ends in "=" or a dangling word, or is an empty answer option:
-# C7_CANDIDATE finds such a line anywhere in the text, so without one the line loop adds nothing. And the count
-# only grows, so once it reaches C7_MIN_GAPS the answer is known.
-C7_SPACE_PUNCT = re.compile(r"[ \t][.,;]")
-C7_CANDIDATE = re.compile("|".join(p.pattern for p in (C7_EQ_END, C7_DANGLING, C7_OPTION)), re.I | re.M)
+# Speed (16 Nov, after the 14 Nov guards). The count only grows, so once it reaches C7_MIN_GAPS the answer is known.
+# 1. len(C7_NO_OBJECT.findall(text)) is found from its punctuation: every match ends in a blank run, one of . , ; and a
+#    blank or the end of the line, and the blank run is preceded by the whole word that must be one of the words. A
+#    regex that starts with a charset finds the punctuation much faster than C7_NO_OBJECT, which starts with \b and is tried
+#    at every position, and the word is checked, with the same regex, only before the few hits.
+# 2. C7_QUESTION_MARK is two regexes, and the second (a lookbehind first) is tried at every position: it is only searched
+#    when the text holds "???". The two never overlap (the "?" of the first is followed by blanks only), so the counts add.
+# 3. The line loop below needs a line that ends in "=" or a dangling word, or is an answer option; such a line ends, after
+#    its trailing blanks, in "=", a letter, ")" or ".": only those lines are tested with the three regexes. This is the
+#    same test as one search of the three regexes joined with | over the whole text, which was slower.
+C7_PUNCT_HIT = re.compile(r"[ \t]+[.,;](?=[ \t]|$)", re.M)
+C7_NO_OBJECT_WORD = re.compile(C7_NO_OBJECT_WORDS, re.I)
+C7_QUESTION_END = re.compile(r"[:=][ \t]*\?[ \t]*$", re.M)
+C7_QUESTION_RUN = re.compile(r"(?<!\?)\?{3,}")
+
+
+def _c7_no_object(text):
+    n = 0
+    for hit in C7_PUNCT_HIT.finditer(text):
+        end = start = hit.start()
+        while start > 0 and (text[start - 1].isalnum() or text[start - 1] == "_"):   # \w
+            start -= 1
+        if C7_NO_OBJECT_WORD.fullmatch(text, start, end):   # an empty word never matches
+            n += 1
+    return n
+
+
+def _c7_has_candidate_line(text):
+    for line in text.split("\n"):
+        tail = line.rstrip(" \t")
+        if tail and (tail[-1] == "=" or tail[-1].isalpha() or tail[-1] in ").") and (
+                C7_EQ_END.search(line) or C7_DANGLING.search(line) or C7_OPTION.match(line)):
+            return True
+    return False
 
 
 def medicine_c7(text):
-    gaps = len(C7_NO_OBJECT.findall(text)) if C7_SPACE_PUNCT.search(text) else 0
+    gaps = _c7_no_object(text)
     if "?" in text:
-        gaps += len(C7_QUESTION_MARK.findall(text))
+        gaps += len(C7_QUESTION_END.findall(text))
+        if "???" in text:
+            gaps += len(C7_QUESTION_RUN.findall(text))
     if gaps >= C7_MIN_GAPS:
         return True
-    if not C7_CANDIDATE.search(text):
+    if not _c7_has_candidate_line(text):
         return False
     lines = [line for line in text.split("\n") if line.strip()]
     for k, line in enumerate(lines):
@@ -6982,7 +7162,7 @@ def medicine(doc):
 - `f5faeb5d20b73087` (sci-finepdfs), original offset 7929: `"bject.\n\nI have a friend who has "` (fix).
 <!-- END CARD EVIDENCE -->
 
-2. **Medicine:** Combine exact opening-lead detection with repeated long-paragraph removal only on currently C2-labeled files.
+2. **Medicine:** Combine exact opening-lead detection with repeated long-paragraph removal only on currently C2-labeled files. The repeated lead must start on a new line; a partial copy is cut only through its last blank-line boundary. Scoped amendment from #86 `DA-C2-011` (F25); the labelled paragraph path is unchanged.
 
 ```python
 RULE_ID = "DA-C2-004"
@@ -6996,15 +7176,21 @@ def _sci_c2_prefix(text):
         return text
     seed = text[:seed_len]
     second = text.find(seed, seed_len, min(len(text), search_limit))
-    if second < 0:
+    if second < 0 or text[second - 1] != "\n":
         return text
     matched = 0
     max_match = min(second, len(text) - second)
     while matched < max_match and text[matched] == text[second + matched]:
         matched += 1
-    if matched < min_repeat:
+    end = second + matched
+    if end < len(text) and text[end - 2:end] != "\n\n":
+        boundary = text.rfind("\n\n", second, end)
+        if boundary < 0:
+            return text
+        end = boundary + 2
+    if end - second < min_repeat:
         return text
-    return text[:second] + text[second + matched:]
+    return text[:second] + text[end:]
 
 import re
 
@@ -25334,7 +25520,7 @@ def medicine(doc):  # added by Data B: runs only on the pack it was tested on
 - `54cba74d98069466` (ind-sa-fw2), original offset 75: `"\u0928\u0915\u092e\u094d \u0968\u096a\n[[\u0932\u0947\u0916\u0915\u0903 :|]]\n|\u0938\u094d\u0925\u093e\u0928\u0915\u0902 \u0968\u096b"` (fix).
 <!-- END CARD EVIDENCE -->
 
-2. **Medicine:** the author's code, unchanged. Main function: `medicine_b4(text)`.
+2. **Medicine:** amended per Shankar's #734: preserve verse numbers and years; retain wiki-markup removal. Main function: `medicine_b4(text)`.
 
 ```python
 RULE_ID = "DB-B4-004"
@@ -25356,8 +25542,8 @@ def medicine_b4(text):
     t = re.sub(r"\[\[(?:[^|\]\n]*\|)?([^\]\n]*)\]\]", r"\1", text)
     for p in _JUNK:
         t = re.sub(p, "", t)
-    t = re.sub(r"(?<=॥)\d{3,}(?=\s)", "", t)
-    return re.sub(r"(?<=\s)\d{3,}(?=[क-ह])|(?<=[ा-्क-ह])\d{3,}(?=[क-ह])", "", t)
+    # Shankar, #734: verse numbers and years are content; remove wiki markup only.
+    return t
 
 
 def _std(out, text):  # added by Data B, copied from Data A (medicine_english.md)

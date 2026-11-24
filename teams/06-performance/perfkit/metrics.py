@@ -302,7 +302,7 @@ class GpuSampler:
     def _selected_rows(self):
         """Rows for the benchmark's CUDA device, preserving the original per-run summary scope."""
         if self.target_pci_bus_id:
-            matched = [r for r in self.rows if r.get("pci.bus_id", "").upper() == self.target_pci_bus_id.upper()]
+            matched = [r for r in self.rows if (r.get("pci.bus_id") or "").upper() == self.target_pci_bus_id.upper()]
             if matched:
                 return matched
         return [r for r in self.rows if r.get("index") == self.target_index]
@@ -393,7 +393,7 @@ def flops_per_token(model, T: int, opt_flops_per_step: float = 0.0, tokens_per_s
         rev_extra = stack_fwd if getattr(m, "rev_impl", "two_pass") == "one_pass" else 2 * stack_fwd
     else:
         rev_extra = 0
-    extra = rev_extra + (2 * head if m.ce_impl in ("chunked", "fused_cce") else 0)   # these recompute the head
+    extra = rev_extra + (2 * head if m.ce_impl in ("chunked", "triton_cce") else 0)   # recompute head
     if pad_rows and m.ce_impl in ("torch", "chunked"):   # hardware only: the padded-width head matmul (fwd 2 + bwd 4 FLOP)
         pad_heads = 1 + ((T - 1) / T if m.mtp else 0)     # the t+2 head sees T - 1 of the T positions per sequence
         extra += pad_heads * pad_rows * d * (6 + (2 if m.ce_impl == "chunked" else 0))

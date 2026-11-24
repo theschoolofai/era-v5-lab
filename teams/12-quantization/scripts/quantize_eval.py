@@ -107,9 +107,13 @@ def llama_build(cli):
     return int(m.group(1)), m.group(2)
 
 
-def llama_tag(build, commit):
+def llama_tag(build, commit, work=None):
     """llama.cpp tag of the binaries' commit. Release builds are tagged b<build>; a source build from a
-    shallow clone reports build 1, so the tag is found by commit (v0.7.0 and b11669 are the same commit)."""
+    shallow clone reports build 1, so the tag is found by commit (v0.7.0 and b11669 are the same commit).
+    No network if work/llama.cpp-b<build> is already a checkout of that commit (a prepared --work folder)."""
+    if work:
+        head = subprocess.run(['git', '-C', str(Path(work) / f'llama.cpp-b{build}'), 'rev-parse', 'HEAD'], capture_output=True, text=True)
+        if head.returncode == 0 and commit and head.stdout.startswith(commit): return f'b{build}'
     out = subprocess.run(['git', 'ls-remote', '--tags', 'https://github.com/ggml-org/llama.cpp'],
                          capture_output=True, text=True, check=True).stdout
     tags = {ref.removeprefix('refs/tags/').removesuffix('^{}') for sha, ref in (l.split('\t') for l in out.splitlines())
@@ -219,7 +223,8 @@ def prepare_checkpoint(args, py, work, name):
     if not report.exists():  # the report is written last, so a folder without it is a broken export
         if out.exists(): shutil.rmtree(out)
         run([py, EXPORT_HF, '--checkpoint', ckpt, '--out', out, '--tokenizer', args.tokenizer, '--bos', args.bos,
-             '--eos', args.eos, '--verify', args.verify, *(['--spec', args.spec] if args.spec else [])])
+             '--eos', args.eos, '--verify', args.verify, *(['--spec', args.spec] if args.spec else []),
+             *(['--drop-router-bias'] if args.drop_router_bias else [])])
     return out, json.loads(report.read_text(encoding='utf-8'))
 
 
@@ -430,6 +435,8 @@ def main():
     ap.add_argument('--bos', default='<|begin_of_text|>')
     ap.add_argument('--eos', default='<|endoftext|>', help='end of document in the frozen tokenizer')
     ap.add_argument('--verify', type=int, default=64, help='prompts for test A1 during the export of a G5 checkpoint')
+    ap.add_argument('--drop-router-bias', action='store_true', help='export a G5 checkpoint whose router_bias is not zero (export_hf.py): '
+                    'the exported model routes differently, and A1/A3 show by how much')
     ap.add_argument('--roundtrip', action='store_true', help='also run tokenizer/gguf_roundtrip.py on the bf16 GGUF: llama.cpp '
                     'must give the token ids of --tokenizer on held-out text (downloads about 20 MB the first time)')
     ap.add_argument('--no-a3', action='store_true', help="skip test A3 (llama.cpp on the bf16 GGUF against G5's model)")
@@ -471,7 +478,7 @@ def main():
         args.prompt_mode = 'chat' if re.search(r'instruct|chat', model, re.I) else 'completion'
     qbin, sbin = (find_bin(b, args.llama_bin) for b in ('llama-quantize', 'llama-server'))
     build, commit = llama_build(sbin)  # llama-quantize does not print its version
-    tag = llama_tag(build, commit)
+    tag = llama_tag(build, commit, work)
     runtime = f'llama.cpp {tag} ({commit})'
     machine = machine_string()
     log(f'{runtime} | {machine}')

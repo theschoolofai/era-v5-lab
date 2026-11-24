@@ -388,6 +388,7 @@ def test_dt_run_trains_logits_only_and_saves_the_hard_mask(tiny_setup):
     m = rep["method"]
     assert m["masked_layers"] == 6 and m["trainable"] == 2 * (3 * 64 * 32)
     assert m["deletion_at_init"]["deleted"] > 0 and 0 < m["deletion_final"]["deleted_frac_of_targeted"] < 1
+    assert 0.0 <= m["band_at_init"]["band_share"] <= m["band_at_init"]["live_share"] <= 1.0
     assert m["alpha_final"] == 1000.0
     assert all("reg" in r for r in rep["log"])
     base = load_file(str(tiny_setup / "base" / "model.safetensors"))
@@ -492,3 +493,75 @@ def test_format_judge():
     assert evaluate.judge(t, prompt, [6] + gen[:-2])["reason"] == "foreign_special_token"
     no_reply = t.encode("<jupyter_script>\nx\n<empty_output>\n<|im_end|>", add_special_tokens=False).ids
     assert evaluate.judge(t, prompt, no_reply)["reason"] == "empty_visible_reply"
+
+
+def test_crash_and_resume_equals_uninterrupted(tiny_setup, monkeypatch):
+    whole = _run_extra(tiny_setup, "whole", ["--save-every", "2"], method="full", steps=7)
+    real = train.accumulate
+    calls = {"n": 0}
+
+    def dying(*a, **kw):
+        calls["n"] += 1
+        if calls["n"] == 6:  # killed during update 6, after the state of update 4 was saved
+            raise KeyboardInterrupt("simulated crash")
+        return real(*a, **kw)
+
+    monkeypatch.setattr(train, "accumulate", dying)
+    with pytest.raises(KeyboardInterrupt):
+        _run_extra(tiny_setup, "crashed", ["--save-every", "2"], method="full", steps=7)
+    monkeypatch.setattr(train, "accumulate", real)
+    assert (tiny_setup / "crashed" / "train_state.pt").exists()
+    done = _run_extra(tiny_setup, "crashed", ["--save-every", "2"], method="full", steps=7)
+    assert [r["loss"] for r in done["log"]] == [r["loss"] for r in whole["log"]]
+    assert done["saved_state_sha256"] == whole["saved_state_sha256"] and done["checks"]["writeback_step1"]["pass"]
+    assert not (tiny_setup / "crashed" / "train_state.pt").exists()
+
+
+def test_resolve_compute_dtype_matches_team9_watcher(monkeypatch):
+    assert evaluate.resolve_compute_dtype("cpu", "float32") == ("float32 (TF32 off)", False)
+    assert evaluate.resolve_compute_dtype("cpu", "auto") == ("float32 (TF32 off)", False)
+    assert evaluate.resolve_compute_dtype("cpu", "bfloat16") == ("bfloat16", True)
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "is_bf16_supported", lambda including_emulation=True: True)
+    assert evaluate.resolve_compute_dtype("cuda", "auto") == ("bfloat16", True)
+    assert evaluate.resolve_compute_dtype("cuda", "bfloat16") == ("bfloat16", True)
+    assert evaluate.resolve_compute_dtype("cuda", "float32") == ("float32 (TF32 off)", False)
+    monkeypatch.setattr(torch.cuda, "is_bf16_supported", lambda including_emulation=True: False)
+    assert evaluate.resolve_compute_dtype("cuda", "auto") == ("float32 (TF32 off)", False)
+    with pytest.raises(RuntimeError, match="native bf16"):
+        evaluate.resolve_compute_dtype("cuda", "bfloat16")
+
+
+def test_emulated_bf16_gpu_scores_in_fp32_like_the_watcher(monkeypatch):
+    """T4/V100: torch says bf16 is supported only when emulation counts. Team 9 (lm_eval_lab.py) says no, so must we."""
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "is_bf16_supported", lambda including_emulation=True: bool(including_emulation))
+    assert evaluate.resolve_compute_dtype("cuda", "auto") == ("float32 (TF32 off)", False)
+    with pytest.raises(RuntimeError, match="native bf16"):
+        evaluate.resolve_compute_dtype("cuda", "bfloat16")
+
+
+def test_autocast_ctx_leaves_fp32_weights_uncast():
+    layer = torch.nn.Linear(8, 8)
+    assert layer.weight.dtype == torch.float32
+    x = torch.randn(2, 8)
+    with torch.no_grad(), evaluate._autocast_ctx("cpu", True):
+        y = layer(x)
+    assert layer.weight.dtype == torch.float32
+    assert y.dtype == torch.bfloat16
+
+
+
+def test_eval_mini_block_names_the_dtype_it_ran_in(tmp_path, monkeypatch):
+    """forgetting.py refuses benchmark rows whose dtype differs from the bits-per-byte dtype, so the block must carry it."""
+    import subprocess
+    runs = tmp_path / "runs"
+    (runs / "r1").mkdir(parents=True)
+    (runs / "r1" / "summary.json").write_text(json.dumps({
+        "records": [{"task": "arc_challenge", "metric": "acc_norm", "filter": "none", "value": 0.3, "stderr": 0.01,
+                     "n_items": 5, "num_fewshot": 0, "primary": True}],
+        "run_meta": {"versions": {"torch": "x"}}}), encoding="utf-8")
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 0, "", ""))
+    for dtype in ("float32", "bfloat16"):
+        out = evaluate.eval_mini("m", "python", runs, "cpu", ["arc_challenge"], dtype=dtype)
+        assert out["dtype"] == dtype and out["returncode"] == 0 and out["records"][0]["task"] == "arc_challenge"
