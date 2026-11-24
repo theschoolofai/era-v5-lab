@@ -1,5 +1,5 @@
-"""completion_logprobs for Team 5's policy: the output head runs on the completion positions only (change 1).
-It must give the values of the old path
+"""completion_logprobs for Team 5's policy: the output head runs on the completion positions only (change 1), in
+chunks of HEAD_CHUNK tokens that are checkpointed under autograd (change 2). Both must give the values of the old path
 (full forward sliced, log_softmax + gather) to float rounding, in every caller (job RLM, 24 Nov 2026)."""
 from __future__ import annotations
 
@@ -123,3 +123,34 @@ def test_policy_needs_hidden_and_head_together():
     with pytest.raises(ValueError):
         P.Policy(nn.Linear(2, 2), lambda m, i, k: m(i), hidden=lambda m, i, k: i)
 
+
+def test_head_chunks_are_checkpointed_and_change_nothing(bundle, monkeypatch):
+    """Chunked + checkpointed head (change 2) vs one head call: same log-probs and gradients; under autograd the
+    head runs twice per chunk (forward, then the rebuild in backward), under no_grad once, and no call is larger
+    than HEAD_CHUNK tokens. Fails if chunks are not checkpointed (one call per chunk under autograd)."""
+    pol = bundle.policy()
+    plen, new = 5, 13
+    seq = _seq(bundle.spec["vocab_size"], 2, plen, new, seed=6)
+    params = [p for p in bundle.model.parameters() if p.requires_grad]
+    out = {}
+    for chunk in (10**9, 4):
+        monkeypatch.setattr(P, "HEAD_CHUNK", chunk)
+        bundle.model.zero_grad(set_to_none=True)
+        spy = _HeadSpy(bundle.model)
+        try:
+            lp = P.completion_logprobs(pol, seq, plen)
+            (lp * torch.linspace(-1, 1, lp.numel()).reshape(lp.shape)).sum().backward()
+            calls_grad = list(spy.calls)
+            spy.calls.clear()
+            with torch.no_grad():
+                P.completion_logprobs(pol, seq, plen)
+            calls_nograd = list(spy.calls)
+        finally:
+            spy.close()
+        out[chunk] = (lp.detach(), [None if p.grad is None else p.grad.clone() for p in params], calls_grad, calls_nograd)
+    (lp0, g0, cg0, cn0), (lp1, g1, cg1, cn1) = out[10**9], out[4]
+    n_chunks = -(-2 * new // 4)
+    assert len(cn1) == n_chunks and max(cn1) <= 4 and len(cg1) == 2 * n_chunks
+    assert (lp0 - lp1).abs().max() < 1e-5
+    gmax = max(float(a.abs().max()) for a in g0 if a is not None)
+    assert max(float((a - b).abs().max()) for a, b in zip(g0, g1) if a is not None) < 1e-5 * gmax

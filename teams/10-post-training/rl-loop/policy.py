@@ -14,6 +14,7 @@ from typing import Callable
 
 import torch
 from torch import nn
+from torch.utils.checkpoint import checkpoint
 
 
 class Policy:
@@ -85,9 +86,39 @@ def token_logprobs(logits: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
     return torch.log_softmax(logits, -1).gather(-1, targets[..., None]).squeeze(-1)
 
 
+HEAD_CHUNK = 512  # completion tokens per head call when the policy gives hidden/head (all rows flattened)
+
+
+def _head_logprobs(policy: Policy, h: torch.Tensor, targets: torch.Tensor) -> torch.Tensor:
+    with policy.autocast():
+        logits = policy._head(policy.model, h)
+    return token_logprobs(logits.float(), targets)
+
+
 def completion_logprobs(policy: Policy, seq: torch.Tensor, prompt_len: int) -> torch.Tensor:
-    """Log-probability of each completion token under the policy: [k, T_completion]."""
-    return token_logprobs(policy.completion_logits(seq, prompt_len).float(), seq[:, prompt_len:])
+    """Log-probability of each completion token under the policy: [k, T_completion].
+
+    With hidden/head (Team 5's policy) the trunk runs once over the whole sequence and the head + log-prob run over the
+    completion positions in chunks of HEAD_CHUNK tokens. Under autograd each chunk is checkpointed: its [n, V] logits
+    and the head's own [n, V] intermediates (Team 5's KAS head builds about four) are rebuilt in backward instead of
+    kept, so they never exist for more than one chunk at a time. The cost is one extra head forward per chunk. The head
+    maps each position on its own, so chunking changes no value beyond float rounding."""
+    if policy._hidden is None:
+        return token_logprobs(policy.completion_logits(seq, prompt_len).float(), seq[:, prompt_len:])
+    mask = torch.ones_like(seq, dtype=torch.bool)
+    with policy.autocast():
+        h = policy._hidden(policy.model, seq, mask)[:, prompt_len - 1:-1, :]
+    targets = seq[:, prompt_len:]
+    hf, tf = h.reshape(-1, h.shape[-1]), targets.reshape(-1)
+    keep_graph = torch.is_grad_enabled() and hf.requires_grad
+    parts = []
+    for i in range(0, hf.shape[0], HEAD_CHUNK):
+        if keep_graph:
+            parts.append(checkpoint(_head_logprobs, policy, hf[i:i + HEAD_CHUNK], tf[i:i + HEAD_CHUNK],
+                                    use_reentrant=False))
+        else:
+            parts.append(_head_logprobs(policy, hf[i:i + HEAD_CHUNK], tf[i:i + HEAD_CHUNK]))
+    return torch.cat(parts).reshape(targets.shape)
 
 
 class HFPolicy(Policy):
