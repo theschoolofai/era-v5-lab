@@ -55,14 +55,37 @@ def scored_ntp_loss(model, ids, targets):
     return token_nll(model.head(hidden[scored]), targets[scored]).sum()
 
 
-def checked_step_losses(micro_losses, grad_norm):
+def nonfinite_tensor_detail(model, *, gradients=False, limit=8):
+    """Bounded, best-effort tensor names; called only after a numerical failure."""
+    try:
+        names = []
+        for name, parameter in model.named_parameters():
+            value = parameter.grad if gradients else parameter
+            if value is not None and not bool(torch.isfinite(value.detach()).all()):
+                names.append(name)
+                if len(names) > limit:
+                    break
+        if not names:
+            return "; no nonfinite tensors found in the inspected state"
+        suffix = ", ..." if len(names) > limit else ""
+        return "; tensors: " + ", ".join(names[:limit]) + suffix
+    except Exception as error:
+        # A diagnostic (including a CUDA failure) must not replace the original cause.
+        return "; tensor inspection unavailable (" + type(error).__name__ + ")"
+
+
+def checked_step_losses(micro_losses, grad_norm, model=None):
     """Read microbatch losses and the pre-clip norm together before updating."""
     values = torch.cat((torch.stack(micro_losses).flatten(), grad_norm.reshape(1)))
     *losses, norm = values.tolist()
     if not all(map(math.isfinite, losses)):
         raise NonfiniteTrainingError("Nonfinite training objective or MTP component")
     if not math.isfinite(norm):
-        raise NonfiniteTrainingError("Nonfinite gradient norm")
+        detail = ""
+        if model is not None:
+            detail = " (gradients inspected after clipping; nonfinites may have propagated)"
+            detail += nonfinite_tensor_detail(model, gradients=True)
+        raise NonfiniteTrainingError("Nonfinite gradient norm" + detail)
     return tuple(sum(losses[i::3]) for i in range(3))
 
 
@@ -744,13 +767,13 @@ def main():
                 error_if_nonfinite=not args.consolidate_step_checks,
             )
             if args.consolidate_step_checks:
-                total, ntp_value, mtp_value = checked_step_losses(micro_losses, norm)
+                total, ntp_value, mtp_value = checked_step_losses(micro_losses, norm, model)
             # TSAI recipe (21 Nov): WSD scales both optimizers' peak rates; constant leaves them unchanged.
             scale = lr_scale(step, cfg["run"]["steps"], cfg["optim"])
             set_lr_scale(optimizer, scale)
             optimizer.step()
             if not bool(torch.isfinite(torch.stack(torch._foreach_norm([q.detach() for q in model.parameters()]))).all()):
-                raise NonfiniteTrainingError("Nonfinite parameter")
+                raise NonfiniteTrainingError("Nonfinite parameter after optimizer step" + nonfinite_tensor_detail(model))
             if device.type == "cuda":
                 torch.cuda.synchronize()
             ms = (time.perf_counter() - tick) * 1000
