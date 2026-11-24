@@ -37,7 +37,7 @@ The draft of the model card is `model_card_v0.md`. Each section there has the te
 | Training data | The public data sources, and the problems we found in them | Data A, Data B | in progress | Data A OK @patilvijay23; Data B OK @shankarpandala |
 | Data cleaning | How we cleaned the data and removed duplicates | Data A, Data B | empty | Data A OK @patilvijay23; Data B OK @shankarpandala |
 | Tokenizer | How the model splits text into pieces | Tokenizer | empty | OK @rjvim |
-| KE2 | Whether the model uses KE2, in general terms, with no design details. This includes the KE2 output head, which replaced the dense untied head on 21 Nov 2026 | KE2 | empty | pending |
+| KE2 | Whether the model uses KE2, in general terms, with no design details. This includes the KE2 output head, which replaced the dense untied head on 21 Nov 2026 | KE2 | in progress | pending |
 | Architecture | The shape of the model, in general terms | Architecture | empty | OK @shivman |
 | Training | How the lab trained the model | Performance, Architecture | empty | Performance OK @raj-harit-v2; Architecture OK @shivman |
 | Training infrastructure | How the run saves, restores and restarts after a crash | Infrastructure | empty | pending |

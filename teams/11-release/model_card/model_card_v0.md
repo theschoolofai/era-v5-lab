@@ -81,7 +81,11 @@ Text in Indian languages, in their own scripts, is 8% of every training batch.
 
 ## KE2
 
-[text: waiting for KE2]
+The model uses the KE2 output head, the last part of the model, which scores each token as the next token. TSAI
+chose this head at Gate 3, on 21 Nov 2026, in place of the dense untied head, the standard output head. Architecture
+added the head to the training code on 24 Nov.
+
+[text: waiting for KE2, how the lab tested its embedding method]
 
 ## Architecture
 
@@ -203,6 +207,7 @@ How to fill it:
 | Evaluation | Evaluation | what Evaluation does: yes, from text that TSAI approved. The benchmarks, the table rows and the check of the training text: yes, from the Evaluation lead, with no edit. The scores: no, TSAI approves each score. Before a score from an early step goes in, check with Evaluation, because early scores can be above a random guess without any learning | the Evaluation line of `launch/launch_announcement_v0.md` ([#753](https://github.com/theschoolofai/era-v5-lab/pull/753)); the Eval-Mini panel text in `dashboard/dashboard_text_new_panels.md` and the format in `dashboard/score_text_format.md` ([#760](https://github.com/theschoolofai/era-v5-lab/pull/760)). Benchmarks and table rows: [comment on #770](https://github.com/theschoolofai/era-v5-lab/pull/770#issuecomment-7123142597). Plan: `teams/09-evaluation/eval_schedule.md` | Evaluation: yes ([comment on #770](https://github.com/theschoolofai/era-v5-lab/pull/770#issuecomment-7121407240)); the Evaluation lead sent the benchmark text and confirmed the paste ([comment on #784](https://github.com/theschoolofai/era-v5-lab/pull/784#issuecomment-7129730898)) |
 | Contributors | Release | yes | `launch/launch_announcement_v0.md` ([#600](https://github.com/theschoolofai/era-v5-lab/pull/600), [#603](https://github.com/theschoolofai/era-v5-lab/pull/603)) | yes (the Release lead wrote this draft) |
 | How to find more | Release | yes | the public lab repository | yes (the Release lead wrote this draft) |
+| KE2 | KE2 | the output head: yes, from text that TSAI approved. How the lab tested its embedding method: no | `updates/gate3.md` (the output head, short forms; [#701](https://github.com/theschoolofai/era-v5-lab/pull/701)), the KE2 line of `launch/launch_announcement_v0.md` ([#753](https://github.com/theschoolofai/era-v5-lab/pull/753)), the training code: [#717](https://github.com/theschoolofai/era-v5-lab/pull/717), merged 24 Nov | KE2: no |
 | Every other section | the owner team in `model_card_outline.md` | no | waiting for the owner team | no |
 
 - [ ] `check_style.py` gives 0 errors
