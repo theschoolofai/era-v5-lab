@@ -1,10 +1,10 @@
-# Deletion Tuning on a 7.65B MoE: Phi-mini-MoE-instruct, SFT on GSM8K (22 Nov 2026)
+# Deletion Tuning on a 7.65B MoE: Phi-mini-MoE-instruct, SFT on GSM8K (22 Nov 2026, updated 25 Nov)
 
 **Evidence level: independent study on a public model, one seed, small evaluation.** This is the "try Deletion Tuning on a
 large model" item from the class discussion. It does not use the capstone model, the lab data, or any lab checkpoint, and
 it is not Gate 4 evidence for the capstone. The Gate 4 comparison on the dry run 2 checkpoint stays with
-`capstone/dryrun2_dt_compare.py` and `results/dt_vs_fft.md`. LoRA and full fine-tuning on this same model are not run yet
-(see "Not shown").
+`capstone/dryrun2_dt_compare.py` and `results/dt_vs_fft.md`. LoRA and full fine-tuning on the same data and steps were
+added on 25 Nov (section "LoRA and full fine-tuning on the same data"); one seed each, learning rates not tuned.
 
 ## What was done
 
@@ -73,13 +73,81 @@ model is used, with the instruction to end with `#### <number>`.
   not shown that the deletion, rather than any 400-step update of these weights, is what helps. That needs the LoRA and
   full fine-tuning arms on the same data.
 
+## LoRA and full fine-tuning on the same data (25 Nov)
+
+The same data (2,048 GSM8K questions), 400 steps, batch 4, seed 0 and format as the Deletion Tuning run. **The learning
+rates are common defaults and were not tuned** (LoRA 2e-4, full fine-tuning 1e-5); Deletion Tuning used the paper values.
+
+| | Deletion Tuning | LoRA | Full fine-tuning |
+|---|---|---|---|
+| What changes | 512 gate-projection masks, 12,296,351 weights deleted (0.61%) | adapters (r 16, alpha 32) on the same 512 `w1` gate projections: 41,418,752 parameters (0.54%) | all 7,647,632,704 weights (bf16 with stochastic rounding) |
+| Learning rate | 5e-4 (paper) | 2e-4 | 1e-5 |
+| Training time | 7,035 s (12.8 s per step) | 4,466 s (11.16 s per step) | 7,045 s (17.61 s per step) |
+| Peak GPU memory | 35.2 / 31.0 GiB (two cards) | 16.5 GiB (one card) | 32.7 / 32.8 GiB (two cards) |
+
+**Larger evaluation (the one to quote).** All 1,319 GSM8K test questions in the chat template (greedy, 256 new tokens),
+four log-likelihood prior tasks at 200 items each, the same questions for every arm.
+
+| | base | Deletion Tuning | LoRA | Full fine-tuning |
+|---|---:|---:|---:|---:|
+| GSM8K, chat template (%) | 55.95 (738/1319) | 67.10 (885) | **74.98** (989) | 54.36 (717) |
+| change against base | | +11.14 | +19.03 | -1.59 |
+| hellaswag | 63.00 | 62.50 | 62.00 | 63.00 |
+| mmlu | 70.48 | 70.21 | 69.99 | 68.74 |
+| truthfulqa_mc2 | 52.21 | 52.63 | 52.26 | 50.46 |
+| winogrande | 71.50 | 72.50 | 74.00 | 72.50 |
+| **mean of the four** | **64.30** | **64.46** | **64.56** | **63.68** |
+
+Paired comparison with the base model on the same 1,319 questions (bootstrap 10,000 resamples, seed 0; exact McNemar):
+
+| variant | change (points) | 95% interval | base-only / variant-only | McNemar p |
+|---|---:|---|---:|---:|
+| Deletion Tuning | +11.1 | [+8.8, +13.5] | 62 / 209 | 8.5e-20 |
+| LoRA | +19.0 | [+16.5, +21.6] | 49 / 300 | 3.9e-45 |
+| Full fine-tuning | -1.6 | [-4.6, +1.5] | 226 / 205 | 0.34 |
+
+**Full fine-tuning in the first-evaluation setting** (first 200 questions, 50 items per prior task; LoRA was not run
+in this setting). Evaluated on both GPUs with the sharded code (`EVAL_SHARDS=2`), 400 new tokens on GSM8K:
+
+| | base | Deletion Tuning | Full fine-tuning |
+|---|---:|---:|---:|
+| GSM8K, training format, first 200 (%) | 33.5 | 78.5 | 50.0 |
+| GSM8K, chat template, first 200 (%) | 58.5 | 71.5 | 54.0 |
+| GSM8K, training format, all 1,319 (%) | not run | not run | 52.99 (699/1319); 95.5% of replies contain `####` |
+| hellaswag / truthfulqa_mc2 / mmlu | 70.00 / 56.96 / 69.54 | 70.00 / 56.26 / 69.75 | 70.00 / 58.52 / 68.49 |
+| ifeval / winogrande / humaneval_instruct | 67.11 / 78.00 / 14.00 | 63.16 / 80.00 / 12.00 | 59.21 / 70.00 / **0.00** |
+| mean of the six prior tasks | 59.27 | 58.53 | 54.37 |
+| Team 10 `indic_v1` exact (44 rows) | 52.27 | 52.27 | 40.91 |
+| Team 10 `safety_v1` exact (41 rows) | 56.10 | 56.10 | 60.98 |
+
+Forward KL is **not comparable yet**: Deletion Tuning 0.1412 is over 50 prompts, full fine-tuning 0.5124 is over 167
+prompts (that run did not use `KL_LIMIT=50`), and LoRA was never measured. A rerun of LoRA and full fine-tuning on the
+same 50 prompts is next.
+
+### How to read the new rows
+
+- **Deletion Tuning and LoRA both raise GSM8K significantly and change none of the four prior tasks by more than the
+  noise.** LoRA is higher on accuracy (+19.0 against +11.1) and trained faster. This is one seed with an untuned LoRA
+  learning rate and the paper's Deletion Tuning values: it does not show that LoRA is better than Deletion Tuning in
+  general, and the interval for the difference between the two arms was not computed.
+- **Full fine-tuning did not improve the chat-template score** (-1.6, p = 0.34, not distinguishable from base), although
+  95% of its replies end in `####`. It learned the format, not the accuracy. The training loss stayed at about 0.45
+  (0.55 at step 10, 0.61 at step 400, a single batch of 4 each time). At 1e-5 and batch 4 on all weights the run may
+  simply be too noisy; a lower learning rate was not tried. Do not read this as "full fine-tuning does not work".
+- **The first-evaluation setting shows more forgetting for full fine-tuning than for Deletion Tuning**: prior-task mean
+  54.37 against 58.53 and 59.27 (base), HumanEval 0 of 50 against 7 for base, Indic exact 40.9 against 52.3. At 50 items
+  per task one item is 2 points, so only the HumanEval, IFEval and Indic drops are large enough to take seriously. The
+  zero HumanEval has not been checked for an answer-extraction cause (the harness keeps no samples).
+- **The larger evaluation has a smaller prior-task spread** (63.68 to 64.56 for the four tasks) because it covers only
+  four log-likelihood tasks and omits the two generation tasks where full fine-tuning lost most.
+
 ## Not shown
 
 - One seed, one training run per setting. No variance across seeds.
 - 200 GSM8K questions and 50 items per prior task. ifeval and humaneval generate for hours, so they were kept small.
-- No LoRA or full fine-tuning arm on this model, so nothing here says Deletion Tuning is better or worse than they are.
-  The code for both (same data, steps and batch size) and for a paired test on the saved replies is written and tested on
-  a tiny model on CPU; it has not run on the real model.
+- LoRA and full fine-tuning: one seed each, learning rates 2e-4 and 1e-5 not tuned, 400 steps at batch 4. No statement
+  about the methods in general. LoRA has no six-task, Team 10 or KL result in the first-evaluation setting, and the KL
+  numbers of the three arms are not on the same prompts yet.
 - Not the capstone architecture (no KE2, no untied KAS head, no Muon) and a public model, so no claim about dry run 2.
 - The lm-evaluation-harness benchmarks here are public benchmarks on a public model. No lab model or lab checkpoint was
   scored, and nothing from this run goes to Team 9's watcher or to `forgetting.py`.
@@ -111,8 +179,47 @@ Both logs, with the server paths replaced, are in `RaviNaik/ERA` at `v5/capstone
 
 ## Next
 
-1. Paired test on the saved replies (McNemar and a bootstrap interval), then a larger run of the same comparison: all
-   1,319 GSM8K questions in the chat template and the four log-likelihood prior tasks at 200 items.
-2. LoRA (same 512 gate projections) and full fine-tuning on the same data, steps and batch size, evaluated the same way.
-   Their learning rates are common defaults, not tuned, and this file will say so.
-3. This file is then updated in place with those rows.
+1. Forward KL of LoRA and full fine-tuning on the same 50 prompts as Deletion Tuning.
+2. LoRA in the first-evaluation setting (six prior tasks at 50 items, Team 10 sets), so the three arms are compared on
+   IFEval, HumanEval and the Indic and safety sets as well.
+3. A lower full fine-tuning learning rate, and a HumanEval sample check for the 0 of 50, if time allows.
+4. This file is updated in place with those rows.
+
+## Commands and output for the 25 Nov additions (TSAI run rule)
+
+All runs used the default `CUDA_LAUNCH_BLOCKING=1` of `run.sh` (synchronous CUDA launches; asynchronous mode crashed on
+two GPUs), so the times below are **not speed-optimized** and are an upper bound. Code and logs: `RaviNaik/ERA`,
+`v5/capstone/dt_phi_moe/`, result files at commit `8c7fb4b` (branch `dt-phi-moe-results-nov25`), the sharded evaluation
+code at `46c0b13`.
+
+Training, 24 Nov (`train_lora.out`, `train_ft.out`):
+
+```
+RUN_NAME=dt_phi_mini_sft_gsm8k_seed0_v4 bash run.sh train_lora      # lora_lr 2e-4
+done: lora, 41,418,752 trainable parameters, 4466 s
+[train_lora] finished in 4562 s
+RUN_NAME=dt_phi_mini_sft_gsm8k_seed0_v4 bash run.sh train_ft        # ft_lr 1e-5, scope all
+done: ft, 7,647,632,704 trainable parameters, 7045 s
+[train_ft] finished in 7244 s
+```
+
+Larger evaluation (`ext_*.out`, one GPU per stage, 256 new tokens, 200 items per prior task):
+
+```
+PROFILE=extended EXTENDED_STAGES="lora_eval" GPUS=1 N_GPUS=1 bash run.sh     # likewise base_eval, dt_eval, ft_eval
+[base_eval] finished in 11531 s   [dt_eval] 11498 s   [ft_eval] 11144 s   [lora_eval] 11975 s   [paired] 127 s
+prior tasks: {'hellaswag': 0.62, 'truthfulqa_mc2': 0.5226, 'mmlu': 0.6999, 'winogrande': 0.74} mean 0.6456   (LoRA)
+```
+
+Full fine-tuning, first-evaluation setting, two GPUs (`ft_eval_fast.out`):
+
+```
+EVAL_SHARDS=2 GPUS=0,1 GEN_BATCH=96 PRIOR_LIMIT=50 EVAL_PARTS_FT=gsm8k_chat,kl,team10,prior EVAL_SUFFIX=_fast \
+  RUN_NAME=dt_phi_mini_sft_gsm8k_seed0_v4 bash run.sh ft_eval
+forward KL: {'forward_kl_per_token_mean': 0.5124341230727956, 'n_prompts': 167}
+prior tasks: {'hellaswag': 0.7, 'truthfulqa_mc2': 0.5852, 'mmlu': 0.6849, 'ifeval': 0.5921, 'winogrande': 0.7, 'humaneval_instruct': 0.0} mean 0.5437
+[ft_eval] finished in 13070 s
+```
+
+The 52.99% (all 1,319 questions, training format, 400 new tokens) came from an earlier two-GPU run of the same stage that was
+stopped before its other parts; its replies are not in the repo.
