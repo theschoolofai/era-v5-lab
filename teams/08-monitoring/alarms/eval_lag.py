@@ -29,8 +29,11 @@ How the lag is measured
   commit at step R. The training after R was lost: it and the downtime don't count, so a planned failure doesn't
   page. The training up to R still counts, so a restore doesn't wipe out a lag that was building: a dead watcher
   still pages on time, and only once. While training is behind the newest Tier A step, the lag is 0.
-- Pause: a gap between two batches counts as at most --pause-s (default: half an interval), so a stalled trainer
-  is not reported as an eval problem (`continuity_rules.py` loader_stall covers stalls).
+- Long gap: a gap between two batches of at most --pause-s (default: half an interval) counts in full. A longer
+  gap counts by its steps (steps added x the run's median step time, never more than the gap). So a stalled
+  trainer, or a restart right after the flush of its committed step (not seen as a restore), adds only the steps
+  after it (`continuity_rules.py` loader_stall covers stalls). A `watch_jsonl.py` outage adds the training time of
+  the backlog it loads when it restarts, so it does not hide the lag.
 - No Tier A row yet: the lag runs from the run's first batch, so with --run, a run whose watcher never started pages
   2 intervals in.
 - Batches of blank lines (stored as steps 0..0) are ignored.
@@ -47,8 +50,9 @@ Output
 - A page: one JSON line on stdout, in the event shape of `alarms.py` (step, metric, rule, severity, detail).
 - Each check: one status line per run on stderr, and one row per run in `eval_lag_checks`
   (`clickhouse/eval_lag_checks.sql`, created on start; --no-write skips it). Grafana shows that table during the run
-  (`grafana/private_v1.json` panels 29 to 31); a `checked_at` that stops moving while training goes on means the
-  alarm stopped. Each stderr line starts with the UTC time; the first one gives the settings (no password).
+  (`grafana/private_v1.json` panels 29 to 31). A run that is not training gets a row too (`live` 0), so a
+  `checked_at` that stops moving means the alarm stopped, and a `train_seen_at` that stops moving means the run or
+  its `watch_jsonl.py` stopped. Each stderr line starts with the UTC time; the first one gives the settings (no password).
 - --once exits 0 (no page), 1 (page) or 2 (any error, and no page). --poll keeps going after any error (one that is
   not a ClickHouse error is logged with its traceback) and says how long it has gone without a complete check.
 
@@ -64,6 +68,7 @@ import json
 import math
 from pathlib import Path
 import re
+import statistics
 import sys
 import time
 import traceback
@@ -107,14 +112,25 @@ def active_lag_ms(batches: Sequence[Batch], eval_step: int | None, pause_ms: int
 
     `batches` are one run's batches in training order. A batch that starts at or below the last step before it is a
     restore to step R = its first step - 1: the steps after R were lost, so the batches after R are dropped (one that
-    straddles R is cut at R), and the gap across the restore (the downtime) counts 0. Every other gap between two
-    batches counts as at most `pause_ms`. So a restore neither adds to the lag nor wipes out what built up before R.
-    `eval_step` None (no Tier A row yet) measures from the first batch; training behind `eval_step` gives 0.
+    straddles R is cut at R), and the gap across the restore (the downtime) counts 0. So a restore neither adds to
+    the lag nor wipes out what built up before R. `eval_step` None (no Tier A row yet) measures from the first batch;
+    training behind `eval_step` gives 0.
+
+    A gap of at most `pause_ms` between two batches counts in full. A longer gap counts by its steps: the steps the
+    batch after it adds, times the run's step time, and never more than the gap. The step time is the median ms per
+    step over the gaps of at most `pause_ms` from the batch that reached `eval_step` on; with no such gap yet, a long
+    gap counts as `pause_ms`. So:
+    - a trainer stall or a restart that is not seen as a restore (killed right after the flush of the committed step,
+      so the restarted batch starts at R + 1) adds the time of the steps after it, not the downtime;
+    - a `watch_jsonl.py` outage, after which one batch brings the backlog, adds the training time of that backlog.
+    The batch that reached `eval_step` can be such a backlog too: when its steps after `eval_step` take more than
+    `pause_ms` at the step time, they count as well.
 
     Batches with `last_step < eval_step` may be left out, as the alarm does, if the newest batch is kept: within a
     pass steps only grow, so the batches left out come before the one that reached `eval_step`; and after a restore,
     the first batch kept starts at or below `eval_step`, so it is seen as a restore too and cuts the same batches, or
-    ones that are cut below `eval_step` and so never start the lag.
+    ones that are cut below `eval_step` and so never start the lag. The step time and the backlog use only the batches
+    from the one that reached `eval_step` on, so they do not change either.
     """
     kept: list[tuple[Batch, bool]] = []  # (batch, first batch after a restore)
     for batch in batches:
@@ -128,8 +144,25 @@ def active_lag_ms(batches: Sequence[Batch], eval_step: int | None, pause_ms: int
     if not kept or (eval_step is not None and kept[-1][0].last_step < eval_step):
         return 0  # nothing yet, or restored to before the newest scored step: nothing new to score
     start = 0 if eval_step is None else next(i for i, (b, _) in enumerate(kept) if b.last_step >= eval_step)
-    return sum(0 if restored else min(max(batch.seen_ms - kept[i - 1][0].seen_ms, 0), pause_ms)
-               for i, (batch, restored) in enumerate(kept[start + 1:], start + 1))
+    span = kept[start:]
+    # (gap in ms, steps added) for each pair of batches in the span; None across a restore.
+    gaps = [None if restored else (max(b.seen_ms - prev.seen_ms, 0), b.last_step - prev.last_step)
+            for (prev, _), (b, restored) in zip(span, span[1:])]
+    rates = [gap / steps for gap, steps in filter(None, gaps) if 0 < gap <= pause_ms and steps > 0]
+    step_ms = statistics.median(rates) if rates else None
+
+    def counted(gap: int, steps: int) -> float:
+        if gap <= pause_ms:
+            return gap
+        return pause_ms if step_ms is None else min(gap, steps * step_ms)
+
+    lag = sum(counted(*g) for g in gaps if g is not None)
+    first = span[0][0]
+    from_step = first.first_step - 1 if eval_step is None else max(eval_step, first.first_step - 1)
+    backlog = 0.0 if step_ms is None else (first.last_step - from_step) * step_ms
+    if backlog > pause_ms:  # the batch that reached eval_step brought a backlog (watch_jsonl.py started late)
+        lag += backlog
+    return round(lag)
 
 
 def _seconds(ms: int | None) -> float | None:
@@ -196,13 +229,19 @@ class RunCheck(NamedTuple):
         }
 
     def row(self, checked_ms: int) -> dict:
-        """The `eval_lag_checks` row of a live check."""
+        """The `eval_lag_checks` row of this check. A run that is not training gets one too (`live` 0, `lag_s` 0, an
+        old `train_seen_at`), so a stopped `watch_jsonl.py` does not look like a stopped alarm."""
+        if self.live:
+            detail = self.detail() if self.over else ""
+        else:
+            detail = (f"not training: newest batch {(checked_ms - self.train_seen_ms) / 1000:,.0f} s old; "
+                      "is watch_jsonl.py still loading this run?")
         return {
             "checked_at": _utc(checked_ms), "run_id": self.run_id, "train_runs": list(self.train_runs),
             "train_step": self.train_step, "train_seen_at": _utc(self.train_seen_ms), "eval_step": self.eval_step,
-            "eval_loaded_at": _utc(self.eval_loaded_ms), "lag_s": _seconds(self.lag_ms),
+            "eval_loaded_at": _utc(self.eval_loaded_ms), "lag_s": _seconds(self.lag_ms) or 0.0,
             "threshold_s": _seconds(self.threshold_ms), "over_limit": int(self.over), "paged": int(self.paged),
-            "detail": self.detail() if self.over else "",
+            "live": int(self.live), "detail": detail,
         }
 
     def status(self, now_ms: int) -> str:
@@ -290,14 +329,14 @@ class EvalLagMonitor:
         return checks
 
     def save(self, checks: Sequence[RunCheck], now_ms: int) -> int:
-        """Write one `eval_lag_checks` row per live check; creates the table first. Returns the rows written.
+        """Write one `eval_lag_checks` row per check; creates the table first. Returns the rows written.
 
         A page row that could not be written is kept and sent with the next save: the page fires only once, so
         without it Grafana would never show that page.
         """
         if not self.write:
             return 0
-        rows = self._unsaved_pages + [c.row(now_ms) for c in checks if c.live]
+        rows = self._unsaved_pages + [c.row(now_ms) for c in checks]
         try:
             if not self._table_ready:
                 self._create_table()
@@ -456,7 +495,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     ap.add_argument("--live-s", type=_positive,
                     help="a run counts as training while its newest batch is at most this old (default: the limit)")
     ap.add_argument("--pause-s", type=_positive,
-                    help="count a gap between two batches as at most this long (default: half an interval)")
+                    help="a gap between two batches longer than this counts by its steps, not in full "
+                         "(default: half an interval)")
     ap.add_argument("--no-write", action="store_true", help=f"don't create or write {TABLE}")
     mode = ap.add_mutually_exclusive_group()
     mode.add_argument("--once", action="store_true", help="check once; exit 0, 1 on a page, 2 on an error")
