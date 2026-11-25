@@ -35,11 +35,12 @@ STORE = "s3"
 # Time is compressed: the save interval is 8 s instead of 30 min, so the crash-loop window (3 crashes in 30 min
 # in production) is compressed to 10 s too; otherwise the drills themselves trip it (found in run 4: the third
 # kill drill held the main run, which is the cap working as designed).
-MAIN_ENV = {"RUN_ID": RUN, "STEPS": "100000", "INTERVAL_S": "8", "STEP_SLEEP": "0.05", "WATCHDOG_S": "20",
-            "CRASHLOOP_WINDOW_S": "10"}
+MAIN_ENV = {"V5_TRAINER": "sim", "V5_SIMULATION": "1", "RUN_ID": RUN, "STEPS": "100000",
+            "INTERVAL_S": "8", "STEP_SLEEP": "0.05", "WATCHDOG_S": "20", "CRASHLOOP_WINDOW_S": "10"}
 TEAM_ENV = {"STEPS": "100000", "INTERVAL_S": "5", "STEP_SLEEP": "0.05"}
-# The job scripts default to the cloud nodes (8 GPUs, 8 ranks per node); the Docker nodes have 2 placeholder GPUs.
-MAIN_ARGS = "--ntasks-per-node=2 --gpus-per-node=2"
+# mainrun.sbatch defaults to the real one-GPU run. The simulation explicitly selects two nodes and two tasks.
+MAIN_ARGS = "--nodes=2 --ntasks-per-node=2 --gpus-per-node=2"
+MAIN_ARGS_1NODE = "--nodes=1 --ntasks-per-node=2 --gpus-per-node=2"
 TEAM_ARGS = "--ntasks-per-node=1 --gpus-per-node=2"
 REPEATS = 3
 
@@ -619,7 +620,7 @@ def d_nan_rollback_reshard():
     t2 = mark("rollback", from_step=lt["step"], cause_class="operator")
     env = dict(MAIN_ENV, STEPS=str(lt["step"] + 300),
                TRAIN_EXTRA=f"--from-step {lt['step']} --skip 5 --branch b1")
-    jid2, err = sbatch("/opt/v5/slurm/mainrun.sbatch", env, f"{MAIN_ARGS} --nodes=1")
+    jid2, err = sbatch("/opt/v5/slurm/mainrun.sbatch", env, MAIN_ARGS_1NODE)
     if DS:
         # DeepSpeed: ZeRO pieces are per rank, so a smaller world must be REFUSED (exit 78, ReshardError) until an
         # operator converts the checkpoint (ds_to_universal.py). Then the rollback runs again at the saved size.
@@ -649,7 +650,7 @@ def d_nan_rollback_reshard():
     ctl(f"scancel {jid2}")
     t4 = mark("rollback", from_step=lt2["step"], cause_class="operator")
     env = dict(MAIN_ENV, STEPS=str(lt2["step"] + 60), TRAIN_EXTRA=f"--from-step {lt2['step']} --skip 5 --branch b2")
-    jid3, err = sbatch("/opt/v5/slurm/mainrun.sbatch", env, MAIN_ARGS if DS else f"{MAIN_ARGS} --nodes=1")
+    jid3, err = sbatch("/opt/v5/slurm/mainrun.sbatch", env, MAIN_ARGS if DS else MAIN_ARGS_1NODE)
     done = wait(lambda: ev_after(t4, "train.exit", code=0), 240, "main run finished")
     record("main_run_completes", done["committed"], final_step=done["step"], job=jid3)
 
