@@ -56,6 +56,16 @@ model is used, with the instruction to end with `#### <number>`.
 | Team 10 `safety_v1` exact (41 rows) | 56.10 | 56.10 | 0.00 |
 | forward KL per token (GSM8K replies) | 0 | 0.1412 | |
 
+**HumanEval caveat (added 25 Nov): the `humaneval_instruct` numbers in this file are not meaningful, for any arm.** The
+tokenizer drops the first space when the generated text is decoded on its own, so every model's code body starts with 3
+spaces instead of 4, and any multi-line body then fails with an indentation error (checked on the real tokenizer: a
+continuation that should start with 4 spaces decodes with 3). On the first 20 problems all 20 replies of the base model
+and all 20 of the full fine-tuned model start with 3 spaces. Scored as the evaluation scores them, base passes 3 and full
+fine-tuning 0; with only the first line's indentation set to 4 spaces, base passes 17 and full fine-tuning 14 (20
+problems, not a significant difference). The other five prior tasks do not depend on leading whitespace. A corrected run
+on all 164 problems for the four arms, with a decode that keeps the first space (`decode_keep_leading_space` in
+`dtphi/eval_prior.py`), is pending; until then read the mean of the five other tasks.
+
 ## How to read it
 
 - **The chat-template gain is the one to quote.** With 200 questions the standard error of one accuracy is about 3
@@ -64,7 +74,7 @@ model is used, with the instruction to end with `#### <number>`.
   99.5%. The scorer falls back to the last number in a reply that has no `####`, so a reply in another format is scored
   on whatever number comes last. This column mixes learning the format with solving the problem.
 - **No forgetting was detected, which is not the same as none.** At 50 items one item is 2 points: the humaneval -2 is
-  one problem, the winogrande +2 one item, and the ifeval -3.95 about three prompts. All six changes are inside that
+  one problem (that row is unreliable, see the HumanEval caveat above), the winogrande +2 one item, and the ifeval -3.95 about three prompts. All six changes are inside that
   noise, and so is the mean of -0.74.
 - **The Team 10 sets did not move in total** (52.27 and 56.10 both before and after). Inside the safety set the
   refusal rate went from 57.1% to 52.4%, on a handful of rows. Non-English safety rows are at 0.0 for both models, so
@@ -115,8 +125,10 @@ in this setting). Evaluated on both GPUs with the sharded code (`EVAL_SHARDS=2`)
 | GSM8K, chat template, first 200 (%) | 58.5 | 71.5 | 54.0 |
 | GSM8K, training format, all 1,319 (%) | not run | not run | 52.99 (699/1319); 95.5% of replies contain `####` |
 | hellaswag / truthfulqa_mc2 / mmlu | 70.00 / 56.96 / 69.54 | 70.00 / 56.26 / 69.75 | 70.00 / 58.52 / 68.49 |
-| ifeval / winogrande / humaneval_instruct | 67.11 / 78.00 / 14.00 | 63.16 / 80.00 / 12.00 | 59.21 / 70.00 / **0.00** |
-| mean of the six prior tasks | 59.27 | 58.53 | 54.37 |
+| ifeval / winogrande | 67.11 / 78.00 | 63.16 / 80.00 | 59.21 / 70.00 |
+| humaneval_instruct (harness decode, **unreliable**) | 14.00 | 12.00 | 0.00 |
+| mean of the five tasks without HumanEval | 68.32 | 67.83 | 65.24 |
+| mean of the six tasks (includes the unreliable HumanEval) | 59.27 | 58.53 | 54.37 |
 | Team 10 `indic_v1` exact (44 rows) | 52.27 | 52.27 | 40.91 |
 | Team 10 `safety_v1` exact (41 rows) | 56.10 | 56.10 | 60.98 |
 
@@ -138,10 +150,11 @@ An earlier full fine-tuning value of 0.5124 was over 167 prompts and is supersed
   95% of its replies end in `####`. It learned the format, not the accuracy. The training loss stayed at about 0.45
   (0.55 at step 10, 0.61 at step 400, a single batch of 4 each time). At 1e-5 and batch 4 on all weights the run may
   simply be too noisy; a lower learning rate was not tried. Do not read this as "full fine-tuning does not work".
-- **The first-evaluation setting shows more forgetting for full fine-tuning than for Deletion Tuning**: prior-task mean
-  54.37 against 58.53 and 59.27 (base), HumanEval 0 of 50 against 7 for base, Indic exact 40.9 against 52.3. At 50 items
-  per task one item is 2 points, so only the HumanEval, IFEval and Indic drops are large enough to take seriously. The
-  zero HumanEval has not been checked for an answer-extraction cause (the harness keeps no samples).
+- **The first-evaluation setting shows somewhat more forgetting for full fine-tuning than for Deletion Tuning**: the
+  mean of the five tasks that are not HumanEval is 65.24 against 67.83 (Deletion Tuning) and 68.32 (base), with IFEval
+  (59.2 against 67.1 for base) and Winogrande (70.0 against 78.0) the largest drops, and Indic exact 40.9 against 52.3. At
+  50 items per task one item is 2 points, so these are on the edge of the noise. The HumanEval zero is a decoding
+  artifact, not evidence of lost coding ability (see the HumanEval caveat above).
 - **Forward KL orders the arms Deletion Tuning < LoRA < full fine-tuning** (0.14, 0.27, 0.48), so Deletion Tuning moved
   the model's GSM8K replies least even though LoRA gained more accuracy. The KL is measured on GSM8K replies, the training
   domain, so part of it is the intended format change; it is 50 prompts and one seed, and it is not a measure of forgetting
@@ -152,7 +165,7 @@ An earlier full fine-tuning value of 0.5124 was over 167 prompts and is supersed
 ## Not shown
 
 - One seed, one training run per setting. No variance across seeds.
-- 200 GSM8K questions and 50 items per prior task. ifeval and humaneval generate for hours, so they were kept small.
+- 200 GSM8K questions and 50 items per prior task. ifeval and humaneval generate for hours, so they were kept small. The humaneval numbers are not meaningful (see the HumanEval caveat).
 - LoRA and full fine-tuning: one seed each, learning rates 2e-4 and 1e-5 not tuned, 400 steps at batch 4. No statement
   about the methods in general. LoRA has no six-task or Team 10 result in the first-evaluation setting.
 - Not the capstone architecture (no KE2, no untied KAS head, no Muon) and a public model, so no claim about dry run 2.
@@ -188,7 +201,8 @@ Both logs, with the server paths replaced, are in `RaviNaik/ERA` at `v5/capstone
 
 1. LoRA in the first-evaluation setting (six prior tasks at 50 items, Team 10 sets), so the three arms are compared on
    IFEval, HumanEval and the Indic and safety sets as well.
-2. A lower full fine-tuning learning rate, and a HumanEval sample check for the 0 of 50, if time allows.
+2. HumanEval on all 164 problems with the decode fix for base, Deletion Tuning, LoRA and full fine-tuning, and a lower
+   full fine-tuning learning rate if time allows.
 3. This file is updated in place with those rows.
 
 ## Commands and output for the 25 Nov additions (TSAI run rule)
@@ -236,6 +250,17 @@ forward KL: {'forward_kl_per_token_mean': 0.2690888488292694, 'n_prompts': 50}
 GPUS=1 N_GPUS=1 EVAL_PARTS_FT=kl KL_LIMIT=50 EVAL_SUFFIX=_kl50 FORCE=1 RUN_NAME=dt_phi_mini_sft_gsm8k_seed0_v4 bash run.sh ft_eval
 forward KL: {'forward_kl_per_token_mean': 0.4825420159101486, 'n_prompts': 50}
 [ft_eval] finished in 144 s
+```
+
+HumanEval check on the first 20 problems, base and full fine-tuning, one GPU each (`tools/humaneval_check.py` then
+`tools/humaneval_rescore.py`; the replies are on the server, not in git). The first two lines are the evaluation's own decode, the
+last two add the rescoring with the first line set to 4 spaces:
+
+```
+{"tag": "ft", "n": 20, "pass@1": 0.0, "with_code_block": 0, "with_def": 1, "with_####": 0}
+{"tag": "base", "n": 20, "pass@1": 0.15, "with_code_block": 16, "with_def": 2, "with_####": 0}
+{"file": "he_ft.json", "n": 20, "as_is": 0.0, "first_line_fixed": 0.7, ..., "first_line_indents": [3]}
+{"file": "he_base.json", "n": 20, "as_is": 0.15, "first_line_fixed": 0.85, ..., "first_line_indents": [3]}
 ```
 
 The 52.99% (all 1,319 questions, training format, 400 new tokens) came from an earlier two-GPU run of the same stage that was
