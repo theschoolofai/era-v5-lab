@@ -29,8 +29,9 @@ How the lag is measured
   commit at step R. The training after R was lost: it and the downtime don't count, so a planned failure doesn't
   page. The training up to R still counts, so a restore doesn't wipe out a lag that was building: a dead watcher
   still pages on time, and only once. While training is behind the newest Tier A step, the lag is 0.
-- Long gap: a gap between two batches of at most --pause-s (default: half an interval) counts in full. A longer
-  gap counts by its steps (steps added x the run's median step time, never more than the gap). So a stalled
+- Long gap: a gap between two batches counts in full if it is at most --pause-s (default: half an interval), or at
+  most 2 x its steps at the run's median step time (slow steps). A longer gap counts by its steps (steps added x
+  the median step time). So a stalled
   trainer, or a restart right after the flush of its committed step (not seen as a restore), adds only the steps
   after it (`continuity_rules.py` loader_stall covers stalls). A `watch_jsonl.py` outage adds the training time of
   the backlog it loads when it restarts, so it does not hide the lag.
@@ -84,6 +85,8 @@ TABLE = "eval_lag_checks"
 TABLE_SQL = CLICKHOUSE_DIR / f"{TABLE}.sql"
 RULE = "eval_lag"
 EXIT_OK, EXIT_PAGE, EXIT_ERROR = 0, 1, 2
+# A gap up to this many times its steps' normal time is training at a slow pace, not a stall.
+SLOW_GAP = 2.0
 # A failed check: ClickHouse down, timeout, a bad URL, rejected SQL (RuntimeError, incl. EvalLagError) or an
 # unexpected answer. Anything else is a bug and is logged with its traceback.
 CHECK_ERRORS = STOP_ERRORS + (OSError, ValueError, http.client.HTTPException)
@@ -116,10 +119,11 @@ def active_lag_ms(batches: Sequence[Batch], eval_step: int | None, pause_ms: int
     the lag nor wipes out what built up before R. `eval_step` None (no Tier A row yet) measures from the first batch;
     training behind `eval_step` gives 0.
 
-    A gap of at most `pause_ms` between two batches counts in full. A longer gap counts by its steps: the steps the
-    batch after it adds, times the run's step time, and never more than the gap. The step time is the median ms per
-    step over the gaps of at most `pause_ms` from the batch that reached `eval_step` on; with no such gap yet, a long
-    gap counts as `pause_ms`. So:
+    A gap between two batches counts in full if it is at most `pause_ms`, or at most `SLOW_GAP` (2) times the run's
+    step time for its steps (slow steps). A longer gap is a stall or downtime: it counts by its steps, that is the
+    steps the batch after it adds, times the run's step time. The step time is the lower median ms
+    per step over the gaps from the batch that reached `eval_step` on (not across a restore). With no gap yet, or only
+    one gap that is longer than `pause_ms`, a long gap counts as `pause_ms`. So:
     - a trainer stall or a restart that is not seen as a restore (killed right after the flush of the committed step,
       so the restarted batch starts at R + 1) adds the time of the steps after it, not the downtime;
     - a `watch_jsonl.py` outage, after which one batch brings the backlog, adds the training time of that backlog.
@@ -148,13 +152,19 @@ def active_lag_ms(batches: Sequence[Batch], eval_step: int | None, pause_ms: int
     # (gap in ms, steps added) for each pair of batches in the span; None across a restore.
     gaps = [None if restored else (max(b.seen_ms - prev.seen_ms, 0), b.last_step - prev.last_step)
             for (prev, _), (b, restored) in zip(span, span[1:])]
-    rates = [gap / steps for gap, steps in filter(None, gaps) if 0 < gap <= pause_ms and steps > 0]
-    step_ms = statistics.median(rates) if rates else None
+    # The lower median over all gaps: a few stalls or backlogs don't move it, and it still works when a normal
+    # flush takes longer than pause_ms (slow steps). One long gap alone could be the stall itself, so a single gap
+    # times a step only if it is at most pause_ms.
+    timed = [(gap, steps) for gap, steps in filter(None, gaps) if gap > 0 and steps > 0]
+    rates = [gap / steps for gap, steps in timed]
+    step_ms = statistics.median_low(rates) if len(rates) >= 2 or any(g <= pause_ms for g, _ in timed) else None
 
     def counted(gap: int, steps: int) -> float:
-        if gap <= pause_ms:
-            return gap
-        return pause_ms if step_ms is None else min(gap, steps * step_ms)
+        if step_ms is None:
+            return min(gap, pause_ms)
+        if gap <= max(pause_ms, SLOW_GAP * steps * step_ms):
+            return gap  # a normal gap, or slow steps: all of it is training
+        return steps * step_ms  # a stall or downtime: only its steps count
 
     lag = sum(counted(*g) for g in gaps if g is not None)
     first = span[0][0]
@@ -288,6 +298,7 @@ class EvalLagMonitor:
         self.pause_ms = round((interval_s / 2 if pause_s is None else pause_s) * 1000)
         self.waiting: tuple[str, ...] = ()  # eval runs named by `runs` with no ingest_batches row yet
         self._fired: set[str] = set()
+        self._seen_live: set[str] = set()  # eval runs this alarm has seen training
         self._table_ready = False
         self._unsaved_pages: list[dict] = []  # page rows a failed save could not write
 
@@ -329,14 +340,20 @@ class EvalLagMonitor:
         return checks
 
     def save(self, checks: Sequence[RunCheck], now_ms: int) -> int:
-        """Write one `eval_lag_checks` row per check; creates the table first. Returns the rows written.
+        """Write one `eval_lag_checks` row per check; creates the table first. Returns the rows written. A run that
+        is not training gets a row only if `runs` names it or this monitor saw it train.
 
         A page row that could not be written is kept and sent with the next save: the page fires only once, so
         without it Grafana would never show that page.
         """
         if not self.write:
             return 0
-        rows = self._unsaved_pages + [c.row(now_ms) for c in checks]
+        # A run that is not training gets a row only if --run names it or this alarm saw it train: without --run,
+        # old finished runs with Tier A rows would get a row every poll forever.
+        self._seen_live.update(c.run_id for c in checks if c.live)
+        named = set(self.runs.values()) if self.runs else set()
+        rows = self._unsaved_pages + [c.row(now_ms) for c in checks
+                                      if c.live or c.run_id in named or c.run_id in self._seen_live]
         try:
             if not self._table_ready:
                 self._create_table()

@@ -282,6 +282,20 @@ def test_a_restore_keeps_the_lag_built_up_before_its_restore_point():
     assert active_lag_ms(before + after_22, None, 300_000) == 60_000  # 0..40 s, nothing for the stop, then 20 s
 
 
+def test_slow_steps_still_count_in_full():
+    """A normal 10-step flush longer than --pause-s (slow steps): the step time must come from those gaps too, or
+    every gap is undercounted and a real lag never pages."""
+    rng = random.Random(7)
+    batches, t = [], 0
+    for i in range(30):
+        t += rng.choice((290_000, 410_000, 420_000))
+        batches.append(Batch(t, i * 10 + 1, i * 10 + 10))
+    lag = active_lag_ms(batches, 10, 300_000)
+    assert lag == batches[-1].seen_ms - batches[0].seen_ms  # every gap counts in full
+    # One long gap alone may be the stall itself: it does not time a step, so it counts as --pause-s, as before.
+    assert active_lag_ms([Batch(0, 1, 10), Batch(644_000, 11, 20)], 5, 300_000) == 300_000
+
+
 def test_lag_is_the_same_on_the_batches_the_alarm_reads():
     """The alarm reads only batches with last_step >= the scored step; across restores the lag must not change."""
     rng = random.Random(24)
@@ -427,6 +441,20 @@ def test_a_restart_right_after_the_flush_of_the_commit_adds_no_downtime():
     results = sweep(monitor(ch, runs={RUN: RUN, RESUME: RUN}), ch, T0, ms(run.t) + 60_000)
     assert pages(results) == []
     assert max_lag(results) == baseline()
+
+
+def test_an_old_run_gets_no_rows_without_run():
+    """Without --run, a finished run with Tier A rows is still checked; it gets no rows unless this alarm saw it
+    train, so old runs don't add a row every poll forever."""
+    ch = FakeClickHouse()
+    old = Run(ch).train(1, 300, OTHER, commit_first=True).score(eval_run=OTHER)
+    ch.now_ms = ms(old.t) + 10 * LIMIT_MS
+    mon = monitor(ch)
+    checks = mon.check(ch.now_ms)
+    assert [c.run_id for c in checks] == [OTHER] and not checks[0].live
+    assert mon.save(checks, ch.now_ms) == 0 and ch.checks == []
+    named = monitor(ch, runs={OTHER: OTHER})  # named with --run: it gets its row
+    assert named.save(named.check(ch.now_ms), ch.now_ms) == 1
 
 
 def test_rows_go_on_during_a_loader_outage():
