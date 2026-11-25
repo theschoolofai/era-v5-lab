@@ -149,6 +149,10 @@ text is checked against their questions before training reads it.
 
 [text: waiting for Evaluation and Release]
 
+## What this card does not claim
+
+[text: waiting for Evaluation and Release]
+
 ## Licence and attribution
 
 [text: waiting for Post-training, Data A and Data B]
@@ -179,6 +183,18 @@ These teams of the ERA V5 lab do the work. TSAI approves each decision before th
 ## How to find more
 
 The public lab repository holds the work of every team: https://github.com/theschoolofai/era-v5-lab
+
+## What is released
+
+[text: waiting for Release, after TSAI decides what is released]
+
+## Sources
+
+[text: waiting for Release]
+
+## How to cite
+
+[text: waiting for Release, after TSAI names the model]
 
 ---
 

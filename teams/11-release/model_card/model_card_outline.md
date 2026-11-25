@@ -50,7 +50,7 @@ The draft of the model card is `model_card_v0.md`. Each section there has the te
 | Evaluation | The benchmarks, the scores that TSAI approves, and what the scores do not show, such as the size of the question sets | Evaluation | in progress | pending |
 | Limitations and risks | What the model gets wrong, and the known risks. The limits of the scores go in Evaluation | Evaluation, Release | empty | Evaluation pending; Release OK @pyru |
 | What this card does not claim | The claims that the card does not make about the model as a whole, so that readers do not read too much into it. The limits of the scores go in Evaluation, and the errors of the model in Limitations and risks | Evaluation, Release | empty | Evaluation pending; Release OK @pyru |
-| Licence and attribution | The licence of the model, and credit for each data source | Post-training, Data A, Data B | empty | Post-training OK @saitej123; Data A OK @patilvijay23; Data B OK @shankarpandala |
+| Licence and attribution | The licence of the model, and credit for each data source | Post-training, Data A, Data B | in progress | Post-training OK @saitej123; Data A OK @patilvijay23; Data B OK @shankarpandala |
 | Contributors | The teams that did the work, with no person names | Release | in progress | Release OK @pyru |
 | How to find more | A link to the public lab repository | Release | in progress | Release OK @pyru |
 | What is released | What the lab makes public, and what it does not. TSAI decides what is released | Release | empty | Release OK @pyru |
