@@ -186,6 +186,17 @@ An earlier full fine-tuning value of 0.5124 was over 167 prompts and is supersed
   4e-3 that 400 steps in one direction would give), so the run is consistent with noise-dominated updates at batch 4,
   not with lost updates. That is consistent with, not proof of, a noise explanation: one learning rate and one seed, and
   gradient noise was not measured. It also means the arms are not at matched fit (see below).
+- **Expert load: no arm collapsed the router, and the routing moved in the order Deletion Tuning < LoRA < full
+  fine-tuning** (25 Nov, `tools/expert_load.py`: top-2 router choices at every layer and token, on the base model's own
+  replies to 50 GSM8K questions, the same texts as the KL). Load entropy is unchanged (mean 3.754 bits for base, 3.754 DT,
+  3.756 LoRA, 3.743 full fine-tuning; maximum 4), the largest expert share is 17.4 to 17.5% on average in every arm, and
+  near-dead experts (under 1/160 of the choices, summed over layers) number 7, 7, 7 and 8. The share of tokens whose top-2
+  expert pair is the same as the base model's is 88.6% (Deletion Tuning), 84.6% (LoRA) and 65.6% (full fine-tuning), and
+  79.9%, 73.1% and 49.0% in the worst layer; the mean total-variation distance of the per-layer load to base is 0.010,
+  0.018 and 0.071. So the changes are swaps between experts that leave the overall load balanced, not a shift towards a
+  few experts. Deletion Tuning masks the expert `w1` projections and leaves the router weights alone, yet 11% of tokens
+  change pair, presumably because the inputs to later routers change (not tested). One seed, 50 prompts, the arms are at
+  different fit, and no noise floor for near-tie routing flips was measured.
 - **Forward KL orders the arms Deletion Tuning < LoRA < full fine-tuning** (0.14, 0.27, 0.48), so Deletion Tuning moved
   the model's GSM8K replies least even though LoRA gained more accuracy. The KL is measured on GSM8K replies, the training
   domain, so part of it is the intended format change; it is 50 prompts and one seed, and it is not a measure of forgetting
@@ -235,16 +246,15 @@ Both logs, with the server paths replaced, are in `RaviNaik/ERA` at `v5/capstone
 
 ## Next
 
-1. Expert load before and after each arm (top-2 router choices on the same texts as the KL; `tools/expert_load.py`).
-2. Matched fit for full fine-tuning (a larger batch or another learning rate); not run.
-3. This file is updated in place with those rows.
+1. Matched fit for full fine-tuning (a larger batch or another learning rate); not run.
+2. This file is updated in place with those rows.
 
 ## Commands and output for the 25 Nov additions (TSAI run rule)
 
 All runs used the default `CUDA_LAUNCH_BLOCKING=1` of `run.sh` (synchronous CUDA launches; asynchronous mode crashed on
 two GPUs), so the times below are **not speed-optimized** and are an upper bound. Code and logs: `RaviNaik/ERA`,
-`v5/capstone/dt_phi_moe/`. Result files: branch `dt-phi-moe-results-nov25b`, commit `ea35b9c` (the 25 Nov LoRA
-first-evaluation summary, corrected HumanEval, weight check, paired variants; earlier results at `d9b406b` on
+`v5/capstone/dt_phi_moe/`. Result files: branch `dt-phi-moe-results-nov25b`, commit `43602b7` (the 25 Nov LoRA
+first-evaluation summary, corrected HumanEval, weight check, paired variants, expert load; earlier results at `d9b406b` on
 `dt-phi-moe-results-nov25`). Code: branch `dt-phi-moe-humaneval-fix`, commit `280e6e1` (sharded evaluation `46c0b13`,
 decode fix, HumanEval, weight check, paired variants and expert-load tools).
 
