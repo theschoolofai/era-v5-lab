@@ -155,7 +155,21 @@ text is checked against their questions before training reads it.
 
 ## Licence and attribution
 
-[text: waiting for Post-training, Data A and Data B]
+Post-training uses only datasets with permissive commercial licences (MIT, Apache 2.0, CC BY 4.0, CC BY-SA, ODC-By,
+or per-file permissive licences). Datasets from closed models, Llama models, use-restricted licences such as
+OpenRAIL-M, or unknown generators are excluded.
+
+Post-training datasets admitted so far and their credits:
+
+- `nvidia/OpenCodeReasoning-2` (CC BY 4.0): supervised fine-tuning code and reasoning traces.
+- `deepmind/code_contests` (CC BY 4.0): reinforcement learning (RL) code training pool (train split, decontaminated).
+- `nebius/SWE-rebench` (CC BY 4.0, arXiv 2505.20411) and Post-training's `swe-envs/` repositories (MIT or
+  BSD-3-Clause): human issues, patches, and tests.
+
+The full dataset ledger, generator licences, and attribution list stay in
+`teams/10-post-training/licences/licence_table.md` (alongside the Data A, Data B, and MILU CC BY 4.0 credits).
+
+[text: waiting for Data A and Data B]
 
 Evaluation uses the MILU benchmark of AI4Bharat, which is under the CC BY 4.0 licence.
 
@@ -221,7 +235,7 @@ How to fill it:
 | Overview | Release | who made the model: yes. What the model is: yes, from the Gate 2 and Gate 3 updates and the launch announcement. The short forms KE2 and token: yes, from the Gate 3 update and the dashboard glossary. The size sentence describes work that is not done (style rule 6), so TSAI approves its wording in this pull request. Before publishing, it changes to the size that TSAI approves | `launch/launch_announcement_v0.md` ([#600](https://github.com/theschoolofai/era-v5-lab/pull/600), [#603](https://github.com/theschoolofai/era-v5-lab/pull/603), [#753](https://github.com/theschoolofai/era-v5-lab/pull/753)). What the model is: `updates/gate2.md` (first model configuration), `updates/gate3.md` (attention and experts, model layout and size, the output head, short forms), `dashboard/glossary.md` (token) | Release: yes (the Release lead wrote this draft); Architecture: yes, and Architecture sent the sentence on the size ([comment on #791](https://github.com/theschoolofai/era-v5-lab/pull/791#issuecomment-7135447264)) |
 | Training data: the Indian-language and code-adjacent text | Data B | yes, with no edit, and the problems in the code-adjacent text, with no edit. One open point waits for TSAI: whether the notebooks and the posts are cleaned before training | `teams/02-data-b/model_card/training_data.md` ([#525](https://github.com/theschoolofai/era-v5-lab/pull/525); the code-adjacent problems: [#782](https://github.com/theschoolofai/era-v5-lab/pull/782), from the Data B lead). Its source table gives the TSAI approval of each number and the source of each problem | Data B: yes for the first part ([comment on #759](https://github.com/theschoolofai/era-v5-lab/pull/759#issuecomment-7108567909)); the code-adjacent problems: no, waiting for the OK |
 | Training data: the general text and code | Data A | no | waiting for Data A | Data A: no |
-| Licence and attribution | Post-training, Data A, Data B | the Post-training text: no, due 27 Nov. The MILU credit: yes, from the Evaluation lead's note. It names AI4Bharat, the group that made MILU, and no person (style rule 7). TSAI decides whether the credit also cites the MILU paper and links its public page | the Post-training text: [text: waiting for the Post-training comment]. Facts so far: `teams/10-post-training/licences/licence_table.md`. MILU is under CC BY 4.0, so this section credits its authors ([comment on #770](https://github.com/theschoolofai/era-v5-lab/pull/770#issuecomment-7123142597)) | Post-training: no; Data A: no; Data B: no; Evaluation, for the MILU credit: no |
+| Licence and attribution | Post-training, Data A, Data B | the Post-training text: yes, from the Post-training lead, with two style edits (style rule 10): "RL" is spelled out, and "G10" is "Post-training's". The Data A and Data B text: no. The MILU credit: yes, from the Evaluation lead's note. It names AI4Bharat, the group that made MILU, and no person (style rule 7). TSAI decides whether the credit also cites the MILU paper and links its public page | the Post-training text: [comment on #811](https://github.com/theschoolofai/era-v5-lab/pull/811#issuecomment-7160236414). Facts so far: `teams/10-post-training/licences/licence_table.md`. MILU is under CC BY 4.0, so this section credits its authors ([comment on #770](https://github.com/theschoolofai/era-v5-lab/pull/770#issuecomment-7123142597)) | Post-training: yes for the text before the style edits ([comment on #811](https://github.com/theschoolofai/era-v5-lab/pull/811#issuecomment-7160236414)). The style edits: no. Data A: no; Data B: no; Evaluation, for the MILU credit: no |
 | Evaluation | Evaluation | what Evaluation does: yes, from text that TSAI approved. The benchmarks, the table rows and the check of the training text: yes, from the Evaluation lead, with no edit. The scores: no, TSAI approves each score. Before a score from an early step goes in, check with Evaluation, because early scores can be above a random guess without any learning | the Evaluation line of `launch/launch_announcement_v0.md` ([#753](https://github.com/theschoolofai/era-v5-lab/pull/753)); the Eval-Mini panel text in `dashboard/dashboard_text_new_panels.md` and the format in `dashboard/score_text_format.md` ([#760](https://github.com/theschoolofai/era-v5-lab/pull/760)). Benchmarks and table rows: [comment on #770](https://github.com/theschoolofai/era-v5-lab/pull/770#issuecomment-7123142597). Plan: `teams/09-evaluation/eval_schedule.md` | Evaluation: yes ([comment on #770](https://github.com/theschoolofai/era-v5-lab/pull/770#issuecomment-7121407240)); the Evaluation lead sent the benchmark text and confirmed the paste ([comment on #784](https://github.com/theschoolofai/era-v5-lab/pull/784#issuecomment-7129730898)) |
 | Contributors | Release | yes | `launch/launch_announcement_v0.md` ([#600](https://github.com/theschoolofai/era-v5-lab/pull/600), [#603](https://github.com/theschoolofai/era-v5-lab/pull/603)) | yes (the Release lead wrote this draft) |
 | How to find more | Release | yes | the public lab repository | yes (the Release lead wrote this draft) |
