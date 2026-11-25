@@ -116,6 +116,14 @@ Paired comparison with the base model on the same 1,319 questions (bootstrap 10,
 | LoRA | +19.0 | [+16.5, +21.6] | 49 / 300 | 3.9e-45 |
 | Full fine-tuning | -1.6 | [-4.6, +1.5] | 226 / 205 | 0.34 |
 
+Paired comparison **between the variants** (same 1,319 questions, same test; second minus first):
+
+| pair | change (points) | 95% interval | first-only / second-only | McNemar p |
+|---|---:|---|---:|---:|
+| LoRA against Deletion Tuning | +7.9 | [+5.5, +10.2] | 76 / 180 | 6.7e-11 |
+| Full fine-tuning against Deletion Tuning | -12.7 | [-15.6, -9.9] | 291 / 123 | 8.5e-17 |
+| Full fine-tuning against LoRA | -20.6 | [-23.5, -17.8] | 349 / 77 | 2e-42 |
+
 **Full fine-tuning in the first-evaluation setting** (first 200 questions, 50 items per prior task; LoRA was not run
 in this setting). Evaluated on both GPUs with the sharded code (`EVAL_SHARDS=2`), 400 new tokens on GSM8K:
 
@@ -144,8 +152,9 @@ An earlier full fine-tuning value of 0.5124 was over 167 prompts and is supersed
 
 - **Deletion Tuning and LoRA both raise GSM8K significantly and change none of the four prior tasks by more than the
   noise.** LoRA is higher on accuracy (+19.0 against +11.1) and trained faster. This is one seed with an untuned LoRA
-  learning rate and the paper's Deletion Tuning values: it does not show that LoRA is better than Deletion Tuning in
-  general, and the interval for the difference between the two arms was not computed.
+  learning rate and the paper's Deletion Tuning values, so it does not show that LoRA is better than Deletion Tuning in
+  general; on these 1,319 questions LoRA is ahead of Deletion Tuning by 7.9 points (interval +5.5 to +10.2, paired table
+  above).
 - **Full fine-tuning did not improve the chat-template score** (-1.6, p = 0.34, not distinguishable from base), although
   95% of its replies end in `####`. It learned the format, not the accuracy. The training loss stayed at about 0.45
   (0.55 at step 10, 0.61 at step 400, a single batch of 4 each time). At 1e-5 and batch 4 on all weights the run may
@@ -153,12 +162,24 @@ An earlier full fine-tuning value of 0.5124 was over 167 prompts and is supersed
 - **The first-evaluation setting shows somewhat more forgetting for full fine-tuning than for Deletion Tuning**: the
   mean of the five tasks that are not HumanEval is 65.24 against 67.83 (Deletion Tuning) and 68.32 (base), with IFEval
   (59.2 against 67.1 for base) and Winogrande (70.0 against 78.0) the largest drops, and Indic exact 40.9 against 52.3. At
-  50 items per task one item is 2 points, so these are on the edge of the noise. The HumanEval zero is a decoding
-  artifact, not evidence of lost coding ability (see the HumanEval caveat above).
+  50 items per task one item is 2 points, so these are on the edge of the noise; the Indic drop is 5 of 44 rows, which
+  is p = 0.06 by the exact McNemar test even if all five flips go the same way, so it is not a significant difference.
+  The HumanEval zero is a decoding artifact, not evidence of lost coding ability (see the HumanEval caveat above).
+- **The full fine-tuning weights did move; the update was not lost to bf16 rounding.** Comparing the saved weights with the
+  base model (every 4th tensor, 490 tensors): about 90% of the attention, expert and router weights differ, by 2.3e-4 on
+  average (about 1.7% of a typical weight, 25 to 33 bf16 steps). An optimizer probe with the training's own stochastic
+  bf16 AdamW on synthetic weights (N(0, 0.02), lr 1e-5, 400 steps, constant gradient) keeps 1.00 of the intended movement,
+  plain bf16 AdamW only 0.11. The measured size of the change is about what random-sign updates give (0.05 to 0.08 of the
+  4e-3 that 400 steps in one direction would give), so the run is consistent with noise-dominated updates at batch 4,
+  not with lost updates. That is consistent with, not proof of, a noise explanation: one learning rate and one seed, and
+  gradient noise was not measured. It also means the arms are not at matched fit (see below).
 - **Forward KL orders the arms Deletion Tuning < LoRA < full fine-tuning** (0.14, 0.27, 0.48), so Deletion Tuning moved
   the model's GSM8K replies least even though LoRA gained more accuracy. The KL is measured on GSM8K replies, the training
   domain, so part of it is the intended format change; it is 50 prompts and one seed, and it is not a measure of forgetting
-  on other tasks. The other-task evidence is the prior-task and Team 10 rows above.
+  on other tasks. The other-task evidence is the prior-task and Team 10 rows above. **The arms are at different fit**
+  (+11.1, +19.0 and -1.6 points of GSM8K), so this order is not a matched-fit comparison: for full fine-tuning, which
+  did not learn, a KL with no accuracy gain is not comparable to the other two, and a matched-fit control on a smaller
+  model (`results/dt_vs_fft.md`, section 7) found the raw order of such numbers can flip once fit is equal.
 - **The larger evaluation has a smaller prior-task spread** (63.68 to 64.56 for the four tasks) because it covers only
   four log-likelihood tasks and omits the two generation tasks where full fine-tuning lost most.
 
@@ -167,7 +188,9 @@ An earlier full fine-tuning value of 0.5124 was over 167 prompts and is supersed
 - One seed, one training run per setting. No variance across seeds.
 - 200 GSM8K questions and 50 items per prior task. ifeval and humaneval generate for hours, so they were kept small. The humaneval numbers are not meaningful (see the HumanEval caveat).
 - LoRA and full fine-tuning: one seed each, learning rates 2e-4 and 1e-5 not tuned, 400 steps at batch 4. No statement
-  about the methods in general. LoRA has no six-task or Team 10 result in the first-evaluation setting.
+  about the methods in general. LoRA has no six-task or Team 10 result in the first-evaluation setting. Full
+  fine-tuning did not learn (-1.6, p = 0.34), so the forgetting and KL rows compare arms at different fit; a matched-fit
+  comparison (other learning rates, a larger effective batch, or checkpoints stopped at DT's gain) was not run.
 - Not the capstone architecture (no KE2, no untied KAS head, no Muon) and a public model, so no claim about dry run 2.
 - The lm-evaluation-harness benchmarks here are public benchmarks on a public model. No lab model or lab checkpoint was
   scored, and nothing from this run goes to Team 9's watcher or to `forgetting.py`.
@@ -261,6 +284,17 @@ last two add the rescoring with the first line set to 4 spaces:
 {"tag": "base", "n": 20, "pass@1": 0.15, "with_code_block": 16, "with_def": 2, "with_####": 0}
 {"file": "he_ft.json", "n": 20, "as_is": 0.0, "first_line_fixed": 0.7, ..., "first_line_indents": [3]}
 {"file": "he_base.json", "n": 20, "as_is": 0.15, "first_line_fixed": 0.85, ..., "first_line_indents": [3]}
+```
+
+Full fine-tuning weights against base, optimizer probe, paired test between variants (25 Nov, CPU, `tools/weight_change.py`,
+`tools/paired_variants.py`):
+
+```
+constant_gradient / stochastic_bf16 (training)   changed 100.0%  mean movement 1.000 x intended  spread 0.143
+constant_gradient / plain_adamw_bf16             changed  15.6%  mean movement 0.112 x intended  spread 0.287
+490 tensors compared (0 not found in the base model)
+experts w1  90.58% changed, mean|change| 2.285e-04, mean|w| 1.334e-02, 32.7 bf16 steps   (attention 89.87%, router 90.32%)
+| LoRA against Deletion Tuning, chat template | 1319 | 67.1 | 75.0 | +7.9 | [+5.5, +10.2] | 76 / 180 | 6.7e-11 |
 ```
 
 The 52.99% (all 1,319 questions, training format, 400 new tokens) came from an earlier two-GPU run of the same stage that was
