@@ -3,9 +3,10 @@
 Calibration (dt/mask.py wanda_scores) runs the model in eval mode and picks each routed expert's rows with
 `g5_expert_choice`. The reference here is read from the model itself: in the last block, perturbing one expert's down weight
 changes exactly the positions Team 5's forward routes to that expert (nothing after the last block mixes positions, so the
-head is skipped). The per-expert counts must equal what `g5_expert_choice` gives on the same MoE inputs. Unlike Team 5's
-`expert_load` counter, which counts only in train mode, this sees an eval-mode rule change (for example a bias used only
-while training). Checked once with the stand-in's own balancer setting and once with bias_gamma 0.
+head is skipped). The full [valid position x expert] routing matrix read this way must equal the one `g5_expert_choice`
+gives on the same MoE inputs: the matrix, not per-expert counts, so two positions with their choices swapped are caught.
+Unlike Team 5's `expert_load` counter, which counts only in train mode, this sees an eval-mode rule change (for example
+a bias used only while training). Checked once with the stand-in's own balancer setting and once with bias_gamma 0.
 
 Scope: the LAST block only (nothing after it mixes positions, so a perturbation there is read cleanly). Earlier blocks
 choose through the same `g5_expert_choice` call, but this test does not run them; do not read it as a per-layer check.
@@ -44,6 +45,9 @@ def _standin():
     run, art = os.environ.get("G10_STANDIN_RUN_FOLDER"), os.environ.get("G10_STANDIN_ARTIFACTS")
     if not run or not art:
         pytest.skip("set G10_STANDIN_RUN_FOLDER and G10_STANDIN_ARTIFACTS (a CPU run folder trained with this tree's Team 5 code)")
+    # set but wrong is a mistake, not a reason to skip: fail with the missing path instead of deep inside the adapter
+    for f in (Path(run) / "checkpoint.pt", Path(art) / "tokenizer_p1536.json"):
+        assert f.is_file(), f"stand-in variable set but {f} does not exist"
     sys.path[:0] = [str(T10 / "capstone"), str(T10 / "rl-loop")]
     import make_adapter_config as mac  # noqa: PLC0415
     import sft_g5  # noqa: PLC0415
@@ -86,9 +90,10 @@ def test_calibration_expert_choice_equals_team5s_eval_forward_on_the_standin(tmp
                 pass
         return seen["out"]
 
-    def model_counts():
+    def model_routes():
+        """[B*T, E] bool: position p is routed to expert e when perturbing e changes p's output (valid positions only)."""
         base = forward()
-        counts = []
+        cols = []
         for expert in moe.experts:
             w = expert.down.weight
             keep = w.detach().clone()
@@ -99,35 +104,40 @@ def test_calibration_expert_choice_equals_team5s_eval_forward_on_the_standin(tmp
                 # or absorbed by float32, the position would be missed; a miss can only LOWER a count (nothing unrouted can
                 # change), and the total check below then fails, so the test cannot pass wrongly. On the ADP stand-in the
                 # smallest change at a routed position was 0.0040, about 28,000 float32 ulps of that output.
-                counts.append(int(((forward() != base).any(-1) & valid).sum()))
+                cols.append(((forward() != base).any(-1) & valid).reshape(-1))
             finally:
                 with torch.no_grad():
                     w.copy_(keep)
         forward()  # leave `seen` on the unperturbed inputs
-        return counts
+        return torch.stack(cols, -1)
 
-    def our_counts():
+    def our_routes():
         flat = seen["x"].reshape(-1, seen["x"].shape[-1])
         active = seen["valid"].reshape(-1).bool()
         scores = F.linear(flat.float(), moe.router.weight.float()).softmax(-1)
         choice = dtmask.g5_expert_choice(moe, scores)
         sel = torch.zeros_like(scores, dtype=torch.bool).scatter_(-1, choice, True) & active[:, None]
-        return sel.sum(0).tolist()
+        return sel
+
+    def same(ours, ref, msg):
+        bad = (ours != ref).any(-1)
+        assert not bad.any(), f"{msg}: {int(bad.sum())} positions differ, first at flat index {int(bad.nonzero()[0])}"
 
     gammas = [b.moe.balance_gamma for b in lm.blocks]
     try:
         assert not any(m.training for m in lm.modules())
-        biased = model_counts()
-        assert sum(biased) == int(valid.sum()) * moe.topk, (
+        biased = model_routes()
+        assert int(biased.sum()) == int(valid.sum()) * moe.topk, (
             "a routed position did not change under the perturbation (exact != missed it): the reference undercounts")
-        assert our_counts() == biased, "calibration's expert choice differs from Team 5's eval-mode forward"
+        same(our_routes(), biased, "calibration's expert choice differs from Team 5's eval-mode forward")
         has_bias = bool(moe.balance_gamma) and bool(moe.router_bias.ne(0).any())
         for b in lm.blocks:
             b.moe.balance_gamma = 0.0  # gamma 0: Team 5 ignores the buffer; so must we
-        plain = model_counts()
-        assert our_counts() == plain, "with bias_gamma 0 calibration must use the plain top-k, as Team 5 does"
+        plain = model_routes()
+        same(our_routes(), plain, "with bias_gamma 0 calibration must use the plain top-k, as Team 5 does")
         if has_bias:
-            assert plain != biased, "the stand-in's router_bias no longer changes any choice: this test has lost its power"
+            assert not torch.equal(plain, biased), (
+                "the stand-in's router_bias no longer changes any choice: this test has lost its power")
     finally:
         for b, g in zip(lm.blocks, gammas):
             b.moe.balance_gamma = g
