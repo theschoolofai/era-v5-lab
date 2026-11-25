@@ -135,7 +135,7 @@ def test_composition_display_labels_and_units():
     panel = next(p for p in _load()["panels"] if p["id"] == 31)
     expected = {
         "dataset_version": "Dataset version", "stage": "Stage", "pack_id": "Pack",
-        "domain": "Domain", "language": "Language code", "docs_in": "Documents in",
+        "domain": "Subject", "language": "Language code", "docs_in": "Documents in",
         "docs_after_clean": "Documents after cleaning", "token_count": "Tokens",
         "drop_rate_pct": "Drop rate (cleaning)",
     }

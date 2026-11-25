@@ -297,3 +297,4 @@ summary; matching counts alone do not establish that the files are from the
 same run. Never relabel the rehearsal as corpus-v1. Only normalized public
 fields are inserted. The table uses `FINAL` to select the latest loaded row
 per dataset, stage, and pack.
+Public counts and rates need TSAI approval: confirm with TSAI before loading the corpus-v1 rows.
