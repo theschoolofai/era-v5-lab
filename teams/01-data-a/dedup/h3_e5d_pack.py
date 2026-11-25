@@ -11,7 +11,7 @@ From the repository root, after h3_e5d_sheets.py has written its folder:
 
   --sheets-out  h3_e5d_sheets.py's --out folder: sheets/, readers_guide.md and e5d_summary.json (status complete)
   --assign      a JSON object, reader -> the sheets they read, by name without .csv:
-                {"keshavamurali": ["sa-en_reader1"], "riteshverma": ["sa-en_reader2", "sa-hi_reader1"]}
+                {"reader_a": ["sa-en_reader1"], "reader_b": ["sa-en_reader2", "sa-hi_reader1"]}
                 A reader name is a GitHub handle or a name (letters, digits, '.', '_', '-')
   --out         the folder for the zips, inside out/
 
@@ -201,7 +201,7 @@ def pack(sheets_out, assign_path, out):
         verify_zip(zip_path, files, reader, len(sheets))
         readers[reader] = {"sheets": sheets, "zip": zip_path.name, "zip_sha256": sha256(zip_path),
                            "files": {name: sha256(src) for name, src in files}}
-    manifest = {"sheets_out": str(Path(sheets_out)), "e5d_summary_sha256": sha256(summary_path),
+    manifest = {"sheets_out": Path(sheets_out).as_posix(), "e5d_summary_sha256": sha256(summary_path),
                 "assign_sha256": sha256(assign_path), "viewer_sha256": sha256(VIEWER),
                 "readme_sha256": sha256(README), "readers": readers, "unassigned": unassigned}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
@@ -224,7 +224,7 @@ def main(argv=None):
     for reader, r in manifest["readers"].items():
         print(f"{r['zip']}: {', '.join(r['sheets'])}  sha256 {r['zip_sha256'][:16]}")
     print("not packed (no reader yet): " + (", ".join(manifest["unassigned"]) or "none"))
-    print(f"manifest: {(out / 'manifest.json').resolve().relative_to(REPO.resolve())}")
+    print(f"manifest: {(out / 'manifest.json').resolve().relative_to(REPO.resolve()).as_posix()}")
     return 0
 
 

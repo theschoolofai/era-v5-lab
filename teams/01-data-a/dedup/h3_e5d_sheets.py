@@ -587,14 +587,14 @@ def main(argv=None):
     outputs = sorted(p for p in out.rglob("*") if p.is_file() and p.name != "e5d_summary.json")
     summary = {
         "status": "complete", "config": cfg,
-        "runs": {r["name"]: {"folder": str(r["folder"].relative_to(REPO)), "sha256": r["sha256"],
+        "runs": {r["name"]: {"folder": r["folder"].relative_to(REPO).as_posix(), "sha256": r["sha256"],
                              "pairs_listed": {n: int((r["pair"] == k).sum()) for k, n in enumerate(names)},
                              "other_language_pairs_dropped": r["dropped"]} for r in runs},
         "strata": strata, "shortfalls": shortfalls,
         "controls": control_counts,
         "controls_sha256": h3.sha256_file(REPO / cfg["controls"]) if control_counts else None,
         "items": items_total, "readers": cfg["readers"], "sentence_settings": settings,
-        "outputs": {str(p.relative_to(out)): h3.sha256_file(p) for p in outputs},
+        "outputs": {p.relative_to(out).as_posix(): h3.sha256_file(p) for p in outputs},   # "/" on every OS
         "stages_seconds": seconds, "wall_seconds": round(time.perf_counter() - t0, 2),
         "versions": {"python": platform.python_version(), "numpy": np.__version__, "pyarrow": pa.__version__}}
     (out / "e5d_summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")

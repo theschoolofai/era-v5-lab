@@ -257,7 +257,7 @@ review of #626 (21 Nov):
 | 21 Nov 2026 | Proposed, awaiting TSAI (#625): the ruling applied: a chain through an H1/H2 copy is reported, never removed; the H3 harm test on the diagnosis packs is the harm check, run again with E5c's thresholds; Odia ↔ English stays report-only until a harm check with Odia gold; E5d labels both encoders' Sanskrit candidates | Aneesha Das; Kunal Sinha | "Decisions" |
 | 21 Nov 2026 | The ruling applied, as proposed above: confirmed | TSAI | #626, review of 21 Nov |
 | 23 Nov 2026 | E5c done, report-only: 5 qualifying pairs, none with a held-out document; every candidate verified | TSAI | #625; TSAI's report of 23 Nov |
-| 23 Nov 2026 | Harm check with planted cases at E5c's thresholds: pass, with removal tested in sa–en, sa–hi and hi–en | Aneesha Das | `jobs/logs/2026-11-23-h3-harm-cases.txt` |
-| 23 Nov 2026 | Proposed, awaiting TSAI: `h3.remove: true` for Hindi ↔ English; Sanskrit ↔ English and Sanskrit ↔ Hindi report-only until E5d; Odia ↔ English report-only | Aneesha Das | Reply to TSAI's E5c report, 23 Nov; "Decisions" |
-| 24 Nov 2026 | E5d: three sheets of 50 pairs (sa–en, sa–hi, hi–en), two readers each, every qualifying pair included; no or–en sheet | Vijay Patil (layout); G2 (readers) | `README_h3.md`, "E5d reader sheets"; #729 |
-| 25 Nov 2026 | #666 run on a Colab T4, `max_verify` 60,000: 2 qualifying pairs (sa–hi), none with a held-out document; report-only | Aneesha Das | `jobs/logs/2026-11-25-h3-e5c-bge-m3-colab/`; #666 |
+| 23 Nov 2026 | Harm check with planted cases at E5c's thresholds: pass, with removal tested in sa–en, sa–hi and hi–en | H3 owner | `jobs/logs/2026-11-23-h3-harm-cases.txt` |
+| 23 Nov 2026 | Proposed, awaiting TSAI: `h3.remove: true` for Hindi ↔ English; Sanskrit ↔ English and Sanskrit ↔ Hindi report-only until E5d; Odia ↔ English report-only | H3 owner | Reply to TSAI's E5c report, 23 Nov; "Decisions" |
+| 24 Nov 2026 | E5d: three sheets of 50 pairs (sa–en, sa–hi, hi–en), two readers each, every qualifying pair included; no or–en sheet | Lead (layout); G2 readers | `README_h3.md`, "E5d reader sheets"; #729 |
+| 25 Nov 2026 | #666 run on a Colab T4, `max_verify` 60,000: 2 qualifying pairs (sa–hi), none with a held-out document; report-only | H3 owner | `jobs/logs/2026-11-25-h3-e5c-bge-m3-colab/`; #666 |

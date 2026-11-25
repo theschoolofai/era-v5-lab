@@ -341,6 +341,8 @@ def test_summary_has_counts_and_no_text(tmp_path, monkeypatch):
     summary = json.loads(raw)
     assert summary["status"] == "complete" and summary["items"]["sa-en"] > 0
     assert "sheets/sa-en_reader1.csv" in summary["outputs"]
+    paths = list(summary["outputs"]) + [r["folder"] for r in summary["runs"].values()]
+    assert not any("\\" in p for p in paths)          # "/" on every OS, so summaries match across systems
 
 
 def test_documents_that_changed_since_the_run_stop_it(tmp_path, monkeypatch):

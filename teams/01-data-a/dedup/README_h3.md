@@ -286,7 +286,7 @@ person to check before the sheets go out.
 | sa-en | 2 | 8 / 312 | 5 | 15 |
 | sa-hi | 1 | 9 / 65 | 1 | 11 |
 
-Command, from the repository root (Kunal Sinha's pairs and scores outside the repository); it took 2.2 s:
+Command, from the repository root (the encoder checks' pairs and scores, outside the repository); it took 2.2 s:
 
 ```sh
 python3 -I teams/01-data-a/dedup/h3_e5d_controls.py --out out/e5d_controls --known-pairs ../known_pairs.parquet \
@@ -321,7 +321,7 @@ with an unsaved answer, and switching sheets.
 `e5d_summary.json` never go in. `--assign` names each reader's sheets:
 
 ```json
-{"keshavamurali": ["sa-en_reader1"], "riteshverma": ["sa-en_reader2", "sa-hi_reader1"]}
+{"reader_a": ["sa-en_reader1"], "reader_b": ["sa-en_reader2", "sa-hi_reader1"]}
 ```
 
 Before it writes anything, it checks that:
