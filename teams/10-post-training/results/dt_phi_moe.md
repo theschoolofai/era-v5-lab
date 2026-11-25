@@ -120,9 +120,13 @@ in this setting). Evaluated on both GPUs with the sharded code (`EVAL_SHARDS=2`)
 | Team 10 `indic_v1` exact (44 rows) | 52.27 | 52.27 | 40.91 |
 | Team 10 `safety_v1` exact (41 rows) | 56.10 | 56.10 | 60.98 |
 
-Forward KL is **not comparable yet**: Deletion Tuning 0.1412 is over 50 prompts, full fine-tuning 0.5124 is over 167
-prompts (that run did not use `KL_LIMIT=50`), and LoRA was never measured. A rerun of LoRA and full fine-tuning on the
-same 50 prompts is next.
+**Forward KL** (base to tuned, per token, on the base model's own replies to the same 50 GSM8K questions; run 25 Nov):
+
+| | Deletion Tuning | LoRA | Full fine-tuning |
+|---|---:|---:|---:|
+| forward KL per token (nats) | **0.1412** | 0.2691 | 0.4825 |
+
+An earlier full fine-tuning value of 0.5124 was over 167 prompts and is superseded by the 50-prompt value above.
 
 ### How to read the new rows
 
@@ -138,6 +142,10 @@ same 50 prompts is next.
   54.37 against 58.53 and 59.27 (base), HumanEval 0 of 50 against 7 for base, Indic exact 40.9 against 52.3. At 50 items
   per task one item is 2 points, so only the HumanEval, IFEval and Indic drops are large enough to take seriously. The
   zero HumanEval has not been checked for an answer-extraction cause (the harness keeps no samples).
+- **Forward KL orders the arms Deletion Tuning < LoRA < full fine-tuning** (0.14, 0.27, 0.48), so Deletion Tuning moved
+  the model's GSM8K replies least even though LoRA gained more accuracy. The KL is measured on GSM8K replies, the training
+  domain, so part of it is the intended format change; it is 50 prompts and one seed, and it is not a measure of forgetting
+  on other tasks. The other-task evidence is the prior-task and Team 10 rows above.
 - **The larger evaluation has a smaller prior-task spread** (63.68 to 64.56 for the four tasks) because it covers only
   four log-likelihood tasks and omits the two generation tasks where full fine-tuning lost most.
 
@@ -146,8 +154,7 @@ same 50 prompts is next.
 - One seed, one training run per setting. No variance across seeds.
 - 200 GSM8K questions and 50 items per prior task. ifeval and humaneval generate for hours, so they were kept small.
 - LoRA and full fine-tuning: one seed each, learning rates 2e-4 and 1e-5 not tuned, 400 steps at batch 4. No statement
-  about the methods in general. LoRA has no six-task, Team 10 or KL result in the first-evaluation setting, and the KL
-  numbers of the three arms are not on the same prompts yet.
+  about the methods in general. LoRA has no six-task or Team 10 result in the first-evaluation setting.
 - Not the capstone architecture (no KE2, no untied KAS head, no Muon) and a public model, so no claim about dry run 2.
 - The lm-evaluation-harness benchmarks here are public benchmarks on a public model. No lab model or lab checkpoint was
   scored, and nothing from this run goes to Team 9's watcher or to `forgetting.py`.
@@ -179,17 +186,16 @@ Both logs, with the server paths replaced, are in `RaviNaik/ERA` at `v5/capstone
 
 ## Next
 
-1. Forward KL of LoRA and full fine-tuning on the same 50 prompts as Deletion Tuning.
-2. LoRA in the first-evaluation setting (six prior tasks at 50 items, Team 10 sets), so the three arms are compared on
+1. LoRA in the first-evaluation setting (six prior tasks at 50 items, Team 10 sets), so the three arms are compared on
    IFEval, HumanEval and the Indic and safety sets as well.
-3. A lower full fine-tuning learning rate, and a HumanEval sample check for the 0 of 50, if time allows.
-4. This file is updated in place with those rows.
+2. A lower full fine-tuning learning rate, and a HumanEval sample check for the 0 of 50, if time allows.
+3. This file is updated in place with those rows.
 
 ## Commands and output for the 25 Nov additions (TSAI run rule)
 
 All runs used the default `CUDA_LAUNCH_BLOCKING=1` of `run.sh` (synchronous CUDA launches; asynchronous mode crashed on
 two GPUs), so the times below are **not speed-optimized** and are an upper bound. Code and logs: `RaviNaik/ERA`,
-`v5/capstone/dt_phi_moe/`, result files at commit `8c7fb4b` (branch `dt-phi-moe-results-nov25`), the sharded evaluation
+`v5/capstone/dt_phi_moe/`, result files at commit `d9b406b` (branch `dt-phi-moe-results-nov25`), the sharded evaluation
 code at `46c0b13`.
 
 Training, 24 Nov (`train_lora.out`, `train_ft.out`):
@@ -219,6 +225,17 @@ EVAL_SHARDS=2 GPUS=0,1 GEN_BATCH=96 PRIOR_LIMIT=50 EVAL_PARTS_FT=gsm8k_chat,kl,t
 forward KL: {'forward_kl_per_token_mean': 0.5124341230727956, 'n_prompts': 167}
 prior tasks: {'hellaswag': 0.7, 'truthfulqa_mc2': 0.5852, 'mmlu': 0.6849, 'ifeval': 0.5921, 'winogrande': 0.7, 'humaneval_instruct': 0.0} mean 0.5437
 [ft_eval] finished in 13070 s
+```
+
+Forward KL on the same 50 prompts, one GPU each (`kl_lora.out`, `kl_ft.out`, 25 Nov):
+
+```
+GPUS=0 N_GPUS=1 EVAL_PARTS_LORA=kl KL_LIMIT=50 EVAL_SUFFIX=_kl50 FORCE=1 RUN_NAME=dt_phi_mini_sft_gsm8k_seed0_v4 bash run.sh lora_eval
+forward KL: {'forward_kl_per_token_mean': 0.2690888488292694, 'n_prompts': 50}
+[lora_eval] finished in 133 s
+GPUS=1 N_GPUS=1 EVAL_PARTS_FT=kl KL_LIMIT=50 EVAL_SUFFIX=_kl50 FORCE=1 RUN_NAME=dt_phi_mini_sft_gsm8k_seed0_v4 bash run.sh ft_eval
+forward KL: {'forward_kl_per_token_mean': 0.4825420159101486, 'n_prompts': 50}
+[ft_eval] finished in 144 s
 ```
 
 The 52.99% (all 1,319 questions, training format, 400 new tokens) came from an earlier two-GPU run of the same stage that was
