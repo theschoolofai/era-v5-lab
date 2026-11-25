@@ -1,0 +1,82 @@
+{
+  "rule": {
+    "score": "coverage_0.5",
+    "max_bge": 0.5,
+    "max_labse_below": 0.3,
+    "per_pair": 10,
+    "seed": 20261123,
+    "positives": false,
+    "excluded_kinds": [
+      "not_sanskrit"
+    ]
+  },
+  "inputs_sha256": {
+    "known_pairs.parquet": "ccabab8018f40ca4b995d92c030c98d05ef2c5e0d80d47eb784473d10fb22002",
+    "real_translations.csv": "7842a5dfaf0e4ac4647a9090b5e876882a3fbf7cc659c2cc5ea8d859a5166c6a",
+    "labse/pair_scores.csv": "8b6990aa9b7c34221ac178046af1c21e4f9370ca85750be458b5bedba2de9dbe",
+    "bge_m3/pair_scores.csv": "a771ae5c84f8b86bc01a51439394a0b1f0faa562f3d94edf8de7a08d40d2b40e"
+  },
+  "pairs": {
+    "sa-en": {
+      "read_not_translation": 2,
+      "low_both_encoders_pool": 312,
+      "low_both_encoders_drawn": 8,
+      "read_translation": 0,
+      "shortfall": 0,
+      "unread_doc_ids_to_check": [
+        "4b8f9c4857da4bc2",
+        "aa596a10274874c8",
+        "4d172b6910d50c6d",
+        "bc95bdb9f3cb2722",
+        "2af31d20f038b9c4",
+        "31f47720d0078b77",
+        "7f92acaca39f8446",
+        "e0a99980a4996e23"
+      ]
+    },
+    "sa-hi": {
+      "read_not_translation": 1,
+      "low_both_encoders_pool": 65,
+      "low_both_encoders_drawn": 9,
+      "read_translation": 0,
+      "shortfall": 0,
+      "unread_doc_ids_to_check": [
+        "662841bc5d6003c5",
+        "7d2520afa0c230ab",
+        "4e69dc35d94e3954",
+        "5357bd80eb20e546",
+        "7f3faf739fb743e4",
+        "84fb722717a61c13",
+        "974e01d5ff312cd2",
+        "137b8a3fc4ada291",
+        "986ab0d14a41bb45"
+      ]
+    }
+  },
+  "controls": {
+    "sa-en": [
+      "read_not_translation:fea1f4f3908e44b3",
+      "read_not_translation:d0479a80829a2dc1",
+      "low_both_encoders:4b8f9c4857da4bc2",
+      "low_both_encoders:aa596a10274874c8",
+      "low_both_encoders:4d172b6910d50c6d",
+      "low_both_encoders:bc95bdb9f3cb2722",
+      "low_both_encoders:2af31d20f038b9c4",
+      "low_both_encoders:31f47720d0078b77",
+      "low_both_encoders:7f92acaca39f8446",
+      "low_both_encoders:e0a99980a4996e23"
+    ],
+    "sa-hi": [
+      "read_not_translation:f4dd16e97e012036",
+      "low_both_encoders:662841bc5d6003c5",
+      "low_both_encoders:7d2520afa0c230ab",
+      "low_both_encoders:4e69dc35d94e3954",
+      "low_both_encoders:5357bd80eb20e546",
+      "low_both_encoders:7f3faf739fb743e4",
+      "low_both_encoders:84fb722717a61c13",
+      "low_both_encoders:974e01d5ff312cd2",
+      "low_both_encoders:137b8a3fc4ada291",
+      "low_both_encoders:986ab0d14a41bb45"
+    ]
+  }
+}

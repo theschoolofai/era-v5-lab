@@ -1,0 +1,18 @@
+H3 E5d reader zips on the FLORES+ test sheets, Wednesday 25 November 2026 15:44
+on commit ccf5d51e, with this commit's h3_e5d_pack.py; Python 3.12.10, pyarrow 23.0.1, Darwin arm64
+cold start: out/e5d_zips_flores removed first
+
+$ python3 -I teams/01-data-a/dedup/h3_e5d_pack.py --sheets-out out/e5d_flores/sheets --assign teams/01-data-a/dedup/h3_e5d_flores_readers.json --out out/e5d_zips_flores
+e5d_reader_a.zip: sa-en_reader1  sha256 7d601e84ead26f3e
+e5d_reader_b.zip: sa-en_reader2, sa-hi_reader1  sha256 4237d5c7dce65ac6
+e5d_reader_c.zip: sa-hi_reader2  sha256 595d6332d9782a4b
+e5d_reader_d.zip: hi-en_reader1  sha256 b32e12a27d7c4dca
+not packed (no reader yet): hi-en_reader2, or-en_reader1, or-en_reader2
+manifest: out/e5d_zips_flores/manifest.json
+real 0.70
+user 0.59
+sys 0.09
+rerun gives the same bytes: e5d_reader_a.zip
+rerun gives the same bytes: e5d_reader_b.zip
+rerun gives the same bytes: e5d_reader_c.zip
+rerun gives the same bytes: e5d_reader_d.zip
