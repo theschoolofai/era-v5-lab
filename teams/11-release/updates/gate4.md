@@ -34,7 +34,11 @@ Each team showed its work for Gate 4 in public pull requests.
   with no change. Its files include the lab's chat format. A public link lets Evaluation download it without
   signing in. Tokenizer also gave Architecture the token counts of the training text, with their sources.
 - **Data A:** [text: waiting for Data A]
-- **Data B:** [text: waiting for Data B]
+- **Data B:** Data B measured every part of its Gate 3 summary of the Indian-language text. Cleaning lost none of
+  the joiners, the invisible marks that some Indian scripts need. Native readers read samples in their own
+  languages, and most of the damage that they found was in the raw text, before cleaning. Every Indian-language
+  pack of corpus v1 has a check of its training files, or is marked as not covered. Data B's part of the training
+  data section of the model card is on main.
 - **KE2:** [text: waiting for KE2]
 - **Architecture:** [text: waiting for Architecture]
 - **Performance:** [text: waiting for Performance]
@@ -99,6 +103,7 @@ How to fill it:
 | Decision: the learning rate for the Muon optimizer (open from Gate 3) | Architecture | `updates/gate3.md` (the learning rate). Decided: TSAI's correction in [#725](https://github.com/theschoolofai/era-v5-lab/pull/725), which sets the rate in config v1 and in the second dry run | yes | Architecture: yes, 0.006 is the current estimate ([comment on #705](https://github.com/theschoolofai/era-v5-lab/pull/705#issuecomment-7135446665)) |
 | Open from Gate 3: the exact model size | Architecture | `updates/gate3.md` (model layout and size) | no | no |
 | Gate 4 evidence: Tokenizer | Tokenizer | Round trip on the p1536 shards: [#658](https://github.com/theschoolofai/era-v5-lab/pull/658). Chat format: [#642](https://github.com/theschoolofai/era-v5-lab/pull/642), [#686](https://github.com/theschoolofai/era-v5-lab/pull/686). Public download link: [#700](https://github.com/theschoolofai/era-v5-lab/pull/700). Token counts for Architecture: [#719](https://github.com/theschoolofai/era-v5-lab/pull/719). Links from the Tokenizer lead ([comment on #705](https://github.com/theschoolofai/era-v5-lab/pull/705#issuecomment-7139242515)) | yes | Tokenizer: no |
+| Gate 4 evidence: Data B | Data B | Gate 3 summary of the Indian-language text, `teams/02-data-b/audit/gate3_indic.md`: [#526](https://github.com/theschoolofai/era-v5-lab/pull/526), [#783](https://github.com/theschoolofai/era-v5-lab/pull/783). Joiners: [#653](https://github.com/theschoolofai/era-v5-lab/pull/653). The cleaning problem in [issue #734](https://github.com/theschoolofai/era-v5-lab/issues/734), fixed on main by [#767](https://github.com/theschoolofai/era-v5-lab/pull/767). Language labels: [#673](https://github.com/theschoolofai/era-v5-lab/pull/673). The mix of the training text: [#723](https://github.com/theschoolofai/era-v5-lab/pull/723); [#794](https://github.com/theschoolofai/era-v5-lab/pull/794) is open. Model card text: [#525](https://github.com/theschoolofai/era-v5-lab/pull/525), [#782](https://github.com/theschoolofai/era-v5-lab/pull/782). Still open before Fri: [#788](https://github.com/theschoolofai/era-v5-lab/pull/788), [#806](https://github.com/theschoolofai/era-v5-lab/pull/806), [issue #795](https://github.com/theschoolofai/era-v5-lab/issues/795). Links from the Data B lead ([comment on #705](https://github.com/theschoolofai/era-v5-lab/pull/705#issuecomment-7155962319)) | yes | Data B: no |
 
 - [ ] `check_style.py` gives 0 errors
 - [ ] Every number in the text has TSAI approval
