@@ -17,7 +17,8 @@ serving. TSAI approves each decision before the lab acts on it.
 - **Data B** reads Indian-language and code-adjacent text with native readers, and proposes how much of each kind
   goes into training.
 - **Tokenizer** builds the tokenizer, which splits text into the pieces that the model reads.
-- **KE2** tests its embedding method on the lab's tokenizer.
+- **KE2** tests its embedding method on the lab's tokenizer. The model uses the KE2 output head, the last part of
+  the model, which scores each token as the next token.
 - **Architecture** sets the shape of the model and its training settings.
 - **Performance** makes each training step faster, and tests that each fast part matches a high-precision
   reference.
@@ -44,7 +45,8 @@ public pull requests. Never link to the CAP chat. Chat links are internal.
 
 How to fill it:
 
-1. Each team lead gives an OK on the line about their team, or sends a new line.
+1. Each team lead gives an OK on the line about their team in a pull request comment (`OK @handle`), or sends a
+   new line.
 2. Edit each new line only for style, and send the edit back to the writer.
 3. Monitoring sends the dashboard link after TSAI approves the dashboard.
 4. TSAI sets the date and confirms the goal of the lab in its own words.
@@ -56,17 +58,19 @@ How to fill it:
 |---|---|---|
 | Goal of the lab, and what the lab does | `updates/2026-10-31_week1.md`, `model_card/model_card_outline.md`, `report/report_outline.md` | TSAI: no |
 | Data A | `updates/2026-10-31_week1.md`, `updates/week2.md`, `updates/gate2.md`. Files for training (shards): [#358](https://github.com/theschoolofai/era-v5-lab/pull/358), [#373](https://github.com/theschoolofai/era-v5-lab/pull/373), and the Data A text on [#460](https://github.com/theschoolofai/era-v5-lab/pull/460#issuecomment-6962086936) | no |
-| Data B | `updates/2026-10-31_week1.md`, `updates/gate2.md` | no |
-| Tokenizer | `model_card/model_card_outline.md` (Tokenizer row) | no |
-| KE2 | `updates/gate2.md` (short forms) | no |
-| Architecture | `updates/2026-10-31_week1.md`, `model_card/model_card_outline.md` | no |
+| Data B | `updates/2026-10-31_week1.md`, `updates/gate2.md`, `updates/gate3.md` (data mix and Indic share: checked, the line does not change) | no |
+| Tokenizer | `model_card/model_card_outline.md` (Tokenizer row), `updates/gate3.md` (the frozen tokenizer p1536: checked, the line does not change) | no |
+| KE2 | `updates/gate2.md` (short forms), `updates/gate3.md` (the output head), [#704](https://github.com/theschoolofai/era-v5-lab/pull/704) | no |
+| Architecture | `updates/2026-10-31_week1.md`, `model_card/model_card_outline.md`, `updates/gate3.md` (checked, the line does not change) | yes ([comment on #753](https://github.com/theschoolofai/era-v5-lab/pull/753#issuecomment-7109891336)) |
+| The KE2 output head is in the training code | Architecture confirms this before the text is published. The Gate 3 update says that Architecture adds the head to the training code. Done in code: TSAI merged [#717](https://github.com/theschoolofai/era-v5-lab/pull/717) on 24 Nov, and the settings of the second dry run use the head ([`dryrun2.yaml`](https://github.com/theschoolofai/era-v5-lab/blob/main/teams/05-architecture/configs/arms/dryrun2.yaml)). Architecture confirmed ([comment on #796](https://github.com/theschoolofai/era-v5-lab/pull/796#issuecomment-7134586545)) | yes ([comment on #796](https://github.com/theschoolofai/era-v5-lab/pull/796#issuecomment-7134586545)) |
+| The main run uses the KE2 output head | The KE2 line says that the model uses the head. In the training code, the head is on only when the settings of a run choose it. The settings of the main run (`teams/05-architecture/configs/config_v1.yaml`) do not choose it yet. Architecture confirms that they do before the text is published | no |
 | Performance | `updates/2026-10-31_week1.md` | no |
-| Infrastructure | `updates/2026-10-31_week1.md`, `model_card/model_card_outline.md` | no |
-| Monitoring | `updates/2026-10-31_week1.md`, `updates/week2.md` | no |
+| Infrastructure | `updates/2026-10-31_week1.md`, `model_card/model_card_outline.md`, `updates/gate3.md` (the first dry run: checked, the line does not change) | no |
+| Monitoring | `updates/2026-10-31_week1.md`, `updates/week2.md`, `dashboard/dashboard_text.md` ([#598](https://github.com/theschoolofai/era-v5-lab/pull/598)), public panels with the approved text ([#629](https://github.com/theschoolofai/era-v5-lab/pull/629)) | no |
 | Evaluation | `updates/2026-10-31_week1.md` | no |
-| Post-training | `updates/2026-10-31_week1.md`, `updates/week2.md` | no |
+| Post-training | `updates/2026-10-31_week1.md`, `updates/week2.md` | yes ([comment on #753](https://github.com/theschoolofai/era-v5-lab/pull/753#issuecomment-7107195973)) |
 | Quantization | `updates/2026-10-31_week1.md`, `model_card/model_card_outline.md` (Serving row) | no |
-| Release | `public_internal.md` (Rule 3) | no |
+| Release | `public_internal.md` (Rule 3) | yes (the Release lead wrote this draft) |
 | Dashboard link | Monitoring, after TSAI approves the dashboard | no |
 
 - [ ] `check_style.py` gives 0 errors

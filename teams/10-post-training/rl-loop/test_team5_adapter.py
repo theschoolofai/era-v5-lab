@@ -773,7 +773,7 @@ model:
   n_head: 2
   n_kv_head: 1
   n_embd: 16
-  moe: {num_experts: 4, top_k: 2, num_shared: 1, dispatch: loop}
+  moe: {num_experts: 4, top_k: 2, num_shared: 1, dispatch: loop, ffn_hidden: 32}  # t2 now pins ffn_hidden: 768
 run:
   batch_size: 2
   dtype: fp32
@@ -1117,6 +1117,9 @@ def test_sft_driver_runs_every_method_with_its_checks(fx, run_folder, tmp_path):
         assert rep["writeback_step1"]["pass"] and rep["reload_parity"]["pass"], name
         if name != "full":
             assert rep["frozen_weights_unchanged"]["pass"], name
+        assert rep["router_bias_unchanged"]["pass"], name  # every method, full FT included (job ADP)
+        rb = rep["router_bias_unchanged"]  # job BNP: a bias the arm expects is a counted buffer
+        assert rb["buffers"] > 0 or not rb["expected"], name
         assert rep["after"]["generation"]["prompts"] >= 1 and math.isfinite(rep["last_loss"])
     # DT -> RL hand-over: SFT writes the baked keep masks; the saved state has exact zeros exactly where they say
     import keep_zero  # noqa: PLC0415
