@@ -28,6 +28,11 @@ export MASTER_ADDR="$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -1)"
 export MASTER_PORT=$((20000 + SLURM_JOB_ID % 20000))
 export GLOO_SOCKET_IFNAME="${GLOO_SOCKET_IFNAME:-eth0}"
 export TORCH_NCCL_ASYNC_ERROR_HANDLING=1 TORCH_NCCL_TRACE_BUFFER_SIZE=2000 TORCH_NCCL_DUMP_ON_TIMEOUT=1
+# Flight-recorder dumps go next to the job log, not /tmp (queue rule R3), one folder per attempt so a
+# second timeout after a requeue does not overwrite the first. Read with: torchfrtrace <dir> -p rank_ (runbook 11.3).
+NCCL_TRACE_DIR="${V5_NCCL_TRACE_DIR:-/var/log/v5/logs/nccl_trace/${SLURM_JOB_ID}-${SLURM_RESTART_COUNT:-0}}"
+mkdir -p "$NCCL_TRACE_DIR"
+export TORCH_NCCL_DEBUG_INFO_TEMP_FILE="$NCCL_TRACE_DIR/rank_"
 # The trainer: V5_TRAIN_SCRIPT (Team 05's real one on cloud nodes); default is the test trainer in support/simulation/trainer/.
 exec /opt/venv/bin/python /opt/v5/queue/job_queue.py run -- --ntasks-per-node="$SLURM_NTASKS_PER_NODE" -- \
   --run-id "$RUN_ID" --remote-root "${V5_REMOTE_ROOT:-/shared/ckpt}" --local-root /nvme/ckpt \

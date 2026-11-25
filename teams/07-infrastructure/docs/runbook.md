@@ -446,7 +446,7 @@ Restored 125 = `pointer_step` 125, the path is in the list: COMPLETE, nothing lo
 | `TORCH_NCCL_ASYNC_ERROR_HANDLING` | `1` | `slurm/mainrun.sbatch` | a NCCL error or timeout aborts the process (exit 1 or 134) instead of hanging |
 | NCCL collective timeout | **10 min** | the trainer's `init_process_group(timeout=...)` | later: 3 × the longest collective measured in the dry runs ([ADR 0003](../adr/0003-node-health-checks.md) §2) |
 | `TORCH_NCCL_TRACE_BUFFER_SIZE`, `TORCH_NCCL_DUMP_ON_TIMEOUT` | `2000`, `1` | `slurm/mainrun.sbatch` | the flight recorder: on a timeout, each rank dumps its last 2000 collectives |
-| `TORCH_NCCL_DEBUG_INFO_TEMP_FILE` | `./out/<run_id>/logs/nccl_trace/rank_` (`mkdir -p` the folder first) | the job's start command (**not set yet**, section 14) | where the dumps go; the default is `/tmp`, which queue rules R3 forbid and which TSAI does not send back |
+| `TORCH_NCCL_DEBUG_INFO_TEMP_FILE` | `/var/log/v5/logs/nccl_trace/<job_id>-<restart_count>/rank_` (override the folder with `V5_NCCL_TRACE_DIR`; TSAI job layout: `./out/<run_id>/logs/nccl_trace/rank_`) | `slurm/mainrun.sbatch` (creates the folder) | where the dumps go; the default is `/tmp`, which queue rules R3 forbid and which TSAI does not send back |
 | `WATCHDOG_S` | `600` | `--watchdog-s` (`slurm/mainrun.sbatch`) | no step in 600 s: dump every Python stack, exit 75 (cause `hang_watchdog`) |
 
 Both timers are 10 min in dry run 1. Whichever fires first, the result is the same: the attempt stops, the
@@ -564,7 +564,7 @@ Other evidence: [`results/restore_test_cpu.txt`](../results/restore_test_cpu.txt
 | Restart on the lab node, `results/restart_node.txt` | Lead | **done**: TSAI job on #258, 1 GPU, PASS (8.3) |
 | Real restore time at config v1 size on the real store (8.5) | checkpoint owner + Team 6 | after Sat 14 Nov |
 | 2-GPU restore | TSAI | after Gate 2 |
-| Dry run 1 start command sets `TORCH_NCCL_DEBUG_INFO_TEMP_FILE` (11.1), the 10 min NCCL timeout and `WATCHDOG_S=600` | Lead, with Team 5 (`jobs/dryrun1/`) | Tue 17 Nov |
+| Dry run 1 start command sets the 10 min NCCL timeout and `WATCHDOG_S=600` (`TORCH_NCCL_DEBUG_INFO_TEMP_FILE` is now set in `slurm/mainrun.sbatch`, 11.1) | Lead, with Team 5 (`jobs/dryrun1/`) | Tue 17 Nov |
 | Confirm Team 5's trainer has the step watchdog (`--watchdog-s`); today only the test trainer in `support/simulation/` has it | Team 5 | Tue 17 Nov |
 | Fill the 10.4 checks from the dry run 1 logs (restarts, restored steps, steps run again) | Member C, with the lead's restore drill | Fri 20 Nov |
 | NCCL timeout test on 2 real GPUs (`support/kaggle/nccl_timeout_test.py`), trace read with `torchfrtrace` | TSAI job | after dry run 1 |
