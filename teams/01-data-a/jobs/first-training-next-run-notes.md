@@ -1,8 +1,7 @@
 # First-training job: what the next run should change
 
 `2026-11-19-first-training.md` and its folder are the submitted job and stay as they are. A rerun gets its own job request and
-folder, copied from them, with the changes below. The reference implementation (code, tests and doc edits) is on
-`smitasasindran:g1-w4-shard-parallel` (patilvijay23/era-v5-lab#90): `git diff origin/main g1-w4-shard-parallel -- teams/01-data-a/jobs`.
+folder, copied from them, with the changes below.
 
 ## prepare_run.py: three required worker flags
 
@@ -10,7 +9,7 @@ folder, copied from them, with the changes below. The reference implementation (
 `stages.clean.workers`, `stages.f2.workers` and `stages.shards.workers`. None may have a default, because each default is slow:
 `clean.json` says 4 clean workers, F2 at one worker takes about 3.1 h instead of 12 min, and the shard stage writes one pack at
 a time. Values for the job host (32 vCPU, 64 GiB): `--clean-workers 16` (about 0.5 GB each), `--f2-workers 30` (the fingerprint
-set is shared), `--shard-workers 8` (each part has a process of its own, 1 to 4 GB on the sample, so up to about 27 GB).
+set is shared), `--shard-workers 8` (each part has a process of its own, 1.2 to 3.7 GB on the sample, so up to about 30 GB).
 Tests: each value reaches `run.json`, an invalid value (0, negative, `True`, `"30"`) is refused, a missing flag stops
 `main()` before `prepare` runs.
 

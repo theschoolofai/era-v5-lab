@@ -47,7 +47,8 @@ One process per part: each part is written by a fresh process that ends when the
 clean_job.py does (this process holds threads from torch and pyarrow, which makes fork unsafe), so each part pays the imports,
 about 4 s. Run in one process, the writer's memory grew from part to part (3.4 GB at the first part
 to about 20 GB at the 48th in the 19 Nov rehearsal) because what a part used was never given back. A writer process that dies
-(killed, out of memory) fails its part and the run goes on. --in-process keeps the old behaviour, for the tests that break the
+(killed, out of memory) fails its part and the run goes on. On Linux a writer dies with this process: a run that is killed
+leaves no writer behind to write into the folder while the run is started again. --in-process keeps the old behaviour, for the tests that break the
 writer from inside.
 
 Several packs at once: --workers N (default 1) writes N packs at the same time. The unit is a pack with its parts in order,
@@ -182,8 +183,26 @@ def run_writer(argv):
         return "failed", f"{type(e).__name__}: {e}"
 
 
-def run_writer_in_child(argv):
-    """What the child process runs: the writer, and the peak memory of the process that did it."""
+def die_with_parent(parent_pid):
+    """Linux: have the kernel kill this process when the one that started it dies (prctl PR_SET_PDEATHSIG). Without it, a
+    writer of a killed run (kill -9, a job stopped) goes on and writes its part's shards while the run is started again into
+    the same folder. The signal is tied to the thread that started this process: here the one that waits for it to finish.
+    If the parent died before the call, getppid() has changed and this process stops at once. Elsewhere nothing."""
+    if not sys.platform.startswith("linux"):
+        return
+    try:
+        import ctypes, signal
+        if ctypes.CDLL(None, use_errno=True).prctl(1, signal.SIGKILL) != 0:  # 1 = PR_SET_PDEATHSIG
+            return
+    except (OSError, AttributeError):
+        return
+    if os.getppid() != parent_pid:
+        os._exit(1)
+
+
+def run_writer_in_child(argv, parent_pid):
+    """What the child process runs: the writer, and the peak memory of the process that did it. It dies with its parent."""
+    die_with_parent(parent_pid)
     return run_writer(argv), peak_rss_mb()
 
 
@@ -213,7 +232,7 @@ def write_one(path, a, row, index):
     else:
         try:
             with ProcessPoolExecutor(max_workers=1, mp_context=child_context()) as pool:
-                result, rss = pool.submit(run_writer_in_child, argv).result()
+                result, rss = pool.submit(run_writer_in_child, argv, os.getpid()).result()
         except BrokenProcessPool:  # killed, or out of memory: this part fails, the others go on
             result, rss = ("failed", "the writer process died (killed or out of memory?) before it finished the part"), None
     if result[0] == "written":

@@ -564,3 +564,39 @@ def test_the_run_record_is_copied_once_and_never_half_written(tmp_path):
     rs.shard_writer.publish_pipeline_record(record, target)     # already there: left alone
     assert target.stat().st_mtime_ns == before and [p.name for p in out.iterdir()] == ["cleaning_pipeline.json"]
 
+
+KILLED_PARENT = """
+import os, sys, time
+sys.path.insert(0, sys.argv[2])
+import run_shards as rs
+from concurrent.futures import ProcessPoolExecutor
+
+def writer(marker, parent):           # stands in for run_writer_in_child: the same call first, then a long part
+    rs.die_with_parent(parent)
+    open(marker + ".started", "w").close()
+    time.sleep(10)
+    open(marker, "w").write("written after the run was killed")
+
+if __name__ == "__main__":
+    with ProcessPoolExecutor(max_workers=1, mp_context=rs.child_context()) as pool:   # as write_one: spawn, one part
+        pool.submit(writer, sys.argv[1], os.getpid()).result()
+"""
+
+
+@pytest.mark.skipif(not sys.platform.startswith("linux"), reason="PR_SET_PDEATHSIG is Linux only")
+def test_a_writer_dies_with_a_killed_run_and_writes_nothing_after(tmp_path):
+    """kill -9 of run_shards.py (or a stopped job) must not leave a writer behind that goes on writing while the run is
+    started again into the same folder."""
+    import signal, subprocess, time
+    script, marker = tmp_path / "killed_parent.py", tmp_path / "marker"
+    script.write_text(KILLED_PARENT, encoding="utf-8")
+    parent = subprocess.Popen([sys.executable, str(script), str(marker), str(Path(rs.__file__).parent)])
+    deadline = time.monotonic() + 120
+    while not Path(str(marker) + ".started").exists():   # the writer is under way
+        assert parent.poll() is None and time.monotonic() < deadline, "the writer did not start"
+        time.sleep(0.2)
+    parent.send_signal(signal.SIGKILL)
+    parent.wait()
+    time.sleep(12)                                        # longer than the writer's part
+    assert not marker.exists()
+
