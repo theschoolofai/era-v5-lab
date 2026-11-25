@@ -66,6 +66,10 @@ RUN_FOLDER_ORIGINS = ("g10_rehearsal", "g5_delivery")
 # Files Team 5's train_week2.py hashes into manifest["sources"] (by basename) that must equal the pinned import.
 RUN_FOLDER_SOURCE_FILES = {"train_week2.py": "harness/train_week2.py", "model.py": "harness/week2/model.py",
                            "config.py": "harness/week2/config.py", "artifacts.py": "harness/week2/artifacts.py"}
+# Compared too when the run's manifest recorded them (Team 5 hashes every week2/*.py, train_week2.py:406): the KAS V2 head
+# and input (#717). A changed head forward would otherwise load cleanly and pass a probe computed with the same new code.
+RUN_FOLDER_SOURCE_FILES_IF_RECORDED = {"kas_v2.py": "harness/week2/kas_v2.py", "kas_terms.py": "harness/week2/kas_terms.py",
+                                       "unigram.py": "harness/week2/unigram.py", "raw_vocab.py": "harness/week2/raw_vocab.py"}
 
 FIXTURE_MARKER_KEY = "g10_fixture"  # top-level key in a .pt dict / safetensors metadata key
 FIXTURE_MARKER_VALUE = "FIXTURE_NOT_A_G5_ARTIFACT"
@@ -339,6 +343,92 @@ def _select(model, moe_cls, tcfg: dict) -> dict:
 
 # --- the bundle ---------------------------------------------------------------------------------------
 
+# --- output head access: the one place that knows what LanguageModel.head may be ---------------------------------
+
+def head_access(model) -> dict:
+    """What G10 code needs from G5's output head. Two kinds are known; anything else raises ArtifactError.
+
+    dense: dry run 1's untied `nn.Linear(n_embd, V)`; per-token matrix `head.weight` [V, n_embd].
+    kas:   Team 5's KAS V2 untied head (#717, kas_v2.KASHead), recognised by a 2-D Parameter `head.tok_u` [V, 64] (the
+           rank-64 per-token correction). Per token it owns `tok_u[v]` and `unigram[v]`; `W_out`, `tok_c`, `beta` are
+           shared; there is no `head.weight`. `head(h)` maps [..., n_embd] to [..., V].
+    Returns {"kind", "vocab_size", "per_token" (Parameter whose row i belongs to token i), "per_token_name", "tied"};
+    "tied" is True when any head tensor shares storage with the input embedding.
+    """
+    head = getattr(model, "head", None)
+    if isinstance(head, torch.nn.Linear):
+        kind, per_token, name, vocab = "dense", head.weight, "head.weight", int(head.out_features)
+    elif (isinstance(head, torch.nn.Module) and isinstance(getattr(head, "tok_u", None), torch.nn.Parameter)
+          and head.tok_u.ndim == 2):
+        kind, per_token, name, vocab = "kas", head.tok_u, "head.tok_u", int(head.tok_u.shape[0])
+    else:
+        mats = (sorted(n for n, q in head.named_parameters() if q.ndim == 2) if isinstance(head, torch.nn.Module)
+                else [])
+        raise ArtifactError(f"unknown G5 output head {type(head).__name__}: G10 handles a dense nn.Linear or a "
+                            f"KE2/KAS head with a 2-D `tok_u` [V, r]; its 2-D parameters: {mats}")
+    emb = getattr(model, "embedding", None)
+    emb_ptrs = {q.data_ptr() for q in emb.parameters()} if isinstance(emb, torch.nn.Module) else set()
+    tied = any(q.data_ptr() in emb_ptrs for q in head.parameters())
+    return {"kind": kind, "vocab_size": vocab, "per_token": per_token, "per_token_name": name, "tied": tied}
+
+
+def router_state(model, moe_cls) -> dict:
+    """Team 5's loss-free balancer (#748): the expert choice is topk(scores + router_bias) only when moe.bias_gamma != 0;
+    with gamma 0 the buffer is ignored. A non-zero bias under gamma 0 is never valid: the delivered model routed with the
+    bias, this one would not, and nothing else errors (job ADP test h). Our trainers never call update_router_bias(), so the
+    bias stays as delivered (the owner's rule, 23 Nov: "The bias stays as delivered. Do not keep updating it in SFT or RL")."""
+    layers = [(n, m) for n, m in model.named_modules() if isinstance(m, moe_cls)]
+    bad = [n for n, m in layers if getattr(m, "balance_gamma", 0.0) == 0.0 and isinstance(getattr(m, "router_bias", None),
+                                                                                         torch.Tensor)
+           and bool(m.router_bias.ne(0).any())]
+    if bad:
+        raise ArtifactError(f"router_bias is non-zero in {bad[:3]} ({len(bad)} layers) but the resolved model.moe.bias_gamma "
+                            f"is 0, so this model would ignore the bias the checkpoint routed with: build from the arm the "
+                            f"run used (dry run 2: bias_gamma 0.001)")
+    absmax = [float(m.router_bias.abs().max()) if isinstance(getattr(m, "router_bias", None), torch.Tensor) else None
+              for _, m in layers]
+    return {"bias_gamma": sorted({float(getattr(m, "balance_gamma", 0.0)) for _, m in layers}),
+            "router_bias_absmax": absmax, "bias_updated_by_g10": False}
+
+
+INPUT_CODES = {256: "ke2_raw_table", 64: "ke2_code_2048"}  # per-position code width -> input kind
+
+
+def input_access(model, pos_dim: int) -> dict:
+    """What G10 checks of G5's input layer, detected by name and shape (never by assuming 8,192).
+
+    ke2_raw_table: main's dry run 2 KE2, `embedding.projection.weight` [n_embd, 256 * P] (P = 32: 8,192).
+    ke2_code_2048: the TSAI ruling of 23 Nov (G4 chat): Linear(2048, d_model) over a fixed code, d_c = 64 per byte
+                   position, L_max = P = 32. Team 5's KASInput (#717, merged 24 Nov as 61f0a3ae; head_mode kas_v2).
+    Both need the byte table buffers `embedding.rows` uint8 [V, P] and `embedding.lengths` [V], which G10 compares
+    with the validated KE2 table. Anything else raises ArtifactError instead of being read as one of these.
+    """
+    emb = getattr(model, "embedding", None)
+    if not isinstance(emb, torch.nn.Module):
+        raise ArtifactError(f"G5 model has no `embedding` module (got {type(emb).__name__})")
+    found = {f"embedding.{n}": tuple(t.shape) for n, t in [*emb.named_buffers(), *emb.named_parameters()]}
+    rows, lengths = getattr(emb, "rows", None), getattr(emb, "lengths", None)
+    if not (isinstance(rows, torch.Tensor) and rows.ndim == 2 and rows.shape[1] == pos_dim
+            and isinstance(lengths, torch.Tensor) and tuple(lengths.shape) == (rows.shape[0],)):
+        raise ArtifactError(f"G5 input layer has no KE2 byte table buffers embedding.rows [V, {pos_dim}] and "
+                            f"embedding.lengths [V]: G10 cannot check it against the validated table; found {found}")
+    proj = getattr(getattr(emb, "projection", None), "weight", None)
+    if not (isinstance(proj, torch.Tensor) and proj.ndim == 2):
+        raise ArtifactError(f"G5 input layer has no 2-D embedding.projection.weight; found {found}")
+    width = int(proj.shape[1])
+    per_pos = width // pos_dim
+    if width % pos_dim or per_pos not in INPUT_CODES:
+        raise ArtifactError(f"G5 input projection width {width} is neither 256 x {pos_dim} (raw KE2 table) nor "
+                            f"64 x {pos_dim} (the 2,048 code); found {found}")
+    return {"kind": INPUT_CODES[per_pos], "width": width, "per_position": per_pos, "n_embd": int(proj.shape[0]),
+            "tensors": found}
+
+
+def head_logits(model, h: torch.Tensor) -> torch.Tensor:
+    """Logits [..., V] from final hidden states [..., n_embd]: G5's own `head(h)` call, for either known kind."""
+    return model.head(h)
+
+
 @dataclass
 class Bundle:
     mode: str
@@ -378,6 +468,19 @@ class Bundle:
         return out
 
     __call__ = forward
+
+    def hidden(self, ids: torch.Tensor, valid: torch.Tensor) -> torch.Tensor:
+        """Final hidden states [B, T, n_embd], the input of G5's head: forward(ids, valid) == head(hidden(ids, valid))
+        (LanguageModel.forward is `self.head(self.hidden(ids, valid))`; the head maps each position on its own)."""
+        self.check_batch(ids, valid)
+        return self.model.hidden(ids.to(self.device), valid.to(self.device))
+
+    def head(self, h: torch.Tensor) -> torch.Tensor:
+        """Main-head logits [..., V] from hidden states [..., n_embd] (any subset of positions)."""
+        out = head_logits(self.model, h)
+        if not isinstance(out, torch.Tensor) or out.shape != (*h.shape[:-1], self.spec["vocab_size"]):
+            raise RuntimeError(f"G5 head returned {type(out)} {getattr(out, 'shape', None)}, expected [..., V]")
+        return out
 
     # labels --------------------------------------------------------------------------------------
     @staticmethod
@@ -475,7 +578,7 @@ class Bundle:
             self.check_batch(seq, valid)
             # only the last position is sampled: project it alone through the 131,072-row head (same values as
             # forward()[:, -1]; the full-sequence head was L times the work and memory at every step)
-            logits = self.model.head(self.model.hidden(seq, valid)[:, -1]).float()
+            logits = head_logits(self.model, self.model.hidden(seq, valid)[:, -1]).float()
             if temperature <= 0:
                 nxt = logits.argmax(-1)
             else:
@@ -492,6 +595,26 @@ class Bundle:
                 break
         self.model.train(was)
         return seq, cmask, reason
+
+    @torch.no_grad()
+    def sample_many(self, prompts: list[list[int]], k: int, max_new: int, temperature: float,
+                    generator: torch.Generator | None, stop_ids: list[int] | None = None):
+        """k completions of every prompt in one KV-cached decode (rl-loop/g5_decode.sample_many); same checks and
+        per-prompt return contract as sample()."""
+        stop = list(self.special["stop_ids"] if stop_ids is None else stop_ids)
+        if not prompts or any(not p for p in prompts) or k <= 0 or max_new <= 0:
+            raise ValueError("need non-empty prompts, k > 0 and max_new > 0")
+        longest = max(len(p) for p in prompts)
+        if longest + max_new > self.spec["block_size"]:
+            raise ValueError(f"prompt {longest} + max_new {max_new} exceeds block_size {self.spec['block_size']}")
+        if temperature > 0:
+            if generator is None:
+                raise ValueError("sampling with temperature > 0 needs an explicit generator")
+            if torch.device(generator.device).type != torch.device(self.device).type:
+                raise ValueError(f"generator on {generator.device}, model on {self.device}")
+        import g5_decode  # noqa: PLC0415  rl-loop/g5_decode.py
+        return g5_decode.sample_many(self.model, [list(p) for p in prompts], k, max_new, temperature, generator, stop,
+                                     self.special["pad_id"], self.device)
 
     def policy(self):
         """A rl-loop Policy whose forward is the checked bundle.forward and whose sampling stops at every stop id."""
@@ -510,8 +633,15 @@ class Bundle:
                     seq, cmask, _ = bundle.sample(prompt, k, max_new, temperature, generator)
                 return seq, cmask
 
+            @torch.no_grad()
+            def sample_many(self, prompts, k, max_new, temperature=1.0, generator=None):
+                with self.autocast():  # same compute dtype as sample() and the trainer
+                    rolls = bundle.sample_many(prompts, k, max_new, temperature, generator)
+                return [(seq, cmask) for seq, cmask, _ in rolls]
+
         return Team5Policy(self.model, lambda m, ids, mask: bundle.forward(ids, mask),
-                           self.special["tokens"]["end_of_turn"]["id"], self.device)
+                           self.special["tokens"]["end_of_turn"]["id"], self.device,
+                           hidden=lambda m, ids, mask: bundle.hidden(ids, mask), head=lambda m, h: bundle.head(h))
 
     def codec(self, effort: str = "4k") -> "G10Codec":
         return G10Codec(self, effort)
@@ -681,6 +811,19 @@ def build(config, device: str = "cpu") -> Result:
                    {"path_name": ck_path.name, "sha256": ck_sha, "format": ck["format"]}, manifest, device)
 
 
+def check_keys(model, sd: dict) -> set:
+    """The checkpoint must carry exactly the model's state_dict keys, checked BEFORE load_state_dict: Team 5's MoE fills a
+    missing `router_bias` with zeros on load (#750), so a strict load alone accepts a checkpoint that lost the bias and
+    routes differently. Returns the key set."""
+    want = set(model.state_dict())
+    have = set(sd)
+    missing, unexpected = sorted(want - have), sorted(have - want)
+    if missing or unexpected:
+        raise ArtifactError(f"checkpoint keys do not match the G5 model: missing {missing[:5]} ({len(missing)}), "
+                            f"unexpected {unexpected[:5]} ({len(unexpected)})")
+    return want
+
+
 def _finish(mode, cfg, g5src, spec, tok, art, special, sd, is_fixture_ckpt, ck_extra, ck_info, manifest, device,
             status=None, require_probe=None):
     """Shared tail of every mode: build G5's LanguageModel, load and check the state dict, select trainables, probe."""
@@ -688,18 +831,14 @@ def _finish(mode, cfg, g5src, spec, tok, art, special, sd, is_fixture_ckpt, ck_e
     torch_state = torch.random.get_rng_state()
     model = mods["week2.model"].LanguageModel(spec, art.bytes, art.lengths)  # init values are overwritten below
     torch.random.set_rng_state(torch_state)  # building must not advance the caller's RNG
-    want = set(model.state_dict())
-    have = set(sd)
-    missing, unexpected = sorted(want - have), sorted(have - want)
-    if missing or unexpected:
-        raise ArtifactError(f"checkpoint keys do not match the G5 model: missing {missing[:5]} ({len(missing)}), "
-                            f"unexpected {unexpected[:5]} ({len(unexpected)})")
+    want = check_keys(model, sd)
     ref = model.state_dict()
     bad = [(k, tuple(sd[k].shape), tuple(ref[k].shape)) for k in sorted(want) if tuple(sd[k].shape) != tuple(ref[k].shape)]
     if bad:
-        if any(k == "head.weight" or k.startswith("embedding.") for k, _, _ in bad):
+        if any(k.startswith(("head.", "embedding.")) for k, _, _ in bad):
             raise ArtifactError(f"vocabulary/KE2 shape mismatch in checkpoint: {bad[:3]}")
         raise ArtifactError(f"checkpoint tensor shapes differ from the G5 model: {bad[:3]}")
+    inp = input_access(model, art.pos_dim)  # refuses an input layer G10 cannot check (by name and shape)
     # The KE2 code table is a buffer of the checkpoint; it must be exactly the validated table.
     if not torch.equal(sd["embedding.rows"].to(torch.uint8), torch.as_tensor(art.bytes)):
         raise ArtifactError("checkpoint KE2 rows differ from the validated KE2 table")
@@ -709,8 +848,12 @@ def _finish(mode, cfg, g5src, spec, tok, art, special, sd, is_fixture_ckpt, ck_e
         if sd[k].dtype != ref[k].dtype:
             raise ArtifactError(f"dtype of {k} is {sd[k].dtype}, G5 model stores {ref[k].dtype}")
     model.load_state_dict(sd, strict=True)
-    if model.head.weight.data_ptr() == model.embedding.projection.weight.data_ptr():
+    router = router_state(model, mods["week2.model"].MoE)  # refuses a non-zero router_bias the config would ignore
+    head = head_access(model)  # raises on a head of unknown kind
+    if head["tied"]:
         raise ArtifactError("output head unexpectedly tied to the KE2 projection")
+    if head["vocab_size"] != spec["vocab_size"]:
+        raise ArtifactError(f"output head vocabulary {head['vocab_size']} != model spec {spec['vocab_size']}")
     if (model.mtp_head is not None) != bool(spec.get("mtp")):
         raise ArtifactError("MTP head presence disagrees with the resolved spec")
     model.requires_grad_(True)
@@ -729,7 +872,10 @@ def _finish(mode, cfg, g5src, spec, tok, art, special, sd, is_fixture_ckpt, ck_e
         "n_parameters": sum(p.numel() for p in model.parameters()),
         "model_hash_g5": mods["train_week2"].model_hash(model),
         "selection": selection,
-        "head": {"tied": False, "mtp_head": model.mtp_head is not None, "forward_returns": "main head logits"},
+        "head": {"kind": head["kind"], "tied": False, "mtp_head": model.mtp_head is not None,
+                 "forward_returns": "main head logits"},
+        "input": {k: v for k, v in inp.items() if k != "tensors"},
+        "router": router,
     })
     template = _load_render(Path(__file__).resolve().parents[1])
     bundle = Bundle(mode, model, spec, art, special, selection, manifest, tok["template_path"], template)
@@ -792,6 +938,14 @@ def _build_run_folder(cfg: dict, base: Path, device: str) -> Result:
         if sources.get(name) != want:
             raise ArtifactError(f"run folder was trained with a different {name} ({sources.get(name)}) than the "
                                 f"pinned G5 import ({want})")
+    for name, rel in RUN_FOLDER_SOURCE_FILES_IF_RECORDED.items():
+        if name not in sources:
+            continue
+        here = g5src["team"] / rel
+        want = g5src["files_sha256"].get(rel) or (sha256_file(here) if here.is_file() else None)
+        if sources[name] != want:
+            raise ArtifactError(f"run folder was trained with a different {name} ({sources[name]}) than the pinned G5 "
+                                f"import ({want or 'file missing'})")
     rcfg = copy.deepcopy(_need(g5_manifest, "config", "manifest.json"))
     errors = g5src["mods"]["week2.config"].validate(rcfg)
     if errors:

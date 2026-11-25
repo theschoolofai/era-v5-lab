@@ -522,11 +522,20 @@ def test_resolve_compute_dtype_matches_team9_watcher(monkeypatch):
     assert evaluate.resolve_compute_dtype("cpu", "auto") == ("float32 (TF32 off)", False)
     assert evaluate.resolve_compute_dtype("cpu", "bfloat16") == ("bfloat16", True)
     monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
-    monkeypatch.setattr(torch.cuda, "is_bf16_supported", lambda: True)
+    monkeypatch.setattr(torch.cuda, "is_bf16_supported", lambda including_emulation=True: True)
     assert evaluate.resolve_compute_dtype("cuda", "auto") == ("bfloat16", True)
     assert evaluate.resolve_compute_dtype("cuda", "bfloat16") == ("bfloat16", True)
     assert evaluate.resolve_compute_dtype("cuda", "float32") == ("float32 (TF32 off)", False)
-    monkeypatch.setattr(torch.cuda, "is_bf16_supported", lambda: False)
+    monkeypatch.setattr(torch.cuda, "is_bf16_supported", lambda including_emulation=True: False)
+    assert evaluate.resolve_compute_dtype("cuda", "auto") == ("float32 (TF32 off)", False)
+    with pytest.raises(RuntimeError, match="native bf16"):
+        evaluate.resolve_compute_dtype("cuda", "bfloat16")
+
+
+def test_emulated_bf16_gpu_scores_in_fp32_like_the_watcher(monkeypatch):
+    """T4/V100: torch says bf16 is supported only when emulation counts. Team 9 (lm_eval_lab.py) says no, so must we."""
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: True)
+    monkeypatch.setattr(torch.cuda, "is_bf16_supported", lambda including_emulation=True: bool(including_emulation))
     assert evaluate.resolve_compute_dtype("cuda", "auto") == ("float32 (TF32 off)", False)
     with pytest.raises(RuntimeError, match="native bf16"):
         evaluate.resolve_compute_dtype("cuda", "bfloat16")
@@ -541,3 +550,49 @@ def test_autocast_ctx_leaves_fp32_weights_uncast():
     assert layer.weight.dtype == torch.float32
     assert y.dtype == torch.bfloat16
 
+
+
+def test_eval_mini_block_names_the_dtype_it_ran_in(tmp_path, monkeypatch):
+    """forgetting.py refuses benchmark rows whose dtype differs from the bits-per-byte dtype, so the block must carry it."""
+    import subprocess
+    runs = tmp_path / "runs"
+    (runs / "r1").mkdir(parents=True)
+    (runs / "r1" / "summary.json").write_text(json.dumps({
+        "records": [{"task": "arc_challenge", "metric": "acc_norm", "filter": "none", "value": 0.3, "stderr": 0.01,
+                     "n_items": 5, "num_fewshot": 0, "primary": True}],
+        "run_meta": {"versions": {"torch": "x"}}}), encoding="utf-8")
+    monkeypatch.setattr(subprocess, "run", lambda *a, **k: subprocess.CompletedProcess(a, 0, "", ""))
+    for dtype in ("float32", "bfloat16"):
+        out = evaluate.eval_mini("m", "python", runs, "cpu", ["arc_challenge"], dtype=dtype)
+        assert out["dtype"] == dtype and out["returncode"] == 0 and out["records"][0]["task"] == "arc_challenge"
+
+
+def test_bench_autocast_runs_without_the_weight_cast_cache(monkeypatch):
+    """GPL4: train.autocast_ctx (SFT through bench.accumulate, incl. sft_g5) must not keep autocast's BF16 copy of every
+    trainable weight (14.1 GiB at Qwen3-8B with checkpointing). Fails if the cache comes back."""
+    monkeypatch.setitem(train.AUTOCAST, "dtype", torch.bfloat16)
+    monkeypatch.setitem(train.AUTOCAST, "device", "cpu")
+    with train.autocast_ctx("cpu"):
+        assert torch.is_autocast_enabled("cpu")
+        assert torch.is_autocast_cache_enabled() is False
+
+
+def test_bench_autocast_cache_off_gives_bit_identical_weights(tiny_setup, monkeypatch):
+    """GPL4: cache on vs off on the bf16 autocast path with checkpointing and 2+ microbatches: same losses, grad norms and
+    saved weights after 3 steps."""
+    def run(out, cache):
+        monkeypatch.setitem(train.AUTOCAST, "dtype", torch.bfloat16)
+        monkeypatch.setitem(train.AUTOCAST, "device", "cpu")
+        monkeypatch.setitem(train.AUTOCAST, "cache", cache)
+        args = train.parse_args(["--train", str(tiny_setup / "train.tok.jsonl"), "--model", str(tiny_setup / "base"),
+                                 "--revision", "main", "--tokenizer-dir", str(tiny_setup / "tokdir"), "--method", "full",
+                                 "--steps", "3", "--warmup", "2", "--lr", "1e-3", "--seed", "5", "--device", "cpu",
+                                 "--micro-tokens", "64", "--grad-checkpointing", "--out", str(tiny_setup / out),
+                                 "--log-every", "100"])
+        args.revision = None
+        return train.train(args)
+
+    on, off = run("ac_on", True), run("ac_off", False)
+    assert all(r["microbatches"] >= 2 for r in off["log"])
+    assert [(r["loss"], r["grad_norm"]) for r in on["log"]] == [(r["loss"], r["grad_norm"]) for r in off["log"]]
+    assert on["saved_state_sha256"] == off["saved_state_sha256"]

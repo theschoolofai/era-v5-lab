@@ -15,7 +15,7 @@ the G9 group yet. Never add emails or keys here.
 | Handle | Role | From | Until | Also works on |
 |---|---|---|---|---|
 | `theschoolofai` | TSAI, runs approved jobs | 24 Oct | open | not applicable |
-| `rahulni` | Team 9 lead | 24 Oct | open | Team 3 (weeks 2 to 3), Team 5 (weeks 3 to 5) |
+| `rahulni` | Team 9 lead | 24 Oct | open | Team 3 (week 2), Team 5 (week 3) |
 | `Anusha-raju` | Core member | 24 Oct | open | to confirm |
 | `maheshsv` | Core member | 24 Oct | open | Team 1 (week 2) |
 | `Nisarg189` | Core member (role A) | 24 Oct | open | to confirm |

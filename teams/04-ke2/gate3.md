@@ -25,16 +25,19 @@ Gate 3 item 1 is met by task 1 and item 2 by task 3. Tasks 2, 4 and 5 support th
 |---|---|---|
 | Tokenizer | p1536-s0, `tokenizer.json` sha256 `e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b`, V = 131,072, 356 special IDs | TSAI Gate 3 notice, 16 Nov; Team 3 #414, #504 |
 | Byte table | raw table, P = 32, D = 8,192; content sha256 `21072027b19ef6f05d57ead7a2fc9fb4c52129e491186bf38d0ba079e8d5168a`; 131,072 distinct rows, 0 truncated, 0 empty | `results/tables/p1536-s0/`; #498 |
-| Input embedding | fixed Kronecker code, then the learned `Linear(8192, d_model, bias=False)`; fp32 inside the KE2 class | Gate 2; `trainer_adapter.md` |
-| Output head | KE2/KAS decodable head (Kronecker byte codec, fused byte scores, tied to the input embedding, unigram log-prior + rank-64 per-token correction, 5% vocabulary dropout, head-only). Supersedes the 15 Nov dense-untied decision. | TSAI, 21 Nov |
+| Input embedding | fixed Kronecker code, then the learned `Linear(8192, d_model, bias=False)`; fp32 inside the KE2 class. Dry run 1 trained this path. TSAI has moved the capstone to the reference's 2,048 code, so it becomes `Linear(2048, d_model)` in Team 5's integration PR (#717) | Gate 2; `trainer_adapter.md`; TSAI (the migration is listed in #717) |
+| Output head | KE2/KAS decodable head (Kronecker byte codec, fused byte scores, its own separate 2048-wide projection, NOT tied to the input embedding; unigram log-prior + rank-64 per-token correction, 5% vocabulary dropout, head-only). Supersedes the 15 Nov dense-untied decision. | TSAI, 21 Nov |
 | Special roles | eos 130822 `<\|endoftext\|>`, bos 130725, pad 130726, unk 130727; ID 36 has no role | Team 3 #407; `teams/03-tokenizer/release/SPECIAL_TOKENS.md` |
 
-**21 Nov update.** The output head decision above replaces the 15 Nov dense-untied entry. Reference implementation:
-`The-School-of-AI/ke2-head`. At the reported scale (GPT-2 vocabulary, 6-layer/768-wide, 100M tokens) the KAS head
-matches dense bpb (1.5153 vs 1.5154) with weight tying to the input embedding, handles vocabulary additions at
-inference time with no retraining (97% land in the top 10 on a 120-word held-out test), and spells unseen words
-correctly far more often than dense (79% vs 32%). Team 4 hands off the reference implementation; Team 5 owns
-integrating it into the trainer.
+**21 Nov update, corrected.** The output head decision above replaces the 15 Nov dense-untied entry. Reference
+implementation: `The-School-of-AI/ke2-head`, pinned commit `81cf1c0`, arm `a10_kas_tokdrop`. **Correction:** the chosen
+arm is untied (its own separate `W_out`, input embedding and head each have their own 2048-wide projection) — an
+earlier message said "tied," which was wrong. Only the `a3_kronf_kas_tied` / `a5_kas_tied_unigram` arms tie, and
+those are not the chosen configuration, so there is no tested evidence for tying this arm and no parameter-savings
+claim from tying. At the reported scale (GPT-2 vocabulary, 6-layer/768-wide, 100M tokens) the KAS head matches dense
+bpb (1.5153 vs 1.5154), handles vocabulary additions at inference time with no retraining (97% land in the top 10 on
+a 120-word held-out test), and spells unseen words correctly far more often than dense (79% vs 32%). Team 4 hands
+off the reference implementation; Team 5 owns integrating it into the trainer.
 
 ## Handoff of the reference implementation to Team 5 (21 Nov)
 
@@ -48,22 +51,28 @@ integrating it into the trainer.
 | Trained weights | GitHub release `v1-checkpoints`, file `ke2_k64_drop05_100m.pt` (GPT-2 vocabulary; evaluation only, no optimizer state) |
 | Questions | Team 4 answers in the 05 Architecture group; code differences and bugs as issues on the repository |
 
-Three differences between the reference and the lab path that Team 5 should settle first. Team 4 helps with each:
+Three differences between the reference and the lab path. Codec width and weight tying are settled by TSAI; the
+vocabulary is being wired in #717. Team 4 helps with each:
 
-1. **Codec width.** The reference codec is Hadamard-coded and 2,048 wide (`d_c = 64` by `L_max = 32`). The lab's KE2
-   input path (`trainer_adapter.md`) uses the raw P = 32 table at D = 8,192. The KAS head scores bytes through the same
-   codec as its input embedding, so the trainer needs one codec on both sides: either Team 5's input path moves to the
-   reference codec, or the head is built on the 8,192-wide table. This also decides whether `Linear(8192, d_model)` stays.
-2. **Weight tying.** On the pinned commit only arms `a3_kronf_kas_tied` and `a5_kas_tied_unigram` tie the head to the
-   input projection (`model.py`, `tied_weight=`). `a10_kas_tokdrop` is untied, and `runs/final/long_k64d05.json` records
-   a separate 1.57M-parameter input projection. The tied rank-64 configuration named in the decision needs that one-line
-   tie and its run record. Team 4 is confirming the source of the tying result with TSAI.
+1. **Codec width: settled, 2,048 (TSAI).** The reference codec is Hadamard-coded and 2,048 wide (`d_c = 64` by
+   `L_max = 32`). The KAS head scores bytes through the same codec as its input embedding, so the trainer needs one codec
+   on both sides, and TSAI moved the lab's input to the reference codec: `Linear(8192, d_model)` becomes
+   `Linear(2048, d_model)`. The lab's input path (`trainer_adapter.md`) still describes the raw P = 32 table at
+   D = 8,192 that dry run 1 trained; Team 5's integration PR (#717) changes it and updates `trainer_adapter.md` and
+   `output_shape.md`.
+2. **Weight tying: settled, untied (TSAI, #702).** On the pinned commit only arms `a3_kronf_kas_tied` and
+   `a5_kas_tied_unigram` tie the head to the input projection (`model.py`, `tied_weight=`). The chosen arm
+   `a10_kas_tokdrop` is untied: its head has its own output projection, and `runs/final/long_k64d05.json` records a
+   separate 1.57M-parameter input projection. TSAI confirmed this and withdrew the tying claim: there is no tested
+   evidence for tying this arm and no parameter saving to claim.
 3. **Vocabulary.** The reference runs on GPT-2 (50,257 tokens). The lab uses p1536 (131,072 tokens, 356 special IDs,
    longest token 32 bytes), so `L_max = 32` already fits. The unigram log-prior needs p1536 token counts from the
-   training corpus, and the `tok_u` table and vocabulary dropout are sized by V. The open ke2-head PR #2 (Brahmic
-   vocabulary ingestion) is the first non-GPT-2 path and the closest worked example.
+   training corpus; Team 3's counts are on main (#719), and #717 wires them in. The `tok_u` table and vocabulary
+   dropout are sized by V. The open ke2-head PR #2 (Brahmic vocabulary ingestion) is the first non-GPT-2 path and the
+   closest worked example.
 
-The optimizer split (Muon on hidden 2-D matrices, Adam on embeddings and head) is pending TSAI's confirmation and is not
+The optimizer split is confirmed by TSAI and on main: Muon (lr 0.006) on the 2-D matrices inside the blocks, including
+the MoE router; AdamW on the embedding projection, the head (`head.*`) and the norm gains (#706, #725, #736). It is not
 Team 4's call.
 
 ## 1. Trainer agreement (task 1, #515)
@@ -191,7 +200,9 @@ and the size after the fold. G12's `scripts/export_hf.py` already folds this way
 - The KE2 input folds into a normal embedding table for serving, reproducing the trainer bit for bit on 16,384 sampled
   IDs and matching float64 on all 131,072 (task 5).
 - Dry run 1's manifest records the chosen table, content sha256 `21072027…168a` (#620).
-- Output head decided 21 Nov: the KE2/KAS decodable head. Reference `The-School-of-AI/ke2-head` at `81cf1c0`; the
-  handoff table and the three integration questions are in the handoff section above.
-- Still open: the CUDA encode and decode timing (task 4; the benchmark is merged in #588 and #624), risk 2, and the
-  three integration questions (codec width, weight tying, p1536 vocabulary).
+- Output head decided 21 Nov: the KE2/KAS decodable head, untied (corrected in #702). Reference
+  `The-School-of-AI/ke2-head` at `81cf1c0`; the handoff table and the integration questions are in the handoff section
+  above.
+- Still open: the CUDA encode and decode timing (task 4; the benchmark is merged in #588 and #624, the CUDA job
+  request in #731), risk 2, and wiring the p1536 vocabulary into the head (#717). Codec width (2,048) and weight tying
+  (untied) are settled by TSAI.

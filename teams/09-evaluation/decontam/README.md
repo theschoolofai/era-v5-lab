@@ -157,6 +157,92 @@ python teams/09-evaluation/decontam/canary_scan.py <dir>/<shard_id>.text.parquet
   Set `ERA_SHARD`, `ERA_TOKENIZER` (the shard's frozen tokenizer; the old name `ERA_C3_TOKENIZER` also works) and
   optionally `ERA_SHARD_CLEAN` to also test a real shard.
 
+## Many shards in one command (`fetch_shards.py`, `check_shards.py`)
+
+Two steps. Only the first one uses the network, so the second can run as a TSAI job (no network, reads only its
+inputs, writes only to `./out/`: JOB_REQUEST.md rule 1).
+
+```bash
+# 1. download (network): manifest first, then each file checked against the sha256 in the manifest
+python teams/09-evaluation/decontam/fetch_shards.py shard_links.tsv --out <shards>
+# 2. check (no network): on a job host use --work ./out
+python teams/09-evaluation/decontam/check_shards.py <shards> --tokenizer <p1536>/tokenizer.json --work <dir> \
+    --compare teams/09-evaluation/results/decontam_shards.md
+```
+
+`check_shards.py` runs the chain above on every shard in the folder: `decode_shard.py` → `decontam_check.py` (full
+set) and `canary_scan.py`. It calls the three scripts unchanged, so the result is the same as running them by hand.
+
+- **Speed:** all steps share one pool of `--jobs` worker processes (default: the number of cores, at most one per
+  2.5 GB of memory). The biggest shards start first. A decoded shard is cut into parts of about `--part-tokens`
+  tokens (default 16M, whole documents), and `decontam_check.py` runs on each part in its own process. Each document is
+  checked alone, so the parts give the same result as one run; the flagged count is the sum over the parts.
+- **Resume:** each shard's result goes to `<work>/results/<shard_id>.json` only when all steps finish. A second run
+  skips those shards, unless the tokenizer, the fingerprint set (set_sha256), the check code (code_sha256: the
+  runner, the three scripts, the modules they import and the tokenizers version) or the manifest's payload changed
+  (`--force` checks them again). A shard with a file missing fails and is named. A result with another set_sha256
+  than the set of the run fails the run.
+- **One run per work folder:** a lock on `<work>` stops a second run on the same folder at once, so it cannot delete
+  the first run's files. The operating system releases the lock when a run ends, also after a crash. Use a local
+  `--work` folder: the lock is not reliable on a network drive.
+- **Decoded text:** deleted after each shard, and in `<work>/text` at the start and at the end of each run (also text
+  that a step of a crashed run wrote late). `--keep-text` keeps it until the next run on the folder.
+- **Compare:** `--compare <markdown>` checks payload_sha256, docs and tokens against the first table row of each shard
+  (rows with or without a `#` column).
+- **Output:** a table in the format of `results/decontam_shards.md`, plus the set_sha256, the canary count and the
+  tokenizer sha256. Exit code 0 only when every shard passed, with 0 flagged, 0 canary hits and no mismatch. The
+  decoded text is deleted after the checks (`--keep-text` keeps it). Never commit `<work>`.
+- **Tested** on 7 of the 41 sample-v0 shards (`code-cpp-train-000000`, `code-go-train-000000`,
+  `code-rust-train-000001`, `ind-gu-fw2-train-000000`, `ind-hi-sangraha-v-train-000000`,
+  `ind-kn-sangraha-v-train-000000`, `ind-mr-sangraha-v-train-000000`; 181,994,759 tokens): all 7 match
+  `results/decontam_shards.md` on payload_sha256, docs and tokens, 0 flagged, 0 canary hits. Laptop CPU (14 cores,
+  24 GB), `--jobs 10`: 98 s. With 3 shards at a time, in name order and with no parts: 219 s. The biggest single
+  process used about 1.8 GB.
+- **Tests:** `pytest teams/09-evaluation/decontam/tests/test_check_shards.py -q` (no shard, tokenizer or network
+  needed). One test runs the real `decontam_check.py` and `canary_scan.py` on a small set built in the test: a
+  benchmark text and the lab canary planted in documents of different parts are flagged with their doc_id, and
+  nothing else (as check 3 of `results/decontam_shards.md`).
+
+## Training text as JSONL (`check_jsonl.py`)
+
+Use this when the training text is staged as JSONL and not as token shards. An example is
+`train_week2.py --train-data ./inputs/train.jsonl`, with one JSON object per line: `"text"` and an optional `"id"`.
+`check_shards.py` reads only shard folders, so it cannot check such a file.
+
+```bash
+# no network, no tokenizer: on a job host use --work ./out
+python -I teams/09-evaluation/decontam/check_jsonl.py ./inputs/train.jsonl --work <dir>
+```
+
+`check_jsonl.py` runs `decontam_check.py` (full set) and `canary_scan.py` on each file, with the scripts unchanged.
+
+- **Speed:** the file is cut into parts of whole lines, copied as they are. By default a part is the total size of
+  the files divided by `--jobs`, at most 64 MB, so a small file still uses every worker (`--part-bytes` sets a fixed
+  size). `decontam_check.py` runs on each part in its own process, in one pool of `--jobs` worker processes (default
+  as in `check_shards.py`). Each document is checked alone, so the parts give the same result as one run on the file.
+- **Document IDs:** `--id-field` (default `id`, as `train_week2.py`) and `--text-field` (default `text`). A line
+  without an ID is named `<file name>:<line index>` (0-based, blank lines counted), the same name that the two
+  scripts give when they read the whole file.
+- **Pass rule:** exit code 0 only when every file has 0 flagged and 0 canary hits. Do not use the exit code of
+  `decontam_check.py` alone: it is 0 also when it flags documents. Run the two scripts with `python`, not
+  `python -I`: under `-I` they cannot import their own modules. `check_jsonl.py` itself works under `-I`.
+- **Text copies:** the parts are copies of the training text in `<work>/text`. They are deleted after each file,
+  and at the start and the end of each run. One run at a time can use a `--work` folder. Never commit `<work>`.
+- **Output:** `<work>/results/<file name>.json` (sha256 of the file, bytes, docs, flagged doc IDs, canary hits, no
+  text), a markdown table, the set_sha256 and the canary count.
+- **Tested** on a 604 MB file of 124,844 documents of 6 sample-v0 packs (text before F2, so it has real hits), with a
+  GSM8K test item planted in one document and in one line without an ID, and the lab canary in a third. Laptop CPU
+  (14 cores, 24 GB), `--jobs 10`, 10 parts: 53 s, against 315 s for one `decontam_check.py` on the whole file. Both
+  flag the same 188 doc IDs, which include the two planted items (`train.jsonl:90000` for the line without an ID).
+  The canary is found in its document. No text is left in `<work>/text`.
+  A 100 MB file (about the size of dry run 2's training text), `--jobs 10`: 7 s with the default part size (10
+  parts), against 23 s with fixed 64 MB parts (2 parts, so only 2 workers busy). Same flagged IDs.
+- **Tests:** `pytest teams/09-evaluation/decontam/tests/test_check_jsonl.py -q` (no tokenizer or network needed):
+  the cut into parts (whole lines, `\r` inside a line, a last line without a newline, lines longer than one read),
+  planted leaks through the parts with the real scripts, the same flagged IDs as one run on the file, a bad line,
+  text left by a stopped run, the work-folder lock, `python -I`, the default part size, a file with no documents,
+  invalid UTF-8, many files with few workers, and more than 9,999 parts.
+
 ## Normalize
 
 Before the cut into runs, the text of an item and of a document is normalized, so that

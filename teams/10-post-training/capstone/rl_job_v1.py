@@ -5,7 +5,7 @@
         --rl-tasks <POOL>/out/v1/cc.jsonl --train-pool rl-code-v1-train.pool.jsonl --heldout-pool rl-code-v1-heldout.pool.jsonl \
         --sft-arm a4 --packs <shard-0000N>/pack.firewalled.jsonl ... --heldout H.jsonl --device cuda --out out/
 
-One question: do a bounded number of objective_v1 RL updates, on the code pool minus the 23 free-reward and 55 effort-suite
+One question: do a bounded number of objective_v1 RL updates, on the code pool minus the 66 free-reward and 55 effort-suite
 ids, raise the pass rate on unfiltered RL held-out problems, and is the gain more than a format gain? (work/rl-real-job-
 request PREREG and its amendments; the request is jobs/2026-11-19-g10-rl-dryrun1.md.)
 
@@ -22,13 +22,16 @@ Steps (each writes out/<step>.json; summary.json last; exit 1 if a step failed; 
   plan     time table; screen size = largest of 64/128/256 that fits 10 minutes at the measured decode rate;
            if the time left cannot hold screen + 3 updates + the last evaluation: screen only, then stop
   rl       rl-loop/train.py (objective_v1, screen, resumable state, deadline) with a literal-sample detector on the
-           held-out evaluations; report.json applies the decision rule
+           held-out evaluations; report.json applies the decision rule. Before the first update the log-prob gate checks
+           that the update forward reproduces the sampler's log-probs at identical weights (--no-logprob-gate skips it;
+           --update-mode eval is the switch it asks for when a train-only layer such as head dropout breaks it)
 Weights, built rows and resumable state are deleted at exit (state only when the run is complete or stopped at the screen).
 """
 from __future__ import annotations
 
 import argparse
 import collections
+import contextlib
 import hashlib
 import json
 import os
@@ -49,7 +52,9 @@ import day_one_probe as probe  # noqa: E402
 TRAIN_POOL_SHA256 = "cd1aa76ef1216f6fc6fdcf63fc0b69c98fa6a5d58a510f28be9050fecbedcce1"  # rl-code-v1-train.pool.jsonl (#564), 3,251 ids
 HELDOUT_POOL_SHA256 = "935857bb0246172aa0439445dd54ef9bbbe282ad2b5ea87ddd100429c9e31ae5"  # rl-code-v1-heldout.pool.jsonl (#564), 255 ids
 EASY_IDS_SHA256 = "452178c10e7325bc1cea62b0ad567a68dc32f6596f273b97dc8a36728f985c6f"  # capstone/probe_rl_easy_ids.txt (#587's screen ids)
-FREE_IDS_SHA256 = "3709f52b460a361b33f97da03e9a4bb8895d61df752ef4c5c14224e9aa5664c7"  # capstone/rl_exclusions_v1/free_reward_ids.txt (23)
+FREE_IDS_SHA256 = "c97568952d2374be473e747184ea2b23098601797c936aad35363d8e0539aa2e"  # capstone/rl_exclusions_v1/free_reward_ids.txt (66)
+# 66 = the 23 of the 18 Nov verifier audit (first 23 lines, unchanged) + 43 found from the kept tests alone by
+# rl-data/free_reward_ids.py (one fixed output, or one fixed token per case, passes every scored test); was 3709f52b... (23)
 EFFORT_MANIFEST = TEAM10 / "eval" / "effort_manifest.json"  # training_exclusion.task_ids (55)
 FREE_IDS = HERE / "rl_exclusions_v1" / "free_reward_ids.txt"
 EASY_IDS = HERE / "probe_rl_easy_ids.txt"
@@ -61,7 +66,7 @@ MIN_UPDATES_TO_START = 3  # Amendment 1: fewer than screen + 3 updates + last ev
 STDIN_MARKERS = ("input(", "sys.stdin", "open(0", "fileinput", "readline", "os.read(0")
 
 # the no-skill programs of the 18 Nov verifier audit (work/verifier-audit-code-2026-11-18/RESULTS.md); sample-hardcode is
-# not rebuilt here: its 13 tasks are among the 23 free-reward ids, which are out of training
+# not rebuilt here: its 13 tasks are among the 66 free-reward ids, which are out of training
 TRICKS = {"prints_nothing": "pass", "echo_stdin": "import sys\nsys.stdout.write(sys.stdin.read())", "zero": "print(0)",
           "one": "print(1)", "minus_one": "print(-1)", "YES": "print('YES')", "NO": "print('NO')",
           "Yes": "print('Yes')", "No": "print('No')"}
@@ -249,6 +254,37 @@ def guard(a, out: Path) -> dict:
 
 # ---------------------------------------------------------------------------- inputs
 
+def dt_canary_pins(a) -> dict | None:
+    """Bind the three DT export files to their SHA256SUMS before model work and later config generation."""
+    mask = getattr(a, "keep_mask", None)
+    if mask is None:
+        return None
+    if not a.start_weights:
+        raise ValueError("--keep-mask needs --start-weights")
+    paths = {"start_weights_sha256": a.start_weights, "sha256": mask,
+             "metadata_sha256": Path(str(mask) + ".json")}
+    expected = getattr(a, "_dt_canary_pins", None)
+    if expected is None:
+        manifest = getattr(a, "canary_sha256s", None) or mask.parent / "SHA256SUMS"
+        entries = {}
+        for line in manifest.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            digest, name = line.split(maxsplit=1)
+            if len(digest) != 64 or any(ch not in "0123456789abcdef" for ch in digest) or name in entries:
+                raise ValueError("invalid or duplicate SHA256SUMS entry")
+            entries[name] = digest
+        missing = [path.name for path in paths.values() if path.name not in entries]
+        if missing:
+            raise ValueError(f"DT canary SHA256SUMS missing {', '.join(missing)}")
+        expected = {key: entries[path.name] for key, path in paths.items()}
+        a._dt_canary_pins = expected
+    for key, path in paths.items():
+        if probe.sha256_file(path) != expected[key]:
+            raise ValueError(f"DT canary {path.name} differs from its pinned SHA-256")
+    return expected
+
+
 def check_inputs(a) -> dict:
     import sft_job_v1 as sj  # noqa: PLC0415
     need = {"run folder checkpoint.pt": a.run_folder / "checkpoint.pt", "run folder manifest.json": a.run_folder / "manifest.json",
@@ -262,9 +298,15 @@ def check_inputs(a) -> dict:
     if a.origin != "g5_delivery" and not a.allow_fixture_smoke:  # fail before the rebuild, not after it
         raise ValueError(f"--origin {a.origin} gives a rehearsal adapter that rl-loop/train.py refuses; use --origin g5_delivery for "
                          "Team 5's delivered run folder (dry run only: --allow-fixture-smoke, output is never a result)")
-    block = json.loads((a.run_folder / "manifest.json").read_text(encoding="utf-8"))["config"]["model"]["block_size"]
+    model_config = json.loads((a.run_folder / "manifest.json").read_text(encoding="utf-8"))["config"]["model"]
+    block = model_config["block_size"]
     if block != a.max_tokens:
         raise ValueError(f"run folder block_size {block} != --max-tokens {a.max_tokens}")
+    if getattr(a, "expected_head_mode", None) is not None and model_config.get("head_mode") != a.expected_head_mode:
+        raise ValueError(f"run folder head_mode {model_config.get('head_mode')} != expected {a.expected_head_mode}")
+    gamma = (model_config.get("moe") or {}).get("bias_gamma", 0.0)
+    if getattr(a, "expected_bias_gamma", None) is not None and gamma != a.expected_bias_gamma:
+        raise ValueError(f"run folder bias_gamma {gamma} != expected {a.expected_bias_gamma}")
     shas = {"rl_tasks": (probe.sha256_file(a.rl_tasks), sj.RL_POOL_SHA256), "train_pool": (probe.sha256_file(a.train_pool), TRAIN_POOL_SHA256),
             "heldout_pool": (probe.sha256_file(a.heldout_pool), HELDOUT_POOL_SHA256), "easy_ids": (probe.sha256_file(EASY_IDS), EASY_IDS_SHA256),
             "free_ids": (probe.sha256_file(FREE_IDS), FREE_IDS_SHA256)}
@@ -274,7 +316,10 @@ def check_inputs(a) -> dict:
     n_eff = len(effort_ids())
     if n_eff != 55:
         raise ValueError(f"effort manifest lists {n_eff} training-exclusion ids, expected 55")
-    return {"block_size": block, "sha256": {k: v[0] for k, v in shas.items()}, "pinned_match": not bad,
+    canary = dt_canary_pins(a)
+    return {"block_size": block, "head_mode": model_config.get("head_mode"), "bias_gamma": gamma,
+            "sha256": {k: v[0] for k, v in shas.items()}, "pinned_match": not bad,
+            **({"dt_canary": canary} if canary else {}),
             "start_weights_sha256": probe.sha256_file(a.start_weights) if a.start_weights else None}
 
 
@@ -376,22 +421,43 @@ def sft_rebuild(a, out: Path) -> dict:
 
 def write_train_config(a, out: Path, init_state: Path | None, init_sha: str | None, deadline_unix: float, screen_n: int) -> Path:
     import yaml  # noqa: PLC0415
+    canary = dt_canary_pins(a)
+    if canary and (init_state != a.start_weights or init_sha != canary["start_weights_sha256"]):
+        raise ValueError("DT canary initialization differs from the pinned SFT export")
     cfg = {"seed": a.seed, "device": a.device, "out_dir": str(out / "rl"),
            "model": {"kind": "team5_adapter", "adapter_config": str(out / "adapter.yaml"), "kv_cache": True,
                      **({"allow_fixture_smoke": True} if a.allow_fixture_smoke else {}),
                      **({"init_state": str(init_state), "init_state_sha256": init_sha} if init_state else {})},
            "task": {"kind": "stdio", "require_verifier": True, "tasks": str(a.rl_tasks),
                     "train_ids": str(out / "train_ids.txt"), "heldout_ids": str(out / "heldout_ids.txt")},
-           "train": {"algo": "objective_v1", "sampler": "policy", "steps": a.updates, "prompts_per_step": a.prompts_per_step,
+           "train": {"algo": "objective_v1", "sampler": getattr(a, "sampler", "policy"), "steps": a.updates, "prompts_per_step": a.prompts_per_step,
                      "k": a.k, "max_new": a.max_new, "temperature": 1.0, "lr": a.lr, "ppo_epochs": 1, "kl_coef": 0.0,
                      "grad_clip": 1.0, "weight_decay": 0.0, "tr_epsilon": a.tr_epsilon, "fp32_master": True,
                      "autocast": "bf16" if a.device.startswith("cuda") else None, "eval_every": a.updates, "eval_k": a.eval_k,
                      "reward_workers": 4, "reward_pool": a.reward_pool,
+                     # rows per forward in old_lp and the update (train.py chunked_logprobs / backward_objective_v1).
+                     # Whole groups of 8 x 2,048 do not fit: job RLG measured 10.2 GiB for ONE row on a T4 (KAS V2,
+                     # bf16 autocast over fp32 weights, AdamW state held) and an OOM at 2; 8 rows extrapolate to 37-62 GiB
+                     **({"micro_rows": getattr(a, "micro_rows", 1)} if getattr(a, "micro_rows", 1) else {}),
+                     # head in checkpointed chunks under autograd (policy.py); off unless a row does not fit (job RLM2)
+                     **({"head_checkpoint": True} if getattr(a, "head_checkpoint", False) else {}),
                      "screen": {"n": screen_n, "k": a.k, "min_mixed": a.min_mixed},
                      "state_dir": str(out / "rl_state"), "state_every": a.state_every, "deadline_unix": deadline_unix,
-                     **({"max_steps_this_call": a.max_steps_this_call} if a.max_steps_this_call else {})}}
+                     **({"max_steps_this_call": a.max_steps_this_call} if a.max_steps_this_call else {}),
+                     **({"sampler_max_rows": a.sampler_max_rows} if getattr(a, "sampler", "policy") == "g5_batch" else {}),
+                     # identical-weights check before the first update (rl-loop/train.py logprob_gate); stops the job
+                     # if the update forward does not reproduce the sampler's log-probs (work/lpgate-2026-11-23)
+                     **({"logprob_gate": True} if getattr(a, "logprob_gate", True) else {}),
+                     # auto: rl-loop/train.py resolve_update_mode picks eval (train_quiet with DT) when the model has
+                     # train-mode randomness, e.g. the KAS head's tok_u dropout; train otherwise
+                     **({"update_mode": a.update_mode} if getattr(a, "update_mode", "auto") not in ("auto", None) else {}),
+                     # per-step seconds in rl/metrics.jsonl times_s; this makes the CUDA split exact (train.py time_sync)
+                     **({"time_sync": True} if getattr(a, "time_sync", False) else {})}}
     if cfg["train"]["autocast"] is None:
         del cfg["train"]["autocast"]
+    if canary:
+        cfg["train"]["keep_zero"] = {"path": str(a.keep_mask), "sha256": canary["sha256"],
+                                     "metadata_sha256": canary["metadata_sha256"], "enforce": False}
     if getattr(a, "keep_weights_dir", None):  # default off: train.py writes its trainable tensors here (bf16), keep_final_weights completes them
         cfg["train"]["save_trainable"] = str(out / "_work" / "rl_trainable.pt")
     p = out / "rl_config.yaml"
@@ -489,12 +555,17 @@ def rl_step(a, out: Path, init_state, init_sha, deadline_unix, screen_n) -> dict
     summary = train.train(cfg)
     rl_out = out / "rl"
     res: dict = {"status": summary.get("status"), "train_summary_file": str(rl_out / "summary.json")}
+    if getattr(a, "keep_mask", None):
+        res["keep_zero"] = summary.get("keep_zero")
     if getattr(a, "keep_weights_dir", None) and summary.get("status") not in ("NO_GO_MIXED_BAND", "PAUSED_AT_DEADLINE"):
         res["kept_weights"] = keep_final_weights(a, out, init_state, int(summary["steps"]))
     if (rl_out / "screen.json").is_file():
         screen = json.loads((rl_out / "screen.json").read_text())
         res["screen_survey"] = screen_survey(screen)
         (out / "screen_survey.json").write_text(json.dumps(res["screen_survey"], indent=1))
+    if summary.get("router_bias_unchanged") is False:  # after the kept weights: the step fails, nothing is lost
+        why = (summary.get("router_bias_check") or {}).get("reason") or "router_bias changed during RL"
+        res.update(ok=False, error=f"{why} (summary.failures); outputs kept", router_bias_unchanged=False)
     if summary.get("status") in ("NO_GO_MIXED_BAND", "PAUSED_AT_DEADLINE"):
         return res
     evals = [json.loads(x) for x in (rl_out / "evals.jsonl").read_text().splitlines() if x.strip()]
@@ -512,12 +583,21 @@ def rl_step(a, out: Path, init_state, init_sha, deadline_unix, screen_n) -> dict
     if not mf.is_file():
         mf = rl_out / "smoke_metrics.jsonl"  # a rehearsal adapter under --allow-fixture-smoke (dry run)
     metrics = [json.loads(x) for x in mf.read_text().splitlines() if x.strip()]
+    if getattr(a, "keep_mask", None):
+        kz = summary.get("keep_zero") or {}
+        if (kz.get("deleted_at_start", 0) <= 0 or kz.get("max_deleted_nonzero") != 0
+                or kz.get("deleted_nonzero_end") != 0):
+            res.update(ok=False, error="DT deletion integrity failed or missing from trainer summary")
     res.update(heldout_change=summary["heldout_change"], heldout_curve=summary["heldout_curve"], evaluations=fc,
                literal_sample=lit_rep, groups_used_per_step=[m.get("groups_used") for m in metrics],
                group_kinds_total=(summary.get("objective") or {}).get("group_kinds_total"),
                optimizer_steps=(summary.get("objective") or {}).get("steps_with_optimizer_update"),
                time_split_s_per_step=summary.get("mean_times_s_after_step1"), step1_s=summary.get("step1_s"),
+               peak_gpu_memory_gb=summary.get("peak_gpu_memory_gb"),
                trainable_weight_change=summary.get("trainable_weight_change"), router_unchanged=summary.get("router_unchanged"),
+               router_bias_unchanged=summary.get("router_bias_unchanged"),
+               logprob_gate=summary.get("logprob_gate"), update_mode=summary.get("update_mode", "train"),
+               update_mode_resolution=summary.get("update_mode_resolution"),
                decision=decide_rl(summary["heldout_change"], wrong[0] if wrong else None, wrong[-1] if wrong else None,
                                   lit_rep[0]["literal_share_of_passes"] if lit_rep else None,
                                   lit_rep[-1]["literal_share_of_passes"] if lit_rep else None),
@@ -537,9 +617,38 @@ def rate_probe(a, out: Path, init_state) -> dict:
     bundle = ta.build(out / "adapter.yaml", device=a.device).require_bundle()
     if init_state:
         bundle.model.load_state_dict(load_file(str(init_state)), strict=True)
+    if getattr(a, "sampler", "policy") == "g5_batch":
+        return batched_rate(a, bundle, ids)
     rep = probe.rl_screen_bundle(bundle, a.rl_tasks, ids_file, a.k, a.max_new, a.device, 0, a.rate_probe_seconds)
     return {"decode_seconds_per_prompt": rep["seconds"] / rep["prompts"] if rep["prompts"] else None, "prompts": rep["prompts"],
             "seconds": rep["seconds"], "stopped_at_budget": rep["stopped_at_budget"]}
+
+
+def batched_rate(a, bundle, ids: list[str]) -> dict:
+    """r for sampler g5_batch: one bundle.sample_many over the rate-probe prompts (real stops, bf16 autocast on cuda as the
+    trainer samples), seconds divided by the number of prompts. Fewer rows than a 16-prompt step, so it overstates r."""
+    import torch  # noqa: PLC0415
+    by_id = {}
+    for line in a.rl_tasks.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            t = json.loads(line)
+            by_id[t["id"]] = t
+    codec = bundle.codec()
+    block = bundle.spec["block_size"]
+    prompts = [p for p in (codec.encode_prompt(by_id[i]["statement"]) for i in ids if i in by_id) if block - len(p) >= 16]
+    if not prompts:
+        return {"decode_seconds_per_prompt": None, "prompts": 0, "seconds": 0.0, "sampler": "g5_batch"}
+    mn = min(a.max_new, block - max(len(p) for p in prompts))
+    gen = torch.Generator(device=a.device).manual_seed(0)
+    amp = torch.autocast("cuda", dtype=torch.bfloat16) if a.device.startswith("cuda") else contextlib.nullcontext()
+    t0 = time.perf_counter()
+    with amp:
+        bundle.sample_many(prompts, a.k, mn, 1.0, gen)
+    if a.device.startswith("cuda"):
+        torch.cuda.synchronize()
+    dt = time.perf_counter() - t0
+    return {"decode_seconds_per_prompt": dt / len(prompts), "prompts": len(prompts), "seconds": round(dt, 2),
+            "max_new": mn, "sampler": "g5_batch", "stopped_at_budget": False}
 
 
 def screen_only(a, out: Path, init_state, screen_n: int, seconds: float) -> dict:
@@ -562,6 +671,17 @@ def screen_only(a, out: Path, init_state, screen_n: int, seconds: float) -> dict
 
 
 # ---------------------------------------------------------------------------- driver
+
+def g5_source_step(a, out: Path) -> dict:
+    """Team 5's code for this run (capstone/g5_source_resolver.py): when --g5-root's Team 5 files differ from the run
+    folder's recorded sources, use a detached worktree of the commit that has exactly those files (under out/_work, so
+    it is deleted at exit). The adapter's pin still checks it; no match or no git checkout stops the job here."""
+    import g5_source_resolver as gr  # noqa: PLC0415
+    root = gr.resolve(a.g5_root, a.run_folder / "manifest.json", out / "_work" / "g5_source")
+    rec = json.loads((out / "_work" / "g5_source" / "g5_source_resolve.json").read_text(encoding="utf-8"))
+    a.g5_root_requested, a.g5_root = a.g5_root, root
+    return {k: rec.get(k) for k in ("action", "resolved_root", "commit", "commit_subject", "mismatched", "seconds")}
+
 
 def run(a, out: Path) -> int:
     t0 = time.time()
@@ -586,6 +706,9 @@ def run(a, out: Path) -> int:
         print(json.dumps({"guard": "refused", "model_loaded": False, "seconds": results["guard"]["seconds"],
                           "error": results["guard"]["error"]}), flush=True)
         return probe.finish(out, results)
+    results["g5_source"] = probe.step(out, "g5_source", lambda: g5_source_step(a, out))
+    if not results["g5_source"]["ok"]:
+        return probe.finish(out, results)
     for name, fn in (("pins", pins), ("pool", pool_step), ("tricks", tricks_step)):
         results[name] = probe.step(out, name, lambda fn=fn: fn(a, out))
         if not results[name]["ok"]:
@@ -601,7 +724,8 @@ def run(a, out: Path) -> int:
         if not results["sft"]["ok"]:
             return probe.finish(out, results)
         init_state, init_sha = Path(results["sft"]["weights"]), results["sft"]["weights_sha256"]
-        rate = rate or results["sft"].get("decode_seconds_per_prompt")
+        if getattr(a, "sampler", "policy") != "g5_batch":  # the rebuild's rate is per prompt; g5_batch measures its own batched rate below
+            rate = rate or results["sft"].get("decode_seconds_per_prompt")
         sft_s = results["sft"]["seconds"]
     else:
         from make_adapter_config import write_config  # noqa: PLC0415
@@ -646,6 +770,10 @@ def parse_args(argv=None):
     ap.add_argument("--heldout-pool", type=Path, required=True, help="rl-code-v1-heldout.pool.jsonl (#564)")
     ap.add_argument("--sft-arm", choices=("none", "a2", "a4"), default="none", help="rebuild #587's arm in-job (none = the raw checkpoint)")
     ap.add_argument("--start-weights", type=Path, help="stored weights of the arm (skips the rebuild)")
+    ap.add_argument("--keep-mask", type=Path, help="baked DT keep mask next to its .bin.json metadata; requires --start-weights")
+    ap.add_argument("--canary-sha256s", type=Path, help="DT export SHA256SUMS (default: next to --keep-mask)")
+    ap.add_argument("--expected-head-mode", help="require this head_mode in the delivered model manifest")
+    ap.add_argument("--expected-bias-gamma", type=float, help="require this moe.bias_gamma in the delivered model manifest")
     ap.add_argument("--sft-reference", type=Path, help="#587's compare.json: its arm report is printed next to the rebuild's")
     ap.add_argument("--packs", type=Path, nargs="*", default=[], help="firewalled OCR-2 pack shards (for the rebuild)")
     ap.add_argument("--heldout", type=Path, help="held-out file of the run (forgetting bpb in the rebuild)")
@@ -670,6 +798,11 @@ def parse_args(argv=None):
     ap.add_argument("--eval-k", type=int, default=4)
     ap.add_argument("--tricks-limit", type=int, default=128, help="screen candidates the no-skill programs are scored on")
     ap.add_argument("--reward-pool", type=int, default=16, help="scorer worker processes (score_pool); must be > 0")
+    ap.add_argument("--no-logprob-gate", dest="logprob_gate", action="store_false",
+                    help="skip the identical-weights log-prob check before the first update (on by default)")
+    ap.add_argument("--update-mode", choices=("auto", "train", "eval", "train_quiet"), default="auto",
+                    help="module mode of old_lp and the update forward (rl-loop/train.py update_mode). auto: eval when the "
+                         "model has train-mode randomness (a KAS head's tok_u dropout), train otherwise; recorded in the report")
     ap.add_argument("--state-every", type=int, default=5)
     ap.add_argument("--max-steps-this-call", type=int, default=0, help="dry run: pause after this many updates, rerun to resume")
     ap.add_argument("--deadline-minutes", type=float, default=85.0)
@@ -685,6 +818,19 @@ def parse_args(argv=None):
                     help="g5_delivery: Team 5's delivered run folder (non-smoke manifest); g10_rehearsal is a stand-in and train.py refuses it without --allow-fixture-smoke")
     ap.add_argument("--probe-file", type=Path, help="json {ids, expected_mean_nll[, atol]} supplied with Team 5's checkpoint; required for --origin g5_delivery")
     ap.add_argument("--allow-fixture-smoke", action="store_true", help="DRY RUN ONLY: let train.py load a rehearsal adapter; its output is never a result")
+    ap.add_argument("--sampler", choices=("policy", "g5_batch"), default="policy",
+                    help="policy: one decode per prompt; g5_batch: every prompt of a step in one decode (B5, 23 Nov: 12.8x on a T4)")
+    ap.add_argument("--sampler-max-rows", type=int, default=128, help="g5_batch: rows decoded together at most")
+    ap.add_argument("--micro-rows", type=int, default=1,
+                    help="rows per forward in old_lp and the update (0 = the whole group of k). Default 1: a group of 8 at "
+                         "2,048 tokens peaked at 10.9 GiB with 1 on a T4 and ran out of memory with 2 and 4 (job RLG)")
+    ap.add_argument("--head-checkpoint", action="store_true",
+                    help="memory mode for the update: run Team 5's head in checkpointed chunks of 512 tokens. Turn it on only "
+                         "when one row does not fit: on a T4 (KAS micro1, 512 + 1,536 tokens) it cut the per-row peak by 41%% "
+                         "(7.4 -> 4.4 GiB above static) for about 5 to 10%% more update time (jobs RLM, RLM2)")
+    ap.add_argument("--time-sync", action="store_true",
+                    help="synchronize CUDA at each phase boundary so rl/metrics.jsonl times_s splits sampling (rollout), "
+                         "scoring (reward) and the update (old_logprobs + train) exactly; off by default")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--device", default="cuda")
     ap.add_argument("--keep-weights-dir", type=Path,
@@ -696,6 +842,10 @@ def parse_args(argv=None):
         ap.error(f"--updates must be 1..{MAX_UPDATES}")
     if a.reward_pool < 1:
         ap.error("--reward-pool must be > 0 (the scorer goes through score_pool)")
+    if a.keep_mask and not a.start_weights:
+        ap.error("--keep-mask needs --start-weights")
+    if a.canary_sha256s and not a.keep_mask:
+        ap.error("--canary-sha256s needs --keep-mask")
     if a.sft_arm != "none" and not (a.packs and a.heldout) and not a.start_weights:
         ap.error("--sft-arm a2|a4 needs --packs and --heldout (or --start-weights)")
     return a
@@ -711,6 +861,9 @@ def main(argv=None) -> int:
         return rc
     finally:
         shutil.rmtree(out / "_work", ignore_errors=True)  # SFT weights and built rows never leave the job
+        if (out / "g5_source.json").is_file():  # a resolved Team 5 worktree lived under _work: drop its git record
+            import subprocess  # noqa: PLC0415
+            subprocess.run(["git", "-C", str(getattr(a, "g5_root_requested", a.g5_root)), "worktree", "prune"], capture_output=True)
         status = None
         for f in (out / "rl" / "summary.json", out / "rl" / "smoke_summary.json", out / "rl" / "status.json"):  # a finished summary wins over an old pause note
             if f.is_file():
