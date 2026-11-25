@@ -1,0 +1,273 @@
+{
+  "status": "complete",
+  "config": {
+    "inputs": "out/tokenizer_sample_v0_clean",
+    "out": "out/h3_bge_m3",
+    "cache": "out/h3_cache_bge_m3",
+    "packs": {
+      "ind-sa-fw2": "sa",
+      "ind-hi-*": "hi",
+      "en-fineweb-edu": "en",
+      "en-dclm": "en",
+      "en-nemotroncc": "en"
+    },
+    "pairs": [
+      [
+        "sa",
+        "en"
+      ],
+      [
+        "sa",
+        "hi"
+      ]
+    ],
+    "model_path": "../models/bge-m3",
+    "device": "cuda",
+    "precision": "auto",
+    "batch_size": 64,
+    "max_seq_length": 128,
+    "min_chars": 200,
+    "min_sentences": 3,
+    "sentence_min_chars": 20,
+    "head_sentences": 4,
+    "max_sentences": 16,
+    "top_k": 3,
+    "doc_floor": 0.55,
+    "mutual": true,
+    "max_length_ratio": 4.0,
+    "sentence_threshold": 0.7,
+    "coverage_threshold": 0.6,
+    "report_floor": 0.3,
+    "max_verify": 60000,
+    "url_group_max": 20,
+    "block": 512,
+    "pair_batch": 1024,
+    "max_docs_per_pack": 0,
+    "max_minutes": 170,
+    "max_output_mb": 50,
+    "sync_debug": false
+  },
+  "device": "cuda",
+  "precision": "fp16",
+  "model": {
+    "path": "../models/bge-m3",
+    "name": "bge-m3",
+    "device": "cuda",
+    "dtype": "torch.float16",
+    "max_seq_length": 128,
+    "dim": 1024,
+    "config_sha256": "26159e7ad065073448460117eb24b7a4572f6f4e78eadff65dc0a11c052449fa",
+    "weights": {
+      "pytorch_model.bin": {
+        "bytes": 2271145830,
+        "sha256": "b5e0ce3470abf5ef3831aa1bd5553b486803e83251590ab7ff35a117cf6aad38"
+      }
+    },
+    "sentence_transformers": "6.3.0"
+  },
+  "inputs": {
+    "root": "out/tokenizer_sample_v0_clean",
+    "parts_found": 23,
+    "parts_selected": 21,
+    "parts": [
+      "train/en-dclm/part-00000.parquet",
+      "train/en-dclm/part-00001.parquet",
+      "train/en-fineweb-edu/part-00000.parquet",
+      "train/en-fineweb-edu/part-00001.parquet",
+      "train/en-nemotroncc/part-00000.parquet",
+      "train/en-nemotroncc/part-00001.parquet",
+      "train/ind-hi-fw2/part-00000.parquet",
+      "train/ind-hi-hplt/part-00000.parquet",
+      "train/ind-hi-indiccorp/part-00000.parquet",
+      "train/ind-hi-sangraha-s/part-00000.parquet",
+      "train/ind-hi-sangraha-v/part-00000.parquet",
+      "train/ind-sa-fw2/part-00000.parquet",
+      "heldout/en-dclm/part-00000.parquet",
+      "heldout/en-fineweb-edu/part-00000.parquet",
+      "heldout/en-nemotroncc/part-00000.parquet",
+      "heldout/ind-hi-fw2/part-00000.parquet",
+      "heldout/ind-hi-hplt/part-00000.parquet",
+      "heldout/ind-hi-indiccorp/part-00000.parquet",
+      "heldout/ind-hi-sangraha-s/part-00000.parquet",
+      "heldout/ind-hi-sangraha-v/part-00000.parquet",
+      "heldout/ind-sa-fw2/part-00000.parquet"
+    ]
+  },
+  "documents": {
+    "en-dclm": {
+      "lang": "en",
+      "rows_in_parts": 60802,
+      "read": 60802,
+      "too_short": 328,
+      "encoded": 60474
+    },
+    "en-fineweb-edu": {
+      "lang": "en",
+      "rows_in_parts": 72100,
+      "read": 72100,
+      "too_short": 2,
+      "encoded": 72098
+    },
+    "en-nemotroncc": {
+      "lang": "en",
+      "rows_in_parts": 89183,
+      "read": 89183,
+      "too_short": 4280,
+      "encoded": 84903
+    },
+    "ind-hi-fw2": {
+      "lang": "hi",
+      "rows_in_parts": 13932,
+      "read": 13932,
+      "too_short": 164,
+      "encoded": 13768
+    },
+    "ind-hi-hplt": {
+      "lang": "hi",
+      "rows_in_parts": 8515,
+      "read": 8515,
+      "too_short": 37,
+      "encoded": 8478
+    },
+    "ind-hi-indiccorp": {
+      "lang": "hi",
+      "rows_in_parts": 110755,
+      "read": 110755,
+      "too_short": 65167,
+      "encoded": 45588
+    },
+    "ind-hi-sangraha-s": {
+      "lang": "hi",
+      "rows_in_parts": 7542,
+      "read": 7542,
+      "too_short": 1200,
+      "encoded": 6342
+    },
+    "ind-hi-sangraha-v": {
+      "lang": "hi",
+      "rows_in_parts": 14614,
+      "read": 14614,
+      "too_short": 44,
+      "encoded": 14570
+    },
+    "ind-sa-fw2": {
+      "lang": "sa",
+      "rows_in_parts": 5721,
+      "read": 5721,
+      "too_short": 28,
+      "encoded": 5693
+    }
+  },
+  "documents_compared": 311914,
+  "url": {
+    "groups_with_2_or_more": 51,
+    "groups_over_url_group_max": 0,
+    "pairs": 0
+  },
+  "retrieved": {
+    "sa-en": {
+      "documents_a": 5693,
+      "documents_b": 217475,
+      "pairs_in_top_k": 662652,
+      "kept": 5095
+    },
+    "sa-hi": {
+      "documents_a": 5693,
+      "documents_b": 88746,
+      "pairs_in_top_k": 277066,
+      "kept": 5835
+    }
+  },
+  "candidates": 10930,
+  "rejected_length_ratio": 3729,
+  "not_verified_over_max_verify": 0,
+  "verified": 7201,
+  "listed": 36,
+  "qualifying": 2,
+  "qualifying_heldout_train": 0,
+  "qualifying_by_language_pair": {
+    "hi-sa": 2
+  },
+  "rule": {
+    "h3": "aligned sentences / sentences of the shorter document >= 0.6; a sentence pair aligns when each is the other's best match with cosine >= the language pair's sentence threshold",
+    "sentence_threshold": {
+      "sa-en": 0.7,
+      "sa-hi": 0.7
+    },
+    "thresholds": "provisional: set by E5's sweep and hand review"
+  },
+  "counts": {
+    "rows_scanned": 383164,
+    "encoded_heads": 311914,
+    "encoded_sentences": 115982
+  },
+  "stages_seconds": {
+    "load_model": 21.304,
+    "read": 82.913,
+    "cache": 2.481,
+    "encode": 1309.689,
+    "url": 0.086,
+    "retrieve": 2.216,
+    "verify_read": 5.472,
+    "verify": 177.438
+  },
+  "rates": {
+    "heads_per_second": 238.2,
+    "sentences_per_second": 653.6
+  },
+  "estimate_all_documents": {
+    "documents_encoded": {
+      "en": 217475,
+      "hi": 88746,
+      "sa": 5693
+    },
+    "documents_full": {
+      "en": 217475,
+      "hi": 88746,
+      "sa": 5693
+    },
+    "seconds": {
+      "load_model": 21.3,
+      "read": 82.9,
+      "encode": 1309.7,
+      "retrieve": 2.2,
+      "verify": 182.9
+    },
+    "minutes_total": 26.7,
+    "every_stage_measured": true,
+    "suggested_max_time_minutes": 40,
+    "basis": "this run's rates; read scales with rows, encode with documents, retrieve with the product of the two languages' documents, verify with the smaller language's documents (at most max_verify)"
+  },
+  "wall_seconds": 1605.7,
+  "peak_rss_mb": 3594.1,
+  "versions": {
+    "python": "3.13.16",
+    "numpy": "2.4.3",
+    "pyarrow": "23.0.1",
+    "torch": "2.14.1+cu130",
+    "platform": "Linux-6.6.159+-x86_64-with-glibc2.39"
+  },
+  "outputs": {
+    "h3_docs.parquet": {
+      "bytes": 7689203,
+      "sha256": "952be3c59382d8776dabe1f4be5879ac2bfd8ae31b81c17c2b1164a64dc6d52c"
+    },
+    "h3_candidates.csv": {
+      "bytes": 7390,
+      "sha256": "ede5c74eab8471294307f98a99ffa29cc6a996accd4edd619a3242b6b738ef27"
+    },
+    "h3_matches.csv": {
+      "bytes": 512,
+      "sha256": "8593411308ea62f93d39bcabb2257b802113d28e22431d5ab38f3ea29bd1aa63"
+    },
+    "h3_by_pack.csv": {
+      "bytes": 424,
+      "sha256": "4ba9883c2f5504353d9bdc34033e92362ccae74359b893782b54a44c0e6d5b90"
+    },
+    "h3_histogram.csv": {
+      "bytes": 2013,
+      "sha256": "f2af36fb7ff92167d7496c5265945826219c2eda22ed269c539209026bdaf85e"
+    }
+  },
+  "output_mb": 7.34
+}
