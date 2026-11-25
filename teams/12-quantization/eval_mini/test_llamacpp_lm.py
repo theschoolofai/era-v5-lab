@@ -13,6 +13,12 @@ they hold for any GGUF, not only one model's numbers:
   2. it is NOT the off-by-one value (the generated token's log-probability one position later);
   3. scoring with the prefix cache equals scoring every request from scratch;
   4. the most likely continuation of an easy multiple-choice item is the right one.
+
+Checks 1 and 2 need the answer in the model's top-5 after the prompt. A base model may continue the default prompt
+differently (gemma-2-2b ranks " Paris" 8th, behind " a", " the", " one", ...; Hugging Face transformers agrees), so
+another prompt can be set for such a model; the checks and TOL stay the same:
+
+    EVAL_GUARD_CONTEXT="The capital of France is the city of" python test_llamacpp_lm.py <model.gguf>
 """
 from __future__ import annotations
 
@@ -24,7 +30,8 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from llamacpp_lm import LlamaCppLM  # noqa: E402
 
-CONTEXT, ANSWER = "The capital of France is", " Paris"
+CONTEXT = os.environ.get("EVAL_GUARD_CONTEXT") or "The capital of France is"   # unset: unchanged default
+ANSWER = os.environ.get("EVAL_GUARD_ANSWER") or " Paris"
 TOL = 0.05   # nats; GPU kernels for different batch shapes differ by ~0.004
 
 
@@ -37,21 +44,27 @@ def check(gguf: str) -> list[str]:
     lm = LlamaCppLM(gguf, n_ctx=512)
     failures = []
 
+    # the answer's FIRST token under this model's tokenizer: " Paris" is one token for OLMoE and sarvam-1 (so the
+    # check is unchanged there), " Par" + "is" for Granite 3.0; generation reports one token's log-probability
+    _, cont = lm._encode_pair(CONTEXT, ANSWER)
+    answer = lm.llm.detokenize(cont[:1]).decode("utf-8", errors="replace")
+
     # the model's own greedy next token after CONTEXT, with its log-probability, from generation
     gen = lm.llm.create_completion(prompt=CONTEXT, max_tokens=1, temperature=0.0, top_k=1, logprobs=5)
     top = gen["choices"][0]["logprobs"]["top_logprobs"][0]
-    if ANSWER not in top:
-        return [f"model does not rank {ANSWER!r} in its top-5 after {CONTEXT!r} ({top}); use a stronger model"]
-    lp_gen = top[ANSWER]
+    if answer not in top:
+        return [f"model does not rank {answer!r} (first token of {ANSWER!r}) in its top-5 after {CONTEXT!r} ({top}); "
+                "use a stronger model"]
+    lp_gen = top[answer]
     lm.llm.reset()
 
-    lp, greedy = lm.loglikelihood([_Req(CONTEXT, ANSWER)], disable_tqdm=True)[0]
+    lp, greedy = lm.loglikelihood([_Req(CONTEXT, answer)], disable_tqdm=True)[0]
     if abs(lp - lp_gen) > TOL:
-        failures.append(f"1. score {lp:.3f} != generation's {lp_gen:.3f} for {ANSWER!r}")
+        failures.append(f"1. score {lp:.3f} != generation's {lp_gen:.3f} for {answer!r}")
 
     # the off-by-one value: the answer tokens read from the rows one position later (row i, not i-1), the
     # server's bug; computed from the logit rows the scoring call above left behind, so it is always finite
-    ctx, cont = lm._encode_pair(CONTEXT, ANSWER)
+    ctx, cont = lm._encode_pair(CONTEXT, answer)
     rows = np.asarray(lm.llm.scores[len(ctx): len(ctx) + len(cont)], dtype=np.float64)
     after = float((rows - np.logaddexp.reduce(rows, axis=1, keepdims=True))[np.arange(len(cont)), cont].sum())
     if abs(lp - after) <= TOL and abs(lp_gen - after) > TOL:
@@ -71,8 +84,9 @@ def check(gguf: str) -> list[str]:
     if max(range(4), key=lambda i: cached[i][0]) != 0:
         failures.append(f"4. easy item answered wrong: {[round(c[0], 2) for c in cached]}")
 
-    print(f"{Path(gguf).name}: log p({ANSWER!r}) = {lp:.3f}, generation {lp_gen:.3f}, off-by-one value {after:.3f}; "
-          f"cache max diff {worst:.4f}")
+    print(f"{Path(gguf).name}: log p({answer!r}) = {lp:.3f}, generation {lp_gen:.3f}, off-by-one value {after:.3f}; "
+          f"cache max diff {worst:.4f}"
+          + (f"; guard prompt {CONTEXT!r} (EVAL_GUARD_CONTEXT)" if os.environ.get("EVAL_GUARD_CONTEXT") else ""))
     return failures
 
 

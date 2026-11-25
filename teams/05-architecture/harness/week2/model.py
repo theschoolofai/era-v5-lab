@@ -1,6 +1,6 @@
 """Reference GQA/RoPE/SwiGLU MoE with G4-compatible projected byte codes.
 
-Dense untied output head per TSAI review; Kronecker projection is input-only.
+Historical arms use the dense untied head; kas_v2 selects the public #765 codec/head.
 No fused kernels, reversible layers or expert parallelism are claimed.
 """
 
@@ -100,6 +100,8 @@ class GQA(nn.Module):
         self.rotary_dim = 2 * math.floor(m.get("rotary_fraction", 1.0) * self.d / 2)
         pattern = m.get("attn_pattern", ["G"] * m["n_layer"])
         self.local = pattern[layer_index] == "L"
+        # SDPA covers causal global layers only; local layers keep the eager window and sink.
+        self.sdpa = m.get("attn_impl", "eager") == "sdpa" and not self.local
         self.window = m.get("attn_window") if self.local else None
         self.sink = (
             nn.Parameter(torch.zeros(self.nh, dtype=torch.float32))
@@ -152,20 +154,33 @@ class GQA(nn.Module):
     def forward(self, x, residual=None):
         b, t, w = x.shape
         q = self.rotary(self.q(x).view(b, t, self.nh, self.d).transpose(1, 2))
-        k = self.rotary(
-            self.k(x).view(b, t, self.nkv, self.d).transpose(1, 2)
-        ).repeat_interleave(self.nh // self.nkv, dim=1)
-        v = (
-            self.v(x)
-            .view(b, t, self.nkv, self.d)
-            .transpose(1, 2)
-            .repeat_interleave(self.nh // self.nkv, dim=1)
-        )
+        k = self.rotary(self.k(x).view(b, t, self.nkv, self.d).transpose(1, 2))
+        v = self.v(x).view(b, t, self.nkv, self.d).transpose(1, 2)
+        if self.sdpa:
+            # Fused causal attention on the shared K/V heads, without a T x T score matrix.
+            heads = F.scaled_dot_product_attention(
+                q, k, v, is_causal=True, enable_gqa=self.nh != self.nkv
+            )
+        else:
+            heads = self.eager_attention(q, k, v)
+        out = heads.transpose(1, 2).reshape(b, t, w)
+        # Apply the channel gate before mixing heads with the output projection.
+        if self.gate is not None:
+            gate_input = x if self.gate_input == "normalized" else residual
+            if gate_input is None:
+                raise ValueError("Residual gate input requires the pre-norm residual")
+            out = out * torch.sigmoid(self.gate(gate_input))
+        return self.o(out)
+
+    def eager_attention(self, q, k, v):
+        b, _, t, _ = q.shape
+        k = k.repeat_interleave(self.nh // self.nkv, dim=1)
+        v = v.repeat_interleave(self.nh // self.nkv, dim=1)
         logits = q.float() @ k.float().transpose(-2, -1) / math.sqrt(self.d)
-        mask = torch.ones(t, t, dtype=torch.bool, device=x.device).tril()
+        mask = torch.ones(t, t, dtype=torch.bool, device=q.device).tril()
         # Intersect the causal mask with the local window on local layers.
         if self.local:
-            positions = torch.arange(t, device=x.device)
+            positions = torch.arange(t, device=q.device)
             mask = mask & ((positions[:, None] - positions[None, :]) < self.window)
         logits = logits.masked_fill(~mask, float("-inf"))
         # A disabled (-inf) sink takes the exact legacy softmax path. This also
@@ -175,14 +190,7 @@ class GQA(nn.Module):
             a = torch.cat((logits, sink), dim=-1).softmax(-1)[..., :t].to(v.dtype)
         else:
             a = logits.softmax(-1).to(v.dtype)
-        out = (a @ v).transpose(1, 2).reshape(b, t, w)
-        # Apply the channel gate before mixing heads with the output projection.
-        if self.gate is not None:
-            gate_input = x if self.gate_input == "normalized" else residual
-            if gate_input is None:
-                raise ValueError("Residual gate input requires the pre-norm residual")
-            out = out * torch.sigmoid(self.gate(gate_input))
-        return self.o(out)
+        return a @ v
 
 
 class SwiGLU(nn.Module):
@@ -203,6 +211,12 @@ class MoE(nn.Module):
         h = m["moe"]["ffn_hidden"]
         cfg = m["moe"]
         self.topk = cfg["top_k"]
+        self.expert_load = None
+        self.balance_gamma = float(cfg.get("bias_gamma") or 0.0)
+        self._balance_load = None
+        # Loss-free balancer (Session 14). A buffer, not a parameter: it is added only when choosing
+        # the experts. It is not part of the gate that multiplies the expert output.
+        self.register_buffer("router_bias", torch.zeros(cfg["num_experts"]))
         self.router = nn.Linear(w, cfg["num_experts"], bias=False)
         self.experts = nn.ModuleList(
             SwiGLU(w, h, cfg["bias"]) for _ in range(cfg["num_experts"])
@@ -211,13 +225,37 @@ class MoE(nn.Module):
             SwiGLU(w, h, cfg["bias"]) for _ in range(cfg["num_shared"])
         )
 
+    def _load_from_state_dict(self, state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs):
+        # A checkpoint from before this buffer has no router_bias. Zeros are the
+        # starting value, and gamma 0 never reads the bias, so the old run stays exact.
+        key = prefix + "router_bias"
+        if key not in state_dict:
+            state_dict[key] = self.router_bias.detach().clone().zero_()
+        super()._load_from_state_dict(
+            state_dict, prefix, local_metadata, strict, missing_keys, unexpected_keys, error_msgs
+        )
+
     def forward(self, x, valid):
         shape = x.shape
         flat = x.reshape(-1, shape[-1])
         active = valid.reshape(-1)
         with torch.autocast(device_type=x.device.type, enabled=False):
             scores = F.linear(flat.float(), self.router.weight.float()).softmax(-1)
-        gates, choice = scores.topk(self.topk, dim=-1)
+        if self.balance_gamma != 0.0:
+            # Bias changes which experts are chosen. The gate values stay the unbiased softmax.
+            choice = (scores.detach() + self.router_bias.to(scores.dtype)).topk(self.topk, dim=-1).indices
+            gates = scores.gather(-1, choice)
+        else:
+            gates, choice = scores.topk(self.topk, dim=-1)
+        if self.balance_gamma != 0.0 and self.training:
+            selected = torch.zeros_like(scores, dtype=torch.bool)
+            selected.scatter_(-1, choice, True)
+            counts = (selected & active[:, None]).sum(dim=0)
+            self._balance_load = counts if self._balance_load is None else self._balance_load + counts
+        if self.expert_load is not None and self.training:
+            selected = torch.zeros_like(scores, dtype=torch.bool)
+            selected.scatter_(-1, choice, True)
+            self.expert_load.add_((selected & active[:, None]).sum(dim=0))
         gates = gates / gates.sum(-1, keepdim=True)
         output = torch.zeros_like(flat)
         # Execution-only fast path (TSAI): every expert runs on every token in one batched product, then each
@@ -239,6 +277,14 @@ class MoE(nn.Module):
             output = output + expert(flat) * active[:, None]
         return output.reshape(shape)
 
+    def apply_balance_update(self):
+        load = self._balance_load
+        self._balance_load = None
+        if load is None or self.balance_gamma == 0.0:
+            return
+        load = load.float()
+        self.router_bias.add_(self.balance_gamma * torch.sign(load.mean() - load))
+
 
 class Block(nn.Module):
     def __init__(self, m, layer_index=0):
@@ -259,16 +305,36 @@ class LanguageModel(nn.Module):
     def __init__(self, m, rows, lengths):
         super().__init__()
         self.spec = m
-        self.embedding = KE2(rows, lengths, m["n_embd"])
+        kas = m.get("head_mode") == "kas_v2"
+        if kas:
+            from .kas_v2 import KASCodec, KASInput, KASHead, initialize_prior
+            if len(rows) != m["vocab_size"]:
+                raise ValueError("KAS model/token table vocabulary mismatch")
+            self.codec = KASCodec()
+            self.embedding = KASInput(rows, lengths, m["n_embd"], self.codec)
+        else:
+            self.embedding = KE2(rows, lengths, m["n_embd"])
         self.blocks = nn.ModuleList(Block(m, i) for i in range(m["n_layer"]))
         self.norm = RMSNorm(m["n_embd"], m["norm_eps"])
         self.mtp_head = (
             nn.Linear(m["n_embd"], m["vocab_size"], bias=False) if m["mtp"] else None
         )
-        self.head = nn.Linear(m["n_embd"], m["vocab_size"], bias=False)
+        if kas:
+            self.head = KASHead(rows, lengths, m["n_embd"], self.codec)
+            self.prior_identity = initialize_prior(self.head, m.get("kas_prior", {}))
+        else:
+            self.head = nn.Linear(m["n_embd"], m["vocab_size"], bias=False)
 
     def hidden(self, ids, valid):
-        x = self.embedding(ids)
+        return self.hidden_from_embeddings(self.embedding(ids), valid)
+
+    def hidden_from_embeddings(self, x, valid):
+        """Run the normal stack on caller-supplied [B, T, n_embd] inputs.
+
+        Recipe code owns any embedding aggregation and its validity mask. This
+        path applies no additional embedding lookup or aggregation. Positions
+        retain the stack's existing RoPE treatment at the supplied sequence length.
+        """
         for block in self.blocks:
             x = block(x, valid)
         return self.norm(x)
@@ -281,6 +347,27 @@ class LanguageModel(nn.Module):
             if return_mtp
             else logits
         )
+
+    def start_expert_load(self):
+        for block in self.blocks:
+            moe = block.moe
+            moe.expert_load = moe.router.weight.new_zeros(len(moe.experts), dtype=torch.long)
+
+    def finish_expert_load(self):
+        counts = []
+        for block in self.blocks:
+            counts.append(block.moe.expert_load)
+            block.moe.expert_load = None
+        return torch.stack(counts).tolist()
+
+    def clear_router_bias_load(self):
+        for block in self.blocks:
+            block.moe._balance_load = None
+
+    def update_router_bias(self):
+        """One whole-batch update after the step's forwards. Not once per microbatch."""
+        for block in self.blocks:
+            block.moe.apply_balance_update()
 
     def parameter_count(self):
         return sum(p.numel() for p in self.parameters())

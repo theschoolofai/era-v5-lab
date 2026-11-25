@@ -26,7 +26,8 @@ from week2.config import load, load_runtime, merge, validate
 from week2.data import DocumentWindows, BatchStream
 from week2.model import LanguageModel
 from week2.evaluation import EVAL_BATCH_TOKENS, evaluate, token_nll
-from week2.optim import Optimizers, build_optimizer, describe
+from week2.optim import Optimizers, build_optimizer, describe, lr_scale, set_lr_scale
+from week2 import tst as tst_mod
 from week2.team7_checkpoints import CheckpointProgress, write_native_checkpoint
 
 
@@ -54,14 +55,54 @@ def scored_ntp_loss(model, ids, targets):
     return token_nll(model.head(hidden[scored]), targets[scored]).sum()
 
 
-def checked_step_losses(micro_losses, grad_norm):
+# G7 exit-note detail is capped at 500 characters. Keep the complete G5 error
+# below that boundary, with 100 characters of headroom; no G7 contract change.
+NONFINITE_MESSAGE_LIMIT = 400
+NONFINITE_NAME_LIMIT = 64
+
+
+def nonfinite_tensor_detail(model, *, gradients=False, limit=3):
+    """Bounded, best-effort tensor names; called only after a numerical failure."""
+    try:
+        names = []
+        for name, parameter in model.named_parameters():
+            value = parameter.grad if gradients else parameter
+            if value is not None and not bool(torch.isfinite(value.detach()).all()):
+                if len(name) > NONFINITE_NAME_LIMIT:
+                    name = name[:30] + "..." + name[-31:]
+                names.append(name)
+                if len(names) > limit:
+                    break
+        if not names:
+            return "; no nonfinite tensors found in the inspected state"
+        suffix = ", ... further tensors not listed" if len(names) > limit else ""
+        return "; tensors: " + ", ".join(names[:limit]) + suffix
+    except Exception as error:
+        # A diagnostic (including a CUDA failure) must not replace the original cause.
+        return "; tensor inspection unavailable (" + type(error).__name__[:NONFINITE_NAME_LIMIT] + ")"
+
+
+def nonfinite_error_message(prefix, model, *, gradients=False):
+    """Cap the complete diagnostic, including prefix and the post-clip caveat."""
+    caveat = " (gradients inspected after clipping; nonfinites may have propagated)" if gradients else ""
+    message = prefix + caveat + nonfinite_tensor_detail(model, gradients=gradients)
+    if len(message) > NONFINITE_MESSAGE_LIMIT:
+        suffix = "... [truncated]"
+        return message[:NONFINITE_MESSAGE_LIMIT - len(suffix)] + suffix
+    return message
+
+
+def checked_step_losses(micro_losses, grad_norm, model=None):
     """Read microbatch losses and the pre-clip norm together before updating."""
     values = torch.cat((torch.stack(micro_losses).flatten(), grad_norm.reshape(1)))
     *losses, norm = values.tolist()
     if not all(map(math.isfinite, losses)):
         raise NonfiniteTrainingError("Nonfinite training objective or MTP component")
     if not math.isfinite(norm):
-        raise NonfiniteTrainingError("Nonfinite gradient norm")
+        message = "Nonfinite gradient norm"
+        if model is not None:
+            message = nonfinite_error_message(message, model, gradients=True)
+        raise NonfiniteTrainingError(message)
     return tuple(sum(losses[i::3]) for i in range(3))
 
 
@@ -200,6 +241,10 @@ def main():
         help="module:function returning writer(out_dir) with write/flush/close",
     )
     p.add_argument(
+        "--expert-load-every", type=int, default=0, metavar="STEPS",
+        help="Record MoE routing picks every STEPS training steps (0 disables collection)",
+    )
+    p.add_argument(
         "--run-id", help="Shared job run ID (letters, digits, dots, dashes, underscores)"
     )
     p.add_argument(
@@ -229,6 +274,8 @@ def main():
         "--resume-committed", action="store_true", help="Restore from the trusted Team 7 checkpoint store"
     )
     args = p.parse_args()
+    if args.expert_load_every < 0:
+        p.error("--expert-load-every must be nonnegative")
     if not args.smoke:
         if not args.checkpoint_store:
             p.error("Quality runs require --checkpoint-store and --run-id for Team 7 commits")
@@ -419,6 +466,9 @@ def main():
         identity["bpb_policy"] = (
             f"original UTF-8 bytes, with {args.tokenizer_release} tokenizer normalization"
         )
+    if hasattr(model, "prior_identity"):
+        from week2.kas_v2 import FIXTURE_SHA
+        identity["kas_v2"] = {"codec_fixture_sha256": FIXTURE_SHA, "prior": model.prior_identity}
     # Resume checks bind the checkpoint to the resolved inputs and source hashes.
     identity_hash = hashlib.sha256(
         json.dumps(identity, sort_keys=True).encode()
@@ -452,6 +502,7 @@ def main():
         "status": "SMOKE_NOT_A_QUALITY_RESULT" if args.smoke else "AGREED_BASELINE_RUN",
         "heldout_provenance": report,
         "g8_external_writer": bool(args.logger_factory),
+        "expert_load_every": args.expert_load_every,
         "token_budget_note": "Input positions include right padding; scored tokens/bytes reported separately",
         "train_documents": train.document_count,
         "heldout_documents": val.document_count,
@@ -478,6 +529,9 @@ def main():
             try:
                 probe_model.eval()
                 with amp():
+                    if cfg["model"].get("head_mode") == "kas_v2":
+                        from week2.kas_v2 import checkpoint_probe
+                        return checkpoint_probe(probe_model)
                     return float(scored_ntp_loss(probe_model, probe_x, probe_y))
             finally:
                 probe_model.train(training)
@@ -485,7 +539,7 @@ def main():
         checkpointer = Checkpointer(
             run_id, str(args.out / "checkpoint-cache"), args.checkpoint_store,
             config_path=str(args.config), seed=seed,
-            frozen_keys=("embedding.rows", "embedding.lengths"), code_paths=source_files,
+            frozen_keys=("embedding.rows", "embedding.lengths") + (("codec.G", "codec.Phi") if hasattr(model, "codec") else ()), code_paths=source_files,
         )
         if not args.resume_committed and checkpointer.store.exists("latest.json"):
             p.error("Team 7 run ID already exists. Use --resume-committed or a fresh run ID")
@@ -666,19 +720,29 @@ def main():
             tick = time.perf_counter()
             x, y, lengths = stream.next(device)
             optimizer.zero_grad(set_to_none=True)
-            count = int((y != -100).sum())
+            # TSAI recipe (21 Nov), unconfirmed on KE2: bag training (TST) for the first tst_frac of the steps.
+            tst_on = tst_mod.active(step, cfg["run"]["steps"], cfg["run"])
+            count = int((y != -100).sum())  # real scored tokens: logged, and the normal-training normaliser
+            # TST normalises by scored bags instead; the logged token count stays the real one (Team 8's tokens per byte).
+            bag_count = tst_mod.scored_bags(y, cfg["run"]["tst_bag"]) if tst_on else 0
             mtp_count = int((y[:, 1:] != -100).sum())
             total = 0.0
             ntp_value = 0.0
             mtp_value = 0.0
             micro_losses = []
+            sample_expert_load = args.expert_load_every and step % args.expert_load_every == 0
+            if sample_expert_load:
+                model.start_expert_load()
             micro = cfg["run"]["micro_batch_size"]
+            model.clear_router_bias_load()
             for start in range(0, len(x), micro):
                 tx, ty = x[start : start + micro], y[start : start + micro]
                 # Normalize each microbatch by the full batch target count.
                 with amp():
                     mtp = None
-                    if model.mtp_head is None:
+                    if tst_on:
+                        ntp = tst_mod.tst_loss(model, tx, ty, cfg["run"]["tst_bag"]) / max(bag_count, 1)
+                    elif model.mtp_head is None:
                         ntp = scored_ntp_loss(model, tx, ty) / count
                     else:
                         logits, mtp_logits = model(tx, ty != -100, return_mtp=True)
@@ -707,6 +771,7 @@ def main():
                     ntp_value += float(ntp.detach())
                     if mtp is not None:
                         mtp_value += float(mtp.detach())
+            model.update_router_bias()
             if not args.consolidate_step_checks:
                 grads = [q.grad for q in model.parameters() if q.grad is not None]
                 if grads and not bool(torch.isfinite(torch.stack(torch._foreach_norm(grads))).all()):
@@ -719,10 +784,13 @@ def main():
                 error_if_nonfinite=not args.consolidate_step_checks,
             )
             if args.consolidate_step_checks:
-                total, ntp_value, mtp_value = checked_step_losses(micro_losses, norm)
+                total, ntp_value, mtp_value = checked_step_losses(micro_losses, norm, model)
+            # TSAI recipe (21 Nov): WSD scales both optimizers' peak rates; constant leaves them unchanged.
+            scale = lr_scale(step, cfg["run"]["steps"], cfg["optim"])
+            set_lr_scale(optimizer, scale)
             optimizer.step()
             if not bool(torch.isfinite(torch.stack(torch._foreach_norm([q.detach() for q in model.parameters()]))).all()):
-                raise NonfiniteTrainingError("Nonfinite parameter")
+                raise NonfiniteTrainingError(nonfinite_error_message("Nonfinite parameter after optimizer step", model))
             if device.type == "cuda":
                 torch.cuda.synchronize()
             ms = (time.perf_counter() - tick) * 1000
@@ -740,7 +808,7 @@ def main():
                 "loss_mtp": mtp_value if cfg["model"]["mtp"] else 0.0,
                 "mtp_weight": cfg["model"]["mtp_weight"],
                 "loss": ntp_value,
-                "lr": cfg["optim"]["lr"],
+                "lr": cfg["optim"]["lr"] * scale,
                 "gradient_norm": float(norm),
                 "gradient_clipping_applied": float(norm) > cfg["run"]["grad_clip"],
                 "train/scored_tokens": count,
@@ -754,6 +822,8 @@ def main():
                     else 0.0
                 ),
             }
+            if sample_expert_load:
+                row["expert_load"] = model.finish_expert_load()
             if (
                 step % cfg["run"]["eval_every_steps"] == 0
                 or step == cfg["run"]["steps"]
@@ -766,7 +836,7 @@ def main():
                 if device.type == "cuda":
                     torch.cuda.empty_cache()  # execution-only (TSAI): free the eval cache so training does not thrash
             if cfg["optim"]["name"] == "muon":
-                row["muon_lr"] = cfg["optim"]["muon_lr"]
+                row["muon_lr"] = cfg["optim"]["muon_lr"] * scale
             rows.append(row)
             log(row)
             if stop_signal is not None:

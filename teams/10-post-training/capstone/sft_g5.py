@@ -38,6 +38,7 @@ from pathlib import Path
 
 import torch
 import torch.nn as nn
+from torch import no_grad
 
 HERE = Path(__file__).resolve().parent
 TEAM10 = HERE.parent
@@ -124,8 +125,8 @@ def apply_method(lm: nn.Module, method: str, args) -> dict:
         gen = torch.Generator().manual_seed(args.seed)
         wrapped = []
         for name, module in list(lm.named_modules()):
-            if name.endswith(".router") or name == "head":
-                continue
+            if name.endswith(".router") or name == "head" or name.startswith("head."):
+                continue  # the output head (dense or KE2/KAS, with any inner Linears) is never LoRA-wrapped
             for child_name, child in list(module.named_children()):
                 if child_name in G5_LORA_TARGETS and isinstance(child, nn.Linear):
                     setattr(module, child_name, bench.LoRALinear(child, args.lora_r, args.lora_alpha, gen))
@@ -142,8 +143,17 @@ def apply_method(lm: nn.Module, method: str, args) -> dict:
 
 
 def enable_head_rows(lm: nn.Module, ids: list[int]) -> nn.Parameter:
-    """Train only head.weight rows `ids`: a gradient hook zeroes every other row (with wd 0 AdamW leaves them exact)."""
-    w = lm.head.weight
+    """Train only rows `ids` of the output head's per-token matrix (dense `head.weight` or KE2/KAS `head.tok_u`,
+    resolved by team5_adapter.head_access, which raises on a head of unknown kind)."""
+    import team5_adapter as ta  # noqa: PLC0415  rl-loop/team5_adapter.py
+
+    try:
+        info = ta.head_access(lm)
+    except ta.ArtifactError as e:
+        raise ValueError(f"--marker-rows: {e}") from None
+    w = info["per_token"]
+    if max(ids) >= w.shape[0]:
+        raise ValueError(f"--marker-rows: marker id {max(ids)} outside {info['per_token_name']} rows {w.shape[0]}")
     rowmask = torch.zeros(w.shape[0], 1, dtype=w.dtype, device=w.device)
     rowmask[ids] = 1
     w.requires_grad_(True)
@@ -300,6 +310,75 @@ def mask_checks(wrapper: G5ForBench, rows: list[dict], device: str, bundle) -> d
 # ---------------------------------------------------------------- main
 
 
+@no_grad()  # undotted: pr-guard reads '+@a.b' as an email
+def marker_lift_stats(lm: nn.Module, rows: list[dict], marker_id: int, device: str, max_rows: int = 32,
+                      mid_per_row: int = 32) -> dict:
+    """log p(marker) at its supervised target positions (loss_mask 1; scored from the final hidden state one position
+    earlier), eval mode, the first `max_rows` rows that have such a target. Also RMS(h) there and, on a KAS V2 head
+    (`head.tok_c`), the marker rows' lift budget: z = h @ tok_c.T is what `head.tok_u[marker]` is multiplied by, so AdamW at
+    lr moves that logit by at most lr * sum|z_i| per step (`sum_abs_z`, mean over positions), and by at most
+    lr * sum_i |mean_p z_i| when one step must serve every position (`sum_abs_mean_z`). work/adp-2026-11-24/PREREG_marker_lr.md.
+    `mid_logprob`: log p(marker) at MID-reply supervised positions of the same rows (loss_mask 1, token not the marker; up
+    to `mid_per_row` evenly spaced per row), and `end_minus_mid`: the selectivity reached. The marker rows alone cannot
+    tell a turn end from mid-reply (they see only z); the method has to supply that through h."""
+    was = lm.training
+    lm.eval()
+    tok_c = getattr(getattr(lm, "head", None), "tok_c", None)
+    lps, hs, mids, used = [], [], [], 0
+    for r in rows:
+        if used >= max_rows:
+            break
+        ids, mask = r["input_ids"], r["loss_mask"]
+        pos = [t for t in range(1, len(ids)) if ids[t] == marker_id and mask[t]]
+        if not pos:
+            continue
+        x = torch.tensor([ids], device=device)
+        h = lm.hidden(x, torch.ones_like(x, dtype=torch.bool))[0]
+        hp = h[torch.tensor([t - 1 for t in pos], device=device)]
+        lps.append(torch.log_softmax(lm.head(hp).float(), -1)[:, marker_id].double().cpu())
+        mid = [t for t in range(1, len(ids)) if mask[t] and ids[t] != marker_id]
+        if mid:
+            mid = [mid[int(j * len(mid) / min(mid_per_row, len(mid)))] for j in range(min(mid_per_row, len(mid)))]
+            hm = h[torch.tensor([t - 1 for t in mid], device=device)]
+            mids.append(torch.log_softmax(lm.head(hm).float(), -1)[:, marker_id].double().cpu())
+        hs.append(hp.float().cpu())
+        used += 1
+    lm.train(was)
+    if not hs:
+        return {"marker_id": marker_id, "rows": 0, "positions": 0}
+    lp, h = torch.cat(lps), torch.cat(hs)
+    out = {"marker_id": marker_id, "rows": used, "positions": int(lp.numel()), "mean_logprob": float(lp.mean()),
+           "rms_h": float(h.pow(2).mean().sqrt())}
+    if mids:
+        mlp = torch.cat(mids)
+        out.update(mid_positions=int(mlp.numel()), mid_logprob=float(mlp.mean()),
+                   end_minus_mid=float(lp.mean() - mlp.mean()))
+    if isinstance(tok_c, torch.Tensor):
+        z = h @ tok_c.detach().float().cpu().t()
+        out.update(sum_abs_z=float(z.abs().sum(-1).mean()), sum_abs_mean_z=float(z.mean(0).abs().sum()), rank=int(z.shape[1]))
+    return out
+
+
+# work/adp-2026-11-24/PREREG_marker_lr.md, Amendment A1: the marker rows must cover 1.3 x (prior floor 18.79 + 3.0) nats.
+MARKER_DEFICIT_NATS = 18.79 + 3.0
+MARKER_MARGIN = 1.3
+
+
+def marker_budget(marker_lr: float, multipliers: list[float], stats: dict) -> dict | None:
+    """The lift the marker rows could reach on the logged run: marker_lr x S x sum|z| x c, with S the sum of the completed
+    steps' schedule multipliers and c = sum|mean z| / sum|z| at im_end's targets (before training). `under_margin` says
+    the frozen arms' chat column is budget-limited, not method-limited. None without a KAS head (no z)."""
+    if not stats or not stats.get("sum_abs_z"):
+        return None
+    S = float(sum(multipliers))
+    c = stats["sum_abs_mean_z"] / stats["sum_abs_z"]
+    budget = marker_lr * S * stats["sum_abs_z"] * c
+    need = MARKER_MARGIN * MARKER_DEFICIT_NATS
+    return {"marker_lr": marker_lr, "steps": len(multipliers), "S": S, "sum_abs_z": stats["sum_abs_z"], "coherence": c,
+            "budget_nats": budget, "required_nats": need, "under_margin": budget < need,
+            "flag": "marker budget under the preregistered margin" if budget < need else None}
+
+
 def read_rows(path: Path, split: str) -> list[dict]:
     rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
     bad = [r["id"] for r in rows if r.get("split") != split]
@@ -382,8 +461,12 @@ def run(args) -> dict:
         method_info["deletion_at_init"] = dtmask.deletion_stats(lm)
         method_info["band_at_init"] = dtmask.band_stats(lm)
     report["method"] = method_info
+    im_end_id = bundle.special["tokens"]["end_of_turn"]["id"]
+    report["im_end_at_targets"] = {"before": marker_lift_stats(lm, eval_rows, im_end_id, device)}
     frozen_before = bench.frozen_sha256(lm, marker_ids if marker_param is not None else None) \
         if args.method != "full" else None
+    import router as g10_router  # noqa: PLC0415  rl-loop/router.py
+    bias_before = g10_router.router_bias_checksum(lm)  # every method, full FT included: the bias is a buffer
     params = [p for p in lm.parameters() if p.requires_grad]
     groups = [{"params": [p for p in params if p is not marker_param], "base_lr": args.lr}]
     groups = [g for g in groups if g["params"]]
@@ -396,7 +479,7 @@ def run(args) -> dict:
     elif args.method == "lora":
         watch_name, watch = "blocks.0.attn.q.lora_B", lm.blocks[0].attn.q.lora_B
     elif args.method == "markers":
-        watch_name, watch = "head.weight (marker rows)", marker_param
+        watch_name, watch = f"{ta.head_access(lm)['per_token_name']} (marker rows)", marker_param
     else:
         watch_name, watch = "blocks.0.attn.q.weight", lm.blocks[0].attn.q.weight
     lm.train()
@@ -418,9 +501,7 @@ def run(args) -> dict:
         loss, count = bench.accumulate(wrapper, mbs, device)
         reg_val = None
         if args.method == "dt" and args.dt_lambda > 0:
-            reg = dtmask.regulariser(lm)
-            (-dtmask.lambda_at(step, args.steps, args.dt_lambda) * reg).backward()
-            reg_val = float(reg.detach())
+            reg_val = dtmask.regulariser_backward_(lm, dtmask.lambda_at(step, args.steps, args.dt_lambda))
         gn = torch.nn.utils.clip_grad_norm_(params, args.clip)
         sel = (lambda t: t[marker_ids]) if args.method == "markers" else (lambda t: t)
         if step == 0:
@@ -450,6 +531,10 @@ def run(args) -> dict:
     bench.sync(device)
     report["train_seconds"] = round(time.perf_counter() - t0, 1)
     lm.eval()
+    g10_router.clear_router_bias_load(lm)  # train-mode load counts: only update_router_bias() reads them; G10 never calls it
+    bias_after = g10_router.router_bias_checksum(lm)
+    # pass False also when the arm's config says a bias exists but no router_bias buffer is found (job BNP)
+    report["router_bias_unchanged"] = g10_router.router_bias_record(lm, bias_before, bias_after, bundle.spec)
     if frozen_before is not None:
         after = bench.frozen_sha256(lm, marker_ids if marker_param is not None else None)
         report["frozen_weights_unchanged"] = {"before": frozen_before, "after": after, "pass": after == frozen_before}
@@ -464,6 +549,10 @@ def run(args) -> dict:
                                      "deleted_final": sum(int((~m).sum()) for m in keep.values())}
     if args.method == "lora":
         bench.merge_lora(lm)
+    report["im_end_at_targets"]["after"] = marker_lift_stats(lm, eval_rows, im_end_id, device)
+    if marker_param is not None:
+        report["marker_budget"] = marker_budget(args.marker_lr, [r["lr"] / args.lr for r in log],
+                                                report["im_end_at_targets"]["before"])
     post = {"eval_loss": eval_loss(wrapper, eval_rows, device, args.micro_tokens)}
     if args.heldout:
         post["forgetting"] = forgetting_bpb(bundle, args.heldout, args.heldout_sources, device)
@@ -665,7 +754,8 @@ def parse_args(argv=None):
     p.add_argument("--team7-export-path", type=Path, default=None, help="output path for Team 7 export_safetensors")
     p.add_argument("--keep-weights-dir", type=Path,
                    help="default off: also save the final plain weights as a Team 7 run folder <dir>/<keep-run-id>")
-    p.add_argument("--keep-run-id", default="g10-sft", help="run id (folder name) of the kept weights")
+    p.add_argument("--keep-run-id", "--keep-weights-id", dest="keep_run_id", default="g10-sft",
+                   help="run id (folder name) of the kept weights; --keep-weights-id is the spelling dryrun2_dt_compare.py passes")
     p.add_argument("--out", type=Path, required=True)
     return p.parse_args(argv)
 

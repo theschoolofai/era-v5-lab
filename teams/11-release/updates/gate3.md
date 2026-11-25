@@ -36,7 +36,7 @@ The lab produced the first 41 shards from a sample of the lab's data, using the 
 
 Short forms: p1536 and C3 are names of tokenizer candidates. Romanised Indic text is Indic text written in Latin script.
 KE2 is the lab team that tests its embedding method on the lab's tokenizer. The output head is the last part of the
-model, which scores each token as the next token. A dense untied head is a standard output head with its own weights.
+model, which scores each token as the next token. A dense untied head is the standard output head.
 
 ## Next
 
@@ -71,7 +71,7 @@ How to fill it:
 | Decision: learning rate | Architecture | [#447](https://github.com/theschoolofai/era-v5-lab/pull/447), Gate 2 update [#443](https://github.com/theschoolofai/era-v5-lab/pull/443) | TSAI decision at Gate 3 | no |
 | Decision: model layout and size | Architecture | | TSAI decision at Gate 3 | no |
 | Decision: attention and experts | Architecture | [#447](https://github.com/theschoolofai/era-v5-lab/pull/447), Gate 2 update [#443](https://github.com/theschoolofai/era-v5-lab/pull/443), test with more experts: [#659](https://github.com/theschoolofai/era-v5-lab/pull/659), [#668](https://github.com/theschoolofai/era-v5-lab/pull/668) | TSAI decision at Gate 3 | no |
-| Decision: output head | KE2, Architecture | TSAI decision: [#691](https://github.com/theschoolofai/era-v5-lab/pull/691). Handoff to Architecture: [#694](https://github.com/theschoolofai/era-v5-lab/pull/694) | TSAI decision, 21 Nov | no |
+| Decision: output head | KE2, Architecture | TSAI decision in `teams/04-ke2/gate3.md`, merged with the handoff to Architecture in [#694](https://github.com/theschoolofai/era-v5-lab/pull/694) | TSAI decision, 21 Nov | no |
 | Decision: public dashboard panels and monitoring | Monitoring, Release | Panels: [#495](https://github.com/theschoolofai/era-v5-lab/pull/495). Text: [#598](https://github.com/theschoolofai/era-v5-lab/pull/598). Monitoring applied the text, merged: [#629](https://github.com/theschoolofai/era-v5-lab/pull/629) | text by Release, merged by TSAI in #598 | Monitoring: yes, [approval on #629](https://github.com/theschoolofai/era-v5-lab/pull/629#pullrequestreview-5967977324) |
 
 Open at Gate 3, for the next gate update: evaluation schedule ([#662](https://github.com/theschoolofai/era-v5-lab/pull/662)), tuning method after the main training
