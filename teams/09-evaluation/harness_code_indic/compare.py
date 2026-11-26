@@ -6,7 +6,7 @@ same protocol. A pair without a finished full run is PENDING (or DEFERRED / NOT 
 Inputs, all under runs/<model>/ (gitignored, kept locally):
     eval_mini_v0/results.json          lm-eval part of eval-mini        (run_lm_eval.py --samples-file eval_mini_v0_spec.json)
     gate_<task>/results.json           full-set gate runs               (run_lm_eval.py --tasks <task> --tag gate_<task>)
-    evalplus/*_eval_results.json       executed code samples            (code_eval_colab.ipynb)
+    evalplus/*_eval_results.json       executed code samples            (code_eval_docker.py or code_eval_colab.ipynb)
 
 Usage (from this folder):  python compare.py
 """
