@@ -272,6 +272,7 @@ old branch stays, so the run can be replayed exactly later. You can also restart
 | File | What it does |
 |---|---|
 | `ckpt.py` | the `Checkpointer` (save, background upload and commit, restore with all checks), `run_retention`, `export_safetensors`, and a small CLI |
+| `candidates.py` | the one rule for which committed checkpoints a restart may try (`pick_candidates`), no torch. `Checkpointer.candidates()` restores with it and `queue/job_queue.py start-mode` chooses fresh or resume with it, so the two cannot disagree |
 | `store.py` | one interface, two stores: `LocalStore` (a folder) and `S3Store` (boto3: multipart above 64 MB, retries, SHA256 checksums). `open_store("s3://…")` picks S3 |
 | `supervisor.py` | restarts a killed or saved-and-stopped trainer from its last COMPLETE checkpoint, with crash, 75 and crash-loop limits; logs every attempt. Tests: `test_supervisor.py` |
 | `loader_contract.py` | the test Teams 01/02's real data loader must pass: `state_dict` (**one global ledger offset, the same on every rank**), `load_state_dict`, `next_batch_id`, `add_skip`, and a resume at another world size |

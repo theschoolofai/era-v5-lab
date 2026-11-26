@@ -40,11 +40,13 @@ V5_TRAINER="${V5_TRAINER:-week2}"
 PY=/opt/venv/bin/python
 QUEUE=/opt/v5/queue/job_queue.py
 
-# Exit 78 maps to a held Slurm job. Record the reason in both the log and the job comment.
+# Exit 78 maps to a held Slurm job. Record the reason in the log, the job comment and a job.held event (the Q-02
+# monitoring counter). The event is best effort: it must never change the exit code.
 hold() {
   local msg="V5 HELD (78): $*"
   echo "$msg" >&2
   scontrol update JobId="${SLURM_JOB_ID:-}" Comment="${msg//\"/\'}" >/dev/null 2>&1 || true
+  "$PY" "$QUEUE" hold-event --reason "$*" >/dev/null 2>&1 || true
   exit 78
 }
 

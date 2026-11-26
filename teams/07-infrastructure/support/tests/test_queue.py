@@ -12,6 +12,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 TEAM = os.path.join(HERE, "..", "..")
 sys.path[:0] = [TEAM, os.path.join(TEAM, "queue")]
 import job_queue  # noqa: E402
+from ckpt.candidates import pick_candidates  # noqa: E402
 
 
 def test_crash_loop_holds_on_the_third_crash(tmp_path, monkeypatch):
@@ -152,6 +153,7 @@ def test_start_mode_rejects_malformed_commit_history(tmp_path):
         job_queue.start_mode(str(root), "r1", tries=1, wait_s=0)
     (run / "commits.jsonl").write_text(
         '{"step": 0, "branch": "main", "path": "main/missing"}\n')
+    (run / "latest.json").write_text('{"epoch": 1, "step": 0, "branch": "main", "path": "main/missing"}')
     with pytest.raises(OSError, match="missing main/missing/MANIFEST.json"):
         job_queue.start_mode(str(root), "r1", tries=1, wait_s=0)
     (run / "commits.jsonl").write_text(
@@ -162,6 +164,32 @@ def test_start_mode_rejects_malformed_commit_history(tmp_path):
     (run / "latest.json").write_text('{"epoch": null, "path": null}')
     with pytest.raises(OSError, match="epoch"):
         job_queue.start_mode(str(root), "r1", tries=1, wait_s=0)
+
+
+def test_start_mode_holds_commit_history_without_latest(tmp_path):
+    """Restore would find no candidate here (Checkpointer.candidates() needs latest.json), so start-mode must not
+    answer resume: it raises, and mainrun.sbatch holds."""
+    root = tmp_path / "store"
+    run = root / "r1"
+    run.mkdir(parents=True)
+    (run / "commits.jsonl").write_text('{"step": 0, "branch": "main", "path": "main/step_0-e1"}\n')
+    write_manifest(run)
+    with pytest.raises(OSError, match="latest.json is missing"):
+        job_queue.start_mode(str(root), "r1", tries=1, wait_s=0)
+
+
+def test_candidate_rule_is_shared_by_start_mode_and_restore():
+    commits = [{"step": s, "branch": "main", "path": f"main/step_{s}-e1"} for s in (0, 50, 100)]
+    claim = {"epoch": 1, "path": None, "step": None}
+    newest = dict(commits[1], epoch=2)
+    assert pick_candidates(commits, None) == []                                   # no latest.json
+    assert pick_candidates([], None) == []
+    assert pick_candidates([], claim) == []                                       # a claim and nothing committed
+    assert pick_candidates(commits, claim) == commits[::-1]                       # a claim: history, newest first
+    assert pick_candidates(commits, newest) == [newest, commits[2], commits[0]]   # latest.json first, once
+    assert pick_candidates(commits, newest, from_step=50) == [commits[1]]         # rollback ignores latest.json
+    assert pick_candidates(commits, None, from_step=50) == [commits[1]]
+    assert pick_candidates(commits, newest, from_step=7) == []
 
 
 def test_start_mode_fails_closed_without_store(tmp_path):
@@ -360,6 +388,53 @@ def test_mainrun_rejects_incomplete_or_unsafe_commands(tmp_path):
         process, got = run_mainrun(case, env, args)
         assert process.returncode == 78 and got["argv"] == [], (index, process.stderr)
         assert message in process.stderr, (index, process.stderr)
+
+
+def held_events(tmp_path):
+    return [json.loads(line) for f in sorted((tmp_path / "events").glob("*.jsonl"))
+            for line in f.read_text().splitlines() if '"job.held"' in line]
+
+
+def test_mainrun_startup_hold_sends_job_held_event(tmp_path):
+    """Q-02 counts job.held. A startup check that holds the job (exit 78) must send it, with the reason."""
+    cases = [
+        ("a", {"SLURM_NTASKS": "2"}, "requires exactly one task"),
+        ("b", {"TRAIN_EXTRA": "--from-step 10 --skip 2 --branch b1"}, "TRAIN_EXTRA is simulation-only"),
+        ("c", {"V5_REMOTE_ROOT": str(tmp_path / "not-mounted")}, "cannot determine the start mode"),
+    ]
+    for name, env, message in cases:
+        case = tmp_path / name
+        case.mkdir()
+        process, got = run_mainrun(case, env)
+        assert process.returncode == 78 and got["argv"] == [], (name, process.stderr)
+        events = held_events(case)
+        assert len(events) == 1, (name, events)
+        assert events[0]["cause"] == "startup_check_failed" and events[0]["severity"] == "high"
+        assert message in events[0]["detail"] and events[0]["run_id"] == "r1" and events[0]["job_id"] == "42"
+    claim = tmp_path / "d"
+    claim.mkdir()
+    run = claim / "store" / "r1"
+    run.mkdir(parents=True)
+    (run / "latest.json").write_text('{"epoch": 1, "path": null, "step": null}')
+    process, _ = run_mainrun(claim)
+    assert process.returncode == 78
+    assert "claim but no committed checkpoint" in held_events(claim)[0]["detail"]
+
+
+def test_mainrun_hold_event_failure_keeps_exit_78(tmp_path):
+    not_a_dir = tmp_path / "events-file"
+    not_a_dir.write_text("")
+    process, _ = run_mainrun(tmp_path, {"SLURM_NTASKS": "2", "V5_EVENTS_DIR": str(not_a_dir)})
+    assert process.returncode == 78
+    assert "requires exactly one task" in process.stderr
+
+
+def test_hold_event_cli_records_one_job_held(tmp_path, monkeypatch):
+    monkeypatch.setenv("V5_EVENTS_DIR", str(tmp_path / "events"))
+    assert job_queue.main(["hold-event", "--reason", "V5 test reason"]) == 0
+    events = held_events(tmp_path)
+    assert [e["detail"] for e in events] == ["V5 test reason"]
+    assert job_queue.lookup("startup_check_failed")["alert"] == "Q-02"
 
 
 def test_mainrun_holds_when_store_root_is_missing(tmp_path):

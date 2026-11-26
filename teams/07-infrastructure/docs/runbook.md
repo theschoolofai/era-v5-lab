@@ -122,6 +122,9 @@ grep -h '"restore.done"' $V5_EVENTS_DIR/*.jsonl | grep "\"run_id\": \"$RUN_ID\""
 
 **With Slurm** (the main run, later): nothing to type. `queue/job_queue.py run` (called by `slurm/mainrun.sbatch`)
 turns the trainer's exit into 0, 75 or 78; Slurm requeues on 75, and the next attempt restores as in section 3.
+For Team 05's trainer, `mainrun.sbatch` first reads the store (`job_queue.py start-mode`) and starts fresh
+(`--checkpoint-at-start`) or with `--resume-committed`. If a startup check fails (a setting, an unreadable store, a
+claim with no commit) it holds the job with exit 78 and sends a `job.held` event with the reason (section 7).
 
 **Without Slurm** (one machine, the TSAI runner, the CPU tests): `ckpt/supervisor.py` runs the trainer as a child
 and starts the **same command** again after a 75 or a crash. The supervisor knows nothing about the model.
@@ -153,9 +156,9 @@ RUN_ID=<run_id> V5_REMOTE_ROOT=<remote_root> \
 | Case | Command |
 |---|---|
 | Held job, cause fixed | `scontrol release <id>` |
-| Job cancelled or gone (Slurm) | `sbatch slurm/mainrun.sbatch` (it restores from `latest.json`) |
+| Job cancelled or gone (Slurm) | `sbatch --export=ALL,RUN_ID=<run>,V5_TRAINER=week2,V5_TRAIN_SCRIPT=<path>/train_week2.py,V5_TRAIN_ARGS_FILE=<path>/mainrun.args slurm/mainrun.sbatch` (it reads the store and restores from the last commit; the simulation trainer needs `V5_TRAINER=sim` and `V5_SIMULATION=1` instead) |
 | Job gone (no Slurm) | run the same supervisor command again (section 4) |
-| Approved environment change | add `--allow-env-change` to the trainer command (`TRAIN_EXTRA=--allow-env-change` under Slurm); it is logged |
+| Approved environment change | add `--allow-env-change` to the trainer command (`TRAIN_EXTRA=--allow-env-change` under Slurm); it is logged. **Simulation trainer only:** `train_week2.py` has no such flag and `mainrun.sbatch` holds (78) on `TRAIN_EXTRA` for it (main-run checklist D4, open) |
 | Older step needed | section 6 |
 
 Then check it worked (section 3, "How to tell it worked").
@@ -163,6 +166,12 @@ Then check it worked (section 3, "How to tell it worked").
 ---
 
 ## 6. Roll back to a chosen step (after a NaN or a loss spike)
+
+> **Team 05's trainer (`train_week2.py`): not available yet.** It does not accept `--from-step`, `--skip`, `--branch`
+> or `--allow-env-change`. `mainrun.sbatch` rejects `TRAIN_EXTRA` and these flags for it and holds the job (78) instead
+> of crash-looping. There is no approved manual alternative until Team 05 decides D4 in the main-run checklist. Until
+> then, `verify` and `pin` step K (below) so retention keeps it, and tell the lead and Team 05. The command below runs
+> with the simulation trainer (`V5_TRAINER=sim`, `V5_SIMULATION=1`) and shows the restore API the trainer must call.
 
 ```bash
 python ckpt/ckpt.py list   --run <run>                # pick the last good step K
@@ -196,6 +205,7 @@ Full list with alert ids: [`codes_and_actions.md`](../support/docs/codes_and_act
 | `FencedError` | 78 | this attempt's commit was refused; the newer attempt is untouched | nothing for the run; find why the old attempt was still alive | - |
 | `nonfinite`, `loss_spike` | 78 | nothing saved after the bad step | roll back (section 6); tell Team 05 | CK-07, H-24 |
 | `crash_loop` | 78 | 3 crashes in 30 min; held so it stops burning device hours | read the last trainer error (`logs/job.log` in a job, else the supervisor's terminal), fix it, then restart | Q-04 |
+| `startup_check_failed` | 78 | `mainrun.sbatch` held the job before any training: a setting is missing or not allowed, the store cannot be read, a run has a claim but no commit (`claimed_only`), or a commit history has no `latest.json`. The reason is in the Slurm comment and the `job.held` event | read it (`squeue -o "%.10i %k"`), fix it, then `scontrol release <id>`. For a claim with no commit, tell Team 05 (checklist D3) | Q-02 |
 
 **Code check:** `code_sha256` (the trainer, model and loader files, plus `ckpt.py`) must match; a docs-only commit
 does not change it. `git_sha` is recorded but not compared: from `GIT_SHA`, else the checkout's HEAD, else `none`
@@ -537,6 +547,12 @@ Then section 6 (`--from-step K --skip N --branch <new>`), after `verify` and `pi
 a protected or pinned step. So **pin the last known-good step** as soon as a CK-04, CK-05 or loss alarm fires,
 before retention runs again. Pinned steps are never deleted (`pins.json`).
 
+**Main run: pin step 0.** As soon as the first commit exists (`--checkpoint-at-start` writes step 0), run
+`python ckpt/ckpt.py pin --run <remote_root>/<run id> --step 0`. `--run` needs the full store path; the run id alone
+fails. `--protect-every` counts commits and step 0 is commit 1, so without the pin retention deletes step 0 once it is
+older than the newest 9 commits. Check that `pins.json` contains 0 and that a retention `--dry-run` lists step 0 under
+`protected` (main-run checklist C15).
+
 ---
 
 ## 13. Sources
@@ -568,6 +584,8 @@ Other evidence: [`results/restore_test_cpu.txt`](../results/restore_test_cpu.txt
 | Confirm Team 5's trainer has the step watchdog (`--watchdog-s`); today only the test trainer in `support/simulation/` has it | Team 5 | Tue 17 Nov |
 | Fill the 10.4 checks from the dry run 1 logs (restarts, restored steps, steps run again) | Member C, with the lead's restore drill | Fri 20 Nov |
 | NCCL timeout test on 2 real GPUs (`support/kaggle/nccl_timeout_test.py`), trace read with `torchfrtrace` | TSAI job | after dry run 1 |
+| Recovery for a claim with no commit in `train_week2.py` (D3); `mainrun.sbatch` holds `claimed_only` until then | Team 05 | open |
+| `--from-step`, `--skip`, `--branch`, `--allow-env-change` in `train_week2.py` (D4); update sections 5 and 6 when decided | Team 05, then Team 7 | open |
 
 ## 15. Change log
 
@@ -575,3 +593,4 @@ Other evidence: [`results/restore_test_cpu.txt`](../results/restore_test_cpu.txt
 |---|---|---|
 | v1 | 2026-11-11 | one runbook from the five rotation runbooks (R1–R5); replaces `docs/runbook_restore_restart_cpu.md` |
 | v2 | 2026-11-15 | week-3 core task 4: node failures (10), NCCL hangs (11), bad checkpoints (12); Gate 3 restart checks from the returned logs (10.4); sources, open items and change log move to 13–15 |
+| v3 | 2026-11-26 | main run on Team 05's trainer: `TRAIN_EXTRA` rollback and `--allow-env-change` marked simulation-only (5, 6), startup holds and `job.held` (4, 7), pin step 0 (12.3), open items D3 and D4 (14) |

@@ -15,6 +15,7 @@ hardware or network faults. If it crashes 3 times in 30 minutes, it is not one-o
 Commands:
     job_queue.py run -- <srun args> -- <trainer args>   the job wrapper; every sbatch script calls it
     job_queue.py start-mode --remote-root R --run-id I  fresh | resume | claimed_only for the next attempt
+    job_queue.py hold-event --reason TEXT               record job.held when a startup check holds the job (sbatch)
     job_queue.py spot-watch                             per node: cloud's 2-minute spot warning -> drain + save
     job_queue.py drain <reason> [--node N]              take a node out; its jobs save and move
     job_queue.py status                                 jobs and drained nodes, explained in plain words
@@ -39,7 +40,8 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
-from ckpt.store import open_store  # noqa: E402  (no torch: the wrapper stays light)
+from ckpt.candidates import pick_candidates  # noqa: E402  (no torch: the wrapper stays light)
+from ckpt.store import open_store  # noqa: E402
 from common.events import emit  # noqa: E402
 from common.reasons import (DRAIN, EXIT_CODES, EXIT_DONE, EXIT_FATAL, EXIT_RETRY, RAW_EXIT, SLURM,  # noqa: E402
                             lookup, read_exit_notes)
@@ -157,9 +159,12 @@ def start_mode(remote_root: str, run_id: str, tries: int = 3, wait_s: float = 10
     S3Store.exists() deliberately maps every ClientError to False. The latter is useful for optional probes but
     unsafe here: AccessDenied must hold the job, never look like a fresh run.
 
-    `latest.json` can be only a fencing claim: the first attempt writes it before its first commit. A path in
-    that file or a non-empty commits.jsonl means resume. A claim with neither means claimed_only; train_week2.py
-    currently refuses both fresh and resume in that state, so mainrun.sbatch holds it for Team 05."""
+    `latest.json` can be only a fencing claim: the first attempt writes it before its first commit. What counts
+    as something to resume is decided by ckpt/candidates.py, the same rule Checkpointer.candidates() restores with,
+    so this check and the restore cannot drift apart. A claim with no candidate is claimed_only; train_week2.py
+    currently refuses both fresh and resume in that state, so mainrun.sbatch holds it for Team 05. A commit history
+    without a latest.json is an inconsistent store: restore would find nothing to resume, so this raises and the
+    job is held instead of guessing."""
     root = remote_root.rstrip("/") or "/"
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", run_id):
         raise ValueError("run ID must begin with a letter or digit and contain only letters, digits, dots, "
@@ -272,15 +277,15 @@ def start_mode(remote_root: str, run_id: str, tries: int = 3, wait_s: float = 10
                         raise ValueError(f"commits.jsonl line {line_number} is invalid JSON: {exc}") from exc
                     validate_candidate(commit, f"commits.jsonl line {line_number}", require_path=True)
                     commits.append(commit)
-                first_candidate = latest if (latest or {}).get("path") else commits[-1] if commits else None
-                if first_candidate is not None:
-                    validate_manifest(first_candidate)
-                if not latest_present and not commits:
-                    mode = "fresh"
-                elif (latest or {}).get("path") or commits:
+                candidates = pick_candidates(commits, latest if latest_present else None)
+                if candidates:
+                    validate_manifest(candidates[0])
                     mode = "resume"
+                elif commits:
+                    raise ValueError("commits.jsonl lists committed checkpoints but latest.json is missing; "
+                                     "the run's store is inconsistent")
                 else:
-                    mode = "claimed_only"
+                    mode = "claimed_only" if latest_present else "fresh"
             emit("job.start_mode", mode=mode, store=root,
                  restart_count=int(os.environ.get("SLURM_RESTART_COUNT", "0")))
             return mode
@@ -289,6 +294,17 @@ def start_mode(remote_root: str, run_id: str, tries: int = 3, wait_s: float = 10
             if attempt + 1 < tries:
                 time.sleep(wait_s)
     raise OSError(f"checkpoint store {run_url} did not answer after {tries} tries: {error}") from error
+
+
+def startup_hold(reason: str) -> dict:
+    """Record `job.held` for a job that mainrun.sbatch held (exit 78) before the wrapper started.
+
+    In simple words: a startup check that fails (bad settings, an unreadable store) stops the job before
+    `run()` exists, so nothing said "held" and the Q-02 counter missed it. The sbatch script calls this once,
+    with the same words it writes to the job log and the Slurm comment."""
+    r = lookup("startup_check_failed")
+    return emit("job.held", cause="startup_check_failed", restart_count=int(os.environ.get("SLURM_RESTART_COUNT", "0")),
+                step=None, detail=reason[:300], title=r["title"], you_do=r["you_do"], severity=r["severity"])
 
 
 def set_comment(text: str) -> None:
@@ -447,6 +463,8 @@ def main(argv) -> int:
     sm = sub.add_parser("start-mode", help="fresh, resume or claimed_only for Team 05's next attempt")
     sm.add_argument("--remote-root", required=True)
     sm.add_argument("--run-id", required=True)
+    he = sub.add_parser("hold-event", help="record job.held for a startup check that held the job (mainrun.sbatch)")
+    he.add_argument("--reason", required=True)
     sub.add_parser("spot-watch", help="watch for the spot warning on this node")
     d = sub.add_parser("drain", help="take a node out of service; its jobs save and move")
     d.add_argument("reason")
@@ -463,6 +481,9 @@ def main(argv) -> int:
             emit("job.start_mode_failed", detail=f"{type(exc).__name__}: {str(exc)[:300]}")
             print(f"start-mode: cannot read the checkpoint store: {type(exc).__name__}: {exc}", file=sys.stderr)
             return 3
+        return 0
+    if a.cmd == "hold-event":
+        startup_hold(a.reason)
         return 0
     if a.cmd == "keep-spare":
         return 0 if keep_spare(a.partition, a.spares)["ok"] else 3
