@@ -7,6 +7,9 @@
     "repeated paragraphs count once (in lang_id.py)",
     "sa_Beng (Sanskrit in Bengali script) added; IndicLID has no class for it and calls it Assamese, so Assamese and sa_Beng form one marker group (both write the letter ra U+09F0)"
   ],
+  "_v3_changes": [
+    "Sanskrit markers extended from grammar tables (#675): markers.sa.words_file is built by sa_marker_build.py from the paradigms in sa_paradigms.py, dropping forms found in Hindi or Marathi text; the 21 words above are unchanged"
+  ],
   "packs": {
     "ind-hi-fw2": "hi",
     "ind-hi-hplt": "hi",
@@ -114,6 +117,7 @@
       ]
     },
     "sa": {
+      "words_file": "sa_marker_words.txt",
       "words": [
         "अस्ति",
         "सन्ति",
