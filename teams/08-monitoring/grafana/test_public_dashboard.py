@@ -41,9 +41,9 @@ def test_public_dashboard_panel_ids_unique_and_non_overlapping_queries_safe():
     assert len(chart_panels) >= 6
 
     for p in chart_panels:
-        assert p["type"] == "trend"
-        # Trend panels must enforce step X-axis
-        assert p.get("options", {}).get("xField") == "step"
+        assert p["type"] in ("trend", "table")
+        if p["type"] == "trend":
+            assert p.get("options", {}).get("xField") == "step"
         targets = p.get("targets", [])
         assert targets, f"panel {p['id']} has no SQL targets"
         for t in targets:
@@ -107,3 +107,43 @@ def test_training_pace_queries_cover_harness_and_public_names():
         step = next(o for o in panel["fieldConfig"]["overrides"] if o["matcher"]["options"] == "step")
         props = {p["id"]: p["value"] for p in step["properties"]}
         assert props == {"unit": "short", "custom.axisLabel": "step"}
+
+
+def test_composition_panel_displays_version_and_cleaning_counts():
+    panel = next(p for p in _load()["panels"] if p["title"] == "Dataset and Shard Composition")
+    assert panel["type"] == "table"
+    sql = panel["targets"][0]["rawSql"]
+    for field in ("dataset_version", "stage", "pack_id", "domain", "language", "docs_in", "docs_after_clean", "token_count", "drop_rate_pct"):
+        assert field in sql
+    assert "shard_composition FINAL" in sql
+
+
+def test_composition_version_selector_and_section():
+    dashboard = _load()
+    panel = next(p for p in dashboard["panels"] if p["id"] == 31)
+    assert "WHERE dataset_version = ${dataset_version:singlequote}" in panel["targets"][0]["rawSql"]
+    var = next(v for v in dashboard["templating"]["list"] if v["name"] == "dataset_version")
+    assert var["type"] == "query" and var["datasource"]["uid"] == "${ds}"
+    assert var["query"] == "SELECT DISTINCT dataset_version FROM shard_composition ORDER BY dataset_version"
+    assert not var["multi"] and not var["includeAll"]
+    row = next(p for p in dashboard["panels"] if p["title"] == "Dataset Composition")
+    assert row["type"] == "row" and row["gridPos"] == {"h": 1, "w": 24, "x": 0, "y": 43}
+    assert panel["gridPos"]["y"] == 44
+
+
+def test_composition_display_labels_and_units():
+    panel = next(p for p in _load()["panels"] if p["id"] == 31)
+    expected = {
+        "dataset_version": "Dataset version", "stage": "Stage", "pack_id": "Pack",
+        "domain": "Subject", "language": "Language code", "docs_in": "Documents in",
+        "docs_after_clean": "Documents after cleaning", "token_count": "Tokens",
+        "drop_rate_pct": "Drop rate (cleaning)",
+    }
+    overrides = {o["matcher"]["options"]: {p["id"]: p["value"] for p in o["properties"]}
+                 for o in panel["fieldConfig"]["overrides"] if o["matcher"]["id"] == "byName"}
+    assert {field: config["displayName"] for field, config in overrides.items()} == expected
+    for field in ("docs_in", "docs_after_clean", "token_count"):
+        assert overrides[field]["unit"] == "short" and overrides[field]["decimals"] == 1
+    assert overrides["drop_rate_pct"]["unit"] == "percent"
+    assert overrides["drop_rate_pct"]["decimals"] == 2
+    assert panel["gridPos"]["h"] == 16
