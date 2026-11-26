@@ -221,8 +221,8 @@ the key names, and that the answer cells are empty.
 
 - On FLORES, every Hindi and Odia translation has coverage ≥ 0.75 and no other block pair is listed, so those sheets
   draw from the top band only; their non-translations are the controls. The bands left short are in `e5d_summary.json`
-- Sync check: not applicable to `h3_e5d_sheets.py` and `h3_e5d_flores.py`, which use no torch. `h3.py`'s is TODO on
-  CUDA, as above
+- Sync check: not applicable to `h3_e5d_sheets.py` and `h3_e5d_flores.py`, which use no torch. `h3.py`'s is in
+  [its speed section](#speed-and-end-to-end-check)
 - No Python loops over tokens, documents, sentences or pairs: yes. Loops remain over the runs, language pairs, bands
   and encoders (the strata), the readers, the parts read and the files written
 
@@ -415,7 +415,8 @@ itself), so it stays with `tests/test_dedup_h3.py`.
 | `h3.py`, per layout (sa, hi, en held out): 383, 373 and 373 pairs verified | 168, 76, 76 |
 | `dedup.py`, 3 modes per layout; `h3_harm_plant.py`; `h3_harm_configs.py`; `h3_harm_check.py` | 9 in all |
 
-- Sync check: `h3_harm_plant.py` and `h3_harm_check.py` use no torch. `h3.py`'s is TODO on CUDA, as above
+- Sync check: `h3_harm_plant.py` and `h3_harm_check.py` use no torch. `h3.py`'s is in
+  [its speed section](#speed-and-end-to-end-check)
 - No Python loops over tokens, documents, sentences or pairs in the new scripts: yes. Loops remain over the layouts,
   the dedup.py modes, the cases, the language pairs, the packs written and the gold files
 
