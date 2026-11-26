@@ -23,7 +23,7 @@ Once jobs (1) and (2) finish, Team 10 hands over these four Team 7 Checkpointer 
 | `keep_t7/g10-dr2-dt` | Dry run 2 Deletion Tuning SFT arm | `bfloat16` autocast | *Pending dry run 2 run* | *Pending `forget_bpb_kept.py` + Team 9 rows* |
 | `g10-rl-final` | Dry run 2 DT-then-RL final checkpoint | `bfloat16` autocast | *Pending DT-then-RL run* | *Pending Team 9 Tier B score* |
 
-## 3. Independent & Supporting Week 4 Evidence Landed (`#746`, `#778`, `#797` merged; `#835` open)
+## 3. Independent & Supporting Week 4 Evidence Landed (`#746`, `#778`, `#797`, `#835` merged)
 
 | Deliverable | Evidence Level | Paths | Key Numbers / Result |
 |---|---|---|---|
