@@ -6,14 +6,17 @@ checks it against the bits-per-byte report's `compute_dtype` (sft/tests/forgetti
 eval_schedule.md section 8 proposal is that Team 9 hands rows in fractions; until it does, this is the one place the
 division happens, so it is not done by hand.
 
-    python capstone/watcher_rows_to_report.py --watcher-doc out/eval_mini_v1_lab.json --out after_mini.json
-    python capstone/watcher_rows_to_report.py --watcher-doc ... --report after_forget.json --out after.json   # merged
+    python capstone/watcher_rows_to_report.py --watcher-doc <base rows> --report forget_base.json --out base.json
+    python capstone/watcher_rows_to_report.py --watcher-doc <arm rows> --report forget_<run id>.json --out after.json
+    python sft/tests/forgetting.py --before base.json --after after.json --out forgetting.md
 
-    python sft/tests/forgetting.py --before base_forget.json base_mini.json --after after_forget.json after_mini.json \\
-        --out forgetting.md
+Without --report it writes the `eval_mini` block alone, which forgetting.py also takes beside the bits-per-byte report.
+Only the merged form above checks that the rows belong to a checkpoint the report measured (its `model_revisions`,
+written by forget_bpb_kept.py).
 
 What it refuses instead of guessing: a document that is not `eval_mini_v1`, a missing task, a task that appears twice
-(several formats), records that disagree on `dtype` or `model_revision`, an unknown dtype, a value or stderr outside
+(several formats), records that disagree on `dtype` or `model_revision`, rows of a checkpoint the --report did not
+measure, an unknown dtype, a value or stderr outside
 0..100. It reads only the watcher's own scores. Team 10 never reads benchmark items."""
 from __future__ import annotations
 
@@ -104,6 +107,12 @@ def main(argv=None) -> int:
             rep = json.loads(a.report.read_text(encoding="utf-8"))
             if "eval_mini" in rep and rep["eval_mini"] != block["eval_mini"]:
                 raise WatcherRowsError(f"{a.report} already holds a different eval_mini block")
+            revs = rep.get("model_revisions")
+            got = block["eval_mini"]["source"]["model_revision"]
+            if revs is not None and got not in revs:
+                raise WatcherRowsError(
+                    f"the watcher rows belong to model_revision {got}, but {a.report.name} measured {revs}: rows of "
+                    "one checkpoint cannot be paired with bits per byte of another")
             out = {**rep, **block}
             comp = rep.get("compute_dtype")
             if comp is not None and _dtype(comp, "report compute_dtype") != block["eval_mini"]["dtype"]:
