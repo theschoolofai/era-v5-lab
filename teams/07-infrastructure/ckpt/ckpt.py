@@ -552,6 +552,71 @@ class Checkpointer:
         self.epoch = epoch
         return epoch
 
+    def claim_initial(self, identity_sha256: str, *, allow_takeover: bool = False) -> int:
+        """D3 proposal: claim only an uncommitted filesystem run, without retrying.
+
+        Single-process initialization only. allow_takeover is operator permission,
+        NOT proof of process death: the previous attempt must have been stopped.
+        Reject committed/invalid state before touching ownership; CAS against the
+        exact inspected pointer closes the race with a commit or competing claim.
+        Normal restore continues to use claim(). Public API subject to G7 review.
+        """
+        if world() != 1 or self.epoch is not None:
+            raise CheckpointError("initial claim requires an unclaimed single-process attempt")
+        if self.store.kind != "local":
+            raise CheckpointError("D3 object-store initialization recovery is not agreed")
+        if (not isinstance(identity_sha256, str) or len(identity_sha256) != 64
+                or any(c not in "0123456789abcdef" for c in identity_sha256)):
+            raise CheckpointError("initial claim requires a resolved SHA-256 training identity")
+        st = self.store
+        try:
+            # Do not use exists(): a read failure must not authorize fresh state.
+            try:
+                with open(os.path.join(st.root, "latest.json"), "rb") as f:
+                    raw = f.read()
+            except FileNotFoundError:
+                cur, ver = None, None
+            else:
+                cur, ver = json.loads(raw), hashlib.sha256(raw).hexdigest()
+                if not isinstance(cur, dict):
+                    raise CheckpointError("latest.json must be a claim object")
+            try:
+                history = st.get_text("commits.jsonl")
+            except FileNotFoundError:
+                history = ""
+            if history.strip():
+                raise CheckpointError("commit history exists; use --resume-committed")
+            previous = 0
+            if cur is not None:
+                required = {"epoch", "path", "step", "branch"}
+                if (not required.issubset(cur) or type(cur["epoch"]) is not int or cur["epoch"] < 1):
+                    raise CheckpointError("invalid initial claim metadata")
+                if any(cur[key] is not None for key in ("path", "step", "branch")):
+                    raise CheckpointError("checkpoint reference exists; use --resume-committed")
+                if not allow_takeover:
+                    raise CheckpointError("run already claimed; explicit precommit recovery is required")
+                # Compatibility with the earlier D3 draft; no lock protocol is retained.
+                saved_identity = cur.get("identity_sha256", cur.get("g5_identity_sha256"))
+                if saved_identity != identity_sha256:
+                    raise CheckpointError("initial claim identity is missing or differs")
+                previous = cur["epoch"]
+            elif allow_takeover:
+                raise CheckpointError("no initial claim exists; use normal fresh start")
+            new = {"path": None, "step": None, "branch": None, "epoch": previous + 1,
+                   "identity_sha256": identity_sha256, "job": os.environ.get("SLURM_JOB_ID"),
+                   "host": platform.node(), "claimed_at": time.time()}
+            version = st.put_json_if("latest.json", new, ver)
+        except Conflict as error:
+            raise FencedError("initial claim changed during inspection; reclassify the run before retrying") from error
+        except CheckpointError:
+            raise
+        except Exception as error:
+            raise CheckpointError(f"initial claim metadata unavailable or invalid: {error}") from error
+        self.epoch, self._ptr_ver = new["epoch"], version
+        emit("checkpoint.claimed", epoch=self.epoch, previous=previous or None,
+             job=new["job"], step=None, recovered_precommit=allow_takeover)
+        return self.epoch
+
     def check_frozen(self, frozen: dict, step: int):
         """Refuse to save when a frozen tensor changed since the last restore or save (same on every rank: the
         fingerprints come from one all-reduce)."""

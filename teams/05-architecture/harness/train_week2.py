@@ -6,7 +6,7 @@ import os
 os.environ.setdefault("CUBLAS_WORKSPACE_CONFIG", ":4096:8")
 import argparse
 import copy
-from contextlib import ExitStack, nullcontext
+from contextlib import nullcontext
 import hashlib
 import importlib
 import json
@@ -29,7 +29,7 @@ from week2.evaluation import EVAL_BATCH_TOKENS, evaluate, token_nll
 from week2.optim import Optimizers, build_optimizer, describe, lr_scale, set_lr_scale
 from week2 import tst as tst_mod
 from week2.team7_checkpoints import CheckpointProgress, write_native_checkpoint
-from week2.precommit import LocalOwnerGuard, PrecommitRecoveryError, claim_initial_state
+from week2.precommit import claim_initial_state
 
 
 class JsonWriter:
@@ -180,7 +180,7 @@ class NonfiniteTrainingError(ValueError):
     pass
 
 
-def _main(cleanup):
+def main():
     p = argparse.ArgumentParser(description=__doc__)
     for name in [
         "config",
@@ -276,7 +276,7 @@ def _main(cleanup):
     )
     resume.add_argument(
         "--recover-precommit", action="store_true",
-        help="Draft D3: reinitialize a guarded local run interrupted before its first commit",
+        help="Draft D3: explicitly reinitialize a claim-only run AFTER stopping its previous attempt",
     )
     args = p.parse_args()
     if args.expert_load_every < 0:
@@ -515,7 +515,6 @@ def _main(cleanup):
     if data_load_started is not None:
         manifest["data_load_seconds"] = data_load_seconds
     checkpointer = None
-    guard = None
     checkpoint_errors = (NonfiniteTrainingError,)
     if args.checkpoint_store:
         try:
@@ -548,27 +547,18 @@ def _main(cleanup):
             frozen_keys=("embedding.rows", "embedding.lengths") + (("codec.G", "codec.Phi") if hasattr(model, "codec") else ()), code_paths=source_files,
         )
         try:
-            if checkpointer.store.kind == "local":
-                guard = cleanup.enter_context(LocalOwnerGuard(checkpointer.store.root))
-            if args.recover_precommit and guard is None:
-                raise PrecommitRecoveryError("Object-store precommit recovery has no agreed live-owner protocol")
             if not args.resume_committed:
-                if guard is not None:
+                if checkpointer.store.kind == "local" or args.recover_precommit:
                     initial_claim = claim_initial_state(
-                        checkpointer, guard, identity_sha256=identity_hash, recovering=args.recover_precommit,
+                        checkpointer, identity_sha256=identity_hash, recovering=args.recover_precommit,
                     )
-                    from common.events import emit
-                    emit("checkpoint.claimed", epoch=initial_claim["epoch"],
-                         previous=initial_claim["previous_epoch"] or None,
-                         job=os.environ.get("SLURM_JOB_ID"), step=None,
-                         recovered_precommit=args.recover_precommit)
                     if args.recover_precommit:
                         manifest["precommit_recovery"] = initial_claim
                 elif checkpointer.store.exists("latest.json"):
                     p.error("Team 7 run ID already exists. Use --resume-committed or a fresh run ID")
-        except PrecommitRecoveryError as error:
+        except CheckpointError as error:
             print(str(error), file=sys.stderr)
-            write_exit_note(EXIT_FATAL, "PrecommitRecoveryError", 0, str(error))
+            write_exit_note(EXIT_FATAL, type(error).__name__, 0, str(error))
             raise SystemExit(EXIT_FATAL) from error
         optimizers = tuple(o for _, o in optimizer.named) if isinstance(optimizer, Optimizers) else optimizer
         progress = CheckpointProgress(stream, identity_hash, run_id)
@@ -722,8 +712,12 @@ def _main(cleanup):
         if (args.checkpoint_at_start or args.recover_precommit) and not args.resume and not args.resume_committed:
             if not save_committed("start"):
                 checkpoint_exit(EXIT_RETRY, "crash", "Step-0 Team 7 checkpoint was skipped")
-            if args.recover_precommit and (not checkpointer.wait() or checkpointer.last_commit_step != 0):
-                checkpoint_exit(EXIT_RETRY, "crash", "Recovered initialization did not commit step zero")
+            if args.recover_precommit:
+                committed_start = checkpointer.wait()
+                if checkpointer.any_fenced():
+                    checkpoint_exit(EXIT_FATAL, "FencedError", "Recovery lost ownership before step zero committed")
+                if not committed_start or checkpointer.last_commit_step != 0:
+                    checkpoint_exit(EXIT_RETRY, "crash", "Recovered initialization did not commit step zero")
         steps = cfg["run"]["steps"]
         if args.stop_after is not None:
             steps = min(steps, args.stop_after)
@@ -957,31 +951,15 @@ def _main(cleanup):
             raise
         checkpoint_exit(EXIT_FATAL, type(error).__name__, str(error))
     finally:
+        if watchdog is not None:
+            watchdog.close()
+        for signum, handler in signal_handlers.items():
+            signal.signal(signum, handler)
         try:
-            if guard is not None:
-                # Do not release the owner lock while a failed attempt still
-                # has an uploader running. Keep this wait watchdog-protected,
-                # including exceptions that bypassed the normal final wait.
-                if watchdog is not None:
-                    watchdog.arm(completed)
-                checkpointer.wait()
+            writer.close()
         finally:
-            if watchdog is not None:
-                watchdog.close()
-            for signum, handler in signal_handlers.items():
-                signal.signal(signum, handler)
-            try:
-                writer.close()
-            finally:
-                if external is not None:
-                    external.close()
-
-
-def main():
-    # Keep the owner lock through initialization, checkpoint uploads, final
-    # artifacts and cleanup, including parser/restore failures.
-    with ExitStack() as cleanup:
-        return _main(cleanup)
+            if external is not None:
+                external.close()
 
 
 if __name__ == "__main__":

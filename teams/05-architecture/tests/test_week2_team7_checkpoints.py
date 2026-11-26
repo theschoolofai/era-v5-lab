@@ -107,6 +107,11 @@ class Team7CheckpointTests(unittest.TestCase):
             with self.subTest(optimizer=optimizer):
                 self.check_resume(optimizer, False, at_start=True, precommit=True)
 
+    def test_recovery_requires_step_zero_commit_before_any_optimizer_update(self):
+        for failure in ("skipped", "upload", "fenced", "unconfirmed"):
+            with self.subTest(failure=failure):
+                self.check_resume("adamw", False, precommit=True, failure=failure)
+
     def test_failed_native_export_preserves_previous_artifact(self):
         with TemporaryDirectory() as temp:
             checkpoint = Path(temp) / "checkpoint.pt"
@@ -131,7 +136,7 @@ class Team7CheckpointTests(unittest.TestCase):
         self.assertEqual(failure.exception.code, 2)
         load.assert_not_called()
 
-    def check_resume(self, optimizer, mtp, at_start=False, precommit=False, device="cpu"):
+    def check_resume(self, optimizer, mtp, at_start=False, precommit=False, device="cpu", failure=None):
         cfg, byte_rows, _ = fixture(mtp=mtp)
         cfg["model"].update(ke_max_pos=byte_rows.shape[1], mtp_weight=0.0)
         cfg["optim"].update(name=optimizer, muon_lr=0.01 if optimizer == "muon" else None)
@@ -211,6 +216,28 @@ class Team7CheckpointTests(unittest.TestCase):
                     orphan.mkdir(parents=True)
                     (orphan / "MANIFEST.json").write_text('{"step":0}')
                     committed.append("--recover-precommit")
+                if failure is not None:
+                    faults = {
+                        "skipped": patch.object(Checkpointer, "save", return_value=False),
+                        "upload": patch.object(LocalStore, "put_file", side_effect=OSError("upload failed")),
+                        "fenced": patch.object(Checkpointer, "wait", side_effect=FencedError("new owner")),
+                        "unconfirmed": patch.object(Checkpointer, "wait", return_value=False),
+                    }
+                    # For wait failures, simulate an accepted request without
+                    # starting a real uploader that could commit after the test.
+                    from contextlib import nullcontext
+                    accepted = (patch.object(Checkpointer, "save", return_value=True)
+                                if failure in ("fenced", "unconfirmed") else nullcontext())
+                    with accepted, faults[failure], patch.object(train_week2, "set_lr_scale") as update:
+                        with self.assertRaises(SystemExit) as stopped:
+                            run("failed-recovery", *committed)
+                    self.assertEqual(stopped.exception.code, 78 if failure == "fenced" else 75)
+                    # set_lr_scale immediately precedes the optimizer update.
+                    update.assert_not_called()
+                    self.assertFalse((root / "failed-recovery" / "checkpoint.pt").exists())
+                    self.assertFalse((root / "failed-recovery" / "summary.json").exists())
+                    self.assertFalse((run_store / "commits.jsonl").exists())
+                    return
                 actions = []
                 save = Checkpointer.save
                 wait = Checkpointer.wait
@@ -226,7 +253,7 @@ class Team7CheckpointTests(unittest.TestCase):
                 with patch.object(Checkpointer, "save", track_save), patch.object(Checkpointer, "wait", track_wait):
                     first = run("first", *committed, "--stop-after", "3")
                 self.assertEqual(actions, (["start"] if at_start else [])
-                                 + (["wait"] if precommit else []) + ["interval", "final", "wait", "wait"])
+                                 + (["wait"] if precommit else []) + ["interval", "final", "wait"])
 
                 if at_start:
                     if precommit:
