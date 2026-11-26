@@ -10,15 +10,15 @@ Measured here on two real sample-v0 shards, packing the rows would need **0.43x 
 
 ## What was measured
 
-`harness/packing_fill.py` reads only shard `.idx.npy` document offsets (no token ids, no text) and counts, for one pass, the positions each option needs. Two full sample-v0 shards (TSAI's bundle of 16 Nov, the files used in the Week 3 Data A rotation check), 106,665 documents, 113,426,354 content tokens, median length 577:
+`harness/packing_fill.py` reads only shard `.idx.npy` document offsets (no token ids, no text) and counts, for one pass, the positions each option needs. Every count below is the script's output on these two index files. Packed: each document plus its EOS, end to end (113,426,354 + 106,665 = 113,533,019 tokens), cut into rows of L, the last row padded: 55,437 rows of 2,048 = 113,534,976 positions, and 27,719 rows of 4,096 = 113,537,024. Two full sample-v0 shards (TSAI's bundle of 16 Nov, the files used in the Week 3 Data A rotation check), 106,665 documents, 113,426,354 content tokens, median length 577:
 
 | Window | Option | Positions per pass | Fill | vs today |
 |---:|---|---:|---:|---:|
 | 2,048 | today (one document per row, padded to L) | 263,260,160 | 43.1% | 1.00x |
-| 2,048 | length-bucketed (pad to the longest window in the batch) | 114,568,352 | 99.0% | 0.44x |
+| 2,048 | length-bucketed (pad to the longest window in the batch) | 114,568,268 | 99.0% | 0.44x |
 | 2,048 | packed (documents end to end, EOS between) | 113,534,976 | 99.9% | 0.43x |
 | 4,096 | today | 462,909,440 | 24.5% | 1.00x |
-| 4,096 | length-bucketed | 115,149,704 | 98.5% | 0.25x |
+| 4,096 | length-bucketed | 115,149,630 | 98.5% | 0.25x |
 | 4,096 | packed | 113,537,024 | 99.9% | 0.25x |
 
 | Shard | Documents | Content tokens | Today at 2,048 | Packed at 2,048 |

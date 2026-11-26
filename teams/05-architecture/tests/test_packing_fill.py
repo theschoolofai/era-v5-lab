@@ -35,6 +35,18 @@ class CountTests(unittest.TestCase):
         self.assertLessEqual(b, pf.current(lengths, 2048)[0])
         self.assertGreaterEqual(b, int(lengths.sum()))
 
+    def test_bucketed_short_last_batch_is_not_padded_to_a_full_batch(self):
+        # 5 equal windows, batches of 4: one full batch and one batch of 1 -> 5 x 7 positions, not 8 x 7.
+        self.assertEqual(pf.bucketed(np.full(5, 7), 8, rows_per_batch=4)[0], 35)
+
+    def test_packed_counts_eos_and_pads_only_the_last_row(self):
+        # 106,665 documents and 113,426,354 content tokens (the note's two shards) -> 55,437 rows of 2,048.
+        lengths = np.full(106_665, 113_426_354 // 106_665)
+        lengths[: 113_426_354 - int(lengths.sum())] += 1
+        self.assertEqual(int(lengths.sum()), 113_426_354)
+        self.assertEqual(pf.packed(lengths, 2048), (113_534_976, 55_437))
+        self.assertEqual(pf.packed(lengths, 4096), (113_537_024, 27_719))
+
     def test_index_reading_removes_the_eos(self):
         with TemporaryDirectory() as d:
             p = Path(d) / "s.idx.npy"

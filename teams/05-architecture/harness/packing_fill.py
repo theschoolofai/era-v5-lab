@@ -55,7 +55,7 @@ def bucketed(lengths, L, rows_per_batch, pool_batches=100, seed=1234):
         chunk = np.sort(w[start:start + pool])[::-1]
         for b in range(0, chunk.size, rows_per_batch):
             batch = chunk[b:b + rows_per_batch]
-            positions += int(batch[0]) * rows_per_batch  # padded to the longest window in the batch
+            positions += int(batch[0]) * len(batch)  # padded to the longest window; a short last batch has fewer rows
     return positions, int(np.ceil(w.size / rows_per_batch))
 
 
