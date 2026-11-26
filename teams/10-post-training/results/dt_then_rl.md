@@ -20,6 +20,11 @@ It checks artifact pins, generated configuration, exclusions, mask preservation,
 classes with batched sampling on CPU. Scripted fixture rewards exercise optimizer updates in that test.
 Code-verifier learning on the delivered checkpoint remains pending its DT SFT export, staged inputs, and job approval.
 
+The [26 November staged wrapper log](../jobs/2026-11-26-dt-then-rl-staged.log) adds two end-to-end CPU runs.
+The real Docker verifier found no mixed-reward groups on the tiny KAS fixture. A separately labelled scripted-reward
+run completed three updates with all 283 DT-deleted entries kept zero. Those fixture results validate execution and
+mask preservation; the dry run 2 accuracy table above remains awaiting the delivered-checkpoint run.
+
 ## CPU rehearsal — 16–17 November 2026
 
 **Task 11 status.** Anirudh Narla ran the CPU rehearsal below. Mean held-out toy reward rose from
