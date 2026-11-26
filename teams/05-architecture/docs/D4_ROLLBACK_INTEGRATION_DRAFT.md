@@ -85,11 +85,25 @@ for the SAME run; it is not an independent parallel trainer.
 - #820 currently rejects these flags. G5-only support does not make its launcher
   rollback-capable. Agree reviewed argument-file flags and operator procedure
   with Max; preserve fail-closed launcher validation.
-- D4 is main-based and does not include D3's unmerged precommit ownership lock.
-  When both land, combine D3's lifetime lock and recovery guards with this
-  ordinary committed-restore path. D4 does not enable recovery over a live claim
-  or implement a second ownership/fencing protocol. Operational authorization
-  must establish that the prior trainer is stopped before a rollback takeover.
+- D4 remains main-based and does not include D3's proposed implementation.
+  Revised #826 at 84e6ed7 removes the lifetime OS lock and proposes G7's public
+  claim_initial(identity_sha256, allow_takeover=False) API for fresh filesystem
+  initialization and explicit precommit recovery. Committed resume/rollback
+  continues through restore(); it must not call claim_initial(). G5 does not
+  write G7 private ownership fields or add another ownership protocol.
+  The operator or launcher must confirm the prior trainer stopped before
+  authorizing recovery or rollback. Neither flag proves process death.
+  When both drafts land, preserve D3's initial-claim route, mutually exclusive
+  recovery mode and watchdog-protected recovery checkpoint barrier alongside
+  D4's rollback options and barrier. Rollback options require committed resume,
+  so they must be rejected with --recover-precommit. D3's API still needs G7 review.
+- Both barriers require a completed wait and confirmation of the exact committed
+  step before an optimizer update. Ownership loss takes priority and exits 78;
+  skipped, failed or unconfirmed saves exit 75. A boolean wait result alone does
+  not establish which step committed. The existing step watchdog stays armed.
+- Combining the trainer sources changes G5's strict source identity. Checkpoints
+  from a standalone D3 or D4 trainer are not silently migrated to the combined
+  trainer; preserve the identity hold even with --allow-env-change.
 - Source-branch selection, same-step entries on multiple branches, automatic pin
   policy, and broader environment overrides need agreement. This draft retains
   and documents G7's current step-selection semantics rather than inventing a
@@ -132,3 +146,39 @@ Reproduce from the repo with those environment settings:
 
 These results demonstrate fixture behavior, not approval of a production
 rollback, monitoring integration, an old-checkpoint migration, or DR2 changes.
+
+### Alignment with revised #826, 26 November 2026
+
+D4 base: 194850b4426d19096af35281b395be1c2f754c18 plus this alignment change.
+D3 reviewed/tested head: 84e6ed7ddfb780238edcab871204eedf76e63d2e (still draft).
+No D3 commits or implementation files were added to the D4 branch.
+
+The rollback barrier now checks ownership loss before interpreting the wait
+result, then requires last_commit_step to equal the restored step. Ten failure
+cases exercise steps 0 and 2 with skipped saves, actual upload errors, actual
+conditional-write conflicts, failed waits, and a successful wait without a
+confirmed commit. They verify exit 78 for fencing, exit 75 otherwise, no call
+to the optimizer-update path, and no final checkpoint export or summary.
+
+- Standalone D4 focused CPU: **5 passed, 2 skipped, 18 subtests passed** (27.50 s).
+- Standalone D4 focused CUDA: **7 passed, no skips, 20 subtests passed** (53.25 s),
+  including KAS bf16 AdamW/Muon rollback.
+- Isolated combined D3+D4 CPU, full G5 directory plus G8 adapter and G7 initial
+  claim tests: **317 passed, 15 skipped, 114 subtests passed** (124.28 s).
+- Isolated combined D3+D4 CUDA, rollback/KAS/initial-claim tests:
+  **31 passed, no skips, 29 subtests passed** (68.82 s).
+- git diff --check passed.
+
+The combined copy resolves the two trainer overlaps by preserving both the
+recovery parser option and rollback options, and both pre-update checkpoint
+barriers. Additional isolated checks reject recovery with active rollback
+options before input loading and exercise recovery followed by rollback under
+the same run ID with AdamW and Muon. The combined KAS bf16 CUDA rollback test
+also starts through D3 recovery. These combined checks used a temporary source
+snapshot; they do not make D4 depend on the unmerged D3 draft or install that
+snapshot into DR2. A future actual merge still needs conflict resolution and
+validation against the heads that are agreed at that time.
+
+The launcher, monitoring and target-filesystem acceptance items above remain
+pending. This alignment creates no PR or deployment and does not relax training
+identity, the prior-process-stopped precondition, or the draft status.

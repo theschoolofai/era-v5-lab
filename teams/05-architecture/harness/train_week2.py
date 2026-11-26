@@ -744,8 +744,11 @@ def main():
             # Step 0 needs the lazy optimizer preservation used by a fresh initial commit.
             if not save_committed("start" if completed == 0 else "rollback"):
                 checkpoint_exit(EXIT_RETRY, "crash", "Rollback checkpoint was skipped")
-            if not checkpointer.wait():
-                checkpoint_exit(EXIT_RETRY, "crash", "Rollback checkpoint did not commit")
+            committed_rollback = checkpointer.wait()
+            if checkpointer.any_fenced():
+                checkpoint_exit(EXIT_FATAL, "FencedError", "Rollback lost ownership before its checkpoint committed")
+            if not committed_rollback or checkpointer.last_commit_step != completed:
+                checkpoint_exit(EXIT_RETRY, "crash", "Rollback checkpoint did not commit the restored step")
         if args.checkpoint_at_start and not args.resume and not args.resume_committed:
             if not save_committed("start"):
                 checkpoint_exit(EXIT_RETRY, "crash", "Step-0 Team 7 checkpoint was skipped")

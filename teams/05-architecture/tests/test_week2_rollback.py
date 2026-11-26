@@ -1,4 +1,5 @@
 """Draft rollback through G7's real local checkpoint store."""
+from contextlib import nullcontext
 import copy
 import itertools
 import json
@@ -80,7 +81,13 @@ class RollbackTests(unittest.TestCase):
             ):
                 self.check_rollback(optimizer, device='cuda')
 
-    def check_rollback(self, optimizer, device='cpu'):
+    def test_rollback_barrier_failure_prevents_optimizer_updates(self):
+        for step in (0, 2):
+            for failure in ('skipped', 'upload', 'fenced', 'wait-failed', 'unconfirmed'):
+                with self.subTest(step=step, failure=failure):
+                    self.check_rollback('adamw', barrier_failure=failure, rollback_step=step)
+
+    def check_rollback(self, optimizer, device='cpu', barrier_failure=None, rollback_step=2):
         cfg, byte_rows, _ = fixture()
         cfg['model'].update(ke_max_pos=byte_rows.shape[1], mtp_weight=0.0)
         cfg['optim'].update(name=optimizer, muon_lr=0.01 if optimizer == 'muon' else None)
@@ -118,6 +125,34 @@ class RollbackTests(unittest.TestCase):
                 from ckpt.ckpt import Checkpointer
                 baseline = run('baseline')
                 first = run('first', *committed, '--checkpoint-at-start', '--stop-after', '2')
+                if barrier_failure is not None:
+                    from ckpt.store import LocalStore, Conflict
+                    put_json_if = LocalStore.put_json_if
+                    def fence_commit(store, key, value, version):
+                        if key == 'latest.json' and value.get('branch') == 'failed-barrier':
+                            raise Conflict('competing owner won')
+                        return put_json_if(store, key, value, version)
+                    faults = {
+                        'skipped': patch.object(Checkpointer, 'save', return_value=False),
+                        'upload': patch.object(LocalStore, 'put_file', side_effect=OSError('upload failed')),
+                        'fenced': patch.object(LocalStore, 'put_json_if', fence_commit),
+                        'wait-failed': patch.object(Checkpointer, 'wait', return_value=False),
+                        # Accepted request and successful wait without a confirmed commit.
+                        'unconfirmed': patch.object(Checkpointer, 'wait', return_value=True),
+                    }
+                    accepted = (patch.object(Checkpointer, 'save', return_value=True)
+                                if barrier_failure in ('wait-failed', 'unconfirmed') else nullcontext())
+                    with accepted, faults[barrier_failure], patch.object(train_week2, 'set_lr_scale') as update:
+                        with self.assertRaises(SystemExit) as failure:
+                            run('failed-barrier', *resume, '--from-step', str(rollback_step), '--branch', 'failed-barrier')
+                    self.assertEqual(failure.exception.code, 78 if barrier_failure == 'fenced' else 75)
+                    update.assert_not_called()
+                    self.assertFalse((root/'failed-barrier'/'checkpoint.pt').exists())
+                    self.assertFalse((root/'failed-barrier'/'summary.json').exists())
+                    notes = [json.loads(path.read_text()) for path in (root/'notes').rglob('exit-*.json')]
+                    self.assertTrue(notes)
+                    self.assertEqual(notes[-1]['cause'], 'FencedError' if barrier_failure == 'fenced' else 'crash')
+                    return
                 # Add a later checkpoint, then explicitly roll back without rewriting history.
                 run('later', *resume)
                 store = root/'store'/'rollback'
