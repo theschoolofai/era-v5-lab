@@ -1,11 +1,11 @@
-# Job request draft — dry run 2 DT SFT followed by code RL
+# Job request — dry run 2 DT SFT followed by code RL
 
-Status as of 26 November 2026. The [staged local wrapper log](2026-11-26-dt-then-rl-staged.log) is attached. This canary uses the DT arm exported by the [dry run 2 SFT comparison](2026-11-26-g10-dryrun2-dt-vs-fft.md). Execution still needs that kept DT export, its delivered run folder and staged pool/probe inputs, and lead approval. Code-verifier reward before and after RL remains unmeasured on dry run 2.
+Status as of 26 November 2026. The [staged local wrapper log](2026-11-26-dt-then-rl-staged.log) is attached and lead-approved (`saitej123`, 26 Nov 2026). This canary uses the DT arm exported by the [dry run 2 SFT comparison](2026-11-26-g10-dryrun2-dt-vs-fft.md). Execution now waits only on that kept DT export (`keep_canary/dt/`) and its delivered run folder and staged pool/probe inputs. Code-verifier reward before and after RL remains unmeasured on dry run 2.
 
 ```text
 Team:            10-post-training
 Owner:           Hema Varshini Palpandian (Hemaaaa04)
-Lead approval:   pending saitej123 for this DT-then-RL canary; updated request and local wrapper log ready for review
+Lead approval:   saitej123 (approved 26 Nov 2026 after reviewing staged KAS wrapper log jobs/2026-11-26-dt-then-rl-staged.log; runnable once keep_canary/dt/ and dry run 2 run folder are staged)
 Question:        Can the dry run 2 DT SFT checkpoint take code-verifier RL updates with its deleted weights held at zero, and does held-out reward rise?
 Script:          teams/10-post-training/capstone/rl_job_v1.py (calls rl-loop/train.py)
 Command:         G10_STDIO_RUNNER=docker G10_STDIO_SECRET_PATHS=<POOL>/out/v1/cc.jsonl python teams/10-post-training/capstone/rl_job_v1.py --g5-root <G5> --run-folder <RUN> --tokenizer <TOKENIZER> --byte-table <TABLE> --probe-file <PROBE> --origin g5_delivery --expected-head-mode kas_v2 --expected-bias-gamma 0.001 --rl-tasks <POOL>/out/v1/cc.jsonl --train-pool <POOL>/pool/rl-code-v1-train.pool.jsonl --heldout-pool <POOL>/pool/rl-code-v1-heldout.pool.jsonl --sft-arm none --start-weights keep_canary/dt/model.safetensors --keep-mask keep_canary/dt/dt_keep_masks.bin --sampler g5_batch --sampler-max-rows 128 --micro-rows 1 --update-mode auto --time-sync --updates 3 --state-every 1 --screen-n 64 --min-mixed 4 --prompts-per-step 16 --k 8 --max-new 1536 --heldout-n 64 --eval-k 4 --lr 1e-5 --seed 1 --deadline-minutes 25 --device cuda --out out/task11-code-canary

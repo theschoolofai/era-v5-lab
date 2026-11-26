@@ -18,7 +18,7 @@ one row per update forward, and the pinned 66 free-reward and 55 effort-suite ex
 Local verification is recorded in [week4_validation.md](dt_then_rl_evidence/week4_validation.md).
 It checks artifact pins, generated configuration, exclusions, mask preservation, and the real KAS V2 model
 classes with batched sampling on CPU. Scripted fixture rewards exercise optimizer updates in that test.
-Code-verifier learning on the delivered checkpoint remains pending its DT SFT export, staged inputs, and job approval.
+Code-verifier learning on the delivered checkpoint remains pending its DT SFT export (`keep_canary/dt/`) and staged dry run 2 inputs (job request lead-approved 26 Nov 2026).
 
 The [26 November staged wrapper log](../jobs/2026-11-26-dt-then-rl-staged.log) adds two end-to-end CPU runs.
 The real Docker verifier found no mixed-reward groups on the tiny KAS fixture. A separately labelled scripted-reward

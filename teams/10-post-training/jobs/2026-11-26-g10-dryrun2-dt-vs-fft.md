@@ -1,13 +1,13 @@
-# Job request: Dry run 2 matched-step SFT comparison (Full FT vs LoRA vs Deletion Tuning) — DRAFT, NOT RUNNABLE
+# Job request: Dry run 2 matched-step SFT comparison (Full FT vs LoRA vs Deletion Tuning)
 
-Status: draft prepared on Week 4 D1 (21 Nov 2026) ahead of dry run 2 (Tue 24 Nov – Thu 26 Nov). **NOT RUNNABLE** until dry run 2 completes on D5 (Thu 26 Nov), Team 5 merges KE2/KAS head integration into `week2/model.py`, and a local stand-in test log on the dry-run-2 model class is attached.
+Status (26 Nov 2026): pre-run ready and lead-approved (`#717` KAS V2 + `#748` `router_bias` merged on `main`; both dense and KAS V2 + Team 7 store stand-in logs attached). Waiting only on Team 5's delivered dry run 2 run folder (`<T5_OUT>` / `/shared/ckpt/dryrun2-1234`) and TSAI staging paths.
 
 Answers Gate 3 item 7 (Instructor ruling, 21 Nov 2026): compares **Deletion Tuning vs LoRA vs Full FT** at equal optimizer steps on the **dry run 2 checkpoint** (test-scale + untied KE2/KAS head `a10_kas_tokdrop` + Team 7 Checkpointer via `#608`) and saves the DT arm's three canary files (`model.safetensors`, `dt_keep_masks.bin`, `dt_keep_masks.bin.json`, `SHA256SUMS`) so the required **DT-then-RL chain** (`jobs/2026-11-17-dt-then-rl-code.md`) can run immediately after.
 
 ```
 Team:            10-post-training
 Owner:           10-post-training (lead saitej123)
-Lead approval:   saitej123 (settings and protocol approved 21 Nov 2026; runnable once dry run 2 checkpoint + stand-in log land)
+Lead approval:   saitej123 (settings, protocol, and KAS V2 stand-in log approved 26 Nov 2026; runnable as soon as Team 5's dry run 2 run folder is staged)
 Question:        On the dry run 2 checkpoint (KE2/KAS untied head), at equal optimizer steps on the #587-selected OCR-2 slice, how do Deletion Tuning (paper-repo settings), LoRA, and Full FT compare on task NLL, chat-format validity, RL mixed groups, and held-out forgetting bpb?
 Script:          teams/10-post-training/capstone/dryrun2_dt_compare.py (calls capstone/sft_g5.py, capstone/sft_slice_v1.py, capstone/day_one_probe.py, capstone/keep_weights.py)
 Command:         G10_STDIO_RUNNER=docker G5=<G5> T5_OUT=<T5_OUT> STORE=/shared/ckpt TOKENIZER=<TOKENIZER> TABLE=<TABLE> HELDOUT=<HELDOUT> HELDOUT_SOURCES=<HELDOUT_SOURCES> WORK=work/ bash teams/10-post-training/capstone/dryrun2_job_chain.sh -- --heldout <HELDOUT> --heldout-sources <HELDOUT_SOURCES> --packs <PACK>/shard-00000/pack.firewalled.jsonl <PACK>/shard-00001/pack.firewalled.jsonl <PACK>/shard-00002/pack.firewalled.jsonl <PACK>/shard-00003/pack.firewalled.jsonl --rl-tasks <POOL>/out/v1/cc.jsonl --rl-ids teams/10-post-training/capstone/probe_rl_easy_ids.txt --slice-arm <A2_OR_A4_FROM_587> --steps 243 --batch 16 --full-lr 1e-4 --lora-lr 1e-3 --dt-lr 5e-4 --marker-lr 1e-2 --dt-targets g5_gate --dt-alpha-start 100 --dt-alpha-end 1000 --dt-eta 0.00048828125 --dt-lambda 1e-5 --dt-prior-strength 3.0 --keep-canary-state-dir keep_canary/ --keep-weights-dir keep_t7/ --keep-weights-arms full,lora,dt --deadline-minutes 115 --device cuda --out out/
@@ -86,10 +86,7 @@ for the coherence c.
 
 ## Blocked by
 
-1. **Dry run 2 checkpoint (Team 5, D5 Thu 26 Nov).**
-2. **Team 5 KE2/KAS head code on `main`** (`#694`/`#702` untied `a10_kas_tokdrop` integrated in `week2/model.py`, plus `#706` optimizer split) and a local stand-in test log verifying `sft_g5.py`, `team5_adapter.py`, `keep_weights.py`, and `dryrun2_dt_compare.py` against that exact `model.py`.
-3. **`#587` result** (selects `--slice-arm a2` or `a4`; defaults to `a4`).
-4. **Probe file** (if dry run 2 `#608` Checkpointer `probe_loss` is present, verify compatibility; otherwise generate via `capstone/make_probe_file.py`).
+1. **Dry run 2 run folder & checkpoint (Team 5, `<T5_OUT>` / `/shared/ckpt/dryrun2-1234`):** only remaining prerequisite. Team 5 `#717` (KE2/KAS untied head), `#748` (`router_bias`), and `#720` (dry run 2 job) are merged on `main`, both stand-in logs (`2026-11-26-g10-dryrun2-dt-vs-fft.log` and `2026-11-26-g10-dryrun2-dt-vs-fft-kas.log`) are attached, `capstone/make_probe_file.py` and `capstone/g5_source_resolver.py` are wired in `capstone/dryrun2_job_chain.sh`, and `--slice-arm` defaults to `a4` if `#587` has not returned before launch.
 
 ## Notes
 

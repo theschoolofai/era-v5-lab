@@ -4,8 +4,7 @@
 large model" item from the class discussion. It does not use the capstone model, the lab data, or any lab checkpoint, and
 it is not Gate 4 evidence for the capstone. The Gate 4 comparison on the dry run 2 checkpoint stays with
 `capstone/dryrun2_dt_compare.py` and `results/dt_vs_fft.md`. LoRA and full fine-tuning on the same data and steps were
-added on 25 Nov (section "LoRA and full fine-tuning on the same data"); one seed each, learning rates not tuned. A second full fine-tuning arm at a higher
-learning rate was added on 26 Nov.
+added on 25 Nov (section "LoRA and full fine-tuning on the same data"); one seed each, learning rates not tuned. A second full fine-tuning arm at `lr 3e-5` was added on 26 Nov: it reached 21.83% GSM8K and 15.9% HumanEval (164 problems) and did not match Deletion Tuning's gain at either `1e-5` or `3e-5`. Read the 50-item `humaneval_instruct` numbers only with the HumanEval decode caveat below.
 
 ## What was done
 
