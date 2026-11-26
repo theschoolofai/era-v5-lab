@@ -273,7 +273,26 @@ def main():
     resume.add_argument(
         "--resume-committed", action="store_true", help="Restore from the trusted Team 7 checkpoint store"
     )
+    p.add_argument("--from-step", type=int, help="Restore exactly this committed step; never fall back")
+    p.add_argument("--skip", type=int, default=0, help="Discard this many whole training batches after restore")
+    p.add_argument("--branch", help="New checkpoint branch within the same run ID (draft rollback)")
+    p.add_argument("--allow-env-change", action="store_true",
+                   help="Override G7 environment checks only; G5 identity checks remain strict")
     args = p.parse_args()
+    rollback_requested = (args.from_step is not None or args.skip != 0
+                          or args.branch is not None or args.allow_env_change)
+    if args.from_step is not None and args.from_step < 0:
+        p.error("--from-step must be nonnegative")
+    if args.skip < 0:
+        p.error("--skip must be nonnegative")
+    if rollback_requested and not args.resume_committed:
+        p.error("Rollback options require --resume-committed")
+    if rollback_requested and not args.branch:
+        p.error("Rollback options require a new --branch")
+    if args.branch is not None and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}", args.branch):
+        p.error("--branch must be 1-64 letters, digits, dashes or underscores, starting with a letter or digit")
+    if rollback_requested and args.logger_factory:
+        p.error("Draft rollback cannot use --logger-factory until G8 branch-aware metrics are agreed")
     if args.expert_load_every < 0:
         p.error("--expert-load-every must be nonnegative")
     if not args.smoke:
@@ -565,6 +584,7 @@ def main():
     restored_step = None
     last_requested_step = None
     tokens = 0
+    rollback_events = []
 
     def checkpoint_exit(code, cause, detail):
         print(detail, file=sys.stderr)
@@ -585,6 +605,7 @@ def main():
         ntp_trace = checkpoint["ntp_trace"]
         rows = checkpoint["rows"]
         resumed_seconds = checkpoint["wall_seconds"]
+        rollback_events = list(checkpoint.get("rollback_events", []))
     elif args.resume_committed:
         inactive_mtp = model.mtp_head is not None and cfg["model"]["mtp_weight"] == 0
         if inactive_mtp:
@@ -592,10 +613,15 @@ def main():
             # This head did not contribute to the objective and has no optimizer state.
             model.mtp_head.requires_grad_(False)
         try:
-            info = checkpointer.restore(model, optimizers, progress, probe)
+            if args.branch and any(c["branch"] == args.branch for c in checkpointer.commits()):
+                checkpoint_exit(EXIT_FATAL, "CheckpointError", "--branch must name a new checkpoint branch")
+            info = checkpointer.restore(
+                model, optimizers, progress, probe, from_step=args.from_step,
+                skip=args.skip, new_branch=args.branch, allow_env_change=args.allow_env_change,
+            )
             if info is None:
                 checkpoint_exit(EXIT_FATAL, "CheckpointError", "No committed Team 7 checkpoint for this run ID")
-        except CheckpointError as error:
+        except (CheckpointError, ValueError) as error:
             checkpoint_exit(EXIT_FATAL, type(error).__name__, str(error))
         finally:
             if inactive_mtp:
@@ -611,9 +637,29 @@ def main():
         ntp_trace = history["ntp_trace"]
         rows = history["rows"]
         resumed_seconds = history["wall_seconds"]
+        if len(trace) != completed or len(ntp_trace) != completed or any(row["step"] > completed for row in rows):
+            checkpoint_exit(EXIT_FATAL, "CheckpointError", "G5 checkpoint history does not match its committed step")
+        rollback_events = list(history.get("rollback_events", []))
+        if rollback_requested:
+            rollback_events.append({
+                "from_path": info["from_path"], "step": completed, "tokens": tokens,
+                "branch": checkpointer.branch, "skip_batches": args.skip,
+                "allow_env_change": args.allow_env_change, "env_override": info["env_override"],
+                "replay_guaranteed": False,
+            })
+        manifest["team7_checkpoint"].update({"branch": checkpointer.branch, "restore": info})
+        manifest["rollback_events"] = rollback_events
+        (args.out / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf8")
 
     if checkpoint is not None:
         tokens = sum(row.get("train/scored_tokens", 0) for row in rows)
+
+    if rollback_events:
+        if args.logger_factory:
+            p.error("Rollback lineage requires branch-aware G8 metrics; --logger-factory is held")
+        manifest["rollback_events"] = rollback_events
+        manifest["status"] = "DRAFT_ROLLBACK_NOT_A_QUALITY_RESULT"
+        (args.out / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf8")
 
     def save_committed(reason):
         nonlocal last_requested_step
@@ -622,6 +668,7 @@ def main():
             external.flush()
         progress.history = {
             "trace": trace, "ntp_trace": ntp_trace, "rows": rows,
+            "rollback_events": rollback_events,
             "wall_seconds": resumed_seconds + time.perf_counter() - started,
         }
         initial_optimizer = copy.deepcopy(optimizer.state_dict()) if reason == "start" else None
@@ -692,6 +739,13 @@ def main():
             log(row)
             if device.type == "cuda":
                 torch.cuda.empty_cache()  # execution-only (TSAI)
+        if rollback_requested:
+            # Publish the restored/skipped state on the new branch even when no update follows.
+            # Step 0 needs the lazy optimizer preservation used by a fresh initial commit.
+            if not save_committed("start" if completed == 0 else "rollback"):
+                checkpoint_exit(EXIT_RETRY, "crash", "Rollback checkpoint was skipped")
+            if not checkpointer.wait():
+                checkpoint_exit(EXIT_RETRY, "crash", "Rollback checkpoint did not commit")
         if args.checkpoint_at_start and not args.resume and not args.resume_committed:
             if not save_committed("start"):
                 checkpoint_exit(EXIT_RETRY, "crash", "Step-0 Team 7 checkpoint was skipped")
@@ -887,6 +941,7 @@ def main():
                     "step": completed,
                     "identity_sha256": identity_hash,
                     "run_id": run_id,
+                    "rollback_events": rollback_events,
                     "trace": trace,
                     "ntp_trace": ntp_trace,
                     "rows": rows,
@@ -917,7 +972,8 @@ def main():
                     "first_ce": ntp_trace[0] if ntp_trace else None,
                     "last_ce": ntp_trace[-1] if ntp_trace else None,
                     "final_model_sha256": model_hash(model),
-                    "eligible_for_quality_comparison": full and not args.smoke,
+                    "rollback_events": rollback_events,
+                    "eligible_for_quality_comparison": full and not args.smoke and not rollback_events,
                 },
                 indent=2,
             ),
