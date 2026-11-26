@@ -131,10 +131,12 @@ class Team7CheckpointTests(unittest.TestCase):
         self.assertEqual(failure.exception.code, 2)
         load.assert_not_called()
 
-    def check_resume(self, optimizer, mtp, at_start=False, precommit=False):
+    def check_resume(self, optimizer, mtp, at_start=False, precommit=False, device="cpu"):
         cfg, byte_rows, _ = fixture(mtp=mtp)
         cfg["model"].update(ke_max_pos=byte_rows.shape[1], mtp_weight=0.0)
         cfg["optim"].update(name=optimizer, muon_lr=0.01 if optimizer == "muon" else None)
+        if device == "cuda":
+            cfg["run"]["dtype"] = "bf16"
         artifacts = SimpleNamespace(
             bytes=byte_rows,
             lengths=np.ones(len(byte_rows), dtype=np.int16),
@@ -159,7 +161,10 @@ class Team7CheckpointTests(unittest.TestCase):
                 "--train-data", str(train), "--heldout-data", str(val),
                 "--smoke", "--smoke-steps", "5", "--smoke-batch-size", "1",
                 "--logger-factory", "g5_adapter:make_writer",
+                "--device", device,
             ]
+            if device == "cuda":
+                common.extend(["--watchdog-s", "60"])
             store = root / "store"
             run_store = store / "g5-test"
             committed = [

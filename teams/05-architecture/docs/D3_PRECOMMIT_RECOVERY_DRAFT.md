@@ -93,8 +93,9 @@ JSONL records by event name because the earlier claim event shares the file.
 - Interrupted initialization recovers with the same loss trace and step-zero
   resume result as uninterrupted initialization for AdamW and Muon.
 
-CPU tests do not establish CUDA parity or the target filesystem's cross-node
-locking semantics. Both remain separate validation before deployment.
+The CPU checks below do not establish CUDA parity or the target filesystem's
+cross-node locking semantics. Local CUDA results are recorded separately below;
+cross-node locking remains separate validation before deployment.
 
 Local validation on 26 Nov 2026 (Windows, PyTorch 2.5.1 CPU): the complete G5
 suite passed with 289 tests passed, 12 skipped and 95 subtests passed. The
@@ -112,3 +113,21 @@ had the expected run ID and contiguous steps, and smoke runs remained
 ineligible for quality acceptance. The #820 start-mode compatibility check
 also passed again. These checks used CPU/local Windows locking, not a live
 SLURM cluster, CUDA, or a cross-node shared filesystem.
+
+### Local CUDA validation
+
+On 26 Nov 2026, local GPU validation used an NVIDIA GeForce RTX 3070 Laptop
+GPU (8 GiB, compute capability 8.6), native bf16, and CUDA-enabled PyTorch
+2.5.1 with CUDA runtime 12.1 in the existing Miniforge environment.
+
+The CUDA suite now includes interrupted-start recovery through the actual G5
+trainer with the real KAS V2 head, bf16 autocast and the watchdog enabled at
+60 seconds. AdamW and Muon both reproduce the uninterrupted loss trace and
+the final model hash after restoring the recovered step-zero checkpoint.
+Existing GPU fixture parity, bf16 precision and optimizer/RNG resume checks
+also pass.
+
+Combined CUDA, checkpoint and ownership regression run: **19 passed, 26
+subtests passed, no skips**. This includes all five tests in
+`test_week2_kas_cuda.py`. These are small-fixture GPU regression tests, not
+a full T2 Dry Run 2, multi-node or production acceptance run.
