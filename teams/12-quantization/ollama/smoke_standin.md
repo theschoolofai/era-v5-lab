@@ -24,7 +24,7 @@ nothing**; only the flow is tested.
 | `measure_export_gaps.py` (Bengali 17 docs, Punjabi 28 docs, 3,000 tokens each) | exit 0; all four variants, bpb, top-1 agreement, KL and the tokenizer cost written to `gaps.json` |
 | `package_ollama.py` (Gurmukhi remap) | exit 0; `era-v5-standin-BF16.gguf` 582 MB, `-Q8_0.gguf` 310 MB, Modelfiles, README.md, release.json (192 Gurmukhi tokens renamed, ids 69440 and 100388 retired) |
 | `./out` size | 36 KB (GGUF files stay in `work/release`) |
-| `package_ollama.py --smoke` (Ollama 0.40.18) | `ollama create` both files; 4 prompts (English, code, Hindi, Kannada) x 2 formats: **8/8 the same greedy text in Ollama and llama.cpp** |
+| `package_ollama.py --smoke` (Ollama 0.40.18), after #834 review | `ollama create` both files; 7 prompts (English, code, Hindi, Kannada, Punjabi precomposed and split, Bengali) x 2 formats: **same tokenization 14/14** (Ollama `prompt_eval_count` = llama.cpp ids); same greedy text 12/14 (the 2 misses: the precomposed Punjabi prompt, same token count, random weights give near-flat logits, so greedy picks differ on near-ties); Gurmukhi split-form ids = training ids |
 | Ollama reads | arch `granitemoe`, 16 experts + 1 shared (feed-forward 768), top-2, 8 layers, width 512, vocabulary 131,072, pre-tokenizer `granite-embed-multi-97m`, `normalizer.nfc` true |
 
 ## Tokenizer remap, measured with llama.cpp's own tokenizer (`llama-tokenize`)
@@ -51,6 +51,18 @@ the change means something.
 
 Head fit: h.v mean 0.950, std 0.219 (2,559 rows). Router fit, layer 0: x.v mean 0.996, std 0.064; folded router picks
 the same experts as the checkpoint on 93.0% of tokens (bias dropped: 89.2%).
+
+## Normalization in today's runtimes (measured)
+
+Token ids for the same text: the training tokenizer, the remapped vocabulary with and without NFC, llama.cpp 10050
+(`llama-tokenize`) and Ollama 0.40.18 (`prompt_eval_count`). Both runtimes match the no-NFC column on all four prompts:
+
+| Prompt | Training | Remap + NFC | Remap, no NFC | llama.cpp 10050 | Ollama 0.40.18 |
+|---|---:|---:|---:|---:|---:|
+| Punjabi, precomposed | 6 | 6 (same ids) | 11 | 11 | 11 |
+| Punjabi, split (NFC form) | 6 | 6 (same ids) | 6 (same ids) | 6 (same ids) | 6 |
+| Bengali, split য় | 9 | 10 | 10 | 10 | 10 |
+| Bengali, precomposed য় | 9 | 10 | 9 (same ids) | 9 (same ids) | 9 |
 
 ## Not covered
 

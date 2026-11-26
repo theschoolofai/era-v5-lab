@@ -45,8 +45,19 @@ checkpoint 1.35 -> 0.64 (Bengali) and 1.16 -> 0.54 (Punjabi); the folded routers
 ## Tokenizer: the normalizer in llama.cpp
 
 p1536 normalizes NFC, then recomposes Bengali ড় ঢ় য় and six Gurmukhi letters that NFC splits (Unicode composition
-exclusions), and joins six Malayalam chillu sequences. llama.cpp (so Ollama) applies only NFC, so plain-text prompts in
-those scripts get other ids than in training. Measured with llama.cpp b10050's tokenizer on Wikipedia text:
+exclusions), and joins six Malayalam chillu sequences. A GGUF carries at most the NFC flag (`normalizer.nfc`, applied by
+llama.cpp b11669), and **Ollama 0.40.18 and llama.cpp 10050 apply no normalization at all** (measured: their token ids
+equal a no-normalizer tokenizer's on every test prompt). So what a user gets depends on how the text is typed:
+
+| Input | Ollama today, remapped GGUF (default) | Ollama today, stock vocabulary | A runtime that applies NFC (b11669+) |
+|---|---|---|---|
+| Gurmukhi, split letter + nukta (web text, NFC form) | training ids | other ids | training ids (remapped) |
+| Gurmukhi, precomposed letter | other ids | training ids | training ids (remapped) |
+| Bengali, precomposed য় | training ids | training ids | other ids |
+| Bengali, split য + nukta (web text, NFC form) | other ids | other ids | other ids |
+
+The remap is on by default because web and NFC-normalized text (the usual source of pasted prompts, and Wikipedia)
+stores these Gurmukhi letters split. Earlier measurement on Wikipedia text with llama.cpp's own tokenizer:
 
 | Text | Lines whose ids differ from training: stock GGUF | With `remap_vocab.py` (Gurmukhi) |
 |---|---:|---:|

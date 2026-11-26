@@ -162,18 +162,24 @@ def main() -> None:
 
     fold_fit = None
     if not a.no_fold and (has_router or has_head):
-        heads, routers = [], {i: [] for i in range(len(ref.blocks))}
-        hooks = [ref.norm.register_forward_hook(lambda mod, i, o: heads.append(o.detach().reshape(-1, o.shape[-1])))]
-        for i, blk in enumerate(ref.blocks):
-            hooks.append(blk.n2.register_forward_hook(
-                lambda mod, inp, o, i=i: routers[i].append(o.detach().reshape(-1, o.shape[-1]))))
-        with torch.no_grad():
-            for calib, _ in langs.values():
-                for chunk in windows([t for _, d in calib for t in d], a.window):
-                    x = torch.tensor(chunk[:-1])[None]
-                    ref(x, torch.ones_like(x, dtype=torch.bool))
-        for h in hooks:
-            h.remove()
+        def capture(texts):
+            """Final normalized hidden states and every router's input of the reference model on `texts`."""
+            heads, routers = [], {i: [] for i in range(len(ref.blocks))}
+            hooks = [ref.norm.register_forward_hook(lambda mod, i, o: heads.append(o.detach().reshape(-1, o.shape[-1])))]
+            for i, blk in enumerate(ref.blocks):
+                hooks.append(blk.n2.register_forward_hook(
+                    lambda mod, inp, o, i=i: routers[i].append(o.detach().reshape(-1, o.shape[-1]))))
+            with torch.no_grad():
+                for ids in texts:
+                    for chunk in windows(ids, a.window):
+                        x = torch.tensor(chunk[:-1])[None]
+                        ref(x, torch.ones_like(x, dtype=torch.bool))
+            for h in hooks:
+                h.remove()
+            return heads, routers
+        heads, routers = capture([[t for _, d in c for t in d] for c, _ in langs.values()])
+        # held-out router inputs: the first calibration-sized slice of each language's evaluation text
+        _, held = capture([[t for _, d in ev for t in d][:max(1, int(a.calib_frac * a.tokens))] for _, ev in langs.values()])
         fm = without(has_router, has_head)
         fold_fit = {}
         if has_head:
@@ -182,22 +188,35 @@ def main() -> None:
             fold_fit["router"] = {}
             with torch.no_grad():
                 for i, blk in enumerate(fm.blocks):
-                    # G5 selects topk(softmax(Rx) + beta): the bias is added to probabilities. A logit shift d
-                    # multiplies a probability by e^d, so d = log(1 + beta / p_k), p_k = mean probability at the
-                    # top-k boundary on the calibration text; d * (x . v_l) ~= d goes into the router weight.
+                    # G5 selects topk(softmax(Rx) + beta) and gates with the unbiased softmax. A logit shift d
+                    # multiplies a probability by e^d, so d = log((p_k + beta) / p_k), p_k = mean probability at the
+                    # top-k boundary on the calibration text; d * (x . v_l) ~= d goes into the router weight. The
+                    # balancer can push beta below -p_k (an overloaded expert): clamp p_k + beta at 1e-3 p_k, so
+                    # that expert gets a large negative shift (about -6.9) instead of a NaN.
                     vl, fit = fit_constant_direction(routers[i])
-                    X = torch.cat(routers[i]).float()
                     moe, beta = ref.blocks[i].moe, ref.blocks[i].moe.router_bias.float()
-                    p = (X @ moe.router.weight.float().T).softmax(-1)
-                    srt = p.sort(-1, descending=True).values
+                    W = moe.router.weight.float()
+                    srt = (torch.cat(routers[i]).float() @ W.T).softmax(-1).sort(-1, descending=True).values
                     pk = 0.5 * (srt[:, moe.topk - 1] + srt[:, moe.topk]).mean()
-                    d = torch.log1p(beta / pk)
-                    want = (p + beta).topk(moe.topk, -1).indices.sort(-1).values
-                    got = ((X @ moe.router.weight.float().T) + d * (X @ vl)[:, None]).topk(moe.topk, -1).indices
+                    d = torch.log((pk + beta).clamp_min(1e-3 * pk) / pk)
                     fit["boundary_prob"] = round(pk.item(), 5)
-                    fit["same_experts"] = round((got.sort(-1).values == want).all(-1).float().mean().item(), 4)
+                    fit["experts_clamped"] = int((pk + beta < 1e-3 * pk).sum())
+                    # on held-out tokens: same experts as G5, and how far the gate values move (G5 keeps the
+                    # unbiased softmax as gates; a logit shift changes them too), top-k gates renormalized
+                    X = torch.cat(held[i]).float()
+                    z = X @ W.T
+                    p = z.softmax(-1)
+                    want = (p + beta).topk(moe.topk, -1).indices.sort(-1).values
+                    zf = z + d * (X @ vl)[:, None]
+                    got = zf.topk(moe.topk, -1).indices.sort(-1).values
+                    same = (got == want).all(-1)
+                    g5 = p.gather(-1, want); g5 = g5 / g5.sum(-1, keepdim=True)
+                    pf = zf.softmax(-1).gather(-1, got); pf = pf / pf.sum(-1, keepdim=True)
+                    fit["held_out_tokens"] = len(X)
+                    fit["same_experts"] = round(same.float().mean().item(), 4)
                     fit["same_experts_if_dropped"] = round(
                         (p.topk(moe.topk, -1).indices.sort(-1).values == want).all(-1).float().mean().item(), 4)
+                    fit["gate_abs_error_when_same"] = round((g5 - pf).abs()[same].mean().item(), 5) if same.any() else None
                     fold_fit["router"][i] = fit
                     blk.moe.router.weight += d[:, None] * vl[None, :]
         variants["granite_fold"] = Folded(fm, v, state["head.unigram"].float()) if has_head else fm
@@ -213,7 +232,7 @@ def main() -> None:
         ids_l = [t for d in docs for t in llamacpp.encode(d, add_special_tokens=False).ids]
         nbytes = sum(len(d.encode("utf-8")) for d in docs)
         s = score(variants, ids_t, a.window, a.device)
-        ship = "granite_fold" if "granite_fold" in variants else "granite"
+        ship = "granite"     # what package_ollama.py ships today (the drop-both export); the fold is measured only
         g = score({ship: variants[ship]}, ids_l, a.window, a.device)[ship]
         bpb = lambda nll: nll / nbytes / math.log(2)
         lang = {"calibration_documents": len(calib), "documents": len(docs), "bytes": nbytes,
