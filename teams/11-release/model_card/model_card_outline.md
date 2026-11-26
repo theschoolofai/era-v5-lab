@@ -47,9 +47,9 @@ The draft of the model card is `model_card_v0.md`. Each section there has the te
 | Alignment | How the lab trained the model on checked scores of its own answers, and how it scores tasks with no test | Post-training | empty | OK @saitej123 |
 | Quantized versions | The smaller versions of the model, and what they lose | Quantization | empty | OK @SreekanthZipsy |
 | Serving | How to run the model and chat with it in the lab's chat format, and how the smaller formats were checked against the full model | Quantization | empty | OK @SreekanthZipsy |
-| Evaluation | The benchmarks, the scores that TSAI approves, and what the scores do not show, such as the size of the question sets | Evaluation | in progress | pending |
-| Limitations and risks | What the model gets wrong, and the known risks. The limits of the scores go in Evaluation | Evaluation, Release | empty | Evaluation pending; Release OK @pyru |
-| What this card does not claim | The claims that the card does not make about the model as a whole, so that readers do not read too much into it. The limits of the scores go in Evaluation, and the errors of the model in Limitations and risks | Evaluation, Release | empty | Evaluation pending; Release OK @pyru |
+| Evaluation | The benchmarks, the scores that TSAI approves, and what the scores do not show, such as the size of the question sets | Evaluation | in progress | OK @rahulni |
+| Limitations and risks | What the model gets wrong, and the known risks. The limits of the scores go in Evaluation | Evaluation, Release | empty | Evaluation OK @rahulni; Release OK @pyru |
+| What this card does not claim | The claims that the card does not make about the model as a whole, so that readers do not read too much into it. The limits of the scores go in Evaluation, and the errors of the model in Limitations and risks | Evaluation, Release | empty | Evaluation OK @rahulni; Release OK @pyru |
 | Licence and attribution | The licence of the model, and credit for each data source | Post-training, Data A, Data B | in progress | Post-training OK @saitej123; Data A OK @patilvijay23; Data B OK @shankarpandala |
 | Contributors | The teams that did the work, with no person names | Release | in progress | Release OK @pyru |
 | How to find more | A link to the public lab repository | Release | in progress | Release OK @pyru |
