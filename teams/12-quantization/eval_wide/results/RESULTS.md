@@ -5,7 +5,7 @@ reading task, Kannada worst.** The 200-item stand-in set showed no loss for eith
 the evidence supports serving **Q8_0, not Q4_K_M**.
 
 **Granite 3.0 3B-A800M (MoE) shows the same pattern in English:** Q8_0 −0.04 on MMLU (no loss), Q4_K_M −2.31
-(p < 0.001), section 6. On both models Q4_K_M fails the proposal's MMLU test and Q8_0 passes everything.
+(p < 0.001), section 6. On all three models (with gemma-2-2b, below) Q4_K_M fails the proposal's MMLU test and Q8_0 passes everything.
 
 **gemma-2-2b (base) loses less at Q4_K_M:** MMLU −1.46 (p < 0.001, so it still fails the proposal's p < 0.01 rule),
 no Indic task significant at p < 0.01, Q8_0 within ±0.8 points of bf16 on all 12 tasks (section 7).
