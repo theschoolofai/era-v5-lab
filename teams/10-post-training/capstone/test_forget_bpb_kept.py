@@ -206,3 +206,61 @@ def test_bf16_on_a_device_without_that_autocast_is_refused(setup, tmp_path):
     with pytest.raises(fb.KeptError, match="not applied"):
         fb.run(s.bundle, s.held, s.src, [], "mps", "bfloat16", tmp_path / "out")
     assert not (tmp_path / "out").exists()
+
+
+def _step_dir(kept):
+    return kept / json.loads((kept / "latest.json").read_text())["path"]
+
+
+@fixture(params=["missing file", "garbled pointer", "no step", "no commits", "missing key"])
+def damaged(request, setup):
+    kept, step = setup.kept, _step_dir(setup.kept)
+    manifest = json.loads((step / "MANIFEST.json").read_text())
+    if request.param == "missing file":
+        (step / sorted(manifest["files"])[0]).unlink()
+    elif request.param == "garbled pointer":
+        (kept / "latest.json").write_text("{")
+    elif request.param == "no step":
+        (step / "MANIFEST.json").write_text("{}")
+    elif request.param == "no commits":
+        (kept / "commits.jsonl").unlink()
+    else:  # a folder saved without one of the model's tensors
+        manifest["keys"].pop(next(k for k in manifest["keys"] if k.startswith("model.") and "router_bias" in k))
+        (step / "MANIFEST.json").write_text(json.dumps(manifest))
+    return setup
+
+
+def test_every_kind_of_damaged_folder_is_a_refusal(damaged):
+    with pytest.raises(fb.KeptError):
+        fb.load_kept(damaged.bundle, damaged.kept)
+
+
+def test_a_later_bad_folder_stops_before_measuring_and_a_rerun_leaves_no_old_report(setup, tmp_path):
+    s, out = setup, tmp_path / "out"
+    other = copy.deepcopy(s.changed)
+    other.state_dict()["embedding.rows"].add_(1)
+    bad = Path(kw.save_run_folder(other, tmp_path / "keep", "other-table", step=3, probe_fn=kw.team5_probe)["run_dir"])
+    with pytest.raises(fb.KeptError, match="frozen tables differ"):
+        fb.run(s.bundle, s.held, s.src, [s.kept, bad], "cpu", "float32", out)
+    assert not out.exists()
+    with pytest.raises(fb.KeptError, match="held-out files refused"):
+        fb.run(s.bundle, s.held, tmp_path / "no_sources.jsonl", [s.kept], "cpu", "float32", out)
+    assert not out.exists()
+    out.mkdir()
+    (out / "forget_g10-dr2-full.json").write_text("old")
+    real = fb.heldout_bpb
+    calls = []
+
+    def fails_on_the_arm(*a, **k):
+        calls.append(1)
+        if len(calls) == 2:
+            raise RuntimeError("out of memory")
+        return real(*a, **k)
+
+    fb.heldout_bpb = fails_on_the_arm
+    try:
+        with pytest.raises(RuntimeError, match="out of memory"):
+            fb.run(s.bundle, s.held, s.src, [s.kept], "cpu", "float32", out)
+    finally:
+        fb.heldout_bpb = real
+    assert sorted(p.name for p in out.iterdir()) == ["forget_base.json"]

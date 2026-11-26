@@ -72,19 +72,32 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
+def read_json(path: Path) -> dict:
+    try:
+        d = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        raise KeptError(f"{path}: cannot be read as JSON: {e}") from e
+    if not isinstance(d, dict):
+        raise KeptError(f"{path}: not a JSON object")
+    return d
+
+
 def read_pointer(run_dir: Path) -> tuple[dict, bytes]:
     """The step latest.json points at: (its MANIFEST.json, those bytes). Never a directory listing."""
     latest = Path(run_dir) / "latest.json"
     if not latest.is_file():
         raise KeptError(f"{latest} not found: no committed checkpoint in this folder")
-    path = json.loads(latest.read_text(encoding="utf-8")).get("path")
+    path = read_json(latest).get("path")
     if not path:
         raise KeptError(f"{latest} has no path: nothing is committed")
     manifest = Path(run_dir) / path / "MANIFEST.json"
     if not manifest.is_file():
         raise KeptError(f"{manifest} not found: the commit is incomplete")
     raw = manifest.read_bytes()
-    return json.loads(raw), raw
+    record = read_json(manifest)
+    if "step" not in record:
+        raise KeptError(f"{manifest} names no step: the file is damaged")
+    return record, raw
 
 
 def check_kept(bundle, run_dir: Path) -> tuple[dict, bytes]:
@@ -98,12 +111,13 @@ def check_kept(bundle, run_dir: Path) -> tuple[dict, bytes]:
     return read_pointer(run_dir)
 
 
-def load_kept(bundle, run_dir: Path) -> dict:
-    """Load one keep_weights run folder into bundle.model (strict keys) and return what was loaded.
+def read_kept(bundle, run_dir: Path) -> tuple[dict, dict]:
+    """Every check on one keep_weights run folder, without touching bundle.model: (what it holds, its state dict).
 
-    Refuses a folder saved with another model config, an export that is not the step latest.json names, anything Team 7's
-    export refuses, a key set that differs from the model's (Team 5's MoE fills a missing router_bias with zeros, so a
-    strict load is not enough), and frozen tables (KE2 byte table, codec) that differ from the base's.
+    Refuses a folder saved with another model config, a step that is not the one latest.json names, anything Team 7's
+    export refuses (damaged or missing files, a key set that differs from the model's, other probe bits on the saved
+    device class) and frozen tables (KE2 byte table, codec) that differ from those in bundle.model, which must hold the
+    base or an arm already checked against it.
     """
     import keep_weights as kw  # noqa: PLC0415  also puts Team 7 on sys.path
     from ckpt.ckpt import CheckpointError, device_class, export_safetensors  # noqa: PLC0415  Team 7, unmodified
@@ -118,42 +132,54 @@ def load_kept(bundle, run_dir: Path) -> dict:
         try:
             info = export_safetensors(str(run_dir), lambda: copy.deepcopy(bundle.model), kw.team5_probe, str(out),
                                       step=manifest["step"])
-        except (CheckpointError, IndexError) as e:  # IndexError: the step is not in commits.jsonl
+        # IndexError: the step is not in commits.jsonl. OSError, KeyError, ValueError: a missing or garbled file
+        except (CheckpointError, IndexError, KeyError, OSError, ValueError) as e:
             raise KeptError(f"{run_dir}: Team 7 export refused it: {type(e).__name__}: {e}") from e
         with safe_open(str(out), framework="pt") as f:
             digest = (f.metadata() or {}).get("state_digest")
         if digest != manifest.get("state_digest"):
             raise KeptError(f"{run_dir}: exported state_digest {digest} differs from MANIFEST.json "
                             f"{manifest.get('state_digest')}")
-        state = load_file(str(out))
-    want, have = set(bundle.model.state_dict()), set(state)
-    if want != have:
-        raise KeptError(f"{run_dir}: keys differ from the model: missing {sorted(want - have)[:5]}, "
-                        f"unexpected {sorted(have - want)[:5]}")
+        state = {k: v.clone() for k, v in load_file(str(out)).items()}  # own memory: the export file is removed
     current = bundle.model.state_dict()
-    moved = [k for k in kw.TEAM5_FROZEN_KEYS if k in want and not torch.equal(state[k].cpu(), current[k].cpu())]
+    moved = [k for k in kw.TEAM5_FROZEN_KEYS if k in current and not torch.equal(state[k].cpu(), current[k].cpu())]
     if moved:
         raise KeptError(f"{run_dir}: frozen tables differ from the base's: {moved}; it was not trained from this base")
-    bundle.model.load_state_dict(state, strict=True)
     # Team 7 compares the probe-loss bits only when the step saved bits for the device class the export ran on
     saved, here = sorted(manifest.get("probe_loss") or {}), device_class(bundle.model)
     return {"run_dir": str(run_dir), "run_id": run_dir.name, "step": manifest["step"],
             "manifest_sha256": hashlib.sha256(raw).hexdigest(), "state_digest": digest,
             "probe": {"result": "compared" if here in saved else "skipped", "bits": info.get("probe_bits"),
-                      "device_class": here, "saved_device_classes": saved}}
+                      "device_class": here, "saved_device_classes": saved}}, state
+
+
+def load_kept(bundle, run_dir: Path) -> dict:
+    """read_kept, then load the weights into bundle.model (strict keys). Returns what was loaded."""
+    info, state = read_kept(bundle, run_dir)
+    bundle.model.load_state_dict(state, strict=True)
+    return info
+
+
+def heldout_windows(bundle, heldout: Path, sources: Path | None):
+    """Team 5's DocumentWindows, as sft_g5.forgetting_bpb builds them."""
+    data = importlib.import_module("week2.data")
+    try:
+        return data.DocumentWindows(heldout, bundle.artifacts, bundle.spec["block_size"], require_ids=False,
+                                    sources_path=sources)
+    except (OSError, KeyError, ValueError) as e:
+        raise KeptError(f"held-out files refused: {type(e).__name__}: {e}") from e
 
 
 def heldout_bpb(bundle, heldout: Path, sources: Path | None, device: str, use_bf16: bool) -> dict:
     """Team 5's evaluate() on Team 5's DocumentWindows (as sft_g5.forgetting_bpb), under the given autocast, with the
     key names forgetting.py reads."""
     evaluation = importlib.import_module("week2.evaluation")
-    data = importlib.import_module("week2.data")
     be = _bench_eval()
     if device == "mps":
         import g5_launch  # noqa: PLC0415
         g5_launch.install_mps_double_patch()
     window = bundle.spec["block_size"]
-    val = data.DocumentWindows(heldout, bundle.artifacts, window, require_ids=False, sources_path=sources)
+    val = heldout_windows(bundle, heldout, sources)
     res = evaluation.evaluate(bundle.model, val, 1, __import__("torch").device(device),
                               lambda: be._autocast_ctx(device, use_bf16),
                               max_batch_tokens=evaluation.EVAL_BATCH_TOKENS)
@@ -186,7 +212,7 @@ def base_revisions(bundle, adapter_config: Path | None, store_record: Path | Non
         records.append(Path(store_record))
     revs = [own]
     for path in records:
-        rec = json.loads(path.read_text(encoding="utf-8"))
+        rec = read_json(path)
         if rec.get("model_hash_g5") != own:
             raise KeptError(f"{path}: model_hash_g5 {rec.get('model_hash_g5')} is not the base's {own}")
         revs.append(rec.get("manifest_sha256"))
@@ -195,7 +221,8 @@ def base_revisions(bundle, adapter_config: Path | None, store_record: Path | Non
 
 def run(bundle, heldout: Path, sources: Path | None, kept: list[Path], device: str, dtype: str, out_dir: Path,
         adapter_config: Path | None = None, base_store_record: Path | None = None) -> dict[str, Path]:
-    """The base first (the bundle as built), then every kept folder. Returns {name: report path}."""
+    """Check every input, then measure the base (the bundle as built) and every kept folder.
+    Returns {name: report path}. Reports of the same names from an earlier run are removed before measuring."""
     import torch  # noqa: PLC0415
 
     try:
@@ -210,9 +237,11 @@ def run(bundle, heldout: Path, sources: Path | None, kept: list[Path], device: s
     names = ["base"] + [Path(k).resolve().name for k in kept]
     if len(set(names)) != len(names):
         raise KeptError(f"two reports would share a name: {names}")
-    for folder in kept:
+    for folder in kept:  # the cheap checks on all of them first, so a mistyped path is reported at once
         check_kept(bundle, Path(folder).resolve())
     base_revs = base_revisions(bundle, adapter_config, base_store_record)
+    heldout_windows(bundle, heldout, sources)
+    checked = [read_kept(bundle, folder) for folder in kept]  # every check, against the base, before any measurement
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     common = {"schema": SCHEMA, "device": device, "torch": torch.__version__, "compute_dtype": compute_dtype,
@@ -222,6 +251,8 @@ def run(bundle, heldout: Path, sources: Path | None, kept: list[Path], device: s
               "base_adapter_status": bundle.manifest.get("status"),
               "base_adapter_origin": bundle.manifest.get("origin")}
     written: dict[str, Path] = {}
+    for name in names:  # a run that stops half way must not leave an older report beside its new ones
+        (out_dir / f"forget_{name}.json").unlink(missing_ok=True)
 
     def write(name: str, extra: dict) -> None:
         report = {**common, **extra,
@@ -232,8 +263,8 @@ def run(bundle, heldout: Path, sources: Path | None, kept: list[Path], device: s
         print(f"{name}: bpb_all {report['forgetting']['bpb_all']:.6f} ({compute_dtype}) -> {path}", flush=True)
 
     write("base", {"model_revisions": base_revs})
-    for folder, name in zip(kept, names[1:]):
-        info = load_kept(bundle, folder)
+    for (info, state), name in zip(checked, names[1:]):
+        bundle.model.load_state_dict(state, strict=True)
         write(name, {"model_revisions": [info["manifest_sha256"]], "kept": info})
     return written
 

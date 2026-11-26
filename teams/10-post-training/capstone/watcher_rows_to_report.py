@@ -6,8 +6,8 @@ checks it against the bits-per-byte report's `compute_dtype` (sft/tests/forgetti
 eval_schedule.md section 8 proposal is that Team 9 hands rows in fractions; until it does, this is the one place the
 division happens, so it is not done by hand.
 
-    python capstone/watcher_rows_to_report.py --watcher-doc <base rows> --report base_forget.json --out base.json
-    python capstone/watcher_rows_to_report.py --watcher-doc <arm rows> --report after_forget.json --out after.json
+    python capstone/watcher_rows_to_report.py --watcher-doc <base rows> --report forget_base.json --out base.json
+    python capstone/watcher_rows_to_report.py --watcher-doc <arm rows> --report forget_<run id>.json --out after.json
     python sft/tests/forgetting.py --before base.json --after after.json --out forgetting.md
 
 Without --report it writes the `eval_mini` block alone, which forgetting.py also takes beside the bits-per-byte report.
