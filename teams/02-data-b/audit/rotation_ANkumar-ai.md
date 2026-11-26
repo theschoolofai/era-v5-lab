@@ -15,7 +15,7 @@ Refs #ISSUE. Rotation member: ANkumar-ai (Ajay). Language: Telugu (I read Telugu
 | Source or cleaning | each finding's context is looked up in the NFC raw text; every raw/shard difference is listed below |
 | Wall time | 0.54 s for all checks (one process) |
 
-Reader check: I read 15 of the 50 documents on screen (including all 7 with a finding or a cleaning change) and agree with every code-point result. The other 35 were checked by code point only.
+Reader check: I read all 50 documents on screen and agree with every code-point result. Reading found no further script damage.
 
 Document text is not reproduced here: only IDs, codes, offsets and code points.
 
