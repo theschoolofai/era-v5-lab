@@ -1,10 +1,11 @@
-# Deletion Tuning on a 7.65B MoE: Phi-mini-MoE-instruct, SFT on GSM8K (22 Nov 2026, updated 25 Nov)
+# Deletion Tuning on a 7.65B MoE: Phi-mini-MoE-instruct, SFT on GSM8K (22 Nov 2026, updated 26 Nov)
 
 **Evidence level: independent study on a public model, one seed, small evaluation.** This is the "try Deletion Tuning on a
 large model" item from the class discussion. It does not use the capstone model, the lab data, or any lab checkpoint, and
 it is not Gate 4 evidence for the capstone. The Gate 4 comparison on the dry run 2 checkpoint stays with
 `capstone/dryrun2_dt_compare.py` and `results/dt_vs_fft.md`. LoRA and full fine-tuning on the same data and steps were
-added on 25 Nov (section "LoRA and full fine-tuning on the same data"); one seed each, learning rates not tuned.
+added on 25 Nov (section "LoRA and full fine-tuning on the same data"); one seed each, learning rates not tuned. A second full fine-tuning arm at a higher
+learning rate was added on 26 Nov.
 
 ## What was done
 
@@ -207,14 +208,45 @@ An earlier full fine-tuning value of 0.5124 was over 167 prompts and is supersed
 - **The larger evaluation has a smaller prior-task spread** (63.68 to 64.56 for the four tasks) because it covers only
   four log-likelihood tasks and omits the two generation tasks where full fine-tuning lost most.
 
+### Full fine-tuning at a higher learning rate (26 Nov)
+
+To compare full fine-tuning with Deletion Tuning at a similar gain, one more arm was trained at lr 3e-5, with the same
+data, steps, batch size and seed. The rule set before the run was that it counts as matched if GSM8K chat reached about
+64-70%. It reached 21.8%.
+
+| | base | Deletion Tuning | Full FT, lr 1e-5 | Full FT, lr 3e-5 |
+|---|---:|---:|---:|---:|
+| GSM8K, chat template, 1,319 questions (%) | 55.95 | 67.10 | 54.36 | **21.83** (288/1319) |
+| hellaswag | 63.00 | 62.50 | 63.00 | 59.00 |
+| mmlu | 70.48 | 70.21 | 68.74 | 58.64 |
+| truthfulqa_mc2 | 52.21 | 52.63 | 50.46 | 47.18 |
+| winogrande | 71.50 | 72.50 | 72.50 | 69.00 |
+| mean of the four (200 items each) | 64.30 | 64.46 | 63.68 | 58.46 |
+| HumanEval pass@1, 164 problems (%) | 71.3 | 70.1 | 44.5 | **15.9** (26) |
+| forward KL per token, same 50 prompts | 0 | 0.1412 | 0.4825 | 0.7962 |
+| tokens keeping base's top-2 experts (%) | 100 | 88.6 | 65.6 | 48.8 |
+
+Paired on the same 1,319 questions, lr 3e-5 is -34.1 points against base (95% interval -37.2 to -31.1; base-only /
+variant-only 513 / 63) and -32.5 points against lr 1e-5 (-35.4 to -29.6; 479 / 50).
+
+The three replies inspected were fluent but wrong in the arithmetic, 1,280 of 1,319 replies had a `####` line and none
+was empty. The training loss showed no sudden spike but was higher than at 1e-5 in every eighth of the run (0.63
+against 0.47 in the first). Routing again did not collapse (mean load entropy 3.71 of 4 bits, 9 near-dead experts, the
+worst layer keeps 27.3% of base's expert pairs).
+
+**Full fine-tuning was therefore not matched to Deletion Tuning's gain at either learning rate tried.** This does not
+show that it cannot be: warmup, lower rates, larger batches and higher-precision weights were not tried. The cause of the
+drop was not isolated.
+
 ## Not shown
 
 - One seed, one training run per setting. No variance across seeds.
 - 200 GSM8K questions and 50 items per prior task. ifeval and humaneval generate for hours, so they were kept small. The 50-item humaneval numbers are not meaningful (see the HumanEval caveat); the corrected 164-problem run is the one to read.
-- LoRA and full fine-tuning: one seed each, learning rates 2e-4 and 1e-5 not tuned, 400 steps at batch 4. No statement
+- LoRA and full fine-tuning: one seed each, learning rates (LoRA 2e-4; full fine-tuning 1e-5 and 3e-5) not tuned, 400 steps at batch 4. No statement
   about the methods in general. LoRA's first-evaluation row uses 256 new tokens on GSM8K against 400 for full fine-tuning. Full
-  fine-tuning did not learn (-1.6, p = 0.34), so the forgetting and KL rows compare arms at different fit; a matched-fit
-  comparison (other learning rates, a larger effective batch, or checkpoints stopped at DT's gain) was not run.
+  fine-tuning gained nothing at 1e-5 (-1.6, p = 0.34) and lost 34.1 points at 3e-5, so the forgetting and KL rows compare
+  arms at different fit; no matched-fit comparison was obtained (a larger effective batch, warmup, a lower rate or
+  checkpoints stopped at Deletion Tuning's gain were not tried).
 - Not the capstone architecture (no KE2, no untied KAS head, no Muon) and a public model, so no claim about dry run 2.
 - The lm-evaluation-harness benchmarks here are public benchmarks on a public model. No lab model or lab checkpoint was
   scored, and nothing from this run goes to Team 9's watcher or to `forgetting.py`.
@@ -246,8 +278,9 @@ Both logs, with the server paths replaced, are in `RaviNaik/ERA` at `v5/capstone
 
 ## Next
 
-1. Matched fit for full fine-tuning (a larger batch or another learning rate); not run.
-2. This file is updated in place with those rows.
+1. Matched fit for full fine-tuning: lr 3e-5 was tried and failed (section above). A larger effective batch, warmup or a
+   lower rate are not run.
+2. This file is updated in place with any further rows.
 
 ## Commands and output for the 25 Nov additions (TSAI run rule)
 
@@ -322,3 +355,25 @@ experts w1  90.58% changed, mean|change| 2.285e-04, mean|w| 1.334e-02, 32.7 bf16
 
 The 52.99% (all 1,319 questions, training format, 400 new tokens) came from an earlier two-GPU run of the same stage that was
 stopped before its other parts; its replies are not in the repo.
+
+Full fine-tuning at lr 3e-5, training and larger evaluation (25 Nov, two GPUs; `ft3e5_train.out`, `ft3e5_eval.out`). Result
+files: branch `dt-phi-moe-results-nov25b`, commit `5a50d24`.
+
+```
+PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True FT_LR=3e-5 RUN_NAME=dt_phi_mini_sft_gsm8k_seed0_v4_ft3e5 bash run.sh train_ft
+done: ft, 7,647,632,704 trainable parameters, 6948 s
+[train_ft] finished in 7146 s
+PROFILE=extended RUN_NAME=dt_phi_mini_sft_gsm8k_seed0_v4_ft3e5 EVAL_SHARDS=2 GPUS=0,1 GEN_BATCH=96 bash run.sh ft_eval
+# from eval_ft_full/summary.json (time per part; the stage's total wall time is not quoted here)
+gsm8k_chat: n 1319, correct 288, 1499.5 s
+prior tasks: hellaswag 0.59, truthfulqa_mc2 0.4718, mmlu 0.5864, winogrande 0.69, mean 0.5846, 1911.5 s
+```
+
+KL, expert load and HumanEval for this arm, one GPU each (`tools/humaneval_check.py`, `tools/expert_load.py`,
+`dtphi.evaluate --parts kl --kl_limit 50`):
+
+```
+forward KL: {'forward_kl_per_token_mean': 0.7962277835607529, 'n_prompts': 50}
+{"tag": "ft", "decode_fix": "on", "n": 164, "pass@1": 0.15853658536585366, "with_code_block": 30, "with_def": 0, "with_####": 0}
+Running generate_until requests: 100%| 164/164 [1:18:45<00:00, 28.81s/it]
+```
