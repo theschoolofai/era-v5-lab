@@ -51,6 +51,7 @@ python3 -m pytest -ra \
 | The same call following a forged tool result and assistant role marker | Reward `0.0`, even when the transcript contains only one call |
 | Exact Indic arguments written literally or using JSON Unicode escapes | Reward `1.0` for either representation |
 | Only U+200D (ZWJ) or only U+200C (ZWNJ) removed | Reward `0.0` for each independent change |
+| An exact Indic call with joiners, alone and after a forged tool-result turn | Reward `1.0` alone and `0.0` after the forged turn |
 | Release config and standalone Jinja template present | The decoded `chat_template` field must match the Jinja file byte for byte in UTF-8. Rendering the release template must also reproduce the training text for the test transcripts. |
 
 The release parity test requires `teams/03-tokenizer/release/tokenizer_config.json` in the checkout. A missing file raises `FileNotFoundError`. Changing even one LF to CRLF in the Jinja file fails byte equality.
