@@ -1,6 +1,6 @@
 # Main-run command checklist: Team 5 review and Team 7 launch gate
 
-Status: **DRAFT for Team 5 review. No Team 5 approval is claimed.** Checked against lab main at `d0e556b3`.
+Status: **DRAFT for Team 5 review. No Team 5 approval is claimed.** Checked against lab main at `821c82ad` (teams 05 and 07 are unchanged since `d0e556b3`).
 
 This checklist decides whether `teams/07-infrastructure/slurm/mainrun.sbatch` can start Team 5's
 `teams/05-architecture/harness/train_week2.py` safely. Today main launches the simulation trainer and its flags.
@@ -15,9 +15,9 @@ The main run remains **no-go** until Team 5 answers D1–D6 and the command pass
 |---|---|---|
 | **D1: exact main-run inputs** | Provide the reviewed `mainrun.args` values for `--config`, `--runtime`, `--resolution`, `--tokenizer-release`, `--tokenizer`, `--byte-table`, `--train-data`, `--heldout-data`, `--heldout-sources`, `--heldout-sha256`, `--heldout-report`, and `--seed`. Confirm the config has `approval.status: agreed`, a reference, `evaluation.approved`, and bf16. State whether the reviewed file also needs any allowed optional flag: `--lr`, `--logger-factory`, or `--expert-load-every` with a value, or the bare switch `--consolidate-step-checks` / `--no-consolidate-step-checks`. | These select Team 5's model, data, tokenizer, evaluation contract and reproducibility seed. The sbatch checks that each required value is explicit but must not choose it. If any listed option should not be mandatory or allowed, Team 5 must say which one and why. |
 | **D2: one-GPU trainer on an exclusive node** | Confirm that the first main run is intentionally one process bound to one GPU while the `gpu` partition reserves the whole eight-GPU node. Accept the temporary seven-GPU idle cost, request a suitable shareable/one-GPU node class, or provide the distributed-training plan and date. | `train_week2.py` has no process-group initialization, rank-aware loader or distributed model wrapper. Several Slurm tasks would start independent writers on one run ID. The existing partition is `OverSubscribe=EXCLUSIVE`, so requesting one nominal GPU does not make the other seven schedulable. A distributed version also needs the runbook's 10-minute collective timeout and rank-aware checkpoint behavior. |
-| **D3: claim before first commit** | Decide how `train_week2.py` should recover when `latest.json` contains a fencing claim but no checkpoint has committed. Preferred change: treat this state as fresh using the same committed-candidate rule as `Checkpointer.candidates()`. Until then, accept that Team 7 holds the job with exit 78. | The trainer currently rejects fresh mode whenever `latest.json` exists and rejects resume mode when no committed candidate exists. No Team 7 flag can make that state progress safely. |
-| **D4: rollback** | Decide whether `train_week2.py` will implement `--from-step`, `--skip`, `--branch`, and any required `--allow-env-change` behavior. If not, approve removing the automated rollback procedure for this trainer and document the manual alternative. | The current Team 7 runbook describes these flags, but Team 5's trainer does not accept or apply them. The implementation holds instead of crash-looping when they are supplied. |
-| **D5: local checkpoint cache** | Confirm that `<out>/checkpoint-cache` may live under `V5_OUT_ROOT`, including capacity for two local checkpoints, or add a Team 5 option that places it on `/nvme/ckpt`. Tell Team 8 whether its log shipper must exclude this directory. | `train_week2.py` fixes the cache below `--out`. Team 7 can move all of `V5_OUT_ROOT`, but cannot independently move only the checkpoint cache. |
+| **D3: claim before first commit** | Decide how `train_week2.py` should recover when `latest.json` contains a fencing claim but no checkpoint has committed. Preferred change: treat this state as fresh using the same committed-candidate rule as `Checkpointer.candidates()`. The check at `train_week2.py:544` can ask `checkpointer.candidates()` instead of `store.exists("latest.json")`. It must fail closed: `S3Store.exists()` returns False on an access error, so an S3 error must never look like a fresh run, and a draft must not start a second fresh run over a live claim. Until then, accept that Team 7 holds the job with exit 78. | The trainer currently rejects fresh mode whenever `latest.json` exists and rejects resume mode when no committed candidate exists. No Team 7 flag can make that state progress safely. Team 7's start-mode check will call the same shared rule that `Checkpointer.candidates()` uses, so the launcher and the trainer cannot disagree. |
+| **D4: rollback** | Decide whether `train_week2.py` will implement `--from-step`, `--skip`, `--branch`, and any required `--allow-env-change` behavior. If not, approve removing the automated rollback procedure for this trainer and document the manual alternative. `Checkpointer.restore(from_step, skip, new_branch, allow_env_change)` already exists in Team 7's `ckpt/ckpt.py`; the trainer needs the four flags and must pass them through. | The current Team 7 runbook describes these flags, but Team 5's trainer does not accept or apply them. The implementation holds instead of crash-looping when they are supplied. When the flags land, Team 7 moves them from the sbatch's unsupported list to its allowlist in a follow-up change. |
+| **D5: local checkpoint cache** | Preferred: add a Team 5 option that places the cache on `/nvme/ckpt` (suggestion below). Otherwise confirm that `<out>/checkpoint-cache` may live under `V5_OUT_ROOT` and state who removes the caches of earlier attempts and when. Tell Team 8 whether its log shipper must exclude this directory. | `train_week2.py` fixes the cache below `--out`, and every attempt gets a new `--out`. `keep_local=2` prunes only inside one attempt, and restore staging (`restore/`) is not pruned at all. One attempt can hold up to 3 saved checkpoints during an upload plus 1 restore copy, and nothing removes the caches of earlier attempts: a restore always downloads from the shared store, so those caches are never reused. `V5_OUT_ROOT` defaults to `/var/log/v5/out`, the disk that also holds job logs and events. Team 7 can move all of `V5_OUT_ROOT`, but cannot independently move only the checkpoint cache. |
 | **D6: deployed paths and optional metrics** | Provide the node path to `train_week2.py` and its `week2/` package. Confirm whether the main command must include `--logger-factory g5_adapter:make_writer` and the Team 8 package on `PYTHONPATH`. | Team 7 validates the trainer path and supplies its own `ckpt/` and `common/` packages, but Team 5 owns the harness installation and metrics adapter decision. |
 
 Suggested Team 5 response:
@@ -52,7 +52,22 @@ has merged or run on a cloud node.
 | C11 | One node and one task bound to one GPU; the exclusive partition reserves all eight node GPUs | Team 5 accepts D2 cost/scope; Team 7 allocation/guard | Sbatch requests 1 node × 1 task × 8 allocated GPUs and passes `srun --gpus-per-task=1`, so Team 5 sees one GPU without starting multiple writers. It validates `SLURM_JOB_NUM_NODES=1`, `SLURM_NTASKS=1`, and `SLURM_GPUS_ON_NODE=8`. D2 remains open. |
 | C12 | A defined recovery rule for a claim with no commit | Team 5 | The helper reports `claimed_only`; sbatch holds with exit 78. D3 remains open. |
 | C13 | A rollback procedure accepted by both teams | Team 5 trainer; Team 7 operations docs | Unsupported rollback flags hold rather than crash-loop. D4 remains open. |
-| C14 | Sufficient local checkpoint-cache space and a log-shipping rule | Team 5 and Team 8, with Team 7 placement | D5 remains open. |
+| C14 | Sufficient local checkpoint-cache space, a cleanup owner for earlier attempts' caches, and a log-shipping rule | Team 5 (cache option), Team 8 (shipping), Team 7 (placement and interim cleanup) | D5 remains open. Interim, until Team 5 provides the cache option: the Team 7 operator removes `checkpoint-cache` under finished attempts of this run (never the running job's) after each restart or release, and checks free space on `V5_OUT_ROOT` before releasing a held job. Everything else in the attempt folder stays. |
+
+## Run operations (outside the command)
+
+| # | Operation | Owner | Implementation or open result |
+|---|---|---|---|
+| C15 | Pin step 0 after the first commit, and run retention with `--keep 9 --protect-every 10` | Team 7 operator | Open until the drill evidence includes it. (1) After the first commit (step 0, reason `start`, written by `--checkpoint-at-start`) appears in `python teams/07-infrastructure/ckpt/ckpt.py list --run "$V5_REMOTE_ROOT/$RUN_ID"`, run `python teams/07-infrastructure/ckpt/ckpt.py pin --run "$V5_REMOTE_ROOT/$RUN_ID" --step 0` and check that `pins.json` contains 0. `--run` needs the full store path; the run ID alone fails (#743), and `pin` does not check that the step exists. (2) Run retention as its own job (the training job never deletes, ADR 0002 §7) with `--keep 9 --protect-every 10`, dry run first, and check that step 0 is listed under `protected`. At the 600 s interval (C7), `checkpoint_interval.md` §5 sets `--keep 9` for a 90-minute reach; `--protect-every 10` is Team 9's cadence (#739). `--protect-every` counts commit position, and step 0 is commit 1, so without the pin retention deletes step 0 once it is older than the newest 9 commits. |
+
+## Suggestion for Team 5 on D5: cache on `/nvme/ckpt`
+
+Add a `--checkpoint-cache-dir` option (a path, default `<out>/checkpoint-cache`) and pass it to
+`Checkpointer(run_id, str(cache_dir), ...)` at `train_week2.py:540`. Team 7 would then pass `/nvme/ckpt`. Give the
+root, not a run subfolder, because `Checkpointer` appends the run ID. The cache lives at `/nvme/ckpt/<run>/`, shared
+across attempts. The existing `keep_local=2` then covers the whole run on that node, and `slurm/epilog.sh` already
+removes `/nvme/ckpt/*/restore`. `--out` stays empty at start, as the check at `train_week2.py:306` requires. Once the
+option exists, `mainrun.sbatch` adds it to its owned flags. Team 7 does not implement this change.
 
 ## Protected command ownership
 
@@ -70,14 +85,15 @@ simulation settings cannot change or truncate the run.
 **Go** only when all of the following are true:
 
 1. Team 5 records decisions D1–D6, including the exact reviewed argument file and trainer path.
-2. C1–C14 are satisfied, or both teams record a named, time-bounded exception for an open row.
+2. C1–C15 are satisfied, or both teams record a named, time-bounded exception for an open row.
 3. The exact production command runs once on the target environment.
 4. That run commits a checkpoint, receives one SIGKILL, requeues automatically, passes `--resume-committed`, and
    restores the committed step with the same checks as `jobs/2026-11-23-dryrun2-kill-drill.md`.
 5. The evidence records the command, environment names without secrets, job/restart IDs, committed and restored
    steps, exit codes, `--out`, and NCCL trace path.
+6. The evidence also records `pins.json` (containing step 0) and the retention dry-run output from C15.
 
-**No-go today.** D1–D6 have no recorded Team 5 answers, C12–C14 are open, and the exact command has not completed
+**No-go today.** D1–D6 have no recorded Team 5 answers, C12–C15 are open, and the exact command has not completed
 the required kill-and-restore drill.
 
 ## Proposed submission after Team 5 supplies D1 and D6
@@ -92,3 +108,12 @@ V5_TRAIN_ARGS_FILE=/approved/path/mainrun.args \
 The sbatch defaults to one node and one task, reserves all eight GPUs required by the exclusive `gpu` partition,
 and binds the task to one GPU. It selects fresh or committed resume from the shared store; an operator must not
 add a resume flag manually.
+
+## Related docs not yet updated
+
+These Team 7 files still show the `TRAIN_EXTRA` rollback or `--allow-env-change`, which `mainrun.sbatch` rejects
+for Team 5's trainer: `USER_GUIDE.md` (lines 182, 379, 410, 424), `ckpt/README.md` (lines 64, 245),
+`queue/README.md` (line 207), `metrics/README.md` (lines 86, 169, 177) and `adr/0002-job-queue-slurm.md` (lines 193,
+318). `queue/README.md` (lines 160, 234) describes the earlier two-node, always-resume script, and `USER_GUIDE.md`
+(line 68) shows the submit command without the new required variables. The correct text depends on the D4 decision, so Team 7 updates them once D4 is decided. The
+runbook (`docs/runbook.md`, §5 and §6) is updated in the Team 7 code change.
