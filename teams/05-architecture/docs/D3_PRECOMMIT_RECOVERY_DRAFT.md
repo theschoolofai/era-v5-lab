@@ -1,7 +1,8 @@
 # D3: interrupted initialization recovery (week-5 draft)
 
-This revision follows Suresh's Team 7 direction, Shivanshu's review and Pradeep's
-read-only candidate-precheck request on #826.
+This revision follows the Team 7 review on
+[G5: draft recovery before the first committed checkpoint (#826)](https://github.com/theschoolofai/era-v5-lab/pull/826),
+including the read-only candidate precheck, and the G5 lead's scope constraints.
 It remains a draft. Do not deploy it into Dry Run 2 or change this week's fresh
 start or launcher behavior. Target week 5, after the main-run go/no-go on
 28 Nov and confirmation of the main-run checkpoint store. D4 rollback is separate.
@@ -20,7 +21,7 @@ There is no new recovery flag or G7 API. For the proposed week-5 flow, the
 launcher passes the existing `--checkpoint-at-start` for fresh and claim-only
 initialization. Before resubmitting a claim-only run, G7 requires the launcher
 to check the previous job with `sacct` and establish it is no longer RUNNING or
-PENDING. That check belongs in Max's #820; this trainer does not perform it.
+PENDING. That check belongs in Team 7's #820; this trainer does not perform it.
 Direct callers likewise must establish the previous attempt stopped before
 using this initialization path. An empty checkpoint history is not that proof.
 
@@ -36,7 +37,7 @@ committed resume, the trainer calls G7's existing public methods:
 4. Without candidates, initialize step zero and request a checkpoint. Wait for
    its commit before the first training update, with the step watchdog active.
 
-Pradeep's review adds the read-only precheck: an accidental start against an
+The Team 7 review requires the read-only precheck: an accidental start against an
 already-committed run must not fence its live owner. The second check remains
 necessary. If an old attempt commits after the precheck but before/during claim,
 the claim can advance ownership, then the new candidate is refused. Existing
@@ -73,18 +74,18 @@ not a change to an active launch. Native resume is not an initialization restart
 
 - **G5:** this draft implements the trainer entry path and regressions. It does
   not enable a launcher route or modify the current DR2 job/run inputs.
-- **G7/Max (#820):** implement and validate the prior-job check, owned arguments
+- **G7 launcher (#820):** implement and validate the prior-job check, owned arguments
   and fresh/claim-only routing. Until agreement and adoption, keep claim-only
   as exit 78. The interim runbook workaround is to confirm the old job ended
   and resubmit under a new run ID. G7 owns that runbook update.
-- **G7/Pradeep:** review this revision against the existing checkpoint contract,
-  including read-only candidate rejection, postclaim race detection, and
-  the two-process test.
+- **G7 checkpoint-contract review:** the [review on #826](https://github.com/theschoolofai/era-v5-lab/pull/826#issuecomment-7224230860)
+  confirms the precheck revision matches the checkpoint contract. This does not
+  approve deployment or change the draft status.
 - **G7/G8:** review existing event and exit-note handling with the actual launcher.
   G7 emits its normal checkpoint.claimed event; G5 does not duplicate it.
 - **TSAI/G7/G5:** confirm the main-run store and validate the agreed integrated
-  flow on the target environment before adoption. Shivanshu's draft review and
-  deployment/run approval remain pending.
+  flow on the target environment before adoption. Final deployment/run approval
+  remains with the G5 lead and TSAI.
 
 The adapter uses G7's existing interfaces without a new store-type gate. This
 does not establish that G5 training supports distributed main-run topologies:
@@ -121,7 +122,7 @@ single-process, one-GPU scope.
 - CPU fp32 and CUDA bf16 AdamW/Muon loss-trace and recovered-step-zero restore parity,
   including the real KAS V2 head; watchdog protection of the initialization wait.
 
-Validation of Pradeep's precheck revision on 27 Nov 2026:
+Validation of the candidate-precheck revision on 27 Nov 2026:
 
 - Initialization contract, real trainer checkpoint/restore, watchdog and CUDA
   regressions: **28 passed, 24 subtests passed, no skips**. Includes read-only
@@ -130,7 +131,7 @@ Validation of Pradeep's precheck revision on 27 Nov 2026:
   CUDA bf16 recovery/restore with AdamW and Muon.
 - `git diff --check` passed. No trainer flags, G7 files or launch scripts changed.
 
-Previous revision's validation on 26 Nov 2026 (before Pradeep's precheck fix):
+Previous revision's validation on 26 Nov 2026 (before the candidate-precheck fix):
 
 - Full G5 CPU suite and G8 adapter: **299 passed, 13 skipped, 91 subtests passed**
   with PyTorch 2.5.1 CPU. Includes the initialization-wait watchdog test and the
