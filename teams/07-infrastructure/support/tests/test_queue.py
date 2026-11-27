@@ -351,6 +351,9 @@ def test_mainrun_holds_claim_without_commit(tmp_path):
     process, got = run_mainrun(tmp_path)
     assert process.returncode == 78 and got["argv"] == []
     assert "claim but no committed checkpoint" in process.stderr
+    assert "confirm in sacct that the" in process.stderr and "resubmit with a new RUN_ID" in process.stderr
+    assert "nothing was committed" in process.stderr
+    assert "--recover-precommit" not in process.stderr
 
 
 def test_mainrun_rejects_incomplete_or_unsafe_commands(tmp_path):

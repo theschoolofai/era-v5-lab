@@ -162,7 +162,9 @@ def start_mode(remote_root: str, run_id: str, tries: int = 3, wait_s: float = 10
     `latest.json` can be only a fencing claim: the first attempt writes it before its first commit. What counts
     as something to resume is decided by ckpt/candidates.py, the same rule Checkpointer.candidates() restores with,
     so this check and the restore cannot drift apart. A claim with no candidate is claimed_only; train_week2.py
-    currently refuses both fresh and resume in that state, so mainrun.sbatch holds it for Team 05. A commit history
+    currently refuses both fresh and resume in that state, so mainrun.sbatch holds it (exit 78): the operator
+    confirms in sacct that the earlier job ended and resubmits under a new RUN_ID. In week 5 the launcher does
+    that sacct check and passes --checkpoint-at-start (see #826). A commit history
     without a latest.json is an inconsistent store: restore would find nothing to resume, so this raises and the
     job is held instead of guessing."""
     root = remote_root.rstrip("/") or "/"

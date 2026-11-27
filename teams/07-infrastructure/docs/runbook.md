@@ -126,6 +126,10 @@ For Team 05's trainer, `mainrun.sbatch` first reads the store (`job_queue.py sta
 (`--checkpoint-at-start`) or with `--resume-committed`. If a startup check fails (a setting, an unreadable store, a
 claim with no commit) it holds the job with exit 78 and sends a `job.held` event with the reason (section 7).
 
+**Metrics across attempts.** Each attempt writes its own `<run>/<job>.<restart>/train/metrics.jsonl` (the `--out`
+folder, new for every attempt). Team 8's ingestion must read all of them. Team 9's watcher reads committed
+checkpoints, so it is not affected.
+
 **Without Slurm** (one machine, the TSAI runner, the CPU tests): `ckpt/supervisor.py` runs the trainer as a child
 and starts the **same command** again after a 75 or a crash. The supervisor knows nothing about the model.
 
@@ -205,7 +209,7 @@ Full list with alert ids: [`codes_and_actions.md`](../support/docs/codes_and_act
 | `FencedError` | 78 | this attempt's commit was refused; the newer attempt is untouched | nothing for the run; find why the old attempt was still alive | - |
 | `nonfinite`, `loss_spike` | 78 | nothing saved after the bad step | roll back (section 6); tell Team 05 | CK-07, H-24 |
 | `crash_loop` | 78 | 3 crashes in 30 min; held so it stops burning device hours | read the last trainer error (`logs/job.log` in a job, else the supervisor's terminal), fix it, then restart | Q-04 |
-| `startup_check_failed` | 78 | `mainrun.sbatch` held the job before any training: a setting is missing or not allowed, the store cannot be read, a run has a claim but no commit (`claimed_only`), or a commit history has no `latest.json`. The reason is in the Slurm comment and the `job.held` event | read it (`squeue -o "%.10i %k"`), fix it, then `scontrol release <id>`. For a claim with no commit, tell Team 05 (checklist D3) | Q-02 |
+| `startup_check_failed` | 78 | `mainrun.sbatch` held the job before any training: a setting is missing or not allowed, the store cannot be read, a run has a claim but no commit (`claimed_only`), or a commit history has no `latest.json`. The reason is in the Slurm comment and the `job.held` event | read it (`squeue -o "%.10i %k"`), fix it, then `scontrol release <id>`. For a claim with no commit (`claimed_only`) do not release: confirm in `sacct` that the earlier job for this run ID has ended, cancel the held job, then resubmit with a new `RUN_ID`. Nothing was committed, so only setup time is lost. A release would hold again | Q-02 |
 
 **Code check:** `code_sha256` (the trainer, model and loader files, plus `ckpt.py`) must match; a docs-only commit
 does not change it. `git_sha` is recorded but not compared: from `GIT_SHA`, else the checkout's HEAD, else `none`
@@ -584,7 +588,7 @@ Other evidence: [`results/restore_test_cpu.txt`](../results/restore_test_cpu.txt
 | Confirm Team 5's trainer has the step watchdog (`--watchdog-s`); today only the test trainer in `support/simulation/` has it | Team 5 | Tue 17 Nov |
 | Fill the 10.4 checks from the dry run 1 logs (restarts, restored steps, steps run again) | Member C, with the lead's restore drill | Fri 20 Nov |
 | NCCL timeout test on 2 real GPUs (`support/kaggle/nccl_timeout_test.py`), trace read with `torchfrtrace` | TSAI job | after dry run 1 |
-| Recovery for a claim with no commit in `train_week2.py` (D3); `mainrun.sbatch` holds `claimed_only` until then | Team 05 | open |
+| Claim with no commit (D3, #826). Now: `mainrun.sbatch` holds `claimed_only` (78); the operator checks `sacct` and resubmits under a new `RUN_ID`. Week 5: the launcher does the `sacct` check and passes `--checkpoint-at-start`; Team 05's trainer calls `claim()`, then `candidates()` (none: fresh start; some: exit 78, use `--resume-committed`) | Team 05 (trainer), Team 07 (launcher) | week 5, after the main-run store is confirmed |
 | `--from-step`, `--skip`, `--branch`, `--allow-env-change` in `train_week2.py` (D4); update sections 5 and 6 when decided | Team 05, then Team 7 | open |
 
 ## 15. Change log
@@ -593,4 +597,4 @@ Other evidence: [`results/restore_test_cpu.txt`](../results/restore_test_cpu.txt
 |---|---|---|
 | v1 | 2026-11-11 | one runbook from the five rotation runbooks (R1–R5); replaces `docs/runbook_restore_restart_cpu.md` |
 | v2 | 2026-11-15 | week-3 core task 4: node failures (10), NCCL hangs (11), bad checkpoints (12); Gate 3 restart checks from the returned logs (10.4); sources, open items and change log move to 13–15 |
-| v3 | 2026-11-26 | main run on Team 05's trainer: `TRAIN_EXTRA` rollback and `--allow-env-change` marked simulation-only (5, 6), startup holds and `job.held` (4, 7), pin step 0 (12.3), open items D3 and D4 (14) |
+| v3 | 2026-11-26 | main run on Team 05's trainer: `TRAIN_EXTRA` rollback and `--allow-env-change` marked simulation-only (5, 6), startup holds and `job.held` (4, 7), pin step 0 (12.3), open items D3 and D4 (14); `claimed_only` hold wording and runbook row (4, 7, 14), metrics file per attempt (4) |

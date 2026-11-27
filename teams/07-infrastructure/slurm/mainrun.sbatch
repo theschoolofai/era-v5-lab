@@ -173,8 +173,8 @@ mode="$("$PY" "$QUEUE" start-mode --remote-root "$V5_REMOTE_ROOT" --run-id "$RUN
 case "$mode" in
   fresh) start=(--checkpoint-at-start) ;;
   resume) start=(--resume-committed) ;;
-  claimed_only) hold "$V5_REMOTE_ROOT/$RUN_ID has a claim but no committed checkpoint; train_week2.py" \
-    "currently refuses both start modes. Team 05 must decide the recovery rule (checklist C12)" ;;
+  claimed_only) hold "$V5_REMOTE_ROOT/$RUN_ID has a claim but no committed checkpoint; confirm in sacct that the" \
+    "earlier job for this run ID has ended, then resubmit with a new RUN_ID; nothing was committed" ;;
   *) hold "job_queue.py start-mode returned '$mode'" ;;
 esac
 
@@ -184,6 +184,8 @@ mkdir -p "$attempt/nccl_trace" || hold "cannot create $attempt/nccl_trace"
 export TORCH_NCCL_DEBUG_INFO_TEMP_FILE="$attempt/nccl_trace/rank_"
 echo "V5 main run: Team 05 trainer, start mode $mode, out $attempt/train" >&2
 
+# 600 s is pinned for the interval and the watchdog. Retention (--keep 9) is sized for it, so changing it means
+# editing docs/checkpoint_interval.md §5 (still provisional) and the retention step (checklist C15) as well.
 exec "$PY" "$QUEUE" run -- --ntasks-per-node="$SLURM_NTASKS_PER_NODE" --gpus-per-task=1 -- \
   "${inputs[@]}" \
   --device cuda --run-id "$RUN_ID" --checkpoint-store "$V5_REMOTE_ROOT" \
