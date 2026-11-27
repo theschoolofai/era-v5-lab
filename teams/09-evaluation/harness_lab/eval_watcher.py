@@ -48,9 +48,9 @@ docs/checkpoint_interval.md):
   ``protect_every`` ((i + 1) % N == 0). With N equal to protect_every, retention never deletes a checkpoint before it
   is scored. Dry run 1 retention is ``--keep 9 --protect-every 15`` at a 600 s interval, so an unprotected checkpoint
   stays about 90 minutes.
-- ``run_lab_ckpt.py --step N`` scores the last commits.jsonl line of step N. When a restore or a rollback branch
-  (#847) commits the same step again, the older commit is marked ``superseded`` (checked again just before scoring)
-  and only the newer one is scored. Each commit is keyed by its path (``<branch>/step_<N>-e<epoch>``), so every
+- ``run_lab_ckpt.py --step N`` scores the last commits.jsonl line of step N. When a restore or a rollback (#847)
+  commits the same step again, the older commit is marked ``superseded`` (checked again just before scoring) and only
+  the newer one is scored. Each commit is keyed by its path (``<branch>/step_<N>-e<epoch>``), so every attempt and
   branch keeps its own state entries, run_ids and rows, and a commit scored before a rollback keeps its rows.
 - A checkpoint whose MANIFEST.json is gone (deleted by retention before or while it was scored) is marked ``gone``,
   but only while commits.jsonl can still be read, so a store that drops out for a while marks nothing.
@@ -59,7 +59,7 @@ docs/checkpoint_interval.md):
 - The time per checkpoint (the scorer's wall time) and the lag from commit to score are printed and kept in the
   state file, and summed up at the end. Each checkpoint's log is appended to, so a retry keeps the first attempt.
 - With ``--until-final`` it exits by itself once the newest commit is the run's final checkpoint (reason "final";
-  after a rollback, the new branch's) and every owned commit is done. Otherwise it runs until a signal: SIGTERM saves
+  after a rollback, the new final one) and every owned commit is done. Otherwise it runs until a signal: SIGTERM saves
   the state and exits 75, and a restart goes on.
 
 Exit codes (Team 7's contract: 0 done, 75 run again, 78 fatal): 0 all owned commits are done; 1 a checkpoint
@@ -410,10 +410,10 @@ class Watcher:
         return True
 
     def recommitted(self, commit: dict) -> bool:
-        """True if commits.jsonl, read again now, has a newer line for this commit's step (a restore, or a rollback
-        branch, #847): run_lab_ckpt.py --step scores that line, so this commit is superseded. A pass decides on the
-        lines it read at its start, and a catch-up pass or a wait for the slot can take long. One stat call unless
-        commits.jsonl grew since the last read."""
+        """True if commits.jsonl, read again now, has a newer line for this commit's step (a restore, or a rollback,
+        #847): run_lab_ckpt.py --step scores that line, so this commit is superseded. A pass decides on the lines it
+        read at its start, and a catch-up pass or a wait for the slot can take long. One stat call unless commits.jsonl
+        grew since the last read."""
         step, path = commit["step"], commit["path"]
         return next((c["path"] for c in reversed(self.read_commits()) if c["step"] == step), path) != path
 
@@ -565,8 +565,8 @@ class Watcher:
 
     def run_ended(self) -> bool:
         """The newest commit is the run's final checkpoint (Team 7's trainer saves it with reason "final") and every
-        commit this watcher owns is done. The newest, not any: after a rollback from a finished run (#847), the new
-        branch trains on past the old final commit."""
+        commit this watcher owns is done. The newest, not any: after a rollback from a finished run (#847), training
+        goes on past the old final commit."""
         return (bool(self.commits) and self.commits[-1].get("reason") == "final"
                 and self.outcome() in (EXIT_OK, EXIT_FAILED))
 

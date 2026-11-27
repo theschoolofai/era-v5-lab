@@ -209,12 +209,14 @@ def test_a_bad_complete_line_is_fatal(tmp_path, scorer, bad):
     assert scorer.calls == []  # nothing is scored from a commit log that cannot be trusted
 
 
-# ---- a rollback (#847): steps go back, a new checkpoint branch starts -----------------------------------------------
+# ---- a rollback (#847): steps go back -------------------------------------------------------------------------------
 
-# Team 5's trainer with --resume-committed --from-step 20 --branch rb: Team 7's restore claims epoch 2, the restored
-# step is committed first on the new branch (reason "rollback"), then training commits steps 30, 40 ... again.
+# Team 5's trainer with --resume-committed --from-step 20 (#847, narrowed to that flag on 27 Nov): Team 7's restore
+# claims epoch 2 on the same branch, and training commits steps 30, 40 ... again. The deferred --branch rb would put
+# them on a new branch, after a commit of the restored step there (reason "rollback").
 OLD = [(10, 1, True), (20, 1, True), (30, 1, True)]
-ROLLBACK = [(20, 2, "rb", "rollback"), (30, 2, "rb", "interval"), (40, 2, "rb", "final")]
+ROLLBACK = [(30, 2, "main", "interval"), (40, 2, "main", "final")]
+BRANCHED = [(20, 2, "rb", "rollback"), (30, 2, "rb", "interval"), (40, 2, "rb", "final")]
 
 
 def rollback_on_first_call(commits):
@@ -228,22 +230,25 @@ def rollback_on_first_call(commits):
     return on_call
 
 
-def test_a_rollback_branch_is_scored_apart_from_the_old_one(tmp_path, scorer, monkeypatch):
-    """The watcher kept up, then the run rolled back: the rollback commit and the steps committed again are scored
-    under their own state entries and run_ids, and the old branch's rows stay."""
+@pytest.mark.parametrize("again", [ROLLBACK, BRANCHED], ids=["from-step", "new-branch"])
+def test_a_rollback_is_scored_apart_from_the_old_commits(tmp_path, scorer, monkeypatch, again):
+    """The watcher kept up, then the run rolled back: the steps committed again are scored under their own state
+    entries and run_ids (the commit path holds the epoch and the branch), and the old commits keep their rows."""
     rec = RecordingLoader()
     monkeypatch.setattr(ew, "loader", lambda: rec)
     run_dir = make_run(tmp_path, OLD)
     assert run(tmp_path, run_dir) == ew.EXIT_OK
-    append_commits(run_dir, ROLLBACK)
+    append_commits(run_dir, again)
     assert run(tmp_path, run_dir) == ew.EXIT_OK
-    assert scorer.steps == [10, 20, 30, 20, 30, 40]
+    assert scorer.steps == [10, 20, 30] + [step for step, *_ in again]
     s = state(tmp_path)
-    assert len(s) == 6 and all(r["status"] == "scored" and r["loaded"] for r in s.values())
-    assert len(rec.seen) == len(set(rec.seen)) == 6
-    assert s["main/step_00000020-e1"]["run_id"].startswith("run-x:main/step_00000020-e1:smoke:")
-    assert s["rb/step_00000020-e2"]["run_id"].startswith("run-x:rb/step_00000020-e2:smoke:")
-    assert (s["rb/step_00000020-e2"]["branch"], s["rb/step_00000020-e2"]["epoch"]) == ("rb", 2)
+    n = len(OLD) + len(again)
+    assert len(s) == n and all(r["status"] == "scored" and r["loaded"] for r in s.values())
+    assert len(rec.seen) == len(set(rec.seen)) == n
+    step, epoch, branch, _ = again[0]
+    new = f"{branch}/step_{step:08d}-e{epoch}"
+    assert s[new]["run_id"].startswith(f"run-x:{new}:smoke:") and (s[new]["branch"], s[new]["epoch"]) == (branch, 2)
+    assert s[f"main/step_{step:08d}-e1"]["status"] == "scored"  # the old commit of the same step
 
 
 def test_a_catch_up_after_a_rollback_scores_the_newest_commit_of_each_step(tmp_path, scorer):
@@ -252,57 +257,55 @@ def test_a_catch_up_after_a_rollback_scores_the_newest_commit_of_each_step(tmp_p
     assert run(tmp_path, run_dir, "--no-load") == ew.EXIT_OK
     assert scorer.steps == [10, 20, 30, 40]  # each step once, from the newest line of that step
     s = state(tmp_path)
-    assert [s[f"main/step_{n:08d}-e1"]["status"] for n in (20, 30)] == ["superseded", "superseded"]
+    assert s["main/step_00000030-e1"]["status"] == "superseded"
     assert {k for k, r in s.items() if r["status"] == "scored"} == {
-        "main/step_00000010-e1", "rb/step_00000020-e2", "rb/step_00000030-e2", "rb/step_00000040-e2"}
-    # Tier B owns lines 2, 4, 6 across both branches, the lines run_retention protects with --protect-every 2
+        "main/step_00000010-e1", "main/step_00000020-e1", "main/step_00000030-e2", "main/step_00000040-e2"}
+    # Tier B owns lines 2 and 4 of commits.jsonl, the lines run_retention protects with --protect-every 2
     assert run(tmp_path, run_dir, "--no-load", "--every", "2", "--label", "tier-b", out="b") == ew.EXIT_OK
-    assert scorer.steps[4:] == [20, 40]
+    assert scorer.steps[4:] == [20, 30]
     b = state(tmp_path, "b")
-    assert [b[k]["status"] for k in ("main/step_00000020-e1", "rb/step_00000020-e2", "rb/step_00000040-e2")] == [
-        "superseded", "scored", "scored"]
+    assert [b[k]["status"] for k in ("main/step_00000020-e1", "main/step_00000030-e2")] == ["scored", "scored"]
 
 
 def test_a_step_committed_again_during_a_pass_is_superseded_not_failed(tmp_path, monkeypatch):
-    """A catch-up pass reads commits.jsonl at its start. When the rollback commits steps 20 and 30 again while step 10
-    is scored, run_lab_ckpt.py --step 20 would score the new line: the old commit is superseded, without a scorer run
-    and without a failure (with --max-attempts 1, a failure would end the watch with exit 1)."""
-    fake = FakeScorer(on_call=rollback_on_first_call(ROLLBACK[:2]))
+    """A catch-up pass reads commits.jsonl at its start. When the rollback commits step 30 again while step 10 is
+    scored, run_lab_ckpt.py --step 30 would score the new line: the old commit is superseded, without a scorer run and
+    without a failure (with --max-attempts 1, a failure would end the watch with exit 1)."""
+    fake = FakeScorer(on_call=rollback_on_first_call(ROLLBACK[:1]))
     monkeypatch.setattr(ew, "run_scorer", fake)
     run_dir = make_run(tmp_path, OLD)
-    assert run(tmp_path, run_dir, "--no-load", "--max-attempts", "1") == ew.EXIT_RETRY  # the new lines: next pass
-    assert fake.steps == [10]
-    s = state(tmp_path)
-    assert [s[f"main/step_{n:08d}-e1"]["status"] for n in (20, 30)] == ["superseded", "superseded"]
+    assert run(tmp_path, run_dir, "--no-load", "--max-attempts", "1") == ew.EXIT_RETRY  # the new line: next pass
+    assert fake.steps == [10, 20]
+    assert state(tmp_path)["main/step_00000030-e1"]["status"] == "superseded"
     assert run(tmp_path, run_dir, "--no-load", "--max-attempts", "1") == ew.EXIT_OK
     assert fake.steps == [10, 20, 30]
     assert {r["status"] for r in state(tmp_path).values()} == {"scored", "superseded"}
 
 
 def test_a_step_committed_again_while_it_is_scored_is_superseded_not_an_error(tmp_path, monkeypatch):
-    """The scorer of the old step-20 commit fails while the rollback commits step 20 again (it can also have scored
+    """The scorer of the old step-30 commit fails while the rollback commits step 30 again (it can also have scored
     the new line): not a failure of the old commit, and the new one is scored on its own."""
     fake = FakeScorer(codes=[1], on_call=rollback_on_first_call(ROLLBACK[:1]))
     monkeypatch.setattr(ew, "run_scorer", fake)
-    run_dir = make_run(tmp_path, [(20, 1, True)])
+    run_dir = make_run(tmp_path, [(30, 1, True)])
     assert run(tmp_path, run_dir, "--no-load") == ew.EXIT_RETRY
-    rec = state(tmp_path)["main/step_00000020-e1"]
+    rec = state(tmp_path)["main/step_00000030-e1"]
     assert rec["status"] == "superseded" and "while it was scored" in rec["detail"]
     assert run(tmp_path, run_dir, "--no-load") == ew.EXIT_OK
-    assert fake.steps == [20, 20] and state(tmp_path)["rb/step_00000020-e2"]["status"] == "scored"
+    assert fake.steps == [30, 30] and state(tmp_path)["main/step_00000030-e2"]["status"] == "scored"
 
 
-def test_until_final_waits_for_a_branch_started_after_the_final_commit(tmp_path, scorer):
-    """A rollback from a finished run: the old final commit no longer ends the watch, the new branch's final does."""
+def test_until_final_waits_for_a_run_rolled_back_after_its_final_commit(tmp_path, scorer):
+    """--from-step 10 on a finished run: the old final commit no longer ends the watch, the new final does."""
     run_dir = make_run(tmp_path, [(10, 1, True), (20, 1, True)], final=True)
-    append_commits(run_dir, [(10, 2, "rb", "rollback")])
+    append_commits(run_dir, [(20, 2, "main", "interval")])
     a = ew.parse_args(["--run-dir", str(run_dir), "--out-dir", str(tmp_path / "out"), "--no-load", "--until-final"])
     w = ew.Watcher(a, threading.Event())
     w.poll()
-    assert w.outcome() == ew.EXIT_OK and not w.run_ended()  # every owned commit is done, but the new branch goes on
-    append_commits(run_dir, [(20, 2, "rb", "final")])
+    assert w.outcome() == ew.EXIT_OK and not w.run_ended()  # every owned commit is done, but training goes on
+    append_commits(run_dir, [(30, 2, "main", "final")])
     w.poll()
-    assert w.run_ended() and scorer.steps == [20, 10, 20]
+    assert w.run_ended() and scorer.steps == [10, 20, 30]
 
 
 # ---- failures, retries, the store going away ------------------------------------------------------------------------
