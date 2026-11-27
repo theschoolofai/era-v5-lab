@@ -15,6 +15,11 @@ Tests (all pass):
   python3 -m pytest -q teams/01-data-a/dedup/tests                           ->  249 passed in 30.98s
   python3 -m pytest -q teams/01-data-a/pipeline/tests                        ->  694 passed, 2 skipped, 7 warnings in 303.75s
   python3 -m pytest -q teams/01-data-a/jobs/2026-11-19-first-training/tests  ->  34 passed in 2.04s
+After the lead's review (27 Nov: a resume after dedup checks the recorded H3 removal setting; H3's unverified
+candidates are recorded; job docs), same machine:
+  python3 -m pytest -q teams/01-data-a/pipeline/tests                        ->  697 passed, 2 skipped, 7 warnings in 313.23s
+  python3 -m pytest -q teams/01-data-a/jobs/2026-11-19-first-training/tests  ->  34 passed in 4.73s
+  (dedup.py and h3_join.py are unchanged by the review, so the dedup tests and the timed run below stand)
   (the 7 warnings are the existing DeprecationWarning about fork() in test_clean_job.py)
 
 Commands:

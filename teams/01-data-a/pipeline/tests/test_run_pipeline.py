@@ -226,6 +226,59 @@ def test_dedup_must_record_stages_h3_remove(tmp_path, config, tsai_outputs, monk
             rp.run(config, to="dedup")
 
 
+def set_h3_remove(config, remove):
+    """stages.h3.remove of the run config: a value, or None to take the key out (report only)."""
+    cfg = json.loads(config.read_text(encoding="utf-8"))
+    cfg["stages"]["h3"].pop("remove", None)
+    if remove is not None:
+        cfg["stages"]["h3"]["remove"] = remove
+    config.write_text(json.dumps(cfg), encoding="utf-8")
+
+
+def test_a_resume_after_dedup_needs_dedup_made_with_this_remove_setting(tmp_path, config, tsai_outputs, monkeypatch):
+    # Review of #860: a report-only dedup output must not be reused once stages.h3.remove turns hi-en removal on
+    h3_run_with_remove(tmp_path, config, tsai_outputs, monkeypatch, None, False)
+    rp.run(config, to="apply")                                    # report only, recorded in the manifest
+    set_h3_remove(config, {"hi-en": True})
+    with pytest.raises(rp.Stop, match=r'dedup: its recorded output removed H3 matches with remove false, but stages.h3.remove '
+                                      r'is now \{"hi-en": true\}; rerun from dedup'):
+        rp.run(config, start="f2")
+    set_h3_remove(config, None)                                    # the setting the recorded dedup was made with
+    m = rp.run(config, start="f2")
+    assert "f2" in [s["stage"] for s in m["stages"]]
+
+
+def test_a_resume_after_dedup_with_the_same_remove_setting_goes_on(tmp_path, config, tsai_outputs, monkeypatch):
+    h3_run_with_remove(tmp_path, config, tsai_outputs, monkeypatch, {"hi-en": True}, {"hi-en": True})
+    rp.run(config, to="apply")
+    set_h3_remove(config, {"en-hi": True, "sa-en": False})        # not the same setting as written: must match exactly
+    with pytest.raises(rp.Stop, match="rerun from dedup"):
+        rp.run(config, start="f2")
+    set_h3_remove(config, {"hi-en": True})
+    m = rp.run(config, start="f2")
+    assert [s["stage"] for s in m["stages"]][:4] == ["clean", "overlap", "h3", "dedup"]
+
+
+def test_h3_unverified_candidates_are_recorded(tmp_path, config, tsai_outputs, monkeypatch):
+    # H3 verifies at most max_verify candidates; the manifest records how many it left unverified
+    h3_run_with_remove(tmp_path, config, tsai_outputs, monkeypatch, None, False)
+    original = rp.run_script
+
+    def h3_stage(script, args, stage, log, **kwargs):
+        code = original(script, args, stage, log, **kwargs)
+        if stage == "h3":
+            out = tmp_path / "h3"
+            s = json.loads((out / "h3_summary.json").read_text(encoding="utf-8"))
+            (out / "h3_summary.json").write_text(json.dumps({**s, "verified": 10000, "not_verified_over_max_verify": 2310}),
+                                                 encoding="utf-8")
+        return code
+
+    monkeypatch.setattr(rp, "run_script", h3_stage)
+    m = rp.run(config, to="dedup")
+    h3 = next(s for s in m["stages"] if s["stage"] == "h3")
+    assert (h3["counts"]["verified"], h3["counts"]["not_verified_over_max_verify"]) == (10000, 2310)
+
+
 def test_the_plan_shows_stages_h3_remove(staged):
     path, repo = staged
     cfg = json.loads(path.read_text(encoding="utf-8"))

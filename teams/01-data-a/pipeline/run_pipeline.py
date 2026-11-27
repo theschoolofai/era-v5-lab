@@ -116,7 +116,8 @@ CHECKS (any failure stops the run; exit code 1)
             sha256, .bin header and size, index, special ids, metadata, pack table row, tokenizer, F2 set, and the first and
             last document of every shard against the final part. This is the one verification of a pipeline run: the default
             run_shards.py is told --no-verify, so a shard is read once (its hashes go to the hash cache for the digest)
-  from      every earlier stage's output still has the digest the manifest recorded for it
+  from      every earlier stage's output still has the digest the manifest recorded for it; a recorded dedup output was
+            made with this run config's stages.h3.remove (its dedup_summary.json says so), else rerun from dedup
   inventory (only with "inventory") before the shard stage does anything, also when the run resumes there: the
             ledger is mode B and holds exactly the listed parts, each with its listed raw sha256 and raw rows; every
             listed pack is in it and no other pack has kept documents; the clean job's job_summary.json names the
@@ -453,6 +454,17 @@ class Run:
         """stages.h3.remove: which H3 matches dedup removes (false, true or per language pair); false without stages.h3."""
         h3 = self.stages.get("h3")
         return h3.get("remove", False) if isinstance(h3, dict) else False
+
+    def check_resumed_h3_remove(self, out):
+        """A resume after dedup reuses dedup's recorded output, so that output must have been made with the H3 removal
+        setting of this run config: a report-only dedup must not stand in for a run that removes hi-en matches, nor the
+        other way round. Its folder's digest is already checked; this reads the setting dedup recorded in it."""
+        s = load_json(out / "dedup_summary.json") if (out / "dedup_summary.json").is_file() else {}
+        recorded = (s.get("h3") or {}).get("remove", False)
+        want = self.h3_remove()
+        if json.dumps(recorded, sort_keys=True) != json.dumps(want, sort_keys=True):
+            raise Stop(f"dedup: its recorded output removed H3 matches with remove {json.dumps(recorded, sort_keys=True)}, "
+                       f"but stages.h3.remove is now {json.dumps(want, sort_keys=True)}; rerun from dedup (\"from\": \"dedup\")")
 
     def validate(self, upto):
         """The config of every stage up to `upto`, before anything runs."""
@@ -901,7 +913,9 @@ class Run:
         self.check("H3 read this run's cleaned folder",
                    s.get("inputs", {}).get("root") == self.shown(self.output("clean")),
                    f"H3 inputs {s.get('inputs', {}).get('root')!r}")
-        return {"matches": s.get("qualifying"), "matches_sha256": actual}
+        # H3 verifies at most max_verify candidates; the rest are neither checked nor removed. Recorded, not a failure.
+        return {"matches": s.get("qualifying"), "matches_sha256": actual, "verified": s.get("verified"),
+                "not_verified_over_max_verify": s.get("not_verified_over_max_verify")}
 
     def counts_dedup(self, out):
         s = load_json(out / "dedup_summary.json")
@@ -1239,6 +1253,8 @@ class Run:
                     raise Stop(f"\"from\": {start}: stage {stage} has no record in {self.manifest_path}; run it first")
                 if not out.exists() or digest(out, self.cache)[0] != old[stage]["digest"]:
                     raise Stop(f"{stage}: {out} changed after the manifest recorded it; rerun from {stage}")
+                if stage == "dedup":
+                    self.check_resumed_h3_remove(out)
                 self.done[stage] = old[stage]
                 continue
             t0, self.checks, self.checked = time.time(), [], None

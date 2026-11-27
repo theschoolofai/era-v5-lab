@@ -93,7 +93,8 @@ and H3 requirements agree on NumPy 2.4.3 and PyArrow 23.0.1.
 
 Process both splits through clean, overlap, dedup/apply, F2 and the raw ledger.
 For H3, add `"h3": {"mode": "run", "settings":
-"teams/01-data-a/jobs/2026-11-19-first-training/h3.json"}` to `stages`.
+"teams/01-data-a/jobs/2026-11-19-first-training/h3.json", "remove": {"hi-en": true}}`
+to `stages`, as `prepare_run.py` writes it.
 The runner runs H3 after overlap on the same cleaned parts, verifies its completed
 summary and match-file hash, then supplies that match file to dedup with
 `stages.h3.remove`. `prepare_run.py` sets it to `{"hi-en": true}` (TSAI, 27 Nov):
