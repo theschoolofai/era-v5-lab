@@ -36,8 +36,8 @@
 
 - id: ta_appalam_sub
   author: ranjani-cse
-  team2_reviewer: ""
-  eligibility: eval
+  team2_reviewer: "truesrini"
+  eligibility: train
   language: ta
   script: Taml
   answer_type: integer
@@ -54,8 +54,8 @@
 
 - id: ta_pen_mult
   author: ranjani-cse
-  team2_reviewer: ""
-  eligibility: eval
+  team2_reviewer: "truesrini"
+  eligibility: train
   language: ta
   script: Taml
   answer_type: integer
@@ -90,8 +90,8 @@
 
 - id: hi_f1_change                   # F1/F6: two steps with rupees (buy, then change from a note)
   author: gmrammohan15
-  team2_reviewer: ""
-  eligibility: eval
+  team2_reviewer: "riteshverma"
+  eligibility: train
   language: hi
   script: Deva
   answer_type: integer
@@ -112,8 +112,8 @@
 
 - id: hi_f6_minutes                  # F6: hours and minutes to minutes
   author: gmrammohan15
-  team2_reviewer: ""
-  eligibility: eval
+  team2_reviewer: "riteshverma"
+  eligibility: train
   language: hi
   script: Deva
   answer_type: integer
@@ -129,8 +129,8 @@
 
 - id: hi_f3_weekday                  # F3: weekday n days from today (text answer)
   author: gmrammohan15
-  team2_reviewer: ""
-  eligibility: eval
+  team2_reviewer: "riteshverma"
+  eligibility: train
   language: hi
   script: Deva
   answer_type: text
