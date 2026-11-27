@@ -147,3 +147,84 @@ def test_composition_display_labels_and_units():
     assert overrides["drop_rate_pct"]["unit"] == "percent"
     assert overrides["drop_rate_pct"]["decimals"] == 2
     assert panel["gridPos"]["h"] == 16
+
+
+# Public-page rules from docs/dashboard_content_decisions_w4.md section 1: no compute-cost counter, no hardware or
+# machine names or specs, numbers from stored tables only, live refresh.
+ALLOWED_TABLES = frozenset({"metrics_raw", "eval_mini", "shard_composition", "run_events"})
+ROLLUP_TABLE = re.compile(r"^metrics_rollup_(\d+|\$\{bucket\}|\$bucket)$")
+# Never in a public query: cost and spend, MFU (implies peak FLOPS, so hardware), GPU and node telemetry, hosts.
+FORBIDDEN_SQL_TERMS = (
+    "cost", "spend", "price", "usd", "currency", "gpu_hours", "gpu", "mfu", "model_flops_utilization", "hfu",
+    "power", "temp_c", "clock", "xid", "ecc", "host", "node_",
+)
+# Never in public text or queries: accelerator models and vendors, clouds and hosting, machine specs, money.
+HARDWARE_OR_COST = re.compile(
+    r"\b(h100|h200|h800|a100|a10g|a6000|b200|gb200|l4|l40s?|t4|v100|rtx\s?\d+|nvidia|amd|mi300x?|tpu|cuda|"
+    r"runpod|modal|kaggle|colab|aws|gcp|azure|lambda labs|vram|tflops|petaflops|gpu[- ]hours?|hostnames?|"
+    r"dollars?|rupees?|usd|inr)\b|[$₹€]\s?\d",
+    re.I,
+)
+
+
+def _public_texts(d):
+    """Every piece of text a public viewer can read: titles, descriptions, text-panel content, variable labels."""
+    texts = [d.get("title", ""), d.get("description", "")]
+    for p in d["panels"]:
+        texts += [p.get("title", ""), p.get("description", ""), (p.get("options") or {}).get("content", "")]
+    texts += [v.get("label") or "" for v in d.get("templating", {}).get("list", [])]
+    return [t for t in texts if t]
+
+
+def _public_sql(d):
+    sql = [t.get("rawSql", "") for p in d["panels"] for t in p.get("targets", [])]
+    sql += [v.get("query") or "" for v in d.get("templating", {}).get("list", []) if v.get("type") == "query"]
+    return [q for q in sql if isinstance(q, str) and q.strip()]
+
+
+def test_public_queries_read_only_allowed_tables():
+    for sql in _public_sql(_load()):
+        for table in re.findall(r"\b(?:FROM|JOIN)\s+([A-Za-z_][\w${}]*)", sql, re.I):
+            assert table in ALLOWED_TABLES or ROLLUP_TABLE.match(table), f"public query reads {table!r}: {sql[:120]}"
+
+
+def test_public_queries_have_no_cost_or_hardware_terms():
+    for sql in _public_sql(_load()):
+        low = sql.lower()
+        for term in FORBIDDEN_SQL_TERMS:
+            assert term not in low, f"public query uses {term!r}: {sql[:120]}"
+
+
+def test_no_compute_cost_counter():
+    d = _load()
+    for p in d["panels"]:
+        fc = p.get("fieldConfig") or {}
+        units = [(fc.get("defaults") or {}).get("unit")]
+        units += [pr.get("value") for o in fc.get("overrides", []) for pr in o.get("properties", []) if pr.get("id") == "unit"]
+        for unit in units:
+            assert not str(unit or "").lower().startswith("currency"), f"panel {p['id']} shows money ({unit})"
+
+
+def test_no_hardware_or_machine_names_or_specs():
+    d = _load()
+    for text in _public_texts(d) + _public_sql(d):
+        m = HARDWARE_OR_COST.search(text)
+        assert m is None, f"public dashboard names hardware, a machine or money ({m.group(0)!r}): {text[:120]}"
+
+
+def test_public_refresh_is_live():
+    m = re.fullmatch(r"(\d+)(s|m)", _load().get("refresh") or "")
+    assert m, "public dashboard must auto-refresh during a live run"
+    seconds = int(m.group(1)) * (60 if m.group(2) == "m" else 1)
+    assert 0 < seconds <= 30, f"refresh {seconds}s is too slow for the 60 s metric-to-dashboard target"
+
+
+def test_rule_checks_catch_violations():
+    """The checks above must fail on the things they are for, not only pass on today's dashboard."""
+    assert HARDWARE_OR_COST.search("Trained on 8x H100 nodes")
+    assert HARDWARE_OR_COST.search("Spend so far: $1200")
+    assert HARDWARE_OR_COST.search("GPU-hours used")
+    # Team 11's honest prose may name cost and machines as things the page does NOT show.
+    assert not HARDWARE_OR_COST.search("The dashboard does not show the cost of the run or the machines that it runs on.")
+    assert not HARDWARE_OR_COST.search("SELECT step, run_id, value FROM metrics_rollup_${bucket} WHERE run_id IN ($run)")
+    assert ROLLUP_TABLE.match("metrics_rollup_${bucket}") and not ROLLUP_TABLE.match("gpu_telemetry_1s")
