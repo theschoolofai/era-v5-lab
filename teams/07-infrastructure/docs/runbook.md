@@ -173,7 +173,7 @@ Then check it worked (section 3, "How to tell it worked").
 
 > **Team 05's trainer (`train_week2.py`): not available yet.** It does not accept `--from-step`, `--skip`, `--branch`
 > or `--allow-env-change`. `mainrun.sbatch` rejects `TRAIN_EXTRA` and these flags for it and holds the job (78) instead
-> of crash-looping. There is no approved manual alternative until Team 05 decides D4 in the main-run checklist. Until
+> of crash-looping. There is no approved manual alternative until Team 05 decides D4 in the main-run checklist (PR #819, draft). Until
 > then, `verify` and `pin` step K (below) so retention keeps it, and tell the lead and Team 05. The command below runs
 > with the simulation trainer (`V5_TRAINER=sim`, `V5_SIMULATION=1`) and shows the restore API the trainer must call.
 
@@ -555,7 +555,7 @@ before retention runs again. Pinned steps are never deleted (`pins.json`).
 `python ckpt/ckpt.py pin --run <remote_root>/<run id> --step 0`. `--run` needs the full store path; the run id alone
 fails. `--protect-every` counts commits and step 0 is commit 1, so without the pin retention deletes step 0 once it is
 older than the newest 9 commits. Check that `pins.json` contains 0 and that a retention `--dry-run` lists step 0 under
-`protected` (main-run checklist C15).
+`protected` (C15 in the main-run checklist, PR #819, draft).
 
 ---
 
@@ -588,7 +588,7 @@ Other evidence: [`results/restore_test_cpu.txt`](../results/restore_test_cpu.txt
 | Confirm Team 5's trainer has the step watchdog (`--watchdog-s`); today only the test trainer in `support/simulation/` has it | Team 5 | Tue 17 Nov |
 | Fill the 10.4 checks from the dry run 1 logs (restarts, restored steps, steps run again) | Member C, with the lead's restore drill | Fri 20 Nov |
 | NCCL timeout test on 2 real GPUs (`support/kaggle/nccl_timeout_test.py`), trace read with `torchfrtrace` | TSAI job | after dry run 1 |
-| Claim with no commit (D3, #826). Now: `mainrun.sbatch` holds `claimed_only` (78); the operator checks `sacct` and resubmits under a new `RUN_ID`. Week 5: the launcher does the `sacct` check and passes `--checkpoint-at-start`; Team 05's trainer calls `claim()`, then `candidates()` (none: fresh start; some: exit 78, use `--resume-committed`) | Team 05 (trainer), Team 07 (launcher) | week 5, after the main-run store is confirmed |
+| Claim with no commit (D3). Now: `mainrun.sbatch` holds `claimed_only` (78); the operator checks `sacct` and resubmits under a new `RUN_ID`. Proposed for week 5, not yet agreed by Team 05 (draft #826): the launcher does the `sacct` check and passes `--checkpoint-at-start`; Team 05's trainer calls `claim()`, then `candidates()` (none: fresh start; some: exit 78, use `--resume-committed`) | Team 05 (trainer), Team 07 (launcher) | target week 5, after the main-run store is confirmed |
 | `--from-step`, `--skip`, `--branch`, `--allow-env-change` in `train_week2.py` (D4); update sections 5 and 6 when decided | Team 05, then Team 7 | open |
 
 ## 15. Change log

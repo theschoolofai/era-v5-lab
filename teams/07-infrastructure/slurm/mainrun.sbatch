@@ -8,11 +8,11 @@
 #   sim             Team 07's test trainer. Requires V5_SIMULATION=1; run_sim.py sets both test values explicitly.
 #
 # train_week2.py does not support the documented rollback flags (--from-step, --skip, --branch) yet. The
-# main-run command therefore refuses them rather than entering a crash loop; see docs/mainrun_command_checklist.md.
+# main-run command therefore refuses them rather than entering a crash loop; see the main-run checklist (PR #819, draft, not merged).
 #
 # Team 05's current trainer is one process using one GPU. The gpu partition is node-exclusive, so this job
 # reserves all 8 GPUs on one node and binds its one task to one GPU. Team 5 must accept that temporary cost or
-# provide a distributed plan; see docs/mainrun_command_checklist.md D2.
+# provide a distributed plan; see the main-run checklist (PR #819, draft) D2.
 #SBATCH --job-name=v5-mainrun
 #SBATCH --account=mainrun
 #SBATCH --qos=mainrun
@@ -185,7 +185,7 @@ export TORCH_NCCL_DEBUG_INFO_TEMP_FILE="$attempt/nccl_trace/rank_"
 echo "V5 main run: Team 05 trainer, start mode $mode, out $attempt/train" >&2
 
 # 600 s is pinned for the interval and the watchdog. Retention (--keep 9) is sized for it, so changing it means
-# editing docs/checkpoint_interval.md §5 (still provisional) and the retention step (checklist C15) as well.
+# editing docs/checkpoint_interval.md §5 (still provisional) and the retention step (C15 in the PR #819 checklist) as well.
 exec "$PY" "$QUEUE" run -- --ntasks-per-node="$SLURM_NTASKS_PER_NODE" --gpus-per-task=1 -- \
   "${inputs[@]}" \
   --device cuda --run-id "$RUN_ID" --checkpoint-store "$V5_REMOTE_ROOT" \
