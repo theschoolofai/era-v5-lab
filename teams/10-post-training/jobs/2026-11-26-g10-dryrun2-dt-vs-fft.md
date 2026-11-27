@@ -1,6 +1,6 @@
 # Job request: Dry run 2 matched-step SFT comparison (Full FT vs LoRA vs Deletion Tuning)
 
-Status (26 Nov 2026): pre-run ready and lead-approved (`#717` KAS V2 + `#748` `router_bias` merged on `main`; both dense and KAS V2 + Team 7 store stand-in logs attached). Waiting only on Team 5's delivered dry run 2 run folder (`<T5_OUT>` / `/shared/ckpt/dryrun2-1234`) and TSAI staging paths.
+Status (27 Nov 2026): pre-run ready and lead-approved (`#717` KAS V2 + `#748` `router_bias` merged on `main`; both dense and KAS V2 + Team 7 store stand-in logs attached). Team 5's `dryrun2-1234` (eager arm) has **COMPLETED** (`1,221/1,221` steps, `79.8 min`, `final_model_sha256: 8d1600b278a3d8e15c3d7af408a86e7c47acd987a899bf5eeee6b2c72192eb47`, `heldout_v1` `val/bpb` `2.0561` on a 25M-token English shard). Waiting only on TSAI/Team 5 to confirm `<T5_OUT>` / `/shared/ckpt/dryrun2-1234` and staging paths to launch.
 
 Answers Gate 3 item 7 (Instructor ruling, 21 Nov 2026): compares **Deletion Tuning vs LoRA vs Full FT** at equal optimizer steps on the **dry run 2 checkpoint** (test-scale + untied KE2/KAS head `a10_kas_tokdrop` + Team 7 Checkpointer via `#608`) and saves the DT arm's three canary files (`model.safetensors`, `dt_keep_masks.bin`, `dt_keep_masks.bin.json`, `SHA256SUMS`) so the required **DT-then-RL chain** (`jobs/2026-11-17-dt-then-rl-code.md`) can run immediately after.
 
