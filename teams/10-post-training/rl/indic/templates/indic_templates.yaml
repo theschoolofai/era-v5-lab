@@ -36,8 +36,8 @@
 
 - id: ta_appalam_sub
   author: ranjani-cse
-  team2_reviewer: ""
-  eligibility: eval
+  team2_reviewer: "truesrini"
+  eligibility: train
   language: ta
   script: Taml
   answer_type: integer
@@ -54,8 +54,8 @@
 
 - id: ta_pen_mult
   author: ranjani-cse
-  team2_reviewer: ""
-  eligibility: eval
+  team2_reviewer: "truesrini"
+  eligibility: train
   language: ta
   script: Taml
   answer_type: integer
