@@ -206,6 +206,20 @@ class RouterBiasTests(unittest.TestCase):
         self.assertAlmostEqual(r['router_bias']['max_abs'], 0.5); self.assertIn('routing differs', r['router_bias']['warning'])
         self.assertFalse(r['verify']['passed'])   # a bias of 0.5 changes the experts, so A1 sees it, and it did not stop the export
         self.assertTrue((self.dir / 'hf' / 'model.safetensors').exists()); self.assertIn('WARNING', out.getvalue())
+        self.assertTrue(r['verify_zero_router_bias']['passed'])   # with the bias zeroed in G5 too, the wiring is exact
+
+    def test_flag_still_stops_on_a_wiring_error(self):
+        real = export_hf.convert_state
+
+        def broken(*args, **kw):
+            s = real(*args, **kw); s['lm_head.weight'] = s['lm_head.weight'] * 1.01; return s
+        export_hf.convert_state = broken
+        try:
+            with self.assertRaises(SystemExit) as c, contextlib.redirect_stdout(io.StringIO()):
+                export_hf.export(self.run_folder(bias=0.5), self.dir / 'hf', dtype='fp32', n_verify=4, tol=1e-4, drop_router_bias=True)
+            self.assertEqual(c.exception.code, 1)
+        finally:
+            export_hf.convert_state = real
 
     def test_nonzero_bias_with_gamma_zero_never_routed_so_it_is_dropped(self):
         r = self.export(self.run_folder(gamma=0.0, bias=0.5))

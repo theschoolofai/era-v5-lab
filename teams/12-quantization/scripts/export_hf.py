@@ -512,6 +512,15 @@ def export(checkpoint: Path, out: Path, spec_path: Path | None = None, tokenizer
               f'{v["same_top1"]}/{v["positions"]} positions: {"PASS" if v["passed"] else "FAIL"}', flush=True)
         if not v['passed'] and not (rb['active'] and not ernie):   # with --drop-router-bias a difference is expected and is in the report
             sys.exit(1)
+        if rb['active'] and not ernie:
+            # A1 on G5 with its router_bias set to zero, as the export routes: this tests the wiring alone, so it must pass
+            zeroed = {k: torch.zeros_like(t) if k.endswith('.router_bias') else t for k, t in state.items()}
+            w = report['verify_zero_router_bias'] = verify(zeroed, spec, config, new_state, n_verify, tol, target=target)
+            w.pop('head_bias_effect', None)
+            print(f'A1 with router_bias zeroed: max logit difference {w["max_abs_logit_diff"]:.3g} (limit {tol:g}), same top-1 on '
+                  f'{w["same_top1"]}/{w["positions"]} positions: {"PASS" if w["passed"] else "FAIL"}', flush=True)
+            if not w['passed']:
+                sys.exit(1)
     out = Path(out)
     out.mkdir(parents=True, exist_ok=True)
     config.save_pretrained(out)
