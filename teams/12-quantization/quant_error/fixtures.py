@@ -3,10 +3,14 @@
     tiny_olmoe(dir) -> HF folder    tiny_ernie(dir) -> HF folder    to_gguf(hf_dir, out, outtype) -> out
 
 The weights are random (every tensor different from every other, so a swapped mapping cannot pass a test); only the
-plumbing is tested. tiny_olmoe downloads OLMoE's config and tokenizer files once (Hugging Face cache); tiny_ernie needs
-the frozen p1536 tokenizer; to_gguf needs LLAMA_CPP_DIR (a llama.cpp b12359 checkout).
+plumbing is tested. Inputs each fixture needs:
+  tiny_olmoe  OLMoE's config and tokenizer files: the Hugging Face cache, or the Hub on first use
+  tiny_ernie  the frozen p1536 tokenizer.json: $P1536_TOKENIZER, else the default path in P1536 below
+  to_gguf     LLAMA_CPP_DIR, a llama.cpp b12359 checkout
+A missing input raises `Unavailable`, a unittest.SkipTest: a test that builds the fixture is skipped with the message,
+and any other caller can catch it. Anything else (a tokenizer with the wrong sha256, a failing script) is an error.
 """
-import hashlib, json, os, shutil, subprocess, sys
+import hashlib, json, os, shutil, subprocess, sys, unittest
 from pathlib import Path
 
 import torch
@@ -16,9 +20,14 @@ TEAM = HERE.parent  # teams/12-quantization
 
 OLMOE_REPO, OLMOE_REVISION = 'allenai/OLMoE-1B-7B-0924', '6d84c48581ece794365f2b8e9cfb043c68ade9c5'
 OLMOE_TOKENIZER_FILES = ('tokenizer.json', 'tokenizer_config.json', 'special_tokens_map.json')
-P1536 = Path.home() / 'Workspace/era-v5-data/tokenizers/p1536-sample-v0/tokenizer.json'
+P1536 = Path(os.environ.get('P1536_TOKENIZER')
+             or Path.home() / 'Workspace/era-v5-data/tokenizers/p1536-sample-v0/tokenizer.json')
 P1536_SHA256 = 'e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b'
 ERNIE = 'Ernie4_5_MoeForCausalLM'
+
+
+class Unavailable(unittest.SkipTest):
+    """An input a fixture needs is not on this machine (see the module docstring)."""
 
 
 def _run(cmd: list) -> None:
@@ -38,23 +47,31 @@ def _randomize(model: torch.nn.Module, std: float = 0.1, seed: int = 0) -> None:
 def tiny_olmoe(dir: Path) -> Path:
     """OLMoE-1B-7B's config at 2 layers, hidden 64, 4 experts (width 32), top-2, its own tokenizer and vocabulary; fp32."""
     from huggingface_hub import hf_hub_download
+    from huggingface_hub.errors import LocalEntryNotFoundError
     from transformers import OlmoeConfig, OlmoeForCausalLM
     dir = Path(dir)
-    get = lambda f: Path(hf_hub_download(OLMOE_REPO, f, revision=OLMOE_REVISION))  # noqa: E731
-    config = OlmoeConfig.from_json_file(get('config.json'))
+    try:   # all four files before any work: offline without a cache, nothing is written
+        files = {f: Path(hf_hub_download(OLMOE_REPO, f, revision=OLMOE_REVISION))
+                 for f in ('config.json', *OLMOE_TOKENIZER_FILES)}
+    except LocalEntryNotFoundError as e:
+        raise Unavailable(f'tiny_olmoe: {OLMOE_REPO}@{OLMOE_REVISION[:12]} files are not cached and the Hub cannot be '
+                          f'reached ({type(e).__name__})') from e
+    config = OlmoeConfig.from_json_file(files['config.json'])
     config.update(dict(num_hidden_layers=2, hidden_size=64, intermediate_size=32, num_attention_heads=4,
                        num_key_value_heads=4, num_experts=4, num_experts_per_tok=2, dtype='float32'))
     model = OlmoeForCausalLM(config)
     _randomize(model)
     model.save_pretrained(dir)
     for f in OLMOE_TOKENIZER_FILES:
-        shutil.copyfile(get(f), dir / f)
+        shutil.copyfile(files[f], dir / f)
     return dir
 
 
 def tiny_ernie(dir: Path) -> Path:
     """Our path at 2 layers, d 64 (16 experts, KAS V2 head, active router bias): make_random_checkpoint.py, then
     export_hf.py --target ernie4_5_moe --dtype fp32 --drop-head-bias. Returns the HF folder, dir/hf (G5 run in dir/run)."""
+    if not P1536.is_file():
+        raise Unavailable(f'tiny_ernie: no p1536 tokenizer at {P1536}; set P1536_TOKENIZER to the frozen tokenizer.json')
     if hashlib.sha256(P1536.read_bytes()).hexdigest() != P1536_SHA256:
         raise ValueError(f'{P1536} is not the frozen p1536 tokenizer (sha256 {P1536_SHA256})')
     dir = Path(dir)
@@ -71,7 +88,7 @@ def to_gguf(hf_dir: Path, out: Path, outtype: str) -> Path:
     convert_frozen() (frozen tokenizer, forced pre-tokenizer, BPE vocabulary step); anything else through the stock one."""
     llama = os.environ.get('LLAMA_CPP_DIR')
     if not llama:
-        raise RuntimeError('to_gguf needs LLAMA_CPP_DIR=<llama.cpp b12359 checkout>')
+        raise Unavailable('to_gguf: set LLAMA_CPP_DIR to a llama.cpp b12359 checkout')
     hf_dir, out = Path(hf_dir), Path(out)
     arch = json.loads((hf_dir / 'config.json').read_text(encoding='utf-8'))['architectures'][0]
     if arch == ERNIE:
