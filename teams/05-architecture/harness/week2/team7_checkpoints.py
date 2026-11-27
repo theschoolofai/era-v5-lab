@@ -33,10 +33,6 @@ class CheckpointProgress:
         self.stream.load_state_dict(sampler)
         self.history = state["history"]
 
-    def add_skip(self, count):
-        # G7 invokes this only after checking the saved next-batch fingerprint.
-        self.stream.advance_batches(count)
-
     def next_batch_id(self):
         state = self.stream.state_dict()
         try:

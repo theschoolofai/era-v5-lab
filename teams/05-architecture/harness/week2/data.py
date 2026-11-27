@@ -352,14 +352,7 @@ class BatchStream:
         ).tolist()
         self.offset = 0
 
-    def advance_batches(self, count):
-        """Discard whole batches using the same sampler transitions as next()."""
-        if isinstance(count, bool) or not isinstance(count, int) or count < 0:
-            raise ValueError("batch skip must be a nonnegative integer")
-        for _ in range(count):
-            self._next_ids()
-
-    def _next_ids(self):
+    def next(self, device):
         ids = []
         while len(ids) < self.batch_size:
             if self.offset == len(self.order):
@@ -370,10 +363,7 @@ class BatchStream:
             n = min(self.batch_size - len(ids), len(self.order) - self.offset)
             ids += self.order[self.offset : self.offset + n]
             self.offset += n
-        return ids
-
-    def next(self, device):
-        return self.dataset.batch(self._next_ids(), device)
+        return self.dataset.batch(ids, device)
 
     def state_dict(self):
         return dict(

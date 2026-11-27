@@ -274,25 +274,17 @@ def main():
         "--resume-committed", action="store_true", help="Restore from the trusted Team 7 checkpoint store"
     )
     p.add_argument("--from-step", type=int, help="Restore exactly this committed step; never fall back")
-    p.add_argument("--skip", type=int, default=0, help="Discard this many whole training batches after restore")
-    p.add_argument("--branch", help="New checkpoint branch within the same run ID (draft rollback)")
-    p.add_argument("--allow-env-change", action="store_true",
-                   help="Override G7 environment checks only; G5 identity checks remain strict")
     args = p.parse_args()
-    rollback_requested = (args.from_step is not None or args.skip != 0
-                          or args.branch is not None or args.allow_env_change)
-    if args.from_step is not None and args.from_step < 0:
-        p.error("--from-step must be nonnegative")
-    if args.skip < 0:
-        p.error("--skip must be nonnegative")
-    if rollback_requested and not args.resume_committed:
-        p.error("Rollback options require --resume-committed")
-    if rollback_requested and not args.branch:
-        p.error("Rollback options require a new --branch")
-    if args.branch is not None and not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}", args.branch):
-        p.error("--branch must be 1-64 letters, digits, dashes or underscores, starting with a letter or digit")
-    if rollback_requested and args.logger_factory:
-        p.error("Draft rollback cannot use --logger-factory until G8 branch-aware metrics are agreed")
+    rollback_requested = args.from_step is not None
+    if rollback_requested:
+        if args.from_step < 0:
+            p.error("--from-step must be nonnegative")
+        if not args.resume_committed:
+            p.error("--from-step requires --resume-committed")
+        if args.checkpoint_at_start:
+            p.error("--from-step restores a committed checkpoint; do not combine with --checkpoint-at-start")
+        if args.logger_factory:
+            p.error("Draft rollback keeps --logger-factory on hold pending G8/G9 attempt-history agreement")
     if args.expert_load_every < 0:
         p.error("--expert-load-every must be nonnegative")
     if not args.smoke:
@@ -613,12 +605,7 @@ def main():
             # This head did not contribute to the objective and has no optimizer state.
             model.mtp_head.requires_grad_(False)
         try:
-            if args.branch and any(c["branch"] == args.branch for c in checkpointer.commits()):
-                checkpoint_exit(EXIT_FATAL, "CheckpointError", "--branch must name a new checkpoint branch")
-            info = checkpointer.restore(
-                model, optimizers, progress, probe, from_step=args.from_step,
-                skip=args.skip, new_branch=args.branch, allow_env_change=args.allow_env_change,
-            )
+            info = checkpointer.restore(model, optimizers, progress, probe, from_step=args.from_step)
             if info is None:
                 checkpoint_exit(EXIT_FATAL, "CheckpointError", "No committed Team 7 checkpoint for this run ID")
         except (CheckpointError, ValueError) as error:
@@ -643,8 +630,7 @@ def main():
         if rollback_requested:
             rollback_events.append({
                 "from_path": info["from_path"], "step": completed, "tokens": tokens,
-                "branch": checkpointer.branch, "skip_batches": args.skip,
-                "allow_env_change": args.allow_env_change, "env_override": info["env_override"],
+                "branch": checkpointer.branch,
                 "replay_guaranteed": False,
             })
         manifest["team7_checkpoint"].update({"branch": checkpointer.branch, "restore": info})
@@ -656,7 +642,7 @@ def main():
 
     if rollback_events:
         if args.logger_factory:
-            p.error("Rollback lineage requires branch-aware G8 metrics; --logger-factory is held")
+            p.error("Rollback lineage keeps --logger-factory on hold pending G8/G9 attempt-history agreement")
         manifest["rollback_events"] = rollback_events
         manifest["status"] = "DRAFT_ROLLBACK_NOT_A_QUALITY_RESULT"
         (args.out / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf8")
@@ -739,16 +725,6 @@ def main():
             log(row)
             if device.type == "cuda":
                 torch.cuda.empty_cache()  # execution-only (TSAI)
-        if rollback_requested:
-            # Publish the restored/skipped state on the new branch even when no update follows.
-            # Step 0 needs the lazy optimizer preservation used by a fresh initial commit.
-            if not save_committed("start" if completed == 0 else "rollback"):
-                checkpoint_exit(EXIT_RETRY, "crash", "Rollback checkpoint was skipped")
-            committed_rollback = checkpointer.wait()
-            if checkpointer.any_fenced():
-                checkpoint_exit(EXIT_FATAL, "FencedError", "Rollback lost ownership before its checkpoint committed")
-            if not committed_rollback or checkpointer.last_commit_step != completed:
-                checkpoint_exit(EXIT_RETRY, "crash", "Rollback checkpoint did not commit the restored step")
         if args.checkpoint_at_start and not args.resume and not args.resume_committed:
             if not save_committed("start"):
                 checkpoint_exit(EXIT_RETRY, "crash", "Step-0 Team 7 checkpoint was skipped")
