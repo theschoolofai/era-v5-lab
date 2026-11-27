@@ -1,169 +1,130 @@
-# Reading translation pairs: a guide for readers
+# Translation pairs: what to do
 
-Thank you for helping. This guide tells you what you will receive, how to open it, how to answer, and what to send
-back.
+You read pairs of texts and answer one question for each pair:
 
-## What you are doing
+> **Is one text a translation of the other?** yes, no or unsure
 
-We are cleaning the text that the lab's model will learn from. Sometimes the same text appears twice in two
-languages: once in English and once translated into Hindi, for example. We have a tool that finds such pairs, but it
-makes mistakes. Your answers tell us when it is right and when it is wrong, so we can set it up well.
+It takes about a minute a pair. Your answers tell us when our translation finder is right.
 
-You will see pairs of texts. For each pair you answer one question:
+## Your sheets
 
-> **Is one text a translation of the other?**
+Your zip holds one or two sheets. The file name says the languages and which copy is yours:
 
-Your answer is **yes**, **no** or **unsure**.
+| Sheet | Languages | Pairs |
+|---|---|---|
+| `sa-en_reader1.csv`, `sa-en_reader2.csv` | Sanskrit and English | 32 |
+| `sa-hi_reader1.csv`, `sa-hi_reader2.csv` | Sanskrit and Hindi | 46 |
+| `hi-en_reader1.csv`, `hi-en_reader2.csv` | Hindi and English | 27 |
 
-## What you will receive
+Two readers read each sheet, each on their own copy.
 
-A zip file. When you unzip it you will see:
+**Keep the zip private.** It holds text from web pages: don't share or upload it.
 
-```
-e5d/
-├── README.md               this guide
-├── view_e5d_sheets.py      the program that shows you the pairs
-└── sheets/
-    ├── readers_guide.md     a short version of how to answer
-    ├── sa-en_reader1.csv    your pairs (this name is an example)
-    └── sa-hi_reader1.csv
-```
+## Setup (one time)
 
-Your file names tell you the two languages: `sa` is Sanskrit, `hi` is Hindi and `en` is English. So `sa-en` means
-Sanskrit and English. Each file holds 50 pairs.
-
-**Please keep the zip private.** It contains text from web pages. Do not share it or upload it anywhere.
-
-## Before you start (once)
-
-You need **Python 3** on your computer. To check, open a terminal (Mac: the Terminal app; Windows: PowerShell) and
-type:
+You need Python 3 and nothing else. Check it in a terminal (Mac: Terminal; Windows: PowerShell):
 
 ```
 python3 --version
 ```
 
-On Windows, type `python --version` instead. If you see something like `Python 3.12.1`, you are ready. If not,
-install Python 3 from https://www.python.org/downloads/ and try again. Nothing else needs to be installed.
+On Windows, use `python` instead of `python3` in every command. If there is no Python 3, install it from
+https://www.python.org/downloads/ and open a new terminal.
 
-## Open the pairs
+Unzip the file, for example into Downloads. You get:
 
-1. Unzip the file, for example into your Downloads folder.
-2. Open a terminal and go into the unzipped folder:
+```
+e5d/
+├── README.md              ← this page
+├── view_e5d_sheets.py     ← the viewer
+└── sheets/
+    ├── readers_guide.md
+    └── sa-en_reader1.csv  ← your sheet(s)
+```
 
-   Mac:
-   ```
-   cd ~/Downloads/e5d
-   ```
-   Windows:
-   ```
-   cd $HOME\Downloads\e5d
-   ```
-3. Start the program. Put your own name in the quotes:
+Don't rename or edit anything in `sheets/`.
 
-   Mac:
-   ```
-   python3 view_e5d_sheets.py --sheets sheets --name "Your Name"
-   ```
-   Windows:
-   ```
-   python view_e5d_sheets.py --sheets sheets --name "Your Name"
-   ```
-4. Open your web browser and go to **http://127.0.0.1:8000**.
+## Run the viewer
 
-The page runs only on your own computer. Nothing is sent over the internet.
+Put your own name in the quotes.
 
-Keep the terminal window open while you work. To stop, click on the terminal and press **Ctrl+C**.
+**Mac / Linux**
 
-## What you see
+```
+cd ~/Downloads/e5d
+python3 view_e5d_sheets.py --sheets sheets --name "Your Name"
+```
 
-- **On the left:** your files, each with how many pairs you have answered, for example "12 / 50 answered". Click
-  a file to open it.
-- **In the middle:** one pair at a time. The two texts are side by side, one sentence per line. They are marked
-  `text_1` and `text_2`.
-- **Below the texts:** three buttons, **yes**, **no** and **unsure**, and a box for a note.
-- **At the top:** a **save** button.
+**Windows PowerShell**
 
-## How to answer
+```
+cd $HOME\Downloads\e5d
+python view_e5d_sheets.py --sheets sheets --name "Your Name"
+```
 
-Read both texts. Then ask yourself: **does one text say the same thing as the other, sentence by sentence, in another
-language?**
+Then open **http://127.0.0.1:8000** in your browser. The page runs on your computer only; nothing goes online. Keep the
+terminal open while you work; press **Ctrl+C** in it to stop.
 
-**Answer yes** when one text is a translation of the other:
-- most sentences of the shorter text have a sentence with the same meaning in the longer text;
-- a loose or imperfect translation is still **yes**;
-- if one text is longer, or has extra sentences, it can still be **yes**.
+## Do the reading
 
-**Answer no** when they are not translations, even if:
-- both talk about the same topic, event or person;
-- both mention the same names, places, dates or numbers;
-- both come from the same kind of website.
+1. Click your sheet on the left. It shows how many you have answered, e.g. "12 / 32".
+2. Read the two texts, side by side, one sentence per line.
+3. Answer:
 
-Two news stories about the same event, written separately, are **no**.
-
-**Answer unsure** when you really cannot tell. For example, the text is too short, or you don't know one of the
-languages well enough for this pair.
-
-**Use the note** for anything you want to tell us. For example: "only the first half is translated" or "the Hindi
-text is a summary, not a translation".
-
-Some files include a few pairs whose answer we already know. Answer them like any other pair.
-
-## Moving around
-
-| To do this | Click | Or press |
+| Answer | When | Key |
 |---|---|---|
-| Answer yes | yes | **y** |
-| Answer no | no | **n** |
-| Answer unsure | unsure | **u** |
-| Next pair | next → | **→** or **Enter** |
-| Previous pair | ← previous | **←** |
-| Next pair you haven't answered | next unanswered | **j** |
-| Save | save | **Ctrl+S** (Windows) or **Cmd+S** (Mac) |
+| **yes** | Most sentences of the shorter text have a sentence with the same meaning in the other. A loose or partial translation, or one text being longer, is still **yes** | **y** |
+| **no** | Not a translation, even if both are about the same topic, event or person, or share names, places, dates or numbers. Two news stories about one event, written separately, are **no** | **n** |
+| **unsure** | You can't tell: too short, or you don't know one language well enough | **u** |
 
-The keys don't work while you are typing in the note box. Click outside the box first.
+4. Add a note if useful, e.g. "only the first half is translated".
+5. Press **Enter** or **→** for the next pair (**←** goes back, **j** jumps to the next unanswered one).
+6. Press **save** often (**Ctrl+S** / **Cmd+S**). It turns orange while you have unsaved answers.
 
-You can change an answer at any time: go back to the pair and press another button.
+You can change an answer any time, and stop and come back later: run the same command with the same name and you
+continue where you left off. Keys don't work while you type in the note box; click outside it first.
 
-## Saving
+Some pairs have an answer we already know. Answer them like the others.
 
-**Press save often.** The save button turns **orange** while you have answers that are not saved yet, and shows
-how many. After you save, it says **saved**.
+**Please:** read on your own, don't discuss the pairs with the other reader until you have both finished, and don't
+look the texts up online or in a translation tool.
 
-If you close the page or the browser by mistake, your unsaved answers are kept in the browser, and they come back
-when you open the page again. Still, save often: answers reach your answer file only when you press save.
+## What to send back
 
-You don't have to finish in one go. Stop the program (Ctrl+C), and next time start it again with the same command
-and the same name. You will continue where you left off.
+Your answers are in `e5d/e5d_labels/`, one CSV per sheet, named `<sheet>-<Your_Name>.csv`, e.g.
+`sa-en-reader1-Your_Name.csv`. They hold your answers only, no page text, so they are safe to share.
 
-## Please
+1. **Email the CSVs** to the person who sent you the zip.
+2. **Comment `done`** on [theschoolofai/era-v5-lab#729](https://github.com/theschoolofai/era-v5-lab/issues/729). Only
+   `done`: no answers there.
 
-- **Read on your own.** Don't discuss the pairs with the other reader before you have both finished.
-- **Don't look the texts up** online or in a translation tool. We need your own judgement.
-- **Don't edit the files** in the `sheets` folder.
+### CSV format
 
-## When you have finished
+The viewer writes it for you:
 
-Your answers are saved in a folder called **`e5d_labels`**, next to the `sheets` folder. There is one file for each
-of your sheets, for example:
+| Column | What it holds | Values |
+|---|---|---|
+| `item` | The pair's ID | filled in for you |
+| `translation` | Your answer | `yes`, `no`, `unsure`, or empty if not answered |
+| `note` | Your note | free text, may be empty |
+
+Example:
 
 ```
-e5d/e5d_labels/sa-en-reader1-Your_Name.csv
+item,translation,note
+sa-en-025,yes,
+sa-en-007,no,same topic only
+sa-en-019,unsure,too short to tell
 ```
-
-Each file has three columns: `item`, `translation` and `note`. It contains your answers only, no text from the
-pages.
-
-**Send these files** to the person who sent you the zip. They are small and safe to share.
 
 ## If something goes wrong
 
-| Problem | What to do |
+| Problem | Fix |
 |---|---|
-| `python3: command not found` (Mac) or `python` is not recognised (Windows) | Install Python 3 from https://www.python.org/downloads/ and open a new terminal |
-| `Address already in use` | Something else is using the page's address. Add `--port 8001` at the end of the command, then go to http://127.0.0.1:8001 |
-| `ERROR: no sheets` | You are not in the unzipped `e5d` folder, or the `sheets` folder is missing. Check step 2 |
-| The page shows "not saved" | Copy the message and send it to the person who sent you the zip |
+| `python3: command not found` (Mac), or `python` not recognised (Windows) | Install Python 3 from https://www.python.org/downloads/ and open a new terminal |
+| `Address already in use` | Add `--port 8001` to the command, then open http://127.0.0.1:8001 |
+| `ERROR: no sheets` | You are not in the `e5d` folder. Run the `cd` line again |
+| The page says "not saved" | Send the message to the person who sent you the zip |
 | Anything else | Send a screenshot to the person who sent you the zip |
 
 Thank you for reading!
