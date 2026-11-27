@@ -8,10 +8,14 @@ THE RULES (dedup v2 proposal, H3-a to H3-d; h3_design_v1.md)
   no group. Rules 1-4 never see H3 edges (rule 3, "the longer copy", does not compare across scripts).
 - Rule 0 only, direct edges only (TSAI, #625, 19 Nov: "only direct edges remove; no transitive chain removal"). When
   an H3 match joins a held-out document to a train document, that train document is a translation of held-out
-  content. With "remove": true it is removed (rule H3, stage cross_language, priority_rule 0); with "remove": false
-  (the default, until E5c and the harm check pass) it is only reported as "would_remove". Only the matched train
-  document goes: the other copies in its H1/H2 group stay. If H1/H2 already removed it, the edge is "already_removed"
-  and removes nothing. A held-out document is never removed.
+  content. Where "remove" allows it for the match's language pair, it is removed (rule H3, stage cross_language,
+  priority_rule 0); otherwise it is only reported as "would_remove". Only the matched train document goes: the other
+  copies in its H1/H2 group stay. If H1/H2 already removed it, the edge is "already_removed" and removes nothing. A
+  held-out document is never removed.
+- "remove" is true (every language pair), false (none, the default) or one setting per language pair, e.g.
+  {"hi-en": true}: a pair is named by the two language codes of h3.py's "packs", in either order ("hi-en" is
+  "en-hi"), and a pair that is not named stays report-only. TSAI, 27 Nov: removal on for hi-en; sa-en and sa-hi stay
+  report-only until E5d sets the Sanskrit thresholds; Odia stays report-only.
 - Every other H3 edge is reported, never removed: held-out <-> held-out; train <-> train, as "reported_indirect" when
   a side's H1/H2 group holds a held-out copy (removing would follow a chain: held-out = copy ~ translation), else as
   "reported_train_train" (a translation pair inside the training data).
@@ -44,6 +48,28 @@ OUTCOMES = ("removed", "would_remove", "already_removed", "reported_indirect", "
             "reported_heldout_heldout", "same_group", "parallel_pack")
 
 
+def remove_pairs(remove):
+    """The language pairs whose direct held-out <-> train edges remove: None for every pair (remove: true), else a set
+    of frozensets of two language codes ({"hi-en": true, "sa-en": false} -> {frozenset({"hi", "en"})}; false -> an
+    empty set). Raises ValueError with the reason on a bad value."""
+    if isinstance(remove, bool):
+        return None if remove else set()
+    if not isinstance(remove, dict):
+        raise ValueError('h3.remove must be true, false or one setting per language pair, e.g. {"hi-en": true}')
+    given = {}
+    for name, value in remove.items():  # a few configured pairs, not data
+        langs = name.split("-") if isinstance(name, str) else []
+        if len(langs) != 2 or not all(langs) or langs[0] == langs[1]:
+            raise ValueError(f'h3.remove: {name!r} is not a language pair of two codes, e.g. "hi-en"')
+        if not isinstance(value, bool):
+            raise ValueError(f"h3.remove.{name} must be true or false")
+        pair = frozenset(langs)
+        if pair in given:
+            raise ValueError(f"h3.remove names the pair {name!r} twice ({given[pair]!r} too): one setting per pair")
+        given[pair] = name
+    return {pair for pair, name in given.items() if remove[name]}
+
+
 def check_config(h3, fatal):
     """The "h3" section of dedup.json, with defaults; raises fatal(message) on a bad value."""
     if not isinstance(h3, dict):
@@ -54,8 +80,10 @@ def check_config(h3, fatal):
     h3 = {**H3_DEFAULTS, **{k: v for k, v in h3.items() if not k.startswith("_")}}
     if not h3["matches"] or Path(h3["matches"]).is_absolute():
         raise fatal("h3.matches is required, relative to the repository root: the h3_matches.csv from h3.py")
-    if not isinstance(h3["remove"], bool):
-        raise fatal("h3.remove must be true or false")
+    try:
+        remove_pairs(h3["remove"])
+    except ValueError as e:
+        raise fatal(str(e))
     if not isinstance(h3["parallel_packs"], list) or not all(isinstance(p, str) for p in h3["parallel_packs"]):
         raise fatal("h3.parallel_packs must be a list of pack IDs")
     return h3
@@ -113,8 +141,9 @@ def join(matches, by_key, groups, parallel_packs, remove):
     """Apply the rules above. groups: {row: (group_id, train_survivors, heldout_survivors)} for every row of an H1/H2
     group. Returns (pairs, removals): pairs for h3_pairs.csv, each with "target", the train row the edge would remove
     (None if none); removals [(row, ref_row, coverage)], a train row to remove and the held-out row it translates, each
-    row at most once, and only with remove=True."""
+    row at most once, and only for a language pair that `remove` (see remove_pairs) lets remove."""
     parallel = set(parallel_packs)
+    removing = remove_pairs(remove)  # None: every pair
     pairs, removals, removed = [], [], set()
     for ka, _, kb, _, la, lb, cov in matches:
         da, db = by_key[ka], by_key[kb]
@@ -140,8 +169,9 @@ def join(matches, by_key, groups, parallel_packs, remove):
                 rec["outcome"] = "already_removed"   # removed by H1/H2 (a copy of another document, or rule 0)
             else:
                 rec["target"] = t["row"]
-                rec["outcome"] = "removed" if remove else "would_remove"
-                if remove and t["row"] not in removed:
+                on = removing is None or frozenset((la, lb)) in removing
+                rec["outcome"] = "removed" if on else "would_remove"
+                if on and t["row"] not in removed:
                     removed.add(t["row"])
                     removals.append((t["row"], h["row"], cov))
         pairs.append(rec)

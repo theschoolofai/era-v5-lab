@@ -144,6 +144,7 @@ def test_prepare_run_pins_the_actual_inventory_and_refuses_incomplete_pack_metad
     assert cfg['run_id'] == 'first-training-v1'
     assert cfg['stages']['shards']['dataset_version'] == 'corpus-v1'  # not derived from run_id
     assert cfg['intermediates'] == 'keep' and cfg['stages']['h3']['mode'] == 'run'
+    assert cfg['stages']['h3']['remove'] == {'hi-en': True}  # TSAI, 27 Nov: hi-en only; every other pair report-only
     assert cfg['stages']['f2'] == {'pool': True, 'workers': 30}
     # the staged-data sizing gate: a clean-only run without the inventory, and the full run adopting its folder
     clean = json.loads((out / 'run_clean.json').read_text())

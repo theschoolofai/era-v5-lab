@@ -26,7 +26,9 @@ STAGES
 
 clean, overlap and dedup take "mode": "adopt" (TSAI ran the job; "output" names the folder it returned) or "mode": "run".
 H3 runs only when stages.h3 is configured, and must use "mode": "run" on this job's cleaned parts. Its matches are
-passed to dedup with remove: false; the runner verifies H3's summary, match-file hash and dedup's recorded hash.
+passed to dedup with stages.h3.remove: false (the default, report only), true, or one setting per language pair, e.g.
+{"hi-en": true} (dedup/h3_join.py; a pair that is not named stays report-only). The runner verifies H3's summary,
+match-file hash, dedup's recorded hash, and that dedup recorded the same remove setting.
 A run stage names a "settings" file (settings only, no paths) and the runner works out the rest: its folder is <run>/<stage>
 (or "output", below ./out), it reads the previous stage's folder, and stage_args.py turns that into the script's command. clean
 gets a copy of its settings with the path keys filled in (clean: input_root from "input", output_root, and the input set's
@@ -442,15 +444,28 @@ class Run:
         if spec.get("command"):
             return {"command": spec["command"], "settings": None, "settings_sha256": None, "config": None, "config_sha256": None}
         try:
-            return stage_args.build(stage, spec, {s: self.output(s) for s in EXTERNAL if s != "h3" or s in self.stages}, self.dir / "cfg", REPO, write, self.only)
+            return stage_args.build(stage, spec, {s: self.output(s) for s in EXTERNAL if s != "h3" or s in self.stages}, self.dir / "cfg", REPO, write, self.only,
+                                    h3_remove=self.h3_remove())
         except stage_args.ConfigError as e:
             raise Stop(f"config: {stage}: {e}")
+
+    def h3_remove(self):
+        """stages.h3.remove: which H3 matches dedup removes (false, true or per language pair); false without stages.h3."""
+        h3 = self.stages.get("h3")
+        return h3.get("remove", False) if isinstance(h3, dict) else False
 
     def validate(self, upto):
         """The config of every stage up to `upto`, before anything runs."""
         active = [s for s in EXTERNAL if STAGES.index(s) <= STAGES.index(upto) and (s != "h3" or s in self.stages)]
         if "h3" in active and isinstance(self.stages["h3"], dict) and self.stages["h3"].get("mode") != "run":
             raise Stop("config: stages.h3 must run on this job's cleaned parts")
+        misplaced = [s for s, spec in self.stages.items() if s != "h3" and isinstance(spec, dict) and "remove" in spec]
+        if misplaced:  # it would be ignored there, and H3 would stay report-only without a word
+            raise Stop(f"config: stages.{misplaced[0]}.remove: only stages.h3 takes remove (which H3 matches dedup removes)")
+        try:
+            stage_args.check_h3_remove(self.h3_remove())
+        except stage_args.ConfigError as e:
+            raise Stop(f"config: {e}")
         if self.only:
             clean = self.stages.get("clean") or {}
             if clean.get("mode", "adopt") != "run" or clean.get("command"):
@@ -715,6 +730,8 @@ class Run:
                     lines.append(f"     generated config {self.shown(built['config'])}: " + ", ".join(
                         f"{k} = {v}" for k, v in stage_args.generated_values(stage, {s: self.output(s) for s in EXTERNAL if s != "h3" or s in self.stages}, REPO, self.stages[stage]).items()
                         if k in stage_args.PATH_KEYS or k in ("resume", "workers")))
+                if stage == "dedup" and "h3" in self.stages:
+                    lines.append(f"     H3 matches it removes (stages.h3.remove): {json.dumps(self.h3_remove())}")
             elif stage == "f2":
                 f2 = self.stages.get("f2", {})
                 how = (f"{POOL} (the set loaded once) calling {f2.get('script', DEFAULT_F2)}" if f2.get("pool")
@@ -905,9 +922,12 @@ class Run:
             used = s.get("h3", {})
             self.check("dedup used this run's H3 matches",
                        used.get("matches", {}).get("sha256") == evidence["matches_sha256"]
-                       and used.get("matches", {}).get("pairs") == evidence["matches"]
-                       and used.get("remove") is False,
+                       and used.get("matches", {}).get("pairs") == evidence["matches"],
                        f"H3 summary {evidence}, dedup H3 {used}")
+            want = json.dumps(self.h3_remove(), sort_keys=True)  # false and 0 differ in JSON, as they must
+            self.check("dedup removed H3 matches only as stages.h3.remove says",
+                       json.dumps(used.get("remove"), sort_keys=True) == want,
+                       f"stages.h3.remove {want}, dedup recorded {json.dumps(used.get('remove'), sort_keys=True)}")
         self.check("dedup summary matches its remove list", counts["removed"] == counts["remove_list_rows"],
                    f"summary removed {counts['removed']}, remove_list.csv rows {counts['remove_list_rows']}")
         self.check("dedup removed no held-out doc", counts["heldout_removed"] == 0,
