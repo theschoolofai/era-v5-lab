@@ -1,0 +1,60 @@
+H3 E5d reader sheets from E5c and #666, and the reader zips, Friday 27 November 2026
+on commit 60fbb7d4 (h3-dedup-check), Python 3.12.10, pyarrow 23.0.1, numpy 2.4.3, Darwin arm64 (Apple laptop, CPU)
+cold start: out/e5d_e5c and out/e5d_zips_e5c did not exist
+
+Inputs (sha256):
+  E5c, LaBSE (theschoolofai/era-v5-lab#625; five files from teams/01-data-a/jobs/results/2026-11-18-h3-e5c/, merged in
+  #858; h3_docs.parquet from TSAI's link of 27 Nov), copied to out/h3_e5c, each equal to the value in its
+  h3_summary.json:
+    h3_docs.parquet       da5570d7a84aeb6b8d7809901d14e56b68ab6a9b9293489d6b5f72994176f0e6
+    h3_candidates.csv     9095f070b89af23b5005a95bd36188663b02e07956280ed5112ee3be9e9f26e5
+    h3_matches.csv        fdbe39e9c1445089ba79745e6ac037b6f7619affcf2ddcf5addc99ff69c64bfd
+    h3_by_pack.csv        398e2faa8d5bb1f4c2439bfe33032237dbf16bdd8795ea2e9798cfc9b37a7601
+    h3_histogram.csv      08661aa511e7143a4510a1e05af776f62438f826dbd5c1e4be6cc631fb504b67
+  #666, BGE-M3 (jobs/logs/2026-11-25-h3-e5c-bge-m3-colab/), out/h3_666_colab_run/h3_bge_m3:
+    h3_docs.parquet       952be3c59382d8776dabe1f4be5879ac2bfd8ae31b81c17c2b1164a64dc6d52c
+    h3_candidates.csv     ede5c74eab8471294307f98a99ffa29cc6a996accd4edd619a3242b6b738ef27
+  controls (jobs/logs/2026-11-25-h3-e5d-controls/), out/e5d_controls/controls.parquet:
+                          526c256f2e1af255a1bb831dc64cd0367768db66ae7571404f63b4ef4402d643
+  cleaned texts: out/tokenizer_sample_v0_clean_pr244_e5c (the #244 cleaning of sample v0, rebuilt from the raw sample).
+  The generator refuses a drawn document whose text differs from what h3.py read; it ran through, so E5c read the
+  #244 cleaning, as #666 did.
+
+$ /usr/bin/time -l python3 -I teams/01-data-a/dedup/h3_e5d_sheets.py --config teams/01-data-a/dedup/h3_e5d_e5c_sheets.json 2>&1 | tee out/e5d_e5c_sheets.log
+sa-en: 17 candidates and 15 controls -> 32 items, 2 sheets
+sa-hi: 35 candidates and 11 controls -> 46 items, 2 sheets
+hi-en: 27 candidates and 0 controls -> 27 items, 2 sheets
+e5d sheets: 105 items, 4 buckets short (0.57 s); out/e5d_e5c
+        3.06 real         1.93 user         0.58 sys
+           625410048  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               45894  page reclaims
+                5578  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                2513  voluntary context switches
+                6764  involuntary context switches
+         14009623389  instructions retired
+          5288976829  cycles elapsed
+           545474072  peak memory footprint
+
+$ python3 -I teams/01-data-a/dedup/h3_e5d_pack.py --sheets-out out/e5d_e5c --assign out/e5d_readers.json --out out/e5d_zips_e5c 2>&1 | tee out/e5d_e5c_pack.log
+(reader names replaced by reader_a, reader_b, reader_c here and in manifest.json; the names are in out/e5d_readers.json)
+e5d_reader_a.zip: sa-en_reader1  sha256 0402a6fce35d99c6
+e5d_reader_b.zip: sa-en_reader2, sa-hi_reader1  sha256 732529823b923863
+e5d_reader_c.zip: sa-hi_reader2  sha256 0edcbd5354953e17
+not packed (no reader yet): hi-en_reader1, hi-en_reader2
+manifest: out/e5d_zips_e5c/manifest.json
+
+Drawn per language pair, bucket and band (available / wanted / drawn; e5d_summary.json):
+  sa-en  above 0.60-1.00   1 / 18 / 1     above 0.45-0.60   2 / 17 / 2     below 0.30-0.45   14 / 17 / 14
+  sa-hi  above 0.60-1.00   4 / 20 / 4     above 0.45-0.60  12 / 16 / 12    below 0.30-0.45  100 / 19 / 19
+  hi-en  above 0.60-1.00   1 / 25 / 1     above 0.45-0.60   1 / 24 / 1     below 0.30-0.45   25 / 25 / 25
+Short buckets: sa-en above (3 of 18), sa-en below (14 of 17), sa-hi above (16 of 20), hi-en above (2 of 25).
+E5c and #666 list only pairs with coverage 0.30 or more, so these are every listed pair of those bands.

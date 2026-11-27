@@ -278,8 +278,9 @@ half of one page. Per language pair (sa-en, sa-hi) the controls, all expected "n
   (theirs: 0.3 and up).
 
 The 2 `not_sanskrit` pairs are left out. `--positives` adds the 6 real translations as "yes" controls, so that each
-Sanskrit sheet has the known translations of E5d's layout. The unread controls are listed in `controls.json` for a
-person to check before the sheets go out.
+Sanskrit sheet has the known translations of E5d's layout. The unread controls are listed in `controls.json`. They went
+out unread (27 Nov): an unread control that a reader answers "yes" is read by a Sanskrit reader at scoring before it
+counts against them.
 
 | Language pair | Read non-translations | Unread, low on both encoders (drawn / pool) | Read translations ("yes") | Controls |
 |---|---|---|---|---|
@@ -332,11 +333,11 @@ Before it writes anything, it checks that:
 
 Each zip is then reopened and its sheets loaded with the viewer. Sheets with no reader yet are listed and not packed,
 so sheets can go out in stages. `manifest.json` records the hashes and each reader's sheets, with no text. The zips
-hold page text: they are sent privately and never committed. For the real sheets:
+hold page text: they are sent privately and never committed. For the real sheets, the readers' names stay in `out/`:
 
 ```sh
 python3 -I teams/01-data-a/dedup/h3_e5d_pack.py --sheets-out out/e5d_e5c \
-    --assign teams/01-data-a/dedup/h3_e5d_readers.json --out out/e5d_zips
+    --assign out/e5d_readers.json --out out/e5d_zips_e5c
 ```
 
 Speed and end-to-end check on the FLORES+ test sheets, with placeholder readers (`h3_e5d_flores_readers.json`):
@@ -364,6 +365,44 @@ manifest: out/e5d_zips_flores/manifest.json
 
 The log is `teams/01-data-a/jobs/logs/2026-11-25-h3-e5d-pack.txt`, with `manifest.json` in
 `teams/01-data-a/jobs/logs/2026-11-25-h3-e5d-pack/`.
+
+### The sheets from E5c and #666 (27 Nov)
+
+`h3_e5d_e5c_sheets.json` draws from E5c's LaBSE run (theschoolofai/era-v5-lab#625: the five files of
+`jobs/results/2026-11-18-h3-e5c/` and `h3_docs.parquet` from TSAI's link, each with the sha256 in E5c's
+`h3_summary.json`) and #666's BGE-M3 run. Every drawn document's text matched what both runs read, so E5c read the #244
+cleaning of sample v0, as #666 did.
+
+E5c and #666 list only pairs with coverage 0.30 or more, so every sheet takes all their pairs above 0.45, and sa–en
+also all below:
+
+| Language pair | Above, ≥ 0.6 | Above, 0.45–0.6 | Below, 0.30–0.45 | Controls | Items | Short of the layout |
+|---|---|---|---|---|---|---|
+| sa–en | 1 | 2 | 14 | 15 | 32 | above 3 of 18, below 14 of 17 |
+| sa–hi | 4 | 12 | 19 of 100 | 11 | 46 | above 16 of 20 |
+| hi–en | 1 | 1 | 25 | 0 | 27 | above 2 of 25 |
+
+The six qualifying pairs (coverage ≥ 0.6) of both runs are all on the sheets. The Sanskrit sheets are packed for three
+readers (theschoolofai/era-v5-lab#729); hi–en has no readers yet, so its sheets are not packed.
+
+- Hardware: Apple laptop, CPU; Python 3.12.10, numpy 2.4.3, pyarrow 23.0.1
+- Wall time: 3.06 s for the sheets from a cold start (peak memory 545 MB), then the pack
+- Sync check: not applicable, no torch; no code changed
+
+```sh
+/usr/bin/time -l python3 -I teams/01-data-a/dedup/h3_e5d_sheets.py --config teams/01-data-a/dedup/h3_e5d_e5c_sheets.json
+```
+
+```text
+sa-en: 17 candidates and 15 controls -> 32 items, 2 sheets
+sa-hi: 35 candidates and 11 controls -> 46 items, 2 sheets
+hi-en: 27 candidates and 0 controls -> 27 items, 2 sheets
+e5d sheets: 105 items, 4 buckets short (0.57 s); out/e5d_e5c
+```
+
+The log, with the inputs' sha256 and the pack's output, is `teams/01-data-a/jobs/logs/2026-11-27-h3-e5d-e5c-sheets.txt`;
+`e5d_summary.json` and the pack's `manifest.json` (reader names replaced by reader_a to reader_c) are in
+`teams/01-data-a/jobs/logs/2026-11-27-h3-e5d-e5c-sheets/`. The sheets and the key hold page text and stay in `out/`.
 
 ## Harm check with planted cases (task 3.5)
 
