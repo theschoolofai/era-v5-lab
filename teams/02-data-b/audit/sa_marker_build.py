@@ -4,7 +4,7 @@
 The forms come from sa_paradigms.py (pronoun declensions, verb paradigms, indeclinables), not from any corpus. The
 corpus is used only as a safety filter: a form is dropped when it occurs in more than MAX_HI_MR of the Hindi and
 Marathi diagnosis documents (the packs of diag_packs_dir), or when a reader excluded it by hand (EXCLUDE, with the
-reason). Counts are documents that contain the form, words split as lang_id.WORD does, after NFC.
+reason). A reader can also keep a form by hand (KEEP, with the reason): a Sanskrit word that Hindi pages quote. Counts are documents that contain the form, words split as lang_id.WORD does, after NFC.
 
   -> sa_marker_words.txt  the kept forms, one per line (markers.sa.words_file in the config)
   -> sa_marker_words.csv  every form: paradigm, documents in ind-sa-fw2 and in Hindi/Marathi, kept or why dropped
@@ -29,6 +29,11 @@ SA_PACK = "ind-sa-fw2"  # for information only: a form unseen in the 500 Sanskri
 EXCLUDE = {  # form: reason (a grammar form that is also a Hindi or Marathi word, found after the filter)
     "लिखत": "Hindi noun (as in लिखत-पढ़त); 8 hits in one Hindi document",
 }
+KEEP = {  # form: reason (Sanskrit only; its Hindi/Marathi documents quote Sanskrit, each has other Sanskrit marker hits)
+    "करोति": "quoted Sanskrit in its 2 Hindi/Marathi documents (review on #842)",
+    "खलु": "quoted Sanskrit in its 2 Hindi documents (review on #842)",
+    "कथं": "quoted Sanskrit in its 2 Hindi/Marathi documents (review on #842)",
+}
 
 
 def doc_counts(packs_dir, packs):
@@ -44,6 +49,8 @@ def doc_counts(packs_dir, packs):
 def decide(form, hi_mr):
     if form in EXCLUDE:
         return "dropped: " + EXCLUDE[form]
+    if form in KEEP:
+        return "kept by hand: " + KEEP[form]
     if hi_mr > MAX_HI_MR:
         return f"dropped: in {hi_mr} Hindi/Marathi documents"
     return "kept"
@@ -64,7 +71,7 @@ def main():
         w = csv.DictWriter(f, fieldnames=list(rows[0]))
         w.writeheader()
         w.writerows(rows)
-    kept = [r["form"] for r in rows if r["decision"] == "kept"]
+    kept = [r["form"] for r in rows if r["decision"].startswith("kept")]
     (HERE / "sa_marker_words.txt").write_text(
         "# Sanskrit marker words from grammar tables (#675), built by sa_marker_build.py; do not edit by hand\n"
         + "\n".join(kept) + "\n", encoding="utf-8")

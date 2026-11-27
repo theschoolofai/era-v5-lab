@@ -219,9 +219,24 @@ class SanskritWordsFileTest(unittest.TestCase):
         self.assertEqual([r["form"] for r in rows], [unicodedata.normalize("NFC", f) for f, _, _ in smb.build()])
         for r in rows:
             self.assertEqual(r["decision"], smb.decide(r["form"], int(r["docs_hi_mr"])), r["form"])
-        kept = [r["form"] for r in rows if r["decision"] == "kept"]
+        kept = [r["form"] for r in rows if r["decision"].startswith("kept")]
         lines = (Path(lang_id.HERE) / "sa_marker_words.txt").read_text(encoding="utf-8").splitlines()
         self.assertEqual([w for w in lines if not w.startswith("#")], kept)
+
+    def test_sandhi_variants_by_rule(self):
+        import sa_paradigms  # noqa: PLC0415
+        forms = {f for f, _, _ in sa_paradigms.build()}
+        for pausa, sandhi in (("ततः", "ततो"), ("कः", "को"), ("तत्", "तद्"), ("आसीत्", "आसीद्"), ("सः", "स")):
+            self.assertIn(pausa, forms)
+            self.assertIn(sandhi, forms)
+        self.assertNotIn("ताो", forms)  # -āḥ (ताः) has no -o form
+
+    def test_hand_kept_forms_are_in_the_words(self):
+        import sa_marker_build as smb  # noqa: PLC0415
+        words = set(CFG["markers"]["sa"]["words"])
+        for form in smb.KEEP:
+            self.assertIn(form, words)
+            self.assertTrue(smb.decide(form, 99).startswith("kept"))
 
     def test_grammar_words_give_verse_a_sanskrit_vote(self):
         verse = "तदा सः राजा उवाच। मया दृष्ट्वा गत्वा आसीत्।"  # prose markers: only सः

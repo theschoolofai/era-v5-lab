@@ -9177,7 +9177,7 @@ ind-sa-fw2,80e65bad7543a242,dattatreyamanjunath,fix,D3,0,,0,0.9818,377,sa,san_De
 ind-sa-fw2,aafd2d8a6d638218,dattatreyamanjunath,fix,F1;G3,0,,0,1.0,15085,sa,san_Deva,1.0,sa,agree,sa,sa(ऽ):14
 ind-sa-fw2,8dacf1ffaf5ea80f,dattatreyamanjunath,fix,A6;C1,0,,0,1.0,3164,sa,san_Deva,0.9905,sa,agree,sa,sa(ऽ):3
 ind-sa-fw2,95f3631d1ffd1f6e,dattatreyamanjunath,fix,A6;F1,0,,0,0.9894,14013,sa,san_Deva,1.0,sa,agree,sa,mr(ळ):3
-ind-sa-fw2,6b46816d7c2ae6b1,dattatreyamanjunath,clean,,0,,0,1.0,480,sa,san_Deva,1.0,unknown,agree,sa,sa(ऽ):1;vedic_accent(॑):18;vedic_accent(॒):18
+ind-sa-fw2,6b46816d7c2ae6b1,dattatreyamanjunath,clean,,0,,0,1.0,480,sa,san_Deva,1.0,sa,agree,sa,sa(ऽ):1;vedic_accent(॑):18;vedic_accent(॒):18
 ind-sa-fw2,9c5aadd5ed1fd86a,dattatreyamanjunath,fix,A6;C1,0,,0,1.0,822,sa,san_Deva,0.9601,sa,agree,sa,sa(ऽ):1
 ind-sa-fw2,8f8f2c783674d31f,dattatreyamanjunath,fix,A6;B4;C1;D2;D3,0,,0,0.8097,566,sa,san_Deva,1.0,sa,agree,sa,
 ind-sa-fw2,ad79dd34ef8d2af3,dattatreyamanjunath,fix,A5;C1,0,,0,1.0,21453,sa,san_Deva,1.0,sa,agree,sa,sa(ऽ):38
@@ -9677,7 +9677,7 @@ ind-sa-fw2,80e65bad7543a242,swatibansal,fix,C1,0,,0,0.9818,377,sa,san_Deva,1.0,s
 ind-sa-fw2,aafd2d8a6d638218,swatibansal,fix,C3;F1,0,,0,1.0,15085,sa,san_Deva,1.0,sa,agree,sa,sa(ऽ):14
 ind-sa-fw2,8dacf1ffaf5ea80f,swatibansal,fix,A6,0,,0,1.0,3164,sa,san_Deva,0.9905,sa,agree,sa,sa(ऽ):3
 ind-sa-fw2,95f3631d1ffd1f6e,swatibansal,fix,A6;C1;C4,0,,0,0.9894,14013,sa,san_Deva,1.0,sa,agree,sa,mr(ळ):3
-ind-sa-fw2,6b46816d7c2ae6b1,swatibansal,fix,H3,0,,0,1.0,480,sa,san_Deva,1.0,unknown,agree,sa,sa(ऽ):1;vedic_accent(॑):18;vedic_accent(॒):18
+ind-sa-fw2,6b46816d7c2ae6b1,swatibansal,fix,H3,0,,0,1.0,480,sa,san_Deva,1.0,sa,agree,sa,sa(ऽ):1;vedic_accent(॑):18;vedic_accent(॒):18
 ind-sa-fw2,9c5aadd5ed1fd86a,swatibansal,fix,A6,0,,0,1.0,822,sa,san_Deva,0.9601,sa,agree,sa,sa(ऽ):1
 ind-sa-fw2,8f8f2c783674d31f,swatibansal,drop,A6;C1;D3,0,,0,0.8097,566,sa,san_Deva,1.0,sa,agree,sa,
 ind-sa-fw2,ad79dd34ef8d2af3,swatibansal,fix,C1,0,,0,1.0,21453,sa,san_Deva,1.0,sa,agree,sa,sa(ऽ):38

@@ -10,6 +10,9 @@
   "_v3_changes": [
     "Sanskrit markers extended from grammar tables (#675): markers.sa.words_file is built by sa_marker_build.py from the paradigms in sa_paradigms.py, dropping forms found in Hindi or Marathi text; the 21 words above are unchanged"
   ],
+  "_v4_changes": [
+    "sandhi spellings (-aḥ as -o, final t as d, sa/esha as sa/esha before a consonant), enclitics, a few common forms, and a hand KEEP list in sa_marker_build.py (review on #842); no count changes in the CAP-1 run"
+  ],
   "packs": {
     "ind-hi-fw2": "hi",
     "ind-hi-hplt": "hi",

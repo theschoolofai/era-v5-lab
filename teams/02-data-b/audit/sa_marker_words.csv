@@ -201,6 +201,17 @@ form,group,paradigm,docs_sa,docs_hi_mr,decision
 आसु,pronoun,idam f,4,0,kept
 इदम्,pronoun,idam n,14,1,kept
 इमानि,pronoun,idam n,8,0,kept
+एनम्,pronoun,enclitic etad/idam,0,0,kept
+एनौ,pronoun,enclitic etad/idam,0,0,kept
+एनान्,pronoun,enclitic etad/idam,1,0,kept
+एनेन,pronoun,enclitic etad/idam,0,0,kept
+एनयोः,pronoun,enclitic etad/idam,1,0,kept
+एनाम्,pronoun,enclitic etad/idam,0,0,kept
+एने,pronoun,enclitic etad/idam,0,0,kept
+एनाः,pronoun,enclitic etad/idam,1,0,kept
+एनया,pronoun,enclitic etad/idam,0,0,kept
+एनत्,pronoun,enclitic etad/idam,1,0,kept
+एनानि,pronoun,enclitic etad/idam,0,0,kept
 अहम्,pronoun,asmad,16,5,dropped: in 5 Hindi/Marathi documents
 आवाम्,pronoun,asmad,2,0,kept
 वयम्,pronoun,asmad,19,0,kept
@@ -224,6 +235,7 @@ form,group,paradigm,docs_sa,docs_hi_mr,decision
 अस्मासु,pronoun,asmad,3,0,kept
 त्वम्,pronoun,yushmad,20,0,kept
 युवाम्,pronoun,yushmad,0,0,kept
+वाम्,pronoun,yushmad,2,0,kept
 यूयम्,pronoun,yushmad,2,0,kept
 त्वाम्,pronoun,yushmad,0,0,kept
 त्वा,pronoun,yushmad,20,0,kept
@@ -1393,7 +1405,7 @@ form,group,paradigm,docs_sa,docs_hi_mr,decision
 असानि,verb,as be imperative,0,0,kept
 असाव,verb,as be imperative,0,0,kept
 असाम,verb,as be imperative,0,1,kept
-करोति,verb,kR do present,69,2,dropped: in 2 Hindi/Marathi documents
+करोति,verb,kR do present,69,2,kept by hand: quoted Sanskrit in its 2 Hindi/Marathi documents (review on #842)
 कुरुतः,verb,kR do present,1,0,kept
 कुर्वन्ति,verb,kR do present,41,0,kept
 करोषि,verb,kR do present,2,0,kept
@@ -1649,7 +1661,7 @@ form,group,paradigm,docs_sa,docs_hi_mr,decision
 वा,other,indeclinable,193,51,dropped: in 51 Hindi/Marathi documents
 तु,other,indeclinable,198,9,dropped: in 9 Hindi/Marathi documents
 हि,other,indeclinable,164,27,dropped: in 27 Hindi/Marathi documents
-खलु,other,indeclinable,53,2,dropped: in 2 Hindi/Marathi documents
+खलु,other,indeclinable,53,2,kept by hand: quoted Sanskrit in its 2 Hindi documents (review on #842)
 किल,other,indeclinable,27,2,dropped: in 2 Hindi/Marathi documents
 ननु,other,indeclinable,38,0,kept
 नूनम्,other,indeclinable,3,0,kept
@@ -1685,6 +1697,16 @@ form,group,paradigm,docs_sa,docs_hi_mr,decision
 तथापि,other,indeclinable,52,42,dropped: in 42 Hindi/Marathi documents
 यद्यपि,other,indeclinable,34,42,dropped: in 42 Hindi/Marathi documents
 तर्हि,other,indeclinable,70,0,kept
+एवम्,other,common (review #842),22,3,dropped: in 3 Hindi/Marathi documents
+नमः,other,common (review #842),37,4,dropped: in 4 Hindi/Marathi documents
+स्वयम्,other,common (review #842),10,1,kept
+कश्चित्,other,common (review #842),22,0,kept
+किञ्चित्,other,common (review #842),25,1,kept
+किंचित्,other,common (review #842),3,1,kept
+भवान्,other,common (review #842),24,1,kept
+भो,other,common (review #842),16,7,dropped: in 7 Hindi/Marathi documents
+इत्यादि,other,common (review #842),28,54,dropped: in 54 Hindi/Marathi documents
+उक्तम्,other,common (review #842),35,0,kept
 तं,pronoun,tad m (anusvara),126,1,kept
 ताभ्यां,pronoun,tad m (anusvara),11,0,kept
 तेषां,pronoun,tad m (anusvara),125,0,kept
@@ -1731,6 +1753,8 @@ form,group,paradigm,docs_sa,docs_hi_mr,decision
 आसां,pronoun,idam f (anusvara),6,1,kept
 अस्यां,pronoun,idam f (anusvara),17,0,kept
 इदं,pronoun,idam n (anusvara),77,1,kept
+एनं,pronoun,enclitic etad/idam (anusvara),14,0,kept
+एनां,pronoun,enclitic etad/idam (anusvara),2,0,kept
 अहं,pronoun,asmad (anusvara),66,5,dropped: in 5 Hindi/Marathi documents
 आवां,pronoun,asmad (anusvara),5,0,kept
 वयं,pronoun,asmad (anusvara),71,1,kept
@@ -1741,6 +1765,7 @@ form,group,paradigm,docs_sa,docs_hi_mr,decision
 अस्माकं,pronoun,asmad (anusvara),40,1,kept
 त्वं,pronoun,yushmad (anusvara),91,1,kept
 युवां,pronoun,yushmad (anusvara),3,0,kept
+वां,pronoun,yushmad (anusvara),6,38,dropped: in 38 Hindi/Marathi documents
 यूयं,pronoun,yushmad (anusvara),17,0,kept
 त्वां,pronoun,yushmad (anusvara),39,0,kept
 युवाभ्यां,pronoun,yushmad (anusvara),3,0,kept
@@ -1980,5 +2005,331 @@ form,group,paradigm,docs_sa,docs_hi_mr,decision
 भवितुं,other,infinitive (anusvara),14,0,kept
 इदानीं,other,indeclinable (anusvara),41,0,kept
 नूनं,other,indeclinable (anusvara),21,0,kept
-कथं,other,indeclinable (anusvara),105,2,dropped: in 2 Hindi/Marathi documents
+कथं,other,indeclinable (anusvara),105,2,kept by hand: quoted Sanskrit in its 2 Hindi/Marathi documents (review on #842)
 नित्यं,other,indeclinable (anusvara),62,0,kept
+एवं,other,common (review #842) (anusvara),143,307,dropped: in 307 Hindi/Marathi documents
+स्वयं,other,common (review #842) (anusvara),53,154,dropped: in 154 Hindi/Marathi documents
+उक्तं,other,common (review #842) (anusvara),52,0,kept
+सो,pronoun,tad m (sandhi -o),12,55,dropped: in 55 Hindi/Marathi documents
+स,pronoun,"tad m (sandhi, before a consonant)",186,43,dropped: in 43 Hindi/Marathi documents
+तेभ्यो,pronoun,tad m (sandhi -o),12,0,kept
+तस्माद्,pronoun,tad m (sandhi -d),14,0,kept
+ताभ्यो,pronoun,tad f (sandhi -o),2,0,kept
+तद्,pronoun,tad n (sandhi -d),35,1,kept
+यो,pronoun,yad m (sandhi -o),103,3,dropped: in 3 Hindi/Marathi documents
+येभ्यो,pronoun,yad m (sandhi -o),1,0,kept
+यस्माद्,pronoun,yad m (sandhi -d),3,0,kept
+याभ्यो,pronoun,yad f (sandhi -o),0,0,kept
+यद्,pronoun,yad n (sandhi -d),26,3,dropped: in 3 Hindi/Marathi documents
+एषो,pronoun,etad m (sandhi -o),4,0,kept
+एष,pronoun,"etad m (sandhi, before a consonant)",51,0,kept
+एतेभ्यो,pronoun,etad m (sandhi -o),1,0,kept
+एतस्माद्,pronoun,etad m (sandhi -d),1,0,kept
+एताभ्यो,pronoun,etad f (sandhi -o),0,0,kept
+एतद्,pronoun,etad n (sandhi -d),12,1,kept
+को,pronoun,kim m (sandhi -o),56,2258,dropped: in 2258 Hindi/Marathi documents
+केभ्यो,pronoun,kim m (sandhi -o),0,0,kept
+कस्माद्,pronoun,kim m (sandhi -d),0,0,kept
+काभ्यो,pronoun,kim f (sandhi -o),0,0,kept
+सर्वो,pronoun,sarva m (sandhi -o),13,3,dropped: in 3 Hindi/Marathi documents
+सर्वेभ्यो,pronoun,sarva m (sandhi -o),3,0,kept
+सर्वस्माद्,pronoun,sarva m (sandhi -d),0,0,kept
+सर्वाभ्यो,pronoun,sarva f (sandhi -o),2,0,kept
+अन्यो,pronoun,anya m (sandhi -o),3,0,kept
+अन्येभ्यो,pronoun,anya m (sandhi -o),0,0,kept
+अन्यस्माद्,pronoun,anya m (sandhi -d),0,0,kept
+अन्याभ्यो,pronoun,anya f (sandhi -o),0,0,kept
+अन्यद्,pronoun,anya n (sandhi -d),3,0,kept
+एभ्यो,pronoun,idam m (sandhi -o),3,0,kept
+अस्माद्,pronoun,idam m (sandhi -d),2,0,kept
+आभ्यो,pronoun,idam f (sandhi -o),0,0,kept
+एनद्,pronoun,enclitic etad/idam (sandhi -d),0,0,kept
+नो,pronoun,asmad (sandhi -o),59,26,dropped: in 26 Hindi/Marathi documents
+मद्,pronoun,asmad (sandhi -d),0,0,kept
+अस्मद्,pronoun,asmad (sandhi -d),0,0,kept
+वो,pronoun,yushmad (sandhi -o),22,206,dropped: in 206 Hindi/Marathi documents
+त्वद्,pronoun,yushmad (sandhi -d),1,0,kept
+युष्मद्,pronoun,yushmad (sandhi -d),0,0,kept
+भवतो,verb,bhU be present (sandhi -o),9,0,kept
+भवथो,verb,bhU be present (sandhi -o),0,0,kept
+भवावो,verb,bhU be present (sandhi -o),0,0,kept
+भवामो,verb,bhU be present (sandhi -o),0,0,kept
+अभवद्,verb,bhU be imperfect (sandhi -d),0,0,kept
+अभवो,verb,bhU be imperfect (sandhi -o),0,0,kept
+भवेद्,verb,bhU be optative (sandhi -d),7,0,kept
+भविष्यतो,verb,bhU be future (sandhi -o),1,0,kept
+भविष्यथो,verb,bhU be future (sandhi -o),0,0,kept
+भविष्यावो,verb,bhU be future (sandhi -o),0,0,kept
+भविष्यामो,verb,bhU be future (sandhi -o),1,0,kept
+गच्छतो,verb,gam go present (sandhi -o),3,0,kept
+गच्छथो,verb,gam go present (sandhi -o),1,0,kept
+गच्छावो,verb,gam go present (sandhi -o),0,0,kept
+गच्छामो,verb,gam go present (sandhi -o),0,0,kept
+अगच्छद्,verb,gam go imperfect (sandhi -d),0,0,kept
+अगच्छो,verb,gam go imperfect (sandhi -o),0,0,kept
+गच्छेद्,verb,gam go optative (sandhi -d),0,0,kept
+गमिष्यतो,verb,gam go future (sandhi -o),0,0,kept
+गमिष्यथो,verb,gam go future (sandhi -o),0,0,kept
+गमिष्यावो,verb,gam go future (sandhi -o),0,0,kept
+गमिष्यामो,verb,gam go future (sandhi -o),1,0,kept
+पश्यतो,verb,dRz see present (sandhi -o),4,0,kept
+पश्यथो,verb,dRz see present (sandhi -o),0,0,kept
+पश्यावो,verb,dRz see present (sandhi -o),1,0,kept
+पश्यामो,verb,dRz see present (sandhi -o),4,0,kept
+अपश्यद्,verb,dRz see imperfect (sandhi -d),0,0,kept
+अपश्यो,verb,dRz see imperfect (sandhi -o),0,0,kept
+पश्येद्,verb,dRz see optative (sandhi -d),2,0,kept
+द्रक्ष्यतो,verb,dRz see future (sandhi -o),0,0,kept
+द्रक्ष्यथो,verb,dRz see future (sandhi -o),0,0,kept
+द्रक्ष्यावो,verb,dRz see future (sandhi -o),0,0,kept
+द्रक्ष्यामो,verb,dRz see future (sandhi -o),0,0,kept
+वदतो,verb,vad speak present (sandhi -o),1,0,kept
+वदथो,verb,vad speak present (sandhi -o),0,0,kept
+वदावो,verb,vad speak present (sandhi -o),0,0,kept
+वदामो,verb,vad speak present (sandhi -o),0,0,kept
+अवदद्,verb,vad speak imperfect (sandhi -d),0,0,kept
+अवदो,verb,vad speak imperfect (sandhi -o),0,0,kept
+वदेद्,verb,vad speak optative (sandhi -d),0,0,kept
+वदिष्यतो,verb,vad speak future (sandhi -o),0,0,kept
+वदिष्यथो,verb,vad speak future (sandhi -o),0,0,kept
+वदिष्यावो,verb,vad speak future (sandhi -o),0,0,kept
+वदिष्यामो,verb,vad speak future (sandhi -o),0,0,kept
+तिष्ठतो,verb,sthA stand present (sandhi -o),1,0,kept
+तिष्ठथो,verb,sthA stand present (sandhi -o),0,0,kept
+तिष्ठावो,verb,sthA stand present (sandhi -o),0,0,kept
+तिष्ठामो,verb,sthA stand present (sandhi -o),0,0,kept
+अतिष्ठद्,verb,sthA stand imperfect (sandhi -d),0,0,kept
+अतिष्ठो,verb,sthA stand imperfect (sandhi -o),0,0,kept
+तिष्ठेद्,verb,sthA stand optative (sandhi -d),1,0,kept
+स्थास्यतो,verb,sthA stand future (sandhi -o),0,0,kept
+स्थास्यथो,verb,sthA stand future (sandhi -o),0,0,kept
+स्थास्यावो,verb,sthA stand future (sandhi -o),0,0,kept
+स्थास्यामो,verb,sthA stand future (sandhi -o),0,0,kept
+पठतो,verb,paTh read present (sandhi -o),0,0,kept
+पठथो,verb,paTh read present (sandhi -o),0,0,kept
+पठावो,verb,paTh read present (sandhi -o),0,0,kept
+पठामो,verb,paTh read present (sandhi -o),0,0,kept
+अपठद्,verb,paTh read imperfect (sandhi -d),0,0,kept
+अपठो,verb,paTh read imperfect (sandhi -o),0,0,kept
+पठेद्,verb,paTh read optative (sandhi -d),0,0,kept
+पठिष्यतो,verb,paTh read future (sandhi -o),0,0,kept
+पठिष्यथो,verb,paTh read future (sandhi -o),0,0,kept
+पठिष्यावो,verb,paTh read future (sandhi -o),0,0,kept
+पठिष्यामो,verb,paTh read future (sandhi -o),0,0,kept
+लिखतो,verb,likh write present (sandhi -o),0,0,kept
+लिखथो,verb,likh write present (sandhi -o),0,0,kept
+लिखावो,verb,likh write present (sandhi -o),0,0,kept
+लिखामो,verb,likh write present (sandhi -o),0,0,kept
+अलिखद्,verb,likh write imperfect (sandhi -d),0,0,kept
+अलिखो,verb,likh write imperfect (sandhi -o),0,0,kept
+लिखेद्,verb,likh write optative (sandhi -d),0,0,kept
+लेखिष्यतो,verb,likh write future (sandhi -o),0,0,kept
+लेखिष्यथो,verb,likh write future (sandhi -o),0,0,kept
+लेखिष्यावो,verb,likh write future (sandhi -o),0,0,kept
+लेखिष्यामो,verb,likh write future (sandhi -o),0,0,kept
+जयतो,verb,ji win present (sandhi -o),0,0,kept
+जयथो,verb,ji win present (sandhi -o),0,0,kept
+जयावो,verb,ji win present (sandhi -o),0,0,kept
+जयामो,verb,ji win present (sandhi -o),0,0,kept
+अजयद्,verb,ji win imperfect (sandhi -d),0,0,kept
+अजयो,verb,ji win imperfect (sandhi -o),1,0,kept
+जयेद्,verb,ji win optative (sandhi -d),0,0,kept
+जेष्यतो,verb,ji win future (sandhi -o),0,0,kept
+जेष्यथो,verb,ji win future (sandhi -o),0,0,kept
+जेष्यावो,verb,ji win future (sandhi -o),0,0,kept
+जेष्यामो,verb,ji win future (sandhi -o),0,0,kept
+नयतो,verb,nI lead present (sandhi -o),0,0,kept
+नयथो,verb,nI lead present (sandhi -o),0,0,kept
+नयावो,verb,nI lead present (sandhi -o),0,0,kept
+नयामो,verb,nI lead present (sandhi -o),0,0,kept
+अनयद्,verb,nI lead imperfect (sandhi -d),0,0,kept
+अनयो,verb,nI lead imperfect (sandhi -o),0,0,kept
+नयेद्,verb,nI lead optative (sandhi -d),2,0,kept
+नेष्यतो,verb,nI lead future (sandhi -o),0,0,kept
+नेष्यथो,verb,nI lead future (sandhi -o),0,0,kept
+नेष्यावो,verb,nI lead future (sandhi -o),0,0,kept
+नेष्यामो,verb,nI lead future (sandhi -o),0,0,kept
+इच्छतो,verb,iS wish present (sandhi -o),0,0,kept
+इच्छथो,verb,iS wish present (sandhi -o),0,0,kept
+इच्छावो,verb,iS wish present (sandhi -o),0,0,kept
+इच्छामो,verb,iS wish present (sandhi -o),0,0,kept
+ऐच्छद्,verb,iS wish imperfect (sandhi -d),0,0,kept
+ऐच्छो,verb,iS wish imperfect (sandhi -o),0,0,kept
+इच्छेद्,verb,iS wish optative (sandhi -d),0,0,kept
+एषिष्यतो,verb,iS wish future (sandhi -o),0,0,kept
+एषिष्यथो,verb,iS wish future (sandhi -o),0,0,kept
+एषिष्यावो,verb,iS wish future (sandhi -o),0,0,kept
+एषिष्यामो,verb,iS wish future (sandhi -o),0,0,kept
+पृच्छतो,verb,pracch ask present (sandhi -o),1,0,kept
+पृच्छथो,verb,pracch ask present (sandhi -o),0,0,kept
+पृच्छावो,verb,pracch ask present (sandhi -o),0,0,kept
+पृच्छामो,verb,pracch ask present (sandhi -o),0,0,kept
+अपृच्छद्,verb,pracch ask imperfect (sandhi -d),0,0,kept
+अपृच्छो,verb,pracch ask imperfect (sandhi -o),0,0,kept
+पृच्छेद्,verb,pracch ask optative (sandhi -d),0,0,kept
+प्रक्ष्यतो,verb,pracch ask future (sandhi -o),0,0,kept
+प्रक्ष्यथो,verb,pracch ask future (sandhi -o),0,0,kept
+प्रक्ष्यावो,verb,pracch ask future (sandhi -o),0,0,kept
+प्रक्ष्यामो,verb,pracch ask future (sandhi -o),0,0,kept
+जीवतो,verb,jIv live present (sandhi -o),3,0,kept
+जीवथो,verb,jIv live present (sandhi -o),0,0,kept
+जीवावो,verb,jIv live present (sandhi -o),0,0,kept
+जीवामो,verb,jIv live present (sandhi -o),0,0,kept
+अजीवद्,verb,jIv live imperfect (sandhi -d),0,0,kept
+अजीवो,verb,jIv live imperfect (sandhi -o),0,0,kept
+जीवेद्,verb,jIv live optative (sandhi -d),0,0,kept
+जीविष्यतो,verb,jIv live future (sandhi -o),0,0,kept
+जीविष्यथो,verb,jIv live future (sandhi -o),0,0,kept
+जीविष्यावो,verb,jIv live future (sandhi -o),0,0,kept
+जीविष्यामो,verb,jIv live future (sandhi -o),0,0,kept
+वसतो,verb,vas dwell present (sandhi -o),0,0,kept
+वसथो,verb,vas dwell present (sandhi -o),0,0,kept
+वसावो,verb,vas dwell present (sandhi -o),0,0,kept
+वसामो,verb,vas dwell present (sandhi -o),0,0,kept
+अवसद्,verb,vas dwell imperfect (sandhi -d),0,0,kept
+अवसो,verb,vas dwell imperfect (sandhi -o),0,0,kept
+वसेद्,verb,vas dwell optative (sandhi -d),0,0,kept
+वत्स्यतो,verb,vas dwell future (sandhi -o),0,0,kept
+वत्स्यथो,verb,vas dwell future (sandhi -o),0,0,kept
+वत्स्यावो,verb,vas dwell future (sandhi -o),0,0,kept
+वत्स्यामो,verb,vas dwell future (sandhi -o),0,0,kept
+पिबतो,verb,pA drink present (sandhi -o),2,0,kept
+पिबथो,verb,pA drink present (sandhi -o),0,0,kept
+पिबावो,verb,pA drink present (sandhi -o),0,0,kept
+पिबामो,verb,pA drink present (sandhi -o),0,0,kept
+अपिबद्,verb,pA drink imperfect (sandhi -d),0,0,kept
+अपिबो,verb,pA drink imperfect (sandhi -o),0,0,kept
+पिबेद्,verb,pA drink optative (sandhi -d),0,0,kept
+पास्यतो,verb,pA drink future (sandhi -o),0,0,kept
+पास्यथो,verb,pA drink future (sandhi -o),0,0,kept
+पास्यावो,verb,pA drink future (sandhi -o),0,0,kept
+पास्यामो,verb,pA drink future (sandhi -o),0,0,kept
+पततो,verb,pat fall present (sandhi -o),0,0,kept
+पतथो,verb,pat fall present (sandhi -o),0,0,kept
+पतावो,verb,pat fall present (sandhi -o),0,0,kept
+पतामो,verb,pat fall present (sandhi -o),0,0,kept
+अपतद्,verb,pat fall imperfect (sandhi -d),0,0,kept
+अपतो,verb,pat fall imperfect (sandhi -o),0,0,kept
+पतेद्,verb,pat fall optative (sandhi -d),0,0,kept
+पतिष्यतो,verb,pat fall future (sandhi -o),0,0,kept
+पतिष्यथो,verb,pat fall future (sandhi -o),0,0,kept
+पतिष्यावो,verb,pat fall future (sandhi -o),0,0,kept
+पतिष्यामो,verb,pat fall future (sandhi -o),0,0,kept
+चरतो,verb,car move present (sandhi -o),2,0,kept
+चरथो,verb,car move present (sandhi -o),0,0,kept
+चरावो,verb,car move present (sandhi -o),0,0,kept
+चरामो,verb,car move present (sandhi -o),0,0,kept
+अचरद्,verb,car move imperfect (sandhi -d),0,0,kept
+अचरो,verb,car move imperfect (sandhi -o),0,0,kept
+चरेद्,verb,car move optative (sandhi -d),0,0,kept
+चरिष्यतो,verb,car move future (sandhi -o),0,0,kept
+चरिष्यथो,verb,car move future (sandhi -o),0,0,kept
+चरिष्यावो,verb,car move future (sandhi -o),0,0,kept
+चरिष्यामो,verb,car move future (sandhi -o),0,0,kept
+रक्षतो,verb,rakS protect present (sandhi -o),0,0,kept
+रक्षथो,verb,rakS protect present (sandhi -o),0,0,kept
+रक्षावो,verb,rakS protect present (sandhi -o),0,0,kept
+रक्षामो,verb,rakS protect present (sandhi -o),0,0,kept
+अरक्षद्,verb,rakS protect imperfect (sandhi -d),0,0,kept
+अरक्षो,verb,rakS protect imperfect (sandhi -o),0,0,kept
+रक्षेद्,verb,rakS protect optative (sandhi -d),0,0,kept
+रक्षिष्यतो,verb,rakS protect future (sandhi -o),0,0,kept
+रक्षिष्यथो,verb,rakS protect future (sandhi -o),0,0,kept
+रक्षिष्यावो,verb,rakS protect future (sandhi -o),0,0,kept
+रक्षिष्यामो,verb,rakS protect future (sandhi -o),0,0,kept
+नमतो,verb,nam bow present (sandhi -o),0,0,kept
+नमथो,verb,nam bow present (sandhi -o),0,0,kept
+नमावो,verb,nam bow present (sandhi -o),0,0,kept
+नमामो,verb,nam bow present (sandhi -o),1,0,kept
+अनमद्,verb,nam bow imperfect (sandhi -d),0,0,kept
+अनमो,verb,nam bow imperfect (sandhi -o),0,0,kept
+नमेद्,verb,nam bow optative (sandhi -d),0,0,kept
+नंस्यतो,verb,nam bow future (sandhi -o),0,0,kept
+नंस्यथो,verb,nam bow future (sandhi -o),0,0,kept
+नंस्यावो,verb,nam bow future (sandhi -o),0,0,kept
+नंस्यामो,verb,nam bow future (sandhi -o),0,0,kept
+चिन्तयतो,verb,cint think (10) present (sandhi -o),1,0,kept
+चिन्तयथो,verb,cint think (10) present (sandhi -o),0,0,kept
+चिन्तयावो,verb,cint think (10) present (sandhi -o),0,0,kept
+चिन्तयामो,verb,cint think (10) present (sandhi -o),0,0,kept
+अचिन्तयद्,verb,cint think (10) imperfect (sandhi -d),0,0,kept
+अचिन्तयो,verb,cint think (10) imperfect (sandhi -o),0,0,kept
+चिन्तयेद्,verb,cint think (10) optative (sandhi -d),0,0,kept
+चिन्तयिष्यतो,verb,cint think (10) future (sandhi -o),0,0,kept
+चिन्तयिष्यथो,verb,cint think (10) future (sandhi -o),0,0,kept
+चिन्तयिष्यावो,verb,cint think (10) future (sandhi -o),0,0,kept
+चिन्तयिष्यामो,verb,cint think (10) future (sandhi -o),0,0,kept
+कथयतो,verb,kath tell (10) present (sandhi -o),0,0,kept
+कथयथो,verb,kath tell (10) present (sandhi -o),0,0,kept
+कथयावो,verb,kath tell (10) present (sandhi -o),0,0,kept
+कथयामो,verb,kath tell (10) present (sandhi -o),1,0,kept
+अकथयद्,verb,kath tell (10) imperfect (sandhi -d),0,0,kept
+अकथयो,verb,kath tell (10) imperfect (sandhi -o),0,0,kept
+कथयेद्,verb,kath tell (10) optative (sandhi -d),0,0,kept
+कथयिष्यतो,verb,kath tell (10) future (sandhi -o),0,0,kept
+कथयिष्यथो,verb,kath tell (10) future (sandhi -o),0,0,kept
+कथयिष्यावो,verb,kath tell (10) future (sandhi -o),0,0,kept
+कथयिष्यामो,verb,kath tell (10) future (sandhi -o),0,0,kept
+स्तो,verb,as be present (sandhi -o),0,0,kept
+स्थो,verb,as be present (sandhi -o),1,0,kept
+स्वो,verb,as be present (sandhi -o),2,0,kept
+स्मो,verb,as be present (sandhi -o),2,0,kept
+आसीद्,verb,as be imperfect (sandhi -d),0,0,kept
+स्याद्,verb,as be optative (sandhi -d),7,1,kept
+कुरुतो,verb,kR do present (sandhi -o),1,0,kept
+कुरुथो,verb,kR do present (sandhi -o),0,0,kept
+कुर्वो,verb,kR do present (sandhi -o),0,0,kept
+कुर्मो,verb,kR do present (sandhi -o),0,0,kept
+अकरोद्,verb,kR do imperfect (sandhi -d),0,0,kept
+कुर्याद्,verb,kR do optative (sandhi -d),2,0,kept
+करिष्यतो,verb,kR do future (sandhi -o),0,0,kept
+करिष्यथो,verb,kR do future (sandhi -o),0,0,kept
+करिष्यावो,verb,kR do future (sandhi -o),0,0,kept
+करिष्यामो,verb,kR do future (sandhi -o),2,0,kept
+दत्तो,verb,dA give present (sandhi -o),3,0,kept
+दत्थो,verb,dA give present (sandhi -o),0,0,kept
+दद्वो,verb,dA give present (sandhi -o),0,0,kept
+दद्मो,verb,dA give present (sandhi -o),0,0,kept
+अददाद्,verb,dA give imperfect (sandhi -d),0,0,kept
+दद्याद्,verb,dA give optative (sandhi -d),3,0,kept
+दास्यतो,verb,dA give future (sandhi -o),0,0,kept
+दास्यथो,verb,dA give future (sandhi -o),0,0,kept
+दास्यावो,verb,dA give future (sandhi -o),0,0,kept
+दास्यामो,verb,dA give future (sandhi -o),1,0,kept
+जानीतो,verb,jJA know present (sandhi -o),0,0,kept
+जानीथो,verb,jJA know present (sandhi -o),0,0,kept
+जानीवो,verb,jJA know present (sandhi -o),0,0,kept
+जानीमो,verb,jJA know present (sandhi -o),0,0,kept
+अजानाद्,verb,jJA know imperfect (sandhi -d),0,0,kept
+जानीयाद्,verb,jJA know optative (sandhi -d),0,0,kept
+ज्ञास्यतो,verb,jJA know future (sandhi -o),0,0,kept
+ज्ञास्यथो,verb,jJA know future (sandhi -o),0,0,kept
+ज्ञास्यावो,verb,jJA know future (sandhi -o),0,0,kept
+ज्ञास्यामो,verb,jJA know future (sandhi -o),0,0,kept
+शृणुतो,verb,zru hear present (sandhi -o),0,0,kept
+शृणुथो,verb,zru hear present (sandhi -o),0,0,kept
+शृणुवो,verb,zru hear present (sandhi -o),0,0,kept
+शृणुमो,verb,zru hear present (sandhi -o),1,0,kept
+अशृणोद्,verb,zru hear imperfect (sandhi -d),0,0,kept
+शृणुयाद्,verb,zru hear optative (sandhi -d),2,0,kept
+श्रोष्यतो,verb,zru hear future (sandhi -o),0,0,kept
+श्रोष्यथो,verb,zru hear future (sandhi -o),0,0,kept
+श्रोष्यावो,verb,zru hear future (sandhi -o),0,0,kept
+श्रोष्यामो,verb,zru hear future (sandhi -o),0,0,kept
+ततो,other,indeclinable (sandhi -o),90,1,kept
+यतो,other,indeclinable (sandhi -o),47,1,kept
+कुतो,other,indeclinable (sandhi -o),22,0,kept
+अतो,other,indeclinable (sandhi -o),28,0,kept
+इतो,other,indeclinable (sandhi -o),7,0,kept
+श्वो,other,indeclinable (sandhi -o),2,0,kept
+ह्यो,other,indeclinable (sandhi -o),0,0,kept
+पुनो,other,indeclinable (sandhi -o),0,1,kept
+यावद्,other,indeclinable (sandhi -d),9,0,kept
+तावद्,other,indeclinable (sandhi -d),5,0,kept
+चेद्,other,indeclinable (sandhi -d),5,0,kept
+अधो,other,indeclinable (sandhi -o),2,1,kept
+अन्तो,other,indeclinable (sandhi -o),4,0,kept
+नमो,other,common (review #842) (sandhi -o),24,5,dropped: in 5 Hindi/Marathi documents
+कश्चिद्,other,common (review #842) (sandhi -d),2,0,kept
+किञ्चिद्,other,common (review #842) (sandhi -d),5,0,kept
+किंचिद्,other,common (review #842) (sandhi -d),0,0,kept

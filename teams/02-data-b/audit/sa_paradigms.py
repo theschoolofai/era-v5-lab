@@ -6,7 +6,10 @@ The forms come from standard paradigms, not from any corpus:
   - verbs: present, imperfect, optative, imperative, future of common roots (parasmaipada); present and imperfect
     of common atmanepada stems; present of common passive stems; hand tables for athematic roots
   - a few perfect 3rd-person forms, absolutives, infinitives, indeclinables
-Every word-final म् also gets its anusvara spelling (तम् -> तं), the common web spelling.
+Spelling variants, by rule (v4, review on #842):
+  - every word-final म् also gets its anusvara spelling (तम् -> तं), the common web spelling;
+  - sandhi: a final -aḥ also as -o (ततः -> ततो, नमः -> नमो, सः -> सो), a final त् also as द् (तत् -> तद्),
+    and सः, एषः also as स, एष (before a consonant).
 
 The corpus is used only afterwards, as a safety filter (sa_marker_build.py): a form that occurs in Hindi or Marathi
 text is dropped.
@@ -36,8 +39,9 @@ IRREGULAR_PRONOUNS = {
     "idam m": "अयम् इमौ इमे इमम् इमौ इमान् अनेन आभ्याम् एभिः अस्मै आभ्याम् एभ्यः अस्मात् आभ्याम् एभ्यः अस्य अनयोः एषाम् अस्मिन् अनयोः एषु",
     "idam f": "इयम् इमे इमाः इमाम् इमे इमाः अनया आभ्याम् आभिः अस्यै आभ्याम् आभ्यः अस्याः आभ्याम् आभ्यः अस्याः अनयोः आसाम् अस्याम् अनयोः आसु",
     "idam n": "इदम् इमे इमानि",
+    "enclitic etad/idam": "एनम् एनौ एनान् एनेन एनयोः एनाम् एने एनाः एनया एनत् एनानि",
     "asmad": "अहम् आवाम् वयम् माम् मा आवाम् नौ अस्मान् नः मया आवाभ्याम् अस्माभिः मह्यम् मे अस्मभ्यम् मत् अस्मत् मम आवयोः अस्माकम् मयि अस्मासु",
-    "yushmad": "त्वम् युवाम् यूयम् त्वाम् त्वा युष्मान् वः त्वया युवाभ्याम् युष्माभिः तुभ्यम् ते युष्मभ्यम् त्वत् युष्मत् तव युवयोः युष्माकम् त्वयि युष्मासु",
+    "yushmad": "त्वम् युवाम् वाम् यूयम् त्वाम् त्वा युष्मान् वः त्वया युवाभ्याम् युष्माभिः तुभ्यम् ते युष्मभ्यम् त्वत् युष्मत् तव युवयोः युष्माकम् त्वयि युष्मासु",
 }
 
 # ------------------------------------------------------------------ verbs
@@ -118,6 +122,24 @@ INDECLINABLE = ("तदा यदा कदा सर्वदा ततः य�
                 "इदानीम् अधुना पुनः एव अपि इति च वा तु हि खलु किल ननु नूनम् इव यथा तथा कथम् यावत् तावत् चेत् "
                 "यदि न मा सह विना प्रति उपरि अधः अन्तः बहिः सम्यक् शनैः सदा नित्यम् सहसा वै उत अथ अथवा "
                 "नास्ति नैव चापि चैव तथापि यद्यपि तर्हि")
+COMMON = "एवम् नमः स्वयम् कश्चित् किञ्चित् किंचित् भवान् भो इत्यादि उक्तम्"  # review on #842
+
+
+def is_consonant(ch):
+    return "\u0915" <= ch <= "\u0939" or "\u0958" <= ch <= "\u095F"
+
+
+def sandhi_variants(rows):
+    """The sandhi spellings of the forms: -aḥ as -o, final त् as द्, and सः/एषः as स/एष."""
+    out = []
+    for f, g, s in rows:
+        if f.endswith("ः") and len(f) > 1 and is_consonant(f[-2]):
+            out.append((f[:-1] + "ो", g, s + " (sandhi -o)"))
+        if f.endswith("त्"):
+            out.append((f[:-2] + "द्", g, s + " (sandhi -d)"))
+        if f in ("सः", "एषः"):
+            out.append((f[:-1], g, s + " (sandhi, before a consonant)"))
+    return out
 
 
 def build(dedup=True):
@@ -155,9 +177,11 @@ def build(dedup=True):
     add("other", "absolutive", ABSOLUTIVE.split())
     add("other", "infinitive", INFINITIVE.split())
     add("other", "indeclinable", INDECLINABLE.split())
+    add("other", "common (review #842)", COMMON.split())
 
     # anusvara spelling of a final m: तम् -> तं
     out += [(f[:-2] + "ं", g, s + " (anusvara)") for f, g, s in list(out) if f.endswith("म्")]
+    out += sandhi_variants(out)
     if not dedup:
         return out
     seen, uniq = set(), []
