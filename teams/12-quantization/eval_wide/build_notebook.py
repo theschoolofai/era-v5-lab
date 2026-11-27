@@ -51,6 +51,9 @@ RUN_BY    = ""                 # <-- your GitHub handle, recorded with the resul
 CAP       = 20                 # items per task (MMLU: per subject); None = full splits. Same cap for every format of a model
 SKIP_GATED = False             # True leaves MILU out (no HF_TOKEN)
 TASKS     = None               # None = every task of run_wide_gguf.WIDE; or a list, e.g. ["mmlu", "arc_challenge"]
+GUARD     = {}                 # optional guard-test settings, recorded in environment.json and the guard log, e.g.
+                               # {"EVAL_GUARD_CHECK4": "warn", "EVAL_GUARD_CACHE_TOL": "0.10",
+                               #  "EVAL_GUARD_CONTEXT": "The capital of France is the city of"}; {} = defaults
 N_CTX     = 4096
 BASE      = "bf16"
 MODEL, REVISION = "sarvamai/sarvam-1", "e9607337286ddf496d4a2562b194e489dcf3feea"   # Granite 3.0 MoE: pin from #643
@@ -85,6 +88,8 @@ if not SKIP_GATED:
 pick("bf16 GGUF: the llama.cpp converter"),    # llama-quantize build + conversion
 code("""
 # every format: quantize (output layer Q8_0 below 8 bits, as quantize_eval.py), guard test, wide pass, per-task save
+import shlex
+ENV["guard_overrides"] = GUARD; save_env()
 RUNS = f"{OUT}/runs_" + "-".join(FORMATS) + (f"_cap{CAP}" if CAP else "_full")
 
 def run_format(fmt, gguf, gpu_layers):
@@ -100,7 +105,8 @@ for fmt in FORMATS:
     if not os.path.exists(gguf):
         extra = "" if fmt == "Q8_0" else "--output-tensor-type q8_0"
         sh(f"{QUANTIZE} {extra} {BF16} {gguf} {fmt}", log=f"{OUT}/logs/quantize_{fmt}.log"); made_here = True
-    sh(f"cd {CODE} && {EVAL_PY} test_llamacpp_lm.py {gguf}", log=f"{OUT}/logs/test_llamacpp_lm_{fmt}.log")
+    guard_env = " ".join(f"{k}={shlex.quote(str(v))}" for k, v in GUARD.items())
+    sh(f"cd {CODE} && env {guard_env} {EVAL_PY} test_llamacpp_lm.py {gguf}", log=f"{OUT}/logs/test_llamacpp_lm_{fmt}.log")
     gpu_layers = -1
     try:
         run_format(fmt, gguf, gpu_layers)
