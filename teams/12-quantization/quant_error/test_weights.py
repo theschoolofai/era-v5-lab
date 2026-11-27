@@ -19,37 +19,25 @@ import weights as w  # noqa: E402
 
 LLAMA = os.environ.get('LLAMA_CPP_DIR')
 needs_llama = unittest.skipUnless(LLAMA, 'set LLAMA_CPP_DIR to a llama.cpp b12359 checkout to run the GGUF round trips')
-TMP, BUILT = None, {}
+BUILT = None   # fixtures.Built, for this module's tests
 
 
 def setUpModule():
-    global TMP
-    TMP = tempfile.TemporaryDirectory()
+    global BUILT
+    BUILT = fixtures.Built()
 
 
 def tearDownModule():
-    TMP.cleanup()
-
-
-def _built(key: str, make):
-    """Each fixture is built once, on first use; one that lacks an input skips every test that asks for it."""
-    if key not in BUILT:
-        try:
-            BUILT[key] = make()
-        except fixtures.Unavailable as e:
-            BUILT[key] = e
-    if isinstance(BUILT[key], fixtures.Unavailable):
-        raise fixtures.Unavailable(str(BUILT[key]))
-    return BUILT[key]
+    BUILT.close()
 
 
 def hf(arch: str) -> Path:
     make = {'olmoe': fixtures.tiny_olmoe, 'ernie': fixtures.tiny_ernie}[arch]
-    return _built(arch, lambda: make(Path(TMP.name) / arch))
+    return BUILT(arch, make)
 
 
 def gg(arch: str) -> Path:
-    return _built(f'{arch}.gguf', lambda: fixtures.to_gguf(hf(arch), Path(TMP.name) / f'{arch}-f32.gguf', 'f32'))
+    return BUILT(f'{arch}-f32.gguf', lambda out: fixtures.to_gguf(hf(arch), out, 'f32'))
 
 
 def stages(src) -> dict[str, dict[str, torch.Tensor]]:

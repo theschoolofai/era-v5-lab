@@ -9,9 +9,11 @@ plumbing is tested. Inputs each fixture needs:
   to_gguf     LLAMA_CPP_DIR, a llama.cpp b12359 checkout
 A missing input raises `Unavailable`, a unittest.SkipTest: a test that builds the fixture is skipped with the message,
 and any other caller can catch it. Anything else (a tokenizer with the wrong sha256, a failing script) is an error.
+Tests build fixtures through a `Built` cache, inside the tests (never in setUpModule, where a skip skips the module).
 """
-import hashlib, json, os, shutil, subprocess, sys, unittest
+import hashlib, json, os, shutil, subprocess, sys, tempfile, unittest
 from pathlib import Path
+from typing import Callable
 
 import torch
 
@@ -28,6 +30,30 @@ ERNIE = 'Ernie4_5_MoeForCausalLM'
 
 class Unavailable(unittest.SkipTest):
     """An input a fixture needs is not on this machine (see the module docstring)."""
+
+
+class Built:
+    """One test module's fixtures, each built once, on first use, in a temporary folder that close() removes.
+
+        built = Built();  built('olmoe', tiny_olmoe)   # tiny_olmoe(<folder>/olmoe), cached under 'olmoe'
+
+    A fixture that lacks an input skips every test that asks for it: its Unavailable is cached and raised again."""
+
+    def __init__(self):
+        self._tmp, self._cache = tempfile.TemporaryDirectory(), {}
+
+    def __call__(self, key: str, make: Callable[[Path], Path]) -> Path:
+        if key not in self._cache:
+            try:
+                self._cache[key] = make(Path(self._tmp.name) / key)
+            except Unavailable as e:
+                self._cache[key] = e
+        if isinstance(self._cache[key], Unavailable):
+            raise Unavailable(str(self._cache[key]))
+        return self._cache[key]
+
+    def close(self) -> None:
+        self._tmp.cleanup()
 
 
 def _run(cmd: list) -> None:

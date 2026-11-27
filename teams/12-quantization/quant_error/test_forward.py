@@ -4,7 +4,7 @@
 Both tracks read Hugging Face folders (SafetensorsWeights), so no llama.cpp is needed. A test whose fixture lacks an
 input (the p1536 tokenizer, OLMoE's files offline) is skipped with a message.
 """
-import json, sys, tempfile, unittest
+import json, sys, unittest
 from pathlib import Path
 
 import torch
@@ -17,34 +17,22 @@ import fixtures  # noqa: E402
 import forward as f  # noqa: E402
 from weights import SafetensorsWeights  # noqa: E402
 
-TMP, BUILT = None, {}
+BUILT = None   # fixtures.Built, for this module's tests
 SCALED = 'model.layers.1.mlp.experts.2.down_proj.weight'
 
 
 def setUpModule():
-    global TMP
-    TMP = tempfile.TemporaryDirectory()
+    global BUILT
+    BUILT = fixtures.Built()
 
 
 def tearDownModule():
-    TMP.cleanup()
-
-
-def _built(key: str, make):
-    """Each fixture is built once, on first use; one that lacks an input skips every test that asks for it."""
-    if key not in BUILT:
-        try:
-            BUILT[key] = make()
-        except fixtures.Unavailable as e:
-            BUILT[key] = e
-    if isinstance(BUILT[key], fixtures.Unavailable):
-        raise fixtures.Unavailable(str(BUILT[key]))
-    return BUILT[key]
+    BUILT.close()
 
 
 def hf(arch: str) -> Path:
     make = {'olmoe': fixtures.tiny_olmoe, 'ernie': fixtures.tiny_ernie, 'ernie-dense0': dense_first_ernie}[arch]
-    return _built(arch, lambda: make(Path(TMP.name) / arch))
+    return BUILT(arch, make)
 
 
 def dense_first_ernie(dir: Path) -> Path:
