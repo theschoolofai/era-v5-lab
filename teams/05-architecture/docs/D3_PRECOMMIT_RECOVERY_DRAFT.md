@@ -1,114 +1,122 @@
-# D3: interrupted initialization recovery (draft)
+# D3: interrupted initialization recovery (week-5 draft)
 
-This revises #826 for the simpler direction discussed with Shivanshu and Max.
-It remains a draft, not approval to deploy. D4 rollback is separate. Do not
-change the running Dry Run 2 trainer, inputs or launch policy for this proposal.
+This revision follows Suresh's Team 7 decision and Shivanshu's review on #826.
+It remains a draft. Do not deploy it into Dry Run 2 or change this week's fresh
+start or launcher behavior. Target week 5, after the main-run go/no-go on
+28 Nov and confirmation of the main-run checkpoint store. D4 rollback is separate.
 
-## Problem and resulting behavior
+## Problem
 
-A trainer can claim a run ID and then stop before its first checkpoint commits.
-Normal fresh mode correctly refuses the existing claim, while committed resume
-has nothing to restore. D3 adds an explicit way to initialize that same logical
-run again, after the operator or launcher has confirmed the old attempt stopped.
-It does not recover work that was never committed or diagnose why training failed.
+A trainer can claim a run ID and stop before its first checkpoint commits.
+Ordinary fresh mode refuses that run ID, while committed resume has nothing to
+restore. D3 lets an authorized replacement attempt initialize the logical run
+again when no committed checkpoints exist. Uncommitted training work is not
+restored. This is initialization recovery, not failure diagnosis or rollback.
 
-`--recover-precommit` is mutually exclusive with native and committed resume.
-It requires the checkpoint store, same run ID and same resolved training identity.
-Use a fresh output directory. The flag authorizes takeover; it does not prove the
-previous process is dead. Claim age and an empty history are not evidence of death.
-If the previous attempt cannot be confirmed stopped, retain the exit-78 hold.
+## Entry condition and ownership
 
-## Proposed public G7 interface
+There is no new recovery flag or G7 API. For the proposed week-5 flow, the
+launcher passes the existing `--checkpoint-at-start` for fresh and claim-only
+initialization. Before resubmitting a claim-only run, G7 requires the launcher
+to check the previous job with `sacct` and establish it is no longer RUNNING or
+PENDING. That check belongs in Max's #820; this trainer does not perform it.
+Direct callers likewise must establish the previous attempt stopped before
+using this initialization path. An empty checkpoint history is not that proof.
 
-This draft proposes `Checkpointer.claim_initial(identity_sha256,
-allow_takeover=False)` in G7. Max/G7 still needs to review and agree that API.
-G5 calls it through a small adapter; G5 no longer writes G7's private `epoch`
-or `_ptr_ver` fields, creates lock protocol markers, or holds a lifetime OS lock.
-G7's existing short-lived storage CAS lock and checkpoint fencing are unchanged.
+With a checkpoint store and `--checkpoint-at-start`, and without native or
+committed resume, the trainer calls G7's existing public methods:
 
-The method supports a single-process trainer using a filesystem checkpoint store:
+1. `claim()` advances the ownership epoch using G7's conditional writes and
+   existing retry/fencing rules.
+2. `candidates()` classifies committed state after the claim. If candidates
+   exist, exit 78 with `use --resume-committed`; do not initialize over them.
+3. Without candidates, initialize step zero and request a checkpoint. Wait for
+   its commit before the first training update, with the step watchdog active.
 
-1. Read the exact pointer bytes/version and commit history. Read failures,
-   malformed pointers and any nonempty history hold without changing ownership.
-2. Fresh mode requires no pointer or history. Explicit recovery instead requires
-   a valid claim with no checkpoint reference and a matching training identity.
-   Missing identities hold; the earlier D3 draft's identity field is accepted.
-3. Advance ownership once, conditional on the exact inspected pointer version.
-   A competing claim or checkpoint publication produces `FencedError`; there is
-   no takeover retry against the winner. Existing writers retain normal fencing.
-4. Record the new epoch and emit G7's existing `checkpoint.claimed` event.
+Claiming first is intentional: even a later candidate rejection has already
+advanced ownership and fenced the prior attempt. The existing checkpoint
+reference/history is preserved. An old attempt that publishes first is detected
+as a candidate after G7's claim retry; an old attempt publishing after takeover
+is fenced. A competing claim causes `FencedError` rather than a G5 takeover retry.
 
-Checking for a committed pointer before takeover matters even when history has
-not yet been appended. Calling unrestricted `claim()` first and rejecting a
-checkpoint afterwards could fence its healthy owner. This narrower method avoids
-that change of ownership. Unreferenced uploads, including sealed manifests, are
-not treated as committed progress and are not restored.
+Without `--checkpoint-at-start`, ordinary fresh startup retains the existing
+run-ID check and lazy claim at save time. Committed resume retains its existing
+restore path. The initialization flag now waits for step-zero commit on fresh
+starts as well as on claim-only restarts; that is a proposed future behavior,
+not a change to an active launch. Native resume is not an initialization restart.
 
-Object-store recovery and distributed trainer initialization remain unsupported
-by this proposal. Normal object-store fresh/committed-resume behavior is retained.
-No metadata or leftover lock files are deleted. In particular, a lock file from
-the previous D3 revision is not proof of a stopped process and is not used here.
+## Data, metadata and failures
 
-## Trainer initialization and checkpoint barrier
+- G7 checkpoint source and pointer schema are unchanged from the pre-D3 base.
+  No identity fields or ownership protocol markers are added to `latest.json`.
+- G5 records the initialization epoch in its output `manifest.json` under
+  `team7_initialization`. Existing training identity and checkpoint manifest
+  config/code/data checks remain in their normal locations.
+- No previous identity is inferred from an uncommitted claim. The launcher must
+  supply reviewed inputs for reinitialization; no checkpoint exists to compare
+  or restore. Normal committed restore keeps its identity/checksum checks.
+- Unreferenced uploads, including sealed manifests, are not restored. Nothing
+  deletes claim metadata, old upload directories or leftover lock files.
+- Claim/candidate errors hold with exit 78. Candidates require committed resume.
+  A lost claim exits 78. A skipped, failed or unconfirmed step-zero checkpoint
+  exits 75 before training updates. Existing CheckpointError/FencedError causes
+  are used; no PrecommitRecoveryError reason-catalog entry is needed.
+- The watchdog covers initial evaluation, the step-zero save and its wait.
+  A stall exits through the existing watchdog event/note and stack dump.
 
-After successful explicit recovery, the trainer initializes model, optimizer,
-RNG and data stream from the reviewed inputs at step zero. It records old/new
-claim epochs in `manifest.json` under `precommit_recovery`, separately from the
-training identity. It requests a G7 step-zero checkpoint and waits for its commit
-before the first training update. A skipped or failed/unconfirmed save exits 75;
-ownership loss exits 78. The step watchdog remains active during that wait.
+## Scope and pending work
 
-Normal `--checkpoint-at-start` behavior remains asynchronous. Existing committed
-resume keeps its restore, identity and checksum checks. The step-zero snapshot
-preserves lazy optimizer initialization so restoring it reproduces uninterrupted
-AdamW/Muon training. No checkpoint cadence or production topology changes here.
+- **G5:** this draft implements the trainer entry path and regressions. It does
+  not enable a launcher route or modify the current DR2 job/run inputs.
+- **G7/Max (#820):** implement and validate the prior-job check, owned arguments
+  and fresh/claim-only routing. Until agreement and adoption, keep claim-only
+  as exit 78. The interim runbook workaround is to confirm the old job ended
+  and resubmit under a new run ID. G7 owns that runbook update.
+- **G7/Pradeep:** review this revision against the existing checkpoint contract,
+  including claim retries, candidate rejection after ownership changed, and
+  the two-process test.
+- **G7/G8:** review existing event and exit-note handling with the actual launcher.
+  G7 emits its normal checkpoint.claimed event; G5 does not duplicate it.
+- **TSAI/G7/G5:** confirm the main-run store and validate the agreed integrated
+  flow on the target environment before adoption. Shivanshu's draft review and
+  deployment/run approval remain pending.
 
-## What is still pending
+The adapter imposes no new rank-count or store-type restriction on G7's existing
+interfaces. This does not establish that G5 training supports distributed main-run
+topologies: the two-rank test validates the initialization/checkpoint boundary
+using G7's tiny model/loader, not a multi-rank G5 training run. Object-store and
+live SLURM integration remain validation work; no such acceptance is claimed.
 
-- **G7/Max:** agree and review the proposed public API, ownership precondition and
-  filesystem semantics. This PR includes the proposed implementation so the
-  interface can be reviewed concretely; it is not already supplied by #820.
-- **G7 launcher:** #820 still holds `claimed_only`. Keep that hold until agreement.
-  Any later opt-in recovery route must be launcher-owned, require confirmation
-  that the old attempt stopped, and exercise the real trainer. Do not silently
-  enable recovery through arbitrary input-file arguments.
-- **G7/G8:** review `checkpoint.claimed` with `recovered_precommit`, the existing
-  `CheckpointError`/`FencedError` exit-note causes, and held-job guidance together.
-  This revision no longer emits the old `PrecommitRecoveryError` cause; any
-  catalog entry added for that earlier draft may need corresponding adjustment.
-- **TSAI/G7/G5:** validate the agreed launcher/trainer flow and fencing on the
-  target shared filesystem before adoption. Local regression tests do not prove
-  cross-node behavior or production readiness. DR2 gains no recovery option.
-- **Shivanshu:** review the revised draft. Accepting the simpler direction was
-  not approval of this code or of a production run.
+## Regression coverage
 
-## Validation
-
-Tests cover actual filesystem conditional writes; refusal of committed pointers
-before history publication; malformed, missing and mismatched claim metadata;
-competing claim/commit races without retry; and stale-writer fencing. G5 tests
-cover public-API delegation, recovery failure before any optimizer update, and
-a watchdog timeout while waiting for the recovered step-zero checkpoint.
-
-End-to-end small-fixture tests recover interrupted initialization with AdamW and
-Muon, compare loss traces, then restore the recovered step-zero checkpoint and
-compare the final model hash. CUDA tests also exercise the actual KAS V2 head
-with bf16 and the watchdog. These are regression checks, not a DR2 or production
-acceptance run.
+- Public claim-before-candidates order with no private state assignments.
+- Fresh and claim-only initialization with the standard G7 pointer schema.
+- An actual stale-writer checkpoint upload rejected after takeover.
+- Existing committed candidates rejected after claim while preserving artifacts.
+- An actual commit racing with claim: G7 retries, then G5 rejects the candidate.
+- A competing claim fences the losing initialization attempt.
+- Metadata exceptions hold rather than triggering an initialization fallback.
+- Actual trainer exits 78 for candidates/competing claims and 75 for skipped,
+  failed or unconfirmed step-zero saves, with no optimizer update.
+- Actual two-process gloo ranks acquire one shared epoch and commit step zero.
+- Ordinary fresh/committed-resume paths bypass the initialization adapter.
+- CPU fp32 and CUDA bf16 AdamW/Muon loss-trace and recovered-step-zero restore parity,
+  including the real KAS V2 head; watchdog protection of the initialization wait.
 
 Local validation on 26 Nov 2026:
 
-- Full G5 CPU suite, G8 adapter and proposed G7 initial-claim tests:
-  **308 passed, 13 skipped, 89 subtests passed** (PyTorch 2.5.1 CPU).
-  After adding two metadata read/write failure cases, the complete G7
-  initial-claim test file also passed independently: **17 passed**.
-- Targeted CUDA/checkpoint/adapter/watchdog/initial-claim run:
-  **36 passed, 22 subtests passed, no skips** (PyTorch 2.5.1, CUDA 12.1,
-  RTX 3070 Laptop GPU). The real KAS V2 recovery case uses bf16 with AdamW
-  and Muon. This run preceded the two additional metadata failure cases above.
-- Existing G7 stale-owner checkpoint and asynchronous snapshot regressions:
-  **2 passed**. The existing local-store concurrency test initially encountered
-  a Windows temporary-directory permission error opening `log.jsonl.lock`;
-  rerunning it with a workspace temporary directory passed (**1 passed**).
+- Full G5 CPU suite and G8 adapter: **299 passed, 13 skipped, 91 subtests passed**
+  with PyTorch 2.5.1 CPU. Includes the initialization-wait watchdog test and the
+  actual two-process gloo checkpoint test.
+- Targeted CUDA/KAS, checkpoint and public-interface regressions:
+  **21 passed, 22 subtests passed, no skips**, with PyTorch 2.5.1, CUDA 12.1
+  and RTX 3070 Laptop GPU. Includes real KAS V2 bf16 AdamW/Muon recovery and
+  step-zero restore parity. The two-process case uses CPU gloo in this run.
+- `git diff --check` passed. G7 checkpoint source matches the pre-D3 base;
+  the proposed G7 API and its dedicated tests were removed.
+- Inspected #820 at `8077cc82`: the public claim/candidates/wait interfaces
+  remain compatible with these calls. This is a source-interface check, not
+  a live launcher or combined-branch acceptance test.
 
-Counts from the earlier lifetime-lock revision do not validate this revision.
+Earlier API/lock-based test counts do not validate this implementation. These
+local checks do not establish S3, SLURM, target-filesystem or production acceptance.

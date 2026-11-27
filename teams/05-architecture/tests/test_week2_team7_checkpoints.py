@@ -107,8 +107,12 @@ class Team7CheckpointTests(unittest.TestCase):
             with self.subTest(optimizer=optimizer):
                 self.check_resume(optimizer, False, at_start=True, precommit=True)
 
+    def test_normal_fresh_and_resume_do_not_call_initialization_adapter(self):
+        with patch.object(train_week2, "claim_for_start", side_effect=AssertionError("initialization adapter called")):
+            self.check_resume("adamw", False, check_fresh=True)
+
     def test_recovery_requires_step_zero_commit_before_any_optimizer_update(self):
-        for failure in ("skipped", "upload", "fenced", "unconfirmed"):
+        for failure in ("skipped", "upload", "fenced", "unconfirmed", "candidates", "competing"):
             with self.subTest(failure=failure):
                 self.check_resume("adamw", False, precommit=True, failure=failure)
 
@@ -136,7 +140,7 @@ class Team7CheckpointTests(unittest.TestCase):
         self.assertEqual(failure.exception.code, 2)
         load.assert_not_called()
 
-    def check_resume(self, optimizer, mtp, at_start=False, precommit=False, device="cpu", failure=None):
+    def check_resume(self, optimizer, mtp, at_start=False, precommit=False, device="cpu", failure=None, check_fresh=False):
         cfg, byte_rows, _ = fixture(mtp=mtp)
         cfg["model"].update(ke_max_pos=byte_rows.shape[1], mtp_weight=0.0)
         cfg["optim"].update(name=optimizer, muon_lr=0.01 if optimizer == "muon" else None)
@@ -203,8 +207,20 @@ class Team7CheckpointTests(unittest.TestCase):
                 from ckpt.store import LocalStore
 
                 baseline = run("baseline")
-                if precommit:
+                if check_fresh:
                     with patch.object(train_week2, "evaluate", side_effect=SystemExit(9)):
+                        with self.assertRaises(SystemExit) as early:
+                            run("before-save", *committed)
+                    self.assertEqual(early.exception.code, 9)
+                    self.assertFalse((run_store / "latest.json").exists())
+                if precommit:
+                    # Ordinary startup still claims lazily at save time. Fail
+                    # after that existing claim, before any upload/commit.
+                    def interrupted_save(checkpointer, *args, **kwargs):
+                        checkpointer.claim()
+                        raise SystemExit(9)
+
+                    with patch.object(Checkpointer, "save", interrupted_save):
                         with self.assertRaises(SystemExit) as interrupted:
                             run("interrupted", *committed)
                     self.assertEqual(interrupted.exception.code, 9)
@@ -215,13 +231,16 @@ class Team7CheckpointTests(unittest.TestCase):
                     orphan = run_store / "main" / "step_00000000-e1"
                     orphan.mkdir(parents=True)
                     (orphan / "MANIFEST.json").write_text('{"step":0}')
-                    committed.append("--recover-precommit")
+                    if "--checkpoint-at-start" not in committed:
+                        committed.append("--checkpoint-at-start")
                 if failure is not None:
                     faults = {
                         "skipped": patch.object(Checkpointer, "save", return_value=False),
                         "upload": patch.object(LocalStore, "put_file", side_effect=OSError("upload failed")),
                         "fenced": patch.object(Checkpointer, "wait", side_effect=FencedError("new owner")),
                         "unconfirmed": patch.object(Checkpointer, "wait", return_value=False),
+                        "candidates": patch.object(Checkpointer, "candidates", return_value=[{"path": "committed"}]),
+                        "competing": patch.object(Checkpointer, "claim", side_effect=FencedError("competing claim")),
                     }
                     # For wait failures, simulate an accepted request without
                     # starting a real uploader that could commit after the test.
@@ -231,12 +250,18 @@ class Team7CheckpointTests(unittest.TestCase):
                     with accepted, faults[failure], patch.object(train_week2, "set_lr_scale") as update:
                         with self.assertRaises(SystemExit) as stopped:
                             run("failed-recovery", *committed)
-                    self.assertEqual(stopped.exception.code, 78 if failure == "fenced" else 75)
+                    self.assertEqual(stopped.exception.code, 78 if failure in ("fenced", "candidates", "competing") else 75)
                     # set_lr_scale immediately precedes the optimizer update.
                     update.assert_not_called()
                     self.assertFalse((root / "failed-recovery" / "checkpoint.pt").exists())
                     self.assertFalse((root / "failed-recovery" / "summary.json").exists())
                     self.assertFalse((run_store / "commits.jsonl").exists())
+                    notes = list((root / "exit-notes").rglob("exit-*.json"))
+                    self.assertEqual(len(notes), 1)
+                    note = json.loads(notes[0].read_text())
+                    self.assertEqual(note["code"], stopped.exception.code)
+                    if failure == "candidates":
+                        self.assertIn("use --resume-committed", note["detail"])
                     return
                 actions = []
                 save = Checkpointer.save
@@ -253,13 +278,19 @@ class Team7CheckpointTests(unittest.TestCase):
                 with patch.object(Checkpointer, "save", track_save), patch.object(Checkpointer, "wait", track_wait):
                     first = run("first", *committed, "--stop-after", "3")
                 self.assertEqual(actions, (["start"] if at_start else [])
-                                 + (["wait"] if precommit else []) + ["interval", "final", "wait"])
+                                 + (["wait"] if at_start else []) + ["interval", "final", "wait"])
+
+                if check_fresh:
+                    pointer = (run_store / "latest.json").read_bytes()
+                    with self.assertRaises(SystemExit) as duplicate:
+                        run("duplicate-fresh", *committed)
+                    self.assertEqual(duplicate.exception.code, 2)
+                    self.assertEqual((run_store / "latest.json").read_bytes(), pointer)
 
                 if at_start:
                     if precommit:
-                        recovery = json.loads((first / "manifest.json").read_text())["precommit_recovery"]
-                        self.assertEqual(recovery, {"previous_epoch": 1, "epoch": 2})
-                        committed.remove("--recover-precommit")
+                        initialization = json.loads((first / "manifest.json").read_text())["team7_initialization"]
+                        self.assertEqual(initialization, {"epoch": 2})
                     self.assertEqual(
                         (first / "losses.txt").read_text().splitlines(),
                         (baseline / "losses.txt").read_text().splitlines()[:3],

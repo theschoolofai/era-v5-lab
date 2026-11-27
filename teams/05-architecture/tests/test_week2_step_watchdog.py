@@ -100,14 +100,20 @@ def run_fixture(root, mode):
             if mode == "recovery_wait":
                 abandoned_args = list(args)
                 abandoned_args[abandoned_args.index("--out") + 1] = str(root / "abandoned")
+                abandoned_args.append("--checkpoint-at-start")
+
+                def interrupted_save(checkpointer, *args, **kwargs):
+                    checkpointer.claim()
+                    raise SystemExit(9)
+
                 with patch.object(sys, "argv", abandoned_args), patch.object(
-                        train_week2, "evaluate", side_effect=SystemExit(9)):
+                        Checkpointer, "save", interrupted_save):
                     try:
                         train_week2.main()
                     except SystemExit as error:
                         if error.code != 9:
                             raise
-                args.append("--recover-precommit")
+                args.append("--checkpoint-at-start")
                 wait = Checkpointer.wait
 
                 def stalled_wait(checkpointer):

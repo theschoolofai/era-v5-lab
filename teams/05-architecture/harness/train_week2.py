@@ -29,7 +29,7 @@ from week2.evaluation import EVAL_BATCH_TOKENS, evaluate, token_nll
 from week2.optim import Optimizers, build_optimizer, describe, lr_scale, set_lr_scale
 from week2 import tst as tst_mod
 from week2.team7_checkpoints import CheckpointProgress, write_native_checkpoint
-from week2.precommit import claim_initial_state
+from week2.precommit import claim_for_start
 
 
 class JsonWriter:
@@ -265,7 +265,7 @@ def main():
     )
     p.add_argument(
         "--checkpoint-at-start", action="store_true",
-        help="Commit resumable step-0 state on a fresh run before training",
+        help="Claim initialization and commit step zero before training; caller must stop any previous attempt",
     )
     resume = p.add_mutually_exclusive_group()
     resume.add_argument(
@@ -273,10 +273,6 @@ def main():
     )
     resume.add_argument(
         "--resume-committed", action="store_true", help="Restore from the trusted Team 7 checkpoint store"
-    )
-    resume.add_argument(
-        "--recover-precommit", action="store_true",
-        help="Draft D3: explicitly reinitialize a claim-only run AFTER stopping its previous attempt",
     )
     args = p.parse_args()
     if args.expert_load_every < 0:
@@ -296,7 +292,7 @@ def main():
                 p.error("INTERVAL_S must be a finite positive number")
         if not math.isfinite(args.checkpoint_interval_s) or args.checkpoint_interval_s <= 0:
             p.error("Checkpoint interval must be a finite positive number")
-    elif args.resume_committed or args.recover_precommit or args.checkpoint_interval_s is not None or args.checkpoint_at_start:
+    elif args.resume_committed or args.checkpoint_interval_s is not None or args.checkpoint_at_start:
         p.error("Committed resume, interval and start checkpoint options require --checkpoint-store")
     if not math.isfinite(args.watchdog_s) or args.watchdog_s < 0:
         p.error("--watchdog-s must be a finite nonnegative number")
@@ -548,12 +544,9 @@ def main():
         )
         try:
             if not args.resume_committed:
-                if checkpointer.store.kind == "local" or args.recover_precommit:
-                    initial_claim = claim_initial_state(
-                        checkpointer, identity_sha256=identity_hash, recovering=args.recover_precommit,
-                    )
-                    if args.recover_precommit:
-                        manifest["precommit_recovery"] = initial_claim
+                if args.checkpoint_at_start and args.resume is None:
+                    epoch = claim_for_start(checkpointer)
+                    manifest["team7_initialization"] = {"epoch": epoch}
                 elif checkpointer.store.exists("latest.json"):
                     p.error("Team 7 run ID already exists. Use --resume-committed or a fresh run ID")
         except CheckpointError as error:
@@ -709,15 +702,16 @@ def main():
             log(row)
             if device.type == "cuda":
                 torch.cuda.empty_cache()  # execution-only (TSAI)
-        if (args.checkpoint_at_start or args.recover_precommit) and not args.resume and not args.resume_committed:
+        if args.checkpoint_at_start and not args.resume and not args.resume_committed:
             if not save_committed("start"):
-                checkpoint_exit(EXIT_RETRY, "crash", "Step-0 Team 7 checkpoint was skipped")
-            if args.recover_precommit:
-                committed_start = checkpointer.wait()
                 if checkpointer.any_fenced():
-                    checkpoint_exit(EXIT_FATAL, "FencedError", "Recovery lost ownership before step zero committed")
-                if not committed_start or checkpointer.last_commit_step != 0:
-                    checkpoint_exit(EXIT_RETRY, "crash", "Recovered initialization did not commit step zero")
+                    checkpoint_exit(EXIT_FATAL, "FencedError", "Initialization lost ownership before step zero committed")
+                checkpoint_exit(EXIT_RETRY, "crash", "Step-0 Team 7 checkpoint was skipped")
+            committed_start = checkpointer.wait()
+            if checkpointer.any_fenced():
+                checkpoint_exit(EXIT_FATAL, "FencedError", "Initialization lost ownership before step zero committed")
+            if not committed_start or checkpointer.last_commit_step != 0:
+                checkpoint_exit(EXIT_RETRY, "crash", "Initialization did not commit step zero")
         steps = cfg["run"]["steps"]
         if args.stop_after is not None:
             steps = min(steps, args.stop_after)
