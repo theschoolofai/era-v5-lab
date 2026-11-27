@@ -44,18 +44,33 @@ Each team showed its work for Gate 4 in public pull requests.
   languages, and most of the damage that they found was in the raw text, before cleaning. Every Indian-language
   pack of corpus v1 has a check of its training files, or is marked as not covered. Data B's part of the training
   data section of the model card is on main.
-- **KE2:** [text: waiting for KE2]
+- **KE2:** KE2 gave Architecture reference values for the KE2 layers, so the training code can be checked against
+  KE2's own version. Its job request to time these layers with the frozen tokenizer is on main.
 - **Architecture:** Architecture wrote the settings of the second dry run, and its job request is on main. The
   settings use the KE2 output head and the learning rate that TSAI set for the Muon optimizer. The exact size of the
   model is still open.
-- **Performance:** [text: waiting for Performance]
-- **Infrastructure:** [text: waiting for Infrastructure]
-- **Monitoring:** [text: waiting for Monitoring]
+- **Performance:** Performance added an optional faster way to compute attention as a separate setting, so the second
+  dry run itself stays unchanged. Its tools now read the training settings for balancing the experts and for the
+  router's optimizer. It also wrote a smaller profiling job for the first dry run.
+- **Infrastructure:** Infrastructure wrote the job request for a planned stop and restart in the second dry run, and a
+  script that checks the restart. Its runbook now covers failed machines, stuck communication between GPUs and damaged
+  checkpoints. Its settings keep the checkpoints that Evaluation scores, and its checkpoint plan now uses
+  Performance's timing of a full-size save.
+- **Monitoring:** Monitoring added panels to the public dashboard for the pace of training and for the training text
+  in each pack. It now stores every restart, saved checkpoint and alarm of a run, and shows them on its private
+  dashboard. It built, with Evaluation, the alarm for late checkpoint scoring, and its job request to watch the second
+  dry run live is on main. Its new tests feed faults, such as a dead expert or a sudden memory jump, into its alarms
+  and record which faults they miss.
 - **Evaluation:** Evaluation built, with Monitoring, an alarm that warns when the scoring of saved checkpoints falls
   behind training. Every training shard of the second dry run now has a second check against the benchmark questions.
   Evaluation's watcher job is ready to score each saved checkpoint of the second dry run.
-- **Post-training:** [text: waiting for Post-training]
-- **Quantization:** [text: waiting for Quantization]
+- **Post-training:** Post-training adapted its fine-tuning and reinforcement learning code to the KE2 output head, and
+  added a reader for the checkpoints that Infrastructure saves. Its job requests to compare tuning methods on the
+  second dry run are on main. Its licence and attribution text for the model card is on main.
+- **Quantization:** Quantization measured how smaller file formats change the benchmark scores of similar public
+  models, including a model for Indian languages. The format closest to full size kept the scores, and the smallest
+  lost points, most of all on the Indian-language model's reading tasks. Its tools turn a checkpoint of the lab's
+  model into files that people can run in Ollama, tested on a stand-in model.
 
 ## Decisions
 
@@ -117,6 +132,12 @@ How to fill it:
 | Gate 4 evidence: Data B | Data B | Gate 3 summary of the Indian-language text, `teams/02-data-b/audit/gate3_indic.md`: [#526](https://github.com/theschoolofai/era-v5-lab/pull/526), [#783](https://github.com/theschoolofai/era-v5-lab/pull/783). Joiners: [#653](https://github.com/theschoolofai/era-v5-lab/pull/653). The cleaning problem in [issue #734](https://github.com/theschoolofai/era-v5-lab/issues/734), fixed on main by [#767](https://github.com/theschoolofai/era-v5-lab/pull/767). Language labels: [#673](https://github.com/theschoolofai/era-v5-lab/pull/673). The mix of the training text: [#723](https://github.com/theschoolofai/era-v5-lab/pull/723), and [#794](https://github.com/theschoolofai/era-v5-lab/pull/794), merged by TSAI on 25 Nov. Model card text: [#525](https://github.com/theschoolofai/era-v5-lab/pull/525), [#782](https://github.com/theschoolofai/era-v5-lab/pull/782). Reader audits merged by TSAI on 25 Nov: [#788](https://github.com/theschoolofai/era-v5-lab/pull/788), [#806](https://github.com/theschoolofai/era-v5-lab/pull/806). Merged on 26 Nov: [#818](https://github.com/theschoolofai/era-v5-lab/pull/818), [#824](https://github.com/theschoolofai/era-v5-lab/pull/824). Still open: [issue #795](https://github.com/theschoolofai/era-v5-lab/issues/795), for one Marathi pack. Links from the Data B lead ([comment on #705](https://github.com/theschoolofai/era-v5-lab/pull/705#issuecomment-7155962319)) | yes | Data B: yes ([comment on #705](https://github.com/theschoolofai/era-v5-lab/pull/705#issuecomment-7198159282)) |
 | Gate 4 evidence: Architecture | Architecture | The job on main, `teams/05-architecture/jobs/2026-11-22-dryrun2.md`: [#787](https://github.com/theschoolofai/era-v5-lab/pull/787). The KE2 output head: [#717](https://github.com/theschoolofai/era-v5-lab/pull/717). The Muon learning rate: [#725](https://github.com/theschoolofai/era-v5-lab/pull/725). The router settings: [#736](https://github.com/theschoolofai/era-v5-lab/pull/736), [#748](https://github.com/theschoolofai/era-v5-lab/pull/748). A separate test with faster attention: [#804](https://github.com/theschoolofai/era-v5-lab/pull/804), merged by TSAI on 25 Nov. The model size is still open. Links from the Architecture lead, with no result claimed ([comment on #705](https://github.com/theschoolofai/era-v5-lab/pull/705#issuecomment-7159006781)) | yes | Architecture: yes ([comment on #705](https://github.com/theschoolofai/era-v5-lab/pull/705#issuecomment-7161567538)) |
 | Gate 4 evidence: Evaluation | Evaluation | The lag alarm, built with Monitoring: [#769](https://github.com/theschoolofai/era-v5-lab/pull/769); the follow-up with Monitoring's review points: [#822](https://github.com/theschoolofai/era-v5-lab/pull/822), merged on 26 Nov. The second check of the last shards: [#754](https://github.com/theschoolofai/era-v5-lab/pull/754). The dry run 2 watcher: job [#707](https://github.com/theschoolofai/era-v5-lab/pull/707) and run details [#747](https://github.com/theschoolofai/era-v5-lab/pull/747). Links and wording from the Evaluation lead ([comment on #705](https://github.com/theschoolofai/era-v5-lab/pull/705#issuecomment-7182415245)) | yes, with no edit | Evaluation: yes ([comment on #705](https://github.com/theschoolofai/era-v5-lab/pull/705#issuecomment-7182415245)) |
+| Gate 4 evidence: KE2 | KE2 | [#765](https://github.com/theschoolofai/era-v5-lab/pull/765), [#731](https://github.com/theschoolofai/era-v5-lab/pull/731), all merged. Drafted by Release from the team's merged pull requests, with no plan and no dry run 2 result. Waiting for the lead's OK or own line | yes | KE2: no |
+| Gate 4 evidence: Performance | Performance | [#804](https://github.com/theschoolofai/era-v5-lab/pull/804), [#749](https://github.com/theschoolofai/era-v5-lab/pull/749), [#776](https://github.com/theschoolofai/era-v5-lab/pull/776), all merged. Drafted by Release from the team's merged pull requests, with no plan and no dry run 2 result. Waiting for the lead's OK or own line | yes | Performance: no |
+| Gate 4 evidence: Infrastructure | Infrastructure | [#738](https://github.com/theschoolofai/era-v5-lab/pull/738), [#743](https://github.com/theschoolofai/era-v5-lab/pull/743), [#756](https://github.com/theschoolofai/era-v5-lab/pull/756), [#828](https://github.com/theschoolofai/era-v5-lab/pull/828), [#654](https://github.com/theschoolofai/era-v5-lab/pull/654), [#739](https://github.com/theschoolofai/era-v5-lab/pull/739), [#745](https://github.com/theschoolofai/era-v5-lab/pull/745), all merged. Drafted by Release from the team's merged pull requests, with no plan and no dry run 2 result. Waiting for the lead's OK or own line | yes | Infrastructure: no |
+| Gate 4 evidence: Monitoring | Monitoring | [#779](https://github.com/theschoolofai/era-v5-lab/pull/779), [#817](https://github.com/theschoolofai/era-v5-lab/pull/817), [#774](https://github.com/theschoolofai/era-v5-lab/pull/774), [#769](https://github.com/theschoolofai/era-v5-lab/pull/769), [#822](https://github.com/theschoolofai/era-v5-lab/pull/822), [#833](https://github.com/theschoolofai/era-v5-lab/pull/833), [#839](https://github.com/theschoolofai/era-v5-lab/pull/839), all merged. Drafted by Release from the team's merged pull requests, with no plan and no dry run 2 result. Waiting for the lead's OK or own line | yes | Monitoring: no |
+| Gate 4 evidence: Post-training | Post-training | [#746](https://github.com/theschoolofai/era-v5-lab/pull/746), [#778](https://github.com/theschoolofai/era-v5-lab/pull/778), [#797](https://github.com/theschoolofai/era-v5-lab/pull/797), [#835](https://github.com/theschoolofai/era-v5-lab/pull/835), [#811](https://github.com/theschoolofai/era-v5-lab/pull/811), all merged. Drafted by Release from the team's merged pull requests, with no plan and no dry run 2 result. Waiting for the lead's OK or own line | yes | Post-training: no |
+| Gate 4 evidence: Quantization | Quantization | [#714](https://github.com/theschoolofai/era-v5-lab/pull/714), [#737](https://github.com/theschoolofai/era-v5-lab/pull/737), [#786](https://github.com/theschoolofai/era-v5-lab/pull/786), [#808](https://github.com/theschoolofai/era-v5-lab/pull/808), [#780](https://github.com/theschoolofai/era-v5-lab/pull/780), [#834](https://github.com/theschoolofai/era-v5-lab/pull/834), all merged. Drafted by Release from the team's merged pull requests, with no plan and no dry run 2 result. Waiting for the lead's OK or own line | yes | Quantization: no |
 
 - [ ] `check_style.py` gives 0 errors
 - [ ] Every number in the text has TSAI approval
