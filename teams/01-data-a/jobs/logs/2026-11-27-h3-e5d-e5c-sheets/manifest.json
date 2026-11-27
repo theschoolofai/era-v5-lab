@@ -3,16 +3,16 @@
   "e5d_summary_sha256": "a09d7fa0883051de8a556e0efd935f234f5c3a961f891063701e0c0730b890dd",
   "assign_sha256": "088b7a385d134de0189a033e64bf4d9292b54898613af09c82b2bf285011c0cd",
   "viewer_sha256": "7fefffe9df764a49778a3f7a069c7195a509846274c869482e90fdf236aa9645",
-  "readme_sha256": "fc8d9844990aa9f28c8555fd2391f1f25d581db17d2184eeb89c6637e8c197bb",
+  "readme_sha256": "66dc1f95250531e0b120f9cb0871917bf532e45f8c383ae5190631571e5d7171",
   "readers": {
     "reader_a": {
       "sheets": [
         "sa-en_reader1"
       ],
       "zip": "e5d_reader_a.zip",
-      "zip_sha256": "5498e8bcb182584750287d49810a6f85d848ba4506368a969865fa62f33732dd",
+      "zip_sha256": "76a37454a1623657ec3c151aa2edf83ed4e09fabecbbce2b95a4fa4cff04a736",
       "files": {
-        "e5d/README.md": "fc8d9844990aa9f28c8555fd2391f1f25d581db17d2184eeb89c6637e8c197bb",
+        "e5d/README.md": "66dc1f95250531e0b120f9cb0871917bf532e45f8c383ae5190631571e5d7171",
         "e5d/sheets/readers_guide.md": "51a4dd2623f8caa8ebb394d023a25577121d4e47e5d4a13a9f2133d6c2dd1c63",
         "e5d/sheets/sa-en_reader1.csv": "fce9668d480ced4918789294d7955e23c5cc0b8d83f1ffc3caea5f6fb0d40ede",
         "e5d/view_e5d_sheets.py": "7fefffe9df764a49778a3f7a069c7195a509846274c869482e90fdf236aa9645"
@@ -24,9 +24,9 @@
         "sa-hi_reader1"
       ],
       "zip": "e5d_reader_b.zip",
-      "zip_sha256": "b885f7d2a42cd69218054c19de880dabc91590c8ff850992a0e58c57bcbff352",
+      "zip_sha256": "a56c44e81ea540b4993ed55c4c065fa7fd0e84d44e0ce3ad867194cd5915e472",
       "files": {
-        "e5d/README.md": "fc8d9844990aa9f28c8555fd2391f1f25d581db17d2184eeb89c6637e8c197bb",
+        "e5d/README.md": "66dc1f95250531e0b120f9cb0871917bf532e45f8c383ae5190631571e5d7171",
         "e5d/sheets/readers_guide.md": "51a4dd2623f8caa8ebb394d023a25577121d4e47e5d4a13a9f2133d6c2dd1c63",
         "e5d/sheets/sa-en_reader2.csv": "828e3f08ec01878f48ca35d581c72a12e4b4bc23c292fe9704f96bd1d53e0882",
         "e5d/sheets/sa-hi_reader1.csv": "d766a4ec135072200254fd820a88226d4596ff5eba8aec3c0aa464cab3c78901",
@@ -38,9 +38,9 @@
         "sa-hi_reader2"
       ],
       "zip": "e5d_reader_c.zip",
-      "zip_sha256": "244f7ae525c57b11c95ad642c163b756bd1528c23df4db851b4b5772b1ebbc14",
+      "zip_sha256": "01be51b48119d24017d63b61162c5570513bfd6cc09da497445575096f4590d6",
       "files": {
-        "e5d/README.md": "fc8d9844990aa9f28c8555fd2391f1f25d581db17d2184eeb89c6637e8c197bb",
+        "e5d/README.md": "66dc1f95250531e0b120f9cb0871917bf532e45f8c383ae5190631571e5d7171",
         "e5d/sheets/readers_guide.md": "51a4dd2623f8caa8ebb394d023a25577121d4e47e5d4a13a9f2133d6c2dd1c63",
         "e5d/sheets/sa-hi_reader2.csv": "1970c38b92a4746deddec30e0dab6b247c9f256475682a2499d168f5b17a8c7d",
         "e5d/view_e5d_sheets.py": "7fefffe9df764a49778a3f7a069c7195a509846274c869482e90fdf236aa9645"

@@ -65,11 +65,13 @@ python view_e5d_sheets.py --sheets sheets --name "Your Name"
 Then open **http://127.0.0.1:8000** in your browser. The page runs on your computer only; nothing goes online. Keep the
 terminal open while you work; press **Ctrl+C** in it to stop.
 
-## Do the reading
+## Record your answers
+
+You record everything in the viewer page. For each pair you record **one answer** and, if you want, **a note**.
 
 1. Click your sheet on the left. It shows how many you have answered, e.g. "12 / 32".
 2. Read the two texts, side by side, one sentence per line.
-3. Answer:
+3. Record your answer: click the button or press its key.
 
 | Answer | When | Key |
 |---|---|---|
@@ -77,9 +79,14 @@ terminal open while you work; press **Ctrl+C** in it to stop.
 | **no** | Not a translation, even if both are about the same topic, event or person, or share names, places, dates or numbers. Two news stories about one event, written separately, are **no** | **n** |
 | **unsure** | You can't tell: too short, or you don't know one language well enough | **u** |
 
-4. Add a note if useful, e.g. "only the first half is translated".
+4. Record what you noticed in the **note** box, if anything, e.g. "only the first half is translated", "the Hindi is a
+   summary", "half the text is a menu". Keep it short. Leave it empty if there is nothing to add.
 5. Press **Enter** or **→** for the next pair (**←** goes back, **j** jumps to the next unanswered one).
-6. Press **save** often (**Ctrl+S** / **Cmd+S**). It turns orange while you have unsaved answers.
+6. Press **save** (**Ctrl+S** / **Cmd+S**) every few pairs. The button turns **orange** while you have unsaved answers
+   and says **saved** when they are written.
+
+Every save writes your answers to a file on your computer: `e5d/e5d_labels/<sheet>-<Your_Name>.csv`, one file per
+sheet, e.g. `sa-en-reader1-Your_Name.csv`. You don't open or edit this file; the viewer keeps it up to date.
 
 You can change an answer any time, and stop and come back later: run the same command with the same name and you
 continue where you left off. Keys don't work while you type in the note box; click outside it first.
@@ -89,14 +96,31 @@ Some pairs have an answer we already know. Answer them like the others.
 **Please:** read on your own, don't discuss the pairs with the other reader until you have both finished, and don't
 look the texts up online or in a translation tool.
 
-## What to send back
+## Return your answers
 
-Your answers are in `e5d/e5d_labels/`, one CSV per sheet, named `<sheet>-<Your_Name>.csv`, e.g.
-`sa-en-reader1-Your_Name.csv`. They hold your answers only, no page text, so they are safe to share.
+You are done when each of your sheets shows all pairs answered on the left (e.g. "32 / 32") and the save button says
+**saved**.
 
-1. **Email the CSVs** to the person who sent you the zip.
-2. **Comment `done`** on [theschoolofai/era-v5-lab#729](https://github.com/theschoolofai/era-v5-lab/issues/729). Only
-   `done`: no answers there.
+1. **Stop the viewer:** press **Ctrl+C** in the terminal.
+2. **Find your answer files** in the `e5d_labels` folder, inside the `e5d` folder. To open it:
+
+   Mac:
+   ```
+   open ~/Downloads/e5d/e5d_labels
+   ```
+   Windows:
+   ```
+   explorer $HOME\Downloads\e5d\e5d_labels
+   ```
+
+   You see one CSV per sheet, e.g. `sa-en-reader1-Your_Name.csv`. They hold your answers and notes only, no page
+   text, so they are safe to send.
+3. **Email the CSVs** as attachments to the person who sent you the zip, by the date in their email.
+4. **Comment `done`** on [theschoolofai/era-v5-lab#729](https://github.com/theschoolofai/era-v5-lab/issues/729). Only
+   the word `done`: no answers there, so the other reader isn't influenced.
+
+Send only the CSVs from `e5d_labels`: not the zip, not the `sheets` folder (they hold page text). If you can't finish
+every pair, send what you have and say so in the email.
 
 ### CSV format
 
@@ -124,6 +148,7 @@ sa-en-019,unsure,too short to tell
 | `python3: command not found` (Mac), or `python` not recognised (Windows) | Install Python 3 from https://www.python.org/downloads/ and open a new terminal |
 | `Address already in use` | Add `--port 8001` to the command, then open http://127.0.0.1:8001 |
 | `ERROR: no sheets` | You are not in the `e5d` folder. Run the `cd` line again |
+| There is no `e5d_labels` folder, or no CSV in it | You haven't saved yet. Start the viewer again and press **save** |
 | The page says "not saved" | Send the message to the person who sent you the zip |
 | Anything else | Send a screenshot to the person who sent you the zip |
 
