@@ -57,6 +57,20 @@ real 1.15
 user 0.52
 sys 0.16
 
+The hi-en readers added (reader_d, reader_e), all five packed into a new folder; the three Sanskrit zips are
+byte-identical (cmp) to those above, and manifest.json in this folder is this pack's:
+$ /usr/bin/time -p python3 -I teams/01-data-a/dedup/h3_e5d_pack.py --sheets-out out/e5d_e5c --assign out/e5d_readers.json --out out/e5d_zips_e5c_hien 2>&1 | tee out/e5d_e5c_pack_hien.log
+e5d_reader_a.zip: sa-en_reader1  sha256 76a37454a1623657
+e5d_reader_b.zip: sa-en_reader2, sa-hi_reader1  sha256 a56c44e81ea540b4
+e5d_reader_c.zip: sa-hi_reader2  sha256 01be51b48119d240
+e5d_reader_d.zip: hi-en_reader1  sha256 ce383d36f02a5c78
+e5d_reader_e.zip: hi-en_reader2  sha256 5fccb6e1e4141dab
+not packed (no reader yet): none
+manifest: out/e5d_zips_e5c_hien/manifest.json
+real 1.02
+user 0.55
+sys 0.19
+
 Drawn per language pair, bucket and band (available / wanted / drawn; e5d_summary.json):
   sa-en  above 0.60-1.00   1 / 18 / 1     above 0.45-0.60   2 / 17 / 2     below 0.30-0.45   14 / 17 / 14
   sa-hi  above 0.60-1.00   4 / 20 / 4     above 0.45-0.60  12 / 16 / 12    below 0.30-0.45  100 / 19 / 19

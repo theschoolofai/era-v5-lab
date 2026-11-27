@@ -383,7 +383,8 @@ also all below:
 | hi–en | 1 | 1 | 25 | 0 | 27 | above 2 of 25 |
 
 The six qualifying pairs (coverage ≥ 0.6) of both runs are all on the sheets. The Sanskrit sheets are packed for three
-readers (theschoolofai/era-v5-lab#729); hi–en has no readers yet, so its sheets are not packed.
+G2 readers (theschoolofai/era-v5-lab#729) and the hi–en sheets for two Data A readers: five readers, each sheet read
+twice.
 
 - Hardware: Apple laptop, CPU; Python 3.12.10, numpy 2.4.3, pyarrow 23.0.1
 - Wall time: 3.06 s for the sheets from a cold start (peak memory 545 MB), then the pack

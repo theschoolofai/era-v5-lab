@@ -1,7 +1,7 @@
 {
   "sheets_out": "out/e5d_e5c",
   "e5d_summary_sha256": "a09d7fa0883051de8a556e0efd935f234f5c3a961f891063701e0c0730b890dd",
-  "assign_sha256": "088b7a385d134de0189a033e64bf4d9292b54898613af09c82b2bf285011c0cd",
+  "assign_sha256": "5b02df6209c52a060667b1a4749c4c992fa1be89368f9d07f6223c30fca5139d",
   "viewer_sha256": "7fefffe9df764a49778a3f7a069c7195a509846274c869482e90fdf236aa9645",
   "readme_sha256": "66dc1f95250531e0b120f9cb0871917bf532e45f8c383ae5190631571e5d7171",
   "readers": {
@@ -45,10 +45,33 @@
         "e5d/sheets/sa-hi_reader2.csv": "1970c38b92a4746deddec30e0dab6b247c9f256475682a2499d168f5b17a8c7d",
         "e5d/view_e5d_sheets.py": "7fefffe9df764a49778a3f7a069c7195a509846274c869482e90fdf236aa9645"
       }
+    },
+    "reader_d": {
+      "sheets": [
+        "hi-en_reader1"
+      ],
+      "zip": "e5d_reader_d.zip",
+      "zip_sha256": "ce383d36f02a5c7833bf8b608fd045a719e139f61f9df0216cd525abada1ade6",
+      "files": {
+        "e5d/README.md": "66dc1f95250531e0b120f9cb0871917bf532e45f8c383ae5190631571e5d7171",
+        "e5d/sheets/hi-en_reader1.csv": "b58a56a6833082f6ca0ab4fc10e3796c755edb6bc4cd4bb1b778929f1262f3da",
+        "e5d/sheets/readers_guide.md": "51a4dd2623f8caa8ebb394d023a25577121d4e47e5d4a13a9f2133d6c2dd1c63",
+        "e5d/view_e5d_sheets.py": "7fefffe9df764a49778a3f7a069c7195a509846274c869482e90fdf236aa9645"
+      }
+    },
+    "reader_e": {
+      "sheets": [
+        "hi-en_reader2"
+      ],
+      "zip": "e5d_reader_e.zip",
+      "zip_sha256": "5fccb6e1e4141dab2234d83c1c414ba3a658ce1101e84ab1adfc949a473cf5fa",
+      "files": {
+        "e5d/README.md": "66dc1f95250531e0b120f9cb0871917bf532e45f8c383ae5190631571e5d7171",
+        "e5d/sheets/hi-en_reader2.csv": "96f35d18d4c07009c68f9898f61e0c37b74d7b5592a29423c6b6a91a391c3f60",
+        "e5d/sheets/readers_guide.md": "51a4dd2623f8caa8ebb394d023a25577121d4e47e5d4a13a9f2133d6c2dd1c63",
+        "e5d/view_e5d_sheets.py": "7fefffe9df764a49778a3f7a069c7195a509846274c869482e90fdf236aa9645"
+      }
     }
   },
-  "unassigned": [
-    "hi-en_reader1",
-    "hi-en_reader2"
-  ]
+  "unassigned": []
 }
