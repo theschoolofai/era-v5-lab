@@ -48,16 +48,19 @@ docs/checkpoint_interval.md):
   ``protect_every`` ((i + 1) % N == 0). With N equal to protect_every, retention never deletes a checkpoint before it
   is scored. Dry run 1 retention is ``--keep 9 --protect-every 15`` at a 600 s interval, so an unprotected checkpoint
   stays about 90 minutes.
-- ``run_lab_ckpt.py --step N`` scores the last commits.jsonl line of step N. When a restore commits the same step
-  again, the older commit is marked ``superseded`` and only the newer one is scored.
+- ``run_lab_ckpt.py --step N`` scores the last commits.jsonl line of step N. When a restore or a rollback branch
+  (#847) commits the same step again, the older commit is marked ``superseded`` (checked again just before scoring)
+  and only the newer one is scored. Each commit is keyed by its path (``<branch>/step_<N>-e<epoch>``), so every
+  branch keeps its own state entries, run_ids and rows, and a commit scored before a rollback keeps its rows.
 - A checkpoint whose MANIFEST.json is gone (deleted by retention before or while it was scored) is marked ``gone``,
   but only while commits.jsonl can still be read, so a store that drops out for a while marks nothing.
 - A scoring failure is retried on the next poll, ``--max-attempts`` times in all (default 2, as in JOB_REQUEST.md
   rule 5). A ClickHouse failure keeps the scored file and retries only the load.
 - The time per checkpoint (the scorer's wall time) and the lag from commit to score are printed and kept in the
   state file, and summed up at the end. Each checkpoint's log is appended to, so a retry keeps the first attempt.
-- With ``--until-final`` it exits by itself once the run's final checkpoint (reason "final") is committed and every
-  owned commit is done. Otherwise it runs until a signal: SIGTERM saves the state and exits 75, and a restart goes on.
+- With ``--until-final`` it exits by itself once the newest commit is the run's final checkpoint (reason "final";
+  after a rollback, the new branch's) and every owned commit is done. Otherwise it runs until a signal: SIGTERM saves
+  the state and exits 75, and a restart goes on.
 
 Exit codes (Team 7's contract: 0 done, 75 run again, 78 fatal): 0 all owned commits are done; 1 a checkpoint
 failed ``--max-attempts`` times (see the state file and its log); 75 stopped by a signal, the store could not be
@@ -406,6 +409,14 @@ class Watcher:
             raise StoreUnavailable(f"{self.log.path} vanished while {key} was checked")
         return True
 
+    def recommitted(self, commit: dict) -> bool:
+        """True if commits.jsonl, read again now, has a newer line for this commit's step (a restore, or a rollback
+        branch, #847): run_lab_ckpt.py --step scores that line, so this commit is superseded. A pass decides on the
+        lines it read at its start, and a catch-up pass or a wait for the slot can take long. One stat call unless
+        commits.jsonl grew since the last read."""
+        step, path = commit["step"], commit["path"]
+        return next((c["path"] for c in reversed(self.read_commits()) if c["step"] == step), path) != path
+
     def poll(self) -> None:
         """One pass over the owned commits, oldest first. Saves the state after each change."""
         try:
@@ -421,7 +432,7 @@ class Watcher:
                 if status in FINAL or (status == "scored" and (rec["loaded"] or self.a.no_load)):
                     continue
                 if status != "scored":
-                    if superseded:
+                    if superseded or self.recommitted(commit):
                         self.finish(rec, "superseded", f"step {commit['step']} was committed again later")
                         continue
                     if self.manifest_gone(key):
@@ -474,11 +485,16 @@ class Watcher:
         if error:
             try:
                 gone = self.manifest_gone(commit["path"])
+                again = not gone and self.recommitted(commit)
             except StoreUnavailable:
                 rec["attempts"] -= 1  # the store dropped out: this attempt says nothing about the checkpoint
                 raise
             if gone:  # retention deleted it while it was being scored: not a failure of the checkpoint
                 self.finish(rec, "gone", f"{commit['path']}/{MANIFEST} deleted while it was scored ({error})")
+                return False
+            if again:  # committed again while it was scored (--step may have scored the new line): not a failure
+                self.finish(rec, "superseded",
+                            f"step {commit['step']} was committed again while it was scored ({error})")
                 return False
             final = rec["attempts"] >= self.a.max_attempts
             rec.update(status="failed" if final else "error", detail=error, log=log_path.as_posix(),
@@ -548,9 +564,11 @@ class Watcher:
         return EXIT_FAILED if any(r["status"] == "failed" for r in items) else EXIT_OK
 
     def run_ended(self) -> bool:
-        """The run committed its final checkpoint (Team 7's trainer saves it with reason "final") and every commit this
-        watcher owns is done."""
-        return any(c.get("reason") == "final" for c in self.commits) and self.outcome() in (EXIT_OK, EXIT_FAILED)
+        """The newest commit is the run's final checkpoint (Team 7's trainer saves it with reason "final") and every
+        commit this watcher owns is done. The newest, not any: after a rollback from a finished run (#847), the new
+        branch trains on past the old final commit."""
+        return (bool(self.commits) and self.commits[-1].get("reason") == "final"
+                and self.outcome() in (EXIT_OK, EXIT_FAILED))
 
     def timing(self) -> str:
         """Time per checkpoint in this process: the scorer's wall time, and the lag from commit to score."""
@@ -600,8 +618,8 @@ def parse_args(argv=None) -> argparse.Namespace:
     ap.add_argument("--max-attempts", type=int, default=2, help="scoring attempts per checkpoint")
     ap.add_argument("--once", action="store_true", help="one pass, then exit (tests, catch-up)")
     ap.add_argument("--until-final", action="store_true",
-                    help="exit once the run's final commit (reason \"final\") is in commits.jsonl and every owned "
-                         "commit is done, so a job ends by itself")
+                    help="exit once the newest line of commits.jsonl is the run's final commit (reason \"final\") and "
+                         "every owned commit is done, so a job ends by itself")
     ap.add_argument("scorer_args", nargs=argparse.REMAINDER, help="after --: passed to run_lab_ckpt.py unchanged")
     a = ap.parse_args(argv)
     if a.scorer_args[:1] == ["--"]:
