@@ -25,6 +25,7 @@ Median  KLD:   0.004321
 RMS Δp    :  4.123 ± 0.044 %
 Same top p: 92.083 ± 0.211 %
 '''
+BASE_LOG = 'perplexity: calculating perplexity over {n} chunks, n_ctx=512, batch_size=2048, n_seq=4\n'
 EXPECTED = dict(ppl_ratio=1.012345, ppl_ratio_unc=0.002345, kld_mean=0.023286, kld_mean_unc=0.000319,
                 kld_99=0.182544, same_top_p=92.083)
 
@@ -41,15 +42,19 @@ def make_tokenizer(path: Path) -> Path:
 class FakeRunner:
     """Stands in for kl_eval.perplexity: records each call, writes the fixture log, and the base file on a base pass."""
 
-    def __init__(self):
+    def __init__(self, actual_chunks=None):
         self.calls = []
+        self.actual_chunks = actual_chunks  # what the base log claims llama.cpp ran; default: as asked
 
     def __call__(self, args, gguf, ngl, extra, log):
         self.calls.append(dict(gguf=Path(gguf), ngl=ngl, extra=list(extra), chunks=args.chunks, ctx=args.ctx,
                                llama_bin=args.llama_bin))
         if '--kl-divergence' not in extra:  # base pass: llama-perplexity saves the base log-probabilities
             Path(extra[extra.index('--kl-divergence-base') + 1]).write_bytes(b'base')
-        log.write_text(FIXTURE_LOG, encoding='utf-8')
+        if '--kl-divergence' in extra:
+            log.write_text(FIXTURE_LOG, encoding='utf-8')
+        else:
+            log.write_text(BASE_LOG.format(n=self.actual_chunks or args.chunks), encoding='utf-8')
         return log.read_text(encoding='utf-8'), 1.5
 
 
@@ -67,15 +72,17 @@ class KlSlicesTests(unittest.TestCase):
             self.assertTrue(re.search(pat, FIXTURE_LOG), key)
 
     def test_plan_chunks(self):
-        self.assertEqual(k.plan_chunks(600, 512, 8), 1)
+        self.assertEqual(k.plan_chunks(600, 512, 8), 0)  # llama-perplexity needs 2 * ctx tokens
+        self.assertEqual(k.plan_chunks(1023, 512, 8), 0)
+        self.assertEqual(k.plan_chunks(1024, 512, 8), 2)
         self.assertEqual(k.plan_chunks(100, 512, 8), 0)
         self.assertEqual(k.plan_chunks(10_000, 512, 8), 8)
 
     def test_rows_and_base_cleanup(self):
         text = self.dir / 'c4-val.txt'
-        text.write_text(' '.join(['w'] * 600), encoding='utf-8')  # 600 tokens: one chunk of 512
+        text.write_text(' '.join(['w'] * 1100), encoding='utf-8')  # 1100 words + BOS: 2 chunks of 512
         short = self.dir / 'owm-test.txt'
-        short.write_text(' '.join(['w'] * 100), encoding='utf-8')  # too short for one chunk
+        short.write_text(' '.join(['w'] * 600), encoding='utf-8')  # 601 tokens: under 2 * 512, llama.cpp refuses
         work = self.dir / 'work'
         work.mkdir()
         runner = FakeRunner()
@@ -84,8 +91,8 @@ class KlSlicesTests(unittest.TestCase):
         self.assertEqual([(r['slice'], r['format']) for r in rows],
                          [('c4-val', 'Q8_0'), ('c4-val', 'Q4_K_M'), ('owm-test', None)])
         for row in rows[:2]:
-            self.assertEqual(row['chunks'], 1)
-            self.assertEqual(row['tokens_scored'], 255)  # llama.cpp scores ctx - 1 - ctx//2 tokens per chunk
+            self.assertEqual(row['chunks'], 2)
+            self.assertEqual(row['tokens_scored'], 510)  # llama.cpp scores ctx - 1 - ctx//2 tokens per chunk
             self.assertEqual(row['time_s'], 1.5)
             for key, value in EXPECTED.items():
                 self.assertAlmostEqual(row[key], value)
@@ -93,7 +100,7 @@ class KlSlicesTests(unittest.TestCase):
         # one base pass on the reference, then one KL pass per format, all on the GPU, none for the short slice
         self.assertEqual([c['gguf'].name for c in runner.calls], ['ref.gguf', 'q8.gguf', 'q4.gguf'])
         self.assertEqual({c['ngl'] for c in runner.calls}, {99})
-        self.assertEqual({(c['chunks'], c['ctx'], c['llama_bin']) for c in runner.calls}, {(1, 512, '/llama/bin')})
+        self.assertEqual({(c['chunks'], c['ctx'], c['llama_bin']) for c in runner.calls}, {(2, 512, '/llama/bin')})
         self.assertIn('--kl-divergence-base', runner.calls[0]['extra'])
         self.assertNotIn('--kl-divergence', runner.calls[0]['extra'])
         self.assertIn('--kl-divergence', runner.calls[1]['extra'])
@@ -101,7 +108,7 @@ class KlSlicesTests(unittest.TestCase):
 
     def test_failed_pass_still_deletes_base_file(self):
         text = self.dir / 'c4-val.txt'
-        text.write_text(' '.join(['w'] * 600), encoding='utf-8')
+        text.write_text(' '.join(['w'] * 1100), encoding='utf-8')
         work = self.dir / 'work'
         work.mkdir()
 
@@ -114,6 +121,30 @@ class KlSlicesTests(unittest.TestCase):
             k.run_kl_slices(self.dir / 'ref.gguf', {'Q8_0': self.dir / 'q8.gguf'}, {'c4-val': text}, self.tok,
                             Path('/llama/bin'), work, runner=broken)
         self.assertEqual(list(work.glob('*.kld')), [])
+
+    def test_chunk_count_mismatch_is_an_error(self):
+        text = self.dir / 'c4-val.txt'
+        text.write_text(' '.join(['w'] * 1100), encoding='utf-8')  # planned: 2 chunks
+        work = self.dir / 'work'
+        work.mkdir()
+        with self.assertRaisesRegex(RuntimeError, r'c4-val.*planned 2 chunks.*ran 1'):
+            k.run_kl_slices(self.dir / 'ref.gguf', {'Q8_0': self.dir / 'q8.gguf'}, {'c4-val': text}, self.tok,
+                            Path('/llama/bin'), work, runner=FakeRunner(actual_chunks=1))
+        self.assertEqual(list(work.glob('*.kld')), [])
+
+    def test_missing_chunk_line_is_an_error(self):
+        text = self.dir / 'c4-val.txt'
+        text.write_text(' '.join(['w'] * 1100), encoding='utf-8')
+        work = self.dir / 'work'
+        work.mkdir()
+
+        def silent(args, gguf, ngl, extra, log):
+            Path(extra[extra.index('--kl-divergence-base') + 1]).write_bytes(b'base')
+            return 'nothing useful', 0.1
+
+        with self.assertRaisesRegex(RuntimeError, 'no "calculating perplexity over N chunks"'):
+            k.run_kl_slices(self.dir / 'ref.gguf', {'Q8_0': self.dir / 'q8.gguf'}, {'c4-val': text}, self.tok,
+                            Path('/llama/bin'), work, runner=silent)
 
 
 if __name__ == '__main__':

@@ -19,8 +19,18 @@ NGL = 99  # all layers on the GPU (Metal), as kl_eval's default
 
 
 def plan_chunks(n_tokens: int, ctx: int, max_chunks: int) -> int:
-    """Whole ctx-token chunks the text fills, at most max_chunks."""
-    return min(max_chunks, n_tokens // ctx)
+    """Chunks llama-perplexity will run on n_tokens tokens (BOS included), at most max_chunks.
+
+    It refuses a text of fewer than 2 * ctx tokens (perplexity.cpp), otherwise runs min(--chunks, n_tokens // ctx)."""
+    return 0 if n_tokens < 2 * ctx else min(max_chunks, n_tokens // ctx)
+
+
+def _chunks_run(log: str, where: str) -> int:
+    """The chunk count llama-perplexity printed in the base pass: 'calculating perplexity over N chunks'."""
+    m = re.search(r'calculating perplexity over (\d+) chunks', log)
+    if not m:
+        raise RuntimeError(f'{where}: no "calculating perplexity over N chunks" in the base pass output')
+    return int(m.group(1))
 
 
 def _parse(log: str, where: str) -> dict:
@@ -40,8 +50,9 @@ def run_kl_slices(ref: Path, quants: dict[str, Path], slice_files: dict[str, Pat
                   llama_bin: Path, work: Path, ctx: int = 512, max_chunks: int = 8, runner=None) -> list[dict]:
     """One row per (slice, format): chunks, tokens_scored, ppl_ratio(+_unc), kld_mean(+_unc), kld_99, same_top_p, time_s.
 
-    llama_bin is the directory with the llama.cpp binaries. A slice too short for one chunk gives one row with
-    chunks = 0 and no numbers. runner(args, gguf, ngl, extra, log) -> (log text, seconds) defaults to
+    llama_bin is the directory with the llama.cpp binaries. A slice under 2 * ctx tokens (llama-perplexity refuses it) gives one
+    row with chunks = 0 and no numbers. The chunk count of the base log must equal the planned one, else RuntimeError;
+    rows record the count llama.cpp ran. runner(args, gguf, ngl, extra, log) -> (log text, seconds) defaults to
     kl_eval.perplexity. Each slice's base file (~260 KB per scored token at a 131k vocabulary) is deleted right
     after that slice's format passes."""
     runner = runner or kl_eval.perplexity
@@ -51,7 +62,8 @@ def run_kl_slices(ref: Path, quants: dict[str, Path], slice_files: dict[str, Pat
     logs.mkdir(parents=True, exist_ok=True)
     rows = []
     for name, path in slice_files.items():
-        n_tokens = len(tok.encode(Path(path).read_text(encoding='utf-8'), add_special_tokens=False).ids)
+        # llama.cpp adds one BOS token to the text
+        n_tokens = 1 + len(tok.encode(Path(path).read_text(encoding='utf-8'), add_special_tokens=False).ids)
         chunks = plan_chunks(n_tokens, ctx, max_chunks)
         if chunks == 0:
             rows.append({'slice': name, 'format': None, 'chunks': 0})
@@ -59,9 +71,14 @@ def run_kl_slices(ref: Path, quants: dict[str, Path], slice_files: dict[str, Pat
         args = Namespace(llama_bin=str(llama_bin), ctx=ctx, chunks=chunks)
         base = work / f'{name}.kld'
         try:
-            runner(args, ref, NGL, ['-f', str(path), '--kl-divergence-base', str(base)], logs / f'{name}-base.log')
+            base_log, _ = runner(args, ref, NGL, ['-f', str(path), '--kl-divergence-base', str(base)],
+                                 logs / f'{name}-base.log')
             if not base.exists():
                 raise RuntimeError(f'{name}: the base pass wrote no {base}')
+            actual = _chunks_run(base_log, name)  # llama.cpp's own count is the authority: the planned one is an estimate
+            if actual != chunks:
+                raise RuntimeError(f'{name}: planned {chunks} chunks but llama-perplexity ran {actual}'
+                                   f' (tokenizer.json and the GGUF vocabulary count tokens differently?)')
             for fmt, gguf in quants.items():
                 log, secs = runner(args, gguf, NGL, ['--kl-divergence-base', str(base), '--kl-divergence'],
                                    logs / f'{name}-{fmt}.log')
