@@ -2,19 +2,23 @@
 
 
 def claim_for_start(checkpointer):
-    """Claim before classifying, as agreed with G7 for the week-5 D3 draft.
+    """Refuse committed runs before claiming; recheck after claiming for races.
 
     The launcher/caller must first establish that the previous attempt stopped.
-    This changes ownership even if candidates are subsequently found and refused.
+    Existing candidates are refused without changing ownership. A checkpoint
+    racing with the claim is detected by the second check after ownership changes.
     Committed restore and ordinary startup without --checkpoint-at-start do not
     use this path. No private fields or pointer schema extensions are needed.
     """
     from ckpt.ckpt import CheckpointError
 
+    refuse = "Committed checkpoints exist; use --resume-committed"
     try:
+        if checkpointer.candidates():
+            raise CheckpointError(refuse)
         epoch = checkpointer.claim()
         if checkpointer.candidates():
-            raise CheckpointError("Committed checkpoints exist; use --resume-committed")
+            raise CheckpointError(refuse)
     except CheckpointError:
         raise
     except Exception as error:

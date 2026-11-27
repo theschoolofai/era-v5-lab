@@ -1,6 +1,7 @@
 # D3: interrupted initialization recovery (week-5 draft)
 
-This revision follows Suresh's Team 7 decision and Shivanshu's review on #826.
+This revision follows Suresh's Team 7 direction, Shivanshu's review and Pradeep's
+read-only candidate-precheck request on #826.
 It remains a draft. Do not deploy it into Dry Run 2 or change this week's fresh
 start or launcher behavior. Target week 5, after the main-run go/no-go on
 28 Nov and confirmation of the main-run checkpoint store. D4 rollback is separate.
@@ -26,18 +27,22 @@ using this initialization path. An empty checkpoint history is not that proof.
 With a checkpoint store and `--checkpoint-at-start`, and without native or
 committed resume, the trainer calls G7's existing public methods:
 
-1. `claim()` advances the ownership epoch using G7's conditional writes and
+1. Read `candidates()` without claiming. If committed candidates already exist,
+   exit 78 with `use --resume-committed`, preserving the pointer and live owner.
+2. `claim()` advances the ownership epoch using G7's conditional writes and
    existing retry/fencing rules.
-2. `candidates()` classifies committed state after the claim. If candidates
+3. `candidates()` rechecks committed state after the claim. If candidates
    exist, exit 78 with `use --resume-committed`; do not initialize over them.
-3. Without candidates, initialize step zero and request a checkpoint. Wait for
+4. Without candidates, initialize step zero and request a checkpoint. Wait for
    its commit before the first training update, with the step watchdog active.
 
-Claiming first is intentional: even a later candidate rejection has already
-advanced ownership and fenced the prior attempt. The existing checkpoint
-reference/history is preserved. An old attempt that publishes first is detected
-as a candidate after G7's claim retry; an old attempt publishing after takeover
-is fenced. A competing claim causes `FencedError` rather than a G5 takeover retry.
+Pradeep's review adds the read-only precheck: an accidental start against an
+already-committed run must not fence its live owner. The second check remains
+necessary. If an old attempt commits after the precheck but before/during claim,
+the claim can advance ownership, then the new candidate is refused. Existing
+checkpoint references/history are preserved. An old attempt publishing after
+takeover is fenced. A competing claim causes `FencedError` rather than a G5
+takeover retry.
 
 Without `--checkpoint-at-start`, ordinary fresh startup retains the existing
 run-ID check and lazy claim at save time. Committed resume retains its existing
@@ -73,7 +78,7 @@ not a change to an active launch. Native resume is not an initialization restart
   as exit 78. The interim runbook workaround is to confirm the old job ended
   and resubmit under a new run ID. G7 owns that runbook update.
 - **G7/Pradeep:** review this revision against the existing checkpoint contract,
-  including claim retries, candidate rejection after ownership changed, and
+  including read-only candidate rejection, postclaim race detection, and
   the two-process test.
 - **G7/G8:** review existing event and exit-note handling with the actual launcher.
   G7 emits its normal checkpoint.claimed event; G5 does not duplicate it.
@@ -81,18 +86,31 @@ not a change to an active launch. Native resume is not an initialization restart
   flow on the target environment before adoption. Shivanshu's draft review and
   deployment/run approval remain pending.
 
-The adapter imposes no new rank-count or store-type restriction on G7's existing
-interfaces. This does not establish that G5 training supports distributed main-run
-topologies: the two-rank test validates the initialization/checkpoint boundary
+The adapter uses G7's existing interfaces without a new store-type gate. This
+does not establish that G5 training supports distributed main-run topologies:
+the two-rank test validates the initialization/checkpoint boundary
 using G7's tiny model/loader, not a multi-rank G5 training run. Object-store and
 live SLURM integration remain validation work; no such acceptance is claimed.
 
+**Future multi-rank D2 prerequisite (week 5 or later).** Each rank currently reads
+`candidates()` independently. Ranks could observe different state or read errors:
+one could exit while another enters collective `claim()` and waits for it. Before
+enabling distributed G5 training, have rank 0 classify candidates and broadcast
+the decision or error for both the preclaim and postclaim checks, so all ranks
+take the same path. Add tests for divergent reads/errors and coordinated exits
+without hangs. The current two-process success test does not cover disagreement.
+This coordination is not implemented here and is not required for the current
+single-process, one-GPU scope.
+
 ## Regression coverage
 
-- Public claim-before-candidates order with no private state assignments.
+- Public candidates/claim/candidates order with no private state assignments.
 - Fresh and claim-only initialization with the standard G7 pointer schema.
 - An actual stale-writer checkpoint upload rejected after takeover.
-- Existing committed candidates rejected after claim while preserving artifacts.
+- Existing committed candidates rejected without changing the pointer/history;
+  the live owner can still commit afterwards.
+- A checkpoint committed between the precheck and claim is caught by the second
+  candidate check, without initializing over it.
 - An actual commit racing with claim: G7 retries, then G5 rejects the candidate.
 - A competing claim fences the losing initialization attempt.
 - Metadata exceptions hold rather than triggering an initialization fallback.
@@ -103,7 +121,16 @@ live SLURM integration remain validation work; no such acceptance is claimed.
 - CPU fp32 and CUDA bf16 AdamW/Muon loss-trace and recovered-step-zero restore parity,
   including the real KAS V2 head; watchdog protection of the initialization wait.
 
-Local validation on 26 Nov 2026:
+Validation of Pradeep's precheck revision on 27 Nov 2026:
+
+- Initialization contract, real trainer checkpoint/restore, watchdog and CUDA
+  regressions: **28 passed, 24 subtests passed, no skips**. Includes read-only
+  rejection with the live owner's next commit succeeding, both commit-race
+  windows, competing claims, actual two-process gloo commit, and real KAS V2
+  CUDA bf16 recovery/restore with AdamW and Muon.
+- `git diff --check` passed. No trainer flags, G7 files or launch scripts changed.
+
+Previous revision's validation on 26 Nov 2026 (before Pradeep's precheck fix):
 
 - Full G5 CPU suite and G8 adapter: **299 passed, 13 skipped, 91 subtests passed**
   with PyTorch 2.5.1 CPU. Includes the initialization-wait watchdog test and the

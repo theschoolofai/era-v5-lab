@@ -33,7 +33,7 @@ class PrecommitTests(unittest.TestCase):
             candidates=Mock(side_effect=lambda: calls.append("candidates") or []),
         )
         self.assertEqual(claim_for_start(attempt), 2)
-        self.assertEqual(calls, ["claim", "candidates"])
+        self.assertEqual(calls, ["candidates", "claim", "candidates"])
         self.assertEqual(set(vars(attempt)), {"claim", "candidates"})
 
     def test_fresh_and_claim_only_use_unmodified_pointer_schema(self):
@@ -61,20 +61,46 @@ class PrecommitTests(unittest.TestCase):
             self.assertIsNone(new.store.get_json("latest.json")["path"])
             self.assertEqual(new.commits(), [])
 
-    def test_existing_candidates_refused_after_claim_preserving_checkpoint(self):
+    def test_existing_candidates_refused_without_fencing_live_owner(self):
         with TemporaryDirectory() as temp:
             root = Path(temp)
             old = Checkpointer("run", str(root / "old"), str(root / "store"))
             self.assertTrue(old.save(0, *state(), reason="start"))
             self.assertTrue(old.wait())
             previous = old.store.get_json("latest.json")
+            pointer_before = old.store.get_json_ver("latest.json")
+            history_before = old.store.get_text("commits.jsonl")
             new = Checkpointer("run", str(root / "new"), str(root / "store"))
             with self.assertRaisesRegex(CheckpointError, "use --resume-committed"):
                 claim_for_start(new)
             pointer = new.store.get_json("latest.json")
-            self.assertEqual(pointer["epoch"], 2)
+            self.assertEqual(new.store.get_json_ver("latest.json"), pointer_before)
+            self.assertEqual(new.store.get_text("commits.jsonl"), history_before)
+            self.assertIsNone(new.epoch)
+            self.assertEqual(pointer["epoch"], 1)
             self.assertEqual(pointer["path"], previous["path"])
             self.assertTrue(new.store.exists(previous["path"] + "/MANIFEST.json"))
+            self.assertTrue(old.save(1, *state(), reason="interval"))
+            self.assertTrue(old.wait())
+            self.assertFalse(old.any_fenced())
+
+    def test_commit_between_precheck_and_claim_is_detected_by_second_check(self):
+        with TemporaryDirectory() as temp:
+            root = Path(temp)
+            old = Checkpointer("run", str(root / "old"), str(root / "store"))
+            old.claim()
+            new = Checkpointer("run", str(root / "new"), str(root / "store"))
+            claim = new.claim
+            def race():
+                self.assertTrue(old.save(0, *state(), reason="start"))
+                self.assertTrue(old.wait())
+                return claim()
+            with patch.object(new, "claim", race):
+                with self.assertRaisesRegex(CheckpointError, "use --resume-committed"):
+                    claim_for_start(new)
+            self.assertEqual(new.epoch, 2)
+            self.assertEqual(new.store.get_json("latest.json")["step"], 0)
+            self.assertEqual(len(new.commits()), 1)
 
     def test_old_commit_during_claim_is_retried_then_detected_as_candidate(self):
         with TemporaryDirectory() as temp:
@@ -97,7 +123,7 @@ class PrecommitTests(unittest.TestCase):
             self.assertEqual(new.epoch, 2)
             self.assertEqual(new.store.get_json("latest.json")["step"], 0)
 
-    def test_competing_claim_is_fenced_without_candidate_lookup(self):
+    def test_competing_claim_is_fenced_without_postclaim_candidate_lookup(self):
         with TemporaryDirectory() as temp:
             root = Path(temp)
             Checkpointer("run", str(root / "old"), str(root / "store")).claim()
@@ -107,10 +133,10 @@ class PrecommitTests(unittest.TestCase):
             def race(key, value, version):
                 winner.claim()
                 return put(key, value, version)
-            with patch.object(new.store, "put_json_if", race), patch.object(new, "candidates") as candidates:
+            with patch.object(new.store, "put_json_if", race), patch.object(new, "candidates", return_value=[]) as candidates:
                 with self.assertRaises(FencedError):
                     claim_for_start(new)
-            candidates.assert_not_called()
+            candidates.assert_called_once_with()
             self.assertIsNone(new.epoch)
             self.assertEqual(new.store.get_json("latest.json")["epoch"], 2)
 
