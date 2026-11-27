@@ -105,6 +105,14 @@ class TensorErrorTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, r'blk\.0\.attn_q\.weight'):
             t.tensor_errors(q, ref)
 
+    def test_size_one_axes_are_ignored(self):
+        """The converter writes ERNIE's selection bias as [1, E]; llama-quantize rewrites it as [E]."""
+        ref, q = self.dir / 'ref.gguf', self.dir / 'q.gguf'
+        write_gguf(ref, [('blk.0.exp_probs_b.bias', B[:1], QT.F32)])      # shape [1, 64]
+        write_gguf(q, [('blk.0.exp_probs_b.bias', B[0], QT.F32)])         # shape [64]
+        rows = t.tensor_errors(q, ref)
+        self.assertEqual((rows[0]['rel_err'], rows[0]['numel']), (0.0, 64))
+
     def test_kinds(self):
         cases = {
             'token_embd.weight': ('token_embd', None), 'output.weight': ('output', None),

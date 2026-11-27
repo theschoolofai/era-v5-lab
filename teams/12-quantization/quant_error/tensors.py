@@ -75,7 +75,7 @@ def _dequant(tensor, index=None) -> np.ndarray:
 def tensor_errors(quant: Path, ref: Path) -> list[dict]:
     """One row per tensor of `quant` (one per expert for 3-D *_exps tensors) comparing it with `ref`.
 
-    Raises ValueError, naming the tensor, if the two files differ in tensor names or shapes.
+    Raises ValueError, naming the tensor, if the two files differ in tensor names or shapes (size-1 axes aside).
     """
     q_reader, r_reader = gguf.GGUFReader(str(quant)), gguf.GGUFReader(str(ref))
     r_by_name = {x.name: x for x in r_reader.tensors}
@@ -86,7 +86,7 @@ def tensor_errors(quant: Path, ref: Path) -> list[dict]:
     rows = []
     for q in q_reader.tensors:
         r = r_by_name[q.name]
-        if q.shape.tolist() != r.shape.tolist():
+        if [n for n in q.shape.tolist() if n != 1] != [n for n in r.shape.tolist() if n != 1]:  # llama-quantize drops size-1 axes
             raise ValueError(f'tensor {q.name} has shape {q.shape.tolist()} in {quant} but {r.shape.tolist()} in {ref}')
         kind, layer = classify(q.name)
         split = kind.startswith('experts_') and len(q.shape) == 3  # GGUFReader numpy axis 0 is the expert axis
