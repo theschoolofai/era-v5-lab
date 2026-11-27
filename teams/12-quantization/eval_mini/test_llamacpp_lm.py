@@ -19,6 +19,15 @@ differently (gemma-2-2b ranks " Paris" 8th, behind " a", " the", " one", ...; Hu
 another prompt can be set for such a model; the checks and TOL stay the same:
 
     EVAL_GUARD_CONTEXT="The capital of France is the city of" python test_llamacpp_lm.py <model.gguf>
+
+Two more optional settings, for quantized files. The defaults are the behaviour before they existed:
+
+  EVAL_GUARD_CHECK4=warn     check 4 asks whether the model is strong enough for the prompt, not whether scoring is
+                             correct (checks 1 to 3). With "warn" a miss is printed (with both scores) and logged, and
+                             the run goes on. The default, "fail", stops it.
+  EVAL_GUARD_CACHE_TOL=0.10  the limit of check 3 only (default 0.05, TOL). Checks 1 and 2 keep TOL.
+
+The settings in force are printed on the result line, so a log shows them.
 """
 from __future__ import annotations
 
@@ -33,6 +42,10 @@ from llamacpp_lm import LlamaCppLM  # noqa: E402
 CONTEXT = os.environ.get("EVAL_GUARD_CONTEXT") or "The capital of France is"   # unset: unchanged default
 ANSWER = os.environ.get("EVAL_GUARD_ANSWER") or " Paris"
 TOL = 0.05   # nats; GPU kernels for different batch shapes differ by ~0.004
+CACHE_TOL = float(os.environ.get("EVAL_GUARD_CACHE_TOL") or TOL)      # check 3 only; unset: TOL
+CHECK4 = os.environ.get("EVAL_GUARD_CHECK4") or "fail"                # "warn": a miss of check 4 does not stop
+if CHECK4 not in ("fail", "warn"):
+    raise SystemExit(f"EVAL_GUARD_CHECK4 must be 'fail' or 'warn', not {CHECK4!r}")
 
 
 class _Req:
@@ -42,7 +55,7 @@ class _Req:
 
 def check(gguf: str) -> list[str]:
     lm = LlamaCppLM(gguf, n_ctx=512)
-    failures = []
+    failures, warnings = [], []
 
     # the answer's FIRST token under this model's tokenizer: " Paris" is one token for OLMoE and sarvam-1 (so the
     # check is unchanged there), " Par" + "is" for Granite 3.0; generation reports one token's log-probability
@@ -79,14 +92,19 @@ def check(gguf: str) -> list[str]:
         lm.llm.reset()
         fresh.append(lm.loglikelihood([r], disable_tqdm=True)[0])
     worst = max(abs(a[0] - b[0]) for a, b in zip(cached, fresh))
-    if worst > TOL:
+    if worst > CACHE_TOL:
         failures.append(f"3. prefix cache changes a score by {worst:.4f}")
     if max(range(4), key=lambda i: cached[i][0]) != 0:
-        failures.append(f"4. easy item answered wrong: {[round(c[0], 2) for c in cached]}")
+        msg = f"4. easy item answered wrong: {[round(c[0], 2) for c in cached]}"
+        (warnings if CHECK4 == "warn" else failures).append(msg)
 
     print(f"{Path(gguf).name}: log p({answer!r}) = {lp:.3f}, generation {lp_gen:.3f}, off-by-one value {after:.3f}; "
           f"cache max diff {worst:.4f}"
-          + (f"; guard prompt {CONTEXT!r} (EVAL_GUARD_CONTEXT)" if os.environ.get("EVAL_GUARD_CONTEXT") else ""))
+          + (f"; guard prompt {CONTEXT!r} (EVAL_GUARD_CONTEXT)" if os.environ.get("EVAL_GUARD_CONTEXT") else "")
+          + (f"; check 3 limit {CACHE_TOL} (EVAL_GUARD_CACHE_TOL)" if CACHE_TOL != TOL else "")
+          + ("; check 4 warn only (EVAL_GUARD_CHECK4)" if CHECK4 == "warn" else ""))
+    for w in warnings:
+        print("WARN", w)
     return failures
 
 
