@@ -6,7 +6,7 @@ Index of the files in this folder. Each entry says what produced it and what it 
 
 | File | What it is | Limits |
 |---|---|---|
-| `gate4_summary.md` | Live Gate 4 evidence summary (26 Nov): dry run 2 DT vs LoRA vs Full FT & DT-then-RL readiness (both job requests lead-approved), `#746`/`#778`/`#797`/`#835` merged, cross-team handoffs, and remaining open items. | Index only; dry run 2 GPU numbers await Team 5's delivered checkpoint. |
+| `gate4_summary.md` | Live Gate 4 evidence summary (27 Nov): `dryrun2-1234` pretraining complete (`1,221` steps, sha256 `8d1600b2...`), both dry run 2 job requests 27 Nov lead-approved with Team 9 fixes landed, 6/6 Indic templates `train`, and `#746`/`#778`/`#797`/`#835`/`#836` merged. | Index only; dry run 2 post-training GPU numbers await TSAI job execution. |
 | `week4_plan.md` | Week 4 execution plan & Gate 4 tracker (dry run 2 KE2/KAS head DT vs LoRA vs full FT + DT-then-RL, Team 7 Checkpointer, 21 Nov TSAI rulings). | Plan and tracker; dry run 2 numbers land after D5 (Thu 26 Nov). |
 | `b5_sampler_2026-11-23.md`, `b5_sampler_2026-11-23/` | Batched G5 RL sampler (`g5_batch`) throughput & memory study: 12.8x speedup on T4 (`44.3 s -> 3.45 s` per prompt at RL job settings). | T4 fp16 throughput/memory stand-in on random-init T2/T3 weights; not a quality number. |
 | `gate3_summary.md` | Gate 3 evidence checklist, Week 3 Tasks 1–11 status, cross-team handoffs, and open TSAI decisions (20 Nov). | Index only; numbers live in the linked reports. |
