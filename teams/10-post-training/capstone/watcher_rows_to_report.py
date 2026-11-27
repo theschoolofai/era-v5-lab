@@ -14,10 +14,12 @@ Without --report it writes the `eval_mini` block alone, which forgetting.py also
 Only the merged form above checks that the rows belong to a checkpoint the report measured (its `model_revisions`,
 written by forget_bpb_kept.py).
 
-What it refuses instead of guessing: a document that is not `eval_mini_v1`, a missing task, a task that appears twice
-(several formats), records that disagree on `dtype` or `model_revision`, rows of a checkpoint the --report did not
-measure, an unknown dtype, a value or stderr outside
-0..100. It reads only the watcher's own scores. Team 10 never reads benchmark items."""
+A task with several records (Team 9 writes acc and acc_norm) is read from the one marked `primary: true`.
+
+What it refuses instead of guessing: a document that is not `eval_mini_v1`, a missing task, a task with several records
+and not exactly one marked primary, records that disagree on `dtype` or `model_revision`, rows of a checkpoint the
+--report did not measure, an unknown dtype, a value or stderr outside 0..100. It reads only the watcher's own scores.
+Team 10 never reads benchmark items."""
 from __future__ import annotations
 
 import argparse
@@ -67,10 +69,17 @@ def convert(doc: dict, tasks=DEFAULT_TASKS, *, source: str = "") -> dict:
     missing = [t for t, rs in found.items() if not rs]
     if missing:
         raise WatcherRowsError(f"the watcher document has no record for {', '.join(missing)}")
+    # Team 9's scorer writes acc and acc_norm for a task and marks the one its spec compares with `primary: true`
+    for t, rs in found.items():
+        marked = [r for r in rs if r.get("primary") is True]
+        if len(rs) > 1 and len(marked) == 1:
+            found[t] = marked
     twice = [t for t, rs in found.items() if len(rs) > 1]
     if twice:
-        raise WatcherRowsError(f"{', '.join(twice)} appear more than once (formats "
-                               f"{sorted({str(r.get('format')) for t in twice for r in found[t]})}); pick one")
+        raise WatcherRowsError(
+            f"{', '.join(twice)} appear more than once and not exactly one record is marked primary (metrics "
+            f"{sorted({str(r.get('metric')) for t in twice for r in found[t]})}, formats "
+            f"{sorted({str(r.get('format')) for t in twice for r in found[t]})}); pick one")
     chosen = [rs[0] for rs in found.values()]
     dtypes = {_dtype(r.get("dtype"), r["task"]) for r in chosen}
     if len(dtypes) != 1:
