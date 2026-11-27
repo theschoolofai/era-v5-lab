@@ -165,6 +165,7 @@ Sharpness settings after the 19 Nov merge (note added by PR 114, 19 Nov; the sen
 
 ## 8. Dry Run 2 Capstone Comparison (Full FT vs LoRA vs Deletion Tuning)
 
+**Owner / Track:** Lead (`saitej123`) & DT Table Track (`thinkTinkerGreen`)  
 **Status (Updated 27 Nov 2026, Gate 3 Item 7 Closure):** `dryrun2-1234` (eager arm) pretraining **COMPLETED** (`1,221 / 1,221` steps, `79.8 min` inside the `90 min` cap, `0` NaN/inf, training loss `10.27 -> 5.25`, max grad norm before clipping `26.9`, checkpoint saved at step `1,221`, `final_model_sha256: 8d1600b278a3d8e15c3d7af408a86e7c47acd987a899bf5eeee6b2c72192eb47`). Team 10's matched-step SFT comparison (`capstone/dryrun2_dt_compare.py` via `capstone/dryrun2_job_chain.sh` and `jobs/2026-11-26-g10-dryrun2-dt-vs-fft.md`, including chain step 6 `forget_bpb_kept.py --dtype auto` and `jobs/2026-11-27-g10-dryrun2-prerun-rehearsal.log`) is 27 Nov lead-approved and ready for TSAI launch against `dryrun2-1234`.
 
 ### 8.1 Model Architecture & Ingestion Setup
