@@ -16,7 +16,7 @@ Max time:        90 minutes (ESTIMATE, see "What I ran before filing")
 Precision:       bf16 baseline; Q8_0, Q6_K and Q4_K_M weights, router F32, output layer Q8_0
 Measures:        Export test A1 twice: against G5's model as trained (shows how far routing moves without the router bias) and against G5 with router_bias set to zero (the wiring alone; must pass). The KAS head bias's effect on the same prompts (verify.head_bias_effect). Test A3 (llama.cpp against G5 with router_bias zeroed and the folded head without its output bias). Per format: size, bits per weight, score on 20 items, eval time, tokens per second. On the 100 prompts per format: finish reasons, tokens per second, outputs identical to bf16 and mean shared prefix with bf16, reported separately for Team 10's 55 slots and our 45 fill slots.
 Expected result: A1 with router_bias zeroed and A3 PASS. A1 against the trained routing FAILS by design; the size of the miss is the result. Q8_0 close to bf16 on the prompts and the score, Q6_K close, Q4_K_M further away. No score level is assumed: the model saw one English shard for 1,221 steps (TSAI's result note).
-Outputs:         ./out/dryrun2-g12/{runs.csv,scores.json,manifest_<date>.json,prompts/summary.json,prompts/prompts_<format>.jsonl}, 50 MB or less (the dry run 1 smoke wrote 0.7 MB). GGUF files are deleted at the end. The export report, with both A1 results and the bias statistics, is ./work/hf/dryrun2-1234-<sha8>/export_report.json; please copy it to ./out/dryrun2-g12/ (a few kB).
+Outputs:         ./out/dryrun2-g12/{runs.csv,scores.json,manifest_<date>.json,prompts/summary.json,prompts/prompts_<format>.jsonl}, 50 MB or less (the dry run 1 smoke wrote 0.7 MB). GGUF files are deleted at the end. scores.json carries both A1 results and the statistics of the two dropped biases (export_a1, export_a1_zero_router_bias, export_router_bias, export_head_bias).
 Test log:        "What I ran before filing" below
 ```
 
@@ -46,7 +46,7 @@ One job, one command, no shell pipe. `run_flow.py` runs `quantize_eval.py` and t
 
 ## Source and staging
 
-- Start from `theschoolofai/era-v5-lab` main with the PR that carries this file merged. It adds `--formats` to `run_flow.py` and the second A1 to `export_hf.py`.
+- Start from `theschoolofai/era-v5-lab` main with the PR that carries this file merged. It adds `--formats` to `run_flow.py`, the second A1 to `export_hf.py`, and both A1 results and the bias statistics to `quantize_eval.py`'s scores.json.
 - Checkpoint: the model weights at step 1,221 from `/shared/ckpt/dryrun2-1234`, written as `./inputs/dryrun2-1234/model.safetensors` with Team 7's `ckpt.export_safetensors` (the same call Team 9's `harness_lab/run_lab_ckpt.py` makes; it checks every key). A `checkpoint.pt` with `{"model": state_dict}` works too: then pass `--checkpoint ./inputs/dryrun2-1234/checkpoint.pt`. Copy `./out/dryrun2-1234/manifest.json` beside it.
 - Tokenizer, Python, llama.cpp binaries, the `./work/` folder (`llama.cpp-b11669/`, `.venv-convert/`) and Team 10's parquet files: as in `2026-11-18-dryrun1-quantize-eval.md`, "Source and staging". The dry run 1 staging can be reused as it is. Please start from a `./work/` without dry run 1's `*-bf16.gguf` or `*-scores.json`, so the prompt step finds only this run's files.
 - With these in place the run makes no network call.
@@ -64,7 +64,7 @@ On an Apple laptop (CPU), with a random-weight model in dry run 2's shape from `
 | Step | Result |
 |---|---|
 | `export_hf.py` without the two flags | refused: `blocks.1.moe.router_bias is not zero (largest absolute value 0.0236, bias_gamma 0.001)` |
-| `export_hf.py --verify 16 --drop-router-bias --drop-head-bias` | exit 0 in 15.7 min (CPU) |
+| `export_hf.py --verify 16 --drop-router-bias --drop-head-bias` | exit 0. The export itself takes 7 s; the two A1 runs take the rest (95 s in all with `--verify 2`, 15.7 min with `--verify 16` on a busy laptop) |
 | A1 against G5 as trained | max logit difference 6.3, same top-1 on 864 of 1,024 positions: FAIL, as expected with the router bias dropped |
 | A1 against G5 with router_bias zeroed | max logit difference 2.1e-05 (limit 1e-3), same top-1 on 1,024 of 1,024: PASS |
 | `test_export_hf.py`, `test_run_flow.py` | 40 and 5 tests pass |
@@ -74,6 +74,6 @@ Not run here: the llama.cpp steps (A3, quantize, scores, prompts). They are the 
 ## Open items for TSAI
 
 1. **Checkpoint.** Can the step 1,221 weights be staged as `model.safetensors` (Team 7's `export_safetensors`) or as a `checkpoint.pt` with a `model` key, plus `manifest.json`? If the path differs, I change `--checkpoint` and `--spec`.
-2. **Time.** The two A1 runs are on CPU. 90 minutes is an estimate: the 10.8M-parameter stand-in took 15.7 min for the export on a laptop CPU, mostly folding the 131,072-row head, which does not grow with depth. If it runs long, `--verify 8` halves the A1 time.
-3. **Work folder.** As in dry run 1, `./work/` sits outside `./out/` (llama.cpp checkout, converter venv, the exported model, the GGUFs), and only the export report needs copying to `./out/`.
+2. **Time.** The two A1 runs are on CPU and take most of the export time (see the smoke). 90 minutes is an estimate for a model about 30 times the stand-in's size. If it runs long, `--verify 8` halves the A1 time.
+3. **Work folder.** As in dry run 1, `./work/` sits outside `./out/` (llama.cpp checkout, converter venv, the exported model, the GGUFs). Nothing in it needs copying: `scores.json` has the export results.
 4. **Dry run 1.** The dry run 1 job (22 Nov, "running it now") has not posted results yet. If it finished, its `runs.csv` and `scores.json` let us put the two runs side by side.
