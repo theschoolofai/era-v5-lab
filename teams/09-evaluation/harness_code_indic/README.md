@@ -51,7 +51,8 @@ python <your>/quantize_eval.py --eval runs/eval_mini_v0_items.json
    It runs on CUDA, or on the Apple GPU (MPS) when there is no CUDA device.
    With stock evalplus, run **one dataset per process**, preferably with `--backend vllm`.
 5. **Code part (execution):** this needs Linux: `evalplus.evaluate --dataset humaneval --samples <file>.jsonl` (the same for mbpp).
-   With Docker, on any OS: `python code_eval_docker.py --model <key>` runs it in a throwaway Linux container.
+   With Docker (tested on macOS so far): `python code_eval_docker.py --model <key>` runs it in a throwaway Linux container.
+   If results from an earlier run are in the folder it stops; `--replace` moves them to `.bak` and executes again.
    Without Docker on Windows, use [`code_eval_colab.ipynb`](code_eval_colab.ipynb) on a CPU runtime.
 6. **Results:** `python compare.py` rebuilds both results files from `runs/`.
 

@@ -8,10 +8,11 @@ run, to install evalplus and download the benchmark tests.
 Usage (from this folder, with Docker running), after run_codegen.py:
     python code_eval_docker.py --model qwen2.5-1.5b
     python code_eval_docker.py --model qwen2.5-1.5b --datasets humaneval
+    python code_eval_docker.py --model qwen2.5-1.5b --replace     (results from an earlier run are moved to .bak)
 
 Reads   runs/<model>/evalplus/<model>__<dataset>.jsonl
 Writes  runs/<model>/evalplus/<model>__<dataset>_eval_results.json   (what compare.py reads)
-        runs/<model>/evalplus/code_eval_docker.json                  (image, platform, pass counts, timeouts)
+        runs/<model>/evalplus/code_eval_docker.json                  (image digest, platform, dataset hash, pass counts, timeouts)
 """
 import argparse
 import json
@@ -27,13 +28,36 @@ EVALPLUS = "evalplus==0.3.1"  # the version run_codegen.py and code_eval_colab.i
 
 def summarise(results_path):
     """Pass counts and timeouts from an evalplus results file. A plus pass needs the base tests to pass too."""
-    rows = [v[0] for v in json.loads(results_path.read_text(encoding="utf-8"))["eval"].values()]
+    data = json.loads(results_path.read_text(encoding="utf-8"))
+    rows = [v[0] for v in data["eval"].values()]
     base = sum(r["base_status"] == "pass" for r in rows)
     plus = sum(r["base_status"] == "pass" and r["plus_status"] == "pass" for r in rows)
     timeouts = sum("timeout" in (r["base_status"], r["plus_status"]) for r in rows)
     n = len(rows)
-    return {"n": n, "base_pass": base, "plus_pass": plus, "base": round(100 * base / n, 2), "plus": round(100 * plus / n, 2),
+    return {"dataset_hash": data.get("hash"), "n": n, "base_pass": base, "plus_pass": plus, "base": round(100 * base / n, 2), "plus": round(100 * plus / n, 2),
             "timeouts": timeouts}
+
+
+def clear_old_results(folder, model, datasets, replace):
+    """evalplus.evaluate loads <model>__<dataset>_eval_results.json when it exists and does not execute the samples again
+    ('Load from previous results'), so results from Colab or an earlier run would be reported as this container's. Stop
+    when such a file exists; with --replace, move it to .bak first."""
+    old = [p for p in (folder / f"{model}__{d}_eval_results.json" for d in datasets) if p.exists()]
+    if old and not replace:
+        names = ", ".join(p.name for p in old)
+        sys.exit(f"results already exist in {folder}: {names}\nevalplus would load them instead of executing the samples. "
+                 "Run again with --replace to move them to .bak, or move them yourself.")
+    for p in old:
+        backup = p.with_name(p.name + ".bak")
+        p.replace(backup)
+        print(f"moved {p.name} -> {backup.name}", flush=True)
+
+
+def image_digest():
+    """The digest of the image that ran, e.g. python@sha256:...; the tag alone moves over time."""
+    out = subprocess.run(["docker", "image", "inspect", "--format", "{{join .RepoDigests \",\"}}", IMAGE],
+                         capture_output=True, text=True, timeout=60)
+    return out.stdout.strip() or None
 
 
 def main():
@@ -41,6 +65,7 @@ def main():
     ap.add_argument("--model", required=True, help="key in published_scores.json 'models'")
     ap.add_argument("--datasets", default="humaneval,mbpp")
     ap.add_argument("--memory", default="6g", help="container memory limit")
+    ap.add_argument("--replace", action="store_true", help="move existing *_eval_results.json to .bak and execute again")
     a = ap.parse_args()
 
     folder = RUNS / a.model / "evalplus"
@@ -52,6 +77,7 @@ def main():
         sys.exit("docker not found on PATH: install Docker, or use code_eval_colab.ipynb")
     if subprocess.run(["docker", "info"], capture_output=True, timeout=60).returncode != 0:
         sys.exit("the Docker daemon is not answering: start Docker and try again")
+    clear_old_results(folder, a.model, datasets, a.replace)
 
     steps = [f"pip install -q --root-user-action=ignore {EVALPLUS}",
              "python -c \"import platform; print('platform:', platform.platform())\""]
@@ -65,7 +91,7 @@ def main():
         sys.exit(f"container exited with code {out.returncode}")
 
     platform_line = next((line for line in out.stdout.splitlines() if line.startswith("platform:")), "platform: unknown")
-    record = {"image": IMAGE, "evalplus": EVALPLUS, "platform": platform_line.split(":", 1)[1].strip(), "results": {}}
+    record = {"image": IMAGE, "image_digest": image_digest(), "evalplus": EVALPLUS, "platform": platform_line.split(":", 1)[1].strip(), "results": {}}
     for d in datasets:
         record["results"][d] = summarise(folder / f"{a.model}__{d}_eval_results.json")
         print(d, record["results"][d], flush=True)
