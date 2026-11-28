@@ -225,11 +225,51 @@ head to the training code on 24 Nov 2026.
 
 ## Quantized versions
 
-[text: waiting for Quantization]
+A quantized version stores each weight in fewer bits. The file is smaller and runs faster on a laptop, and it loses
+some quality. The Quantization team makes these versions in GGUF, the file format that llama.cpp and Ollama run.
+
+The full-precision reference is bf16, which stores 16 bits per weight. The Quantization team proposes Q8_0, about 8
+bits per weight, as the default version. Q6_K, about 6 bits per weight, is the candidate for a smaller file. TSAI
+decides which versions the lab releases. [text: waiting for TSAI, the formats chosen at Gate 4]
+
+Each quantized file keeps two parts at higher precision. The router, which picks the experts for each token, stays
+at 32 bits. The output layer, which scores each token as the next token, stays at 8 bits.
+
+The team scores each quantized version against the bf16 version of the same file. It compares the scores on a fixed
+set of test items, and the greedy outputs on a fixed set of prompts. A version that has not been scored against its
+own bf16 is not released.
+
+| Version | Bits per weight | File size | Memory at 8,192 tokens | Speed on a laptop | Change in score against bf16 |
+|---|---|---|---|---|---|
+| bf16 | [number: waiting for TSAI] | [number: waiting for TSAI] | [number: waiting for TSAI] | [number: waiting for TSAI] | reference |
+| Q8_0 | [number: waiting for TSAI] | [number: waiting for TSAI] | [number: waiting for TSAI] | [number: waiting for TSAI] | [number: waiting for TSAI] |
+| Q6_K | [number: waiting for TSAI] | [number: waiting for TSAI] | [number: waiting for TSAI] | [number: waiting for TSAI] | [number: waiting for TSAI] |
+
+What every GGUF version loses, at every bit width:
+
+- The model has a bias that helps the router pick experts. The standard format has no place for it, so the export
+  drops it. Some tokens then go to different experts. [number: waiting for TSAI]
+- The output head adds a bias for each token. The standard format has no place for it either, so the export drops it.
+  [number: waiting for TSAI]
+- The lab's tokenizer changes some letters before it splits a text. A GGUF file carries only part of that step. For
+  Gurmukhi, the Punjabi script, the export changes how the token strings are written. The token ids stay the same.
+  Bengali and Malayalam text typed in some forms gives other token ids. [number: waiting for TSAI]
 
 ## Serving
 
-[text: waiting for Quantization]
+You can run the quantized versions with llama.cpp or with Ollama on a laptop. [text: waiting for Quantization, the
+steps from download to chat after the export of the lab's model]
+
+The Quantization team checks each file in three steps before release:
+
+1. The exported model must give the same next-token scores as the lab's model, with the two biases above set to zero.
+   This check finds a wiring error in the export.
+2. The bf16 GGUF file, run in llama.cpp, must give next-token scores close to the lab's model, with the two biases
+   set to zero.
+3. Each Ollama file must give the same greedy text in Ollama as in llama.cpp, on a fixed set of prompts.
+
+The team ran these steps on a random model with the shape of the second dry run. They have not yet run on a trained
+checkpoint. [text: waiting for Quantization, the results on the lab's model]
 
 ## Evaluation
 
@@ -369,6 +409,7 @@ How to fill it:
 | How to find more | Release | yes | the public lab repository | yes (the Release lead wrote this draft) |
 | KE2 | KE2 | the output head: yes, from text that TSAI approved. The dates now have the year, and the text no longer says Gate 3 (style rules 10 and 11). The placeholder on how the lab tested its embedding method is gone: it was wider than the scope in `model_card_outline.md` | `updates/gate3.md` (the output head, short forms; [#701](https://github.com/theschoolofai/era-v5-lab/pull/701)), the KE2 line of `launch/launch_announcement_v0.md` ([#753](https://github.com/theschoolofai/era-v5-lab/pull/753)), the training code: [#717](https://github.com/theschoolofai/era-v5-lab/pull/717), merged 24 Nov | KE2: yes for the text before the date edit ([comment on #791](https://github.com/theschoolofai/era-v5-lab/pull/791#issuecomment-7142627011)); the date edit: yes ([comment on #705](https://github.com/theschoolofai/era-v5-lab/pull/705#issuecomment-7230047772)) |
 | Personal data | Data A, Data B | yes, drafted by Release from the cleaner on main, and sent to both leads in [#878](https://github.com/theschoolofai/era-v5-lab/pull/878). One line waits for the leads: what else the rules cannot find | `teams/01-data-a/spec_v1_1/clean.py`, `teams/01-data-a/spec_v1_1/build/f1_rule.py` | Data A: no. Data B: no |
+| Quantized versions, and Serving | Quantization | yes, from the Quantization file `teams/12-quantization/model_card/quantized_versions_and_serving.md` ([#905](https://github.com/theschoolofai/era-v5-lab/pull/905)), with no edit. Every number waits for TSAI. Open for the KE2 lead and TSAI: the line that says the output head adds a bias for each token. KE2's design is not yet published, so this line needs their OK to stay | the source table in the Quantization file | Quantization: no |
 | Every other section | the owner team in `model_card_outline.md` | no | waiting for the owner team | no |
 
 - [ ] `check_style.py` gives 0 errors
