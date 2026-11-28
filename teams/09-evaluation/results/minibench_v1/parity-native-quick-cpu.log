@@ -1,0 +1,4 @@
+start 2026-11-28T13:20:36Z native weights, quick, cpu
+$ minibench_lab.py --weights-safetensors <seeded, head.unigram=0>/model.safetensors --weights-sha256 5d802edc... --step 0 --device cpu --profile quick <scorer args> --out parity-native-quick-cpu.json
+quick cpu: 152.7 s, 7703 held-out tokens, 365 items
+end 2026-11-28T13:23:13Z
