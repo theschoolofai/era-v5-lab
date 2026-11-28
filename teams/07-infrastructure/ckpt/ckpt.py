@@ -10,7 +10,8 @@ In simple words:
   and the MANIFEST (the list of files and checksums) is written last. The `latest.json` pointer is
   moved only after that. So a half-written checkpoint can never be picked by mistake.
 - On restore we check the checkpoint before trusting it: checksums, exact key names and shapes, a
-  digest of every tensor, and the loss of one fixed probe batch, compared bit for bit.
+  digest of every tensor, every non-tensor value (learning rates, betas, optimizer groups), and the loss
+  of one fixed probe batch, compared bit for bit.
 - Only one attempt of a run may commit (fencing). A job that Slurm thinks is dead can still be running
   (a node cut off from the network, then back). Each attempt claims a new "epoch" in `latest.json` before
   it restores, and every later write of `latest.json` is conditional on the version that attempt wrote
@@ -311,6 +312,15 @@ def state_digest(sd) -> str:
     for k, t in tensor_items(sd):
         h.update(f"{k}|{t.dtype}|{tuple(t.shape)}|{fp[k]};".encode())
     return h.hexdigest()
+
+
+def scalar_state(sd) -> dict:
+    """Every value that is not a tensor, by name: per optimizer group lr, base_lr (the peak), betas, momentum,
+    weight decay, and which parameters are in the group (Muon vs AdamW). state_digest sees only tensors, so
+    without this a restore that loses the LR or moves a weight to the other optimizer passes every check.
+    JSON round trip so the restored value compares equal to the one read back from MANIFEST.json."""
+    return json.loads(json.dumps({k: v for k, v in flatten(sd).items() if not isinstance(v, torch.Tensor)},
+                                 default=repr))
 
 
 def key_spec(sd) -> dict:
@@ -630,6 +640,7 @@ class Checkpointer:
                 "env": env_manifest(self.config_path, self.code_paths),
                 "keys": key_spec(state),
                 "state_digest": digest,
+                "scalars": scalar_state(state),
                 "frozen": {k[len("model."):]: v for k, v in frozen.items()},
                 "probe_loss": {device_class(model): probe},
                 "next_batch": loader.next_batch_id(),
@@ -867,6 +878,12 @@ class Checkpointer:
         digest = state_digest(restored)
         if digest != man["state_digest"]:
             problems.append(f"state digest saved={man['state_digest']} restored={digest}")
+        if "scalars" in man:      # checkpoints written before this check have no scalars to compare
+            now = scalar_state(restored)
+            for k in sorted(set(man["scalars"]) | set(now)):
+                if man["scalars"].get(k, "<missing>") != now.get(k, "<missing>"):
+                    problems.append(f"scalar {k} saved={man['scalars'].get(k, '<missing>')} "
+                                    f"restored={now.get(k, '<missing>')}")
         dc = device_class(model)
         probe_now = float_bits(probe_fn(model))
         probe_saved = man["probe_loss"].get(dc)

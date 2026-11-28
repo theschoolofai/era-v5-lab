@@ -76,7 +76,8 @@ def trainer(a) -> int:
     seed = int(cfg["run.seed"])
     torch.manual_seed(seed)
     model = rt.TinyMoE(cfg).to(dev)
-    optim = torch.optim.AdamW(model.parameters(), lr=float(cfg["optim.lr"]))
+    optims = rt.make_optim(model, cfg, a.optim, a.muon_lr)     # adamw, or Muon (2D) + AdamW (1D) by shape
+    optim = optims[0] if len(optims) == 1 else optims
     loader = rt.StreamLoader(cfg, seed, 0, 1)
     clip = float(cfg["run.grad_clip"])
     probe_batch = rt.stream_for(cfg, seed + 1)[:int(cfg["tiny.batch"])].to(dev)
@@ -99,11 +100,13 @@ def trainer(a) -> int:
         while step < a.steps:
             batch_id = loader.next_batch_id()
             tokens = loader.next().to(dev)
-            optim.zero_grad(set_to_none=True)
+            for o in optims:
+                o.zero_grad(set_to_none=True)
             ntp, mtp = rt.losses(model, tokens)
             (ntp + mtp).backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), clip)
-            optim.step()
+            for o in optims:
+                o.step()
             step += 1
             n, m = float(ntp.detach()), float(mtp.detach())
             f.write(json.dumps({"attempt": attempt, "step": step, "loss_ntp": n, "loss_mtp": m,
@@ -120,7 +123,7 @@ def trainer(a) -> int:
 def trainer_cmd(a, arm: str) -> list:
     return [sys.executable, str(Path(__file__).resolve()), "--trainer", "--arm", arm, "--root", str(a.root),
             "--device", a.device, "--steps", str(a.steps), "--save-every", str(a.save_every),
-            "--config", str(a.config), "--tiny", str(a.tiny)]
+            "--config", str(a.config), "--tiny", str(a.tiny), "--optim", a.optim, "--muon-lr", str(a.muon_lr)]
 
 
 def read_rows(path: Path) -> list:
@@ -280,7 +283,7 @@ def run_test(a) -> int:
     sup_rows, run_a, run_b, kill = [], [], [], {}
     try:
         print(f"restart_test: run {os.environ['RUN_ID']}, device {a.device}, steps {a.steps}, "
-              f"save every {a.save_every}, kill after step {a.kill_at}, torch {torch.__version__}", flush=True)
+              f"save every {a.save_every}, kill after step {a.kill_at}, optim {a.optim}, torch {torch.__version__}", flush=True)
         t0 = time.time()
         running["a"] = subprocess.Popen(trainer_cmd(a, "a"))
         rc_a = running["a"].wait()
@@ -331,7 +334,7 @@ def run_test(a) -> int:
                    "restarts": len([r for r in sup_rows if r["action"] == "restart"]),
                    "run_a_s": round(t_a, 1), "run_b_s": round(t_b, 1), "torch": torch.__version__}
         status, code = ("pass", 0) if diff is None else ("fail", 1)
-        where = (f"{a.device}: SIGKILL after step {kill['step']}, restarted from COMPLETE checkpoint step "
+        where = (f"{a.device} {a.optim}: SIGKILL after step {kill['step']}, restarted from COMPLETE checkpoint step "
                  f"{restored}, steps 1-{a.steps}")
         line = (f"PASS restart_test {where}: loss_ntp and loss_mtp bit-equal, data ids equal" if diff is None
                 else f"FAIL restart_test {where}: {json.dumps(diff)[:600]}")
@@ -348,7 +351,7 @@ def run_test(a) -> int:
     print(line, flush=True)
     numbers.setdefault("first_diff", diff)
     detail = {"pass": status == "pass", "first_diff": diff, "device": a.device, "nproc": 1, "steps": a.steps,
-              "save_every": a.save_every, "kill_at": a.kill_at, **numbers, "fields": FIELDS,
+              "save_every": a.save_every, "kill_at": a.kill_at, "kill_seed": a.kill_seed, "optim": a.optim, **numbers, "fields": FIELDS,
               "supervisor": sup_rows, "run_a": run_a, "run_b": run_b}
     (root / "detail.json").write_text(json.dumps(detail, indent=1) + "\n")
     if a.report and status == "pass":
@@ -367,6 +370,22 @@ def run_test(a) -> int:
     return code
 
 
+def proof_table(r: dict, before: int = 2, after: int = 3) -> str:
+    """The resume proof, step by step around the kill: the batch data ID and the loss bits of run A and of run B
+    (for steps run B did twice, both attempts)."""
+    by_a = {x["step"]: x for x in r["run_a"]}
+    lo, hi = max(1, r["restarted_from_step"] - before + 1), min(r["steps"], r["killed_after_step"] + after)
+    out = ["  step  batch pos  batch sha256 (first 16)  run A loss_ntp bits  run B attempt: loss_ntp bits  equal"]
+    for s in range(lo, hi + 1):
+        bs = [x for x in r["run_b"] if x["step"] == s]
+        final = bs[-1]
+        ok = all(final[k] == by_a[s][k] for k in FIELDS)
+        b = ", ".join(f"{x['attempt']}: {x['loss_ntp_bits']}" for x in bs)
+        out.append(f"  {s:>4}  {by_a[s]['batch_id']['position']:>9}  {by_a[s]['batch_id']['sha256'][:16]}"
+                   f"         {by_a[s]['loss_ntp_bits']}           {b:<30} {'yes' if ok else 'NO'}")
+    return "\n".join(out)
+
+
 def write_report(a, r: dict, line: str) -> None:
     import numpy
     import torch
@@ -377,12 +396,13 @@ def write_report(a, r: dict, line: str) -> None:
     sup = "\n".join(f"  attempt {s['attempt']}: exit {s['rc']} ({s['meaning']}) -> {s['action']}"
                     + (f" (latest.json at step {s['pointer_step']})" if s["action"] == "restart" else f", supervisor exit {s['exit']}")
                     for s in r["supervisor"])
-    text = f"""Restart test on CPU, Team 05 tiny MoE, ckpt/supervisor.py
+    drawn = f" --kill-seed {a.kill_seed}" if a.kill_seed is not None else ""
+    text = f"""Restart test on CPU, Team 05 tiny MoE, ckpt/supervisor.py, optimizer {a.optim}
 Date: {time.strftime('%d %b %Y')}
 
 Commands (from teams/07-infrastructure/; CUDA_VISIBLE_DEVICES="" hides any GPU so it runs on CPU only):
 
-  CUDA_VISIBLE_DEVICES="" python {rel} --also-kill-at 31,99,164 --report results/restart_cpu.txt
+  CUDA_VISIBLE_DEVICES="" python {rel} --optim {a.optim}{drawn} --report {a.report}
       (output in jobs/restart_test/out/, git-ignored)
   CUDA_VISIBLE_DEVICES="" python {rel} --run-id g7-restart-test-20261104-01 --device cpu
       (the job form, queue rules v1: output in ./out/g7-restart-test-20261104-01/, checked with
@@ -398,7 +418,7 @@ Environment:
 
 What it does:
   Run A: steps 1-{a.steps}, no stop, checkpoint every {a.save_every} steps.
-  Run B: the same command under ckpt/supervisor.py. Killed with SIGKILL once past step {a.kill_at} and a COMPLETE
+  Run B: the same command under ckpt/supervisor.py. Killed with SIGKILL once past step {a.kill_at}{" (drawn with --kill-seed " + str(a.kill_seed) + ")" if a.kill_seed is not None else ""} and a COMPLETE
          checkpoint exists. The supervisor restarts the same command; the trainer restores latest.json.
   Compared: loss_ntp and loss_mtp bits and the batch data ID for every step 1-{a.steps} (for steps run B did
             twice, the value after the restart).
@@ -418,6 +438,9 @@ Result: {'PASS' if r['pass'] else 'FAIL'}
 Supervisor log (logs/supervisor.jsonl):
 {sup}
 
+Resume proof around the kill (rows/a.jsonl, rows/b.jsonl; all steps are in detail.json):
+{proof_table(r)}
+
 Last line:
   {line}
 {other}"""
@@ -435,6 +458,11 @@ def main(argv=None) -> int:
     ap.add_argument("--steps", type=int, default=200)
     ap.add_argument("--save-every", type=int, default=25, help="checkpoint every N steps")
     ap.add_argument("--kill-at", type=int, default=140, help="SIGKILL run B once it is past this step")
+    ap.add_argument("--kill-seed", type=int, default=None,
+                    help="draw the kill step at random (seeded, printed) between --save-every and --steps - 1")
+    ap.add_argument("--optim", default="adamw", choices=["adamw", "muon"],
+                    help="muon: Muon on every 2D weight, AdamW on the 1D rest (TSAI, 28 Nov)")
+    ap.add_argument("--muon-lr", type=float, default=0.006, help="Muon rate (config_v1.yaml optim.muon_lr)")
     ap.add_argument("--out", type=Path, default=HERE / "out", help="output folder without --run-id")
     ap.add_argument("--report", default=None, help="also write a plain-text result file here")
     ap.add_argument("--also-kill-at", default="", help="comma list: also run with these kill points and add "
@@ -447,6 +475,10 @@ def main(argv=None) -> int:
     a = ap.parse_args(argv)
     if a.trainer:
         return trainer(a)
+    if a.kill_seed is not None:
+        import random
+        a.kill_at = random.Random(a.kill_seed).randint(a.save_every, a.steps - 1)
+        print(f"kill step drawn with --kill-seed {a.kill_seed}: {a.kill_at}", flush=True)
     if not (0 < a.save_every <= a.kill_at < a.steps):
         ap.error("need 0 < --save-every <= --kill-at < --steps")
     if a.run_id is not None and not RUN_ID_RE.match(a.run_id):
