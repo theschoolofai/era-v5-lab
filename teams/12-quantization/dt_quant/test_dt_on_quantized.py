@@ -203,3 +203,32 @@ def test_g10_note_takes_every_number_from_the_results():
     assert "`dt_q8_0-dt` +0.0500 [+0.0000, +0.1000]" in md
     row = [l for l in md.splitlines() if l.startswith("| `base` ")][0]
     assert "| - | - |" in row                                                           # no deletion, no prior on a base arm
+
+
+# ---- gradient coverage (instructor's rule of 28 Nov) -----------------------------------------------------------
+def test_coverage_lists_none_and_all_zero_parameters():
+    grads = {"a": torch.ones(3), "b": None, "c": torch.zeros(4), "d": torch.tensor([0.0, 1.0])}
+    c = dq.coverage(grads)
+    assert c["trainable_parameters"] == 4 and c["grad_none"] == ["b"] and c["grad_all_zero"] == ["c"]
+    assert c["zero_element_share"] == round((0 + 4 + 1) / 9, 6)                       # 5 zero elements of 9 with a gradient
+
+
+@pytest.mark.parametrize("fmt", ["q8_0", "q4_0"])
+def test_packed_path_gradients_match_the_plain_path(toy, fmt):
+    args, windows = toy
+    r = dq.grad_path_check(args, windows["train"], torch.device("cpu"), fmt)
+    assert r["same_trainable_parameters"] and r["same_none_and_zero_lists"]
+    assert r["fast_path_on"]["trainable_parameters"] == 2                              # one gate per layer on the toy model
+    assert r["fast_path_on"]["grad_none"] == [] and r["fast_path_on"]["grad_all_zero"] == []
+    assert r["max_abs_grad_difference"] <= 1e-6
+
+
+def test_g10_note_has_a_gradient_coverage_section_when_the_check_ran():
+    import make_g10_note as g
+    res = _fake_results()
+    cov = {"trainable_parameters": 28, "grad_none": [], "grad_all_zero": [], "zero_element_share": 0.0}
+    res["grad_coverage"] = {"q8_0": {"fast_path_on": cov, "fast_path_off": cov, "same_trainable_parameters": True,
+                                     "same_none_and_zero_lists": True, "max_abs_grad_difference": 0.0, "format": "q8_0"}}
+    md = g.render(res, argparse.Namespace(pr="https://example/pr/1", notebook_version="v123"))
+    assert "Gradient coverage (instructor's rule, 28 Nov)" in md and "| q8_0 | 28 | 0 / 0 | 0 / 0 |" in md
+    assert "Gradient coverage" not in g.render(_fake_results(), argparse.Namespace(pr="x", notebook_version="v"))
