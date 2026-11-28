@@ -33,10 +33,19 @@ Each file gets a sha256 hash in the decision log before it goes public.
 | Tokenizer | The frozen tokenizer files | Tokenizer | The files match `teams/03-tokenizer/release/SHA256SUMS`, and `verify_release.py` passes. |
 | Unit dictionary | The dictionary of units, if the released model uses one | Tokenizer, KE2 | As things stand, the released model uses the frozen p1536 tokenizer only, with no dictionary ([comment on #881](https://github.com/theschoolofai/era-v5-lab/pull/881#issuecomment-7237397353)). If KE2 and TSAI decide to ship one, Tokenizer posts its hash. |
 | Chat format | The chat template and the special tokens | Post-training, Tokenizer | The special-token file is on main, confirmed by Post-training ([#873](https://github.com/theschoolofai/era-v5-lab/pull/873)). The files match `teams/03-tokenizer/release/SHA256SUMS`. |
-| Model card | The model card, as the README of each model page | Release | TSAI approves the card. |
+| Model card | The model card, as the README of each model page, with the metadata header that Hugging Face reads | Release, Quantization | TSAI approves the card. The packager uses this card, not a card of its own (see below). |
 | Evaluation results | The scores of the released model | Evaluation | TSAI approves each score. |
 | Dataset card | A card for the data that TSAI may release | Data A, Data B, Release | The licence of each source, from `teams/10-post-training/licences/licence_table.md`. TSAI decides what is released. |
 | Licence | The licence of the model | TSAI | TSAI decides the licence. |
+
+### One model card for Hugging Face and Ollama
+
+Release and Quantization both give files to the public model pages. The page shows one card, the README. So the two teams use one card:
+
+- The README of each model page is the model card that TSAI approves, `model_card/model_card_v0.md`, without its review record.
+- On top of it goes the metadata header that Hugging Face reads: `license`, `language`, `pipeline_tag: text-generation` and `tags`. The licence and the model name come from TSAI. The language codes come from the Languages section of the card. [text: waiting for TSAI, the licence and the model name]
+- Quantization's packager, `teams/12-quantization/ollama/package_ollama.py`, writes a README of its own today. That README has text and numbers that TSAI has not approved for the card. Before the release, the packager takes the approved card instead. [text: waiting for Quantization, how the packager takes the card]
+- The file table of the packager, with the size and sha256 of each file, can stay. It goes into the What is released section of the card.
 
 ## The laptop run
 
