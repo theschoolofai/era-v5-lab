@@ -13,7 +13,7 @@ python teams/12-quantization/quant_error/quant_error.py all \
   [--normalize] [--export-report <export_report.json>] [--work <scratch dir>]
 ```
 
-Exit 0 on success; exit 1 if `--out` is over 5 MB. Progress goes to stderr.
+Exit 0 on success; exit 1 if `--out` is over 5 MB; any error stops the run with a non-zero exit code. Each CSV is written as soon as its step finishes (`tensors.csv`, then `layers/linears/tokens.csv`, then `kl.csv`) and `summary.json` last, so a late failure (say, one bad slice in the llama.cpp step) keeps the earlier results; `summary.json` then lists `steps_completed` and `failed`. Step progress goes to stderr; the `llama-perplexity` commands that `kl_eval` runs are printed to stdout.
 
 ## Inputs
 
@@ -41,7 +41,9 @@ Exit 0 on success; exit 1 if `--out` is over 5 MB. Progress goes to stderr.
 | `kl.csv` | slice, format | `chunks, tokens_scored, ppl_ratio, ppl_ratio_unc, kld_mean, kld_mean_unc, kld_99, same_top_p, time_s` from `llama-perplexity` (what users get from llama.cpp). `chunks` is 0, and the numbers are empty, for a slice under 1024 tokens (llama-perplexity refuses it). |
 | `summary.json` | run | python, torch, transformers, gguf and llama.cpp versions; sha256 of the reference, every quantized file, the held-out file and the tokenizer; all settings; per-step and total wall time; `export_gap`. |
 
-The twin forward (`tokens.csv`, `layers.csv`, `linears.csv`) uses the first `--tokens-per-slice` tokens of every slice, cut into sequences of `min(--seq-len, --tokens-per-slice)` (a last partial sequence is dropped). llama.cpp (`kl.csv`) scores up to `--kl-chunks` chunks of 512 tokens of each slice.
+The twin forward (`tokens.csv`, `layers.csv`, `linears.csv`) uses the first `--tokens-per-slice` tokens of every slice, cut into sequences of `n = min(--seq-len, --tokens-per-slice)` (a last partial sequence is dropped). When the reference GGUF has `tokenizer.ggml.add_bos_token` true, every sequence is `[BOS] + (n - 1)` slice tokens, the BOS id from `tokenizer.ggml.bos_token_id` (llama-perplexity starts each chunk the same way); when it is false or absent there is no BOS. `summary.json` settings record `bos` and `bos_id`. llama.cpp (`kl.csv`) scores up to `--kl-chunks` chunks of 512 tokens of each slice.
+
+`tokens.csv` and `kl.csv` score different positions: the twin forward scores every position of its sequences, llama.cpp only the second half of each 512-token chunk (and different tokens, since the chunks come from the whole slice). Their numbers are not comparable slice by slice; read each against its own kind (the twin forward for where the error arises, `kl.csv` for what llama.cpp users get).
 
 The slice texts and llama.cpp's scratch files (the base logits, about 260 KB per scored token at a 131k vocabulary) go to `--work`, a temporary folder removed at the end unless `--work` is given. They are never in `--out`.
 
