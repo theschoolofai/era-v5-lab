@@ -15,6 +15,8 @@ hardware or network faults. If it crashes 3 times in 30 minutes, it is not one-o
 Commands:
     job_queue.py run -- <srun args> -- <trainer args>   the job wrapper; every sbatch script calls it
     job_queue.py start-mode --remote-root R --run-id I  fresh | resume | claimed_only for the next attempt
+    job_queue.py claim-owner --remote-root R --run-id I [--current-job J]
+                                                        has the job that claimed this run ended? (sacct; exit 0 = yes)
     job_queue.py hold-event --reason TEXT               record job.held when a startup check holds the job (sbatch)
     job_queue.py spot-watch                             per node: cloud's 2-minute spot warning -> drain + save
     job_queue.py drain <reason> [--node N]              take a node out; its jobs save and move
@@ -162,9 +164,9 @@ def start_mode(remote_root: str, run_id: str, tries: int = 3, wait_s: float = 10
     `latest.json` can be only a fencing claim: the first attempt writes it before its first commit. What counts
     as something to resume is decided by ckpt/candidates.py, the same rule Checkpointer.candidates() restores with,
     so this check and the restore cannot drift apart. A claim with no candidate is claimed_only; train_week2.py
-    currently refuses both fresh and resume in that state, so mainrun.sbatch holds it (exit 78): the operator
-    confirms in sacct that the earlier job ended and resubmits under a new RUN_ID. Proposed for week 5 (draft #826, not yet agreed
-    by Team 05): the launcher does that sacct check and passes --checkpoint-at-start. A commit history
+    currently refuses both fresh and resume in that state, so mainrun.sbatch holds it (exit 78). Before it holds,
+    it asks claim_owner_ended() whether the job that made the claim has ended, so the hold says so. The routing to
+    --checkpoint-at-start waits for Team 05's trainer to claim before it reads (draft #826). A commit history
     without a latest.json is an inconsistent store: restore would find nothing to resume, so this raises and the
     job is held instead of guessing."""
     root = remote_root.rstrip("/") or "/"
@@ -296,6 +298,55 @@ def start_mode(remote_root: str, run_id: str, tries: int = 3, wait_s: float = 10
             if attempt + 1 < tries:
                 time.sleep(wait_s)
     raise OSError(f"checkpoint store {run_url} did not answer after {tries} tries: {error}") from error
+
+
+# sacct states of a job allocation that has stopped for good. Anything else (RUNNING, PENDING, REQUEUED, SUSPENDED,
+# COMPLETING, an unknown word) means "not confirmed": the launcher holds rather than guess.
+SACCT_ENDED = frozenset({"COMPLETED", "FAILED", "CANCELLED", "TIMEOUT", "NODE_FAIL", "OUT_OF_MEMORY", "BOOT_FAIL",
+                         "DEADLINE", "PREEMPTED"})
+
+
+def claim_owner_ended(remote_root: str, run_id: str, current_job: str = "") -> tuple:
+    """Has the Slurm job that holds the claim on this run stopped? Returns (ended, one line of plain words).
+
+    In simple words: a run with a claim and no commit was started by some job and stopped before its first save.
+    Before anyone starts it again, we ask Slurm (`sacct`) whether that job is really finished. Only a clearly
+    finished state counts. A missing record, a running or pending job, an `sacct` error, or a claim that names no
+    job all answer "not confirmed", never "ended".
+
+    The job that made the claim is read from latest.json (`job`, written by Checkpointer.claim()). If it is the
+    current job (a requeue of this very job), the earlier attempt is a previous restart: Slurm starts a restart only
+    after the previous one has stopped, so it counts as ended. If a node was cut off from the network, Slurm can
+    requeue while the old process still runs; epoch fencing (ADR 0001 §3) refuses that old attempt's commit."""
+    root = remote_root.rstrip("/") or "/"
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", run_id):
+        return False, f"run ID {run_id!r} is not valid"
+    run_url = (root.rstrip("/") + "/" + run_id) if root != "/" else "/" + run_id
+    try:
+        latest = open_store(run_url).get_json("latest.json")
+    except Exception as exc:  # noqa: BLE001 - any read failure is "not confirmed"
+        return False, f"cannot read latest.json ({type(exc).__name__})"
+    job = latest.get("job") if isinstance(latest, dict) else None
+    if not isinstance(job, str) or not re.fullmatch(r"[0-9]+", job):
+        return False, f"latest.json names no Slurm job (job={job!r})"
+    if current_job and job == current_job:
+        return True, f"the claim was made by this job ({job}); its earlier attempt has stopped"
+    result = _slurm(["sacct", "-j", job, "-X", "-n", "-P", "-o", "JobID,State"], 30)
+    if result is None:
+        return False, f"sacct is not available or did not answer, so job {job} is not confirmed ended"
+    if result.returncode != 0:
+        return False, f"sacct failed for job {job}: {result.stderr.strip()[:120]}"
+    rows = [line.split("|") for line in result.stdout.splitlines() if line.strip()]
+    rows = [row for row in rows if len(row) >= 2 and row[0] == job]
+    if not rows:
+        return False, f"sacct has no record of job {job}"
+    # sacct normally prints only the newest record of a requeued job (seen on a real Slurm). If it prints several,
+    # they are oldest first, and only the last one says whether the job runs now.
+    words = rows[-1][1].split()
+    state = words[0].upper() if words else ""
+    if state in SACCT_ENDED:
+        return True, f"job {job} has ended (sacct state {state})"
+    return False, f"job {job} is not confirmed ended (sacct state {state or 'empty'})"
 
 
 def startup_hold(reason: str) -> dict:
@@ -465,6 +516,10 @@ def main(argv) -> int:
     sm = sub.add_parser("start-mode", help="fresh, resume or claimed_only for Team 05's next attempt")
     sm.add_argument("--remote-root", required=True)
     sm.add_argument("--run-id", required=True)
+    co = sub.add_parser("claim-owner", help="has the job that claimed this run ended? exit 0 yes, 3 not confirmed")
+    co.add_argument("--remote-root", required=True)
+    co.add_argument("--run-id", required=True)
+    co.add_argument("--current-job", default="")
     he = sub.add_parser("hold-event", help="record job.held for a startup check that held the job (mainrun.sbatch)")
     he.add_argument("--reason", required=True)
     sub.add_parser("spot-watch", help="watch for the spot warning on this node")
@@ -484,6 +539,10 @@ def main(argv) -> int:
             print(f"start-mode: cannot read the checkpoint store: {type(exc).__name__}: {exc}", file=sys.stderr)
             return 3
         return 0
+    if a.cmd == "claim-owner":
+        ended, message = claim_owner_ended(a.remote_root, a.run_id, a.current_job)
+        print(message)
+        return 0 if ended else 3
     if a.cmd == "hold-event":
         startup_hold(a.reason)
         return 0
