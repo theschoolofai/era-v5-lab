@@ -189,6 +189,11 @@ def load_runtime(arm_path, runtime_path=None):
             "bias",
             "dispatch",
             "bias_gamma",
+            # Router-balance test arms (#892): all off by default.
+            "bias_gamma_start",
+            "bias_gamma_start_steps",
+            "route_sample_steps",
+            "aux_loss_weight",
         ],
         "lead model.moe",
     )
@@ -207,6 +212,9 @@ def load_runtime(arm_path, runtime_path=None):
             "head_sgd",
             "head_sgd_lr",
             "head_sgd_momentum",
+            # Router-balance test arms A6 and A7 (#892): Muon idle-expert guards, off by default.
+            "skip_zero_grad",
+            "mask_idle_rows",
             "warmup_steps",
             "betas",
             "eps",
@@ -394,6 +402,19 @@ def validate(c):
     gamma = e.get("bias_gamma")
     if type(gamma) not in (int, float) or isinstance(gamma, bool) or not math.isfinite(gamma) or gamma < 0:
         errors.append("bias_gamma must be 0 or a positive finite number")
+    # Router-balance test arms (#892, Lab 5 design task 4).
+    start, start_steps = e.get("bias_gamma_start"), e.get("bias_gamma_start_steps")
+    if start is not None or start_steps is not None:
+        if not number(start) or start <= 0 or type(start_steps) is not int or start_steps < 1:
+            errors.append("model.moe.bias_gamma_start needs a positive number and bias_gamma_start_steps a whole number of at least 1")
+        elif not number(gamma) or gamma <= 0:
+            errors.append("model.moe.bias_gamma_start needs balancing on (bias_gamma above 0)")
+    rs = e.get("route_sample_steps")
+    if rs is not None and (type(rs) is not int or rs < 0):
+        errors.append("model.moe.route_sample_steps must be a whole number of at least 0")
+    aux = e.get("aux_loss_weight")
+    if aux is not None and (not number(aux) or aux < 0):
+        errors.append("model.moe.aux_loss_weight must be 0 or a positive number")
     if m.get("activation") != "swiglu" or m.get("position") != "rope":
         errors.append("Week2 requires SwiGLU/RoPE")
     if not number(m.get("rope_theta")) or m["rope_theta"] <= 0:
@@ -474,6 +495,11 @@ def validate(c):
         errors.append("optim.router_on_muon must be true or false")
     if o.get("name") == "adamw" and o.get("router_on_muon"):
         errors.append("router_on_muon set on an AdamW arm would be ignored")
+    for k in ("skip_zero_grad", "mask_idle_rows"):
+        if k in o and type(o[k]) is not bool:
+            errors.append("optim." + k + " must be true or false")
+        elif o.get(k) and o.get("name") != "muon":
+            errors.append("optim." + k + " applies to Muon only")
     tst = r.get("tst")
     if tst is not None and type(tst) is not bool:
         errors.append("run.tst must be true or false")

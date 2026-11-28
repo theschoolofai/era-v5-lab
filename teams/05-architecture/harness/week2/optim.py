@@ -12,6 +12,19 @@ import torch
 
 NS_COEFFS = (3.4445, -4.7750, 2.0315)
 MUON = {"momentum": 0.95, "nesterov": True, "ns_steps": 5}
+# Router-balance arm A7 (#892): Sourav Dhar's row mask (sourav-dhar/era-v5-lab commit bb78dd5e). A row whose gradient
+# norm is at most this share of its matrix's largest row norm has no gradient signal.
+IDLE_ROW_REL = 1e-6
+
+
+def live_rows(grads):
+    """[n, rows, 1], True where a row of a same-shape gradient stack has gradient signal (from bb78dd5e).
+
+    The fused MoE gives an expert that saw no tokens an all-zero gradient (not None), and its router row a gradient of
+    about 1e-10 (rounding only). Newton-Schulz scales every direction it gets to full size, so those rows would
+    otherwise take a normal step from stale momentum. An all-zero matrix has no live rows."""
+    norms = torch.stack(grads).float().norm(dim=-1, keepdim=True)
+    return norms > IDLE_ROW_REL * norms.amax(dim=1, keepdim=True)
 
 
 def _native_bf16():
@@ -53,8 +66,14 @@ def zeropower_batched(G, steps=5, eps=1e-7):
 
 class Muon(torch.optim.Optimizer):
     def __init__(
-        self, params, lr, momentum=0.95, nesterov=True, ns_steps=5, weight_decay=0.0
+        self, params, lr, momentum=0.95, nesterov=True, ns_steps=5, weight_decay=0.0,
+        skip_zero_grad=False, mask_idle_rows=False,
     ):
+        # skip_zero_grad (router-balance arm A6, from Udit Singhania's #919): an all-zero dense gradient is treated
+        # like a missing one. mask_idle_rows (arm A7, Sourav Dhar's bb78dd5e): rows without gradient signal keep
+        # their weights and momentum. Both off by default: the update is then exactly the one before.
+        self.skip_zero_grad = bool(skip_zero_grad)
+        self.mask_idle_rows = bool(mask_idle_rows)
         super().__init__(
             params,
             dict(
@@ -76,6 +95,9 @@ class Muon(torch.optim.Optimizer):
                 # Like AdamW: an expert that saw no tokens gets no update and keeps its momentum.
                 if p.grad is None:
                     continue
+                # A6 (#919): the fused MoE gives unselected experts dense zero gradients, not None.
+                if self.skip_zero_grad and not p.grad.is_sparse and p.grad.count_nonzero() == 0:
+                    continue
                 state = self.state[p]
                 if "buf" not in state:
                     state["buf"] = torch.zeros_like(p.grad)
@@ -83,9 +105,18 @@ class Muon(torch.optim.Optimizer):
             for (shape, _), ps in by_shape.items():
                 bufs = [self.state[p]["buf"] for p in ps]
                 grads = [p.grad for p in ps]
-                torch._foreach_lerp_(bufs, grads, 1 - group["momentum"])
-                gs = torch._foreach_lerp(grads, bufs, group["momentum"]) if group["nesterov"] else bufs
-                U = zeropower_batched(torch.stack(gs), group["ns_steps"])
+                if self.mask_idle_rows:
+                    # A7 (bb78dd5e): rows with no gradient signal keep their weights and momentum.
+                    live = live_rows(grads)
+                    B, G = torch.stack(bufs), torch.stack(grads)
+                    B = torch.where(live, B.lerp(G, 1 - group["momentum"]), B)
+                    torch._foreach_copy_(bufs, list(B.unbind(0)))
+                    gs = G.lerp(B, group["momentum"]) if group["nesterov"] else B
+                    U = zeropower_batched(gs * live, group["ns_steps"]) * live
+                else:
+                    torch._foreach_lerp_(bufs, grads, 1 - group["momentum"])
+                    gs = torch._foreach_lerp(grads, bufs, group["momentum"]) if group["nesterov"] else bufs
+                    U = zeropower_batched(torch.stack(gs), group["ns_steps"])
                 if group["weight_decay"]:
                     torch._foreach_mul_(ps, 1 - group["lr"] * group["weight_decay"])
                 alpha = -group["lr"] * max(1.0, shape[0] / shape[1]) ** 0.5
@@ -216,7 +247,9 @@ def _build_optimizer(model, o):
         [
             (
                 "muon",
-                Muon(muon, lr=o["muon_lr"], weight_decay=0.0, **MUON),
+                Muon(muon, lr=o["muon_lr"], weight_decay=0.0, **MUON,
+                     skip_zero_grad=bool(o.get("skip_zero_grad", False)),
+                     mask_idle_rows=bool(o.get("mask_idle_rows", False))),
             ),
             ("adamw", adamw(rest)),
         ]

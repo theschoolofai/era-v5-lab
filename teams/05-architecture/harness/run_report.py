@@ -65,7 +65,8 @@ def layer_load(counts):
     }
 
 
-def report(rows, name):
+def report(rows, name, summary=None):
+    """summary: the run's summary.json (optional), for the wall time."""
     out = [f"# Run report: {name}", ""]
     train = [r for r in rows if "loss" in r and r.get("step", 0) > 0]
     evals = [r for r in rows if "val/bpb" in r]
@@ -102,7 +103,16 @@ def report(rows, name):
             out += ["## Throughput", "",
                     f"- Real (scored) tokens per second: {scored / (ms / 1000):,.0f} over {ms / 3.6e6:.2f} h of step time.",
                     f"- Row fill: {scored:,} scored tokens in {positions:,} input positions ({scored / positions:.1%}).",
-                    "- The trainer's tokens_per_second counts padded positions; the line above does not.", ""]
+                    "- The trainer's tokens_per_second counts padded positions; the line above does not."]
+            peaks = [r["gpu_peak_gb"] for r in train if finite(r.get("gpu_peak_gb")) and r["gpu_peak_gb"] > 0]
+            if peaks:
+                out.append(f"- Peak GPU memory: {max(peaks):.2f} GiB.")
+            wall = summary.get("wall_seconds") if summary else None
+            if finite(wall) and wall > 0:
+                outside = wall - ms / 1000
+                out.append(f"- Wall time {wall / 60:.1f} min, of which {outside / 60:.1f} min ({outside / wall:.0%}) outside "
+                           "training steps (start-up, evaluations, checkpoints): the run's idle time for training.")
+            out.append("")
 
     if evals:
         out += ["## Held-out bits per byte", "", "| Step | val/bpb |", "|---:|---:|"]
@@ -289,7 +299,9 @@ def main():
     ap.add_argument("--charts", type=Path, metavar="DIR", help="also write the expert-load charts and table here")
     args = ap.parse_args()
     rows = read_rows(args.metrics)
-    text = report(rows, args.metrics.parent.name or args.metrics.name)
+    side = args.metrics.parent / "summary.json"
+    summary = json.loads(side.read_text(encoding="utf-8")) if side.exists() else None
+    text = report(rows, args.metrics.parent.name or args.metrics.name, summary)
     print(text)
     if args.out:
         args.out.write_text(text + "\n", encoding="utf-8")

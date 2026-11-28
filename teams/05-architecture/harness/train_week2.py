@@ -735,6 +735,10 @@ def main():
                 model.start_expert_load()
             micro = cfg["run"]["micro_batch_size"]
             model.clear_router_bias_load()
+            # Router-balance arm A4 (#892): sampled routing while step <= moe.route_sample_steps (off by default).
+            moe_cfg = cfg["model"]["moe"]
+            model.set_route_sampling(model.route_sampling_active(step, moe_cfg.get("route_sample_steps") or 0))
+            aux_weight = float(moe_cfg.get("aux_loss_weight") or 0.0)
             for start in range(0, len(x), micro):
                 tx, ty = x[start : start + micro], y[start : start + micro]
                 # Normalize each microbatch by the full batch target count.
@@ -755,6 +759,11 @@ def main():
                         if mtp is None or cfg["model"]["mtp_weight"] == 0
                         else ntp + cfg["model"]["mtp_weight"] * mtp
                     )
+                    # Router-balance arm A5 (#892): the load-balancing loss, weighted by this microbatch's share of
+                    # the batch so the step's total is the batch average (off by default: no term, no change).
+                    aux = model.moe_aux_loss() if aux_weight else None
+                    if aux is not None:
+                        loss = loss + aux_weight * aux * (len(tx) / len(x))
                 if args.consolidate_step_checks:
                     mtp_log = mtp.detach() if mtp is not None else ntp.new_zeros(())
                     micro_losses.append(
@@ -771,7 +780,7 @@ def main():
                     ntp_value += float(ntp.detach())
                     if mtp is not None:
                         mtp_value += float(mtp.detach())
-            model.update_router_bias()
+            model.update_router_bias(step)
             if not args.consolidate_step_checks:
                 grads = [q.grad for q in model.parameters() if q.grad is not None]
                 if grads and not bool(torch.isfinite(torch.stack(torch._foreach_norm(grads))).all()):
@@ -818,6 +827,13 @@ def main():
                 "tokens_per_second": x.numel() / (ms / 1000),
                 "gpu_alloc_gb": (
                     torch.cuda.memory_allocated() / 1024**3
+                    if device.type == "cuda"
+                    else 0.0
+                ),
+                # Peak since the run started (Lab 5: "measure the rate and peak memory per GPU"); gpu_alloc_gb above
+                # is only the memory in use when this row is written, between steps.
+                "gpu_peak_gb": (
+                    torch.cuda.max_memory_allocated() / 1024**3
                     if device.type == "cuda"
                     else 0.0
                 ),

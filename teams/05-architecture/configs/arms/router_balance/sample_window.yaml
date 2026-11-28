@@ -1,0 +1,7 @@
+# T3 router balance (#892), arm A4: for the first 200 steps, sample the 2 experts from the router probabilities.
+inherit: ../dryrun2.yaml
+intended:
+  arm: router-balance-A4
+model:
+  moe:
+    route_sample_steps: 200

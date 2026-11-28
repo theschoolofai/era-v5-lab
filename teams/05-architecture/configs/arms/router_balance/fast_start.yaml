@@ -1,0 +1,8 @@
+# T3 router balance (#892), arm A3: bias step 0.01 for the first 200 steps, then dry run 2's 0.001.
+inherit: ../dryrun2.yaml
+intended:
+  arm: router-balance-A3
+model:
+  moe:
+    bias_gamma_start: 0.01
+    bias_gamma_start_steps: 200

@@ -118,6 +118,19 @@ class ChartTests(unittest.TestCase):
                 rr.charts([row(1)], d)
 
 
+class RateAndIdleTests(unittest.TestCase):
+    """Lab 5 compute rules: peak memory and time outside training steps (idle time) in the report."""
+
+    def test_peak_memory_and_idle_time(self):
+        rows = [row(1, ms=1000.0, gpu_peak_gb=5.5), row(2, ms=1000.0, gpu_peak_gb=6.25)]
+        text = rr.report(rows, "x", summary={"wall_seconds": 10.0})
+        self.assertIn("Peak GPU memory: 6.25 GiB.", text)
+        self.assertIn("Wall time 0.2 min, of which 0.1 min (80%) outside training steps", text)
+
+    def test_without_summary_no_idle_line(self):
+        self.assertNotIn("outside training steps", rr.report([row(1)], "x"))
+
+
 class InputTests(unittest.TestCase):
     def test_non_finite_rows_are_reported(self):
         text = rr.report([row(1), row(2, loss=float("nan")), row(3, norm=float("inf"))], "x")

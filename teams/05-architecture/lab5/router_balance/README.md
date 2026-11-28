@@ -45,6 +45,23 @@ Output in [`dryrun2_charts/`](dryrun2_charts/): `busiest_share.svg` (each layer'
 | 400 | 17.8% | 0 |
 | 1,200 | 15.5% | 2 |
 
+## The test arms, built (28 Nov)
+
+Eight arm files in `configs/arms/router_balance/`, each inheriting dry run 2's arm and changing one thing. The job request for the team GPU, with the command, the assumptions and the sources of each arm, is `jobs/2026-11-29-router-balance.md`.
+
+| Arm | Change | Hypothesis tested | Source |
+|---|---|---|---|
+| A0 `base` | none (control) | | dry run 2 |
+| A1 `gamma_low` | `moe.bias_gamma: 0.0001` | the bias step sets the early collapse | TSAI: bias step size |
+| A2 `gamma_high` | `moe.bias_gamma: 0.01` | the same, fast side | TSAI: bias step size |
+| A3 `fast_start` | bias step 0.01 for 200 steps, then 0.001 | a fast start alone is enough | TSAI: warm-up |
+| A4 `sample_window` | experts sampled from the router probabilities for 200 steps | the collapse comes from how routing starts | TSAI: probabilistic window; Udit (#897) |
+| A5 `aux_loss` | load-balancing loss, weight 0.001 | the same, by a loss | TSAI: auxiliary term; Switch Transformer |
+| A6 `zero_guard` | Muon skips all-zero gradients | idle-expert drift keeps experts at zero | #919 (Udit), #875 (Tanmay) |
+| A7 `guard_row_mask` | A6 plus a mask on rows with no gradient signal | router-row drift keeps experts at zero | Sourav Dhar, bb78dd5e |
+
+New switches (all off by default, so every existing arm is unchanged): `model.moe.bias_gamma_start` and `bias_gamma_start_steps` (A3), `model.moe.route_sample_steps` plus `model.start_route_sampling(steps, from_step)` for a growth step (A4), `model.moe.aux_loss_weight` (A5), `optim.skip_zero_grad` (A6), `optim.mask_idle_rows` (A7). Tests: `tests/test_router_balance_arms.py` (18), including Udit's two checks on the row mask (active rows unchanged when another row is masked; real small-gradient rows still updated). Each new arm ran 2 steps through the trainer on CPU.
+
 ## How balancing works today (`harness/week2/model.py`, `MoE`)
 
 - The router's softmax scores pick the top 2 experts. With `bias_gamma` set, a per-expert `router_bias` is added to the scores **only to choose** the experts; the gate values stay the unbiased softmax.
