@@ -344,16 +344,136 @@ def test_mainrun_resumes_committed_history(tmp_path):
     assert "--checkpoint-at-start" not in args
 
 
-def test_mainrun_holds_claim_without_commit(tmp_path):
+def claim_only(tmp_path, job="7"):
+    """A run with a claim and no commit, claimed by Slurm job `job` (None: latest.json has no job field)."""
     run = tmp_path / "store" / "r1"
-    run.mkdir(parents=True)
-    (run / "latest.json").write_text('{"epoch": 1, "path": null, "step": null}')
+    run.mkdir(parents=True, exist_ok=True)
+    claim = {"epoch": 1, "path": None, "step": None}
+    if job is not None:
+        claim["job"] = job
+    (run / "latest.json").write_text(json.dumps(claim))
+
+
+def fake_sacct(tmp_path, stdout="", returncode=0, stderr=""):
+    """A sacct on PATH for run_mainrun (its bin dir is tmp_path/bin). Records the arguments it was called with."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir(exist_ok=True)
+    sacct = bin_dir / "sacct"
+    sacct.write_text(f"#!{sys.executable}\nimport sys\nopen({str(tmp_path / 'sacct.args')!r}, 'w').write(' '.join(sys.argv[1:]))\n"
+                     f"sys.stdout.write({stdout!r})\nsys.stderr.write({stderr!r})\nsys.exit({returncode})\n")
+    sacct.chmod(0o755)
+
+
+def test_mainrun_holds_claim_without_commit(tmp_path):
+    """No sacct on the node: the earlier job is not confirmed ended. The job holds and says so."""
+    claim_only(tmp_path)
     process, got = run_mainrun(tmp_path)
     assert process.returncode == 78 and got["argv"] == []
     assert "claim but no committed checkpoint" in process.stderr
-    assert "confirm in sacct that the" in process.stderr and "resubmit with a new RUN_ID" in process.stderr
-    assert "nothing was committed" in process.stderr
+    assert "not confirmed ended" in process.stderr and "confirm in sacct that it has ended" in process.stderr
+    assert "resubmit with a new RUN_ID" in process.stderr and "nothing was committed" in process.stderr
     assert "--recover-precommit" not in process.stderr
+
+
+@pytest.mark.parametrize("state", ["RUNNING", "PENDING", "REQUEUED", "SUSPENDED", "COMPLETING", "CONFIGURING", "WEIRD"])
+def test_claimed_only_with_an_active_or_unknown_job_is_not_confirmed(tmp_path, state):
+    claim_only(tmp_path, job="7")
+    fake_sacct(tmp_path, f"7|{state}\n")
+    process, got = run_mainrun(tmp_path)
+    assert process.returncode == 78 and got["argv"] == []
+    assert f"job 7 is not confirmed ended (sacct state {state})" in process.stderr
+    assert (tmp_path / "sacct.args").read_text() == "-j 7 -X -n -P -o JobID,State"
+
+
+@pytest.mark.parametrize("state", ["COMPLETED", "FAILED", "CANCELLED by 1000", "TIMEOUT", "NODE_FAIL",
+                                   "OUT_OF_MEMORY", "BOOT_FAIL", "DEADLINE", "PREEMPTED"])
+def test_claimed_only_with_an_ended_job_still_holds_until_the_trainer_can_start_over_it(tmp_path, state):
+    """The sacct check passes, but train_week2.py refuses --checkpoint-at-start over a claim until #826. No trainer
+    starts, and the flag is not passed."""
+    claim_only(tmp_path, job="7")
+    fake_sacct(tmp_path, f"7|{state}\n")
+    process, got = run_mainrun(tmp_path)
+    assert process.returncode == 78 and got["argv"] == []
+    assert f"job 7 has ended (sacct state {state.split()[0]})" in process.stderr
+    assert "resubmit with a new RUN_ID" in process.stderr and "nothing was committed" in process.stderr
+    assert "not confirmed ended" not in process.stderr
+
+
+def test_claimed_only_checks_the_newest_row_of_a_requeued_job(tmp_path):
+    """sacct normally prints only the newest record of a requeued job. If it prints several, the last one counts."""
+    claim_only(tmp_path, job="7")
+    fake_sacct(tmp_path, "7|REQUEUED\n7|REQUEUED\n7|FAILED\n")
+    process, _ = run_mainrun(tmp_path)
+    assert "job 7 has ended (sacct state FAILED)" in process.stderr
+    fake_sacct(tmp_path, "7|REQUEUED\n7|FAILED\n7|REQUEUED\n")
+    process, got = run_mainrun(tmp_path)
+    assert process.returncode == 78 and got["argv"] == []
+    assert "job 7 is not confirmed ended (sacct state REQUEUED)" in process.stderr
+
+
+def test_claimed_only_claim_made_by_this_job_counts_as_ended(tmp_path):
+    """A requeue of the same job (SLURM_JOB_ID 42): its earlier restart has stopped. sacct is not even asked."""
+    claim_only(tmp_path, job="42")
+    fake_sacct(tmp_path, "42|RUNNING\n")
+    process, got = run_mainrun(tmp_path)
+    assert process.returncode == 78 and got["argv"] == []
+    assert "the claim was made by this job (42)" in process.stderr
+    assert not (tmp_path / "sacct.args").exists()
+
+
+@pytest.mark.parametrize("job", [None, "", "abc", "12_3", "7; rm -rf /", 7])
+def test_claimed_only_without_a_usable_job_in_latest_json_is_not_confirmed(tmp_path, job):
+    claim_only(tmp_path, job=job)
+    fake_sacct(tmp_path, "7|COMPLETED\n")
+    process, got = run_mainrun(tmp_path)
+    assert process.returncode == 78 and got["argv"] == []
+    assert "latest.json names no Slurm job" in process.stderr and "not confirmed ended" in process.stderr
+    assert not (tmp_path / "sacct.args").exists()
+
+
+@pytest.mark.parametrize("stdout, returncode, message", [
+    ("", 0, "sacct has no record of job 7"),
+    ("8|COMPLETED\n", 0, "sacct has no record of job 7"),
+    ("7.batch|COMPLETED\n", 0, "sacct has no record of job 7"),
+    ("", 1, "sacct failed for job 7: slurmdbd down"),
+])
+def test_claimed_only_when_sacct_cannot_say_is_not_confirmed(tmp_path, stdout, returncode, message):
+    claim_only(tmp_path, job="7")
+    fake_sacct(tmp_path, stdout, returncode, stderr="slurmdbd down" if returncode else "")
+    process, got = run_mainrun(tmp_path)
+    assert process.returncode == 78 and got["argv"] == []
+    assert message in process.stderr and "not confirmed ended" in process.stderr
+
+
+def test_claimed_only_hold_sends_the_job_held_event_with_the_sacct_state(tmp_path):
+    claim_only(tmp_path, job="7")
+    fake_sacct(tmp_path, "7|RUNNING\n")
+    process, _ = run_mainrun(tmp_path)
+    assert process.returncode == 78
+    events = held_events(tmp_path)
+    assert len(events) == 1 and events[0]["cause"] == "startup_check_failed"
+    assert "job 7 is not confirmed ended (sacct state RUNNING)" in events[0]["detail"]
+
+
+def test_claim_owner_command_exit_codes(tmp_path, monkeypatch, capsys):
+    run = tmp_path / "store" / "r1"
+    run.mkdir(parents=True)
+    (run / "latest.json").write_text(json.dumps({"epoch": 1, "path": None, "step": None, "job": "7"}))
+    args = ["claim-owner", "--remote-root", str(tmp_path / "store"), "--run-id", "r1"]
+
+    class Done:
+        returncode, stderr = 0, ""
+        stdout = "7|COMPLETED\n"
+
+    monkeypatch.setattr(job_queue, "_slurm", lambda cmd, timeout=30: Done())
+    assert job_queue.main(args) == 0
+    assert "job 7 has ended (sacct state COMPLETED)" in capsys.readouterr().out
+    Done.stdout = "7|RUNNING\n"
+    assert job_queue.main(args) == 3
+    monkeypatch.setattr(job_queue, "_slurm", lambda cmd, timeout=30: None)
+    assert job_queue.main(args) == 3
+    assert job_queue.main(["claim-owner", "--remote-root", str(tmp_path / "missing"), "--run-id", "r1"]) == 3
+    assert job_queue.main(["claim-owner", "--remote-root", str(tmp_path / "store"), "--run-id", "bad id"]) == 3
 
 
 def test_mainrun_rejects_incomplete_or_unsafe_commands(tmp_path):

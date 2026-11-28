@@ -173,8 +173,17 @@ mode="$("$PY" "$QUEUE" start-mode --remote-root "$V5_REMOTE_ROOT" --run-id "$RUN
 case "$mode" in
   fresh) start=(--checkpoint-at-start) ;;
   resume) start=(--resume-committed) ;;
-  claimed_only) hold "$V5_REMOTE_ROOT/$RUN_ID has a claim but no committed checkpoint; confirm in sacct that the" \
-    "earlier job for this run ID has ended, then resubmit with a new RUN_ID; nothing was committed" ;;
+  claimed_only)
+    # A claim with no commit: ask Slurm whether the job that made it has ended (job_queue.py claim-owner). The job
+    # holds either way: train_week2.py refuses --checkpoint-at-start over an existing claim until Team 05's draft
+    # #826 lands. When it does, the "ended" branch becomes start=(--checkpoint-at-start).
+    owner="$("$PY" "$QUEUE" claim-owner --remote-root "$V5_REMOTE_ROOT" --run-id "$RUN_ID" \
+      --current-job "${SLURM_JOB_ID:-}")" \
+      || hold "$V5_REMOTE_ROOT/$RUN_ID has a claim but no committed checkpoint, and the earlier job is not" \
+        "confirmed ended ($owner); confirm in sacct that it has ended, then resubmit with a new RUN_ID;" \
+        "nothing was committed"
+    hold "$V5_REMOTE_ROOT/$RUN_ID has a claim but no committed checkpoint; $owner. The trainer cannot start over a" \
+      "claim yet: resubmit with a new RUN_ID; nothing was committed" ;;
   *) hold "job_queue.py start-mode returned '$mode'" ;;
 esac
 
