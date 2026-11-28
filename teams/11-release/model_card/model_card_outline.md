@@ -36,6 +36,7 @@ The draft of the model card is `model_card_v0.md`. Each section there has the te
 | Languages | The languages the model reads and writes | Data A, Data B, Tokenizer | empty | Data A OK @patilvijay23; Data B OK @shankarpandala; Tokenizer OK @rjvim |
 | Training data | The public data sources, and the problems we found in them | Data A, Data B | in progress | Data A OK @patilvijay23; Data B OK @shankarpandala |
 | Data cleaning | How we cleaned the data and removed duplicates | Data A, Data B | in progress | Data A OK @patilvijay23; Data B OK @shankarpandala |
+| Personal data | How the lab found and masked personal details and secrets in the data, and what it could not check | Data A, Data B | empty | Data A pending; Data B pending |
 | Tokenizer | How the model splits text into pieces | Tokenizer | empty | OK @rjvim |
 | KE2 | Whether the model uses KE2, in general terms, with no design details. This includes the KE2 output head, which replaced the dense untied head on 21 Nov 2026 | KE2 | in progress | OK @swatibansal |
 | Architecture | The shape of the model, in general terms | Architecture | empty | OK @shivman |
@@ -48,9 +49,10 @@ The draft of the model card is `model_card_v0.md`. Each section there has the te
 | Quantized versions | The smaller versions of the model, and what they lose | Quantization | empty | OK @SreekanthZipsy |
 | Serving | How to run the model and chat with it in the lab's chat format, and how the smaller formats were checked against the full model | Quantization | empty | OK @SreekanthZipsy |
 | Evaluation | The benchmarks, the scores that TSAI approves, and what the scores do not show, such as the size of the question sets | Evaluation | in progress | OK @rahulni |
+| Safety evaluation | A summary of the safety and refusal tests, and their results once TSAI approves them | Evaluation | empty | pending |
 | Limitations and risks | What the model gets wrong, and the known risks. The limits of the scores go in Evaluation | Evaluation, Release | empty | Evaluation OK @rahulni; Release OK @pyru |
 | What this card does not claim | The claims that the card does not make about the model as a whole, so that readers do not read too much into it. The limits of the scores go in Evaluation, and the errors of the model in Limitations and risks | Evaluation, Release | empty | Evaluation OK @rahulni; Release OK @pyru |
-| Licence and attribution | The licence of the model, and credit for each data source | Post-training, Data A, Data B | in progress | Post-training OK @saitej123; Data A OK @patilvijay23; Data B OK @shankarpandala |
+| Licence and attribution | The licence of the model, which TSAI decides, and credit for each data source | Post-training, Data A, Data B | in progress | Post-training OK @saitej123; Data A OK @patilvijay23; Data B OK @shankarpandala |
 | Contributors | The teams that did the work, with no person names | Release | in progress | Release OK @pyru |
 | How to find more | A link to the public lab repository | Release | in progress | Release OK @pyru |
 | What is released | What the lab makes public, and what it does not. TSAI decides what is released | Release | empty | Release OK @pyru |
@@ -67,6 +69,9 @@ The draft of the model card is `model_card_v0.md`. Each section there has the te
   show. Evaluation, Limitations and risks, and What this card does not claim each say what goes there, so that no
   sentence is written twice. The Evaluation lead confirms the new scopes. Four sections are new: What this card does
   not claim, What is released, Sources and How to cite. TSAI decides what is released and how to cite the model.
+- 28 Nov 2026: Capstone Lab 5 asks for a licence and safety part. Two sections are new: Personal data (Data A,
+  Data B) and Safety evaluation (Evaluation). Their leads confirm the new scopes. Licence and attribution now says
+  that TSAI decides the licence of the model. This outline is the owner table of the model card.
 
 ## Rules for every section
 
