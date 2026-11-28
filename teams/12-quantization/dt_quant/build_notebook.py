@@ -30,7 +30,9 @@ Does G10's Deletion Tuning (mask over `gate_proj` weights, official recipe defau
 as on the unquantized model, and what does the quantized base save in memory? Arms: `base`, `base_q8_0`, `base_q4_0`
 (no DT), `dt`, `dt_q8_0`, `dt_q4_0`, and `dt_then_q8_0` / `dt_then_q4_0` (DT first, quantize the baked weights after;
 computed inside the `dt` run). Metric: held-out wikitext-2 NLL per token, with paired intervals over windows.
-Details: `teams/12-quantization/dt_quant/dt_on_quantized.py` docstring.
+Details: `teams/12-quantization/dt_quant/dt_on_quantized.py` docstring. `decoder_weights_GB` and `dt_state_GB` are storage figures;
+`peak_cuda_GB` is measured during training and need not fall with the format. `prior_deleted` must be above 0 on every DT
+arm (weights that the format rounded to zero are kept out of the Wanda prior's threshold).
 
 **Smoke run first:** keep `STEPS = 4`, `TRAIN_WINDOWS = 16`, `TEST_WINDOWS = 8` and `ARMS = ["base", "dt_q8_0"]`; check that
 both arms print an NLL. Then set the real values. Kaggle: Accelerator **GPU T4 x2**, Internet **on**. No token needed.
@@ -46,6 +48,7 @@ TRAIN_WINDOWS = 16                      # real run: 2000 (windows of LENGTH toke
 TEST_WINDOWS  = 8                       # real run: 200
 LENGTH        = 512
 BATCH, MICRO  = 8, 2                    # rows per step, rows per forward (lower MICRO if out of memory)
+LR            = 5e-4                    # G10's DT default since its 17 Nov port check (older runs: 2e-3); label any other value
 SEED          = 1
 TORCH         = "torch==2.11.0"         # CUDA 12.6 build, from the PyTorch index below
 TORCH_INDEX   = "https://download.pytorch.org/whl/cu126"
@@ -91,13 +94,13 @@ json.dump(ENV, open(f"{OUT}/environment.json", "w"), indent=1)
 """),
 code("""
 # the run: one result file; arms already in it are skipped, so a stopped session resumes
-RUN = f"{OUT}/dt_quant_{MODEL.split('/')[-1]}_s{STEPS}_w{TRAIN_WINDOWS}"
+RUN = f"{OUT}/dt_quant_{MODEL.split('/')[-1]}_s{STEPS}_w{TRAIN_WINDOWS}_lr{LR:g}"
 os.makedirs(RUN, exist_ok=True)
 RES = f"{RUN}/results.json"
 rev = f"--revision {REVISION} " if REVISION else ""
 sh(f"cd {CODE} && env HF_HOME={WORK}/hf {PY} -u dt_on_quantized.py --model {MODEL} {rev}--out {RES} --arms {','.join(ARMS)} "
    f"--steps {STEPS} --batch {BATCH} --micro {MICRO} --length {LENGTH} --train-windows {TRAIN_WINDOWS} "
-   f"--test-windows {TEST_WINDOWS} --seed {SEED} --device cuda", log=f"{OUT}/logs/run.log")
+   f"--test-windows {TEST_WINDOWS} --lr {LR} --seed {SEED} --device cuda", log=f"{OUT}/logs/run.log")
 """),
 code("""
 # results: one table, a zip of everything
@@ -107,6 +110,8 @@ rows = []
 for name, r in d["arms"].items():
     m = r["memory"]
     rows.append({"arm": name, "nll": round(r["test_nll_mean"], 4), "deleted_%": round(100 * r["deletion_final"], 3) if "deletion_final" in r else None,
+                 "prior_deleted": r["wanda_prior"]["prior_deleted"] if "wanda_prior" in r else None,
+                 "init_deleted_%": round(100 * r["deletion_at_init"], 3) if "deletion_at_init" in r else None,
                  "train_s": r.get("train_seconds"), "peak_cuda_GB": r.get("peak_cuda_gb"),
                  "decoder_weights_GB": round(m["weights_bytes"] / 1e9, 3), "dt_state_GB": round(m["dt_state_bytes"] / 1e9, 3),
                  "packed_GB_targeted": round(r["packed_bytes_targeted"] / 1e9, 3) if "packed_bytes_targeted" in r else None})
