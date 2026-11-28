@@ -1,7 +1,7 @@
 # Team 1 (Data A): Lab 5 evidence list
 
 Kept by Sourav Dhar · GitHub: sourav-dhar · Team 1 (Data A), as the brief asks ("Name one person who owns your team's
-evidence list"). Last update: **28 Nov 2026, 20:00 IST**. Due: **Wed 2 Dec, 7:00 AM IST**; 70% by Mon 30 Nov.
+evidence list"). Last update: **28 Nov 2026, 22:00 IST**. Due: **Wed 2 Dec, 7:00 AM IST**; 70% by Mon 30 Nov.
 
 Owners are from the team doc's Lab 5 table and the claims in G1. A row is **done** when its output exists, a reviewer
 can reproduce it from the command in the PR, it passes the check TSAI names, and every difference from that check is
@@ -24,7 +24,7 @@ this file in a PR.
 | D5 | Quality classifier; drop or down-weight the bottom tier; proxy run | Kunal Sinha (kunal2016) | none yet (team doc) | proxy run (49M, 500M tokens, 2 seeds) | claimed |
 | D6 | Find the mix by experiment (proxy runs, lane weights) | **no owner** | | proxy runs with error bars | open |
 | D7 | Annealing data (best 5% to 10%), with a proxy run | **no owner** (team doc: "UNK"; depends on D5) | | proxy run | open |
-| D8 | Missing kinds of data: long documents, reasoning traces, tool calls, code with execution results | Vijay Patil (patilvijay23) in the doc; Sourav Dhar writing it up from #914 (G1, 28 Nov 19:25 IST) | the numbers: [#914](https://github.com/theschoolofai/era-v5-lab/pull/914) §3 and §4 | | in progress |
+| D8 | Missing kinds of data: long documents, reasoning traces, tool calls, code with execution results | Vijay Patil (patilvijay23) in the doc; written up by Sourav Dhar (G1, 28 Nov 19:25 IST) | [#941](https://github.com/theschoolofai/era-v5-lab/pull/941): `data_kinds/lead8_missing_kinds_v1.md`; 38 packs measured (14,329 documents ≥ 8,192 p1536 tokens; marker scan), outside sources pinned with licences and generators | | in review |
 | D9 | Data for post-training: reply to Team 10's request (#882) | Sourav Dhar (sourav-dhar) | [#914](https://github.com/theschoolofai/era-v5-lab/pull/914) (draft): RL math pool v1 (109,246 rows, parquet sha256 `56394b30…`, F2 full set 0 flagged), SFT and long-context survey | F2 (`decontam_check.py`, set `2826a3b8…`) and `canary_scan.py`, 0 flagged | in progress; reply in #882 on Mon 30 Nov |
 | — | Corpus-v1 token count | Sourav Dhar (sourav-dhar); Smita verifies, Vijay publishes | tools ready; waits on TSAI's corpus-v1 production run | | blocked (TSAI) |
 
