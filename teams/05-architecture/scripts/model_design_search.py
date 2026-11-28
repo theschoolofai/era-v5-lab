@@ -46,11 +46,12 @@ def dcrit(w):
     return w ** 0.44
 
 
-# The two designs. B3 uses head_dim 64 (4096/64) because the implementation derives it; passing n_head=32
-# would give 128 and is the alternative recorded in the doc.
+# Both designs use head dim 128: A1 is 3072/24, B3 is 4096/32. Head dim is derived as d // n_head
+# (model.py), so n_head is the knob. B3 at n_head=64 would give head dim 64; it is 98.16B/3.79B instead of
+# 98.33B/3.96B -- a 0.2% difference that does not change any conclusion.
 DESIGNS = [
     ("A1", dict(d=3072, L=32, E=128, k=8,  d_ex=768, n_head=24, n_kv=4)),
-    ("B3", dict(d=4096, L=40, E=256, k=6,  d_ex=768, n_head=64, n_kv=8)),
+    ("B3", dict(d=4096, L=40, E=256, k=6,  d_ex=768, n_head=32, n_kv=8)),  # head dim 128
     ("A2", dict(d=3072, L=32, E=64,  k=4,  d_ex=1536, n_head=24, n_kv=4)),
     ("A3", dict(d=2560, L=40, E=128, k=8,  d_ex=768, n_head=20, n_kv=4)),
 ]
