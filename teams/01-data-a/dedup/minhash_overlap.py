@@ -9,8 +9,11 @@ HOW IT WORKS
 ============
 1. Per part, in parallel (`workers` processes), resumable: read the part, build each document's H1 key (h1_sha256.py),
    its word 5-gram shingles (jaccard_matrix.py, exactly overlap.py's) and a MinHash signature of `hashes` values; for
-   code packs also the code-token shingles (overlap_rules.code_shingles) and their signature. Each part's result is
-   saved under `work` with the part's input sha256; a rerun reuses every part whose input and settings are unchanged.
+   code packs also the code-token shingles (overlap_rules.code_shingles) and their signature. A part larger than
+   `chunk_rows` is worked on in row ranges in parallel, then joined in row order into the same per-part files. Each
+   part's result is saved under `work` with the part's input sha256; a rerun reuses every part whose input and
+   settings are unchanged. Row ranges are not reused: a part whose join did not finish is redone from its input
+   (see join_job).
 2. H1: documents with the same H1 sha256 are exact copies (rule H1). Each group is written as star edges (every member
    with the group's first row); dedup.py joins matches by connected components, so the groups are the same.
 3. LSH across all packs and both splits: `bands` bands of `hashes / bands` rows. Two documents whose band values agree
@@ -31,6 +34,9 @@ CONFIG (JSON; keys starting with "_" are comments). overlap.py's keys, plus the 
   hashes, bands       MinHash values per document and LSH bands; hashes % bands == 0           (default 128, 32)
   seed                fixes the hash functions                                                  (default 20261122)
   workers             processes for step 1; 0 = all cores                                       (default 0)
+  chunk_rows          step 1 works on at most this many rows of a part per task, so a few large
+                      parts still keep every worker busy; 0 = one task per whole part           (default 20000)
+                      Signatures depend only on each document, so outputs do not depend on it.
   max_bucket          LSH bucket size above which a bucket gives star edges only                 (default 2000)
   work                per-part intermediate folder, inside out/                         (default <out>/work)
 
@@ -62,7 +68,8 @@ from overlap_rules import NUMBERS, THRESHOLDS, code_shingles, domain  # noqa: E4
 REPO = HERE.parents[2]
 DEFAULTS = {"inputs": "out/tokenizer_sample_v0_clean", "splits": ["train", "heldout"], "out": "out/overlap",
             "floor": 0.5, "k": 5, "block": 256, "top": 20, "max_output_mb": 50, "expected_packs": [],
-            "hashes": 128, "bands": 32, "seed": 20261122, "workers": 0, "max_bucket": 2000, "work": None}
+            "hashes": 128, "bands": 32, "seed": 20261122, "workers": 0, "max_bucket": 2000, "work": None,
+            "chunk_rows": 20000}
 RETURNED = ("overlap_matches.csv", "overlap_matrix.csv", "overlap_matrix_counts.csv", "overlap_by_pack.csv")
 JOB_STORAGE = ("overlap_docs.parquet", "overlap_pairs.csv")
 WORK_VERSION = 3   # 2: code-token hashes in their own .code.npy; 3: signatures stored hash-major (hashes x docs)
@@ -98,6 +105,8 @@ def load_config(path):
         sys.exit("ERROR: hashes must be a multiple of bands")
     if type(cfg["workers"]) is not int or cfg["workers"] < 0 or type(cfg["seed"]) is not int or type(cfg["top"]) is not int:
         sys.exit("ERROR: workers, seed and top must be integers (workers >= 0)")
+    if type(cfg["chunk_rows"]) is not int or cfg["chunk_rows"] < 0:
+        sys.exit("ERROR: chunk_rows must be an integer >= 0 (0 = whole parts)")
     if not isinstance(cfg["max_output_mb"], (int, float)) or not 0 < cfg["max_output_mb"] <= 50:
         sys.exit("ERROR: max_output_mb must be above 0 and at most 50 (JOB_REQUEST.md)")
     exp = cfg["expected_packs"]
@@ -125,16 +134,47 @@ def find_parts(inputs, splits):
     return parts
 
 
-def read_file(path):
-    """(row, pack_id, doc_id, text) for every row, validated as overlap.py does."""
+def part_rows(path):
+    import pyarrow.parquet as pq
+    return pq.ParquetFile(path).metadata.num_rows
+
+
+def read_file(path, lo=0, hi=None):
+    """(row, pack_id, doc_id, text) for every row in [lo, hi) (default: all rows), validated as overlap.py does.
+    `row` is the row's number in the whole part. Only the row groups that hold the range are read."""
     import pyarrow.parquet as pq
     pf = pq.ParquetFile(path)
     columns = ["pack_id", "doc_id", "text"]
     missing = set(columns) - set(pf.schema_arrow.names)
     if missing:
         raise ValueError(f"{path} has no {sorted(missing)} column")
-    row = 0
-    for batch in pf.iter_batches(batch_size=1000, columns=columns):
+    if hi is None:
+        hi = pf.metadata.num_rows
+    groups, row, start = [], None, 0
+    for g in range(pf.metadata.num_row_groups):
+        n = pf.metadata.row_group(g).num_rows
+        if start < hi and start + n > lo:
+            groups.append(g)
+            row = start if row is None else row
+        start += n
+    if not groups:
+        return
+    # `row` must be the row's number in the whole part at every point: work files and outputs are byte-identical to a
+    # whole-part read only while it is. It starts at the first row of the first selected row group (not at lo), and
+    # every skipped batch, sliced-off head and yielded row moves it forward by the rows passed. The assert checks it
+    # against the rows read from the selected row groups so far; keep it when changing this loop.
+    first, read = row, 0
+    for batch in pf.iter_batches(batch_size=1000, columns=columns, row_groups=groups):
+        if row >= hi:
+            break
+        assert row == first + read, f"read_file: row {row} is not the part row {first + read} ({path})"
+        read += batch.num_rows
+        if row + batch.num_rows <= lo:
+            row += batch.num_rows
+            continue
+        skip = max(lo - row, 0)
+        batch = batch.slice(skip, min(batch.num_rows, hi - row) - skip)
+        row += skip
         for pack, doc_id, text in zip(*(batch.column(c).to_pylist() for c in columns)):
             if not isinstance(pack, str) or not pack.strip():
                 raise ValueError(f"{path} row {row} has invalid pack_id {pack!r}")
@@ -194,25 +234,66 @@ def signature(s, a, b):
 
 
 # ------------------------------------------------------------------------------------------- step 1: one part each
-def part_job(job):
-    """Read one part; write its documents, signatures and code shingles under work/. Returns the work file stem."""
-    import numpy as np
-    split, part, path, digest, work, hashes, seed, k = job
-    stem = Path(work) / split / part.replace("/", "__")
+def part_stem(work, split, part):
+    return Path(work) / split / part.replace("/", "__")
+
+
+def part_settings(digest, hashes, seed, k):
+    return {"version": WORK_VERSION, "input_sha256": digest, "hashes": hashes, "seed": seed, "k": k}
+
+
+def range_stem(stem, lo):
+    """Work file stem of the row range starting at lo: <part>.r<lo>.parquet, so .with_suffix keeps the .r<lo>."""
+    return stem.with_name(f"{stem.stem}.r{lo}{stem.suffix}")
+
+
+def is_done(stem, settings):
+    """True when the part's work files were written with these settings (a rerun reuses them)."""
     meta_file = stem.with_suffix(".json")
-    settings = {"version": WORK_VERSION, "input_sha256": digest, "hashes": hashes, "seed": seed, "k": k}
     if meta_file.exists():
         try:
-            if json.loads(meta_file.read_text(encoding="utf-8")).get("settings") == settings:
-                return str(stem), True
+            return json.loads(meta_file.read_text(encoding="utf-8")).get("settings") == settings
         except ValueError:
             pass
+    return False
+
+
+def save_work(stem, hashes, rows, doc_ids, packs, words, nsh, shas, sigs, code_rows, code_lines, code_sizes, code_sigs,
+              code_bytes):
+    """The four work files of a part, or of a row range of one. sigs, code_sigs: lists of hash-major blocks;
+    code_bytes: list of byte strings, the code-token hashes of the code documents in order (code_sizes each)."""
+    import numpy as np
     stem.parent.mkdir(parents=True, exist_ok=True)
+    # Hash-major (hashes x documents): one LSH band is then one contiguous block of the memory-mapped file.
+    np.save(stem.with_suffix(".sig.npy"),
+            np.ascontiguousarray(np.concatenate(sigs, axis=1)) if sigs else np.zeros((hashes, 0), np.uint64))
+    np.save(stem.with_suffix(".csig.npy"),
+            np.ascontiguousarray(np.concatenate(code_sigs, axis=1)) if code_sigs else np.zeros((hashes, 0), np.uint64))
+    np.savez(stem.with_suffix(".docs.npz"), row=np.array(rows, np.int64), doc_id=np.array(doc_ids, dtype=object),
+             pack=np.array(packs, dtype=object), words=np.array(words, np.int64), shingles=np.array(nsh, np.int64),
+             sha=np.array(shas, dtype="S32"), code_row=np.array(code_rows, np.int64),
+             code_lines=np.array(code_lines, np.int64), code_size=np.array(code_sizes, np.int64))
+    np.save(stem.with_suffix(".code.npy"), np.frombuffer(b"".join(code_bytes), dtype=np.uint64))
+
+
+def part_job(job):
+    """Read one part, or rows [lo, hi) of it; write their documents, signatures and code shingles under work/.
+    A whole part writes the part's own files and its .json; a row range writes them under <part stem>.r<lo> for
+    join_job. Returns (stem, reused)."""
+    import numpy as np
+    split, part, path, digest, work, hashes, seed, k, lo, hi = job
+    stem = part_stem(work, split, part)
+    settings = part_settings(digest, hashes, seed, k)
+    whole = lo == 0 and hi is None
+    if whole and is_done(stem, settings):
+        return str(stem), True
+    if not whole:
+        stem = range_stem(stem, lo)
     a, b = hash_params(hashes, seed)
     t0 = time.time()
     rows, doc_ids, packs, words, nsh, shas, sigs = [], [], [], [], [], [], []
     code_rows, code_lines, code_sigs, code_blobs = [], [], [], []
-    for row, pack, doc_id, text in read_file(path):
+    for row, pack, doc_id, text in read_file(path, lo, hi):
         key = h1_key(text or "")
         blob, n_words = shingles(key, k)
         s = np.frombuffer(blob, dtype=np.uint64)
@@ -224,19 +305,49 @@ def part_job(job):
             code_rows.append(len(rows) - 1); code_lines.append(lines); code_blobs.append(cblob)
             code_sigs.append(signature(np.frombuffer(cblob, dtype=np.uint64), a, b))
     n = len(rows)
-    # Hash-major (hashes x documents): one LSH band is then one contiguous block of the memory-mapped file.
-    np.save(stem.with_suffix(".sig.npy"), np.ascontiguousarray(np.stack(sigs).T) if n else np.zeros((hashes, 0), np.uint64))
-    np.save(stem.with_suffix(".csig.npy"),
-            np.ascontiguousarray(np.stack(code_sigs).T) if code_sigs else np.zeros((hashes, 0), np.uint64))
-    sizes = np.array([len(x) // 8 for x in code_blobs], dtype=np.int64)
-    np.savez(stem.with_suffix(".docs.npz"), row=np.array(rows, np.int64), doc_id=np.array(doc_ids, dtype=object),
-             pack=np.array(packs, dtype=object), words=np.array(words, np.int64), shingles=np.array(nsh, np.int64),
-             sha=np.array(shas, dtype="S32"), code_row=np.array(code_rows, np.int64),
-             code_lines=np.array(code_lines, np.int64), code_size=sizes)
-    np.save(stem.with_suffix(".code.npy"), np.frombuffer(b"".join(code_blobs), dtype=np.uint64))
-    meta_file.write_text(json.dumps({"settings": settings, "documents": n, "seconds": round(time.time() - t0, 1)}),
-                         encoding="utf-8")
+    save_work(stem, hashes, rows, doc_ids, packs, words, nsh, shas, [np.stack(sigs).T] if n else [],
+              code_rows, code_lines, [len(x) // 8 for x in code_blobs], [np.stack(code_sigs).T] if code_sigs else [],
+              code_blobs)
+    meta = {"settings": settings, "documents": n, "seconds": round(time.time() - t0, 1)}
+    if not whole:
+        meta["rows"] = [lo, hi]
+    stem.with_suffix(".json").write_text(json.dumps(meta), encoding="utf-8")
     return str(stem), False
+
+
+def join_job(job):
+    """Join a part's row ranges, in row order, into the part's own work files, exactly as one whole-part task writes
+    them, then delete the range files. The part's .json is written last, so an interrupted join is redone.
+
+    A rerun after an interrupted step 1 or join recomputes every row range of that part from the input: finished range
+    files are not reused, only finished parts are. That is safe but wasteful. Reusing range files would need its own
+    test first (a range file from other settings, input or chunk_rows, or one cut off mid-write, must never be joined)."""
+    import numpy as np
+    split, part, digest, work, hashes, seed, k, los = job
+    stem = part_stem(work, split, part)
+    settings = part_settings(digest, hashes, seed, k)
+    cols = {c: [] for c in ("row", "doc_id", "pack", "words", "shingles", "sha", "code_lines")}
+    code_rows, code_sizes, sigs, code_sigs, code_bytes, seconds, offset = [], [], [], [], [], 0.0, 0
+    ranges = [range_stem(stem, lo) for lo in los]
+    for r in ranges:
+        z = np.load(r.with_suffix(".docs.npz"), allow_pickle=True)
+        for c in cols:
+            cols[c].extend(z[c].tolist())
+        code_rows.extend((z["code_row"] + offset).tolist())   # code_row counts documents within its own file
+        code_sizes.extend(z["code_size"].tolist())
+        offset += len(z["row"])
+        sigs.append(np.load(r.with_suffix(".sig.npy")))
+        code_sigs.append(np.load(r.with_suffix(".csig.npy")))
+        code_bytes.append(np.load(r.with_suffix(".code.npy")).tobytes())
+        seconds += json.loads(r.with_suffix(".json").read_text(encoding="utf-8"))["seconds"]
+    save_work(stem, hashes, cols["row"], cols["doc_id"], cols["pack"], cols["words"], cols["shingles"], cols["sha"],
+              sigs, code_rows, cols["code_lines"], code_sizes, code_sigs, code_bytes)
+    stem.with_suffix(".json").write_text(json.dumps({"settings": settings, "documents": offset, "seconds": round(seconds, 1),
+                                                     "row_ranges": len(los)}), encoding="utf-8")
+    for r in ranges:
+        for suffix in (".docs.npz", ".sig.npy", ".csig.npy", ".code.npy", ".json"):
+            r.with_suffix(suffix).unlink(missing_ok=True)
+    return str(stem)
 
 
 def reshingle_job(job):
@@ -345,16 +456,34 @@ def main():
     print(f"{len(parts)} cleaned parts, {workers} workers", flush=True)
     digests = [sha256_file(p) for _, _, p in parts]
 
-    # 1. Per part, in parallel and resumable.
-    jobs = [(sp, pt, str(path), dg, str(work), cfg["hashes"], cfg["seed"], cfg["k"])
-            for (sp, pt, path), dg in zip(parts, digests)]
+    # 1. Per part, in parallel and resumable. A part over chunk_rows rows is split into row ranges, so a few large
+    #    parts (code parts are slow: Pygments) do not leave the other workers idle; the ranges are then joined.
+    common = (str(work), cfg["hashes"], cfg["seed"], cfg["k"])
+    stems, reused, jobs, joins = [], 0, [], []
+    for (sp, pt, path), dg in zip(parts, digests):
+        stem = part_stem(work, sp, pt)
+        stems.append(stem)
+        if is_done(stem, part_settings(dg, cfg["hashes"], cfg["seed"], cfg["k"])):
+            reused += 1
+            continue
+        n = part_rows(path)
+        size = cfg["chunk_rows"]
+        if not size or n <= size:
+            jobs.append((n, (sp, pt, str(path), dg, *common, 0, None)))
+        else:
+            los = list(range(0, n, size))
+            jobs.extend((min(size, n - lo), (sp, pt, str(path), dg, *common, lo, min(lo + size, n))) for lo in los)
+            joins.append((sp, pt, dg, *common, los))
+    jobs.sort(key=lambda j: -j[0])          # largest first, so the last tasks are short
     with ProcessPoolExecutor(max_workers=workers) as pool:
-        results = list(pool.map(part_job, jobs, chunksize=1))
-    reused = sum(r for _, r in results)
-    stems = [Path(s) for s, _ in results]
+        list(pool.map(part_job, [j for _, j in jobs], chunksize=1))
+        list(pool.map(join_job, joins, chunksize=1))
+    step1 = {"tasks": len(jobs), "row_ranges": sum(j[1][-1] is not None for j in jobs), "parts_joined": len(joins),
+             "chunk_rows": cfg["chunk_rows"]}
     times["signatures"] = round(time.time() - t0, 1)
     mark("signatures")
-    print(f"step 1: {len(parts)} parts ({reused} reused from work/), {times['signatures']}s", flush=True)
+    print(f"step 1: {len(parts)} parts ({reused} reused from work/; {step1['tasks']} tasks, {step1['row_ranges']} of "
+          f"them row ranges of {step1['parts_joined']} parts), {times['signatures']}s", flush=True)
 
     # Document table in overlap.py's row order (parts in sorted order, rows in file order).
     cols = defaultdict(list)
@@ -615,7 +744,7 @@ def main():
         "documents_in_h1_exact_groups": int(h1_groups.sum()),
         "empty_documents": int(len(empty)),
         "minhash": {"hashes": cfg["hashes"], "bands": cfg["bands"], "rows_per_band": r, "seed": cfg["seed"],
-                    "parts_reused": reused, "word": word_stats,
+                    "parts_reused": reused, "step1": step1, "word": word_stats,
                     "code": {**code_stats, "candidate_pairs": int(len(ca)), "eligible_documents": int(code_ok.sum())},
                     "p_found_at": {f"{x:.2f}": 1 - (1 - x ** r) ** cfg["bands"] for x in (0.7, 0.8, 0.85, 0.9)}},
         "pairs_verified": int(len(wa)),

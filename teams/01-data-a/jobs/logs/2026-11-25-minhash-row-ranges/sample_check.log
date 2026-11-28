@@ -1,0 +1,56 @@
+minhash_overlap.py row ranges in step 1 (chunk_rows): check on the full sample, 25 Nov 2026
+
+Inputs: sample v0 cleaned train parts, 47 parts, 1,395,320 documents (the same inputs as the 23 Nov full-sample run, #744/#758).
+Machine: 2 cores, 7 GB RAM, Python 3.13.18. Fresh work/ folder (nothing reused).
+
+Config: {"inputs": "out/s1", "splits": ["train"], "out": "out/mh_chunked", "workers": 2, "chunk_rows": 20000}
+Command: python3 -B teams/01-data-a/dedup/minhash_overlap.py --config out/chunked.json
+
+== console
+47 cleaned parts, 2 workers
+step 1: 47 parts (0 reused from work/; 95 tasks, 69 of them row ranges of 21 parts), 1637.4s
+step 3: 645520 word (representative) and 27352 code candidate pairs, 10.9s
+{
+ "documents_all": 1395320,
+ "qualifying_pairs_by_rule": {
+  "H1": 78,
+  "H2": 2550
+ },
+ "stage_seconds": {
+  "signatures": 1637.4,
+  "h1": 0.5,
+  "lsh": 10.9,
+  "verify_words": 16.5,
+  "rules": 4.3,
+  "outputs": 1.5
+ },
+ "wall_seconds": 1672.4,
+ "peak_rss_mb": {
+  "main": 2180.0,
+  "largest_worker": 1512.6
+ },
+ "returned_mb": 0.49
+}
+EXIT 0
+
+== outputs: sha256 against the 23 Nov whole-part run (same inputs, workers 2)
+overlap_matches.csv  whole b01637cabf3ec4a62b238edf5eb3124a601e10d01f75c3fefb6abd5320e91c24  ranges b01637cabf3ec4a62b238edf5eb3124a601e10d01f75c3fefb6abd5320e91c24  SAME
+overlap_docs.parquet  whole bf97adbeab0d90e37b85cc44411ddcc762cbf9e1c69d7e85f8d96becbeb9d225  ranges bf97adbeab0d90e37b85cc44411ddcc762cbf9e1c69d7e85f8d96becbeb9d225  SAME
+overlap_pairs.csv  whole dce1d15f34c05c20f5a9b98fbcbdf25d89fada11e12b4d35f0fea7e5bdf30b67  ranges dce1d15f34c05c20f5a9b98fbcbdf25d89fada11e12b4d35f0fea7e5bdf30b67  SAME
+overlap_by_pack.csv  whole b55940309cf4e2882d8a72001c4de9300cb67153503d9f43cffd3388e1d26d0b  ranges b55940309cf4e2882d8a72001c4de9300cb67153503d9f43cffd3388e1d26d0b  SAME
+overlap_matrix.csv  whole 78346cfeffb81c7226ede82196180c7f65b4d78a79e135be9deaf530dcc6685b  ranges 78346cfeffb81c7226ede82196180c7f65b4d78a79e135be9deaf530dcc6685b  SAME
+overlap_matrix_counts.csv  whole f0f776d44a4b3b56c1bdcd081167cfb6d60f256a9b53be7df056fb2fe6513aac  ranges f0f776d44a4b3b56c1bdcd081167cfb6d60f256a9b53be7df056fb2fe6513aac  SAME
+documents_all: whole 1395320  ranges 1395320
+h1_exact_groups: whole 70  ranges 70
+pairs_verified: whole 646651  ranges 646651
+qualifying_pairs_by_rule: whole {'H1': 78, 'H2': 2550}  ranges {'H1': 78, 'H2': 2550}
+lsh word stats equal: True ; code candidates: 27352 27352
+step 1 (signatures) seconds: whole 2.1 (this run reused work/; the fresh whole-part run of 23 Nov took 2324.0 s)  ranges 1637.4
+step1: {'tasks': 95, 'row_ranges': 69, 'parts_joined': 21, 'chunk_rows': 20000}
+peak RSS MB: ranges {'main': 2180.0, 'largest_worker': 1512.6}
+
+== check script
+PASS  all 38 packs: required packs: 38
+PASS  all 38 packs: minhash_overlap.py accepts the generated config
+ALL CHECKS PASSED
+pytest (pipeline, job, minhash_overlap and minhash_sizing tests, test_f2_pool.py left out): 714 passed, 2 skipped (two Windows-only runner tests)

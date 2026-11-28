@@ -67,14 +67,15 @@ def sample(seed=7):
     return parts
 
 
-def write(root, parts):
+def write(root, parts, row_group_size=None):
     base = root / "inputs" / "cleaned"
     for split in ("train", "heldout"):
         (base / split).mkdir(parents=True, exist_ok=True)
     for name, docs in parts.items():
         p = base / name
         p.parent.mkdir(parents=True, exist_ok=True)
-        pq.write_table(pa.Table.from_pylist([{"pack_id": name.split("/")[1], "doc_id": d, "text": t} for d, t in docs]), p)
+        pq.write_table(pa.Table.from_pylist([{"pack_id": name.split("/")[1], "doc_id": d, "text": t} for d, t in docs]), p,
+                       row_group_size=row_group_size)
 
 
 def config(root, name, out, **over):
@@ -185,9 +186,75 @@ def test_a_bucket_over_max_bucket_gives_star_edges_and_the_same_group(tmp_path, 
     assert len(g) == 1 and len(next(iter(g))) == 8
 
 
+OUTPUTS = ("overlap_matches.csv", "overlap_docs.parquet", "overlap_pairs.csv", "overlap_by_pack.csv",
+           "overlap_matrix.csv", "overlap_matrix_counts.csv")
+
+
+def work_arrays(work):
+    """Every array of every part's work files, by file name: what steps 2-5 read."""
+    out = {}
+    for f in sorted(work.rglob("*")):
+        if f.name.endswith(".docs.npz"):
+            z = np.load(f, allow_pickle=True)
+            out[f.name] = {k: z[k].tolist() for k in z.files}
+        elif f.suffix == ".npy":
+            out[f.name] = np.load(f).tolist()
+    return out
+
+
+def test_read_file_row_ranges_match_the_whole_part_across_row_groups(tmp_path):
+    docs = [(f"d{i}", f"text number {i}") for i in range(23)]
+    write(tmp_path, {"train/en-a/part-00000.parquet": docs}, row_group_size=4)
+    p = tmp_path / "inputs/cleaned/train/en-a/part-00000.parquet"
+    assert pq.ParquetFile(p).metadata.num_row_groups == 6 and mh.part_rows(p) == 23
+    whole = list(mh.read_file(p))
+    assert [r for r, *_ in whole] == list(range(23))
+    for lo, hi in [(0, 5), (3, 4), (4, 8), (5, 23), (22, 23), (0, 23), (7, 7)]:
+        assert list(mh.read_file(p, lo, hi)) == whole[lo:hi]
+
+
+def test_read_file_row_ranges_inside_large_row_groups_across_batches(tmp_path):
+    # Row groups larger than read_file's 1,000-row batches: ranges that start and end inside a group and across batch
+    # boundaries go through the skip-whole-batch and slice-head paths that keep `row` the row number in the part.
+    docs = [(f"d{i}", f"text number {i}") for i in range(6000)]
+    write(tmp_path, {"train/en-a/part-00000.parquet": docs}, row_group_size=2500)
+    p = tmp_path / "inputs/cleaned/train/en-a/part-00000.parquet"
+    assert pq.ParquetFile(p).metadata.num_row_groups == 3
+    whole = list(mh.read_file(p))
+    assert [r for r, *_ in whole] == list(range(6000))
+    for lo, hi in [(0, 1000), (999, 1001), (1500, 2600), (2000, 2500), (2499, 5001), (3100, 3200), (4999, 6000),
+                   (5999, 6000), (1000, 1000)]:
+        got = list(mh.read_file(p, lo, hi))
+        assert got == whole[lo:hi] and [r for r, *_ in got] == list(range(lo, hi))
+
+
+@pytest.mark.parametrize("chunk_rows, row_group_size", [(1, None), (2, None), (3, 2), (4, 1)])
+def test_row_ranges_give_the_same_work_files_and_outputs_as_whole_parts(tmp_path, monkeypatch, chunk_rows, row_group_size):
+    write(tmp_path, sample(), row_group_size=row_group_size)
+    whole, sw = run_mh(monkeypatch, tmp_path, config(tmp_path, "w", "out/whole", workers=1, chunk_rows=0))
+    split, ss = run_mh(monkeypatch, tmp_path, config(tmp_path, "s", "out/split", workers=2, chunk_rows=chunk_rows))
+    for name in OUTPUTS:
+        assert mh.sha256_file(whole / name) == mh.sha256_file(split / name), name
+    assert work_arrays(whole / "work") == work_arrays(split / "work")
+    assert not list((split / "work").rglob("*.r*.*"))          # the row-range files are joined and removed
+    assert sw["minhash"]["step1"]["row_ranges"] == 0 and ss["minhash"]["step1"]["row_ranges"] > 0
+    assert ss["qualifying_pairs_by_rule"] == sw["qualifying_pairs_by_rule"]
+
+
+def test_a_rerun_after_row_ranges_reuses_every_part(tmp_path, monkeypatch):
+    write(tmp_path, sample())
+    cfg = config(tmp_path, "mh", "out/mh", workers=2, chunk_rows=2)
+    out, s1 = run_mh(monkeypatch, tmp_path, cfg)
+    first = mh.sha256_file(out / "overlap_matches.csv")
+    _, s2 = run_mh(monkeypatch, tmp_path, cfg)
+    assert s1["minhash"]["parts_reused"] == 0 and s2["minhash"]["parts_reused"] == 5
+    assert s2["minhash"]["step1"]["tasks"] == 0 and mh.sha256_file(out / "overlap_matches.csv") == first
+
+
 @pytest.mark.parametrize("over, message", [({"hashes": 100, "bands": 32}, "multiple of bands"),
                                            ({"k": 4}, "k must be 5"), ({"max_output_mb": 60}, "at most 50"),
-                                           ({"out": "elsewhere"}, "inside out/"), ({"nope": 1}, "unknown keys")])
+                                           ({"out": "elsewhere"}, "inside out/"), ({"nope": 1}, "unknown keys"),
+                                           ({"chunk_rows": -1}, "chunk_rows"), ({"chunk_rows": "big"}, "chunk_rows")])
 def test_a_bad_config_is_refused(tmp_path, monkeypatch, over, message):
     monkeypatch.setattr(mh, "REPO", tmp_path)
     p = tmp_path / "c.json"; p.write_text(json.dumps({"inputs": "inputs/cleaned", "out": "out/t", **over}))
