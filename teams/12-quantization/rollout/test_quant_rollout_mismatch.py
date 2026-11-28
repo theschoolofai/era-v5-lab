@@ -376,3 +376,20 @@ def test_g10_note_names_the_formats_that_straddle_or_exceed_the_k3_limit(tmp_pat
     line = [l for l in g.render(g.load_llama(d), t, ns).splitlines() if l.startswith("- Team 10's stop rule")][0]
     assert "under the limit: `bf16`, `Q8_0`" in line and "interval contains the limit: `Q4_K_M` (0.0470, interval 0.0360 to 0.0620)" in line
     assert "above the limit: `Q3_K_M`" in line
+
+
+def test_g10_note_wording_follows_the_engine(tmp_path):
+    import make_g10_note as g
+    d = tmp_path / "v"; d.mkdir()
+    meta = {"reference": "m", "prompts": 50, "prompt_selection": "balanced", "prompt_categories": {"code": 50}, "k": 8, "max_new": 256, "eps": 0.2, "temperature": 1.0}
+    for fmt, tps in (("vllm_fp16", 1000.0), ("vllm_W4A16", 1050.0)):
+        (d / f"{fmt}.json").write_text(json.dumps({**meta, "formats": [{"format": fmt, "rollout_tokens_per_s": tps}]}))
+    t = _torch_ref(); t["formats"] = [{**t["formats"][0], "format": "vllm_fp16"}, {**t["formats"][2], "format": "vllm_W4A16"}]
+    ns = argparse.Namespace(model="toy", notebook_version="v", pr_this="a", pr_baseline="b", hardware="Kaggle T4 x2", prompt_note="", engine="vllm", speed_base=None)
+    md = g.render(g.load_llama(d), t, ns)
+    assert "The sampler is vLLM" in md and "llama.cpp GGUF" not in md and "llama-cpp-python" not in md
+    assert "batched generation throughput" in md and "(G12 `rollout_vllm.ipynb`)" in md and "Speed vs the vLLM baseline" in md
+    assert "The `vllm_fp16` row has no quantization in it: vLLM's unquantized model" in md and "1.05x" in md
+    ns2 = argparse.Namespace(**{**vars(ns), "engine": "llama.cpp", "speed_base": "vllm_fp16"})
+    md2 = g.render(g.load_llama(d), t, ns2)
+    assert "The sampler is a quantized llama.cpp GGUF" in md2 and "llama-cpp-python decode" in md2          # the default wording is unchanged
