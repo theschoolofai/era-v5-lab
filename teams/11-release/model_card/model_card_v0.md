@@ -393,7 +393,24 @@ The public lab repository holds the work of every team: https://github.com/thesc
 
 ## Sources
 
-[text: waiting for Release]
+Each fact in this card comes from a file in the public lab repository, https://github.com/theschoolofai/era-v5-lab.
+The main sources of each section:
+
+- **Overview:** `teams/11-release/updates/gate2.md`, `gate3.md` and `gate4.md`, and
+  `teams/11-release/launch/launch_announcement_v0.md`.
+- **Training data:** Data A's text ([#811](https://github.com/theschoolofai/era-v5-lab/pull/811)) and `teams/02-data-b/model_card/training_data.md`.
+- **Data cleaning:** `teams/01-data-a/spec_v1_1/results/cleaner/harm_tests.md` and
+  `teams/02-data-b/model_card/data_cleaning.md`.
+- **Personal data:** `teams/01-data-a/spec_v1_1/clean.py` and `teams/01-data-a/spec_v1_1/build/f1_rule.py`.
+- **KE2:** `teams/04-ke2/gate3.md`.
+- **Quantized versions, and Serving:** `teams/12-quantization/model_card/quantized_versions_and_serving.md`.
+- **Licence and attribution:** `teams/10-post-training/licences/licence_table.md` and
+  `teams/02-data-b/model_card/licence_attribution.md`.
+- **How the lab reached the model:** `teams/11-release/records/decision_log.md`.
+
+Papers: the MILU benchmark, https://arxiv.org/abs/2411.02538.
+
+[text: waiting for TSAI, whether the card also links the pages of the datasets]
 
 ## How to cite
 
@@ -434,6 +451,7 @@ How to fill it:
 | Quantized versions, and Serving | Quantization | yes, from the Quantization file `teams/12-quantization/model_card/quantized_versions_and_serving.md` ([#905](https://github.com/theschoolofai/era-v5-lab/pull/905)), with no edit. Every number waits for TSAI. Open for TSAI and Quantization: the router bias may be kept with the ERNIE export ([#838](https://github.com/theschoolofai/era-v5-lab/pull/838); job request [#907](https://github.com/theschoolofai/era-v5-lab/pull/907)). If TSAI chooses that route, the first bullet under "What every GGUF version loses" goes. Open for the KE2 lead and TSAI: the line that says the output head adds a bias for each token. KE2's design is not yet published, so this line needs their OK to stay | the source table in the Quantization file | Quantization: no |
 | Intended use | Post-training, Release | the Release part: yes, drafted by Release. That the base model does not follow chat prompts is from the Evaluation lead ([comment on #878](https://github.com/theschoolofai/era-v5-lab/pull/878#issuecomment-7236006708)). The Post-training part: no | `publish_plan.md`, the Evaluation lead's comment | Post-training: no. Release: yes (the Release lead wrote this draft) |
 | Limitations and risks, and What this card does not claim | Evaluation, Release | the Release part: yes, drafted by Release from the sections of this card. The Evaluation part: no | the sections named in brackets; `updates/gate4.md` for the dry run | Evaluation: no. Release: yes (the Release lead wrote this draft) |
+| Sources | Release | yes, drafted by Release: the main source file of each section, and the one paper that the card cites | the review record rows above | Release: yes (the Release lead wrote this draft) |
 | Every other section | the owner team in `model_card_outline.md` | no | waiting for the owner team | no |
 
 - [ ] `check_style.py` gives 0 errors
