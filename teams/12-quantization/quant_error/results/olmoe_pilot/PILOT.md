@@ -1,21 +1,22 @@
 # OLMoE pilot: where does the quantization error come from? (28 Nov 2026)
 
-First real run of `quant_error.py all` ([the tool](../../README.md)) on `allenai/OLMoE-1B-7B-0924` @ `6d84c48581ec` (7 B total, 16 layers, 64 experts, top-8, untied head, vocabulary 50,304). Apple M6, 32 GB, llama.cpp `b12359 (b1b770d)` on Metal, PyTorch 2.15.0 on MPS (`summary.json`). The reference is the bf16 GGUF from the same converter and build. No importance matrix was used for any file. One model and one set of files; every number below is read from the committed file named in its table, except Section 7's steps outside `quant_error.py` and its memory figures, which come from `/usr/bin/time -l` logs that are not committed. The two figures are drawn from `kl.csv` and `layers.csv` by [`figures/make_figures.py`](figures/make_figures.py), which writes every number it plots to [`figures/values.json`](figures/values.json).
+First real run of `quant_error.py all` ([the tool](../../README.md)) on `allenai/OLMoE-1B-7B-0924` @ `6d84c48581ec` (7 B total, 16 layers, 64 experts, top-8, untied head, vocabulary 50,304). Apple M6, 32 GB, llama.cpp `b12359 (b1b770d)` on Metal, PyTorch 2.15.0 on MPS (`summary.json`). The reference is the bf16 GGUF from the same converter and build. No importance matrix was used for any file. One model and one set of files; every number below is read from the committed file named in its table, except Section 7's steps outside `quant_error.py` and its memory figures, which come from `/usr/bin/time -l` logs that are not committed, and the characters per token in the limits, which come from OLMoE's tokenizer on heldout_v1. The two figures are drawn from `kl.csv` and `layers.csv` by [`figures/make_figures.py`](figures/make_figures.py), which writes every number it plots to [`figures/values.json`](figures/values.json).
 
 ## How this pilot relates to the task 1 parts study
 
 G12 design task 1 asks which parts of a quantized model stay at higher precision, and why. The parts study
-([`quantize/parts/`](../../../quantize/parts/README.md), [parts study PR]) answers it, one part at a time. This pilot
-is an independent second setup on the same model: another llama.cpp build, other text and context, and another
-Q4_K_M baseline. On the one comparison both make, they agree.
+([`quantize/parts/`](../../../quantize/parts/README.md), [#936](https://github.com/theschoolofai/era-v5-lab/pull/936))
+answers it, one part at a time. This pilot is an independent second setup on the same model: another llama.cpp build,
+and other text and context. On the one comparison both make against the same Team 12 Q4_K_M mix, they agree.
 
 | | Parts study (quoted from its README) | This pilot |
 |---|---|---|
 | llama.cpp | b11669 | b12359 |
 | Text | six packs of the cleaned tokenizer sample (English, Python, Hindi, Bengali, Tamil, Kannada) | `heldout_v1`, 20 slices |
 | Context | 4,096-token chunks, 4 per pack | 512-token chunks, 8 per slice |
-| Q4_K_M baseline | llama.cpp’s default mix, output Q6_K | Team 12’s, output Q8_0 |
-| Experts at Q4_K, everything else Q8_0, against Q4_K_M: mean KLD | 0.0124 against 0.0170 (−27%) | 0.0129 against 0.0173 (−25%) |
+| Q4_K_M baseline | Team 12’s (output Q8_0) and llama.cpp’s default mix (output Q6_K) | Team 12’s, output Q8_0 |
+| Experts at Q4_K, everything else Q8_0, against Team 12’s Q4_K_M: mean KLD | 0.0124 against 0.0167 (−26%) | 0.0129 against 0.0173 (−25%) |
+| … against llama.cpp’s default Q4_K_M | 0.0124 against 0.0170 (−27%) | not run |
 
 What this pilot adds:
 - **Why, at the router.** Under `Q4_K_M` the top-8 expert choice already changes at layer 0 for 37% of tokens,
@@ -172,7 +173,7 @@ Both are within 1.3% of the team's rows, on a newer llama.cpp build (b12359 agai
 
 Both runs wrote the same numbers: `tensors.csv`, `layers.csv`, `linears.csv` and `tokens.csv` are byte for byte the same, and so are the 11 `kl.csv` columns the first run wrote (apart from `time_s`). The committed `kl.csv` and `summary.json` are the rerun's, with six more `kl.csv` columns and the newer `summary.json` keys. The two times differ by 37% on the same Mac and inputs, so read them as a rough guide.
 
-Output of the run: 2.7 MB in total (`tensors.csv` 1.6 MB, `linears.csv` 1.1 MB, others under 75 KB); the limit is 5 MB.
+Output of the run: 2.8 MB in total (`tensors.csv` 1.6 MB, `linears.csv` 1.1 MB, others under 75 KB); the limit is 5 MB.
 
 ## Findings
 
