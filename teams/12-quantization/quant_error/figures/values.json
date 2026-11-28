@@ -1,0 +1,234 @@
+{
+ "code": {
+  "constants": {
+   "MAX_OUT_BYTES": 5242880,
+   "OUTPUT_FILES": [
+    "tensors.csv",
+    "layers.csv",
+    "linears.csv",
+    "tokens.csv",
+    "kl.csv",
+    "summary.json"
+   ],
+   "KL_CTX": 512,
+   "X_ROWS": 256,
+   "TENSOR_FIELDS": [
+    "format",
+    "tensor",
+    "layer",
+    "kind",
+    "expert",
+    "ggml_type",
+    "bits_per_weight",
+    "numel",
+    "rel_err",
+    "sqnr_db",
+    "max_abs_err"
+   ],
+   "LAYER_FIELDS": [
+    "format",
+    "slice",
+    "layer",
+    "hidden_rel_err",
+    "router_agree"
+   ],
+   "LINEAR_FIELDS": [
+    "format",
+    "layer",
+    "tensor",
+    "expert",
+    "rows",
+    "act_rel_err"
+   ],
+   "TOKEN_FIELDS": [
+    "format",
+    "slice",
+    "n_tokens",
+    "kl_mean",
+    "kl_p99",
+    "same_top1"
+   ],
+   "KL_FIELDS": [
+    "slice",
+    "format",
+    "chunks",
+    "tokens_scored",
+    "ppl_ratio",
+    "ppl_ratio_unc",
+    "kld_mean",
+    "kld_mean_unc",
+    "kld_99",
+    "same_top_p",
+    "ppl",
+    "ppl_unc",
+    "kld_median",
+    "kld_max",
+    "same_top_p_unc",
+    "rms_dp",
+    "time_s"
+   ]
+  },
+  "defaults": {
+   "--tokens-per-slice": 1024,
+   "--seq-len": 512,
+   "--kl-chunks": 8,
+   "--device": "cpu"
+  },
+  "choices": {
+   "--device": [
+    "cpu",
+    "mps",
+    "cuda"
+   ]
+  },
+  "archs": [
+   "ernie4_5_moe",
+   "olmoe"
+  ],
+  "tests": {
+   "test_cli.py": 16,
+   "test_forward.py": 9,
+   "test_kl_slices.py": 7,
+   "test_slices.py": 4,
+   "test_tensors.py": 12,
+   "test_weights.py": 8
+  }
+ },
+ "rehearsal": {
+  "params_m": 300,
+  "layers": 8,
+  "formats": 2,
+  "slices": 20,
+  "wall_s": 87.8,
+  "tensors_s": 8.9,
+  "twin_s": 35.2,
+  "kl_s": 42.4,
+  "max_rss_gb": 3.05,
+  "footprint_gb": 4.24,
+  "out_kb": 208,
+  "sizes_kb": {
+   "tensors.csv": 115,
+   "linears.csv": 72,
+   "layers.csv": 17,
+   "kl.csv": 3,
+   "tokens.csv": 3,
+   "summary.json": 2
+  },
+  "kl_chunks": 8,
+  "kl_scored": 2040
+ },
+ "hero": [
+  {
+   "caption": "OUTPUT",
+   "value": "6 files",
+   "line1": "numbers only: no text, no token ids",
+   "line2": "exit 1 above 5 MB"
+  },
+  {
+   "caption": "TESTS",
+   "value": "56",
+   "line1": "in 6 test files, one end to end",
+   "line2": "test_cli.py: 16 on llama.cpp"
+  },
+  {
+   "caption": "REHEARSAL · DRY-RUN-2 SHAPE",
+   "value": "87.8 s",
+   "line1": "random 300 M, 2 formats, 20 slices",
+   "line2": "208 KB out · 3.05 GB max RSS"
+  }
+ ],
+ "outputs": [
+  {
+   "file": "tensors.csv",
+   "step": "tensors",
+   "question": "Which tensors lose the most?",
+   "rows": "tensor and format",
+   "measures": [
+    "rel_err",
+    "sqnr_db",
+    "max_abs_err"
+   ],
+   "rehearsal_kb": 115
+  },
+  {
+   "file": "layers.csv",
+   "step": "twin forward",
+   "question": "Where does the error build up?",
+   "rows": "format, slice, layer",
+   "measures": [
+    "hidden_rel_err",
+    "router_agree"
+   ],
+   "rehearsal_kb": 17
+  },
+  {
+   "file": "linears.csv",
+   "step": "twin forward",
+   "question": "Which modules, on real inputs?",
+   "rows": "format and nn.Linear",
+   "measures": [
+    "rows",
+    "act_rel_err"
+   ],
+   "rehearsal_kb": 72
+  },
+  {
+   "file": "tokens.csv",
+   "step": "twin forward",
+   "question": "How far does the output drift?",
+   "rows": "format, slice",
+   "measures": [
+    "kl_mean",
+    "kl_p99",
+    "same_top1"
+   ],
+   "rehearsal_kb": 3
+  },
+  {
+   "file": "kl.csv",
+   "step": "llama.cpp KL",
+   "question": "What do llama.cpp users get?",
+   "rows": "slice, format",
+   "measures": [
+    "ppl_ratio",
+    "ppl_ratio_unc",
+    "kld_mean",
+    "kld_mean_unc",
+    "kld_99",
+    "same_top_p",
+    "ppl",
+    "ppl_unc",
+    "kld_median",
+    "kld_max",
+    "same_top_p_unc",
+    "rms_dp"
+   ],
+   "rehearsal_kb": 3
+  },
+  {
+   "file": "summary.json",
+   "step": "last",
+   "question": "Can the run be reproduced?",
+   "rows": "run",
+   "measures": [
+    "versions",
+    "sha256",
+    "settings",
+    "step times"
+   ],
+   "rehearsal_kb": 2
+  }
+ ],
+ "positions": {
+  "tokens_per_slice": 1024,
+  "seq_len": 512,
+  "sequences": 2,
+  "kl_chunks": 8,
+  "kl_ctx": 512,
+  "kl_span_tokens": 4096,
+  "kl_scored_per_chunk": 255,
+  "kl_scored": 2040,
+  "scored_from": 256,
+  "scored_to": 510
+ }
+}
