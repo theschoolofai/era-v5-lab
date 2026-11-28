@@ -1,6 +1,7 @@
 # Quantized policy for GRPO rollouts: sarvam-1, per bit-width (G12 design task 3, with Team 10)
 
-**Status:** first real run, Kaggle T4 x2, notebook `rollout_mismatch.ipynb` (version `1cc3dfcfb454`; check `environment.json`).
+**Status:** first real run, 28 Nov 2026, Kaggle T4 x2, notebook `rollout_mismatch.ipynb` version `1cc3dfcfb454`
+(recorded in `results/environment.json`, run by SomaKorada07; every number below is read from the per-format JSON files).
 One model, one seed, llama.cpp reference. Findings below hold for this setup only.
 
 ## Question
