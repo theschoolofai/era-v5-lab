@@ -2,7 +2,7 @@
 
     python -m pytest test_quant_rollout_mismatch.py -q
 """
-import json, math, sys
+import argparse, json, math, sys
 from pathlib import Path
 
 import numpy as np
@@ -180,3 +180,78 @@ def test_torch_stage_rejects_an_id_outside_the_vocabulary(toy_hf):
     recs = _records_from(model); recs[0]["ids"][-1] = 999
     with pytest.raises(ValueError):
         st.score_records(model, recs, torch.device("cpu"), "float32")
+
+
+def test_select_prompts_first_and_balanced():
+    rows = [(f"e{i}", "english") for i in range(6)] + [(f"c{i}", "code") for i in range(3)] + [(f"i{i}", "indic") for i in range(2)]
+    assert [t for t, _ in m.select_prompts(rows, 4)] == ["e0", "e1", "e2", "e3"]
+    bal = m.select_prompts(rows, 7, balanced=True)
+    assert [t for t, _ in bal] == ["e0", "c0", "i0", "e1", "c1", "i1", "e2"]
+    assert [c for _, c in m.select_prompts(rows, 100, balanced=True)].count("english") == 6        # asking for more returns all
+
+
+def test_load_prompt_rows_reads_categories(tmp_path):
+    p = tmp_path / "p.jsonl"
+    p.write_text(json.dumps({"prompt": "a", "category": "code"}) + "\n" + json.dumps({"statement": "b"}) + "\nplain c\n")
+    assert m.load_prompt_rows(p) == [("a", "code"), ("b", ""), ("plain c", "")]
+
+
+def test_fixed_100_first_48_has_no_code_prompts_but_balanced_has_every_category():
+    fixed = Path(__file__).resolve().parents[1] / "prompts" / "fixed_100.jsonl"
+    if not fixed.exists():
+        pytest.skip("fixed_100.jsonl not next to this folder")
+    rows = m.load_prompt_rows(fixed)
+    first = {c for _, c in m.select_prompts(rows, 48)}
+    bal = {c for _, c in m.select_prompts(rows, 48, balanced=True)}
+    assert "code" not in first and {"english", "indic", "code", "tool_call", "reasoning"} <= bal
+
+
+# ---- Team 10 note generator -----------------------------------------------------------------------------------
+def _llama_dir(tmp_path):
+    d = tmp_path / "run"; d.mkdir()
+    meta = {"reference": "m-bf16.gguf", "prompts": 50, "prompt_selection": "balanced",
+            "prompt_categories": {"english": 10, "indic": 10, "code": 10, "tool_call": 10, "reasoning": 10}, "k": 8, "max_new": 256, "eps": 0.2, "temperature": 1.0}
+    for fmt, tps in (("bf16", 100.0), ("Q8_0", 150.0)):
+        (d / f"{fmt}.json").write_text(json.dumps({**meta, "formats": [{"format": fmt, "rollout_tokens_per_s": tps}]}))
+    (d / "environment.json").write_text("{}")
+    return d
+
+
+def _torch_ref():
+    ci = lambda o, k, t: {"outside": o, "k3": k, "top1_agreement": t, "mean_abs_logratio": [0, 0], "clusters": 50}
+    row = lambda f, out, k3, top1: {"format": f, "outside": out, "below": out / 2, "above": out / 2, "k3": k3, "top1_agreement": top1,
+                                    "abs_logratio_p50_p90_p99_p999": [0.01, 0.1, 0.5, 1.0], "ci95_by_prompt": ci([out * 0.8, out * 1.2], [k3 * 0.8, k3 * 1.2], [top1 - 0.02, top1 + 0.02])}
+    return {"reference": "toy/model@rev", "dtype": "bfloat16", "device": "cuda", "torch": "2.11.0", "eps": 0.2,
+            "formats": [row("bf16", 0.02, 0.003, 0.97), row("Q8_0", 0.09, 0.0065, 0.94), row("Q4_K_M", 0.41, 0.0739, 0.85)]}
+
+
+def test_g10_rollout_note_columns_ratio_and_floor(tmp_path):
+    import make_g10_note as g
+    d = _llama_dir(tmp_path)
+    ns = argparse.Namespace(model="toy", notebook_version="v9", pr_this="https://x/this", pr_baseline="https://x/894", hardware="Kaggle T4 x2", prompt_note="")
+    md = g.render(g.load_llama(d), _torch_ref(), ns)
+    q8 = [l for l in md.splitlines() if l.startswith("| `Q8_0`")][0]
+    assert "9.00%" in q8 and "0.0065" in q8 and "1.50x" in q8                      # 150 / 100 tok/s against the bf16 sampler
+    q4 = [l for l in md.splitlines() if l.startswith("| `Q4_K_M`")][0]
+    assert q4.rstrip().endswith("| - | - |")                                       # no speed measured for that format here
+    assert "engine-to-engine floor" in md and "not a speedup against PyTorch bf16" in md
+    assert "`bf16`, `Q8_0`" in md and "Q4_K_M`." not in md.split("holds on the formats")[1]   # the stop-rule line lists only formats under 0.05
+    assert "balanced" in md and "10 english" in md and "https://x/894" in md
+
+
+def test_g10_rollout_note_without_a_bf16_sampler_gives_no_speed_ratio(tmp_path):
+    import make_g10_note as g
+    d = _llama_dir(tmp_path); (d / "bf16.json").unlink()
+    ns = argparse.Namespace(model="toy", notebook_version="v9", pr_this="a", pr_baseline="b", hardware="Kaggle T4 x2", prompt_note="")
+    md = g.render(g.load_llama(d), {**_torch_ref(), "formats": _torch_ref()["formats"][1:]}, ns)
+    assert "No `bf16` sampler row was run" in md and "1.50x" not in md
+
+
+def test_g10_rollout_note_for_a_run_that_did_not_record_its_prompt_selection(tmp_path):
+    import make_g10_note as g
+    d = tmp_path / "old"; d.mkdir()
+    (d / "Q8_0.json").write_text(json.dumps({"reference": "m", "prompts": 48, "k": 8, "max_new": 256, "eps": 0.2, "temperature": 1.0,
+                                             "formats": [{"format": "Q8_0", "rollout_tokens_per_s": 77.0}]}))
+    ns = argparse.Namespace(model="toy", notebook_version="v1", pr_this="a", pr_baseline="b", hardware="Kaggle T4 x2", prompt_note="first 48 of the fixed prompts")
+    md = g.render(g.load_llama(d), {**_torch_ref(), "formats": _torch_ref()["formats"][1:2]}, ns)
+    assert "first (not recorded)" in md and "composition not recorded" in md and "first 48 of the fixed prompts" in md
