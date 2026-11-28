@@ -46,7 +46,8 @@ import numpy as np
 import torch
 import torch.distributed as dist
 import torch.distributed.checkpoint as dcp
-from torch.distributed.checkpoint.state_dict import StateDictOptions, get_state_dict, set_state_dict
+from torch.distributed.checkpoint.state_dict import (StateDictOptions, get_state_dict, set_model_state_dict,
+                                                     set_optimizer_state_dict)
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from ckpt.candidates import pick_candidates  # noqa: E402
@@ -903,10 +904,10 @@ class Checkpointer:
         # 5. Load tensors (DCP reshards to the current world size), then RNG and data position.
         tl = Timer()
         dcp.load(target, checkpoint_id=local_dir)
-        # strict=False only to let the absent parameters stay without state: the key check above already matched every
-        # other name, shape and dtype exactly.
-        set_state_dict(model, optim, model_state_dict=target["model"], optim_state_dict=target["optim"],
-                       options=StateDictOptions(strict=not absent))
+        # The model always loads strictly. The optimizer loads non-strictly only so the absent parameters stay
+        # without state; the key check above has already matched every other name, shape and dtype exactly.
+        set_model_state_dict(model, target["model"], options=StateDictOptions(strict=True))
+        set_optimizer_state_dict(model, optim, target["optim"], options=StateDictOptions(strict=not absent))
         resharded = man["world_size"] != world()
         if resharded and not man.get("loader_global", False):
             raise ReshardError(f"step {c['step']} was saved at world size {man['world_size']} by a data loader "

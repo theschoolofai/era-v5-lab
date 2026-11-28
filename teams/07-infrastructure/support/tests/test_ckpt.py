@@ -658,12 +658,12 @@ def test_t31_scalars_restored_and_checked(env, monkeypatch):
     g = o2.param_groups[0]
     assert (g["lr"], tuple(g["betas"]), g["base_lr"]) == (1e-3, (0.9, 0.999), 3e-3)
 
-    real = ckmod.set_state_dict
+    real = ckmod.set_optimizer_state_dict
 
-    def loses_lr(model, optim, **kw):
-        real(model, optim, **kw)
+    def loses_lr(model, optim, *args, **kw):
+        real(model, optim, *args, **kw)
         optim.param_groups[0]["lr"] = 0.5            # e.g. a scheduler rebuilt from the config after the load
-    monkeypatch.setattr(ckmod, "set_state_dict", loses_lr)
+    monkeypatch.setattr(ckmod, "set_optimizer_state_dict", loses_lr)
     m3, o3, _, p3 = tiny_state()
     with pytest.raises(ckmod.RestoreCheckError, match=r"scalar optim\.param_groups\.0\.lr saved=0\.001 restored=0\.5"):
         Checkpointer("sc", env.local + "_3", env.remote, seed=SEED).restore(m3, o3, SyntheticLoader(SEED, 8, 0, 1), p3,
