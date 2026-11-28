@@ -4,6 +4,17 @@
 
 Companion to `model_study_table.md` (§ numbers there are the reference set this builds on).
 
+**Corrected 28 Nov after review by @UditSinghania.** Three fixes, all his:
+
+1. **Head dim is derived, not chosen.** `model.py` (`GQA.__init__`) sets `self.d = w // self.nh`. With the published
+   numbers that gives A1 = 3072/24 = **128** (unchanged) but B3 = 4096/64 = **64**, not the 128 I wrote. B3 is
+   restated at head dim 64; using 128 would need `n_head=32`.
+2. **The embedding term is KAS V2, not vocab-sized.** `kas_v2.py` has `KASInput.projection = Linear(2048, n_embd)`
+   and `KASHead.W_out = (n_embd, 2048)`, so the term is **2 · d · 2048**, not `V · d`. My figures overcounted by
+   0.39 B (A1) and 0.52 B (B3). The counts below now reproduce G5's sizing formula to within 0.02 B (norms/biases).
+3. **The trainer keeps FP32 parameters and gradients** and autocasts the computation. My memory table assumed bf16,
+   which was the wrong case — see §1.
+
 **What is measured and what is estimated.** Every parameter count in this note is *computed* from a model's
 `config.json` by `../scripts/model_study_table.py` — those are exact arithmetic, not estimates. Every memory figure
 is *estimated* from a stated sharding formula (`../scripts/model_design_search.py`) with a 20 GB activation
@@ -23,20 +34,21 @@ sharding formula with a 20 GB activation reserve — **none measured on a GPU**.
 
 ## 1. The two hard constraints, stated first
 
-**Constraint 1 — the stated hardware does not train the stated model.** The brief's planning assumption is
-"one node, 8 GPUs with 80 GB each". With full ZeRO-3 sharding, bf16 weights and gradients, and Muon's 1 buffer
-(4 B/param):
+**Constraint 1 — in FP32, a 100B model does not fit 8×80 GB at all.**
+The trainer keeps FP32 parameters and gradients and autocasts the computation. With full ZeRO-3 sharding and
+Muon's single 4 B/param buffer:
 
-| Model | weights/GPU | grads/GPU | optimizer/GPU | + 20 GB activations | Fits 80 GB? |
-|---|---:|---:|---:|---:|---|
-| 30 B | 7.5 | 7.5 | 15.1 | **50.2 GB** | ✅ yes |
-| 100 B | 25.0 | 25.0 | 50.0 | **120.0 GB** | ❌ **no** |
+| Design | total | fp32 resident | fp32 + optimizer offload | bf16 + optimizer offload |
+|---|---:|---:|---:|---:|
+| **A1** | 29.71 B | **64.6 GB** ✅ | 49.7 GB ✅ | 34.9 GB ✅ |
+| **B3** | 98.16 B | **167.2 GB** ❌ | **118.2 GB** ❌ | 69.1 GB ✅ |
 
-**A 100B model does not fit on 8×80 GB with the optimizer resident.** It fits only if the optimizer state is
-offloaded to host memory (weights + grads on GPU = 70 GB incl. activations, and **401 GB of CPU RAM** for Muon
-state; 802 GB if AdamW). That is a real requirement someone must confirm, not an implementation detail.
+**A1 fits as-is. B3 fits only if weights and gradients are bf16 *and* the optimizer state is offloaded to host
+memory, which needs 393 GB of CPU RAM** (785 GB with AdamW). Optimizer offload alone is *not* sufficient — the
+dtype is the blocker. That has to be settled with Team 7 before B3 is treated as buildable.
 
-Maximum model that fits on the node *without* offload, Muon, 20 GB activations: **≈60 B** (60 B → 80.0 GB exactly).
+Maximum that fits 8×80 GB in FP32 with Muon resident, over the 20 GB activation reserve: **about 40 B**
+(40 B → 80.0 GB exactly). That supersedes the ~60 B I wrote earlier, which assumed bf16.
 
 **Constraint 2 — 100 B at 2–3 % active has less compute per token than 30 B at 10 %.**
 100 B × 2–3 % = **2.0–3.0 B active**; 30 B × 10 % = **3.0 B active**. Design (b) is therefore *not* "a bigger
@@ -68,9 +80,9 @@ design, so the recommendation is deliberately shaped differently.
 | expert width | 768 |
 | shared experts | 0 |
 | vocab | 131,072 (p1536) |
-| **total / active** | **30.10 B / 2.92 B (9.7 %)** |
+| **total / active** | **29.71 B / 2.53 B (8.5 %)** — G5 sizing formula |
 | D_crit at W=3072 | 34 → **L/D_crit = 0.93** (just inside) |
-| memory/GPU | **50.1 GB** (optimizer resident) |
+| memory/GPU | **64.6 GB fp32 resident** (was 50.1 GB under the wrong bf16 assumption) |
 
 **Why this shape and not Qwen3's:** the Depth Delusion paper's central result is that width should grow ~2.8×
 faster than depth (`D* ∝ C^0.12`, `W* ∝ C^0.34`). At equal parameter budget, holding Qwen3's 48 layers at
@@ -78,12 +90,11 @@ faster than depth (`D* ∝ C^0.12`, `W* ∝ C^0.34`). At equal parameter budget,
 it. If the paper's finding holds at our scale, A1 should reach a lower loss for the same parameters; if it does
 not, that is a publishable negative result and the brief explicitly asks for those.
 
-**Two alternatives, if A1 fails a smoke test:**
+**One alternative, if A1 fails a smoke test:** (the earlier A2, 64 experts at 1536, is arithmetically identical to A1 — 64×1536 = 128×768 — so it is not a real alternative and is dropped.)
 
 | | shape | total / active | act % | D_crit | L/D_crit | mem/GPU | what it tests |
 |---|---|---|---|---|---|---|---|
-| **A2** | d=3072, L=32, E=64, k=4, d_ex=1536 | 30.10 B / 2.92 B | 9.7 | 34 | 0.93 | 50.1 GB | fewer, fatter experts at the same budget |
-| **A3** | d=2560, L=40, E=128, k=8, d_ex=768 | 31.16 B / 2.85 B | 9.2 | 32 | 1.27 | 51.2 GB | a middle point between A1 and Qwen3's shape |
+| **A3** | d=2560, L=40, E=128, k=8, d_ex=768 | 30.84 B / 2.53 B | 8.2 | 32 | 1.27 | 66.3 GB | a middle point between A1 and Qwen3's shape |
 
 **Experts per GPU (constraint: expert count divides evenly over 8):**
 `E=64 → 8/GPU`, `E=96 → 12`, `E=128 → 16`, `E=192 → 24`, `E=256 → 32`, `E=384 → 48`, `E=512 → 64`. All three
@@ -105,10 +116,10 @@ designs use E ∈ {64, 128}, both divisible.
 | expert width | 768 |
 | shared experts | 0 |
 | vocab | 131,072 |
-| **total / active** | **100.19 B / 5.82 B (5.8 %)** |
+| **total / active** | **98.16 B / 3.79 B (3.9 %)** — G5 sizing formula, **head dim 64** |
 | D_crit at W=4096 | 39 → **L/D_crit = 1.03** |
-| memory/GPU | **70.1 GB with optimizer offloaded**; 120.2 GB with it resident ❌ |
-| CPU RAM for optimizer | **401 GB** |
+| memory/GPU | **167.2 GB fp32 resident** ❌; **118.2 GB with the optimizer offloaded** ❌; **69.1 GB only if weights and grads are bf16** ✅ |
+| CPU RAM for optimizer | **393 GB** (Muon) / 785 GB (AdamW) |
 
 ### The brief's 2–3 % cannot be met at 100 B without a different trade
 
@@ -118,13 +129,14 @@ Every 100 B combination I could build with this parameterisation lands at **3.6�
 2–3 % at 100 B requires either a much narrower model with far more experts, or counting the embedding as
 inactive.
 
-**So design (b) is presented at 5.8 % active, with the reason stated.** If 2–3 % is mandatory, the honest
-alternative is the Qwen3-Next shape (d=2048, 512 experts, k=10 → 78.5 B / 2.73 B = 3.5 %), which is closer to
-the target but is again a copy of an existing model.
+**So design (b) is presented at 3.9 % active, which is *above* the brief's 2–3 % band — stated rather than hidden.**
+If 2–3 % is mandatory, the honest alternative is the Qwen3-Next shape (d=2048, 512 experts, k=10 → 78.5 B /
+2.73 B = 3.5 %), which is closer to the target but is again a copy of an existing model. **On the corrected KAS
+sizing, B3 also fits the band's upper end better than the earlier figure suggested: 3.79 B active of 98.16 B.**
 
 | | shape | total / active | act % | D_crit | L/D_crit | mem w/ offload | CPU RAM |
 |---|---|---|---|---|---|---|---|
-| **B3 (recommended)** | d=4096, L=40, E=256, k=6, d_ex=768 | 100.19 B / 5.82 B | 5.8 | 39 | 1.03 | 70.1 GB ✅ | 401 GB |
+| **B3 (recommended)** | d=4096, L=40, E=256, k=6, d_ex=768, **head dim 64** | 98.16 B / 3.79 B | 3.9 | 39 | 1.03 | bf16 offload only: 69.1 GB ✅ | 393 GB |
 | B2 | d=3072, L=64, E=256, k=6, d_ex=1024 | 157.84 B / 6.85 B | 4.3 | 34 | 1.88 | 98.9 GB ❌ | 631 GB |
 | B1 | d=4096, L=48, E=256, k=6, d_ex=1280 | 197.43 B / 8.69 B | 4.4 | 39 | 1.23 | 118.7 GB ❌ | 790 GB |
 
@@ -137,7 +149,7 @@ B1 and B2 **do not fit even with offload** and are recorded as rejected.
 | Requirement | For (a) | For (b) | Who confirms |
 |---|---|---|---|
 | 8 × 80 GB node, full ZeRO-3 | ✅ 50 GB/GPU | ✅ 70 GB/GPU with offload | Team 7 |
-| Optimizer state offload to host | not needed | **required, 401 GB RAM** | Team 7 |
+| Optimizer state offload to host | not needed | **required, 393 GB RAM, and only with bf16 weights+grads** | Team 7 |
 | Expert count divisible by 8 | ✅ 16/GPU | ✅ 32/GPU | arithmetic |
 | KV cache at 2,048 context | 24×4×128×2×32 layers ≈ 0.75 MB/token/seq… see note | larger | Team 9 (memory budget) |
 | Packed-row format with document mask | needed by both | needed by both | Team 5 task 1 (Deepjyoti) |
@@ -158,7 +170,8 @@ be checked against it.
 - The Depth Delusion critical-depth rule is used as a **design prior**, not a law — §3 of the study table shows
   every production MoE is 11–55 layers past it at its own width, so the rule clearly does not extrapolate to MoE
   unchanged. A1 is placed inside it deliberately; that is a bet, and it is falsifiable.
-- The 5.8 % active ratio for (b) is a deviation from the brief. It is stated rather than hidden.
+- The head dim for (b) is 64, derived from `d // n_head`. If 128 is wanted the design needs `n_head=32`, which changes
+the attention cost but not the total much (98.85 B). It is stated rather than hidden.
 
 ---
 
@@ -169,6 +182,6 @@ be checked against it.
 | Study table (task 1) | ✅ `g5_study_table.md` |
 | Two designs (task 2) | ✅ this file |
 | Experts-per-GPU arithmetic | ✅ §2–3 |
-| Memory feasibility | ✅ §1, §4 — **100 B needs offload, 401 GB RAM** |
+| Memory feasibility | ✅ §1, §4 — **100 B needs bf16 *and* offload (393 GB RAM); in FP32 it does not fit at all** |
 | Smoke test at 49M–100M to test the shape | ⬜ task 6, not started |
 | PR to upstream | ⬜ Monday (fork → PR; no push access) |

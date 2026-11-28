@@ -1,104 +1,86 @@
-"""G5 design task 2: size the two sparse models, with training-memory feasibility on 8x80 GB.
+"""G5 design task 2: size the two sparse models, with memory feasibility on 8x80 GB.
 
 Run:  python teams/05-architecture/scripts/model_design_search.py
       (stdlib only, no input files)
 
-Constraints from the Lab 5 brief:
-  - planning assumption: one node, 8 GPUs x 80 GB
-  - expert counts must divide evenly across 8 GPUs
-  - design (a) ~30B total at 8-10% active
-  - design (b) ~100B total at 2-3% active
-  - our tokenizer is p1536: vocab 131,072
+Shapes follow the G5 implementation, not a textbook transformer:
 
-Memory model (per GPU, fully sharded over 8 ranks):
-  weights   : params * bytes_per_param            (bf16 = 2)
-  gradients : params * 2
-  optimizer : Muon 1 buffer 4 B for 2D weights, AdamW 2 moments 8 B for 1D weights
-  total     : (w + g + opt) / 8 + activation reserve
-Activation reserve is a rough function of batch x seq x d x L; kept explicit so it can be argued.
+  head_dim    derived as `n_embd // n_head`       (model.py, GQA.__init__: self.d = w // self.nh)
+  embedding   KAS V2: KASInput.projection = Linear(2048, n_embd) and
+  + head      KASHead.W_out = (n_embd, 2048)      (kas_v2.py)
+              so the term is 2 * n_embd * 2048, NOT vocab * n_embd.
+
+Memory is reported three ways because the trainer keeps FP32 parameters and gradients and autocasts the
+computation, which is the case that decides whether a design is buildable:
+
+  fp32 resident   FP32 weights + grads + Muon state (4 B/param) on the GPU
+  fp32 offload    FP32 weights + grads on the GPU, optimizer state in host RAM
+  bf16 offload    bf16 weights + grads, optimizer in host RAM
+
+Optimizer state is Muon's single buffer (4 B/param). AdamW's two moments (8 B/param) make every case worse.
 """
-import itertools
 import math
 
-V = 131072          # p1536 vocab
-NGPU = 8
-GPU_GB = 80
-GB = 1e9
+NGPU, GPU_GB, GB = 8, 80, 1e9
+KAS_WIDTH = 2048          # the fixed KAS V2 codec width
 
 
-def params(d, L, E, k, d_ex, n_heads, n_kv, head_dim, d_ff=None, dense_layers=0, d_shared=0):
-    emb = V * d
-    attn = d * head_dim * n_heads * 2 + d * head_dim * n_kv * 2
-    dense_ffn = dense_layers * 3 * d * (d_ff or 4 * d)
-    moe_layers = L - dense_layers
+def params(d, L, E, k, d_ex, n_head, n_kv):
+    """(total, active, two_d) for one design. head_dim is derived, as model.py does."""
+    hd = d // n_head
+    emb_head = 2 * d * KAS_WIDTH                     # KAS input projection + head
+    attn = d * hd * n_head * 2 + d * hd * n_kv * 2   # q,o at n_head; k,v at n_kv
     per_expert = 3 * d * d_ex
-    total = emb + L * attn + dense_ffn + moe_layers * E * per_expert + moe_layers * d_shared * 3 * d
-    active = emb + L * attn + dense_ffn + moe_layers * k * per_expert + moe_layers * d_shared * 3 * d
-    # split by ndim for the optimizer: all matmuls are 2D, norms/biases 1D (small, ignored here)
-    two_d = total - emb          # embedding is 2D too, but usually in the AdamW group by convention
-    return total, active, two_d
+    total = emb_head + L * attn + L * E * per_expert
+    active = emb_head + L * attn + L * k * per_expert
+    return total, active, total - emb_head
 
 
-def mem_per_gpu(total, two_d, act_gb):
-    w = total * 2
-    g = total * 2
-    opt = two_d * 4 + (total - two_d) * 8
-    return (w + g + opt) / NGPU / GB + act_gb
+def mem_per_gpu(total, act_gb=20, param_bytes=4, opt_bytes=4, offload=False):
+    wg = total * param_bytes * 2
+    opt = 0 if offload else total * opt_bytes
+    return (wg + opt) / NGPU / GB + act_gb
 
 
-def report(label, **kw):
-    total, active, two_d = params(**kw)
-    act = 100 * active / total
-    D = kw["L"]
-    W = kw["d"]
-    dcrit_pow = W ** 0.44
-    mem = mem_per_gpu(total, two_d, kw.pop("act_gb", 20))
-    return dict(label=label, total=total / 1e9, active=active / 1e9, ratio=act,
-                L=D, W=W, E=kw["E"], k=kw["k"], d_ex=kw["d_ex"],
-                dcrit=dcrit_pow, mem=mem, **{kk: vv for kk, vv in kw.items() if kk in ("n_heads", "n_kv", "head_dim")})
+def dcrit(w):
+    return w ** 0.44
 
 
-CANDIDATES_A = []
-# 30B, 8-10% active. Sweep d, L, E, k with expert count divisible by 8.
-for d, L, n_heads, n_kv, hd in [
-    (2048, 48, 32, 4, 128),
-    (2048, 56, 32, 4, 128),
-    (2304, 48, 36, 4, 128),
-    (2560, 48, 40, 4, 128),
-]:
-    for E, k in [(128, 8), (128, 12), (256, 16), (256, 24), (192, 12)]:
-        for d_ex in (768, 896, 1024):
-            total, active, two_d = params(d, L, E, k, d_ex, n_heads, n_kv, hd)
-            ratio = 100 * active / total
-            if 27e9 <= total <= 33e9 and 8.0 <= ratio <= 10.0 and E % NGPU == 0:
-                CANDIDATES_A.append((total / 1e9, ratio, d, L, E, k, d_ex, n_heads, n_kv))
+# The two designs. B3 uses head_dim 64 (4096/64) because the implementation derives it; passing n_head=32
+# would give 128 and is the alternative recorded in the doc.
+DESIGNS = [
+    ("A1", dict(d=3072, L=32, E=128, k=8,  d_ex=768, n_head=24, n_kv=4)),
+    ("B3", dict(d=4096, L=40, E=256, k=6,  d_ex=768, n_head=64, n_kv=8)),
+    ("A2", dict(d=3072, L=32, E=64,  k=4,  d_ex=1536, n_head=24, n_kv=4)),
+    ("A3", dict(d=2560, L=40, E=128, k=8,  d_ex=768, n_head=20, n_kv=4)),
+]
 
-CANDIDATES_B = []
-# 100B, 2-3% active.
-for d, L, n_heads, n_kv, hd in [
-    (3072, 48, 48, 8, 128),
-    (3584, 48, 56, 8, 128),
-    (4096, 40, 64, 8, 128),
-    (4096, 48, 64, 8, 128),
-]:
-    for E, k in [(256, 8), (256, 12), (512, 12), (512, 16), (384, 12)]:
-        for d_ex in (1024, 1280, 1536):
-            total, active, two_d = params(d, L, E, k, d_ex, n_heads, n_kv, hd)
-            ratio = 100 * active / total
-            if 90e9 <= total <= 115e9 and 2.0 <= ratio <= 3.5 and E % NGPU == 0:
-                CANDIDATES_B.append((total / 1e9, ratio, d, L, E, k, d_ex, n_heads, n_kv))
+hdr = (f"{'design':6s} {'d':>5s} {'L':>3s} {'E':>4s} {'k':>3s} {'d_ex':>5s} {'hd':>3s} "
+       f"{'total':>8s} {'active':>7s} {'act%':>5s} {'Dcrit':>5s} {'L/Dc':>5s} "
+       f"{'fp32 res':>9s} {'fp32 off':>9s} {'bf16 off':>9s}")
+print(hdr)
+print("-" * len(hdr))
+for name, kw in DESIGNS:
+    total, active, _ = params(**kw)
+    hd = kw["d"] // kw["n_head"]
+    res = mem_per_gpu(total)
+    off = mem_per_gpu(total, offload=True)
+    boff = mem_per_gpu(total, param_bytes=2, offload=True)
+    dc = dcrit(kw["d"])
+    flag = lambda m: f"{m:5.1f}G{'' if m <= GPU_GB else '!'}"
+    print(f"{name:6s} {kw['d']:5d} {kw['L']:3d} {kw['E']:4d} {kw['k']:3d} {kw['d_ex']:5d} {hd:3d} "
+          f"{total/1e9:7.2f}B {active/1e9:6.2f}B {100*active/total:5.1f} {dc:5.0f} {kw['L']/dc:5.2f} "
+          f"{flag(res):>9s} {flag(off):>9s} {flag(boff):>9s}")
 
-
-def show(name, rows):
-    print(f"\n=== {name}: {len(rows)} feasible parameter combinations ===")
-    print(f"{'total':>7s} {'act%':>5s} {'d':>5s} {'L':>3s} {'E':>4s} {'k':>3s} {'d_ex':>5s} {'heads/kv':>9s} {'Dcrit':>6s} {'mem/GPU':>8s}")
-    for t, r, d, L, E, k, d_ex, nh, nkv in sorted(rows, key=lambda x: abs(x[0] - (30 if name.startswith('30') else 100))):
-        total, active, two_d = params(d, L, E, k, d_ex, nh, nkv, 128)
-        m = mem_per_gpu(total, two_d, 20)
-        print(f"{t:7.2f} {r:5.2f} {d:5d} {L:3d} {E:4d} {k:3d} {d_ex:5d} {nh:5d}/{nkv:<3d} {d**0.44:6.0f} {m:7.1f}G")
-
-
-show("30B", CANDIDATES_A)
-show("100B", CANDIDATES_B)
-print("\nmem/GPU assumes full ZeRO-3 sharding of weights+grads+optimizer and a 20 GB activation reserve.")
-print("Above 80 GB the design does not train on the stated single node.")
+print("\n! = does not fit 80 GB. 20 GB activation reserve assumed in every column.")
+print("Optimizer is Muon (4 B/param). AdamW (8 B/param) is worse in every row.")
+print()
+print("Max total parameters that fit 8x80 GB, FP32 weights+grads, Muon resident:")
+for t in (20, 25, 30, 35, 40, 45, 50):
+    m = mem_per_gpu(t * 1e9)
+    print(f"  {t:3d}B -> {m:5.1f} G  {'fits' if m <= GPU_GB else 'does not fit'}")
+print()
+print("CPU RAM needed for the optimizer state when offloaded:")
+for name, kw in DESIGNS:
+    total, _, _ = params(**kw)
+    print(f"  {name}: {total*4/1e9:5.0f} GB (Muon) | {total*8/1e9:5.0f} GB (AdamW)")
