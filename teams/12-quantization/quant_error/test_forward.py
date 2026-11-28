@@ -6,6 +6,7 @@ input (the p1536 tokenizer, OLMoE's files offline) is skipped with a message.
 """
 import json, sys, unittest
 from pathlib import Path
+from unittest import mock
 
 import torch
 from torch import nn
@@ -212,6 +213,15 @@ class TwinForwardTests(unittest.TestCase):
                     close(row['kl_mean'], kl.mean().item(), 1e-3)
                     close(row['kl_p99'], torch.quantile(kl, 0.99).item(), 1e-3)
                     self.assertEqual(row['same_top1'], (lp.argmax(-1) == lq.argmax(-1)).double().mean().item())
+
+    def test_a_moe_layer_whose_router_gave_no_logits_is_an_error(self):
+        """An MoE block that routes without calling mlp.gate would leave router_agree unmeasured; it must raise,
+        naming the layer, not pass a stale or missing router output on."""
+        from transformers.models.olmoe.modeling_olmoe import OlmoeSparseMoeBlock
+        d = hf('olmoe')
+        with mock.patch.object(OlmoeSparseMoeBlock, 'forward', lambda self, h: (h, None)):
+            with self.assertRaisesRegex(RuntimeError, r'layer 0\b.*mlp\.gate'):
+                f.twin_forward(d, SafetensorsWeights(d), SafetensorsWeights(d), batches(d))
 
     def test_x_rows_caps_the_sample(self):
         d = hf('olmoe')

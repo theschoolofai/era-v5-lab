@@ -19,6 +19,12 @@ from safetensors import safe_open
 
 # GGUF general.architecture -> transformers model_type, for the architectures whose mapping has a round-trip test
 ARCHS = {'olmoe': 'olmoe', 'ernie4_5-moe': 'ernie4_5_moe'}
+NEW_ARCH = ('A new architecture needs three things to pass: (1) the weights round trip (test_weights.py), (2) '
+            'test_streamed_matches_full_model and test_values_match_whole_models in test_forward.py on a tiny model of it, '
+            'and (3) one matched-positions check against llama.cpp (results/olmoe_pilot/matched_positions.py). Model-level '
+            "glue outside the decoder layers (e.g. Granite's embedding_multiplier and logits_scaling), experts that are "
+            "not nn.Linear modules (Granite's GraniteMoeParallelExperts) and a router other than mlp.gate also need "
+            'changes in forward.py. See README.md, "A new architecture".')
 EMBED, HEAD = 'model.embed_tokens.weight', 'lm_head.weight'
 _LAYER = re.compile(r'model\.layers\.(\d+)\.')
 _EXPERT = re.compile(r'(model\.layers\.\d+\.mlp\.experts)\.(\d+)\.(\w+\.weight)')
@@ -107,7 +113,7 @@ class GGUFWeights(_Stages):
         reader = gguf.GGUFReader(str(gguf_path))
         arch = reader.fields['general.architecture'].contents()
         if arch not in ARCHS:
-            raise NotImplementedError(f'{arch}: add a mapping and its round-trip test')
+            raise NotImplementedError(f'{arch}: not supported (supported: {", ".join(ARCHS)}). {NEW_ARCH}')
         super().__init__(Path(hf_config_dir))
         if self.config.model_type != ARCHS[arch]:
             raise ValueError(f'{gguf_path} is {arch}, but {hf_config_dir} is a {self.config.model_type} model')

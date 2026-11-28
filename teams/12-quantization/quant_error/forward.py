@@ -20,7 +20,8 @@ Measured, per held-out slice unless noted:
                            the tokens routed to it); `rows` = len(X); None when no input reached it
   tokens   kl_mean, kl_p99 KL(ref ‖ quant) of the next-token softmax, in nats, per scored position
            same_top1       share of positions whose argmax agrees
-Router logits come from a forward hook on the MoE block's `gate` (nn.Linear in both architectures).
+Router logits come from a forward hook on the MoE block's `gate` (nn.Linear in both architectures); an MoE layer
+(one whose MLP has `experts`) without that router, or whose router gave no logits, is an error naming the layer.
 """
 import re
 from dataclasses import dataclass, field
@@ -164,6 +165,9 @@ def twin_forward(hf_config_dir: Path, ref: WeightSource, quant: WeightSource, ba
 def _layer(arch, i, layer, ref, quant, h, call, x_rows, gen, linears, device) -> list[dict]:
     parts = {f'model.layers.{i}.': layer}
     router = getattr(layer.mlp, 'gate', None)   # an MoE block's router; a dense MLP has none
+    if hasattr(layer.mlp, 'experts') and not isinstance(router, nn.Module):
+        raise NotImplementedError(f'layer {i}: an MoE block whose router is not mlp.gate; forward.py reads router '
+                                  'logits from mlp.gate only')
     linear = {f'model.layers.{i}.{name}.weight': m for name, m in layer.named_modules() if isinstance(m, nn.Linear)}
     gate_logits = []
     hooks = [router.register_forward_hook(lambda m, a, o: gate_logits.append(o))] if router is not None else []
@@ -173,6 +177,9 @@ def _layer(arch, i, layer, ref, quant, h, call, x_rows, gen, linears, device) ->
         h[track][key] = y[0] if isinstance(y, tuple) else y
         if router is None:
             return None
+        if len(gate_logits) != 1:
+            raise RuntimeError(f'layer {i}: the MoE router (mlp.gate) gave {len(gate_logits)} sets of logits in one '
+                               'layer call, expected 1; this block routes some other way')
         bias = getattr(getattr(layer.mlp, 'moe_statics', None), 'e_score_correction_bias', None)
         return select_experts(arch, gate_logits.pop(), layer.mlp.top_k, bias)
 

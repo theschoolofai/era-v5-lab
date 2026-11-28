@@ -174,8 +174,14 @@ class GGUFTests(unittest.TestCase):
             writer.write_kv_data_to_file()
             writer.write_tensors_to_file()
             writer.close()
-            with self.assertRaisesRegex(NotImplementedError, r'^llama: add a mapping and its round-trip test$'):
+            with self.assertRaises(NotImplementedError) as e:
                 w.GGUFWeights(p, Path(t))
+            message = str(e.exception)
+            self.assertTrue(message.startswith('llama: not supported (supported: olmoe, ernie4_5-moe). '), message)
+            for need in ('test_weights.py', 'test_streamed_matches_full_model', 'test_values_match_whole_models',
+                         'matched_positions.py', 'embedding_multiplier', 'logits_scaling', 'GraniteMoeParallelExperts',
+                         'mlp.gate', 'forward.py'):
+                self.assertIn(need, message)
 
 
 if __name__ == '__main__':
