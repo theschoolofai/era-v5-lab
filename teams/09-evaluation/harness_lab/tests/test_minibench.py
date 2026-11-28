@@ -108,6 +108,25 @@ def test_pair_comparison_requires_matching_inputs():
         compare(left, {**left, "items_sha256": "other"})
 
 
+def test_pair_comparison_requires_the_same_device():
+    identity = dict.fromkeys(("suite_sha256", "items_sha256", "heldout_sha256", "heldout_sources_sha256",
+                             "tokenizer_sha256"), "sha")
+    native = {**identity, "schema_version": "minibench_cont_v1", "profile": "quick", "suite": "minibench_v1",
+              "items": {"task": [{"id": "1", "gold_nll_nats": 4.0, "utf8_bytes": 5}]}, "heldout": {"val/bpb": 2.5},
+              "device": "cpu", "hardware": "cpu-a", "format": "fp32", "dtype": "float32"}
+    gpu = {**native, "device": "cuda", "hardware": "gpu-a", "format": "bf16", "dtype": "bfloat16"}
+    with pytest.raises(ValueError, match="same device"):
+        compare(native, gpu)
+    with pytest.raises(ValueError, match="same device"):
+        compare(native, {**native, "hardware": "cpu-b"})
+    assert compare(native, gpu, allow_device_change=True)["device_change"] is True
+    # A GGUF sidecar has no device field: n_gpu_layers 0 is the CPU it names, offload is a GPU.
+    gguf = {key: val for key, val in native.items() if key not in ("device", "dtype")}
+    assert compare(native, {**gguf, "format": "bf16", "n_gpu_layers": 0})["device_change"] is False
+    with pytest.raises(ValueError, match="same device"):
+        compare(native, {**gguf, "format": "bf16", "n_gpu_layers": 99})
+
+
 def test_gguf_window_scores_each_target_from_its_preceding_logit_row():
     logits = np.array([[1.0, -2.0, 4.0], [2.0, 3.0, -1.0], [0.0, 8.0, 0.0]])
     llm = SimpleNamespace(n_vocab=lambda: 3, token_bos=lambda: 0, scores=logits)
