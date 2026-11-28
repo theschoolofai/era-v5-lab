@@ -1,0 +1,30 @@
+doc_id,shard,verdict,code,offset,note
+6565fb789e5493fe,ind-mr-sangraha-v-train-000000,ok,,,
+426bc52019bc57b9,ind-mr-sangraha-v-train-000000,finding,C1,2282,Publisher promotional footer
+774962d40bb371c9,ind-mr-sangraha-v-train-000000,ok,,,
+02d5de470abac897,ind-mr-sangraha-v-train-000000,finding,C1,98,keywords boilerplate
+45586958888201c8,ind-mr-sangraha-v-train-000000,ok,,,
+0b4208a1a92712bb,ind-mr-sangraha-v-train-000000,ok,,,
+44d30e24572c3f82,ind-mr-sangraha-v-train-000000,ok,,,
+7025084d63149330,ind-mr-sangraha-v-train-000000,ok,,,
+5a66daa5d4001dc4,ind-mr-sangraha-v-train-000000,finding,C1,1904,like/share/comment solicitation from this point to EOD
+523043de1db88e9c,ind-mr-sangraha-v-train-000000,ok,,,
+13cf5acd515cb010,ind-mr-sangraha-v-train-000000,ok,,,
+c9031283465dcdb8,ind-mr-sangraha-v-train-000000,ok,,,
+39de1a9bc42b9646,ind-mr-sangraha-v-train-000000,finding,C2,460,Identical nonempty line repeated 10 times; reader recommends dropping this low-value document
+c3ab66f722edf270,ind-mr-sangraha-v-train-000000,ok,,,
+f760f2c02f0786b7,ind-mr-sangraha-v-train-000000,finding,C1,53,site breadcrumb navigation
+f760f2c02f0786b7,ind-mr-sangraha-v-train-000000,finding,C1,147,publication/update metadata
+f760f2c02f0786b7,ind-mr-sangraha-v-train-000000,finding,G1,1371,Duplicated vowel sign U+0947 in source; unchanged by cleaning
+d598504f67f00598,ind-mr-sangraha-v-train-000000,ok,,,
+4a9376090db4dda1,ind-mr-sangraha-v-train-000000,ok,,,
+2501d0dffe8663fb,ind-mr-sangraha-v-train-000000,finding,C1,66,site breadcrumb navigation
+2501d0dffe8663fb,ind-mr-sangraha-v-train-000000,finding,C1,2621,publisher editorial footer
+2501d0dffe8663fb,ind-mr-sangraha-v-train-000000,finding,C1,3018,subscription/comment feed footer
+2889e69e622b6e75,ind-mr-sangraha-v-train-000000,ok,,,
+4a8fef3d7758620f,ind-mr-sangraha-v-train-000000,ok,,,
+56384c5ddc5d05f1,ind-mr-sangraha-v-train-000000,ok,,,
+2bf9520141721a51,ind-mr-sangraha-v-train-000000,ok,,,
+a545d8703095fba9,ind-mr-sangraha-v-train-000000,ok,,,
+659eff05e6fa4e25,ind-mr-sangraha-v-train-000000,ok,,,
+e4279ffe79517148,ind-mr-sangraha-v-train-000000,finding,C3,535,ends with an introductory heading and no following body; possible missing embed or text
