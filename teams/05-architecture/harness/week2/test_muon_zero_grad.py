@@ -17,7 +17,9 @@ Run:
 
     python -m pytest teams/05-architecture/harness/week2/test_muon_zero_grad.py -q
 
-Expected today: the two `idle_expert` tests fail, the `none_grad` control passes.
+Expected today: the two `idle_expert` cases are xfailed (strict) and the two controls pass. Lab rule 3
+(28 Nov): no red tests on main, so the known-bug cases carry `xfail(strict=True)` against #875. They report
+XPASS -- and so fail -- the moment the guard lands, which is the reminder to drop the markers.
 """
 
 import sys
@@ -53,6 +55,7 @@ def _one_real_step_then_zero_grads(n_zero_steps):
     return start, p.detach()
 
 
+@pytest.mark.xfail(strict=True, reason="known bug #875: Muon renormalises stale momentum for an idle expert")
 def test_idle_expert_is_not_moved_by_zero_gradients():
     """A parameter that receives only zero gradients must not change after the momentum decays."""
     start, end = _one_real_step_then_zero_grads(50)
@@ -64,6 +67,7 @@ def test_idle_expert_is_not_moved_by_zero_gradients():
     )
 
 
+@pytest.mark.xfail(strict=True, reason="known bug #875: idle expert weight norm grows from zero gradients")
 def test_idle_expert_weight_norm_does_not_grow():
     """The weight norm must not grow from zero gradients; zeropower_batched renormalises stale momentum."""
     start, end = _one_real_step_then_zero_grads(50)
