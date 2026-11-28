@@ -3,6 +3,7 @@
     python rl-loop/bench_quant_rollout.py speed --schemes copy int8_dynamic --out out/quant_speed.json
     python rl-loop/bench_quant_rollout.py learn --seeds 1 2 3 --out out/quant_learn.json
     python rl-loop/bench_quant_rollout.py coverage --out out/quant_coverage.json
+    python rl-loop/bench_quant_rollout.py export --out out/rollout_check_export.json
 
 `speed`: every scheme samples the same prompts with the same seeds through quant_rollout.QuantRolloutSampler. Without
 --model-path the model is a randomly initialised Llama of the size given (speed is real for that shape; its mismatch
@@ -17,6 +18,9 @@ scheme, per seed: held-out reward on the learner, and the logged mismatch.
 `coverage`: TSAI's rule for speed claims. One forward and backward of the learner on the tokens each scheme sampled,
 against the tokens of the exact copy: the trainable parameters whose gradient is None or all zero, on the speed model and
 on the tiny OLMoE (router frozen).
+
+`export`: what one train.rollout_check step costs the trainer: building the rollout copy, and writing and hashing both
+weights files, on the model shape of --manifest (untrained weights, random byte table), with the file sizes.
 """
 from __future__ import annotations
 
@@ -38,6 +42,7 @@ HERE = Path(__file__).resolve().parent
 sys.path[:0] = [str(HERE), str(HERE.parent / "dt")]
 
 import quant_rollout as qr  # noqa: E402
+import rollout_check  # noqa: E402
 import router  # noqa: E402
 import train  # noqa: E402
 from check_grad_coverage import audit_grads  # noqa: E402
@@ -193,6 +198,39 @@ def coverage(args) -> dict:
     return {"mode": "coverage", "speed_model": desc, "torch": torch.__version__, "checks": checks}
 
 
+def export(args) -> dict:
+    sys.path.append(str(HERE.parents[1] / "05-architecture" / "harness"))  # after rl-loop: it has its own train.py
+    from week2.model import LanguageModel  # noqa: PLC0415
+    if args.threads:
+        torch.set_num_threads(args.threads)
+    m = json.loads(args.manifest.read_text(encoding="utf-8"))["config"]["model"]
+    g = torch.Generator().manual_seed(0)
+    rows = torch.randint(0, 256, (m["vocab_size"], m["ke_max_pos"]), generator=g, dtype=torch.uint8)
+    lengths = torch.randint(1, 5, (m["vocab_size"],), generator=g)
+    torch.manual_seed(1234)
+    model = LanguageModel(m, rows, lengths).eval()
+    runs, load_before = [], load_average()
+    with tempfile.TemporaryDirectory(dir=args.work_dir) as tmp:
+        for rep in range(1, args.repeats + 1):
+            for scheme in args.schemes:
+                t0 = time.perf_counter()
+                copy_ = qr.quantized_copy(model, scheme)[0]
+                t1 = time.perf_counter()
+                d = rollout_check.export(Path(tmp), rep, model, copy_, scheme, m)
+                t2 = time.perf_counter()
+                sizes = {r: (d / f"{r}.safetensors").stat().st_size for r in rollout_check.ROLES}
+                runs.append({"scheme": scheme, "repeat": rep, "copy_s": round(t1 - t0, 3), "write_hash_s": round(t2 - t1, 3),
+                             "bytes": sizes})
+                print(json.dumps(runs[-1]), flush=True)
+                for r in rollout_check.ROLES:  # keep the disk use to one export at a time
+                    (d / f"{r}.safetensors").unlink()
+    median = {s_: {k: statistics.median([r[k] for r in runs if r["scheme"] == s_]) for k in ("copy_s", "write_hash_s")}
+              for s_ in args.schemes}
+    return {"mode": "export", "parameters": sum(p.numel() for p in model.parameters()), "threads": torch.get_num_threads(),
+            "torch": torch.__version__, "load_average_1m": {"before": load_before, "after": load_average()}, "runs": runs,
+            "median": median}
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="mode", required=True)
@@ -223,10 +261,18 @@ def main(argv=None) -> int:
     le.add_argument("--steps", type=int, default=80)
     le.add_argument("--ppo-epochs", type=int, default=1)
     le.add_argument("--tis-clip", type=float, default=2.0)
-    for p in (s, le, cov):
+    ex = sub.add_parser("export")
+    ex.add_argument("--manifest", type=Path,
+                    default=HERE.parents[1] / "05-architecture" / "results" / "dryrun2-1234" / "manifest.json")
+    ex.add_argument("--schemes", nargs="+", default=["bf16", "w4a16_sim"],
+                    choices=[x for x in qr.SCHEMES if x != "int8_dynamic"])
+    ex.add_argument("--repeats", type=int, default=3)
+    ex.add_argument("--threads", type=int, default=0)
+    ex.add_argument("--work-dir", type=Path, help="where the files are written for timing (default: the temp folder)")
+    for p in (s, le, cov, ex):
         p.add_argument("--out", type=Path, required=True)
     a = ap.parse_args(argv)
-    result = {"speed": speed, "learn": learn, "coverage": coverage}[a.mode](a)
+    result = {"speed": speed, "learn": learn, "coverage": coverage, "export": export}[a.mode](a)
     result["command"] = "bench_quant_rollout.py " + " ".join(map(str, argv if argv is not None else sys.argv[1:]))
     a.out.parent.mkdir(parents=True, exist_ok=True)
     a.out.write_text(json.dumps(result, indent=1), encoding="utf-8")

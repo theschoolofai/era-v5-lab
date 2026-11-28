@@ -93,8 +93,8 @@ python teams/10-post-training/rl-loop/bench_quant_rollout.py coverage \
 ## Not measured
 
 - No GPU run, no vLLM or SGLang, no Team 5 checkpoint. The Lab 5 speed target on the real engine is still open.
-- No quality check beyond held-out toy reward. Team 9's mini-benchmark for the periodic check (lab PR 929, open on 28
-  November) is not wired into the trainer and was not run.
+- No quality check beyond held-out toy reward. The periodic check on Team 9's mini-benchmark is wired into the trainer
+  ([`lab5_rollout_check.md`](lab5_rollout_check.md)), but no benchmark has been run through it.
 - Team 5's model: the simulated and `bf16` paths are tested on a small model built from Team 5's classes. Only `nn.Linear`
   weights are rounded in the simulated schemes, so a head or expert held as a bare tensor stays exact. `int8_dynamic` does
   not support this model.

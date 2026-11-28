@@ -1,0 +1,83 @@
+{
+ "mode": "export",
+ "parameters": 176398881,
+ "threads": 8,
+ "torch": "2.7.1+cpu",
+ "load_average_1m": {
+  "before": 5.03,
+  "after": 4.87
+ },
+ "runs": [
+  {
+   "scheme": "bf16",
+   "repeat": 1,
+   "copy_s": 0.167,
+   "write_hash_s": 1.08,
+   "bytes": {
+    "learner": 711028884,
+    "rollout": 358231418
+   }
+  },
+  {
+   "scheme": "w4a16_sim",
+   "repeat": 1,
+   "copy_s": 0.342,
+   "write_hash_s": 1.424,
+   "bytes": {
+    "learner": 711028884,
+    "rollout": 711028884
+   }
+  },
+  {
+   "scheme": "bf16",
+   "repeat": 2,
+   "copy_s": 0.166,
+   "write_hash_s": 1.053,
+   "bytes": {
+    "learner": 711028884,
+    "rollout": 358231418
+   }
+  },
+  {
+   "scheme": "w4a16_sim",
+   "repeat": 2,
+   "copy_s": 0.336,
+   "write_hash_s": 1.459,
+   "bytes": {
+    "learner": 711028884,
+    "rollout": 711028884
+   }
+  },
+  {
+   "scheme": "bf16",
+   "repeat": 3,
+   "copy_s": 0.182,
+   "write_hash_s": 1.02,
+   "bytes": {
+    "learner": 711028884,
+    "rollout": 358231418
+   }
+  },
+  {
+   "scheme": "w4a16_sim",
+   "repeat": 3,
+   "copy_s": 0.345,
+   "write_hash_s": 1.364,
+   "bytes": {
+    "learner": 711028884,
+    "rollout": 711028884
+   }
+  }
+ ],
+ "median": {
+  "bf16": {
+   "copy_s": 0.167,
+   "write_hash_s": 1.053
+  },
+  "w4a16_sim": {
+   "copy_s": 0.342,
+   "write_hash_s": 1.424
+  }
+ },
+ "command": "bench_quant_rollout.py export --threads 8 --out results/lab5_rollout_check_export.json"
+}
