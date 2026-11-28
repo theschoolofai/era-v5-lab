@@ -1,0 +1,41 @@
+{
+  "_comment": "Section 4 of D2: clean + MinHash overlap (16 workers) on the 1% slice; the same slice as run_baseline.json (seed 20261128), written with pyarrow 25, so its manifest sha256 differs.",
+  "run_id": "sec4-1pct",
+  "out": "out/pipeline",
+  "intermediates": "keep",
+  "stages": {
+    "clean": {
+      "mode": "run",
+      "settings": "teams/01-data-a/pipeline/clean.json",
+      "workers": 4,
+      "input": "inputs/sample_1pct",
+      "manifest_sha256": "3701eeb5e45f5297bb9685d176139b10157f215a1977b7ad27adf98b4d166b0d",
+      "expected_parts": {
+        "train": 48,
+        "heldout": 38
+      }
+    },
+    "overlap": {
+      "mode": "run",
+      "script": "teams/01-data-a/dedup/minhash_overlap.py",
+      "settings": "teams/01-data-a/dedup/minhash_overlap.json"
+    },
+    "dedup": {
+      "mode": "run",
+      "settings": "teams/01-data-a/dedup/dedup.json"
+    },
+    "f2": {
+      "pool": true,
+      "workers": 4
+    },
+    "ledger": {
+      "raw": "inputs/sample_1pct"
+    },
+    "shards": {
+      "tokenizer": "inputs/sample_1pct/tokenizer.json",
+      "any_tokenizer": true
+    },
+    "reconcile": {}
+  },
+  "to": "overlap"
+}

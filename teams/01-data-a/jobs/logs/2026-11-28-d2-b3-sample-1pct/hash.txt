@@ -1,0 +1,88 @@
+clean: {"rows": 14106, "by_split": {"train": 13962, "heldout": 144}}
+overlap: {"documents_all": 14106, "parts": 86, "files_sha256": {"overlap_matches.csv": "542920120326cf944eadaaae766257ff1cb0b86cc3097554cd46d23568a58bcf", "overlap_docs.parquet": "50fa1cfa41f4eeb7241d4096a6443917b1674c04c9e22d6aa902c898942179ae"}}
+dedup: {"remove_list_rows": 0, "removed": 0, "heldout_removed": 0, "groups": 0}
+apply: {"rows": 14106, "removed": 0, "kept": 14106, "kept_by_split": {"train": 13962, "heldout": 144}}
+f2: {"rows": 14106, "kept": 14092, "dropped_by_f2": 14, "errors": 0, "by_split": {"train": {"rows": 13962, "kept": 13948, "dropped_by_f2": 14, "errors": 0}, "heldout": {"rows": 144, "kept": 144, "dropped_by_f2": 0, "errors": 0}}}
+survivor_loss: {"total": 0, "with_survivor": 0, "without_survivor": 0, "with_several_survivors": 0, "lost": 0, "partly_hit": 0, "untouched": 0, "survivors_dropped_by_f2": 0}
+ledger: {"rows": 14450, "rows_cleaned": 14106, "kept": 14092, "dropped_by_clean": 344, "removed_by_dedup": 0, "dropped_by_f2": 14, "f2_error": 0, "clean_fix_by_text": 3676}
+shards: {"written": 48, "empty": 0, "all_left_out": 0, "failed": 0, "skipped": 0, "not_sharded": 38, "truncated": 0, "shards": 48, "parts": 86}
+reconcile: {"kept": 14092, "in_shards": 13913, "in_shard": 13913, "left_out:secret": 35, "not_sharded": 144}
+pack                 split       raw  -clean  cleaned  -dedup  -f2   final
+cadj-commits         train       748       0      748       0    0     748
+cadj-commits         heldout       8       0        8       0    0       8
+cadj-notebooks       train       156       0      156       0    1     155
+cadj-notebooks       heldout       2       0        2       0    0       2
+cadj-stackexchange   train       414       0      414       0    0     414
+cadj-stackexchange   heldout       4       0        4       0    0       4
+code-cpp             train       555      10      545       0    1     544
+code-cpp             heldout       6       0        6       0    0       6
+code-go              train       833      68      765       0    2     763
+code-go              heldout       9       1        8       0    0       8
+code-java            train       852      12      840       0    0     840
+code-java            heldout       8       0        8       0    0       8
+code-js-ts           train     1,220      50    1,170       0    2   1,168
+code-js-ts           heldout      12       1       11       0    0      11
+code-python          train       749      23      726       0    0     726
+code-python          heldout       7       0        7       0    0       7
+code-rust            train       601      20      581       0    0     581
+code-rust            heldout       6       0        6       0    0       6
+en-dclm              train       613      12      601       0    0     601
+en-dclm              heldout       6       0        6       0    0       6
+en-fineweb-edu       train       719       6      713       0    1     712
+en-fineweb-edu       heldout       7       0        7       0    0       7
+en-nemotroncc        train       918      37      881       0    0     881
+en-nemotroncc        heldout      10       0       10       0    0      10
+en-nemotroncc-synth  train     1,972       3    1,969       0    1   1,968
+en-nemotroncc-synth  heldout      20       0       20       0    0      20
+ind-bn-fw2           train       112       5      107       0    0     107
+ind-bn-fw2           heldout       1       0        1       0    0       1
+ind-bn-sangraha-v    train       103       4       99       0    0      99
+ind-bn-sangraha-v    heldout       1       0        1       0    0       1
+ind-gu-fw2           train       231       2      229       0    0     229
+ind-gu-fw2           heldout       2       0        2       0    0       2
+ind-hi-fw2           train       143       5      138       0    0     138
+ind-hi-fw2           heldout       1       0        1       0    0       1
+ind-hi-hplt          train        87       2       85       0    0      85
+ind-hi-hplt          heldout       1       0        1       0    0       1
+ind-hi-indiccorp     train     1,108       8    1,100       0    0   1,100
+ind-hi-indiccorp     heldout      11       0       11       0    0      11
+ind-hi-sangraha-s    train        83       9       74       0    0      74
+ind-hi-sangraha-s    heldout       1       0        1       0    0       1
+ind-hi-sangraha-v    train       147       2      145       0    0     145
+ind-hi-sangraha-v    heldout       1       0        1       0    0       1
+ind-kn-fw2           train        78       1       77       0    0      77
+ind-kn-fw2           heldout       1       0        1       0    0       1
+ind-kn-sangraha-s    train        52       0       52       0    0      52
+ind-kn-sangraha-s    heldout       1       0        1       0    0       1
+ind-kn-sangraha-v    train        86       0       86       0    0      86
+ind-kn-sangraha-v    heldout       1       0        1       0    0       1
+ind-ml-fw2           train       190       0      190       0    1     189
+ind-ml-fw2           heldout       2       0        2       0    0       2
+ind-mr-fw2           train       115       1      114       0    0     114
+ind-mr-fw2           heldout       1       0        1       0    0       1
+ind-mr-sangraha-v    train       122       0      122       0    0     122
+ind-mr-sangraha-v    heldout       1       0        1       0    0       1
+ind-or-fw2           train       337       0      337       0    0     337
+ind-or-fw2           heldout       3       0        3       0    0       3
+ind-sa-fw2           train        59       0       59       0    0      59
+ind-sa-fw2           heldout       1       0        1       0    0       1
+ind-ta-fw2           train        68       0       68       0    0      68
+ind-ta-fw2           heldout       1       0        1       0    0       1
+ind-ta-sangraha-s    train        43       0       43       0    0      43
+ind-ta-sangraha-s    heldout       1       0        1       0    0       1
+ind-ta-sangraha-v    train        68       0       68       0    0      68
+ind-ta-sangraha-v    heldout       1       0        1       0    0       1
+ind-te-fw2           train        60       4       56       0    1      55
+ind-te-fw2           heldout       1       0        1       0    0       1
+ind-te-sangraha-s    train        48       4       44       0    0      44
+ind-te-sangraha-s    heldout       1       0        1       0    0       1
+ind-te-sangraha-v    train        86       0       86       0    0      86
+ind-te-sangraha-v    heldout       1       0        1       0    0       1
+math-finemath        train       291      18      273       0    3     270
+math-finemath        heldout       3       1        2       0    0       2
+math-megamath        train       176      32      144       0    1     143
+math-megamath        heldout       2       0        2       0    0       2
+sci-finepdfs         train        60       3       57       0    0      57
+sci-finepdfs         heldout       1       0        1       0    0       1
+total                         14,450     344   14,106       0   14  14,092
+{"raw": 14450, "dropped_by_clean": 344, "cleaned": 14106, "removed_by_dedup": 0, "dropped_by_f2": 14, "final": 14092, "shards_written": 48}

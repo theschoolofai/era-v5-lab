@@ -1,0 +1,29 @@
+{
+  "_comment": "B3 on the 1% slice: run_baseline.json with two changes only. The clean job writes text_hash and key_words (clean_text_hash.json), and the overlap stage is dedup/hash_overlap.py: exact copies (rule H1) from those columns, no text read, no near copies.",
+  "run_id": "d2-1pct-hash",
+  "out": "out/pipeline",
+  "intermediates": "keep",
+  "stages": {
+    "clean": {
+      "mode": "run",
+      "settings": "teams/01-data-a/jobs/2026-11-28-d2-b3-sample-1pct/clean_text_hash.json",
+      "workers": 4,
+      "input": "inputs/sample_1pct",
+      "manifest_sha256": "0b1a3e4305e5eaef10d2254835ad325dd92f5cffdc5d1ba3b26cf06117722bb1",
+      "expected_parts": {"train": 48, "heldout": 38}
+    },
+    "overlap": {
+      "mode": "run",
+      "script": "teams/01-data-a/dedup/hash_overlap.py",
+      "settings": "teams/01-data-a/dedup/hash_overlap.json"
+    },
+    "dedup": {"mode": "run", "settings": "teams/01-data-a/dedup/dedup.json"},
+    "f2": {"pool": true, "workers": 4},
+    "ledger": {"raw": "inputs/sample_1pct"},
+    "shards": {
+      "tokenizer": "inputs/sample_1pct/tokenizer.json",
+      "any_tokenizer": true
+    },
+    "reconcile": {}
+  }
+}
