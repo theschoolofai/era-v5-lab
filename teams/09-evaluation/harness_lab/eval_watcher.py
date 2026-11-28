@@ -40,7 +40,10 @@ docs/checkpoint_interval.md):
   the scorer's memory (GPU too) is freed after each checkpoint. On Linux the scorer gets its own process group, and a
   timeout or a stop ends the whole group.
 - One scorer at a time per GPU slot: every watcher takes the slot lock (default ``out/watcher/gpu_slot.lock``) around
-  a scorer run, so the Tier A and Tier B watchers never load two models at once.
+  a scorer run, so the Tier A and Tier B watchers never load two models at once. The scorer inherits the lock, so
+  a watcher killed by SIGKILL (or out of memory) does not free the slot while its scorer still runs; on Linux the
+  kernel also ends that scorer (PR_SET_PDEATHSIG). A restarted watcher keeps a result its killed predecessor's
+  scorer finished writing (``in_flight`` in the state), and scores the commit again otherwise.
 - Each checkpoint loads under its own ClickHouse ``run_id``: ``<run>:<commit path>:<label>:<model_revision[:12]>``.
   ``load_jsonl.py`` deletes every row of a run_id before it inserts (its idempotent reload), so a shared run_id would
   delete the scores of other checkpoints, other tiers or another run with the same name.
@@ -49,9 +52,10 @@ docs/checkpoint_interval.md):
   is scored. Dry run 1 retention is ``--keep 9 --protect-every 15`` at a 600 s interval, so an unprotected checkpoint
   stays about 90 minutes.
 - ``run_lab_ckpt.py --step N`` scores the last commits.jsonl line of step N. When a restore or a rollback (#847)
-  commits the same step again, the older commit is marked ``superseded`` (checked again just before scoring) and only
-  the newer one is scored. Each commit is keyed by its path (``<branch>/step_<N>-e<epoch>``), so every attempt and
-  branch keeps its own state entries, run_ids and rows, and a commit scored before a rollback keeps its rows.
+  commits the same step again, the older commit is marked ``superseded`` (checked again just before scoring and
+  after the wait for the GPU slot) and only the newer one is scored. Each commit is keyed by its path
+  (``<branch>/step_<N>-e<epoch>``), so every attempt and branch keeps its own state entries, run_ids and rows, and a
+  commit scored before a rollback keeps its rows.
 - A checkpoint whose MANIFEST.json is gone (deleted by retention before or while it was scored) is marked ``gone``,
   but only while commits.jsonl can still be read, so a store that drops out for a while marks nothing.
 - A scoring failure is retried on the next poll, ``--max-attempts`` times in all (default 2, as in JOB_REQUEST.md
@@ -274,6 +278,9 @@ class FileLock:
         self._f = f
         return True
 
+    def fileno(self) -> int:
+        return self._f.fileno()
+
     def release(self) -> None:
         if self._f is not None:
             self._f.close()  # closing the handle releases the lock on both systems
@@ -313,13 +320,37 @@ def _end(proc: subprocess.Popen) -> None:
         proc.wait()
 
 
-def run_scorer(argv: list[str], log_path: Path, timeout: float, stop: threading.Event) -> int:
+PR_SET_PDEATHSIG = 1  # linux/prctl.h
+
+
+def _die_with_watcher(watcher_pid: int):
+    """preexec_fn for the scorer (Linux): the kernel sends it SIGKILL when the watcher dies, even by SIGKILL or an
+    out-of-memory kill, so no scorer is left behind holding GPU memory. None where prctl does not exist."""
+    if not sys.platform.startswith("linux"):
+        return None
+    import ctypes
+    prctl = ctypes.CDLL(None, use_errno=True).prctl
+
+    def preexec():
+        prctl(PR_SET_PDEATHSIG, signal.SIGKILL, 0, 0, 0)
+        if os.getppid() != watcher_pid:  # the watcher died before prctl ran
+            os._exit(TIMEOUT_CODE)
+    return preexec
+
+
+def run_scorer(argv: list[str], log_path: Path, timeout: float, stop: threading.Event, keep_fds=()) -> int:
     """Run one scorer process; stdout and stderr go straight to log_path (nothing is held in memory). The log is
-    appended to, so a retry keeps the first attempt's output (JOB_REQUEST.md rule 5 sends both back to the team)."""
+    appended to, so a retry keeps the first attempt's output (JOB_REQUEST.md rule 5 sends both back to the team).
+
+    keep_fds: open file descriptors the scorer inherits. The watcher passes its GPU slot lock, so the lock stays
+    held while the scorer lives, also when the watcher itself is killed: a restarted watcher (or the other tier)
+    waits for that scorer to end and never loads a second model on the slot."""
     with open(log_path, "ab") as log:
         log.write(f"=== {now_utc()}\n$ {subprocess.list2cmdline(argv)}\n".encode("utf-8"))
         log.flush()
-        proc = subprocess.Popen(argv, stdout=log, stderr=subprocess.STDOUT, start_new_session=POSIX)
+        proc = subprocess.Popen(argv, stdout=log, stderr=subprocess.STDOUT, start_new_session=POSIX,
+                                pass_fds=tuple(keep_fds) if POSIX else (),
+                                preexec_fn=_die_with_watcher(os.getpid()) if POSIX else None)
         deadline = time.monotonic() + timeout
         while True:
             try:
@@ -465,14 +496,26 @@ class Watcher:
         stem = commit["path"].replace("/", "__")
         out = self.a.out_dir / f"{stem}.json"
         log_path = self.a.out_dir / "logs" / f"{stem}.log"
-        out.unlink(missing_ok=True)  # a file left by an earlier attempt must never pass for this one
-        waited = self.take_slot()
+        argv = self.argv(commit, out)
+        command = hashlib.sha256("\0".join(argv).encode("utf-8")).hexdigest()[:16]
+        waited = self.take_slot()  # first: a scorer left by a killed watcher holds the slot until it ends
         try:
+            if rec.get("in_flight") == command and self.reuse(commit, rec, out, log_path):
+                return True
+            if self.recommitted(commit):  # committed again while this commit waited for the slot (the other tier)
+                self.finish(rec, "superseded", f"step {commit['step']} was committed again while it waited for "
+                                               "the GPU slot")
+                return False
+            out.unlink(missing_ok=True)  # a file left by an earlier attempt must never pass for this one
+            rec["in_flight"] = command   # saved before the scorer starts: only its own output can be kept later
+            self.state.save()
             t0 = time.monotonic()
-            code = run_scorer(self.argv(commit, out), log_path, self.a.timeout, self.stop)  # Stopped propagates
+            code = run_scorer(argv, log_path, self.a.timeout, self.stop,  # Stopped propagates
+                              keep_fds=(self.slot.fileno(),))
             seconds = round(time.monotonic() - t0, 2)
         finally:
             self.slot.release()
+        rec.pop("in_flight", None)
         rec["attempts"] += 1
         error = None
         if code != 0:
@@ -516,6 +559,36 @@ class Watcher:
              slot_wait_s=waited, lag_s=lag, label=self.a.label)
         print(f"step {commit['step']} ({commit['path']}): scored in {seconds} s"
               f"{'' if lag is None else f', {lag} s after its commit'}, {rec['records']} record(s) -> {out}", flush=True)
+        return True
+
+    def reuse(self, commit: dict, rec: dict, out: Path, log_path: Path) -> bool:
+        """The watcher was killed while its scorer ran, or after the scorer wrote the result and before the state
+        said so. The state still holds in_flight: the hash of that scorer's command line, saved after the old file was
+        deleted and before the scorer started. So a file is there only if that scorer (or one with the same command)
+        wrote it. run_lab_ckpt.py writes the file last, after its own check, and a cut-off write does not parse. A
+        file that parses, scores exactly this commit and names this commit's model_revision (the sha256 of its
+        MANIFEST.json) is kept instead of scoring the checkpoint again. Other files (no in_flight in the state, as
+        after the state file was deleted to score again, or another command) are never kept. A Team 5 run folder is
+        always scored again."""
+        if self.team5 or not out.exists():
+            return False
+        try:
+            records, revision = check_output(out, commit)
+            if revision != sha256_file(self.run_dir / commit["path"] / MANIFEST):
+                return False
+        except (OSError, ValueError, KeyError):
+            return False
+        committed = commit.get("time")
+        lag = round(time.time() - committed, 1) if isinstance(committed, (int, float)) and committed > 0 else None
+        rec.pop("in_flight", None)
+        rec.update(status="scored", loaded=False, records=records, out=out.as_posix(), sha256=sha256_file(out),
+                   log=log_path.as_posix(), seconds=None, slot_wait_s=None, lag_s=lag, time=now_utc(), detail=None,
+                   reused=True, run_id=f"{self.run_name}:{commit['path']}:{self.a.label}:{revision[:12]}")
+        self.state.save()
+        emit("eval.scored", step=commit["step"], path=commit["path"], records=records, seconds=None,
+             slot_wait_s=None, lag_s=lag, label=self.a.label, reused=True)
+        print(f"step {commit['step']} ({commit['path']}): kept the result an earlier watcher's scorer wrote -> {out}",
+              flush=True)
         return True
 
     def load(self, commit: dict, rec: dict) -> None:
