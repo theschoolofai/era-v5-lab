@@ -1,0 +1,143 @@
+strip_ckpt.py against Team 7's export_safetensors(), on a commit with dry run 2's parameter split (#869:
+176,398,881 parameters, 165,740,544 with one optimizer buffer each), saved by Team 7's Checkpointer; --scale 2 doubles
+every tensor count (352,797,762 parameters).
+
+Where: Linux (Docker python:3.11-slim on a 4-CPU, 16 GB VM on an Apple M4 Pro), torch 2.15.0+cpu, 4 threads. The commit
+is read right after it is written, so the page cache is warm: the times are CPU and memory times, and "Read" counts
+bytes through read() (rchar), from the cache or the disk. On a network store the read bytes set the time.
+The probe bits are saved for a GPU device class ('cuda:NVIDIA H100 80GB HBM3'), as in a GPU-trained run: the export
+runs the CPU probe but cannot compare it. One SGD-momentum optimizer keeps one buffer per parameter, so the commit is
+about 3% smaller than dry run 2's would be (no second AdamW buffer on 10.7M parameters). The tensor count (192 at
+scale 1) is not the run's. For --verify fingerprints the build adds MANIFEST.json fingerprints of the model.* tensors,
+made with Team 7's own fingerprints(), as Team 7's save would keep them (a proposal: state_digest() computes them
+already). Each path runs in a fresh process.
+
+Command:
+  python teams/09-evaluation/harness_lab/tests/bench_strip.py --work /tmp/d1 --scale 1    (and --scale 2)
+  ... --strip <the strip before streaming, commit 861e2b7e>, and --group-mb 256 / 64, for the comparisons below
+
+Checks in the same state: harness_lab/tests on Linux, 95 passed, 3 runs (test_strip_ckpt.py: 19, one of them on a
+commit saved by FSDP2 over 2 ranks). The real Team 5 model check is in check_strip_team5.log.
+
+== 1. The final strip (streaming, default --group-mb 256) against the export
+commit: 176,398,881 parameters, 1,412.0 MB on disk (saved in 8.59 s); probe bits for 'cuda:NVIDIA H100 80GB HBM3'
+
+| Path | Wall time | Peak RSS | Read | Written |
+|---|---:|---:|---:|---:|
+| export_safetensors (as run_lab_ckpt.py) | 3.35 s | 2,692 MB | 3,546 MB | 2,118 MB |
+| strip --verify files | 0.85 s | 649 MB | 2,124 MB | 706 MB |
+| strip --verify fingerprints | 0.75 s | 931 MB | 713 MB | 706 MB |
+| strip --verify none | 0.45 s | 632 MB | 712 MB | 706 MB |
+| strip --verify files --dtype bfloat16 | 0.71 s | 515 MB | 2,124 MB | 353 MB |
+
+strip --verify files gives the same tensors as export_safetensors, bit for bit: True
+commit: 352,797,762 parameters, 2,823.7 MB on disk (saved in 17.65 s); probe bits for 'cuda:NVIDIA H100 80GB HBM3'
+
+| Path | Wall time | Peak RSS | Read | Written |
+|---|---:|---:|---:|---:|
+| export_safetensors (as run_lab_ckpt.py) | 7.57 s | 5,040 MB | 7,082 MB | 4,235 MB |
+| strip --verify files | 1.81 s | 650 MB | 4,248 MB | 1,411 MB |
+| strip --verify fingerprints | 1.62 s | 764 MB | 1,425 MB | 1,411 MB |
+| strip --verify none | 1.09 s | 633 MB | 1,425 MB | 1,411 MB |
+| strip --verify files --dtype bfloat16 | 2.50 s | 527 MB | 4,248 MB | 706 MB |
+
+strip --verify files gives the same tensors as export_safetensors, bit for bit: True
+
+== 2. Before and after streaming (the strip of commit 861e2b7e, which held all weights and read the file back for its
+   sha256, against the streaming strip with 1 GB groups). Scale 4 (705M parameters) could not be built in 16 GB: the
+   build step (weights, gradients, optimizer state and the save's staging copy) was killed, before any strip ran.
+torch 2.15.0+cpu threads 4
+4
+MemTotal:       16341300 kB
+=== scale 1 strip new
+commit: 176,398,881 parameters, 1,412.0 MB on disk (saved in 7.54 s); probe bits for 'cuda:NVIDIA H100 80GB HBM3'
+
+| Path | Wall time | Peak RSS | Read | Written |
+|---|---:|---:|---:|---:|
+| export_safetensors (as run_lab_ckpt.py) | 3.34 s | 2,691 MB | 3,546 MB | 2,118 MB |
+| strip --verify files | 0.87 s | 1,169 MB | 2,124 MB | 706 MB |
+| strip --verify fingerprints | 0.75 s | 1,496 MB | 713 MB | 706 MB |
+| strip --verify files --dtype bfloat16 | 0.72 s | 806 MB | 2,124 MB | 353 MB |
+
+strip --verify files gives the same tensors as export_safetensors, bit for bit: True
+strip-files-bf16.safetensors.json files {'load': 0.069, 'total': 0.725, 'verify': 0.479, 'write': 0.175} 1
+strip-files.safetensors.json files {'load': 0.092, 'total': 0.871, 'verify': 0.48, 'write': 0.296} 1
+strip-fingerprints.safetensors.json fingerprints {'load': 0.07, 'total': 0.747, 'verify': 0.351, 'write': 0.316} 1
+=== scale 1 strip old
+commit: 176,398,881 parameters, 1,412.0 MB on disk (saved in 6.96 s); probe bits for 'cuda:NVIDIA H100 80GB HBM3'
+
+| Path | Wall time | Peak RSS | Read | Written |
+|---|---:|---:|---:|---:|
+| export_safetensors (as run_lab_ckpt.py) | 3.30 s | 2,690 MB | 3,546 MB | 2,118 MB |
+| strip --verify files | 1.03 s | 1,186 MB | 2,830 MB | 706 MB |
+| strip --verify fingerprints | 0.88 s | 1,513 MB | 1,418 MB | 706 MB |
+| strip --verify files --dtype bfloat16 | 0.75 s | 823 MB | 2,477 MB | 353 MB |
+
+strip --verify files gives the same tensors as export_safetensors, bit for bit: True
+strip-files-bf16.safetensors.json files {'load': 0.072, 'total': 0.747, 'verify': 0.502, 'write': 0.172} None
+strip-files.safetensors.json files {'load': 0.085, 'total': 1.033, 'verify': 0.6, 'write': 0.348} None
+strip-fingerprints.safetensors.json fingerprints {'load': 0.091, 'total': 0.882, 'verify': 0.365, 'write': 0.416} None
+=== scale 2 strip new
+commit: 352,797,762 parameters, 2,823.7 MB on disk (saved in 18.55 s); probe bits for 'cuda:NVIDIA H100 80GB HBM3'
+
+| Path | Wall time | Peak RSS | Read | Written |
+|---|---:|---:|---:|---:|
+| export_safetensors (as run_lab_ckpt.py) | 8.56 s | 5,041 MB | 7,082 MB | 4,235 MB |
+| strip --verify files | 2.38 s | 1,549 MB | 4,248 MB | 1,411 MB |
+| strip --verify fingerprints | 2.08 s | 1,599 MB | 1,425 MB | 1,411 MB |
+| strip --verify files --dtype bfloat16 | 2.01 s | 996 MB | 4,248 MB | 706 MB |
+
+strip --verify files gives the same tensors as export_safetensors, bit for bit: True
+strip-files-bf16.safetensors.json files {'load': 0.228, 'total': 2.006, 'verify': 1.354, 'write': 0.421} 2
+strip-files.safetensors.json files {'load': 0.201, 'total': 2.384, 'verify': 1.502, 'write': 0.677} 2
+strip-fingerprints.safetensors.json fingerprints {'load': 0.303, 'total': 2.084, 'verify': 0.809, 'write': 0.957} 2
+=== scale 2 strip old
+commit: 352,797,762 parameters, 2,823.7 MB on disk (saved in 21.07 s); probe bits for 'cuda:NVIDIA H100 80GB HBM3'
+
+| Path | Wall time | Peak RSS | Read | Written |
+|---|---:|---:|---:|---:|
+| export_safetensors (as run_lab_ckpt.py) | 8.32 s | 5,039 MB | 7,082 MB | 4,235 MB |
+| strip --verify files | 2.50 s | 2,030 MB | 5,660 MB | 1,411 MB |
+| strip --verify fingerprints | 1.96 s | 2,251 MB | 2,836 MB | 1,411 MB |
+| strip --verify files --dtype bfloat16 | 2.18 s | 1,302 MB | 4,954 MB | 706 MB |
+
+strip --verify files gives the same tensors as export_safetensors, bit for bit: True
+strip-files-bf16.safetensors.json files {'load': 0.323, 'total': 2.178, 'verify': 1.239, 'write': 0.614} None
+strip-files.safetensors.json files {'load': 0.184, 'total': 2.504, 'verify': 1.456, 'write': 0.864} None
+strip-fingerprints.safetensors.json fingerprints {'load': 0.177, 'total': 1.955, 'verify': 0.694, 'write': 1.072} None
+=== scale 4 strip new
+failed: /usr/local/bin/python /tmp/b4new/code/build.py /repo/teams/07-infrastructure ...
+
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/b4new/strip-*.json'
+=== scale 4 strip old
+failed: /usr/local/bin/python /tmp/b4old/code/build.py /repo/teams/07-infrastructure ...
+
+
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/b4old/strip-*.json'
+
+== 3. The group size sets the peak memory, not the model size (streaming strip, --group-mb 256 and 64)
+=== scale 1 group 256 MB
+| strip --verify files | 0.84 s | 648 MB | 2,124 MB | 706 MB |
+| strip --verify fingerprints | 0.76 s | 930 MB | 713 MB | 706 MB |
+| strip --verify files --dtype bfloat16 | 0.75 s | 514 MB | 2,124 MB | 353 MB |
+strip --verify files gives the same tensors as export_safetensors, bit for bit: True
+=== scale 1 group 64 MB
+| strip --verify files | 1.04 s | 433 MB | 2,124 MB | 706 MB |
+| strip --verify fingerprints | 1.10 s | 775 MB | 713 MB | 706 MB |
+| strip --verify files --dtype bfloat16 | 0.88 s | 395 MB | 2,124 MB | 353 MB |
+strip --verify files gives the same tensors as export_safetensors, bit for bit: True
+=== scale 2 group 256 MB
+| strip --verify files | 2.34 s | 647 MB | 4,248 MB | 1,411 MB |
+| strip --verify fingerprints | 1.79 s | 805 MB | 1,425 MB | 1,411 MB |
+| strip --verify files --dtype bfloat16 | 1.63 s | 527 MB | 4,248 MB | 706 MB |
+strip --verify files gives the same tensors as export_safetensors, bit for bit: True
+=== scale 2 group 64 MB
+| strip --verify files | 1.80 s | 529 MB | 4,248 MB | 1,411 MB |
+| strip --verify fingerprints | 2.19 s | 702 MB | 1,425 MB | 1,411 MB |
+| strip --verify files --dtype bfloat16 | 2.04 s | 446 MB | 4,248 MB | 706 MB |
+strip --verify files gives the same tensors as export_safetensors, bit for bit: True
