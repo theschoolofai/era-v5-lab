@@ -153,5 +153,18 @@ Lead = step 6.1 s + evaluation 45.4 s + save 1.43 s + commit (not measured, see 
 most 300 s of node time per cap, which is less than one unplanned restart. Raising `KillWait` instead would not
 help with a save that is still running when the step does not end. Keep `KillWait=30`.
 
-**After #820 merges:** rerun the two drills above on the new `mainrun.sbatch`; the signal arm must still give 0 lost
-steps with the `--signal` line in the script instead of on the `sbatch` command line.
+**Rerun on the merged main-run script (28 Nov, after #820), with the line in `mainrun.sbatch`:**
+
+```
+python3 support/simulation/run_sim.py --only mainrun_time_cap_script mainrun_time_cap_signal
+```
+
+| Arm | Signal save committed | Lost steps | Job after the cap | Result |
+|---|---|---|---|---|
+| `#SBATCH --signal=B:USR1@300` in `mainrun.sbatch`, `--time=00:10:00` | yes, step 4358 | **0** | requeued (Restarts 1), restored step 4358 | PASS |
+| `--signal=B:USR1@120` on the `sbatch` command line, `--time=00:07:00` | yes, step 4063 | **0** | requeued (Restarts 1), restored step 4063 | PASS |
+
+Evidence: `support/simulation/results/evidence/mainrun_time_cap_script.log`, `mainrun_time_cap_signal.log` (rerun).
+The control arm (`mainrun_time_cap_nosignal`) shows the failure only on a script without the line; its 28 Nov
+result stays in `mainrun_time_cap_nosignal.log`. `support/tests/test_queue.py` (the real script against stubbed
+Slurm commands): 25 passed.

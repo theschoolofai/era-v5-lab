@@ -22,6 +22,12 @@
 #SBATCH --gpus-per-node=8
 #SBATCH --exclusive
 #SBATCH --requeue
+# A time cap (a site's or provider's --time; our gpu partition sets none) first warns the batch shell, 300 s early:
+# job_queue.py passes SIGUSR1 to the trainer, which saves, commits and exits 75, and Slurm requeues the job. Without
+# it the cap sends SIGTERM, then SIGKILL after KillWait=30, which cuts a save; the job ends TIMEOUT, which Slurm
+# does not requeue (drill: docs/restart_cost_lab5.md section 3). 300 s = step + evaluation + save + commit + up to
+# 60 s early from Slurm.
+#SBATCH --signal=B:USR1@300
 #SBATCH --open-mode=append
 #SBATCH --output=/var/log/v5/logs/%x-%j.out
 set -u
