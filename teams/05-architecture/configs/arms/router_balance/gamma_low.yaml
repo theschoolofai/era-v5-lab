@@ -1,0 +1,7 @@
+# T3 router balance (#892), arm A1: bias step 10 times smaller than dry run 2.
+inherit: ../dryrun2.yaml
+intended:
+  arm: router-balance-A1
+model:
+  moe:
+    bias_gamma: 0.0001
