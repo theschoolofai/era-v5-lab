@@ -154,6 +154,10 @@ class HybridOptimizer:
         return dt
 
     def state_dict(self) -> dict:
+        """Plain AdamW keeps torch's own layout (so states saved before this wrapper existed still resume, and tools that
+        read `state` keep working); hybrid Muon nests one state dict per optimizer."""
+        if self.meta.get("kind") == "adamw":
+            return self.named[0][1].state_dict()
         return {
             "meta": dict(self.meta),
             "optim_seconds": self.optim_seconds,
@@ -162,6 +166,9 @@ class HybridOptimizer:
         }
 
     def load_state_dict(self, state: dict) -> None:
+        if self.meta.get("kind") == "adamw" and isinstance(state, dict) and "optimizers" not in state and "param_groups" in state:
+            self.named[0][1].load_state_dict(state)
+            return
         opts = state.get("optimizers") if isinstance(state, dict) else None
         if not isinstance(opts, dict) or set(opts) != {name for name, _ in self.named}:
             raise ValueError(f"Optimizer state names differ: got {sorted(opts or {})}, expected {[n for n, _ in self.named]}")

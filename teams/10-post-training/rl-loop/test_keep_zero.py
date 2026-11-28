@@ -188,7 +188,7 @@ def test_trainer_with_weight_decay_starts_and_keeps_deleted_weights_at_zero(tmp_
 def test_trainer_still_refuses_a_non_adam_optimizer_without_enforce(tmp_path, monkeypatch):
     cfg = _cfg(tmp_path / "run")
     _deleted_start_state(tmp_path, cfg)
-    monkeypatch.setattr(torch.optim, "AdamW", lambda params, lr, weight_decay: torch.optim.SGD(params, lr=lr))
+    monkeypatch.setattr(torch.optim, "AdamW", lambda params, lr, **_: torch.optim.SGD(params, lr=lr))
     with pytest.raises(ValueError, match="needs Adam/AdamW, got SGD"):
         train.train(cfg)
 
