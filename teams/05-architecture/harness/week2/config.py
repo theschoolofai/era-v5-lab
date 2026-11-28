@@ -474,6 +474,11 @@ def validate(c):
         errors.append("optim.router_on_muon must be true or false")
     if o.get("name") == "adamw" and o.get("router_on_muon"):
         errors.append("router_on_muon set on an AdamW arm would be ignored")
+    if o.get("name") == "muon":
+        if o.get("router_on_muon", True) is not True:
+            errors.append("Muon requires router_on_muon=true: every 2D matrix uses Muon")
+        if o.get("head_sgd", False):
+            errors.append("Muon does not support head_sgd: every 2D matrix uses Muon")
     tst = r.get("tst")
     if tst is not None and type(tst) is not bool:
         errors.append("run.tst must be true or false")

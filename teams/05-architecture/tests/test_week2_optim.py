@@ -8,7 +8,7 @@ TEAM = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TEAM / "harness"))
 sys.path.insert(0, str(TEAM / "tests"))
 from week2.config import load, load_runtime, merge, validate
-from week2.model import LanguageModel
+from week2.model import LanguageModel, SwiGLU
 from week2.optim import (
     Muon,
     Optimizers,
@@ -56,48 +56,61 @@ class SplitTests(unittest.TestCase):
         self.assertEqual(len(ids), len(set(ids)))
         self.assertEqual(set(ids), {id(p) for p in m.parameters()})
 
-    def test_block_matrices_on_muon_rest_on_adamw(self):
+    def test_all_matrices_on_muon_scalar_and_vector_parameters_on_adamw(self):
+        c, rows, lengths = muon_fixture()
+        m = LanguageModel(c["model"], rows, lengths)
+        # Include a scalar and non-name-conforming matrix: shape must be decisive.
+        m.scalar_gate = torch.nn.Parameter(torch.ones(()))
+        m.extra_matrix = torch.nn.Parameter(torch.ones(3, 4))
+        m.extra_bias = torch.nn.Parameter(torch.ones(3))
+        m.dense_ffn = SwiGLU(16, 24, bias=True)
+        opt = dict(build_optimizer(m, c["optim"]).named)
+        muon = {id(p) for g in opt["muon"].param_groups for p in g["params"]}
+        adamw = {id(p) for g in opt["adamw"].param_groups for p in g["params"]}
+        for n, p in m.named_parameters():
+            self.assertTrue(p.requires_grad, n)
+            self.assertEqual(id(p) in muon, p.ndim == 2, n)
+            self.assertEqual(id(p) in adamw, p.ndim < 2, n)
+        names = {n for n, p in m.named_parameters() if id(p) in muon}
+        for expected in ["embedding.projection.weight", "head.weight",
+                         "blocks.0.moe.router.weight", "blocks.0.attn.q.weight",
+                         "blocks.0.attn.o.weight", "blocks.0.moe.experts.0.gate.weight",
+                         "blocks.0.moe.shared.0.down.weight", "extra_matrix",
+                         "dense_ffn.gate.weight", "dense_ffn.up.weight", "dense_ffn.down.weight"]:
+            self.assertIn(expected, names)
+        self.assertEqual(opt["muon"].param_groups[0]["lr"], 0.02)
+        self.assertEqual(opt["muon"].param_groups[0]["weight_decay"], 0.0)
+        self.assertEqual(opt["adamw"].param_groups[0]["lr"], 1e-3)
+        d = describe(m, c["optim"])
+        self.assertEqual(d["muon_parameters"], sum(p.numel() for p in m.parameters() if p.ndim == 2))
+        self.assertEqual(d["adamw_parameters"], sum(p.numel() for p in m.parameters() if p.ndim < 2))
+
+    def test_router_exception_rejected_by_factory_and_description(self):
         c, rows, lengths = muon_fixture()
         c["optim"]["router_on_muon"] = False
         m = LanguageModel(c["model"], rows, lengths)
-        opt = dict(build_optimizer(m, c["optim"]).named)
-        muon = {id(p) for g in opt["muon"].param_groups for p in g["params"]}
-        names = {n for n, p in m.named_parameters() if id(p) in muon}
-        for expected in [
-            "blocks.0.attn.q.weight",
-            "blocks.0.attn.o.weight",
-            "blocks.0.moe.experts.0.gate.weight",
-            "blocks.0.moe.shared.0.down.weight",
-        ]:
-            self.assertIn(expected, names)
-        self.assertNotIn("blocks.0.moe.router.weight", names)
-        for n, p in m.named_parameters():
-            if (
-                n.startswith("embedding.")
-                or n.startswith("head.")
-                or "norm" in n
-                or n.startswith("blocks.0.n1")
-            ):
-                self.assertNotIn(n, names)
-        self.assertTrue(all(p.ndim == 2 for n, p in m.named_parameters() if n in names))
-        self.assertEqual(opt["muon"].param_groups[0]["lr"], 0.02)
-        self.assertEqual(opt["adamw"].param_groups[0]["lr"], 1e-3)
+        for action in (build_optimizer, describe):
+            with self.assertRaisesRegex(ValueError, "router_on_muon=true"):
+                action(m, c["optim"])
+        with self.assertRaisesRegex(ValueError, "router_on_muon=true"):
+            uses_muon("router", torch.ones(2, 2), False)
 
-    def test_router_switch(self):
-        """Default: router on Muon (TSAI, 23 Nov, #712). router_on_muon: false moves it to AdamW, for the comparison run."""
-        for flag, on_muon in [(None, True), (False, False), (True, True)]:
+    def test_router_default_and_explicit_true(self):
+        for flag in (None, True):
             c, rows, lengths = muon_fixture()
             if flag is not None:
                 c["optim"]["router_on_muon"] = flag
             m = LanguageModel(c["model"], rows, lengths)
             opt = dict(build_optimizer(m, c["optim"]).named)
-            muon = {id(p) for g in opt["muon"].param_groups for p in g["params"]}
-            names = {n for n, p in m.named_parameters() if id(p) in muon}
-            self.assertEqual("blocks.0.moe.router.weight" in names, on_muon)
-            self.assertIn("blocks.0.attn.q.weight", names)
-            d = describe(m, c["optim"])
-            self.assertEqual(d["router_on_muon"], on_muon)
-            self.assertEqual(d["muon_parameters"] + d["adamw_parameters"], m.parameter_count())
+            self.assertTrue(any(p is m.blocks[0].moe.router.weight for p in opt["muon"].param_groups[0]["params"]))
+            self.assertTrue(describe(m, c["optim"])["router_on_muon"])
+
+    def test_higher_rank_parameters_rejected(self):
+        c, rows, lengths = muon_fixture()
+        m = LanguageModel(c["model"], rows, lengths)
+        m.unsupported = torch.nn.Parameter(torch.ones(2, 3, 4))
+        with self.assertRaisesRegex(ValueError, "unsupported"):
+            build_optimizer(m, c["optim"])
 
     def test_adamw_arm_unchanged(self):
         c, rows, lengths = fixture()
@@ -161,6 +174,14 @@ class StepTests(unittest.TestCase):
         m2.load_state_dict(state["model"])
         opt2 = build_optimizer(m2, c["optim"])
         opt2.load_state_dict(state["optimizer"])
+        for name, inner in opt.named:
+            restored = dict(opt2.named)[name]
+            for old, new in zip(inner.param_groups[0]["params"], restored.param_groups[0]["params"]):
+                self.assertEqual(inner.state[old].keys(), restored.state[new].keys())
+                for key, value in inner.state[old].items():
+                    torch.testing.assert_close(restored.state[new][key], value, rtol=0, atol=0)
+        self.assertTrue(dict(opt2.named)["muon"].state[m2.head.weight]["buf"].numel())
+        self.assertEqual(dict(opt2.named)["adamw"].state[m2.norm.weight]["step"].item(), 2)
         _, _, rest = train(c, rows, lengths, 2, opt=opt2, model=m2)
         self.assertEqual(first + rest, full)
 
@@ -170,6 +191,19 @@ class StepTests(unittest.TestCase):
         opt = build_optimizer(m, c["optim"])
         with self.assertRaisesRegex(ValueError, "state names"):
             opt.load_state_dict({"adamw": {}})
+
+    def test_legacy_name_grouped_state_is_not_reinterpreted(self):
+        c, rows, lengths = muon_fixture()
+        m = LanguageModel(c["model"], rows, lengths)
+        old_muon = [p for n, p in m.named_parameters()
+                    if p.ndim == 2 and n.startswith("blocks.") and n.endswith(".weight")]
+        old_ids = {id(p) for p in old_muon}
+        legacy = Optimizers([
+            ("muon", Muon(old_muon, lr=c["optim"]["muon_lr"])),
+            ("adamw", torch.optim.AdamW([p for p in m.parameters() if id(p) not in old_ids], lr=1e-3)),
+        ])
+        with self.assertRaisesRegex(ValueError, "size of optimizer's group"):
+            build_optimizer(m, c["optim"]).load_state_dict(legacy.state_dict())
 
 
 class ConfigTests(unittest.TestCase):
@@ -204,6 +238,8 @@ class ConfigTests(unittest.TestCase):
 
     def test_router_switch_validated(self):
         c = self.resolved("muon_screen/muon_1e-2.yaml")
+        c["optim"]["router_on_muon"] = False
+        self.assertTrue(any("router_on_muon=true" in e for e in validate(c)))
         c["optim"]["router_on_muon"] = "yes"
         self.assertTrue(any("router_on_muon" in e for e in validate(c)))
         c = self.resolved("exp1/lr_1e-3.yaml")
