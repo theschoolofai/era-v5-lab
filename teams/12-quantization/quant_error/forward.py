@@ -22,6 +22,8 @@ Measured, per held-out slice unless noted:
            same_top1       share of positions whose argmax agrees
 Router logits come from a forward hook on the MoE block's `gate` (nn.Linear in both architectures); an MoE layer
 (one whose MLP has `experts`) without that router, or whose router gave no logits, is an error naming the layer.
+twin_forward first pins full fp32 matmuls (precision 'highest', TF32 off for CUDA matmuls and cuDNN) and leaves them
+so; fp32_settings() reports them. The activation sample's generator is seeded with SEED.
 """
 import re
 from dataclasses import dataclass, field
@@ -34,6 +36,21 @@ from torch import nn
 from weights import ARCHS, WeightSource
 
 _EXPERT = re.compile(r'\.experts\.(\d+)\.')
+SEED = 0   # of the generator that samples each nn.Linear's inputs
+
+
+def pin_fp32() -> None:
+    """Full fp32 matmuls on every device: TF32 (CUDA's default for cuDNN) or a lower precision would add an error of
+    its own to both tracks."""
+    torch.set_float32_matmul_precision('highest')
+    torch.backends.cuda.matmul.allow_tf32 = False
+    torch.backends.cudnn.allow_tf32 = False
+
+
+def fp32_settings() -> dict:
+    return {'float32_matmul_precision': torch.get_float32_matmul_precision(),
+            'cuda_matmul_allow_tf32': torch.backends.cuda.matmul.allow_tf32,
+            'cudnn_allow_tf32': torch.backends.cudnn.allow_tf32}
 
 
 def select_experts(arch: str, gate_logits: torch.Tensor, k: int, bias: torch.Tensor | None) -> torch.Tensor:
@@ -121,6 +138,7 @@ def twin_forward(hf_config_dir: Path, ref: WeightSource, quant: WeightSource, ba
     from transformers import AutoConfig, AutoModelForCausalLM
     from transformers.masking_utils import create_causal_mask
 
+    pin_fp32()   # not restored: the caller records fp32_settings()
     config = AutoConfig.from_pretrained(hf_config_dir)
     arch = {v: k for k, v in ARCHS.items()}.get(config.model_type)
     if arch is None:
@@ -133,7 +151,7 @@ def twin_forward(hf_config_dir: Path, ref: WeightSource, quant: WeightSource, ba
         model = AutoModelForCausalLM.from_config(config, dtype=torch.float32)
     model.eval()
     ids = {(s, j): torch.atleast_2d(b).to(device) for s, bs in batches.items() for j, b in enumerate(bs)}
-    gen = torch.Generator().manual_seed(0)
+    gen = torch.Generator().manual_seed(SEED)
     out = TwinResult()
 
     with torch.no_grad():

@@ -6,20 +6,28 @@
         --llama-bin <llama.cpp/build/bin> --out <dir> [--tokens-per-slice 1024] [--seq-len 512] [--kl-chunks 8]
         [--device cpu|mps|cuda] [--normalize] [--export-report export_report.json] [--work <dir>]
 
-`all` runs four steps over the same held-out slices (G5 heldout_v1, sha256-checked) and writes, to --out:
+`all` first runs a preflight: every check that can fail (transformers 4.x, every input file present, the llama.cpp
+checkout and binary, the tokenizer, every GGUF readable as the --hf-config model, every slice long enough for one
+sequence, every quantized file a llama-quantize output of --ref: tensors.check_pair). A failure there exits non-zero
+with a message before anything is computed or deleted, so --out keeps an earlier run's files. Then it deletes those
+files and runs three steps over the same held-out slices (G5 heldout_v1, sha256-checked), writing to --out:
   tensors.csv   per tensor (per expert for expert tensors) of each quantized GGUF: error against the reference GGUF
   layers.csv    twin forward: hidden-state error and router agreement per layer and slice
   linears.csv   twin forward: activation-weighted error per nn.Linear (and per expert), and lm_head
   tokens.csv    twin forward: KL(ref || quant), same-top-1 per slice
   kl.csv        llama.cpp (llama-perplexity): KL, same-top-p, PPL and PPL ratio per slice and format
-  summary.json  versions, llama.cpp build, sha256 of every GGUF and of the held-out file, settings, wall time, export_gap
+  summary.json  what is needed to reproduce the run: versions (python, torch, transformers, gguf, tokenizers, numpy,
+                llama.cpp and its build and devices), the harness's git commit and dirty flag, the machine, torch's
+                fp32 matmul settings, the model type, sha256 and byte size of every input, settings, wall time,
+                export_gap
 Each CSV is written when its step finishes and summary.json last (with `steps_completed` and `failed`), so a step
 that fails late keeps the earlier results; the exit code is then non-zero. Nothing in --out is text or token ids. The slice texts and llama.cpp's scratch files go to --work (default: a temporary
 folder, removed at the end), never to --out. The exit code is 1 when --out is larger than 5 MB.
 See README.md.
 """
-import argparse, csv, hashlib, importlib.metadata, json, os, platform, subprocess, sys, tempfile, time
+import argparse, csv, hashlib, importlib.metadata, json, os, platform, re, subprocess, sys, tempfile, time
 from pathlib import Path
+from types import SimpleNamespace
 
 import torch
 from tokenizers import Tokenizer
@@ -31,6 +39,7 @@ from slices import SLICES, DOC_SEPARATOR, load_slices, write_slice_texts  # noqa
 MAX_OUT_BYTES = 5 * 1024 * 1024
 OUTPUT_FILES = ('tensors.csv', 'layers.csv', 'linears.csv', 'tokens.csv', 'kl.csv', 'summary.json')
 KL_CTX = 512
+X_ROWS = 256   # sampled reference-track inputs per nn.Linear in the twin forward (act_rel_err)
 TENSOR_FIELDS = ['format', 'tensor', 'layer', 'kind', 'expert', 'ggml_type', 'bits_per_weight', 'numel', 'rel_err',
                  'sqnr_db', 'max_abs_err']
 LAYER_FIELDS = ['format', 'slice', 'layer', 'hidden_rel_err', 'router_agree']
@@ -81,9 +90,16 @@ def bos_id(gguf_path: Path) -> int | None:
 
 def slice_batches(tok: Tokenizer, slices: dict[str, list[str]], tokens_per_slice: int, seq_len: int,
                   bos: int | None) -> dict[str, list[torch.Tensor]]:
-    """The twin forward's batches: per slice, its documents joined as for llama.cpp, tokenized without special tokens."""
-    return {s: cut_batches(tok.encode(DOC_SEPARATOR.join(docs), add_special_tokens=False).ids,
-                           tokens_per_slice, seq_len, bos) for s, docs in slices.items()}
+    """The twin forward's batches: per slice, its documents joined as for llama.cpp, tokenized without special tokens.
+    ValueError naming the slice if it is shorter than one sequence."""
+    out = {}
+    for s, docs in slices.items():
+        try:
+            out[s] = cut_batches(tok.encode(DOC_SEPARATOR.join(docs), add_special_tokens=False).ids,
+                                 tokens_per_slice, seq_len, bos)
+        except ValueError as e:
+            raise ValueError(f'slice {s}: {e}') from None
+    return out
 
 
 def folder_bytes(folder: Path) -> int:
@@ -125,32 +141,107 @@ def llama_cpp_version(llama_bin: Path) -> str:
                      'and LLAMA_CPP_DIR does not name one')
 
 
+def llama_cpp_build(llama_bin: Path) -> dict:
+    """`version`: the lines `llama-perplexity --version` prints (compiler and target; its build number is not the
+    version, see llama_cpp_version); `devices`: the devices `llama-perplexity --list-devices` names (the backend:
+    Metal, CUDA, BLAS, ...), their free memory left out."""
+    exe = str(Path(llama_bin) / 'llama-perplexity')
+    run = lambda flag: subprocess.run([exe, flag], capture_output=True, text=True, check=True)
+    v = run('--version')
+    version = '; '.join(l.strip() for l in (v.stdout + v.stderr).splitlines() if l.startswith(('version:', 'built with')))
+    if not version:
+        raise RuntimeError(f'{exe} --version printed no "version:" line')
+    listing = run('--list-devices').stdout.splitlines()
+    start = next((i for i, l in enumerate(listing) if l.startswith('Available devices')), None)
+    if start is None:
+        raise RuntimeError(f'{exe} --list-devices printed no "Available devices" line')
+    devices = [re.sub(r'\s*\([^()]*MiB[^()]*\)\s*$', '', l.strip()) for l in listing[start + 1:] if l.startswith((' ', '\t'))]
+    return {'version': version, 'devices': devices}
+
+
+def harness_version() -> dict:
+    """`commit`: the git commit of this folder's checkout; `dirty`: whether a tracked file in this folder, or one of the
+    two team scripts it loads (quality/kl_eval.py, scripts/quantize_eval.py), differs from it (untracked files, such as
+    __pycache__, are not counted). Both None outside a git checkout."""
+    git = lambda *a: subprocess.run(['git', '-C', str(HERE), *a], capture_output=True, text=True, check=True).stdout.strip()
+    try:
+        commit = git('rev-parse', 'HEAD')
+        changed = git('status', '--porcelain', '--untracked-files=no', '--', '.', '../quality/kl_eval.py',
+                      '../scripts/quantize_eval.py')
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return {'commit': None, 'dirty': None}
+    return {'commit': commit, 'dirty': bool(changed)}
+
+
 def export_gap(report: Path | None):
     if report is None:
         return None
     return json.loads(Path(report).read_text(encoding='utf-8'))['verify']['head_bias_effect']
 
 
-def run_all(args) -> int:
-    from forward import twin_forward
-    from kl_slices import run_kl_slices
-    from tensors import tensor_errors
+def preflight(args) -> SimpleNamespace:
+    """Every check that can fail before the long work, run before anything is computed or the previous run's outputs
+    are deleted. A failure exits (SystemExit, non-zero) with a message and leaves --out as it was. Returns what the run
+    uses: the GGUFWeights, the batches, the slices and the provenance read from the inputs."""
+    try:
+        return _preflight(args)
+    except SystemExit as e:
+        raise SystemExit(f'quant_error preflight: {e}; nothing was deleted or computed') from None
+    except Exception as e:
+        raise SystemExit(f'quant_error preflight: {type(e).__name__}: {e}; nothing was deleted or computed') from e
+
+
+def _preflight(args) -> SimpleNamespace:
+    import transformers
+    from kl_slices import kl_eval
+    from tensors import check_pair
     from weights import GGUFWeights
 
-    t0 = time.time()
-    timings = {}
+    if transformers.__version__.split('.')[0] != '4':
+        raise SystemExit(f'transformers {transformers.__version__}: the twin forward needs transformers 4.x (5.x fuses '
+                         "each layer's experts into one module, which the GGUF mapping and the per-expert rows need apart)")
     quants = dict(args.quant)
     if len(quants) != len(args.quant):
         raise SystemExit('--quant names must be distinct')
-    llama_version = llama_cpp_version(args.llama_bin)   # before the long work: a wrong --llama-bin fails at once
-    gap = export_gap(args.export_report)
-    bos = bos_id(args.ref)
+    inputs = {'--ref': args.ref, **{f'--quant {n}': q for n, q in quants.items()},
+              '--hf-config': args.hf_config / 'config.json', '--tokenizer': args.tokenizer, '--heldout': args.heldout,
+              '--llama-bin': args.llama_bin / 'llama-perplexity'}
+    if args.export_report is not None:
+        inputs['--export-report'] = args.export_report
+    if missing := [f'{opt} {path}' for opt, path in inputs.items() if not Path(path).is_file()]:
+        raise SystemExit(f'no such file: {", ".join(missing)}')
     out = args.out
     if args.work and (out.resolve() == args.work.resolve() or out.resolve() in args.work.resolve().parents):
         raise SystemExit('--work must not be --out or inside it: --out holds numbers only')
-    out.mkdir(parents=True, exist_ok=True)
-    for name in OUTPUT_FILES:   # a failed run must not leave an earlier run's file looking like its own
-        (out / name).unlink(missing_ok=True)
+
+    run = SimpleNamespace(quants=quants, llama_cpp=llama_cpp_version(args.llama_bin),
+                          llama_cpp_build=llama_cpp_build(args.llama_bin), harness=harness_version(),
+                          machine=kl_eval.quantize_eval.machine_string(), export_gap=export_gap(args.export_report))
+    tok = Tokenizer.from_file(str(args.tokenizer))
+    run.normalizer = None
+    if args.normalize:
+        if tok.normalizer is None:
+            raise SystemExit(f'--normalize: {args.tokenizer} has no normalizer')
+        run.normalizer = tok.normalizer.normalize_str
+    run.bos = bos_id(args.ref)
+    run.ref_w = GGUFWeights(args.ref, args.hf_config)
+    run.quant_w = {n: GGUFWeights(q, args.hf_config) for n, q in quants.items()}
+    run.slices = load_slices(args.heldout, args.heldout.parent / 'SHA256SUMS')
+    if unknown := sorted(set(run.slices) - set(SLICES)):
+        raise SystemExit(f'held-out slices not in slices.SLICES: {unknown}')
+    run.batches = slice_batches(tok, run.slices, args.tokens_per_slice, args.seq_len, run.bos)
+    for q in quants.values():
+        check_pair(q, args.ref)
+    return run
+
+
+def run_all(args) -> int:
+    from forward import SEED, fp32_settings, twin_forward
+    from kl_slices import NGL, run_kl_slices
+    from tensors import tensor_errors
+
+    t0 = time.time()
+    timings = {}
 
     def step(name, fn):
         t = time.time()
@@ -159,36 +250,28 @@ def run_all(args) -> int:
         print(f'[{timings[name]:8.1f} s] {name}', file=sys.stderr, flush=True)
         return result
 
-    tok = Tokenizer.from_file(str(args.tokenizer))
-    normalizer = None
-    if args.normalize:
-        if tok.normalizer is None:
-            raise SystemExit(f'--normalize: {args.tokenizer} has no normalizer')
-        normalizer = tok.normalizer.normalize_str
-
-    sums = args.heldout.parent / 'SHA256SUMS'
-    slices = step('slices', lambda: load_slices(args.heldout, sums))
-    unknown = sorted(set(slices) - set(SLICES))
-    if unknown:
-        raise SystemExit(f'held-out slices not in slices.SLICES: {unknown}')
+    run = step('preflight', lambda: preflight(args))   # exits before --out is touched if anything is wrong
+    quants, out = run.quants, args.out
+    out.mkdir(parents=True, exist_ok=True)
+    for name in OUTPUT_FILES:   # a failed run must not leave an earlier run's file looking like its own
+        (out / name).unlink(missing_ok=True)
 
     failure = None
     try:
         with tempfile.TemporaryDirectory(prefix='quant_error_') as tmp:
             work = args.work or Path(tmp)
             work.mkdir(parents=True, exist_ok=True)
-            slice_files = write_slice_texts(slices, work / 'slices', normalizer)
+            slice_files = write_slice_texts(run.slices, work / 'slices', run.normalizer)
 
             tensor_rows = step('tensors', lambda: [dict(r, format=name) for name, q in quants.items()
                                                    for r in tensor_errors(q, args.ref)])
             write_csv(out / 'tensors.csv', TENSOR_FIELDS, tensor_rows)
 
             def twin():
-                batches = slice_batches(tok, slices, args.tokens_per_slice, args.seq_len, bos)
                 layers, linears, tokens = [], [], []
-                ref = GGUFWeights(args.ref, args.hf_config)
-                for name, q in quants.items():
-                    res = twin_forward(args.hf_config, ref, GGUFWeights(q, args.hf_config), batches, device=args.device)
+                for name, quant_w in run.quant_w.items():
+                    res = twin_forward(args.hf_config, run.ref_w, quant_w, run.batches, device=args.device,
+                                       x_rows=X_ROWS)
                     layers += [dict(r, format=name) for r in res.layers]
                     linears += [dict(r, format=name) for r in res.linears]
                     tokens += [dict(r, format=name) for r in res.tokens]
@@ -201,24 +284,29 @@ def run_all(args) -> int:
 
             kl_rows = step('kl', lambda: run_kl_slices(args.ref, quants, slice_files, args.tokenizer, args.llama_bin, work,
                                                        ctx=KL_CTX, max_chunks=args.kl_chunks,
-                                                       add_bos=bos is not None))
+                                                       add_bos=run.bos is not None))
             write_csv(out / 'kl.csv', KL_FIELDS, kl_rows)
     except Exception as e:   # the CSVs of the finished steps stay; summary.json says what completed
         failure = e
 
+    version = importlib.metadata.version
     summary = {
-        'python': platform.python_version(), 'torch': torch.__version__,
-        'transformers': importlib.metadata.version('transformers'), 'gguf': importlib.metadata.version('gguf'),
-        'llama_cpp': llama_version,
+        'python': platform.python_version(), 'torch': torch.__version__, 'transformers': version('transformers'),
+        'gguf': version('gguf'), 'tokenizers': version('tokenizers'), 'numpy': version('numpy'),
+        'llama_cpp': run.llama_cpp, 'llama_cpp_build': run.llama_cpp_build,
+        'harness': run.harness, 'machine': run.machine, 'torch_fp32': fp32_settings(),
+        'model_type': run.ref_w.config.model_type,
         'sha256': {'ref': sha256_file(args.ref), 'quants': {n: sha256_file(q) for n, q in quants.items()},
-                   'heldout': sha256_file(args.heldout)},
+                   'heldout': sha256_file(args.heldout), 'tokenizer': sha256_file(args.tokenizer),
+                   'config': sha256_file(args.hf_config / 'config.json')},
+        'bytes': {'ref': args.ref.stat().st_size, 'quants': {n: q.stat().st_size for n, q in quants.items()}},
         'settings': {'formats': list(quants), 'tokens_per_slice': args.tokens_per_slice, 'seq_len': args.seq_len,
                      'kl_chunks': args.kl_chunks, 'kl_ctx': KL_CTX, 'device': args.device, 'normalize': args.normalize,
-                     'bos': bos is not None, 'bos_id': bos,
-                     'slices': list(slices), 'ref_file': args.ref.name, 'quant_files': {n: q.name for n, q in quants.items()},
-                     'tokenizer_sha256': sha256_file(args.tokenizer)},
+                     'bos': run.bos is not None, 'bos_id': run.bos, 'x_rows': X_ROWS, 'seed': SEED, 'ngl': NGL,
+                     'slices': list(run.slices), 'ref_file': args.ref.name,
+                     'quant_files': {n: q.name for n, q in quants.items()}},
         'timings_s': timings, 'wall_time_s': round(time.time() - t0, 1),
-        'export_gap': gap,
+        'export_gap': run.export_gap,
         'steps_completed': list(timings),
         'failed': None if failure is None else f'{type(failure).__name__}: {failure}',
     }

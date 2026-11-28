@@ -214,6 +214,17 @@ class TwinForwardTests(unittest.TestCase):
                     close(row['kl_p99'], torch.quantile(kl, 0.99).item(), 1e-3)
                     self.assertEqual(row['same_top1'], (lp.argmax(-1) == lq.argmax(-1)).double().mean().item())
 
+    def test_fp32_matmul_precision_is_pinned(self):
+        """TF32 (CUDA) or a lower matmul precision would add an error of its own to both tracks; twin_forward pins
+        full fp32 and leaves it so, and fp32_settings reports it."""
+        d = hf('olmoe')
+        torch.set_float32_matmul_precision('medium')
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
+        f.twin_forward(d, SafetensorsWeights(d), SafetensorsWeights(d), batches(d))
+        self.assertEqual(f.fp32_settings(), {'float32_matmul_precision': 'highest', 'cuda_matmul_allow_tf32': False,
+                                             'cudnn_allow_tf32': False})
+
     def test_a_moe_layer_whose_router_gave_no_logits_is_an_error(self):
         """An MoE block that routes without calling mlp.gate would leave router_agree unmeasured; it must raise,
         naming the layer, not pass a stale or missing router output on."""
