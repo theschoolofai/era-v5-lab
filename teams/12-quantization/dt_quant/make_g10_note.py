@@ -56,6 +56,16 @@ def render(res: dict, a) -> str:
         lines += ["", "Direct comparison with DT on the unquantized base (paired, 95% interval): "
                   + "; ".join(f"`{k}` {v['mean_diff']:+.4f} [{v['ci95'][0]:+.4f}, {v['ci95'][1]:+.4f}]" for k, v in paired.items() if k in ("dt_q8_0-dt", "dt_q4_0-dt"))
                   + "."]
+    gc = res.get("grad_coverage")
+    gc_text = ""
+    if gc:
+        gc_text = ("\n\n## Gradient coverage (instructor's rule, 28 Nov)\n\nAfter one forward and backward, every trainable parameter whose gradient is None or all zero, with the packed fast path on and off "
+                   "(off = the same quantized values stored dense). The only trainable parameters are the mask logits (`gate`), one per targeted layer.\n\n"
+                   "| Base | Trainable parameters | None (on / off) | All zero (on / off) | Zero gradient elements (on) | Same lists | Max gradient difference |\n|---|---:|---|---|---:|---|---:|\n"
+                   + "\n".join(f"| {q} | {r['fast_path_on']['trainable_parameters']} | {len(r['fast_path_on']['grad_none'])} / {len(r['fast_path_off']['grad_none'])} | "
+                              f"{len(r['fast_path_on']['grad_all_zero'])} / {len(r['fast_path_off']['grad_all_zero'])} | {100 * (r['fast_path_on']['zero_element_share'] or 0):.3f}% | "
+                              f"{r['same_none_and_zero_lists']} | {r['max_abs_grad_difference']:.2e} |" for q, r in gc.items())
+                   + "\n\nWhere a list is not empty, the parameters are named in `results.json` (`grad_coverage`); each needs a reason before this counts as passed.")
     stored = ", ".join(f"{LABEL[n]}: {gb(arms[n]['memory']['weights_bytes'])} GB" for n in ("dt", "dt_q8_0", "dt_q4_0") if n in arms)
     lines += ["", "## Optimizer and mask overhead", "",
               f"DT keeps one FP32 logit per targeted weight, its gradient, and two Adam moments: 4 + 4 + 8 = **16 bytes per masked weight**, whatever the base format. "
@@ -64,7 +74,7 @@ def render(res: dict, a) -> str:
               "what the run measured, and it need not fall with the format, because the packed layer dequantizes on every read and `W * mask` keeps that float32 copy for backward. "
               "Read the `Peak CUDA` column before claiming any training-memory saving.",
               "", "Weights that Q8_0 or Q4_0 rounded to exactly zero are kept out of the Wanda prior's threshold (otherwise the share of a layer at zero sets the threshold to 0 and no weight "
-              "is marked); `Prior-deleted at init` should be of the same order on every DT arm."]
+              "is marked); `Prior-deleted at init` should be of the same order on every DT arm." + gc_text]
     return "\n".join(lines) + "\n"
 
 
