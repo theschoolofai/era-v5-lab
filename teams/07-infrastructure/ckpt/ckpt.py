@@ -333,6 +333,30 @@ def absent_optim_state(sd) -> list:
     return sorted({n for g in osd.get("param_groups") or [] for n in g.get("params") or [] if n not in have})
 
 
+def _add_saved_optim_slots(target, want):
+    """Make room in the restore target for optimizer state the checkpoint has but a fresh optimizer does not create.
+
+    get_state_dict fills a fresh optimizer's state with one zero-grad step, and an optimizer that skips exact-zero
+    gradients (Team 05's Muon idle guard, #919) then creates no buf at all. The saved buf must still be loaded, not
+    dropped and not zero-filled: this adds an empty tensor of the saved shape and dtype for DCP to load the saved
+    values into (the state digest proves them afterwards). Only for a parameter of this model, and only for a slot the
+    shape of the parameter or a scalar (Muon buf, AdamW exp_avg / exp_avg_sq / step); anything else stays missing and
+    fails the strict key check."""
+    osd, msd = target["optim"], target["model"]
+    state = osd.setdefault("state", {})
+    for k, (shape, dtype) in want.items():
+        if not k.startswith("optim.state."):
+            continue
+        name, slot = k[len("optim.state."):].rsplit(".", 1)
+        if slot in state.get(name, {}) or name not in msd:
+            continue
+        p, dt = msd[name], getattr(torch, dtype.replace("torch.", ""))
+        if list(p.shape) == shape:
+            state.setdefault(name, {})[slot] = torch.empty_like(p, dtype=dt)
+        elif shape == []:
+            state.setdefault(name, {})[slot] = torch.zeros((), dtype=dt)
+
+
 def key_spec(sd) -> dict:
     return {k: [list(t.shape), str(t.dtype)] for k, t in tensor_items(sd)}
 
@@ -861,13 +885,20 @@ class Checkpointer:
         absent = set(man.get("optim_state_absent", []))
         for n in absent:
             (target["optim"].get("state") or {}).pop(n, None)
-        want, have = man["keys"], key_spec(target)
+        want = man["keys"]
+        _add_saved_optim_slots(target, want)
+        have = key_spec(target)
         missing = sorted(set(want) - set(have))
         unexpected = sorted(set(have) - set(want))
         changed = sorted(k for k in set(want) & set(have) if want[k] != have[k])
-        if missing or unexpected or changed:
+        # Without state after all of the above, a parameter must be one the save recorded as never updated. This does
+        # not depend on what a fresh optimizer creates (Team 05's Muon idle guard creates nothing, so a lost buf would
+        # be missing on both sides and pass the key comparison).
+        stateless = sorted(set(absent_optim_state(target)) - absent) if "optim_state_absent" in man else []
+        if missing or unexpected or changed or stateless:
             raise StrictLoadError(f"strict load failed: missing in model={missing} "
-                                  f"not in checkpoint={unexpected} shape/dtype differs={changed}")
+                                  f"not in checkpoint={unexpected} shape/dtype differs={changed}"
+                                  + (f" no optimizer state, not recorded as never updated={stateless}" if stateless else ""))
 
         # 5. Load tensors (DCP reshards to the current world size), then RNG and data position.
         tl = Timer()

@@ -755,12 +755,24 @@ class TwoExperts(torch.nn.Module):
         return self.head((self.e2 if self.use2 else self.e1)(h))
 
 
-def two_experts():
+def two_experts(idle_guard=False):
     sys.path.insert(0, os.path.join(SUB, "..", "05-architecture", "harness"))
     from week2.optim import MUON, Muon
+
+    class IdleGuardMuon(Muon):
+        """Skips exact-zero gradients like Team 05's idle guard (#919): the zero-grad step get_state_dict runs on a
+        fresh optimizer then creates no buf at all, so the restore target lacks every saved buf."""
+
+        @torch.no_grad()
+        def step(self, closure=None):
+            for g in self.param_groups:
+                for q in g["params"]:
+                    if q.grad is not None and q.grad.count_nonzero() == 0:
+                        q.grad = None
+            return super().step(closure)
     m = TwoExperts()
     two = [p for p in m.parameters() if p.ndim == 2]
-    optims = (Muon(two, lr=0.02, weight_decay=0.0, **MUON),
+    optims = ((IdleGuardMuon if idle_guard else Muon)(two, lr=0.02, weight_decay=0.0, **MUON),
               torch.optim.AdamW([p for p in m.parameters() if p.ndim != 2], lr=0.01))
     pb = SyntheticLoader(SEED + 7, 4, 0, 1).next()
 
@@ -784,26 +796,28 @@ def two_expert_steps(m, optims, loader, n):
     return losses
 
 
-def test_t33_expert_never_updated_resumes_like_a_first_activation(env, monkeypatch):
+@parametrize("idle_guard", [False, True])
+def test_t33_expert_never_updated_resumes_like_a_first_activation(env, monkeypatch, idle_guard):
     """Save while expert 2 has no optimizer state, restore, then activate it: every loss after the restore equals
     the run that never stopped, bit for bit, and the restored expert has no state (AdamW step 0, no Muon buf), not
     the zero-grad state get_state_dict makes for a fresh optimizer (AdamW step 1). The saved digest still holds."""
     from ckpt.ckpt import absent_optim_state, state_digest
     monkeypatch.setenv("V5_EVENTS_DIR", env.events)
     monkeypatch.setenv("V5_ASYNC_SAVE", "0")
-    m, optims, loader, probe = two_experts()
+    m, optims, loader, probe = two_experts(idle_guard)
     two_expert_steps(m, optims, loader, 3)
     ck = Checkpointer("ne", env.local, env.remote, seed=SEED)
     assert ck.save(3, m, optims, loader, probe) and ck.wait()
     m.use2 = True
     straight = two_expert_steps(m, optims, loader, 3)
 
-    m2, o2, l2, p2 = two_experts()
+    m2, o2, l2, p2 = two_experts(idle_guard)
     info = Checkpointer("ne", env.local + "_2", env.remote, seed=SEED).restore(m2, o2, l2, p2)
     assert info["step"] == 3
     man = env.store("ne").get_json(f"{env.latest('ne')['path']}/MANIFEST.json")
     assert man["optim_state_absent"] == ["e2.bias", "e2.weight"]
     assert m2.e2.weight not in o2[0].state and m2.e2.bias not in o2[1].state      # no buf, AdamW step 0
+    assert all("buf" in o2[0].state[q] for q in (m2.embed.weight, m2.e1.weight, m2.head.weight))  # saved bufs loaded
     msd, osd = torch.distributed.checkpoint.state_dict.get_state_dict(m2, o2)
     assert state_digest({"model": msd, "optim": osd}) == man["state_digest"]
     assert absent_optim_state({"optim": osd}) == ["e2.bias", "e2.weight"]
@@ -811,8 +825,9 @@ def test_t33_expert_never_updated_resumes_like_a_first_activation(env, monkeypat
     assert two_expert_steps(m2, o2, l2, 3) == straight                            # the expert's first activation
 
 
+@parametrize("idle_guard", [False, True])
 @parametrize("drop", ["undeclared", "adamw_moments"])
-def test_t34_missing_populated_optimizer_state_is_refused(env, monkeypatch, drop):
+def test_t34_missing_populated_optimizer_state_is_refused(env, monkeypatch, drop, idle_guard):
     """State the checkpoint lacks is accepted only when the manifest names the parameter as never updated.
     undeclared: expert 2 has no state, but the manifest does not say so (an older or faulty writer).
     adamw_moments: expert 1's AdamW bias kept its step but lost exp_avg and exp_avg_sq (nonzero step, no moments).
@@ -820,7 +835,7 @@ def test_t34_missing_populated_optimizer_state_is_refused(env, monkeypatch, drop
     import ckpt.ckpt as ckmod
     monkeypatch.setenv("V5_EVENTS_DIR", env.events)
     monkeypatch.setenv("V5_ASYNC_SAVE", "0")
-    m, optims, loader, probe = two_experts()
+    m, optims, loader, probe = two_experts(idle_guard)
     two_expert_steps(m, optims, loader, 3)
     if drop == "undeclared":
         monkeypatch.setattr(ckmod, "absent_optim_state", lambda sd: [])
@@ -835,9 +850,11 @@ def test_t34_missing_populated_optimizer_state_is_refused(env, monkeypatch, drop
     ck = Checkpointer("mp", env.local, env.remote, seed=SEED)
     assert ck.save(3, m, optims, loader, probe) and ck.wait()
     monkeypatch.undo()
-    m2, o2, l2, p2 = two_experts()
+    m2, o2, l2, p2 = two_experts(idle_guard)
     with pytest.raises(StrictLoadError) as e:
         Checkpointer("mp", env.local + "_2", env.remote, seed=SEED).restore(m2, o2, l2, p2)
-    want = ("optim.state.e2.weight.buf", "optim.state.e2.bias.exp_avg") if drop == "undeclared" else \
+    # undeclared: the message names expert 2 either way. A plain Muon gives the fresh target a buf the checkpoint
+    # lacks (not in checkpoint); Team 05's idle-guard Muon (#919) gives none (no optimizer state, not recorded).
+    want = ("e2.weight", "optim.state.e2.bias.exp_avg") if drop == "undeclared" else \
         ("optim.state.e1.bias.exp_avg", "optim.state.e1.bias.exp_avg_sq")
     assert all(k in str(e.value) for k in want), str(e.value)
