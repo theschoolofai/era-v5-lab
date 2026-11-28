@@ -670,30 +670,67 @@ def test_t31_scalars_restored_and_checked(env, monkeypatch):
                                                                             from_step=2)
 
 
-def test_t32_peak_lr_survives_a_restore_in_warmup(env, monkeypatch):
+class BlockLM(TinyLM):
+    """TinyLM with one block matrix, so Team 05's build_optimizer puts it on Muon ("blocks.*.weight", 2D)."""
+
+    def __init__(self, seed: int = 1234):
+        super().__init__(seed)
+        self.blocks = torch.nn.ModuleList([torch.nn.Linear(64, 64)])
+
+    def forward(self, x):
+        h = self.embed(x) + self.ke2_table[x]
+        h = self.blocks[0](h)
+        h = h + self.ff2(torch.nn.functional.gelu(self.ff1(self.norm(h))))
+        return self.head(h), self.head_mtp(h)
+
+
+@parametrize("phase", ["warmup", "decay"])
+@parametrize("name", ["adamw", "muon"])
+def test_t32_peak_lr_survives_a_restore_in_warmup(env, monkeypatch, name, phase):
     """Team 05's trainer keeps the peak rate in each group as base_lr. A restore loads only keys the fresh optimizer
     has, so before build_optimizer set base_lr, a resume during warmup took the restored (warmup) rate as the peak
-    and kept it for the rest of the run: dry run 2's schedule, killed at step 30, trained on at 49% of the peak."""
+    and kept it for the rest of the run: dry run 2's schedule, killed at step 30, trained on at 49% of the peak.
+    AdamW alone and the hybrid (Muon on blocks, AdamW on the rest), killed in warmup and in decay (Team 05 review on
+    #899): the next three steps after the restore have the same rate in every group and the same loss bits as the
+    run that never stopped."""
     sys.path.insert(0, os.path.join(SUB, "..", "05-architecture", "harness"))
     from week2.optim import build_optimizer, lr_scale, set_lr_scale
     monkeypatch.setenv("V5_EVENTS_DIR", env.events)
     monkeypatch.setenv("V5_ASYNC_SAVE", "0")
-    o = {"name": "adamw", "lr": 1e-3, "betas": [0.9, 0.95], "eps": 1e-8, "weight_decay": 0.1,
+    total, kill = 100, {"warmup": 3, "decay": 95}[phase]      # warmup steps 1-5, decay steps 91-100
+    o = {"name": name, "lr": 1e-3, "muon_lr": 6e-3, "betas": [0.9, 0.95], "eps": 1e-8, "weight_decay": 0.1,
          "schedule": "wsd", "warmup_frac": 0.05, "decay_frac": 0.1, "final_lr_frac": 0.0}
 
     def state():
-        model = TinyLM(SEED)
+        model = BlockLM(SEED)
         return model, build_optimizer(model, o), SyntheticLoader(SEED, 8, 0, 1), make_probe_fn(SEED)
+
+    def inner(opt):
+        return tuple(x for _, x in opt.named) if hasattr(opt, "named") else opt
+
+    def run(model, opt, loader, first, last):
+        out = []
+        for step in range(first, last + 1):
+            set_lr_scale(opt, lr_scale(step, total, o))
+            ntp, mtp = lm_loss(model, loader.next())
+            opt.zero_grad(set_to_none=True)
+            (ntp + 0.0 * mtp).backward()
+            opt.step()
+            groups = [g for x in (inner(opt) if isinstance(inner(opt), tuple) else (opt,)) for g in x.param_groups]
+            out.append((float_bits(ntp.item()), [(g["lr"], g["base_lr"]) for g in groups]))
+        return out
+    from ckpt.ckpt import float_bits
     model, optim, loader, probe = state()
-    for step in range(1, 31):                         # 30 of 1,221 steps: inside the 61-step warmup
-        set_lr_scale(optim, lr_scale(step, 1221, o))
-        train_steps(model, optim, loader, 1)
+    run(model, optim, loader, 1, kill)
     ck = Checkpointer("lr", env.local, env.remote, seed=SEED)
-    assert ck.save(30, model, optim, loader, probe) and ck.wait()
+    assert ck.save(kill, model, inner(optim), loader, probe) and ck.wait()
+    straight = run(model, optim, loader, kill + 1, kill + 3)
     m2, o2, l2, p2 = state()
-    Checkpointer("lr", env.local + "_2", env.remote, seed=SEED).restore(m2, o2, l2, p2)
-    set_lr_scale(o2, lr_scale(100, 1221, o))          # stable phase: the rate must be the peak again
-    assert (o2.param_groups[0]["base_lr"], o2.param_groups[0]["lr"]) == (1e-3, 1e-3)
+    Checkpointer("lr", env.local + "_2", env.remote, seed=SEED).restore(m2, inner(o2), l2, p2)
+    resumed = run(m2, o2, l2, kill + 1, kill + 3)
+    assert resumed == straight
+    peaks = sorted({b for _, groups in resumed for _, b in groups})
+    assert peaks == ([1e-3, 6e-3] if name == "muon" else [1e-3])
 
 
 @parametrize("nproc", [1, pytest.param(2, marks=needs(2))])
