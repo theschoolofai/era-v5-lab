@@ -1,0 +1,15 @@
+{
+ "expected_linears": 196,
+ "linears_seen": 196,
+ "packed": 196,
+ "unpacked": [],
+ "unpacked_count": 0,
+ "lm_head": "absent (tied to the embedding)",
+ "dtypes_of_packed_tensors": [
+  "I32"
+ ],
+ "size_bytes": 1142692360,
+ "base_size_bytes": 3087467144,
+ "size_vs_base": 0.37,
+ "problems": []
+}

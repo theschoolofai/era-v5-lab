@@ -1,0 +1,35 @@
+{
+ "reference": "model-W4A16-gptq",
+ "prompts": 50,
+ "prompt_selection": "balanced",
+ "prompt_categories": {
+  "english": 10,
+  "indic": 10,
+  "code": 10,
+  "tool_call": 10,
+  "reasoning": 10
+ },
+ "k": 8,
+ "max_new": 256,
+ "eps": 0.2,
+ "temperature": 1.0,
+ "seed": 1234,
+ "formats": [
+  {
+   "format": "vllm_W4A16",
+   "rollouts": 400,
+   "empty_rollouts": 0,
+   "new_tokens": 81483,
+   "decode_seconds": 29.01,
+   "rollout_tokens_per_s": 2808.55,
+   "finish_reasons": {
+    "stop": 156,
+    "length": 244
+   },
+   "speed_is": "vLLM batched throughput (all prompts and samples at once), not single-stream decode",
+   "engine": "vllm",
+   "vllm": "0.33.0",
+   "dtype": "half"
+  }
+ ]
+}
