@@ -38,7 +38,9 @@ md("""
 For each bit-width: the quantized model draws completions at temperature 1; the bf16 model scores the same tokens.
 Reported per format: rollout tokens/s, the share of tokens outside objective_v1's trust region [1-eps, 1+eps],
 |log-ratio|, k3, mean KL(bf16 || quant) and top-1 agreement (same fields as G10's `rl-loop/mismatch_probe.py`).
-This is the quantization gap only: bf16 here is llama.cpp's bf16, not G10's torch trainer.
+Stage 1 is the quantization gap against llama.cpp's bf16; stage 2 (PyTorch) is the gap G10's trainer sees. `bf16` in `FORMATS`
+adds a bf16 sampler row: its decode tok/s is the baseline of `tok_s_vs_bf16`, and in stage 2 its mismatch is the
+llama.cpp-versus-PyTorch gap with no quantization in it. Compare tok/s only inside one session (the GPU varies between sessions).
 
 **Smoke run first:** keep `N = 4`, `K = 2`, `MAX_NEW = 32` and `FORMATS = ["Q8_0"]`; check that a `tok/s` line and an
 `outside` value print for it. Then set the real values. The first run builds llama-cpp-python with CUDA (~15-30 min).
@@ -48,8 +50,11 @@ Kaggle: Accelerator **GPU T4 x2**, Internet **on**. Use **Save Version, Save & R
 """),
 code("""
 # --- settings -----------------------------------------------------------------------------------------------
-FORMATS   = ["Q8_0"]           # <-- quantized samplers to test: Q8_0, Q6_K, Q5_K_M, Q4_K_M, Q3_K_M (bf16 is the reference)
+FORMATS   = ["Q8_0"]           # <-- samplers to test: bf16, Q8_0, Q6_K, Q5_K_M, Q4_K_M, Q3_K_M. bf16 as a sampler is the decode-speed
+                               #     baseline (tok/s) and, in stage 2, the llama.cpp-versus-PyTorch gap; always scored against the bf16 reference
 RUN_BY    = ""                 # <-- your GitHub handle, recorded with the results
+PROMPTS   = "first"            # "first" = the first N of the 100 fixed prompts (the first 48 are 40 English + 8 Indic, no code);
+                               # "balanced" = N taken round-robin over english / indic / code / tool_call / reasoning (10 each at N = 50)
 N         = 4                  # prompts (of the 100 fixed prompts)           real run: 48
 K         = 2                  # completions per prompt                       real run: 8
 MAX_NEW   = 32                 # new tokens per completion                    real run: 256
@@ -70,7 +75,8 @@ DRIVE_DIR = "/content/drive/MyDrive/era-v5-g12/rollout_mismatch"
 BF16_FALLBACK_GPU_LAYERS = 12  # reference GPU layers, only if bf16 does not fit next to the sampler on the GPUs
 LIMIT = None                   # unused here; kept because the shared setup cells record it
 NOTEBOOK_VERSION = "__NOTEBOOK_VERSION__"
-assert FORMATS and all(f in {"Q8_0", "Q6_K", "Q5_K_M", "Q4_K_M", "Q3_K_M"} for f in FORMATS), FORMATS
+assert FORMATS and all(f in {"bf16", "Q8_0", "Q6_K", "Q5_K_M", "Q4_K_M", "Q3_K_M"} for f in FORMATS), FORMATS
+assert PROMPTS in ("first", "balanced"), PROMPTS
 """),
 pick("LOCAL_TEST = bool(os.environ"),          # environment, folders, sh()
 "__SOURCE_CELL__",
@@ -78,21 +84,21 @@ pick("llama-cpp-python with CUDA"),            # CUDA wheel + evaluation venv
 pick("bf16 GGUF: the llama.cpp converter"),    # llama-quantize build + bf16 conversion
 code("""
 # every format: quantize (output layer Q8_0 below 8 bits, as quantize_eval.py), rollouts + scoring, one JSON per format
-RUNS = f"{OUT}/rollout_{NAME}_n{N}_k{K}_t{MAX_NEW}"
+RUNS = f"{OUT}/rollout_{NAME}_n{N}_k{K}_t{MAX_NEW}" + ("_balanced" if PROMPTS == "balanced" else "")
 os.makedirs(RUNS, exist_ok=True)
 
 def run_format(fmt, gguf, ref_layers):
     out = f"{RUNS}/{fmt}.json"
     sh(f"cd {CODE} && {EVAL_PY} quant_rollout_mismatch.py --ref {BF16} --quant {fmt}={gguf} --prompts {CODE}/fixed_100.jsonl "
        f"--out {out} --n {N} --k {K} --max-new {MAX_NEW} --n-ctx {N_CTX} --eps {EPS} --seed {SEED} "
-       f"--ref-n-gpu-layers {ref_layers} --dump-dir {RUNS}/dump", log=f"{OUT}/logs/rollout_{fmt}.log")
+       f"--ref-n-gpu-layers {ref_layers} --dump-dir {RUNS}/dump" + (" --balanced" if PROMPTS == "balanced" else ""), log=f"{OUT}/logs/rollout_{fmt}.log")
 
 for fmt in FORMATS:
     t0 = time.time()
     if os.path.exists(f"{RUNS}/{fmt}.json"):
         print(fmt, "already done, skipping"); continue
-    gguf = f"{WORK}/{NAME}-{fmt}.gguf"
-    made_here = not os.path.exists(gguf)
+    gguf = BF16 if fmt == "bf16" else f"{WORK}/{NAME}-{fmt}.gguf"
+    made_here = fmt != "bf16" and not os.path.exists(gguf)       # the bf16 file is the reference: never made or deleted here
     if made_here:
         extra = "" if fmt == "Q8_0" else "--output-tensor-type q8_0"
         sh(f"{QUANTIZE} {extra} {BF16} {gguf} {fmt}", log=f"{OUT}/logs/quantize_{fmt}.log")
@@ -148,7 +154,11 @@ for p in sorted(glob.glob(f"{RUNS}/*.json")):
                      "mean_abs_logratio": round(f.get("mean_abs_logratio", float("nan")), 4),
                      "k3": round(f.get("k3", float("nan")), 5), "kl_bf16_to_quant": round(f.get("mean_kl_ref_to_quant", float("nan")), 5),
                      "top1_agree": round(f.get("top1_agreement", float("nan")), 4)})
-table = pd.DataFrame(rows); table.to_csv(f"{RUNS}/table.csv", index=False)
+table = pd.DataFrame(rows)
+if (table["format"] == "bf16").any():       # the real speed ratio: this sampler against the bf16 sampler, same prompts, same session
+    base_speed = float(table.loc[table["format"] == "bf16", "rollout_tok_s"].iloc[0])
+    table["tok_s_vs_bf16"] = (table["rollout_tok_s"] / base_speed).round(2)
+table.to_csv(f"{RUNS}/table.csv", index=False)
 print("reference = llama.cpp bf16 GGUF"); print(table.to_string(index=False))
 if os.path.exists(f"{RUNS}/torch_reference.json"):
     tj = json.load(open(f"{RUNS}/torch_reference.json"))
