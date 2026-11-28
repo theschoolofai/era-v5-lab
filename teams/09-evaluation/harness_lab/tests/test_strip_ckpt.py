@@ -7,6 +7,7 @@ Needs torch >= 2.14.1 and safetensors, as run_lab_ckpt.py does; skipped otherwis
 import hashlib
 import importlib.util
 import json
+import os
 import sys
 import textwrap
 from pathlib import Path
@@ -193,6 +194,105 @@ def test_fingerprints_catch_a_damaged_weight(store, tmp_path):
 def test_fingerprints_asked_for_but_missing_is_an_error(store, tmp_path):
     with pytest.raises(sc.StripError, match="no fingerprints"):
         sc.strip(store, 10, tmp_path / "s.safetensors", verify="fingerprints")
+
+
+def test_a_shard_deleted_during_the_strip_is_a_clean_error(store, tmp_path):
+    """Retention can delete a commit while it is read: a StripError, no traceback, nothing left behind."""
+    next((store / COMMIT).glob("*.distcp")).unlink()
+    for verify in ("files", "none"):
+        with pytest.raises(sc.StripError):
+            sc.strip(store, 10, tmp_path / "s.safetensors", verify=verify)
+    assert sorted(p.name for p in tmp_path.iterdir() if "s.safetensors" in p.name) == []
+
+
+def test_two_strips_of_one_commit_at_once_leave_a_matching_file_and_record(store, tmp_path):
+    """Two processes strip the same commit to the same file at the same moment: each writes its own temporary files,
+    and the file and the record that remain agree."""
+    import subprocess
+    out = tmp_path / "s.safetensors"
+    cmd = [sys.executable, str(HERE.parent / "strip_ckpt.py"), "--run-dir", str(store), "--step", "10",
+           "--out", str(out)]
+    procs = [subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE) for _ in range(2)]
+    assert [p.wait(timeout=120) for p in procs] == [0, 0]
+    rec = json.loads(out.with_name(out.name + ".json").read_text())
+    assert rec["weights_sha256"] == hashlib.sha256(out.read_bytes()).hexdigest()
+    assert sorted(p.name for p in tmp_path.iterdir() if p.name.startswith(".")) == []   # no temporary file left
+
+
+def test_no_room_on_the_disk_is_refused_before_writing(store, tmp_path, monkeypatch):
+    real = sc.shutil.disk_usage
+    monkeypatch.setattr(sc.shutil, "disk_usage", lambda p: real(p)._replace(free=1000))
+    with pytest.raises(sc.StripError, match="GB free"):
+        sc.strip(store, 10, tmp_path / "s.safetensors")
+    assert [p for p in tmp_path.iterdir() if "s.safetensors" in p.name] == []
+
+
+FSDP = textwrap.dedent('''
+    import json, os, socket, sys
+    from pathlib import Path
+    sys.path[:0] = sys.argv[2].split(os.pathsep)
+    import torch, torch.distributed as dist, torch.multiprocessing as mp
+
+    def run(rank, world, out, port):
+        os.environ.update(MASTER_ADDR="127.0.0.1", MASTER_PORT=str(port), RANK=str(rank), WORLD_SIZE=str(world),
+                          LOCAL_RANK=str(rank), V5_EVENTS_DIR=str(out / "events"))
+        dist.init_process_group("gloo", rank=rank, world_size=world)
+        from torch.distributed.fsdp import fully_shard
+        from ckpt.ckpt import Checkpointer, fingerprints
+        from trainer.tiny import SyntheticLoader
+        torch.manual_seed(0)
+        m = torch.nn.Sequential(torch.nn.Linear(512, 512), torch.nn.ReLU(), torch.nn.Linear(512, 8))
+        m.register_buffer("lens", torch.arange(7, dtype=torch.int16))
+        fully_shard(m)
+        opt = torch.optim.AdamW(m.parameters(), lr=1e-3)
+        m(torch.ones(2, 512)).sum().backward()
+        opt.step()
+        probe = lambda mm: float(mm(torch.ones(2, 512)).square().mean().detach())
+        ck = Checkpointer("fsdp", str(out / f"local{rank}"), str(out / "store"), seed=0)
+        assert ck.save(1, m, opt, SyntheticLoader(0, 2, rank, world), probe) and ck.wait()
+        fp = fingerprints({"model": m.state_dict()})      # on the shards (collective), as Team 7's save makes them
+        full = {k: (v.full_tensor() if hasattr(v, "full_tensor") else v) for k, v in m.state_dict().items()}
+        if rank == 0:
+            torch.save(full, out / "full.pt")
+            (out / "fingerprints.json").write_text(json.dumps(fp))
+        dist.barrier()
+        dist.destroy_process_group()
+
+    if __name__ == "__main__":
+        out = Path(sys.argv[1])
+        with socket.socket() as s:
+            s.bind(("127.0.0.1", 0))
+            port = s.getsockname()[1]
+        mp.spawn(run, args=(2, out, port), nprocs=2)
+''')
+
+
+@pytest.mark.skipif(not sys.platform.startswith("linux"), reason="2 gloo processes; run on the Linux test image")
+def test_a_commit_sharded_over_two_ranks_strips_to_the_full_tensors(tmp_path):
+    """FSDP2 over 2 ranks (DTensor shards in 2 files, an int16 buffer): one process strips it to the full tensors, and
+    fingerprints made on the shards match the ones made on the full tensors."""
+    import subprocess
+    from safetensors.torch import load_file
+    script = tmp_path / "fsdp_save.py"
+    script.write_text(FSDP)
+    paths = os.pathsep.join(str(HERE.parents[2] / "07-infrastructure" / x) for x in ("", "support/simulation"))
+    subprocess.run([sys.executable, str(script), str(tmp_path), paths], check=True, capture_output=True, timeout=300)
+    run_dir = tmp_path / "store" / "fsdp"
+    folder = next(run_dir.glob("main/step_*"))
+    assert len(list(folder.glob("*.distcp"))) == 2
+    man = json.loads((folder / "MANIFEST.json").read_text())
+    assert man["world_size"] == 2
+    full = torch.load(tmp_path / "full.pt")
+    rec = sc.strip(run_dir, 1, tmp_path / "s.safetensors", verify="files")
+    got = load_file(str(tmp_path / "s.safetensors"))
+    assert set(got) == set(full) and all(torch.equal(got[k], full[k]) for k in full) and rec["tensors"] == 5
+    man["fingerprints"] = json.loads((tmp_path / "fingerprints.json").read_text())
+    (folder / "MANIFEST.json").write_text(json.dumps(man))
+    rec = sc.strip(run_dir, 1, tmp_path / "h.safetensors", dtype="bfloat16")
+    half = load_file(str(tmp_path / "h.safetensors"))
+    assert rec["verify"] == "fingerprints" and half["lens"].dtype == torch.int16
+    assert all(torch.equal(half[k], full[k].to(torch.bfloat16) if full[k].is_floating_point() else full[k])
+               for k in full)
 
 
 def test_bf16_halves_the_file_and_rounds_as_a_cast_does(store, tmp_path):

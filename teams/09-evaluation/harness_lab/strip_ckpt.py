@@ -37,6 +37,7 @@ import hashlib
 import json
 import os
 import resource
+import shutil
 import sys
 import time
 from pathlib import Path
@@ -102,7 +103,25 @@ def verify_files(folder: Path, files: dict, jobs: int) -> None:
 
 def strip(run_dir: Path, step: int | None, out: Path, dtype: str = "saved", verify: str = "auto",
           jobs: int = 8) -> dict:
-    """Write the weights of one commit to ``out`` and the record to ``out`` + ``.json``. Returns the record."""
+    """Write the weights of one commit to ``out`` and the record to ``out`` + ``.json``. Returns the record.
+
+    A file of the commit that disappears while it is read (retention deleted the commit) is a StripError, and so is a
+    disk without room for the file: nothing is left behind in either case."""
+    from torch.distributed.checkpoint.api import CheckpointException  # dcp wraps a missing or unreadable file in it
+
+    tmps = [out.with_name(f".{out.name}.{os.getpid()}.tmp"), out.with_name(f".{out.name}.json.{os.getpid()}.tmp")]
+    try:
+        return _strip(run_dir, step, out, dtype, verify, jobs, tmps)
+    except (OSError, CheckpointException) as e:
+        raise StripError(f"reading or writing failed (was the commit deleted by retention?): {e}") from None
+    except json.JSONDecodeError as e:
+        raise StripError(f"MANIFEST.json of the commit is not valid JSON: {e}") from None
+    finally:
+        for t in tmps:
+            t.unlink(missing_ok=True)
+
+
+def _strip(run_dir, step, out, dtype, verify, jobs, tmps) -> dict:
     import torch
     import torch.distributed.checkpoint as dcp
     from safetensors.torch import save_file
@@ -166,7 +185,11 @@ def strip(run_dir: Path, step: int | None, out: Path, dtype: str = "saved", veri
 
     t_write = time.perf_counter()
     out.parent.mkdir(parents=True, exist_ok=True)
-    tmp = out.with_name(out.name + ".tmp")
+    need = sum(v.numel() * v.element_size() for v in weights.values())
+    free = shutil.disk_usage(out.parent).free
+    if free < need * 1.05 + (64 << 20):
+        raise StripError(f"{out.parent} has {free / 1e9:.1f} GB free, the file needs {need / 1e9:.1f} GB")
+    tmp = tmps[0]
     save_file({k: v.contiguous() for k, v in weights.items()}, str(tmp),
               metadata={"run_id": man["run_id"], "step": str(man["step"]), "path": pointer["path"],
                         "model_revision": hashlib.sha256(raw).hexdigest(), "dtype": dtype})
@@ -196,7 +219,7 @@ def strip(run_dir: Path, step: int | None, out: Path, dtype: str = "saved", veri
     }
     if io0 and io1:
         record["io"] = {k: io1[k] - io0[k] for k in io0}
-    tmp_rec = out.with_name(out.name + ".json.tmp")
+    tmp_rec = tmps[1]
     tmp_rec.write_text(json.dumps(record, indent=1, sort_keys=True) + "\n", encoding="utf-8")
     os.replace(tmp_rec, out.with_name(out.name + ".json"))  # written last: a record means the file is complete
     return record
@@ -208,8 +231,9 @@ def main(argv=None) -> int:
     ap.add_argument("--run-dir", type=Path, required=True, help="<remote_root>/<run_id> on a local or mounted path")
     ap.add_argument("--step", type=int, help="the commit of this step (default: the one latest.json names)")
     ap.add_argument("--out", type=Path, required=True, help="the .safetensors file to write (record: <out>.json)")
-    ap.add_argument("--dtype", default="saved", choices=["saved", "bfloat16", "float16", "float32"],
-                    help="saved: as in the commit (the scores do not change); bfloat16 halves the file of an fp32 run")
+    ap.add_argument("--dtype", default="saved", choices=["saved", "bfloat16", "float32"],
+                    help="saved: as in the commit (the scores do not change); bfloat16 halves the file of an fp32 run "
+                         "(no float16: fp32 weights above 65,504 would become inf)")
     ap.add_argument("--verify", default="auto", choices=["auto", "fingerprints", "files", "none"],
                     help="fingerprints: each weight against MANIFEST.json fingerprints (reads the weights only); "
                          "files: sha256 of every file MANIFEST.json lists (as export_safetensors); auto: fingerprints "

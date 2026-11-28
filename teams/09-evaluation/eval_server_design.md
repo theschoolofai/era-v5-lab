@@ -61,11 +61,12 @@ that gives it.
    assume all 8.
 2. **Read only on the store.** It reads `commits.jsonl`, `MANIFEST.json` and shard files. It never writes to the store
    and never deletes from it (`eval_watcher.py`: "It is read-only on the store").
-3. **No race with saves for the disk.** GPU time is not the only shared cost. The trainer writes a commit to the same
-   store the eval node reads from. If the eval node reads a whole commit at full speed while the next save runs, the
-   save gets slower, and a slow save is training time lost (`checkpoint_interval.md`: "1.2 x save pipeline"). Proposal:
-   read only the weight bytes (section 4), start the read only after the commit line exists (the watcher already does),
-   and cap the read rate on a shared disk. **Open:** the store's read and write bandwidth (Team 7).
+3. **A possible race with saves for the store.** GPU time is not the only shared cost. The trainer writes each commit
+   to the store the eval node reads from. A read at full speed while the next save runs can slow the save, and a slow
+   save is training time lost (`checkpoint_interval.md`: "1.2 x save pipeline"). This is not measured. Proposal: read
+   only the weight bytes (section 4), start the read only after the commit line exists (the watcher already does), and
+   cap the read rate if a test shows that saves slow down. **Open:** the store's read and write bandwidth, and a save
+   timed with and without an eval read beside it (Team 7).
 
 ## 3. Where checkpoints are pulled from
 
@@ -133,24 +134,27 @@ safetensors file plus a record (`<file>.json`: commit path, `model_revision`, we
 each loaded weight against MANIFEST.json `fingerprints` (F5); `--verify auto` (default) takes fingerprints when they are
 there. `run_lab_ckpt.py --weights <file>` scores the file with no export: the record must name this commit and the file
 sha256 must match; the probe is compared where it can be (saved bits for `cpu`, weights in the saved dtype) and
-"not compared" is printed otherwise, as the export prints. 12 tests (`tests/test_strip_ckpt.py`).
+"not compared" is printed otherwise, as the export prints. 16 tests (`tests/test_strip_ckpt.py`), among them a commit
+saved by FSDP2 over 2 ranks (DTensor shards in 2 files, an int16 buffer): one process strips it to exactly the full
+tensors, and the fingerprints made on the shards match the ones the strip makes on the full tensors. A file that
+disappears during the strip (retention) and a disk without room are clean errors that leave nothing behind.
 
 **Measured** (`logs/strip_bench.log`: a commit with dry run 2's parameter split, 176,398,881 parameters, 1,412 MB on
 disk, saved by Team 7's Checkpointer; Linux, 4 CPUs, torch 2.15.0 CPU, page cache warm; each path in a fresh process):
 
 | Path | Wall time | Peak RSS | Read | Written |
 |---|---:|---:|---:|---:|
-| `export_safetensors()`, as `run_lab_ckpt.py` calls it | 3.95 s | 2,691 MB | 3,546 MB | 2,118 MB |
-| strip, `--verify files` (the same guarantee) | 0.97 s | 1,186 MB | 2,830 MB | 706 MB |
-| strip, `--verify fingerprints` (F5) | 0.83 s | 1,514 MB | 1,418 MB | 706 MB |
-| strip, `--verify files --dtype bfloat16` | 0.79 s | 823 MB | 2,477 MB | 353 MB |
+| `export_safetensors()`, as `run_lab_ckpt.py` calls it | 3.74 s | 2,690 MB | 3,546 MB | 2,118 MB |
+| strip, `--verify files` (the same guarantee) | 1.00 s | 1,185 MB | 2,830 MB | 706 MB |
+| strip, `--verify fingerprints` (F5) | 0.81 s | 1,513 MB | 1,418 MB | 706 MB |
+| strip, `--verify files --dtype bfloat16` | 0.75 s | 822 MB | 2,477 MB | 353 MB |
 
-The strip with `--verify files` writes the same tensors as the export, bit for bit. Against the export it is 4.1
+The strip with `--verify files` writes the same tensors as the export, bit for bit. Against the export it is 3.7
 times faster, holds 2.3 times less memory and writes 3.0 times less. With fingerprints it reads 2.5 times less than
-the export. At one tenth of the size every row scales about linearly (the export 0.48 s, the strip 0.11 s), so at
-30B the export would need about 450 GB of RAM (2,691 MB x 170) where the strip in bf16 needs about 140 GB, and the
-strip reads about half the bytes once fingerprints are saved. What remains in the strip is the check (0.52 s of
-0.97 s) and the write with its read-back for the sha256 (0.37 s); the load itself is 0.08 s.
+the export. At one tenth of the size every row scales about linearly (the export 0.47 s, the strip 0.10 s). If that
+holds at 30B (not measured: 170 times the size), the export would need about 450 GB of RAM (2,690 MB x 170) where the
+strip in bf16 needs about 140 GB (822 MB x 170). What remains in the strip is the check (0.51 s of 1.00 s) and the
+write with its read-back for the sha256 (0.39 s); the load itself is 0.09 s.
 
 **Proposal (one strip per checkpoint):**
 1. The eval node runs `strip_ckpt.py` once per commit. The Tier A scorer, the Tier B scorer and Team 12's quantize
@@ -190,8 +194,8 @@ Points 2 and 3 are watcher changes. They are not built yet.
 - **Proposal:** for the 30B model, one 80 GB GPU per tier is enough to hold the model; the number of GPUs comes from the
   time per checkpoint (section 7). For the 100B model, score the bf16 model on 4 GPUs (3 for the weights, room for
   activations) and the quantized copies on 1 GPU each. This is also the setup Team 12's loop needs.
-- **CPU and disk:** the strip of section 4 holds the weights once (measured: 1,186 MB peak for 706 MB of fp32 weights,
-  823 MB in bf16), against about 3.8 times the weights for the export (2,691 MB). At 30B in bf16 that is about 140 GB of
+- **CPU and disk:** the strip of section 4 holds the weights once (measured: 1,185 MB peak for 706 MB of fp32 weights,
+  822 MB in bf16), against about 3.8 times the weights for the export (2,690 MB). At 30B in bf16 that is about 140 GB of
   CPU memory for the strip. Local disk holds 2 stripped files at a time: 120 GB at 30B in bf16, 400 GB at 100B.
 - **Fact:** the eval slot GPU type is not in the record (`manifest.json` of #869 has `gpu: redacted`). **Open:** the
   eval node's GPU type and count (TSAI).
@@ -242,12 +246,60 @@ exactly once and two scorers never shared the slot. The fixes: the scorer holds 
 with its watcher (`PR_SET_PDEATHSIG`), a result written before a kill is kept (`in_flight`), and a step committed again
 during the slot wait is superseded.
 
+## 9b. Edge cases checked, and what is still not tested
+
+Checked in the code or by a test (the source is given):
+
+| Case | Result |
+|---|---|
+| A commit sharded over several ranks (the main run saves from 8 GPUs) | Tested with FSDP2 over 2 ranks: the strip gives exactly the full tensors; fingerprints match across sharding (`test_strip_ckpt.py`) |
+| A non-float tensor (Team 5's int16 length buffer) with `--dtype bfloat16` | Stays int16 (same test) |
+| Retention deletes the commit during the strip | A StripError, nothing left (test); the watcher then marks the commit `gone` (`eval_watcher.py`) |
+| No room for the stripped file | Refused before writing (test) |
+| Two strips of one commit at once | Each writes its own temporary files; the file and the record that remain agree, and no temporary file is left (test) |
+| fp32 weights cast to float16 | Not offered: values above 65,504 would become inf. bf16 keeps the fp32 range |
+| A strip of another commit given to the scorer, or a changed file | Refused: the record must name the commit and the file sha256 must match (test) |
+| The trainer's DeepSpeed backend | Refused by the strip; Team 7's `export_ds` handles it |
+
+Found in this review, not yet in the sections above:
+
+1. **Clocks.** The watcher's `lag_s` is the eval node's clock minus the commit time written by the trainer's clock, and
+   `eval_lag.py` compares `eval_mini.loaded_at` (the ClickHouse server's clock) with the alarm host's clock
+   (`eval_lag.py`: `time.time()` and `max(loaded_at)`). So the training node, the eval node, the ClickHouse host and the
+   alarm host must run NTP. A skew of S seconds moves every lag by S. **Proposal:** a check at start that compares the
+   eval node's clock with the ClickHouse server's `now()` and warns above 5 s.
+2. **Team 12 scores the full model a second time.** `run_loop.py` runs `score_full` (Team 9's scorer on the full
+   weights) on every commit, also when `--watcher-json` gives the watcher's scores, which it uses only to compare
+   (`run_loop.py`, `score_full` and the report). That is one extra full scoring per commit on the GPU. **Proposal:**
+   run `--stages strip,quantize,report` with `--watcher-json` on every commit, and `score_full` as a cross-check on the
+   first commit only (Team 12).
+3. **Each reader hashes the stripped file.** `run_lab_ckpt.py --weights` reads the whole file once for its sha256: at
+   the measured 3.42 GB/s for one thread, 60 GB (30B in bf16) is about 18 s per reader, from a local disk. With Tier A,
+   Tier B and Team 12 reading one file, that is up to 3 reads. **Proposal:** score Tier A and, on a Tier B commit, Tier
+   B in one process on one loaded model, so the file is hashed and loaded once (not built yet).
+4. **The firewall rule and a long-running server.** Rule 4 places eval files only for an approved Team 9 job and deletes
+   them when the job ends. A server that runs for the whole main run is one approved job that lasts the run, with its
+   files in that job's folder. **Open:** TSAI to confirm this reading for the main run.
+5. **State on the eval node.** `state.json` and the out folder hold which commits are done. If the eval node's disk is
+   lost, a new watcher scores again every owned commit still in the store. That is safe (each load first deletes the
+   run_id's rows, so no row is doubled) but costs GPU time. **Proposal:** keep the out folder on storage that outlives
+   the node.
+6. **One active eval node.** The state lock is a local file lock (`fcntl.flock`). On a network file system that lock
+   may not hold across hosts. **Proposal:** one eval node at a time; a standby starts only after the first is stopped.
+
+Not tested yet (needs hardware or data we do not have):
+
+- A real GPU, the real eval slot, and the step 1,221 weights of dry run 2 (TSAI shares them later).
+- Any size above dry run 2's 176M parameters: the numbers at 30B and 100B are formulas or linear estimates.
+- A network store, and a cold page cache: every timing above is warm. On a network store the bytes read set the time.
+- A commit saved by 8 ranks (tested: 2), and tensor parallelism (tested: FSDP2 only).
+
 ## 10. Open items
 
 | # | Item | Owner |
 |---|---|---|
 | 1 | Which store the main run uses (mounted folder or S3), and whether the eval node mounts it | TSAI, Team 7 |
-| 2 | The store's read and write bandwidth, and whether eval reads slow the trainer's saves | Team 7 |
+| 2 | The store's read and write bandwidth; a save timed with and without an eval read beside it (section 2) | Team 7 |
 | 3 | The eval node: GPU type and count, CPU memory, local disk | TSAI |
 | 4 | Whether probe bits saved on training GPUs can match on the eval GPUs | Team 7 |
 | 5 | Keep the `model.*` fingerprints in MANIFEST.json (F5), so the strip reads only the weights | Team 7 |
@@ -256,6 +308,11 @@ during the slot wait is superseded.
 | 7 | `T_c` at the main-run size and the tokens of the mini-benchmark | Team 9 (design task 1), after the first main-run commit |
 | 8 | Pages for exit 1/78, a store outage and a Tier B `gone` (section 8) | Team 8 with Team 9 |
 | 9 | Load `seconds`, `slot_wait_s`, `lag_s` into ClickHouse for a cost panel | Team 9 with Team 8 |
+| 10 | NTP on the training node, the eval node, ClickHouse and the alarm host; a clock check at watcher start (9b.1) | TSAI, Team 9 |
+| 11 | Team 12 `run_loop.py` with `--watcher-json` skips `score_full` after the first commit (9b.2) | Team 12 |
+| 12 | One scorer process for Tier A and Tier B on a Tier B commit (9b.3) | Team 9 |
+| 13 | The main-run eval server as one approved job that lasts the run (9b.4) | TSAI |
+| 14 | The eval out folder on storage that outlives the node; one active eval node (9b.5, 9b.6) | TSAI, Team 9 |
 
 ## Sources
 

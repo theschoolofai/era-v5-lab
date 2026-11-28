@@ -145,8 +145,8 @@ python teams/09-evaluation/harness_lab/tests/bench_strip.py --work <empty dir> -
 ```
 
 Measured on a commit with dry run 2's parameter split (`logs/strip_bench.log`, Linux, 4 CPUs): the strip writes the
-same tensors as `export_safetensors()`, bit for bit, in 0.97 s against 3.95 s, with 1,186 MB peak memory against
-2,691 MB and 706 MB written against 2,118 MB. The design and the numbers at the main-run size are in
+same tensors as `export_safetensors()`, bit for bit, in 1.00 s against 3.74 s, with 1,185 MB peak memory against
+2,690 MB and 706 MB written against 2,118 MB. Tested also on a commit sharded by FSDP2 over 2 ranks. The design and the numbers at the main-run size are in
 `../eval_server_design.md`, section 4.
 
 ## What is and is not done
@@ -159,7 +159,7 @@ same tensors as `export_safetensors()`, bit for bit, in 0.97 s against 3.95 s, w
 | `eval_watcher.py`: each new commit scored and loaded, restarts, retries, tiers, slot lock | Done; tests without GPU or ClickHouse. The store must be a local or mounted path, as for `run_lab_ckpt.py` |
 | Team 5 `checkpoint.pt` + `manifest.json` layout (section 6, last paragraph): dry run 1 | Done: `--team5-run <folder>` in `run_lab_ckpt.py` and `eval_watcher.py` (below). Tested on a stub model; the real run is the job request `../jobs/2026-11-15-eval-watcher-dry-run-1.md` |
 | `--run-name` for queue jobs (`<job_run_id>/<arm>`) | Done, not tested on a real queue job |
-| `strip_ckpt.py` and `run_lab_ckpt.py --weights` (one strip per commit) | Done, 12 tests, measured on a commit of dry run 2's split (`logs/strip_bench.log`). The watcher does not call it yet (after #896 and #902) |
+| `strip_ckpt.py` and `run_lab_ckpt.py --weights` (one strip per commit) | Done, 16 tests (one on a 2-rank FSDP2 commit), measured on a commit of dry run 2's split (`logs/strip_bench.log`). The watcher does not call it yet (after #896 and #902) |
 
 ## Schema point to confirm
 
