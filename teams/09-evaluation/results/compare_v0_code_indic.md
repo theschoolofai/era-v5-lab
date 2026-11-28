@@ -7,7 +7,7 @@ Companion report for the general tasks: `compare_v0.md` (PR #21).
 
 - MMLU-Pro agrees with the Open LLM Leaderboard's own lm-eval runs for all three models (within 0.31).
 - Code scoring agrees with the EvalPlus leaderboard for DeepSeek-Coder-1.3B-base (within 1.2) and phi-2 on 3 of 4.
-- The two FAILs are on the stricter `+` tests, just past the line (−2.41, −2.88). evalplus recorded 0 timeouts across all executed code, so a slow executor does not explain them. They stand under the pre-registered rule and are tracked as known failures: qwen2.5-1.5b HumanEval+ ([#334](https://github.com/theschoolofai/era-v5-lab/issues/334)), phi-2 MBPP+ ([#335](https://github.com/theschoolofai/era-v5-lab/issues/335)).
+- Both evalplus 0.3.1 `+` rows remain FAIL under the registered rule (−2.41, −2.88, zero timeouts). The publisher's December 2023 protocol explains phi-2 MBPP+ ([#335](https://github.com/theschoolofai/era-v5-lab/issues/335)). Qwen's HumanEval+ protocol remains unidentified ([#334](https://github.com/theschoolofai/era-v5-lab/issues/334)). [Protocol check](protocol_check_334_335.md)
 - MILU-avg (both rows) is the simple mean of the 11 per-language `gate_milu_<Language>` full runs (79,608 items per model), computed only when all 11 exist; until then the row is DEFERRED. The rule was fixed before the remaining runs (see the README).
 - MILU-avg gemma-2-2b, the 11 scores: Bengali 29.53, English 51.05, Gujarati 30.00, Hindi 32.72, Kannada 29.37, Malayalam 28.67, Marathi 30.99, Odia 24.46, Punjabi 30.67, Tamil 29.76, Telugu 29.34
 - MILU-avg llama-3.2-3b, the 11 scores: Bengali 32.41, English 50.76, Gujarati 31.33, Hindi 35.10, Kannada 31.17, Malayalam 29.18, Marathi 33.46, Odia 28.35, Punjabi 31.74, Tamil 31.59, Telugu 29.45
@@ -33,6 +33,7 @@ Companion report for the general tasks: `compare_v0.md` (PR #21).
 | llama-3.2-3b | MILU-avg | 32.85 | 33.14 | +0.29 | **PASS** | [MILU paper, Table 3](https://arxiv.org/abs/2411.02538) |
 | qwen2.5-1.5b | HumanEval | 37.20 | 35.37 | -1.83 | **PASS** | [Qwen2.5 blog, base-model table](https://qwenlm.github.io/blog/qwen2.5-llm/) |
 | qwen2.5-1.5b | HumanEval+ | 32.90 | 30.49 | -2.41 | **FAIL** (known failure, [#334](https://github.com/theschoolofai/era-v5-lab/issues/334)) | [Qwen2.5 blog, base-model table](https://qwenlm.github.io/blog/qwen2.5-llm/) |
+| qwen2.5-1.5b | HumanEval+ (Dec 2023 protocol probe) | 32.90 | 31.10 | -1.80 | Protocol probe, Qwen's settings undisclosed | [Protocol check](protocol_check_334_335.md) |
 | qwen2.5-1.5b | MBPP | 60.20 | 59.52 | -0.68 | **PASS** | [Qwen2.5 blog, base-model table](https://qwenlm.github.io/blog/qwen2.5-llm/) |
 | qwen2.5-1.5b | MBPP+ | 49.60 | 48.15 | -1.45 | **PASS** | [Qwen2.5 blog, base-model table](https://qwenlm.github.io/blog/qwen2.5-llm/) |
 | deepseek-coder-1.3b | HumanEval | 28.70 | 29.88 | +1.18 | **PASS** | [EvalPlus leaderboard (DeepSeek-Coder-1.3B-base)](https://evalplus.github.io/leaderboard.html) |
@@ -43,6 +44,7 @@ Companion report for the general tasks: `compare_v0.md` (PR #21).
 | phi-2 | HumanEval+ | 45.10 | 43.90 | -1.20 | **PASS** | [EvalPlus leaderboard (phi-2-2.7B)](https://evalplus.github.io/leaderboard.html) |
 | phi-2 | MBPP | 64.00 | 62.43 | -1.57 | **PASS** | [EvalPlus leaderboard (phi-2-2.7B)](https://evalplus.github.io/leaderboard.html) |
 | phi-2 | MBPP+ | 54.20 | 51.32 | -2.88 | **FAIL** (known failure, [#335](https://github.com/theschoolofai/era-v5-lab/issues/335)) | [EvalPlus leaderboard (phi-2-2.7B)](https://evalplus.github.io/leaderboard.html) |
+| phi-2 | MBPP+ (Dec 2023 publisher protocol) | 54.20 | 54.23 | +0.03 | Explained | [Protocol check](protocol_check_334_335.md) |
 
 The `deepseek-coder-1.3b` and `phi-2` rows were registered on 25 Oct, after the first code FAILs and before either model was run, to check code scoring against a reference with a documented protocol (EvalPlus leaderboard: HumanEval+ v0.1.10, MBPP+ v0.2.0, greedy, direct completion). Selection criteria: base model, ungated, fits 8 GB in bf16, all four scores published.
 

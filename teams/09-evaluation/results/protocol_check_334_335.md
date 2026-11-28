@@ -1,9 +1,8 @@
 # Protocol check for the two code known failures (#334, #335)
 
-Both code FAILs in [`compare_v0_code_indic.md`](compare_v0_code_indic.md) disappear when the samples are generated
-with the EvalPlus protocol of December 2023 instead of evalplus 0.3.1. This file records the evidence. It changes
-no verdict: the rows in the comparison report and in [`known_failures.md`](known_failures.md) stand until the
-G9 lead decides how to record this.
+The December 2023 publisher protocol reproduces phi-2's MBPP+ leaderboard result to 0.03 points. It moves Qwen's
+HumanEval+ result within the registered tolerance, while Qwen's generation setup remains unspecified. The evalplus 0.3.1
+FAIL rows remain in the [comparison report](compare_v0_code_indic.md) and [known failures](known_failures.md).
 
 ## Results
 

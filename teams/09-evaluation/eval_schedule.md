@@ -178,6 +178,11 @@ Team 9 reports it to TSAI at once.
 
 ### 5.3 The planned failure
 
+**Fact (dry run 2 record, #869; TSAI in G9, 28 Nov):** the run used the `kas_v2` head and made nine commits: step 0,
+seven saves 660–697 s apart, and the final step 1,221. The evaluation watcher did not run beside it. The commit log is
+enough for the watcher restart and monitoring replays. Scoring the real checkpoints needs TSAI's separately shared
+weights. [Run record](../05-architecture/results/dryrun2-1234/README.md)
+
 **Fact (Team 7, 19 Nov):** the planned failure is "SIGKILL between two commits, so the restore goes back to the last
 COMPLETE one". Team 7 owns the drill plan, and adds: "Dry run 2's planned failure only tests G7's path if #608 lands
 first." #608 merged on 21 Nov. Plan sheet, week 4: "Check that the watcher scores the restored checkpoint
