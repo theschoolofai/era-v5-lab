@@ -32,7 +32,7 @@ Each file gets a sha256 hash in the decision log before it goes public.
 | Weights, smaller bit widths | One file for each bit width that TSAI chooses | Quantization | The size, memory, speed and quality table of each bit width. The export checks pass. |
 | Tokenizer | The frozen tokenizer files | Tokenizer | The files match `teams/03-tokenizer/release/SHA256SUMS`, and `verify_release.py` passes. |
 | Unit dictionary | The dictionary of units, if the released model uses one | Tokenizer, KE2 | The hash of the dictionary. TSAI decides whether it is released. |
-| Chat format | The chat template and the special tokens | Post-training, Tokenizer | Post-training confirms the special-token file. |
+| Chat format | The chat template and the special tokens | Post-training, Tokenizer | The special-token file is on main, confirmed by Post-training ([#873](https://github.com/theschoolofai/era-v5-lab/pull/873)). The files match `teams/03-tokenizer/release/SHA256SUMS`. |
 | Model card | The model card, as the README of each model page | Release | TSAI approves the card. |
 | Evaluation results | The scores of the released model | Evaluation | TSAI approves each score. |
 | Dataset card | A card for the data that TSAI may release | Data A, Data B, Release | The licence of each source, from `teams/10-post-training/licences/licence_table.md`. TSAI decides what is released. |
