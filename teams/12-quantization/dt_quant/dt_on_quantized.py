@@ -16,6 +16,8 @@ Arms (names; "<q>" is q8_0 or q4_0):
   dt_<q>              DT on the quantized base: W packed, the Wanda prior calibrated on the quantized weights
   dt_then_<q>         the `dt` result with its mask baked in (W * 1[G > 0]), then quantized: the other order, as a control
                       (computed inside the `dt` run, which bakes the mask once and scores a quantized copy per format)
+With --grad-check it also runs the instructor's gradient-coverage check (28 Nov): one forward and backward with the packed path on and off,
+listing every trainable parameter whose gradient is None or all zero, and comparing the two lists and the gradients.
 Each arm reports held-out NLL per token (mean over windows, with per-window values for paired intervals), the share of
 targeted weights deleted, training time and peak CUDA memory. Training uses G10's DT settings: AdamW on the logits (lr 5e-4, G10's default since its
 17 Nov port check; its older ladder runs used 2e-3, set with --lr; betas 0.9/0.95), alpha 100 to 1000, Wanda prior (eta 1/2048, strength 3),
@@ -273,6 +275,62 @@ def fit_mask(model, train_windows, calib_windows, device, args) -> dict:
     return info
 
 
+# ------------------------------------------------------------------------------------------------ gradient coverage
+def one_step_grads(model: nn.Module, windows: list, device, rows: int = 2) -> dict:
+    """One forward and backward on the first `rows` windows: {name: grad clone or None} for every trainable parameter."""
+    model.train()
+    ids = torch.tensor(windows[:rows], device=device)
+    logits = model(input_ids=ids).logits[:, :-1].float()
+    nn.functional.cross_entropy(logits.reshape(-1, logits.shape[-1]), ids[:, 1:].reshape(-1)).backward()
+    return {n: (p.grad.detach().clone() if p.grad is not None else None) for n, p in model.named_parameters() if p.requires_grad}
+
+
+def coverage(grads: dict) -> dict:
+    """Trainable parameters whose gradient is None or all zero, and the share of gradient elements that are exactly zero."""
+    none = sorted(n for n, g in grads.items() if g is None)
+    zero = sorted(n for n, g in grads.items() if g is not None and not bool(g.abs().any()))
+    elems = sum(g.numel() for g in grads.values() if g is not None)
+    zeros = sum(int((g == 0).sum()) for g in grads.values() if g is not None)
+    return {"trainable_parameters": len(grads), "grad_none": none, "grad_all_zero": zero,
+            "zero_element_share": round(zeros / elems, 6) if elems else None}
+
+
+def build_dt_model(args, fmt: str, packed: bool, device):
+    """A DT model on a `fmt` base with fresh gates (same seed): the fast path (W packed) or the plain path (every decoder
+    linear fake-quantized in place, dense). No Wanda prior, so only the two paths differ."""
+    from transformers import AutoModelForCausalLM
+    torch.manual_seed(args.seed)
+    model = AutoModelForCausalLM.from_pretrained(args.model, torch_dtype=getattr(torch, args.dtype), revision=args.revision).to(device)
+    targets = dtmask.TARGET_SETS[args.targets]
+    quantize_decoder_(model, fmt, skip=targets if packed else ())
+    dtmask.convert(model, targets, args.alpha_start, args.alpha_end, args.steps, args.seed)
+    if packed:
+        for _, m in dtmask.masked_layers(model):
+            to_packed(m, fmt)
+    return model
+
+
+def grad_path_check(args, windows: list, device, fmt: str) -> dict:
+    """Instructor's rule (28 Nov): a speed or memory path comes with a gradient-coverage check, fast path on and off.
+    On = W packed (Q8_0 or Q4_0); off = the same quantized values stored dense. Same data, same gates."""
+    out = {}
+    grads = {}
+    for name, packed in (("fast_path_on", True), ("fast_path_off", False)):
+        model = build_dt_model(args, fmt, packed, device)
+        grads[name] = one_step_grads(model, windows, device)
+        out[name] = coverage(grads[name])
+        del model
+    a, b = grads["fast_path_on"], grads["fast_path_off"]
+    same_names = sorted(a) == sorted(b)
+    out["same_trainable_parameters"] = same_names
+    out["same_none_and_zero_lists"] = (out["fast_path_on"]["grad_none"] == out["fast_path_off"]["grad_none"]
+                                       and out["fast_path_on"]["grad_all_zero"] == out["fast_path_off"]["grad_all_zero"])
+    out["max_abs_grad_difference"] = (max(float((a[n] - b[n]).abs().max()) for n in a if a[n] is not None and b[n] is not None)
+                                      if same_names else None)
+    out["format"] = fmt
+    return out
+
+
 def load_text_windows(model_name: str, revision, length: int, n_train: int, n_test: int, n_calib: int) -> dict:
     """wikitext-2 (raw) from its parquet files (no `datasets` package: its huggingface-hub pin clashes with transformers 4.57)."""
     import hashlib
@@ -302,6 +360,8 @@ def main() -> int:
     ap.add_argument("--lr", type=float, default=5e-4); ap.add_argument("--eta", type=float, default=1 / 2048)
     ap.add_argument("--prior-strength", type=float, default=3.0); ap.add_argument("--lam", type=float, default=1e-5)
     ap.add_argument("--alpha-start", type=float, default=100.0); ap.add_argument("--alpha-end", type=float, default=1000.0)
+    ap.add_argument("--grad-check", action="store_true", help="after the arms: one forward and backward with the packed path on and off, "
+                    "listing trainable parameters whose gradient is None or all zero (written to results.json)")
     ap.add_argument("--dtype", default="float32", choices=["float32", "bfloat16"])
     ap.add_argument("--device", default="cuda" if torch.cuda.is_available() else "cpu"); ap.add_argument("--seed", type=int, default=1)
     a = ap.parse_args()
@@ -320,6 +380,11 @@ def main() -> int:
             done["arms"][f"dt_then_{q}"] = sub
         print(f"{arm}: NLL {r['test_nll_mean']:.4f}, deleted {r.get('deletion_final')}, {r['train_seconds']}s, peak {r.get('peak_cuda_gb')} GB", flush=True)
         a.out.write_text(json.dumps(done, indent=1))
+    if a.grad_check and "grad_coverage" not in done:
+        done["grad_coverage"] = {q: grad_path_check(a, windows["train"], device, q) for q in ("q8_0", "q4_0")}
+        for q, r in done["grad_coverage"].items():
+            print(f"grad coverage {q}: on {r['fast_path_on']['grad_none']} none / {r['fast_path_on']['grad_all_zero']} zero, off the same: "
+                  f"{r['same_none_and_zero_lists']}, max grad difference {r['max_abs_grad_difference']}", flush=True)
     arms = done["arms"]
     done["paired"] = {f"{x}-{y}": paired_bootstrap(arms[x]["per_window_nll"], arms[y]["per_window_nll"])
                       for x, y in (("dt", "base"), ("dt_q8_0", "base_q8_0"), ("dt_q4_0", "base_q4_0"), ("dt_q8_0", "dt"),
