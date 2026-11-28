@@ -44,10 +44,11 @@ The small sample is a public slice of the lab's data, small enough to run on one
 
 ## The stages that Release ran on main
 
-Release ran these commands on 28 Nov 2026, on main at `317b31f3`, on the CPU of one Windows laptop, with no GPU. Each command is the one in the README of its team. The setup:
+Release ran these commands on 28 Nov 2026, on main at `317b31f3`, on the CPU of one Windows laptop, with no GPU. Each command is the one in the README of its team. The wall times are a rough guide from one laptop, not targets. The setup:
 
 - Python 3.12, torch 2.14.1 for CPU, and `kronecker-embeddings` at the commit pinned in `teams/04-ke2/src/requirements.txt`. The restore test and the scorer refuse an older torch.
 - A copy of main with the line endings of the repository. On Windows, Git can change the line endings of a checkout. Then the hash check of the tokenizer files fails on `verify_release.py`, although the tokenizer is right. The README of the combined repository says to check out with `core.autocrlf` set to false.
+- Run Evaluation's tools with plain `python`, not `python -I`. They import files from their own folder, and `-I` leaves that folder off the import path (a Team 11 member's run, comment on [#879](https://github.com/theschoolofai/era-v5-lab/pull/879)).
 - Data A's pipeline starts each of its steps with `python -I`. That Python does not see packages in the user folder, so every package must be installed in the environment itself. Release did not run the Data A stage for this reason, and it waits for Data A's command on the small sample.
 - The tokenizer is the public download in `teams/03-tokenizer/release/README.md`. Its sha256 is `e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b`, the frozen p1536.
 

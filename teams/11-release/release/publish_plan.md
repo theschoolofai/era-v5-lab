@@ -68,6 +68,6 @@ The form of the post:
 
 > ERA V5 Lab, week [number]: [one sentence on what changed]. [One number that moved, with its source.] Live dashboard: [link]. All the work is in the public lab repository: https://github.com/theschoolofai/era-v5-lab
 
-The first post, drafted for week 4. It waits for the link to the training dashboard from Monitoring, and for TSAI to say where it goes:
+The first post, drafted for week 4. It waits for the link to the training dashboard from Monitoring, and for TSAI to say where it goes. It gives the training loss, not the held-out bits per byte. TSAI notes that the held-out value moves by about 0.1 between evals. Its change in this run is not a stable result:
 
-> ERA V5 Lab, week 4: the second dry run finished all its planned steps with the KE2 output head. The held-out bits per byte fell from 2.1607 to 2.0561 in one run with one seed (TSAI's result on [#705](https://github.com/theschoolofai/era-v5-lab/pull/705)). Live dashboard: [link: waiting for Monitoring]. All the work is in the public lab repository: https://github.com/theschoolofai/era-v5-lab
+> ERA V5 Lab, week 4: the second dry run finished all its planned steps with the KE2 output head. The training loss fell from 10.27 to 5.25, in one run with one seed on one English web shard (TSAI's result on [#705](https://github.com/theschoolofai/era-v5-lab/pull/705)). Live dashboard: [link: waiting for Monitoring]. All the work is in the public lab repository: https://github.com/theschoolofai/era-v5-lab
