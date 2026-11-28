@@ -1,0 +1,5 @@
+math-megamath        Heldout/part-00000.parquet docs     169  differ     2      1.0 s
+math-finemath        Heldout/part-00000.parquet docs     312  differ     6      3.2 s
+math-megamath        Part_1/part-00000.parquet  docs   17647  differ   187    112.4 s
+math-finemath        Part_1/part-00000.parquet  docs   29122  differ   214    215.4 s
+total {'parts': 4, 'docs': 47250, 'differ': 409, 'wall_seconds': 215.6}

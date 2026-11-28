@@ -1,0 +1,8 @@
+math documents 47250, differ 409
+by rule: DA-A5-002 only 320, DA-B4-001 only 88, both 1
+old -> new: drop -> fix 1, drop -> keep 1, fix -> fix 121, fix -> keep 286
+documents where a later rule acts differently: 4
+  math-megamath Heldout/part-00000.parquet c07b8380d5ccf71f  fix -> keep  old: DA-A8-001  |  new: -
+  math-megamath Part_1/part-00000.parquet 7f0c9036831f32d1  drop -> keep  old: DA-C7-002 (drop)  |  new: -
+  math-megamath Part_1/part-00000.parquet 9cb311703c53c1e0  drop -> fix  old: DA-C7-002 (drop)  |  new: f1_rule.py
+  math-megamath Part_1/part-00000.parquet 24eb58a1f92356ad  fix -> keep  old: f1_rule.py  |  new: -

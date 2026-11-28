@@ -113,6 +113,20 @@ Both changes are made by `build/build_clean.py` while the sheet is frozen; `shee
     documents as before.
   - The logs are `jobs/logs/2026-11-28-clean-fix-1pct/compare_38.txt` and `trace_16.txt` (counts, document IDs and
     rule IDs only).
+- **Every document of tokenizer sample v0, `d275556e` against `b9e78f73`** (all 86 parts, 1,444,766 documents):
+  - **1,444,357 are identical.** The 82 non-math parts are identical document for document.
+  - **409 differ, all math** (220 math-finemath, 189 math-megamath): 320 because of DA-A5-002 only, 88 because of
+    DA-B4-001 only, and 1 because of both.
+  - **In 4 of them a later rule acts differently, because DA-A5-002's NFKC fold used to run before it** (all
+    math-megamath):
+    - DA-C7-002 no longer drops 2 documents that write "ﬁgure" with the U+FB01 ligature, since its pattern matches
+      only `figure` (`7f0c9036831f32d1` is kept, `9cb311703c53c1e0` is fixed);
+    - DA-A8-001 no longer changes 1 document (`c07b8380d5ccf71f`), which has no ligature; this follows from the B4
+      fix;
+    - **the shared F1 no longer replaces 1 e-mail address** (`24eb58a1f92356ad`). The address has a ligature next to
+      it, and F1 finds it only after the fold.
+  - The logs are `jobs/logs/2026-11-28-clean-fix-1pct/sample_math.txt`, `sample_math_rules.txt` and `sample_rest.txt`
+    (counts, document IDs and rule IDs only).
 
 ## Harm validation of the previous cleaner (after merged #88)
 
