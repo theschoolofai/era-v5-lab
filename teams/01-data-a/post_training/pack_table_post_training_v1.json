@@ -1,0 +1,26 @@
+{
+ "_note": "Post-training pack rows from Team 1 (Data A) for Team 10's request #882. Fields: the shard pack table's (language, script, domain, lane, license, license_source) plus Team 10's contract (hf_repo, hf_revision, rows, p1536 tokens, generator, generator_license, sha256 of the delivered parquet, F2 set). Built by build_rl_math_pool.py; see data_request_reply_v1.md.",
+ "packs": {
+  "rl-math-omr-aops-v1": {
+   "built_by": "teams/01-data-a/post_training/build_rl_math_pool.py",
+   "domain": "math",
+   "drop_list_sha256": "6162be20d85af0610b7e9783e893fd0574e2a628bec0218d51f0409328edb6cf",
+   "f2_flagged_after_build": 0,
+   "f2_set_sha256": "2826a3b883210c653979103c09ce1c79e40fc4f7034b54027f2836482370d22a",
+   "generator": "none for the problem text (AoPS forum posts); problems refined and answers extracted with Qwen2.5-32B-Instruct per the OpenMathReasoning card (arXiv 2504.16891)",
+   "generator_license": "Apache-2.0 (Qwen2.5-32B-Instruct)",
+   "hf_repo": "nvidia/Nemotron-RL-math-OpenMathReasoning",
+   "hf_revision": "219bf0170cd87cd5db2bbf33715ce9ea43a2c59c",
+   "input_sha256": "cdcf89edb4c9f3047687d0272f70b96cf84bb74dcd7966dad0cd7c721bd91823",
+   "lane": "math",
+   "language": "en",
+   "license": "cc-by-4.0",
+   "license_source": "Hugging Face card at revision 219bf017 (license: cc-by-4.0; \"ready for commercial use\")",
+   "p1536_tokens_prompts": 7017379,
+   "rows": 109246,
+   "rows_number_answers": 41180,
+   "script": "Latn",
+   "sha256": "56394b30eb2aff0d2b18d320fe9a88f66f7c55ec1dc67df1e22406dc483e48cd"
+  }
+ }
+}
