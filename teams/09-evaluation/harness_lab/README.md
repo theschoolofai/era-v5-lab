@@ -38,14 +38,31 @@ python teams/09-evaluation/harness_lab/run_lab_ckpt.py --run-dir <remote_root>/<
 ```
 
 - **Model:** built by Team 5's own code from `--model-config`; Team 7's export checks every file's sha256 and the
-  strict key list against it, so a wrong config stops at the export. The probe is `probe_loss` (next-token loss on a
-  fixed seeded batch); the export compares it only with bits saved on the same device class (a GPU-trained checkpoint
-  exported on CPU is checked by file sha256 and keys).
+  strict key list against it, so a config with other shapes stops at the export. A setting that changes no shape (for
+  example `rope_theta`) loads cleanly, so it is checked against the run's `manifest.json` (below). The probe is
+  `probe_loss` (next-token loss on a fixed seeded batch); the export compares it only with bits saved on the same device
+  class (a GPU-trained checkpoint exported on CPU is checked by file sha256 and keys).
+- **The run's manifest.json:** checked before the export.
+  - With `--team5-run`, it is the folder's own `manifest.json`. The model map from `--model-config` must equal its
+    `config.model`.
+  - With `--run-dir`, give the run's `manifest.json` as `--model-config`. The model map is read from it, and its
+    `team7_checkpoint.run_id` must be the store's `run_id`. Some stores hold weights made from another run, such as
+    Team 10's post-training folders. For those, add `--derived-from <that run_id>`: the manifest must then name that
+    run. Supply the original run manifest. A copy with `rope_theta` changed to 500000 and the same run ID still scores,
+    as case 2 of the Windows CPU log shows. The store has no independent copy of that setting to compare against.
+  - In both cases, recorded fields shared with Team 5's local `Artifacts` identity (tokenizer, table, vocabulary) must
+    match. Run-only fields such as a training-data hash are listed as unchecked. Every Team 5
+    file the scorer loaded (`week2/*.py`, `train_week2.py`) must have the sha256 recorded in its `sources`. Files the
+    scorer never runs, such as `data.py`, are not compared.
+  - If anything differs, nothing is scored, and the error lists each difference. If the code differs, score from the
+    commit the run trained with.
+  - With an arm YAML or a model map there is no run manifest. The scores are still written, and every record carries
+    the note "model settings and Team 5 code not checked".
 - **Tokenizer:** `--tokenizer-sha256` must match the file (Team 5's `Artifacts` checks it) and the tokenizer the
   checkpoint was trained with: `env.tokenizer_sha` in a Team 7 `MANIFEST.json`, `artifacts.tokenizer_sha256` in a Team 5
   `manifest.json`. New work uses the frozen **p1536** (`e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b`,
   TSAI Gate 3 notice of 15 Nov; dry run 1 was trained with it) and Team 4's p1536 raw table on main,
-  `teams/04-ke2/results/tables/p1536-s0/raw_table_P32.npz` (file sha256 `21072027…168a`). C3 work stays valid as a
+  `teams/04-ke2/results/tables/p1536-s0/raw_table_P32.npz` (file sha256 `e19a6cae…39b0`; content sha256 `21072027…168a`). C3 work stays valid as a
   record. Other tables: `teams/04-ke2/src/build_tables.py`. C3's normalizer changes some Indic text, so a few prompts do not rebuild their
   exact bytes; the scorer counts them ("encode fallbacks") and uses the tokenizer's ids, as #387 did.
 - **Speed** (course rule of 13 Nov): every distinct text is tokenized once in one batched call;

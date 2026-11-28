@@ -22,6 +22,12 @@ Speed (course rule of 13 Nov: batched operations, no Python loop over tokens, no
         --scorer lm_eval_lab:team5 --out <file> --model-config <arm.yaml | manifest.json> --tokenizer <tokenizer.json> \\
         --tokenizer-sha256 <sha256> --byte-table <raw table .npz> --tier A --hf-home <HF cache> --offline
 
+Before the export, the checkpoint is checked against its run's manifest.json: for --team5-run the folder's own, whose
+config.model the model settings must equal; for a store the --model-config file, which must name the store's run_id.
+The tokenizer and table, and every Team 5 file this process loaded, must be the ones the run recorded, or nothing is
+scored. With no run manifest.json (an arm YAML or a model
+map), the scores are written with a note that this was not checked.
+
 Firewall (firewall/eval_firewall.md, section 3): with --offline it needs no network, reads only its inputs, never logs
 samples or prompts, and writes scores only. Token ids are cached in memory for one process and never written.
 """
@@ -29,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib
 import json
 import logging
 import math
@@ -296,6 +303,61 @@ def load_model_config(path: Path, runtime: Path | None = None, resolution: Path 
     return cfg["model"]
 
 
+def read_run_manifest(path: Path) -> dict | None:
+    """The run's manifest.json when --model-config is one: a JSON with "config", as load_model_config reads it."""
+    if path.suffix != ".json":
+        return None
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    return doc if "config" in doc else None
+
+
+class _Missing:
+    def __repr__(self) -> str:
+        return "missing"
+
+
+MISSING = _Missing()
+
+
+def differences(run: dict, here: dict, prefix: str = "", keys=None) -> list[str]:
+    """'<key>: run X, here Y' for each key (default: all keys of both) whose values differ; nested maps key by key."""
+    out = []
+    for k in sorted(set(run) | set(here) if keys is None else keys, key=str):
+        r, h = run.get(k, MISSING), here.get(k, MISSING)
+        if isinstance(r, dict) and isinstance(h, dict):
+            out += differences(r, h, f"{prefix}{k}.")
+        elif r != h:
+            out.append(f"{prefix}{k}: run {r!r}, here {h!r}")
+    return out
+
+
+def loaded_team5_files() -> dict[str, Path]:
+    """The Team 5 files this process has imported: week2/*.py and train_week2.py next to the week2 it imported. The
+    names are those of a run manifest's ``sources`` (train_week2.py hashes the same files)."""
+    week2_dir = Path(sys.modules["week2"].__file__).resolve().parent
+    files = {}
+    for module in list(sys.modules.values()):
+        path = getattr(module, "__file__", None)
+        if path:
+            path = Path(path).resolve()
+            if path.parent == week2_dir or path == week2_dir.parent / "train_week2.py":
+                files[path.name] = path
+    return files
+
+
+def code_differences(sources: dict, files: dict[str, Path]) -> list[str]:
+    """Each loaded file must be in the run's ``sources`` with its sha256: of the raw bytes (Team 5's
+    week2.artifacts.sha256), or with LF line endings (a Linux run scored from a Windows checkout with autocrlf)."""
+    out = []
+    for name, path in sorted(files.items()):
+        lf = hashlib.sha256(text_bytes(path)).hexdigest()
+        if name not in sources:
+            out.append(f"Team 5 {name}: loaded here, not in the run's sources")
+        elif sources[name] not in (lf, hashlib.sha256(path.read_bytes()).hexdigest()):
+            out.append(f"Team 5 {name}: run {sources[name][:12]}, here {lf[:12]}")
+    return out
+
+
 def build_model(m: dict, art):
     """A fresh Team 5 LanguageModel on CPU (the checkpoint's weights are loaded into it)."""
     _, LanguageModel = week2()
@@ -363,6 +425,13 @@ class Team5Scorer:
         self.guard = cfg["guard"]
         self.task_dirs = [TASKS_DIR] + [LM_EVAL_TASKS / d for d in cfg["lm_eval_task_dirs"]]
         self.m = load_model_config(a.model_config, a.runtime, a.resolution)
+        self.run_manifest = read_run_manifest(a.model_config)
+        self.unchecked: list[str] = []
+        head = self.m.get("head_mode", "dense")
+        # Load a head's own Team 5 module before collecting the code fingerprint.
+        # The dense head is in model.py, and the architecture still checks which head modes it supports.
+        if isinstance(head, str) and head.isidentifier() and (HARNESS05 / "week2" / f"{head}.py").is_file():
+            importlib.import_module(f"week2.{head}")
         Artifacts, _ = week2()
         self.art = Artifacts(a.tokenizer, a.byte_table, expected_tokenizer_sha=a.tokenizer_sha256,
                              expected_vocab=self.m["vocab_size"])
@@ -372,12 +441,62 @@ class Team5Scorer:
         self.setup_s = time.perf_counter() - t0
 
     def check(self, manifest: dict) -> None:
-        """The checkpoint must have been trained with the tokenizer given: Team 7's MANIFEST.json keeps it in
-        env.tokenizer_sha, a Team 5 run's manifest.json in artifacts.tokenizer_sha256."""
-        saved = ((manifest.get("env") or {}).get("tokenizer_sha")
-                 or (manifest.get("artifacts") or {}).get("tokenizer_sha256") or "unknown")
-        if saved != "unknown" and saved != self.a.tokenizer_sha256:
-            raise SystemExit(f"the checkpoint was trained with tokenizer {saved[:12]}, not {self.a.tokenizer_sha256[:12]}")
+        """The checkpoint must come from the run whose settings, inputs and code this process uses.
+
+        ``manifest`` is the --team5-run folder's manifest.json (it has "config") or a Team 7 MANIFEST.json. For a
+        folder, the run's manifest.json is that file, and the model map built from --model-config must equal its
+        config.model. For a store, it is the --model-config file, which the model map was read from; it must name the
+        store's run_id in team7_checkpoint, or the --derived-from run_id for a store made from that run's weights (Team
+        10's post-training folders). In both, shared artifact fields and the sources of every Team 5 file this
+        process loaded must match. Run-only artifacts are listed as unchecked. Without a run manifest.json, only Team 7's
+        env.tokenizer_sha is checked, and every record says the rest was not."""
+        run = manifest if "config" in manifest else self.run_manifest
+        env = manifest.get("env") or {}
+        saved = env.get("tokenizer_sha", "unknown")
+        problems = [] if saved in ("unknown", self.a.tokenizer_sha256) else [
+            f"env.tokenizer_sha: checkpoint {saved[:12]}, here {self.a.tokenizer_sha256[:12]}"]
+        checked = []
+        self.unchecked = []
+        if run is None:
+            self.unchecked = ["model settings and Team 5 code not checked: --model-config is not the run's manifest.json"]
+        else:
+            if run is manifest:   # a Team 5 run folder: the model map from --model-config must be the run's
+                problems += differences(run["config"]["model"], self.m, "config.model.")
+                checked = ["config.model"]
+            else:                 # a store: the model map was read from this file, so it must be the store's run
+                named = (run.get("team7_checkpoint") or {}).get("run_id", MISSING)
+                base = self.a.derived_from          # a store made from that run's weights (Team 10's post-training)
+                if named != (base or manifest.get("run_id")):
+                    problems.append(f"run_id: --model-config is run {named!r}, " + (
+                        f"--derived-from says {base!r}" if base else f"the checkpoint is run {manifest.get('run_id')!r}"))
+                checked = [f"run_id {named} (config.model read from this manifest.json"
+                           + (f"; checkpoint run {manifest.get('run_id')} derived from it)" if base else ")")]
+            recorded, art = run.get("artifacts") or {}, self.art.identity()
+            both = set(recorded) & set(art)
+            problems += differences(recorded, art, "artifacts.", keys=both)
+            checked.append(f"artifacts {', '.join(sorted(both)) or 'none recorded'}")
+            extra = sorted(set(recorded) - set(art))
+            if extra:
+                self.unchecked.append(f"run artifacts without a local identity: {', '.join(extra)}")
+            if "sources" in run:
+                files = loaded_team5_files()
+                problems += code_differences(run["sources"], files)
+                checked.append(f"Team 5 {', '.join(sorted(files))}")
+            else:
+                self.unchecked.append("Team 5 code not checked: the run's manifest.json has no sources")
+        if self.a.derived_from and (run is None or run is manifest):
+            problems.append("--derived-from: for a Team 7 store, with the base run's manifest.json as --model-config")
+        if problems:
+            fix = ""
+            if any(p.startswith("Team 5 ") for p in problems):
+                at = f" (MANIFEST.json env.git_sha {env['git_sha']})" if env.get("git_sha", "none") != "none" else ""
+                fix = f"\nScore from the commit the run trained with{at}."
+            raise SystemExit("the checkpoint's run differs from what this scorer loaded (run vs here); not scored:\n  "
+                             + "\n  ".join(problems) + fix)
+        if checked:
+            print(f"run manifest check ok: {'; '.join(checked)}", flush=True)
+        for note in self.unchecked:
+            print(f"NOT CHECKED: {note}", flush=True)
 
     def factory(self):
         return build_model(self.m, self.art)
@@ -395,7 +514,7 @@ class Team5Scorer:
                   "decoding": "loglikelihood", "derived_from": None, "hardware": hardware,
                   "harness": {"name": "lm_eval", "version": metadata.version("lm_eval"),
                               "script_sha256": self.script_sha}}
-        test_note = [f"TEST RUN (--limit {a.limit}): not a result"] if a.limit else []
+        test_note = ([f"TEST RUN (--limit {a.limit}): not a result"] if a.limit else []) + self.unchecked
         lm = LabLM(model, self.art, block_size=self.m["block_size"], device=dev, bf16=bf16,
                    max_batch_tokens=a.max_batch_tokens)
         t0 = time.perf_counter()
@@ -434,6 +553,9 @@ def team5(argv: list[str]) -> Team5Scorer:
                                  description="eval-mini on a Team 5 LanguageModel checkpoint")
     ap.add_argument("--model-config", type=Path, required=True,
                     help="the run's manifest.json, a JSON model map, or the arm YAML it trains (configs/arms/...)")
+    ap.add_argument("--derived-from", metavar="RUN_ID",
+                    help="the store holds weights made from this run (Team 10's post-training folders): --model-config "
+                         "is that run's manifest.json, so its team7_checkpoint.run_id must be RUN_ID, not the store's")
     ap.add_argument("--runtime", type=Path, help="Team 5 runtime.yaml for an arm YAML (default: Team 5's own)")
     ap.add_argument("--resolution", type=Path, help="Team 5 resolution file the run used, for an arm YAML")
     ap.add_argument("--tokenizer", type=Path, required=True, help="the frozen tokenizer.json the run trains with")
