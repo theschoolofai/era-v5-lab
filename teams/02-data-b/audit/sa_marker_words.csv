@@ -2323,12 +2323,12 @@ form,group,paradigm,docs_sa,docs_hi_mr,decision
 इतो,other,indeclinable (sandhi -o),7,0,kept
 श्वो,other,indeclinable (sandhi -o),2,0,kept
 ह्यो,other,indeclinable (sandhi -o),0,0,kept
-पुनो,other,indeclinable (sandhi -o),0,1,kept
+पुनर्,other,indeclinable (sandhi -r),3,0,kept
 यावद्,other,indeclinable (sandhi -d),9,0,kept
 तावद्,other,indeclinable (sandhi -d),5,0,kept
 चेद्,other,indeclinable (sandhi -d),5,0,kept
 अधो,other,indeclinable (sandhi -o),2,1,kept
-अन्तो,other,indeclinable (sandhi -o),4,0,kept
+अन्तर्,other,indeclinable (sandhi -r),4,0,kept
 नमो,other,common (review #842) (sandhi -o),24,5,dropped: in 5 Hindi/Marathi documents
 कश्चिद्,other,common (review #842) (sandhi -d),2,0,kept
 किञ्चिद्,other,common (review #842) (sandhi -d),5,0,kept

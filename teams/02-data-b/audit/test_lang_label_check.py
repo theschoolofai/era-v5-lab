@@ -230,6 +230,9 @@ class SanskritWordsFileTest(unittest.TestCase):
             self.assertIn(pausa, forms)
             self.assertIn(sandhi, forms)
         self.assertNotIn("ताो", forms)  # -āḥ (ताः) has no -o form
+        for pausa, sandhi, wrong in (("पुनः", "पुनर्", "पुनो"), ("अन्तः", "अन्तर्", "अन्तो")):  # r-stems (#855)
+            self.assertIn(sandhi, forms)
+            self.assertNotIn(wrong, forms)
 
     def test_hand_kept_forms_are_in_the_words(self):
         import sa_marker_build as smb  # noqa: PLC0415

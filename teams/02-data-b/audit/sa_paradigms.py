@@ -9,7 +9,8 @@ The forms come from standard paradigms, not from any corpus:
 Spelling variants, by rule (v4, review on #842):
   - every word-final म् also gets its anusvara spelling (तम् -> तं), the common web spelling;
   - sandhi: a final -aḥ also as -o (ततः -> ततो, नमः -> नमो, सः -> सो), a final त् also as द् (तत् -> तद्),
-    and सः, एषः also as स, एष (before a consonant).
+    and सः, एषः also as स, एष (before a consonant). The r-stem indeclinables पुनः and अन्तः (punar, antar) take
+    -र् instead of -o (पुनर्, अन्तर्), R_STEMS (review on #855).
 
 The corpus is used only afterwards, as a safety filter (sa_marker_build.py): a form that occurs in Hindi or Marathi
 text is dropped.
@@ -129,11 +130,16 @@ def is_consonant(ch):
     return "\u0915" <= ch <= "\u0939" or "\u0958" <= ch <= "\u095F"
 
 
+R_STEMS = {"पुनः": "पुनर्", "अन्तः": "अन्तर्"}  # -aḥ from a stem in -ar: -र् before a voiced sound, never -o (#855)
+
+
 def sandhi_variants(rows):
-    """The sandhi spellings of the forms: -aḥ as -o, final त् as द्, and सः/एषः as स/एष."""
+    """The sandhi spellings of the forms: -aḥ as -o (-र् for R_STEMS), final त् as द्, and सः/एषः as स/एष."""
     out = []
     for f, g, s in rows:
-        if f.endswith("ः") and len(f) > 1 and is_consonant(f[-2]):
+        if f in R_STEMS:
+            out.append((R_STEMS[f], g, s + " (sandhi -r)"))
+        elif f.endswith("ः") and len(f) > 1 and is_consonant(f[-2]):
             out.append((f[:-1] + "ो", g, s + " (sandhi -o)"))
         if f.endswith("त्"):
             out.append((f[:-2] + "द्", g, s + " (sandhi -d)"))

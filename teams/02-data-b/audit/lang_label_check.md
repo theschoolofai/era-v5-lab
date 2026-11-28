@@ -246,7 +246,8 @@ One more case: `b7d0ec485aed0bd6` (`ind-sa-fw2`; one reader D1, the other D3, mi
 From @riteshverma's review of #842:
 
 1. **Sandhi spellings, by rule** in `sa_paradigms.py`:
-   - a final -aḥ also as -o: ततो, नमो, सो, 249 forms;
+   - a final -aḥ also as -o: ततो, नमो, सो, 247 forms. The r-stems पुनः and अन्तः (punar, antar) take -र् instead:
+     पुनर्, अन्तर् (review on #855);
    - a final त् also as द्: तद्, आसीद्, 72 forms;
    - सः and एषः also as स and एष.
 2. **More forms:**
