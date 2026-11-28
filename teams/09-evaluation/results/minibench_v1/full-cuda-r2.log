@@ -1,0 +1,4 @@
+start 2026-11-28T12:21:45Z profile=full device=cuda commit=1c5befeb (plus working-tree changes)
+$ minibench_lab.py --init-only --device cuda --profile full --model-config teams/05-architecture/results/dryrun2-1234/manifest.json --tokenizer <p1536>/tokenizer.json --tokenizer-sha256 e6b93a93...a64b --byte-table teams/04-ke2/results/tables/p1536-s0/raw_table_P32.npz --cache <eval-hub-cache> --cache <eval-hub-cache-2> --out minibench-v1-full-cuda-r2.json
+full cuda: 61.4 s, 549042 held-out tokens, 1021 items
+end 2026-11-28T12:22:51Z
