@@ -227,6 +227,7 @@ def load_runtime(arm_path, runtime_path=None):
             "tst_bag",
             "tst_frac",
             "pack",
+            "pack_pool",
         ],
         "lead run",
     )
@@ -481,6 +482,9 @@ def validate(c):
         errors.append("run.pack must be true or false")
     elif pack:
         # Both attention paths take the document mask (eager in eager_attention, SDPA as attn_mask).
+        pool = r.get("pack_pool", 16)
+        if type(pool) is not int or pool < 1:
+            errors.append("run.pack_pool must be a whole number of at least 1")
         if r.get("tst"):
             errors.append("run.pack with run.tst is not tested; turn one off")
     tst = r.get("tst")

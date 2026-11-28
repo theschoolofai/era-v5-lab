@@ -247,6 +247,21 @@ class LoaderTests(unittest.TestCase):
             for a, b in zip(again.next(torch.device("cpu")), batch):
                 self.assertTrue(torch.equal(a, b))
 
+    def test_pool_of_one_is_strict_order(self):
+        # P11: run.pack_pool sets the pool; a pool of 1 places windows strictly in order.
+        sys.path.insert(0, str(TEAM / "lab5" / "packed_rows"))
+        import numpy as np
+        from measure_fill import in_order_rows, packed_rows
+        sizes = [3, 4, 5, 2, 6, 1, 7, 3, 2, 2, 8, 1, 5]
+        self.assertEqual(packed_rows(np.array(sizes), 8, pool=1), in_order_rows(np.array(sizes), 8))
+        data = FakeWindows(sizes)
+        stream = BatchStream(data, batch_size=1, seed=0, pack=True, pool=1)
+        stream.order = list(range(len(sizes)))
+        per_row = []  # windows placed in each row
+        while sum(per_row) < len(sizes):
+            per_row.append(int(stream.next(torch.device("cpu"))[3][0].max()))
+        self.assertEqual(len(per_row), in_order_rows(np.array(sizes), 8))
+
     def test_unpacked_stream_is_unchanged(self):
         data = FakeWindows([3, 4, 5])
         data.batch = DocumentWindows.batch.__get__(data)
@@ -280,6 +295,10 @@ class ConfigTests(unittest.TestCase):
         self.assertTrue(any("run.pack" in e for e in validate(c)))
         c["run"]["pack"] = True
         c["model"]["attn_impl"] = "sdpa"  # P17: SDPA takes the document mask too
+        self.assertFalse(any("pack" in e for e in validate(c)))
+        c["run"]["pack_pool"] = 0  # P11
+        self.assertTrue(any("run.pack_pool" in e for e in validate(c)))
+        c["run"]["pack_pool"] = 32
         self.assertFalse(any("pack" in e for e in validate(c)))
 
 

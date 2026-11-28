@@ -1,10 +1,11 @@
-"""Packed rows: eager attention against SDPA with the document mask (TSAI's review of #890, step P17).
+"""Packed rows: eager attention against SDPA with the document mask (TSAI's review of #890, steps P10 and P17).
 
-Three arms on the same documents, the same model and the same seed:
+Four arms on the same documents, the same model and the same seed:
 
-    eager_packed   packed rows, eager attention with the document mask
-    sdpa_packed    packed rows, SDPA with the document mask passed as attn_mask
-    sdpa_unpacked  one window per row with padding (today's loader), SDPA causal only
+    eager_packed    packed rows, eager attention with the document mask
+    sdpa_packed     packed rows, SDPA with the document mask passed as attn_mask
+    eager_unpacked  one window per row with padding (today's loader), eager attention
+    sdpa_unpacked   one window per row with padding, SDPA causal only
 
 For each arm: real (non-padding) tokens per second over forward plus backward, peak GPU memory,
 and the gradient-coverage list TSAI's lab rule asks for (parameters whose gradient is None or all
@@ -102,7 +103,7 @@ def make_batch(rows, L, vocab, gen):
 def build(arm, vocab, L, device):
     c = load_runtime(TEAM / "configs/arms/t2.yaml")
     m = dict(c["model"])
-    m.update(vocab_size=vocab, block_size=L, attn_impl="eager" if arm == "eager_packed" else "sdpa")
+    m.update(vocab_size=vocab, block_size=L, attn_impl="eager" if arm.startswith("eager") else "sdpa")
     rng = np.random.default_rng(7)
     rows = rng.integers(0, 256, (vocab, 4), dtype=np.uint8)
     lengths = rng.integers(1, 5, vocab, dtype=np.int16)
@@ -113,7 +114,7 @@ def build(arm, vocab, L, device):
 def run_arm(arm, batches, vocab, L, device, dtype, warmup):
     model = build(arm, vocab, L, device)
     model.train()
-    packed = arm != "sdpa_unpacked"
+    packed = arm.endswith("_packed")
     cast = torch.autocast(device.type, dtype=dtype) if dtype != torch.float32 else torch.autocast(device.type, enabled=False)
     if device.type == "cuda":
         torch.cuda.reset_peak_memory_stats()
@@ -168,7 +169,8 @@ def main():
         gen = torch.Generator().manual_seed(a.seed)
         return [make_batch(rows[i * a.batch:(i + 1) * a.batch], L, a.vocab, gen) for i in range(steps)]
 
-    data = {"eager_packed": batches(packed), "sdpa_packed": batches(packed), "sdpa_unpacked": batches(single)}
+    data = {"eager_packed": batches(packed), "sdpa_packed": batches(packed),
+            "eager_unpacked": batches(single), "sdpa_unpacked": batches(single)}
     name = torch.cuda.get_device_name() if device.type == "cuda" else "CPU"
     print(f"Machine: {name}; torch {torch.__version__}; dtype {a.dtype}; window {L}; "
           f"{a.batch} rows per step; {steps} steps ({a.warmup} not timed); vocab {a.vocab}; seed {a.seed}")
@@ -182,7 +184,7 @@ def main():
         tps, peak, gaps = run_arm(arm, rows, a.vocab, L, device, dtype, a.warmup)
         base = base or tps
         gaps_all[arm] = gaps
-        print(f"| {arm} | {'packed' if arm != 'sdpa_unpacked' else 'one window'} | {fill:.1%} | "
+        print(f"| {arm} | {'packed' if arm.endswith('_packed') else 'one window'} | {fill:.1%} | "
               f"{tps:,.0f} | {tps / base:.2f}x | {peak} | {len(gaps)} |")
     print()
     same = gaps_all["eager_packed"] == gaps_all["sdpa_packed"]

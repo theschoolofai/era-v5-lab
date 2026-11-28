@@ -66,6 +66,19 @@ def packed_rows(sizes, L, pool=16):
     return rows
 
 
+def pool_sweep(lengths, Ls, seed, pools):
+    """Fill packed for each pool size (run.pack_pool); a pool of 1 is strict order."""
+    content = int(lengths.sum())
+    rng = np.random.default_rng(seed)
+    head = "| Pool | " + " | ".join(f"Fill at {L:,}" for L in Ls) + " |"
+    lines = [head, "|---:|" + "---:|" * len(Ls)]
+    orders = {L: rng.permutation(windows(lengths, L)) for L in Ls}
+    for pool in pools:
+        cells = [f"{content / (packed_rows(orders[L], L, pool) * L):.1%}" for L in Ls]
+        lines.append(f"| {pool} | " + " | ".join(cells) + " |")
+    return "\n".join(lines)
+
+
 def report(lengths, Ls, seed):
     content = int(lengths.sum())
     rng = np.random.default_rng(seed)
@@ -90,8 +103,14 @@ def main():
     p.add_argument("--index", nargs="+", required=True, help="shard .idx.npy files")
     p.add_argument("--windows", nargs="+", type=int, default=[2048, 4096])
     p.add_argument("--seed", type=int, default=1234)
+    p.add_argument("--pool", nargs="*", type=int, default=[],
+                   help="also print fill for these pool sizes (run.pack_pool), e.g. 1 4 8 16 32 64")
     a = p.parse_args()
-    print(report(document_lengths([Path(x) for x in a.index]), a.windows, a.seed))
+    lengths = document_lengths([Path(x) for x in a.index])
+    print(report(lengths, a.windows, a.seed))
+    if a.pool:
+        print()
+        print(pool_sweep(lengths, a.windows, a.seed, a.pool))
 
 
 if __name__ == "__main__":

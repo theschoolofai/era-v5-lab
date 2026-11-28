@@ -372,16 +372,18 @@ class DocumentWindows:
 
 # The sampler owns its RNG so model initialization cannot change data order.
 class BatchStream:
-    # Packed rows draw from the next PACK_POOL windows in sampler order. Taking windows strictly in
-    # order leaves rows about 78% full at 2,048 on sample-v0 (a long window that does not fit wastes
-    # the rest of the row); best fit from 16 upcoming windows reaches about 99%
-    # (lab5/packed_rows/measure_fill.py).
+    # Packed rows draw from the next PACK_POOL windows in sampler order (run.pack_pool). Taking
+    # windows strictly in order (a pool of 1) leaves rows about 78% full at 2,048 on sample-v0 (a
+    # long window that does not fit wastes the rest of the row); best fit from 16 upcoming windows
+    # reaches about 99% (lab5/packed_rows/measure_fill.py --pool).
     PACK_POOL = 16
 
-    def __init__(self, dataset, batch_size, seed, pack=False):
+    def __init__(self, dataset, batch_size, seed, pack=False, pool=None):
         self.dataset = dataset
         self.batch_size = batch_size
         self.pack = pack
+        if pool is not None:
+            self.PACK_POOL = int(pool)
         self.pool = []
         self.generator = torch.Generator().manual_seed(seed)
         self.order = torch.randperm(

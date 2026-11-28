@@ -32,7 +32,7 @@ One packed row has length `L` (= `data.seq_len`). Five arrays, one value per pos
 
 **End of a pass.** The pool only refills from the current pass. When the pass runs out, the pool drains first, and the next pass is shuffled and starts once the pool is empty. So every pass places each piece exactly once. (Refilling across the boundary, as the first version did, let a next-pass piece jump ahead of a waiting one: within a pass, up to 15 pieces were placed twice and as many not at all.)
 
-Why a pool: taking pieces strictly in order leaves rows only about 78% full at 2,048 on two sample-v0 shards, because a full 2,048 window that arrives when a row is half used wastes the rest of that row. Best fit from 16 upcoming pieces reaches 99.2% at 2,048 and 99.6% at 4,096 (measured below). It only reorders pieces within a window of 16, and the pool is saved in the sampler's state, so the data order is still fixed by the seed and a resumed run continues exactly.
+Why a pool: taking pieces strictly in order leaves rows only about 78% full at 2,048 on two sample-v0 shards, because a full 2,048 window that arrives when a row is half used wastes the rest of that row. Best fit from 16 upcoming pieces reaches 99.2% at 2,048 and 99.6% at 4,096 (measured below). The size is a setting, `run.pack_pool` (default 16); a pool of 1 is strict order. It only reorders pieces within a window of 16, and the pool is saved in the sampler's state, so the data order is still fixed by the seed and a resumed run continues exactly.
 
 **Positions: settled.** Every window restarts its positions at 0, including the later windows of a long document, as today. TSAI accepted this on the PR (28 Nov): the model cannot see an earlier window, so restarting is consistent.
 
@@ -66,8 +66,9 @@ Why a pool: taking pieces strictly in order leaves rows only about 78% full at 2
 | i | One pass, each piece once | Over several passes, every pass places each window exactly once |
 | j | SDPA with the mask | Same logits and gradients as eager on a packed row |
 | k | Gradient coverage | The parameters with a None or all-zero gradient are the same with SDPA and with eager |
+| l | Pool size | `run.pack_pool` is checked (a whole number, at least 1); a pool of 1 gives the same rows as strict order |
 
-All are in `tests/test_packed_rows.py` (17 tests), plus the full G5 test suite.
+All are in `tests/test_packed_rows.py` (18 tests), plus the full G5 test suite.
 
 ## Measured
 
@@ -94,15 +95,41 @@ All 41 sample-v0 shards (the `.idx.npy` files only; 1,200,725 documents, 1,008,1
 
 The "fill today" column matches #825's figures for the same 41 shards (35.22% at 2,048, 19.48% at 4,096), a check on the measurement. `measure_fill.py` measures one pass, so its numbers already follow the end-of-pass rule above.
 
-**Eager against SDPA with the mask** (TSAI's review). `measure_attention.py` runs three arms on the same documents, model (the T2 arm, vocabulary 32,768) and seed: packed rows with eager, packed rows with SDPA and the mask, and one window per row with causal SDPA (today). It reports real tokens per second over forward and backward, peak GPU memory, and the gradient-coverage list for each arm:
+**Pool size** (`run.pack_pool`), all 41 shards, same command with `--pool 1 4 8 16 32 64`:
+
+| Pool | Fill at 2,048 | Fill at 4,096 |
+|---:|---:|---:|
+| 1 (strict order) | 77.9% | 80.3% |
+| 4 | 97.1% | 98.0% |
+| 8 | 99.0% | 99.5% |
+| 16 (default) | 99.5% | 99.8% |
+| 32 | 99.7% | 99.9% |
+| 64 | 99.7% | 99.9% |
+
+16 is where the gain flattens: 32 and 64 add 0.2 points or less, and a bigger pool moves windows further from their shuffled order.
+
+**Eager against SDPA with the mask** (TSAI's review). `measure_attention.py` runs four arms on the same documents, model (the T2 arm, vocabulary 32,768) and seed: packed rows with eager, packed rows with SDPA and the mask, and one window per row (today) with eager and with causal SDPA. It reports real tokens per second over forward and backward, peak GPU memory, and the gradient-coverage list for each arm:
 
 ```
 python teams/05-architecture/lab5/packed_rows/measure_attention.py \n    --index en-fineweb-edu-train-000000.idx.npy --window 2048 --batch 2 --steps 20 --dtype fp16
 ```
 
-Results on a T4 (fp16; the T4 has no fast bf16): to follow. Every number is for the machine it ran on, not the training GPU.
+**CPU, for the direction only** (a laptop CPU, fp32, window 2,048, one row per step, 4 steps with the first left out of the timing; document lengths from `en-fineweb-edu-train-000000`):
 
-Still to measure: one training step on CPU, packed and unpacked, for the cost per real token.
+```
+python teams/05-architecture/lab5/packed_rows/measure_attention.py     --index en-fineweb-edu-train-000000.idx.npy --window 2048 --batch 1 --steps 4 --warmup 1 --dtype fp32
+```
+
+| Arm | Fill | Real tokens/s | vs eager packed |
+|---|---:|---:|---:|
+| eager, packed | 99.3% | 224 | 1.00x |
+| SDPA with the mask, packed | 99.3% | 200 | 0.89x |
+| eager, one window per row | 50.1% | 126 | 0.56x |
+| SDPA causal, one window per row | 50.1% | 143 | 0.64x |
+
+A packed row costs about the same as a padded row, so real tokens per second rise with the fill: 224 against 126 on eager, 1.78 times (the fill ratio is 1.98; the rest is noise over three timed steps and the cost of attending within longer rows). On this CPU, SDPA with the mask is slower than eager; the CPU says nothing about GPU kernels. Gradient coverage is the same on all four arms (no parameter without a gradient).
+
+Results on a T4 (fp16; the T4 has no fast bf16): to follow. Every number is for the machine it ran on, not the training GPU.
 
 ## What it needs from others
 

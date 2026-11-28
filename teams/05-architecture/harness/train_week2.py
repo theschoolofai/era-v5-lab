@@ -434,7 +434,10 @@ def main():
     model = LanguageModel(cfg["model"], artifacts.bytes, artifacts.lengths).to(device)
     # Use the optimizer selected by the resolved arm configuration.
     optimizer = build_optimizer(model, cfg["optim"])
-    stream = BatchStream(train, cfg["run"]["batch_size"], seed, pack=bool(cfg["run"].get("pack", False)))
+    stream = BatchStream(
+        train, cfg["run"]["batch_size"], seed,
+        pack=bool(cfg["run"].get("pack", False)), pool=cfg["run"].get("pack_pool", 16),
+    )
 
     def amp():
         return (
