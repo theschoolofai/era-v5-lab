@@ -261,8 +261,9 @@ class Block(nn.Module):
 
 
 class GPT(nn.Module):
-    def __init__(self, cfg: ModelConfig, token_bytes=None):
-        """token_bytes: (bytes [V, P] uint8, lens [V]) from models.ke1, only when cfg.embedding == 'ke1'."""
+    def __init__(self, cfg: ModelConfig, token_bytes=None, head_bytes=None):
+        """token_bytes: (bytes [V, P] uint8, lens [V]) from models.ke1, only when cfg.embedding == 'ke1'.
+        head_bytes: (rows [V, <=32] uint8, lengths [V]) for head_mode='kas_v2'; default is G4's frozen p1536 table."""
         super().__init__()
         self.cfg = cfg
         d = cfg.n_embd
@@ -285,12 +286,23 @@ class GPT(nn.Module):
             nn.init.normal_(self.pos.weight, mean=0.0, std=0.02)
         self.blocks = nn.ModuleList(Block(cfg, i) for i in range(cfg.n_layer))
         self.ln_f = _layer_norm(cfg)
-        self.head = nn.Linear(d, cfg.padded_vocab_size, bias=False)
-        # Tie when embedding=table and tie_embeddings is not False (None keeps the legacy table-tied default).
-        if cfg.embedding == "table" and cfg.tie_embeddings is not False:
-            self.head.weight = self.tok.weight
+        self.prior_identity = None
+        if cfg.head_mode == "kas_v2":
+            from models.kas_v2 import KASCodec, KASHead, initialize_prior, load_kas_table
+            rows, lengths = head_bytes if head_bytes is not None else load_kas_table(cfg.vocab_size)
+            if len(rows) != cfg.vocab_size:
+                raise ValueError(f"KAS byte table has {len(rows)} rows, model.vocab_size is {cfg.vocab_size}")
+            self.kas_codec = KASCodec()      # a submodule here, so .to() moves its float64 G / Phi with the model
+            self.head = KASHead(rows, lengths, d, self.kas_codec)
+            if cfg.kas_prior:
+                self.prior_identity = initialize_prior(self.head, {})
         else:
-            nn.init.normal_(self.head.weight, mean=0.0, std=0.02)
+            self.head = nn.Linear(d, cfg.padded_vocab_size, bias=False)
+            # Tie when embedding=table and tie_embeddings is not False (None keeps the legacy table-tied default).
+            if cfg.embedding == "table" and cfg.tie_embeddings is not False:
+                self.head.weight = self.tok.weight
+            else:
+                nn.init.normal_(self.head.weight, mean=0.0, std=0.02)
         if cfg.mtp:
             self.mtp_head = nn.Linear(d, cfg.padded_vocab_size, bias=False)
             nn.init.normal_(self.mtp_head.weight, mean=0.0, std=0.02)
@@ -338,7 +350,10 @@ class GPT(nn.Module):
 
     def _head_out(self, head, x):
         """head(x) at the padded width. vocab_pad_mode='mask': the padded columns get a -inf bias that the matmul adds
-        itself (no extra pass over the logits), so they drop out of the softmax and get zero gradient."""
+        itself (no extra pass over the logits), so they drop out of the softmax and get zero gradient.
+        head_mode='kas_v2': the KAS head returns a transposed view; one contiguous [..., V] copy for the loss."""
+        if head is self.head and self.cfg.head_mode == "kas_v2":
+            return head(x).contiguous()
         if self.cfg.vocab_pad_mode == "mask" and head.weight.shape[0] != self.cfg.vocab_size:
             return F.linear(x, head.weight, self.pad_bias)
         return head(x)
@@ -390,6 +405,8 @@ class GPT(nn.Module):
     def _head_ce(self, head, x, y):
         """Mean CE of head(x) by the memory-bounded cfg.ce_impl; chunked when it is none of the fused ones.
         The fused kernels take the first vocab_size rows of the weight, so padding rows stay out of the softmax."""
+        if head is self.head and self.cfg.head_mode == "kas_v2":   # config allows only chunked: no [V, d] weight
+            return self._chunked_ce(head, x, y)
         V = self.cfg.vocab_size
         weight = head.weight if head.weight.shape[0] == V else head.weight[:V]
         bias = head.bias if head.bias is None or head.bias.shape[0] == V else head.bias[:V]   # heads are bias=False today
@@ -420,6 +437,9 @@ class GPT(nn.Module):
         # head rows counted at vocab_size: padding (vocab_pad_multiple) is not model work, so active params and
         # model FLOPs are the same padded or not. total (parameters()) is the real storage, padded rows included.
         active = self.cfg.vocab_size * self.cfg.n_embd * (2 if self.cfg.mtp else 1)
+        if self.cfg.head_mode == "kas_v2":   # KAS: W_out [d, 2048], tok_c [64, d], tok_u [V, 64] instead of V x d
+            h = self.head
+            active += h.W_out.numel() + h.tok_c.numel() + h.tok_u.numel() - self.cfg.vocab_size * self.cfg.n_embd
         if self.cfg.embedding in ("ke1", "ke2"):
             active += self.tok.proj.weight.numel()
         for blk in self.blocks:

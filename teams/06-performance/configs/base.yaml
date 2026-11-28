@@ -48,6 +48,8 @@ model:                  # fields of models.config.ModelConfig, nothing else
   ce_impl: torch        # torch | chunked | fused | triton_liger | triton_cce | fused_triton
   ce_chunks: 8          # token chunk count for chunked / fused / fused_triton (need not divide B*T)
   mtp: false            # true: second untied head on token t+2 (G5 config_v0); trained loss = ntp + mtp
+  head_mode: dense      # dense (nn.Linear) | kas_v2 (G4 KAS V2 head, models/kas_v2.py; ce_impl torch | chunked)
+  kas_prior: true       # kas_v2: head.unigram from G3 p1536 counts (G5 default)
 
 optim:
   name: polar_muon_adamw  # adamw | muon | polar_muon_adamw (single-process combined Polar Express Muon + AdamW)

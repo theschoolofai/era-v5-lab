@@ -16,6 +16,8 @@ from pathlib import Path
 import yaml
 
 MOE_KEYS = {"num_experts", "top_k", "num_shared", "bias_gamma", "dispatch", "ffn_hidden", "router_impl"}   # SparseMoE keyword arguments
+HEAD_MODES = ("dense", "kas_v2")
+KAS_CE_IMPLS = ("torch", "chunked")
 CE_IMPLS = ("torch", "chunked", "fused", "triton_liger", "triton_cce", "fused_triton")
 ATTN_IMPLS = ("sdpa", "eager", "triton")
 ACTIVATIONS = ("gelu", "swiglu")
@@ -70,6 +72,10 @@ class ModelConfig:
                                      # | fused_triton (kernels/linear_ce_cublas.py: cuBLAS matmuls + Triton softmax grad)
     ce_chunks: int = 8                # number of token chunks for chunked / fused / fused_triton
     mtp: bool = False                # True: second untied head predicts token t+2 (G5 config_v0); loss = ntp + mtp
+    head_mode: str = "dense"         # dense (nn.Linear head) | kas_v2 (Team 4's KAS V2 head, models/kas_v2.py: untied,
+                                     # frozen p1536 byte table, vocab_size rows, ce_impl torch | chunked)
+    kas_prior: bool = True           # kas_v2: initialize head.unigram from Team 3's p1536 counts (Team 5's default);
+                                     # False leaves it at zero (tests with a small byte table)
 
     def __post_init__(self):
         assert self.embedding in ("table", "ke1", "ke2"), f"embedding={self.embedding!r}"
@@ -78,6 +84,12 @@ class ModelConfig:
             assert self.embedding == "table", (
                 "tie_embeddings=True requires model.embedding='table' (KE1/KE2 has no [V, d] table)"
             )
+        assert self.head_mode in HEAD_MODES, f"head_mode={self.head_mode!r} not in {HEAD_MODES}"
+        if self.head_mode == "kas_v2":
+            assert self.tie_embeddings is not True, "head_mode=kas_v2 has no [V, d] weight to tie"
+            assert self.vocab_pad_multiple == 1, "head_mode=kas_v2 returns exactly vocab_size logits (no padding)"
+            assert self.ce_impl in KAS_CE_IMPLS, (
+                f"head_mode=kas_v2 needs ce_impl in {KAS_CE_IMPLS}: the fused losses read head.weight")
         assert self.ffn in ("mlp", "moe"), f"ffn={self.ffn!r}"
         assert self.vocab_pad_mode in VOCAB_PAD_MODES, f"vocab_pad_mode={self.vocab_pad_mode!r} not in {VOCAB_PAD_MODES}"
         assert type(self.vocab_pad_multiple) is int and self.vocab_pad_multiple >= 1, \
