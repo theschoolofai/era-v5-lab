@@ -1,0 +1,8732 @@
+{
+ "domains": {
+  "en-web": {
+   "packs": [
+    "en-dclm",
+    "en-fineweb-edu",
+    "en-nemotroncc"
+   ],
+   "docs": 220,
+   "bytes": 1000413
+  },
+  "en-synthetic": {
+   "packs": [
+    "en-nemotroncc-synth"
+   ],
+   "docs": 620,
+   "bytes": 1000402
+  },
+  "code-python": {
+   "packs": [
+    "code-python"
+   ],
+   "docs": 228,
+   "bytes": 1030829
+  },
+  "code-other": {
+   "packs": [
+    "code-cpp",
+    "code-go",
+    "code-java",
+    "code-js-ts",
+    "code-rust"
+   ],
+   "docs": 191,
+   "bytes": 1002549
+  },
+  "code-adjacent": {
+   "packs": [
+    "cadj-commits",
+    "cadj-notebooks",
+    "cadj-stackexchange"
+   ],
+   "docs": 230,
+   "bytes": 1002890
+  },
+  "math": {
+   "packs": [
+    "math-finemath",
+    "math-megamath"
+   ],
+   "docs": 177,
+   "bytes": 1008185
+  },
+  "science-pdf": {
+   "packs": [
+    "sci-finepdfs"
+   ],
+   "docs": 63,
+   "bytes": 851970
+  },
+  "hi-mr (Devanagari)": {
+   "packs": [
+    "ind-hi-fw2",
+    "ind-hi-hplt",
+    "ind-hi-indiccorp",
+    "ind-hi-sangraha-s",
+    "ind-hi-sangraha-v",
+    "ind-mr-fw2",
+    "ind-mr-sangraha-v"
+   ],
+   "docs": 193,
+   "bytes": 1008495
+  },
+  "bn-or-gu": {
+   "packs": [
+    "ind-bn-fw2",
+    "ind-bn-sangraha-v",
+    "ind-or-fw2",
+    "ind-gu-fw2"
+   ],
+   "docs": 162,
+   "bytes": 1003228
+  },
+  "ta-ml": {
+   "packs": [
+    "ind-ta-fw2",
+    "ind-ta-sangraha-s",
+    "ind-ta-sangraha-v",
+    "ind-ml-fw2"
+   ],
+   "docs": 119,
+   "bytes": 1022545
+  },
+  "te-kn": {
+   "packs": [
+    "ind-te-fw2",
+    "ind-te-sangraha-s",
+    "ind-te-sangraha-v",
+    "ind-kn-fw2",
+    "ind-kn-sangraha-s",
+    "ind-kn-sangraha-v"
+   ],
+   "docs": 146,
+   "bytes": 1002690
+  },
+  "sanskrit": {
+   "packs": [
+    "ind-sa-fw2"
+   ],
+   "docs": 55,
+   "bytes": 766547
+  }
+ },
+ "train_text": {
+  "seed": 20261128,
+  "sample_sha256sums": "0b7da76396a7078b07a5e5f96a4ced88279e77205c164a35f284f387b0546faa",
+  "unique_docs": 1430307,
+  "sets": {
+   "10MB": {
+    "docs": 2438,
+    "bytes": 9998796
+   },
+   "100MB": {
+    "docs": 23843,
+    "bytes": 99993726
+   },
+   "1GB": {
+    "docs": 239774,
+    "bytes": 999999251
+   }
+  }
+ },
+ "train_meta": {
+  "plain_1GB.meta": {
+   "merges": 1000000,
+   "train_seconds": 378.4,
+   "threads": 10
+  },
+  "plain_10MB.meta": {
+   "merges": 114809,
+   "train_seconds": 3.5,
+   "threads": 10
+  },
+  "plain_100MB.meta": {
+   "merges": 488541,
+   "train_seconds": 31.8,
+   "threads": 10
+  }
+ },
+ "tokenizers": {
+  "p1536 (frozen)": {
+   "vocab": 131072,
+   "domains": {
+    "en-web": {
+     "tokens": 214985,
+     "tokens_per_word": 1.2852,
+     "bytes_per_token": 4.653,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 201076,
+     "tokens_per_word": 1.3187,
+     "bytes_per_token": 4.975,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 261574,
+     "tokens_per_word": 2.9381,
+     "bytes_per_token": 3.941,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 265902,
+     "tokens_per_word": 2.7335,
+     "bytes_per_token": 3.77,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 263361,
+     "tokens_per_word": 2.2407,
+     "bytes_per_token": 3.808,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 259931,
+     "tokens_per_word": 1.5264,
+     "bytes_per_token": 3.879,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 201501,
+     "tokens_per_word": 1.468,
+     "bytes_per_token": 4.228,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 118339,
+     "tokens_per_word": 1.622,
+     "bytes_per_token": 8.522,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 117282,
+     "tokens_per_word": 1.9513,
+     "bytes_per_token": 8.554,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 100782,
+     "tokens_per_word": 2.418,
+     "bytes_per_token": 10.146,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 112467,
+     "tokens_per_word": 2.4008,
+     "bytes_per_token": 8.915,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 126934,
+     "tokens_per_word": 3.4542,
+     "bytes_per_token": 6.039,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 2244134,
+   "unused_units": 48526,
+   "unused_share": 0.3702,
+   "tokens_per_s_core": 664942,
+   "group": "reference",
+   "sha256": "e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b"
+  },
+  "o200k_base": {
+   "vocab": 200019,
+   "domains": {
+    "en-web": {
+     "tokens": 212939,
+     "tokens_per_word": 1.273,
+     "bytes_per_token": 4.698,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 199030,
+     "tokens_per_word": 1.3053,
+     "bytes_per_token": 5.026,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 254745,
+     "tokens_per_word": 2.8614,
+     "bytes_per_token": 4.047,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 255559,
+     "tokens_per_word": 2.6271,
+     "bytes_per_token": 3.923,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 258109,
+     "tokens_per_word": 2.196,
+     "bytes_per_token": 3.886,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 255921,
+     "tokens_per_word": 1.5028,
+     "bytes_per_token": 3.939,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 198743,
+     "tokens_per_word": 1.4479,
+     "bytes_per_token": 4.287,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 131489,
+     "tokens_per_word": 1.8022,
+     "bytes_per_token": 7.67,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 174327,
+     "tokens_per_word": 2.9003,
+     "bytes_per_token": 5.755,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 133234,
+     "tokens_per_word": 3.1966,
+     "bytes_per_token": 7.675,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 146803,
+     "tokens_per_word": 3.1337,
+     "bytes_per_token": 6.83,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 136972,
+     "tokens_per_word": 3.7273,
+     "bytes_per_token": 5.596,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 2357871,
+   "unused_units": 127374,
+   "unused_share": 0.6368,
+   "tokens_per_s_core": 3024099,
+   "group": "reference"
+  },
+  "o200k first 1k": {
+   "vocab": 1256,
+   "domains": {
+    "en-web": {
+     "tokens": 428785,
+     "tokens_per_word": 2.5634,
+     "bytes_per_token": 2.333,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 434655,
+     "tokens_per_word": 2.8506,
+     "bytes_per_token": 2.302,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 491263,
+     "tokens_per_word": 5.5181,
+     "bytes_per_token": 2.098,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 480241,
+     "tokens_per_word": 4.9368,
+     "bytes_per_token": 2.088,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 500473,
+     "tokens_per_word": 4.258,
+     "bytes_per_token": 2.004,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 470442,
+     "tokens_per_word": 2.7625,
+     "bytes_per_token": 2.143,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 388970,
+     "tokens_per_word": 2.8338,
+     "bytes_per_token": 2.19,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 446073,
+     "tokens_per_word": 6.1139,
+     "bytes_per_token": 2.261,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 579607,
+     "tokens_per_word": 9.6431,
+     "bytes_per_token": 1.731,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 595605,
+     "tokens_per_word": 14.2899,
+     "bytes_per_token": 1.717,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 609747,
+     "tokens_per_word": 13.016,
+     "bytes_per_token": 1.644,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 348206,
+     "tokens_per_word": 9.4755,
+     "bytes_per_token": 2.201,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 5774067,
+   "unused_units": 114,
+   "unused_share": 0.0908,
+   "tokens_per_s_core": 6752886,
+   "group": "o200k cut",
+   "merges": 1000
+  },
+  "o200k first 10k": {
+   "vocab": 10256,
+   "domains": {
+    "en-web": {
+     "tokens": 286057,
+     "tokens_per_word": 1.7101,
+     "bytes_per_token": 3.497,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 283539,
+     "tokens_per_word": 1.8596,
+     "bytes_per_token": 3.528,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 339046,
+     "tokens_per_word": 3.8083,
+     "bytes_per_token": 3.04,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 330800,
+     "tokens_per_word": 3.4006,
+     "bytes_per_token": 3.031,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 344933,
+     "tokens_per_word": 2.9347,
+     "bytes_per_token": 2.907,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 330660,
+     "tokens_per_word": 1.9417,
+     "bytes_per_token": 3.049,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 268336,
+     "tokens_per_word": 1.9549,
+     "bytes_per_token": 3.175,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 252489,
+     "tokens_per_word": 3.4606,
+     "bytes_per_token": 3.994,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 367138,
+     "tokens_per_word": 6.1082,
+     "bytes_per_token": 2.733,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 293164,
+     "tokens_per_word": 7.0337,
+     "bytes_per_token": 3.488,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 315376,
+     "tokens_per_word": 6.7322,
+     "bytes_per_token": 3.179,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 219345,
+     "tokens_per_word": 5.9689,
+     "bytes_per_token": 3.495,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 3630883,
+   "unused_units": 1497,
+   "unused_share": 0.146,
+   "tokens_per_s_core": 4545636,
+   "group": "o200k cut",
+   "merges": 10000
+  },
+  "o200k first 100k": {
+   "vocab": 100256,
+   "domains": {
+    "en-web": {
+     "tokens": 220707,
+     "tokens_per_word": 1.3194,
+     "bytes_per_token": 4.533,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 208052,
+     "tokens_per_word": 1.3645,
+     "bytes_per_token": 4.808,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 264644,
+     "tokens_per_word": 2.9726,
+     "bytes_per_token": 3.895,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 264698,
+     "tokens_per_word": 2.7211,
+     "bytes_per_token": 3.788,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 267967,
+     "tokens_per_word": 2.2799,
+     "bytes_per_token": 3.743,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 264810,
+     "tokens_per_word": 1.555,
+     "bytes_per_token": 3.807,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 206287,
+     "tokens_per_word": 1.5029,
+     "bytes_per_token": 4.13,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 151052,
+     "tokens_per_word": 2.0703,
+     "bytes_per_token": 6.676,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 208409,
+     "tokens_per_word": 3.4674,
+     "bytes_per_token": 4.814,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 158604,
+     "tokens_per_word": 3.8053,
+     "bytes_per_token": 6.447,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 175434,
+     "tokens_per_word": 3.7449,
+     "bytes_per_token": 5.715,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 148030,
+     "tokens_per_word": 4.0282,
+     "bytes_per_token": 5.178,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 2538694,
+   "unused_units": 48976,
+   "unused_share": 0.4885,
+   "tokens_per_s_core": 3254578,
+   "group": "o200k cut",
+   "merges": 100000
+  },
+  "plain 10MB 1k": {
+   "vocab": 1256,
+   "domains": {
+    "en-web": {
+     "tokens": 429918,
+     "tokens_per_word": 2.5701,
+     "bytes_per_token": 2.327,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 434647,
+     "tokens_per_word": 2.8506,
+     "bytes_per_token": 2.302,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 480968,
+     "tokens_per_word": 5.4024,
+     "bytes_per_token": 2.143,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 473008,
+     "tokens_per_word": 4.8625,
+     "bytes_per_token": 2.12,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 492983,
+     "tokens_per_word": 4.1943,
+     "bytes_per_token": 2.034,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 466635,
+     "tokens_per_word": 2.7402,
+     "bytes_per_token": 2.161,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 392723,
+     "tokens_per_word": 2.8611,
+     "bytes_per_token": 2.169,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 279844,
+     "tokens_per_word": 3.8356,
+     "bytes_per_token": 3.604,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 380992,
+     "tokens_per_word": 6.3387,
+     "bytes_per_token": 2.633,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 370922,
+     "tokens_per_word": 8.8993,
+     "bytes_per_token": 2.757,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 424926,
+     "tokens_per_word": 9.0707,
+     "bytes_per_token": 2.36,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 233629,
+     "tokens_per_word": 6.3576,
+     "bytes_per_token": 3.281,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 4861195,
+   "unused_units": 62,
+   "unused_share": 0.0494,
+   "tokens_per_s_core": 1366318,
+   "group": "plain BPE",
+   "train_set": "10MB",
+   "merges": 1000,
+   "cap": null,
+   "train_seconds": null,
+   "max_unit_bytes": 19
+  },
+  "plain 10MB 10k": {
+   "vocab": 10256,
+   "domains": {
+    "en-web": {
+     "tokens": 285974,
+     "tokens_per_word": 1.7096,
+     "bytes_per_token": 3.498,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 280481,
+     "tokens_per_word": 1.8395,
+     "bytes_per_token": 3.567,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 329747,
+     "tokens_per_word": 3.7039,
+     "bytes_per_token": 3.126,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 320265,
+     "tokens_per_word": 3.2923,
+     "bytes_per_token": 3.13,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 326670,
+     "tokens_per_word": 2.7793,
+     "bytes_per_token": 3.07,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 321814,
+     "tokens_per_word": 1.8897,
+     "bytes_per_token": 3.133,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 268756,
+     "tokens_per_word": 1.958,
+     "bytes_per_token": 3.17,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 176605,
+     "tokens_per_word": 2.4206,
+     "bytes_per_token": 5.71,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 216241,
+     "tokens_per_word": 3.5977,
+     "bytes_per_token": 4.639,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 192691,
+     "tokens_per_word": 4.6231,
+     "bytes_per_token": 5.307,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 225992,
+     "tokens_per_word": 4.8241,
+     "bytes_per_token": 4.437,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 164000,
+     "tokens_per_word": 4.4628,
+     "bytes_per_token": 4.674,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 3109236,
+   "unused_units": 202,
+   "unused_share": 0.0197,
+   "tokens_per_s_core": 940297,
+   "group": "plain BPE",
+   "train_set": "10MB",
+   "merges": 10000,
+   "cap": null,
+   "train_seconds": null,
+   "max_unit_bytes": 64
+  },
+  "plain 10MB 100k": {
+   "vocab": 100256,
+   "domains": {
+    "en-web": {
+     "tokens": 224231,
+     "tokens_per_word": 1.3405,
+     "bytes_per_token": 4.462,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 209545,
+     "tokens_per_word": 1.3743,
+     "bytes_per_token": 4.774,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 269181,
+     "tokens_per_word": 3.0236,
+     "bytes_per_token": 3.83,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 266682,
+     "tokens_per_word": 2.7415,
+     "bytes_per_token": 3.759,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 264812,
+     "tokens_per_word": 2.253,
+     "bytes_per_token": 3.787,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 262897,
+     "tokens_per_word": 1.5438,
+     "bytes_per_token": 3.835,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 211430,
+     "tokens_per_word": 1.5404,
+     "bytes_per_token": 4.03,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 116213,
+     "tokens_per_word": 1.5928,
+     "bytes_per_token": 8.678,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 126790,
+     "tokens_per_word": 2.1094,
+     "bytes_per_token": 7.913,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 112090,
+     "tokens_per_word": 2.6893,
+     "bytes_per_token": 9.123,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 131904,
+     "tokens_per_word": 2.8157,
+     "bytes_per_token": 7.602,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 117588,
+     "tokens_per_word": 3.1998,
+     "bytes_per_token": 6.519,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 2313363,
+   "unused_units": 32776,
+   "unused_share": 0.3269,
+   "tokens_per_s_core": 645945,
+   "group": "plain BPE",
+   "train_set": "10MB",
+   "merges": 100000,
+   "cap": null,
+   "train_seconds": null,
+   "max_unit_bytes": 161
+  },
+  "plain 10MB 100k ≤32B": {
+   "vocab": 100256,
+   "domains": {
+    "en-web": {
+     "tokens": 224151,
+     "tokens_per_word": 1.34,
+     "bytes_per_token": 4.463,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 209455,
+     "tokens_per_word": 1.3737,
+     "bytes_per_token": 4.776,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 269441,
+     "tokens_per_word": 3.0265,
+     "bytes_per_token": 3.826,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 266735,
+     "tokens_per_word": 2.742,
+     "bytes_per_token": 3.759,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 264837,
+     "tokens_per_word": 2.2532,
+     "bytes_per_token": 3.787,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 262813,
+     "tokens_per_word": 1.5433,
+     "bytes_per_token": 3.836,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 211442,
+     "tokens_per_word": 1.5404,
+     "bytes_per_token": 4.029,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 116285,
+     "tokens_per_word": 1.5938,
+     "bytes_per_token": 8.673,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 126866,
+     "tokens_per_word": 2.1107,
+     "bytes_per_token": 7.908,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 112584,
+     "tokens_per_word": 2.7012,
+     "bytes_per_token": 9.083,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 131905,
+     "tokens_per_word": 2.8157,
+     "bytes_per_token": 7.602,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 117536,
+     "tokens_per_word": 3.1984,
+     "bytes_per_token": 6.522,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 2314050,
+   "unused_units": 32748,
+   "unused_share": 0.3266,
+   "tokens_per_s_core": 716868,
+   "group": "plain BPE",
+   "train_set": "10MB",
+   "merges": 100000,
+   "cap": 32,
+   "train_seconds": null,
+   "max_unit_bytes": 32
+  },
+  "plain 10MB 100k ≤64B": {
+   "vocab": 100256,
+   "domains": {
+    "en-web": {
+     "tokens": 224222,
+     "tokens_per_word": 1.3404,
+     "bytes_per_token": 4.462,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 209537,
+     "tokens_per_word": 1.3742,
+     "bytes_per_token": 4.774,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 269190,
+     "tokens_per_word": 3.0237,
+     "bytes_per_token": 3.829,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 266697,
+     "tokens_per_word": 2.7416,
+     "bytes_per_token": 3.759,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 264811,
+     "tokens_per_word": 2.253,
+     "bytes_per_token": 3.787,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 262893,
+     "tokens_per_word": 1.5438,
+     "bytes_per_token": 3.835,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 211419,
+     "tokens_per_word": 1.5403,
+     "bytes_per_token": 4.03,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 116204,
+     "tokens_per_word": 1.5927,
+     "bytes_per_token": 8.679,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 126777,
+     "tokens_per_word": 2.1092,
+     "bytes_per_token": 7.913,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 112087,
+     "tokens_per_word": 2.6892,
+     "bytes_per_token": 9.123,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 131899,
+     "tokens_per_word": 2.8156,
+     "bytes_per_token": 7.602,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 117583,
+     "tokens_per_word": 3.1997,
+     "bytes_per_token": 6.519,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 2313319,
+   "unused_units": 32758,
+   "unused_share": 0.3267,
+   "tokens_per_s_core": 733054,
+   "group": "plain BPE",
+   "train_set": "10MB",
+   "merges": 100000,
+   "cap": 64,
+   "train_seconds": null,
+   "max_unit_bytes": 64
+  },
+  "plain 100MB 1k": {
+   "vocab": 1256,
+   "domains": {
+    "en-web": {
+     "tokens": 433033,
+     "tokens_per_word": 2.5888,
+     "bytes_per_token": 2.31,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 437343,
+     "tokens_per_word": 2.8683,
+     "bytes_per_token": 2.287,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 479036,
+     "tokens_per_word": 5.3807,
+     "bytes_per_token": 2.152,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 467977,
+     "tokens_per_word": 4.8108,
+     "bytes_per_token": 2.142,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 491901,
+     "tokens_per_word": 4.1851,
+     "bytes_per_token": 2.039,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 469836,
+     "tokens_per_word": 2.759,
+     "bytes_per_token": 2.146,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 393959,
+     "tokens_per_word": 2.8701,
+     "bytes_per_token": 2.163,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 288983,
+     "tokens_per_word": 3.9608,
+     "bytes_per_token": 3.49,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 375390,
+     "tokens_per_word": 6.2455,
+     "bytes_per_token": 2.672,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 390737,
+     "tokens_per_word": 9.3747,
+     "bytes_per_token": 2.617,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 399273,
+     "tokens_per_word": 8.5231,
+     "bytes_per_token": 2.511,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 233506,
+     "tokens_per_word": 6.3543,
+     "bytes_per_token": 3.283,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 4860974,
+   "unused_units": 61,
+   "unused_share": 0.0486,
+   "tokens_per_s_core": 1415897,
+   "group": "plain BPE",
+   "train_set": "100MB",
+   "merges": 1000,
+   "cap": null,
+   "train_seconds": null,
+   "max_unit_bytes": 19
+  },
+  "plain 100MB 1k ≤32B": {
+   "vocab": 1256,
+   "domains": {
+    "en-web": {
+     "tokens": 433033,
+     "tokens_per_word": 2.5888,
+     "bytes_per_token": 2.31,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 437343,
+     "tokens_per_word": 2.8683,
+     "bytes_per_token": 2.287,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 479036,
+     "tokens_per_word": 5.3807,
+     "bytes_per_token": 2.152,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 467977,
+     "tokens_per_word": 4.8108,
+     "bytes_per_token": 2.142,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 491901,
+     "tokens_per_word": 4.1851,
+     "bytes_per_token": 2.039,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 469836,
+     "tokens_per_word": 2.759,
+     "bytes_per_token": 2.146,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 393959,
+     "tokens_per_word": 2.8701,
+     "bytes_per_token": 2.163,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 288983,
+     "tokens_per_word": 3.9608,
+     "bytes_per_token": 3.49,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 375390,
+     "tokens_per_word": 6.2455,
+     "bytes_per_token": 2.672,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 390737,
+     "tokens_per_word": 9.3747,
+     "bytes_per_token": 2.617,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 399273,
+     "tokens_per_word": 8.5231,
+     "bytes_per_token": 2.511,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 233506,
+     "tokens_per_word": 6.3543,
+     "bytes_per_token": 3.283,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 4860974,
+   "unused_units": 61,
+   "unused_share": 0.0486,
+   "tokens_per_s_core": 1398724,
+   "group": "plain BPE",
+   "train_set": "100MB",
+   "merges": 1000,
+   "cap": 32,
+   "train_seconds": null,
+   "max_unit_bytes": 19
+  },
+  "plain 100MB 1k ≤64B": {
+   "vocab": 1256,
+   "domains": {
+    "en-web": {
+     "tokens": 433033,
+     "tokens_per_word": 2.5888,
+     "bytes_per_token": 2.31,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 437343,
+     "tokens_per_word": 2.8683,
+     "bytes_per_token": 2.287,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 479036,
+     "tokens_per_word": 5.3807,
+     "bytes_per_token": 2.152,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 467977,
+     "tokens_per_word": 4.8108,
+     "bytes_per_token": 2.142,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 491901,
+     "tokens_per_word": 4.1851,
+     "bytes_per_token": 2.039,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 469836,
+     "tokens_per_word": 2.759,
+     "bytes_per_token": 2.146,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 393959,
+     "tokens_per_word": 2.8701,
+     "bytes_per_token": 2.163,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 288983,
+     "tokens_per_word": 3.9608,
+     "bytes_per_token": 3.49,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 375390,
+     "tokens_per_word": 6.2455,
+     "bytes_per_token": 2.672,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 390737,
+     "tokens_per_word": 9.3747,
+     "bytes_per_token": 2.617,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 399273,
+     "tokens_per_word": 8.5231,
+     "bytes_per_token": 2.511,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 233506,
+     "tokens_per_word": 6.3543,
+     "bytes_per_token": 3.283,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 4860974,
+   "unused_units": 61,
+   "unused_share": 0.0486,
+   "tokens_per_s_core": 1386963,
+   "group": "plain BPE",
+   "train_set": "100MB",
+   "merges": 1000,
+   "cap": 64,
+   "train_seconds": null,
+   "max_unit_bytes": 19
+  },
+  "plain 100MB 10k": {
+   "vocab": 10256,
+   "domains": {
+    "en-web": {
+     "tokens": 285726,
+     "tokens_per_word": 1.7081,
+     "bytes_per_token": 3.501,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 279656,
+     "tokens_per_word": 1.8341,
+     "bytes_per_token": 3.577,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 325931,
+     "tokens_per_word": 3.661,
+     "bytes_per_token": 3.163,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 315437,
+     "tokens_per_word": 3.2427,
+     "bytes_per_token": 3.178,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 324050,
+     "tokens_per_word": 2.757,
+     "bytes_per_token": 3.095,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 318546,
+     "tokens_per_word": 1.8706,
+     "bytes_per_token": 3.165,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 266934,
+     "tokens_per_word": 1.9447,
+     "bytes_per_token": 3.192,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 178065,
+     "tokens_per_word": 2.4406,
+     "bytes_per_token": 5.664,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 209646,
+     "tokens_per_word": 3.4879,
+     "bytes_per_token": 4.785,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 195355,
+     "tokens_per_word": 4.687,
+     "bytes_per_token": 5.234,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 210958,
+     "tokens_per_word": 4.5032,
+     "bytes_per_token": 4.753,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 159814,
+     "tokens_per_word": 4.3489,
+     "bytes_per_token": 4.796,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 3070118,
+   "unused_units": 117,
+   "unused_share": 0.0114,
+   "tokens_per_s_core": 909731,
+   "group": "plain BPE",
+   "train_set": "100MB",
+   "merges": 10000,
+   "cap": null,
+   "train_seconds": null,
+   "max_unit_bytes": 64
+  },
+  "plain 100MB 10k ≤32B": {
+   "vocab": 10256,
+   "domains": {
+    "en-web": {
+     "tokens": 285724,
+     "tokens_per_word": 1.7081,
+     "bytes_per_token": 3.501,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 279641,
+     "tokens_per_word": 1.834,
+     "bytes_per_token": 3.577,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 326001,
+     "tokens_per_word": 3.6618,
+     "bytes_per_token": 3.162,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 315436,
+     "tokens_per_word": 3.2427,
+     "bytes_per_token": 3.178,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 324041,
+     "tokens_per_word": 2.757,
+     "bytes_per_token": 3.095,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 318539,
+     "tokens_per_word": 1.8705,
+     "bytes_per_token": 3.165,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 266928,
+     "tokens_per_word": 1.9447,
+     "bytes_per_token": 3.192,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 178065,
+     "tokens_per_word": 2.4406,
+     "bytes_per_token": 5.664,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 209646,
+     "tokens_per_word": 3.4879,
+     "bytes_per_token": 4.785,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 195354,
+     "tokens_per_word": 4.687,
+     "bytes_per_token": 5.234,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 210957,
+     "tokens_per_word": 4.5032,
+     "bytes_per_token": 4.753,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 159814,
+     "tokens_per_word": 4.3489,
+     "bytes_per_token": 4.796,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 3070146,
+   "unused_units": 117,
+   "unused_share": 0.0114,
+   "tokens_per_s_core": 906833,
+   "group": "plain BPE",
+   "train_set": "100MB",
+   "merges": 10000,
+   "cap": 32,
+   "train_seconds": null,
+   "max_unit_bytes": 32
+  },
+  "plain 100MB 10k ≤64B": {
+   "vocab": 10256,
+   "domains": {
+    "en-web": {
+     "tokens": 285726,
+     "tokens_per_word": 1.7081,
+     "bytes_per_token": 3.501,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 279656,
+     "tokens_per_word": 1.8341,
+     "bytes_per_token": 3.577,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 325931,
+     "tokens_per_word": 3.661,
+     "bytes_per_token": 3.163,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 315437,
+     "tokens_per_word": 3.2427,
+     "bytes_per_token": 3.178,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 324050,
+     "tokens_per_word": 2.757,
+     "bytes_per_token": 3.095,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 318546,
+     "tokens_per_word": 1.8706,
+     "bytes_per_token": 3.165,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 266934,
+     "tokens_per_word": 1.9447,
+     "bytes_per_token": 3.192,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 178065,
+     "tokens_per_word": 2.4406,
+     "bytes_per_token": 5.664,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 209646,
+     "tokens_per_word": 3.4879,
+     "bytes_per_token": 4.785,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 195355,
+     "tokens_per_word": 4.687,
+     "bytes_per_token": 5.234,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 210958,
+     "tokens_per_word": 4.5032,
+     "bytes_per_token": 4.753,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 159814,
+     "tokens_per_word": 4.3489,
+     "bytes_per_token": 4.796,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 3070118,
+   "unused_units": 117,
+   "unused_share": 0.0114,
+   "tokens_per_s_core": 932861,
+   "group": "plain BPE",
+   "train_set": "100MB",
+   "merges": 10000,
+   "cap": 64,
+   "train_seconds": null,
+   "max_unit_bytes": 64
+  },
+  "plain 100MB 100k": {
+   "vocab": 100256,
+   "domains": {
+    "en-web": {
+     "tokens": 220235,
+     "tokens_per_word": 1.3166,
+     "bytes_per_token": 4.542,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 205439,
+     "tokens_per_word": 1.3473,
+     "bytes_per_token": 4.87,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 260961,
+     "tokens_per_word": 2.9312,
+     "bytes_per_token": 3.95,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 259813,
+     "tokens_per_word": 2.6709,
+     "bytes_per_token": 3.859,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 258792,
+     "tokens_per_word": 2.2018,
+     "bytes_per_token": 3.875,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 257038,
+     "tokens_per_word": 1.5094,
+     "bytes_per_token": 3.922,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 206375,
+     "tokens_per_word": 1.5035,
+     "bytes_per_token": 4.128,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 112038,
+     "tokens_per_word": 1.5356,
+     "bytes_per_token": 9.001,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 115754,
+     "tokens_per_word": 1.9258,
+     "bytes_per_token": 8.667,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 107235,
+     "tokens_per_word": 2.5728,
+     "bytes_per_token": 9.536,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 116618,
+     "tokens_per_word": 2.4894,
+     "bytes_per_token": 8.598,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 107295,
+     "tokens_per_word": 2.9198,
+     "bytes_per_token": 7.144,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 2227593,
+   "unused_units": 23907,
+   "unused_share": 0.2385,
+   "tokens_per_s_core": 530253,
+   "group": "plain BPE",
+   "train_set": "100MB",
+   "merges": 100000,
+   "cap": null,
+   "train_seconds": null,
+   "max_unit_bytes": 232
+  },
+  "plain 100MB 100k ≤32B": {
+   "vocab": 100256,
+   "domains": {
+    "en-web": {
+     "tokens": 220194,
+     "tokens_per_word": 1.3164,
+     "bytes_per_token": 4.543,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 205394,
+     "tokens_per_word": 1.347,
+     "bytes_per_token": 4.871,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 261145,
+     "tokens_per_word": 2.9333,
+     "bytes_per_token": 3.947,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 259978,
+     "tokens_per_word": 2.6726,
+     "bytes_per_token": 3.856,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 258746,
+     "tokens_per_word": 2.2014,
+     "bytes_per_token": 3.876,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 256968,
+     "tokens_per_word": 1.509,
+     "bytes_per_token": 3.923,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 206495,
+     "tokens_per_word": 1.5044,
+     "bytes_per_token": 4.126,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 112230,
+     "tokens_per_word": 1.5382,
+     "bytes_per_token": 8.986,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 115921,
+     "tokens_per_word": 1.9286,
+     "bytes_per_token": 8.654,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 107781,
+     "tokens_per_word": 2.5859,
+     "bytes_per_token": 9.487,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 116859,
+     "tokens_per_word": 2.4945,
+     "bytes_per_token": 8.58,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 107288,
+     "tokens_per_word": 2.9196,
+     "bytes_per_token": 7.145,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 2228999,
+   "unused_units": 23989,
+   "unused_share": 0.2393,
+   "tokens_per_s_core": 675059,
+   "group": "plain BPE",
+   "train_set": "100MB",
+   "merges": 100000,
+   "cap": 32,
+   "train_seconds": null,
+   "max_unit_bytes": 32
+  },
+  "plain 100MB 100k ≤64B": {
+   "vocab": 100256,
+   "domains": {
+    "en-web": {
+     "tokens": 220232,
+     "tokens_per_word": 1.3166,
+     "bytes_per_token": 4.543,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 205436,
+     "tokens_per_word": 1.3473,
+     "bytes_per_token": 4.87,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 261020,
+     "tokens_per_word": 2.9319,
+     "bytes_per_token": 3.949,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 259854,
+     "tokens_per_word": 2.6713,
+     "bytes_per_token": 3.858,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 258794,
+     "tokens_per_word": 2.2018,
+     "bytes_per_token": 3.875,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 257038,
+     "tokens_per_word": 1.5094,
+     "bytes_per_token": 3.922,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 206377,
+     "tokens_per_word": 1.5035,
+     "bytes_per_token": 4.128,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 112035,
+     "tokens_per_word": 1.5356,
+     "bytes_per_token": 9.002,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 115748,
+     "tokens_per_word": 1.9257,
+     "bytes_per_token": 8.667,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 107220,
+     "tokens_per_word": 2.5725,
+     "bytes_per_token": 9.537,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 116611,
+     "tokens_per_word": 2.4892,
+     "bytes_per_token": 8.599,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 107295,
+     "tokens_per_word": 2.9198,
+     "bytes_per_token": 7.144,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 2227660,
+   "unused_units": 23919,
+   "unused_share": 0.2386,
+   "tokens_per_s_core": 707836,
+   "group": "plain BPE",
+   "train_set": "100MB",
+   "merges": 100000,
+   "cap": 64,
+   "train_seconds": null,
+   "max_unit_bytes": 64
+  },
+  "plain 1GB 1k": {
+   "vocab": 1256,
+   "domains": {
+    "en-web": {
+     "tokens": 436144,
+     "tokens_per_word": 2.6074,
+     "bytes_per_token": 2.294,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 439485,
+     "tokens_per_word": 2.8823,
+     "bytes_per_token": 2.276,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 478964,
+     "tokens_per_word": 5.3799,
+     "bytes_per_token": 2.152,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 468842,
+     "tokens_per_word": 4.8197,
+     "bytes_per_token": 2.138,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 492655,
+     "tokens_per_word": 4.1915,
+     "bytes_per_token": 2.036,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 469635,
+     "tokens_per_word": 2.7578,
+     "bytes_per_token": 2.147,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 395156,
+     "tokens_per_word": 2.8789,
+     "bytes_per_token": 2.156,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 287621,
+     "tokens_per_word": 3.9422,
+     "bytes_per_token": 3.506,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 383191,
+     "tokens_per_word": 6.3753,
+     "bytes_per_token": 2.618,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 373759,
+     "tokens_per_word": 8.9673,
+     "bytes_per_token": 2.736,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 392132,
+     "tokens_per_word": 8.3707,
+     "bytes_per_token": 2.557,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 236041,
+     "tokens_per_word": 6.4232,
+     "bytes_per_token": 3.248,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 4853625,
+   "unused_units": 61,
+   "unused_share": 0.0486,
+   "tokens_per_s_core": 1393432,
+   "group": "plain BPE",
+   "train_set": "1GB",
+   "merges": 1000,
+   "cap": null,
+   "train_seconds": null,
+   "max_unit_bytes": 32
+  },
+  "plain 1GB 10k": {
+   "vocab": 10256,
+   "domains": {
+    "en-web": {
+     "tokens": 285942,
+     "tokens_per_word": 1.7094,
+     "bytes_per_token": 3.499,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 279125,
+     "tokens_per_word": 1.8306,
+     "bytes_per_token": 3.584,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 324688,
+     "tokens_per_word": 3.647,
+     "bytes_per_token": 3.175,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 314354,
+     "tokens_per_word": 3.2315,
+     "bytes_per_token": 3.189,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 324007,
+     "tokens_per_word": 2.7567,
+     "bytes_per_token": 3.095,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 318348,
+     "tokens_per_word": 1.8694,
+     "bytes_per_token": 3.167,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 266689,
+     "tokens_per_word": 1.9429,
+     "bytes_per_token": 3.195,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 175813,
+     "tokens_per_word": 2.4097,
+     "bytes_per_token": 5.736,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 214030,
+     "tokens_per_word": 3.5609,
+     "bytes_per_token": 4.687,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 190130,
+     "tokens_per_word": 4.5617,
+     "bytes_per_token": 5.378,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 209455,
+     "tokens_per_word": 4.4711,
+     "bytes_per_token": 4.787,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 151098,
+     "tokens_per_word": 4.1117,
+     "bytes_per_token": 5.073,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 3053679,
+   "unused_units": 104,
+   "unused_share": 0.0101,
+   "tokens_per_s_core": 928917,
+   "group": "plain BPE",
+   "train_set": "1GB",
+   "merges": 10000,
+   "cap": null,
+   "train_seconds": null,
+   "max_unit_bytes": 64
+  },
+  "plain 1GB 100k": {
+   "vocab": 100256,
+   "domains": {
+    "en-web": {
+     "tokens": 219199,
+     "tokens_per_word": 1.3104,
+     "bytes_per_token": 4.564,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 204052,
+     "tokens_per_word": 1.3382,
+     "bytes_per_token": 4.903,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 257759,
+     "tokens_per_word": 2.8953,
+     "bytes_per_token": 3.999,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 257750,
+     "tokens_per_word": 2.6496,
+     "bytes_per_token": 3.89,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 257272,
+     "tokens_per_word": 2.1889,
+     "bytes_per_token": 3.898,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 255015,
+     "tokens_per_word": 1.4975,
+     "bytes_per_token": 3.953,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 204746,
+     "tokens_per_word": 1.4917,
+     "bytes_per_token": 4.161,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 110188,
+     "tokens_per_word": 1.5103,
+     "bytes_per_token": 9.152,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 115982,
+     "tokens_per_word": 1.9296,
+     "bytes_per_token": 8.65,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 103249,
+     "tokens_per_word": 2.4772,
+     "bytes_per_token": 9.904,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 114004,
+     "tokens_per_word": 2.4336,
+     "bytes_per_token": 8.795,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 101659,
+     "tokens_per_word": 2.7664,
+     "bytes_per_token": 7.54,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 2200875,
+   "unused_units": 20234,
+   "unused_share": 0.2018,
+   "tokens_per_s_core": 702517,
+   "group": "plain BPE",
+   "train_set": "1GB",
+   "merges": 100000,
+   "cap": null,
+   "train_seconds": null,
+   "max_unit_bytes": 128
+  },
+  "plain 1GB 100k ≤32B": {
+   "vocab": 100256,
+   "domains": {
+    "en-web": {
+     "tokens": 219132,
+     "tokens_per_word": 1.31,
+     "bytes_per_token": 4.565,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 203989,
+     "tokens_per_word": 1.3378,
+     "bytes_per_token": 4.904,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 258091,
+     "tokens_per_word": 2.899,
+     "bytes_per_token": 3.994,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 257977,
+     "tokens_per_word": 2.652,
+     "bytes_per_token": 3.886,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 257299,
+     "tokens_per_word": 2.1891,
+     "bytes_per_token": 3.898,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 254867,
+     "tokens_per_word": 1.4966,
+     "bytes_per_token": 3.956,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 204911,
+     "tokens_per_word": 1.4929,
+     "bytes_per_token": 4.158,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 110341,
+     "tokens_per_word": 1.5123,
+     "bytes_per_token": 9.14,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 116088,
+     "tokens_per_word": 1.9314,
+     "bytes_per_token": 8.642,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 103850,
+     "tokens_per_word": 2.4916,
+     "bytes_per_token": 9.846,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 114140,
+     "tokens_per_word": 2.4365,
+     "bytes_per_token": 8.785,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 101581,
+     "tokens_per_word": 2.7643,
+     "bytes_per_token": 7.546,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 2202266,
+   "unused_units": 20288,
+   "unused_share": 0.2024,
+   "tokens_per_s_core": 707613,
+   "group": "plain BPE",
+   "train_set": "1GB",
+   "merges": 100000,
+   "cap": 32,
+   "train_seconds": null,
+   "max_unit_bytes": 32
+  },
+  "plain 1GB 100k ≤64B": {
+   "vocab": 100256,
+   "domains": {
+    "en-web": {
+     "tokens": 219195,
+     "tokens_per_word": 1.3104,
+     "bytes_per_token": 4.564,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 204042,
+     "tokens_per_word": 1.3382,
+     "bytes_per_token": 4.903,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 257810,
+     "tokens_per_word": 2.8958,
+     "bytes_per_token": 3.998,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 257795,
+     "tokens_per_word": 2.6501,
+     "bytes_per_token": 3.889,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 257277,
+     "tokens_per_word": 2.1889,
+     "bytes_per_token": 3.898,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 255006,
+     "tokens_per_word": 1.4974,
+     "bytes_per_token": 3.954,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 204765,
+     "tokens_per_word": 1.4918,
+     "bytes_per_token": 4.161,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 110181,
+     "tokens_per_word": 1.5102,
+     "bytes_per_token": 9.153,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 115964,
+     "tokens_per_word": 1.9293,
+     "bytes_per_token": 8.651,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 103234,
+     "tokens_per_word": 2.4768,
+     "bytes_per_token": 9.905,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 113960,
+     "tokens_per_word": 2.4327,
+     "bytes_per_token": 8.799,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 101659,
+     "tokens_per_word": 2.7664,
+     "bytes_per_token": 7.54,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 2200888,
+   "unused_units": 20224,
+   "unused_share": 0.2017,
+   "tokens_per_s_core": 693457,
+   "group": "plain BPE",
+   "train_set": "1GB",
+   "merges": 100000,
+   "cap": 64,
+   "train_seconds": null,
+   "max_unit_bytes": 64
+  },
+  "plain 1GB 1000k": {
+   "vocab": 1000256,
+   "domains": {
+    "en-web": {
+     "tokens": 203298,
+     "tokens_per_word": 1.2154,
+     "bytes_per_token": 4.921,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 188766,
+     "tokens_per_word": 1.238,
+     "bytes_per_token": 5.3,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 240367,
+     "tokens_per_word": 2.6999,
+     "bytes_per_token": 4.289,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 243068,
+     "tokens_per_word": 2.4987,
+     "bytes_per_token": 4.125,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 241939,
+     "tokens_per_word": 2.0584,
+     "bytes_per_token": 4.145,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 242341,
+     "tokens_per_word": 1.4231,
+     "bytes_per_token": 4.16,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 188890,
+     "tokens_per_word": 1.3761,
+     "bytes_per_token": 4.51,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 91536,
+     "tokens_per_word": 1.2546,
+     "bytes_per_token": 11.017,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 80372,
+     "tokens_per_word": 1.3372,
+     "bytes_per_token": 12.482,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 67361,
+     "tokens_per_word": 1.6161,
+     "bytes_per_token": 15.18,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 74372,
+     "tokens_per_word": 1.5876,
+     "bytes_per_token": 13.482,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 72029,
+     "tokens_per_word": 1.9601,
+     "bytes_per_token": 10.642,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 1934339,
+   "unused_units": 829275,
+   "unused_share": 0.8291,
+   "tokens_per_s_core": 612035,
+   "group": "plain BPE",
+   "train_set": "1GB",
+   "merges": 1000000,
+   "cap": null,
+   "train_seconds": 378.4,
+   "max_unit_bytes": 576
+  },
+  "SuperBPE 100MB t180k→200k": {
+   "vocab": 200256,
+   "domains": {
+    "en-web": {
+     "tokens": 170325,
+     "tokens_per_word": 1.0182,
+     "bytes_per_token": 5.874,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 161304,
+     "tokens_per_word": 1.0579,
+     "bytes_per_token": 6.202,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 226842,
+     "tokens_per_word": 2.548,
+     "bytes_per_token": 4.544,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 214758,
+     "tokens_per_word": 2.2077,
+     "bytes_per_token": 4.668,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 208563,
+     "tokens_per_word": 1.7745,
+     "bytes_per_token": 4.809,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 205644,
+     "tokens_per_word": 1.2076,
+     "bytes_per_token": 4.903,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 165798,
+     "tokens_per_word": 1.2079,
+     "bytes_per_token": 5.139,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 92703,
+     "tokens_per_word": 1.2706,
+     "bytes_per_token": 10.879,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 99600,
+     "tokens_per_word": 1.6571,
+     "bytes_per_token": 10.073,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 91911,
+     "tokens_per_word": 2.2052,
+     "bytes_per_token": 11.125,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 100258,
+     "tokens_per_word": 2.1402,
+     "bytes_per_token": 10.001,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 95784,
+     "tokens_per_word": 2.6065,
+     "bytes_per_token": 8.003,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 1833490,
+   "unused_units": 81597,
+   "unused_share": 0.4075,
+   "tokens_per_s_core": 194627,
+   "group": "SuperBPE (ours)",
+   "train_set": "100MB",
+   "merges": 200000,
+   "T": 180000,
+   "cap": null,
+   "rule": "marks",
+   "stage2_merges": 20000,
+   "train_seconds": 111.9,
+   "max_unit_bytes": 325
+  },
+  "SuperBPE 100MB t180k→200k ≤32B": {
+   "vocab": 199818,
+   "domains": {
+    "en-web": {
+     "tokens": 170325,
+     "tokens_per_word": 1.0182,
+     "bytes_per_token": 5.874,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 161304,
+     "tokens_per_word": 1.0579,
+     "bytes_per_token": 6.202,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 227036,
+     "tokens_per_word": 2.5502,
+     "bytes_per_token": 4.54,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 215304,
+     "tokens_per_word": 2.2133,
+     "bytes_per_token": 4.656,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 209393,
+     "tokens_per_word": 1.7815,
+     "bytes_per_token": 4.79,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 205644,
+     "tokens_per_word": 1.2076,
+     "bytes_per_token": 4.903,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 165798,
+     "tokens_per_word": 1.2079,
+     "bytes_per_token": 5.139,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 92878,
+     "tokens_per_word": 1.273,
+     "bytes_per_token": 10.858,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 99634,
+     "tokens_per_word": 1.6576,
+     "bytes_per_token": 10.069,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 91918,
+     "tokens_per_word": 2.2053,
+     "bytes_per_token": 11.125,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 100258,
+     "tokens_per_word": 2.1402,
+     "bytes_per_token": 10.001,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 95785,
+     "tokens_per_word": 2.6065,
+     "bytes_per_token": 8.003,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 1835277,
+   "unused_units": 81222,
+   "unused_share": 0.4065,
+   "tokens_per_s_core": 194673,
+   "group": "SuperBPE (ours)",
+   "train_set": "100MB",
+   "merges": 199562,
+   "T": 180000,
+   "cap": 32,
+   "rule": "marks",
+   "stage2_merges": 19562,
+   "train_seconds": null,
+   "max_unit_bytes": 32
+  },
+  "SuperBPE 100MB t180k→200k ≤64B": {
+   "vocab": 200163,
+   "domains": {
+    "en-web": {
+     "tokens": 170325,
+     "tokens_per_word": 1.0182,
+     "bytes_per_token": 5.874,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 161304,
+     "tokens_per_word": 1.0579,
+     "bytes_per_token": 6.202,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 226878,
+     "tokens_per_word": 2.5484,
+     "bytes_per_token": 4.544,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 214918,
+     "tokens_per_word": 2.2093,
+     "bytes_per_token": 4.665,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 208812,
+     "tokens_per_word": 1.7766,
+     "bytes_per_token": 4.803,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 205644,
+     "tokens_per_word": 1.2076,
+     "bytes_per_token": 4.903,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 165798,
+     "tokens_per_word": 1.2079,
+     "bytes_per_token": 5.139,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 92703,
+     "tokens_per_word": 1.2706,
+     "bytes_per_token": 10.879,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 99600,
+     "tokens_per_word": 1.6571,
+     "bytes_per_token": 10.073,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 91911,
+     "tokens_per_word": 2.2052,
+     "bytes_per_token": 11.125,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 100258,
+     "tokens_per_word": 2.1402,
+     "bytes_per_token": 10.001,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 95784,
+     "tokens_per_word": 2.6065,
+     "bytes_per_token": 8.003,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 1833935,
+   "unused_units": 81517,
+   "unused_share": 0.4073,
+   "tokens_per_s_core": 196099,
+   "group": "SuperBPE (ours)",
+   "train_set": "100MB",
+   "merges": 199907,
+   "T": 180000,
+   "cap": 64,
+   "rule": "marks",
+   "stage2_merges": 19907,
+   "train_seconds": null,
+   "max_unit_bytes": 64
+  },
+  "SuperBPE 100MB t180k→200k (one file)": {
+   "vocab": 200229,
+   "domains": {
+    "en-web": {
+     "tokens": 170339,
+     "tokens_per_word": 1.0183,
+     "bytes_per_token": 5.873,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 161303,
+     "tokens_per_word": 1.0579,
+     "bytes_per_token": 6.202,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 226853,
+     "tokens_per_word": 2.5481,
+     "bytes_per_token": 4.544,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 214966,
+     "tokens_per_word": 2.2098,
+     "bytes_per_token": 4.664,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 208558,
+     "tokens_per_word": 1.7744,
+     "bytes_per_token": 4.809,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 205660,
+     "tokens_per_word": 1.2077,
+     "bytes_per_token": 4.902,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 165798,
+     "tokens_per_word": 1.2079,
+     "bytes_per_token": 5.139,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 92703,
+     "tokens_per_word": 1.2706,
+     "bytes_per_token": 10.879,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 99597,
+     "tokens_per_word": 1.657,
+     "bytes_per_token": 10.073,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 91911,
+     "tokens_per_word": 2.2052,
+     "bytes_per_token": 11.125,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 100258,
+     "tokens_per_word": 2.1402,
+     "bytes_per_token": 10.001,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 95783,
+     "tokens_per_word": 2.6065,
+     "bytes_per_token": 8.003,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 1833729,
+   "unused_units": 81629,
+   "unused_share": 0.4077,
+   "tokens_per_s_core": 533823,
+   "group": "SuperBPE (ours, one file)",
+   "train_set": "100MB",
+   "merges": 200000,
+   "T": 180000,
+   "rule": "marks"
+  },
+  "SuperBPE 100MB t80k→100k": {
+   "vocab": 100256,
+   "domains": {
+    "en-web": {
+     "tokens": 179556,
+     "tokens_per_word": 1.0734,
+     "bytes_per_token": 5.572,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 170855,
+     "tokens_per_word": 1.1205,
+     "bytes_per_token": 5.855,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 236289,
+     "tokens_per_word": 2.6541,
+     "bytes_per_token": 4.363,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 222595,
+     "tokens_per_word": 2.2883,
+     "bytes_per_token": 4.504,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 217363,
+     "tokens_per_word": 1.8493,
+     "bytes_per_token": 4.614,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 213412,
+     "tokens_per_word": 1.2532,
+     "bytes_per_token": 4.724,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 174304,
+     "tokens_per_word": 1.2699,
+     "bytes_per_token": 4.888,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 103648,
+     "tokens_per_word": 1.4206,
+     "bytes_per_token": 9.73,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 118024,
+     "tokens_per_word": 1.9636,
+     "bytes_per_token": 8.5,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 109898,
+     "tokens_per_word": 2.6367,
+     "bytes_per_token": 9.304,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 120059,
+     "tokens_per_word": 2.5628,
+     "bytes_per_token": 8.352,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 108053,
+     "tokens_per_word": 2.9404,
+     "bytes_per_token": 7.094,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 1974056,
+   "unused_units": 20121,
+   "unused_share": 0.2007,
+   "tokens_per_s_core": 210168,
+   "group": "SuperBPE (ours)",
+   "train_set": "100MB",
+   "merges": 100000,
+   "T": 80000,
+   "cap": null,
+   "rule": "marks",
+   "stage2_merges": 20000,
+   "train_seconds": 107.9,
+   "max_unit_bytes": 325
+  },
+  "SuperBPE 100MB t80k→100k ≤32B": {
+   "vocab": 99850,
+   "domains": {
+    "en-web": {
+     "tokens": 179556,
+     "tokens_per_word": 1.0734,
+     "bytes_per_token": 5.572,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 170855,
+     "tokens_per_word": 1.1205,
+     "bytes_per_token": 5.855,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 236484,
+     "tokens_per_word": 2.6563,
+     "bytes_per_token": 4.359,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 223160,
+     "tokens_per_word": 2.2941,
+     "bytes_per_token": 4.493,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 218207,
+     "tokens_per_word": 1.8565,
+     "bytes_per_token": 4.596,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 213412,
+     "tokens_per_word": 1.2532,
+     "bytes_per_token": 4.724,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 174304,
+     "tokens_per_word": 1.2699,
+     "bytes_per_token": 4.888,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 103808,
+     "tokens_per_word": 1.4228,
+     "bytes_per_token": 9.715,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 118058,
+     "tokens_per_word": 1.9642,
+     "bytes_per_token": 8.498,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 109904,
+     "tokens_per_word": 2.6369,
+     "bytes_per_token": 9.304,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 120059,
+     "tokens_per_word": 2.5628,
+     "bytes_per_token": 8.352,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 108054,
+     "tokens_per_word": 2.9404,
+     "bytes_per_token": 7.094,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 1975861,
+   "unused_units": 19775,
+   "unused_share": 0.198,
+   "tokens_per_s_core": 209222,
+   "group": "SuperBPE (ours)",
+   "train_set": "100MB",
+   "merges": 99594,
+   "T": 80000,
+   "cap": 32,
+   "rule": "marks",
+   "stage2_merges": 19594,
+   "train_seconds": null,
+   "max_unit_bytes": 32
+  },
+  "SuperBPE 100MB t80k→100k ≤64B": {
+   "vocab": 100170,
+   "domains": {
+    "en-web": {
+     "tokens": 179556,
+     "tokens_per_word": 1.0734,
+     "bytes_per_token": 5.572,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 170855,
+     "tokens_per_word": 1.1205,
+     "bytes_per_token": 5.855,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 236324,
+     "tokens_per_word": 2.6545,
+     "bytes_per_token": 4.362,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 222754,
+     "tokens_per_word": 2.2899,
+     "bytes_per_token": 4.501,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 217610,
+     "tokens_per_word": 1.8514,
+     "bytes_per_token": 4.609,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 213412,
+     "tokens_per_word": 1.2532,
+     "bytes_per_token": 4.724,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 174304,
+     "tokens_per_word": 1.2699,
+     "bytes_per_token": 4.888,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 103648,
+     "tokens_per_word": 1.4206,
+     "bytes_per_token": 9.73,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 118024,
+     "tokens_per_word": 1.9636,
+     "bytes_per_token": 8.5,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 109898,
+     "tokens_per_word": 2.6367,
+     "bytes_per_token": 9.304,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 120059,
+     "tokens_per_word": 2.5628,
+     "bytes_per_token": 8.352,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 108053,
+     "tokens_per_word": 2.9404,
+     "bytes_per_token": 7.094,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 1974497,
+   "unused_units": 20047,
+   "unused_share": 0.2001,
+   "tokens_per_s_core": 209234,
+   "group": "SuperBPE (ours)",
+   "train_set": "100MB",
+   "merges": 99914,
+   "T": 80000,
+   "cap": 64,
+   "rule": "marks",
+   "stage2_merges": 19914,
+   "train_seconds": null,
+   "max_unit_bytes": 64
+  },
+  "SuperBPE 100MB t80k→100k (one file)": {
+   "vocab": 100221,
+   "domains": {
+    "en-web": {
+     "tokens": 179571,
+     "tokens_per_word": 1.0735,
+     "bytes_per_token": 5.571,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 170855,
+     "tokens_per_word": 1.1205,
+     "bytes_per_token": 5.855,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 236304,
+     "tokens_per_word": 2.6543,
+     "bytes_per_token": 4.362,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 222796,
+     "tokens_per_word": 2.2903,
+     "bytes_per_token": 4.5,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 217359,
+     "tokens_per_word": 1.8493,
+     "bytes_per_token": 4.614,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 213430,
+     "tokens_per_word": 1.2533,
+     "bytes_per_token": 4.724,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 174304,
+     "tokens_per_word": 1.2699,
+     "bytes_per_token": 4.888,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 103648,
+     "tokens_per_word": 1.4206,
+     "bytes_per_token": 9.73,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 118021,
+     "tokens_per_word": 1.9635,
+     "bytes_per_token": 8.5,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 109898,
+     "tokens_per_word": 2.6367,
+     "bytes_per_token": 9.304,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 120059,
+     "tokens_per_word": 2.5628,
+     "bytes_per_token": 8.352,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 108052,
+     "tokens_per_word": 2.9404,
+     "bytes_per_token": 7.094,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 1974297,
+   "unused_units": 20145,
+   "unused_share": 0.201,
+   "tokens_per_s_core": 580515,
+   "group": "SuperBPE (ours, one file)",
+   "train_set": "100MB",
+   "merges": 100000,
+   "T": 80000,
+   "rule": "marks"
+  },
+  "SuperBPE 100MB t80k→100k upstream rule": {
+   "vocab": 100256,
+   "domains": {
+    "en-web": {
+     "tokens": 179625,
+     "tokens_per_word": 1.0738,
+     "bytes_per_token": 5.569,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 170956,
+     "tokens_per_word": 1.1212,
+     "bytes_per_token": 5.852,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 236356,
+     "tokens_per_word": 2.6549,
+     "bytes_per_token": 4.361,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 222745,
+     "tokens_per_word": 2.2898,
+     "bytes_per_token": 4.501,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 217500,
+     "tokens_per_word": 1.8505,
+     "bytes_per_token": 4.611,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 213542,
+     "tokens_per_word": 1.254,
+     "bytes_per_token": 4.721,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 174343,
+     "tokens_per_word": 1.2702,
+     "bytes_per_token": 4.887,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 114762,
+     "tokens_per_word": 1.5729,
+     "bytes_per_token": 8.788,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 122270,
+     "tokens_per_word": 2.0342,
+     "bytes_per_token": 8.205,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 114197,
+     "tokens_per_word": 2.7399,
+     "bytes_per_token": 8.954,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 129026,
+     "tokens_per_word": 2.7543,
+     "bytes_per_token": 7.771,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 109942,
+     "tokens_per_word": 2.9918,
+     "bytes_per_token": 6.972,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 2005264,
+   "unused_units": 21142,
+   "unused_share": 0.2109,
+   "tokens_per_s_core": 193243,
+   "group": "SuperBPE (ours)",
+   "train_set": "100MB",
+   "merges": 100000,
+   "T": 80000,
+   "cap": null,
+   "rule": "upstream",
+   "stage2_merges": 20000,
+   "train_seconds": 113.0,
+   "max_unit_bytes": 325
+  },
+  "SuperBPE 100MB t80k→100k upstream rule (one file)": {
+   "vocab": 100222,
+   "domains": {
+    "en-web": {
+     "tokens": 179640,
+     "tokens_per_word": 1.0739,
+     "bytes_per_token": 5.569,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 170956,
+     "tokens_per_word": 1.1212,
+     "bytes_per_token": 5.852,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 236371,
+     "tokens_per_word": 2.655,
+     "bytes_per_token": 4.361,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 222943,
+     "tokens_per_word": 2.2918,
+     "bytes_per_token": 4.497,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 217496,
+     "tokens_per_word": 1.8505,
+     "bytes_per_token": 4.611,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 213560,
+     "tokens_per_word": 1.2541,
+     "bytes_per_token": 4.721,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 174343,
+     "tokens_per_word": 1.2702,
+     "bytes_per_token": 4.887,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 114762,
+     "tokens_per_word": 1.5729,
+     "bytes_per_token": 8.788,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 122270,
+     "tokens_per_word": 2.0342,
+     "bytes_per_token": 8.205,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 114197,
+     "tokens_per_word": 2.7399,
+     "bytes_per_token": 8.954,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 129026,
+     "tokens_per_word": 2.7543,
+     "bytes_per_token": 7.771,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 109942,
+     "tokens_per_word": 2.9918,
+     "bytes_per_token": 6.972,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 2005506,
+   "unused_units": 21167,
+   "unused_share": 0.2112,
+   "tokens_per_s_core": 584741,
+   "group": "SuperBPE (ours, one file)",
+   "train_set": "100MB",
+   "merges": 100000,
+   "T": 80000,
+   "rule": "upstream"
+  },
+  "SuperBPE 1GB t80k→100k": {
+   "vocab": 100256,
+   "domains": {
+    "en-web": {
+     "tokens": 177670,
+     "tokens_per_word": 1.0621,
+     "bytes_per_token": 5.631,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 168341,
+     "tokens_per_word": 1.104,
+     "bytes_per_token": 5.943,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 232549,
+     "tokens_per_word": 2.6121,
+     "bytes_per_token": 4.433,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 219742,
+     "tokens_per_word": 2.2589,
+     "bytes_per_token": 4.562,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 214100,
+     "tokens_per_word": 1.8216,
+     "bytes_per_token": 4.684,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 210181,
+     "tokens_per_word": 1.2342,
+     "bytes_per_token": 4.797,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 171457,
+     "tokens_per_word": 1.2491,
+     "bytes_per_token": 4.969,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 101142,
+     "tokens_per_word": 1.3863,
+     "bytes_per_token": 9.971,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 118420,
+     "tokens_per_word": 1.9702,
+     "bytes_per_token": 8.472,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 105921,
+     "tokens_per_word": 2.5413,
+     "bytes_per_token": 9.654,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 116905,
+     "tokens_per_word": 2.4955,
+     "bytes_per_token": 8.577,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 102597,
+     "tokens_per_word": 2.7919,
+     "bytes_per_token": 7.471,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 1939025,
+   "unused_units": 15611,
+   "unused_share": 0.1557,
+   "tokens_per_s_core": 199382,
+   "group": "SuperBPE (ours)",
+   "train_set": "1GB",
+   "merges": 100000,
+   "T": 80000,
+   "cap": null,
+   "rule": "marks",
+   "stage2_merges": 20000,
+   "train_seconds": 2754.0,
+   "max_unit_bytes": 325
+  },
+  "SuperBPE 1GB t80k→100k ≤32B": {
+   "vocab": 99914,
+   "domains": {
+    "en-web": {
+     "tokens": 177670,
+     "tokens_per_word": 1.0621,
+     "bytes_per_token": 5.631,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 168341,
+     "tokens_per_word": 1.104,
+     "bytes_per_token": 5.943,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 232779,
+     "tokens_per_word": 2.6147,
+     "bytes_per_token": 4.428,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 220297,
+     "tokens_per_word": 2.2646,
+     "bytes_per_token": 4.551,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 214958,
+     "tokens_per_word": 1.8289,
+     "bytes_per_token": 4.666,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 210181,
+     "tokens_per_word": 1.2342,
+     "bytes_per_token": 4.797,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 171457,
+     "tokens_per_word": 1.2491,
+     "bytes_per_token": 4.969,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 101400,
+     "tokens_per_word": 1.3898,
+     "bytes_per_token": 9.946,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 118462,
+     "tokens_per_word": 1.9709,
+     "bytes_per_token": 8.469,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 105946,
+     "tokens_per_word": 2.5419,
+     "bytes_per_token": 9.652,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 116919,
+     "tokens_per_word": 2.4958,
+     "bytes_per_token": 8.576,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 102598,
+     "tokens_per_word": 2.7919,
+     "bytes_per_token": 7.471,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 1941008,
+   "unused_units": 15357,
+   "unused_share": 0.1537,
+   "tokens_per_s_core": 199278,
+   "group": "SuperBPE (ours)",
+   "train_set": "1GB",
+   "merges": 99658,
+   "T": 80000,
+   "cap": 32,
+   "rule": "marks",
+   "stage2_merges": 19658,
+   "train_seconds": null,
+   "max_unit_bytes": 32
+  },
+  "SuperBPE 1GB t80k→100k ≤64B": {
+   "vocab": 100166,
+   "domains": {
+    "en-web": {
+     "tokens": 177670,
+     "tokens_per_word": 1.0621,
+     "bytes_per_token": 5.631,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 168341,
+     "tokens_per_word": 1.104,
+     "bytes_per_token": 5.943,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 232609,
+     "tokens_per_word": 2.6128,
+     "bytes_per_token": 4.432,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 219907,
+     "tokens_per_word": 2.2606,
+     "bytes_per_token": 4.559,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 214382,
+     "tokens_per_word": 1.824,
+     "bytes_per_token": 4.678,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 210181,
+     "tokens_per_word": 1.2342,
+     "bytes_per_token": 4.797,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 171457,
+     "tokens_per_word": 1.2491,
+     "bytes_per_token": 4.969,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 101145,
+     "tokens_per_word": 1.3863,
+     "bytes_per_token": 9.971,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 118420,
+     "tokens_per_word": 1.9702,
+     "bytes_per_token": 8.472,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 105921,
+     "tokens_per_word": 2.5413,
+     "bytes_per_token": 9.654,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 116905,
+     "tokens_per_word": 2.4955,
+     "bytes_per_token": 8.577,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 102597,
+     "tokens_per_word": 2.7919,
+     "bytes_per_token": 7.471,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 1939535,
+   "unused_units": 15532,
+   "unused_share": 0.1551,
+   "tokens_per_s_core": 201294,
+   "group": "SuperBPE (ours)",
+   "train_set": "1GB",
+   "merges": 99910,
+   "T": 80000,
+   "cap": 64,
+   "rule": "marks",
+   "stage2_merges": 19910,
+   "train_seconds": null,
+   "max_unit_bytes": 64
+  },
+  "SuperBPE 1GB t80k→100k (one file)": {
+   "vocab": 100211,
+   "domains": {
+    "en-web": {
+     "tokens": 177678,
+     "tokens_per_word": 1.0622,
+     "bytes_per_token": 5.63,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 168340,
+     "tokens_per_word": 1.104,
+     "bytes_per_token": 5.943,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 232565,
+     "tokens_per_word": 2.6123,
+     "bytes_per_token": 4.432,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 219935,
+     "tokens_per_word": 2.2609,
+     "bytes_per_token": 4.558,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 214091,
+     "tokens_per_word": 1.8215,
+     "bytes_per_token": 4.684,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 210193,
+     "tokens_per_word": 1.2343,
+     "bytes_per_token": 4.796,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 171457,
+     "tokens_per_word": 1.2491,
+     "bytes_per_token": 4.969,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 101142,
+     "tokens_per_word": 1.3863,
+     "bytes_per_token": 9.971,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 118416,
+     "tokens_per_word": 1.9701,
+     "bytes_per_token": 8.472,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 105921,
+     "tokens_per_word": 2.5413,
+     "bytes_per_token": 9.654,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 116905,
+     "tokens_per_word": 2.4955,
+     "bytes_per_token": 8.577,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 102596,
+     "tokens_per_word": 2.7919,
+     "bytes_per_token": 7.472,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 1939239,
+   "unused_units": 15629,
+   "unused_share": 0.156,
+   "tokens_per_s_core": 576053,
+   "group": "SuperBPE (ours, one file)",
+   "train_set": "1GB",
+   "merges": 100000,
+   "T": 80000,
+   "rule": "marks"
+  },
+  "UW/OLMo2-8B-SuperBPE-t180k": {
+   "vocab": 200005,
+   "domains": {
+    "en-web": {
+     "tokens": 157458,
+     "tokens_per_word": 0.9413,
+     "bytes_per_token": 6.354,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 154698,
+     "tokens_per_word": 1.0146,
+     "bytes_per_token": 6.467,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 263843,
+     "tokens_per_word": 2.9636,
+     "bytes_per_token": 3.907,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 256742,
+     "tokens_per_word": 2.6393,
+     "bytes_per_token": 3.905,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 250487,
+     "tokens_per_word": 2.1312,
+     "bytes_per_token": 4.004,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 205770,
+     "tokens_per_word": 1.2083,
+     "bytes_per_token": 4.9,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 158098,
+     "tokens_per_word": 1.1518,
+     "bytes_per_token": 5.389,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 303820,
+     "tokens_per_word": 4.1642,
+     "bytes_per_token": 3.319,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 452412,
+     "tokens_per_word": 7.5269,
+     "bytes_per_token": 2.218,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 378750,
+     "tokens_per_word": 9.0871,
+     "bytes_per_token": 2.7,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 454449,
+     "tokens_per_word": 9.7009,
+     "bytes_per_token": 2.206,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 242841,
+     "tokens_per_word": 6.6083,
+     "bytes_per_token": 3.157,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 3279368,
+   "unused_units": 119014,
+   "unused_share": 0.5951,
+   "tokens_per_s_core": 1124332,
+   "group": "SuperBPE (released)",
+   "sha256": "c59b266e1dc9a768b2d69493c3f6eb3e46db7deb723411c958fe65ee06c28533",
+   "revision": "695ddc45fcb484a86f75e6c7ccd38e9aab3a4b50"
+  },
+  "UW/OLMo2-8B-SuperBPE-t80k": {
+   "vocab": 200005,
+   "domains": {
+    "en-web": {
+     "tokens": 144656,
+     "tokens_per_word": 0.8648,
+     "bytes_per_token": 6.916,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 142176,
+     "tokens_per_word": 0.9324,
+     "bytes_per_token": 7.036,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 241884,
+     "tokens_per_word": 2.7169,
+     "bytes_per_token": 4.262,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 239520,
+     "tokens_per_word": 2.4622,
+     "bytes_per_token": 4.186,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 230155,
+     "tokens_per_word": 1.9582,
+     "bytes_per_token": 4.357,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 192815,
+     "tokens_per_word": 1.1322,
+     "bytes_per_token": 5.229,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 149111,
+     "tokens_per_word": 1.0863,
+     "bytes_per_token": 5.714,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 299234,
+     "tokens_per_word": 4.1013,
+     "bytes_per_token": 3.37,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 558150,
+     "tokens_per_word": 9.2861,
+     "bytes_per_token": 1.797,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 426379,
+     "tokens_per_word": 10.2298,
+     "bytes_per_token": 2.398,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 645510,
+     "tokens_per_word": 13.7794,
+     "bytes_per_token": 1.553,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 225292,
+     "tokens_per_word": 6.1307,
+     "bytes_per_token": 3.402,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 3494882,
+   "unused_units": 91536,
+   "unused_share": 0.4577,
+   "tokens_per_s_core": 1187673,
+   "group": "SuperBPE (released)",
+   "sha256": "0a9b5dda03c25cd1dbc2c44b48695694548f4a921b13b3a092c0e1be355cd608",
+   "revision": "aee0ef4c2415c523a47624474e5fbdb24319eeff"
+  },
+  "alisawuffles/superbpe-tokenizer-128k": {
+   "vocab": 128001,
+   "domains": {
+    "en-web": {
+     "tokens": 157589,
+     "tokens_per_word": 0.9421,
+     "bytes_per_token": 6.348,
+     "lossless": 1.0
+    },
+    "en-synthetic": {
+     "tokens": 154563,
+     "tokens_per_word": 1.0137,
+     "bytes_per_token": 6.472,
+     "lossless": 1.0
+    },
+    "code-python": {
+     "tokens": 266497,
+     "tokens_per_word": 2.9934,
+     "bytes_per_token": 3.868,
+     "lossless": 1.0
+    },
+    "code-other": {
+     "tokens": 260650,
+     "tokens_per_word": 2.6795,
+     "bytes_per_token": 3.846,
+     "lossless": 1.0
+    },
+    "code-adjacent": {
+     "tokens": 250306,
+     "tokens_per_word": 2.1296,
+     "bytes_per_token": 4.007,
+     "lossless": 1.0
+    },
+    "math": {
+     "tokens": 208291,
+     "tokens_per_word": 1.2231,
+     "bytes_per_token": 4.84,
+     "lossless": 1.0
+    },
+    "science-pdf": {
+     "tokens": 162254,
+     "tokens_per_word": 1.1821,
+     "bytes_per_token": 5.251,
+     "lossless": 1.0
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 303311,
+     "tokens_per_word": 4.1572,
+     "bytes_per_token": 3.325,
+     "lossless": 1.0
+    },
+    "bn-or-gu": {
+     "tokens": 559513,
+     "tokens_per_word": 9.3088,
+     "bytes_per_token": 1.793,
+     "lossless": 1.0
+    },
+    "ta-ml": {
+     "tokens": 450570,
+     "tokens_per_word": 10.8102,
+     "bytes_per_token": 2.269,
+     "lossless": 1.0
+    },
+    "te-kn": {
+     "tokens": 587560,
+     "tokens_per_word": 12.5424,
+     "bytes_per_token": 1.707,
+     "lossless": 1.0
+    },
+    "sanskrit": {
+     "tokens": 226140,
+     "tokens_per_word": 6.1538,
+     "bytes_per_token": 3.39,
+     "lossless": 1.0
+    }
+   },
+   "total_tokens": 3587244,
+   "unused_units": 49175,
+   "unused_share": 0.3842,
+   "tokens_per_s_core": 1269912,
+   "group": "SuperBPE (released)",
+   "sha256": "669e1f163c577f71e5a5f9727337a51f19e983a1fc3da455b824d67310b36389",
+   "revision": "fdccc3c5d6826f0c5ef39e4cbe9ea6cb9a813f61"
+  }
+ },
+ "numbers": {
+  "p1536 (frozen)": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "₹",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४",
+    "५"
+   ],
+   "৩৬৫": [
+    "৩",
+    "৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "o200k_base": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "₹",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४",
+    "५"
+   ],
+   "৩৬৫": [
+    "৩",
+    "৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "o200k first 1k": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "4",
+    "2"
+   ],
+   "1999": [
+    "19",
+    "9",
+    "9"
+   ],
+   "2026": [
+    "20",
+    "2",
+    "6"
+   ],
+   "12345": [
+    "12",
+    "3",
+    "4",
+    "5"
+   ],
+   "1234567": [
+    "12",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "1",
+    "4",
+    "1",
+    "5",
+    "9"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "00",
+    "0",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "5",
+    "0",
+    ",",
+    "00",
+    "0"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "00",
+    "0",
+    ",",
+    "00",
+    "0"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "ff",
+    "f"
+   ],
+   "2026-11-28": [
+    "20",
+    "2",
+    "6",
+    "-",
+    "11",
+    "-",
+    "2",
+    "8"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "4",
+    "5"
+   ],
+   "₹2,499": [
+    "�",
+    "�",
+    "�",
+    "2",
+    ",",
+    "4",
+    "9",
+    "9"
+   ],
+   "99.9%": [
+    "9",
+    "9",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "৩৬৫": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "o200k first 10k": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "45",
+    "6",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "14",
+    "1",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "ff",
+    "f"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "�",
+    "�",
+    "�",
+    "2",
+    ",",
+    "4",
+    "99"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "৩৬৫": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "o200k first 100k": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "₹",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१",
+    "२",
+    "३",
+    "४",
+    "५"
+   ],
+   "৩৬৫": [
+    "৩",
+    "৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "plain 10MB 1k": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "4",
+    "2"
+   ],
+   "1999": [
+    "19",
+    "9",
+    "9"
+   ],
+   "2026": [
+    "20",
+    "2",
+    "6"
+   ],
+   "12345": [
+    "12",
+    "3",
+    "4",
+    "5"
+   ],
+   "1234567": [
+    "12",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "1",
+    "4",
+    "1",
+    "5",
+    "9"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "00",
+    "0",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "5",
+    "0",
+    ",",
+    "00",
+    "0"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "00",
+    "0",
+    ",",
+    "00",
+    "0"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "ff",
+    "f"
+   ],
+   "2026-11-28": [
+    "20",
+    "2",
+    "6",
+    "-",
+    "1",
+    "1",
+    "-",
+    "2",
+    "8"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "4",
+    "5"
+   ],
+   "₹2,499": [
+    "�",
+    "�",
+    "�",
+    "2",
+    ",",
+    "4",
+    "9",
+    "9"
+   ],
+   "99.9%": [
+    "9",
+    "9",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "৩৬৫": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "plain 10MB 10k": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "45",
+    "6",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "14",
+    "1",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "ff",
+    "f"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "�",
+    "�",
+    "�",
+    "2",
+    ",",
+    "4",
+    "99"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "�",
+    "�",
+    "२",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "৩৬৫": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "plain 10MB 100k": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "�",
+    "�",
+    "�",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४",
+    "५"
+   ],
+   "৩৬৫": [
+    "৩",
+    "৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "plain 10MB 100k ≤32B": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "�",
+    "�",
+    "�",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४",
+    "५"
+   ],
+   "৩৬৫": [
+    "৩",
+    "৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "plain 10MB 100k ≤64B": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "�",
+    "�",
+    "�",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४",
+    "५"
+   ],
+   "৩৬৫": [
+    "৩",
+    "৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "plain 100MB 1k": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "4",
+    "2"
+   ],
+   "1999": [
+    "19",
+    "9",
+    "9"
+   ],
+   "2026": [
+    "20",
+    "2",
+    "6"
+   ],
+   "12345": [
+    "12",
+    "3",
+    "4",
+    "5"
+   ],
+   "1234567": [
+    "12",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "1",
+    "4",
+    "1",
+    "5",
+    "9"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "00",
+    "0",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "5",
+    "0",
+    ",",
+    "00",
+    "0"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "00",
+    "0",
+    ",",
+    "00",
+    "0"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "ff",
+    "f"
+   ],
+   "2026-11-28": [
+    "20",
+    "2",
+    "6",
+    "-",
+    "1",
+    "1",
+    "-",
+    "2",
+    "8"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "4",
+    "5"
+   ],
+   "₹2,499": [
+    "�",
+    "�",
+    "�",
+    "2",
+    ",",
+    "4",
+    "9",
+    "9"
+   ],
+   "99.9%": [
+    "9",
+    "9",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "৩৬৫": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "plain 100MB 1k ≤32B": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "4",
+    "2"
+   ],
+   "1999": [
+    "19",
+    "9",
+    "9"
+   ],
+   "2026": [
+    "20",
+    "2",
+    "6"
+   ],
+   "12345": [
+    "12",
+    "3",
+    "4",
+    "5"
+   ],
+   "1234567": [
+    "12",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "1",
+    "4",
+    "1",
+    "5",
+    "9"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "00",
+    "0",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "5",
+    "0",
+    ",",
+    "00",
+    "0"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "00",
+    "0",
+    ",",
+    "00",
+    "0"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "ff",
+    "f"
+   ],
+   "2026-11-28": [
+    "20",
+    "2",
+    "6",
+    "-",
+    "1",
+    "1",
+    "-",
+    "2",
+    "8"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "4",
+    "5"
+   ],
+   "₹2,499": [
+    "�",
+    "�",
+    "�",
+    "2",
+    ",",
+    "4",
+    "9",
+    "9"
+   ],
+   "99.9%": [
+    "9",
+    "9",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "৩৬৫": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "plain 100MB 1k ≤64B": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "4",
+    "2"
+   ],
+   "1999": [
+    "19",
+    "9",
+    "9"
+   ],
+   "2026": [
+    "20",
+    "2",
+    "6"
+   ],
+   "12345": [
+    "12",
+    "3",
+    "4",
+    "5"
+   ],
+   "1234567": [
+    "12",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "1",
+    "4",
+    "1",
+    "5",
+    "9"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "00",
+    "0",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "5",
+    "0",
+    ",",
+    "00",
+    "0"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "00",
+    "0",
+    ",",
+    "00",
+    "0"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "ff",
+    "f"
+   ],
+   "2026-11-28": [
+    "20",
+    "2",
+    "6",
+    "-",
+    "1",
+    "1",
+    "-",
+    "2",
+    "8"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "4",
+    "5"
+   ],
+   "₹2,499": [
+    "�",
+    "�",
+    "�",
+    "2",
+    ",",
+    "4",
+    "9",
+    "9"
+   ],
+   "99.9%": [
+    "9",
+    "9",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "৩৬৫": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "plain 100MB 10k": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "45",
+    "6",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "14",
+    "1",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "ff",
+    "f"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "�",
+    "�",
+    "�",
+    "2",
+    ",",
+    "4",
+    "99"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१",
+    "२",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "৩৬৫": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "plain 100MB 10k ≤32B": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "45",
+    "6",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "14",
+    "1",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "ff",
+    "f"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "�",
+    "�",
+    "�",
+    "2",
+    ",",
+    "4",
+    "99"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१",
+    "२",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "৩৬৫": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "plain 100MB 10k ≤64B": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "45",
+    "6",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "14",
+    "1",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "ff",
+    "f"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "�",
+    "�",
+    "�",
+    "2",
+    ",",
+    "4",
+    "99"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१",
+    "२",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "৩৬৫": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "plain 100MB 100k": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "₹",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४",
+    "५"
+   ],
+   "৩৬৫": [
+    "৩",
+    "৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "plain 100MB 100k ≤32B": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "₹",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४",
+    "५"
+   ],
+   "৩৬৫": [
+    "৩",
+    "৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "plain 100MB 100k ≤64B": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "₹",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४",
+    "५"
+   ],
+   "৩৬৫": [
+    "৩",
+    "৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "plain 1GB 1k": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "4",
+    "2"
+   ],
+   "1999": [
+    "19",
+    "9",
+    "9"
+   ],
+   "2026": [
+    "20",
+    "2",
+    "6"
+   ],
+   "12345": [
+    "12",
+    "3",
+    "4",
+    "5"
+   ],
+   "1234567": [
+    "12",
+    "3",
+    "4",
+    "5",
+    "6",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "1",
+    "4",
+    "1",
+    "5",
+    "9"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "00",
+    "0",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "5",
+    "0",
+    ",",
+    "00",
+    "0"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "00",
+    "0",
+    ",",
+    "00",
+    "0"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "ff",
+    "f"
+   ],
+   "2026-11-28": [
+    "20",
+    "2",
+    "6",
+    "-",
+    "11",
+    "-",
+    "2",
+    "8"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "4",
+    "5"
+   ],
+   "₹2,499": [
+    "�",
+    "�",
+    "�",
+    "2",
+    ",",
+    "4",
+    "9",
+    "9"
+   ],
+   "99.9%": [
+    "9",
+    "9",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "৩৬৫": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "plain 1GB 10k": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "45",
+    "6",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "14",
+    "1",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "ff",
+    "f"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "�",
+    "�",
+    "�",
+    "2",
+    ",",
+    "4",
+    "99"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१",
+    "२",
+    "३",
+    "४",
+    "५"
+   ],
+   "৩৬৫": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "plain 1GB 100k": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "�",
+    "��",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४५"
+   ],
+   "৩৬৫": [
+    "৩",
+    "৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "plain 1GB 100k ≤32B": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "�",
+    "��",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४५"
+   ],
+   "৩৬৫": [
+    "৩",
+    "৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "plain 1GB 100k ≤64B": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "�",
+    "��",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४५"
+   ],
+   "৩৬৫": [
+    "৩",
+    "৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "plain 1GB 1000k": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e",
+    "-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "₹",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२३",
+    "४५"
+   ],
+   "৩৬৫": [
+    "৩৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "SuperBPE 100MB t180k→200k": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "₹",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४५"
+   ],
+   "৩৬৫": [
+    "৩৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "SuperBPE 100MB t180k→200k ≤32B": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "₹",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४५"
+   ],
+   "৩৬৫": [
+    "৩৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "SuperBPE 100MB t180k→200k ≤64B": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "₹",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४५"
+   ],
+   "৩৬৫": [
+    "৩৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "SuperBPE 100MB t180k→200k (one file)": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "₹",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४५"
+   ],
+   "৩৬৫": [
+    "৩৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "SuperBPE 100MB t80k→100k": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "�",
+    "��",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४",
+    "५"
+   ],
+   "৩৬৫": [
+    "৩",
+    "৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "SuperBPE 100MB t80k→100k ≤32B": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "�",
+    "��",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४",
+    "५"
+   ],
+   "৩৬৫": [
+    "৩",
+    "৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "SuperBPE 100MB t80k→100k ≤64B": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "�",
+    "��",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४",
+    "५"
+   ],
+   "৩৬৫": [
+    "৩",
+    "৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "SuperBPE 100MB t80k→100k (one file)": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "�",
+    "��",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४",
+    "५"
+   ],
+   "৩৬৫": [
+    "৩",
+    "৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "SuperBPE 100MB t80k→100k upstream rule": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "�",
+    "��",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४",
+    "५"
+   ],
+   "৩৬৫": [
+    "৩",
+    "৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "SuperBPE 100MB t80k→100k upstream rule (one file)": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "�",
+    "��",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४",
+    "५"
+   ],
+   "৩৬৫": [
+    "৩",
+    "৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "SuperBPE 1GB t80k→100k": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "�",
+    "��",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४",
+    "५"
+   ],
+   "৩৬৫": [
+    "৩",
+    "৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "SuperBPE 1GB t80k→100k ≤32B": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "�",
+    "��",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४",
+    "५"
+   ],
+   "৩৬৫": [
+    "৩",
+    "৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "SuperBPE 1GB t80k→100k ≤64B": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "�",
+    "��",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४",
+    "५"
+   ],
+   "৩৬৫": [
+    "৩",
+    "৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "SuperBPE 1GB t80k→100k (one file)": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "�",
+    "��",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१२",
+    "३",
+    "४",
+    "५"
+   ],
+   "৩৬৫": [
+    "৩",
+    "৬",
+    "৫"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "UW/OLMo2-8B-SuperBPE-t180k": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "1",
+    "999"
+   ],
+   "2026": [
+    "2",
+    "026"
+   ],
+   "12345": [
+    "12",
+    "345"
+   ],
+   "1234567": [
+    "1",
+    "234",
+    "567"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "14",
+    "159"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "0",
+    "001"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "2",
+    "026",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "₹",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "१",
+    "२",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "৩৬৫": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "UW/OLMo2-8B-SuperBPE-t80k": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "1",
+    "999"
+   ],
+   "2026": [
+    "2",
+    "026"
+   ],
+   "12345": [
+    "12",
+    "345"
+   ],
+   "1234567": [
+    "1",
+    "234",
+    "567"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "14",
+    "159"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "0",
+    "001"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "2",
+    "026",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "�",
+    "�",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "৩৬৫": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  },
+  "alisawuffles/superbpe-tokenizer-128k": {
+   "7": [
+    "7"
+   ],
+   "42": [
+    "42"
+   ],
+   "1999": [
+    "199",
+    "9"
+   ],
+   "2026": [
+    "202",
+    "6"
+   ],
+   "12345": [
+    "123",
+    "45"
+   ],
+   "1234567": [
+    "123",
+    "456",
+    "7"
+   ],
+   "3.14159": [
+    "3",
+    ".",
+    "141",
+    "59"
+   ],
+   "-0.0001": [
+    "-",
+    "0",
+    ".",
+    "000",
+    "1"
+   ],
+   "1,50,000": [
+    "1",
+    ",",
+    "50",
+    ",",
+    "000"
+   ],
+   "1,000,000": [
+    "1",
+    ",",
+    "000",
+    ",",
+    "000"
+   ],
+   "1e-9": [
+    "1",
+    "e-",
+    "9"
+   ],
+   "0x7fff": [
+    "0",
+    "x",
+    "7",
+    "fff"
+   ],
+   "2026-11-28": [
+    "202",
+    "6",
+    "-",
+    "11",
+    "-",
+    "28"
+   ],
+   "10:45": [
+    "10",
+    ":",
+    "45"
+   ],
+   "₹2,499": [
+    "�",
+    "�",
+    "2",
+    ",",
+    "499"
+   ],
+   "99.9%": [
+    "99",
+    ".",
+    "9",
+    "%"
+   ],
+   "१२३४५": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "৩৬৫": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ],
+   "௨௦௨௬": [
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�",
+    "�"
+   ]
+  }
+ },
+ "environment": {
+  "python": "3.11.5",
+  "machine": "arm64",
+  "cpus": 10,
+  "script_sha256": "b1c421bdb589761abba8ce79ff336e37ff653b015b98e24bf0b9cc2a3082ba69"
+ }
+}
