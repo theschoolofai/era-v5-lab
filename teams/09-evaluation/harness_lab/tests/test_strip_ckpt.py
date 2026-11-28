@@ -35,6 +35,9 @@ STUB = textwrap.dedent('''
             super().__init__()
             self.a = torch.nn.Linear(512, 512)
             self.b = torch.nn.Linear(512, 8)
+            self.register_buffer("scale", torch.tensor(2.0))                  # 0-dim
+            self.register_buffer("mask", torch.tensor([True, False, True]))    # bool
+            self.register_buffer("lens", torch.arange(5, dtype=torch.int16))   # int16, as Team 5's embedding
 
         def forward(self, x):
             return self.b(torch.relu(self.a(x)))
@@ -115,8 +118,27 @@ def test_the_strip_holds_the_same_tensors_as_the_export(store, tmp_path):
     manifest = store / COMMIT / "MANIFEST.json"
     assert rec["model_revision"] == hashlib.sha256(manifest.read_bytes()).hexdigest()
     assert rec["weights_sha256"] == hashlib.sha256((tmp_path / "s.safetensors").read_bytes()).hexdigest()
-    assert rec["path"] == COMMIT and rec["step"] == 10 and rec["tensors"] == 4
-    assert rec["parameters"] == 512 * 512 + 512 + 512 * 8 + 8
+    assert rec["path"] == COMMIT and rec["step"] == 10 and rec["tensors"] == 7
+    assert rec["parameters"] == 512 * 512 + 512 + 512 * 8 + 8 + 1 + 3 + 5
+
+
+@pytest.mark.parametrize("group_bytes", [1, 4096, 256 << 20])
+def test_streaming_in_any_group_size_gives_the_same_valid_file(store, tmp_path, group_bytes):
+    """One tensor per group, a few per group, all in one group: the same tensors as the export, and a file that
+    safetensors' own reader opens (header, offsets, 0-dim, bool and int16 tensors)."""
+    import stub_scorer
+    from ckpt.ckpt import export_safetensors
+    from safetensors import safe_open
+    from safetensors.torch import load_file
+    exported = tmp_path / "export.safetensors"
+    export_safetensors(store.as_posix(), stub_scorer.Scorer([]).factory, stub_scorer.probe, str(exported), step=10)
+    rec = sc.strip(store, 10, tmp_path / "s.safetensors", group_bytes=group_bytes)
+    assert rec["groups"] == (7 if group_bytes == 1 else 1 if group_bytes == 256 << 20 else rec["groups"])
+    a, b = load_file(str(exported)), load_file(str(tmp_path / "s.safetensors"))
+    assert set(a) == set(b) and all(a[k].dtype == b[k].dtype and torch.equal(a[k], b[k]) for k in a)
+    with safe_open(str(tmp_path / "s.safetensors"), framework="pt") as f:
+        assert sorted(f.keys()) == sorted(a) and f.metadata()["model_revision"] == rec["model_revision"]
+    assert b["scale"].dim() == 0 and b["mask"].dtype == torch.bool and b["lens"].dtype == torch.int16
 
 
 @pytest.mark.skipif(not sys.platform.startswith("linux"), reason="/proc/self/io counts the bytes read")
@@ -153,7 +175,8 @@ def add_fingerprints(store):
     from ckpt.ckpt import fingerprints
     path = store / COMMIT / "MANIFEST.json"
     man = json.loads(path.read_text())
-    want = {k[len("model."):]: torch.empty(v[0]) for k, v in man["keys"].items() if k.startswith("model.")}
+    want = {k[len("model."):]: torch.empty(v[0], dtype=getattr(torch, v[1].removeprefix("torch.")))
+            for k, v in man["keys"].items() if k.startswith("model.")}
     dcp.load({"model": want}, checkpoint_id=str(store / COMMIT))
     man["fingerprints"] = fingerprints({"model": want})
     path.write_text(json.dumps(man))
@@ -304,8 +327,10 @@ def test_bf16_halves_the_file_and_rounds_as_a_cast_does(store, tmp_path):
     half_fp = sc.strip(store, 10, tmp_path / "g.safetensors", dtype="bfloat16")          # converted after the check
     assert half_fp["verify"] == "fingerprints"
     f, h, g = (load_file(str(tmp_path / n)) for n in ("f.safetensors", "h.safetensors", "g.safetensors"))
-    assert all(h[k].dtype == torch.bfloat16 and torch.equal(h[k], f[k].to(torch.bfloat16)) and torch.equal(h[k], g[k])
-               for k in f)
+    for k in f:   # floats are rounded as a cast does; int and bool tensors stay as they are
+        want = f[k].to(torch.bfloat16) if f[k].is_floating_point() else f[k]
+        assert h[k].dtype == want.dtype and torch.equal(h[k], want) and torch.equal(h[k], g[k]), k
+    assert h["mask"].dtype == torch.bool and h["lens"].dtype == torch.int16 and h["scale"].dtype == torch.bfloat16
 
 
 def test_weights_score_the_same_as_the_export_and_check_the_probe(store, tmp_path, capsys):

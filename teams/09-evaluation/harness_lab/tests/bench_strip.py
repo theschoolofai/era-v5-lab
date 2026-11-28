@@ -156,6 +156,9 @@ def main(argv=None) -> int:
                     help="strip variants: files (sha256 of every file), fingerprints (each weight against MANIFEST.json "
                          "fingerprints, added by the build as Team 7's save would keep them), none, files-bf16")
     ap.add_argument("--jobs", type=int, default=min(8, os.cpu_count() or 1))
+    ap.add_argument("--group-mb", type=int, help="passed to strip_ckpt.py --group-mb (the streaming strip only)")
+    ap.add_argument("--strip", type=Path, default=LAB / "strip_ckpt.py",
+                    help="the strip_ckpt.py to measure (an older version too, for a before and after)")
     a = ap.parse_args(argv)
     a.work.mkdir(parents=True, exist_ok=True)
     if any(a.work.iterdir()):
@@ -178,8 +181,9 @@ def main(argv=None) -> int:
     for v in [x for x in a.variants.split(",") if x]:
         verify, _, dt = v.partition("-")
         out = a.work / f"strip-{v}.safetensors"
-        cmd = [sys.executable, str(LAB / "strip_ckpt.py"), "--run-dir", str(run_dir), "--out", str(out), "--verify",
-               verify, "--jobs", str(a.jobs)] + (["--dtype", "bfloat16"] if dt == "bf16" else [])
+        cmd = [sys.executable, str(a.strip), "--run-dir", str(run_dir), "--out", str(out), "--verify",
+               verify, "--jobs", str(a.jobs)] + (["--dtype", "bfloat16"] if dt == "bf16" else []) + \
+            (["--group-mb", str(a.group_mb)] if a.group_mb else [])
         subprocess.run(cmd, check=True, capture_output=True)
         rec = json.loads(out.with_name(out.name + ".json").read_text())
         rows.append((f"strip --verify {verify}" + (" --dtype bfloat16" if dt else ""),

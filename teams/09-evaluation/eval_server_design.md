@@ -61,12 +61,12 @@ that gives it.
    assume all 8.
 2. **Read only on the store.** It reads `commits.jsonl`, `MANIFEST.json` and shard files. It never writes to the store
    and never deletes from it (`eval_watcher.py`: "It is read-only on the store").
-3. **A possible race with saves for the store.** GPU time is not the only shared cost. The trainer writes each commit
-   to the store the eval node reads from. A read at full speed while the next save runs can slow the save, and a slow
-   save is training time lost (`checkpoint_interval.md`: "1.2 x save pipeline"). This is not measured. Proposal: read
-   only the weight bytes (section 4), start the read only after the commit line exists (the watcher already does), and
-   cap the read rate if a test shows that saves slow down. **Open:** the store's read and write bandwidth, and a save
-   timed with and without an eval read beside it (Team 7).
+3. **A possible race with saves for the store.** GPU time is not the only shared cost. The trainer writes each commit to
+   the store the eval node reads from. A read at full speed while the next save runs can slow the save, and a slow save
+   is training time lost (`checkpoint_interval.md`: "1.2 x save pipeline"). This is not measured. Proposal: read only
+   the weight bytes (section 4), start the read only after the commit line exists (the watcher already does), and cap
+   the read rate if a test shows that saves slow down. **Open:** the store's read and write bandwidth, and a save timed
+   with and without an eval read beside it (Team 7).
 
 ## 3. Where checkpoints are pulled from
 
@@ -108,10 +108,10 @@ which holds most parameters (165.7M of 176.4M in dry run 2). 1 and 5 GB/s are ex
 
 **Findings (checked in the code, then measured):**
 
-- **F1. Half the bytes copied are not needed.** Step 1 copies the optimizer state too; scoring needs only the
-  `model.*` tensors. Measured on a commit of one tenth of dry run 2's size: a dcp load of the model keys alone read
-  76.5 MB of a 147.8 MB shard file (weights 70.6 MB, the rest dcp metadata), so dcp reads only the bytes it is asked
-  for, in place, from a mounted store.
+- **F1. Half the bytes copied are not needed.** Step 1 copies the optimizer state too; scoring needs only the `model.*`
+  tensors. Measured on a commit of one tenth of dry run 2's size: a dcp load of the model keys alone read 76.5 MB of a
+  147.8 MB shard file (weights 70.6 MB, the rest dcp metadata), so dcp reads only the bytes it is asked for, in place,
+  from a mounted store.
 - **F2. Two fp32 models on CPU** (steps 2 and 4): 240 GB of RAM at 30B and 800 GB at 100B. Step 4 exists only to check
   that the file round-trips.
 - **F3. The probe forward pass on CPU is wasted for a GPU-trained run.** The trainer saves the probe bits for its own
@@ -124,42 +124,61 @@ which holds most parameters (165.7M of 176.4M in dry run 2). 1 and 5 GB/s are ex
   `run_lab_ckpt.export_store` would remove that copy").
 - **F5. The integrity check reads the optimizer bytes too.** Both the export and a strip that hashes the files read the
   whole commit to compare sha256 values. Team 7's save already computes a logical fingerprint of every tensor inside
-  `state_digest()` and keeps only the digest. If MANIFEST.json kept the `model.*` fingerprints (a few bytes per
-  tensor, no extra compute at save), a reader could check the weights it loads and read nothing else.
+  `state_digest()` and keeps only the digest. If MANIFEST.json kept the `model.*` fingerprints (a few bytes per tensor,
+  no extra compute at save), a reader could check the weights it loads and read nothing else.
 
-**Built: `harness_lab/strip_ckpt.py`, and `run_lab_ckpt.py --weights`.** The strip reads the commit in place, loads
-only the `model.*` tensors in their saved dtype (or bf16, converted by the load itself), checks them, and writes one
-safetensors file plus a record (`<file>.json`: commit path, `model_revision`, weights sha256, written last). Checks:
+**Built: `harness_lab/strip_ckpt.py`, and `run_lab_ckpt.py --weights`.** The strip reads the commit in place and loads
+only the `model.*` tensors, in groups of `--group-mb` (default 256 MB of saved bytes). It writes the safetensors file as
+it loads: the header first (every shape and dtype is in MANIFEST.json), then each group, hashed on the way. So it holds
+one group in memory, never the whole model, and never reads its file back. bf16 is converted by the load itself. Checks:
 `--verify files` hashes every file MANIFEST.json lists, in parallel, as the export does; `--verify fingerprints` checks
 each loaded weight against MANIFEST.json `fingerprints` (F5); `--verify auto` (default) takes fingerprints when they are
-there. `run_lab_ckpt.py --weights <file>` scores the file with no export: the record must name this commit and the file
-sha256 must match; the probe is compared where it can be (saved bits for `cpu`, weights in the saved dtype) and
-"not compared" is printed otherwise, as the export prints. 16 tests (`tests/test_strip_ckpt.py`), among them a commit
-saved by FSDP2 over 2 ranks (DTensor shards in 2 files, an int16 buffer): one process strips it to exactly the full
-tensors, and the fingerprints made on the shards match the ones the strip makes on the full tensors. A file that
-disappears during the strip (retention) and a disk without room are clean errors that leave nothing behind.
+there. The record (`<file>.json`: commit path, `model_revision`, weights sha256) is written last. `run_lab_ckpt.py
+--weights <file>` scores the file with no export: the record must name this commit and the file sha256 must match; the
+probe is compared where it can be (saved bits for `cpu`, weights in the saved dtype) and "not compared" is printed
+otherwise, as the export prints.
+
+**Correctness, tested:**
+- **The real Team 5 model** (`tests/check_strip_team5.py`, `logs/check_strip_team5.log`): dry run 2's own arm
+  (`dryrun2.yaml`: 176,398,881 parameters, KAS v2 head, 483 tensors) and `t2.yaml` (237,052,416 parameters, 477
+  tensors), each at full depth and with 2 layers, 2 commits each. For every commit the strip equals the export bit for
+  bit, loads strictly into a fresh Team 5 model, and gives the saved probe loss bits; the bf16 strip loads strictly too.
+  Neither model has tensors that share memory (`t2.yaml` says `tied_embeddings_intended: true`, but the model built has
+  no tied tensor).
+- **Sharded commits:** a commit saved by FSDP2 over 2 ranks (DTensor shards in 2 files, an int16 buffer) strips to
+  exactly the full tensors, and fingerprints made on the shards match the ones made on the full tensors.
+- **The file itself:** one tensor per group, a few per group and all in one group give the same file content, which
+  safetensors' own reader opens; 0-dim, bool and int16 tensors keep their dtype (a bf16 strip converts floats only).
+- **Failures:** a damaged byte (file check, or fingerprint check for the weights), a strip of another commit, a changed
+  file, a file deleted during the strip (also inside dcp), a full disk, and two strips of one commit at once.
+- 19 tests in `tests/test_strip_ckpt.py`; the whole `harness_lab/tests` folder: 95 passed on Linux, 3 runs.
 
 **Measured** (`logs/strip_bench.log`: a commit with dry run 2's parameter split, 176,398,881 parameters, 1,412 MB on
-disk, saved by Team 7's Checkpointer; Linux, 4 CPUs, torch 2.15.0 CPU, page cache warm; each path in a fresh process):
+disk, and twice that; Linux, 4 CPUs, torch 2.15.0 CPU, page cache warm; each path in a fresh process):
 
-| Path | Wall time | Peak RSS | Read | Written |
-|---|---:|---:|---:|---:|
-| `export_safetensors()`, as `run_lab_ckpt.py` calls it | 3.74 s | 2,690 MB | 3,546 MB | 2,118 MB |
-| strip, `--verify files` (the same guarantee) | 1.00 s | 1,185 MB | 2,830 MB | 706 MB |
-| strip, `--verify fingerprints` (F5) | 0.81 s | 1,513 MB | 1,418 MB | 706 MB |
-| strip, `--verify files --dtype bfloat16` | 0.75 s | 822 MB | 2,477 MB | 353 MB |
+| Path | 176M: time | peak RSS | read | written | 353M: time | peak RSS | read |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `export_safetensors()`, as `run_lab_ckpt.py` calls it | 3.35 s | 2,692 MB | 3,546 MB | 2,118 MB | 7.57 s | 5,040 MB | 7,082 MB |
+| strip, `--verify files` (the same guarantee) | 0.85 s | 649 MB | 2,124 MB | 706 MB | 1.81 s | 650 MB | 4,248 MB |
+| strip, `--verify fingerprints` (F5) | 0.75 s | 931 MB | 713 MB | 706 MB | 1.62 s | 764 MB | 1,425 MB |
+| strip, `--verify files --dtype bfloat16` | 0.71 s | 515 MB | 2,124 MB | 353 MB | 2.50 s | 527 MB | 4,248 MB |
 
-The strip with `--verify files` writes the same tensors as the export, bit for bit. Against the export it is 3.7
-times faster, holds 2.3 times less memory and writes 3.0 times less. With fingerprints it reads 2.5 times less than
-the export. At one tenth of the size every row scales about linearly (the export 0.47 s, the strip 0.10 s). If that
-holds at 30B (not measured: 170 times the size), the export would need about 450 GB of RAM (2,690 MB x 170) where the
-strip in bf16 needs about 140 GB (822 MB x 170). What remains in the strip is the check (0.51 s of 1.00 s) and the
-write with its read-back for the sha256 (0.39 s); the load itself is 0.09 s.
+- The strip writes the same tensors as the export, bit for bit. It is 3.9 to 4.2 times faster and writes 3 times less.
+- **Peak memory is set by the group size, not the model size:** about 650 MB at 176M and at 353M parameters, where the
+  export grows with the model (2,692 MB to 5,040 MB). With 64 MB groups the peak falls to 433 MB and 529 MB. Before
+  streaming, the strip needed 1,186 MB and 2,030 MB.
+- With fingerprints the strip reads the weights only: 5 times less than the export (713 MB against 3,546 MB).
+- The bf16 row at 353M took 2.50 s here and 1.63 to 2.04 s in the other runs of the log: its time varies between runs.
+- Not measured above 353M: the bench's build of a 705M commit (weights, gradients, optimizer state and the save's
+  staging copy) did not fit in 16 GB. The export's memory at 30B is then an estimate (it doubled from 176M to 353M, so
+  about 450 GB at 30B); the strip's stays at the group size plus Python.
 
 **Proposal (one strip per checkpoint):**
-1. The eval node runs `strip_ckpt.py` once per commit. The Tier A scorer, the Tier B scorer and Team 12's quantize
-   stages all read its one file (`run_lab_ckpt.py --weights`, `run_loop.py --weights`). The file is deleted when every
-   stage that reads it has its marker (the newest 2 strips are kept, plus any commit still waiting for a stage).
+1. The eval node runs `strip_ckpt.py` once per commit, outside the GPU slot lock (it uses only CPU and disk), so the
+   strip of the next commit overlaps the scoring of this one. The Tier A scorer, the Tier B scorer and Team 12's
+   quantize stages all read its one file (`run_lab_ckpt.py --weights`, `run_loop.py --weights`). The file is deleted
+   when every stage that reads it has its marker (the newest 2 strips are kept, plus any commit still waiting for a
+   stage).
 2. Team 7 keeps the `model.*` fingerprints in MANIFEST.json (F5); the strip then uses them by itself (`--verify auto`).
 3. The probe check runs only where it can compare. **Open:** whether bits saved on the training GPUs can match on the
    eval GPUs (the same GPU model and the same deterministic settings are needed: Team 7).
@@ -194,9 +213,9 @@ Points 2 and 3 are watcher changes. They are not built yet.
 - **Proposal:** for the 30B model, one 80 GB GPU per tier is enough to hold the model; the number of GPUs comes from the
   time per checkpoint (section 7). For the 100B model, score the bf16 model on 4 GPUs (3 for the weights, room for
   activations) and the quantized copies on 1 GPU each. This is also the setup Team 12's loop needs.
-- **CPU and disk:** the strip of section 4 holds the weights once (measured: 1,185 MB peak for 706 MB of fp32 weights,
-  822 MB in bf16), against about 3.8 times the weights for the export (2,690 MB). At 30B in bf16 that is about 140 GB of
-  CPU memory for the strip. Local disk holds 2 stripped files at a time: 120 GB at 30B in bf16, 400 GB at 100B.
+- **CPU and disk:** the strip of section 4 holds one group of tensors, not the model (measured: about 650 MB peak at
+  176M and at 353M parameters), where the export holds about 3.8 times the weights (2,692 MB at 176M). So CPU memory
+  does not size the eval node. Local disk holds 2 stripped files at a time: 120 GB at 30B in bf16, 400 GB at 100B.
 - **Fact:** the eval slot GPU type is not in the record (`manifest.json` of #869 has `gpu: redacted`). **Open:** the
   eval node's GPU type and count (TSAI).
 
@@ -270,8 +289,8 @@ Found in this review, not yet in the sections above:
    eval node's clock with the ClickHouse server's `now()` and warns above 5 s.
 2. **Team 12 scores the full model a second time.** `run_loop.py` runs `score_full` (Team 9's scorer on the full
    weights) on every commit, also when `--watcher-json` gives the watcher's scores, which it uses only to compare
-   (`run_loop.py`, `score_full` and the report). That is one extra full scoring per commit on the GPU. **Proposal:**
-   run `--stages strip,quantize,report` with `--watcher-json` on every commit, and `score_full` as a cross-check on the
+   (`run_loop.py`, `score_full` and the report). That is one extra full scoring per commit on the GPU. **Proposal:** run
+   `--stages strip,quantize,report` with `--watcher-json` on every commit, and `score_full` as a cross-check on the
    first commit only (Team 12).
 3. **Each reader hashes the stripped file.** `run_lab_ckpt.py --weights` reads the whole file once for its sha256: at
    the measured 3.42 GB/s for one thread, 60 GB (30B in bf16) is about 18 s per reader, from a local disk. With Tier A,
@@ -284,13 +303,13 @@ Found in this review, not yet in the sections above:
    lost, a new watcher scores again every owned commit still in the store. That is safe (each load first deletes the
    run_id's rows, so no row is doubled) but costs GPU time. **Proposal:** keep the out folder on storage that outlives
    the node.
-6. **One active eval node.** The state lock is a local file lock (`fcntl.flock`). On a network file system that lock
-   may not hold across hosts. **Proposal:** one eval node at a time; a standby starts only after the first is stopped.
+6. **One active eval node.** The state lock is a local file lock (`fcntl.flock`). On a network file system that lock may
+   not hold across hosts. **Proposal:** one eval node at a time; a standby starts only after the first is stopped.
 
 Not tested yet (needs hardware or data we do not have):
 
 - A real GPU, the real eval slot, and the step 1,221 weights of dry run 2 (TSAI shares them later).
-- Any size above dry run 2's 176M parameters: the numbers at 30B and 100B are formulas or linear estimates.
+- Any size above 353M parameters (2 times dry run 2): the numbers at 30B and 100B are formulas or estimates.
 - A network store, and a cold page cache: every timing above is warm. On a network store the bytes read set the time.
 - A commit saved by 8 ranks (tested: 2), and tensor parallelism (tested: FSDP2 only).
 
@@ -323,4 +342,3 @@ Capstone Lab 5 briefing (Team 9, Team 5, Team 7 and Team 12 sections); `eval_sch
 `../07-infrastructure/docs/checkpoint_interval.md`; `../08-monitoring/alarms/eval_lag.py`;
 `../05-architecture/results/dryrun2-1234/` (#869); #549, #769, #822, #886; #902 (Team 9 task 3);
 `harness_lab/strip_ckpt.py`, `harness_lab/tests/bench_strip.py`, `harness_lab/logs/strip_bench.log`.
-

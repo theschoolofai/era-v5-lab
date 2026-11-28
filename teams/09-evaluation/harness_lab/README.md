@@ -145,9 +145,12 @@ python teams/09-evaluation/harness_lab/tests/bench_strip.py --work <empty dir> -
 ```
 
 Measured on a commit with dry run 2's parameter split (`logs/strip_bench.log`, Linux, 4 CPUs): the strip writes the
-same tensors as `export_safetensors()`, bit for bit, in 1.00 s against 3.74 s, with 1,185 MB peak memory against
-2,690 MB and 706 MB written against 2,118 MB. Tested also on a commit sharded by FSDP2 over 2 ranks. The design and the numbers at the main-run size are in
-`../eval_server_design.md`, section 4.
+same tensors as `export_safetensors()`, bit for bit, in 0.85 s against 3.35 s, with 649 MB peak memory against
+2,692 MB and 706 MB written against 2,118 MB. It streams in groups (`--group-mb`, default 256), so its peak memory
+stays at about 650 MB when the model doubles, where the export's doubles. On the real Team 5 model (`dryrun2.yaml`
+and `t2.yaml`, `tests/check_strip_team5.py`, `logs/check_strip_team5.log`) the strip equals the export bit for bit,
+loads strictly and gives the saved probe bits; a commit sharded by FSDP2 over 2 ranks strips to exactly the full
+tensors. The design and the numbers at the main-run size are in `../eval_server_design.md`, section 4.
 
 ## What is and is not done
 
@@ -159,7 +162,7 @@ same tensors as `export_safetensors()`, bit for bit, in 1.00 s against 3.74 s, w
 | `eval_watcher.py`: each new commit scored and loaded, restarts, retries, tiers, slot lock | Done; tests without GPU or ClickHouse. The store must be a local or mounted path, as for `run_lab_ckpt.py` |
 | Team 5 `checkpoint.pt` + `manifest.json` layout (section 6, last paragraph): dry run 1 | Done: `--team5-run <folder>` in `run_lab_ckpt.py` and `eval_watcher.py` (below). Tested on a stub model; the real run is the job request `../jobs/2026-11-15-eval-watcher-dry-run-1.md` |
 | `--run-name` for queue jobs (`<job_run_id>/<arm>`) | Done, not tested on a real queue job |
-| `strip_ckpt.py` and `run_lab_ckpt.py --weights` (one strip per commit) | Done, 16 tests (one on a 2-rank FSDP2 commit), measured on a commit of dry run 2's split (`logs/strip_bench.log`). The watcher does not call it yet (after #896 and #902) |
+| `strip_ckpt.py` and `run_lab_ckpt.py --weights` (one strip per commit) | Done, 19 tests (one on a 2-rank FSDP2 commit) and the real Team 5 model check, measured on a commit of dry run 2's split (`logs/strip_bench.log`). The watcher does not call it yet (after #896 and #902) |
 
 ## Schema point to confirm
 

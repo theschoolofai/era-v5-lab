@@ -21,8 +21,9 @@ The checks it keeps:
   ``state_digest()`` already computes at every save), so only the weight bytes are read. ``--verify auto`` (default)
   uses fingerprints when MANIFEST.json has them and files otherwise;
 - the ``model.*`` keys, shapes and dtypes must equal MANIFEST.json ``keys``, and dcp's own metadata must hold them;
-- the written file is read back and hashed; its sha256 and the commit's ``model_revision`` (the sha256 of
-  MANIFEST.json) go into the record, so a reader can check that the file is this commit's weights.
+- the file is written as it is loaded, one group of tensors at a time (``--group-mb``), and hashed on the way; its
+  sha256 and the commit's ``model_revision`` (the sha256 of MANIFEST.json) go into the record, so a reader can check
+  that the file is this commit's weights. Only one group is held in memory, and the file is never read back.
 
 The probe-loss check is not done here: it needs the model class. ``run_lab_ckpt.py --weights`` runs it when the saved
 bits are for the device class it scores on, and says "not compared" otherwise.
@@ -48,6 +49,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(TEAM07))
 
 RECORD_SCHEMA = "strip_v1"
+SAFETENSORS_DTYPE = {}  # filled on first use (torch is imported lazily)
 MANIFEST = "MANIFEST.json"
 MODEL = "model."
 
@@ -80,6 +82,10 @@ def peak_rss_bytes() -> int:
 
 def torch_dtype(name: str):
     import torch
+    if not SAFETENSORS_DTYPE:
+        SAFETENSORS_DTYPE.update({torch.float64: "F64", torch.float32: "F32", torch.float16: "F16",
+                                  torch.bfloat16: "BF16", torch.int64: "I64", torch.int32: "I32", torch.int16: "I16",
+                                  torch.int8: "I8", torch.uint8: "U8", torch.bool: "BOOL"})
     d = getattr(torch, name.removeprefix("torch."), None)
     if not isinstance(d, torch.dtype):
         raise StripError(f"unknown dtype {name!r} in MANIFEST.json keys")
@@ -102,7 +108,7 @@ def verify_files(folder: Path, files: dict, jobs: int) -> None:
 
 
 def strip(run_dir: Path, step: int | None, out: Path, dtype: str = "saved", verify: str = "auto",
-          jobs: int = 8) -> dict:
+          jobs: int = 8, group_bytes: int = 256 << 20) -> dict:
     """Write the weights of one commit to ``out`` and the record to ``out`` + ``.json``. Returns the record.
 
     A file of the commit that disappears while it is read (retention deleted the commit) is a StripError, and so is a
@@ -111,7 +117,7 @@ def strip(run_dir: Path, step: int | None, out: Path, dtype: str = "saved", veri
 
     tmps = [out.with_name(f".{out.name}.{os.getpid()}.tmp"), out.with_name(f".{out.name}.json.{os.getpid()}.tmp")]
     try:
-        return _strip(run_dir, step, out, dtype, verify, jobs, tmps)
+        return _strip(run_dir, step, out, dtype, verify, jobs, tmps, group_bytes)
     except (OSError, CheckpointException) as e:
         raise StripError(f"reading or writing failed (was the commit deleted by retention?): {e}") from None
     except json.JSONDecodeError as e:
@@ -121,10 +127,28 @@ def strip(run_dir: Path, step: int | None, out: Path, dtype: str = "saved", veri
             t.unlink(missing_ok=True)
 
 
-def _strip(run_dir, step, out, dtype, verify, jobs, tmps) -> dict:
+def numel(shape) -> int:
+    n = 1
+    for d in shape:
+        n *= int(d)
+    return n
+
+
+def cached_reader(dcp, folder: Path):
+    """dcp's FileSystemReader that reads the checkpoint metadata once for all the loads of one strip."""
+    class Cached(dcp.FileSystemReader):
+        _metadata = None
+
+        def read_metadata(self):
+            if self._metadata is None:
+                self._metadata = super().read_metadata()
+            return self._metadata
+    return Cached(str(folder))
+
+
+def _strip(run_dir, step, out, dtype, verify, jobs, tmps, group_bytes) -> dict:
     import torch
     import torch.distributed.checkpoint as dcp
-    from safetensors.torch import save_file
     from run_lab_ckpt import read_pointer
 
     t0 = time.perf_counter()
@@ -150,52 +174,86 @@ def _strip(run_dir, step, out, dtype, verify, jobs, tmps) -> dict:
         verify_files(folder, man["files"], jobs)
     t_verify = time.perf_counter() - t_verify
 
-    t_load = time.perf_counter()
-    meta = dcp.FileSystemReader(str(folder)).read_metadata().state_dict_metadata
+    reader = cached_reader(dcp, folder)          # dcp reads its metadata once, not once per group
+    meta = reader.read_metadata().state_dict_metadata
     missing = sorted(k for k in want if k not in meta)
     if missing:
         raise StripError(f"dcp metadata lacks {len(missing)} model key(s), first {missing[:3]}")
-    # A conversion is done by the load itself (dcp copies each stored tensor into its target), so the whole model is
-    # never held twice. Fingerprints are made on the saved bits, so with them the conversion comes after the check.
-    load_as = torch_dtype(dtype) if dtype != "saved" and verify != "fingerprints" else None
-    target = {}
+    shapes, saved_dt, out_dt = {}, {}, {}
     for key, (shape, dt) in want.items():
         if list(meta[key].size) != list(shape):
             raise StripError(f"{key}: dcp shape {list(meta[key].size)}, MANIFEST.json {shape}")
-        saved_dt = torch_dtype(dt)
-        target[key[len(MODEL):]] = torch.empty(shape, dtype=load_as if load_as and saved_dt.is_floating_point
-                                               else saved_dt)
-    state = {"model": target}
-    dcp.load(state, checkpoint_id=str(folder))  # loads only the keys asked for; the optimizer state is not loaded
-    weights = state["model"]
-    t_load = time.perf_counter() - t_load
+        shapes[key], saved_dt[key] = list(shape), torch_dtype(dt)
+        out_dt[key] = torch_dtype(dtype) if dtype != "saved" and saved_dt[key].is_floating_point else saved_dt[key]
+    # A conversion is done by the load itself (dcp copies each stored tensor into its target). Fingerprints are made on
+    # the saved bits, so with them each tensor is converted after its check.
+    load_dt = saved_dt if verify == "fingerprints" else out_dt
+
+    # The safetensors file is written as it is loaded: the header first (every shape and dtype is known from
+    # MANIFEST.json), then the tensors group by group, hashed on the way. So only one group is in memory, and the file
+    # is never read back for its sha256. Wider dtypes first, then by name, keeps every tensor aligned to its size.
+    order = sorted(want, key=lambda k: (-out_dt[k].itemsize, k))
+    header, offset = {"__metadata__": {"run_id": str(man["run_id"]), "step": str(man["step"]), "path": pointer["path"],
+                                       "model_revision": hashlib.sha256(raw).hexdigest(), "dtype": dtype}}, 0
+    for key in order:
+        if out_dt[key] not in SAFETENSORS_DTYPE:
+            raise StripError(f"{key}: dtype {out_dt[key]} has no safetensors name")
+        n = numel(shapes[key]) * out_dt[key].itemsize
+        header[key[len(MODEL):]] = {"dtype": SAFETENSORS_DTYPE[out_dt[key]], "shape": shapes[key],
+                                    "data_offsets": [offset, offset + n]}
+        offset += n
+    head = json.dumps(header, separators=(",", ":")).encode("utf-8")
+    head += b" " * (-len(head) % 8)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    free = shutil.disk_usage(out.parent).free
+    if free < (offset + len(head)) * 1.05 + (64 << 20):
+        raise StripError(f"{out.parent} has {free / 1e9:.1f} GB free, the file needs "
+                         f"{(offset + len(head)) / 1e9:.1f} GB")
+    groups, cur, cur_bytes = [], [], 0
+    for key in order:
+        size = numel(shapes[key]) * saved_dt[key].itemsize
+        if cur and cur_bytes + size > group_bytes:
+            groups.append(cur)
+            cur, cur_bytes = [], 0
+        cur.append(key)
+        cur_bytes += size
+    groups.append(cur)
+
     if verify == "fingerprints":
         from ckpt.ckpt import fingerprints
-        t_verify = time.perf_counter()
-        got = fingerprints(state)                  # the same function Team 7 saves with, on the loaded tensors
-        bad = sorted(k for k in want if got.get(k) != saved_fp[k])
-        if bad:
-            raise StripError(f"{len(bad)} model tensor(s) differ from their MANIFEST.json fingerprint, first {bad[:3]}")
-        t_verify = time.perf_counter() - t_verify
-        if dtype != "saved":
-            to = torch_dtype(dtype)
-            for k in list(weights):                # one tensor at a time, so the two dtypes overlap by one tensor only
-                if weights[k].is_floating_point():
-                    weights[k] = weights[k].to(to)
-
+    t_load = t_fp = 0.0
     t_write = time.perf_counter()
-    out.parent.mkdir(parents=True, exist_ok=True)
-    need = sum(v.numel() * v.element_size() for v in weights.values())
-    free = shutil.disk_usage(out.parent).free
-    if free < need * 1.05 + (64 << 20):
-        raise StripError(f"{out.parent} has {free / 1e9:.1f} GB free, the file needs {need / 1e9:.1f} GB")
-    tmp = tmps[0]
-    save_file({k: v.contiguous() for k, v in weights.items()}, str(tmp),
-              metadata={"run_id": man["run_id"], "step": str(man["step"]), "path": pointer["path"],
-                        "model_revision": hashlib.sha256(raw).hexdigest(), "dtype": dtype})
-    weights_sha = sha256_file(tmp)
-    os.replace(tmp, out)
-    t_write = time.perf_counter() - t_write
+    h = hashlib.sha256()
+    with open(tmps[0], "wb") as f:
+        for chunk in (len(head).to_bytes(8, "little"), head):
+            f.write(chunk)
+            h.update(chunk)
+        for group in groups:
+            t = time.perf_counter()
+            target = {k[len(MODEL):]: torch.empty(shapes[k], dtype=load_dt[k]) for k in group}
+            dcp.load({"model": target}, storage_reader=reader)  # only these keys: no optimizer state, no other group
+            t_load += time.perf_counter() - t
+            if verify == "fingerprints":
+                t = time.perf_counter()
+                got = fingerprints({"model": target})   # the same function Team 7 saves with
+                bad = sorted(k for k in group if got.get(k) != saved_fp[k])
+                if bad:
+                    raise StripError(f"{len(bad)} model tensor(s) differ from their MANIFEST.json fingerprint, first "
+                                     f"{bad[:3]}")
+                t_fp += time.perf_counter() - t
+            for k in group:
+                v = target.pop(k[len(MODEL):])
+                if v.dtype != out_dt[k]:
+                    v = v.to(out_dt[k])
+                data = v.contiguous().reshape(-1).view(torch.uint8).numpy()
+                f.write(data)
+                h.update(data)
+            del target
+    weights_sha = h.hexdigest()
+    os.replace(tmps[0], out)
+    t_write = time.perf_counter() - t_write - t_load - t_fp
+    if verify == "fingerprints":
+        t_verify = t_fp
 
     io1 = io_counters()
     record = {
@@ -208,8 +266,10 @@ def _strip(run_dir, step, out, dtype, verify, jobs, tmps) -> dict:
         "weights_sha256": weights_sha,
         "weights_bytes": out.stat().st_size,
         "dtype": dtype,
-        "tensors": len(weights),
-        "parameters": sum(v.numel() for v in weights.values()),
+        "tensors": len(want),
+        "parameters": sum(numel(v) for v in shapes.values()),
+        "groups": len(groups),
+        "group_bytes": group_bytes,
         "commit_bytes": sum((folder / name).stat().st_size for name in man["files"]),
         "probe_loss": man.get("probe_loss") or {},
         "verify": verify,
@@ -239,9 +299,12 @@ def main(argv=None) -> int:
                          "files: sha256 of every file MANIFEST.json lists (as export_safetensors); auto: fingerprints "
                          "if MANIFEST.json has them, else files")
     ap.add_argument("--jobs", type=int, default=min(8, os.cpu_count() or 1), help="files hashed in parallel")
+    ap.add_argument("--group-mb", type=int, default=256,
+                    help="tensors loaded and written together, in MB of saved bytes; the peak memory beyond Python is "
+                         "about this (measured: 647 MB peak at 176M and at 353M parameters with 256)")
     a = ap.parse_args(argv)
     try:
-        rec = strip(a.run_dir.resolve(), a.step, a.out.resolve(), a.dtype, a.verify, a.jobs)
+        rec = strip(a.run_dir.resolve(), a.step, a.out.resolve(), a.dtype, a.verify, a.jobs, a.group_mb << 20)
     except StripError as e:
         print(f"strip_ckpt: {e}", file=sys.stderr)
         return 1
