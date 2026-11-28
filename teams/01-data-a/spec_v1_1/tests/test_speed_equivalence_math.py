@@ -788,14 +788,18 @@ def test_a5_random_texts_match_old_rule_and_cover_every_branch():
     assert all(v > 300 for v in seen.values()), seen
 
 
-def test_a5_the_rule_in_clean_py_acts_only_on_the_math_packs_and_equals_the_old_rule():
-    rule = c._RULE["DA-A5-002"]()
-    for text in (WORDS, "the \ufb01rst " + FULL, "\u4e2d\u6587 " + FULL, ""):
+def test_a5_is_deferred_in_clean_py_and_its_texts_pass_through_the_math_packs():
+    """DA-A5-002 is deferred by the build (TSAI 28 Nov, NFC only, never NFKC; #915): clean.py has no such rule, and its
+    ligatures and fullwidth letters reach the end of the math pipeline as they are. The card above is still the old rule."""
+    assert "DA-A5-002" not in c._RULE and "DA-A5-002" in c.DEFERRED_RULES
+    cases = (("Lemma 2. The \ufb01rst coe\ufb03cient of the series is positive, and the second one is negative.\n",
+              "\ufb01rst coe\ufb03cient"),
+             ("In the triangle \uff21\uff22\uff23 the angle at \uff22 is a right angle, so the area is half the product.\n",
+              "\uff21\uff22\uff23"))
+    for text, kept in cases:
         for pack in ("math-finemath", "math-megamath"):
-            new = OLD_A5(text)
-            assert rule(doc(text, pack)) == (("fix" if new != text else "keep"), new)
-        for pack in ("en-dclm", "sci-finepdfs", None):
-            assert rule(doc(text, pack)) == ("keep", text)
+            action, out = c.clean(doc(text, pack))
+            assert action != "drop" and kept in out, (pack, action, out)
 
 
 # =====================================================================================================================

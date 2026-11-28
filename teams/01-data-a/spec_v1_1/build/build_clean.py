@@ -8,6 +8,9 @@ The default sheet is the spec v1.1 sheet; spec v1 (../sheets/specv1.md) is froze
 DA- and DB- rule IDs are accepted. DEFERRED cards use non-executable `python deferred` fences and are inventoried
 in DEFERRED_RULES, not emitted as active rules. Indic _PACKS guards are intersected with SPEC_PACKS as well.
 
+While the sheet is frozen, a TSAI ruling is applied here instead, as the DA-B4-009 tag fix is: DEFER_AT_BUILD defers a
+rule (DA-A5-002, 28 Nov: NFC only, never NFKC), and DA-B4-001's `{[ ]}` form gets the spaces its `{{ }}` form has.
+
 The sheet has one "## Medicine N — <family> / <code> / `<ID>`" section per rule, each with one python block. A block names
 its packs in SPEC_PACKS, and a math block checks its ORIGIN packs too (PACKS); the scope is what both allow. The build
 moves those pack IDs into SCOPE and points SPEC_PACKS and PACKS at it, so pack IDs are written once. A document goes to the
@@ -35,6 +38,12 @@ SHARED_F1_FAMILIES = ("code", "math", "sci", "indic")  # code with tree-sitter, 
 SHARED_F1_ONLY = ("cadj-commits",)  # code-adjacent packs: no medicine of their own; the shared F1 masks e-mail addresses only (24 Nov 2026). cadj-notebooks, cadj-stackexchange: deferred, see f1_rule.py
 SHARED_F1_ONLY_FAMILY = "code-adjacent"  # their family: an empty pipeline in _PIPELINES, so every _FAMILY value is a _PIPELINES key
 MUST_KEEP = {"DA-F1-005": "english"}  # the instructor's F1 rule: on every pack of its family, never left out
+# TSAI rulings that defer a rule while the sheet is frozen: the card stays as it is, and the build inventories the rule in
+# DEFERRED_RULES instead of emitting it. Move each one to its card's STATUS and DEFER_REASON when the sheet is unfrozen.
+DEFER_AT_BUILD = {
+    "DA-A5-002": "TSAI 28 Nov 2026 (lab rule 2, #915): Unicode NFC only, never NFKC; its ligature and fullwidth-to-ASCII "
+                 "folds are NFKC folds",
+}
 
 
 def literal(b, name, rid):
@@ -70,12 +79,18 @@ def rules(sheet, include_deferred=False):
         if family == "code" and rid == "DA-B4-009":  # <EMAIL> is the tag TSAI asks for, so B4 must not rewrite it. Move this to the sheet when the team agrees.
             assert b.count('"<EMAIL>": "user@example.com", ') == 1
             b = b.replace('"<EMAIL>": "user@example.com", ', "")
+        if family == "math" and rid == "DA-B4-001":  # TSAI 28 Nov (#911): the {[ ]} form needs spaces inside, as the {{ }} form does, so LaTeX groups such as i^{[j]} are kept. Move this to the sheet when it is unfrozen.
+            assert b.count(r"\{\[\s*\w+\s*\]\}") == 1
+            b = b.replace(r"\{\[\s*\w+\s*\]\}", r"\{\[\s+\w+\s+\]\}")
         b = re.sub(r"^AUTHOR = .*\n", "", b, flags=re.M)  # the sheet keeps it for medicine_conflicts.py; the cleaner has no use for it
         status = literal(b, "STATUS", rid) if re.search(r"^STATUS = ", b, re.M) else "CANDIDATE"
         assert status in {"CANDIDATE", "APPROVED", "DEFERRED"}, f"{rid}: unsupported status {status}"
         assert ('```python deferred\n' in body) == (status == "DEFERRED"), f"{rid}: status and executable fence disagree"
         reason = literal(b, "DEFER_REASON", rid) if status == "DEFERRED" else None
         assert status != "DEFERRED" or reason, f"{rid}: deferred rule needs a reason"
+        if rid in DEFER_AT_BUILD:  # a TSAI ruling while the sheet is frozen (DEFER_AT_BUILD)
+            assert status != "DEFERRED", f"{rid}: deferred in the sheet already; drop it from DEFER_AT_BUILD"
+            status, reason = "DEFERRED", DEFER_AT_BUILD[rid]
         suffix = rid[3:] if rid.startswith("DA-") else rid.lower()
         out.append(dict(n=int(n), id=rid, code=code, family=family, packs=packs, status=status, reason=reason,
                         name=f"_{family}_{suffix.lower().replace('-', '_')}", src=b.rstrip()))

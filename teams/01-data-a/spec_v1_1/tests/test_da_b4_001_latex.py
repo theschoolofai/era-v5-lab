@@ -1,18 +1,18 @@
-"""DA-B4-001 (math, sheets/specv1_1.md medicine 53; clean.py _math_b4_001, B4_RX at line 3495) and LaTeX.
+"""DA-B4-001 (math, sheets/specv1_1.md medicine 53; clean.py _math_b4_001, B4_RX at line 3439, 3495 in d275556e) and LaTeX.
 
   python3 -m unittest spec_v1_1/tests/test_da_b4_001_latex.py      (from teams/01-data-a)
 
 The medicine deletes template markup: `{[ name ]}`, `{{ name.attr | filter }}`, `{% ... %}`, `[TheoryMissing]`,
 `document.write(...)`. Its sheet note says the `{{ }}` form needs "spaces inside, so LaTeX `{{x}}` is not hit", and
-B4_RX does use \\s+ there. The `{[ ]}` form uses \\s* instead, so it also matches bracket groups that LaTeX uses as
-arguments: `i^{[j]}` (falling factorial), `\\sum_{i=1}^{[at]}`, `\\frac{[R_f]}{...}` (a concentration), `\\frac{[MNP]}{[ABC]}`
-(a ratio of areas). The real clean() on the 38 sample packs changes 21 math-finemath docs, 20 of them this way, and
-68 math-megamath docs, 61 of which only lose Wikipedia footnote markers `^{[1]}` (leaving a stray `^`).
+B4_RX does use \\s+ there. In clean.py d275556e the `{[ ]}` form used \\s* instead, so it also matched bracket groups
+that LaTeX uses as arguments: `i^{[j]}` (falling factorial), `\\sum_{i=1}^{[at]}`, `\\frac{[R_f]}{...}` (a concentration),
+`\\frac{[MNP]}{[ABC]}` (a ratio of areas). There the real clean() on the 38 sample packs changed 21 math-finemath docs,
+20 of them this way, and 68 math-megamath docs, 61 of which only lost Wikipedia footnote markers `^{[1]}` (leaving a
+stray `^`).
 
-EXPECTED FAILURES (LatexKept): the medicine should leave LaTeX bracket groups unchanged. They fail on clean.py
-d275556e and are the finding, marked as strict expected failures (lab rule 3, issue theschoolofai/era-v5-lab#926):
-an unexpected pass fails the run. The fix (the sheet's `{[ ]}` form needs spaces inside, as its `{{ }}` form does)
-removes the markers.
+LatexKept: the medicine should leave LaTeX bracket groups unchanged. These tests failed on clean.py d275556e and were
+the finding (issue theschoolofai/era-v5-lab#926). They pass now that the build gives the `{[ ]}` form spaces inside, as
+its `{{ }}` form has (build/build_clean.py, TSAI 28 Nov), so their strict expected-failure markers are gone.
 PASSING tests (TemplateStillRemoved): the template markup the medicine was written for, from its card's own evidence
 docs, is still removed; any fix must keep these green.
 All text is made up, in the shape of the matched documents (no document text is copied).
@@ -43,16 +43,14 @@ LATEX = {
 
 
 class LatexKept(unittest.TestCase):
-    """The finding: these fail today (strict expected failures, #926). The medicine must not touch a LaTeX bracket group."""
+    """The finding (#926), fixed by the build's `{[ ]}` change. The medicine must not touch a LaTeX bracket group."""
 
-    @unittest.expectedFailure  # xfail, strict: theschoolofai/era-v5-lab#926
     def test_rule_keeps_latex_bracket_groups_on_both_math_packs(self):
         for pack in ("math-finemath", "math-megamath"):
             for name, text in LATEX.items():
                 with self.subTest(pack=pack, case=name):
                     self.assertEqual(b4(doc(text, pack)), ("keep", text))
 
-    @unittest.expectedFailure  # xfail, strict: theschoolofai/era-v5-lab#926
     def test_full_cleaner_keeps_the_ratio_of_areas(self):
         text = LATEX["ratio of areas"]
         self.assertIn(r"\frac{[MNP]}{[ABC]}", c.clean(doc(text))[1])

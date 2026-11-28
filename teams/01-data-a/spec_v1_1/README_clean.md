@@ -1,7 +1,7 @@
 # clean.py: spec v1.1
 
 **[`teams/01-data-a/spec_v1_1/clean.py`](clean.py)** is the cleaner built from the combined spec, [`sheets/specv1_1.md`](sheets/specv1_1.md) (TSAI, Gate 2).
-- **What it holds:** 246 rules and the shared F1: code 24, English 23, math 22, sci 24, Indic 153.
+- **What it holds:** 245 rules and the shared F1: code 24, English 23, math 21, sci 24, Indic 153.
 - **How it runs:** `clean(doc)` takes `{doc_id, text, url, lang_label, pack_id}` and returns `(action, text)`, the action being `keep`, `fix` or `drop`. It picks the pack's family by `pack_id`, runs that family's rules in sheet order, then the shared F1.
 - **Run order:** each family's spec v1 rules first, then its spec v1.1 rules. In English, `DA-F1-005` is last.
 - **Packs with no rules** pass through unchanged: cadj-notebooks, cadj-stackexchange, ind-ml-fw2, ind-or-fw2, ind-ta-fw2 and ind-ta-sangraha-s. cadj-commits has no rules of its own either, but gets the shared F1 for e-mail addresses only (family `code-adjacent`, an empty pipeline).
@@ -18,9 +18,12 @@ Paths are from `teams/01-data-a`.
 
 - **The tools are spec v1's, unchanged:** `spec_v1/run_clean.py`, `spec_v1/run_tokenizer_sample.py` and `spec_v1/validate/make_harm_tests.py`. Each does `import clean`. `use_clean.py` loads `spec_v1_1/clean.py` as `clean` first, then runs the tool, so the tool cleans with spec v1.1.
 - **`clean.py` holds two things,** both put in by `build/build_clean.py`:
-  - the rules of `sheets/specv1_1.md`, each block's code as the sheet has it, except for its pack lines (below) and two edits by the build: it drops the `AUTHOR` line, and stops `DA-B4-009` from rewriting the `<EMAIL>` tag;
+  - the rules of `sheets/specv1_1.md`, each block's code as the sheet has it, except for its pack lines (below) and these edits by the build:
+    - it drops the `AUTHOR` line;
+    - it stops `DA-B4-009` from rewriting the `<EMAIL>` tag;
+    - it applies two TSAI rulings of 28 Nov while the sheet is frozen. `DA-A5-002` is deferred: Unicode NFC only, never NFKC (#915). `DA-B4-001`'s `{[ ]}` form needs spaces inside, as its `{{ }}` form does, so LaTeX bracket groups are kept (#911). Both move into the sheet when it is unfrozen;
   - the shared F1, from `build/f1_rule.py`. It runs after the rules on the code, math, sci and Indic packs, and on cadj-commits for e-mail addresses only (its phone-like numbers are IP addresses, part numbers and data). English runs its own F1 rule, `DA-F1-005`, instead.
-- **The packs a rule runs on are in `SCOPE`,** the table at the top of `clean.py`: 247 entries, one per rule and one for the shared F1.
+- **The packs a rule runs on are in `SCOPE`,** the table at the top of `clean.py`: 246 entries, one per rule and one for the shared F1.
   - In the sheet, each block names its packs in `SPEC_PACKS`. A block that also guards on its own `ORIGIN` packs (`PACKS` or `_PACKS`) runs only where both allow.
   - The build writes that set once, into `SCOPE`, and points the block's `SPEC_PACKS`, `PACKS` and `_PACKS` at its `SCOPE` entry.
   - `_run` also skips a rule when the doc's `pack_id` is not in its entry, and the pack-to-family table (`_FAMILY`) is made from `SCOPE`. A pack in two families stops the build.
@@ -146,7 +149,7 @@ cd $A && python3 -m unittest discover -s spec_v1_1/tests
 
 It ends in `OK`. `tests/test_clean.py` checks what this README says about `clean.py`:
 - it is the same as a fresh build of `sheets/specv1_1.md`;
-- it holds 246 rules and the shared F1: code 24, English 23, math 22, sci 24, Indic 153;
+- it holds 245 rules and the shared F1: code 24, English 23, math 21, sci 24, Indic 153 (`DA-A5-002` is deferred by the build);
 - `SCOPE` gives each of the 24 spec v1.1 rules (the medicines of `sheets/NEW_DISEASES.md`) exactly its `ORIGIN` packs;
 - each family runs its spec v1 rules first, then its spec v1.1 rules, and English ends with `DA-F1-005`;
 - a spec v1 tool run through `use_clean.py` gets `spec_v1_1/clean.py`.
