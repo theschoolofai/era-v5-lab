@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Tests for per-tensor dequantization error:  python test_tensors.py"""
-import sys, tempfile, unittest
+import re, sys, tempfile, unittest
 from pathlib import Path
 
 import numpy as np
@@ -12,9 +12,12 @@ sys.path.insert(0, str(HERE))
 import tensors as t  # noqa: E402
 
 
-def write_gguf(path: Path, items):
-    """items: [(name, float32 array, GGML type)]; quantizes each array to its type and writes a tiny GGUF."""
-    w = gguf.GGUFWriter(str(path), 'llama')
+def write_gguf(path: Path, items, arch: str = 'llama', tokens: list[str] | None = None):
+    """items: [(name, float32 array, GGML type)]; quantizes each array to its type and writes a tiny GGUF with that
+    general.architecture and, if given, that tokenizer.ggml.tokens list."""
+    w = gguf.GGUFWriter(str(path), arch)
+    if tokens is not None:
+        w.add_token_list(tokens)
     for name, arr, qtype in items:
         if qtype in (QT.F32, QT.F16):
             w.add_tensor(name, gguf.quants.quantize(arr, qtype))
@@ -70,18 +73,21 @@ class TensorErrorTests(unittest.TestCase):
         self.assertAlmostEqual(rows[names[0]]['sqnr_db'], t.sqnr_db(A, a_hat), places=6)
 
     def test_expert_split_axis(self):
-        ref_w = RNG.standard_normal((4, 8, 32)).astype(np.float32)
+        """Only expert 2 differs. The quantized file holds F16 (a type change, as llama-quantize makes) of values that F16
+        stores exactly, so experts 0, 1 and 3 have no error at all."""
+        ref_w = RNG.standard_normal((4, 8, 32)).astype(np.float16).astype(np.float32)
         q_w = ref_w.copy()
         q_w[2] += 0.1
         ref, q = self.dir / 'ref.gguf', self.dir / 'q.gguf'
         write_gguf(ref, [('blk.0.ffn_down_exps.weight', ref_w, QT.F32)])
-        write_gguf(q, [('blk.0.ffn_down_exps.weight', q_w, QT.F32)])
+        write_gguf(q, [('blk.0.ffn_down_exps.weight', q_w, QT.F16)])
         rows = t.tensor_errors(q, ref)
         self.assertEqual([r['expert'] for r in rows], [0, 1, 2, 3])
         self.assertEqual([r['kind'] for r in rows], ['experts_down'] * 4)
         self.assertEqual([r['numel'] for r in rows], [8 * 32] * 4)
         self.assertEqual([r['rel_err'] == 0 for r in rows], [True, True, False, True])
-        self.assertAlmostEqual(rows[2]['rel_err'], t.rel_err(ref_w[2], q_w[2]), places=6)
+        self.assertAlmostEqual(rows[2]['rel_err'], t.rel_err(ref_w[2], q_w[2].astype(np.float16).astype(np.float32)),
+                               places=6)
 
     def test_expert_split_quantized(self):
         w = RNG.standard_normal((3, 4, 64)).astype(np.float32)
@@ -104,6 +110,55 @@ class TensorErrorTests(unittest.TestCase):
         write_gguf(q, [('blk.0.attn_q.weight', A[:2], QT.F32)])
         with self.assertRaisesRegex(ValueError, r'blk\.0\.attn_q\.weight'):
             t.tensor_errors(q, ref)
+
+    def test_refuses_a_same_type_tensor_with_other_bytes(self):
+        """Two exports of the same shape: llama-quantize copies a tensor it does not quantize byte for byte, so a tensor
+        of the same type in both files must be identical, whatever the other tensors are."""
+        ref, q = self.dir / 'ref.gguf', self.dir / 'q.gguf'
+        write_gguf(ref, [('blk.0.attn_q.weight', A, QT.F32), ('blk.0.attn_norm.weight', B[0], QT.F32)])
+        write_gguf(q, [('blk.0.attn_q.weight', A, QT.Q8_0), ('blk.0.attn_norm.weight', B[0] + np.float32(1e-3), QT.F32)])
+        for check in (t.check_pair, t.tensor_errors):
+            with self.subTest(check=check.__name__):
+                with self.assertRaisesRegex(ValueError, r'blk\.0\.attn_norm\.weight.*F32.*bytes'):
+                    check(q, ref)
+
+    def test_refuses_another_vocabulary_or_architecture(self):
+        ref, q = self.dir / 'ref.gguf', self.dir / 'q.gguf'
+        items = [('blk.0.attn_q.weight', A, QT.F32)]
+        write_gguf(ref, items, arch='olmoe', tokens=['a', 'b', 'c'])
+        for arch, tokens, key in (('olmoe', ['a', 'b', 'd'], 'tokenizer.ggml.tokens'),
+                                  ('olmoe', None, 'tokenizer.ggml.tokens'),
+                                  ('llama', ['a', 'b', 'c'], 'general.architecture')):
+            with self.subTest(key=key, tokens=tokens):
+                write_gguf(q, items, arch=arch, tokens=tokens)
+                with self.assertRaisesRegex(ValueError, re.escape(key)):
+                    t.check_pair(q, ref)
+                with self.assertRaisesRegex(ValueError, re.escape(key)):
+                    t.tensor_errors(q, ref)
+
+    def test_refuses_a_quantized_reference(self):
+        ref, q = self.dir / 'ref.gguf', self.dir / 'q.gguf'
+        write_gguf(ref, [('blk.0.attn_q.weight', A, QT.Q8_0)])
+        write_gguf(q, [('blk.0.attn_q.weight', A, QT.Q4_0)])
+        with self.assertRaisesRegex(ValueError, r'blk\.0\.attn_q\.weight.*Q8_0.*F32, F16 or BF16'):
+            t.check_pair(q, ref)
+        with self.assertRaisesRegex(ValueError, r'blk\.0\.attn_q\.weight.*Q8_0.*F32, F16 or BF16'):
+            t.tensor_errors(q, ref)
+
+    def test_accepts_a_llama_quantize_pair(self):
+        """Same architecture and tokens; quantized matrices, F16 and BF16 copies and F32 norms identical; [1, E] vs [E]."""
+        ref, q = self.dir / 'ref.gguf', self.dir / 'q.gguf'
+        tokens = ['a', 'b', '\u00e9']
+        write_gguf(ref, [('blk.0.attn_q.weight', A, QT.BF16), ('blk.0.attn_k.weight', B, QT.F16),
+                         ('blk.0.attn_norm.weight', C[0], QT.F32), ('blk.0.exp_probs_b.bias', C[1:2], QT.F32)],
+                   arch='olmoe', tokens=tokens)
+        write_gguf(q, [('blk.0.attn_q.weight', A, QT.Q8_0), ('blk.0.attn_k.weight', B, QT.F16),
+                       ('blk.0.attn_norm.weight', C[0], QT.F32), ('blk.0.exp_probs_b.bias', C[1], QT.F32)],
+                   arch='olmoe', tokens=tokens)
+        t.check_pair(q, ref)   # no error
+        rows = {r['tensor']: r for r in t.tensor_errors(q, ref)}
+        self.assertGreater(rows['blk.0.attn_q.weight']['rel_err'], 0)
+        self.assertEqual(rows['blk.0.attn_k.weight']['rel_err'], 0.0)
 
     def test_size_one_axes_are_ignored(self):
         """The converter writes ERNIE's selection bias as [1, E]; llama-quantize rewrites it as [E]."""
