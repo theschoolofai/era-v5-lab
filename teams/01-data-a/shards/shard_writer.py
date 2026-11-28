@@ -43,7 +43,9 @@ left out) gets no shard: main() raises NoShard with its row count and left-out d
 Checks after writing: G6's open_shard reads the .bin, sizes and index match the manifest, every id < 131,072, and the only
 special ids in the shard are the EOS at the end of each doc.
 Writes, for each shard, <dir>/<shard_id>.{bin,idx.npy,docs.parquet,json}, cleaning_pipeline.json, <shard_id>.quality_report.json and <shard_id>.dump.md
-(IDs and counts only, never text). cleaning_pipeline.json describes the processing (clean.py, F2 set, remove list): run_pipeline.py's shard stage writes it
+(IDs and counts only, never text). docs.parquet has per doc n_tokens (EOS included), n_chars (characters of the stored
+text), n_bytes (UTF-8 bytes of the tokenizer-normalized text: the bytes its tokens decode to, for bits per byte, G9) and
+n_raw_bytes (UTF-8 bytes of the stored text). cleaning_pipeline.json describes the processing (clean.py, F2 set, remove list): run_pipeline.py's shard stage writes it
 next to the manifest, and the writer checks it against what provenance.py derives and copies it, so every shard of one
 run gets the same file; a --out that already holds one from other processing is refused. The quality report's
 "upstream" block lists the doc_ids this part lost to dedup (with group and rule) and to F2 (with benchmark item IDs and
@@ -220,7 +222,8 @@ def main(argv=None):
             if inside:
                 left_out["special"].append({"doc_id": doc_id, "ids": inside})
                 continue
-            if tok.decode(ids, skip_special_tokens=False) != norm(text):
+            normed = norm(text)
+            if tok.decode(ids, skip_special_tokens=False) != normed:
                 left_out["roundtrip"].append(doc_id)
                 continue
             n = len(ids) + 1
@@ -233,7 +236,8 @@ def main(argv=None):
                 cur = new_shard(row)
             cur["docs"].append(doc)
             cur["rows"].append({"doc_id": doc_id, "input_part": part_path, "input_row": row, "n_tokens": n,
-                                "n_chars": len(text), "lang_label": lang_col[k]})
+                                "n_chars": len(text), "n_bytes": len(normed.encode("utf-8")), "n_raw_bytes": len(text.encode("utf-8")),
+                                "lang_label": lang_col[k]})
             cur["total"] += n
         first_of_batch += len(texts)
     if first_of_batch != n_rows:

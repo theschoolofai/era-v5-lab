@@ -175,6 +175,23 @@ def test_metadata_naming_another_doc_id_is_caught(made):
     assert any("document 0: row 0 of train/pk-a/part-00000.parquet is a0_0, the metadata says somebody_else" in x for x in made.check()[0])
 
 
+def test_a_wrong_byte_count_in_the_metadata_is_caught(made):
+    p = made.out / f"{SID}.docs.parquet"
+    t = pq.read_table(p)
+    n = t.column("n_bytes").to_pylist()
+    n[0] += 1
+    pq.write_table(t.set_column(t.schema.get_field_index("n_bytes"), "n_bytes", pa.array(n)), p)
+    rehash(made)
+    assert any("document 0 (a0_0): n_bytes, n_raw_bytes are" in x for x in made.check()[0])
+
+
+def test_a_shard_from_before_the_byte_counts_still_passes(made):
+    p = made.out / f"{SID}.docs.parquet"
+    pq.write_table(pq.read_table(p).drop_columns(["n_bytes", "n_raw_bytes"]), p)
+    rehash(made)
+    assert made.check(summary=None)[0] == []
+
+
 def test_a_special_id_inside_a_document_is_caught(made):
     p = made.out / f"{SID}.bin"
     data = np.fromfile(p, dtype="<u4")

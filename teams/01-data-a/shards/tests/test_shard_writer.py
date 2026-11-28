@@ -282,6 +282,23 @@ def test_a_train_part_is_never_sliced_and_a_fraction_must_be_in_0_1(tmp_path, mo
             shard(run, part, tmp_path / "out", "--any-tokenizer", "--domain", "web", "--validation-fraction", fraction, split="heldout")
 
 
+def test_the_metadata_counts_the_utf8_bytes_of_the_normalized_and_the_stored_text(tmp_path, monkeypatch):
+    """n_bytes is the bytes the tokens decode to (the tokenizer's normalized text), n_raw_bytes the stored text's: they differ
+    when the normalizer changes the text. A copy of the baseline tokenizer with an NFKC normalizer folds the ligature."""
+    spec = json.loads(Path(BASE).read_text(encoding="utf-8"))
+    spec["normalizer"] = {"type": "NFKC"}
+    folding = tmp_path / "tokenizer.json"
+    folding.write_text(json.dumps(spec), encoding="utf-8")
+    docs = [("kn1", "ನಮಸ್ಕಾರ\n", "kn"), ("lig", "\ufb01ne\n", "en"), ("en1", "plain\n", "en")]
+    run, part = run_of(tmp_path / "pipeline", monkeypatch, docs)
+    out = tmp_path / "out"
+    m = shard(run, part, out, "--any-tokenizer", "--domain", "web", tokenizer=folding)
+    meta = {r["doc_id"]: r for r in pq.read_table(out / m["sample_metadata_uri"]).to_pylist()}
+    assert (meta["kn1"]["n_chars"], meta["kn1"]["n_bytes"], meta["kn1"]["n_raw_bytes"]) == (8, 22, 22)  # 7 Kannada chars, 21 bytes, newline
+    assert (meta["lig"]["n_chars"], meta["lig"]["n_bytes"], meta["lig"]["n_raw_bytes"]) == (4, 5, 6)   # U+FB01 (3 bytes) becomes "fi"
+    assert (meta["en1"]["n_bytes"], meta["en1"]["n_raw_bytes"]) == (6, 6)
+
+
 def test_an_out_folder_with_other_processing_is_refused(tmp_path, monkeypatch):
     write(tmp_path, monkeypatch, DOCS, "--any-tokenizer")
     other, part = run_of(tmp_path / "other", monkeypatch, DOCS, removed_rows=[1])  # a different remove list

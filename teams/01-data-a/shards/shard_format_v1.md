@@ -18,7 +18,7 @@ has `"dedup": null` and its `inputs_sha256` uses the older line format. It is re
 |---|---|---|
 | `<shard_id>.bin` | the token IDs | a 1,024-byte header (256 little-endian int32: magic `20261025`, version `2`, token count, then zeros), then the tokens as little-endian uint32. Byte-compatible with G6's shards |
 | `<shard_id>.idx.npy` | where each document starts | `np.save` of int64, `doc_count + 1` entries: the start offset of each document, then `token_count` |
-| `<shard_id>.docs.parquet` | sample metadata, one row per document in shard order | `doc_id`, `input_part`, `input_row`, `n_tokens`, `n_chars`, `lang_label`. IDs and counts only, no text |
+| `<shard_id>.docs.parquet` | sample metadata, one row per document in shard order | `doc_id`, `input_part`, `input_row`, `n_tokens` (EOS included), `n_chars` (characters of the stored text), `n_bytes` (UTF-8 bytes of the tokenizer-normalized text, the bytes the doc's tokens decode to: the denominator of bits per byte, G9), `n_raw_bytes` (UTF-8 bytes of the stored text), `lang_label`. IDs and counts only, no text. Shards written before `n_bytes` was added have neither byte column |
 | `<shard_id>.json` | the manifest | `shard_manifest_v1.template.json` |
 
 - **The `.bin` layout is Data's format,** byte-compatible with G6's (`teams/06-performance/dataio/loader.py` opens it), so
