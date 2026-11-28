@@ -34,10 +34,29 @@ def load_dump(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
 
 
+def categories_from_prompt_file(path: Path, n: int, balanced: bool) -> list[str]:
+    """Category of each prompt index, as stage 1 selected them (for dumps made before stage 1 recorded it)."""
+    rows = qrm.select_prompts(qrm.load_prompt_rows(path), n, balanced)
+    return [cat for _, cat in rows]
+
+
+def rollout_stats(per_pos: dict, positions: np.ndarray, clusters: np.ndarray, cats: np.ndarray) -> list[dict]:
+    """One row per rollout (the arrays are concatenated in rollout order; a rollout starts where `positions` is 0): its
+    prompt index and category, its token count, the sum of the k3 term r - log r - 1 over its tokens, and the sum of
+    |log-ratio|. Numbers only: no text, no ids."""
+    lr = per_pos["lp_ref"] - per_pos["lp_q"]
+    k3 = np.exp(lr) - lr - 1
+    starts = np.flatnonzero(positions == 0)
+    ends = np.append(starts[1:], len(positions))
+    return [{"prompt_idx": int(clusters[s]), "category": str(cats[s]), "tokens": int(e - s), "k3_sum": float(k3[s:e].sum()),
+             "abs_logratio_sum": float(np.abs(lr[s:e]).sum())}
+            for s, e in zip(starts, ends)]
+
+
 def score_records(model, records: list[dict], device, dtype_name: str) -> tuple[dict, np.ndarray, np.ndarray]:
-    """Run every rollout's ids through `model`; returns per-token arrays (lp_ref, lp_q, agree), positions, clusters."""
+    """Run every rollout's ids through `model`; returns per-token arrays (lp_ref, lp_q, agree, category), positions, clusters."""
     import torch
-    lp_ref, lp_q, agree, positions, clusters = [], [], [], [], []
+    lp_ref, lp_q, agree, positions, clusters, cats = [], [], [], [], [], []
     vocab = None
     model.eval()
     with torch.no_grad():
@@ -58,7 +77,9 @@ def score_records(model, records: list[dict], device, dtype_name: str) -> tuple[
             lp_q.append(np.asarray(rec["lp_q"], dtype=np.float64))
             positions.append(np.arange(len(comp)))
             clusters.append(np.full(len(comp), rec["prompt_idx"]))
-    per_pos = {"lp_ref": np.concatenate(lp_ref), "lp_q": np.concatenate(lp_q), "agree": np.concatenate(agree)}
+            cats.append(np.full(len(comp), rec.get("category") or "-", dtype=object))
+    per_pos = {"lp_ref": np.concatenate(lp_ref), "lp_q": np.concatenate(lp_q), "agree": np.concatenate(agree),
+               "category": np.concatenate(cats)}
     return per_pos, np.concatenate(positions), np.concatenate(clusters)
 
 
@@ -70,6 +91,11 @@ def main() -> int:
     ap.add_argument("--dtype", default="bfloat16", choices=["bfloat16", "float32", "float16"])
     ap.add_argument("--device", default=None)
     ap.add_argument("--eps", type=float, default=qrm.EPS)
+    ap.add_argument("--per-rollout", action="store_true", help="also write one row of numbers per rollout (tokens, k3 sum), "
+                    "for the per-prompt and per-step spread of k3 (step_k3_spread.py)")
+    ap.add_argument("--prompts-file", type=Path, default=None, help="for dumps without a category per rollout: the prompt file stage 1 used")
+    ap.add_argument("--n", type=int, default=50, help="with --prompts-file: the --n of stage 1")
+    ap.add_argument("--balanced", action="store_true", help="with --prompts-file: stage 1 used --balanced")
     a = ap.parse_args()
     import torch
     from transformers import AutoModelForCausalLM
@@ -83,9 +109,20 @@ def main() -> int:
         if not records:
             continue
         name = records[0]["format"]
+        if a.prompts_file and not any(r.get("category") for r in records):      # an older dump: derive the category from the prompt file
+            cat_of = categories_from_prompt_file(a.prompts_file, a.n, a.balanced)
+            for r in records:
+                r["category"] = cat_of[r["prompt_idx"]]
         per_pos, positions, clusters = score_records(model, records, device, a.dtype)
         res = {"format": name, "rollouts": len(records), "new_tokens": int(len(per_pos["lp_ref"]))}
+        cat = per_pos.pop("category")
         res.update(qrm.aggregate(per_pos, positions, a.eps, clusters))
+        if a.per_rollout:
+            res["per_rollout"] = rollout_stats(per_pos, positions, clusters, cat)
+        if set(cat) != {"-"}:
+            res["by_category"] = {c: {k: v for k, v in qrm.aggregate({kk: vv[cat == c] for kk, vv in per_pos.items()}, positions[cat == c], a.eps,
+                                                                     clusters[cat == c]).items() if k not in ("by_sampler_prob", "by_position")}
+                                  for c in sorted(set(cat))}
         out["formats"].append(res)
         ci = res["ci95_by_prompt"]
         print(f"{name}: outside {res['outside']:.4f} {ci['outside']}, top-1 {res['top1_agreement']:.4f} {ci['top1_agreement']}, "
