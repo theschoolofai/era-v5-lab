@@ -56,7 +56,7 @@ Command:         python teams/12-quantization/quant_error/quant_error.py all --h
 Config:          none; every setting is on the command line
 Inputs:          the model's Hugging Face folder (config.json only is read), its tokenizer.json, the bf16 GGUF and one GGUF per format, all made beforehand; heldout_v1.jsonl and SHA256SUMS from this repository; llama.cpp b12359 built with the GPU backend (the same build made the GGUFs)
 Hardware:        1 GPU; a CPU also works for the twin forward (slower); RAM for one decoder layer of the model in fp32 plus the sampled activations; the base logits of one slice on disk (about 260 KB per scored token at a 131k vocabulary: 8 chunks = about 0.5 GB)
-Max time:        set from the rehearsal in REHEARSAL.md and the Task 7 pilot (see "Time" below)
+Max time:        measured once, on one Mac: 910 s for OLMoE-1B-7B, 4 formats, 20 slices (see "Time" below); not measured on TSAI's machine
 Precision:       bf16 reference, the quantized files as given; the twin forward in fp32
 Measures:        see "Outputs"
 Outputs:         ./out/quant-error-<model>/{summary.json, tensors.csv, layers.csv, linears.csv, tokens.csv, kl.csv}; under 5 MB; no text, no token ids
@@ -66,7 +66,7 @@ Python environment: Python 3.12, torch, transformers 4.57, gguf (llama.cpp's ggu
 
 ### Time
 
-Rehearsal (`REHEARSAL.md`: 300 M parameters, 8 layers, 16 experts, 2 formats, 20 slices, Apple M6, Metal): about 90 s in total, of which tensors 9 s, twin forward 35 s and llama.cpp KL 42 s. The tensor step scales with the file size and the format count, the twin forward with layers x experts x formats and `--tokens-per-slice`, the KL step with the model's speed in llama.cpp x slices x formats x `--kl-chunks`. A 7 B model is not a simple multiple of this: it is measured in the OLMoE pilot (Task 7), and the job's `Max time` is set from that.
+Rehearsal (`REHEARSAL.md`: 300 M parameters, 8 layers, 16 experts, 2 formats, 20 slices, Apple M6, Metal): about 90 s in total, of which tensors 9 s, twin forward 35 s and llama.cpp KL 42 s. The tensor step scales with the file size and the format count, the twin forward with layers x experts x formats and `--tokens-per-slice`, the KL step with the model's speed in llama.cpp x slices x formats x `--kl-chunks`. A 7 B model is not a simple multiple of this. Measured in the OLMoE pilot (`results/olmoe_pilot/`, `summary.json` and `/usr/bin/time -l`): `allenai/OLMoE-1B-7B-0924` (7 B total, 16 layers, 64 experts), 4 formats (Q8_0, Q4_K_M, experts-only Q4_K, MXFP4_MOE) against the bf16 GGUF, 20 slices, defaults otherwise, `--device mps` on an Apple M6 with 32 GB, llama.cpp b12359 on Metal: 910 s in total (tensors 108 s, twin forward 515 s, about 129 s per format, llama.cpp KL 274 s), 19.8 GB maximum resident set size, 7.8 GB peak memory footprint, output 2.7 MB. This is one model on one machine; the time on other hardware (a CUDA GPU, a CPU) and for other models was not measured, so set the job's `Max time` with a margin over this and not from it alone.
 
 ## Tests
 
