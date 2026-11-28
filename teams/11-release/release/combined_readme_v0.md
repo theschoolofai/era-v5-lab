@@ -14,8 +14,8 @@ Each stage below gives four things:
 - the check that its output passes;
 - where its output goes next.
 
-A stage marked **Run by Release** ran on main `317b31f3` on 28 Nov 2026, on the CPU of one laptop. The other stages
-wait for the owner team's command on the small sample. TSAI decides the licence of the code and where the repository
+A stage marked **Run by Release** ran on main `317b31f3` on 28 Nov 2026, on the CPU of one laptop. Its wall time is a
+rough guide from that laptop, not a target. The other stages wait for the owner team's command on the small sample. TSAI decides the licence of the code and where the repository
 is published.
 
 ## Before you start
@@ -91,6 +91,9 @@ python teams/09-evaluation/decontam/decontam_check.py docs.jsonl --id-field id -
 python teams/09-evaluation/decontam/canary_scan.py docs.jsonl --id-field id --text-field text
 ```
 
+Run these two tools with plain `python`, not `python -I`. They import files from their own folder, and `-I` leaves that
+folder off the import path.
+
 `docs.jsonl` holds one document per line, with the fields `id` and `text`. Parquet shards with the columns `doc_id` and
 `text` also work, with no field options.
 
@@ -165,7 +168,9 @@ python teams/07-infrastructure/jobs/restore_test/restore_test.py
 
 **Check:** the last line starts with `PASS restore_test`. Steps 101 to 200 give bit-equal losses and the same batch ids.
 
-**Run by Release:** PASS, with one process on the CPU, 36 s.
+**Run by Release:** PASS, with one process on the CPU, 36 s. After [#899](https://github.com/theschoolofai/era-v5-lab/pull/899)
+merged, it ran again on main `725fa613` with the same result. #899 adds `--optim muon` and `--resume-nproc`, which
+restores at another world size.
 
 **Output goes to:** the checkpoint store, which stage 10 reads.
 
@@ -188,7 +193,7 @@ python teams/09-evaluation/harness_lab/run_lab_ckpt.py --run-dir teams/07-infras
 
 **Check:** all seven checks of the output file print `ok`.
 
-**Run by Release:** on the checkpoint of stage 8, one record, 6 s. The default scorer tests the pipeline. It is not an
+**Run by Release:** on the checkpoint of stage 8, one record, 6 s. It ran again on main `725fa613` with the same result. The default scorer tests the pipeline. It is not an
 evaluation score.
 
 **Output goes to:** the evaluation tables.
