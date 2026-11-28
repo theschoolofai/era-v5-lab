@@ -1,0 +1,72 @@
+{
+  "what": "design task 5 small test",
+  "one_stream": "teams/05-architecture/harness/week2/model.py Block.forward",
+  "two_stream": "attention stream and MoE stream, fixed mean, no new parameters, this file only",
+  "tokens": "synthetic. Not held-out bits per byte.",
+  "depth": 4,
+  "width": 32,
+  "steps": 20,
+  "batch": 4,
+  "seq": 16,
+  "seeds": [
+    1234,
+    1235
+  ],
+  "smoke_muon_lr": 0.02,
+  "smoke_adamw_lr": 0.001,
+  "rates_are": "smoke step sizes, not a learning-rate recommendation",
+  "parameters": 203552,
+  "torch": "2.13.0",
+  "python": "3.13.18",
+  "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
+  "command": "python teams/05-architecture/lab5/design_5_6/residual_stream.py",
+  "what_this_cannot_tell_you": "depth at the real model, scale, and the data mix",
+  "seeds_ran": [
+    {
+      "seed": 1234,
+      "one_stream": {
+        "loss_first": 4.294658184051514,
+        "loss_last": 0.6803408861160278,
+        "seconds": 0.7508,
+        "synthetic_tokens_per_second": 1704.81,
+        "grad_coverage_after_first_backward": {
+          "grad_none": [],
+          "grad_zero": []
+        }
+      },
+      "two_stream_fixed_mean": {
+        "loss_first": 4.284850120544434,
+        "loss_last": 1.3135775327682495,
+        "seconds": 0.5886,
+        "synthetic_tokens_per_second": 2174.68,
+        "grad_coverage_after_first_backward": {
+          "grad_none": [],
+          "grad_zero": []
+        }
+      }
+    },
+    {
+      "seed": 1235,
+      "one_stream": {
+        "loss_first": 4.292602062225342,
+        "loss_last": 0.7553309202194214,
+        "seconds": 0.6338,
+        "synthetic_tokens_per_second": 2019.57,
+        "grad_coverage_after_first_backward": {
+          "grad_none": [],
+          "grad_zero": []
+        }
+      },
+      "two_stream_fixed_mean": {
+        "loss_first": 4.299291133880615,
+        "loss_last": 1.2402493953704834,
+        "seconds": 0.5914,
+        "synthetic_tokens_per_second": 2164.34,
+        "grad_coverage_after_first_backward": {
+          "grad_none": [],
+          "grad_zero": []
+        }
+      }
+    }
+  ]
+}
