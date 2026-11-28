@@ -129,5 +129,40 @@ class UseClean(unittest.TestCase):
         self.assertIn("no such tool", run.stderr)
 
 
+class NormalForm(unittest.TestCase):
+    """The lab rule (TSAI, 28 Nov 2026; Data Task Handbook steps 8 and 9, Gate 1 checklist): text is normalised to NFC
+    only, never NFKC, and ZWJ/ZWNJ are never removed. ftfy's mojibake repair (DA-A3-002) is the one place a fold may
+    happen. A ligature (U+FB00-U+FB06) and a fullwidth letter (U+FF01-U+FF5E) are left as they are.
+
+    The three tests are expected failures (strict, lab rule 3): issue theschoolofai/era-v5-lab#915, DA-A5-002 folds to
+    NFKC at clean.py lines 3398 and 3405. The fix removes the markers; until then an unexpected pass fails the run."""
+
+    FOLDS = ('normalize("NFKC"', "normalize('NFKC'", 'normalize("NFKD"', "normalize('NFKD'", "0xFEE0")
+    MATH = ("math-finemath", "math-megamath")
+
+    @unittest.expectedFailure  # xfail, strict: theschoolofai/era-v5-lab#915
+    def test_no_rule_applies_nfkc_or_a_fullwidth_fold(self):
+        lines = CLEAN.read_text(encoding="utf-8").splitlines()
+        hits = [f"line {n}: {line.strip()}" for n, line in enumerate(lines, 1) if any(f in line for f in self.FOLDS)]
+        self.assertEqual(hits, [], "clean.py folds text to compatibility forms (NFKC); the lab rule is NFC only")
+
+    @unittest.expectedFailure  # xfail, strict: theschoolofai/era-v5-lab#915
+    def test_ligatures_survive_cleaning_on_the_math_packs(self):
+        text = "Lemma 2. The ﬁrst coeﬃcient of the series is positive, and the second one is negative.\n"
+        for pack in self.MATH:
+            action, out = c.clean(doc(pack, text))
+            self.assertNotEqual(action, "drop", pack)
+            self.assertIn("ﬁrst", out, pack)
+            self.assertIn("coeﬃcient", out, pack)
+
+    @unittest.expectedFailure  # xfail, strict: theschoolofai/era-v5-lab#915
+    def test_fullwidth_letters_survive_cleaning_on_the_math_packs(self):
+        text = "In the triangle ＡＢＣ the angle at Ｂ is a right angle, so the area is half the product.\n"
+        for pack in self.MATH:
+            action, out = c.clean(doc(pack, text))
+            self.assertNotEqual(action, "drop", pack)
+            self.assertIn("ＡＢＣ", out, pack)
+
+
 if __name__ == "__main__":
     unittest.main()
