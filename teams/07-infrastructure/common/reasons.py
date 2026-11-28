@@ -160,6 +160,14 @@ CAUSES = {
         auto="restore refused before any step; nothing was lost",
         you_do="resubmit at the saved world size (the job log names it), or fix the loader to keep one global "
                "ledger offset (ckpt/loader_contract.py)", alert="CK-06"),
+    "startup_check_failed": dict(
+        title="startup check failed", severity="high",
+        meaning="mainrun.sbatch stopped the job before any training started: a setting is missing or not allowed, "
+                "or the checkpoint store could not be read or is in a state the trainer cannot start from. The exact "
+                "reason is in the job comment and the event detail.",
+        auto="job held (exit 78); nothing was started and nothing was written to the checkpoint store",
+        you_do="read the reason in `squeue -o \"%.10i %k\"` or the job log, fix it, then `scontrol release <id>`",
+        alert="Q-02"),
     "crash_ledger_unavailable": dict(
         title="crash count not stored", severity="medium",
         meaning="The crash was retried, but the crash count could not be written to the run's S3 folder, so "
