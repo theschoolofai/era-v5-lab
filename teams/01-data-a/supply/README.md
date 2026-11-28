@@ -4,13 +4,12 @@ No dataset is downloaded. The numbers come from Hub metadata, dataset cards and 
 
 | File | What |
 |---|---|
-| `dataset_list.csv` | B1 list, 51 rows: 16 "in the 38" (the non-Indic packs), 35 "new" |
+| `dataset_list.csv` | B1 list: the 16 non-Indic packs of the 38, at full Hub size, each with a fallback |
 | `unique_tokens.md` | D1 write-up: supply per part, findings, method, limits, what is left |
 | `supply_by_part.md` | table made by `supply.py` |
 | `hub_meta.py` | revision and stored_bytes from Hub metadata |
 | `text_bytes.py` | text bytes from Parquet footers, then p1536 tokens |
 | `supply.py` | overlap choices (`COUNT`), then totals per part: raw and cleaned, 4 and 3 passes |
-| `add_new_rows.py` | one-off that added the 35 new rows |
 
 ## Commands (run 28 Nov 2026, huggingface_hub 0.36.2, pyarrow 21.0.0)
 

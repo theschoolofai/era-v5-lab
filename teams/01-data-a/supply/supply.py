@@ -8,23 +8,8 @@ import csv, sys
 
 # dataset -> (counted?, reason). Rows not listed: counted.
 COUNT = {
-    "the-stack-v2-dedup": (False, "superset of starcoderdata; size not on Hub (Software Heritage)"),
-    "stack-edu": (False, "filtered subset of the-stack-v2; overlaps starcoderdata"),
-    "commitpack (full)": (False, "superset of commitpackft; jsonl, size not measured"),
-    "starcoder2data-extras issues+kaggle": (False, "same sources as issues-kaggle-notebooks"),
-    "issues-kaggle-notebooks (issues)": (False, "overlaps starcoderdata GitHub issues"),
-    "the-stack-github-issues": (False, "overlaps starcoderdata GitHub issues; gated"),
-    "finemath-4plus": (False, "subset of finemath-3plus, which is counted"),
-    "MegaMath web-pro": (False, "LLM-refined from megamath-web; generator not checked"),
-    "opc-fineweb-math-corpus": (False, "recalled from fineweb; overlaps finemath"),
-    "open-web-math": (False, "overlaps megamath-web and infiwebmath"),
-    "fineweb-edu": (False, "subset of fineweb, which is counted"),
-    "dclm-baseline-1.0-parquet": (False, "same Common Crawl as fineweb; counted as overlap"),
-    "dolma": (False, "Common Crawl overlap; URL lists only"),
-    "Nemotron-CC v1 (real)": (False, "Common Crawl overlap with fineweb"),
-    "Nemotron-CC-v2 real": (False, "Common Crawl overlap; gated"),
-    "common-pile arxiv_papers": (False, "overlaps starcoder2data-extras arxiv"),
-    "proof-pile-2 arxiv": (False, "overlaps starcoder2data-extras arxiv"),
+    "fineweb-edu": (False, "same Common Crawl as dclm, which is counted"),
+    "Nemotron-CC v1 (real)": (False, "same Common Crawl as dclm; paper count only"),
 }
 # ponytail: sample-v0 document rates (clean #244, dedup v1), applied to tokens; swap for per-part token rates when measured
 CLEAN_KEEP = (1 - 0.0197) * (1 - 1345 / 1414996)
