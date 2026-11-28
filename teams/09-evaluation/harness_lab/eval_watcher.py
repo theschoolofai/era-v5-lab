@@ -564,9 +564,16 @@ class Watcher:
         return EXIT_FAILED if any(r["status"] == "failed" for r in items) else EXIT_OK
 
     def run_ended(self) -> bool:
-        """The newest commit is the run's final checkpoint (Team 7's trainer saves it with reason "final") and every
-        commit this watcher owns is done. The newest, not any: after a rollback from a finished run (#847), training
-        goes on past the old final commit."""
+        """The newest line of the last good read of commits.jsonl is the run's final commit (reason "final", from Team
+        7's trainer) and every owned commit of that read is done. The newest, not any: after a rollback from a finished
+        run (#847), training goes on past the old final commit.
+
+        That read is the one at the start of this pass, or a later re-read in it (recommitted(), before a score or
+        after a failed one). Nothing is read here. So a final line appended after that read, for example during a
+        long score, is seen on the next poll. This delays the end of the watch by up to one --interval. It does not
+        change the exit code: outcome() checks the owned commits of the same read, so an owned final commit is done
+        before the watch ends.
+        """
         return (bool(self.commits) and self.commits[-1].get("reason") == "final"
                 and self.outcome() in (EXIT_OK, EXIT_FAILED))
 

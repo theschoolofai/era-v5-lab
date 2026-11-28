@@ -350,6 +350,42 @@ def test_store_gone_after_a_read_marks_nothing(tmp_path, scorer):
         log.read()
 
 
+@pytest.mark.parametrize("when", ["before-scoring", "after-a-failed-score"])
+def test_store_gone_at_the_recheck_marks_nothing(tmp_path, monkeypatch, when):
+    """commits.jsonl drops out after the pass read it and before recommitted() reads it again: just before scoring
+    (in poll) or after a failed score (in score). As on the other paths, nothing is marked, the attempt does not
+    count and the exit is 75. Once the file is back, the commit is scored."""
+    key = "main/step_00000100-e1"
+    run_dir = make_run(tmp_path, [(100, 1, True)])
+    log, away = run_dir / "commits.jsonl", run_dir / "commits.jsonl.away"
+    after = when == "after-a-failed-score"
+    fake = FakeScorer(codes=[1], on_call=lambda *_: log.rename(away)) if after else FakeScorer()
+    monkeypatch.setattr(ew, "run_scorer", fake)
+    a = ew.parse_args(["--run-dir", str(run_dir), "--out-dir", str(tmp_path / "out"), "--no-load",
+                       "--max-attempts", "1"])
+    w = ew.Watcher(a, threading.Event())
+    recheck = w.recommitted
+
+    def drop_then_recheck(commit):
+        log.rename(away)  # a mount that dropped out
+        return recheck(commit)
+
+    with monkeypatch.context() as patch:
+        if not after:
+            patch.setattr(w, "recommitted", drop_then_recheck)
+        w.poll()
+    assert w.unavailable and w.outcome() == ew.EXIT_RETRY
+    assert len(fake.calls) == (1 if after else 0)
+    rec = w.state.items[key]
+    assert rec.get("status") is None and rec["attempts"] == 0  # counted, with --max-attempts 1 it would be "failed"
+    saved = tmp_path / "out" / "state.json"
+    assert not saved.exists() or state(tmp_path).get(key, {}).get("status") is None
+
+    away.rename(log)
+    w.poll()
+    assert w.outcome() == ew.EXIT_OK and rec["status"] == "scored" and fake.steps[-1] == 100
+
+
 def test_store_missing_with_state_is_a_retry_not_done(tmp_path, scorer):
     run_dir = make_run(tmp_path, [(100, 1, True)])
     assert run(tmp_path, run_dir, "--no-load") == ew.EXIT_OK
