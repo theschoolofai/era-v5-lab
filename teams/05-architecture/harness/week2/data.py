@@ -258,9 +258,14 @@ def read_texts(path, require_ids=False, records=False):
 
 
 class DocumentWindows:
-    def __init__(self, path, artifacts, seq_len, require_ids=False, sources_path=None):
+    def __init__(self, path, artifacts, seq_len, require_ids=False, sources_path=None, eos_id=None):
+        """eos_id (packed training rows, run.pack; #890, D3): end every document with this token as
+        its last target, with byte length 0, as the G1 shards store documents. None keeps today's
+        documents unchanged (held-out data and unpacked training)."""
         cache_dir = os.environ.get("G5_DOCUMENT_CACHE_DIR")
         normalized = getattr(artifacts, "normalize_input", False)
+        if eos_id is not None and cache_dir is not None:
+            raise ValueError("Unset G5_DOCUMENT_CACHE_DIR for packed rows: the window cache has no end-of-document token")
         if cache_dir is not None and normalized:
             raise ValueError("Unset G5_DOCUMENT_CACHE_DIR for a normalizing tokenizer release (frozen C3 or p1536)")
         if cache_dir is not None:
@@ -315,11 +320,15 @@ class DocumentWindows:
                     )
             self.raw_bytes += len(text.encode("utf8"))
             self.tokens += len(ids)
+            if eos_id is not None:
+                ids = list(ids) + [eos_id]
             for start in range(0, len(ids), seq_len):
                 target = ids[start : start + seq_len]
                 previous = artifacts.bos_id if start == 0 else ids[start - 1]
                 inputs = [previous] + target[:-1]
                 lengths = [int(artifacts.lengths[i]) for i in target]
+                if eos_id is not None and start + len(target) == len(ids):
+                    lengths[-1] = 0  # the end-of-document token stands for no text
                 self.windows.append((inputs, target, lengths))
                 self.window_slices.append(slice_name)
         if not self.windows or not self.raw_bytes:

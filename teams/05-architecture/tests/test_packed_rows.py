@@ -302,5 +302,88 @@ class ConfigTests(unittest.TestCase):
         self.assertFalse(any("pack" in e for e in validate(c)))
 
 
+class PieceFormatTests(unittest.TestCase):
+    """P8 and P20 (#890): EOS ends each packed training document (D3: A); pieces match the format."""
+
+    BOS, PAD, EOS = 0, 1, 30
+
+    def artifacts(self):
+        import numpy as np
+        from types import SimpleNamespace
+        # A toy tokenizer: one token per letter ("a" is 2), one byte each. EOS has 1 byte in the
+        # table too, so the tests show the reader gives it 0.
+        return SimpleNamespace(lengths=np.ones(32, dtype=np.int16), bos_id=self.BOS, pad_id=self.PAD,
+                               eos_id=self.EOS, normalize_input=False,
+                               encode=lambda text: [ord(ch) - ord("a") + 2 for ch in text])
+
+    def windows(self, texts, seq_len, eos=True):
+        import json
+        import os
+        from tempfile import TemporaryDirectory
+        art = self.artifacts()
+        cache = os.environ.pop("G5_DOCUMENT_CACHE_DIR", None)
+        try:
+            with TemporaryDirectory() as d:
+                path = Path(d) / "docs.jsonl"
+                path.write_text("".join(json.dumps({"text": t}) + "\n" for t in texts), encoding="utf8")
+                return DocumentWindows(path, art, seq_len, eos_id=self.EOS if eos else None), art
+        finally:
+            if cache is not None:
+                os.environ["G5_DOCUMENT_CACHE_DIR"] = cache
+
+    def test_each_document_ends_with_eos_of_zero_bytes(self):
+        dw, _ = self.windows(["abc", "de"], seq_len=8)
+        (a1, t1, l1), (a2, t2, l2) = dw.windows
+        self.assertEqual(t1, [2, 3, 4, self.EOS])
+        self.assertEqual(a1, [self.BOS, 2, 3, 4])
+        self.assertEqual(l1, [1, 1, 1, 0])
+        self.assertEqual((t2, l2), ([5, 6, self.EOS], [1, 1, 0]))
+        self.assertEqual(dw.raw_bytes, 5)              # the byte count is the text's, EOS adds none
+
+    def test_without_eos_documents_are_unchanged(self):
+        dw, _ = self.windows(["abc"], seq_len=8, eos=False)
+        self.assertEqual(dw.windows, [([self.BOS, 2, 3], [2, 3, 4], [1, 1, 1])])
+
+    def test_eos_can_be_a_piece_of_its_own(self):
+        # A document of exactly L tokens: its EOS opens a second piece, fed by the last token.
+        dw, _ = self.windows(["abcd"], seq_len=4)
+        self.assertEqual(dw.windows[1], ([5], [self.EOS], [0]))
+
+    def test_reader_pieces_match_the_format(self):
+        # The format computed from the stored document alone (piece_check.py) equals the reader's pieces.
+        sys.path.insert(0, str(TEAM / "lab5" / "packed_rows"))
+        import piece_check
+        for text, L in [("abcdefghij", 4), ("abcd", 4), ("abc", 4), ("abcdefgh", 3)]:
+            dw, art = self.windows([text], seq_len=L)
+            stored = art.encode(text) + [self.EOS]
+            ours = [dict(input_ids=a, targets=b, byte_lengths=c, pos_ids=list(range(len(b))))
+                    for a, b, c in dw.windows]
+            expected = piece_check.format_pieces(stored, L, art.lengths, bos=self.BOS, eos=self.EOS)
+            self.assertIsNone(piece_check.compare(expected, ours), (text, L))
+            ours[-1]["byte_lengths"][-1] = 1          # EOS with its table byte length is caught
+            self.assertIn("byte_lengths", piece_check.compare(expected, ours))
+
+    def test_packed_rows_carry_eos_targets(self):
+        dw, _ = self.windows(["abc", "de"], seq_len=8)
+        x, y, lengths, doc, pos = dw.packed_batch([[0, 1]], "cpu")
+        self.assertEqual(y[0, :7].tolist(), [2, 3, 4, self.EOS, 5, 6, self.EOS])
+        self.assertEqual(x[0, :7].tolist(), [self.BOS, 2, 3, 4, self.BOS, 5, 6])
+        self.assertEqual(lengths[0, :7].tolist(), [1, 1, 1, 0, 1, 1, 0])
+        self.assertEqual(pos[0, :7].tolist(), [0, 1, 2, 3, 0, 1, 2])
+
+    def test_cache_is_refused_with_eos(self):
+        import os
+        old = os.environ.get("G5_DOCUMENT_CACHE_DIR")
+        os.environ["G5_DOCUMENT_CACHE_DIR"] = "unused"
+        try:
+            with self.assertRaises(ValueError):
+                DocumentWindows(Path("unused.jsonl"), self.artifacts(), 8, eos_id=self.EOS)
+        finally:
+            if old is None:
+                del os.environ["G5_DOCUMENT_CACHE_DIR"]
+            else:
+                os.environ["G5_DOCUMENT_CACHE_DIR"] = old
+
+
 if __name__ == "__main__":
     unittest.main()

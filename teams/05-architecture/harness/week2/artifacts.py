@@ -91,6 +91,8 @@ class Artifacts:
         self.table_file_sha = sha256(table_path)
         self.bos_id = self.tokenizer.token_to_id("<|begin_of_text|>")
         self.pad_id = self.tokenizer.token_to_id("<|pad|>")
+        # End of document, as the G1 shards store it (130822 in p1536); used only by packed rows.
+        self.eos_id = self.tokenizer.token_to_id("<|endoftext|>")
         if self.bos_id is None or self.pad_id is None:
             raise ValueError("Missing actual BOS/PAD IDs")
 

@@ -377,7 +377,14 @@ def main():
     if train_hash == heldout_hash:
         p.error("Training and holdout files are identical")
     data_load_started = time.perf_counter() if artifacts.normalize_input else None
-    train = DocumentWindows(args.train_data, artifacts, cfg["model"]["block_size"])
+    # Packed rows end each training document with EOS as its last target (#890, D3: as Team 6's
+    # loader and the shards do). Unpacked training and held-out data are unchanged.
+    train_eos = None
+    if cfg["run"].get("pack", False):
+        train_eos = getattr(artifacts, "eos_id", None)
+        if train_eos is None:
+            p.error("run.pack needs the tokenizer's end-of-document token <|endoftext|>")
+    train = DocumentWindows(args.train_data, artifacts, cfg["model"]["block_size"], eos_id=train_eos)
     val = DocumentWindows(
         args.heldout_data,
         artifacts,

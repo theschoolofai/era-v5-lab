@@ -1,7 +1,9 @@
 """Rows and fill per pass: today's one window per row against the packed loader (run.pack).
 
 Reads only shard .idx.npy document offsets (no token ids, no text). Windows are cut exactly as
-week2/data.py cuts them (at most L targets per window, the EOS not counted), shuffled with a fixed
+week2/data.py cuts them (at most L targets per window): today without EOS (the unpacked trainer does
+not train on it); packed with each document's EOS as its last target (#890, D3: A), so a packed
+document is one token longer and its EOS counts as a scored token. Windows are shuffled with a fixed
 seed, then placed into rows. Packed (the loader's rule, BatchStream.next_packed): each row takes the
 largest of the next 16 windows that still fits, until none fits; no window is cut. The strict-order
 column places windows only in order (a window that does not fit opens a new row) and shows why the
@@ -68,11 +70,12 @@ def packed_rows(sizes, L, pool=16):
 
 def pool_sweep(lengths, Ls, seed, pools):
     """Fill packed for each pool size (run.pack_pool); a pool of 1 is strict order."""
-    content = int(lengths.sum())
+    stored = lengths + 1                      # packed documents end with EOS (#890, D3: A)
+    content = int(stored.sum())
     rng = np.random.default_rng(seed)
     head = "| Pool | " + " | ".join(f"Fill at {L:,}" for L in Ls) + " |"
     lines = [head, "|---:|" + "---:|" * len(Ls)]
-    orders = {L: rng.permutation(windows(lengths, L)) for L in Ls}
+    orders = {L: rng.permutation(windows(stored, L)) for L in Ls}
     for pool in pools:
         cells = [f"{content / (packed_rows(orders[L], L, pool) * L):.1%}" for L in Ls]
         lines.append(f"| {pool} | " + " | ".join(cells) + " |")
@@ -81,20 +84,22 @@ def pool_sweep(lengths, Ls, seed, pools):
 
 def report(lengths, Ls, seed):
     content = int(lengths.sum())
+    stored = lengths + 1                      # packed documents end with EOS (#890, D3: A)
+    packed_content = int(stored.sum())
     rng = np.random.default_rng(seed)
     lines = ["| Window | Rows today | Rows packed (loader) | Fill today | Fill in strict order | Fill packed (loader) | Packed / today |",
              "|---:|---:|---:|---:|---:|---:|---:|"]
     for L in Ls:
-        sizes = windows(lengths, L)
-        order = rng.permutation(sizes)
-        today = len(sizes)
+        today = len(windows(lengths, L))
+        order = rng.permutation(windows(stored, L))
         strict = in_order_rows(order, L)
         packed = packed_rows(order, L)
         lines.append(
             f"| {L:,} | {today:,} | {packed:,} | {content / (today * L):.1%} | "
-            f"{content / (strict * L):.1%} | {content / (packed * L):.1%} | {packed / today:.2f}x |"
+            f"{packed_content / (strict * L):.1%} | {packed_content / (packed * L):.1%} | {packed / today:.2f}x |"
         )
-    return (f"Documents: {len(lengths):,}; content tokens: {content:,}; window order shuffled with seed {seed}.\n\n"
+    return (f"Documents: {len(lengths):,}; content tokens: {content:,} (packed, with each document's EOS: "
+            f"{packed_content:,}); window order shuffled with seed {seed}.\n\n"
             + "\n".join(lines))
 
 
