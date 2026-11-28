@@ -5,6 +5,7 @@ Bengali rows are read (3 rows, one reader; one document is Assamese, section 3.3
 **Pending:** the Marathi (4) and Hindi (4) rows of `lang_label_review_sample.csv`, with their readers.
 **v3 (26 Nov, #675):** the Sanskrit marker words are extended from grammar tables (section 3.4). The counts below are
 from the v3 run: 1 more document flagged (Jain Prakrit in a Hindi pack), 1 fewer uncertain; the rest is unchanged.
+**v4 (27 Nov):** sandhi spellings and a few more forms from the review of #842 (section 3.5); no count changes.
 
 Task (Week-3 work order, task 5): "Check the language labels of script-sharing pairs (Hindi and Marathi, for example).
 Flag each filter that drops over 20%." Owner: @keshavamurali. Scope as agreed with the lead (16 Nov): labels that are
@@ -240,6 +241,43 @@ The one new flag, `037a63321c3b687c` in `ind-hi-sangraha-v`:
 One more case: `b7d0ec485aed0bd6` (`ind-sa-fw2`; one reader D1, the other D3, mixed) now has a Sanskrit marker vote
 (sa 70, hi 32; v2 a tie). Its verdict stays `agree`.
 
+### 3.5 Sandhi spellings and review additions (v4)
+
+From @riteshverma's review of #842:
+
+1. **Sandhi spellings, by rule** in `sa_paradigms.py`:
+   - a final -aḥ also as -o: ततो, नमो, सो, 247 forms. The r-stems पुनः and अन्तः (punar, antar) take -र् instead:
+     पुनर्, अन्तर् (review on #855);
+   - a final त् also as द्: तद्, आसीद्, 72 forms;
+   - सः and एषः also as स and एष.
+2. **More forms:**
+   - the enclitics वाम् and एनम्, एनाम्, एनौ, एनान् …;
+   - common words: एवम्, नमः, स्वयम्, कश्चित्, किञ्चित्, भवान्, भो, इत्यादि, उक्तम्.
+3. **A hand KEEP list with reasons** in `sa_marker_build.py`. It holds करोति, खलु and कथं: every Hindi or Marathi
+   document that contains them also has other Sanskrit marker hits, so they are quotes.
+   - Not kept: किल, कदा, उत, चैव and वै. They also occur in Hindi or Marathi documents with no other Sanskrit hits
+     (कदा in 4 such Hindi documents).
+
+2,334 forms, 2,246 kept.
+
+| | v3 | v4 |
+|---|---|---|
+| `ind-sa-fw2` reader rows with no marker vote | 20 | 18 |
+| CAP-1 packs: flags, uncertain, every other count | | unchanged |
+| Reader and gold scores | | unchanged |
+
+The 18 rows (9 documents) left without a vote:
+- they are short, mostly Hindi (sa against hi below 2:1), or have a reader's D1;
+- or they are the Vedic text whose `ळ` counts as Marathi;
+- or the markers gave Hindi or Marathi in v2.
+
+Sandhi spellings do not change these. The marker-word list has likely reached its limit for this check.
+
+**ASCII `:` as a visarga (#576), not added.**
+- In the diagnosis packs, a `:` right after a Devanagari letter occurs in 88 of the 500 Sanskrit documents.
+- It also occurs in 97 to 169 of 500 per Hindi or Marathi pack, where it is ordinary punctuation.
+- Mapping it to ः changed no marker vote in any of the 4,000 Devanagari documents, so the check stays without it.
+
 ## 4. Filters that drop over 20%
 
 From the lead's shard audit (#523, `audit_v1.csv`; `docs_raw` is the Part_1 part only):
@@ -290,7 +328,7 @@ From `teams/02-data-b/audit`, with the IndicLID environment of `../romanised` (s
 
 ```bash
 PY=../romanised/.venv-lid/bin/python
-$PY -m unittest test_lang_label_check                       # 27 tests, made-up text, no model needed
+$PY -m unittest test_lang_label_check                       # 29 tests, made-up text, no model needed
 $PY sa_marker_build.py                                      # v3: Sanskrit words from sa_paradigms.py (diagnosis packs)
 $PY lang_label_check.py evaluate                            # reader labels and gold
 $PY lang_label_check.py run --cap1-dir <Cap1-packs folder> --work-dir <scratch folder>   # about 11 minutes
