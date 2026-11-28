@@ -1008,6 +1008,8 @@ def train(cfg: dict) -> dict:
         lr=float(t["lr"]),
         muon_lr=float(t.get("muon_lr", t["lr"])),
         wd=float(t.get("weight_decay", 0.0)),
+        # RL's AdamW has always run torch's default betas; hybrid Muon's AdamW group takes 0.95, as Team 5's does
+        betas=(0.9, 0.999) if opt_kind == "adamw" else (0.9, 0.95),
         dt_gate_optim=str(t.get("dt_gate_optim", "adamw")),
         skip_zero_grad_muon=True,
     )
@@ -1053,6 +1055,7 @@ def train(cfg: dict) -> dict:
         if kz is not None:
             kz.check("restored checkpoint")
         opt.load_state_dict(resumed["opt"])
+        opt.optim_seconds, opt.steps = 0.0, 0  # the summary's share is optimizer time over this invocation's time
         random.setstate(resumed["py_random"])
         torch.set_rng_state(resumed["torch_rng"])
         for name_, g_ in gens.items():
