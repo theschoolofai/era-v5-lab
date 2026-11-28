@@ -34,6 +34,11 @@ Scorers (``--scorer``):
         --device cuda --scorer lm_eval_lab:team5 --model-config <arm.yaml> --tokenizer <tokenizer.json> \\
         --tokenizer-sha256 <sha256> --byte-table <table.npz> --tier A --hf-home <HF cache> --offline
 
+A commit already stripped by ``strip_ckpt.py`` is scored with ``--weights <file>`` next to ``--run-dir``: no export
+runs. The file's record (``<file>.json``) must name this commit (its path and ``model_revision``), and the file's
+sha256 must equal the record's. The probe-loss check runs only where it can compare: saved bits for ``cpu`` and the
+weights in their saved dtype, on CPU with the export settings. Otherwise it prints "not compared", as the export does.
+
 A finished Team 5 ``train_week2.py`` run folder (dry run 1: TSAI on #475, p1536, one final checkpoint) is scored with
 ``--team5-run <folder>`` in place of ``--run-dir``: ``checkpoint.pt`` ``state["model"]`` is loaded strictly and its
 weights hash must equal summary.json ``final_model_sha256``, which becomes ``model_revision``.
@@ -356,6 +361,8 @@ def main(argv=None) -> int:
                         help="a finished Team 5 train_week2.py run folder (manifest.json, checkpoint.pt, summary.json "
                              "with status COMPLETED), as dry run 1 left it; needs a real scorer")
     ap.add_argument("--step", type=int, help="score the commit at this step (default: the one latest.json names)")
+    ap.add_argument("--weights", type=Path,
+                    help="with --run-dir: the commit's weights as strip_ckpt.py wrote them; no export runs")
     ap.add_argument("--run-name", help="checkpoint.run if not the manifest's run_id; in a queue job '<job_run_id>/<arm>'")
     ap.add_argument("--scorer", default="smoke", help="smoke, or <module>:<function> (see above)")
     ap.add_argument("--config", type=Path, default=CONFIGS05 / "config_v0.yaml", help="smoke: Team 5's config")
@@ -370,6 +377,8 @@ def main(argv=None) -> int:
 
     if version_key(torch.__version__) < version_key(MIN_TORCH):
         ap.error(f"needs torch {MIN_TORCH} or newer, found {torch.__version__}")
+    if a.team5_run is not None and a.weights is not None:
+        ap.error("--weights is for --run-dir (a strip of a Team 7 store commit)")
     if a.team5_run is not None and a.scorer == "smoke":
         ap.error("--team5-run needs a real scorer (--scorer lm_eval_lab:team5); smoke scores Team 7's tiny MoE")
     if a.scorer == "smoke":
@@ -389,6 +398,7 @@ def main(argv=None) -> int:
     if team5:
         if a.step is not None:
             ap.error("--step is for --run-dir; a Team 5 run folder has one checkpoint")
+
         facts = team5_facts(run_dir, given.as_posix().rstrip("/"), a.run_name)
         print(f"checkpoint: {facts['model']} step {facts['checkpoint']['step']} (Team 5 run folder, checkpoint.pt)")
         print(f"model_revision (summary.json final_model_sha256): {facts['model_revision']}")
@@ -412,7 +422,10 @@ def main(argv=None) -> int:
         torch.use_deterministic_algorithms(True)
         torch.set_num_threads(1)
         try:
-            model = export_store(run_dir, facts, scorer)
+            if a.weights:
+                model = load_stripped(a.weights.resolve(), facts, scorer)
+            else:
+                model = export_store(run_dir, facts, scorer)
         finally:
             torch.use_deterministic_algorithms(was_deterministic)
     t_export = time.perf_counter() - t_export
@@ -445,6 +458,47 @@ def export_store(run_dir: Path, facts: dict, scorer):
         model = scorer.factory()
         model.load_state_dict(load_file(str(exported)), strict=True)
     return model
+
+
+def load_stripped(weights: Path, facts: dict, scorer):
+    """A file written by strip_ckpt.py for this commit, checked against its record, loaded strictly."""
+    from ckpt.ckpt import float_bits
+    from safetensors.torch import load_file
+
+    record_path = weights.with_name(weights.name + ".json")
+    if not record_path.exists():
+        raise SystemExit(f"{record_path} not found: strip_ckpt.py writes it last, so the strip did not finish")
+    rec = json.loads(record_path.read_text(encoding="utf-8"))
+    if rec.get("schema") != "strip_v1":
+        raise SystemExit(f"{record_path}: schema {rec.get('schema')!r}, expected strip_v1")
+    if rec["path"] != facts["pointer_path"] or rec["model_revision"] != facts["model_revision"]:
+        raise SystemExit(f"{weights} is the strip of {rec['path']} (model_revision {rec['model_revision'][:12]}), not "
+                         f"of {facts['pointer_path']} ({facts['model_revision'][:12]})")
+    got = sha256_file(weights)
+    if got != rec["weights_sha256"]:
+        raise SystemExit(f"{weights}: sha256 {got[:16]}, its record says {rec['weights_sha256'][:16]}")
+    model = scorer.factory()
+    model.load_state_dict(load_file(str(weights)), strict=True)
+    saved = (facts["manifest"].get("probe_loss") or {}).get("cpu")
+    if saved is not None and rec["dtype"] == "saved":
+        bits = float_bits(scorer.probe(model))
+        if bits != saved:
+            raise SystemExit(f"{weights}: probe loss bits {bits} differ from the saved {saved}; not scored")
+        print(f"load ok: stripped weights of step {rec['step']}, sha256 and keys checked, probe loss bits equal the "
+              "saved ones")
+    else:
+        why = (f"the weights were converted to {rec['dtype']}" if saved is not None else
+               f"the saved probe loss is for {', '.join(facts['probe_classes']) or 'no device'}")
+        print(f"load ok: stripped weights of step {rec['step']}, sha256 and keys checked; probe not compared ({why})")
+    return model
+
+
+def sha256_file(path: Path) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        while chunk := f.read(8 << 20):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 def finish(a, facts, scorer, scored, fmt, dtype, t_export, t_score, t_start) -> int:

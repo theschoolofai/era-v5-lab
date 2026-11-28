@@ -1,0 +1,52 @@
+strip_ckpt.py against Team 7's export_safetensors(), on a commit with dry run 2's parameter split (#869:
+176,398,881 parameters, 165,740,544 with one optimizer buffer each), saved by Team 7's Checkpointer.
+
+Where: Linux (Docker python:3.11-slim on a 4-CPU, 6 GB VM), torch 2.15.0+cpu, 4 threads. The commit is read right
+after it is written, so the page cache is warm: the times are CPU and memory times, and "Read" counts bytes through
+read() (rchar), from the cache or the disk. On a network store the read bytes set the time.
+The probe bits are saved for a GPU device class ('cuda:NVIDIA H100 80GB HBM3'), as in a GPU-trained run: the export
+runs the CPU probe but cannot compare it. One SGD-momentum optimizer keeps one buffer per parameter, so the commit is
+about 3% smaller than dry run 2's would be (no second AdamW buffer on 10.7M parameters). The tensor count (192) is
+not the run's. For --verify fingerprints the build adds MANIFEST.json fingerprints of the model.* tensors, made with
+Team 7's own fingerprints(), as Team 7's save would keep them (a proposal: state_digest() computes them already).
+
+Command (each path runs in a fresh process):
+  python teams/09-evaluation/harness_lab/tests/bench_strip.py --work /tmp/b1 --scale 1
+  python teams/09-evaluation/harness_lab/tests/bench_strip.py --work /tmp/b0.1 --scale 0.1
+
+Checks in the same state: harness_lab/tests on Linux, 88 passed (test_strip_ckpt.py: 12).
+
+torch 2.15.0+cpu threads 4
+MemTotal:        6052188 kB
+=== scale 1
+commit: 176,398,881 parameters, 1,412.0 MB on disk (saved in 7.3 s); probe bits for 'cuda:NVIDIA H100 80GB HBM3'
+
+| Path | Wall time | Peak RSS | Read | Written |
+|---|---:|---:|---:|---:|
+| export_safetensors (as run_lab_ckpt.py) | 3.95 s | 2,691 MB | 3,546 MB | 2,118 MB |
+| strip --verify files | 0.97 s | 1,186 MB | 2,830 MB | 706 MB |
+| strip --verify fingerprints | 0.83 s | 1,514 MB | 1,418 MB | 706 MB |
+| strip --verify none | 0.46 s | 1,169 MB | 1,418 MB | 706 MB |
+| strip --verify files --dtype bfloat16 | 0.79 s | 823 MB | 2,477 MB | 353 MB |
+
+strip --verify files gives the same tensors as export_safetensors, bit for bit: True
+strip-files-bf16.safetensors.json files {'load': 0.078, 'total': 0.789, 'verify': 0.528, 'write': 0.182}
+strip-files.safetensors.json files {'load': 0.084, 'total': 0.972, 'verify': 0.515, 'write': 0.372}
+strip-fingerprints.safetensors.json fingerprints {'load': 0.08, 'total': 0.831, 'verify': 0.349, 'write': 0.393}
+strip-none.safetensors.json none {'load': 0.087, 'total': 0.46, 'verify': 0.0, 'write': 0.373}
+=== scale 0.1
+commit: 17,639,785 parameters, 141.3 MB on disk (saved in 0.9 s); probe bits for 'cuda:NVIDIA H100 80GB HBM3'
+
+| Path | Wall time | Peak RSS | Read | Written |
+|---|---:|---:|---:|---:|
+| export_safetensors (as run_lab_ckpt.py) | 0.48 s | 570 MB | 364 MB | 212 MB |
+| strip --verify files | 0.11 s | 421 MB | 283 MB | 71 MB |
+| strip --verify fingerprints | 0.10 s | 479 MB | 142 MB | 71 MB |
+| strip --verify none | 0.05 s | 404 MB | 142 MB | 71 MB |
+| strip --verify files --dtype bfloat16 | 0.09 s | 383 MB | 248 MB | 35 MB |
+
+strip --verify files gives the same tensors as export_safetensors, bit for bit: True
+strip-files-bf16.safetensors.json files {'load': 0.015, 'total': 0.088, 'verify': 0.054, 'write': 0.019}
+strip-files.safetensors.json files {'load': 0.015, 'total': 0.106, 'verify': 0.054, 'write': 0.037}
+strip-fingerprints.safetensors.json fingerprints {'load': 0.015, 'total': 0.1, 'verify': 0.037, 'write': 0.039}
+strip-none.safetensors.json none {'load': 0.015, 'total': 0.053, 'verify': 0.0, 'write': 0.037}
