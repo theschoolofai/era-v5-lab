@@ -49,7 +49,7 @@ The draft of the model card is `model_card_v0.md`. Each section there has the te
 | Quantized versions | The smaller versions of the model, and what they lose | Quantization | empty | OK @SreekanthZipsy |
 | Serving | How to run the model and chat with it in the lab's chat format, and how the smaller formats were checked against the full model | Quantization | empty | OK @SreekanthZipsy |
 | Evaluation | The benchmarks, the scores that TSAI approves, and what the scores do not show, such as the size of the question sets | Evaluation | in progress | OK @rahulni |
-| Safety evaluation | A summary of the safety and refusal tests, and their results once TSAI approves them | Evaluation | empty | pending |
+| Safety evaluation | A summary of the safety and refusal tests, and their results once TSAI approves them | Evaluation | empty | OK @rahulni ([comment on #878](https://github.com/theschoolofai/era-v5-lab/pull/878#issuecomment-7236006708)) |
 | Limitations and risks | What the model gets wrong, and the known risks. The limits of the scores go in Evaluation | Evaluation, Release | empty | Evaluation OK @rahulni; Release OK @pyru |
 | What this card does not claim | The claims that the card does not make about the model as a whole, so that readers do not read too much into it. The limits of the scores go in Evaluation, and the errors of the model in Limitations and risks | Evaluation, Release | empty | Evaluation OK @rahulni; Release OK @pyru |
 | Licence and attribution | The licence of the model, which TSAI decides, and credit for each data source | Post-training, Data A, Data B | in progress | Post-training OK @saitej123; Data A OK @patilvijay23; Data B OK @shankarpandala |
