@@ -165,6 +165,7 @@ keys are added without a schema change (TSAI, #899), a changed meaning gets a ne
 | `state_digest` | one hash over every tensor's name, dtype, shape and fingerprint | proof 1 |
 | `scalars` | every non-tensor value by name: per optimizer group `lr`, `base_lr` (the peak), betas, momentum, weight decay and the group's parameter names (added 28 Nov, #899) | proof 2; skipped when the key is absent (older checkpoints, DeepSpeed path) |
 | `probe_loss` | device class → bits of the probe-batch loss | proof 3 |
+| `optim_state_absent` | parameters the optimizer had never updated at the save (no state at all: an expert that saw no tokens), added 28 Nov | strict key check: only these may lack optimizer state; they restore with none (AdamW step 0, no Muon buf). Any other missing state still fails (`StrictLoadError`) |
 | `next_batch` | the loader's `next_batch_id()`: position and sha256 | proof 4 |
 | `frozen` | fingerprints of the frozen tensors | proof 5, and refused at save if they changed |
 | `loader_global` | true if every rank saved the same data position | a resharded restore needs it (else `ReshardError`) |
