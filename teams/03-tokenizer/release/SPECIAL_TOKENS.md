@@ -42,10 +42,28 @@ Generation stops at `<|im_end|>` 130816 or `<|endoftext|>` 130822 (`generation_c
 | 130817 | `<\|file_sep\|>` | file_sep | Boundary between files of a repository. | G10 |
 | 130818 | `<\|repo_name\|>` | repo_name | Repository name anchor. | G10 |
 
-The chat format (G10 ChatML v0, `chat_template.jinja` in `tokenizer_config.json`):
+The chat format (G10 ChatML v0), as rendered by `teams/10-post-training/chat-format/render.py`. The `chat_template.jinja` in `tokenizer_config.json` renders it byte for byte the same:
 
 ```
-<|im_start|>system\nReasoning effort: 4k<|im_end|>\n<|im_start|>user\n…<|im_end|>\n<|im_start|>assistant\n<|think|>…<|/think|>…<|tool_call|>{json}<|/tool_call|><|im_end|>\n<|im_start|>tool\n<|tool_result|>…<|/tool_result|><|im_end|>\n
+<|im_start|>system
+Reasoning effort: 4k<|im_end|>
+<|im_start|>user
+Weather in Pune?<|im_end|>
+<|im_start|>assistant
+<|think|>
+Need the tool.
+<|/think|>
+<|tool_call|>
+{"arguments":{"city":"Pune"},"name":"weather"}
+<|/tool_call|>
+<|im_end|>
+<|im_start|>tool
+<|tool_result|>
+{"c": 24}
+<|/tool_result|><|im_end|>
+<|im_start|>assistant
+24 °C.<|im_end|>
+<|endoftext|>
 ```
 
 - **Roles:** system, user, assistant and tool are **plain text** after `<|im_start|>` (G10's 27 Oct ruling: structure is special tokens, values are text). The base tokenizer's `<|system|>`, `<|user|>`, `<|assistant|>` and `<|tool|>` are not used.
@@ -60,7 +78,7 @@ The chat format (G10 ChatML v0, `chat_template.jinja` in `tokenizer_config.json`
 
 G10's `special_tokens_v1.md` lists these two as "rename pending in G3". They were not renamed before the freeze, so the frozen strings are `<|g10_slot_05|>` and `<|g10_slot_06|>`:
 - G10 can use them now **by id**, or by the slot string.
-- Renaming them to `<|subagent_call|>` / `<|subagent_return|>` changes the sha, so it is TSAI's call (a finding in the PR).
+- **Decided by G10 on 28 Nov (#873): keep the frozen sha.** G10 uses ids 130827 / 130828 with the slot strings, does not emit them in SFT v1 or RL v1, and records the slot strings in its `special_tokens_v1.md`. A rename to `<|subagent_call|>` / `<|subagent_return|>` would change the sha and needs a new freeze by TSAI.
 
 ## Free slots (for later)
 
