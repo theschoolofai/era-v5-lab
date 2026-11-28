@@ -93,27 +93,70 @@ hash-only. Each run passed 108 of 108 checks.
 
 ## 4. The overlap stage's peak RAM, and when it does not fit
 
-This part of D2 is Kunal's (G1, 28 Nov). It covers:
-- MinHash's peak RSS per stage, on this 1% slice and at corpus scale (`overlap_summary.json`, and `minhash_sizing.py`
-  for the main process and workers together);
-- what to do when it does not fit: fewer workers, row ranges for large parts (theschoolofai/era-v5-lab#807), and the
-  main process, which has no sharded pass yet.
+**Answer.** MinHash overlap's memory is the main process plus every worker. The main process grows with the corpus (about
+2 GB per 1× of sample v0); each worker costs a fixed ~0.13–0.16 GiB plus the part it is working on. When it does not fit,
+lower `workers` first (same results, a config change), then cut large parts into row ranges (#807). The main process has
+no sharded pass yet; with 16 workers it is not needed below about 10–12× sample v0 (corpus-v1 is ~3×).
 
-The peaks measured so far, for reference:
+### On the 1% slice
 
-| Overlap | Input | Peak RSS | Source |
+Same slice as section 3 (14,106 cleaned documents, 86 parts), on Linux, 2 vCPU, Python 3.13
+(`jobs/logs/2026-11-28-d2-sec4-overlap-ram/sec4_overlap_ram_1pct.log`).
+
+Per stage, 16 workers (`overlap_summary.json`, `peak_rss_mb_after_stage`):
+
+| Stage | Main | Largest worker |
+|---|---:|---:|
+| signatures (per part, in the workers) | 110 MB | 169 MB |
+| LSH table and bands | 117–128 MB | — |
+| verify, rules, outputs | 128–149 MB | — |
+
+Total of main and all workers, by worker count (`minhash_sizing.py --factors 1 --workers N`, fresh `work/` each):
+
+| Workers | Main | Largest worker | **Total** | Candidates | `overlap_matches.csv` |
+|---:|---:|---:|---:|---:|---|
+| 16 | 0.15 GiB | 0.16 GiB | **2.25 GiB** | 43 | `484f20ed…` |
+| 12 | 0.15 GiB | 0.17 GiB | **1.80 GiB** | 43 | `484f20ed…` |
+| 4 | 0.15 GiB | 0.18 GiB | **0.81 GiB** | 43 | `484f20ed…` |
+| 1 | 0.15 GiB | 0.20 GiB | **0.30 GiB** | 43 | `484f20ed…` |
+
+- **Outputs do not depend on the worker count:** the same 43 candidates and a byte-identical `overlap_matches.csv`.
+- **At 1%, the total is almost all fixed cost per worker:** each worker holds Python, NumPy, PyArrow and Pygments
+  (~0.13–0.16 GiB) before it reads a row. 16 workers cost 2.25 GiB for 14,106 documents that one worker handles in 0.30.
+- The #898 run on an Apple M4 measured 233 MB in its largest worker and 104 MB in the main process at 16 workers; the
+  difference is the platform's allocator and package builds, not the data.
+
+### At scale
+
+| Input | Documents | Main | Largest worker | Total | Source |
+|---|---:|---:|---:|---:|---|
+| 1% slice | 14,106 | 0.15 GiB | 0.16–0.20 GiB | 0.30–2.25 GiB | this section |
+| Sample v0, 47 train parts | 1,395,320 | 2.18 GB | 1.51 GB | — | #807 (2 workers) |
+| corpus-v1, 33 staged packs (raw) | 4,208,197 (~3×) | not returned | not returned | ~70% of 64 GiB | TSAI's sizing, 24 Nov |
+
+- **Main process:** about 2 GB per 1× of sample v0 (signatures, H1 maps, candidates), so ~6 GB at corpus-v1's ~3×.
+- **Workers:** set by the size of the part each one holds, not by the corpus. On sample v0's parts a worker peaks at
+  0.8–0.9 GB while signing and ~1.5 GB while re-reading candidates.
+- **corpus-v1:** TSAI's sizing passed at about 70% of 64 GiB (~45 GiB), above the ~32 GiB that the sample figures give
+  for 16 workers. Its per-factor files (`sizing.csv`, `sizing.json`) have not been returned, so the split between main and
+  workers is unknown; the likely cause is corpus-v1's larger parts (~237,000 documents each in the first 6).
+
+### When it does not fit
+
+In order of cost:
+
+| Lever | Saves | Cost | Status |
 |---|---|---|---|
-| exact Jaccard (`overlap.py`) | 38 packs, 1,410,230 documents | 14.0 GB | patilvijay23/era-v5-lab#62 |
-| MinHash (`minhash_overlap.py`), 16 workers | this 1% slice, 14,106 documents | 233 MB in the largest worker, 104 MB in the main process | this run |
-| MinHash, 2 cores, row ranges | 47 train parts of sample v0, 1,395,320 documents | 1.51 GB per worker, 2.18 GB in the main process | theschoolofai/era-v5-lab#807 |
-| exact hash (`hash_overlap.py`) | this 1% slice | 135 MB, one process | this run |
+| **Fewer workers** (`workers` in `minhash_overlap.json`) | each worker's fixed ~0.13–0.16 GiB plus its part's working set; 16 → 12 saves up to ~6 GiB at 1.5 GB a worker | slower signatures; results unchanged | a config change |
+| **Row ranges for large parts** (`chunk_rows`) | caps the documents a worker signs at once (20,000), so large parts no longer set the signing peak | none: outputs byte-identical | #807, draft until the corpus-v1 run finishes |
+| **Sharded pass for the main process** | main's ~2 GB per 1× | design and tests | not built; under a 48 GiB budget it is needed past ~10–12× sample v0 with 16 workers, later with fewer |
 
-**The exact-hash pass (B3)** holds about 150 bytes per document for the whole table. When that does not fit, partition
-the pass by the hash's first byte (256 independent buckets).
+Row ranges do not cap the candidate re-read (`verify_words`, `rules`), which still reads per part; that step's ~1.5 GB
+per worker on sample v0 is the next one to bound if a larger corpus needs it.
 
 ## 5. Not measured yet
 
 - The exact-copy rate of the full sources, which decides what C1 saves at corpus scale.
 - p1536's tokenizing rate, and the process start-up's share of the shard stage.
 - C3, C4 and C5 are not built.
-- MinHash's peak RAM on corpus-v1: Kunal's part of D2.
+- MinHash's peak RAM on corpus-v1, split into main and workers: waits on TSAI's sizing files (section 4).

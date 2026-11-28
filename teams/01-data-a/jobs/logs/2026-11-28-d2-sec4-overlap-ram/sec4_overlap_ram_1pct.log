@@ -1,0 +1,31 @@
+D2 section 4: MinHash overlap peak RAM on the 1% slice, by worker count (28 Nov 2026)
+
+Tree: PR #898 head fede4151 (teams/01-data-a as on main + D2/B3). Machine: Linux, 2 vCPU, 7 GB RAM; Python 3.13.18, NumPy 2.5.3, PyArrow 26.0.1.
+Slice: slice_sample.py --share 0.01 --seed 20261128 on the 86 raw parts of sample v0: 86 parts, 14,450 of 1,444,766 rows,
+62,210,044 text bytes (as in #898). Written with PyArrow 25, so sample_manifest.json's sha256 is 3701eeb5... (#898's: 0b1a3e43...).
+
+== 1. clean + MinHash overlap (16 workers) through run_pipeline.py
+python3 -B teams/01-data-a/pipeline/run_pipeline.py --config out/sec4/run_sec4.json   # run_baseline.json with "to": "overlap"
+clean: {"rows": 14106, "by_split": {"train": 13962, "heldout": 144}}
+overlap: {"documents_all": 14106, "parts": 86, "files_sha256": {"overlap_matches.csv": "484f20ed7b46de3a70ba005306a099290bee80096a3d3daa9aad3e69988c0153", "overlap_docs.parquet": "83eea4e1caadb7dfbd0735c132994549b425c0fbfba775957f6b109d6bf0d86a"}}
+{"cleaned": 14106}
+peak_rss_mb {'main': 148.8, 'largest_worker': 168.5}
+peak_rss_mb_after_stage
+   signatures {'main': 109.7, 'largest_worker': 168.5}
+   table {'main': 116.8, 'largest_worker': 168.5}
+   lsh {'main': 127.8, 'largest_worker': 168.5}
+   verify_words {'main': 127.8, 'largest_worker': 168.5}
+   rules {'main': 127.8, 'largest_worker': 168.5}
+stage_seconds {'signatures': 21.5, 'h1': 0.0, 'lsh': 0.6, 'verify_words': 0.1, 'rules': 0.0, 'outputs': 0.0}
+
+== 2. Total RSS of main + all workers (minhash_sizing.py, factor 1, fresh work/ each)
+python3 -B teams/01-data-a/dedup/minhash_sizing.py --inputs out/pipeline/sec4-1pct/clean --factors 1 --workers 16 --out out/sec4/sizing_w16
+python3 -B teams/01-data-a/dedup/minhash_sizing.py --inputs out/pipeline/sec4-1pct/clean --factors 1 --workers 12 --out out/sec4/sizing_w12
+python3 -B teams/01-data-a/dedup/minhash_sizing.py --inputs out/pipeline/sec4-1pct/clean --factors 1 --workers 4 --out out/sec4/sizing_w4
+python3 -B teams/01-data-a/dedup/minhash_sizing.py --inputs out/pipeline/sec4-1pct/clean --factors 1 --workers 1 --out out/sec4/sizing_w1
+workers   docs main GiB worker GiB total GiB candidates wall min  matches.csv sha256
+     16  14106     0.15       0.16      2.25         43      0.4  484f20ed7b46
+     12  14106     0.15       0.17       1.8         43      0.4  484f20ed7b46
+      4  14106     0.15       0.18      0.81         43      0.4  484f20ed7b46
+      1  14106     0.15        0.2       0.3         43      0.7  484f20ed7b46
+(GiB = bytes / 2^30. Wall time is for 2 vCPU and is not a rate.)
