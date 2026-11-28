@@ -7,13 +7,16 @@ Reuses eval_mini's environment, llama-cpp-python (CUDA) build, evaluation venv a
 ../eval_mini/build_notebook.py, as eval_wide does), then runs quant_rollout_mismatch.py once per format, writing one
 JSON per format so a session that stops resumes where it left off. The notebook embeds its own copy of the code and of
 the 100 fixed prompts, so it runs without a branch being pushed.
+
+Stage 1 samples with each quantized GGUF and scores with the bf16 GGUF (llama.cpp), and dumps the token ids. Stage 2
+(`TORCH_REFERENCE`) scores the same ids with the Hugging Face model in PyTorch, Team 10's trainer setup, in a pinned venv.
 """
 import hashlib, importlib.util, json
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 MINI = HERE.parent / "eval_mini"
-SOURCES = {"quant_rollout_mismatch.py": HERE / "quant_rollout_mismatch.py",
+SOURCES = {"quant_rollout_mismatch.py": HERE / "quant_rollout_mismatch.py", "score_with_torch.py": HERE / "score_with_torch.py",
            "fixed_100.jsonl": HERE.parent / "prompts" / "fixed_100.jsonl"}
 
 _spec = importlib.util.spec_from_file_location("mini_build", MINI / "build_notebook.py")
@@ -56,6 +59,11 @@ N_CTX     = 2048
 BASE      = "bf16"
 MODEL, REVISION = "sarvamai/sarvam-1", "e9607337286ddf496d4a2562b194e489dcf3feea"
 # or Granite: MODEL, REVISION = "ibm-granite/granite-3.0-3b-a800m-base", "142d2c8e3f7fb8844011cfa5565f0e520f0824b9"
+# second models Team 10 suggested (pin a revision before the real run): "Qwen/Qwen2.5-Coder-1.5B", "HuggingFaceTB/SmolLM2-1.7B"
+TORCH_REFERENCE = True         # stage 2: score the same tokens with the HF model in PyTorch (Team 10's trainer setup)
+TORCH_DTYPE = "bfloat16"       # Team 10's trainer: bf16 weights and autocast, fp32 logits. T4 has no native bf16: if stage 2 is slow, "float32"
+TORCH = "torch==2.11.0"        # CUDA 12.6 build, from the PyTorch index below
+TORCH_INDEX = "https://download.pytorch.org/whl/cu126"
 LLAMA_TAG = "b11669"
 LLAMA_CPP_PYTHON = "0.3.36"
 DRIVE_DIR = "/content/drive/MyDrive/era-v5-g12/rollout_mismatch"
@@ -77,7 +85,7 @@ def run_format(fmt, gguf, ref_layers):
     out = f"{RUNS}/{fmt}.json"
     sh(f"cd {CODE} && {EVAL_PY} quant_rollout_mismatch.py --ref {BF16} --quant {fmt}={gguf} --prompts {CODE}/fixed_100.jsonl "
        f"--out {out} --n {N} --k {K} --max-new {MAX_NEW} --n-ctx {N_CTX} --eps {EPS} --seed {SEED} "
-       f"--ref-n-gpu-layers {ref_layers}", log=f"{OUT}/logs/rollout_{fmt}.log")
+       f"--ref-n-gpu-layers {ref_layers} --dump-dir {RUNS}/dump", log=f"{OUT}/logs/rollout_{fmt}.log")
 
 for fmt in FORMATS:
     t0 = time.time()
@@ -105,10 +113,33 @@ for fmt in FORMATS:
         os.remove(gguf)
 """),
 code("""
+# stage 2: the same sampled tokens scored by the Hugging Face model in PyTorch (Team 10's setup); pinned venv, GPU must be visible
+TORCH_JSON = f"{RUNS}/torch_reference.json"
+if TORCH_REFERENCE and not os.path.exists(TORCH_JSON):
+    TVENV = f"{WORK}/torch-venv"; TPY = f"env -u PYTHONPATH {TVENV}/bin/python"
+    if not os.path.exists(f"{TVENV}/.ready"):
+        sh(f"rm -rf {TVENV} && pip install -q uv==0.13.6 && uv venv -q --python python3 {TVENV} && "
+           f"uv pip install -q --python {TVENV}/bin/python {TORCH} --index-url {TORCH_INDEX} && "
+           f"uv pip install -q --python {TVENV}/bin/python transformers==4.57.6 numpy accelerate && touch {TVENV}/.ready",
+           log=f"{OUT}/logs/torch_venv.log")
+    pr = subprocess.run(f"{TPY} -c \\"import torch, json; print(json.dumps(dict(torch=torch.__version__, cuda=torch.cuda.is_available())))\\"",
+                        shell=True, capture_output=True, text=True)
+    if pr.returncode != 0 or not json.loads(pr.stdout.strip().splitlines()[-1])["cuda"]:
+        raise RuntimeError("the torch venv cannot see the GPU (" + (pr.stderr[-500:] or pr.stdout) + "): set TORCH_INDEX to "
+                           "https://download.pytorch.org/whl/cu128, delete " + TVENV + " and rerun")
+    ENV["torch_venv"] = json.loads(pr.stdout.strip().splitlines()[-1]); save_env()
+    dumps = " ".join(f"--dump {RUNS}/dump/{f}_rollouts.jsonl" for f in FORMATS if os.path.exists(f"{RUNS}/dump/{f}_rollouts.jsonl"))
+    rev = f"--revision {REVISION} " if REVISION else ""
+    sh(f"cd {CODE} && env HF_HOME={WORK}/hf {TPY} -u score_with_torch.py {dumps} --model {MODEL} {rev}--out {TORCH_JSON} "
+       f"--dtype {TORCH_DTYPE} --eps {EPS} --device cuda", log=f"{OUT}/logs/score_with_torch.log")
+"""),
+code("""
 # results: one table over the formats, a zip of everything
 import pandas as pd
 rows = []
 for p in sorted(glob.glob(f"{RUNS}/*.json")):
+    if os.path.basename(p) in ("torch_reference.json", "environment.json"):   # not per-format llama.cpp results
+        continue
     d = json.load(open(p))
     for f in d["formats"]:
         rows.append({"format": f["format"], "rollouts": f["rollouts"], "new_tokens": f["new_tokens"],
@@ -118,11 +149,18 @@ for p in sorted(glob.glob(f"{RUNS}/*.json")):
                      "k3": round(f.get("k3", float("nan")), 5), "kl_bf16_to_quant": round(f.get("mean_kl_ref_to_quant", float("nan")), 5),
                      "top1_agree": round(f.get("top1_agreement", float("nan")), 4)})
 table = pd.DataFrame(rows); table.to_csv(f"{RUNS}/table.csv", index=False)
-print(table.to_string(index=False))
+print("reference = llama.cpp bf16 GGUF"); print(table.to_string(index=False))
+if os.path.exists(f"{RUNS}/torch_reference.json"):
+    tj = json.load(open(f"{RUNS}/torch_reference.json"))
+    trows = [{"format": f["format"], "outside": round(f["outside"], 4), "outside_ci95": f["ci95_by_prompt"]["outside"],
+              "mean_abs_logratio": round(f["mean_abs_logratio"], 4), "k3": round(f["k3"], 5), "k3_ci95": f["ci95_by_prompt"]["k3"],
+              "top1_agree": round(f["top1_agreement"], 4), "top1_ci95": f["ci95_by_prompt"]["top1_agreement"]} for f in tj["formats"]]
+    ttable = pd.DataFrame(trows); ttable.to_csv(f"{RUNS}/table_torch.csv", index=False)
+    print(f"\\nreference = PyTorch {tj['dtype']} ({tj['reference']}); intervals resample prompts"); print(ttable.to_string(index=False))
 ENV["finished"] = datetime.datetime.now().isoformat(timespec="seconds"); save_env()
 shutil.copy(f"{OUT}/environment.json", f"{RUNS}/environment.json")
 shutil.copytree(f"{OUT}/logs", f"{RUNS}/logs", dirs_exist_ok=True)
-zip_path = shutil.make_archive(RUNS, "zip", RUNS)
+zip_path = shutil.make_archive(RUNS, "zip", RUNS)   # the dump (token ids) is inside: do not commit it
 print("\\nEverything is in", RUNS, "and", zip_path, "(Kaggle: the version's Output tab)")
 """),
 ]
@@ -135,7 +173,8 @@ def build() -> Path:
               "for _name, _text in SOURCES.items():",
               "    open(f\"{CODE}/{_name}\", \"w\").write(_text)",
               "print(\"wrote\", sorted(SOURCES), \"to\", CODE)"]
-    version = hashlib.sha256("".join(src[k] for k in sorted(src)).encode()).hexdigest()[:12]
+    # the version covers the embedded code and this builder (its cells), so two different notebooks never share one
+    version = hashlib.sha256(("".join(src[k] for k in sorted(src)) + Path(__file__).read_text()).encode()).hexdigest()[:12]
     cells = [code("\n".join(writer)) if c == "__SOURCE_CELL__" else c for c in CELLS]
     for c in cells:
         c["source"] = [line.replace("__NOTEBOOK_VERSION__", version) for line in c["source"]]
