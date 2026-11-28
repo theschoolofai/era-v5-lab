@@ -51,7 +51,7 @@ Tasks from the Team 9 lead's owner list of 28 Nov that read eval files. As in se
 
 | Handle | From team | Task | Benchmarks (models) | Status | Ended |
 |---|---|---|---|---|---|
-| `sourav-dhar` | Team 1 (Data A); also Team 12 (section 4) | Lead addition 7, peer table (`peer_table/`) | eval_lab_v1 Tier A and B (MMLU, MILU, ARC-C, HellaSwag, MMLU-Pro, Belebele), plus full MMLU, ARC-Easy, ARC-Challenge, HellaSwag and PIQA where a published setting can be matched (Qwen3-30B-A3B-Base, Sarvam-30B, SmolLM3-3B-Base, sarvam-1, the dry run 2 checkpoint) | Proposed, for the Team 9 lead to accept. Kaggle only, never on the machine that holds corpus data; per-item rows hold only task, doc_id, filter and metric; no item text in any Data A work (`eval_firewall.md`, section 4, rule 5) | |
+| `sourav-dhar` | Team 1 (Data A); also Team 12 (section 4) | Lead addition 7, peer table (`peer_table/`) | eval_lab_v1 Tier A and B (MMLU, MILU, ARC-C, HellaSwag, MMLU-Pro, Belebele), plus full MMLU, ARC-Easy, ARC-Challenge, HellaSwag and PIQA where a published setting can be matched (Qwen3-30B-A3B-Base, Sarvam-30B, SmolLM3-3B-Base, sarvam-1, the dry run 2 checkpoint) | Accepted by the Team 9 lead on 28 Nov under TSAI's conditions on #895 (no Data A fingerprint or F2 work for the rest of the week). Kaggle only, never on the machine that holds corpus data; per-item rows hold only task, doc_id, filter and metric; no item text in any Data A work (`eval_firewall.md`, section 4, rule 5) | |
 
 ## 3. Week-3 rotators: no access needed
 
