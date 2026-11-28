@@ -108,11 +108,38 @@ The chain exists and was tested in parts:
 | Exit 75 requeues the job | `slurm/slurm.conf` `RequeueExit=75` | same drill |
 | The new job restores latest.json and continues at the next step, bit-equal | `ckpt.py` restore | `jobs/restart_test`, `jobs/restore_test` (PR #899) |
 
+Our own cluster sets no cap on the main run: the `gpu` partition has `MaxTime=INFINITE` and the `mainrun` QOS no
+`MaxWall` (`slurm/nodes.cloud.conf`, `slurm/setup_accounts.sh`). A cap comes from a site or a provider (a `--time`
+on the job). Then:
+
 **Gap:** `slurm/mainrun.sbatch` has no `--signal` line, on main and in #820. Without it, the time limit
 sends SIGTERM and then, after `KillWait=30` (`slurm.conf:62`), SIGKILL. The trainer also saves on SIGTERM, but in
-30 s it must finish the step (up to 6.1 s), an evaluation if one is due (45.4 s), the save, and the commit. With
-an evaluation due, that is already over 30 s, and the job loses up to one interval (0.117 node-hours, about 80
-steps).
+30 s it must finish the step (up to 6.1 s), an evaluation if one is due (45.4 s), the save, and the commit. A save
+that does not commit in time is lost, and **the job ends TIMEOUT, which Slurm does not requeue: the run stops until
+a person restarts it.**
+
+**Drill, 28 Nov (Docker Slurm, `mainrun.sbatch` from main, 1 node x 2 ranks, `--time=00:07:00`, upload slowed to
+20 s per file with the `upload_delay_s` hook so a save takes about a minute):**
+
+```
+python3 support/simulation/run_sim.py --only mainrun_time_cap_signal mainrun_time_cap_nosignal
+```
+
+| Arm | Signal save committed | Lost steps | Job after the cap | Result |
+|---|---|---|---|---|
+| `--signal=B:USR1@120` | yes, step 4044 | **0** | requeued (Restarts 1), restored step 4044 | PASS |
+| no `--signal` (as on main and in #820) | **no**: SIGKILL 30 s after SIGTERM | **2,891** (stopped at 6,585, latest.json at 3,694) | **TIMEOUT**, Restarts 0, not requeued | PASS (the failure as predicted) |
+
+Evidence: `support/simulation/results/evidence/mainrun_time_cap_signal.log`, `mainrun_time_cap_nosignal.log`
+(every command, exit code and output). 2 of 2 selected drills passed in 943 s.
+
+**Found by the first run of this drill:** with the slow upload and a 30 s interval, every save waited on the previous
+upload (`checkpoint.backpressure`), no step finished for `WATCHDOG_S` (20 s), and the step watchdog restarted a
+healthy run three times, each time from step 447 (about 900 steps lost per restart). `train_week2.py` arms its
+watchdog after each step (`:802`), and the evaluation and the save then run while it is armed (`:828-846`).
+**Rule for the main run:** `WATCHDOG_S` > evaluation + save stall + backpressure (60 s > 45.4 + 1.4 today; the
+main-run default 600 s is fine). The interval must stay longer than the upload, which `checkpoint_interval.md`
+already requires (1.2 x save pipeline).
 
 **Fix (for #820, Max):** add
 
@@ -121,11 +148,10 @@ steps).
 ```
 
 Lead = step 6.1 s + evaluation 45.4 s + save 1.43 s + commit (not measured, see section 1) + Slurm's signal timing
-(up to 60 s early). 300 s covers that with room for a commit that takes minutes. A warning 300 s early costs at
+(up to 60 s early). 300 s covers that with room for a commit that takes minutes; the drill above passed with
+120 s and a 60 s save. A warning 300 s early costs at
 most 300 s of node time per cap, which is less than one unplanned restart. Raising `KillWait` instead would not
 help with a save that is still running when the step does not end. Keep `KillWait=30`.
 
-**Drill (after #820 merges):** rerun `support/simulation/run_sim.py` drill `time_limit` against `mainrun.sbatch`
-instead of `team_job.sbatch` (`--time=00:05:00`, the `--signal` line above). Pass: `checkpoint.committed` with
-`reason=signal`, then `restore.done` at the same step, `Restarts >= 1`, `lost_steps = 0`. It needs Docker. Not
-run on 28 Nov: no Docker daemon on the machine used.
+**After #820 merges:** rerun the two drills above on the new `mainrun.sbatch`; the signal arm must still give 0 lost
+steps with the `--signal` line in the script instead of on the `sbatch` command line.

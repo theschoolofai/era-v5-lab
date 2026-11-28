@@ -345,6 +345,49 @@ def d_health_fakes():
     record("health_nvlink_drains_node", "nvlink" in reason, reason=reason, drained_reason=drained.get("reason"))
 
 
+def d_mainrun_time_cap(signal_lead_s):
+    """Lab 5, design task 5: the MAIN-RUN script at a job time cap, with a save slower than KillWait=30.
+
+    Our gpu partition has no time limit, so a cap comes from a site or provider (--time here). The upload is slowed
+    (drill hook upload_delay_s) so a save takes about a minute, longer than KillWait. With --signal=B:USR1@<lead>
+    the trainers are warned early, the save commits, they exit 75, Slurm requeues, and the run restores the saved
+    step (0 steps lost). Without it, the time limit sends SIGTERM, the save is still running when SIGKILL comes 30 s
+    later, the job ends TIMEOUT (no requeue), and the steps since the last commit are lost."""
+    run = f"timecap-{'signal' if signal_lead_s else 'nosignal'}"
+    # One fast interval commit before the cap, none after it: the slow upload must not overlap an interval save.
+    # (Run 1 of this drill used a 30 s interval: every save then waited on the previous upload, no step finished
+    # for WATCHDOG_S, and the step watchdog restarted a healthy run in a loop.) Cap 420 s; the warning comes
+    # 120 s early (Slurm may send it up to 60 s earlier still), after the commit at 200 s.
+    env = dict(MAIN_ENV, RUN_ID=run, INTERVAL_S="200" if signal_lead_s else "250", WATCHDOG_S="300")
+    t = mark(f"mainrun_time_cap_{'signal' if signal_lead_s else 'nosignal'}", cause_class="planned")
+    args = f"{MAIN_ARGS} --nodes=1 --time=00:07:00" + (f" --signal=B:USR1@{signal_lead_s}" if signal_lead_s else "")
+    jid, err = sbatch("/opt/v5/slurm/mainrun.sbatch", env, args)
+    if jid is None:
+        raise RuntimeError(err)
+    first = wait(lambda: ev_after(t, "checkpoint.committed", run=run), 330, "a first interval commit")
+    ctl(f"mkdir -p /s3/drills/{run} && echo 20 > /s3/drills/{run}/upload_delay_s")    # each file now takes 20 s
+    stop = wait(lambda: ev_after(first["time"], "checkpoint.started", run=run, reason="signal"), 300, "save on stop")
+    final = wait(lambda: (lambda j: j if j.get("JobState") in ("TIMEOUT", "PENDING", "REQUEUED") or
+                          int(j.get("Restarts", 0)) >= 1 else None)(job(jid)), 200, "job ended or requeued")
+    committed = [e for e in events() if e["event"] == "checkpoint.committed" and e.get("run_id") == run
+                 and e["step"] == stop["step"]]
+    ctl(f"rm -f /s3/drills/{run}/upload_delay_s")
+    rd = None
+    if signal_lead_s:
+        rd = wait(lambda: ev_after(stop["time"], "restore.done", run=run), 300, "requeued job restored")
+    j = job(jid)
+    ptr = latest(run)
+    ctl(f"scancel {jid}")
+    lost = stop["step"] - (rd["step"] if rd else ptr["step"])
+    ok = (bool(committed) and rd is not None and lost == 0) if signal_lead_s else (not committed and lost > 0)
+    record(f"mainrun_time_cap_{'signal' if signal_lead_s else 'nosignal'}", ok, job=jid,
+           signal=f"B:USR1@{signal_lead_s}" if signal_lead_s else None, stop_step=stop["step"],
+           signal_save_committed=bool(committed), latest_step=ptr["step"],
+           restored_step=rd["step"] if rd else None, lost_steps=lost, job_state=j.get("JobState"),
+           reason=final.get("Reason"), restarts=j.get("Restarts"),
+           expected="0 steps lost, requeued" if signal_lead_s else "save cut by SIGKILL, TIMEOUT, steps lost")
+
+
 def d_time_limit():
     """A team job reaches its time limit: Slurm warns the batch shell (--signal=B:USR1@60), the wrapper passes it to
     the trainers, they save and exit 75, Slurm requeues the job with the same id, and it resumes at the saved step
@@ -827,8 +870,12 @@ def main():
     if a.smoke:      # millermuttu's 90-second test.sh idea, on this cluster
         plan = [("accounts", d_accounts), ("limits", d_limits), ("health_fakes", d_health_fakes),
                 ("preemption", d_preemption), ("kill_1", d_kill(1))]
+    # Lab 5 time-cap drills: they run the main-run script themselves, so only on their own (--only), never next
+    # to the main run of the full plan.
+    extra = [("mainrun_time_cap_signal", lambda: d_mainrun_time_cap(120)),
+             ("mainrun_time_cap_nosignal", lambda: d_mainrun_time_cap(None))]
     if a.only:
-        plan = [(n, f) for n, f in plan if n in a.only]
+        plan = [(n, f) for n, f in plan + extra if n in a.only]
     for name, fn in plan:
         log(f"--- drill: {name}")
         run_drill(name, fn)
