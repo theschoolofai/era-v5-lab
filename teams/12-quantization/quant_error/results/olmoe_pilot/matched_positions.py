@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pilot script (R17), not core code: do the twin forward (tokens.csv) and llama.cpp (kl.csv) agree when they look at
+"""Pilot script, not core code: do the twin forward (tokens.csv) and llama.cpp (kl.csv) agree when they look at
 the same positions?
 
 For each held-out slice it builds llama-perplexity's own sequences (BOS first when the reference GGUF has

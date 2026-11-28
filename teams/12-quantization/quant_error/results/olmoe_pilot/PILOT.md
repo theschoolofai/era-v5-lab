@@ -1,6 +1,34 @@
 # OLMoE pilot: where does the quantization error come from? (28 Nov 2026)
 
-First real run of `quant_error.py all` (Tasks 1-6) on `allenai/OLMoE-1B-7B-0924` @ `6d84c48581ec` (7 B total, 16 layers, 64 experts, top-8, untied head, vocabulary 50,304). Apple M6, 32 GB, llama.cpp `b12359 (b1b770d)` on Metal, PyTorch 2.15.0 on MPS (`summary.json`). The reference is the bf16 GGUF from the same converter and build. No importance matrix was used for any file. One model, one run; every number below is read from the file named in its table. The two figures are drawn from `kl.csv` and `layers.csv` by [`figures/make_figures.py`](figures/make_figures.py), which writes every number it plots to [`figures/values.json`](figures/values.json).
+First real run of `quant_error.py all` ([the tool](../../README.md)) on `allenai/OLMoE-1B-7B-0924` @ `6d84c48581ec` (7 B total, 16 layers, 64 experts, top-8, untied head, vocabulary 50,304). Apple M6, 32 GB, llama.cpp `b12359 (b1b770d)` on Metal, PyTorch 2.15.0 on MPS (`summary.json`). The reference is the bf16 GGUF from the same converter and build. No importance matrix was used for any file. One model, one run; every number below is read from the file named in its table. The two figures are drawn from `kl.csv` and `layers.csv` by [`figures/make_figures.py`](figures/make_figures.py), which writes every number it plots to [`figures/values.json`](figures/values.json).
+
+## How this pilot relates to the task 1 parts study
+
+G12 design task 1 asks which parts of a quantized model stay at higher precision, and why. The parts study
+([`quantize/parts/`](../../../quantize/parts/README.md), [parts study PR]) answers it, one part at a time. This pilot
+is an independent second setup on the same model: another llama.cpp build, other text and context, and another
+Q4_K_M baseline. On the one comparison both make, they agree.
+
+| | Parts study (quoted from its README) | This pilot |
+|---|---|---|
+| llama.cpp | b11669 | b12359 |
+| Text | six packs of the cleaned tokenizer sample (English, Python, Hindi, Bengali, Tamil, Kannada) | `heldout_v1`, 20 slices |
+| Context | 4,096-token chunks, 4 per pack | 512-token chunks, 8 per slice |
+| Q4_K_M baseline | llama.cpp’s default mix, output Q6_K | Team 12’s, output Q8_0 |
+| Experts at Q4_K, everything else Q8_0, against Q4_K_M: mean KLD | 0.0124 against 0.0170 (−27%) | 0.0129 against 0.0173 (−25%) |
+
+What this pilot adds:
+- **Why, at the router.** Under `Q4_K_M` the top-8 expert choice already changes at layer 0 for 37% of tokens,
+  against 5% for the three files with 8-bit embedding and attention (Section 3). This is the twin forward’s
+  `router_agree`, which was not checked against llama.cpp.
+- **Where, per tensor and per layer.** Weight error per tensor (Section 1), hidden-state error and router agreement
+  per layer (Section 3), and error on real activations per module (Section 4).
+- **A check against llama.cpp.** On the same 40,800 positions the twin forward and llama.cpp agree: for `Q4_K_M`,
+  mean KL 0.01733 against 0.01735 and same top-1 93.92% against 94.05% (Section 5).
+
+The parts study changes one part at a time (for example, attention at Q8_0 on top of Team 12’s mix lowers KL by 36%,
+and the embedding at Q8_0 by 6%); this pilot does not, so it cannot say which of the embedding and attention causes the
+layer-0 change.
 
 ## The four files
 
@@ -119,16 +147,16 @@ Per slice (`matched_positions.csv`): the top-1 difference (twin minus llama.cpp)
 
 Read against Section 2: for `Q4_K_M` the twin's own `tokens.csv` KL (0.03216) is 1.9 times its KL on the matched positions (0.01733), and for `Q8_0` 1.2 times (0.000818 against 0.000690).
 
-## 6. Check of the KL path against the team's numbers (`kl_validation.csv`)
+## 6. The llama.cpp KL step against the team's numbers (`kl_validation.csv`)
 
-`quality/kl_eval.py --formats Q8_0,Q4_K_M --chunks 64` on WikiText-2 (64 chunks of 512, 16,384 tokens), b12359, Metal, against the existing `quality/kl.csv` rows (b11669, Apple M5).
+The tool's llama.cpp KL step reuses `quality/kl_eval.py`. That script on its own, `--formats Q8_0,Q4_K_M --chunks 64` on WikiText-2 (64 chunks of 512, 16,384 tokens), b12359, Metal, against the existing `quality/kl.csv` rows (b11669, Apple M5).
 
 | Format | `kld_mean` now (`kl_validation.csv`) | `kld_mean` team (`quality/kl.csv`) | Difference | Same top-p now / team |
 |---|---|---|---|---|
 | `Q8_0` | 0.001258 | 0.001275 | -1.3% | 98.303 / 98.321 |
 | `Q4_K_M` | 0.023227 | 0.023286 | -0.3% | 92.23 / 92.083 |
 
-Both are inside the ±15% tolerance.
+Both are within 1.3% of the team's rows, on a newer llama.cpp build (b12359 against b11669) and another Mac.
 
 ## 7. Cost on this Mac (`summary.json`, `/usr/bin/time -l`)
 
@@ -145,7 +173,7 @@ Output of the run: 2.7 MB in total (`tensors.csv` 1.6 MB, `linears.csv` 1.1 MB, 
 
 ## Findings
 
-1. **A 4-bit embedding and attention already disturb the router at layer 0.** `Q4_K_M` puts 7.2% weight error on `token_embd` and 6.6% on attention (Section 1); `experts-Q4_K` keeps both at 0.55%. At layer 0, where the router's input depends only on the embedding and layer-0 attention, 62.7% of tokens keep their top-8 expert set under `Q4_K_M`, against 95.2% under `Q8_0`, `experts-Q4_K` and `MXFP4_MOE` (Section 3). The expert set also changes for 4.8 to 7.4% of tokens per layer under `Q8_0` itself (mean agreement 0.936 over layers), at 0.55% weight error. Against that, `experts-Q4_K` has 25% lower llama.cpp KLD than `Q4_K_M` (0.01293 against 0.01735, lower on 20 of 20 slices) in a 100 MB smaller file, although its `down` experts are all Q4_K (7.18%) where `Q4_K_M` has Q6_K on half of them (4.49%). The two recipes differ in three ways (embedding, attention, `ffn_down`), so the comparison does not separate them, and the link from router agreement to KLD was not tested: `MXFP4_MOE`, with 8-bit embedding and attention, has lower mean router agreement over the 16 layers than `Q4_K_M` (0.639 against 0.666), so expert error also disturbs routing. `router_agree` is an exact top-8 set match, so a swap at rank 8 and 9 counts as a change.
+1. **A 4-bit embedding and (mostly 4-bit) attention already disturb the router at layer 0.** `Q4_K_M` puts 7.2% weight error on `token_embd` and 6.6% on attention (Section 1); `experts-Q4_K` keeps both at 0.55%. At layer 0, where the router's input depends only on the embedding and layer-0 attention, 62.7% of tokens keep their top-8 expert set under `Q4_K_M`, against 95.2% under `Q8_0`, `experts-Q4_K` and `MXFP4_MOE` (Section 3). The expert set also changes for 4.8 to 7.4% of tokens per layer under `Q8_0` itself (mean agreement 0.936 over layers), at 0.55% weight error. Against that, `experts-Q4_K` has 25% lower llama.cpp KLD than `Q4_K_M` (0.01293 against 0.01735, lower on 20 of 20 slices) in a 100 MB smaller file, although its `down` experts are all Q4_K (7.18%) where `Q4_K_M` has Q6_K on half of them (4.49%). The two recipes differ in three ways (embedding, attention, `ffn_down`), so the comparison does not separate them, and the link from router agreement to KLD was not tested: `MXFP4_MOE`, with 8-bit embedding and attention, has lower mean router agreement over the 16 layers than `Q4_K_M` (0.639 against 0.666), so expert error also disturbs routing. `router_agree` is an exact top-8 set match, so a swap at rank 8 and 9 counts as a change.
 
 2. **`MXFP4_MOE` is the smallest file and the largest error here.** Its experts sit at 11.5% weight error, against 7.2% for Q4_K, and its mean llama.cpp KLD is 0.03091, about 1.8 times `Q4_K_M` and 2.4 times `experts-Q4_K` (Section 2); it is above both on 20 of 20 slices in `kl.csv`. Its layer-3 hidden error is 0.242, against 0.039 for `experts-Q4_K` (Section 3). Code slices have the lowest error for every format and math the highest for `Q4_K_M` and `experts-Q4_K`; Indic slices (mean of 11) against English (one slice) are 0.02030 against 0.01999 for `Q4_K_M`, 0.01564 against 0.01462 for `experts-Q4_K` and 0.03889 against 0.02979 for `MXFP4_MOE`; these are per-token numbers and the scripts are not like-for-like (see Limits), so no ranking of languages is drawn from them.
 
@@ -162,3 +190,4 @@ Output of the run: 2.7 MB in total (`tensors.csv` 1.6 MB, `linears.csv` 1.1 MB, 
 - `router_agree`, `hidden_rel_err` and `act_rel_err` are internal to the twin forward and were never checked against llama.cpp: the matched-positions check (Section 5) compared the output logits only. Finding 1 rests on `router_agree`.
 - Held-out text only: the first 1,024 tokens of each slice in the twin forward, and 8 chunks of 512 (4,096 tokens, 2,040 of them scored) per slice in llama.cpp.
 - `MXFP4_MOE` here is plain post-training quantization of the bf16 model by `llama-quantize`, without an importance matrix; OLMoE was not trained for MXFP4.
+- Mac only (MPS and Metal); not run on CUDA.
