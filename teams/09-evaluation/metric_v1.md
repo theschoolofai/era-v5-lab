@@ -7,8 +7,8 @@ segmentation per text, and list the downstream tasks beside it, including code a
 
 All numbers below come from [`harness_lab/tokenizer_units.py`](harness_lab/tokenizer_units.py) on Team 5's
 `heldout_v1` (1,059 documents, 15 slices), output in [`results/metric_v1/`](results/metric_v1/). They match dry run 2
-exactly: p1536 gives 549,042 tokens and 3,775,551 UTF-8 bytes, and every slice's byte count equals the run's
-`val/slices/<slice>/utf8_bytes` at step 1,221 (#869).
+exactly: p1536 gives 549,042 tokens and 3,775,551 UTF-8 bytes, and every slice's token and byte counts equal the
+run's `val/slices/<slice>/scored_tokens` and `utf8_bytes` at step 1,221 (#869).
 
 ## 1. Definition
 
@@ -29,32 +29,37 @@ bpb(S) = sum over scored tokens in S of  -log2 p(token | context)   /   sum over
 
 ## 2. One fixed segmentation per text
 
-**Finding.** Today, `DocumentWindows` cuts a document every `seq_len` tokens, and each later window starts with only
-the one preceding token as context. Where the cuts fall depends on the tokenizer. On `heldout_v1` at 2,048 tokens:
+**When it matters.** With one tokenizer, today's token windows already cut each text at the same places every time, so
+the dry run trend and task 2's reference check (TSAI's 2.0561 on `heldout_v1`) are unaffected and keep token windows.
+The rule below is for comparing two tokenizers or two unit lists.
 
-| | p1536 | C3 |
-|---|---:|---:|
-| Tokens | 549,042 | 579,522 |
-| Context resets (window starts after the first) | 66 | 77 |
-| Slices where the count differs | | as 6 / 7, bn 6 / 7, kn 3 / 4, ml 2 / 3, mr 3 / 4, or 1 / 2, pa 7 / 10, te 8 / 10 |
+**Finding.** `DocumentWindows` cuts a document every `seq_len` tokens, and each later window starts with only the one
+preceding token as context. Where the cuts fall depends on the tokenizer. On `heldout_v1` at 2,048 tokens, p1536
+(549,042 tokens) has 66 context resets and C3 (579,522 tokens) has 77. They differ in 8 slices: as 6 / 7, bn 6 / 7,
+kn 3 / 4, ml 2 / 3, mr 3 / 4, or 1 / 2, pa 7 / 10, te 8 / 10. So the tokenizer with fewer tokens also gets more
+context per scored token, and part of its bpb gain is context, not the tokenizer. The effect is small here, but it grows
+with longer documents and shorter windows, and it favours the tokenizer with more bytes per token.
 
-So a tokenizer that uses fewer tokens also gets more context per scored token. Part of its bpb gain is then context,
-not the tokenizer. The effect is small on `heldout_v1` (66 against 77 resets in about 0.55M tokens), but it grows with
-longer documents and shorter windows, and it always favours the tokenizer with more bytes per token.
+**Rule (proposed).** Cut each text once into the longest pieces that fit the window for **every** tokenizer being
+compared, each ending at the last newline (else space, else character boundary) that fits. Store the cuts as byte
+offsets of the stored text in a segmentation file with its sha256, and score every tokenizer on those pieces, each
+with BOS, like a document. A later tokenizer must fit the same pieces; if one does not, the scorer stops with an error
+and the file is rebuilt for all tokenizers. It never re-windows silently.
 
-**Rule.** Cut each text into segments once, by bytes, on the stored text, and store the cut offsets in a segmentation
-file with its sha256. Every tokenizer is then scored on the same byte segments.
+Measured on `heldout_v1` (`fitted_segments` in the script):
 
-- A segment holds at most **4,096 UTF-8 bytes**. It ends at the last newline before that limit, else the last space,
-  else the last character boundary. A text of 4,096 bytes or fewer is one segment.
-- Each segment is scored on its own, with BOS, like a document.
-- 4,096 bytes fit in a 2,048-token window for any tokenizer with at least 2 bytes per token. The lowest slice average
-  here is 3.63 (math, both tokenizers). If a segment still exceeds the window for some tokenizer, the scorer stops with
-  an error. It never re-windows silently.
-- Cost: context is cut at the same byte offsets for every tokenizer, so absolute bpb rises a little against today's
-  token windows. Compare only scores with the same segmentation sha256. Today's numbers stay labelled "token windows".
-- The quick profile of the mini-benchmark (#929) already follows this rule: it uses fixed prefixes of at most 1,024
-  bytes.
+| Segmentation | Pieces, p1536 / C3 (1,059 documents) | Context resets, p1536 / C3 | Same cuts for both |
+|---|---:|---:|---|
+| Token windows of 2,048 (today) | 1,125 / 1,136 | 66 / 77 | no |
+| Fitted to both tokenizers (proposed) | 1,138 / 1,138 | 79 / 79 | yes |
+| Fixed 4,096-byte pieces | 1,709 / 1,709 | 650 / 650 | yes |
+| Fixed 5,632-byte pieces (largest size tried with no piece over 2,048 tokens) | 1,464 / 1,464 | 405 / 405 | yes |
+
+A fixed byte size is rejected: dense text (math, 3.63 bytes per token) sets the size, so long Indic documents are cut
+far more often than needed, with 5 to 8 times the resets of the fitted rule. The fitted rule gives both tokenizers the
+same cuts at a cost of 2 resets more than C3's own windows. Compare only scores with the same segmentation sha256.
+The quick profile of the mini-benchmark (#929) already uses fixed prefixes of at most 1,024 bytes, so it needs no
+change.
 
 ## 3. Bytes: as stored, not normalized, not decoded from shards
 
@@ -119,8 +124,8 @@ scored so that its own unit does not depend on the tokenizer.
 
 ## 7. Open points
 
-- **Segment size.** 4,096 bytes is a proposal. Once the step 1,221 weights are shared, score `heldout_v1` with token
-  windows and with byte segments and report the difference per slice.
+- **Effect on the score.** Once the step 1,221 weights are shared, score `heldout_v1` with token windows and with the
+  fitted pieces, and report the difference per slice (expected small: 79 against 66 resets).
 - **Who builds the segmentation file.** Proposal: Team 9 builds it once per evaluation file and records its sha256 in
   that file's manifest.
 - **Validation shards.** Team 1's byte-count field (section 3).

@@ -1,5 +1,5 @@
-p1536: 1059 docs, 3775551 raw bytes, 3762753 normalized, 549042 tokens, 66 context resets, 0 round-trip failures
-C3: 1059 docs, 3775551 raw bytes, 3762753 normalized, 579522 tokens, 77 context resets, 0 round-trip failures
+p1536: 1059 docs, 3775551 raw bytes, 3762753 normalized, 549042 tokens, 66 context resets, 0 round-trip failures; 1709 byte segments, largest 1471 tokens, 0 over the window; fitted segments 1138 (79 resets)
+C3: 1059 docs, 3775551 raw bytes, 3762753 normalized, 579522 tokens, 77 context resets, 0 round-trip failures; 1709 byte segments, largest 1470 tokens, 0 over the window; fitted segments 1138 (79 resets)
 slice   docs  raw bytes  norm Δ p1536 B/tok    C3 B/tok p1536 resets    C3 resets
 as        20     253230   -3948       8.377       7.767            6            7
 bn        27     265042   -5739       8.744       7.989            6            7
