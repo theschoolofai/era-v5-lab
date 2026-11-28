@@ -56,9 +56,35 @@ python teams/05-architecture/harness/train_week2.py --config teams/05-architectu
 | aux_loss (A5) | 0 | 3.1902 | 10.476, 10.613 | 95, 0, 0, 0, 1, 0 | 0.001 |
 | zero_guard (A6) | 0 | 3.1902 | 10.476, 10.614 | 95, 0, 0, 0, 1, 0 | 0.001 |
 | guard_row_mask (A7) | 0 | 3.1902 | 10.476, 10.614 | 95, 0, 0, 0, 1, 0 | 0.001 |
+| gamma_mid (A2b) | 0 | 3.1902 | 10.476, 10.613 | 94, 0, 0, 0, 1, 0 | 0.003 |
+| aux_loss_strong (A5b) | 0 | 3.1902 | 10.476, 10.614 | 96, 0, 0, 0, 1, 0 | 0.001 |
+| sample_window_bias (A4b) | 0 | 3.1902 | 10.438, 10.567 | 22, 8, 2, 4, 14, 20 | 0.001 |
 
 Every arm runs; the step-0 score is the same for all (same model and data); A2 and A3 move the bias faster (90 instead of 95 at step 2); A4 spreads the choices at once. Two CPU steps cannot show the rest; that is what the runs are for.
 
-## 3. Tests
+## 3. Colab T4 screen of the early-collapse arms (29 Nov)
+
+Before asking for the team GPU, the arms that target the early collapse were screened on a Colab T4: dry run 2's model, recipe, batch and 1,221-step schedule in fp32, expert load every 5 steps, no held-out evaluation after step 0. An arm fails at the first logged step from step 25 with any layer's busiest expert above 31.25% (TSAI's 5 times line) and is stopped there. Commit 25d0e51b, seed 1234, notebook `t3_screen_a2_a4_a5.ipynb` (Drive checkpoints, resumable).
+
+```
+T3 SCREEN RESULT
+GPU: Tesla T4 | commit 25d0e51b
+rule: fail at the first logged step from 25 with any layer busiest > 31.25%; expert load every 5 steps
+A2 (gamma_high): FAIL at step 25: busiest 47.3% in layer 0 | attempts 1 | val/bpb step 0 2.160660032078147
+A4 (sample_window): FAIL at step 75: busiest 31.4% in layer 5 | attempts 1 | val/bpb step 0 2.160660032078147
+A5 (aux_loss): FAIL at step 25: busiest 47.5% in layer 1 | attempts 1 | val/bpb step 0 2.160660032078147
+```
+
+Per layer, from the runs' `metrics.jsonl`:
+
+| Arm | Layers above 31.25% | What the per-layer data shows |
+|---|---|---|
+| A2 (bias step 0.01) | 5 of 8 at step 5; 6 of 8 at step 25 | The busiest expert changes at almost every logged step (layer 0: expert 9, 4, 14, 10, 4): the larger step overshoots and moves the collapse from expert to expert |
+| A4 (sampling, 200 steps) | 0 of 8 to step 70; 1 of 8 at step 75 | Every layer at 10% to 17% for 40 steps, no expert at zero; then layer 5 alone climbs (expert 11: 21%, 26%, 28%, 31.4%) while sampling ignores the bias |
+| A5 (loss weight 0.001) | 8 of 8 to step 20; 5 of 8 at step 25 | Like dry run 2's start (44% to 50% in every layer); three layers come down by step 25 (23%, 18%, 29%) |
+
+A1 (bias step 0.0001) is not run: at a tenth of dry run 2's step, the bias cannot fix in 1,221 steps what dry run 2 fixed by about step 350. A3 is the same as A2 for its first 200 steps, so it fails with A2. Limits: fp32 on a T4, one seed, 25 to 75 steps. Second screen of stronger settings: A5b (loss weight 0.01), A2b (bias step 0.003), A4b (sampling from the probabilities plus the bias), notebook `t3_screen2_a5b_a2b_a4b.ipynb`.
+
+## 4. Tests
 
 `python -m pytest teams/05-architecture/tests -q`: all pass, including `tests/test_router_balance_arms.py` (18 tests: each switch does what it says, is off by default, and Udit's two row-mask checks) and `tests/test_run_report.py` (17, including the expert-load charts, peak memory and idle time). The exact count is in the PR's latest commit message.

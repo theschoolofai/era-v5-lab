@@ -194,6 +194,7 @@ def load_runtime(arm_path, runtime_path=None):
             "bias_gamma_start_steps",
             "route_sample_steps",
             "aux_loss_weight",
+            "route_sample_bias",
         ],
         "lead model.moe",
     )
@@ -415,6 +416,14 @@ def validate(c):
     aux = e.get("aux_loss_weight")
     if aux is not None and (not number(aux) or aux < 0):
         errors.append("model.moe.aux_loss_weight must be 0 or a positive number")
+    rsb = e.get("route_sample_bias")
+    if rsb is not None:
+        if type(rsb) is not bool:
+            errors.append("model.moe.route_sample_bias must be true or false")
+        elif rsb and (not number(gamma) or gamma <= 0):
+            errors.append("model.moe.route_sample_bias needs balancing on (bias_gamma above 0)")
+        elif rsb and not rs:
+            errors.append("model.moe.route_sample_bias needs a sampling window (route_sample_steps of at least 1)")
     if m.get("activation") != "swiglu" or m.get("position") != "rope":
         errors.append("Week2 requires SwiGLU/RoPE")
     if not number(m.get("rope_theta")) or m["rope_theta"] <= 0:

@@ -221,6 +221,9 @@ class MoE(nn.Module):
         # A4 sampling window: pick the top-k experts by sampling from the router probabilities (no replacement)
         # instead of taking the top k, while the trainer says so (moe.route_sample_steps; start_route_sampling).
         self.route_sample = False
+        # A4b (second screen, 29 Nov): in the sampling window, sample from the router probabilities plus the bias,
+        # so the bias can push back on a layer that drifts during the window (moe.route_sample_bias).
+        self.route_sample_bias = bool(cfg.get("route_sample_bias") or False)
         # A5 small auxiliary loss (moe.aux_loss_weight): the Switch Transformer load-balancing term, kept per forward.
         self.aux_weight = float(cfg.get("aux_loss_weight") or 0.0)
         self.aux_loss = None
@@ -254,7 +257,11 @@ class MoE(nn.Module):
         if self.route_sample and self.training:
             # A4: experts drawn in proportion to the router probabilities, without replacement. The bias is not
             # used for the choice in the window (it keeps updating from the load); gates stay the probabilities.
-            choice = torch.multinomial(scores.detach(), self.topk, replacement=False)
+            weights = scores.detach()
+            if self.route_sample_bias:
+                # Probability plus bias, as the choice outside the window; a negative sum gets a tiny weight.
+                weights = (weights + self.router_bias.to(weights.dtype)).clamp_min(1e-9)
+            choice = torch.multinomial(weights, self.topk, replacement=False)
             gates = scores.gather(-1, choice)
         elif self.balance_gamma != 0.0:
             # Bias changes which experts are chosen. The gate values stay the unbiased softmax.

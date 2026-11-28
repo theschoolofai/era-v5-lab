@@ -1,0 +1,8 @@
+# T3 router balance (#892), arm A5b (second screen, 29 Nov): the Switch Transformer load-balancing loss at 0.01,
+# Fedus et al. 2021's value. At 0.001 it barely changed the first 20 steps (first screen, R14).
+inherit: ../dryrun2.yaml
+intended:
+  arm: router-balance-A5b
+model:
+  moe:
+    aux_loss_weight: 0.01

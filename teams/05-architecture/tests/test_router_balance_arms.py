@@ -105,6 +105,36 @@ class SamplingWindowTests(unittest.TestCase):
         self.assertTrue(lm.route_sampling_active(650))
         self.assertFalse(lm.route_sampling_active(651))
 
+    def test_sampling_with_bias_follows_the_bias(self):
+        # A4b: a large negative bias on expert 0 keeps it almost never sampled; without the switch it is sampled.
+        x, v = tokens(512)
+        counts = {}
+        for with_bias in (False, True):
+            m = moe(route_sample_steps=200, route_sample_bias=with_bias)
+            m.router_bias[0] = -1.0
+            m.expert_load = torch.zeros(E, dtype=torch.long)
+            m.route_sample = True
+            torch.manual_seed(5)
+            out = m(x, v)
+            self.assertTrue(torch.isfinite(out).all())
+            self.assertEqual(int(m.expert_load.sum()), 2 * 512)
+            counts[with_bias] = int(m.expert_load[0])
+        self.assertGreater(counts[False], 0)
+        self.assertLess(counts[True], counts[False] // 10)
+
+    def test_sampling_with_bias_keeps_gates_as_probabilities(self):
+        m = moe(route_sample_steps=200, route_sample_bias=True)
+        m.router_bias.uniform_(-0.2, 0.2)
+        x, v = tokens(64)
+        m.route_sample = True
+        torch.manual_seed(1)
+        m(x, v)                                          # runs with mixed-sign bias, no invalid weights
+        m.route_sample = False
+        m.eval()
+        a = m(x, v)
+        m.route_sample_bias = False
+        self.assertTrue(torch.equal(a, m(x, v)))         # outside training the switch changes nothing
+
 
 class AuxLossTests(unittest.TestCase):
     def test_even_routing_gives_one(self):
@@ -228,6 +258,10 @@ class ArmFileTests(unittest.TestCase):
             "aux_loss": ("model", "moe", "aux_loss_weight", 0.001),
             "zero_guard": ("optim", None, "skip_zero_grad", True),
             "guard_row_mask": ("optim", None, "mask_idle_rows", True),
+            # Second screen (29 Nov): A2b, A5b, A4b.
+            "gamma_mid": ("model", "moe", "bias_gamma", 0.003),
+            "aux_loss_strong": ("model", "moe", "aux_loss_weight", 0.01),
+            "sample_window_bias": ("model", "moe", "route_sample_bias", True),
         }
         self.assertEqual(validate(base), [])
         for arm, (part, sub, key, value) in changes.items():
@@ -248,6 +282,12 @@ class ArmFileTests(unittest.TestCase):
         c = load_runtime(ARMS / "base.yaml")
         c["optim"]["mask_idle_rows"] = "yes"
         self.assertTrue(any("mask_idle_rows" in e for e in validate(c)))
+        c = load_runtime(ARMS / "base.yaml")
+        c["model"]["moe"]["route_sample_bias"] = True        # without a sampling window
+        self.assertTrue(any("route_sample_bias" in e for e in validate(c)))
+        c = load_runtime(ARMS / "base.yaml")
+        c["model"]["moe"]["route_sample_bias"] = "yes"
+        self.assertTrue(any("route_sample_bias" in e for e in validate(c)))
 
 
 if __name__ == "__main__":

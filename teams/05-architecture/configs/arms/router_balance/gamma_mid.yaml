@@ -1,0 +1,8 @@
+# T3 router balance (#892), arm A2b (second screen, 29 Nov): bias step 0.003, between dry run 2's 0.001 and A2's
+# 0.01. At 0.01 the busiest expert changed at almost every logged step (it overshoots; first screen, R14).
+inherit: ../dryrun2.yaml
+intended:
+  arm: router-balance-A2b
+model:
+  moe:
+    bias_gamma: 0.003

@@ -1,0 +1,10 @@
+# T3 router balance (#892), arm A4b (second screen, 29 Nov): A4's sampling window for the first 200 steps, but
+# sampling from the router probabilities plus the bias, so the bias can push back during the window. A4 alone kept
+# every layer at 10-17% for 40 steps, then one layer drifted to 31.4% by step 75 (first screen, R14).
+inherit: ../dryrun2.yaml
+intended:
+  arm: router-balance-A4b
+model:
+  moe:
+    route_sample_steps: 200
+    route_sample_bias: true
