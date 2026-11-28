@@ -1,0 +1,75 @@
+{
+ "started": "2026-11-28T13:55:44",
+ "platform": "kaggle",
+ "output_dir": "/kaggle/working/eval_mini_out",
+ "run_by": "SomaKorada07",
+ "notebook_version": "1edb192ad957",
+ "settings": {
+  "LIMIT": null,
+  "FORMATS": [
+   "bf16",
+   "Q8_0",
+   "Q6_K",
+   "Q5_K_M",
+   "Q4_K_M"
+  ],
+  "BASE": "bf16",
+  "MODEL": "Qwen/Qwen2.5-Coder-1.5B",
+  "REVISION": "df3ce67c0e24480f20468b6ef2894622d69eb73b",
+  "LLAMA_TAG": "b11669",
+  "LLAMA_CPP_PYTHON": "0.3.36",
+  "BF16_FALLBACK_GPU_LAYERS": 12
+ },
+ "python": "3.13.16",
+ "formats": {
+  "bf16": {
+   "ref_gpu_layers": -1,
+   "gguf_bytes": 3093668832,
+   "wall_clock_s": 1987,
+   "finished": "2026-11-28T15:11:50"
+  },
+  "Q8_0": {
+   "ref_gpu_layers": -1,
+   "gguf_bytes": 1646572512,
+   "wall_clock_s": 1553,
+   "finished": "2026-11-28T15:37:44"
+  },
+  "Q6_K": {
+   "ref_gpu_layers": -1,
+   "gguf_bytes": 1329259488,
+   "wall_clock_s": 1543,
+   "finished": "2026-11-28T16:03:26"
+  },
+  "Q5_K_M": {
+   "ref_gpu_layers": -1,
+   "gguf_bytes": 1181570016,
+   "wall_clock_s": 1655,
+   "finished": "2026-11-28T16:31:02"
+  },
+  "Q4_K_M": {
+   "ref_gpu_layers": -1,
+   "gguf_bytes": 1042568160,
+   "wall_clock_s": 1630,
+   "finished": "2026-11-28T16:58:12"
+  }
+ },
+ "gpu": "Tesla T4, 15360 MiB, 580.178.04\nTesla T4, 15360 MiB, 580.178.04",
+ "cuda_arch": [
+  "75"
+ ],
+ "packages": {
+  "python": "3.13.16",
+  "llama_cpp_python": "0.3.36",
+  "lm_eval": "0.4.13",
+  "datasets": "5.1.0",
+  "gpu_offload": true,
+  "torch_visible": false,
+  "transformers_visible": false
+ },
+ "bf16_gguf_bytes": 3093668832,
+ "torch_venv": {
+  "torch": "2.11.0+cu126",
+  "cuda": true
+ },
+ "finished": "2026-11-28T17:10:08"
+}
