@@ -2,15 +2,17 @@
 
 Name: Shivanshu Thapliyal. GitHub: shivman. Team: 05 Architecture.
 
-The production scale is the one TSAI sets. This note does not name one. `config_v1.yaml` is not edited. `data.seq_len` stays empty. The finished dry run is not edited.
+The production scale is the one TSAI sets. This note does not name one. `config_v1.yaml` is not edited. `data.seq_len` stays empty. The finished dry run is not edited. The block on main is unchanged.
 
 Measured numbers are the ones in `residual_stream_result.json`, produced by the command below. Everything else in this note is not measured.
 
-## Design task 5. Residual stream. Measured on a tiny net
+## Design task 5. Residual stream. Measured on a small net
 
 The block on main is one stream. Pre-norm, then the sublayer is added back onto that same stream (`teams/05-architecture/harness/week2/model.py`, `Block.forward`).
 
-The test arm keeps two streams and no new parameters. Attention writes one stream. The MoE writes the other. A fixed mean mixes them before the next layer and before the head. The arm is only in `residual_stream.py`. It is not in the trainer.
+The other arm is only in `residual_stream.py`. The first block reads the embedding twice. Attention starts one stream and the MoE starts the other. Each later block mixes the two streams with a learned 2 by 2, initialized so the softmax is an equal mix, then writes attention back to the first stream and the MoE back to the second. A last 2 by 2 mixes the two streams into the head. That is 8 mixes, 32 parameters. The one-stream arm has 1,219,648 parameters and does not include them.
+
+The sequences follow one rule: each later token is the sum of the two tokens before it, modulo 64. The run draws 128 distinct train sequences and 32 further distinct sequences. Those 32 are never used in an update. The score is cross-entropy on them. It is not held-out bits per byte on heldout_v1.
 
 Command, from the repository root:
 
@@ -24,20 +26,24 @@ Checks:
 python -m pytest teams/05-architecture/lab5/design_5_6/test_residual_stream.py -q
 ```
 
-The run that wrote the result file: torch 2.13.0, Python 3.13.18, macOS. Width 32, 4 layers, 203,552 parameters. Batch 4, sequence 16, 20 steps, seeds 1234 and 1235. Synthetic tokens. Cross-entropy, not held-out bits per byte. Smoke step sizes, not a learning-rate recommendation: Muon 0.02, AdamW 0.001, weight decay 0. Every 2D parameter is on Muon. The 1D parameters are on AdamW.
+The run that wrote the result file: torch 2.13.0, Python 3.13.18, macOS-26.6.2-arm64. Width 64, 8 layers, vocabulary 64. Batch 8, sequence 32, 240 steps, seeds 1234, 1235, and 1236. Rates are the dry-run rates, not retuned for this net: Muon 0.006, AdamW 0.001, weight decay 0. Every 2D parameter is on Muon, including the 2 by 2 mixes. The 1D parameters are on AdamW.
 
-| Seed | Arm | First loss | Last loss | Synthetic tokens/s |
-|---|---|---|---|---|
-| 1234 | one stream | 4.2947 | 0.6803 | 1721.32 |
-| 1234 | two streams, fixed mean | 4.2849 | 1.3136 | 2143.10 |
-| 1235 | one stream | 4.2926 | 0.7553 | 2162.92 |
-| 1235 | two streams, fixed mean | 4.2993 | 1.2402 | 1978.52 |
+| Seed | Arm | Train start | Train end | Held-out start | Held-out end | Synthetic tokens/s |
+|---|---|---|---|---|---|---|
+| 1234 | one stream | 4.3123 | 0.5388 | 4.3417 | 2.7698 | 1261.23 |
+| 1234 | mixed streams | 4.3126 | 0.4786 | 4.3489 | 2.3589 | 1266.97 |
+| 1235 | one stream | 4.3214 | 0.5732 | 4.3224 | 2.8484 | 1257.87 |
+| 1235 | mixed streams | 4.3200 | 0.5618 | 4.3202 | 2.5226 | 1279.98 |
+| 1236 | one stream | 4.3238 | 0.5010 | 4.3733 | 2.8690 | 1307.06 |
+| 1236 | mixed streams | 4.3275 | 0.4927 | 4.3740 | 2.5122 | 1286.58 |
 
-After the first backward, both arms, both seeds: no parameter had a missing gradient, and no parameter had an all-zero gradient.
+After the first backward, both arms, all three seeds: no parameter had a missing gradient, and no parameter had an all-zero gradient. The mix parameters are in that list.
 
-The one-stream last loss is lower on both seeds. The gap is larger than the spread between the two seeds of the same arm. That is not a reason to change the trainer. The tokens are synthetic, the net is 4 layers wide 32, the step size is a smoke size, and the score is not held-out bits per byte. A learned mix, a deep stack, and the real data mix were not run.
+The process peak for the whole script is 327,483,392 bytes (`peak_rss_bytes` in the result file). On this Mac, `ru_maxrss` is bytes. It covers both arms and all three seeds.
 
-The trainer stays the one stream.
+The mixed arm's held-out cross-entropy is lower on all three seeds. The smallest gap is 0.3258, on seed 1235. The spread inside the mixed arm is 0.1637, and the spread inside the one-stream arm is 0.0992. The gap is larger than either spread. Tokens per second stay in the same band. The mixes leave the equal start. Their values are in the result file.
+
+This net is 1,219,648 parameters, width 64, 8 layers. The tokens are a two-token sum. The score is cross-entropy on those held-out rows. A result at this size does not choose the stream for the run TSAI starts.
 
 ## Design task 5b. DroPE. Not measured
 

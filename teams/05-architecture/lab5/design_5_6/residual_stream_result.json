@@ -1,72 +1,364 @@
 {
-  "what": "design task 5 small test",
+  "what": "design task 5, one stream against a learned mix of two streams",
   "one_stream": "teams/05-architecture/harness/week2/model.py Block.forward",
-  "two_stream": "attention stream and MoE stream, fixed mean, no new parameters, this file only",
-  "tokens": "synthetic. Not held-out bits per byte.",
-  "depth": 4,
-  "width": 32,
-  "steps": 20,
-  "batch": 4,
-  "seq": 16,
+  "mixed_streams": "first block splits the embedding, later blocks use a learned 2 by 2 mix, this file only",
+  "score": "cross-entropy on held-out sequences from the same two-token sum rule. Not heldout_v1 bits per byte.",
+  "depth": 8,
+  "width": 64,
+  "steps": 240,
+  "batch": 8,
+  "seq": 32,
+  "train_sequences": 128,
+  "held_out_sequences": 32,
   "seeds": [
     1234,
-    1235
+    1235,
+    1236
   ],
-  "smoke_muon_lr": 0.02,
-  "smoke_adamw_lr": 0.001,
-  "rates_are": "smoke step sizes, not a learning-rate recommendation",
-  "parameters": 203552,
+  "muon_lr": 0.006,
+  "adamw_lr": 0.001,
+  "rates_are": "dry-run rates, not retuned for this net",
+  "one_stream_parameters": 1219648,
+  "mix_parameters": 32,
+  "what_this_cannot_tell_you": "a 49M to 100M model, the real data mix, and heldout_v1 bits per byte",
   "torch": "2.13.0",
   "python": "3.13.18",
   "platform": "macOS-26.6.2-arm64-arm-64bit-Mach-O",
   "command": "python teams/05-architecture/lab5/design_5_6/residual_stream.py",
-  "what_this_cannot_tell_you": "depth at the real model, scale, and the data mix",
+  "peak_rss_bytes": 327483392,
   "seeds_ran": [
     {
       "seed": 1234,
+      "train_sequences": 128,
+      "held_out_sequences": 32,
       "one_stream": {
-        "loss_first": 4.294658184051514,
-        "loss_last": 0.6803408861160278,
-        "seconds": 0.7508,
-        "synthetic_tokens_per_second": 1704.81,
+        "train_before": 4.312282562255859,
+        "train_after": 0.5387604609131813,
+        "held_out_before": 4.341680884361267,
+        "held_out_after": 2.769836187362671,
+        "seconds": 48.7143,
+        "synthetic_tokens_per_second": 1261.23,
         "grad_coverage_after_first_backward": {
           "grad_none": [],
           "grad_zero": []
         }
       },
-      "two_stream_fixed_mean": {
-        "loss_first": 4.284850120544434,
-        "loss_last": 1.3135775327682495,
-        "seconds": 0.5886,
-        "synthetic_tokens_per_second": 2174.68,
+      "mixed_streams": {
+        "train_before": 4.312565088272095,
+        "train_after": 0.4785988135263324,
+        "held_out_before": 4.34888219833374,
+        "held_out_after": 2.3589325547218323,
+        "seconds": 48.4938,
+        "synthetic_tokens_per_second": 1266.97,
         "grad_coverage_after_first_backward": {
           "grad_none": [],
           "grad_zero": []
         }
-      }
+      },
+      "mix_after_training": [
+        [
+          [
+            0.544,
+            0.456
+          ],
+          [
+            0.7775,
+            0.2225
+          ]
+        ],
+        [
+          [
+            0.4769,
+            0.5231
+          ],
+          [
+            0.7885,
+            0.2115
+          ]
+        ],
+        [
+          [
+            0.4687,
+            0.5313
+          ],
+          [
+            0.7902,
+            0.2098
+          ]
+        ],
+        [
+          [
+            0.4939,
+            0.5061
+          ],
+          [
+            0.7861,
+            0.2139
+          ]
+        ],
+        [
+          [
+            0.5491,
+            0.4509
+          ],
+          [
+            0.7704,
+            0.2296
+          ]
+        ],
+        [
+          [
+            0.5763,
+            0.4237
+          ],
+          [
+            0.6954,
+            0.3046
+          ]
+        ],
+        [
+          [
+            0.5266,
+            0.4734
+          ],
+          [
+            0.5978,
+            0.4022
+          ]
+        ],
+        [
+          [
+            0.3719,
+            0.6281
+          ],
+          [
+            0.3719,
+            0.6281
+          ]
+        ]
+      ]
     },
     {
       "seed": 1235,
+      "train_sequences": 128,
+      "held_out_sequences": 32,
       "one_stream": {
-        "loss_first": 4.292602062225342,
-        "loss_last": 0.7553309202194214,
-        "seconds": 0.6338,
-        "synthetic_tokens_per_second": 2019.57,
+        "train_before": 4.321368396282196,
+        "train_after": 0.5731686148792505,
+        "held_out_before": 4.3224358558654785,
+        "held_out_after": 2.8483619689941406,
+        "seconds": 48.8445,
+        "synthetic_tokens_per_second": 1257.87,
         "grad_coverage_after_first_backward": {
           "grad_none": [],
           "grad_zero": []
         }
       },
-      "two_stream_fixed_mean": {
-        "loss_first": 4.299291133880615,
-        "loss_last": 1.2402493953704834,
-        "seconds": 0.5914,
-        "synthetic_tokens_per_second": 2164.34,
+      "mixed_streams": {
+        "train_before": 4.320001780986786,
+        "train_after": 0.5617652479559183,
+        "held_out_before": 4.3202385902404785,
+        "held_out_after": 2.522554874420166,
+        "seconds": 48.0006,
+        "synthetic_tokens_per_second": 1279.98,
         "grad_coverage_after_first_backward": {
           "grad_none": [],
           "grad_zero": []
         }
-      }
+      },
+      "mix_after_training": [
+        [
+          [
+            0.4886,
+            0.5114
+          ],
+          [
+            0.794,
+            0.206
+          ]
+        ],
+        [
+          [
+            0.4513,
+            0.5487
+          ],
+          [
+            0.7766,
+            0.2234
+          ]
+        ],
+        [
+          [
+            0.5024,
+            0.4976
+          ],
+          [
+            0.7793,
+            0.2207
+          ]
+        ],
+        [
+          [
+            0.5291,
+            0.4709
+          ],
+          [
+            0.7883,
+            0.2117
+          ]
+        ],
+        [
+          [
+            0.5763,
+            0.4237
+          ],
+          [
+            0.7674,
+            0.2326
+          ]
+        ],
+        [
+          [
+            0.5546,
+            0.4454
+          ],
+          [
+            0.6871,
+            0.3129
+          ]
+        ],
+        [
+          [
+            0.5252,
+            0.4748
+          ],
+          [
+            0.5685,
+            0.4315
+          ]
+        ],
+        [
+          [
+            0.3776,
+            0.6224
+          ],
+          [
+            0.3776,
+            0.6224
+          ]
+        ]
+      ]
+    },
+    {
+      "seed": 1236,
+      "train_sequences": 128,
+      "held_out_sequences": 32,
+      "one_stream": {
+        "train_before": 4.323796898126602,
+        "train_after": 0.5010444819927216,
+        "held_out_before": 4.373312592506409,
+        "held_out_after": 2.8690351843833923,
+        "seconds": 47.0062,
+        "synthetic_tokens_per_second": 1307.06,
+        "grad_coverage_after_first_backward": {
+          "grad_none": [],
+          "grad_zero": []
+        }
+      },
+      "mixed_streams": {
+        "train_before": 4.327459782361984,
+        "train_after": 0.4926513861864805,
+        "held_out_before": 4.374012589454651,
+        "held_out_after": 2.512234151363373,
+        "seconds": 47.7545,
+        "synthetic_tokens_per_second": 1286.58,
+        "grad_coverage_after_first_backward": {
+          "grad_none": [],
+          "grad_zero": []
+        }
+      },
+      "mix_after_training": [
+        [
+          [
+            0.4751,
+            0.5249
+          ],
+          [
+            0.7742,
+            0.2258
+          ]
+        ],
+        [
+          [
+            0.4955,
+            0.5045
+          ],
+          [
+            0.7738,
+            0.2262
+          ]
+        ],
+        [
+          [
+            0.535,
+            0.465
+          ],
+          [
+            0.7723,
+            0.2277
+          ]
+        ],
+        [
+          [
+            0.5253,
+            0.4747
+          ],
+          [
+            0.7842,
+            0.2158
+          ]
+        ],
+        [
+          [
+            0.557,
+            0.443
+          ],
+          [
+            0.7495,
+            0.2505
+          ]
+        ],
+        [
+          [
+            0.5835,
+            0.4165
+          ],
+          [
+            0.6886,
+            0.3114
+          ]
+        ],
+        [
+          [
+            0.5563,
+            0.4437
+          ],
+          [
+            0.5488,
+            0.4512
+          ]
+        ],
+        [
+          [
+            0.3776,
+            0.6224
+          ],
+          [
+            0.3776,
+            0.6224
+          ]
+        ]
+      ]
     }
   ]
 }
