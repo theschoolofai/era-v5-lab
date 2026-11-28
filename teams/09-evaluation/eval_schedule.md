@@ -13,6 +13,12 @@ record. TSAI in G9, 11 Nov: "eval_schedule.md becomes its own file in week 3."
 How to read it: **Fact** lines give a source. **Proposal** lines are Team 9's choice, for TSAI to accept or change.
 **Open** lines wait for another team or TSAI; section 14 lists them with owners.
 
+**Lab 5 proposal, 28 Nov:** run `minibench_v1` under its own evaluation label on the separate eval worker. Keep the
+approved Tier A guard and its lag alarm active while the mini-benchmark is measured on the target hardware. Any cadence
+change needs TSAI's approval and matching alarm coverage. Use the same fixed quick profile for Team 10's rollout checks
+and the Team 12 quantized formats. Keep its continuous bpb in the metrics store and percentages in `eval_mini`. Three of
+its tasks wait for TSAI's approval for lab checkpoints. [Mini-benchmark card](results/minibench_v1_card.md)
+
 ## 1. Dates and gates
 
 | Date | Event | What evaluation must show |

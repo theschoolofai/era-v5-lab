@@ -1,0 +1,3 @@
+start 2026-11-28T13:23:13Z bf16 GGUF, quick, cpu
+$ minibench_gguf.py --gguf <seeded, head.unigram=0>/model-bf16.gguf --gguf-sha256 8a771e78... --format bf16 --n-gpu-layers 0 <scorer args> --out parity-gguf-bf16-quick-cpu.json
+exit 0 end 2026-11-28T13:25:32Z
