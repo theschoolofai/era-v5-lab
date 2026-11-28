@@ -2570,6 +2570,374 @@
         }
       ],
       "type": "trend"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 149
+      },
+      "id": 34,
+      "panels": [],
+      "title": "Data composition and position (per batch, metrics_logger/composition.py)",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "description": "Native-script Indic share of each batch's tokens (Team 02: a fixed 8% of every batch; translated and romanised Indic do not count), and its 50-batch rolling mean, which is what the indic_share alarm checks: it pages once when the mean leaves 7% to 9% (alarms.py rule 8). The green band is 7% to 9%. Dry run 2 (dryrun2-1234) trained on one English shard (#869 README), so its share is 0% and the alarm fires at step 50, when the first 50 batches are in.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "axisLabel": "share of batch tokens",
+            "lineWidth": 2,
+            "showPoints": "never",
+            "spanNulls": true,
+            "thresholdsStyle": {
+              "mode": "area"
+            },
+            "axisSoftMin": 0,
+            "axisSoftMax": 0.12
+          },
+          "unit": "percentunit",
+          "decimals": 2,
+          "displayName": "${__field.labels.series}",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 0.07
+              },
+              {
+                "color": "red",
+                "value": 0.09
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "step"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "step"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 150
+      },
+      "id": 35,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "min",
+            "max",
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "xField": "step"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "queryType": "table",
+          "refId": "A",
+          "rawSql": "SELECT step, series, v AS value FROM (SELECT step, concat(run_id, ' per batch') AS series, value AS v FROM metrics_raw WHERE name = 'indic_share' AND run_id IN ($run) AND value IS NOT NULL UNION ALL SELECT step, concat(run_id, ' 50-batch mean (alarm)') AS series, avg(value) OVER (PARTITION BY run_id ORDER BY step ROWS BETWEEN 49 PRECEDING AND CURRENT ROW) AS v FROM metrics_raw WHERE name = 'indic_share' AND run_id IN ($run) AND value IS NOT NULL) ORDER BY step, series"
+        }
+      ],
+      "title": "Native Indic share per batch (indic_share, target 8% +/- 1 point)",
+      "transformations": [
+        {
+          "id": "partitionByValues",
+          "options": {
+            "fields": [
+              "series"
+            ],
+            "naming": {
+              "asLabels": true
+            }
+          }
+        },
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "step",
+            "mode": "outer"
+          }
+        }
+      ],
+      "type": "trend"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "description": "Each lane's share of the batch's tokens (english, code, math, science, indic native, indic_romanised, indic_translated, other; lanes from the pack id, metrics_logger/composition.py). One line per run and lane. The same shares by UTF-8 bytes and words are in lane_share_bytes / lane_share_words when the run logs them.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "axisLabel": "share of batch tokens",
+            "lineWidth": 2,
+            "showPoints": "never",
+            "spanNulls": true,
+            "axisSoftMin": 0,
+            "axisSoftMax": 1
+          },
+          "unit": "percentunit",
+          "decimals": 1,
+          "displayName": "${__field.labels.series}"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "step"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "step"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 150
+      },
+      "id": 36,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "min",
+            "max",
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "xField": "step"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "queryType": "table",
+          "refId": "A",
+          "rawSql": "SELECT step, concat(run_id, ' ', replaceOne(name, 'lane_share_tokens.', '')) AS series, value FROM metrics_raw WHERE name LIKE 'lane_share_tokens.%' AND run_id IN ($run) AND value IS NOT NULL ORDER BY step, series"
+        }
+      ],
+      "title": "Lane shares per batch, by tokens (lane_share_tokens)",
+      "transformations": [
+        {
+          "id": "partitionByValues",
+          "options": {
+            "fields": [
+              "series"
+            ],
+            "naming": {
+              "asLabels": true
+            }
+          }
+        },
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "step",
+            "mode": "outer"
+          }
+        }
+      ],
+      "type": "trend"
+    },
+    {
+      "datasource": {
+        "type": "grafana-clickhouse-datasource",
+        "uid": "${ds}"
+      },
+      "description": "Training bits per byte of each batch (train/ce_loss x train/scored_tokens / (train/utf8_bytes x ln 2), left) next to the data position: tokens the run has trained on so far (data_tokens_seen, right). A loss jump that lines up with a data position points at the data there (a bad shard, a lane change) rather than the optimizer.",
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "axisLabel": "bits per byte",
+            "lineWidth": 1,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "unit": "none",
+          "decimals": 3,
+          "displayName": "${__field.labels.series}"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "step"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "step"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".* tokens seen$"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "tokens seen"
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 159
+      },
+      "id": 37,
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "min",
+            "max",
+            "mean"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        },
+        "xField": "step"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-clickhouse-datasource",
+            "uid": "${ds}"
+          },
+          "editorType": "sql",
+          "format": 1,
+          "queryType": "table",
+          "refId": "A",
+          "rawSql": "SELECT step, series, v AS value FROM (SELECT step, concat(run_id, ' training bits per byte') AS series, sumIf(value, name = 'train/ce_loss') * sumIf(value, name = 'train/scored_tokens') / (sumIf(value, name = 'train/utf8_bytes') * ln(2)) AS v FROM metrics_raw WHERE name IN ('train/ce_loss', 'train/scored_tokens', 'train/utf8_bytes') AND run_id IN ($run) AND value IS NOT NULL GROUP BY run_id, step HAVING countIf(name = 'train/ce_loss') = 1 AND countIf(name = 'train/scored_tokens') = 1 AND countIf(name = 'train/utf8_bytes') = 1 AND sumIf(value, name = 'train/utf8_bytes') > 0 UNION ALL SELECT step, concat(run_id, ' tokens seen') AS series, value AS v FROM metrics_raw WHERE name = 'data_tokens_seen' AND run_id IN ($run) AND value IS NOT NULL) ORDER BY step, series"
+        }
+      ],
+      "title": "Data position next to the loss (data_tokens_seen, training bits per byte)",
+      "transformations": [
+        {
+          "id": "partitionByValues",
+          "options": {
+            "fields": [
+              "series"
+            ],
+            "naming": {
+              "asLabels": true
+            }
+          }
+        },
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "step",
+            "mode": "outer"
+          }
+        }
+      ],
+      "type": "trend"
     }
   ],
   "refresh": "10s",

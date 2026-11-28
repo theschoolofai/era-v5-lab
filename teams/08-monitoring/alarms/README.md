@@ -42,6 +42,7 @@ for step in range(steps):
 | `moe_routing` | `expert_load` | $\text{MaxVio} > 1.0$ or $\text{dead\_experts} > 0$ for `moe_patience` consecutive steps (default 1,000) | `warn` | Accepts a single list of expert load fractions or a `{layer: [fractions]}` dict. |
 | `static_bound` | any scalar in `bounds={name: (lo, hi)}` | Value $< \text{lo}$ or $> \text{hi}$ (optional, folded in from `@rahulsharmaf81` PR #122) | `warn` | Edge-triggered latch: fires once on crossing and re-arms only when the metric returns in-bounds, so cumulative counters do not re-fire on every subsequent step. |
 | `val_regression` | `validation_bpb`, `validation_loss` (rows of a validation run only) | Value more than `val_regression_frac` above that metric's best (lowest) value so far, for `val_patience` validation runs in a row (default 1); off unless `val_regression_frac` is set, e.g. `0.02` | `warn` | Fires once per streak; a new best resets it. Neither `spike_score` (training losses only) nor a fixed `static_bound` catches a validation curve that turns back up (G8 W3 rotation, Issue #25, `test_alert_injection_sohamniyogi.py`). |
+| `indic_share` | `indic_share` (native Indic share of the batch's tokens, `metrics_logger/composition.py`) | Mean of the last `indic_window` batches (default 50) outside `indic_target` ± `indic_tolerance` (default 8% ± 1 point; Team 02's fixed 8% of every batch) | `page` | Fires once per excursion, re-arms back inside the band; rows without `indic_share` are ignored. CLI `--indic-target/--indic-tolerance/--indic-window`. Tolerance reasoning and the dry run 2 replay: `../docs/composition_w5.md`. |
 
 Input and reset behaviour:
 
@@ -51,7 +52,7 @@ Input and reset behaviour:
 - Severities are labels: the caller stops training and handles notifications. Spike events are returned on every qualifying step.
 - **Checkpoint hand-off (Team 07 `Checkpointer`):** `monitor.state_dict()` returns a JSON-serializable snapshot (`schema: "v5-alarms/1"`) of all trailing windows (`_trailing`), ZClip EMA stats, throughput baseline and streak counters, per-layer MoE streaks, latched static bounds, and the validation best values and streaks; `monitor.load_state_dict(state)` restores it so a run resumed from a checkpoint continues with identical alarm state and no cold-start warmup gap.
 
-A checkpoint written before `val_regression` existed (no `val` entry) still loads, with no validation best yet. Resume with a monitor constructed using the same settings, including `bounds` and `val_regression_frac`; configuration is not saved in the checkpoint. Checkpoints must use schema `v5-alarms/1`.
+A checkpoint written before `val_regression` existed (no `val` entry) still loads, with no validation best yet. The same holds for `indic_share` (no `indic` entry: an empty window). Resume with a monitor constructed using the same settings, including `bounds` and `val_regression_frac`; configuration is not saved in the checkpoint. Checkpoints must use schema `v5-alarms/1`.
 
 ## 2. Results on 3,000 synthetic steps (`--synthetic 3000`)
 

@@ -85,6 +85,9 @@ METRICS = frozenset({
     "model_flops_utilization", "loader_wait_time",
     "gpu_temp_c", "gpu_thermal_throttle", "gpu_memory_used",
     "tokens_per_byte", "tokens_per_byte_by_lang",
+    # Week 5 composition and data position (metrics_logger/composition.py)
+    "indic_share", "lane_share_tokens", "lane_share_bytes", "lane_share_words",
+    "data_tokens_seen", "data_bytes_seen", "data_words_seen", "data_docs_seen", "data_epoch",
     "reward_per_env", "train_reward", "entropy", "mismatch_k3", "mismatch_abs_logratio",
 })
 

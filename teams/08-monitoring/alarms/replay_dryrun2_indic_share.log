@@ -1,0 +1,9 @@
+# indic_share replay on dry run 2 (dryrun2-1234, #869), 2026-11-28 10:35 UTC, main 83e98a6
+$ python -I teams/08-monitoring/metrics_logger/dryrun2_composition.py teams/05-architecture/results/dryrun2-1234/metrics.jsonl --out $OUT/metrics.jsonl
+wrote 1222 rows to $OUT/metrics.jsonl: 1221 with composition and data position
+$ sha256 of the input: 2b7645019ca8abf5575272a76ebd5784e6698b7c707d045c351c859d828cfa9a
+$ python -I teams/08-monitoring/alarms/alarms.py --jsonl $OUT/metrics.jsonl
+read 1222 steps from $OUT/metrics.jsonl: 3 alarm(s)
+{"step": 50, "metric": "indic_share", "rule": "indic_share", "severity": "page", "value": 0.0, "target": 0.08, "tolerance": 0.01, "window": 50, "detail": "native Indic share 0.00% over the last 50 batches is outside 8% +/- 1 points"}
+{"step": 226, "metric": "tokens_per_second", "rule": "throughput_drop", "severity": "warn", "value": 5243.905232975226, "baseline_mean": 8569.44, "detail": "tokens_per_second dropped 38.8% below baseline 8569.4 for 100 consecutive steps"}
+{"step": 1184, "metric": "gradient_norm", "rule": "spike_score", "severity": "page", "value": 1.8042978048324585, "z_score": 8.09, "trailing_mean": 0.814378, "trailing_std": 0.122432, "detail": "gradient_norm=1.804 is 8.1 sigma above trailing 1000-step mean 0.8144"}
