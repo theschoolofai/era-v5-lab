@@ -42,9 +42,9 @@ Owners: keep your PR description current; this list is built from the PRs and th
 | Item | Owner | PR | State | Evidence | Kind | Open |
 |---|---|---|---|---|---|---|
 | 9. Scaling-law fit (3 sizes x 3 token budgets, one held back) | Shivanshu Thapliyal | #946 | not run | `lab5/design_5_6/README.md` (plan) | not yet | the 9 runs; the gate in #951 needs the fit |
-| 10. Training recipe (schedule, batch, reset after growth, spike guards, checkpoint averaging; two tests at 100M) | Deepjyoti Saha | #893 | draft, approach | `lab5/recipe_and_gates/README.md` | not yet | LR reset after growth with Udit (#897) |
+| 10. Training recipe (schedule, batch, reset after growth, spike guards, checkpoint averaging; two tests at 100M) | Deepjyoti Saha | #893 | draft, approach | `lab5/recipe_and_gates/README.md`; split posted on #893 (LR reset: Udit, #897; gate sheet: #951; tokens/s and router thresholds: Deepjyoti) | not yet | the two tests and their machine |
 | 11. Context plan (which stage at which length; recalibration and/or a longer stage) | Vardhan Walavalkar | none yet | claimed 28 Nov | | not yet | split with #891 proposed by Deepjyoti |
-| 12. Go / no-go gates for the main run | Stephen Raj Arokiasamy | #951 | draft | `lab5/go_no_go/check_gates.py`, `gates_v1.yaml`, 31 tests; every gate a proposal. Dry run 2: health PASS, router FAIL, five PENDING | measured (dry run 2) | the fit (9), the token and time budgets (empty until posted), Team 7's main-config restart test, Team 9's step-0 scores and its #931 holds; router and tokens/s numbers from #892/#893 |
+| 12. Go / no-go gates for the main run | Stephen Raj Arokiasamy | #951 | approved by lead (TSAI sets the gates) | `lab5/go_no_go/check_gates.py`, `gates_v1.yaml`, 31 tests; every gate a proposal. Dry run 2: health PASS, router FAIL, five PENDING | measured (dry run 2) | the fit (9), the token and time budgets (empty until posted), Team 7's main-config restart test, Team 9's step-0 scores and its #931 holds; router and tokens/s numbers from #892/#893 |
 
 ## Tasks for every team
 
