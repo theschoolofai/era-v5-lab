@@ -76,7 +76,9 @@ corpus release written into every shard manifest, e.g. "corpus-v1" for the first
 teams/01-data-a/shards/run_shards.py), "out" (default <run>/shards), "tokens", "packs" (only these packs), "pack_table", "workers" (packs written at the same time, default 1: each pack's parts stay in
 order, each part has a process of its own; about 1 to 4 GB each), "split" (run_shards.py --split: "train", the default, shards
 the train parts; "validation" the heldout parts, as validation shards; "all" both. With an inventory, the held-out parts'
-expected status must then be "written") and "any_tokenizer" (tests only). apply takes "link" (default true: untouched parts are hard-linked, not copied) and "workers"
+expected status must then be "written"), "validation_fraction" and "validation_seed" (run_shards.py --validation-fraction and
+--validation-seed: the validation shards hold a fixed-seed slice of each held-out part; default 1, every doc) and
+"any_tokenizer" (tests only). apply takes "link" (default true: untouched parts are hard-linked, not copied) and "workers"
 (default 4: parts checked and written at once, one row group in memory each). ledger takes "raw"
 (optional: the raw parts the cleaner read; with it the ledger says keep / fix / drop per document, mode B, else the
 cleaner's decision is "unknown", mode C); it reads dedup_log.jsonl when the dedup folder has one. Scripts run with
@@ -707,6 +709,12 @@ class Run:
             raise Stop("config: stages.shards.packs must be a list of pack ids")
         if spec.get("split", "train") not in SHARD_SPLITS:
             raise Stop(f"config: stages.shards.split is {spec['split']!r}, expected one of {', '.join(SHARD_SPLITS)}")
+        fraction = spec.get("validation_fraction")
+        if fraction is not None and (not isinstance(fraction, (int, float)) or isinstance(fraction, bool) or not 0 < fraction <= 1):
+            raise Stop(f"config: stages.shards.validation_fraction is {fraction!r}, expected a number above 0 and at most 1")
+        seed = spec.get("validation_seed")
+        if seed is not None and (not isinstance(seed, int) or isinstance(seed, bool) or seed < 0):
+            raise Stop(f"config: stages.shards.validation_seed is {seed!r}, expected a whole number >= 0")
         workers = spec.get("workers")
         if workers is not None and (not isinstance(workers, int) or isinstance(workers, bool) or workers < 1):
             raise Stop(f"config: stages.shards.workers is {workers!r}, expected a whole number >= 1")
@@ -757,7 +765,8 @@ class Run:
                 spec = self.stages["shards"]
                 lines.append(f"{n:02d} {stage:13} run    {out}   {spec.get('script', DEFAULT_SHARDS)}, tokenizer {spec['tokenizer']}, "
                              f"dataset_version {'test' if spec.get('any_tokenizer') else spec.get('dataset_version')}"
-                             + (f", split {spec['split']}" if spec.get("split") else ""))
+                             + (f", split {spec['split']}" if spec.get("split") else "")
+                             + "".join(f", {k} {spec[k]}" for k in ("validation_fraction", "validation_seed") if spec.get(k) is not None))
             else:
                 lines.append(f"{n:02d} {stage:13} run    {out}")
         if self.cfg.get("intermediates", "keep") == "drop":
@@ -1168,6 +1177,9 @@ class Run:
         if spec.get("pack_table"):
             args += ["--pack-table", path(spec["pack_table"])]
         split = ["--split", spec["split"]] if spec.get("split") else []  # left out when not set: the command stays as before
+        for key in ("validation_fraction", "validation_seed"):
+            if spec.get(key) is not None:
+                split += ["--" + key.replace("_", "-"), spec[key]]
         args += split
         if spec.get("any_tokenizer"):
             args.append("--any-tokenizer")

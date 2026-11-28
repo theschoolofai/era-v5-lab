@@ -11,6 +11,14 @@ part's folder (SHARD_SPLIT): a train part gives train shards, a heldout part giv
 the format has train and validation only). Which parts are sharded is run_shards.py's --split. --domain defaults to
 clean.py's family of the pack.
 
+Validation slice (B4, a fixed-seed slice per pack): with --validation-fraction F below 1, a heldout part's doc goes into its
+validation shard only when it is in the slice (in_slice, SLICE_RULE): the first 8 bytes of sha256("<seed>:<pack_id>:<doc_id>")
+as a fraction of 2^64 are below F, with --validation-seed (default VALIDATION_SEED; validation_slice.py). Each doc is decided
+alone, so the slice does not depend on row order, parts or workers, and a larger F keeps every doc of a smaller one. The other
+docs are left out as not_in_slice: counted in the quality report (which also records the fraction, seed and rule), never
+listed, since at scale that would be most of every held-out part; reconcile_shards.py recomputes which they are.
+F = 1 (the default) keeps every doc. A train part is never sliced.
+
 Rollover: docs are taken in order into shard <pack>-<split>-<--index>; when the next doc would pass --tokens, that shard is
 written and the doc opens the next one (--index + 1, ...), until every row of the part is read. A doc is never split, so
 none is lost, repeated or cut. Shard k holds rows first_row..rows_read-1 of the part (its quality report gives both).
@@ -27,7 +35,9 @@ A doc is left out, counted, and listed by doc_id in the quality report when:
   - empty:      it encodes to no tokens;
   - special:    a special id appears inside it (tokenizers turns a literal "<|im_start|>" in the text into a special id);
   - roundtrip:  decode(ids) is not the tokenizer-normalized text;
-  - oversize:   it alone (with its EOS) is more than --tokens, so it fits in no shard (listed with its n_tokens).
+  - oversize:   it alone (with its EOS) is more than --tokens, so it fits in no shard (listed with its n_tokens);
+  - not_in_slice: a heldout doc outside the validation slice (only with --validation-fraction below 1; checked first;
+                counted, not listed).
 A left-out doc is in the report of the shard whose rows it is in. A part with no doc to write (empty, or every row
 left out) gets no shard: main() raises NoShard with its row count and left-out doc_ids.
 Checks after writing: G6's open_shard reads the .bin, sizes and index match the manifest, every id < 131,072, and the only
@@ -58,6 +68,7 @@ REPO = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(REPO / "teams" / "06-performance"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import provenance  # noqa: E402
+from validation_slice import SLICE_RULE, VALIDATION_SEED, in_slice, slice_problem  # noqa: E402,F401  (run_shards.py uses them from here)
 from verify_shards import EOS, EOS_ID, VOCAB, special_ids  # noqa: E402  (the shard constants live there, with the checks of a finished shard)
 from dataio.loader import HEADER_BYTES, open_shard  # noqa: E402
 from dataio.prepare_fineweb import write_shard  # noqa: E402
@@ -133,8 +144,14 @@ def main(argv=None):
     ap.add_argument("--tokens", type=int, default=2 ** 26, help="fill each shard up to this many tokens, then roll over")
     ap.add_argument("--any-tokenizer", action="store_true", help="tests only: accept a tokenizer other than p1536")
     ap.add_argument("--dataset-version", help="the manifest's dataset_version (e.g. sample, corpus-v1); required unless --any-tokenizer")
+    ap.add_argument("--validation-fraction", type=float, default=1.0,
+                    help="heldout parts only: the share of docs in the validation slice (default 1: every doc)")
+    ap.add_argument("--validation-seed", type=int, default=VALIDATION_SEED, help=f"the slice's seed (default {VALIDATION_SEED})")
     ap.add_argument("--out", type=Path, required=True)
     a = ap.parse_args(argv)
+    problem = slice_problem(a.validation_fraction)
+    if problem:
+        sys.exit(f"shard_writer: {problem}")
     if bool(a.license) != bool(a.license_source):
         sys.exit("shard_writer: --license and --license-source go together: a manifest names a licence with where it is recorded")
     problem = dataset_version_problem(a.dataset_version, a.any_tokenizer)
@@ -148,6 +165,10 @@ def main(argv=None):
         sys.exit(f"shard_writer: {e}")
     pack_id, part_path = info["part"]["pack_id"], f"{info['part']['split']}/{info['part']['part']}"
     split = SHARD_SPLIT[info["part"]["split"]]  # provenance.load accepts only the pipeline's two split folders
+    if split == "train" and a.validation_fraction < 1:
+        sys.exit(f"shard_writer: {part_path} is a train part; --validation-fraction slices heldout parts only")
+    sliced = {"fraction": a.validation_fraction, "seed": a.validation_seed, "rule": SLICE_RULE} \
+        if split == "validation" and a.validation_fraction < 1 else None
     domain = a.domain or pack_family(pack_id)
     tok, tok_sha, specials = load_tokenizer(a.tokenizer, a.any_tokenizer)
     norm = tok.normalizer.normalize_str if tok.normalizer is not None else (lambda t: t)  # a Sequence normalizer has len 0, so it is falsy
@@ -164,7 +185,7 @@ def main(argv=None):
     a.out.mkdir(parents=True, exist_ok=True)
     commit = subprocess.run(["git", "-C", str(REPO), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
     ctx = {"info": info, "tok_sha": tok_sha, "specials": specials, "run_file": run_file, "pipeline": pipeline,
-           "part_path": part_path, "pack_id": pack_id, "split": split, "domain": domain, "commit": commit}
+           "part_path": part_path, "pack_id": pack_id, "split": split, "domain": domain, "commit": commit, "slice": sliced}
 
     # The part is read BATCH rows at a time, and a doc's token ids are kept as a uint32 array (4 bytes a token, with the EOS
     # at its end), not a Python list of ints (about 36 bytes a token): a full shard held 2.4 GB of ints, plus the part's text.
@@ -177,9 +198,15 @@ def main(argv=None):
     for batch in pf.iter_batches(batch_size=BATCH, columns=["doc_id", "text", "lang_label"]):
         ids_col, texts, lang_col = (batch.column(i).to_pylist() for i in range(3))
         del batch
-        for k, enc in enumerate(tok.encode_batch_fast(texts, add_special_tokens=False)):
-            row, text, ids = first_of_batch + k, texts[k], enc.ids
+        chosen = [k for k in range(len(texts)) if not sliced or in_slice(a.validation_seed, pack_id, ids_col[k], a.validation_fraction)]
+        encoded = dict(zip(chosen, tok.encode_batch_fast([texts[k] for k in chosen], add_special_tokens=False)))  # the slice only
+        for k in range(len(texts)):
+            row, text = first_of_batch + k, texts[k]
             doc_id, left_out = ids_col[k], cur["left_out"]
+            if k not in encoded:
+                cur["not_in_slice"] += 1  # counted, not listed: reconcile_shards.py recomputes them
+                continue
+            ids = encoded[k].ids
             if SECRET.search(text):
                 left_out["secret"].append(doc_id)
                 continue
@@ -212,24 +239,25 @@ def main(argv=None):
     if first_of_batch != n_rows:
         sys.exit(f"shard_writer: {a.input} gave {first_of_batch} rows, its footer says {n_rows}")
     if not cur["docs"]:  # rollover only opens a shard with a doc in it, so this part has no doc to write at all
-        raise NoShard(n_rows, cur["left_out"])
+        raise NoShard(n_rows, cur["left_out"], cur["not_in_slice"] if sliced else None)
     manifests.append(finish(a, ctx, f"{pack_id}-{split}-{index:06d}", cur, rows_end=n_rows))
     return manifests
 
 
 class NoShard(Exception):
     """A part with no document to write: empty (0 rows, e.g. emptied by dedup or F2) or every row left out. No shard (and no
-    zero-token shard) is written; rows and left_out (the doc_ids per reason) say why, for run_shards.py's summary."""
+    zero-token shard) is written; rows and left_out (the doc_ids per reason) say why, for run_shards.py's summary;
+    not_in_slice is the count of docs outside the validation slice (None when the part was not sliced)."""
 
-    def __init__(self, rows, left_out):
+    def __init__(self, rows, left_out, not_in_slice=None):
         super().__init__(f"no document of this part goes into a shard: {rows} row(s), "
-                         f"{sum(len(v) for v in left_out.values())} left out")
-        self.rows, self.left_out = rows, left_out
+                         f"{sum(len(v) for v in left_out.values()) + (not_in_slice or 0)} left out")
+        self.rows, self.left_out, self.not_in_slice = rows, left_out, not_in_slice
 
 
 def new_shard(first_row):
     """An empty shard that starts at this row of the part. Left-out docs are reported by the shard whose rows they are in."""
-    return {"docs": [], "rows": [], "total": 0, "first_row": first_row, "left_out": {k: [] for k in LEFT_OUT}}
+    return {"docs": [], "rows": [], "total": 0, "first_row": first_row, "left_out": {k: [] for k in LEFT_OUT}, "not_in_slice": 0}
 
 
 def publish_pipeline_record(run_file, pipeline):
@@ -256,10 +284,12 @@ def finish(a, ctx, shard_id, cur, rows_end):
     tpc = np.array([r["n_tokens"] / max(r["n_chars"], 1) for r in rows])
     worst = sorted(rows, key=lambda r: -r["n_tokens"] / max(r["n_chars"], 1))[:5]
     lo = {k: len(v) for k, v in left_out.items()}
+    if ctx["slice"]:  # a count only: the docs are not listed (reconcile_shards.py recomputes them)
+        lo["not_in_slice"] = cur["not_in_slice"]
     report = a.out / f"{shard_id}.quality_report.json"
     report.write_text(json.dumps({
         "shard_id": shard_id, "first_row": cur["first_row"], "rows_read": rows_end, "docs_in_shard": len(docs),
-        "left_out": lo, "left_out_docs": left_out,
+        "left_out": lo, "left_out_docs": left_out, **({"validation_slice": ctx["slice"]} if ctx["slice"] else {}),
         "tokens_per_char": {"min": round(float(tpc.min()), 3), "median": round(float(np.median(tpc)), 3),
                             "p99": round(float(np.percentile(tpc, 99)), 3), "max": round(float(tpc.max()), 3)},
         "most_tokens_per_char": [{"doc_id": r["doc_id"], "n_tokens": r["n_tokens"], "n_chars": r["n_chars"]} for r in worst],
@@ -311,8 +341,10 @@ def finish(a, ctx, shard_id, cur, rows_end):
              f"Tokenizer `{tok_sha[:12]}`" + (" (**not p1536: test only**)" if tok_sha != TOKENIZER_SHA256 else " (p1536, frozen)") +
              f"; EOS `{EOS}` id {EOS_ID} after each doc; no BOS, no language tag.\n\n",
              f"Left out: {lo['secret']} secret-like, {lo['empty']} empty, {lo['special']} with a special id inside, "
-             f"{lo['roundtrip']} not round-tripping, {lo['oversize']} longer than a shard "
-             f"(doc_ids in `{shard_id}.quality_report.json`).\n\n",
+             f"{lo['roundtrip']} not round-tripping, {lo['oversize']} longer than a shard"
+             + (f", {lo['not_in_slice']} outside the validation slice (fraction {ctx['slice']['fraction']}, seed "
+                f"{ctx['slice']['seed']})" if ctx["slice"] else "") +
+             f" (doc_ids in `{shard_id}.quality_report.json`).\n\n",
              "| file | bytes | sha256 |\n|---|---:|---|\n",
              *(f"| `{p.name}` | {p.stat().st_size:,} | `{(payload_sha if p == bin_path else sha(p))[:16]}…` |\n" for p in (bin_path, idx_path, meta_path, pipeline, report)),
              f"\n## `{bin_path.name}`\n\n- header, {HEADER_BYTES:,} bytes = 256 little-endian int32: `{header[0]}` (magic), "
@@ -340,4 +372,5 @@ if __name__ == "__main__":
     try:
         main()
     except NoShard as e:
-        print(json.dumps({"no_shard": str(e), "rows": e.rows, "left_out": {k: len(v) for k, v in e.left_out.items()}}))
+        print(json.dumps({"no_shard": str(e), "rows": e.rows, "left_out": {k: len(v) for k, v in e.left_out.items()},
+                          "not_in_slice": e.not_in_slice}))

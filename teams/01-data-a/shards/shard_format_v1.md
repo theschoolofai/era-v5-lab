@@ -98,6 +98,18 @@ What the writer records from it:
 removes every train copy of a held-out document), and this format has `train` and `validation` only, so a held-out part is
 written as `validation`. Which parts a run shards is `run_shards.py --split` (next section); by default only train, as before.
 
+**Validation slice** (B4: a fixed-seed slice per pack). `--validation-fraction F` (default 1: every held-out doc) and
+`--validation-seed N` (default 20261101, the seed of the week-2 sample's held-out split) make a pack's validation shards hold
+a slice of its held-out part: a doc is in it when the first 8 bytes of `sha256("<seed>:<pack_id>:<doc_id>")`, as a fraction
+of 2^64, are below F. Each doc is decided alone, so the slice is the same whatever the row order, parts or workers, and a
+larger F keeps every doc of a smaller one (`validation_slice.py`, shared by the writer and reconcile). The docs outside it
+are left out as `not_in_slice` and counted in the quality report (which records `validation_slice`: fraction, seed, rule),
+not listed: at scale that would be most of every held-out part. Reconcile recomputes them from the fraction and seed in the
+summary's settings, accounts for every held-out doc, and fails if a shard holds a doc outside the slice or a part's count is
+not the recomputed one. They are not lost
+to the leak check: dedup protects the whole held-out part, so no train copy of any held-out doc survives. The manifest
+format does not change.
+
 ## Sharding a whole run
 
 `run_pipeline.py` runs this as its last stage when `stages.shards` is in its config (`pipeline/README.md`): it writes
@@ -111,7 +123,8 @@ any `validation` or `val` folder, are reported as `not_sharded`, which is not an
 
 - **Validation shards of a run already sharded:** `--split validation` into a new `--out` writes them from the same `final/`,
   without touching the train shards. The split is in the summary's settings, so a rerun into the same `--out` with another
-  `--split` is refused: one folder per choice (`all` puts both in one folder from the start).
+  `--split` is refused: one folder per choice (`all` puts both in one folder from the start). The same holds for the
+  validation fraction and seed.
 
 - **Pack metadata:** `pack_table.json` has a `language`, `script`, `domain` and `lane` for each of the 38 week-2 packs. A pack
   that is not in it, or has a null field, is skipped, not guessed: a manifest never changes. `language` is the programming
@@ -212,6 +225,6 @@ corpus-v1/
 
 ## Not done yet
 
-- Which documents of a held-out part a validation shard holds: all of it today; a fixed-seed slice per pack is B4's next step.
+- Which validation slice the main run uses (`--validation-fraction`, `--validation-seed`): every held-out doc by default.
 - The release's `SHA256SUMS` and `admission.jsonl`, and the release folder layout (`<pack>/<split>/`; shards are written flat for now).
 - The loader and its run of `ckpt/loader_contract.py`.

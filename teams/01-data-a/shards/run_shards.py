@@ -2,7 +2,7 @@
 
   python -I teams/01-data-a/shards/run_shards.py --input <run>/final --manifest <run>/pipeline_manifest.json \
       --tokenizer <p1536>/tokenizer.json --dataset-version corpus-v1 --out <dir> [--pack code-go ...] [--tokens N]
-      [--split train|validation|all] [--any-tokenizer]
+      [--split train|validation|all] [--validation-fraction F] [--validation-seed N] [--any-tokenizer]
 
 --input is the run's final folder: <input>/<split>/<pack>/<part>.parquet, the layout run_pipeline.py gives it. --split says
 which of its folders are sharded (SPLITS): "train" (the default) the train parts, "validation" the heldout parts, "all" both.
@@ -10,7 +10,9 @@ Each such part is handed to shard_writer.py, which takes the split from the fold
 shards, <pack>-validation-<n>. A part in a folder of SPLIT_FOLDERS that --split leaves out (heldout with --split train,
 train with --split validation, a validation or val folder) is reported as "not_sharded", which is not an error; a folder
 with any other name goes to the writer, which refuses it ("failed"). --split validation writes a run's validation shards
-into a folder of their own, after its train shards and without touching them. Language, script, domain and lane come from the pack's row in pack_table.json (--pack-table
+into a folder of their own, after its train shards and without touching them. --validation-fraction F (default 1: every doc)
+and --validation-seed N go to the writer for the heldout parts: their validation shards then hold a fixed-seed slice of each
+pack (shard_writer.py, "Validation slice"), and the docs outside it are left out as not_in_slice (counted, not listed). Language, script, domain and lane come from the pack's row in pack_table.json (--pack-table
 for another table, such as a job's; one that also gives "license" and "license_source" has both written into every manifest); a pack that is not in the
 table, or has a null field, is not sharded (status "skipped").
 
@@ -28,7 +30,8 @@ Restart: the writer publishes each shard's manifest last (written to .tmp and re
 the first shard and after every part, so a run that stops part-way can be run again with the same arguments into the
 same --out. Parts the summary holds as done, whose shards are the next numbers of their pack and whose files have the sha256 their manifests give,
 are kept as they are; the first part that is not is written again, after every file of its pack numbered from there on
-(and any .tmp) is removed. A rerun with other settings (--tokens, --dataset-version, tokenizer, --split) is refused, as is a
+(and any .tmp) is removed. A rerun with other settings (--tokens, --dataset-version, tokenizer, --split, the validation
+fraction or seed) is refused, as is a
 --out that holds shards of a pack but no summary.
 
 When it is done it checks the shards that are in --out (verify_shards.py: files, hashes, format, counts, pack table, and the first
@@ -109,7 +112,12 @@ FILE = re.compile(r"(?P<pack>.+)-(?P<split>[^-]+)-(?P<n>\d{6})\.(bin|idx\.npy|do
 def settings_of(a):
     """What every shard of one --out must share; a rerun with other settings is refused."""
     return {"tokens": a.tokens or 2 ** 26, "dataset_version": a.dataset_version or "test",
-            "tokenizer_sha256": shard_writer.sha(a.tokenizer), "split": a.split}
+            "tokenizer_sha256": shard_writer.sha(a.tokenizer), "split": a.split,
+            "validation_fraction": a.validation_fraction, "validation_seed": a.validation_seed}
+
+
+# What a summary written before a setting existed was made with: train parts only, and every held-out doc
+OLD_SETTINGS = {"split": "train", "validation_fraction": 1.0, "validation_seed": shard_writer.VALIDATION_SEED}
 
 
 def save(path, summary):
@@ -151,7 +159,8 @@ def clear_from(out, split, pack, index):
 def no_shard_entry(e):
     """The summary entry of a part the writer found nothing to write in (shard_writer.NoShard)."""
     return {"status": "empty" if e.rows == 0 else "all_left_out", "shards": [], "docs": 0, "tokens": 0, "rows_read": e.rows,
-            "rows_in_part": e.rows, "truncated": False, "left_out": {k: len(v) for k, v in e.left_out.items()},
+            "rows_in_part": e.rows, "truncated": False,
+            "left_out": {k: len(v) for k, v in e.left_out.items()} | ({"not_in_slice": e.not_in_slice} if e.not_in_slice is not None else {}),
             "left_out_docs": e.left_out}
 
 
@@ -174,13 +183,13 @@ def peak_rss_mb():
 
 
 def run_writer(argv):
-    """shard_writer.main(argv) in this process. Returns ("written", [manifest, ...]), ("no_shard", rows, left_out) or
+    """shard_writer.main(argv) in this process. Returns ("written", [manifest, ...]), ("no_shard", rows, left_out, not_in_slice) or
     ("failed", why it stopped); plain values, so a child process can send it back."""
     try:
         with contextlib.redirect_stdout(io.StringIO()):  # the writer prints a JSON line per shard; the summary has it
             return "written", shard_writer.main(argv)
     except shard_writer.NoShard as e:
-        return "no_shard", e.rows, e.left_out
+        return "no_shard", e.rows, e.left_out, e.not_in_slice
     except SystemExit as e:
         return "failed", str(e.code)
     except Exception as e:  # one bad part must not stop the others
@@ -227,6 +236,8 @@ def write_one(path, a, row, index):
         argv += ["--license", row["license"], "--license-source", row["license_source"]]
     if a.tokens:
         argv += ["--tokens", str(a.tokens)]
+    if path.parent.parent.name == "heldout":  # the slice is the writer's to apply, to heldout parts only
+        argv += ["--validation-fraction", repr(a.validation_fraction), "--validation-seed", str(a.validation_seed)]
     if a.any_tokenizer:
         argv.append("--any-tokenizer")
     if a.dataset_version:
@@ -242,19 +253,19 @@ def write_one(path, a, row, index):
     if result[0] == "written":
         return result[1], None, rss
     if result[0] == "no_shard":
-        return shard_writer.NoShard(result[1], result[2]), None, rss
+        return shard_writer.NoShard(result[1], result[2], result[3]), None, rss
     return None, result[1], rss
 
 
 def entry_of(manifests, out):
     """The summary entry of a written part, from its shards' manifests and quality reports."""
-    shards, left_out = [], {k: 0 for k in shard_writer.LEFT_OUT}
+    shards, left_out = [], {k: 0 for k in shard_writer.LEFT_OUT}  # plus not_in_slice, for a sliced heldout part
     for m in manifests:
         report = json.loads((out / f"{m['shard_id']}.quality_report.json").read_text(encoding="utf-8"))
         shards.append({"shard_id": m["shard_id"], "docs": m["doc_count"], "tokens": m["token_count"],
                        "first_row": report["first_row"], "rows_read": report["rows_read"]})
         for k, v in report["left_out"].items():
-            left_out[k] += v
+            left_out[k] = left_out.get(k, 0) + v
     rows_in_part = report["upstream"]["counts"]["final"]
     return {"status": "written", "shards": shards, "docs": sum(x["docs"] for x in shards), "tokens": sum(x["tokens"] for x in shards),
             "rows_read": shards[-1]["rows_read"], "rows_in_part": rows_in_part, "truncated": shards[-1]["rows_read"] < rows_in_part,
@@ -304,6 +315,10 @@ def main(argv=None):
     ap.add_argument("--tokens", type=int, help="fill each shard up to this many tokens (shard_writer's default: 2^26)")
     ap.add_argument("--split", choices=sorted(SPLITS), default="train",
                     help="which parts to shard: train (default), validation (the heldout parts, as validation shards) or all")
+    ap.add_argument("--validation-fraction", type=float, default=1.0,
+                    help="the share of each heldout part's docs in its validation shards, a fixed-seed slice (default 1: all)")
+    ap.add_argument("--validation-seed", type=int, default=shard_writer.VALIDATION_SEED,
+                    help=f"the seed of that slice (default {shard_writer.VALIDATION_SEED})")
     ap.add_argument("--any-tokenizer", action="store_true", help="tests only: accept a tokenizer other than p1536")
     ap.add_argument("--dataset-version", help="every manifest's dataset_version (e.g. sample, corpus-v1); required unless --any-tokenizer")
     ap.add_argument("--pack-table", type=Path, default=pack_table.TABLE)
@@ -320,7 +335,7 @@ def main(argv=None):
         sys.exit("run_shards: --workers must be a whole number >= 1")
     if a.workers > 1 and a.in_process:
         sys.exit("run_shards: --in-process writes in this process, one part at a time: it cannot go with --workers above 1")
-    problem = shard_writer.dataset_version_problem(a.dataset_version, a.any_tokenizer)
+    problem = shard_writer.dataset_version_problem(a.dataset_version, a.any_tokenizer) or shard_writer.slice_problem(a.validation_fraction)
     if problem:  # before anything is read or written: every part would fail on it
         sys.exit(f"run_shards: {problem}")
 
@@ -336,7 +351,7 @@ def main(argv=None):
         summary = json.loads(summary_path.read_text(encoding="utf-8"))
         if summary["run_id"] != run_id:
             sys.exit(f"run_shards: {summary_path} is from another pipeline run ({summary['run_id']}) than {a.manifest} ({run_id}); use a new --out")
-        if {"split": "train", **summary.get("settings", settings)} != settings:  # a summary from before --split: train only
+        if {**OLD_SETTINGS, **summary.get("settings", settings)} != settings:
             sys.exit(f"run_shards: {summary_path} was made with {summary['settings']}, this run has {settings}. Nothing was "
                      "written; use a new --out")
     else:

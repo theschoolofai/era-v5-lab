@@ -64,6 +64,32 @@ def test_split_all_gives_validation_shards_that_reconcile_with_the_ledger(tmp_pa
     assert rec["stage"] == "reconcile" and rec["counts"]["kept"] == rec["counts"]["in_shard"] == 4 and "not_sharded" not in rec["counts"]
 
 
+def test_a_validation_slice_reconciles_its_left_out_docs(tmp_path, monkeypatch):
+    from shard_writer import in_slice
+    table = tmp_path / "pack_table.json"
+    table.write_text(json.dumps({"packs": {"pk-a": {"language": "en", "script": "Latn", "domain": "web", "lane": "english"}}}), encoding="utf-8")
+    parts = {("train", "pk-a/part-00000.parquet"): rows("pk-a", "a_"), ("heldout", "pk-a/part-00000.parquet"): rows("pk-a", "h_")}
+    seed = next(n for n in range(100) if [in_slice(n, "pk-a", d, 0.5) for d in ("h_0", "h_1")] == [True, False])
+    run = make_run(tmp_path / "pipeline", monkeypatch, parts, reconcile=True,
+                   shards={"tokenizer": str(BASE), "any_tokenizer": True, "pack_table": str(table), "split": "all",
+                           "validation_fraction": 0.5, "validation_seed": seed})
+    manifest = json.loads((run / "pipeline_manifest.json").read_text(encoding="utf-8"))
+    assert all(c["ok"] for c in manifest["checks"])
+    stage = next(s for s in manifest["stages"] if s["stage"] == "shards")
+    assert stage["command"][-5:-1] == ["--validation-fraction", 0.5, "--validation-seed", seed]
+    rec = manifest["stages"][-1]
+    assert rec["counts"]["kept"] == 4 and rec["counts"]["in_shard"] == 3 and rec["counts"]["left_out:not_in_slice"] == 1, rec["counts"]
+    assert any(c["check"].startswith("reconcile: the validation shards hold only documents of the validation slice") and c["ok"]
+               for c in manifest["checks"])
+    import reconcile_shards as rc  # a writer count that is not the slice recomputed fails the reconciliation
+    summary_path = run / "shards" / "shards_summary.json"
+    s = json.loads(summary_path.read_text(encoding="utf-8"))
+    s["parts"]["heldout/pk-a/part-00000.parquet"]["left_out"]["not_in_slice"] = 0
+    summary_path.write_text(json.dumps(s), encoding="utf-8")
+    with pytest.raises(rc.Stop, match="the writer counted 0, recomputed 1"):
+        rc.reconcile(run / "ledger", run / "shards", tmp_path / "rec")
+
+
 def test_shards_damaged_after_run_shards_finished_stop_the_pipeline(tmp_path, monkeypatch):
     """run_shards.py verified its own output and found it good; the runner checks again, on its own."""
     table = tmp_path / "pack_table.json"

@@ -109,7 +109,8 @@ def test_a_held_out_part_is_not_sharded_and_is_not_an_error(run, tmp_path, table
 
 def test_a_summary_from_before_split_is_a_train_run(run, tmp_path, table):
     _, out, s = go(run, tmp_path, table, "--pack", "pk-a")
-    del s["settings"]["split"]  # what run_shards.py wrote before --split existed
+    for key in ("split", "validation_fraction", "validation_seed"):  # what run_shards.py wrote before they existed
+        del s["settings"][key]
     (out / "shards_summary.json").write_text(json.dumps(s), encoding="utf-8")
     code, _, again = go(run, tmp_path, table, "--pack", "pk-a")
     assert code == 0 and again["settings"]["split"] == "train"
@@ -146,6 +147,33 @@ def test_validation_shards_are_kept_by_a_rerun_and_a_rerun_with_another_split_is
     for other in ([], ["--split", "all"]):
         with pytest.raises(SystemExit, match="was made with"):
             go(run, tmp_path, table, "--pack", "pk-a", *other)
+
+
+def test_a_validation_slice_goes_to_the_held_out_parts_only_and_a_rerun_with_another_is_refused(run, tmp_path, table):
+    held = [f"h0_{k}" for k in range(len(TEXTS))]
+    seed = next(n for n in range(100) if 0 < sum(rs.shard_writer.in_slice(n, "pk-a", d, 0.5) for d in held) < len(held))
+    want = [d for d in held if rs.shard_writer.in_slice(seed, "pk-a", d, 0.5)]
+    slice_args = ["--validation-fraction", "0.5", "--validation-seed", str(seed)]
+    code, out, s = go(run, tmp_path, table, "--pack", "pk-a", "--split", "all", *slice_args)
+    assert code == 0 and s["verified"] is True
+    assert (s["settings"]["validation_fraction"], s["settings"]["validation_seed"]) == (0.5, seed)
+    e = s["parts"]["heldout/pk-a/part-00000.parquet"]
+    assert e["status"] == "written" and e["docs"] == len(want) and e["left_out"]["not_in_slice"] == len(held) - len(want)
+    assert all(s["parts"][f"train/pk-a/part-0000{k}.parquet"]["docs"] == 3 for k in (0, 1))  # train parts are never sliced
+    assert "not_in_slice" not in s["parts"]["train/pk-a/part-00000.parquet"]["left_out"]
+    for other in (["--validation-fraction", "0.6", "--validation-seed", str(seed)], ["--validation-fraction", "0.5"], []):
+        with pytest.raises(SystemExit, match="was made with"):
+            go(run, tmp_path, table, "--pack", "pk-a", "--split", "all", *other)
+
+
+def test_a_held_out_part_with_no_doc_in_the_slice_is_all_left_out_with_its_count(run, tmp_path, table):
+    held = [f"h0_{k}" for k in range(len(TEXTS))]
+    seed = next(n for n in range(1000) if not any(rs.shard_writer.in_slice(n, "pk-a", d, 0.2) for d in held))
+    code, out, s = go(run, tmp_path, table, "--pack", "pk-a", "--split", "validation", "--validation-fraction", "0.2",
+                      "--validation-seed", str(seed))
+    e = s["parts"]["heldout/pk-a/part-00000.parquet"]
+    assert code == 0 and e["status"] == "all_left_out" and e["left_out"]["not_in_slice"] == len(held)
+    assert "not_in_slice" not in e["left_out_docs"]
 
 
 def test_a_validation_folder_is_not_sharded_even_with_split_all(run, tmp_path, table):

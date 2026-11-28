@@ -23,7 +23,9 @@ EVERY KEPT DOCUMENT GETS ONE STATUS (column shard_status)
   in_shard          in <shard_id>.docs.parquet at its ledger position (input_part, input_row), with its doc_id
   left_out:<why>    the writer left it out and says why in the quality report: secret (it matches pr-guard's email or
                     secret patterns), empty (no tokens), special (it holds a special token), roundtrip (decode(encode(text))
-                    differs from the text), oversize (alone it is more than a shard's --tokens; a doc is never split)
+                    differs from the text), oversize (alone it is more than a shard's --tokens; a doc is never split),
+                    not_in_slice (a held-out doc outside the validation slice, run_shards.py --validation-fraction: not
+                    listed by the writer, but recomputed here from the fraction and seed in shards_summary.json's settings)
   not_sharded      its part's status is not_sharded: a part run_shards.py --split left out (by default the held-out parts)
   not_selected      its pack is not among --pack (only when --pack is given)
   not_reached       its part was written but cut short ("truncated": rows at or after the part's rows_read are in no
@@ -42,6 +44,8 @@ CHECKS (any failure: exit code 1, after writing the outputs, so they show what f
   - each shard manifest's doc_count = its docs.parquet rows
   - no kept document of a selected pack is not_reached, part_failed, part_skipped or missing
   - every pack of --pack holds kept documents in the ledger
+  - with a validation slice only: no document in a shard is outside the slice, and each sliced part's not_in_slice count
+    (the writer's) is the number of its documents outside the slice (recomputed): the writer and this agree on the slice
 
 OUTPUT (in --out)
 =================
@@ -73,6 +77,8 @@ HERE = Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 import arrowtools as at  # noqa: E402
+sys.path.insert(0, str(HERE.parent / "shards"))
+from validation_slice import in_slice  # noqa: E402  (the writer's slice rule, standard library only)
 import runlock  # noqa: E402
 from hashing import HashCache, code_sha256  # noqa: E402
 
@@ -81,7 +87,8 @@ import pyarrow.compute as pc  # noqa: E402
 import pyarrow.parquet as pq  # noqa: E402
 
 SUMMARY = "shards_summary.json"
-REASONS = ("secret", "empty", "special", "roundtrip", "oversize")  # shard_writer.py's left_out keys (LEFT_OUT)
+REASONS = ("secret", "empty", "special", "roundtrip", "oversize")  # shard_writer.py's left_out keys (LEFT_OUT), listed by doc_id
+# (not_in_slice, a held-out doc outside the validation slice, is counted by the writer, not listed: it is recomputed here)
 FAILING = ("not_reached", "part_failed", "part_skipped", "missing")
 STATUS_SCHEMA = pa.schema([("pack_id", pa.string()), ("split", pa.string()), ("input_part", pa.string()),
                            ("input_row", pa.int64()), ("doc_id", pa.string()), ("shard_id", pa.string()),
@@ -214,8 +221,20 @@ class Tally:
                 self.example[key] = example
 
 
-def statuses(kept, docs, left, parts, scope):
-    """The status of each kept document of one ledger file, and that file's check results (as Tally inputs)."""
+def outside_slice(k, sliced):
+    """True for each kept document of a heldout part that is outside the validation slice: one sha256 per held-out document,
+    in Python (the writer counts these documents and does not list them, so they are recomputed). All False without a slice."""
+    held = pc.equal(k["split"], "heldout")
+    if not sliced or not pc.any(held).as_py():
+        return pa.repeat(pa.scalar(False), k.num_rows)
+    f, seed = sliced["fraction"], sliced["seed"]
+    return pa.array([s == "heldout" and not in_slice(seed, p, d, f)
+                     for s, p, d in zip(k["split"].to_pylist(), k["pack_id"].to_pylist(), k["doc_id"].to_pylist())], pa.bool_())
+
+
+def statuses(kept, docs, left, parts, scope, sliced=None):
+    """The status of each kept document of one ledger file, and that file's check results (as Tally inputs). sliced: the
+    validation slice of the run ({"fraction", "seed"}), or None."""
     found = {}
     j = docs.join(kept.select(["input_part", "input_row", "doc_id"]).rename_columns(["input_part", "input_row", "ledger_doc"]),
                   ["input_part", "input_row"], join_type="left outer")
@@ -245,13 +264,25 @@ def statuses(kept, docs, left, parts, scope):
     in_scope = pc.is_in(k["pack_id"], value_set=pa.array(sorted(scope), pa.string()))
     ps = k["part_status"]
     beyond = pc.fill_null(pc.greater_equal(k["input_row"], k["rows_read"]), False)
+    outside = outside_slice(k, sliced)
+    wrote = pc.fill_null(pc.is_in(ps, value_set=pa.array(["written", "all_left_out"])), False)
+    found["outside"] = (pc.sum(pc.and_(pc.is_valid(k["shard_id"]), outside)).as_py() or 0, None)
     status = pc.if_else(pc.is_valid(k["shard_id"]), "in_shard",
              pc.if_else(pc.is_valid(k["reason"]), pc.binary_join_element_wise("left_out", k["reason"], ":"),
+             pc.if_else(pc.and_(outside, wrote), "left_out:not_in_slice",
              pc.if_else(pc.invert(in_scope), "not_selected",
              pc.if_else(pc.fill_null(pc.equal(ps, "not_sharded"), False), "not_sharded",
              pc.if_else(pc.fill_null(pc.equal(ps, "failed"), False), "part_failed",
              pc.if_else(pc.fill_null(pc.equal(ps, "skipped"), False), "part_skipped",
-             pc.if_else(pc.and_(pc.fill_null(pc.equal(ps, "written"), False), beyond), "not_reached", "missing")))))))
+             pc.if_else(pc.and_(pc.fill_null(pc.equal(ps, "written"), False), beyond), "not_reached", "missing"))))))))
+    found["slice_count"] = (0, None)
+    if sliced:  # the writer's count of each sliced part against the slice recomputed
+        got = pa.table({"input_part": k["input_part"], "status": status}).filter(pc.equal(status, "left_out:not_in_slice"))
+        mine = {g["input_part"]: g["count_all"] for g in got.group_by("input_part").aggregate([([], "count_all")]).to_pylist()}
+        wrong = [(n, parts[n].get("left_out", {}).get("not_in_slice", 0), mine.get(n, 0)) for n in names
+                 if n.startswith("heldout/") and parts.get(n, {}).get("status") in ("written", "all_left_out")
+                 and parts[n].get("left_out", {}).get("not_in_slice", 0) != mine.get(n, 0)]
+        found["slice_count"] = (len(wrong), f"{wrong[0][0]}: the writer counted {wrong[0][1]}, recomputed {wrong[0][2]}" if wrong else None)
     rows = pa.table({"pack_id": k["pack_id"], "split": k["split"], "input_part": k["input_part"], "input_row": k["input_row"],
                      "doc_id": k["doc_id"], "shard_id": k["shard_id"], "shard_status": status}, schema=STATUS_SCHEMA)
     if rows.num_rows != kept.num_rows:  # the ledger refuses a doc_id twice in a part, so these are not the ledger's files
@@ -283,6 +314,9 @@ def _reconcile(ledger, shards, out, packs, cache):
         raise Stop(f"--shards {shards}: no {SUMMARY}")
     summary = json.loads((shards / SUMMARY).read_text(encoding="utf-8"))
     parts = summary.get("parts", {})
+    settings = summary.get("settings", {})  # the slice the writer applied (run_shards.py); none in a summary from before it
+    sliced = ({"fraction": settings["validation_fraction"], "seed": settings["validation_seed"]}
+              if settings.get("validation_fraction", 1) < 1 else None)
     written = {name for name, e in parts.items() if e.get("status") in ("written", "all_left_out")}  # parts with documents placed
     groups, ledger_packs = file_groups(ledger, ledger_files)
     scope = set(packs) if packs else set(ledger_packs)  # never the shards' own summary: see --pack
@@ -307,7 +341,7 @@ def _reconcile(ledger, shards, out, packs, cache):
                 visited.update(names)
                 counts.update(shard_counts)
                 shard_files += files
-                rows, found = statuses(kept, docs, left, parts, scope)
+                rows, found = statuses(kept, docs, left, parts, scope, sliced)
                 for key, (k, example) in found.items():
                     tally.add(key, k, example)
                 w.write_table(rows)
@@ -352,6 +386,12 @@ def _reconcile(ledger, shards, out, packs, cache):
         {"check": "every selected pack holds kept documents in the ledger", "ok": not absent,
          "detail": f"{len(absent)} pack(s) not in the ledger, e.g. {absent[0]}" if absent else "all present"},
     ]
+    if sliced:  # only with a slice, so a reconciliation without one is as before
+        checks.append({"check": "the validation shards hold only documents of the validation slice, and each sliced part's "
+                                "not_in_slice count is the slice recomputed",
+                       "ok": not n["outside"] and not n["slice_count"],
+                       "detail": f"{n['outside']} shard document(s) outside the slice, {n['slice_count']} part(s) whose count differs"
+                                 + (f", e.g. {tally.example['slice_count']}" if "slice_count" in tally.example else "")})
     hashes = cache.sha256_many([*ledger_files, *shard_files])
     result = {"tool": "reconcile_shards.py", "code_sha256": code_sha256(Path(__file__), cache)[0],
               "inputs": {"ledger_files": {f.relative_to(ledger).as_posix(): hashes[f] for f in ledger_files},
@@ -359,7 +399,7 @@ def _reconcile(ledger, shards, out, packs, cache):
               "packs": sorted(p for p in scope if p is not None), "ledger_rows": n_rows, "kept": n_kept,
               "in_shards": n_in_shards, "totals": dict(sorted(totals.items())),
               "by_pack": {p: {s: dict(sorted(c.items())) for s, c in sorted(by[p].items())} for p in sorted(by)},
-              "checks": checks, "ok": all(c["ok"] for c in checks)}
+              **({"validation_slice": sliced} if sliced else {}), "checks": checks, "ok": all(c["ok"] for c in checks)}
     tmp = out / f"reconcile_summary.json.{os.getpid()}.tmp"
     tmp.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8", newline="\n")
     os.replace(tmp, out / "reconcile_summary.json")

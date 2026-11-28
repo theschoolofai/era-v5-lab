@@ -60,6 +60,10 @@
       "packs": [
         "code-go"
       ],
+      "split": "train",
+      "validation_fraction": 1,
+      "validation_seed": 20261101,
+      "_split": "which parts are sharded: train (the train parts only), validation (the held-out parts, as validation shards) or all (both). Held-out parts become validation shards (Lab 5, B4): a job that makes them sets all or validation, and with \"inventory\" its held-out parts must then expect \"written\". validation_fraction and validation_seed: the validation shards hold a fixed-seed slice of each held-out part (shards/shard_format_v1.md, 'Validation slice'). 1 keeps every held-out doc; the brief asks for a slice, so set the fraction TSAI picks. The values here are the defaults; the run's shards_summary.json records the ones used",
       "_note": "rename to 'shards' to add the shard stage after the ledger; 'packs' limits it to packs with a lane in shards/pack_table.json. With \"inventory\" the packs must be all the inventory's packs (or the key left out), so the pack table (stages.shards.pack_table) must hold a full row for every one of them: a pack with an empty field is skipped, and that stops the run at the shard stage"
     }
   }
