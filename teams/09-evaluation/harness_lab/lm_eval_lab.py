@@ -96,12 +96,16 @@ class LabLM(LM):
     def loglikelihood(self, requests, disable_tqdm: bool = False):
         pairs = [split_pair(*req.args) for req in requests]
         self._encode_many([c for c, _ in pairs] + [c + x for c, x in pairs])
+        return self.loglikelihood_tokens((self._ids[c], self._ids[c + x][len(self._ids[c]):]) for c, x in pairs)
+
+    def loglikelihood_tokens(self, pairs, *, allow_truncation=True):
+        """Score explicit context and continuation token IDs with the same batched forward pass."""
         rows, row_of, members, targets = [], {}, [], []
-        for i, (context, continuation) in enumerate(pairs):
-            ctx = self._ids[context]
-            cont = self._ids[context + continuation][len(ctx):]
+        for i, (ctx, cont) in enumerate(pairs):
             if not len(cont):
                 raise ValueError("a continuation produced no tokens")
+            if not allow_truncation and len(ctx) + len(cont) > self.block:
+                raise ValueError("context and continuation exceed the model context window")
             toks = np.concatenate(([self.bos], ctx, cont))[-(self.block + 1):]      # left-truncate, as HFLM does
             n = min(len(cont), len(toks) - 1)
             inputs = toks[:-1]
@@ -112,7 +116,7 @@ class LabLM(LM):
             members[j].append(i)
             targets.append(toks[-n:])                     # position p of the row predicts token p + 1
         lens = np.fromiter(map(len, rows), dtype=np.int64, count=len(rows))
-        out = [None] * len(pairs)
+        out = [None] * len(targets)
         batch: list[int] = []
         for j in np.argsort(-lens, kind="stable").tolist():
             if batch and (len(batch) + 1) * int(lens[batch[0]]) > self.max_batch_tokens:
@@ -121,7 +125,7 @@ class LabLM(LM):
             batch.append(j)
         if batch:
             self._score_rows(batch, rows, lens, members, targets, out)
-        self.requests_scored += len(pairs)
+        self.requests_scored += len(targets)
         self.rows_scored += len(rows)
         return out
 

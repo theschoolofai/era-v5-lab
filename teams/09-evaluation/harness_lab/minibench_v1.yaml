@@ -1,0 +1,35 @@
+name: minibench_v1
+revision: 1
+heldout:
+  text_sha256: 21c6e4b2df8dae9d69e254f4a00fc934d2a3c70f0675065a03724299d94312bb
+  sources_sha256: 95585a25bdccb077130432d49b6427c5ff5f756d5b43b9c7033803326f65e0d6
+  quick_documents_per_slice: 4
+  quick_max_bytes_per_document: 1024
+  smoke_bytes_per_slice: 128
+milu_item_spec_sha256: 94de47d2334eff1d5419aad73c355c91abe16d278c9f45c9e2a4acf9ef3d399a
+datasets:
+  arc:
+    repo: allenai/ai2_arc
+    revision: 210d026faf9955653af8916fad021475a3f00453
+  hellaswag:
+    repo: Rowan/hellaswag
+    revision: 218ec52e09a7e7462a5400043bb9a69a41d06b76
+  mmlu:
+    repo: cais/mmlu
+    revision: c30699e8356da336a370243923dbaf21066bb9fe
+  milu:
+    repo: ai4bharat/MILU
+    revision: 846d7016558b2004386f30e59a2158731262492f
+  humaneval:
+    repo: openai/openai_humaneval
+    revision: 7dce6050a7d6d172f3cc5c32aa97f52fa1a2e544
+  mbpp:
+    repo: google-research-datasets/mbpp
+    revision: 4bb6404fdc6cacfda99d4ac4205087b89d32030c
+profiles:
+  full: {arc: 100, hellaswag: 100, mmlu_per_subject: 3, milu_per_language: 50, code_per_set: 50, arithmetic_per_kind: 50}
+  quick: {arc: 32, hellaswag: 32, mmlu_per_subject: 1, milu_per_language: 20, code_per_set: 16, arithmetic_per_kind: 20}
+  smoke: {arc: 1, hellaswag: 1, mmlu_per_subject: 1, milu_per_language: 1, code_per_set: 1, arithmetic_per_kind: 1}
+arithmetic:
+  seed: 20261128
+  kinds: [add2, sub2, add3, mul2x1, add2_deva]

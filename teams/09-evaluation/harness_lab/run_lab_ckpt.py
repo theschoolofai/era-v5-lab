@@ -458,8 +458,12 @@ def finish(a, facts, scorer, scored, fmt, dtype, t_export, t_score, t_start) -> 
     ok = convert.check(doc, 0)
     if not ok:
         raise SystemExit("check(doc, 0) failed; nothing written")
-    a.out.parent.mkdir(parents=True, exist_ok=True)
-    a.out.write_bytes(data)
+    write_result = getattr(scorer, "write_result", None)
+    if write_result is None:
+        a.out.parent.mkdir(parents=True, exist_ok=True)
+        a.out.write_bytes(data)
+    else:
+        write_result(a.out, data, facts)
     for r in records:
         print(f"RESULT {r['task']} {r['metric']}/{r['filter']} = {r['value']} (n={r['n_items']}) -> {a.out}")
     print(f"wrote {a.out} ({len(data):,} bytes, sha256 {sha256_bytes(data)[:16]})")
