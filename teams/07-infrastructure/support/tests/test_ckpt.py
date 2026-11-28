@@ -639,6 +639,37 @@ def test_t30_other_data_manifest_refused(env, monkeypatch):
     assert any("manifest" in p for p in check(lambda r, w: NoManifest(SEED, 8, r, w)))
 
 
+def test_t31_scalars_restored_and_checked(env, monkeypatch):
+    """Learning rates, betas and the peak LR travel with the checkpoint and are checked on restore, not only
+    tensors (Lab 5 resume task). A restore built with other values gets the saved ones back; a restore path that
+    loses one afterwards is refused by name, although every tensor, the probe loss and the next batch still match."""
+    import ckpt.ckpt as ckmod
+    monkeypatch.setenv("V5_EVENTS_DIR", env.events)
+    monkeypatch.setenv("V5_ASYNC_SAVE", "0")
+    model, optim, loader, probe = tiny_state()
+    optim.param_groups[0]["base_lr"] = 3e-3          # the peak, as week2/optim.py keeps it
+    train_steps(model, optim, loader, 2)
+    ck = Checkpointer("sc", env.local, env.remote, seed=SEED)
+    assert ck.save(2, model, optim, loader, probe) and ck.wait()
+
+    m2, o2, _, p2 = tiny_state()
+    o2.param_groups[0].update(lr=0.5, betas=(0.5, 0.5), base_lr=0.5)
+    Checkpointer("sc", env.local + "_2", env.remote, seed=SEED).restore(m2, o2, SyntheticLoader(SEED, 8, 0, 1), p2)
+    g = o2.param_groups[0]
+    assert (g["lr"], tuple(g["betas"]), g["base_lr"]) == (1e-3, (0.9, 0.999), 3e-3)
+
+    real = ckmod.set_state_dict
+
+    def loses_lr(model, optim, **kw):
+        real(model, optim, **kw)
+        optim.param_groups[0]["lr"] = 0.5            # e.g. a scheduler rebuilt from the config after the load
+    monkeypatch.setattr(ckmod, "set_state_dict", loses_lr)
+    m3, o3, _, p3 = tiny_state()
+    with pytest.raises(ckmod.RestoreCheckError, match=r"scalar optim\.param_groups\.0\.lr saved=0\.001 restored=0\.5"):
+        Checkpointer("sc", env.local + "_3", env.remote, seed=SEED).restore(m3, o3, SyntheticLoader(SEED, 8, 0, 1), p3,
+                                                                            from_step=2)
+
+
 @parametrize("nproc", [1, pytest.param(2, marks=needs(2))])
 def test_restore_job(tmp_path, nproc):
     """jobs/restore_test: Team 05's tiny MoE, restored from our step-10 checkpoint in new processes, gives
