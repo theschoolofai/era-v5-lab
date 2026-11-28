@@ -70,7 +70,7 @@ A shard is made from one part of the pipeline's final folder, in the order TSAI 
 The writer's `--input` is a part under `final/`, and `--manifest` is the run's `pipeline_manifest.json`. The folder layout
 is the pipeline's, not the writer's: apply, dedup and F2 all name a part by its split and its path under the split
 (`<pack>/<part>.parquet`), so the writer finds the part's records by the same two names. The `<split>` folder gives the
-shard's split.
+shard's split: `train/` gives `train` shards, `heldout/` gives `validation` shards (`<pack>-validation-<number>`).
 
 `provenance.py` checks the chain before anything is written, one sha256 per link, and stops naming the link that broke:
 
@@ -94,8 +94,9 @@ What the writer records from it:
 
 `domain` is `--domain`, else clean.py's family of the pack (code, english, math, sci, indic); a pack clean.py does not list needs `--domain`.
 
-**Held-out parts are not sharded yet.** The pipeline keeps `heldout/` apart (dedup never removes from it), and this format
-has `train` and `validation` only. Whether a held-out part becomes `validation` is for G3 and G9 to say; the writer refuses it until then.
+**Held-out parts become validation shards** (Lab 5, B4). The pipeline keeps `heldout/` apart (dedup never removes from it, and
+removes every train copy of a held-out document), and this format has `train` and `validation` only, so a held-out part is
+written as `validation`. Which parts a run shards is `run_shards.py --split` (next section); by default only train, as before.
 
 ## Sharding a whole run
 
@@ -103,9 +104,14 @@ has `train` and `validation` only. Whether a held-out part becomes `validation` 
 `<run>/cleaning_pipeline.json`, runs `run_shards.py` on `final/`, records the stage in `pipeline_manifest.json` and rewrites
 the manifest, like every stage; a part that failed or was skipped stops the run. By hand:
 
-`run_shards.py --input <run>/final --manifest <run>/pipeline_manifest.json --tokenizer <tokenizer.json> --out <dir>` hands every
-`<split>/<pack>/<part>.parquet` of the final folder to the writer, except parts in a `heldout`, `validation` or `val` folder:
-those are reported as `not_sharded`, which is not an error (the writer refuses a non-train part as well).
+`run_shards.py --input <run>/final --manifest <run>/pipeline_manifest.json --tokenizer <tokenizer.json> --out <dir> [--split S]`
+hands the `<split>/<pack>/<part>.parquet` parts of the final folder that `--split` names to the writer: `train` (the default)
+the train parts, `validation` the heldout parts, `all` both (`stages.shards.split` in a pipeline run). The other parts, and
+any `validation` or `val` folder, are reported as `not_sharded`, which is not an error.
+
+- **Validation shards of a run already sharded:** `--split validation` into a new `--out` writes them from the same `final/`,
+  without touching the train shards. The split is in the summary's settings, so a rerun into the same `--out` with another
+  `--split` is refused: one folder per choice (`all` puts both in one folder from the start).
 
 - **Pack metadata:** `pack_table.json` has a `language`, `script`, `domain` and `lane` for each of the 38 week-2 packs. A pack
   that is not in it, or has a null field, is skipped, not guessed: a manifest never changes. `language` is the programming
@@ -151,7 +157,7 @@ those are reported as `not_sharded`, which is not an error (the writer refuses a
 | `doc_count`, `token_count` | documents and tokens in the shard, EOS included |
 | `eos_token_id` | 130,822 |
 | `tokenizer_sha256` | sha256 of the `tokenizer.json` bytes that made the IDs (p1536: `e6b93a93…`) |
-| `pack_id`, `language`, `script`, `domain`, `capability_lane`, `split` | what is in the shard. `split` is `train` or `validation` only: test and benchmark data are never sharded (eval firewall, G9 #269). It is taken from the input's folder, and only `train` is written for now |
+| `pack_id`, `language`, `script`, `domain`, `capability_lane`, `split` | what is in the shard. `split` is `train` or `validation` only: test and benchmark data are never sharded (eval firewall, G9 #269). It is taken from the input's folder: `train/` gives `train`, `heldout/` gives `validation` |
 | `license`, `license_source` | the pack's licence and where that licence is recorded, placed after `capability_lane`. Both come from the pack table the run is given (`run_shards.py --pack-table`, a job's `pack_metadata.json`), together or not at all: a table without them gives a manifest without them, and a pack whose licence is null there is not sharded |
 | `inputs_sha256` | sha256 of the line `<raw part sha256> <split>/<pack>/<part>.parquet`: the raw sample part the shard's documents came from (from the clean job's `job_summary.json`) |
 | `cleaning_pipeline_sha256` | sha256 of `cleaning_pipeline.json`: the `clean.py` sha256, the F2 fingerprint set, the dedup remove list and the pipeline run |
@@ -206,6 +212,6 @@ corpus-v1/
 
 ## Not done yet
 
-- What a held-out part becomes (G3, G9).
+- Which documents of a held-out part a validation shard holds: all of it today; a fixed-seed slice per pack is B4's next step.
 - The release's `SHA256SUMS` and `admission.jsonl`, and the release folder layout (`<pack>/<split>/`; shards are written flat for now).
 - The loader and its run of `ckpt/loader_contract.py`.

@@ -24,7 +24,7 @@ EVERY KEPT DOCUMENT GETS ONE STATUS (column shard_status)
   left_out:<why>    the writer left it out and says why in the quality report: secret (it matches pr-guard's email or
                     secret patterns), empty (no tokens), special (it holds a special token), roundtrip (decode(encode(text))
                     differs from the text), oversize (alone it is more than a shard's --tokens; a doc is never split)
-  not_sharded      its part's status is not_sharded: a held-out part (the shard format has train and validation only)
+  not_sharded      its part's status is not_sharded: a part run_shards.py --split left out (by default the held-out parts)
   not_selected      its pack is not among --pack (only when --pack is given)
   not_reached       its part was written but cut short ("truncated": rows at or after the part's rows_read are in no
                     shard). The writer rolls over into more shards, so this should not happen; it is data loss, so it

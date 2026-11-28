@@ -7,8 +7,9 @@
 Input: one part of the pipeline's final folder (run_pipeline.py: clean, dedup, then F2), and the run's pipeline_manifest.json.
 provenance.py checks the part's chain back to the raw sample part (F2 report, apply, remove list, clean job) and stops
 when a link breaks; what it returns checks cleaning_pipeline.json and goes into the quality report. The split comes from the
-part's folder: train. A held-out part is refused until G3 and G9 say what happens to it (the format has train and
-validation only). --domain defaults to clean.py's family of the pack.
+part's folder (SHARD_SPLIT): a train part gives train shards, a heldout part gives validation shards (<pack>-validation-<n>;
+the format has train and validation only). Which parts are sharded is run_shards.py's --split. --domain defaults to
+clean.py's family of the pack.
 
 Rollover: docs are taken in order into shard <pack>-<split>-<--index>; when the next doc would pass --tokens, that shard is
 written and the doc opens the next one (--index + 1, ...), until every row of the part is read. A doc is never split, so
@@ -67,6 +68,7 @@ EOS_ID, EOS = 130_822, "<|endoftext|>"
 SPECIAL_BLOCK = range(130_725, VOCAB)  # G3: named specials and reserved slots; plus every added token marked special
 BATCH = 256
 LEFT_OUT = ("secret", "empty", "special", "roundtrip", "oversize")  # the reasons a doc is left out
+SHARD_SPLIT = {"train": "train", "heldout": "validation"}  # the pipeline's split folder -> the manifest's split
 # pr-guard's secret and email patterns (.github/workflows/pr-guard.yml)
 SECRET = re.compile("|".join([
     r"AKIA[0-9A-Z]{16}", r"-----BEGIN [A-Z ]*PRIVATE KEY-----", r"gh[pousr]_[A-Za-z0-9]{30,}", r"\bsk-[A-Za-z0-9_-]{20,}",
@@ -145,10 +147,7 @@ def main(argv=None):
     except provenance.Stop as e:
         sys.exit(f"shard_writer: {e}")
     pack_id, part_path = info["part"]["pack_id"], f"{info['part']['split']}/{info['part']['part']}"
-    if info["part"]["split"] != "train":
-        sys.exit(f"shard_writer: {part_path} is a {info['part']['split']} part. Only train parts are sharded for now: the format "
-                 "allows train and validation, and what a held-out part becomes is for G3 and G9 to say")
-    split = "train"
+    split = SHARD_SPLIT[info["part"]["split"]]  # provenance.load accepts only the pipeline's two split folders
     domain = a.domain or pack_family(pack_id)
     tok, tok_sha, specials = load_tokenizer(a.tokenizer, a.any_tokenizer)
     norm = tok.normalizer.normalize_str if tok.normalizer is not None else (lambda t: t)  # a Sequence normalizer has len 0, so it is falsy

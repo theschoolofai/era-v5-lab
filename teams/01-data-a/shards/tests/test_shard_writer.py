@@ -213,11 +213,17 @@ def test_a_part_that_changed_after_f2_is_refused(tmp_path, monkeypatch):
     assert not (tmp_path / "out").exists()
 
 
-def test_a_heldout_part_is_refused(tmp_path, monkeypatch):
+def test_a_heldout_part_gives_a_validation_shard(tmp_path, monkeypatch):
     part = "x-pack/part-00000.parquet"
     run = make_run(tmp_path / "pipeline", monkeypatch, {("train", part): rows_of(DOCS, "x-pack"), ("heldout", part): rows_of(DOCS[:2], "x-pack")})
-    with pytest.raises(SystemExit, match="heldout part"):
-        shard(run, part, tmp_path / "out", "--any-tokenizer", "--domain", "web", split="heldout")
+    out = tmp_path / "out"
+    m = shard(run, part, out, "--any-tokenizer", "--domain", "web", split="heldout")
+    assert m["split"] == "validation" and m["shard_id"] == "x-pack-validation-000000" and m["doc_count"] == 2
+    assert m["inputs_sha256"] == hashlib.sha256(f"{raw_sha('heldout', part)} heldout/{part}\n".encode()).hexdigest()
+    meta = pq.read_table(out / m["sample_metadata_uri"]).to_pylist()
+    assert [(r["doc_id"], r["input_part"]) for r in meta] == [("en1", f"heldout/{part}"), ("hi1", f"heldout/{part}")]
+    t = shard(run, part, out, "--any-tokenizer", "--domain", "web")  # the train part of the same pack, into the same folder
+    assert t["shard_id"] == "x-pack-train-000000" and t["split"] == "train"
 
 
 def test_an_out_folder_with_other_processing_is_refused(tmp_path, monkeypatch):

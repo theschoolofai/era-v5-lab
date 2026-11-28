@@ -48,6 +48,22 @@ def test_the_pipeline_runs_through_the_shard_stage(tmp_path, monkeypatch):
     assert stage["digest"] == rp.digest(out)[0]  # the digest from the verification's hashes is the one a full read gives
 
 
+def test_split_all_gives_validation_shards_that_reconcile_with_the_ledger(tmp_path, monkeypatch):
+    table = tmp_path / "pack_table.json"
+    table.write_text(json.dumps({"packs": {"pk-a": {"language": "en", "script": "Latn", "domain": "web", "lane": "english"}}}), encoding="utf-8")
+    parts = {("train", "pk-a/part-00000.parquet"): rows("pk-a", "a_"), ("heldout", "pk-a/part-00000.parquet"): rows("pk-a", "h_")}
+    run = make_run(tmp_path / "pipeline", monkeypatch, parts, reconcile=True,
+                   shards={"tokenizer": str(BASE), "any_tokenizer": True, "pack_table": str(table), "split": "all"})
+    manifest = json.loads((run / "pipeline_manifest.json").read_text(encoding="utf-8"))
+    assert all(c["ok"] for c in manifest["checks"])
+    stage = next(s for s in manifest["stages"] if s["stage"] == "shards")
+    assert stage["counts"]["written"] == 2 and stage["counts"]["not_sharded"] == 0 and "--split" in stage["command"]
+    shard = json.loads((run / "shards" / "pk-a-validation-000000.json").read_text(encoding="utf-8"))
+    assert shard["split"] == "validation" and shard["doc_count"] == 2
+    rec = manifest["stages"][-1]
+    assert rec["stage"] == "reconcile" and rec["counts"]["kept"] == rec["counts"]["in_shard"] == 4 and "not_sharded" not in rec["counts"]
+
+
 def test_shards_damaged_after_run_shards_finished_stop_the_pipeline(tmp_path, monkeypatch):
     """run_shards.py verified its own output and found it good; the runner checks again, on its own."""
     table = tmp_path / "pack_table.json"

@@ -639,6 +639,7 @@ def test_no_clean_job_summary_means_no_shard_stage(tmp_path, shard_config, tsai_
                                              ({"tokens": 0}, "stages.shards.tokens"), ({"packs": "code-go"}, "stages.shards.packs"),
                                              ({"workers": 0}, "stages.shards.workers"), ({"workers": "4"}, "stages.shards.workers"),
                                              ({"workers": True}, "stages.shards.workers"),
+                                             ({"split": "heldout"}, "stages.shards.split is 'heldout'"),
                                              ({"script": "/no/such/run_shards.py"}, "shards script"),
                                              ({"dataset_version": None}, "dataset_version is None: name the corpus release"),
                                              ({"dataset_version": ""}, "dataset_version is '': name the corpus release"),

@@ -45,13 +45,13 @@ def write_cleaned(root, parts):
     (root / "job_summary.json").write_text(json.dumps({"clean_sha256": CLEAN_SHA, "parts": entries}), encoding="utf-8")
 
 
-def make_run(folder, monkeypatch, parts, removed=(), f2_drop=(), shards=None):
+def make_run(folder, monkeypatch, parts, removed=(), f2_drop=(), shards=None, reconcile=False):
     """Run the pipeline in `folder` over `parts` and return the run's folder (<folder>/runs/test-run).
 
     removed: [(split, part, row_in_part)] that dedup removes, each as a group of two (the other member is the survivor).
     f2_drop: doc_ids the stand-in F2 drops.
     shards: a stages.shards config; the run then goes through the real shard stage (which writes cleaning_pipeline.json),
-    otherwise this writes it as the stage does."""
+    otherwise this writes it as the stage does. reconcile: also run the reconcile stage (needs shards)."""
     for k in ("FAKE_F2_ERROR", "FAKE_F2_BAD_SHA", "FAKE_F2_CRASH"):
         monkeypatch.delenv(k, raising=False)
     monkeypatch.setenv("FAKE_F2_DROP", ",".join(f2_drop))
@@ -79,7 +79,7 @@ def make_run(folder, monkeypatch, parts, removed=(), f2_drop=(), shards=None):
         "config": {"cross_pack": True, "pack_order": ["code-go", "en-dclm"], "licence_usable": {}, "default_licence_usable": True,
                    "gold_dirs": []}}), encoding="utf-8")
     config = write_config(folder / "pipeline.json", {"cleaned": cleaned, "overlap": overlap, "dedup": dedup},
-                          **({"shards": shards} if shards else {}))
+                          **({"shards": shards} if shards else {}), **({"reconcile": {}} if reconcile else {}))
     rp.run(config)
     run = folder / "runs" / "test-run"
     if not shards:

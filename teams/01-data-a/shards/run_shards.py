@@ -2,12 +2,15 @@
 
   python -I teams/01-data-a/shards/run_shards.py --input <run>/final --manifest <run>/pipeline_manifest.json \
       --tokenizer <p1536>/tokenizer.json --dataset-version corpus-v1 --out <dir> [--pack code-go ...] [--tokens N]
-      [--any-tokenizer]
+      [--split train|validation|all] [--any-tokenizer]
 
---input is the run's final folder: <input>/<split>/<pack>/<part>.parquet, the layout run_pipeline.py gives it. Every part
-found is handed to shard_writer.py (the split comes from the folder name), except a part in a folder named in
-NOT_SHARDED (heldout, validation, val): it is reported as "not_sharded", which is not an error, because what a held-out
-part becomes is for G3 and G9 to say. Language, script, domain and lane come from the pack's row in pack_table.json (--pack-table
+--input is the run's final folder: <input>/<split>/<pack>/<part>.parquet, the layout run_pipeline.py gives it. --split says
+which of its folders are sharded (SPLITS): "train" (the default) the train parts, "validation" the heldout parts, "all" both.
+Each such part is handed to shard_writer.py, which takes the split from the folder: a heldout part becomes validation
+shards, <pack>-validation-<n>. A part in a folder of SPLIT_FOLDERS that --split leaves out (heldout with --split train,
+train with --split validation, a validation or val folder) is reported as "not_sharded", which is not an error; a folder
+with any other name goes to the writer, which refuses it ("failed"). --split validation writes a run's validation shards
+into a folder of their own, after its train shards and without touching them. Language, script, domain and lane come from the pack's row in pack_table.json (--pack-table
 for another table, such as a job's; one that also gives "license" and "license_source" has both written into every manifest); a pack that is not in the
 table, or has a null field, is not sharded (status "skipped").
 
@@ -25,7 +28,7 @@ Restart: the writer publishes each shard's manifest last (written to .tmp and re
 the first shard and after every part, so a run that stops part-way can be run again with the same arguments into the
 same --out. Parts the summary holds as done, whose shards are the next numbers of their pack and whose files have the sha256 their manifests give,
 are kept as they are; the first part that is not is written again, after every file of its pack numbered from there on
-(and any .tmp) is removed. A rerun with other settings (--tokens, --dataset-version, tokenizer) is refused, as is a
+(and any .tmp) is removed. A rerun with other settings (--tokens, --dataset-version, tokenizer, --split) is refused, as is a
 --out that holds shards of a pack but no summary.
 
 When it is done it checks the shards that are in --out (verify_shards.py: files, hashes, format, counts, pack table, and the first
@@ -79,7 +82,8 @@ import shard_writer  # noqa: E402
 import verify_shards  # noqa: E402
 
 SUMMARY = "shards_summary.json"
-NOT_SHARDED = ("heldout", "validation", "val")  # split folders that are left alone (shard_writer.py also refuses a non-train part)
+SPLITS = {"train": ("train",), "validation": ("heldout",), "all": ("train", "heldout")}  # --split -> the final/ folders it shards
+SPLIT_FOLDERS = ("train", "heldout", "validation", "val")  # the folders --split may leave out; any other one goes to the writer
 
 
 def find_parts(final, packs=()):
@@ -105,7 +109,7 @@ FILE = re.compile(r"(?P<pack>.+)-(?P<split>[^-]+)-(?P<n>\d{6})\.(bin|idx\.npy|do
 def settings_of(a):
     """What every shard of one --out must share; a rerun with other settings is refused."""
     return {"tokens": a.tokens or 2 ** 26, "dataset_version": a.dataset_version or "test",
-            "tokenizer_sha256": shard_writer.sha(a.tokenizer)}
+            "tokenizer_sha256": shard_writer.sha(a.tokenizer), "split": a.split}
 
 
 def save(path, summary):
@@ -298,6 +302,8 @@ def main(argv=None):
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--pack", action="append", default=[], help="only this pack (repeatable)")
     ap.add_argument("--tokens", type=int, help="fill each shard up to this many tokens (shard_writer's default: 2^26)")
+    ap.add_argument("--split", choices=sorted(SPLITS), default="train",
+                    help="which parts to shard: train (default), validation (the heldout parts, as validation shards) or all")
     ap.add_argument("--any-tokenizer", action="store_true", help="tests only: accept a tokenizer other than p1536")
     ap.add_argument("--dataset-version", help="every manifest's dataset_version (e.g. sample, corpus-v1); required unless --any-tokenizer")
     ap.add_argument("--pack-table", type=Path, default=pack_table.TABLE)
@@ -330,11 +336,13 @@ def main(argv=None):
         summary = json.loads(summary_path.read_text(encoding="utf-8"))
         if summary["run_id"] != run_id:
             sys.exit(f"run_shards: {summary_path} is from another pipeline run ({summary['run_id']}) than {a.manifest} ({run_id}); use a new --out")
-        if summary.get("settings", settings) != settings:
+        if {"split": "train", **summary.get("settings", settings)} != settings:  # a summary from before --split: train only
             sys.exit(f"run_shards: {summary_path} was made with {summary['settings']}, this run has {settings}. Nothing was "
                      "written; use a new --out")
     else:
-        taken = [n for split, pack in sorted({(s, p) for s, p, _ in parts if s not in NOT_SHARDED}) for n in shards_of(a.out, split, pack)]
+        taken = [n for split, pack in sorted({(shard_writer.SHARD_SPLIT.get(s, s), p) for s, p, _ in parts
+                                              if s not in SPLIT_FOLDERS or s in SPLITS[a.split]})
+                 for n in shards_of(a.out, split, pack)]
         if taken:
             sys.exit(f"run_shards: already in {a.out}, with no {SUMMARY}: {', '.join(taken[:5])}{' ...' if len(taken) > 5 else ''}. "
                      "Nothing was written; use a new --out")
@@ -362,6 +370,7 @@ def main(argv=None):
     def write_pack(split, pack, pack_parts, row):
         """The parts of one pack, in order: the shard numbers continue across them."""
         index = 0  # the number of the pack's next shard
+        split = shard_writer.SHARD_SPLIT.get(split, split)  # the split in the shard ids: heldout parts make <pack>-validation-<n>
         for name, path in pack_parts:
             if stop.is_set():  # another pack's writer raised: do not start more
                 return
@@ -387,9 +396,9 @@ def main(argv=None):
     jobs = []  # (split, pack, [(name, path)], pack table row): what has a writer to run
     for (split, pack), group in itertools.groupby(zip(names, parts), key=lambda x: (x[1][0], x[1][1])):
         group = [(name, path) for name, (_, _, path) in group]
-        if split in NOT_SHARDED:
+        if split in SPLIT_FOLDERS and split not in SPLITS[a.split]:
             for name, _ in group:
-                record(name, {"pack_id": pack, "status": "not_sharded", "reason": f"{split} is not sharded (held-out data: G3 and G9 decide)"}, False)
+                record(name, {"pack_id": pack, "status": "not_sharded", "reason": f"{split} parts are not sharded with --split {a.split}"}, False)
             continue
         try:
             row = pack_table.row(pack, table)
