@@ -34,6 +34,7 @@ Timing markers (roofline and report read these names; keep them):
 """
 from __future__ import annotations
 
+import contextlib
 import math
 
 import torch
@@ -58,6 +59,31 @@ from perfkit.regions import mark, region
 _SDPA_GQA = tuple(int(v) for v in torch.__version__.split(".")[:2]) >= (2, 5)
 
 IGNORE_INDEX = -100              # a target with this value is left out of the loss and of its divisor (loss masks)
+# Packed rows (Lab 5 design 3): [B, T] document id per position, set only inside document_mask(); None = plain causal.
+_DOC_IDS: torch.Tensor | None = None
+
+
+@contextlib.contextmanager
+def document_mask(doc_ids: torch.Tensor):
+    """Inside this block a position attends only to earlier positions of its own document (eager attention), and the
+    learned position table restarts at each document. doc_ids: [B, T] integer, one value per document, each document
+    contiguous in its row. Wrap forward AND backward: the reversible stack recomputes attention in backward."""
+    global _DOC_IDS
+    prev, _DOC_IDS = _DOC_IDS, doc_ids
+    try:
+        yield
+    finally:
+        _DOC_IDS = prev
+
+
+def document_positions(doc_ids: torch.Tensor) -> torch.Tensor:
+    """[B, T] position of each token inside its document: 0 at every document start."""
+    idx = torch.arange(doc_ids.shape[1], device=doc_ids.device).expand_as(doc_ids)
+    start = torch.ones_like(doc_ids, dtype=torch.bool)
+    start[:, 1:] = doc_ids[:, 1:] != doc_ids[:, :-1]
+    return idx - torch.where(start, idx, torch.zeros_like(idx)).cummax(dim=1).values
+
+
 # never build the full [B*T, V] logits, so forward returns logits=None with targets
 MEMORY_BOUNDED_CE_IMPLS = ("chunked", "fused", "triton_liger", "triton_cce", "fused_triton")
 
@@ -173,11 +199,16 @@ class GQAttention(nn.Module):
                 k = k.repeat_interleave(self.n_head // kv, dim=1)
                 v = v.repeat_interleave(self.n_head // kv, dim=1)
         with region(f"{self.name}.sdpa", 3):
+            docs = _DOC_IDS
+            if docs is not None and not self.eager:
+                raise ValueError("document_mask needs model.attn_impl=eager")
             if fused:                                    # [B, H, T, hd] view of [B, T, H, hd]: the copy below is free
                 y = triton_attention(q, k, v)
             elif self.eager or self.triton:
                 # True above the diagonal: the future positions a query must not see
                 future = torch.triu(torch.ones(T, T, dtype=torch.bool, device=x.device), diagonal=1)
+                if docs is not None:                      # also block other documents: [B, 1, T, T]
+                    future = future | (docs[:, None, :, None] != docs[:, None, None, :])
                 att = (q @ k.transpose(-2, -1)) / math.sqrt(hd)
                 y = F.softmax(att.masked_fill(future, float("-inf")), dim=-1) @ v
             elif gqa and _SDPA_GQA:
@@ -303,6 +334,8 @@ class GPT(nn.Module):
     def forward(self, idx: torch.Tensor, targets: torch.Tensor | None = None):
         """idx, targets: [B, T] int64. Returns (logits, loss); loss is None without targets."""
         B, T = idx.shape
+        if _DOC_IDS is not None and tuple(_DOC_IDS.shape) != (B, T):
+            raise ValueError(f"document_mask doc_ids {tuple(_DOC_IDS.shape)} != (B, T) {(B, T)}")
         if T > self.cfg.block_size:
             raise ValueError(f"sequence length {T} > block_size {self.cfg.block_size}")
         if self.cfg.mtp and targets is not None and T < 2:
@@ -360,7 +393,10 @@ class GPT(nn.Module):
         """Stack input: token embedding, plus the position table when cfg.position == 'learned'."""
         x = self.tok(idx)
         if self.pos is not None:
-            x = x + self.pos(torch.arange(idx.shape[1], device=idx.device))
+            if _DOC_IDS is not None:                       # packed rows: positions restart at each document
+                x = x + self.pos(document_positions(_DOC_IDS))
+            else:
+                x = x + self.pos(torch.arange(idx.shape[1], device=idx.device))
         return x
 
     def _add_mtp(self, ntp, x, targets):
