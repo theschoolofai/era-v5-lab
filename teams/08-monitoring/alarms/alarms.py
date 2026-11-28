@@ -12,11 +12,16 @@ using the rules from Session 15:
   6. static_bound (warn): optional (lo, hi) bounds per metric, edge-triggered (off unless `bounds` is passed).
   7. val_regression (warn): optional; validation_bpb or validation_loss more than val_regression_frac above its
                          best value so far for val_patience validation runs in a row (off unless the fraction is set).
+  8. indic_share (page): the mean native Indic share (`indic_share`, metrics_logger/composition.py) of the last
+                         indic_window logged batches (default 50) leaves indic_target +/- indic_tolerance (default
+                         8% +/- 1 point; Team 02's fixed 8% of every batch). Fires once per excursion and re-arms when
+                         the mean is back in the band. Only rows that carry indic_share count; none -> never fires.
 
 Usage:
   python -I alarms.py --synthetic 3000
   python -I alarms.py --jsonl path/to/metrics.jsonl
   python -I alarms.py --jsonl path/to/metrics.jsonl --moe-patience 10 --bound gpu_alloc_gib::40
+  python -I alarms.py --jsonl path/to/metrics.jsonl --indic-target 0.08 --indic-tolerance 0.01 --indic-window 50
 
 --moe-patience and --bound apply only with --jsonl. Omitting them leaves
 moe_patience at 1,000 and static_bound off. --bound is name:lo:hi; an empty
@@ -125,6 +130,9 @@ class AlarmMonitor:
         bounds=None,
         val_regression_frac=None,
         val_patience=1,
+        indic_target=0.08,
+        indic_tolerance=0.01,
+        indic_window=50,
     ):
         self.window = window
         self.min_window = min(min_window, window)
@@ -139,6 +147,11 @@ class AlarmMonitor:
         self.bounds = dict(bounds) if bounds else {}
         self.val_regression_frac = val_regression_frac
         self.val_patience = val_patience
+        if not (0 <= indic_target <= 1 and 0 < indic_tolerance and int(indic_window) >= 1):
+            raise ValueError("indic_target must be in [0, 1], indic_tolerance > 0 and indic_window >= 1")
+        self.indic_target = float(indic_target)
+        self.indic_tolerance = float(indic_tolerance)
+        self.indic_window = int(indic_window)
 
         self._trailing = {m: _TrailingStats(window) for m in SPIKE_METRICS}
         self._ema_mu = None
@@ -152,6 +165,8 @@ class AlarmMonitor:
         self._bound_latched = set()
         self._val_best = {}
         self._val_streak = {}
+        self._indic_buf = deque(maxlen=self.indic_window)
+        self._indic_latched = False
 
     def check(self, step, metric, value):
         """Check a single metric at `step` and return a list of alarm dicts."""
@@ -174,6 +189,7 @@ class AlarmMonitor:
             },
             "bound_latched": [list(x) for x in sorted(self._bound_latched)],
             "val": {"best": dict(self._val_best), "streak": dict(self._val_streak)},
+            "indic": {"buf": list(self._indic_buf), "latched": self._indic_latched},
         }
 
     def load_state_dict(self, state):
@@ -219,6 +235,13 @@ class AlarmMonitor:
             if f is not None and math.isfinite(f)
         }
         self._val_streak = {str(k): int(v) for k, v in (val.get("streak") or {}).items()}
+        indic = state.get("indic") or {}  # absent in checkpoints written before indic_share
+        self._indic_buf.clear()
+        for x in indic.get("buf", ()):
+            f = _to_float(x)
+            if f is not None and math.isfinite(f):
+                self._indic_buf.append(f)
+        self._indic_latched = bool(indic.get("latched", False))
 
     def step(self, step, **metrics):
         """Inspect one step's metrics and return a list of fired alarm dicts."""
@@ -447,6 +470,31 @@ class AlarmMonitor:
                 else:
                     self._val_streak[name] = 0
 
+        # 8. Native Indic share: the mean of the last indic_window batches leaves target +/- tolerance.
+        share = _to_float(metrics.get("indic_share")) if "indic_share" in metrics else None
+        if share is not None and math.isfinite(share) and 0.0 <= share <= 1.0:
+            self._indic_buf.append(share)
+            if len(self._indic_buf) == self.indic_window:
+                mean = sum(self._indic_buf) / self.indic_window
+                lo, hi = self.indic_target - self.indic_tolerance, self.indic_target + self.indic_tolerance
+                outside = mean < lo or mean > hi
+                if outside and not self._indic_latched:
+                    self._indic_latched = True
+                    alarms.append({
+                        "step": step,
+                        "metric": "indic_share",
+                        "rule": "indic_share",
+                        "severity": "page",
+                        "value": mean,
+                        "target": self.indic_target,
+                        "tolerance": self.indic_tolerance,
+                        "window": self.indic_window,
+                        "detail": (f"native Indic share {mean * 100:.2f}% over the last {self.indic_window} batches "
+                                   f"is outside {self.indic_target * 100:g}% +/- {self.indic_tolerance * 100:g} points"),
+                    })
+                elif not outside:
+                    self._indic_latched = False
+
         return alarms
 
 
@@ -576,10 +624,17 @@ def main():
                     help="consecutive bad expert_load steps before moe_routing on --jsonl (default 1,000)")
     ap.add_argument("--bound", action="append", type=parse_bound, default=None, metavar="NAME:LO:HI",
                     help="static bound for one metric on --jsonl; an empty side is open; repeat once per metric")
+    ap.add_argument("--indic-target", type=float, default=None,
+                    help="native Indic share target for indic_share on --jsonl (default 0.08)")
+    ap.add_argument("--indic-tolerance", type=float, default=None,
+                    help="allowed distance of the rolling mean from the target (default 0.01, i.e. 1 point)")
+    ap.add_argument("--indic-window", type=int, default=None,
+                    help="batches in the rolling mean for indic_share (default 50)")
     a = ap.parse_args()
 
-    if not a.jsonl and (a.moe_patience is not None or a.bound):
-        ap.error("--bound and --moe-patience apply only with --jsonl")
+    indic_args = {"indic_target": a.indic_target, "indic_tolerance": a.indic_tolerance, "indic_window": a.indic_window}
+    if not a.jsonl and (a.moe_patience is not None or a.bound or any(v is not None for v in indic_args.values())):
+        ap.error("--bound, --moe-patience and --indic-* apply only with --jsonl")
 
     if a.jsonl:
         bounds = {}
@@ -592,7 +647,11 @@ def main():
             kwargs["moe_patience"] = a.moe_patience
         if bounds:
             kwargs["bounds"] = bounds
-        mon = AlarmMonitor(**kwargs)
+        kwargs.update({k: v for k, v in indic_args.items() if v is not None})
+        try:
+            mon = AlarmMonitor(**kwargs)
+        except ValueError as exc:
+            ap.error(str(exc))
         total, count = 0, 0
         for line in open(a.jsonl, encoding="utf-8"):
             if not line.strip():
