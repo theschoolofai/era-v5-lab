@@ -101,13 +101,58 @@ python -m pytest teams/09-evaluation/harness_lab/tests -q
 | Tier B | `--every N` scores commit N, 2N, ...: the count Team 7's retention uses for `--protect-every`. Dry run 1 retention is `--keep 9 --protect-every 15` at a 600 s interval (`teams/07-infrastructure/docs/checkpoint_interval.md`), so an unprotected checkpoint stays about 90 minutes; one deleted before it is scored is recorded as `gone`. |
 | Labels | `--label` names the out folder (`out/watcher/<run>.<label>.every<N>/`), the state and the ClickHouse run_ids. The default is the scorer plus a hash of the arguments after `--`, so Tier A and Tier B never share a state. |
 | ClickHouse `run_id` | `<run>:<commit path>:<label>:<model_revision[:12]>`. `load_jsonl.py` deletes all rows of a run_id before it inserts, so the run_id is unique per checkpoint, tier and run (two runs with one name differ in `model_revision`, the sha256 of MANIFEST.json). |
-| One GPU slot | Every watcher takes `--slot-lock` (default `out/watcher/gpu_slot.lock`) around a scorer run, so two tiers never load two models at once. |
+| One GPU slot | Every watcher takes `--slot-lock` (default `out/watcher/gpu_slot.lock`) around a scorer run, so two tiers never load two models at once. The scorer inherits the lock, so it stays held while the scorer lives, also after its watcher is killed: a restarted watcher or the other tier waits for that scorer. On Linux the scorer is started with `PR_SET_PDEATHSIG`, so the kernel ends it when its watcher dies (SIGKILL, out of memory) and frees its GPU memory at once. |
 | Isolation | One process per checkpoint. On Linux it gets its own process group, and `--timeout` (default 1,800 s, for a hung scorer) or a stop ends the whole group. Logs go to `<out folder>/logs/`. |
 | Time per checkpoint | Each scored checkpoint prints and keeps the scorer's wall time, the wait for the slot and the lag from its commit; the last lines give the mean and the max. A checkpoint must score within the save interval (600 s in dry run 1) for the watcher to keep up. |
-| End of the run | `--until-final`: the watcher exits by itself once the run's final checkpoint (Team 7's trainer commits it with reason `final`) is committed and every owned commit is done. Without it, or if the run never commits a final checkpoint, SIGTERM saves the state and exits 75. |
-| Restarts | State in `state.json` (written atomically), one watcher per state file (OS lock). A scoring failure is retried once more (`--max-attempts 2`, JOB_REQUEST.md rule 5), and the checkpoint's log keeps both attempts; a ClickHouse failure keeps the scored file and retries only the load. A commit superseded by a later commit of the same step, or deleted by retention, is recorded and skipped. If `commits.jsonl` cannot be read (a store or mount that dropped out), nothing is marked and the exit is 75. |
+| End of the run | `--until-final`: the watcher exits by itself once the newest commit is the run's final checkpoint (Team 7's trainer commits it with reason `final`) and every owned commit is done. Without it, or if the run never commits a final checkpoint, SIGTERM saves the state and exits 75. |
+| Rollback (#847) | `--resume-committed --from-step N` restarts training from the commit of step N under a new epoch, so the steps after N are committed again (on a new branch if the deferred `--branch` comes back). Each commit is keyed by its path (`<branch>/step_<N>-e<epoch>`), so each attempt and branch has its own state entries and run_ids, and its `eval_mini` rows keep `checkpoint_epoch`, `checkpoint_branch` and `checkpoint_path`. A commit scored before the rollback keeps its rows. One not yet scored when its step is committed again is `superseded`, checked again just before scoring, so a long catch-up pass does not score a stale line. `--every N` counts every line, as retention does. `--until-final` waits for the new final commit. |
+| Restarts | State in `state.json` (written atomically), one watcher per state file (OS lock). A scoring failure is retried once more (`--max-attempts 2`, JOB_REQUEST.md rule 5), and the checkpoint's log keeps both attempts; a ClickHouse failure keeps the scored file and retries only the load. A commit superseded by a later commit of the same step, or deleted by retention, is recorded and skipped. If `commits.jsonl` cannot be read (a store or mount that dropped out), nothing is marked and the exit is 75. Before a scorer starts, the state saves `in_flight` (a hash of the scorer's command line). A watcher killed after its scorer wrote the result keeps that file on the next start instead of scoring again, but only with the same command, and only if the file parses, scores this commit and names its `model_revision`. A file found without `in_flight` (for example after `state.json` was deleted to score everything again) is never kept. After it takes the slot, the watcher checks once more that the step was not committed again while it waited. `watcher_restart_test.py` kills the watchers at these points (next section). |
 | Events | `eval.scored`, `eval.loaded`, `eval.failed`, `eval.load_failed`, `eval.skipped`, `eval.store_unavailable` through Team 7's `common/events.py` when `V5_EVENTS_DIR` is set. |
 | Exit codes | 0 done, 1 a checkpoint failed `--max-attempts` times, 75 stopped, store unreadable or work left for a rerun, 78 fatal. |
+
+## Restart test (`watcher_restart_test.py`)
+
+The test replays a real `commits.jsonl` (default: the dry run 2 record, `teams/05-architecture/results/dryrun2-1234/`,
+#869) faster than real time, while two real `eval_watcher.py` processes follow it (Tier A every commit, Tier B every
+3rd, one slot lock). It kills the watchers at fixed moments: SIGKILL while a scorer runs, SIGKILL after the scorer
+wrote its result, one SIGTERM, and with `--clickhouse-url` SIGKILL right after `load_jsonl.py`'s DELETE or INSERT
+(a proxy in front of ClickHouse sends it). `--random-kills N` adds seeded random SIGKILLs. A supervisor loop restarts
+each watcher after exit 75 or a death by signal, as a job loop or systemd should (never after 0, 1 or 78).
+
+Two kinds of store and scorer:
+
+- Default (macOS or Linux, no torch): a fake `run_lab_ckpt.py` that keeps its contract (reads the pointer first,
+  writes the result last) and takes `--score-s` seconds. `--restore-after K` adds a restore that commits a step again.
+- `--real` (Linux, the packages of `teams/04-ke2/src/requirements.txt` and safetensors): `tests/replay_trainer.py`
+  trains Team 5's tiny MoE and saves it with Team 7's Checkpointer at the recorded steps, reasons and times, and the
+  watchers run the real `run_lab_ckpt.py --scorer smoke` (export with the probe-loss check). Scorers are found in
+  `/proc`.
+
+```bash
+python teams/09-evaluation/harness_lab/watcher_restart_test.py --random-kills 0           # planned kills, about 30 s
+python teams/09-evaluation/harness_lab/watcher_restart_test.py --random-kills 12 --restore-after 4
+python teams/09-evaluation/harness_lab/watcher_restart_test.py --clickhouse-url http://127.0.0.1:8123   # real loads
+python teams/09-evaluation/harness_lab/watcher_restart_test.py --real --speed 40           # Linux, about 2 minutes
+python teams/09-evaluation/harness_lab/watcher_restart_test.py --watcher <other eval_watcher.py>         # compare
+```
+
+It passes only if each watcher ends by itself with exit 0; every owned commit is done once (scored and loaded with a
+file that names it, or superseded); no commit is missing or extra; two scorers never ran at the same time (each
+scorer checks for a live earlier one when it starts, also one a kill cut off); no scorer is left running; with
+ClickHouse each run_id holds one result in `eval_mini` and one `ingest_manifest` row; and with `--random-kills 0`
+every planned kill hit a live watcher and the SIGTERM gave exit 75. It prints the scorer runs the kills cost, the
+results a restarted watcher kept, and the largest lag from commit to score in run time.
+
+`logs/watcher_restart_test.log` has 9 runs. The watcher without this change fails (fake and real scorer): a killed
+watcher's scorer kept running, and the restarted watcher started a second scorer on the same slot. This version
+passes on macOS and Linux, with ClickHouse loads, with a restore, with random kills, and on the real store and
+scorer.
+
+What a kill costs now: SIGKILL while a scorer runs costs that score on Linux (the kernel ends the scorer at once and
+the next start scores the commit again) and nothing on macOS (the scorer finishes, its result is kept). SIGKILL after
+the result is written costs nothing. SIGTERM stops the scorer on purpose (the slot must be free when the watcher
+stops) and the next start scores that commit again. A kill during a load costs a reload (`load_jsonl.py` deletes the
+run_id's rows before it inserts).
 
 ## Dry run 1: a Team 5 run folder (`--team5-run`)
 
@@ -137,6 +182,7 @@ store for it, so `--team5-run <folder>` scores that folder in place of `--run-di
 | `--scorer smoke` (next-token accuracy on Team 5's seeded stream) | Done. It tests the pipeline. It is not an eval-mini task and says nothing about quality. Output byte-identical to before the scorer contract |
 | lm-eval tasks on a Team 5 `LanguageModel` in Team 7's layout (`lm_eval_lab:team5`) | Done, CPU end to end in `logs/watcher_cpu_test.log` |
 | `eval_watcher.py`: each new commit scored and loaded, restarts, retries, tiers, slot lock | Done; tests without GPU or ClickHouse. The store must be a local or mounted path, as for `run_lab_ckpt.py` |
+| The watcher survives SIGKILL and SIGTERM at any point of a run (task 3) | Done: `watcher_restart_test.py` on the dry run 2 commit log, `logs/watcher_restart_test.log`. The scorer is a fake: the GPU scoring of the dry run 2 commits waits for the step 1,221 weights from TSAI |
 | Team 5 `checkpoint.pt` + `manifest.json` layout (section 6, last paragraph): dry run 1 | Done: `--team5-run <folder>` in `run_lab_ckpt.py` and `eval_watcher.py` (below). Tested on a stub model; the real run is the job request `../jobs/2026-11-15-eval-watcher-dry-run-1.md` |
 | `--run-name` for queue jobs (`<job_run_id>/<arm>`) | Done, not tested on a real queue job |
 

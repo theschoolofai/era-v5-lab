@@ -23,23 +23,37 @@ sys.modules["eval_watcher"] = ew
 _spec.loader.exec_module(ew)
 
 
+def write_commit(run: Path, step, epoch, has_manifest=True, branch="main", reason="interval", committed_at=0.0) -> str:
+    """One commit as Team 7's checkpointer makes it: MANIFEST.json first, then its commits.jsonl line (returned)."""
+    rel = f"{branch}/step_{step:08d}-e{epoch}"
+    if has_manifest:
+        (run / rel).mkdir(parents=True)
+        (run / rel / "MANIFEST.json").write_text(json.dumps({"run_id": run.name, "branch": branch, "step": step,
+                                                             "committed_at": committed_at}))
+    return json.dumps({"step": step, "branch": branch, "path": rel, "time": committed_at, "reason": reason,
+                       "epoch": epoch})
+
+
 def make_run(root: Path, commits, name="run-x", newline_last=True, committed_at=0.0, final=False) -> Path:
-    """A run folder in Team 7's layout. commits: (step, epoch, has_manifest). final: the last commit ends the run."""
+    """A run folder in Team 7's layout. commits: (step, epoch, has_manifest), or (step, epoch, has_manifest, branch,
+    reason) for a commit on another branch. final: the last commit ends the run."""
     run = root / name
     run.mkdir(parents=True)
     lines = []
-    for n, (step, epoch, has_manifest) in enumerate(commits, 1):
-        rel = f"main/step_{step:08d}-e{epoch}"
-        if has_manifest:
-            (run / rel).mkdir(parents=True)
-            (run / rel / "MANIFEST.json").write_text(json.dumps({"run_id": name, "branch": "main", "step": step,
-                                                                 "committed_at": committed_at}))
-        reason = "final" if final and n == len(commits) else "interval"
-        lines.append(json.dumps({"step": step, "branch": "main", "path": rel, "time": committed_at,
-                                 "reason": reason, "epoch": epoch}))
+    for n, (step, epoch, has_manifest, *branch_reason) in enumerate(commits, 1):
+        branch, reason = branch_reason or ("main", "final" if final and n == len(commits) else "interval")
+        lines.append(write_commit(run, step, epoch, has_manifest, branch, reason, committed_at))
     text = "\n".join(lines) + ("\n" if newline_last and lines else "")
     (run / "commits.jsonl").write_text(text, encoding="utf-8")
     return run
+
+
+def append_commits(run: Path, commits, committed_at=0.0) -> None:
+    """Commits that arrive later, as the trainer goes on: (step, epoch, branch, reason), each with its MANIFEST.json."""
+    lines = [write_commit(run, step, epoch, True, branch, reason, committed_at)
+             for step, epoch, branch, reason in commits]
+    with open(run / "commits.jsonl", "a", encoding="utf-8") as f:
+        f.write("".join(line + "\n" for line in lines))
 
 
 def revision_of(run_dir: Path, path: str) -> str:
@@ -68,7 +82,7 @@ class FakeScorer:
     def __init__(self, codes=None, wrong_step=False, on_call=None):
         self.calls, self.codes, self.wrong_step, self.on_call = [], list(codes or []), wrong_step, on_call
 
-    def __call__(self, argv, log_path, timeout, stop):
+    def __call__(self, argv, log_path, timeout, stop, keep_fds=()):
         args = dict(zip(argv[2::2], argv[3::2]))
         self.calls.append(argv)
         log_path.write_text("fake scorer\n")
@@ -193,6 +207,105 @@ def test_a_bad_complete_line_is_fatal(tmp_path, scorer, bad):
         run(tmp_path, run_dir, "--no-load")
     assert e.value.code == ew.EXIT_FATAL
     assert scorer.calls == []  # nothing is scored from a commit log that cannot be trusted
+
+
+# ---- a rollback (#847): steps go back -------------------------------------------------------------------------------
+
+# Team 5's trainer with --resume-committed --from-step 20 (#847, narrowed to that flag on 27 Nov): Team 7's restore
+# claims epoch 2 on the same branch, and training commits steps 30, 40 ... again. The deferred --branch rb would put
+# them on a new branch, after a commit of the restored step there (reason "rollback").
+OLD = [(10, 1, True), (20, 1, True), (30, 1, True)]
+ROLLBACK = [(30, 2, "main", "interval"), (40, 2, "main", "final")]
+BRANCHED = [(20, 2, "rb", "rollback"), (30, 2, "rb", "interval"), (40, 2, "rb", "final")]
+
+
+def rollback_on_first_call(commits):
+    """FakeScorer on_call: the run rolls back (these commits arrive) while the first checkpoint is being scored."""
+    done = []
+
+    def on_call(run_dir, path):
+        if not done:
+            done.append(path)
+            append_commits(run_dir, commits)
+    return on_call
+
+
+@pytest.mark.parametrize("again", [ROLLBACK, BRANCHED], ids=["from-step", "new-branch"])
+def test_a_rollback_is_scored_apart_from_the_old_commits(tmp_path, scorer, monkeypatch, again):
+    """The watcher kept up, then the run rolled back: the steps committed again are scored under their own state
+    entries and run_ids (the commit path holds the epoch and the branch), and the old commits keep their rows."""
+    rec = RecordingLoader()
+    monkeypatch.setattr(ew, "loader", lambda: rec)
+    run_dir = make_run(tmp_path, OLD)
+    assert run(tmp_path, run_dir) == ew.EXIT_OK
+    append_commits(run_dir, again)
+    assert run(tmp_path, run_dir) == ew.EXIT_OK
+    assert scorer.steps == [10, 20, 30] + [step for step, *_ in again]
+    s = state(tmp_path)
+    n = len(OLD) + len(again)
+    assert len(s) == n and all(r["status"] == "scored" and r["loaded"] for r in s.values())
+    assert len(rec.seen) == len(set(rec.seen)) == n
+    step, epoch, branch, _ = again[0]
+    new = f"{branch}/step_{step:08d}-e{epoch}"
+    assert s[new]["run_id"].startswith(f"run-x:{new}:smoke:") and (s[new]["branch"], s[new]["epoch"]) == (branch, 2)
+    assert s[f"main/step_{step:08d}-e1"]["status"] == "scored"  # the old commit of the same step
+
+
+def test_a_catch_up_after_a_rollback_scores_the_newest_commit_of_each_step(tmp_path, scorer):
+    run_dir = make_run(tmp_path, OLD + [(step, epoch, True, branch, reason)
+                                        for step, epoch, branch, reason in ROLLBACK])
+    assert run(tmp_path, run_dir, "--no-load") == ew.EXIT_OK
+    assert scorer.steps == [10, 20, 30, 40]  # each step once, from the newest line of that step
+    s = state(tmp_path)
+    assert s["main/step_00000030-e1"]["status"] == "superseded"
+    assert {k for k, r in s.items() if r["status"] == "scored"} == {
+        "main/step_00000010-e1", "main/step_00000020-e1", "main/step_00000030-e2", "main/step_00000040-e2"}
+    # Tier B owns lines 2 and 4 of commits.jsonl, the lines run_retention protects with --protect-every 2
+    assert run(tmp_path, run_dir, "--no-load", "--every", "2", "--label", "tier-b", out="b") == ew.EXIT_OK
+    assert scorer.steps[4:] == [20, 30]
+    b = state(tmp_path, "b")
+    assert [b[k]["status"] for k in ("main/step_00000020-e1", "main/step_00000030-e2")] == ["scored", "scored"]
+
+
+def test_a_step_committed_again_during_a_pass_is_superseded_not_failed(tmp_path, monkeypatch):
+    """A catch-up pass reads commits.jsonl at its start. When the rollback commits step 30 again while step 10 is
+    scored, run_lab_ckpt.py --step 30 would score the new line: the old commit is superseded, without a scorer run and
+    without a failure (with --max-attempts 1, a failure would end the watch with exit 1)."""
+    fake = FakeScorer(on_call=rollback_on_first_call(ROLLBACK[:1]))
+    monkeypatch.setattr(ew, "run_scorer", fake)
+    run_dir = make_run(tmp_path, OLD)
+    assert run(tmp_path, run_dir, "--no-load", "--max-attempts", "1") == ew.EXIT_RETRY  # the new line: next pass
+    assert fake.steps == [10, 20]
+    assert state(tmp_path)["main/step_00000030-e1"]["status"] == "superseded"
+    assert run(tmp_path, run_dir, "--no-load", "--max-attempts", "1") == ew.EXIT_OK
+    assert fake.steps == [10, 20, 30]
+    assert {r["status"] for r in state(tmp_path).values()} == {"scored", "superseded"}
+
+
+def test_a_step_committed_again_while_it_is_scored_is_superseded_not_an_error(tmp_path, monkeypatch):
+    """The scorer of the old step-30 commit fails while the rollback commits step 30 again (it can also have scored
+    the new line): not a failure of the old commit, and the new one is scored on its own."""
+    fake = FakeScorer(codes=[1], on_call=rollback_on_first_call(ROLLBACK[:1]))
+    monkeypatch.setattr(ew, "run_scorer", fake)
+    run_dir = make_run(tmp_path, [(30, 1, True)])
+    assert run(tmp_path, run_dir, "--no-load") == ew.EXIT_RETRY
+    rec = state(tmp_path)["main/step_00000030-e1"]
+    assert rec["status"] == "superseded" and "while it was scored" in rec["detail"]
+    assert run(tmp_path, run_dir, "--no-load") == ew.EXIT_OK
+    assert fake.steps == [30, 30] and state(tmp_path)["main/step_00000030-e2"]["status"] == "scored"
+
+
+def test_until_final_waits_for_a_run_rolled_back_after_its_final_commit(tmp_path, scorer):
+    """--from-step 10 on a finished run: the old final commit no longer ends the watch, the new final does."""
+    run_dir = make_run(tmp_path, [(10, 1, True), (20, 1, True)], final=True)
+    append_commits(run_dir, [(20, 2, "main", "interval")])
+    a = ew.parse_args(["--run-dir", str(run_dir), "--out-dir", str(tmp_path / "out"), "--no-load", "--until-final"])
+    w = ew.Watcher(a, threading.Event())
+    w.poll()
+    assert w.outcome() == ew.EXIT_OK and not w.run_ended()  # every owned commit is done, but training goes on
+    append_commits(run_dir, [(30, 2, "main", "final")])
+    w.poll()
+    assert w.run_ended() and scorer.steps == [10, 20, 30]
 
 
 # ---- failures, retries, the store going away ------------------------------------------------------------------------
@@ -435,6 +548,212 @@ def test_timeout_ends_the_scorers_children_too(tmp_path):
         time.sleep(0.1)
     else:
         pytest.fail(f"child {pid} of the stopped scorer is still alive")
+
+
+# ---- a watcher killed by SIGKILL ------------------------------------------------------------------------------------
+
+# A stand-in for the watcher: takes the slot, starts a scorer that sleeps, prints the scorer's pid, waits for it.
+MINI_WATCHER = """
+import importlib.util, sys, threading
+spec = importlib.util.spec_from_file_location("ew", sys.argv[1]); ew = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(ew)
+slot = ew.FileLock(ew.Path(sys.argv[2])); assert slot.try_acquire()
+child = "import os, time; print('scorer', os.getpid(), flush=True); time.sleep(float(%r))" % sys.argv[3]
+ew.run_scorer([sys.executable, "-c", child], ew.Path(sys.argv[4]), 60, threading.Event(), keep_fds=(slot.fileno(),))
+"""
+
+
+def start_and_kill_mini_watcher(tmp_path, sleep_s):
+    """Start MINI_WATCHER, SIGKILL it while its scorer runs, return (scorer pid, slot lock path)."""
+    import signal
+    import subprocess
+    lock, log = tmp_path / "gpu_slot.lock", tmp_path / "scorer.log"
+    proc = subprocess.Popen([sys.executable, "-c", MINI_WATCHER, str(HERE.parent / "eval_watcher.py"), str(lock),
+                             str(sleep_s), str(log)])
+    for _ in range(100):
+        lines = [x for x in log.read_text().splitlines() if x.startswith("scorer ")] if log.exists() else []
+        if lines:
+            break
+        time.sleep(0.05)
+    else:
+        pytest.fail("the scorer did not start")
+    proc.send_signal(signal.SIGKILL)
+    proc.wait()
+    return int(lines[0].split()[1]), lock
+
+
+def gone(pid: int, wait_s: float) -> bool:
+    for _ in range(int(wait_s / 0.05)):
+        try:
+            os.kill(pid, 0)
+        except ProcessLookupError:
+            return True
+        stat = Path(f"/proc/{pid}/stat")
+        if stat.exists() and stat.read_text().rsplit(")", 1)[-1].split()[0] == "Z":
+            return True
+        time.sleep(0.05)
+    return False
+
+
+@pytest.mark.skipif(os.name == "nt", reason="the slot lock is passed to the scorer on POSIX only")
+def test_a_killed_watchers_scorer_keeps_the_slot_until_it_ends(tmp_path):
+    """The scorer holds the slot lock it inherited: a restarted watcher or the other tier waits for it and never
+    loads a second model on the slot. On Linux the kernel ends the scorer with the watcher (next test)."""
+    pid, lock = start_and_kill_mini_watcher(tmp_path, 1.0)
+    other = ew.FileLock(lock)
+    if not sys.platform.startswith("linux"):
+        assert not other.try_acquire(), "the slot was free while the killed watcher's scorer still ran"
+    assert gone(pid, 10.0)
+    assert other.try_acquire()  # free once the scorer has ended
+    other.release()
+
+
+@pytest.mark.skipif(not sys.platform.startswith("linux"), reason="PR_SET_PDEATHSIG is Linux only")
+def test_on_linux_the_scorer_dies_with_the_watcher(tmp_path):
+    pid, lock = start_and_kill_mini_watcher(tmp_path, 60.0)
+    assert gone(pid, 3.0), "the scorer of a killed watcher is still running"
+    other = ew.FileLock(lock)
+    assert other.try_acquire()
+    other.release()
+
+
+class Killed(BaseException):
+    """Stands in for SIGKILL of the watcher: nothing after it runs, no except clause catches it."""
+
+
+def killed_while_scoring(tmp_path, monkeypatch, run_dir, text=None, extra=()):
+    """Run the watcher until its scorer of the first commit is running, then 'kill' it there. text: what the scorer
+    had written to its out file by then (None: nothing)."""
+    def die(argv, log_path, timeout, stop, keep_fds=()):
+        if text is not None:
+            Path(dict(zip(argv[2::2], argv[3::2]))["--out"]).write_text(text)
+        raise Killed()
+    monkeypatch.setattr(ew, "run_scorer", die)
+    with pytest.raises(Killed):
+        run(tmp_path, run_dir, "--no-load", *extra)
+    fake = FakeScorer()
+    monkeypatch.setattr(ew, "run_scorer", fake)
+    return fake
+
+
+def good_doc(run_dir, step=100):
+    path = f"main/step_{step:08d}-e1"
+    return json.dumps(doc_for(str(run_dir), step, path, revision_of(run_dir, path)))
+
+
+def test_a_result_written_before_the_watcher_was_killed_is_kept(tmp_path, monkeypatch):
+    """Killed after its scorer wrote the file and before the state said so: the file is this commit's result."""
+    run_dir = make_run(tmp_path, [(100, 1, True), (200, 1, True)])
+    path = "main/step_00000100-e1"
+    fake = killed_while_scoring(tmp_path, monkeypatch, run_dir, good_doc(run_dir))
+    assert state(tmp_path)[path]["in_flight"]          # the mark was saved before the scorer started
+    assert run(tmp_path, run_dir, "--no-load") == ew.EXIT_OK
+    assert fake.steps == [200]                          # step 100 was not scored again
+    st = state(tmp_path)[path]
+    assert st["reused"] is True and st["status"] == "scored" and st["records"] == 1 and "in_flight" not in st
+    assert st["attempts"] == 0 and st["run_id"].endswith(":" + revision_of(run_dir, path)[:12])
+
+
+def test_killed_before_the_scorer_wrote_anything_scores_again(tmp_path, monkeypatch):
+    run_dir = make_run(tmp_path, [(100, 1, True)])
+    fake = killed_while_scoring(tmp_path, monkeypatch, run_dir)
+    assert run(tmp_path, run_dir, "--no-load") == ew.EXIT_OK
+    assert fake.steps == [100]
+    st = state(tmp_path)["main/step_00000100-e1"]
+    assert "reused" not in st and "in_flight" not in st and st["attempts"] == 1
+
+
+@pytest.mark.parametrize("bad", ["revision", "step", "torn"])
+def test_a_file_that_is_not_this_commits_result_is_scored_again(tmp_path, monkeypatch, bad):
+    run_dir = make_run(tmp_path, [(100, 1, True)])
+    path = "main/step_00000100-e1"
+    text = json.dumps(doc_for(str(run_dir), 101 if bad == "step" else 100, path,
+                              "ab" * 32 if bad == "revision" else revision_of(run_dir, path)))
+    fake = killed_while_scoring(tmp_path, monkeypatch, run_dir, text[: len(text) // 2] if bad == "torn" else text)
+    assert run(tmp_path, run_dir, "--no-load") == ew.EXIT_OK
+    assert fake.steps == [100]
+    assert "reused" not in state(tmp_path)[path]
+
+
+def test_a_file_is_not_kept_after_the_state_was_deleted(tmp_path, monkeypatch):
+    """Deleting state.json means 'score everything again' (a scorer fix, for example): old files are never kept."""
+    run_dir = make_run(tmp_path, [(100, 1, True)])
+    fake = killed_while_scoring(tmp_path, monkeypatch, run_dir, good_doc(run_dir))
+    (tmp_path / "out" / "state.json").unlink()
+    assert run(tmp_path, run_dir, "--no-load") == ew.EXIT_OK
+    assert fake.steps == [100]
+
+
+def test_a_file_is_not_kept_when_the_scorer_command_changed(tmp_path, monkeypatch):
+    """Restarted with other scorer arguments: the file came from the old command and is scored again."""
+    run_dir = make_run(tmp_path, [(100, 1, True)])
+    fake = killed_while_scoring(tmp_path, monkeypatch, run_dir, good_doc(run_dir), extra=("--label", "t", "--",
+                                                                                          "--limit", "2"))
+    assert run(tmp_path, run_dir, "--no-load", "--label", "t", "--", "--limit", "3") == ew.EXIT_OK
+    assert fake.steps == [100]
+
+
+def test_a_stop_while_scoring_keeps_the_mark_and_the_next_start_finishes(tmp_path, monkeypatch):
+    """SIGTERM while the scorer runs: exit 75, and the next start keeps the result if the scorer had written it."""
+    run_dir = make_run(tmp_path, [(100, 1, True)])
+
+    def stopped(argv, log_path, timeout, stop, keep_fds=()):
+        Path(dict(zip(argv[2::2], argv[3::2]))["--out"]).write_text(good_doc(run_dir))
+        raise ew.Stopped()
+    monkeypatch.setattr(ew, "run_scorer", stopped)
+    assert run(tmp_path, run_dir, "--no-load") == ew.EXIT_RETRY
+    fake = FakeScorer()
+    monkeypatch.setattr(ew, "run_scorer", fake)
+    assert run(tmp_path, run_dir, "--no-load") == ew.EXIT_OK
+    assert fake.steps == [] and state(tmp_path)["main/step_00000100-e1"]["reused"] is True
+
+
+def test_a_step_committed_again_while_waiting_for_the_slot_is_superseded_not_scored(tmp_path, scorer, monkeypatch):
+    """The other tier holds the slot; meanwhile a rollback commits step 10 again. Scoring the old line now would
+    score the new commit (--step reads the last line) under the old one's name: it is superseded instead."""
+    run_dir = make_run(tmp_path, [(10, 1, True)])
+    real_take = ew.Watcher.take_slot
+
+    def take_slot(self):
+        if not (run_dir / "main/step_00000010-e2").exists():
+            append_commits(run_dir, [(10, 2, "main", "interval")])
+        return real_take(self)
+    monkeypatch.setattr(ew.Watcher, "take_slot", take_slot)
+    assert run(tmp_path, run_dir, "--no-load") == ew.EXIT_RETRY   # the new line came after this pass read the log
+    st = state(tmp_path)
+    assert st["main/step_00000010-e1"]["status"] == "superseded" and scorer.calls == []
+    assert "waited for the GPU slot" in st["main/step_00000010-e1"]["detail"]
+    assert run(tmp_path, run_dir, "--no-load") == ew.EXIT_OK      # the next pass scores the new commit, once
+    assert scorer.steps == [10] and state(tmp_path)["main/step_00000010-e2"]["status"] == "scored"
+
+
+def test_a_left_file_after_a_failed_attempt_is_not_kept(tmp_path, monkeypatch):
+    """A failed attempt clears the mark: a file found later is never kept, the next attempt scores afresh."""
+    run_dir = make_run(tmp_path, [(100, 1, True)])
+    fake = FakeScorer(codes=[1, 0])
+    monkeypatch.setattr(ew, "run_scorer", fake)
+    assert run(tmp_path, run_dir, "--no-load") == ew.EXIT_RETRY
+    path = "main/step_00000100-e1"
+    doc = doc_for(str(run_dir), 100, path, revision_of(run_dir, path))
+    (tmp_path / "out" / "main__step_00000100-e1.json").write_text(json.dumps(doc))
+    assert run(tmp_path, run_dir, "--no-load") == ew.EXIT_OK
+    assert fake.steps == [100, 100]
+
+
+@pytest.mark.skipif(os.name == "nt", reason="the replay test sends POSIX signals")
+def test_replay_with_kills_passes(tmp_path):
+    """watcher_restart_test.py end to end on a 6-commit run, fast: every check must pass."""
+    spec = importlib.util.spec_from_file_location("watcher_restart_test", HERE.parent / "watcher_restart_test.py")
+    wrt = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(wrt)
+    commits = tmp_path / "commits.jsonl"
+    lines = [{"step": s, "branch": "main", "path": f"main/step_{s:08d}-e1", "time": 1000.0 + 600 * i,
+              "reason": "start" if i == 0 else ("final" if i == 5 else "interval"), "epoch": 1}
+             for i, s in enumerate([0, 200, 400, 600, 800, 1000])]
+    commits.write_text("".join(json.dumps(x) + "\n" for x in lines))
+    assert wrt.main(["--commits", str(commits), "--speed", "2400", "--score-s", "0.2", "--random-kills", "3",
+                     "--interval", "0.05", "--restart-delay", "0.1", "--timeout", "120",
+                     "--work", str(tmp_path / "work")]) == 0
 
 
 # ---- --team5-run: dry run 1, a Team 5 train_week2.py run folder with one checkpoint ---------------------------------

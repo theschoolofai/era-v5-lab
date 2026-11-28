@@ -1,0 +1,455 @@
+watcher_restart_test.py: the eval watcher killed again and again while it follows a replay of the dry run 2 commits.
+
+Input: teams/05-architecture/results/dryrun2-1234/commits.jsonl from TSAI's run record (#869): 9 commits, step 0 to
+the final step 1,221, sha256 05a052c390e6f80b7303eacd3be9b284c9a6a430e38478be5880012f75a2e0e8.
+Two watchers as on the eval slot: Tier A on every commit, Tier B on every 3rd (it owns 3 of the 9; 10 on the slot),
+one GPU slot lock. A supervisor restarts a watcher after exit 75 or a death by signal, never after 0, 1 or 78.
+
+Planned kills (each fires once):
+  SIGKILL while the scorer runs:              Tier A step 0 and step 1,221
+  SIGKILL after the scorer wrote its result:  Tier A step 672, Tier B step 350
+  SIGTERM while the scorer runs:              Tier A step 350 (the watcher must exit 75)
+  with ClickHouse, SIGKILL from a proxy right after the server ran load_jsonl.py's DELETE (Tier A step 195) or its
+  INSERT into eval_mini (Tier A step 513, Tier B last commit), before the watcher saw the answer
+Random kills: 12 SIGKILLs at seeded random times (seed 7), to either tier. Some land while a watcher is down between
+restarts; the log says how many hit a live watcher.
+
+Fake store and scorer: the commits replayed at 200x (the run's 5,039 s in 25 s), a fake run_lab_ckpt.py that takes
+1 s (200 s of run time), reads the pointer first and writes its result last, as run_lab_ckpt.py does.
+Real store and scorer (--real, Linux, torch 2.15.0+cpu, kronecker-embeddings d07cb543): tests/replay_trainer.py
+trains Team 5's tiny MoE and saves it with Team 7's Checkpointer at the 9 recorded steps and reasons, at the recorded
+times at 40x, while the watchers run the real run_lab_ckpt.py --scorer smoke (export with the probe-loss check, then
+the score, about 1.1 s per commit). Scorer processes are found in /proc every 10 ms; the /proc monitor lists each
+overlapping pair from both sides.
+
+"Base" is eval_watcher.py of the rollback branch this change builds on (6b35225d), without this change.
+
+| # | Watcher | Store and scorer | Kills | Where | Result |
+|---|---|---|---|---|---|
+| 1 | base | fake | planned | macOS 15.1, Python 3.12.4 | FAIL: 2 overlaps (step 0, step 1,221), 4 extra scorer runs |
+| 2 | this change | fake | planned | macOS | PASS: 0 overlaps, 0 extra runs, 4 results kept after a kill |
+| 3 | this change | fake + restore after commit 4 | planned + 12 random (10 hit) | macOS | PASS: 1 commit superseded, 0 extra runs |
+| 4 | this change | fake, ClickHouse 24.8 | planned + 3 load kills | macOS | PASS: 12 run_ids, each 1 eval_mini row and 1 ingest_manifest row |
+| 5 | this change | fake + restore, ClickHouse 24.8 | planned + load + 12 random (10 hit) | macOS | PASS: 12 run_ids as in run 4, 1 superseded |
+| 6 | this change | fake | planned | Linux (Docker, Python 3.11) | PASS: 0 overlaps, 0 extra runs |
+| 7 | base | real | planned | Linux | FAIL: 2 overlaps (step 0, step 1,221), 5 extra scorer runs |
+| 8 | this change | real | planned | Linux | PASS: 0 overlaps, 0 extra runs |
+| 9 | this change | real | planned + 12 random (12 hit) | Linux | PASS: 0 overlaps, 0 extra runs |
+
+Tests in the same state: test_eval_watcher.py 58 passed, 1 skipped (the Linux-only PR_SET_PDEATHSIG test) on macOS;
+the whole harness_lab/tests folder 95 passed on Linux (with lm_eval 0.4.13, datasets 5.1.0, tokenizers 0.23.3).
+
+Commands (python = the repo's environment; ClickHouse = a throwaway clickhouse-server:24.8-alpine with schema_v1.sql;
+Linux = docker run --rm -v "$PWD":/repo:ro -w /repo <python 3.11 image with torch, safetensors, pyyaml, numpy,
+kronecker-embeddings> python ...):
+  1. python teams/09-evaluation/harness_lab/watcher_restart_test.py --random-kills 0 --watcher <base eval_watcher.py>
+  2. python teams/09-evaluation/harness_lab/watcher_restart_test.py --random-kills 0
+  3. python teams/09-evaluation/harness_lab/watcher_restart_test.py --random-kills 12 --seed 7 --restore-after 4
+  4. python teams/09-evaluation/harness_lab/watcher_restart_test.py --random-kills 0 --clickhouse-url http://127.0.0.1:18123
+  5. python teams/09-evaluation/harness_lab/watcher_restart_test.py --random-kills 12 --seed 7 --restore-after 4 --clickhouse-url http://127.0.0.1:18123
+  6. (Linux) watcher_restart_test.py --random-kills 0
+  7. (Linux) watcher_restart_test.py --real --speed 40 --random-kills 0 --watcher <base eval_watcher.py>
+  8. (Linux) watcher_restart_test.py --real --speed 40 --random-kills 0
+  9. (Linux) watcher_restart_test.py --real --speed 40 --random-kills 12 --seed 7
+--commits defaults to the dry run 2 record.
+
+=============== run 1
+[13:32:17] replay commits.jsonl (9 commits, run span 5039 s) at 200x = 25.2 s wall; fake scorer 1 s per checkpoint; Tier B every 3; --no-load
+[13:32:17] planned kills: tier-a:0:mid, tier-a:1221:mid, tier-a:350:sigterm, tier-a:672:after-write, tier-b:350:after-write
+[13:32:17] random SIGKILLs at wall s: none
+[13:32:17] trainer: committed step 0 (start, main/step_00000000-e1)
+[13:32:18] tier-a: watcher exited -9, restart in 0.3 s
+[13:32:21] trainer: committed step 195 (interval, main/step_00000195-e1)
+[13:32:24] trainer: committed step 350 (interval, main/step_00000350-e1)
+[13:32:26] tier-b: watcher exited -9, restart in 0.3 s
+[13:32:28] trainer: committed step 513 (interval, main/step_00000513-e1)
+[13:32:29] tier-a: watcher exited 75, restart in 0.3 s
+[13:32:31] trainer: committed step 672 (interval, main/step_00000672-e1)
+[13:32:32] tier-a: watcher exited -9, restart in 0.3 s
+[13:32:34] trainer: committed step 836 (interval, main/step_00000836-e1)
+[13:32:37] trainer: committed step 993 (interval, main/step_00000993-e1)
+[13:32:41] trainer: committed step 1150 (interval, main/step_00001150-e1)
+[13:32:43] trainer: committed step 1221 (final, main/step_00001221-e1)
+[13:32:44] tier-b: watcher exited 0
+[13:32:45] tier-a: watcher exited -9, restart in 0.3 s
+[13:32:47] tier-a: watcher exited 0
+[13:32:47] planned kills fired: tier-a:0:mid, tier-a:1221:mid, tier-a:350:sigterm, tier-a:672:after-write, tier-b:350:after-write; random kills that hit a live watcher: 0
+[13:32:47] PASS tier-a: ended by itself with exit 0 after 5 start(s); exits [-9, 75, -9, -9, 0]
+[13:32:47] PASS tier-a: state holds exactly the 9 owned commit(s)
+[13:32:47] PASS tier-a: 9 scored and parsed with a file that names the commit, 0 superseded
+[13:32:47] tier-a: 12 scorer run(s) finished for 9 scored commit(s), 0 of them kept from a killed watcher; 3 extra finished run(s) from kills; 1 scorer(s) cut off by a kill
+[13:32:47] tier-a: largest lag from commit to score 5.70 s wall = 1140 s of run time (Tier A rule: 1,800 s)
+[13:32:47] PASS tier-b: ended by itself with exit 0 after 2 start(s); exits [-9, 0]
+[13:32:47] PASS tier-b: state holds exactly the 3 owned commit(s)
+[13:32:47] PASS tier-b: 3 scored and parsed with a file that names the commit, 0 superseded
+[13:32:47] tier-b: 4 scorer run(s) finished for 3 scored commit(s), 0 of them kept from a killed watcher; 1 extra finished run(s) from kills; 0 scorer(s) cut off by a kill
+[13:32:47] tier-b: largest lag from commit to score 3.30 s wall = 660 s of run time (Tier B waits for Tier A on the slot)
+[13:32:47]   overlap: tier-a step 0 (pid 6698) started while pid(s) [6696] ran
+[13:32:47]   overlap: tier-a step 1221 (pid 6718) started while pid(s) [6716] ran
+[13:32:47] FAIL no two scorers ran at the same time on the slot (17 scorer start(s))
+[13:32:48] PASS no scorer left running
+[13:32:48] PASS every planned kill fired at a live watcher (5 of 5)
+[13:32:48] PASS the SIGTERM ended a watcher with exit 75
+[13:32:48] RESULT FAIL
+
+=============== run 2
+[13:32:49] replay commits.jsonl (9 commits, run span 5039 s) at 200x = 25.2 s wall; fake scorer 1 s per checkpoint; Tier B every 3; --no-load
+[13:32:49] planned kills: tier-a:0:mid, tier-a:1221:mid, tier-a:350:sigterm, tier-a:672:after-write, tier-b:350:after-write
+[13:32:49] random SIGKILLs at wall s: none
+[13:32:49] trainer: committed step 0 (start, main/step_00000000-e1)
+[13:32:49] tier-a: watcher exited -9, restart in 0.3 s
+[13:32:52] trainer: committed step 195 (interval, main/step_00000195-e1)
+[13:32:55] trainer: committed step 350 (interval, main/step_00000350-e1)
+[13:32:57] tier-b: watcher exited -9, restart in 0.3 s
+[13:32:59] tier-a: watcher exited 75, restart in 0.3 s
+[13:32:59] trainer: committed step 513 (interval, main/step_00000513-e1)
+[13:33:02] trainer: committed step 672 (interval, main/step_00000672-e1)
+[13:33:03] tier-a: watcher exited -9, restart in 0.3 s
+[13:33:05] trainer: committed step 836 (interval, main/step_00000836-e1)
+[13:33:09] trainer: committed step 993 (interval, main/step_00000993-e1)
+[13:33:12] trainer: committed step 1150 (interval, main/step_00001150-e1)
+[13:33:14] trainer: committed step 1221 (final, main/step_00001221-e1)
+[13:33:15] tier-b: watcher exited 0
+[13:33:16] tier-a: watcher exited -9, restart in 0.3 s
+[13:33:18] tier-a: watcher exited 0
+[13:33:18] planned kills fired: tier-a:0:mid, tier-a:1221:mid, tier-a:350:sigterm, tier-a:672:after-write, tier-b:350:after-write; random kills that hit a live watcher: 0
+[13:33:18] PASS tier-a: ended by itself with exit 0 after 5 start(s); exits [-9, 75, -9, -9, 0]
+[13:33:18] PASS tier-a: state holds exactly the 9 owned commit(s)
+[13:33:18] PASS tier-a: 9 scored and parsed with a file that names the commit, 0 superseded
+[13:33:18] tier-a: 9 scorer run(s) finished for 9 scored commit(s), 3 of them kept from a killed watcher; 0 extra finished run(s) from kills; 1 scorer(s) cut off by a kill
+[13:33:18] tier-a: largest lag from commit to score 4.70 s wall = 940 s of run time (Tier A rule: 1,800 s)
+[13:33:18] PASS tier-b: ended by itself with exit 0 after 2 start(s); exits [-9, 0]
+[13:33:18] PASS tier-b: state holds exactly the 3 owned commit(s)
+[13:33:18] PASS tier-b: 3 scored and parsed with a file that names the commit, 0 superseded
+[13:33:18] tier-b: 3 scorer run(s) finished for 3 scored commit(s), 1 of them kept from a killed watcher; 0 extra finished run(s) from kills; 0 scorer(s) cut off by a kill
+[13:33:18] tier-b: largest lag from commit to score 3.20 s wall = 640 s of run time (Tier B waits for Tier A on the slot)
+[13:33:18] PASS no two scorers ran at the same time on the slot (13 scorer start(s))
+[13:33:19] PASS no scorer left running
+[13:33:19] PASS every planned kill fired at a live watcher (5 of 5)
+[13:33:19] PASS the SIGTERM ended a watcher with exit 75
+[13:33:19] RESULT PASS
+
+=============== run 3
+[13:33:19] replay commits.jsonl (10 commits, restore after commit 4, run span 5039 s) at 200x = 25.2 s wall; fake scorer 1 s per checkpoint; Tier B every 3; --no-load
+[13:33:19] planned kills: tier-a:0:mid, tier-a:1221:mid, tier-a:350:sigterm, tier-a:672:after-write, tier-b:350:after-write
+[13:33:19] random SIGKILLs at wall s: 0.94 tier-b, 1.25 tier-a, 1.49 tier-a, 1.82 tier-a, 2.29 tier-b, 8.16 tier-a, 9.21 tier-a, 9.95 tier-a, 10.54 tier-a, 14.54 tier-b, 22.92 tier-a, 23.87 tier-a
+[13:33:19] trainer: committed step 0 (start, main/step_00000000-e1)
+[13:33:20] tier-a: watcher exited -9, restart in 0.3 s
+[13:33:20] tier-b: random SIGKILL (pid 6743) at wall 0.94 s
+[13:33:20] tier-b: watcher exited -9, restart in 0.3 s
+[13:33:21] tier-a: random SIGKILL (pid 6745) at wall 1.25 s
+[13:33:21] tier-a: watcher exited -9, restart in 0.3 s
+[13:33:21] tier-a: random SIGKILL (pid 6747) at wall 1.82 s
+[13:33:21] tier-a: watcher exited -9, restart in 0.3 s
+[13:33:22] tier-b: random SIGKILL (pid 6746) at wall 2.29 s
+[13:33:22] tier-b: watcher exited -9, restart in 0.3 s
+[13:33:23] trainer: committed step 195 (interval, main/step_00000195-e1)
+[13:33:26] trainer: committed step 350 (interval, main/step_00000350-e1)
+[13:33:27] tier-a: watcher exited 75, restart in 0.3 s
+[13:33:29] tier-b: watcher exited -9, restart in 0.3 s
+[13:33:29] tier-a: random SIGKILL (pid 6753) at wall 9.21 s
+[13:33:29] tier-a: watcher exited -9, restart in 0.3 s
+[13:33:29] tier-a: random SIGKILL (pid 6755) at wall 9.95 s
+[13:33:29] tier-a: watcher exited -9, restart in 0.3 s
+[13:33:30] trainer: committed step 513 (interval, main/step_00000513-e1)
+[13:33:30] trainer: committed step 513 (start, main/step_00000513-e2)
+[13:33:30] tier-a: random SIGKILL (pid 6757) at wall 10.54 s
+[13:33:30] tier-a: watcher exited -9, restart in 0.3 s
+[13:33:33] trainer: committed step 672 (interval, main/step_00000672-e2)
+[13:33:34] tier-b: random SIGKILL (pid 6754) at wall 14.54 s
+[13:33:34] tier-b: watcher exited -9, restart in 0.3 s
+[13:33:34] tier-a: watcher exited -9, restart in 0.3 s
+[13:33:36] trainer: committed step 836 (interval, main/step_00000836-e2)
+[13:33:39] trainer: committed step 993 (interval, main/step_00000993-e2)
+[13:33:42] tier-a: random SIGKILL (pid 6762) at wall 22.92 s
+[13:33:42] tier-a: watcher exited -9, restart in 0.3 s
+[13:33:43] trainer: committed step 1150 (interval, main/step_00001150-e2)
+[13:33:43] tier-a: random SIGKILL (pid 6766) at wall 23.87 s
+[13:33:43] tier-a: watcher exited -9, restart in 0.3 s
+[13:33:45] trainer: committed step 1221 (final, main/step_00001221-e2)
+[13:33:46] tier-b: watcher exited 0
+[13:33:47] tier-a: watcher exited -9, restart in 0.3 s
+[13:33:48] tier-a: watcher exited 0
+[13:33:48] planned kills fired: tier-a:0:mid, tier-a:1221:mid, tier-a:350:sigterm, tier-a:672:after-write, tier-b:350:after-write; random kills that hit a live watcher: 10
+[13:33:48] PASS tier-a: ended by itself with exit 0 after 12 start(s); exits [-9, -9, -9, 75, -9, -9, -9, -9, -9, -9, -9, 0]
+[13:33:48] PASS tier-a: state holds exactly the 10 owned commit(s)
+[13:33:48] PASS tier-a: 9 scored and parsed with a file that names the commit, 1 superseded
+[13:33:48] tier-a: 9 scorer run(s) finished for 9 scored commit(s), 5 of them kept from a killed watcher; 0 extra finished run(s) from kills; 1 scorer(s) cut off by a kill
+[13:33:48] tier-a: largest lag from commit to score 4.10 s wall = 820 s of run time (Tier A rule: 1,800 s)
+[13:33:48] PASS tier-b: ended by itself with exit 0 after 5 start(s); exits [-9, -9, -9, -9, 0]
+[13:33:48] PASS tier-b: state holds exactly the 3 owned commit(s)
+[13:33:48] PASS tier-b: 3 scored and parsed with a file that names the commit, 0 superseded
+[13:33:48] tier-b: 3 scorer run(s) finished for 3 scored commit(s), 1 of them kept from a killed watcher; 0 extra finished run(s) from kills; 0 scorer(s) cut off by a kill
+[13:33:48] tier-b: largest lag from commit to score 2.70 s wall = 540 s of run time (Tier B waits for Tier A on the slot)
+[13:33:48] PASS no two scorers ran at the same time on the slot (13 scorer start(s))
+[13:33:50] PASS no scorer left running
+[13:33:50] planned kills that fired: 5 of 5
+[13:33:50] RESULT PASS
+
+=============== run 4
+[13:33:50] replay commits.jsonl (9 commits, run span 5039 s) at 200x = 25.2 s wall; fake scorer 1 s per checkpoint; Tier B every 3; ClickHouse through the proxy
+[13:33:50] planned kills: tier-a:0:mid, tier-a:1221:mid, tier-a:195:load-after-delete, tier-a:350:sigterm, tier-a:513:load-after-insert, tier-a:672:after-write, tier-b:1221:load-after-insert, tier-b:350:after-write
+[13:33:50] random SIGKILLs at wall s: none
+[13:33:50] trainer: committed step 0 (start, main/step_00000000-e1)
+[13:33:50] tier-a: watcher exited -9, restart in 0.3 s
+[13:33:53] trainer: committed step 195 (interval, main/step_00000195-e1)
+[13:33:54] proxy: SIGKILL tier-a (pid 6778) right after the DELETE of its rows, step 195
+[13:33:54] tier-a: watcher exited -9, restart in 0.3 s
+[13:33:57] trainer: committed step 350 (interval, main/step_00000350-e1)
+[13:33:58] tier-a: watcher exited 75, restart in 0.3 s
+[13:33:59] tier-b: watcher exited -9, restart in 0.3 s
+[13:34:00] trainer: committed step 513 (interval, main/step_00000513-e1)
+[13:34:02] proxy: SIGKILL tier-a (pid 6783) right after the INSERT into eval_mini, step 513
+[13:34:02] tier-a: watcher exited -9, restart in 0.3 s
+[13:34:03] trainer: committed step 672 (interval, main/step_00000672-e1)
+[13:34:04] tier-a: watcher exited -9, restart in 0.3 s
+[13:34:06] trainer: committed step 836 (interval, main/step_00000836-e1)
+[13:34:10] trainer: committed step 993 (interval, main/step_00000993-e1)
+[13:34:13] trainer: committed step 1150 (interval, main/step_00001150-e1)
+[13:34:15] trainer: committed step 1221 (final, main/step_00001221-e1)
+[13:34:16] proxy: SIGKILL tier-b (pid 6785) right after the INSERT into eval_mini, step 1221
+[13:34:16] tier-b: watcher exited -9, restart in 0.3 s
+[13:34:17] tier-b: watcher exited 0
+[13:34:18] tier-a: watcher exited -9, restart in 0.3 s
+[13:34:19] tier-a: watcher exited 0
+[13:34:19] planned kills fired: tier-a:0:mid, tier-a:1221:mid, tier-a:195:load-after-delete, tier-a:350:sigterm, tier-a:513:load-after-insert, tier-a:672:after-write, tier-b:1221:load-after-insert, tier-b:350:after-write; random kills that hit a live watcher: 0
+[13:34:19] PASS tier-a: ended by itself with exit 0 after 7 start(s); exits [-9, -9, 75, -9, -9, -9, 0]
+[13:34:19] PASS tier-a: state holds exactly the 9 owned commit(s)
+[13:34:19] PASS tier-a: 9 scored and loaded with a file that names the commit, 0 superseded
+[13:34:19] tier-a: 9 scorer run(s) finished for 9 scored commit(s), 3 of them kept from a killed watcher; 0 extra finished run(s) from kills; 1 scorer(s) cut off by a kill
+[13:34:19] tier-a: largest lag from commit to score 4.10 s wall = 820 s of run time (Tier A rule: 1,800 s)
+[13:34:19] PASS tier-a: each of 9 run_id(s) holds exactly one result in eval_mini and one ingest_manifest row
+[13:34:19] tier-a: load_jsonl.py time per checkpoint 0.08 s mean, 0.10 s max
+[13:34:19] PASS tier-b: ended by itself with exit 0 after 3 start(s); exits [-9, -9, 0]
+[13:34:19] PASS tier-b: state holds exactly the 3 owned commit(s)
+[13:34:19] PASS tier-b: 3 scored and loaded with a file that names the commit, 0 superseded
+[13:34:19] tier-b: 3 scorer run(s) finished for 3 scored commit(s), 1 of them kept from a killed watcher; 0 extra finished run(s) from kills; 0 scorer(s) cut off by a kill
+[13:34:19] tier-b: largest lag from commit to score 5.60 s wall = 1120 s of run time (Tier B waits for Tier A on the slot)
+[13:34:19] PASS tier-b: each of 3 run_id(s) holds exactly one result in eval_mini and one ingest_manifest row
+[13:34:19] tier-b: load_jsonl.py time per checkpoint 0.07 s mean, 0.07 s max
+[13:34:19] PASS no two scorers ran at the same time on the slot (13 scorer start(s))
+[13:34:21] PASS no scorer left running
+[13:34:21] PASS every planned kill fired at a live watcher (8 of 8)
+[13:34:21] PASS the SIGTERM ended a watcher with exit 75
+[13:34:21] RESULT PASS
+
+=============== run 5
+[13:34:21] replay commits.jsonl (10 commits, restore after commit 4, run span 5039 s) at 200x = 25.2 s wall; fake scorer 1 s per checkpoint; Tier B every 3; ClickHouse through the proxy
+[13:34:21] planned kills: tier-a:0:mid, tier-a:1221:mid, tier-a:195:load-after-delete, tier-a:350:sigterm, tier-a:513:load-after-insert, tier-a:672:after-write, tier-b:1150:load-after-insert, tier-b:350:after-write
+[13:34:21] random SIGKILLs at wall s: 0.94 tier-b, 1.25 tier-a, 1.49 tier-a, 1.82 tier-a, 2.29 tier-b, 8.16 tier-a, 9.21 tier-a, 9.95 tier-a, 10.54 tier-a, 14.54 tier-b, 22.92 tier-a, 23.87 tier-a
+[13:34:21] trainer: committed step 0 (start, main/step_00000000-e1)
+[13:34:22] tier-a: watcher exited -9, restart in 0.3 s
+[13:34:22] tier-b: random SIGKILL (pid 6799) at wall 0.94 s
+[13:34:22] tier-b: watcher exited -9, restart in 0.3 s
+[13:34:22] tier-a: random SIGKILL (pid 6802) at wall 1.25 s
+[13:34:23] tier-a: watcher exited -9, restart in 0.3 s
+[13:34:23] tier-a: random SIGKILL (pid 6804) at wall 1.82 s
+[13:34:23] tier-a: watcher exited -9, restart in 0.3 s
+[13:34:24] tier-b: random SIGKILL (pid 6803) at wall 2.29 s
+[13:34:24] tier-b: watcher exited -9, restart in 0.3 s
+[13:34:25] trainer: committed step 195 (interval, main/step_00000195-e1)
+[13:34:26] proxy: SIGKILL tier-a (pid 6805) right after the DELETE of its rows, step 195
+[13:34:26] tier-a: watcher exited -9, restart in 0.3 s
+[13:34:28] trainer: committed step 350 (interval, main/step_00000350-e1)
+[13:34:29] tier-a: watcher exited 75, restart in 0.3 s
+[13:34:30] tier-b: watcher exited -9, restart in 0.3 s
+[13:34:30] tier-a: random SIGKILL (pid 6811) at wall 9.21 s
+[13:34:30] tier-a: watcher exited -9, restart in 0.3 s
+[13:34:31] tier-a: random SIGKILL (pid 6814) at wall 9.95 s
+[13:34:31] tier-a: watcher exited -9, restart in 0.3 s
+[13:34:31] trainer: committed step 513 (interval, main/step_00000513-e1)
+[13:34:32] trainer: committed step 513 (start, main/step_00000513-e2)
+[13:34:32] tier-a: random SIGKILL (pid 6816) at wall 10.54 s
+[13:34:32] tier-a: watcher exited -9, restart in 0.3 s
+[13:34:33] proxy: SIGKILL tier-a (pid 6817) right after the INSERT into eval_mini, step 513
+[13:34:33] tier-a: watcher exited -9, restart in 0.3 s
+[13:34:35] trainer: committed step 672 (interval, main/step_00000672-e2)
+[13:34:36] tier-b: random SIGKILL (pid 6813) at wall 14.54 s
+[13:34:36] tier-b: watcher exited -9, restart in 0.3 s
+[13:34:38] tier-a: watcher exited -9, restart in 0.3 s
+[13:34:38] trainer: committed step 836 (interval, main/step_00000836-e2)
+[13:34:41] trainer: committed step 993 (interval, main/step_00000993-e2)
+[13:34:44] tier-a: random SIGKILL (pid 6823) at wall 22.92 s
+[13:34:44] tier-a: watcher exited -9, restart in 0.3 s
+[13:34:45] trainer: committed step 1150 (interval, main/step_00001150-e2)
+[13:34:45] tier-a: random SIGKILL (pid 6826) at wall 23.87 s
+[13:34:45] tier-a: watcher exited -9, restart in 0.3 s
+[13:34:46] trainer: committed step 1221 (final, main/step_00001221-e2)
+[13:34:48] proxy: SIGKILL tier-b (pid 6821) right after the INSERT into eval_mini, step 1150
+[13:34:48] tier-b: watcher exited -9, restart in 0.3 s
+[13:34:49] tier-b: watcher exited 0
+[13:34:49] tier-a: watcher exited -9, restart in 0.3 s
+[13:34:51] tier-a: watcher exited 0
+[13:34:51] planned kills fired: tier-a:0:mid, tier-a:1221:mid, tier-a:195:load-after-delete, tier-a:350:sigterm, tier-a:513:load-after-insert, tier-a:672:after-write, tier-b:1150:load-after-insert, tier-b:350:after-write; random kills that hit a live watcher: 10
+[13:34:51] PASS tier-a: ended by itself with exit 0 after 14 start(s); exits [-9, -9, -9, -9, 75, -9, -9, -9, -9, -9, -9, -9, -9, 0]
+[13:34:51] PASS tier-a: state holds exactly the 10 owned commit(s)
+[13:34:51] PASS tier-a: 9 scored and loaded with a file that names the commit, 1 superseded
+[13:34:51] tier-a: 9 scorer run(s) finished for 9 scored commit(s), 5 of them kept from a killed watcher; 0 extra finished run(s) from kills; 1 scorer(s) cut off by a kill
+[13:34:51] tier-a: largest lag from commit to score 4.40 s wall = 880 s of run time (Tier A rule: 1,800 s)
+[13:34:51] PASS tier-a: each of 9 run_id(s) holds exactly one result in eval_mini and one ingest_manifest row
+[13:34:51] tier-a: load_jsonl.py time per checkpoint 0.07 s mean, 0.10 s max
+[13:34:51] PASS tier-b: ended by itself with exit 0 after 6 start(s); exits [-9, -9, -9, -9, -9, 0]
+[13:34:51] PASS tier-b: state holds exactly the 3 owned commit(s)
+[13:34:51] PASS tier-b: 3 scored and loaded with a file that names the commit, 0 superseded
+[13:34:51] tier-b: 3 scorer run(s) finished for 3 scored commit(s), 2 of them kept from a killed watcher; 0 extra finished run(s) from kills; 0 scorer(s) cut off by a kill
+[13:34:51] tier-b: largest lag from commit to score 3.20 s wall = 640 s of run time (Tier B waits for Tier A on the slot)
+[13:34:51] PASS tier-b: each of 3 run_id(s) holds exactly one result in eval_mini and one ingest_manifest row
+[13:34:51] tier-b: load_jsonl.py time per checkpoint 0.06 s mean, 0.06 s max
+[13:34:51] PASS no two scorers ran at the same time on the slot (13 scorer start(s))
+[13:34:53] PASS no scorer left running
+[13:34:53] planned kills that fired: 8 of 8
+[13:34:53] RESULT PASS
+
+=============== run 6
+[08:05:07] replay commits.jsonl (9 commits, run span 5039 s) at 200x = 25.2 s wall; fake scorer 1 s per checkpoint; Tier B every 3; --no-load
+[08:05:07] planned kills: tier-a:0:mid, tier-a:1221:mid, tier-a:350:sigterm, tier-a:672:after-write, tier-b:350:after-write
+[08:05:07] random SIGKILLs at wall s: none
+[08:05:07] trainer: committed step 0 (start, main/step_00000000-e1)
+[08:05:08] tier-a: watcher exited -9, restart in 0.3 s
+[08:05:10] trainer: committed step 195 (interval, main/step_00000195-e1)
+[08:05:14] trainer: committed step 350 (interval, main/step_00000350-e1)
+[08:05:15] tier-a: watcher exited 75, restart in 0.3 s
+[08:05:16] tier-b: watcher exited -9, restart in 0.3 s
+[08:05:17] trainer: committed step 513 (interval, main/step_00000513-e1)
+[08:05:20] trainer: committed step 672 (interval, main/step_00000672-e1)
+[08:05:22] tier-a: watcher exited -9, restart in 0.3 s
+[08:05:24] trainer: committed step 836 (interval, main/step_00000836-e1)
+[08:05:27] trainer: committed step 993 (interval, main/step_00000993-e1)
+[08:05:31] trainer: committed step 1150 (interval, main/step_00001150-e1)
+[08:05:32] trainer: committed step 1221 (final, main/step_00001221-e1)
+[08:05:33] tier-a: watcher exited -9, restart in 0.3 s
+[08:05:34] tier-a: watcher exited 0
+[08:05:35] tier-b: watcher exited 0
+[08:05:35] planned kills fired: tier-a:0:mid, tier-a:1221:mid, tier-a:350:sigterm, tier-a:672:after-write, tier-b:350:after-write; random kills that hit a live watcher: 0
+[08:05:35] PASS tier-a: ended by itself with exit 0 after 5 start(s); exits [-9, 75, -9, -9, 0]
+[08:05:35] PASS tier-a: state holds exactly the 9 owned commit(s)
+[08:05:35] PASS tier-a: 9 scored and parsed with a file that names the commit, 0 superseded
+[08:05:35] tier-a: 9 scorer run(s) finished for 9 scored commit(s), 1 of them kept from a killed watcher; 0 extra finished run(s) from kills; 3 scorer(s) cut off by a kill
+[08:05:35] tier-a: largest lag from commit to score 3.60 s wall = 720 s of run time (Tier A rule: 1,800 s)
+[08:05:35] PASS tier-b: ended by itself with exit 0 after 2 start(s); exits [-9, 0]
+[08:05:35] PASS tier-b: state holds exactly the 3 owned commit(s)
+[08:05:35] PASS tier-b: 3 scored and parsed with a file that names the commit, 0 superseded
+[08:05:35] tier-b: 3 scorer run(s) finished for 3 scored commit(s), 1 of them kept from a killed watcher; 0 extra finished run(s) from kills; 0 scorer(s) cut off by a kill
+[08:05:35] tier-b: largest lag from commit to score 5.50 s wall = 1100 s of run time (Tier B waits for Tier A on the slot)
+[08:05:35] PASS no two scorers ran at the same time on the slot (15 scorer start(s))
+[08:05:37] PASS no scorer left running
+[08:05:37] PASS every planned kill fired at a live watcher (5 of 5)
+[08:05:37] PASS the SIGTERM ended a watcher with exit 75
+[08:05:37] RESULT PASS
+
+=============== run 7
+[08:05:37] replay commits.jsonl (9 commits, run span 5039 s) at 40x = 126.0 s wall; real Team 7 store and run_lab_ckpt.py --scorer smoke; Tier B every 3; --no-load
+[08:05:37] planned kills: tier-a:0:mid, tier-a:1221:mid, tier-a:350:sigterm, tier-a:672:after-write, tier-b:350:after-write
+[08:05:37] random SIGKILLs at wall s: none
+[08:05:38] tier-a: watcher exited -9, restart in 0.3 s
+[08:06:13] tier-a: watcher exited 75, restart in 0.3 s
+[08:06:14] tier-b: watcher exited -9, restart in 0.3 s
+[08:06:46] tier-a: watcher exited -9, restart in 0.3 s
+[08:07:44] trainer: exit 0; ['committed 1221 final']
+[08:07:45] tier-b: watcher exited 0
+[08:07:46] tier-a: watcher exited -9, restart in 0.3 s
+[08:07:48] tier-a: watcher exited 0
+[08:07:48] PASS the real trainer committed every step
+[08:07:48] planned kills fired: tier-a:0:mid, tier-a:1221:mid, tier-a:350:sigterm, tier-a:672:after-write, tier-b:350:after-write; random kills that hit a live watcher: 0
+[08:07:48] PASS tier-a: ended by itself with exit 0 after 5 start(s); exits [-9, 75, -9, -9, 0]
+[08:07:48] PASS tier-a: state holds exactly the 9 owned commit(s)
+[08:07:48] PASS tier-a: 9 scored and parsed with a file that names the commit, 0 superseded
+[08:07:48] tier-a: 13 scorer run(s) finished for 9 scored commit(s), 0 of them kept from a killed watcher; 4 extra finished run(s) from kills; 0 scorer(s) cut off by a kill
+[08:07:48] tier-a: largest lag from commit to score 3.90 s wall = 156 s of run time (Tier A rule: 1,800 s)
+[08:07:48] PASS tier-b: ended by itself with exit 0 after 2 start(s); exits [-9, 0]
+[08:07:48] PASS tier-b: state holds exactly the 3 owned commit(s)
+[08:07:48] PASS tier-b: 3 scored and parsed with a file that names the commit, 0 superseded
+[08:07:48] tier-b: 4 scorer run(s) finished for 3 scored commit(s), 0 of them kept from a killed watcher; 1 extra finished run(s) from kills; 0 scorer(s) cut off by a kill
+[08:07:48] tier-b: largest lag from commit to score 5.60 s wall = 224 s of run time (Tier B waits for Tier A on the slot)
+[08:07:48]   overlap: tier-a step 0 (pid 124) started while pid(s) [132] ran
+[08:07:48]   overlap: tier-a step 0 (pid 132) started while pid(s) [124] ran
+[08:07:48]   overlap: tier-a step 1221 (pid 264) started while pid(s) [272] ran
+[08:07:48]   overlap: tier-a step 1221 (pid 272) started while pid(s) [264] ran
+[08:07:48] FAIL no two scorers ran at the same time on the slot (17 scorer start(s))
+[08:07:50] PASS no scorer left running
+[08:07:50] PASS every planned kill fired at a live watcher (5 of 5)
+[08:07:50] PASS the SIGTERM ended a watcher with exit 75
+[08:07:50] RESULT FAIL
+
+=============== run 8
+[08:07:50] replay commits.jsonl (9 commits, run span 5039 s) at 40x = 126.0 s wall; real Team 7 store and run_lab_ckpt.py --scorer smoke; Tier B every 3; --no-load
+[08:07:50] planned kills: tier-a:0:mid, tier-a:1221:mid, tier-a:350:sigterm, tier-a:672:after-write, tier-b:350:after-write
+[08:07:50] random SIGKILLs at wall s: none
+[08:07:51] tier-a: watcher exited -9, restart in 0.3 s
+[08:08:26] tier-a: watcher exited 75, restart in 0.3 s
+[08:08:27] tier-b: watcher exited -9, restart in 0.3 s
+[08:08:59] tier-a: watcher exited -9, restart in 0.3 s
+[08:09:57] trainer: exit 0; ['committed 1221 final']
+[08:09:58] tier-b: watcher exited 0
+[08:09:58] tier-a: watcher exited -9, restart in 0.3 s
+[08:10:00] tier-a: watcher exited 0
+[08:10:00] PASS the real trainer committed every step
+[08:10:00] planned kills fired: tier-a:0:mid, tier-a:1221:mid, tier-a:350:sigterm, tier-a:672:after-write, tier-b:350:after-write; random kills that hit a live watcher: 0
+[08:10:00] PASS tier-a: ended by itself with exit 0 after 5 start(s); exits [-9, 75, -9, -9, 0]
+[08:10:00] PASS tier-a: state holds exactly the 9 owned commit(s)
+[08:10:00] PASS tier-a: 9 scored and parsed with a file that names the commit, 0 superseded
+[08:10:00] tier-a: 9 scorer run(s) finished for 9 scored commit(s), 2 of them kept from a killed watcher; 0 extra finished run(s) from kills; 2 scorer(s) cut off by a kill
+[08:10:00] tier-a: largest lag from commit to score 2.90 s wall = 116 s of run time (Tier A rule: 1,800 s)
+[08:10:00] PASS tier-b: ended by itself with exit 0 after 2 start(s); exits [-9, 0]
+[08:10:00] PASS tier-b: state holds exactly the 3 owned commit(s)
+[08:10:00] PASS tier-b: 3 scored and parsed with a file that names the commit, 0 superseded
+[08:10:00] tier-b: 3 scorer run(s) finished for 3 scored commit(s), 1 of them kept from a killed watcher; 0 extra finished run(s) from kills; 0 scorer(s) cut off by a kill
+[08:10:00] tier-b: largest lag from commit to score 3.30 s wall = 132 s of run time (Tier B waits for Tier A on the slot)
+[08:10:00] PASS no two scorers ran at the same time on the slot (14 scorer start(s))
+[08:10:02] PASS no scorer left running
+[08:10:02] PASS every planned kill fired at a live watcher (5 of 5)
+[08:10:02] PASS the SIGTERM ended a watcher with exit 75
+[08:10:02] RESULT PASS
+
+=============== run 9
+[08:10:02] replay commits.jsonl (9 commits, run span 5039 s) at 40x = 126.0 s wall; real Team 7 store and run_lab_ckpt.py --scorer smoke; Tier B every 3; --no-load
+[08:10:02] planned kills: tier-a:0:mid, tier-a:1221:mid, tier-a:350:sigterm, tier-a:672:after-write, tier-b:350:after-write
+[08:10:02] random SIGKILLs at wall s: 4.72 tier-b, 6.25 tier-a, 7.45 tier-a, 9.12 tier-a, 11.43 tier-b, 40.79 tier-a, 46.07 tier-a, 49.74 tier-a, 52.68 tier-a, 72.70 tier-b, 114.59 tier-a, 119.35 tier-a
+[08:10:03] tier-a: watcher exited -9, restart in 0.3 s
+[08:10:07] tier-b: random SIGKILL (pid 428) at wall 4.72 s
+[08:10:07] tier-b: watcher exited -9, restart in 0.3 s
+[08:10:08] tier-a: random SIGKILL (pid 442) at wall 6.25 s
+[08:10:08] tier-a: watcher exited -9, restart in 0.3 s
+[08:10:09] tier-a: random SIGKILL (pid 452) at wall 7.45 s
+[08:10:09] tier-a: watcher exited -9, restart in 0.3 s
+[08:10:11] tier-a: random SIGKILL (pid 453) at wall 9.12 s
+[08:10:11] tier-a: watcher exited -9, restart in 0.3 s
+[08:10:13] tier-b: random SIGKILL (pid 451) at wall 11.43 s
+[08:10:13] tier-b: watcher exited -9, restart in 0.3 s
+[08:10:38] tier-a: watcher exited 75, restart in 0.3 s
+[08:10:39] tier-b: watcher exited -9, restart in 0.3 s
+[08:10:43] tier-a: random SIGKILL (pid 479) at wall 40.79 s
+[08:10:43] tier-a: watcher exited -9, restart in 0.3 s
+[08:10:48] tier-a: random SIGKILL (pid 493) at wall 46.07 s
+[08:10:48] tier-a: watcher exited -9, restart in 0.3 s
+[08:10:52] tier-a: random SIGKILL (pid 494) at wall 49.74 s
+[08:10:52] tier-a: watcher exited -9, restart in 0.3 s
+[08:10:55] tier-a: random SIGKILL (pid 495) at wall 52.68 s
+[08:10:55] tier-a: watcher exited -9, restart in 0.3 s
+[08:11:11] tier-a: watcher exited -9, restart in 0.3 s
+[08:11:15] tier-b: random SIGKILL (pid 484) at wall 72.70 s
+[08:11:15] tier-b: watcher exited -9, restart in 0.3 s
+[08:11:56] tier-a: random SIGKILL (pid 517) at wall 114.59 s
+[08:11:57] tier-a: watcher exited -9, restart in 0.3 s
+[08:12:01] tier-a: random SIGKILL (pid 547) at wall 119.35 s
+[08:12:01] tier-a: watcher exited -9, restart in 0.3 s
+[08:12:09] trainer: exit 0; ['committed 1221 final']
+[08:12:10] tier-b: watcher exited 0
+[08:12:10] tier-a: watcher exited -9, restart in 0.3 s
+[08:12:12] tier-a: watcher exited 0
+[08:12:12] PASS the real trainer committed every step
+[08:12:12] planned kills fired: tier-a:0:mid, tier-a:1221:mid, tier-a:350:sigterm, tier-a:672:after-write, tier-b:350:after-write; random kills that hit a live watcher: 12
+[08:12:12] PASS tier-a: ended by itself with exit 0 after 14 start(s); exits [-9, -9, -9, -9, 75, -9, -9, -9, -9, -9, -9, -9, -9, 0]
+[08:12:12] PASS tier-a: state holds exactly the 9 owned commit(s)
+[08:12:12] PASS tier-a: 9 scored and parsed with a file that names the commit, 0 superseded
+[08:12:12] tier-a: 9 scorer run(s) finished for 9 scored commit(s), 2 of them kept from a killed watcher; 0 extra finished run(s) from kills; 4 scorer(s) cut off by a kill
+[08:12:12] tier-a: largest lag from commit to score 3.60 s wall = 144 s of run time (Tier A rule: 1,800 s)
+[08:12:12] PASS tier-b: ended by itself with exit 0 after 5 start(s); exits [-9, -9, -9, -9, 0]
+[08:12:12] PASS tier-b: state holds exactly the 3 owned commit(s)
+[08:12:12] PASS tier-b: 3 scored and parsed with a file that names the commit, 0 superseded
+[08:12:12] tier-b: 3 scorer run(s) finished for 3 scored commit(s), 1 of them kept from a killed watcher; 0 extra finished run(s) from kills; 0 scorer(s) cut off by a kill
+[08:12:12] tier-b: largest lag from commit to score 3.20 s wall = 128 s of run time (Tier B waits for Tier A on the slot)
+[08:12:12] PASS no two scorers ran at the same time on the slot (16 scorer start(s))
+[08:12:14] PASS no scorer left running
+[08:12:14] planned kills that fired: 5 of 5
+[08:12:14] RESULT PASS
