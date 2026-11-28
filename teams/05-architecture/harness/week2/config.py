@@ -226,6 +226,7 @@ def load_runtime(arm_path, runtime_path=None):
             "tst",
             "tst_bag",
             "tst_frac",
+            "pack",
         ],
         "lead run",
     )
@@ -474,6 +475,15 @@ def validate(c):
         errors.append("optim.router_on_muon must be true or false")
     if o.get("name") == "adamw" and o.get("router_on_muon"):
         errors.append("router_on_muon set on an AdamW arm would be ignored")
+    # Packed rows (Lab 5, lab5/packed_rows/README.md): several documents per row with a document mask.
+    pack = r.get("pack")
+    if pack is not None and type(pack) is not bool:
+        errors.append("run.pack must be true or false")
+    elif pack:
+        if m.get("attn_impl") == "sdpa":
+            errors.append("run.pack needs attn_impl eager: SDPA has no document mask here (see #805)")
+        if r.get("tst"):
+            errors.append("run.pack with run.tst is not tested; turn one off")
     tst = r.get("tst")
     if tst is not None and type(tst) is not bool:
         errors.append("run.tst must be true or false")
