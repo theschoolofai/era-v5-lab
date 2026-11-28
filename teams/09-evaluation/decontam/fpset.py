@@ -17,9 +17,9 @@ from pathlib import Path
 import normalize as norms
 from lab_canary import LAB_CANARY, LAB_CANARY_ID, read_canary_file
 
-VERSION = "v2"
+VERSION = "v3"   # v3 = v2 + the 11 Lab 5 sets (closes known_failures.md). v2 stays on disk, unchanged.
 # The normalizer of each shipped set. build_fingerprints.py uses it when --normalize is not given.
-SET_NORMALIZE = {"v1": "g9-v1", "v2": "g9-v2"}
+SET_NORMALIZE = {"v1": "g9-v1", "v2": "g9-v2", "v3": "g9-v2"}
 DEFAULT_NORM = norms.get(norms.DEFAULT_ID)
 # The benchmark MANIFEST.json files of v1 were written before they named their normalizer.
 UNSTATED_NORMALIZE_ID = "g9-v1"

@@ -303,6 +303,58 @@ Only 23 of these documents have a joiner, so this test covers few documents with
 
 The 19 benchmarks of v2 built with `g9-v2` are byte for byte the set that these numbers were measured on.
 
+## The fingerprint set (v3) — Lab 5
+
+**set_sha256 (v3): `6fc6fbe9d8068175f01f76099ba705cc70140c3395897fa19cd3b60c71f80246`**, normalizer `g9-v2`
+(the same as v2, so v2 and v3 scores are directly comparable).
+
+v3 exists to close the gap recorded in `results/known_failures.md`: **12 benchmarks were scored or reported with no
+fingerprint at all**, including four of the six tasks the watcher scores on every tenth checkpoint.
+
+| | v2 | v3 |
+|---|---|---|
+| Benchmarks | 20 | **31** |
+| Items | 133,285 | **154,594** |
+| Hashes (13-word / 20-token runs) | 8,940,301 | **11,726,238** |
+| Size on disk | 149 MB | 195 MB |
+| Largest file | <4 MB | <4 MB |
+
+Added (revision and file sha256 pinned in `benchmarks.toml`, read 28 Nov 2026):
+
+| Set | Items | Hashes | Items with no n-gram |
+|---|---:|---:|---:|
+| ARC-Challenge | 1,172 | 13,812 | 64 |
+| ARC-Easy | 2,376 | 21,068 | 176 |
+| MMLU-Pro | 12,032 | 1,900,073 | 0 |
+| Belebele (hi/te/ta) | 2,700 | 232,747 | 0 |
+| MuSR | 756 | 572,565 | 0 |
+| BBH (date_understanding) | 250 | 9,153 | 0 |
+| TruthfulQA (MC1/MC2) | 817 | 1,719 | 218 |
+| HumanEval | 164 | 11,464 | 0 |
+| HumanEval+ | 164 | 11,408 | 0 |
+| MBPP | 500 | 7,504 | 2 |
+| MBPP+ | 378 | 4,424 | 2 |
+
+**HellaSwag is NOT in v3, deliberately.** wikiHow, Inc. filed a DMCA takedown on 2026-09-14 naming
+`github.com/rowanz/hellaswag`, which now returns HTTP 451. The dataset card says MIT, but that grant covers the
+authors' release, not the wikiHow article text about 45k of the 70k contexts are taken from. The row is
+`status = "skip"` with the reason recorded, so the decision is in the repo and not only in chat. **Do not fingerprint
+or redistribute it, and ask TSAI before quoting HellaSwag numbers in a release.** It remains the one benchmark in
+`known_failures.md`'s list of 12 that v3 does not close.
+
+### Measured on v3
+
+- **Recall**, real item text checked back (50 sampled per set): ARC-Challenge **94%**, MMLU-Pro / HumanEval / MBPP /
+  BBH **100%**.
+- **False hits on a real pack**, `cadj-stackexchange` (500 documents): **identical between v2 and v3** — 1 document
+  (0.20%), the same `swe_bench_live` hit, same offset, same coverage. **v3 adds no false hits on this pack.**
+- `pytest teams/09-evaluation/decontam/tests -q`: **143 passed, 2 skipped**.
+- The 38-pack false-hit baseline in the v2 section below (**20 flagged, 0.11 %**) has **not** been re-measured on
+  v3, because the 19,000-document sample is not available locally. Re-run it before treating v3 as safe at scale.
+- **Known limitation, inherited:** items under 8 words have no n-gram. That is why 218 of TruthfulQA's 817 and 176
+  of ARC-Easy's 2,376 are uncovered — the items are short questions ("Which blood type makes the best CEOs?"). It is
+  the documented `short_min` behaviour, not a template fault, but it means v3 does not fully cover those two sets.
+
 ## The fingerprint set (v2)
 
 **set_sha256 (v2): `2826a3b883210c653979103c09ce1c79e40fc4f7034b54027f2836482370d22a`**, normalizer `g9-v2`.

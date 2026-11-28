@@ -226,8 +226,9 @@ def test_g9_v2_matches_a_copy_with_or_without_joiners():
 
 
 def test_each_shipped_version_names_its_normalizer():
-    assert fpset.SET_NORMALIZE == {"v1": "g9-v1", "v2": "g9-v2"}
-    assert fpset.VERSION == "v2"
+    # v3 (Lab 5) adds benchmarks only: same normalizer as v2, so old v2 results stay comparable.
+    assert fpset.SET_NORMALIZE == {"v1": "g9-v1", "v2": "g9-v2", "v3": "g9-v2"}
+    assert fpset.VERSION == "v3"
 
 
 def test_a_normalizer_takes_prepare_or_words_not_both():
