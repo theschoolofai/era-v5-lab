@@ -1,0 +1,564 @@
+{
+ "bf16": "dryrun2-F05-24273cd9-bf16.gguf",
+ "bf16_sha256": "31aca821c4cb077b14164cd902b143a9550c96cfe4bbdb1db8b40cb93bab8895",
+ "bf16_parts": {
+  "output": {
+   "bytes": 134217728,
+   "types": [
+    "BF16"
+   ]
+  },
+  "embedding": {
+   "bytes": 134217728,
+   "types": [
+    "BF16"
+   ]
+  },
+  "experts": {
+   "bytes": 301989888,
+   "types": [
+    "BF16"
+   ]
+  },
+  "router": {
+   "bytes": 262144,
+   "types": [
+    "F32"
+   ]
+  },
+  "norms and other": {
+   "bytes": 34816,
+   "types": [
+    "F32"
+   ]
+  },
+  "attention": {
+   "bytes": 10485760,
+   "types": [
+    "BF16"
+   ]
+  },
+  "shared expert": {
+   "bytes": 18874368,
+   "types": [
+    "BF16"
+   ]
+  }
+ },
+ "variants": [
+  {
+   "variant": "llama-default",
+   "ftype": "Q4_K_M",
+   "args": [],
+   "file": "dryrun2-F05-24273cd9-llama-default.gguf",
+   "bytes": 199184224,
+   "sha256": "0aec6c56f1c7c4ba538a252a88665e08460c58142e8f102bf71531a0db141b63",
+   "parts": {
+    "output": {
+     "bytes": 55050240,
+     "types": [
+      "Q6_K"
+     ]
+    },
+    "norms and other": {
+     "bytes": 34816,
+     "types": [
+      "F32"
+     ]
+    },
+    "embedding": {
+     "bytes": 37748736,
+     "types": [
+      "Q4_K"
+     ]
+    },
+    "attention": {
+     "bytes": 3016704,
+     "types": [
+      "Q4_K",
+      "Q6_K"
+     ]
+    },
+    "experts": {
+     "bytes": 91422720,
+     "types": [
+      "Q4_K",
+      "Q6_K"
+     ]
+    },
+    "shared expert": {
+     "bytes": 5713920,
+     "types": [
+      "Q4_K",
+      "Q6_K"
+     ]
+    },
+    "router": {
+     "bytes": 262144,
+     "types": [
+      "F32"
+     ]
+    }
+   }
+  },
+  {
+   "variant": "g12",
+   "ftype": "Q4_K_M",
+   "args": [
+    "--output-tensor-type",
+    "q8_0"
+   ],
+   "file": "dryrun2-F05-24273cd9-g12.gguf",
+   "bytes": 215437152,
+   "sha256": "95270e32fa13a5b122fd993d1acce9d74c12a58e7c601c168bfc24730f505da2",
+   "parts": {
+    "output": {
+     "bytes": 71303168,
+     "types": [
+      "Q8_0"
+     ]
+    },
+    "norms and other": {
+     "bytes": 34816,
+     "types": [
+      "F32"
+     ]
+    },
+    "embedding": {
+     "bytes": 37748736,
+     "types": [
+      "Q4_K"
+     ]
+    },
+    "attention": {
+     "bytes": 3016704,
+     "types": [
+      "Q4_K",
+      "Q6_K"
+     ]
+    },
+    "experts": {
+     "bytes": 91422720,
+     "types": [
+      "Q4_K",
+      "Q6_K"
+     ]
+    },
+    "shared expert": {
+     "bytes": 5713920,
+     "types": [
+      "Q4_K",
+      "Q6_K"
+     ]
+    },
+    "router": {
+     "bytes": 262144,
+     "types": [
+      "F32"
+     ]
+    }
+   }
+  },
+  {
+   "variant": "out-q4_K",
+   "ftype": "Q4_K_M",
+   "args": [
+    "--output-tensor-type",
+    "q4_K"
+   ],
+   "file": "dryrun2-F05-24273cd9-out-q4_K.gguf",
+   "bytes": 181882720,
+   "sha256": "3a74eab521c00edbc8190e4e478182bdc7fe2af774af30992b9feebd826ad09a",
+   "parts": {
+    "output": {
+     "bytes": 37748736,
+     "types": [
+      "Q4_K"
+     ]
+    },
+    "norms and other": {
+     "bytes": 34816,
+     "types": [
+      "F32"
+     ]
+    },
+    "embedding": {
+     "bytes": 37748736,
+     "types": [
+      "Q4_K"
+     ]
+    },
+    "attention": {
+     "bytes": 3016704,
+     "types": [
+      "Q4_K",
+      "Q6_K"
+     ]
+    },
+    "experts": {
+     "bytes": 91422720,
+     "types": [
+      "Q4_K",
+      "Q6_K"
+     ]
+    },
+    "shared expert": {
+     "bytes": 5713920,
+     "types": [
+      "Q4_K",
+      "Q6_K"
+     ]
+    },
+    "router": {
+     "bytes": 262144,
+     "types": [
+      "F32"
+     ]
+    }
+   }
+  },
+  {
+   "variant": "out-bf16",
+   "ftype": "Q4_K_M",
+   "args": [
+    "--output-tensor-type",
+    "bf16"
+   ],
+   "file": "dryrun2-F05-24273cd9-out-bf16.gguf",
+   "bytes": 278351712,
+   "sha256": "78c9b285ac6037975e1d3c2764ed87001e29897c5a7c4935a82d9217fc019664",
+   "parts": {
+    "output": {
+     "bytes": 134217728,
+     "types": [
+      "BF16"
+     ]
+    },
+    "norms and other": {
+     "bytes": 34816,
+     "types": [
+      "F32"
+     ]
+    },
+    "embedding": {
+     "bytes": 37748736,
+     "types": [
+      "Q4_K"
+     ]
+    },
+    "attention": {
+     "bytes": 3016704,
+     "types": [
+      "Q4_K",
+      "Q6_K"
+     ]
+    },
+    "experts": {
+     "bytes": 91422720,
+     "types": [
+      "Q4_K",
+      "Q6_K"
+     ]
+    },
+    "shared expert": {
+     "bytes": 5713920,
+     "types": [
+      "Q4_K",
+      "Q6_K"
+     ]
+    },
+    "router": {
+     "bytes": 262144,
+     "types": [
+      "F32"
+     ]
+    }
+   }
+  },
+  {
+   "variant": "embd-q8_0",
+   "ftype": "Q4_K_M",
+   "args": [
+    "--output-tensor-type",
+    "q8_0",
+    "--token-embedding-type",
+    "q8_0"
+   ],
+   "file": "dryrun2-F05-24273cd9-embd-q8_0.gguf",
+   "bytes": 248991584,
+   "sha256": "af9fd5e52b3b4b788ac20661b084c6ec954229a5a6ef4525b4cc8d860ed149b4",
+   "parts": {
+    "output": {
+     "bytes": 71303168,
+     "types": [
+      "Q8_0"
+     ]
+    },
+    "norms and other": {
+     "bytes": 34816,
+     "types": [
+      "F32"
+     ]
+    },
+    "embedding": {
+     "bytes": 71303168,
+     "types": [
+      "Q8_0"
+     ]
+    },
+    "attention": {
+     "bytes": 3016704,
+     "types": [
+      "Q4_K",
+      "Q6_K"
+     ]
+    },
+    "experts": {
+     "bytes": 91422720,
+     "types": [
+      "Q4_K",
+      "Q6_K"
+     ]
+    },
+    "shared expert": {
+     "bytes": 5713920,
+     "types": [
+      "Q4_K",
+      "Q6_K"
+     ]
+    },
+    "router": {
+     "bytes": 262144,
+     "types": [
+      "F32"
+     ]
+    }
+   }
+  },
+  {
+   "variant": "attn-q8_0",
+   "ftype": "Q4_K_M",
+   "args": [
+    "--output-tensor-type",
+    "q8_0",
+    "--tensor-type",
+    "attn_(q|k|v|output)\\.weight=q8_0"
+   ],
+   "file": "dryrun2-F05-24273cd9-attn-q8_0.gguf",
+   "bytes": 217991008,
+   "sha256": "4e7f3b481047cb1942dc3f2fc2beebb65fc51731c11e5bb291bfc5848ca6eb26",
+   "parts": {
+    "output": {
+     "bytes": 71303168,
+     "types": [
+      "Q8_0"
+     ]
+    },
+    "norms and other": {
+     "bytes": 34816,
+     "types": [
+      "F32"
+     ]
+    },
+    "embedding": {
+     "bytes": 37748736,
+     "types": [
+      "Q4_K"
+     ]
+    },
+    "attention": {
+     "bytes": 5570560,
+     "types": [
+      "Q8_0"
+     ]
+    },
+    "experts": {
+     "bytes": 91422720,
+     "types": [
+      "Q4_K",
+      "Q6_K"
+     ]
+    },
+    "shared expert": {
+     "bytes": 5713920,
+     "types": [
+      "Q4_K",
+      "Q6_K"
+     ]
+    },
+    "router": {
+     "bytes": 262144,
+     "types": [
+      "F32"
+     ]
+    }
+   }
+  },
+  {
+   "variant": "experts-q4",
+   "ftype": "Q8_0",
+   "args": [
+    "--output-tensor-type",
+    "q8_0",
+    "--tensor-type",
+    "ffn_(gate|up|down)_exps\\.weight=q4_K"
+   ],
+   "file": "dryrun2-F05-24273cd9-experts-q4.gguf",
+   "bytes": 249370464,
+   "sha256": "81e29eb48b44f3e49e54ef72efc7174d69bc43623abebe985c3aaa9ae3eec753",
+   "parts": {
+    "output": {
+     "bytes": 71303168,
+     "types": [
+      "Q8_0"
+     ]
+    },
+    "norms and other": {
+     "bytes": 34816,
+     "types": [
+      "F32"
+     ]
+    },
+    "embedding": {
+     "bytes": 71303168,
+     "types": [
+      "Q8_0"
+     ]
+    },
+    "attention": {
+     "bytes": 5570560,
+     "types": [
+      "Q8_0"
+     ]
+    },
+    "experts": {
+     "bytes": 84934656,
+     "types": [
+      "Q4_K"
+     ]
+    },
+    "shared expert": {
+     "bytes": 10027008,
+     "types": [
+      "Q8_0"
+     ]
+    },
+    "router": {
+     "bytes": 262144,
+     "types": [
+      "F32"
+     ]
+    }
+   }
+  },
+  {
+   "variant": "pure-q4_K",
+   "ftype": "Q4_K",
+   "args": [
+    "--pure"
+   ],
+   "file": "dryrun2-F05-24273cd9-pure-q4_K.gguf",
+   "bytes": 174921568,
+   "sha256": "c1633f5c64e14056859bc748654bd51f611d6f8a8babcb7863a240bd021d1e02",
+   "parts": {
+    "output": {
+     "bytes": 37748736,
+     "types": [
+      "Q4_K"
+     ]
+    },
+    "norms and other": {
+     "bytes": 34816,
+     "types": [
+      "F32"
+     ]
+    },
+    "embedding": {
+     "bytes": 37748736,
+     "types": [
+      "Q4_K"
+     ]
+    },
+    "attention": {
+     "bytes": 2949120,
+     "types": [
+      "Q4_K"
+     ]
+    },
+    "experts": {
+     "bytes": 84934656,
+     "types": [
+      "Q4_K"
+     ]
+    },
+    "shared expert": {
+     "bytes": 5308416,
+     "types": [
+      "Q4_K"
+     ]
+    },
+    "router": {
+     "bytes": 262144,
+     "types": [
+      "F32"
+     ]
+    }
+   }
+  },
+  {
+   "variant": "q8_0",
+   "ftype": "Q8_0",
+   "args": [
+    "--output-tensor-type",
+    "q8_0"
+   ],
+   "file": "dryrun2-F05-24273cd9-q8_0.gguf",
+   "bytes": 324867936,
+   "sha256": "3c6d9ebc0b1d63a39b4a350aa9b444f56a15922938c4a4491cd59c3f50fefb68",
+   "parts": {
+    "output": {
+     "bytes": 71303168,
+     "types": [
+      "Q8_0"
+     ]
+    },
+    "norms and other": {
+     "bytes": 34816,
+     "types": [
+      "F32"
+     ]
+    },
+    "embedding": {
+     "bytes": 71303168,
+     "types": [
+      "Q8_0"
+     ]
+    },
+    "attention": {
+     "bytes": 5570560,
+     "types": [
+      "Q8_0"
+     ]
+    },
+    "experts": {
+     "bytes": 160432128,
+     "types": [
+      "Q8_0"
+     ]
+    },
+    "shared expert": {
+     "bytes": 10027008,
+     "types": [
+      "Q8_0"
+     ]
+    },
+    "router": {
+     "bytes": 262144,
+     "types": [
+      "F32"
+     ]
+    }
+   }
+  }
+ ]
+}
