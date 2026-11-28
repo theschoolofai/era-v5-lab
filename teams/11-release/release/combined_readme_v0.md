@@ -39,8 +39,8 @@ pip install safetensors pyarrow pyyaml
 ```
 
 The KE2 requirements file pins torch 2.14.1 and the `kronecker-embeddings` codec. The restore test and the checkpoint
-scorer refuse an older torch. Release ran the stages with Python 3.12 and these versions. A fresh install from these
-two lines is not yet tested.
+scorer refuse an older torch. Release tested these two lines in a new, empty environment with Python 3.12 on 28 Nov 2026. Every package loads, also
+with `python -I`. For Data A's stage, add `pip install -r teams/01-data-a/spec_v1/requirements.txt`.
 
 Get the frozen tokenizer p1536 from the link in `teams/03-tokenizer/release/README.md`. Put it at
 `teams/03-tokenizer/release/tokenizer.json`. Its sha256 is
@@ -182,9 +182,23 @@ python -m unittest discover -s teams/05-architecture/tests -p "test_week2*.py"
 
 **Output goes to:** checkpoints, which stages 8 and 10 read.
 
-## 7. Loader (Performance)
+## 7. Loader (Performance). Run by Release
 
-[text: waiting for Performance, the command on the small sample]
+The correctness tests of Performance, from `teams/06-performance/README.md`. They run from `teams/06-performance/`:
+
+```
+cd teams/06-performance
+pip install -r perfkit/requirements.txt
+python -m pytest correctness -q -rs
+cd ../..
+```
+
+**Check:** no test fails. The tests that need CUDA or Triton skip on a CPU.
+
+**Run by Release:** on main `493e8da3`, 564 passed, 406 skipped and 12 expected failures, in 455 s.
+
+The smoke test of Performance needs a small FineWeb sample first, from `python -m dataio.prepare_fineweb`.
+[text: waiting for Performance, the smoke test on the small sample]
 
 **Code on main:** `teams/06-performance/dataio/loader.py`.
 
