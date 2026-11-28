@@ -1,6 +1,7 @@
 # Dry run 2 training recipe (week-4 task 3). Values from TSAI, 05 Architecture, 22 Nov 2026, taken from the KE2
 # team's runs and NOT validated at the lab's batch size: "treat these as a starting point, not a tuned answer".
-# The model stays exp2_muon's T2 shape; the KE2/KAS head (Udit, week-4 task 1) is added to this arm when it lands.
+# The model is exp2_muon's T2 shape with the KE2/KAS input and head (model.head_mode: kas_v2, #717, below).
+# Dry run 2 (dryrun2-1234, 27 Nov 2026) ran with this arm; its manifest.json shows head_mode kas_v2 (TSAI, 28 Nov).
 inherit: exp2_muon.yaml
 intended:
   arm: dryrun2

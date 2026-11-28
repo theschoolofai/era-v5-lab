@@ -1,8 +1,10 @@
 # H3 design v1: How translations are found
 
 **Status:** dedup v1.1, revised after the review on #44 (Kunal Sinha, Sourav Dhar), the encoder checks of 15–16 Nov
-and TSAI's ruling on #625 (19 Nov; see "Decisions"). H3 is report-only until E5c and the harm check pass clean; then
-rule 0 removal is turned on (`h3.remove: true`).
+and TSAI's ruling on #625 (19 Nov), confirmed as applied on #626 (21 Nov; see "Decisions"). E5c has run and the
+harm check with planted cases has passed (23 Nov; see "Validation"). Proposed to TSAI (23 Nov): rule 0 removal
+(`h3.remove: true`) for Hindi ↔ English; Sanskrit ↔ English and Sanskrit ↔ Hindi report-only until E5d sets their
+thresholds; Odia ↔ English report-only until it has gold. H3 stays report-only until TSAI rules.
 **Scope:** H3 of `diagnosis/DISEASES.md`, section H: "the same content in another source or language", for example a
 translation of a document seen in English. `dedup_design_v1.md` covers H1 and H2 and leaves translations out of v1
 (TSAI, 5 Nov). This file is the method for that half. Later H3 questions (H3-g to H3-m) are in
@@ -16,7 +18,7 @@ translation of a document seen in English. `dedup_design_v1.md` covers H1 and H2
 | Score | Sentence coverage: aligned sentences / sentences of the shorter document | Thresholds set per language pair by E5 |
 | Method | Candidates from a multilingual encoder (LaBSE) and URL keys; confirmed by sentence alignment | Encoder checked on FLORES (Hindi, Odia pass; Sanskrit weak); LaBSE pinned at revision `836121a` (TSAI, #625, 20 Nov) |
 | Survivors | H3 never chooses a survivor. Only a direct held-out ↔ train edge removes, and only that train document (rule 0) | Agreed on #44 (H3-a); direct edges only: TSAI, #625, 19 Nov (#663) |
-| Removal | Report-only (`remove: false`) until E5c and the harm check pass clean, then `remove: true` | Ruled by TSAI (#625, 19 Nov); waits for E5c |
+| Removal | Report-only (`remove: false`) until E5c and the harm check pass clean, then `remove: true` | Ruled by TSAI (#625, 19 Nov). Both passed (23 Nov). Proposed: on for Hindi ↔ English only, awaiting TSAI (see "Decisions") |
 | Where it runs | `overlap.py` and `h3.py` read the same cleaned parts independently; one `dedup.py` run reads both match files | Agreed on #44 (H3-b) |
 | Hand-off | `h3_matches.csv` keyed by document; one `remove_list.csv` in today's five columns | Agreed on #44 (H3-c) |
 | Parallel packs | No H3 edge inside a pack that is parallel by design (Pralekha, BPCC human parts) | Agreed on #44 (H3-d) |
@@ -70,6 +72,8 @@ BGE-M3 (`BAAI/bge-m3`, MIT), checked with the same script (`h3_bge_m3_check_resu
 (Sanskrit–English) and 95% (Sanskrit–Hindi) of translated blocks at 0.7, and 6 of its 8 matches on the real pages are
 translations. Its cosines also run about 0.15 higher for unrelated text, and it was about 8× slower on a CPU. TSAI asked
 for both encoders' numbers on real pairs before choosing (#625, 19 Nov): the BGE-M3 job on E5c's Sanskrit pairs is #666.
+On the sample (25 Nov, "Validation", E5a′ on the sample), BGE-M3 at 0.7 qualified 2 pairs (both sa–hi) to LaBSE's 4
+Sanskrit pairs at 0.55 in E5c, and listed only 2 sa–en pairs at coverage 0.3 or more.
 
 **Pinned weights.** Jobs stage `sentence-transformers/LaBSE` at revision `836121a0533e5664b21c7aacc5d22951f2b8b25b`
 (TSAI, #625, 20 Nov). `h3_summary.json` then records `model.safetensors`
@@ -196,9 +200,10 @@ folder with the Hugging Face libraries offline (`JOB_REQUEST.md` rule 1); the su
 | E5a | **Known pairs, fake encoder:** a translation is caught; a same-topic page, a page sharing only names or numbers, and a same-URL page with other content are kept; train ↔ held-out keeps the held-out copy | The rules behave as specified | 71 tests (`tests/test_h3.py`, `test_h3_signals.py`, `test_h3_align.py`) |
 | E5a′ | **Known pairs, real encoder:** FLORES-200 translations as positives; 433 same-page pairs from `ind-sa-fw2` (a Sanskrit story with an embedded English or Hindi post on the same event) as same-topic negatives | The encoder and thresholds per language pair | Measured with LaBSE and BGE-M3 ("Encoder") |
 | E5b | **Timed run** on full packs (`ind-sa-fw2`, `ind-hi-fw2`, `en-fineweb-edu`) | Stage times, the estimate for the sample, first counts; the share of URL-found pairs that retrieval also finds (recall of head-only retrieval) | Timed: all 91,559 documents of the three packs in 205.7 s on CUDA (fp16), 0 qualifying at 0.7, as the H3 stage of TSAI's 38-pack rehearsal (`jobs/logs/2026-11-19-first-training-rehearsal-38packs/`). It found no URL pairs, so the URL share is not measured |
-| E5c | **Measurement job** on the cleaned sample, report-only | H3 counts per language pair; cosine and coverage histograms | Approved (#625, 20 Nov): 10 packs, sa–en, sa–hi, hi–en and or–en, sentence threshold 0.7 and 0.55 for Sanskrit. Waits for TSAI's run |
-| E5d | **Threshold sweep and hand review:** bilingual readers label pairs on both sides of each threshold, blind | The thresholds per language pair | Open: after E5c, and #666 for Sanskrit; the readers' labels are the result |
-| Harm | No gold document removed | No harm to reviewed clean documents | Pass on the diagnosis packs with `h3.remove: true`: 0 of 1,308 gold documents removed, with each language held out in turn (`jobs/logs/2026-11-19-h3-harm-diag-local.txt`). No pair qualified there, so no removal was tested; it is run again with E5c's thresholds. The sample has no gold, so E5c cannot test it |
+| E5c | **Measurement job** on the cleaned sample, report-only | H3 counts per language pair; cosine and coverage histograms | Done, report-only (TSAI's report, 23 Nov), as approved (#625, 20 Nov): 10 packs, sa–en, sa–hi, hi–en and or–en, sentence threshold 0.7 and 0.55 for Sanskrit. 417,176 documents; 76,522 pairs retrieved (sa–en 3,063, sa–hi 3,667, hi–en 47,933, or–en 21,859), 26,114 rejected on length ratio, the other 50,408 all verified (`max_verify` 60,000). 5 qualifying pairs (sa–en 1, sa–hi 3, hi–en 1, or–en 0), none with a held-out document, so rule 0 would remove nothing on the sample: `ind-hi-sangraha-v` × `ind-sa-fw2` 0.867, `en-fineweb-edu` × `ind-sa-fw2` 0.688, `en-fineweb-edu` × `ind-hi-sangraha-s` 0.667, `ind-hi-indiccorp` × `ind-sa-fw2` 0.667, `ind-hi-fw2` × `ind-sa-fw2` 0.667. The output files are still to be returned to `jobs/results/2026-11-18-h3-e5c/` |
+| E5a′ on the sample | **BGE-M3 on E5c's Sanskrit pairs** (#666), report-only | Both encoders' pairs on the same documents, for E5d and the Sanskrit encoder | Done, 25 Nov, on a Colab T4 (CUDA, fp16): #666's config and pinned code, with `max_verify` 60,000 as in E5c's full rerun, on the #244 cleaning of sample v0 rebuilt from the raw sample (row counts equal to TSAI's #244 output in every part). 311,914 documents compared (sa 5,693, hi 88,746, en 217,475); 10,930 pairs retrieved (sa–en 5,095, sa–hi 5,835), 7,201 verified, none left over `max_verify`. 2 qualifying pairs, both sa–hi, none with a held-out document; 36 listed at coverage 0.3 or more (sa–hi 34, sa–en 2, at most 0.375). 26.8 minutes; torch 2.14.1 and Python 3.13 (Colab's), not the request's 2.13.0 and 3.12 (`jobs/logs/2026-11-25-h3-e5c-bge-m3-colab/`) |
+| E5d | **Threshold sweep and hand review:** bilingual readers label pairs on both sides of each threshold, blind | The thresholds per language pair | Open: the sheets are built once E5c's files are back (#666's are in, 25 Nov). BGE-M3 lists only 2 sa–en pairs at coverage 0.3 or more, so the sa–en sheet is drawn almost wholly from LaBSE's pairs. Three sheets of 50 pairs (sa–en, sa–hi, hi–en), each read blind by two G2 readers (#729): every qualifying pair, then pairs from coverage 0.45–0.6 and 0.30–0.45, with known-answer controls on the Sanskrit sheets (`README_h3.md`, "E5d reader sheets"). No or–en sheet: G2 has no Odia reader, and Odia ↔ English stays report-only. The readers' labels are the result |
+| Harm | No gold document removed | No harm to reviewed clean documents | Pass, with removal tested (23 Nov; `jobs/logs/2026-11-23-h3-harm-cases.txt`, `README_h3.md`, "Harm check with planted cases"): the diagnosis packs with known pairs planted, at E5c's thresholds, every candidate verified, `h3.remove: true`, each language held out in turn. 0 of 1,308 gold documents and no held-out document removed; every qualifying held-out ↔ train pair removed and no other; train ↔ train pairs reported, never removed. Planted FLORES+ pairs removed: hi–en 3 of 3, sa–en 2 of 3, sa–hi 1 of 3; real Sanskrit web translations: 2 of 6. The run of 19 Nov (`jobs/logs/2026-11-19-h3-harm-diag-local.txt`) passed with no pair qualifying, so it tested nothing. Odia has no gold, so or–en is not tested; the sample has no gold, so E5c cannot test it |
 
 ## Risks
 
@@ -218,20 +223,20 @@ TSAI ruled on the open decisions on #625 (19 Nov):
 
 | # | Question | Ruling | Status |
 |---|---|---|---|
-| 1 | Report-only, or may train copies of held-out documents be removed (rule 0)? (H3-f) | Removal on for v1, `h3.remove: true`, once E5c and the harm check pass clean (no gold document removed). A train copy of a held-out document is eval contamination, as for H1/H2/F2. Report-only until then | Waits for E5c, then the harm test with E5c's thresholds. Turning removal on is its own PR: `pipeline/stage_args.py`, `run_pipeline.py`'s report-only check, the `h3` section of `dedup.json` and the first-training job request |
+| 1 | Report-only, or may train copies of held-out documents be removed (rule 0)? (H3-f) | Removal on for v1, `h3.remove: true`, once E5c and the harm check pass clean (no gold document removed). A train copy of a held-out document is eval contamination, as for H1/H2/F2. Report-only until then | E5c has run and the harm check has passed (23 Nov, "Validation"). Proposed (23 Nov), for TSAI's ruling: on for Hindi ↔ English; Sanskrit ↔ English and Sanskrit ↔ Hindi report-only until E5d sets their thresholds, since Sanskrit translations are lost both at retrieval and at the 0.55 cut (harm check: 1 or 2 of 3 planted pairs removed per pair, and 2 of 6 real web translations); Odia ↔ English report-only until it has gold. `h3.remove` is one switch for all language pairs today, so this needs a per-pair setting in `h3_join.py` and the `h3` section of `dedup.json`. Turning removal on is its own PR: that setting, `pipeline/stage_args.py`, `run_pipeline.py`'s report-only check and the first-training job request, whose H3 stage reads `ind-sa-fw2`, `ind-hi-fw2` and `en-fineweb-edu` (`jobs/2026-11-19-first-training/h3.json`) |
 | 2 | Language pairs in v1.1; Data A ↔ Data B pairs | Indic ↔ English and Sanskrit ↔ Hindi, prose packs only. Data A ↔ Data B stays out of v1 (5 Nov), deferred to `dedup_design_v2_proposal.md` item 7 | Decided |
-| 3 | The Sanskrit encoder or threshold | Run E5a′ with a second encoder, then E5d's blind sweep, and bring TSAI the numbers | BGE-M3 on E5c's Sanskrit pairs: #666, approved 20 Nov |
+| 3 | The Sanskrit encoder or threshold | Run E5a′ with a second encoder, then E5d's blind sweep, and bring TSAI the numbers | BGE-M3 on E5c's Sanskrit pairs: #666, approved 20 Nov; run 25 Nov ("Validation", E5a′ on the sample): 2 qualifying pairs (sa–hi) to LaBSE's 4. The choice waits on E5d's labels; the sheets from E5c and #666 were built on 27 Nov (`README_h3.md`, "The sheets from E5c and #666") |
 | 4 | Packs with several languages (Pralekha) need each row's language, not one language per pack | Not needed in v1.1; design it before such packs join | Deferred |
 | 5 | Chains: a held-out document ↔ a train translation ↔ a train translation in a third language | Only direct edges remove; no transitive removal | Done (#663) |
 | 6 | Licence of the encoder weights for use in the data pipeline | G10 signs off; not a blocker for E5c | Signed off by G10: LaBSE (Apache-2.0), BGE-M3 (MIT), #634 |
 
-How the ruling is applied: **proposed**, our reading of the four questions asked on #625 (19 Nov), awaiting TSAI's
-confirmation:
+How the ruling is applied: our reading of the four questions asked on #625 (19 Nov), **confirmed by TSAI** in its
+review of #626 (21 Nov):
 
 | Question | Applied as | From |
 |---|---|---|
 | What is a direct edge? | H3 itself matches a held-out document with a train document. A match with a train copy (an H1/H2 duplicate) of a held-out document is a chain: reported (`reported_indirect`), never removed | Point 5: "only direct edges remove … keep it conservative"; #663 |
-| Which harm check must pass? | An H3 harm test on the diagnosis packs, with the gold on main and `h3.remove: true`: no gold document removed. The sample has no gold, so E5c reports it as not testable. The 19 Nov run passed with 0 H3 removals ("Validation", Harm); a pass with no H3 removal tests nothing, so it is run again with E5c's thresholds before removal turns on | Point 1: "no gold document removed" |
+| Which harm check must pass? | An H3 harm test on the diagnosis packs, with the gold on main and `h3.remove: true`: no gold document removed. The sample has no gold, so E5c reports it as not testable. The 19 Nov run passed with 0 H3 removals ("Validation", Harm); a pass with no H3 removal tests nothing, so it is run again with E5c's thresholds before removal turns on: the run of 23 Nov passed, with removal tested in every language pair ("Validation", Harm) | Point 1: "no gold document removed" |
 | Odia ↔ English, which has no gold set | Stays report-only when removal turns on, until a harm check with Odia gold passes | Point 1: removal only after the harm check passes |
 | Which candidates does E5d label? | Sanskrit pairs (sa–en, sa–hi): the candidates of both LaBSE and BGE-M3, so the encoder can be chosen from the labels. Hindi and Odia pairs: LaBSE's | Point 3: second encoder, then E5d, "bring me the numbers"; #666, approved for the two undecided Sanskrit pairs |
 
@@ -250,3 +255,9 @@ confirmation:
 | 20 Nov 2026 | LaBSE pinned at revision `836121a`; jobs stage the revision, not a `.save()` copy | TSAI | #625, review of 20 Nov |
 | 20 Nov 2026 | LaBSE (Apache-2.0) and BGE-M3 (MIT) allowed as models of the data pipeline | G10 | #634 |
 | 21 Nov 2026 | Proposed, awaiting TSAI (#625): the ruling applied: a chain through an H1/H2 copy is reported, never removed; the H3 harm test on the diagnosis packs is the harm check, run again with E5c's thresholds; Odia ↔ English stays report-only until a harm check with Odia gold; E5d labels both encoders' Sanskrit candidates | Aneesha Das; Kunal Sinha | "Decisions" |
+| 21 Nov 2026 | The ruling applied, as proposed above: confirmed | TSAI | #626, review of 21 Nov |
+| 23 Nov 2026 | E5c done, report-only: 5 qualifying pairs, none with a held-out document; every candidate verified | TSAI | #625; TSAI's report of 23 Nov |
+| 23 Nov 2026 | Harm check with planted cases at E5c's thresholds: pass, with removal tested in sa–en, sa–hi and hi–en | H3 owner | `jobs/logs/2026-11-23-h3-harm-cases.txt` |
+| 23 Nov 2026 | Proposed, awaiting TSAI: `h3.remove: true` for Hindi ↔ English; Sanskrit ↔ English and Sanskrit ↔ Hindi report-only until E5d; Odia ↔ English report-only | H3 owner | Reply to TSAI's E5c report, 23 Nov; "Decisions" |
+| 24 Nov 2026 | E5d: three sheets of 50 pairs (sa–en, sa–hi, hi–en), two readers each, every qualifying pair included; no or–en sheet | Lead (layout); G2 readers | `README_h3.md`, "E5d reader sheets"; #729 |
+| 25 Nov 2026 | #666 run on a Colab T4, `max_verify` 60,000: 2 qualifying pairs (sa–hi), none with a held-out document; report-only | H3 owner | `jobs/logs/2026-11-25-h3-e5c-bge-m3-colab/`; #666 |

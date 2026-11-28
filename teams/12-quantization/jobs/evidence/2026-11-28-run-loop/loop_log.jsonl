@@ -1,0 +1,27 @@
+{"ts": "2026-11-28T10:44:39", "event": "loop", "guards": "RELAXED: --drop-router-bias --drop-head-bias (the GGUF is not the checkpoint as trained; every gap is against the bf16 GGUF of the same export)", "formats": "bf16,Q8_0,Q6_K,Q5_K_M,Q4_K_M"}
+{"ts": "2026-11-28T10:44:39", "stage": "strip", "event": "start", "reason": "no marker"}
+{"ts": "2026-11-28T10:44:39", "stage": "strip", "event": "done", "seconds": 0.2}
+{"ts": "2026-11-28T10:44:39", "stage": "q_bf16", "event": "start", "reason": "no marker"}
+{"ts": "2026-11-28T10:45:10", "stage": "q_bf16", "event": "done", "seconds": 30.2}
+{"ts": "2026-11-28T10:45:10", "stage": "q_Q8_0", "event": "start", "reason": "no marker"}
+{"ts": "2026-11-28T10:45:16", "stage": "q_Q8_0", "event": "done", "seconds": 6.2}
+{"ts": "2026-11-28T10:45:16", "stage": "q_Q6_K", "event": "start", "reason": "no marker"}
+{"ts": "2026-11-28T10:45:27", "event": "loop", "guards": "RELAXED: --drop-router-bias --drop-head-bias (the GGUF is not the checkpoint as trained; every gap is against the bf16 GGUF of the same export)", "formats": "bf16,Q8_0,Q6_K,Q5_K_M,Q4_K_M"}
+{"ts": "2026-11-28T10:45:27", "stage": "strip", "event": "skip", "reason": "marker has the same version and key"}
+{"ts": "2026-11-28T10:45:27", "stage": "q_bf16", "event": "skip", "reason": "marker has the same version and key"}
+{"ts": "2026-11-28T10:45:27", "stage": "q_Q8_0", "event": "skip", "reason": "marker has the same version and key"}
+{"ts": "2026-11-28T10:45:27", "stage": "q_Q6_K", "event": "start", "reason": "no marker"}
+{"ts": "2026-11-28T10:45:33", "stage": "q_Q6_K", "event": "done", "seconds": 5.6}
+{"ts": "2026-11-28T10:45:33", "stage": "q_Q5_K_M", "event": "start", "reason": "no marker"}
+{"ts": "2026-11-28T10:45:40", "stage": "q_Q5_K_M", "event": "done", "seconds": 7.1}
+{"ts": "2026-11-28T10:45:40", "stage": "q_Q4_K_M", "event": "start", "reason": "no marker"}
+{"ts": "2026-11-28T10:45:47", "stage": "q_Q4_K_M", "event": "done", "seconds": 7.2}
+{"ts": "2026-11-28T10:45:47", "stage": "report", "event": "done"}
+{"ts": "2026-11-28T10:45:58", "event": "loop", "guards": "RELAXED: --drop-router-bias --drop-head-bias (the GGUF is not the checkpoint as trained; every gap is against the bf16 GGUF of the same export)", "formats": "bf16,Q8_0,Q6_K,Q5_K_M,Q4_K_M"}
+{"ts": "2026-11-28T10:45:58", "stage": "strip", "event": "skip", "reason": "marker has the same version and key"}
+{"ts": "2026-11-28T10:45:58", "stage": "q_bf16", "event": "skip", "reason": "marker has the same version and key"}
+{"ts": "2026-11-28T10:45:58", "stage": "q_Q8_0", "event": "skip", "reason": "marker has the same version and key"}
+{"ts": "2026-11-28T10:45:58", "stage": "q_Q6_K", "event": "skip", "reason": "marker has the same version and key"}
+{"ts": "2026-11-28T10:45:58", "stage": "q_Q5_K_M", "event": "skip", "reason": "marker has the same version and key"}
+{"ts": "2026-11-28T10:45:58", "stage": "q_Q4_K_M", "event": "skip", "reason": "marker has the same version and key"}
+{"ts": "2026-11-28T10:45:58", "stage": "report", "event": "done"}

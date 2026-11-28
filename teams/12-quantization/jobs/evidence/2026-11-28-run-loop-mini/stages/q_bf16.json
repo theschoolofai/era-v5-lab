@@ -1,0 +1,10 @@
+{
+  "files": [
+    "q/bf16/scores.json"
+  ],
+  "command": "~/.cache/era-v5-quant/venv-loop/bin/python <repo>/teams/12-quantization/scripts/quantize_eval.py --checkpoint <scratch>/mini/out/weights/model.safetensors --tokenizer ~/Downloads/tokenizer_p1536.json --eval <repo>/teams/12-quantization/prompts/eval_own_20.json --formats bf16 --work <scratch>/stage/work --runs-csv <scratch>/mini/out/runs.csv --scores-out <scratch>/mini/out/q/bf16/scores.json --verify 4 --name loop --spec <scratch>/mini/out/weights/manifest.json --drop-router-bias --drop-head-bias --no-record",
+  "stage": "q_bf16",
+  "version": 1,
+  "key": "99931f5aad094503",
+  "seconds": 29.5
+}

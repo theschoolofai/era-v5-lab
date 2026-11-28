@@ -53,7 +53,7 @@ One job, one command. There is no shell pipe. `run_flow.py` runs `quantize_eval.
   - `llama.cpp-b11669/`, a checkout of tag b11669 (`git clone --depth 1 --branch b11669 https://github.com/ggml-org/llama.cpp`);
   - `.venv-convert/`, a Python 3.12 venv with `llama.cpp-b11669/requirements/requirements-convert_hf_to_gguf.txt`, `llama.cpp-b11669/gguf-py` and `pyarrow<19` installed (this venv also runs the export, so it needs torch and transformers, which the requirements file brings).
   - Nothing else: the export, the GGUF files and the test A3 file are written there by the run.
-- Team 10's parquet files, only if TSAI can stage them: `./inputs/code_contests/` (`deepmind/code_contests` at `802411c3010c`, the 24 `train-*.parquet` files the manifest names, about 4.6 GB) and `./inputs/hendrycks_math/` (`EleutherAI/hendrycks_math` at `21a5633873b6`, the 7 `<subject>/train-*.parquet` files, 3 MB). `effort_suite.py` checks each file against the sha256 in the manifest. Without them, drop `--manifest` and both `--source-dir` options; the run then uses our own 100 prompts.
+- Team 10's parquet files, only if TSAI can stage them: `./inputs/code_contests/` (`deepmind/code_contests` at `802411c3010c`, the 25 `train-*.parquet` files the manifest names, 4.83 GB) and `./inputs/hendrycks_math/` (`EleutherAI/hendrycks_math` at `21a5633873b6`, the 6 `<subject>/train-*.parquet` files, 3 MB). `effort_suite.py` checks each file against the sha256 in the manifest. Without them, drop `--manifest` and both `--source-dir` options; the run then uses our own 100 prompts.
 
 With these in place the run makes no network call: no `git ls-remote`, no clone, no package install, no download. I ran the smoke with `git ls-remote`, `clone`, `fetch` and `pull` blocked and it passed. The tokenizer round trip (`--roundtrip`) is not in this command: it needs held-out text from the Hub, and it tests the tokenizer and the converter, which the weights do not change. Its result for p1536 is in #467's report.
 
@@ -73,7 +73,7 @@ The smoke is not a result: random weights, so scores and agreement with bf16 mea
 ## Open items for TSAI
 
 1. **Tools.** Are llama.cpp b11669 (`llama-quantize`, `llama-server`) and a Python with `llama-cpp-python==0.3.36` and `pyarrow` installed on the job machine, and can the work folder above be prepared with network once? The GPU build of llama.cpp and of llama-cpp-python is optional: the flow also runs on CPU, slower.
-2. **Team 10 parquet files.** Can `code_contests` (about 4.6 GB) and `hendrycks_math` be staged? If not, the run uses only our own 100 prompts and the Team 10 split is empty.
+2. **Team 10 parquet files.** Can `code_contests` (4.83 GB) and `hendrycks_math` be staged? If not, the run uses only our own 100 prompts and the Team 10 split is empty.
 3. **Network.** Is no network at run time acceptable with the prepared work folder? Nothing in the command needs it then. If the job must fetch the pinned pieces, the first run needs git and PyPI.
 4. **Where the work folder lives.** The rule is that a job writes only to `./out/`. The work folder (llama.cpp checkout, converter venv, the exported model of about 0.6 GB) is far over 50 MB, so I put it at `./work/`, outside `./out/`. If it must be under `./out/`, tell me where it may be deleted from the 50 MB count.
 5. **Run folder.** Is `./out/dryrun1-1234/` the folder TSAI kept, with `checkpoint.pt` and `manifest.json`? If its path or layout differs, I change `--checkpoint`.

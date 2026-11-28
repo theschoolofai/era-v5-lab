@@ -1,0 +1,5 @@
+sa-en: 2 read non-translations + 8 of 312 unread pairs low on both encoders + 0 read translations; shortfall 0
+  to check by hand: 4b8f9c4857da4bc2 aa596a10274874c8 4d172b6910d50c6d bc95bdb9f3cb2722 2af31d20f038b9c4 31f47720d0078b77 7f92acaca39f8446 e0a99980a4996e23
+sa-hi: 1 read non-translations + 9 of 65 unread pairs low on both encoders + 0 read translations; shortfall 0
+  to check by hand: 662841bc5d6003c5 7d2520afa0c230ab 4e69dc35d94e3954 5357bd80eb20e546 7f3faf739fb743e4 84fb722717a61c13 974e01d5ff312cd2 137b8a3fc4ada291 986ab0d14a41bb45
+python3 -I teams/01-data-a/dedup/h3_e5d_controls.py --out out/e5d_controls     0.48s user 0.11s system 88% cpu 0.662 total

@@ -1,0 +1,13 @@
+{
+  "_comment": "E5d reader sheets on the FLORES test data (h3_e5d_flores.py): the LaBSE run of h3_e5d_flores.json and, for the Sanskrit pairs, the rescoring of h3_e5d_flores_t07.json in a second encoder's place. Controls: FLORES block pairs that are not translations.",
+  "runs": {"labse": "out/e5d_flores/h3_labse", "labse-t07": "out/e5d_flores/h3_labse_t07"},
+  "inputs": "out/e5d_flores/inputs",
+  "controls": "out/e5d_flores/controls.parquet",
+  "out": "out/e5d_flores/sheets",
+  "pairs": [["sa", "en"], ["sa", "hi"], ["hi", "en"], ["or", "en"]],
+  "bands": [0.3, 0.45, 0.6, 0.75, 1.0],
+  "per_band": 20,
+  "n_controls": 10,
+  "readers": 2,
+  "seed": 20261122
+}

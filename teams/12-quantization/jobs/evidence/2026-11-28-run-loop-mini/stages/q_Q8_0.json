@@ -1,0 +1,10 @@
+{
+  "files": [
+    "q/Q8_0/scores.json"
+  ],
+  "command": "~/.cache/era-v5-quant/venv-loop/bin/python <repo>/teams/12-quantization/scripts/quantize_eval.py --checkpoint <scratch>/mini/out/weights/model.safetensors --tokenizer ~/Downloads/tokenizer_p1536.json --eval <repo>/teams/12-quantization/prompts/eval_own_20.json --formats Q8_0 --work <scratch>/stage/work --runs-csv <scratch>/mini/out/runs.csv --scores-out <scratch>/mini/out/q/Q8_0/scores.json --verify 4 --name loop --spec <scratch>/mini/out/weights/manifest.json --drop-router-bias --drop-head-bias --no-record",
+  "stage": "q_Q8_0",
+  "version": 1,
+  "key": "470b933078e5ac63",
+  "seconds": 7.0
+}

@@ -13,7 +13,7 @@ Hardware:        1 CUDA GPU (16 GiB VRAM or more), 32 vCPU, 64 GiB RAM, sized on
 Max time:        720 minutes for the combined job (H3's own limit is 180 minutes)
 Precision:       H3 fp16 on CUDA (precision auto); shard token IDs are integers
 Measures:        Raw/cleaned/dedup/F2/final counts, H3 matches, train shards and tokens, heldout not_sharded, per-part reconciliation and SHA-256 checks
-Expected result: Every listed raw part reaches the ledger; each train part is written or has a justified empty/all_left_out status; heldout parts are not sharded; all checks pass; H3 removes zero documents
+Expected result: Every listed raw part reaches the ledger; each train part is written or has a justified empty/all_left_out status; heldout parts are not sharded; all checks pass; H3 removes only hi–en train documents matched directly to a held-out document (stages.h3.remove, TSAI 27 Nov), and no held-out document
 Outputs:         out/first-training-inputs/{input_manifest.json,expected_inventory.json,pack_metadata.json,run.json,run_clean.json,run_production.json}; out/pipeline/<run_id>-clean/clean/ (the clean run); out/minhash_sizing/corpus-v1/ (sizing.csv, sizing.json, x1/x2/x4); out/pipeline/<run_id>/{overlap,h3,dedup,deduped,final,report,ledger,shards,reconcile}/ and pipeline_manifest.json
 Test log:        teams/01-data-a/jobs/logs/2026-11-19-first-training-rehearsal-38packs/ (all 86 parts of sample v0, 38 packs, frozen p1536, Linux + pinned env: 59/59 checks; with the inventory, prepare_run's run.json at 2691c44: 74/74)
 ```
@@ -69,7 +69,8 @@ See `2026-11-19-first-training/README.md` for selection details.
 The active cleaner includes five subsets extracted from fork #86: A6 test-fixture/
 Cyrillic protection, scientific C2 paragraph boundaries, English C2 fenced-code
 protection, C3 closing curly quotes, and English F1 DOI protection. The existing
-binary-value guard, rule IDs/scopes/order and report-only H3 policy are retained.
+binary-value guard and rule IDs/scopes/order are retained. H3 removes only hi–en
+matches from 27 Nov (TSAI); every other language pair stays report-only.
 The post-#88 full-gold rerun gives 28/32 supported packs PASS and four raw FAIL,
 with the same affected IDs; the five amended rules touch zero gold documents.
 Cleaner tests: 1,952 PASS and nine subtests; clean-job/preparation: 125 PASS.
@@ -153,7 +154,7 @@ The job must be staged with these inputs before `--plan` or execution:
 
 - All selected approved raw parts, at least one in each split for every selected pack, under `<raw>/train/<pack>/part-<number>.parquet` and `<raw>/heldout/<pack>/part-<number>.parquet`.
 - The frozen p1536 `tokenizer.json` (SHA-256 `e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b`).
-- The published `sentence-transformers/LaBSE` revision `836121a0533e5664b21c7aacc5d22951f2b8b25b`, staged offline at `../models/LaBSE` relative to the repository root; see the pinned files below. The job uses a CUDA host; H3 retains the rehearsed `device: auto` setting and measures `ind-sa-fw2`, `ind-hi-fw2` and `en-fineweb-edu` in report-only mode. All sentence thresholds remain at the rehearsed default 0.7. E5c's provisional Sanskrit 0.55 is a separate measurement configuration; threshold changes are deferred beyond this submission.
+- The published `sentence-transformers/LaBSE` revision `836121a0533e5664b21c7aacc5d22951f2b8b25b`, staged offline at `../models/LaBSE` relative to the repository root; see the pinned files below. The job uses a CUDA host; H3 retains the rehearsed `device: auto` setting and measures `ind-sa-fw2`, `ind-hi-fw2` and `en-fineweb-edu`; of these pairs only hi–en removes (`stages.h3.remove`). All sentence thresholds remain at the rehearsed default 0.7. E5c's provisional Sanskrit 0.55 is a separate measurement configuration; threshold changes are deferred beyond this submission.
 - The committed `2026-11-19-first-training/approved_inputs.json`: all 38 packs, TSAI-accepted shard metadata/lanes, and pinned licence text/provenance. The generator materializes these fields as `out/first-training-inputs/pack_metadata.json` for the sharder. The generic `shards/pack_table.json` has the accepted lanes but omits licences.
 - The pinned G9 F2 v2 fingerprint set and the packages in `2026-11-19-first-training/requirements_pipeline.txt` in one Python 3.12 environment. No network access or keys at runtime.
 
@@ -209,7 +210,7 @@ Overlap also stops when its outputs exceed `max_output_mb`, which the script lim
 
 **If a stage fails, the run continues; it does not start over.** The runner records each stage in `pipeline_manifest.json` when it finishes. Set `"from": "<stage>"` in the run config (for example `"from": "overlap"`) and run the same command: the runner checks that every earlier stage's output still has its recorded digest and continues at that stage, so a failed overlap does not repeat cleaning. An interrupted clean job also continues its own folder. A single stage has no checkpoint inside it, so a failed overlap reruns from its beginning (84 min on the sample).
 
-The committed 74-check run is the primary end-to-end execution evidence for this request. The submission retains its H3 settings (including sentence threshold 0.7), report-only H3 policy, cleaner rules, overlap/dedup/F2 logic, p1536 tokenizer and 30 F2 workers. The one deliberate change is the shard `dataset_version`, now `corpus-v1` (the rehearsal wrote `first-training-v1`). Final changes add input/model preflight checks, generate the same shard metadata from the approved scope, and improve the independent auditor. Cleaner audit sampling adds reports without changing the cleaned data. Focused equivalence and regression tests supplement the rehearsal; recorded run IDs, hashes and counts continue to describe that original run. Generated inventory and provenance hashes for the submission will differ because metadata and audit reports have been added.
+The committed 74-check run is the primary end-to-end execution evidence for this request. The submission retains its H3 settings (including sentence threshold 0.7), cleaner rules, overlap/dedup/F2 logic, p1536 tokenizer and 30 F2 workers. The deliberate changes are the shard `dataset_version`, now `corpus-v1` (the rehearsal wrote `first-training-v1`), and H3's removal: the rehearsal was report-only; this run removes hi–en matches (`stages.h3.remove`, TSAI 27 Nov), and every other pair stays report-only. Final changes add input/model preflight checks, generate the same shard metadata from the approved scope, and improve the independent auditor. Cleaner audit sampling adds reports without changing the cleaned data. Focused equivalence and regression tests supplement the rehearsal; recorded run IDs, hashes and counts continue to describe that original run. Generated inventory and provenance hashes for the submission will differ because metadata and audit reports have been added.
 
 Final local verification on 19 Nov: the audit, job-preparation and cleaner suites passed 140 tests. These include exact equality of the submitted H3 config and generated pack metadata with the rehearsal, and byte-identical cleaned Parquets with audit sampling enabled/disabled on a synthetic fixture. The setup wrapper passed `bash -n`; the conditional network download was not executed during this verification.
 
@@ -249,7 +250,7 @@ python -m pytest teams/01-data-a/tests/audit/test_check_shard.py teams/01-data-a
          "expected_parts": {"train": "<generated count>", "heldout": "<generated count>"}
        },
        "overlap": {"mode": "run", "script": "teams/01-data-a/dedup/minhash_overlap.py", "settings": "teams/01-data-a/dedup/minhash_overlap_partial.json"},
-       "h3": {"mode": "run", "settings": "teams/01-data-a/jobs/2026-11-19-first-training/h3.json"},
+       "h3": {"mode": "run", "settings": "teams/01-data-a/jobs/2026-11-19-first-training/h3.json", "remove": {"hi-en": true}},
        "dedup": {"mode": "run", "settings": "teams/01-data-a/dedup/dedup.json"},
        "f2": {"pool": true, "workers": 30},
        "ledger": {"raw": "<raw-root>"},
@@ -279,7 +280,11 @@ python -m pytest teams/01-data-a/tests/audit/test_check_shard.py teams/01-data-a
 
    `run.json` is the same run in one go, without the gate; the job uses the two gate configs.
 
-The runner runs clean → overlap → H3 → dedup → apply → F2 → survivor loss → raw ledger → shards → reconcile. It verifies each handoff and the inventory at the ledger/shard and reconciliation checkpoints. H3 feeds its matches to dedup with `remove: false`. H3 stays report-only: the runner hardcodes `remove: false` for this hand-off, fails the run if dedup recorded anything else, and acceptance requires H3 `removed: 0`.
+The runner runs clean → overlap → H3 → dedup → apply → F2 → survivor loss → raw ledger → shards → reconcile. It verifies each handoff and the inventory at the ledger/shard and reconciliation checkpoints. H3 feeds its matches to dedup with `stages.h3.remove`, which `prepare_run.py` sets to `{"hi-en": true}` (TSAI, 27 Nov): only a hi–en train document matched directly to a held-out document is removed; sa–en, sa–hi and or–en stay report-only. The runner fails the run if dedup recorded another setting, and acceptance requires H3's removals to be hi–en only, with `heldout_removed: 0`.
+
+**A run config written before the hi–en setting.** `prepare_run.py` refuses to overwrite a bundle, so for configs it has already written, add `"remove": {"hi-en": true}` to `stages.h3` in `run_production.json` (and in `run.json`, if used). `run_clean.json` ends at clean and does not change. Nothing is cleaned again and the sizing gate is not repeated: the production run adopts the finished clean run's folder, and the gate measured that folder, which is unchanged. If the production run has already passed dedup without the setting, resume it with `"from": "dedup"`: H3 and the earlier stages are reused (their digests are checked), and dedup onwards run again. The runner refuses a resume at any later stage whose recorded dedup output was made with another `stages.h3.remove`.
+
+**H3's scope and its verify limit.** `h3.json` measures `ind-sa-fw2`, `ind-hi-fw2` and `en-fineweb-edu`, the rehearsed scope, so hi–en removal applies to `ind-hi-fw2` ↔ `en-fineweb-edu` only; other Hindi and English packs are not compared. H3 verifies at most `max_verify` candidates (10,000, the default; `h3.json` does not set it), best first; the rest are neither checked nor removed. `h3_summary.json` counts them (`not_verified_over_max_verify`), and the manifest records that count and `verified` in H3's counts, for the returned log. The rehearsal on sample v0 had 12,310 candidates, 2,967 rejected on length, 9,343 verified and 0 unverified.
 
 ## Folder layout and audit artifacts
 
@@ -338,4 +343,4 @@ The clean settings enable `audit_samples: 5`. Each part has an audit sidecar; `r
 
 Return the console log, `pipeline_manifest.json`, `inventory_check.json`, clean `job_summary.json`, `cleaned_manifest.json`, `rule_counts.csv` and `rule_examples.csv`, H3 summary and match counts, `shards_summary.json`, and `reconcile_summary.json` under `teams/01-data-a/jobs/results/2026-11-19-first-training/`. Limit repository-returned logs/reports to 50 MiB total. Keep audit sidecars, Parquet, token binaries and document text in TSAI's job storage; report their paths and hashes without committing their content. With them, return the sizing gate's `out/minhash_sizing/corpus-v1/sizing.csv` and `sizing.json`, and each factor's `config.json` and `overlap/overlap_summary.json`, under `teams/01-data-a/jobs/results/2026-11-19-first-training/minhash_sizing/`, also when the gate stops the job; the clean run's `pipeline_manifest.json` and `logs/clean.log` go with the clean `job_summary.json`.
 
-Acceptance requires exit code 0, inventory report `ok: true`, no missing or unlisted input part, zero heldout shards, H3 `removed: 0`, shard files verified on disk, and reconciliation of every kept train document. Include the runtime, peak memory, H3 model hash and package versions, shard/token counts, and any empty or all-left-out train parts in the returned log.
+Acceptance requires exit code 0, inventory report `ok: true`, no missing or unlisted input part, zero heldout shards, H3 removals only on hi–en (`h3_pairs.csv`: every `removed` row is a hi–en pair) and none of a held-out document, shard files verified on disk, and reconciliation of every kept train document. Include the runtime, peak memory, H3 model hash and package versions, shard/token counts, and any empty or all-left-out train parts in the returned log.

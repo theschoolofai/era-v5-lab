@@ -2,7 +2,7 @@
 
     python canary_scan.py shard.parquet                      # Parquet with doc_id and text columns
     python canary_scan.py docs.jsonl --id-field id            # one JSON object per line
-    python canary_scan.py some/folder                         # every .parquet .jsonl .json .txt .md below it
+    python canary_scan.py some/folder                         # every file below it with a suffix in SUFFIXES
     python canary_scan.py shard.parquet --canary "my string"  # also look for an extra string
     python canary_scan.py shard.parquet --lab-only            # only the lab canary, no fingerprint set needed
 
@@ -15,30 +15,42 @@ What is scanned:
   .jsonl    the --text-field value of each line; a line without it (or not a JSON object) is scanned
             whole, as raw text. So eval files like run_lm_eval.py samples_<n>.jsonl are covered.
   others    the whole file as text. The document ID is the path (relative to a scanned folder).
+A file given by name is always read. In a folder, only files with a suffix in SUFFIXES are read:
+.parquet .jsonl .json .txt .md, and the text files a job leaves (.log .out .err .csv .tsv .yaml .yml),
+so a scan of a job's out folder covers its logs. The other files in a folder are counted, not read.
 
 Output: one JSON line per occurrence, with only the canary, the document ID and the offset
-(character offset in the scanned text). It never prints document text. The summary goes to stderr.
+(character offset in the scanned text). It never prints document text. The summary goes to stderr,
+always as the last line: "docs N with_canary N hits N" (+ " files_skipped N"). When a folder is given,
+the line before it counts the folder files that were not read, by suffix, for example
+"not scanned: 2 folder files with other suffixes (.bin 1, .lock 1)", so a skip is never silent.
 Exit code: 1 if a canary was found; else 2 if a file could not be read (the scan is incomplete); else 0.
+Folder files that were not read do not change the exit code.
 """
 
 import argparse
 import json
 import sys
+from collections import Counter
 from pathlib import Path
 
 from decontam_check import DEFAULT_SET
 from lab_canary import find, load_canaries
 
-SUFFIXES = {".parquet", ".jsonl", ".json", ".txt", ".md"}
+SUFFIXES = {".parquet", ".jsonl", ".json", ".txt", ".md",
+            ".log", ".out", ".err", ".csv", ".tsv", ".yaml", ".yml"}  # job logs and tables: read as text
 
 
-def expand(inputs):
+def expand(inputs, not_scanned):
     """(path, display name): files as given; a folder gives its files with a known suffix, sorted,
-    named by their path relative to the folder."""
+    named by their path relative to the folder. Its other files are counted in not_scanned, by suffix."""
     for p in map(Path, inputs):
         if p.is_dir():
-            for f in sorted(f for f in p.rglob("*") if f.is_file() and f.suffix in SUFFIXES):
-                yield f, f.relative_to(p).as_posix()
+            for f in sorted(f for f in p.rglob("*") if f.is_file()):
+                if f.suffix in SUFFIXES:
+                    yield f, f.relative_to(p).as_posix()
+                else:
+                    not_scanned[f.suffix or "(none)"] += 1
         else:
             yield p, str(p)
 
@@ -91,7 +103,8 @@ def main(argv=None):
     print(f"canaries {len(canaries)} from {', '.join(sorted(set(canaries.values())))}", file=sys.stderr)
 
     n_docs = n_with = n_hits = n_skipped = 0
-    for path, name in expand(args.inputs):
+    not_scanned = Counter()
+    for path, name in expand(args.inputs, not_scanned):
         try:
             for doc_id, text in read_file(path, name, args.id_field, args.text_field):
                 n_docs += 1
@@ -104,6 +117,10 @@ def main(argv=None):
         except Exception as e:  # one bad file must not stop the scan; it is reported and makes the exit code 2
             n_skipped += 1
             print(f"skipped {name}: {type(e).__name__}: {e}", file=sys.stderr)
+    if any(Path(p).is_dir() for p in args.inputs):  # before the summary: callers read the last line
+        n = sum(not_scanned.values())
+        by_suffix = ", ".join(f"{s} {c}" for s, c in sorted(not_scanned.items()))
+        print(f"not scanned: {n} folder files" + (f" with other suffixes ({by_suffix})" if n else ""), file=sys.stderr)
     print(f"docs {n_docs} with_canary {n_with} hits {n_hits}" + (f" files_skipped {n_skipped}" if n_skipped else ""),
           file=sys.stderr)
     return 1 if n_hits else (2 if n_skipped else 0)

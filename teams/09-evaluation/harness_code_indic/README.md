@@ -78,6 +78,8 @@ Both harnesses agree: on PR #21's 200 GSM8K items for Qwen2.5-1.5B they score 61
 | `run_lm_eval.py` | one lm-eval run; records versions, GPU clock and power state |
 | `run_codegen.py` | evalplus code generation with three fixes (below) |
 | `code_eval_colab.ipynb` | executes code samples on Linux |
+| `codegen_2023_protocol.py` | code generation with the EvalPlus protocol of Dec 2023, for the #334 / #335 check |
+| `score_2023_protocol.py` | cleans those samples with the sanitizer of that date and executes them in a Linux container |
 | `make_eval_mini_items.py` | writes the items file for pipelines without lm-eval |
 | `run_queue.py` | runs all jobs one at a time; safe to stop and restart |
 | `make_eval_mini_spec.py` | builds `eval_mini_v0_spec.json` |
@@ -108,6 +110,9 @@ Each fix is verified, and all are written up in `compare_v0_code_indic.md`.
 | NOT RUN | 3 | BBH (optional); run later as three full-set rotation checks, all PASS (`../results/rotation_checks.md`) |
 
 See `../results/compare_v0_code_indic.md` for every row, its source and the limitations.
+
+Both FAILs are within 2.0 when the samples are generated with the EvalPlus protocol of December 2023 (phi-2 MBPP+ 54.23,
+Qwen HumanEval+ 31.10). The evidence is in `../results/protocol_check_334_335.md`; the verdicts above are unchanged.
 
 ## MILU-avg aggregation (decision)
 

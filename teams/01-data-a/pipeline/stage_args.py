@@ -10,7 +10,11 @@ scripts require), and is run with --config on that copy:
   overlap   inputs = <clean folder>, out = <overlap folder>
   h3        inputs = <clean folder>, out = <h3 folder>, cache = <run>/h3_cache
   dedup     results = <overlap folder>, inputs = <clean folder>, out = <dedup folder>
-            and, when H3 is configured, h3.matches = <h3 folder>/h3_matches.csv with remove: false
+            and, when H3 is configured, h3.matches = <h3 folder>/h3_matches.csv with h3.remove = stages.h3.remove
+
+"remove" in stages.h3 says which H3 matches dedup removes: false (the default: report only), true, or one setting per
+language pair, e.g. {"hi-en": true} (dedup/h3_join.py; a pair that is not named stays report-only). It is checked here
+as dedup.py checks it, so a bad value stops a plan too; only stages.h3 takes it.
 
 The settings file holds settings only (k, floor, pack order, pins); it is never edited. Its sha256 and the generated copy's are
 returned so the manifest can record them, and a "settings_sha256" in the stage's run config is checked when present.
@@ -31,6 +35,7 @@ generated config; without it the settings file's value stands (the job's default
   build("overlap", spec, folders=..., cfg_dir=..., repo=...) -> {"command", "settings", "settings_sha256", "config", "config_sha256"}
 """
 import hashlib
+import importlib.util
 import json
 from pathlib import Path
 
@@ -98,9 +103,25 @@ def check_manifest(spec, repo):
         raise ConfigError(f"stages.clean: {exc}{hint}") from None
 
 
-def generated_values(stage, folders, repo, spec=None):
+H3_JOIN = Path(__file__).resolve().parents[1] / "dedup" / "h3_join.py"  # how dedup.py reads h3.remove
+
+
+def check_h3_remove(value):
+    """stages.h3.remove, checked by the same function dedup.py uses (h3_join.remove_pairs): true, false or one setting
+    per language pair. Raises ConfigError with the reason."""
+    spec = importlib.util.spec_from_file_location("h3_join_rules", H3_JOIN)
+    rules = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(rules)
+    try:
+        rules.remove_pairs(value)
+    except ValueError as e:
+        raise ConfigError(f"stages.{e}") from None
+
+
+def generated_values(stage, folders, repo, spec=None, h3_remove=False):
     """The keys a generated config gets from the run config: {key: repo-relative folder}; for clean also the raw sample as
-    input_root and the input set's description (manifest, manifest_sha256, expected_parts, sample)."""
+    input_root and the input set's description (manifest, manifest_sha256, expected_parts, sample); for dedup the H3
+    hand-off, with h3_remove (stages.h3.remove) as its "remove"."""
     values = {}
     if stage == "clean" and (spec or {}).get("input"):  # build() requires it
         values = {"input_root": str(spec["input"]), "manifest": manifest_path(spec), "manifest_sha256": spec["manifest_sha256"],
@@ -114,14 +135,15 @@ def generated_values(stage, folders, repo, spec=None):
         values["cache"] = relative(folders["h3"].parent / "h3_cache", repo)
     if stage == "dedup":
         values["h3"] = ({"matches": relative(folders["h3"] / "h3_matches.csv", repo),
-                         "remove": False, "parallel_packs": []} if "h3" in folders else None)
+                         "remove": h3_remove, "parallel_packs": []} if "h3" in folders else None)
     return values
 
 
-def generated_config(stage, settings, folders, cfg_dir, repo, write=True, extra=None, spec=None):
+def generated_config(stage, settings, folders, cfg_dir, repo, write=True, extra=None, spec=None, h3_remove=False):
     """<cfg_dir>/<stage>.json: the settings with the path keys filled in from `folders`. Written unless write=False
     (a plan or a check of the run config). Returns its path."""
-    data = {**json.loads(Path(settings).read_text(encoding="utf-8")), **(extra or {}), **generated_values(stage, folders, repo, spec)}
+    data = {**json.loads(Path(settings).read_text(encoding="utf-8")), **(extra or {}),
+            **generated_values(stage, folders, repo, spec, h3_remove)}
     path = Path(cfg_dir) / f"{stage}.json"
     if write:
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -129,11 +151,12 @@ def generated_config(stage, settings, folders, cfg_dir, repo, write=True, extra=
     return path
 
 
-def build(stage, spec, folders, cfg_dir, repo, write=True, only=()):
+def build(stage, spec, folders, cfg_dir, repo, write=True, only=(), h3_remove=False):
     """The command for a run-mode stage from its run-config entry `spec` ("settings", optional "script", "input",
     "settings_sha256"), the stage folders {"clean", "overlap", "dedup"} (absolute) and where generated configs go.
     write=False checks everything and names the generated config without writing it (its config_sha256 is then None).
-    only: sample parts for a trial run (clean gets one --only per part; overlap's generated config gets PARTIAL)."""
+    only: sample parts for a trial run (clean gets one --only per part; overlap's generated config gets PARTIAL).
+    h3_remove: stages.h3.remove, which dedup's generated config hands to dedup.py."""
     if stage not in STAGES:
         raise ConfigError(f"{stage}: no script of the runner takes paths this way; give an explicit stages.{stage}.command")
     if not spec.get("settings"):
@@ -157,13 +180,20 @@ def build(stage, spec, folders, cfg_dir, repo, write=True, only=()):
             raise ConfigError(f"stages.{stage}.resume: only the clean job can be resumed")
         if not isinstance(spec["resume"], bool):
             raise ConfigError(f"stages.clean.resume is {spec['resume']!r}, expected true or false")
+    if "remove" in spec and stage != "h3":
+        raise ConfigError(f"stages.{stage}.remove: only stages.h3 takes remove (which H3 matches dedup removes)")
+    if stage == "h3":
+        check_h3_remove(spec.get("remove", False))
+    if stage == "dedup":
+        check_h3_remove(h3_remove)
     if stage == "clean":
         for key, what in (("input", "the folder with the raw sample parts"), ("manifest_sha256", "the pin of the sample manifest"),
                           ("expected_parts", "the part counts per split")):
             if not spec.get(key):
                 raise ConfigError(f"stages.clean.{key} ({what}) is missing: it describes the input set, which the settings file does not")
         check_manifest(spec, repo)
-    config =generated_config(stage, settings, folders, cfg_dir, repo, write, PARTIAL.get(stage) if only else None, spec)
+    config = generated_config(stage, settings, folders, cfg_dir, repo, write, PARTIAL.get(stage) if only else None, spec,
+                              h3_remove)
     command = [*script, "--config", config.as_posix()]  # / on every OS, like the "config" field
     if stage == "clean":
         for part in only:

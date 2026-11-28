@@ -1,0 +1,287 @@
+{
+  "status": "complete",
+  "config": {
+    "runs": {
+      "labse": "out/h3_e5c",
+      "bge-m3": "out/h3_666_colab_run/h3_bge_m3"
+    },
+    "inputs": "out/tokenizer_sample_v0_clean_pr244_e5c",
+    "controls": "out/e5d_controls/controls.parquet",
+    "out": "out/e5d_e5c",
+    "pairs": [
+      [
+        "sa",
+        "en"
+      ],
+      [
+        "sa",
+        "hi"
+      ],
+      [
+        "hi",
+        "en"
+      ]
+    ],
+    "bands": [
+      0.3,
+      0.45,
+      0.6,
+      0.75,
+      1.0
+    ],
+    "per_band": 20,
+    "n_controls": {
+      "sa-en": 15,
+      "sa-hi": 11,
+      "hi-en": 0
+    },
+    "readers": 2,
+    "seed": 20261127,
+    "buckets": {
+      "above": {
+        "bands": [
+          [
+            0.6,
+            1.0
+          ],
+          [
+            0.45,
+            0.6
+          ]
+        ],
+        "n": {
+          "sa-en": 18,
+          "sa-hi": 20,
+          "hi-en": 25
+        }
+      },
+      "below": {
+        "bands": [
+          [
+            0.3,
+            0.45
+          ]
+        ],
+        "n": {
+          "sa-en": 17,
+          "sa-hi": 19,
+          "hi-en": 25
+        }
+      }
+    }
+  },
+  "runs": {
+    "labse": {
+      "folder": "out/h3_e5c",
+      "sha256": {
+        "h3_candidates.csv": "9095f070b89af23b5005a95bd36188663b02e07956280ed5112ee3be9e9f26e5",
+        "h3_docs.parquet": "da5570d7a84aeb6b8d7809901d14e56b68ab6a9b9293489d6b5f72994176f0e6"
+      },
+      "pairs_listed": {
+        "sa-en": 16,
+        "sa-hi": 89,
+        "hi-en": 27
+      },
+      "other_language_pairs_dropped": 6
+    },
+    "bge-m3": {
+      "folder": "out/h3_666_colab_run/h3_bge_m3",
+      "sha256": {
+        "h3_candidates.csv": "ede5c74eab8471294307f98a99ffa29cc6a996accd4edd619a3242b6b738ef27",
+        "h3_docs.parquet": "952be3c59382d8776dabe1f4be5879ac2bfd8ae31b81c17c2b1164a64dc6d52c"
+      },
+      "pairs_listed": {
+        "sa-en": 2,
+        "sa-hi": 34,
+        "hi-en": 0
+      },
+      "other_language_pairs_dropped": 0
+    }
+  },
+  "strata": [
+    {
+      "pair": "sa-en",
+      "bucket": "above",
+      "band": "0.60-1.00",
+      "available": 1,
+      "wanted": 18,
+      "drawn": 1,
+      "drawn_by_encoder": {
+        "labse": 1,
+        "bge-m3": 0
+      }
+    },
+    {
+      "pair": "sa-en",
+      "bucket": "above",
+      "band": "0.45-0.60",
+      "available": 2,
+      "wanted": 17,
+      "drawn": 2,
+      "drawn_by_encoder": {
+        "labse": 2,
+        "bge-m3": 0
+      }
+    },
+    {
+      "pair": "sa-en",
+      "bucket": "below",
+      "band": "0.30-0.45",
+      "available": 14,
+      "wanted": 17,
+      "drawn": 14,
+      "drawn_by_encoder": {
+        "labse": 13,
+        "bge-m3": 1
+      }
+    },
+    {
+      "pair": "sa-hi",
+      "bucket": "above",
+      "band": "0.60-1.00",
+      "available": 4,
+      "wanted": 20,
+      "drawn": 4,
+      "drawn_by_encoder": {
+        "labse": 3,
+        "bge-m3": 1
+      }
+    },
+    {
+      "pair": "sa-hi",
+      "bucket": "above",
+      "band": "0.45-0.60",
+      "available": 12,
+      "wanted": 16,
+      "drawn": 12,
+      "drawn_by_encoder": {
+        "labse": 10,
+        "bge-m3": 2
+      }
+    },
+    {
+      "pair": "sa-hi",
+      "bucket": "below",
+      "band": "0.30-0.45",
+      "available": 100,
+      "wanted": 19,
+      "drawn": 19,
+      "drawn_by_encoder": {
+        "labse": 10,
+        "bge-m3": 9
+      }
+    },
+    {
+      "pair": "hi-en",
+      "bucket": "above",
+      "band": "0.60-1.00",
+      "available": 1,
+      "wanted": 25,
+      "drawn": 1,
+      "drawn_by_encoder": {
+        "labse": 1
+      }
+    },
+    {
+      "pair": "hi-en",
+      "bucket": "above",
+      "band": "0.45-0.60",
+      "available": 1,
+      "wanted": 24,
+      "drawn": 1,
+      "drawn_by_encoder": {
+        "labse": 1
+      }
+    },
+    {
+      "pair": "hi-en",
+      "bucket": "below",
+      "band": "0.30-0.45",
+      "available": 25,
+      "wanted": 25,
+      "drawn": 25,
+      "drawn_by_encoder": {
+        "labse": 25
+      }
+    }
+  ],
+  "shortfalls": [
+    {
+      "pair": "sa-en",
+      "bucket": "above",
+      "wanted": 18,
+      "drawn": 3
+    },
+    {
+      "pair": "sa-en",
+      "bucket": "below",
+      "wanted": 17,
+      "drawn": 14
+    },
+    {
+      "pair": "sa-hi",
+      "bucket": "above",
+      "wanted": 20,
+      "drawn": 16
+    },
+    {
+      "pair": "hi-en",
+      "bucket": "above",
+      "wanted": 25,
+      "drawn": 2
+    }
+  ],
+  "controls": {
+    "sa-en": {
+      "available": 15,
+      "drawn": 15,
+      "wanted": 15
+    },
+    "sa-hi": {
+      "available": 11,
+      "drawn": 11,
+      "wanted": 11
+    },
+    "hi-en": {
+      "available": 0,
+      "drawn": 0,
+      "wanted": 0
+    }
+  },
+  "controls_sha256": "526c256f2e1af255a1bb831dc64cd0367768db66ae7571404f63b4ef4402d643",
+  "items": {
+    "sa-en": 32,
+    "sa-hi": 46,
+    "hi-en": 27
+  },
+  "readers": 2,
+  "sentence_settings": {
+    "sentence_min_chars": 20,
+    "max_sentences": 16
+  },
+  "outputs": {
+    "key/hi-en_key.csv": "c4e3f1cc7bb8678e6a9553e70343b406f73ab3b65a5a0c08e70182619d94edf8",
+    "key/sa-en_key.csv": "c46171c3a8a6d403451f380b28548442663b28e01a6737280fca8c2ad143bd5b",
+    "key/sa-hi_key.csv": "db8ef05ba4077603e84546c4cfa4429539e67d3cd44a54fb63fcb58213d10a51",
+    "key/sentences.parquet": "4d729968714786bdf7673aa48378b75d6b5ba03858af1444735221c1a17d835d",
+    "readers_guide.md": "51a4dd2623f8caa8ebb394d023a25577121d4e47e5d4a13a9f2133d6c2dd1c63",
+    "sheets/hi-en_reader1.csv": "b58a56a6833082f6ca0ab4fc10e3796c755edb6bc4cd4bb1b778929f1262f3da",
+    "sheets/hi-en_reader2.csv": "96f35d18d4c07009c68f9898f61e0c37b74d7b5592a29423c6b6a91a391c3f60",
+    "sheets/sa-en_reader1.csv": "fce9668d480ced4918789294d7955e23c5cc0b8d83f1ffc3caea5f6fb0d40ede",
+    "sheets/sa-en_reader2.csv": "828e3f08ec01878f48ca35d581c72a12e4b4bc23c292fe9704f96bd1d53e0882",
+    "sheets/sa-hi_reader1.csv": "d766a4ec135072200254fd820a88226d4596ff5eba8aec3c0aa464cab3c78901",
+    "sheets/sa-hi_reader2.csv": "1970c38b92a4746deddec30e0dab6b247c9f256475682a2499d168f5b17a8c7d"
+  },
+  "stages_seconds": {
+    "load": 0.18,
+    "sample": -0.0,
+    "texts": 0.37,
+    "write": 0.02
+  },
+  "wall_seconds": 0.57,
+  "versions": {
+    "python": "3.12.10",
+    "numpy": "2.4.3",
+    "pyarrow": "23.0.1"
+  }
+}

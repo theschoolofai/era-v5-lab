@@ -1,0 +1,204 @@
+start 2026-11-23T12:31:30Z commit 7b3b79b3 arm64 Python 3.12.10
+== python3 -B teams/01-data-a/dedup/h3_e5d_flores.py build --flores-dir ../flores_plus --out out/e5d_flores
+flores build: 126 blocks of 8 sentences in 4 languages, 126 controls per pair; out/e5d_flores
+-- 1 s
+== python3 -B teams/01-data-a/dedup/h3.py --config teams/01-data-a/dedup/h3_e5d_flores.json
+W1123 18:01:37.569000 63706 site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 6193.17it/s]
+5 of 5 parts hold a configured pack: flores-en, flores-hi, flores-or, flores-sa
+heldout/flores-en/Heldout/part-00000.parquet: 32 documents encoded or cached (14s)
+train/flores-en/Part_1/part-00000.parquet: 94 documents encoded or cached (17s)
+train/flores-hi/Part_1/part-00000.parquet: 126 documents encoded or cached (20s)
+train/flores-or/Part_1/part-00000.parquet: 126 documents encoded or cached (24s)
+train/flores-sa/Part_1/part-00000.parquet: 126 documents encoded or cached (28s)
+retrieve sa-en: 126 x 126 documents, 104 candidates (28s)
+retrieve sa-hi: 126 x 126 documents, 103 candidates (28s)
+retrieve hi-en: 126 x 126 documents, 144 candidates (28s)
+retrieve or-en: 126 x 126 documents, 139 candidates (28s)
+verify: 490 pairs (80s)
+{
+  "documents_compared": 504,
+  "url": {
+    "groups_with_2_or_more": 0,
+    "groups_over_url_group_max": 0,
+    "pairs": 0
+  },
+  "retrieved": {
+    "sa-en": {
+      "documents_a": 126,
+      "documents_b": 126,
+      "pairs_in_top_k": 539,
+      "kept": 104
+    },
+    "sa-hi": {
+      "documents_a": 126,
+      "documents_b": 126,
+      "pairs_in_top_k": 545,
+      "kept": 103
+    },
+    "hi-en": {
+      "documents_a": 126,
+      "documents_b": 126,
+      "pairs_in_top_k": 505,
+      "kept": 144
+    },
+    "or-en": {
+      "documents_a": 126,
+      "documents_b": 126,
+      "pairs_in_top_k": 493,
+      "kept": 139
+    }
+  },
+  "candidates": 490,
+  "verified": 490,
+  "qualifying": 416,
+  "qualifying_heldout_train": 88,
+  "qualifying_by_language_pair": {
+    "en-hi": 126,
+    "en-or": 126,
+    "en-sa": 93,
+    "hi-sa": 71
+  },
+  "stages_seconds": {
+    "load_model": 12.11,
+    "read": 0.101,
+    "cache": 0.003,
+    "encode": 15.463,
+    "url": 0.001,
+    "retrieve": 0.042,
+    "verify_read": 0.006,
+    "verify": 52.352
+  },
+  "rates": {
+    "heads_per_second": 32.6,
+    "sentences_per_second": 84.8
+  },
+  "estimate_all_documents": {
+    "documents_encoded": {
+      "en": 126,
+      "hi": 126,
+      "or": 126,
+      "sa": 126
+    },
+    "documents_full": {
+      "en": 126,
+      "hi": 126,
+      "or": 126,
+      "sa": 126
+    },
+    "seconds": {
+      "load_model": 12.1,
+      "read": 0.1,
+      "encode": 15.5,
+      "retrieve": 0.0,
+      "verify": 52.4
+    },
+    "minutes_total": 1.3,
+    "every_stage_measured": true,
+    "suggested_max_time_minutes": 3,
+    "basis": "this run's rates; read scales with rows, encode with documents, retrieve with the product of the two languages' documents, verify with the smaller language's documents (at most max_verify)"
+  },
+  "wall_seconds": 80.1,
+  "peak_rss_mb": 859.1
+}
+
+Wrote h3_docs.parquet, h3_candidates.csv, h3_matches.csv, h3_by_pack.csv, h3_histogram.csv and h3_summary.json to out/e5d_flores/h3_labse
+-- 83 s
+== python3 -B teams/01-data-a/dedup/h3.py --config teams/01-data-a/dedup/h3_e5d_flores_t07.json
+W1123 18:02:59.720000 63955 site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 7317.53it/s]
+4 of 5 parts hold a configured pack: flores-en, flores-hi, flores-sa
+heldout/flores-en/Heldout/part-00000.parquet: 32 documents encoded or cached (12s)
+train/flores-en/Part_1/part-00000.parquet: 94 documents encoded or cached (15s)
+train/flores-hi/Part_1/part-00000.parquet: 126 documents encoded or cached (18s)
+train/flores-sa/Part_1/part-00000.parquet: 126 documents encoded or cached (22s)
+retrieve sa-en: 126 x 126 documents, 104 candidates (22s)
+retrieve sa-hi: 126 x 126 documents, 103 candidates (22s)
+verify: 207 pairs (55s)
+{
+  "documents_compared": 378,
+  "url": {
+    "groups_with_2_or_more": 0,
+    "groups_over_url_group_max": 0,
+    "pairs": 0
+  },
+  "retrieved": {
+    "sa-en": {
+      "documents_a": 126,
+      "documents_b": 126,
+      "pairs_in_top_k": 539,
+      "kept": 104
+    },
+    "sa-hi": {
+      "documents_a": 126,
+      "documents_b": 126,
+      "pairs_in_top_k": 545,
+      "kept": 103
+    }
+  },
+  "candidates": 207,
+  "verified": 207,
+  "qualifying": 50,
+  "qualifying_heldout_train": 8,
+  "qualifying_by_language_pair": {
+    "en-sa": 30,
+    "hi-sa": 20
+  },
+  "stages_seconds": {
+    "load_model": 9.784,
+    "read": 0.053,
+    "cache": 0.002,
+    "encode": 11.701,
+    "url": 0.0,
+    "retrieve": 0.03,
+    "verify_read": 0.004,
+    "verify": 33.758
+  },
+  "rates": {
+    "heads_per_second": 32.3,
+    "sentences_per_second": 85.7
+  },
+  "estimate_all_documents": {
+    "documents_encoded": {
+      "en": 126,
+      "hi": 126,
+      "sa": 126
+    },
+    "documents_full": {
+      "en": 126,
+      "hi": 126,
+      "sa": 126
+    },
+    "seconds": {
+      "load_model": 9.8,
+      "read": 0.1,
+      "encode": 11.7,
+      "retrieve": 0.0,
+      "verify": 33.8
+    },
+    "minutes_total": 0.9,
+    "every_stage_measured": true,
+    "suggested_max_time_minutes": 2,
+    "basis": "this run's rates; read scales with rows, encode with documents, retrieve with the product of the two languages' documents, verify with the smaller language's documents (at most max_verify)"
+  },
+  "wall_seconds": 55.4,
+  "peak_rss_mb": 873.9
+}
+
+Wrote h3_docs.parquet, h3_candidates.csv, h3_matches.csv, h3_by_pack.csv, h3_histogram.csv and h3_summary.json to out/e5d_flores/h3_labse_t07
+-- 59 s
+== python3 -B teams/01-data-a/dedup/h3_e5d_sheets.py --config teams/01-data-a/dedup/h3_e5d_flores_sheets.json
+sa-en: 67 candidates and 10 controls -> 77 items, 2 sheets
+sa-hi: 70 candidates and 10 controls -> 80 items, 2 sheets
+hi-en: 20 candidates and 10 controls -> 30 items, 2 sheets
+or-en: 20 candidates and 10 controls -> 30 items, 2 sheets
+e5d sheets: 217 items, 10 strata short (0.12 s); out/e5d_flores/sheets
+-- 2 s
+== python3 -B teams/01-data-a/dedup/h3_e5d_flores.py check --sheets out/e5d_flores/sheets --out out/e5d_flores
+hi-en: 20 candidates (20 translations), 10 controls; below 0.6: 0 translations; at or above: 0 non-translations
+or-en: 20 candidates (20 translations), 10 controls; below 0.6: 0 translations; at or above: 0 non-translations
+sa-en: 67 candidates (67 translations), 10 controls; below 0.6: 27 translations; at or above: 0 non-translations
+sa-hi: 70 candidates (70 translations), 10 controls; below 0.6: 38 translations; at or above: 0 non-translations
+flores check: ok
+-- 0 s
+exit 0 wall 145 s end 2026-11-23T12:33:55Z

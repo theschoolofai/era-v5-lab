@@ -1,0 +1,68 @@
+{
+  "sheets_out": "out/e5d_flores/sheets",
+  "e5d_summary_sha256": "97cd2c9b10dc374ea219ef0fe3f4a6475acc0ff81cc1e45773e5241e23d4a58a",
+  "assign_sha256": "a46c9532d81a395e2ade5811df7e19603dc3a584a66e6e1b31cd88e6f85fc29c",
+  "viewer_sha256": "7fefffe9df764a49778a3f7a069c7195a509846274c869482e90fdf236aa9645",
+  "readme_sha256": "2a5a46c70e463c2e3f8d5f58c2e07ac623c6d7aa3fe5c28473a88cf54b2d284b",
+  "readers": {
+    "reader_a": {
+      "sheets": [
+        "sa-en_reader1"
+      ],
+      "zip": "e5d_reader_a.zip",
+      "zip_sha256": "7d601e84ead26f3eff1f58b7619acc29cb8e1f060c382611da02739ad3da3ce0",
+      "files": {
+        "e5d/README.md": "2a5a46c70e463c2e3f8d5f58c2e07ac623c6d7aa3fe5c28473a88cf54b2d284b",
+        "e5d/sheets/readers_guide.md": "51a4dd2623f8caa8ebb394d023a25577121d4e47e5d4a13a9f2133d6c2dd1c63",
+        "e5d/sheets/sa-en_reader1.csv": "5597a7b1f4d9e5f6b26414bc94eaa671a38d41524c11e03c2a088986d91d73ab",
+        "e5d/view_e5d_sheets.py": "7fefffe9df764a49778a3f7a069c7195a509846274c869482e90fdf236aa9645"
+      }
+    },
+    "reader_b": {
+      "sheets": [
+        "sa-en_reader2",
+        "sa-hi_reader1"
+      ],
+      "zip": "e5d_reader_b.zip",
+      "zip_sha256": "4237d5c7dce65ac69fa6a044d77d4cf37250ee84a332589872b540872e3039a8",
+      "files": {
+        "e5d/README.md": "2a5a46c70e463c2e3f8d5f58c2e07ac623c6d7aa3fe5c28473a88cf54b2d284b",
+        "e5d/sheets/readers_guide.md": "51a4dd2623f8caa8ebb394d023a25577121d4e47e5d4a13a9f2133d6c2dd1c63",
+        "e5d/sheets/sa-en_reader2.csv": "d3acff03aa66f55e46b5cdb89412697ba5540ab7f32336078a5324e0e7263975",
+        "e5d/sheets/sa-hi_reader1.csv": "76eda38f71fba038db09183ad8314c453ac046309b967972ca857f717ce66694",
+        "e5d/view_e5d_sheets.py": "7fefffe9df764a49778a3f7a069c7195a509846274c869482e90fdf236aa9645"
+      }
+    },
+    "reader_c": {
+      "sheets": [
+        "sa-hi_reader2"
+      ],
+      "zip": "e5d_reader_c.zip",
+      "zip_sha256": "595d6332d9782a4bf989a2ed0d4c657ca80a12a9643c0a5cb41032e83295d0e3",
+      "files": {
+        "e5d/README.md": "2a5a46c70e463c2e3f8d5f58c2e07ac623c6d7aa3fe5c28473a88cf54b2d284b",
+        "e5d/sheets/readers_guide.md": "51a4dd2623f8caa8ebb394d023a25577121d4e47e5d4a13a9f2133d6c2dd1c63",
+        "e5d/sheets/sa-hi_reader2.csv": "4e9df23fae0ade86e302b792d9aeaa79f88d4c681626f58d687365fa93cdb051",
+        "e5d/view_e5d_sheets.py": "7fefffe9df764a49778a3f7a069c7195a509846274c869482e90fdf236aa9645"
+      }
+    },
+    "reader_d": {
+      "sheets": [
+        "hi-en_reader1"
+      ],
+      "zip": "e5d_reader_d.zip",
+      "zip_sha256": "b32e12a27d7c4dcaa6c5132c8c7accdecc21fecacf1270bde16c1d96239fc0f5",
+      "files": {
+        "e5d/README.md": "2a5a46c70e463c2e3f8d5f58c2e07ac623c6d7aa3fe5c28473a88cf54b2d284b",
+        "e5d/sheets/hi-en_reader1.csv": "b6883a4da529ae577753b6bba16c0653d65bb80ce284e52904912e91a9d1f061",
+        "e5d/sheets/readers_guide.md": "51a4dd2623f8caa8ebb394d023a25577121d4e47e5d4a13a9f2133d6c2dd1c63",
+        "e5d/view_e5d_sheets.py": "7fefffe9df764a49778a3f7a069c7195a509846274c869482e90fdf236aa9645"
+      }
+    }
+  },
+  "unassigned": [
+    "hi-en_reader2",
+    "or-en_reader1",
+    "or-en_reader2"
+  ]
+}

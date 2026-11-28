@@ -21,6 +21,9 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[3]
 TOKENIZER_SHA256 = "e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b"
 DATASET_VERSION = "corpus-v1"
+# stages.h3.remove (TSAI, 27 Nov): H3 removes on hi-en; sa-en and sa-hi stay report-only until E5d sets the Sanskrit
+# thresholds, and Odia stays report-only (a pair that is not named here is report-only).
+H3_REMOVE = {"hi-en": True}
 MODEL_REVISION = "836121a0533e5664b21c7aacc5d22951f2b8b25b"
 MODEL_FILES = {
     "model.safetensors": (1883734344, "77d8e1f2dbab6eb5d3c261ce9d3dbf1e3c69e02938c95f934f94f42c22dfa31f"),
@@ -157,7 +160,8 @@ def prepare(bundle, raw, tokenizer, pack_table, run_id, model_path=None, f2_work
             "overlap": {"mode": "run", "script": "teams/01-data-a/dedup/minhash_overlap.py",
                         "settings": "teams/01-data-a/dedup/minhash_overlap_partial.json" if selection is not None
                         else "teams/01-data-a/dedup/minhash_overlap.json"},
-            "h3": {"mode": "run", "settings": "teams/01-data-a/jobs/2026-11-19-first-training/h3.json"},
+            "h3": {"mode": "run", "settings": "teams/01-data-a/jobs/2026-11-19-first-training/h3.json",
+                   "remove": H3_REMOVE},
             "dedup": {"mode": "run", "settings": "teams/01-data-a/dedup/dedup.json"},
             "f2": {"pool": True, "workers": f2_workers},
             "ledger": {"raw": relative_or_absolute(raw)},
