@@ -9,7 +9,9 @@ Run it with:
 
     python -m pytest teams/02-data-b/audit/test_marker_vote_group_total.py -q
 
-Expected today: 2 failed, 1 passed.
+Expected today: 2 xfailed (strict), 1 passed. Lab rule 3 (28 Nov): no red tests on main, so the two
+known-bug cases are marked xfail(strict=True) against #842. They will report XPASS -- and so fail -- as soon as
+the bug is fixed, which is the reminder to drop the markers.
 """
 
 import json
@@ -19,6 +21,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+
+import pytest  # noqa: E402
 
 import lang_id  # noqa: E402
 
@@ -35,6 +39,7 @@ class MarkerVoteGroupTotalTest(unittest.TestCase):
         self.a, self.b = self.group[0], self.group[1]
         self.min_hits = CFG["marker_min_hits"]
 
+    @pytest.mark.xfail(strict=True, reason="known bug #842: marker_vote tests marker_min_hits on the group total")
     def test_group_total_does_not_satisfy_the_per_language_minimum(self):
         """Two hits each in a 2-language group sums to 4, which is over a 3-hit minimum, but neither language
         has 3 hits of its own, so the vote must be 'unknown'."""
@@ -46,6 +51,7 @@ class MarkerVoteGroupTotalTest(unittest.TestCase):
             f"{hits} returned a language although no member met marker_min_hits={self.min_hits}",
         )
 
+    @pytest.mark.xfail(strict=True, reason="known bug #842: marker_vote returns a language below marker_min_hits")
     def test_returned_language_meets_the_minimum(self):
         """Whatever marker_vote returns must be a language whose own hit count clears marker_min_hits."""
         for hits in ({self.a: 2, self.b: 2}, {self.a: 3, self.b: 1}, {self.a: 1, self.b: 2}):
