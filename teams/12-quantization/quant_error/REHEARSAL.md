@@ -31,7 +31,7 @@ LLAMA_CPP_DIR=$L /usr/bin/time -l python $R/quant_error/quant_error.py all --hf-
 | Exit code | 0 |
 | Wall time | 87.8 s (`/usr/bin/time -l` real); by step: tensors 8.9 s, twin forward 35.2 s (both formats, MPS), llama.cpp KL 42.4 s (40 slice-format passes at 8 chunks, plus 20 base passes) |
 | Peak memory | 3.05 GB maximum resident set size; 4.24 GB peak memory footprint (includes the MPS buffers) |
-| Output size | 208 KB (`out/`: tensors.csv 115 KB, linears.csv 72 KB, layers.csv 17 KB, kl.csv 3 KB, tokens.csv 3 KB, summary.json 2 KB), limit 5 MB |
+| Output size | 213 KB (`out/`: tensors.csv 115 KB, linears.csv 72 KB, layers.csv 17 KB, kl.csv 3 KB, tokens.csv 3 KB, summary.json 2 KB), limit 5 MB |
 | Scratch (not output) | the slice texts and the llama.cpp base logits in a temporary folder, removed at the end |
 
 Checks on the output: `kl.csv` has 40 rows, every one with 8 chunks and 2040 scored tokens; `summary.json` records `llama_cpp: "b12359 (b1b770d)"`, the sha256 of the four input files, the settings and `export_gap` copied from `export_report.json`; no CSV has a text or token-id column; `inf` appears as `inf` in `tensors.csv` (66 exact matches: norms, router, router bias, F32 tensors) and None as an empty field.

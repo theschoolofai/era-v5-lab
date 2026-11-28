@@ -105,7 +105,7 @@
   "kl_s": 42.4,
   "max_rss_gb": 3.05,
   "footprint_gb": 4.24,
-  "out_kb": 208,
+  "out_kb": 213,
   "sizes_kb": {
    "tensors.csv": 115,
    "linears.csv": 72,
@@ -134,7 +134,7 @@
    "caption": "REHEARSAL · DRY-RUN-2 SHAPE",
    "value": "87.8 s",
    "line1": "random 300 M, 2 formats, 20 slices",
-   "line2": "208 KB out · 3.05 GB max RSS"
+   "line2": "213 KB out · 3.05 GB max RSS"
   }
  ],
  "outputs": [

@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="figures/hero-dark.svg">
-    <img alt="quant_error at a glance: six output files with numbers only, 56 tests in six files, and a rehearsal at the dry-run-2 shape that ran in 87.8 s and wrote 208 KB" src="figures/hero-light.svg" width="880">
+    <img alt="quant_error at a glance: six output files with numbers only, 56 tests in six files, and a rehearsal at the dry-run-2 shape that ran in 87.8 s and wrote 213 KB" src="figures/hero-light.svg" width="880">
   </picture>
 </p>
 
@@ -20,7 +20,7 @@ An offline measuring tool for Team 12 &nbsp;·&nbsp; quantized GGUFs against the
   decoder layer at a time, on the same tokens; and `llama-perplexity`, through Team 12’s `quality/kl_eval.py`, for
   what llama.cpp users get.
 - **What it writes.** Six small files, numbers only (no text, no token ids), under 5 MB in all.
-- **Safe to run as a job.** A preflight makes every check that can be made up front and stops before anything is
+- **Fails before it changes anything.** A preflight makes every check that can be made up front and stops before anything is
   computed or deleted.
 
 > [!NOTE]
@@ -173,7 +173,7 @@ and `test_cli.py` also the p1536 tokenizer; without them those tests skip with a
 forward on CPU.
 
 [`REHEARSAL.md`](REHEARSAL.md) is one end-to-end run at the dry-run-2 shape (a random 300 M model, two formats, 20
-slices) on an Apple M6: exit 0 in 87.8 s, 208 KB of output.
+slices) on an Apple M6: exit 0 in 87.8 s, 213 KB of output.
 
 <br>
 
@@ -186,7 +186,7 @@ slices) on an Apple M6: exit 0 in 87.8 s, 208 KB of output.
 ```text
 Team:            12-quantization
 Script:          teams/12-quantization/quant_error/quant_error.py
-Command:         python teams/12-quantization/quant_error/quant_error.py all --hf-config ./inputs/<model>-hf --tokenizer ./inputs/tokenizer.json --ref ./work/<model>-bf16.gguf --quant Q8_0=./work/<model>-q8_0.gguf --quant Q4_K_M=./work/<model>-q4_k_m.gguf --heldout teams/05-architecture/heldout_v1/data/heldout_v1.jsonl --llama-bin ./work/llama.cpp/build/bin --out ./out/quant-error-<model> --device cuda [--normalize]
+Command:         python teams/12-quantization/quant_error/quant_error.py all --hf-config ./inputs/<model>-hf --tokenizer ./inputs/tokenizer.json --ref ./work/<model>-bf16.gguf --quant Q8_0=./work/<model>-q8_0.gguf --quant Q4_K_M=./work/<model>-q4_k_m.gguf --heldout teams/05-architecture/heldout_v1/data/heldout_v1.jsonl --llama-bin ./work/llama.cpp/build/bin --out ./out/quant-error-<model> --device cuda --normalize
 Config:          none; every setting is on the command line
 Inputs:          the model's Hugging Face folder (config.json only is read), its tokenizer.json, the bf16 GGUF and one GGUF per format, all made beforehand; heldout_v1.jsonl and SHA256SUMS from this repository; llama.cpp b12359 as a git checkout carrying its b12359 tag, built with the GPU backend (the same build made the GGUFs)
 Hardware:        1 GPU; a CPU also works for the twin forward (slower); RAM for one decoder layer of the model in fp32 plus the sampled activations; the base logits of one slice on disk (about 260 KB per scored token at a 131k vocabulary: 8 chunks = about 0.5 GB)
@@ -195,6 +195,8 @@ Precision:       bf16 reference, the quantized files as given; the twin forward 
 Measures:        see "Outputs"
 Outputs:         ./out/quant-error-<model>/{summary.json, tensors.csv, layers.csv, linears.csv, tokens.csv, kl.csv}; under 5 MB; no text, no token ids
 ```
+
+(`--normalize` is needed for the p1536 tokenizer, whose normalizer llama.cpp cannot apply; the OLMoE pilot ran without it.)
 
 **`--device cuda` is not yet run on CUDA.** Every run so far was on `cpu` and `mps`, and the tests run the twin
 forward on CPU, so I think one `quant_error.py all --device cuda` run on a small model (for example the rehearsal
@@ -213,7 +215,7 @@ Measured in the OLMoE pilot (`results/olmoe_pilot/`, `summary.json` and `/usr/bi
 `allenai/OLMoE-1B-7B-0924` (7 B total, 16 layers, 64 experts), 4 formats (Q8_0, Q4_K_M, experts-only Q4_K,
 MXFP4_MOE) against the bf16 GGUF, 20 slices, defaults otherwise, `--device mps` on an Apple M6 with 32 GB, llama.cpp
 b12359 on Metal. On this code: 1,250 s in total (preflight 14 s, tensors 175 s, twin forward 679 s, about 170 s per
-format, llama.cpp KL 369 s), 16.7 GB maximum resident set size, 7.8 GB peak memory footprint, output 2.7 MB. A first
+format, llama.cpp KL 369 s), 16.7 GB maximum resident set size, 7.8 GB peak memory footprint, output 2.8 MB. A first
 run of the same inputs on an earlier version of the tool took 910 s (tensors 108 s, twin forward 515 s, llama.cpp KL
 274 s; 19.8 GB maximum resident set size) and wrote the same numbers. Two runs on one machine thus differed by 37%,
 and the time on other hardware (a CUDA GPU, a CPU) and for other models was not measured: set
