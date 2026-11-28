@@ -1,0 +1,532 @@
+{
+ "llama_cpp": "version: 0.7.0-dev (build 1, commit 620d222)\nbuilt with AppleClang 21.0.0.21000401 for Darwin arm64",
+ "ctx": 8192,
+ "argv": [
+  "spec_bench.py",
+  "memory",
+  "--bin",
+  "~/Workspace/g12-spike/llama.cpp-b11669/build/bin",
+  "--target",
+  "3b=~/Workspace/g12-spike/spec-laptop/models/llama-3.2-3b-instruct-Q8_0.gguf",
+  "8b-Q8_0=~/Workspace/g12-spike/spec-laptop/models/llama-3.1-8b-instruct-Q8_0.gguf",
+  "8b-Q4_K_M=~/Workspace/g12-spike/spec-laptop/models/llama-3.1-8b-instruct-Q4_K_M.gguf",
+  "--modes",
+  "base",
+  "draft:~/Workspace/g12-spike/spec-laptop/models/llama-3.2-1b-instruct-Q8_0.gguf:8",
+  "draft:~/Workspace/g12-spike/spec-laptop/models/llama-3.2-1b-instruct-Q4_0.gguf:8",
+  "--out",
+  "~/Workspace/g12-spike/spec-laptop/results/spec_memory.json"
+ ],
+ "runs": [
+  {
+   "target": "3b",
+   "mode": "base",
+   "ready": true,
+   "buffers": [
+    {
+     "kind": "model",
+     "device": "CPU_Mapped",
+     "mib": 399.23
+    },
+    {
+     "kind": "model",
+     "device": "MTL0_Mapped",
+     "mib": 3255.9
+    },
+    {
+     "kind": "KV",
+     "device": "MTL0",
+     "mib": 896.0
+    },
+    {
+     "kind": "compute",
+     "device": "MTL0",
+     "mib": 84.27
+    },
+    {
+     "kind": "compute",
+     "device": "CPU",
+     "mib": 32.02
+    }
+   ],
+   "total_mib": 4667.42,
+   "gguf_bytes": {
+    "llama-3.2-3b-instruct-Q8_0.gguf": 3421898976
+   }
+  },
+  {
+   "target": "3b",
+   "mode": "draft llama-3.2-1b-instruct-Q8_0 n8",
+   "ready": true,
+   "buffers": [
+    {
+     "kind": "model",
+     "device": "CPU_Mapped",
+     "mib": 399.23
+    },
+    {
+     "kind": "model",
+     "device": "MTL0_Mapped",
+     "mib": 3255.9
+    },
+    {
+     "kind": "KV",
+     "device": "MTL0",
+     "mib": 896.0
+    },
+    {
+     "kind": "compute",
+     "device": "MTL0",
+     "mib": 84.27
+    },
+    {
+     "kind": "compute",
+     "device": "CPU",
+     "mib": 32.02
+    },
+    {
+     "kind": "model",
+     "device": "CPU_Mapped",
+     "mib": 266.16
+    },
+    {
+     "kind": "model",
+     "device": "MTL0_Mapped",
+     "mib": 1252.41
+    },
+    {
+     "kind": "KV",
+     "device": "MTL0",
+     "mib": 256.0
+    },
+    {
+     "kind": "compute",
+     "device": "MTL0",
+     "mib": 72.01
+    },
+    {
+     "kind": "compute",
+     "device": "CPU",
+     "mib": 24.02
+    }
+   ],
+   "total_mib": 6538.02,
+   "gguf_bytes": {
+    "llama-3.2-3b-instruct-Q8_0.gguf": 3421898976,
+    "llama-3.2-1b-instruct-Q8_0.gguf": 1321082656
+   }
+  },
+  {
+   "target": "3b",
+   "mode": "draft llama-3.2-1b-instruct-Q4_0 n8",
+   "ready": true,
+   "buffers": [
+    {
+     "kind": "model",
+     "device": "CPU_Mapped",
+     "mib": 399.23
+    },
+    {
+     "kind": "model",
+     "device": "MTL0_Mapped",
+     "mib": 3255.9
+    },
+    {
+     "kind": "KV",
+     "device": "MTL0",
+     "mib": 896.0
+    },
+    {
+     "kind": "compute",
+     "device": "MTL0",
+     "mib": 84.27
+    },
+    {
+     "kind": "compute",
+     "device": "CPU",
+     "mib": 32.02
+    },
+    {
+     "kind": "model",
+     "device": "CPU_Mapped",
+     "mib": 205.49
+    },
+    {
+     "kind": "model",
+     "device": "MTL0_Mapped",
+     "mib": 727.75
+    },
+    {
+     "kind": "KV",
+     "device": "MTL0",
+     "mib": 256.0
+    },
+    {
+     "kind": "compute",
+     "device": "MTL0",
+     "mib": 72.01
+    },
+    {
+     "kind": "compute",
+     "device": "CPU",
+     "mib": 24.02
+    }
+   ],
+   "total_mib": 5952.6900000000005,
+   "gguf_bytes": {
+    "llama-3.2-3b-instruct-Q8_0.gguf": 3421898976,
+    "llama-3.2-1b-instruct-Q4_0.gguf": 770928416
+   }
+  },
+  {
+   "target": "8b-Q8_0",
+   "mode": "base",
+   "ready": true,
+   "buffers": [
+    {
+     "kind": "model",
+     "device": "CPU_Mapped",
+     "mib": 532.31
+    },
+    {
+     "kind": "model",
+     "device": "MTL0_Mapped",
+     "mib": 532.33
+    },
+    {
+     "kind": "model",
+     "device": "MTL0_Mapped",
+     "mib": 7073.0
+    },
+    {
+     "kind": "KV",
+     "device": "MTL0",
+     "mib": 1024.0
+    },
+    {
+     "kind": "compute",
+     "device": "MTL0",
+     "mib": 124.01
+    },
+    {
+     "kind": "compute",
+     "device": "CPU",
+     "mib": 40.02
+    }
+   ],
+   "total_mib": 9325.67,
+   "gguf_bytes": {
+    "llama-3.1-8b-instruct-Q8_0.gguf": 8540775584
+   }
+  },
+  {
+   "target": "8b-Q8_0",
+   "mode": "draft llama-3.2-1b-instruct-Q8_0 n8",
+   "ready": true,
+   "buffers": [
+    {
+     "kind": "model",
+     "device": "CPU_Mapped",
+     "mib": 532.31
+    },
+    {
+     "kind": "model",
+     "device": "MTL0_Mapped",
+     "mib": 532.33
+    },
+    {
+     "kind": "model",
+     "device": "MTL0_Mapped",
+     "mib": 7073.0
+    },
+    {
+     "kind": "KV",
+     "device": "MTL0",
+     "mib": 1024.0
+    },
+    {
+     "kind": "compute",
+     "device": "MTL0",
+     "mib": 124.01
+    },
+    {
+     "kind": "compute",
+     "device": "CPU",
+     "mib": 40.02
+    },
+    {
+     "kind": "model",
+     "device": "CPU_Mapped",
+     "mib": 266.16
+    },
+    {
+     "kind": "model",
+     "device": "MTL0_Mapped",
+     "mib": 1252.41
+    },
+    {
+     "kind": "KV",
+     "device": "MTL0",
+     "mib": 256.0
+    },
+    {
+     "kind": "compute",
+     "device": "MTL0",
+     "mib": 72.01
+    },
+    {
+     "kind": "compute",
+     "device": "CPU",
+     "mib": 24.02
+    }
+   ],
+   "total_mib": 11196.27,
+   "gguf_bytes": {
+    "llama-3.1-8b-instruct-Q8_0.gguf": 8540775584,
+    "llama-3.2-1b-instruct-Q8_0.gguf": 1321082656
+   }
+  },
+  {
+   "target": "8b-Q8_0",
+   "mode": "draft llama-3.2-1b-instruct-Q4_0 n8",
+   "ready": true,
+   "buffers": [
+    {
+     "kind": "model",
+     "device": "CPU_Mapped",
+     "mib": 532.31
+    },
+    {
+     "kind": "model",
+     "device": "MTL0_Mapped",
+     "mib": 532.33
+    },
+    {
+     "kind": "model",
+     "device": "MTL0_Mapped",
+     "mib": 7073.0
+    },
+    {
+     "kind": "KV",
+     "device": "MTL0",
+     "mib": 1024.0
+    },
+    {
+     "kind": "compute",
+     "device": "MTL0",
+     "mib": 124.01
+    },
+    {
+     "kind": "compute",
+     "device": "CPU",
+     "mib": 40.02
+    },
+    {
+     "kind": "model",
+     "device": "CPU_Mapped",
+     "mib": 205.49
+    },
+    {
+     "kind": "model",
+     "device": "MTL0_Mapped",
+     "mib": 727.75
+    },
+    {
+     "kind": "KV",
+     "device": "MTL0",
+     "mib": 256.0
+    },
+    {
+     "kind": "compute",
+     "device": "MTL0",
+     "mib": 72.01
+    },
+    {
+     "kind": "compute",
+     "device": "CPU",
+     "mib": 24.02
+    }
+   ],
+   "total_mib": 10610.94,
+   "gguf_bytes": {
+    "llama-3.1-8b-instruct-Q8_0.gguf": 8540775584,
+    "llama-3.2-1b-instruct-Q4_0.gguf": 770928416
+   }
+  },
+  {
+   "target": "8b-Q4_K_M",
+   "mode": "base",
+   "ready": true,
+   "buffers": [
+    {
+     "kind": "model",
+     "device": "CPU_Mapped",
+     "mib": 281.81
+    },
+    {
+     "kind": "model",
+     "device": "MTL0_Mapped",
+     "mib": 410.99
+    },
+    {
+     "kind": "model",
+     "device": "MTL0_Mapped",
+     "mib": 3992.5
+    },
+    {
+     "kind": "KV",
+     "device": "MTL0",
+     "mib": 1024.0
+    },
+    {
+     "kind": "compute",
+     "device": "MTL0",
+     "mib": 124.01
+    },
+    {
+     "kind": "compute",
+     "device": "CPU",
+     "mib": 40.02
+    }
+   ],
+   "total_mib": 5873.33,
+   "gguf_bytes": {
+    "llama-3.1-8b-instruct-Q4_K_M.gguf": 4920738976
+   }
+  },
+  {
+   "target": "8b-Q4_K_M",
+   "mode": "draft llama-3.2-1b-instruct-Q8_0 n8",
+   "ready": true,
+   "buffers": [
+    {
+     "kind": "model",
+     "device": "CPU_Mapped",
+     "mib": 281.81
+    },
+    {
+     "kind": "model",
+     "device": "MTL0_Mapped",
+     "mib": 410.99
+    },
+    {
+     "kind": "model",
+     "device": "MTL0_Mapped",
+     "mib": 3992.5
+    },
+    {
+     "kind": "KV",
+     "device": "MTL0",
+     "mib": 1024.0
+    },
+    {
+     "kind": "compute",
+     "device": "MTL0",
+     "mib": 124.01
+    },
+    {
+     "kind": "compute",
+     "device": "CPU",
+     "mib": 40.02
+    },
+    {
+     "kind": "model",
+     "device": "CPU_Mapped",
+     "mib": 266.16
+    },
+    {
+     "kind": "model",
+     "device": "MTL0_Mapped",
+     "mib": 1252.41
+    },
+    {
+     "kind": "KV",
+     "device": "MTL0",
+     "mib": 256.0
+    },
+    {
+     "kind": "compute",
+     "device": "MTL0",
+     "mib": 72.01
+    },
+    {
+     "kind": "compute",
+     "device": "CPU",
+     "mib": 24.02
+    }
+   ],
+   "total_mib": 7743.93,
+   "gguf_bytes": {
+    "llama-3.1-8b-instruct-Q4_K_M.gguf": 4920738976,
+    "llama-3.2-1b-instruct-Q8_0.gguf": 1321082656
+   }
+  },
+  {
+   "target": "8b-Q4_K_M",
+   "mode": "draft llama-3.2-1b-instruct-Q4_0 n8",
+   "ready": true,
+   "buffers": [
+    {
+     "kind": "model",
+     "device": "CPU_Mapped",
+     "mib": 281.81
+    },
+    {
+     "kind": "model",
+     "device": "MTL0_Mapped",
+     "mib": 410.99
+    },
+    {
+     "kind": "model",
+     "device": "MTL0_Mapped",
+     "mib": 3992.5
+    },
+    {
+     "kind": "KV",
+     "device": "MTL0",
+     "mib": 1024.0
+    },
+    {
+     "kind": "compute",
+     "device": "MTL0",
+     "mib": 124.01
+    },
+    {
+     "kind": "compute",
+     "device": "CPU",
+     "mib": 40.02
+    },
+    {
+     "kind": "model",
+     "device": "CPU_Mapped",
+     "mib": 205.49
+    },
+    {
+     "kind": "model",
+     "device": "MTL0_Mapped",
+     "mib": 727.75
+    },
+    {
+     "kind": "KV",
+     "device": "MTL0",
+     "mib": 256.0
+    },
+    {
+     "kind": "compute",
+     "device": "MTL0",
+     "mib": 72.01
+    },
+    {
+     "kind": "compute",
+     "device": "CPU",
+     "mib": 24.02
+    }
+   ],
+   "total_mib": 7158.6,
+   "gguf_bytes": {
+    "llama-3.1-8b-instruct-Q4_K_M.gguf": 4920738976,
+    "llama-3.2-1b-instruct-Q4_0.gguf": 770928416
+   }
+  }
+ ]
+}
