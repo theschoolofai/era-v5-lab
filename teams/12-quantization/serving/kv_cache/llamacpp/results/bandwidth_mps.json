@@ -1,0 +1,55 @@
+{
+ "method": "torch MPS: median of 20 timed runs each of x.sum() (read) and y.copy_(x) (read+write) over 1 GiB float32, per repeat",
+ "torch": "2.15.0",
+ "repeats": 5,
+ "read_GBps": [
+  146.6534751601206,
+  139.92704906128372,
+  150.12949330620145,
+  145.78196438376207,
+  133.36785801820722
+ ],
+ "copy_GBps": [
+  140.93624237340617,
+  148.4861264738997,
+  144.16350516445664,
+  148.2475878498953,
+  148.36622317698996
+ ],
+ "read_GBps_median": 145.78196438376207,
+ "copy_GBps_median": 148.2475878498953,
+ "measured_at": "2026-11-28 15:46 IST",
+ "earlier_sessions": [
+  {
+   "measured_at": "2026-11-28 13:39 IST (before the speed runs; downloads still running)",
+   "script": "earlier bw_mps.py (upper median of 20 runs; copy timed before sum)",
+   "read_GBps": [
+    90.90679008906672,
+    87.48456628338931
+   ],
+   "copy_GBps": [
+    108.39695646163341,
+    107.79480850789197
+   ]
+  },
+  {
+   "measured_at": "2026-11-28 13:48 IST (right after the speed runs, downloads paused)",
+   "script": "earlier bw_mps.py (upper median of 20 runs; copy timed before sum)",
+   "read_GBps": [
+    91.59210286153109,
+    95.97941936745727,
+    101.83076986659634,
+    96.67725061474273,
+    90.97290481972182
+   ],
+   "copy_GBps": [
+    118.87509854226685,
+    109.96476531013981,
+    109.45892056635249,
+    112.38662591340645,
+    112.02679522757062
+   ]
+  }
+ ],
+ "note": "The read bandwidth one MPS kernel reaches differs between sessions (87 to 150 GB/s here); it is context for the speed table, not a bound."
+}

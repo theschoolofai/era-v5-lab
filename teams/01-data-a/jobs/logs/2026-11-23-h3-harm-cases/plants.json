@@ -1,0 +1,38 @@
+{
+  "inputs_sha256": {
+    "eng_Latn.jsonl": "afa116a2ffb7de95aa320c11c229301d76a8108cba3125744c10304ffaa128bd",
+    "hin_Deva.jsonl": "71cdcc7eee9c23827403bb53e73466f9508d2335488e8cd7daabe90a8fb0c33a",
+    "san_Deva.jsonl": "029d12cc0904118c400d170b289ba4320f78bd0451bfe0a26efb5080fdaa591a",
+    "known_pairs.parquet": "ccabab8018f40ca4b995d92c030c98d05ef2c5e0d80d47eb784473d10fb22002",
+    "real_translations.csv": "7842a5dfaf0e4ac4647a9090b5e876882a3fbf7cc659c2cc5ea8d859a5166c6a"
+  },
+  "block_sentences": 8,
+  "pairs": {
+    "sa-held": {
+      "p1_heldout_train": 6,
+      "p2_real_web": 6,
+      "p3_train_train": 2
+    },
+    "hi-held": {
+      "p1_heldout_train": 6,
+      "p2_real_web": 0,
+      "p3_train_train": 2
+    },
+    "en-held": {
+      "p1_heldout_train": 6,
+      "p2_real_web": 0,
+      "p3_train_train": 2
+    }
+  },
+  "documents_written": {
+    "sa-held/heldout/ind-sa-fw2": 12,
+    "sa-held/train/en-fineweb-edu": 10,
+    "sa-held/train/ind-hi-fw2": 6,
+    "hi-held/heldout/ind-hi-fw2": 6,
+    "hi-held/train/ind-sa-fw2": 5,
+    "hi-held/train/en-fineweb-edu": 5,
+    "en-held/heldout/en-fineweb-edu": 6,
+    "en-held/train/ind-sa-fw2": 5,
+    "en-held/train/ind-hi-fw2": 5
+  }
+}

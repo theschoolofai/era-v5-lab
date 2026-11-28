@@ -1,0 +1,21 @@
+# drill mainrun_time_cap_signal (2026-11-28 15:25:16 IST)
+
+## results
+PASS {"drill": "mainrun_time_cap_signal", "pass": true, "job": "1", "signal": "B:USR1@120", "stop_step": 4044, "signal_save_committed": true, "latest_step": 4044, "restored_step": 4044, "lost_steps": 0, "job_state": "RUNNING", "reason": "BeginTime", "restarts": "1", "expected": "0 steps lost, requeued"}
+
+## commands (polling commands not listed)
+$ [slurmctld] RUN_ID=v5main V5_EVENTS_DIR=/s3/events /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from common.events import emit; print(emit('drill.injected', **json.loads(sys.argv[1]))['time'])" '{"drill": "mainrun_time_cap_signal", "cause_class": "planned"}'
+  exit 0
+  2026-11-28T09:48:09.650Z
+$ [slurmctld] cd /tmp && runuser -u svc -- sbatch --parsable --export=ALL,RUN_ID=timecap-signal,STEPS=100000,INTERVAL_S=200,STEP_SLEEP=0.05,WATCHDOG_S=300,CRASHLOOP_WINDOW_S=10 --ntasks-per-node=2 --gpus-per-node=2 --nodes=1 --time=00:07:00 --signal=B:USR1@120 /opt/v5/slurm/mainrun.sbatch
+  exit 0
+  1
+$ [slurmctld] mkdir -p /s3/drills/timecap-signal && echo 20 > /s3/drills/timecap-signal/upload_delay_s
+  exit 0
+$ [slurmctld] rm -f /s3/drills/timecap-signal/upload_delay_s
+  exit 0
+$ [slurmctld] . /etc/v5/node.env; /opt/venv/bin/python -c "import sys,json; sys.path.insert(0,'/opt/v5'); from ckpt.store import open_store; print(json.dumps(open_store('s3://v5-ckpt/ckpt/timecap-signal').get_json('latest.json')))"
+  exit 0
+  {"branch": "main", "claimed_at": 1795859715.9507422, "epoch": 2, "host": "c1", "job": "1", "path": "main/step_00004044-e1", "step": 4044}
+$ [slurmctld] scancel 1
+  exit 0

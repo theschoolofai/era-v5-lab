@@ -1,0 +1,659 @@
+{
+  "layouts": {
+    "sa-held": {
+      "status": "pass",
+      "failures": [],
+      "harm_check": {
+        "status": "pass",
+        "gold_ids_in_input": 1308,
+        "gold_removed": 0,
+        "gold_removed_ids": []
+      },
+      "report_only_remove_list_unchanged": true,
+      "h3_verified": 383,
+      "h3_not_verified_over_max_verify": 0,
+      "h3_qualifying": 7,
+      "h3_removed": 5,
+      "h3_removed_real_documents": [],
+      "removal_tested": {
+        "sa-en": {
+          "planted": 3,
+          "removed": 2
+        },
+        "sa-hi": {
+          "planted": 3,
+          "removed": 1
+        }
+      },
+      "cases": {
+        "p1_heldout_train": {
+          "planted": 6,
+          "qualifying": 3,
+          "removed_by_h3": 3,
+          "ok": 6
+        },
+        "p2_real_web": {
+          "planted": 6,
+          "qualifying": 2,
+          "removed_by_h3": 2,
+          "ok": 6
+        },
+        "p3_train_train": {
+          "planted": 2,
+          "qualifying": 2,
+          "removed_by_h3": 0,
+          "ok": 2
+        }
+      },
+      "planted_pairs": [
+        {
+          "case": "p1_heldout_train",
+          "language_pair": "sa-en",
+          "block": 1,
+          "source_doc_id": "",
+          "a": "ind-sa-fw2:plant-p1-sa-b001-sa",
+          "b": "en-fineweb-edu:plant-p1-sa-b001-en",
+          "read_by_h3": true,
+          "qualifies": true,
+          "train_side_targeted": true,
+          "coverage": 0.8,
+          "outcome": "removed",
+          "removed_by_h3": true,
+          "ok": true
+        },
+        {
+          "case": "p1_heldout_train",
+          "language_pair": "sa-en",
+          "block": 2,
+          "source_doc_id": "",
+          "a": "ind-sa-fw2:plant-p1-sa-b002-sa",
+          "b": "en-fineweb-edu:plant-p1-sa-b002-en",
+          "read_by_h3": true,
+          "qualifies": false,
+          "train_side_targeted": false,
+          "coverage": null,
+          "outcome": null,
+          "removed_by_h3": false,
+          "ok": true
+        },
+        {
+          "case": "p1_heldout_train",
+          "language_pair": "sa-en",
+          "block": 3,
+          "source_doc_id": "",
+          "a": "ind-sa-fw2:plant-p1-sa-b003-sa",
+          "b": "en-fineweb-edu:plant-p1-sa-b003-en",
+          "read_by_h3": true,
+          "qualifies": true,
+          "train_side_targeted": true,
+          "coverage": 0.9,
+          "outcome": "removed",
+          "removed_by_h3": true,
+          "ok": true
+        },
+        {
+          "case": "p1_heldout_train",
+          "language_pair": "sa-hi",
+          "block": 4,
+          "source_doc_id": "",
+          "a": "ind-sa-fw2:plant-p1-sa-b004-sa",
+          "b": "ind-hi-fw2:plant-p1-sa-b004-hi",
+          "read_by_h3": true,
+          "qualifies": false,
+          "train_side_targeted": false,
+          "coverage": 0.555556,
+          "outcome": null,
+          "removed_by_h3": false,
+          "ok": true
+        },
+        {
+          "case": "p1_heldout_train",
+          "language_pair": "sa-hi",
+          "block": 5,
+          "source_doc_id": "",
+          "a": "ind-sa-fw2:plant-p1-sa-b005-sa",
+          "b": "ind-hi-fw2:plant-p1-sa-b005-hi",
+          "read_by_h3": true,
+          "qualifies": false,
+          "train_side_targeted": false,
+          "coverage": null,
+          "outcome": null,
+          "removed_by_h3": false,
+          "ok": true
+        },
+        {
+          "case": "p1_heldout_train",
+          "language_pair": "sa-hi",
+          "block": 6,
+          "source_doc_id": "",
+          "a": "ind-sa-fw2:plant-p1-sa-b006-sa",
+          "b": "ind-hi-fw2:plant-p1-sa-b006-hi",
+          "read_by_h3": true,
+          "qualifies": true,
+          "train_side_targeted": true,
+          "coverage": 0.666667,
+          "outcome": "removed",
+          "removed_by_h3": true,
+          "ok": true
+        },
+        {
+          "case": "p3_train_train",
+          "language_pair": "hi-en",
+          "block": 7,
+          "source_doc_id": "",
+          "a": "ind-hi-fw2:plant-p3-sa-b007-hi",
+          "b": "en-fineweb-edu:plant-p3-sa-b007-en",
+          "read_by_h3": true,
+          "qualifies": true,
+          "train_side_targeted": false,
+          "coverage": 1.0,
+          "outcome": "reported_train_train",
+          "removed_by_h3": false,
+          "ok": true
+        },
+        {
+          "case": "p3_train_train",
+          "language_pair": "hi-en",
+          "block": 8,
+          "source_doc_id": "",
+          "a": "ind-hi-fw2:plant-p3-sa-b008-hi",
+          "b": "en-fineweb-edu:plant-p3-sa-b008-en",
+          "read_by_h3": true,
+          "qualifies": true,
+          "train_side_targeted": false,
+          "coverage": 1.0,
+          "outcome": "reported_train_train",
+          "removed_by_h3": false,
+          "ok": true
+        },
+        {
+          "case": "p2_real_web",
+          "language_pair": "sa-en",
+          "block": null,
+          "source_doc_id": "602d649b7ca0cc34",
+          "a": "ind-sa-fw2:plant-p2-sa-602d649b7ca0cc34-sa",
+          "b": "en-fineweb-edu:plant-p2-sa-602d649b7ca0cc34-en",
+          "read_by_h3": true,
+          "qualifies": false,
+          "train_side_targeted": false,
+          "coverage": 0.375,
+          "outcome": null,
+          "removed_by_h3": false,
+          "ok": true
+        },
+        {
+          "case": "p2_real_web",
+          "language_pair": "sa-hi",
+          "block": null,
+          "source_doc_id": "a4c2e787200c9aaa",
+          "a": "ind-sa-fw2:plant-p2-sa-a4c2e787200c9aaa-sa",
+          "b": "ind-hi-fw2:plant-p2-sa-a4c2e787200c9aaa-hi",
+          "read_by_h3": true,
+          "qualifies": true,
+          "train_side_targeted": true,
+          "coverage": 1.0,
+          "outcome": "removed",
+          "removed_by_h3": true,
+          "ok": true
+        },
+        {
+          "case": "p2_real_web",
+          "language_pair": "sa-en",
+          "block": null,
+          "source_doc_id": "708c90d81397fc22",
+          "a": "ind-sa-fw2:plant-p2-sa-708c90d81397fc22-sa",
+          "b": "en-fineweb-edu:plant-p2-sa-708c90d81397fc22-en",
+          "read_by_h3": true,
+          "qualifies": false,
+          "train_side_targeted": false,
+          "coverage": null,
+          "outcome": null,
+          "removed_by_h3": false,
+          "ok": true
+        },
+        {
+          "case": "p2_real_web",
+          "language_pair": "sa-en",
+          "block": null,
+          "source_doc_id": "ad0757f87d86972c",
+          "a": "ind-sa-fw2:plant-p2-sa-ad0757f87d86972c-sa",
+          "b": "en-fineweb-edu:plant-p2-sa-ad0757f87d86972c-en",
+          "read_by_h3": true,
+          "qualifies": true,
+          "train_side_targeted": true,
+          "coverage": 0.8,
+          "outcome": "removed",
+          "removed_by_h3": true,
+          "ok": true
+        },
+        {
+          "case": "p2_real_web",
+          "language_pair": "sa-en",
+          "block": null,
+          "source_doc_id": "6155338a1dab37ff",
+          "a": "ind-sa-fw2:plant-p2-sa-6155338a1dab37ff-sa",
+          "b": "en-fineweb-edu:plant-p2-sa-6155338a1dab37ff-en",
+          "read_by_h3": true,
+          "qualifies": false,
+          "train_side_targeted": false,
+          "coverage": 0.2,
+          "outcome": null,
+          "removed_by_h3": false,
+          "ok": true
+        },
+        {
+          "case": "p2_real_web",
+          "language_pair": "sa-en",
+          "block": null,
+          "source_doc_id": "3fc54f50af2fe5ec",
+          "a": "ind-sa-fw2:plant-p2-sa-3fc54f50af2fe5ec-sa",
+          "b": "en-fineweb-edu:plant-p2-sa-3fc54f50af2fe5ec-en",
+          "read_by_h3": true,
+          "qualifies": false,
+          "train_side_targeted": false,
+          "coverage": 0.5,
+          "outcome": null,
+          "removed_by_h3": false,
+          "ok": true
+        }
+      ],
+      "margin": {
+        "sa-en": {
+          "verified": 8,
+          "qualifying": 0,
+          "highest_coverage": 0.143,
+          "highest_with_gold": 0.143
+        },
+        "sa-hi": {
+          "verified": 72,
+          "qualifying": 0,
+          "highest_coverage": 0.188,
+          "highest_with_gold": 0.083
+        },
+        "hi-en": {
+          "verified": 288,
+          "qualifying": 0,
+          "highest_coverage": 0.125,
+          "highest_with_gold": 0.062
+        }
+      }
+    },
+    "hi-held": {
+      "status": "pass",
+      "failures": [],
+      "harm_check": {
+        "status": "pass",
+        "gold_ids_in_input": 1308,
+        "gold_removed": 0,
+        "gold_removed_ids": []
+      },
+      "report_only_remove_list_unchanged": true,
+      "h3_verified": 373,
+      "h3_not_verified_over_max_verify": 0,
+      "h3_qualifying": 4,
+      "h3_removed": 4,
+      "h3_removed_real_documents": [],
+      "removal_tested": {
+        "sa-hi": {
+          "planted": 3,
+          "removed": 1
+        },
+        "hi-en": {
+          "planted": 3,
+          "removed": 3
+        }
+      },
+      "cases": {
+        "p1_heldout_train": {
+          "planted": 6,
+          "qualifying": 4,
+          "removed_by_h3": 4,
+          "ok": 6
+        },
+        "p2_real_web": {
+          "planted": 0,
+          "qualifying": 0,
+          "removed_by_h3": 0,
+          "ok": 0
+        },
+        "p3_train_train": {
+          "planted": 2,
+          "qualifying": 0,
+          "removed_by_h3": 0,
+          "ok": 2
+        }
+      },
+      "planted_pairs": [
+        {
+          "case": "p1_heldout_train",
+          "language_pair": "sa-hi",
+          "block": 1,
+          "source_doc_id": "",
+          "a": "ind-hi-fw2:plant-p1-hi-b001-hi",
+          "b": "ind-sa-fw2:plant-p1-hi-b001-sa",
+          "read_by_h3": true,
+          "qualifies": false,
+          "train_side_targeted": false,
+          "coverage": 0.4,
+          "outcome": null,
+          "removed_by_h3": false,
+          "ok": true
+        },
+        {
+          "case": "p1_heldout_train",
+          "language_pair": "sa-hi",
+          "block": 2,
+          "source_doc_id": "",
+          "a": "ind-hi-fw2:plant-p1-hi-b002-hi",
+          "b": "ind-sa-fw2:plant-p1-hi-b002-sa",
+          "read_by_h3": true,
+          "qualifies": false,
+          "train_side_targeted": false,
+          "coverage": null,
+          "outcome": null,
+          "removed_by_h3": false,
+          "ok": true
+        },
+        {
+          "case": "p1_heldout_train",
+          "language_pair": "sa-hi",
+          "block": 3,
+          "source_doc_id": "",
+          "a": "ind-hi-fw2:plant-p1-hi-b003-hi",
+          "b": "ind-sa-fw2:plant-p1-hi-b003-sa",
+          "read_by_h3": true,
+          "qualifies": true,
+          "train_side_targeted": true,
+          "coverage": 1.0,
+          "outcome": "removed",
+          "removed_by_h3": true,
+          "ok": true
+        },
+        {
+          "case": "p1_heldout_train",
+          "language_pair": "hi-en",
+          "block": 4,
+          "source_doc_id": "",
+          "a": "ind-hi-fw2:plant-p1-hi-b004-hi",
+          "b": "en-fineweb-edu:plant-p1-hi-b004-en",
+          "read_by_h3": true,
+          "qualifies": true,
+          "train_side_targeted": true,
+          "coverage": 0.777778,
+          "outcome": "removed",
+          "removed_by_h3": true,
+          "ok": true
+        },
+        {
+          "case": "p1_heldout_train",
+          "language_pair": "hi-en",
+          "block": 5,
+          "source_doc_id": "",
+          "a": "ind-hi-fw2:plant-p1-hi-b005-hi",
+          "b": "en-fineweb-edu:plant-p1-hi-b005-en",
+          "read_by_h3": true,
+          "qualifies": true,
+          "train_side_targeted": true,
+          "coverage": 1.0,
+          "outcome": "removed",
+          "removed_by_h3": true,
+          "ok": true
+        },
+        {
+          "case": "p1_heldout_train",
+          "language_pair": "hi-en",
+          "block": 6,
+          "source_doc_id": "",
+          "a": "ind-hi-fw2:plant-p1-hi-b006-hi",
+          "b": "en-fineweb-edu:plant-p1-hi-b006-en",
+          "read_by_h3": true,
+          "qualifies": true,
+          "train_side_targeted": true,
+          "coverage": 1.0,
+          "outcome": "removed",
+          "removed_by_h3": true,
+          "ok": true
+        },
+        {
+          "case": "p3_train_train",
+          "language_pair": "sa-en",
+          "block": 7,
+          "source_doc_id": "",
+          "a": "ind-sa-fw2:plant-p3-hi-b007-sa",
+          "b": "en-fineweb-edu:plant-p3-hi-b007-en",
+          "read_by_h3": true,
+          "qualifies": false,
+          "train_side_targeted": false,
+          "coverage": null,
+          "outcome": null,
+          "removed_by_h3": false,
+          "ok": true
+        },
+        {
+          "case": "p3_train_train",
+          "language_pair": "sa-en",
+          "block": 8,
+          "source_doc_id": "",
+          "a": "ind-sa-fw2:plant-p3-hi-b008-sa",
+          "b": "en-fineweb-edu:plant-p3-hi-b008-en",
+          "read_by_h3": true,
+          "qualifies": false,
+          "train_side_targeted": false,
+          "coverage": null,
+          "outcome": null,
+          "removed_by_h3": false,
+          "ok": true
+        }
+      ],
+      "margin": {
+        "sa-en": {
+          "verified": 8,
+          "qualifying": 0,
+          "highest_coverage": 0.143,
+          "highest_with_gold": 0.143
+        },
+        "sa-hi": {
+          "verified": 72,
+          "qualifying": 0,
+          "highest_coverage": 0.188,
+          "highest_with_gold": 0.083
+        },
+        "hi-en": {
+          "verified": 287,
+          "qualifying": 0,
+          "highest_coverage": 0.125,
+          "highest_with_gold": 0.062
+        }
+      }
+    },
+    "en-held": {
+      "status": "pass",
+      "failures": [],
+      "harm_check": {
+        "status": "pass",
+        "gold_ids_in_input": 1308,
+        "gold_removed": 0,
+        "gold_removed_ids": []
+      },
+      "report_only_remove_list_unchanged": true,
+      "h3_verified": 373,
+      "h3_not_verified_over_max_verify": 0,
+      "h3_qualifying": 5,
+      "h3_removed": 5,
+      "h3_removed_real_documents": [],
+      "removal_tested": {
+        "sa-en": {
+          "planted": 3,
+          "removed": 2
+        },
+        "hi-en": {
+          "planted": 3,
+          "removed": 3
+        }
+      },
+      "cases": {
+        "p1_heldout_train": {
+          "planted": 6,
+          "qualifying": 5,
+          "removed_by_h3": 5,
+          "ok": 6
+        },
+        "p2_real_web": {
+          "planted": 0,
+          "qualifying": 0,
+          "removed_by_h3": 0,
+          "ok": 0
+        },
+        "p3_train_train": {
+          "planted": 2,
+          "qualifying": 0,
+          "removed_by_h3": 0,
+          "ok": 2
+        }
+      },
+      "planted_pairs": [
+        {
+          "case": "p1_heldout_train",
+          "language_pair": "sa-en",
+          "block": 1,
+          "source_doc_id": "",
+          "a": "en-fineweb-edu:plant-p1-en-b001-en",
+          "b": "ind-sa-fw2:plant-p1-en-b001-sa",
+          "read_by_h3": true,
+          "qualifies": true,
+          "train_side_targeted": true,
+          "coverage": 0.8,
+          "outcome": "removed",
+          "removed_by_h3": true,
+          "ok": true
+        },
+        {
+          "case": "p1_heldout_train",
+          "language_pair": "sa-en",
+          "block": 2,
+          "source_doc_id": "",
+          "a": "en-fineweb-edu:plant-p1-en-b002-en",
+          "b": "ind-sa-fw2:plant-p1-en-b002-sa",
+          "read_by_h3": true,
+          "qualifies": false,
+          "train_side_targeted": false,
+          "coverage": null,
+          "outcome": null,
+          "removed_by_h3": false,
+          "ok": true
+        },
+        {
+          "case": "p1_heldout_train",
+          "language_pair": "sa-en",
+          "block": 3,
+          "source_doc_id": "",
+          "a": "en-fineweb-edu:plant-p1-en-b003-en",
+          "b": "ind-sa-fw2:plant-p1-en-b003-sa",
+          "read_by_h3": true,
+          "qualifies": true,
+          "train_side_targeted": true,
+          "coverage": 0.9,
+          "outcome": "removed",
+          "removed_by_h3": true,
+          "ok": true
+        },
+        {
+          "case": "p1_heldout_train",
+          "language_pair": "hi-en",
+          "block": 4,
+          "source_doc_id": "",
+          "a": "en-fineweb-edu:plant-p1-en-b004-en",
+          "b": "ind-hi-fw2:plant-p1-en-b004-hi",
+          "read_by_h3": true,
+          "qualifies": true,
+          "train_side_targeted": true,
+          "coverage": 0.777778,
+          "outcome": "removed",
+          "removed_by_h3": true,
+          "ok": true
+        },
+        {
+          "case": "p1_heldout_train",
+          "language_pair": "hi-en",
+          "block": 5,
+          "source_doc_id": "",
+          "a": "en-fineweb-edu:plant-p1-en-b005-en",
+          "b": "ind-hi-fw2:plant-p1-en-b005-hi",
+          "read_by_h3": true,
+          "qualifies": true,
+          "train_side_targeted": true,
+          "coverage": 1.0,
+          "outcome": "removed",
+          "removed_by_h3": true,
+          "ok": true
+        },
+        {
+          "case": "p1_heldout_train",
+          "language_pair": "hi-en",
+          "block": 6,
+          "source_doc_id": "",
+          "a": "en-fineweb-edu:plant-p1-en-b006-en",
+          "b": "ind-hi-fw2:plant-p1-en-b006-hi",
+          "read_by_h3": true,
+          "qualifies": true,
+          "train_side_targeted": true,
+          "coverage": 1.0,
+          "outcome": "removed",
+          "removed_by_h3": true,
+          "ok": true
+        },
+        {
+          "case": "p3_train_train",
+          "language_pair": "sa-hi",
+          "block": 7,
+          "source_doc_id": "",
+          "a": "ind-sa-fw2:plant-p3-en-b007-sa",
+          "b": "ind-hi-fw2:plant-p3-en-b007-hi",
+          "read_by_h3": true,
+          "qualifies": false,
+          "train_side_targeted": false,
+          "coverage": null,
+          "outcome": null,
+          "removed_by_h3": false,
+          "ok": true
+        },
+        {
+          "case": "p3_train_train",
+          "language_pair": "sa-hi",
+          "block": 8,
+          "source_doc_id": "",
+          "a": "ind-sa-fw2:plant-p3-en-b008-sa",
+          "b": "ind-hi-fw2:plant-p3-en-b008-hi",
+          "read_by_h3": true,
+          "qualifies": false,
+          "train_side_targeted": false,
+          "coverage": null,
+          "outcome": null,
+          "removed_by_h3": false,
+          "ok": true
+        }
+      ],
+      "margin": {
+        "sa-en": {
+          "verified": 8,
+          "qualifying": 0,
+          "highest_coverage": 0.143,
+          "highest_with_gold": 0.143
+        },
+        "sa-hi": {
+          "verified": 72,
+          "qualifying": 0,
+          "highest_coverage": 0.188,
+          "highest_with_gold": 0.083
+        },
+        "hi-en": {
+          "verified": 287,
+          "qualifying": 0,
+          "highest_coverage": 0.125,
+          "highest_with_gold": 0.062
+        }
+      }
+    }
+  },
+  "status": "pass"
+}

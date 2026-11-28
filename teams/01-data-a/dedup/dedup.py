@@ -42,7 +42,8 @@ CONFIG (JSON; keys starting with "_" are comments)
   default_licence_usable   true or false; the summary records which packs used the default (default true)
   gold_dirs        folders with <pack_id>_gold.csv files, for the harm check               (default [])
   h3               optional, H3 translations (h3_join.py): {"matches": h3_matches.csv from h3.py, "remove": false,
-                   "parallel_packs": [...]}. Absent: no H3, and every output is as without this key
+                   "parallel_packs": [...]}. "remove" is true, false or per language pair, e.g. {"hi-en": true}.
+                   Absent: no H3, and every output is as without this key
 
 WHAT IT WRITES (in out)
 =======================

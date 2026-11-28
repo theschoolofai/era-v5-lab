@@ -1,0 +1,12 @@
+{
+  "files": [
+    "weights/model.safetensors"
+  ],
+  "weights_sha256": "464011f3cbec0f528af3cbc5392776c1e95c324563aa176b8d0f937745b389e0",
+  "source": "<bundle-scratch>/kas-export-rehearsal-2026-11-24/model.safetensors",
+  "via": "symlink to the given file",
+  "stage": "strip",
+  "version": 1,
+  "key": "057292a46efafdeb",
+  "seconds": 0.2
+}

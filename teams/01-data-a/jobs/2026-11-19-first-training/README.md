@@ -44,7 +44,7 @@ It writes metadata for exactly the selected packs and selects
 `minhash_overlap.py` with `minhash_overlap_partial.json`. Full-scope preparation
 also selects MinHash, with `minhash_overlap.json`. The existing inventory gates
 continue to require exactly the selected parts through ledger and sharding.
-H3 stays report-only with its existing measurement scope.
+H3 keeps its existing measurement scope; it removes only hi–en matches (below).
 
 The output folder must be new. The builder reads all staged Parquets, checks the
 allowlist, schema columns and file identities, and publishes:
@@ -93,14 +93,18 @@ and H3 requirements agree on NumPy 2.4.3 and PyArrow 23.0.1.
 
 Process both splits through clean, overlap, dedup/apply, F2 and the raw ledger.
 For H3, add `"h3": {"mode": "run", "settings":
-"teams/01-data-a/jobs/2026-11-19-first-training/h3.json"}` to `stages`.
+"teams/01-data-a/jobs/2026-11-19-first-training/h3.json", "remove": {"hi-en": true}}`
+to `stages`, as `prepare_run.py` writes it.
 The runner runs H3 after overlap on the same cleaned parts, verifies its completed
-summary and match-file hash, then supplies that match file to dedup. Dedup uses
-`remove: false`: H3 reports translation matches but does not remove documents.
+summary and match-file hash, then supplies that match file to dedup with
+`stages.h3.remove`. `prepare_run.py` sets it to `{"hi-en": true}` (TSAI, 27 Nov):
+a hi–en train document matched directly to a held-out document is removed (rule
+H3, priority rule 0); sa–en and sa–hi stay report-only until E5d sets the
+Sanskrit thresholds, and Odia stays report-only. The runner fails the run if
+dedup recorded another setting.
 The job requests a CUDA host; H3 retains the rehearsed `device: auto`, fp16 on
 CUDA, and default sentence threshold 0.7 for every pair. E5c's provisional
-Sanskrit 0.55 threshold is deferred to a separate measurement. Removal stays
-disabled until the separate validation gates pass.
+Sanskrit 0.55 threshold is deferred to a separate measurement.
 Stage the offline LaBSE model at the `model_path` in `h3.json` and install
 `dedup/requirements_h3.txt` in the job environment. This setting currently
 measures the Sanskrit, Hindi and English packs named in `h3.json`; expand the

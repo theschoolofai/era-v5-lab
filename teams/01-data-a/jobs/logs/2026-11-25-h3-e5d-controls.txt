@@ -1,0 +1,10 @@
+H3 E5d controls for the Sanskrit sheets, with the known translations (--positives), Wednesday 25 November 2026 15:37
+on commit ccf5d51e; Python 3.12.10, Darwin arm64
+cold start: out/e5d_controls removed first
+
+$ python3 -I teams/01-data-a/dedup/h3_e5d_controls.py --out out/e5d_controls --known-pairs ../known_pairs.parquet --real ../real_translations.csv --labse ../pair_scores_labse_bge_m3/labse_15nov/pair_scores.csv --bge ../pair_scores_labse_bge_m3/bge_m3_16nov/pair_scores.csv --not-translations fea1f4f3908e44b3 d0479a80829a2dc1 f4dd16e97e012036 --positives
+sa-en: 2 read non-translations + 8 of 312 unread pairs low on both encoders + 5 read translations; shortfall 0
+  to check by hand: 4b8f9c4857da4bc2 aa596a10274874c8 4d172b6910d50c6d bc95bdb9f3cb2722 2af31d20f038b9c4 31f47720d0078b77 7f92acaca39f8446 e0a99980a4996e23
+sa-hi: 1 read non-translations + 9 of 65 unread pairs low on both encoders + 1 read translations; shortfall 0
+  to check by hand: 662841bc5d6003c5 7d2520afa0c230ab 4e69dc35d94e3954 5357bd80eb20e546 7f3faf739fb743e4 84fb722717a61c13 974e01d5ff312cd2 137b8a3fc4ada291 986ab0d14a41bb45
+time (zsh): 0.52s user 0.18s system 31% cpu 2.233 total

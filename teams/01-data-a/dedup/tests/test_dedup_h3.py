@@ -20,13 +20,13 @@ def key(docs, i):
 
 
 def write_h3(root, docs, edges, header=HEADER):
-    """edges: [(i, j, coverage)]."""
+    """edges: [(i, j, coverage)] or [(i, j, coverage, lang_a, lang_b)] (default languages hin_Deva, eng_Latn)."""
     p = root / "res" / "h3_matches.csv"
     with p.open("w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         w.writerow(header)
-        for i, j, cov in edges:
-            w.writerow(key(docs, i) + key(docs, j) + ["hin_Deva", "eng_Latn", cov])
+        for i, j, cov, *langs in edges:
+            w.writerow(key(docs, i) + key(docs, j) + (langs or ["hin_Deva", "eng_Latn"]) + [cov])
     return "res/h3_matches.csv"
 
 
@@ -157,7 +157,49 @@ def test_without_h3_nothing_changes(repo):
     assert "removed_H3" not in s["by_pack"]["en-a"]
 
 
-def test_bad_h3_config_stops(repo):
+@pytest.mark.parametrize("remove", ["yes", 1, None, [], {"hi": True}, {"hi-hi": True}, {"hi-en-sa": True},
+                                    {"-en": True}, {"hi-en": "yes"}, {"hi-en": 1}, {"hi-en": True, "en-hi": False}])
+def test_bad_h3_config_stops(repo, remove):
     make_run(repo, DOCS, [])
     with pytest.raises(dedup.Fatal, match="h3.remove"):
-        run(repo, h3={"matches": "res/x.csv", "remove": "yes"})
+        run(repo, h3={"matches": "res/x.csv", "remove": remove})
+
+
+# TSAI, 27 Nov: removal on for hi-en; sa-en and sa-hi report-only until E5d; Odia report-only
+PER_PAIR_DOCS = [("h1", "ind-x-fw2", "heldout", 100), ("t1", "en-a", "train", 100),   # the language pair of an edge is
+                 ("h2", "ind-x-sangraha-v", "heldout", 100), ("t2", "en-b", "train", 100),  # its lang_a, lang_b in
+                 ("h3", "ind-x-sangraha-v", "heldout", 110), ("t3", "ind-x-fw2", "train", 100),  # h3_matches.csv
+                 ("h4", "ind-x-fw2", "heldout", 110), ("t4", "en-a", "train", 110)]
+PER_PAIR_EDGES = [(0, 1, 0.8, "hi", "en"), (2, 3, 0.8, "sa", "en"), (4, 5, 0.8, "sa", "hi"), (6, 7, 0.8, "or", "en")]
+
+
+@pytest.mark.parametrize("remove", [{"hi-en": True}, {"en-hi": True}, {"hi-en": True, "sa-en": False, "sa-hi": False}])
+def test_per_pair_remove_removes_only_the_named_pairs(repo, remove):
+    make_run(repo, PER_PAIR_DOCS, [])
+    s, log, pairs = run(repo, h3={"matches": write_h3(repo, PER_PAIR_DOCS, PER_PAIR_EDGES), "remove": remove})
+    assert set(log) == {"t1"} and log["t1"]["rule"] == "H3" and log["t1"]["kept_id"] == "h1"
+    assert {(p["lang_a"], p["lang_b"]): p["outcome"] for p in pairs} == {
+        ("hi", "en"): "removed", ("sa", "en"): "would_remove", ("sa", "hi"): "would_remove", ("or", "en"): "would_remove"}
+    assert s["h3"]["remove"] == remove and s["h3"]["removed"] == 1 and s["h3"]["train_docs_targeted"] == 4
+    assert _removed(repo) == ["t1"] and s["heldout_removed"] == 0
+
+
+@pytest.mark.parametrize("remove, removed", [(True, ["t1", "t2", "t3", "t4"]), (False, []), ({}, []),
+                                             ({"hi-en": False}, []), ({"sa-hi": True, "or-en": True}, ["t3", "t4"])])
+def test_per_pair_remove_agrees_with_true_and_false(repo, remove, removed):
+    make_run(repo, PER_PAIR_DOCS, [])
+    s, log, pairs = run(repo, h3={"matches": write_h3(repo, PER_PAIR_DOCS, PER_PAIR_EDGES), "remove": remove})
+    assert sorted(log) == removed == _removed(repo) and s["h3"]["removed"] == len(removed)
+    assert sorted(p["outcome"] for p in pairs) == sorted(["removed"] * len(removed) + ["would_remove"] * (4 - len(removed)))
+
+
+def test_per_pair_remove_keeps_the_direct_edge_rules(repo):
+    # a hi-en pair that may remove still follows the other rules: a train <-> train edge and a chain through a held-out
+    # copy are reported, never removed
+    docs = [("h", "ind-x-fw2", "heldout", 100), ("c", "ind-x-fw2", "train", 100), ("t", "en-a", "train", 100),
+            ("u", "en-b", "train", 100)]
+    make_run(repo, docs, [(0, 1, "H1", 1.0, "")])
+    s, log, pairs = run(repo, h3={"matches": write_h3(repo, docs, [(1, 2, 0.8, "hi", "en"), (2, 3, 0.8, "hi", "en")]),
+                                  "remove": {"hi-en": True}})
+    assert set(log) == {"c"} and log["c"]["rule"] == "H1" and s["h3"]["removed"] == 0
+    assert sorted(p["outcome"] for p in pairs) == ["reported_indirect", "reported_train_train"]

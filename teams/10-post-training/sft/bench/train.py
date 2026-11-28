@@ -555,8 +555,29 @@ def train(args) -> dict:
         groups.append({"params": marker_params, "base_lr": args.marker_lr})
     # default (None) lets torch pick: foreach on CUDA, which holds one FP32 temporary the size of all trainable weights
     # during the step (4 B per weight); --adam-fused uses the fused kernel, same update rule, no such temporary
-    opt = torch.optim.AdamW(groups, lr=args.lr, betas=(0.9, 0.95), eps=1e-8, weight_decay=args.wd,
-                            fused=True if args.adam_fused else None)
+    opt_kind = getattr(args, "optimizer", "adamw")
+    optim_seconds = 0.0
+    if opt_kind == "hybrid_muon":
+        capstone_dir = str(Path(__file__).resolve().parents[2] / "capstone")
+        if capstone_dir not in sys.path:
+            sys.path.insert(0, capstone_dir)
+        import hybrid_optim as ho  # noqa: PLC0415  capstone/hybrid_optim.py
+        opt = ho.build_optimizer(
+            model.named_parameters(),
+            kind="hybrid_muon",
+            lr=args.lr,
+            muon_lr=getattr(args, "muon_lr", 6e-3),
+            wd=args.wd,
+            betas=(0.9, 0.95),
+            eps=1e-8,
+            marker_param=marker_params[0] if len(marker_params) == 1 else None,
+            marker_lr=args.marker_lr if len(marker_params) == 1 else None,
+            dt_gate_optim=getattr(args, "dt_gate_optim", "adamw"),
+            skip_zero_grad_muon=True,
+        )
+    else:
+        opt = torch.optim.AdamW(groups, lr=args.lr, betas=(0.9, 0.95), eps=1e-8, weight_decay=args.wd,
+                                fused=True if args.adam_fused else None)
     # the tensor watched by the step-1 writeback check
     if args.method == "full":
         watch_name, watch = "model.layers.0.self_attn.q_proj.weight", model.model.layers[0].self_attn.q_proj.weight
@@ -622,10 +643,13 @@ def train(args) -> dict:
         gn = torch.nn.utils.clip_grad_norm_(params, args.clip)
         if step == 0:
             p0, g0 = watch.detach().clone(), watch.grad.detach().clone()
+        t_opt0 = time.perf_counter()
         opt.step()
+        sync(device)
+        optim_seconds += time.perf_counter() - t_opt0
         if args.method == "dt":
             dtmask.step_all(model)
-        if step == 0:
+        if step == 0 and opt_kind == "adamw":
             wlr = lr * args.marker_lr / args.lr if args.method == "markers" else lr  # the watched tensor's group LR
             checks["writeback_step1"] = {"tensor": watch_name, "lr": wlr, "storage_dtype": str(watch.dtype),
                                          **writeback_check(p0.cpu(), g0.cpu(), watch.detach().cpu(), wlr, args.wd,
@@ -701,6 +725,18 @@ def train(args) -> dict:
         if (tok_src / f).is_file():
             shutil.copy(tok_src / f, out / "model" / f)
     mem_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+    opt_summary = (
+        opt.summary(train_seconds)
+        if hasattr(opt, "summary")
+        else {
+            "kind": "adamw",
+            "adamw_lr": args.lr,
+            "muon_lr": None,
+            "optim_seconds": round(optim_seconds, 4),
+            "train_seconds": round(train_seconds, 4),
+            "optim_step_share": round(optim_seconds / max(train_seconds, 1e-6), 4),
+        }
+    )
     del model, opt
     if device == "mps":
         torch.mps.empty_cache()
@@ -723,7 +759,7 @@ def train(args) -> dict:
         "train_sha256": hashlib.sha256(Path(args.train).read_bytes()).hexdigest(),
         "device": device, "adam_impl": "fused" if args.adam_fused else "torch default (foreach on CUDA)", "hardware": hardware_label(device), "dtype": "float32 weights/grads/AdamW state; compute " + ("bf16 autocast (CUDA)" if AUTOCAST["dtype"] else "float32 (TF32 off)")
         + ("; frozen nn.Linear weights stored in bf16 during training (exact)" if args.frozen_bf16 else ""),
-        "torch": torch.__version__, "train_seconds": round(train_seconds, 1), "seconds_per_100_steps": per100,
+        "torch": torch.__version__, "train_seconds": round(train_seconds, 1), "optimizer": opt_summary, "seconds_per_100_steps": per100,
         "peak_rss_mb": round(peak_rss_mb(), 1), "checks": checks,
         "first_loss": log[0]["loss"], "last_loss": log[-1]["loss"],
         "mean_loss_first_20": sum(r["loss"] for r in log[:20]) / min(20, len(log)),
@@ -757,6 +793,11 @@ def parse_args(argv=None):
     ap.add_argument("--grad-checkpointing", action="store_true")
     ap.add_argument("--autocast", choices=("none", "bf16"), default="none")
     ap.add_argument("--lr", type=float, default=3e-5)
+    ap.add_argument("--optimizer", choices=("adamw", "hybrid_muon"), default="adamw",
+                    help="optimizer: adamw (default for bench parity) or shape-based hybrid_muon (TSAI 28 Nov)")
+    ap.add_argument("--muon-lr", type=float, default=6e-3, help="Muon peak lr when --optimizer hybrid_muon")
+    ap.add_argument("--dt-gate-optim", choices=("shape", "adamw"), default="adamw",
+                    help="for DT under hybrid_muon: shape routes 2D gates to Muon; adamw keeps gates on AdamW")
     ap.add_argument("--warmup", type=int, default=20)
     ap.add_argument("--min-lr-ratio", type=float, default=0.1)
     ap.add_argument("--wd", type=float, default=0.0)

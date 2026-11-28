@@ -1,0 +1,22 @@
+$ python dt/mask_anatomy.py load metrics.jsonl --gate 768x512     # metrics.jsonl from #869 (teams/05-architecture/results/dryrun2-1234/, commit 0d3df057)
+5 snapshots, steps 1,000 to 1,200; 8 layers x 16 experts
+step 1,200: routed slots per layer 17,394 to 17,394, even share per expert 1,087 to 1,087
+experts at 0 tokens in all 5 snapshots: 3:11 7:13
+experts below 1% of the even share at step 1,200 (counts per snapshot):
+  1:1: 3,402, 1,658, 2, 1,129, 9 (even share 1,087)
+  2:11: 3,437, 2,235, 47, 4, 3 (even share 1,087)
+  3:11: 0, 0, 0, 0, 0 (even share 1,087)
+  7:13: 0, 0, 0, 0, 0 (even share 1,087)
+expected deleted share at step 0 (arithmetic, not run; --dt-targets g5_gate: one masked 768x512 gate per routed expert and 1 shared, 136 in all; a calibrated one 0.1834%):
+  if the experts at 0 in every snapshot (2) get no calibration token: official 0.916%, keep 0.183%
+  if all experts listed above (4) get no calibration token: official 1.649%, keep 0.182%
+
+$ python dt/mask_anatomy.py load metrics.jsonl --last 24
+24 snapshots, steps 50 to 1,200; 8 layers x 16 experts
+step 1,200: routed slots per layer 17,394 to 17,394, even share per expert 1,087 to 1,087
+experts at 0 tokens in all 24 snapshots: none
+experts below 1% of the even share at step 1,200 (counts per snapshot):
+  1:1: 0, 680, 566, 305, 264, 1,116, 661, 238, 205, 185, 554, 2,380, 1,469, 836, 535, 254, 89, 17, 1,896, 3,402, 1,658, 2, 1,129, 9 (even share 1,087)
+  2:11: 0, 247, 481, 360, 712, 252, 359, 751, 275, 1,262, 2,451, 588, 814, 2,329, 2,183, 2,590, 1,863, 51, 1,442, 3,437, 2,235, 47, 4, 3 (even share 1,087)
+  3:11: 5,195, 5,185, 3,531, 1,872, 1,521, 4,211, 2,692, 2,043, 1,928, 854, 1,352, 808, 1,068, 546, 382, 146, 22, 4, 3, 0, 0, 0, 0, 0 (even share 1,087)
+  7:13: 254, 1,703, 3,778, 2,361, 1,950, 4,578, 3,633, 2,102, 1,911, 805, 443, 271, 271, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 (even share 1,087)

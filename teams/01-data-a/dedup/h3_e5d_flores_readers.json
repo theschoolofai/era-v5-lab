@@ -1,0 +1,6 @@
+{
+  "reader_a": ["sa-en_reader1"],
+  "reader_b": ["sa-en_reader2", "sa-hi_reader1"],
+  "reader_c": ["sa-hi_reader2"],
+  "reader_d": ["hi-en_reader1"]
+}

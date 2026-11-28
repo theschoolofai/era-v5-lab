@@ -185,6 +185,37 @@ def test_h3_reads_cleaned_parts_and_dedup_uses_its_matches_report_only(repo, fol
                            "remove": False, "parallel_packs": []}
 
 
+@pytest.mark.parametrize("remove", [True, {"hi-en": True}, {"en-hi": True, "sa-en": False}])
+def test_dedup_gets_stages_h3_remove(repo, folders, remove):
+    # TSAI, 27 Nov: removal per language pair (hi-en on); the H3 stage's own config does not get it
+    folders["h3"] = repo / "out/run1/h3"
+    settings(repo, "h3", {"packs": {"ind-hi-fw2": "hi", "en-fineweb-edu": "en"}, "pairs": [["hi", "en"]]})
+    settings(repo, "dedup", DEDUP)
+    sa.build("h3", {"settings": "h3.json", "remove": remove}, folders, repo / "cfg", repo)
+    sa.build("dedup", {"settings": "dedup.json"}, folders, repo / "cfg", repo, h3_remove=remove)
+    assert json.loads((repo / "cfg/dedup.json").read_text())["h3"] == {
+        "matches": "out/run1/h3/h3_matches.csv", "remove": remove, "parallel_packs": []}
+    assert "remove" not in json.loads((repo / "cfg/h3.json").read_text())
+
+
+@pytest.mark.parametrize("remove", ["yes", 1, None, {"hi": True}, {"hi-en": "yes"}, {"hi-en": True, "en-hi": False}])
+def test_a_bad_stages_h3_remove_stops_a_plan(repo, folders, remove):
+    folders["h3"] = repo / "out/run1/h3"
+    settings(repo, "h3", {})
+    settings(repo, "dedup", DEDUP)
+    with pytest.raises(sa.ConfigError, match="stages.h3.remove"):
+        sa.build("h3", {"settings": "h3.json", "remove": remove}, folders, repo / "cfg", repo, write=False)
+    with pytest.raises(sa.ConfigError, match="stages.h3.remove"):
+        sa.build("dedup", {"settings": "dedup.json"}, folders, repo / "cfg", repo, write=False, h3_remove=remove)
+
+
+@pytest.mark.parametrize("stage", ["overlap", "dedup"])
+def test_only_stages_h3_takes_remove(repo, folders, stage):
+    settings(repo, stage, OVERLAP)
+    with pytest.raises(sa.ConfigError, match=f"stages.{stage}.remove: only stages.h3 takes remove"):
+        sa.build(stage, {"settings": f"{stage}.json", "remove": {"hi-en": True}}, folders, repo / "cfg", repo)
+
+
 def test_the_settings_file_is_not_touched_and_the_result_repeats(repo, folders):
     s = settings(repo, "dedup", DEDUP)
     before = s.read_bytes()

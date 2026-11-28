@@ -31,7 +31,7 @@ DeepSpeed runs the same steps through `ckpt/ds_ckpt.py` (`DSCheckpointer`), with
    d. strict keys     every name, shape and dtype matches the model             ✗ → stop, exit 78 (StrictLoadError)
    e. load            tensors (resharded if the number of GPUs changed), data position, random generators
                       other data list → exit 78 (DataManifestError); other GPU count with per-rank data → 78 (ReshardError)
-   f. 4 proofs        state digest · probe-loss bits · next-batch hash · frozen fingerprints
+   f. 5 proofs        state digest · scalars · probe-loss bits · next-batch hash · frozen fingerprints
                                                                                  ✗ → try the previous commit
 4. nothing committed yet → fresh start at step 0;   every candidate failed → exit 78 (CheckpointError)
 ```
@@ -151,6 +151,26 @@ Not saved: gradients, activations, NCCL state. They are rebuilt on the next step
 <remote_root>/<run_id>/commits.jsonl           every commit in order (restore never "lists folders")
 <remote_root>/<run_id>/<branch>/step_<N>-e<E>/ DCP shard files, extra_rank<r>.json, sums_rank<r>.json, MANIFEST.json
 ```
+
+### MANIFEST.json keys (schema `v5-ckpt/2`)
+
+Rank 0 writes it last; a checkpoint without it is not committed. Readers must ignore keys they do not know: new
+keys are added without a schema change (TSAI, #899), a changed meaning gets a new `schema`.
+
+| Key | What it holds | Checked on restore |
+|---|---|---|
+| `schema`, `run_id`, `branch`, `step`, `tokens`, `world_size`, `reason` | identity and position of the checkpoint | `world_size` decides a resharded restore |
+| `env` | image, torch/CUDA/NCCL, config, tokenizer, code hashes | environment check (exit 78 on a change) |
+| `keys` | name → [shape, dtype] of every tensor | strict key check |
+| `state_digest` | one hash over every tensor's name, dtype, shape and fingerprint | proof 1 |
+| `scalars` | every non-tensor value by name: per optimizer group `lr`, `base_lr` (the peak), betas, momentum, weight decay and the group's parameter names (added 28 Nov, #899) | proof 2; skipped when the key is absent (older checkpoints, DeepSpeed path) |
+| `probe_loss` | device class → bits of the probe-batch loss | proof 3 |
+| `next_batch` | the loader's `next_batch_id()`: position and sha256 | proof 4 |
+| `frozen` | fingerprints of the frozen tensors | proof 5, and refused at save if they changed |
+| `loader_global` | true if every rank saved the same data position | a resharded restore needs it (else `ReshardError`) |
+| `async_save` | the save used `dcp.async_save` | |
+| `files` | file name → sha256 and bytes | checksums, before anything is loaded |
+| `total_bytes`, `stall_s`, `committed_at`, `store` | size, the time training stopped, commit time, store kind | |
 
 `remote_root` is either a folder on a **shared file system** every node mounts (the default, `/shared/ckpt`:
 NFS, Lustre, GPFS or CephFS, so it works on bare metal) or `s3://bucket/prefix` on any **S3-compatible object
@@ -272,6 +292,7 @@ old branch stays, so the run can be replayed exactly later. You can also restart
 | File | What it does |
 |---|---|
 | `ckpt.py` | the `Checkpointer` (save, background upload and commit, restore with all checks), `run_retention`, `export_safetensors`, and a small CLI |
+| `candidates.py` | the one rule for which committed checkpoints a restart may try (`pick_candidates`), no torch. `Checkpointer.candidates()` restores with it and `queue/job_queue.py start-mode` chooses fresh or resume with it, so the two cannot disagree |
 | `store.py` | one interface, two stores: `LocalStore` (a folder) and `S3Store` (boto3: multipart above 64 MB, retries, SHA256 checksums). `open_store("s3://…")` picks S3 |
 | `supervisor.py` | restarts a killed or saved-and-stopped trainer from its last COMPLETE checkpoint, with crash, 75 and crash-loop limits; logs every attempt. Tests: `test_supervisor.py` |
 | `loader_contract.py` | the test Teams 01/02's real data loader must pass: `state_dict` (**one global ledger offset, the same on every rank**), `load_state_dict`, `next_batch_id`, `add_skip`, and a resume at another world size |

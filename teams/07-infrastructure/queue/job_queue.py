@@ -14,6 +14,8 @@ hardware or network faults. If it crashes 3 times in 30 minutes, it is not one-o
 
 Commands:
     job_queue.py run -- <srun args> -- <trainer args>   the job wrapper; every sbatch script calls it
+    job_queue.py start-mode --remote-root R --run-id I  fresh | resume | claimed_only for the next attempt
+    job_queue.py hold-event --reason TEXT               record job.held when a startup check holds the job (sbatch)
     job_queue.py spot-watch                             per node: cloud's 2-minute spot warning -> drain + save
     job_queue.py drain <reason> [--node N]              take a node out; its jobs save and move
     job_queue.py status                                 jobs and drained nodes, explained in plain words
@@ -27,8 +29,10 @@ Not called `queue.py` on purpose: that name would hide Python's own `queue` modu
 import argparse
 import json
 import os
+import re
 import signal
 import socket
+import stat
 import shutil
 import subprocess
 import sys
@@ -36,7 +40,8 @@ import time
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, ".."))
-from ckpt.store import open_store  # noqa: E402  (no torch: the wrapper stays light)
+from ckpt.candidates import pick_candidates  # noqa: E402  (no torch: the wrapper stays light)
+from ckpt.store import open_store  # noqa: E402
 from common.events import emit  # noqa: E402
 from common.reasons import (DRAIN, EXIT_CODES, EXIT_DONE, EXIT_FATAL, EXIT_RETRY, RAW_EXIT, SLURM,  # noqa: E402
                             lookup, read_exit_notes)
@@ -145,6 +150,163 @@ def crash_loop(run_url: str) -> tuple:
              **{k: v for k, v in lookup("crash_ledger_unavailable").items() if k in ("title", "you_do", "severity")})
         return False, 0
     return len(log) >= CRASHLOOP_N, len(log)
+
+
+def start_mode(remote_root: str, run_id: str, tries: int = 3, wait_s: float = 10.0) -> str:
+    """Return fresh, resume or claimed_only for the next Team 05 trainer attempt.
+
+    This check fails closed. A missing local store root is not created, and S3 uses list operations because
+    S3Store.exists() deliberately maps every ClientError to False. The latter is useful for optional probes but
+    unsafe here: AccessDenied must hold the job, never look like a fresh run.
+
+    `latest.json` can be only a fencing claim: the first attempt writes it before its first commit. What counts
+    as something to resume is decided by ckpt/candidates.py, the same rule Checkpointer.candidates() restores with,
+    so this check and the restore cannot drift apart. A claim with no candidate is claimed_only; train_week2.py
+    currently refuses both fresh and resume in that state, so mainrun.sbatch holds it (exit 78): the operator
+    confirms in sacct that the earlier job ended and resubmits under a new RUN_ID. Proposed for week 5 (draft #826, not yet agreed
+    by Team 05): the launcher does that sacct check and passes --checkpoint-at-start. A commit history
+    without a latest.json is an inconsistent store: restore would find nothing to resume, so this raises and the
+    job is held instead of guessing."""
+    root = remote_root.rstrip("/") or "/"
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", run_id):
+        raise ValueError("run ID must begin with a letter or digit and contain only letters, digits, dots, "
+                         "dashes and underscores")
+    run_url = (root.rstrip("/") + "/" + run_id) if root != "/" else "/" + run_id
+    error = None
+    for attempt in range(tries):
+        try:
+            local_store = not root.startswith("s3://")
+            run_present = True
+            if local_store:
+                if not os.path.isdir(root):
+                    raise FileNotFoundError(f"checkpoint store root {root} does not exist (is it mounted?)")
+                # List the parent instead of os.path.exists(run_url): exists() maps traversal errors to False.
+                with os.scandir(root) as entries:
+                    entry = next((item for item in entries if item.name == run_id), None)
+                run_present = entry is not None
+                if run_present:
+                    if entry.is_symlink() or not entry.is_dir(follow_symlinks=False):
+                        raise NotADirectoryError(f"checkpoint run path {run_url} must be a real directory")
+                    with os.scandir(run_url):
+                        pass
+            # Avoid LocalStore creating the per-run directory merely to answer a read-only fresh-run check.
+            if local_store and not run_present:
+                mode = "fresh"
+            else:
+                st = open_store(run_url)
+
+                def has(key: str) -> bool:
+                    if getattr(st, "kind", "") == "local":
+                        full = os.path.join(st.root, key)
+                        real_root = os.path.realpath(st.root)
+                        if os.path.commonpath((real_root, os.path.realpath(full))) != real_root:
+                            raise ValueError(f"checkpoint metadata {key} escapes the run store")
+                        try:
+                            info = os.lstat(full)
+                        except FileNotFoundError:
+                            return False
+                        if not stat.S_ISREG(info.st_mode):
+                            raise ValueError(f"checkpoint metadata {key} must be a regular file, not a symlink or directory")
+                        return True
+                    return any(obj.get("key") == key for obj in st.list(key))
+
+                def safe_relative_path(path: str, label: str) -> None:
+                    if (not path or path.startswith("/") or "\\" in path
+                            or any(part in ("", ".", "..") for part in path.split("/"))):
+                        raise ValueError(f"{label} must be a normalized relative store path")
+
+                def validate_candidate(obj, label: str, require_path: bool) -> None:
+                    if not isinstance(obj, dict):
+                        raise ValueError(f"{label} must contain a JSON object")
+                    path = obj.get("path")
+                    if require_path and not isinstance(path, str):
+                        raise ValueError(f"{label}.path must be a non-empty string")
+                    if path is not None:
+                        if not isinstance(path, str):
+                            raise ValueError(f"{label}.path must be a non-empty string or null")
+                        safe_relative_path(path, f"{label}.path")
+                        step = obj.get("step")
+                        if isinstance(step, bool) or not isinstance(step, int) or step < 0:
+                            raise ValueError(f"{label}.step must be a nonnegative integer")
+                        branch = obj.get("branch")
+                        if not isinstance(branch, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.-]*", branch):
+                            raise ValueError(f"{label}.branch must be a safe non-empty name")
+
+                def validate_manifest(candidate: dict) -> None:
+                    key = f"{candidate['path']}/MANIFEST.json"
+                    if not has(key):
+                        raise ValueError(f"committed checkpoint is missing {key}")
+                    manifest = st.get_json(key)
+                    if not isinstance(manifest, dict):
+                        raise ValueError(f"{key} must contain a JSON object")
+                    if manifest.get("step") != candidate["step"]:
+                        raise ValueError(f"{key}.step does not match its commit")
+                    expected = {"files": dict, "env": dict, "keys": dict, "probe_loss": dict, "frozen": dict}
+                    for field, field_type in expected.items():
+                        if not isinstance(manifest.get(field), field_type):
+                            raise ValueError(f"{key}.{field} must be a {field_type.__name__}")
+                    world_size = manifest.get("world_size")
+                    if isinstance(world_size, bool) or not isinstance(world_size, int) or world_size < 1:
+                        raise ValueError(f"{key}.world_size must be a positive integer")
+                    for field in ("state_digest",):
+                        if not isinstance(manifest.get(field), str) or not manifest[field]:
+                            raise ValueError(f"{key}.{field} must be a non-empty string")
+                    tokens = manifest.get("tokens")
+                    if isinstance(tokens, bool) or not isinstance(tokens, int) or tokens < 0:
+                        raise ValueError(f"{key}.tokens must be a nonnegative integer")
+                    if "next_batch" not in manifest:
+                        raise ValueError(f"{key}.next_batch is required")
+                    for name, file_info in manifest["files"].items():
+                        safe_relative_path(name, f"{key}.files name")
+                        if not isinstance(file_info, dict) or not isinstance(file_info.get("sha256"), str):
+                            raise ValueError(f"{key}.files[{name!r}] must contain sha256")
+
+                latest_present = has("latest.json")
+                latest = st.get_json("latest.json") if latest_present else None
+                if latest_present:
+                    validate_candidate(latest, "latest.json", require_path=False)
+                    epoch = latest.get("epoch")
+                    if isinstance(epoch, bool) or not isinstance(epoch, int) or epoch < 0:
+                        raise ValueError("latest.json.epoch must be a nonnegative integer")
+                commits_text = st.get_text("commits.jsonl") if has("commits.jsonl") else ""
+                commits = []
+                for line_number, line in enumerate(commits_text.splitlines(), 1):
+                    if not line.strip():
+                        continue
+                    try:
+                        commit = json.loads(line)
+                    except json.JSONDecodeError as exc:
+                        raise ValueError(f"commits.jsonl line {line_number} is invalid JSON: {exc}") from exc
+                    validate_candidate(commit, f"commits.jsonl line {line_number}", require_path=True)
+                    commits.append(commit)
+                candidates = pick_candidates(commits, latest if latest_present else None)
+                if candidates:
+                    validate_manifest(candidates[0])
+                    mode = "resume"
+                elif commits:
+                    raise ValueError("commits.jsonl lists committed checkpoints but latest.json is missing; "
+                                     "the run's store is inconsistent")
+                else:
+                    mode = "claimed_only" if latest_present else "fresh"
+            emit("job.start_mode", mode=mode, store=root,
+                 restart_count=int(os.environ.get("SLURM_RESTART_COUNT", "0")))
+            return mode
+        except Exception as exc:  # noqa: BLE001 - every read failure retries, then holds rather than guessing
+            error = exc
+            if attempt + 1 < tries:
+                time.sleep(wait_s)
+    raise OSError(f"checkpoint store {run_url} did not answer after {tries} tries: {error}") from error
+
+
+def startup_hold(reason: str) -> dict:
+    """Record `job.held` for a job that mainrun.sbatch held (exit 78) before the wrapper started.
+
+    In simple words: a startup check that fails (bad settings, an unreadable store) stops the job before
+    `run()` exists, so nothing said "held" and the Q-02 counter missed it. The sbatch script calls this once,
+    with the same words it writes to the job log and the Slurm comment."""
+    r = lookup("startup_check_failed")
+    return emit("job.held", cause="startup_check_failed", restart_count=int(os.environ.get("SLURM_RESTART_COUNT", "0")),
+                step=None, detail=reason[:300], title=r["title"], you_do=r["you_do"], severity=r["severity"])
 
 
 def set_comment(text: str) -> None:
@@ -300,6 +462,11 @@ def main(argv) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
     sub.add_parser("run", help="the job wrapper: run -- <srun args> -- <trainer args>")
+    sm = sub.add_parser("start-mode", help="fresh, resume or claimed_only for Team 05's next attempt")
+    sm.add_argument("--remote-root", required=True)
+    sm.add_argument("--run-id", required=True)
+    he = sub.add_parser("hold-event", help="record job.held for a startup check that held the job (mainrun.sbatch)")
+    he.add_argument("--reason", required=True)
     sub.add_parser("spot-watch", help="watch for the spot warning on this node")
     d = sub.add_parser("drain", help="take a node out of service; its jobs save and move")
     d.add_argument("reason")
@@ -309,6 +476,17 @@ def main(argv) -> int:
     k.add_argument("--partition", default="gpu")
     k.add_argument("--spares", type=int, default=1)
     a = ap.parse_args(argv)
+    if a.cmd == "start-mode":
+        try:
+            print(start_mode(a.remote_root, a.run_id))
+        except Exception as exc:  # noqa: BLE001 - mainrun.sbatch turns this into a held job
+            emit("job.start_mode_failed", detail=f"{type(exc).__name__}: {str(exc)[:300]}")
+            print(f"start-mode: cannot read the checkpoint store: {type(exc).__name__}: {exc}", file=sys.stderr)
+            return 3
+        return 0
+    if a.cmd == "hold-event":
+        startup_hold(a.reason)
+        return 0
     if a.cmd == "keep-spare":
         return 0 if keep_spare(a.partition, a.spares)["ok"] else 3
     if a.cmd == "spot-watch":

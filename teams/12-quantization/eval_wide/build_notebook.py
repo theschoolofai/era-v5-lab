@@ -16,7 +16,8 @@ MINI = HERE.parent / "eval_mini"
 # file name in the notebook's code folder -> source file
 SOURCES = {"llamacpp_lm.py": MINI / "llamacpp_lm.py", "run_mini_gguf.py": MINI / "run_mini_gguf.py",
            "test_llamacpp_lm.py": MINI / "test_llamacpp_lm.py", "paired_stats.py": MINI / "paired.py",
-           "run_wide_gguf.py": HERE / "run_wide_gguf.py", "paired.py": HERE / "paired.py"}
+           "run_wide_gguf.py": HERE / "run_wide_gguf.py", "paired.py": HERE / "paired.py",
+           "guard_status.py": HERE / "guard_status.py"}
 
 _spec = importlib.util.spec_from_file_location("mini_build", MINI / "build_notebook.py")
 mini = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(mini)
@@ -51,6 +52,9 @@ RUN_BY    = ""                 # <-- your GitHub handle, recorded with the resul
 CAP       = 20                 # items per task (MMLU: per subject); None = full splits. Same cap for every format of a model
 SKIP_GATED = False             # True leaves MILU out (no HF_TOKEN)
 TASKS     = None               # None = every task of run_wide_gguf.WIDE; or a list, e.g. ["mmlu", "arc_challenge"]
+GUARD     = {}                 # optional guard-test settings, recorded in environment.json and the guard log, e.g.
+                               # {"EVAL_GUARD_CHECK4": "warn", "EVAL_GUARD_CACHE_TOL": "0.10",
+                               #  "EVAL_GUARD_CONTEXT": "The capital of France is the city of"}; {} = defaults
 N_CTX     = 4096
 BASE      = "bf16"
 MODEL, REVISION = "sarvamai/sarvam-1", "e9607337286ddf496d4a2562b194e489dcf3feea"   # Granite 3.0 MoE: pin from #643
@@ -85,6 +89,9 @@ if not SKIP_GATED:
 pick("bf16 GGUF: the llama.cpp converter"),    # llama-quantize build + conversion
 code("""
 # every format: quantize (output layer Q8_0 below 8 bits, as quantize_eval.py), guard test, wide pass, per-task save
+import shlex
+import guard_status                     # labels which guard-test settings each task was scored under
+ENV["guard_overrides"] = GUARD; save_env()
 RUNS = f"{OUT}/runs_" + "-".join(FORMATS) + (f"_cap{CAP}" if CAP else "_full")
 
 def run_format(fmt, gguf, gpu_layers):
@@ -100,7 +107,10 @@ for fmt in FORMATS:
     if not os.path.exists(gguf):
         extra = "" if fmt == "Q8_0" else "--output-tensor-type q8_0"
         sh(f"{QUANTIZE} {extra} {BF16} {gguf} {fmt}", log=f"{OUT}/logs/quantize_{fmt}.log"); made_here = True
-    sh(f"cd {CODE} && {EVAL_PY} test_llamacpp_lm.py {gguf}", log=f"{OUT}/logs/test_llamacpp_lm_{fmt}.log")
+    guard_env = " ".join(f"{k}={shlex.quote(str(v))}" for k, v in GUARD.items())
+    sh(f"cd {CODE} && env {guard_env} {EVAL_PY} test_llamacpp_lm.py {gguf}", log=f"{OUT}/logs/test_llamacpp_lm_{fmt}.log")
+    summary_path = f"{RUNS}/{fmt}/summary.json"
+    done_before = {r["task"] for r in json.load(open(summary_path))["records"]} if os.path.exists(summary_path) else set()
     gpu_layers = -1
     try:
         run_format(fmt, gguf, gpu_layers)
@@ -111,6 +121,15 @@ for fmt in FORMATS:
         gpu_layers = BF16_FALLBACK_GPU_LAYERS
         print(f"bf16 ran out of GPU memory; retrying with {gpu_layers} GPU layers")
         run_format(fmt, gguf, gpu_layers)
+    # record this guard run with the tasks it scored: the results label every number with the settings it was scored under
+    guard_path = f"{RUNS}/{fmt}/guard.json"
+    record = guard_status.parse_guard_log(open(f"{OUT}/logs/test_llamacpp_lm_{fmt}.log", errors="replace").read(), GUARD)
+    scored = {r["task"] for r in json.load(open(summary_path))["records"]} - done_before
+    guard = guard_status.add_run(json.load(open(guard_path)) if os.path.exists(guard_path) else None, record,
+                                 list(scored), datetime.datetime.now().isoformat(timespec="seconds"))
+    json.dump(guard, open(guard_path, "w"), indent=1)
+    print(f"{fmt} guard: {record['result']}, settings {GUARD or 'default'}, warnings {record['warnings'] or 'none'}; "
+          f"scored {len(scored)} tasks under it")
     ENV["formats"][fmt] = {"gpu_layers": gpu_layers, "gguf_bytes": os.path.getsize(gguf),
                            "wall_clock_s": round(time.time() - t0), "finished": datetime.datetime.now().isoformat(timespec="seconds")}
     save_env()
@@ -119,13 +138,17 @@ for fmt in FORMATS:
 """),
 code("""
 # results: timing per task, paired comparison with the base, a zip of everything
+import guard_status
 rows = []
 for p in sorted(glob.glob(f"{RUNS}/*/summary.json")):
     s = json.load(open(p))
+    gp = os.path.join(os.path.dirname(p), "guard.json")
+    guard = json.load(open(gp)) if os.path.exists(gp) else {}
     for r in s["records"]:
+        label, ship = guard_status.task_label(guard, r["task"])
         rows.append({"format": s["run_meta"]["format"], "task": r["task"], "n": r["n_items"], "score": round(100 * r["value"], 1),
                      "seconds": r["wall_clock_s"], "s_per_item": round(r["wall_clock_s"] / r["n_items"], 3),
-                     "truncated": r["truncated_requests"]})
+                     "truncated": r["truncated_requests"], "guard": label, "ship_table": ship})
 import pandas as pd
 long = pd.DataFrame(rows); long.to_csv(f"{RUNS}/scores_long.csv", index=False)
 print(long.to_string(index=False))

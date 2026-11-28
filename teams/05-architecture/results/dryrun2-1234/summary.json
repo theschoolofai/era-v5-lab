@@ -1,0 +1,12 @@
+{
+  "status": "COMPLETED",
+  "run_id": "dryrun2-1234",
+  "steps": 1221,
+  "wall_seconds": 4788.172799185,
+  "timed_out": false,
+  "team7_checkpoint_path": "main/step_00001221-e1",
+  "first_ce": 10.270482063293457,
+  "last_ce": 5.244742959737778,
+  "final_model_sha256": "8d1600b278a3d8e15c3d7af408a86e7c47acd987a899bf5eeee6b2c72192eb47",
+  "eligible_for_quality_comparison": true
+}

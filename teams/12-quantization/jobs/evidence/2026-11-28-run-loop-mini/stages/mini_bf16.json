@@ -1,0 +1,17 @@
+{
+  "files": [
+    "mini/bf16/summary.json"
+  ],
+  "command": "<scratch>/mini/evalvenv/bin/python <repo>/teams/12-quantization/eval_mini/run_mini_gguf.py --gguf <scratch>/stage/work/loop-464011f3-bf16.gguf --format bf16 --out <scratch>/mini/out/mini --g9-harness <repo>/teams/09-evaluation/harness/run_eval_mini.py --tasks mmlu arc_challenge --n-gpu-layers 0 --model lab:0158d87b --revision 0158d87b323075de3baaf599cc7a8d96b44904742bc1eba1b4434bfe67b38306",
+  "gguf_sha256": "0158d87b323075de3baaf599cc7a8d96b44904742bc1eba1b4434bfe67b38306",
+  "guard_exit": 1,
+  "guard_tail": [
+    "FAIL model does not rank ' Paris' (first token of ' Paris') in its top-5 after 'The capital of France is' ({' bridge': np.float32(-6.8238897), ' niveles': np.float32(-6.9000325), ' bridges': np.float32(-6.9415298), ' thieves': np.float32(-6.950647), ' begele': np.float32(-7.0075603)}); use a stronger model",
+    "1 check(s) failed",
+    "llama_context: n_ctx_seq (512) > n_ctx_train (32) -- possible training context overflow"
+  ],
+  "stage": "mini_bf16",
+  "version": 1,
+  "key": "20e9624cdc269340",
+  "seconds": 151.6
+}

@@ -86,8 +86,14 @@ A `.jsonl` line without the `--text-field` (for example `samples_<n>.jsonl`) is 
 ```
 python teams/09-evaluation/decontam/canary_scan.py shard.parquet          # columns doc_id, text
 python teams/09-evaluation/decontam/canary_scan.py docs.jsonl --id-field id --text-field text
-python teams/09-evaluation/decontam/canary_scan.py some/folder             # .parquet .jsonl .json .txt .md below it
+python teams/09-evaluation/decontam/canary_scan.py some/folder             # see the suffix list below
 ```
+
+A file given by name is always read. In a folder it reads `.parquet .jsonl .json .txt .md` and the text files a job
+leaves (`.log .out .err .csv .tsv .yaml .yml`), so a scan of a job's `out/` covers the watcher's scorer logs. It counts
+the other files in the folder by suffix and prints that count just before the summary, for example
+`not scanned: 2 folder files with other suffixes (.bin 1, .lock 1)`, so a skip is never silent. These files do not
+change the exit code.
 
 One output line per occurrence, with only the canary, the document ID and the character offset (never document text):
 
@@ -95,7 +101,7 @@ One output line per occurrence, with only the canary, the document ID and the ch
 {"canary": "era-v5-lab:eval:<GUID>", "doc_id": "35eb8b91a98d3a41", "offset": 1204}
 ```
 
-The summary goes to stderr (`docs N with_canary N hits N`). Exit code 1 means a canary was found; else 2 means a file
+The summary goes to stderr, always as the last line (`docs N with_canary N hits N`). Exit code 1 means a canary was found; else 2 means a file
 could not be read (it is named on stderr and skipped, the scan goes on); else 0. A pipeline can stop on any non-zero code. `decontam_check.py` also flags the lab canary (item `era-v5-lab:canary`), so the full
 check covers it too.
 

@@ -7,6 +7,7 @@
 
 <p align="center"><sub>
 fp8 and TurboQuant KV caches, measured in vLLM 0.33.0 and in an emulation &nbsp;·&nbsp; <code>sarvamai/sarvam-1</code> @ <code>e9607337</code> as a proxy &nbsp;·&nbsp; for <a href="../../docs/serving_plan.md"><code>serving_plan.md</code></a>’s “FP8 KV cache: measure first”
+<br>The laptop side (llama.cpp b11669 and Ollama: memory per 1k tokens at 8k, 32k and 128k, and quality and speed per cache type at 8k) is in <a href="llamacpp/README.md"><code>llamacpp/</code></a>.
 </sub></p>
 
 <br>

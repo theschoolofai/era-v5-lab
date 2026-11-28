@@ -1,0 +1,125 @@
+H3 removal per language pair (stages.h3.remove, dedup/h3_join.py), local timed run, Friday 27 November 2026
+
+Ruling (TSAI, G1, 27 Nov): h3.remove on for hi-en; sa-en and sa-hi report-only until E5d sets the Sanskrit thresholds;
+Odia report-only. The first-training run config (prepare_run.py) sets stages.h3.remove = {"hi-en": true}.
+
+Code:        branch h3-per-pair-remove on TSAI main 0c997466; h3_join.py, dedup.py, pipeline/stage_args.py,
+             pipeline/run_pipeline.py, jobs/2026-11-19-first-training/prepare_run.py
+Environment: Python 3.12.10, Darwin arm64 (Apple laptop, CPU), pyarrow 23.0.1, numpy 2.4.3, scipy 1.18.1
+Inputs:      the 19 Nov H3 harm-check cases in out/h3harm/{hi,sa,en}-held (2026-11-19-h3-harm-diag-local.txt): spec v1.1
+             cleaning of 500 documents per pack of the nine H3 packs, translations of held-out documents planted as
+             train documents, overlap.py and h3.py run on them. Each case's dedup_remove.json (h3.remove: true) was
+             copied to dedup_perpair.json with h3.remove: {"hi-en": true} and its own out folder.
+
+Tests (all pass):
+  python3 -m pytest -q teams/01-data-a/dedup/tests                           ->  249 passed in 30.98s
+  python3 -m pytest -q teams/01-data-a/pipeline/tests                        ->  694 passed, 2 skipped, 7 warnings in 303.75s
+  python3 -m pytest -q teams/01-data-a/jobs/2026-11-19-first-training/tests  ->  34 passed in 2.04s
+After the lead's review (27 Nov: a resume after dedup checks the recorded H3 removal setting; H3's unverified
+candidates are recorded; job docs), same machine:
+  python3 -m pytest -q teams/01-data-a/pipeline/tests                        ->  697 passed, 2 skipped, 7 warnings in 313.23s
+  python3 -m pytest -q teams/01-data-a/jobs/2026-11-19-first-training/tests  ->  34 passed in 4.73s
+  (dedup.py and h3_join.py are unchanged by the review, so the dedup tests and the timed run below stand)
+  (the 7 warnings are the existing DeprecationWarning about fork() in test_clean_job.py)
+
+Commands:
+  for p in hi sa en; do sed -e 's/"remove": true/"remove": {"hi-en": true}/' -e 's#/dedup_remove"#/dedup_perpair"#' \
+      out/h3harm/$p-held/dedup_remove.json > out/h3harm/$p-held/dedup_perpair.json; done
+  { for p in hi sa en; do echo "== $p-held"; /usr/bin/time -l python3 -I teams/01-data-a/dedup/dedup.py \
+      --config out/h3harm/$p-held/dedup_perpair.json; done; } 2>&1 | tee out/h3_per_pair_remove.log
+
+Result, against the same cases with h3.remove: true (19 Nov):
+  case      H3 matches  removed (true)  removed ({"hi-en": true})  what is no longer removed
+  hi-held   4           4               3                          1 sa-hi pair, now would_remove
+  sa-held   7           5               0                          3 sa-en and 2 sa-hi pairs, now would_remove
+  en-held   5           5               3                          2 sa-en pairs, now would_remove
+  Every "removed" row of h3_pairs.csv is an en-hi pair; every per-pair remove list is the remove-true list without its
+  Sanskrit documents. Held-out removed 0 and harm check pass in every case.
+
+Speed: wall 1.04 s, 0.80 s and 0.81 s; peak memory footprint 82.6-82.8 MB (dedup.py end to end per case).
+CUDA sync check: not applicable; the changed code runs on the CPU (pyarrow, numpy), with no torch.
+
+Console log (out/h3_per_pair_remove.log, unedited):
+commit: 0c997466 + working tree (h3-per-pair-remove)
+Python 3.12.10 Darwin arm64 pyarrow 23.0.1 numpy 2.4.3 scipy 1.18.1
+== hi-held
+4,305 documents, 0 matches, 0 clusters
+removed 3 (0.0697%): by rule {'H3': 3}, by stage {'cross_language': 3}
+clusters decided by priority rule: {}
+held-out removed: 0 (must be 0); held-out <-> held-out pairs reported: 0
+empty documents: 0 listed, not removed; 0 matches between them set aside
+h3: 4 matches, 3 removed (remove: {'hi-en': True}); outcomes {'removed': 3, 'would_remove': 1, 'already_removed': 0, 'reported_indirect': 0, 'reported_train_train': 0, 'reported_heldout_heldout': 0, 'same_group': 0, 'parallel_pack': 0}
+harm check: pass
+wrote remove_list.csv, dedup_log.jsonl, heldout_duplicates.csv, empty_documents.csv, dedup_groups.csv and dedup_summary.json to out/h3harm/hi-held/dedup_perpair
+        1.04 real         0.67 user         0.17 sys
+           128794624  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               17647  page reclaims
+                1572  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                 676  voluntary context switches
+                1453  involuntary context switches
+          4956230557  instructions retired
+          1788457125  cycles elapsed
+            82559888  peak memory footprint
+== sa-held
+4,317 documents, 0 matches, 0 clusters
+removed 0 (0.0000%): by rule {}, by stage {}
+clusters decided by priority rule: {}
+held-out removed: 0 (must be 0); held-out <-> held-out pairs reported: 0
+empty documents: 0 listed, not removed; 0 matches between them set aside
+h3: 7 matches, 0 removed (remove: {'hi-en': True}); outcomes {'removed': 0, 'would_remove': 5, 'already_removed': 0, 'reported_indirect': 0, 'reported_train_train': 2, 'reported_heldout_heldout': 0, 'same_group': 0, 'parallel_pack': 0}
+harm check: pass
+wrote remove_list.csv, dedup_log.jsonl, heldout_duplicates.csv, empty_documents.csv, dedup_groups.csv and dedup_summary.json to out/h3harm/sa-held/dedup_perpair
+        0.80 real         0.67 user         0.12 sys
+           129925120  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               19158  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   6  voluntary context switches
+                 168  involuntary context switches
+          4735425435  instructions retired
+          1664661079  cycles elapsed
+            82609016  peak memory footprint
+== en-held
+4,305 documents, 0 matches, 0 clusters
+removed 3 (0.0697%): by rule {'H3': 3}, by stage {'cross_language': 3}
+clusters decided by priority rule: {}
+held-out removed: 0 (must be 0); held-out <-> held-out pairs reported: 0
+empty documents: 0 listed, not removed; 0 matches between them set aside
+h3: 5 matches, 3 removed (remove: {'hi-en': True}); outcomes {'removed': 3, 'would_remove': 2, 'already_removed': 0, 'reported_indirect': 0, 'reported_train_train': 0, 'reported_heldout_heldout': 0, 'same_group': 0, 'parallel_pack': 0}
+harm check: pass
+wrote remove_list.csv, dedup_log.jsonl, heldout_duplicates.csv, empty_documents.csv, dedup_groups.csv and dedup_summary.json to out/h3harm/en-held/dedup_perpair
+        0.81 real         0.68 user         0.12 sys
+           129925120  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               19173  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   6  voluntary context switches
+                 222  involuntary context switches
+          4706386026  instructions retired
+          1671270259  cycles elapsed
+            82822032  peak memory footprint

@@ -7,6 +7,7 @@ No network. The Parquet tests need pyarrow (skipped without it).
 
 import json
 import pathlib
+import re
 
 import pytest
 
@@ -209,6 +210,42 @@ def test_folder_input_finds_a_stamped_eval_item_file(tmp_path, capsys):
     # Files in a folder are named by their relative path, so the two items.json can be told apart.
     assert sorted(r["doc_id"] for r in recs) == ["a/items.json", "a/items.json", "b/items.json", "notes.md"]
     assert "docs 4 " in err
+
+
+# Team 10's decontam_run.py (teams/10-post-training/sft) reads the last stderr line with this pattern.
+TEAM10_SUMMARY = re.compile(r"^docs (\d+) with_canary (\d+) hits (\d+)(?: files_skipped (\d+))?$")
+
+
+def test_folder_input_reads_job_logs_and_counts_the_files_it_does_not_read(tmp_path, capsys):
+    # A job's out folder: the watcher writes one scorer log per checkpoint at <out>/logs/<stem>.log.
+    out = tmp_path / "out"
+    (out / "w" / "logs").mkdir(parents=True)
+    leaks = ["cfg.yaml", "cfg.yml", "job.err", "job.out", "scores.csv", "scores.tsv", "w/logs/step000010.log"]
+    for name in leaks:
+        (out / name).write_text("step 10 ok\n" + LAB_CANARY + "\n", encoding="utf-8")
+    (out / "w" / "state.json").write_text("{}", encoding="utf-8")
+    (out / "w" / "gpu_slot.lock").write_bytes(b"")
+    (out / "w" / "weights.bin").write_bytes(LAB_CANARY.encode())  # not a text suffix: counted, not read
+    code, recs, err = run(capsys, out, "--lab-only")
+    assert code == 1
+    assert sorted(r["doc_id"] for r in recs) == leaks
+    lines = [ln for ln in err.splitlines() if ln.strip()]
+    assert lines[-2] == "not scanned: 2 folder files with other suffixes (.bin 1, .lock 1)"
+    # The summary stays the last line, in the same format.
+    assert lines[-1] == "docs 8 with_canary 7 hits 7" and TEAM10_SUMMARY.match(lines[-1])
+
+    # A clean folder: every file read, the count says so, exit 0.
+    clean = tmp_path / "clean"
+    (clean / "logs").mkdir(parents=True)
+    (clean / "logs" / "step000020.log").write_text(CLEAN[0], encoding="utf-8")
+    code, recs, err = run(capsys, clean, "--lab-only")
+    assert code == 0 and recs == []
+    assert err.splitlines()[-2:] == ["not scanned: 0 folder files", "docs 1 with_canary 0 hits 0"]
+
+    # Files given by name: no count line, the output is as before.
+    code, recs, err = run(capsys, out / "w" / "logs" / "step000010.log", out / "w" / "weights.bin", "--lab-only")
+    assert code == 1 and len(recs) == 2
+    assert "not scanned" not in err and TEAM10_SUMMARY.match(err.splitlines()[-1])
 
 
 def test_an_unreadable_file_is_skipped_and_gives_exit_2(tmp_path, capsys):

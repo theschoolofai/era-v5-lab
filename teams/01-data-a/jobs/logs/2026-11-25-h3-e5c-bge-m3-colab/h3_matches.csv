@@ -1,0 +1,3 @@
+"pack_id_a","split_a","part_a","row_in_part_a","doc_id_a","pack_id_b","split_b","part_b","row_in_part_b","doc_id_b","lang_a","lang_b","coverage"
+"ind-hi-sangraha-v","train","ind-hi-sangraha-v/part-00000.parquet",3120,"95192b831a4ca7f5","ind-sa-fw2","train","ind-sa-fw2/part-00000.parquet",3756,"6fffbfadc8543aa9","hi","sa",1
+"ind-hi-sangraha-v","train","ind-hi-sangraha-v/part-00000.parquet",7729,"195f6c2b9b0f4d6a","ind-sa-fw2","train","ind-sa-fw2/part-00000.parquet",3306,"4ec2ceade713a1f1","hi","sa",0.933333

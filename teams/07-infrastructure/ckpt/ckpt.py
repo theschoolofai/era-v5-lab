@@ -10,7 +10,8 @@ In simple words:
   and the MANIFEST (the list of files and checksums) is written last. The `latest.json` pointer is
   moved only after that. So a half-written checkpoint can never be picked by mistake.
 - On restore we check the checkpoint before trusting it: checksums, exact key names and shapes, a
-  digest of every tensor, and the loss of one fixed probe batch, compared bit for bit.
+  digest of every tensor, every non-tensor value (learning rates, betas, optimizer groups), and the loss
+  of one fixed probe batch, compared bit for bit.
 - Only one attempt of a run may commit (fencing). A job that Slurm thinks is dead can still be running
   (a node cut off from the network, then back). Each attempt claims a new "epoch" in `latest.json` before
   it restores, and every later write of `latest.json` is conditional on the version that attempt wrote
@@ -48,6 +49,7 @@ import torch.distributed.checkpoint as dcp
 from torch.distributed.checkpoint.state_dict import get_state_dict, set_state_dict
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+from ckpt.candidates import pick_candidates  # noqa: E402
 from ckpt.store import Conflict, open_store, wait_for  # noqa: E402
 from common.events import Timer, emit  # noqa: E402
 
@@ -311,6 +313,15 @@ def state_digest(sd) -> str:
     for k, t in tensor_items(sd):
         h.update(f"{k}|{t.dtype}|{tuple(t.shape)}|{fp[k]};".encode())
     return h.hexdigest()
+
+
+def scalar_state(sd) -> dict:
+    """Every value that is not a tensor, by name: per optimizer group lr, base_lr (the peak), betas, momentum,
+    weight decay, and which parameters are in the group (Muon vs AdamW). state_digest sees only tensors, so
+    without this a restore that loses the LR or moves a weight to the other optimizer passes every check.
+    JSON round trip so the restored value compares equal to the one read back from MANIFEST.json."""
+    return json.loads(json.dumps({k: v for k, v in flatten(sd).items() if not isinstance(v, torch.Tensor)},
+                                 default=repr))
 
 
 def key_spec(sd) -> dict:
@@ -630,6 +641,7 @@ class Checkpointer:
                 "env": env_manifest(self.config_path, self.code_paths),
                 "keys": key_spec(state),
                 "state_digest": digest,
+                "scalars": scalar_state(state),
                 "frozen": {k[len("model."):]: v for k, v in frozen.items()},
                 "probe_loss": {device_class(model): probe},
                 "next_batch": loader.next_batch_id(),
@@ -751,15 +763,12 @@ class Checkpointer:
         return [json.loads(line) for line in self.store.get_text("commits.jsonl").splitlines() if line.strip()]
 
     def candidates(self, from_step: int = None) -> list:
+        """The commits restore may try, newest first. The rule is ckpt/candidates.py, shared with start-mode."""
         commits = self.commits()
-        if from_step is not None:
-            return [c for c in reversed(commits) if c["step"] == from_step][:1]
-        if not self.store.exists("latest.json"):
-            return []
-        first = self.store.get_json("latest.json")
-        rest = [c for c in reversed(commits) if c["path"] != first.get("path")]
-        # a claim with no commit yet has path None: only the commit history is left to try
-        return ([first] if first.get("path") else []) + rest
+        latest = None
+        if from_step is None and self.store.exists("latest.json"):
+            latest = self.store.get_json("latest.json")
+        return pick_candidates(commits, latest, from_step)
 
     def restore(self, model, optim, loader, probe_fn, from_step: int = None, skip: int = 0,
                 new_branch: str = None, allow_env_change: bool = False):
@@ -867,6 +876,12 @@ class Checkpointer:
         digest = state_digest(restored)
         if digest != man["state_digest"]:
             problems.append(f"state digest saved={man['state_digest']} restored={digest}")
+        if "scalars" in man:      # checkpoints written before this check have no scalars to compare
+            now = scalar_state(restored)
+            for k in sorted(set(man["scalars"]) | set(now)):
+                if man["scalars"].get(k, "<missing>") != now.get(k, "<missing>"):
+                    problems.append(f"scalar {k} saved={man['scalars'].get(k, '<missing>')} "
+                                    f"restored={now.get(k, '<missing>')}")
         dc = device_class(model)
         probe_now = float_bits(probe_fn(model))
         probe_saved = man["probe_loss"].get(dc)

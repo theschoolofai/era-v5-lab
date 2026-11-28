@@ -179,6 +179,129 @@ def test_h3_match_file_is_linked_to_this_run_and_dedup(tmp_path, config, tsai_ou
         rp.run(config, start="dedup", to="dedup")
 
 
+def h3_run_with_remove(tmp_path, config, tsai_outputs, monkeypatch, remove, recorded):
+    """A run config with an H3 stage (a fake command writing no matches) and stages.h3.remove = remove (None: not set),
+    and an adopted dedup whose summary recorded `recorded` as its H3 remove setting."""
+    out = tmp_path / "h3"
+    cfg = json.loads(config.read_text(encoding="utf-8"))
+    cfg["stages"]["h3"] = {"mode": "run", "command": [str(FAKE_STAGE)], "output": str(out),
+                           **({} if remove is None else {"remove": remove})}
+    config.write_text(json.dumps(cfg), encoding="utf-8")
+    original = rp.run_script
+
+    def h3_stage(script, args, stage, log, **kwargs):
+        if stage != "h3":
+            return original(script, args, stage, log, **kwargs)
+        out.mkdir(exist_ok=True)
+        write_csv(out / "h3_matches.csv", ["pack_id_a", "split_a", "part_a", "row_in_part_a", "doc_id_a",
+                                            "pack_id_b", "split_b", "part_b", "row_in_part_b", "doc_id_b",
+                                            "lang_a", "lang_b", "coverage"], [])
+        (out / "h3_summary.json").write_text(json.dumps({
+            "status": "complete", "inputs": {"root": str(tsai_outputs["cleaned"])}, "qualifying": 0,
+            "outputs": {"h3_matches.csv": {"sha256": sha(out / "h3_matches.csv")}}}), encoding="utf-8")
+        return 0
+
+    monkeypatch.setattr(rp, "run_script", h3_stage)
+    summary = tsai_outputs["dedup"] / "dedup_summary.json"
+    d = json.loads(summary.read_text(encoding="utf-8"))
+    header = "pack_id_a,split_a,part_a,row_in_part_a,doc_id_a,pack_id_b,split_b,part_b,row_in_part_b,doc_id_b,lang_a,lang_b,coverage\r\n"
+    d["h3"] = {"matches": {"sha256": hashlib.sha256(header.encode()).hexdigest(), "pairs": 0}, "remove": recorded}
+    summary.write_text(json.dumps(d), encoding="utf-8")
+
+
+@pytest.mark.parametrize("remove, recorded, ok", [
+    ({"hi-en": True}, {"hi-en": True}, True),     # TSAI, 27 Nov: hi-en on, the other pairs report-only
+    (None, False, True),                          # not set: report only, as before
+    ({"hi-en": True}, False, False),              # dedup did not get the setting
+    (None, {"hi-en": True}, False),               # dedup removed where the run config did not say so
+    ({"hi-en": True}, {"hi-en": True, "sa-en": True}, False),
+    (False, 0, False)])
+def test_dedup_must_record_stages_h3_remove(tmp_path, config, tsai_outputs, monkeypatch, remove, recorded, ok):
+    h3_run_with_remove(tmp_path, config, tsai_outputs, monkeypatch, remove, recorded)
+    if ok:
+        m = rp.run(config, to="dedup")
+        assert any(c["check"] == "dedup removed H3 matches only as stages.h3.remove says" and c["ok"] for c in m["checks"])
+    else:
+        with pytest.raises(rp.Stop, match="dedup removed H3 matches only as stages.h3.remove says"):
+            rp.run(config, to="dedup")
+
+
+def set_h3_remove(config, remove):
+    """stages.h3.remove of the run config: a value, or None to take the key out (report only)."""
+    cfg = json.loads(config.read_text(encoding="utf-8"))
+    cfg["stages"]["h3"].pop("remove", None)
+    if remove is not None:
+        cfg["stages"]["h3"]["remove"] = remove
+    config.write_text(json.dumps(cfg), encoding="utf-8")
+
+
+def test_a_resume_after_dedup_needs_dedup_made_with_this_remove_setting(tmp_path, config, tsai_outputs, monkeypatch):
+    # Review of #860: a report-only dedup output must not be reused once stages.h3.remove turns hi-en removal on
+    h3_run_with_remove(tmp_path, config, tsai_outputs, monkeypatch, None, False)
+    rp.run(config, to="apply")                                    # report only, recorded in the manifest
+    set_h3_remove(config, {"hi-en": True})
+    with pytest.raises(rp.Stop, match=r'dedup: its recorded output removed H3 matches with remove false, but stages.h3.remove '
+                                      r'is now \{"hi-en": true\}; rerun from dedup'):
+        rp.run(config, start="f2")
+    set_h3_remove(config, None)                                    # the setting the recorded dedup was made with
+    m = rp.run(config, start="f2")
+    assert "f2" in [s["stage"] for s in m["stages"]]
+
+
+def test_a_resume_after_dedup_with_the_same_remove_setting_goes_on(tmp_path, config, tsai_outputs, monkeypatch):
+    h3_run_with_remove(tmp_path, config, tsai_outputs, monkeypatch, {"hi-en": True}, {"hi-en": True})
+    rp.run(config, to="apply")
+    set_h3_remove(config, {"en-hi": True, "sa-en": False})        # not the same setting as written: must match exactly
+    with pytest.raises(rp.Stop, match="rerun from dedup"):
+        rp.run(config, start="f2")
+    set_h3_remove(config, {"hi-en": True})
+    m = rp.run(config, start="f2")
+    assert [s["stage"] for s in m["stages"]][:4] == ["clean", "overlap", "h3", "dedup"]
+
+
+def test_h3_unverified_candidates_are_recorded(tmp_path, config, tsai_outputs, monkeypatch):
+    # H3 verifies at most max_verify candidates; the manifest records how many it left unverified
+    h3_run_with_remove(tmp_path, config, tsai_outputs, monkeypatch, None, False)
+    original = rp.run_script
+
+    def h3_stage(script, args, stage, log, **kwargs):
+        code = original(script, args, stage, log, **kwargs)
+        if stage == "h3":
+            out = tmp_path / "h3"
+            s = json.loads((out / "h3_summary.json").read_text(encoding="utf-8"))
+            (out / "h3_summary.json").write_text(json.dumps({**s, "verified": 10000, "not_verified_over_max_verify": 2310}),
+                                                 encoding="utf-8")
+        return code
+
+    monkeypatch.setattr(rp, "run_script", h3_stage)
+    m = rp.run(config, to="dedup")
+    h3 = next(s for s in m["stages"] if s["stage"] == "h3")
+    assert (h3["counts"]["verified"], h3["counts"]["not_verified_over_max_verify"]) == (10000, 2310)
+
+
+def test_the_plan_shows_stages_h3_remove(staged):
+    path, repo = staged
+    cfg = json.loads(path.read_text(encoding="utf-8"))
+    cfg["stages"]["h3"] = {"mode": "run", "command": [str(FAKE_STAGE)], "output": str(repo / "out" / "h3-made-up"),
+                           "remove": {"hi-en": True}}
+    path.write_text(json.dumps(cfg), encoding="utf-8")
+    assert 'H3 matches it removes (stages.h3.remove): {"hi-en": true}' in rp.plan(path, to="dedup")
+    assert not (repo / "out" / "runs").exists()
+
+
+@pytest.mark.parametrize("stages, message", [
+    ({"h3": {"remove": "yes"}}, "config: stages.h3.remove must be true, false or one setting per language pair"),
+    ({"h3": {"remove": {"hi": True}}}, "config: stages.h3.remove: 'hi' is not a language pair"),
+    ({"dedup": {"remove": {"hi-en": True}}}, "config: stages.dedup.remove: only stages.h3 takes remove")])
+def test_a_bad_or_misplaced_remove_stops_before_anything_runs(config, stages, message):
+    cfg = json.loads(config.read_text(encoding="utf-8"))
+    for stage, extra in stages.items():
+        cfg["stages"][stage] = {**cfg["stages"].get(stage, {"mode": "run", "command": [str(FAKE_STAGE)], "output": "out/h3x"}), **extra}
+    config.write_text(json.dumps(cfg), encoding="utf-8")
+    with pytest.raises(rp.Stop, match=message.replace("(", r"\(").replace(")", r"\)")):
+        rp.run(config, to="dedup")
+
+
 def test_h3_cannot_be_selected_without_a_stage(config):
     with pytest.raises(rp.Stop, match="needs stages.h3"):
         rp.plan(config, to="h3")

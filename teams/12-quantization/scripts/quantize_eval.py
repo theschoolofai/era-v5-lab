@@ -9,7 +9,8 @@ Steps (each one is skipped when its output already exists, so a rerun resumes):
   1. get the Hugging Face model folder:
        --model/--revision   download it from the Hub (plain HTTPS, pinned revision)
        --checkpoint         a G5 checkpoint (train_week2.py run folder, checkpoint.pt or model.safetensors) is
-                            exported with export_hf.py as Granite MoE Shared, and test A1 (same logits as G5's model)
+                            exported with export_hf.py as Granite MoE Shared (or, with --target ernie4_5_moe and
+                            --drop-head-bias, as ERNIE 4.5 MoE, which keeps the router bias), and test A1 (same logits as G5's model)
                             must pass; a folder that already has config.json is used as it is. After step 2,
                             check_gguf_logits.py (test A3) compares llama.cpp on the bf16 GGUF with G5's model and
                             its result is reported
@@ -43,6 +44,7 @@ RUN_FIELDS = ['date', 'model', 'revision', 'format', 'bpw', 'size_gb', 'router_t
               'n_items', 'score', 'score_by_kind', 'quant_time_s', 'eval_time_s', 'gen_tok_s', 'machine', 'runtime', 'notes']
 EXPORT_HF = Path(__file__).resolve().with_name('export_hf.py')
 CHECK_GGUF = Path(__file__).resolve().with_name('check_gguf_logits.py')
+GRANITE, ERNIE = 'granite_moe_shared', 'ernie4_5_moe'   # export_hf.py --target
 TOKENIZER_DIR = REPO_ROOT / 'teams/12-quantization/tokenizer'
 ROUNDTRIP_PACKAGES = ['llama-cpp-python==0.3.36', 'datasets==4.8.5', 'regex']  # the versions in gguf_roundtrip.py
 ROUNDTRIP_VERDICT = {0: 'same token ids on every line', 2: 'differences only on lines the normalizer changes (GGUF has no normalizer)',
@@ -220,11 +222,17 @@ def prepare_checkpoint(args, py, work, name):
         sys.exit('--checkpoint is a G5 checkpoint, which has no tokenizer: pass --tokenizer <tokenizer.json>')
     out = work / 'hf' / name
     report = out / 'export_report.json'
+    if report.exists():  # a resumed run must not reuse an export of the other architecture (reports before #838 are Granite)
+        have = json.loads(report.read_text(encoding='utf-8')).get('target', GRANITE)
+        if have != args.target:
+            sys.exit(f'refusing: {report} is a {have} export and this run asks for --target {args.target}; '
+                     f'use another --work or --name')
     if not report.exists():  # the report is written last, so a folder without it is a broken export
         if out.exists(): shutil.rmtree(out)
         run([py, EXPORT_HF, '--checkpoint', ckpt, '--out', out, '--tokenizer', args.tokenizer, '--bos', args.bos,
              '--eos', args.eos, '--verify', args.verify, *(['--spec', args.spec] if args.spec else []),
-             *(['--drop-router-bias'] if args.drop_router_bias else []), *(['--drop-head-bias'] if args.drop_head_bias else [])])
+             *(['--drop-router-bias'] if args.drop_router_bias else []), *(['--drop-head-bias'] if args.drop_head_bias else []),
+             '--target', args.target])
     return out, json.loads(report.read_text(encoding='utf-8'))
 
 
@@ -248,6 +256,19 @@ def roundtrip(args, py, src, work, name, bf16):
     r = json.loads(result.read_text(encoding='utf-8'))
     log(f'tokenizer round trip: exit code {r["exit_code"]}, {r["verdict"]}. Report: {r["report"]}')
     return r
+
+
+def run_name(base, weights_sha256, target=GRANITE):
+    """Name of the files of one checkpoint run. The weights' hash is in it, so a new checkpoint under an old name never
+    reuses old files; an ERNIE export adds -ernie, so both exports of one checkpoint can share a --work folder."""
+    return f'{base}-{weights_sha256[:8]}' + ('' if target == GRANITE else '-ernie')
+
+
+def export_note(export):
+    """The runs.csv note of the export that made the GGUFs, read from its export_report.json: empty for Granite and when
+    nothing was exported here (a Hugging Face folder), else export=<target>."""
+    target = (export or {}).get('target')
+    return f'export={target}' if target and target != GRANITE else ''
 
 
 def checkpoint_weights(path):
@@ -435,10 +456,14 @@ def main():
     ap.add_argument('--bos', default='<|begin_of_text|>')
     ap.add_argument('--eos', default='<|endoftext|>', help='end of document in the frozen tokenizer')
     ap.add_argument('--verify', type=int, default=64, help='prompts for test A1 during the export of a G5 checkpoint')
-    ap.add_argument('--drop-router-bias', action='store_true', help='export a G5 checkpoint whose router_bias is not zero (export_hf.py): '
-                    'the exported model routes differently, and A1/A3 show by how much')
+    ap.add_argument('--drop-router-bias', action='store_true', help='export a G5 checkpoint whose router_bias is not zero (export_hf.py, '
+                    'Granite only): the exported model routes differently, and A1/A3 show by how much')
     ap.add_argument('--drop-head-bias', action='store_true', help='export a KAS V2 checkpoint without its output bias (export_hf.py): '
-                    'GraniteMoeShared has no lm_head bias')
+                    "GraniteMoeShared has no lm_head bias, and llama.cpp's ernie4_5-moe has none either, so --target "
+                    'ernie4_5_moe needs it')
+    ap.add_argument('--target', choices=(GRANITE, ERNIE), default=GRANITE,
+                    help="architecture of the export of a G5 checkpoint (export_hf.py --target). ernie4_5_moe keeps the router "
+                         "bias, so A1 and A3 compare with G5's routing as trained; its files are named <name>-ernie")
     ap.add_argument('--roundtrip', action='store_true', help='also run tokenizer/gguf_roundtrip.py on the bf16 GGUF: llama.cpp '
                     'must give the token ids of --tokenizer on held-out text (downloads about 20 MB the first time)')
     ap.add_argument('--no-a3', action='store_true', help="skip test A3 (llama.cpp on the bf16 GGUF against G5's model)")
@@ -464,6 +489,13 @@ def main():
     work = Path(args.work).expanduser(); work.mkdir(parents=True, exist_ok=True); args.work = str(work)
     tok_sha = None
     if args.roundtrip and not args.tokenizer: ap.error('--roundtrip needs --tokenizer')
+    if args.target == ERNIE:  # checked before the tokenizer hash, the export and the conversion
+        if not args.checkpoint or (Path(args.checkpoint).expanduser() / 'config.json').exists():
+            ap.error('--target is for a G5 checkpoint (exported here); a Hugging Face folder or --model is used as it is')
+        if args.drop_router_bias:  # export_hf.py refuses it too, but only after the tokenizer hash
+            ap.error('--drop-router-bias is for --target granite_moe_shared: ERNIE 4.5 MoE keeps the router bias')
+        if not args.drop_head_bias:  # with the head bias the folder has use_bias=True, which llama.cpp's converter cannot read
+            ap.error("--target ernie4_5_moe needs --drop-head-bias: llama.cpp's ernie4_5-moe has no output bias")
     if args.tokenizer:  # checked first: a wrong tokenizer must not cost an export and a conversion
         tok_sha = file_sha256(args.tokenizer)
         if tok_sha != args.tokenizer_sha256.lower():
@@ -472,8 +504,7 @@ def main():
         weights = checkpoint_weights(args.checkpoint)
         ckpt_sha = file_sha256(weights)
         base = args.name or (weights.parent.name if weights.name in ('checkpoint.pt', 'model.safetensors') else weights.stem)
-        # the weights' hash is in every file name, so a new checkpoint under an old name never reuses old files
-        name, model, revision = f'{base}-{ckpt_sha[:8]}', base, ckpt_sha
+        name, model, revision = run_name(base, ckpt_sha, args.target), base, ckpt_sha
     else:
         name, model, revision = args.model.split('/')[-1], args.model, args.revision
     if args.prompt_mode == 'auto':
@@ -535,7 +566,7 @@ def main():
 
     scores_path = Path(args.scores_out).expanduser() if args.scores_out else work / f'{name}-scores.json'
     scores = dict(model=model, revision=revision, checkpoint=str(args.checkpoint or ''), tokenizer_sha256=tok_sha,
-                  gguf=info, export_a1=(export or {}).get('verify'),
+                  gguf=info, export_target=(export or {}).get('target'), export_a1=(export or {}).get('verify'),
                   # with --drop-router-bias: A1 against G5 with router_bias zeroed (the wiring), and what was dropped
                   export_a1_zero_router_bias=(export or {}).get('verify_zero_router_bias'),
                   export_router_bias=(export or {}).get('router_bias'), export_head_bias=((export or {}).get('kas_v2') or {}).get('head_bias'),
@@ -573,6 +604,7 @@ def main():
                    score_by_kind=json.dumps(res['by_kind']), quant_time_s=round(qtime, 1), eval_time_s=round(res['eval_time'], 1),
                    gen_tok_s=round(res['tps'], 1), machine=machine, runtime=runtime,
                    notes='; '.join(x for x in [f'prompt={args.prompt_mode}', args.notes, f'limit={args.limit}' if args.limit is not None else '',
+                                               export_note(export),
                                                f'tokenizer={tok_sha[:12]}' if tok_sha else '',
                                                f'{res["rejected"]} prompts over the context' if res['rejected'] else ''] if x))
         log(f'{fmt}: score {row["score"]} {row["score_by_kind"]} | {row["size_gb"]} GB, {row["bpw"]} bpw | '

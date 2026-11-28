@@ -468,11 +468,21 @@ def run(args) -> dict:
     import router as g10_router  # noqa: PLC0415  rl-loop/router.py
     bias_before = g10_router.router_bias_checksum(lm)  # every method, full FT included: the bias is a buffer
     params = [p for p in lm.parameters() if p.requires_grad]
-    groups = [{"params": [p for p in params if p is not marker_param], "base_lr": args.lr}]
-    groups = [g for g in groups if g["params"]]
-    if marker_param is not None:
-        groups.append({"params": [marker_param], "base_lr": args.marker_lr})
-    opt = torch.optim.AdamW(groups, lr=args.lr, betas=(0.9, 0.95), eps=1e-8, weight_decay=args.wd)
+    import hybrid_optim as ho  # noqa: PLC0415  capstone/hybrid_optim.py
+    opt_kind = getattr(args, "optimizer", "adamw")
+    opt = ho.build_optimizer(
+        lm.named_parameters(),
+        kind=opt_kind,
+        lr=args.lr,
+        muon_lr=getattr(args, "muon_lr", 6e-3),
+        wd=args.wd,
+        betas=(0.9, 0.95),
+        eps=1e-8,
+        marker_param=marker_param,
+        marker_lr=args.marker_lr if marker_param is not None else None,
+        dt_gate_optim=getattr(args, "dt_gate_optim", "adamw"),
+        skip_zero_grad_muon=True,
+    )
     if args.method == "dt":
         watch_name, layer0 = dtmask.masked_layers(lm)[0]
         watch_name, watch = watch_name + ".gate", layer0.gate
@@ -495,8 +505,7 @@ def run(args) -> dict:
         take, order = order[: args.batch], order[args.batch:]
         mbs = [bench.collate(g, 0) for g in bench.plan_microbatches([train_rows[i] for i in take], args.micro_tokens)]
         lr = bench.lr_at(step, args)
-        for g in opt.param_groups:
-            g["lr"] = g["base_lr"] * lr / args.lr
+        opt.scale_lr(lr / args.lr if args.lr > 0 else 1.0)
         opt.zero_grad(set_to_none=True)
         loss, count = bench.accumulate(wrapper, mbs, device)
         reg_val = None
@@ -506,10 +515,10 @@ def run(args) -> dict:
         sel = (lambda t: t[marker_ids]) if args.method == "markers" else (lambda t: t)
         if step == 0:
             p0, g0 = sel(watch.detach()).clone(), sel(watch.grad.detach()).clone()
-        opt.step()
+        opt.step(sync_fn=lambda: bench.sync(device))
         if args.method == "dt":
             dtmask.step_all(lm)
-        if step == 0:
+        if step == 0 and opt_kind == "adamw":
             wlr = lr * args.marker_lr / args.lr if args.method == "markers" else lr
             report["writeback_step1"] = {"tensor": watch_name, "storage_dtype": str(watch.dtype), "lr": wlr,
                                          **bench.writeback_check(p0.cpu(), g0.cpu(), sel(watch.detach()).cpu(), wlr,
@@ -529,7 +538,13 @@ def run(args) -> dict:
             print(json.dumps({"stopped_early": report["stopped_early"]}), flush=True)
             break
     bench.sync(device)
-    report["train_seconds"] = round(time.perf_counter() - t0, 1)
+    train_elapsed = time.perf_counter() - t0
+    report["train_seconds"] = round(train_elapsed, 1)
+    report["optimizer"] = opt.summary(train_elapsed)
+    if getattr(args, "optim_state_out", None):
+        args.optim_state_out.parent.mkdir(parents=True, exist_ok=True)
+        torch.save(opt.state_dict(), args.optim_state_out)
+        report["optimizer"]["state_file"] = str(args.optim_state_out)
     lm.eval()
     g10_router.clear_router_bias_load(lm)  # train-mode load counts: only update_router_bias() reads them; G10 never calls it
     bias_after = g10_router.router_bias_checksum(lm)
@@ -638,8 +653,16 @@ def _load_team7_ckpt():
     return _load("g10_team7_ckpt", ckpt_file)
 
 
+def _unwrap_torch_optim(optim):
+    """Unwrap single-optimizer HybridOptimizer to its inner torch.optim.Optimizer for Team 7 DCP."""
+    if hasattr(optim, "named") and not isinstance(optim, torch.optim.Optimizer):
+        return optim.named[0][1] if len(optim.named) == 1 else None
+    return optim
+
+
 def _optim_matches_model(lm: nn.Module, optim) -> bool:
-    if optim is None:
+    optim = _unwrap_torch_optim(optim)
+    if optim is None or not isinstance(optim, torch.optim.Optimizer):
         return False
     model_ids = {id(p) for p in lm.parameters()}
     opt_ids = {id(p) for g in optim.param_groups for p in g["params"]}
@@ -664,7 +687,8 @@ def save_and_export_team7(
 ) -> dict:
     """Commit a single-process G10 SFT checkpoint through Team 7 Checkpointer and export verified safetensors."""
     ckpt = _load_team7_ckpt()
-    save_opt = optim if _optim_matches_model(lm, optim) else torch.optim.SGD(lm.parameters(), lr=0.0)
+    raw_opt = _unwrap_torch_optim(optim)
+    save_opt = raw_opt if _optim_matches_model(lm, raw_opt) else torch.optim.SGD(lm.parameters(), lr=0.0)
     local_root = Path(local_root)
     local_root.mkdir(parents=True, exist_ok=True)
     export_path = Path(export_path)
@@ -715,6 +739,13 @@ def parse_args(argv=None):
     p.add_argument("--batch", type=int, default=16, help="rows per optimizer step")
     p.add_argument("--micro-tokens", type=int, default=2048)
     p.add_argument("--lr", type=float, default=3e-4)
+    p.add_argument("--optimizer", default="adamw", choices=("adamw", "hybrid_muon"),
+                   help="optimizer: adamw (default for dry run 2 parity) or shape-based hybrid_muon (TSAI 28 Nov)")
+    p.add_argument("--muon-lr", type=float, default=6e-3, help="Muon peak lr when --optimizer hybrid_muon")
+    p.add_argument("--dt-gate-optim", default="adamw", choices=("shape", "adamw"),
+                   help="for DT under hybrid_muon: shape routes 2D gates to Muon; adamw keeps gates on AdamW")
+    p.add_argument("--optim-state-out", type=Path, default=None,
+                   help="optional path to save full optimizer state_dict (including Muon momentum buffers)")
     p.add_argument("--warmup", type=int, default=10)
     p.add_argument("--min-lr-ratio", type=float, default=0.1)
     p.add_argument("--wd", type=float, default=0.0)

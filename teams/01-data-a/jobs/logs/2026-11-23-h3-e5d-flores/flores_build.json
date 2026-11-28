@@ -1,0 +1,35 @@
+{
+  "flores_sha256": {
+    "eng_Latn.jsonl": "afa116a2ffb7de95aa320c11c229301d76a8108cba3125744c10304ffaa128bd",
+    "hin_Deva.jsonl": "71cdcc7eee9c23827403bb53e73466f9508d2335488e8cd7daabe90a8fb0c33a",
+    "san_Deva.jsonl": "029d12cc0904118c400d170b289ba4320f78bd0451bfe0a26efb5080fdaa591a",
+    "ory_Orya.jsonl": "5ca57ff00ce9cd83de0b642110ce989a8c8496d97d99cc849e4f180e8f6fe15b"
+  },
+  "sentences_per_language": {
+    "en": 1012,
+    "hi": 1012,
+    "sa": 1012,
+    "or": 1012
+  },
+  "block": 8,
+  "blocks": 126,
+  "packs": {
+    "flores-en": {
+      "train": 94,
+      "heldout": 32
+    },
+    "flores-hi": {
+      "train": 126,
+      "heldout": 0
+    },
+    "flores-sa": {
+      "train": 126,
+      "heldout": 0
+    },
+    "flores-or": {
+      "train": 126,
+      "heldout": 0
+    }
+  },
+  "controls_per_pair": 126
+}

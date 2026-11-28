@@ -1,0 +1,14 @@
+{
+  "_comment": "E5d test data: h3.py with LaBSE at E5c's pinned revision 836121a on the FLORES-200 pseudo-documents that h3_e5d_flores.py builds, with E5c's language pairs and thresholds (jobs/2026-11-18-h3-e5c/h3.json). Paths are relative to the era-v5-lab repository root; ../models/LaBSE-hub-836121a holds the pinned revision.",
+  "inputs": "out/e5d_flores/inputs",
+  "out": "out/e5d_flores/h3_labse",
+  "cache": "out/e5d_flores/h3_cache_labse",
+  "model_path": "../models/LaBSE-hub-836121a",
+  "device": "auto",
+  "packs": {"flores-sa": "sa", "flores-hi": "hi", "flores-or": "or", "flores-en": "en"},
+  "pairs": [["sa", "en"], ["sa", "hi"], ["hi", "en"], ["or", "en"]],
+  "sentence_threshold": {"sa-en": 0.55, "sa-hi": 0.55},
+  "coverage_threshold": 0.6,
+  "report_floor": 0.3,
+  "max_minutes": 30
+}

@@ -1,0 +1,986 @@
+H3 harm check with planted cases on the diagnosis packs, Monday 23 November 2026 20:48
+commit 6429ede5 (H3 E5d: review fixes from #82 (sentence settings from the runs, sheet texts and answers checked, FLORES ids))
+Python 3.12.10, Darwin arm64
+
+== 0. Input files (SHA-256)
+95e08d6b9ef1c3baf2d98c7f6bef3a0d12236d6b7c54583e5d4565884b3108e0  ../../../All-parquets/ind-sa-fw2.parquet
+f9e1a898c982fcdfb788a931910f79f2204c177e530709df71a2d3b8223f5169  ../../../All-parquets/ind-hi-fw2.parquet
+497533fc4d6407b1ef2e83f7304d65ab7f9fe7892fee09ab6d10f45c913eadc6  ../../../All-parquets/ind-hi-hplt.parquet
+c55b80d3d5c820fb34cab3b0bf8ccaabd2e73496cea42267c08d05cc34ecd612  ../../../All-parquets/ind-hi-indiccorp.parquet
+7fd34f97729659a7c0c7f6bed0190e7f4eda29ed8a0f9b9eacbfe4a607a3ff6d  ../../../All-parquets/ind-hi-sangraha-s.parquet
+b0fb32f2327aa39badc9a55110c992303ce273b02711e0973f877d465a00557e  ../../../All-parquets/ind-hi-sangraha-v.parquet
+3a0ad16983c03e9d8b6a40d8e58d769d9b89e68406a3b86e79fd7b8d68e022de  ../../../All-parquets/en-fineweb-edu.parquet
+d5ae1e7e991de478eb443ec6ca991308473c22922a986c3ebbba71ebfe0fa2b4  ../../../All-parquets/en-dclm.parquet
+6eae1507bc689c79ec8b73011b264f5b4558ef8eb3ddbf866a598588b7cf0fbb  ../../../All-parquets/en-nemotroncc.parquet
+afa116a2ffb7de95aa320c11c229301d76a8108cba3125744c10304ffaa128bd  ../flores_plus/devtest/eng_Latn.jsonl
+71cdcc7eee9c23827403bb53e73466f9508d2335488e8cd7daabe90a8fb0c33a  ../flores_plus/devtest/hin_Deva.jsonl
+029d12cc0904118c400d170b289ba4320f78bd0451bfe0a26efb5080fdaa591a  ../flores_plus/devtest/san_Deva.jsonl
+ccabab8018f40ca4b995d92c030c98d05ef2c5e0d80d47eb784473d10fb22002  ../known_pairs.parquet
+7842a5dfaf0e4ac4647a9090b5e876882a3fbf7cc659c2cc5ea8d859a5166c6a  ../real_translations.csv
+
+== 1. spec v1.1 clean.py on each pack
+cleaning 500 docs of ind-sa-fw2 (indic family)
+500/500 {'keep': 253, 'drop': 21, 'fix': 226} errors=0 190 docs/s
+
+slowest rules of 15 that ran (rules took 2.6 s of 2.7 s):
+  rule             seconds   share    calls   ms/call
+  DB-D4-009            0.8   30.0%      491     1.593
+  DB-C1-013            0.5   20.4%      481     1.108
+  DB-H3-001            0.3   13.0%      479     0.709
+  DB-D2-002            0.2    9.5%      479     0.517
+  f1_rule.py           0.2    8.1%      479     0.442
+  DB-B4-004            0.2    7.9%      479     0.427
+  DB-G1-007            0.1    3.1%      500     0.160
+  DB-C5-014            0.1    2.6%      479     0.144
+  DB-A5-007            0.1    2.3%      500     0.122
+  DB-G4-003            0.0    1.5%      500     0.080
+{'pack': 'ind-sa-fw2.parquet', 'input_sha256': '95e08d6b9ef1c3baf2d98c7f6bef3a0d12236d6b7c54583e5d4565884b3108e0', 'pack_id': 'ind-sa-fw2', 'family': 'indic', 'rows': 500, 'actions': {'keep': 253, 'drop': 21, 'fix': 226}, 'errors': [], 'seconds': 2.7, 'docs_per_second': 187.3, 'clean_py_sha256': '6a57276c0e83312b09facfba656cca28db0ef59ca851bcfbfa3ef63f16fdd1f2'} dropped: 21
+cleaning 500 docs of ind-hi-fw2 (indic family)
+500/500 {'keep': 437, 'drop': 29, 'fix': 34} errors=0 734 docs/s
+
+slowest rules of 16 that ran (rules took 0.7 s of 0.7 s):
+  rule             seconds   share    calls   ms/call
+  DB-A6-019            0.2   31.4%      500     0.413
+  DB-C5-016            0.1   12.4%      498     0.165
+  DB-C4-002            0.1   12.3%      500     0.163
+  DB-B4-008            0.1   10.6%      500     0.140
+  DB-F3-004            0.0    6.5%      487     0.088
+  DB-G1-016            0.0    5.5%      500     0.071
+  DB-D4-013            0.0    4.8%      491     0.066
+  DB-C2-014            0.0    4.4%      471     0.062
+  f1_rule.py           0.0    3.2%      471     0.044
+  DB-D2-003            0.0    3.2%      471     0.044
+{'pack': 'ind-hi-fw2.parquet', 'input_sha256': 'f9e1a898c982fcdfb788a931910f79f2204c177e530709df71a2d3b8223f5169', 'pack_id': 'ind-hi-fw2', 'family': 'indic', 'rows': 500, 'actions': {'keep': 437, 'drop': 29, 'fix': 34}, 'errors': [], 'seconds': 0.7, 'docs_per_second': 719.8, 'clean_py_sha256': '6a57276c0e83312b09facfba656cca28db0ef59ca851bcfbfa3ef63f16fdd1f2'} dropped: 29
+cleaning 500 docs of ind-hi-hplt (indic family)
+500/500 {'keep': 346, 'fix': 97, 'drop': 57} errors=0 243 docs/s
+
+slowest rules of 17 that ran (rules took 2.0 s of 2.1 s):
+  rule             seconds   share    calls   ms/call
+  DB-A6-017            0.5   22.1%      500     0.900
+  DB-B4-008            0.3   15.2%      500     0.618
+  DB-C2-021            0.3   12.6%      443     0.578
+  DB-G4-007            0.2    8.7%      500     0.357
+  DB-D4-005            0.2    8.4%      471     0.364
+  DB-F3-004            0.2    7.7%      467     0.337
+  DB-G1-016            0.2    7.7%      500     0.311
+  f1_rule.py           0.1    4.6%      443     0.211
+  DB-B2-002            0.1    3.9%      500     0.161
+  DB-D2-003            0.1    2.8%      443     0.128
+{'pack': 'ind-hi-hplt.parquet', 'input_sha256': '497533fc4d6407b1ef2e83f7304d65ab7f9fe7892fee09ab6d10f45c913eadc6', 'pack_id': 'ind-hi-hplt', 'family': 'indic', 'rows': 500, 'actions': {'keep': 346, 'fix': 97, 'drop': 57}, 'errors': [], 'seconds': 2.1, 'docs_per_second': 238.4, 'clean_py_sha256': '6a57276c0e83312b09facfba656cca28db0ef59ca851bcfbfa3ef63f16fdd1f2'} dropped: 57
+cleaning 500 docs of ind-hi-indiccorp (indic family)
+500/500 {'keep': 489, 'fix': 5, 'drop': 6} errors=0 3448 docs/s
+
+slowest rules of 17 that ran (rules took 0.1 s of 0.1 s):
+  rule             seconds   share    calls   ms/call
+  DB-A6-017            0.0   16.7%      500     0.042
+  DB-C5-016            0.0   12.7%      495     0.033
+  DB-C4-002            0.0   12.7%      495     0.032
+  DB-B4-008            0.0   11.1%      500     0.028
+  DB-F3-004            0.0    7.1%      495     0.019
+  DB-G4-007            0.0    7.1%      500     0.017
+  DB-C2-014            0.0    5.6%      494     0.014
+  DB-C1-018            0.0    5.6%      494     0.014
+  DB-D4-013            0.0    5.6%      495     0.014
+  DB-G1-012            0.0    3.2%      495     0.009
+{'pack': 'ind-hi-indiccorp.parquet', 'input_sha256': 'c55b80d3d5c820fb34cab3b0bf8ccaabd2e73496cea42267c08d05cc34ecd612', 'pack_id': 'ind-hi-indiccorp', 'family': 'indic', 'rows': 500, 'actions': {'keep': 489, 'fix': 5, 'drop': 6}, 'errors': [], 'seconds': 0.1, 'docs_per_second': 3344.2, 'clean_py_sha256': '6a57276c0e83312b09facfba656cca28db0ef59ca851bcfbfa3ef63f16fdd1f2'} dropped: 6
+cleaning 500 docs of ind-hi-sangraha-s (indic family)
+500/500 {'drop': 66, 'fix': 93, 'keep': 341} errors=0 545 docs/s
+
+slowest rules of 17 that ran (rules took 0.9 s of 0.9 s):
+  rule             seconds   share    calls   ms/call
+  DB-A6-019            0.3   32.0%      497     0.578
+  DB-C5-016            0.1   11.9%      474     0.226
+  DB-C4-002            0.1   11.1%      474     0.210
+  DB-B4-008            0.1   10.1%      494     0.184
+  DB-G4-007            0.1    6.5%      500     0.115
+  DB-D4-018            0.1    5.7%      474     0.107
+  DB-G1-016            0.0    5.5%      500     0.097
+  DB-F3-004            0.0    4.6%      438     0.094
+  DB-C2-014            0.0    3.3%      434     0.069
+  DB-D2-003            0.0    2.3%      434     0.049
+{'pack': 'ind-hi-sangraha-s.parquet', 'input_sha256': '7fd34f97729659a7c0c7f6bed0190e7f4eda29ed8a0f9b9eacbfe4a607a3ff6d', 'pack_id': 'ind-hi-sangraha-s', 'family': 'indic', 'rows': 500, 'actions': {'drop': 66, 'fix': 93, 'keep': 341}, 'errors': [], 'seconds': 0.9, 'docs_per_second': 537.1, 'clean_py_sha256': '6a57276c0e83312b09facfba656cca28db0ef59ca851bcfbfa3ef63f16fdd1f2'} dropped: 66
+cleaning 500 docs of ind-hi-sangraha-v (indic family)
+500/500 {'fix': 40, 'keep': 455, 'drop': 5} errors=0 793 docs/s
+
+slowest rules of 17 that ran (rules took 0.6 s of 0.6 s):
+  rule             seconds   share    calls   ms/call
+  DB-A6-017            0.1   17.0%      500     0.208
+  DB-C5-016            0.1   13.4%      500     0.164
+  DB-C4-002            0.1   13.3%      500     0.161
+  DB-B4-008            0.1   11.6%      500     0.142
+  DB-F3-004            0.0    7.2%      499     0.089
+  DB-G4-007            0.0    6.7%      500     0.082
+  DB-G1-016            0.0    5.9%      500     0.072
+  DB-D4-013            0.0    5.6%      500     0.068
+  DB-C2-014            0.0    5.4%      495     0.067
+  f1_rule.py           0.0    5.4%      495     0.066
+{'pack': 'ind-hi-sangraha-v.parquet', 'input_sha256': 'b0fb32f2327aa39badc9a55110c992303ce273b02711e0973f877d465a00557e', 'pack_id': 'ind-hi-sangraha-v', 'family': 'indic', 'rows': 500, 'actions': {'fix': 40, 'keep': 455, 'drop': 5}, 'errors': [], 'seconds': 0.6, 'docs_per_second': 774.5, 'clean_py_sha256': '6a57276c0e83312b09facfba656cca28db0ef59ca851bcfbfa3ef63f16fdd1f2'} dropped: 5
+cleaning 500 docs of en-fineweb-edu (english family)
+500/500 {'keep': 487, 'fix': 12, 'drop': 1} errors=0 721 docs/s
+
+slowest rules of 20 that ran (rules took 0.6 s of 0.7 s):
+  rule             seconds   share    calls   ms/call
+  DA-C5-002            0.1   18.8%      499     0.241
+  DA-B4-010            0.1   16.9%      499     0.217
+  DA-D3-003            0.1   12.5%      499     0.160
+  DA-F1-005            0.1   12.2%      499     0.157
+  DA-B4-007            0.1    8.3%      499     0.107
+  DA-D4-001            0.1    8.1%      499     0.103
+  DA-A3-002            0.0    6.6%      500     0.084
+  DA-C2-003            0.0    5.6%      499     0.072
+  DA-B4-012            0.0    3.3%      499     0.042
+  DA-A2-008            0.0    2.0%      500     0.026
+{'pack': 'en-fineweb-edu.parquet', 'input_sha256': '3a0ad16983c03e9d8b6a40d8e58d769d9b89e68406a3b86e79fd7b8d68e022de', 'pack_id': 'en-fineweb-edu', 'family': 'english', 'rows': 500, 'actions': {'keep': 487, 'fix': 12, 'drop': 1}, 'errors': [], 'seconds': 0.7, 'docs_per_second': 704.8, 'clean_py_sha256': '6a57276c0e83312b09facfba656cca28db0ef59ca851bcfbfa3ef63f16fdd1f2'} dropped: 1
+cleaning 500 docs of en-dclm (english family)
+500/500 {'keep': 437, 'fix': 54, 'drop': 9} errors=0 542 docs/s
+
+slowest rules of 20 that ran (rules took 0.9 s of 0.9 s):
+  rule             seconds   share    calls   ms/call
+  DA-C5-002            0.2   18.3%      497     0.322
+  DA-B4-010            0.1   16.1%      491     0.288
+  DA-D3-003            0.1   13.9%      491     0.249
+  DA-F1-005            0.1   10.4%      491     0.186
+  DA-A3-002            0.1    8.3%      500     0.146
+  DA-B4-007            0.1    8.2%      491     0.146
+  DA-D4-001            0.1    7.9%      493     0.141
+  DA-C2-003            0.1    5.8%      492     0.103
+  DA-B4-012            0.0    3.2%      491     0.058
+  DA-A2-008            0.0    1.8%      500     0.033
+{'pack': 'en-dclm.parquet', 'input_sha256': 'd5ae1e7e991de478eb443ec6ca991308473c22922a986c3ebbba71ebfe0fa2b4', 'pack_id': 'en-dclm', 'family': 'english', 'rows': 500, 'actions': {'keep': 437, 'fix': 54, 'drop': 9}, 'errors': [], 'seconds': 0.9, 'docs_per_second': 529.0, 'clean_py_sha256': '6a57276c0e83312b09facfba656cca28db0ef59ca851bcfbfa3ef63f16fdd1f2'} dropped: 9
+cleaning 500 docs of en-nemotroncc (english family)
+500/500 {'keep': 381, 'fix': 102, 'drop': 17} errors=0 692 docs/s
+
+slowest rules of 22 that ran (rules took 0.7 s of 0.7 s):
+  rule             seconds   share    calls   ms/call
+  DA-B4-010            0.1   14.5%      483     0.203
+  DA-C5-002            0.1   14.4%      483     0.201
+  DA-A8-004            0.1   12.2%      483     0.169
+  DA-A8-003            0.1   11.3%      483     0.158
+  DA-F1-005            0.1    9.9%      483     0.138
+  DA-B4-007            0.0    6.5%      483     0.092
+  DA-D4-001            0.0    6.4%      483     0.089
+  DA-D3-003            0.0    6.2%      483     0.087
+  DA-A3-002            0.0    5.0%      500     0.067
+  DA-C2-003            0.0    4.5%      483     0.063
+{'pack': 'en-nemotroncc.parquet', 'input_sha256': '6eae1507bc689c79ec8b73011b264f5b4558ef8eb3ddbf866a598588b7cf0fbb', 'pack_id': 'en-nemotroncc', 'family': 'english', 'rows': 500, 'actions': {'keep': 381, 'fix': 102, 'drop': 17}, 'errors': [], 'seconds': 0.7, 'docs_per_second': 679.6, 'clean_py_sha256': '6a57276c0e83312b09facfba656cca28db0ef59ca851bcfbfa3ef63f16fdd1f2'} dropped: 17
+clean seconds: 15
+
+== 2. Layouts (one language held-out in each), planted cases and configs
+sa-held: 6 held-out <-> train, 6 real web, 2 train <-> train pairs planted
+hi-held: 6 held-out <-> train, 0 real web, 2 train <-> train pairs planted
+en-held: 6 held-out <-> train, 0 real web, 2 train <-> train pairs planted
+wrote out/h3harm/sa-held/overlap.json
+wrote out/h3harm/sa-held/h3.json
+wrote out/h3harm/sa-held/dedup_noh3.json
+wrote out/h3harm/sa-held/dedup_report.json
+wrote out/h3harm/sa-held/dedup_remove.json
+wrote out/h3harm/hi-held/overlap.json
+wrote out/h3harm/hi-held/h3.json
+wrote out/h3harm/hi-held/dedup_noh3.json
+wrote out/h3harm/hi-held/dedup_report.json
+wrote out/h3harm/hi-held/dedup_remove.json
+wrote out/h3harm/en-held/overlap.json
+wrote out/h3harm/en-held/h3.json
+wrote out/h3harm/en-held/dedup_noh3.json
+wrote out/h3harm/en-held/dedup_report.json
+wrote out/h3harm/en-held/dedup_remove.json
+
+== 3. sa held-out: overlap.py
+12 cleaned parts found
+train/en-dclm/part-00000.parquet: 491 documents (0s)
+train/en-fineweb-edu/part-00000.parquet: 499 documents (1s)
+train/en-fineweb-edu/part-plant.parquet: 10 documents (1s)
+train/en-nemotroncc/part-00000.parquet: 483 documents (1s)
+train/ind-hi-fw2/part-00000.parquet: 471 documents (1s)
+train/ind-hi-fw2/part-plant.parquet: 6 documents (1s)
+train/ind-hi-hplt/part-00000.parquet: 443 documents (3s)
+train/ind-hi-indiccorp/part-00000.parquet: 494 documents (3s)
+train/ind-hi-sangraha-s/part-00000.parquet: 434 documents (3s)
+train/ind-hi-sangraha-v/part-00000.parquet: 495 documents (3s)
+heldout/ind-sa-fw2/part-00000.parquet: 479 documents (4s)
+heldout/ind-sa-fw2/part-plant.parquet: 12 documents (4s)
+4317 documents, 2723515 distinct shingles, 12217 of them in 2+ documents; about 110,164 intersection steps
+  rows 256/4317: 0s, about 0s left
+  rows 4317/4317: 0s, about 0s left
+Applying H1/H2 rules; scoring code token pairs independently of raw word scores
+{
+  "status": "complete",
+  "normalize_id": "g1-spec-v1",
+  "key": "h1_key of h1_sha256.py: normalize.match_key, then NFKC, casefold, whitespace runs to one space",
+  "shingles": "word 5-grams of the key as 64-bit hashes (gram_hashes: pandas SipHash per word, combined per window); a key under 5 words is one shingle",
+  "documents": {
+    "en-dclm": {
+      "train": 491,
+      "heldout": 0,
+      "all": 491
+    },
+    "en-fineweb-edu": {
+      "train": 509,
+      "heldout": 0,
+      "all": 509
+    },
+    "en-nemotroncc": {
+      "train": 483,
+      "heldout": 0,
+      "all": 483
+    },
+    "ind-hi-fw2": {
+      "train": 477,
+      "heldout": 0,
+      "all": 477
+    },
+    "ind-hi-hplt": {
+      "train": 443,
+      "heldout": 0,
+      "all": 443
+    },
+    "ind-hi-indiccorp": {
+      "train": 494,
+      "heldout": 0,
+      "all": 494
+    },
+    "ind-hi-sangraha-s": {
+      "train": 434,
+      "heldout": 0,
+      "all": 434
+    },
+    "ind-hi-sangraha-v": {
+      "train": 495,
+      "heldout": 0,
+      "all": 495
+    },
+    "ind-sa-fw2": {
+      "train": 0,
+      "heldout": 491,
+      "all": 491
+    }
+  },
+  "documents_all": 4317,
+  "ids_used_by_2_or_more_documents": 0,
+  "h1_exact_groups": 0,
+  "documents_in_h1_exact_groups": 0,
+  "empty_documents": 0,
+  "distinct_shingles": 2723515,
+  "shingles_in_2_or_more_documents": 12217,
+  "pairs_compared": 9316086,
+  "pairs_sharing_a_shingle": 18859,
+  "pairs_at_or_above": {
+    "0.70": 1,
+    "0.75": 0,
+    "0.80": 0,
+    "0.85": 0,
+    "0.90": 0,
+    "0.95": 0
+  },
+  "pairs_stored": 1,
+  "qualifying_pairs_by_rule": {},
+  "matrix_definition": "distinct documents in row source with another qualifying H1/H2 match in column source / row source documents",
+  "duplicate_rules": {
+    "prose": "word Jaccard >= 0.80; both >= 50 words",
+    "math": "word Jaccard >= 0.90; identical signed number multisets",
+    "code": "token Jaccard >= 0.85; both >= 20 nonblank lines after comment removal",
+    "mixed_domains": "both domains' rules must pass on both documents",
+    "h1": "same H1 SHA256; bypasses H2 guards",
+    "translations": "not detected"
+  },
+  "pack_domains": {
+    "en-dclm": "prose",
+    "en-fineweb-edu": "prose",
+    "en-nemotroncc": "prose",
+    "ind-hi-fw2": "prose",
+    "ind-hi-hplt": "prose",
+    "ind-hi-indiccorp": "prose",
+    "ind-hi-sangraha-s": "prose",
+    "ind-hi-sangraha-v": "prose",
+    "ind-sa-fw2": "prose"
+  },
+  "wall_seconds": 4.4,
+  "peak_rss_mb": 289.0,
+  "versions": {
+    "python": "3.12.10",
+    "numpy": "2.4.3",
+    "scipy": "1.18.1",
+    "pandas": "3.0.1",
+    "pyarrow": "23.0.1",
+    "pygments": "2.21.0",
+    "platform": "macOS-26.4.1-arm64-arm-64bit"
+  },
+  "output_mb": 0.2
+}
+
+Pairs at Jaccard 0.80 and above:
+
+Pairs at Jaccard 1.00 and above:
+
+Pairs at exact (same H1 key):
+
+Top 1 pairs:
+  0.7096        ind-hi-sangraha-v-435e614d503682a1  ind-hi-sangraha-v-2fb37437f0dc6ceb
+
+Wrote overlap_pairs.csv, overlap_matrix.npz, overlap_docs.parquet, overlap_by_pack.csv, overlap_histogram.csv, overlap_matches.csv, overlap_matrix.csv, overlap_matrix_counts.csv and overlap_summary.json to out/h3harm/sa-held/overlap (0.2 MB)
+overlap seconds: 5
+
+== 4. sa held-out: h3.py
+W1123 20:48:47.311000 92462 site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 7292.59it/s]
+12 of 12 parts hold a configured pack: en-dclm, en-fineweb-edu, en-nemotroncc, ind-hi-fw2, ind-hi-hplt, ind-hi-indiccorp, ind-hi-sangraha-s, ind-hi-sangraha-v, ind-sa-fw2
+train/en-dclm/part-00000.parquet: 490 documents encoded or cached (18s)
+train/en-fineweb-edu/part-00000.parquet: 499 documents encoded or cached (28s)
+train/en-fineweb-edu/part-plant.parquet: 10 documents encoded or cached (28s)
+train/en-nemotroncc/part-00000.parquet: 465 documents encoded or cached (37s)
+train/ind-hi-fw2/part-00000.parquet: 465 documents encoded or cached (46s)
+train/ind-hi-fw2/part-plant.parquet: 6 documents encoded or cached (46s)
+train/ind-hi-hplt/part-00000.parquet: 441 documents encoded or cached (56s)
+train/ind-hi-indiccorp/part-00000.parquet: 377 documents encoded or cached (63s)
+train/ind-hi-sangraha-s/part-00000.parquet: 429 documents encoded or cached (72s)
+train/ind-hi-sangraha-v/part-00000.parquet: 495 documents encoded or cached (83s)
+heldout/ind-sa-fw2/part-00000.parquet: 478 documents encoded or cached (93s)
+heldout/ind-sa-fw2/part-plant.parquet: 12 documents encoded or cached (93s)
+retrieve sa-en: 490 x 1464 documents, 19 candidates (93s)
+retrieve sa-hi: 490 x 2213 documents, 109 candidates (93s)
+retrieve hi-en: 2213 x 1464 documents, 403 candidates (93s)
+verify: 383 pairs (165s)
+{
+  "documents_compared": 4167,
+  "url": {
+    "groups_with_2_or_more": 0,
+    "groups_over_url_group_max": 0,
+    "pairs": 0
+  },
+  "retrieved": {
+    "sa-en": {
+      "documents_a": 490,
+      "documents_b": 1464,
+      "pairs_in_top_k": 5366,
+      "kept": 19
+    },
+    "sa-hi": {
+      "documents_a": 490,
+      "documents_b": 2213,
+      "pairs_in_top_k": 7693,
+      "kept": 109
+    },
+    "hi-en": {
+      "documents_a": 2213,
+      "documents_b": 1464,
+      "pairs_in_top_k": 9683,
+      "kept": 403
+    }
+  },
+  "candidates": 531,
+  "verified": 383,
+  "qualifying": 7,
+  "qualifying_heldout_train": 5,
+  "qualifying_by_language_pair": {
+    "en-hi": 2,
+    "en-sa": 3,
+    "hi-sa": 2
+  },
+  "stages_seconds": {
+    "load_model": 9.78,
+    "read": 0.904,
+    "cache": 0.015,
+    "encode": 82.218,
+    "url": 0.002,
+    "retrieve": 0.072,
+    "verify_read": 0.059,
+    "verify": 71.597
+  },
+  "rates": {
+    "heads_per_second": 50.7,
+    "sentences_per_second": 100.4
+  },
+  "estimate_all_documents": {
+    "documents_encoded": {
+      "en": 1464,
+      "hi": 2213,
+      "sa": 490
+    },
+    "documents_full": {
+      "en": 1464,
+      "hi": 2213,
+      "sa": 490
+    },
+    "seconds": {
+      "load_model": 9.8,
+      "read": 0.9,
+      "encode": 82.2,
+      "retrieve": 0.1,
+      "verify": 71.7
+    },
+    "minutes_total": 2.7,
+    "every_stage_measured": true,
+    "suggested_max_time_minutes": 5,
+    "basis": "this run's rates; read scales with rows, encode with documents, retrieve with the product of the two languages' documents, verify with the smaller language's documents (at most max_verify)"
+  },
+  "wall_seconds": 164.7,
+  "peak_rss_mb": 849.5
+}
+
+Wrote h3_docs.parquet, h3_candidates.csv, h3_matches.csv, h3_by_pack.csv, h3_histogram.csv and h3_summary.json to out/h3harm/sa-held/h3
+h3 seconds: 168
+
+== 5. sa held-out: dedup.py, noh3
+4,317 documents, 0 matches, 0 clusters
+removed 0 (0.0000%): by rule {}, by stage {}
+clusters decided by priority rule: {}
+held-out removed: 0 (must be 0); held-out <-> held-out pairs reported: 0
+empty documents: 0 listed, not removed; 0 matches between them set aside
+harm check: pass
+wrote remove_list.csv, dedup_log.jsonl, heldout_duplicates.csv, empty_documents.csv, dedup_groups.csv and dedup_summary.json to out/h3harm/sa-held/dedup_noh3
+
+== 5. sa held-out: dedup.py, report
+4,317 documents, 0 matches, 0 clusters
+removed 0 (0.0000%): by rule {}, by stage {}
+clusters decided by priority rule: {}
+held-out removed: 0 (must be 0); held-out <-> held-out pairs reported: 0
+empty documents: 0 listed, not removed; 0 matches between them set aside
+h3: 7 matches, 0 removed (remove: False); outcomes {'removed': 0, 'would_remove': 5, 'already_removed': 0, 'reported_indirect': 0, 'reported_train_train': 2, 'reported_heldout_heldout': 0, 'same_group': 0, 'parallel_pack': 0}
+harm check: pass
+wrote remove_list.csv, dedup_log.jsonl, heldout_duplicates.csv, empty_documents.csv, dedup_groups.csv and dedup_summary.json to out/h3harm/sa-held/dedup_report
+
+== 5. sa held-out: dedup.py, remove
+4,317 documents, 0 matches, 0 clusters
+removed 5 (0.1158%): by rule {'H3': 5}, by stage {'cross_language': 5}
+clusters decided by priority rule: {}
+held-out removed: 0 (must be 0); held-out <-> held-out pairs reported: 0
+empty documents: 0 listed, not removed; 0 matches between them set aside
+h3: 7 matches, 5 removed (remove: True); outcomes {'removed': 5, 'would_remove': 0, 'already_removed': 0, 'reported_indirect': 0, 'reported_train_train': 2, 'reported_heldout_heldout': 0, 'same_group': 0, 'parallel_pack': 0}
+harm check: pass
+wrote remove_list.csv, dedup_log.jsonl, heldout_duplicates.csv, empty_documents.csv, dedup_groups.csv and dedup_summary.json to out/h3harm/sa-held/dedup_remove
+
+== 3. hi held-out: overlap.py
+12 cleaned parts found
+train/en-dclm/part-00000.parquet: 491 documents (0s)
+train/en-fineweb-edu/part-00000.parquet: 499 documents (1s)
+train/en-fineweb-edu/part-plant.parquet: 5 documents (1s)
+train/en-nemotroncc/part-00000.parquet: 483 documents (1s)
+train/ind-sa-fw2/part-00000.parquet: 479 documents (2s)
+train/ind-sa-fw2/part-plant.parquet: 5 documents (2s)
+heldout/ind-hi-fw2/part-00000.parquet: 471 documents (2s)
+heldout/ind-hi-fw2/part-plant.parquet: 6 documents (2s)
+heldout/ind-hi-hplt/part-00000.parquet: 443 documents (3s)
+heldout/ind-hi-indiccorp/part-00000.parquet: 494 documents (3s)
+heldout/ind-hi-sangraha-s/part-00000.parquet: 434 documents (4s)
+heldout/ind-hi-sangraha-v/part-00000.parquet: 495 documents (4s)
+4305 documents, 2722527 distinct shingles, 12222 of them in 2+ documents; about 110,212 intersection steps
+  rows 256/4305: 0s, about 0s left
+  rows 4305/4305: 0s, about 0s left
+Applying H1/H2 rules; scoring code token pairs independently of raw word scores
+{
+  "status": "complete",
+  "normalize_id": "g1-spec-v1",
+  "key": "h1_key of h1_sha256.py: normalize.match_key, then NFKC, casefold, whitespace runs to one space",
+  "shingles": "word 5-grams of the key as 64-bit hashes (gram_hashes: pandas SipHash per word, combined per window); a key under 5 words is one shingle",
+  "documents": {
+    "en-dclm": {
+      "train": 491,
+      "heldout": 0,
+      "all": 491
+    },
+    "en-fineweb-edu": {
+      "train": 504,
+      "heldout": 0,
+      "all": 504
+    },
+    "en-nemotroncc": {
+      "train": 483,
+      "heldout": 0,
+      "all": 483
+    },
+    "ind-hi-fw2": {
+      "train": 0,
+      "heldout": 477,
+      "all": 477
+    },
+    "ind-hi-hplt": {
+      "train": 0,
+      "heldout": 443,
+      "all": 443
+    },
+    "ind-hi-indiccorp": {
+      "train": 0,
+      "heldout": 494,
+      "all": 494
+    },
+    "ind-hi-sangraha-s": {
+      "train": 0,
+      "heldout": 434,
+      "all": 434
+    },
+    "ind-hi-sangraha-v": {
+      "train": 0,
+      "heldout": 495,
+      "all": 495
+    },
+    "ind-sa-fw2": {
+      "train": 484,
+      "heldout": 0,
+      "all": 484
+    }
+  },
+  "documents_all": 4305,
+  "ids_used_by_2_or_more_documents": 0,
+  "h1_exact_groups": 0,
+  "documents_in_h1_exact_groups": 0,
+  "empty_documents": 0,
+  "distinct_shingles": 2722527,
+  "shingles_in_2_or_more_documents": 12222,
+  "pairs_compared": 9264360,
+  "pairs_sharing_a_shingle": 18866,
+  "pairs_at_or_above": {
+    "0.70": 1,
+    "0.75": 0,
+    "0.80": 0,
+    "0.85": 0,
+    "0.90": 0,
+    "0.95": 0
+  },
+  "pairs_stored": 1,
+  "qualifying_pairs_by_rule": {},
+  "matrix_definition": "distinct documents in row source with another qualifying H1/H2 match in column source / row source documents",
+  "duplicate_rules": {
+    "prose": "word Jaccard >= 0.80; both >= 50 words",
+    "math": "word Jaccard >= 0.90; identical signed number multisets",
+    "code": "token Jaccard >= 0.85; both >= 20 nonblank lines after comment removal",
+    "mixed_domains": "both domains' rules must pass on both documents",
+    "h1": "same H1 SHA256; bypasses H2 guards",
+    "translations": "not detected"
+  },
+  "pack_domains": {
+    "en-dclm": "prose",
+    "en-fineweb-edu": "prose",
+    "en-nemotroncc": "prose",
+    "ind-hi-fw2": "prose",
+    "ind-hi-hplt": "prose",
+    "ind-hi-indiccorp": "prose",
+    "ind-hi-sangraha-s": "prose",
+    "ind-hi-sangraha-v": "prose",
+    "ind-sa-fw2": "prose"
+  },
+  "wall_seconds": 4.4,
+  "peak_rss_mb": 275.1,
+  "versions": {
+    "python": "3.12.10",
+    "numpy": "2.4.3",
+    "scipy": "1.18.1",
+    "pandas": "3.0.1",
+    "pyarrow": "23.0.1",
+    "pygments": "2.21.0",
+    "platform": "macOS-26.4.1-arm64-arm-64bit"
+  },
+  "output_mb": 0.2
+}
+
+Pairs at Jaccard 0.80 and above:
+
+Pairs at Jaccard 1.00 and above:
+
+Pairs at exact (same H1 key):
+
+Top 1 pairs:
+  0.7096        ind-hi-sangraha-v-435e614d503682a1  ind-hi-sangraha-v-2fb37437f0dc6ceb
+
+Wrote overlap_pairs.csv, overlap_matrix.npz, overlap_docs.parquet, overlap_by_pack.csv, overlap_histogram.csv, overlap_matches.csv, overlap_matrix.csv, overlap_matrix_counts.csv and overlap_summary.json to out/h3harm/hi-held/overlap (0.2 MB)
+overlap seconds: 5
+
+== 4. hi held-out: h3.py
+W1123 20:51:42.866000 92983 site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 7158.80it/s]
+12 of 12 parts hold a configured pack: en-dclm, en-fineweb-edu, en-nemotroncc, ind-hi-fw2, ind-hi-hplt, ind-hi-indiccorp, ind-hi-sangraha-s, ind-hi-sangraha-v, ind-sa-fw2
+train/en-dclm/part-00000.parquet: 490 documents encoded or cached (9s)
+train/en-fineweb-edu/part-00000.parquet: 499 documents encoded or cached (10s)
+train/en-fineweb-edu/part-plant.parquet: 5 documents encoded or cached (10s)
+train/en-nemotroncc/part-00000.parquet: 465 documents encoded or cached (10s)
+train/ind-sa-fw2/part-00000.parquet: 478 documents encoded or cached (10s)
+train/ind-sa-fw2/part-plant.parquet: 5 documents encoded or cached (10s)
+heldout/ind-hi-fw2/part-00000.parquet: 465 documents encoded or cached (10s)
+heldout/ind-hi-fw2/part-plant.parquet: 6 documents encoded or cached (10s)
+heldout/ind-hi-hplt/part-00000.parquet: 441 documents encoded or cached (10s)
+heldout/ind-hi-indiccorp/part-00000.parquet: 377 documents encoded or cached (10s)
+heldout/ind-hi-sangraha-s/part-00000.parquet: 429 documents encoded or cached (11s)
+heldout/ind-hi-sangraha-v/part-00000.parquet: 495 documents encoded or cached (11s)
+retrieve sa-en: 483 x 1459 documents, 12 candidates (11s)
+retrieve sa-hi: 483 x 2213 documents, 106 candidates (11s)
+retrieve hi-en: 2213 x 1459 documents, 403 candidates (11s)
+verify: 373 pairs (74s)
+{
+  "documents_compared": 4155,
+  "url": {
+    "groups_with_2_or_more": 0,
+    "groups_over_url_group_max": 0,
+    "pairs": 0
+  },
+  "retrieved": {
+    "sa-en": {
+      "documents_a": 483,
+      "documents_b": 1459,
+      "pairs_in_top_k": 5342,
+      "kept": 12
+    },
+    "sa-hi": {
+      "documents_a": 483,
+      "documents_b": 2213,
+      "pairs_in_top_k": 7677,
+      "kept": 106
+    },
+    "hi-en": {
+      "documents_a": 2213,
+      "documents_b": 1459,
+      "pairs_in_top_k": 9669,
+      "kept": 403
+    }
+  },
+  "candidates": 521,
+  "verified": 373,
+  "qualifying": 4,
+  "qualifying_heldout_train": 4,
+  "qualifying_by_language_pair": {
+    "en-hi": 3,
+    "sa-hi": 1
+  },
+  "stages_seconds": {
+    "load_model": 9.013,
+    "read": 0.88,
+    "cache": 0.297,
+    "encode": 0.429,
+    "url": 0.001,
+    "retrieve": 0.334,
+    "verify_read": 0.046,
+    "verify": 62.637
+  },
+  "rates": {
+    "heads_per_second": 37.3,
+    "sentences_per_second": 112.3
+  },
+  "estimate_all_documents": {
+    "documents_encoded": {
+      "en": 1459,
+      "hi": 2213,
+      "sa": 483
+    },
+    "documents_full": {
+      "en": 1459,
+      "hi": 2213,
+      "sa": 483
+    },
+    "seconds": {
+      "load_model": 9.0,
+      "read": 0.9,
+      "encode": 111.4,
+      "retrieve": 0.3,
+      "verify": 62.7
+    },
+    "minutes_total": 3.1,
+    "every_stage_measured": true,
+    "suggested_max_time_minutes": 5,
+    "basis": "this run's rates; read scales with rows, encode with documents, retrieve with the product of the two languages' documents, verify with the smaller language's documents (at most max_verify)"
+  },
+  "wall_seconds": 73.7,
+  "peak_rss_mb": 866.4
+}
+
+Wrote h3_docs.parquet, h3_candidates.csv, h3_matches.csv, h3_by_pack.csv, h3_histogram.csv and h3_summary.json to out/h3harm/hi-held/h3
+h3 seconds: 76
+
+== 5. hi held-out: dedup.py, noh3
+4,305 documents, 0 matches, 0 clusters
+removed 0 (0.0000%): by rule {}, by stage {}
+clusters decided by priority rule: {}
+held-out removed: 0 (must be 0); held-out <-> held-out pairs reported: 0
+empty documents: 0 listed, not removed; 0 matches between them set aside
+harm check: pass
+wrote remove_list.csv, dedup_log.jsonl, heldout_duplicates.csv, empty_documents.csv, dedup_groups.csv and dedup_summary.json to out/h3harm/hi-held/dedup_noh3
+
+== 5. hi held-out: dedup.py, report
+4,305 documents, 0 matches, 0 clusters
+removed 0 (0.0000%): by rule {}, by stage {}
+clusters decided by priority rule: {}
+held-out removed: 0 (must be 0); held-out <-> held-out pairs reported: 0
+empty documents: 0 listed, not removed; 0 matches between them set aside
+h3: 4 matches, 0 removed (remove: False); outcomes {'removed': 0, 'would_remove': 4, 'already_removed': 0, 'reported_indirect': 0, 'reported_train_train': 0, 'reported_heldout_heldout': 0, 'same_group': 0, 'parallel_pack': 0}
+harm check: pass
+wrote remove_list.csv, dedup_log.jsonl, heldout_duplicates.csv, empty_documents.csv, dedup_groups.csv and dedup_summary.json to out/h3harm/hi-held/dedup_report
+
+== 5. hi held-out: dedup.py, remove
+4,305 documents, 0 matches, 0 clusters
+removed 4 (0.0929%): by rule {'H3': 4}, by stage {'cross_language': 4}
+clusters decided by priority rule: {}
+held-out removed: 0 (must be 0); held-out <-> held-out pairs reported: 0
+empty documents: 0 listed, not removed; 0 matches between them set aside
+h3: 4 matches, 4 removed (remove: True); outcomes {'removed': 4, 'would_remove': 0, 'already_removed': 0, 'reported_indirect': 0, 'reported_train_train': 0, 'reported_heldout_heldout': 0, 'same_group': 0, 'parallel_pack': 0}
+harm check: pass
+wrote remove_list.csv, dedup_log.jsonl, heldout_duplicates.csv, empty_documents.csv, dedup_groups.csv and dedup_summary.json to out/h3harm/hi-held/dedup_remove
+
+== 3. en held-out: overlap.py
+12 cleaned parts found
+train/ind-hi-fw2/part-00000.parquet: 471 documents (0s)
+train/ind-hi-fw2/part-plant.parquet: 5 documents (0s)
+train/ind-hi-hplt/part-00000.parquet: 443 documents (2s)
+train/ind-hi-indiccorp/part-00000.parquet: 494 documents (2s)
+train/ind-hi-sangraha-s/part-00000.parquet: 434 documents (2s)
+train/ind-hi-sangraha-v/part-00000.parquet: 495 documents (2s)
+train/ind-sa-fw2/part-00000.parquet: 479 documents (3s)
+train/ind-sa-fw2/part-plant.parquet: 5 documents (3s)
+heldout/en-dclm/part-00000.parquet: 491 documents (3s)
+heldout/en-fineweb-edu/part-00000.parquet: 499 documents (4s)
+heldout/en-fineweb-edu/part-plant.parquet: 6 documents (4s)
+heldout/en-nemotroncc/part-00000.parquet: 483 documents (4s)
+4305 documents, 2722444 distinct shingles, 12224 of them in 2+ documents; about 110,187 intersection steps
+  rows 256/4305: 0s, about 0s left
+  rows 4305/4305: 0s, about 0s left
+Applying H1/H2 rules; scoring code token pairs independently of raw word scores
+{
+  "status": "complete",
+  "normalize_id": "g1-spec-v1",
+  "key": "h1_key of h1_sha256.py: normalize.match_key, then NFKC, casefold, whitespace runs to one space",
+  "shingles": "word 5-grams of the key as 64-bit hashes (gram_hashes: pandas SipHash per word, combined per window); a key under 5 words is one shingle",
+  "documents": {
+    "en-dclm": {
+      "train": 0,
+      "heldout": 491,
+      "all": 491
+    },
+    "en-fineweb-edu": {
+      "train": 0,
+      "heldout": 505,
+      "all": 505
+    },
+    "en-nemotroncc": {
+      "train": 0,
+      "heldout": 483,
+      "all": 483
+    },
+    "ind-hi-fw2": {
+      "train": 476,
+      "heldout": 0,
+      "all": 476
+    },
+    "ind-hi-hplt": {
+      "train": 443,
+      "heldout": 0,
+      "all": 443
+    },
+    "ind-hi-indiccorp": {
+      "train": 494,
+      "heldout": 0,
+      "all": 494
+    },
+    "ind-hi-sangraha-s": {
+      "train": 434,
+      "heldout": 0,
+      "all": 434
+    },
+    "ind-hi-sangraha-v": {
+      "train": 495,
+      "heldout": 0,
+      "all": 495
+    },
+    "ind-sa-fw2": {
+      "train": 484,
+      "heldout": 0,
+      "all": 484
+    }
+  },
+  "documents_all": 4305,
+  "ids_used_by_2_or_more_documents": 0,
+  "h1_exact_groups": 0,
+  "documents_in_h1_exact_groups": 0,
+  "empty_documents": 0,
+  "distinct_shingles": 2722444,
+  "shingles_in_2_or_more_documents": 12224,
+  "pairs_compared": 9264360,
+  "pairs_sharing_a_shingle": 18855,
+  "pairs_at_or_above": {
+    "0.70": 1,
+    "0.75": 0,
+    "0.80": 0,
+    "0.85": 0,
+    "0.90": 0,
+    "0.95": 0
+  },
+  "pairs_stored": 1,
+  "qualifying_pairs_by_rule": {},
+  "matrix_definition": "distinct documents in row source with another qualifying H1/H2 match in column source / row source documents",
+  "duplicate_rules": {
+    "prose": "word Jaccard >= 0.80; both >= 50 words",
+    "math": "word Jaccard >= 0.90; identical signed number multisets",
+    "code": "token Jaccard >= 0.85; both >= 20 nonblank lines after comment removal",
+    "mixed_domains": "both domains' rules must pass on both documents",
+    "h1": "same H1 SHA256; bypasses H2 guards",
+    "translations": "not detected"
+  },
+  "pack_domains": {
+    "en-dclm": "prose",
+    "en-fineweb-edu": "prose",
+    "en-nemotroncc": "prose",
+    "ind-hi-fw2": "prose",
+    "ind-hi-hplt": "prose",
+    "ind-hi-indiccorp": "prose",
+    "ind-hi-sangraha-s": "prose",
+    "ind-hi-sangraha-v": "prose",
+    "ind-sa-fw2": "prose"
+  },
+  "wall_seconds": 4.4,
+  "peak_rss_mb": 277.1,
+  "versions": {
+    "python": "3.12.10",
+    "numpy": "2.4.3",
+    "scipy": "1.18.1",
+    "pandas": "3.0.1",
+    "pyarrow": "23.0.1",
+    "pygments": "2.21.0",
+    "platform": "macOS-26.4.1-arm64-arm-64bit"
+  },
+  "output_mb": 0.2
+}
+
+Pairs at Jaccard 0.80 and above:
+
+Pairs at Jaccard 1.00 and above:
+
+Pairs at exact (same H1 key):
+
+Top 1 pairs:
+  0.7096        ind-hi-sangraha-v-435e614d503682a1  ind-hi-sangraha-v-2fb37437f0dc6ceb
+
+Wrote overlap_pairs.csv, overlap_matrix.npz, overlap_docs.parquet, overlap_by_pack.csv, overlap_histogram.csv, overlap_matches.csv, overlap_matrix.csv, overlap_matrix_counts.csv and overlap_summary.json to out/h3harm/en-held/overlap (0.2 MB)
+overlap seconds: 5
+
+== 4. en held-out: h3.py
+W1123 20:53:06.685000 93279 site-packages/torch/distributed/elastic/multiprocessing/redirects.py:35] NOTE: Redirects are currently not supported in MacOs.
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 7222.49it/s]
+12 of 12 parts hold a configured pack: en-dclm, en-fineweb-edu, en-nemotroncc, ind-hi-fw2, ind-hi-hplt, ind-hi-indiccorp, ind-hi-sangraha-s, ind-hi-sangraha-v, ind-sa-fw2
+train/ind-hi-fw2/part-00000.parquet: 465 documents encoded or cached (9s)
+train/ind-hi-fw2/part-plant.parquet: 5 documents encoded or cached (10s)
+train/ind-hi-hplt/part-00000.parquet: 441 documents encoded or cached (10s)
+train/ind-hi-indiccorp/part-00000.parquet: 377 documents encoded or cached (10s)
+train/ind-hi-sangraha-s/part-00000.parquet: 429 documents encoded or cached (10s)
+train/ind-hi-sangraha-v/part-00000.parquet: 495 documents encoded or cached (10s)
+train/ind-sa-fw2/part-00000.parquet: 478 documents encoded or cached (10s)
+train/ind-sa-fw2/part-plant.parquet: 5 documents encoded or cached (10s)
+heldout/en-dclm/part-00000.parquet: 490 documents encoded or cached (10s)
+heldout/en-fineweb-edu/part-00000.parquet: 499 documents encoded or cached (10s)
+heldout/en-fineweb-edu/part-plant.parquet: 6 documents encoded or cached (11s)
+heldout/en-nemotroncc/part-00000.parquet: 465 documents encoded or cached (11s)
+retrieve sa-en: 483 x 1460 documents, 14 candidates (11s)
+retrieve sa-hi: 483 x 2212 documents, 104 candidates (11s)
+retrieve hi-en: 2212 x 1460 documents, 403 candidates (11s)
+verify: 373 pairs (74s)
+{
+  "documents_compared": 4155,
+  "url": {
+    "groups_with_2_or_more": 0,
+    "groups_over_url_group_max": 0,
+    "pairs": 0
+  },
+  "retrieved": {
+    "sa-en": {
+      "documents_a": 483,
+      "documents_b": 1460,
+      "pairs_in_top_k": 5346,
+      "kept": 14
+    },
+    "sa-hi": {
+      "documents_a": 483,
+      "documents_b": 2212,
+      "pairs_in_top_k": 7675,
+      "kept": 104
+    },
+    "hi-en": {
+      "documents_a": 2212,
+      "documents_b": 1460,
+      "pairs_in_top_k": 9668,
+      "kept": 403
+    }
+  },
+  "candidates": 521,
+  "verified": 373,
+  "qualifying": 5,
+  "qualifying_heldout_train": 5,
+  "qualifying_by_language_pair": {
+    "hi-en": 3,
+    "sa-en": 2
+  },
+  "stages_seconds": {
+    "load_model": 9.127,
+    "read": 0.915,
+    "cache": 0.113,
+    "encode": 0.458,
+    "url": 0.001,
+    "retrieve": 0.361,
+    "verify_read": 0.06,
+    "verify": 62.793
+  },
+  "rates": {
+    "heads_per_second": 34.9,
+    "sentences_per_second": 112.1
+  },
+  "estimate_all_documents": {
+    "documents_encoded": {
+      "en": 1460,
+      "hi": 2212,
+      "sa": 483
+    },
+    "documents_full": {
+      "en": 1460,
+      "hi": 2212,
+      "sa": 483
+    },
+    "seconds": {
+      "load_model": 9.1,
+      "read": 0.9,
+      "encode": 118.9,
+      "retrieve": 0.4,
+      "verify": 62.9
+    },
+    "minutes_total": 3.2,
+    "every_stage_measured": true,
+    "suggested_max_time_minutes": 5,
+    "basis": "this run's rates; read scales with rows, encode with documents, retrieve with the product of the two languages' documents, verify with the smaller language's documents (at most max_verify)"
+  },
+  "wall_seconds": 73.9,
+  "peak_rss_mb": 849.4
+}
+
+Wrote h3_docs.parquet, h3_candidates.csv, h3_matches.csv, h3_by_pack.csv, h3_histogram.csv and h3_summary.json to out/h3harm/en-held/h3
+h3 seconds: 76
+
+== 5. en held-out: dedup.py, noh3
+4,305 documents, 0 matches, 0 clusters
+removed 0 (0.0000%): by rule {}, by stage {}
+clusters decided by priority rule: {}
+held-out removed: 0 (must be 0); held-out <-> held-out pairs reported: 0
+empty documents: 0 listed, not removed; 0 matches between them set aside
+harm check: pass
+wrote remove_list.csv, dedup_log.jsonl, heldout_duplicates.csv, empty_documents.csv, dedup_groups.csv and dedup_summary.json to out/h3harm/en-held/dedup_noh3
+
+== 5. en held-out: dedup.py, report
+4,305 documents, 0 matches, 0 clusters
+removed 0 (0.0000%): by rule {}, by stage {}
+clusters decided by priority rule: {}
+held-out removed: 0 (must be 0); held-out <-> held-out pairs reported: 0
+empty documents: 0 listed, not removed; 0 matches between them set aside
+h3: 5 matches, 0 removed (remove: False); outcomes {'removed': 0, 'would_remove': 5, 'already_removed': 0, 'reported_indirect': 0, 'reported_train_train': 0, 'reported_heldout_heldout': 0, 'same_group': 0, 'parallel_pack': 0}
+harm check: pass
+wrote remove_list.csv, dedup_log.jsonl, heldout_duplicates.csv, empty_documents.csv, dedup_groups.csv and dedup_summary.json to out/h3harm/en-held/dedup_report
+
+== 5. en held-out: dedup.py, remove
+4,305 documents, 0 matches, 0 clusters
+removed 5 (0.1161%): by rule {'H3': 5}, by stage {'cross_language': 5}
+clusters decided by priority rule: {}
+held-out removed: 0 (must be 0); held-out <-> held-out pairs reported: 0
+empty documents: 0 listed, not removed; 0 matches between them set aside
+h3: 5 matches, 5 removed (remove: True); outcomes {'removed': 5, 'would_remove': 0, 'already_removed': 0, 'reported_indirect': 0, 'reported_train_train': 0, 'reported_heldout_heldout': 0, 'same_group': 0, 'parallel_pack': 0}
+harm check: pass
+wrote remove_list.csv, dedup_log.jsonl, heldout_duplicates.csv, empty_documents.csv, dedup_groups.csv and dedup_summary.json to out/h3harm/en-held/dedup_remove
+
+== 6. Harm check with the planted cases
+| Layout | Harm check | Gold in input | Gold removed | remove false = no H3 | H3 removed (real) | p1 removed / qualifying / planted | p2 | p3 removed / planted | Status |
+|---|---|---|---|---|---|---|---|---|---|
+| sa-held | pass | 1308 | 0 | yes | 5 (0) | 3 / 3 / 6 | 2 / 2 / 6 | 0 / 2 | pass |
+| hi-held | pass | 1308 | 0 | yes | 4 (0) | 4 / 4 / 6 | 0 / 0 / 0 | 0 / 2 | pass |
+| en-held | pass | 1308 | 0 | yes | 5 (0) | 5 / 5 / 6 | 0 / 0 / 0 | 0 / 2 | pass |
+harm cases: pass
+
+wall seconds: 359

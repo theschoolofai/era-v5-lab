@@ -26,7 +26,7 @@ weekly updates, the dashboard text, the run report, the model card and the launc
 | Data | The names of public data sources, and the kinds of problems we found in them. Short examples only if TSAI approves them and they hold no personal data. |
 | Benchmarks | The names of the benchmarks that G9 Evaluation gives us. Scores only after TSAI approves them. |
 | Methods | Methods that others have already published, described in general terms. |
-| Links | Links to the public lab repository. |
+| Links | Links to the public lab repository. The model card may also cite public papers for the benchmarks and methods that it uses ([TSAI review on #852](https://github.com/theschoolofai/era-v5-lab/pull/852#pullrequestreview-6086452938)). |
 
 ## Internal, unless TSAI approves it in writing
 

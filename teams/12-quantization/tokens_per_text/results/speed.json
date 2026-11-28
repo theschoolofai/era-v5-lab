@@ -1,0 +1,100 @@
+{
+ "machine": "arm64 Darwin arm",
+ "decode_tokens": 64,
+ "context_points": [
+  0,
+  1024,
+  2048,
+  4096
+ ],
+ "models": {
+  "standin-dr2-bf16.gguf": {
+   "points": [
+    {
+     "context": 0,
+     "ms_per_token": 8.747,
+     "all_ms": [
+      8.756,
+      8.747,
+      8.637
+     ]
+    },
+    {
+     "context": 1024,
+     "ms_per_token": 8.817,
+     "all_ms": [
+      8.814,
+      8.817,
+      9.231
+     ]
+    },
+    {
+     "context": 2048,
+     "ms_per_token": 9.012,
+     "all_ms": [
+      8.967,
+      9.149,
+      9.012
+     ]
+    },
+    {
+     "context": 4096,
+     "ms_per_token": 9.264,
+     "all_ms": [
+      9.298,
+      9.264,
+      9.255
+     ]
+    }
+   ],
+   "n_layer": 8,
+   "n_kv_head": 2,
+   "head_dim": 64,
+   "kv_bytes_per_token": 4096
+  },
+  "standin-dr2-q8_0.gguf": {
+   "points": [
+    {
+     "context": 0,
+     "ms_per_token": 1.587,
+     "all_ms": [
+      1.587,
+      1.592,
+      1.535
+     ]
+    },
+    {
+     "context": 1024,
+     "ms_per_token": 1.706,
+     "all_ms": [
+      1.728,
+      1.693,
+      1.706
+     ]
+    },
+    {
+     "context": 2048,
+     "ms_per_token": 1.861,
+     "all_ms": [
+      1.838,
+      1.874,
+      1.861
+     ]
+    },
+    {
+     "context": 4096,
+     "ms_per_token": 2.064,
+     "all_ms": [
+      2.069,
+      2.041,
+      2.064
+     ]
+    }
+   ],
+   "n_layer": 8,
+   "n_kv_head": 2,
+   "head_dim": 64,
+   "kv_bytes_per_token": 4096
+  }
+ }
+}

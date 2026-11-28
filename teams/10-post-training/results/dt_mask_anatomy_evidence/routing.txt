@@ -1,0 +1,28 @@
+$ for p in parts/part*.txt; do llama-imatrix -m Qwen3-30B-A3B-Base.Q4_K_M.gguf -f $p -o ${p%.txt}.gguf -c 512 -ngl 99 --parse-special --no-ppl; done
+$ python dt/mask_anatomy.py routing <masks>/grpo/qwen3-30b-a3b-base-simplerl-zoo parts/part00.gguf ... parts/part31.gguf
+48 layers x 128 experts; routed slots per layer 8,388,608 to 8,388,608; layer medians 4,348 to 14,932
+experts with zero calibration tokens: 20; heavy experts: 18; heavy with zero tokens: 15; zero-token experts that are not heavy: 5
+  heavy 2:105: 0 tokens (layer median 12,101), 41.279% deleted
+  heavy 3:83: 0 tokens (layer median 13,508), 41.217% deleted
+  heavy 7:102: 0 tokens (layer median 8,030), 39.625% deleted
+  heavy 13:56: 0 tokens (layer median 9,924), 41.173% deleted
+  heavy 13:99: 0 tokens (layer median 9,924), 40.862% deleted
+  heavy 16:86: 0 tokens (layer median 10,588), 40.201% deleted
+  heavy 16:96: 0 tokens (layer median 10,588), 40.294% deleted
+  heavy 17:101: 0 tokens (layer median 11,287), 40.770% deleted
+  heavy 18:36: 2 tokens (layer median 4,730), 41.107% deleted
+  heavy 25:56: 0 tokens (layer median 8,890), 40.889% deleted
+  heavy 28:86: 0 tokens (layer median 11,300), 40.134% deleted
+  heavy 37:56: 0 tokens (layer median 10,847), 41.403% deleted
+  heavy 40:86: 0 tokens (layer median 9,633), 41.160% deleted
+  heavy 41:24: 4 tokens (layer median 13,167), 42.109% deleted
+  heavy 42:51: 1 tokens (layer median 9,559), 41.228% deleted
+  heavy 44:74: 0 tokens (layer median 11,546), 40.250% deleted
+  heavy 44:124: 0 tokens (layer median 11,546), 41.678% deleted
+  heavy 46:65: 0 tokens (layer median 10,560), 40.905% deleted
+  not heavy, 0 tokens 0:15: 0.075% deleted
+  not heavy, 0 tokens 23:83: 0.111% deleted
+  not heavy, 0 tokens 40:96: 0.070% deleted
+  not heavy, 0 tokens 41:107: 0.111% deleted
+  not heavy, 0 tokens 42:11: 0.077% deleted
+experts that are not heavy with <= 4 tokens: 50 of 6126

@@ -1,0 +1,15 @@
+{
+  "_comment": "E5d reader sheets on the sample. labse: E5c's h3.py run (theschoolofai/era-v5-lab#625): the five files of jobs/results/2026-11-18-h3-e5c/ (#858) and h3_docs.parquet from TSAI's link, copied to out/h3_e5c. bge-m3: #666's run (jobs/logs/2026-11-25-h3-e5c-bge-m3-colab/), with its h3_docs.parquet. Inputs: the #244 cleaning of sample v0, rebuilt from the raw sample; the generator refuses any drawn document whose text differs from what a run read. Layout: 50 items per sheet (h3_design_v1.md, E5d): every qualifying pair, then 0.45-0.6, above; 0.30-0.45 below; the Sanskrit controls of h3_e5d_controls.py. Short where the runs list fewer pairs (jobs/logs/2026-11-27-h3-e5d-e5c-sheets.txt). or-en has no readers and no gold, so it is left out.",
+  "runs": {"labse": "out/h3_e5c", "bge-m3": "out/h3_666_colab_run/h3_bge_m3"},
+  "inputs": "out/tokenizer_sample_v0_clean_pr244_e5c",
+  "controls": "out/e5d_controls/controls.parquet",
+  "out": "out/e5d_e5c",
+  "pairs": [["sa", "en"], ["sa", "hi"], ["hi", "en"]],
+  "buckets": {
+    "above": {"bands": [[0.6, 1.0], [0.45, 0.6]], "n": {"sa-en": 18, "sa-hi": 20, "hi-en": 25}},
+    "below": {"bands": [[0.3, 0.45]], "n": {"sa-en": 17, "sa-hi": 19, "hi-en": 25}}
+  },
+  "n_controls": {"sa-en": 15, "sa-hi": 11, "hi-en": 0},
+  "readers": 2,
+  "seed": 20261127
+}

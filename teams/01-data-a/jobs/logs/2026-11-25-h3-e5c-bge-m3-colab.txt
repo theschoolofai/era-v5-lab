@@ -1,0 +1,102 @@
+=== run started 2026-11-25 16:02 UTC, 0 parts cached
+CUDA 13.0 Tesla T4
+Loading weights:   0%|          | 0/391 [00:00<?, ?it/s]Loading weights: 100%|██████████| 391/391 [00:00<00:00, 26590.56it/s]
+21 of 23 parts hold a configured pack: en-dclm, en-fineweb-edu, en-nemotroncc, ind-hi-fw2, ind-hi-hplt, ind-hi-indiccorp, ind-hi-sangraha-s, ind-hi-sangraha-v, ind-sa-fw2
+train/en-dclm/part-00000.parquet: 45124 documents encoded or cached (202s)
+train/en-dclm/part-00001.parquet: 14764 documents encoded or cached (265s)
+train/en-fineweb-edu/part-00000.parquet: 53596 documents encoded or cached (518s)
+train/en-fineweb-edu/part-00001.parquet: 17776 documents encoded or cached (601s)
+train/en-nemotroncc/part-00000.parquet: 62905 documents encoded or cached (882s)
+train/en-nemotroncc/part-00001.parquet: 21132 documents encoded or cached (976s)
+train/ind-hi-fw2/part-00000.parquet: 13639 documents encoded or cached (1042s)
+train/ind-hi-hplt/part-00000.parquet: 8387 documents encoded or cached (1083s)
+train/ind-hi-indiccorp/part-00000.parquet: 45160 documents encoded or cached (1278s)
+train/ind-hi-sangraha-s/part-00000.parquet: 6279 documents encoded or cached (1310s)
+train/ind-hi-sangraha-v/part-00000.parquet: 14449 documents encoded or cached (1379s)
+train/ind-sa-fw2/part-00000.parquet: 5639 documents encoded or cached (1405s)
+heldout/en-dclm/part-00000.parquet: 586 documents encoded or cached (1408s)
+heldout/en-fineweb-edu/part-00000.parquet: 726 documents encoded or cached (1412s)
+heldout/en-nemotroncc/part-00000.parquet: 866 documents encoded or cached (1415s)
+heldout/ind-hi-fw2/part-00000.parquet: 129 documents encoded or cached (1416s)
+heldout/ind-hi-hplt/part-00000.parquet: 91 documents encoded or cached (1417s)
+heldout/ind-hi-indiccorp/part-00000.parquet: 428 documents encoded or cached (1419s)
+heldout/ind-hi-sangraha-s/part-00000.parquet: 63 documents encoded or cached (1419s)
+heldout/ind-hi-sangraha-v/part-00000.parquet: 121 documents encoded or cached (1420s)
+heldout/ind-sa-fw2/part-00000.parquet: 54 documents encoded or cached (1420s)
+retrieve sa-en: 5693 x 217475 documents, 5095 candidates (1422s)
+retrieve sa-hi: 5693 x 88746 documents, 5835 candidates (1422s)
+verify: 7201 pairs (1605s)
+{
+  "documents_compared": 311914,
+  "url": {
+    "groups_with_2_or_more": 51,
+    "groups_over_url_group_max": 0,
+    "pairs": 0
+  },
+  "retrieved": {
+    "sa-en": {
+      "documents_a": 5693,
+      "documents_b": 217475,
+      "pairs_in_top_k": 662652,
+      "kept": 5095
+    },
+    "sa-hi": {
+      "documents_a": 5693,
+      "documents_b": 88746,
+      "pairs_in_top_k": 277066,
+      "kept": 5835
+    }
+  },
+  "candidates": 10930,
+  "verified": 7201,
+  "qualifying": 2,
+  "qualifying_heldout_train": 0,
+  "qualifying_by_language_pair": {
+    "hi-sa": 2
+  },
+  "stages_seconds": {
+    "load_model": 21.304,
+    "read": 82.913,
+    "cache": 2.481,
+    "encode": 1309.689,
+    "url": 0.086,
+    "retrieve": 2.216,
+    "verify_read": 5.472,
+    "verify": 177.438
+  },
+  "rates": {
+    "heads_per_second": 238.2,
+    "sentences_per_second": 653.6
+  },
+  "estimate_all_documents": {
+    "documents_encoded": {
+      "en": 217475,
+      "hi": 88746,
+      "sa": 5693
+    },
+    "documents_full": {
+      "en": 217475,
+      "hi": 88746,
+      "sa": 5693
+    },
+    "seconds": {
+      "load_model": 21.3,
+      "read": 82.9,
+      "encode": 1309.7,
+      "retrieve": 2.2,
+      "verify": 182.9
+    },
+    "minutes_total": 26.7,
+    "every_stage_measured": true,
+    "suggested_max_time_minutes": 40,
+    "basis": "this run's rates; read scales with rows, encode with documents, retrieve with the product of the two languages' documents, verify with the smaller language's documents (at most max_verify)"
+  },
+  "wall_seconds": 1605.7,
+  "peak_rss_mb": 3594.1
+}
+
+Wrote h3_docs.parquet, h3_candidates.csv, h3_matches.csv, h3_by_pack.csv, h3_histogram.csv and h3_summary.json to out/h3_bge_m3
+
+real	26m51.042s
+user	27m38.646s
+sys	0m17.043s
