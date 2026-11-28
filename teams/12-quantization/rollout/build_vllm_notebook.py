@@ -42,6 +42,8 @@ sampled at temperature 1 and scored by the same PyTorch bf16 reference. The llam
 - vLLM's W4A16 kernels may not load on a T4 (week 2 found Marlin MoE needs compute capability 8.0). If W4A16 fails to load, rerun on an L4 or A100.
 - GPTQ is calibrated on web text (fineweb-edu), as in week 2, not on code: the quantization of a code model may suffer for that reason.
 
+**Handing the quantized copy to Team 10:** set `EXPORT_W4A16 = True` for the real run. The W4A16 folder (vLLM loads it directly) is written as a zip in the output, with `W4A16_manifest.json` (sha256 of every file) next to it. The release of any model file is TSAI's decision (Qwen2.5-Coder-1.5B is Apache-2.0); share the zip with Team 10 only.
+
 **Smoke first:** keep `SMOKE = True`, `N = 5`, `K = 2`, `MAX_NEW = 32`. Kaggle: Accelerator **GPU T4 x2**, Internet **on**. Then set `SMOKE = False`,
 `N = 50`, `K = 8`, `MAX_NEW = 256`. No token is needed (the model is public, Apache-2.0).
 """),
@@ -58,6 +60,7 @@ METHOD        = "gptq"                # or "rtn" (no calibration) if GPTQ fails
 FORMATS       = ["base", "W4A16"]     # base = the unquantized model in vLLM
 VLLM_DTYPE    = "half"                # T4 has no bf16 compute: "half". On an L4 or A100: "bfloat16"
 VLLM_UTIL     = 0.80                  # share of GPU memory vLLM may take
+EXPORT_W4A16  = False                 # True: also write the quantized folder as a zip into the output (about 1 GB), for Team 10's RL loop
 # pinned to the versions of week 2 (gpu_path/results/environment.json)
 QUANT_PKGS    = ["llmcompressor==0.15.0", "compressed-tensors==0.20.1", "datasets==5.1.0"]
 VLLM_PKGS     = ["vllm==0.33.0"]
@@ -89,7 +92,7 @@ print(GPUS)
 sh("curl -fsS -o /dev/null https://huggingface.co || (echo 'NO INTERNET: turn it on in the notebook settings' && false)")
 ENV = {"started": datetime.datetime.now().isoformat(timespec="seconds"), "platform": "kaggle" if KAGGLE else "colab", "run_by": RUN_BY,
        "notebook_version": NOTEBOOK_VERSION, "gpu": GPUS,
-       "settings": {k: globals()[k] for k in ("MODEL", "REVISION", "PROMPTS", "N", "K", "MAX_NEW", "SMOKE", "METHOD", "FORMATS", "VLLM_DTYPE", "VLLM_UTIL",
+       "settings": {k: globals()[k] for k in ("MODEL", "REVISION", "PROMPTS", "N", "K", "MAX_NEW", "SMOKE", "METHOD", "FORMATS", "VLLM_DTYPE", "VLLM_UTIL", "EXPORT_W4A16",
                                               "QUANT_PKGS", "VLLM_PKGS", "TORCH_DTYPE")}, "formats": {}}
 def save_env():
     json.dump(ENV, open(f"{OUT}/environment.json", "w"), indent=1)
@@ -132,6 +135,20 @@ if "W4A16" in FORMATS:
     # fails unless every decoder linear is stored packed (llm-compressor can skip layers silently)
     sh(f"python3 {CODE}/check_dense_w4a16.py {W4} --layers {LAYERS} --base {BF16} --out {OUT}/check_W4A16.json")
     shutil.copy(W4 / "quantize_meta.json", OUT / "quantize_meta.json")
+    # a manifest of the quantized folder (sha256 of every file), so Team 10 can check the copy it receives is this one
+    import hashlib
+    def _sha(p):
+        h = hashlib.sha256()
+        with open(p, "rb") as f:
+            for b in iter(lambda: f.read(1 << 22), b""):
+                h.update(b)
+        return h.hexdigest()
+    manifest = {"model": MODEL, "revision": REVISION, "method": METHOD, "smoke": SMOKE, "scheme": "W4A16, group size 128, lm_head kept in bf16",
+                "files": {p.name: {"sha256": _sha(p), "bytes": p.stat().st_size} for p in sorted(W4.iterdir()) if p.is_file()}}
+    json.dump(manifest, open(f"{OUT}/W4A16_manifest.json", "w"), indent=1)
+    print("W4A16 folder:", round(sum(v["bytes"] for v in manifest["files"].values()) / 1e9, 2), "GB in", len(manifest["files"]), "files")
+    if EXPORT_W4A16:
+        print("zip:", shutil.make_archive(f"{OUT}/model-W4A16-{METHOD}" + ("-smoke" if SMOKE else ""), "zip", W4))
 save_env()
 """),
 code("""
@@ -187,7 +204,7 @@ if os.path.exists(TORCH_JSON):
     print(f"\\nreference = PyTorch {tj['dtype']} ({tj['reference']}); intervals resample prompts"); print(tt.to_string(index=False))
 ENV["finished"] = datetime.datetime.now().isoformat(timespec="seconds"); save_env()
 shutil.copy(f"{OUT}/environment.json", f"{RUNS}/environment.json"); shutil.copytree(f"{OUT}/logs", f"{RUNS}/logs", dirs_exist_ok=True)
-for extra in ("quantize_meta.json", "check_W4A16.json"):
+for extra in ("quantize_meta.json", "check_W4A16.json", "W4A16_manifest.json"):
     if os.path.exists(f"{OUT}/{extra}"):
         shutil.copy(f"{OUT}/{extra}", f"{RUNS}/{extra}")
 zip_path = shutil.make_archive(RUNS, "zip", RUNS)      # the dump (token ids) is inside: do not commit it
