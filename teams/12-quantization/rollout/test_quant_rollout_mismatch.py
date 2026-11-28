@@ -255,3 +255,112 @@ def test_g10_rollout_note_for_a_run_that_did_not_record_its_prompt_selection(tmp
     ns = argparse.Namespace(model="toy", notebook_version="v1", pr_this="a", pr_baseline="b", hardware="Kaggle T4 x2", prompt_note="first 48 of the fixed prompts")
     md = g.render(g.load_llama(d), {**_torch_ref(), "formats": _torch_ref()["formats"][1:2]}, ns)
     assert "first (not recorded)" in md and "composition not recorded" in md and "first 48 of the fixed prompts" in md
+
+
+def test_run_format_records_the_category_in_the_dump(tmp_path):
+    path = tmp_path / "d.jsonl"
+    m.run_format("stub", Stub(1.0), Stub(1.0), [[5, 6, 4], [1, 2]], k=1, max_new=3, eps=0.2, dump_path=path, categories=["code", "indic"])
+    assert [json.loads(x)["category"] for x in path.read_text().splitlines()] == ["code", "indic"]
+
+
+def test_torch_stage_reports_a_breakdown_by_category(toy_hf, tmp_path):
+    torch = pytest.importorskip("torch")
+    import score_with_torch as st
+    model, _ = toy_hf
+    recs = _records_from(model, n=4)
+    for i, r in enumerate(recs):
+        r["category"] = ["code", "indic"][i % 2]
+    per, pos, cl = st.score_records(model, recs, torch.device("cpu"), "float32")
+    cat = per.pop("category")
+    assert set(cat) == {"code", "indic"}
+    sub = {k: v[cat == "code"] for k, v in per.items()}
+    agg = m.aggregate(sub, pos[cat == "code"], clusters=cl[cat == "code"])
+    assert agg["tokens"] == 12 and agg["outside"] == 0                              # 2 rollouts x 6 tokens of an identical sampler
+
+
+def test_categories_from_the_prompt_file_match_the_selection(tmp_path):
+    import score_with_torch as st
+    p = tmp_path / "p.jsonl"
+    rows = [{"prompt": f"e{i}", "category": "english"} for i in range(3)] + [{"prompt": f"c{i}", "category": "code"} for i in range(3)]
+    p.write_text("\n".join(json.dumps(r) for r in rows))
+    assert st.categories_from_prompt_file(p, 4, balanced=True) == ["english", "code", "english", "code"]
+    assert st.categories_from_prompt_file(p, 4, balanced=False) == ["english", "english", "english", "code"]
+
+
+def test_g10_note_has_a_category_table_when_the_run_has_one(tmp_path):
+    import make_g10_note as g
+    d = _llama_dir(tmp_path)
+    t = _torch_ref()
+    cat = {"outside": 0.2, "k3": 0.01, "top1_agreement": 0.9}
+    t["formats"][1]["by_category"] = {"code": dict(cat), "indic": {**cat, "outside": 0.3}}
+    ns = argparse.Namespace(model="toy", notebook_version="v9", pr_this="a", pr_baseline="b", hardware="Kaggle T4 x2", prompt_note="")
+    md = g.render(g.load_llama(d), t, ns)
+    assert "## By prompt category" in md and "code: outside / k3 / top-1" in md and "30.00% / 0.0100 / 90.00%" in md
+    assert "## By prompt category" not in g.render(g.load_llama(d), _torch_ref(), ns)
+
+
+def test_g10_note_prints_the_category_source_note(tmp_path):
+    import make_g10_note as g
+    d = _llama_dir(tmp_path)
+    t = _torch_ref()
+    t["formats"][1]["by_category"] = {"code": {"outside": 0.2, "k3": 0.01, "top1_agreement": 0.9}}
+    t["category_note"] = "Per-category rows were recomputed on Apple MPS from the same dump."
+    ns = argparse.Namespace(model="toy", notebook_version="v9", pr_this="a", pr_baseline="b", hardware="Kaggle T4 x2", prompt_note="")
+    assert "recomputed on Apple MPS from the same dump" in g.render(g.load_llama(d), t, ns)
+
+
+# ---- per-rollout rows and the per-prompt / per-step k3 spread ----------------------------------------------------
+def test_rollout_stats_splits_at_rollout_starts_and_sums_k3():
+    import score_with_torch as st
+    lr = np.array([0.1, -0.2, 0.0, 0.3, 0.3])
+    per = {"lp_ref": lr, "lp_q": np.zeros(5)}
+    pos = np.array([0, 1, 2, 0, 1]); cl = np.array([7, 7, 7, 9, 9]); cat = np.array(["code"] * 3 + ["indic"] * 2, dtype=object)
+    rows = st.rollout_stats(per, pos, cl, cat)
+    assert [(r["prompt_idx"], r["category"], r["tokens"]) for r in rows] == [(7, "code", 3), (9, "indic", 2)]
+    k3 = lambda x: np.exp(x) - x - 1
+    assert np.isclose(rows[0]["k3_sum"], k3(0.1) + k3(-0.2) + k3(0.0)) and np.isclose(rows[1]["abs_logratio_sum"], 0.6)
+
+
+def _fmt(k3_per_prompt, tokens=100, rollouts=2, cats=None):
+    rows = []
+    for i, k in enumerate(k3_per_prompt):
+        for _ in range(rollouts):
+            rows.append({"prompt_idx": i, "category": (cats[i] if cats else "english"), "tokens": tokens, "k3_sum": k * tokens, "abs_logratio_sum": 0.0})
+    return {"format": "toy", "per_rollout": rows}
+
+
+def test_spread_per_prompt_and_pooled_k3():
+    import step_k3_spread as sp
+    r = sp.analyse(_fmt([0.01, 0.02, 0.10, 0.20]), threshold=0.05, per_step=2, n_steps=2000)
+    assert np.isclose(r["pooled_k3"], np.mean([0.01, 0.02, 0.10, 0.20])) and r["per_prompt"]["share_above"] == 0.5
+    assert r["per_prompt"]["max"] == 0.2 and r["per_rollout"]["share_above"] == 0.5
+
+
+def test_a_step_with_every_prompt_equals_the_pooled_k3_and_smaller_steps_vary():
+    import step_k3_spread as sp
+    fmt = _fmt([0.0, 0.0, 0.0, 0.4])
+    full = sp.analyse(fmt, threshold=0.05, per_step=4, n_steps=500)
+    assert np.isclose(full["per_step"]["median"], 0.1) and np.isclose(full["per_step"]["max"], 0.1) and full["per_step"]["share_above"] == 1.0
+    two = sp.analyse(fmt, threshold=0.05, per_step=2, n_steps=20000)
+    assert abs(two["per_step"]["share_above"] - 0.5) < 0.02                        # the bad prompt is in half of the 2-prompt draws
+    assert two["per_step"]["max"] > full["per_step"]["max"]
+
+
+def test_spread_is_deterministic_and_reports_categories():
+    import step_k3_spread as sp
+    fmt = _fmt([0.01, 0.2, 0.01, 0.2], cats=["code", "code", "indic", "indic"])
+    a = sp.analyse(fmt, 0.05, 2, n_steps=500); b = sp.analyse(fmt, 0.05, 2, n_steps=500)
+    assert a == b and a["by_category_per_prompt"]["code"]["share_above"] == 0.5 and a["by_category_per_prompt"]["indic"]["prompts"] == 2
+
+
+def test_g10_note_speed_baseline_can_be_a_vllm_format(tmp_path):
+    import make_g10_note as g
+    d = tmp_path / "v"; d.mkdir()
+    meta = {"reference": "m", "prompts": 50, "prompt_selection": "balanced", "prompt_categories": {"code": 50}, "k": 8, "max_new": 256, "eps": 0.2, "temperature": 1.0}
+    for fmt, tps in (("vllm_fp16", 1000.0), ("vllm_W4A16", 1800.0)):
+        (d / f"{fmt}.json").write_text(json.dumps({**meta, "formats": [{"format": fmt, "rollout_tokens_per_s": tps}]}))
+    t = _torch_ref(); t["formats"] = [{**t["formats"][0], "format": "vllm_fp16"}, {**t["formats"][1], "format": "vllm_W4A16"}]
+    ns = argparse.Namespace(model="toy", notebook_version="v", pr_this="a", pr_baseline="b", hardware="Kaggle T4 x2", prompt_note="", speed_base="vllm_fp16")
+    md = g.render(g.load_llama(d), t, ns)
+    assert [l for l in md.splitlines() if l.startswith("| `vllm_W4A16`")][0].rstrip().endswith("| 1800.0 | 1.80x |")
+    assert "No `bf16` sampler row was run" not in md
