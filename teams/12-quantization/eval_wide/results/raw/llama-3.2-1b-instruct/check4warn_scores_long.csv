@@ -1,0 +1,10 @@
+format,task,n,score,seconds,s_per_item,truncated,guard,ship_table
+Q5_K_M,mmlu,14042,47.5,1276.6,0.091,0,"check 4 warn mode, WARNING RAISED: 4. easy item answered wrong: [-0.96, -0.92, -5.95, -9.55]",False
+Q5_K_M,arc_challenge,1172,37.6,215.5,0.184,0,"check 4 warn mode, WARNING RAISED: 4. easy item answered wrong: [-0.96, -0.92, -5.95, -9.55]",False
+Q5_K_M,belebele_hin_Deva,900,33.7,172.6,0.192,0,"check 4 warn mode, WARNING RAISED: 4. easy item answered wrong: [-0.96, -0.92, -5.95, -9.55]",False
+Q6_K,mmlu,14042,48.4,1311.5,0.093,0,check 4 warn mode,False
+Q6_K,arc_challenge,1172,37.9,218.8,0.187,0,check 4 warn mode,False
+Q6_K,belebele_hin_Deva,900,32.7,175.4,0.195,0,check 4 warn mode,False
+bf16,mmlu,14042,48.2,2535.0,0.181,0,check 4 warn mode,False
+bf16,arc_challenge,1172,37.9,366.7,0.313,0,check 4 warn mode,False
+bf16,belebele_hin_Deva,900,34.0,333.8,0.371,0,check 4 warn mode,False

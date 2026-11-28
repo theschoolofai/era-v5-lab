@@ -5,7 +5,8 @@ The 570-item MMLU slice of eval_mini saw −0.2 (p 1.0) for the same model (#295
 fails MMLU on the p < 0.01 rule, although its point drop is far inside the −3 limit. Q8_0 passes everything. This is the
 third model of the wide pass, after sarvam-1 and Granite 3.0 3B-A800M ([`RESULTS.md`](RESULTS.md)), and it points the same way.
 
-**Q6_K passes as well (26 Nov, section 6): MMLU +0.12, p 0.50. Q5_K_M was not scored: it failed check 4 of the guard test.**
+**Q6_K passes as well (26 Nov, section 6): MMLU +0.12, p 0.50. Q5_K_M, scored on 28 Nov with check 4 of the guard test in
+warn mode (#857, section 7), fails MMLU: −0.76, p 0.001.**
 
 Belebele Kannada, Telugu, Tamil and Bengali needed a longer context than #737's 4,096 tokens for this model (their 5-shot
 prompts are 2 to 3.4 times as long as Hindi's). Rerun at `n_ctx` 12,288 with no truncation, bf16 scores 25 to 29% on them,
@@ -162,3 +163,51 @@ Q6_K against bf16 on the same items (statistics as in section 2; full table in
   tasks) is not comparable with section 1's.
 - Files: `raw/llama-3.2-1b-instruct/Q6_K/` (per-item rows and `summary.json`, no item text) and, in
   `raw/llama-3.2-1b-instruct/logs/`, the guard-test and quantize logs of both formats.
+
+## 7. Q5_K_M with check 4 of the guard in warn mode (28 Nov, #857)
+
+TSAI approved #857 (a check-4 miss can be a warning for quantized files; checks 1 and 2 stay strict; every result scored
+under it says so), and the Team 12 lead commented OK on 28 Nov; on 27 Nov he had asked for Llama Q5_K_M first, with the
+same setting for every format of the model. Same model, revision, runner, tasks, `n_ctx`, seed and output layer as section 6; the notebook is
+today's `../eval_wide.ipynb` (version b8a11b4740b1) with `GUARD = {"EVAL_GUARD_CHECK4": "warn"}`
+([`raw/llama-3.2-1b-instruct/eval_wide_llama32_1b_check4warn.ipynb`](raw/llama-3.2-1b-instruct/eval_wide_llama32_1b_check4warn.ipynb)),
+on a member's own Kaggle quota, **2 × Tesla T4**. bf16, Q6_K and Q5_K_M were all scored under that setting.
+
+| Task | Items | Shots | bf16 | Q5_K_M (check 4 warn mode) |
+|---|---:|---:|---:|---:|
+| MMLU | 14,042 | 0 | 48.24 | 47.48 |
+| ARC-C | 1,172 | 0 | 37.88 | 37.63 |
+| Belebele Hindi | 900 | 5 | 34.00 | 33.67 |
+
+| | Q5_K_M |
+|---|---:|
+| GGUF size | 0.98 GB |
+| Guard test (`test_llamacpp_lm.py`) | checks 1 to 3 PASS (prefix-cache diff 0.0002); check 4 **warning**: right answer −0.96, a wrong one −0.92, as on 26 Nov |
+| Scoring time, 3 tasks | 29 min |
+
+Q5_K_M (check 4 warn mode) against bf16 on the same items (statistics as in section 2; full table in
+[`paired_llama-3.2-1b-instruct.md`](paired_llama-3.2-1b-instruct.md)):
+
+| Task | Q5_K_M (check 4 warn mode) | p | b / c |
+|---|---|---:|---:|
+| MMLU | **−0.76** (−1.19 to −0.33) | 0.001 | 527 / 420 |
+| ARC-C | −0.26 (−1.43 to +0.92) | 0.775 | 26 / 23 |
+| Belebele Hindi | −0.33 (−2.14 to +1.48) | 0.810 | 36 / 33 |
+
+- **Q5_K_M fails MMLU under `docs/bitwidth_proposal.md`:** the drop is far inside the −3 limit, but p is 0.001, below
+  0.01; 947 of 14,042 items (6.7%) change answer, 527 right to wrong against 420 wrong to right. It is the same result as
+  sarvam-1's Q5_K_M (−0.70, p 0.002, [`RESULTS.md`](RESULTS.md) section 10) and unlike gemma-2-2b's (passes), so it agrees
+  with the proposal's "do not ship Q5_K_M". ARC-C and Belebele Hindi are inside their limits.
+- **The setting changes nothing for formats that pass check 4.** bf16 and Q6_K, scored again under it, give the same
+  answer on every item as the files above: 14,042, 1,172 and 900 of 14,042, 1,172 and 900 for each format
+  ([`raw/llama-3.2-1b-instruct/check4warn_reproduction.json`](raw/llama-3.2-1b-instruct/check4warn_reproduction.json)).
+  Those two reruns are labelled "check 4 warn mode" in `check4warn_scores_long.csv` and are not used in any table; the
+  default-scored files above stay the record for bf16 and Q6_K.
+- **bf16 now also reproduces across one and two GPUs.** Section 1's bf16 ran on one T4 and this one on two, with the same
+  answer on every item, which answers section 6's open point on the two-GPU split for bf16.
+- **Labels:** every Q5_K_M number above and in the paired table was scored with check 4 in warn mode and is kept out of the
+  ship table (`raw/llama-3.2-1b-instruct/Q5_K_M/guard.json`; `ship_table` False in `check4warn_scores_long.csv`).
+- Files: `raw/llama-3.2-1b-instruct/Q5_K_M/` (per-item rows, `summary.json` and `guard.json`, no item text); in
+  `raw/llama-3.2-1b-instruct/logs/`, the three guard logs of this run (`*_check4warn.log`) and its quantize log;
+  `check4warn_environment.json`, `check4warn_scores_long.csv` and `check4warn_reproduction.json` beside them.
+
