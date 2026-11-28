@@ -1,0 +1,700 @@
+{
+  "set_sha256": "2826a3b883210c653979103c09ce1c79e40fc4f7034b54027f2836482370d22a",
+  "run_f2_py_sha256": "1651b3725357b2a2b684fda6a047cc5697c1331d1b43bb242712f422403af040",
+  "files": 86,
+  "rows": 1444766,
+  "kept": 1442638,
+  "dropped_by_f2": 2128,
+  "errors": 0,
+  "seconds": 916.7,
+  "per_file": [
+    {
+      "input": "<data>/packs38/Cap1-packs/cadj-commits/Heldout/part-00000.parquet",
+      "input_sha256": "d348562970bac1d6234e54bbbc4a1c3973865a676cc69ace8718bf1f6c2760dc",
+      "output_sha256": "04aaf97309e79312eb40630861b4598788b9376868c9fcf20932cda5a8351e5c",
+      "rows": 826,
+      "kept": 826,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/cadj-commits/Part_1/part-00000.parquet",
+      "input_sha256": "d2d2b3bfa92e8e8c1915118546e7c2fcc8fd0735eadf7ddd516921f07b5e0f9c",
+      "output_sha256": "e86f0c4dbe0aefc24334f00a4587bca7b77a822fc81109d10700f83e5d289765",
+      "rows": 74753,
+      "kept": 74739,
+      "dropped_by_f2": 14
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/cadj-notebooks/Heldout/part-00000.parquet",
+      "input_sha256": "b837a991cecf754667fd19d002f6fa8bd0b336782ce25f4c6306d079f02b3f5a",
+      "output_sha256": "d86ca448ed8c3d4936319db46187de50c5889d77643bdae11d041c3dc29eee72",
+      "rows": 169,
+      "kept": 168,
+      "dropped_by_f2": 1
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/cadj-notebooks/Part_1/part-00000.parquet",
+      "input_sha256": "736aded769d6ba112639bfc2def11f32c6d339257ae597e0b699526552c1f333",
+      "output_sha256": "34e43a29655a23122a26f6989d9838311becf195885e5dc2696a016ddb58a29a",
+      "rows": 15563,
+      "kept": 15498,
+      "dropped_by_f2": 65
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/cadj-stackexchange/Heldout/part-00000.parquet",
+      "input_sha256": "0fddecede001859988619051842b74f1fb72af9638e27a38e06daa6f9b3f9fd5",
+      "output_sha256": "e7794ce22065848229a970a5ad2ab195ee428169f90d62c9d737f2f35d2429af",
+      "rows": 409,
+      "kept": 408,
+      "dropped_by_f2": 1
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/cadj-stackexchange/Part_1/part-00000.parquet",
+      "input_sha256": "f313932bc7a3206edf0e4fdf5a3c0836f106ea97fecccfabdbee961ccc556de4",
+      "output_sha256": "64c9a65c36b4a22f399c7d3f0e9cea922a0ba12269dba541702e5c32a01545ae",
+      "rows": 41396,
+      "kept": 41335,
+      "dropped_by_f2": 61
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/code-cpp/Heldout/part-00000.parquet",
+      "input_sha256": "25bf9442a84771d1a54a4bde4981859f30f434d434f1aaaece82807bb0724f01",
+      "output_sha256": "f0419cf92f6238a2fee0beabcc6010b51f90b46133e85f6a9e7ada0d1fe8fd81",
+      "rows": 613,
+      "kept": 612,
+      "dropped_by_f2": 1
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/code-cpp/Part_1/part-00000.parquet",
+      "input_sha256": "5d638fd78dc7a661e1f287199984de8d4e1c7fee5e9ce21dfa5b5fb97a00a971",
+      "output_sha256": "67724b7f9ea5fcea37861902ae79b791982543107a4a81aa0c9774b4b7c53616",
+      "rows": 41116,
+      "kept": 41061,
+      "dropped_by_f2": 55
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/code-cpp/Part_2/part-00001.parquet",
+      "input_sha256": "0a4ff1232dcf7f4af2f79476294063714a029054b553690bb8e84da3d88608f2",
+      "output_sha256": "1bcb2c4a85bb0eb80ddee4c40323e5c485b74ebcbd9717ac34375793d4644e01",
+      "rows": 14429,
+      "kept": 14407,
+      "dropped_by_f2": 22
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/code-go/Heldout/part-00000.parquet",
+      "input_sha256": "be4917c1049d1e1a22286d2822c96c47f688bcf2bb9bdafba9511ae350728745",
+      "output_sha256": "03b046e968257535db9f41724b2ad467d0203b4a50fa0793351877924e2f6e9c",
+      "rows": 872,
+      "kept": 869,
+      "dropped_by_f2": 3
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/code-go/Part_1/part-00000.parquet",
+      "input_sha256": "6b7b52e854df0456e3a9867b32f5217b54995faa30dbd6b8b94e23eab6db8eb1",
+      "output_sha256": "205adab2bae599a0c3907e06cc825081a4adfe235e3253d728728f6f0260a1c1",
+      "rows": 61393,
+      "kept": 60962,
+      "dropped_by_f2": 431
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/code-go/Part_2/part-00001.parquet",
+      "input_sha256": "40aedd68c4ec949eb825edc68896ae4518cf6c3283027d9ba1430ee66ee247fc",
+      "output_sha256": "936adba454d9aa7e77620953e81ee4bf256fd615169bdfbc952bff43334def1e",
+      "rows": 21874,
+      "kept": 21714,
+      "dropped_by_f2": 160
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/code-java/Heldout/part-00000.parquet",
+      "input_sha256": "c50e6accad04341e291e188738ec368134142b2c06118a358940491837e218c4",
+      "output_sha256": "c1d38e057ad94722f3744d9b57f87337ab380bda537ea13c9700ff0193236637",
+      "rows": 847,
+      "kept": 847,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/code-java/Part_1/part-00000.parquet",
+      "input_sha256": "e4dca53d3b6931a4277ff794881fa437e62db04074ed4efca833775ac97f097b",
+      "output_sha256": "540f976bdad254b3ee1a4b28c93688a1d6608c99e2647ebb8b51efebe248b6bc",
+      "rows": 62834,
+      "kept": 62820,
+      "dropped_by_f2": 14
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/code-java/Part_2/part-00001.parquet",
+      "input_sha256": "278439aa70bd41a18f167de9adc3ca552309f52e635640adf6bf9e999d1266c3",
+      "output_sha256": "afabcfed789fb07e0a432ad338cc101966b6b425559f8652af3b02887bee22d5",
+      "rows": 22379,
+      "kept": 22375,
+      "dropped_by_f2": 4
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/code-js-ts/Heldout/part-00000.parquet",
+      "input_sha256": "cad9e205b551282cb8a55999cef0fdc36455f59446e58b1eacd0c45f577de77e",
+      "output_sha256": "9ca595e86bebdb3a4ef19008b9570dccbddff9f1c255232fcf43268fdf739dfc",
+      "rows": 1234,
+      "kept": 1231,
+      "dropped_by_f2": 3
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/code-js-ts/Part_1/part-00000.parquet",
+      "input_sha256": "185694a65f72630cbbd56c98a2b8728e872b2da9dab5ebb26c39b0722ef42653",
+      "output_sha256": "85864c725e5b458e000f6cbf45923260901a80fcc0e9d734b30d5ef033c65432",
+      "rows": 89960,
+      "kept": 89883,
+      "dropped_by_f2": 77
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/code-js-ts/Part_2/part-00001.parquet",
+      "input_sha256": "36fea017a45e62fef38d0431f316ed5fd6afdde57db111817af6883f8f3f1f35",
+      "output_sha256": "88aa7142d20e207b197c89f3d0ca4fc4be20a11d4760d944d10a66163dbdddbe",
+      "rows": 31978,
+      "kept": 31954,
+      "dropped_by_f2": 24
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/code-python/Heldout/part-00000.parquet",
+      "input_sha256": "6ebf57ef84a2963e45b74c10df397206ca47aaf278dd35d6464f9792f548da2e",
+      "output_sha256": "b2725d9705dc2e7af57a0ee58990cd841726cc65a9f5e148e15fc54617393eaa",
+      "rows": 718,
+      "kept": 717,
+      "dropped_by_f2": 1
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/code-python/Part_1/part-00000.parquet",
+      "input_sha256": "8d9575b43cfb9cf3647e63e91d026eb8ed40f3981b698da33b83d09e6326641d",
+      "output_sha256": "4c4751fa1e272f280e3f9ecacddd92b6f1c701a2fa8c2f189d32cfd5ee76e6c2",
+      "rows": 55143,
+      "kept": 54979,
+      "dropped_by_f2": 164
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/code-python/Part_2/part-00001.parquet",
+      "input_sha256": "985831590bc02ebddc0276223e1f022fde0e7c2e809fb7d97e74492bb6f5aa16",
+      "output_sha256": "22d5317799845bc13d2b1603cc5640ee4c65f1868d0864c29afd5c01b776ca23",
+      "rows": 19800,
+      "kept": 19740,
+      "dropped_by_f2": 60
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/code-rust/Heldout/part-00000.parquet",
+      "input_sha256": "7879813e212722e3540dde0340c2f9d3dbe2e74112a6121c9c36ad81bf9669ec",
+      "output_sha256": "aaade6298e4aff196969d635d02a019efc7fdd4ad345d27574b4e7a47f7410cd",
+      "rows": 612,
+      "kept": 612,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/code-rust/Part_1/part-00000.parquet",
+      "input_sha256": "f1632a12383e1efb9eee68bf8b57566291ea64801146cf144dfba9c363f32e21",
+      "output_sha256": "fe84806c1324928b725f0062344a5835b8559f4af12186326b259cf0ca4bad8c",
+      "rows": 44581,
+      "kept": 44557,
+      "dropped_by_f2": 24
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/code-rust/Part_2/part-00001.parquet",
+      "input_sha256": "9dab607bd3c9464536bed594b77b5cd8edef6e731c5320f0c50d1017ebf59513",
+      "output_sha256": "3771860708d4660d0171087e237c696f37b9d1e6b259c14cf195b098d08da8d9",
+      "rows": 15545,
+      "kept": 15532,
+      "dropped_by_f2": 13
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/en-dclm/Heldout/part-00000.parquet",
+      "input_sha256": "60d0741e754b70dffab4398ca617b37a408121b2f60fed95f8cf871996aacc36",
+      "output_sha256": "f5fdb36c48686b07167433f841f88a878c9af35648681a5b464f372840dc2658",
+      "rows": 608,
+      "kept": 608,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/en-dclm/Part_1/part-00000.parquet",
+      "input_sha256": "67b305d60aa0f4091612f6fefe0c7aee867872943017c5ebb598293c19dfeb88",
+      "output_sha256": "96a563ddcc73479254746a70ebee3cd6bad6fb8d38c2360cd4d2f6022c69e8d4",
+      "rows": 46245,
+      "kept": 46211,
+      "dropped_by_f2": 34
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/en-dclm/Part_2/part-00001.parquet",
+      "input_sha256": "0dec2d4fc09db2950d6f619810b6d2abf6d854b5d44d402c646cce2b74bd96a6",
+      "output_sha256": "b158049858a082d40c9469ded7b26e518629fc68d6f18fc82ca9de0167376924",
+      "rows": 15122,
+      "kept": 15117,
+      "dropped_by_f2": 5
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/en-fineweb-edu/Heldout/part-00000.parquet",
+      "input_sha256": "727ee3f5ee0ef235fdd5839e516130e3b3fbb4a95345bfc827175f69ecd2647a",
+      "output_sha256": "42a4480ba1fa2e8118026eea3420ada3e62ca69d59ae65a41e9348fb8f05b3fa",
+      "rows": 732,
+      "kept": 732,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/en-fineweb-edu/Part_1/part-00000.parquet",
+      "input_sha256": "53cbbf7a77b84e46108836c889e6cb83e6fcdc048c316fbf699586a7fef1dbe2",
+      "output_sha256": "723d8d9ffe65f5aba6808e6217ea3fb09ba96b11aed25ac3a4f8a25ddf6da11a",
+      "rows": 54004,
+      "kept": 53943,
+      "dropped_by_f2": 61
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/en-fineweb-edu/Part_2/part-00001.parquet",
+      "input_sha256": "bdd5d5b4f7aa8ec00e17865b5ebe13344728569aa7ffff7f37ba942b6fe42229",
+      "output_sha256": "7485d9baea6241fa15c89ffdffe531e53def02cfc9c84661d378f4f2a1946e03",
+      "rows": 17929,
+      "kept": 17905,
+      "dropped_by_f2": 24
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/en-nemotroncc/Heldout/part-00000.parquet",
+      "input_sha256": "76653abac4785a2a7b14931142af29f64d3d621e8ea0c26c8d729a82b29f7845",
+      "output_sha256": "44a16969c5120046fff722029cfa4e54ba6c7dfb0b5679228bc36cdaeaf29dc5",
+      "rows": 954,
+      "kept": 953,
+      "dropped_by_f2": 1
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/en-nemotroncc/Part_1/part-00000.parquet",
+      "input_sha256": "19d641f52f5fc9c884da2fc4b4df1bc0327d73e327c12abb8efe0201c1668fda",
+      "output_sha256": "4019f218fec847f65c510b92f32ff8691069bc65f27746e36f20e23099bbdefe",
+      "rows": 68777,
+      "kept": 68749,
+      "dropped_by_f2": 28
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/en-nemotroncc/Part_2/part-00001.parquet",
+      "input_sha256": "afba6a19de409e5208b3eb690ed360ad90aebb5c4cfd7f2bd389b468d2066202",
+      "output_sha256": "9a243c1248b427b5a2b6e11296941d45a9f7b7045a089818ede190f70b18e7de",
+      "rows": 23043,
+      "kept": 23026,
+      "dropped_by_f2": 17
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/en-nemotroncc-synth/Heldout/part-00000.parquet",
+      "input_sha256": "3fcbb50614d90f680168e0c95479e364e995a6ebbbdfc56df90746b58c38aff8",
+      "output_sha256": "a0a6893262fec4ff6fa96c3042b4fba96fccd247366d290838c39a57f79723cd",
+      "rows": 1975,
+      "kept": 1974,
+      "dropped_by_f2": 1
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/en-nemotroncc-synth/Part_1/part-00000.parquet",
+      "input_sha256": "a601748f22e32bfb839bdb76e8e645f3beae510460857eb206fbdf3ce53a2427",
+      "output_sha256": "248e332b8b1d73fd4946924bcd6fd8f71c055c2e5f09cb9522c2441e5e49c8b6",
+      "rows": 147754,
+      "kept": 147722,
+      "dropped_by_f2": 32
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/en-nemotroncc-synth/Part_2/part-00001.parquet",
+      "input_sha256": "03a9efeb92e210dcb5b32d350cdee60fa032d21ea9454cefc913b0785f55ae9f",
+      "output_sha256": "d1aed50556d04e077cddf606870161db315451e2221cd9326358012044b08c4f",
+      "rows": 49365,
+      "kept": 49354,
+      "dropped_by_f2": 11
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-bn-fw2/Heldout/part-00000.parquet",
+      "input_sha256": "dcaa8dabd3ea88c672d2acf20ac49779d00c9c938f07a1c8f7d203221493c35c",
+      "output_sha256": "70e77f174caa0ff3a3abdcbcfe8240b1d7988e78805f3e756af78d0af870fb28",
+      "rows": 112,
+      "kept": 112,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-bn-fw2/Part_1/part-00000.parquet",
+      "input_sha256": "fda2605fd302c5bee7ad3c780e11460a7ccdfc60d4a1467854c1dee974d633e9",
+      "output_sha256": "f6d24c48d807925cc8ff8c019b57e08052a1a1dc7d64da8af7e2a63b8751347f",
+      "rows": 11205,
+      "kept": 11205,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-bn-sangraha-v/Heldout/part-00000.parquet",
+      "input_sha256": "e6745f0059d965c9426ef9530161c0a1d0d8c53c79336656bc16e4e9f1090ad0",
+      "output_sha256": "f607a0da8ef4053bc87fdf193248a5a2005cfb7c7110bfa4d05b47af506f2b52",
+      "rows": 102,
+      "kept": 102,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-bn-sangraha-v/Part_1/part-00000.parquet",
+      "input_sha256": "84a59d8676186cdd4676e65cd8d00ce5dde23a3abb76be66c1d9389a163194ed",
+      "output_sha256": "21a4620a0082b0f1d8af47e254b1dc167ea8979e067e132399e3ec929853d541",
+      "rows": 10328,
+      "kept": 10328,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-gu-fw2/Heldout/part-00000.parquet",
+      "input_sha256": "928f0d5f4ec290f6196197247b26fc62ee100949d1d409a2b744295d9968c349",
+      "output_sha256": "cf2c1e98013e3b79d4547272e2799babdca8aa4b452eeff34184a5f2c28d6bb8",
+      "rows": 239,
+      "kept": 238,
+      "dropped_by_f2": 1
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-gu-fw2/Part_1/part-00000.parquet",
+      "input_sha256": "c6acc68da0a785c7704821414230474f05ebb40824f0fd30cc19cdcd29b5000f",
+      "output_sha256": "aa55540396e93fcfc93d00e8b93cce1cf0e853cb7d1532c2171dd3f5df01bc9a",
+      "rows": 23118,
+      "kept": 23034,
+      "dropped_by_f2": 84
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-hi-fw2/Heldout/part-00000.parquet",
+      "input_sha256": "149346eb3cda65d2fa47891fb5f277e1755445d9e46bfac8c7840d677347d732",
+      "output_sha256": "f82c99cb6c40a1a7a2eb52082a6fb65a497d52b3b4b4f58bb3e2144ac92cd719",
+      "rows": 132,
+      "kept": 132,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-hi-fw2/Part_1/part-00000.parquet",
+      "input_sha256": "28f77743e293573f70554bdc8f3d3b29764f5e5154ed53ee4fb61c951604c4e3",
+      "output_sha256": "07226a0bde996255158d0a6e7987ac9c26783bb27f62cf17546149b34c376650",
+      "rows": 14261,
+      "kept": 14232,
+      "dropped_by_f2": 29
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-hi-hplt/Heldout/part-00000.parquet",
+      "input_sha256": "251efe0c09e08f7f2a062a314fee86ac3e023cf6ba233c9946a62b1028846c38",
+      "output_sha256": "377a2c9d9078da39d9effd45e11037131c33348ff2b951adcb4c0ba21e7c4aed",
+      "rows": 95,
+      "kept": 95,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-hi-hplt/Part_1/part-00000.parquet",
+      "input_sha256": "77c3d8297b9d472c0d4138998d61e3f5f167df2cf69810790701e9f078ec6afc",
+      "output_sha256": "98551607e124108273073053b94ef3626430e49cb8be285c405704b36b994f59",
+      "rows": 8745,
+      "kept": 8740,
+      "dropped_by_f2": 5
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-hi-indiccorp/Heldout/part-00000.parquet",
+      "input_sha256": "91588fb9b28290aa7183ae83974cabed441e4da8370ba024f181914b377c2c4f",
+      "output_sha256": "28308606b0195511b3dc95d85ffcaa8fd478efcd5078ea73a4db86711df2be89",
+      "rows": 1094,
+      "kept": 1094,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-hi-indiccorp/Part_1/part-00000.parquet",
+      "input_sha256": "43666b10ed3aef16a065c357630fd2dd8e253712e605580355b007e17e388030",
+      "output_sha256": "eb89237eeb04e24cb7ad8dd64d49a74df28ae624c1167783c662405c09779fd9",
+      "rows": 110836,
+      "kept": 110835,
+      "dropped_by_f2": 1
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-hi-sangraha-s/Heldout/part-00000.parquet",
+      "input_sha256": "b7609dd83ef724f2a56b97e0cd5cd8b0d686b4f58f63010c9a70848d57b97ea1",
+      "output_sha256": "a1095006fe159ac479648eab5bc5ec1a9d838a371992926f219a4f2ed29d98ad",
+      "rows": 88,
+      "kept": 88,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-hi-sangraha-s/Part_1/part-00000.parquet",
+      "input_sha256": "d55c8005f7f030d676bef8e76f22f723e2f63ccbd46f5df2efb0d7ea42bbc256",
+      "output_sha256": "11f96966edef7cbb74abeaccdfd9b272da92aebb9cbbdebbc4fc98d2c208c451",
+      "rows": 8280,
+      "kept": 8279,
+      "dropped_by_f2": 1
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-hi-sangraha-v/Heldout/part-00000.parquet",
+      "input_sha256": "6c2c8796889990fb042b437d980bb2b30888f8d21d8bec35fb96abcee4df49a6",
+      "output_sha256": "d7ccd14609e9123ae650bd7fd3ca4c5511ccc0109ea30d6ebb35038258f36fee",
+      "rows": 122,
+      "kept": 122,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-hi-sangraha-v/Part_1/part-00000.parquet",
+      "input_sha256": "26adb8a93f68d316e49f233cf5258852dc5a390ba61bb2297b6e0cc0be047551",
+      "output_sha256": "bf1cfad9d9164b366bc4fff4b06775d91200774e62917d97cf377704a93e4ba3",
+      "rows": 14709,
+      "kept": 14705,
+      "dropped_by_f2": 4
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-kn-fw2/Heldout/part-00000.parquet",
+      "input_sha256": "806511e48a1fb03ae6a69af53d190806850ae6efd1f88dbc704466424c1b0a27",
+      "output_sha256": "bc60b988702ff8140aaf0f89a0a0755281f9e6f35a9e32d680aa9c092aa14643",
+      "rows": 82,
+      "kept": 81,
+      "dropped_by_f2": 1
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-kn-fw2/Part_1/part-00000.parquet",
+      "input_sha256": "0afbb42297d99031143f722aca4a6dd6929eec5b31e4b518494a2913d1a73811",
+      "output_sha256": "247057eb5d7ce58a3fb716d8a17a4f6efd3e1ccdb4f1487810631b5e1dee8263",
+      "rows": 7834,
+      "kept": 7810,
+      "dropped_by_f2": 24
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-kn-sangraha-s/Heldout/part-00000.parquet",
+      "input_sha256": "aafbe26613276f8855956e3d15368baf16f85c8e9aecca674bd4f7f62910a28e",
+      "output_sha256": "8874f0b23a852d8d66a10576fc7127d781f95592cd21ce44db6cb296e4c649e6",
+      "rows": 53,
+      "kept": 53,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-kn-sangraha-s/Part_1/part-00000.parquet",
+      "input_sha256": "4008c98bbcb089bd1968df1ef8fa8d6d66e5cd592252ff8581cd143d2703d757",
+      "output_sha256": "de9bcec3ed95e9d295efa454dcb39e0a8346c88493c7886a1bb1e4d8c95732b3",
+      "rows": 5191,
+      "kept": 5191,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-kn-sangraha-v/Heldout/part-00000.parquet",
+      "input_sha256": "b044fe4c156b356eb730a81a659c3a14fdcf143c7bdedb2c732dce72cb29d268",
+      "output_sha256": "9f2222e096db7ddf7734951191e0f0e1956b27e1f5de6641a7f4939ccb3af6dd",
+      "rows": 89,
+      "kept": 89,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-kn-sangraha-v/Part_1/part-00000.parquet",
+      "input_sha256": "f142558db1b861c59fca75e6242a7cb890aa6d095967c2b2e90d31b72b7a585b",
+      "output_sha256": "c746e5e782220bd83b1349839496bc716d4be8d495c25a018b6ddedb4faed34d",
+      "rows": 8551,
+      "kept": 8551,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-ml-fw2/Heldout/part-00000.parquet",
+      "input_sha256": "10bfc53418bcdff95eef834cc657fe12b722d6f5ffc7cae71004d57dc7fec5f1",
+      "output_sha256": "d01fc3de8925edcd6bce8a46a45a38b8300c02c92c7bf35f5c6dd95b2a2f076b",
+      "rows": 185,
+      "kept": 184,
+      "dropped_by_f2": 1
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-ml-fw2/Part_1/part-00000.parquet",
+      "input_sha256": "ad1c7c7021864d45eeaa9f6524467c35db853c5be0593067d9b52b98914bdfe6",
+      "output_sha256": "1935fbcb25de7d98612b95ca3ea393676e376c825ba6250eee0e90d84a20c344",
+      "rows": 18976,
+      "kept": 18822,
+      "dropped_by_f2": 154
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-mr-fw2/Heldout/part-00000.parquet",
+      "input_sha256": "7a031852f76d48bae8ff7d115ab1d27a939605aec0c891fd6c7ef2d2aa764948",
+      "output_sha256": "24e21168f2c3625e22fa4719b01140ec66afecde5351addf7d4004c066b46ff2",
+      "rows": 95,
+      "kept": 95,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-mr-fw2/Part_1/part-00000.parquet",
+      "input_sha256": "b015d9fa295b12b93b3d14e5c249a67e05ddf7c73d9f37051d84f7a69350105c",
+      "output_sha256": "2fe98cc8c66a1b67275a7d078c91fb260459aa6ebf5b0045f9ea54ff13f23ba4",
+      "rows": 11460,
+      "kept": 11451,
+      "dropped_by_f2": 9
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-mr-sangraha-v/Heldout/part-00000.parquet",
+      "input_sha256": "9ab16d0b5f775cf907b27729ea7eb00ebec827e7fff41d4ecd1c6616ec9b94e3",
+      "output_sha256": "fee175cebbc512a6655b6d29ac718efd7448c1d4432dde6ad11ca8682398ac14",
+      "rows": 127,
+      "kept": 127,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-mr-sangraha-v/Part_1/part-00000.parquet",
+      "input_sha256": "85f3fe3355206939f4b483da0e7e0187aa3738067951a78ffcccfb097237b7cc",
+      "output_sha256": "40aa984e817555365af5af3261793cf85dfd041563117318f6ef6561f0da7f8a",
+      "rows": 12172,
+      "kept": 12171,
+      "dropped_by_f2": 1
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-or-fw2/Heldout/part-00000.parquet",
+      "input_sha256": "6e6503a92b93304009ba029c9e4027457848597a214e85160335351f49a8e78a",
+      "output_sha256": "5a9a1a7eb630745473c8ab13b10795605d46b20ac8313758fa85920ac2768d42",
+      "rows": 328,
+      "kept": 328,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-or-fw2/Part_1/part-00000.parquet",
+      "input_sha256": "e5a9d06de192e38871bb3bde349d9544990a6f6abac8c4ea299c40fc627b77eb",
+      "output_sha256": "2f6fe118d59f42377185a2dfa1bceb813f9e7689844f028596b1b3463dca99dc",
+      "rows": 33684,
+      "kept": 33683,
+      "dropped_by_f2": 1
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-sa-fw2/Heldout/part-00000.parquet",
+      "input_sha256": "eaa16f46dbc391efe6f172545c000c64794b9d505b97069b6c41e11f06f19d8d",
+      "output_sha256": "3613b3df187710b4214b8834196b6f4f0673b587fd0acaa5f405149d897d59d9",
+      "rows": 55,
+      "kept": 55,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-sa-fw2/Part_1/part-00000.parquet",
+      "input_sha256": "1238fde5e67f36130972e3aa0df015450d6352e979dcbc0a852f9133fb17e0ee",
+      "output_sha256": "e8f67249e69a5ab04f6af93e9de6f4768f2683064fcbbd8fe6242b93d658db3d",
+      "rows": 5908,
+      "kept": 5908,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-ta-fw2/Heldout/part-00000.parquet",
+      "input_sha256": "a5b66882de196db04f84cf70768d4756138643ae44f3bffdfd344556c256bc51",
+      "output_sha256": "9b5744b3c60012ab27e05510da06ab752974567cca14567875e2e2c638304848",
+      "rows": 58,
+      "kept": 58,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-ta-fw2/Part_1/part-00000.parquet",
+      "input_sha256": "1eb97539bd7f328e3f6c54d9b297216e3934cc473566c10659d9537437f2af74",
+      "output_sha256": "214491891a3b8bc4ffcab98412cfb3cb9ae5bc16995f52c779e1f67f69844867",
+      "rows": 6766,
+      "kept": 6760,
+      "dropped_by_f2": 6
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-ta-sangraha-s/Heldout/part-00000.parquet",
+      "input_sha256": "b8653a36bcbd237e4c7bc78bf713245dc982058166e62aa416b2ebbefd1db34c",
+      "output_sha256": "70e2a0ab339acc0c8173a16a967dbba06e438e973868370ba3c0ca0933982e71",
+      "rows": 36,
+      "kept": 36,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-ta-sangraha-s/Part_1/part-00000.parquet",
+      "input_sha256": "dc0fa0cc9791dcf163aa58272c1075ef2317fbd7e157daabd5bd8de42e6f938b",
+      "output_sha256": "ad7989a3676e159f9b5a810b9ca0b1ea5730b116c7d639409ef3332f8ab406d7",
+      "rows": 4336,
+      "kept": 4336,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-ta-sangraha-v/Heldout/part-00000.parquet",
+      "input_sha256": "2679b256560a14239f428cb161c219eec6e7d1f8a82111a3351f125e5a5bc270",
+      "output_sha256": "46c48fc9f45f9369a2c95c88373e566e4fb64fa618b381c98fc2602b885788fb",
+      "rows": 65,
+      "kept": 65,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-ta-sangraha-v/Part_1/part-00000.parquet",
+      "input_sha256": "3774dd4f98e7834b3510261dfbd24950e8b052dc25636b642b7830d02d1b724b",
+      "output_sha256": "6ecb91300d4a8204128aa0d38c4f751b366deca251b1b84becf56542638b6ba8",
+      "rows": 6796,
+      "kept": 6796,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-te-fw2/Heldout/part-00000.parquet",
+      "input_sha256": "b739477aa9bd2ccf2148086342ce67e9e0f08803b519e92af19e94e711314be2",
+      "output_sha256": "b7c97cbca2e098377accf04b98d67d8c6dbcff1ed92ee2c702ed586d8b41eb64",
+      "rows": 59,
+      "kept": 58,
+      "dropped_by_f2": 1
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-te-fw2/Part_1/part-00000.parquet",
+      "input_sha256": "194f080c14dec33a3a7312bdc147c86c51450b995086189aa092a92ef4316165",
+      "output_sha256": "8aa3167e4b6c0650a4c4ecc89d99b126fbcfdf121d7f828a930e943425b15050",
+      "rows": 5997,
+      "kept": 5961,
+      "dropped_by_f2": 36
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-te-sangraha-s/Heldout/part-00000.parquet",
+      "input_sha256": "c05ed17b031d1fbae24927464ffac8e02d40ffa2c338e54f476a43327aa37a85",
+      "output_sha256": "470e66ed7caa145d5c467eb25b80bfb9e0183ea0a20737e91984174531731b6e",
+      "rows": 47,
+      "kept": 47,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-te-sangraha-s/Part_1/part-00000.parquet",
+      "input_sha256": "878ece52c5dff94686df2ff296e6556bb6234aa5b413c56574360dd5f7a70c7f",
+      "output_sha256": "42ec168a74a69c6119d2c8e8f0c4c9f1b4aefb38553676263724e66774607a03",
+      "rows": 4782,
+      "kept": 4782,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-te-sangraha-v/Heldout/part-00000.parquet",
+      "input_sha256": "d2bd9afc4c0ac84f048e013c7115c7a635ef495e372a4c97af488774371bf159",
+      "output_sha256": "7b01e95f473b7ae2af25f5fc4edbcfa8dca9f298f59dbaa721648136e9c791d1",
+      "rows": 83,
+      "kept": 83,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/ind-te-sangraha-v/Part_1/part-00000.parquet",
+      "input_sha256": "5e10f6717de94d516fb6dbc45372d4b620fbe0bb7970dec13ff8c10b429ab6f9",
+      "output_sha256": "54a18d96bd0772137142e38ff90fce8531004e091ab37ecf210d4982079815b0",
+      "rows": 8609,
+      "kept": 8608,
+      "dropped_by_f2": 1
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/math-finemath/Heldout/part-00000.parquet",
+      "input_sha256": "63e6eab00769eeb6805bd4eccdada9f4bc61ebe8d0cd23654cb6da95e0a290e4",
+      "output_sha256": "729475ace23a89d4755dda8b3a4ff9982805f494dcdfb0e548165f01b6e64f50",
+      "rows": 312,
+      "kept": 312,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/math-finemath/Part_1/part-00000.parquet",
+      "input_sha256": "a5dbb4da6d0c2e890901aecb10b5c2bd71378d8e66e5975adc0d7d98592f51b2",
+      "output_sha256": "d3b0b913ac6302167582fcb6316c9b23c4b9bd24fe36ccedf21d5e65f900c12a",
+      "rows": 29122,
+      "kept": 28862,
+      "dropped_by_f2": 260
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/math-megamath/Heldout/part-00000.parquet",
+      "input_sha256": "294a31a67392329a1fcf6f01da95fec064c7f1d63ad93449cdd7d2c90c223872",
+      "output_sha256": "8f83b94621a627f03f5428476c9a8cbc3822a3a4edb88c406c1526637a8f4167",
+      "rows": 169,
+      "kept": 168,
+      "dropped_by_f2": 1
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/math-megamath/Part_1/part-00000.parquet",
+      "input_sha256": "e8c53baf0e1c842d303199b93cc36768199edbc64a142925df890915c4cb7d91",
+      "output_sha256": "0265359c8a405ea345fa4f635d0abc04aac05a5de777b81a54f8b83ec5d98e37",
+      "rows": 17647,
+      "kept": 17566,
+      "dropped_by_f2": 81
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/sci-finepdfs/Heldout/part-00000.parquet",
+      "input_sha256": "88566b9a129599950dc2f6eacf89908abac238e0541988f06c5e2bb808164ad6",
+      "output_sha256": "56886633b50e7a88229e6b2921c4d181b1b085e42c200192d9eff978012b2856",
+      "rows": 63,
+      "kept": 63,
+      "dropped_by_f2": 0
+    },
+    {
+      "input": "<data>/packs38/Cap1-packs/sci-finepdfs/Part_1/part-00000.parquet",
+      "input_sha256": "87dd59b9268bf5784e8f60e40a829ccfb6c6b62d28e6c88ddb4770782af0eb69",
+      "output_sha256": "122577604aec39640e584f98542beb3a7c16039a34fef1df8098ca2680f99c23",
+      "rows": 6011,
+      "kept": 5997,
+      "dropped_by_f2": 14
+    }
+  ]
+}
