@@ -48,8 +48,10 @@ python teams/09-evaluation/harness_lab/run_lab_ckpt.py --run-dir <remote_root>/<
   - With `--run-dir`, give the run's `manifest.json` as `--model-config`. The model map is read from it, and its
     `team7_checkpoint.run_id` must be the store's `run_id`. Some stores hold weights made from another run, such as
     Team 10's post-training folders. For those, add `--derived-from <that run_id>`: the manifest must then name that
-    run.
-  - In both cases, Team 5's `Artifacts` identity (tokenizer, table, vocabulary) must equal its `artifacts`. Every Team 5
+    run. Supply the original run manifest. A copy with `rope_theta` changed to 500000 and the same run ID still scores,
+    as case 2 of the Windows CPU log shows. The store has no independent copy of that setting to compare against.
+  - In both cases, recorded fields shared with Team 5's local `Artifacts` identity (tokenizer, table, vocabulary) must
+    match. Run-only fields such as a training-data hash are listed as unchecked. Every Team 5
     file the scorer loaded (`week2/*.py`, `train_week2.py`) must have the sha256 recorded in its `sources`. Files the
     scorer never runs, such as `data.py`, are not compared.
   - If anything differs, nothing is scored, and the error lists each difference. If the code differs, score from the

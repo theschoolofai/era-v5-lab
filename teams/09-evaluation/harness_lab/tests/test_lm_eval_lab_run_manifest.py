@@ -63,6 +63,14 @@ def scorer(run=None, derived_from=None) -> Team5Scorer:
     return s
 
 
+def test_run_only_artifacts_are_reported_as_unchecked(capsys):
+    doc = run_manifest(artifacts={**ART, "training_sha256": "a" * 64})
+    check = scorer(doc)
+    check.check(STORE)
+    assert check.unchecked == ["run artifacts without a local identity: training_sha256"]
+    assert "NOT CHECKED: run artifacts without a local identity: training_sha256" in capsys.readouterr().out
+
+
 # ---- the pieces --------------------------------------------------------------------------------------------------
 
 def test_our_hashes_of_the_loaded_files_are_team5s():

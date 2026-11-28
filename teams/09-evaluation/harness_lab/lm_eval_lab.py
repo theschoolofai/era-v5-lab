@@ -427,8 +427,11 @@ class Team5Scorer:
         self.m = load_model_config(a.model_config, a.runtime, a.resolution)
         self.run_manifest = read_run_manifest(a.model_config)
         self.unchecked: list[str] = []
-        if self.m.get("head_mode") == "kas_v2":   # model.py imports it when it builds the model, after check()
-            importlib.import_module("week2.kas_v2")
+        head = self.m.get("head_mode", "dense")
+        # Load a head's own Team 5 module before collecting the code fingerprint.
+        # The dense head is in model.py, and the architecture still checks which head modes it supports.
+        if isinstance(head, str) and head.isidentifier() and (HARNESS05 / "week2" / f"{head}.py").is_file():
+            importlib.import_module(f"week2.{head}")
         Artifacts, _ = week2()
         self.art = Artifacts(a.tokenizer, a.byte_table, expected_tokenizer_sha=a.tokenizer_sha256,
                              expected_vocab=self.m["vocab_size"])
@@ -444,8 +447,8 @@ class Team5Scorer:
         folder, the run's manifest.json is that file, and the model map built from --model-config must equal its
         config.model. For a store, it is the --model-config file, which the model map was read from; it must name the
         store's run_id in team7_checkpoint, or the --derived-from run_id for a store made from that run's weights (Team
-        10's post-training folders). In both, its artifacts (tokenizer and table) and the sources of every Team 5
-        file this process loaded must equal this process's. Without a run manifest.json, only Team 7's
+        10's post-training folders). In both, shared artifact fields and the sources of every Team 5 file this
+        process loaded must match. Run-only artifacts are listed as unchecked. Without a run manifest.json, only Team 7's
         env.tokenizer_sha is checked, and every record says the rest was not."""
         run = manifest if "config" in manifest else self.run_manifest
         env = manifest.get("env") or {}
@@ -453,6 +456,7 @@ class Team5Scorer:
         problems = [] if saved in ("unknown", self.a.tokenizer_sha256) else [
             f"env.tokenizer_sha: checkpoint {saved[:12]}, here {self.a.tokenizer_sha256[:12]}"]
         checked = []
+        self.unchecked = []
         if run is None:
             self.unchecked = ["model settings and Team 5 code not checked: --model-config is not the run's manifest.json"]
         else:
@@ -471,12 +475,15 @@ class Team5Scorer:
             both = set(recorded) & set(art)
             problems += differences(recorded, art, "artifacts.", keys=both)
             checked.append(f"artifacts {', '.join(sorted(both)) or 'none recorded'}")
+            extra = sorted(set(recorded) - set(art))
+            if extra:
+                self.unchecked.append(f"run artifacts without a local identity: {', '.join(extra)}")
             if "sources" in run:
                 files = loaded_team5_files()
                 problems += code_differences(run["sources"], files)
                 checked.append(f"Team 5 {', '.join(sorted(files))}")
             else:
-                self.unchecked = ["Team 5 code not checked: the run's manifest.json has no sources"]
+                self.unchecked.append("Team 5 code not checked: the run's manifest.json has no sources")
         if self.a.derived_from and (run is None or run is manifest):
             problems.append("--derived-from: for a Team 7 store, with the base run's manifest.json as --model-config")
         if problems:
