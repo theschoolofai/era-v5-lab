@@ -95,6 +95,12 @@ def summarise_comparison(reps: dict[str, dict], before: dict | None) -> tuple[di
             mi = rep.get("method") or {}  # sft_g5.py writes the DT block (band_at_init, deletion_final) here
             m["dt_band_at_init"] = mi.get("band_at_init")
             m["dt_deletion_final"] = mi.get("deletion_final")
+            wp = mi.get("wanda_prior") or {}
+            m["dt_unseen_policy"] = wp.get("unseen_policy")
+            m["dt_layers_without_scores"] = wp.get("layers_without_scores", mi.get("wanda_layers_without_tokens"))
+        if isinstance(rep.get("optimizer"), dict):
+            m["optim_kind"] = rep["optimizer"].get("kind")
+            m["optim_step_share"] = rep["optimizer"].get("optim_step_share")
         arms_out[arm] = m
 
     steps_set = {arms_out[arm]["steps"] for arm in present}
@@ -136,6 +142,14 @@ def summarise_comparison(reps: dict[str, dict], before: dict | None) -> tuple[di
             f"| {arm} | {m.get('steps', '—')} | {_fmt(m.get('eval_nll'))} | {dbpb} | {m['forgetting_verdict']} | "
             f"{_fmt(m.get('format_validity'), '.3f')} | {_fmt(m.get('closed_im_end'), '.3f')} | "
             f"{m.get('rl_mixed_groups', '—')} / {_fmt(m.get('rl_pass_rate'), '.3f')} |"
+        )
+    if "dt" in arms_out and (arms_out["dt"].get("dt_unseen_policy") is not None
+                             or arms_out["dt"].get("dt_layers_without_scores") is not None):
+        dt_m = arms_out["dt"]
+        lines.append("")
+        lines.append(
+            f"DT calibration unseen experts: policy=`{dt_m.get('dt_unseen_policy')}`, "
+            f"`layers_without_scores={dt_m.get('dt_layers_without_scores')}`"
         )
     return comp, "\n".join(lines) + "\n"
 

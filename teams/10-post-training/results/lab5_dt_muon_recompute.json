@@ -1,0 +1,180 @@
+{
+  "scope": "CPU stand-in routed MoE (2 layers, d=48, h=96, 6 experts top-2); mechanics & relative comparison only, not a quality/scale claim",
+  "seeds": [
+    1,
+    2
+  ],
+  "steps": 20,
+  "arms": [
+    {
+      "arm": "full_hybrid_muon",
+      "seed": 1,
+      "steps": 20,
+      "trainable_params": 172752,
+      "loss_start": 4.3155,
+      "loss_end": 3.242,
+      "loss_drop": 1.0735,
+      "wall_seconds": 0.4098,
+      "optim_seconds": 0.2005,
+      "optim_step_share": 0.4894,
+      "deleted_frac_targeted": 0.0,
+      "delta_storage_bytes": 345504
+    },
+    {
+      "arm": "lora_adamw",
+      "seed": 1,
+      "steps": 20,
+      "trainable_params": 13824,
+      "loss_start": 4.3155,
+      "loss_end": 4.2753,
+      "loss_drop": 0.0401,
+      "wall_seconds": 0.075,
+      "optim_seconds": 0.0091,
+      "optim_step_share": 0.1216,
+      "deleted_frac_targeted": 0.0,
+      "delta_storage_bytes": 27648
+    },
+    {
+      "arm": "dt_adamw",
+      "seed": 1,
+      "steps": 20,
+      "trainable_params": 55296,
+      "loss_start": 4.3083,
+      "loss_end": 3.9625,
+      "loss_drop": 0.3458,
+      "wall_seconds": 0.0977,
+      "optim_seconds": 0.0082,
+      "optim_step_share": 0.0834,
+      "deleted_frac_targeted": 0.5052,
+      "delta_storage_bytes": 6912
+    },
+    {
+      "arm": "dt_muon_shape",
+      "seed": 1,
+      "steps": 20,
+      "trainable_params": 55296,
+      "loss_start": 4.3083,
+      "loss_end": 4.205,
+      "loss_drop": 0.1033,
+      "wall_seconds": 0.1048,
+      "optim_seconds": 0.0215,
+      "optim_step_share": 0.2048,
+      "deleted_frac_targeted": 0.5005,
+      "delta_storage_bytes": 6912
+    },
+    {
+      "arm": "dt_muon_recompute",
+      "seed": 1,
+      "steps": 20,
+      "trainable_params": 55296,
+      "loss_start": 4.3083,
+      "loss_end": 4.2051,
+      "loss_drop": 0.1033,
+      "wall_seconds": 0.1559,
+      "optim_seconds": 0.0211,
+      "optim_step_share": 0.1354,
+      "deleted_frac_targeted": 0.5005,
+      "delta_storage_bytes": 6912
+    },
+    {
+      "arm": "full_hybrid_muon",
+      "seed": 2,
+      "steps": 20,
+      "trainable_params": 172752,
+      "loss_start": 4.4401,
+      "loss_end": 3.4979,
+      "loss_drop": 0.9422,
+      "wall_seconds": 0.2047,
+      "optim_seconds": 0.0695,
+      "optim_step_share": 0.3395,
+      "deleted_frac_targeted": 0.0,
+      "delta_storage_bytes": 345504
+    },
+    {
+      "arm": "lora_adamw",
+      "seed": 2,
+      "steps": 20,
+      "trainable_params": 13824,
+      "loss_start": 4.4401,
+      "loss_end": 4.4017,
+      "loss_drop": 0.0384,
+      "wall_seconds": 0.079,
+      "optim_seconds": 0.0114,
+      "optim_step_share": 0.1447,
+      "deleted_frac_targeted": 0.0,
+      "delta_storage_bytes": 27648
+    },
+    {
+      "arm": "dt_adamw",
+      "seed": 2,
+      "steps": 20,
+      "trainable_params": 55296,
+      "loss_start": 4.4408,
+      "loss_end": 4.1116,
+      "loss_drop": 0.3292,
+      "wall_seconds": 0.0942,
+      "optim_seconds": 0.0084,
+      "optim_step_share": 0.0896,
+      "deleted_frac_targeted": 0.5015,
+      "delta_storage_bytes": 6912
+    },
+    {
+      "arm": "dt_muon_shape",
+      "seed": 2,
+      "steps": 20,
+      "trainable_params": 55296,
+      "loss_start": 4.4408,
+      "loss_end": 4.3416,
+      "loss_drop": 0.0992,
+      "wall_seconds": 0.0951,
+      "optim_seconds": 0.0196,
+      "optim_step_share": 0.2066,
+      "deleted_frac_targeted": 0.5015,
+      "delta_storage_bytes": 6912
+    },
+    {
+      "arm": "dt_muon_recompute",
+      "seed": 2,
+      "steps": 20,
+      "trainable_params": 55296,
+      "loss_start": 4.4408,
+      "loss_end": 4.3416,
+      "loss_drop": 0.0992,
+      "wall_seconds": 0.1598,
+      "optim_seconds": 0.0231,
+      "optim_step_share": 0.1444,
+      "deleted_frac_targeted": 0.5014,
+      "delta_storage_bytes": 6912
+    }
+  ],
+  "unseen_expert_ablation": [
+    {
+      "seed": 1,
+      "unseen_policy": "official",
+      "layers_without_scores": 4,
+      "init_deleted_frac_targeted": 0.16764
+    },
+    {
+      "seed": 1,
+      "unseen_policy": "keep",
+      "layers_without_scores": 4,
+      "init_deleted_frac_targeted": 0.00177
+    },
+    {
+      "seed": 2,
+      "unseen_policy": "official",
+      "layers_without_scores": 4,
+      "init_deleted_frac_targeted": 0.16873
+    },
+    {
+      "seed": 2,
+      "unseen_policy": "keep",
+      "layers_without_scores": 4,
+      "init_deleted_frac_targeted": 0.00157
+    }
+  ],
+  "idle_expert_muon_check": {
+    "unguarded_max_abs_drift_on_zero_grad": 0.003745,
+    "guarded_max_abs_drift_on_zero_grad": 0.0
+  }
+}

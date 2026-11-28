@@ -1,0 +1,3 @@
+$ python dt/mask_anatomy.py calib <SimpleRL-Zoo-Data>/simplelr_qwen_level3to5/train.parquet <Qwen3-30B-A3B-Base tokenizer> parts/
+2,048 prompts of 8,523 rows in <SimpleRL-Zoo-Data>/simplelr_qwen_level3to5/train.parquet; each 512 tokens after padding ('<|endoftext|>'); 230,928 real + 817,648 pad tokens; truncated: 22
+wrote 32 parts of 64 prompts to parts/; sha256 of all parts in order 96f6c9fd248c1ad733d01eeb7bc3953458092c981cf8360bc1a19e3d1cb731bd

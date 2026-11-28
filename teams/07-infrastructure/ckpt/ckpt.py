@@ -49,6 +49,7 @@ import torch.distributed.checkpoint as dcp
 from torch.distributed.checkpoint.state_dict import StateDictOptions, get_state_dict, set_state_dict
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+from ckpt.candidates import pick_candidates  # noqa: E402
 from ckpt.store import Conflict, open_store, wait_for  # noqa: E402
 from common.events import Timer, emit  # noqa: E402
 
@@ -772,15 +773,12 @@ class Checkpointer:
         return [json.loads(line) for line in self.store.get_text("commits.jsonl").splitlines() if line.strip()]
 
     def candidates(self, from_step: int = None) -> list:
+        """The commits restore may try, newest first. The rule is ckpt/candidates.py, shared with start-mode."""
         commits = self.commits()
-        if from_step is not None:
-            return [c for c in reversed(commits) if c["step"] == from_step][:1]
-        if not self.store.exists("latest.json"):
-            return []
-        first = self.store.get_json("latest.json")
-        rest = [c for c in reversed(commits) if c["path"] != first.get("path")]
-        # a claim with no commit yet has path None: only the commit history is left to try
-        return ([first] if first.get("path") else []) + rest
+        latest = None
+        if from_step is None and self.store.exists("latest.json"):
+            latest = self.store.get_json("latest.json")
+        return pick_candidates(commits, latest, from_step)
 
     def restore(self, model, optim, loader, probe_fn, from_step: int = None, skip: int = 0,
                 new_branch: str = None, allow_env_change: bool = False):

@@ -1,0 +1,20 @@
+$ python dt/mask_anatomy.py masks <masks>/grpo/qwen3-30b-a3b-base-simplerl-zoo --partners 1
+6144 gate matrices of 1,572,864 weights; deleted 22,954,392 = 0.2375%
+heavy experts (> 1% deleted): 18, 39.625% to 42.109%, holding 50.5% of all deletions
+other experts: mean 0.1180%, median 0.1170%, max 0.1663%
+heavy (layer:expert): 2:105 3:83 7:102 13:56 13:99 16:86 16:96 17:101 18:36 25:56 28:86 37:56 40:86 41:24 42:51 44:74 44:124 46:65
+per-layer deleted share: median 0.118% (0.113% to 0.122%) in the 33 layers without a heavy expert; 0.42% to 0.76% in the 15 with one
+heavy experts and partners (seed 1): 2:105 2:60 3:83 3:65 7:102 7:95 13:56 13:121 13:99 13:4 16:86 16:18 16:96 16:105 17:101 17:121 18:36 18:31 25:56 25:39 28:86 28:111 37:56 37:53 40:86 40:34 41:24 41:106 42:51 42:32 44:74 44:51 44:124 44:82 46:65 46:70
+
+$ python dt/mask_anatomy.py masks <masks>/grpo/qwen2.5-0.5b-simplerl-zoo
+24 gate matrices of 4,358,144 weights; deleted 199,564 = 0.1908%
+
+$ python dt/mask_anatomy.py masks <masks>/grpo/qwen2.5-3b-simplerl-zoo
+36 gate matrices of 22,544,384 weights; deleted 1,173,999 = 0.1447%
+
+$ python dt/mask_anatomy.py masks <masks>/grpo/qwen2.5-7b-simplerl-zoo
+28 gate matrices of 67,895,296 weights; deleted 3,161,923 = 0.1663%
+
+$ python dt/mask_anatomy.py masks <masks>/grpo/qwen2.5-14b-simplerl-zoo
+48 gate matrices of 70,778,880 weights; deleted 4,794,521 = 0.1411%
+

@@ -2130,3 +2130,36 @@ Evaluation prompts only, not training data. Proposed 20 Nov 2026 by `f20201351h-
 |---|---|---|---|---|---|
 | eval-general-qasc | [allenai/qasc](https://huggingface.co/datasets/allenai/qasc), revision a34ba204eb9a33b919c10cc08f4f1c8dae5ec070, validation split (the split that carries `answerKey`) | English / 8-way multiple choice science questions | none (questions human-authored by crowd workers, per the dataset card and paper) | cc-by-4.0 (Hub card) | allowed (G10 lead sign-off, 20 Nov 2026; eval-only, not training data) |
 | eval-tool-api-bank | [AlibabaResearch/DAMO-ConvAI](https://github.com/AlibabaResearch/DAMO-ConvAI) `api-bank/`, commit f30ccf22b4e2617fab32958d4c03f5c1f2e7dfcf, level-1 dialogues in `api-bank/lv1-lv2-samples/level-1-given-desc` and the API definitions in `api-bank/apis` | English / tool-use dialogues with one gold API call per slot | none (evaluation dialogues written by annotators, per the paper; the API definitions are the set's own code) | Apache-2.0 (`api-bank/LICENSE`, first line "Apache License"; the repository root carries a different licence file, not used here) | allowed (G10 lead sign-off, 20 Nov 2026; eval-only, not training data) |
+
+### tanmays369: Lab 5 evaluation-only benchmark licences (28 Nov 2026)
+
+**Evaluation-only, never training data.** These are the benchmark sets the Lab 5 peer table and mini-benchmark
+score. Added because `results/known_failures.md` and the G9 firewall §5 record that these benchmarks are scored
+with no licence and no fingerprint row. Revisions and file `sha256` read 28 Nov 2026; the matching fingerprint
+rows are in `teams/09-evaluation/decontam/benchmarks.toml` (fingerprints v3).
+
+| Set | Source | Holder | Licence | Decision |
+|---|---|---|---|---|
+| ARC-Challenge / ARC-Easy | [`allenai/ai2_arc`](https://huggingface.co/datasets/allenai/ai2_arc) @ `210d026f` | Allen Institute for AI | **CC-BY-SA-4.0** | allowed (evaluation only; attribution + share-alike) |
+| MMLU-Pro | [`TIGER-Lab/MMLU-Pro`](https://huggingface.co/datasets/TIGER-Lab/MMLU-Pro) @ `b189ec76` | TIGER-Lab | **MIT** | allowed (evaluation only) |
+| Belebele (hin/tel/tam) | [`facebook/belebele`](https://huggingface.co/datasets/facebook/belebele) @ `7899cdfa` | Meta | **CC-BY-SA-4.0** | allowed (evaluation only; attribution + share-alike) |
+| MuSR | [`TAUR-Lab/MuSR`](https://huggingface.co/datasets/TAUR-Lab/MuSR) @ `7c365b43` | TAUR Lab | **CC-BY-4.0** | allowed (evaluation only) |
+| TruthfulQA | [`truthfulqa/truthful_qa`](https://huggingface.co/datasets/truthfulqa/truthful_qa) @ `741b8276` | Owain Evans et al. | **Apache-2.0** | allowed (evaluation only) |
+| HumanEval | [`openai/openai_humaneval`](https://huggingface.co/datasets/openai/openai_humaneval) @ `7dce6050` | OpenAI | **MIT** | allowed (evaluation only) |
+| HumanEval+ | [`evalplus/humanevalplus`](https://huggingface.co/datasets/evalplus/humanevalplus) @ `d32357cf` | EvalPlus | **Apache-2.0** | allowed (evaluation only) |
+| MBPP | [`google-research-datasets/mbpp`](https://huggingface.co/datasets/google-research-datasets/mbpp) @ `4bb6404f` | Google Research | **CC-BY-4.0** | allowed (evaluation only) |
+| MBPP+ | [`evalplus/mbppplus`](https://huggingface.co/datasets/evalplus/mbppplus) @ `b2d74c91` | EvalPlus | **Apache-2.0** | allowed (evaluation only) |
+| BBH | [`lukaemon/bbh`](https://huggingface.co/datasets/lukaemon/bbh) @ `982bb89f` | Suzgun et al. (mirror has no licence tag) | **MIT** per the original release; the Hub mirror declares none | needs TSAI decision |
+| MATH-500 | derived from [`hendrycks/competition_math`](https://huggingface.co/datasets/hendrycks/competition_math) @ `71b758ec` | Hendrycks et al. | **MIT** (the derived `HuggingFaceH4/MATH-500` carries no Hub tag) | allowed (evaluation only; cite the original) |
+
+**Excluded — HellaSwag, `status = excluded`.** Do not fingerprint it, score it as a diagnostic only, and ask TSAI
+before quoting it in a release. **wikiHow, Inc. filed a DMCA takedown on 2026-09-14** naming
+`github.com/rowanz/hellaswag`; the repository is blocked and returns **HTTP 451**. The dataset card says MIT, but
+that grant covers the authors' release, not the wikiHow article text that about 45k of the 70k contexts are taken
+from. Downloadable is not the same as licensed. It is the one benchmark of the 12 in
+`teams/09-evaluation/results/known_failures.md` that the Lab 5 fingerprint refresh cannot close.
+
+**Unclear licence — keep internal-only** (already marked ⚠️ in `teams/09-evaluation/benchmarks_v1.md`): τ²-bench,
+WebArena, WorkArena, BrowseComp, OSWorld, Aider Polyglot.
+
+**Update on the Lab 5 Task 1 rule (TSAI 28 Nov Lab Rules #1):** TSAI confirmed on 28 Nov that **NC, ND and unstated licences are allowed for all data, post-training data too** — fill in the licence and where it was found, and if a model made the data, also write the model and the licence terms of that model. Every evaluation row above is already permissive (`MIT`, `Apache-2.0`, `CC-BY-4.0`, `CC-BY-SA-4.0`); `BBH` (`MIT` on original release, unstated on Hub mirror) is eligible under this rule, while **HellaSwag remains `excluded` due to the 2026-09-14 wikiHow DMCA takedown (HTTP 451)**, not because of an NC/ND tag. Earlier NC/ND/unstated rows marked `excluded` in historical Gate 2/3 tables stay documented as historical entries until re-reviewed for staging.

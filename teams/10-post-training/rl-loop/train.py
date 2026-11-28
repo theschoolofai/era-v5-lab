@@ -997,10 +997,23 @@ def train(cfg: dict) -> dict:
         ref.model.requires_grad_(False)
         ref.model.eval()
     start_w = StartWeights(model)  # CPU copy of the trainable weights: weight-change check, and KL to start
-    opt = torch.optim.AdamW([p for _, p in trainable_named], lr=float(t["lr"]),
-                            weight_decay=float(t.get("weight_decay", 0.0)))
+    opt_kind = str(t.get("optimizer", "adamw"))
+    capstone_dir = str(HERE.parent / "capstone")
+    if capstone_dir not in sys.path:
+        sys.path.insert(0, capstone_dir)
+    import hybrid_optim as ho  # noqa: PLC0415  capstone/hybrid_optim.py
+    opt = ho.build_optimizer(
+        trainable_named,
+        kind=opt_kind,
+        lr=float(t["lr"]),
+        muon_lr=float(t.get("muon_lr", t["lr"])),
+        wd=float(t.get("weight_decay", 0.0)),
+        dt_gate_optim=str(t.get("dt_gate_optim", "adamw")),
+        skip_zero_grad_muon=True,
+    )
     if kz is not None:
-        kz.check_optimizer(opt)
+        raw_opt = opt.named[0][1] if len(opt.named) == 1 else opt
+        kz.check_optimizer(raw_opt)
     tis_clip = float(t["tis_clip"]) if t.get("tis_clip") else None
     micro_rows = int(t["micro_rows"]) if t.get("micro_rows") else None
     set_head_checkpoint(policy, t)
@@ -1550,6 +1563,7 @@ def train(cfg: dict) -> dict:
                                 "group_kinds_total": {k_: sum(r["group_kinds"][k_] for r in recs)
                                                       for k_ in recs[0]["group_kinds"]} if recs else {}}
     summary["saved_trainable_weights"] = saved_weights
+    summary["optimizer"] = opt.summary(max(time.time() - start, 1e-6))
     if update_mode != "train":
         summary["update_mode"] = update_mode
     summary["update_mode_resolution"] = mode_rec

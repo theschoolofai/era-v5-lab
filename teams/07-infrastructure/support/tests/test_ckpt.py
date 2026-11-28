@@ -718,6 +718,24 @@ def test_restore_job(tmp_path, nproc):
     assert res["pass"] and [r["step"] for r in res["run_b"]] == list(range(1, 21))
 
 
+def test_t31_restore_candidates_follow_the_shared_rule(tmp_path):
+    """Checkpointer.candidates() and queue/job_queue.py start-mode share ckpt/candidates.py, so they cannot drift."""
+    from ckpt.candidates import pick_candidates
+    ck = Checkpointer("cand", str(tmp_path / "local"), str(tmp_path / "store"), seed=SEED)
+    commits = [{"step": s, "branch": "main", "path": f"main/step_{s:08d}-e1"} for s in (0, 50, 100)]
+    assert ck.candidates() == pick_candidates([], None) == []
+    for c in commits:
+        ck.store.append_line("commits.jsonl", json.dumps(c))
+    assert ck.candidates() == pick_candidates(commits, None) == []                 # history, but no latest.json
+    claim = {"epoch": 1, "path": None, "step": None}
+    ck.store.put_json("latest.json", claim)
+    assert ck.candidates() == pick_candidates(commits, claim) == commits[::-1]
+    latest = dict(commits[1], epoch=2)
+    ck.store.put_json("latest.json", latest)
+    assert ck.candidates() == pick_candidates(commits, latest) == [latest, commits[2], commits[0]]
+    assert ck.candidates(from_step=50) == pick_candidates(commits, latest, 50) == [commits[1]]
+
+
 class TwoExperts(torch.nn.Module):
     """Two experts, each a weight (Muon) and a bias (AdamW). Expert 2 is used only when use2 is set, so before that
     the optimizer has no state for it, as for an MoE expert that has seen no tokens."""

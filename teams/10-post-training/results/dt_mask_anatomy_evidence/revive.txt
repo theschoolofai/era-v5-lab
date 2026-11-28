@@ -1,0 +1,11 @@
+$ python dt/mask_anatomy.py revive --grad-scale 1 0.1 0.01 0.001     # torch 2.15.0, CPU
+one 768x512 gate, no calibration scores, regulariser only; AdamW lr 0.0005 (warmup 10, cosine to 0.1), betas (0.9, 0.95), eps 1e-8, wd 0; lambda 1e-05 -> 0; alpha 100 -> 1000 over 243 steps; W from nn.Linear init, seed 0
+grad scale  policy    step    0  step   10  step   25  step   50  step  100  step  243
+         1  official    50.127%    42.408%    23.649%     9.446%     4.842%     4.356%
+         1  keep         0.136%     0.056%     0.003%     0.000%     0.000%     0.000%
+       0.1  official    50.127%    44.831%    34.020%    25.124%    19.547%    17.869%
+       0.1  keep         0.136%     0.076%     0.014%     0.001%     0.000%     0.000%
+      0.01  official    50.127%    48.288%    43.815%    38.712%    34.074%    32.224%
+      0.01  keep         0.136%     0.114%     0.067%     0.031%     0.011%     0.008%
+     0.001  official    50.127%    49.852%    49.028%    47.450%    44.880%    43.149%
+     0.001  keep         0.136%     0.132%     0.122%     0.105%     0.077%     0.062%

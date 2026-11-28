@@ -1,6 +1,15 @@
 # Indic prompts with checkable answers, v0
 
-Week 3 and 4, member E (gmrammohan15). Status on 27 Nov: the families and the generator are ready, and all 6 person-written templates (4 Hindi, 2 Tamil) are signed off by Team 2 readers on `#781` and set to `eligibility: train` (`riteshverma` for Hindi, `truesrini` for Tamil; section 5).
+Week 3 and 4, member E (gmrammohan15). Status on 28 Nov: the families and the generator are ready, and all 6 person-written templates (4 Hindi, 2 Tamil) are signed off by Team 2 readers on `#781` and set to `eligibility: train` (`riteshverma` for Hindi, `truesrini` for Tamil; section 5).
+
+## 0. Lab 5 Inventory Summary (Sources, Size, Checker, and What Is Missing)
+
+| Category | Sources | Size (Current) | Checker (`rl/reward.py`) | Eligibility & Decontam | What Is Missing (Depends on Team 2 / Native Authors) |
+|---|---|---|---|---|---|
+| **Hindi human templates (`hi`, Deva)** | Person-written (`rl/indic/templates/indic_templates.yaml`: `hi_f1_left`, `hi_f1_change`, `hi_f6_minutes`, `hi_f3_weekday`) | 4 templates (`800+` checked items @ 200/template; scales arbitrarily via `generate.py`) | `indic/<task_id>` (`rl/indic/indic_verifier.py`) | `train` (`team2_reviewer: riteshverma`, `#781`); `0` flagged / `0` canary | Families `F2` (number words), `F4` (Indic digits), `F5` (short passage span) |
+| **Tamil human templates (`ta`, Taml)** | Person-written (`rl/indic/templates/indic_templates.yaml`: `ta_appalam_sub`, `ta_pen_mult`) | 2 templates (`400+` checked items @ 200/template) | `indic/<task_id>` (`rl/indic/indic_verifier.py`) | `train` (`team2_reviewer: truesrini`, `#781`); `0` flagged / `0` canary | Families `F3` (calendar), `F4`, `F5`, `F6` (time/units) |
+| **Seed tasks (`hi, ta, bn, te`)** | Model-assisted fixtures (`rl/indic/tasks/`, 6 JSON tasks) | 6 tasks | `indic/<task_id>` (`12/12` pass/fail verified) | `eval` only (TSAI 3 Nov human-only training rule); `0` flagged | Cannot enter RL training |
+| **8 remaining Indic languages (`te, kn, bn, mr, gu, ml, or, pa`)** | Requested from **Team 2 (Data B)** in `docs/data_request_teams1_2_v1.md` (Bengali in progress with Team 2) | **0 `train` templates** | Same `rl/indic/indic_verifier.py` (supports all 10 scripts + digits) | Pending authoring + Team 2 sign-off | **Gap:** human-written templates + native-reader `OK` for `te, kn, bn, mr, gu, ml, or, pa` |
 
 ## 1. What this is
 

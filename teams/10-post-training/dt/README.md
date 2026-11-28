@@ -23,4 +23,14 @@ python dt/analysis.py collect --model "$MODEL" --split-file "$SUPPLEMENT" --devi
 python dt/analysis.py bootstrap --arm "dt=$OUT/dt.json" --arm "full=$OUT/full.json" --pair dt:full --out "$OUT/bootstrap.json"
 ```
 
+`mask_anatomy.py` reads the authors' released masks (`Jacklu0831/deletion-tuning-masks`) per expert. It also rebuilds
+the official calibration prompts for `llama-imatrix`, matches the routing counts to the heavily deleted experts, and
+lists the idle experts in a Team 5 run record. `revive` runs this folder's `mask.py` on one unscored gate with only the
+regulariser (report `../results/dt_mask_anatomy.md`, tests `tests/test_mask_anatomy.py`):
+
+```bash
+python dt/mask_anatomy.py masks <masks>/grpo/qwen3-30b-a3b-base-simplerl-zoo
+python dt/mask_anatomy.py load <metrics.jsonl from #869, commit 0d3df057> --gate 768x512
+```
+
 Raw per-row outputs are private. Aggregate intervals and parity metadata are in `../results/dt_bpb_uncertainty.json`. This is an offline forward-only analysis path, not a training hot path.

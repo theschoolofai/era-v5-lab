@@ -1,0 +1,178 @@
+{
+  "rule": "TSAI 28 Nov Lab Rules #6: gradient-coverage check (fast path ON vs OFF)",
+  "device": "cuda",
+  "gpu_name": "NVIDIA GeForce RTX 5070 Ti",
+  "all_pass": true,
+  "checks": [
+    {
+      "check": "dt_regulariser_backward_vs_autograd",
+      "lists_identical": true,
+      "ref_coverage": {
+        "trainable_tensors": 12,
+        "none_grad_count": 0,
+        "zero_grad_count": 0,
+        "none_grads": [],
+        "zero_grads": [],
+        "unexpected_missing_or_zero": [],
+        "all_explained": true
+      },
+      "fast_coverage": {
+        "trainable_tensors": 12,
+        "none_grad_count": 0,
+        "zero_grad_count": 0,
+        "none_grads": [],
+        "zero_grads": [],
+        "unexpected_missing_or_zero": [],
+        "all_explained": true
+      },
+      "max_grad_abs_diff": 0.0,
+      "pass": true
+    },
+    {
+      "check": "dt_activation_recompute_use_reentrant_false",
+      "lists_identical": true,
+      "ref_coverage": {
+        "trainable_tensors": 12,
+        "none_grad_count": 0,
+        "zero_grad_count": 0,
+        "none_grads": [],
+        "zero_grads": [],
+        "unexpected_missing_or_zero": [],
+        "all_explained": true
+      },
+      "fast_coverage": {
+        "trainable_tensors": 12,
+        "none_grad_count": 0,
+        "zero_grad_count": 0,
+        "none_grads": [],
+        "zero_grads": [],
+        "unexpected_missing_or_zero": [],
+        "all_explained": true
+      },
+      "max_grad_abs_diff": 0.0,
+      "pass": true
+    },
+    {
+      "check": "full_moe_cuda_bf16_autocast_vs_fp32_with_idle_expert",
+      "lists_identical": true,
+      "ref_coverage": {
+        "trainable_tensors": 43,
+        "none_grad_count": 0,
+        "zero_grad_count": 6,
+        "none_grads": [],
+        "zero_grads": [
+          {
+            "name": "blocks.0.experts.5.gate.weight",
+            "shape": [
+              96,
+              48
+            ],
+            "reason": "idle routed expert (0 tokens routed because router_bias[5]=-50.0); allowed and skipped by hybrid_optim.skip_zero_grad_muon"
+          },
+          {
+            "name": "blocks.0.experts.5.up.weight",
+            "shape": [
+              96,
+              48
+            ],
+            "reason": "idle routed expert (0 tokens routed because router_bias[5]=-50.0); allowed and skipped by hybrid_optim.skip_zero_grad_muon"
+          },
+          {
+            "name": "blocks.0.experts.5.down.weight",
+            "shape": [
+              48,
+              96
+            ],
+            "reason": "idle routed expert (0 tokens routed because router_bias[5]=-50.0); allowed and skipped by hybrid_optim.skip_zero_grad_muon"
+          },
+          {
+            "name": "blocks.1.experts.5.gate.weight",
+            "shape": [
+              96,
+              48
+            ],
+            "reason": "idle routed expert (0 tokens routed because router_bias[5]=-50.0); allowed and skipped by hybrid_optim.skip_zero_grad_muon"
+          },
+          {
+            "name": "blocks.1.experts.5.up.weight",
+            "shape": [
+              96,
+              48
+            ],
+            "reason": "idle routed expert (0 tokens routed because router_bias[5]=-50.0); allowed and skipped by hybrid_optim.skip_zero_grad_muon"
+          },
+          {
+            "name": "blocks.1.experts.5.down.weight",
+            "shape": [
+              48,
+              96
+            ],
+            "reason": "idle routed expert (0 tokens routed because router_bias[5]=-50.0); allowed and skipped by hybrid_optim.skip_zero_grad_muon"
+          }
+        ],
+        "unexpected_missing_or_zero": [],
+        "all_explained": true
+      },
+      "fast_coverage": {
+        "trainable_tensors": 43,
+        "none_grad_count": 0,
+        "zero_grad_count": 6,
+        "none_grads": [],
+        "zero_grads": [
+          {
+            "name": "blocks.0.experts.5.gate.weight",
+            "shape": [
+              96,
+              48
+            ],
+            "reason": "idle routed expert (0 tokens routed because router_bias[5]=-50.0); allowed and skipped by hybrid_optim.skip_zero_grad_muon"
+          },
+          {
+            "name": "blocks.0.experts.5.up.weight",
+            "shape": [
+              96,
+              48
+            ],
+            "reason": "idle routed expert (0 tokens routed because router_bias[5]=-50.0); allowed and skipped by hybrid_optim.skip_zero_grad_muon"
+          },
+          {
+            "name": "blocks.0.experts.5.down.weight",
+            "shape": [
+              48,
+              96
+            ],
+            "reason": "idle routed expert (0 tokens routed because router_bias[5]=-50.0); allowed and skipped by hybrid_optim.skip_zero_grad_muon"
+          },
+          {
+            "name": "blocks.1.experts.5.gate.weight",
+            "shape": [
+              96,
+              48
+            ],
+            "reason": "idle routed expert (0 tokens routed because router_bias[5]=-50.0); allowed and skipped by hybrid_optim.skip_zero_grad_muon"
+          },
+          {
+            "name": "blocks.1.experts.5.up.weight",
+            "shape": [
+              96,
+              48
+            ],
+            "reason": "idle routed expert (0 tokens routed because router_bias[5]=-50.0); allowed and skipped by hybrid_optim.skip_zero_grad_muon"
+          },
+          {
+            "name": "blocks.1.experts.5.down.weight",
+            "shape": [
+              48,
+              96
+            ],
+            "reason": "idle routed expert (0 tokens routed because router_bias[5]=-50.0); allowed and skipped by hybrid_optim.skip_zero_grad_muon"
+          }
+        ],
+        "unexpected_missing_or_zero": [],
+        "all_explained": true
+      },
+      "max_grad_abs_diff": 0.0003002,
+      "pass": true
+    }
+  ]
+}

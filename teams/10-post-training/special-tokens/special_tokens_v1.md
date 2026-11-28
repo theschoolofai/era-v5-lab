@@ -43,10 +43,10 @@ Prepared for **Team 3 (G3 Tokenizer)**, **Team 4 (G4 KE2)**, and **Team 9 (G9 Ev
 | `130824` | `think_end` | `<\|/think\|>` | `g10_slot_02`, in tokenizer v0.1 | End of reasoning trace |
 | `130825` | `tool_call_end` | `<\|/tool_call\|>` | `g10_slot_03`, in tokenizer v0.1 | End of structured JSON tool call payload |
 | `130826` | `tool_result_end` | `<\|/tool_result\|>` | `g10_slot_04`, in tokenizer v0.1 | End of tool execution output |
-| `130827` | `subagent_call` | `<\|subagent_call\|>` | `g10_slot_05`, rename pending in G3 | Sub-agent / delegation invocation boundary |
-| `130828` | `subagent_return` | `<\|subagent_return\|>` | `g10_slot_06`, rename pending in G3 | Sub-agent / delegation return boundary |
+| `130827` | `subagent_call` | `<\|subagent_call\|>` | `g10_slot_05` (frozen string `<\|g10_slot_05\|>`, Option (a) on `#873`) | Sub-agent / delegation invocation boundary (reserved, unused in v1) |
+| `130828` | `subagent_return` | `<\|subagent_return\|>` | `g10_slot_06` (frozen string `<\|g10_slot_06\|>`, Option (a) on `#873`) | Sub-agent / delegation return boundary (reserved, unused in v1) |
 
-Tokenizer v0.1 (PR #173) renames `g10_slot_00` to `g10_slot_04`. `subagent_call` and `subagent_return` take `g10_slot_05` and `g10_slot_06`; G3 still has to rename those two. Slots `g10_slot_07` to `g10_slot_63` (IDs 130,829 to 130,885) stay reserved and unused. Do not add `<|eval_fp_*|>`: a fingerprint stays a plain-text canary in Team 9 eval data. The v0 numbers (`000` to `255`) were positions in G10's own list, not tokenizer IDs, and are no longer used.
+Tokenizer v0.1 (PR #173) and frozen `p1536` (`e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b`) rename `g10_slot_00` to `g10_slot_04`. `subagent_call` and `subagent_return` are reserved at `g10_slot_05` (`130827`) and `g10_slot_06` (`130828`) and are not emitted in SFT v1 or RL v1; per Team 3 PR `#873` Option (a), their frozen strings stay `<|g10_slot_05|>` and `<|g10_slot_06|>` so the frozen `p1536` SHA-256 does not change. Slots `g10_slot_07` to `g10_slot_63` (IDs 130,829 to 130,885) stay reserved and unused. Do not add `<|eval_fp_*|>`: a fingerprint stays a plain-text canary in Team 9 eval data. The v0 numbers (`000` to `255`) were positions in G10's own list, not tokenizer IDs, and are no longer used.
 
 ---
 
