@@ -1,6 +1,6 @@
 # Eval access list
 
-Who may read the eval folder, as defined in [eval_firewall.md](eval_firewall.md), section 2. Last updated Thu 26 Nov 2026.
+Who may read the eval folder, as defined in [eval_firewall.md](eval_firewall.md), section 2. Last updated Sat 28 Nov 2026.
 
 This list is a record, not a lock. It sets no permission. On the lab compute, TSAI places eval files only for an
 approved Team 9 job (`eval_firewall.md`, section 3, rule 4). Everyone listed follows the handling rules in section 4 of
@@ -43,6 +43,15 @@ the date here.
 | `arunnayan` | to confirm | to confirm | to confirm | |
 | `tejaswivinnakota` (to confirm) | to confirm | to confirm | to confirm | |
 | `vedang-patel-10` | Team 5 | MuSR (llama-3.2-3b) | Row merged, #389; deletion confirmed in G9 on 12 Nov | 12 Nov |
+
+## 2b. Lab 5 rotators (28 Nov to 2 Dec)
+
+Tasks from the Team 9 lead's owner list of 28 Nov that read eval files. As in section 2: scoring only, no
+`--log-samples`; after the task's PR merges, delete the items and caches and add the date here.
+
+| Handle | From team | Task | Benchmarks (models) | Status | Ended |
+|---|---|---|---|---|---|
+| `sourav-dhar` | Team 1 (Data A); also Team 12 (section 4) | Lead addition 7, peer table (`peer_table/`) | eval_lab_v1 Tier A and B (MMLU, MILU, ARC-C, HellaSwag, MMLU-Pro, Belebele), plus full MMLU, ARC-Easy, ARC-Challenge, HellaSwag and PIQA where a published setting can be matched (Qwen3-30B-A3B-Base, Sarvam-30B, SmolLM3-3B-Base, sarvam-1, the dry run 2 checkpoint) | Accepted by the Team 9 lead on 28 Nov under TSAI's conditions on #895 (no Data A fingerprint or F2 work for the rest of the week). Kaggle only, never on the machine that holds corpus data; per-item rows hold only task, doc_id, filter and metric; no item text in any Data A work (`eval_firewall.md`, section 4, rule 5) | |
 
 ## 3. Week-3 rotators: no access needed
 
