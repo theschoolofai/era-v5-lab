@@ -116,8 +116,9 @@ def aggregate(per_pos: dict, positions: np.ndarray, eps: float = EPS, clusters: 
     return out
 
 
-def load_prompts(path: Path, n: int) -> list[str]:
-    """jsonl with a "prompt", "statement" or "question" field, or one prompt per line."""
+def load_prompt_rows(path: Path) -> list[tuple[str, str]]:
+    """(text, category) per prompt: jsonl with a "prompt", "statement" or "question" field (and an optional "category"),
+    or one prompt per line (category "")."""
     out = []
     for line in path.read_text(encoding="utf-8").splitlines():
         line = line.strip()
@@ -125,10 +126,29 @@ def load_prompts(path: Path, n: int) -> list[str]:
             continue
         try:
             row = json.loads(line)
-            out.append(next(row[k] for k in ("prompt", "statement", "question") if k in row))
-        except (json.JSONDecodeError, StopIteration, TypeError):
-            out.append(line)
-    return out[:n]
+            out.append((next(row[k] for k in ("prompt", "statement", "question") if k in row), str(row.get("category", ""))))
+        except (json.JSONDecodeError, StopIteration, TypeError, AttributeError):
+            out.append((line, ""))
+    return out
+
+
+def select_prompts(rows: list[tuple[str, str]], n: int, balanced: bool = False) -> list[tuple[str, str]]:
+    """The first n prompts, or with `balanced` n prompts taken round-robin across the categories (in file order within a
+    category), so a file that lists its categories one after another (fixed_100.jsonl: 40 English first) is not read as one."""
+    if not balanced:
+        return rows[:n]
+    by_cat: dict[str, list] = {}
+    for r in rows:
+        by_cat.setdefault(r[1], []).append(r)
+    out, i = [], 0
+    while len(out) < n and any(i < len(v) for v in by_cat.values()):
+        out += [v[i] for v in by_cat.values() if i < len(v)][:n - len(out)]
+        i += 1
+    return out
+
+
+def load_prompts(path: Path, n: int, balanced: bool = False) -> list[str]:
+    return [text for text, _ in select_prompts(load_prompt_rows(path), n, balanced)]
 
 
 class LlamaEngine:
@@ -197,6 +217,7 @@ def main() -> int:
     ap.add_argument("--prompts", required=True, type=Path)
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--n", type=int, default=48, help="prompts")
+    ap.add_argument("--balanced", action="store_true", help="take the prompts round-robin across the file's categories, not the first n")
     ap.add_argument("--k", type=int, default=8, help="completions per prompt")
     ap.add_argument("--max-new", type=int, default=256)
     ap.add_argument("--n-ctx", type=int, default=2048)
@@ -209,8 +230,13 @@ def main() -> int:
     a = ap.parse_args()
     formats = dict(q.split("=", 1) for q in a.quant)
     ref = LlamaEngine(a.ref, a.n_ctx, a.n_gpu_layers if a.ref_n_gpu_layers is None else a.ref_n_gpu_layers, a.seed)
-    prompts = [ref.tokenize(t) for t in load_prompts(a.prompts, a.n)]
-    prompts = [p for p in prompts if len(p) < a.n_ctx - a.max_new - 1]
+    chosen = select_prompts(load_prompt_rows(a.prompts), a.n, a.balanced)
+    tokenized = [(ref.tokenize(text), cat) for text, cat in chosen]
+    tokenized = [(p, cat) for p, cat in tokenized if len(p) < a.n_ctx - a.max_new - 1]
+    prompts = [p for p, _ in tokenized]
+    categories: dict[str, int] = {}
+    for _, cat in tokenized:
+        categories[cat or "-"] = categories.get(cat or "-", 0) + 1
     results = []
     for i, (name, path) in enumerate(formats.items()):
         sampler = LlamaEngine(path, a.n_ctx, a.n_gpu_layers, a.seed + 1 + i)
@@ -222,7 +248,8 @@ def main() -> int:
         print(f"{name}: {results[-1].get('rollout_tokens_per_s')} tok/s, outside [{1 - a.eps:.2f}, {1 + a.eps:.2f}] "
               f"{results[-1].get('outside')}, top-1 {results[-1].get('top1_agreement')}, {time.time() - t0:.0f}s", flush=True)
         del sampler
-    a.out.write_text(json.dumps({"reference": Path(a.ref).name, "prompts": len(prompts), "k": a.k, "max_new": a.max_new,
+    a.out.write_text(json.dumps({"reference": Path(a.ref).name, "prompts": len(prompts), "prompt_selection": "balanced" if a.balanced else "first",
+                                 "prompt_categories": categories, "k": a.k, "max_new": a.max_new,
                                  "eps": a.eps, "temperature": 1.0, "seed": a.seed, "formats": results}, indent=1))
     return 0
 
