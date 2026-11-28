@@ -3,6 +3,7 @@
   python -m pytest teams/01-data-a/shards/tests/test_pack_table.py
 """
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -44,14 +45,29 @@ def test_indic_rows_follow_the_pack_name(table):
 def test_code_rows_follow_the_pack_name(table):
     for pack, r in table.items():
         if pack.startswith("code-"):
-            assert r == {"language": pack[5:], "script": "Latn", "domain": "code", "lane": "code"}, pack
+            assert {k: r[k] for k in pack_table.FIELDS} == {"language": pack[5:], "script": "Latn", "domain": "code",
+                                                             "lane": "code"}, pack
 
 
 def test_row_matches_the_committed_sample():
+    """The sample manifest was written before the table had licences, so only the four fields are compared."""
     sample = json.loads((SHARDS / "sample" / "code-go-train-000000.json").read_text(encoding="utf-8"))
     r = pack_table.row("code-go")
-    assert r == {k: sample[v] for k, v in (("language", "language"), ("script", "script"), ("domain", "domain"),
-                                           ("lane", "capability_lane"))}
+    assert {k: r[k] for k in pack_table.FIELDS} == {k: sample[v] for k, v in (
+        ("language", "language"), ("script", "script"), ("domain", "domain"), ("lane", "capability_lane"))}
+
+
+LICENCE_SOURCE = re.compile(r"teams/10-post-training/licences/licence_table\.md@[0-9a-f]{40} \(Stage 0\)")
+
+
+def test_every_pack_has_a_licence_and_where_it_is_recorded(table):
+    """Lab rule 1 (TSAI, 28 Nov 2026): the licence and its source are kept for every pack; the source is the Stage 0 row of
+    Team 10's licence table at a pinned revision. row() gives both, so every shard manifest records them."""
+    for pack, r in table.items():
+        assert set(pack_table.LICENCE) <= set(r), pack
+        assert isinstance(r["license"], str) and r["license"].strip(), pack
+        assert LICENCE_SOURCE.fullmatch(r["license_source"]), (pack, r["license_source"])
+        assert pack_table.row(pack, table)["license"] == r["license"], pack
 
 
 def test_every_pack_has_a_lane_from_the_agreed_six(table):
