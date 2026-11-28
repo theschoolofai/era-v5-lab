@@ -1,0 +1,127 @@
+{
+  "weights_sha256": "464011f3cbec0f528af3cbc5392776c1e95c324563aa176b8d0f937745b389e0",
+  "guards": "RELAXED: --drop-router-bias --drop-head-bias (the GGUF is not the checkpoint as trained; every gap is against the bf16 GGUF of the same export)",
+  "formats": [
+    {
+      "format": "bf16",
+      "score": 0.0,
+      "by_kind": {
+        "mcq": 0.0,
+        "numeric": 0.0
+      },
+      "size_gb": 0.61,
+      "bpw": 16.0,
+      "tok_s": 0,
+      "n_items": 20,
+      "sha256": "0158d87b323075de3baaf599cc7a8d96b44904742bc1eba1b4434bfe67b38306",
+      "source": "q/bf16/scores.json",
+      "command": "python <repo>/teams/12-quantization/scripts/quantize_eval.py --checkpoint <scratch>/loop/out/weights/model.safetensors --tokenizer ~/Downloads/tokenizer_p1536.json --eval <repo>/teams/12-quantization/prompts/eval_own_20.json --formats bf16 --work ~/.cache/era-v5-quant --runs-csv <scratch>/loop/out/runs.csv --scores-out <scratch>/loop/out/q/bf16/scores.json --verify 4 --name loop --cleanup --spec <scratch>/loop/out/weights/manifest.json --drop-router-bias --drop-head-bias --no-record",
+      "a1": false,
+      "a1_zero": true,
+      "a3": true,
+      "gap": 0.0,
+      "gap_by_kind": {
+        "mcq": 0.0,
+        "numeric": 0.0
+      }
+    },
+    {
+      "format": "Q8_0",
+      "score": 0.0,
+      "by_kind": {
+        "mcq": 0.0,
+        "numeric": 0.0
+      },
+      "size_gb": 0.32,
+      "bpw": 8.58,
+      "tok_s": 0,
+      "n_items": 20,
+      "sha256": "4ae26e1106f687a52d09d9f3ebb2ced824f38298b22ea1d726066e4187e66271",
+      "source": "q/Q8_0/scores.json",
+      "command": "python <repo>/teams/12-quantization/scripts/quantize_eval.py --checkpoint <scratch>/loop/out/weights/model.safetensors --tokenizer ~/Downloads/tokenizer_p1536.json --eval <repo>/teams/12-quantization/prompts/eval_own_20.json --formats Q8_0 --work ~/.cache/era-v5-quant --runs-csv <scratch>/loop/out/runs.csv --scores-out <scratch>/loop/out/q/Q8_0/scores.json --verify 4 --name loop --cleanup --spec <scratch>/loop/out/weights/manifest.json --drop-router-bias --drop-head-bias --no-record",
+      "a1": false,
+      "a1_zero": true,
+      "a3": true,
+      "gap": 0.0,
+      "gap_by_kind": {
+        "mcq": 0.0,
+        "numeric": 0.0
+      }
+    },
+    {
+      "format": "Q6_K",
+      "score": 0.0,
+      "by_kind": {
+        "mcq": 0.0,
+        "numeric": 0.0
+      },
+      "size_gb": 0.27,
+      "bpw": 7.09,
+      "tok_s": 0,
+      "n_items": 20,
+      "sha256": "2fd12c5d7f4dba6be0b6b1b4966cd1dbeb0c2c04209d8dc8ddd6af4c87947709",
+      "source": "q/Q6_K/scores.json",
+      "command": "python <repo>/teams/12-quantization/scripts/quantize_eval.py --checkpoint <scratch>/loop/out/weights/model.safetensors --tokenizer ~/Downloads/tokenizer_p1536.json --eval <repo>/teams/12-quantization/prompts/eval_own_20.json --formats Q6_K --work ~/.cache/era-v5-quant --runs-csv <scratch>/loop/out/runs.csv --scores-out <scratch>/loop/out/q/Q6_K/scores.json --verify 4 --name loop --cleanup --spec <scratch>/loop/out/weights/manifest.json --drop-router-bias --drop-head-bias --no-record",
+      "a1": false,
+      "a1_zero": true,
+      "a3": true,
+      "gap": 0.0,
+      "gap_by_kind": {
+        "mcq": 0.0,
+        "numeric": 0.0
+      }
+    },
+    {
+      "format": "Q5_K_M",
+      "score": 0.0,
+      "by_kind": {
+        "mcq": 0.0,
+        "numeric": 0.0
+      },
+      "size_gb": 0.24,
+      "bpw": 6.37,
+      "tok_s": 0,
+      "n_items": 20,
+      "sha256": "a5ca49b317e677c37821ab37fe60602df0494175f4059f4ffb71d100f7332914",
+      "source": "q/Q5_K_M/scores.json",
+      "command": "python <repo>/teams/12-quantization/scripts/quantize_eval.py --checkpoint <scratch>/loop/out/weights/model.safetensors --tokenizer ~/Downloads/tokenizer_p1536.json --eval <repo>/teams/12-quantization/prompts/eval_own_20.json --formats Q5_K_M --work ~/.cache/era-v5-quant --runs-csv <scratch>/loop/out/runs.csv --scores-out <scratch>/loop/out/q/Q5_K_M/scores.json --verify 4 --name loop --cleanup --spec <scratch>/loop/out/weights/manifest.json --drop-router-bias --drop-head-bias --no-record",
+      "a1": false,
+      "a1_zero": true,
+      "a3": true,
+      "gap": 0.0,
+      "gap_by_kind": {
+        "mcq": 0.0,
+        "numeric": 0.0
+      }
+    },
+    {
+      "format": "Q4_K_M",
+      "score": 0.0,
+      "by_kind": {
+        "mcq": 0.0,
+        "numeric": 0.0
+      },
+      "size_gb": 0.22,
+      "bpw": 5.69,
+      "tok_s": 0,
+      "n_items": 20,
+      "sha256": "dcf8e83db2bd493076a6ccd0bb747a76bfb24d6d9681b01b207b061f9f360415",
+      "source": "q/Q4_K_M/scores.json",
+      "command": "python <repo>/teams/12-quantization/scripts/quantize_eval.py --checkpoint <scratch>/loop/out/weights/model.safetensors --tokenizer ~/Downloads/tokenizer_p1536.json --eval <repo>/teams/12-quantization/prompts/eval_own_20.json --formats Q4_K_M --work ~/.cache/era-v5-quant --runs-csv <scratch>/loop/out/runs.csv --scores-out <scratch>/loop/out/q/Q4_K_M/scores.json --verify 4 --name loop --cleanup --spec <scratch>/loop/out/weights/manifest.json --drop-router-bias --drop-head-bias --no-record",
+      "a1": false,
+      "a1_zero": true,
+      "a3": true,
+      "gap": 0.0,
+      "gap_by_kind": {
+        "mcq": 0.0,
+        "numeric": 0.0
+      }
+    }
+  ],
+  "score_full": null,
+  "watcher": {
+    "status": "no watcher score given (--watcher-json): not compared"
+  },
+  "eval": "<repo>/teams/12-quantization/prompts/eval_own_20.json",
+  "eval_sha256": "5d4fec16221c3d2dd1aa2695f6f6ded97d5a493afd460bf7f927e19e36fbb069"
+}
