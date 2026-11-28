@@ -1,6 +1,6 @@
 # Data B rotation, week 4: R1 and R2 on ind-te-fw2 (ANkumar-ai)
 
-Refs #ISSUE. Rotation member: ANkumar-ai (Ajay). Language: Telugu (I read Telugu; I did the week-1 diagnosis of ind-te-fw2).
+Rotation member: ANkumar-ai (Ajay), team 02 Data B. Language: Telugu (I read Telugu; I did the week-1 diagnosis of ind-te-fw2).
 
 ## What was checked
 
