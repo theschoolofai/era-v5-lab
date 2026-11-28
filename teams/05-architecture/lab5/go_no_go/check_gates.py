@@ -6,9 +6,11 @@ prints PASS, FAIL or PENDING for each gate in gates_v1.yaml. PENDING means an in
 
     python3 teams/05-architecture/lab5/go_no_go/check_gates.py --run teams/05-architecture/results/dryrun2-1234 \
         [--restart <Team 7 result.json or detail.json>] [--eval <eval_mini_v1.json>] [--eval-model lab:<run>] \
-        [--fit <fit.json>] [--token-budget 6e11 --wall-hours 720] [--md out.md]
+        [--fit <fit.json>] [--team9 <holds.json>] [--token-budget <tokens> --wall-hours <hours>] [--md out.md]
 
 fit.json (lead addition 9): {"E": .., "A": .., "alpha": .., "B": .., "beta": .., "n_active": .., "holdout_error": ..}
+holds.json (Team 9, #931): {"early_quality": "go" | "hold", "watcher": "go" | "hold", "evidence": "<PR or file>"}
+The token budget has no default: it stays empty until the corpus-v1 token count is posted. Nothing here changes config v1.
 Exit code: 0 every gate passes, 1 a gate fails, 2 no gate fails but at least one is pending.
 """
 import argparse
@@ -183,6 +185,20 @@ def gate_throughput(rows, cfg, token_budget, wall_hours):
     return (PASS if tps >= need else FAIL), msg
 
 
+def gate_team9(path, cfg):
+    if path is None:
+        return PENDING, "no Team 9 verdict yet on early quality and watcher lag (#931)"
+    r = json.loads(Path(path).read_text(encoding="utf-8"))
+    missing = [c for c in cfg["checks"] if r.get(c) not in ("go", "hold")]
+    if missing:
+        return PENDING, "no Team 9 verdict for " + ", ".join(missing)
+    held = [c for c in cfg["checks"] if r[c] == "hold"]
+    ev = f" (evidence: {r['evidence']})" if r.get("evidence") else ""
+    if held:
+        return FAIL, "Team 9 holds on " + ", ".join(held) + ev
+    return PASS, "Team 9: go on " + ", ".join(cfg["checks"]) + ev
+
+
 # ---- report ------------------------------------------------------------------------------------------------
 
 def run_gates(a, cfg):
@@ -195,6 +211,7 @@ def run_gates(a, cfg):
         ("Router evenness", *gate_router(rows, cfg["router_evenness"])),
         ("Evaluation pass at step 0 (Team 9)", *gate_eval(a.eval, a.eval_model, cfg["eval_pass"])),
         ("Tokens per second", *gate_throughput(rows, cfg["throughput"], a.token_budget, a.wall_hours)),
+        ("Team 9 holds: early quality, watcher lag (#931)", *gate_team9(a.team9, cfg["team9_holds"])),
     ]
 
 
@@ -213,7 +230,8 @@ def main(argv=None):
     ap.add_argument("--eval", help="Team 9 eval_mini_v1.json")
     ap.add_argument("--eval-model", help="model name of the run in eval_mini, e.g. lab:<run>")
     ap.add_argument("--fit", help="scaling-law fit json (lead addition 9)")
-    ap.add_argument("--token-budget", type=float)
+    ap.add_argument("--team9", help="Team 9 verdicts on its two holds (#931)")
+    ap.add_argument("--token-budget", type=float, help="no default; posted with the corpus-v1 token count")
     ap.add_argument("--wall-hours", type=float)
     ap.add_argument("--md", help="also write the table here")
     a = ap.parse_args(argv)

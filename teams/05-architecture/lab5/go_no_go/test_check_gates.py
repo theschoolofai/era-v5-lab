@@ -146,6 +146,39 @@ class Throughput(unittest.TestCase):
         self.assertEqual((tps, fill), (500.0, 0.5))
 
 
+class Team9Holds(unittest.TestCase):
+    def write(self, obj):
+        p = Path(tempfile.mkdtemp()) / "holds.json"
+        p.write_text(json.dumps(obj))
+        return p
+
+    def test_missing_is_pending(self):
+        self.assertEqual(G.gate_team9(None, CFG["team9_holds"])[0], G.PENDING)
+
+    def test_one_verdict_missing_is_pending(self):
+        self.assertEqual(G.gate_team9(self.write({"early_quality": "go"}), CFG["team9_holds"])[0], G.PENDING)
+
+    def test_both_go_passes(self):
+        p = self.write({"early_quality": "go", "watcher": "go", "evidence": "#931"})
+        self.assertEqual(G.gate_team9(p, CFG["team9_holds"])[0], G.PASS)
+
+    def test_a_hold_fails(self):
+        p = self.write({"early_quality": "go", "watcher": "hold"})
+        state, msg = G.gate_team9(p, CFG["team9_holds"])
+        self.assertEqual(state, G.FAIL)
+        self.assertIn("watcher", msg)
+
+
+class Sheet(unittest.TestCase):
+    def test_every_gate_is_a_proposal(self):
+        for name, g in CFG.items():
+            self.assertTrue(g["status"].startswith("proposal"), name)
+
+    def test_budgets_stay_empty(self):
+        self.assertIsNone(CFG["throughput"]["token_budget"])
+        self.assertIsNone(CFG["throughput"]["wall_hours"])
+
+
 @unittest.skipUnless((DRYRUN2 / "metrics.jsonl").exists(), "dry run 2 record (#869) not present")
 class DryRun2(unittest.TestCase):
     """The checker agrees with the dry run 2 report on #892: 8x the even share at step 50, over the 5x line to step 300."""
