@@ -20,8 +20,10 @@ exit 78 if a run crashed. Writes only to --out (default out/ next to this script
 At another world size the sums over ranks run in another order, so the loss bits cannot be equal. Then the
 data ids must still be equal, and at the first step after the restore (weights equal to the saved ones) the loss
 gap to Run A may be no larger than that of Run C, a straight run at the new world size, at its step 1 (equal
-weights too). The tolerance is measured, not guessed. Later steps drift like any two world sizes; both drifts
-are printed and kept in result.json.
+weights too). What this proves, and no more (Team 05 review, #899): the data stream continues at the right batch,
+and the first forward pass after the restore sees the saved weights. It does not prove that later updates equal a
+run at the new world size: they drift like any two world sizes, and both drifts are printed and kept in
+result.json. Run C's step-1 gap is an empirical reference for this seed and model, not a guaranteed rounding bound.
 """
 import argparse
 import hashlib
@@ -286,10 +288,10 @@ def main(argv=None) -> int:
     (a.out / "result.json").write_text(json.dumps(result, indent=1) + "\n")
     where = f"nproc={a.nproc}->{a.resume_nproc} {a.optim} {a.device}: steps {first}-{last}"
     if diff is None and resharded:
-        print(f"PASS restore_test {where}: data ids equal; first step after restore loss gap "
-              f"{gaps['first_step']:.3g} <= {gaps['first_step_tolerance']:.3g} (one step at {a.resume_nproc} "
-              f"processes from equal weights); later drift {gaps['window_max']:.3g}, a straight run at "
-              f"{a.resume_nproc} processes drifts {gaps['window_max_run_c']:.3g}")
+        print(f"PASS restore_test {where}: data ids equal; first forward loss after the restore differs by "
+              f"{gaps['first_step']:.3g}, within the {gaps['first_step_tolerance']:.3g} a straight run at "
+              f"{a.resume_nproc} processes shows at its step 1 (empirical reference, not a bound); later updates "
+              f"not compared: drift {gaps['window_max']:.3g}, straight run {gaps['window_max_run_c']:.3g}")
         return 0
     if diff is None:
         print(f"PASS restore_test {where}: loss_ntp and loss_mtp bit-equal, data ids equal")
