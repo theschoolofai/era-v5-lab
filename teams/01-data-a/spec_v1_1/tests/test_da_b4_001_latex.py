@@ -9,8 +9,10 @@ arguments: `i^{[j]}` (falling factorial), `\\sum_{i=1}^{[at]}`, `\\frac{[R_f]}{.
 (a ratio of areas). The real clean() on the 38 sample packs changes 21 math-finemath docs, 20 of them this way, and
 68 math-megamath docs, 61 of which only lose Wikipedia footnote markers `^{[1]}` (leaving a stray `^`).
 
-FAILING tests (LatexKept): the medicine should leave LaTeX bracket groups unchanged. They fail on clean.py
-d275556e and are the finding; they pass once the sheet's `{[ ]}` form needs spaces inside, as its `{{ }}` form does.
+EXPECTED FAILURES (LatexKept): the medicine should leave LaTeX bracket groups unchanged. They fail on clean.py
+d275556e and are the finding, marked as strict expected failures (lab rule 3, issue theschoolofai/era-v5-lab#926):
+an unexpected pass fails the run. The fix (the sheet's `{[ ]}` form needs spaces inside, as its `{{ }}` form does)
+removes the markers.
 PASSING tests (TemplateStillRemoved): the template markup the medicine was written for, from its card's own evidence
 docs, is still removed; any fix must keep these green.
 All text is made up, in the shape of the matched documents (no document text is copied).
@@ -41,14 +43,16 @@ LATEX = {
 
 
 class LatexKept(unittest.TestCase):
-    """The finding: these fail today. The medicine must not touch a LaTeX bracket group."""
+    """The finding: these fail today (strict expected failures, #926). The medicine must not touch a LaTeX bracket group."""
 
+    @unittest.expectedFailure  # xfail, strict: theschoolofai/era-v5-lab#926
     def test_rule_keeps_latex_bracket_groups_on_both_math_packs(self):
         for pack in ("math-finemath", "math-megamath"):
             for name, text in LATEX.items():
                 with self.subTest(pack=pack, case=name):
                     self.assertEqual(b4(doc(text, pack)), ("keep", text))
 
+    @unittest.expectedFailure  # xfail, strict: theschoolofai/era-v5-lab#926
     def test_full_cleaner_keeps_the_ratio_of_areas(self):
         text = LATEX["ratio of areas"]
         self.assertIn(r"\frac{[MNP]}{[ABC]}", c.clean(doc(text))[1])
