@@ -173,6 +173,15 @@ def uses_head_sgd(name, o):
 
 
 def build_optimizer(model, o):
+    """The optimizer with base_lr (the peak) already in every group. A checkpoint restore loads only the keys the
+    fresh optimizer has, so without it the saved peak was dropped and set_lr_scale took the restored current rate
+    as the peak: a resume during warmup or decay kept that lower rate for the rest of the run (Team 07, Lab 5)."""
+    optimizer = _build_optimizer(model, o)
+    set_lr_scale(optimizer, 1.0)
+    return optimizer
+
+
+def _build_optimizer(model, o):
     adamw = lambda params: torch.optim.AdamW(
         params,
         lr=o["lr"],
