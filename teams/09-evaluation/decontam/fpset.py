@@ -17,9 +17,14 @@ from pathlib import Path
 import normalize as norms
 from lab_canary import LAB_CANARY, LAB_CANARY_ID, read_canary_file
 
-VERSION = "v2"
+VERSION = "v3"            # the newest set shipped: v3 = v2 + the 11 Lab 5 sets (closes known_failures.md)
+# DEFAULT_VERSION is what the checkers use when --fingerprints is not given. It stays at v2 on purpose:
+# a run that has to stay comparable with earlier results (the corpus-v1 F2 step, every shard check whose
+# reports quote a set_sha256) must not switch sets because a newer one was added. Pass --fingerprints to
+# opt in to v3 (TSAI review, #909 point 3).
+DEFAULT_VERSION = "v2"
 # The normalizer of each shipped set. build_fingerprints.py uses it when --normalize is not given.
-SET_NORMALIZE = {"v1": "g9-v1", "v2": "g9-v2"}
+SET_NORMALIZE = {"v1": "g9-v1", "v2": "g9-v2", "v3": "g9-v2"}
 DEFAULT_NORM = norms.get(norms.DEFAULT_ID)
 # The benchmark MANIFEST.json files of v1 were written before they named their normalizer.
 UNSTATED_NORMALIZE_ID = "g9-v1"

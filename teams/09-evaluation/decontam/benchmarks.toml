@@ -487,3 +487,187 @@ split = "heldout"
 id = "{id}"
 texts = ["{text}"]
 boilerplate = ["scoped/heldout_g5_v1.txt"]
+
+# ---------------------------------------------------------------- Lab 5: closing the known gap
+# Teams 09-evaluation/results/known_failures.md lists 12 benchmarks with no fingerprint rows.
+# Eleven are closed here; HellaSwag is recorded as "skip" and must not be fingerprint- or redistributed.
+# Revisions and file hashes read 28 Nov 2026.
+
+[arc_challenge]
+name = "ARC-Challenge"
+status = "active"
+tags = ["english", "knowledge"]
+licence = "CC-BY-SA-4.0"
+source = "hf"
+repo = "allenai/ai2_arc"
+revision = "210d026faf9955653af8916fad021475a3f00453"
+files = [{ path = "ARC-Challenge/test-00000-of-00001.parquet", sha256 = "62f03257e737aed263f55c6abf87c7bb0028a44a6bdd2a26eb1279eb42c1d1e9" }]
+split = "test"
+id = "{id}"
+texts = ["{question}", "{question}\n{choices.text|lines}", "{question}\n{choices.text|lettered}"]
+
+[arc_easy]
+name = "ARC-Easy"
+status = "active"
+tags = ["english", "knowledge"]
+licence = "CC-BY-SA-4.0"
+source = "hf"
+repo = "allenai/ai2_arc"
+revision = "210d026faf9955653af8916fad021475a3f00453"
+files = [{ path = "ARC-Easy/test-00000-of-00001.parquet", sha256 = "4160597d618ae851c7eb04e281574f3f654776216ac6b6641588d64527b47177" }]
+split = "test"
+id = "{id}"
+texts = ["{question}", "{question}\n{choices.text|lines}", "{question}\n{choices.text|lettered}"]
+
+[hellaswag]
+name = "HellaSwag"
+status = "skip"
+tags = ["english", "knowledge"]
+licence = "MIT per the dataset card, but disputed: wikiHow, Inc. filed a DMCA takedown on 2026-09-14 naming github.com/rowanz/hellaswag, which now returns HTTP 451"
+repo = "Rowan/hellaswag"
+reason = "Do not fingerprint or redistribute. wikiHow DMCA takedown 2026-09-14; the MIT grant covers the authors' release, not the wikiHow article text the contexts are taken from. Score as a diagnostic only, and ask TSAI before quoting it in a release."
+
+[truthfulqa]
+name = "TruthfulQA"
+status = "active"
+tags = ["english", "knowledge"]
+licence = "Apache-2.0"
+source = "hf"
+repo = "truthfulqa/truthful_qa"
+revision = "741b8276f2d1982aa3d5b832d3ee81ed3b896490"
+files = [{ path = "multiple_choice/validation-00000-of-00001.parquet", sha256 = "23f08e230ca4ed66babf3a72419af7cbde1f3d734dd396ac4cf6d088bd162afd" }]
+split = "validation"
+# Opaque id: the row number (default). An item-text id would write every question into the committed TSV and
+# this repository is public; fingerprints hold hashes, never item text (TSAI review, #909).
+texts = ["{question}", "{question}\n{mc1_targets.choices|lines}"]
+
+[mmlu_pro]
+name = "MMLU-Pro"
+status = "active"
+tags = ["english", "knowledge"]
+licence = "MIT"
+source = "hf"
+repo = "TIGER-Lab/MMLU-Pro"
+revision = "b189ec765aa7ed75c8acfea42df31fdae71f97be"
+files = [{ path = "data/test-00000-of-00001.parquet", sha256 = "0e24a191921c2f453518a537a8b2117bd137e7714d4ef1565e9ba06c1ecb9ad8" }]
+split = "test"
+id = "{question_id}"
+texts = ["{question}", "{question}\n{options|lines}", "{question}\n{options|lettered}"]
+
+[bbh]
+name = "BBH"
+status = "active"
+tags = ["english", "reasoning"]
+licence = "MIT (Suzgun et al.); the lukaemon mirror declares no licence tag -- source check pending"
+source = "hf"
+repo = "lukaemon/bbh"
+revision = "982bb89fd79532a8ac676a61fc42eb1aeec63f99"
+files = [{ path = "date_understanding/test-00000-of-00001.parquet", sha256 = "886b90d48cc66c87d26c36d64ef8119523b2021aa02dcc78ea326d7595440e1f" }]
+split = "date_understanding"
+# id must be single-line: BBH `input` contains newlines and an "Options:" list, so it cannot be the id.
+# The default (row number) is used, and the text template fingerprints the whole input including the options.
+texts = ["{input}"]
+
+[musr]
+name = "MuSR"
+status = "active"
+tags = ["english", "reasoning"]
+licence = "CC-BY-4.0"
+source = "hf"
+repo = "TAUR-Lab/MuSR"
+revision = "7c365b439a222150f317764d4f16ae6c96d7d94a"
+files = [{ path = "all.csv", sha256 = "f825539ca1893f105943231e7ad5d0721a48c1570500fdf2a78080de27336531" }]
+split = "test"
+# Opaque id: the row number (default), for the same reason as truthfulqa above.
+texts = ["{narrative}\n{question}", "{narrative}\n{question}\n{choices|lines}"]
+
+[humaneval]
+name = "HumanEval"
+status = "active"
+tags = ["code"]
+licence = "MIT"
+source = "hf"
+repo = "openai/openai_humaneval"
+revision = "7dce6050a7d6d172f3cc5c32aa97f52fa1a2e544"
+files = [{ path = "openai_humaneval/test-00000-of-00001.parquet", sha256 = "2f2871a15fbc95b6c683043359f4ed8e144c5a1c4f24f25f66bc51f598dfcfb6" }]
+split = "test"
+id = "{task_id}"
+texts = ["{prompt}"]
+code = ["{canonical_solution}"]
+
+[humanevalplus]
+name = "HumanEval+"
+status = "active"
+tags = ["code"]
+licence = "Apache-2.0"
+source = "hf"
+repo = "evalplus/humanevalplus"
+revision = "d32357cf319e50e9c8d8dab5ea876c72b0fd321b"
+files = [{ path = "data/test-00000-of-00001-5973903632b82d40.parquet", sha256 = "4436f5c03d77c17e0cbc57543b90665b5c1266f55a43992a5ed7922cd34a7558" }]
+split = "test"
+id = "{task_id}"
+texts = ["{prompt}"]
+code = ["{canonical_solution}"]
+
+[mbpp]
+name = "MBPP"
+status = "active"
+tags = ["code"]
+licence = "CC-BY-4.0"
+source = "hf"
+repo = "google-research-datasets/mbpp"
+revision = "4bb6404fdc6cacfda99d4ac4205087b89d32030c"
+files = [{ path = "full/test-00000-of-00001.parquet", sha256 = "566fd53060ffba5766dace1d1e2f4c38906781526de222b0dfbdbc325b696c77" }]
+split = "test"
+id = "{task_id}"
+texts = ["{text}"]
+code = ["{code}"]
+
+[mbppplus]
+name = "MBPP+"
+status = "active"
+tags = ["code"]
+licence = "Apache-2.0"
+source = "hf"
+repo = "evalplus/mbppplus"
+revision = "b2d74c91837c3f2a20c1299ae98133cbe7cfa077"
+files = [{ path = "data/test-00000-of-00001-d5781c9c51e02795.parquet", sha256 = "dc20030b3788fccf617444edcb34138ef13d7e4fafd17bfcb8c1279dbb12399b" }]
+split = "test"
+id = "{task_id}"
+texts = ["{prompt}"]
+code = ["{code}"]
+
+[belebele]
+name = "Belebele"
+status = "active"
+tags = ["indic", "english", "knowledge"]
+licence = "CC-BY-SA-4.0"
+source = "hf"
+repo = "facebook/belebele"
+revision = "7899cdfa4e1e0d733fd77c848e2c273cb1d32be2"
+files = [{ path = "data/hin_Deva.jsonl", sha256 = "41d34aab7f8fc4d57dc5d61fb36c3ce6ce230fe8e1c156c4d3cff0ba4710ed8f" }, { path = "data/tel_Telu.jsonl", sha256 = "10403c5d76edf5112b0703217836e15857119a58f431052eb47b7874d9fc419e" }, { path = "data/tam_Taml.jsonl", sha256 = "f950eb23a6e7001087d0dbc3ebc892f1b92a99cfc35b929b4cdfb07288037044" }]
+format = "jsonl"
+split = "test"
+id = "{link}"
+texts = ["{flores_passage}\n{question}", "{flores_passage}\n{question}\n{mc_answer1}\n{mc_answer2}\n{mc_answer3}\n{mc_answer4}"]
+
+[math]
+name = "MATH (Hendrycks competition mathematics)"
+status = "active"
+tags = ["english", "math"]
+licence = "MIT (hendrycks/competition_math). Read through the public mirror EleutherAI/hendrycks_math, which is the same files; hendrycks/competition_math is gated."
+source = "hf"
+repo = "EleutherAI/hendrycks_math"
+revision = "21a5633873b6a120296cce3e2df9d5550074f4a3"
+files = [
+  { path = "algebra/test-00000-of-00001.parquet", sha256 = "0e04a850dac9cfc758eac0c80afd2d0cc65e29ea72f916c8ac1045b12af937f5" },
+  { path = "counting_and_probability/test-00000-of-00001.parquet", sha256 = "c324818949c75a6227c0328a8499d58023cbbf6757cfc1736f5ab24cc8d87966" },
+  { path = "geometry/test-00000-of-00001.parquet", sha256 = "98720f3a8134ad9784fd8951195245264495df03ffc5c9485a9a54ff5ae2431a" },
+  { path = "intermediate_algebra/test-00000-of-00001.parquet", sha256 = "e859f72486c951c2017da880541ca729940eaa986b0364eb23e238983df9bfeb" },
+  { path = "number_theory/test-00000-of-00001.parquet", sha256 = "ba156c9c9fa2040836ba12135fd964e6e67d6bccd8c469ec4a3ad941f8f6fbe9" },
+  { path = "prealgebra/test-00000-of-00001.parquet", sha256 = "301e5d8ade5c7b5038032532e498bdc9dca799e7f1061a63f2e7d980803240cc" },
+  { path = "precalculus/test-00000-of-00001.parquet", sha256 = "da37474ba3761ae5727af3844a7ba963a735bd6a14c65e6137593669a4fe3b9c" },
+]
+# opaque id: the row number (default). The problem text must never enter a committed TSV (#909 review point 1).
+split = "test"
+texts = ["{problem}", "{problem}\n{solution}"]

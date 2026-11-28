@@ -303,6 +303,81 @@ Only 23 of these documents have a joiner, so this test covers few documents with
 
 The 19 benchmarks of v2 built with `g9-v2` are byte for byte the set that these numbers were measured on.
 
+## The fingerprint set (v3) — Lab 5
+
+**set_sha256 (v3): `876f3b866e5ef3fcb7632735d791bd484dfa5f17fa0799408602c9d79c91061a`**, normalizer `g9-v2`
+(the same as v2, so v2 and v3 scores are directly comparable).
+
+v3 exists to close the gap recorded in `results/known_failures.md`: **12 benchmarks were scored or reported with no
+fingerprint at all**, including four of the six tasks the watcher scores on every tenth checkpoint.
+
+| | v2 | v3 |
+|---|---|---|
+| Benchmarks | 20 | **32** |
+| Items | 133,285 | **159,594** |
+| Hashes (13-word / 20-token runs) | 8,940,301 | **11,726,238** |
+| Size on disk | 149 MB | 195 MB |
+| Largest file | <4 MB | <4 MB |
+
+Added (revision and file sha256 pinned in `benchmarks.toml`, read 28 Nov 2026):
+
+| Set | Items | Hashes | Items with no n-gram |
+|---|---:|---:|---:|
+| ARC-Challenge | 1,172 | 13,812 | 64 |
+| ARC-Easy | 2,376 | 21,068 | 176 |
+| MMLU-Pro | 12,032 | 1,900,073 | 0 |
+| Belebele (hi/te/ta) | 2,700 | 232,747 | 0 |
+| MuSR | 756 | 572,565 | 0 |
+| BBH (date_understanding) | 250 | 9,153 | 0 |
+| TruthfulQA (MC1/MC2) | 817 | 1,719 | 218 |
+| HumanEval | 164 | 11,464 | 0 |
+| HumanEval+ | 164 | 11,408 | 0 |
+| MBPP | 500 | 7,504 | 2 |
+| MBPP+ | 378 | 4,424 | 2 |
+| **MATH** (added for lead 8, #931) | 5,000 | 638,110 | 0 |
+
+**HellaSwag is NOT in v3, deliberately.** wikiHow, Inc. filed a DMCA takedown on 2026-09-14 naming
+`github.com/rowanz/hellaswag`, which now returns HTTP 451. The dataset card says MIT, but that grant covers the
+authors' release, not the wikiHow article text about 45k of the 70k contexts are taken from. The row is
+`status = "skip"` with the reason recorded, so the decision is in the repo and not only in chat. **Do not fingerprint
+or redistribute it, and ask TSAI before quoting HellaSwag numbers in a release.** It remains the one benchmark in
+`known_failures.md`'s list of 12 that v3 does not close.
+
+**MATH was added after the lead-8 list (#931)** asked for it. It matters beyond coverage: Team 1's reply #914 reports
+that `zwhe99/DeepMath-103K` contains MATH test items, and with MATH in the set that is now checkable. Measured:
+**302 of the first 3,000 rows in DeepMath's `train-0000-9` are flagged by the MATH fingerprint, against 2 of 3,000
+in `train-0000-0`** — matching the 2,118 exact copies I counted in that shard.
+
+### Measured on v3
+
+- **Recall**, real item text checked back (50 sampled per set): ARC-Challenge **94%**, MMLU-Pro / HumanEval / MBPP /
+  BBH **100%**.
+- **False hits on a real pack**, `cadj-stackexchange` (500 documents): **identical between v2 and v3** — 1 document
+  (0.20%), the same `swe_bench_live` hit, same offset, same coverage. **v3 adds no false hits on this pack.**
+- `pytest teams/09-evaluation/decontam/tests -q`: **143 passed, 2 skipped**.
+- The 38-pack false-hit baseline in the v2 section below (**20 flagged, 0.11 %**) has **not** been re-measured on
+  v3, because the 19,000-document sample is not available locally. **Who runs it:** `tanmays369`, as soon as the
+  sample is staged again (the presigned link from 4–13 Nov returns HTTP 403). Due before v3 is used for a gate.
+
+### Which jobs pin a version, and which follow the default
+
+Adding v3 must not change what an existing job checks. `fpset.VERSION` is the newest set (**v3**);
+`fpset.DEFAULT_VERSION` is what the checkers use when `--fingerprints` is not given and stays **v2**.
+
+| Reader | Version it uses | Why |
+|---|---|---|
+| `decontam_check.py` without `--fingerprints` | **v2** (`DEFAULT_SET`) | a shard check whose report quotes `2826a3b8…` must keep quoting it |
+| `canary_scan.py` without `--fingerprints` | **v2** | same |
+| `check_jsonl.py`, `check_shards.py` without `--fingerprints` | **v2** | the corpus-v1 F2 step must not switch sets mid-run |
+| `Fingerprints()` with `--fingerprints <folder>` | whatever is given | explicit opt-in to v3 |
+| the registry-consistency tests | **v3** (`LATEST_SET`) | those check the newest set against `benchmarks.toml` |
+
+The corpus-v1 F2 step therefore stays on v2 until someone passes `--fingerprints .../v3` deliberately. A test
+(`test_v2_still_ships_and_resolves_to_g9_v2`) asserts v2 still ships, keeps its `set_sha256` and stays the default.
+- **Known limitation, inherited:** items under 8 words have no n-gram. That is why 218 of TruthfulQA's 817 and 176
+  of ARC-Easy's 2,376 are uncovered — the items are short questions, under the 8-word floor. It is
+  the documented `short_min` behaviour, not a template fault, but it means v3 does not fully cover those two sets.
+
 ## The fingerprint set (v2)
 
 **set_sha256 (v2): `2826a3b883210c653979103c09ce1c79e40fc4f7034b54027f2836482370d22a`**, normalizer `g9-v2`.
