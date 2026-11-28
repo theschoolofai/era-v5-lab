@@ -1,6 +1,7 @@
 """Generate HumanEval+ / MBPP+ solutions locally with evalplus (greedy, base prompt, bf16, pinned revision).
 
-Executing the solutions needs Linux, so that step runs in code_eval_colab.ipynb. This script writes the files to upload:
+Executing the solutions needs Linux, so that step runs in code_eval_docker.py (local Docker) or code_eval_colab.ipynb.
+This script writes the files they read:
     runs/<model>/evalplus/<model>__humaneval.jsonl
     runs/<model>/evalplus/<model>__mbpp.jsonl
 
@@ -80,6 +81,27 @@ def fix_tokenizer_rebuild():
     hf.AutoTokenizer = CheckedAutoTokenizer
 
 
+def fix_device_selection():
+    """evalplus 0.3.1's HF decoder picks 'cuda' if available and otherwise 'cpu', and moves the model and every prompt there.
+    On Apple Silicon that runs a bf16 model on the CPU. When there is no CUDA device but MPS is available, move the model to
+    MPS after loading and send the prompts there too. With CUDA, or with neither, nothing changes. Returns the device used."""
+    import torch
+    from evalplus.provider.hf import HuggingFaceDecoder
+    if torch.cuda.is_available():
+        return "cuda"
+    if not torch.backends.mps.is_available():
+        return "cpu"
+    original = HuggingFaceDecoder.__init__
+
+    def __init__(self, *args, **kwargs):
+        original(self, *args, **kwargs)
+        self.device = torch.device("mps")
+        self.model = self.model.to(self.device)
+
+    HuggingFaceDecoder.__init__ = __init__
+    return "mps"
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True, help="key in published_scores.json 'models'")
@@ -99,9 +121,11 @@ def main():
     fix_stacked_stop_criteria()
     fix_shared_eos_list()
     fix_tokenizer_rebuild()
+    device = fix_device_selection()
 
     meta = {"model": a.model, "hf_id": m["hf_id"], "revision": m["revision"], "vram_fraction_cap": fraction,
             "settings": {"backend": "hf", "greedy": True, "force_base_prompt": True, "dtype": "bfloat16", "attn_implementation": "eager",
+                         "device": device,
                          "fix": "evalplus stacked stop-criteria bug patched (one criterion per problem); see fix_stacked_stop_criteria",
                          "fix2": "evalplus shared EOS list patched (per-decoder copy); see fix_shared_eos_list",
                          "fix3": "tokenizer round-trip guard with tokenizer.json fallback; see fix_tokenizer_rebuild"},

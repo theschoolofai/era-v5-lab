@@ -48,9 +48,12 @@ python <your>/quantize_eval.py --eval runs/eval_mini_v0_items.json
    - On a large GPU, the plain `lm-eval run …` command in the spec's `commands` also works. Pass `--include_path tasks`.
    - On GPUs with 8 GB or less, use `run_lm_eval.py`: stock lm-eval runs out of memory for 2–3B models.
 4. **Code part (generation):** `python run_codegen.py --model <key>` patches the evalplus bugs listed below.
+   It runs on CUDA, or on the Apple GPU (MPS) when there is no CUDA device.
    With stock evalplus, run **one dataset per process**, preferably with `--backend vllm`.
 5. **Code part (execution):** this needs Linux: `evalplus.evaluate --dataset humaneval --samples <file>.jsonl` (the same for mbpp).
-   On Windows, use [`code_eval_colab.ipynb`](code_eval_colab.ipynb) on a CPU runtime.
+   With Docker (tested on macOS so far): `python code_eval_docker.py --model <key>` runs it in a throwaway Linux container.
+   If results from an earlier run are in the folder it stops; `--replace` moves them to `.bak` and executes again.
+   Without Docker on Windows, use [`code_eval_colab.ipynb`](code_eval_colab.ipynb) on a CPU runtime.
 6. **Results:** `python compare.py` rebuilds both results files from `runs/`.
 
 `ai4bharat/MILU` is gated on Hugging Face: accept its terms and run `hf auth login` before running MILU tasks.
@@ -76,8 +79,9 @@ Both harnesses agree: on PR #21's 200 GSM8K items for Qwen2.5-1.5B they score 61
 | `published_scores.json` | models (pinned revisions) and every published score we compare with, with source and protocol |
 | `fetch_weights.py` | parallel, resumable, sha256-checked download of a pinned revision |
 | `run_lm_eval.py` | one lm-eval run; records versions, GPU clock and power state |
-| `run_codegen.py` | evalplus code generation with three fixes (below) |
-| `code_eval_colab.ipynb` | executes code samples on Linux |
+| `run_codegen.py` | evalplus code generation with three fixes (below); CUDA or Apple GPU |
+| `code_eval_docker.py` | executes code samples in a local Linux container |
+| `code_eval_colab.ipynb` | executes code samples on Linux (Colab) |
 | `make_eval_mini_items.py` | writes the items file for pipelines without lm-eval |
 | `run_queue.py` | runs all jobs one at a time; safe to stop and restart |
 | `make_eval_mini_spec.py` | builds `eval_mini_v0_spec.json` |
