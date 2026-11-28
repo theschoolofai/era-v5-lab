@@ -1,0 +1,163 @@
+{
+ "docs": 1444766,
+ "totals": {
+  "any_execution_output": 698,
+  "py_traceback": 315,
+  "ipython_out": 207,
+  "jupyter_output": 187,
+  "function_call_json": 4
+ },
+ "packs": {
+  "cadj-commits": {
+   "docs": 75579,
+   "any_execution_output": 10,
+   "ipython_out": 2,
+   "py_traceback": 8
+  },
+  "cadj-notebooks": {
+   "docs": 15732,
+   "any_execution_output": 190,
+   "ipython_out": 3,
+   "jupyter_output": 187
+  },
+  "cadj-stackexchange": {
+   "docs": 41805,
+   "any_execution_output": 349,
+   "ipython_out": 154,
+   "py_traceback": 204
+  },
+  "code-cpp": {
+   "docs": 56158,
+   "any_execution_output": 2,
+   "function_call_json": 2,
+   "ipython_out": 1,
+   "py_traceback": 1
+  },
+  "code-go": {
+   "docs": 84139,
+   "any_execution_output": 2,
+   "py_traceback": 2
+  },
+  "code-java": {
+   "docs": 86060
+  },
+  "code-js-ts": {
+   "docs": 123172,
+   "function_call_json": 1
+  },
+  "code-python": {
+   "docs": 75661,
+   "any_execution_output": 63,
+   "function_call_json": 1,
+   "ipython_out": 8,
+   "py_traceback": 55
+  },
+  "code-rust": {
+   "docs": 60738,
+   "any_execution_output": 3,
+   "py_traceback": 3
+  },
+  "en-dclm": {
+   "docs": 61975,
+   "any_execution_output": 9,
+   "ipython_out": 2,
+   "py_traceback": 7
+  },
+  "en-fineweb-edu": {
+   "docs": 72665,
+   "any_execution_output": 1,
+   "py_traceback": 1
+  },
+  "en-nemotroncc": {
+   "docs": 92774,
+   "any_execution_output": 3,
+   "py_traceback": 3
+  },
+  "en-nemotroncc-synth": {
+   "docs": 199094
+  },
+  "ind-bn-fw2": {
+   "docs": 11317
+  },
+  "ind-bn-sangraha-v": {
+   "docs": 10430
+  },
+  "ind-gu-fw2": {
+   "docs": 23357
+  },
+  "ind-hi-fw2": {
+   "docs": 14393
+  },
+  "ind-hi-hplt": {
+   "docs": 8840
+  },
+  "ind-hi-indiccorp": {
+   "docs": 111930
+  },
+  "ind-hi-sangraha-s": {
+   "docs": 8368
+  },
+  "ind-hi-sangraha-v": {
+   "docs": 14831
+  },
+  "ind-kn-fw2": {
+   "docs": 7916
+  },
+  "ind-kn-sangraha-s": {
+   "docs": 5244
+  },
+  "ind-kn-sangraha-v": {
+   "docs": 8640
+  },
+  "ind-ml-fw2": {
+   "docs": 19161
+  },
+  "ind-mr-fw2": {
+   "docs": 11555
+  },
+  "ind-mr-sangraha-v": {
+   "docs": 12299
+  },
+  "ind-or-fw2": {
+   "docs": 34012
+  },
+  "ind-sa-fw2": {
+   "docs": 5963
+  },
+  "ind-ta-fw2": {
+   "docs": 6824
+  },
+  "ind-ta-sangraha-s": {
+   "docs": 4372
+  },
+  "ind-ta-sangraha-v": {
+   "docs": 6861
+  },
+  "ind-te-fw2": {
+   "docs": 6056
+  },
+  "ind-te-sangraha-s": {
+   "docs": 4829
+  },
+  "ind-te-sangraha-v": {
+   "docs": 8692
+  },
+  "math-finemath": {
+   "docs": 29434,
+   "any_execution_output": 29,
+   "ipython_out": 18,
+   "py_traceback": 12
+  },
+  "math-megamath": {
+   "docs": 17816,
+   "any_execution_output": 36,
+   "ipython_out": 18,
+   "py_traceback": 19
+  },
+  "sci-finepdfs": {
+   "docs": 6074,
+   "any_execution_output": 1,
+   "ipython_out": 1
+  }
+ }
+}
