@@ -7,16 +7,19 @@
 
 ## What is in this PR
 
-- `models/gpt.py`: `document_mask(doc_ids)`, an opt-in context. Inside it, eager attention also blocks other documents and learned positions restart at each document; outside it nothing changes. `sdpa` and `triton` raise instead of ignoring the mask.
-- `correctness/test_document_mask.py`: a packed row with the mask equals each document run alone, in fp64 (logits, loss and every gradient; learned positions, RoPE, reversible stack); one document per row equals the plain causal model; without the mask the documents leak.
-- `perfkit/packing.py`: the study. Same model, seed, data order; three arms:
-  - `window`: each document cut into windows of T+1 tokens, the last padded (padding not scored). The G5 trainer's row format (`teams/05-architecture/harness/week2/data.py`, `DocumentWindows`).
-  - `packed_mask`: documents end to end, rows of T+1 overlapping by one token, `document_mask`.
-  - `packed_nomask`: the same rows, no mask.
-  - In every arm the scored targets are "the next token inside the same document" (the packed arms ignore the target that crosses a document boundary), so each document token after the first is scored once in all three. `correctness/test_packing.py` checks this.
+- `models/gpt.py`: `document_mask(doc_ids, pos_ids=None)`, an opt-in context. Inside it, attention also blocks other documents (eager, or sdpa with an explicit boolean mask) and learned positions restart at each document; with `mtp` the t+2 target that would come from the next document is ignored. Outside it nothing changes. `triton` raises instead of ignoring the mask. It takes #890's packed-row fields as they are (`doc_ids` 1, 2, ... with 0 on padding; `pos_ids`).
+- `correctness/test_document_mask.py`: a packed row with the mask equals each document run alone, in fp64 (logits, loss and every gradient; learned positions, RoPE, reversible stack); sdpa with the mask equals eager with the mask (MHA, GQA, RoPE; logits and every gradient); #890 rows with padding and explicit `pos_ids` equal the documents alone with no NaN; the mtp loss does not cross documents; one document per row equals the plain causal model; without the mask the documents leak.
+- `perfkit/packing.py`: the study. Same model, seed, data order; three arms: `window` (one window per row, the rest padded and not scored: the G5 trainer's rows today), `packed_mask` (several windows per row, `document_mask`), `packed_nomask` (the same rows, no mask). Two row formats:
+  - `--rows 890` (default, for the official run): #890's format, which Team 6's loader follows. Windows of at most T targets with BOS (or the previous token) as the first input, so every document token is a target and no end-of-text is; windows in #890's seeded order; packed rows by best fit from a pool of 16, never cutting a window. On the same windows and order the rows are identical to #890's `BatchStream.next_packed` (checked against #890's code, below).
+  - `--rows stream`: the bring-up format of the tables below: documents with their end-of-text end to end, rows cut every T (documents cut at row ends); window rows of T+1 tokens of one document.
+  - In both formats every arm scores the same targets, each once (`correctness/test_packing.py`). `--attn eager|sdpa` picks the attention for every arm.
 - Reported per arm: fill, median step time, positions/s, scored tokens/s, bytes/s (UTF-8 bytes of the scored targets, #888), peak memory, held-out bpb, and the window fill at T = 256 to 4096 from the document lengths.
 
+**Check against #890's code.** `perfkit/packing.py`'s `pool_rows` and #890's `BatchStream.next_packed` (head `ceec7796`) on the same windows and the same seeded order give identical rows (`input_ids`, `targets`, `doc_ids`, `pos_ids`) for a whole pass: T = 64 / 256 / 64 / 128 with pools of 16 / 16 / 1 / 4 (216, 475, 192 and 200 rows; on the last row of a pass up to the end of its windows, where #890 continues into the next pass). A `--rows stream` CPU smoke run gives the same fill, loss and bpb as the first version of this PR.
+
 ## Setup
+
+The numbers below are the bring-up: `--rows stream` with eager attention (the first version of this PR). The #890 format with sdpa is not measured yet (Next, 1).
 
 Colab **Tesla T4**, dtype **fp16** (bf16 requested; the bench falls back on T4), base `081b6efe` = class main + #888 head (dirty: only the files of this PR), `configs/base.yaml` (d=256, 6 layers, dense MLP, reversible) with `model.attn_impl=eager`, seeds 0 and 1, 10 warmup steps. Documents: 5,971 FineWeb documents (3,998,491 tokens, median 386 tokens) from 2 train shards (`dataio.prepare_fineweb`, BrahmicTokenizer-131K); held-out: the first 200 documents of the val shard, scored one window per row in every arm. **bpb is provisional**: same held-out bytes for all arms, but not the G5 held-out set.
 
@@ -69,19 +72,24 @@ Peak allocated 2.48 to 2.49 GiB (B=8 would likely fit a T4; the notebook's 20 GB
 
 ## Next
 
-1. Official runs on Sunil's GPU against the 1(b) baseline (V4 body + KAS head, p1536): fixed steps at the baseline shape, at least 2 seeds, and the state reset for DeltaNet layers.
-2. Switch the rows to Vaibhav's loader after S5 (packing + doc ids) and check the fill and doc ids match this script.
-3. Quality at equal steps: window arm with a batch scaled by 1 / fill against packed rows.
+1. The same study in the #890 format with sdpa (`--rows 890 --attn sdpa`), as the bridge between these numbers and the official ones.
+2. Official runs on Sunil's GPU against the 1(b) baseline (V4 body + KAS head, p1536; Sunil's entry point: perfkit step loop + #888 metrics): fixed steps at the baseline shape, at least 2 seeds. Needs the V4 body to take `doc_ids`: a mask in the GSA layers and a state reset per document in the DeltaNet layers.
+3. Rows from Vaibhav's loader after S5 (#890 format): check they equal `--rows 890` on the same windows and order.
+4. Quality at equal steps: window arm with a batch scaled by 1 / fill against packed rows.
 
 ## Commands
+
+The bring-up tables above (`--rows stream`; the first version of this PR ran the same commands without the flag, which was then the only format):
 
 ```bash
 cd teams/06-performance
 python -m dataio.prepare_fineweb --out /content/fineweb-brahmic131k --train-shards 2 --tokens-per-shard 2000000
-python -B perfkit/packing.py --source fineweb --data-dir /content/fineweb-brahmic131k --warmup 10 --seeds 0 1 --out packing_T256_B16_steps200.json --steps 200 run.dtype=bf16 run.batch_size=16
-python -B perfkit/packing.py --source fineweb --data-dir /content/fineweb-brahmic131k --warmup 10 --seeds 0 1 --out packing_T2048_B4_budget.json --steps 200 --equal-budget run.dtype=bf16 run.batch_size=4 model.block_size=2048 model.ce_impl=chunked
+python -B perfkit/packing.py --rows stream --source fineweb --data-dir /content/fineweb-brahmic131k --warmup 10 --seeds 0 1 --out packing_T256_B16_steps200.json --steps 200 run.dtype=bf16 run.batch_size=16
+python -B perfkit/packing.py --rows stream --source fineweb --data-dir /content/fineweb-brahmic131k --warmup 10 --seeds 0 1 --out packing_T2048_B4_budget.json --steps 200 --equal-budget run.dtype=bf16 run.batch_size=4 model.block_size=2048 model.ce_impl=chunked
 python -m pytest correctness/test_document_mask.py correctness/test_packing.py -q --all-configs
 ```
+
+The #890 format (Next, 1): the same commands with `--rows 890 --attn sdpa` in place of `--rows stream`.
 
 ## Files (sha256)
 

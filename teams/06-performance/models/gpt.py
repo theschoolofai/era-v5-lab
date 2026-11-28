@@ -61,19 +61,37 @@ _SDPA_GQA = tuple(int(v) for v in torch.__version__.split(".")[:2]) >= (2, 5)
 IGNORE_INDEX = -100              # a target with this value is left out of the loss and of its divisor (loss masks)
 # Packed rows (Lab 5 design 3): [B, T] document id per position, set only inside document_mask(); None = plain causal.
 _DOC_IDS: torch.Tensor | None = None
+_DOC_POS: torch.Tensor | None = None             # [B, T] position inside the document, or None: document_positions()
+_DOC_ALLOW: torch.Tensor | None = None           # cached [B, 1, T, T] bool, True = may attend (causal, same document)
 
 
 @contextlib.contextmanager
-def document_mask(doc_ids: torch.Tensor):
-    """Inside this block a position attends only to earlier positions of its own document (eager attention), and the
-    learned position table restarts at each document. doc_ids: [B, T] integer, one value per document, each document
-    contiguous in its row. Wrap forward AND backward: the reversible stack recomputes attention in backward."""
-    global _DOC_IDS
-    prev, _DOC_IDS = _DOC_IDS, doc_ids
+def document_mask(doc_ids: torch.Tensor, pos_ids: torch.Tensor | None = None):
+    """Inside this block a position attends only to earlier positions of its own document (eager or sdpa attention),
+    and the learned position table restarts at each document. doc_ids: [B, T] integer, one value per document, each
+    document contiguous in its row; the #890 packed-row format (1, 2, ... per window, 0 on padding) works as is:
+    padding attends only to padding, so no softmax row is empty. pos_ids: [B, T] position inside the document (#890's
+    pos_ids); None derives it from doc_ids. RoPE keeps absolute positions: with the mask only offsets inside a document
+    meet, so the scores equal those of restarted positions. Wrap forward AND backward: the reversible stack
+    recomputes attention in backward."""
+    global _DOC_IDS, _DOC_POS, _DOC_ALLOW
+    prev = (_DOC_IDS, _DOC_POS, _DOC_ALLOW)
+    _DOC_IDS, _DOC_POS, _DOC_ALLOW = doc_ids, pos_ids, None
     try:
         yield
     finally:
-        _DOC_IDS = prev
+        _DOC_IDS, _DOC_POS, _DOC_ALLOW = prev
+
+
+def _document_allow(T: int, device) -> torch.Tensor:
+    """[B, 1, T, T] True where a query may attend a key: causal and same document. Built once per document_mask
+    block (every layer, forward and the reversible backward share it)."""
+    global _DOC_ALLOW
+    if _DOC_ALLOW is None or _DOC_ALLOW.device != torch.device(device) or _DOC_ALLOW.shape[-1] != T:
+        d = _DOC_IDS.to(device)
+        causal = torch.ones(T, T, dtype=torch.bool, device=device).tril()
+        _DOC_ALLOW = causal & (d[:, None, :, None] == d[:, None, None, :])
+    return _DOC_ALLOW
 
 
 def document_positions(doc_ids: torch.Tensor) -> torch.Tensor:
@@ -200,15 +218,22 @@ class GQAttention(nn.Module):
                 v = v.repeat_interleave(self.n_head // kv, dim=1)
         with region(f"{self.name}.sdpa", 3):
             docs = _DOC_IDS
-            if docs is not None and not self.eager:
-                raise ValueError("document_mask needs model.attn_impl=eager")
+            if docs is not None and self.triton:
+                raise ValueError("document_mask needs model.attn_impl=eager or sdpa")
             if fused:                                    # [B, H, T, hd] view of [B, T, H, hd]: the copy below is free
                 y = triton_attention(q, k, v)
+            elif docs is not None and self.eager:        # causal and same document: [B, 1, T, T]
+                att = (q @ k.transpose(-2, -1)) / math.sqrt(hd)
+                y = F.softmax(att.masked_fill(~_document_allow(T, x.device), float("-inf")), dim=-1) @ v
+            elif docs is not None:                       # sdpa with an explicit boolean mask (no flash kernel)
+                allow = _document_allow(T, x.device)
+                if gqa and _SDPA_GQA:
+                    y = F.scaled_dot_product_attention(q, k, v, attn_mask=allow, enable_gqa=True)
+                else:
+                    y = F.scaled_dot_product_attention(q, k, v, attn_mask=allow)
             elif self.eager or self.triton:
                 # True above the diagonal: the future positions a query must not see
                 future = torch.triu(torch.ones(T, T, dtype=torch.bool, device=x.device), diagonal=1)
-                if docs is not None:                      # also block other documents: [B, 1, T, T]
-                    future = future | (docs[:, None, :, None] != docs[:, None, None, :])
                 att = (q @ k.transpose(-2, -1)) / math.sqrt(hd)
                 y = F.softmax(att.masked_fill(future, float("-inf")), dim=-1) @ v
             elif gqa and _SDPA_GQA:
@@ -336,6 +361,8 @@ class GPT(nn.Module):
         B, T = idx.shape
         if _DOC_IDS is not None and tuple(_DOC_IDS.shape) != (B, T):
             raise ValueError(f"document_mask doc_ids {tuple(_DOC_IDS.shape)} != (B, T) {(B, T)}")
+        if _DOC_POS is not None and tuple(_DOC_POS.shape) != (B, T):
+            raise ValueError(f"document_mask pos_ids {tuple(_DOC_POS.shape)} != (B, T) {(B, T)}")
         if T > self.cfg.block_size:
             raise ValueError(f"sequence length {T} > block_size {self.cfg.block_size}")
         if self.cfg.mtp and targets is not None and T < 2:
@@ -394,7 +421,8 @@ class GPT(nn.Module):
         x = self.tok(idx)
         if self.pos is not None:
             if _DOC_IDS is not None:                       # packed rows: positions restart at each document
-                x = x + self.pos(document_positions(_DOC_IDS))
+                pos = _DOC_POS if _DOC_POS is not None else document_positions(_DOC_IDS)
+                x = x + self.pos(pos.to(device=idx.device, dtype=torch.long))
             else:
                 x = x + self.pos(torch.arange(idx.shape[1], device=idx.device))
         return x
@@ -405,7 +433,11 @@ class GPT(nn.Module):
             return ntp
         with region("head+loss.mtp", 3):
             # targets[t] is token t+1, so token t+2 is targets[t+1]: drop the last position, shift the targets
-            xm, ym = x[:, :-1].reshape(-1, x.shape[-1]), targets[:, 1:].reshape(-1)
+            ym = targets[:, 1:]
+            if _DOC_IDS is not None:                     # packed rows: no t+2 target from the next document (#890)
+                d = _DOC_IDS.to(ym.device)
+                ym = ym.masked_fill(d[:, 1:] != d[:, :-1], IGNORE_INDEX)
+            xm, ym = x[:, :-1].reshape(-1, x.shape[-1]), ym.reshape(-1)
             if self.cfg.ce_impl in MEMORY_BOUNDED_CE_IMPLS:
                 mtp = self._head_ce(self.mtp_head, xm, ym)
             else:

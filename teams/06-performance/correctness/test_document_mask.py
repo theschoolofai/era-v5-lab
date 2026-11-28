@@ -91,9 +91,75 @@ def test_document_positions():
     assert document_positions(d).tolist() == [[0, 1, 2, 0, 1, 0, 1, 2, 3]]
 
 
-def test_needs_eager_and_matching_shape():
+@pytest.mark.parametrize("kw", [{}, {"n_kv_head": 1}, {"position": "rope", "rope_theta": 10000.0}],
+                         ids=["mha", "gqa", "rope"])
+def test_sdpa_mask_equals_eager_mask(kw):
+    """sdpa with the explicit boolean mask computes what eager computes: logits and every gradient, fp64."""
+    torch.manual_seed(1)
+    idx = torch.randint(0, V, (2, T))
+    docs = torch.stack([_doc_ids(DOCS)[0], _doc_ids((T,))[0]])     # row 0 packed, row 1 a single document
+    y = torch.cat([_targets(idx[:1], DOCS), _targets(idx[1:], (T,))])
+    out = {}
+    for impl in ("eager", "sdpa"):
+        model = _model(attn_impl=impl, **kw)
+        with document_mask(docs):
+            logits, loss = model(idx, y)
+            loss.backward()
+        out[impl] = logits, {n: p.grad for n, p in model.named_parameters() if p.grad is not None}
+    torch.testing.assert_close(out["sdpa"][0], out["eager"][0], rtol=1e-10, atol=1e-10)
+    assert out["sdpa"][1].keys() == out["eager"][1].keys()
+    for n in out["eager"][1]:
+        torch.testing.assert_close(out["sdpa"][1][n], out["eager"][1][n], rtol=1e-8, atol=1e-10, msg=n)
+
+
+@pytest.mark.parametrize("impl", ["eager", "sdpa"])
+def test_890_format_with_padding_and_pos_ids(impl):
+    """#890 rows: doc_ids 1, 2, ... per window and 0 on the padding at the end, explicit pos_ids. Every real position
+    equals its document alone, and no output is NaN (padding attends to padding)."""
+    torch.manual_seed(1)
+    lengths, pad = (7, 11), T - 18
     idx = torch.randint(0, V, (1, T))
-    with document_mask(_doc_ids(DOCS)), pytest.raises(ValueError, match="eager"):
-        _model(attn_impl="sdpa")(idx)
+    doc_ids = torch.cat([torch.full((7,), 1), torch.full((11,), 2), torch.zeros(pad, dtype=torch.long)])[None]
+    pos_ids = torch.cat([torch.arange(7), torch.arange(11), torch.zeros(pad, dtype=torch.long)])[None]
+    model = _model(attn_impl=impl)
+    with document_mask(doc_ids.int(), pos_ids.int()):             # #890 stores both as int32
+        logits, _ = model(idx)
+    assert not logits.isnan().any()
+    s = 0
+    for n in lengths:
+        alone, _ = model(idx[:, s:s + n])
+        torch.testing.assert_close(logits[:, s:s + n], alone, rtol=1e-10, atol=1e-10)
+        s += n
+
+
+def test_mtp_target_does_not_cross_documents():
+    """mtp: the t+2 target of a document's last positions would come from the next document; it is ignored, so the
+    packed mtp loss equals the documents alone (count-weighted means)."""
+    torch.manual_seed(1)
+    idx = torch.randint(0, V, (1, T))
+    y = _targets(idx, DOCS)
+    model = _model(mtp=True)
+    with document_mask(_doc_ids(DOCS)):
+        model(idx, y)
+    packed = model.loss_parts["mtp"]
+    d = _doc_ids(DOCS)
+    ym = y[:, 1:].masked_fill(d[:, 1:] != d[:, :-1], IGNORE_INDEX)
+    total, count, s = 0.0, 0, 0
+    for n in DOCS:
+        model(idx[:, s:s + n], y[:, s:s + n])
+        k = int((y[:, s + 1:s + n] != IGNORE_INDEX).sum())
+        total, count, s = total + model.loss_parts["mtp"] * k, count + k, s + n
+    assert count == int((ym != IGNORE_INDEX).sum())
+    # the loss reads fp32 logits (_ce_input), so the means agree to fp32 rounding, not fp64
+    torch.testing.assert_close(packed.double(), (total / count).double(), rtol=1e-6, atol=0)
+
+
+def test_needs_eager_or_sdpa_and_matching_shape():
+    idx = torch.randint(0, V, (1, T))
+    with document_mask(_doc_ids(DOCS)), pytest.raises(ValueError, match="eager or sdpa"):
+        _model(attn_impl="triton")(idx)
     with document_mask(torch.zeros(1, T - 1, dtype=torch.long)), pytest.raises(ValueError, match="doc_ids"):
+        _model()(idx)
+    with document_mask(_doc_ids(DOCS), torch.zeros(1, T - 1, dtype=torch.long)), pytest.raises(ValueError,
+                                                                                                 match="pos_ids"):
         _model()(idx)
