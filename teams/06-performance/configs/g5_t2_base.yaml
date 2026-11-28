@@ -49,6 +49,8 @@ model:
   rev_impl: two_pass
   ce_impl: torch
   mtp: false
+  head_mode: dense      # dense (nn.Linear) | kas_v2 (G4 KAS V2 head, models/kas_v2.py; ce_impl torch | chunked)
+  kas_prior: true       # kas_v2: head.unigram from G3 p1536 counts (G5 default)
 
 optim:
   name: muon
