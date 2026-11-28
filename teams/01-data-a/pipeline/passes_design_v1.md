@@ -25,28 +25,9 @@ The numbers are from two runs.
 - **1%:** the run on a 1% slice of the same parts (`jobs/2026-11-28-d2-b3-sample-1pct/`), at commit `2d09b023`.
   Apple M4, 10 cores, 16 GiB; MinHash overlap; one tokenizer thread; no H3.
 
-```mermaid
-flowchart TD
-    raw[("raw parts<br/>1,444,766 rows")]:::data
-    clean["<b>clean</b> · reads raw text, writes cleaned text<br/>38 packs: 1,433 s · 1%: 10.1 s"]:::text
-    overlap["<b>overlap</b> · reads cleaned text<br/>38 packs (exact Jaccard): 5,036 s, 14.0 GB · 1% (MinHash): 18.5 s"]:::text
-    h3["<b>H3</b> · reads cleaned text of the H3 packs<br/>38 packs: 244 s (GPU)"]:::text
-    dedup["<b>dedup</b> · IDs only<br/>14 s · 1.0 s"]:::ids
-    apply["<b>apply</b> · rewrites the parts that lose rows<br/>23 s · 0.1 s"]:::text
-    f2["<b>F2</b> · reads text, writes final text<br/>722 s · 35.5 s"]:::text
-    ledger["<b>ledger</b> (mode B) · re-reads raw and cleaned text<br/>97 s · 0.9 s"]:::text
-    shards["<b>shards</b> · reads final text, tokenizes<br/>1,725 s · 151.6 s"]:::text
-    rec["<b>reconcile</b> · shard index<br/>18 s · 0.5 s"]:::ids
-    raw --> clean --> overlap --> h3 --> dedup --> apply --> f2 --> shards --> rec
-    raw -.-> ledger
-    clean -.-> ledger
-    f2 --> ledger
-    classDef text fill:#fde2e1,stroke:#c0392b
-    classDef ids fill:#e1f5e1,stroke:#2e7d32
-    classDef data fill:#eef,stroke:#557
-```
+<p align="center"><img src="assets/passes-today.svg" width="100%" alt="The pipeline today, stage by stage, with seconds in the 38-pack run and the 1% slice: raw parts, 1,444,766 rows; clean reads raw text and writes cleaned text, 1,433 s and 10.1 s; overlap reads cleaned text, 5,036 s and 18.5 s; H3 reads the H3 packs' cleaned text, 244 s, not run at 1%; dedup reads IDs only, 14 s and 1.0 s; apply rewrites the parts that lose rows, 23 s and 0.1 s; F2 reads text and writes the final text, 722 s and 35.5 s; the ledger re-reads raw and cleaned text, 97 s and 0.9 s; shards reads the final text and tokenizes once, 1,725 s and 151.6 s; reconcile reads the shard index, 18 s and 0.5 s. Raw text is read twice, cleaned text six times, text is written three times and tokenized once"></p>
 
-Red stages read or write document text. Green stages read IDs, hashes and counts only. Survivor loss (2 s, IDs only) is
+Red stages read or write document text. Teal stages read IDs, hashes and counts only. Survivor loss (2 s, IDs only) is
 left out of the drawing.
 
 | Text | Read by | Written by |
@@ -74,24 +55,7 @@ tokenized **once**.
 | **C5. Apply writes no text** | The remove list becomes a skip list that the tokenizing pass applies while it reads. | Apply's rewrite of the parts that lose rows | 23 s on 38 packs (apply already hard-links the parts that lose nothing) | Proposal, small |
 | **C6. Clean once, restart from a manifest** | The clean job resumes (`"resume": true`). `pipeline/hashing.py` hashes each file once. | | | In place |
 
-```mermaid
-flowchart TD
-    raw[("raw parts")]:::data
-    clean["<b>clean</b> · reads raw text once<br/>writes cleaned text + text_hash + action"]:::text
-    hash["<b>exact-hash dedup</b> · text_hash only (C1)"]:::ids
-    mh["<b>MinHash</b> · near copies, reads cleaned text"]:::text
-    h3["<b>H3</b> · H3 packs"]:::text
-    dedup["<b>dedup</b> · IDs only → skip list"]:::ids
-    tok["<b>F2 + tokenize</b> · reads cleaned text once,<br/>skips the list, checks F2, writes shards (C4, C5)"]:::text
-    ledger["<b>ledger</b> · IDs and actions only (C3)"]:::ids
-    rec["<b>reconcile</b>"]:::ids
-    raw --> clean --> hash --> mh --> h3 --> dedup --> tok --> rec
-    clean --> ledger
-    tok --> ledger
-    classDef text fill:#fde2e1,stroke:#c0392b
-    classDef ids fill:#e1f5e1,stroke:#2e7d32
-    classDef data fill:#eef,stroke:#557
-```
+<p align="center"><img src="assets/passes-after-cuts.svg" width="100%" alt="The pipeline after the cuts, each stage tagged with its cut: raw parts read once, by clean (C6, in place); clean writes the text, text_hash and each document's action (C1, C3); exact-hash dedup reads text_hash only, never the text (C1, built); MinHash finds near copies and reads cleaned text (C2, built); H3 the H3 packs only (unchanged); dedup writes one skip list (C5, proposal); F2 and tokenizing share one read, skipping the list and checking F2 (C4, C5, proposals); the ledger reads IDs and the clean job's actions (C3, proposal); reconcile reads the shard index (unchanged). Raw text read once, cleaned text read three times, text written once and tokenized once"></p>
 
 **After the cuts:**
 - raw text is read once;
@@ -103,6 +67,8 @@ flowchart TD
 The input is a fixed-seed 1% of every part of sample v0 (`pipeline/local_trial/slice_sample.py`, seed 20261128): all
 86 parts, **14,450 of 1,444,766 rows**. The whole pipeline ran twice on it, without H3: once with MinHash, once
 hash-only. Each run passed 108 of 108 checks.
+
+<p align="center"><img src="assets/passes-1pct.svg" width="100%" alt="Seconds per stage on the 1% slice, baseline with MinHash overlap against hash-only B3: clean 10.1 and 12.0, overlap 18.5 and 0.9, F2 35.5 and 34.6, shards 151.6 and 146.8, the other stages 2.8 and 2.7; totals 218.5 and 197.0 seconds. Rows: 14,450 read, 344 dropped by clean, 0 by dedup, 14 by F2, 14,092 final"></p>
 
 | Stage | Rows in | Dropped or removed | Seconds (MinHash) | Seconds (hash-only) |
 |---|---|---|---|---|

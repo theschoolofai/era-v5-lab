@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720" role="img" aria-labelledby="t d">
+<title id="t">Passes over the data, today</title>
+<desc id="d">Every stage from the raw parts to the shards, with the stages that read or write document text in red and the ID-only stages in teal. Seconds per stage in the 38-pack rehearsal and in the 1% slice. Raw text is read twice, cleaned text six times, text is written three times and tokenized once.</desc>
+<style>
+text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif}
+.mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.14em}
+.h1{font-size:24px;font-weight:600}
+.sub{font-size:14.5px}
+.b{font-weight:600}
+.bg{fill:#ffffff;stroke:#d1d9e0}.panel{fill:#f6f8fa;stroke:#d1d9e0}.edge{stroke:#d1d9e0}.ink{fill:#1f2328}.mute{fill:#59636e}.faint{fill:#818b98}.mutes{stroke:#59636e}.teal{fill:#0f7b6c}.teal-c{fill:#e1f5f0;stroke:#0f7b6c}.red{fill:#cf222e}.red-c{fill:#ffebe9;stroke:#cf222e}.gray{fill:#6e7781}.gray-c{fill:#eef1f4;stroke:#6e7781}
+@media (prefers-color-scheme:dark){.bg{fill:#0d1117;stroke:#30363d}.panel{fill:#161b22;stroke:#30363d}.edge{stroke:#30363d}.ink{fill:#e6edf3}.mute{fill:#9198a1}.faint{fill:#6e7681}.mutes{stroke:#9198a1}.teal{fill:#3cc2a8}.teal-c{fill:#0d2a26;stroke:#3cc2a8}.red{fill:#ff7b72}.red-c{fill:#3a1619;stroke:#ff7b72}.gray{fill:#8b949e}.gray-c{fill:#1c2128;stroke:#8b949e}}
+</style>
+<rect class="bg" x=".5" y=".5" width="1199" height="719" rx="14"/>
+<text x="40" y="48" class="eyebrow mute">D2 · PASSES OVER THE DATA, TODAY</text>
+<text x="40" y="82" class="h1 ink">Raw text is read twice and cleaned text six times, before one tokenizing pass</text>
+<text x="40" y="108" class="sub mute">Every stage from the raw parts to the shards. Seconds: the 38-pack rehearsal (32 vCPU) · the 1% slice at 2d09b023 (Apple M4).</text>
+<rect x="40" y="140" width="640" height="40" rx="8" class="gray-c" stroke-width="1.2"/><text x="60" y="165" class="mono b gray" font-size="14">raw</text><text x="200" y="165" class="ink" font-size="13.5">the sample's raw Parquet parts</text><text x="664" y="165" class="mono mute" font-size="13" text-anchor="end">1,444,766 rows</text>
+<path d="M354 183l6 6 6-6" class="mutes" fill="none" stroke-width="1.4"/>
+<rect x="40" y="192" width="640" height="40" rx="8" class="red-c" stroke-width="1.2"/><text x="60" y="217" class="mono b red" font-size="14">clean</text><text x="200" y="217" class="ink" font-size="13.5">reads raw text, writes cleaned text</text><text x="664" y="217" class="mono mute" font-size="13" text-anchor="end">1,433 s · 10.1 s</text>
+<path d="M354 235l6 6 6-6" class="mutes" fill="none" stroke-width="1.4"/>
+<rect x="40" y="244" width="640" height="40" rx="8" class="red-c" stroke-width="1.2"/><text x="60" y="269" class="mono b red" font-size="14">overlap</text><text x="200" y="269" class="ink" font-size="13.5">reads cleaned text</text><text x="664" y="269" class="mono mute" font-size="13" text-anchor="end">5,036 s · 18.5 s</text>
+<path d="M354 287l6 6 6-6" class="mutes" fill="none" stroke-width="1.4"/>
+<rect x="40" y="296" width="640" height="40" rx="8" class="red-c" stroke-width="1.2"/><text x="60" y="321" class="mono b red" font-size="14">H3</text><text x="200" y="321" class="ink" font-size="13.5">reads the H3 packs' cleaned text</text><text x="664" y="321" class="mono mute" font-size="13" text-anchor="end">244 s · not run</text>
+<path d="M354 339l6 6 6-6" class="mutes" fill="none" stroke-width="1.4"/>
+<rect x="40" y="348" width="640" height="40" rx="8" class="teal-c" stroke-width="1.2"/><text x="60" y="373" class="mono b teal" font-size="14">dedup</text><text x="200" y="373" class="ink" font-size="13.5">IDs, scores and counts only</text><text x="664" y="373" class="mono mute" font-size="13" text-anchor="end">14 s · 1.0 s</text>
+<path d="M354 391l6 6 6-6" class="mutes" fill="none" stroke-width="1.4"/>
+<rect x="40" y="400" width="640" height="40" rx="8" class="red-c" stroke-width="1.2"/><text x="60" y="425" class="mono b red" font-size="14">apply</text><text x="200" y="425" class="ink" font-size="13.5">rewrites the parts that lose rows</text><text x="664" y="425" class="mono mute" font-size="13" text-anchor="end">23 s · 0.1 s</text>
+<path d="M354 443l6 6 6-6" class="mutes" fill="none" stroke-width="1.4"/>
+<rect x="40" y="452" width="640" height="40" rx="8" class="red-c" stroke-width="1.2"/><text x="60" y="477" class="mono b red" font-size="14">F2</text><text x="200" y="477" class="ink" font-size="13.5">reads text, writes the final text</text><text x="664" y="477" class="mono mute" font-size="13" text-anchor="end">722 s · 35.5 s</text>
+<path d="M354 495l6 6 6-6" class="mutes" fill="none" stroke-width="1.4"/>
+<rect x="40" y="504" width="640" height="40" rx="8" class="red-c" stroke-width="1.2"/><text x="60" y="529" class="mono b red" font-size="14">ledger</text><text x="200" y="529" class="ink" font-size="13.5">re-reads raw and cleaned text (mode B)</text><text x="664" y="529" class="mono mute" font-size="13" text-anchor="end">97 s · 0.9 s</text>
+<path d="M354 547l6 6 6-6" class="mutes" fill="none" stroke-width="1.4"/>
+<rect x="40" y="556" width="640" height="40" rx="8" class="red-c" stroke-width="1.2"/><text x="60" y="581" class="mono b red" font-size="14">shards</text><text x="200" y="581" class="ink" font-size="13.5">reads the final text, tokenizes once</text><text x="664" y="581" class="mono mute" font-size="13" text-anchor="end">1,725 s · 151.6 s</text>
+<path d="M354 599l6 6 6-6" class="mutes" fill="none" stroke-width="1.4"/>
+<rect x="40" y="608" width="640" height="40" rx="8" class="teal-c" stroke-width="1.2"/><text x="60" y="633" class="mono b teal" font-size="14">reconcile</text><text x="200" y="633" class="ink" font-size="13.5">reads the shard index</text><text x="664" y="633" class="mono mute" font-size="13" text-anchor="end">18 s · 0.5 s</text>
+<rect x="720" y="140" width="440" height="508" rx="12" class="panel" stroke-width="1.2"/>
+<text x="744" y="172" class="mono b ink" font-size="15">Passes over the text</text>
+<text x="744" y="208" class="mute" font-size="13.5">raw text read</text><text x="1136" y="208" class="mono b ink" font-size="18" text-anchor="end">2×</text>
+<text x="744" y="226" class="faint" font-size="12">clean, ledger</text>
+<text x="744" y="256" class="mute" font-size="13.5">cleaned text read</text><text x="1136" y="256" class="mono b ink" font-size="18" text-anchor="end">6×</text>
+<text x="744" y="274" class="faint" font-size="12">overlap, H3, apply, F2, ledger, shards</text>
+<text x="744" y="304" class="mute" font-size="13.5">text written</text><text x="1136" y="304" class="mono b ink" font-size="18" text-anchor="end">3×</text>
+<text x="744" y="322" class="faint" font-size="12">clean, apply, F2</text>
+<text x="744" y="352" class="mute" font-size="13.5">text tokenized</text><text x="1136" y="352" class="mono b ink" font-size="18" text-anchor="end">1×</text>
+<text x="744" y="370" class="faint" font-size="12">shards</text>
+<path d="M744 394H1136" class="edge" stroke-width="1"/>
+<text x="744" y="424" class="mono b ink" font-size="14">38 packs: 9,314 s</text>
+<rect x="744" y="440" width="212" height="18" class="red-c" stroke-width="1"/>
+<rect x="956" y="440" width="72.6" height="18" class="red-c" stroke-width="1"/>
+<rect x="1028.6" y="440" width="60.3" height="18" class="red-c" stroke-width="1"/>
+<rect x="1088.9" y="440" width="30.4" height="18" class="red-c" stroke-width="1"/>
+<rect x="1119.3" y="440" width="16.8" height="18" class="gray-c" stroke-width="1"/>
+<text x="752" y="454" class="red b" font-size="12">overlap</text>
+<text x="744" y="480" class="faint" font-size="12">overlap 54% · shards 19% · clean 15% · F2 8% · the rest 4%</text>
+<text x="744" y="518" class="mono b ink" font-size="14">1% slice: 218.5 s</text>
+<text x="744" y="540" class="faint" font-size="12">shards 69% · F2 16% · overlap 8% · clean 5%</text>
+<text x="744" y="574" class="mute" font-size="12.5">At this size each shard part takes about 3 s;</text>
+<text x="744" y="592" class="mute" font-size="12.5">its process start-up share is not measured.</text>
+<text x="744" y="622" class="faint" font-size="12">38-pack overlap: exact Jaccard (overlap.py).</text>
+<text x="744" y="638" class="faint" font-size="12">1% overlap and corpus-v1: MinHash.</text>
+<rect x="40" y="680" width="14" height="14" rx="3" class="red-c"/><text x="62" y="691" class="mute" font-size="12.5">reads or writes document text</text>
+<rect x="290" y="680" width="14" height="14" rx="3" class="teal-c"/><text x="312" y="691" class="mute" font-size="12.5">IDs, hashes and counts only</text>
+<rect x="520" y="680" width="14" height="14" rx="3" class="gray-c"/><text x="542" y="691" class="mute" font-size="12.5">input</text>
+<text x="1160" y="691" class="mono faint" font-size="12" text-anchor="end">survivor loss (2 s · 0.3 s, IDs only) not drawn</text>
+</svg>

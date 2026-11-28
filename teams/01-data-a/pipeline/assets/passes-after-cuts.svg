@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="690" viewBox="0 0 1200 690" role="img" aria-labelledby="t d">
+<title id="t">Passes over the data, after the cuts</title>
+<desc id="d">The pipeline after the six cuts. Clean reads the raw text once and writes the text with text_hash and each document's action (C1, C3). Exact-hash dedup reads hashes only (C1, built). MinHash finds near copies (C2, built). H3 is unchanged. Dedup writes one skip list (C5, proposal). F2 and tokenizing share one read of the text (C4, C5, proposals). The ledger reads IDs and actions only (C3, proposal). Reconcile is unchanged. Raw text is read once, text is written once and tokenized once.</desc>
+<style>
+text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif}
+.mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.14em}
+.h1{font-size:24px;font-weight:600}
+.sub{font-size:14.5px}
+.b{font-weight:600}
+.bg{fill:#ffffff;stroke:#d1d9e0}.panel{fill:#f6f8fa;stroke:#d1d9e0}.edge{stroke:#d1d9e0}.ink{fill:#1f2328}.mute{fill:#59636e}.faint{fill:#818b98}.mutes{stroke:#59636e}.teal{fill:#0f7b6c}.teal-c{fill:#e1f5f0;stroke:#0f7b6c}.red{fill:#cf222e}.red-c{fill:#ffebe9;stroke:#cf222e}.green{fill:#1a7f37}.amber{fill:#9a6700}.gray{fill:#6e7781}.gray-c{fill:#eef1f4;stroke:#6e7781}
+@media (prefers-color-scheme:dark){.bg{fill:#0d1117;stroke:#30363d}.panel{fill:#161b22;stroke:#30363d}.edge{stroke:#30363d}.ink{fill:#e6edf3}.mute{fill:#9198a1}.faint{fill:#6e7681}.mutes{stroke:#9198a1}.teal{fill:#3cc2a8}.teal-c{fill:#0d2a26;stroke:#3cc2a8}.red{fill:#ff7b72}.red-c{fill:#3a1619;stroke:#ff7b72}.green{fill:#3fb950}.amber{fill:#d9a53a}.gray{fill:#8b949e}.gray-c{fill:#1c2128;stroke:#8b949e}}
+</style>
+<rect class="bg" x=".5" y=".5" width="1199" height="689" rx="14"/>
+<text x="40" y="48" class="eyebrow mute">D2 · PASSES OVER THE DATA, AFTER THE CUTS</text>
+<text x="40" y="82" class="h1 ink">Raw text read once, text written once, tokenized once</text>
+<text x="40" y="108" class="sub mute">Each stage is tagged with the cut that changes it: built, a proposal, in place, or unchanged.</text>
+<rect x="40" y="140" width="640" height="40" rx="8" class="gray-c" stroke-width="1.2"/><text x="60" y="165" class="mono b gray" font-size="14">raw</text><text x="200" y="165" class="ink" font-size="13.5">read once, by clean</text><text x="664" y="165" class="mono b gray" font-size="13" text-anchor="end">C6 · in place</text>
+<path d="M354 183l6 6 6-6" class="mutes" fill="none" stroke-width="1.4"/>
+<rect x="40" y="192" width="640" height="40" rx="8" class="red-c" stroke-width="1.2"/><text x="60" y="217" class="mono b red" font-size="14">clean</text><text x="200" y="217" class="ink" font-size="13.5">writes text, text_hash and each action</text><text x="664" y="217" class="mono mute" font-size="13" text-anchor="end">C1 · C3</text>
+<path d="M354 235l6 6 6-6" class="mutes" fill="none" stroke-width="1.4"/>
+<rect x="40" y="244" width="640" height="40" rx="8" class="teal-c" stroke-width="1.2"/><text x="60" y="269" class="mono b teal" font-size="14">hash dedup</text><text x="200" y="269" class="ink" font-size="13.5">text_hash only, never the text</text><text x="664" y="269" class="mono b green" font-size="13" text-anchor="end">C1 · built</text>
+<path d="M354 287l6 6 6-6" class="mutes" fill="none" stroke-width="1.4"/>
+<rect x="40" y="296" width="640" height="40" rx="8" class="red-c" stroke-width="1.2"/><text x="60" y="321" class="mono b red" font-size="14">MinHash</text><text x="200" y="321" class="ink" font-size="13.5">near copies, reads cleaned text</text><text x="664" y="321" class="mono b green" font-size="13" text-anchor="end">C2 · built</text>
+<path d="M354 339l6 6 6-6" class="mutes" fill="none" stroke-width="1.4"/>
+<rect x="40" y="348" width="640" height="40" rx="8" class="red-c" stroke-width="1.2"/><text x="60" y="373" class="mono b red" font-size="14">H3</text><text x="200" y="373" class="ink" font-size="13.5">the H3 packs only</text><text x="664" y="373" class="mono faint" font-size="13" text-anchor="end">unchanged</text>
+<path d="M354 391l6 6 6-6" class="mutes" fill="none" stroke-width="1.4"/>
+<rect x="40" y="400" width="640" height="40" rx="8" class="teal-c" stroke-width="1.2"/><text x="60" y="425" class="mono b teal" font-size="14">dedup</text><text x="200" y="425" class="ink" font-size="13.5">IDs to one skip list</text><text x="664" y="425" class="mono b amber" font-size="13" text-anchor="end">C5 · proposal</text>
+<path d="M354 443l6 6 6-6" class="mutes" fill="none" stroke-width="1.4"/>
+<rect x="40" y="452" width="640" height="40" rx="8" class="red-c" stroke-width="1.2"/><text x="60" y="477" class="mono b red" font-size="14">F2 + tokenize</text><text x="200" y="477" class="ink" font-size="13.5">one read: skip, check F2, tokenize</text><text x="664" y="477" class="mono b amber" font-size="13" text-anchor="end">C4 · C5 · proposal</text>
+<path d="M354 495l6 6 6-6" class="mutes" fill="none" stroke-width="1.4"/>
+<rect x="40" y="504" width="640" height="40" rx="8" class="teal-c" stroke-width="1.2"/><text x="60" y="529" class="mono b teal" font-size="14">ledger</text><text x="200" y="529" class="ink" font-size="13.5">IDs and the clean job's actions</text><text x="664" y="529" class="mono b amber" font-size="13" text-anchor="end">C3 · proposal</text>
+<path d="M354 547l6 6 6-6" class="mutes" fill="none" stroke-width="1.4"/>
+<rect x="40" y="556" width="640" height="40" rx="8" class="teal-c" stroke-width="1.2"/><text x="60" y="581" class="mono b teal" font-size="14">reconcile</text><text x="200" y="581" class="ink" font-size="13.5">reads the shard index</text><text x="664" y="581" class="mono faint" font-size="13" text-anchor="end">unchanged</text>
+<rect x="720" y="140" width="440" height="456" rx="12" class="panel" stroke-width="1.2"/>
+<text x="744" y="172" class="mono b ink" font-size="15">Passes after the cuts</text>
+<text x="744" y="208" class="mute" font-size="13.5">raw text read</text><text x="1136" y="208" class="mono b ink" font-size="18" text-anchor="end">1×</text>
+<text x="744" y="226" class="faint" font-size="12">clean</text>
+<text x="744" y="256" class="mute" font-size="13.5">cleaned text read</text><text x="1136" y="256" class="mono b ink" font-size="18" text-anchor="end">3×</text>
+<text x="744" y="274" class="faint" font-size="12">MinHash, H3, F2 + tokenize</text>
+<text x="744" y="304" class="mute" font-size="13.5">text written</text><text x="1136" y="304" class="mono b ink" font-size="18" text-anchor="end">1×</text>
+<text x="744" y="322" class="faint" font-size="12">clean</text>
+<text x="744" y="352" class="mute" font-size="13.5">text tokenized</text><text x="1136" y="352" class="mono b ink" font-size="18" text-anchor="end">1×</text>
+<text x="744" y="370" class="faint" font-size="12">F2 + tokenize</text>
+<path d="M744 394H1136" class="edge" stroke-width="1"/>
+<text x="744" y="424" class="mono b ink" font-size="14">C1 on the 1% slice</text>
+<text x="744" y="448" class="mute" font-size="13">overlap stage 18.5 s → 0.9 s</text>
+<text x="744" y="468" class="mute" font-size="13">peak RSS 233 MB per worker → 135 MB</text>
+<text x="744" y="488" class="mute" font-size="13">the same 48 shard files, byte for byte</text>
+<text x="744" y="522" class="faint" font-size="12">C1 is B3; C2 is minhash_overlap.py.</text>
+<text x="744" y="540" class="faint" font-size="12">C3, C4, C5: proposals, savings in the table.</text>
+<text x="744" y="558" class="faint" font-size="12">C6: the clean job's resume and the hash cache.</text>
+<rect x="40" y="628" width="14" height="14" rx="3" class="red-c"/><text x="62" y="639" class="mute" font-size="12.5">reads or writes document text</text>
+<rect x="290" y="628" width="14" height="14" rx="3" class="teal-c"/><text x="312" y="639" class="mute" font-size="12.5">IDs, hashes and counts only</text>
+<rect x="520" y="628" width="14" height="14" rx="3" class="gray-c"/><text x="542" y="639" class="mute" font-size="12.5">input</text>
+<text x="40" y="664" class="mono faint" font-size="12">C1 hash at clean · C2 MinHash · C3 ledger without text · C4 F2 in the tokenizing pass · C5 skip list · C6 clean once</text>
+</svg>

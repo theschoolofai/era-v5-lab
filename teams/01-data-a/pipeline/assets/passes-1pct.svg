@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-labelledby="t d">
+<title id="t">The 1% sample report</title>
+<desc id="d">Seconds per stage on the 1% slice of sample v0, baseline run with MinHash overlap against the hash-only run of B3, at commit 2d09b023: clean 10.1 and 12.0, overlap 18.5 and 0.9, F2 35.5 and 34.6, shards 151.6 and 146.8, the other stages 2.8 and 2.7. Totals 218.5 and 197.0 seconds. Both runs read 14,450 rows and kept 14,092; 108 of 108 checks; the 48 shards are byte-identical.</desc>
+<style>
+text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif}
+.mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace}
+.eyebrow{font-size:12px;font-weight:600;letter-spacing:.14em}
+.h1{font-size:24px;font-weight:600}
+.sub{font-size:14.5px}
+.b{font-weight:600}
+.bg{fill:#ffffff;stroke:#d1d9e0}.edge{stroke:#d1d9e0}.ink{fill:#1f2328}.mute{fill:#59636e}.faint{fill:#818b98}.teal-c{fill:#e1f5f0;stroke:#0f7b6c}.gray-c{fill:#eef1f4;stroke:#6e7781}
+@media (prefers-color-scheme:dark){.bg{fill:#0d1117;stroke:#30363d}.edge{stroke:#30363d}.ink{fill:#e6edf3}.mute{fill:#9198a1}.faint{fill:#6e7681}.teal-c{fill:#0d2a26;stroke:#3cc2a8}.gray-c{fill:#1c2128;stroke:#8b949e}}
+</style>
+<rect class="bg" x=".5" y=".5" width="1199" height="519" rx="14"/>
+<text x="40" y="48" class="eyebrow mute">D2 · THE 1% SAMPLE REPORT</text>
+<text x="40" y="82" class="h1 ink">The exact-hash overlap takes 0.9 s where MinHash takes 18.5 s</text>
+<text x="40" y="108" class="sub mute">All 86 parts of sample v0, 14,450 rows, the whole pipeline without H3, at 2d09b023 on an Apple M4 (10 cores, 16 GiB).</text>
+<text x="40" y="128" class="sub mute">Both runs: the same rows at every stage, 108 of 108 checks, the 48 shard files byte-identical.</text>
+<path d="M220 156V422" class="edge" stroke-width="1"/>
+<text x="40" y="184" class="b ink" font-size="14">clean</text>
+<rect x="220" y="164" width="51" height="16" rx="3" class="gray-c" stroke-width="1"/><text x="279" y="177" class="mono mute" font-size="12.5">10.1 s</text>
+<rect x="220" y="184" width="60" height="16" rx="3" class="teal-c" stroke-width="1"/><text x="288" y="197" class="mono mute" font-size="12.5">12.0 s</text>
+<text x="40" y="236" class="b ink" font-size="14">overlap</text>
+<rect x="220" y="216" width="93" height="16" rx="3" class="gray-c" stroke-width="1"/><text x="321" y="229" class="mono mute" font-size="12.5">18.5 s</text>
+<rect x="220" y="236" width="5" height="16" rx="1" class="teal-c" stroke-width="1"/><text x="233" y="249" class="mono mute" font-size="12.5">0.9 s</text>
+<text x="40" y="288" class="b ink" font-size="14">F2</text>
+<rect x="220" y="268" width="178" height="16" rx="3" class="gray-c" stroke-width="1"/><text x="406" y="281" class="mono mute" font-size="12.5">35.5 s</text>
+<rect x="220" y="288" width="173" height="16" rx="3" class="teal-c" stroke-width="1"/><text x="401" y="301" class="mono mute" font-size="12.5">34.6 s</text>
+<text x="40" y="340" class="b ink" font-size="14">shards</text>
+<rect x="220" y="320" width="760" height="16" rx="3" class="gray-c" stroke-width="1"/><text x="988" y="333" class="mono mute" font-size="12.5">151.6 s</text>
+<rect x="220" y="340" width="736" height="16" rx="3" class="teal-c" stroke-width="1"/><text x="964" y="353" class="mono mute" font-size="12.5">146.8 s</text>
+<text x="40" y="392" class="b ink" font-size="14">other stages</text>
+<text x="40" y="410" class="faint" font-size="12">dedup, apply, survivor loss,</text>
+<text x="40" y="424" class="faint" font-size="12">ledger, reconcile</text>
+<rect x="220" y="372" width="14" height="16" rx="2" class="gray-c" stroke-width="1"/><text x="242" y="385" class="mono mute" font-size="12.5">2.8 s</text>
+<rect x="220" y="392" width="14" height="16" rx="2" class="teal-c" stroke-width="1"/><text x="242" y="405" class="mono mute" font-size="12.5">2.7 s</text>
+<rect x="40" y="448" width="14" height="14" rx="3" class="gray-c"/><text x="62" y="459" class="mute" font-size="12.5">baseline: MinHash overlap · 218.5 s</text>
+<rect x="340" y="448" width="14" height="14" rx="3" class="teal-c"/><text x="362" y="459" class="mute" font-size="12.5">hash-only: exact-hash overlap (B3) · 197.0 s</text>
+<text x="40" y="490" class="mono faint" font-size="12">rows: 14,450 read → 344 dropped by clean → 0 by dedup → 14 by F2 → 14,092 final · tokenizing: 80,900–83,500 tokens/s per core (one thread, not p1536)</text>
+</svg>
