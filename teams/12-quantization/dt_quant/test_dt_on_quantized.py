@@ -179,3 +179,27 @@ def test_memory_accounting_counts_dt_state_only_for_dt_arms(toy):
     dt = dq.run_arm("dt", args, windows, torch.device("cpu"))["memory"]
     assert base["dt_state_bytes"] == 0 and dt["dt_state_bytes"] == dt["masked_weights"] * 16
     assert dt["weights_bytes"] == dt["decoder_linear_weights"] * 4           # float32 arm: 4 bytes, not bf16's 2
+
+
+def _fake_results(masked=88_080_384):
+    mem = lambda w, f, m: {"decoder_linear_weights": 440_401_920, "masked_weights": m, "format": f, "weights_bytes": w,
+                           "dt_state_bytes": m * 16, "total_bytes": 0, "bf16_weights_bytes": 0, "saved_by_format_bytes": 0}
+    arm = lambda nll, f, w, dele=None, peak=None, m=masked: dict(test_nll_mean=nll, test_windows=6, per_window_nll=[nll] * 6, memory=mem(w, f, m),
+                                                                  **({} if dele is None else {"deletion_final": dele, "wanda_prior": {"prior_deleted": 42926}}),
+                                                                  **({} if peak is None else {"peak_cuda_gb": peak}), train_seconds=5.0)
+    return {"args": {"model": "toy/model", "revision": "abc", "targets": "gate", "steps": 4, "batch": 2, "micro": 1, "length": 16, "lr": 0.0005, "seed": 1,
+                     "arms": "base,dt", "train_windows": 8, "test_windows": 6},
+            "arms": {"base": arm(3.0, "float32", 1_761_607_680, m=0), "dt": arm(2.9, "float32", 1_761_607_680, 0.002, 1.5),
+                     "dt_q8_0": arm(2.95, "q8_0", 468_000_000, 0.002, 1.6), "dt_q4_0": arm(3.2, "q4_0", 247_000_000, 0.002, 1.6)},
+            "paired": {"dt-base": {"mean_diff": -0.1, "ci95": [-0.2, -0.05], "windows": 6}, "dt_q8_0-dt": {"mean_diff": 0.05, "ci95": [0.0, 0.1], "windows": 6}}}
+
+
+def test_g10_note_takes_every_number_from_the_results():
+    import make_g10_note as g
+    md = g.render(_fake_results(), argparse.Namespace(pr="https://example/pr/1", notebook_version="v123"))
+    assert "toy/model" in md and "`dt` (DT, unquantized base)" in md and "-0.1000 [-0.2000, -0.0500]" in md
+    assert "**1.41 GB**" in md and "16 bytes per masked weight" in md                  # 88,080,384 x 16 B
+    assert "| `base` (no DT, unquantized) |" in md and "https://example/pr/1" in md and "v123" in md
+    assert "`dt_q8_0-dt` +0.0500 [+0.0000, +0.1000]" in md
+    row = [l for l in md.splitlines() if l.startswith("| `base` ")][0]
+    assert "| - | - |" in row                                                           # no deletion, no prior on a base arm
