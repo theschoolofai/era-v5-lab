@@ -497,8 +497,8 @@ def phase_clock(sync_device: str | None):
     return clock
 
 
-def gpu_memory() -> dict:
-    if not torch.cuda.is_available():
+def gpu_memory(device: str = "cuda") -> dict:
+    if not (device.startswith("cuda") and torch.cuda.is_available()):
         return {}
     free, total = torch.cuda.mem_get_info()
     return {"peak_torch_gb": round(torch.cuda.max_memory_allocated() / 2**30, 2),
@@ -1282,7 +1282,7 @@ def train(cfg: dict) -> dict:
                  "mixed_ids": [i for i, c in zip(ids, passes) if 0 < c < k_s],
                  "sampled_tokens": s_tok, "rollout_s": round(s_time, 2), "score_s": round(time.time() - c0 - s_time, 2),
                  "reasons": pop_reasons(task), "reward_workers": reward_workers,
-                 **length_stats(s_rolls, max_new, policy.eos_id), **gpu_memory()}
+                 **length_stats(s_rolls, max_new, policy.eos_id), **gpu_memory(device)}
         (out / "screen.json").write_text(json.dumps(rec_s, indent=1))
         print(json.dumps({"screen": {k_: v for k_, v in rec_s.items() if k_ not in ("per_task", "mixed_ids")}}),
               flush=True)
@@ -1529,7 +1529,7 @@ def train(cfg: dict) -> dict:
                "sampled_tokens": sampled_tokens,
                "rollout_tokens_per_s": round(sampled_tokens / max(times["rollout"], 1e-9), 1),
                "times_s": {k_: round(v, 3) for k_, v in times.items()}, "step_s": round(sum(times.values()), 3),
-               "sync_mb": round(sync_bytes / 2**20, 1), **gpu_memory(), **({"times_synced": True} if time_sync else {}),
+               "sync_mb": round(sync_bytes / 2**20, 1), **gpu_memory(device), **({"times_synced": True} if time_sync else {}),
                "seconds": round(prior_s + time.time() - start, 1)}
         if step_reasons is not None:
             rec["reasons"] = step_reasons
@@ -1646,7 +1646,7 @@ def train(cfg: dict) -> dict:
                "seconds_per_step": round((time.time() - start) / max(int(t["steps"]), 1), 2),
                "peak_gpu_memory_gb": (round(torch.cuda.max_memory_allocated() / 2**30, 2)
                                       if device.startswith("cuda") else None),
-               **{f"end_{k_}": v for k_, v in gpu_memory().items()}, "versions": versions()}
+               **{f"end_{k_}": v for k_, v in gpu_memory(device).items()}, "versions": versions()}
     if any("mismatch_k3" in r for r in recs):
         ks = [r["mismatch_k3"] for r in recs if "mismatch_k3" in r]
         summary["mean_mismatch_k3"] = round(sum(ks) / len(ks), 6)
