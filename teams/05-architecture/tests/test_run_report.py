@@ -67,6 +67,57 @@ class ExpertLoadTests(unittest.TestCase):
         self.assertIn("fair share 6.25% with 16 experts", text)
 
 
+class ChartTests(unittest.TestCase):
+    """--charts (#892, design task 4): the busiest-share table, the zero-choice runs and the three files."""
+
+    def rows(self):
+        even = [100] * 16
+        skew = [100] * 16
+        skew[2] = 1500                      # 1500 / 3000 = 50%: above the 31.25% line
+        idle = [100] * 16
+        idle[13] = 0                        # expert 13 gets nothing
+        return [row(1), row(25, expert_load=[skew, even]), row(50, expert_load=[idle, even]),
+                row(75, expert_load=[idle, idle]), row(100, expert_load=[even, idle])]
+
+    def test_busiest_table(self):
+        table = rr.busiest_table(self.rows())
+        self.assertEqual([s for s, _, _ in table], [25, 50, 75, 100])
+        self.assertAlmostEqual(table[0][1][0], 0.5)
+        self.assertAlmostEqual(table[0][1][1], 1 / 16)
+        self.assertEqual(table[1][2], [(0, 13)])
+
+    def test_zero_choice_runs_count_logged_steps_in_a_row(self):
+        streaks = rr.idle_streaks(rr.busiest_table(self.rows()))
+        # Layer 0 expert 13: steps 50 and 75 (two in a row); layer 1 expert 13: steps 75 and 100.
+        self.assertIn((0, 13, 50, 75, 2), streaks)
+        self.assertIn((1, 13, 75, 100, 2), streaks)
+        self.assertEqual(len(streaks), 2)
+
+    def test_a_break_starts_a_new_run(self):
+        idle = [100] * 4
+        idle[1] = 0
+        even = [100] * 4
+        rows = [row(10, expert_load=[idle]), row(20, expert_load=[even]), row(30, expert_load=[idle])]
+        self.assertEqual(sorted(rr.idle_streaks(rr.busiest_table(rows))), [(0, 1, 10, 10, 1), (0, 1, 30, 30, 1)])
+
+    def test_charts_write_three_files(self):
+        with TemporaryDirectory() as d:
+            paths = rr.charts(self.rows(), Path(d) / "charts")
+            self.assertEqual(sorted(p.name for p in paths),
+                             ["busiest_share.svg", "busiest_share_heatmap.svg", "expert_load.md"])
+            md = (Path(d) / "charts" / "expert_load.md").read_text(encoding="utf-8")
+            self.assertIn("failure line (5 times even) 31.25%", md)
+            self.assertIn("Logged steps at or above the failure line: 1 of 4 (first 25, last 25).", md)
+            self.assertIn("| 0 | 13 | 50 | 75 | 2 |", md)
+            for p in paths[:2]:
+                self.assertTrue(p.read_text(encoding="utf-8").startswith("<svg"))
+
+    def test_charts_need_expert_load(self):
+        with TemporaryDirectory() as d:
+            with self.assertRaises(SystemExit):
+                rr.charts([row(1)], d)
+
+
 class InputTests(unittest.TestCase):
     def test_non_finite_rows_are_reported(self):
         text = rr.report([row(1), row(2, loss=float("nan")), row(3, norm=float("inf"))], "x")

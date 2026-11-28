@@ -25,7 +25,13 @@ So, on this run, balancing is not working well enough: it fails TSAI's 5-times l
 python teams/05-architecture/harness/run_report.py teams/05-architecture/results/dryrun2-1234/metrics.jsonl
 ```
 
-`teams/05-architecture/results/dryrun2-1234/metrics.jsonl` is #869's record on main. The full output (health, loss, learning rate, throughput and row fill, held-out bits per byte per slice, and expert load per layer) is in [`dryrun2_report.md`](dryrun2_report.md). The expert-load part:
+`teams/05-architecture/results/dryrun2-1234/metrics.jsonl` is #869's record on main. Charts and the full expert-load table, with every expert that had zero choices and for how many logged steps in a row:
+
+```
+python teams/05-architecture/harness/run_report.py teams/05-architecture/results/dryrun2-1234/metrics.jsonl --charts teams/05-architecture/lab5/router_balance/dryrun2_charts
+```
+
+Output in [`dryrun2_charts/`](dryrun2_charts/): `busiest_share.svg` (each layer's busiest share over the run, with the 31.25% line and TSAI's balanced reference), `busiest_share_heatmap.svg` (the same as a layer-by-step grid) and `expert_load.md` (the table; 6 of 24 logged steps fail; the longest zero-choice run is layer 7 expert 13, 10 logged steps from 750 to 1,200, and layer 0 expert 2, the step-50 favourite at 49.8%, sits at zero from 450 to 650). The full output (health, loss, learning rate, throughput and row fill, held-out bits per byte per slice, and expert load per layer) is in [`dryrun2_report.md`](dryrun2_report.md). The expert-load part:
 
 | Step | Worst layer's busiest share | Layers with an expert at zero choices |
 |---:|---:|---:|
