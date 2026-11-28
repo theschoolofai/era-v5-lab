@@ -13,6 +13,15 @@
 # Team 05's current trainer is one process using one GPU. The gpu partition is node-exclusive, so this job
 # reserves all 8 GPUs on one node and binds its one task to one GPU. Team 5 must accept that temporary cost or
 # provide a distributed plan; see the main-run checklist (PR #819, draft) D2.
+# Time cap: this script sets no --time, and the gpu partition and the mainrun QOS set no limit, so the --signal line
+# below does nothing on our own cluster. When a site or provider caps the job (sbatch --time), Slurm sends SIGUSR1 to
+# this batch shell 300 s before the end. The exec at the bottom makes the wrapper (queue/job_queue.py run) this
+# process; it passes SIGUSR1 to the trainer, which saves, waits for the commit and exits 75, and Slurm requeues the
+# job. Without the line the cap sends SIGTERM and then SIGKILL after KillWait=30 s, too short for an evaluation plus a
+# save and a commit; the job then ends TIMEOUT, which Slurm does not requeue, and the run stops until a person acts.
+# 300 s = step 6.1 s + evaluation 45.4 s + save 1.4 s + commit + up to 60 s of Slurm timing (restart_cost_lab5.md §3).
+# A --signal on the sbatch command line replaces this one. Give a capped job a --time of more than 300 s, or the
+# warning arrives while the startup checks run.
 #SBATCH --job-name=v5-mainrun
 #SBATCH --account=mainrun
 #SBATCH --qos=mainrun
@@ -22,6 +31,7 @@
 #SBATCH --gpus-per-node=8
 #SBATCH --exclusive
 #SBATCH --requeue
+#SBATCH --signal=B:USR1@300
 #SBATCH --open-mode=append
 #SBATCH --output=/var/log/v5/logs/%x-%j.out
 set -u

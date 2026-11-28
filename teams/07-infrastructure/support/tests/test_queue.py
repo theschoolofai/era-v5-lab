@@ -3,8 +3,10 @@ import glob
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
+import time
 
 import pytest
 
@@ -465,3 +467,65 @@ def test_mainrun_simulation_keeps_legacy_flags(tmp_path):
     ]
     assert got["env"]["V5_DRILL_DIR"] == str(tmp_path / "must-not-reach-production")
     assert "V5_TRAIN_SCRIPT" not in got["env"]
+
+
+# ---- time cap: the warning signal and its path to the trainer ------------------------------------
+def sbatch_directives(name):
+    """The #SBATCH options of a script. Slurm stops reading them at the first command."""
+    found = []
+    for line in open(os.path.join(TEAM, "slurm", name)):
+        text = line.strip()
+        if text.startswith("#SBATCH"):
+            found.append(text[len("#SBATCH"):].strip())
+        elif text and not text.startswith("#"):
+            break
+    return found
+
+
+def test_mainrun_asks_slurm_for_a_save_warning_before_a_time_cap():
+    """Without --signal a time cap sends SIGTERM and SIGKILL 30 s later (KillWait): too short for an evaluation plus
+    a save and a commit, and the job ends TIMEOUT, which Slurm does not requeue (restart_cost_lab5.md section 3)."""
+    directives = sbatch_directives("mainrun.sbatch")
+    assert [d for d in directives if d.startswith("--signal")] == ["--signal=B:USR1@300"]
+    assert "--requeue" in directives
+
+
+def test_wrapper_passes_the_time_cap_warning_on_to_the_trainer(tmp_path):
+    """--signal=B:USR1@300 reaches only the batch shell, which is the wrapper (mainrun.sbatch execs it). The wrapper
+    must pass SIGUSR1 to srun; the trainer then saves and exits 75, and the job is requeued."""
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    ready, got = tmp_path / "ready", tmp_path / "got_signal"
+    srun = bin_dir / "srun"
+    srun.write_text(
+        f"#!{sys.executable}\n"
+        "import signal, sys, time\n"
+        f"def stop(signum, frame):\n"
+        f"    open({str(got)!r}, 'w').write(signal.Signals(signum).name)\n"
+        "    sys.exit(75)\n"
+        "signal.signal(signal.SIGUSR1, stop)\n"
+        f"open({str(ready)!r}, 'w').write('ready')\n"
+        "time.sleep(30)\n"
+        "sys.exit(1)\n"
+    )
+    srun.chmod(0o755)
+    env = dict(os.environ, PATH=f"{bin_dir}{os.pathsep}{os.environ['PATH']}", RUN_ID="r1",
+               V5_EVENTS_DIR=str(tmp_path / "events"), V5_RUNS_DIR=str(tmp_path / "runs"),
+               V5_REMOTE_ROOT=str(tmp_path / "store"), V5_TRAIN_SCRIPT=str(tmp_path / "train_week2.py"))
+    env.pop("SLURM_JOB_ID", None)
+    wrapper = subprocess.Popen([sys.executable, os.path.join(TEAM, "queue", "job_queue.py"), "run",
+                                "--", "--ntasks-per-node=1", "--", "--run-id", "r1"],
+                               env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    try:
+        deadline = time.time() + 20
+        while not ready.exists() and time.time() < deadline:
+            time.sleep(0.05)
+        assert ready.exists(), "the fake srun never started"
+        wrapper.send_signal(signal.SIGUSR1)
+        _, err = wrapper.communicate(timeout=30)
+    finally:
+        if wrapper.poll() is None:
+            wrapper.kill()
+            wrapper.wait()
+    assert got.read_text() == "SIGUSR1"
+    assert wrapper.returncode == 75, err
