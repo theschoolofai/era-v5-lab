@@ -2131,6 +2131,25 @@ Evaluation prompts only, not training data. Proposed 20 Nov 2026 by `f20201351h-
 | eval-general-qasc | [allenai/qasc](https://huggingface.co/datasets/allenai/qasc), revision a34ba204eb9a33b919c10cc08f4f1c8dae5ec070, validation split (the split that carries `answerKey`) | English / 8-way multiple choice science questions | none (questions human-authored by crowd workers, per the dataset card and paper) | cc-by-4.0 (Hub card) | allowed (G10 lead sign-off, 20 Nov 2026; eval-only, not training data) |
 | eval-tool-api-bank | [AlibabaResearch/DAMO-ConvAI](https://github.com/AlibabaResearch/DAMO-ConvAI) `api-bank/`, commit f30ccf22b4e2617fab32958d4c03f5c1f2e7dfcf, level-1 dialogues in `api-bank/lv1-lv2-samples/level-1-given-desc` and the API definitions in `api-bank/apis` | English / tool-use dialogues with one gold API call per slot | none (evaluation dialogues written by annotators, per the paper; the API definitions are the set's own code) | Apache-2.0 (`api-bank/LICENSE`, first line "Apache License"; the repository root carries a different licence file, not used here) | allowed (G10 lead sign-off, 20 Nov 2026; eval-only, not training data) |
 
+### tanmays369: Lab 5 RL math rows, from Team 1's reply (#914, 28 Nov)
+
+Two sources Team 1 built the RL math pool from were not in this table. Added because Team 1's reply §6 names them as
+needing a row before staging, and a source cannot be staged without one.
+
+| Set | Source | Language | Generator model | Licence (and where it was read) | Decision |
+|---|---|---|---|---|---|
+| rl-math-omr-aops-v1 | [nvidia/Nemotron-RL-math-OpenMathReasoning](https://huggingface.co/datasets/nvidia/Nemotron-RL-math-OpenMathReasoning), `train.jsonl` @ `219bf0170cd87cd5db2bbf33715ce9ea43a2c59c` | English / Mathematics | none for the problem text (AoPS forum posts, human-written); problems refined and answers extracted with Qwen2.5-32B-Instruct (Apache-2.0) | cc-by-4.0 (dataset card; "ready for commercial use") | TSAI reserves |
+| rl-math-stack-overflow | [nvidia/Nemotron-RL-math-stack_overflow](https://huggingface.co/datasets/nvidia/Nemotron-RL-math-stack_overflow) @ `81ee8592` | English / Mathematics | not named on the card (the card says the method is "similar to" OpenMathReasoning's, which uses Qwen2.5-32B-Instruct, Apache-2.0) | cc-by-sa-4.0 (dataset card; attribution and share-alike) | needs TSAI decision |
+
+**Notes, from Team 1's reply:**
+- `rl-math-omr-aops-v1`: 109,246 rows, 41,180 with an exact-number answer; F2 full set 0 flagged, 0 canary.
+- `rl-math-stack-overflow`: 110,976 exact-number rows after the same checks. **606 documents flagged before
+  filtering** — the pool must ship filtered, not raw.
+- The **`validation.jsonl` file of `Nemotron-RL-math-OpenMathReasoning` is AIME 2024.** Any loader must read
+  `train.jsonl` only; loading the repository whole would put benchmark items on the machine.
+- Fingerprints v2 has no MATH, MATH-500 or Omni-MATH, so AoPS-derived pools need the separate overlap check described
+  in Team 1's reply §1.2.
+
 ### tanmays369: Lab 5 evaluation-only benchmark licences (28 Nov 2026)
 
 **Evaluation-only, never training data.** These are the benchmark sets the Lab 5 peer table and mini-benchmark
