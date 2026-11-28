@@ -119,11 +119,12 @@ def test_every_arm_runs_end_to_end(toy):
     for r in out.values():
         assert np.isfinite(r["test_nll_mean"]) and r["test_windows"] == 6 and len(r["per_window_nll"]) == 6
     assert set(out["dt"]["then"]) == {"q8_0", "q4_0"} and "then" not in out["dt_q8_0"]
+    assert all(v["memory"]["dt_state_bytes"] == 0 for v in out["dt"]["then"].values())   # baked and quantized: nothing to train
     for q in ("dt_q8_0", "dt_q4_0"):
         assert out[q]["packed_bytes_targeted"] < out[q]["bf16_bytes_targeted"] and out[q]["masked_layers"] == 2
         assert 0.0 <= out[q]["deletion_final"] <= 1.0
     assert out["dt_q4_0"]["packed_bytes_targeted"] < out["dt_q8_0"]["packed_bytes_targeted"]
-    assert out["dt"]["memory"]["format"] == "bf16" and out["dt_q4_0"]["memory"]["format"] == "q4_0"
+    assert out["dt"]["memory"]["format"] == "float32" and out["dt_q4_0"]["memory"]["format"] == "q4_0"
 
 
 def test_dt_arm_is_deterministic(toy):
@@ -137,3 +138,44 @@ def test_dt_then_arm_names_are_rejected_by_run_arm(toy):
     args, windows = toy
     with pytest.raises(AssertionError):
         dq.run_arm("dt_then_q8_0", args, windows, torch.device("cpu"))
+
+
+def test_the_prior_marks_weights_on_quantized_arms_at_the_real_eta(toy):
+    args, windows = toy
+    args.eta = 1 / 2048                                          # k = 4 of 8192 per layer; Q8_0 and Q4_0 zero far more than that
+    dev = torch.device("cpu")
+    res = {a: dq.run_arm(a, args, windows, dev) for a in ("dt", "dt_q8_0", "dt_q4_0")}
+    for a, r in res.items():
+        assert r["wanda_prior"]["prior_deleted"] > 0, (a, r["wanda_prior"])
+    assert res["dt_q4_0"]["weights_zero_before_prior"] > res["dt_q8_0"]["weights_zero_before_prior"] > 0
+
+
+def test_zeroed_weights_do_not_set_the_threshold():
+    w = torch.randn(4, 64)
+    w[0, :32] = 0.0                                              # a whole block already zero
+    lin = nn.Linear(64, 4, bias=False); lin.weight.data.copy_(w)
+    layer = dq.dtmask.MaskedLinear(lin, 100.0, 1000.0, 10, torch.Generator().manual_seed(0))
+    scores = {"x": layer.base_weight.detach().abs() * torch.ones(64)}
+    z = layer.base_weight == 0
+    scores["x"] = torch.where(z, torch.full_like(scores["x"], float("inf")), scores["x"])
+    net = nn.Sequential(); net.add_module("x", layer)
+    info = dq.dtmask.apply_wanda_prior(net, scores, eta=8 / 256)       # k = 8; the official rule marks scores strictly below the 8th: 7
+    assert info["prior_deleted"] == 7
+    assert int((layer.gate.detach()[0, :32] > 0).sum()) == 32          # the zeroed block was never marked for deletion
+
+
+def test_quantized_arms_refuse_a_half_precision_dtype(toy):
+    args, windows = toy
+    args.dtype = "bfloat16"
+    with pytest.raises(ValueError):
+        dq.run_arm("dt_q8_0", args, windows, torch.device("cpu"))
+    with pytest.raises(ValueError):
+        dq.run_arm("base_q4_0", args, windows, torch.device("cpu"))
+
+
+def test_memory_accounting_counts_dt_state_only_for_dt_arms(toy):
+    args, windows = toy
+    base = dq.run_arm("base", args, windows, torch.device("cpu"))["memory"]
+    dt = dq.run_arm("dt", args, windows, torch.device("cpu"))["memory"]
+    assert base["dt_state_bytes"] == 0 and dt["dt_state_bytes"] == dt["masked_weights"] * 16
+    assert dt["weights_bytes"] == dt["decoder_linear_weights"] * 4           # float32 arm: 4 bytes, not bf16's 2
