@@ -1,0 +1,309 @@
+=== provenance: final/train/math-megamath/part-00000.parquet
+{
+  "part": {
+    "split": "train",
+    "part": "math-megamath/part-00000.parquet",
+    "pack_id": "math-megamath",
+    "path": "out/pipeline/clean-fix-1pct/final/train/math-megamath/part-00000.parquet"
+  },
+  "final": {
+    "sha256": "4b7c1ea5610e7c69795c9b762b6d7de0bf9c45ff638628b69f369526b27b99a7",
+    "rows": 143
+  },
+  "raw_input": {
+    "sha256": "3ac8928b2f1429165727486ec590ebfdc82cc6e207b581bba9f362765d784493",
+    "part": "train/math-megamath/part-00000.parquet"
+  },
+  "clean": {
+    "clean_py_sha256": "b9e78f73ec5b4a892d978e7bfc1759fa05e9386054a626e5645e6dce49b58d10",
+    "status": "cleaned"
+  },
+  "dedup": {
+    "remove_list_sha256": "dd97cbf75c673cc42741eac42515de34b17bae043d5f09ad29353329b5f1f9b0",
+    "remove_list_rows": 0,
+    "removed": []
+  },
+  "f2": {
+    "set_sha256": "2826a3b883210c653979103c09ce1c79e40fc4f7034b54027f2836482370d22a",
+    "run_f2_py_sha256": "1651b3725357b2a2b684fda6a047cc5697c1331d1b43bb242712f422403af040",
+    "dropped": [
+      {
+        "doc_id": "52cb14f1cc7bb640",
+        "items": [
+          "heldout_g5_v1:heldout:owm-test-000031"
+        ],
+        "offset": 118
+      }
+    ]
+  },
+  "counts": {
+    "cleaned": 144,
+    "removed_by_dedup": 0,
+    "dropped_by_f2": 1,
+    "final": 143
+  },
+  "pipeline": {
+    "manifest_sha256": "3984f041c760eed3da953b34ef4ba59f360f3f8850f2781f4913a4df37bc5494",
+    "run_id": "clean-fix-1pct",
+    "git_commit": "15e9d5782924c24108537da6146e44944f230ff0"
+  },
+  "record": {
+    "clean_py_sha256": "b9e78f73ec5b4a892d978e7bfc1759fa05e9386054a626e5645e6dce49b58d10",
+    "f2_set_sha256": "2826a3b883210c653979103c09ce1c79e40fc4f7034b54027f2836482370d22a",
+    "dedup": {
+      "remove_list_sha256": "dd97cbf75c673cc42741eac42515de34b17bae043d5f09ad29353329b5f1f9b0",
+      "remove_list_rows": 0,
+      "overlap": {
+        "matches_sha256": "484f20ed7b46de3a70ba005306a099290bee80096a3d3daa9aad3e69988c0153",
+        "docs_sha256": "f05ad38374bd6d810be7622969818041827b3bca4e1fa36f9ee5bdc16656e736",
+        "k": 5,
+        "floor": 0.5,
+        "code_sha256": "03217f2ab797697bddc12743fa030a23c5aa40de79b3ba1bdf622d80a87c9bb6"
+      },
+      "settings": {
+        "cross_pack": true,
+        "pack_order": [
+          "code-go",
+          "code-js-ts",
+          "code-java",
+          "code-cpp",
+          "code-rust",
+          "code-python",
+          "en-fineweb-edu",
+          "en-dclm",
+          "en-nemotroncc-synth",
+          "en-nemotroncc",
+          "math-megamath",
+          "math-finemath",
+          "sci-finepdfs",
+          "cadj-commits",
+          "cadj-notebooks",
+          "cadj-stackexchange",
+          "ind-bn-fw2",
+          "ind-bn-sangraha-v",
+          "ind-gu-fw2",
+          "ind-hi-fw2",
+          "ind-hi-hplt",
+          "ind-hi-indiccorp",
+          "ind-hi-sangraha-s",
+          "ind-hi-sangraha-v",
+          "ind-kn-fw2",
+          "ind-kn-sangraha-s",
+          "ind-kn-sangraha-v",
+          "ind-ml-fw2",
+          "ind-mr-fw2",
+          "ind-mr-sangraha-v",
+          "ind-or-fw2",
+          "ind-sa-fw2",
+          "ind-ta-fw2",
+          "ind-ta-sangraha-s",
+          "ind-ta-sangraha-v",
+          "ind-te-fw2",
+          "ind-te-sangraha-s",
+          "ind-te-sangraha-v"
+        ],
+        "licence_usable": {
+          "code-go": true,
+          "code-js-ts": true,
+          "code-java": true,
+          "code-cpp": true,
+          "code-rust": true,
+          "code-python": true,
+          "en-fineweb-edu": true,
+          "en-dclm": true,
+          "en-nemotroncc-synth": true,
+          "en-nemotroncc": true,
+          "math-megamath": true,
+          "math-finemath": true,
+          "sci-finepdfs": true,
+          "cadj-commits": true,
+          "cadj-notebooks": true,
+          "cadj-stackexchange": true,
+          "ind-bn-fw2": true,
+          "ind-bn-sangraha-v": true,
+          "ind-gu-fw2": true,
+          "ind-hi-fw2": true,
+          "ind-hi-hplt": true,
+          "ind-hi-indiccorp": true,
+          "ind-hi-sangraha-s": true,
+          "ind-hi-sangraha-v": true,
+          "ind-kn-fw2": true,
+          "ind-kn-sangraha-s": true,
+          "ind-kn-sangraha-v": true,
+          "ind-ml-fw2": true,
+          "ind-mr-fw2": true,
+          "ind-mr-sangraha-v": true,
+          "ind-or-fw2": true,
+          "ind-sa-fw2": true,
+          "ind-ta-fw2": true,
+          "ind-ta-sangraha-s": true,
+          "ind-ta-sangraha-v": true,
+          "ind-te-fw2": true,
+          "ind-te-sangraha-s": true,
+          "ind-te-sangraha-v": true
+        },
+        "default_licence_usable": false
+      },
+      "code_sha256": "511ffc397145c1508d12d2ca15e23eb5d1aa6e7deafa06425989d9c6c3b83a23"
+    }
+  }
+}
+exit 0
+=== provenance: final/train/code-go/part-00000.parquet
+{
+  "part": {
+    "split": "train",
+    "part": "code-go/part-00000.parquet",
+    "pack_id": "code-go",
+    "path": "out/pipeline/clean-fix-1pct/final/train/code-go/part-00000.parquet"
+  },
+  "final": {
+    "sha256": "24e6c33ab8b73c73baf67c3c6d6d418da91c1008ce03319cdda717f92da41f5b",
+    "rows": 557
+  },
+  "raw_input": {
+    "sha256": "24efa2f02c23026ce4d6f448dcd09eece5f962eefa8ceba75c8f9c10615588fd",
+    "part": "train/code-go/part-00000.parquet"
+  },
+  "clean": {
+    "clean_py_sha256": "b9e78f73ec5b4a892d978e7bfc1759fa05e9386054a626e5645e6dce49b58d10",
+    "status": "cleaned"
+  },
+  "dedup": {
+    "remove_list_sha256": "dd97cbf75c673cc42741eac42515de34b17bae043d5f09ad29353329b5f1f9b0",
+    "remove_list_rows": 0,
+    "removed": []
+  },
+  "f2": {
+    "set_sha256": "2826a3b883210c653979103c09ce1c79e40fc4f7034b54027f2836482370d22a",
+    "run_f2_py_sha256": "1651b3725357b2a2b684fda6a047cc5697c1331d1b43bb242712f422403af040",
+    "dropped": [
+      {
+        "doc_id": "56652262339c6819",
+        "items": [
+          "swe_bench_pro:test:instance_gravitational__teleport-2bb3bbbd8aff1164a2353381cb79e1dc93b90d28-vee9b09fb20c43af7e520f57e9239bbcf46b7113d"
+        ],
+        "offset": 30
+      },
+      {
+        "doc_id": "c42744ee93423cf7",
+        "items": [
+          "swe_bench_pro:test:instance_gravitational__teleport-0ac7334939981cf85b9591ac295c3816954e287e"
+        ],
+        "offset": 6548
+      }
+    ]
+  },
+  "counts": {
+    "cleaned": 559,
+    "removed_by_dedup": 0,
+    "dropped_by_f2": 2,
+    "final": 557
+  },
+  "pipeline": {
+    "manifest_sha256": "3984f041c760eed3da953b34ef4ba59f360f3f8850f2781f4913a4df37bc5494",
+    "run_id": "clean-fix-1pct",
+    "git_commit": "15e9d5782924c24108537da6146e44944f230ff0"
+  },
+  "record": {
+    "clean_py_sha256": "b9e78f73ec5b4a892d978e7bfc1759fa05e9386054a626e5645e6dce49b58d10",
+    "f2_set_sha256": "2826a3b883210c653979103c09ce1c79e40fc4f7034b54027f2836482370d22a",
+    "dedup": {
+      "remove_list_sha256": "dd97cbf75c673cc42741eac42515de34b17bae043d5f09ad29353329b5f1f9b0",
+      "remove_list_rows": 0,
+      "overlap": {
+        "matches_sha256": "484f20ed7b46de3a70ba005306a099290bee80096a3d3daa9aad3e69988c0153",
+        "docs_sha256": "f05ad38374bd6d810be7622969818041827b3bca4e1fa36f9ee5bdc16656e736",
+        "k": 5,
+        "floor": 0.5,
+        "code_sha256": "03217f2ab797697bddc12743fa030a23c5aa40de79b3ba1bdf622d80a87c9bb6"
+      },
+      "settings": {
+        "cross_pack": true,
+        "pack_order": [
+          "code-go",
+          "code-js-ts",
+          "code-java",
+          "code-cpp",
+          "code-rust",
+          "code-python",
+          "en-fineweb-edu",
+          "en-dclm",
+          "en-nemotroncc-synth",
+          "en-nemotroncc",
+          "math-megamath",
+          "math-finemath",
+          "sci-finepdfs",
+          "cadj-commits",
+          "cadj-notebooks",
+          "cadj-stackexchange",
+          "ind-bn-fw2",
+          "ind-bn-sangraha-v",
+          "ind-gu-fw2",
+          "ind-hi-fw2",
+          "ind-hi-hplt",
+          "ind-hi-indiccorp",
+          "ind-hi-sangraha-s",
+          "ind-hi-sangraha-v",
+          "ind-kn-fw2",
+          "ind-kn-sangraha-s",
+          "ind-kn-sangraha-v",
+          "ind-ml-fw2",
+          "ind-mr-fw2",
+          "ind-mr-sangraha-v",
+          "ind-or-fw2",
+          "ind-sa-fw2",
+          "ind-ta-fw2",
+          "ind-ta-sangraha-s",
+          "ind-ta-sangraha-v",
+          "ind-te-fw2",
+          "ind-te-sangraha-s",
+          "ind-te-sangraha-v"
+        ],
+        "licence_usable": {
+          "code-go": true,
+          "code-js-ts": true,
+          "code-java": true,
+          "code-cpp": true,
+          "code-rust": true,
+          "code-python": true,
+          "en-fineweb-edu": true,
+          "en-dclm": true,
+          "en-nemotroncc-synth": true,
+          "en-nemotroncc": true,
+          "math-megamath": true,
+          "math-finemath": true,
+          "sci-finepdfs": true,
+          "cadj-commits": true,
+          "cadj-notebooks": true,
+          "cadj-stackexchange": true,
+          "ind-bn-fw2": true,
+          "ind-bn-sangraha-v": true,
+          "ind-gu-fw2": true,
+          "ind-hi-fw2": true,
+          "ind-hi-hplt": true,
+          "ind-hi-indiccorp": true,
+          "ind-hi-sangraha-s": true,
+          "ind-hi-sangraha-v": true,
+          "ind-kn-fw2": true,
+          "ind-kn-sangraha-s": true,
+          "ind-kn-sangraha-v": true,
+          "ind-ml-fw2": true,
+          "ind-mr-fw2": true,
+          "ind-mr-sangraha-v": true,
+          "ind-or-fw2": true,
+          "ind-sa-fw2": true,
+          "ind-ta-fw2": true,
+          "ind-ta-sangraha-s": true,
+          "ind-ta-sangraha-v": true,
+          "ind-te-fw2": true,
+          "ind-te-sangraha-s": true,
+          "ind-te-sangraha-v": true
+        },
+        "default_licence_usable": false
+      },
+      "code_sha256": "511ffc397145c1508d12d2ca15e23eb5d1aa6e7deafa06425989d9c6c3b83a23"
+    }
+  }
+}
+exit 0

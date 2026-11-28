@@ -84,15 +84,35 @@ Both changes are made by `build/build_clean.py` while the sheet is frozen; `shee
   fix. On the 38 sample packs, #911 counts what the old form did: it changed 21 math-finemath documents (20 of them by
   deleting LaTeX groups) and 68 math-megamath documents (61 of them losing only footnote markers `^{[1]}`). Logs:
   `jobs/logs/2026-11-28-clean-fix-1pct/b4_counts_before.json` and `b4_counts_after.json`.
+- **Shards and provenance:** `shards/verify_shards.py` finds 0 problems in the 48 shards. `shards/provenance.py` passes
+  the chains of `final/train/math-megamath/part-00000` (143 rows) and `final/train/code-go/part-00000` (557 rows), each
+  back to its raw part, with cleaner `b9e78f73`, commit `15e9d578` and manifest `3984f041…`. The logs are
+  `verify_shards.txt` and `provenance.txt` in the same folder.
 - **The log is `jobs/logs/2026-11-28-clean-fix-1pct/run.txt`.** The run's summary files stay out of the repository, as
   TSAI asked for #898. Their sha256, under `out/pipeline/clean-fix-1pct/`:
   - `pipeline_manifest.json` `3984f041c760eed3da953b34ef4ba59f360f3f8850f2781f4913a4df37bc5494`;
   - `overlap/overlap_summary.json` `1799a5dcb22784d17a932644105f9a3cec806ef0dd989de69e917e069b5340b7`;
   - `shards/shards_summary.json` `8654ea28b65b71cb9ccfab97810035cdf74dcae0cf759d86b8273a8a77fbfb5d`;
   - `cleaning_pipeline.json` `cdf399575c5235408fb68cce43483edd2ecfd4755361b730956fa7ef0e360872`.
-- **Gold harm was not re-run for `b9e78f73`.** In the run below, DA-A5-002 and DA-B4-001 touched none of the 112 math
-  gold documents. Both changes only make the cleaner do less, so they cannot change a gold document that was left
-  alone.
+- **Gold harm for `b9e78f73`** (`scripts/run_current_harm.py` on the 38 sample packs, 11.8 s) is the same as the
+  previous cleaner's run (`results/cleaner/harm_2026_11_23/`):
+  - 33 testable packs, 4,768 gold documents. 28 of the 32 supported packs PASS, and the same four FAIL: en-nemotroncc,
+    math-finemath, sci-finepdfs and ind-te-sangraha-v.
+  - The affected gold documents are the same, ID for ID, and `summary.csv` is identical.
+  - The one difference: DA-A5-002 is no longer tested on the two math packs, where it changed none of the 112 gold
+    documents. DA-B4-001 changes none of them either.
+  - Every pack and gold sha256 matches that run. The log is `jobs/logs/2026-11-28-clean-fix-1pct/harm.txt`.
+- **Every document of the 38 sample packs, `d275556e` against `b9e78f73`** (19,000 documents, both cleaners' `clean()`
+  on each, 29.8 s and 29.5 s):
+  - **18,984 are identical.** The 36 non-math packs are identical document for document, the five without gold
+    included.
+  - **16 differ, all math** (3 in math-finemath, 13 in math-megamath). In each one the new cleaner does less: 13 fixes
+    become keeps, and 3 fixes remove less. No drop changes.
+  - **Replaying the math pipeline rule by rule** (the replay matches `clean()` on all 16): 14 are DA-A5-002's folds no
+    longer applied, and 2 (math-megamath) are DA-B4-001's `{[ ]}` form no longer matching. The other rules change those
+    documents as before.
+  - The logs are `jobs/logs/2026-11-28-clean-fix-1pct/compare_38.txt` and `trace_16.txt` (counts, document IDs and
+    rule IDs only).
 
 ## Harm validation of the previous cleaner (after merged #88)
 
