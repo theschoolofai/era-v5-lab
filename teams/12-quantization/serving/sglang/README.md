@@ -20,7 +20,7 @@ Our model’s ERNIE export (<a href="../../scripts/export_hf.py"><code>export_hf
 - **For the lab:** G9’s checkpoint evals and G10’s rollouts are planned on vLLM
   ([`serving_plan.md`](../../docs/serving_plan.md) §1), so they are not affected. SGLang should not serve our model
   until the fix below is in a release.
-- **The fix is upstream.** [sgl-project/sglang#53755](https://github.com/sgl-project/sglang/pull/53755) continues [#46669](https://github.com/sgl-project/sglang/pull/46669) by
+- **A fix is open upstream (not merged yet).** [sgl-project/sglang#53755](https://github.com/sgl-project/sglang/pull/53755) continues [#46669](https://github.com/sgl-project/sglang/pull/46669) by
   FeSens, who found and measured this bug first. On Baidu’s ERNIE-4.5-21B it raises routing agreement with
   transformers from 67.5% to 94.3%, with no measurable speed cost (bs=1 TPOT 3.77 against 3.78 ms).
 - **The KAS head bias is dropped by every engine**, as was already known
@@ -77,8 +77,8 @@ One request at a time, against G5 fp32 (our model as exported). From
 | SGLang 0.5.23, fp16 | 1,378 (68.4%) | 6.27e-2 | 0.414 | **2,004 (99.4%), 8.82e-4** | 0.08 |
 | **vLLM 0.33.0, bf16** | **1,883 (93.4%)** | **6.60e-3** | 0.138 | 1,404 (69.6%), 6.24e-2 | 0.11 |
 | **vLLM 0.33.0, fp16** | **1,989 (98.7%)** | **1.33e-3** | 0.091 | 1,389 (68.9%), 6.27e-2 | 0.05 |
-| SGLang 0.5.23 + spike patch, bf16 | 1,875 (93.0%) | 8.51e-3 | 0.231 | 1,393 (69.1%), 6.23e-2 | 0.24 |
-| SGLang 0.5.23 + spike patch, fp16 | 1,987 (98.6%) | 1.55e-3 | 0.237 | 1,390 (68.9%), 6.27e-2 | 0.09 |
+| SGLang 0.5.23 + diagnostic patch, bf16 | 1,875 (93.0%) | 8.51e-3 | 0.231 | 1,393 (69.1%), 6.23e-2 | 0.24 |
+| SGLang 0.5.23 + diagnostic patch, fp16 | 1,987 (98.6%) | 1.55e-3 | 0.237 | 1,390 (68.9%), 6.27e-2 | 0.09 |
 
 <details>
 <summary><b>Reading the table</b>: rounding against routing, the patch, batches, fp32</summary>
@@ -89,7 +89,7 @@ One request at a time, against G5 fp32 (our model as exported). From
   while its distance from G5 with the bias set to zero sits at rounding level (6.90e-3 and 8.82e-4).
 - **vLLM in bf16 is even closer than G5’s all-bf16 yardstick** (6.60e-3 against 8.95e-3), likely because it keeps the
   router in fp32; the yardstick rounds the router weights to bf16.
-- **The spike patch** ([`patch_topk.py`](patch_topk.py), a diagnostic) brings SGLang to G5’s rounding level on top-1
+- **The diagnostic patch** ([`patch_topk.py`](patch_topk.py)) brings SGLang to G5’s rounding level on top-1
   and mean, with a few larger single-position outliers: 6 positions above 0.1 in bf16 against G5’s 3, and 1 in fp16
   against 0. It shows the rest of the export (KAS input and head folds, RoPE, GQA, shared expert, softmax top-2 with
   renormalization) is read correctly. It is not the fix to use (section 4).
@@ -141,9 +141,10 @@ flowchart TB
   ([L1116–L1123](https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/layers/moe/topk.py#L1116-L1123)).
 
 SGLang `main` still has it: at `4f1fa3ad` (27 Nov) the fix PR’s routing repro gives 0.00% agreement with the
-reference rule. Two independent reviews checked the finding: one re-derived the SGLang numbers from the raw outputs
-(and found that #46669 had reported the bug first), the other reproduced it at routing level on an L4 (72 cases,
-SGLang equal to “bias ignored” in all of them) and on a public tiny ERNIE checkpoint.
+reference rule. I checked the finding twice more, separately from the first run: once by re-deriving the SGLang
+numbers from the raw outputs (which is how I found that #46669 had reported the bug first), and once with a
+from-scratch reproduction at routing level on an L4 (72 cases, SGLang equal to “bias ignored” in all of them) and on a
+public tiny ERNIE checkpoint.
 
 <br>
 
@@ -156,7 +157,7 @@ SGLang equal to “bias ignored” in all of them) and on a public tiny ERNIE ch
   </picture>
 </p>
 
-[sgl-project/sglang#53755](https://github.com/sgl-project/sglang/pull/53755) continues [#46669](https://github.com/sgl-project/sglang/pull/46669) by FeSens (draft, unreviewed,
+[sgl-project/sglang#53755](https://github.com/sgl-project/sglang/pull/53755) (opened 28 Nov, not yet reviewed by a maintainer or merged) continues [#46669](https://github.com/sgl-project/sglang/pull/46669) by FeSens (draft, unreviewed,
 closed by the stale bot on 22 Nov), whose diagnosis and measurements came first; FeSens is co-author of both commits.
 It adds a probability-space mode to SGLang’s fused Triton router (`moe_fused_gate`): rank by probability + bias, gate
 with the unbiased probability, as its sigmoid branch already does. `fused_topk` uses it on CUDA and ROCm with a 1-D
@@ -184,7 +185,7 @@ bias, and the torch-native route now accepts ERNIE’s `(1, E)` bias. Measured f
   fp32; the gap grows with depth, which points to accumulated bf16 differences too. The two were not separated.
 - Speed and GSM8K are one run per build. The GSM8K difference is inside the run-to-run variance the SGLang
   contribution guide gives for this eval, so it shows only that nothing breaks.
-- **Why not the spike patch.** 0.5.23 stores the bias in bf16 and the patch adds it in the model dtype. Baidu’s
+- **Why not the diagnostic patch.** 0.5.23 stores the bias in bf16 and the patch adds it in the model dtype. Baidu’s
   biases are a large common offset (about 22 to 63) with a per-layer spread of only 0.003 to 0.028, so in bf16 26 of
   ERNIE-4.5-21B’s 27 MoE layers collapse to one value, and layer 25 gets a false −0.125 offset on 6 experts: applying
   that bias routes worse than ignoring it (47.1% against 21.5% of tokens differ, synthetic logits). SGLang `main`
@@ -197,7 +198,9 @@ bias, and the torch-native route now accepts ERNIE’s `(1, E)` bias. Measured f
 ## 5 · What it means for the lab
 
 - **G9 and G10:** checkpoint evals and RL rollouts are planned on vLLM ([`serving_plan.md`](../../docs/serving_plan.md)
-  §1), and vLLM 0.33.0 routes our export at G5’s own rounding level. Nothing to change.
+  §1), and vLLM 0.33.0 routes our ERNIE export at G5’s own rounding level, so nothing changes on the engine side.
+  Only the ERNIE export keeps the router bias; the Granite export cannot carry it
+  ([`exotic_heads_and_export_checks.md`](../../docs/exotic_heads_and_export_checks.md)).
 - **SGLang:** not for our model until the fix is in a release, and this check passes on it. Without the bias, our
   model routes as if its loss-free balancer had never run; on this random model that changes the top-1 at 31% of
   positions. How much it moves a trained model depends on how far a long run grows `router_bias`.

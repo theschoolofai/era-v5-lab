@@ -1,4 +1,4 @@
-"""The spike's 4-line patch: make SGLang 0.5.23's fused_topk honour an ERNIE-style selection bias on the softmax path.
+"""The diagnostic 4-line patch: make SGLang 0.5.23's fused_topk honour an ERNIE-style selection bias on the softmax path.
 
     python patch_topk.py      # edits the installed sglang in place (modal_sgl.py runs it inside the image)
 

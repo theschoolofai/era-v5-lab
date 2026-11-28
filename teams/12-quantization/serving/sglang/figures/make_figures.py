@@ -10,7 +10,7 @@ prefers-reduced-motion: no-preference; a renderer without CSS animation shows th
 
 Needs fonttools and brotli (pip install fonttools==4.68.0 brotli==1.2.1); with these versions a rerun reproduces the
 SVGs byte for byte. --build-fonts DIR remakes fonts/*.woff2 from the google/fonts files named in FONT_SOURCES.
-The colours passed the dataviz palette checks (lightness band, chroma floor, CVD and normal-vision separation of the
+The colours passed palette checks (lightness band, chroma floor, CVD and normal-vision separation of the
 pairs that share a chart, contrast) on both surfaces.
 """
 from __future__ import annotations
@@ -190,7 +190,7 @@ def share(m: dict) -> float:
 ENGINE_ROWS = [   # (group label, run or G5 variant, dtype label)
     ('SGLang 0.5.23, stock', 'c2_s002_bf16', 'bf16'), ('SGLang 0.5.23, stock', 'c3_s002_fp16', 'fp16'),
     ('vLLM 0.33.0', 'v2_s002_bf16', 'bf16'), ('vLLM 0.33.0', 'v3_s002_fp16', 'fp16'),
-    ('SGLang + spike patch', 'c2_s002_bf16_patched', 'bf16'), ('SGLang + spike patch', 'c3_s002_fp16_patched', 'fp16'),
+    ('SGLang + diagnostic patch', 'c2_s002_bf16_patched', 'bf16'), ('SGLang + diagnostic patch', 'c3_s002_fp16_patched', 'fp16'),
     ('G5 itself, rounded', 'g5_bf16', 'bf16'), ('G5 itself, rounded', 'g5_fp16', 'fp16'),
 ]
 
@@ -227,8 +227,8 @@ def hero(theme, static, spike, up, values):
          f"{pc(share(sgl['single']['g5_router_bias_off']))} as G5 without the bias", p['clay']),
         ('VLLM · BF16', pc(share(vl['single']['g5'])), 'same top-1 as our model (G5 fp32)',
          f"G5’s own bf16 run: {pc(share(g5b))}", p['navy']),
-        ('THE UPSTREAM FIX · ERNIE-4.5-21B', f"{pc(ra['prompt_all_layers'])[:-1]} → {pc(rb['prompt_all_layers'])}",
-         'routed experts as in transformers',
+        ('THE FIX, OPEN UPSTREAM', f"{pc(ra['prompt_all_layers'])[:-1]} → {pc(rb['prompt_all_layers'])}",
+         'ERNIE-4.5-21B routing agreement',
          f"bs=1 TPOT {sv['main']['bs1_median_tpot_ms']:.2f} → {sv['fix']['bs1_median_tpot_ms']:.2f} ms", p['navy']),
     ]
     values['hero'] = [dict(caption=c, value=b, line1=l1, line2=l2) for c, b, l1, l2, _ in tiles]
@@ -306,7 +306,7 @@ def routing(theme, static, spike, up, values):
     re_ = up['routed_experts']; a, b = re_['main'], re_['fix']
     layers = up['moe_layers']
     pr = up['prompts']
-    header(s, f"THE UPSTREAM FIX · {up['model'].split(' @')[0].upper()} · ONE {up['serving']['gpu'].removeprefix('NVIDIA ').split(' ')[0]}",
+    header(s, f"THE FIX, OPEN UPSTREAM · {up['model'].split(' @')[0].upper()} · ONE {up['serving']['gpu'].removeprefix('NVIDIA ').split(' ')[0]}",
            'Routing agreement with transformers, per MoE layer',
            f"Share of prompt tokens whose routed experts equal transformers’ ({pr['prompt_tokens']} tokens × "
            f"{len(layers)} MoE layers; bf16 checkpoint, fp32 router)")

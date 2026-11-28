@@ -13,9 +13,9 @@
    "line2": "G5’s own bf16 run: 91.8%"
   },
   {
-   "caption": "THE UPSTREAM FIX · ERNIE-4.5-21B",
+   "caption": "THE FIX, OPEN UPSTREAM",
    "value": "67.5 → 94.3%",
-   "line1": "routed experts as in transformers",
+   "line1": "ERNIE-4.5-21B routing agreement",
    "line2": "bs=1 TPOT 3.77 → 3.78 ms"
   }
  ],
@@ -53,7 +53,7 @@
    "positions": 2016
   },
   {
-   "group": "SGLang + spike patch",
+   "group": "SGLang + diagnostic patch",
    "key": "c2_s002_bf16_patched",
    "dtype": "bf16",
    "vs_g5": 0.9300595238095238,
@@ -61,7 +61,7 @@
    "positions": 2016
   },
   {
-   "group": "SGLang + spike patch",
+   "group": "SGLang + diagnostic patch",
    "key": "c3_s002_fp16_patched",
    "dtype": "fp16",
    "vs_g5": 0.9856150793650794,
