@@ -31,7 +31,7 @@ Each file gets a sha256 hash in the decision log before it goes public.
 | Weights, full precision | The weights of the main run | TSAI, Quantization | The hash of each file. The weights load and give the scores in the evaluation tables. |
 | Weights, smaller bit widths | One file for each bit width that TSAI chooses | Quantization | The size, memory, speed and quality table of each bit width. The export checks pass. |
 | Tokenizer | The frozen tokenizer files | Tokenizer | The files match `teams/03-tokenizer/release/SHA256SUMS`, and `verify_release.py` passes. |
-| Unit dictionary | The dictionary of units, if the released model uses one | Tokenizer, KE2 | The hash of the dictionary. TSAI decides whether it is released. |
+| Unit dictionary | The dictionary of units, if the released model uses one | Tokenizer, KE2 | As things stand, the released model uses the frozen p1536 tokenizer only, with no dictionary ([comment on #881](https://github.com/theschoolofai/era-v5-lab/pull/881#issuecomment-7237397353)). If KE2 and TSAI decide to ship one, Tokenizer posts its hash. |
 | Chat format | The chat template and the special tokens | Post-training, Tokenizer | The special-token file is on main, confirmed by Post-training ([#873](https://github.com/theschoolofai/era-v5-lab/pull/873)). The files match `teams/03-tokenizer/release/SHA256SUMS`. |
 | Model card | The model card, as the README of each model page | Release | TSAI approves the card. |
 | Evaluation results | The scores of the released model | Evaluation | TSAI approves each score. |
@@ -44,7 +44,7 @@ Quantization's goal is a small, accurate model that runs on a laptop with 16 GB 
 
 - The path works on a stand-in model with the shape of the second dry run ([#834](https://github.com/theschoolofai/era-v5-lab/pull/834), [#838](https://github.com/theschoolofai/era-v5-lab/pull/838)).
 - The steps for a reader, from download to chat: [text: waiting for Quantization, after the export of the lab's model]
-- The memory and speed of each bit width on a laptop: [number: waiting for Quantization and TSAI]
+- The memory and speed of each bit width on a laptop: [number: waiting for Quantization and TSAI]. Quantization's tools for it are on main. One builds the table for each bit width on a Mac ([#904](https://github.com/theschoolofai/era-v5-lab/pull/904)). One measures the memory of the KV cache on a laptop ([#910](https://github.com/theschoolofai/era-v5-lab/pull/910)).
 
 ## The weekly progress post
 
