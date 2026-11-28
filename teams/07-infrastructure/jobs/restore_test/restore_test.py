@@ -14,6 +14,14 @@ exit 78 if a run crashed. Writes only to --out (default out/ next to this script
     python restore_test.py                       # 1 CPU process
     python restore_test.py --nproc 2             # 2 CPU processes (gloo, DDP)
     python restore_test.py --nproc 2 --device cuda
+    python restore_test.py --nproc 2 --optim muon                       # Muon (2D) + AdamW (1D), TSAI 28 Nov
+    python restore_test.py --nproc 2 --resume-nproc 1 --optim muon      # restore at another world size
+
+At another world size the sums over ranks run in another order, so the loss bits cannot be equal. Then the
+data ids must still be equal, and at the first step after the restore (weights equal to the saved ones) the loss
+gap to Run A may be no larger than that of Run C, a straight run at the new world size, at its step 1 (equal
+weights too). The tolerance is measured, not guessed. Later steps drift like any two world sizes; both drifts
+are printed and kept in result.json.
 """
 import argparse
 import hashlib
@@ -33,7 +41,7 @@ HERE = Path(__file__).resolve().parent
 TEAM = HERE.parents[1]                                   # teams/07-infrastructure
 HARNESS = TEAM.parent / "05-architecture" / "harness"    # Team 05's tiny MoE (imported, never edited)
 # code_sha256 (issue #298): this trainer and loss, Team 05's model, the synthetic data loader
-CODE_PATHS = (str(HERE / "restore_test.py"), str(HARNESS / "train.py"),
+CODE_PATHS = (str(HERE / "restore_test.py"), str(HARNESS / "train.py"), str(HARNESS / "week2" / "optim.py"),
               str(TEAM / "support" / "simulation" / "trainer" / "tiny.py"))
 sys.path[:0] = [str(TEAM), str(TEAM / "support" / "simulation"), str(HARNESS)]
 from check_config import errors_for, load_settings, merge  # noqa: E402
@@ -79,6 +87,19 @@ def losses(model, tokens):
     return ntp, mtp
 
 
+def make_optim(model, cfg: dict, kind: str, muon_lr: float) -> tuple:
+    """adamw: AdamW on every weight. muon: TSAI's rule (28 Nov), chosen by tensor shape, not by name: Team 05's
+    Muon on every 2D weight (embedding, attention, experts, router, heads), AdamW on the 1D rest, no weight
+    decay on Muon."""
+    lr = float(cfg["optim.lr"])
+    if kind == "adamw":
+        return (torch.optim.AdamW(model.parameters(), lr=lr),)
+    from week2.optim import MUON, Muon
+    two = [p for p in model.parameters() if p.ndim == 2]
+    rest = [p for p in model.parameters() if p.ndim != 2]
+    return Muon(two, lr=muon_lr, weight_decay=0.0, **MUON), torch.optim.AdamW(rest, lr=lr)
+
+
 def global_mean(x: torch.Tensor, world: int) -> float:
     if world == 1:
         return float(x.detach())
@@ -114,7 +135,9 @@ def segment(rank: int, world: int, a: argparse.Namespace, run_id: str, label: st
         net = torch.nn.parallel.DistributedDataParallel(
             model, device_ids=[dev.index] if dev.type == "cuda" else None,
             init_sync=False, forward_sync_buffers=False)
-    optim = torch.optim.AdamW(model.parameters(), lr=float(cfg["optim.lr"]))
+    optims = make_optim(model, cfg, a.optim, a.muon_lr)
+    # a tuple, as train_week2.py hands Muon + AdamW to the Checkpointer: one optimizer state, both groups
+    optim = optims[0] if len(optims) == 1 else optims
     loader = StreamLoader(cfg, seed, rank, world)
     clip = float(cfg["run.grad_clip"])
     probe_batch = stream_for(cfg, seed + 1)[:int(cfg["tiny.batch"])]
@@ -140,11 +163,13 @@ def segment(rank: int, world: int, a: argparse.Namespace, run_id: str, label: st
     while step < stop_at:
         batch_id = loader.next_batch_id()
         tokens = loader.next().to(dev)
-        optim.zero_grad(set_to_none=True)
+        for o in optims:
+            o.zero_grad(set_to_none=True)
         ntp, mtp = losses(net, tokens)
         (ntp + mtp).backward()
         torch.nn.utils.clip_grad_norm_(model.parameters(), clip)
-        optim.step()
+        for o in optims:
+            o.step()
         step += 1
         n, m = global_mean(ntp, world), global_mean(mtp, world)
         rows.append({"step": step, "loss_ntp": n, "loss_mtp": m, "loss_ntp_bits": float_bits(n),
@@ -161,24 +186,40 @@ def segment(rank: int, world: int, a: argparse.Namespace, run_id: str, label: st
         dist.destroy_process_group()
 
 
-def launch(a, run_id: str, label: str, restore: bool, stop_at: int) -> list:
+def launch(a, run_id: str, label: str, restore: bool, stop_at: int, nproc: int = None) -> list:
+    nproc = nproc or a.nproc
     with socket.socket() as s:
         s.bind(("127.0.0.1", 0))
         os.environ.update(MASTER_ADDR="127.0.0.1", MASTER_PORT=str(s.getsockname()[1]))
-    mp.spawn(segment, args=(a.nproc, a, run_id, label, restore, stop_at), nprocs=a.nproc)
+    mp.spawn(segment, args=(nproc, a, run_id, label, restore, stop_at), nprocs=nproc)
     with open(a.out / f"{label}.jsonl") as f:
         return [json.loads(line) for line in f]
 
 
-def first_diff(run_a: list, run_b: list, first: int, last: int):
+def first_diff(run_a: list, run_b: list, first: int, last: int, fields=FIELDS):
     by_a, by_b = {r["step"]: r for r in run_a}, {r["step"]: r for r in run_b}
     for step in range(first, last + 1):
         if step not in by_a or step not in by_b:
             return {"step": step, "field": "missing", "a": step in by_a, "b": step in by_b}
-        for field in FIELDS:
+        for field in fields:
             if by_a[step][field] != by_b[step][field]:
                 return {"step": step, "field": field, "a": by_a[step][field], "b": by_b[step][field]}
     return None
+
+
+def max_loss_gap(run_a: list, run_b: list, first: int, last: int) -> float:
+    by_a, by_b = {r["step"]: r for r in run_a}, {r["step"]: r for r in run_b}
+    return max(abs(by_a[s][k] - by_b[s][k]) for s in range(first, last + 1) for k in ("loss_ntp", "loss_mtp"))
+
+
+def reshard_gaps(run_a: list, run_b: list, run_c: list, save_at: int, last: int) -> dict:
+    """At the first step after the restore the weights are the saved ones, so the loss can differ from Run A only
+    by the order of the sum over ranks. That gap may be no larger than Run C's at its step 1 (same weights as
+    Run A, new world size). Later steps drift apart like any two world sizes do: reported, not judged."""
+    return {"first_step": max_loss_gap(run_a, run_b, save_at + 1, save_at + 1),
+            "first_step_tolerance": max_loss_gap(run_a, run_c, 1, 1),
+            "window_max": max_loss_gap(run_a, run_b, save_at + 1, last),
+            "window_max_run_c": max_loss_gap(run_a, run_c, save_at + 1, last)}
 
 
 def main(argv=None) -> int:
@@ -191,13 +232,20 @@ def main(argv=None) -> int:
     ap.add_argument("--out", type=Path, default=HERE / "out")
     ap.add_argument("--config", type=Path, default=CONFIGS / "config_v0.yaml")
     ap.add_argument("--tiny", type=Path, default=CONFIGS / "small" / "tiny_moe.yaml")
+    ap.add_argument("--optim", default="adamw", choices=["adamw", "muon"],
+                    help="muon: Muon on every 2D weight, AdamW on the 1D rest (TSAI, 28 Nov)")
+    ap.add_argument("--muon-lr", type=float, default=0.006, help="Muon rate (config_v1.yaml optim.muon_lr)")
+    ap.add_argument("--resume-nproc", type=int, default=None,
+                    help="Run B resumes on this many processes (default --nproc): a restore at another world size")
     a = ap.parse_args(argv)
+    a.resume_nproc = a.resume_nproc or a.nproc
     if torch.__version__ < MIN_TORCH:
         ap.error(f"needs torch {MIN_TORCH} or newer (DDP init_sync / forward_sync_buffers), found {torch.__version__}")
     if not 0 < a.save_at < a.stop_at <= a.steps:
         ap.error("need 0 < --save-at < --stop-at <= --steps")
-    if a.device == "cuda" and torch.cuda.device_count() < a.nproc:
-        ap.error(f"--nproc {a.nproc} needs {a.nproc} GPUs, found {torch.cuda.device_count()}")
+    for n in {a.nproc, a.resume_nproc}:
+        if a.device == "cuda" and torch.cuda.device_count() < n:
+            ap.error(f"{n} processes need {n} GPUs, found {torch.cuda.device_count()}")
     a.out = a.out.resolve()
     a.config, a.tiny = a.config.resolve(), a.tiny.resolve()
 
@@ -212,19 +260,37 @@ def main(argv=None) -> int:
     try:
         run_a = launch(a, "restore-a", "run_a", False, a.steps)
         run_b1 = launch(a, "restore-b", "run_b_before_stop", False, a.stop_at)
-        run_b2 = launch(a, "restore-b", "run_b_after_restore", True, a.steps)
+        run_b2 = launch(a, "restore-b", "run_b_after_restore", True, a.steps, a.resume_nproc)
+        resharded = a.resume_nproc != a.nproc
+        # Another world size sums the gradients in another order, so the loss bits differ. The tolerance is
+        # measured, not guessed: Run C trains the whole run at the new world size, and the resumed run may be
+        # no further from Run A than Run C is.
+        run_c = launch(a, "restore-c", "run_c", False, a.steps, a.resume_nproc) if resharded else None
     except Exception as e:  # noqa: BLE001 - a crash in any run is a failed test, not a mismatch
         print(f"FAIL restore_test: a run crashed: {type(e).__name__}: {e}", file=sys.stderr)
         return EXIT_FATAL
 
     first, last = a.save_at + 1, a.steps
-    diff = first_diff(run_a, run_b2, first, last)
-    result = {"pass": diff is None, "first_diff": diff, "nproc": a.nproc, "device": a.device, "steps": a.steps,
+    diff = first_diff(run_a, run_b2, first, last, ("batch_id",) if resharded else FIELDS)
+    gaps = None
+    if resharded and diff is None:
+        gaps = reshard_gaps(run_a, run_b2, run_c, a.save_at, last)
+        if gaps["first_step"] > gaps["first_step_tolerance"]:
+            diff = {"step": first, "field": "loss", "a": f"tolerance {gaps['first_step_tolerance']:.3g}",
+                    "b": f"gap {gaps['first_step']:.3g}"}
+    result = {"pass": diff is None, "first_diff": diff, "nproc": a.nproc, "resume_nproc": a.resume_nproc,
+              "optim": a.optim, "device": a.device, "steps": a.steps,
               "save_at": a.save_at, "stop_at": a.stop_at, "compared_steps": [first, last], "fields": FIELDS,
-              "torch": torch.__version__, "run_a": run_a,
-              "run_b": [r for r in run_b1 if r["step"] <= a.save_at] + run_b2}
+              "reshard_loss_gaps": gaps, "torch": torch.__version__, "run_a": run_a,
+              "run_b": [r for r in run_b1 if r["step"] <= a.save_at] + run_b2, "run_c": run_c}
     (a.out / "result.json").write_text(json.dumps(result, indent=1) + "\n")
-    where = f"nproc={a.nproc} {a.device}: steps {first}-{last}"
+    where = f"nproc={a.nproc}->{a.resume_nproc} {a.optim} {a.device}: steps {first}-{last}"
+    if diff is None and resharded:
+        print(f"PASS restore_test {where}: data ids equal; first step after restore loss gap "
+              f"{gaps['first_step']:.3g} <= {gaps['first_step_tolerance']:.3g} (one step at {a.resume_nproc} "
+              f"processes from equal weights); later drift {gaps['window_max']:.3g}, a straight run at "
+              f"{a.resume_nproc} processes drifts {gaps['window_max_run_c']:.3g}")
+        return 0
     if diff is None:
         print(f"PASS restore_test {where}: loss_ntp and loss_mtp bit-equal, data ids equal")
         return 0
