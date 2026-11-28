@@ -3,7 +3,27 @@
   "torch": "2.15.0",
   "transformers": "4.57.6",
   "gguf": "0.19.0",
+  "tokenizers": "0.22.2",
+  "numpy": "2.5.5",
   "llama_cpp": "b12359 (b1b770d)",
+  "llama_cpp_build": {
+    "version": "version: 1.0.0-dev (build 1, commit b1b770d); built with AppleClang 21.0.0.21000401 for Darwin arm64",
+    "devices": [
+      "MTL0: Apple M6",
+      "BLAS: Accelerate"
+    ]
+  },
+  "harness": {
+    "commit": "26f8dd5d50a10f02bd09a52d2e0c7d033aabaf15",
+    "dirty": false
+  },
+  "machine": "Apple M6 32GB, macOS 27.2.1, Metal",
+  "torch_fp32": {
+    "float32_matmul_precision": "highest",
+    "cuda_matmul_allow_tf32": false,
+    "cudnn_allow_tf32": false
+  },
+  "model_type": "olmoe",
   "sha256": {
     "ref": "b2fcd62aef89bac048c2613f323f70df843d86668b5238272bebea7a3224c9f8",
     "quants": {
@@ -12,7 +32,18 @@
       "experts-Q4_K": "5d7e4deecf768c9aaef1399057aebbb203ee0ada769d4eb9503c6ff25a10394a",
       "MXFP4_MOE": "6b35f610f5f97ddcd42882b91d3aaaeaa6c019ad5f4b3af267c355e5ff3a1e5e"
     },
-    "heldout": "21c6e4b2df8dae9d69e254f4a00fc934d2a3c70f0675065a03724299d94312bb"
+    "heldout": "21c6e4b2df8dae9d69e254f4a00fc934d2a3c70f0675065a03724299d94312bb",
+    "tokenizer": "a094266ac6c4982efba277bc251349a5a6d6ad37efb39a2a90f53d8be2a40a40",
+    "config": "3643aa880d2f1c9b418156269ae791c73e5612d6b6b6fde0724d927cf89b6335"
+  },
+  "bytes": {
+    "ref": 13844565888,
+    "quants": {
+      "Q8_0": 7359942528,
+      "Q4_K_M": 4238462848,
+      "experts-Q4_K": 4138717056,
+      "MXFP4_MOE": 3937390464
+    }
   },
   "settings": {
     "formats": [
@@ -29,6 +60,9 @@
     "normalize": false,
     "bos": false,
     "bos_id": null,
+    "x_rows": 256,
+    "seed": 0,
+    "ngl": 99,
     "slices": [
       "c4-val",
       "fw2-hi-test",
@@ -57,19 +91,18 @@
       "Q4_K_M": "OLMoE-1B-7B-0924-Q4_K_M.gguf",
       "experts-Q4_K": "OLMoE-1B-7B-0924-experts-q4k.gguf",
       "MXFP4_MOE": "OLMoE-1B-7B-0924-MXFP4_MOE.gguf"
-    },
-    "tokenizer_sha256": "a094266ac6c4982efba277bc251349a5a6d6ad37efb39a2a90f53d8be2a40a40"
+    }
   },
   "timings_s": {
-    "slices": 0.0,
-    "tensors": 107.9,
-    "twin_forward": 514.7,
-    "kl": 274.1
+    "preflight": 13.5,
+    "tensors": 175.3,
+    "twin_forward": 679.4,
+    "kl": 369.2
   },
-  "wall_time_s": 909.4,
+  "wall_time_s": 1249.9,
   "export_gap": null,
   "steps_completed": [
-    "slices",
+    "preflight",
     "tensors",
     "twin_forward",
     "kl"

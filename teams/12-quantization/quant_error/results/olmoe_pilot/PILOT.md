@@ -1,6 +1,6 @@
 # OLMoE pilot: where does the quantization error come from? (28 Nov 2026)
 
-First real run of `quant_error.py all` ([the tool](../../README.md)) on `allenai/OLMoE-1B-7B-0924` @ `6d84c48581ec` (7 B total, 16 layers, 64 experts, top-8, untied head, vocabulary 50,304). Apple M6, 32 GB, llama.cpp `b12359 (b1b770d)` on Metal, PyTorch 2.15.0 on MPS (`summary.json`). The reference is the bf16 GGUF from the same converter and build. No importance matrix was used for any file. One model, one run; every number below is read from the file named in its table. The two figures are drawn from `kl.csv` and `layers.csv` by [`figures/make_figures.py`](figures/make_figures.py), which writes every number it plots to [`figures/values.json`](figures/values.json).
+First real run of `quant_error.py all` ([the tool](../../README.md)) on `allenai/OLMoE-1B-7B-0924` @ `6d84c48581ec` (7 B total, 16 layers, 64 experts, top-8, untied head, vocabulary 50,304). Apple M6, 32 GB, llama.cpp `b12359 (b1b770d)` on Metal, PyTorch 2.15.0 on MPS (`summary.json`). The reference is the bf16 GGUF from the same converter and build. No importance matrix was used for any file. One model and one set of files; every number below is read from the committed file named in its table, except Section 7's steps outside `quant_error.py` and its memory figures, which come from `/usr/bin/time -l` logs that are not committed. The two figures are drawn from `kl.csv` and `layers.csv` by [`figures/make_figures.py`](figures/make_figures.py), which writes every number it plots to [`figures/values.json`](figures/values.json).
 
 ## How this pilot relates to the task 1 parts study
 
@@ -40,7 +40,7 @@ layer-0 change.
 | `experts-Q4_K` | `--output-tensor-type q8_0 --tensor-type "ffn_(gate\|up\|down)_exps=q4_k" ... Q8_0` | 4.14 | Q8_0 | Q8_0 | Q4_K | Q8_0 | F32 |
 | `MXFP4_MOE` | `llama-quantize ... MXFP4_MOE` | 3.94 | Q8_0 | Q8_0 | MXFP4 | Q8_0 | F32 |
 
-Source: file sizes from `ls -l` of the GGUFs; types from `tensors.csv` (`ggml_type`, all 12,876 rows). In `experts-Q4_K` only the routed experts are at 4 bits; everything else is Q8_0 (not bf16), so it carries the Q8_0 error on those tensors.
+Source: file sizes from `summary.json` (`bytes`); types from `tensors.csv` (`ggml_type`, all 12,876 rows). In `experts-Q4_K` only the routed experts are at 4 bits; everything else is Q8_0 (not bf16), so it carries the Q8_0 error on those tensors.
 
 ## 1. Weight error per tensor (`tensors.csv`)
 
@@ -166,8 +166,11 @@ Both are within 1.3% of the team's rows, on a newer llama.cpp build (b12359 agai
 | Convert to bf16 GGUF | 41 s | 2.5 GB max resident |
 | `llama-quantize` Q8_0 / Q4_K_M / experts-only / MXFP4_MOE | 4.8 / 24.5 / 24.7 / 4.0 s | 1.6 GB max resident each |
 | `kl_eval.py` (bf16 base pass + 2 formats) | 43 s | 14.5 GB max resident |
-| `quant_error.py all`, 4 formats, 20 slices, MPS | 910 s: tensors 108 s, twin forward 515 s (about 129 s per format), llama.cpp KL 274 s | 19.8 GB max resident, 7.8 GB peak memory footprint |
+| `quant_error.py all`, 4 formats, 20 slices, MPS, on the final tool (`summary.json`) | 1,250 s: preflight 14 s, tensors 175 s, twin forward 679 s (about 170 s per format), llama.cpp KL 369 s | 16.7 GB max resident, 7.8 GB peak memory footprint |
+| the same, first run, on an earlier version of the tool | 910 s: tensors 108 s, twin forward 515 s (about 129 s per format), llama.cpp KL 274 s | 19.8 GB max resident, 7.8 GB peak memory footprint |
 | `matched_positions.py` (20 base passes + 2 formats) | 800 s | 17.0 GB max resident |
+
+Both runs wrote the same numbers: `tensors.csv`, `layers.csv`, `linears.csv` and `tokens.csv` are byte for byte the same, and so are the 11 `kl.csv` columns the first run wrote (apart from `time_s`). The committed `kl.csv` and `summary.json` are the rerun's, with six more `kl.csv` columns and the newer `summary.json` keys. The two times differ by 37% on the same Mac and inputs, so read them as a rough guide.
 
 Output of the run: 2.7 MB in total (`tensors.csv` 1.6 MB, `linears.csv` 1.1 MB, others under 75 KB); the limit is 5 MB.
 
@@ -181,7 +184,7 @@ Output of the run: 2.7 MB in total (`tensors.csv` 1.6 MB, `linears.csv` 1.1 MB, 
 
 ## Limits of this pilot
 
-- One model and one run; `kl.csv` rests on 8 chunks (2,040 scored tokens) per slice and format. English, math and science are one slice each.
+- One model and one run (repeated once on the final tool, with the same numbers); `kl.csv` rests on 8 chunks (2,040 scored tokens) per slice and format. English, math and science are one slice each.
 - One tokenizer; per-token, not per-character. On these slice texts OLMoE's tokenizer gives 0.50 to 1.02 characters per token on the 11 Indic slices (hi 1.02, bn 0.73, ta 0.73) against 4.45 on English (c4-val), 3.52 on math and 5.03 on science, and the reference's mean NLL per token (`matched_base_check.csv`, `nll_llama_base`) is 0.88 to 1.32 on Indic slices against 2.55 on English. A per-token KL on Indic text is mostly near-deterministic byte fragments, so it does not compare with a per-token KL on whole English words.
 - No importance matrix for any file. `experts-Q4_K` is not "bf16 attention with 4-bit experts": its non-expert tensors are Q8_0.
 - In `matched_base_check.csv` the column `kl_llama_base_to_twin_ref` (ALL row 0.0229) is not used here: llama.cpp's base file stores log-probabilities only down to 16 nats below the top token (`log_softmax` in `perplexity.cpp`), and why that column is larger than the agreement in top-1 and NLL suggests was not tested.
