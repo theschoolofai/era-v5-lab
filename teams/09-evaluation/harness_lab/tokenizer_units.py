@@ -21,6 +21,7 @@ import argparse
 import collections
 import hashlib
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -77,11 +78,10 @@ def fitted_segments(text, tokenizers, budget):
     def fits(piece):
         return all(ntokens(t, piece) <= budget for t in tokenizers)
 
+    cap = 64 * budget  # a token holds far fewer than 64 bytes: no longer prefix can fit, so never encode beyond it
     pieces, data = [], text.encode("utf-8")
-    while not fits(data.decode("utf-8")):
-        # Largest prefix that fits, by bisection on bytes. A token holds far fewer than 64 bytes, so the search is
-        # capped at 64 bytes per budget token instead of the whole remaining text.
-        lo, hi = 0, min(len(data), 64 * budget)
+    while len(data) > cap or not fits(data.decode("utf-8")):
+        lo, hi = 0, min(len(data), cap)  # largest prefix that fits, by bisection on bytes
         while lo < hi:
             mid = (lo + hi + 1) // 2
             if fits(data[:_char_boundary(data, mid)].decode("utf-8")):
@@ -92,10 +92,8 @@ def fitted_segments(text, tokenizers, budget):
         if lo == 0:
             raise ValueError(f"one character is over the budget of {budget} tokens")
         cut = _char_boundary(data, _cut_in(data[:lo])) or lo
-        if not fits(data[:cut].decode("utf-8")):  # token counts are not always monotone in length
+        if not fits(data[:cut].decode("utf-8")):  # token counts are not always monotone in length; lo always fits
             cut = lo
-            if not fits(data[:cut].decode("utf-8")):
-                raise ValueError("no prefix fits the budget")
         pieces.append(data[:cut].decode("utf-8"))
         data = data[cut:]
     pieces.append(data.decode("utf-8"))
@@ -114,7 +112,20 @@ def offsets_of(pieces):
 def pieces_at(text, offsets):
     data = text.encode("utf-8")
     bounds = [0, *offsets, len(data)]
-    return [data[a:b].decode("utf-8") for a, b in zip(bounds, bounds[1:])]
+    if any(a >= b for a, b in zip(bounds, bounds[1:])):
+        raise ValueError("offsets must increase and lie inside the text")
+    try:
+        return [data[a:b].decode("utf-8") for a, b in zip(bounds, bounds[1:])]
+    except UnicodeDecodeError as e:
+        raise ValueError("an offset is not on a UTF-8 character boundary") from e
+
+
+def cuts_sha256(rows):
+    """sha256 of the cuts only ({id, offsets} rows, in order), so the same cuts keep the same name whatever header."""
+    h = hashlib.sha256()
+    for row in rows:
+        h.update(json.dumps({"id": row["id"], "offsets": row["offsets"]}, separators=(",", ":")).encode() + b"\n")
+    return h.hexdigest()
 
 
 def normalized_bytes(tok, text):
@@ -161,14 +172,26 @@ def read_heldout(heldout, sources):
     return docs, [m["slice"] for m in meta]
 
 
-def check_segmentation(path, docs, tokenizers):
-    """Every piece of the segmentation file must fit its budget for every given tokenizer. Returns the failures."""
+def check_segmentation(path, docs, tokenizers, eval_file_sha256=None):
+    """Check tokenizers against a segmentation file. A piece over the window fails; a piece over the budget but within
+    the window is a warning (it fits, using part of the margin). Returns (header, failures, warnings), each finding
+    (doc id, piece index, tokenizer, tokens)."""
     lines = [json.loads(line) for line in Path(path).read_text("utf-8").splitlines()]
-    header, rows = lines[0], lines[1:]
-    if header.get("kind") != SEGMENTATION_KIND:
+    if not lines or lines[0].get("kind") != SEGMENTATION_KIND:
         raise ValueError(f"{path}: not a {SEGMENTATION_KIND} file")
+    header, rows = lines[0], lines[1:]
+    if eval_file_sha256 and header.get("eval_file_sha256") not in (None, eval_file_sha256):
+        raise ValueError(f"{path}: made for another evaluation file ({header['eval_file_sha256'][:12]})")
+    if "cuts_sha256" in header and cuts_sha256(rows) != header["cuts_sha256"]:
+        raise ValueError(f"{path}: cuts_sha256 does not match its rows")
     by_id = {d["id"]: d["text"] for d in docs}
-    failures = []
+    row_ids = [row["id"] for row in rows]
+    if unknown := [i for i in row_ids if i not in by_id]:
+        raise ValueError(f"{path}: {len(unknown)} id(s) not in the evaluation file, e.g. {unknown[0]}")
+    if missing := [i for i in by_id if i not in set(row_ids)]:
+        raise ValueError(f"{path}: no row for {len(missing)} document(s), e.g. {missing[0]}")
+    window, budget = header.get("window", header["budget"]), header["budget"]
+    failures, warnings = [], []
     for row in rows:
         text = by_id[row["id"]]
         if hashlib.sha256(text.encode("utf-8")).hexdigest() != row["text_sha256"]:
@@ -176,9 +199,27 @@ def check_segmentation(path, docs, tokenizers):
         for i, piece in enumerate(pieces_at(text, row["offsets"])):
             for label, tok in tokenizers.items():
                 n = ntokens(tok, piece)
-                if n > header["budget"]:
+                if n > window:
                     failures.append((row["id"], i, label, n))
-    return header, failures
+                elif n > budget:
+                    warnings.append((row["id"], i, label, n))
+    return header, failures, warnings
+
+
+def _display_command(argv, tok_paths):
+    """The command for the output file, without local paths: tokenizers as NAME=<file name>, sha256 recorded apart."""
+    out = []
+    for arg in argv:
+        name, _, path = arg.partition("=")
+        if path and name in tok_paths and path == tok_paths[name]:
+            arg = f"{name}=<{Path(path).parent.name}>/{Path(path).name}"
+        elif Path(arg).is_absolute():
+            try:
+                arg = str(Path(arg).resolve().relative_to(HERE.parents[2]))
+            except ValueError:
+                arg = Path(arg).name
+        out.append(arg)
+    return "tokenizer_units.py " + " ".join(out)
 
 
 def main(argv=None):
@@ -195,40 +236,50 @@ def main(argv=None):
     ap.add_argument("--write-segmentation", type=Path, help="write the fitted segmentation file (JSONL)")
     ap.add_argument("--check-segmentation", type=Path, help="check the tokenizers against a segmentation file")
     a = ap.parse_args(argv)
+    if not 0 < a.margin <= 1:
+        ap.error("--margin must be in (0, 1]")
+    if a.window < 1:
+        ap.error("--window must be positive")
 
-    tokenizers, tok_sha = {}, {}
+    tokenizers, tok_sha, tok_path = {}, {}, {}
     for spec in a.tokenizer:
-        name, path = spec.split("=", 1)
-        tokenizers[name], tok_sha[name] = Tokenizer.from_file(path), sha256(path)
+        name, sep, path = spec.partition("=")
+        if not sep or not name or not path:
+            ap.error(f"--tokenizer takes NAME=PATH, got {spec!r}")
+        tokenizers[name], tok_sha[name], tok_path[name] = Tokenizer.from_file(path), sha256(path), path
     docs, slices = read_heldout(a.heldout, a.sources)
 
     if a.check_segmentation:
-        header, failures = check_segmentation(a.check_segmentation, docs, tokenizers)
-        for doc_id, i, label, n in failures[:20]:
-            print(f"{doc_id} piece {i}: {label} has {n} tokens, budget {header['budget']}", file=sys.stderr)
-        print(f"{a.check_segmentation.name} (budget {header['budget']}): {len(failures)} piece(s) over the budget",
-              file=sys.stderr)
+        header, failures, warnings = check_segmentation(a.check_segmentation, docs, tokenizers, sha256(a.heldout))
+        for kind, found in (("over the window", failures), ("over the budget, within the window", warnings)):
+            for doc_id, i, label, n in found[:20]:
+                print(f"{doc_id} piece {i}: {label} has {n} tokens ({kind})", file=sys.stderr)
+        print(f"{a.check_segmentation.name} (window {header.get('window')}, budget {header['budget']}): "
+              f"{len(failures)} piece(s) over the window, {len(warnings)} over the budget only", file=sys.stderr)
         return 1 if failures else 0
 
-    budget = int(a.window * a.margin)
+    budget = math.floor(a.window * a.margin + 1e-9)
     rows, fitted = measure([d["text"] for d in docs], slices, tokenizers, a.window, a.segment_bytes, budget)
 
     if a.write_segmentation:
+        rows_out = [{"id": d["id"], "text_sha256": hashlib.sha256(d["text"].encode("utf-8")).hexdigest(),
+                     "offsets": offsets_of(p)} for d, p in zip(docs, fitted)]
         header = {"kind": SEGMENTATION_KIND, "eval_file_sha256": sha256(a.heldout), "window": a.window,
-                  "margin": a.margin, "budget": budget, "fitted_to": tok_sha,
-                  "rule": "longest pieces <= budget tokens for every tokenizer in fitted_to; end after a newline, "
-                          "else before a space, else at a character boundary; offsets are UTF-8 byte offsets"}
-        lines = [header] + [{"id": d["id"], "text_sha256": hashlib.sha256(d["text"].encode("utf-8")).hexdigest(),
-                             "offsets": offsets_of(p)} for d, p in zip(docs, fitted)]
+                  "margin": a.margin, "budget": budget, "fitted_to": tok_sha, "cuts_sha256": cuts_sha256(rows_out),
+                  "rule": "longest prefix <= budget tokens for every tokenizer in fitted_to, cut back to its last "
+                          "newline, else before its last space, else at a character boundary; offsets are UTF-8 "
+                          "byte offsets of the stored text"}
+        lines = [header] + rows_out
         a.write_segmentation.write_text("".join(json.dumps(x) + "\n" for x in lines), encoding="utf-8")
 
-    out = {"command": "tokenizer_units.py " + " ".join(argv if argv is not None else sys.argv[1:]),
+    out = {"command": _display_command(argv if argv is not None else sys.argv[1:], tok_path),
            "heldout_sha256": sha256(a.heldout), "sources_sha256": sha256(a.sources), "window": a.window,
            "margin": a.margin, "budget": budget, "segment_bytes": a.segment_bytes, "tokenizer_sha256": tok_sha,
-           "segmentation_sha256": sha256(a.write_segmentation) if a.write_segmentation else None, "rows": []}
+           "segmentation_sha256": sha256(a.write_segmentation) if a.write_segmentation else None,
+           "cuts_sha256": header["cuts_sha256"] if a.write_segmentation else None, "rows": []}
     for (name, label), r in sorted(rows.items()):
         out["rows"].append({"slice": name, "tokenizer": label, **r,
-                            "bytes_per_token": round(r["raw_bytes"] / r["tokens"], 4)})
+                            "bytes_per_token": round(r["raw_bytes"] / r["tokens"], 4) if r["tokens"] else None})
     totals = collections.defaultdict(collections.Counter)
     for (_, label), r in rows.items():
         for key, value in r.items():
@@ -242,7 +293,7 @@ def main(argv=None):
     for name in sorted({k[0] for k in rows}):
         first = rows[(name, names[0])]
         print(f"{name:6}{first['docs']:>6}{first['raw_bytes']:>11}{first['normalized_bytes'] - first['raw_bytes']:>8}"
-              + "".join(f"{rows[(name, n)]['raw_bytes'] / rows[(name, n)]['tokens']:>12.3f}" for n in names)
+              + "".join(f"{rows[(name, n)]['raw_bytes'] / max(rows[(name, n)]['tokens'], 1):>12.3f}" for n in names)
               + "".join(f"{rows[(name, n)]['context_resets']:>13}" for n in names) + f"{first['fitted_resets']:>15}")
     for n in names:
         t = totals[n]
