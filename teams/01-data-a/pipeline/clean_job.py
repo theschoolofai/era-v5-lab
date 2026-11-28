@@ -13,6 +13,13 @@ process; the biggest parts go first. The reports are put back in manifest order,
 of workers or on which part finishes first. The first failure cancels the parts that have not started; the ones running
 finish, so they are kept for a resume. "workers" is not part of what a resume checks: a job may continue with another number.
 
+Text hash. "text_hash": true in the config (default false) adds two columns to every cleaned part, computed from the cleaned
+text right after clean.py returns it: text_hash, the hex sha256 of the document's H1 key (dedup/h1_sha256.py h1_key:
+normalize.match_key, then NFKC, casefold, whitespace runs to one space; the key the overlap stages hash), and key_words, the
+number of words in that key (0: the key is empty). Two documents are exact copies (rule H1) exactly when their text_hash
+values are equal, so the dedup stage can find them from these columns without reading text. clean.py and normalize.py are
+unchanged. With the setting off the parts are as before; it is part of what a resume checks.
+
 Offline. Writes exclusively beneath ./out/. Train and heldout stay separate. No source text is printed or added to
 reports. The original clean.clean() and _run() execute; factories are wrapped only for counting. F2 is not part of this
 job. A pack the cleaner has no rules for is copied through with the status unsupported_passthrough.
@@ -58,6 +65,7 @@ sys.path.insert(0, str(HERE))  # python -I does not put the script's folder on s
 import clean_manifest
 
 REQUIRED = ('clean', 'clean_sha256', 'manifest', 'manifest_sha256', 'expected_parts', 'batch_size', 'unsupported_policy', 'audit_samples')
+HASH_FIELDS = (pa.field('text_hash', pa.string()), pa.field('key_words', pa.int32()))  # added with "text_hash": true
 clean = None  # the cleaner module, set by load_clean()
 
 
@@ -81,6 +89,28 @@ def load_clean(path, pin):
     exec(compile(source, str(path), 'exec'), module.__dict__)
     clean = module
     return module
+
+
+@cache
+def h1_tools():
+    """(h1_key, NORMALIZE_ID) from dedup/h1_sha256.py, the H1 key the overlap stages hash. Loaded only when "text_hash" is
+    on, so a job without it imports nothing more than before."""
+    sys.path.insert(0, str(HERE.parent / 'dedup'))
+    from h1_sha256 import NORMALIZE_ID, h1_key
+    return h1_key, NORMALIZE_ID
+
+
+def text_hash_spec():
+    """What the text_hash and key_words columns hold: recorded in the job's fingerprint and summary when they are written."""
+    return {'columns': [f.name for f in HASH_FIELDS], 'hash': 'sha256 of the UTF-8 H1 key, hex',
+            'key': 'h1_key of dedup/h1_sha256.py: normalize.match_key, then NFKC, casefold, whitespace runs to one space',
+            'normalize_id': h1_tools()[1]}
+
+
+def hash_columns(text):
+    """(text_hash, key_words) of one cleaned text."""
+    key = h1_tools()[0](text)
+    return hashlib.sha256(key.encode('utf-8')).hexdigest(), len(key.split(' ')) if key else 0
 
 
 def digest(path):
@@ -173,7 +203,8 @@ def open_output(output, fingerprint, resume):
     state = read_json(output / STATE)
     started = state.get('fingerprint') if isinstance(state, dict) else None
     if started != fingerprint:
-        keys = sorted(k for k in fingerprint if not isinstance(started, dict) or started.get(k) != fingerprint[k])
+        either = fingerprint.keys() | (started.keys() if isinstance(started, dict) else set())  # text_hash is there only when on
+        keys = sorted(k for k in either if not isinstance(started, dict) or started.get(k) != fingerprint.get(k))
         raise JobError('cannot resume: the job was started with another ' + ', '.join(keys) + '; choose a fresh ./out/<job>/')
     if not isinstance(state.get('attempts'), list):
         raise JobError('cannot resume: ' + STATE + ' has no attempts list')
@@ -313,10 +344,11 @@ def applicable_rules(pack):
     return [rid for rid in clean._RULE if pack in clean.SCOPE[rid]]
 
 
-def process_part(source, shard, output, batch_size, audit_samples=0, write_failure=True):
+def process_part(source, shard, output, batch_size, audit_samples=0, write_failure=True, text_hash=False):
     """Clean one part and write it with its report. A cleaner error raises a JobError whose `failure` is the record for
     failure.json; process_part writes that file itself unless `write_failure` is False (a worker of the pool: the job writes
-    the record of the first failure, so the file always belongs to the failure the job reports)."""
+    the record of the first failure, so the file always belongs to the failure the job reports). With `text_hash` the part
+    gets the text_hash and key_words columns of each kept document (hash_columns)."""
     started = time.monotonic()
     relative, pack = shard['path'], shard['pack_id']
     destination = output / relative
@@ -330,10 +362,17 @@ def process_part(source, shard, output, batch_size, audit_samples=0, write_failu
         raise JobError('input row count differs from sample manifest: ' + relative)
     if not {'doc_id', 'text', 'pack_id', 'lang_label'}.issubset(source_file.schema_arrow.names):
         raise JobError('missing required input columns: ' + relative)
+    schema = source_file.schema_arrow
+    if text_hash:
+        clash = sorted({f.name for f in HASH_FIELDS} & set(schema.names))
+        if clash:
+            raise JobError(f'the input part already has a column named {", ".join(clash)}: ' + relative)
+        for field in HASH_FIELDS:
+            schema = schema.append(field)
     counter, actions, rows, tags, seen = RuleCounter(audit_samples), Counter(), 0, set(), set()
     supported = pack in clean._FAMILY
     try:
-        with counter.instrument(), pq.ParquetWriter(temporary, source_file.schema_arrow, compression='zstd') as writer:
+        with counter.instrument(), pq.ParquetWriter(temporary, schema, compression='zstd') as writer:
             for batch in source_file.iter_batches(batch_size=batch_size):
                 kept = []
                 for row in batch.to_pylist():
@@ -356,10 +395,13 @@ def process_part(source, shard, output, batch_size, audit_samples=0, write_failu
                         raise error from None
                     actions[action] += 1
                     if action != 'drop':
-                        kept.append(dict(row, text=text))
+                        out = dict(row, text=text)
+                        if text_hash:
+                            out['text_hash'], out['key_words'] = hash_columns(text)
+                        kept.append(out)
                     rows += 1
                 if kept:
-                    writer.write_table(pa.Table.from_pylist(kept, schema=source_file.schema_arrow))
+                    writer.write_table(pa.Table.from_pylist(kept, schema=schema))
         if rows != shard['rows']:
             raise JobError('processed rows disagree with manifest: ' + relative)
         if digest(source) != shard['sha256']:
@@ -405,11 +447,12 @@ def _worker_start(path, pin):
 
 
 def _clean_one(task):
-    source, shard, output, batch_size, audit_samples = task
-    return process_part(source, shard, output, batch_size, audit_samples=audit_samples, write_failure=False)
+    source, shard, output, batch_size, audit_samples, text_hash = task
+    return process_part(source, shard, output, batch_size, audit_samples=audit_samples, write_failure=False,
+                        text_hash=text_hash)
 
 
-def clean_in_pool(todo, resolved, output, batch_size, audit_samples, workers, pin):
+def clean_in_pool(todo, resolved, output, batch_size, audit_samples, workers, pin, text_hash=False):
     """{part path: report} for the parts in `todo`, cleaned by up to `workers` processes at once, the biggest parts first so
     that none is left to finish alone at the end. A worker prints its own progress line when it finishes a part. The first
     failure cancels the parts that have not started; the running ones finish and stay on disk for a resume. That failure is
@@ -420,7 +463,8 @@ def clean_in_pool(todo, resolved, output, batch_size, audit_samples, workers, pi
     sys.stderr.flush()
     with ProcessPoolExecutor(max_workers=min(workers, len(ordered)), mp_context=mp.get_context(start_method()),
                              initializer=_worker_start, initargs=(clean.__file__, pin)) as pool:
-        futures = {pool.submit(_clean_one, (resolved[s['path']], s, output, batch_size, audit_samples)): s for s in ordered}
+        futures = {pool.submit(_clean_one, (resolved[s['path']], s, output, batch_size, audit_samples, text_hash)): s
+                   for s in ordered}
         for future in as_completed(futures):
             if future.cancelled():
                 continue
@@ -533,6 +577,9 @@ def main(argv=None):
         raise JobError('workers must be a whole number, 1 or more')
     if not isinstance(config.get('resume', False), bool):
         raise JobError('resume must be true or false')
+    text_hash = config.get('text_hash', False)
+    if not isinstance(text_hash, bool):
+        raise JobError('text_hash must be true or false')
     resume = config.get('resume', False) or args.resume
     load_clean(REPO / config['clean'], config['clean_sha256'])
     data = manifest(config, args.only)
@@ -541,6 +588,8 @@ def main(argv=None):
     fingerprint = {'clean_sha256': config['clean_sha256'], 'runner_sha256': digest(Path(__file__)),
                    'manifest_sha256': config['manifest_sha256'], 'selected_parts': sorted(s['path'] for s in shards),
                    'audit_samples': config['audit_samples']}
+    if text_hash:  # only when on: a job without it has the fingerprint and summary it always had
+        fingerprint['text_hash'] = text_hash_spec()
     state, resumed = open_output(output, fingerprint, resume)
     # A resumed job looks at every finished part before it changes anything, and keeps those that verify.
     kept, cleanup = plan_resume(output, shards, config['audit_samples']) if resumed else ({}, [])
@@ -573,6 +622,8 @@ def main(argv=None):
                   'optional_f2':False, 'python':sys.version.split()[0],
                   'packages':packages,
                   'rule_scope':{rid:sorted(packs) for rid,packs in clean.SCOPE.items()}}
+    if text_hash:
+        provenance['text_hash'] = fingerprint['text_hash']
     print(json.dumps({'event':'start', 'selected_parts':len(shards), 'manifest_parts':len(data['shards']),
                       'sample_rows':data['total_docs'], 'clean_sha256':provenance['clean_sha256'],
                       'runner_sha256':provenance['runner_sha256'], 'scope':provenance['scope'],
@@ -583,7 +634,8 @@ def main(argv=None):
             for shard in shards:  # the kept parts first; the others are reported by the workers as they finish
                 if shard['path'] in kept:
                     print_kept(kept[shard['path']])
-            done = clean_in_pool(todo, resolved, output, config['batch_size'], config['audit_samples'], workers, config['clean_sha256'])
+            done = clean_in_pool(todo, resolved, output, config['batch_size'], config['audit_samples'], workers,
+                                 config['clean_sha256'], text_hash)
             reports = [kept.get(s['path']) or done[s['path']] for s in shards]  # manifest order, whoever finished first
         else:
             for shard in shards:
@@ -592,7 +644,7 @@ def main(argv=None):
                     print_kept(kept[shard['path']])
                 else:
                     reports.append(process_part(resolved[shard['path']], shard, output, config['batch_size'],
-                                                audit_samples=config['audit_samples']))
+                                                audit_samples=config['audit_samples'], text_hash=text_hash))
     except JobError as exc:
         attempt.update(status='failed', error=str(exc), ended=now())
         write_json(output / STATE, state)

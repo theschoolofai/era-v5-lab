@@ -7,6 +7,7 @@ manifest, the config), the per-part processing and its counts, and resume: a fai
 job is run again with "resume": true.
 """
 import csv
+import hashlib
 import json
 import zlib
 from pathlib import Path
@@ -813,3 +814,84 @@ def test_a_worker_that_dies_is_named_and_the_job_can_be_resumed(sample, monkeypa
     assert [a["status"] for a in state["attempts"]] == ["failed"]
     assert run(resume=True, workers=2) == 0
     same_output(tmp / "out/job", tmp / "out/fresh")
+
+
+# --- text_hash: the H1 key's sha256 and word count, for a dedup that reads no text --------------------------------------
+def h1_expected(text):
+    """(text_hash, key_words) as the overlap stages define them: sha256 of h1_key, and jaccard_matrix.shingles' word count."""
+    h1_key = job.h1_tools()[0]  # puts dedup/ on sys.path
+    from jaccard_matrix import shingles
+    key = h1_key(text)
+    return hashlib.sha256(key.encode("utf-8")).hexdigest(), shingles(key, 5)[1]
+
+
+def test_text_hash_adds_the_h1_hash_and_word_count_of_every_kept_document(tmp_path):
+    path, shard, rows = part(tmp_path)
+    job.process_part(path, shard, tmp_path / "plain", 2)
+    job.process_part(path, shard, tmp_path / "hashed", 2, text_hash=True)
+    plain = pq.read_table(tmp_path / "plain" / shard["path"])
+    hashed = pq.read_table(tmp_path / "hashed" / shard["path"])
+    assert hashed.schema.names == plain.schema.names + ["text_hash", "key_words"]
+    assert (hashed.schema.field("text_hash").type, hashed.schema.field("key_words").type) == (pa.string(), pa.int32())
+    assert hashed.drop_columns(["text_hash", "key_words"]).equals(plain)  # the cleaned rows are the same rows
+    written = hashed.to_pylist()
+    assert [(r["text_hash"], r["key_words"]) for r in written] == [h1_expected(r["text"]) for r in written]
+    # TEXTS[1] differs from TEXTS[0] by a zero-width space the cleaner removes: after cleaning they are exact copies
+    assert len(written) == 2 and written[0]["text_hash"] == written[1]["text_hash"]
+
+
+def test_without_text_hash_a_part_keeps_the_input_columns_only(tmp_path):
+    path, shard, rows = part(tmp_path)
+    job.process_part(path, shard, tmp_path / "out", 2)
+    assert pq.read_schema(tmp_path / "out" / shard["path"]) == pq.read_schema(path)
+
+
+def test_case_and_spacing_do_not_change_the_hash_and_an_empty_text_has_no_words(tmp_path):
+    texts = ["Area of a circle.\n", "AREA  of a\tcircle.", "Area of a square.\n", ""]
+    shard = write_part(tmp_path / "input", "train", "cadj-stackexchange", 0, texts)  # a pass-through pack: texts unchanged
+    job.process_part(tmp_path / "input" / shard["path"], shard, tmp_path / "out", 2, text_hash=True)
+    written = pq.read_table(tmp_path / "out" / shard["path"]).to_pylist()
+    hashes = [r["text_hash"] for r in written]
+    assert hashes[0] == hashes[1] != hashes[2]
+    assert (hashes[3], written[3]["key_words"]) == (hashlib.sha256(b"").hexdigest(), 0)
+    assert [r["key_words"] for r in written] == [4, 4, 4, 0]
+
+
+def test_a_part_that_already_has_a_text_hash_column_is_refused(tmp_path):
+    rows = [dict(doc_id="d0", text="Area of a circle.\n", pack_id="en-dclm", lang_label="en", url="", text_hash="x")]
+    path = tmp_path / "input/train/en-dclm/part-00000.parquet"
+    path.parent.mkdir(parents=True)
+    pq.write_table(pa.Table.from_pylist(rows), path)
+    shard = dict(path="train/en-dclm/part-00000.parquet", pack_id="en-dclm", split="train", rows=1,
+                 bytes=path.stat().st_size, sha256=job.digest(path))
+    with pytest.raises(job.JobError, match="already has a column named text_hash"):
+        job.process_part(path, shard, tmp_path / "out", 2, text_hash=True)
+    assert not (tmp_path / "out" / shard["path"]).exists()
+
+
+@pytest.mark.parametrize("bad", ["yes", 1, None])
+def test_text_hash_must_be_true_or_false(sample, bad):
+    tmp, shards, run = sample
+    with pytest.raises(job.JobError, match="text_hash must be true or false"):
+        run(text_hash=bad)
+    assert not (tmp / "out").exists()
+
+
+def test_text_hash_is_recorded_and_a_resume_must_keep_the_setting(sample, monkeypatch):
+    tmp, shards, run = sample
+    assert run(out="out/fresh", text_hash=True) == 0
+    summary = json.loads((tmp / "out/fresh/job_summary.json").read_text())
+    assert summary["text_hash"]["columns"] == ["text_hash", "key_words"]
+    assert summary["text_hash"]["normalize_id"] == job.h1_tools()[1]
+    interrupted(monkeypatch, lambda: run(text_hash=True))
+    with pytest.raises(job.JobError, match="cannot resume: the job was started with another text_hash"):
+        run(resume=True)  # setting off now
+    assert run(resume=True, text_hash=True) == 0
+    same_output(tmp / "out/job", tmp / "out/fresh")
+
+
+def test_several_workers_make_the_hash_columns_of_one(sample):
+    tmp, shards, run = sample  # spawned workers load dedup/h1_sha256.py themselves
+    run(out="out/one", text_hash=True)
+    assert run(out="out/three", workers=3, text_hash=True) == 0
+    same_output(tmp / "out/three", tmp / "out/one")

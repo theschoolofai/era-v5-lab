@@ -136,14 +136,20 @@ def processing_record(manifest, repo=REPO):
                settings: {cross_pack, pack_order, licence_usable, default_licence_usable},
                code_sha256}}                                                         null while a stage was adopted
     Read from the manifest, the clean job's job_summary.json, apply's summary, remove_list.csv as it is now, and the config
-    blocks of overlap's and dedup's summaries (paths, timings and gold_dirs are left out: they do not change what is removed)."""
+    blocks of overlap's and dedup's summaries (paths, timings and gold_dirs are left out: they do not change what is removed).
+
+    A hash-only overlap (dedup/hash_overlap.py, "method": "exact_hash": exact copies from the clean job's text_hash column,
+    no near copies) has no k or floor. Its overlap block is {method, matches_sha256, docs_sha256, normalize_id, key,
+    code_sha256}, and the clean job's job_summary.json must record the text_hash it wrote, with the same normalize_id: the
+    link from the hashes dedup used to the cleaned text. Other overlap runs give the block above, unchanged."""
     manifest = Path(manifest)
     m, stages = read_manifest(manifest)
     run = manifest.resolve().parent
     job_path = stage_output(m, "clean", repo) / "job_summary.json"
     if not job_path.is_file():
         raise Stop(f"{job_path.parent} has no job_summary.json: the clean job's summary records the clean.py sha256 and the raw parts")
-    clean_sha = read_json(job_path, "the clean job's summary").get("clean_sha256")
+    job = read_json(job_path, "the clean job's summary")
+    clean_sha = job.get("clean_sha256")
     if not clean_sha:
         raise Stop(f"{job_path}: no clean_sha256")
     f2_set = stages["f2"].get("set_sha256")
@@ -161,16 +167,26 @@ def processing_record(manifest, repo=REPO):
     dedup_sum = read_json(stage_output(m, "dedup", repo) / "dedup_summary.json", "dedup's summary")
     o_cfg, d_cfg = overlap_sum.get("config"), dedup_sum.get("config")
     checked = (dedup_sum.get("overlap_run") or {}).get("checked_sha256") or {}
-    for what, have, keys in (("overlap_summary.json config", o_cfg, ("k", "floor")),
+    exact = overlap_sum.get("method") == "exact_hash"   # hash_overlap.py: no k or floor, the H1 key instead
+    for what, have, keys in ((("overlap_summary.json", overlap_sum, ("normalize_id", "key")) if exact
+                              else ("overlap_summary.json config", o_cfg, ("k", "floor"))),
                              ("dedup_summary.json config", d_cfg, ("cross_pack", "pack_order", "licence_usable", "default_licence_usable")),
                              ("dedup_summary.json overlap_run.checked_sha256", checked, ("overlap_matches.csv", "overlap_docs.parquet"))):
         lacking = [k for k in keys if not isinstance(have, dict) or k not in have]
         if lacking:
             raise Stop(f"{what} has no {', '.join(lacking)}: the shard records the settings dedup ran with")
+    files = {"matches_sha256": checked["overlap_matches.csv"], "docs_sha256": checked["overlap_docs.parquet"]}
+    if exact:
+        wrote = job.get("text_hash")
+        if not isinstance(wrote, dict) or wrote.get("normalize_id") != overlap_sum["normalize_id"]:
+            raise Stop(f"{job_path}: the clean job records no text_hash of normalize {overlap_sum['normalize_id']!r}, the "
+                       "keys the hash-only overlap grouped: the hashes dedup used do not come from these cleaned parts")
+        overlap = {"method": "exact_hash", **files, "normalize_id": overlap_sum["normalize_id"], "key": overlap_sum["key"],
+                   "code_sha256": stages["overlap"].get("code_sha256")}
+    else:
+        overlap = {**files, "k": o_cfg["k"], "floor": o_cfg["floor"], "code_sha256": stages["overlap"].get("code_sha256")}
     return {"clean_py_sha256": clean_sha, "f2_set_sha256": f2_set,
-            "dedup": {"remove_list_sha256": rl_sha, "remove_list_rows": summary["remove_list"]["rows"],
-                      "overlap": {"matches_sha256": checked["overlap_matches.csv"], "docs_sha256": checked["overlap_docs.parquet"],
-                                  "k": o_cfg["k"], "floor": o_cfg["floor"], "code_sha256": stages["overlap"].get("code_sha256")},
+            "dedup": {"remove_list_sha256": rl_sha, "remove_list_rows": summary["remove_list"]["rows"], "overlap": overlap,
                       "settings": {k: d_cfg[k] for k in ("cross_pack", "pack_order", "licence_usable", "default_licence_usable")},
                       "code_sha256": stages["dedup"].get("code_sha256")}}
 

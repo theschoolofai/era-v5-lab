@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "_comment": "pipeline/clean.json with \"text_hash\": true: the clean job adds text_hash (sha256 of each document's H1 key) and key_words to every cleaned part, for dedup/hash_overlap.py. Everything else is pipeline/clean.json's.",
+  "clean": "teams/01-data-a/spec_v1_1/clean.py",
+  "clean_sha256": "d275556ee87a259b05ac5e474ed40b569c2e821aaaffa99d5d07035e40948989",
+  "batch_size": 128,
+  "workers": 4,
+  "audit_samples": 5,
+  "unsupported_policy": "passthrough_with_explicit_status",
+  "text_hash": true
+}

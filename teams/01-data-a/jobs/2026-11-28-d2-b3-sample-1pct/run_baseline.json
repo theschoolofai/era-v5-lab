@@ -1,0 +1,29 @@
+{
+  "_comment": "D2 baseline on the 1% slice of tokenizer sample v0 (pipeline/local_trial/slice_sample.py, seed 20261128): corpus-v1's stages as prepare_run.py writes them (MinHash overlap, F2 pool, ledger mode B, shards, reconcile), without H3 (it needs the LaBSE model; B3 does not change it). The tokenizer is any tokenizer.json, so the shards are marked test.",
+  "run_id": "d2-1pct-baseline",
+  "out": "out/pipeline",
+  "intermediates": "keep",
+  "stages": {
+    "clean": {
+      "mode": "run",
+      "settings": "teams/01-data-a/pipeline/clean.json",
+      "workers": 4,
+      "input": "inputs/sample_1pct",
+      "manifest_sha256": "0b1a3e4305e5eaef10d2254835ad325dd92f5cffdc5d1ba3b26cf06117722bb1",
+      "expected_parts": {"train": 48, "heldout": 38}
+    },
+    "overlap": {
+      "mode": "run",
+      "script": "teams/01-data-a/dedup/minhash_overlap.py",
+      "settings": "teams/01-data-a/dedup/minhash_overlap.json"
+    },
+    "dedup": {"mode": "run", "settings": "teams/01-data-a/dedup/dedup.json"},
+    "f2": {"pool": true, "workers": 4},
+    "ledger": {"raw": "inputs/sample_1pct"},
+    "shards": {
+      "tokenizer": "inputs/sample_1pct/tokenizer.json",
+      "any_tokenizer": true
+    },
+    "reconcile": {}
+  }
+}

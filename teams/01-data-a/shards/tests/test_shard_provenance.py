@@ -256,6 +256,56 @@ def test_no_record_when_the_remove_list_changed_after_apply(run):
         provenance.processing_record(run / "pipeline_manifest.json")
 
 
+NORMALIZE = "g1-spec-v1"
+KEY = "h1_key of dedup/h1_sha256.py: normalize.match_key, then NFKC, casefold, whitespace runs to one space"
+
+
+def hash_only(run, key=True, clean_records=NORMALIZE):
+    """Make the run's overlap a hash-only one (hash_overlap.py): method exact_hash, no k or floor, the key instead; the
+    clean job records the text_hash it wrote (clean_records: its normalize_id, None for no record)."""
+    root = run.parent.parent
+    f = root / "overlap" / "overlap_summary.json"
+    data = json.loads(f.read_text(encoding="utf-8"))
+    data["config"] = {k: v for k, v in data["config"].items() if k not in ("k", "floor")}
+    data.update(method="exact_hash", normalize_id=NORMALIZE, **({"key": KEY} if key else {}))
+    f.write_text(json.dumps(data), encoding="utf-8")
+    if clean_records:
+        edit_json(root / "cleaned" / "job_summary.json",
+                  text_hash={"columns": ["text_hash", "key_words"], "normalize_id": clean_records, "key": KEY})
+
+
+def test_a_hash_only_overlap_is_recorded_by_its_key_and_the_chain_still_holds(run):
+    m = run / "pipeline_manifest.json"
+    before = provenance.processing_record(m)
+    hash_only(run)
+    record = provenance.processing_record(m)
+    root = run.parent.parent
+    assert record["dedup"]["overlap"] == {"method": "exact_hash", "matches_sha256": sha(root / "overlap" / "overlap_matches.csv"),
+                                          "docs_sha256": sha(root / "overlap" / "overlap_docs.parquet"),
+                                          "normalize_id": NORMALIZE, "key": KEY, "code_sha256": None}
+    assert {k: v for k, v in record.items() if k != "dedup"} == {k: v for k, v in before.items() if k != "dedup"}
+    assert {k: v for k, v in record["dedup"].items() if k != "overlap"} == {k: v for k, v in before["dedup"].items() if k != "overlap"}
+    assert load(run, "train", "code-go/part-00001.parquet")["record"] == record   # a part's whole chain checks
+
+
+def test_without_a_method_the_record_is_the_one_it_always_was(run):
+    record = provenance.processing_record(run / "pipeline_manifest.json")
+    assert "method" not in record["dedup"]["overlap"] and record["dedup"]["overlap"]["k"] == 5
+
+
+def test_a_hash_only_overlap_without_its_key_has_no_record(run):
+    hash_only(run, key=False)
+    with pytest.raises(provenance.Stop, match="overlap_summary.json has no key"):
+        provenance.processing_record(run / "pipeline_manifest.json")
+
+
+@pytest.mark.parametrize("clean_records", [None, "another-normalize"])
+def test_a_hash_only_overlap_needs_the_clean_jobs_text_hash_of_the_same_key(run, clean_records):
+    hash_only(run, clean_records=clean_records)
+    with pytest.raises(provenance.Stop, match="the clean job records no text_hash of normalize 'g1-spec-v1'"):
+        provenance.processing_record(run / "pipeline_manifest.json")
+
+
 def test_the_record_follows_the_output_the_manifest_recorded_for_a_stage(run):
     """A config may leave a stage's output to the default, so the config has no `output`: the stage's record names it."""
     m = run / "pipeline_manifest.json"
