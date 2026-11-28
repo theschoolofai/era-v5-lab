@@ -40,7 +40,13 @@ def ci(a: list, fmt) -> str:
 def render(llama: dict, torch_ref: dict, a) -> str:
     meta, speeds = llama["meta"], llama["rows"]
     order = [f["format"] for f in torch_ref["formats"]]
-    base_speed = speeds["bf16"]["rollout_tokens_per_s"] if "bf16" in speeds else None
+    engine = getattr(a, "engine", None) or "llama.cpp"
+    vllm = engine == "vllm"
+    speed_base = getattr(a, "speed_base", None) or ("vllm_fp16" if vllm else "bf16")
+    baseline_label = "baseline note" if vllm else "llama.cpp-reference baseline"
+    nb_name = "rollout_vllm.ipynb" if vllm else "rollout_mismatch.ipynb"
+    speed_vs = "the vLLM baseline" if vllm else "llama.cpp bf16"
+    base_speed = speeds[speed_base]["rollout_tokens_per_s"] if speed_base in speeds else None
     eps = torch_ref["eps"]
     cats = (", ".join(f"{v} {k}" for k, v in meta["prompt_categories"].items()) if meta["prompt_categories"]
             else "composition not recorded by the script version of this run" + (f"; {a.prompt_note}" if a.prompt_note else ""))
@@ -48,14 +54,15 @@ def render(llama: dict, torch_ref: dict, a) -> str:
     lines = [f"# Quantized-rollout mismatch against a PyTorch bf16 reference: {a.model} (Team 12 follow-up to #894)", "",
              f"**Scope and limits:** {a.model}, {a.hardware}, {meta['k']} rollouts per prompt, at most {meta['max_new']} new tokens, "
              f"eps = {eps}, temperature = {meta['temperature']} (Team 10's defaults). Prompts: {meta['prompts']} from the fixed prompt file, "
-             f"selection `{selection}` ({cats}). The sampler is a quantized llama.cpp GGUF; the reference scores the same token ids in "
+             f"selection `{selection}` ({cats}). " + ("The sampler is vLLM (an unquantized model and a W4A16 GPTQ copy made with llm-compressor)" if vllm else "The sampler is a quantized llama.cpp GGUF") + "; the reference scores the same token ids in "
              f"PyTorch ({torch_ref['dtype']} weights, fp32 logits, {torch_ref['device']}, torch {torch_ref['torch']}), the setup of `rl-loop/policy.py`. "
              "Intervals are 95% percentile intervals that resample prompts (the rollouts of a prompt are not independent). "
-             "One seed, one model. Mean KL is not available in PyTorch mode (it needs the sampler's full distribution). "
-             "Rollout tok/s is llama-cpp-python decode on that GPU, one stream at a time, not a rollout engine's throughput.", "",
-             f"Reference model: `{torch_ref['reference']}`. Notebook version `{a.notebook_version}` (G12 `rollout_mismatch.ipynb`). "
-             f"Source PRs: this work {a.pr_this}; the llama.cpp-reference baseline {a.pr_baseline}.", "",
-             "| Format | Tokens outside [0.8, 1.2] (below / above) | 95% interval | abs log-ratio p50 / p90 / p99 | k3 | k3 95% interval | Top-1 agreement | Rollout tok/s | Speed vs llama.cpp bf16 (same harness) |",
+             "One seed, one model. Mean KL is not available in PyTorch mode (it needs the sampler's full distribution). " +
+             ("Rollout tok/s is vLLM batched generation throughput (all prompts and samples at once), not single-stream decode speed; compare it only with the vLLM baseline row." if vllm else
+              "Rollout tok/s is llama-cpp-python decode on that GPU, one stream at a time, not a rollout engine's throughput."), "",
+             f"Reference model: `{torch_ref['reference']}`. Notebook version `{a.notebook_version}` (G12 `{nb_name}`). "
+             f"Source PRs: this work {a.pr_this}; the {baseline_label} {a.pr_baseline}.", "",
+             "| Format | Tokens outside [0.8, 1.2] (below / above) | 95% interval | abs log-ratio p50 / p90 / p99 | k3 | k3 95% interval | Top-1 agreement | Rollout tok/s | Speed vs " + speed_vs + " (same harness) |",
              "|---|---:|---|---|---:|---|---:|---:|---:|"]
     for f in torch_ref["formats"]:
         c = f["ci95_by_prompt"]
@@ -65,16 +72,40 @@ def render(llama: dict, torch_ref: dict, a) -> str:
         lines.append(f"| `{f['format']}` | **{pct(f['outside'])}** ({pct(f['below'])} / {pct(f['above'])}) | {ci(c['outside'], pct)} | "
                      f"{q[0]:.3g} / {q[1]:.3g} / {q[2]:.3g} | **{f['k3']:.4f}** | {ci(c['k3'], lambda v: f'{v:.4f}')} | "
                      f"{pct(f['top1_agreement'])} {ci(c['top1_agreement'], pct)} | {'-' if tps is None else f'{tps:.1f}'} | {ratio} |")
+    if any("by_category" in f for f in torch_ref["formats"]):
+        cats = sorted({c for f in torch_ref["formats"] if "by_category" in f for c in f["by_category"]})
+        lines += ["", "## By prompt category (PyTorch reference; prompts per category in the header; intervals resample the prompts of that category)", "",
+                  "| Format | " + " | ".join(f"{c}: outside / k3 / top-1" for c in cats) + " |", "|---|" + "---|" * len(cats)]
+        for f in torch_ref["formats"]:
+            if "by_category" not in f:
+                continue
+            cells = []
+            for c in cats:
+                r = f["by_category"].get(c)
+                cells.append("-" if not r else f"{pct(r['outside'])} / {r['k3']:.4f} / {pct(r['top1_agreement'])}")
+            lines.append(f"| `{f['format']}` | " + " | ".join(cells) + " |")
+        lines += ["", "Each category has few prompts (10 at a balanced 50), so these cells are noisier than the pooled table; the intervals are in `torch_reference.json` (`by_category`)."]
+        if torch_ref.get("category_note"):
+            lines += ["", torch_ref["category_note"]]
     lines += ["", "**Reading the table**"]
-    if "bf16" in order:
-        b = next(f for f in torch_ref["formats"] if f["format"] == "bf16")
-        lines.append(f"- The `bf16` row has no quantization in it: llama.cpp's bf16 sampler against the PyTorch reference. It is the engine-to-engine "
+    floor_name = speed_base if vllm else "bf16"
+    if floor_name in order:
+        b = next(f for f in torch_ref["formats"] if f["format"] == floor_name)
+        what = "vLLM's unquantized model (fp16 on a T4)" if vllm else "llama.cpp's bf16 sampler"
+        lines.append(f"- The `{floor_name}` row has no quantization in it: {what} against the PyTorch reference. It is the engine-to-engine "
                      f"floor ({pct(b['outside'])} of tokens outside, k3 {b['k3']:.4f}); a quantized row's excess over it is the quantization part.")
-    lines.append("- The speed column divides a format's rollout tok/s by the `bf16` sampler's tok/s from the same run and session. It is not a speedup "
-                 "against PyTorch bf16 decoding, which was not measured." if base_speed else
-                 "- No `bf16` sampler row was run, so no speed ratio is given.")
-    lines.append(f"- Team 10's stop rule (`k3 <= 0.05`) holds on the formats whose k3 and interval upper bound are at or below 0.05: "
-                 + (", ".join(f"`{f['format']}`" for f in torch_ref["formats"] if f["ci95_by_prompt"]["k3"][1] <= 0.05) or "none") + ".")
+    if base_speed:
+        lines.append(f"- The speed column divides a format's rollout tok/s by the `{speed_base}` sampler's tok/s from the same run and session. "
+                     "It is not a speedup against PyTorch bf16 decoding, which was not measured.")
+    else:
+        lines.append(f"- No `{speed_base}` sampler row was run, so no speed ratio is given.")
+    thr = 0.05
+    ok = [f["format"] for f in torch_ref["formats"] if f["ci95_by_prompt"]["k3"][1] <= thr]
+    straddle = [f"`{f['format']}` ({f['k3']:.4f}, interval {f['ci95_by_prompt']['k3'][0]:.4f} to {f['ci95_by_prompt']['k3'][1]:.4f})"
+                for f in torch_ref["formats"] if f["ci95_by_prompt"]["k3"][0] <= thr < f["ci95_by_prompt"]["k3"][1]]
+    above = [f"`{f['format']}`" for f in torch_ref["formats"] if f["ci95_by_prompt"]["k3"][0] > thr]
+    lines.append("- Team 10's stop rule (`k3 <= 0.05`), on the pooled k3 with its interval: under the limit: " + (", ".join(f"`{x}`" for x in ok) or "none")
+                 + "; interval contains the limit: " + (", ".join(straddle) or "none") + "; above the limit: " + (", ".join(above) or "none") + ".")
     return "\n".join(lines) + "\n"
 
 
@@ -84,6 +115,8 @@ def main() -> int:
     ap.add_argument("--torch", required=True, type=Path, help="torch_reference.json of stage 2")
     ap.add_argument("--model", required=True); ap.add_argument("--notebook-version", required=True)
     ap.add_argument("--pr-this", required=True); ap.add_argument("--pr-baseline", required=True)
+    ap.add_argument("--engine", default="llama.cpp", choices=["llama.cpp", "vllm"], help="which sampler produced the run: changes the wording of the sampler, speed and baseline")
+    ap.add_argument("--speed-base", default=None, help="format whose rollout tok/s is the baseline of the speed column (default: bf16, or vllm_fp16 with --engine vllm)")
     ap.add_argument("--hardware", default="Kaggle T4 x2", help="where the sampler ran, as written in the note")
     ap.add_argument("--prompt-note", default="", help="free text on the prompts, for runs that did not record their composition")
     ap.add_argument("--out", required=True, type=Path)

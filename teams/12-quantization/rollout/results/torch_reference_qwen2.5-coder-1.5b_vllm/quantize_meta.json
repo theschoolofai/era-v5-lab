@@ -1,0 +1,27 @@
+{
+ "model": "Qwen/Qwen2.5-Coder-1.5B",
+ "revision": "df3ce67c0e24480f20468b6ef2894622d69eb73b",
+ "method": "gptq",
+ "scheme": "W4A16",
+ "group_size": 128,
+ "ignore": [
+  "lm_head",
+  "re:.*mlp.gate$"
+ ],
+ "calibration": {
+  "dataset": "HuggingFaceFW/fineweb-edu/sample-10BT",
+  "samples": 256,
+  "seq_len": 1024,
+  "prepare_s": 6.1
+ },
+ "quant_time_s": 1278.2,
+ "gpu": "Tesla T4, 15360 MiB + Tesla T4, 15360 MiB",
+ "versions": {
+  "llmcompressor": "0.15.0",
+  "compressed_tensors": "0.20.1",
+  "transformers": "5.21.0",
+  "torch": "2.14.1+cu130",
+  "python": "3.12.3"
+ },
+ "finished": "2026-11-28T18:47:03+00:00"
+}

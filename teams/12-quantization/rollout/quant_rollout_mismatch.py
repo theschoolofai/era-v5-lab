@@ -179,7 +179,8 @@ class LlamaEngine:
         return np.array(self.llm.scores[:len(ids)], dtype=np.float32)
 
 
-def run_format(name: str, sampler, ref, prompts: list[list[int]], k: int, max_new: int, eps: float, dump_path=None) -> dict:
+def run_format(name: str, sampler, ref, prompts: list[list[int]], k: int, max_new: int, eps: float, dump_path=None,
+               categories: list[str] | None = None) -> dict:
     parts, positions, clusters, new_tokens, seconds, empty = [], [], [], 0, 0.0, 0
     dump = open(dump_path, "w") if dump_path else None
     for pi, p in enumerate(prompts):
@@ -196,7 +197,7 @@ def run_format(name: str, sampler, ref, prompts: list[list[int]], k: int, max_ne
             positions.append(np.arange(len(comp)))
             clusters.append(np.full(len(comp), pi))
             if dump:   # token ids and the quantized model's numbers, for a second reference (score_with_torch.py)
-                dump.write(json.dumps({"format": name, "prompt_idx": pi, "prompt_len": len(p), "ids": ids,
+                dump.write(json.dumps({"format": name, "prompt_idx": pi, "prompt_len": len(p), "category": (categories[pi] if categories else None), "ids": ids,
                                        "lp_q": [round(float(x), 6) for x in ps["lp_q"]],
                                        "top1_q": [int(x) for x in ps["top1_q"]]}) + "\n")
     if dump:
@@ -244,7 +245,7 @@ def main() -> int:
         if a.dump_dir:
             a.dump_dir.mkdir(parents=True, exist_ok=True)
         results.append(run_format(name, sampler, ref, prompts, a.k, a.max_new, a.eps,
-                                  a.dump_dir / f"{name}_rollouts.jsonl" if a.dump_dir else None))
+                                  a.dump_dir / f"{name}_rollouts.jsonl" if a.dump_dir else None, [c for _, c in tokenized]))
         print(f"{name}: {results[-1].get('rollout_tokens_per_s')} tok/s, outside [{1 - a.eps:.2f}, {1 + a.eps:.2f}] "
               f"{results[-1].get('outside')}, top-1 {results[-1].get('top1_agreement')}, {time.time() - t0:.0f}s", flush=True)
         del sampler
