@@ -16,7 +16,7 @@ If the rollout sampler is a quantized copy, quantization alone moves the ratio. 
 | Model | `sarvamai/sarvam-1` @ `e9607337286ddf496d4a2562b194e489dcf3feea`, dense |
 | Reference | bf16 GGUF, llama.cpp b11669 via llama-cpp-python 0.3.36 (CUDA) |
 | Samplers | Q8_0, Q6_K, Q5_K_M, Q4_K_M; output layer Q8_0 below 8 bits (`--output-tensor-type q8_0`), as `quantize_eval.py` |
-| Prompts | first 48 of `prompts/fixed_100.jsonl`, raw text, BOS added by llama.cpp |
+| Prompts | first 48 of `prompts/fixed_100.jsonl`, raw text, BOS added by llama.cpp: **40 English, 8 Indic, no code, tool-call or reasoning prompts** (the file lists its categories one after another) |
 | Rollouts | 8 per prompt (384), at most 256 new tokens, temperature 1, top-k, top-p and min-p off |
 | Scoring | both models score the same sampled token ids, teacher-forced, full logits |
 | eps | 0.2 (`grpo.TR_EPSILON`, as `mismatch_probe.py`) |
@@ -51,6 +51,7 @@ Per-format JSON files (with the breakdown by the sampler's probability and by po
   next stage.
 - **No intervals.** The run saves aggregates, not per-rollout values, so no confidence interval was computed. The steps
   between formats are large, but this is unproven until intervals exist.
+- **Mostly English prompts.** 40 of the 48 prompts are English and 8 are Indic, so the numbers say little about Indic text, and nothing about code. A balanced prompt set (`--balanced`: 10 per category) is the next run.
 - **One model, one seed, one prompt set.** sarvam-1 is a dense base model; an MoE (Granite) is not run yet, and on a random
   MoE stand-in the mismatch was far larger (not a result, the weights were random).
 - **Speed** is llama-cpp-python decode on T4s with `logits_all`, one stream at a time. It is not a rollout engine's
