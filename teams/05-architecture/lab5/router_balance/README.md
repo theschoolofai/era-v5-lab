@@ -14,10 +14,30 @@
 From `harness/run_report.py` (#829) on #869's `metrics.jsonl` (16 routed experts plus 1 shared, top-2; a share is an expert's part of all the layer's expert choices, each token making 2, so the even share is 6.25%):
 
 - At step 1,200 the busiest expert takes 8.7% to 15.5% of a layer's choices; the worst layer is 2.48 times the mean; layers 3 and 7 each have one expert with zero tokens.
-- Early in the run it is far worse: at step 50 one expert takes 50.0% of a layer's choices (it is picked by every token, 8 times the even share) and all 8 layers have an expert with zero tokens; the worst layer stays above 5 times the even share (31.25%) through step 300 (38.3%), and drops to 31.1% at step 350.
+- Early in the run it is far worse: at step 50 one expert takes 50.0% of a layer's choices (it is picked by every token, 8 times the even share) and all 8 layers have an expert with zero tokens; the worst layer is above 5 times the even share (31.25%) at every recorded step up to step 300 (38.3% at steps 250 and 300) and first gets back under it at step 350 (31.1%). From step 400 every layer stays under 22%.
 - TSAI's balanced reference (24 Nov, router on Muon) was 7.3% to 9.0% busiest share, 1.44 times the mean.
 
 So, on this run, balancing is not working well enough: it fails TSAI's 5-times line for the first 300 steps, and some experts stay unused at the end.
+
+## Reproduce the dry run 2 figures
+
+```
+python teams/05-architecture/harness/run_report.py teams/05-architecture/results/dryrun2-1234/metrics.jsonl
+```
+
+`teams/05-architecture/results/dryrun2-1234/metrics.jsonl` is #869's record on main. The full output (health, loss, learning rate, throughput and row fill, held-out bits per byte per slice, and expert load per layer) is in [`dryrun2_report.md`](dryrun2_report.md). The expert-load part:
+
+| Step | Worst layer's busiest share | Layers with an expert at zero choices |
+|---:|---:|---:|
+| 50 | 50.0% | 8 |
+| 100 | 47.7% | 5 |
+| 150 | 45.4% | 1 |
+| 200 | 41.3% | 1 |
+| 250 | 38.3% | 1 |
+| 300 | 38.3% | 0 |
+| 350 | 31.1% | 0 |
+| 400 | 17.8% | 0 |
+| 1,200 | 15.5% | 2 |
 
 ## How balancing works today (`harness/week2/model.py`, `MoE`)
 
@@ -46,9 +66,9 @@ So, on this run, balancing is not working well enough: it fails TSAI's 5-times l
 
 ## Checks
 
-- The dry run 2 figures above are reproduced by one command on #869's `metrics.jsonl`.
+- The dry run 2 figures above are reproduced by one command (below); its full output is in `dryrun2_report.md`.
 - Every arm reports the same four measures on the same held-out bytes, with 2 seeds.
-- A setting is recommended only if it keeps every layer above the 20% evenness line throughout and costs no measurable bits per byte.
+- **Pass rule.** Dry run 2 fails only early, so early steps count. A setting passes only if, in every layer, the busiest expert stays under 31.25% (above the 20% evenness line) at **every** recorded step from the first one; no expert has zero choices after step 200; held-out bits per byte are no worse than the base by more than the seed spread; and real tokens per second are within 5% of the base. Dry run 2 itself fails the first condition (steps 50 to 300).
 
 ## What it needs from others
 
