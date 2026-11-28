@@ -1,0 +1,743 @@
+{
+  "status": "complete",
+  "method": "exact_hash",
+  "config": {
+    "inputs": "out/pipeline/d2-1pct-hash/clean",
+    "splits": [
+      "train",
+      "heldout"
+    ],
+    "out": "out/pipeline/d2-1pct-hash/overlap",
+    "expected_packs": [
+      "cadj-commits",
+      "cadj-notebooks",
+      "cadj-stackexchange",
+      "code-cpp",
+      "code-go",
+      "code-java",
+      "code-js-ts",
+      "code-python",
+      "code-rust",
+      "en-dclm",
+      "en-fineweb-edu",
+      "en-nemotroncc",
+      "en-nemotroncc-synth",
+      "ind-bn-fw2",
+      "ind-bn-sangraha-v",
+      "ind-gu-fw2",
+      "ind-hi-fw2",
+      "ind-hi-hplt",
+      "ind-hi-indiccorp",
+      "ind-hi-sangraha-s",
+      "ind-hi-sangraha-v",
+      "ind-kn-fw2",
+      "ind-kn-sangraha-s",
+      "ind-kn-sangraha-v",
+      "ind-ml-fw2",
+      "ind-mr-fw2",
+      "ind-mr-sangraha-v",
+      "ind-or-fw2",
+      "ind-sa-fw2",
+      "ind-ta-fw2",
+      "ind-ta-sangraha-s",
+      "ind-ta-sangraha-v",
+      "ind-te-fw2",
+      "ind-te-sangraha-s",
+      "ind-te-sangraha-v",
+      "math-finemath",
+      "math-megamath",
+      "sci-finepdfs"
+    ],
+    "max_output_mb": 50,
+    "workers": 0
+  },
+  "normalize_id": "g1-spec-v1",
+  "key": "h1_key of dedup/h1_sha256.py: normalize.match_key, then NFKC, casefold, whitespace runs to one space",
+  "text_hash": {
+    "columns": [
+      "text_hash",
+      "key_words"
+    ],
+    "hash": "sha256 of the UTF-8 H1 key, hex",
+    "key": "h1_key of dedup/h1_sha256.py: normalize.match_key, then NFKC, casefold, whitespace runs to one space",
+    "normalize_id": "g1-spec-v1"
+  },
+  "inputs": {
+    "root": "out/pipeline/d2-1pct-hash/clean",
+    "checksum_verification": "sha256",
+    "parts": [
+      {
+        "part": "train/cadj-commits/part-00000.parquet",
+        "documents": 748,
+        "sha256": "d4a75f883457bbfb2e5cc68a15f701a8aef7f807f24c80f7c62f7015b8a6c931"
+      },
+      {
+        "part": "train/cadj-notebooks/part-00000.parquet",
+        "documents": 156,
+        "sha256": "1e5f9d912db1e4751e714cabca19dea75f6cb2f2fc352894a66b7e6c2f891a3e"
+      },
+      {
+        "part": "train/cadj-stackexchange/part-00000.parquet",
+        "documents": 414,
+        "sha256": "4aa380fd5e702de81c3f187d2bd6ff0912e734e364b56a5a45685a88b41bf479"
+      },
+      {
+        "part": "train/code-cpp/part-00000.parquet",
+        "documents": 403,
+        "sha256": "187c63cacc930d629589f32af9efe660b61057c436cb547e9c86943d1d6c017c"
+      },
+      {
+        "part": "train/code-cpp/part-00001.parquet",
+        "documents": 142,
+        "sha256": "b33593317b5ba7c99db8c844bcc737d37136369ebedf875af060a7666e64c353"
+      },
+      {
+        "part": "train/code-go/part-00000.parquet",
+        "documents": 559,
+        "sha256": "b8972594cb1295a06a62d760529d21b5398f0f1ccd8502e18e44dce5264d8baa"
+      },
+      {
+        "part": "train/code-go/part-00001.parquet",
+        "documents": 206,
+        "sha256": "5433f6d568cfbaf2975f0d14f81960851a83b4fe4df4cb697792ae5ada1e09be"
+      },
+      {
+        "part": "train/code-java/part-00000.parquet",
+        "documents": 617,
+        "sha256": "6a7d0e0438c1f96b8334454af3f96e86a0e179ccf20de3a68befe08cc29adba6"
+      },
+      {
+        "part": "train/code-java/part-00001.parquet",
+        "documents": 223,
+        "sha256": "35faf81f539503bad8fe109e9df9bec7ae9e5a9adba1e8cc51db23c76f1ae51a"
+      },
+      {
+        "part": "train/code-js-ts/part-00000.parquet",
+        "documents": 861,
+        "sha256": "3399df0d04ffc42da5652cea23fe7d94c62299c878fd154b5dac76a5e7dba7c6"
+      },
+      {
+        "part": "train/code-js-ts/part-00001.parquet",
+        "documents": 309,
+        "sha256": "543ddd6c73b7d72695dc42787f256627821703196586b374e449e233e6a88b49"
+      },
+      {
+        "part": "train/code-python/part-00000.parquet",
+        "documents": 534,
+        "sha256": "f4230b159bf888a6d06ca8b6969e8217ee643aa63af02ceda60134046fc496aa"
+      },
+      {
+        "part": "train/code-python/part-00001.parquet",
+        "documents": 192,
+        "sha256": "478673f74b08f0d88fafb659fc3a784fede517a4007c4d897f0a35376716ba41"
+      },
+      {
+        "part": "train/code-rust/part-00000.parquet",
+        "documents": 429,
+        "sha256": "60e4007b12640b179f3631fc12427f0e9dd1e49f8d90dc6d53d88289e7ab2183"
+      },
+      {
+        "part": "train/code-rust/part-00001.parquet",
+        "documents": 152,
+        "sha256": "5b59f47093c75f34bc41bdada2377ba0636604506c8ab9bdda23326afbae980f"
+      },
+      {
+        "part": "train/en-dclm/part-00000.parquet",
+        "documents": 452,
+        "sha256": "99fa4029824334e94768d89dbe0057e422f6c3d5298b8bba5924b6f5a04afe9d"
+      },
+      {
+        "part": "train/en-dclm/part-00001.parquet",
+        "documents": 149,
+        "sha256": "373470eb1bd0260f6ee6d09aff47647a2c092d924e944d08b2270f0e269fc0da"
+      },
+      {
+        "part": "train/en-fineweb-edu/part-00000.parquet",
+        "documents": 536,
+        "sha256": "6049c57b4d61e8ffb866ce612095ac5dc2c52deba418022d1d1d741d3b9a42a4"
+      },
+      {
+        "part": "train/en-fineweb-edu/part-00001.parquet",
+        "documents": 177,
+        "sha256": "fc5810bdeba45138465b42e64cf1fb85cb1efe226d080e0b6aa5b7a998541704"
+      },
+      {
+        "part": "train/en-nemotroncc/part-00000.parquet",
+        "documents": 658,
+        "sha256": "082365cfe159d7356a026c59465147cb1490bf89155b96e5701929ccc6c3b584"
+      },
+      {
+        "part": "train/en-nemotroncc/part-00001.parquet",
+        "documents": 223,
+        "sha256": "4820581219d6d0d350486bb51d69f4e4f6b6cae509e596ad21911a0aae47dadd"
+      },
+      {
+        "part": "train/en-nemotroncc-synth/part-00000.parquet",
+        "documents": 1475,
+        "sha256": "9cd236cbd7f70067644531961ce1f4b9b827f7582f8ed881bb7fe1882210fb0e"
+      },
+      {
+        "part": "train/en-nemotroncc-synth/part-00001.parquet",
+        "documents": 494,
+        "sha256": "a11b6a4c326976f512508bbdb53b1bb3614b589e23ba73c397e2f325c1d375ed"
+      },
+      {
+        "part": "train/ind-bn-fw2/part-00000.parquet",
+        "documents": 107,
+        "sha256": "3e3c8b5f5d2df305419c4c22a65d46078c6bf600944f893d54eafa7f806b7585"
+      },
+      {
+        "part": "train/ind-bn-sangraha-v/part-00000.parquet",
+        "documents": 99,
+        "sha256": "2800a17a567b89c29417ee659a34d2ba53e6847973386810b9677e9637d6095c"
+      },
+      {
+        "part": "train/ind-gu-fw2/part-00000.parquet",
+        "documents": 229,
+        "sha256": "6808ca0b083e5b032c4742a5bd1e548a19a8664589efe7d1e751b52012499243"
+      },
+      {
+        "part": "train/ind-hi-fw2/part-00000.parquet",
+        "documents": 138,
+        "sha256": "ec62f13653668efa0071f6d008f0d73f9a47db16bb9e073b895a77c37c59756e"
+      },
+      {
+        "part": "train/ind-hi-hplt/part-00000.parquet",
+        "documents": 85,
+        "sha256": "2e4099c26f9c734b1e91cf74a2ee3b5ca2ba8edb34fad6ee61543e7074bd79e4"
+      },
+      {
+        "part": "train/ind-hi-indiccorp/part-00000.parquet",
+        "documents": 1100,
+        "sha256": "a213525effcc72482f1ba2407fbea6411bb9c5d27a53f7d5018ab14246f5a44f"
+      },
+      {
+        "part": "train/ind-hi-sangraha-s/part-00000.parquet",
+        "documents": 74,
+        "sha256": "506713efb7828dedda4af57282cb0731c273a7ff6e4b6e11ddd6e6c420093eb1"
+      },
+      {
+        "part": "train/ind-hi-sangraha-v/part-00000.parquet",
+        "documents": 145,
+        "sha256": "7d4beceb38bb3649f5dfbf1ce91e8433f905645cb41fe13e1cf044d290cf13f5"
+      },
+      {
+        "part": "train/ind-kn-fw2/part-00000.parquet",
+        "documents": 77,
+        "sha256": "82dd6c4513565b965aa3b46d0ba0016041c18f89ba6e6a52ab3a2c25e8d33247"
+      },
+      {
+        "part": "train/ind-kn-sangraha-s/part-00000.parquet",
+        "documents": 52,
+        "sha256": "e6c55de578177bd70cec360e8285a23f89f666ee1059ea4979a97d666fb8f2d9"
+      },
+      {
+        "part": "train/ind-kn-sangraha-v/part-00000.parquet",
+        "documents": 86,
+        "sha256": "0b19c49646f8775d3feda529002bcd215e5847996c6efbc4468e3c31e0eea614"
+      },
+      {
+        "part": "train/ind-ml-fw2/part-00000.parquet",
+        "documents": 190,
+        "sha256": "1ec9c732aa18115cfc1f3db744812046166c647418879845750593a0b87048fc"
+      },
+      {
+        "part": "train/ind-mr-fw2/part-00000.parquet",
+        "documents": 114,
+        "sha256": "19de817a1c4ec206aec80a141ab0e3f88a547698c906fa10f85d5c6ff0249d76"
+      },
+      {
+        "part": "train/ind-mr-sangraha-v/part-00000.parquet",
+        "documents": 122,
+        "sha256": "8a696f57efce3a37524e474ab46e7f9d2c3d2cd1d18af2e4f4da87162d6efd90"
+      },
+      {
+        "part": "train/ind-or-fw2/part-00000.parquet",
+        "documents": 337,
+        "sha256": "4997dcba0d2b4105fd17dc84646c609dd4533d1372487e0605b685a8c1d0b78d"
+      },
+      {
+        "part": "train/ind-sa-fw2/part-00000.parquet",
+        "documents": 59,
+        "sha256": "e3923e80b78db3a125024cfff19e8dca285b5b7c5de3c7d7a49b9bce04c4836c"
+      },
+      {
+        "part": "train/ind-ta-fw2/part-00000.parquet",
+        "documents": 68,
+        "sha256": "37b16ac8fd92e970846503123f3ba6b688bc188b0d6f7e4226c14879fb60beb0"
+      },
+      {
+        "part": "train/ind-ta-sangraha-s/part-00000.parquet",
+        "documents": 43,
+        "sha256": "88e01da2e9ffef4bc2f83c6d48259f8d7289cc7c70afa6a452267478453cfa4e"
+      },
+      {
+        "part": "train/ind-ta-sangraha-v/part-00000.parquet",
+        "documents": 68,
+        "sha256": "dde0037b9679f1183ee6e073020993c9cea3590e558f23cbb3eb324a7786249e"
+      },
+      {
+        "part": "train/ind-te-fw2/part-00000.parquet",
+        "documents": 56,
+        "sha256": "fbad4cbed98fff244bce3e9e20dfcb031b2bc2722bf5a03cf3373c74f105fd72"
+      },
+      {
+        "part": "train/ind-te-sangraha-s/part-00000.parquet",
+        "documents": 44,
+        "sha256": "a07f5a029ced0b4d5f09c57eafd414d5bfe54705c0b6251bee0f74051b3761f7"
+      },
+      {
+        "part": "train/ind-te-sangraha-v/part-00000.parquet",
+        "documents": 86,
+        "sha256": "292cab0747ea83e42d1608d27f3dcdaf22f0709f37853b5fa5072c92303451de"
+      },
+      {
+        "part": "train/math-finemath/part-00000.parquet",
+        "documents": 273,
+        "sha256": "69471e231b947b12527558a9b1cac86672a77c749f52dc84c0b47099e1007931"
+      },
+      {
+        "part": "train/math-megamath/part-00000.parquet",
+        "documents": 144,
+        "sha256": "88d783d1eb851584bc9c7e1fcc02b362448cf90737533fd58c8979368e8c2afc"
+      },
+      {
+        "part": "train/sci-finepdfs/part-00000.parquet",
+        "documents": 57,
+        "sha256": "e7106d3399b6f8b9998ff8050829b4efe81ecbfd1f249f99813c5e60a524afd7"
+      },
+      {
+        "part": "heldout/cadj-commits/part-00000.parquet",
+        "documents": 8,
+        "sha256": "df699caab26f61b2a4a32446d9cbe3197ef84764c1a30165d2bb5ad3224aac9c"
+      },
+      {
+        "part": "heldout/cadj-notebooks/part-00000.parquet",
+        "documents": 2,
+        "sha256": "48c76e68a16723b156490facba1080ecc9c5d51c2b70f7596b94542cfba031fe"
+      },
+      {
+        "part": "heldout/cadj-stackexchange/part-00000.parquet",
+        "documents": 4,
+        "sha256": "773afcb0e3a218adeca82dfae2e85d9e1c18a5a2be1f8d81a993cebfe4fded16"
+      },
+      {
+        "part": "heldout/code-cpp/part-00000.parquet",
+        "documents": 6,
+        "sha256": "15e1afcc473df3b07c0f09530d235201f98c1af6774e42285417bcf20cc3c89b"
+      },
+      {
+        "part": "heldout/code-go/part-00000.parquet",
+        "documents": 8,
+        "sha256": "03e5a47400de1e1c163b7a6b582656f43a9d8a5e7a9b520f67d1526ad63adfce"
+      },
+      {
+        "part": "heldout/code-java/part-00000.parquet",
+        "documents": 8,
+        "sha256": "0fea5222a40328bf494a21dca169d8cade3fc6067d159ec76c7c85d56cd19a5d"
+      },
+      {
+        "part": "heldout/code-js-ts/part-00000.parquet",
+        "documents": 11,
+        "sha256": "46f40522f32ea9cd5f026d820b7e4e7931c942e4748943906399458e06b705eb"
+      },
+      {
+        "part": "heldout/code-python/part-00000.parquet",
+        "documents": 7,
+        "sha256": "9bd9e30975799394613285e1741be19ec746247445745a64f526eabcf14e543c"
+      },
+      {
+        "part": "heldout/code-rust/part-00000.parquet",
+        "documents": 6,
+        "sha256": "78906243ceca92608d117046e7592b7876785e60e4e7adb4b46e05be589c1595"
+      },
+      {
+        "part": "heldout/en-dclm/part-00000.parquet",
+        "documents": 6,
+        "sha256": "007f7a8d60cc34e98d40d4a8f6cd385381ed13d0dbab838b14d5d03c6fd41fec"
+      },
+      {
+        "part": "heldout/en-fineweb-edu/part-00000.parquet",
+        "documents": 7,
+        "sha256": "41f98219da1f0cae9325e012d6e2a9b8a08ecbb743a5144627f630e1141795d2"
+      },
+      {
+        "part": "heldout/en-nemotroncc/part-00000.parquet",
+        "documents": 10,
+        "sha256": "bdd30bc5385ed7fb7cc6270a076f35b69ad7ced9841da3ab70a2dc4c19826bcb"
+      },
+      {
+        "part": "heldout/en-nemotroncc-synth/part-00000.parquet",
+        "documents": 20,
+        "sha256": "3362fc91896e71cadd87d4ea409ccfccf50ac90e0bb68fa1c176af7bcfbb1f2d"
+      },
+      {
+        "part": "heldout/ind-bn-fw2/part-00000.parquet",
+        "documents": 1,
+        "sha256": "379c9fde5cc583ab07c4f755e94ea1ae3922619919506ab4fba6732fc5a829ea"
+      },
+      {
+        "part": "heldout/ind-bn-sangraha-v/part-00000.parquet",
+        "documents": 1,
+        "sha256": "b9c1b8f15ecc5b3f36c363308fb92bc72e25ecce76dc1c15ce866378bd99fd74"
+      },
+      {
+        "part": "heldout/ind-gu-fw2/part-00000.parquet",
+        "documents": 2,
+        "sha256": "6ee70b080260cf74c0abf73850c98753621db05e8c9a6f762260f535a70fa695"
+      },
+      {
+        "part": "heldout/ind-hi-fw2/part-00000.parquet",
+        "documents": 1,
+        "sha256": "9c79c732e2d4ad5465708e5fbab1979854d623a3294fed8d6b585d30cc38a79e"
+      },
+      {
+        "part": "heldout/ind-hi-hplt/part-00000.parquet",
+        "documents": 1,
+        "sha256": "b3897b98b8919b5035b00fd947613993422d1e4ef298b305ce37e3053862fcb9"
+      },
+      {
+        "part": "heldout/ind-hi-indiccorp/part-00000.parquet",
+        "documents": 11,
+        "sha256": "7dd48bf88f26104e86a21c3de762a7894a714863a9cc65d2e08a12f44f4dfd03"
+      },
+      {
+        "part": "heldout/ind-hi-sangraha-s/part-00000.parquet",
+        "documents": 1,
+        "sha256": "94602d899621fddb6e155d588ad9ebd14b73154bd194c11a348aab050703e499"
+      },
+      {
+        "part": "heldout/ind-hi-sangraha-v/part-00000.parquet",
+        "documents": 1,
+        "sha256": "d3333094004186650cfd53d17428c4e9d7ef8fdc68ccb1ca875ab343fed440fe"
+      },
+      {
+        "part": "heldout/ind-kn-fw2/part-00000.parquet",
+        "documents": 1,
+        "sha256": "e784c8f119d930dd2930f78459202ceb4a342e3ecdacd82357d163b6ca890551"
+      },
+      {
+        "part": "heldout/ind-kn-sangraha-s/part-00000.parquet",
+        "documents": 1,
+        "sha256": "9a61496bff4d3229e3c3535eecb823b148bdc214f0f1ac912d88881dd9d55ef9"
+      },
+      {
+        "part": "heldout/ind-kn-sangraha-v/part-00000.parquet",
+        "documents": 1,
+        "sha256": "fcec18ba1134f14f018b9d032456f63ae81275e5a5b8c6fb449a2d7c3df27711"
+      },
+      {
+        "part": "heldout/ind-ml-fw2/part-00000.parquet",
+        "documents": 2,
+        "sha256": "91936ca66d18daf33b3a4712632baa6957355448cb78db6ed1fecfbe7b2ab144"
+      },
+      {
+        "part": "heldout/ind-mr-fw2/part-00000.parquet",
+        "documents": 1,
+        "sha256": "ed1ad56c6c2401245b632d4c072e7091929f528d5f18d2ec0977c3b1c3b5e520"
+      },
+      {
+        "part": "heldout/ind-mr-sangraha-v/part-00000.parquet",
+        "documents": 1,
+        "sha256": "4400fe342f0b3ed7c35c525ff2a8ce3c31bd09bcae113b16eae65d72cd28dda8"
+      },
+      {
+        "part": "heldout/ind-or-fw2/part-00000.parquet",
+        "documents": 3,
+        "sha256": "146e4efdfcefb491b6cc0cbbf32ee6c5dc2a2f7be077b570f6d37df07caa8a1c"
+      },
+      {
+        "part": "heldout/ind-sa-fw2/part-00000.parquet",
+        "documents": 1,
+        "sha256": "4195e9ae21acfeca21991b40f51c3a8bbe702faaedf369508ff686e3cff8bc4d"
+      },
+      {
+        "part": "heldout/ind-ta-fw2/part-00000.parquet",
+        "documents": 1,
+        "sha256": "09e614eb7ff920f47d742b200c776adbf0c86735330ca66104f3fcdc44abfe5a"
+      },
+      {
+        "part": "heldout/ind-ta-sangraha-s/part-00000.parquet",
+        "documents": 1,
+        "sha256": "379242931c82238e0cbbbd9e879d9c58a82860a0d373ce131a01550dacfd6c96"
+      },
+      {
+        "part": "heldout/ind-ta-sangraha-v/part-00000.parquet",
+        "documents": 1,
+        "sha256": "aad6849876b5b36dd51aebb3b65fc5fddcec71a920b2afdf167242a244129fc2"
+      },
+      {
+        "part": "heldout/ind-te-fw2/part-00000.parquet",
+        "documents": 1,
+        "sha256": "d76bb33109d7052267a586acae6393c1a5a97d6c6e2488031137578cc5f39666"
+      },
+      {
+        "part": "heldout/ind-te-sangraha-s/part-00000.parquet",
+        "documents": 1,
+        "sha256": "33fa6fd068b27a07f358402a5193b77ba9ebfde20efb32eebc2851a174e6c8b6"
+      },
+      {
+        "part": "heldout/ind-te-sangraha-v/part-00000.parquet",
+        "documents": 1,
+        "sha256": "56d91807f679e82170947d5895e086991ad2178f83bc57be1bf0ce9414142b94"
+      },
+      {
+        "part": "heldout/math-finemath/part-00000.parquet",
+        "documents": 2,
+        "sha256": "73489e8055909369d1a93d660666879904d585a2d35c44fef0b9cb31200bebbc"
+      },
+      {
+        "part": "heldout/math-megamath/part-00000.parquet",
+        "documents": 2,
+        "sha256": "3f730818c94da5cbdca6b7c5f3e95425c050d8fdd9f9158720d5b6a2dee72160"
+      },
+      {
+        "part": "heldout/sci-finepdfs/part-00000.parquet",
+        "documents": 1,
+        "sha256": "6526786ce84378d5da8e027a4f47c72b69e18d4b74eca02e156465ad03b16dc4"
+      }
+    ]
+  },
+  "documents": {
+    "cadj-commits": {
+      "train": 748,
+      "heldout": 8,
+      "all": 756
+    },
+    "cadj-notebooks": {
+      "train": 156,
+      "heldout": 2,
+      "all": 158
+    },
+    "cadj-stackexchange": {
+      "train": 414,
+      "heldout": 4,
+      "all": 418
+    },
+    "code-cpp": {
+      "train": 545,
+      "heldout": 6,
+      "all": 551
+    },
+    "code-go": {
+      "train": 765,
+      "heldout": 8,
+      "all": 773
+    },
+    "code-java": {
+      "train": 840,
+      "heldout": 8,
+      "all": 848
+    },
+    "code-js-ts": {
+      "train": 1170,
+      "heldout": 11,
+      "all": 1181
+    },
+    "code-python": {
+      "train": 726,
+      "heldout": 7,
+      "all": 733
+    },
+    "code-rust": {
+      "train": 581,
+      "heldout": 6,
+      "all": 587
+    },
+    "en-dclm": {
+      "train": 601,
+      "heldout": 6,
+      "all": 607
+    },
+    "en-fineweb-edu": {
+      "train": 713,
+      "heldout": 7,
+      "all": 720
+    },
+    "en-nemotroncc": {
+      "train": 881,
+      "heldout": 10,
+      "all": 891
+    },
+    "en-nemotroncc-synth": {
+      "train": 1969,
+      "heldout": 20,
+      "all": 1989
+    },
+    "ind-bn-fw2": {
+      "train": 107,
+      "heldout": 1,
+      "all": 108
+    },
+    "ind-bn-sangraha-v": {
+      "train": 99,
+      "heldout": 1,
+      "all": 100
+    },
+    "ind-gu-fw2": {
+      "train": 229,
+      "heldout": 2,
+      "all": 231
+    },
+    "ind-hi-fw2": {
+      "train": 138,
+      "heldout": 1,
+      "all": 139
+    },
+    "ind-hi-hplt": {
+      "train": 85,
+      "heldout": 1,
+      "all": 86
+    },
+    "ind-hi-indiccorp": {
+      "train": 1100,
+      "heldout": 11,
+      "all": 1111
+    },
+    "ind-hi-sangraha-s": {
+      "train": 74,
+      "heldout": 1,
+      "all": 75
+    },
+    "ind-hi-sangraha-v": {
+      "train": 145,
+      "heldout": 1,
+      "all": 146
+    },
+    "ind-kn-fw2": {
+      "train": 77,
+      "heldout": 1,
+      "all": 78
+    },
+    "ind-kn-sangraha-s": {
+      "train": 52,
+      "heldout": 1,
+      "all": 53
+    },
+    "ind-kn-sangraha-v": {
+      "train": 86,
+      "heldout": 1,
+      "all": 87
+    },
+    "ind-ml-fw2": {
+      "train": 190,
+      "heldout": 2,
+      "all": 192
+    },
+    "ind-mr-fw2": {
+      "train": 114,
+      "heldout": 1,
+      "all": 115
+    },
+    "ind-mr-sangraha-v": {
+      "train": 122,
+      "heldout": 1,
+      "all": 123
+    },
+    "ind-or-fw2": {
+      "train": 337,
+      "heldout": 3,
+      "all": 340
+    },
+    "ind-sa-fw2": {
+      "train": 59,
+      "heldout": 1,
+      "all": 60
+    },
+    "ind-ta-fw2": {
+      "train": 68,
+      "heldout": 1,
+      "all": 69
+    },
+    "ind-ta-sangraha-s": {
+      "train": 43,
+      "heldout": 1,
+      "all": 44
+    },
+    "ind-ta-sangraha-v": {
+      "train": 68,
+      "heldout": 1,
+      "all": 69
+    },
+    "ind-te-fw2": {
+      "train": 56,
+      "heldout": 1,
+      "all": 57
+    },
+    "ind-te-sangraha-s": {
+      "train": 44,
+      "heldout": 1,
+      "all": 45
+    },
+    "ind-te-sangraha-v": {
+      "train": 86,
+      "heldout": 1,
+      "all": 87
+    },
+    "math-finemath": {
+      "train": 273,
+      "heldout": 2,
+      "all": 275
+    },
+    "math-megamath": {
+      "train": 144,
+      "heldout": 2,
+      "all": 146
+    },
+    "sci-finepdfs": {
+      "train": 57,
+      "heldout": 1,
+      "all": 58
+    }
+  },
+  "documents_all": 14106,
+  "distinct_hashes": 14106,
+  "h1_exact_groups": 0,
+  "documents_in_h1_exact_groups": 0,
+  "empty_documents": 0,
+  "qualifying_pairs_by_rule": {
+    "H1": 0
+  },
+  "h1_edges": "star: each member of an H1 group paired with the group's first row",
+  "duplicate_rules": {
+    "h1": "same sha256 of the H1 key (the clean job's text_hash)",
+    "h2": "not looked for: exact copies only",
+    "translations": "not detected"
+  },
+  "shingles": "word 5-gram positions of the key (words - 4, at least 1; 0 for an empty key), not distinct shingles",
+  "stage_seconds": {
+    "read": 0.4,
+    "h1": 0.0,
+    "outputs": 0.0
+  },
+  "wall_seconds": 0.4,
+  "workers": 10,
+  "peak_rss_mb": {
+    "main": 134.6,
+    "largest_worker": 0.0
+  },
+  "versions": {
+    "python": "3.12.10",
+    "numpy": "2.4.3",
+    "pyarrow": "23.0.1",
+    "platform": "macOS-26.4.1-arm64-arm-64bit"
+  },
+  "outputs": {
+    "overlap_matches.csv": {
+      "bytes": 79,
+      "sha256": "542920120326cf944eadaaae766257ff1cb0b86cc3097554cd46d23568a58bcf"
+    },
+    "overlap_docs.parquet": {
+      "bytes": 400098,
+      "sha256": "50fa1cfa41f4eeb7241d4096a6443917b1674c04c9e22d6aa902c898942179ae"
+    }
+  },
+  "returned_files": [
+    "overlap_matches.csv",
+    "overlap_summary.json"
+  ],
+  "job_storage_files": [
+    "overlap_docs.parquet"
+  ],
+  "returned_mb": 0.02
+}

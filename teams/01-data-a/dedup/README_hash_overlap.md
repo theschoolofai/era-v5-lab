@@ -46,12 +46,13 @@ The clean stage then needs settings with `"text_hash": true`. An example is
 
 ## Speed and end-to-end check
 
-The 1% slice of tokenizer sample v0 (14,450 rows, all 86 parts), with H3 left out. The whole pipeline ran twice on it:
+The 1% slice of tokenizer sample v0 (14,450 rows, all 86 parts), with H3 left out, at commit `2d09b023`, on an Apple
+M4 (10 cores, 16 GiB). The whole pipeline ran twice on it:
 once with `minhash_overlap.py`, once with this stage. Details are in `jobs/2026-11-28-d2-b3-sample-1pct/README.md`.
 
 | | MinHash | hash-only |
 |---|---|---|
-| overlap stage | 19.9 s, 16 workers, 266 MB peak per worker | 0.8 s, one process, 137 MB peak |
+| overlap stage | 18.5 s, 16 workers, 233 MB peak per worker | 0.9 s, one process, 135 MB peak |
 | pipeline checks | 108 / 108 | 108 / 108 |
 | shards | 48 | 48, byte-identical |
 

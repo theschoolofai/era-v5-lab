@@ -1,0 +1,2 @@
+86 parts {'train': 48, 'heldout': 38}, 14,450 rows of 1,444,766, 62,210,044 text bytes
+manifest inputs/sample_1pct/sample_manifest.json sha256 0b1a3e4305e5eaef10d2254835ad325dd92f5cffdc5d1ba3b26cf06117722bb1

@@ -1,0 +1,872 @@
+{
+  "status": "complete",
+  "method": "minhash_lsh",
+  "config": {
+    "inputs": "out/pipeline/d2-1pct-baseline/clean",
+    "splits": [
+      "train",
+      "heldout"
+    ],
+    "out": "out/pipeline/d2-1pct-baseline/overlap",
+    "floor": 0.5,
+    "k": 5,
+    "block": 256,
+    "top": 20,
+    "max_output_mb": 50,
+    "expected_packs": [
+      "cadj-commits",
+      "cadj-notebooks",
+      "cadj-stackexchange",
+      "code-cpp",
+      "code-go",
+      "code-java",
+      "code-js-ts",
+      "code-python",
+      "code-rust",
+      "en-dclm",
+      "en-fineweb-edu",
+      "en-nemotroncc",
+      "en-nemotroncc-synth",
+      "ind-bn-fw2",
+      "ind-bn-sangraha-v",
+      "ind-gu-fw2",
+      "ind-hi-fw2",
+      "ind-hi-hplt",
+      "ind-hi-indiccorp",
+      "ind-hi-sangraha-s",
+      "ind-hi-sangraha-v",
+      "ind-kn-fw2",
+      "ind-kn-sangraha-s",
+      "ind-kn-sangraha-v",
+      "ind-ml-fw2",
+      "ind-mr-fw2",
+      "ind-mr-sangraha-v",
+      "ind-or-fw2",
+      "ind-sa-fw2",
+      "ind-ta-fw2",
+      "ind-ta-sangraha-s",
+      "ind-ta-sangraha-v",
+      "ind-te-fw2",
+      "ind-te-sangraha-s",
+      "ind-te-sangraha-v",
+      "math-finemath",
+      "math-megamath",
+      "sci-finepdfs"
+    ],
+    "hashes": 128,
+    "bands": 32,
+    "seed": 20261122,
+    "workers": 16,
+    "max_bucket": 2000,
+    "work": "out/pipeline/d2-1pct-baseline/overlap/work"
+  },
+  "normalize_id": "g1-spec-v1",
+  "key": "h1_key of h1_sha256.py: normalize.match_key, then NFKC, casefold, whitespace runs to one space",
+  "shingles": "word 5-grams of the key as 64-bit hashes (jaccard_matrix.shingles), exactly as overlap.py",
+  "inputs": {
+    "root": "out/pipeline/d2-1pct-baseline/clean",
+    "checksum_verification": "sha256",
+    "parts": [
+      {
+        "part": "train/cadj-commits/part-00000.parquet",
+        "documents": 748,
+        "sha256": "2d0afbde6bb7ba32f21f94b3993b7f3f822b1b21a676c5faed65296ebac236ca"
+      },
+      {
+        "part": "train/cadj-notebooks/part-00000.parquet",
+        "documents": 156,
+        "sha256": "ac87973be592956c00add3ceb0d9183104c0bdb467d3f87fb9dc6c1c84703c0d"
+      },
+      {
+        "part": "train/cadj-stackexchange/part-00000.parquet",
+        "documents": 414,
+        "sha256": "004b381025a6890a17a21556549f7925d02c6b2f9ad5d804d9794eb9b3647f7f"
+      },
+      {
+        "part": "train/code-cpp/part-00000.parquet",
+        "documents": 403,
+        "sha256": "0823f2717bfbeebd713cb9ed5e06a1fa5ea0fa6d2c7a643d6b94d62d28035b56"
+      },
+      {
+        "part": "train/code-cpp/part-00001.parquet",
+        "documents": 142,
+        "sha256": "647a078b120f382fffbe7a17dfedc685318b07a4106a14d9a9f0a5055b9a2c35"
+      },
+      {
+        "part": "train/code-go/part-00000.parquet",
+        "documents": 559,
+        "sha256": "afaeec80c08621b4e1c882f0f18ab94962112d0c6cfa320f419c0d565cf49e90"
+      },
+      {
+        "part": "train/code-go/part-00001.parquet",
+        "documents": 206,
+        "sha256": "103dee83cb9c50bce4be44d5dbde954990535c9d613d6ed8f4a986bc90de2efa"
+      },
+      {
+        "part": "train/code-java/part-00000.parquet",
+        "documents": 617,
+        "sha256": "dbfce298143dfbb0d2a24795e3038e6da8bd485d5821d689d87fdfd29c115f91"
+      },
+      {
+        "part": "train/code-java/part-00001.parquet",
+        "documents": 223,
+        "sha256": "e68a812963da699dc1eaea23eb7371058979ecb4f46efe02882efda3edc91ad4"
+      },
+      {
+        "part": "train/code-js-ts/part-00000.parquet",
+        "documents": 861,
+        "sha256": "fcac8d0514e34e857d9cce7fd3a12f6c56a198b274e7e731942ed459033884cf"
+      },
+      {
+        "part": "train/code-js-ts/part-00001.parquet",
+        "documents": 309,
+        "sha256": "6617179b956c9c1d90e251016f6de8ea47252b55ac4c3f34ae108b7c3b3b3990"
+      },
+      {
+        "part": "train/code-python/part-00000.parquet",
+        "documents": 534,
+        "sha256": "08338af57e28dbd736713623468dbab28c4b8cfb9deaa5251ecb62b3af6ecc97"
+      },
+      {
+        "part": "train/code-python/part-00001.parquet",
+        "documents": 192,
+        "sha256": "565eb18de47b54e5144e326c23bd3162af30cdc6f2ddec7b2ce03b81b8b83c3f"
+      },
+      {
+        "part": "train/code-rust/part-00000.parquet",
+        "documents": 429,
+        "sha256": "7f744e008b76a775647ae08be41b36e2613a33a1e4c076526960e7639a390c67"
+      },
+      {
+        "part": "train/code-rust/part-00001.parquet",
+        "documents": 152,
+        "sha256": "8ba32f82fe02f228992882e76c828507f21079d11dbb734ef1fcd79346f4e000"
+      },
+      {
+        "part": "train/en-dclm/part-00000.parquet",
+        "documents": 452,
+        "sha256": "0af9cde199b2b29b4bda116e7ce3cd1eefc92e9d90e52778c4efd144faaf08e6"
+      },
+      {
+        "part": "train/en-dclm/part-00001.parquet",
+        "documents": 149,
+        "sha256": "8aefabb710c2d3b3d520474c12bdb4f4f544f66553412d4bf5ae14fbe09eef8d"
+      },
+      {
+        "part": "train/en-fineweb-edu/part-00000.parquet",
+        "documents": 536,
+        "sha256": "5055ebd4d20628420d62ce253b47ca4c7dd52fdaaf81ef9248b0f4b67ed8bfa3"
+      },
+      {
+        "part": "train/en-fineweb-edu/part-00001.parquet",
+        "documents": 177,
+        "sha256": "6c21dec3c3963769ba545c0f49fe9e7b1db986723c8a253a740f70767bcae16e"
+      },
+      {
+        "part": "train/en-nemotroncc/part-00000.parquet",
+        "documents": 658,
+        "sha256": "edf3e19548af7e976148c3160c4cbe037ffa327c05b80e73952e513b5d9bf4b0"
+      },
+      {
+        "part": "train/en-nemotroncc/part-00001.parquet",
+        "documents": 223,
+        "sha256": "d606f074916419b5e82065f226b74489f24c19c68819b395a71293e5a3861088"
+      },
+      {
+        "part": "train/en-nemotroncc-synth/part-00000.parquet",
+        "documents": 1475,
+        "sha256": "5d09675f60725b670afac0a500604eccfcdd08d6b5fd0ff0f214b60989821fc8"
+      },
+      {
+        "part": "train/en-nemotroncc-synth/part-00001.parquet",
+        "documents": 494,
+        "sha256": "480844e093699d1cd7a0362493e99f3cae141db8a013a11f7a11df0c73a35ef4"
+      },
+      {
+        "part": "train/ind-bn-fw2/part-00000.parquet",
+        "documents": 107,
+        "sha256": "80d6bc5f4f40f5d9a7f9837171a7bbdde4df774b338369f1a54c8c47c622ee88"
+      },
+      {
+        "part": "train/ind-bn-sangraha-v/part-00000.parquet",
+        "documents": 99,
+        "sha256": "09e58e2126d166df8f961420921b1f7b5d6a7cd68c8a667a460105815b08c4b6"
+      },
+      {
+        "part": "train/ind-gu-fw2/part-00000.parquet",
+        "documents": 229,
+        "sha256": "b82ea0c1df84f5004130b9eb4b87a26e62031fb7e16210c6eb5469fd9c9423d9"
+      },
+      {
+        "part": "train/ind-hi-fw2/part-00000.parquet",
+        "documents": 138,
+        "sha256": "85afd9c81d1720217d14bf166ba78951e4313cc38a13e5f5290103eaf9142074"
+      },
+      {
+        "part": "train/ind-hi-hplt/part-00000.parquet",
+        "documents": 85,
+        "sha256": "3fbfbc52a5209fded3b7fe656a4a30b515489934fe5ab5c7141a6c0e01b2cf7e"
+      },
+      {
+        "part": "train/ind-hi-indiccorp/part-00000.parquet",
+        "documents": 1100,
+        "sha256": "1275f1965c04c681cba6f98de1287659f87470146d0d014cf085eb3e7be9fc7b"
+      },
+      {
+        "part": "train/ind-hi-sangraha-s/part-00000.parquet",
+        "documents": 74,
+        "sha256": "e378b3811b809b7b4e0468f9aa0d69c497c5d501dd3c04bd117a9312e43d207b"
+      },
+      {
+        "part": "train/ind-hi-sangraha-v/part-00000.parquet",
+        "documents": 145,
+        "sha256": "4b502bda364a973e6ccfa1b22b4cd3274eea1280bd3096e2ce260cd9129f836a"
+      },
+      {
+        "part": "train/ind-kn-fw2/part-00000.parquet",
+        "documents": 77,
+        "sha256": "367ee014da930d60f521a1987c0d2d0c4308975f834a0cbd97dcb8e167c53080"
+      },
+      {
+        "part": "train/ind-kn-sangraha-s/part-00000.parquet",
+        "documents": 52,
+        "sha256": "3b6849b73b477e3f95182334323471349dc0c9d8c683ef8079d7a4a4d28d9b8e"
+      },
+      {
+        "part": "train/ind-kn-sangraha-v/part-00000.parquet",
+        "documents": 86,
+        "sha256": "b7df068ac95e4d9351d00776721660696f306fd361108cacfc79d2dce9379cd4"
+      },
+      {
+        "part": "train/ind-ml-fw2/part-00000.parquet",
+        "documents": 190,
+        "sha256": "93fe1401687fe43438519cf4e25d731c2cd5acd7b0e5430ed280dacfdc4f6815"
+      },
+      {
+        "part": "train/ind-mr-fw2/part-00000.parquet",
+        "documents": 114,
+        "sha256": "9c930f34a5652f1195bf6e5ed3e130b7315ca923760d65a39d786accf8282f0c"
+      },
+      {
+        "part": "train/ind-mr-sangraha-v/part-00000.parquet",
+        "documents": 122,
+        "sha256": "b19829549af63510c7a4c5120e5f2d5fb3f68960177c82f87009ebf75ce3d67d"
+      },
+      {
+        "part": "train/ind-or-fw2/part-00000.parquet",
+        "documents": 337,
+        "sha256": "b69e22c05f6e74bbdfc0fa662b7d2dda88c3400b67d615db037cec777cb87403"
+      },
+      {
+        "part": "train/ind-sa-fw2/part-00000.parquet",
+        "documents": 59,
+        "sha256": "6fd88bbb4e2ba6de7afee7abfc7ea0c3edf5d05c014c7de1efc29854209cdb56"
+      },
+      {
+        "part": "train/ind-ta-fw2/part-00000.parquet",
+        "documents": 68,
+        "sha256": "77271ff49a8a4bc2729faa5571868890d92e2a3bb6299e22c5b2031116f5d3f9"
+      },
+      {
+        "part": "train/ind-ta-sangraha-s/part-00000.parquet",
+        "documents": 43,
+        "sha256": "a38baf1bfa9307c22b8a990139bda5ea5ef5adde24aaf7e3292f4a9554806e1a"
+      },
+      {
+        "part": "train/ind-ta-sangraha-v/part-00000.parquet",
+        "documents": 68,
+        "sha256": "454feaef801c277eb20dd84771b191e78f207c81acd0514c5def21d4d57c9c06"
+      },
+      {
+        "part": "train/ind-te-fw2/part-00000.parquet",
+        "documents": 56,
+        "sha256": "32d84d9c63c4d3d49e927c4d7c5c9b35a288b13fe23a86b92cb5c1a8e2b31815"
+      },
+      {
+        "part": "train/ind-te-sangraha-s/part-00000.parquet",
+        "documents": 44,
+        "sha256": "1f73b34e8622702ee78e8e256b0f934a7a11d194ba315ab8e958043b9af44930"
+      },
+      {
+        "part": "train/ind-te-sangraha-v/part-00000.parquet",
+        "documents": 86,
+        "sha256": "d84887bb924cfb6b861529dc09296d131e31cc229f1baa33d54364d3a4e5cc87"
+      },
+      {
+        "part": "train/math-finemath/part-00000.parquet",
+        "documents": 273,
+        "sha256": "55552c8ecb36e5955a9b6d57cbcb1dcaebc90a7399b9b5e9dc66553a4788c17c"
+      },
+      {
+        "part": "train/math-megamath/part-00000.parquet",
+        "documents": 144,
+        "sha256": "86ae8cd9c5ed3ce3a5ad31b16462a4ab5ec15aad36764e04e31c34503a4d063e"
+      },
+      {
+        "part": "train/sci-finepdfs/part-00000.parquet",
+        "documents": 57,
+        "sha256": "19dea925ce816af2c87ef6dead5ef726f393db697dc87692e3155165f794a4f9"
+      },
+      {
+        "part": "heldout/cadj-commits/part-00000.parquet",
+        "documents": 8,
+        "sha256": "6b47f24301cfd31dcd27edd5b2662d3908f8539cc6fce17b198d23cd72f13059"
+      },
+      {
+        "part": "heldout/cadj-notebooks/part-00000.parquet",
+        "documents": 2,
+        "sha256": "e7bed0585c87c70d71a0ed4554708d6e2ff8fa5a0f07f0328e2aaeaec0734b7f"
+      },
+      {
+        "part": "heldout/cadj-stackexchange/part-00000.parquet",
+        "documents": 4,
+        "sha256": "2444a46dc60705e53c227c1a77e357e8139b1caa255ab2d21ea548236a93a21d"
+      },
+      {
+        "part": "heldout/code-cpp/part-00000.parquet",
+        "documents": 6,
+        "sha256": "134e618c1522a09d8a7ba10c0891eccd79912e3fc67283c611bf35407e5115be"
+      },
+      {
+        "part": "heldout/code-go/part-00000.parquet",
+        "documents": 8,
+        "sha256": "ec998a2f337915cc8a95a0592b205d47e62fbcc9114f39c06d2cc6e2ede7aeb8"
+      },
+      {
+        "part": "heldout/code-java/part-00000.parquet",
+        "documents": 8,
+        "sha256": "c73b32044463b05f22ba209aab24df91a15ee2ef423f39aad785555dfae9ad10"
+      },
+      {
+        "part": "heldout/code-js-ts/part-00000.parquet",
+        "documents": 11,
+        "sha256": "55c1c99bb05afd63310d7e11a94209ae59c0b33f2d8a6d25fddc5731abe02fae"
+      },
+      {
+        "part": "heldout/code-python/part-00000.parquet",
+        "documents": 7,
+        "sha256": "4ddbc7d7ac87e070d06b43dfe842acec5489a66dfc8510721d2ebd6cd325b9c3"
+      },
+      {
+        "part": "heldout/code-rust/part-00000.parquet",
+        "documents": 6,
+        "sha256": "63927d01f58290ec9f04d90a4c9c1d053c9793993ce750c5e64e671527f93e6a"
+      },
+      {
+        "part": "heldout/en-dclm/part-00000.parquet",
+        "documents": 6,
+        "sha256": "bc45d408294f8a27db16a0091efc2b6443ec4095fa6787280b8e43576cf0c792"
+      },
+      {
+        "part": "heldout/en-fineweb-edu/part-00000.parquet",
+        "documents": 7,
+        "sha256": "d09d1838c6b8745e32f24381c6178ef48b7606580e132d5c3f84e05b5d221b73"
+      },
+      {
+        "part": "heldout/en-nemotroncc/part-00000.parquet",
+        "documents": 10,
+        "sha256": "ee698247b3ce5594c3fd6829035a078ed941b7058607340e7e66ab15e161715f"
+      },
+      {
+        "part": "heldout/en-nemotroncc-synth/part-00000.parquet",
+        "documents": 20,
+        "sha256": "7333799d92dd6d3e25135227ef863d2c3f34a0ac43f311468fba8b80a3aa22c5"
+      },
+      {
+        "part": "heldout/ind-bn-fw2/part-00000.parquet",
+        "documents": 1,
+        "sha256": "e46f00c1866abd628cda556b6649442677f29316e1de5cd2843c95bd8f3bb9be"
+      },
+      {
+        "part": "heldout/ind-bn-sangraha-v/part-00000.parquet",
+        "documents": 1,
+        "sha256": "93b761ad6f7e6b0fdfd1f4421f111d100f8c0680d587093db630f37edbe3073b"
+      },
+      {
+        "part": "heldout/ind-gu-fw2/part-00000.parquet",
+        "documents": 2,
+        "sha256": "0e2e560f19b5e346b8a73fc1e36fa935ae32e005e75dcfe1aa03051efff3885e"
+      },
+      {
+        "part": "heldout/ind-hi-fw2/part-00000.parquet",
+        "documents": 1,
+        "sha256": "4c0666f467d92355671251fc88f3a3e5dd3658761db64652a1bd26409d1d64f8"
+      },
+      {
+        "part": "heldout/ind-hi-hplt/part-00000.parquet",
+        "documents": 1,
+        "sha256": "48a2b0bcd7007727989795812d2e464a3fde33db2b01d13ca3789f64f5f494b9"
+      },
+      {
+        "part": "heldout/ind-hi-indiccorp/part-00000.parquet",
+        "documents": 11,
+        "sha256": "4b962eff2020adde2cb296d34c9fb78e6121924861b5444565a5d2c431b830b9"
+      },
+      {
+        "part": "heldout/ind-hi-sangraha-s/part-00000.parquet",
+        "documents": 1,
+        "sha256": "472d2f08b645b0b7bf78d65b51e9c714c654a1faf4648daf4e23b9fe657817c7"
+      },
+      {
+        "part": "heldout/ind-hi-sangraha-v/part-00000.parquet",
+        "documents": 1,
+        "sha256": "b783904e6e86a61a7177dd4be0a90215baf149dab6d0bd0a6b5ebe0d913ad78f"
+      },
+      {
+        "part": "heldout/ind-kn-fw2/part-00000.parquet",
+        "documents": 1,
+        "sha256": "4d0b5f00af7b10aa822d70c26d0599b9955ad5b739bc5c1e9cefa581820eddaf"
+      },
+      {
+        "part": "heldout/ind-kn-sangraha-s/part-00000.parquet",
+        "documents": 1,
+        "sha256": "77142f93dcf562ab0ecb5bbf2fd9bcbb08b85045ed07ce661f82111bc5bf29b5"
+      },
+      {
+        "part": "heldout/ind-kn-sangraha-v/part-00000.parquet",
+        "documents": 1,
+        "sha256": "a75710e3cecf4cfda0e88ad2edd1191edf2a5a48dc71807d3dd2e0e277df342d"
+      },
+      {
+        "part": "heldout/ind-ml-fw2/part-00000.parquet",
+        "documents": 2,
+        "sha256": "4138539c3421d852d9a3d5111bba1c28aa3cbb3b40dde862554b65225559f286"
+      },
+      {
+        "part": "heldout/ind-mr-fw2/part-00000.parquet",
+        "documents": 1,
+        "sha256": "1022f4b31f8b7ec4c385d5ad2bcabf802d8638f3a108f04b71f5e21d53364ec8"
+      },
+      {
+        "part": "heldout/ind-mr-sangraha-v/part-00000.parquet",
+        "documents": 1,
+        "sha256": "202e6e7faeef958b932a7a6371828fda0141ea380f9b347acb0f0811b23fc2b2"
+      },
+      {
+        "part": "heldout/ind-or-fw2/part-00000.parquet",
+        "documents": 3,
+        "sha256": "034eb828bc5b22d07b8f4b9e69dfd6812d94ca3c10af16fedffc1d596680bcac"
+      },
+      {
+        "part": "heldout/ind-sa-fw2/part-00000.parquet",
+        "documents": 1,
+        "sha256": "bbdd38e5f79b066e5b2efbb085bfed598d9a854e2737b6f5095f092f575204c3"
+      },
+      {
+        "part": "heldout/ind-ta-fw2/part-00000.parquet",
+        "documents": 1,
+        "sha256": "b6fad4caff03e1f0b13dbe10bde23eb6005309db3e4f7123029352dd5231f310"
+      },
+      {
+        "part": "heldout/ind-ta-sangraha-s/part-00000.parquet",
+        "documents": 1,
+        "sha256": "06230f3f344ea7638ed815ce8d160738e9a4a0b94111b237d1cc9c340c1f1cf1"
+      },
+      {
+        "part": "heldout/ind-ta-sangraha-v/part-00000.parquet",
+        "documents": 1,
+        "sha256": "23d62040c93521436648d37f7578abef215629ef96e3ad3ea8479bd3715d7e14"
+      },
+      {
+        "part": "heldout/ind-te-fw2/part-00000.parquet",
+        "documents": 1,
+        "sha256": "b505a6cb556eddb04ecb9517284cc03177446b4272a2a50ba15e955f374ae425"
+      },
+      {
+        "part": "heldout/ind-te-sangraha-s/part-00000.parquet",
+        "documents": 1,
+        "sha256": "1eea22fac4d88cd14441583036c3eb2e58991a8200691a22b653288ce504db45"
+      },
+      {
+        "part": "heldout/ind-te-sangraha-v/part-00000.parquet",
+        "documents": 1,
+        "sha256": "2e59ec1cf4a45eebfa11a6efbdbc5ca2d23d6428b233ce7ef4b32f79123a981d"
+      },
+      {
+        "part": "heldout/math-finemath/part-00000.parquet",
+        "documents": 2,
+        "sha256": "e58c847f1f4c55b04f3b6876d0594dca2d74255b5a40187c59c8281bcd220251"
+      },
+      {
+        "part": "heldout/math-megamath/part-00000.parquet",
+        "documents": 2,
+        "sha256": "fb33817d68ebe89487faf03b2af7faf54bed449628d0cd878b7c2769d61920c6"
+      },
+      {
+        "part": "heldout/sci-finepdfs/part-00000.parquet",
+        "documents": 1,
+        "sha256": "81ae4bc304e0af1fd03e5ed65d94dc88f66f5cc00ba64f071ec081faa354552c"
+      }
+    ]
+  },
+  "documents": {
+    "cadj-commits": {
+      "train": 748,
+      "heldout": 8,
+      "all": 756
+    },
+    "cadj-notebooks": {
+      "train": 156,
+      "heldout": 2,
+      "all": 158
+    },
+    "cadj-stackexchange": {
+      "train": 414,
+      "heldout": 4,
+      "all": 418
+    },
+    "code-cpp": {
+      "train": 545,
+      "heldout": 6,
+      "all": 551
+    },
+    "code-go": {
+      "train": 765,
+      "heldout": 8,
+      "all": 773
+    },
+    "code-java": {
+      "train": 840,
+      "heldout": 8,
+      "all": 848
+    },
+    "code-js-ts": {
+      "train": 1170,
+      "heldout": 11,
+      "all": 1181
+    },
+    "code-python": {
+      "train": 726,
+      "heldout": 7,
+      "all": 733
+    },
+    "code-rust": {
+      "train": 581,
+      "heldout": 6,
+      "all": 587
+    },
+    "en-dclm": {
+      "train": 601,
+      "heldout": 6,
+      "all": 607
+    },
+    "en-fineweb-edu": {
+      "train": 713,
+      "heldout": 7,
+      "all": 720
+    },
+    "en-nemotroncc": {
+      "train": 881,
+      "heldout": 10,
+      "all": 891
+    },
+    "en-nemotroncc-synth": {
+      "train": 1969,
+      "heldout": 20,
+      "all": 1989
+    },
+    "ind-bn-fw2": {
+      "train": 107,
+      "heldout": 1,
+      "all": 108
+    },
+    "ind-bn-sangraha-v": {
+      "train": 99,
+      "heldout": 1,
+      "all": 100
+    },
+    "ind-gu-fw2": {
+      "train": 229,
+      "heldout": 2,
+      "all": 231
+    },
+    "ind-hi-fw2": {
+      "train": 138,
+      "heldout": 1,
+      "all": 139
+    },
+    "ind-hi-hplt": {
+      "train": 85,
+      "heldout": 1,
+      "all": 86
+    },
+    "ind-hi-indiccorp": {
+      "train": 1100,
+      "heldout": 11,
+      "all": 1111
+    },
+    "ind-hi-sangraha-s": {
+      "train": 74,
+      "heldout": 1,
+      "all": 75
+    },
+    "ind-hi-sangraha-v": {
+      "train": 145,
+      "heldout": 1,
+      "all": 146
+    },
+    "ind-kn-fw2": {
+      "train": 77,
+      "heldout": 1,
+      "all": 78
+    },
+    "ind-kn-sangraha-s": {
+      "train": 52,
+      "heldout": 1,
+      "all": 53
+    },
+    "ind-kn-sangraha-v": {
+      "train": 86,
+      "heldout": 1,
+      "all": 87
+    },
+    "ind-ml-fw2": {
+      "train": 190,
+      "heldout": 2,
+      "all": 192
+    },
+    "ind-mr-fw2": {
+      "train": 114,
+      "heldout": 1,
+      "all": 115
+    },
+    "ind-mr-sangraha-v": {
+      "train": 122,
+      "heldout": 1,
+      "all": 123
+    },
+    "ind-or-fw2": {
+      "train": 337,
+      "heldout": 3,
+      "all": 340
+    },
+    "ind-sa-fw2": {
+      "train": 59,
+      "heldout": 1,
+      "all": 60
+    },
+    "ind-ta-fw2": {
+      "train": 68,
+      "heldout": 1,
+      "all": 69
+    },
+    "ind-ta-sangraha-s": {
+      "train": 43,
+      "heldout": 1,
+      "all": 44
+    },
+    "ind-ta-sangraha-v": {
+      "train": 68,
+      "heldout": 1,
+      "all": 69
+    },
+    "ind-te-fw2": {
+      "train": 56,
+      "heldout": 1,
+      "all": 57
+    },
+    "ind-te-sangraha-s": {
+      "train": 44,
+      "heldout": 1,
+      "all": 45
+    },
+    "ind-te-sangraha-v": {
+      "train": 86,
+      "heldout": 1,
+      "all": 87
+    },
+    "math-finemath": {
+      "train": 273,
+      "heldout": 2,
+      "all": 275
+    },
+    "math-megamath": {
+      "train": 144,
+      "heldout": 2,
+      "all": 146
+    },
+    "sci-finepdfs": {
+      "train": 57,
+      "heldout": 1,
+      "all": 58
+    }
+  },
+  "documents_all": 14106,
+  "h1_exact_groups": 0,
+  "documents_in_h1_exact_groups": 0,
+  "empty_documents": 0,
+  "minhash": {
+    "hashes": 128,
+    "bands": 32,
+    "rows_per_band": 4,
+    "seed": 20261122,
+    "parts_reused": 0,
+    "word": {
+      "buckets_2_or_more": 25,
+      "largest_bucket": 4,
+      "star_buckets": 0,
+      "pairs_before_dedup": 53,
+      "representatives_banded": 14106,
+      "candidate_pairs_representatives": 43,
+      "candidate_pairs": 43
+    },
+    "code": {
+      "buckets_2_or_more": 4,
+      "largest_bucket": 2,
+      "star_buckets": 0,
+      "pairs_before_dedup": 4,
+      "candidate_pairs": 3,
+      "eligible_documents": 3673
+    },
+    "p_found_at": {
+      "0.70": 0.9998471708406208,
+      "0.80": 0.9999999525011427,
+      "0.85": 0.9999999999448543,
+      "0.90": 0.9999999999999986
+    }
+  },
+  "pairs_verified": 43,
+  "pairs_at_or_above": {
+    "0.70": 0,
+    "0.75": 0,
+    "0.80": 0,
+    "0.85": 0,
+    "0.90": 0,
+    "0.95": 0
+  },
+  "pairs_at_or_above_note": "among verified LSH candidates only; complete at >= 0.80 within LSH recall",
+  "qualifying_pairs_by_rule": {},
+  "h1_edges": "star: each member of an H1 group paired with the group's first row",
+  "duplicate_rules": {
+    "prose": "word Jaccard >= 0.80; both >= 50 words",
+    "math": "word Jaccard >= 0.90; identical signed number multisets",
+    "code": "token Jaccard >= 0.85; both >= 20 nonblank lines after comment removal",
+    "mixed_domains": "both domains' rules must pass on both documents",
+    "h1": "same H1 SHA256; bypasses H2 guards",
+    "translations": "not detected"
+  },
+  "pack_domains": {
+    "cadj-commits": "prose",
+    "cadj-notebooks": "prose",
+    "cadj-stackexchange": "prose",
+    "code-cpp": "code",
+    "code-go": "code",
+    "code-java": "code",
+    "code-js-ts": "code",
+    "code-python": "code",
+    "code-rust": "code",
+    "en-dclm": "prose",
+    "en-fineweb-edu": "prose",
+    "en-nemotroncc": "prose",
+    "en-nemotroncc-synth": "prose",
+    "ind-bn-fw2": "prose",
+    "ind-bn-sangraha-v": "prose",
+    "ind-gu-fw2": "prose",
+    "ind-hi-fw2": "prose",
+    "ind-hi-hplt": "prose",
+    "ind-hi-indiccorp": "prose",
+    "ind-hi-sangraha-s": "prose",
+    "ind-hi-sangraha-v": "prose",
+    "ind-kn-fw2": "prose",
+    "ind-kn-sangraha-s": "prose",
+    "ind-kn-sangraha-v": "prose",
+    "ind-ml-fw2": "prose",
+    "ind-mr-fw2": "prose",
+    "ind-mr-sangraha-v": "prose",
+    "ind-or-fw2": "prose",
+    "ind-sa-fw2": "prose",
+    "ind-ta-fw2": "prose",
+    "ind-ta-sangraha-s": "prose",
+    "ind-ta-sangraha-v": "prose",
+    "ind-te-fw2": "prose",
+    "ind-te-sangraha-s": "prose",
+    "ind-te-sangraha-v": "prose",
+    "math-finemath": "math",
+    "math-megamath": "math",
+    "sci-finepdfs": "prose"
+  },
+  "stage_seconds": {
+    "signatures": 15.5,
+    "h1": 0.0,
+    "lsh": 1.0,
+    "verify_words": 0.9,
+    "rules": 0.0,
+    "outputs": 0.0
+  },
+  "peak_rss_mb_after_stage": {
+    "signatures": {
+      "main": 104.2,
+      "largest_worker": 233.1
+    },
+    "table": {
+      "main": 104.2,
+      "largest_worker": 233.1
+    },
+    "lsh": {
+      "main": 104.2,
+      "largest_worker": 233.1
+    },
+    "verify_words": {
+      "main": 104.2,
+      "largest_worker": 233.1
+    },
+    "rules": {
+      "main": 104.2,
+      "largest_worker": 233.1
+    }
+  },
+  "wall_seconds": 17.6,
+  "workers": 16,
+  "peak_rss_mb": {
+    "main": 104.2,
+    "largest_worker": 233.1
+  },
+  "versions": {
+    "python": "3.12.10",
+    "numpy": "2.4.3",
+    "scipy": "1.18.1",
+    "pandas": "3.0.1",
+    "pyarrow": "23.0.1",
+    "pygments": "2.21.0",
+    "platform": "macOS-26.4.1-arm64-arm-64bit"
+  },
+  "outputs": {
+    "overlap_matches.csv": {
+      "bytes": 64,
+      "sha256": "484f20ed7b46de3a70ba005306a099290bee80096a3d3daa9aad3e69988c0153"
+    },
+    "overlap_matrix.csv": {
+      "bytes": 19866,
+      "sha256": "8760a43571544b5aae20e39a897cc921ec193a820480ea9cddd3c9278fca4095"
+    },
+    "overlap_matrix_counts.csv": {
+      "bytes": 49605,
+      "sha256": "310b61e9b055b8b0f6f2933dbbf2a5598db4ec7b635f5eb288fa6c9bcfe1cd7d"
+    },
+    "overlap_by_pack.csv": {
+      "bytes": 238044,
+      "sha256": "a17532e381ecc2be21174f7146fe1369e5090c0f2a0c3ae4925894d10a4cd299"
+    },
+    "overlap_docs.parquet": {
+      "bytes": 399902,
+      "sha256": "f05ad38374bd6d810be7622969818041827b3bca4e1fa36f9ee5bdc16656e736"
+    },
+    "overlap_pairs.csv": {
+      "bytes": 514,
+      "sha256": "c17d632c2ea13ffad7968042f50fe1eacc95026e4b6ba85d9e856b8cf6cf2759"
+    }
+  },
+  "returned_files": [
+    "overlap_matches.csv",
+    "overlap_matrix.csv",
+    "overlap_matrix_counts.csv",
+    "overlap_by_pack.csv",
+    "overlap_summary.json"
+  ],
+  "job_storage_files": [
+    "overlap_docs.parquet",
+    "overlap_pairs.csv",
+    "out/pipeline/d2-1pct-baseline/overlap/work"
+  ],
+  "returned_mb": 0.32
+}

@@ -22,20 +22,20 @@ The first cut is built in this branch. It is B3: the clean job's `text_hash` col
 The numbers are from two runs.
 - **38 packs:** the rehearsal on all 86 parts of tokenizer sample v0 (patilvijay23/era-v5-lab#62, 19 Nov). Runpod, 32
   vCPU, 251 GB RAM; exact-Jaccard overlap (`overlap.py`); F2 with 30 workers.
-- **1%:** the run on a 1% slice of the same parts (`jobs/2026-11-28-d2-b3-sample-1pct/`). MinHash overlap, one
-  tokenizer thread, no H3.
+- **1%:** the run on a 1% slice of the same parts (`jobs/2026-11-28-d2-b3-sample-1pct/`), at commit `2d09b023`.
+  Apple M4, 10 cores, 16 GiB; MinHash overlap; one tokenizer thread; no H3.
 
 ```mermaid
 flowchart TD
     raw[("raw parts<br/>1,444,766 rows")]:::data
-    clean["<b>clean</b> · reads raw text, writes cleaned text<br/>38 packs: 1,433 s · 1%: 9.8 s"]:::text
-    overlap["<b>overlap</b> · reads cleaned text<br/>38 packs (exact Jaccard): 5,036 s, 14.0 GB · 1% (MinHash): 19.9 s"]:::text
+    clean["<b>clean</b> · reads raw text, writes cleaned text<br/>38 packs: 1,433 s · 1%: 10.1 s"]:::text
+    overlap["<b>overlap</b> · reads cleaned text<br/>38 packs (exact Jaccard): 5,036 s, 14.0 GB · 1% (MinHash): 18.5 s"]:::text
     h3["<b>H3</b> · reads cleaned text of the H3 packs<br/>38 packs: 244 s (GPU)"]:::text
-    dedup["<b>dedup</b> · IDs only<br/>14 s · 0.9 s"]:::ids
+    dedup["<b>dedup</b> · IDs only<br/>14 s · 1.0 s"]:::ids
     apply["<b>apply</b> · rewrites the parts that lose rows<br/>23 s · 0.1 s"]:::text
-    f2["<b>F2</b> · reads text, writes final text<br/>722 s · 32.3 s"]:::text
-    ledger["<b>ledger</b> (mode B) · re-reads raw and cleaned text<br/>97 s · 0.8 s"]:::text
-    shards["<b>shards</b> · reads final text, tokenizes<br/>1,725 s · 148.2 s"]:::text
+    f2["<b>F2</b> · reads text, writes final text<br/>722 s · 35.5 s"]:::text
+    ledger["<b>ledger</b> (mode B) · re-reads raw and cleaned text<br/>97 s · 0.9 s"]:::text
+    shards["<b>shards</b> · reads final text, tokenizes<br/>1,725 s · 151.6 s"]:::text
     rec["<b>reconcile</b> · shard index<br/>18 s · 0.5 s"]:::ids
     raw --> clean --> overlap --> h3 --> dedup --> apply --> f2 --> shards --> rec
     raw -.-> ledger
@@ -67,7 +67,7 @@ tokenized **once**.
 
 | Cut | What changes | Pass removed | Saving | Status |
 |---|---|---|---|---|
-| **C1. Exact-hash dedup at the first pass** | The clean job writes `text_hash` (sha256 of the H1 key) while it cleans. Exact copies are found in one pass over the hashes, never the text (`dedup/hash_overlap.py`). The copies can then be skipped by every later stage. | The overlap stage's work on exact copies | **1%:** overlap stage 19.9 s → 0.8 s, peak RSS 266 MB per worker → 137 MB, the same 48 shards byte for byte. **38 packs:** exact copies are 148 documents (0.01%), so skipping them saves almost nothing later. At corpus scale it depends on the full sources' copy rate, which nobody has measured yet. | **Built** (B3) |
+| **C1. Exact-hash dedup at the first pass** | The clean job writes `text_hash` (sha256 of the H1 key) while it cleans. Exact copies are found in one pass over the hashes, never the text (`dedup/hash_overlap.py`). The copies can then be skipped by every later stage. | The overlap stage's work on exact copies | **1%:** overlap stage 18.5 s → 0.9 s, peak RSS 233 MB per worker → 135 MB, the same 48 shards byte for byte. **38 packs:** exact copies are 148 documents (0.01%), so skipping them saves almost nothing later. At corpus scale it depends on the full sources' copy rate, which nobody has measured yet. | **Built** (B3) |
 | **C2. MinHash instead of all-pairs Jaccard** | `dedup/minhash_overlap.py` (#744, #767) | The all-pairs comparison: 5,036 s and 14.0 GB on 38 packs | TSAI's sizing run on corpus-v1 passed its gate. Its per-factor numbers were not returned. | Built (Kunal) |
 | **C3. Ledger without text** | The clean job records each document's action (keep or fix). The ledger then reads IDs only, instead of comparing the raw and cleaned text. | The ledger's re-read of raw and cleaned text | 97 s and one read of both texts on 38 packs. | Proposal |
 | **C4. F2 in the tokenizing pass** | The shard writer checks each batch against G9's fingerprint set before it tokenizes, so no final parts are written. | F2's read and write of all text | Up to the input and output part of F2's 722 s. The matching stays. | Proposal; for F2's owners |
@@ -106,44 +106,48 @@ hash-only. Each run passed 108 of 108 checks.
 
 | Stage | Rows in | Dropped or removed | Seconds (MinHash) | Seconds (hash-only) |
 |---|---|---|---|---|
-| clean | 14,450 | 344 | 9.8 | 10.9 |
-| overlap | 14,106 | | 19.9 | 0.8 |
-| dedup | 14,106 | 0 | 0.9 | 0.9 |
+| clean | 14,450 | 344 | 10.1 | 12.0 |
+| overlap | 14,106 | | 18.5 | 0.9 |
+| dedup | 14,106 | 0 | 1.0 | 0.9 |
 | apply | 14,106 | 0 | 0.1 | 0.1 |
-| F2 | 14,106 | 14 | 32.3 | 44.7 |
+| F2 | 14,106 | 14 | 35.5 | 34.6 |
 | survivor loss | | | 0.3 | 0.3 |
-| ledger | 14,450 | | 0.8 | 0.9 |
-| shards | 14,092 | | 148.2 | 157.8 |
-| reconcile | | | 0.5 | 0.6 |
+| ledger | 14,450 | | 0.9 | 0.9 |
+| shards | 14,092 | | 151.6 | 146.8 |
+| reconcile | | | 0.5 | 0.5 |
+| **total** | | | **218.5** | **197.0** |
 
-- **Tokenizing:** 11,987,677 tokens in 144.8 s and 154.2 s of shard-writer time, summed over parts, with one thread
-  (`RAYON_NUM_THREADS=1`). That is **77,700–82,800 tokens per second per core**. It includes each part's process
-  start-up and Parquet input and output. The tokenizer was not G3's p1536 (sha256 `01d968a7…`), so p1536's rate still
-  has to be measured.
-- **Run-to-run noise.** Clean, F2 and shards did the same work in both runs. Their differences (1 to 12 s) are noise on
-  one laptop.
+- **Tokenizing:** 11,987,677 tokens in 148.1 s and 143.6 s of shard-writer time, summed over parts, with one thread
+  (`RAYON_NUM_THREADS=1`). That is **80,900–83,500 tokens per second per core**. It includes each part's process
+  start-up and Parquet input and output. The tokenizer was not G3's p1536 (sha256 `01d968a7…`). p1536's rate is B5's
+  (Kunal).
+- **Run-to-run noise.** Clean, F2 and shards did the same work in both runs. Their differences (0.9 to 4.8 s) are noise.
 - **The shard stage dominates at this size:** about 3 s for each of 48 parts. How much of that is the per-part process
   start-up (spawn, then imports) is not measured. If most of it is, writing several parts per process is a further cut.
 
 ## 4. The overlap stage's peak RAM, and when it does not fit
 
-| Overlap | Input | Peak RSS |
-|---|---|---|
-| exact Jaccard (`overlap.py`) | 38 packs, 1,410,230 documents | 14.0 GB |
-| MinHash (`minhash_overlap.py`), 16 workers | 1% slice, 14,106 documents | 266 MB in the largest worker, 99 MB in the main process |
-| exact hash (`hash_overlap.py`) | 1% slice | 137 MB, one process |
-| MinHash on corpus-v1's 33 packs | TSAI's sizing at 1x, 2x and 4x | passed the 48 GiB gate (G2 chat, 24 Nov); per-factor numbers not returned |
+This part of D2 is Kunal's (G1, 28 Nov). It covers:
+- MinHash's peak RSS per stage, on this 1% slice and at corpus scale (`overlap_summary.json`, and `minhash_sizing.py`
+  for the main process and workers together);
+- what to do when it does not fit: fewer workers, row ranges for large parts (theschoolofai/era-v5-lab#807), and the
+  main process, which has no sharded pass yet.
 
-**When it does not fit:**
-1. Fewer workers in MinHash's per-part signature step: memory grows with the number of workers.
-2. LSH bands one at a time from memory-mapped signature files. `minhash_overlap.py` already works this way.
-3. For the exact-hash pass: about 150 bytes per document for the whole table. Above that, partition the pass by the
-   hash's first byte (256 independent buckets).
-4. MinHash by groups of packs, then one pass across the groups over the stored signatures.
+The peaks measured so far, for reference:
+
+| Overlap | Input | Peak RSS | Source |
+|---|---|---|---|
+| exact Jaccard (`overlap.py`) | 38 packs, 1,410,230 documents | 14.0 GB | patilvijay23/era-v5-lab#62 |
+| MinHash (`minhash_overlap.py`), 16 workers | this 1% slice, 14,106 documents | 233 MB in the largest worker, 104 MB in the main process | this run |
+| MinHash, 2 cores, row ranges | 47 train parts of sample v0, 1,395,320 documents | 1.51 GB per worker, 2.18 GB in the main process | theschoolofai/era-v5-lab#807 |
+| exact hash (`hash_overlap.py`) | this 1% slice | 135 MB, one process | this run |
+
+**The exact-hash pass (B3)** holds about 150 bytes per document for the whole table. When that does not fit, partition
+the pass by the hash's first byte (256 independent buckets).
 
 ## 5. Not measured yet
 
 - The exact-copy rate of the full sources, which decides what C1 saves at corpus scale.
 - p1536's tokenizing rate, and the process start-up's share of the shard stage.
 - C3, C4 and C5 are not built.
-- MinHash's peak RAM on corpus-v1.
+- MinHash's peak RAM on corpus-v1: Kunal's part of D2.
