@@ -165,6 +165,26 @@ the model has no class for.
 In the code-adjacent text, cleaning replaces the e-mail addresses in commit messages with a placeholder.
 [text: waiting for TSAI, whether the notebooks and the posts are cleaned before training]
 
+## Personal data
+
+Some public text holds the contact details of private people, and some code holds secrets. The cleaner looks for both
+before the text is tokenised.
+
+- For a private person, the cleaner replaces an e-mail address, a phone number or a street address with a tag:
+  `<EMAIL>`, `<PHONE>` or `<ADDRESS>`. It keeps the details of organisations, such as a support mailbox.
+- It drops a document when most of its text is such details, such as a personal listing.
+- In code, it replaces a value only inside a comment or a string, so the values that a program uses stay.
+- The Indian-language text has its own rule, for Indian phone formats and for digits in each script.
+- In commit messages, it masks only e-mail addresses. There, the phone and address patterns matched other numbers,
+  such as IP addresses and part numbers.
+- Other rules replace secrets, such as API keys and passwords, with a placeholder.
+
+What the cleaner could not check:
+
+- Two kinds of code-adjacent text, notebooks and Stack Exchange posts, have no rule for personal details yet. They have
+  no gold set to test a rule on.
+- [text: waiting for Data A and Data B: what else the rules cannot find]
+
 ## Tokenizer
 
 [text: waiting for Tokenizer]
@@ -234,6 +254,10 @@ Each score is in points out of 100. The check of the training text covers both b
 text is checked against their questions before training reads it.
 
 Each language has a small set of questions, so a small gap between the scores of two languages can come from chance.
+
+## Safety evaluation
+
+[text: waiting for Evaluation. The list of tests is due in Lab 5. The results come 7 days after post-training ends, on the chat model.]
 
 ## Limitations and risks
 
@@ -344,6 +368,7 @@ How to fill it:
 | Contributors | Release | yes | `launch/launch_announcement_v0.md` ([#600](https://github.com/theschoolofai/era-v5-lab/pull/600), [#603](https://github.com/theschoolofai/era-v5-lab/pull/603)) | yes (the Release lead wrote this draft) |
 | How to find more | Release | yes | the public lab repository | yes (the Release lead wrote this draft) |
 | KE2 | KE2 | the output head: yes, from text that TSAI approved. The dates now have the year, and the text no longer says Gate 3 (style rules 10 and 11). The placeholder on how the lab tested its embedding method is gone: it was wider than the scope in `model_card_outline.md` | `updates/gate3.md` (the output head, short forms; [#701](https://github.com/theschoolofai/era-v5-lab/pull/701)), the KE2 line of `launch/launch_announcement_v0.md` ([#753](https://github.com/theschoolofai/era-v5-lab/pull/753)), the training code: [#717](https://github.com/theschoolofai/era-v5-lab/pull/717), merged 24 Nov | KE2: yes for the text before the date edit ([comment on #791](https://github.com/theschoolofai/era-v5-lab/pull/791#issuecomment-7142627011)); the date edit: yes ([comment on #705](https://github.com/theschoolofai/era-v5-lab/pull/705#issuecomment-7230047772)) |
+| Personal data | Data A, Data B | yes, drafted by Release from the cleaner on main, and sent to both leads in [#878](https://github.com/theschoolofai/era-v5-lab/pull/878). One line waits for the leads: what else the rules cannot find | `teams/01-data-a/spec_v1_1/clean.py`, `teams/01-data-a/spec_v1_1/build/f1_rule.py` | Data A: no. Data B: no |
 | Every other section | the owner team in `model_card_outline.md` | no | waiting for the owner team | no |
 
 - [ ] `check_style.py` gives 0 errors
