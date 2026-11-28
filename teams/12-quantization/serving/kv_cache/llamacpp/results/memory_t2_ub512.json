@@ -1,0 +1,126 @@
+{
+ "machine": "Apple M6 32 GB, macOS 27.2.1",
+ "llama_cpp": "version: 0.7.0-dev (build 1, commit 620d222)",
+ "date": "2026-11-28 13:48 +0530",
+ "argv": [
+  "kv_llamacpp.py",
+  "memory",
+  "--bin",
+  "~/Workspace/g12-spike/llama.cpp-b11669/build-q/bin",
+  "--model",
+  "t2-standin-Q8_0=~/Workspace/g12-spike/kv-laptop/work-G-F05/dryrun2-F05-24273cd9-Q8_0.gguf",
+  "--ctx",
+  "8192",
+  "--choices",
+  "f16",
+  "q8_0",
+  "--ubatch",
+  "512",
+  "--out",
+  "~/Workspace/g12-spike/kv-laptop/results/memory_t2_ub512.json"
+ ],
+ "runs": [
+  {
+   "model": "t2-standin-Q8_0",
+   "gguf": "dryrun2-F05-24273cd9-Q8_0.gguf",
+   "gguf_sha256": "3c6d9ebc0b1d63a39b4a350aa9b444f56a15922938c4a4491cd59c3f50fefb68",
+   "ctx": 8192,
+   "choice": "f16",
+   "k": "f16",
+   "v": "f16",
+   "rotation_requested": true,
+   "ubatch": 512,
+   "exit": 0,
+   "kv_mib": 32.0,
+   "cells": 8192,
+   "layers": 8,
+   "k_type": "f16",
+   "k_mib": 16.0,
+   "v_type": "f16",
+   "v_mib": 16.0,
+   "kv_buffers": {
+    "MTL0": 32.0
+   },
+   "compute_buffers": {
+    "MTL0": 268.02,
+    "CPU": 12.02
+   },
+   "model_buffers": {
+    "CPU_Mapped": 68.0,
+    "MTL0_Mapped": 236.16
+   },
+   "fa": "enabled",
+   "rot_k": 0,
+   "rot_v": 0,
+   "rot_disabled_logged": false,
+   "graph_nodes": 443,
+   "graph_splits": 2,
+   "offloaded": "9/9",
+   "peak_footprint_bytes": 119604448,
+   "max_rss_bytes": 499466240,
+   "hparams": {
+    "n_ctx_train": 2048,
+    "n_embd": 512,
+    "n_layer": 8,
+    "n_head_kv": 2,
+    "n_embd_head_k": 64,
+    "n_embd_head_v": 64,
+    "n_vocab": 131072
+   },
+   "formula_kv_mib": 32.0,
+   "kv_mib_per_1k": 4.0,
+   "kv_bytes_per_token": 4096
+  },
+  {
+   "model": "t2-standin-Q8_0",
+   "gguf": "dryrun2-F05-24273cd9-Q8_0.gguf",
+   "gguf_sha256": "3c6d9ebc0b1d63a39b4a350aa9b444f56a15922938c4a4491cd59c3f50fefb68",
+   "ctx": 8192,
+   "choice": "q8_0",
+   "k": "q8_0",
+   "v": "q8_0",
+   "rotation_requested": true,
+   "ubatch": 512,
+   "exit": 0,
+   "kv_mib": 17.0,
+   "cells": 8192,
+   "layers": 8,
+   "k_type": "q8_0",
+   "k_mib": 8.5,
+   "v_type": "q8_0",
+   "v_mib": 8.5,
+   "kv_buffers": {
+    "MTL0": 17.0
+   },
+   "compute_buffers": {
+    "MTL0": 268.05,
+    "CPU": 12.05
+   },
+   "model_buffers": {
+    "CPU_Mapped": 68.0,
+    "MTL0_Mapped": 236.16
+   },
+   "fa": "enabled",
+   "rot_k": 64,
+   "rot_v": 64,
+   "rot_disabled_logged": false,
+   "graph_nodes": 539,
+   "graph_splits": 2,
+   "offloaded": "9/9",
+   "peak_footprint_bytes": 102581448,
+   "max_rss_bytes": 482689024,
+   "hparams": {
+    "n_ctx_train": 2048,
+    "n_embd": 512,
+    "n_layer": 8,
+    "n_head_kv": 2,
+    "n_embd_head_k": 64,
+    "n_embd_head_v": 64,
+    "n_vocab": 131072
+   },
+   "formula_kv_mib": 17.0,
+   "kv_mib_per_1k": 2.125,
+   "kv_bytes_per_token": 2176
+  }
+ ]
+}
