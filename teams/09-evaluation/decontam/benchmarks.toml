@@ -537,7 +537,8 @@ repo = "truthfulqa/truthful_qa"
 revision = "741b8276f2d1982aa3d5b832d3ee81ed3b896490"
 files = [{ path = "multiple_choice/validation-00000-of-00001.parquet", sha256 = "23f08e230ca4ed66babf3a72419af7cbde1f3d734dd396ac4cf6d088bd162afd" }]
 split = "validation"
-id = "{question}"
+# Opaque id: the row number (default). An item-text id would write every question into the committed TSV and
+# this repository is public; fingerprints hold hashes, never item text (TSAI review, #909).
 texts = ["{question}", "{question}\n{mc1_targets.choices|lines}"]
 
 [mmlu_pro]
@@ -577,7 +578,7 @@ repo = "TAUR-Lab/MuSR"
 revision = "7c365b439a222150f317764d4f16ae6c96d7d94a"
 files = [{ path = "all.csv", sha256 = "f825539ca1893f105943231e7ad5d0721a48c1570500fdf2a78080de27336531" }]
 split = "test"
-id = "{question}"
+# Opaque id: the row number (default), for the same reason as truthfulqa above.
 texts = ["{narrative}\n{question}", "{narrative}\n{question}\n{choices|lines}"]
 
 [humaneval]

@@ -18,9 +18,12 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-from fpset import VERSION, Fingerprints
+from fpset import DEFAULT_VERSION, VERSION, Fingerprints
 
-DEFAULT_SET = Path(__file__).resolve().parent.parent / "fingerprints" / VERSION
+# The folder used when --fingerprints is not given. Pinned to fpset.DEFAULT_VERSION (v2) so adding v3
+# does not silently change what an existing job checks against; see fpset.py and TSAI review #909 point 3.
+DEFAULT_SET = Path(__file__).resolve().parent.parent / "fingerprints" / DEFAULT_VERSION
+LATEST_SET = Path(__file__).resolve().parent.parent / "fingerprints" / VERSION
 
 
 def read_docs(paths, id_field, text_field):

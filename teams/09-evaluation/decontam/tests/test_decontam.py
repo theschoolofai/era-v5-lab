@@ -11,6 +11,8 @@ import csv
 import hashlib
 import io
 import json
+import sys
+from pathlib import Path
 import os
 import pathlib
 import random
@@ -18,6 +20,9 @@ import shutil
 import tarfile
 
 import pytest
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+FINGERPRINTS = Path(__file__).resolve().parents[2] / "fingerprints"
 
 import fpset
 import normalize as norms
@@ -229,6 +234,25 @@ def test_each_shipped_version_names_its_normalizer():
     # v3 (Lab 5) adds benchmarks only: same normalizer as v2, so old v2 results stay comparable.
     assert fpset.SET_NORMALIZE == {"v1": "g9-v1", "v2": "g9-v2", "v3": "g9-v2"}
     assert fpset.VERSION == "v3"
+
+
+def test_v2_still_ships_and_resolves_to_g9_v2():
+    """TSAI review #909 point 4: v2 stays on disk and stays the default for comparable results.
+
+    v3 must not change what an existing job checks against. The checkers default to
+    fpset.DEFAULT_VERSION (v2); v3 is opt-in via --fingerprints.
+    """
+    v2 = FINGERPRINTS / "v2"
+    assert (v2 / "MANIFEST.json").is_file(), "v2 must keep shipping"
+    manifest = json.loads((v2 / "MANIFEST.json").read_text(encoding="utf-8"))
+    assert manifest["normalize_id"] == "g9-v2"
+    assert manifest["set_sha256"] == "2826a3b883210c653979103c09ce1c79e40fc4f7034b54027f2836482370d22a"
+    # the default must not be the newest by accident
+    assert fpset.DEFAULT_VERSION == "v2"
+    assert fpset.VERSION == "v3"
+    # and the default folder the checkers use really is v2
+    import decontam_check
+    assert decontam_check.DEFAULT_SET.name == "v2"
 
 
 def test_a_normalizer_takes_prepare_or_words_not_both():
@@ -602,13 +626,16 @@ def test_exclude_leaves_a_benchmark_out(toy):
 
 # ---- the shipped fingerprint set ----
 
-shipped = pytest.mark.skipif(not (DEFAULT_SET / "MANIFEST.json").exists(), reason="no shipped set")
+# The registry-consistency checks apply to the NEWEST shipped set (fpset.VERSION), not to the checker
+# default (DEFAULT_SET = v2), because v2 predates the Lab 5 additions. See TSAI review #909 points 3 and 4.
+LATEST_SET = FINGERPRINTS / fpset.VERSION
+shipped = pytest.mark.skipif(not (LATEST_SET / "MANIFEST.json").exists(), reason="no shipped set")
 clean_pack = pytest.mark.skipif("ERA_CLEAN_DOCS" not in os.environ, reason="set ERA_CLEAN_DOCS to a Parquet pack")
 
 
 @module_fixture
 def shipped_set():
-    return Fingerprints(DEFAULT_SET)  # also checks every sha256
+    return Fingerprints(LATEST_SET)  # also checks every sha256
 
 
 @shipped

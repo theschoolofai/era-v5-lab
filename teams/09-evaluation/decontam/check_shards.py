@@ -96,9 +96,9 @@ def default_fingerprints():
     """The set decontam_check.py and canary_scan.py use without --fingerprints (fpset.VERSION)."""
     if str(HERE) not in sys.path:  # python -I leaves the script's folder out of sys.path
         sys.path.insert(0, str(HERE))
-    from fpset import VERSION
+    from fpset import DEFAULT_VERSION
 
-    return HERE.parent / "fingerprints" / VERSION
+    return HERE.parent / "fingerprints" / DEFAULT_VERSION
 
 
 def code_sha256():

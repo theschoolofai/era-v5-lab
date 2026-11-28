@@ -305,7 +305,7 @@ The 19 benchmarks of v2 built with `g9-v2` are byte for byte the set that these 
 
 ## The fingerprint set (v3) — Lab 5
 
-**set_sha256 (v3): `6fc6fbe9d8068175f01f76099ba705cc70140c3395897fa19cd3b60c71f80246`**, normalizer `g9-v2`
+**set_sha256 (v3): `2a235987bd047da46ed06f528afbbb465d4027938adff6b0e8f3ab41d0557e90`**, normalizer `g9-v2`
 (the same as v2, so v2 and v3 scores are directly comparable).
 
 v3 exists to close the gap recorded in `results/known_failures.md`: **12 benchmarks were scored or reported with no
@@ -350,9 +350,26 @@ or redistribute it, and ask TSAI before quoting HellaSwag numbers in a release.*
   (0.20%), the same `swe_bench_live` hit, same offset, same coverage. **v3 adds no false hits on this pack.**
 - `pytest teams/09-evaluation/decontam/tests -q`: **143 passed, 2 skipped**.
 - The 38-pack false-hit baseline in the v2 section below (**20 flagged, 0.11 %**) has **not** been re-measured on
-  v3, because the 19,000-document sample is not available locally. Re-run it before treating v3 as safe at scale.
+  v3, because the 19,000-document sample is not available locally. **Who runs it:** `tanmays369`, as soon as the
+  sample is staged again (the presigned link from 4–13 Nov returns HTTP 403). Due before v3 is used for a gate.
+
+### Which jobs pin a version, and which follow the default
+
+Adding v3 must not change what an existing job checks. `fpset.VERSION` is the newest set (**v3**);
+`fpset.DEFAULT_VERSION` is what the checkers use when `--fingerprints` is not given and stays **v2**.
+
+| Reader | Version it uses | Why |
+|---|---|---|
+| `decontam_check.py` without `--fingerprints` | **v2** (`DEFAULT_SET`) | a shard check whose report quotes `2826a3b8…` must keep quoting it |
+| `canary_scan.py` without `--fingerprints` | **v2** | same |
+| `check_jsonl.py`, `check_shards.py` without `--fingerprints` | **v2** | the corpus-v1 F2 step must not switch sets mid-run |
+| `Fingerprints()` with `--fingerprints <folder>` | whatever is given | explicit opt-in to v3 |
+| the registry-consistency tests | **v3** (`LATEST_SET`) | those check the newest set against `benchmarks.toml` |
+
+The corpus-v1 F2 step therefore stays on v2 until someone passes `--fingerprints .../v3` deliberately. A test
+(`test_v2_still_ships_and_resolves_to_g9_v2`) asserts v2 still ships, keeps its `set_sha256` and stays the default.
 - **Known limitation, inherited:** items under 8 words have no n-gram. That is why 218 of TruthfulQA's 817 and 176
-  of ARC-Easy's 2,376 are uncovered — the items are short questions ("Which blood type makes the best CEOs?"). It is
+  of ARC-Easy's 2,376 are uncovered — the items are short questions, under the 8-word floor. It is
   the documented `short_min` behaviour, not a template fault, but it means v3 does not fully cover those two sets.
 
 ## The fingerprint set (v2)

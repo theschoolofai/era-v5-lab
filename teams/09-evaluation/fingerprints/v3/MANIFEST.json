@@ -1,6 +1,6 @@
 {
   "version": "v3",
-  "set_sha256": "6fc6fbe9d8068175f01f76099ba705cc70140c3395897fa19cd3b60c71f80246",
+  "set_sha256": "2a235987bd047da46ed06f528afbbb465d4027938adff6b0e8f3ab41d0557e90",
   "normalize_id": "g9-v2",
   "normalize": "spec v1 normalize of Team 1 (g1-spec-v1), then ZWJ and ZWNJ removed from each word (match key only; the training text keeps them)",
   "hash": "blake2b, digest_size=8, hex, of the n words joined by one space (UTF-8)",
