@@ -190,7 +190,7 @@ Command:         python teams/12-quantization/quant_error/quant_error.py all --h
 Config:          none; every setting is on the command line
 Inputs:          the model's Hugging Face folder (config.json only is read), its tokenizer.json, the bf16 GGUF and one GGUF per format, all made beforehand; heldout_v1.jsonl and SHA256SUMS from this repository; llama.cpp b12359 as a git checkout carrying its b12359 tag, built with the GPU backend (the same build made the GGUFs)
 Hardware:        1 GPU; a CPU also works for the twin forward (slower); RAM for one decoder layer of the model in fp32 plus the sampled activations; the base logits of one slice on disk (about 260 KB per scored token at a 131k vocabulary: 8 chunks = about 0.5 GB)
-Max time:        measured once, on one Mac: 910 s for OLMoE-1B-7B, 4 formats, 20 slices (see "Time" below); not measured on TSAI's machine
+Max time:        measured twice, on one Mac: 910 s and 1,250 s for OLMoE-1B-7B, 4 formats, 20 slices (see "Time" below); not measured on TSAI's machine
 Precision:       bf16 reference, the quantized files as given; the twin forward in fp32
 Measures:        see "Outputs"
 Outputs:         ./out/quant-error-<model>/{summary.json, tensors.csv, layers.csv, linears.csv, tokens.csv, kl.csv}; under 5 MB; no text, no token ids
@@ -212,10 +212,12 @@ with the model’s speed in llama.cpp × slices × formats × `--kl-chunks`. A 7
 Measured in the OLMoE pilot (`results/olmoe_pilot/`, `summary.json` and `/usr/bin/time -l`):
 `allenai/OLMoE-1B-7B-0924` (7 B total, 16 layers, 64 experts), 4 formats (Q8_0, Q4_K_M, experts-only Q4_K,
 MXFP4_MOE) against the bf16 GGUF, 20 slices, defaults otherwise, `--device mps` on an Apple M6 with 32 GB, llama.cpp
-b12359 on Metal: 910 s in total (tensors 108 s, twin forward 515 s, about 129 s per format, llama.cpp KL 274 s), 19.8 GB
-maximum resident set size, 7.8 GB peak memory footprint, output 2.7 MB. This is one model on one machine; the time on
-other hardware (a CUDA GPU, a CPU) and for other models was not measured, so set the job’s `Max time` with a margin
-over this and not from it alone.
+b12359 on Metal. On this code: 1,250 s in total (preflight 14 s, tensors 175 s, twin forward 679 s, about 170 s per
+format, llama.cpp KL 369 s), 16.7 GB maximum resident set size, 7.8 GB peak memory footprint, output 2.7 MB. A first
+run of the same inputs on an earlier version of the tool took 910 s (tensors 108 s, twin forward 515 s, llama.cpp KL
+274 s; 19.8 GB maximum resident set size) and wrote the same numbers. Two runs on one machine thus differed by 37%,
+and the time on other hardware (a CUDA GPU, a CPU) and for other models was not measured: set
+the job’s `Max time` with a margin over these and not from them alone.
 
 </details>
 
