@@ -1,0 +1,51 @@
+# Go / no-go gates for the main run (Lab 5, lead addition 12). Proposal v1: thresholds, not decisions.
+# check_gates.py reads this file. A gate whose input is missing reports PENDING, and PENDING is a no-go.
+# "source" says where each number comes from. "status" says whether it is measured, a rule, or still open.
+
+run_health:
+  what: "no NaN or inf in any training loss or gradient norm"
+  source: "run_report.py health section (#829); dry run 2 had none in 1,221 steps (#869)"
+  status: "rule"
+
+loss_vs_fit:
+  what: "held-out bits per byte at 1B training tokens is no worse than the scaling-law prediction plus the tolerance"
+  tokens: 1.0e+9                 # brief: "loss against the scaling-law prediction at 1B tokens"
+  window: [0.8e+9, 1.2e+9]        # evals averaged around 1B tokens; dry run 2 moved about 0.1 bpb between evals
+  min_evals: 3
+  tolerance_rule: "max(2 x the fit's held-out error, 2 x the standard deviation of the evals in the window)"
+  fit_form: "bpb = E + A / N_active^alpha + B / D^beta"   # lead addition 9 (Chinchilla form, active parameters)
+  source: "lead addition 9 fit (owner of the fit: Team 5 lead); no fit exists yet (#946 says not measured)"
+  status: "open until the fit exists"
+
+resume:
+  what: "Team 7 kill-and-restart test on the main-run config passes bit-equal, with equal batch ids, on the Muon optimizer"
+  accepts: ["restart_test result.json (schema g7-job-result/1, status pass)", "restore_test or restart_test detail.json (pass true)"]
+  optimizer: muon
+  source: "Team 7 restart_test.py and restore_test.py; queue rules R7/R8; #899 (LR peak on restore), #945 (absent Muon buffers)"
+  status: "rule; the main-run config run does not exist yet"
+
+router_evenness:
+  what: "in every layer, at every recorded step, the busiest expert takes under 5 x the even share; no idle expert after the warm-up steps"
+  max_busiest_over_even: 5.0     # brief: "one expert takes 5 times the even share is a failed router" (31.25% at 16 experts)
+  no_idle_after_step: 200
+  source: "brief design task 4; pass rule of #892 (router balance owner); final values come from #892's tests"
+  status: "rule; numbers owned by #892"
+
+eval_pass:
+  what: "the step-0 checkpoint of the main run scores near chance on every Tier A task, with every item scored"
+  tasks:                         # Team 9 eval_schedule.md section 5.2 (D2): band = chance +/- 2 SE, or the one-letter range
+    mmlu:        {items: 570, band: [21.4, 28.6], one_letter: [24.2, 26.1]}
+    milu_Hindi:  {items: 100, band: [16.3, 33.7], one_letter: [20.0, 29.0]}
+    milu_Telugu: {items: 100, band: [16.3, 33.7], one_letter: [20.0, 30.0]}
+    milu_Tamil:  {items: 100, band: [16.3, 33.7], one_letter: [18.0, 34.0]}
+    milu_Bengali: {items: 100, band: [16.3, 33.7], one_letter: [18.0, 31.0]}
+  source: "teams/09-evaluation/eval_schedule.md sections 5.2 and 6 (D2, D9); eval_mini_v1 schema"
+  status: "rule (Team 9 proposal D2)"
+
+throughput:
+  what: "real (scored) tokens per second of the whole node is at least the rate that finishes the token budget in the time budget"
+  token_budget: null             # corpus-v1 token count times epochs; not posted yet
+  wall_hours: null               # TSAI's time budget for the main run; not set
+  idle_allowance: 0.10           # share of wall time for evals, saves and restarts (assumption, to agree with Team 7)
+  source: "brief rule \"measure the rate before you scale\"; dry run 2 measured 2,299 real tokens/s at 41.8% row fill (#892)"
+  status: "open until the token and time budgets are set"
