@@ -56,18 +56,19 @@ Commit `2d09b023`. Apple M4, 10 cores, 16 GiB RAM. Python 3.12, PyArrow 23.0.1, 
   - 11,987,677 tokens in 148.1 s and 143.6 s of shard-writer time (summed over parts);
   - that is **80,900–83,500 tokens per second per core**;
   - this includes each part's process start-up and Parquet I/O.
-- **Logs:**
-  - `jobs/logs/2026-11-28-d2-b3-sample-1pct/`: `slice.txt`, `baseline.txt`, `hash.txt`, `provenance_hash.txt`,
-    `verify_shards_hash.txt`;
-  - each run's `pipeline_manifest.json`, `overlap_summary.json`, `shards_summary.json` and `cleaning_pipeline.json` are
-    under `summaries/`.
-- **The two `pipeline_manifest.json` copies are repo-relative.** In each, the `--config` paths of the clean, overlap and
-  dedup commands were written by the run as absolute paths on the machine. In the copies they read
-  `out/pipeline/<run>/cfg/<stage>.json`, like every other path in the manifest. Those 3 lines are the only difference.
-  The run's own files have these sha256:
-  - baseline `1df062d0a387957a394488951b0e2e365363bcf9eacbe07bfe85555c8bb6fa21`;
-  - hash-only `1ae939402cf1e3c7fcfc29ef32db614a6a70789f4a3f76814501862613e3a824`, the `manifest_sha256` that
-    `provenance_hash.txt` records.
+- **Logs** are in `jobs/logs/2026-11-28-d2-b3-sample-1pct/`: `slice.txt`, `baseline.txt`, `hash.txt`,
+  `provenance_hash.txt` and `verify_shards_hash.txt`.
+- **The runs' summary files are not in the repository.** They are about 265 KB, and TSAI's review of #898 asked to keep
+  large logs out of the diff. The numbers above come from them. Their sha256, as each run wrote them:
+
+  | File (under `out/pipeline/<run>/`) | baseline (`d2-1pct-baseline`) | hash-only (`d2-1pct-hash`) |
+  |---|---|---|
+  | `pipeline_manifest.json` | `1df062d0a387957a394488951b0e2e365363bcf9eacbe07bfe85555c8bb6fa21` | `1ae939402cf1e3c7fcfc29ef32db614a6a70789f4a3f76814501862613e3a824` |
+  | `overlap/overlap_summary.json` | `d540b5d84d0d8a70743642a95189cb86516298f399209e247e313d3fe34198ce` | `b27bd9308733e42f4498bd90353c3fcf178bf9b194f48d7564311de324401eb1` |
+  | `shards/shards_summary.json` | `f857389e3d05d0edf4dfb49824cc090ac1f21445b4f16d8e48df60a8dca4c312` | `c50d0979618dec10594d1c3ad1f58533b708b08ea5772646a836d4f0b7028d97` |
+  | `cleaning_pipeline.json` | `181539587b61f38fc31900e470d7c54db7194ee572c997ae96b4e4ce3407cca5` | `79d5f7c084f34f23da49ff9b9196f06dbee96d0f09995c7aca1f938470393ea6` |
+
+  The hash-only `pipeline_manifest.json` sha256 is the `manifest_sha256` that `provenance_hash.txt` records.
 
 ## Speed rule check (the changed code)
 
