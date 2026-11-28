@@ -48,10 +48,10 @@ class JsonWriter:
         self.file.close()
 
 
-def scored_ntp_loss(model, ids, targets):
+def scored_ntp_loss(model, ids, targets, segments=None):
     """Sum next-token NLL without materializing logits for ignored positions."""
     scored = targets != -100
-    hidden = model.hidden(ids, scored)
+    hidden = model.hidden(ids, scored) if segments is None else model.hidden(ids, scored, segments)
     return token_nll(model.head(hidden[scored]), targets[scored]).sum()
 
 
@@ -377,7 +377,14 @@ def main():
     if train_hash == heldout_hash:
         p.error("Training and holdout files are identical")
     data_load_started = time.perf_counter() if artifacts.normalize_input else None
-    train = DocumentWindows(args.train_data, artifacts, cfg["model"]["block_size"])
+    # Packed rows end each training document with EOS as its last target (#890, D3: as Team 6's
+    # loader and the shards do). Unpacked training and held-out data are unchanged.
+    train_eos = None
+    if cfg["run"].get("pack", False):
+        train_eos = getattr(artifacts, "eos_id", None)
+        if train_eos is None:
+            p.error("run.pack needs the tokenizer's end-of-document token <|endoftext|>")
+    train = DocumentWindows(args.train_data, artifacts, cfg["model"]["block_size"], eos_id=train_eos)
     val = DocumentWindows(
         args.heldout_data,
         artifacts,
@@ -434,7 +441,10 @@ def main():
     model = LanguageModel(cfg["model"], artifacts.bytes, artifacts.lengths).to(device)
     # Use the optimizer selected by the resolved arm configuration.
     optimizer = build_optimizer(model, cfg["optim"])
-    stream = BatchStream(train, cfg["run"]["batch_size"], seed)
+    stream = BatchStream(
+        train, cfg["run"]["batch_size"], seed,
+        pack=bool(cfg["run"].get("pack", False)), pool=cfg["run"].get("pack_pool", 16),
+    )
 
     def amp():
         return (
@@ -718,14 +728,19 @@ def main():
             if device.type == "cuda":
                 torch.cuda.synchronize()
             tick = time.perf_counter()
-            x, y, lengths = stream.next(device)
+            batch = stream.next(device)
+            x, y, lengths = batch[:3]
+            # Packed rows add doc_ids and pos_ids; unpacked batches have none (segments stays None).
+            doc_ids, pos_ids = batch[3:] if len(batch) == 5 else (None, None)
             optimizer.zero_grad(set_to_none=True)
             # TSAI recipe (21 Nov), unconfirmed on KE2: bag training (TST) for the first tst_frac of the steps.
             tst_on = tst_mod.active(step, cfg["run"]["steps"], cfg["run"])
             count = int((y != -100).sum())  # real scored tokens: logged, and the normal-training normaliser
             # TST normalises by scored bags instead; the logged token count stays the real one (Team 8's tokens per byte).
             bag_count = tst_mod.scored_bags(y, cfg["run"]["tst_bag"]) if tst_on else 0
-            mtp_count = int((y[:, 1:] != -100).sum())
+            mtp_count = int((y[:, 1:] != -100).sum()) if doc_ids is None else int(
+                ((y[:, 1:] != -100) & (doc_ids[:, 1:] == doc_ids[:, :-1])).sum()
+            )
             total = 0.0
             ntp_value = 0.0
             mtp_value = 0.0
@@ -737,18 +752,29 @@ def main():
             model.clear_router_bias_load()
             for start in range(0, len(x), micro):
                 tx, ty = x[start : start + micro], y[start : start + micro]
+                segments = (
+                    None if doc_ids is None
+                    else (doc_ids[start : start + micro], pos_ids[start : start + micro])
+                )
                 # Normalize each microbatch by the full batch target count.
                 with amp():
                     mtp = None
                     if tst_on:
                         ntp = tst_mod.tst_loss(model, tx, ty, cfg["run"]["tst_bag"]) / max(bag_count, 1)
                     elif model.mtp_head is None:
-                        ntp = scored_ntp_loss(model, tx, ty) / count
+                        ntp = scored_ntp_loss(model, tx, ty, segments) / count
                     else:
-                        logits, mtp_logits = model(tx, ty != -100, return_mtp=True)
+                        logits, mtp_logits = (
+                            model(tx, ty != -100, return_mtp=True) if segments is None
+                            else model(tx, ty != -100, return_mtp=True, segments=segments)
+                        )
                         ntp = token_nll(logits, ty).sum() / count
                         targets = torch.full_like(ty, -100)
                         targets[:, :-1] = ty[:, 1:]
+                        if segments is not None:
+                            # The second-next token must come from the same window in a packed row.
+                            same = segments[0][:, :-1] == segments[0][:, 1:]
+                            targets[:, :-1] = targets[:, :-1].masked_fill(~same, -100)
                         mtp = token_nll(mtp_logits, targets).sum() / max(mtp_count, 1)
                     loss = (
                         ntp

@@ -124,15 +124,19 @@ class GQA(nn.Module):
             elif m["attn_gate_init"] != "linear_default":
                 raise ValueError("Invalid gate initialization")
 
-    def rotary(self, x):
+    def rotary(self, x, pos_ids=None):
         # One window per document; position offset zero for each independent window.
+        # Packed rows pass pos_ids [B, T], which restart at 0 for each window in the row.
         inv = self.theta ** (
             -torch.arange(0, self.rotary_dim, 2, device=x.device).float()
             / self.rotary_dim
         )
-        angle = (
-            torch.arange(x.shape[-2], device=x.device).float()[:, None] * inv[None, :]
-        )
+        if pos_ids is None:
+            angle = (
+                torch.arange(x.shape[-2], device=x.device).float()[:, None] * inv[None, :]
+            )
+        else:
+            angle = pos_ids.float()[:, None, :, None] * inv  # [B, 1, T, rotary_dim / 2]
         a, b = (
             x.float()[..., : self.rotary_dim : 2],
             x.float()[..., 1 : self.rotary_dim : 2],
@@ -151,12 +155,24 @@ class GQA(nn.Module):
             else torch.cat((rotated, x[..., self.rotary_dim :]), dim=-1)
         )
 
-    def forward(self, x, residual=None):
+    def forward(self, x, residual=None, segments=None):
         b, t, w = x.shape
-        q = self.rotary(self.q(x).view(b, t, self.nh, self.d).transpose(1, 2))
-        k = self.rotary(self.k(x).view(b, t, self.nkv, self.d).transpose(1, 2))
+        doc_ids, pos_ids = segments if segments is not None else (None, None)
+        q = self.rotary(self.q(x).view(b, t, self.nh, self.d).transpose(1, 2), pos_ids)
+        k = self.rotary(self.k(x).view(b, t, self.nkv, self.d).transpose(1, 2), pos_ids)
         v = self.v(x).view(b, t, self.nkv, self.d).transpose(1, 2)
-        if self.sdpa:
+        if segments is not None and self.sdpa:
+            # Packed rows on SDPA: pass the causal document mask (True = may attend) explicitly.
+            # A custom mask rules out the flash kernel, so PyTorch picks another fused kernel or
+            # the math path; the speed is measured in lab5/packed_rows/measure_attention.py.
+            causal = torch.ones(t, t, dtype=torch.bool, device=q.device).tril()
+            allowed = causal & (doc_ids[:, None, :, None] == doc_ids[:, None, None, :])
+            heads = F.scaled_dot_product_attention(
+                q, k, v, attn_mask=allowed, enable_gqa=self.nh != self.nkv
+            )
+        elif segments is not None:
+            heads = self.eager_attention(q, k, v, doc_ids)
+        elif self.sdpa:
             # Fused causal attention on the shared K/V heads, without a T x T score matrix.
             heads = F.scaled_dot_product_attention(
                 q, k, v, is_causal=True, enable_gqa=self.nh != self.nkv
@@ -172,7 +188,7 @@ class GQA(nn.Module):
             out = out * torch.sigmoid(self.gate(gate_input))
         return self.o(out)
 
-    def eager_attention(self, q, k, v):
+    def eager_attention(self, q, k, v, doc_ids=None):
         b, _, t, _ = q.shape
         k = k.repeat_interleave(self.nh // self.nkv, dim=1)
         v = v.repeat_interleave(self.nh // self.nkv, dim=1)
@@ -182,6 +198,10 @@ class GQA(nn.Module):
         if self.local:
             positions = torch.arange(t, device=q.device)
             mask = mask & ((positions[:, None] - positions[None, :]) < self.window)
+        # Packed rows: a token attends only to earlier tokens of its own window. Padding (id 0)
+        # attends to earlier padding and itself, so no score row is fully masked.
+        if doc_ids is not None:
+            mask = mask & (doc_ids[:, None, :, None] == doc_ids[:, None, None, :])
         logits = logits.masked_fill(~mask, float("-inf"))
         # A disabled (-inf) sink takes the exact legacy softmax path. This also
         # avoids changing reduction shape in the equivalence regression test.
@@ -294,9 +314,9 @@ class Block(nn.Module):
         self.attn = GQA(m, layer_index)
         self.moe = MoE(m)
 
-    def forward(self, x, valid):
+    def forward(self, x, valid, segments=None):
         # Normalize before attention, then add its output to the residual stream.
-        x = x + self.attn(self.n1(x), residual=x)
+        x = x + self.attn(self.n1(x), residual=x, segments=segments)
         # Feed the updated residual through the pre-norm MoE sublayer.
         return x + self.moe(self.n2(x), valid)
 
@@ -325,10 +345,10 @@ class LanguageModel(nn.Module):
         else:
             self.head = nn.Linear(m["n_embd"], m["vocab_size"], bias=False)
 
-    def hidden(self, ids, valid):
-        return self.hidden_from_embeddings(self.embedding(ids), valid)
+    def hidden(self, ids, valid, segments=None):
+        return self.hidden_from_embeddings(self.embedding(ids), valid, segments)
 
-    def hidden_from_embeddings(self, x, valid):
+    def hidden_from_embeddings(self, x, valid, segments=None):
         """Run the normal stack on caller-supplied [B, T, n_embd] inputs.
 
         Recipe code owns any embedding aggregation and its validity mask. This
@@ -336,11 +356,11 @@ class LanguageModel(nn.Module):
         retain the stack's existing RoPE treatment at the supplied sequence length.
         """
         for block in self.blocks:
-            x = block(x, valid)
+            x = block(x, valid) if segments is None else block(x, valid, segments)
         return self.norm(x)
 
-    def forward(self, ids, valid, return_mtp=False):
-        h = self.hidden(ids, valid)
+    def forward(self, ids, valid, return_mtp=False, segments=None):
+        h = self.hidden(ids, valid, segments)
         logits = self.head(h)
         return (
             (logits, self.mtp_head(h) if self.mtp_head is not None else None)

@@ -258,9 +258,14 @@ def read_texts(path, require_ids=False, records=False):
 
 
 class DocumentWindows:
-    def __init__(self, path, artifacts, seq_len, require_ids=False, sources_path=None):
+    def __init__(self, path, artifacts, seq_len, require_ids=False, sources_path=None, eos_id=None):
+        """eos_id (packed training rows, run.pack; #890, D3): end every document with this token as
+        its last target, with byte length 0, as the G1 shards store documents. None keeps today's
+        documents unchanged (held-out data and unpacked training)."""
         cache_dir = os.environ.get("G5_DOCUMENT_CACHE_DIR")
         normalized = getattr(artifacts, "normalize_input", False)
+        if eos_id is not None and cache_dir is not None:
+            raise ValueError("Unset G5_DOCUMENT_CACHE_DIR for packed rows: the window cache has no end-of-document token")
         if cache_dir is not None and normalized:
             raise ValueError("Unset G5_DOCUMENT_CACHE_DIR for a normalizing tokenizer release (frozen C3 or p1536)")
         if cache_dir is not None:
@@ -315,11 +320,15 @@ class DocumentWindows:
                     )
             self.raw_bytes += len(text.encode("utf8"))
             self.tokens += len(ids)
+            if eos_id is not None:
+                ids = list(ids) + [eos_id]
             for start in range(0, len(ids), seq_len):
                 target = ids[start : start + seq_len]
                 previous = artifacts.bos_id if start == 0 else ids[start - 1]
                 inputs = [previous] + target[:-1]
                 lengths = [int(artifacts.lengths[i]) for i in target]
+                if eos_id is not None and start + len(target) == len(ids):
+                    lengths[-1] = 0  # the end-of-document token stands for no text
                 self.windows.append((inputs, target, lengths))
                 self.window_slices.append(slice_name)
         if not self.windows or not self.raw_bytes:
@@ -340,19 +349,97 @@ class DocumentWindows:
             lengths[i, : len(c)] = torch.tensor(c)
         return x.to(device), y.to(device), lengths.to(device)
 
+    def packed_batch(self, rows, device):
+        """Packed rows (lab5/packed_rows/README.md): each row holds whole windows end to end.
+
+        rows is a list of rows, each a list of window indices whose lengths sum to at most seq_len.
+        Returns x, y, lengths as batch() does, plus doc_ids (1, 2, ... per window in the row, 0 on
+        padding) and pos_ids (0 at the start of each window, as today's per-row positions).
+        """
+        x = torch.full((len(rows), self.seq_len), self.pad_id, dtype=torch.long)
+        y = torch.full_like(x, -100)
+        lengths = torch.zeros_like(x)
+        # The format table fixes doc_ids and pos_ids as 32-bit integers.
+        doc_ids = torch.zeros_like(x, dtype=torch.int32)
+        pos_ids = torch.zeros_like(x, dtype=torch.int32)
+        for i, row in enumerate(rows):
+            at = 0
+            for piece, index in enumerate(row, start=1):
+                a, b, c = self.windows[int(index)]
+                n = len(a)
+                if at + n > self.seq_len:
+                    raise ValueError("Packed row overflow")
+                x[i, at : at + n] = torch.tensor(a)
+                y[i, at : at + n] = torch.tensor(b)
+                lengths[i, at : at + n] = torch.tensor(c)
+                doc_ids[i, at : at + n] = piece
+                pos_ids[i, at : at + n] = torch.arange(n)
+                at += n
+        return (x.to(device), y.to(device), lengths.to(device),
+                doc_ids.to(device), pos_ids.to(device))
+
 
 # The sampler owns its RNG so model initialization cannot change data order.
 class BatchStream:
-    def __init__(self, dataset, batch_size, seed):
+    # Packed rows draw from the next PACK_POOL windows in sampler order (run.pack_pool). Taking
+    # windows strictly in order (a pool of 1) leaves rows about 78% full at 2,048 on sample-v0 (a
+    # long window that does not fit wastes the rest of the row); best fit from 16 upcoming windows
+    # reaches about 99% (lab5/packed_rows/measure_fill.py --pool).
+    PACK_POOL = 16
+
+    def __init__(self, dataset, batch_size, seed, pack=False, pool=None):
         self.dataset = dataset
         self.batch_size = batch_size
+        self.pack = pack
+        if pool is not None:
+            self.PACK_POOL = int(pool)
+        self.pool = []
         self.generator = torch.Generator().manual_seed(seed)
         self.order = torch.randperm(
             len(dataset.windows), generator=self.generator
         ).tolist()
         self.offset = 0
 
+    def _refill(self):
+        # The pool only tops up from the current pass. When the pass runs out, the pool drains
+        # first and the next pass starts once it is empty, so a pass places each window exactly
+        # once (topping up across the boundary let a next-pass window jump ahead of a waiting one).
+        if not self.pool and self.offset == len(self.order):
+            self.order = torch.randperm(
+                len(self.dataset.windows), generator=self.generator
+            ).tolist()
+            self.offset = 0
+        while len(self.pool) < self.PACK_POOL and self.offset < len(self.order):
+            self.pool.append(self.order[self.offset])
+            self.offset += 1
+
+    def next_packed(self, device):
+        """batch_size rows, each filled with whole windows (lab5/packed_rows/README.md).
+
+        The pool holds up to PACK_POOL upcoming windows of the current pass; each row repeatedly
+        takes the largest pooled window that still fits (earliest first on ties) and refills the
+        pool. No window is cut, and each window is placed once per pass. The pool is part of
+        state_dict, so a resumed stream continues exactly.
+        """
+        size = lambda index: len(self.dataset.windows[index][0])
+        rows = []
+        for _ in range(self.batch_size):
+            row, left = [], self.dataset.seq_len
+            while True:
+                self._refill()
+                fits = [i for i, index in enumerate(self.pool) if size(index) <= left]
+                if not fits:
+                    break
+                i = max(fits, key=lambda j: (size(self.pool[j]), -j))
+                index = self.pool.pop(i)
+                row.append(index)
+                left -= size(index)
+            rows.append(row)
+        return self.dataset.packed_batch(rows, device)
+
     def next(self, device):
+        if self.pack:
+            return self.next_packed(device)
         ids = []
         while len(ids) < self.batch_size:
             if self.offset == len(self.order):
@@ -366,12 +453,16 @@ class BatchStream:
         return self.dataset.batch(ids, device)
 
     def state_dict(self):
-        return dict(
+        state = dict(
             order=self.order, offset=self.offset, rng=self.generator.get_state()
         )
+        if self.pack:
+            state["pool"] = list(self.pool)
+        return state
 
     def load_state_dict(self, state):
         self.order = state["order"]
         self.offset = state["offset"]
+        self.pool = list(state.get("pool", []))
         # A GPU checkpoint load can move this CPU generator's state to CUDA.
         self.generator.set_state(state["rng"].cpu())
