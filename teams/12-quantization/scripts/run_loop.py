@@ -116,19 +116,42 @@ def strip(a, loop: Loop, rest: list) -> dict:
             torch.use_deterministic_algorithms(was); torch.set_num_threads(threads)
         what = dict(source=str(a.run_dir), step=info['step'], model_revision=facts['model_revision'], via='ckpt.export_safetensors')
     else:
-        dst.unlink(missing_ok=True); dst.symlink_to(a.weights.resolve())
-        what = dict(source=str(a.weights), via='symlink to the given file')
+        dst.unlink(missing_ok=True)
+        source = a.weights.resolve()
+        try:
+            dst.symlink_to(source)
+            via = 'symlink to the given file'
+        except OSError:
+            if os.name != 'nt':
+                raise
+            try:
+                dst.hardlink_to(source)
+                via = 'hard link to the given file'
+            except OSError:
+                shutil.copy2(source, dst)
+                via = 'copy of the given file'
+        what = dict(source=str(a.weights), step=a.step, via=via)
     if a.manifest:
         (w / 'manifest.json').write_bytes(a.manifest.read_bytes())
     return dict(files=['weights/model.safetensors'], weights_sha256=sha256(dst), **what)
 
 
 def score_full(a, loop: Loop, rest: list, weights_sha: str) -> dict:
+    if a.weights:
+        out = loop.out / 'score_full.continuous.json'
+        cmd = [sys.executable, LAB / 'minibench_lab.py', '--weights-safetensors', loop.out / 'weights/model.safetensors',
+               '--weights-sha256', weights_sha, '--step', a.step, '--device', a.score_device, '--out', out,
+               *minibench_args(a)]
+        return dict(files=[out.name], command=sh(cmd), weights_sha256=weights_sha)
     out = loop.out / 'score_full.v1.json'
-    cmd = [sys.executable, LAB / 'run_lab_ckpt.py', '--run-dir', a.run_dir, '--scorer', a.scorer, '--out', out, '--device', 'cpu',
+    cmd = [sys.executable, LAB / 'run_lab_ckpt.py', '--run-dir', a.run_dir, '--scorer', a.scorer, '--out', out, '--device', a.score_device,
            *(['--step', a.step] if a.step is not None else []), *rest]
     if a.scorer == 'smoke': cmd += ['--config', a.config, '--tiny', a.tiny, '--steps', a.steps]
-    return dict(files=['score_full.v1.json'], command=sh(cmd), weights_sha256=weights_sha)
+    command = sh(cmd)
+    files = ['score_full.v1.json']
+    if a.scorer == 'minibench_lab:team5':
+        files.append('score_full.v1.continuous.json')
+    return dict(files=files, command=command, weights_sha256=weights_sha)
 
 
 def quantize(a, loop: Loop, fmt: str, weights: Path, qe_args: list) -> dict:
@@ -143,6 +166,15 @@ def quantize(a, loop: Loop, fmt: str, weights: Path, qe_args: list) -> dict:
     return dict(files=[scores], command=sh(cmd))
 
 
+def minibench_args(a):
+    args = ['--profile', a.minibench_profile, '--model-config', str(a.manifest),
+            '--tokenizer', a.tokenizer, '--tokenizer-sha256', a.tokenizer_sha256,
+            '--byte-table', str(a.minibench_byte_table)]
+    for path in a.minibench_cache:
+        args.extend(['--cache', str(path)])
+    return args
+
+
 def mini(a, loop: Loop, fmt: str, key: str) -> dict:
     """eval-mini on one GGUF (the file quantize_eval.py measured; its sha256 is in the key)."""
     q = json.loads((loop.out / f'q/{fmt}/scores.json').read_text(encoding='utf-8'))['formats'][0]
@@ -153,6 +185,12 @@ def mini(a, loop: Loop, fmt: str, key: str) -> dict:
         shutil.rmtree(fdir, ignore_errors=True); fdir.mkdir(parents=True); kf.write_text(key)
     guard = subprocess.run([a.mini_python, str(EVAL_MINI / 'test_llamacpp_lm.py'), str(gguf)], capture_output=True, text=True)
     tail = (guard.stdout + guard.stderr).strip().splitlines()[-3:]
+    if a.minibench_profile:
+        summary = fdir / 'minibench.continuous.json'
+        cmd = [a.mini_python, LAB / 'minibench_gguf.py', '--gguf', gguf, '--gguf-sha256', q['sha256'], '--format', fmt,
+               '--out', summary, '--n-gpu-layers', a.mini_ngl, *minibench_args(a)]
+        return dict(files=[str(summary.relative_to(loop.out).as_posix())], command=sh(cmd), gguf_sha256=q['sha256'],
+                    guard_exit=guard.returncode, guard_tail=tail, suite='minibench_v1')
     cmd = [a.mini_python, EVAL_MINI / 'run_mini_gguf.py', '--gguf', gguf, '--format', fmt, '--out', out, '--g9-harness', a.g9_harness,
            '--tasks', *a.mini_tasks.split(','), '--n-gpu-layers', a.mini_ngl, '--model', f'lab:{q["sha256"][:8]}', '--revision', q['sha256'],
            *(['--limit', a.mini_limit] if a.mini_limit is not None else [])]
@@ -166,6 +204,38 @@ def guard_label(a) -> str:
 
 def v1_records(path: Path) -> dict:
     return {(r['task'], r['metric'], r['filter']): r['value'] for r in json.loads(path.read_text(encoding='utf-8'))['records']}
+
+
+def report_minibench(a, loop, formats):
+    sys.path.insert(0, str(LAB))
+    from minibench_compare import compare
+
+    evidence = {}
+    for fmt in formats:
+        marker = loop.marker(f'mini_{fmt}')
+        if marker and marker.get('suite') == 'minibench_v1':
+            path = loop.out / marker['files'][0]
+            doc = json.loads(path.read_text(encoding='utf-8'))
+            if doc['profile'] == a.minibench_profile:
+                if 'diagnostic_tasks' not in doc:
+                    raise SystemExit(f'{path}: no diagnostic_tasks labels; rescore it with the current minibench_gguf.py')
+                evidence[fmt] = doc
+    if 'bf16' not in evidence:
+        return {}, None
+    baseline = evidence['bf16']
+    # Team 9's diagnostic tasks (not cleared for contamination; TSAI's 12 Nov conditions) keep their label in every copy.
+    scores = {fmt: dict(gguf_sha256=doc['gguf_sha256'], profile=doc['profile'], tasks=doc['tasks'],
+                        diagnostic_tasks=doc['diagnostic_tasks'], heldout=doc['heldout'], timing_seconds=doc['timing_seconds'],
+                        paired_gap=compare(baseline, doc) if fmt != 'bf16' else None)
+              for fmt, doc in evidence.items()}
+    native = loop.marker('score_full')
+    paired_export_gap = None
+    if native and native['weights_sha256'] == loop.marker('strip')['weights_sha256']:
+        for name in native['files']:
+            if name.endswith('.continuous.json'):
+                source = json.loads((loop.out / name).read_text(encoding='utf-8'))
+                paired_export_gap = compare(source, baseline)
+    return scores, paired_export_gap
 
 
 def report(a, loop: Loop, formats: list, strip_m: dict) -> dict:
@@ -185,7 +255,7 @@ def report(a, loop: Loop, formats: list, strip_m: dict) -> dict:
     mini_doc, mini_tasks = {}, []
     for r in rows:
         m = loop.marker(f'mini_{r["format"]}')
-        if not m: continue
+        if not m or m.get('suite') == 'minibench_v1': continue
         recs = json.loads((loop.out / m['files'][0]).read_text(encoding='utf-8'))['records']
         for x in recs:
             if x.get('primary'):
@@ -212,6 +282,20 @@ def report(a, loop: Loop, formats: list, strip_m: dict) -> dict:
         watcher = dict(status='no watcher score given (--watcher-json): not compared')
     doc = dict(weights_sha256=strip_m['weights_sha256'], guards=guard_label(a), formats=rows, score_full=({f'{k[0]}/{k[1]}/{k[2]}': v for k, v in full.items()} if full else None),
                watcher=watcher, eval_mini=mini_doc, model_note=a.model_note, eval=str(a.eval), eval_sha256=sha256(Path(a.eval)))
+    minibench, export_gap = report_minibench(a, loop, formats) if a.minibench_profile else ({}, None)
+    if minibench:
+        doc['minibench_v1'] = minibench
+        doc['native_to_bf16_gguf'] = export_gap
+        if strip_m.get('step') is not None:
+            for fmt, row in minibench.items():
+                metrics = {'step': strip_m['step'], **{f'minibench/{k}': v for k, v in row['heldout'].items()}}
+                for task, scores in row['tasks'].items():
+                    # Diagnostic scores go under their own prefix, so a dashboard panel cannot show one as a model score.
+                    prefix = 'minibench/diagnostic' if task in row['diagnostic_tasks'] else 'minibench'
+                    metrics[f'{prefix}/gold_bpb/{task}'] = scores['gold_bpb']
+                    if 'accuracy_points' in scores:
+                        metrics[f'{prefix}/accuracy_points/{task}'] = scores['accuracy_points']
+                (loop.out / 'mini' / fmt / 'metrics.jsonl').write_text(json.dumps(metrics, allow_nan=False) + '\n', encoding='utf-8')
     (loop.out / 'gap.json').write_text(json.dumps(doc, indent=2) + '\n', encoding='utf-8')
     kl = sorted(kinds)
     md = [f'# Gap table', '', *([f'> {a.model_note}', ''] if a.model_note else []), f'weights sha256 `{doc["weights_sha256"]}` (stages/strip.json)', f'guards: {doc["guards"]}',
@@ -230,6 +314,15 @@ def report(a, loop: Loop, formats: list, strip_m: dict) -> dict:
                 g = lambda v: '-' if v is None else v
                 md.append(f'| {task} | {x["metric"]} | {f} | {x["n_items"]} | {x["value"]} | {g(x["stderr"])} | {g(x["gap"])} | {g(x["gap_se_unpaired"])} | {x["guard_exit"]} |')
         md += ['', 'Commands: ' + '; '.join(f'`{mini_doc[mini_tasks[0]][f]["command"]}`' for f in mini_doc[mini_tasks[0]])]
+    if minibench:
+        md += ['', '## Team 9 mini-benchmark v1', '', '| Format | Profile | Pooled bpb | Change from bf16 |',
+               '|---|---|---:|---:|']
+        for fmt, row in minibench.items():
+            gap = row['paired_gap']['heldout_bpb_delta']['val/bpb'] if row['paired_gap'] else 0.0
+            md.append(f'| {fmt} | {row["profile"]} | {row["heldout"]["val/bpb"]:.4f} | {gap:+.4f} |')
+        diagnostic = ', '.join(next(iter(minibench.values()))['diagnostic_tasks'])
+        md += ['', 'Per-slice bpb and paired item score intervals are in `gap.json`. '
+               f'Diagnostic, not cleared for contamination: {diagnostic} (`minibench/diagnostic/` in metrics.jsonl).']
     md += ['', f'Full copy (Team 9 scorer, score_full.v1.json): {doc["score_full"] or "not scored (needs a store input)"}',
            f'Watcher: {watcher["status"]}' + (f' {watcher.get("loop_vs_watcher", "")}' if watcher.get('loop_vs_watcher') else ''), '', 'Commands:']
     md += [f'- {r["format"]}: `{r["command"]}`' for r in rows]
@@ -245,6 +338,7 @@ def main(argv=None) -> int:
     src.add_argument('--weights', type=Path, help='a model.safetensors of a G5 model (needs --manifest)')
     ap.add_argument('--step', type=int); ap.add_argument('--manifest', type=Path, help="the run's manifest.json (config.model): quantize_eval.py's --spec")
     ap.add_argument('--scorer', default='smoke', help='run_lab_ckpt.py --scorer (its other arguments go through as they are)')
+    ap.add_argument('--score-device', choices=('cpu', 'cuda'), default='cpu')
     ap.add_argument('--config', type=Path, default=TEAMS / '05-architecture/configs/config_v0.yaml'); ap.add_argument('--tiny', type=Path, default=TEAMS / '05-architecture/configs/small/tiny_moe.yaml')
     ap.add_argument('--steps', type=int, default=200)
     ap.add_argument('--tokenizer', required=True); ap.add_argument('--tokenizer-sha256')
@@ -254,6 +348,9 @@ def main(argv=None) -> int:
     ap.add_argument('--mini-python', help="a venv's python with llama-cpp-python==0.3.36, lm_eval==0.4.13, datasets (the mini stage runs in it)")
     ap.add_argument('--mini-tasks', default=MINI_TASKS, help='comma list from G9\'s mini profile; default: the English tasks of the bit-width proposal v2 evidence')
     ap.add_argument('--mini-limit', type=int, help='override every task\'s item limit (smoke tests only)'); ap.add_argument('--mini-ngl', type=int, default=0, help='layers on the GPU (0: CPU)')
+    ap.add_argument('--minibench-profile', choices=('quick', 'full', 'smoke'), help='use Team 9 minibench_v1 on every GGUF')
+    ap.add_argument('--minibench-cache', action='append', type=Path, default=[])
+    ap.add_argument('--minibench-byte-table', type=Path)
     ap.add_argument('--g9-harness', default=str(G9_HARNESS)); ap.add_argument('--keep-gguf', action='store_true', help='keep every quantized GGUF after its stages')
     ap.add_argument('--model-note', help='one line printed on top of the gap table, e.g. that the model is too weak for the scores to mean anything')
     ap.add_argument('--drop-router-bias', action='store_true'); ap.add_argument('--drop-head-bias', action='store_true')
@@ -265,17 +362,36 @@ def main(argv=None) -> int:
     if formats[0] != 'bf16': ap.error('--formats must start with bf16: it is the baseline of the gap')
     todo = (a.stages or 'strip,score_full,quantize,report' + (',mini' if a.mini_python else '')).split(',')
     if 'mini' in todo and not a.mini_python: ap.error('the mini stage needs --mini-python')
+    suite_key = None
+    if a.minibench_profile:
+        if not all((a.mini_python, a.manifest, a.tokenizer_sha256, a.minibench_byte_table, a.minibench_cache)):
+            ap.error('--minibench-profile needs --mini-python, --manifest, --tokenizer-sha256, --minibench-byte-table and --minibench-cache')
+        if a.weights and (a.step is None or a.step < 0):
+            ap.error('minibench_v1 on standalone weights requires a nonnegative --step')
+        if a.mini_limit is not None or a.mini_tasks != MINI_TASKS:
+            ap.error('minibench_v1 has fixed items for each profile')
+        inputs = ('minibench_v1.yaml', 'minibench_gguf.py', 'minibench_lab.py', 'minibench_items.py', 'lm_eval_lab.py')
+        suite_key = key_of(a.minibench_profile, a.tokenizer_sha256, sha256(a.manifest), sha256(a.minibench_byte_table),
+                           [str(path.resolve()) for path in a.minibench_cache], [sha256(LAB / name) for name in inputs])
+        if a.run_dir and a.scorer == 'smoke':
+            a.scorer = 'minibench_lab:team5'
+            rest = [*minibench_args(a), *rest]
     a.hold_gguf = a.keep_gguf or 'mini' in todo   # the mini stage reads the quantized GGUF; the loop deletes it after that stage
     loop = Loop(a.out)
     loop.note(event='loop', guards=guard_label(a), formats=a.formats)
     tok = sha256(Path(a.tokenizer))
     src_key = (str(a.run_dir or a.weights), a.step, sha256(a.weights) if a.weights else None)   # a store's commits are keyed by what strip reads
     if a.run_dir:
-        ptr = json.loads((a.run_dir / 'latest.json').read_text()) if a.step is None else {}   # the commit it names, not the claim's timestamps
-        src_key += (ptr.get('path'), ptr.get('step'))
-    s = loop.run('strip', STAGES['strip'], key_of(src_key, a.scorer, rest), lambda: strip(a, loop, rest)) if 'strip' in todo else loop.marker('strip')
-    if a.run_dir and 'score_full' in todo:
-        loop.run('score_full', STAGES['score_full'], key_of(s['weights_sha256'], a.scorer, rest), lambda: score_full(a, loop, rest, s['weights_sha256']))
+        sys.path.insert(0, str(LAB))
+        from run_lab_ckpt import read_pointer
+
+        ptr = read_pointer(a.run_dir, a.step)
+        src_key += (ptr['path'], ptr['step'], sha256(a.run_dir / ptr['path'] / 'MANIFEST.json'))
+    s = loop.run('strip', STAGES['strip'], key_of(src_key, a.scorer, rest, a.manifest and sha256(a.manifest)),
+                 lambda: strip(a, loop, rest)) if 'strip' in todo else loop.marker('strip')
+    if (a.run_dir or (a.minibench_profile and a.step is not None)) and 'score_full' in todo:
+        loop.run('score_full', STAGES['score_full'], key_of(s['weights_sha256'], a.scorer, rest, a.score_device, suite_key),
+                 lambda: score_full(a, loop, rest, s['weights_sha256']))
     if 'quantize' in todo:
         for f in formats:
             qk = key_of(s['weights_sha256'], f, tok, sha256(Path(a.eval)), a.verify, a.drop_router_bias, a.drop_head_bias, a.qe_args, a.manifest and sha256(a.manifest))
@@ -285,6 +401,8 @@ def main(argv=None) -> int:
             if 'mini' in todo:
                 def mini_key():
                     q = json.loads((loop.out / f'q/{f}/scores.json').read_text(encoding='utf-8'))['formats'][0]
+                    if suite_key is not None:
+                        return q, key_of(q['sha256'], suite_key, a.mini_ngl, sha256(EVAL_MINI / 'llamacpp_lm.py'))
                     return q, key_of(q['sha256'], a.mini_tasks, a.mini_limit, a.mini_ngl, sha256(Path(a.g9_harness)),
                                      [sha256(EVAL_MINI / n) for n in ('run_mini_gguf.py', 'llamacpp_lm.py', 'test_llamacpp_lm.py')])
                 q, mk = mini_key()

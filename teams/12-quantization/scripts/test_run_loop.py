@@ -26,6 +26,21 @@ class LoopTests(unittest.TestCase):
 
     def fake_sh(self, cmd, **kw):
         cmd = [str(c) for c in cmd]
+        if 'minibench_gguf.py' in cmd[1] or 'minibench_lab.py' in cmd[1]:
+            fmt = cmd[cmd.index('--format') + 1] if '--format' in cmd else 'native'
+            if fmt != 'native':
+                self.minis.append(fmt)
+            bpb = {'native': 1.9, 'bf16': 2.0}.get(fmt, 2.1)
+            identity = dict.fromkeys(('suite_sha256', 'items_sha256', 'heldout_sha256', 'heldout_sources_sha256',
+                                      'tokenizer_sha256'), 'pin')
+            doc = dict(identity, schema_version='minibench_cont_v1', suite='minibench_v1', profile='quick',
+                       gguf_sha256=fmt + 'sha', heldout={'val/bpb': bpb}, timing_seconds={'tasks': 1},
+                       diagnostic_tasks=['diag'],
+                       tasks={'fixed': {'gold_bpb': bpb, 'accuracy_points': 50}, 'diag': {'gold_bpb': bpb, 'accuracy_points': 25}},
+                       items={'fixed': [{'id': '1', 'gold_nll_nats': bpb, 'utf8_bytes': 2, 'correct': True}],
+                              'diag': [{'id': '1', 'gold_nll_nats': bpb, 'utf8_bytes': 2, 'correct': False}]})
+            Path(cmd[cmd.index('--out') + 1]).write_text(json.dumps(doc), encoding='utf-8')
+            return ' '.join(cmd)
         if 'run_mini_gguf.py' in cmd[1]:
             fmt = cmd[cmd.index('--format') + 1]; self.minis.append(fmt)
             v = MINI[fmt]; d = Path(cmd[cmd.index('--out') + 1]) / fmt; d.mkdir(parents=True, exist_ok=True)
@@ -103,6 +118,22 @@ class LoopTests(unittest.TestCase):
     def test_changed_checkpoint_reruns_everything(self):
         self.loop(); (self.d / 'model.safetensors').write_text('new weights'); self.loop()
         self.assertEqual(len(self.calls), 6)
+
+    def test_minibench_uses_one_pinned_profile_and_outputs_paired_gaps_and_metrics(self):
+        args = ('--minibench-profile', 'quick', '--minibench-cache', str(self.d), '--minibench-byte-table',
+                str(self.d / 'tok.json'), '--tokenizer-sha256', 'frozen', '--step', '1221')
+        self.loop(*args)
+        self.loop(*args)
+        self.assertEqual(self.minis, ['bf16', 'Q8_0', 'Q4_K_M'])
+        report = json.loads((self.d / 'out/gap.json').read_text())
+        q8 = report['minibench_v1']['Q8_0']
+        self.assertAlmostEqual(q8['paired_gap']['heldout_bpb_delta']['val/bpb'], 0.1)
+        self.assertAlmostEqual(report['native_to_bf16_gguf']['heldout_bpb_delta']['val/bpb'], 0.1)
+        metrics = json.loads((self.d / 'out/mini/Q8_0/metrics.jsonl').read_text())
+        self.assertEqual(metrics, {'step': 1221, 'minibench/val/bpb': 2.1, 'minibench/gold_bpb/fixed': 2.1,
+                                   'minibench/accuracy_points/fixed': 50, 'minibench/diagnostic/gold_bpb/diag': 2.1,
+                                   'minibench/diagnostic/accuracy_points/diag': 25})
+        self.assertIn('Diagnostic, not cleared for contamination: diag', (self.d / 'out/gap.md').read_text())
 
 
 if __name__ == '__main__':
