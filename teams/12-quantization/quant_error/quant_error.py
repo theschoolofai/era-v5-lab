@@ -11,7 +11,7 @@
   layers.csv    twin forward: hidden-state error and router agreement per layer and slice
   linears.csv   twin forward: activation-weighted error per nn.Linear (and per expert), and lm_head
   tokens.csv    twin forward: KL(ref || quant), same-top-1 per slice
-  kl.csv        llama.cpp (llama-perplexity): KL, same-top-p and PPL ratio per slice and format
+  kl.csv        llama.cpp (llama-perplexity): KL, same-top-p, PPL and PPL ratio per slice and format
   summary.json  versions, llama.cpp build, sha256 of every GGUF and of the held-out file, settings, wall time, export_gap
 Each CSV is written when its step finishes and summary.json last (with `steps_completed` and `failed`), so a step
 that fails late keeps the earlier results; the exit code is then non-zero. Nothing in --out is text or token ids. The slice texts and llama.cpp's scratch files go to --work (default: a temporary
@@ -37,7 +37,7 @@ LAYER_FIELDS = ['format', 'slice', 'layer', 'hidden_rel_err', 'router_agree']
 LINEAR_FIELDS = ['format', 'layer', 'tensor', 'expert', 'rows', 'act_rel_err']
 TOKEN_FIELDS = ['format', 'slice', 'n_tokens', 'kl_mean', 'kl_p99', 'same_top1']
 KL_FIELDS = ['slice', 'format', 'chunks', 'tokens_scored', 'ppl_ratio', 'ppl_ratio_unc', 'kld_mean', 'kld_mean_unc',
-             'kld_99', 'same_top_p', 'time_s']
+             'kld_99', 'same_top_p', 'ppl', 'ppl_unc', 'kld_median', 'kld_max', 'same_top_p_unc', 'rms_dp', 'time_s']
 
 
 def write_csv(path: Path, fields: list[str], rows: list[dict]) -> None:
@@ -200,7 +200,8 @@ def run_all(args) -> int:
             write_csv(out / 'tokens.csv', TOKEN_FIELDS, tokens)
 
             kl_rows = step('kl', lambda: run_kl_slices(args.ref, quants, slice_files, args.tokenizer, args.llama_bin, work,
-                                                       ctx=KL_CTX, max_chunks=args.kl_chunks))
+                                                       ctx=KL_CTX, max_chunks=args.kl_chunks,
+                                                       add_bos=bos is not None))
             write_csv(out / 'kl.csv', KL_FIELDS, kl_rows)
     except Exception as e:   # the CSVs of the finished steps stay; summary.json says what completed
         failure = e

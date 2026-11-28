@@ -16,10 +16,14 @@ _spec = importlib.util.spec_from_file_location('kl_eval', Path(__file__).resolve
 kl_eval = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(kl_eval)
 
 NGL = 99  # all layers on the GPU (Metal), as kl_eval's default
+# the numbers of one KL pass that go into a row, in kl.csv's column order (every key kl_eval.PATTERNS parses)
+NUMBERS = ('ppl_ratio', 'ppl_ratio_unc', 'kld_mean', 'kld_mean_unc', 'kld_99', 'same_top_p', 'ppl', 'ppl_unc',
+           'kld_median', 'kld_max', 'same_top_p_unc', 'rms_dp')
 
 
 def plan_chunks(n_tokens: int, ctx: int, max_chunks: int) -> int:
-    """Chunks llama-perplexity will run on n_tokens tokens (BOS included), at most max_chunks.
+    """Chunks llama-perplexity will run on n_tokens tokens (its BOS included, when the GGUF adds one), at most
+    max_chunks.
 
     It refuses a text of fewer than 2 * ctx tokens (perplexity.cpp), otherwise runs min(--chunks, n_tokens // ctx)."""
     return 0 if n_tokens < 2 * ctx else min(max_chunks, n_tokens // ctx)
@@ -47,10 +51,13 @@ def _parse(log: str, where: str) -> dict:
 
 
 def run_kl_slices(ref: Path, quants: dict[str, Path], slice_files: dict[str, Path], tokenizer_json: Path,
-                  llama_bin: Path, work: Path, ctx: int = 512, max_chunks: int = 8, runner=None) -> list[dict]:
-    """One row per (slice, format): chunks, tokens_scored, ppl_ratio(+_unc), kld_mean(+_unc), kld_99, same_top_p, time_s.
+                  llama_bin: Path, work: Path, ctx: int = 512, max_chunks: int = 8, runner=None, *,
+                  add_bos: bool) -> list[dict]:
+    """One row per (slice, format): chunks, tokens_scored, the NUMBERS of the KL pass, time_s.
 
-    llama_bin is the directory with the llama.cpp binaries. A slice under 2 * ctx tokens (llama-perplexity refuses it) gives one
+    llama_bin is the directory with the llama.cpp binaries. add_bos is the reference GGUF's tokenizer.ggml.add_bos_token
+    (quant_error.bos_id): llama.cpp puts one BOS before the text only then, so the planned token count includes it only
+    then. A slice under 2 * ctx tokens (llama-perplexity refuses it) gives one
     row with chunks = 0 and no numbers. The chunk count of the base log must equal the planned one, else RuntimeError;
     rows record the count llama.cpp ran. runner(args, gguf, ngl, extra, log) -> (log text, seconds) defaults to
     kl_eval.perplexity. Each slice's base file (~260 KB per scored token at a 131k vocabulary) is deleted right
@@ -62,8 +69,8 @@ def run_kl_slices(ref: Path, quants: dict[str, Path], slice_files: dict[str, Pat
     logs.mkdir(parents=True, exist_ok=True)
     rows = []
     for name, path in slice_files.items():
-        # llama.cpp adds one BOS token to the text
-        n_tokens = 1 + len(tok.encode(Path(path).read_text(encoding='utf-8'), add_special_tokens=False).ids)
+        # llama.cpp adds one BOS token to the text when the GGUF asks for it
+        n_tokens = int(add_bos) + len(tok.encode(Path(path).read_text(encoding='utf-8'), add_special_tokens=False).ids)
         chunks = plan_chunks(n_tokens, ctx, max_chunks)
         if chunks == 0:
             rows.append({'slice': name, 'format': None, 'chunks': 0})
@@ -85,9 +92,7 @@ def run_kl_slices(ref: Path, quants: dict[str, Path], slice_files: dict[str, Pat
                 p = _parse(log, f'{name} {fmt}')
                 rows.append({'slice': name, 'format': fmt, 'chunks': chunks,
                              'tokens_scored': chunks * (ctx - 1 - ctx // 2),  # llama.cpp scores the 2nd half of each chunk
-                             'ppl_ratio': p['ppl_ratio'], 'ppl_ratio_unc': p['ppl_ratio_unc'],
-                             'kld_mean': p['kld_mean'], 'kld_mean_unc': p['kld_mean_unc'], 'kld_99': p['kld_99'],
-                             'same_top_p': p['same_top_p'], 'time_s': round(secs, 1)})
+                             **{key: p[key] for key in NUMBERS}, 'time_s': round(secs, 1)})
         finally:
             base.unlink(missing_ok=True)
     return rows

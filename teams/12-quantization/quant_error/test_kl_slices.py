@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Tests for the llama.cpp KL-per-slice runner (fake llama-perplexity, no llama.cpp needed):  python test_kl_slices.py"""
-import importlib.util, re, sys, tempfile, unittest
+import importlib.util, re, subprocess, sys, tempfile, unittest
 from pathlib import Path
 
 from tokenizers import Tokenizer, models, pre_tokenizers
@@ -26,8 +26,9 @@ RMS Δp    :  4.123 ± 0.044 %
 Same top p: 92.083 ± 0.211 %
 '''
 BASE_LOG = 'perplexity: calculating perplexity over {n} chunks, n_ctx=512, batch_size=2048, n_seq=4\n'
-EXPECTED = dict(ppl_ratio=1.012345, ppl_ratio_unc=0.002345, kld_mean=0.023286, kld_mean_unc=0.000319,
-                kld_99=0.182544, same_top_p=92.083)
+EXPECTED = dict(ppl=8.9699, ppl_unc=0.1743, ppl_ratio=1.012345, ppl_ratio_unc=0.002345, kld_mean=0.023286,
+                kld_mean_unc=0.000319, kld_median=0.004321, kld_99=0.182544, kld_max=9.812345, same_top_p=92.083,
+                same_top_p_unc=0.211, rms_dp=4.123)
 
 
 def make_tokenizer(path: Path) -> Path:
@@ -56,6 +57,24 @@ class FakeRunner:
         else:
             log.write_text(BASE_LOG.format(n=self.actual_chunks or args.chunks), encoding='utf-8')
         return log.read_text(encoding='utf-8'), 1.5
+
+
+class LlamaLikeRunner(FakeRunner):
+    """As FakeRunner, but the base pass reports the chunk count llama-perplexity would run on the text file: its words,
+    plus one BOS if the GGUF adds one (`gguf_adds_bos`), divided by ctx, at most --chunks; under 2 * ctx tokens it
+    refuses the text, as llama-perplexity does."""
+
+    def __init__(self, gguf_adds_bos: bool):
+        super().__init__()
+        self.gguf_adds_bos = gguf_adds_bos
+
+    def __call__(self, args, gguf, ngl, extra, log):
+        if '-f' in extra:
+            n = len(Path(extra[extra.index('-f') + 1]).read_text(encoding='utf-8').split()) + self.gguf_adds_bos
+            if n < 2 * args.ctx:
+                raise subprocess.CalledProcessError(1, 'llama-perplexity')
+            self.actual_chunks = min(args.chunks, n // args.ctx)
+        return super().__call__(args, gguf, ngl, extra, log)
 
 
 class KlSlicesTests(unittest.TestCase):
@@ -87,7 +106,8 @@ class KlSlicesTests(unittest.TestCase):
         work.mkdir()
         runner = FakeRunner()
         rows = k.run_kl_slices(self.dir / 'ref.gguf', {'Q8_0': self.dir / 'q8.gguf', 'Q4_K_M': self.dir / 'q4.gguf'},
-                               {'c4-val': text, 'owm-test': short}, self.tok, Path('/llama/bin'), work, runner=runner)
+                               {'c4-val': text, 'owm-test': short}, self.tok, Path('/llama/bin'), work, runner=runner,
+                               add_bos=True)
         self.assertEqual([(r['slice'], r['format']) for r in rows],
                          [('c4-val', 'Q8_0'), ('c4-val', 'Q4_K_M'), ('owm-test', None)])
         for row in rows[:2]:
@@ -106,6 +126,22 @@ class KlSlicesTests(unittest.TestCase):
         self.assertIn('--kl-divergence', runner.calls[1]['extra'])
         self.assertEqual(list(work.glob('*.kld')), [])  # the ~260 KB-per-token base file is deleted
 
+    def test_bos_is_counted_only_when_the_gguf_adds_one(self):
+        """1535 words: 1536 tokens and 3 chunks with a BOS, 1535 tokens and 2 chunks without. 1023 words: 1024 tokens
+        and 2 chunks with a BOS; without one, under 2 * 512, so no llama.cpp call. A plan that always counted a BOS
+        would ask for 3 chunks (and raise) or call llama.cpp on a text it refuses."""
+        for words, add_bos, chunks in ((1535, True, 3), (1535, False, 2), (1023, True, 2), (1023, False, 0)):
+            with self.subTest(words=words, add_bos=add_bos):
+                text = self.dir / 'c4-val.txt'
+                text.write_text(' '.join(['w'] * words), encoding='utf-8')
+                work = self.dir / f'work-{words}-{add_bos}'
+                work.mkdir()
+                runner = LlamaLikeRunner(add_bos)
+                rows = k.run_kl_slices(self.dir / 'ref.gguf', {'Q8_0': self.dir / 'q8.gguf'}, {'c4-val': text},
+                                       self.tok, Path('/llama/bin'), work, runner=runner, add_bos=add_bos)
+                self.assertEqual([r['chunks'] for r in rows], [chunks])
+                self.assertEqual(len(runner.calls), 2 if chunks else 0)
+
     def test_failed_pass_still_deletes_base_file(self):
         text = self.dir / 'c4-val.txt'
         text.write_text(' '.join(['w'] * 1100), encoding='utf-8')
@@ -119,7 +155,7 @@ class KlSlicesTests(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, 'no "ppl"'):
             k.run_kl_slices(self.dir / 'ref.gguf', {'Q8_0': self.dir / 'q8.gguf'}, {'c4-val': text}, self.tok,
-                            Path('/llama/bin'), work, runner=broken)
+                            Path('/llama/bin'), work, runner=broken, add_bos=True)
         self.assertEqual(list(work.glob('*.kld')), [])
 
     def test_chunk_count_mismatch_is_an_error(self):
@@ -129,7 +165,7 @@ class KlSlicesTests(unittest.TestCase):
         work.mkdir()
         with self.assertRaisesRegex(RuntimeError, r'c4-val.*planned 2 chunks.*ran 1'):
             k.run_kl_slices(self.dir / 'ref.gguf', {'Q8_0': self.dir / 'q8.gguf'}, {'c4-val': text}, self.tok,
-                            Path('/llama/bin'), work, runner=FakeRunner(actual_chunks=1))
+                            Path('/llama/bin'), work, runner=FakeRunner(actual_chunks=1), add_bos=True)
         self.assertEqual(list(work.glob('*.kld')), [])
 
     def test_missing_chunk_line_is_an_error(self):
@@ -144,7 +180,7 @@ class KlSlicesTests(unittest.TestCase):
 
         with self.assertRaisesRegex(RuntimeError, 'no "calculating perplexity over N chunks"'):
             k.run_kl_slices(self.dir / 'ref.gguf', {'Q8_0': self.dir / 'q8.gguf'}, {'c4-val': text}, self.tok,
-                            Path('/llama/bin'), work, runner=silent)
+                            Path('/llama/bin'), work, runner=silent, add_bos=True)
 
 
 if __name__ == '__main__':
