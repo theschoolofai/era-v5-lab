@@ -1,0 +1,18 @@
+p1536: 1059 docs, 3775551 raw bytes, 3762753 normalized, 549042 tokens, 66 context resets, 0 round-trip failures
+C3: 1059 docs, 3775551 raw bytes, 3762753 normalized, 579522 tokens, 77 context resets, 0 round-trip failures
+slice   docs  raw bytes  norm Δ p1536 B/tok    C3 B/tok p1536 resets    C3 resets
+as        20     253230   -3948       8.377       7.767            6            7
+bn        27     265042   -5739       8.744       7.989            6            7
+code     338     250262       0       3.883       3.999            0            0
+en       140     247056       0       4.673       4.677            2            2
+gu        31     250826       0       7.991       7.119            5            5
+hi        34     255134       0       8.675       8.282            5            5
+kn        38     250459       0       8.868       8.074            3            4
+math      55     259449       0       3.632       3.639           16           16
+ml        30     251018       0      10.292       9.394            2            3
+mr        38     250524       0       9.309       8.860            3            4
+or        53     225421       0       9.125       7.701            1            2
+pa        27     254686   -3111       7.878       6.756            7           10
+sci      170     250710       0       5.054       5.057            0            0
+ta        37     256545       0      10.534       9.519            2            2
+te        21     255189       0       8.985       8.104            8           10
