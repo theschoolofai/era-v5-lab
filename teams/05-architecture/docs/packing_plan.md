@@ -64,8 +64,8 @@ From #825's totals (1,008,187,260 content tokens and 1,200,725 documents), packi
 ## Proposed next steps
 
 1. **Full numbers.** Run `packing_fill.py` on the 41 shard indexes (whoever has them staged; it reads offsets only).
-2. **Code, behind a switch.** In `week2/data.py`, a packed loader (`data.pack: true`) that writes document ids and position ids with each row; in `week2/model.py`, the document mask in the eager path and position ids in RoPE. Off by default; dry run 2 and its arm unchanged.
-3. **Check.** With `data.pack: false` the trainer stays bit-identical; with packing on, a single-document row gives the same loss as today, and a short T2 A/B (packed vs today, same seed and token budget) compares held-out bpb per scored token.
+2. **Code, behind a switch.** In `week2/data.py`, a packed loader (`run.pack: true`) that writes document ids and position ids with each row; in `week2/model.py`, the document mask in the eager path and position ids in RoPE. Off by default; dry run 2 and its arm unchanged.
+3. **Check.** With `run.pack: false` the trainer stays bit-identical; with packing on, a single-document row gives the same loss as today, and a short T2 A/B (packed vs today, same seed and token budget) compares held-out bpb per scored token.
 4. **Then decide** with the main-run settings: context length (#825), model size (#821) and SDPA (#805).
 
 ## Files

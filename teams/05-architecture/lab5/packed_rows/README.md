@@ -6,7 +6,7 @@
 ## What it delivers
 
 1. A format spec: what one packed training row contains, field by field.
-2. A `data.pack` switch in the G5 trainer, off by default.
+2. A `run.pack` switch in the G5 trainer, off by default.
 3. The document mask and per-document positions in the model.
 4. Tests, and a measured fill and step-time number.
 
@@ -30,19 +30,23 @@ One packed row has length `L` (= `data.seq_len`). Five arrays, one value per pos
 
 **Filling a row.** The loader keeps a pool of the next 16 pieces in the sampler's shuffled order. Each row repeatedly takes the largest pooled piece that still fits (the earliest on a tie), refilling the pool after each take, until nothing in the pool fits; the rest of the row is padding. No piece is ever cut by packing.
 
+**End of a pass.** The pool only refills from the current pass. When the pass runs out, the pool drains first, and the next pass is shuffled and starts once the pool is empty. So every pass places each piece exactly once. (Refilling across the boundary, as the first version did, let a next-pass piece jump ahead of a waiting one: within a pass, up to 15 pieces were placed twice and as many not at all.)
+
 Why a pool: taking pieces strictly in order leaves rows only about 78% full at 2,048 on two sample-v0 shards, because a full 2,048 window that arrives when a row is half used wastes the rest of that row. Best fit from 16 upcoming pieces reaches 99.2% at 2,048 and 99.6% at 4,096 (measured below). It only reorders pieces within a window of 16, and the pool is saved in the sampler's state, so the data order is still fixed by the seed and a resumed run continues exactly.
 
-**Open point for Team 6.** Today every window restarts its positions at 0, including the second window of a long document. The proposal keeps that, so the model sees exactly the positions it sees today. If Team 6's loader prefers continuing positions across a long document's windows, that is a separate change with its own test.
+**Positions: settled.** Every window restarts its positions at 0, including the later windows of a long document, as today. TSAI accepted this on the PR (28 Nov): the model cannot see an earlier window, so restarting is consistent.
+
+**Open point for Team 6: start and end of a document.** The shards end every document with EOS (130822) and carry no BOS. The G5 trainer feeds BOS (130725) as the first input of each document and does not train on EOS. The proposal is that packed rows follow the same rule, so a row built by Team 6's loader and a row built by this reader are identical; asked on the PR, 28 Nov.
 
 ## How the trainer reads it
 
-- **Switch.** `run.pack: true` in the G5 arm (the trainer's spelling of `data.pack`; off by default). Refused with `attn_impl: sdpa` or with `run.tst`.
+- **Switch.** `run.pack: true` in the G5 arm, off by default. Works with `attn_impl: eager` and `attn_impl: sdpa`; refused with `run.tst`.
 - **Loader (`week2/data.py`).** `DocumentWindows.packed_batch()` builds the rows; `BatchStream(..., pack=True)` fills them with the pool rule above. With the switch off, the current `batch()` and `BatchStream` run unchanged, and a checkpoint's sampler state has exactly today's keys.
 - **Steps and data order.** With packing, a step still has a fixed number of rows (fixed positions per step), but it consumes a varying number of windows. The sampler state records the order, the offset and the pool, so a resumed run continues at the same window (Team 7's restart test).
 - **Positions (`week2/model.py`, `rotary`).** Today the angle uses `arange(t)` for every row. With packing it uses `pos_ids` per row.
 - **Attention mask (`eager_attention`).** Today: causal, intersected with the local window on local layers. With packing: also "same piece" (`doc_ids[i] == doc_ids[j]`). Padding positions (id 0) attend only to earlier padding and themselves, so no row of scores is all masked (that would give NaN in the softmax); their targets are `-100`, so they add nothing to the loss.
 - **Multi-token prediction.** When MTP is on, the "token after next" target is dropped where it would come from the next piece in the row.
-- **SDPA path (opt-in, #804).** Refuses packing with a clear error for now. A boolean mask in SDPA turns off the fast fused kernel; that is a question for the SDPA A/B (#805) or a variable-length kernel, not this change.
+- **SDPA path (opt-in, #804).** Takes the same mask, causal and same piece, as an explicit boolean `attn_mask`. A custom mask rules out the flash kernel, so PyTorch uses another fused kernel or the math path; whether SDPA with the mask still beats eager is measured by `measure_attention.py` (below).
 - **MoE.** The valid-token mask is unchanged: padding is still padding, and real tokens of every piece are routed as today.
 - **Held-out evaluation.** Stays unpacked, so its numbers stay comparable with every earlier run.
 - **TST.** Off in dry run 2; packing with TST on is refused until tested.
@@ -57,9 +61,13 @@ Why a pool: taking pieces strictly in order leaves rows only about 78% full at 2
 | d | Positions | `pos_ids` restart at 0 for each piece; the rotary angles match today's for each piece |
 | e | Bytes | Total target bytes and bits per byte unchanged |
 | f | Fill | Fewer rows for the same windows; `measure_fill.py` gives the same row count as the loader on the same order |
-| g | Resume | Stopping and resuming the sampler gives the same windows in the same order |
+| g | Resume | Stopping and resuming the sampler gives the same windows in the same order, also while the pool drains at the end of a pass |
+| h | Id types | `doc_ids` and `pos_ids` are 32-bit integers |
+| i | One pass, each piece once | Over several passes, every pass places each window exactly once |
+| j | SDPA with the mask | Same logits and gradients as eager on a packed row |
+| k | Gradient coverage | The parameters with a None or all-zero gradient are the same with SDPA and with eager |
 
-All are in `tests/test_packed_rows.py` (13 tests), plus the full G5 test suite.
+All are in `tests/test_packed_rows.py` (17 tests), plus the full G5 test suite.
 
 ## Measured
 
@@ -77,6 +85,23 @@ python teams/05-architecture/lab5/packed_rows/measure_fill.py \
 
 The packed figures are within 1% of #831's continuous-stream estimate (55,437 rows at 2,048; 27,719 at 4,096), which cuts windows to fill rows; the loader never cuts one.
 
+All 41 sample-v0 shards (the `.idx.npy` files only; 1,200,725 documents, 1,008,187,260 content tokens), same command with all 41 files:
+
+| Window | Rows today | Rows packed (loader) | Fill today | Fill in strict order | Fill packed (loader) | Packed / today |
+|---:|---:|---:|---:|---:|---:|---:|
+| 2,048 | 1,397,555 | 494,570 | 35.2% | 77.9% | 99.5% | 0.35x |
+| 4,096 | 1,263,667 | 246,683 | 19.5% | 80.3% | 99.8% | 0.20x |
+
+The "fill today" column matches #825's figures for the same 41 shards (35.22% at 2,048, 19.48% at 4,096), a check on the measurement. `measure_fill.py` measures one pass, so its numbers already follow the end-of-pass rule above.
+
+**Eager against SDPA with the mask** (TSAI's review). `measure_attention.py` runs three arms on the same documents, model (the T2 arm, vocabulary 32,768) and seed: packed rows with eager, packed rows with SDPA and the mask, and one window per row with causal SDPA (today). It reports real tokens per second over forward and backward, peak GPU memory, and the gradient-coverage list for each arm:
+
+```
+python teams/05-architecture/lab5/packed_rows/measure_attention.py \n    --index en-fineweb-edu-train-000000.idx.npy --window 2048 --batch 2 --steps 20 --dtype fp16
+```
+
+Results on a T4 (fp16; the T4 has no fast bf16): to follow. Every number is for the machine it ran on, not the training GPU.
+
 Still to measure: one training step on CPU, packed and unpacked, for the cost per real token.
 
 ## What it needs from others
@@ -86,8 +111,8 @@ Still to measure: one training step on CPU, packed and unpacked, for the cost pe
 
 ## What it cannot tell
 
-- The real speed gain on the training GPU: the eager attention cost per row is unchanged, only the number of rows falls. Team 6's profile measures the GPU number.
-- Whether a mask-aware fast kernel is needed: that comes from the SDPA A/B.
+- The real speed gain on the training GPU: the T4 numbers show the direction, not the size. Team 6's profile measures the GPU number.
+- Whether a variable-length (mask-aware) flash kernel is needed: only if SDPA with the mask is not clearly faster than eager.
 
 ## Plan and dates
 

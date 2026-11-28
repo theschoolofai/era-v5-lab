@@ -480,8 +480,7 @@ def validate(c):
     if pack is not None and type(pack) is not bool:
         errors.append("run.pack must be true or false")
     elif pack:
-        if m.get("attn_impl") == "sdpa":
-            errors.append("run.pack needs attn_impl eager: SDPA has no document mask here (see #805)")
+        # Both attention paths take the document mask (eager in eager_attention, SDPA as attn_mask).
         if r.get("tst"):
             errors.append("run.pack with run.tst is not tested; turn one off")
     tst = r.get("tst")

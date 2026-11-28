@@ -162,8 +162,15 @@ class GQA(nn.Module):
         k = self.rotary(self.k(x).view(b, t, self.nkv, self.d).transpose(1, 2), pos_ids)
         v = self.v(x).view(b, t, self.nkv, self.d).transpose(1, 2)
         if segments is not None and self.sdpa:
-            raise ValueError("Packed rows need eager attention: SDPA has no document mask here")
-        if segments is not None:
+            # Packed rows on SDPA: pass the causal document mask (True = may attend) explicitly.
+            # A custom mask rules out the flash kernel, so PyTorch picks another fused kernel or
+            # the math path; the speed is measured in lab5/packed_rows/measure_attention.py.
+            causal = torch.ones(t, t, dtype=torch.bool, device=q.device).tril()
+            allowed = causal & (doc_ids[:, None, :, None] == doc_ids[:, None, None, :])
+            heads = F.scaled_dot_product_attention(
+                q, k, v, attn_mask=allowed, enable_gqa=self.nh != self.nkv
+            )
+        elif segments is not None:
             heads = self.eager_attention(q, k, v, doc_ids)
         elif self.sdpa:
             # Fused causal attention on the shared K/V heads, without a T x T score matrix.

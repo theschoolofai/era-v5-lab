@@ -350,8 +350,9 @@ class DocumentWindows:
         x = torch.full((len(rows), self.seq_len), self.pad_id, dtype=torch.long)
         y = torch.full_like(x, -100)
         lengths = torch.zeros_like(x)
-        doc_ids = torch.zeros_like(x)
-        pos_ids = torch.zeros_like(x)
+        # The format table fixes doc_ids and pos_ids as 32-bit integers.
+        doc_ids = torch.zeros_like(x, dtype=torch.int32)
+        pos_ids = torch.zeros_like(x, dtype=torch.int32)
         for i, row in enumerate(rows):
             at = 0
             for piece, index in enumerate(row, start=1):
@@ -388,30 +389,33 @@ class BatchStream:
         ).tolist()
         self.offset = 0
 
-    def _take(self):
-        if self.offset == len(self.order):
+    def _refill(self):
+        # The pool only tops up from the current pass. When the pass runs out, the pool drains
+        # first and the next pass starts once it is empty, so a pass places each window exactly
+        # once (topping up across the boundary let a next-pass window jump ahead of a waiting one).
+        if not self.pool and self.offset == len(self.order):
             self.order = torch.randperm(
                 len(self.dataset.windows), generator=self.generator
             ).tolist()
             self.offset = 0
-        index = self.order[self.offset]
-        self.offset += 1
-        return index
+        while len(self.pool) < self.PACK_POOL and self.offset < len(self.order):
+            self.pool.append(self.order[self.offset])
+            self.offset += 1
 
     def next_packed(self, device):
         """batch_size rows, each filled with whole windows (lab5/packed_rows/README.md).
 
-        The pool holds the next PACK_POOL windows in sampler order; each row repeatedly takes the
-        largest pooled window that still fits (earliest first on ties) and refills the pool. No
-        window is cut. The pool is part of state_dict, so a resumed stream continues exactly.
+        The pool holds up to PACK_POOL upcoming windows of the current pass; each row repeatedly
+        takes the largest pooled window that still fits (earliest first on ties) and refills the
+        pool. No window is cut, and each window is placed once per pass. The pool is part of
+        state_dict, so a resumed stream continues exactly.
         """
         size = lambda index: len(self.dataset.windows[index][0])
         rows = []
         for _ in range(self.batch_size):
-            while len(self.pool) < self.PACK_POOL:
-                self.pool.append(self._take())
             row, left = [], self.dataset.seq_len
             while True:
+                self._refill()
                 fits = [i for i, index in enumerate(self.pool) if size(index) <= left]
                 if not fits:
                     break
@@ -419,7 +423,6 @@ class BatchStream:
                 index = self.pool.pop(i)
                 row.append(index)
                 left -= size(index)
-                self.pool.append(self._take())
             rows.append(row)
         return self.dataset.packed_batch(rows, device)
 

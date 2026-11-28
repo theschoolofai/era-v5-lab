@@ -94,13 +94,39 @@ class ModelTests(unittest.TestCase):
             out = model(ids, valid, segments=(doc, pos))
         self.assertTrue(torch.isfinite(out).all())
 
-    def test_sdpa_refuses_segments(self):
-        c, rows, lengths = fixture()
-        c["model"]["attn_impl"] = "sdpa"
-        model = LanguageModel(c["model"], rows, lengths)
-        ids, valid, doc, pos = one_row([3, 9, 4])
-        with self.assertRaises(ValueError):
-            model(ids, valid, segments=(doc, pos))
+    def test_sdpa_matches_eager_on_packed_rows(self):
+        # P17: SDPA with the explicit document mask gives eager's logits and gradients.
+        ids, valid, doc, pos = one_row([3, 9, 4], [7, 1, 12, 5])
+        out = {}
+        for impl in ("eager", "sdpa"):
+            c, rows, lengths = fixture()
+            c["model"]["attn_impl"] = impl
+            torch.manual_seed(1234)
+            model = LanguageModel(c["model"], rows, lengths)
+            logits = model(ids, valid, segments=(doc, pos))
+            logits.float().pow(2).mean().backward()
+            grads = {n: p.grad.clone() for n, p in model.named_parameters() if p.grad is not None}
+            out[impl] = (logits.detach(), grads)
+        torch.testing.assert_close(out["sdpa"][0], out["eager"][0], rtol=0, atol=1e-5)
+        self.assertEqual(sorted(out["sdpa"][1]), sorted(out["eager"][1]))
+        for name, g in out["eager"][1].items():
+            torch.testing.assert_close(out["sdpa"][1][name], g, rtol=1e-4, atol=1e-6, msg=name)
+
+    def test_gradient_coverage_is_the_same_on_both_paths(self):
+        # TSAI's lab rule for speed claims: parameters whose gradient is None or all zero must be
+        # the same with the fast path (SDPA) on and off.
+        ids, valid, doc, pos = one_row([3, 9, 4], [7, 1, 12, 5])
+        sys.path.insert(0, str(TEAM / "lab5" / "packed_rows"))
+        from measure_attention import gradient_gaps
+        gaps = {}
+        for impl in ("eager", "sdpa"):
+            c, rows, lengths = fixture()
+            c["model"]["attn_impl"] = impl
+            torch.manual_seed(1234)
+            model = LanguageModel(c["model"], rows, lengths)
+            model(ids, valid, segments=(doc, pos)).float().pow(2).mean().backward()
+            gaps[impl] = gradient_gaps(model)
+        self.assertEqual(gaps["sdpa"], gaps["eager"])
 
 
 class FakeWindows:
@@ -173,6 +199,54 @@ class LoaderTests(unittest.TestCase):
         self.assertEqual(rows, 5)
         self.assertLess(rows * 8, len(sizes) * 8)
 
+    def test_ids_are_32_bit(self):
+        # P15: the format table fixes doc_ids and pos_ids as 32-bit integers.
+        data = FakeWindows([3, 4, 5])
+        stream = BatchStream(data, batch_size=1, seed=0, pack=True)
+        x, y, lengths, doc, pos = stream.next(torch.device("cpu"))
+        self.assertEqual((doc.dtype, pos.dtype), (torch.int32, torch.int32))
+        self.assertEqual(x.dtype, torch.long)
+
+    def test_each_pass_places_every_window_once(self):
+        # P18: the pool drains at the end of a pass before the next pass starts, so every pass
+        # places each window exactly once (topping up across the boundary repeated some windows
+        # and skipped others within a pass).
+        sizes = [3, 4, 5, 2, 6, 1, 7, 3, 2, 2, 8, 1, 5, 6, 4, 2, 3, 7, 1, 5]
+        data = FakeWindows(sizes)
+        stream = BatchStream(data, batch_size=1, seed=3, pack=True)
+        stream.PACK_POOL = 6
+        log = []  # every window placed, in placing order
+
+        class Logged(list):
+            def pop(self, i):
+                v = list.pop(self, i)
+                log.append(v)
+                return v
+        stream.pool = Logged()
+        for _ in range(40):
+            stream.next(torch.device("cpu"))
+        n = len(sizes)
+        full = len(log) // n
+        self.assertGreaterEqual(full, 2)
+        for k in range(full):
+            self.assertEqual(sorted(log[k * n : (k + 1) * n]), list(range(n)), msg=f"pass {k}")
+
+    def test_resume_across_the_end_of_a_pass(self):
+        # A checkpoint taken while the pool drains resumes to the same rows.
+        data = FakeWindows([3, 4, 5, 2, 6, 1, 7, 3])
+        stream = BatchStream(data, batch_size=1, seed=5, pack=True)
+        stream.PACK_POOL = 4
+        while stream.offset < len(stream.order):
+            stream.next(torch.device("cpu"))
+        state = stream.state_dict()
+        expected = [stream.next(torch.device("cpu")) for _ in range(3)]
+        again = BatchStream(data, batch_size=1, seed=99, pack=True)
+        again.PACK_POOL = 4
+        again.load_state_dict(state)
+        for batch in expected:
+            for a, b in zip(again.next(torch.device("cpu")), batch):
+                self.assertTrue(torch.equal(a, b))
+
     def test_unpacked_stream_is_unchanged(self):
         data = FakeWindows([3, 4, 5])
         data.batch = DocumentWindows.batch.__get__(data)
@@ -189,7 +263,7 @@ class LoaderTests(unittest.TestCase):
         sizes = [3, 4, 5, 2, 6, 1, 7, 3, 2, 2, 8, 1, 5]
         data = FakeWindows(sizes)
         stream = BatchStream(data, batch_size=1, seed=0, pack=True)
-        stream.order = list(range(len(sizes))) + [0] * 64
+        stream.order = list(range(len(sizes)))
         rows = placed = 0
         while placed < len(sizes):
             placed += int(stream.next(torch.device("cpu"))[3].max())
@@ -205,8 +279,8 @@ class ConfigTests(unittest.TestCase):
         c["run"]["pack"] = "yes"
         self.assertTrue(any("run.pack" in e for e in validate(c)))
         c["run"]["pack"] = True
-        c["model"]["attn_impl"] = "sdpa"
-        self.assertTrue(any("run.pack needs attn_impl eager" in e for e in validate(c)))
+        c["model"]["attn_impl"] = "sdpa"  # P17: SDPA takes the document mask too
+        self.assertFalse(any("pack" in e for e in validate(c)))
 
 
 if __name__ == "__main__":
