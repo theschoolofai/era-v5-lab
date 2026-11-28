@@ -2,7 +2,7 @@
 
 Does `quant_error.py all` run end to end on a random model of the lab's dry-run-2 shape, on the Mac, and what does it cost? The weights are random, so the numbers in the output mean nothing (for example, top-1 agreement is chance); only the plumbing, time, memory and size are being checked.
 
-Machine: Apple M6, 32 GB, macOS (Darwin 27.2). Python 3.12.16 (g12-spike/venv-tf457), torch 2.15.0, transformers 4.57.6, gguf 0.19.0. llama.cpp `b12359 (b1b770d)`, built with Metal. Everything below ran in `~/Workspace/quant-error-runs/rehearsal-t2/` (outside the repository); `$R` is `teams/12-quantization`, `$TOK` the frozen p1536 `tokenizer.json` (sha256 `e6b93a93…`), `$L` `~/Workspace/g12-spike/llama.cpp`.
+Machine: Apple M6, 32 GB, macOS (Darwin 27.2). Python 3.12.16 in a venv with torch 2.15.0, transformers 4.57.6 and gguf 0.19.0. llama.cpp `b12359 (b1b770d)`, built with Metal. Everything below ran in a scratch folder outside the repository; `$R` is `teams/12-quantization`, `$TOK` the frozen p1536 `tokenizer.json` (sha256 `e6b93a93…`), `$L` a llama.cpp b12359 checkout.
 
 ## Commands
 

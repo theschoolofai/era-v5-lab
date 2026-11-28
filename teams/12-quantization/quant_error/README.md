@@ -23,7 +23,7 @@ The run starts with a preflight that makes, before any work, every check that ca
 |---|---|
 | `--ref` | The bf16 GGUF of the model, made with the same export and the same llama.cpp build as the quantized files. Every tensor except the router's must be F32, F16 or BF16; a quantized reference is refused. |
 | `--quant NAME=FILE` | One quantized GGUF per format (made with `llama-quantize` from `--ref`, router tensors stay F32, output layer `--output-tensor-type q8_0`). `NAME` labels the rows. A file is refused, naming the tensor or key, unless it has the same `general.architecture` and `tokenizer.ggml.tokens` (sha256) as `--ref`, the same tensor names and shapes (size-1 axes aside), and every tensor whose type is the same in both files is byte for byte the same (`llama-quantize` copies the tensors it does not quantize, so a difference there means another export). |
-| `--hf-config` | A Hugging Face folder of the same model. Only `config.json` is read; weights come from the GGUFs. olmoe and ernie4_5_moe are supported (see "A new architecture"). Needs transformers 4.x: 5.x fuses each layer's experts into one module, so the preflight refuses it. |
+| `--hf-config` | A Hugging Face folder of the same model. Only `config.json` is read; weights come from the GGUFs. olmoe and ernie4_5_moe are supported: ernie4_5_moe is our model as `export_hf.py --target ernie4_5_moe` writes it (#838). The default Granite MoE Shared export, which the dry run 2 job (#862) uses, is not supported yet; "A new architecture" lists what it needs. Needs transformers 4.x: 5.x fuses each layer's experts into one module, so the preflight refuses it. |
 | `--tokenizer` | The model's `tokenizer.json`. Used for the twin forward and to count tokens for llama.cpp. |
 | `--heldout` | `heldout_v1.jsonl` (20 slices: English, 11 Indic languages, math, science, 6 code languages). Its sha256 is checked against `SHA256SUMS` beside it. |
 | `--llama-bin` | `<llama.cpp>/build/bin` (needs `llama-perplexity`). `<llama.cpp>` (else `$LLAMA_CPP_DIR`) must be a git checkout whose commit carries llama.cpp's `b<number>` tag; otherwise the run stops at the start. The version is read from it: `git describe --tags --match 'b[0-9]*'` and the short commit, e.g. `b12359 (b1b770d)`. The binary's own build number is not used: a shallow clone says "build 1". |
@@ -51,7 +51,7 @@ The slice texts and llama.cpp's scratch files (the base logits, about 260 KB per
 
 The twin forward pins full fp32 matmuls before it starts (`torch.set_float32_matmul_precision('highest')`, TF32 off for CUDA matmuls and cuDNN) and leaves them so; `summary.json` records them as `torch_fp32`.
 
-**`--device cuda` is not yet run on CUDA.** Every run so far was on `cpu` and `mps`. Run `test_forward.py` and `test_cli.py` once on a CUDA machine (e.g. a Kaggle T4) before the first job.
+**`--device cuda` is not yet run on CUDA.** Every run so far was on `cpu` and `mps`, and the tests run the twin forward on CPU, so I think one `quant_error.py all --device cuda` run on a small model (for example the rehearsal model, on a Kaggle T4) is needed before a first job.
 
 ## A new architecture
 
@@ -62,7 +62,7 @@ olmoe and ernie4_5_moe are supported. A new architecture needs three things to p
 ```text
 Team:            12-quantization
 Script:          teams/12-quantization/quant_error/quant_error.py
-Command:         python teams/12-quantization/quant_error/quant_error.py all --hf-config ./inputs/<model>-hf --tokenizer ./inputs/tokenizer.json --ref ./work/<model>-bf16.gguf --quant Q8_0=./work/<model>-q8_0.gguf --quant Q4_K_M=./work/<model>-q4_k_m.gguf --heldout teams/05-architecture/heldout_v1/data/heldout_v1.jsonl --llama-bin ./work/llama.cpp/build/bin --out ./out/quant-error-<model> --device cuda [--normalize]   (--device cuda: not yet run on CUDA; run test_forward.py and test_cli.py once on a CUDA machine, e.g. Kaggle T4, before the first job)
+Command:         python teams/12-quantization/quant_error/quant_error.py all --hf-config ./inputs/<model>-hf --tokenizer ./inputs/tokenizer.json --ref ./work/<model>-bf16.gguf --quant Q8_0=./work/<model>-q8_0.gguf --quant Q4_K_M=./work/<model>-q4_k_m.gguf --heldout teams/05-architecture/heldout_v1/data/heldout_v1.jsonl --llama-bin ./work/llama.cpp/build/bin --out ./out/quant-error-<model> --device cuda [--normalize]
 Config:          none; every setting is on the command line
 Inputs:          the model's Hugging Face folder (config.json only is read), its tokenizer.json, the bf16 GGUF and one GGUF per format, all made beforehand; heldout_v1.jsonl and SHA256SUMS from this repository; llama.cpp b12359 as a git checkout carrying its b12359 tag, built with the GPU backend (the same build made the GGUFs)
 Hardware:        1 GPU; a CPU also works for the twin forward (slower); RAM for one decoder layer of the model in fp32 plus the sampled activations; the base logits of one slice on disk (about 260 KB per scored token at a 131k vocabulary: 8 chunks = about 0.5 GB)
@@ -72,6 +72,8 @@ Measures:        see "Outputs"
 Outputs:         ./out/quant-error-<model>/{summary.json, tensors.csv, layers.csv, linears.csv, tokens.csv, kl.csv}; under 5 MB; no text, no token ids
 ```
 
+`--device cuda` has not been run on CUDA yet (see above): one small `--device cuda` run, for example the rehearsal model on a Kaggle T4, should come before the first job.
+
 Python environment: Python 3.12, torch, transformers 4.x (tested with 4.57.6; the preflight refuses 5.x), gguf (llama.cpp's gguf-py), tokenizers, numpy. No network is used. The command exits 1 when the output is over 5 MB and 0 otherwise; any error stops the run with a message and a non-zero exit code (a preflight error before anything in `--out` is deleted).
 
 ### Time
@@ -80,4 +82,4 @@ Rehearsal (`REHEARSAL.md`: 300 M parameters, 8 layers, 16 experts, 2 formats, 20
 
 ## Tests
 
-`python teams/12-quantization/quant_error/test_cli.py` (the end-to-end test needs `LLAMA_CPP_DIR`, a built llama.cpp b12359 checkout, and the p1536 tokenizer; it is skipped with a message without them). The other modules have their own `test_*.py` in this folder.
+Six test files, 56 tests: `test_slices.py` 4, `test_tensors.py` 12, `test_weights.py` 8, `test_forward.py` 9, `test_kl_slices.py` 7 and `test_cli.py` 16 (end to end), each run as `python teams/12-quantization/quant_error/<file>`. `test_weights.py`'s five GGUF round trips and `test_cli.py` need `LLAMA_CPP_DIR` (a built llama.cpp b12359 checkout), and `test_cli.py` also the p1536 tokenizer; without them those tests skip with a message.
