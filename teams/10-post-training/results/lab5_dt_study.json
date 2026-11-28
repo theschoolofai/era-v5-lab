@@ -1,0 +1,1295 @@
+{
+ "schema": "g10-lab5-dt-study/1",
+ "args": {
+  "seeds": "[1, 2]",
+  "steps": "600",
+  "batch": "16",
+  "pretrain_steps": "800",
+  "corpus_bytes": "500000",
+  "only": "None",
+  "out": "results/lab5_dt_study.json"
+ },
+ "torch": "2.7.1+cpu",
+ "threads": 4,
+ "corpus": {
+  "markdown_files": 824,
+  "bytes": 500000,
+  "heldout_bytes": 50000,
+  "sha256": "cc5958f32b553b3ffc9a9e31397827f534334b0cdd076bf3a462bf1bea968021"
+ },
+ "base": [
+  {
+   "seed": 1,
+   "pretrain_loss": 1.5953301191329956,
+   "seconds": 66.4352175599779,
+   "bpb": 2.5316721395846993,
+   "task": {
+    "nll": 6.664059638977051,
+    "exact": 0.0
+   },
+   "parameters": 1012288
+  },
+  {
+   "seed": 2,
+   "pretrain_loss": 1.5263426303863525,
+   "seconds": 70.42222143898834,
+   "bpb": 2.501155030005311,
+   "task": {
+    "nll": 6.418586254119873,
+    "exact": 0.0
+   },
+   "parameters": 1012288
+  }
+ ],
+ "arms": [
+  {
+   "arm": "full",
+   "method": "full",
+   "seed": 1,
+   "optimizer": "adamw",
+   "lr": 0.0001,
+   "trainable_params": 1012288,
+   "loss_first": 7.169887542724609,
+   "loss_last": 0.012831169180572033,
+   "step_ms": 23.820151423327236,
+   "optim_share": 0.2179179875062297,
+   "optim_state_bytes": 8099244,
+   "saved_activation_bytes": 18138244,
+   "ship_bytes": 1975424,
+   "ship": "every changed tensor in bf16",
+   "task": {
+    "nll": 0.013125146739184856,
+    "exact": 1.0
+   },
+   "bpb": 4.402886985188768,
+   "bpb_change": 1.8712148456040691
+  },
+  {
+   "arm": "full_muon",
+   "method": "full",
+   "seed": 1,
+   "optimizer": "hybrid_muon",
+   "lr": 0.0001,
+   "muon_lr": 0.001,
+   "trainable_params": 1012288,
+   "loss_first": 7.169887542724609,
+   "loss_last": 1.8943323084386066e-05,
+   "step_ms": 198.9382955583278,
+   "optim_share": 0.9060806401013999,
+   "optim_state_bytes": 3953188,
+   "saved_activation_bytes": 18138244,
+   "ship_bytes": 1975424,
+   "ship": "every changed tensor in bf16",
+   "task": {
+    "nll": 1.7770293197827414e-05,
+    "exact": 1.0
+   },
+   "bpb": 7.280543908522877,
+   "bpb_change": 4.748871768938178
+  },
+  {
+   "arm": "lora",
+   "method": "lora",
+   "seed": 1,
+   "optimizer": "adamw",
+   "lr": 0.001,
+   "trainable_params": 171008,
+   "loss_first": 7.169887542724609,
+   "loss_last": 0.0001579086820129305,
+   "step_ms": 32.06515557996075,
+   "optim_share": 0.2321478025317614,
+   "optim_state_bytes": 1369824,
+   "saved_activation_bytes": 17569924,
+   "ship_bytes": 317440,
+   "ship": "LoRA A and B in bf16",
+   "task": {
+    "nll": 0.00014690733223687857,
+    "exact": 1.0
+   },
+   "bpb": 9.667375822678661,
+   "bpb_change": 7.135703683093961
+  },
+  {
+   "method": "dt",
+   "seed": 1,
+   "optimizer": "adamw",
+   "lr": 0.0005,
+   "unseen": "official",
+   "calib_rows": 64,
+   "arm": "dt_official_64",
+   "trainable_params": 139264,
+   "layers_without_scores": 9,
+   "masked_layers": 68,
+   "deletion_at_init": 0.06721765854779412,
+   "unseen_at_init": {
+    "unseen": {
+     "layers": 9,
+     "deleted": 9189,
+     "targeted": 18432,
+     "deleted_frac": 0.49853515625
+    },
+    "seen": {
+     "layers": 59,
+     "deleted": 172,
+     "targeted": 120832,
+     "deleted_frac": 0.0014234639830508474
+    }
+   },
+   "loss_first": 7.1302056312561035,
+   "loss_last": 1.339302897453308,
+   "step_ms": 18.12647678166589,
+   "optim_share": 0.08187577681816416,
+   "optim_state_bytes": 1114384,
+   "saved_activation_bytes": 12945284,
+   "deletion_final": 0.19989372702205882,
+   "max_layer_deletion": 0.3271484375,
+   "unseen_final": {
+    "unseen": {
+     "layers": 9,
+     "deleted": 384,
+     "targeted": 18432,
+     "deleted_frac": 0.020833333333333332
+    },
+    "seen": {
+     "layers": 59,
+     "deleted": 27454,
+     "targeted": 120832,
+     "deleted_frac": 0.2272080243644068
+    }
+   },
+   "band_final": {
+    "live_share": 0.2665441176470588,
+    "band_share": 0.043536017922794115,
+    "soft_hard_gap": 0.0038696103338189663
+   },
+   "ship_bytes": 12256,
+   "ship": "packed keep mask (packbits + zlib)",
+   "mask_bits": 139264,
+   "task": {
+    "nll": 1.5397136211395264,
+    "exact": 0.0
+   },
+   "bpb": 3.0714998285637627,
+   "bpb_change": 0.5398276889790634
+  },
+  {
+   "method": "dt",
+   "seed": 1,
+   "optimizer": "adamw",
+   "lr": 0.0005,
+   "unseen": "official",
+   "calib_rows": 256,
+   "arm": "dt_official_256",
+   "trainable_params": 139264,
+   "layers_without_scores": 9,
+   "masked_layers": 68,
+   "deletion_at_init": 0.06721765854779412,
+   "unseen_at_init": {
+    "unseen": {
+     "layers": 9,
+     "deleted": 9189,
+     "targeted": 18432,
+     "deleted_frac": 0.49853515625
+    },
+    "seen": {
+     "layers": 59,
+     "deleted": 172,
+     "targeted": 120832,
+     "deleted_frac": 0.0014234639830508474
+    }
+   },
+   "loss_first": 7.1302056312561035,
+   "loss_last": 1.339302897453308,
+   "step_ms": 18.142512221675133,
+   "optim_share": 0.08184598885149486,
+   "optim_state_bytes": 1114384,
+   "saved_activation_bytes": 12945284,
+   "deletion_final": 0.19989372702205882,
+   "max_layer_deletion": 0.3271484375,
+   "unseen_final": {
+    "unseen": {
+     "layers": 9,
+     "deleted": 384,
+     "targeted": 18432,
+     "deleted_frac": 0.020833333333333332
+    },
+    "seen": {
+     "layers": 59,
+     "deleted": 27454,
+     "targeted": 120832,
+     "deleted_frac": 0.2272080243644068
+    }
+   },
+   "band_final": {
+    "live_share": 0.2665441176470588,
+    "band_share": 0.043536017922794115,
+    "soft_hard_gap": 0.0038696103338189663
+   },
+   "ship_bytes": 12256,
+   "ship": "packed keep mask (packbits + zlib)",
+   "mask_bits": 139264,
+   "task": {
+    "nll": 1.5397136211395264,
+    "exact": 0.0
+   },
+   "bpb": 3.0714998285637627,
+   "bpb_change": 0.5398276889790634
+  },
+  {
+   "method": "dt",
+   "seed": 1,
+   "optimizer": "adamw",
+   "lr": 0.0005,
+   "unseen": "keep",
+   "calib_rows": 64,
+   "arm": "dt_keep_64",
+   "trainable_params": 139264,
+   "layers_without_scores": 9,
+   "masked_layers": 68,
+   "deletion_at_init": 0.0014073988970588235,
+   "unseen_at_init": {
+    "unseen": {
+     "layers": 9,
+     "deleted": 24,
+     "targeted": 18432,
+     "deleted_frac": 0.0013020833333333333
+    },
+    "seen": {
+     "layers": 59,
+     "deleted": 172,
+     "targeted": 120832,
+     "deleted_frac": 0.0014234639830508474
+    }
+   },
+   "loss_first": 7.130256652832031,
+   "loss_last": 1.3393765687942505,
+   "step_ms": 18.24833050496333,
+   "optim_share": 0.08174177458093163,
+   "optim_state_bytes": 1114384,
+   "saved_activation_bytes": 12945284,
+   "deletion_final": 0.19710765165441177,
+   "max_layer_deletion": 0.3271484375,
+   "unseen_final": {
+    "unseen": {
+     "layers": 9,
+     "deleted": 0,
+     "targeted": 18432,
+     "deleted_frac": 0.0
+    },
+    "seen": {
+     "layers": 59,
+     "deleted": 27450,
+     "targeted": 120832,
+     "deleted_frac": 0.22717492055084745
+    }
+   },
+   "band_final": {
+    "live_share": 0.25952866498161764,
+    "band_share": 0.04253791360294118,
+    "soft_hard_gap": 0.003790475388100335
+   },
+   "ship_bytes": 11761,
+   "ship": "packed keep mask (packbits + zlib)",
+   "mask_bits": 139264,
+   "task": {
+    "nll": 1.5401852130889893,
+    "exact": 0.0
+   },
+   "bpb": 3.071239261618271,
+   "bpb_change": 0.5395671220335716
+  },
+  {
+   "method": "dt",
+   "seed": 1,
+   "optimizer": "adamw",
+   "lr": 0.0005,
+   "unseen": "keep",
+   "calib_rows": 256,
+   "arm": "dt_keep_256",
+   "trainable_params": 139264,
+   "layers_without_scores": 9,
+   "masked_layers": 68,
+   "deletion_at_init": 0.0014073988970588235,
+   "unseen_at_init": {
+    "unseen": {
+     "layers": 9,
+     "deleted": 24,
+     "targeted": 18432,
+     "deleted_frac": 0.0013020833333333333
+    },
+    "seen": {
+     "layers": 59,
+     "deleted": 172,
+     "targeted": 120832,
+     "deleted_frac": 0.0014234639830508474
+    }
+   },
+   "loss_first": 7.130256652832031,
+   "loss_last": 1.3393765687942505,
+   "step_ms": 18.225531228332937,
+   "optim_share": 0.08195498299229928,
+   "optim_state_bytes": 1114384,
+   "saved_activation_bytes": 12945284,
+   "deletion_final": 0.19710765165441177,
+   "max_layer_deletion": 0.3271484375,
+   "unseen_final": {
+    "unseen": {
+     "layers": 9,
+     "deleted": 0,
+     "targeted": 18432,
+     "deleted_frac": 0.0
+    },
+    "seen": {
+     "layers": 59,
+     "deleted": 27450,
+     "targeted": 120832,
+     "deleted_frac": 0.22717492055084745
+    }
+   },
+   "band_final": {
+    "live_share": 0.25952866498161764,
+    "band_share": 0.04253791360294118,
+    "soft_hard_gap": 0.003790475388100335
+   },
+   "ship_bytes": 11761,
+   "ship": "packed keep mask (packbits + zlib)",
+   "mask_bits": 139264,
+   "task": {
+    "nll": 1.5401852130889893,
+    "exact": 0.0
+   },
+   "bpb": 3.071239261618271,
+   "bpb_change": 0.5395671220335716
+  },
+  {
+   "method": "dt",
+   "seed": 1,
+   "optimizer": "hybrid_muon",
+   "lr": 0.0005,
+   "unseen": "keep",
+   "calib_rows": 64,
+   "arm": "dt_muon_gates_0.001",
+   "muon_lr": 0.001,
+   "dt_gate_optim": "shape",
+   "trainable_params": 139264,
+   "layers_without_scores": 9,
+   "masked_layers": 68,
+   "deletion_at_init": 0.0014073988970588235,
+   "unseen_at_init": {
+    "unseen": {
+     "layers": 9,
+     "deleted": 24,
+     "targeted": 18432,
+     "deleted_frac": 0.0013020833333333333
+    },
+    "seen": {
+     "layers": 59,
+     "deleted": 172,
+     "targeted": 120832,
+     "deleted_frac": 0.0014234639830508474
+    }
+   },
+   "loss_first": 7.130256652832031,
+   "loss_last": 3.318908452987671,
+   "step_ms": 42.430727101649005,
+   "optim_share": 0.5913179898205249,
+   "optim_state_bytes": 557056,
+   "saved_activation_bytes": 12945284,
+   "deletion_final": 0.07810345818014706,
+   "max_layer_deletion": 0.11328125,
+   "unseen_final": {
+    "unseen": {
+     "layers": 9,
+     "deleted": 21,
+     "targeted": 18432,
+     "deleted_frac": 0.0011393229166666667
+    },
+    "seen": {
+     "layers": 59,
+     "deleted": 10856,
+     "targeted": 120832,
+     "deleted_frac": 0.08984375
+    }
+   },
+   "band_final": {
+    "live_share": 0.097412109375,
+    "band_share": 0.0011919806985294119,
+    "soft_hard_gap": 9.512829591471385e-05
+   },
+   "ship_bytes": 8095,
+   "ship": "packed keep mask (packbits + zlib)",
+   "mask_bits": 139264,
+   "task": {
+    "nll": 3.5950417518615723,
+    "exact": 0.0
+   },
+   "bpb": 2.650826884873753,
+   "bpb_change": 0.11915474528905357
+  },
+  {
+   "method": "dt",
+   "seed": 1,
+   "optimizer": "hybrid_muon",
+   "lr": 0.0005,
+   "unseen": "keep",
+   "calib_rows": 64,
+   "arm": "dt_muon_gates_0.003",
+   "muon_lr": 0.003,
+   "dt_gate_optim": "shape",
+   "trainable_params": 139264,
+   "layers_without_scores": 9,
+   "masked_layers": 68,
+   "deletion_at_init": 0.0014073988970588235,
+   "unseen_at_init": {
+    "unseen": {
+     "layers": 9,
+     "deleted": 24,
+     "targeted": 18432,
+     "deleted_frac": 0.0013020833333333333
+    },
+    "seen": {
+     "layers": 59,
+     "deleted": 172,
+     "targeted": 120832,
+     "deleted_frac": 0.0014234639830508474
+    }
+   },
+   "loss_first": 7.130256652832031,
+   "loss_last": 2.177072763442993,
+   "step_ms": 44.805539896672904,
+   "optim_share": 0.5886904198654147,
+   "optim_state_bytes": 557056,
+   "saved_activation_bytes": 12945284,
+   "deletion_final": 0.14219755284926472,
+   "max_layer_deletion": 0.20361328125,
+   "unseen_final": {
+    "unseen": {
+     "layers": 9,
+     "deleted": 498,
+     "targeted": 18432,
+     "deleted_frac": 0.027018229166666668
+    },
+    "seen": {
+     "layers": 59,
+     "deleted": 19305,
+     "targeted": 120832,
+     "deleted_frac": 0.15976728019067796
+    }
+   },
+   "band_final": {
+    "live_share": 0.10592112821691177,
+    "band_share": 0.0002944048713235294,
+    "soft_hard_gap": 2.272908344924751e-05
+   },
+   "ship_bytes": 11313,
+   "ship": "packed keep mask (packbits + zlib)",
+   "mask_bits": 139264,
+   "task": {
+    "nll": 2.4674718379974365,
+    "exact": 0.0
+   },
+   "bpb": 2.832458492714759,
+   "bpb_change": 0.30078635313005986
+  },
+  {
+   "method": "dt",
+   "seed": 1,
+   "optimizer": "hybrid_muon",
+   "lr": 0.0005,
+   "unseen": "keep",
+   "calib_rows": 64,
+   "arm": "dt_muon_gates_0.006",
+   "muon_lr": 0.006,
+   "dt_gate_optim": "shape",
+   "trainable_params": 139264,
+   "layers_without_scores": 9,
+   "masked_layers": 68,
+   "deletion_at_init": 0.0014073988970588235,
+   "unseen_at_init": {
+    "unseen": {
+     "layers": 9,
+     "deleted": 24,
+     "targeted": 18432,
+     "deleted_frac": 0.0013020833333333333
+    },
+    "seen": {
+     "layers": 59,
+     "deleted": 172,
+     "targeted": 120832,
+     "deleted_frac": 0.0014234639830508474
+    }
+   },
+   "loss_first": 7.130256652832031,
+   "loss_last": 1.739794373512268,
+   "step_ms": 48.45867474835055,
+   "optim_share": 0.568434817608512,
+   "optim_state_bytes": 557056,
+   "saved_activation_bytes": 12945284,
+   "deletion_final": 0.1933880974264706,
+   "max_layer_deletion": 0.267578125,
+   "unseen_final": {
+    "unseen": {
+     "layers": 9,
+     "deleted": 1256,
+     "targeted": 18432,
+     "deleted_frac": 0.0681423611111111
+    },
+    "seen": {
+     "layers": 59,
+     "deleted": 25676,
+     "targeted": 120832,
+     "deleted_frac": 0.21249337923728814
+    }
+   },
+   "band_final": {
+    "live_share": 0.0772705078125,
+    "band_share": 4.3083639705882356e-05,
+    "soft_hard_gap": 8.021022393589609e-06
+   },
+   "ship_bytes": 13171,
+   "ship": "packed keep mask (packbits + zlib)",
+   "mask_bits": 139264,
+   "task": {
+    "nll": 2.048191547393799,
+    "exact": 0.0
+   },
+   "bpb": 2.944557426615701,
+   "bpb_change": 0.4128852870310018
+  },
+  {
+   "arm": "full_recompute",
+   "method": "full",
+   "seed": 1,
+   "optimizer": "adamw",
+   "lr": 0.0001,
+   "recompute": true,
+   "trainable_params": 1012288,
+   "loss_first": 7.169887542724609,
+   "loss_last": 0.012836284935474396,
+   "step_ms": 33.73456348999753,
+   "optim_share": 0.15680115632938774,
+   "optim_state_bytes": 8099244,
+   "saved_activation_bytes": 651396,
+   "ship_bytes": 1975424,
+   "ship": "every changed tensor in bf16",
+   "task": {
+    "nll": 0.01312194298952818,
+    "exact": 1.0
+   },
+   "bpb": 4.4027991699652755,
+   "bpb_change": 1.8711270303805763
+  },
+  {
+   "arm": "lora_recompute",
+   "method": "lora",
+   "seed": 1,
+   "optimizer": "adamw",
+   "lr": 0.001,
+   "recompute": true,
+   "trainable_params": 171008,
+   "loss_first": 7.169887542724609,
+   "loss_last": 0.0001579086820129305,
+   "step_ms": 53.179100938335374,
+   "optim_share": 0.14449660004479992,
+   "optim_state_bytes": 1369824,
+   "saved_activation_bytes": 444548,
+   "ship_bytes": 317440,
+   "ship": "LoRA A and B in bf16",
+   "task": {
+    "nll": 0.00014690733223687857,
+    "exact": 1.0
+   },
+   "bpb": 9.667375822678661,
+   "bpb_change": 7.135703683093961
+  },
+  {
+   "method": "dt",
+   "seed": 1,
+   "optimizer": "adamw",
+   "lr": 0.0005,
+   "unseen": "keep",
+   "calib_rows": 64,
+   "arm": "dt_keep_64_recompute",
+   "recompute": true,
+   "trainable_params": 139264,
+   "layers_without_scores": 9,
+   "masked_layers": 68,
+   "deletion_at_init": 0.0014073988970588235,
+   "unseen_at_init": {
+    "unseen": {
+     "layers": 9,
+     "deleted": 24,
+     "targeted": 18432,
+     "deleted_frac": 0.0013020833333333333
+    },
+    "seen": {
+     "layers": 59,
+     "deleted": 172,
+     "targeted": 120832,
+     "deleted_frac": 0.0014234639830508474
+    }
+   },
+   "loss_first": 7.130256652832031,
+   "loss_last": 1.3393765687942505,
+   "step_ms": 30.36821115834755,
+   "optim_share": 0.05164970836896745,
+   "optim_state_bytes": 1114384,
+   "saved_activation_bytes": 444548,
+   "deletion_final": 0.19710765165441177,
+   "max_layer_deletion": 0.3271484375,
+   "unseen_final": {
+    "unseen": {
+     "layers": 9,
+     "deleted": 0,
+     "targeted": 18432,
+     "deleted_frac": 0.0
+    },
+    "seen": {
+     "layers": 59,
+     "deleted": 27450,
+     "targeted": 120832,
+     "deleted_frac": 0.22717492055084745
+    }
+   },
+   "band_final": {
+    "live_share": 0.25952866498161764,
+    "band_share": 0.04253791360294118,
+    "soft_hard_gap": 0.003790475388100335
+   },
+   "ship_bytes": 11761,
+   "ship": "packed keep mask (packbits + zlib)",
+   "mask_bits": 139264,
+   "task": {
+    "nll": 1.5401852130889893,
+    "exact": 0.0
+   },
+   "bpb": 3.071239261618271,
+   "bpb_change": 0.5395671220335716
+  },
+  {
+   "arm": "full",
+   "method": "full",
+   "seed": 2,
+   "optimizer": "adamw",
+   "lr": 0.0001,
+   "trainable_params": 1012288,
+   "loss_first": 6.48899507522583,
+   "loss_last": 0.01046597771346569,
+   "step_ms": 24.62904031330254,
+   "optim_share": 0.21604437853213834,
+   "optim_state_bytes": 8099244,
+   "saved_activation_bytes": 18138244,
+   "ship_bytes": 1963136,
+   "ship": "every changed tensor in bf16",
+   "task": {
+    "nll": 0.012999352999031544,
+    "exact": 1.0
+   },
+   "bpb": 4.517998384841469,
+   "bpb_change": 2.0168433548361584
+  },
+  {
+   "arm": "full_muon",
+   "method": "full",
+   "seed": 2,
+   "optimizer": "hybrid_muon",
+   "lr": 0.0001,
+   "muon_lr": 0.001,
+   "trainable_params": 1012288,
+   "loss_first": 6.48899507522583,
+   "loss_last": 1.0691497664083727e-05,
+   "step_ms": 213.18905541168837,
+   "optim_share": 0.9010104065528023,
+   "optim_state_bytes": 3928612,
+   "saved_activation_bytes": 18138244,
+   "ship_bytes": 1963136,
+   "ship": "every changed tensor in bf16",
+   "task": {
+    "nll": 1.1819412065960933e-05,
+    "exact": 1.0
+   },
+   "bpb": 7.428038981625236,
+   "bpb_change": 4.926883951619925
+  },
+  {
+   "arm": "lora",
+   "method": "lora",
+   "seed": 2,
+   "optimizer": "adamw",
+   "lr": 0.001,
+   "trainable_params": 171008,
+   "loss_first": 6.48899507522583,
+   "loss_last": 0.00013089207641314715,
+   "step_ms": 36.5269908849829,
+   "optim_share": 0.2135194237436325,
+   "optim_state_bytes": 1369824,
+   "saved_activation_bytes": 17569924,
+   "ship_bytes": 318976,
+   "ship": "LoRA A and B in bf16",
+   "task": {
+    "nll": 0.00016686810704413801,
+    "exact": 1.0
+   },
+   "bpb": 11.74275526311947,
+   "bpb_change": 9.24160023311416
+  },
+  {
+   "method": "dt",
+   "seed": 2,
+   "optimizer": "adamw",
+   "lr": 0.0005,
+   "unseen": "official",
+   "calib_rows": 64,
+   "arm": "dt_official_64",
+   "trainable_params": 139264,
+   "layers_without_scores": 6,
+   "masked_layers": 68,
+   "deletion_at_init": 0.045517865349264705,
+   "unseen_at_init": {
+    "unseen": {
+     "layers": 6,
+     "deleted": 6172,
+     "targeted": 12288,
+     "deleted_frac": 0.5022786458333334
+    },
+    "seen": {
+     "layers": 62,
+     "deleted": 167,
+     "targeted": 126976,
+     "deleted_frac": 0.0013152091733870967
+    }
+   },
+   "loss_first": 6.511970043182373,
+   "loss_last": 1.3673971891403198,
+   "step_ms": 21.065048631668713,
+   "optim_share": 0.07896025256413086,
+   "optim_state_bytes": 1114384,
+   "saved_activation_bytes": 12945284,
+   "deletion_final": 0.21520278033088236,
+   "max_layer_deletion": 0.3828125,
+   "unseen_final": {
+    "unseen": {
+     "layers": 6,
+     "deleted": 964,
+     "targeted": 12288,
+     "deleted_frac": 0.07845052083333333
+    },
+    "seen": {
+     "layers": 62,
+     "deleted": 29006,
+     "targeted": 126976,
+     "deleted_frac": 0.2284368699596774
+    }
+   },
+   "band_final": {
+    "live_share": 0.28754739200367646,
+    "band_share": 0.04670266544117647,
+    "soft_hard_gap": 0.00412640053188256
+   },
+   "ship_bytes": 13003,
+   "ship": "packed keep mask (packbits + zlib)",
+   "mask_bits": 139264,
+   "task": {
+    "nll": 1.3124655485153198,
+    "exact": 0.005859375
+   },
+   "bpb": 2.969968948094325,
+   "bpb_change": 0.46881391808901407
+  },
+  {
+   "method": "dt",
+   "seed": 2,
+   "optimizer": "adamw",
+   "lr": 0.0005,
+   "unseen": "official",
+   "calib_rows": 256,
+   "arm": "dt_official_256",
+   "trainable_params": 139264,
+   "layers_without_scores": 5,
+   "masked_layers": 68,
+   "deletion_at_init": 0.038193646599264705,
+   "unseen_at_init": {
+    "unseen": {
+     "layers": 5,
+     "deleted": 5152,
+     "targeted": 10240,
+     "deleted_frac": 0.503125
+    },
+    "seen": {
+     "layers": 63,
+     "deleted": 167,
+     "targeted": 129024,
+     "deleted_frac": 0.0012943328373015873
+    }
+   },
+   "loss_first": 6.511970043182373,
+   "loss_last": 1.3669946193695068,
+   "step_ms": 21.309794771659654,
+   "optim_share": 0.07216812879154588,
+   "optim_state_bytes": 1114384,
+   "saved_activation_bytes": 12945284,
+   "deletion_final": 0.21003992417279413,
+   "max_layer_deletion": 0.31591796875,
+   "unseen_final": {
+    "unseen": {
+     "layers": 5,
+     "deleted": 180,
+     "targeted": 10240,
+     "deleted_frac": 0.017578125
+    },
+    "seen": {
+     "layers": 63,
+     "deleted": 29071,
+     "targeted": 129024,
+     "deleted_frac": 0.2253146701388889
+    }
+   },
+   "band_final": {
+    "live_share": 0.27773868336397056,
+    "band_share": 0.045166015625,
+    "soft_hard_gap": 0.003965434697277231
+   },
+   "ship_bytes": 12812,
+   "ship": "packed keep mask (packbits + zlib)",
+   "mask_bits": 139264,
+   "task": {
+    "nll": 1.3126018047332764,
+    "exact": 0.005859375
+   },
+   "bpb": 2.9687786376464946,
+   "bpb_change": 0.4676236076411837
+  },
+  {
+   "method": "dt",
+   "seed": 2,
+   "optimizer": "adamw",
+   "lr": 0.0005,
+   "unseen": "keep",
+   "calib_rows": 64,
+   "arm": "dt_keep_64",
+   "trainable_params": 139264,
+   "layers_without_scores": 6,
+   "masked_layers": 68,
+   "deletion_at_init": 0.0012709673713235295,
+   "unseen_at_init": {
+    "unseen": {
+     "layers": 6,
+     "deleted": 10,
+     "targeted": 12288,
+     "deleted_frac": 0.0008138020833333334
+    },
+    "seen": {
+     "layers": 62,
+     "deleted": 167,
+     "targeted": 126976,
+     "deleted_frac": 0.0013152091733870967
+    }
+   },
+   "loss_first": 6.511970043182373,
+   "loss_last": 1.3669942617416382,
+   "step_ms": 21.934910121635767,
+   "optim_share": 0.07047972827112803,
+   "optim_state_bytes": 1114384,
+   "saved_activation_bytes": 12945284,
+   "deletion_final": 0.20874741498161764,
+   "max_layer_deletion": 0.31591796875,
+   "unseen_final": {
+    "unseen": {
+     "layers": 6,
+     "deleted": 58,
+     "targeted": 12288,
+     "deleted_frac": 0.004720052083333333
+    },
+    "seen": {
+     "layers": 62,
+     "deleted": 29013,
+     "targeted": 126976,
+     "deleted_frac": 0.22849199848790322
+    }
+   },
+   "band_final": {
+    "live_share": 0.2742776309742647,
+    "band_share": 0.04462028952205882,
+    "soft_hard_gap": 0.003934628226335
+   },
+   "ship_bytes": 12567,
+   "ship": "packed keep mask (packbits + zlib)",
+   "mask_bits": 139264,
+   "task": {
+    "nll": 1.3126018047332764,
+    "exact": 0.005859375
+   },
+   "bpb": 2.9687786376464946,
+   "bpb_change": 0.4676236076411837
+  },
+  {
+   "method": "dt",
+   "seed": 2,
+   "optimizer": "adamw",
+   "lr": 0.0005,
+   "unseen": "keep",
+   "calib_rows": 256,
+   "arm": "dt_keep_256",
+   "trainable_params": 139264,
+   "layers_without_scores": 5,
+   "masked_layers": 68,
+   "deletion_at_init": 0.0012709673713235295,
+   "unseen_at_init": {
+    "unseen": {
+     "layers": 5,
+     "deleted": 10,
+     "targeted": 10240,
+     "deleted_frac": 0.0009765625
+    },
+    "seen": {
+     "layers": 63,
+     "deleted": 167,
+     "targeted": 129024,
+     "deleted_frac": 0.0012943328373015873
+    }
+   },
+   "loss_first": 6.511970043182373,
+   "loss_last": 1.3669942617416382,
+   "step_ms": 22.987396970032325,
+   "optim_share": 0.07452547051706412,
+   "optim_state_bytes": 1114384,
+   "saved_activation_bytes": 12945284,
+   "deletion_final": 0.20874741498161764,
+   "max_layer_deletion": 0.31591796875,
+   "unseen_final": {
+    "unseen": {
+     "layers": 5,
+     "deleted": 0,
+     "targeted": 10240,
+     "deleted_frac": 0.0
+    },
+    "seen": {
+     "layers": 63,
+     "deleted": 29071,
+     "targeted": 129024,
+     "deleted_frac": 0.2253146701388889
+    }
+   },
+   "band_final": {
+    "live_share": 0.2742776309742647,
+    "band_share": 0.04462028952205882,
+    "soft_hard_gap": 0.003934628226335
+   },
+   "ship_bytes": 12567,
+   "ship": "packed keep mask (packbits + zlib)",
+   "mask_bits": 139264,
+   "task": {
+    "nll": 1.3126018047332764,
+    "exact": 0.005859375
+   },
+   "bpb": 2.9687786376464946,
+   "bpb_change": 0.4676236076411837
+  },
+  {
+   "method": "dt",
+   "seed": 2,
+   "optimizer": "hybrid_muon",
+   "lr": 0.0005,
+   "unseen": "keep",
+   "calib_rows": 64,
+   "arm": "dt_muon_gates_0.001",
+   "muon_lr": 0.001,
+   "dt_gate_optim": "shape",
+   "trainable_params": 139264,
+   "layers_without_scores": 6,
+   "masked_layers": 68,
+   "deletion_at_init": 0.0012709673713235295,
+   "unseen_at_init": {
+    "unseen": {
+     "layers": 6,
+     "deleted": 10,
+     "targeted": 12288,
+     "deleted_frac": 0.0008138020833333334
+    },
+    "seen": {
+     "layers": 62,
+     "deleted": 167,
+     "targeted": 126976,
+     "deleted_frac": 0.0013152091733870967
+    }
+   },
+   "loss_first": 6.511970043182373,
+   "loss_last": 3.523146390914917,
+   "step_ms": 47.90653779001635,
+   "optim_share": 0.5704089755152186,
+   "optim_state_bytes": 557056,
+   "saved_activation_bytes": 12945284,
+   "deletion_final": 0.08171530330882353,
+   "max_layer_deletion": 0.1171875,
+   "unseen_final": {
+    "unseen": {
+     "layers": 6,
+     "deleted": 88,
+     "targeted": 12288,
+     "deleted_frac": 0.007161458333333333
+    },
+    "seen": {
+     "layers": 62,
+     "deleted": 11292,
+     "targeted": 126976,
+     "deleted_frac": 0.08893019153225806
+    }
+   },
+   "band_final": {
+    "live_share": 0.10247443704044118,
+    "band_share": 0.0012494255514705881,
+    "soft_hard_gap": 0.00012814353532709596
+   },
+   "ship_bytes": 8511,
+   "ship": "packed keep mask (packbits + zlib)",
+   "mask_bits": 139264,
+   "task": {
+    "nll": 3.351792573928833,
+    "exact": 0.0
+   },
+   "bpb": 2.6224716907037147,
+   "bpb_change": 0.12131666069840374
+  },
+  {
+   "method": "dt",
+   "seed": 2,
+   "optimizer": "hybrid_muon",
+   "lr": 0.0005,
+   "unseen": "keep",
+   "calib_rows": 64,
+   "arm": "dt_muon_gates_0.003",
+   "muon_lr": 0.003,
+   "dt_gate_optim": "shape",
+   "trainable_params": 139264,
+   "layers_without_scores": 6,
+   "masked_layers": 68,
+   "deletion_at_init": 0.0012709673713235295,
+   "unseen_at_init": {
+    "unseen": {
+     "layers": 6,
+     "deleted": 10,
+     "targeted": 12288,
+     "deleted_frac": 0.0008138020833333334
+    },
+    "seen": {
+     "layers": 62,
+     "deleted": 167,
+     "targeted": 126976,
+     "deleted_frac": 0.0013152091733870967
+    }
+   },
+   "loss_first": 6.511970043182373,
+   "loss_last": 2.3284645080566406,
+   "step_ms": 51.71982341334418,
+   "optim_share": 0.5628026151415034,
+   "optim_state_bytes": 557056,
+   "saved_activation_bytes": 12945284,
+   "deletion_final": 0.15029009650735295,
+   "max_layer_deletion": 0.203125,
+   "unseen_final": {
+    "unseen": {
+     "layers": 6,
+     "deleted": 439,
+     "targeted": 12288,
+     "deleted_frac": 0.035725911458333336
+    },
+    "seen": {
+     "layers": 62,
+     "deleted": 20491,
+     "targeted": 126976,
+     "deleted_frac": 0.161376953125
+    }
+   },
+   "band_final": {
+    "live_share": 0.11275706571691177,
+    "band_share": 0.00022977941176470588,
+    "soft_hard_gap": 2.1703566396185106e-05
+   },
+   "ship_bytes": 11767,
+   "ship": "packed keep mask (packbits + zlib)",
+   "mask_bits": 139264,
+   "task": {
+    "nll": 2.2133820056915283,
+    "exact": 0.0
+   },
+   "bpb": 2.784879081359126,
+   "bpb_change": 0.2837240513538153
+  },
+  {
+   "method": "dt",
+   "seed": 2,
+   "optimizer": "hybrid_muon",
+   "lr": 0.0005,
+   "unseen": "keep",
+   "calib_rows": 64,
+   "arm": "dt_muon_gates_0.006",
+   "muon_lr": 0.006,
+   "dt_gate_optim": "shape",
+   "trainable_params": 139264,
+   "layers_without_scores": 6,
+   "masked_layers": 68,
+   "deletion_at_init": 0.0012709673713235295,
+   "unseen_at_init": {
+    "unseen": {
+     "layers": 6,
+     "deleted": 10,
+     "targeted": 12288,
+     "deleted_frac": 0.0008138020833333334
+    },
+    "seen": {
+     "layers": 62,
+     "deleted": 167,
+     "targeted": 126976,
+     "deleted_frac": 0.0013152091733870967
+    }
+   },
+   "loss_first": 6.511970043182373,
+   "loss_last": 1.8367687463760376,
+   "step_ms": 47.850295016687596,
+   "optim_share": 0.5660229756520935,
+   "optim_state_bytes": 557056,
+   "saved_activation_bytes": 12945284,
+   "deletion_final": 0.20457548253676472,
+   "max_layer_deletion": 0.2578125,
+   "unseen_final": {
+    "unseen": {
+     "layers": 6,
+     "deleted": 969,
+     "targeted": 12288,
+     "deleted_frac": 0.078857421875
+    },
+    "seen": {
+     "layers": 62,
+     "deleted": 27521,
+     "targeted": 126976,
+     "deleted_frac": 0.2167417464717742
+    }
+   },
+   "band_final": {
+    "live_share": 0.08160041360294118,
+    "band_share": 5.744485294117647e-05,
+    "soft_hard_gap": 5.90368408337326e-06
+   },
+   "ship_bytes": 13523,
+   "ship": "packed keep mask (packbits + zlib)",
+   "mask_bits": 139264,
+   "task": {
+    "nll": 1.7372428178787231,
+    "exact": 0.0
+   },
+   "bpb": 2.9104121216438212,
+   "bpb_change": 0.4092570916385103
+  },
+  {
+   "arm": "full_recompute",
+   "method": "full",
+   "seed": 2,
+   "optimizer": "adamw",
+   "lr": 0.0001,
+   "recompute": true,
+   "trainable_params": 1012288,
+   "loss_first": 6.48899507522583,
+   "loss_last": 0.01046406477689743,
+   "step_ms": 34.24461499996445,
+   "optim_share": 0.15685144899949616,
+   "optim_state_bytes": 8099244,
+   "saved_activation_bytes": 651396,
+   "ship_bytes": 1963136,
+   "ship": "every changed tensor in bf16",
+   "task": {
+    "nll": 0.013001479208469391,
+    "exact": 1.0
+   },
+   "bpb": 4.51806109588971,
+   "bpb_change": 2.016906065884399
+  },
+  {
+   "arm": "lora_recompute",
+   "method": "lora",
+   "seed": 2,
+   "optimizer": "adamw",
+   "lr": 0.001,
+   "recompute": true,
+   "trainable_params": 171008,
+   "loss_first": 6.48899507522583,
+   "loss_last": 0.00013089207641314715,
+   "step_ms": 51.89040794832787,
+   "optim_share": 0.1469481457570146,
+   "optim_state_bytes": 1369824,
+   "saved_activation_bytes": 444548,
+   "ship_bytes": 318976,
+   "ship": "LoRA A and B in bf16",
+   "task": {
+    "nll": 0.00016686810704413801,
+    "exact": 1.0
+   },
+   "bpb": 11.74275526311947,
+   "bpb_change": 9.24160023311416
+  },
+  {
+   "method": "dt",
+   "seed": 2,
+   "optimizer": "adamw",
+   "lr": 0.0005,
+   "unseen": "keep",
+   "calib_rows": 64,
+   "arm": "dt_keep_64_recompute",
+   "recompute": true,
+   "trainable_params": 139264,
+   "layers_without_scores": 6,
+   "masked_layers": 68,
+   "deletion_at_init": 0.0012709673713235295,
+   "unseen_at_init": {
+    "unseen": {
+     "layers": 6,
+     "deleted": 10,
+     "targeted": 12288,
+     "deleted_frac": 0.0008138020833333334
+    },
+    "seen": {
+     "layers": 62,
+     "deleted": 167,
+     "targeted": 126976,
+     "deleted_frac": 0.0013152091733870967
+    }
+   },
+   "loss_first": 6.511970043182373,
+   "loss_last": 1.3669942617416382,
+   "step_ms": 28.441348188353004,
+   "optim_share": 0.05435618129456673,
+   "optim_state_bytes": 1114384,
+   "saved_activation_bytes": 444548,
+   "deletion_final": 0.20874741498161764,
+   "max_layer_deletion": 0.31591796875,
+   "unseen_final": {
+    "unseen": {
+     "layers": 6,
+     "deleted": 58,
+     "targeted": 12288,
+     "deleted_frac": 0.004720052083333333
+    },
+    "seen": {
+     "layers": 62,
+     "deleted": 29013,
+     "targeted": 126976,
+     "deleted_frac": 0.22849199848790322
+    }
+   },
+   "band_final": {
+    "live_share": 0.2742776309742647,
+    "band_share": 0.04462028952205882,
+    "soft_hard_gap": 0.003934628226335
+   },
+   "ship_bytes": 12567,
+   "ship": "packed keep mask (packbits + zlib)",
+   "mask_bits": 139264,
+   "task": {
+    "nll": 1.3126018047332764,
+    "exact": 0.005859375
+   },
+   "bpb": 2.9687786376464946,
+   "bpb_change": 0.4676236076411837
+  }
+ ],
+ "table": "| Arm | Trainable | Task NLL | Exact | Held-out bpb change | Deleted at init / end | Uncalibrated layers (deleted at end) | Optim state KB | Ship KB | Activations KB | Step ms | Optim share |\n|---|---:|---:|---:|---:|---|---|---:|---:|---:|---:|---:|\n| `full` | 1,012,288 | 0.013 | 1.000 | +1.9440 | - | - | 7909 | 1923.1 | 17713 | 24.2 | 21.7% |\n| `full_muon` | 1,012,288 | 0.000 | 1.000 | +4.8379 | - | - | 3849 | 1923.1 | 17713 | 206.1 | 90.4% |\n| `lora` | 171,008 | 0.000 | 1.000 | +8.1887 | - | - | 1338 | 310.8 | 17158 | 34.3 | 22.3% |\n| `dt_official_64` | 139,264 | 1.426 | 0.003 | +0.5043 | 5.637% / 20.755% | 7.5 of 68 (4.96%) | 1088 | 12.3 | 12642 | 19.6 | 8.0% |\n| `dt_official_256` | 139,264 | 1.426 | 0.003 | +0.5037 | 5.271% / 20.497% | 7 of 68 (1.92%) | 1088 | 12.2 | 12642 | 19.7 | 7.7% |\n| `dt_keep_64` | 139,264 | 1.426 | 0.003 | +0.5036 | 0.134% / 20.293% | 7.5 of 68 (0.24%) | 1088 | 11.9 | 12642 | 20.1 | 7.6% |\n| `dt_keep_256` | 139,264 | 1.426 | 0.003 | +0.5036 | 0.134% / 20.293% | 7 of 68 (0.00%) | 1088 | 11.9 | 12642 | 20.6 | 7.8% |\n| `dt_muon_gates_0.001` | 139,264 | 3.473 | 0.000 | +0.1202 | 0.134% / 7.991% | 7.5 of 68 (0.42%) | 544 | 8.1 | 12642 | 45.2 | 58.1% |\n| `dt_muon_gates_0.003` | 139,264 | 2.340 | 0.000 | +0.2923 | 0.134% / 14.624% | 7.5 of 68 (3.14%) | 544 | 11.3 | 12642 | 48.3 | 57.6% |\n| `dt_muon_gates_0.006` | 139,264 | 1.893 | 0.000 | +0.4111 | 0.134% / 19.898% | 7.5 of 68 (7.35%) | 544 | 13.0 | 12642 | 48.2 | 56.7% |\n| `full_recompute` | 1,012,288 | 0.013 | 1.000 | +1.9440 | - | - | 7909 | 1923.1 | 636 | 34.0 | 15.7% |\n| `lora_recompute` | 171,008 | 0.000 | 1.000 | +8.1887 | - | - | 1338 | 310.8 | 434 | 52.5 | 14.6% |\n| `dt_keep_64_recompute` | 139,264 | 1.426 | 0.003 | +0.5036 | 0.134% / 20.293% | 7.5 of 68 (0.24%) | 1088 | 11.9 | 434 | 29.4 | 5.3% |"
+}
