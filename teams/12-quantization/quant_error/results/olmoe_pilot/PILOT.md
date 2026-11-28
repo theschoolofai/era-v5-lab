@@ -1,6 +1,6 @@
 # OLMoE pilot: where does the quantization error come from? (28 Nov 2026)
 
-First real run of `quant_error.py all` (Tasks 1-6) on `allenai/OLMoE-1B-7B-0924` @ `6d84c48581ec` (7 B total, 16 layers, 64 experts, top-8, untied head, vocabulary 50,304). Apple M6, 32 GB, llama.cpp `b12359 (b1b770d)` on Metal, PyTorch 2.15.0 on MPS (`summary.json`). The reference is the bf16 GGUF from the same converter and build. No importance matrix was used for any file. One model, one run; every number below is read from the file named in its table.
+First real run of `quant_error.py all` (Tasks 1-6) on `allenai/OLMoE-1B-7B-0924` @ `6d84c48581ec` (7 B total, 16 layers, 64 experts, top-8, untied head, vocabulary 50,304). Apple M6, 32 GB, llama.cpp `b12359 (b1b770d)` on Metal, PyTorch 2.15.0 on MPS (`summary.json`). The reference is the bf16 GGUF from the same converter and build. No importance matrix was used for any file. One model, one run; every number below is read from the file named in its table. The two figures are drawn from `kl.csv` and `layers.csv` by [`figures/make_figures.py`](figures/make_figures.py), which writes every number it plots to [`figures/values.json`](figures/values.json).
 
 ## The four files
 
@@ -45,6 +45,13 @@ Mean over the 20 held-out slices (equal weights). `kl.csv`: 8 chunks of 512 toke
 
 Per slice, in `kl.csv`, `experts-Q4_K` is below `Q4_K_M` on 20 of 20 slices, and `MXFP4_MOE` is above `Q4_K_M` on 20 of 20 (`tokens.csv`: 20 of 20 and 17 of 20). One slice's `kld_mean` has a reported uncertainty of about 0.0009 for `Q4_K_M` (mean of `kld_mean_unc`), so single-slice differences smaller than that mean little.
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="figures/kld-slices-dark.svg">
+    <img alt="llama.cpp mean KLD per held-out slice: experts-Q4_K is below Q4_K_M on 20 of 20 slices; means of the 20 slices 0.000685 (Q8_0), 0.01293 (experts-Q4_K), 0.01735 (Q4_K_M), 0.03091 (MXFP4_MOE)" src="figures/kld-slices-light.svg" width="880">
+  </picture>
+</p>
+
 Mean KLD by slice group (`kl.csv`; the number after the slash is same top-p, %):
 
 | Slice group | `Q8_0` | `Q4_K_M` | `experts-Q4_K` | `MXFP4_MOE` |
@@ -79,6 +86,13 @@ The layer-11 means are pulled up by three code slices. For `Q8_0` at layer 11, `
 | 8 | 0.933 | 0.691 | 0.756 | 0.635 |
 | 15 | 0.938 | 0.727 | 0.759 | 0.643 |
 | mean of the 16 layers | 0.936 | 0.666 | 0.764 | 0.639 |
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="figures/router-layers-dark.svg">
+    <img alt="Router top-8 agreement with bf16 by layer: at layer 0, 0.627 for Q4_K_M against 0.952 for Q8_0, experts-Q4_K and MXFP4_MOE; at layer 15, 0.938 Q8_0, 0.759 experts-Q4_K, 0.727 Q4_K_M, 0.643 MXFP4_MOE" src="figures/router-layers-light.svg" width="880">
+  </picture>
+</p>
 
 ## 4. Error on real activations, per module (`linears.csv`)
 
