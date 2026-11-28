@@ -6,32 +6,29 @@ kld-slices     llama.cpp mean KLD per held-out slice (../kl.csv, kld_mean): expe
 router-layers  router top-8 agreement by layer (../layers.csv, router_agree, mean over the 20 slices), four formats.
 
 Every plotted number is read from those files (the llama.cpp version from ../summary.json), never typed in, and is
-written to values.json beside the figures so it can be checked. The colours are the hues of Team 12's kv_cache figures
-(navy, brass, sage, clay), stepped until every pair passes the dataviz palette checks in both themes: lightness band,
-chroma floor, colour-blind separation (all pairs), normal-vision separation and contrast. Motion is CSS inside each
-SVG: it plays once on load, stops for prefers-reduced-motion, and a renderer without CSS animation shows the finished
-figure. --static writes the finished state only (for previews). Standard library only.
+written to values.json beside the figures so it can be checked. Surfaces, colours, fonts and motion come from the
+tool's figures/svgkit.py, so these figures look like the README's: Q8_0 navy, Q4_K_M brass, experts-Q4_K green and
+MXFP4_MOE red, a set that passed palette checks for all pairs in both themes; Inter and JetBrains Mono embedded as
+subsets (SIL OFL 1.1, ../../../figures/OFL.txt); one fade or draw-in that plays once, only under
+prefers-reduced-motion: no-preference. --static writes the finished state only (for previews). Needs fonttools and
+brotli, as svgkit.py says.
 """
 from __future__ import annotations
 
-import argparse, csv, json
+import argparse, csv, json, sys
 from html import escape
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 RES = HERE.parent
+sys.path.insert(0, str(HERE.parents[2] / 'figures'))   # quant_error/figures: svgkit.py
+import svgkit as kit  # noqa: E402
+from svgkit import Svg, W, header  # noqa: E402
 FORMATS = ['Q8_0', 'Q4_K_M', 'experts-Q4_K', 'MXFP4_MOE']
 GROUPS = [('ENGLISH', 'c4-'), ('INDIC', 'fw2-'), ('MATH', 'owm-'), ('SCIENCE', 'pes2o-'), ('CODE', 'vault-')]
 
-PAL = {
-    'light': dict(bg='#FBFAF7', line='#E6E1D6', ink='#1C1B19', muted='#7A746A', grid='#EEEAE1', link='#D8D2C6',
-                  series={'Q8_0': '#556BAD', 'Q4_K_M': '#BB8422', 'experts-Q4_K': '#279376', 'MXFP4_MOE': '#A8423A'}),
-    'dark': dict(bg='#0F1115', line='#272B33', ink='#ECE8E0', muted='#9A958A', grid='#21252C', link='#3A3F48',
-                 series={'Q8_0': '#698CC9', 'Q4_K_M': '#BC881D', 'experts-Q4_K': '#3FA787', 'MXFP4_MOE': '#AF585F'}),
-}
-SANS = "Inter, 'SF Pro Text', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif"
-MONO = "'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, Consolas, monospace"
-W = 880
+SERIES = {'Q8_0': 'navy', 'Q4_K_M': 'brass', 'experts-Q4_K': 'green', 'MXFP4_MOE': 'red'}
+PAL = {theme: dict(t, series={f: t[k] for f, k in SERIES.items()}) for theme, t in kit.PAL.items()}
 
 
 def mean(xs):
@@ -64,51 +61,6 @@ def load() -> dict:
     return dict(slices=slices, groups=groups, kld=kld, kld_mean={f: mean(kld[f]) for f in FORMATS},
                 chunks=int(chunks.pop()), scored=int(scored.pop()), agree=agree, n_layers=n_layers,
                 llama=llama.split()[0])
-
-
-class Svg:
-    def __init__(self, theme: str, h: int, static: bool):
-        self.p, self.h, self.static, self.parts = PAL[theme], h, static, []
-
-    def add(self, s: str):
-        self.parts.append(s)
-
-    def anim(self, cls: str, delay: float) -> str:
-        return '' if self.static else f' class="{cls}" style="animation-delay:{delay:.2f}s"'
-
-    def text(self, x, y, s, cls='', anchor='start', fill=None):
-        f = f' fill="{fill}"' if fill else ''
-        c = f' class="{cls}"' if cls else ''
-        self.add(f'<text x="{x:.1f}" y="{y:.1f}"{c} text-anchor="{anchor}"{f}>{escape(s)}</text>')
-
-    def render(self, title: str, desc: str) -> str:
-        p = self.p
-        anim = '' if self.static else (
-            '@keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}'
-            '@keyframes draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}'
-            '.f{animation:fade .8s cubic-bezier(.2,.7,.2,1) both}'
-            '.d{stroke-dasharray:1;animation:draw 1.6s cubic-bezier(.45,.05,.25,1) both}'
-            '@media (prefers-reduced-motion:reduce){*{animation:none!important}}')
-        css = (f'text{{font-family:{SANS};fill:{p["ink"]}}}'
-               f'.t{{font-size:21px;font-weight:600;letter-spacing:-.012em}}'
-               f'.st{{font-size:12.5px;fill:{p["muted"]}}}'
-               f'.cap{{font-size:10px;font-weight:600;letter-spacing:.14em;fill:{p["muted"]}}}'
-               f'.lab{{font-size:12px;fill:{p["muted"]}}}'
-               f'.lab2{{font-size:12.5px;font-weight:500}}'
-               f'.n{{font-family:{MONO};font-variant-numeric:tabular-nums;font-size:11.5px}}'
-               f'.sl{{font-family:{MONO};font-size:11px;fill:{p["muted"]}}}'
-               f'.ax{{font-family:{MONO};font-variant-numeric:tabular-nums;font-size:10.5px;fill:{p["muted"]}}}' + anim)
-        return (f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{self.h}" viewBox="0 0 {W} {self.h}" '
-                f'role="img" aria-label="{escape(title)}"><title>{escape(title)}</title><desc>{escape(desc)}</desc>'
-                f'<style>{css}</style>'
-                f'<rect x=".5" y=".5" width="{W - 1}" height="{self.h - 1}" rx="16" fill="{p["bg"]}" stroke="{p["line"]}"/>'
-                + ''.join(self.parts) + '</svg>\n')
-
-
-def header(s: Svg, kicker: str, title: str, sub: str):
-    s.text(36, 44, kicker, 'cap')
-    s.text(36, 72, title, 't')
-    s.text(36, 94, sub, 'st')
 
 
 def marker(s: Svg, fmt: str, x: float, y: float) -> str:
@@ -151,7 +103,7 @@ def kld_slices(theme: str, static: bool, d: dict):
             y += RH
     mean_y = y + 26
     axis_y = mean_y + 34
-    s = Svg(theme, axis_y + 38, static); p = s.p
+    s = Svg(theme, axis_y + 38, static); s.p = p = PAL[theme]
     n = len(d['slices'])
     below = sum(e < q for e, q in zip(d['kld']['experts-Q4_K'], d['kld']['Q4_K_M']))
     header(s, f'QUANT_ERROR · OLMOE PILOT · LLAMA.CPP {d["llama"].upper()} · KL.CSV',
@@ -187,15 +139,12 @@ def kld_slices(theme: str, static: bool, d: dict):
     s.add(f'<line x1="36" y1="{mean_y - 17:.1f}" x2="{X1}" y2="{mean_y - 17:.1f}" stroke="{p["line"]}"/>')
     s.text(36, mean_y + 4, f'MEAN OF {n}', 'cap')
     row(mean_y, m, f'mean of {n} slices: ' + ' · '.join(f'{f} {m[f]:.4g}' for f in FORMATS), .15 + .03 * n)
-    a = s.anim('f', .3 + .03 * n)
+    w = f'f@{.3 + .03 * n:.2f}'
     lab = lambda f: f'{m[f]:.4g}'
-    s.add(f'<g{a}>'
-          f'<text x="{xs(m["Q8_0"]) + 10:.1f}" y="{mean_y + 4:.1f}" class="n" fill="{p["muted"]}">{lab("Q8_0")}</text>'
-          f'<text x="{xs(m["experts-Q4_K"]) - 11:.1f}" y="{mean_y + 4:.1f}" class="n" text-anchor="end">'
-          f'{lab("experts-Q4_K")}</text>'
-          f'<text x="{xs(m["Q4_K_M"]) + 11:.1f}" y="{mean_y + 4:.1f}" class="n">{lab("Q4_K_M")}</text>'
-          f'<text x="{xs(m["MXFP4_MOE"]) + 10:.1f}" y="{mean_y + 4:.1f}" class="n" fill="{p["muted"]}">'
-          f'{lab("MXFP4_MOE")}</text></g>')
+    s.text(xs(m['Q8_0']) + 10, mean_y + 4, lab('Q8_0'), 'n', fill=p['muted'], wrap=w)
+    s.text(xs(m['experts-Q4_K']) - 11, mean_y + 4, lab('experts-Q4_K'), 'n', 'end', wrap=w)
+    s.text(xs(m['Q4_K_M']) + 11, mean_y + 4, lab('Q4_K_M'), 'n', wrap=w)
+    s.text(xs(m['MXFP4_MOE']) + 10, mean_y + 4, lab('MXFP4_MOE'), 'n', fill=p['muted'], wrap=w)
     shown = dict(source='kl.csv', column='kld_mean', unit='nats', llama_cpp=d['llama'], x_axis=[0, XMAX],
                  chunks=d['chunks'],
                  tokens_scored=d['scored'], slices=d['slices'], groups={g: mem for g, mem in d['groups']},
@@ -215,7 +164,7 @@ def router_layers(theme: str, static: bool, d: dict):
     ys = lambda v: Y0 - (v - LO) / (HI - LO) * (Y0 - Y1)
     ag = d['agree']
     assert LO <= min(min(v) for v in ag.values()) and max(max(v) for v in ag.values()) <= HI, 'layers.csv: off axis'
-    s = Svg(theme, Y0 + 64, static); p = s.p
+    s = Svg(theme, Y0 + 64, static); s.p = p = PAL[theme]
     header(s, f'QUANT_ERROR · OLMOE PILOT · TWIN FORWARD · LAYERS.CSV',
            'Under Q4_K_M the expert choice already changes at layer 0',
            f'Share of tokens whose top-8 expert set is exactly the bf16 one, per layer; mean over the '
@@ -233,32 +182,27 @@ def router_layers(theme: str, static: bool, d: dict):
     for i, f in enumerate(order):
         col = p['series'][f]
         path = 'M' + ' L'.join(f'{xs(l):.1f},{ys(v):.1f}' for l, v in enumerate(ag[f]))
-        dcls = '' if s.static else f' class="d" pathLength="1" style="animation-delay:{.2 + .18 * i:.2f}s"'
+        dcls = '' if s.static else f' class="d" style="animation-delay:{.2 + .12 * i:.2f}s"'
         s.add(f'<path d="{path}" fill="none" stroke="{col}" stroke-width="2" stroke-linejoin="round" '
-              f'stroke-linecap="round"{dcls}><title>{escape(f)}: ' + ' · '.join(f'layer {l} {v:.3f}' for l, v in
+              f'stroke-linecap="round" pathLength="1" stroke-dasharray="1"{dcls}><title>{escape(f)}: ' + ' · '.join(f'layer {l} {v:.3f}' for l, v in
                                                                               enumerate(ag[f])) + '</title></path>')
     for i, f in enumerate(order):
         col = p['series'][f]
-        a = s.anim('f', 1.2 + .1 * i)
+        a = s.anim('f', .9 + .08 * i)
         dots = ''.join(f'<circle cx="{xs(l):.1f}" cy="{ys(ag[f][l]):.1f}" r="5" fill="{col}" stroke="{p["bg"]}" '
                        f'stroke-width="2"><title>{escape(f)}, layer {l}: {ag[f][l]:.3f}</title></circle>'
                        for l in (0, L - 1))
         s.add(f'<g{a}>{dots}</g>')
 
     end = {f: f'{ag[f][-1]:.3f}' for f in FORMATS}
-    a = s.anim('f', 1.7)
-    labels = ''.join(f'<text x="{X1 + 16}" y="{ys(ag[f][-1]) + 4:.1f}" class="lab2">{escape(f)}</text>'
-                     f'<text x="{W - 36}" y="{ys(ag[f][-1]) + 4:.1f}" class="n" text-anchor="end" '
-                     f'fill="{p["muted"]}">{end[f]}</text>' for f in FORMATS)
-    s.add(f'<g{a}>{labels}</g>')
+    for f in FORMATS:
+        s.text(X1 + 16, ys(ag[f][-1]) + 4, f, 'lab2', wrap='f@1.20')
+        s.text(W - 36, ys(ag[f][-1]) + 4, end[f], 'n', 'end', fill=p['muted'], wrap='f@1.20')
 
     first = {f: f'{ag[f][0]:.3f}' for f in FORMATS}
     same = [f for f in FORMATS if f != 'Q4_K_M' and first[f] == first['Q8_0']]
-    a = s.anim('f', 1.9)
-    s.add(f'<g{a}><text x="{X0 + 12}" y="{ys(ag["Q8_0"][0]) - 14:.1f}" class="lab">'
-          f'{first["Q8_0"]} · {escape(", ".join(same))}</text>'
-          f'<text x="{X0 + 12}" y="{ys(ag["Q4_K_M"][0]) + 22:.1f}" class="lab">'
-          f'{first["Q4_K_M"]} · Q4_K_M</text></g>')
+    s.text(X0 + 12, ys(ag['Q8_0'][0]) - 14, f'{first["Q8_0"]} · {", ".join(same)}', 'lab', wrap='f@1.30')
+    s.text(X0 + 12, ys(ag['Q4_K_M'][0]) + 22, f'{first["Q4_K_M"]} · Q4_K_M', 'lab', wrap='f@1.30')
     shown = dict(source='layers.csv', column='router_agree', aggregate=f'mean over the {len(d["slices"])} slices of '
                  'each format and layer', y_axis=[LO, HI], layers=list(range(L)), router_agree=ag,
                  layer0_labels=first, layer15_labels=end, layer0_same_as_q8_0=same)
@@ -282,7 +226,7 @@ def main():
     values = {'note': 'Every number the figures plot or print, as make_figures.py reads or computes it from the CSVs '
                       'beside PILOT.md (means are plain means over the rows named).'}
     for name, fn in FIGS.items():
-        for theme in PAL:
+        for theme in kit.PAL:
             svg, shown = fn(theme, a.static, d)
             (a.out / f'{name}-{theme}.svg').write_text(svg, encoding='utf-8')
         values[name] = shown

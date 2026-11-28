@@ -1,0 +1,2 @@
+The SVGs in this folder embed subsets of Inter and JetBrains Mono, licensed under the SIL Open Font License 1.1.
+The copyright notices, the source of the fonts and the licence text are in ../../../figures/OFL.txt.
