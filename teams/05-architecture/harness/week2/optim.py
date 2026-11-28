@@ -73,8 +73,10 @@ class Muon(torch.optim.Optimizer):
         for group in self.param_groups:
             by_shape = {}
             for p in group["params"]:
-                # Like AdamW: an expert that saw no tokens gets no update and keeps its momentum.
-                if p.grad is None:
+                # A fused MoE gives unselected experts dense zero gradients, not None.
+                # Skip before touching state: idle weights and existing momentum stay exact,
+                # and never-used parameters keep lazy state. No near-zero threshold.
+                if p.grad is None or (not p.grad.is_sparse and p.grad.count_nonzero() == 0):
                     continue
                 state = self.state[p]
                 if "buf" not in state:
