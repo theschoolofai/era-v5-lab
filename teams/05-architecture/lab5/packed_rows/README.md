@@ -129,7 +129,20 @@ python teams/05-architecture/lab5/packed_rows/measure_attention.py     --index e
 
 A packed row costs about the same as a padded row, so real tokens per second rise with the fill: 224 against 126 on eager, 1.78 times (the fill ratio is 1.98; the rest is noise over three timed steps and the cost of attending within longer rows). On this CPU, SDPA with the mask is slower than eager; the CPU says nothing about GPU kernels. Gradient coverage is the same on all four arms (no parameter without a gradient).
 
-Results on a T4 (fp16; the T4 has no fast bf16): to follow. Every number is for the machine it ran on, not the training GPU.
+**T4, the answer to TSAI's question** (Google Colab, Tesla T4, torch 2.14.1, fp16 because the T4 has no fast bf16; window 2,048, 2 rows per step, 20 steps with the first 3 left out of the timing; vocabulary 32,768; document lengths from `en-fineweb-edu-train-000000`; the command above with `--batch 2 --steps 20 --dtype fp16`):
+
+| Arm | Fill | Real tokens/s | vs eager packed | Peak memory (GiB) | Gradient None or zero |
+|---|---:|---:|---:|---:|---:|
+| eager, packed | 98.4% | 7,540 | 1.00x | 10.23 | 0 |
+| SDPA with the mask, packed | 98.4% | 9,744 | 1.29x | 7.25 | 0 |
+| eager, one window per row | 40.1% | 3,100 | 0.41x | 10.19 | 0 |
+| SDPA causal, one window per row | 40.1% | 4,346 | 0.58x | 7.11 | 0 |
+
+- **SDPA keeps its speed-up with the document mask:** 1.29 times eager's real tokens per second on packed rows, with 29% less peak memory (7.25 against 10.23 GiB). That is close to the ~1.33x measured without packing, so packed runs should use `attn_impl: sdpa`.
+- **Packing more than doubles real tokens per second:** SDPA packed against SDPA one window per row is 2.24 times; against today's eager trainer with one window per row, 3.14 times. The gain follows the fill (98.4% against 40.1%).
+- **Gradient coverage** (TSAI's rule for speed claims): no parameter has a missing or all-zero gradient on any arm; the lists are identical for eager and SDPA.
+
+Every number is for a T4 with this model, not the training GPU; the ratios, not the absolute speeds, are the result.
 
 ## What it needs from others
 
@@ -139,7 +152,7 @@ Results on a T4 (fp16; the T4 has no fast bf16): to follow. Every number is for 
 ## What it cannot tell
 
 - The real speed gain on the training GPU: the T4 numbers show the direction, not the size. Team 6's profile measures the GPU number.
-- Whether a variable-length (mask-aware) flash kernel is needed: only if SDPA with the mask is not clearly faster than eager.
+- Whether a variable-length (mask-aware) flash kernel would add more: on the T4, SDPA with the mask is already 1.29 times eager; the training GPU may differ.
 
 ## Plan and dates
 
