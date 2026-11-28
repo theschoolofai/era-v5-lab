@@ -1,0 +1,1056 @@
+{
+ "train_text": {
+  "seed": 20261128,
+  "sample_sha256sums": "6eb6043d3f774a226c5e65538e49e54426e1e187859dedaacf2139b22e772fc0",
+  "unique_docs": 179421,
+  "sets": {
+   "10MB": {
+    "docs": 1608,
+    "bytes": 9996939
+   },
+   "100MB": {
+    "docs": 15866,
+    "bytes": 99999408
+   },
+   "1GB": {
+    "docs": 155988,
+    "bytes": 999982117
+   }
+  }
+ },
+ "sample_is_v0": false,
+ "source": {
+  "kind": "public stand-in for sample v0",
+  "packs": {
+   "en-fineweb-edu": {
+    "repo": "HuggingFaceFW/fineweb-edu",
+    "files_read": [
+     "sample/10BT/000_00000.parquet"
+    ],
+    "train_docs": 70907,
+    "train_bytes": 345000605,
+    "heldout_docs": 216,
+    "heldout_bytes": 1200894,
+    "wanted_train_bytes": 345000000
+   },
+   "ind-hi-fw2": {
+    "repo": "HuggingFaceFW/fineweb-2",
+    "files_read": [
+     "data/hin_Deva/train/000_00000.parquet"
+    ],
+    "train_docs": 26547,
+    "train_bytes": 172503022,
+    "heldout_docs": 190,
+    "heldout_bytes": 1207598,
+    "wanted_train_bytes": 172500000
+   },
+   "ind-mr-fw2": {
+    "repo": "HuggingFaceFW/fineweb-2",
+    "files_read": [
+     "data/mar_Deva/train/000_00000.parquet"
+    ],
+    "train_docs": 7167,
+    "train_bytes": 57500274,
+    "heldout_docs": 175,
+    "heldout_bytes": 1200123,
+    "wanted_train_bytes": 57500000
+   },
+   "ind-bn-fw2": {
+    "repo": "HuggingFaceFW/fineweb-2",
+    "files_read": [
+     "data/ben_Beng/train/000_00000.parquet"
+    ],
+    "train_docs": 8198,
+    "train_bytes": 57504653,
+    "heldout_docs": 214,
+    "heldout_bytes": 1203346,
+    "wanted_train_bytes": 57500000
+   },
+   "ind-as-fw2": {
+    "repo": "HuggingFaceFW/fineweb-2",
+    "files_read": [
+     "data/asm_Beng/train/000_00000.parquet"
+    ],
+    "train_docs": 9082,
+    "train_bytes": 57503737,
+    "heldout_docs": 254,
+    "heldout_bytes": 1200153,
+    "wanted_train_bytes": 57500000
+   },
+   "ind-ta-fw2": {
+    "repo": "HuggingFaceFW/fineweb-2",
+    "files_read": [
+     "data/tam_Taml/train/000_00000.parquet"
+    ],
+    "train_docs": 5728,
+    "train_bytes": 57520938,
+    "heldout_docs": 126,
+    "heldout_bytes": 1204690,
+    "wanted_train_bytes": 57500000
+   },
+   "ind-te-fw2": {
+    "repo": "HuggingFaceFW/fineweb-2",
+    "files_read": [
+     "data/tel_Telu/train/000_00000.parquet"
+    ],
+    "train_docs": 6037,
+    "train_bytes": 57507411,
+    "heldout_docs": 135,
+    "heldout_bytes": 1203357,
+    "wanted_train_bytes": 57500000
+   },
+   "ind-kn-fw2": {
+    "repo": "HuggingFaceFW/fineweb-2",
+    "files_read": [
+     "data/kan_Knda/train/000_00000.parquet"
+    ],
+    "train_docs": 7854,
+    "train_bytes": 57556877,
+    "heldout_docs": 111,
+    "heldout_bytes": 1200471,
+    "wanted_train_bytes": 57500000
+   },
+   "ind-ml-fw2": {
+    "repo": "HuggingFaceFW/fineweb-2",
+    "files_read": [
+     "data/mal_Mlym/train/000_00000.parquet"
+    ],
+    "train_docs": 6256,
+    "train_bytes": 57501964,
+    "heldout_docs": 136,
+    "heldout_bytes": 1203586,
+    "wanted_train_bytes": 57500000
+   },
+   "ind-gu-fw2": {
+    "repo": "HuggingFaceFW/fineweb-2",
+    "files_read": [
+     "data/guj_Gujr/train/000_00000.parquet"
+    ],
+    "train_docs": 7815,
+    "train_bytes": 57518503,
+    "heldout_docs": 169,
+    "heldout_bytes": 1201533,
+    "wanted_train_bytes": 57500000
+   },
+   "ind-pa-fw2": {
+    "repo": "HuggingFaceFW/fineweb-2",
+    "files_read": [
+     "data/pan_Guru/train/000_00000.parquet"
+    ],
+    "train_docs": 7603,
+    "train_bytes": 57533981,
+    "heldout_docs": 204,
+    "heldout_bytes": 1201654,
+    "wanted_train_bytes": 57500000
+   },
+   "ind-or-fw2": {
+    "repo": "HuggingFaceFW/fineweb-2",
+    "files_read": [
+     "data/ory_Orya/train/000_00000.parquet"
+    ],
+    "train_docs": 12926,
+    "train_bytes": 57503235,
+    "heldout_docs": 317,
+    "heldout_bytes": 1200349,
+    "wanted_train_bytes": 57500000
+   },
+   "ind-sa-fw2": {
+    "repo": "HuggingFaceFW/fineweb-2",
+    "files_read": [
+     "data/san_Deva/train/000_00000.parquet"
+    ],
+    "train_docs": 3301,
+    "train_bytes": 57509109,
+    "heldout_docs": 58,
+    "heldout_bytes": 1211786,
+    "wanted_train_bytes": 57500000
+   }
+  }
+ },
+ "domains": {
+  "en-web": {
+   "docs": 173,
+   "bytes": 1008185
+  },
+  "hi-mr (Devanagari)": {
+   "docs": 148,
+   "bytes": 1006810
+  },
+  "bn-or-gu": {
+   "docs": 199,
+   "bytes": 1007247
+  },
+  "ta-ml": {
+   "docs": 94,
+   "bytes": 1003222
+  },
+  "te-kn": {
+   "docs": 71,
+   "bytes": 1003917
+  },
+  "sanskrit": {
+   "docs": 49,
+   "bytes": 1021960
+  }
+ },
+ "distinct_heldout_words": 139465,
+ "lists": {
+  "p1536 (frozen)": {
+   "file_sha256": "e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b",
+   "vocab": 131072,
+   "train_set": "1GB",
+   "vocab_never_produced_on_train": 13446,
+   "vocab_never_produced_share": 0.1026,
+   "heldout_unseen_unit_share": 2.8e-05,
+   "mean_bytes_per_token": 7.847,
+   "expected_mean_bytes_per_token": null,
+   "units": {
+    "en-web": {
+     "tokens": 212115,
+     "unseen_unit_tokens": 20,
+     "unseen_share": 9.4e-05,
+     "distinct_unseen_ids": 20,
+     "bytes_per_token": 4.753
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 112327,
+     "unseen_unit_tokens": 1,
+     "unseen_share": 9e-06,
+     "distinct_unseen_ids": 1,
+     "bytes_per_token": 8.963
+    },
+    "bn-or-gu": {
+     "tokens": 120078,
+     "unseen_unit_tokens": 0,
+     "unseen_share": 0.0,
+     "distinct_unseen_ids": 0,
+     "bytes_per_token": 8.388
+    },
+    "ta-ml": {
+     "tokens": 97369,
+     "unseen_unit_tokens": 0,
+     "unseen_share": 0.0,
+     "distinct_unseen_ids": 0,
+     "bytes_per_token": 10.303
+    },
+    "te-kn": {
+     "tokens": 118027,
+     "unseen_unit_tokens": 1,
+     "unseen_share": 8e-06,
+     "distinct_unseen_ids": 1,
+     "bytes_per_token": 8.506
+    },
+    "sanskrit": {
+     "tokens": 165662,
+     "unseen_unit_tokens": 1,
+     "unseen_share": 6e-06,
+     "distinct_unseen_ids": 1,
+     "bytes_per_token": 6.169
+    }
+   },
+   "words": {
+    "en-web": {
+     "words": 161160,
+     "unseen_words": 4552,
+     "unseen_share": 0.028245,
+     "tokens_per_word_seen": 1.2311,
+     "tokens_per_word_unseen": 3.7326,
+     "byte_piece_share_seen": 0.0001,
+     "byte_piece_share_unseen": 0.0041
+    },
+    "hi-mr (Devanagari)": {
+     "words": 66738,
+     "unseen_words": 3272,
+     "unseen_share": 0.049028,
+     "tokens_per_word_seen": 1.5518,
+     "tokens_per_word_unseen": 3.8282,
+     "byte_piece_share_seen": 0.0007,
+     "byte_piece_share_unseen": 0.0045
+    },
+    "bn-or-gu": {
+     "words": 62538,
+     "unseen_words": 4048,
+     "unseen_share": 0.064729,
+     "tokens_per_word_seen": 1.7518,
+     "tokens_per_word_unseen": 4.0756,
+     "byte_piece_share_seen": 0.0071,
+     "byte_piece_share_unseen": 0.016
+    },
+    "ta-ml": {
+     "words": 38471,
+     "unseen_words": 7842,
+     "unseen_share": 0.203842,
+     "tokens_per_word_seen": 2.0703,
+     "tokens_per_word_unseen": 4.2191,
+     "byte_piece_share_seen": 0.0013,
+     "byte_piece_share_unseen": 0.0044
+    },
+    "te-kn": {
+     "words": 46336,
+     "unseen_words": 9878,
+     "unseen_share": 0.213182,
+     "tokens_per_word_seen": 2.0253,
+     "tokens_per_word_unseen": 4.2106,
+     "byte_piece_share_seen": 0.0037,
+     "byte_piece_share_unseen": 0.0052
+    },
+    "sanskrit": {
+     "words": 41212,
+     "unseen_words": 13652,
+     "unseen_share": 0.331263,
+     "tokens_per_word_seen": 2.5384,
+     "tokens_per_word_unseen": 6.8821,
+     "byte_piece_share_seen": 0.01,
+     "byte_piece_share_unseen": 0.0098
+    }
+   },
+   "top_unseen_units": [
+    {
+     "unit": ".Created",
+     "id": 104740,
+     "held_out": 1
+    },
+    {
+     "unit": "=response",
+     "id": 103399,
+     "held_out": 1
+    },
+    {
+     "unit": " 검색",
+     "id": 92627,
+     "held_out": 1
+    },
+    {
+     "unit": ".tf",
+     "id": 89445,
+     "held_out": 1
+    },
+    {
+     "unit": " integra",
+     "id": 72822,
+     "held_out": 1
+    },
+    {
+     "unit": "abilirsiniz",
+     "id": 68992,
+     "held_out": 1
+    },
+    {
+     "unit": " schade",
+     "id": 62896,
+     "held_out": 1
+    },
+    {
+     "unit": "(template",
+     "id": 61885,
+     "held_out": 1
+    },
+    {
+     "unit": " gord",
+     "id": 61637,
+     "held_out": 1
+    },
+    {
+     "unit": " Leute",
+     "id": 58034,
+     "held_out": 1
+    },
+    {
+     "unit": ".jet",
+     "id": 54173,
+     "held_out": 1
+    },
+    {
+     "unit": " daß",
+     "id": 52999,
+     "held_out": 1
+    },
+    {
+     "unit": " festa",
+     "id": 52260,
+     "held_out": 1
+    },
+    {
+     "unit": "ició",
+     "id": 51693,
+     "held_out": 1
+    },
+    {
+     "unit": "ěl",
+     "id": 47811,
+     "held_out": 1
+    }
+   ],
+   "train_encode_seconds": 718.3
+  },
+  "plain 100MB 100k": {
+   "file_sha256": "411995293fe6863ea72cbc0884da8d72f724a26a47c145d02f5465c1a5f67151",
+   "vocab": 100256,
+   "train_set": "100MB",
+   "vocab_never_produced_on_train": 541,
+   "vocab_never_produced_share": 0.0054,
+   "heldout_unseen_unit_share": 3.6e-05,
+   "mean_bytes_per_token": 8.661,
+   "expected_mean_bytes_per_token": null,
+   "units": {
+    "en-web": {
+     "tokens": 218388,
+     "unseen_unit_tokens": 12,
+     "unseen_share": 5.5e-05,
+     "distinct_unseen_ids": 4,
+     "bytes_per_token": 4.616
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 100341,
+     "unseen_unit_tokens": 2,
+     "unseen_share": 2e-05,
+     "distinct_unseen_ids": 2,
+     "bytes_per_token": 10.034
+    },
+    "bn-or-gu": {
+     "tokens": 108125,
+     "unseen_unit_tokens": 7,
+     "unseen_share": 6.5e-05,
+     "distinct_unseen_ids": 5,
+     "bytes_per_token": 9.316
+    },
+    "ta-ml": {
+     "tokens": 94205,
+     "unseen_unit_tokens": 1,
+     "unseen_share": 1.1e-05,
+     "distinct_unseen_ids": 1,
+     "bytes_per_token": 10.649
+    },
+    "te-kn": {
+     "tokens": 112584,
+     "unseen_unit_tokens": 1,
+     "unseen_share": 9e-06,
+     "distinct_unseen_ids": 1,
+     "bytes_per_token": 8.917
+    },
+    "sanskrit": {
+     "tokens": 121140,
+     "unseen_unit_tokens": 4,
+     "unseen_share": 3.3e-05,
+     "distinct_unseen_ids": 3,
+     "bytes_per_token": 8.436
+    }
+   },
+   "words": {
+    "en-web": {
+     "words": 161160,
+     "unseen_words": 9326,
+     "unseen_share": 0.057868,
+     "tokens_per_word_seen": 1.205,
+     "tokens_per_word_unseen": 3.4997,
+     "byte_piece_share_seen": 0.0001,
+     "byte_piece_share_unseen": 0.0092
+    },
+    "hi-mr (Devanagari)": {
+     "words": 66738,
+     "unseen_words": 6941,
+     "unseen_share": 0.104004,
+     "tokens_per_word_seen": 1.3046,
+     "tokens_per_word_unseen": 3.0637,
+     "byte_piece_share_seen": 0.0004,
+     "byte_piece_share_unseen": 0.0046
+    },
+    "bn-or-gu": {
+     "words": 62538,
+     "unseen_words": 9384,
+     "unseen_share": 0.150053,
+     "tokens_per_word_seen": 1.4292,
+     "tokens_per_word_unseen": 3.3114,
+     "byte_piece_share_seen": 0.0036,
+     "byte_piece_share_unseen": 0.0099
+    },
+    "ta-ml": {
+     "words": 38471,
+     "unseen_words": 14348,
+     "unseen_share": 0.372956,
+     "tokens_per_word_seen": 1.728,
+     "tokens_per_word_unseen": 3.5998,
+     "byte_piece_share_seen": 0.0016,
+     "byte_piece_share_unseen": 0.0057
+    },
+    "te-kn": {
+     "words": 46336,
+     "unseen_words": 16725,
+     "unseen_share": 0.36095,
+     "tokens_per_word_seen": 1.6656,
+     "tokens_per_word_unseen": 3.6249,
+     "byte_piece_share_seen": 0.0021,
+     "byte_piece_share_unseen": 0.0045
+    },
+    "sanskrit": {
+     "words": 41212,
+     "unseen_words": 18817,
+     "unseen_share": 0.45659,
+     "tokens_per_word_seen": 1.5655,
+     "tokens_per_word_unseen": 4.4934,
+     "byte_piece_share_seen": 0.0011,
+     "byte_piece_share_unseen": 0.0017
+    }
+   },
+   "top_unseen_units": [
+    {
+     "unit": " stim",
+     "id": 8998,
+     "held_out": 9
+    },
+    {
+     "unit": " ହାଇକ",
+     "id": 47327,
+     "held_out": 3
+    },
+    {
+     "unit": " श्रीमन",
+     "id": 56961,
+     "held_out": 2
+    },
+    {
+     "unit": " आकडेव",
+     "id": 93643,
+     "held_out": 1
+    },
+    {
+     "unit": "વ્યાસ",
+     "id": 71062,
+     "held_out": 1
+    },
+    {
+     "unit": "uque",
+     "id": 71429,
+     "held_out": 1
+    },
+    {
+     "unit": " चेय",
+     "id": 66957,
+     "held_out": 1
+    },
+    {
+     "unit": "దేహ",
+     "id": 75323,
+     "held_out": 1
+    },
+    {
+     "unit": " গোস্ব",
+     "id": 47756,
+     "held_out": 1
+    },
+    {
+     "unit": " ଚଳଚ୍ଚ",
+     "id": 43106,
+     "held_out": 1
+    },
+    {
+     "unit": " आदिव",
+     "id": 32771,
+     "held_out": 1
+    },
+    {
+     "unit": "lywood",
+     "id": 37882,
+     "held_out": 1
+    },
+    {
+     "unit": " elig",
+     "id": 31225,
+     "held_out": 1
+    },
+    {
+     "unit": "�്ക",
+     "id": 11113,
+     "held_out": 1
+    },
+    {
+     "unit": " instru",
+     "id": 8145,
+     "held_out": 1
+    }
+   ],
+   "train_encode_seconds": 70.6
+  },
+  "plain 1GB 100k": {
+   "file_sha256": "f5844f608bd2ac21f59bfc257fa8c4bf8ebe4cfc29fc3ee5e2eb59f1943e5526",
+   "vocab": 100256,
+   "train_set": "1GB",
+   "vocab_never_produced_on_train": 89,
+   "vocab_never_produced_share": 0.0009,
+   "heldout_unseen_unit_share": 0.0,
+   "mean_bytes_per_token": 8.771,
+   "expected_mean_bytes_per_token": null,
+   "units": {
+    "en-web": {
+     "tokens": 217198,
+     "unseen_unit_tokens": 0,
+     "unseen_share": 0.0,
+     "distinct_unseen_ids": 0,
+     "bytes_per_token": 4.642
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 100094,
+     "unseen_unit_tokens": 0,
+     "unseen_share": 0.0,
+     "distinct_unseen_ids": 0,
+     "bytes_per_token": 10.059
+    },
+    "bn-or-gu": {
+     "tokens": 106243,
+     "unseen_unit_tokens": 0,
+     "unseen_share": 0.0,
+     "distinct_unseen_ids": 0,
+     "bytes_per_token": 9.481
+    },
+    "ta-ml": {
+     "tokens": 93171,
+     "unseen_unit_tokens": 0,
+     "unseen_share": 0.0,
+     "distinct_unseen_ids": 0,
+     "bytes_per_token": 10.768
+    },
+    "te-kn": {
+     "tokens": 111282,
+     "unseen_unit_tokens": 0,
+     "unseen_share": 0.0,
+     "distinct_unseen_ids": 0,
+     "bytes_per_token": 9.021
+    },
+    "sanskrit": {
+     "tokens": 118117,
+     "unseen_unit_tokens": 0,
+     "unseen_share": 0.0,
+     "distinct_unseen_ids": 0,
+     "bytes_per_token": 8.652
+    }
+   },
+   "words": {
+    "en-web": {
+     "words": 161160,
+     "unseen_words": 4552,
+     "unseen_share": 0.028245,
+     "tokens_per_word_seen": 1.2493,
+     "tokens_per_word_unseen": 4.1261,
+     "byte_piece_share_seen": 0.0001,
+     "byte_piece_share_unseen": 0.0147
+    },
+    "hi-mr (Devanagari)": {
+     "words": 66738,
+     "unseen_words": 3272,
+     "unseen_share": 0.049028,
+     "tokens_per_word_seen": 1.3819,
+     "tokens_per_word_unseen": 3.4587,
+     "byte_piece_share_seen": 0.0008,
+     "byte_piece_share_unseen": 0.0063
+    },
+    "bn-or-gu": {
+     "words": 62538,
+     "unseen_words": 4048,
+     "unseen_share": 0.064729,
+     "tokens_per_word_seen": 1.5381,
+     "tokens_per_word_unseen": 3.7505,
+     "byte_piece_share_seen": 0.0045,
+     "byte_piece_share_unseen": 0.0109
+    },
+    "ta-ml": {
+     "words": 38471,
+     "unseen_words": 7842,
+     "unseen_share": 0.203842,
+     "tokens_per_word_seen": 1.9717,
+     "tokens_per_word_unseen": 4.0666,
+     "byte_piece_share_seen": 0.0018,
+     "byte_piece_share_unseen": 0.0065
+    },
+    "te-kn": {
+     "words": 46336,
+     "unseen_words": 9878,
+     "unseen_share": 0.213182,
+     "tokens_per_word_seen": 1.8871,
+     "tokens_per_word_unseen": 4.0347,
+     "byte_piece_share_seen": 0.0022,
+     "byte_piece_share_unseen": 0.0034
+    },
+    "sanskrit": {
+     "words": 41212,
+     "unseen_words": 13652,
+     "unseen_share": 0.331263,
+     "tokens_per_word_seen": 1.7643,
+     "tokens_per_word_unseen": 4.9878,
+     "byte_piece_share_seen": 0.0012,
+     "byte_piece_share_unseen": 0.0015
+    }
+   },
+   "top_unseen_units": [],
+   "train_encode_seconds": 711.4
+  },
+  "SuperBPE 100MB t80k→100k": {
+   "file_sha256": "cfa9d27f3474d109714f51dc5ae02629cf441682b96dff0681dd7d3b7d7a1bb3",
+   "vocab": 100256,
+   "train_set": "100MB",
+   "vocab_never_produced_on_train": 419,
+   "vocab_never_produced_share": 0.0042,
+   "heldout_unseen_unit_share": 3.3e-05,
+   "mean_bytes_per_token": 9.082,
+   "expected_mean_bytes_per_token": null,
+   "units": {
+    "en-web": {
+     "tokens": 172302,
+     "unseen_unit_tokens": 11,
+     "unseen_share": 6.4e-05,
+     "distinct_unseen_ids": 3,
+     "bytes_per_token": 5.851
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 91025,
+     "unseen_unit_tokens": 0,
+     "unseen_share": 0.0,
+     "distinct_unseen_ids": 0,
+     "bytes_per_token": 11.061
+    },
+    "bn-or-gu": {
+     "tokens": 105420,
+     "unseen_unit_tokens": 6,
+     "unseen_share": 5.7e-05,
+     "distinct_unseen_ids": 4,
+     "bytes_per_token": 9.555
+    },
+    "ta-ml": {
+     "tokens": 94791,
+     "unseen_unit_tokens": 0,
+     "unseen_share": 0.0,
+     "distinct_unseen_ids": 0,
+     "bytes_per_token": 10.584
+    },
+    "te-kn": {
+     "tokens": 112580,
+     "unseen_unit_tokens": 1,
+     "unseen_share": 9e-06,
+     "distinct_unseen_ids": 1,
+     "bytes_per_token": 8.917
+    },
+    "sanskrit": {
+     "tokens": 119893,
+     "unseen_unit_tokens": 5,
+     "unseen_share": 4.2e-05,
+     "distinct_unseen_ids": 4,
+     "bytes_per_token": 8.524
+    }
+   },
+   "words": {
+    "en-web": {
+     "words": 161160,
+     "unseen_words": 9326,
+     "unseen_share": 0.057868,
+     "tokens_per_word_seen": 1.1945,
+     "tokens_per_word_unseen": 3.488,
+     "byte_piece_share_seen": 0.0001,
+     "byte_piece_share_unseen": 0.0104
+    },
+    "hi-mr (Devanagari)": {
+     "words": 66738,
+     "unseen_words": 6941,
+     "unseen_share": 0.104004,
+     "tokens_per_word_seen": 1.2853,
+     "tokens_per_word_unseen": 3.1108,
+     "byte_piece_share_seen": 0.0005,
+     "byte_piece_share_unseen": 0.0047
+    },
+    "bn-or-gu": {
+     "words": 62538,
+     "unseen_words": 9384,
+     "unseen_share": 0.150053,
+     "tokens_per_word_seen": 1.4453,
+     "tokens_per_word_unseen": 3.3875,
+     "byte_piece_share_seen": 0.0051,
+     "byte_piece_share_unseen": 0.0123
+    },
+    "ta-ml": {
+     "words": 38471,
+     "unseen_words": 14348,
+     "unseen_share": 0.372956,
+     "tokens_per_word_seen": 1.7658,
+     "tokens_per_word_unseen": 3.6446,
+     "byte_piece_share_seen": 0.0025,
+     "byte_piece_share_unseen": 0.0071
+    },
+    "te-kn": {
+     "words": 46336,
+     "unseen_words": 16725,
+     "unseen_share": 0.36095,
+     "tokens_per_word_seen": 1.7064,
+     "tokens_per_word_unseen": 3.6649,
+     "byte_piece_share_seen": 0.0029,
+     "byte_piece_share_unseen": 0.0058
+    },
+    "sanskrit": {
+     "words": 41212,
+     "unseen_words": 18817,
+     "unseen_share": 0.45659,
+     "tokens_per_word_seen": 1.6045,
+     "tokens_per_word_unseen": 4.5899,
+     "byte_piece_share_seen": 0.0016,
+     "byte_piece_share_unseen": 0.0025
+    }
+   },
+   "top_unseen_units": [
+    {
+     "unit": " stim",
+     "id": 8998,
+     "held_out": 9
+    },
+    {
+     "unit": " ହାଇକ",
+     "id": 47327,
+     "held_out": 3
+    },
+    {
+     "unit": " श्रीमन",
+     "id": 56961,
+     "held_out": 2
+    },
+    {
+     "unit": "దేహ",
+     "id": 75323,
+     "held_out": 1
+    },
+    {
+     "unit": " चेय",
+     "id": 66957,
+     "held_out": 1
+    },
+    {
+     "unit": "વ્યાસ",
+     "id": 71062,
+     "held_out": 1
+    },
+    {
+     "unit": "अध्यायः",
+     "id": 54137,
+     "held_out": 1
+    },
+    {
+     "unit": "uque",
+     "id": 71429,
+     "held_out": 1
+    },
+    {
+     "unit": " ଚଳଚ୍ଚ",
+     "id": 43106,
+     "held_out": 1
+    },
+    {
+     "unit": " आदिव",
+     "id": 32771,
+     "held_out": 1
+    },
+    {
+     "unit": " instru",
+     "id": 8145,
+     "held_out": 1
+    },
+    {
+     "unit": " includ",
+     "id": 1570,
+     "held_out": 1
+    }
+   ],
+   "train_encode_seconds": 60.3
+  },
+  "SuperBPE 100MB t180k→200k": {
+   "file_sha256": "f9cbfd81a4f8912a7367c30fa0016678e883974ddc0c826c9bacbc71b15daa12",
+   "vocab": 200256,
+   "train_set": "100MB",
+   "vocab_never_produced_on_train": 2230,
+   "vocab_never_produced_share": 0.0111,
+   "heldout_unseen_unit_share": 0.000164,
+   "mean_bytes_per_token": 10.275,
+   "expected_mean_bytes_per_token": null,
+   "units": {
+    "en-web": {
+     "tokens": 162724,
+     "unseen_unit_tokens": 37,
+     "unseen_share": 0.000227,
+     "distinct_unseen_ids": 21,
+     "bytes_per_token": 6.196
+    },
+    "hi-mr (Devanagari)": {
+     "tokens": 81874,
+     "unseen_unit_tokens": 7,
+     "unseen_share": 8.5e-05,
+     "distinct_unseen_ids": 7,
+     "bytes_per_token": 12.297
+    },
+    "bn-or-gu": {
+     "tokens": 91608,
+     "unseen_unit_tokens": 13,
+     "unseen_share": 0.000142,
+     "distinct_unseen_ids": 11,
+     "bytes_per_token": 10.995
+    },
+    "ta-ml": {
+     "tokens": 81115,
+     "unseen_unit_tokens": 10,
+     "unseen_share": 0.000123,
+     "distinct_unseen_ids": 6,
+     "bytes_per_token": 12.368
+    },
+    "te-kn": {
+     "tokens": 97482,
+     "unseen_unit_tokens": 20,
+     "unseen_share": 0.000205,
+     "distinct_unseen_ids": 16,
+     "bytes_per_token": 10.298
+    },
+    "sanskrit": {
+     "tokens": 107594,
+     "unseen_unit_tokens": 15,
+     "unseen_share": 0.000139,
+     "distinct_unseen_ids": 14,
+     "bytes_per_token": 9.498
+    }
+   },
+   "words": {
+    "en-web": {
+     "words": 161160,
+     "unseen_words": 9326,
+     "unseen_share": 0.057868,
+     "tokens_per_word_seen": 1.1476,
+     "tokens_per_word_unseen": 3.2369,
+     "byte_piece_share_seen": 0.0001,
+     "byte_piece_share_unseen": 0.0081
+    },
+    "hi-mr (Devanagari)": {
+     "words": 66738,
+     "unseen_words": 6941,
+     "unseen_share": 0.104004,
+     "tokens_per_word_seen": 1.1675,
+     "tokens_per_word_unseen": 2.792,
+     "byte_piece_share_seen": 0.0002,
+     "byte_piece_share_unseen": 0.0027
+    },
+    "bn-or-gu": {
+     "words": 62538,
+     "unseen_words": 9384,
+     "unseen_share": 0.150053,
+     "tokens_per_word_seen": 1.2437,
+     "tokens_per_word_unseen": 3.0046,
+     "byte_piece_share_seen": 0.0018,
+     "byte_piece_share_unseen": 0.0073
+    },
+    "ta-ml": {
+     "words": 38471,
+     "unseen_words": 14348,
+     "unseen_share": 0.372956,
+     "tokens_per_word_seen": 1.476,
+     "tokens_per_word_unseen": 3.1811,
+     "byte_piece_share_seen": 0.0012,
+     "byte_piece_share_unseen": 0.0041
+    },
+    "te-kn": {
+     "words": 46336,
+     "unseen_words": 16725,
+     "unseen_share": 0.36095,
+     "tokens_per_word_seen": 1.4275,
+     "tokens_per_word_unseen": 3.2439,
+     "byte_piece_share_seen": 0.0007,
+     "byte_piece_share_unseen": 0.0032
+    },
+    "sanskrit": {
+     "words": 41212,
+     "unseen_words": 18817,
+     "unseen_share": 0.45659,
+     "tokens_per_word_seen": 1.4298,
+     "tokens_per_word_unseen": 4.1129,
+     "byte_piece_share_seen": 0.0009,
+     "byte_piece_share_unseen": 0.0012
+    }
+   },
+   "top_unseen_units": [
+    {
+     "unit": " stim",
+     "id": 8998,
+     "held_out": 9
+    },
+    {
+     "unit": " ഇറക്കുമ",
+     "id": 141814,
+     "held_out": 5
+    },
+    {
+     "unit": "dard",
+     "id": 49205,
+     "held_out": 4
+    },
+    {
+     "unit": "ినియోగ",
+     "id": 146750,
+     "held_out": 4
+    },
+    {
+     "unit": " perenn",
+     "id": 45958,
+     "held_out": 3
+    },
+    {
+     "unit": " ହାଇକ",
+     "id": 47327,
+     "held_out": 3
+    },
+    {
+     "unit": " ಇದ್ದಕ್ಕಿದ್ದ",
+     "id": 150147,
+     "held_out": 2
+    },
+    {
+     "unit": "igler",
+     "id": 116639,
+     "held_out": 2
+    },
+    {
+     "unit": "asg",
+     "id": 83664,
+     "held_out": 2
+    },
+    {
+     "unit": " Duch",
+     "id": 77113,
+     "held_out": 2
+    },
+    {
+     "unit": " श्रीमन",
+     "id": 56961,
+     "held_out": 2
+    },
+    {
+     "unit": "ફ્ત",
+     "id": 158806,
+     "held_out": 1
+    },
+    {
+     "unit": "्तराष्ट्र",
+     "id": 168431,
+     "held_out": 1
+    },
+    {
+     "unit": " ಅನುಷ್ಠ",
+     "id": 160552,
+     "held_out": 1
+    },
+    {
+     "unit": "િવિધ",
+     "id": 171872,
+     "held_out": 1
+    }
+   ],
+   "train_encode_seconds": 61.6
+  }
+ },
+ "environment": {
+  "python": "3.13.18",
+  "machine": "x86_64",
+  "cpus": 2,
+  "tokenizers": "0.23.3",
+  "script_sha256": "6bf38bc00350e56cd059aa184d0a5a980a353232dfdab65de6c614cee472c211",
+  "design_units_sha256": "b1c421bdb589761abba8ce79ff336e37ff653b015b98e24bf0b9cc2a3082ba69"
+ }
+}
