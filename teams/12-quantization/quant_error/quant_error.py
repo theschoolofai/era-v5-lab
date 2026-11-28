@@ -6,7 +6,7 @@
         --llama-bin <llama.cpp/build/bin> --out <dir> [--tokens-per-slice 1024] [--seq-len 512] [--kl-chunks 8]
         [--device cpu|mps|cuda] [--normalize] [--export-report export_report.json] [--work <dir>]
 
-`all` first runs a preflight: every check that can fail (transformers 4.x, every input file present, the llama.cpp
+`all` first runs a preflight: every check that can be made up front (transformers 4.x, every input file present, the llama.cpp
 checkout and binary, the tokenizer, every GGUF readable as the --hf-config model, every slice long enough for one
 sequence, every quantized file a llama-quantize output of --ref: tensors.check_pair). A failure there exits non-zero
 with a message before anything is computed or deleted, so --out keeps an earlier run's files. Then it deletes those
@@ -180,7 +180,7 @@ def export_gap(report: Path | None):
 
 
 def preflight(args) -> SimpleNamespace:
-    """Every check that can fail before the long work, run before anything is computed or the previous run's outputs
+    """Every check that can be made before the long work, run before anything is computed or the previous run's outputs
     are deleted. A failure exits (SystemExit, non-zero) with a message and leaves --out as it was. Returns what the run
     uses: the GGUFWeights, the batches, the slices and the provenance read from the inputs."""
     try:
