@@ -5,7 +5,8 @@
 The weights are random (every tensor different from every other, so a swapped mapping cannot pass a test); only the
 plumbing is tested. Inputs each fixture needs:
   tiny_olmoe  OLMoE's config and tokenizer files: the Hugging Face cache, or the Hub on first use
-  tiny_ernie  the frozen p1536 tokenizer.json: $P1536_TOKENIZER, else the default path in P1536 below
+  tiny_ernie  the frozen p1536 tokenizer.json: $P1536_TOKENIZER, else teams/03-tokenizer/release/tokenizer.json (G3's
+              release folder; the file is not committed, its sha256 is in that folder's SHA256SUMS)
   to_gguf     LLAMA_CPP_DIR, a llama.cpp b12359 checkout
 A missing input raises `Unavailable`, a unittest.SkipTest: a test that builds the fixture is skipped with the message,
 and any other caller can catch it. Anything else (a tokenizer with the wrong sha256, a failing script) is an error.
@@ -22,8 +23,7 @@ TEAM = HERE.parent  # teams/12-quantization
 
 OLMOE_REPO, OLMOE_REVISION = 'allenai/OLMoE-1B-7B-0924', '6d84c48581ece794365f2b8e9cfb043c68ade9c5'
 OLMOE_TOKENIZER_FILES = ('tokenizer.json', 'tokenizer_config.json', 'special_tokens_map.json')
-P1536 = Path(os.environ.get('P1536_TOKENIZER')
-             or Path.home() / 'Workspace/era-v5-data/tokenizers/p1536-sample-v0/tokenizer.json')
+P1536 = Path(os.environ.get('P1536_TOKENIZER') or TEAM.parent / '03-tokenizer/release/tokenizer.json')
 P1536_SHA256 = 'e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b'
 ERNIE = 'Ernie4_5_MoeForCausalLM'
 
