@@ -15,7 +15,8 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import train  # noqa: E402
 
-TIMING = {"times_s", "step_s", "seconds", "rollout_tokens_per_s", "peak_torch_gb", "gpu_used_gb", "gpu_total_gb"}
+TIMING = {"times_s", "step_s", "seconds", "rollout_tokens_per_s", "peak_torch_gb", "gpu_used_gb", "gpu_total_gb",
+          "optim_step_s", "quant_refresh_s"}
 
 
 def base_cfg(out: Path, steps: int) -> dict:
