@@ -6,12 +6,16 @@ watcher survives the planned failure of dry run 2."
 
 Dry run 2 (TSAI, 21 Nov): test scale, the same pattern as dry run 1, with Team 7's Checkpointer in Team 5's trainer
 (#608, merged 21 Nov). Team 5's dry run 2 job is #720 (merged 22 Nov): run ID `dryrun2-1234`, store `/shared/ckpt`.
-Its arm has the dense output head. The KE2/KAS head (Team 4's handoff #694) joins the same arm only once Team 5's
-head PR is on `main` (#720, open item 4). The trainer commits step 0 (`--checkpoint-at-start`) and then every 600 s
-(`--checkpoint-interval-s 600`) into Team 7's store. The planned failure is a SIGKILL, then a restore to the last
+The run used the untied `kas_v2` output head, as recorded in the [run manifest](../../05-architecture/results/dryrun2-1234/manifest.json).
+The request below specified a step-0 commit (`--checkpoint-at-start`) and a 600 s save target
+(`--checkpoint-interval-s 600`) in Team 7's store. The planned failure is a SIGKILL, then a restore to the last
 complete commit (see "The planned failure" below). So this job follows the store, not a Team 5 run folder: two
 watchers, as in the "Later runs" section of `jobs/2026-11-15-eval-watcher-dry-run-1.md` (#549), and Tier C after
 the run (`eval_schedule.md` section 2).
+
+TSAI confirmed on 28 Nov that the watcher did not run with dry run 2. The [run record](../../05-architecture/results/dryrun2-1234/README.md)
+has nine commits, from step 0 through step 1,221. Replay can validate the watcher with test weights. Scoring the real final
+commit requires TSAI's separately delivered weights.
 
 ```text
 Team:            09-evaluation
@@ -24,7 +28,7 @@ Command:         python teams/09-evaluation/harness_lab/eval_watcher.py --run-di
                  After both have exited: Tier C (section below), Tier B on step 0 and on each restored-from step.
 Config:          teams/09-evaluation/harness_lab/eval_lab_v1.yaml; items from teams/09-evaluation/harness_code_indic/eval_mini_v0_spec.json (sha256 94de47d2…)
 Inputs:          (1) /shared/ckpt/dryrun2-1234/: dry run 2's Team 7 store folder (commits.jsonl, latest.json, pins.json, the step folders), read only, as a local or mounted path on the eval slot. TSAI confirmed /shared/ckpt on the job host (#720 review), and the eval slot needs the same folder. The watcher reads commits.jsonl from disk, so it cannot follow an s3:// store directly. The run's manifest.json names both: team7_checkpoint.store and team7_checkpoint.run_id. If TSAI runs it under another ID (dry run 1 ran as dryrun1-muon-1234), use the manifest's.
-                 (2) ./out/dryrun2-1234/manifest.json: dry run 2's own manifest.json (the scorer reads config.model). train_week2.py writes it in Team 5's --out folder when the run starts, before the step-0 commit; a read-only copy goes at this path on the eval slot, as for #549. The model: T2, 8 layers, width 512, 8 heads, 2 key-value heads, context 2,048, 16 routed + 1 shared experts, top-2, ke1 with P32 (dryrun2.yaml, which inherits exp2_muon.yaml), with the dense output head (#720; #717, still a draft, says the trainer still uses the dense head). If the KAS head joins the arm before the run (its own 2048-wide output projection, not tied to the input embedding, parameters under head.*: TSAI, 21 Nov), test log item 2 comes first. One manifest serves every commit, also those made after a restore (each restart has a new --out and the same model; test log). Without the manifest: --model-config teams/05-architecture/configs/arms/dryrun2.yaml --runtime teams/05-architecture/configs/runtime.yaml --resolution ./inputs/resolution.yaml (the trainer's file: a resolution can set model.rope_theta and model.norm_eps).
+                 (2) ./out/dryrun2-1234/manifest.json: use the run manifest published in Team 5's dryrun2-1234 record (#869). The scorer reads config.model, including head_mode kas_v2. Use the tokenizer and byte-table hashes recorded in that manifest. The KAS V2 head has its own projection and weights under head.*. One model manifest serves each commit with that same model, including after restore.
                  (3) ./inputs/tokenizer.json, the frozen p1536 (sha256 e6b93a93…25a64b; teams/03-tokenizer/release/README.md has the public download, #700; the same file as #720's ./inputs/tokenizer_p1536.json), and teams/04-ke2/results/tables/p1536-s0/raw_table_P32.npz (file sha256 e19a6cae…39b0, content sha256 21072027…168a), the table dry run 2 trains with (#720), the same as dry run 1. The scorer checks the tokenizer file against --tokenizer-sha256. #608 commits record env.tokenizer_sha as "unknown", so the run's manifest.json is the record: its artifacts.tokenizer_sha256 must be e6b93a93…25a64b, and its artifacts.table_file_sha256 must be e19a6cae…39b0 (the file hash; #720 quotes the content hash).
                  (4) ./inputs/hf: the Hugging Face cache of #549 (datasets and revisions below), placed in this job's folder only and deleted after the job (eval_firewall.md section 3, rule 4). Writable (lm-eval's hellaswag map cache, 93 MB).
 Hardware:        1 GPU with native bf16 on the eval slot, not a training node (eval_firewall.md section 3, rule 4). Tier A and Tier B share it through one slot lock, so only one model is loaded at a time.
