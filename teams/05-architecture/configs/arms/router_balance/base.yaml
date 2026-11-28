@@ -1,0 +1,4 @@
+# T3 router balance (#892), arm A0: dry run 2's arm, unchanged (control).
+inherit: ../dryrun2.yaml
+intended:
+  arm: router-balance-A0

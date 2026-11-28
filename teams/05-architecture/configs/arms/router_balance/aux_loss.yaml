@@ -1,0 +1,7 @@
+# T3 router balance (#892), arm A5: a small load-balancing loss (Switch Transformer style), weight 0.001.
+inherit: ../dryrun2.yaml
+intended:
+  arm: router-balance-A5
+model:
+  moe:
+    aux_loss_weight: 0.001

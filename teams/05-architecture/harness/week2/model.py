@@ -214,6 +214,16 @@ class MoE(nn.Module):
         self.expert_load = None
         self.balance_gamma = float(cfg.get("bias_gamma") or 0.0)
         self._balance_load = None
+        # Router-balance test arms (#892, Lab 5 design task 4); all off by default, so dry run 2's path is unchanged.
+        # A3 fast start: a larger bias step for the first steps (moe.bias_gamma_start, moe.bias_gamma_start_steps).
+        self.balance_gamma_start = float(cfg.get("bias_gamma_start") or 0.0)
+        self.balance_gamma_start_steps = int(cfg.get("bias_gamma_start_steps") or 0)
+        # A4 sampling window: pick the top-k experts by sampling from the router probabilities (no replacement)
+        # instead of taking the top k, while the trainer says so (moe.route_sample_steps; start_route_sampling).
+        self.route_sample = False
+        # A5 small auxiliary loss (moe.aux_loss_weight): the Switch Transformer load-balancing term, kept per forward.
+        self.aux_weight = float(cfg.get("aux_loss_weight") or 0.0)
+        self.aux_loss = None
         # Loss-free balancer (Session 14). A buffer, not a parameter: it is added only when choosing
         # the experts. It is not part of the gate that multiplies the expert output.
         self.register_buffer("router_bias", torch.zeros(cfg["num_experts"]))
@@ -241,12 +251,25 @@ class MoE(nn.Module):
         active = valid.reshape(-1)
         with torch.autocast(device_type=x.device.type, enabled=False):
             scores = F.linear(flat.float(), self.router.weight.float()).softmax(-1)
-        if self.balance_gamma != 0.0:
+        if self.route_sample and self.training:
+            # A4: experts drawn in proportion to the router probabilities, without replacement. The bias is not
+            # used for the choice in the window (it keeps updating from the load); gates stay the probabilities.
+            choice = torch.multinomial(scores.detach(), self.topk, replacement=False)
+            gates = scores.gather(-1, choice)
+        elif self.balance_gamma != 0.0:
             # Bias changes which experts are chosen. The gate values stay the unbiased softmax.
             choice = (scores.detach() + self.router_bias.to(scores.dtype)).topk(self.topk, dim=-1).indices
             gates = scores.gather(-1, choice)
         else:
             gates, choice = scores.topk(self.topk, dim=-1)
+        if self.aux_weight != 0.0 and self.training:
+            # A5: Switch Transformer load-balancing loss, E * sum_i f_i * P_i over real tokens, where f_i is expert
+            # i's share of the top-k choices and P_i its mean router probability. Equals 1 when perfectly even.
+            picked = torch.zeros_like(scores).scatter(-1, choice, 1.0) * active[:, None]
+            n = active.sum().clamp(min=1)
+            f = picked.sum(0) / (n * self.topk)
+            p = (scores * active[:, None]).sum(0) / n
+            self.aux_loss = scores.shape[-1] * (f.detach() * p).sum()
         if self.balance_gamma != 0.0 and self.training:
             selected = torch.zeros_like(scores, dtype=torch.bool)
             selected.scatter_(-1, choice, True)
@@ -277,13 +300,17 @@ class MoE(nn.Module):
             output = output + expert(flat) * active[:, None]
         return output.reshape(shape)
 
-    def apply_balance_update(self):
+    def apply_balance_update(self, step=None):
         load = self._balance_load
         self._balance_load = None
         if load is None or self.balance_gamma == 0.0:
             return
         load = load.float()
-        self.router_bias.add_(self.balance_gamma * torch.sign(load.mean() - load))
+        gamma = self.balance_gamma
+        # A3: the larger start step applies to steps 1 .. bias_gamma_start_steps (1-based, as the trainer counts).
+        if self.balance_gamma_start and step is not None and step <= self.balance_gamma_start_steps:
+            gamma = self.balance_gamma_start
+        self.router_bias.add_(gamma * torch.sign(load.mean() - load))
 
 
 class Block(nn.Module):
@@ -364,10 +391,36 @@ class LanguageModel(nn.Module):
         for block in self.blocks:
             block.moe._balance_load = None
 
-    def update_router_bias(self):
-        """One whole-batch update after the step's forwards. Not once per microbatch."""
+    def update_router_bias(self, step=None):
+        """One whole-batch update after the step's forwards. Not once per microbatch.
+
+        step (1-based) selects the A3 start step size; None keeps the plain bias_gamma (dry run 2's path)."""
         for block in self.blocks:
-            block.moe.apply_balance_update()
+            block.moe.apply_balance_update(step)
+
+    def set_route_sampling(self, on):
+        """A4: turn sampled routing on or off in every MoE layer (training forwards only)."""
+        for block in self.blocks:
+            block.moe.route_sample = bool(on)
+
+    def start_route_sampling(self, steps, from_step):
+        """A4 for growth (Udit, #897): sample routes for `steps` steps after `from_step` (e.g. right after experts are
+        added). The trainer asks route_sampling_active(step) each step; the window is not saved in a checkpoint."""
+        self._route_window = (int(from_step), int(from_step) + int(steps))
+
+    def route_sampling_active(self, step, configured_steps=0):
+        """True while step <= moe.route_sample_steps, or inside a window opened by start_route_sampling."""
+        a, b = getattr(self, "_route_window", (0, 0))
+        return step <= configured_steps or a < step <= b
+
+    def moe_aux_loss(self):
+        """A5: the sum of the MoE layers' load-balancing losses from the last forward (0 when off), then cleared."""
+        parts = []
+        for block in self.blocks:
+            if block.moe.aux_loss is not None:
+                parts.append(block.moe.aux_loss)
+                block.moe.aux_loss = None
+        return torch.stack(parts).sum() if parts else None
 
     def parameter_count(self):
         return sum(p.numel() for p in self.parameters())

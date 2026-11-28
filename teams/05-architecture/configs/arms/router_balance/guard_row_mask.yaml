@@ -1,0 +1,7 @@
+# T3 router balance (#892), arm A7: #919's guard plus Sourav Dhar's idle-row mask (commit bb78dd5e).
+inherit: ../dryrun2.yaml
+intended:
+  arm: router-balance-A7
+optim:
+  skip_zero_grad: true
+  mask_idle_rows: true

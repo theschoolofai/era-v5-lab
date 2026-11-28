@@ -6,6 +6,12 @@ load per layer when the run recorded it (--expert-load-every).
 
     python teams/05-architecture/harness/run_report.py out/dryrun2-1234/metrics.jsonl
     python teams/05-architecture/harness/run_report.py metrics.jsonl --out report.md
+    python teams/05-architecture/harness/run_report.py metrics.jsonl --charts charts/
+
+--charts DIR also writes the expert-load charts (Lab 5, design task 4, #892): busiest_share.svg (the
+busiest expert's share per layer over the run, with TSAI's 5x failure line and the balanced
+reference), busiest_share_heatmap.svg (the same numbers as a layer-by-step grid) and expert_load.md
+(the table, plus every expert with zero choices and for how many logged steps in a row).
 """
 from __future__ import annotations
 
@@ -59,7 +65,8 @@ def layer_load(counts):
     }
 
 
-def report(rows, name):
+def report(rows, name, summary=None):
+    """summary: the run's summary.json (optional), for the wall time."""
     out = [f"# Run report: {name}", ""]
     train = [r for r in rows if "loss" in r and r.get("step", 0) > 0]
     evals = [r for r in rows if "val/bpb" in r]
@@ -96,7 +103,16 @@ def report(rows, name):
             out += ["## Throughput", "",
                     f"- Real (scored) tokens per second: {scored / (ms / 1000):,.0f} over {ms / 3.6e6:.2f} h of step time.",
                     f"- Row fill: {scored:,} scored tokens in {positions:,} input positions ({scored / positions:.1%}).",
-                    "- The trainer's tokens_per_second counts padded positions; the line above does not.", ""]
+                    "- The trainer's tokens_per_second counts padded positions; the line above does not."]
+            peaks = [r["gpu_peak_gb"] for r in train if finite(r.get("gpu_peak_gb")) and r["gpu_peak_gb"] > 0]
+            if peaks:
+                out.append(f"- Peak GPU memory: {max(peaks):.2f} GiB.")
+            wall = summary.get("wall_seconds") if summary else None
+            if finite(wall) and wall > 0:
+                outside = wall - ms / 1000
+                out.append(f"- Wall time {wall / 60:.1f} min, of which {outside / 60:.1f} min ({outside / wall:.0%}) outside "
+                           "training steps (start-up, evaluations, checkpoints): the run's idle time for training.")
+            out.append("")
 
     if evals:
         out += ["## Held-out bits per byte", "", "| Step | val/bpb |", "|---:|---:|"]
@@ -138,15 +154,160 @@ def report(rows, name):
     return "\n".join(out)
 
 
+FAIL_MULTIPLE = 5  # TSAI: "A chart where one expert takes 5 times the even share is a failed router."
+
+
+def busiest_table(rows):
+    """[(step, [busiest share per layer], [(layer, expert) with zero choices])] for every logged step."""
+    out = []
+    for r in rows:
+        if "expert_load" not in r:
+            continue
+        shares, zeros = [], []
+        for li, counts in enumerate(r["expert_load"]):
+            total = sum(counts)
+            shares.append(max(counts) / total if total else float("nan"))
+            zeros += [(li, e) for e, c in enumerate(counts) if c == 0]
+        out.append((r["step"], shares, zeros))
+    return out
+
+
+def idle_streaks(table):
+    """Every expert with zero choices, as runs of consecutive logged steps: [(layer, expert, first, last, n)]."""
+    runs, open_ = [], {}
+    for step, _, zeros in table:
+        now = set(zeros)
+        for key in list(open_):
+            if key not in now:
+                runs.append((*key, *open_.pop(key)))
+        for key in now:
+            first, _, n = open_.get(key, (step, step, 0))
+            open_[key] = (first, step, n + 1)
+    runs += [(*key, *v) for key, v in open_.items()]
+    return sorted(runs, key=lambda r: (-r[4], r[0], r[1]))
+
+
+def _svg_line_chart(table, experts):
+    W, H, L, R, T, B = 760, 320, 56, 150, 20, 44
+    steps = [s for s, _, _ in table]
+    smax = max(steps) or 1
+    top = max(0.55, max(max(v for v in sh if v == v) for _, sh, _ in table) + 0.05)
+    x = lambda s: L + s / smax * (W - L - R)
+    y = lambda v: T + (1 - v / top) * (H - T - B)
+    even, fail = 1 / experts, FAIL_MULTIPLE / experts
+    colors = ["#4e79a7", "#f28e2b", "#e15759", "#76b7b2", "#59a14f", "#edc948", "#b07aa1", "#ff9da7",
+              "#9c755f", "#bab0ac"]
+    o = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" font-family="sans-serif" font-size="11">',
+         f'<rect width="{W}" height="{H}" fill="white"/>']
+    for v in [i / 10 for i in range(0, int(top * 10) + 1)]:
+        o.append(f'<line x1="{L}" x2="{W - R}" y1="{y(v):.1f}" y2="{y(v):.1f}" stroke="#ddd"/>'
+                 f'<text x="{L - 6}" y="{y(v) + 4:.1f}" text-anchor="end" fill="#666">{v:.0%}</text>')
+    for s in steps[:: max(1, len(steps) // 6)] + [steps[-1]]:
+        o.append(f'<text x="{x(s):.1f}" y="{H - B + 16}" text-anchor="middle" fill="#666">{s}</text>')
+    o.append(f'<text x="{(L + W - R) / 2:.0f}" y="{H - 8}" text-anchor="middle" fill="#666">training step</text>')
+    o.append(f'<rect x="{L}" y="{y(REFERENCE["busiest_high"]):.1f}" width="{W - L - R}" '
+             f'height="{y(REFERENCE["busiest_low"]) - y(REFERENCE["busiest_high"]):.1f}" fill="#2e8b57" fill-opacity="0.18"/>')
+    o.append(f'<line x1="{L}" x2="{W - R}" y1="{y(fail):.1f}" y2="{y(fail):.1f}" stroke="#c0392b" stroke-width="1.5" stroke-dasharray="6 4"/>')
+    o.append(f'<line x1="{L}" x2="{W - R}" y1="{y(even):.1f}" y2="{y(even):.1f}" stroke="#666" stroke-dasharray="2 3"/>')
+    for li in range(len(table[0][1])):
+        pts = " ".join(f"{x(s):.1f},{y(sh[li]):.1f}" for s, sh, _ in table if sh[li] == sh[li])
+        c = colors[li % len(colors)]
+        o.append(f'<polyline points="{pts}" fill="none" stroke="{c}" stroke-width="1.5"/>')
+        o.append(f'<text x="{W - R + 8}" y="{T + 14 * li + 10}" fill="{c}">layer {li}</text>')
+    worst = " ".join(f"{x(s):.1f},{y(max(v for v in sh if v == v)):.1f}" for s, sh, _ in table)
+    o.append(f'<polyline points="{worst}" fill="none" stroke="#222" stroke-width="2.5" stroke-dasharray="1 0"/>')
+    n = len(table[0][1])
+    o.append(f'<text x="{W - R + 8}" y="{T + 14 * n + 14}" fill="#222" font-weight="bold">worst layer</text>')
+    o.append(f'<text x="{W - R + 8}" y="{T + 14 * n + 32}" fill="#c0392b">failed: {fail:.2%} (5x)</text>')
+    o.append(f'<text x="{W - R + 8}" y="{T + 14 * n + 46}" fill="#2e8b57">TSAI reference</text>')
+    o.append(f'<text x="{W - R + 8}" y="{T + 14 * n + 60}" fill="#666">even: {even:.2%}</text>')
+    o.append("</svg>")
+    return "\n".join(o)
+
+
+def _svg_heatmap(table, experts):
+    n = len(table[0][1])
+    cw, ch, L, T = 26, 22, 70, 24
+    W, H = L + cw * len(table) + 10, T + ch * n + 30
+    fail = FAIL_MULTIPLE / experts
+
+    def color(v):
+        if v != v:
+            return "#eee"
+        if v >= fail:
+            return "#c0392b"
+        if v >= 0.20:
+            return "#e67e22"
+        if v >= 2 / experts:
+            return "#f1c40f"
+        return "#7fbf8f"
+    o = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" font-family="sans-serif" font-size="9">',
+         f'<rect width="{W}" height="{H}" fill="white"/>']
+    for j, (s, sh, _) in enumerate(table):
+        o.append(f'<text x="{L + cw * j + cw / 2}" y="{T - 6}" text-anchor="middle" fill="#666">{s}</text>')
+        for li, v in enumerate(sh):
+            o.append(f'<rect x="{L + cw * j}" y="{T + ch * li}" width="{cw - 1}" height="{ch - 1}" fill="{color(v)}">'
+                     f'<title>step {s}, layer {li}: {v:.1%}</title></rect>'
+                     f'<text x="{L + cw * j + cw / 2}" y="{T + ch * li + 14}" text-anchor="middle" fill="#111">{v * 100:.0f}</text>')
+    for li in range(n):
+        o.append(f'<text x="{L - 6}" y="{T + ch * li + 14}" text-anchor="end" fill="#444">layer {li}</text>')
+    o.append(f'<text x="{L}" y="{H - 8}" fill="#666">busiest expert share (%) per layer and logged step; red at or above {fail:.2%}</text>')
+    o.append("</svg>")
+    return "\n".join(o)
+
+
+def charts(rows, outdir):
+    """Write busiest_share.svg, busiest_share_heatmap.svg and expert_load.md; return the paths written."""
+    table = busiest_table(rows)
+    if not table:
+        raise SystemExit("No expert_load rows: run the trainer with --expert-load-every N")
+    experts = len(next(r for r in rows if "expert_load" in r)["expert_load"][0])
+    outdir = Path(outdir)
+    outdir.mkdir(parents=True, exist_ok=True)
+    fail = FAIL_MULTIPLE / experts
+    md = ["# Expert load", "",
+          f"Busiest expert's share of each layer's choices; even share {1 / experts:.2%} with {experts} experts; "
+          f"TSAI's failure line (5 times even) {fail:.2%}.", "",
+          "| Step | " + " | ".join(f"L{i}" for i in range(len(table[0][1]))) + " | Worst | Failed |",
+          "|---:|" + "---:|" * (len(table[0][1]) + 1) + "---|"]
+    for s, sh, _ in table:
+        w = max(v for v in sh if v == v)
+        md.append(f"| {s} | " + " | ".join(f"{v:.1%}" for v in sh) + f" | {w:.1%} | {'yes' if w >= fail else ''} |")
+    failed = [s for s, sh, _ in table if max(v for v in sh if v == v) >= fail]
+    md += ["", f"Logged steps at or above the failure line: {len(failed)} of {len(table)}"
+           + (f" (first {failed[0]}, last {failed[-1]})." if failed else "."), "",
+           "## Experts with zero choices", "",
+           "Each row is one expert at zero choices for one or more logged steps in a row.", ""]
+    streaks = idle_streaks(table)
+    if streaks:
+        md += ["| Layer | Expert | First logged step | Last logged step | Logged steps in a row |", "|---:|---:|---:|---:|---:|"]
+        md += [f"| {l} | {e} | {a} | {b} | {n} |" for l, e, a, b, n in streaks]
+    else:
+        md.append("None.")
+    files = {"busiest_share.svg": _svg_line_chart(table, experts),
+             "busiest_share_heatmap.svg": _svg_heatmap(table, experts),
+             "expert_load.md": "\n".join(md) + "\n"}
+    for name, text in files.items():
+        (outdir / name).write_text(text, encoding="utf-8")
+    return [outdir / n for n in files]
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("metrics", type=Path)
     ap.add_argument("--out", type=Path, help="also write the report here")
+    ap.add_argument("--charts", type=Path, metavar="DIR", help="also write the expert-load charts and table here")
     args = ap.parse_args()
-    text = report(read_rows(args.metrics), args.metrics.parent.name or args.metrics.name)
+    rows = read_rows(args.metrics)
+    side = args.metrics.parent / "summary.json"
+    summary = json.loads(side.read_text(encoding="utf-8")) if side.exists() else None
+    text = report(rows, args.metrics.parent.name or args.metrics.name, summary)
     print(text)
     if args.out:
         args.out.write_text(text + "\n", encoding="utf-8")
+    if args.charts:
+        for p in charts(rows, args.charts):
+            print(f"wrote {p}")
 
 
 if __name__ == "__main__":

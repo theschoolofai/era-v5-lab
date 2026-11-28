@@ -1,0 +1,6 @@
+# T3 router balance (#892), arm A6: Muon skips all-zero gradients (Udit Singhania's #919 guard).
+inherit: ../dryrun2.yaml
+intended:
+  arm: router-balance-A6
+optim:
+  skip_zero_grad: true
