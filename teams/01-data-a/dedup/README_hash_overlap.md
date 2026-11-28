@@ -53,7 +53,7 @@ once with `minhash_overlap.py`, once with this stage. Details are in `jobs/2026-
 | | MinHash | hash-only |
 |---|---|---|
 | overlap stage | 18.5 s, 16 workers, 233 MB peak per worker | 0.9 s, one process, 135 MB peak |
-| pipeline checks | 108 / 108 | 108 / 108 |
+| pipeline checks | 54 / 54 | 54 / 54 |
 | shards | 48 | 48, byte-identical |
 
 Neither stage found a copy in the slice: the cut breaks most copy pairs apart.

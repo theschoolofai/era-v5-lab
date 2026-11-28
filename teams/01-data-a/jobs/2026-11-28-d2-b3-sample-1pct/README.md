@@ -44,7 +44,7 @@ Commit `2d09b023`. Apple M4, 10 cores, 16 GiB RAM. Python 3.12, PyArrow 23.0.1, 
 | reconcile | 0.5 | 0.5 | |
 | **total** | **218.5** | **197.0** | |
 
-- **Checks:** 108 of 108 pipeline checks pass in each run. Each manifest records `git_commit 2d09b023`.
+- **Checks:** 54 of 54 pipeline checks pass in each run. Each manifest records `git_commit 2d09b023`.
 - **Same shards:** the 48 shard `.bin` files are byte-identical between the two runs.
 - **Overlap peak RSS:**
   - MinHash: 233 MB in its largest worker, 104 MB in the main process;

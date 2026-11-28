@@ -66,7 +66,7 @@ tokenized **once**.
 
 The input is a fixed-seed 1% of every part of sample v0 (`pipeline/local_trial/slice_sample.py`, seed 20261128): all
 86 parts, **14,450 of 1,444,766 rows**. The whole pipeline ran twice on it, without H3: once with MinHash, once
-hash-only. Each run passed 108 of 108 checks.
+hash-only. Each run passed 54 of 54 checks.
 
 <p align="center"><img src="assets/passes-1pct.svg" width="100%" alt="Seconds per stage on the 1% slice, baseline with MinHash overlap against hash-only B3: clean 10.1 and 12.0, overlap 18.5 and 0.9, F2 35.5 and 34.6, shards 151.6 and 146.8, the other stages 2.8 and 2.7; totals 218.5 and 197.0 seconds. Rows: 14,450 read, 344 dropped by clean, 0 by dedup, 14 by F2, 14,092 final"></p>
 
