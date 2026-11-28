@@ -154,6 +154,14 @@ In order of cost:
 Row ranges do not cap the candidate re-read (`verify_words`, `rules`), which still reads per part; that step's ~1.5 GB
 per worker on sample v0 is the next one to bound if a larger corpus needs it.
 
+### The exact-hash pass (B3)
+
+`dedup/hash_overlap.py` runs in one process and reads only the clean job's `text_hash` and `key_words` columns, never the
+text.
+- On the 1% slice its peak RSS was 135 MB (the hash-only run on the Apple M4, `jobs/2026-11-28-d2-b3-sample-1pct/`).
+- It holds about 150 bytes per document for the whole table. When that does not fit, partition the pass by the hash's
+  first byte: 256 independent buckets. Exact copies share a hash, so they always fall in the same bucket.
+
 ## 5. Not measured yet
 
 - The exact-copy rate of the full sources, which decides what C1 saves at corpus scale.
