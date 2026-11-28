@@ -607,8 +607,9 @@ def main(argv=None) -> int:
     for e in overlaps:
         log(f"  overlap: {e['label']} step {e['step']} (pid {e['pid']}) started while pid(s) {e['with_pids']} ran")
     check(not overlaps, f"no two scorers ran at the same time on the slot ({len(starts)} scorer start(s))")
-    time.sleep(a.score_s + 0.5)
-    left = [p for p in starts if p not in ends and alive(p)]
+    wait_until = time.time() + a.score_s + 0.5  # a scorer cut off on macOS finishes its sleep, then exits
+    while (left := [p for p in starts if p not in ends and alive(p)]) and time.time() < wait_until:
+        time.sleep(0.05)
     check(not left, f"no scorer left running{' ' + str(left) if left else ''}")
     watcher_pids = {p for s in sups.values() for p in s.pids}
     hit = {f"{e['label']}:{e['step']}:{e['moment']}" for e in kills if e.get("target") in watcher_pids}

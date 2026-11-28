@@ -599,7 +599,7 @@ def gone(pid: int, wait_s: float) -> bool:
 def test_a_killed_watchers_scorer_keeps_the_slot_until_it_ends(tmp_path):
     """The scorer holds the slot lock it inherited: a restarted watcher or the other tier waits for it and never
     loads a second model on the slot. On Linux the kernel ends the scorer with the watcher (next test)."""
-    pid, lock = start_and_kill_mini_watcher(tmp_path, 3.0)
+    pid, lock = start_and_kill_mini_watcher(tmp_path, 1.0)
     other = ew.FileLock(lock)
     if not sys.platform.startswith("linux"):
         assert not other.try_acquire(), "the slot was free while the killed watcher's scorer still ran"
@@ -751,7 +751,7 @@ def test_replay_with_kills_passes(tmp_path):
               "reason": "start" if i == 0 else ("final" if i == 5 else "interval"), "epoch": 1}
              for i, s in enumerate([0, 200, 400, 600, 800, 1000])]
     commits.write_text("".join(json.dumps(x) + "\n" for x in lines))
-    assert wrt.main(["--commits", str(commits), "--speed", "1200", "--score-s", "0.3", "--random-kills", "3",
+    assert wrt.main(["--commits", str(commits), "--speed", "2400", "--score-s", "0.2", "--random-kills", "3",
                      "--interval", "0.05", "--restart-delay", "0.1", "--timeout", "120",
                      "--work", str(tmp_path / "work")]) == 0
 
