@@ -2,7 +2,7 @@
 
 Started by Sourav Dhar · GitHub: sourav-dhar · Team 1 (Data A). The team's evidence list is owned by the lead, Vijay
 Patil (patilvijay23), who adds to this file (G1, 28 Nov 19:42 and 21:10 IST), as the brief asks ("Name one person who
-owns your team's evidence list"). Last update: **28 Nov 2026, 23:00 IST**. Due: **Wed 2 Dec, 7:00 AM IST**; 70% by Mon 30 Nov.
+owns your team's evidence list"). Last update: **28 Nov 2026, 23:30 IST**. Due: **Wed 2 Dec, 7:00 AM IST**; 70% by Mon 30 Nov.
 
 Owners are from the team doc's Lab 5 table and the claims in G1. A row is **done** when its output exists, a reviewer
 can reproduce it from the command in the PR, it passes the check TSAI names, and every difference from that check is
@@ -18,7 +18,7 @@ this file in a PR.
 | B3 | Exact-hash dedup across all packs; text-hash column; hash-only provenance | Aneesha Das (aneeshads) | [#898](https://github.com/theschoolofai/era-v5-lab/pull/898) (head `75d48176`): `dedup/hash_overlap.py`, `text_hash` in the clean job, `provenance.py`; 1% run: 54 of 54 pipeline checks per run (the README's count fixed in `fda099a`), overlap 18.5 s → 0.9 s, byte-identical shards; TSAI accepted the format (review, 28 Nov); rerun by Sourav on another Mac gave the same rows per pack and stage (comment on #898, 28 Nov) | provenance chain | in review |
 | B4 / D4 | Validation shards from a fixed-seed held-out slice; train-vs-validation leak check; the mix in the shard manifest | Smita Sasindran (smitasasindran) | none yet (G1, 28 Nov 10:54 IST) | `verify_shards.py`; leak check | claimed |
 | B5 | Shard writer twice on the same input: byte-identical files, tokens per second per core | Narasimha Teja (narasimhatejav), with Kunal Sinha (kunal2016) | none yet; Kunal's pointers (G1, 28 Nov 14:11 IST): the 19 Nov rehearsal's `compare_shards_two_runs.txt` (144/144 data files identical) | two-run sha comparison | claimed |
-| B6 | Licence rule 1: NC, ND and unstated allowed; licence column kept | Narasimha Teja (narasimhatejav) | none yet; TSAI's rule is now lab rule 1 (CAP, 28 Nov 16:06 IST) | pack_table licence fields | claimed |
+| B6 | Licence rule 1: NC, ND and unstated allowed; licence column kept | Narasimha Teja (narasimhatejav) | TSAI's rule is now lab rule 1 (CAP, 28 Nov 16:06 IST); the licence column of `shards/pack_table.json` filled for all 38 packs by [#966](https://github.com/theschoolofai/era-v5-lab/pull/966) (Sourav Dhar) | pack_table licence fields | claimed; #966 in review |
 | B7 | F2 at full scale | Sourav Dhar (sourav-dhar) | [#935](https://github.com/theschoolofai/era-v5-lab/pull/935): `pipeline/f2_full_scale_v1.md` (rates on the 38 packs, where the time goes, plan, command), logs `jobs/logs/2026-11-28-b7-f2-rates-mac/` | measured rate before scaling (rule 4) | in review |
 | D2 | Pass diagram, cut passes, 1% sample report, overlap peak RAM | Aneesha Das (aneeshads), Kunal Sinha (kunal2016) | [#898](https://github.com/theschoolofai/era-v5-lab/pull/898): `pipeline/passes_design_v1.md`, 1% logs; section 4 (peak RAM) by Kunal; [#807](https://github.com/theschoolofai/era-v5-lab/pull/807) (MinHash row ranges, draft) | the pass diagram with rates | in review |
 | D3 | What must be frozen before the full tokenizing run, each proved on a sample | Kunal Sinha (kunal2016) | none yet (G1, 28 Nov 12:50 IST) | | claimed |
@@ -42,7 +42,7 @@ this file in a PR.
 | From | Request | Team 1 owner | Evidence | Status |
 |---|---|---|---|---|
 | Team 10 | SFT and RL data (#882) | Sourav Dhar (RL math, code, agentic, tool calling, math / general, long context) | [#914](https://github.com/theschoolofai/era-v5-lab/pull/914) | reply in #882 on Mon 30 Nov |
-| Team 4 (KE2) | R1 word frequency table, R3 held-out code with identifiers | Kunal Sinha asked to take them (G1, 28 Nov 14:11 IST) | none yet | reply due Mon 30 Nov 18:00 IST |
+| Team 4 (KE2) | R1 word frequency table, R3 held-out code with identifiers; R2 held-out text and R4 English names | Kunal Sinha (R1, R3); R2 and R4 need owners (G1, 28 Nov 23:07 IST) | R1 [#947](https://github.com/theschoolofai/era-v5-lab/pull/947); R3 [#961](https://github.com/theschoolofai/era-v5-lab/pull/961) (draft) | reply due Mon 30 Nov 18:00 IST |
 | Team 9 | F2 fingerprints | (Team 9 gives) | fingerprints v2, `set_sha256 2826a3b8…` | in use |
 
 ## Pending items from TSAI's status (28 Nov)
