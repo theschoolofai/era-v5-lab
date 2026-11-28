@@ -1,0 +1,53 @@
+{
+ "lang": "ben",
+ "indic_sentiment": {
+  "aya_rows": 1156,
+  "validation": {
+   "items": 156,
+   "distinct_english_reviews": 156,
+   "english_review_in_aya_inputs": 156,
+   "indic_review_in_aya_targets": 146,
+   "indic_review_in_aya_targets_without_quote_marks": 156
+  },
+  "test": {
+   "items": 1000,
+   "distinct_english_reviews": 998,
+   "english_review_in_aya_inputs": 1000,
+   "indic_review_in_aya_targets": 964,
+   "indic_review_in_aya_targets_without_quote_marks": 1000
+  }
+ },
+ "indic_sentiment_english_all_languages": {
+  "distinct_english_reviews": 1154,
+  "found_per_language": {
+   "ben": 1154,
+   "guj": 1154,
+   "hin": 1154,
+   "kan": 1154,
+   "mal": 1154,
+   "mar": 1154,
+   "pan": 1153,
+   "tam": 1154,
+   "tel": 1154,
+   "urd": 1154
+  },
+  "aya_rows_per_language": {
+   "ben": 1156,
+   "guj": 1156,
+   "hin": 1156,
+   "kan": 1156,
+   "mal": 1156,
+   "mar": 1156,
+   "pan": 1155,
+   "tam": 1156,
+   "tel": 1156,
+   "urd": 1156
+  }
+ },
+ "indic_xparaphrase": {
+  "aya_rows": 1001,
+  "tsv_rows": 2002,
+  "sentences": 2990,
+  "sentences_in_aya": 1997
+ }
+}
