@@ -65,14 +65,17 @@ def _score(step_dir: Path, role: str, bpb: float, **changes):
     (step_dir / request["scores"][role]).write_text(json.dumps(doc))
 
 
+HASHES = {k: f"made-up {k}" for k in rc.SUITE_HASHES}
+
+
 def _fast_scorer(monkeypatch, rollout_bpb: float):
     """Score files appear as soon as the trainer has exported, as from a scorer faster than one step."""
     real = rc.export
 
     def export(*args, **kwargs):
         step_dir = real(*args, **kwargs)
-        _score(step_dir, "learner", 2.0)
-        _score(step_dir, "rollout", rollout_bpb)
+        _score(step_dir, "learner", 2.0, **HASHES)
+        _score(step_dir, "rollout", rollout_bpb, **HASHES)
         return step_dir
 
     monkeypatch.setattr(rc, "export", export)
@@ -175,6 +178,8 @@ def test_the_control_runs_rollout_copy_is_the_baseline_when_given(tmp_path, scri
     _score(control, "rollout", 2.3)
     verdict, = rc.poll(quant.parent, compare, control.parent)["new"]
     assert verdict["verdict"] == "ok" and verdict["baseline"] == "control run's rollout copy (bf16)"
+    sha = {d: json.loads((d / "request.json").read_text())["weights"]["rollout"]["sha256"] for d in (control, quant)}
+    assert verdict["revision"] == {"baseline": sha[control], "candidate": sha[quant]}
     assert (control / "rollout.safetensors").exists()  # the control run's files are never touched
     assert (quant / "learner.safetensors").exists()  # not scored yet, so kept
     assert not (quant / "rollout.safetensors").exists()  # scored, so gone even before the control's score arrived
@@ -189,6 +194,10 @@ def test_a_report_run_records_verdicts_and_trains_exactly_as_without_the_check(t
     assert [v["step"] for v in s["rollout_check"]["verdicts"]] == [2, 4] and not s["rollout_check"]["pending_steps"]
     rows = _rows(tmp_path / "checked")
     assert [r["step"] for r in rows if "rollout_check" in r] == [2, 4]
+    logged, = rows[1]["rollout_check"]  # what Team 9 asks to be logged: revision, step, format and the suite hashes
+    assert logged["step"] == 2 and logged["scheme"] == "w4a16_sim" and logged["suite_hashes"] == HASHES
+    assert all(len(v) == 64 for v in logged["revision"].values()) and len(set(logged["revision"].values())) == 2
+    assert s["rollout_check"]["verdicts"][0] == logged
     assert [r["step"] for r in rows if "rollout_check_export_s" in r] == [2, 4]
     keep = ("train_reward", "loss", "mismatch_k3")
     assert [[r.get(k) for k in keep] for r in rows] == [[r.get(k) for k in keep] for r in _rows(tmp_path / "plain")]

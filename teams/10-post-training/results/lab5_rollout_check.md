@@ -45,6 +45,8 @@ python teams/09-evaluation/harness_lab/minibench_lab.py --profile quick --device
 - Baseline: the bf16 control run's rollout copy at the same step (`control`), or, without it, the learner at the same step.
 - A score file counts only if its `model_revision` and `step` match the exported weights, both files of a comparison come
   from the same device, dtype and hardware, and neither is a smoke-profile score.
+- Each verdict records the step, the scheme, the profile, the sha256 of both compared weights files and the score files'
+  suite, item, held-out and tokenizer hashes. The metrics row and the summary carry the same fields.
 - `action: report` (default) only logs. `action: stop` ends the run after a worse verdict (exit code 4; it stays stopped
   after a restart).
 

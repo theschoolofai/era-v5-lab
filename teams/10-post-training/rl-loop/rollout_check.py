@@ -48,6 +48,8 @@ MAX_PENDING = 3
 # Team 9's published quick scores of one set of weights move a deciding task by up to 0.0086 bpb between CPU and GPU
 MIN_BPB = 0.01
 SAME_SCORER = ("device", "dtype", "hardware")
+# the benchmark and tokenizer files behind a score; Team 9's comparison refuses two files that differ in any of them
+SUITE_HASHES = ("suite_sha256", "items_sha256", "heldout_sha256", "heldout_sources_sha256", "tokenizer_sha256")
 
 
 def load_compare(script: Path | str | None = None):
@@ -122,7 +124,7 @@ def export(check_dir: Path, step: int, learner, rollout, scheme: str, model_spec
 
 
 def judge(baseline: dict, candidate: dict, compare, min_bpb: float = MIN_BPB) -> dict:
-    """The verdict on two score documents. Task names and aggregate differences only."""
+    """The verdict on two score documents: task names, aggregate differences, both weight revisions and the suite hashes."""
     result = compare(baseline, candidate)
     tasks = {name: r for name, r in result["tasks"].items() if name.startswith(DECIDING)}
     if not tasks:
@@ -134,7 +136,9 @@ def judge(baseline: dict, candidate: dict, compare, min_bpb: float = MIN_BPB) ->
         if "accuracy_ci95_points" in r and r["accuracy_ci95_points"][1] < 0:
             worse.append(f"{name}: accuracy {r['accuracy_delta_points']:+.1f} points")
     return {"verdict": "worse" if worse else "ok", "worse": worse, "tasks": tasks, "min_bpb": min_bpb,
-            "heldout_bpb_delta": result.get("heldout_bpb_delta", {}), "profile": result.get("profile")}
+            "heldout_bpb_delta": result.get("heldout_bpb_delta", {}), "profile": result.get("profile"),
+            "revision": {"baseline": baseline.get("model_revision"), "candidate": candidate.get("model_revision")},
+            "suite_hashes": {k: candidate.get(k) for k in SUITE_HASHES}}
 
 
 def _score(step_dir: Path, role: str, request: dict) -> dict:
@@ -214,7 +218,8 @@ def verdicts(check_dir: Path, up_to: int | None = None) -> list[dict]:
 
 def short(verdict: dict) -> dict:
     """What a metrics row and the summary keep of a verdict."""
-    return {k: verdict[k] for k in ("step", "verdict", "worse", "baseline", "heldout_bpb_delta")}
+    keys = ("step", "verdict", "worse", "baseline", "heldout_bpb_delta", "scheme", "profile", "revision", "suite_hashes")
+    return {k: verdict[k] for k in keys}
 
 
 class RolloutCheck:
