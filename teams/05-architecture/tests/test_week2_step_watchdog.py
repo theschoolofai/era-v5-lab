@@ -74,7 +74,7 @@ def run_fixture(root, mode):
         stack.enter_context(patch.object(train_week2, "Artifacts", return_value=artifacts))
         stack.enter_context(patch.object(train_week2.BatchStream, "next", read_batch))
         stack.enter_context(patch.object(train_week2, "evaluate", run_evaluation))
-        if mode == "save":
+        if mode in ("save", "recovery_wait"):
             args.remove("--no-checkpoint")
             args.extend([
                 "--checkpoint-store", str(root / "store"), "--run-id", "watchdog-save",
@@ -91,12 +91,37 @@ def run_fixture(root, mode):
             save = Checkpointer.save
 
             def stalled_save(checkpointer, *args, **kwargs):
-                if kwargs["reason"] == "interval":
+                if mode == "save" and kwargs["reason"] == "interval":
                     (root / "save-stall-entered").write_text("interval", encoding="utf8")
                     time.sleep(8)
                 return save(checkpointer, *args, **kwargs)
 
             stack.enter_context(patch.object(Checkpointer, "save", stalled_save))
+            if mode == "recovery_wait":
+                abandoned_args = list(args)
+                abandoned_args[abandoned_args.index("--out") + 1] = str(root / "abandoned")
+                abandoned_args.append("--checkpoint-at-start")
+
+                def interrupted_save(checkpointer, *args, **kwargs):
+                    checkpointer.claim()
+                    raise SystemExit(9)
+
+                with patch.object(sys, "argv", abandoned_args), patch.object(
+                        Checkpointer, "save", interrupted_save):
+                    try:
+                        train_week2.main()
+                    except SystemExit as error:
+                        if error.code != 9:
+                            raise
+                args.append("--checkpoint-at-start")
+                wait = Checkpointer.wait
+
+                def stalled_wait(checkpointer):
+                    (root / "recovery-wait-entered").write_text("wait", encoding="utf8")
+                    time.sleep(8)
+                    return wait(checkpointer)
+
+                stack.enter_context(patch.object(Checkpointer, "wait", stalled_wait))
         stack.enter_context(patch.object(sys, "argv", args))
         train_week2.main()
 
@@ -127,11 +152,15 @@ class StepWatchdogTests(unittest.TestCase):
             if mode == "save":
                 self.assertTrue((root / "save-stall-entered").exists(),
                                 "The test did not reach the injected periodic-save stall")
+            if mode == "recovery_wait":
+                self.assertTrue((root / "recovery-wait-entered").exists(),
+                                "The test did not reach the recovery step-zero wait")
             self.assertEqual(result.returncode, 75, result.stderr)
             self.assertIn("G5 step watchdog", result.stderr)
             self.assertIn(frame, result.stderr)
-            event_file, = (root / "events").glob("*.jsonl")
-            event = json.loads(event_file.read_text())
+            events = [json.loads(line) for path in (root / "events").glob("*.jsonl")
+                      for line in path.read_text().splitlines() if line.strip()]
+            event, = [record for record in events if record["event"] == "train.watchdog"]
             self.assertEqual((event["event"], event["step"]), ("train.watchdog", step))
             self.assertEqual(event["limit_s"], 1.5)
             note_file, = (root / "notes" / "g5-watchdog-test").glob("*.json")
@@ -151,6 +180,9 @@ class StepWatchdogTests(unittest.TestCase):
     @unittest.skipUnless(hasattr(train_week2, "CheckpointProgress"), "Requires the #608 integration")
     def test_periodic_save_stall_trips_watchdog(self):
         self.assert_timeout("save", 1, "in stalled_save")
+
+    def test_recovery_step_zero_wait_remains_watchdog_protected(self):
+        self.assert_timeout("recovery_wait", 0, "in stalled_wait")
 
     def test_explicit_zero_and_cli_timeout_override_environment(self):
         for mode in ("off", "cli"):

@@ -2,6 +2,7 @@
 
 import copy
 import unittest
+from unittest.mock import patch
 
 import numpy as np
 import torch
@@ -153,6 +154,21 @@ class KASCudaTests(unittest.TestCase):
             else:
                 self.assertEqual(actual, expected)
         same(resumed_optim.state_dict(), expected_optim)
+
+    def test_precommit_recovery_cuda_bf16_with_real_kas_head(self):
+        self.require_bf16()
+        import test_week2_team7_checkpoints as checkpoint_tests
+
+        for optimizer in ("adamw", "muon"):
+            with self.subTest(optimizer=optimizer):
+                helper = kas_fixture.ModelIntegration()
+                self.addCleanup(helper.doCleanups)
+                cfg, rows, lengths, _ = helper.model()
+                with patch.object(checkpoint_tests, "fixture",
+                                  side_effect=lambda mtp=False: (copy.deepcopy(cfg), rows, lengths)):
+                    checkpoint_tests.Team7CheckpointTests.check_resume(
+                        self, optimizer, False, at_start=True, precommit=True, device="cuda",
+                    )
 
 
 if __name__ == "__main__":
