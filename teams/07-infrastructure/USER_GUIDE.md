@@ -66,7 +66,7 @@ the Docker test cluster unless the text says otherwise.
 ### 1.2 The life of the main run
 
 1. **Submit.** `sbatch slurm/mainrun.sbatch` (account `mainrun`, QOS `mainrun`: top priority, may preempt team
-   jobs, no time limit, `--requeue`).
+   jobs, no time limit of its own, `--requeue`; `--signal=B:USR1@300` warns the trainers 300 s before an outside cap).
 2. **Prolog.** Before the job starts on a node, a quick health check runs. A failing node is drained and the job
    goes back to the queue (not held), to start on a healthy node.
 3. **Claim.** The trainer's first act is to *claim* the run: it writes `latest.json` with a new **epoch** number,
@@ -110,6 +110,7 @@ folders, `step_<N>-e<epoch>`, so two attempts never mix files.
 | Process killed, crash, OOM, NCCL error | wrapper turns it into 75; Slurm requeues; restore from last commit | since last commit | no (3 crashes in 30 min → held, yes) |
 | Preemption by the main run, spot warning, health drain, operator `scancel --signal=USR1` | trainers save now, exit 75, requeued (on another node if needed) | ≈ 0 | no |
 | Team job reaches its time limit | 300 s before: warning → save → exit 75 → requeued with the same job id | 0 | no |
+| Main run reaches an outside time cap (a site or provider `--time`; ours has none) | the same 300 s warning from `mainrun.sbatch` | 0 | no |
 | Kill during a save | half-written save is never committed; restore from the previous commit | since previous commit | no |
 | A bad GPU (Xid, ECC, temperature, row remap, NVLink down, wrong collective) | periodic check drains the node; jobs save and move to a healthy node | ≈ 0 | replace hardware later |
 | Node disappears | Slurm marks it DOWN after 30 s; job requeued elsewhere | since last commit | repair the node |
