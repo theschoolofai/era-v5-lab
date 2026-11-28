@@ -1,0 +1,30 @@
+$ python dt/mask_anatomy.py masks <masks>/grpo/qwen2.5-0.5b-simplerl-zoo --total-params 494032768     # safetensors total of Qwen/Qwen2.5-0.5B@060db649
+24 gate matrices of 4,358,144 weights; deleted 199,564 = 0.1908%
+share of all 494,032,768 model parameters: 0.0404%
+config.json compressed_size_mb (the mask's size on disk): 0.457
+
+$ python dt/mask_anatomy.py masks <masks>/grpo/qwen2.5-3b-simplerl-zoo --total-params 3085938688     # safetensors total of Qwen/Qwen2.5-3B@3aab1f19
+36 gate matrices of 22,544,384 weights; deleted 1,173,999 = 0.1447%
+share of all 3,085,938,688 model parameters: 0.0380%
+config.json compressed_size_mb (the mask's size on disk): 2.724
+
+$ python dt/mask_anatomy.py masks <masks>/grpo/qwen2.5-7b-simplerl-zoo --total-params 7615616512     # safetensors total of Qwen/Qwen2.5-7B@d1497293
+28 gate matrices of 67,895,296 weights; deleted 3,161,923 = 0.1663%
+share of all 7,615,616,512 model parameters: 0.0415%
+config.json compressed_size_mb (the mask's size on disk): 7.479
+
+$ python dt/mask_anatomy.py masks <masks>/grpo/qwen2.5-14b-simplerl-zoo --total-params 14770033664     # safetensors total of Qwen/Qwen2.5-14B@97e1e763
+48 gate matrices of 70,778,880 weights; deleted 4,794,521 = 0.1411%
+share of all 14,770,033,664 model parameters: 0.0325%
+config.json compressed_size_mb (the mask's size on disk): 11.444
+
+$ python dt/mask_anatomy.py masks <masks>/grpo/qwen3-30b-a3b-base-simplerl-zoo --total-params 30532122624     # safetensors total of Qwen/Qwen3-30B-A3B-Base@1b75feb7
+6144 gate matrices of 1,572,864 weights; deleted 22,954,392 = 0.2375%
+share of all 30,532,122,624 model parameters: 0.0752%
+config.json compressed_size_mb (the mask's size on disk): 31.675
+  without the experts deleted above 1%: 11,373,640 = 0.0373% of all parameters
+heavy experts (> 1% deleted): 18, 39.625% to 42.109%, holding 50.5% of all deletions
+other experts: mean 0.1180%, median 0.1170%, max 0.1663%
+heavy (layer:expert): 2:105 3:83 7:102 13:56 13:99 16:86 16:96 17:101 18:36 25:56 28:86 37:56 40:86 41:24 42:51 44:74 44:124 46:65
+per-layer deleted share: median 0.118% (0.113% to 0.122%) in the 33 layers without a heavy expert; 0.42% to 0.76% in the 15 with one
+
