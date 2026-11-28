@@ -55,19 +55,21 @@ Mean KLD by slice group (`kl.csv`; the number after the slash is same top-p, %):
 | science (pes2o-val) | 0.00057 / 99.1 | 0.01344 / 95.0 | 0.00886 / 95.5 | 0.02251 / 92.1 |
 | code (6 slices) | 0.00032 / 99.6 | 0.01051 / 96.6 | 0.00735 / 97.1 | 0.01653 / 96.1 |
 
-## 3. Where the error builds up, by layer (`layers.csv`, mean over the 20 slices)
+## 3. Where the error builds up, by layer (`layers.csv`, over the 20 slices)
 
 The quantized track runs on its own hidden states, so errors accumulate. `hidden_rel_err` = ‖h_q-h_ref‖/‖h_ref‖ of the layer output.
 
-| `hidden_rel_err` at layer | `Q8_0` | `Q4_K_M` | `experts-Q4_K` | `MXFP4_MOE` |
+| `hidden_rel_err` at layer, mean (median over the 20 slices) | `Q8_0` | `Q4_K_M` | `experts-Q4_K` | `MXFP4_MOE` |
 |---|---|---|---|---|
-| 0 | 0.013 | 0.082 | 0.041 | 0.070 |
-| 3 | 0.006 | 0.043 | 0.039 | 0.242 |
-| 7 | 0.014 | 0.063 | 0.054 | 0.236 |
-| 11 | 0.083 | 0.133 | 0.133 | 0.190 |
-| 15 | 0.030 | 0.132 | 0.120 | 0.179 |
+| 0 | 0.013 (0.013) | 0.082 (0.082) | 0.041 (0.041) | 0.070 (0.070) |
+| 3 | 0.006 (0.006) | 0.043 (0.044) | 0.039 (0.039) | 0.242 (0.240) |
+| 7 | 0.014 (0.013) | 0.063 (0.066) | 0.054 (0.056) | 0.236 (0.235) |
+| 11 | 0.083 (0.024) | 0.133 (0.113) | 0.133 (0.093) | 0.190 (0.182) |
+| 15 | 0.030 (0.028) | 0.132 (0.130) | 0.120 (0.119) | 0.179 (0.176) |
 
-`router_agree` = share of tokens whose top-8 expert set is unchanged:
+The layer-11 means are pulled up by three code slices. For `Q8_0` at layer 11, `vault-java-test` is 0.575, `vault-py-test` 0.387 and `vault-cpp-test` 0.302; the other 17 slices average 0.023 (median of all 20: 0.024). On `vault-java-test` the `Q8_0` error starts rising at layer 8 (0.126), on `vault-py-test` at layers 9 to 10 and on `vault-cpp-test` at layers 10 to 11; it stays high to layer 14 and is back to 0.034 to 0.050 at layer 15. The other formats show the same jump on some of these slices (on `vault-py-test` all four formats are 0.387 to 0.412 at layer 11), so it is not specific to `Q8_0`. The `Q8_0` means at layers 9 to 14 therefore do not describe a typical slice; the medians do. The output-level KLD of these slices is not affected: `Q8_0` `kld_mean` is 0.000327, 0.000410 and 0.000326 on them (`kl.csv`), among the five lowest of 20.
+
+`router_agree` = share of tokens whose top-8 expert set is exactly unchanged (a swap at rank 8 and 9 counts as a change; means over the 20 slices):
 
 | `router_agree` at layer | `Q8_0` | `Q4_K_M` | `experts-Q4_K` | `MXFP4_MOE` |
 |---|---|---|---|---|
@@ -127,16 +129,17 @@ Output of the run: 2.7 MB in total (`tensors.csv` 1.6 MB, `linears.csv` 1.1 MB, 
 
 ## Findings
 
-1. **A 4-bit embedding and attention matter for the router before anything else.** `Q4_K_M` puts 7.2% weight error on `token_embd` and 6.6% on attention (Section 1); `experts-Q4_K` keeps both at 0.55%. At layer 0, where the router's input depends only on the embedding and layer-0 attention, 62.7% of tokens keep their top-8 expert set under `Q4_K_M`, against 95.2% under `Q8_0`, `experts-Q4_K` and `MXFP4_MOE` (Section 3). The expert set also changes for 4.8 to 7.4% of tokens per layer under `Q8_0` itself (mean agreement 0.936 over layers), at 0.55% weight error. Against that, `experts-Q4_K` has 25% lower llama.cpp KLD than `Q4_K_M` (0.01293 against 0.01735, lower on 20 of 20 slices) in a 100 MB smaller file, although its `down` experts are all Q4_K (7.18%) where `Q4_K_M` has Q6_K on half of them (4.49%). The comparison is between whole recipes, so it does not separate the embedding from the attention.
+1. **A 4-bit embedding and attention already disturb the router at layer 0.** `Q4_K_M` puts 7.2% weight error on `token_embd` and 6.6% on attention (Section 1); `experts-Q4_K` keeps both at 0.55%. At layer 0, where the router's input depends only on the embedding and layer-0 attention, 62.7% of tokens keep their top-8 expert set under `Q4_K_M`, against 95.2% under `Q8_0`, `experts-Q4_K` and `MXFP4_MOE` (Section 3). The expert set also changes for 4.8 to 7.4% of tokens per layer under `Q8_0` itself (mean agreement 0.936 over layers), at 0.55% weight error. Against that, `experts-Q4_K` has 25% lower llama.cpp KLD than `Q4_K_M` (0.01293 against 0.01735, lower on 20 of 20 slices) in a 100 MB smaller file, although its `down` experts are all Q4_K (7.18%) where `Q4_K_M` has Q6_K on half of them (4.49%). The two recipes differ in three ways (embedding, attention, `ffn_down`), so the comparison does not separate them, and the link from router agreement to KLD was not tested: `MXFP4_MOE`, with 8-bit embedding and attention, has lower mean router agreement over the 16 layers than `Q4_K_M` (0.639 against 0.666), so later-layer routing is disturbed by expert error at least as much as by embedding and attention error. `router_agree` is an exact top-8 set match, so a swap at rank 8 and 9 counts as a change.
 
-2. **`MXFP4_MOE` is the smallest file and the largest error here.** Its experts sit at 11.5% weight error, against 7.2% for Q4_K, and its mean llama.cpp KLD is 0.03091, about 1.8 times `Q4_K_M` and 2.4 times `experts-Q4_K` (Section 2); it is above both on 20 of 20 slices in `kl.csv`. Its layer-3 hidden error is 0.242, against 0.039 for `experts-Q4_K` (Section 3). Code slices have the lowest error for every format and math the highest for `Q4_K_M` and `experts-Q4_K`; Indic slices are close to English for `Q4_K_M` (0.02030 against 0.01999), 7% above it for `experts-Q4_K` (0.01564 against 0.01462), and 31% above it for `MXFP4_MOE` (0.03889 against 0.02979).
+2. **`MXFP4_MOE` is the smallest file and the largest error here.** Its experts sit at 11.5% weight error, against 7.2% for Q4_K, and its mean llama.cpp KLD is 0.03091, about 1.8 times `Q4_K_M` and 2.4 times `experts-Q4_K` (Section 2); it is above both on 20 of 20 slices in `kl.csv`. Its layer-3 hidden error is 0.242, against 0.039 for `experts-Q4_K` (Section 3). Code slices have the lowest error for every format and math the highest for `Q4_K_M` and `experts-Q4_K`; Indic slices (mean of 11) against English (one slice) are 0.02030 against 0.01999 for `Q4_K_M`, 0.01564 against 0.01462 for `experts-Q4_K` and 0.03889 against 0.02979 for `MXFP4_MOE`; these are per-token numbers and the scripts are not like-for-like (see Limits), so no ranking of languages is drawn from them.
 
 3. **The twin forward and llama.cpp agree on the same positions; they differ in which positions `tokens.csv` scores.** On 40,800 matched positions the twin forward gives mean KL 0.01733 and same top-1 93.92% for `Q4_K_M`, llama.cpp 0.01735 and 94.05% (± 0.12); for `Q8_0` 0.00069 and 98.82% against 0.00069 and 98.84% (Section 5). `tokens.csv` scores every position of two 512-token sequences and is 1.9 times higher for `Q4_K_M`, so its absolute KL should not be read as what llama.cpp users get; `kl.csv` is that number. The ranking of the four formats by mean KL is the same in both files.
 
 ## Limits of this pilot
 
-- One model and one run; `kl.csv` rests on 8 chunks (2,040 scored tokens) per slice and format.
+- One model and one run; `kl.csv` rests on 8 chunks (2,040 scored tokens) per slice and format. English, math and science are one slice each.
+- One tokenizer; per-token, not per-character. On these slice texts OLMoE's tokenizer gives 0.50 to 1.02 characters per token on the 11 Indic slices (hi 1.02, bn 0.73, ta 0.73) against 4.45 on English (c4-val), 3.52 on math and 5.03 on science, and the reference's mean NLL per token (`matched_base_check.csv`, `nll_llama_base`) is 0.88 to 1.32 on Indic slices against 2.55 on English. A per-token KL on Indic text is mostly near-deterministic byte fragments, so it does not compare with a per-token KL on whole English words.
 - No importance matrix for any file. `experts-Q4_K` is not "bf16 attention with 4-bit experts": its non-expert tensors are Q8_0.
 - In `matched_base_check.csv` the column `kl_llama_base_to_twin_ref` (ALL row 0.0229) is not used here: llama.cpp's base file stores log-probabilities only down to 16 nats below the top token (`log_softmax` in `perplexity.cpp`), and why that column is larger than the agreement in top-1 and NLL suggests was not tested.
-- The cause of the high `Q8_0` hidden error at layer 11 (0.083, against 0.006 at layer 3) was not investigated.
+- The `Q8_0` hidden-error spike at layers 8 to 14 is on three code slices only (`vault-java-test`, `vault-py-test`, `vault-cpp-test`; Section 3), shared with other formats on some of them, gone by layer 15, and the output KLD of those slices is unaffected. Its cause was not investigated.
 - The `kl_slices` edge case (it counts one BOS token although this GGUF has `add_bos_token` false) did not trigger on any of the 20 slices; the planned and actual chunk counts were equal everywhere (`kl.csv`: 8 chunks on all 80 rows).
