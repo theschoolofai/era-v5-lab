@@ -14,6 +14,9 @@ the same key, so a changed setting or a bumped STAGES version reruns that stage 
               --watcher-json (the watcher's v1 file for this commit) when given; the report says so when it is absent.
   q_<format>  quantize_eval.py --formats <format> on the weights: export (test A1), bf16 GGUF, test A3, quantize, then the
               --eval items through llama-server. bf16 is the baseline of the gap.
+  mini_<format>  eval-mini (G9's mini profile) on that GGUF through eval_mini/run_mini_gguf.py (llama-cpp-python, one runtime for
+              every format, so the gap to bf16 is the quantization). Needs --mini-python, a venv with llama-cpp-python 0.3.36, lm_eval
+              0.4.13 and datasets, and the datasets once from the network. The quantized GGUF is kept until its mini stage is done.
   report      always rebuilt: <out>/gap.md and gap.json (one row per format, one column per kind of item) and <out>/loop_log.jsonl.
 
 KAS V2 checkpoints need --drop-head-bias --drop-router-bias (quantize_eval.py's flags); the table carries them as a label.
@@ -21,14 +24,19 @@ Other arguments of quantize_eval.py go after --qe-args; arguments this script do
 """
 from __future__ import annotations
 
-import argparse, hashlib, json, os, subprocess, sys, time
+import argparse, hashlib, json, os, shutil, subprocess, sys, time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 TEAMS = HERE.parents[1]
 LAB = TEAMS / '09-evaluation' / 'harness_lab'
 FORMATS = 'bf16,Q8_0,Q6_K,Q5_K_M,Q4_K_M'
-STAGES = dict(strip=1, score_full=1, quantize=1, report=1)   # bump a number when that stage's logic changes: only it and what follows rerun
+EVAL_MINI = HERE.parent / 'eval_mini'
+G9_HARNESS = TEAMS / '09-evaluation' / 'harness' / 'run_eval_mini.py'
+# the English tasks of docs/bitwidth_proposal.md v2's evidence (eval_wide: MMLU, ARC-Challenge) that G9's mini profile also has;
+# Belebele and MILU are not in that profile, and HellaSwag, GSM8K and TruthfulQA are in it but were not v2 evidence
+MINI_TASKS = 'mmlu,arc_challenge'
+STAGES = dict(strip=1, score_full=1, quantize=1, mini=1, report=1)   # bump a number when that stage's logic changes: only it and what follows rerun
 
 
 def sha256(path: Path) -> str:
@@ -55,6 +63,10 @@ class Loop:
     def marker(self, name: str) -> dict | None:
         p = self.out / 'stages' / f'{name}.json'
         return json.loads(p.read_text(encoding='utf-8')) if p.exists() else None
+
+    def done(self, name: str, version: int, key: str) -> bool:
+        m = self.marker(name)
+        return bool(m and m['version'] == version and m['key'] == key and all((self.out / f).exists() for f in m['files']))
 
     def run(self, name: str, version: int, key: str, fn):
         """Run fn() -> dict (files, commands, facts) unless the stage's marker has this version and key and its files exist."""
@@ -124,11 +136,27 @@ def quantize(a, loop: Loop, fmt: str, weights: Path, qe_args: list) -> dict:
     (loop.out / 'q' / fmt).mkdir(parents=True, exist_ok=True)
     cmd = [sys.executable, HERE / 'quantize_eval.py', '--checkpoint', weights, '--tokenizer', a.tokenizer, '--eval', a.eval,
            '--formats', fmt, '--work', a.work, '--runs-csv', loop.out / 'runs.csv', '--scores-out', loop.out / scores,
-           '--verify', a.verify, '--name', 'loop', '--cleanup',
+           '--verify', a.verify, '--name', 'loop', *([] if a.hold_gguf else ['--cleanup']),
            *(['--spec', loop.out / 'weights' / 'manifest.json'] if a.manifest else []),
            *(['--tokenizer-sha256', a.tokenizer_sha256] if a.tokenizer_sha256 else []),
            *(['--drop-router-bias'] if a.drop_router_bias else []), *(['--drop-head-bias'] if a.drop_head_bias else []), *qe_args]
     return dict(files=[scores], command=sh(cmd))
+
+
+def mini(a, loop: Loop, fmt: str, key: str) -> dict:
+    """eval-mini on one GGUF (the file quantize_eval.py measured; its sha256 is in the key)."""
+    q = json.loads((loop.out / f'q/{fmt}/scores.json').read_text(encoding='utf-8'))['formats'][0]
+    gguf = Path(q['file'])
+    out = loop.out / 'mini'; fdir = out / fmt
+    kf = fdir / 'key.txt'
+    if not (kf.exists() and kf.read_text() == key):   # a partial run of the same key resumes task by task; any other leftovers are stale
+        shutil.rmtree(fdir, ignore_errors=True); fdir.mkdir(parents=True); kf.write_text(key)
+    guard = subprocess.run([a.mini_python, str(EVAL_MINI / 'test_llamacpp_lm.py'), str(gguf)], capture_output=True, text=True)
+    tail = (guard.stdout + guard.stderr).strip().splitlines()[-3:]
+    cmd = [a.mini_python, EVAL_MINI / 'run_mini_gguf.py', '--gguf', gguf, '--format', fmt, '--out', out, '--g9-harness', a.g9_harness,
+           '--tasks', *a.mini_tasks.split(','), '--n-gpu-layers', a.mini_ngl, '--model', f'lab:{q["sha256"][:8]}', '--revision', q['sha256'],
+           *(['--limit', a.mini_limit] if a.mini_limit is not None else [])]
+    return dict(files=[f'mini/{fmt}/summary.json'], command=sh(cmd), gguf_sha256=q['sha256'], guard_exit=guard.returncode, guard_tail=tail)
 
 
 def guard_label(a) -> str:
@@ -154,6 +182,21 @@ def report(a, loop: Loop, formats: list, strip_m: dict) -> dict:
     for r in rows:
         r['gap'] = None if not base else round(r['score'] - base['score'], 4)
         r['gap_by_kind'] = {k: None if not base else round(r['by_kind'].get(k, 0) - base['by_kind'].get(k, 0), 4) for k in sorted(kinds)}
+    mini_doc, mini_tasks = {}, []
+    for r in rows:
+        m = loop.marker(f'mini_{r["format"]}')
+        if not m: continue
+        recs = json.loads((loop.out / m['files'][0]).read_text(encoding='utf-8'))['records']
+        for x in recs:
+            if x.get('primary'):
+                if x['task'] not in mini_tasks: mini_tasks.append(x['task'])
+                mini_doc.setdefault(x['task'], {})[r['format']] = dict(metric=x['metric'], value=x['value'], stderr=x['stderr'], n_items=x['n_items'],
+                                                                      command=m['command'], guard_exit=m['guard_exit'], source=m['files'][0])
+    for task, d in mini_doc.items():
+        b = d.get('bf16')
+        for f, x in d.items():
+            x['gap'] = None if not b or f == 'bf16' else round(x['value'] - b['value'], 4)
+            x['gap_se_unpaired'] = None if x['gap'] is None or None in (x['stderr'], b['stderr']) else round((x['stderr'] ** 2 + b['stderr'] ** 2) ** .5, 4)
     full = None
     if (loop.out / 'score_full.v1.json').exists():
         full = v1_records(loop.out / 'score_full.v1.json')
@@ -168,16 +211,25 @@ def report(a, loop: Loop, formats: list, strip_m: dict) -> dict:
     else:
         watcher = dict(status='no watcher score given (--watcher-json): not compared')
     doc = dict(weights_sha256=strip_m['weights_sha256'], guards=guard_label(a), formats=rows, score_full=({f'{k[0]}/{k[1]}/{k[2]}': v for k, v in full.items()} if full else None),
-               watcher=watcher, eval=str(a.eval), eval_sha256=sha256(Path(a.eval)))
+               watcher=watcher, eval_mini=mini_doc, model_note=a.model_note, eval=str(a.eval), eval_sha256=sha256(Path(a.eval)))
     (loop.out / 'gap.json').write_text(json.dumps(doc, indent=2) + '\n', encoding='utf-8')
     kl = sorted(kinds)
-    md = [f'# Gap table', '', f'weights sha256 `{doc["weights_sha256"]}` (stages/strip.json)', f'guards: {doc["guards"]}',
-          f'items: `{a.eval}` sha256 `{doc["eval_sha256"][:16]}`; score = fraction correct, gap = format minus bf16 GGUF, from each q/<format>/scores.json', '',
+    md = [f'# Gap table', '', *([f'> {a.model_note}', ''] if a.model_note else []), f'weights sha256 `{doc["weights_sha256"]}` (stages/strip.json)', f'guards: {doc["guards"]}',
+          f'own 20 items (G12 own, through llama-server; NOT eval-mini): `{a.eval}` sha256 `{doc["eval_sha256"][:16]}`; score = fraction correct, gap = format minus bf16 GGUF, from each q/<format>/scores.json', '',
           '| format | size GB | bpw | n | score | gap | ' + ' | '.join(f'{k} gap' for k in kl) + ' | tok/s | A1 as trained | A1 router_bias zeroed | A3 |',
           '|' + '---|' * (10 + len(kl))]
     for r in rows:
         md.append(f'| {r["format"]} | {r["size_gb"]} | {r["bpw"]} | {r["n_items"]} | {r["score"]} | {r["gap"]:+} | ' +
                   ' | '.join(f'{r["gap_by_kind"][k]:+}' for k in kl) + f' | {r["tok_s"]} | {r["a1"]} | {r["a1_zero"]} | {r["a3"]} |' if base else f'| {r["format"]} | no bf16 row |')
+    if mini_doc:
+        md += ['', f'## eval-mini (G9 mini profile via eval_mini/run_mini_gguf.py, llama-cpp-python, one runtime for every format; gap = format minus bf16 GGUF, '
+               'se = the standard error eval-mini reports; the gap se is the unpaired sqrt(se_format^2 + se_bf16^2))', '',
+               '| task | metric | format | n | score | se | gap | gap se | guard exit |', '|---|---|---|---|---|---|---|---|---|']
+        for task in mini_tasks:
+            for f, x in mini_doc[task].items():
+                g = lambda v: '-' if v is None else v
+                md.append(f'| {task} | {x["metric"]} | {f} | {x["n_items"]} | {x["value"]} | {g(x["stderr"])} | {g(x["gap"])} | {g(x["gap_se_unpaired"])} | {x["guard_exit"]} |')
+        md += ['', 'Commands: ' + '; '.join(f'`{mini_doc[mini_tasks[0]][f]["command"]}`' for f in mini_doc[mini_tasks[0]])]
     md += ['', f'Full copy (Team 9 scorer, score_full.v1.json): {doc["score_full"] or "not scored (needs a store input)"}',
            f'Watcher: {watcher["status"]}' + (f' {watcher.get("loop_vs_watcher", "")}' if watcher.get('loop_vs_watcher') else ''), '', 'Commands:']
     md += [f'- {r["format"]}: `{r["command"]}`' for r in rows]
@@ -198,7 +250,12 @@ def main(argv=None) -> int:
     ap.add_argument('--tokenizer', required=True); ap.add_argument('--tokenizer-sha256')
     ap.add_argument('--eval', default=str(HERE.parent / 'prompts/eval_own_20.json'))
     ap.add_argument('--formats', default=FORMATS, help='bf16 first; one stage each')
-    ap.add_argument('--stages', default='strip,score_full,quantize,report'); ap.add_argument('--verify', type=int, default=16)
+    ap.add_argument('--stages', help='default: strip,score_full,quantize,report, and mini when --mini-python is given'); ap.add_argument('--verify', type=int, default=16)
+    ap.add_argument('--mini-python', help="a venv's python with llama-cpp-python==0.3.36, lm_eval==0.4.13, datasets (the mini stage runs in it)")
+    ap.add_argument('--mini-tasks', default=MINI_TASKS, help='comma list from G9\'s mini profile; default: the English tasks of the bit-width proposal v2 evidence')
+    ap.add_argument('--mini-limit', type=int, help='override every task\'s item limit (smoke tests only)'); ap.add_argument('--mini-ngl', type=int, default=0, help='layers on the GPU (0: CPU)')
+    ap.add_argument('--g9-harness', default=str(G9_HARNESS)); ap.add_argument('--keep-gguf', action='store_true', help='keep every quantized GGUF after its stages')
+    ap.add_argument('--model-note', help='one line printed on top of the gap table, e.g. that the model is too weak for the scores to mean anything')
     ap.add_argument('--drop-router-bias', action='store_true'); ap.add_argument('--drop-head-bias', action='store_true')
     ap.add_argument('--watcher-json', type=Path, help="Team 9's eval-mini v1 file for this checkpoint")
     ap.add_argument('--out', type=Path, required=True); ap.add_argument('--work', default=str(Path.home() / '.cache/era-v5-quant'))
@@ -206,7 +263,9 @@ def main(argv=None) -> int:
     a, rest = ap.parse_known_args(argv)
     formats = a.formats.split(',')
     if formats[0] != 'bf16': ap.error('--formats must start with bf16: it is the baseline of the gap')
-    todo = a.stages.split(',')
+    todo = (a.stages or 'strip,score_full,quantize,report' + (',mini' if a.mini_python else '')).split(',')
+    if 'mini' in todo and not a.mini_python: ap.error('the mini stage needs --mini-python')
+    a.hold_gguf = a.keep_gguf or 'mini' in todo   # the mini stage reads the quantized GGUF; the loop deletes it after that stage
     loop = Loop(a.out)
     loop.note(event='loop', guards=guard_label(a), formats=a.formats)
     tok = sha256(Path(a.tokenizer))
@@ -220,7 +279,19 @@ def main(argv=None) -> int:
     if 'quantize' in todo:
         for f in formats:
             qk = key_of(s['weights_sha256'], f, tok, sha256(Path(a.eval)), a.verify, a.drop_router_bias, a.drop_head_bias, a.qe_args, a.manifest and sha256(a.manifest))
-            loop.run(f'q_{f}', STAGES['quantize'], qk, lambda f=f: quantize(a, loop, f, loop.out / 'weights' / 'model.safetensors', a.qe_args))
+            qk = key_of(qk, a.hold_gguf)
+            runq = lambda f=f, qk=qk: loop.run(f'q_{f}', STAGES['quantize'], qk, lambda: quantize(a, loop, f, loop.out / 'weights' / 'model.safetensors', a.qe_args))
+            runq()
+            if 'mini' in todo:
+                def mini_key():
+                    q = json.loads((loop.out / f'q/{f}/scores.json').read_text(encoding='utf-8'))['formats'][0]
+                    return q, key_of(q['sha256'], a.mini_tasks, a.mini_limit, a.mini_ngl, sha256(Path(a.g9_harness)),
+                                     [sha256(EVAL_MINI / n) for n in ('run_mini_gguf.py', 'llamacpp_lm.py', 'test_llamacpp_lm.py')])
+                q, mk = mini_key()
+                if not loop.done(f'mini_{f}', STAGES['mini'], mk) and not Path(q['file']).exists():   # a changed mini setting after the GGUF was deleted
+                    (loop.out / 'stages' / f'q_{f}.json').unlink(); runq(); q, mk = mini_key()   # rebuild it (bf16 is still there); the new file's sha is in the key
+                loop.run(f'mini_{f}', STAGES['mini'], mk, lambda f=f, mk=mk: mini(a, loop, f, mk))
+                if f != 'bf16' and not a.keep_gguf: Path(q['file']).unlink(missing_ok=True)   # bf16 stays: every format is made from it
     if 'report' in todo:
         report(a, loop, formats, s)
         loop.note(stage='report', event='done')
