@@ -1,0 +1,11 @@
+part-00000.parquet: 701/701 dropped=1 errors=0
+code__python: 718 held-out docs -> 700 (3.28 MB): 0 in train, 17 dropped and 413 fixed by the cleaner, 1 dropped by F2
+part-00000.parquet: 1000/1145 dropped=3 errors=0
+part-00000.parquet: 1145/1145 dropped=3 errors=0
+code__js-ts: 1234 held-out docs -> 1142 (3.25 MB): 0 in train, 89 dropped and 638 fixed by the cleaner, 3 dropped by F2
+part-00000.parquet: 607/607 dropped=1 errors=0
+code__cpp: 613 held-out docs -> 606 (3.63 MB): 0 in train, 6 dropped and 430 fixed by the cleaner, 1 dropped by F2
+2,448 docs, 10.16 MB, 38.7 s -> out/ke2_r3
+real	0m39.012s
+user	0m22.809s
+sys	0m3.946s

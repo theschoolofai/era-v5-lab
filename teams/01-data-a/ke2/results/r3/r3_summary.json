@@ -1,0 +1,210 @@
+{
+  "request": "KE2 (Team 4) R3: held-out code with identifiers (Python, JS/TS, C++), through the F2 check",
+  "split": "heldout",
+  "steps": [
+    "exact match with the pack's train text",
+    "pinned cleaner",
+    "F2 (fingerprints v2)"
+  ],
+  "cleaner": {
+    "path": "teams/01-data-a/spec_v1_1/clean.py",
+    "sha256": "d275556ee87a259b05ac5e474ed40b569c2e821aaaffa99d5d07035e40948989",
+    "crlf_to_lf": true
+  },
+  "run_f2_py_sha256": "1651b3725357b2a2b684fda6a047cc5697c1331d1b43bb242712f422403af040",
+  "set_sha256": "2826a3b883210c653979103c09ce1c79e40fc4f7034b54027f2836482370d22a",
+  "approved_inputs_sha256": "c5e94179113ceb0bd68d131e59c994e27a1426549b379b6acbce87263f340cf6",
+  "manifest_sha256": "e3aa0fff675903187a59233b7b7b742a79e104ec2ebef3be71df45ac9873bf1c",
+  "languages": {
+    "code__python": {
+      "pack_id": "code-python",
+      "lang": "python",
+      "lane": "code",
+      "rows": 718,
+      "in_train_exact": 0,
+      "clean_dropped": 17,
+      "clean_fixed": 413,
+      "f2_dropped": 1,
+      "f2_dropped_docs": [
+        {
+          "doc_id": "b88664fbf8320e11",
+          "items": [
+            "swe_bench_live:test:streamlink__streamlink-6111"
+          ]
+        }
+      ],
+      "docs": 700,
+      "text_bytes": 3275667,
+      "identifiers": {
+        "compound_distinct": 17765,
+        "compound_total": 60905
+      },
+      "license": "other (per-file permissive Stack licences; attribution required)",
+      "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
+      "file": "code__python/docs.parquet",
+      "file_bytes": 966995,
+      "sha256": "6fe42e9172828e3e9c9f1a93dcf86a8297f2e1440e28cff127f27caca2dceb0e"
+    },
+    "code__js-ts": {
+      "pack_id": "code-js-ts",
+      "lang": "js-ts",
+      "lane": "code",
+      "rows": 1234,
+      "in_train_exact": 0,
+      "clean_dropped": 89,
+      "clean_fixed": 638,
+      "f2_dropped": 3,
+      "f2_dropped_docs": [
+        {
+          "doc_id": "8fb81cb4e3f1854f",
+          "items": [
+            "heldout_g5_v1:heldout:vault-js-test-000008"
+          ]
+        },
+        {
+          "doc_id": "5254812944b353c5",
+          "items": [
+            "heldout_g5_v1:heldout:vault-js-test-000025"
+          ]
+        },
+        {
+          "doc_id": "9d9ac3802fe2e4a3",
+          "items": [
+            "swe_bench_live:test:streamlink__streamlink-6111"
+          ]
+        }
+      ],
+      "docs": 1142,
+      "text_bytes": 3253724,
+      "identifiers": {
+        "compound_distinct": 16634,
+        "compound_total": 57354
+      },
+      "license": "other (per-file upstream licensing; attribution required)",
+      "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
+      "file": "code__js-ts/docs.parquet",
+      "file_bytes": 957541,
+      "sha256": "b33ca97024eedb6674d13b7cf4288a808cdbd61ec6d6ecadafdc530874f8d150"
+    },
+    "code__cpp": {
+      "pack_id": "code-cpp",
+      "lang": "cpp",
+      "lane": "code",
+      "rows": 613,
+      "in_train_exact": 0,
+      "clean_dropped": 6,
+      "clean_fixed": 430,
+      "f2_dropped": 1,
+      "f2_dropped_docs": [
+        {
+          "doc_id": "6848101215128323",
+          "items": [
+            "swe_bench_live:test:kozea__weasyprint-2326"
+          ]
+        }
+      ],
+      "docs": 606,
+      "text_bytes": 3627998,
+      "identifiers": {
+        "compound_distinct": 24242,
+        "compound_total": 95839
+      },
+      "license": "other (per-file permissive Stack licences; attribution required)",
+      "license_source": "teams/10-post-training/licences/licence_table.md@ecb9a27d367189a9bfd58a37dba28e44dfcb500a (Stage 0)",
+      "file": "code__cpp/docs.parquet",
+      "file_bytes": 968036,
+      "sha256": "f327453d3ab65265f2edb064bf01f3acccdedfb46fe36e25b8dbed86b3ad6c70"
+    }
+  },
+  "docs": 2448,
+  "text_bytes": 10157389,
+  "inputs": [
+    {
+      "path": "heldout/code-python/part-00000.parquet",
+      "split": "heldout",
+      "pack_id": "code-python",
+      "rows": 718,
+      "text_bytes": 3385804,
+      "bytes": 995551,
+      "sha256": "6ebf57ef84a2963e45b74c10df397206ca47aaf278dd35d6464f9792f548da2e"
+    },
+    {
+      "path": "train/code-python/part-00000.parquet",
+      "split": "train",
+      "pack_id": "code-python",
+      "rows": 55143,
+      "text_bytes": 256000673,
+      "bytes": 73787047,
+      "sha256": "8d9575b43cfb9cf3647e63e91d026eb8ed40f3981b698da33b83d09e6326641d"
+    },
+    {
+      "path": "train/code-python/part-00001.parquet",
+      "split": "train",
+      "pack_id": "code-python",
+      "rows": 19800,
+      "text_bytes": 90613953,
+      "bytes": 26171161,
+      "sha256": "985831590bc02ebddc0276223e1f022fde0e7c2e809fb7d97e74492bb6f5aa16"
+    },
+    {
+      "path": "heldout/code-js-ts/part-00000.parquet",
+      "split": "heldout",
+      "pack_id": "code-js-ts",
+      "rows": 1234,
+      "text_bytes": 3731529,
+      "bytes": 1084170,
+      "sha256": "cad9e205b551282cb8a55999cef0fdc36455f59446e58b1eacd0c45f577de77e"
+    },
+    {
+      "path": "train/code-js-ts/part-00000.parquet",
+      "split": "train",
+      "pack_id": "code-js-ts",
+      "rows": 89960,
+      "text_bytes": 256020905,
+      "bytes": 76620569,
+      "sha256": "185694a65f72630cbbd56c98a2b8728e872b2da9dab5ebb26c39b0722ef42653"
+    },
+    {
+      "path": "train/code-js-ts/part-00001.parquet",
+      "split": "train",
+      "pack_id": "code-js-ts",
+      "rows": 31978,
+      "text_bytes": 90251994,
+      "bytes": 26983707,
+      "sha256": "36fea017a45e62fef38d0431f316ed5fd6afdde57db111817af6883f8f3f1f35"
+    },
+    {
+      "path": "heldout/code-cpp/part-00000.parquet",
+      "split": "heldout",
+      "pack_id": "code-cpp",
+      "rows": 613,
+      "text_bytes": 3814681,
+      "bytes": 1019024,
+      "sha256": "25bf9442a84771d1a54a4bde4981859f30f434d434f1aaaece82807bb0724f01"
+    },
+    {
+      "path": "train/code-cpp/part-00000.parquet",
+      "split": "train",
+      "pack_id": "code-cpp",
+      "rows": 41116,
+      "text_bytes": 256000481,
+      "bytes": 67463772,
+      "sha256": "5d638fd78dc7a661e1f287199984de8d4e1c7fee5e9ce21dfa5b5fb97a00a971"
+    },
+    {
+      "path": "train/code-cpp/part-00001.parquet",
+      "split": "train",
+      "pack_id": "code-cpp",
+      "rows": 14429,
+      "text_bytes": 90187185,
+      "bytes": 23877420,
+      "sha256": "0a4ff1232dcf7f4af2f79476294063714a029054b553690bb8e84da3d88608f2"
+    }
+  ],
+  "seconds": 38.7,
+  "versions": {
+    "python": "3.10.12",
+    "pyarrow": "25.0.1",
+    "regex": "2026.9.29"
+  }
+}

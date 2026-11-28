@@ -1,0 +1,45 @@
+$ python3 -I teams/01-data-a/ke2/word_freq.py --packs <the 38 raw sample-v0 packs> --out out/ke2_r1 --workers 2
+cadj-commits: 74,753 docs, 15,589,721 words, 354,887 distinct
+cadj-notebooks: 15,563 docs, 18,462,120 words, 238,414 distinct
+cadj-stackexchange: 41,396 docs, 20,414,474 words, 337,630 distinct
+code-cpp: 55,545 docs, 37,878,730 words, 1,119,226 distinct
+code-go: 83,267 docs, 41,490,028 words, 1,283,215 distinct
+code-java: 85,213 docs, 32,999,450 words, 1,386,815 distinct
+code-js-ts: 121,938 docs, 32,104,998 words, 1,287,004 distinct
+code-python: 74,943 docs, 40,380,322 words, 721,775 distinct
+code-rust: 60,126 docs, 38,761,081 words, 461,029 distinct
+en-dclm: 61,367 docs, 57,659,156 words, 599,891 distinct
+en-fineweb-edu: 71,933 docs, 55,026,937 words, 556,798 distinct
+en-nemotroncc: 91,820 docs, 56,946,484 words, 560,019 distinct
+en-nemotroncc-synth: 197,119 docs, 52,139,793 words, 423,393 distinct
+ind-bn-fw2: 11,205 docs, 3,904,302 words, 199,074 distinct
+ind-bn-sangraha-v: 10,328 docs, 3,946,183 words, 281,857 distinct
+ind-gu-fw2: 23,118 docs, 9,046,237 words, 384,509 distinct
+ind-hi-fw2: 14,261 docs, 6,453,495 words, 156,315 distinct
+ind-hi-hplt: 8,745 docs, 6,345,377 words, 152,693 distinct
+ind-hi-indiccorp: 110,836 docs, 6,288,005 words, 149,226 distinct
+ind-hi-sangraha-s: 8,280 docs, 6,240,350 words, 123,609 distinct
+ind-hi-sangraha-v: 14,709 docs, 6,281,510 words, 232,805 distinct
+ind-kn-fw2: 7,834 docs, 2,101,610 words, 277,927 distinct
+ind-kn-sangraha-s: 5,191 docs, 1,988,267 words, 207,292 distinct
+ind-kn-sangraha-v: 8,551 docs, 2,109,958 words, 329,761 distinct
+ind-ml-fw2: 18,976 docs, 5,147,999 words, 791,468 distinct
+ind-mr-fw2: 11,460 docs, 3,789,636 words, 280,477 distinct
+ind-mr-sangraha-v: 12,172 docs, 3,734,594 words, 318,363 distinct
+ind-or-fw2: 33,684 docs, 7,624,556 words, 318,462 distinct
+ind-sa-fw2: 5,908 docs, 3,442,525 words, 1,049,509 distinct
+ind-ta-fw2: 6,766 docs, 1,893,700 words, 276,517 distinct
+ind-ta-sangraha-s: 4,336 docs, 1,840,091 words, 185,029 distinct
+ind-ta-sangraha-v: 6,796 docs, 1,865,086 words, 303,826 distinct
+ind-te-fw2: 5,997 docs, 2,205,394 words, 260,823 distinct
+ind-te-sangraha-s: 4,782 docs, 2,168,654 words, 167,931 distinct
+ind-te-sangraha-v: 8,609 docs, 2,129,021 words, 357,457 distinct
+math-finemath: 29,122 docs, 23,422,232 words, 245,907 distinct
+math-megamath: 17,647 docs, 22,925,915 words, 408,827 distinct
+sci-finepdfs: 6,011 docs, 23,927,115 words, 388,183 distinct
+21 files, 1,430,307 docs, 334.9 s -> out/ke2_r1
+
+real	5m35.306s
+user	8m26.207s
+sys	0m6.736s
+an earlier run of the same script on the same parts gave byte-identical tables: 21 of 21 (same sha256)

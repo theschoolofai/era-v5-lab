@@ -1,0 +1,483 @@
+{
+  "request": "KE2 (Team 4) R1: word frequency table of the 38 sample packs, per language and lane",
+  "word_rule": {
+    "normalization": "NFC",
+    "pattern": "[\\p{L}\\p{M}]+(?:[‌‍]+[\\p{L}\\p{M}]+)*",
+    "case": "kept as written",
+    "separators": "everything that is not a letter or a mark (digits, _, ', -, punctuation, spaces)",
+    "joiners": "ZWJ/ZWNJ kept inside a word, dropped at its edges"
+  },
+  "split": "train",
+  "approved_inputs_sha256": "10f313750235902d401cfb1023555b37e575fc8a11a5adccceeab84af7515f5f",
+  "manifest_sha256": "7fd647c8d4662d17e2310efbcc20981d70656fdad2fabb7663c266a2153a1b7e",
+  "packs": 38,
+  "parts": 48,
+  "docs": 1430307,
+  "files": {
+    "code__cpp.csv": {
+      "lang": "cpp",
+      "lane": "code",
+      "words": 37878730,
+      "distinct_words": 1119226,
+      "bytes": 27937063,
+      "sha256": "9637665ca244e0310618ecd406afc6a2d99a149d14e9da9845cdf5855c39c058"
+    },
+    "code__go.csv": {
+      "lang": "go",
+      "lane": "code",
+      "words": 41490028,
+      "distinct_words": 1283215,
+      "bytes": 32842036,
+      "sha256": "bfc2a887a0026b19cd37817155690f18da9c05b9a70e926d7a5d2534cf70012d"
+    },
+    "code__java.csv": {
+      "lang": "java",
+      "lane": "code",
+      "words": 32999450,
+      "distinct_words": 1386815,
+      "bytes": 38719576,
+      "sha256": "7e33884a33ee4728fb5a0a8cd8a0bdd36ec49a3ed1698b9cbc1ca566e883903f"
+    },
+    "code__js-ts.csv": {
+      "lang": "js-ts",
+      "lane": "code",
+      "words": 32104998,
+      "distinct_words": 1287004,
+      "bytes": 35477849,
+      "sha256": "310033352299aa0897191c19f99f40951675d759d6b274823023c8f8fc73db9a"
+    },
+    "code__python.csv": {
+      "lang": "python",
+      "lane": "code",
+      "words": 40380322,
+      "distinct_words": 721775,
+      "bytes": 18912642,
+      "sha256": "707a12c020865ac64235b1dc8f66ab8dd8c1a0ee68a310f4a72dce49923e1a88"
+    },
+    "code__rust.csv": {
+      "lang": "rust",
+      "lane": "code",
+      "words": 38761081,
+      "distinct_words": 461029,
+      "bytes": 11382601,
+      "sha256": "7224053711720efae06faeeacd5588d404c5bf8c7d4c6c83ad2449779b68638b"
+    },
+    "code-adjacent__code.csv": {
+      "lang": "code",
+      "lane": "code-adjacent",
+      "words": 34051841,
+      "distinct_words": 549049,
+      "bytes": 18501268,
+      "sha256": "163c0e5a93414fd7c9815ea57bf7d143319e145cc98a689ce5f00fc96b6975d9"
+    },
+    "code-adjacent__en.csv": {
+      "lang": "en",
+      "lane": "code-adjacent",
+      "words": 20414474,
+      "distinct_words": 337630,
+      "bytes": 10091481,
+      "sha256": "ab00d8562c9230a3dc813308c1c1a4a7e4eb4cefeff77e700a623e59b26564d0"
+    },
+    "english__en.csv": {
+      "lang": "en",
+      "lane": "english",
+      "words": 221772370,
+      "distinct_words": 1337346,
+      "bytes": 30401277,
+      "sha256": "2113f95391e8053ddc2cca5774c65daca24177832fd4e43f6b158a36f1cf4bb6"
+    },
+    "indic__bn.csv": {
+      "lang": "bn",
+      "lane": "indic",
+      "words": 7850485,
+      "distinct_words": 386786,
+      "bytes": 13733643,
+      "sha256": "b6c71859a5ed9e0edd0e6277b82c8970c0d0acdae4e8391f958a4ccfdb2d8d41"
+    },
+    "indic__gu.csv": {
+      "lang": "gu",
+      "lane": "indic",
+      "words": 9046237,
+      "distinct_words": 384509,
+      "bytes": 12962094,
+      "sha256": "af67410e36f9beaa5d1608c3e016fbb51cd0c321c69224210632d569bf0fd325"
+    },
+    "indic__hi.csv": {
+      "lang": "hi",
+      "lane": "indic",
+      "words": 31608737,
+      "distinct_words": 520766,
+      "bytes": 16806320,
+      "sha256": "50fbbd1ae59e5bd60c2e8ad8df6baf621a5a51ae9828f33c70d049364dac4fc9"
+    },
+    "indic__kn.csv": {
+      "lang": "kn",
+      "lane": "indic",
+      "words": 6199835,
+      "distinct_words": 629049,
+      "bytes": 26569586,
+      "sha256": "007f3582a10e64ec52ebdee5b8810341d3a7c6377756cf8dae1846388909bbfc"
+    },
+    "indic__ml.csv": {
+      "lang": "ml",
+      "lane": "indic",
+      "words": 5147999,
+      "distinct_words": 791468,
+      "bytes": 39982235,
+      "sha256": "feccd3dfa79e95c6d86750144c7f73e775f41feb859e99365b6929b31dd7e1d7"
+    },
+    "indic__mr.csv": {
+      "lang": "mr",
+      "lane": "indic",
+      "words": 7524230,
+      "distinct_words": 472373,
+      "bytes": 17636252,
+      "sha256": "62b327fa4358b73bc8287d4cffe03a926fd20c04d21c12adf16f1f1597568b8e"
+    },
+    "indic__or.csv": {
+      "lang": "or",
+      "lane": "indic",
+      "words": 7624556,
+      "distinct_words": 318462,
+      "bytes": 11144002,
+      "sha256": "5ba6adfe0f978ad2a9ec9d636580ab0a70a9ea9f45fb7b3c81844f95a96510a0"
+    },
+    "indic__sa.csv": {
+      "lang": "sa",
+      "lane": "indic",
+      "words": 3442525,
+      "distinct_words": 1049509,
+      "bytes": 54728019,
+      "sha256": "90757bb0b0e7d70e4c9f6a4593f862fb89b756334644a358a68fb7a564f08586"
+    },
+    "indic__ta.csv": {
+      "lang": "ta",
+      "lane": "indic",
+      "words": 5598877,
+      "distinct_words": 588280,
+      "bytes": 26287644,
+      "sha256": "cf7c8f4167195984f48a559a375f5a68ad060604e14c54a183cde497fce3494e"
+    },
+    "indic__te.csv": {
+      "lang": "te",
+      "lane": "indic",
+      "words": 6503069,
+      "distinct_words": 615518,
+      "bytes": 24565191,
+      "sha256": "dd607e65ee2901ed1d7a9cf5e78acbcd491dc1867ee8e46d4959691457bdb701"
+    },
+    "math__en.csv": {
+      "lang": "en",
+      "lane": "math",
+      "words": 46348147,
+      "distinct_words": 552782,
+      "bytes": 11233452,
+      "sha256": "51b2155bea558839e82d6f54b53d9b88d4392b290d94357dc1f66fafcccfee0b"
+    },
+    "science__en.csv": {
+      "lang": "en",
+      "lane": "science",
+      "words": 23927115,
+      "distinct_words": 388183,
+      "bytes": 8688923,
+      "sha256": "7d6c12cffbbb6ff18094281bfaab42ee125a706d85bd1d22bf780b9f078471ac"
+    }
+  },
+  "inputs": [
+    {
+      "path": "train/cadj-commits/part-00000.parquet",
+      "rows": 74753,
+      "sha256": "d2d2b3bfa92e8e8c1915118546e7c2fcc8fd0735eadf7ddd516921f07b5e0f9c",
+      "pack_id": "cadj-commits"
+    },
+    {
+      "path": "train/cadj-notebooks/part-00000.parquet",
+      "rows": 15563,
+      "sha256": "736aded769d6ba112639bfc2def11f32c6d339257ae597e0b699526552c1f333",
+      "pack_id": "cadj-notebooks"
+    },
+    {
+      "path": "train/cadj-stackexchange/part-00000.parquet",
+      "rows": 41396,
+      "sha256": "f313932bc7a3206edf0e4fdf5a3c0836f106ea97fecccfabdbee961ccc556de4",
+      "pack_id": "cadj-stackexchange"
+    },
+    {
+      "path": "train/code-cpp/part-00000.parquet",
+      "rows": 41116,
+      "sha256": "5d638fd78dc7a661e1f287199984de8d4e1c7fee5e9ce21dfa5b5fb97a00a971",
+      "pack_id": "code-cpp"
+    },
+    {
+      "path": "train/code-cpp/part-00001.parquet",
+      "rows": 14429,
+      "sha256": "0a4ff1232dcf7f4af2f79476294063714a029054b553690bb8e84da3d88608f2",
+      "pack_id": "code-cpp"
+    },
+    {
+      "path": "train/code-go/part-00000.parquet",
+      "rows": 61393,
+      "sha256": "6b7b52e854df0456e3a9867b32f5217b54995faa30dbd6b8b94e23eab6db8eb1",
+      "pack_id": "code-go"
+    },
+    {
+      "path": "train/code-go/part-00001.parquet",
+      "rows": 21874,
+      "sha256": "40aedd68c4ec949eb825edc68896ae4518cf6c3283027d9ba1430ee66ee247fc",
+      "pack_id": "code-go"
+    },
+    {
+      "path": "train/code-java/part-00000.parquet",
+      "rows": 62834,
+      "sha256": "e4dca53d3b6931a4277ff794881fa437e62db04074ed4efca833775ac97f097b",
+      "pack_id": "code-java"
+    },
+    {
+      "path": "train/code-java/part-00001.parquet",
+      "rows": 22379,
+      "sha256": "278439aa70bd41a18f167de9adc3ca552309f52e635640adf6bf9e999d1266c3",
+      "pack_id": "code-java"
+    },
+    {
+      "path": "train/code-js-ts/part-00000.parquet",
+      "rows": 89960,
+      "sha256": "185694a65f72630cbbd56c98a2b8728e872b2da9dab5ebb26c39b0722ef42653",
+      "pack_id": "code-js-ts"
+    },
+    {
+      "path": "train/code-js-ts/part-00001.parquet",
+      "rows": 31978,
+      "sha256": "36fea017a45e62fef38d0431f316ed5fd6afdde57db111817af6883f8f3f1f35",
+      "pack_id": "code-js-ts"
+    },
+    {
+      "path": "train/code-python/part-00000.parquet",
+      "rows": 55143,
+      "sha256": "8d9575b43cfb9cf3647e63e91d026eb8ed40f3981b698da33b83d09e6326641d",
+      "pack_id": "code-python"
+    },
+    {
+      "path": "train/code-python/part-00001.parquet",
+      "rows": 19800,
+      "sha256": "985831590bc02ebddc0276223e1f022fde0e7c2e809fb7d97e74492bb6f5aa16",
+      "pack_id": "code-python"
+    },
+    {
+      "path": "train/code-rust/part-00000.parquet",
+      "rows": 44581,
+      "sha256": "f1632a12383e1efb9eee68bf8b57566291ea64801146cf144dfba9c363f32e21",
+      "pack_id": "code-rust"
+    },
+    {
+      "path": "train/code-rust/part-00001.parquet",
+      "rows": 15545,
+      "sha256": "9dab607bd3c9464536bed594b77b5cd8edef6e731c5320f0c50d1017ebf59513",
+      "pack_id": "code-rust"
+    },
+    {
+      "path": "train/en-dclm/part-00000.parquet",
+      "rows": 46245,
+      "sha256": "67b305d60aa0f4091612f6fefe0c7aee867872943017c5ebb598293c19dfeb88",
+      "pack_id": "en-dclm"
+    },
+    {
+      "path": "train/en-dclm/part-00001.parquet",
+      "rows": 15122,
+      "sha256": "0dec2d4fc09db2950d6f619810b6d2abf6d854b5d44d402c646cce2b74bd96a6",
+      "pack_id": "en-dclm"
+    },
+    {
+      "path": "train/en-fineweb-edu/part-00000.parquet",
+      "rows": 54004,
+      "sha256": "53cbbf7a77b84e46108836c889e6cb83e6fcdc048c316fbf699586a7fef1dbe2",
+      "pack_id": "en-fineweb-edu"
+    },
+    {
+      "path": "train/en-fineweb-edu/part-00001.parquet",
+      "rows": 17929,
+      "sha256": "bdd5d5b4f7aa8ec00e17865b5ebe13344728569aa7ffff7f37ba942b6fe42229",
+      "pack_id": "en-fineweb-edu"
+    },
+    {
+      "path": "train/en-nemotroncc/part-00000.parquet",
+      "rows": 68777,
+      "sha256": "19d641f52f5fc9c884da2fc4b4df1bc0327d73e327c12abb8efe0201c1668fda",
+      "pack_id": "en-nemotroncc"
+    },
+    {
+      "path": "train/en-nemotroncc/part-00001.parquet",
+      "rows": 23043,
+      "sha256": "afba6a19de409e5208b3eb690ed360ad90aebb5c4cfd7f2bd389b468d2066202",
+      "pack_id": "en-nemotroncc"
+    },
+    {
+      "path": "train/en-nemotroncc-synth/part-00000.parquet",
+      "rows": 147754,
+      "sha256": "a601748f22e32bfb839bdb76e8e645f3beae510460857eb206fbdf3ce53a2427",
+      "pack_id": "en-nemotroncc-synth"
+    },
+    {
+      "path": "train/en-nemotroncc-synth/part-00001.parquet",
+      "rows": 49365,
+      "sha256": "03a9efeb92e210dcb5b32d350cdee60fa032d21ea9454cefc913b0785f55ae9f",
+      "pack_id": "en-nemotroncc-synth"
+    },
+    {
+      "path": "train/ind-bn-fw2/part-00000.parquet",
+      "rows": 11205,
+      "sha256": "fda2605fd302c5bee7ad3c780e11460a7ccdfc60d4a1467854c1dee974d633e9",
+      "pack_id": "ind-bn-fw2"
+    },
+    {
+      "path": "train/ind-bn-sangraha-v/part-00000.parquet",
+      "rows": 10328,
+      "sha256": "84a59d8676186cdd4676e65cd8d00ce5dde23a3abb76be66c1d9389a163194ed",
+      "pack_id": "ind-bn-sangraha-v"
+    },
+    {
+      "path": "train/ind-gu-fw2/part-00000.parquet",
+      "rows": 23118,
+      "sha256": "c6acc68da0a785c7704821414230474f05ebb40824f0fd30cc19cdcd29b5000f",
+      "pack_id": "ind-gu-fw2"
+    },
+    {
+      "path": "train/ind-hi-fw2/part-00000.parquet",
+      "rows": 14261,
+      "sha256": "28f77743e293573f70554bdc8f3d3b29764f5e5154ed53ee4fb61c951604c4e3",
+      "pack_id": "ind-hi-fw2"
+    },
+    {
+      "path": "train/ind-hi-hplt/part-00000.parquet",
+      "rows": 8745,
+      "sha256": "77c3d8297b9d472c0d4138998d61e3f5f167df2cf69810790701e9f078ec6afc",
+      "pack_id": "ind-hi-hplt"
+    },
+    {
+      "path": "train/ind-hi-indiccorp/part-00000.parquet",
+      "rows": 110836,
+      "sha256": "43666b10ed3aef16a065c357630fd2dd8e253712e605580355b007e17e388030",
+      "pack_id": "ind-hi-indiccorp"
+    },
+    {
+      "path": "train/ind-hi-sangraha-s/part-00000.parquet",
+      "rows": 8280,
+      "sha256": "d55c8005f7f030d676bef8e76f22f723e2f63ccbd46f5df2efb0d7ea42bbc256",
+      "pack_id": "ind-hi-sangraha-s"
+    },
+    {
+      "path": "train/ind-hi-sangraha-v/part-00000.parquet",
+      "rows": 14709,
+      "sha256": "26adb8a93f68d316e49f233cf5258852dc5a390ba61bb2297b6e0cc0be047551",
+      "pack_id": "ind-hi-sangraha-v"
+    },
+    {
+      "path": "train/ind-kn-fw2/part-00000.parquet",
+      "rows": 7834,
+      "sha256": "0afbb42297d99031143f722aca4a6dd6929eec5b31e4b518494a2913d1a73811",
+      "pack_id": "ind-kn-fw2"
+    },
+    {
+      "path": "train/ind-kn-sangraha-s/part-00000.parquet",
+      "rows": 5191,
+      "sha256": "4008c98bbcb089bd1968df1ef8fa8d6d66e5cd592252ff8581cd143d2703d757",
+      "pack_id": "ind-kn-sangraha-s"
+    },
+    {
+      "path": "train/ind-kn-sangraha-v/part-00000.parquet",
+      "rows": 8551,
+      "sha256": "f142558db1b861c59fca75e6242a7cb890aa6d095967c2b2e90d31b72b7a585b",
+      "pack_id": "ind-kn-sangraha-v"
+    },
+    {
+      "path": "train/ind-ml-fw2/part-00000.parquet",
+      "rows": 18976,
+      "sha256": "ad1c7c7021864d45eeaa9f6524467c35db853c5be0593067d9b52b98914bdfe6",
+      "pack_id": "ind-ml-fw2"
+    },
+    {
+      "path": "train/ind-mr-fw2/part-00000.parquet",
+      "rows": 11460,
+      "sha256": "b015d9fa295b12b93b3d14e5c249a67e05ddf7c73d9f37051d84f7a69350105c",
+      "pack_id": "ind-mr-fw2"
+    },
+    {
+      "path": "train/ind-mr-sangraha-v/part-00000.parquet",
+      "rows": 12172,
+      "sha256": "85f3fe3355206939f4b483da0e7e0187aa3738067951a78ffcccfb097237b7cc",
+      "pack_id": "ind-mr-sangraha-v"
+    },
+    {
+      "path": "train/ind-or-fw2/part-00000.parquet",
+      "rows": 33684,
+      "sha256": "e5a9d06de192e38871bb3bde349d9544990a6f6abac8c4ea299c40fc627b77eb",
+      "pack_id": "ind-or-fw2"
+    },
+    {
+      "path": "train/ind-sa-fw2/part-00000.parquet",
+      "rows": 5908,
+      "sha256": "1238fde5e67f36130972e3aa0df015450d6352e979dcbc0a852f9133fb17e0ee",
+      "pack_id": "ind-sa-fw2"
+    },
+    {
+      "path": "train/ind-ta-fw2/part-00000.parquet",
+      "rows": 6766,
+      "sha256": "1eb97539bd7f328e3f6c54d9b297216e3934cc473566c10659d9537437f2af74",
+      "pack_id": "ind-ta-fw2"
+    },
+    {
+      "path": "train/ind-ta-sangraha-s/part-00000.parquet",
+      "rows": 4336,
+      "sha256": "dc0fa0cc9791dcf163aa58272c1075ef2317fbd7e157daabd5bd8de42e6f938b",
+      "pack_id": "ind-ta-sangraha-s"
+    },
+    {
+      "path": "train/ind-ta-sangraha-v/part-00000.parquet",
+      "rows": 6796,
+      "sha256": "3774dd4f98e7834b3510261dfbd24950e8b052dc25636b642b7830d02d1b724b",
+      "pack_id": "ind-ta-sangraha-v"
+    },
+    {
+      "path": "train/ind-te-fw2/part-00000.parquet",
+      "rows": 5997,
+      "sha256": "194f080c14dec33a3a7312bdc147c86c51450b995086189aa092a92ef4316165",
+      "pack_id": "ind-te-fw2"
+    },
+    {
+      "path": "train/ind-te-sangraha-s/part-00000.parquet",
+      "rows": 4782,
+      "sha256": "878ece52c5dff94686df2ff296e6556bb6234aa5b413c56574360dd5f7a70c7f",
+      "pack_id": "ind-te-sangraha-s"
+    },
+    {
+      "path": "train/ind-te-sangraha-v/part-00000.parquet",
+      "rows": 8609,
+      "sha256": "5e10f6717de94d516fb6dbc45372d4b620fbe0bb7970dec13ff8c10b429ab6f9",
+      "pack_id": "ind-te-sangraha-v"
+    },
+    {
+      "path": "train/math-finemath/part-00000.parquet",
+      "rows": 29122,
+      "sha256": "a5dbb4da6d0c2e890901aecb10b5c2bd71378d8e66e5975adc0d7d98592f51b2",
+      "pack_id": "math-finemath"
+    },
+    {
+      "path": "train/math-megamath/part-00000.parquet",
+      "rows": 17647,
+      "sha256": "e8c53baf0e1c842d303199b93cc36768199edbc64a142925df890915c4cb7d91",
+      "pack_id": "math-megamath"
+    },
+    {
+      "path": "train/sci-finepdfs/part-00000.parquet",
+      "rows": 6011,
+      "sha256": "87dd59b9268bf5784e8f60e40a829ccfb6c6b62d28e6c88ddb4770782af0eb69",
+      "pack_id": "sci-finepdfs"
+    }
+  ],
+  "seconds": 334.9,
+  "versions": {
+    "python": "3.13.18",
+    "pyarrow": "26.0.1",
+    "regex": "2026.11.25",
+    "unicodedata": "15.1.0"
+  }
+}
