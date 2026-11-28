@@ -305,7 +305,7 @@ The 19 benchmarks of v2 built with `g9-v2` are byte for byte the set that these 
 
 ## The fingerprint set (v3) — Lab 5
 
-**set_sha256 (v3): `2a235987bd047da46ed06f528afbbb465d4027938adff6b0e8f3ab41d0557e90`**, normalizer `g9-v2`
+**set_sha256 (v3): `876f3b866e5ef3fcb7632735d791bd484dfa5f17fa0799408602c9d79c91061a`**, normalizer `g9-v2`
 (the same as v2, so v2 and v3 scores are directly comparable).
 
 v3 exists to close the gap recorded in `results/known_failures.md`: **12 benchmarks were scored or reported with no
@@ -313,8 +313,8 @@ fingerprint at all**, including four of the six tasks the watcher scores on ever
 
 | | v2 | v3 |
 |---|---|---|
-| Benchmarks | 20 | **31** |
-| Items | 133,285 | **154,594** |
+| Benchmarks | 20 | **32** |
+| Items | 133,285 | **159,594** |
 | Hashes (13-word / 20-token runs) | 8,940,301 | **11,726,238** |
 | Size on disk | 149 MB | 195 MB |
 | Largest file | <4 MB | <4 MB |
@@ -334,6 +334,7 @@ Added (revision and file sha256 pinned in `benchmarks.toml`, read 28 Nov 2026):
 | HumanEval+ | 164 | 11,408 | 0 |
 | MBPP | 500 | 7,504 | 2 |
 | MBPP+ | 378 | 4,424 | 2 |
+| **MATH** (added for lead 8, #931) | 5,000 | 638,110 | 0 |
 
 **HellaSwag is NOT in v3, deliberately.** wikiHow, Inc. filed a DMCA takedown on 2026-09-14 naming
 `github.com/rowanz/hellaswag`, which now returns HTTP 451. The dataset card says MIT, but that grant covers the
@@ -341,6 +342,11 @@ authors' release, not the wikiHow article text about 45k of the 70k contexts are
 `status = "skip"` with the reason recorded, so the decision is in the repo and not only in chat. **Do not fingerprint
 or redistribute it, and ask TSAI before quoting HellaSwag numbers in a release.** It remains the one benchmark in
 `known_failures.md`'s list of 12 that v3 does not close.
+
+**MATH was added after the lead-8 list (#931)** asked for it. It matters beyond coverage: Team 1's reply #914 reports
+that `zwhe99/DeepMath-103K` contains MATH test items, and with MATH in the set that is now checkable. Measured:
+**302 of the first 3,000 rows in DeepMath's `train-0000-9` are flagged by the MATH fingerprint, against 2 of 3,000
+in `train-0000-0`** — matching the 2,118 exact copies I counted in that shard.
 
 ### Measured on v3
 
