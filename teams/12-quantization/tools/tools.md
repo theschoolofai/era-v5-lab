@@ -35,7 +35,7 @@ Test models: `allenai/OLMoE-1B-7B-0924` (`OlmoeForCausalLM`, 64 experts, top-8, 
 | llama.cpp `llama-server` | MIT | GGUF | yes | yes |
 | Ollama (`ollama/ollama`) | MIT | GGUF (Modelfile) | runs llama.cpp GGUF; the converter is a week-4 task | yes |
 | vLLM | Apache-2.0 | bf16, FP8, GPTQ, AWQ, compressed-tensors, GGUF (experimental) | yes: `models/olmoe.py` | yes: `models/qwen3_moe.py` |
-| SGLang | Apache-2.0 | bf16, FP8, GPTQ, AWQ, compressed-tensors | not checked | not checked |
+| SGLang | Apache-2.0 | bf16, FP8, GPTQ, AWQ, compressed-tensors. Our ERNIE export (27 Nov): 0.5.23 loads it but drops the router’s selection bias on CUDA, so it should not serve our model yet ([`serving/sglang/`](../serving/sglang/README.md)) | not checked | not checked |
 
 ## Choice for week 1
 
