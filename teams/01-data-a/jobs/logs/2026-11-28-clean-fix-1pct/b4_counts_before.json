@@ -1,0 +1,28 @@
+{
+ "math-finemath": {
+  "clean_actions": {
+   "drop": 2
+  },
+  "docs": 294,
+  "docs_with_group": 2,
+  "dropped_by_rule": {
+   "DA-C3-004": 2
+  },
+  "fixed_docs_by_kind": {},
+  "fixed_docs_with_groups_removed": 0,
+  "groups": 6,
+  "groups_in_fixed_docs_by_kind": {},
+  "groups_removed_in_fixed_docs": 0
+ },
+ "math-megamath": {
+  "clean_actions": {},
+  "docs": 178,
+  "docs_with_group": 0,
+  "dropped_by_rule": {},
+  "fixed_docs_by_kind": {},
+  "fixed_docs_with_groups_removed": 0,
+  "groups": 0,
+  "groups_in_fixed_docs_by_kind": {},
+  "groups_removed_in_fixed_docs": 0
+ }
+}

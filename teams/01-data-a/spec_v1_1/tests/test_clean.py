@@ -44,11 +44,16 @@ class Build(unittest.TestCase):
             self.assertEqual(out.read_bytes(), CLEAN.read_bytes(),
                              "spec_v1_1/clean.py is out of date: rebuild it from sheets/specv1_1.md")
 
-    def test_246_rules_and_the_shared_f1(self):
-        self.assertEqual(len(c._RULE), 247)
+    def test_245_rules_and_the_shared_f1(self):
+        self.assertEqual(len(c._RULE), 246)
         self.assertIn("f1_rule.py", c._RULE)
         counts = {family: len(rules) for family, rules in c._PIPELINES.items()}
-        self.assertEqual(counts, {"code": 24, "english": 23, "math": 22, "sci": 24, "indic": 153, "code-adjacent": 0})
+        self.assertEqual(counts, {"code": 24, "english": 23, "math": 21, "sci": 24, "indic": 153, "code-adjacent": 0})
+
+    def test_da_a5_002_is_deferred_by_the_build_with_tsais_reason(self):
+        self.assertNotIn("DA-A5-002", c._RULE)
+        self.assertNotIn("DA-A5-002", c.SCOPE)
+        self.assertIn("NFC only, never NFKC", c.DEFERRED_RULES["DA-A5-002"])
 
     def test_every_v1_1_rule_runs_on_its_origin_packs_only(self):
         self.assertEqual(len(V11), 24)
@@ -127,6 +132,38 @@ class UseClean(unittest.TestCase):
                              capture_output=True, text=True)
         self.assertNotEqual(run.returncode, 0)
         self.assertIn("no such tool", run.stderr)
+
+
+class NormalForm(unittest.TestCase):
+    """The lab rule (TSAI, 28 Nov 2026; Data Task Handbook steps 8 and 9, Gate 1 checklist): text is normalised to NFC
+    only, never NFKC, and ZWJ/ZWNJ are never removed. ftfy's mojibake repair (DA-A3-002) is the one place a fold may
+    happen. A ligature (U+FB00-U+FB06) and a fullwidth letter (U+FF01-U+FF5E) are left as they are.
+
+    Issue theschoolofai/era-v5-lab#915: DA-A5-002 folded to NFKC (clean.py d275556e lines 3398 and 3405). The build now
+    defers it (build_clean.py DEFER_AT_BUILD), so these tests pass."""
+
+    FOLDS = ('normalize("NFKC"', "normalize('NFKC'", 'normalize("NFKD"', "normalize('NFKD'", "0xFEE0")
+    MATH = ("math-finemath", "math-megamath")
+
+    def test_no_rule_applies_nfkc_or_a_fullwidth_fold(self):
+        lines = CLEAN.read_text(encoding="utf-8").splitlines()
+        hits = [f"line {n}: {line.strip()}" for n, line in enumerate(lines, 1) if any(f in line for f in self.FOLDS)]
+        self.assertEqual(hits, [], "clean.py folds text to compatibility forms (NFKC); the lab rule is NFC only")
+
+    def test_ligatures_survive_cleaning_on_the_math_packs(self):
+        text = "Lemma 2. The ﬁrst coeﬃcient of the series is positive, and the second one is negative.\n"
+        for pack in self.MATH:
+            action, out = c.clean(doc(pack, text))
+            self.assertNotEqual(action, "drop", pack)
+            self.assertIn("ﬁrst", out, pack)
+            self.assertIn("coeﬃcient", out, pack)
+
+    def test_fullwidth_letters_survive_cleaning_on_the_math_packs(self):
+        text = "In the triangle ＡＢＣ the angle at Ｂ is a right angle, so the area is half the product.\n"
+        for pack in self.MATH:
+            action, out = c.clean(doc(pack, text))
+            self.assertNotEqual(action, "drop", pack)
+            self.assertIn("ＡＢＣ", out, pack)
 
 
 if __name__ == "__main__":

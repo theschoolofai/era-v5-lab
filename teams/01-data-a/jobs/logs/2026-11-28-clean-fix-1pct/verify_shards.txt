@@ -1,0 +1,2 @@
+verify_shards: 0 problem(s) in out/pipeline/clean-fix-1pct/shards
+exit 0

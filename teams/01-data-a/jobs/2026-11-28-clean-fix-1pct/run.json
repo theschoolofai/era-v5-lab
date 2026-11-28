@@ -1,0 +1,29 @@
+{
+  "_comment": "The cleaner fix (DA-A5-002 deferred, DA-B4-001 fixed; #915, #911) on the 1% slice of tokenizer sample v0 (pipeline/local_trial/slice_sample.py of #898, seed 20261128, slice manifest 0b1a3e43...). The same stages as #898's run_baseline.json (MinHash overlap, F2 pool, ledger mode B, shards, reconcile; no H3), so the cleaner is the only difference. The clean stage uses pipeline/clean.json, which pins the new cleaner. The tokenizer is any tokenizer.json, so the shards are marked test.",
+  "run_id": "clean-fix-1pct",
+  "out": "out/pipeline",
+  "intermediates": "keep",
+  "stages": {
+    "clean": {
+      "mode": "run",
+      "settings": "teams/01-data-a/pipeline/clean.json",
+      "workers": 4,
+      "input": "inputs/sample_1pct",
+      "manifest_sha256": "0b1a3e4305e5eaef10d2254835ad325dd92f5cffdc5d1ba3b26cf06117722bb1",
+      "expected_parts": {"train": 48, "heldout": 38}
+    },
+    "overlap": {
+      "mode": "run",
+      "script": "teams/01-data-a/dedup/minhash_overlap.py",
+      "settings": "teams/01-data-a/dedup/minhash_overlap.json"
+    },
+    "dedup": {"mode": "run", "settings": "teams/01-data-a/dedup/dedup.json"},
+    "f2": {"pool": true, "workers": 4},
+    "ledger": {"raw": "inputs/sample_1pct"},
+    "shards": {
+      "tokenizer": "inputs/sample_1pct/tokenizer.json",
+      "any_tokenizer": true
+    },
+    "reconcile": {}
+  }
+}
