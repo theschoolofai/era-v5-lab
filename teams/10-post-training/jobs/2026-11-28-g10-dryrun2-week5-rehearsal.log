@@ -1,0 +1,120 @@
+Dry run 2 jobs, local rehearsal of both job commands on week 5 code, 28 November 2026
+Code: g10-week5-post-training at 1ee65d5c (includes lab PR #882), plus the optimizer fix of saitej123/era-v5-lab#184 and
+the changes in the same pull request as this file. CPU, Python 3.11.16, torch 2.7.1+cpu. <LAB> lab checkout, <IN> private inputs, <JOB> private job folder.
+
+What is real: the two Command lines, read from the job files with their placeholders filled in (so the comparison command
+carries --dt-unseen keep); the p1536 tokenizer and KE2 byte table; 45 documents of held-out v1 (3 per slice); Team 5's
+trainer, KAS V2 head, a Team 7 store.
+What is a stand-in: a 2-layer, width-256 model trained 3 steps on synthetic text (run id dryrun2-1234); its delivered
+manifest.json and summary.json were edited locally to smoke=false, AGREED_BASELINE_RUN and COMPLETED so that
+--origin g5_delivery loads it; synthetic SFT pack shards and code tasks; --no-pack-check; small sizes appended to each
+command (including --dt-calib-rows 4, so most experts get no calibration tokens here); --device cpu; the RL reward replaced
+by a seeded coin (--stand-in-reward 0.4); MADE-UP benchmark rows.
+Run with OMP_NUM_THREADS=1 MKL_NUM_THREADS=1. With torch's default threads on this laptop, two same-seed RL runs differed
+from the 7th digit of the loss, and Team 7's bit-exact export probe refused a folder saved with default threads and read
+with one thread. With one thread everywhere the rerun in section 4 equals the first run.
+Nothing here is a quality result. Not covered: GPU and bf16, the pinned data, the dry run 2 checkpoint, Team 9's scorer.
+
+== 1. comparison job command (exit 0; wall 231.16 s, peak 2064260 KB)
+$ G10_STDIO_RUNNER=docker G5=<LAB> T5_OUT=<JOB>/t5_out STORE=<JOB>/store TOKENIZER=<IN>/tokenizer/tokenizer.json TABLE=<LAB>/teams/04-ke2/results/tables/p1536-s0/raw_table_P32.npz HELDOUT=<IN>/run/inputs/heldout_slice.jsonl HELDOUT_SOURCES=<IN>/run/inputs/held
+[g5_source_resolver] --g5-root matches the run's recorded Team 5 sources (8 files); using it as is
+[dryrun2_job_chain 14:29:15Z] Team 5 code root: <LAB>
+[dryrun2_job_chain 14:29:15Z] rebuild from store <JOB>/store (run id from <JOB>/t5_out/manifest.json)
+probe file work/probe.json: 32 targets, expected_mean_nll 7.691685, atol 0.0001, device cpu, weights c8cfeadfecca
+[dryrun2_job_chain 14:29:51Z] wrapper: dryrun2_dt_compare.py --run-folder work//dr2_run --probe-file work//probe.json --origin g5_delivery --heldout <IN>/run/inputs/heldout_slice.jsonl --heldout-sources <IN>/run/inputs/heldout_slice_sources.jsonl --packs <JOB>
+{"step": "pins", "ok": true, "seconds": 0.9}
+{"step": "inputs", "ok": true, "seconds": 0.3}
+{"step": "sft_full", "ok": true, "seconds": 52.0}
+{"step": "sft_lora", "ok": true, "seconds": 30.8}
+{"step": "sft_dt", "ok": true, "seconds": 31.8}
+{"step": "compare", "ok": true, "seconds": 0.0}
+{"ok": true, "steps": 6, "failed_steps": [], "kept_weights": {"sft_full": {"run_dir": "<JOB>/keep_t7/g10-dr2-full", "step": 3, "manifest_path": "g10-dr2-full/main/step_00000003-e1/MANIFEST.json", "manifest_sha256": "d193965183ee7ac99c30ed87bf510a542102cb424927
+{"arm_checks": {"sft_dt": {"router_bias_unchanged": true, "im_end_end_mid": [-17.069950580596924, -17.03457968323319, -16.65804624557495, -16.62300893995497]}, "sft_full": {"router_bias_unchanged": true, "im_end_end_mid": [-17.084325313568115, -17.049555955109
+[dryrun2_job_chain 14:31:48Z] forgetting bits per byte: base and kept arms -> out//forget
+base: bpb_all 1.972777 (float32 (TF32 off)) -> out/forget/forget_base.json
+g10-dr2-full: bpb_all 1.957749 (float32 (TF32 off)) -> out/forget/forget_g10-dr2-full.json
+g10-dr2-lora: bpb_all 1.965057 (float32 (TF32 off)) -> out/forget/forget_g10-dr2-lora.json
+g10-dr2-dt: bpb_all 1.972879 (float32 (TF32 off)) -> out/forget/forget_g10-dr2-dt.json
+[dryrun2_job_chain 14:33:05Z] done: wrapper exit 0, arm checks in work//arm_checks.json
+-- out/compare.md
+# Dry Run 2 SFT Comparison: Full FT vs LoRA vs Deletion Tuning
+
+Steps matched: `True` | Forgetting limit: `+0.05` bpb (at-limit margin `±0.01`)
+
+| Arm | Steps | Eval NLL ↓ | Forgetting Δbpb ↓ | Verdict | Format Valid ↑ | Closed Turns ↑ | RL Mixed / Pass |
+|---|---:|---:|---:|---|---:|---:|---|
+| base | 0 | 9.4251 | +0.0000 | base | 0.000 | 0.000 | 0 / 0.000 |
+| full | 3 | 9.1700 | -0.0150 | ok | 0.000 | 0.000 | 0 / 0.000 |
+| lora | 3 | 9.3061 | -0.0077 | ok | 0.000 | 0.000 | 0 / 0.000 |
+| dt | 3 | 9.4256 | +0.0001 | ok | 0.000 | 0.000 | 0 / 0.000 |
+
+DT calibration unseen experts: policy=`keep`, `layers_without_scores=20`
+Deleted fraction at init: uncalibrated layers 0.00138 (20 layers), calibrated layers 0.00179 (14 layers)
+Deleted fraction final: uncalibrated layers 0.00128 (20 layers), calibrated layers 0.00178 (14 layers)
+
+== 2. DT-then-RL job command, on the DT export and run folder of step 1 (exit 0; wall 33.16 s, peak 1509644 KB)
+$ G10_STDIO_RUNNER=docker G10_STDIO_SECRET_PATHS=<JOB>/pool/out/v1/cc.jsonl python teams/10-post-training/capstone/rl_job_v1.py --g5-root <LAB> --run-folder work/dr2_run --tokenizer <IN>/tokenizer/tokenizer.json --byte-table <LAB>/teams/04-ke2/results/tables/p
+{"step": "env", "ok": true, "seconds": 0.9}
+{"step": "guard", "ok": true, "seconds": 0.9}
+{"step": "g5_source", "ok": true, "seconds": 0.0}
+{"step": "pins", "ok": true, "seconds": 0.2}
+{"step": "pool", "ok": true, "seconds": 0.0}
+{"step": "tricks", "ok": true, "seconds": 7.5}
+{"step": "rate", "ok": true, "seconds": 1.6}
+{"step": "plan", "ok": true, "seconds": 0.0}
+{"logprob_gate": {"tokens": 32, "max_abs": 0.0, "mean_abs": 0.0, "outside_frac": 0.0, "finite": true, "eps": 0.2, "update_mode": "eval", "reference": ["eval_forward"], "mean_abs_tol": 0.01, "outside_frac_tol": 0.005, "ok": true, "prompts": 1, "k": 8, "max_new"
+{"step": 0, "heldout_reward": 0.5, "truncated": 1.0, "mean_tokens": 4.0}
+{"step": 1, "train_reward": 0.625, "groups_used": 1, "groups_dropped": 0, "loss": 0.08829763531684875, "tr_epsilon": 0.2, "group_kinds": {"all_one": 0, "all_zero": 0, "tied_other": 0, "singleton": 0, "mixed": 1}, "tokens": 32, "passes": 5, "rollouts": 8, "rati
+{"step": 2, "train_reward": 0.625, "groups_used": 1, "groups_dropped": 0, "loss": 0.1014983057975769, "tr_epsilon": 0.2, "group_kinds": {"all_one": 0, "all_zero": 0, "tied_other": 0, "singleton": 0, "mixed": 1}, "tokens": 32, "passes": 5, "rollouts": 8, "ratio
+{"step": 3, "train_reward": 0.375, "groups_used": 1, "groups_dropped": 0, "loss": 0.12904155254364014, "tr_epsilon": 0.2, "group_kinds": {"all_one": 0, "all_zero": 0, "tied_other": 0, "singleton": 0, "mixed": 1}, "tokens": 32, "passes": 3, "rollouts": 8, "rati
+{"step": "rl", "ok": true, "seconds": 21.3}
+{"ok": true, "steps": 9, "failed_steps": [], "kept_weights": {"rl": {"run_dir": "<JOB>/keep_t7/g10-rl-final", "step": 3, "manifest_path": "g10-rl-final/main/step_00000003-e1/MANIFEST.json", "manifest_sha256": "2f082c2d7bdbd9d91668e5148d90521a2d1b474b2d52c9de01
+
+== 3. Team 9's reader functions on the four kept folders, keep_weights.py check with the run's manifest.json,
+==    then MADE-UP rows (Team 9's records_for: acc and acc_norm) -> watcher_rows_to_report.py -> forgetting.py
+g10-dr2-full: team9 revision d193965183ee step 3; check(manifest.json) rc 0 {"ok": true, "head_mode": "kas_v2", "bias_gamma": 0.001}
+g10-dr2-lora: team9 revision 23b0360f0fb1 step 3; check(manifest.json) rc 0 {"ok": true, "head_mode": "kas_v2", "bias_gamma": 0.001}
+g10-dr2-dt: team9 revision 985ff1fd52d7 step 3; check(manifest.json) rc 0 {"ok": true, "head_mode": "kas_v2", "bias_gamma": 0.001}
+g10-rl-final: team9 revision 2f082c2d7bdb step 3; check(manifest.json) rc 0 {"ok": true, "head_mode": "kas_v2", "bias_gamma": 0.001}
+base revisions in report: ['c8cfeadfecca', '6e62e4a5ab9a']
+full: bpb chain step 6 1.957749486 | sft job 1.9577494862052256 | revision equal True | manifest equals job's True
+lora: bpb chain step 6 1.965056631 | sft job 1.9650566311209763 | revision equal True | manifest equals job's True
+dt: bpb chain step 6 1.972879208 | sft job 1.9728792080224935 | revision equal True | manifest equals job's True
+convert base rc 0 wrote <JOB>/verdict/base.json: 2 tasks, dtype float32, model_revision 6e62e4a5ab9a544a70e6d48e049d31222a994f4e75d4e6a04290ce8e24cca478
+convert full rc 0 wrote <JOB>/verdict/full.json: 2 tasks, dtype float32, model_revision d193965183ee7ac99c30ed87bf510a542102cb4249278377134296ba5105bbe1
+forgetting full rc 0 ['Verdict: No forgetting beyond the limits.']
+convert lora rc 0 wrote <JOB>/verdict/lora.json: 2 tasks, dtype float32, model_revision 23b0360f0fb147d41569185f9e36bd2e6252b76ca5ab5f495d96bac414c1b060
+forgetting lora rc 0 ['Verdict: No forgetting beyond the limits.']
+convert dt rc 0 wrote <JOB>/verdict/dt.json: 2 tasks, dtype float32, model_revision 985ff1fd52d79983e773b7d2a1e07f9234174af1832743ed8f7f4134f0248b87
+forgetting dt rc 0 ['Verdict: No forgetting beyond the limits.']
+
+== 4. section 2's command with --keep-weights-dir keep_t7_blocked/ --out out/rl_recovery, a file placed where the run
+==    folder must go (first run), then the file removed and the same command run again (second run); then the weights
+== first run (save blocked)
+exit 1
+final weights not saved as a run folder: FileExistsError: [Errno 17] File exists: '<JOB>/keep_t7_blocked/g10-rl-final'; rl_state is kept, rerun the same command to resume it and save again
+== second run (same command, cause removed)
+exit 0
+{"resumed_from": "state.step000003.pt", "step": 3, "elapsed_s": 12.8}
+{"ok": true, "steps": 9, "failed_steps": [], "kept_weights": {"rl": {"run_dir": "<JOB>/keep_t7_blocked/g10-rl-final", "step": 3, "manifest_path": "g10-rl-final/main/step_00000003-e1/MANIFEST.json", "manifest_sha256": "e0f4bb926d8b669471b886872a6a6fa66fa2ec7eb3ce5d9a02680434aeab95fc", "s
+DT SFT arm: step 3, deleted entries 9914, nonzero among them 0, digest a01f39c5aa03
+after RL, saved at once: step 3, deleted entries 9914, nonzero among them 0, digest 2f7807ab3e21
+after RL, saved by the rerun: step 3, deleted entries 9914, nonzero among them 0, digest 2f7807ab3e21
+rerun weights equal the first run's: True
+tensors RL changed vs the DT arm: 123 of 129
+
+== 5. sft_g5.py on the run folder of step 1, same rows and seed, without and with --grad-checkpointing (new, default off)
+==    5 steps, batch 4, full FT and DT. Tiny model: it shows equal numbers, not a memory saving worth quoting.
+{'train_rows': 196, 'dev_rows': 4}
+full blocks recomputed 0 -> 2
+  loss off [10.947952, 10.759973, 10.520827, 10.447878, 10.115155]
+  loss on  [10.947952, 10.759973, 10.520827, 10.447878, 10.115155] | largest difference 0.0
+  off: optimizer adamw | reload parity True | frozen unchanged None | router bias unchanged True | wall 10.35 s, peak 1243216 KB
+  on: optimizer adamw | reload parity True | frozen unchanged None | router bias unchanged True | wall 10.85 s, peak 1279724 KB
+dt blocks recomputed 0 -> 2
+  loss off [10.940919, 10.825637, 10.715626, 10.829846, 10.733714]
+  loss on  [10.940919, 10.825637, 10.715626, 10.829846, 10.733714] | largest difference 0.0
+  off: optimizer adamw | reload parity True | frozen unchanged True | router bias unchanged True | wall 10.31 s, peak 1151104 KB
+     deleted at init 10379, final 9338, uncalibrated layers 20
+  on: optimizer adamw | reload parity True | frozen unchanged True | router bias unchanged True | wall 11.30 s, peak 1134360 KB
+     deleted at init 10379, final 9338, uncalibrated layers 20
