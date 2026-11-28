@@ -40,7 +40,8 @@ def ci(a: list, fmt) -> str:
 def render(llama: dict, torch_ref: dict, a) -> str:
     meta, speeds = llama["meta"], llama["rows"]
     order = [f["format"] for f in torch_ref["formats"]]
-    base_speed = speeds["bf16"]["rollout_tokens_per_s"] if "bf16" in speeds else None
+    speed_base = getattr(a, "speed_base", None) or "bf16"
+    base_speed = speeds[speed_base]["rollout_tokens_per_s"] if speed_base in speeds else None
     eps = torch_ref["eps"]
     cats = (", ".join(f"{v} {k}" for k, v in meta["prompt_categories"].items()) if meta["prompt_categories"]
             else "composition not recorded by the script version of this run" + (f"; {a.prompt_note}" if a.prompt_note else ""))
@@ -65,6 +66,21 @@ def render(llama: dict, torch_ref: dict, a) -> str:
         lines.append(f"| `{f['format']}` | **{pct(f['outside'])}** ({pct(f['below'])} / {pct(f['above'])}) | {ci(c['outside'], pct)} | "
                      f"{q[0]:.3g} / {q[1]:.3g} / {q[2]:.3g} | **{f['k3']:.4f}** | {ci(c['k3'], lambda v: f'{v:.4f}')} | "
                      f"{pct(f['top1_agreement'])} {ci(c['top1_agreement'], pct)} | {'-' if tps is None else f'{tps:.1f}'} | {ratio} |")
+    if any("by_category" in f for f in torch_ref["formats"]):
+        cats = sorted({c for f in torch_ref["formats"] if "by_category" in f for c in f["by_category"]})
+        lines += ["", "## By prompt category (PyTorch reference; prompts per category in the header; intervals resample the prompts of that category)", "",
+                  "| Format | " + " | ".join(f"{c}: outside / k3 / top-1" for c in cats) + " |", "|---|" + "---|" * len(cats)]
+        for f in torch_ref["formats"]:
+            if "by_category" not in f:
+                continue
+            cells = []
+            for c in cats:
+                r = f["by_category"].get(c)
+                cells.append("-" if not r else f"{pct(r['outside'])} / {r['k3']:.4f} / {pct(r['top1_agreement'])}")
+            lines.append(f"| `{f['format']}` | " + " | ".join(cells) + " |")
+        lines += ["", "Each category has few prompts (10 at a balanced 50), so these cells are noisier than the pooled table; the intervals are in `torch_reference.json` (`by_category`)."]
+        if torch_ref.get("category_note"):
+            lines += ["", torch_ref["category_note"]]
     lines += ["", "**Reading the table**"]
     if "bf16" in order:
         b = next(f for f in torch_ref["formats"] if f["format"] == "bf16")
@@ -84,6 +100,7 @@ def main() -> int:
     ap.add_argument("--torch", required=True, type=Path, help="torch_reference.json of stage 2")
     ap.add_argument("--model", required=True); ap.add_argument("--notebook-version", required=True)
     ap.add_argument("--pr-this", required=True); ap.add_argument("--pr-baseline", required=True)
+    ap.add_argument("--speed-base", default="bf16", help="format whose rollout tok/s is the baseline of the speed column (vllm_fp16 or vllm_bf16 for a vLLM run)")
     ap.add_argument("--hardware", default="Kaggle T4 x2", help="where the sampler ran, as written in the note")
     ap.add_argument("--prompt-note", default="", help="free text on the prompts, for runs that did not record their composition")
     ap.add_argument("--out", required=True, type=Path)
