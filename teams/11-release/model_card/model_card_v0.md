@@ -174,15 +174,17 @@ before the text is tokenised.
   `<EMAIL>`, `<PHONE>` or `<ADDRESS>`. It keeps the details of organisations, such as a support mailbox.
 - It drops a document when most of its text is such details, such as a personal listing.
 - In code, it replaces a value only inside a comment or a string, so the values that a program uses stay.
-- The Indian-language text has its own rule, for Indian phone formats and for digits in each script.
+- The Indian-language text has its own rule, for Indian phone formats and for digits in each script. It masks phone
+  numbers and e-mail addresses only, and drops no personal listing.
 - In commit messages, it masks only e-mail addresses. There, the phone and address patterns matched other numbers,
   such as IP addresses and part numbers.
-- Other rules replace secrets, such as API keys and passwords, with a placeholder.
+- In code, other rules replace secrets, such as API keys and passwords, with a placeholder.
 
 What the cleaner could not check:
 
 - Two kinds of code-adjacent text, notebooks and Stack Exchange posts, have no rule for personal details yet. They have
   no gold set to test a rule on.
+- Street addresses in the Indian-language text, because they have no fixed form.
 - [text: waiting for Data A and Data B: what else the rules cannot find]
 
 ## Tokenizer
@@ -409,7 +411,7 @@ How to fill it:
 | How to find more | Release | yes | the public lab repository | yes (the Release lead wrote this draft) |
 | KE2 | KE2 | the output head: yes, from text that TSAI approved. The dates now have the year, and the text no longer says Gate 3 (style rules 10 and 11). The placeholder on how the lab tested its embedding method is gone: it was wider than the scope in `model_card_outline.md` | `updates/gate3.md` (the output head, short forms; [#701](https://github.com/theschoolofai/era-v5-lab/pull/701)), the KE2 line of `launch/launch_announcement_v0.md` ([#753](https://github.com/theschoolofai/era-v5-lab/pull/753)), the training code: [#717](https://github.com/theschoolofai/era-v5-lab/pull/717), merged 24 Nov | KE2: yes for the text before the date edit ([comment on #791](https://github.com/theschoolofai/era-v5-lab/pull/791#issuecomment-7142627011)); the date edit: yes ([comment on #705](https://github.com/theschoolofai/era-v5-lab/pull/705#issuecomment-7230047772)) |
 | Personal data | Data A, Data B | yes, drafted by Release from the cleaner on main, and sent to both leads in [#878](https://github.com/theschoolofai/era-v5-lab/pull/878). One line waits for the leads: what else the rules cannot find | `teams/01-data-a/spec_v1_1/clean.py`, `teams/01-data-a/spec_v1_1/build/f1_rule.py` | Data A: no. Data B: no |
-| Quantized versions, and Serving | Quantization | yes, from the Quantization file `teams/12-quantization/model_card/quantized_versions_and_serving.md` ([#905](https://github.com/theschoolofai/era-v5-lab/pull/905)), with no edit. Every number waits for TSAI. Open for the KE2 lead and TSAI: the line that says the output head adds a bias for each token. KE2's design is not yet published, so this line needs their OK to stay | the source table in the Quantization file | Quantization: no |
+| Quantized versions, and Serving | Quantization | yes, from the Quantization file `teams/12-quantization/model_card/quantized_versions_and_serving.md` ([#905](https://github.com/theschoolofai/era-v5-lab/pull/905)), with no edit. Every number waits for TSAI. Open for TSAI and Quantization: the router bias may be kept with the ERNIE export ([#838](https://github.com/theschoolofai/era-v5-lab/pull/838); job request [#907](https://github.com/theschoolofai/era-v5-lab/pull/907)). If TSAI chooses that route, the first bullet under "What every GGUF version loses" goes. Open for the KE2 lead and TSAI: the line that says the output head adds a bias for each token. KE2's design is not yet published, so this line needs their OK to stay | the source table in the Quantization file | Quantization: no |
 | Every other section | the owner team in `model_card_outline.md` | no | waiting for the owner team | no |
 
 - [ ] `check_style.py` gives 0 errors
