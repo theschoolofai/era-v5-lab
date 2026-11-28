@@ -21,7 +21,7 @@ Paths are from `teams/01-data-a`.
   - the rules of `sheets/specv1_1.md`, each block's code as the sheet has it, except for its pack lines (below) and these edits by the build:
     - it drops the `AUTHOR` line;
     - it stops `DA-B4-009` from rewriting the `<EMAIL>` tag;
-    - it applies two TSAI rulings of 28 Nov while the sheet is frozen. `DA-A5-002` is deferred: Unicode NFC only, never NFKC (#915). `DA-B4-001`'s `{[ ]}` form needs spaces inside, as its `{{ }}` form does, so LaTeX bracket groups are kept (#911). Both move into the sheet when it is unfrozen;
+    - it applies two TSAI rulings of 28 Nov while the sheet is frozen. `DA-A5-002` is deferred: Unicode NFC only, never NFKC (#915). `DA-B4-001`'s `{[ ]}` form needs spaces inside, as its `{{ }}` form does, so LaTeX bracket groups are kept (#911, #926). Both move into the sheet when it is unfrozen;
   - the shared F1, from `build/f1_rule.py`. It runs after the rules on the code, math, sci and Indic packs, and on cadj-commits for e-mail addresses only (its phone-like numbers are IP addresses, part numbers and data). English runs its own F1 rule, `DA-F1-005`, instead.
 - **The packs a rule runs on are in `SCOPE`,** the table at the top of `clean.py`: 246 entries, one per rule and one for the shared F1.
   - In the sheet, each block names its packs in `SPEC_PACKS`. A block that also guards on its own `ORIGIN` packs (`PACKS` or `_PACKS`) runs only where both allow.
@@ -44,12 +44,62 @@ Paths are from `teams/01-data-a`.
 | [`spec_v1_1/results/cleaner/speed.md`](results/cleaner/speed.md) | Wall time on each 500-doc sample pack, spec v1 against spec v1.1 |
 | [`spec_v1_1/results/cleaner/tokenizer_sample_run.md`](results/cleaner/tokenizer_sample_run.md) | The end-to-end run on all 86 parts of the tokenizer sample v0 (a sample, not the full packs) |
 
-## Current harm validation (after merged #88)
+## This cleaner (28 Nov): DA-A5-002 deferred, DA-B4-001 keeps LaTeX groups
+
+`b9e78f73ec5b4a892d978e7bfc1759fa05e9386054a626e5645e6dce49b58d10` is the one cleaner change TSAI ruled for, before
+corpus-v1. `pipeline/clean.json` and `jobs/tokenizer_sample_v0_clean.json` pin it.
+
+**What it fixes:**
+- **DA-A5-002 is deferred.** It folded ligatures with NFKC and fullwidth letters to ASCII, and the lab rule is Unicode
+  NFC only, never NFKC (#915).
+- **DA-B4-001's `{[ ]}` form needs spaces inside**, as its `{{ }}` form does. It no longer deletes LaTeX bracket groups
+  such as `i^{[j]}` (#911, #926).
+
+Both changes are made by `build/build_clean.py` while the sheet is frozen; `sheets/specv1_1.md` is unchanged.
+
+**Tests:**
+- `python3 -m pytest spec_v1_1/tests -q`: **1,961 passed, 26 subtests passed**. `python3 -m unittest discover -s
+  spec_v1_1/tests`: **206 tests, OK**, with no expected failures.
+- These include `tests/test_clean.py`'s `NormalForm` (#915) and `tests/test_da_b4_001_latex.py`'s `LatexKept` (#911,
+  #926). They failed on `d275556e` and were marked as strict expected failures; this cleaner removes the markers.
+
+**The 1% slice of tokenizer sample v0** (all 86 parts, 14,450 rows, `jobs/2026-11-28-clean-fix-1pct/run.json`, commit
+`15e9d578`), against the same run with `d275556e` (#898, `run_baseline.json`):
+
+| | `d275556e` | `b9e78f73` |
+|---|---|---|
+| pipeline checks | 54 / 54 | 54 / 54 |
+| rows: raw → dropped by clean → removed by dedup → dropped by F2 → final | 14,450 → 344 → 0 → 14 → 14,092 | the same |
+| DA-A5-002 on the math packs | 4 of 472 documents changed | not run (deferred) |
+| DA-B4-001 on the math packs | 2 of 472 documents changed | 2 of 472 documents changed |
+| cleaned parts that differ | | the two math train parts only |
+| shards that differ | | `math-finemath-train-000000`, `math-megamath-train-000000`; the other 46 are byte-identical |
+
+- **Stage seconds** on an Apple M4: clean 10.1 → 9.6, overlap 18.5 → 16.6, F2 35.5 → 33.8, shards 151.6 → 152.0; total
+  218.5 → 214.8. An earlier run of this cleaner took 228.0 s. These differences are noise between runs at this size; the
+  fix removes one math rule and changes no other code.
+- **DA-B4-001's `{[ ]}` form on the slice** (`scripts/count_da_b4_001_latex.py`, #911, on the slice's four math parts):
+  the counts are the same with both cleaners. 2 of 294 math-finemath documents have a `{[ ]}` group (6 groups), and
+  DA-C3-004 drops both before DA-B4-001 runs; no math-megamath document has one. The slice is too small to show the
+  fix. On the 38 sample packs, #911 counts what the old form did: it changed 21 math-finemath documents (20 of them by
+  deleting LaTeX groups) and 68 math-megamath documents (61 of them losing only footnote markers `^{[1]}`). Logs:
+  `jobs/logs/2026-11-28-clean-fix-1pct/b4_counts_before.json` and `b4_counts_after.json`.
+- **The log is `jobs/logs/2026-11-28-clean-fix-1pct/run.txt`.** The run's summary files stay out of the repository, as
+  TSAI asked for #898. Their sha256, under `out/pipeline/clean-fix-1pct/`:
+  - `pipeline_manifest.json` `3984f041c760eed3da953b34ef4ba59f360f3f8850f2781f4913a4df37bc5494`;
+  - `overlap/overlap_summary.json` `1799a5dcb22784d17a932644105f9a3cec806ef0dd989de69e917e069b5340b7`;
+  - `shards/shards_summary.json` `8654ea28b65b71cb9ccfab97810035cdf74dcae0cf759d86b8273a8a77fbfb5d`;
+  - `cleaning_pipeline.json` `cdf399575c5235408fb68cce43483edd2ecfd4755361b730956fa7ef0e360872`.
+- **Gold harm was not re-run for `b9e78f73`.** In the run below, DA-A5-002 and DA-B4-001 touched none of the 112 math
+  gold documents. Both changes only make the cleaner do less, so they cannot change a gold document that was left
+  alone.
+
+## Harm validation of the previous cleaner (after merged #88)
 
 The cleaner rebuild is byte-identical to merged #88:
 `d275556ee87a259b05ac5e474ed40b569c2e821aaaffa99d5d07035e40948989`. It retains the five scoped #86 preservation guards and adds
 email-only shared F1 on `cadj-commits` with an empty `code-adjacent` pipeline.
-Both active job configs pin this cleaner.
+Both active job configs pinned this cleaner until 28 Nov.
 
 Fresh full-gold harm: **4,768 documents, 33 testable packs; 28 of 32 supported
 packs PASS, four FAIL**. `cadj-commits` now has cleaning coverage and passes all
