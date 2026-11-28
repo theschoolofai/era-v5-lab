@@ -93,6 +93,19 @@ def test_masks_without_a_heavy_expert(tmp_path, capsys):
     assert "heavy experts (> 1% deleted): 0; max 0.7812%" in capsys.readouterr().out   # 1 of 128
 
 
+def test_masks_share_of_all_parameters(tmp_path, capsys):
+    # 63 deleted; with 6,300 model parameters that is 1.0000%, and 3 deleted outside the heavy expert = 0.0476%
+    ma.main(["masks", str(write_mask_dir(tmp_path / "m", made_up_deletions())), "--total-params", "6300"])
+    out = capsys.readouterr().out
+    assert "share of all 6,300 model parameters: 1.0000%" in out
+    assert "without the experts deleted above 1%: 3 = 0.0476% of all parameters" in out
+
+
+def test_masks_total_params_below_the_gate_weights_stops(tmp_path):
+    with pytest.raises(SystemExit, match="below the 1,024 gate weights"):
+        ma.main(["masks", str(write_mask_dir(tmp_path / "m", made_up_deletions())), "--total-params", "1000"])
+
+
 def test_masks_stops_when_config_totals_do_not_match(tmp_path):
     with pytest.raises(SystemExit, match="decode mismatch"):
         ma.main(["masks", str(write_mask_dir(tmp_path / "m", made_up_deletions(), zero_params_offset=1))])
