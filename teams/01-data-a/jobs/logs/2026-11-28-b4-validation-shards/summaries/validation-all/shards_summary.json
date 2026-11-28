@@ -1,0 +1,1242 @@
+{
+  "run_id": "smoke-corpus-v1",
+  "settings": {
+    "tokens": 67108864,
+    "dataset_version": "corpus-v1",
+    "tokenizer_sha256": "e6b93a93a60520d7b1af2e9242485f443b5596a1e116b8f8798d83bbad25a64b",
+    "split": "validation",
+    "validation_fraction": 1.0,
+    "validation_seed": 20261101
+  },
+  "cleaning_pipeline_sha256": "77e92c48564a6181ba9237c85bd7a087840eea4b476378e74adb0e826a74f895",
+  "parts": {
+    "heldout/cadj-commits/part-00000.parquet": {
+      "pack_id": "cadj-commits",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "cadj-commits-validation-000000",
+          "docs": 94,
+          "tokens": 42623,
+          "first_row": 0,
+          "rows_read": 100
+        }
+      ],
+      "docs": 94,
+      "tokens": 42623,
+      "rows_read": 100,
+      "rows_in_part": 100,
+      "truncated": false,
+      "left_out": {
+        "secret": 6,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.4,
+      "peak_rss_mb": 680.9
+    },
+    "heldout/cadj-notebooks/part-00000.parquet": {
+      "pack_id": "cadj-notebooks",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "cadj-notebooks-validation-000000",
+          "docs": 100,
+          "tokens": 217541,
+          "first_row": 0,
+          "rows_read": 100
+        }
+      ],
+      "docs": 100,
+      "tokens": 217541,
+      "rows_read": 100,
+      "rows_in_part": 100,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.7,
+      "peak_rss_mb": 697.2
+    },
+    "heldout/cadj-stackexchange/part-00000.parquet": {
+      "pack_id": "cadj-stackexchange",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "cadj-stackexchange-validation-000000",
+          "docs": 100,
+          "tokens": 88100,
+          "first_row": 0,
+          "rows_read": 100
+        }
+      ],
+      "docs": 100,
+      "tokens": 88100,
+      "rows_read": 100,
+      "rows_in_part": 100,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.4,
+      "peak_rss_mb": 688.9
+    },
+    "heldout/code-cpp/part-00000.parquet": {
+      "pack_id": "code-cpp",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "code-cpp-validation-000000",
+          "docs": 100,
+          "tokens": 164238,
+          "first_row": 0,
+          "rows_read": 100
+        }
+      ],
+      "docs": 100,
+      "tokens": 164238,
+      "rows_read": 100,
+      "rows_in_part": 100,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.6,
+      "peak_rss_mb": 692.5
+    },
+    "heldout/code-go/part-00000.parquet": {
+      "pack_id": "code-go",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "code-go-validation-000000",
+          "docs": 94,
+          "tokens": 84202,
+          "first_row": 0,
+          "rows_read": 94
+        }
+      ],
+      "docs": 94,
+      "tokens": 84202,
+      "rows_read": 94,
+      "rows_in_part": 94,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.5,
+      "peak_rss_mb": 687.1
+    },
+    "heldout/code-java/part-00000.parquet": {
+      "pack_id": "code-java",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "code-java-validation-000000",
+          "docs": 97,
+          "tokens": 76839,
+          "first_row": 0,
+          "rows_read": 97
+        }
+      ],
+      "docs": 97,
+      "tokens": 76839,
+      "rows_read": 97,
+      "rows_in_part": 97,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.4,
+      "peak_rss_mb": 684.6
+    },
+    "heldout/code-js-ts/part-00000.parquet": {
+      "pack_id": "code-js-ts",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "code-js-ts-validation-000000",
+          "docs": 94,
+          "tokens": 48830,
+          "first_row": 0,
+          "rows_read": 94
+        }
+      ],
+      "docs": 94,
+      "tokens": 48830,
+      "rows_read": 94,
+      "rows_in_part": 94,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.4,
+      "peak_rss_mb": 684.2
+    },
+    "heldout/code-python/part-00000.parquet": {
+      "pack_id": "code-python",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "code-python-validation-000000",
+          "docs": 98,
+          "tokens": 109511,
+          "first_row": 0,
+          "rows_read": 98
+        }
+      ],
+      "docs": 98,
+      "tokens": 109511,
+      "rows_read": 98,
+      "rows_in_part": 98,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.5,
+      "peak_rss_mb": 690.0
+    },
+    "heldout/code-rust/part-00000.parquet": {
+      "pack_id": "code-rust",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "code-rust-validation-000000",
+          "docs": 98,
+          "tokens": 177108,
+          "first_row": 0,
+          "rows_read": 98
+        }
+      ],
+      "docs": 98,
+      "tokens": 177108,
+      "rows_read": 98,
+      "rows_in_part": 98,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.6,
+      "peak_rss_mb": 697.2
+    },
+    "heldout/en-dclm/part-00000.parquet": {
+      "pack_id": "en-dclm",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "en-dclm-validation-000000",
+          "docs": 95,
+          "tokens": 92925,
+          "first_row": 0,
+          "rows_read": 95
+        }
+      ],
+      "docs": 95,
+      "tokens": 92925,
+      "rows_read": 95,
+      "rows_in_part": 95,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.5,
+      "peak_rss_mb": 688.5
+    },
+    "heldout/en-fineweb-edu/part-00000.parquet": {
+      "pack_id": "en-fineweb-edu",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "en-fineweb-edu-validation-000000",
+          "docs": 100,
+          "tokens": 103526,
+          "first_row": 0,
+          "rows_read": 100
+        }
+      ],
+      "docs": 100,
+      "tokens": 103526,
+      "rows_read": 100,
+      "rows_in_part": 100,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.6,
+      "peak_rss_mb": 691.6
+    },
+    "heldout/en-nemotroncc/part-00000.parquet": {
+      "pack_id": "en-nemotroncc",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "en-nemotroncc-validation-000000",
+          "docs": 92,
+          "tokens": 62566,
+          "first_row": 0,
+          "rows_read": 96
+        }
+      ],
+      "docs": 92,
+      "tokens": 62566,
+      "rows_read": 96,
+      "rows_in_part": 96,
+      "truncated": false,
+      "left_out": {
+        "secret": 4,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.4,
+      "peak_rss_mb": 685.9
+    },
+    "heldout/en-nemotroncc-synth/part-00000.parquet": {
+      "pack_id": "en-nemotroncc-synth",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "en-nemotroncc-synth-validation-000000",
+          "docs": 100,
+          "tokens": 35432,
+          "first_row": 0,
+          "rows_read": 100
+        }
+      ],
+      "docs": 100,
+      "tokens": 35432,
+      "rows_read": 100,
+      "rows_in_part": 100,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.4,
+      "peak_rss_mb": 683.0
+    },
+    "heldout/ind-bn-fw2/part-00000.parquet": {
+      "pack_id": "ind-bn-fw2",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "ind-bn-fw2-validation-000000",
+          "docs": 94,
+          "tokens": 74051,
+          "first_row": 0,
+          "rows_read": 94
+        }
+      ],
+      "docs": 94,
+      "tokens": 74051,
+      "rows_read": 94,
+      "rows_in_part": 94,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.5,
+      "peak_rss_mb": 696.4
+    },
+    "heldout/ind-bn-sangraha-v/part-00000.parquet": {
+      "pack_id": "ind-bn-sangraha-v",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "ind-bn-sangraha-v-validation-000000",
+          "docs": 99,
+          "tokens": 94454,
+          "first_row": 0,
+          "rows_read": 99
+        }
+      ],
+      "docs": 99,
+      "tokens": 94454,
+      "rows_read": 99,
+      "rows_in_part": 99,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.6,
+      "peak_rss_mb": 705.1
+    },
+    "heldout/ind-gu-fw2/part-00000.parquet": {
+      "pack_id": "ind-gu-fw2",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "ind-gu-fw2-validation-000000",
+          "docs": 100,
+          "tokens": 67069,
+          "first_row": 0,
+          "rows_read": 100
+        }
+      ],
+      "docs": 100,
+      "tokens": 67069,
+      "rows_read": 100,
+      "rows_in_part": 100,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.5,
+      "peak_rss_mb": 694.9
+    },
+    "heldout/ind-hi-fw2/part-00000.parquet": {
+      "pack_id": "ind-hi-fw2",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "ind-hi-fw2-validation-000000",
+          "docs": 100,
+          "tokens": 66659,
+          "first_row": 0,
+          "rows_read": 100
+        }
+      ],
+      "docs": 100,
+      "tokens": 66659,
+      "rows_read": 100,
+      "rows_in_part": 100,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.6,
+      "peak_rss_mb": 689.5
+    },
+    "heldout/ind-hi-hplt/part-00000.parquet": {
+      "pack_id": "ind-hi-hplt",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "ind-hi-hplt-validation-000000",
+          "docs": 92,
+          "tokens": 90554,
+          "first_row": 0,
+          "rows_read": 92
+        }
+      ],
+      "docs": 92,
+      "tokens": 90554,
+      "rows_read": 92,
+      "rows_in_part": 92,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.7,
+      "peak_rss_mb": 698.6
+    },
+    "heldout/ind-hi-indiccorp/part-00000.parquet": {
+      "pack_id": "ind-hi-indiccorp",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "ind-hi-indiccorp-validation-000000",
+          "docs": 99,
+          "tokens": 7137,
+          "first_row": 0,
+          "rows_read": 99
+        }
+      ],
+      "docs": 99,
+      "tokens": 7137,
+      "rows_read": 99,
+      "rows_in_part": 99,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.4,
+      "peak_rss_mb": 674.9
+    },
+    "heldout/ind-hi-sangraha-s/part-00000.parquet": {
+      "pack_id": "ind-hi-sangraha-s",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "ind-hi-sangraha-s-validation-000000",
+          "docs": 75,
+          "tokens": 62473,
+          "first_row": 0,
+          "rows_read": 75
+        }
+      ],
+      "docs": 75,
+      "tokens": 62473,
+      "rows_read": 75,
+      "rows_in_part": 75,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.5,
+      "peak_rss_mb": 695.7
+    },
+    "heldout/ind-hi-sangraha-v/part-00000.parquet": {
+      "pack_id": "ind-hi-sangraha-v",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "ind-hi-sangraha-v-validation-000000",
+          "docs": 99,
+          "tokens": 51395,
+          "first_row": 0,
+          "rows_read": 99
+        }
+      ],
+      "docs": 99,
+      "tokens": 51395,
+      "rows_read": 99,
+      "rows_in_part": 99,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.5,
+      "peak_rss_mb": 691.7
+    },
+    "heldout/ind-kn-fw2/part-00000.parquet": {
+      "pack_id": "ind-kn-fw2",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "ind-kn-fw2-validation-000000",
+          "docs": 81,
+          "tokens": 49532,
+          "first_row": 0,
+          "rows_read": 81
+        }
+      ],
+      "docs": 81,
+      "tokens": 49532,
+      "rows_read": 81,
+      "rows_in_part": 81,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.6,
+      "peak_rss_mb": 700.2
+    },
+    "heldout/ind-kn-sangraha-s/part-00000.parquet": {
+      "pack_id": "ind-kn-sangraha-s",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "ind-kn-sangraha-s-validation-000000",
+          "docs": 53,
+          "tokens": 49210,
+          "first_row": 0,
+          "rows_read": 53
+        }
+      ],
+      "docs": 53,
+      "tokens": 49210,
+      "rows_read": 53,
+      "rows_in_part": 53,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.4,
+      "peak_rss_mb": 700.8
+    },
+    "heldout/ind-kn-sangraha-v/part-00000.parquet": {
+      "pack_id": "ind-kn-sangraha-v",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "ind-kn-sangraha-v-validation-000000",
+          "docs": 87,
+          "tokens": 44146,
+          "first_row": 0,
+          "rows_read": 87
+        }
+      ],
+      "docs": 87,
+      "tokens": 44146,
+      "rows_read": 87,
+      "rows_in_part": 87,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.4,
+      "peak_rss_mb": 697.3
+    },
+    "heldout/ind-ml-fw2/part-00000.parquet": {
+      "pack_id": "ind-ml-fw2",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "ind-ml-fw2-validation-000000",
+          "docs": 99,
+          "tokens": 63516,
+          "first_row": 0,
+          "rows_read": 99
+        }
+      ],
+      "docs": 99,
+      "tokens": 63516,
+      "rows_read": 99,
+      "rows_in_part": 99,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.6,
+      "peak_rss_mb": 703.5
+    },
+    "heldout/ind-mr-fw2/part-00000.parquet": {
+      "pack_id": "ind-mr-fw2",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "ind-mr-fw2-validation-000000",
+          "docs": 94,
+          "tokens": 51528,
+          "first_row": 0,
+          "rows_read": 94
+        }
+      ],
+      "docs": 94,
+      "tokens": 51528,
+      "rows_read": 94,
+      "rows_in_part": 94,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.5,
+      "peak_rss_mb": 696.1
+    },
+    "heldout/ind-mr-sangraha-v/part-00000.parquet": {
+      "pack_id": "ind-mr-sangraha-v",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "ind-mr-sangraha-v-validation-000000",
+          "docs": 100,
+          "tokens": 58874,
+          "first_row": 0,
+          "rows_read": 100
+        }
+      ],
+      "docs": 100,
+      "tokens": 58874,
+      "rows_read": 100,
+      "rows_in_part": 100,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.5,
+      "peak_rss_mb": 694.3
+    },
+    "heldout/ind-or-fw2/part-00000.parquet": {
+      "pack_id": "ind-or-fw2",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "ind-or-fw2-validation-000000",
+          "docs": 100,
+          "tokens": 45903,
+          "first_row": 0,
+          "rows_read": 100
+        }
+      ],
+      "docs": 100,
+      "tokens": 45903,
+      "rows_read": 100,
+      "rows_in_part": 100,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.5,
+      "peak_rss_mb": 694.2
+    },
+    "heldout/ind-sa-fw2/part-00000.parquet": {
+      "pack_id": "ind-sa-fw2",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "ind-sa-fw2-validation-000000",
+          "docs": 54,
+          "tokens": 124041,
+          "first_row": 0,
+          "rows_read": 54
+        }
+      ],
+      "docs": 54,
+      "tokens": 124041,
+      "rows_read": 54,
+      "rows_in_part": 54,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.6,
+      "peak_rss_mb": 720.1
+    },
+    "heldout/ind-ta-fw2/part-00000.parquet": {
+      "pack_id": "ind-ta-fw2",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "ind-ta-fw2-validation-000000",
+          "docs": 58,
+          "tokens": 35877,
+          "first_row": 0,
+          "rows_read": 58
+        }
+      ],
+      "docs": 58,
+      "tokens": 35877,
+      "rows_read": 58,
+      "rows_in_part": 58,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.5,
+      "peak_rss_mb": 698.2
+    },
+    "heldout/ind-ta-sangraha-s/part-00000.parquet": {
+      "pack_id": "ind-ta-sangraha-s",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "ind-ta-sangraha-s-validation-000000",
+          "docs": 36,
+          "tokens": 59579,
+          "first_row": 0,
+          "rows_read": 36
+        }
+      ],
+      "docs": 36,
+      "tokens": 59579,
+      "rows_read": 36,
+      "rows_in_part": 36,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.6,
+      "peak_rss_mb": 703.7
+    },
+    "heldout/ind-ta-sangraha-v/part-00000.parquet": {
+      "pack_id": "ind-ta-sangraha-v",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "ind-ta-sangraha-v-validation-000000",
+          "docs": 65,
+          "tokens": 41216,
+          "first_row": 0,
+          "rows_read": 65
+        }
+      ],
+      "docs": 65,
+      "tokens": 41216,
+      "rows_read": 65,
+      "rows_in_part": 65,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.6,
+      "peak_rss_mb": 697.4
+    },
+    "heldout/ind-te-fw2/part-00000.parquet": {
+      "pack_id": "ind-te-fw2",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "ind-te-fw2-validation-000000",
+          "docs": 56,
+          "tokens": 39868,
+          "first_row": 0,
+          "rows_read": 56
+        }
+      ],
+      "docs": 56,
+      "tokens": 39868,
+      "rows_read": 56,
+      "rows_in_part": 56,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.5,
+      "peak_rss_mb": 695.8
+    },
+    "heldout/ind-te-sangraha-s/part-00000.parquet": {
+      "pack_id": "ind-te-sangraha-s",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "ind-te-sangraha-s-validation-000000",
+          "docs": 44,
+          "tokens": 32140,
+          "first_row": 0,
+          "rows_read": 44
+        }
+      ],
+      "docs": 44,
+      "tokens": 32140,
+      "rows_read": 44,
+      "rows_in_part": 44,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.4,
+      "peak_rss_mb": 690.8
+    },
+    "heldout/ind-te-sangraha-v/part-00000.parquet": {
+      "pack_id": "ind-te-sangraha-v",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "ind-te-sangraha-v-validation-000000",
+          "docs": 83,
+          "tokens": 46819,
+          "first_row": 0,
+          "rows_read": 83
+        }
+      ],
+      "docs": 83,
+      "tokens": 46819,
+      "rows_read": 83,
+      "rows_in_part": 83,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.4,
+      "peak_rss_mb": 697.3
+    },
+    "heldout/math-finemath/part-00000.parquet": {
+      "pack_id": "math-finemath",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "math-finemath-validation-000000",
+          "docs": 90,
+          "tokens": 104770,
+          "first_row": 0,
+          "rows_read": 90
+        }
+      ],
+      "docs": 90,
+      "tokens": 104770,
+      "rows_read": 90,
+      "rows_in_part": 90,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.5,
+      "peak_rss_mb": 690.6
+    },
+    "heldout/math-megamath/part-00000.parquet": {
+      "pack_id": "math-megamath",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "math-megamath-validation-000000",
+          "docs": 86,
+          "tokens": 110501,
+          "first_row": 0,
+          "rows_read": 89
+        }
+      ],
+      "docs": 86,
+      "tokens": 110501,
+      "rows_read": 89,
+      "rows_in_part": 89,
+      "truncated": false,
+      "left_out": {
+        "secret": 3,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.5,
+      "peak_rss_mb": 696.6
+    },
+    "heldout/sci-finepdfs/part-00000.parquet": {
+      "pack_id": "sci-finepdfs",
+      "status": "written",
+      "shards": [
+        {
+          "shard_id": "sci-finepdfs-validation-000000",
+          "docs": 60,
+          "tokens": 199905,
+          "first_row": 0,
+          "rows_read": 60
+        }
+      ],
+      "docs": 60,
+      "tokens": 199905,
+      "rows_read": 60,
+      "rows_in_part": 60,
+      "truncated": false,
+      "left_out": {
+        "secret": 0,
+        "empty": 0,
+        "special": 0,
+        "roundtrip": 0,
+        "oversize": 0
+      },
+      "seconds": 2.7,
+      "peak_rss_mb": 699.6
+    },
+    "train/cadj-commits/part-00000.parquet": {
+      "pack_id": "cadj-commits",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/cadj-notebooks/part-00000.parquet": {
+      "pack_id": "cadj-notebooks",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/cadj-stackexchange/part-00000.parquet": {
+      "pack_id": "cadj-stackexchange",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/code-cpp/part-00000.parquet": {
+      "pack_id": "code-cpp",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/code-go/part-00000.parquet": {
+      "pack_id": "code-go",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/code-java/part-00000.parquet": {
+      "pack_id": "code-java",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/code-js-ts/part-00000.parquet": {
+      "pack_id": "code-js-ts",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/code-python/part-00000.parquet": {
+      "pack_id": "code-python",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/code-rust/part-00000.parquet": {
+      "pack_id": "code-rust",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/en-dclm/part-00000.parquet": {
+      "pack_id": "en-dclm",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/en-fineweb-edu/part-00000.parquet": {
+      "pack_id": "en-fineweb-edu",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/en-nemotroncc/part-00000.parquet": {
+      "pack_id": "en-nemotroncc",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/en-nemotroncc-synth/part-00000.parquet": {
+      "pack_id": "en-nemotroncc-synth",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/ind-bn-fw2/part-00000.parquet": {
+      "pack_id": "ind-bn-fw2",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/ind-bn-sangraha-v/part-00000.parquet": {
+      "pack_id": "ind-bn-sangraha-v",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/ind-gu-fw2/part-00000.parquet": {
+      "pack_id": "ind-gu-fw2",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/ind-hi-fw2/part-00000.parquet": {
+      "pack_id": "ind-hi-fw2",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/ind-hi-hplt/part-00000.parquet": {
+      "pack_id": "ind-hi-hplt",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/ind-hi-indiccorp/part-00000.parquet": {
+      "pack_id": "ind-hi-indiccorp",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/ind-hi-sangraha-s/part-00000.parquet": {
+      "pack_id": "ind-hi-sangraha-s",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/ind-hi-sangraha-v/part-00000.parquet": {
+      "pack_id": "ind-hi-sangraha-v",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/ind-kn-fw2/part-00000.parquet": {
+      "pack_id": "ind-kn-fw2",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/ind-kn-sangraha-s/part-00000.parquet": {
+      "pack_id": "ind-kn-sangraha-s",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/ind-kn-sangraha-v/part-00000.parquet": {
+      "pack_id": "ind-kn-sangraha-v",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/ind-ml-fw2/part-00000.parquet": {
+      "pack_id": "ind-ml-fw2",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/ind-mr-fw2/part-00000.parquet": {
+      "pack_id": "ind-mr-fw2",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/ind-mr-sangraha-v/part-00000.parquet": {
+      "pack_id": "ind-mr-sangraha-v",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/ind-or-fw2/part-00000.parquet": {
+      "pack_id": "ind-or-fw2",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/ind-sa-fw2/part-00000.parquet": {
+      "pack_id": "ind-sa-fw2",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/ind-ta-fw2/part-00000.parquet": {
+      "pack_id": "ind-ta-fw2",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/ind-ta-sangraha-s/part-00000.parquet": {
+      "pack_id": "ind-ta-sangraha-s",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/ind-ta-sangraha-v/part-00000.parquet": {
+      "pack_id": "ind-ta-sangraha-v",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/ind-te-fw2/part-00000.parquet": {
+      "pack_id": "ind-te-fw2",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/ind-te-sangraha-s/part-00000.parquet": {
+      "pack_id": "ind-te-sangraha-s",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/ind-te-sangraha-v/part-00000.parquet": {
+      "pack_id": "ind-te-sangraha-v",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/math-finemath/part-00000.parquet": {
+      "pack_id": "math-finemath",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/math-megamath/part-00000.parquet": {
+      "pack_id": "math-megamath",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    },
+    "train/sci-finepdfs/part-00000.parquet": {
+      "pack_id": "sci-finepdfs",
+      "status": "not_sharded",
+      "reason": "train parts are not sharded with --split validation"
+    }
+  },
+  "counts": {
+    "written": 38,
+    "empty": 0,
+    "all_left_out": 0,
+    "failed": 0,
+    "skipped": 0,
+    "not_sharded": 38,
+    "truncated": 0,
+    "shards": 38
+  },
+  "verified": true,
+  "problems": []
+}

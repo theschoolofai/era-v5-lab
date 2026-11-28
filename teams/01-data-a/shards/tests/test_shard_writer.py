@@ -213,11 +213,90 @@ def test_a_part_that_changed_after_f2_is_refused(tmp_path, monkeypatch):
     assert not (tmp_path / "out").exists()
 
 
-def test_a_heldout_part_is_refused(tmp_path, monkeypatch):
+def test_a_heldout_part_gives_a_validation_shard(tmp_path, monkeypatch):
     part = "x-pack/part-00000.parquet"
     run = make_run(tmp_path / "pipeline", monkeypatch, {("train", part): rows_of(DOCS, "x-pack"), ("heldout", part): rows_of(DOCS[:2], "x-pack")})
-    with pytest.raises(SystemExit, match="heldout part"):
-        shard(run, part, tmp_path / "out", "--any-tokenizer", "--domain", "web", split="heldout")
+    out = tmp_path / "out"
+    m = shard(run, part, out, "--any-tokenizer", "--domain", "web", split="heldout")
+    assert m["split"] == "validation" and m["shard_id"] == "x-pack-validation-000000" and m["doc_count"] == 2
+    assert m["inputs_sha256"] == hashlib.sha256(f"{raw_sha('heldout', part)} heldout/{part}\n".encode()).hexdigest()
+    meta = pq.read_table(out / m["sample_metadata_uri"]).to_pylist()
+    assert [(r["doc_id"], r["input_part"]) for r in meta] == [("en1", f"heldout/{part}"), ("hi1", f"heldout/{part}")]
+    t = shard(run, part, out, "--any-tokenizer", "--domain", "web")  # the train part of the same pack, into the same folder
+    assert t["shard_id"] == "x-pack-train-000000" and t["split"] == "train"
+
+
+SLICE_DOCS = [(f"d{i:02d}", f"Document {i} says the water cycle moves water between the sea and the land.\n", "en") for i in range(40)]
+
+
+def heldout_run(tmp_path, monkeypatch):
+    """A run with a one-doc train part and a 40-doc heldout part of x-pack. Returns (run folder, part name)."""
+    part = "x-pack/part-00000.parquet"
+    return make_run(tmp_path / "pipeline", monkeypatch, {("train", part): rows_of(DOCS[:1], "x-pack"),
+                                                         ("heldout", part): rows_of(SLICE_DOCS, "x-pack")}), part
+
+
+def test_a_validation_slice_keeps_the_docs_its_seed_and_fraction_choose(tmp_path, monkeypatch):
+    run, part = heldout_run(tmp_path, monkeypatch)
+    every = [d for d, _, _ in SLICE_DOCS]
+    kept = {}
+    for seed in (7, 8):
+        out = tmp_path / f"out{seed}"
+        m = shard(run, part, out, "--any-tokenizer", "--domain", "web", "--validation-fraction", "0.5", "--validation-seed", str(seed),
+                  split="heldout")
+        want = [d for d in every if sw.in_slice(seed, "x-pack", d, 0.5)]
+        assert 0 < len(want) < len(every) and m["doc_count"] == len(want) and m["split"] == "validation"
+        assert pq.read_table(out / m["sample_metadata_uri"]).column("doc_id").to_pylist() == want  # in row order
+        q = json.loads((out / m["quality_report_uri"]).read_text(encoding="utf-8"))
+        assert q["left_out"]["not_in_slice"] == len(every) - len(want)
+        assert "not_in_slice" not in q["left_out_docs"]  # counted, not listed: reconcile recomputes them
+        assert q["validation_slice"] == {"fraction": 0.5, "seed": seed, "rule": sw.SLICE_RULE}
+        assert "outside the validation slice (fraction 0.5, seed " in (out / f"{m['shard_id']}.dump.md").read_text(encoding="utf-8")
+        kept[seed] = want
+    assert kept[7] != kept[8]  # another seed, another slice
+
+
+def test_a_slice_is_decided_doc_by_doc_and_grows_with_its_fraction():
+    ids = [f"{i:016x}" for i in range(2000)]
+    small = {d for d in ids if sw.in_slice(1, "p", d, 0.1)}
+    big = {d for d in ids if sw.in_slice(1, "p", d, 0.3)}
+    assert small <= big and 150 < len(small) < 250 and 500 < len(big) < 700
+    assert all(sw.in_slice(1, "p", d, 1) for d in ids)
+    assert {d for d in ids if sw.in_slice(2, "p", d, 0.1)} != small and {d for d in ids if sw.in_slice(1, "q", d, 0.1)} != small
+
+
+def test_without_a_fraction_a_validation_shard_has_every_held_out_doc(tmp_path, monkeypatch):
+    run, part = heldout_run(tmp_path, monkeypatch)
+    out = tmp_path / "out"
+    m = shard(run, part, out, "--any-tokenizer", "--domain", "web", split="heldout")
+    q = json.loads((out / m["quality_report_uri"]).read_text(encoding="utf-8"))
+    assert m["doc_count"] == 40 and "not_in_slice" not in q["left_out"] and "validation_slice" not in q
+
+
+def test_a_train_part_is_never_sliced_and_a_fraction_must_be_in_0_1(tmp_path, monkeypatch):
+    run, part = heldout_run(tmp_path, monkeypatch)
+    with pytest.raises(SystemExit, match="train part"):
+        shard(run, part, tmp_path / "out", "--any-tokenizer", "--domain", "web", "--validation-fraction", "0.5")
+    for fraction in ("0", "1.5", "-0.1"):
+        with pytest.raises(SystemExit, match="validation-fraction is"):
+            shard(run, part, tmp_path / "out", "--any-tokenizer", "--domain", "web", "--validation-fraction", fraction, split="heldout")
+
+
+def test_the_metadata_counts_the_utf8_bytes_of_the_normalized_and_the_stored_text(tmp_path, monkeypatch):
+    """n_bytes is the bytes the tokens decode to (the tokenizer's normalized text), n_raw_bytes the stored text's: they differ
+    when the normalizer changes the text. A copy of the baseline tokenizer with an NFKC normalizer folds the ligature."""
+    spec = json.loads(Path(BASE).read_text(encoding="utf-8"))
+    spec["normalizer"] = {"type": "NFKC"}
+    folding = tmp_path / "tokenizer.json"
+    folding.write_text(json.dumps(spec), encoding="utf-8")
+    docs = [("kn1", "ನಮಸ್ಕಾರ\n", "kn"), ("lig", "\ufb01ne\n", "en"), ("en1", "plain\n", "en")]
+    run, part = run_of(tmp_path / "pipeline", monkeypatch, docs)
+    out = tmp_path / "out"
+    m = shard(run, part, out, "--any-tokenizer", "--domain", "web", tokenizer=folding)
+    meta = {r["doc_id"]: r for r in pq.read_table(out / m["sample_metadata_uri"]).to_pylist()}
+    assert (meta["kn1"]["n_chars"], meta["kn1"]["n_bytes"], meta["kn1"]["n_raw_bytes"]) == (8, 22, 22)  # 7 Kannada chars, 21 bytes, newline
+    assert (meta["lig"]["n_chars"], meta["lig"]["n_bytes"], meta["lig"]["n_raw_bytes"]) == (4, 5, 6)   # U+FB01 (3 bytes) becomes "fi"
+    assert (meta["en1"]["n_bytes"], meta["en1"]["n_raw_bytes"]) == (6, 6)
 
 
 def test_an_out_folder_with_other_processing_is_refused(tmp_path, monkeypatch):

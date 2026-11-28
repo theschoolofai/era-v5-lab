@@ -18,8 +18,9 @@ For each shard:
   content    (skipped when the folder's cleaning_pipeline.json is not the run's own: other processing, other final data)
              the first and the last document of the shard: its row in the run's final part (found by input_part and
              input_row) has the doc_id the metadata says, its text encodes to the tokens in the .bin, followed by EOS, and
-             decodes back to the normalized text. Checking every document is the writer's job; this ties the .bin to the
-             final data at two points
+             decodes back to the normalized text, whose UTF-8 bytes are the metadata's n_bytes (and the text's, n_raw_bytes;
+             both only in shards written since they were added). Checking every document is the writer's job; this ties the
+             .bin to the final data at two points
 With a summary (shards_summary.json in --out): the shards it lists as written are the shards in --out, with its docs and
 tokens. Needs numpy, pyarrow and tokenizers (no torch).
 """
@@ -194,6 +195,11 @@ def check_document(sid, k, meta, tokens, idx, ctx, bad):
         bad(sid, f"document {k} ({doc_id}) is not the tokens of its text in {part}")
     elif ctx["tok"].decode(ids, skip_special_tokens=False) != ctx["norm"](got[1]):
         bad(sid, f"document {k} ({doc_id}) does not decode to its normalized text")
+    elif "n_bytes" in meta.column_names:  # a shard written before n_bytes was added has neither column
+        want = (len(ctx["norm"](got[1]).encode("utf-8")), len(got[1].encode("utf-8")))
+        have = (meta.column("n_bytes")[k].as_py(), meta.column("n_raw_bytes")[k].as_py())
+        if have != want:
+            bad(sid, f"document {k} ({doc_id}): n_bytes, n_raw_bytes are {have}, its text gives {want}")
 
 
 def verify(out, manifest, tokenizer, table=pack_table.TABLE, summary=None):

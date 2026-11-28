@@ -101,15 +101,99 @@ def test_a_held_out_part_is_not_sharded_and_is_not_an_error(run, tmp_path, table
     code, out, s = go(run, tmp_path, table, "--pack", "pk-a")
     assert code == 0
     held = s["parts"]["heldout/pk-a/part-00000.parquet"]
-    assert held["status"] == "not_sharded" and "G3 and G9" in held["reason"] and "shard_id" not in held
+    assert held["status"] == "not_sharded" and "--split train" in held["reason"] and "shard_id" not in held
     assert s["counts"] == {"written": 2, "empty": 0, "all_left_out": 0, "failed": 0, "skipped": 0, "not_sharded": 1, "truncated": 0, "shards": 2}
-    assert not list(out.glob("*heldout*"))
+    assert not list(out.glob("*heldout*")) and not list(out.glob("*validation*"))
+    assert s["settings"]["split"] == "train"
+
+
+def test_a_summary_from_before_split_is_a_train_run(run, tmp_path, table):
+    _, out, s = go(run, tmp_path, table, "--pack", "pk-a")
+    for key in ("split", "validation_fraction", "validation_seed"):  # what run_shards.py wrote before they existed
+        del s["settings"][key]
+    (out / "shards_summary.json").write_text(json.dumps(s), encoding="utf-8")
+    code, _, again = go(run, tmp_path, table, "--pack", "pk-a")
+    assert code == 0 and again["settings"]["split"] == "train"
+    with pytest.raises(SystemExit, match="was made with"):
+        go(run, tmp_path, table, "--pack", "pk-a", "--split", "validation")
+
+
+def test_split_validation_writes_the_held_out_parts_as_validation_shards_and_nothing_else(run, tmp_path, table):
+    code, out, s = go(run, tmp_path, table, "--pack", "pk-a", "--split", "validation")
+    assert code == 0 and s["verified"] is True and s["settings"]["split"] == "validation"
+    held = s["parts"]["heldout/pk-a/part-00000.parquet"]
+    assert held["status"] == "written" and [x["shard_id"] for x in held["shards"]] == ["pk-a-validation-000000"]
+    for name in ("train/pk-a/part-00000.parquet", "train/pk-a/part-00001.parquet"):
+        assert s["parts"][name]["status"] == "not_sharded" and "--split validation" in s["parts"][name]["reason"]
+    assert s["counts"] == {"written": 1, "empty": 0, "all_left_out": 0, "failed": 0, "skipped": 0, "not_sharded": 2, "truncated": 0, "shards": 1}
+    m = json.loads((out / "pk-a-validation-000000.json").read_text(encoding="utf-8"))
+    assert m["split"] == "validation" and m["doc_count"] == 3 and m["capability_lane"] == "code"
+    assert not list(out.glob("*-train-*")) and not list(out.glob("*heldout*"))
+
+
+def test_split_all_writes_train_and_validation_shards_into_one_folder(run, tmp_path, table):
+    code, out, s = go(run, tmp_path, table, "--pack", "pk-a", "--split", "all")
+    assert code == 0 and s["verified"] is True
+    assert sorted(p.name for p in out.glob("*.bin")) == ["pk-a-train-000000.bin", "pk-a-train-000001.bin", "pk-a-validation-000000.bin"]
+    assert s["counts"]["written"] == 3 and s["counts"]["not_sharded"] == 0
+
+
+def test_validation_shards_are_kept_by_a_rerun_and_a_rerun_with_another_split_is_refused(run, tmp_path, table):
+    _, out, s = go(run, tmp_path, table, "--pack", "pk-a", "--split", "validation")
+    name = "heldout/pk-a/part-00000.parquet"
+    code, _, again = go(run, tmp_path, table, "--pack", "pk-a", "--split", "validation")
+    assert code == 0 and (again["parts"][name]["seconds"], again["parts"][name]["peak_rss_mb"]) == \
+        (s["parts"][name]["seconds"], s["parts"][name]["peak_rss_mb"])  # kept, not written again
+    for other in ([], ["--split", "all"]):
+        with pytest.raises(SystemExit, match="was made with"):
+            go(run, tmp_path, table, "--pack", "pk-a", *other)
+
+
+def test_a_validation_slice_goes_to_the_held_out_parts_only_and_a_rerun_with_another_is_refused(run, tmp_path, table):
+    held = [f"h0_{k}" for k in range(len(TEXTS))]
+    seed = next(n for n in range(100) if 0 < sum(rs.shard_writer.in_slice(n, "pk-a", d, 0.5) for d in held) < len(held))
+    want = [d for d in held if rs.shard_writer.in_slice(seed, "pk-a", d, 0.5)]
+    slice_args = ["--validation-fraction", "0.5", "--validation-seed", str(seed)]
+    code, out, s = go(run, tmp_path, table, "--pack", "pk-a", "--split", "all", *slice_args)
+    assert code == 0 and s["verified"] is True
+    assert (s["settings"]["validation_fraction"], s["settings"]["validation_seed"]) == (0.5, seed)
+    e = s["parts"]["heldout/pk-a/part-00000.parquet"]
+    assert e["status"] == "written" and e["docs"] == len(want) and e["left_out"]["not_in_slice"] == len(held) - len(want)
+    assert all(s["parts"][f"train/pk-a/part-0000{k}.parquet"]["docs"] == 3 for k in (0, 1))  # train parts are never sliced
+    assert "not_in_slice" not in s["parts"]["train/pk-a/part-00000.parquet"]["left_out"]
+    for other in (["--validation-fraction", "0.6", "--validation-seed", str(seed)], ["--validation-fraction", "0.5"], []):
+        with pytest.raises(SystemExit, match="was made with"):
+            go(run, tmp_path, table, "--pack", "pk-a", "--split", "all", *other)
+
+
+def test_a_held_out_part_with_no_doc_in_the_slice_is_all_left_out_with_its_count(run, tmp_path, table):
+    held = [f"h0_{k}" for k in range(len(TEXTS))]
+    seed = next(n for n in range(1000) if not any(rs.shard_writer.in_slice(n, "pk-a", d, 0.2) for d in held))
+    code, out, s = go(run, tmp_path, table, "--pack", "pk-a", "--split", "validation", "--validation-fraction", "0.2",
+                      "--validation-seed", str(seed))
+    e = s["parts"]["heldout/pk-a/part-00000.parquet"]
+    assert code == 0 and e["status"] == "all_left_out" and e["left_out"]["not_in_slice"] == len(held)
+    assert "not_in_slice" not in e["left_out_docs"]
+
+
+def test_a_validation_folder_is_not_sharded_even_with_split_all(run, tmp_path, table):
+    (run / "final" / "heldout").rename(run / "final" / "validation")
+    code, out, s = go(run, tmp_path, table, "--pack", "pk-a", "--split", "all")
+    assert code == 0 and s["parts"]["validation/pk-a/part-00000.parquet"]["status"] == "not_sharded"
+    assert not list(out.glob("*validation*"))
 
 
 def test_a_validation_folder_is_not_sharded_either(run, tmp_path, table):
     (run / "final" / "heldout").rename(run / "final" / "validation")
     code, out, s = go(run, tmp_path, table, "--pack", "pk-a")
     assert code == 0 and s["parts"]["validation/pk-a/part-00000.parquet"]["status"] == "not_sharded"
+
+
+def test_a_folder_that_is_no_split_still_fails_in_the_writer(run, tmp_path, table):
+    (run / "final" / "heldout").rename(run / "final" / "extra")
+    code, out, s = go(run, tmp_path, table, "--pack", "pk-a", "--split", "all")
+    e = s["parts"]["extra/pk-a/part-00000.parquet"]
+    assert code == 1 and e["status"] == "failed" and "train or heldout" in e["reason"]
 
 
 def test_a_held_out_part_of_a_pack_without_a_lane_is_not_sharded_not_skipped(run, tmp_path, table):
