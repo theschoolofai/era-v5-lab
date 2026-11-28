@@ -46,6 +46,26 @@ python teams/10-post-training/rl-loop/bench_quant_rollout.py speed --schemes cop
   --repeats 5 --threads 8 --out teams/10-post-training/results/lab5_quant_speed.json
 ```
 
+### 1b. GPU Rollout Speed & Peak VRAM (measured, NVIDIA RTX 5070 Ti CUDA)
+
+Random-weight Llama, `551.3M` parameters (`hidden 1536`, `12` layers, `12` heads, `vocab 32,000`), `fp32` learner on **NVIDIA GeForce RTX 5070 Ti (16 GB VRAM, PyTorch `2.15.0+cu132`, CUDA)**. `8` prompts of `128` tokens, `8` samples each, `128` new tokens (`8,192` generated tokens per call). `5` interleaved repeats after `1` warm-up call per scheme, CUDA-synchronised around each call (`results/lab5_quant_speed_gpu.json`).
+
+| Scheme | `tokens/s`, median (min to max) | Against `copy` | Decode `tok/s` (no refresh) | Refresh per call | Peak VRAM (GB) | `k3` (random weights) |
+|---|---:|---:|---:|---:|---:|---:|
+| `copy` (`fp32`) | 374 (331 to 497) | 1.00x | 374 | 0.0075 s | 6.479 | `5.0e-12` |
+| `bf16` | **1,742** (1,662 to 2,020) | **4.66x** | 1,746 | 0.0095 s | **4.277** (-34.0%) | `0.00016` |
+| `fp16` | **1,935** (1,743 to 2,019) | **5.18x** | 1,940 | 0.0094 s | **4.277** (-34.0%) | `2.5e-06` |
+
+- On GPU Tensor Cores (unlike CPU above), `bf16` and `fp16` rollout copies deliver **4.66x–5.18x** end-to-end throughput over an `fp32` rollout copy while cutting peak VRAM by **34.0%** (`6.479 -> 4.277 GB`), with weight refresh taking under `10 ms` (`~0.2%` of call time).
+- `k3` values here are on random weights (`0.0%` tokens outside `[0.8, 1.2]`); trained-model mismatch for quantized copies (`Q8_0`, `Q6_K`, `Q5_K_M`, `Q4_K_M`) is in [`quant_rollout_mismatch_pytorch.md`](quant_rollout_mismatch_pytorch.md).
+
+```bash
+uv run --no-project --with numpy --with transformers --with pyyaml --with safetensors --with torch \
+  python teams/10-post-training/rl-loop/bench_quant_rollout.py speed --schemes copy bf16 fp16 --device cuda \
+  --hidden 1536 --layers 12 --heads 12 --prompts 8 --k 8 --prompt-len 128 --max-new 128 --repeats 5 \
+  --out teams/10-post-training/results/lab5_quant_speed_gpu.json
+```
+
 ## 2. Does learning change? (toy task, 10 seeds)
 
 The trainer's tiny OLMoE smoke model and toy task, `objective_v1` (trust region 0.2), 80 steps, 1 update epoch, 256
@@ -77,32 +97,32 @@ OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 python teams/10-post-training/rl-loop/bench_
 TSAI's rule for speed claims. One forward and backward of the learner (sum of -log probability) on the tokens each
 scheme sampled, compared with the tokens of the exact copy. Trainable parameters with a `None` or all-zero gradient:
 
-| Model | Trainable tensors | Schemes | `None` | All zero | Lists identical to `copy` |
-|---|---:|---|---:|---:|---|
-| Speed model (random Llama, 124.7M) | 75 | `copy`, `int8_dynamic`, `bf16` | 0 | 0 | yes |
-| Tiny OLMoE, router frozen | 43 | `copy`, `int8_dynamic`, `w8a8_sim`, `w4a16_sim`, `bf16` | 0 | 0 | yes |
+| Model | Device | Trainable tensors | Schemes | `None` | All zero | Lists identical to `copy` |
+|---|---|---:|---|---:|---:|---|
+| Speed model (random Llama, 124.7M) | CPU | 75 | `copy`, `int8_dynamic`, `bf16` | 0 | 0 | yes |
+| Tiny OLMoE, router frozen | CPU | 43 | `copy`, `int8_dynamic`, `w8a8_sim`, `w4a16_sim`, `bf16` | 0 | 0 | yes |
+| Speed model (random Llama, 551.3M) | CUDA (RTX 5070 Ti) | 111 | `copy`, `bf16`, `fp16` | 0 | 0 | yes |
+| Tiny OLMoE, router frozen | CUDA (RTX 5070 Ti) | 23 | `copy`, `bf16`, `fp16`, `w8a8_sim`, `w4a16_sim` | 0 | 0 | yes |
 
 The sampler changes which tokens the learner sees, not the learner's backward. The two schemes' gradients are therefore
-not compared value by value.
+not compared value by value. (Tiny OLMoE reports 23 trainable tensors under newer `transformers` fused expert layout vs 43 on the CPU env; zero `None` and zero all-zero gradients in both.)
 
 ```bash
 python teams/10-post-training/rl-loop/bench_quant_rollout.py coverage \
   --out teams/10-post-training/results/lab5_quant_coverage.json   # 135 s, 6 threads, peak 4.2 GB
+uv run --no-project --with numpy --with transformers --with pyyaml --with safetensors --with torch \
+  python teams/10-post-training/rl-loop/bench_quant_rollout.py coverage \
+  --schemes copy bf16 fp16 --olmoe-schemes copy bf16 fp16 w8a8_sim w4a16_sim --device cuda \
+  --hidden 1536 --layers 12 --heads 12 --prompts 2 --k 2 --prompt-len 64 --max-new 32 \
+  --out teams/10-post-training/results/lab5_quant_coverage_gpu.json
 ```
 
 ## Not measured
 
-- No GPU run, no vLLM or SGLang, no Team 5 checkpoint. The Lab 5 speed target on the real engine is still open.
+- No vLLM, SGLang, or live `Q8_0` GGUF rollout engine inside the RL loop, and no Team 5 dry run 2 checkpoint yet (awaits Team 12's balanced 50-prompt run + quantized policy copy).
 - No quality check beyond held-out toy reward. The periodic check on Team 9's mini-benchmark is wired into the trainer
-  ([`lab5_rollout_check.md`](lab5_rollout_check.md)), but no benchmark has been run through it.
+  ([`lab5_rollout_check.md`](lab5_rollout_check.md)), but no benchmark has been run through it (`#929` open).
 - Team 5's model: the simulated and `bf16` paths are tested on a small model built from Team 5's classes. Only `nn.Linear`
   weights are rounded in the simulated schemes, so a head or expert held as a bare tensor stays exact. `int8_dynamic` does
   not support this model.
 - Deletion Tuning with a quantized sampler is refused by the trainer.
-
-A GPU measurement of the real lower-precision kernels (not run):
-
-```bash
-python teams/10-post-training/rl-loop/bench_quant_rollout.py speed --schemes copy bf16 fp16 --device cuda \
-  --hidden 2048 --layers 16 --heads 16 --prompts 16 --repeats 5 --out out/quant_speed_gpu.json
-```

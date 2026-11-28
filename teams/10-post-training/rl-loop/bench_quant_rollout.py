@@ -97,22 +97,29 @@ def speed(args) -> dict:
     def call(name, seed):
         if args.device.startswith("cuda"):
             torch.cuda.synchronize()
+            torch.cuda.reset_peak_memory_stats()
         t0 = time.perf_counter()
         rolls = samplers[name].sample(prompts, args.k, args.max_new, 1.0, torch.Generator().manual_seed(seed))
         if args.device.startswith("cuda"):
             torch.cuda.synchronize()
+            peak_gb = round(torch.cuda.max_memory_allocated() / (1024 ** 3), 4)
+        else:
+            peak_gb = None
         total = time.perf_counter() - t0
-        return rolls, total, samplers[name].last["refresh_s"]
+        return rolls, total, samplers[name].last["refresh_s"], peak_gb
 
     for name in args.schemes:  # warm-up at the measured shape
         call(name, 0)
     runs = {s: [] for s in args.schemes}
     for rep in range(args.repeats):
         for name in args.schemes:
-            rolls, total, refresh = call(name, 100 + rep)
+            rolls, total, refresh, peak_gb = call(name, 100 + rep)
             tokens = int(sum(int(r.cmask.sum()) for r in rolls))
-            runs[name].append({"seconds": total, "refresh_s": refresh, "tokens": tokens, "tok_s": tokens / total,
-                               "decode_tok_s": tokens / (total - refresh), **gap(policy, rolls, prompts)})
+            rec = {"seconds": total, "refresh_s": refresh, "tokens": tokens, "tok_s": tokens / total,
+                   "decode_tok_s": tokens / (total - refresh), **gap(policy, rolls, prompts)}
+            if peak_gb is not None:
+                rec["peak_vram_gb"] = peak_gb
+            runs[name].append(rec)
             row = {k: round(v, 5) for k, v in runs[name][-1].items()}
             print(json.dumps({"scheme": name, "repeat": rep, **row}), flush=True)
     table = {}
@@ -125,11 +132,14 @@ def speed(args) -> dict:
     if base:
         for name, m in table.items():
             m["speed_up_vs_copy"] = m["tok_s"] / base["tok_s"]
-    return {"mode": "speed", "load_average_1m": {"before": load_before, "after": load_average()}, "model": desc,
-            "device": args.device, "dtype": args.dtype, "threads": torch.get_num_threads(),
-            "cpu": platform.processor() or platform.machine(), "torch": torch.__version__,
-            "prompts": args.prompts, "k": args.k, "prompt_len": args.prompt_len, "max_new": args.max_new,
-            "repeats": args.repeats, "median": table, "runs": runs}
+    out_doc = {"mode": "speed", "load_average_1m": {"before": load_before, "after": load_average()}, "model": desc,
+               "device": args.device, "dtype": args.dtype, "threads": torch.get_num_threads(),
+               "cpu": platform.processor() or platform.machine(), "torch": torch.__version__,
+               "prompts": args.prompts, "k": args.k, "prompt_len": args.prompt_len, "max_new": args.max_new,
+               "repeats": args.repeats, "median": table, "runs": runs}
+    if args.device.startswith("cuda") and torch.cuda.is_available():
+        out_doc["gpu_name"] = torch.cuda.get_device_name(0)
+    return out_doc
 
 
 def learn(args) -> dict:
@@ -168,7 +178,8 @@ def learn(args) -> dict:
 def coverage(args) -> dict:
     base = yaml.safe_load((HERE / "config" / "smoke_tiny_olmoe.yaml").read_text())
     torch.manual_seed(base["seed"])
-    tiny, _ = train.build_model(base["model"], "cpu")
+    olmoe_device = "cpu" if "int8_dynamic" in args.olmoe_schemes else args.device
+    tiny, _ = train.build_model(base["model"], olmoe_device)
     router.freeze_router(tiny.model, router.ROUTER_PATTERNS)
     task = train.build_task(base["task"], None, base["seed"])
     llama, desc = build(args)
@@ -190,12 +201,17 @@ def coverage(args) -> dict:
             a = audit_grads(policy.model)
             lists = [sorted(x["name"] for x in a[key]) for key in ("none_grads", "zero_grads")]
             reference = reference or lists
-            checks.append({"model": name, "scheme": scheme, "trainable_tensors": a["trainable_tensors"],
+            checks.append({"model": name, "device": policy.device, "scheme": scheme,
+                           "trainable_tensors": a["trainable_tensors"],
                            "none_grads": lists[0], "zero_grads": lists[1], "lists_identical_to_copy": lists == reference})
-            print(json.dumps({"model": name, "scheme": scheme, "trainable": a["trainable_tensors"],
+            print(json.dumps({"model": name, "device": policy.device, "scheme": scheme,
+                              "trainable": a["trainable_tensors"],
                               "none": len(lists[0]), "zero": len(lists[1]), "identical": lists == reference}), flush=True)
         policy.model.zero_grad(set_to_none=True)
-    return {"mode": "coverage", "speed_model": desc, "torch": torch.__version__, "checks": checks}
+    out_doc = {"mode": "coverage", "device": args.device, "speed_model": desc, "torch": torch.__version__, "checks": checks}
+    if args.device.startswith("cuda") and torch.cuda.is_available():
+        out_doc["gpu_name"] = torch.cuda.get_device_name(0)
+    return out_doc
 
 
 def export(args) -> dict:
