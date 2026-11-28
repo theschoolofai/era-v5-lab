@@ -89,8 +89,13 @@ def render(llama: dict, torch_ref: dict, a) -> str:
     lines.append("- The speed column divides a format's rollout tok/s by the `bf16` sampler's tok/s from the same run and session. It is not a speedup "
                  "against PyTorch bf16 decoding, which was not measured." if base_speed else
                  "- No `bf16` sampler row was run, so no speed ratio is given.")
-    lines.append(f"- Team 10's stop rule (`k3 <= 0.05`) holds on the formats whose k3 and interval upper bound are at or below 0.05: "
-                 + (", ".join(f"`{f['format']}`" for f in torch_ref["formats"] if f["ci95_by_prompt"]["k3"][1] <= 0.05) or "none") + ".")
+    thr = 0.05
+    ok = [f["format"] for f in torch_ref["formats"] if f["ci95_by_prompt"]["k3"][1] <= thr]
+    straddle = [f"`{f['format']}` ({f['k3']:.4f}, interval {f['ci95_by_prompt']['k3'][0]:.4f} to {f['ci95_by_prompt']['k3'][1]:.4f})"
+                for f in torch_ref["formats"] if f["ci95_by_prompt"]["k3"][0] <= thr < f["ci95_by_prompt"]["k3"][1]]
+    above = [f"`{f['format']}`" for f in torch_ref["formats"] if f["ci95_by_prompt"]["k3"][0] > thr]
+    lines.append("- Team 10's stop rule (`k3 <= 0.05`), on the pooled k3 with its interval: under the limit: " + (", ".join(f"`{x}`" for x in ok) or "none")
+                 + "; interval contains the limit: " + (", ".join(straddle) or "none") + "; above the limit: " + (", ".join(above) or "none") + ".")
     return "\n".join(lines) + "\n"
 
 
