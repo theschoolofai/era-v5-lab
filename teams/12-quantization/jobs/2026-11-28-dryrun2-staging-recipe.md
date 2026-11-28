@@ -28,7 +28,7 @@ the binaries report build 1. `quantize_eval.py` then cannot match `work/llama.cp
 
 ## Corrections to the job file
 
-- `2026-11-18-dryrun1-quantize-eval.md` (which the dry run 2 job points to for staging) lists 24 `code_contests` and 7 `hendrycks_math` files. The manifest resolves **25 and 6**; corrected there.
+- `2026-11-18-dryrun1-quantize-eval.md` (which the dry run 2 job points to for staging) lists 24 `code_contests` and 7 `hendrycks_math` files. The manifest resolves **25 and 6** (4.83 GB for the 25 `code_contests` files; the job says about 4.6 GB); the counts are corrected in #885.
 - Files sit under `data/` for `code_contests` and at the dataset root for `hendrycks_math`; the script tries both.
 
 ## Evidence
