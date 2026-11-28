@@ -17,14 +17,20 @@ Arms (names; "<q>" is q8_0 or q4_0):
   dt_then_<q>         the `dt` result with its mask baked in (W * 1[G > 0]), then quantized: the other order, as a control
                       (computed inside the `dt` run, which bakes the mask once and scores a quantized copy per format)
 Each arm reports held-out NLL per token (mean over windows, with per-window values for paired intervals), the share of
-targeted weights deleted, training time and peak CUDA memory. Training is the official recipe's defaults in G10's
-trainer: AdamW on the logits (lr 2e-3, betas 0.9/0.95), alpha 100 to 1000, Wanda prior (eta 1/2048, strength 3),
-regulariser lambda 1e-5 decaying to 0, `gate_proj` targets. The data is plain text (wikitext-2), next-token loss on every token:
+targeted weights deleted, training time and peak CUDA memory. Training uses G10's DT settings: AdamW on the logits (lr 5e-4, G10's default since its
+17 Nov port check; its older ladder runs used 2e-3, set with --lr; betas 0.9/0.95), alpha 100 to 1000, Wanda prior (eta 1/2048, strength 3),
+regulariser lambda 1e-5 decaying to 0, `gate_proj` targets. The loop is simpler than G10's trainer (sft/bench/train.py): constant
+learning rate, no warmup, no cosine decay, no gradient clipping. That is the same for every arm, so arms compare fairly, but
+the numbers are not G10's trainer's. The data is plain text (wikitext-2), next-token loss on every token:
 not G10's SFT slice, so this answers "does the mask train on a quantized base", not G10's chat-format question.
 
-Memory: `memory_accounting` gives bytes per decoder-linear weight (bf16 2, Q8_0 34/32, Q4_0 18/32) and the DT state per
-targeted weight (FP32 logit 4 + gradient 4 + Adam moments 8 = 16 bytes), so the table shows how much of DT's cost the
-quantized base can touch. Aggregate numbers only: no text is written.
+Memory: `memory_accounting` gives bytes per decoder-linear weight (fp32 4, bf16 2, Q8_0 34/32, Q4_0 18/32) and the DT state per
+targeted weight (FP32 logit 4 + gradient 4 + Adam moments 8 = 16 bytes; DT arms only), so the table shows how much of DT's cost
+the quantized base can touch. These are STORAGE figures. Peak CUDA memory during training is measured separately and need not
+fall with the format: `base_weight` dequantizes on every read and `W * mask` keeps that fp32 copy for backward in every layer
+(Sourav measured 11.9 against 7.9 bytes per masked weight saved for backward at Q8_0), so a packed arm can peak as high as `dt`.
+`dtmask.deletion_stats()` counts `named_parameters()`, and packing removes `weight`, so its `model_weights` is lower on packed
+models; no number reported here uses it. Aggregate numbers only: no text is written.
 """
 from __future__ import annotations
 
@@ -40,7 +46,7 @@ _spec = importlib.util.spec_from_file_location("g10_dt_mask", HERE.parents[1] / 
 dtmask = importlib.util.module_from_spec(_spec); sys.modules["g10_dt_mask"] = dtmask; _spec.loader.exec_module(dtmask)
 
 BLOCK = 32
-BYTES_PER_WEIGHT = {"bf16": 2.0, "q8_0": 34 / 32, "q4_0": 18 / 32}   # llama.cpp block sizes: 2 B scale + 32 / 16 B codes
+BYTES_PER_WEIGHT = {"bf16": 2.0, "bfloat16": 2.0, "float32": 4.0, "q8_0": 34 / 32, "q4_0": 18 / 32}   # llama.cpp block sizes: 2 B scale + 32 / 16 B codes
 DT_STATE_BYTES = 4 + 4 + 8                                          # FP32 logit, its gradient, Adam exp_avg and exp_avg_sq
 
 
@@ -129,7 +135,7 @@ def memory_accounting(model: nn.Module, targets, fmt: str) -> dict:
     """Bytes of the decoder linears under `fmt` plus DT's per-weight state, for the model as loaded (no CUDA needed)."""
     lins = decoder_linears(model)
     total = sum(m.weight.numel() for _, m in lins)
-    masked = sum(m.weight.numel() for n, m in lins if dtmask.target_match(n, targets))
+    masked = sum(m.weight.numel() for n, m in lins if targets and dtmask.target_match(n, targets))
     per_w = BYTES_PER_WEIGHT[fmt]
     return {"decoder_linear_weights": total, "masked_weights": masked, "format": fmt,
             "weights_bytes": round(total * per_w), "dt_state_bytes": masked * DT_STATE_BYTES,
@@ -178,10 +184,13 @@ def run_arm(arm: str, args, tok_windows: dict, device) -> dict:
     fmt = arm.split("_", 1)[1] if "_" in arm else None
     assert not arm.startswith("dt_then"), "dt_then_<q> comes from the dt arm (it bakes and quantizes the same run)"
     assert fmt in (None, "q8_0", "q4_0"), arm
+    if fmt and args.dtype != "float32":
+        raise ValueError(f"{arm}: with --dtype {args.dtype} the dequantized values are rounded again and are no longer {fmt}; use float32")
     torch.manual_seed(args.seed)
     model = AutoModelForCausalLM.from_pretrained(args.model, torch_dtype=getattr(torch, args.dtype), revision=args.revision).to(device)
     targets = dtmask.TARGET_SETS[args.targets]
-    res = {"arm": arm, "format": fmt or args.dtype, "memory": memory_accounting(model, targets, fmt or "bf16")}
+    # the format's own bytes (the loaded dtype for an unquantized arm); DT state only where DT runs
+    res = {"arm": arm, "format": fmt or args.dtype, "memory": memory_accounting(model, targets if kind == "dt" else (), fmt or args.dtype)}
     if device.type == "cuda":
         torch.cuda.reset_peak_memory_stats()
     t0 = time.time()
@@ -213,7 +222,7 @@ def run_arm(arm: str, args, tok_windows: dict, device) -> dict:
             clone = copy.deepcopy(model)
             quantize_decoder_(clone, q)
             nq = window_nll(clone, tok_windows["test"], device)
-            res["then"][q] = {"arm": f"dt_then_{q}", "format": q, "memory": memory_accounting(clone, targets, q),
+            res["then"][q] = {"arm": f"dt_then_{q}", "format": q, "memory": memory_accounting(clone, (), q),   # served model: no DT state
                               "deletion_final": res["deletion_final"], "test_nll_mean": float(np.mean(nq)), "test_windows": len(nq),
                               "per_window_nll": [round(x, 5) for x in nq]}
             del clone
@@ -226,7 +235,17 @@ def fit_mask(model, train_windows, calib_windows, device, args) -> dict:
     batches = [{"input_ids": torch.tensor([w], device=device), "attention_mask": torch.ones(1, len(w), dtype=torch.long, device=device)}
                for w in calib_windows]
     scores = dtmask.wanda_scores(model, batches, device)
-    info = {"wanda_prior": dtmask.apply_wanda_prior(model, scores, args.eta, args.prior_strength)}
+    # A weight that Q8_0 or Q4_0 rounded to exactly 0 has Wanda score 0. The prior marks the scores below the k-th smallest
+    # (k = eta x weights); with 0.8% (Q8_0) or 12% (Q4_0) of a layer at 0, that threshold is 0 and nothing is below it, so the
+    # quantized arms would train without the prior that `dt` has. Such weights get +inf: they are no candidates and never set
+    # the threshold. mask.py is untouched. (Found by Sourav's review of #889.)
+    zeroed = 0
+    for name, layer in dtmask.masked_layers(model):
+        if name in scores:
+            z = layer.base_weight == 0
+            zeroed += int(z.sum())
+            scores[name] = torch.where(z, torch.full_like(scores[name], float("inf")), scores[name])
+    info = {"wanda_prior": dtmask.apply_wanda_prior(model, scores, args.eta, args.prior_strength), "weights_zero_before_prior": zeroed}
     info["deletion_at_init"] = dtmask.deletion_stats(model)["deleted_frac_of_targeted"]
     gates = [m.gate for _, m in dtmask.masked_layers(model)]
     opt = torch.optim.AdamW(gates, lr=args.lr, betas=(0.9, 0.95), eps=1e-8, weight_decay=0.0)
@@ -280,7 +299,7 @@ def main() -> int:
     ap.add_argument("--micro", type=int, default=2); ap.add_argument("--length", type=int, default=512)
     ap.add_argument("--train-windows", type=int, default=2000); ap.add_argument("--calib-windows", type=int, default=32)
     ap.add_argument("--test-windows", type=int, default=200)
-    ap.add_argument("--lr", type=float, default=2e-3); ap.add_argument("--eta", type=float, default=1 / 2048)
+    ap.add_argument("--lr", type=float, default=5e-4); ap.add_argument("--eta", type=float, default=1 / 2048)
     ap.add_argument("--prior-strength", type=float, default=3.0); ap.add_argument("--lam", type=float, default=1e-5)
     ap.add_argument("--alpha-start", type=float, default=100.0); ap.add_argument("--alpha-end", type=float, default=1000.0)
     ap.add_argument("--dtype", default="float32", choices=["float32", "bfloat16"])
