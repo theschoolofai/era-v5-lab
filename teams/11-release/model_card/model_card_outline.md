@@ -32,29 +32,31 @@ The draft of the model card is `model_card_v0.md`. Each section there has the te
 | Section | What it says | Owner team | Status | Lead OK |
 |---|---|---|---|---|
 | Overview | What the model is and who made it, in plain words | Release | in progress | Release OK @pyru |
-| Intended use | What the model is for, and what it is not for | Post-training, Release | empty | Post-training OK @saitej123; Release OK @pyru |
+| Intended use | What the model is for, and what it is not for | Post-training, Release | in progress | Post-training OK @saitej123; Release OK @pyru |
 | Languages | The languages the model reads and writes | Data A, Data B, Tokenizer | empty | Data A OK @patilvijay23; Data B OK @shankarpandala; Tokenizer OK @rjvim |
 | Training data | The public data sources, and the problems we found in them | Data A, Data B | in progress | Data A OK @patilvijay23; Data B OK @shankarpandala |
 | Data cleaning | How we cleaned the data and removed duplicates | Data A, Data B | in progress | Data A OK @patilvijay23; Data B OK @shankarpandala |
+| Personal data | How the lab found and masked personal details and secrets in the data, and what it could not check | Data A, Data B | in progress | Data A pending; Data B pending |
 | Tokenizer | How the model splits text into pieces | Tokenizer | empty | OK @rjvim |
 | KE2 | Whether the model uses KE2, in general terms, with no design details. This includes the KE2 output head, which replaced the dense untied head on 21 Nov 2026 | KE2 | in progress | OK @swatibansal |
 | Architecture | The shape of the model, in general terms | Architecture | empty | OK @shivman |
 | Training | How the lab trained the model | Performance, Architecture | empty | Performance OK @raj-harit-v2; Architecture OK @shivman |
-| Training infrastructure | How the run saves, restores and restarts after a crash | Infrastructure | empty | pending |
-| Compute | The hardware and the training time, once TSAI approves the numbers | Infrastructure | empty | pending |
+| Training infrastructure | How the run saves, restores and restarts after a crash | Infrastructure | empty | OK @sureshmantha ([comment on #878](https://github.com/theschoolofai/era-v5-lab/pull/878#issuecomment-7241313628)) |
+| Compute | The hardware and the training time, once TSAI approves the numbers | Infrastructure | empty | OK @sureshmantha ([comment on #878](https://github.com/theschoolofai/era-v5-lab/pull/878#issuecomment-7241313628)) |
 | Monitoring | How the lab watched the training run and kept a record of it | Monitoring | empty | OK @sandeepkunkunuru |
 | Post-training | How the lab tuned the model after pre-training | Post-training | empty | OK @saitej123 |
 | Alignment | How the lab trained the model on checked scores of its own answers, and how it scores tasks with no test | Post-training | empty | OK @saitej123 |
-| Quantized versions | The smaller versions of the model, and what they lose | Quantization | empty | OK @SreekanthZipsy |
-| Serving | How to run the model and chat with it in the lab's chat format, and how the smaller formats were checked against the full model | Quantization | empty | OK @SreekanthZipsy |
+| Quantized versions | The smaller versions of the model, and what they lose | Quantization | in progress | OK @SreekanthZipsy |
+| Serving | How to run the model and chat with it in the lab's chat format, and how the smaller formats were checked against the full model | Quantization | in progress | OK @SreekanthZipsy |
 | Evaluation | The benchmarks, the scores that TSAI approves, and what the scores do not show, such as the size of the question sets | Evaluation | in progress | OK @rahulni |
-| Limitations and risks | What the model gets wrong, and the known risks. The limits of the scores go in Evaluation | Evaluation, Release | empty | Evaluation OK @rahulni; Release OK @pyru |
-| What this card does not claim | The claims that the card does not make about the model as a whole, so that readers do not read too much into it. The limits of the scores go in Evaluation, and the errors of the model in Limitations and risks | Evaluation, Release | empty | Evaluation OK @rahulni; Release OK @pyru |
-| Licence and attribution | The licence of the model, and credit for each data source | Post-training, Data A, Data B | in progress | Post-training OK @saitej123; Data A OK @patilvijay23; Data B OK @shankarpandala |
+| Safety evaluation | A summary of the safety and refusal tests, and their results once TSAI approves them | Evaluation | empty | OK @rahulni ([comment on #878](https://github.com/theschoolofai/era-v5-lab/pull/878#issuecomment-7236006708)) |
+| Limitations and risks | What the model gets wrong, and the known risks. The limits of the scores go in Evaluation | Evaluation, Release | in progress | Evaluation OK @rahulni; Release OK @pyru |
+| What this card does not claim | The claims that the card does not make about the model as a whole, so that readers do not read too much into it. The limits of the scores go in Evaluation, and the errors of the model in Limitations and risks | Evaluation, Release | in progress | Evaluation OK @rahulni; Release OK @pyru |
+| Licence and attribution | The licence of the model, which TSAI decides, and credit for each data source | Post-training, Data A, Data B | in progress | Post-training OK @saitej123; Data A OK @patilvijay23; Data B OK @shankarpandala |
 | Contributors | The teams that did the work, with no person names | Release | in progress | Release OK @pyru |
 | How to find more | A link to the public lab repository | Release | in progress | Release OK @pyru |
 | What is released | What the lab makes public, and what it does not. TSAI decides what is released | Release | empty | Release OK @pyru |
-| Sources | A link for each fact in the card, so that readers can check it. The links go to the public lab repository, and to other public pages, such as dataset pages, only if TSAI agrees | Release | empty | Release OK @pyru |
+| Sources | A link for each fact in the card, so that readers can check it. The links go to the public lab repository, and to other public pages, such as dataset pages, only if TSAI agrees | Release | in progress | Release OK @pyru |
 | How to cite | How to cite the model, once TSAI names the model and approves the text. The citation names TSAI or the lab, and no person | Release | empty | Release OK @pyru |
 
 ## Changes to this outline
@@ -67,6 +69,12 @@ The draft of the model card is `model_card_v0.md`. Each section there has the te
   show. Evaluation, Limitations and risks, and What this card does not claim each say what goes there, so that no
   sentence is written twice. The Evaluation lead confirms the new scopes. Four sections are new: What this card does
   not claim, What is released, Sources and How to cite. TSAI decides what is released and how to cite the model.
+- 28 Nov 2026: Capstone Lab 5 asks for a licence and safety part. Two sections are new: Personal data (Data A,
+  Data B) and Safety evaluation (Evaluation). Their leads confirm the new scopes. Licence and attribution now says
+  that TSAI decides the licence of the model. This outline is the owner table of the model card.
+- 28 Nov 2026: Release drafted its part of seven sections in #922. They are Intended use, Personal data, Quantized
+  versions, Serving, Limitations and risks, What this card does not claim, and Sources. Their status is in progress
+  until the owner teams give their OK.
 
 ## Rules for every section
 
