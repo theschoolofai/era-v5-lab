@@ -162,7 +162,9 @@ root
 - **Time limit with self-requeue** for team jobs (uz9ai's ADR-05): `--time` + `--signal=B:USR1@<lead>`, lead ≥
   2 × the save time + 60 s. The warning reaches only the batch shell (`B:`); the wrapper passes it to the
   trainers through `srun`; they save and exit 75; Slurm requeues the job with the same id. Long work runs in
-  segments and loses nothing. The main run keeps no time limit.
+  segments and loses nothing. The main run sets no time limit of its own, but `mainrun.sbatch` carries the same
+  `--signal=B:USR1@300` line (added after Lab 5's time-cap drill, #900): on our cluster it does nothing, and if a site
+  or provider caps the job, the cap becomes a save and a requeue instead of a TIMEOUT.
 - **Launch shape:** `srun` starts one trainer per GPU directly, with no launcher in between (uz9ai's ADR-10
   "alternative b"). uz9ai checked in DeepSpeed's source that the `deepspeed` launcher dies on SIGUSR1 and kills all
   ranks when one exits non-zero, which would break both the save-on-signal and the exit-75 contract. Our
@@ -204,8 +206,12 @@ root
 - **Signals.** The trainer treats SIGUSR1 and SIGTERM the same: save, wait for the commit, exit 75.
   - Preemption: Slurm sends SIGTERM, then SIGKILL after `GraceTime` (60 s) / `KillWait` (30 s).
   - Spot notice or health drain: `scancel --signal=USR1 <job>` from the node itself (ADR 0003).
-  - Time limit (team jobs): `--signal=B:USR1@300` to the batch shell, passed on by the wrapper (above). The
-    first draft put `--signal=USR1@120` on the main run; it has no time limit, so it stays without one.
+  - Time limit (team jobs and the main run): `--signal=B:USR1@300` to the batch shell, passed on by the wrapper
+    (above). The first draft put `--signal=USR1@120` on the main run and left it out again, because the main run
+    has no time limit. Lab 5's drill (`docs/restart_cost_lab5.md` §3) showed what that costs under an outside cap:
+    SIGTERM, SIGKILL after `KillWait=30` s, a save that cannot commit in time, a TIMEOUT that Slurm does not
+    requeue. The line is back on the main run (300 s: step, evaluation, save, commit and Slurm's timing); it is
+    inert while there is no cap.
 - A node that stops answering for `SlurmdTimeout=30` s is marked DOWN and its job is requeued by Slurm.
 - **Requeue delay.** Slurm holds every requeued job until the old job's launch credential has expired
   (`cred_expire` + 1 s, default ≈ 121 s). We set **`AuthInfo=cred_expire=60`**. The man page says the credential

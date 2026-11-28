@@ -121,7 +121,7 @@ restarts typed by hand.
 
 ```text
 root
-├── mainrun   QOS=mainrun  Priority 1000, can preempt "normal", no time limit
+├── mainrun   QOS=mainrun  Priority 1000, can preempt "normal", no time limit (mainrun.sbatch still warns 300 s before an outside cap)
 └── teams     QOS=normal   Priority 10, preemptible (60 s grace to save, then requeued)
     ├── data  tokenizer  ke2  arch  perf  infra  monitoring  eval  posttrain  release  quant
 ```
