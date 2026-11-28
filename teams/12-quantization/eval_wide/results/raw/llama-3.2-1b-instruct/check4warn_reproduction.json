@@ -1,0 +1,47 @@
+{
+ "what": "this run (Kaggle 2 x T4, check 4 warn mode) against the committed per-item files of #843 (bf16: one T4; Q6_K: 2 x T4)",
+ "rows": [
+  {
+   "format": "bf16",
+   "task": "mmlu",
+   "items_this_run": 14042,
+   "items_committed": 14042,
+   "identical": 14042
+  },
+  {
+   "format": "bf16",
+   "task": "arc_challenge",
+   "items_this_run": 1172,
+   "items_committed": 1172,
+   "identical": 1172
+  },
+  {
+   "format": "bf16",
+   "task": "belebele_hin_Deva",
+   "items_this_run": 900,
+   "items_committed": 900,
+   "identical": 900
+  },
+  {
+   "format": "Q6_K",
+   "task": "mmlu",
+   "items_this_run": 14042,
+   "items_committed": 14042,
+   "identical": 14042
+  },
+  {
+   "format": "Q6_K",
+   "task": "arc_challenge",
+   "items_this_run": 1172,
+   "items_committed": 1172,
+   "identical": 1172
+  },
+  {
+   "format": "Q6_K",
+   "task": "belebele_hin_Deva",
+   "items_this_run": 900,
+   "items_committed": 900,
+   "identical": 900
+  }
+ ]
+}

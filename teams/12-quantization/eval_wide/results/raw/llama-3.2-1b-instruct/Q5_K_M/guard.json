@@ -1,0 +1,21 @@
+{
+ "runs": [
+  {
+   "result": "PASS",
+   "cache_diff": 0.0002,
+   "line": "Llama-3.2-1B-Instruct-Q5_K_M.gguf: log p(' Paris') = -0.460, generation -0.460, off-by-one value -10.126; cache max diff 0.0002; check 4 warn only (EVAL_GUARD_CHECK4)",
+   "overrides": {
+    "EVAL_GUARD_CHECK4": "warn"
+   },
+   "warnings": [
+    "4. easy item answered wrong: [-0.96, -0.92, -5.95, -9.55]"
+   ],
+   "tasks_scored": [
+    "arc_challenge",
+    "belebele_hin_Deva",
+    "mmlu"
+   ],
+   "logged": "2026-11-28T13:21:34"
+  }
+ ]
+}
