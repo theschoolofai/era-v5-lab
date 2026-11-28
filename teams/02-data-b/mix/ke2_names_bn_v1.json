@@ -1,0 +1,71 @@
+{
+ "rows": 16000,
+ "bytes": 1325535,
+ "sha256": "1f062843d07b173dfbd6c69f9f68a4f8c4ecdf4cb5550a414bdc7124e10428ff",
+ "pool_entities": {
+  "person": 61524,
+  "org": 7502,
+  "place": 29274
+ },
+ "wikidata_dropped_by_filters": {
+  "bengali label": 4266,
+  "english label": 171
+ },
+ "pool_in_bd": {
+  "person": 21960,
+  "org": 2445,
+  "place": 16509
+ },
+ "picked_entities": {
+  "person": 2000,
+  "place": 2000,
+  "org": 1000
+ },
+ "picked_in_bd": {
+  "person": 1000,
+  "place": 1000,
+  "org": 500
+ },
+ "aksharantar_pairs": {
+  "pool": 18596,
+  "picked": 3000
+ },
+ "bengali_forms_seen_in_sample": 1774,
+ "bengali_forms_unseen_in_sample": 6226,
+ "seed": 20261129,
+ "inputs": {
+  "aksharantar_zip_sha256": "4ab6edcc6ab556040d8f43ee75eec73cc25af0cf72d09e4650dab26b196d5fe7",
+  "aksharantar_rev": "e418c1fc928d9f5393af33268472cf20c1891be8",
+  "bn_parts_sha256": {
+   "ind-bn-fw2": "fda2605fd302c5bee7ad3c780e11460a7ccdfc60d4a1467854c1dee974d633e9",
+   "ind-bn-sangraha-v": "84a59d8676186cdd4676e65cd8d00ce5dde23a3abb76be66c1d9389a163194ed"
+  },
+  "wikidata_query_sha256": {
+   "region_P27": "450d0f62a8b81b5e0157f416130806a069f228ed6b31108f96f074bc1b8c891a",
+   "region_P17": "cc1e6b35e7b93f338dd167d02f92cadc8e87043021c74d6f8fe992a8b02896b2",
+   "person": "b8667e28660b9c01a5892b5213411fbcaf2696be786c753962228251b011b959",
+   "org_Q43229": "8e8cd65b5c4938b0210268cf5d6c64dd815f233d1e93a25936ff379c13ee4732",
+   "org_Q4830453": "b5ead632504ff771532a4e78a9b2ca9f8a7adcc10ebbd6669f3a62ae75bc65a5",
+   "org_Q3918": "29ef590086d49535f5b37b8b69fd0f636c1d5de9642bd3be76b16e00bdc19ec0",
+   "org_Q7278": "74f1d07bb4d0e7442b7728f40e48008d15b28845432f2e0447de32fc2db74687",
+   "org_Q891723": "99f7394a4cfdc0367f32111b833755102c47752bf50795f8aec70599fc451166",
+   "org_Q2385804": "0b3622f03d3e9df62b74a802c3a9793a04f8e466bcf627d0e03a3c1e0f76fde9",
+   "org_Q875538": "03b91f9e48c0db670d314f3ff9d45f639f11ce2d718ef697d6f86622391be52f",
+   "org_Q902104": "7eb3fbb835a22d7dde251ade5d51284f50c39dfc6765a7fbbb70abaeebcf7a9a",
+   "org_Q327333": "900f65ced806a3d5256c019030e1af156a90851a2aefcedb06908e875d5b938e",
+   "org_Q163740": "9d491181da71ffd0ad46ee1f208358cdb01acad05abcadb68175325873c2b539",
+   "org_Q476028": "e72a8c57952042f6360a242a5d01c34f96ea2cf767762c20903359c6e994d2a3",
+   "org_Q11032": "a484001f5a7b504e6f1ec5a650c1f28695faa3a87c2b9000076c016f4cf762b2",
+   "org_Q1110794": "e2166567932b578b4252fd5f04c2354a34f7ff8bdab542c294202cba2abd5c28",
+   "org_Q783794": "bd6c6a5bc195eea7f5055abd82a2dbe2e350b30919e10813b5350082d0eb0c0b",
+   "org_Q31855": "5c857ed9dc1d29376dd1cae93041828a5e40b3b110012c62945625d7424c43df",
+   "org_Q1664720": "fe61b00176639ec2fa762c559433dae08287ace2642078a9c20b7739fea76c55",
+   "org_Q3914": "dd6fa87ee55a46413ca6507a847feb3dea8ef18a1bec6ddcf3cd5b76d2db52bc",
+   "org_Q9826": "a20ea061c7c9201d3092983badbcaad31ebe8692676433faef2186b63dccbeb3",
+   "org_Q46970": "77b374fbd30e4498773df0330cc836170bda48844fde912f5f172aabddf8e5a2",
+   "org_Q215380": "7a768ab7d04d80d62e1ff26e59949c08d2c39e4769be73dc8a4ce9167061e943",
+   "org_Q2001305": "e25996f9eba6f8b0d42dab4edfc0dfb5cdc69e744f0c973628f2f852e2980c8e",
+   "place": "aeaeca84d8d8b7b0cc5f57c107f212fd9937a08c2167174ce15bb73ea28f29a0"
+  }
+ }
+}
