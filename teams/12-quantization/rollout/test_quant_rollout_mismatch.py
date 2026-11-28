@@ -235,7 +235,7 @@ def test_g10_rollout_note_columns_ratio_and_floor(tmp_path):
     q4 = [l for l in md.splitlines() if l.startswith("| `Q4_K_M`")][0]
     assert q4.rstrip().endswith("| - | - |")                                       # no speed measured for that format here
     assert "engine-to-engine floor" in md and "not a speedup against PyTorch bf16" in md
-    assert "`bf16`, `Q8_0`" in md and "Q4_K_M`." not in md.split("holds on the formats")[1]   # the stop-rule line lists only formats under 0.05
+    assert "under the limit: `bf16`, `Q8_0`" in md and "above the limit: `Q4_K_M`" in md                      # the stop-rule line sorts the formats
     assert "balanced" in md and "10 english" in md and "https://x/894" in md
 
 
@@ -364,3 +364,15 @@ def test_g10_note_speed_baseline_can_be_a_vllm_format(tmp_path):
     md = g.render(g.load_llama(d), t, ns)
     assert [l for l in md.splitlines() if l.startswith("| `vllm_W4A16`")][0].rstrip().endswith("| 1800.0 | 1.80x |")
     assert "No `bf16` sampler row was run" not in md
+
+
+def test_g10_note_names_the_formats_that_straddle_or_exceed_the_k3_limit(tmp_path):
+    import make_g10_note as g
+    d = _llama_dir(tmp_path)
+    t = _torch_ref()                       # bf16 k3 0.003, Q8_0 0.0065, Q4_K_M 0.0739 with intervals at +-20%
+    t["formats"][2]["k3"] = 0.047; t["formats"][2]["ci95_by_prompt"]["k3"] = [0.036, 0.062]       # straddles 0.05
+    t["formats"] = t["formats"] + [{**t["formats"][2], "format": "Q3_K_M", "k3": 0.09, "ci95_by_prompt": {**t["formats"][2]["ci95_by_prompt"], "k3": [0.07, 0.11]}}]
+    ns = argparse.Namespace(model="toy", notebook_version="v9", pr_this="a", pr_baseline="b", hardware="Kaggle T4 x2", prompt_note="")
+    line = [l for l in g.render(g.load_llama(d), t, ns).splitlines() if l.startswith("- Team 10's stop rule")][0]
+    assert "under the limit: `bf16`, `Q8_0`" in line and "interval contains the limit: `Q4_K_M` (0.0470, interval 0.0360 to 0.0620)" in line
+    assert "above the limit: `Q3_K_M`" in line
