@@ -31,12 +31,21 @@ Each file gets a sha256 hash in the decision log before it goes public.
 | Weights, full precision | The weights of the main run | TSAI, Quantization | The hash of each file. The weights load and give the scores in the evaluation tables. |
 | Weights, smaller bit widths | One file for each bit width that TSAI chooses | Quantization | The size, memory, speed and quality table of each bit width. The export checks pass. |
 | Tokenizer | The frozen tokenizer files | Tokenizer | The files match `teams/03-tokenizer/release/SHA256SUMS`, and `verify_release.py` passes. |
-| Unit dictionary | The dictionary of units, if the released model uses one | Tokenizer, KE2 | The hash of the dictionary. TSAI decides whether it is released. |
+| Unit dictionary | The dictionary of units, if the released model uses one | Tokenizer, KE2 | As things stand, the released model uses the frozen p1536 tokenizer only, with no dictionary ([comment on #881](https://github.com/theschoolofai/era-v5-lab/pull/881#issuecomment-7237397353)). If KE2 and TSAI decide to ship one, Tokenizer posts its hash. |
 | Chat format | The chat template and the special tokens | Post-training, Tokenizer | The special-token file is on main, confirmed by Post-training ([#873](https://github.com/theschoolofai/era-v5-lab/pull/873)). The files match `teams/03-tokenizer/release/SHA256SUMS`. |
-| Model card | The model card, as the README of each model page | Release | TSAI approves the card. |
+| Model card | The model card, as the README of each model page, with the metadata header that Hugging Face reads | Release, Quantization | TSAI approves the card. The packager uses this card, not a card of its own (see below). |
 | Evaluation results | The scores of the released model | Evaluation | TSAI approves each score. |
 | Dataset card | A card for the data that TSAI may release | Data A, Data B, Release | The licence of each source, from `teams/10-post-training/licences/licence_table.md`. TSAI decides what is released. |
 | Licence | The licence of the model | TSAI | TSAI decides the licence. |
+
+### One model card for Hugging Face and Ollama
+
+Release and Quantization both give files to the public model pages. The page shows one card, the README. So the two teams use one card:
+
+- The README of each model page is the model card that TSAI approves, `model_card/model_card_v0.md`, without its review record.
+- On top of it goes the metadata header that Hugging Face reads: `license`, `language`, `pipeline_tag: text-generation` and `tags`. The licence and the model name come from TSAI. The language codes come from the Languages section of the card. [text: waiting for TSAI, the licence and the model name]
+- Quantization's packager, `teams/12-quantization/ollama/package_ollama.py`, writes a README of its own today. That README has text and numbers that TSAI has not approved for the card. Before the release, the packager takes the approved card instead. [text: waiting for Quantization, how the packager takes the card]
+- The file table of the packager, with the size and sha256 of each file, can stay. It goes into the What is released section of the card.
 
 ## The laptop run
 
@@ -44,7 +53,7 @@ Quantization's goal is a small, accurate model that runs on a laptop with 16 GB 
 
 - The path works on a stand-in model with the shape of the second dry run ([#834](https://github.com/theschoolofai/era-v5-lab/pull/834), [#838](https://github.com/theschoolofai/era-v5-lab/pull/838)).
 - The steps for a reader, from download to chat: [text: waiting for Quantization, after the export of the lab's model]
-- The memory and speed of each bit width on a laptop: [number: waiting for Quantization and TSAI]
+- The memory and speed of each bit width on a laptop: [number: waiting for Quantization and TSAI]. Quantization's tools for it are on main. One builds the table for each bit width on a Mac ([#904](https://github.com/theschoolofai/era-v5-lab/pull/904)). One measures the memory of the KV cache on a laptop ([#910](https://github.com/theschoolofai/era-v5-lab/pull/910)).
 
 ## The weekly progress post
 
@@ -59,6 +68,6 @@ The form of the post:
 
 > ERA V5 Lab, week [number]: [one sentence on what changed]. [One number that moved, with its source.] Live dashboard: [link]. All the work is in the public lab repository: https://github.com/theschoolofai/era-v5-lab
 
-The first post, drafted for week 4. It waits for the link to the training dashboard from Monitoring, and for TSAI to say where it goes:
+The first post, drafted for week 4. It waits for the link to the training dashboard from Monitoring, and for TSAI to say where it goes. It gives the training loss, not the held-out bits per byte. TSAI notes that the held-out value moves by about 0.1 between evals. Its change in this run is not a stable result:
 
-> ERA V5 Lab, week 4: the second dry run finished all its planned steps with the KE2 output head. The held-out bits per byte fell from 2.1607 to 2.0561 in one run with one seed (TSAI's result on [#705](https://github.com/theschoolofai/era-v5-lab/pull/705)). Live dashboard: [link: waiting for Monitoring]. All the work is in the public lab repository: https://github.com/theschoolofai/era-v5-lab
+> ERA V5 Lab, week 4: the second dry run finished all its planned steps with the KE2 output head. The training loss fell from 10.27 to 5.25, in one run with one seed on one English web shard (TSAI's result on [#705](https://github.com/theschoolofai/era-v5-lab/pull/705)). Live dashboard: [link: waiting for Monitoring]. All the work is in the public lab repository: https://github.com/theschoolofai/era-v5-lab
