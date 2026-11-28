@@ -1,8 +1,9 @@
 """What a shard manifest says about a pack: language, script, domain and capability lane, and for a table that gives
 them the pack's licence and where that licence is recorded, from pack_table.json or the job's own pack table.
 
-  row("code-go")  ->  {"language": "go", "script": "Latn", "domain": "code", "lane": "code"}
-  row("code-go", load(<job's table>))  ->  the same, with "license" and "license_source"
+  row("code-go")  ->  {"language": "go", "script": "Latn", "domain": "code", "lane": "code",
+                       "license": "other (per-file permissive Stack licences; ...)", "license_source": "...licence_table.md@..."}
+  row("code-go", load(<a table without licences>))  ->  the first four only
 
 A pack that is not in the table, or has a null field (a licence that is not settled is null), is an error: nothing is
 guessed, because a manifest never changes after it is written. The lane is one of LANES, in every table.
@@ -12,7 +13,7 @@ from pathlib import Path
 
 TABLE = Path(__file__).with_name("pack_table.json")
 FIELDS = ("language", "script", "domain", "lane")
-LICENCE = ("license", "license_source")  # optional: a row has both or neither (the shard job's table has both)
+LICENCE = ("license", "license_source")  # optional: a row has both or neither (pack_table.json and the job's table have both)
 LANES = ("code", "code-adjacent", "english", "indic", "math", "science")  # TSAI, 16 Nov 2026 (job request PR #47)
 
 
