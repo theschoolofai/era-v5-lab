@@ -98,6 +98,10 @@ def summarise_comparison(reps: dict[str, dict], before: dict | None) -> tuple[di
             wp = mi.get("wanda_prior") or {}
             m["dt_unseen_policy"] = wp.get("unseen_policy")
             m["dt_layers_without_scores"] = wp.get("layers_without_scores", mi.get("wanda_layers_without_tokens"))
+            m["dt_unseen_at_init"] = mi.get("unseen_at_init")
+            m["dt_unseen_final"] = mi.get("unseen_final")
+        if rep.get("train_peak_memory_bytes") is not None:  # CUDA only
+            m["train_peak_memory_bytes"] = rep["train_peak_memory_bytes"]
         if isinstance(rep.get("optimizer"), dict):
             m["optim_kind"] = rep["optimizer"].get("kind")
             m["optim_step_share"] = rep["optimizer"].get("optim_step_share")
@@ -151,6 +155,14 @@ def summarise_comparison(reps: dict[str, dict], before: dict | None) -> tuple[di
             f"DT calibration unseen experts: policy=`{dt_m.get('dt_unseen_policy')}`, "
             f"`layers_without_scores={dt_m.get('dt_layers_without_scores')}`"
         )
+        for when, key in (("at init", "dt_unseen_at_init"), ("final", "dt_unseen_final")):
+            rep = dt_m.get(key)
+            if rep:
+                lines.append(
+                    f"Deleted fraction {when}: uncalibrated layers {_fmt(rep['unseen']['deleted_frac'], '.5f')} "
+                    f"({rep['unseen']['layers']} layers), calibrated layers {_fmt(rep['seen']['deleted_frac'], '.5f')} "
+                    f"({rep['seen']['layers']} layers)"
+                )
     return comp, "\n".join(lines) + "\n"
 
 

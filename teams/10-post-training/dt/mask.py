@@ -318,10 +318,10 @@ def apply_wanda_prior(model: nn.Module, scores: dict[str, torch.Tensor], eta: fl
         raise ValueError(f"unseen must be official or keep, not {unseen!r}")
     marked = 0
     total = 0
-    unseen_layers = 0
+    unseen_names = []
     for name, m in masked_layers(model):
         if name not in scores:
-            unseen_layers += 1
+            unseen_names.append(name)
             if unseen == "keep":
                 m.gate.add_(m.gate.std().item() * prior_strength)
             continue  # no calibration token reached the layer: no deletion prior (official behaviour)
@@ -334,7 +334,7 @@ def apply_wanda_prior(model: nn.Module, scores: dict[str, torch.Tensor], eta: fl
         marked += int(deleted.sum())
         total += deleted.numel()
     return {"eta": eta, "prior_strength": prior_strength, "prior_deleted": marked, "targeted": total,
-            "layers_without_scores": unseen_layers, "unseen_policy": unseen}
+            "layers_without_scores": len(unseen_names), "unseen_layer_names": unseen_names, "unseen_policy": unseen}
 
 
 @_no_grad()
@@ -357,6 +357,29 @@ def deletion_stats(model: nn.Module) -> dict:
     return {"deleted": deleted, "targeted": targeted, "model_weights": total,
             "deleted_frac_of_targeted": deleted / targeted, "deleted_frac_of_all_weights": deleted / total,
             "per_layer_min": min(per_layer.values()), "per_layer_max": max(per_layer.values())}
+
+
+@_no_grad()
+def unseen_report(model: nn.Module, unseen_names: Iterable[str]) -> dict:
+    """Hard-mask deletion of the layers calibration never reached, beside the layers it did reach.
+
+    `unseen_names` are apply_wanda_prior's `unseen_layer_names`. A name may carry a wrapper prefix that `model` does not
+    have ("lm.blocks..." against "blocks..."), so a layer matches when the name equals it or ends with "." + it."""
+    wanted = list(unseen_names)
+    groups = {"unseen": [0, 0, 0], "seen": [0, 0, 0]}  # layers, deleted, targeted
+    found = []
+    for name, m in masked_layers(model):
+        hit = [w for w in wanted if w == name or w.endswith("." + name)]
+        found += hit
+        g = groups["unseen" if hit else "seen"]
+        g[0] += 1
+        g[1] += int((m.gate <= 0).sum())
+        g[2] += m.gate.numel()
+    missing = sorted(set(wanted) - set(found))
+    if missing:
+        raise ValueError(f"unseen layer names not in the model: {missing[:3]}")
+    return {k: {"layers": n, "deleted": d, "targeted": t, "deleted_frac": d / t if t else None}
+            for k, (n, d, t) in groups.items()}
 
 
 @_no_grad()

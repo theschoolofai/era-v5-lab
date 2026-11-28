@@ -47,7 +47,7 @@ elif name == "dryrun2_dt_compare.py":
         if flag("--keep-weights-dir"):
             d = Path(flag("--keep-weights-dir")) / f"g10-dr2-{arm}"
             d.mkdir(parents=True, exist_ok=True)
-            (d / "latest.json").write_text("{}")
+            (d / "latest.json").write_text(json.dumps({"path": f"main/step_00000003-e{os.getpid()}"}))
     (out / "adapter.yaml").write_text("{}")
     sys.exit(int(os.environ.get("WRAPPER_RC", "0")))
 elif name == "forget_bpb_kept.py":
@@ -96,6 +96,23 @@ def test_only_arms_that_were_kept_are_measured_and_the_wrappers_failure_stays(tm
     r, forget = _chain(tmp_path, KEEP, arms="full", WRAPPER_RC="1")
     assert r.returncode == 1
     assert [x for x in forget[0] if "g10-dr2-" in x] == ["keep_t7//g10-dr2-full"]
+
+
+def test_a_kept_folder_left_by_an_earlier_attempt_is_not_measured(tmp_path):
+    old = tmp_path / "keep_t7" / "g10-dr2-lora"
+    old.mkdir(parents=True)
+    (old / "latest.json").write_text(json.dumps({"path": "main/step_00000003-e1", "epoch": 2}))  # claimed, not saved
+    r, forget = _chain(tmp_path, KEEP, arms="full dt", WRAPPER_RC="1")
+    assert [x for x in forget[0] if "g10-dr2-" in x] == ["keep_t7//g10-dr2-full", "keep_t7//g10-dr2-dt"]
+    assert "committed no new checkpoint for the lora arm" in r.stdout
+
+
+def test_an_arm_saved_again_over_an_earlier_attempt_is_measured(tmp_path):
+    old = tmp_path / "keep_t7" / "g10-dr2-dt"
+    old.mkdir(parents=True)
+    (old / "latest.json").write_text(json.dumps({"path": "main/step_00000003-e1"}))
+    r, forget = _chain(tmp_path, KEEP, arms="dt")
+    assert [x for x in forget[0] if "g10-dr2-" in x] == ["keep_t7//g10-dr2-dt"]
 
 
 def test_the_default_arm_is_the_wrappers_and_no_keep_dir_means_no_measurement(tmp_path):

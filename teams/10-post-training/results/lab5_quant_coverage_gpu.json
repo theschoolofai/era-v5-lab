@@ -1,0 +1,90 @@
+{
+ "mode": "coverage",
+ "device": "cuda",
+ "speed_model": {
+  "random_llama": {
+   "vocab": 32000,
+   "hidden": 1536,
+   "layers": 12,
+   "heads": 12
+  },
+  "parameters": 551327232
+ },
+ "torch": "2.15.0+cu132",
+ "checks": [
+  {
+   "model": "speed_model",
+   "device": "cuda",
+   "scheme": "copy",
+   "trainable_tensors": 111,
+   "none_grads": [],
+   "zero_grads": [],
+   "lists_identical_to_copy": true
+  },
+  {
+   "model": "speed_model",
+   "device": "cuda",
+   "scheme": "bf16",
+   "trainable_tensors": 111,
+   "none_grads": [],
+   "zero_grads": [],
+   "lists_identical_to_copy": true
+  },
+  {
+   "model": "speed_model",
+   "device": "cuda",
+   "scheme": "fp16",
+   "trainable_tensors": 111,
+   "none_grads": [],
+   "zero_grads": [],
+   "lists_identical_to_copy": true
+  },
+  {
+   "model": "tiny_olmoe",
+   "device": "cuda",
+   "scheme": "copy",
+   "trainable_tensors": 23,
+   "none_grads": [],
+   "zero_grads": [],
+   "lists_identical_to_copy": true
+  },
+  {
+   "model": "tiny_olmoe",
+   "device": "cuda",
+   "scheme": "bf16",
+   "trainable_tensors": 23,
+   "none_grads": [],
+   "zero_grads": [],
+   "lists_identical_to_copy": true
+  },
+  {
+   "model": "tiny_olmoe",
+   "device": "cuda",
+   "scheme": "fp16",
+   "trainable_tensors": 23,
+   "none_grads": [],
+   "zero_grads": [],
+   "lists_identical_to_copy": true
+  },
+  {
+   "model": "tiny_olmoe",
+   "device": "cuda",
+   "scheme": "w8a8_sim",
+   "trainable_tensors": 23,
+   "none_grads": [],
+   "zero_grads": [],
+   "lists_identical_to_copy": true
+  },
+  {
+   "model": "tiny_olmoe",
+   "device": "cuda",
+   "scheme": "w4a16_sim",
+   "trainable_tensors": 23,
+   "none_grads": [],
+   "zero_grads": [],
+   "lists_identical_to_copy": true
+  }
+ ],
+ "gpu_name": "NVIDIA GeForce RTX 5070 Ti",
+ "command": "bench_quant_rollout.py coverage --schemes copy bf16 fp16 --olmoe-schemes copy bf16 fp16 w8a8_sim w4a16_sim --device cuda --hidden 1536 --layers 12 --heads 12 --prompts 2 --k 2 --prompt-len 64 --max-new 32 --out /mnt/d/Learning/TSAI/ERA-V5/ERA-V5-Capstone-Project/era-v5-lab/teams/10-post-training/results/lab5_quant_coverage_gpu.json"
+}

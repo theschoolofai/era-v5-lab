@@ -639,6 +639,14 @@ class Bundle:
                     rolls = bundle.sample_many(prompts, k, max_new, temperature, generator)
                 return [(seq, cmask) for seq, cmask, _ in rolls]
 
+            def with_model(self, model):
+                # forward, hidden, head and both samplers read bundle.model, so the other model needs its own bundle
+                other = copy.copy(bundle)
+                other.model = model
+                twin = other.policy()
+                twin.amp_dtype, twin.head_checkpoint = self.amp_dtype, self.head_checkpoint
+                return twin
+
         return Team5Policy(self.model, lambda m, ids, mask: bundle.forward(ids, mask),
                            self.special["tokens"]["end_of_turn"]["id"], self.device,
                            hidden=lambda m, ids, mask: bundle.hidden(ids, mask), head=lambda m, h: bundle.head(h))

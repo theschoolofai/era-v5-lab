@@ -56,6 +56,26 @@ PF="$WORK/probe.json"
   --heldout "$HELDOUT" --windows 8 --device "$DEVICE" --out "$WORK/router_bias_reach.json" \
   || log "router_bias_reach failed (report only; the job continues)"
 log "wrapper: dryrun2_dt_compare.py --run-folder $RF --probe-file $PF --origin g5_delivery $*"
+KEEP=""; KEEP_ARMS="dt"; prev=""
+for x in "$@"; do
+  [ "$prev" = "--keep-weights-dir" ] && KEEP="$x"
+  [ "$prev" = "--keep-weights-arms" ] && KEEP_ARMS="$x"
+  prev="$x"
+done
+# the committed checkpoint a kept folder points at (empty if none); Team 7 names every commit step_<N>-e<epoch>
+kept_path() {
+  "$PY" - "$1" <<'PYEOF'
+import json, sys
+from pathlib import Path
+p = Path(sys.argv[1])
+print((json.loads(p.read_text()).get("path") or "") if p.is_file() else "")
+PYEOF
+}
+if [ -n "$KEEP" ]; then  # what an earlier attempt left: step 6 measures only what this run commits
+  for arm in ${KEEP_ARMS//,/ }; do
+    kept_path "$KEEP/g10-dr2-$arm/latest.json" > "$WORK/kept_before_$arm" || true
+  done
+fi
 set +e
 "$PY" "$C/dryrun2_dt_compare.py" --g5-root "$G5R" --run-folder "$RF" --tokenizer "$TOKENIZER" --byte-table "$TABLE" \
   --probe-file "$PF" --origin g5_delivery "$@"
@@ -81,16 +101,17 @@ print(json.dumps({"arm_checks": {a: {"router_bias_unchanged": v["router_bias_unc
 sys.exit(1 if bad or not arms else 0)
 PYEOF
 # 6. held-out bits per byte for the base and the kept arms (forgetting verdict); never changes the exit code
-KEEP=""; KEEP_ARMS="dt"; prev=""
-for x in "$@"; do
-  [ "$prev" = "--keep-weights-dir" ] && KEEP="$x"
-  [ "$prev" = "--keep-weights-arms" ] && KEEP_ARMS="$x"
-  prev="$x"
-done
 if [ -n "$KEEP" ]; then
   KEPT=()
   for arm in ${KEEP_ARMS//,/ }; do
-    if [ -f "$KEEP/g10-dr2-$arm/latest.json" ]; then KEPT+=(--kept "$KEEP/g10-dr2-$arm"); fi
+    latest="$KEEP/g10-dr2-$arm/latest.json"
+    if [ ! -f "$latest" ]; then continue; fi
+    now="$(kept_path "$latest" || true)"
+    if [ -n "$now" ] && [ "$now" != "$(cat "$WORK/kept_before_$arm" 2>/dev/null)" ]; then
+      KEPT+=(--kept "$KEEP/g10-dr2-$arm")
+    else
+      log "not measuring $KEEP/g10-dr2-$arm: this run committed no new checkpoint for the $arm arm"
+    fi
   done
   if [ "${#KEPT[@]}" -eq 0 ] || [ ! -f "$OUT/adapter.yaml" ]; then
     log "forgetting bits per byte skipped: no kept arm folder under $KEEP, or no $OUT/adapter.yaml"

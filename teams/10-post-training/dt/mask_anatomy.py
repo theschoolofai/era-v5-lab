@@ -3,7 +3,7 @@
 calibration never reached, and which experts of a Team 5 run got no routed tokens (independent study; see
 ../results/dt_mask_anatomy.md).
 
-    python dt/mask_anatomy.py masks <mask_dir> [--partners 1]                # per-matrix deleted counts, heavy experts
+    python dt/mask_anatomy.py masks <mask_dir> [--partners 1] [--total-params N] # per-matrix deleted counts, heavy experts
     python dt/mask_anatomy.py weights <mask_dir> <hf_repo> L:E [L:E ...]     # abs W of deleted vs kept (HTTP range reads)
     python dt/mask_anatomy.py calib <train.parquet> <tokenizer_dir> <out_dir> # the official calibration prompts, as text
     python dt/mask_anatomy.py routing <mask_dir> <imatrix.gguf> [...]        # calibration tokens per expert vs heavy experts
@@ -79,8 +79,18 @@ def cmd_masks(a):
     layer, expert, dele, cells = per_matrix(Path(a.mask_dir))
     frac = dele / cells
     print(f'{len(frac)} gate matrices of {cells:,} weights; deleted {dele.sum():,} = {dele.sum() / (len(frac) * cells):.4%}')
+    if a.total_params:   # the paper's Table 7 reports the share of ALL model parameters, not of the gate weights
+        if a.total_params < len(frac) * cells:
+            sys.exit(f'--total-params {a.total_params:,} is below the {len(frac) * cells:,} gate weights')
+        print(f'share of all {a.total_params:,} model parameters: {dele.sum() / a.total_params:.4%}')
+        size = json.loads((Path(a.mask_dir) / 'config.json').read_text()).get('compressed_size_mb')
+        if size is not None:
+            print(f"config.json compressed_size_mb (the mask's size on disk): {size:.3f}")
     if (expert >= 0).any():
         heavy = frac > HEAVY
+        if a.total_params and heavy.any():
+            print(f'  without the experts deleted above {HEAVY:.0%}: {dele[~heavy].sum():,} = '
+                  f'{dele[~heavy].sum() / a.total_params:.4%} of all parameters')
         if not heavy.any():
             print(f'heavy experts (> {HEAVY:.0%} deleted): 0; max {frac.max():.4%}')
             return
@@ -333,6 +343,8 @@ def main(argv=None):
     p = sub.add_parser('masks')
     p.add_argument('mask_dir')
     p.add_argument('--partners', type=int, metavar='SEED', help='also pick one other expert per heavy one (same layer)')
+    p.add_argument('--total-params', type=int, help="the base model's parameter count: also print the share of all "
+                                                    "parameters deleted (as the paper's Table 7)")
     p.set_defaults(f=cmd_masks)
     p = sub.add_parser('weights')
     p.add_argument('mask_dir')

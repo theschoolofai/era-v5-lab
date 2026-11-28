@@ -1,0 +1,162 @@
+{
+  "device": "cuda",
+  "gpu_name": "NVIDIA GeForce RTX 5070 Ti",
+  "torch": "2.15.0+cu132",
+  "model": {
+    "class": "week2.LanguageModel",
+    "layers": 8,
+    "n_embd": 512,
+    "n_head": 8,
+    "n_kv_head": 4,
+    "ffn_hidden": 256,
+    "num_experts": 16,
+    "num_shared": 1,
+    "top_k": 2,
+    "vocab_size": 4096,
+    "total_params": 66134528
+  },
+  "batch": 4,
+  "seq_len": 256,
+  "bf16_autocast": true,
+  "warmup": 3,
+  "steps": 15,
+  "arms": [
+    {
+      "arm": "full_adamw",
+      "trainable_params": 66134528,
+      "recompute": false,
+      "bf16_autocast": true,
+      "tokens_per_step": 1024,
+      "median_step_ms": 40.291,
+      "median_optim_ms": 6.668,
+      "optim_step_share": 0.1695,
+      "tok_s": 25415.3,
+      "peak_vram_gb": 1.5949,
+      "last_loss": 3.71054
+    },
+    {
+      "arm": "full_hybrid_muon",
+      "trainable_params": 66134528,
+      "recompute": false,
+      "bf16_autocast": true,
+      "tokens_per_step": 1024,
+      "median_step_ms": 98.424,
+      "median_optim_ms": 65.301,
+      "optim_step_share": 0.6631,
+      "tok_s": 10403.9,
+      "peak_vram_gb": 1.3799,
+      "last_loss": 6.24362
+    },
+    {
+      "arm": "full_hybrid_muon_recompute",
+      "trainable_params": 66134528,
+      "recompute": true,
+      "bf16_autocast": true,
+      "tokens_per_step": 1024,
+      "median_step_ms": 118.088,
+      "median_optim_ms": 66.111,
+      "optim_step_share": 0.5394,
+      "tok_s": 8671.5,
+      "peak_vram_gb": 1.3799,
+      "last_loss": 6.24362
+    },
+    {
+      "arm": "lora_adamw",
+      "trainable_params": 5472256,
+      "recompute": false,
+      "bf16_autocast": true,
+      "tokens_per_step": 1024,
+      "median_step_ms": 75.252,
+      "median_optim_ms": 3.792,
+      "optim_step_share": 0.0501,
+      "tok_s": 13607.7,
+      "peak_vram_gb": 1.1269,
+      "last_loss": 5.55004
+    },
+    {
+      "arm": "dt_adamw",
+      "trainable_params": 17825792,
+      "recompute": false,
+      "bf16_autocast": true,
+      "tokens_per_step": 1024,
+      "median_step_ms": 48.093,
+      "median_optim_ms": 1.929,
+      "optim_step_share": 0.0398,
+      "tok_s": 21292.3,
+      "peak_vram_gb": 1.1655,
+      "last_loss": 8.34137
+    },
+    {
+      "arm": "dt_adamw_recompute",
+      "trainable_params": 17825792,
+      "recompute": true,
+      "bf16_autocast": true,
+      "tokens_per_step": 1024,
+      "median_step_ms": 71.084,
+      "median_optim_ms": 1.945,
+      "optim_step_share": 0.0265,
+      "tok_s": 14405.5,
+      "peak_vram_gb": 0.687,
+      "last_loss": 8.34137
+    }
+  ],
+  "gradient_coverage": [
+    {
+      "pair": "full_hybrid_muon_vs_full_hybrid_muon_recompute",
+      "fast_off": {
+        "arm": "full_hybrid_muon",
+        "bf16_autocast": true,
+        "trainable_tensors": 467,
+        "none_grads": [],
+        "zero_grads": []
+      },
+      "fast_on": {
+        "arm": "full_hybrid_muon_recompute",
+        "bf16_autocast": true,
+        "trainable_tensors": 467,
+        "none_grads": [],
+        "zero_grads": []
+      },
+      "lists_identical": true,
+      "max_abs_grad_diff": 0.0
+    },
+    {
+      "pair": "dt_adamw_vs_dt_adamw_recompute",
+      "fast_off": {
+        "arm": "dt_adamw",
+        "bf16_autocast": true,
+        "trainable_tensors": 136,
+        "none_grads": [],
+        "zero_grads": []
+      },
+      "fast_on": {
+        "arm": "dt_adamw_recompute",
+        "bf16_autocast": true,
+        "trainable_tensors": 136,
+        "none_grads": [],
+        "zero_grads": []
+      },
+      "lists_identical": true,
+      "max_abs_grad_diff": 0.0
+    },
+    {
+      "pair": "full_hybrid_muon_fp32_vs_bf16_autocast",
+      "fast_off": {
+        "arm": "full_hybrid_muon",
+        "bf16_autocast": false,
+        "trainable_tensors": 467,
+        "none_grads": [],
+        "zero_grads": []
+      },
+      "fast_on": {
+        "arm": "full_hybrid_muon",
+        "bf16_autocast": true,
+        "trainable_tensors": 467,
+        "none_grads": [],
+        "zero_grads": []
+      },
+      "lists_identical": true,
+      "max_abs_grad_diff": 0.0015404
+    }
+  ]
+}

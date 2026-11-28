@@ -26,10 +26,22 @@ Model kinds (config `model.kind`):
 Task kinds (config `task.kind`): toy (see tasks.py), code_tasks (rl/tasks via rl/reward.py; needs an hf tokenizer).
 
 GPU-run options (config `train.*`, all optional):
-    sampler        policy | g5_batch | hf_batch | vllm (rollout.py). Default hf_batch for HF models, policy otherwise.
+    sampler        policy | g5_batch | hf_batch | vllm (rollout.py) | quant (quant_rollout.py). Default hf_batch for HF
+                   models, policy otherwise.
                    g5_batch (G5 only): every prompt of a step in one KV-cached decode; sampler_max_rows (default 128)
                    caps the rows decoded together.
     vllm           kwargs for the colocated engine, e.g. {gpu_memory_utilization: 0.3, max_model_len: 2048}
+    quant          with sampler: quant: {scheme: copy | bf16 | fp16 | int8_dynamic | w8a8_sim | w4a16_sim, max_k3, guard}.
+                   Training rollouts come from a copy of the current weights under `scheme`, with its own log-probs, so
+                   the mismatch is logged and tis_clip / objective_v1's tr_epsilon apply as for vllm; temperature must be
+                   1.0. Held-out, cohort and extra evaluations stay on the learner. guard (default true) also scores the
+                   held-out set with the copy (heldout_reward_quant). max_k3: stop after a step whose mismatch_k3 is
+                   above it (exit code 4; a resumed run stays stopped). Not with dt or logprob_gate. On CUDA without
+                   time_sync, a row's optim_step_s is host launch time, not the update's run time
+    rollout_check  with sampler: quant on Team 5's model: {dir, every: 10, action: report | stop, control, min_bpb,
+                   max_pending: 3}. Every `every` steps (and at the last step) the learner and the rollout copy are written
+                   to dir for Team 9's mini-benchmark, which a separate evaluation job runs; score files that have arrived
+                   are judged (rollout_check.py). action stop ends the run after a worse verdict (exit code 4, stays stopped)
     fp32_master    default true: trainable weights in fp32 under bf16 autocast (policy.use_fp32_master)
     autocast       bf16 | unset (default): force bf16 autocast for the policy's forward. Needed for a G5 checkpoint,
                    which is stored in fp32 (fp32_master then converts nothing and the run would be all-fp32)
@@ -81,7 +93,9 @@ sys.path.insert(0, str(HERE))
 
 import grpo  # noqa: E402
 import heldout  # noqa: E402
+import quant_rollout  # noqa: E402
 import rollout  # noqa: E402
+import rollout_check  # noqa: E402
 import router  # noqa: E402
 import routing  # noqa: E402
 import tasks  # noqa: E402
@@ -123,7 +137,9 @@ def build_model(mcfg: dict, device: str):
         rng = np.random.default_rng(mcfg.get("ke2_seed", 7))  # stand-in KE2 code table until Team 5's model lands
         rows = rng.integers(0, 256, (spec["vocab_size"], 4), dtype=np.uint8)
         lengths = rng.integers(1, 5, spec["vocab_size"], dtype=np.int16)
-        return module_policy(LanguageModel(spec, rows, lengths), None, device, split_head=True), None
+        policy = module_policy(LanguageModel(spec, rows, lengths), None, device, split_head=True)
+        policy.model_spec = spec  # train.rollout_check writes it beside the weights
+        return policy, None
     if kind == "team5_adapter":
         import team5_adapter  # noqa: PLC0415
         return team5_adapter.build_policy_and_codec(mcfg["adapter_config"], device, mcfg.get("effort", "4k"),
@@ -314,6 +330,8 @@ def state_identity(cfg: dict, trainable_named, *, init_state_sha256: str | None 
         keys += ("head_checkpoint",)
     if t.get("sampler_max_rows") is not None:  # chunking changes which random draws each row gets
         keys += ("sampler_max_rows",)
+    if t.get("quant") is not None:  # another scheme is another sampler
+        keys += ("quant",)
     if t.get("dt"):  # only present for Deletion Tuning runs, so states saved before train.dt existed stay valid
         keys += ("dt",)
     if t.get("update_mode", "train") != "train":  # default runs keep the identities they had
@@ -479,8 +497,8 @@ def phase_clock(sync_device: str | None):
     return clock
 
 
-def gpu_memory() -> dict:
-    if not torch.cuda.is_available():
+def gpu_memory(device: str = "cuda") -> dict:
+    if not (device.startswith("cuda") and torch.cuda.is_available()):
         return {}
     free, total = torch.cuda.mem_get_info()
     return {"peak_torch_gb": round(torch.cuda.max_memory_allocated() / 2**30, 2),
@@ -870,8 +888,28 @@ def train(cfg: dict) -> dict:
         # vLLM reports log-probabilities of the raw model distribution; they equal the sampling distribution only at
         # temperature 1 without truncation (rollout.py), and objective_v1 uses them as the ratio denominator.
         raise ValueError("objective_v1 with the vllm sampler needs temperature 1.0 (sampler ratio contract)")
-    if cfg["model"]["kind"] == "team5_adapter" and sampler_kind not in ("policy", "g5_batch"):
+    if cfg["model"]["kind"] == "team5_adapter" and sampler_kind not in ("policy", "g5_batch", "quant"):
         raise ValueError(f"sampler {sampler_kind} is not available for the G5 LanguageModel; use sampler: policy or g5_batch")
+    quant_cfg = t.get("quant")
+    if (sampler_kind == "quant") != (quant_cfg is not None):
+        raise ValueError("train.sampler: quant and train.quant come together")
+    if quant_cfg is not None:
+        unknown = set(quant_cfg) - {"scheme", "max_k3", "guard"}
+        if unknown or quant_cfg.get("scheme") not in quant_rollout.SCHEMES:
+            raise ValueError(f"train.quant needs scheme (one of {quant_rollout.SCHEMES}) and optionally max_k3, guard; "
+                             f"got {quant_cfg}")
+        if temperature != 1.0:
+            raise ValueError("train.sampler quant needs temperature 1.0 (sampler ratio contract)")
+        if t.get("dt") or gate_cfg not in (None, False):
+            raise ValueError("train.sampler quant is not for Deletion Tuning or logprob_gate: the sampler differs by design")
+    max_k3 = float(quant_cfg["max_k3"]) if quant_cfg and quant_cfg.get("max_k3") is not None else None
+    quant_guard = bool(quant_cfg.get("guard", True)) if quant_cfg else False
+    check = None
+    if t.get("rollout_check") is not None:
+        if sampler_kind != "quant" or cfg["model"]["kind"] not in ("team5", "team5_adapter"):
+            raise ValueError("train.rollout_check needs sampler quant and a Team 5 model (model.kind team5 or "
+                             "team5_adapter): Team 9's scorer builds Team 5's model only")
+        check = rollout_check.RolloutCheck(t["rollout_check"])
     if sampler_kind == "g5_batch" and cfg["model"]["kind"] != "team5_adapter":
         raise ValueError("sampler g5_batch is for the G5 LanguageModel (model.kind team5_adapter)")
     pool = None
@@ -989,8 +1027,14 @@ def train(cfg: dict) -> dict:
     def sync_named():  # what the sampler must hold after an update
         return dt_hard_weights(dtmask, model) if dt_cfg else trainable_named
     pad_id = tok.pad_token_id if tok is not None and tok.pad_token_id is not None else None
-    sampler = rollout.make_sampler(sampler_kind, policy, vllm, pad_id,
-                                   **({"max_rows": int(t.get("sampler_max_rows", 128))} if sampler_kind == "g5_batch" else {}))
+    if sampler_kind == "quant":
+        sampler = quant_rollout.QuantRolloutSampler(policy, quant_cfg["scheme"], pad_id,
+                                                    router_patterns=() if dense else patterns)
+    else:
+        sampler = rollout.make_sampler(sampler_kind, policy, vllm, pad_id,
+                                       **({"max_rows": int(t.get("sampler_max_rows", 128))} if sampler_kind == "g5_batch"
+                                          else {}))
+    eval_sampler = getattr(sampler, "exact", sampler)  # a quantized sampler trains; the learner is what gets evaluated
     ref = None
     if float(t.get("kl_coef", 0)) > 0:
         ref = copy.deepcopy(policy)
@@ -1008,6 +1052,8 @@ def train(cfg: dict) -> dict:
         lr=float(t["lr"]),
         muon_lr=float(t.get("muon_lr", t["lr"])),
         wd=float(t.get("weight_decay", 0.0)),
+        # RL's AdamW has always run torch's default betas; hybrid Muon's AdamW group takes 0.95, as Team 5's does
+        betas=(0.9, 0.999) if opt_kind == "adamw" else (0.9, 0.95),
         dt_gate_optim=str(t.get("dt_gate_optim", "adamw")),
         skip_zero_grad_muon=True,
     )
@@ -1027,7 +1073,7 @@ def train(cfg: dict) -> dict:
     log_routing = bool(t.get("routing_log", False)) and bool(routing.router_modules(model))
     n_experts = getattr(getattr(model, "config", None), "num_experts", None)
     # Native sampling draws on the model's device, so its generator lives there; HF/vLLM keep host-side generators.
-    gen_device = device if sampler_kind in ("policy", "g5_batch") and not isinstance(policy, HFPolicy) else "cpu"
+    gen_device = device if sampler_kind in ("policy", "g5_batch", "quant") and not isinstance(policy, HFPolicy) else "cpu"
     gen = torch.Generator(device=gen_device).manual_seed(seed)
     order = list(range(len(task.train)))
     fixture_smoke = adapter is not None and adapter.status != "READY"
@@ -1038,6 +1084,8 @@ def train(cfg: dict) -> dict:
     gen_cohort = torch.Generator(device=gen_device).manual_seed(seed + 3)  # train-cohort evaluation stream
     gen_extra = torch.Generator(device=gen_device).manual_seed(seed + 1)  # own stream: training stays as without it
     gens = {"gen": gen, "gen_extra": gen_extra, "gen_cohort": gen_cohort}
+    if quant_guard:  # own stream; only quant runs have it, so older states restore as before
+        gens["gen_quant"] = torch.Generator(device=gen_device).manual_seed(seed + 5)
     evals_path = out / "evals.jsonl"
     resumed, start_step, prior_s, cohort_ids = None, 0, 0.0, None
     if state_dir is not None:
@@ -1046,6 +1094,9 @@ def train(cfg: dict) -> dict:
             keep_zero_identity=kz_identity,
         )
         resumed = load_state(state_dir, identity)
+    quant_stop = resumed.get("quant_stop") if resumed is not None else None  # a stop stays after a restart
+    if check is not None:
+        check.start(state_dir, int(resumed["step"]) if resumed is not None else 0)
     if resumed is not None:
         with torch.no_grad():
             for n_, p_ in trainable_named:
@@ -1053,6 +1104,7 @@ def train(cfg: dict) -> dict:
         if kz is not None:
             kz.check("restored checkpoint")
         opt.load_state_dict(resumed["opt"])
+        opt.optim_seconds, opt.steps = 0.0, 0  # the summary's share is optimizer time over this invocation's time
         random.setstate(resumed["py_random"])
         torch.set_rng_state(resumed["torch_rng"])
         for name_, g_ in gens.items():
@@ -1091,14 +1143,23 @@ def train(cfg: dict) -> dict:
                    "trainable": {n_: p_.detach().to("cpu", copy=True) for n_, p_ in trainable_named},
                    "dt_steps": dtmask.masked_layers(model)[0][1].current_step if dt_cfg else None,
                    "opt": opt.state_dict(), "py_random": random.getstate(), "torch_rng": torch.get_rng_state(),
-                   "gens": {name_: g_.get_state() for name_, g_ in gens.items()}}
+                   "gens": {name_: g_.get_state() for name_, g_ in gens.items()},
+                   **({"quant_stop": quant_stop} if quant_stop else {})}
         rec_ = save_state(state_dir, step, payload)
         print(json.dumps({"state_saved": rec_}), flush=True)
         return rec_
 
+    def export_check(step):  # the weights as they are now, and the copy a rollout would use
+        t0_ = time.time()
+        copy_ = quant_rollout.quantized_copy(model, sampler.scheme, sampler.router_patterns)[0]
+        rollout_check.export(check.dir, step, None if check.control else model, copy_, sampler.scheme,
+                             adapter.bundle.spec if adapter is not None else policy.model_spec,
+                             adapter.manifest["tokenizer"]["sha256"] if adapter is not None else None)
+        return round(time.time() - t0_, 3)
+
     def cohort_eval(step):
         c0_ = time.time()
-        scores, rolls = evaluate(sampler, task, task.train, cohort_k, max_new, temperature, gen_cohort, reward_workers)
+        scores, rolls = evaluate(eval_sampler, task, task.train, cohort_k, max_new, temperature, gen_cohort, reward_workers)
         cohort_scores[step] = scores
         rec_ = {"name": "train_cohort", "step": step, "k": cohort_k, "problems": len(scores),
                 "prompt_order_sha256": prompt_order_sha256(task, task.train),
@@ -1112,7 +1173,7 @@ def train(cfg: dict) -> dict:
     extra_evals: dict = {}
 
     def extra_eval(step):
-        scores, rolls = evaluate(sampler, task, task.heldout, eval_k, extra_max_new, temperature, gen_extra,
+        scores, rolls = evaluate(eval_sampler, task, task.heldout, eval_k, extra_max_new, temperature, gen_extra,
                                  reward_workers)
         extra_evals[step] = {"pass": sum(scores) / len(scores), "scores": scores,
                              **length_stats(rolls, extra_max_new, policy.eos_id)}
@@ -1122,7 +1183,7 @@ def train(cfg: dict) -> dict:
     def log_heldout(step):
         c0_ = time.time()
         pop_reasons(task)  # start this evaluation's reason counts from zero
-        scores, rolls = evaluate(sampler, task, task.heldout, eval_k, max_new, temperature, gen, reward_workers)
+        scores, rolls = evaluate(eval_sampler, task, task.heldout, eval_k, max_new, temperature, gen, reward_workers)
         r = sum(scores) / len(scores)
         heldout_curve.append((step, r))
         heldout_scores[step] = scores
@@ -1131,6 +1192,14 @@ def train(cfg: dict) -> dict:
                                   "prompt_order_sha256": prompt_order_sha256(task, task.heldout),
                                   "scores": scores, **extra, "reasons": pop_reasons(task),
                                   "seconds": round(time.time() - c0_, 1)})
+        if quant_guard:  # the same held-out prompts sampled by the quantized copy of the same weights
+            q0_ = time.time()
+            q_scores, _ = evaluate(sampler, task, task.heldout, eval_k, max_new, temperature, gens["gen_quant"],
+                                   reward_workers)
+            extra["heldout_reward_quant"] = sum(q_scores) / len(q_scores)
+            append_jsonl(evals_path, {"name": "heldout_quant", "step": step, "k": eval_k, "problems": len(q_scores),
+                                      "pass": extra["heldout_reward_quant"], "scores": q_scores,
+                                      "reasons": pop_reasons(task), "seconds": round(time.time() - q0_, 1)})
         if t.get("kl_to_start"):
             extra["kl_to_start"] = float(f"{kl_to_start(policy, start_w, rolls, task.heldout):.4g}")
         if log_routing:
@@ -1213,7 +1282,7 @@ def train(cfg: dict) -> dict:
                  "mixed_ids": [i for i, c in zip(ids, passes) if 0 < c < k_s],
                  "sampled_tokens": s_tok, "rollout_s": round(s_time, 2), "score_s": round(time.time() - c0 - s_time, 2),
                  "reasons": pop_reasons(task), "reward_workers": reward_workers,
-                 **length_stats(s_rolls, max_new, policy.eos_id), **gpu_memory()}
+                 **length_stats(s_rolls, max_new, policy.eos_id), **gpu_memory(device)}
         (out / "screen.json").write_text(json.dumps(rec_s, indent=1))
         print(json.dumps({"screen": {k_: v for k_, v in rec_s.items() if k_ not in ("per_task", "mixed_ids")}}),
               flush=True)
@@ -1245,7 +1314,10 @@ def train(cfg: dict) -> dict:
         if cohort_k and start_step not in cohort_scores:
             cohort_eval(start_step)
     steps_done, paused, last_step_s = start_step, False, 0.0
+    opt_sync = (lambda: torch.cuda.synchronize(device)) if time_sync else None  # so optim_step_s times the step itself
     for step in range(start_step + 1, int(t["steps"]) + 1):
+        if quant_stop:  # restored: no further training, only the final evaluation and summary
+            break
         if max_train_s is not None and step > 1 and time.time() - start > max_train_s:
             print(json.dumps({"stopped_early": f"max_train_seconds {max_train_s} reached before step {step}"}),
                   flush=True)
@@ -1262,6 +1334,11 @@ def train(cfg: dict) -> dict:
         c0 = clock()
         rolls = sampler.sample(batch, k, max_new, temperature, gen)
         times["rollout"] = clock() - c0
+        quant_rec = {}
+        if quant_cfg is not None:  # of this step's training rollout (evaluations sample again later)
+            quant_rec = {"quant_scheme": quant_cfg["scheme"], "quant_refresh_s": round(sampler.last["refresh_s"], 4),
+                         **({"entropy": round(sampler.last["entropy"], 6)} if "entropy" in sampler.last else {})}
+        optim_s0 = opt.optim_seconds
         sampled_tokens = int(sum(int(r.cmask.sum()) for r in rolls))
         c0 = clock()
         groups, rewards_all, dropped, mism = [], [], 0, []
@@ -1364,7 +1441,7 @@ def train(cfg: dict) -> dict:
                 grad_norm = float(torch.nn.utils.clip_grad_norm_([p for _, p in trainable_named],
                                                                  float(t.get("grad_clip", 1.0))))
                 probe_w.before()
-                opt.step()
+                opt.step(sync_fn=opt_sync)
                 if dt_cfg:
                     dtmask.step_all(model)
                 share, expected = probe_w.shares()
@@ -1417,7 +1494,7 @@ def train(cfg: dict) -> dict:
                     loss_val += lv
                 grad_norm = float(torch.nn.utils.clip_grad_norm_([p for _, p in trainable_named],
                                                                  float(t.get("grad_clip", 1.0))))
-                opt.step()
+                opt.step(sync_fn=opt_sync)
             if log_routing:
                 idx_after = routing.routing(policy, g[0], fmask)
                 step_flip = routing.flip_rate(idx_before, idx_after)[0]
@@ -1452,16 +1529,31 @@ def train(cfg: dict) -> dict:
                "sampled_tokens": sampled_tokens,
                "rollout_tokens_per_s": round(sampled_tokens / max(times["rollout"], 1e-9), 1),
                "times_s": {k_: round(v, 3) for k_, v in times.items()}, "step_s": round(sum(times.values()), 3),
-               "sync_mb": round(sync_bytes / 2**20, 1), **gpu_memory(), **({"times_synced": True} if time_sync else {}),
+               "sync_mb": round(sync_bytes / 2**20, 1), **gpu_memory(device), **({"times_synced": True} if time_sync else {}),
                "seconds": round(prior_s + time.time() - start, 1)}
         if step_reasons is not None:
             rec["reasons"] = step_reasons
         if subgroups:
             rec["subgroups"] = dict(sorted(subgroups.items()))
+        rec.update(quant_rec)
+        rec["optim_step_s"] = round(opt.optim_seconds - optim_s0, 4)
         last_step_s = rec["step_s"]
         if mism:
             rec["mismatch_k3"] = round(sum(x["k3"] for x in mism) / len(mism), 6)
             rec["mismatch_abs_logratio"] = round(sum(x["abs_logratio"] for x in mism) / len(mism), 6)
+        if max_k3 is not None and rec.get("mismatch_k3", 0.0) > max_k3:
+            quant_stop = {"after_step": step, "mismatch_k3": rec["mismatch_k3"], "max_k3": max_k3}
+        if check is not None:  # the weights as they are after this step's update
+            if check.due(step, int(t["steps"])) or quant_stop:
+                if quant_stop or step == int(t["steps"]) or check.has_room():
+                    rec["rollout_check_export_s"] = export_check(step)
+                    last_step_s += rec["rollout_check_export_s"]  # the deadline estimate must include it
+                else:
+                    rec["rollout_check_skipped"] = True
+            fields, worse = check.row(step)
+            rec.update(fields)
+            if worse and check.action == "stop" and not quant_stop:
+                quant_stop = {"after_step": step, "check_step": worse["step"], "worse": worse["worse"]}
         if step_flip is not None:
             rec["step_flip"] = round(step_flip, 4)
             rec["step_top1_flip"] = round(step_top1, 4)
@@ -1479,7 +1571,7 @@ def train(cfg: dict) -> dict:
             metrics_f.write(json.dumps(rec) + "\n")
             metrics_f.flush()
             os.fsync(metrics_f.fileno())
-            if due or step % state_every == 0:
+            if due or quant_stop or step % state_every == 0:
                 write_state(step)
             if due:
                 rec["heldout_reward"], _ = log_heldout(step)
@@ -1487,6 +1579,9 @@ def train(cfg: dict) -> dict:
                     cohort_eval(step)
         if cfg.get("verbose", True):
             print(json.dumps(rec), flush=True)
+        if quant_stop:
+            print(json.dumps({"stopped_early": quant_stop}), flush=True)
+            break
     metrics_f.close()
     planned_steps = int(t["steps"])
     if paused:  # out of time for this invocation: the state is on disk, the next call continues from it
@@ -1502,6 +1597,8 @@ def train(cfg: dict) -> dict:
         if steps_done not in heldout_scores:
             log_heldout(steps_done)
         t["steps"] = steps_done
+        if check is not None and not check.exported(steps_done):
+            export_check(steps_done)
     if state_dir is not None:  # finalize-only restart: a kill during the last evaluation loses nothing but it
         if steps_done not in heldout_scores:
             log_heldout(steps_done)
@@ -1549,7 +1646,7 @@ def train(cfg: dict) -> dict:
                "seconds_per_step": round((time.time() - start) / max(int(t["steps"]), 1), 2),
                "peak_gpu_memory_gb": (round(torch.cuda.max_memory_allocated() / 2**30, 2)
                                       if device.startswith("cuda") else None),
-               **{f"end_{k_}": v for k_, v in gpu_memory().items()}, "versions": versions()}
+               **{f"end_{k_}": v for k_, v in gpu_memory(device).items()}, "versions": versions()}
     if any("mismatch_k3" in r for r in recs):
         ks = [r["mismatch_k3"] for r in recs if "mismatch_k3" in r]
         summary["mean_mismatch_k3"] = round(sum(ks) / len(ks), 6)
@@ -1563,6 +1660,18 @@ def train(cfg: dict) -> dict:
                                 "group_kinds_total": {k_: sum(r["group_kinds"][k_] for r in recs)
                                                       for k_ in recs[0]["group_kinds"]} if recs else {}}
     summary["saved_trainable_weights"] = saved_weights
+    if quant_cfg is not None:
+        summary["quant"] = {**sampler.summary(), "max_k3": max_k3, "guard": quant_guard, "stopped": quant_stop}
+        if quant_stop:
+            why = (f"mismatch_k3 {quant_stop['mismatch_k3']} above max_k3 {max_k3}" if "mismatch_k3" in quant_stop else
+                   f"rollout check of step {quant_stop['check_step']} is worse ({'; '.join(quant_stop['worse'])})")
+            summary.setdefault("failures", []).append(
+                f"quantized rollouts stopped after step {quant_stop['after_step']}: {why}")
+    if check is not None:
+        summary["rollout_check"] = check.summary(steps_done)
+        late = [v["step"] for v in summary["rollout_check"]["verdicts"] if v["verdict"] == "worse"]
+        if late and check.action == "stop" and not quant_stop:  # arrived after the last step
+            summary.setdefault("failures", []).append(f"rollout check worse at step(s) {late}")
     summary["optimizer"] = opt.summary(max(time.time() - start, 1e-6))
     if update_mode != "train":
         summary["update_mode"] = update_mode

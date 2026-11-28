@@ -34,6 +34,7 @@ import math
 import random
 import sys
 import time
+from contextlib import contextmanager
 from pathlib import Path
 
 import torch
@@ -140,6 +141,37 @@ def apply_method(lm: nn.Module, method: str, args) -> dict:
                 "masked_layers": len(names), "trainable": sum(p.numel() for p in lm.parameters() if p.requires_grad),
                 "alpha": [args.dt_alpha_start, args.dt_alpha_end], "lambda": args.dt_lambda, "eta": args.dt_eta}
     raise ValueError(method)
+
+
+@contextmanager  # decorator without a dot: pr-guard reads '+@a.b' as an email
+def block_recompute(lm: nn.Module, enabled: bool = True):
+    """Activation recompute on Team 5's blocks: while open, a block in training mode with gradients on keeps no
+    activations and runs its forward again in backward (torch.utils.checkpoint, non-reentrant). Team 5's code is not
+    changed; each block's own `forward` is wrapped and restored on exit. Yields the number of blocks wrapped.
+
+    The re-run forward adds again to MoE's train-mode load counts (`_balance_load`, and `expert_load` if a caller
+    started it). G10's trainers call neither start_expert_load() nor update_router_bias(), and clear the counts after
+    training; router_bias itself is not touched."""
+    if not enabled:
+        yield 0
+        return
+    from torch.utils.checkpoint import checkpoint  # noqa: PLC0415
+
+    def wrap(block, forward):
+        def run(*a, **kw):
+            if block.training and torch.is_grad_enabled():
+                return checkpoint(forward, *a, use_reentrant=False, **kw)
+            return forward(*a, **kw)
+        return run
+
+    blocks = list(lm.blocks)
+    try:
+        for block in blocks:
+            block.forward = wrap(block, block.forward)  # instance attribute over the class method
+        yield len(blocks)
+    finally:
+        for block in blocks:
+            block.__dict__.pop("forward", None)
 
 
 def enable_head_rows(lm: nn.Module, ids: list[int]) -> nn.Parameter:
@@ -459,6 +491,7 @@ def run(args) -> dict:
                                                               unseen=args.dt_unseen)
         method_info["wanda_layers_without_tokens"] = len(dtmask.masked_layers(wrapper)) - len(scores)
         method_info["deletion_at_init"] = dtmask.deletion_stats(lm)
+        method_info["unseen_at_init"] = dtmask.unseen_report(lm, method_info["wanda_prior"]["unseen_layer_names"])
         method_info["band_at_init"] = dtmask.band_stats(lm)
     report["method"] = method_info
     im_end_id = bundle.special["tokens"]["end_of_turn"]["id"]
@@ -496,49 +529,55 @@ def run(args) -> dict:
     rng = random.Random(args.seed)
     order: list[int] = []
     log = []
+    on_cuda = str(device).startswith("cuda")
+    if on_cuda:
+        torch.cuda.reset_peak_memory_stats(device)
     t0 = time.perf_counter()
-    for step in range(args.steps):
-        if len(order) < args.batch:
-            perm = list(range(len(train_rows)))
-            rng.shuffle(perm)
-            order += perm
-        take, order = order[: args.batch], order[args.batch:]
-        mbs = [bench.collate(g, 0) for g in bench.plan_microbatches([train_rows[i] for i in take], args.micro_tokens)]
-        lr = bench.lr_at(step, args)
-        opt.scale_lr(lr / args.lr if args.lr > 0 else 1.0)
-        opt.zero_grad(set_to_none=True)
-        loss, count = bench.accumulate(wrapper, mbs, device)
-        reg_val = None
-        if args.method == "dt" and args.dt_lambda > 0:
-            reg_val = dtmask.regulariser_backward_(lm, dtmask.lambda_at(step, args.steps, args.dt_lambda))
-        gn = torch.nn.utils.clip_grad_norm_(params, args.clip)
-        sel = (lambda t: t[marker_ids]) if args.method == "markers" else (lambda t: t)
-        if step == 0:
-            p0, g0 = sel(watch.detach()).clone(), sel(watch.grad.detach()).clone()
-        opt.step(sync_fn=lambda: bench.sync(device))
-        if args.method == "dt":
-            dtmask.step_all(lm)
-        if step == 0 and opt_kind == "adamw":
-            wlr = lr * args.marker_lr / args.lr if args.method == "markers" else lr
-            report["writeback_step1"] = {"tensor": watch_name, "storage_dtype": str(watch.dtype), "lr": wlr,
-                                         **bench.writeback_check(p0.cpu(), g0.cpu(), sel(watch.detach()).cpu(), wlr,
-                                                                 args.wd, 1e-8)}
-        rec = {"step": step + 1, "loss": loss, "targets": count, "lr": lr, "grad_norm": float(gn)}
-        if reg_val is not None:
-            rec["reg"] = reg_val
-        if (step + 1) % args.log_every == 0 or step == 0 or step + 1 == args.steps:
-            bench.sync(device)
-            rec["elapsed_s"] = round(time.perf_counter() - t0, 1)
-            print(json.dumps(rec), flush=True)
-        log.append(rec)
-        if not math.isfinite(loss):
-            raise SystemExit(f"non-finite loss at step {step + 1}")
-        if args.max_train_seconds and time.perf_counter() - t0 > args.max_train_seconds and step + 1 < args.steps:
-            report["stopped_early"] = {"after_step": step + 1, "cap_seconds": args.max_train_seconds}
-            print(json.dumps({"stopped_early": report["stopped_early"]}), flush=True)
-            break
+    with block_recompute(lm, getattr(args, "grad_checkpointing", False)) as recompute_blocks:
+        report["grad_checkpointing_blocks"] = recompute_blocks
+        for step in range(args.steps):
+            if len(order) < args.batch:
+                perm = list(range(len(train_rows)))
+                rng.shuffle(perm)
+                order += perm
+            take, order = order[: args.batch], order[args.batch:]
+            mbs = [bench.collate(g, 0) for g in bench.plan_microbatches([train_rows[i] for i in take], args.micro_tokens)]
+            lr = bench.lr_at(step, args)
+            opt.scale_lr(lr / args.lr if args.lr > 0 else 1.0)
+            opt.zero_grad(set_to_none=True)
+            loss, count = bench.accumulate(wrapper, mbs, device)
+            reg_val = None
+            if args.method == "dt" and args.dt_lambda > 0:
+                reg_val = dtmask.regulariser_backward_(lm, dtmask.lambda_at(step, args.steps, args.dt_lambda))
+            gn = torch.nn.utils.clip_grad_norm_(params, args.clip)
+            sel = (lambda t: t[marker_ids]) if args.method == "markers" else (lambda t: t)
+            if step == 0:
+                p0, g0 = sel(watch.detach()).clone(), sel(watch.grad.detach()).clone()
+            opt.step(sync_fn=lambda: bench.sync(device))
+            if args.method == "dt":
+                dtmask.step_all(lm)
+            if step == 0 and opt_kind == "adamw":
+                wlr = lr * args.marker_lr / args.lr if args.method == "markers" else lr
+                report["writeback_step1"] = {"tensor": watch_name, "storage_dtype": str(watch.dtype), "lr": wlr,
+                                             **bench.writeback_check(p0.cpu(), g0.cpu(), sel(watch.detach()).cpu(), wlr,
+                                                                     args.wd, 1e-8)}
+            rec = {"step": step + 1, "loss": loss, "targets": count, "lr": lr, "grad_norm": float(gn)}
+            if reg_val is not None:
+                rec["reg"] = reg_val
+            if (step + 1) % args.log_every == 0 or step == 0 or step + 1 == args.steps:
+                bench.sync(device)
+                rec["elapsed_s"] = round(time.perf_counter() - t0, 1)
+                print(json.dumps(rec), flush=True)
+            log.append(rec)
+            if not math.isfinite(loss):
+                raise SystemExit(f"non-finite loss at step {step + 1}")
+            if args.max_train_seconds and time.perf_counter() - t0 > args.max_train_seconds and step + 1 < args.steps:
+                report["stopped_early"] = {"after_step": step + 1, "cap_seconds": args.max_train_seconds}
+                print(json.dumps({"stopped_early": report["stopped_early"]}), flush=True)
+                break
     bench.sync(device)
     train_elapsed = time.perf_counter() - t0
+    report["train_peak_memory_bytes"] = torch.cuda.max_memory_allocated(device) if on_cuda else None
     report["train_seconds"] = round(train_elapsed, 1)
     report["optimizer"] = opt.summary(train_elapsed)
     if getattr(args, "optim_state_out", None):
@@ -555,6 +594,7 @@ def run(args) -> dict:
         report["frozen_weights_unchanged"] = {"before": frozen_before, "after": after, "pass": after == frozen_before}
     if args.method == "dt":
         method_info["deletion_final"] = dtmask.deletion_stats(lm)
+        method_info["unseen_final"] = dtmask.unseen_report(lm, method_info["wanda_prior"]["unseen_layer_names"])
         keep = dtmask.bake(lm)  # {param name: bool keep mask}; RL after this SFT holds these entries at zero
         blob, meta = dtmask.pack_masks(keep)
         (out / "dt_keep_masks.bin").write_bytes(blob)
@@ -746,6 +786,8 @@ def parse_args(argv=None):
                    help="for DT under hybrid_muon: shape routes 2D gates to Muon; adamw keeps gates on AdamW")
     p.add_argument("--optim-state-out", type=Path, default=None,
                    help="optional path to save full optimizer state_dict (including Muon momentum buffers)")
+    p.add_argument("--grad-checkpointing", action="store_true",
+                   help="recompute each block's activations in backward (less memory, more time); default off")
     p.add_argument("--warmup", type=int, default=10)
     p.add_argument("--min-lr-ratio", type=float, default=0.1)
     p.add_argument("--wd", type=float, default=0.0)

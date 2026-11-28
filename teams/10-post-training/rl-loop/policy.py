@@ -10,6 +10,7 @@ padding is needed (Team 5's attention has no padding mask). Tokens after an EOS 
 from __future__ import annotations
 
 import contextlib
+import copy
 from typing import Callable
 
 import torch
@@ -40,6 +41,13 @@ class Policy:
         if self.amp_dtype is None:
             return contextlib.nullcontext()
         return torch.autocast(device_type=torch.device(self.device).type, dtype=self.amp_dtype)
+
+    def with_model(self, model: nn.Module) -> "Policy":
+        """This policy over another model of the same architecture (e.g. a quantized copy). Right for a policy whose
+        forward, hidden and head use the model they are given; one that holds its own reference must override this."""
+        other = copy.copy(self)
+        other.model = model
+        return other
 
     def logits(self, ids: torch.Tensor, mask: torch.Tensor | None = None) -> torch.Tensor:
         if mask is None:
