@@ -20,7 +20,7 @@ Our model’s ERNIE export (<a href="../../scripts/export_hf.py"><code>export_hf
 - **For the lab:** G9’s checkpoint evals and G10’s rollouts are planned on vLLM
   ([`serving_plan.md`](../../docs/serving_plan.md) §1), so they are not affected. SGLang should not serve our model
   until the fix below is in a release.
-- **The fix is upstream.** [SGLang PR link] continues [#46669](https://github.com/sgl-project/sglang/pull/46669) by
+- **The fix is upstream.** [sgl-project/sglang#53755](https://github.com/sgl-project/sglang/pull/53755) continues [#46669](https://github.com/sgl-project/sglang/pull/46669) by
   FeSens, who found and measured this bug first. On Baidu’s ERNIE-4.5-21B it raises routing agreement with
   transformers from 67.5% to 94.3%, with no measurable speed cost (bs=1 TPOT 3.77 against 3.78 ms).
 - **The KAS head bias is dropped by every engine**, as was already known
@@ -156,7 +156,7 @@ SGLang equal to “bias ignored” in all of them) and on a public tiny ERNIE ch
   </picture>
 </p>
 
-[SGLang PR link] continues [#46669](https://github.com/sgl-project/sglang/pull/46669) by FeSens (draft, unreviewed,
+[sgl-project/sglang#53755](https://github.com/sgl-project/sglang/pull/53755) continues [#46669](https://github.com/sgl-project/sglang/pull/46669) by FeSens (draft, unreviewed,
 closed by the stale bot on 22 Nov), whose diagnosis and measurements came first; FeSens is co-author of both commits.
 It adds a probability-space mode to SGLang’s fused Triton router (`moe_fused_gate`): rank by probability + bias, gate
 with the unbiased probability, as its sigmoid branch already does. `fused_topk` uses it on CUDA and ROCm with a 1-D
