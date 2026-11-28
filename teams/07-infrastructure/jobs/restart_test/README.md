@@ -14,8 +14,14 @@ Week-2 task (Gate 2): **a killed job restarts from the last COMPLETE checkpoint 
 - The supervisor log must show exactly one restart (exit -9) and then exit 0, and the restarted trainer must
   start at the step after the checkpoint the supervisor named.
 
-**What it does not cover:** the kill always lands after step 140, when the step-125 checkpoint is already
-committed, so it never kills a trainer in the middle of a save. That case is covered by the checkpoint drills
+**Random kill step and Muon (Lab 5):** `--kill-seed N` draws the kill step at random between `--save-every` and
+`--steps - 1` (printed, so the same seed gives the same step), and `--optim muon` trains with Muon on every 2D
+weight and AdamW on the 1D rest (TSAI's rule by shape, 28 Nov). With `--report` the file also holds a table of
+batch data ID and loss bits for each step around the kill, for both attempts. CPU result:
+[`results/restart_cpu_muon.txt`](../../results/restart_cpu_muon.txt).
+
+**What it does not cover:** the kill lands only after a COMPLETE checkpoint exists, so it never kills a trainer
+in the middle of a save. That case is covered by the checkpoint drills
 (`kill_during_save` and `kill_during_restore`, `support/docs/sim_results.md`) and by tests T3/T4/T19 in
 `support/tests/test_ckpt.py`.
 
