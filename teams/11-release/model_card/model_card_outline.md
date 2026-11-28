@@ -41,8 +41,8 @@ The draft of the model card is `model_card_v0.md`. Each section there has the te
 | KE2 | Whether the model uses KE2, in general terms, with no design details. This includes the KE2 output head, which replaced the dense untied head on 21 Nov 2026 | KE2 | in progress | OK @swatibansal |
 | Architecture | The shape of the model, in general terms | Architecture | empty | OK @shivman |
 | Training | How the lab trained the model | Performance, Architecture | empty | Performance OK @raj-harit-v2; Architecture OK @shivman |
-| Training infrastructure | How the run saves, restores and restarts after a crash | Infrastructure | empty | pending |
-| Compute | The hardware and the training time, once TSAI approves the numbers | Infrastructure | empty | pending |
+| Training infrastructure | How the run saves, restores and restarts after a crash | Infrastructure | empty | OK @sureshmantha ([comment on #878](https://github.com/theschoolofai/era-v5-lab/pull/878#issuecomment-7241313628)) |
+| Compute | The hardware and the training time, once TSAI approves the numbers | Infrastructure | empty | OK @sureshmantha ([comment on #878](https://github.com/theschoolofai/era-v5-lab/pull/878#issuecomment-7241313628)) |
 | Monitoring | How the lab watched the training run and kept a record of it | Monitoring | empty | OK @sandeepkunkunuru |
 | Post-training | How the lab tuned the model after pre-training | Post-training | empty | OK @saitej123 |
 | Alignment | How the lab trained the model on checked scores of its own answers, and how it scores tasks with no test | Post-training | empty | OK @saitej123 |

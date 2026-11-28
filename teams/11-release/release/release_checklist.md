@@ -17,7 +17,7 @@ The release makes the lab's work public: the model card, the run report, the sit
 | Launch announcement | Release | `launch/launch_announcement_v0.md` |
 | What is released, the model licence and the model name | TSAI | TSAI decides. Release records each decision in the decision log. |
 
-Every section of the model card has an owner team in `model_card/model_card_outline.md`. Its Lead OK column shows which lead confirmed the section. Two sections still wait for the Infrastructure lead: Training infrastructure and Compute.
+Every section of the model card has an owner team in `model_card/model_card_outline.md`. Its Lead OK column shows which lead confirmed the section. The Infrastructure lead confirmed Training infrastructure and Compute ([comment on #878](https://github.com/theschoolofai/era-v5-lab/pull/878#issuecomment-7241313628)). Personal data still waits for the Data A and Data B leads.
 
 ## Delivery table
 
