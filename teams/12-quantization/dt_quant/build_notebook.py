@@ -100,7 +100,7 @@ RES = f"{RUN}/results.json"
 rev = f"--revision {REVISION} " if REVISION else ""
 sh(f"cd {CODE} && env HF_HOME={WORK}/hf {PY} -u dt_on_quantized.py --model {MODEL} {rev}--out {RES} --arms {','.join(ARMS)} "
    f"--steps {STEPS} --batch {BATCH} --micro {MICRO} --length {LENGTH} --train-windows {TRAIN_WINDOWS} "
-   f"--test-windows {TEST_WINDOWS} --lr {LR} --seed {SEED} --device cuda", log=f"{OUT}/logs/run.log")
+   f"--test-windows {TEST_WINDOWS} --lr {LR} --seed {SEED} --device cuda --grad-check", log=f"{OUT}/logs/run.log")
 """),
 code("""
 # results: one table, a zip of everything
@@ -117,6 +117,10 @@ for name, r in d["arms"].items():
                  "packed_GB_targeted": round(r["packed_bytes_targeted"] / 1e9, 3) if "packed_bytes_targeted" in r else None})
 table = pd.DataFrame(rows); table.to_csv(f"{RUN}/table.csv", index=False)
 print(table.to_string(index=False))
+for q, r in d.get("grad_coverage", {}).items():
+    print(f"gradient coverage, {q}: packed path on - {r['fast_path_on']['trainable_parameters']} trainable, none {len(r['fast_path_on']['grad_none'])}, "
+          f"all zero {len(r['fast_path_on']['grad_all_zero'])}; off - none {len(r['fast_path_off']['grad_none'])}, all zero {len(r['fast_path_off']['grad_all_zero'])}; "
+          f"same lists {r['same_none_and_zero_lists']}, max gradient difference {r['max_abs_grad_difference']}")
 print("\\npaired NLL differences (mean over windows, 95% interval):")
 for k, v in d.get("paired", {}).items():
     print(f"  {k}: {v['mean_diff']:+.4f}  [{v['ci95'][0]:+.4f}, {v['ci95'][1]:+.4f}]  ({v['windows']} windows)")
