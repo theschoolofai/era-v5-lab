@@ -1,0 +1,10 @@
+{
+ "input": "<data>/packs38/Cap1-packs/en-dclm/Part_1/part-00000.parquet",
+ "input_sha256": "67b305d60aa0f4091612f6fefe0c7aee867872943017c5ebb598293c19dfeb88",
+ "set_sha256": "2826a3b883210c653979103c09ce1c79e40fc4f7034b54027f2836482370d22a",
+ "run_f2_py_sha256": "1651b3725357b2a2b684fda6a047cc5697c1331d1b43bb242712f422403af040",
+ "rows": 46245,
+ "kept": 46211,
+ "dropped_by_f2": 34,
+ "seconds": 149.9
+}

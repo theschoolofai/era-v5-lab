@@ -1,0 +1,24 @@
+part en-dclm/Part_1/part-00000.parquet: docs 46,245, text 256 MB, kept 46,211
+set load 1.8 s | read 0.22 s | check 136.9 s (1.87 MB/s) | write 0.45 s | read + write = 0.49% of read + check + write
+part code-java/Part_1/part-00000.parquet: docs 62,834, text 256 MB, kept 62,820
+set load 1.8 s | read 0.20 s | check 94.0 s (2.72 MB/s) | write 0.36 s | read + write = 0.59% of read + check + write
+part math-finemath/Part_1/part-00000.parquet: docs 29,122, text 149 MB, kept 28,862
+set load 2.0 s | read 0.26 s | check 93.4 s (1.59 MB/s) | write 0.30 s | read + write = 0.60% of read + check + write
+part code-java/Part_1/part-00000.parquet: docs 62,834, text 256 MB, kept 62,820
+set load 2.3 s | read 0.37 s | check 226.6 s (1.13 MB/s) | write 0.39 s | read + write = 0.34% of read + check + write (check under cProfile)
+         1160453487 function calls in 225.857 seconds
+
+   Ordered by: internal time
+   List reduced from 33 to 8 due to restriction <8>
+
+   ncalls  tottime  percall  cumtime  percall filename:lineno(function)
+    62834   72.880    0.001  225.857    0.004 <repo>/teams/09-evaluation/decontam/fpset.py:326(check)
+    62834   34.615    0.001   77.580    0.001 <repo>/teams/09-evaluation/decontam/g1_spec_v1_normalize.py:129(words_with_offsets)
+170724917   27.775    0.000   27.775    0.000 {method 'digest' of '_blake2.blake2b' objects}
+170725393   19.522    0.000   19.522    0.000 {method 'get' of 'dict' objects}
+ 75214518    9.888    0.000    9.888    0.000 {method 'sub' of 're.Pattern' objects}
+170724917    8.555    0.000    8.555    0.000 {built-in method from_bytes}
+ 25071506    8.159    0.000   28.929    0.000 <repo>/teams/09-evaluation/decontam/g1_spec_v1_normalize.py:125(_key)
+196236218    7.963    0.000    7.963    0.000 {built-in method builtins.len}
+
+

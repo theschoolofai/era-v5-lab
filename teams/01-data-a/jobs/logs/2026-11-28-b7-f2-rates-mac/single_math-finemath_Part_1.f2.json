@@ -1,0 +1,10 @@
+{
+ "input": "<data>/packs38/Cap1-packs/math-finemath/Part_1/part-00000.parquet",
+ "input_sha256": "a5dbb4da6d0c2e890901aecb10b5c2bd71378d8e66e5975adc0d7d98592f51b2",
+ "set_sha256": "2826a3b883210c653979103c09ce1c79e40fc4f7034b54027f2836482370d22a",
+ "run_f2_py_sha256": "1651b3725357b2a2b684fda6a047cc5697c1331d1b43bb242712f422403af040",
+ "rows": 29122,
+ "kept": 28862,
+ "dropped_by_f2": 260,
+ "seconds": 88.4
+}

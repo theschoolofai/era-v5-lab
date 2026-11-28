@@ -1,0 +1,10 @@
+lane  parts       rows   text MB         tokens  worker s  MB/s/w   tok/s/w dropped
+cadj      6    133,116       420    109,214,051       609    0.69   179,245     142
+code     18    485,928     2,100    554,992,122     2,533    0.83   219,113   1,056
+en       12    426,508     1,380    289,472,235     2,299    0.60   125,918     214
+ind      44    345,890     1,620    186,807,125       850    1.91   219,721     360
+math      4     47,250       300     80,767,355       611    0.49   132,167     342
+sci       2      6,074       180     41,574,395       356    0.51   116,651      14
+ALL      86  1,444,766     6,000  1,262,827,283     7,259    0.83   173,972   2,128
+wall 917 s with 8 workers: 1,377,580 tokens/s for the run, 172,197 per worker
+{"cadj": {"parts": 6, "rows": 133116, "bytes": 420007518, "tokens": 109214051, "seconds": 609.3, "dropped": 142}, "ALL": {"parts": 86, "rows": 1444766, "bytes": 6000494514, "tokens": 1262827283, "seconds": 7258.799999999997, "dropped": 2128}, "code": {"parts": 18, "rows": 485928, "bytes": 2100012189, "tokens": 554992122, "seconds": 2532.9000000000005, "dropped": 1056}, "en": {"parts": 12, "rows": 426508, "bytes": 1380109395, "tokens": 289472235, "seconds": 2298.8999999999996, "dropped": 214}, "ind": {"parts": 44, "rows": 345890, "bytes": 1620208489, "tokens": 186807125, "seconds": 850.1999999999999, "dropped": 360}, "math": {"parts": 4, "rows": 47250, "bytes": 300036427, "tokens": 80767355, "seconds": 611.1, "dropped": 342}, "sci": {"parts": 2, "rows": 6074, "bytes": 180120496, "tokens": 41574395, "seconds": 356.40000000000003, "dropped": 14}}

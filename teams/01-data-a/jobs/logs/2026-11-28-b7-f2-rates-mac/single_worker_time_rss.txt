@@ -1,0 +1,5 @@
+en-dclm_Part_1 153.14s rss 1367425024
+code-java_Part_1 96.72s rss 1371242496
+math-finemath_Part_1 90.63s rss 1399816192
+
+[exited with code 0]
