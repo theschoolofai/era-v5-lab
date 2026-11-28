@@ -38,6 +38,10 @@ GPU-run options (config `train.*`, all optional):
                    held-out set with the copy (heldout_reward_quant). max_k3: stop after a step whose mismatch_k3 is
                    above it (exit code 4; a resumed run stays stopped). Not with dt or logprob_gate. On CUDA without
                    time_sync, a row's optim_step_s is host launch time, not the update's run time
+    rollout_check  with sampler: quant on Team 5's model: {dir, every: 10, action: report | stop, control, min_bpb,
+                   max_pending: 3}. Every `every` steps (and at the last step) the learner and the rollout copy are written
+                   to dir for Team 9's mini-benchmark, which a separate evaluation job runs; score files that have arrived
+                   are judged (rollout_check.py). action stop ends the run after a worse verdict (exit code 4, stays stopped)
     fp32_master    default true: trainable weights in fp32 under bf16 autocast (policy.use_fp32_master)
     autocast       bf16 | unset (default): force bf16 autocast for the policy's forward. Needed for a G5 checkpoint,
                    which is stored in fp32 (fp32_master then converts nothing and the run would be all-fp32)
@@ -91,6 +95,7 @@ import grpo  # noqa: E402
 import heldout  # noqa: E402
 import quant_rollout  # noqa: E402
 import rollout  # noqa: E402
+import rollout_check  # noqa: E402
 import router  # noqa: E402
 import routing  # noqa: E402
 import tasks  # noqa: E402
@@ -132,7 +137,9 @@ def build_model(mcfg: dict, device: str):
         rng = np.random.default_rng(mcfg.get("ke2_seed", 7))  # stand-in KE2 code table until Team 5's model lands
         rows = rng.integers(0, 256, (spec["vocab_size"], 4), dtype=np.uint8)
         lengths = rng.integers(1, 5, spec["vocab_size"], dtype=np.int16)
-        return module_policy(LanguageModel(spec, rows, lengths), None, device, split_head=True), None
+        policy = module_policy(LanguageModel(spec, rows, lengths), None, device, split_head=True)
+        policy.model_spec = spec  # train.rollout_check writes it beside the weights
+        return policy, None
     if kind == "team5_adapter":
         import team5_adapter  # noqa: PLC0415
         return team5_adapter.build_policy_and_codec(mcfg["adapter_config"], device, mcfg.get("effort", "4k"),
@@ -897,6 +904,12 @@ def train(cfg: dict) -> dict:
             raise ValueError("train.sampler quant is not for Deletion Tuning or logprob_gate: the sampler differs by design")
     max_k3 = float(quant_cfg["max_k3"]) if quant_cfg and quant_cfg.get("max_k3") is not None else None
     quant_guard = bool(quant_cfg.get("guard", True)) if quant_cfg else False
+    check = None
+    if t.get("rollout_check") is not None:
+        if sampler_kind != "quant" or cfg["model"]["kind"] not in ("team5", "team5_adapter"):
+            raise ValueError("train.rollout_check needs sampler quant and a Team 5 model (model.kind team5 or "
+                             "team5_adapter): Team 9's scorer builds Team 5's model only")
+        check = rollout_check.RolloutCheck(t["rollout_check"])
     if sampler_kind == "g5_batch" and cfg["model"]["kind"] != "team5_adapter":
         raise ValueError("sampler g5_batch is for the G5 LanguageModel (model.kind team5_adapter)")
     pool = None
@@ -1082,6 +1095,8 @@ def train(cfg: dict) -> dict:
         )
         resumed = load_state(state_dir, identity)
     quant_stop = resumed.get("quant_stop") if resumed is not None else None  # a stop stays after a restart
+    if check is not None:
+        check.start(state_dir, int(resumed["step"]) if resumed is not None else 0)
     if resumed is not None:
         with torch.no_grad():
             for n_, p_ in trainable_named:
@@ -1133,6 +1148,14 @@ def train(cfg: dict) -> dict:
         rec_ = save_state(state_dir, step, payload)
         print(json.dumps({"state_saved": rec_}), flush=True)
         return rec_
+
+    def export_check(step):  # the weights as they are now, and the copy a rollout would use
+        t0_ = time.time()
+        copy_ = quant_rollout.quantized_copy(model, sampler.scheme, sampler.router_patterns)[0]
+        rollout_check.export(check.dir, step, None if check.control else model, copy_, sampler.scheme,
+                             adapter.bundle.spec if adapter is not None else policy.model_spec,
+                             adapter.manifest["tokenizer"]["sha256"] if adapter is not None else None)
+        return round(time.time() - t0_, 3)
 
     def cohort_eval(step):
         c0_ = time.time()
@@ -1520,6 +1543,17 @@ def train(cfg: dict) -> dict:
             rec["mismatch_abs_logratio"] = round(sum(x["abs_logratio"] for x in mism) / len(mism), 6)
         if max_k3 is not None and rec.get("mismatch_k3", 0.0) > max_k3:
             quant_stop = {"after_step": step, "mismatch_k3": rec["mismatch_k3"], "max_k3": max_k3}
+        if check is not None:  # the weights as they are after this step's update
+            if check.due(step, int(t["steps"])) or quant_stop:
+                if quant_stop or step == int(t["steps"]) or check.has_room():
+                    rec["rollout_check_export_s"] = export_check(step)
+                    last_step_s += rec["rollout_check_export_s"]  # the deadline estimate must include it
+                else:
+                    rec["rollout_check_skipped"] = True
+            fields, worse = check.row(step)
+            rec.update(fields)
+            if worse and check.action == "stop" and not quant_stop:
+                quant_stop = {"after_step": step, "check_step": worse["step"], "worse": worse["worse"]}
         if step_flip is not None:
             rec["step_flip"] = round(step_flip, 4)
             rec["step_top1_flip"] = round(step_top1, 4)
@@ -1563,6 +1597,8 @@ def train(cfg: dict) -> dict:
         if steps_done not in heldout_scores:
             log_heldout(steps_done)
         t["steps"] = steps_done
+        if check is not None and not check.exported(steps_done):
+            export_check(steps_done)
     if state_dir is not None:  # finalize-only restart: a kill during the last evaluation loses nothing but it
         if steps_done not in heldout_scores:
             log_heldout(steps_done)
@@ -1627,9 +1663,15 @@ def train(cfg: dict) -> dict:
     if quant_cfg is not None:
         summary["quant"] = {**sampler.summary(), "max_k3": max_k3, "guard": quant_guard, "stopped": quant_stop}
         if quant_stop:
+            why = (f"mismatch_k3 {quant_stop['mismatch_k3']} above max_k3 {max_k3}" if "mismatch_k3" in quant_stop else
+                   f"rollout check of step {quant_stop['check_step']} is worse ({'; '.join(quant_stop['worse'])})")
             summary.setdefault("failures", []).append(
-                f"quantized rollouts stopped after step {quant_stop['after_step']}: mismatch_k3 "
-                f"{quant_stop['mismatch_k3']} above max_k3 {max_k3}")
+                f"quantized rollouts stopped after step {quant_stop['after_step']}: {why}")
+    if check is not None:
+        summary["rollout_check"] = check.summary(steps_done)
+        late = [v["step"] for v in summary["rollout_check"]["verdicts"] if v["verdict"] == "worse"]
+        if late and check.action == "stop" and not quant_stop:  # arrived after the last step
+            summary.setdefault("failures", []).append(f"rollout check worse at step(s) {late}")
     summary["optimizer"] = opt.summary(max(time.time() - start, 1e-6))
     if update_mode != "train":
         summary["update_mode"] = update_mode
