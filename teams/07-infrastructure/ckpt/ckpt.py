@@ -46,7 +46,8 @@ import numpy as np
 import torch
 import torch.distributed as dist
 import torch.distributed.checkpoint as dcp
-from torch.distributed.checkpoint.state_dict import get_state_dict, set_state_dict
+from torch.distributed.checkpoint.state_dict import (StateDictOptions, get_state_dict, set_model_state_dict,
+                                                     set_optimizer_state_dict)
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from ckpt.candidates import pick_candidates  # noqa: E402
@@ -322,6 +323,39 @@ def scalar_state(sd) -> dict:
     JSON round trip so the restored value compares equal to the one read back from MANIFEST.json."""
     return json.loads(json.dumps({k: v for k, v in flatten(sd).items() if not isinstance(v, torch.Tensor)},
                                  default=repr))
+
+
+def absent_optim_state(sd) -> list:
+    """Parameters the optimizer has never updated: in a group, but with no state at all (an expert that saw no
+    tokens, a head not trained yet). Muon and AdamW both skip a parameter whose grad is None, so its state does not
+    exist yet. Saved in MANIFEST.json, so a restore can tell this apart from state that existed and is missing."""
+    osd = sd.get("optim") or {}
+    have = osd.get("state") or {}
+    return sorted({n for g in osd.get("param_groups") or [] for n in g.get("params") or [] if n not in have})
+
+
+def _add_saved_optim_slots(target, want):
+    """Make room in the restore target for optimizer state the checkpoint has but a fresh optimizer does not create.
+
+    get_state_dict fills a fresh optimizer's state with one zero-grad step, and an optimizer that skips exact-zero
+    gradients (Team 05's Muon idle guard, #919) then creates no buf at all. The saved buf must still be loaded, not
+    dropped and not zero-filled: this adds an empty tensor of the saved shape and dtype for DCP to load the saved
+    values into (the state digest proves them afterwards). Only for a parameter of this model, and only for a slot the
+    shape of the parameter or a scalar (Muon buf, AdamW exp_avg / exp_avg_sq / step); anything else stays missing and
+    fails the strict key check."""
+    osd, msd = target["optim"], target["model"]
+    state = osd.setdefault("state", {})
+    for k, (shape, dtype) in want.items():
+        if not k.startswith("optim.state."):
+            continue
+        name, slot = k[len("optim.state."):].rsplit(".", 1)
+        if slot in state.get(name, {}) or name not in msd:
+            continue
+        p, dt = msd[name], getattr(torch, dtype.replace("torch.", ""))
+        if list(p.shape) == shape:
+            state.setdefault(name, {})[slot] = torch.empty_like(p, dtype=dt)
+        elif shape == []:
+            state.setdefault(name, {})[slot] = torch.zeros((), dtype=dt)
 
 
 def key_spec(sd) -> dict:
@@ -642,6 +676,7 @@ class Checkpointer:
                 "keys": key_spec(state),
                 "state_digest": digest,
                 "scalars": scalar_state(state),
+                "optim_state_absent": absent_optim_state(state),
                 "frozen": {k[len("model."):]: v for k, v in frozen.items()},
                 "probe_loss": {device_class(model): probe},
                 "next_batch": loader.next_batch_id(),
@@ -842,18 +877,37 @@ class Checkpointer:
         # 4. Strict key check: every name, shape and dtype must match. Lists every bad key.
         msd, osd = get_state_dict(model, optim)
         target = {"model": msd, "optim": osd}
-        want, have = man["keys"], key_spec(target)
+        # A fresh optimizer has no state, so get_state_dict creates it for every parameter with one zero-grad step
+        # (AdamW: step 1, zero moments). For a parameter the saved optimizer had never updated, that state is not in
+        # the checkpoint and must not be loaded either: AdamW's next update would differ from a first update (bias
+        # correction of step 2, not 1). Only parameters the manifest names as absent are taken out of the target;
+        # any other key the checkpoint lacks still fails below (state that existed and is missing). Muon: an absent
+        # buf and a zero buf give the same update (Team 05, #899).
+        absent = set(man.get("optim_state_absent", []))
+        for n in absent:
+            (target["optim"].get("state") or {}).pop(n, None)
+        want = man["keys"]
+        _add_saved_optim_slots(target, want)
+        have = key_spec(target)
         missing = sorted(set(want) - set(have))
         unexpected = sorted(set(have) - set(want))
         changed = sorted(k for k in set(want) & set(have) if want[k] != have[k])
-        if missing or unexpected or changed:
+        # Without state after all of the above, a parameter must be one the save recorded as never updated. This does
+        # not depend on what a fresh optimizer creates (Team 05's Muon idle guard creates nothing, so a lost buf would
+        # be missing on both sides and pass the key comparison).
+        stateless = sorted(set(absent_optim_state(target)) - absent) if "optim_state_absent" in man else []
+        if missing or unexpected or changed or stateless:
             raise StrictLoadError(f"strict load failed: missing in model={missing} "
-                                  f"not in checkpoint={unexpected} shape/dtype differs={changed}")
+                                  f"not in checkpoint={unexpected} shape/dtype differs={changed}"
+                                  + (f" no optimizer state, not recorded as never updated={stateless}" if stateless else ""))
 
         # 5. Load tensors (DCP reshards to the current world size), then RNG and data position.
         tl = Timer()
         dcp.load(target, checkpoint_id=local_dir)
-        set_state_dict(model, optim, model_state_dict=target["model"], optim_state_dict=target["optim"])
+        # The model always loads strictly. The optimizer loads non-strictly only so the absent parameters stay
+        # without state; the key check above has already matched every other name, shape and dtype exactly.
+        set_model_state_dict(model, target["model"], options=StateDictOptions(strict=True))
+        set_optimizer_state_dict(model, optim, target["optim"], options=StateDictOptions(strict=not absent))
         resharded = man["world_size"] != world()
         if resharded and not man.get("loader_global", False):
             raise ReshardError(f"step {c['step']} was saved at world size {man['world_size']} by a data loader "
