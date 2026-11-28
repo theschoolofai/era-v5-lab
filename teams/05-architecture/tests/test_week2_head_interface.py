@@ -18,7 +18,7 @@ from week2.optim import Optimizers, build_optimizer
 
 
 class HeadInterfaceTests(unittest.TestCase):
-    def test_every_actual_head_and_input_parameter_is_only_on_adamw(self):
+    def test_every_actual_head_and_input_parameter_follows_shape(self):
         cfg, rows, lengths = fixture()
         cfg["optim"].update(name="muon", muon_lr=0.006)
         model = LanguageModel(cfg["model"], rows, lengths)
@@ -35,7 +35,7 @@ class HeadInterfaceTests(unittest.TestCase):
         self.assertTrue(list(model.embedding.parameters()))
         for name, parameter in model.named_parameters():
             if name.startswith(("head.", "embedding.")):
-                self.assertEqual(owners[id(parameter)], ["adamw"], name)
+                self.assertEqual(owners[id(parameter)], ["muon" if parameter.ndim == 2 else "adamw"], name)
         head = {id(p) for p in model.head.parameters()}
         inputs = {id(p) for p in model.embedding.parameters()}
         self.assertTrue(head.isdisjoint(inputs), "input and output parameters must be untied")
@@ -45,7 +45,7 @@ class HeadInterfaceTests(unittest.TestCase):
 
     def test_merged_recipe_optional_sgd_owns_every_actual_head_parameter(self):
         cfg, rows, lengths = fixture()
-        cfg["optim"].update(name="muon", muon_lr=0.006, head_sgd=True,
+        cfg["optim"].update(name="adamw", head_sgd=True,
                             head_sgd_lr=0.01, head_sgd_momentum=0.99)
         model = LanguageModel(cfg["model"], rows, lengths)
         optimizer = build_optimizer(model, cfg["optim"])

@@ -1,4 +1,4 @@
-"""Week-2 optimizers: AdamW on every weight, or Muon on the 2D block weights and AdamW on the rest.
+"""Week-2 optimizers: AdamW on every weight, or Muon on every 2D matrix and AdamW on 0D/1D parameters.
 
 Muon is the plain loop path of teams/06-performance/models/optim.py (commit 0968eb8): momentum 0.95
 with Nesterov, five Newton-Schulz steps with coefficients (3.4445, -4.7750, 2.0315), and the update
@@ -116,18 +116,24 @@ class Optimizers:
             o.load_state_dict(state[name])
 
 
-# Muon handles the selected block matrices. AdamW handles the remaining parameters.
+def _validate_muon_options(o):
+    """The Lab 5 Muon contract cannot be weakened by historical ablation switches."""
+    if o["name"] == "muon":
+        if o.get("router_on_muon", True) is not True:
+            raise ValueError("Muon requires router_on_muon=true: every 2D matrix uses Muon")
+        if o.get("head_sgd", False):
+            raise ValueError("Muon does not support head_sgd: every 2D matrix uses Muon")
+
+
 def uses_muon(name, p, router_on_muon=True):
-    """Attention, expert and router matrices inside the blocks. The embedding projection, heads and norm gains stay
-    on AdamW. Router on Muon: TSAI, 23 Nov (default since #712 showed no quality or cost difference vs AdamW at one
-    seed each, and current SOTA practice -- Kolibri, DeepSeek-V4.1-Flash -- treats the router as an ordinary 2D
-    matrix). optim.router_on_muon: false moves it back to AdamW, for the router comparison run only."""
-    return (
-        p.ndim == 2
-        and name.startswith("blocks.")
-        and name.endswith(".weight")
-        and (router_on_muon or ".moe.router." not in name)
-    )
+    """Shape alone selects Muon, including embedding, head and router matrices.
+
+    Keep the historical call signature, but reject the old router exception.
+    Scalar gates and 1D gains, biases and priors use AdamW.
+    """
+    if router_on_muon is not True:
+        raise ValueError("Muon requires router_on_muon=true: every 2D matrix uses Muon")
+    return p.ndim == 2
 
 
 WSD_KEYS = ("warmup_frac", "decay_frac", "final_lr_frac")
@@ -180,6 +186,7 @@ def build_optimizer(model, o):
         eps=o["eps"],
         weight_decay=o["weight_decay"],
     )
+    _validate_muon_options(o)
     if o["name"] not in ["adamw", "muon"]:
         raise ValueError(
             "Unknown optimizer " + repr(o["name"]) + "; never replaced silently"
@@ -198,11 +205,14 @@ def build_optimizer(model, o):
         if not sgd:
             return adamw(model.parameters())
         return Optimizers([("adamw", adamw([p for n, p in named if not uses_head_sgd(n, o)]))] + sgd)
-    rom = bool(o.get("router_on_muon", True))
+    unsupported = [n for n, p in named if p.ndim > 2]
+    if unsupported:
+        raise ValueError("Muon supports only 2D matrices and 0D/1D AdamW parameters: " + str(unsupported))
+    rom = True
     muon = [p for n, p in named if uses_muon(n, p, rom)]
     rest = [p for n, p in named if not uses_muon(n, p, rom) and not uses_head_sgd(n, o)]
     if not muon or not rest:
-        raise ValueError("Muon needs block matrices and AdamW parameters")
+        raise ValueError("Muon needs 2D matrices and 0D/1D AdamW parameters")
     return Optimizers(
         [
             (
@@ -217,6 +227,7 @@ def build_optimizer(model, o):
 
 def describe(model, o):
     """What the run really used, for the manifest."""
+    _validate_muon_options(o)
     named = list(model.named_parameters())
     head_sgd = (
         {
@@ -239,6 +250,7 @@ def describe(model, o):
         **MUON,
         "ns_coefficients": list(NS_COEFFS),
         "router_on_muon": rom,
+        "grouping": "all_2d_muon_0d_1d_adamw",
         "muon_parameters": sum(p.numel() for n, p in named if uses_muon(n, p, rom)),
         "adamw_parameters": sum(
             p.numel() for n, p in named if not uses_muon(n, p, rom) and not uses_head_sgd(n, o)

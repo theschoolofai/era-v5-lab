@@ -16,7 +16,7 @@ TEAM = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(TEAM / "harness"))
 from week2.kas_v2 import KASCodec, KASInput, KASHead, FIXTURE
 from week2.model import LanguageModel
-from week2.optim import build_optimizer
+from week2.optim import build_optimizer, describe
 from week2.config import load_runtime, validate, merge, load
 from test_week2_model import fixture
 
@@ -121,7 +121,17 @@ class ModelIntegration(unittest.TestCase):
         owners = {id(p): name for name, opt in optimizer.named for group in opt.param_groups for p in group["params"]}
         self.assertEqual({n for n, _ in model.head.named_parameters()}, {"W_out", "beta", "unigram", "tok_u", "tok_c"})
         for name, p in model.head.named_parameters():
-            self.assertEqual(owners[id(p)], "adamw", name)
+            self.assertEqual(owners[id(p)], "muon" if p.ndim == 2 else "adamw", name)
+        all_ids = [id(p) for _, opt in optimizer.named for g in opt.param_groups for p in g["params"]]
+        self.assertEqual(len(all_ids), len(set(all_ids)))
+        self.assertEqual(set(all_ids), {id(p) for p in model.parameters()})
+        for name, p in model.named_parameters():
+            self.assertTrue(p.requires_grad, name)
+            self.assertEqual(owners[id(p)], "muon" if p.ndim == 2 else "adamw", name)
+        self.assertEqual(dict(optimizer.named)["muon"].param_groups[0]["weight_decay"], 0.0)
+        info = describe(model, cfg["optim"])
+        for group, ndim in (("muon", 2), ("adamw", 1)):
+            self.assertEqual(info[group + "_parameters"], sum(p.numel() for p in model.parameters() if p.ndim == ndim))
         self.assertNotEqual(model.head.W_out.data_ptr(), model.embedding.projection.weight.data_ptr())
         ids = torch.arange(8).reshape(1, 8)
         model.eval()
@@ -130,6 +140,42 @@ class ModelIntegration(unittest.TestCase):
         restored = LanguageModel(cfg["model"], rows, lengths).eval()
         restored.load_state_dict(model.state_dict(), strict=True)
         torch.testing.assert_close(restored(ids, torch.ones_like(ids, dtype=torch.bool)), logits, rtol=0, atol=0)
+
+    def test_shape_group_updates_and_same_stage_resume_preserve_state(self):
+        cfg, rows, lengths, model = self.model()
+        model.eval()  # Deterministic continuation, including the KAS token dropout.
+        optimizer = build_optimizer(model, cfg["optim"])
+        ids = torch.arange(16).reshape(2, 8) % 31
+
+        def step(m, opt):
+            opt.zero_grad()
+            logits = m(ids, torch.ones_like(ids, dtype=torch.bool))
+            loss = torch.nn.functional.cross_entropy(logits.flatten(0, 1), (ids + 1).flatten() % 31)
+            loss.backward()
+            opt.step()
+
+        before = {n: p.detach().clone() for n, p in model.named_parameters()}
+        step(model, optimizer)
+        for n in ("embedding.projection.weight", "head.W_out", "head.tok_u", "head.tok_c",
+                  "head.beta", "head.unigram", "norm.weight"):
+            self.assertFalse(torch.equal(before[n], dict(model.named_parameters())[n]), n)
+        state = copy.deepcopy(optimizer.state_dict())
+        restored = LanguageModel(cfg["model"], rows, lengths).eval()
+        restored.load_state_dict(model.state_dict())
+        fresh = build_optimizer(restored, cfg["optim"])
+        fresh.load_state_dict(state)
+        for name, opt in optimizer.named:
+            other = dict(fresh.named)[name]
+            for old, new in zip(opt.param_groups[0]["params"], other.param_groups[0]["params"]):
+                self.assertEqual(opt.state[old].keys(), other.state[new].keys())
+                for key, value in opt.state[old].items():
+                    torch.testing.assert_close(other.state[new][key], value, rtol=0, atol=0)
+        self.assertEqual(dict(fresh.named)["adamw"].state[restored.head.unigram]["step"].item(), 1)
+        self.assertIn("buf", dict(fresh.named)["muon"].state[restored.head.W_out])
+        step(model, optimizer)
+        step(restored, fresh)
+        for old, new in zip(model.parameters(), restored.parameters()):
+            torch.testing.assert_close(new, old, rtol=0, atol=0)
 
     def test_team7_step_zero_and_committed_resume_with_real_kas_head(self):
         import test_week2_team7_checkpoints as checkpoint_tests
